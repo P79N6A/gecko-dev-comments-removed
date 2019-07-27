@@ -506,7 +506,7 @@ class RegExpNode
     
     
     
-    virtual void FillInBMInfo(int offset,
+    virtual bool FillInBMInfo(int offset,
                               int budget,
                               BoyerMooreLookahead* bm,
                               bool not_at_start) {
@@ -624,13 +624,10 @@ class SeqRegExpNode : public RegExpNode
     RegExpNode* on_success() { return on_success_; }
     void set_on_success(RegExpNode* node) { on_success_ = node; }
     virtual RegExpNode* FilterASCII(int depth, bool ignore_case);
-    virtual void FillInBMInfo(int offset,
+    virtual bool FillInBMInfo(int offset,
                               int budget,
                               BoyerMooreLookahead* bm,
-                              bool not_at_start) {
-        on_success_->FillInBMInfo(offset, budget - 1, bm, not_at_start);
-        if (offset == 0) set_bm_info(not_at_start, bm);
-    }
+                              bool not_at_start);
 
   protected:
     RegExpNode* FilterSuccessor(int depth, bool ignore_case);
@@ -685,7 +682,7 @@ class ActionNode : public SeqRegExpNode
         return on_success()->GetQuickCheckDetails(
                                                   details, compiler, filled_in, not_at_start);
     }
-    virtual void FillInBMInfo(int offset,
+    virtual bool FillInBMInfo(int offset,
                               int budget,
                               BoyerMooreLookahead* bm,
                               bool not_at_start);
@@ -755,7 +752,7 @@ class TextNode : public SeqRegExpNode
     virtual int GreedyLoopTextLength();
     virtual RegExpNode* GetSuccessorOfOmnivorousTextNode(
                                                          RegExpCompiler* compiler);
-    virtual void FillInBMInfo(int offset,
+    virtual bool FillInBMInfo(int offset,
                               int budget,
                               BoyerMooreLookahead* bm,
                               bool not_at_start);
@@ -819,7 +816,7 @@ class AssertionNode : public SeqRegExpNode
                                       RegExpCompiler* compiler,
                                       int filled_in,
                                       bool not_at_start);
-    virtual void FillInBMInfo(int offset,
+    virtual bool FillInBMInfo(int offset,
                               int budget,
                               BoyerMooreLookahead* bm,
                               bool not_at_start);
@@ -858,7 +855,7 @@ class BackReferenceNode : public SeqRegExpNode
                                       bool not_at_start) {
         return;
     }
-    virtual void FillInBMInfo(int offset,
+    virtual bool FillInBMInfo(int offset,
                               int budget,
                               BoyerMooreLookahead* bm,
                               bool not_at_start);
@@ -890,7 +887,7 @@ class EndNode : public RegExpNode
         
         MOZ_CRASH("Bad call");
     }
-    virtual void FillInBMInfo(int offset,
+    virtual bool FillInBMInfo(int offset,
                               int budget,
                               BoyerMooreLookahead* bm,
                               bool not_at_start) {
@@ -999,7 +996,7 @@ class ChoiceNode : public RegExpNode
                                       RegExpCompiler* compiler,
                                       int characters_filled_in,
                                       bool not_at_start);
-    virtual void FillInBMInfo(int offset,
+    virtual bool FillInBMInfo(int offset,
                               int budget,
                               BoyerMooreLookahead* bm,
                               bool not_at_start);
@@ -1051,15 +1048,10 @@ class NegativeLookaheadChoiceNode : public ChoiceNode
                                       RegExpCompiler* compiler,
                                       int characters_filled_in,
                                       bool not_at_start);
-    virtual void FillInBMInfo(int offset,
+    virtual bool FillInBMInfo(int offset,
                               int budget,
                               BoyerMooreLookahead* bm,
-                              bool not_at_start)
-    {
-        alternatives()[1].node()->FillInBMInfo(offset, budget - 1, bm, not_at_start);
-        if (offset == 0)
-            set_bm_info(not_at_start, bm);
-    }
+                              bool not_at_start);
 
     
     
@@ -1088,7 +1080,7 @@ class LoopChoiceNode : public ChoiceNode
                                       RegExpCompiler* compiler,
                                       int characters_filled_in,
                                       bool not_at_start);
-    virtual void FillInBMInfo(int offset,
+    virtual bool FillInBMInfo(int offset,
                               int budget,
                               BoyerMooreLookahead* bm,
                               bool not_at_start);
@@ -1233,6 +1225,8 @@ class BoyerMooreLookahead
         for (int i = from_map; i < length_; i++) SetAll(i);
     }
     bool EmitSkipInstructions(RegExpMacroAssembler* masm);
+
+    bool CheckOverRecursed();
 
   private:
     
