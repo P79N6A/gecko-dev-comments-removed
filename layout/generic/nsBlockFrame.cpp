@@ -2731,12 +2731,12 @@ nsBlockFrame::PullFrameFrom(nsLineBox*           aLine,
 
 void
 nsBlockFrame::SlideLine(nsBlockReflowState& aState,
-                        nsLineBox* aLine, nscoord aDY)
+                        nsLineBox* aLine, nscoord aDeltaBCoord)
 {
-  NS_PRECONDITION(aDY != 0, "why slide a line nowhere?");
+  NS_PRECONDITION(aDeltaBCoord != 0, "why slide a line nowhere?");
 
   
-  aLine->SlideBy(aDY, aState.mContainerWidth);
+  aLine->SlideBy(aDeltaBCoord, aState.mContainerWidth);
 
   
   nsIFrame* kid = aLine->mFirstChild;
@@ -2744,9 +2744,13 @@ nsBlockFrame::SlideLine(nsBlockReflowState& aState,
     return;
   }
 
+  WritingMode wm = GetWritingMode();
+  nsPoint physicalDelta =
+    LogicalPoint(wm, 0, aDeltaBCoord).GetPhysicalPoint(wm, 0);
+
   if (aLine->IsBlock()) {
-    if (aDY) {
-      kid->MovePositionBy(nsPoint(0, aDY));
+    if (aDeltaBCoord) {
+      kid->MovePositionBy(physicalDelta);
     }
 
     
@@ -2759,8 +2763,8 @@ nsBlockFrame::SlideLine(nsBlockReflowState& aState,
     
     int32_t n = aLine->GetChildCount();
     while (--n >= 0) {
-      if (aDY) {
-        kid->MovePositionBy(nsPoint(0, aDY));
+      if (aDeltaBCoord) {
+        kid->MovePositionBy(physicalDelta);
       }
       
       nsContainerFrame::PlaceFrameView(kid);

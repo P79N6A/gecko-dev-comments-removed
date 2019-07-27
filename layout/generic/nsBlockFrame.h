@@ -412,7 +412,7 @@ protected:
 
 
   void SlideLine(nsBlockReflowState& aState,
-                 nsLineBox* aLine, nscoord aDY);
+                 nsLineBox* aLine, nscoord aDeltaBCoord);
 
   void ComputeFinalSize(const nsHTMLReflowState& aReflowState,
                         nsBlockReflowState&      aState,
