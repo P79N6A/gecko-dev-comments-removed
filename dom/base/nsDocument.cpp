@@ -6192,16 +6192,30 @@ nsDocument::RegisterElement(JSContext* aCx, const nsAString& aType,
   int32_t namespaceID = kNameSpaceID_XHTML;
   JS::Rooted<JSObject*> protoObject(aCx);
   {
-    JSAutoCompartment ac(aCx, global);
+    JS::Rooted<JSObject*> htmlProto(aCx);
+    JS::Rooted<JSObject*> svgProto(aCx);
+    {
+      JSAutoCompartment ac(aCx, global);
 
-    JS::Handle<JSObject*> htmlProto(
-      HTMLElementBinding::GetProtoObjectHandle(aCx, global));
-    if (!htmlProto) {
-      rv.Throw(NS_ERROR_OUT_OF_MEMORY);
-      return;
+      htmlProto = HTMLElementBinding::GetProtoObjectHandle(aCx, global);
+      if (!htmlProto) {
+        rv.Throw(NS_ERROR_OUT_OF_MEMORY);
+        return;
+      }
+
+      svgProto = SVGElementBinding::GetProtoObjectHandle(aCx, global);
+      if (!svgProto) {
+        rv.Throw(NS_ERROR_OUT_OF_MEMORY);
+        return;
+      }
     }
 
     if (!aOptions.mPrototype) {
+      if (!JS_WrapObject(aCx, &htmlProto)) {
+        rv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+        return;
+      }
+
       protoObject = JS_NewObjectWithGivenProto(aCx, nullptr, htmlProto);
       if (!protoObject) {
         rv.Throw(NS_ERROR_UNEXPECTED);
@@ -6211,15 +6225,7 @@ nsDocument::RegisterElement(JSContext* aCx, const nsAString& aType,
       protoObject = aOptions.mPrototype;
 
       
-      
-      if (!JS_WrapObject(aCx, &protoObject)) {
-        rv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
-        return;
-      }
-
-      
-      JS::Rooted<JSObject*> protoObjectUnwrapped(aCx,
-        js::CheckedUnwrap(protoObject));
+      JS::Rooted<JSObject*> protoObjectUnwrapped(aCx, js::CheckedUnwrap(protoObject));
       if (!protoObjectUnwrapped) {
         
         
@@ -6251,14 +6257,12 @@ nsDocument::RegisterElement(JSContext* aCx, const nsAString& aType,
         return;
       }
 
-      JS::Handle<JSObject*> svgProto(
-        SVGElementBinding::GetProtoObjectHandle(aCx, global));
-      if (!svgProto) {
-        rv.Throw(NS_ERROR_OUT_OF_MEMORY);
+      JS::Rooted<JSObject*> protoProto(aCx, protoObject);
+
+      if (!JS_WrapObject(aCx, &htmlProto) || !JS_WrapObject(aCx, &svgProto)) {
+        rv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
         return;
       }
-
-      JS::Rooted<JSObject*> protoProto(aCx, protoObject);
 
       
       
@@ -6277,7 +6281,7 @@ nsDocument::RegisterElement(JSContext* aCx, const nsAString& aType,
           return;
         }
       }
-    }
+    } 
 
     
     if (!lcName.IsEmpty()) {
@@ -6315,22 +6319,25 @@ nsDocument::RegisterElement(JSContext* aCx, const nsAString& aType,
     }
   } 
 
+  JS::Rooted<JSObject*> wrappedProto(aCx, protoObject);
+  if (!JS_WrapObject(aCx, &wrappedProto)) {
+    rv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+    return;
+  }
+
   
   nsAutoPtr<LifecycleCallbacks> callbacksHolder(new LifecycleCallbacks());
-  JS::RootedValue rootedv(aCx, JS::ObjectValue(*protoObject));
+  JS::RootedValue rootedv(aCx, JS::ObjectValue(*wrappedProto));
   if (!JS_WrapValue(aCx, &rootedv) || !callbacksHolder->Init(aCx, rootedv)) {
     rv.Throw(NS_ERROR_FAILURE);
     return;
   }
 
   
-  JSAutoCompartment ac(aCx, global);
-
-  
   CustomElementHashKey key(namespaceID, typeAtom);
   LifecycleCallbacks* callbacks = callbacksHolder.forget();
   CustomElementDefinition* definition =
-    new CustomElementDefinition(protoObject,
+    new CustomElementDefinition(wrappedProto,
                                 typeAtom,
                                 nameAtom,
                                 callbacks,
@@ -6360,9 +6367,13 @@ nsDocument::RegisterElement(JSContext* aCx, const nsAString& aType,
       CallQueryInterface(elem, &cache);
       MOZ_ASSERT(cache, "Element doesn't support wrapper cache?");
 
+      
+      
+      
+      
       JS::RootedObject wrapper(aCx);
-      if ((wrapper = cache->GetWrapper())) {
-        if (!JS_SetPrototype(aCx, wrapper, protoObject)) {
+      if ((wrapper = cache->GetWrapper()) && JS_WrapObject(aCx, &wrapper)) {
+        if (!JS_SetPrototype(aCx, wrapper, wrappedProto)) {
           continue;
         }
       }
@@ -6371,23 +6382,38 @@ nsDocument::RegisterElement(JSContext* aCx, const nsAString& aType,
     }
   }
 
-  
-  
-  JSFunction* constructor = JS_NewFunction(aCx, nsDocument::CustomElementConstructor, 0,
-                                           JSFUN_CONSTRUCTOR,
-                                           NS_ConvertUTF16toUTF8(lcType).get());
-  if (!constructor) {
-    rv.Throw(NS_ERROR_OUT_OF_MEMORY);
-    return;
+  JS::Rooted<JSFunction*> constructor(aCx);
+
+  {
+    
+    
+    
+    JSAutoCompartment ac(aCx, global);
+
+    
+    
+    constructor = JS_NewFunction(aCx, nsDocument::CustomElementConstructor, 0,
+                                 JSFUN_CONSTRUCTOR,
+                                 NS_ConvertUTF16toUTF8(lcType).get());
+    if (!constructor) {
+      rv.Throw(NS_ERROR_OUT_OF_MEMORY);
+      return;
+    }
   }
 
-  JS::Rooted<JSObject*> constructorObj(aCx, JS_GetFunctionObject(constructor));
-  if (!JS_LinkConstructorAndPrototype(aCx, constructorObj, protoObject)) {
+  JS::Rooted<JSObject*> wrappedConstructor(aCx);
+  wrappedConstructor = JS_GetFunctionObject(constructor);
+  if (!JS_WrapObject(aCx, &wrappedConstructor)) {
     rv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
     return;
   }
 
-  aRetval.set(constructorObj);
+  if (!JS_LinkConstructorAndPrototype(aCx, wrappedConstructor, protoObject)) {
+    rv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+    return;
+  }
+
+  aRetval.set(wrappedConstructor);
 }
 
 void

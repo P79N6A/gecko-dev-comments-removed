@@ -417,12 +417,16 @@ Element::WrapObject(JSContext *aCx)
   CustomElementData* data = GetCustomElementData();
   if (obj && data) {
     
-    JSAutoCompartment ac(aCx, obj);
     nsDocument* document = static_cast<nsDocument*>(OwnerDoc());
     JS::Rooted<JSObject*> prototype(aCx);
     document->GetCustomPrototype(NodeInfo()->NamespaceID(), data->mType, &prototype);
     if (prototype) {
-      if (!JS_WrapObject(aCx, &prototype) || !JS_SetPrototype(aCx, obj, prototype)) {
+      
+      
+      
+      
+      JSAutoCompartment ac(aCx, prototype);
+      if (!JS_WrapObject(aCx, &obj) || !JS_SetPrototype(aCx, obj, prototype)) {
         dom::Throw(aCx, NS_ERROR_FAILURE);
         return nullptr;
       }
