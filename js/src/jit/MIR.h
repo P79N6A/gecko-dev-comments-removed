@@ -127,11 +127,6 @@ class MUse : public TempObject, public InlineListNode<MUse>
     MDefinition *producer_; 
     MNode *consumer_;       
 
-    MUse(MDefinition *producer, MNode *consumer)
-      : producer_(producer),
-        consumer_(consumer)
-    { }
-
     
     
     
@@ -149,10 +144,16 @@ class MUse : public TempObject, public InlineListNode<MUse>
     { }
 
     
-    explicit MUse(const MUse &other)
-      : producer_(other.producer_), consumer_(other.consumer_)
+    
+    MUse(MUse &&other)
+      : InlineListNode<MUse>(mozilla::Move(other)),
+        producer_(other.producer_), consumer_(other.consumer_)
+    { }
+
+    
+    MUse(MDefinition *producer, MNode *consumer)
     {
-        MOZ_ASSERT(!other.next && !other.prev);
+        initUnchecked(producer, consumer);
     }
 
     
@@ -5904,7 +5905,6 @@ class MPhi MOZ_FINAL : public MDefinition, public InlineListNode<MPhi>
 
 #if DEBUG
     bool specialized_;
-    uint32_t capacity_;
 #endif
 
   protected:
@@ -5933,7 +5933,6 @@ class MPhi MOZ_FINAL : public MDefinition, public InlineListNode<MPhi>
         canConsumeFloat32_(false)
 #if DEBUG
         , specialized_(false)
-        , capacity_(0)
 #endif
     {
         setResultType(resultType);
@@ -6003,14 +6002,36 @@ class MPhi MOZ_FINAL : public MDefinition, public InlineListNode<MPhi>
 
     
     
-    bool reserveLength(size_t length);
+    bool reserveLength(size_t length) {
+        return inputs_.reserve(length);
+    }
 
     
-    void addInput(MDefinition *ins);
+    void addInput(MDefinition *ins) {
+        
+        
+        
+        
+        
+        inputs_.infallibleGrowByUninitialized(1);
+        new (&inputs_.back()) MUse(ins, this);
+    }
 
     
     
-    bool addInputSlow(MDefinition *ins, bool *ptypeChange = nullptr);
+    bool addInputSlow(MDefinition *ins) {
+        
+        
+        if (!inputs_.growByUninitialized(1))
+            return false;
+
+        new (&inputs_.back()) MUse(ins, this);
+        return true;
+    }
+
+    
+    
+    bool checkForTypeChange(MDefinition *ins, bool *ptypeChange);
 
     MDefinition *foldsTo(TempAllocator &alloc);
     MDefinition *foldsTernary();

@@ -1361,19 +1361,6 @@ MPhi::congruentTo(const MDefinition *ins) const
     return congruentIfOperandsEqual(ins);
 }
 
-bool
-MPhi::reserveLength(size_t length)
-{
-    
-    
-    
-    MOZ_ASSERT(numOperands() == 0);
-#if DEBUG
-    capacity_ = length;
-#endif
-    return inputs_.reserve(length);
-}
-
 static inline types::TemporaryTypeSet *
 MakeMIRTypeSet(MIRType type)
 {
@@ -1502,65 +1489,20 @@ MPhi::typeIncludes(MDefinition *def)
     return this->mightBeType(def->type());
 }
 
-void
-MPhi::addInput(MDefinition *ins)
-{
-    
-    
-    MOZ_ASSERT(inputs_.length() < capacity_);
-
-    inputs_.append(MUse());
-    inputs_.back().init(ins, this);
-}
-
 bool
-MPhi::addInputSlow(MDefinition *ins, bool *ptypeChange)
+MPhi::checkForTypeChange(MDefinition *ins, bool *ptypeChange)
 {
-    
-    
-    
-    
-    
-    
-    uint32_t index = inputs_.length();
-    bool performingRealloc = !inputs_.canAppendWithoutRealloc(1);
+    MIRType resultType = this->type();
+    types::TemporaryTypeSet *resultTypeSet = this->resultTypeSet();
 
-    
-    if (performingRealloc) {
-        for (uint32_t i = 0; i < index; i++) {
-            MUse *use = &inputs_[i];
-            use->producer()->removeUse(use);
-        }
-    }
-
-    
-    if (!inputs_.append(MUse()))
+    if (!MergeTypes(&resultType, &resultTypeSet, ins->type(), ins->resultTypeSet()))
         return false;
 
-    inputs_.back().init(ins, this);
-
-    if (ptypeChange) {
-        MIRType resultType = this->type();
-        types::TemporaryTypeSet *resultTypeSet = this->resultTypeSet();
-
-        if (!MergeTypes(&resultType, &resultTypeSet, ins->type(), ins->resultTypeSet()))
-            return false;
-
-        if (resultType != this->type() || resultTypeSet != this->resultTypeSet()) {
-            *ptypeChange = true;
-            setResultType(resultType);
-            setResultTypeSet(resultTypeSet);
-        }
+    if (resultType != this->type() || resultTypeSet != this->resultTypeSet()) {
+        *ptypeChange = true;
+        setResultType(resultType);
+        setResultTypeSet(resultTypeSet);
     }
-
-    
-    if (performingRealloc) {
-        for (uint32_t i = 0; i < index; i++) {
-            MUse *use = &inputs_[i];
-            use->producer()->addUse(use);
-        }
-    }
-
     return true;
 }
 

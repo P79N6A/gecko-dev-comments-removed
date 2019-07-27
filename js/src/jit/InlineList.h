@@ -211,7 +211,26 @@ class InlineListNode : public InlineForwardListNode<T>
         prev(p)
     { }
 
+    
+    
+    
+    
+    
+    InlineListNode(InlineListNode<T> &&other)
+      : InlineForwardListNode<T>(other.next)
+    {
+        InlineListNode<T> *newNext = static_cast<InlineListNode<T> *>(other.next);
+        InlineListNode<T> *newPrev = other.prev;
+        prev = newPrev;
+
+        
+        
+        newNext->prev = this;
+        newPrev->next = this;
+    }
+
     InlineListNode(const InlineListNode<T> &) MOZ_DELETE;
+    void operator=(const InlineListNode<T> &) MOZ_DELETE;
 
   protected:
     friend class InlineList<T>;
