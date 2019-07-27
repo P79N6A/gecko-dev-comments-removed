@@ -279,7 +279,7 @@ class MozbuildSandbox(Sandbox):
         """Include and exec another file within the context of this one."""
 
         
-        self.exec_file(path)
+        self.exec_file(unicode(path), filesystem_absolute=True)
 
     def _warning(self, message):
         
@@ -978,7 +978,7 @@ class BuildReader(object):
                     recurse_info[d]['exports'] = dict(sandbox.metadata['exports'])
 
         for path, child_metadata in recurse_info.items():
-            child_path = mozpath.join(path, 'moz.build')
+            child_path = path.join('moz.build')
 
             
             
