@@ -41,9 +41,8 @@ DevToolsUtils.defineLazyGetter(this, "socketTransportService", () => {
 
 
 
-function socketConnect(aHost, aPort)
-{
-  let s = socketTransportService.createTransport(null, 0, aHost, aPort, null);
+function socketConnect(host, port) {
+  let s = socketTransportService.createTransport(null, 0, host, port, null);
   
   
   
@@ -131,21 +130,21 @@ SocketListener.prototype = {
   
 
   onSocketAccepted:
-  DevToolsUtils.makeInfallible(function(aSocket, aTransport) {
+  DevToolsUtils.makeInfallible(function(socket, socketTransport) {
     if (Services.prefs.getBoolPref("devtools.debugger.prompt-connection") &&
         !this._server._allowConnection()) {
       return;
     }
     dumpn("New debugging connection on " +
-          aTransport.host + ":" + aTransport.port);
+          socketTransport.host + ":" + socketTransport.port);
 
-    let input = aTransport.openInputStream(0, 0, 0);
-    let output = aTransport.openOutputStream(0, 0, 0);
+    let input = socketTransport.openInputStream(0, 0, 0);
+    let output = socketTransport.openOutputStream(0, 0, 0);
     let transport = new DebuggerTransport(input, output);
     this._server._onConnection(transport);
   }, "SocketListener.onSocketAccepted"),
 
-  onStopListening: function(aSocket, status) {
+  onStopListening: function(socket, status) {
     dumpn("onStopListening, status: " + status);
   }
 
