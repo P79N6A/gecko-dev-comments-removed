@@ -260,11 +260,13 @@ nsAutoCompleteController::HandleEnter(bool aIsPopupSelection, bool *_retval)
   if (!mInput)
     return NS_OK;
 
+  nsCOMPtr<nsIAutoCompleteInput> input(mInput);
+
   
-  mInput->GetPopupOpen(_retval);
+  input->GetPopupOpen(_retval);
   if (*_retval) {
     nsCOMPtr<nsIAutoCompletePopup> popup;
-    mInput->GetPopup(getter_AddRefs(popup));
+    input->GetPopup(getter_AddRefs(popup));
 
     if (popup) {
       int32_t selectedIndex;
@@ -287,8 +289,10 @@ nsAutoCompleteController::HandleEscape(bool *_retval)
   if (!mInput)
     return NS_OK;
 
+  nsCOMPtr<nsIAutoCompleteInput> input(mInput);
+
   
-  mInput->GetPopupOpen(_retval);
+  input->GetPopupOpen(_retval);
 
   
   StopSearch();
@@ -986,16 +990,18 @@ nsAutoCompleteController::ClosePopup()
     return NS_OK;
   }
 
+  nsCOMPtr<nsIAutoCompleteInput> input(mInput);
+
   bool isOpen = false;
-  mInput->GetPopupOpen(&isOpen);
+  input->GetPopupOpen(&isOpen);
   if (!isOpen)
     return NS_OK;
 
   nsCOMPtr<nsIAutoCompletePopup> popup;
-  mInput->GetPopup(getter_AddRefs(popup));
+  input->GetPopup(getter_AddRefs(popup));
   NS_ENSURE_TRUE(popup != nullptr, NS_ERROR_FAILURE);
   popup->SetSelectedIndex(-1);
-  return mInput->SetPopupOpen(false);
+  return input->SetPopupOpen(false);
 }
 
 nsresult
@@ -1114,9 +1120,11 @@ nsAutoCompleteController::StartSearches()
   if (mTimer || !mInput)
     return NS_OK;
 
+  nsCOMPtr<nsIAutoCompleteInput> input(mInput);
+
   
   uint32_t timeout;
-  mInput->GetTimeout(&timeout);
+  input->GetTimeout(&timeout);
 
   uint32_t immediateSearchesCount = mImmediateSearchesCount;
   if (timeout == 0) {
@@ -1442,10 +1450,12 @@ nsAutoCompleteController::CompleteDefaultIndex(int32_t aResultIndex)
   if (mDefaultIndexCompleted || mBackspaced || mSearchString.Length() == 0 || !mInput)
     return NS_OK;
 
+  nsCOMPtr<nsIAutoCompleteInput> input(mInput);
+
   int32_t selectionStart;
-  mInput->GetSelectionStart(&selectionStart);
+  input->GetSelectionStart(&selectionStart);
   int32_t selectionEnd;
-  mInput->GetSelectionEnd(&selectionEnd);
+  input->GetSelectionEnd(&selectionEnd);
 
   
   
@@ -1454,7 +1464,7 @@ nsAutoCompleteController::CompleteDefaultIndex(int32_t aResultIndex)
     return NS_OK;
 
   bool shouldComplete;
-  mInput->GetCompleteDefaultIndex(&shouldComplete);
+  input->GetCompleteDefaultIndex(&shouldComplete);
   if (!shouldComplete)
     return NS_OK;
 
@@ -1554,6 +1564,7 @@ nsresult
 nsAutoCompleteController::GetFinalDefaultCompleteValue(nsAString &_retval)
 {
   MOZ_ASSERT(mInput, "Must have a valid input");
+  nsCOMPtr<nsIAutoCompleteInput> input(mInput);
   nsIAutoCompleteResult *result;
   int32_t defaultIndex = -1;
   nsresult rv = GetDefaultCompleteResult(-1, &result, &defaultIndex);
@@ -1561,7 +1572,7 @@ nsAutoCompleteController::GetFinalDefaultCompleteValue(nsAString &_retval)
 
   result->GetValueAt(defaultIndex, _retval);
   nsAutoString inputValue;
-  mInput->GetTextValue(inputValue);
+  input->GetTextValue(inputValue);
   if (!_retval.Equals(inputValue, nsCaseInsensitiveStringComparator())) {
     return NS_ERROR_FAILURE;
   }
@@ -1584,6 +1595,7 @@ nsAutoCompleteController::CompleteValue(nsString &aValue)
 
 {
   MOZ_ASSERT(mInput, "Must have a valid input");
+  nsCOMPtr<nsIAutoCompleteInput> input(mInput);
   const int32_t mSearchStringLength = mSearchString.Length();
   int32_t endSelect = aValue.Length();  
 
@@ -1593,7 +1605,7 @@ nsAutoCompleteController::CompleteValue(nsString &aValue)
     
     
     
-    mInput->SetTextValue(aValue);
+    input->SetTextValue(aValue);
   } else {
     nsresult rv;
     nsCOMPtr<nsIIOService> ios = do_GetService(NS_IOSERVICE_CONTRACTID, &rv);
@@ -1613,22 +1625,22 @@ nsAutoCompleteController::CompleteValue(nsString &aValue)
         return NS_OK;
       }
 
-      mInput->SetTextValue(mSearchString +
-                           Substring(aValue, mSearchStringLength + findIndex,
-                                     endSelect));
+      input->SetTextValue(mSearchString +
+                          Substring(aValue, mSearchStringLength + findIndex,
+                                    endSelect));
 
       endSelect -= findIndex; 
     } else {
       
       
       
-      mInput->SetTextValue(mSearchString + NS_LITERAL_STRING(" >> ") + aValue);
+      input->SetTextValue(mSearchString + NS_LITERAL_STRING(" >> ") + aValue);
 
       endSelect = mSearchString.Length() + 4 + aValue.Length();
     }
   }
 
-  mInput->SelectTextRange(mSearchStringLength, endSelect);
+  input->SelectTextRange(mSearchStringLength, endSelect);
 
   return NS_OK;
 }
