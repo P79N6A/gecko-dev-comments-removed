@@ -12,37 +12,15 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/LoadContextInfo.jsm");
 Cu.import("resource://gre/modules/FormHistory.jsm");
 Cu.import("resource://gre/modules/Messaging.jsm");
+Cu.import("resource://gre/modules/Task.jsm");
+Cu.import("resource://gre/modules/Downloads.jsm");
+Cu.import("resource://gre/modules/osfile.jsm");
 
 function dump(a) {
   Services.console.logStringMessage(a);
 }
 
 this.EXPORTED_SYMBOLS = ["Sanitizer"];
-
-let downloads = {
-  dlmgr: Cc["@mozilla.org/download-manager;1"].getService(Ci.nsIDownloadManager),
-
-  iterate: function (aCallback) {
-    let dlmgr = downloads.dlmgr;
-    let dbConn = dlmgr.DBConnection;
-    let stmt = dbConn.createStatement("SELECT id FROM moz_downloads WHERE " +
-        "state = ? OR state = ? OR state = ? OR state = ? OR state = ? OR state = ?");
-    stmt.bindByIndex(0, Ci.nsIDownloadManager.DOWNLOAD_FINISHED);
-    stmt.bindByIndex(1, Ci.nsIDownloadManager.DOWNLOAD_FAILED);
-    stmt.bindByIndex(2, Ci.nsIDownloadManager.DOWNLOAD_CANCELED);
-    stmt.bindByIndex(3, Ci.nsIDownloadManager.DOWNLOAD_BLOCKED_PARENTAL);
-    stmt.bindByIndex(4, Ci.nsIDownloadManager.DOWNLOAD_BLOCKED_POLICY);
-    stmt.bindByIndex(5, Ci.nsIDownloadManager.DOWNLOAD_DIRTY);
-    while (stmt.executeStep()) {
-      aCallback(dlmgr.getDownload(stmt.row.id));
-    }
-    stmt.finalize();
-  },
-
-  get canClear() {
-    return this.dlmgr.canCleanUp;
-  }
-};
 
 function Sanitizer() {}
 Sanitizer.prototype = {
@@ -203,26 +181,40 @@ Sanitizer.prototype = {
     },
 
     downloadFiles: {
-      clear: function ()
-      {
-        return new Promise(function(resolve, reject) {
-          downloads.iterate(function (dl) {
+      clear: Task.async(function* () {
+        let list = yield Downloads.getList(Downloads.ALL);
+        let downloads = yield list.getAll();
+
+        
+        
+        
+        for (let download of downloads) {
+          
+          
+          
+          if (download.stopped && (!download.hasPartialData || download.error)) {
             
-            let f = dl.targetFile;
-            if (f.exists()) {
-              f.remove(false);
-            }
+            
+            yield list.remove(download);
+            
+            
+            
+            
+            download.finalize(true).then(null, Cu.reportError);
 
             
-            dl.remove();
-          });
-          resolve();
-        });
-      },
+            OS.File.remove(download.target.path).then(null, ex => {
+              if (!(ex instanceof OS.File.Error && ex.becauseNoSuchFile)) {
+                Cu.reportError(ex);
+              }
+            });
+          }
+        }
+      }),
 
       get canClear()
       {
-        return downloads.canClear;
+        return true;
       }
     },
 
