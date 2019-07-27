@@ -508,7 +508,6 @@ nsInlineFrame::DrainSelfOverflowListInternal(DrainFlags aFlags,
 {
   AutoFrameListPtr overflowFrames(PresContext(), StealOverflowFrames());
   if (overflowFrames) {
-    NS_ASSERTION(mFrames.NotEmpty(), "overflow list w/o frames");
     
     
     
@@ -1200,8 +1199,6 @@ nsFirstLineFrame::DrainSelfOverflowList()
 {
   AutoFrameListPtr overflowFrames(PresContext(), StealOverflowFrames());
   if (overflowFrames) {
-    NS_ASSERTION(mFrames.NotEmpty(), "overflow list w/o frames");
-
     bool result = !overflowFrames->IsEmpty();
     const nsFrameList::Slice& newFrames =
       mFrames.AppendFrames(nullptr, *overflowFrames);
