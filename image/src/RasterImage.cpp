@@ -648,60 +648,68 @@ RasterImage::GetType()
 }
 
 already_AddRefed<imgFrame>
-RasterImage::GetImgFrameNoDecode(uint32_t framenum)
+RasterImage::GetFrameNoDecode(uint32_t aFrameNum)
 {
   if (!mAnim) {
-    NS_ASSERTION(framenum == 0, "Don't ask for a frame > 0 if we're not animated!");
+    NS_ASSERTION(aFrameNum == 0, "Don't ask for a frame > 0 if we're not animated!");
     return mFrameBlender.GetFrame(0);
   }
-  return mFrameBlender.GetFrame(framenum);
+  return mFrameBlender.GetFrame(aFrameNum);
 }
 
-already_AddRefed<imgFrame>
-RasterImage::GetImgFrame(uint32_t framenum)
+DrawableFrameRef
+RasterImage::GetFrame(uint32_t aFrameNum)
 {
+  if (mMultipart &&
+      aFrameNum == GetCurrentFrameIndex() &&
+      mMultipartDecodedFrame) {
+    
+    
+    
+    return mMultipartDecodedFrame->DrawableRef();
+  }
+
+  
   nsresult rv = WantDecodedFrames();
-  CONTAINER_ENSURE_TRUE(NS_SUCCEEDED(rv), nullptr);
-  return GetImgFrameNoDecode(framenum);
-}
+  CONTAINER_ENSURE_TRUE(NS_SUCCEEDED(rv), DrawableFrameRef());
 
-already_AddRefed<imgFrame>
-RasterImage::GetDrawableImgFrame(uint32_t framenum)
-{
-  nsRefPtr<imgFrame> frame;
-
-  if (mMultipart && framenum == GetCurrentImgFrameIndex()) {
-    
-    
-    
-    frame = mMultipartDecodedFrame;
-  }
-
+  nsRefPtr<imgFrame> frame = GetFrameNoDecode(aFrameNum);
   if (!frame) {
-    frame = GetImgFrame(framenum);
+    return DrawableFrameRef();
+  }
+
+  DrawableFrameRef ref = frame->DrawableRef();
+  if (!ref) {
+    
+    MOZ_ASSERT(!mAnim, "Animated frames should be locked");
+    ForceDiscard();
+    WantDecodedFrames();
+    return DrawableFrameRef();
   }
 
   
   
-  if (frame && frame->GetCompositingFailed())
-    return nullptr;
+  if (ref->GetCompositingFailed()) {
+    return DrawableFrameRef();
+  }
 
-  return frame.forget();
+  return ref;
 }
 
 uint32_t
-RasterImage::GetCurrentImgFrameIndex() const
+RasterImage::GetCurrentFrameIndex() const
 {
-  if (mAnim)
+  if (mAnim) {
     return mAnim->GetCurrentAnimationFrameIndex();
+  }
 
   return 0;
 }
 
-already_AddRefed<imgFrame>
-RasterImage::GetCurrentImgFrame()
+uint32_t
+RasterImage::GetRequestedFrameIndex(uint32_t aWhichFrame) const
 {
-  return GetImgFrame(GetCurrentImgFrameIndex());
+  return aWhichFrame == FRAME_FIRST ? 0 : GetCurrentFrameIndex();
 }
 
 
@@ -718,9 +726,8 @@ RasterImage::FrameIsOpaque(uint32_t aWhichFrame)
     return false;
 
   
-  nsRefPtr<imgFrame> frame = aWhichFrame == FRAME_FIRST
-                           ? GetImgFrameNoDecode(0)
-                           : GetImgFrameNoDecode(GetCurrentImgFrameIndex());
+  nsRefPtr<imgFrame> frame =
+    GetFrameNoDecode(GetRequestedFrameIndex(aWhichFrame));
 
   
   if (!frame)
@@ -743,9 +750,8 @@ RasterImage::FrameRect(uint32_t aWhichFrame)
   }
 
   
-  nsRefPtr<imgFrame> frame = aWhichFrame == FRAME_FIRST
-                           ? GetImgFrameNoDecode(0)
-                           : GetImgFrameNoDecode(GetCurrentImgFrameIndex());
+  nsRefPtr<imgFrame> frame =
+    GetFrameNoDecode(GetRequestedFrameIndex(aWhichFrame));
 
   
   if (frame) {
@@ -758,12 +764,6 @@ RasterImage::FrameRect(uint32_t aWhichFrame)
   
   
   return nsIntRect();
-}
-
-uint32_t
-RasterImage::GetCurrentFrameIndex()
-{
-  return GetCurrentImgFrameIndex();
 }
 
 uint32_t
@@ -842,10 +842,13 @@ RasterImage::CopyFrame(uint32_t aWhichFrame,
   
   
   
-  uint32_t frameIndex = (aWhichFrame == FRAME_FIRST) ?
-                        0 : GetCurrentImgFrameIndex();
-  nsRefPtr<imgFrame> frame = GetDrawableImgFrame(frameIndex);
-  if (!frame) {
+  DrawableFrameRef frameRef = GetFrame(GetRequestedFrameIndex(aWhichFrame));
+  if (!frameRef) {
+    
+    if (aFlags & FLAG_SYNC_DECODE) {
+      ForceDiscard();
+      return CopyFrame(aWhichFrame, aFlags);
+    }
     return nullptr;
   }
 
@@ -872,16 +875,16 @@ RasterImage::CopyFrame(uint32_t aWhichFrame,
                                      mapping.mStride,
                                      SurfaceFormat::B8G8R8A8);
 
-  nsIntRect intframerect = frame->GetRect();
-  Rect rect(intframerect.x, intframerect.y,
-            intframerect.width, intframerect.height);
-  if (frame->IsSinglePixel()) {
-    target->FillRect(rect, ColorPattern(frame->SinglePixelColor()),
+  nsIntRect intFrameRect = frameRef->GetRect();
+  Rect rect(intFrameRect.x, intFrameRect.y,
+            intFrameRect.width, intFrameRect.height);
+  if (frameRef->IsSinglePixel()) {
+    target->FillRect(rect, ColorPattern(frameRef->SinglePixelColor()),
                      DrawOptions(1.0f, CompositionOp::OP_SOURCE));
   } else {
-    RefPtr<SourceSurface> srcsurf = frame->GetSurface();
-    Rect srcrect(0, 0, intframerect.width, intframerect.height);
-    target->DrawSurface(srcsurf, srcrect, rect);
+    RefPtr<SourceSurface> srcSurf = frameRef->GetSurface();
+    Rect srcRect(0, 0, intFrameRect.width, intFrameRect.height);
+    target->DrawSurface(srcSurf, srcRect, rect);
   }
 
   target->Flush();
@@ -921,46 +924,34 @@ RasterImage::GetFrame(uint32_t aWhichFrame,
   
   
   
-  uint32_t frameIndex = (aWhichFrame == FRAME_FIRST) ?
-                          0 : GetCurrentImgFrameIndex();
-  nsRefPtr<imgFrame> frame = GetDrawableImgFrame(frameIndex);
-  if (!frame) {
-    return nullptr;
-  }
-
-  RefPtr<SourceSurface> framesurf;
-
-  
-  
-  nsIntRect framerect = frame->GetRect();
-  if (framerect.x == 0 && framerect.y == 0 &&
-      framerect.width == mSize.width &&
-      framerect.height == mSize.height) {
-    framesurf = frame->GetSurface();
-    if (!framesurf && !frame->IsSinglePixel()) {
-      
-      if (!(aFlags & FLAG_SYNC_DECODE))
-        return nullptr;
-
-      
-      
-      
-      
-      
-      
-      
+  DrawableFrameRef frameRef = GetFrame(GetRequestedFrameIndex(aWhichFrame));
+  if (!frameRef) {
+    
+    if (aFlags & FLAG_SYNC_DECODE) {
       ForceDiscard();
       return GetFrame(aWhichFrame, aFlags);
     }
+    return nullptr;
+  }
+
+
+  
+  
+  RefPtr<SourceSurface> frameSurf;
+  nsIntRect frameRect = frameRef->GetRect();
+  if (frameRect.x == 0 && frameRect.y == 0 &&
+      frameRect.width == mSize.width &&
+      frameRect.height == mSize.height) {
+    frameSurf = frameRef->GetSurface();
   }
 
   
   
-  if (!framesurf) {
-    framesurf = CopyFrame(aWhichFrame, aFlags);
+  if (!frameSurf) {
+    frameSurf = CopyFrame(aWhichFrame, aFlags);
   }
 
-  return framesurf;
+  return frameSurf;
 }
 
 already_AddRefed<layers::Image>
@@ -1490,9 +1481,10 @@ RasterImage::StartAnimation()
 
   EnsureAnimExists();
 
-  nsRefPtr<imgFrame> currentFrame = GetCurrentImgFrame();
+  nsRefPtr<imgFrame> currentFrame = GetFrameNoDecode(GetCurrentFrameIndex());
   
-  if (currentFrame && mFrameBlender.GetTimeoutForFrame(GetCurrentImgFrameIndex()) < 0) {
+  if (currentFrame &&
+      mFrameBlender.GetTimeoutForFrame(GetCurrentFrameIndex()) < 0) {
     mAnimationFinished = true;
     return NS_ERROR_ABORT;
   }
@@ -2636,67 +2628,56 @@ RasterImage::RequestScale(imgFrame* aFrame, nsIntSize aSize)
   }
 }
 
-bool
-RasterImage::DrawWithPreDownscaleIfNeeded(imgFrame *aFrame,
+void
+RasterImage::DrawWithPreDownscaleIfNeeded(DrawableFrameRef&& aFrameRef,
                                           gfxContext *aContext,
                                           const nsIntSize& aSize,
                                           const ImageRegion& aRegion,
                                           GraphicsFilter aFilter,
                                           uint32_t aFlags)
 {
-  nsRefPtr<imgFrame> frame = aFrame;
-  nsIntRect framerect = frame->GetRect();
-
-  gfxContextMatrixAutoSaveRestore saveMatrix(aContext);
-  RefPtr<SourceSurface> surf;
+  DrawableFrameRef frameRef;
   gfx::Size scale(double(aSize.width) / mSize.width,
                   double(aSize.height) / mSize.height);
 
-  if (CanScale(aFilter, scale, aFlags) && !frame->IsSinglePixel()) {
+  if (CanScale(aFilter, scale, aFlags) && !aFrameRef->IsSinglePixel()) {
     
     
     
     
     
-    
-    
-    
-    bool needScaleReq;
     if (mScaleResult.status == SCALE_DONE && mScaleResult.scaledSize == aSize) {
-      
-      surf = mScaleResult.frame->GetSurface();
-      needScaleReq = !surf;
-      if (surf) {
-        frame = mScaleResult.frame;
-      }
-    } else {
-      needScaleReq = !(mScaleResult.status == SCALE_PENDING &&
-                       mScaleResult.scaledSize == aSize);
+      frameRef = mScaleResult.frame->DrawableRef();
     }
-
-    
-    
-    if (needScaleReq) {
-      RequestScale(frame, aSize);
+    if (!frameRef &&
+        (mScaleResult.status != SCALE_PENDING || mScaleResult.scaledSize != aSize)) {
+      
+      
+      
+      RequestScale(aFrameRef.get(), aSize);
     }
   }
 
+  gfxContextMatrixAutoSaveRestore saveMatrix(aContext);
   ImageRegion region(aRegion);
+  if (!frameRef) {
+    frameRef = Move(aFrameRef);
+  }
 
   
   
-  nsIntSize finalFrameSize(frame->GetRect().Size());
-  if (finalFrameSize != aSize) {
+  nsIntRect finalFrameRect = frameRef->GetRect();
+  if (finalFrameRect.Size() != aSize) {
     aContext->Multiply(gfxMatrix::Scaling(scale.width, scale.height));
     region.Scale(1.0 / scale.width, 1.0 / scale.height);
   }
 
-  nsIntMargin padding(framerect.y,
-                      mSize.width - framerect.XMost(),
-                      mSize.height - framerect.YMost(),
-                      framerect.x);
+  nsIntMargin padding(finalFrameRect.y,
+                      mSize.width - finalFrameRect.XMost(),
+                      mSize.height - finalFrameRect.YMost(),
+                      finalFrameRect.x);
 
-  return frame->Draw(aContext, region, padding, aFilter, aFlags);
+  frameRef->Draw(aContext, region, padding, aFilter, aFlags);
 }
 
 
@@ -2779,21 +2760,12 @@ RasterImage::Draw(gfxContext* aContext,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  uint32_t frameIndex = aWhichFrame == FRAME_FIRST ? 0
-                                                   : GetCurrentImgFrameIndex();
-  nsRefPtr<imgFrame> frame = GetDrawableImgFrame(frameIndex);
-  if (!frame) {
+  DrawableFrameRef ref = GetFrame(GetRequestedFrameIndex(aWhichFrame));
+  if (!ref) {
     return NS_OK; 
   }
 
-  bool drawn = DrawWithPreDownscaleIfNeeded(frame, aContext, aSize,
-                                            aRegion, aFilter, aFlags);
-  if (!drawn) {
-    
-    ForceDiscard();
-    WantDecodedFrames();
-    return NS_OK;
-  }
+  DrawWithPreDownscaleIfNeeded(Move(ref), aContext, aSize, aRegion, aFilter, aFlags);
 
   if (mDecoded && !mDrawStartTime.IsNull()) {
       TimeDuration drawLatency = TimeStamp::Now() - mDrawStartTime;
@@ -3709,12 +3681,9 @@ RasterImage::OptimalImageSizeForDest(const gfxSize& aDest, uint32_t aWhichFrame,
     }
 
     
-    uint32_t frameIndex = aWhichFrame == FRAME_FIRST ? 0
-                                                     : GetCurrentImgFrameIndex();
-
-    nsRefPtr<imgFrame> frame = GetDrawableImgFrame(frameIndex);
-    if (frame) {
-      RequestScale(frame, destSize);
+    DrawableFrameRef frameRef = GetFrame(GetRequestedFrameIndex(aWhichFrame));
+    if (frameRef) {
+      RequestScale(frameRef.get(), destSize);
     }
   }
 

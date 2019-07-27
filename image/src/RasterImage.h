@@ -170,10 +170,6 @@ public:
                                       uint32_t* aWriteCount);
 
   
-
-  uint32_t GetCurrentFrameIndex();
-
-  
   uint32_t GetNumFrames() const;
 
   virtual size_t HeapSizeOfSourceWithComputedFallback(MallocSizeOf aMallocSizeOf) const;
@@ -557,8 +553,8 @@ private:
   nsresult FinishedSomeDecoding(eShutdownIntent intent = eShutdownIntent_Done,
                                 DecodeRequest* request = nullptr);
 
-  bool DrawWithPreDownscaleIfNeeded(imgFrame *aFrame,
-                                    gfxContext *aContext,
+  void DrawWithPreDownscaleIfNeeded(DrawableFrameRef&& aFrameRef,
+                                    gfxContext* aContext,
                                     const nsIntSize& aSize,
                                     const ImageRegion& aRegion,
                                     GraphicsFilter aFilter,
@@ -567,21 +563,10 @@ private:
   TemporaryRef<gfx::SourceSurface> CopyFrame(uint32_t aWhichFrame,
                                              uint32_t aFlags);
 
-  
-
-
-
-
-
-
-
-  void DeleteImgFrame(uint32_t framenum);
-
-  already_AddRefed<imgFrame> GetImgFrameNoDecode(uint32_t framenum);
-  already_AddRefed<imgFrame> GetImgFrame(uint32_t framenum);
-  already_AddRefed<imgFrame> GetDrawableImgFrame(uint32_t framenum);
-  already_AddRefed<imgFrame> GetCurrentImgFrame();
-  uint32_t GetCurrentImgFrameIndex() const;
+  already_AddRefed<imgFrame> GetFrameNoDecode(uint32_t aFrameNum);
+  DrawableFrameRef GetFrame(uint32_t aFrameNum);
+  uint32_t GetCurrentFrameIndex() const;
+  uint32_t GetRequestedFrameIndex(uint32_t aWhichFrame) const;
 
   size_t SizeOfDecodedWithComputedFallbackIfHeap(gfxMemoryLocation aLocation,
                                                  MallocSizeOf aMallocSizeOf) const;
