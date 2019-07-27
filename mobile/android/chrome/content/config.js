@@ -87,8 +87,8 @@ var NewPrefDialog = {
     }
 
     
-    let item = document.querySelector(".pref-item[name=\"" + CSS.escape(aPrefName) + "\"]");
-    if (item) {
+    let item = AboutConfig._list.filter(i => { return i.name == aPrefName });
+    if (item.length) {
       this._positiveButton.textContent = gStringBundle.GetStringFromName("newPref.changeButton");
     } else {
       this._positiveButton.removeAttribute("disabled");
@@ -473,20 +473,23 @@ var AboutConfig = {
 
     
     let item = document.querySelector(".pref-item[name=\"" + CSS.escape(pref.name) + "\"]");
-    if (!item) {
-      document.location.reload();
+    if (item) {
+      item.setAttribute("value", pref.value);
+      let input = item.querySelector("input");
+      input.setAttribute("value", pref.value);
+      input.value = pref.value;
+
+      pref.default ?
+        item.querySelector(".reset").setAttribute("disabled", "true") :
+        item.querySelector(".reset").removeAttribute("disabled");
       return;
     }
 
     
-    item.setAttribute("value", pref.value);
-    let input = item.querySelector("input");
-    input.setAttribute("value", pref.value);
-    input.value = pref.value;
-
-    pref.default ?
-      item.querySelector(".reset").setAttribute("disabled", "true") :
-      item.querySelector(".reset").removeAttribute("disabled");
+    let anyWhere = this._list.filter(i => { return i.name == pref.name });
+    if (!anyWhere.length) {
+      document.location.reload();
+    }
   },
 
   
