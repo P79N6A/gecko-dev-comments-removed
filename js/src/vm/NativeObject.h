@@ -88,7 +88,7 @@ class ArrayObject;
 
 extern bool
 ArraySetLength(JSContext *cx, Handle<ArrayObject*> obj, HandleId id,
-               unsigned attrs, HandleValue value, bool setterIsStrict);
+               unsigned attrs, HandleValue value, ObjectOpResult &result);
 
 
 
@@ -189,7 +189,7 @@ class ObjectElements
 
     friend bool
     ArraySetLength(JSContext *cx, Handle<ArrayObject*> obj, HandleId id,
-                   unsigned attrs, HandleValue value, bool setterIsStrict);
+                   unsigned attrs, HandleValue value, ObjectOpResult &result);
 
     
     uint32_t flags;
@@ -349,10 +349,6 @@ class NativeObject : public JSObject
 
     
     js::HeapSlot *elements_;
-
-    friend bool
-    ArraySetLength(JSContext *cx, Handle<ArrayObject*> obj, HandleId id, unsigned attrs,
-                   HandleValue value, bool setterIsStrict);
 
     friend class ::JSObject;
 

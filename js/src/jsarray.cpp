@@ -474,7 +474,15 @@ array_length_setter(JSContext *cx, HandleObject obj, HandleId id, bool strict, M
     Rooted<ArrayObject*> arr(cx, &obj->as<ArrayObject>());
     MOZ_ASSERT(arr->lengthIsWritable(),
                "setter shouldn't be called if property is non-writable");
-    return ArraySetLength(cx, arr, id, JSPROP_PERMANENT, vp, strict);
+
+    ObjectOpResult success;
+    if (!ArraySetLength(cx, arr, id, JSPROP_PERMANENT, vp, success))
+        return false;
+    if (strict && !success) {
+        success.reportError(cx, arr, id);
+        return false;
+    }
+    return true;
 }
 
 struct ReverseIndexComparator
@@ -507,7 +515,7 @@ js::CanonicalizeArrayLengthValue(JSContext *cx, HandleValue v, uint32_t *newLen)
 
 bool
 js::ArraySetLength(JSContext *cx, Handle<ArrayObject*> arr, HandleId id,
-                   unsigned attrs, HandleValue value, bool setterIsStrict)
+                   unsigned attrs, HandleValue value, ObjectOpResult &result)
 {
     MOZ_ASSERT(id == NameToId(cx->names().length));
 
@@ -530,11 +538,8 @@ js::ArraySetLength(JSContext *cx, Handle<ArrayObject*> arr, HandleId id,
     
     
     
-    if (!(attrs & JSPROP_PERMANENT) || (attrs & JSPROP_ENUMERATE)) {
-        if (!setterIsStrict)
-            return true;
-        return Throw(cx, id, JSMSG_CANT_REDEFINE_PROP);
-    }
+    if (!(attrs & JSPROP_PERMANENT) || (attrs & JSPROP_ENUMERATE))
+        return result.fail(JSMSG_CANT_REDEFINE_PROP);
 
     
     bool lengthIsWritable = arr->lengthIsWritable();
@@ -551,14 +556,9 @@ js::ArraySetLength(JSContext *cx, Handle<ArrayObject*> arr, HandleId id,
     
     if (!lengthIsWritable) {
         if (newLen == oldLen)
-            return true;
+            return result.succeed();
 
-        if (setterIsStrict) {
-            return JS_ReportErrorFlagsAndNumber(cx, JSREPORT_ERROR, GetErrorMessage, nullptr,
-                                                JSMSG_CANT_REDEFINE_ARRAY_LENGTH);
-        }
-
-        return JSObject::reportReadOnly(cx, id, JSREPORT_STRICT | JSREPORT_WARNING);
+        return result.fail(JSMSG_CANT_REDEFINE_ARRAY_LENGTH);
     }
 
     
@@ -739,14 +739,10 @@ js::ArraySetLength(JSContext *cx, Handle<ArrayObject*> arr, HandleId id,
         }
     }
 
-    if (setterIsStrict && !succeeded) {
-        RootedId elementId(cx);
-        if (!IndexToId(cx, newLen - 1, &elementId))
-            return false;
-        return arr->reportNotConfigurable(cx, elementId);
-    }
+    if (!succeeded)
+        return result.fail(JSMSG_CANT_TRUNCATE_ARRAY);
 
-    return true;
+    return result.succeed();
 }
 
 bool
