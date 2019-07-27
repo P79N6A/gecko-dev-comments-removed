@@ -205,10 +205,19 @@ nsXULPopupManager::Rollup(uint32_t aCount, bool aFlush,
     ConsumeOutsideClicksResult consumeResult = item->Frame()->ConsumeOutsideClicks();
     consume = (consumeResult == ConsumeOutsideClicks_True);
 
+    bool rollup = true;
+
     
     
     
-    if (consumeResult == ConsumeOutsideClicks_ParentOnly && pos) {
+    bool noRollupOnAnchor = (!consume && pos &&
+      item->Frame()->GetContent()->AttrValueIs(kNameSpaceID_None,
+        nsGkAtoms::norolluponanchor, nsGkAtoms::_true, eCaseMatters));
+
+    
+    
+    
+    if ((consumeResult == ConsumeOutsideClicks_ParentOnly || noRollupOnAnchor) && pos) {
       nsCOMPtr<nsIContent> anchor = item->Frame()->GetAnchor();
 
       
@@ -234,33 +243,41 @@ nsXULPopupManager::Rollup(uint32_t aCount, bool aFlush,
         
         
         if (anchor->GetPrimaryFrame()->GetScreenRect().Contains(*pos)) {
-          consume = true;
+          if (consumeResult == ConsumeOutsideClicks_ParentOnly) {
+            consume = true;
+          }
+
+          if (noRollupOnAnchor) {
+            rollup = false;
+          }
         }
       }
     }
 
-    
-    
-    nsIContent* lastPopup = nullptr;
-    if (aCount != UINT32_MAX) {
-      nsMenuChainItem* last = item;
-      while (--aCount && last->GetParent()) {
-        last = last->GetParent();
-      }
-      if (last) {
-        lastPopup = last->Content();
-      }
-    }
-
-    nsPresContext* presContext = item->Frame()->PresContext();
-    nsRefPtr<nsViewManager> viewManager = presContext->PresShell()->GetViewManager();
-
-    HidePopup(item->Content(), true, true, false, true, lastPopup);
-
-    if (aFlush) {
+    if (rollup) {
       
       
-      viewManager->UpdateWidgetGeometry();
+      nsIContent* lastPopup = nullptr;
+      if (aCount != UINT32_MAX) {
+        nsMenuChainItem* last = item;
+        while (--aCount && last->GetParent()) {
+          last = last->GetParent();
+        }
+        if (last) {
+          lastPopup = last->Content();
+        }
+      }
+
+      nsPresContext* presContext = item->Frame()->PresContext();
+      nsRefPtr<nsViewManager> viewManager = presContext->PresShell()->GetViewManager();
+
+      HidePopup(item->Content(), true, true, false, true, lastPopup);
+
+      if (aFlush) {
+        
+        
+        viewManager->UpdateWidgetGeometry();
+      }
     }
   }
 
