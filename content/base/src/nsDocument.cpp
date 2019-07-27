@@ -18,10 +18,6 @@
 #include "mozilla/Likely.h"
 #include <algorithm>
 
-#ifdef MOZ_LOGGING
-
-#define FORCE_PR_LOG 1
-#endif
 #include "prlog.h"
 #include "plstr.h"
 #include "prprf.h"

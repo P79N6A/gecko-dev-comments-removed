@@ -6,9 +6,6 @@
 
 #include "mozilla/DebugOnly.h"
 
-#ifdef MOZ_LOGGING
-#define FORCE_PR_LOG
-#endif 
 #include "prlog.h"
 
 #include "WinMouseScrollHandler.h"

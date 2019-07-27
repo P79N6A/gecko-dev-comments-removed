@@ -7,8 +7,6 @@
 #ifndef nsTimerImpl_h___
 #define nsTimerImpl_h___
 
-
-
 #include "nsITimer.h"
 #include "nsIEventTarget.h"
 #include "nsIObserver.h"

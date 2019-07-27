@@ -3,10 +3,6 @@
 
 
 
-#if defined(MOZ_LOGGING)
-#define FORCE_PR_LOG
-#endif
-
 #if defined(HAVE_RES_NINIT)
 #include <sys/types.h>
 #include <netinet/in.h>

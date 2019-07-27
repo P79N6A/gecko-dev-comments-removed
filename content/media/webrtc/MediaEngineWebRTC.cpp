@@ -2,14 +2,6 @@
 
 
 
-#ifdef MOZ_LOGGING
-#define FORCE_PR_LOG
-#endif
-
-#if defined(PR_LOG)
-#error "This file must be #included before any IPDL-generated files or other files that #include prlog.h"
-#endif
-
 #include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
 

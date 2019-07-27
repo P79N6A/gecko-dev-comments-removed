@@ -175,10 +175,6 @@
 #include "nsISupportsPrimitives.h"
 #include "nsXPCOMCID.h"
 #include "mozIThirdPartyUtil.h"
-#ifdef MOZ_LOGGING
-
-#define FORCE_PR_LOG 1
-#endif
 #include "prlog.h"
 #include "prenv.h"
 #include "prprf.h"

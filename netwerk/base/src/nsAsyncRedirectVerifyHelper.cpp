@@ -3,10 +3,6 @@
 
 
 
-#ifdef MOZ_LOGGING
-#define FORCE_PR_LOG
-#endif
-
 #include "prlog.h"
 #include "nsAsyncRedirectVerifyHelper.h"
 #include "nsThreadUtils.h"

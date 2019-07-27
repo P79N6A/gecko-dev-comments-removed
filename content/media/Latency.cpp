@@ -4,9 +4,6 @@
 
 
 
-
-#define FORCE_PR_LOG
-
 #include "Latency.h"
 #include "nsThreadUtils.h"
 #include "prlog.h"

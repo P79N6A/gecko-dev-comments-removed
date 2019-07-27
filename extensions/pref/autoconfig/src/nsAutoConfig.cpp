@@ -3,10 +3,6 @@
 
 
 
-#ifdef MOZ_LOGGING
-
-#define FORCE_PR_LOG
-#endif
 #include "nsAutoConfig.h"
 #include "nsIURI.h"
 #include "nsIHttpChannel.h"
