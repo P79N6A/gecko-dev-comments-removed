@@ -365,14 +365,7 @@ CheckBasicConstraints(EndEntityOrCA endEntityOrCA,
       
       
       
-      
-      
-      
-      
-      
-      
-      
-      return Result::ERROR_CA_CERT_INVALID;
+      return Result::ERROR_CA_CERT_USED_AS_END_ENTITY;
     }
 
     return Success;
