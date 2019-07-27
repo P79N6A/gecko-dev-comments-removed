@@ -29,10 +29,15 @@ struct nsStyleText;
 
 class nsLineLayout {
 public:
+  
+
+
+
   nsLineLayout(nsPresContext* aPresContext,
                nsFloatManager* aFloatManager,
                const nsHTMLReflowState* aOuterReflowState,
-               const nsLineList::iterator* aLine);
+               const nsLineList::iterator* aLine,
+               nsLineLayout* aBaseLineLayout);
   ~nsLineLayout();
 
   void Init(nsBlockReflowState* aState, nscoord aMinLineBSize,
@@ -345,6 +350,14 @@ protected:
   nsFloatManager* mFloatManager;
   const nsStyleText* mStyleText; 
   const nsHTMLReflowState* mBlockReflowState;
+
+  
+  
+  
+  
+  
+  
+  nsLineLayout* const mBaseLineLayout;
 
   nsIFrame* mLastOptionalBreakFrame;
   nsIFrame* mForceBreakFrame;
