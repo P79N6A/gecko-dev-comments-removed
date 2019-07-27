@@ -20,7 +20,7 @@
 #include "nsXULAppAPI.h"        
 #include "nsString.h"
 
-#if defined(XP_WIN)
+#if defined(XP_WIN) && defined(MOZ_SANDBOX)
 #include "sandboxBroker.h"
 #endif
 
@@ -165,7 +165,10 @@ protected:
 #ifdef XP_WIN
   void InitWindowsGroupID();
   nsString mGroupId;
+
+#ifdef MOZ_SANDBOX
   SandboxBroker mSandboxBroker;
+#endif
 #endif 
 
 #if defined(OS_POSIX)
