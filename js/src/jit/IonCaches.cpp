@@ -3272,24 +3272,30 @@ SetPropertyIC::update(JSContext *cx, HandleScript outerScript, size_t cacheIndex
         return false;
 
     
-    bool checkTypeset;
-    if (!addedSetterStub && canCache == MaybeCanAttachAddSlot &&
-        IsPropertyAddInlineable(&obj->as<NativeObject>(), id, cache.value(), oldShape,
-                                cache.needsTypeBarrier(), &checkTypeset))
-    {
-        if (!cache.attachAddSlot(cx, outerScript, ion, obj, oldShape, oldGroup, checkTypeset))
-            return false;
-        addedSetterStub = true;
-    }
+    
+    
+    JS::AutoAssertNoAlloc nogc;
+    if (!ion->invalidated()) {
+        
+        bool checkTypeset;
+        if (!addedSetterStub && canCache == MaybeCanAttachAddSlot &&
+            IsPropertyAddInlineable(&obj->as<NativeObject>(), id, cache.value(), oldShape,
+                                    cache.needsTypeBarrier(), &checkTypeset))
+        {
+            if (!cache.attachAddSlot(cx, outerScript, ion, obj, oldShape, oldGroup, checkTypeset))
+                return false;
+            addedSetterStub = true;
+        }
 
-    checkTypeset = false;
-    if (!addedSetterStub && cache.canAttachStub() &&
-        CanAttachAddUnboxedExpando(cx, obj, oldShape, id, cache.value(),
-                                   cache.needsTypeBarrier(), &checkTypeset))
-    {
-        if (!cache.attachAddSlot(cx, outerScript, ion, obj, oldShape, oldGroup, checkTypeset))
-            return false;
-        addedSetterStub = true;
+        checkTypeset = false;
+        if (!addedSetterStub && cache.canAttachStub() &&
+            CanAttachAddUnboxedExpando(cx, obj, oldShape, id, cache.value(),
+                                       cache.needsTypeBarrier(), &checkTypeset))
+        {
+            if (!cache.attachAddSlot(cx, outerScript, ion, obj, oldShape, oldGroup, checkTypeset))
+                return false;
+            addedSetterStub = true;
+        }
     }
 
     if (!addedSetterStub)
