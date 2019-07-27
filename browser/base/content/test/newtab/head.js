@@ -684,3 +684,34 @@ function whenSearchInitDone() {
   });
   return deferred.promise;
 }
+
+
+
+
+
+
+
+function customizeNewTabPage(aTheme) {
+  let document = getContentDocument();
+  let panel = document.getElementById("newtab-customize-panel");
+  let customizeButton = document.getElementById("newtab-customize-button");
+
+  
+  panel.addEventListener("popupshown", function onShown() {
+    panel.removeEventListener("popupshown", onShown);
+
+    
+    
+    document.getElementById("newtab-customize-" + aTheme).click();
+    executeSoon(() => { panel.hidePopup(); });
+  });
+
+  
+  panel.addEventListener("popuphidden", function onHidden() {
+    panel.removeEventListener("popuphidden", onHidden);
+    executeSoon(TestRunner.next);
+  });
+
+  
+  customizeButton.click();
+}
