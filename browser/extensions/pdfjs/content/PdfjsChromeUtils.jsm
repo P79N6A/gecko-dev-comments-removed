@@ -196,7 +196,6 @@ let PdfjsChromeUtils = {
   handleEvent: function(aEvent) {
     
     
-    
     let type = aEvent.type;
     let detail = {
       query: aEvent.detail.query,
@@ -205,16 +204,16 @@ let PdfjsChromeUtils = {
       findPrevious: aEvent.detail.findPrevious
     };
 
-    let chromeWindow = aEvent.target.ownerDocument.defaultView;
-    let browser = chromeWindow.gBrowser.selectedBrowser;
-    if (this._browsers.has(browser)) {
-      
-      
-      let mm = browser.messageManager;
-      mm.sendAsyncMessage('PDFJS:Child:handleEvent',
-                          { type: type, detail: detail });
-      aEvent.preventDefault();
+    let browser = aEvent.currentTarget.browser;
+    if (!this._browsers.has(browser)) {
+      throw new Error('FindEventManager was not bound ' +
+                      'for the current browser.');
     }
+    
+    let mm = browser.messageManager;
+    mm.sendAsyncMessage('PDFJS:Child:handleEvent',
+                        { type: type, detail: detail });
+    aEvent.preventDefault();
   },
 
   _types: ['find',

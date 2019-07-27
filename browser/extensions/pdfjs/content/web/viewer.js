@@ -1343,6 +1343,7 @@ var PDFHistory = {
     this.reInitialized = false;
     this.allowHashChange = true;
     this.historyUnlocked = true;
+    this.isViewerInPresentationMode = false;
 
     this.previousHash = window.location.hash.substring(1);
     this.currentBookmark = '';
@@ -1434,6 +1435,10 @@ var PDFHistory = {
       
       window.addEventListener('beforeunload', pdfHistoryBeforeUnload, false);
     }, false);
+
+    window.addEventListener('presentationmodechanged', function(e) {
+      self.isViewerInPresentationMode = !!e.detail.active;
+    });
   },
 
   _isStateObjectDefined: function pdfHistory_isStateObjectDefined(state) {
@@ -1585,7 +1590,7 @@ var PDFHistory = {
       return null;
     }
     var params = { hash: this.currentBookmark, page: this.currentPage };
-    if (PresentationMode.active) {
+    if (this.isViewerInPresentationMode) {
       params.hash = null;
     }
     return params;
@@ -1684,7 +1689,6 @@ var SecondaryToolbar = {
 
   initialize: function secondaryToolbarInitialize(options) {
     this.toolbar = options.toolbar;
-    this.presentationMode = options.presentationMode;
     this.documentProperties = options.documentProperties;
     this.buttonContainer = this.toolbar.firstElementChild;
 
@@ -1731,7 +1735,7 @@ var SecondaryToolbar = {
 
   
   presentationModeClick: function secondaryToolbarPresentationModeClick(evt) {
-    this.presentationMode.request();
+    PDFViewerApplication.requestPresentationMode();
     this.close();
   },
 
@@ -1823,237 +1827,373 @@ var SecondaryToolbar = {
 };
 
 
+var DELAY_BEFORE_RESETTING_SWITCH_IN_PROGRESS = 1500; 
 var DELAY_BEFORE_HIDING_CONTROLS = 3000; 
-var SELECTOR = 'presentationControls';
-var DELAY_BEFORE_RESETTING_SWITCH_IN_PROGRESS = 1000; 
+var ACTIVE_SELECTOR = 'pdfPresentationMode';
+var CONTROLS_SELECTOR = 'pdfPresentationModeControls';
 
-var PresentationMode = {
-  active: false,
-  args: null,
-  contextMenuOpen: false,
 
-  initialize: function presentationModeInitialize(options) {
-    this.container = options.container;
-    this.secondaryToolbar = options.secondaryToolbar;
 
-    this.viewer = this.container.firstElementChild;
 
-    this.firstPage = options.firstPage;
-    this.lastPage = options.lastPage;
-    this.pageRotateCw = options.pageRotateCw;
-    this.pageRotateCcw = options.pageRotateCcw;
 
-    this.firstPage.addEventListener('click', function() {
-      this.contextMenuOpen = false;
-      this.secondaryToolbar.firstPageClick();
-    }.bind(this));
-    this.lastPage.addEventListener('click', function() {
-      this.contextMenuOpen = false;
-      this.secondaryToolbar.lastPageClick();
-    }.bind(this));
 
-    this.pageRotateCw.addEventListener('click', function() {
-      this.contextMenuOpen = false;
-      this.secondaryToolbar.pageRotateCwClick();
-    }.bind(this));
-    this.pageRotateCcw.addEventListener('click', function() {
-      this.contextMenuOpen = false;
-      this.secondaryToolbar.pageRotateCcwClick();
-    }.bind(this));
-  },
 
-  get isFullscreen() {
-    return (document.fullscreenElement ||
-            document.mozFullScreen ||
-            document.webkitIsFullScreen ||
-            document.msFullscreenElement);
-  },
 
+
+
+
+
+
+
+var PDFPresentationMode = (function PDFPresentationModeClosure() {
   
 
 
 
+  function PDFPresentationMode(options) {
+    this.container = options.container;
+    this.viewer = options.viewer || options.container.firstElementChild;
+    this.pdfThumbnailViewer = options.pdfThumbnailViewer || null;
+    var contextMenuItems = options.contextMenuItems || null;
 
-
-
-
-  _setSwitchInProgress: function presentationMode_setSwitchInProgress() {
-    if (this.switchInProgress) {
-      clearTimeout(this.switchInProgress);
-    }
-    this.switchInProgress = setTimeout(function switchInProgressTimeout() {
-      delete this.switchInProgress;
-      this._notifyStateChange();
-    }.bind(this), DELAY_BEFORE_RESETTING_SWITCH_IN_PROGRESS);
-  },
-
-  _resetSwitchInProgress: function presentationMode_resetSwitchInProgress() {
-    if (this.switchInProgress) {
-      clearTimeout(this.switchInProgress);
-      delete this.switchInProgress;
-    }
-  },
-
-  request: function presentationModeRequest() {
-    if (!PDFViewerApplication.supportsFullscreen || this.isFullscreen ||
-        !this.viewer.hasChildNodes()) {
-      return false;
-    }
-    this._setSwitchInProgress();
-    this._notifyStateChange();
-
-    if (this.container.requestFullscreen) {
-      this.container.requestFullscreen();
-    } else if (this.container.mozRequestFullScreen) {
-      this.container.mozRequestFullScreen();
-    } else if (this.container.webkitRequestFullscreen) {
-      this.container.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
-    } else if (this.container.msRequestFullscreen) {
-      this.container.msRequestFullscreen();
-    } else {
-      return false;
-    }
-
-    this.args = {
-      page: PDFViewerApplication.page,
-      previousScale: PDFViewerApplication.currentScaleValue
-    };
-
-    return true;
-  },
-
-  _notifyStateChange: function presentationModeNotifyStateChange() {
-    var event = document.createEvent('CustomEvent');
-    event.initCustomEvent('presentationmodechanged', true, true, {
-      active: PresentationMode.active,
-      switchInProgress: !!PresentationMode.switchInProgress
-    });
-    window.dispatchEvent(event);
-  },
-
-  enter: function presentationModeEnter() {
-    this.active = true;
-    this._resetSwitchInProgress();
-    this._notifyStateChange();
-
-    
-    
-    
-    setTimeout(function enterPresentationModeTimeout() {
-      PDFViewerApplication.page = this.args.page;
-      PDFViewerApplication.setScale('page-fit', true);
-    }.bind(this), 0);
-
-    window.addEventListener('mousemove', this.mouseMove, false);
-    window.addEventListener('mousedown', this.mouseDown, false);
-    window.addEventListener('contextmenu', this.contextMenu, false);
-
-    this.showControls();
-    HandTool.enterPresentationMode();
+    this.active = false;
+    this.args = null;
     this.contextMenuOpen = false;
-    this.container.setAttribute('contextmenu', 'viewerContextMenu');
+    this.mouseScrollTimeStamp = 0;
+    this.mouseScrollDelta = 0;
 
-    
-    
-    
-    window.getSelection().removeAllRanges();
-  },
-
-  exit: function presentationModeExit() {
-    var page = PDFViewerApplication.page;
-
-    
-    
-    
-    setTimeout(function exitPresentationModeTimeout() {
-      this.active = false;
-      this._notifyStateChange();
-
-      PDFViewerApplication.setScale(this.args.previousScale, true);
-      PDFViewerApplication.page = page;
-      this.args = null;
-    }.bind(this), 0);
-
-    window.removeEventListener('mousemove', this.mouseMove, false);
-    window.removeEventListener('mousedown', this.mouseDown, false);
-    window.removeEventListener('contextmenu', this.contextMenu, false);
-
-    this.hideControls();
-    PDFViewerApplication.clearMouseScrollState();
-    HandTool.exitPresentationMode();
-    this.container.removeAttribute('contextmenu');
-    this.contextMenuOpen = false;
-
-    
-    
-    scrollIntoView(document.getElementById('thumbnailContainer' + page));
-  },
-
-  showControls: function presentationModeShowControls() {
-    if (this.controlsTimeout) {
-      clearTimeout(this.controlsTimeout);
-    } else {
-      this.container.classList.add(SELECTOR);
-    }
-    this.controlsTimeout = setTimeout(function hideControlsTimeout() {
-      this.container.classList.remove(SELECTOR);
-      delete this.controlsTimeout;
-    }.bind(this), DELAY_BEFORE_HIDING_CONTROLS);
-  },
-
-  hideControls: function presentationModeHideControls() {
-    if (!this.controlsTimeout) {
-      return;
-    }
-    this.container.classList.remove(SELECTOR);
-    clearTimeout(this.controlsTimeout);
-    delete this.controlsTimeout;
-  },
-
-  mouseMove: function presentationModeMouseMove(evt) {
-    PresentationMode.showControls();
-  },
-
-  mouseDown: function presentationModeMouseDown(evt) {
-    var self = PresentationMode;
-    if (self.contextMenuOpen) {
-      self.contextMenuOpen = false;
-      evt.preventDefault();
-      return;
-    }
-
-    if (evt.button === 0) {
-      
-      
-      var isInternalLink = (evt.target.href &&
-                            evt.target.classList.contains('internalLink'));
-      if (!isInternalLink) {
-        
-        evt.preventDefault();
-        PDFViewerApplication.page += (evt.shiftKey ? -1 : 1);
+    if (contextMenuItems) {
+      for (var i = 0, ii = contextMenuItems.length; i < ii; i++) {
+        var item = contextMenuItems[i];
+        item.element.addEventListener('click', function (handler) {
+          this.contextMenuOpen = false;
+          handler();
+        }.bind(this, item.handler));
       }
     }
-  },
-
-  contextMenu: function presentationModeContextMenu(evt) {
-    PresentationMode.contextMenuOpen = true;
   }
-};
 
-(function presentationModeClosure() {
-  function presentationModeChange(e) {
-    if (PresentationMode.isFullscreen) {
-      PresentationMode.enter();
-    } else {
-      PresentationMode.exit();
+  PDFPresentationMode.prototype = {
+    
+
+
+
+    request: function PDFPresentationMode_request() {
+      if (this.switchInProgress || this.active ||
+          !this.viewer.hasChildNodes()) {
+        return false;
+      }
+      this._addFullscreenChangeListeners();
+      this._setSwitchInProgress();
+      this._notifyStateChange();
+
+      if (this.container.requestFullscreen) {
+        this.container.requestFullscreen();
+      } else if (this.container.mozRequestFullScreen) {
+        this.container.mozRequestFullScreen();
+      } else if (this.container.webkitRequestFullscreen) {
+        this.container.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
+      } else if (this.container.msRequestFullscreen) {
+        this.container.msRequestFullscreen();
+      } else {
+        return false;
+      }
+
+      this.args = {
+        page: PDFViewerApplication.page,
+        previousScale: PDFViewerApplication.currentScaleValue
+      };
+
+      return true;
+    },
+
+    
+
+
+
+
+    mouseScroll: function PDFPresentationMode_mouseScroll(delta) {
+      if (!this.active) {
+        return;
+      }
+      var MOUSE_SCROLL_COOLDOWN_TIME = 50;
+      var PAGE_SWITCH_THRESHOLD = 120;
+      var PageSwitchDirection = {
+        UP: -1,
+        DOWN: 1
+      };
+
+      var currentTime = (new Date()).getTime();
+      var storedTime = this.mouseScrollTimeStamp;
+
+      
+      if (currentTime > storedTime &&
+          currentTime - storedTime < MOUSE_SCROLL_COOLDOWN_TIME) {
+        return;
+      }
+      
+      if ((this.mouseScrollDelta > 0 && delta < 0) ||
+          (this.mouseScrollDelta < 0 && delta > 0)) {
+        this._resetMouseScrollState();
+      }
+      this.mouseScrollDelta += delta;
+
+      if (Math.abs(this.mouseScrollDelta) >= PAGE_SWITCH_THRESHOLD) {
+        var pageSwitchDirection = (this.mouseScrollDelta > 0) ?
+          PageSwitchDirection.UP : PageSwitchDirection.DOWN;
+        var page = PDFViewerApplication.page;
+        this._resetMouseScrollState();
+
+        
+        if ((page === 1 && pageSwitchDirection === PageSwitchDirection.UP) ||
+            (page === PDFViewerApplication.pagesCount &&
+             pageSwitchDirection === PageSwitchDirection.DOWN)) {
+          return;
+        }
+        PDFViewerApplication.page = (page + pageSwitchDirection);
+        this.mouseScrollTimeStamp = currentTime;
+      }
+    },
+
+    get isFullscreen() {
+      return !!(document.fullscreenElement ||
+                document.mozFullScreen ||
+                document.webkitIsFullScreen ||
+                document.msFullscreenElement);
+    },
+
+    
+
+
+    _notifyStateChange: function PDFPresentationMode_notifyStateChange() {
+      var event = document.createEvent('CustomEvent');
+      event.initCustomEvent('presentationmodechanged', true, true, {
+        active: this.active,
+        switchInProgress: !!this.switchInProgress
+      });
+      window.dispatchEvent(event);
+    },
+
+    
+
+
+
+
+
+
+
+    _setSwitchInProgress: function PDFPresentationMode_setSwitchInProgress() {
+      if (this.switchInProgress) {
+        clearTimeout(this.switchInProgress);
+      }
+      this.switchInProgress = setTimeout(function switchInProgressTimeout() {
+        this._removeFullscreenChangeListeners();
+        delete this.switchInProgress;
+        this._notifyStateChange();
+      }.bind(this), DELAY_BEFORE_RESETTING_SWITCH_IN_PROGRESS);
+    },
+
+    
+
+
+    _resetSwitchInProgress:
+        function PDFPresentationMode_resetSwitchInProgress() {
+      if (this.switchInProgress) {
+        clearTimeout(this.switchInProgress);
+        delete this.switchInProgress;
+      }
+    },
+
+    
+
+
+    _enter: function PDFPresentationMode_enter() {
+      this.active = true;
+      this._resetSwitchInProgress();
+      this._notifyStateChange();
+      this.container.classList.add(ACTIVE_SELECTOR);
+
+      
+      
+      setTimeout(function enterPresentationModeTimeout() {
+        PDFViewerApplication.page = this.args.page;
+        PDFViewerApplication.setScale('page-fit', true);
+      }.bind(this), 0);
+
+      this._addWindowListeners();
+      this._showControls();
+      this.contextMenuOpen = false;
+      this.container.setAttribute('contextmenu', 'viewerContextMenu');
+
+      
+      
+      
+      window.getSelection().removeAllRanges();
+    },
+
+    
+
+
+    _exit: function PDFPresentationMode_exit() {
+      var page = PDFViewerApplication.page;
+      this.container.classList.remove(ACTIVE_SELECTOR);
+
+      
+      
+      setTimeout(function exitPresentationModeTimeout() {
+        this.active = false;
+        this._removeFullscreenChangeListeners();
+        this._notifyStateChange();
+
+        PDFViewerApplication.setScale(this.args.previousScale, true);
+        PDFViewerApplication.page = page;
+        this.args = null;
+      }.bind(this), 0);
+
+      this._removeWindowListeners();
+      this._hideControls();
+      this._resetMouseScrollState();
+      this.container.removeAttribute('contextmenu');
+      this.contextMenuOpen = false;
+
+      if (this.pdfThumbnailViewer) {
+        this.pdfThumbnailViewer.ensureThumbnailVisible(page);
+      }
+    },
+
+    
+
+
+    _mouseDown: function PDFPresentationMode_mouseDown(evt) {
+      if (this.contextMenuOpen) {
+        this.contextMenuOpen = false;
+        evt.preventDefault();
+        return;
+      }
+      if (evt.button === 0) {
+        
+        
+        var isInternalLink = (evt.target.href &&
+                              evt.target.classList.contains('internalLink'));
+        if (!isInternalLink) {
+          
+          evt.preventDefault();
+          PDFViewerApplication.page += (evt.shiftKey ? -1 : 1);
+        }
+      }
+    },
+
+    
+
+
+    _contextMenu: function PDFPresentationMode_contextMenu() {
+      this.contextMenuOpen = true;
+    },
+
+    
+
+
+    _showControls: function PDFPresentationMode_showControls() {
+      if (this.controlsTimeout) {
+        clearTimeout(this.controlsTimeout);
+      } else {
+        this.container.classList.add(CONTROLS_SELECTOR);
+      }
+      this.controlsTimeout = setTimeout(function showControlsTimeout() {
+        this.container.classList.remove(CONTROLS_SELECTOR);
+        delete this.controlsTimeout;
+      }.bind(this), DELAY_BEFORE_HIDING_CONTROLS);
+    },
+
+    
+
+
+    _hideControls: function PDFPresentationMode_hideControls() {
+      if (!this.controlsTimeout) {
+        return;
+      }
+      clearTimeout(this.controlsTimeout);
+      this.container.classList.remove(CONTROLS_SELECTOR);
+      delete this.controlsTimeout;
+    },
+
+    
+
+
+
+    _resetMouseScrollState:
+        function PDFPresentationMode_resetMouseScrollState() {
+      this.mouseScrollTimeStamp = 0;
+      this.mouseScrollDelta = 0;
+    },
+
+    
+
+
+    _addWindowListeners: function PDFPresentationMode_addWindowListeners() {
+      this.showControlsBind = this._showControls.bind(this);
+      this.mouseDownBind = this._mouseDown.bind(this);
+      this.resetMouseScrollStateBind = this._resetMouseScrollState.bind(this);
+      this.contextMenuBind = this._contextMenu.bind(this);
+
+      window.addEventListener('mousemove', this.showControlsBind);
+      window.addEventListener('mousedown', this.mouseDownBind);
+      window.addEventListener('keydown', this.resetMouseScrollStateBind);
+      window.addEventListener('contextmenu', this.contextMenuBind);
+    },
+
+    
+
+
+    _removeWindowListeners:
+        function PDFPresentationMode_removeWindowListeners() {
+      window.removeEventListener('mousemove', this.showControlsBind);
+      window.removeEventListener('mousedown', this.mouseDownBind);
+      window.removeEventListener('keydown', this.resetMouseScrollStateBind);
+      window.removeEventListener('contextmenu', this.contextMenuBind);
+
+      delete this.showControlsBind;
+      delete this.mouseDownBind;
+      delete this.resetMouseScrollStateBind;
+      delete this.contextMenuBind;
+    },
+
+    
+
+
+    _fullscreenChange: function PDFPresentationMode_fullscreenChange() {
+      if (this.isFullscreen) {
+        this._enter();
+      } else {
+        this._exit();
+      }
+    },
+
+    
+
+
+    _addFullscreenChangeListeners:
+        function PDFPresentationMode_addFullscreenChangeListeners() {
+      this.fullscreenChangeBind = this._fullscreenChange.bind(this);
+
+      window.addEventListener('fullscreenchange', this.fullscreenChangeBind);
+      window.addEventListener('mozfullscreenchange', this.fullscreenChangeBind);
+    },
+
+    
+
+
+    _removeFullscreenChangeListeners:
+        function PDFPresentationMode_removeFullscreenChangeListeners() {
+      window.removeEventListener('fullscreenchange', this.fullscreenChangeBind);
+      window.removeEventListener('mozfullscreenchange',
+                                 this.fullscreenChangeBind);
+
+      delete this.fullscreenChangeBind;
     }
-  }
+  };
 
-  window.addEventListener('fullscreenchange', presentationModeChange, false);
-  window.addEventListener('mozfullscreenchange', presentationModeChange, false);
-  window.addEventListener('webkitfullscreenchange', presentationModeChange,
-                          false);
-  window.addEventListener('MSFullscreenChange', presentationModeChange, false);
+  return PDFPresentationMode;
 })();
 
 
@@ -2310,6 +2450,17 @@ var HandTool = {
             this.handTool.activate();
           }
         }.bind(this), function rejected(reason) {});
+      }.bind(this));
+
+      window.addEventListener('presentationmodechanged', function (evt) {
+        if (evt.detail.switchInProgress) {
+          return;
+        }
+        if (evt.detail.active) {
+          this.enterPresentationMode();
+        } else {
+          this.exitPresentationMode();
+        }
       }.bind(this));
     }
   },
@@ -2663,7 +2814,6 @@ var DocumentProperties = {
     
     
     
-    
     var dateToParse = inputDate;
     if (dateToParse === undefined) {
       return '';
@@ -2942,6 +3092,7 @@ var PDFPageView = (function PDFPageViewClosure() {
     div.className = 'page';
     div.style.width = Math.floor(this.viewport.width) + 'px';
     div.style.height = Math.floor(this.viewport.height) + 'px';
+    div.setAttribute('data-page-number', this.id);
     this.div = div;
 
     container.appendChild(div);
@@ -4296,11 +4447,8 @@ var PDFViewer = (function pdfViewer() {
 
       if (!noScroll) {
         var page = this._currentPageNumber, dest;
-        var inPresentationMode =
-          this.presentationModeState === PresentationModeState.CHANGING ||
-          this.presentationModeState === PresentationModeState.FULLSCREEN;
-        if (this.location && !inPresentationMode &&
-            !IGNORE_CURRENT_POSITION_ON_ZOOM) {
+        if (this.location && !IGNORE_CURRENT_POSITION_ON_ZOOM &&
+            !(this.isInPresentationMode || this.isChangingPresentationMode)) {
           page = this.location.pageNumber;
           dest = [null, { name: 'XYZ' }, this.location.left,
             this.location.top, null];
@@ -4324,11 +4472,9 @@ var PDFViewer = (function pdfViewer() {
         if (!currentPage) {
           return;
         }
-        var inPresentationMode =
-          this.presentationModeState === PresentationModeState.FULLSCREEN;
-        var hPadding = (inPresentationMode || this.removePageBorders) ?
+        var hPadding = (this.isInPresentationMode || this.removePageBorders) ?
           0 : SCROLLBAR_PADDING;
-        var vPadding = (inPresentationMode || this.removePageBorders) ?
+        var vPadding = (this.isInPresentationMode || this.removePageBorders) ?
           0 : VERTICAL_PADDING;
         var pageWidthScale = (this.container.clientWidth - hPadding) /
                              currentPage.width * currentPage.scale;
@@ -4374,8 +4520,7 @@ var PDFViewer = (function pdfViewer() {
                                                               dest) {
       var pageView = this.pages[pageNumber - 1];
 
-      if (this.presentationModeState ===
-        PresentationModeState.FULLSCREEN) {
+      if (this.isInPresentationMode) {
         if (this.linkService.page !== pageView.id) {
           
           this.linkService.page = pageView.id;
@@ -4529,7 +4674,7 @@ var PDFViewer = (function pdfViewer() {
         currentId = visiblePages[0].id;
       }
 
-      if (this.presentationModeState !== PresentationModeState.FULLSCREEN) {
+      if (!this.isInPresentationMode) {
         this.currentPageNumber = currentId;
       }
 
@@ -4554,13 +4699,21 @@ var PDFViewer = (function pdfViewer() {
       this.container.blur();
     },
 
+    get isInPresentationMode() {
+      return this.presentationModeState === PresentationModeState.FULLSCREEN;
+    },
+
+    get isChangingPresentationMode() {
+      return this.PresentationModeState === PresentationModeState.CHANGING;
+    },
+
     get isHorizontalScrollbarEnabled() {
-      return (this.presentationModeState === PresentationModeState.FULLSCREEN ?
+      return (this.isInPresentationMode ?
         false : (this.container.scrollWidth > this.container.clientWidth));
     },
 
     _getVisiblePages: function () {
-      if (this.presentationModeState !== PresentationModeState.FULLSCREEN) {
+      if (!this.isInPresentationMode) {
         return getVisibleElements(this.container, this.pages, true);
       } else {
         
@@ -4631,13 +4784,11 @@ var PDFViewer = (function pdfViewer() {
 
 
     createTextLayerBuilder: function (textLayerDiv, pageIndex, viewport) {
-      var isViewerInPresentationMode =
-        this.presentationModeState === PresentationModeState.FULLSCREEN;
       return new TextLayerBuilder({
         textLayerDiv: textLayerDiv,
         pageIndex: pageIndex,
         viewport: viewport,
-        findController: isViewerInPresentationMode ? null : this.findController
+        findController: this.isInPresentationMode ? null : this.findController
       });
     },
 
@@ -5385,15 +5536,16 @@ var PDFViewerApplication = {
   pdfThumbnailViewer: null,
   
   pdfRenderingQueue: null,
+  
+  pdfPresentationMode: null,
   pageRotation: 0,
   updateScaleControls: true,
   isInitialViewSet: false,
   animationStartedPromise: null,
-  mouseScrollTimeStamp: 0,
-  mouseScrollDelta: 0,
   preferenceSidebarViewOnLoad: SidebarView.NONE,
   preferencePdfBugEnabled: false,
   preferenceShowPreviousViewOnLoad: true,
+  preferenceDefaultZoomValue: '',
   isViewerEmbedded: (window.parent !== window),
   url: '',
 
@@ -5451,7 +5603,6 @@ var PDFViewerApplication = {
 
     SecondaryToolbar.initialize({
       toolbar: document.getElementById('secondaryToolbar'),
-      presentationMode: PresentationMode,
       toggleButton: document.getElementById('secondaryToolbarToggle'),
       presentationModeButton:
         document.getElementById('secondaryPresentationMode'),
@@ -5467,14 +5618,24 @@ var PDFViewerApplication = {
       documentPropertiesButton: document.getElementById('documentProperties')
     });
 
-    PresentationMode.initialize({
-      container: container,
-      secondaryToolbar: SecondaryToolbar,
-      firstPage: document.getElementById('contextFirstPage'),
-      lastPage: document.getElementById('contextLastPage'),
-      pageRotateCw: document.getElementById('contextPageRotateCw'),
-      pageRotateCcw: document.getElementById('contextPageRotateCcw')
-    });
+    if (this.supportsFullscreen) {
+      var toolbar = SecondaryToolbar;
+      this.pdfPresentationMode = new PDFPresentationMode({
+        container: container,
+        viewer: viewer,
+        pdfThumbnailViewer: this.pdfThumbnailViewer,
+        contextMenuItems: [
+          { element: document.getElementById('contextFirstPage'),
+            handler: toolbar.firstPageClick.bind(toolbar) },
+          { element: document.getElementById('contextLastPage'),
+            handler: toolbar.lastPageClick.bind(toolbar) },
+          { element: document.getElementById('contextPageRotateCw'),
+            handler: toolbar.pageRotateCwClick.bind(toolbar) },
+          { element: document.getElementById('contextPageRotateCcw'),
+            handler: toolbar.pageRotateCcwClick.bind(toolbar) }
+        ]
+      });
+    }
 
     PasswordPrompt.initialize({
       overlayName: 'passwordOverlay',
@@ -5514,9 +5675,9 @@ var PDFViewerApplication = {
       }),
       Preferences.get('showPreviousViewOnLoad').then(function resolved(value) {
         self.preferenceShowPreviousViewOnLoad = value;
-        if (!value && window.history.state) {
-          window.history.replaceState(null, '');
-        }
+      }),
+      Preferences.get('defaultZoomValue').then(function resolved(value) {
+        self.preferenceDefaultZoomValue = value;
       }),
       Preferences.get('disableTextLayer').then(function resolved(value) {
         if (PDFJS.disableTextLayer === true) {
@@ -5542,7 +5703,6 @@ var PDFViewerApplication = {
       Preferences.get('useOnlyCssZoom').then(function resolved(value) {
         PDFJS.useOnlyCssZoom = value;
       })
-
       
     ]).catch(function (reason) { });
 
@@ -5596,8 +5756,8 @@ var PDFViewerApplication = {
 
   get supportsFullscreen() {
     var doc = document.documentElement;
-    var support = doc.requestFullscreen || doc.mozRequestFullScreen ||
-                  doc.webkitRequestFullScreen || doc.msRequestFullscreen;
+    var support = !!(doc.requestFullscreen || doc.mozRequestFullScreen ||
+                     doc.webkitRequestFullScreen || doc.msRequestFullscreen);
 
     if (document.fullscreenEnabled === false ||
         document.mozFullScreenEnabled === false ||
@@ -6103,46 +6263,37 @@ var PDFViewerApplication = {
       if (!PDFJS.disableHistory && !self.isViewerEmbedded) {
         
         
+        if (!self.preferenceShowPreviousViewOnLoad && window.history.state) {
+          window.history.replaceState(null, '');
+        }
         PDFHistory.initialize(self.documentFingerprint, self);
       }
-    });
 
-    
-    var defaultZoomValue;
-    var defaultZoomValuePromise =
-      Preferences.get('defaultZoomValue').then(function (prefValue) {
-        defaultZoomValue = prefValue;
-      });
+      store.initializedPromise.then(function resolved() {
+        var storedHash = null;
+        if (self.preferenceShowPreviousViewOnLoad &&
+            store.get('exists', false)) {
+          var pageNum = store.get('page', '1');
+          var zoom = self.preferenceDefaultZoomValue ||
+                     store.get('zoom', self.pdfViewer.currentScale);
+          var left = store.get('scrollLeft', '0');
+          var top = store.get('scrollTop', '0');
 
-    var storePromise = store.initializedPromise;
-    Promise.all([firstPagePromise, storePromise, defaultZoomValuePromise]).then(
-        function resolved() {
-      var storedHash = null;
-      if (PDFViewerApplication.preferenceShowPreviousViewOnLoad &&
-          store.get('exists', false)) {
-        var pageNum = store.get('page', '1');
-        var zoom = defaultZoomValue ||
-                   store.get('zoom', self.pdfViewer.currentScale);
-        var left = store.get('scrollLeft', '0');
-        var top = store.get('scrollTop', '0');
+          storedHash = 'page=' + pageNum + '&zoom=' + zoom + ',' +
+                       left + ',' + top;
+        } else if (self.preferenceDefaultZoomValue) {
+          storedHash = 'page=1&zoom=' + self.preferenceDefaultZoomValue;
+        }
+        self.setInitialView(storedHash, scale);
 
-        storedHash = 'page=' + pageNum + '&zoom=' + zoom + ',' +
-                     left + ',' + top;
-      } else if (defaultZoomValue) {
-        storedHash = 'page=1&zoom=' + defaultZoomValue;
-      }
-      self.setInitialView(storedHash, scale);
-
-      
-      
-      if (!self.isViewerEmbedded) {
-        self.pdfViewer.focus();
-        self.pdfViewer.blur();
-      }
-    }, function rejected(reason) {
-      console.error(reason);
-
-      firstPagePromise.then(function () {
+        
+        
+        if (!self.isViewerEmbedded) {
+          self.pdfViewer.focus();
+          self.pdfViewer.blur();
+        }
+      }, function rejected(reason) {
+        console.error(reason);
         self.setInitialView(null, scale);
       });
     });
@@ -6554,72 +6705,21 @@ var PDFViewerApplication = {
     this.pdfViewer.scrollPageIntoView(pageNumber);
   },
 
-  
-
-
-
-
-
-
-  mouseScroll: function pdfViewMouseScroll(mouseScrollDelta) {
-    var MOUSE_SCROLL_COOLDOWN_TIME = 50;
-
-    var currentTime = (new Date()).getTime();
-    var storedTime = this.mouseScrollTimeStamp;
-
-    
-    
-    if (currentTime > storedTime &&
-        currentTime - storedTime < MOUSE_SCROLL_COOLDOWN_TIME) {
+  requestPresentationMode: function pdfViewRequestPresentationMode() {
+    if (!this.pdfPresentationMode) {
       return;
     }
-
-    
-    
-    if ((this.mouseScrollDelta > 0 && mouseScrollDelta < 0) ||
-        (this.mouseScrollDelta < 0 && mouseScrollDelta > 0)) {
-      this.clearMouseScrollState();
-    }
-
-    this.mouseScrollDelta += mouseScrollDelta;
-
-    var PAGE_FLIP_THRESHOLD = 120;
-    if (Math.abs(this.mouseScrollDelta) >= PAGE_FLIP_THRESHOLD) {
-
-      var PageFlipDirection = {
-        UP: -1,
-        DOWN: 1
-      };
-
-      
-      var pageFlipDirection = (this.mouseScrollDelta > 0) ?
-                                PageFlipDirection.UP :
-                                PageFlipDirection.DOWN;
-      this.clearMouseScrollState();
-      var currentPage = this.page;
-
-      
-      
-      if ((currentPage === 1 && pageFlipDirection === PageFlipDirection.UP) ||
-          (currentPage === this.pagesCount &&
-           pageFlipDirection === PageFlipDirection.DOWN)) {
-        return;
-      }
-
-      this.page += pageFlipDirection;
-      this.mouseScrollTimeStamp = currentTime;
-    }
+    this.pdfPresentationMode.request();
   },
 
   
 
 
-
-
-
-  clearMouseScrollState: function pdfViewClearMouseScrollState() {
-    this.mouseScrollTimeStamp = 0;
-    this.mouseScrollDelta = 0;
+  scrollPresentationMode: function pdfViewScrollPresentationMode(delta) {
+    if (!this.pdfPresentationMode) {
+      return;
+    }
+    this.pdfPresentationMode.mouseScroll(delta);
   }
 };
 
@@ -6814,10 +6914,6 @@ function webViewerInitialized() {
   PDFViewerApplication.initPassiveLoading();
   return;
 
-
-  if (file) {
-    PDFViewerApplication.open(file, 0);
-  }
 }
 
 document.addEventListener('DOMContentLoaded', webViewerLoad, true);
@@ -7064,10 +7160,12 @@ function handleMouseWheel(evt) {
               evt.wheelDelta / MOUSE_WHEEL_DELTA_FACTOR;
   var direction = (ticks < 0) ? 'zoomOut' : 'zoomIn';
 
-  if (PresentationMode.active) {
+  if (PDFViewerApplication.pdfViewer.isInPresentationMode) {
     evt.preventDefault();
-    PDFViewerApplication.mouseScroll(ticks * MOUSE_WHEEL_DELTA_FACTOR);
-  } else if (evt.ctrlKey) { 
+    PDFViewerApplication.scrollPresentationMode(ticks *
+                                                MOUSE_WHEEL_DELTA_FACTOR);
+  } else if (evt.ctrlKey || evt.metaKey) {
+    
     evt.preventDefault();
     PDFViewerApplication[direction](Math.abs(ticks));
   }
@@ -7077,15 +7175,9 @@ window.addEventListener('DOMMouseScroll', handleMouseWheel);
 window.addEventListener('mousewheel', handleMouseWheel);
 
 window.addEventListener('click', function click(evt) {
-  if (!PresentationMode.active) {
-    if (SecondaryToolbar.opened &&
+  if (SecondaryToolbar.opened &&
       PDFViewerApplication.pdfViewer.containsElement(evt.target)) {
-      SecondaryToolbar.close();
-    }
-  } else if (evt.button === 0) {
-    
-    
-    evt.preventDefault();
+    SecondaryToolbar.close();
   }
 }, false);
 
@@ -7100,15 +7192,13 @@ window.addEventListener('keydown', function keydown(evt) {
             (evt.shiftKey ? 4 : 0) |
             (evt.metaKey ? 8 : 0);
 
+  var pdfViewer = PDFViewerApplication.pdfViewer;
+  var isViewerInPresentationMode = pdfViewer && pdfViewer.isInPresentationMode;
+
   
   
   if (cmd === 1 || cmd === 8 || cmd === 5 || cmd === 12) {
     
-    var pdfViewer = PDFViewerApplication.pdfViewer;
-    var inPresentationMode = pdfViewer &&
-      (pdfViewer.presentationModeState === PresentationModeState.CHANGING ||
-       pdfViewer.presentationModeState === PresentationModeState.FULLSCREEN);
-
     switch (evt.keyCode) {
       case 70: 
         if (!PDFViewerApplication.supportsIntegratedFind) {
@@ -7127,7 +7217,7 @@ window.addEventListener('keydown', function keydown(evt) {
       case 107: 
       case 187: 
       case 171: 
-        if (!inPresentationMode) {
+        if (!isViewerInPresentationMode) {
           PDFViewerApplication.zoomIn();
         }
         handled = true;
@@ -7135,14 +7225,14 @@ window.addEventListener('keydown', function keydown(evt) {
       case 173: 
       case 109: 
       case 189: 
-        if (!inPresentationMode) {
+        if (!isViewerInPresentationMode) {
           PDFViewerApplication.zoomOut();
         }
         handled = true;
         break;
       case 48: 
       case 96: 
-        if (!inPresentationMode) {
+        if (!isViewerInPresentationMode) {
           
           setTimeout(function () {
             
@@ -7159,7 +7249,7 @@ window.addEventListener('keydown', function keydown(evt) {
   if (cmd === 3 || cmd === 10) {
     switch (evt.keyCode) {
       case 80: 
-        SecondaryToolbar.presentationModeClick();
+        PDFViewerApplication.requestPresentationMode();
         handled = true;
         break;
       case 71: 
@@ -7193,15 +7283,15 @@ window.addEventListener('keydown', function keydown(evt) {
       case 38: 
       case 33: 
       case 8: 
-        if (!PresentationMode.active &&
-          PDFViewerApplication.currentScaleValue !== 'page-fit') {
+        if (!isViewerInPresentationMode &&
+            PDFViewerApplication.currentScaleValue !== 'page-fit') {
           break;
         }
         
         
       case 37: 
         
-        if (PDFViewerApplication.pdfViewer.isHorizontalScrollbarEnabled) {
+        if (pdfViewer.isHorizontalScrollbarEnabled) {
           break;
         }
         
@@ -7224,14 +7314,14 @@ window.addEventListener('keydown', function keydown(evt) {
       case 40: 
       case 34: 
       case 32: 
-        if (!PresentationMode.active &&
+        if (!isViewerInPresentationMode &&
             PDFViewerApplication.currentScaleValue !== 'page-fit') {
           break;
         }
         
       case 39: 
         
-        if (PDFViewerApplication.pdfViewer.isHorizontalScrollbarEnabled) {
+        if (pdfViewer.isHorizontalScrollbarEnabled) {
           break;
         }
         
@@ -7242,13 +7332,13 @@ window.addEventListener('keydown', function keydown(evt) {
         break;
 
       case 36: 
-        if (PresentationMode.active || PDFViewerApplication.page > 1) {
+        if (isViewerInPresentationMode || PDFViewerApplication.page > 1) {
           PDFViewerApplication.page = 1;
           handled = true;
         }
         break;
       case 35: 
-        if (PresentationMode.active || (PDFViewerApplication.pdfDocument &&
+        if (isViewerInPresentationMode || (PDFViewerApplication.pdfDocument &&
             PDFViewerApplication.page < PDFViewerApplication.pagesCount)) {
           PDFViewerApplication.page = PDFViewerApplication.pagesCount;
           handled = true;
@@ -7256,7 +7346,7 @@ window.addEventListener('keydown', function keydown(evt) {
         break;
 
       case 72: 
-        if (!PresentationMode.active) {
+        if (!isViewerInPresentationMode) {
           HandTool.toggle();
         }
         break;
@@ -7269,7 +7359,7 @@ window.addEventListener('keydown', function keydown(evt) {
   if (cmd === 4) { 
     switch (evt.keyCode) {
       case 32: 
-        if (!PresentationMode.active &&
+        if (!isViewerInPresentationMode &&
             PDFViewerApplication.currentScaleValue !== 'page-fit') {
           break;
         }
@@ -7283,34 +7373,34 @@ window.addEventListener('keydown', function keydown(evt) {
     }
   }
 
-  if (!handled && !PresentationMode.active) {
+  if (!handled && !isViewerInPresentationMode) {
     
     
     if (evt.keyCode >= 33 && evt.keyCode <= 40 &&
-        !PDFViewerApplication.pdfViewer.containsElement(curElement)) {
+        !pdfViewer.containsElement(curElement)) {
       
       
       
-      PDFViewerApplication.pdfViewer.focus();
+      pdfViewer.focus();
     }
     
     if (evt.keyCode === 32 && curElementTagName !== 'BUTTON') {
       
       
-      PDFViewerApplication.pdfViewer.blur();
+      pdfViewer.blur();
     }
   }
 
   if (cmd === 2) { 
     switch (evt.keyCode) {
       case 37: 
-        if (PresentationMode.active) {
+        if (isViewerInPresentationMode) {
           PDFHistory.back();
           handled = true;
         }
         break;
       case 39: 
-        if (PresentationMode.active) {
+        if (isViewerInPresentationMode) {
           PDFHistory.forward();
           handled = true;
         }
@@ -7320,7 +7410,6 @@ window.addEventListener('keydown', function keydown(evt) {
 
   if (handled) {
     evt.preventDefault();
-    PDFViewerApplication.clearMouseScrollState();
   }
 });
 

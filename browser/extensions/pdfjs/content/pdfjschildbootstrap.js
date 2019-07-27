@@ -31,7 +31,8 @@ Components.utils.import('resource://pdf.js/PdfjsContentUtils.jsm');
 
 PdfjsContentUtils.init();
 
-if (Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_CONTENT) {
+if (Services.appinfo.processType === Services.appinfo.PROCESS_TYPE_CONTENT) {
   
   PdfJs.updateRegistration();
 }
+
