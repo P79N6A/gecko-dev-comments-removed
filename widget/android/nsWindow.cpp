@@ -51,7 +51,7 @@ using mozilla::unused;
 #include "GLContextProvider.h"
 #include "ScopedGLHelpers.h"
 #include "mozilla/layers/CompositorOGL.h"
-#include "APZCCallbackHandler.h"
+#include "AndroidContentController.h"
 
 #include "nsTArray.h"
 
@@ -178,7 +178,6 @@ nsWindow::DumpWindows(const nsTArray<nsWindow*>& wins, int indent)
 nsWindow::nsWindow() :
     mIsVisible(false),
     mParent(nullptr),
-    mFocus(nullptr),
     mIMEMaskSelectionUpdate(false),
     mIMEMaskEventsCount(1), 
     mIMERanges(new TextRangeArray()),
@@ -190,9 +189,6 @@ nsWindow::nsWindow() :
 nsWindow::~nsWindow()
 {
     gTopLevelWindows.RemoveElement(this);
-    nsWindow *top = FindTopLevel();
-    if (top->mFocus == this)
-        top->mFocus = nullptr;
     ALOG("nsWindow %p destructor", (void*)this);
     if (mLayerManager == sLayerManager) {
         
@@ -298,10 +294,9 @@ nsWindow::ConfigureChildren(const nsTArray<nsIWidget::Configuration>& config)
 void
 nsWindow::RedrawAll()
 {
-    if (mFocus) {
-        mFocus->RedrawAll();
-    }
-    if (mWidgetListener) {
+    if (mAttachedWidgetListener) {
+        mAttachedWidgetListener->RequestRepaint();
+    } else if (mWidgetListener) {
         mWidgetListener->RequestRepaint();
     }
 }
@@ -567,12 +562,7 @@ nsWindow::FindTopLevel()
 NS_IMETHODIMP
 nsWindow::SetFocus(bool aRaise)
 {
-    if (!aRaise) {
-        ALOG("nsWindow::SetFocus: can't set focus without raising, ignoring aRaise = false!");
-    }
-
     nsWindow *top = FindTopLevel();
-    top->mFocus = this;
     top->BringToFront();
 
     return NS_OK;
@@ -671,21 +661,9 @@ nsWindow::DispatchEvent(WidgetGUIEvent* aEvent,
 nsEventStatus
 nsWindow::DispatchEvent(WidgetGUIEvent* aEvent)
 {
-    if (this == TopWindow() && mFocus) {
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        return mFocus->DispatchEvent(aEvent);
-    }
-
-    aEvent->widget = this;
-    if (mWidgetListener) {
+    if (mAttachedWidgetListener) {
+        return mAttachedWidgetListener->HandleEvent(aEvent, mUseAttachedEvents);
+    } else if (mWidgetListener) {
         return mWidgetListener->HandleEvent(aEvent, mUseAttachedEvents);
     }
     return nsEventStatus_eIgnore;
@@ -1099,7 +1077,7 @@ bool nsWindow::OnMultitouchEvent(AndroidGeckoEvent *ae)
         
         bool defaultPrevented = isDownEvent ? false : preventDefaultActions;
         if (ae->Type() == AndroidGeckoEvent::APZ_INPUT_EVENT) {
-            widget::android::APZCCallbackHandler::GetInstance()->NotifyDefaultPrevented(ae->ApzInputBlockId(), defaultPrevented);
+            widget::android::AndroidContentController::NotifyDefaultPrevented(ae->ApzInputBlockId(), defaultPrevented);
         } else {
             GeckoAppShell::NotifyDefaultPrevented(defaultPrevented);
         }
@@ -1112,7 +1090,7 @@ bool nsWindow::OnMultitouchEvent(AndroidGeckoEvent *ae)
     if (isDownEvent) {
         if (preventDefaultActions) {
             if (ae->Type() == AndroidGeckoEvent::APZ_INPUT_EVENT) {
-                widget::android::APZCCallbackHandler::GetInstance()->NotifyDefaultPrevented(ae->ApzInputBlockId(), true);
+                widget::android::AndroidContentController::NotifyDefaultPrevented(ae->ApzInputBlockId(), true);
             } else {
                 GeckoAppShell::NotifyDefaultPrevented(true);
             }
@@ -1678,17 +1656,8 @@ public:
 nsRefPtr<mozilla::TextComposition>
 nsWindow::GetIMEComposition()
 {
-    
-    
-    
-    
-    
     MOZ_ASSERT(this == TopWindow());
-    nsWindow* win = this;
-    if (mFocus) {
-        win = mFocus;
-    }
-    return mozilla::IMEStateManager::GetTextCompositionFor(win);
+    return mozilla::IMEStateManager::GetTextCompositionFor(this);
 }
 
 
@@ -2038,13 +2007,7 @@ nsWindow::UserActivity()
 nsresult
 nsWindow::NotifyIMEInternal(const IMENotification& aIMENotification)
 {
-    
-    
-    
-    nsWindow* top = TopWindow();
-    if (top && top != this) {
-        return top->NotifyIMEInternal(aIMENotification);
-    }
+    MOZ_ASSERT(this == TopWindow());
 
     switch (aIMENotification.mMessage) {
         case REQUEST_TO_COMMIT_COMPOSITION:
@@ -2529,10 +2492,7 @@ nsWindow::ConfigureAPZControllerThread()
 already_AddRefed<GeckoContentController>
 nsWindow::CreateRootContentController()
 {
-    widget::android::APZCCallbackHandler::Initialize(this, mAPZEventState);
-
-    nsRefPtr<widget::android::APZCCallbackHandler> controller =
-        widget::android::APZCCallbackHandler::GetInstance();
+    nsRefPtr<GeckoContentController> controller = new widget::android::AndroidContentController(this, mAPZEventState);
     return controller.forget();
 }
 
