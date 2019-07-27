@@ -175,15 +175,6 @@ public:
     return scrollableRect;
   }
 
-  
-  
-  CSSToParentLayerScale CalculateIntrinsicScale() const
-  {
-    return CSSToParentLayerScale(
-        std::max(mCompositionBounds.width / mViewport.width,
-                 mCompositionBounds.height / mViewport.height));
-  }
-
   CSSSize CalculateCompositedSizeInCssPixels() const
   {
     return mCompositionBounds.Size() / GetZoom();

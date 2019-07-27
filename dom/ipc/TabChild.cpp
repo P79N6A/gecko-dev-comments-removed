@@ -221,6 +221,12 @@ CSSToParentLayerScale ConvertScaleForRoot(CSSToScreenScale aScale)
   return ViewTargetAs<ParentLayerPixel>(aScale, PixelCastJustification::ScreenIsParentLayerForRoot);
 }
 
+
+CSSToScreenScale CalculateIntrinsicScale(const ScreenIntSize& aDisplaySize, const CSSSize& aViewportSize)
+{
+  return MaxScaleRatio(ScreenSize(aDisplaySize), aViewportSize);
+}
+
 void
 TabChildBase::InitializeRootMetrics()
 {
@@ -231,7 +237,8 @@ TabChildBase::InitializeRootMetrics()
   mLastRootMetrics.SetCompositionBounds(ParentLayerRect(
       ParentLayerPoint(),
       ParentLayerSize(ViewAs<ParentLayerPixel>(mInnerSize, PixelCastJustification::ScreenIsParentLayerForRoot))));
-  mLastRootMetrics.SetZoom(CSSToParentLayerScale2D(mLastRootMetrics.CalculateIntrinsicScale()));
+  mLastRootMetrics.SetZoom(CSSToParentLayerScale2D(
+      ConvertScaleForRoot(CalculateIntrinsicScale(mInnerSize, kDefaultViewportSize))));
   mLastRootMetrics.SetDevPixelsPerCSSPixel(WebWidget()->GetDefaultScale());
   
   
@@ -388,10 +395,9 @@ TabChildBase::HandlePossibleViewportChange(const ScreenIntSize& aOldScreenSize)
   
   
   
-  float oldIntrinsicScale =
-      std::max(oldScreenSize.width / oldBrowserSize.width,
-               oldScreenSize.height / oldBrowserSize.height);
-  metrics.ZoomBy(metrics.CalculateIntrinsicScale().scale / oldIntrinsicScale);
+  CSSToScreenScale oldIntrinsicScale = CalculateIntrinsicScale(oldScreenSize, oldBrowserSize);
+  CSSToScreenScale newIntrinsicScale = CalculateIntrinsicScale(mInnerSize, viewport);
+  metrics.ZoomBy(newIntrinsicScale.scale / oldIntrinsicScale.scale);
 
   
   
@@ -404,7 +410,7 @@ TabChildBase::HandlePossibleViewportChange(const ScreenIntSize& aOldScreenSize)
     
     
     if (viewportInfo.GetDefaultZoom().scale < 0.01f) {
-      viewportInfo.SetDefaultZoom(ConvertScaleForRoot(metrics.CalculateIntrinsicScale()));
+      viewportInfo.SetDefaultZoom(newIntrinsicScale);
     }
 
     CSSToScreenScale defaultZoom = viewportInfo.GetDefaultZoom();
