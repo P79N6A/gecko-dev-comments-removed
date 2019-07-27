@@ -144,7 +144,7 @@ class StoreBuffer
         virtual void compact(StoreBuffer *owner);
 
         
-        void maybeCompact(StoreBuffer *owner);
+        void maybeCompact(StoreBuffer *owner, gcstats::Phase phase);
 
         
         void put(StoreBuffer *owner, const T &t) {
