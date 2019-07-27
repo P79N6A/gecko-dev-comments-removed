@@ -321,66 +321,6 @@ AtomIsInterned(JSContext *cx, JSAtom *atom)
 }
 
 
-
-
-
-
-MOZ_ALWAYS_INLINE
-static JSAtom *
-AtomizeAndtake(ExclusiveContext *cx, jschar *tbchars, size_t length, InternBehavior ib)
-{
-    JS_ASSERT(tbchars[length] == 0);
-
-    if (JSAtom *s = cx->staticStrings().lookup(tbchars, length)) {
-        js_free(tbchars);
-        return s;
-    }
-
-    AtomHasher::Lookup lookup(tbchars, length);
-
-    AtomSet::Ptr pp = cx->permanentAtoms().readonlyThreadsafeLookup(lookup);
-    if (pp) {
-        js_free(tbchars);
-        return pp->asPtr();
-    }
-
-    AutoLockForExclusiveAccess lock(cx);
-
-    
-
-
-
-
-
-    AtomSet& atoms = cx->atoms();
-    AtomSet::AddPtr p = atoms.lookupForAdd(lookup);
-    if (p) {
-        JSAtom *atom = p->asPtr();
-        p->setTagged(bool(ib));
-        js_free(tbchars);
-        return atom;
-    }
-
-    AutoCompartment ac(cx, cx->atomsCompartment());
-
-    JSFlatString *flat = NewString<NoGC>(cx, tbchars, length);
-    if (!flat) {
-        js_free(tbchars);
-        js_ReportOutOfMemory(cx);
-        return nullptr;
-    }
-
-    JSAtom *atom = flat->morphAtomizedStringIntoAtom();
-
-    if (!atoms.relookupOrAdd(p, lookup, AtomStateEntry(atom, bool(ib)))) {
-        js_ReportOutOfMemory(cx); 
-        return nullptr;
-    }
-
-    return atom;
-}
-
-
 template <typename CharT>
 MOZ_ALWAYS_INLINE
 static JSAtom *
@@ -496,29 +436,8 @@ js::Atomize(ExclusiveContext *cx, const char *bytes, size_t length, InternBehavi
     if (!JSString::validateLength(cx, length))
         return nullptr;
 
-    if (EnableLatin1Strings) {
-        const Latin1Char *chars = reinterpret_cast<const Latin1Char*>(bytes);
-        return AtomizeAndCopyChars(cx, chars, length, ib);
-    }
-
-    static const unsigned ATOMIZE_BUF_MAX = 32;
-    if (length < ATOMIZE_BUF_MAX) {
-        
-
-
-
-
-
-
-        jschar inflated[ATOMIZE_BUF_MAX];
-        CopyAndInflateChars(inflated, bytes, length);
-        return AtomizeAndCopyChars(cx, inflated, length, ib);
-    }
-
-    jschar *tbcharsZ = InflateString(cx, bytes, &length);
-    if (!tbcharsZ)
-        return nullptr;
-    return AtomizeAndtake(cx, tbcharsZ, length, ib);
+    const Latin1Char *chars = reinterpret_cast<const Latin1Char*>(bytes);
+    return AtomizeAndCopyChars(cx, chars, length, ib);
 }
 
 template <typename CharT>

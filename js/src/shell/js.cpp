@@ -6408,11 +6408,6 @@ main(int argc, char **argv, char **envp)
 
 #endif 
 
-    
-    
-    if (op.getBoolOption("latin1-strings"))
-        js::EnableLatin1Strings = true;
-
 #ifdef JS_THREADSAFE
     
     

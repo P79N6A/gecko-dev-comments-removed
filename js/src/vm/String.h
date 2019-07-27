@@ -965,9 +965,6 @@ JS_STATIC_ASSERT(sizeof(JSAtom) == sizeof(JSString));
 namespace js {
 
 
-extern bool EnableLatin1Strings;
-
-
 
 
 
