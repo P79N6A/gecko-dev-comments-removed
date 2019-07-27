@@ -4,19 +4,25 @@
 
 
 #include <algorithm>
+#include "gtest/gtest.h"
+#include "Helpers.h"
+#include "mozilla/ReentrantMonitor.h"
+#include "nsCOMPtr.h"
+#include "nsCRT.h"
 #include "nsIAsyncInputStream.h"
 #include "nsIAsyncOutputStream.h"
+#include "nsICloneableInputStream.h"
+#include "nsIInputStream.h"
+#include "nsIOutputStream.h"
+#include "nsIPipe.h"
 #include "nsIThread.h"
 #include "nsIRunnable.h"
+#include "nsStreamUtils.h"
+#include "nsString.h"
 #include "nsThreadUtils.h"
 #include "prprf.h"
 #include "prinrval.h"
-#include "nsCRT.h"
-#include "nsIPipe.h"    
 
-#include "mozilla/ReentrantMonitor.h"
-
-#include "gtest/gtest.h"
 using namespace mozilla;
 
 #define ITERATIONS      33333
@@ -388,4 +394,269 @@ TEST(Pipes, Main)
 {
     RunTests(16, 1);
     RunTests(4096, 16);
+}
+
+
+
+namespace {
+
+static const uint32_t DEFAULT_SEGMENT_SIZE = 4 * 1024;
+
+
+
+static void TestPipe2(uint32_t aNumBytes,
+                      uint32_t aSegmentSize = DEFAULT_SEGMENT_SIZE)
+{
+  nsCOMPtr<nsIInputStream> reader;
+  nsCOMPtr<nsIOutputStream> writer;
+
+  uint32_t maxSize = std::max(aNumBytes, aSegmentSize);
+
+  nsresult rv = NS_NewPipe(getter_AddRefs(reader), getter_AddRefs(writer),
+                           aSegmentSize, maxSize);
+  ASSERT_TRUE(NS_SUCCEEDED(rv));
+
+  nsTArray<char> inputData;
+  testing::CreateData(aNumBytes, inputData);
+  testing::WriteAllAndClose(writer, inputData);
+  testing::ConsumeAndValidateStream(reader, inputData);
+}
+
+} 
+
+TEST(Pipes, Blocking_32k)
+{
+  TestPipe2(32 * 1024);
+}
+
+TEST(Pipes, Blocking_64k)
+{
+  TestPipe2(64 * 1024);
+}
+
+TEST(Pipes, Blocking_128k)
+{
+  TestPipe2(128 * 1024);
+}
+
+
+
+namespace {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static void TestPipeClone(uint32_t aTotalBytes,
+                          uint32_t aNumWrites,
+                          uint32_t aNumInitialClones,
+                          uint32_t aNumToCloseAfterWrite,
+                          uint32_t aNumToCloneAfterWrite,
+                          uint32_t aNumStreamsToReadPerWrite,
+                          uint32_t aSegmentSize = DEFAULT_SEGMENT_SIZE)
+{
+  nsCOMPtr<nsIInputStream> reader;
+  nsCOMPtr<nsIOutputStream> writer;
+
+  uint32_t maxSize = std::max(aTotalBytes, aSegmentSize);
+
+  
+  
+  nsresult rv = NS_NewPipe(getter_AddRefs(reader), getter_AddRefs(writer),
+                           aSegmentSize, maxSize,
+                           true, false); 
+  ASSERT_TRUE(NS_SUCCEEDED(rv));
+
+  nsCOMPtr<nsICloneableInputStream> cloneable = do_QueryInterface(reader);
+  ASSERT_TRUE(cloneable);
+  ASSERT_TRUE(cloneable->GetCloneable());
+
+  nsTArray<nsCString> outputDataList;
+
+  nsTArray<nsCOMPtr<nsIInputStream>> streamList;
+
+  
+  streamList.AppendElement(reader);
+  outputDataList.AppendElement();
+
+  
+  
+  for (uint32_t i = 0; i < aNumInitialClones; ++i) {
+    nsCOMPtr<nsIInputStream>* clone = streamList.AppendElement();
+    rv = cloneable->Clone(getter_AddRefs(*clone));
+    ASSERT_TRUE(NS_SUCCEEDED(rv));
+    ASSERT_TRUE(*clone);
+
+    outputDataList.AppendElement();
+  }
+
+  nsTArray<char> inputData;
+  testing::CreateData(aTotalBytes, inputData);
+
+  const uint32_t bytesPerWrite = ((aTotalBytes - 1)/ aNumWrites) + 1;
+  uint32_t offset = 0;
+  uint32_t remaining = aTotalBytes;
+  uint32_t nextStreamToRead = 0;
+
+  while (remaining) {
+    uint32_t numToWrite = std::min(bytesPerWrite, remaining);
+    testing::Write(writer, inputData, offset, numToWrite);
+    offset += numToWrite;
+    remaining -= numToWrite;
+
+    
+    
+    for (uint32_t i = 0; i < aNumToCloseAfterWrite &&
+                         streamList.Length() > 1; ++i) {
+
+      uint32_t lastIndex = streamList.Length() - 1;
+      streamList[lastIndex]->Close();
+      streamList.RemoveElementAt(lastIndex);
+      outputDataList.RemoveElementAt(lastIndex);
+
+      if (nextStreamToRead >= streamList.Length()) {
+        nextStreamToRead = 0;
+      }
+    }
+
+    
+    
+    
+    for (uint32_t i = 0; i < aNumToCloneAfterWrite; ++i) {
+      nsCOMPtr<nsIInputStream>* clone = streamList.AppendElement();
+      rv = cloneable->Clone(getter_AddRefs(*clone));
+      ASSERT_TRUE(NS_SUCCEEDED(rv));
+      ASSERT_TRUE(*clone);
+
+      
+      
+      nsCString* outputData = outputDataList.AppendElement();
+      *outputData = outputDataList[0];
+    }
+
+    
+    
+    
+    for (uint32_t i = 0; i < aNumStreamsToReadPerWrite; ++i) {
+      nsCOMPtr<nsIInputStream>& stream = streamList[nextStreamToRead];
+      nsCString& outputData = outputDataList[nextStreamToRead];
+
+      
+      
+      
+      nsAutoCString tmpOutputData;
+      rv = NS_ConsumeStream(stream, UINT32_MAX, tmpOutputData);
+      ASSERT_TRUE(rv == NS_BASE_STREAM_WOULD_BLOCK || NS_SUCCEEDED(rv));
+      ASSERT_GE(tmpOutputData.Length(), numToWrite);
+
+      outputData += tmpOutputData;
+
+      nextStreamToRead += 1;
+      if (nextStreamToRead >= streamList.Length()) {
+        
+        
+        
+        
+
+        nextStreamToRead = 0;
+      }
+    }
+  }
+
+  rv = writer->Close();
+  ASSERT_TRUE(NS_SUCCEEDED(rv));
+
+  nsDependentCSubstring inputString(inputData.Elements(), inputData.Length());
+
+  
+  
+  
+  for (uint32_t i = 0; i < streamList.Length(); ++i) {
+    nsCOMPtr<nsIInputStream>& stream = streamList[i];
+    nsCString& outputData = outputDataList[i];
+
+    nsAutoCString tmpOutputData;
+    rv = NS_ConsumeStream(stream, UINT32_MAX, tmpOutputData);
+    ASSERT_TRUE(rv == NS_BASE_STREAM_WOULD_BLOCK || NS_SUCCEEDED(rv));
+    stream->Close();
+
+    
+    outputData += tmpOutputData;
+
+    ASSERT_EQ(inputString.Length(), outputData.Length());
+    ASSERT_TRUE(inputString.Equals(outputData));
+  }
+}
+
+} 
+
+TEST(Pipes, Clone_BeforeWrite_ReadAtEnd)
+{
+  TestPipeClone(32 * 1024, 
+                16,        
+                3,         
+                0,         
+                0,         
+                0);        
+}
+
+TEST(Pipes, Clone_BeforeWrite_ReadDuringWrite)
+{
+  
+  
+  
+
+  TestPipeClone(32 * 1024, 
+                16,        
+                3,         
+                0,         
+                0,         
+                4);        
+}
+
+TEST(Pipes, Clone_DuringWrite_ReadAtEnd)
+{
+  TestPipeClone(32 * 1024, 
+                16,        
+                0,         
+                0,         
+                1,         
+                0);        
+}
+
+TEST(Pipes, Clone_DuringWrite_ReadDuringWrite)
+{
+  TestPipeClone(32 * 1024, 
+                16,        
+                0,         
+                0,         
+                1,         
+                1);        
+}
+
+TEST(Pipes, Clone_DuringWrite_ReadDuringWrite_CloseDuringWrite)
+{
+  
+  
+  
+
+  TestPipeClone(32 * 1024, 
+                16,        
+                1,         
+                1,         
+                2,         
+                3);        
 }
