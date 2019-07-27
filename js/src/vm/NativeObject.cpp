@@ -1342,46 +1342,46 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
         return result.succeed();
     }
 
+    MOZ_ASSERT(shape);
+
     
     
     
     if (desc.isAccessorDescriptor()) {
-        if (shape) {
-            
-            
-            if (IsImplicitDenseOrTypedArrayElement(shape)) {
-                if (IsAnyTypedArray(obj)) {
-                    
-                    return result.succeed();
-                }
-                if (!NativeObject::sparsifyDenseElement(cx, obj, JSID_TO_INT(id)))
-                    return false;
-                shape = obj->lookup(cx, id);
-            }
-            if (shape->isAccessorDescriptor()) {
-                if (!CheckAccessorRedefinition(cx, obj, shape, desc))
-                    return false;
-
-                desc.setAttributes(ApplyOrDefaultAttributes(desc.attributes(), shape));
-                if (!desc.hasGetterObject())
-                    desc.setGetter(shape->getter());
-                if (!desc.hasSetterObject())
-                    desc.setSetter(shape->setter());
-                desc.attributesRef() |= JSPROP_GETTER | JSPROP_SETTER;
-                desc.assertComplete();
-
-                shape = NativeObject::changeProperty(cx, obj, shape, desc.attributes(),
-                                                     desc.getter(), desc.setter());
-                if (!shape)
-                    return false;
-                if (!PurgeScopeChain(cx, obj, id))
-                    return false;
-
-                JS_ALWAYS_TRUE(UpdateShapeTypeAndValue(cx, obj, shape, desc.value()));
-                if (!CallAddPropertyHook(cx, obj, shape, desc.value()))
-                    return false;
+        
+        
+        if (IsImplicitDenseOrTypedArrayElement(shape)) {
+            if (IsAnyTypedArray(obj)) {
+                
                 return result.succeed();
             }
+            if (!NativeObject::sparsifyDenseElement(cx, obj, JSID_TO_INT(id)))
+                return false;
+            shape = obj->lookup(cx, id);
+        }
+        if (shape->isAccessorDescriptor()) {
+            if (!CheckAccessorRedefinition(cx, obj, shape, desc))
+                return false;
+
+            desc.setAttributes(ApplyOrDefaultAttributes(desc.attributes(), shape));
+            if (!desc.hasGetterObject())
+                desc.setGetter(shape->getter());
+            if (!desc.hasSetterObject())
+                desc.setSetter(shape->setter());
+            desc.attributesRef() |= JSPROP_GETTER | JSPROP_SETTER;
+            desc.assertComplete();
+
+            shape = NativeObject::changeProperty(cx, obj, shape, desc.attributes(),
+                                                 desc.getter(), desc.setter());
+            if (!shape)
+                return false;
+            if (!PurgeScopeChain(cx, obj, id))
+                return false;
+
+            JS_ALWAYS_TRUE(UpdateShapeTypeAndValue(cx, obj, shape, desc.value()));
+            if (!CallAddPropertyHook(cx, obj, shape, desc.value()))
+                return false;
+            return result.succeed();
         }
 
         
@@ -1389,63 +1389,60 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
         
         desc.attributesRef() |= JSPROP_GETTER | JSPROP_SETTER;
     } else if (desc.hasValue()) {
-        if (shape) {
-            
-            
-            if (IsImplicitDenseOrTypedArrayElement(shape)) {
-                desc.setAttributes(ApplyAttributes(desc.attributes(), true, true,
-                                                   !IsAnyTypedArray(obj)));
-            } else {
-                desc.setAttributes(ApplyOrDefaultAttributes(desc.attributes(), shape));
+        
+        
+        if (IsImplicitDenseOrTypedArrayElement(shape)) {
+            desc.setAttributes(ApplyAttributes(desc.attributes(), true, true,
+                                               !IsAnyTypedArray(obj)));
+        } else {
+            desc.setAttributes(ApplyOrDefaultAttributes(desc.attributes(), shape));
 
-                
-                if (shape->isAccessorDescriptor()) {
-                    if (!CheckAccessorRedefinition(cx, obj, shape, desc))
-                        return false;
-                }
+            
+            if (shape->isAccessorDescriptor()) {
+                if (!CheckAccessorRedefinition(cx, obj, shape, desc))
+                    return false;
             }
         }
     } else {
         
-        if (shape) {
-            
-            if (IsImplicitDenseOrTypedArrayElement(shape)) {
-                if (IsAnyTypedArray(obj)) {
-                    
-                    
-                    
-                    return result.succeed();
-                }
-                if (!NativeObject::sparsifyDenseElement(cx, obj, JSID_TO_INT(id)))
-                    return false;
-                shape = obj->lookup(cx, id);
-            }
 
-            if (shape->isAccessorDescriptor() &&
-                !CheckAccessorRedefinition(cx, obj, shape, desc))
-            {
+        
+        if (IsImplicitDenseOrTypedArrayElement(shape)) {
+            if (IsAnyTypedArray(obj)) {
+                
+                
+                
+                return result.succeed();
+            }
+            if (!NativeObject::sparsifyDenseElement(cx, obj, JSID_TO_INT(id)))
                 return false;
-            }
+            shape = obj->lookup(cx, id);
+        }
 
-            desc.setAttributes(ApplyOrDefaultAttributes(desc.attributes(), shape));
+        if (shape->isAccessorDescriptor() &&
+            !CheckAccessorRedefinition(cx, obj, shape, desc))
+        {
+            return false;
+        }
 
-            if (shape->isAccessorDescriptor() && desc.hasWritable()) {
-                
-                
-                
-                desc.value().setUndefined();
-            } else {
-                
-                
-                
-                uint32_t propMask = JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT;
-                desc.setAttributes((shape->attributes() & ~propMask) |
-                                   (desc.attributes() & propMask));
-                desc.setGetter(shape->getter());
-                desc.setSetter(shape->setter());
-                if (shape->hasSlot())
-                    desc.value().set(obj->getSlot(shape->slot()));
-            }
+        desc.setAttributes(ApplyOrDefaultAttributes(desc.attributes(), shape));
+
+        if (shape->isAccessorDescriptor() && desc.hasWritable()) {
+            
+            
+            
+            desc.value().setUndefined();
+        } else {
+            
+            
+            
+            uint32_t propMask = JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT;
+            desc.setAttributes((shape->attributes() & ~propMask) |
+                               (desc.attributes() & propMask));
+            desc.setGetter(shape->getter());
+            desc.setSetter(shape->setter());
+            if (shape->hasSlot())
+                desc.value().set(obj->getSlot(shape->slot()));
         }
     }
 
