@@ -688,6 +688,7 @@ const XPCWrappedNativeJSClass XPC_WN_NoHelper_JSClass = {
         nullptr, 
         nullptr, 
         nullptr, 
+        nullptr, 
         nullptr, nullptr, 
         nullptr, 
         nullptr, 
