@@ -5,7 +5,6 @@
 
 
 #include "MediaRecorder.h"
-#include "GeneratedEvents.h"
 #include "MediaEncoder.h"
 #include "mozilla/DOMEventTargetHelper.h"
 #include "nsError.h"
