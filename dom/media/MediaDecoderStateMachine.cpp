@@ -2452,7 +2452,7 @@ void MediaDecoderStateMachine::DecodeSeek()
       
       res = mReader->ResetDecode();
       if (NS_SUCCEEDED(res)) {
-        mReader->Seek(seekTime, mStartTime, GetEndTime(), mCurrentTimeBeforeSeek)
+        mReader->Seek(seekTime, GetEndTime())
                ->Then(DecodeTaskQueue(), __func__, this,
                       &MediaDecoderStateMachine::OnSeekCompleted,
                       &MediaDecoderStateMachine::OnSeekFailed);
