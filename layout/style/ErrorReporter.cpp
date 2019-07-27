@@ -243,7 +243,11 @@ ErrorReporter::AddToError(const nsString &aErrorText)
     
     
     if (mErrorLine.IsEmpty() || mErrorLineNumber != mPrevErrorLineNumber) {
-      mErrorLine = mScanner->GetCurrentLine();
+      
+      
+      if (!mErrorLine.Assign(mScanner->GetCurrentLine(), fallible)) {
+        mErrorLine.Truncate();
+      }
       mPrevErrorLineNumber = mErrorLineNumber;
     }
   } else {
