@@ -2546,7 +2546,10 @@ ScrollFrameHelper::AppendScrollPartsTo(nsDisplayListBuilder*   aBuilder,
     return;
   }
 
-  mozilla::layers::FrameMetrics::ViewID scrollTargetId = IsScrollingActive(aBuilder)
+  
+  
+  
+  mozilla::layers::FrameMetrics::ViewID scrollTargetId = IsMaybeScrollingActive()
     ? nsLayoutUtils::FindOrCreateIDFor(mScrolledFrame->GetContent())
     : mozilla::layers::FrameMetrics::NULL_SCROLL_ID;
 
@@ -2765,10 +2768,10 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   if (aBuilder->IsPaintingToWindow()) {
     mScrollPosAtLastPaint = GetScrollPosition();
-    if (IsScrollingActive(aBuilder) && NeedToInvalidateOnScroll(mOuter)) {
+    if (IsMaybeScrollingActive() && NeedToInvalidateOnScroll(mOuter)) {
       MarkNotRecentlyScrolled();
     }
-    if (IsScrollingActive(aBuilder)) {
+    if (IsMaybeScrollingActive()) {
       if (mScrollPosForLayerPixelAlignment == nsPoint(-1,-1)) {
         mScrollPosForLayerPixelAlignment = mScrollPosAtLastPaint;
       }
@@ -2875,6 +2878,11 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     dirtyRect = ExpandRectToNearlyVisible(dirtyRect);
   }
 
+  const nsStyleDisplay* disp = mOuter->StyleDisplay();
+  if (disp && (disp->mWillChangeBitField & NS_STYLE_WILL_CHANGE_SCROLL)) {
+    aBuilder->AddToWillChangeBudget(mOuter, GetScrollPositionClampingScrollPortSize());
+  }
+
   
   
   
@@ -2896,11 +2904,6 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       
       
       (!mIsRoot || aBuilder->RootReferenceFrame()->PresContext() != mOuter->PresContext());
-
-    const nsStyleDisplay* disp = mOuter->StyleDisplay();
-    bool willScroll = disp && (disp->mWillChangeBitField & NS_STYLE_WILL_CHANGE_SCROLL) &&
-                      aBuilder->IsInWillChangeBudget(mOuter);
-    shouldBuildLayer |= willScroll;
   }
 
   mScrollParentID = aBuilder->GetCurrentScrollParentId();
@@ -4126,6 +4129,19 @@ ScrollFrameHelper::IsScrollbarOnRight() const
 }
 
 bool
+ScrollFrameHelper::IsMaybeScrollingActive() const
+{
+  const nsStyleDisplay* disp = mOuter->StyleDisplay();
+  if (disp && (disp->mWillChangeBitField & NS_STYLE_WILL_CHANGE_SCROLL)) {
+    return true;
+  }
+
+  return mHasBeenScrolledRecently ||
+      IsAlwaysActive() ||
+      mShouldBuildScrollableLayer;
+}
+
+bool
 ScrollFrameHelper::IsScrollingActive(nsDisplayListBuilder* aBuilder) const
 {
   const nsStyleDisplay* disp = mOuter->StyleDisplay();
@@ -4135,8 +4151,8 @@ ScrollFrameHelper::IsScrollingActive(nsDisplayListBuilder* aBuilder) const
   }
 
   return mHasBeenScrolledRecently ||
-      IsAlwaysActive() ||
-      mShouldBuildScrollableLayer;
+        IsAlwaysActive() ||
+        mShouldBuildScrollableLayer;
 }
 
 

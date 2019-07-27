@@ -14,6 +14,7 @@
 #define NSDISPLAYLIST_H_
 
 #include "mozilla/Attributes.h"
+#include "mozilla/DebugOnly.h"
 #include "nsCOMPtr.h"
 #include "nsContainerFrame.h"
 #include "nsPoint.h"
@@ -778,6 +779,8 @@ private:
   
   nsDataHashtable<nsPtrHashKey<nsPresContext>, DocumentWillChangeBudget>
                                  mWillChangeBudget;
+  
+  mutable mozilla::DebugOnly<bool> mWillChangeBudgetCalculated;
   
   nsRect                         mDirtyRect;
   nsRegion                       mWindowOpaqueRegion;
@@ -3464,7 +3467,16 @@ public:
                                                 bool aLogAnimations = false);
   bool CanUseAsyncAnimations(nsDisplayListBuilder* aBuilder) MOZ_OVERRIDE;
 
-  bool ShouldPrerender() const { return mPrerender; }
+  
+
+
+
+  bool MaybePrerender() const { return mMaybePrerender; }
+  
+
+
+
+  bool ShouldPrerender(nsDisplayListBuilder* aBuilder);
 
 #ifdef MOZ_DUMP_PAINTING
   virtual void WriteDebugInfo(nsACString& aTo) MOZ_OVERRIDE;
@@ -3486,7 +3498,9 @@ private:
   ComputeTransformFunction mTransformGetter;
   nsRect mChildrenVisibleRect;
   uint32_t mIndex;
-  bool mPrerender;
+  
+  
+  bool mMaybePrerender;
 };
 
 

@@ -60,6 +60,11 @@ public:
 
 
 
+  static bool IsStyleMaybeAnimated(nsIFrame* aFrame, nsCSSProperty aProperty);
+  
+
+
+
   static bool IsStyleAnimated(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
                               nsCSSProperty aProperty);
   
