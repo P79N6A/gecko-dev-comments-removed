@@ -1066,7 +1066,7 @@ class TypedArrayObjectTemplate : public TypedArrayObject
 
         
         
-        void *srcbuf = cx->malloc_(byteLength);
+        uint8_t *srcbuf = self->zone()->pod_malloc<uint8_t>(byteLength);
         if (!srcbuf)
             return false;
         js_memcpy(srcbuf, tarray->viewData(), byteLength);

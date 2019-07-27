@@ -33,8 +33,8 @@ class StringBuffer
 
 
 
-    typedef Vector<Latin1Char, 64, ContextAllocPolicy> Latin1CharBuffer;
-    typedef Vector<jschar, 32, ContextAllocPolicy> TwoByteCharBuffer;
+    typedef Vector<Latin1Char, 64> Latin1CharBuffer;
+    typedef Vector<jschar, 32> TwoByteCharBuffer;
 
     ExclusiveContext *cx;
 

@@ -195,6 +195,7 @@ class ArenaCellIterImpl
     ArenaCellIterImpl()
       : firstThingOffset(0)     
       , thingSize(0)            
+      , limit(0)
     {
     }
 

@@ -88,6 +88,12 @@ FinishStringFlat(ExclusiveContext *cx, StringBuffer &sb, Buffer &cb)
     if (!str)
         return nullptr;
 
+    
+
+
+
+    str->zone()->updateMallocCounter(sizeof(CharT) * len);
+
     buf.forget();
     return str;
 }

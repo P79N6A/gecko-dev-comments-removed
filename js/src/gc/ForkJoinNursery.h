@@ -205,7 +205,7 @@ class ForkJoinNursery
     void *allocate(size_t size);
 
     
-    HeapSlot *allocateHugeSlots(size_t nslots);
+    HeapSlot *allocateHugeSlots(JSObject *obj, size_t nslots);
 
     
     
@@ -240,9 +240,9 @@ class ForkJoinNursery
     void computeNurserySizeAfterGC(size_t live, const char **msg);
 
     AllocKind getObjectAllocKind(JSObject *src);
-    void *allocateInTospace(AllocKind thingKind);
-    void *allocateInTospace(size_t nelem, size_t elemSize);
     void *allocateInTospaceInfallible(size_t thingSize);
+    void *allocateInTospace(AllocKind thingKind);
+    template <typename T> T *allocateInTospace(size_t nelem);
     MOZ_ALWAYS_INLINE bool shouldMoveObject(void **thingp);
     void *moveObjectToTospace(JSObject *src);
     size_t copyObjectToTospace(JSObject *dst, JSObject *src, gc::AllocKind dstKind);
