@@ -5,10 +5,10 @@ function run_test() {
     let p = Cc["@mozilla.org/tools/profiler;1"];
     
     if (!p)
-	return;
+        return;
     p = p.getService(Ci.nsIProfiler);
     if (!p)
-	return;
+        return;
 
     
     
@@ -24,12 +24,12 @@ function run_test() {
         var delayMS = 5;
         while (1) {
             do_print("loop: ms = " + delayMS);
-	    let then = Date.now();
-	    do {
-	        let n = 10000;
-	        while (--n); 
-	        
-	    } while (Date.now() - then < delayMS);
+            let then = Date.now();
+            do {
+                let n = 10000;
+                while (--n); 
+                
+            } while (Date.now() - then < delayMS);
             let pr = p.getProfileData().threads[0].samples;
             if (pr.length > 0 || delayMS > 30000)
                 return pr;
@@ -41,30 +41,18 @@ function run_test() {
 
     do_check_neq(profile.length, 0);
     let stack = profile[profile.length - 1].frames.map(f => f.location);
-    stack = stack.slice(stack.lastIndexOf("js::RunScript") + 1);
-
     do_print(stack);
+
     
     
-    if (stack.length < 2 || stack[1] != "EnterJIT") {
-	do_print("No JIT?");
-	
-	do_check_eq(Math.min(stack.length, 1), 1);
-	let thisInterp = stack[0];
-	do_check_eq(thisInterp.split(" ")[0], "arbitrary_name");
-	if (stack.length >= 2) {
-	    let nextFrame = stack[1];
-	    do_check_neq(nextFrame.split(" ")[0], "arbitrary_name");
-	}
-    } else {
-	do_check_eq(Math.min(stack.length, 3), 3);
-	let thisInterp = stack[0];
-	let enterJit = stack[1];
-	let thisBC = stack[2];
-	do_check_eq(thisInterp.split(" ")[0], "arbitrary_name");
-	do_check_eq(enterJit, "EnterJIT");
-	do_check_eq(thisBC.split(" ")[0], "arbitrary_name");
+    var gotName = false;
+    for (var i = 0; i < stack.length; i++) {
+        if (stack[i].match(/arbitrary_name/)) {
+            do_check_eq(gotName, false);
+            gotName = true;
+        }
     }
+    do_check_eq(gotName, true);
 
     p.StopProfiler();
 }
