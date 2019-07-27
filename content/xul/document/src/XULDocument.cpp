@@ -1707,7 +1707,7 @@ XULDocument::AddElementToDocumentPost(Element* aElement)
 NS_IMETHODIMP
 XULDocument::AddSubtreeToDocument(nsIContent* aContent)
 {
-    NS_ASSERTION(aContent->GetCurrentDoc() == this, "Element not in doc!");
+    NS_ASSERTION(aContent->GetUncomposedDoc() == this, "Element not in doc!");
     
     if (!aContent->IsElement()) {
         return NS_OK;
@@ -3738,7 +3738,7 @@ XULDocument::CreateTemplateBuilder(nsIContent* aElement)
 
     
     
-    nsIDocument *document = aElement->GetCurrentDoc();
+    nsIDocument* document = aElement->GetUncomposedDoc();
     NS_ENSURE_TRUE(document, NS_OK);
 
     int32_t nameSpaceID;
@@ -3878,7 +3878,7 @@ XULDocument::OverlayForwardReference::Resolve()
     }
 
     
-    if (!notify && target->GetCurrentDoc() == mDocument) {
+    if (!notify && target->GetUncomposedDoc() == mDocument) {
         
         
         
