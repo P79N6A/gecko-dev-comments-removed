@@ -3545,6 +3545,24 @@ class LValueToString : public LInstructionHelper<1, BOX_PIECES, 1>
     }
 };
 
+class LInt32x4ToFloat32x4 : public LInstructionHelper<1, 1, 0>
+{
+  public:
+    LIR_HEADER(Int32x4ToFloat32x4);
+    explicit LInt32x4ToFloat32x4(const LAllocation &input) {
+        setOperand(0, input);
+    }
+};
+
+class LFloat32x4ToInt32x4 : public LInstructionHelper<1, 1, 0>
+{
+  public:
+    LIR_HEADER(Float32x4ToInt32x4);
+    explicit LFloat32x4ToInt32x4(const LAllocation &input) {
+        setOperand(0, input);
+    }
+};
+
 
 
 

@@ -467,6 +467,18 @@ class MacroAssemblerX86Shared : public Assembler
         cvtsd2ss(src, dest);
     }
 
+    void convertFloat32x4ToInt32x4(FloatRegister src, FloatRegister dest) {
+        
+        
+        
+        
+        
+        cvttps2dq(src, dest);
+    }
+    void convertInt32x4ToFloat32x4(FloatRegister src, FloatRegister dest) {
+        cvtdq2ps(src, dest);
+    }
+
     void bitwiseAndX4(const Operand &src, FloatRegister dest) {
         
         

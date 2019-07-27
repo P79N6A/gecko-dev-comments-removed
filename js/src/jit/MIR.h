@@ -1362,6 +1362,34 @@ class MSimdConstant : public MNullaryInstruction
 };
 
 
+class MSimdConvert : public MUnaryInstruction
+{
+    MSimdConvert(MDefinition *obj, MIRType fromType, MIRType toType)
+      : MUnaryInstruction(obj)
+    {
+        MOZ_ASSERT(IsSimdType(obj->type()) && fromType == obj->type());
+        MOZ_ASSERT(IsSimdType(toType));
+        setResultType(toType);
+    }
+
+  public:
+    INSTRUCTION_HEADER(SimdConvert);
+    static MSimdConvert *NewAsmJS(TempAllocator &alloc, MDefinition *obj, MIRType fromType,
+                                  MIRType toType)
+    {
+        return new(alloc) MSimdConvert(obj, fromType, toType);
+    }
+
+    AliasSet getAliasSet() const {
+        return AliasSet::None();
+    }
+    bool congruentTo(const MDefinition *ins) const {
+        return congruentIfOperandsEqual(ins);
+    }
+    ALLOW_CLONE(MSimdConvert)
+};
+
+
 class MSimdExtractElement : public MUnaryInstruction
 {
   protected:
