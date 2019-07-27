@@ -215,18 +215,22 @@ const gXPInstallObserver = {
       options.learnMoreURL = Services.urlFormatter.formatURLPref("app.support.baseURL") +
                              "find-and-install-add-ons";
 
+      let notification = document.getElementById("addon-install-confirmation-notification");
       if (unsigned.length == installInfo.installs.length) {
         
         messageString = gNavigatorBundle.getString("addonConfirmInstallUnsigned.message");
+        notification.setAttribute("warning", "true");
       }
       else if (unsigned.length == 0) {
         
         messageString = gNavigatorBundle.getString("addonConfirmInstall.message");
+        notification.removeAttribute("warning");
       }
       else {
         
         
         messageString = gNavigatorBundle.getString("addonConfirmInstallSomeUnsigned.message");
+        notification.setAttribute("warning", "true");
       }
 
       messageString = PluralForm.get(installInfo.installs.length, messageString);
@@ -283,6 +287,7 @@ const gXPInstallObserver = {
       });
 
       if (needsRestart) {
+        notificationID = "addon-install-restart";
         messageString = gNavigatorBundle.getString("addonsInstalledNeedsRestart");
         action = {
           label: gNavigatorBundle.getString("addonInstallRestartButton"),
