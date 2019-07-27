@@ -664,6 +664,8 @@ public:
 
 
 
+
+
   virtual nsresult SetArguments(nsIArray *aArguments) = 0;
 
   
