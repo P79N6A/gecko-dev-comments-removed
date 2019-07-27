@@ -75,9 +75,7 @@ public:
   
   
   static already_AddRefed<PlatformDecoderModule>
-  CreateCDMWrapper(CDMProxy* aProxy,
-                   bool aHasAudio,
-                   bool aHasVideo);
+  CreateCDMWrapper(CDMProxy* aProxy);
 #endif
 
   

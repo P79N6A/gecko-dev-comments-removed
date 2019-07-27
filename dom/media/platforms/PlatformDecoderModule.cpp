@@ -89,9 +89,7 @@ PlatformDecoderModule::Init()
 #ifdef MOZ_EME
 
 already_AddRefed<PlatformDecoderModule>
-PlatformDecoderModule::CreateCDMWrapper(CDMProxy* aProxy,
-                                        bool aHasAudio,
-                                        bool aHasVideo)
+PlatformDecoderModule::CreateCDMWrapper(CDMProxy* aProxy)
 {
   bool cdmDecodesAudio;
   bool cdmDecodesVideo;
@@ -101,14 +99,11 @@ PlatformDecoderModule::CreateCDMWrapper(CDMProxy* aProxy,
     cdmDecodesVideo = caps.CanDecryptAndDecodeVideo();
   }
 
-  nsRefPtr<PlatformDecoderModule> pdm;
-  if ((!cdmDecodesAudio && aHasAudio) || (!cdmDecodesVideo && aHasVideo)) {
-    
-    
-    pdm = Create();
-    if (!pdm) {
-      return nullptr;
-    }
+  
+  
+  nsRefPtr<PlatformDecoderModule> pdm = Create();
+  if (!pdm) {
+    return nullptr;
   }
 
   nsRefPtr<PlatformDecoderModule> emepdm(
