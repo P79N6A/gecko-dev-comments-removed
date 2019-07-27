@@ -258,12 +258,6 @@ XPCOMUtils.defineLazyGetter(this, "PageMenu", function() {
 
 function pageShowEventHandlers(persisted) {
   XULBrowserWindow.asyncUpdateUI();
-
-  
-  
-  
-  if (persisted)
-    gPluginHandler.reshowClickToPlayNotification();
 }
 
 function UpdateBackForwardCommands(aWebNavigation) {
@@ -682,7 +676,7 @@ function gKeywordURIFixup({ target: browser, data: fixupInfo }) {
   
   
   let alternativeURI = deserializeURI(fixupInfo.fixedURI);
-  if (!fixupInfo.fixupUsedKeyword || !alternativeURI || !alternativeURI.host) {
+  if (!fixupInfo.fixupUsedKeyword || !alternativeURI) {
     return;
   }
 
@@ -779,13 +773,6 @@ var gBrowserInit = {
     var mustLoadSidebar = false;
 
     gBrowser.addEventListener("DOMUpdatePageReport", gPopupBlockerObserver, false);
-
-    
-    gBrowser.addEventListener("PluginBindingAttached", gPluginHandler, true, true);
-    gBrowser.addEventListener("PluginCrashed",         gPluginHandler, true);
-    gBrowser.addEventListener("PluginOutdated",        gPluginHandler, true);
-    gBrowser.addEventListener("PluginInstantiated",    gPluginHandler, true);
-    gBrowser.addEventListener("PluginRemoved",         gPluginHandler, true);
 
     gBrowser.addEventListener("NewPluginInstalled", gPluginHandler.newPluginInstalled, true);
 
