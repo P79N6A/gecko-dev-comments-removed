@@ -547,7 +547,6 @@ SelectionCarets::SelectWord()
   bool selectable;
   ptFrame->IsSelectable(&selectable, nullptr);
   if (!selectable) {
-    SELECTIONCARETS_LOG("Unable to select");
     return NS_OK;
   }
 
@@ -558,18 +557,14 @@ SelectionCarets::SelectWord()
   
   
   nsFocusManager* fm = nsFocusManager::GetFocusManager();
-
   nsIContent* editingHost = ptFrame->GetContent()->GetEditingHost();
   if (editingHost) {
-    SELECTIONCARETS_LOG("Select editable content %p", editingHost);
     nsCOMPtr<nsIDOMElement> elt = do_QueryInterface(editingHost->GetParent());
     if (elt) {
       fm->SetFocus(elt, 0);
     }
   } else {
     nsIContent* focusedContent = GetFocusedContent();
-    SELECTIONCARETS_LOG("Select non-editable content %p", focusedContent);
-
     if (focusedContent && focusedContent->GetTextEditorRootContent()) {
       nsIDOMWindow* win = mPresShell->GetDocument()->GetWindow();
       if (win) {
@@ -577,18 +572,6 @@ SelectionCarets::SelectWord()
       }
     }
   }
-
-  nsIContent* selectedContent = ptFrame->GetContent();
-  if (selectedContent && !nsContentUtils::HasNonEmptyTextContent(
-        selectedContent, nsContentUtils::eRecurseIntoChildren)) {
-    SELECTIONCARETS_LOG("Select content %p with empty text", selectedContent);
-    
-    
-    
-    DispatchCustomEvent(NS_LITERAL_STRING("touchcarettap"));
-    return NS_OK;
-  }
-
 
   SetSelectionDragState(true);
   nsFrame* frame = static_cast<nsFrame*>(ptFrame);
@@ -1023,20 +1006,6 @@ SelectionCarets::GetSelectionBoundingRect(Selection* aSel)
   }
 
   return res;
-}
-
-void
-SelectionCarets::DispatchCustomEvent(const nsAString& aEvent)
-{
-  bool defaultActionEnabled = true;
-  nsIDocument* doc = mPresShell->GetDocument();
-  MOZ_ASSERT(doc);
-  nsContentUtils::DispatchTrustedEvent(doc,
-                                       ToSupports(doc),
-                                       aEvent,
-                                       true,
-                                       false,
-                                       &defaultActionEnabled);
 }
 
 void
