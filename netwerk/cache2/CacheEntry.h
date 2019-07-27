@@ -205,10 +205,13 @@ private:
   };
 
   
+  
+  bool Open(Callback & aCallback, bool aTruncate, bool aPriority, bool aBypassIfBusy);
+  
   bool Load(bool aTruncate, bool aPriority);
   void OnLoaded();
 
-  void RememberCallback(Callback & aCallback, bool aBypassIfBusy);
+  void RememberCallback(Callback & aCallback);
   void InvokeCallbacksLock();
   void InvokeCallbacks();
   bool InvokeCallbacks(bool aReadOnly);
