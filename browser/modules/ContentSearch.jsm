@@ -226,9 +226,6 @@ this.ContentSearch = {
       
       return Promise.resolve();
     }
-    if (data.useNewTab) {
-      browser.getTabBrowser().selectedTab = newTab;
-    }
     let win = browser.ownerDocument.defaultView;
     win.BrowserSearch.recordSearchInHealthReport(engine, data.whence,
                                                  data.selection || null);
