@@ -2460,27 +2460,21 @@ public class GeckoAppShell
         Handler geckoHandler = ThreadUtils.sGeckoHandler;
         Message msg = getNextMessageFromQueue(ThreadUtils.sGeckoQueue);
 
-        if (msg == null)
+        if (msg == null) {
             return false;
+        }
+
         if (msg.obj == geckoHandler && msg.getTarget() == geckoHandler) {
             
-            msg.recycle();
             return false;
         }
-        if (msg.getTarget() == null) 
-            Looper.myLooper().quit();
-        else
-            msg.getTarget().dispatchMessage(msg);
 
-        try {
-            
-            
-            
-            
-            msg.recycle();
-        } catch (IllegalStateException e) {
-            
+        if (msg.getTarget() == null) {
+            Looper.myLooper().quit();
+        } else {
+            msg.getTarget().dispatchMessage(msg);
         }
+
         return true;
     }
 
