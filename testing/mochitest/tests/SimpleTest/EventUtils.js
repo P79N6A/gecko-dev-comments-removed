@@ -780,8 +780,15 @@ const KEYBOARD_LAYOUT_THAI =
 
 
 
+
+
+
+
+
+
+
 function synthesizeNativeKey(aKeyboardLayout, aNativeKeyCode, aModifiers,
-                             aChars, aUnmodifiedChars)
+                             aChars, aUnmodifiedChars, aCallback)
 {
   var utils = _getDOMWindowUtils(window);
   if (!utils) {
@@ -796,9 +803,17 @@ function synthesizeNativeKey(aKeyboardLayout, aNativeKeyCode, aModifiers,
   if (nativeKeyboardLayout === null) {
     return false;
   }
+
+  var observer = {
+    observe: function(aSubject, aTopic, aData) {
+      if (aCallback && aTopic == "keyevent") {
+        aCallback(aData);
+      }
+    }
+  };
   utils.sendNativeKeyEvent(nativeKeyboardLayout, aNativeKeyCode,
                            _parseNativeModifiers(aModifiers),
-                           aChars, aUnmodifiedChars);
+                           aChars, aUnmodifiedChars, observer);
   return true;
 }
 
