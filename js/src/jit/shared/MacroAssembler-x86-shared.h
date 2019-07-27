@@ -789,14 +789,14 @@ class MacroAssemblerX86Shared : public Assembler
     void negateDouble(FloatRegister reg) {
         
         vpcmpeqw(ScratchDoubleReg, ScratchDoubleReg, ScratchDoubleReg);
-        psllq(Imm32(63), ScratchDoubleReg);
+        vpsllq(Imm32(63), ScratchDoubleReg, ScratchDoubleReg);
 
         
         vxorpd(ScratchDoubleReg, reg, reg); 
     }
     void negateFloat(FloatRegister reg) {
         vpcmpeqw(ScratchFloat32Reg, ScratchFloat32Reg, ScratchFloat32Reg);
-        psllq(Imm32(31), ScratchFloat32Reg);
+        vpsllq(Imm32(31), ScratchFloat32Reg, ScratchFloat32Reg);
 
         
         vxorps(ScratchFloat32Reg, reg, reg); 
@@ -922,19 +922,19 @@ class MacroAssemblerX86Shared : public Assembler
         vpslld(src, dest, dest);
     }
     void packedLeftShiftByScalar(Imm32 count, FloatRegister dest) {
-        pslld(count, dest);
+        vpslld(count, dest, dest);
     }
     void packedRightShiftByScalar(FloatRegister src, FloatRegister dest) {
         vpsrad(src, dest, dest);
     }
     void packedRightShiftByScalar(Imm32 count, FloatRegister dest) {
-        psrad(count, dest);
+        vpsrad(count, dest, dest);
     }
     void packedUnsignedRightShiftByScalar(FloatRegister src, FloatRegister dest) {
         vpsrld(src, dest, dest);
     }
     void packedUnsignedRightShiftByScalar(Imm32 count, FloatRegister dest) {
-        psrld(count, dest);
+        vpsrld(count, dest, dest);
     }
 
     void loadAlignedFloat32x4(const Address &src, FloatRegister dest) {
@@ -996,7 +996,7 @@ class MacroAssemblerX86Shared : public Assembler
     }
 
     void shuffleInt32(uint32_t mask, FloatRegister src, FloatRegister dest) {
-        pshufd(mask, src, dest);
+        vpshufd(mask, src, dest);
     }
     void moveLowInt32(FloatRegister src, Register dest) {
         vmovd(src, dest);
@@ -1013,12 +1013,12 @@ class MacroAssemblerX86Shared : public Assembler
         
         if (src != dest)
             moveFloat32x4(src, dest);
-        shufps(mask, dest, dest);
+        vshufps(mask, dest, dest, dest);
     }
     void shuffleMix(uint32_t mask, const Operand &src, FloatRegister dest) {
         
         
-        shufps(mask, src, dest);
+        vshufps(mask, src, dest, dest);
     }
 
     void moveFloatAsDouble(Register src, FloatRegister dest) {
