@@ -476,17 +476,8 @@ add_test(function() {
   
   
   
-  let RDF = Cc["@mozilla.org/rdf/rdf-service;1"].getService(Ci.nsIRDFService);
-  let store = RDF.GetDataSource("rdf:local-store");
-  let filterResource = RDF.GetResource("about:addons#search-filter-radiogroup");
-  let filterProperty = RDF.GetResource("value");
-  let filterTarget = store.GetTarget(filterResource, filterProperty, true);
-
-  if (filterTarget) {
-    is(filterTarget instanceof Ci.nsIRDFLiteral, true,
-       "Filter should be a value");
-    store.Unassert(filterResource, filterProperty, filterTarget);
-  }
+  let store = Cc["@mozilla.org/xul/xulstore;1"].getService(Ci.nsIXULStore);
+  store.removeValue("about:addons", "search-filter-radiogroup", "value");
 
   open_manager("addons://list/extension", function(aManager) {
     info("Part 1");
