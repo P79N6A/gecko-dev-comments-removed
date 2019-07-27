@@ -90,6 +90,7 @@
 #include "nsTextNode.h"
 #include "nsJSUtils.h"
 #include "mozilla/dom/URL.h"
+#include "nsIContentPolicy.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -2691,18 +2692,19 @@ XULDocument::LoadOverlayInternal(nsIURI* aURI, bool aIsDynamic,
 
         nsCOMPtr<nsILoadGroup> group = do_QueryReferent(mDocumentLoadGroup);
         nsCOMPtr<nsIChannel> channel;
-        rv = NS_NewChannel(getter_AddRefs(channel), aURI, nullptr, group);
+        
+        
+        
+        
+        rv = NS_NewChannel(getter_AddRefs(channel),
+                           aURI,
+                           NodePrincipal(),
+                           nsILoadInfo::SEC_FORCE_INHERIT_PRINCIPAL,
+                           nsIContentPolicy::TYPE_OTHER,
+                           nullptr,    
+                           group);
 
         if (NS_SUCCEEDED(rv)) {
-            
-            
-            
-            
-            nsCOMPtr<nsILoadInfo> loadInfo =
-                new LoadInfo(NodePrincipal(), LoadInfo::eInheritPrincipal,
-                             LoadInfo::eNotSandboxed);
-            channel->SetLoadInfo(loadInfo);
-
             rv = channel->AsyncOpen(listener, nullptr);
         }
 
@@ -3333,8 +3335,15 @@ XULDocument::LoadScript(nsXULPrototypeScript* aScriptProto, bool* aBlock)
 
         
         nsCOMPtr<nsIStreamLoader> loader;
-        rv = NS_NewStreamLoader(getter_AddRefs(loader), aScriptProto->mSrcURI,
-                                this, nullptr, group);
+        rv = NS_NewStreamLoader(getter_AddRefs(loader),
+                                aScriptProto->mSrcURI,
+                                this, 
+                                this, 
+                                nsILoadInfo::SEC_NORMAL,
+                                nsIContentPolicy::TYPE_OTHER,
+                                nullptr, 
+                                group);
+
         if (NS_FAILED(rv)) {
             mCurrentScriptProto = nullptr;
             return rv;
