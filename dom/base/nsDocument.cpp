@@ -6012,140 +6012,146 @@ nsDocument::RegisterElement(JSContext* aCx, const nsAString& aType,
     rv.Throw(NS_ERROR_UNEXPECTED);
     return;
   }
+
   JS::Rooted<JSObject*> global(aCx, sgo->GetGlobalJSObject());
-
-  JSAutoCompartment ac(aCx, global);
-
-  JS::Handle<JSObject*> htmlProto(
-    HTMLElementBinding::GetProtoObjectHandle(aCx, global));
-  if (!htmlProto) {
-    rv.Throw(NS_ERROR_OUT_OF_MEMORY);
-    return;
-  }
-
+  nsCOMPtr<nsIAtom> nameAtom;;
   int32_t namespaceID = kNameSpaceID_XHTML;
   JS::Rooted<JSObject*> protoObject(aCx);
-  if (!aOptions.mPrototype) {
-    protoObject = JS_NewObject(aCx, nullptr, htmlProto, JS::NullPtr());
-    if (!protoObject) {
-      rv.Throw(NS_ERROR_UNEXPECTED);
-      return;
-    }
-  } else {
-    protoObject = aOptions.mPrototype;
+  {
+    JSAutoCompartment ac(aCx, global);
 
-    
-    
-    if (!JS_WrapObject(aCx, &protoObject)) {
-      rv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
-      return;
-    }
-
-    
-    JS::Rooted<JSObject*> protoObjectUnwrapped(aCx,
-      js::CheckedUnwrap(protoObject));
-    if (!protoObjectUnwrapped) {
-      
-      
-      rv.Throw(NS_ERROR_DOM_SECURITY_ERR);
-      return;
-    }
-
-    
-    
-    
-    const js::Class* clasp = js::GetObjectClass(protoObjectUnwrapped);
-    if (IsDOMIfaceAndProtoClass(clasp)) {
-      rv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
-      return;
-    }
-
-    JS::Rooted<JSPropertyDescriptor> descRoot(aCx);
-    JS::MutableHandle<JSPropertyDescriptor> desc(&descRoot);
-    
-    
-    
-    if (!JS_GetPropertyDescriptor(aCx, protoObject, "constructor", desc)) {
-      rv.Throw(NS_ERROR_UNEXPECTED);
-      return;
-    }
-
-    
-    if (desc.isPermanent()) {
-      rv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
-      return;
-    }
-
-    JS::Handle<JSObject*> svgProto(
-      SVGElementBinding::GetProtoObjectHandle(aCx, global));
-    if (!svgProto) {
+    JS::Handle<JSObject*> htmlProto(
+      HTMLElementBinding::GetProtoObjectHandle(aCx, global));
+    if (!htmlProto) {
       rv.Throw(NS_ERROR_OUT_OF_MEMORY);
       return;
     }
 
-    JS::Rooted<JSObject*> protoProto(aCx, protoObject);
-
-    
-    
-    while (protoProto) {
-      if (protoProto == htmlProto) {
-        break;
-      }
-
-      if (protoProto == svgProto) {
-        namespaceID = kNameSpaceID_SVG;
-        break;
-      }
-
-      if (!JS_GetPrototype(aCx, protoProto, &protoProto)) {
+    if (!aOptions.mPrototype) {
+      protoObject = JS_NewObject(aCx, nullptr, htmlProto, JS::NullPtr());
+      if (!protoObject) {
         rv.Throw(NS_ERROR_UNEXPECTED);
         return;
       }
+    } else {
+      protoObject = aOptions.mPrototype;
+
+      
+      
+      if (!JS_WrapObject(aCx, &protoObject)) {
+        rv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+        return;
+      }
+
+      
+      JS::Rooted<JSObject*> protoObjectUnwrapped(aCx,
+        js::CheckedUnwrap(protoObject));
+      if (!protoObjectUnwrapped) {
+        
+        
+        rv.Throw(NS_ERROR_DOM_SECURITY_ERR);
+        return;
+      }
+
+      
+      
+      
+      const js::Class* clasp = js::GetObjectClass(protoObjectUnwrapped);
+      if (IsDOMIfaceAndProtoClass(clasp)) {
+        rv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+        return;
+      }
+
+      JS::Rooted<JSPropertyDescriptor> descRoot(aCx);
+      JS::MutableHandle<JSPropertyDescriptor> desc(&descRoot);
+      
+      
+      
+      if (!JS_GetPropertyDescriptor(aCx, protoObject, "constructor", desc)) {
+        rv.Throw(NS_ERROR_UNEXPECTED);
+        return;
+      }
+
+      
+      if (desc.isPermanent()) {
+        rv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+        return;
+      }
+
+      JS::Handle<JSObject*> svgProto(
+        SVGElementBinding::GetProtoObjectHandle(aCx, global));
+      if (!svgProto) {
+        rv.Throw(NS_ERROR_OUT_OF_MEMORY);
+        return;
+      }
+
+      JS::Rooted<JSObject*> protoProto(aCx, protoObject);
+
+      
+      
+      while (protoProto) {
+        if (protoProto == htmlProto) {
+          break;
+        }
+
+        if (protoProto == svgProto) {
+          namespaceID = kNameSpaceID_SVG;
+          break;
+        }
+
+        if (!JS_GetPrototype(aCx, protoProto, &protoProto)) {
+          rv.Throw(NS_ERROR_UNEXPECTED);
+          return;
+        }
+      }
     }
-  }
+
+    
+    if (!lcName.IsEmpty()) {
+      
+      bool known = false;
+      nameAtom = do_GetAtom(lcName);
+      if (namespaceID == kNameSpaceID_XHTML) {
+        nsIParserService* ps = nsContentUtils::GetParserService();
+        if (!ps) {
+          rv.Throw(NS_ERROR_UNEXPECTED);
+          return;
+        }
+
+        known =
+          ps->HTMLCaseSensitiveAtomTagToId(nameAtom) != eHTMLTag_userdefined;
+      } else {
+        known = SVGElementFactory::Exists(nameAtom);
+      }
+
+      
+      
+      
+      if (!known) {
+        rv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
+        return;
+      }
+    } else {
+      
+      if (namespaceID == kNameSpaceID_SVG) {
+        rv.Throw(NS_ERROR_UNEXPECTED);
+        return;
+      }
+
+      nameAtom = typeAtom;
+    }
+  } 
 
   
-  nsCOMPtr<nsIAtom> nameAtom;
-  if (!lcName.IsEmpty()) {
-    
-    bool known = false;
-    nameAtom = do_GetAtom(lcName);
-    if (namespaceID == kNameSpaceID_XHTML) {
-      nsIParserService* ps = nsContentUtils::GetParserService();
-      if (!ps) {
-        rv.Throw(NS_ERROR_UNEXPECTED);
-        return;
-      }
-
-      known =
-        ps->HTMLCaseSensitiveAtomTagToId(nameAtom) != eHTMLTag_userdefined;
-    } else {
-      known = SVGElementFactory::Exists(nameAtom);
-    }
-
-    
-    
-    
-    if (!known) {
-      rv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
-      return;
-    }
-  } else {
-    
-    if (namespaceID == kNameSpaceID_SVG) {
-      rv.Throw(NS_ERROR_UNEXPECTED);
-      return;
-    }
-
-    nameAtom = typeAtom;
-  }
-
   nsAutoPtr<LifecycleCallbacks> callbacksHolder(new LifecycleCallbacks());
   JS::RootedValue rootedv(aCx, JS::ObjectValue(*protoObject));
-  if (!callbacksHolder->Init(aCx, rootedv)) {
+  if (!JS_WrapValue(aCx, &rootedv) || !callbacksHolder->Init(aCx, rootedv)) {
     rv.Throw(NS_ERROR_FAILURE);
     return;
   }
+
+  
+  JSAutoCompartment ac(aCx, global);
 
   
   CustomElementHashKey key(namespaceID, typeAtom);
