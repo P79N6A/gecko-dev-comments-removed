@@ -5,7 +5,6 @@
 
 #include "AnimationTimeline.h"
 #include "mozilla/dom/AnimationTimelineBinding.h"
-#include "mozilla/TimeStamp.h"
 #include "nsContentUtils.h"
 #include "nsIPresShell.h"
 #include "nsPresContext.h"
@@ -36,7 +35,18 @@ TimeStamp
 AnimationTimeline::GetCurrentTimeStamp() const
 {
   
-  TimeStamp result; 
+  TimeStamp result = mLastCurrentTime;
+
+  
+  
+  
+  if (result.IsNull()) {
+    nsRefPtr<nsDOMNavigationTiming> timing = mDocument->GetNavigationTiming();
+    if (!timing) {
+      return result;
+    }
+    result = timing->GetNavigationStartTimeStamp();
+  }
 
   nsIPresShell* presShell = mDocument->GetShell();
   if (MOZ_UNLIKELY(!presShell)) {
@@ -49,6 +59,11 @@ AnimationTimeline::GetCurrentTimeStamp() const
   }
 
   result = presContext->RefreshDriver()->MostRecentRefresh();
+  
+  
+  
+  
+  mLastCurrentTime = result;
   return result;
 }
 

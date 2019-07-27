@@ -9,15 +9,13 @@
 #include "nsWrapperCache.h"
 #include "nsCycleCollectionParticipant.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/TimeStamp.h"
 #include "js/TypeDecls.h"
 #include "nsIDocument.h"
 
 struct JSContext;
 
 namespace mozilla {
-
-class TimeStamp;
-
 namespace dom {
 
 class AnimationTimeline MOZ_FINAL : public nsWrapperCache
@@ -44,6 +42,11 @@ protected:
   virtual ~AnimationTimeline() { }
 
   nsCOMPtr<nsIDocument> mDocument;
+
+  
+  
+  
+  mutable mozilla::TimeStamp mLastCurrentTime;
 };
 
 } 
