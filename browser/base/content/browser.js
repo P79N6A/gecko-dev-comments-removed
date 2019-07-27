@@ -4384,6 +4384,10 @@ var XULBrowserWindow = {
         gURLBar.removeAttribute("level");
     }
 
+    
+    
+    gURLBar.formatValue();
+
     try {
       uri = Services.uriFixup.createExposableURI(uri);
     } catch (e) {}
@@ -6590,6 +6594,8 @@ var gIdentityHandler = {
   IDENTITY_MODE_MIXED_DISPLAY_LOADED                   : "unknownIdentity mixedContent mixedDisplayContent",  
   IDENTITY_MODE_MIXED_ACTIVE_LOADED                    : "unknownIdentity mixedContent mixedActiveContent",  
   IDENTITY_MODE_MIXED_DISPLAY_LOADED_ACTIVE_BLOCKED    : "unknownIdentity mixedContent mixedDisplayContentLoadedActiveBlocked",  
+  IDENTITY_MODE_MIXED_ACTIVE_BLOCKED                   : "verifiedDomain mixedContent mixedActiveBlocked",  
+  IDENTITY_MODE_MIXED_ACTIVE_BLOCKED_IDENTIFIED        : "verifiedIdentity mixedContent mixedActiveBlocked",  
   IDENTITY_MODE_CHROMEUI                               : "chromeUI",         
 
   
@@ -6773,9 +6779,17 @@ var gIdentityHandler = {
     } else if (unknown) {
       this.setMode(this.IDENTITY_MODE_UNKNOWN);
     } else if (state & nsIWebProgressListener.STATE_IDENTITY_EV_TOPLEVEL) {
-      this.setMode(this.IDENTITY_MODE_IDENTIFIED);
+      if (state & nsIWebProgressListener.STATE_BLOCKED_MIXED_ACTIVE_CONTENT) {
+        this.setMode(this.IDENTITY_MODE_MIXED_ACTIVE_BLOCKED_IDENTIFIED);
+      } else {
+        this.setMode(this.IDENTITY_MODE_IDENTIFIED);
+      }
     } else if (state & nsIWebProgressListener.STATE_IS_SECURE) {
-      this.setMode(this.IDENTITY_MODE_DOMAIN_VERIFIED);
+      if (state & nsIWebProgressListener.STATE_BLOCKED_MIXED_ACTIVE_CONTENT) {
+        this.setMode(this.IDENTITY_MODE_MIXED_ACTIVE_BLOCKED);
+      } else {
+        this.setMode(this.IDENTITY_MODE_DOMAIN_VERIFIED);
+      }
     } else if (state & nsIWebProgressListener.STATE_IS_BROKEN) {
       if (state & nsIWebProgressListener.STATE_LOADED_MIXED_ACTIVE_CONTENT) {
         this.setMode(this.IDENTITY_MODE_MIXED_ACTIVE_LOADED);
@@ -6904,7 +6918,8 @@ var gIdentityHandler = {
     let icon_labels_dir = "ltr";
 
     switch (newMode) {
-    case this.IDENTITY_MODE_DOMAIN_VERIFIED: {
+    case this.IDENTITY_MODE_DOMAIN_VERIFIED:
+    case this.IDENTITY_MODE_MIXED_ACTIVE_BLOCKED: {
       let iData = this.getIdentityData();
 
       
@@ -6924,7 +6939,8 @@ var gIdentityHandler = {
         tooltip = gNavigatorBundle.getString("identity.identified.verified_by_you");
 
       break; }
-    case this.IDENTITY_MODE_IDENTIFIED: {
+    case this.IDENTITY_MODE_IDENTIFIED:
+    case this.IDENTITY_MODE_MIXED_ACTIVE_BLOCKED_IDENTIFIED: {
       
       let iData = this.getIdentityData();
       tooltip = gNavigatorBundle.getFormattedString("identity.identified.verifier",
@@ -6993,9 +7009,11 @@ var gIdentityHandler = {
 
     switch (newMode) {
     case this.IDENTITY_MODE_DOMAIN_VERIFIED:
+    case this.IDENTITY_MODE_MIXED_ACTIVE_BLOCKED:
       verifier = this._identityBox.tooltipText;
       break;
-    case this.IDENTITY_MODE_IDENTIFIED: {
+    case this.IDENTITY_MODE_IDENTIFIED:
+    case this.IDENTITY_MODE_MIXED_ACTIVE_BLOCKED_IDENTIFIED: {
       
       let iData = this.getIdentityData();
       host = owner = iData.subjectOrg;
