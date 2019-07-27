@@ -22,6 +22,10 @@ public:
   void RemovePlayPending(dom::AnimationPlayer& aPlayer);
   bool IsWaitingToPlay(dom::AnimationPlayer const& aPlayer) const;
 
+  
+  
+  void StartPendingPlayers(const TimeStamp& aReadyTime);
+
 private:
   ~PendingPlayerTracker() { }
 
