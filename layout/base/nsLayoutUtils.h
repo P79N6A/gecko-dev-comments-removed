@@ -1257,6 +1257,13 @@ public:
 
 
 
+  static nsIFrame*
+  LastContinuationOrIBSplitSibling(nsIFrame *aFrame);
+
+  
+
+
+
   static bool
   IsFirstContinuationOrIBSplitSibling(nsIFrame *aFrame);
 
