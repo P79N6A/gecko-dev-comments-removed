@@ -32,13 +32,16 @@ class AbstractThread
 {
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(AbstractThread);
-  virtual nsresult Dispatch(already_AddRefed<nsIRunnable> aRunnable) = 0;
+
+  enum DispatchFailureHandling { AssertDispatchSuccess, DontAssertDispatchSuccess };
+  virtual void Dispatch(already_AddRefed<nsIRunnable> aRunnable,
+                        DispatchFailureHandling aHandling = AssertDispatchSuccess) = 0;
   virtual bool IsCurrentThreadIn() = 0;
 
   
   
   void MaybeTailDispatch(already_AddRefed<nsIRunnable> aRunnable,
-                         bool aAssertDispatchSuccess = true);
+                         DispatchFailureHandling aFailureHandling = AssertDispatchSuccess);
 
   
   static AbstractThread* MainThread();

@@ -239,7 +239,7 @@ protected:
       
       
       
-      aDispatcher.AddTask(mResponseTarget, runnable.forget(),  false);
+      aDispatcher.AddTask(mResponseTarget, runnable.forget(), AbstractThread::DontAssertDispatchSuccess);
     }
 
 #ifdef DEBUG
