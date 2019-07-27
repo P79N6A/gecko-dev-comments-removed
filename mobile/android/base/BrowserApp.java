@@ -21,6 +21,7 @@ import org.mozilla.gecko.AppConstants.Versions;
 import org.mozilla.gecko.DynamicToolbar.PinReason;
 import org.mozilla.gecko.DynamicToolbar.VisibilityTransition;
 import org.mozilla.gecko.GeckoProfileDirectories.NoMozillaDirectoryException;
+import org.mozilla.gecko.Tabs.TabEvents;
 import org.mozilla.gecko.animation.PropertyAnimator;
 import org.mozilla.gecko.animation.ViewHelper;
 import org.mozilla.gecko.db.BrowserContract.Combined;
@@ -313,6 +314,13 @@ public class BrowserApp extends GeckoApp
                 showBookmarkRemovedToast();
                 break;
         }
+
+        if (NewTabletUI.isEnabled(this) && msg == TabEvents.SELECTED) {
+            
+            
+            mBrowserToolbar.cancelEdit();
+        }
+
         super.onTabChanged(tab, msg, data);
     }
 
@@ -2044,7 +2052,15 @@ public class BrowserApp extends GeckoApp
 
 
 
+
+
+
+
     private void selectTargetTabForEditingMode() {
+        if (NewTabletUI.isEnabled(this)) {
+            return;
+        }
+
         if (mTargetTabForEditingMode != null) {
             Tabs.getInstance().selectTab(mTargetTabForEditingMode);
         }
