@@ -1501,12 +1501,18 @@ void MediaDecoderStateMachine::SetDormant(bool aDormant)
     }
     StopAudioThread();
     FlushDecoding();
+
     
     
-    mPendingWakeDecoder = nullptr;
+    
+    
+    
+    
     DebugOnly<nsresult> rv = DecodeTaskQueue()->Dispatch(
     NS_NewRunnableMethod(mReader, &MediaDecoderReader::ReleaseMediaResources));
     MOZ_ASSERT(NS_SUCCEEDED(rv));
+    
+    mPendingWakeDecoder = nullptr;
     mDecoder->GetReentrantMonitor().NotifyAll();
   } else if ((aDormant != true) && (mState == DECODER_STATE_DORMANT)) {
     mDecodingFrozenAtStateDecoding = true;
@@ -2788,18 +2794,6 @@ MediaDecoderStateMachine::FlushDecoding()
   
   
   ResetDecode();
-  {
-    
-    
-    
-    
-    
-    
-    
-    
-    ReentrantMonitorAutoExit exitMon(mDecoder->GetReentrantMonitor());
-    DecodeTaskQueue()->AwaitIdle();
-  }
 
   
   
