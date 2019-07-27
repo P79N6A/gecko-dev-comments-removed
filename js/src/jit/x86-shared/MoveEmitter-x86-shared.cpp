@@ -543,25 +543,23 @@ MoveEmitterX86::findScratchRegister(const MoveResolver& moves, size_t initial)
         return scratchRegister_;
 
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    
+    
+    AllocatableGeneralRegisterSet regs(GeneralRegisterSet::All());
+    for (size_t i = initial; i < moves.numMoves(); i++) {
+        const MoveOp& move = moves.getMove(i);
+        if (move.from().isGeneralReg())
+            regs.takeUnchecked(move.from().reg());
+        else if (move.from().isMemoryOrEffectiveAddress())
+            regs.takeUnchecked(move.from().base());
+        if (move.to().isGeneralReg()) {
+            if (i != initial && !move.isCycleBegin() && regs.has(move.to().reg()))
+                return mozilla::Some(move.to().reg());
+            regs.takeUnchecked(move.to().reg());
+        } else if (move.to().isMemoryOrEffectiveAddress()) {
+            regs.takeUnchecked(move.to().base());
+        }
+    }
 
     return mozilla::Nothing();
 #else
