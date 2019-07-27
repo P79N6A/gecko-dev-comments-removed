@@ -192,9 +192,7 @@ private:
 
 
 
-
-
-  already_AddRefed<Promise> EnableDisable(bool aEnable, ErrorResult& aRv);
+  void SetAdapterState(BluetoothAdapterState aState);
 
   
 
@@ -208,7 +206,12 @@ private:
                             const nsAString& aDeviceAddress,
                             ErrorResult& aRv);
 
-  void HandleAdapterStateChanged();
+  
+
+
+
+
+  void GetPairedDeviceProperties(const nsTArray<nsString>& aDeviceAddresses);
 
   
 
@@ -282,13 +285,6 @@ private:
 
   bool IsAdapterAttributeChanged(BluetoothAdapterAttribute aType,
                                  const BluetoothValue& aValue);
-
-  
-
-
-
-
-  void GetPairedDeviceProperties(const nsTArray<nsString>& aDeviceAddresses);
 
   
 
