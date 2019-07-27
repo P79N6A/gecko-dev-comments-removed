@@ -45,6 +45,15 @@ static const char16_t OPEN_CURL    = '{';
 static const char16_t CLOSE_CURL   = '}';
 static const char16_t NUMBER_SIGN  = '#';
 static const char16_t QUESTIONMARK = '?';
+static const char16_t PERCENT_SIGN = '%';
+static const char16_t EXCLAMATION  = '!';
+static const char16_t DOLLAR       = '$';
+static const char16_t AMPERSAND    = '&';
+static const char16_t OPENBRACE    = '(';
+static const char16_t CLOSINGBRACE = ')';
+static const char16_t COMMA        = ',';
+static const char16_t EQUALS       = '=';
+static const char16_t ATSYMBOL     = '@';
 
 static uint32_t kSubHostPathCharacterCutoff = 512;
 
@@ -140,6 +149,14 @@ isNumberToken(char16_t aSymbol)
   return (aSymbol >= '0' && aSymbol <= '9');
 }
 
+bool
+isValidHexDig(char16_t aHexDig)
+{
+  return (isNumberToken(aHexDig) ||
+          (aHexDig >= 'A' && aHexDig <= 'F') ||
+          (aHexDig >= 'a' && aHexDig <= 'f'));
+}
+
 void
 nsCSPParser::resetCurChar(const nsAString& aToken)
 {
@@ -157,12 +174,116 @@ nsCSPParser::atEndOfPath()
   return (atEnd() || peek(QUESTIONMARK) || peek(NUMBER_SIGN));
 }
 
+void
+nsCSPParser::percentDecodeStr(const nsAString& aEncStr, nsAString& outDecStr)
+{
+  outDecStr.Truncate();
+
+  
+  struct local {
+    static inline char16_t convertHexDig(char16_t aHexDig) {
+      if (isNumberToken(aHexDig)) {
+        return aHexDig - '0';
+      }
+      if (aHexDig >= 'A' && aHexDig <= 'F') {
+        return aHexDig - 'A' + 10;
+      }
+      
+      
+      return aHexDig - 'a' + 10;
+    }
+  };
+
+  const char16_t *cur, *end, *hexDig1, *hexDig2;
+  cur = aEncStr.BeginReading();
+  end = aEncStr.EndReading();
+
+  while (cur != end) {
+    
+    
+    if (*cur != PERCENT_SIGN) {
+      outDecStr.Append(*cur);
+      cur++;
+      continue;
+    }
+
+    
+    hexDig1 = cur + 1;
+    hexDig2 = cur + 2;
+
+    
+    
+    if (hexDig1 == end || hexDig2 == end ||
+        !isValidHexDig(*hexDig1) ||
+        !isValidHexDig(*hexDig2)) {
+      outDecStr.Append(PERCENT_SIGN);
+      cur++;
+      continue;
+    }
+
+    
+    char16_t decChar = (local::convertHexDig(*hexDig1) << 4) +
+                       local::convertHexDig(*hexDig2);
+    outDecStr.Append(decChar);
+
+    
+    cur = ++hexDig2;
+  }
+}
+
+
 bool
-nsCSPParser::atValidPathChar()
+nsCSPParser::atValidUnreservedChar()
 {
   return (peek(isCharacterToken) || peek(isNumberToken) ||
           peek(DASH) || peek(DOT) ||
           peek(UNDERLINE) || peek(TILDE));
+}
+
+
+
+
+
+
+
+bool
+nsCSPParser::atValidSubDelimChar()
+{
+  return (peek(EXCLAMATION) || peek(DOLLAR) || peek(AMPERSAND) ||
+          peek(SINGLEQUOTE) || peek(OPENBRACE) || peek(CLOSINGBRACE) ||
+          peek(WILDCARD) || peek(PLUS) || peek(EQUALS));
+}
+
+
+bool
+nsCSPParser::atValidPctEncodedChar()
+{
+  const char16_t* pctCurChar = mCurChar;
+
+  if ((pctCurChar + 2) >= mEndChar) {
+    
+    return false;
+  }
+
+  
+  
+  if (PERCENT_SIGN != *pctCurChar ||
+     !isValidHexDig(*(pctCurChar+1)) ||
+     !isValidHexDig(*(pctCurChar+2))) {
+    return false;
+  }
+  return true;
+}
+
+
+
+bool
+nsCSPParser::atValidPathChar()
+{
+  return (atValidUnreservedChar() ||
+          atValidSubDelimChar() ||
+          atValidPctEncodedChar() ||
+          peek(COLON) || peek(ATSYMBOL));
 }
 
 void
@@ -253,10 +374,15 @@ nsCSPParser::subPath(nsCSPHostSrc* aCspHost)
   
   
   uint32_t charCounter = 0;
+  nsString pctDecodedSubPath;
 
   while (!atEndOfPath()) {
     if (peek(SLASH)) {
-      aCspHost->appendPath(mCurValue);
+      
+      
+      
+      percentDecodeStr(mCurValue, pctDecodedSubPath);
+      aCspHost->appendPath(pctDecodedSubPath);
       
       
       
@@ -269,12 +395,23 @@ nsCSPParser::subPath(nsCSPHostSrc* aCspHost)
                                params, ArrayLength(params));
       return false;
     }
+    
+    
+    
+    if (peek(PERCENT_SIGN)) {
+      advance();
+      advance();
+    }
     advance();
     if (++charCounter > kSubHostPathCharacterCutoff) {
       return false;
     }
   }
-  aCspHost->appendPath(mCurValue);
+  
+  
+  
+  percentDecodeStr(mCurValue, pctDecodedSubPath);
+  aCspHost->appendPath(pctDecodedSubPath);
   resetCurValue();
   return true;
 }
@@ -301,7 +438,9 @@ nsCSPParser::path(nsCSPHostSrc* aCspHost)
   if (atEndOfPath()) {
     
     
-    aCspHost->appendPath(mCurValue);
+    
+    
+    aCspHost->appendPath(NS_LITERAL_STRING("/"));
     return true;
   }
   
