@@ -128,8 +128,7 @@ protected:
     enum eCompositionState {
         eCompositionState_NotComposing,
         eCompositionState_CompositionStartDispatched,
-        eCompositionState_CompositionChangeEventDispatched,
-        eCompositionState_CommitCompositionChangeEventDispatched
+        eCompositionState_CompositionChangeEventDispatched
     };
     eCompositionState mCompositionState;
 
@@ -164,8 +163,6 @@ protected:
                 return "CompositionStartDispatched";
             case eCompositionState_CompositionChangeEventDispatched:
                 return "CompositionChangeEventDispatched";
-            case eCompositionState_CommitCompositionChangeEventDispatched:
-                return "CommitCompositionChangeEventDispatched";
             default:
                 return "InvaildState";
         }
@@ -350,8 +347,10 @@ protected:
 
 
 
-    bool DispatchCompositionEventsForCommit(GtkIMContext* aContext,
-                                            const nsAString& aCommitString);
+
+    bool DispatchCompositionCommitEvent(
+             GtkIMContext* aContext,
+             const nsAString* aCommitString = nullptr);
 };
 
 #endif 
