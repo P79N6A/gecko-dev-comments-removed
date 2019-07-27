@@ -2,6 +2,14 @@
 
 
 
+
+
+
+
+
+thisTestLeaksUncaughtRejectionsAndShouldBeFixed("TypeError: Assert is null");
+
+
 let SocialService = Cu.import("resource://gre/modules/SocialService.jsm", {}).SocialService;
 
 let tabsToRemove = [];
