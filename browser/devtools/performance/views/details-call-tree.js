@@ -73,7 +73,8 @@ let CallTreeView = {
   _onRangeChange: function (_, params) {
     
     
-    let profilerData = PerformanceController.getProfilerData();
+    let recording = PerformanceController.getCurrentRecording();
+    let profilerData = recording.getProfilerData();
     let { beginAt, endAt } = params || {};
     this.render(profilerData, beginAt, endAt);
   },

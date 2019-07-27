@@ -207,11 +207,11 @@ let PerformanceController = {
 
 
   startRecording: Task.async(function *() {
-    let model = this.createNewRecording();
-    this.setCurrentRecording(model);
-    yield model.startRecording();
+    let recording = this.createNewRecording();
+    this.setCurrentRecording(recording);
+    yield recording.startRecording();
 
-    this.emit(EVENTS.RECORDING_STARTED, model);
+    this.emit(EVENTS.RECORDING_STARTED, recording);
   }),
 
   
@@ -219,7 +219,7 @@ let PerformanceController = {
 
 
   stopRecording: Task.async(function *() {
-    let recording = this._getLatest();
+    let recording = this._getLatestRecording();
     yield recording.stopRecording();
 
     this.emit(EVENTS.RECORDING_STOPPED, recording);
@@ -247,27 +247,32 @@ let PerformanceController = {
 
 
   importRecording: Task.async(function*(_, file) {
-    let model = this.createNewRecording();
-    yield model.importRecording(file);
+    let recording = this.createNewRecording();
+    yield recording.importRecording(file);
 
-    this.emit(EVENTS.RECORDING_IMPORTED, model.getAllData(), model);
+    this.emit(EVENTS.RECORDING_IMPORTED, recording.getAllData(), recording);
   }),
 
   
 
 
 
+
+
+
   createNewRecording: function () {
-    let model = new RecordingModel({
+    let recording = new RecordingModel({
       front: gFront,
       performance: performance
     });
-    this._recordings.push(model);
-    this.emit(EVENTS.RECORDING_CREATED, model);
-    return model;
+    this._recordings.push(recording);
+
+    this.emit(EVENTS.RECORDING_CREATED, recording);
+    return recording;
   },
 
   
+
 
 
   setCurrentRecording: function (recording) {
@@ -280,6 +285,7 @@ let PerformanceController = {
   
 
 
+
   getCurrentRecording: function () {
     return this._currentRecording;
   },
@@ -287,69 +293,8 @@ let PerformanceController = {
   
 
 
-  getLocalElapsedTime: function () {
-    return this.getCurrentRecording().getLocalElapsedTime;
-  },
 
-  
-
-
-
-  getInterval: function() {
-    return this.getCurrentRecording().getInterval();
-  },
-
-  
-
-
-
-  getMarkers: function() {
-    return this.getCurrentRecording().getMarkers();
-  },
-
-  
-
-
-
-  getFrames: function() {
-    return this.getCurrentRecording().getFrames();
-  },
-
-  
-
-
-
-  getMemory: function() {
-    return this.getCurrentRecording().getMemory();
-  },
-
-  
-
-
-
-  getTicks: function() {
-    return this.getCurrentRecording().getTicks();
-  },
-
-  
-
-
-
-  getProfilerData: function() {
-    return this.getCurrentRecording().getProfilerData();
-  },
-
-  
-
-
-  getAllData: function() {
-    return this.getCurrentRecording().getAllData();
-  },
-
-  
-
-
-  _getLatest: function () {
+  _getLatestRecording: function () {
     for (let i = this._recordings.length - 1; i >= 0; i--) {
       return this._recordings[i];
     }

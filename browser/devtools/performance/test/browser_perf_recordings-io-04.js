@@ -14,7 +14,7 @@ let test = Task.async(function*() {
   yield stopRecording(panel);
 
   
-  let data = PerformanceController.getAllData();
+  let data = PerformanceController.getCurrentRecording().getAllData();
 
   
   
@@ -46,7 +46,7 @@ let test = Task.async(function*() {
 
   
 
-  let importedData = PerformanceController.getAllData();
+  let importedData = PerformanceController.getCurrentRecording().getAllData();
 
   is(importedData.startTime, data.startTime,
     "The imported legacy data was successfully converted for the current tool (1).");
