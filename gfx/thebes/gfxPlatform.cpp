@@ -404,8 +404,7 @@ gfxPlatform::gfxPlatform()
     mTotalSystemMemory = mozilla::hal::GetTotalSystemMemory();
 
     
-    
-    VRHMDManagerOculus::PlatformInit();
+    VRHMDManager::ManagerInit();
 }
 
 gfxPlatform*
@@ -700,7 +699,7 @@ gfxPlatform::~gfxPlatform()
     mScreenReferenceDrawTarget = nullptr;
 
     
-    VRHMDManagerOculus::Destroy();
+    VRHMDManager::ManagerDestroy();
 
     
     
