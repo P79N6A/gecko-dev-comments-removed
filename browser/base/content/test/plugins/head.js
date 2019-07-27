@@ -160,6 +160,26 @@ function waitForNotificationBar(notificationID, browser, callback) {
 
 
 
+function waitForNotificationShown(notification, callback)
+{
+  if (PopupNotifications.panel.state == "open") {
+    executeSoon(callback);
+    return;
+  }
+  PopupNotifications.panel.addEventListener("popupshown", function onShown(e) {
+    PopupNotifications.panel.removeEventListener("popupshown", onShown);
+    callback();
+  }, false);
+  notification.reshow();
+}
+
+
+
+
+
+
+
+
 
 
 
