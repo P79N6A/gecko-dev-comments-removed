@@ -84,8 +84,8 @@ private:
   Result result;
   bool resultWasSet;
 
-  PathBuildingStep(const PathBuildingStep&) ;
-  void operator=(const PathBuildingStep&) ;
+  PathBuildingStep(const PathBuildingStep&) = delete;
+  void operator=(const PathBuildingStep&) = delete;
 };
 
 Result
