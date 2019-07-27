@@ -1439,9 +1439,15 @@ ifstream* UIOpenRead(const string& filename)
 {
   
 
-#if defined(_MSC_VER)
+  
+  
+  
+  
+#if _MSC_VER >= 1400  
   ifstream* file = new ifstream();
   file->open(UTF8ToWide(filename).c_str(), ios::in);
+#elif defined(_MSC_VER)
+  ifstream* file = new ifstream(_wfopen(UTF8ToWide(filename).c_str(), L"r"));
 #else   
   ifstream* file = new ifstream(WideToMBCP(UTF8ToWide(filename), CP_ACP).c_str(),
                                 ios::in);
@@ -1463,9 +1469,14 @@ ofstream* UIOpenWrite(const string& filename,
     mode = mode | ios::binary;
   }
 
-#if defined(_MSC_VER)
+  
+  
+  
+#if _MSC_VER >= 1400  
   ofstream* file = new ofstream();
   file->open(UTF8ToWide(filename).c_str(), mode);
+#elif defined(_MSC_VER)
+#error "Compiling with your version of MSVC is no longer supported."
 #else   
   ofstream* file = new ofstream(WideToMBCP(UTF8ToWide(filename), CP_ACP).c_str(),
                                 mode);
