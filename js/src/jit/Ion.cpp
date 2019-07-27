@@ -488,6 +488,7 @@ jit::LazyLinkTopActivation(JSContext *cx)
 
     return script->baselineOrIonRawPointer();
 }
+
  void
 JitRuntime::Mark(JSTracer *trc)
 {
@@ -497,13 +498,23 @@ JitRuntime::Mark(JSTracer *trc)
         JitCode *code = i.get<JitCode>();
         MarkJitCodeRoot(trc, &code, "wrapper");
     }
+}
 
-    
+ void
+JitRuntime::MarkJitcodeGlobalTable(JSTracer *trc)
+{
     if (trc->runtime()->hasJitRuntime() &&
         trc->runtime()->jitRuntime()->hasJitcodeGlobalTable())
     {
         trc->runtime()->jitRuntime()->getJitcodeGlobalTable()->mark(trc);
     }
+}
+
+ void
+JitRuntime::SweepJitcodeGlobalTable(JSRuntime *rt)
+{
+    if (rt->hasJitRuntime() && rt->jitRuntime()->hasJitcodeGlobalTable())
+        rt->jitRuntime()->getJitcodeGlobalTable()->sweep(rt);
 }
 
 void
@@ -664,13 +675,15 @@ JitCode::fixupNurseryObjects(JSContext *cx, const ObjectVector &nurseryObjects)
 void
 JitCode::finalize(FreeOp *fop)
 {
-    JSRuntime *rt = fop->runtime();
-
     
+#ifdef DEBUG
+    JSRuntime *rt = fop->runtime();
     if (hasBytecodeMap_) {
+        JitcodeGlobalEntry result;
         MOZ_ASSERT(rt->jitRuntime()->hasJitcodeGlobalTable());
-        rt->jitRuntime()->getJitcodeGlobalTable()->releaseEntry(raw(), rt);
+        MOZ_ASSERT(!rt->jitRuntime()->getJitcodeGlobalTable()->lookup(raw(), &result, rt));
     }
+#endif
 
     
     
