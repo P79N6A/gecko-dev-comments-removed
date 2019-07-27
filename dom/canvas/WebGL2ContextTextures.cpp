@@ -153,16 +153,9 @@ WebGL2Context::TexStorage2D(GLenum target, GLsizei levels, GLenum internalformat
     GLsizei h = height;
     for (size_t l = 0; l < size_t(levels); l++) {
         for (size_t f = 0; f < facesCount; f++) {
-            TexImageTarget imageTarget = TexImageTargetForTargetAndFace(target, f);
-            
-            
-            
-            
-            
-            
-            const GLenum type = LOCAL_GL_UNSIGNED_BYTE;
-            tex->SetImageInfo(imageTarget, l, w, h,
-                              internalformat, type,
+            tex->SetImageInfo(TexImageTargetForTargetAndFace(target, f),
+                              l, w, h,
+                              internalformat,
                               WebGLImageDataStatus::UninitializedImageData);
         }
         w = std::max(1, w/2);

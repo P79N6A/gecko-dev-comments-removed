@@ -67,19 +67,16 @@ public:
     {
     public:
         ImageInfo()
-            : mInternalFormat(LOCAL_GL_NONE)
-            , mType(LOCAL_GL_NONE)
+            : mEffectiveInternalFormat(LOCAL_GL_NONE)
             , mImageDataStatus(WebGLImageDataStatus::NoImageData)
         {}
 
         ImageInfo(GLsizei width,
                   GLsizei height,
-                  TexInternalFormat internalFormat,
-                  TexType type,
+                  TexInternalFormat effectiveInternalFormat,
                   WebGLImageDataStatus status)
             : WebGLRectangleObject(width, height)
-            , mInternalFormat(internalFormat)
-            , mType(type)
+            , mEffectiveInternalFormat(effectiveInternalFormat)
             , mImageDataStatus(status)
         {
             
@@ -90,8 +87,7 @@ public:
             return mImageDataStatus == a.mImageDataStatus &&
                    mWidth == a.mWidth &&
                    mHeight == a.mHeight &&
-                   mInternalFormat == a.mInternalFormat &&
-                   mType == a.mType;
+                   mEffectiveInternalFormat == a.mEffectiveInternalFormat;
         }
         bool operator!=(const ImageInfo& a) const {
             return !(*this == a);
@@ -110,21 +106,17 @@ public:
             return mImageDataStatus == WebGLImageDataStatus::UninitializedImageData;
         }
         int64_t MemoryUsage() const;
-        
 
-
-
-        TexInternalFormat InternalFormat() const { return mInternalFormat; }
-
-        
-
-
-
-        TexType Type() const { return mType; }
+        TexInternalFormat EffectiveInternalFormat() const { return mEffectiveInternalFormat; }
 
     protected:
-        TexInternalFormat mInternalFormat; 
-        TexType mType;   
+        
+
+
+
+
+        TexInternalFormat mEffectiveInternalFormat;
+
         WebGLImageDataStatus mImageDataStatus;
 
         friend class WebGLTexture;
@@ -230,8 +222,7 @@ public:
 
     void SetImageInfo(TexImageTarget aTarget, GLint aLevel,
                       GLsizei aWidth, GLsizei aHeight,
-                      TexInternalFormat aInternalFormat, TexType aType,
-                      WebGLImageDataStatus aStatus);
+                      TexInternalFormat aFormat, WebGLImageDataStatus aStatus);
 
     void SetMinFilter(TexMinFilter aMinFilter) {
         mMinFilter = aMinFilter;

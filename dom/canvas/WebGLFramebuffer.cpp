@@ -79,7 +79,7 @@ WebGLFramebuffer::Attachment::HasAlpha() const
     MOZ_ASSERT(HasImage());
 
     if (Texture() && Texture()->HasImageInfoAt(mTexImageTarget, mTexImageLevel))
-        return FormatHasAlpha(Texture()->ImageInfoAt(mTexImageTarget, mTexImageLevel).InternalFormat());
+        return FormatHasAlpha(Texture()->ImageInfoAt(mTexImageTarget, mTexImageLevel).EffectiveInternalFormat());
     else if (Renderbuffer())
         return FormatHasAlpha(Renderbuffer()->InternalFormat());
     else return false;
@@ -96,7 +96,7 @@ WebGLFramebuffer::GetFormatForAttachment(const WebGLFramebuffer::Attachment& att
         MOZ_ASSERT(tex.HasImageInfoAt(attachment.ImageTarget(), 0));
 
         const WebGLTexture::ImageInfo& imgInfo = tex.ImageInfoAt(attachment.ImageTarget(), 0);
-        return imgInfo.InternalFormat().get();
+        return imgInfo.EffectiveInternalFormat().get();
     }
 
     if (attachment.Renderbuffer())
@@ -105,37 +105,30 @@ WebGLFramebuffer::GetFormatForAttachment(const WebGLFramebuffer::Attachment& att
     return LOCAL_GL_NONE;
 }
 
-bool
-WebGLFramebuffer::Attachment::IsReadableFloat() const
+TexInternalFormat
+WebGLFramebuffer::Attachment::EffectiveInternalFormat() const
 {
     const WebGLTexture* tex = Texture();
     if (tex && tex->HasImageInfoAt(mTexImageTarget, mTexImageLevel)) {
-        GLenum type = tex->ImageInfoAt(mTexImageTarget, mTexImageLevel).Type().get();
-        switch (type) {
-        case LOCAL_GL_FLOAT:
-        case LOCAL_GL_HALF_FLOAT_OES:
-            return true;
-        }
-        return false;
+        return tex->ImageInfoAt(mTexImageTarget, mTexImageLevel).EffectiveInternalFormat();
     }
 
     const WebGLRenderbuffer* rb = Renderbuffer();
     if (rb) {
-        GLenum format = rb->InternalFormat();
-        switch (format) {
-        case LOCAL_GL_RGB16F:
-        case LOCAL_GL_RGBA16F:
-        case LOCAL_GL_RGB32F:
-        case LOCAL_GL_RGBA32F:
-            return true;
-        }
-        return false;
+        return rb->InternalFormat();
     }
 
-    
-    
-    MOZ_ASSERT(false, "Should not get here.");
-    return false;
+    return LOCAL_GL_NONE;
+}
+
+bool
+WebGLFramebuffer::Attachment::IsReadableFloat() const
+{
+    TexInternalFormat internalformat = EffectiveInternalFormat();
+    MOZ_ASSERT(internalformat != LOCAL_GL_NONE);
+    TexType type = TypeFromInternalFormat(internalformat);
+    return type == LOCAL_GL_FLOAT ||
+           type == LOCAL_GL_HALF_FLOAT;
 }
 
 void
@@ -230,7 +223,7 @@ WebGLFramebuffer::Attachment::RectangleObject() const
 
 
 static inline bool
-IsValidFBOTextureColorFormat(GLenum internalFormat)
+IsValidFBOTextureColorFormat(TexInternalFormat internalformat)
 {
     
 
@@ -239,46 +232,26 @@ IsValidFBOTextureColorFormat(GLenum internalFormat)
 
 
 
-    return (
-        
-        internalFormat == LOCAL_GL_ALPHA ||
-        internalFormat == LOCAL_GL_LUMINANCE ||
-        internalFormat == LOCAL_GL_LUMINANCE_ALPHA ||
-        internalFormat == LOCAL_GL_RGB ||
-        internalFormat == LOCAL_GL_RGBA ||
-        
-        internalFormat == LOCAL_GL_SRGB_EXT ||
-        internalFormat == LOCAL_GL_SRGB_ALPHA_EXT ||
-        
-        internalFormat == LOCAL_GL_ALPHA32F_ARB ||
-        internalFormat == LOCAL_GL_LUMINANCE32F_ARB ||
-        internalFormat == LOCAL_GL_LUMINANCE_ALPHA32F_ARB ||
-        internalFormat == LOCAL_GL_RGB32F_ARB ||
-        internalFormat == LOCAL_GL_RGBA32F_ARB ||
-        
-        internalFormat == LOCAL_GL_ALPHA16F_ARB ||
-        internalFormat == LOCAL_GL_LUMINANCE16F_ARB ||
-        internalFormat == LOCAL_GL_LUMINANCE_ALPHA16F_ARB ||
-        internalFormat == LOCAL_GL_RGB16F_ARB ||
-        internalFormat == LOCAL_GL_RGBA16F_ARB
-    );
+    TexInternalFormat unsizedformat = UnsizedInternalFormatFromInternalFormat(internalformat);
+    return unsizedformat == LOCAL_GL_ALPHA ||
+           unsizedformat == LOCAL_GL_LUMINANCE ||
+           unsizedformat == LOCAL_GL_LUMINANCE_ALPHA ||
+           unsizedformat == LOCAL_GL_RGB ||
+           unsizedformat == LOCAL_GL_RGBA ||
+           unsizedformat == LOCAL_GL_SRGB ||
+           unsizedformat == LOCAL_GL_SRGB_ALPHA;
 }
 
 static inline bool
-IsValidFBOTextureDepthFormat(GLenum internalFormat)
+IsValidFBOTextureDepthFormat(GLenum internalformat)
 {
-    return (
-        internalFormat == LOCAL_GL_DEPTH_COMPONENT ||
-        internalFormat == LOCAL_GL_DEPTH_COMPONENT16 ||
-        internalFormat == LOCAL_GL_DEPTH_COMPONENT32);
+    return IsGLDepthFormat(internalformat);
 }
 
 static inline bool
-IsValidFBOTextureDepthStencilFormat(GLenum internalFormat)
+IsValidFBOTextureDepthStencilFormat(GLenum internalformat)
 {
-    return (
-        internalFormat == LOCAL_GL_DEPTH_STENCIL ||
-        internalFormat == LOCAL_GL_DEPTH24_STENCIL8);
+    return IsGLDepthStencilFormat(internalformat);
 }
 
 
@@ -330,7 +303,7 @@ WebGLFramebuffer::Attachment::IsComplete() const
         MOZ_ASSERT(Texture()->HasImageInfoAt(mTexImageTarget, mTexImageLevel));
         const WebGLTexture::ImageInfo& imageInfo =
             Texture()->ImageInfoAt(mTexImageTarget, mTexImageLevel);
-        GLenum internalformat = imageInfo.InternalFormat().get();
+        GLenum internalformat = imageInfo.EffectiveInternalFormat().get();
 
         if (mAttachmentPoint == LOCAL_GL_DEPTH_ATTACHMENT)
             return IsValidFBOTextureDepthFormat(internalformat);
