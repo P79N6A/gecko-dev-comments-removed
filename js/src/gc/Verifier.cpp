@@ -378,144 +378,6 @@ gc::GCRuntime::endVerifyPreBarriers()
 
 
 
-struct VerifyPostTracer : JS::CallbackTracer
-{
-    
-    uint64_t number;
-
-    
-    int count;
-
-    
-    typedef HashSet<void*const*, PointerHasher<void*const*, 3>, SystemAllocPolicy> EdgeSet;
-    EdgeSet* edges;
-
-    VerifyPostTracer(JSRuntime* rt, JSTraceCallback callback)
-      : JS::CallbackTracer(rt, callback), number(rt->gc.gcNumber()), count(0)
-    {}
-};
-
-
-
-
-
-
-void
-gc::GCRuntime::startVerifyPostBarriers()
-{
-    if (!JS::IsGenerationalGCEnabled(rt) || verifyPostData || isIncrementalGCInProgress())
-        return;
-
-    evictNursery();
-
-    number++;
-
-    VerifyPostTracer* trc = js_new<VerifyPostTracer>(rt, JSTraceCallback(nullptr));
-    if (!trc)
-        return;
-
-    verifyPostData = trc;
-}
-
-void
-PostVerifierCollectStoreBufferEdges(JS::CallbackTracer* jstrc, void** thingp, JSGCTraceKind kind)
-{
-    VerifyPostTracer* trc = (VerifyPostTracer*)jstrc;
-
-    
-    if (kind != JSTRACE_OBJECT)
-        return;
-
-    
-    JSObject* dst = *reinterpret_cast<JSObject**>(thingp);
-    if (trc->runtime()->gc.nursery.isInside(thingp) || !IsInsideNursery(dst))
-        return;
-
-    
-
-
-
-
-    void*const* loc = trc->tracingLocation(thingp);
-
-    trc->edges->put(loc);
-}
-
-static void
-AssertStoreBufferContainsEdge(VerifyPostTracer::EdgeSet* edges, void*const* loc, JSObject* dst)
-{
-    if (edges->has(loc))
-        return;
-
-    char msgbuf[1024];
-    JS_snprintf(msgbuf, sizeof(msgbuf), "[post-barrier verifier] Missing edge @ %p to %p",
-                (void*)loc, (void*)dst);
-    MOZ_ReportAssertionFailure(msgbuf, __FILE__, __LINE__);
-    MOZ_CRASH();
-}
-
-void
-PostVerifierVisitEdge(JS::CallbackTracer* jstrc, void** thingp, JSGCTraceKind kind)
-{
-    VerifyPostTracer* trc = (VerifyPostTracer*)jstrc;
-
-    
-    if (kind != JSTRACE_OBJECT)
-        return;
-
-    
-    MOZ_ASSERT(!trc->runtime()->gc.nursery.isInside(thingp));
-    JSObject* dst = *reinterpret_cast<JSObject**>(thingp);
-    if (!IsInsideNursery(dst))
-        return;
-
-    
-
-
-
-
-
-    void*const* loc = trc->tracingLocation(thingp);
-
-    AssertStoreBufferContainsEdge(trc->edges, loc, dst);
-}
-
-bool
-js::gc::GCRuntime::endVerifyPostBarriers()
-{
-    VerifyPostTracer* trc = (VerifyPostTracer*)verifyPostData;
-    if (!trc)
-        return false;
-
-    VerifyPostTracer::EdgeSet edges;
-    AutoPrepareForTracing prep(rt, SkipAtoms);
-
-    
-    trc->setTraceCallback(PostVerifierCollectStoreBufferEdges);
-    if (!edges.init())
-        goto oom;
-    trc->edges = &edges;
-    storeBuffer.markAll(trc);
-
-    
-    trc->setTraceCallback(PostVerifierVisitEdge);
-    for (GCZoneGroupIter zone(rt); !zone.done(); zone.next()) {
-        for (auto kind : AllAllocKinds()) {
-            for (ZoneCellIterUnderGC cells(zone, kind); !cells.done(); cells.next()) {
-                Cell* src = cells.getCell();
-                JS_TraceChildren(trc, src, MapAllocToTraceKind(kind));
-            }
-        }
-    }
-
-oom:
-    js_delete(trc);
-    verifyPostData = nullptr;
-    return true;
-}
-
-
-
 void
 gc::GCRuntime::verifyPreBarriers()
 {
@@ -526,21 +388,10 @@ gc::GCRuntime::verifyPreBarriers()
 }
 
 void
-gc::GCRuntime::verifyPostBarriers()
-{
-    if (verifyPostData)
-        endVerifyPostBarriers();
-    else
-        startVerifyPostBarriers();
-}
-
-void
 gc::VerifyBarriers(JSRuntime* rt, VerifierType type)
 {
     if (type == PreBarrierVerifier)
         rt->gc.verifyPreBarriers();
-    else
-        rt->gc.verifyPostBarriers();
 }
 
 void
@@ -563,29 +414,10 @@ gc::GCRuntime::maybeVerifyPreBarriers(bool always)
 }
 
 void
-gc::GCRuntime::maybeVerifyPostBarriers(bool always)
-{
-    if (zealMode != ZealVerifierPostValue)
-        return;
-
-    if (rt->mainThread.suppressGC || !storeBuffer.isEnabled())
-        return;
-
-    if (VerifyPostTracer* trc = (VerifyPostTracer*)verifyPostData) {
-        if (++trc->count < zealFrequency && !always)
-            return;
-
-        endVerifyPostBarriers();
-    }
-    startVerifyPostBarriers();
-}
-
-void
 js::gc::MaybeVerifyBarriers(JSContext* cx, bool always)
 {
     GCRuntime* gc = &cx->runtime()->gc;
     gc->maybeVerifyPreBarriers(always);
-    gc->maybeVerifyPostBarriers(always);
 }
 
 void
@@ -594,10 +426,6 @@ js::gc::GCRuntime::finishVerifier()
     if (VerifyPreTracer* trc = (VerifyPreTracer*)verifyPreData) {
         js_delete(trc);
         verifyPreData = nullptr;
-    }
-    if (VerifyPostTracer* trc = (VerifyPostTracer*)verifyPostData) {
-        js_delete(trc);
-        verifyPostData = nullptr;
     }
 }
 

@@ -123,7 +123,6 @@ namespace JS {
 class AutoTracingName;
 class AutoTracingIndex;
 class AutoTracingCallback;
-class AutoOriginalTraceLocation;
 
 class JS_PUBLIC_API(CallbackTracer) : public JSTracer
 {
@@ -131,8 +130,7 @@ class JS_PUBLIC_API(CallbackTracer) : public JSTracer
     CallbackTracer(JSRuntime* rt, JSTraceCallback traceCallback,
                    WeakMapTraceKind weakTraceKind = TraceWeakMapValues)
       : JSTracer(rt, JSTracer::CallbackTracer, weakTraceKind), callback(traceCallback),
-        contextName_(nullptr), contextIndex_(InvalidIndex), contextFunctor_(nullptr),
-        contextRealLocation_(nullptr)
+        contextName_(nullptr), contextIndex_(InvalidIndex), contextFunctor_(nullptr)
     {}
 
     
@@ -195,14 +193,6 @@ class JS_PUBLIC_API(CallbackTracer) : public JSTracer
         virtual void operator()(CallbackTracer* trc, char* buf, size_t bufsize) = 0;
     };
 
-    
-    
-    
-    
-    void*const* tracingLocation(void** thingp) {
-        return contextRealLocation_ ? contextRealLocation_ : thingp;
-    }
-
   private:
     
     
@@ -216,9 +206,6 @@ class JS_PUBLIC_API(CallbackTracer) : public JSTracer
 
     friend class AutoTracingDetails;
     ContextFunctor* contextFunctor_;
-
-    friend class AutoOriginalTraceLocation;
-    void*const* contextRealLocation_;
 };
 
 
@@ -288,37 +275,6 @@ class AutoTracingDetails
     }
 };
 
-
-
-
-
-
-class AutoOriginalTraceLocation
-{
-#ifdef JS_GC_ZEAL
-    CallbackTracer* trc_;
-
-  public:
-    template <typename T>
-    AutoOriginalTraceLocation(JSTracer* trc, T*const* realLocation) : trc_(nullptr) {
-        if (trc->isCallbackTracer() && trc->asCallbackTracer()->contextRealLocation_ == nullptr) {
-            trc_ = trc->asCallbackTracer();
-            trc_->contextRealLocation_ = reinterpret_cast<void*const*>(realLocation);
-        }
-    }
-    ~AutoOriginalTraceLocation() {
-        if (trc_) {
-            MOZ_ASSERT(trc_->contextRealLocation_);
-            trc_->contextRealLocation_ = nullptr;
-        }
-    }
-#else
-  public:
-    template <typename T>
-    AutoOriginalTraceLocation(JSTracer* trc, T*const* realLocation) {}
-#endif
-};
-
 } 
 
 JS::CallbackTracer*
@@ -381,7 +337,6 @@ inline void
 JS_CallHashSetObjectTracer(JSTracer* trc, HashSetEnum& e, JSObject* const& key, const char* name)
 {
     JSObject* updated = key;
-    JS::AutoOriginalTraceLocation reloc(trc, &key);
     JS_CallUnbarrieredObjectTracer(trc, &updated, name);
     if (updated != key)
         e.rekeyFront(updated);
