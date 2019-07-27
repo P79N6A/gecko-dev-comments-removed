@@ -2,32 +2,42 @@
 
 
 
+
 "use strict";
 
 const {Cu, Cc, Ci} = require("chrome");
-const Services = require("Services");
 const protocol = require("devtools/server/protocol");
 const {Arg, Option, method, RetVal} = protocol;
 const events = require("sdk/event/core");
 const Heritage = require("sdk/core/heritage");
-const {CssLogic} = require("devtools/styleinspector/css-logic");
 const EventEmitter = require("devtools/toolkit/event-emitter");
-const {setIgnoreLayoutChanges} = require("devtools/server/actors/layout");
 
-Cu.import("resource://gre/modules/devtools/LayoutHelpers.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+loader.lazyRequireGetter(this, "CssLogic",
+  "devtools/styleinspector/css-logic", true);
+loader.lazyRequireGetter(this, "setIgnoreLayoutChanges",
+  "devtools/server/actors/layout", true);
+loader.lazyGetter(this, "DOMUtils", function() {
+  return Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils);
+});
+loader.lazyImporter(this, "LayoutHelpers",
+  "resource://gre/modules/devtools/LayoutHelpers.jsm");
 
 
 const PSEUDO_CLASSES = [":hover", ":active", ":focus"];
+
+
 const BOX_MODEL_REGIONS = ["margin", "border", "padding", "content"];
 const BOX_MODEL_SIDES = ["top", "right", "bottom", "left"];
 const SVG_NS = "http://www.w3.org/2000/svg";
 const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
-const HIGHLIGHTER_STYLESHEET_URI = "resource://gre/modules/devtools/server/actors/highlighter.css";
+const STYLESHEET_URI = "resource://gre/modules/devtools/server/actors/" +
+                       "highlighter.css";
 const HIGHLIGHTER_PICKED_TIMER = 1000;
 
-const NODE_INFOBAR_HEIGHT = 34; 
-const NODE_INFOBAR_ARROW_SIZE = 9; 
+const NODE_INFOBAR_HEIGHT = 34;
+
+const NODE_INFOBAR_ARROW_SIZE = 9;
 
 const GUIDE_STROKE_WIDTH = 1;
 
@@ -44,8 +54,6 @@ const SIMPLE_OUTLINE_SHEET = ".__fx-devtools-hide-shortcut__ {" +
                              "  outline: 2px dashed #F06!important;" +
                              "  outline-offset: -2px!important;" +
                              "}";
-
-const GEOMETRY_SIZE_ARROW_OFFSET = .25; 
 const GEOMETRY_LABEL_SIZE = 6;
 
 
@@ -83,16 +91,17 @@ exports.isTypeRegistered = isTypeRegistered;
 
 const register = (constructor, typeName=constructor.prototype.typeName) => {
   if (!typeName) {
-    throw Error("No type's name found, or provided.")
+    throw Error("No type's name found, or provided.");
   }
 
   if (highlighterTypes.has(typeName)) {
-    throw Error(`${typeName} is already registered.`)
+    throw Error(`${typeName} is already registered.`);
   }
 
   highlighterTypes.set(typeName, constructor);
 };
 exports.register = register;
+
 
 
 
@@ -282,7 +291,7 @@ let HighlighterActor = exports.HighlighterActor = protocol.ActorClass({
       this._preventContentEvent(event);
       this._currentNode = this._findAndAttachElement(event);
       if (this._hoveredNode !== this._currentNode.node) {
-        this._highlighter.show( this._currentNode.node.rawNode);
+        this._highlighter.show(this._currentNode.node.rawNode);
         events.emit(this._walker, "picker-node-hovered", this._currentNode);
         this._hoveredNode = this._currentNode.node;
       }
@@ -303,15 +312,17 @@ let HighlighterActor = exports.HighlighterActor = protocol.ActorClass({
 
 
 
-      switch(event.keyCode) {
-        case Ci.nsIDOMKeyEvent.DOM_VK_LEFT: 
+      switch (event.keyCode) {
+        
+        case Ci.nsIDOMKeyEvent.DOM_VK_LEFT:
           if (!currentNode.parentElement) {
             return;
           }
           currentNode = currentNode.parentElement;
           break;
 
-        case Ci.nsIDOMKeyEvent.DOM_VK_RIGHT: 
+        
+        case Ci.nsIDOMKeyEvent.DOM_VK_RIGHT:
           if (!currentNode.children.length) {
             return;
           }
@@ -330,11 +341,13 @@ let HighlighterActor = exports.HighlighterActor = protocol.ActorClass({
           currentNode = child;
           break;
 
-        case Ci.nsIDOMKeyEvent.DOM_VK_RETURN: 
+        
+        case Ci.nsIDOMKeyEvent.DOM_VK_RETURN:
           this._onPick(event);
           return;
 
-        case Ci.nsIDOMKeyEvent.DOM_VK_ESCAPE: 
+        
+        case Ci.nsIDOMKeyEvent.DOM_VK_ESCAPE:
           this.cancelPick();
           events.emit(this._walker, "picker-node-canceled");
           return;
@@ -468,6 +481,8 @@ let CustomHighlighterActor = exports.CustomHighlighterActor = protocol.ActorClas
 
 
 
+
+
   show: method(function(node, options) {
     if (!node || !isNodeValid(node.rawNode) || !this._highlighter) {
       return false;
@@ -509,7 +524,6 @@ let CustomHighlighterActor = exports.CustomHighlighterActor = protocol.ActorClas
       this._highlighter.destroy();
       this._highlighter = null;
     }
-
   }, {
     oneway: true
   })
@@ -541,7 +555,8 @@ function CanvasFrameAnonymousContentHelper(highlighterEnv, nodeBuilder) {
   this.nodeBuilder = nodeBuilder;
   this.anonymousContentDocument = this.highlighterEnv.document;
   
-  this.anonymousContentGlobal = Cu.getGlobalForObject(this.anonymousContentDocument);
+  this.anonymousContentGlobal = Cu.getGlobalForObject(
+                                this.anonymousContentDocument);
 
   this._insert();
 
@@ -555,12 +570,13 @@ exports.CanvasFrameAnonymousContentHelper = CanvasFrameAnonymousContentHelper;
 
 CanvasFrameAnonymousContentHelper.prototype = {
   destroy: function() {
-    
-    
     try {
       let doc = this.anonymousContentDocument;
       doc.removeAnonymousContent(this._content);
-    } catch (e) {}
+    } catch (e) {
+      
+      
+    }
     this.highlighterEnv.off("navigate", this._onNavigate);
     this.highlighterEnv = this.nodeBuilder = this._content = null;
     this.anonymousContentDocument = null;
@@ -597,7 +613,7 @@ CanvasFrameAnonymousContentHelper.prototype = {
     
     
     installHelperSheet(this.highlighterEnv.window,
-      "@import url('" + HIGHLIGHTER_STYLESHEET_URI + "');");
+      "@import url('" + STYLESHEET_URI + "');");
     let node = this.nodeBuilder();
     this._content = doc.insertAnonymousContent(node);
   },
@@ -689,7 +705,7 @@ CanvasFrameAnonymousContentHelper.prototype = {
       let target = this.highlighterEnv.pageListenerTarget;
       target.addEventListener(type, this, true);
       
-      this.listeners.set(type, new Map);
+      this.listeners.set(type, new Map());
     }
 
     let listeners = this.listeners.get(type);
@@ -702,8 +718,7 @@ CanvasFrameAnonymousContentHelper.prototype = {
 
 
 
-
-  removeEventListenerForElement: function(id, type, handler) {
+  removeEventListenerForElement: function(id, type) {
     let listeners = this.listeners.get(type);
     if (!listeners) {
       return;
@@ -734,9 +749,8 @@ CanvasFrameAnonymousContentHelper.prototype = {
           return () => {
             isPropagationStopped = true;
           };
-        } else {
-          return obj[name];
         }
+        return obj[name];
       }
     });
 
@@ -816,8 +830,8 @@ CanvasFrameAnonymousContentHelper.prototype = {
 
     if (zoom !== 1) {
       value = "position:absolute;";
-      value += "transform-origin:top left;transform:scale(" + (1/zoom) + ");";
-      value += "width:" + (100*zoom) + "%;height:" + (100*zoom) + "%;";
+      value += "transform-origin:top left;transform:scale(" + (1 / zoom) + ");";
+      value += "width:" + (100 * zoom) + "%;height:" + (100 * zoom) + "%;";
     }
 
     this.setAttributeForElement(id, "style", value);
@@ -953,7 +967,7 @@ AutoRefreshHighlighter.prototype = {
   
 
 
-  update: function(e) {
+  update: function() {
     if (!isNodeValid(this.currentNode) || !this._hasMoved()) {
       return;
     }
@@ -1252,7 +1266,7 @@ BoxModelHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.prototype
 
 
   _show: function() {
-    if (BOX_MODEL_REGIONS.indexOf(this.options.region) == -1)  {
+    if (BOX_MODEL_REGIONS.indexOf(this.options.region) == -1) {
       this.options.region = "content";
     }
 
@@ -1590,15 +1604,17 @@ BoxModelHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.prototype
       return;
     }
 
-    let {bindingElement:node, pseudo} =
-      CssLogic.getBindingElementAndPseudo(this.currentNode);
+    let {bindingElement: node, pseudo} =
+        CssLogic.getBindingElementAndPseudo(this.currentNode);
 
     
     let tagName = node.tagName;
 
     let id = node.id ? "#" + node.id : "";
 
-    let classList = (node.classList || []).length ? "." + [...node.classList].join(".") : "";
+    let classList = (node.classList || []).length
+                    ? "." + [...node.classList].join(".")
+                    : "";
 
     let pseudos = PSEUDO_CLASSES.filter(pseudo => {
       return DOMUtils.hasPseudoClassLock(node, pseudo);
@@ -1609,7 +1625,9 @@ BoxModelHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.prototype
     }
 
     let rect = this._getOuterQuad("border").bounds;
-    let dim = parseFloat(rect.width.toPrecision(6)) + " \u00D7 " + parseFloat(rect.height.toPrecision(6));
+    let dim = parseFloat(rect.width.toPrecision(6)) +
+              " \u00D7 " +
+              parseFloat(rect.height.toPrecision(6));
 
     this.getElement("nodeinfobar-tagname").setTextContent(tagName);
     this.getElement("nodeinfobar-id").setTextContent(id);
@@ -1694,8 +1712,6 @@ CssTransformHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.proto
   ID_CLASS_PREFIX: "css-transform-",
 
   _buildMarkup: function() {
-    let doc = this.win.document;
-
     let container = createNode(this.win, {
       attributes: {
         "class": "highlighter-container"
@@ -1726,7 +1742,7 @@ CssTransformHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.proto
 
     
     this.markerId = "arrow-marker-" + MARKER_COUNTER;
-    MARKER_COUNTER ++;
+    MARKER_COUNTER++;
     let marker = createSVGNode(this.win, {
       nodeType: "marker",
       parent: svg,
@@ -1827,7 +1843,7 @@ CssTransformHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.proto
 
   _setPolygonPoints: function(quad, id) {
     let points = [];
-    for (let point of ["p1","p2", "p3", "p4"]) {
+    for (let point of ["p1", "p2", "p3", "p4"]) {
       points.push(quad[point].x + "," + quad[point].y);
     }
     this.getElement(id).setAttribute("points", points.join(" "));
@@ -1936,7 +1952,10 @@ SelectorHighlighter.prototype = {
     let nodes = [];
     try {
       nodes = [...node.ownerDocument.querySelectorAll(options.selector)];
-    } catch (e) {}
+    } catch (e) {
+      
+      
+    }
 
     delete options.selector;
 
@@ -1952,7 +1971,7 @@ SelectorHighlighter.prototype = {
       }
       highlighter.show(matchingNode, options);
       this._highlighters.push(highlighter);
-      i ++;
+      i++;
     }
 
     return true;
@@ -1995,8 +2014,8 @@ RectHighlighter.prototype = {
 
     let container = doc.createElement("div");
     container.className = "highlighter-container";
-    container.innerHTML = '<div id="highlighted-rect" ' +
-                          'class="highlighted-rect" hidden="true">';
+    container.innerHTML = "<div id=\"highlighted-rect\" " +
+                          "class=\"highlighted-rect\" hidden=\"true\">";
 
     return container;
   },
@@ -2021,6 +2040,7 @@ RectHighlighter.prototype = {
   },
 
   
+
 
 
 
@@ -2418,9 +2438,6 @@ GeometryEditorHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.pro
     
     this.definedProperties = this.getDefinedGeometryProperties();
 
-    let isStatic = this.computedStyle.position === "static";
-    let hasSizes = GeoProp.containsSize([...this.definedProperties.keys()]);
-
     if (!this.definedProperties.size) {
       console.warn("The element does not have editable geometry properties");
       return false;
@@ -2564,10 +2581,6 @@ GeometryEditorHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.pro
 
     
     let marginBox = this.currentQuads.margin[0].bounds;
-    
-    
-    let boxSizing = this.computedStyle.boxSizing.split("-")[0];
-    let box = this.currentQuads[boxSizing][0].bounds;
 
     
     
@@ -2594,18 +2607,16 @@ GeometryEditorHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.pro
       if (this.computedStyle.position === "relative") {
         if (GeoProp.isInverted(side)) {
           return marginBox[side] + parseFloat(this.computedStyle[side]);
-        } else {
-          return marginBox[side] - parseFloat(this.computedStyle[side]);
         }
+        return marginBox[side] - parseFloat(this.computedStyle[side]);
       }
 
       
       if (GeoProp.isInverted(side)) {
         return this.offsetParent.dimension[GeoProp.mainAxisSize(side)];
-      } else {
-        return -1 * getWindow(this.currentNode)["scroll" +
-                                                GeoProp.axis(side).toUpperCase()];
       }
+      return -1 * getWindow(this.currentNode)["scroll" +
+                                              GeoProp.axis(side).toUpperCase()];
     };
 
     for (let side of GeoProp.SIDES) {
@@ -2639,7 +2650,7 @@ GeometryEditorHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.pro
     
     
     let capitalize = str => str.substring(0, 1).toUpperCase() + str.substring(1);
-    let winMain = this.win["inner" + capitalize(GeoProp.mainAxisSize(side))]
+    let winMain = this.win["inner" + capitalize(GeoProp.mainAxisSize(side))];
     let labelMain = mainStart + (mainEnd - mainStart) / 2;
     if ((mainStart > 0 && mainStart < winMain) ||
         (mainEnd > 0 && mainEnd < winMain)) {
@@ -2674,7 +2685,7 @@ function RulersHighlighter(highlighterEnv) {
   this.win.addEventListener("pagehide", this, true);
 }
 
-RulersHighlighter.prototype =  {
+RulersHighlighter.prototype = {
   typeName: "RulersHighlighter",
 
   ID_CLASS_PREFIX: "rulers-highlighter-",
@@ -2762,8 +2773,10 @@ RulersHighlighter.prototype =  {
       let dMarkers = "";
       let graduationLength;
 
-      for (let i = 0; i < size; i+=RULERS_GRADUATION_STEP) {
-        if (i === 0) continue;
+      for (let i = 0; i < size; i += RULERS_GRADUATION_STEP) {
+        if (i === 0) {
+          continue;
+        }
 
         graduationLength = (i % 2 === 0) ? 6 : 4;
 
@@ -2780,16 +2793,17 @@ RulersHighlighter.prototype =  {
         }
 
         if (isHorizontal) {
-          if (i % RULERS_MARKER_STEP === 0)
+          if (i % RULERS_MARKER_STEP === 0) {
             dMarkers += `M${i} 0 L${i} ${graduationLength}`;
-          else
+          } else {
             dGraduations += `M${i} 0 L${i} ${graduationLength} `;
-
+          }
         } else {
-          if (i % 50 === 0)
+          if (i % 50 === 0) {
             dMarkers += `M0 ${i} L${graduationLength} ${i}`;
-          else
+          } else {
             dGraduations += `M0 ${i} L${graduationLength} ${i}`;
+          }
         }
       }
 
@@ -2929,7 +2943,7 @@ SimpleOutlineHighlighter.prototype = {
 
 function isNodeValid(node) {
   
-  if(!node || Cu.isDeadWrapper(node)) {
+  if (!node || Cu.isDeadWrapper(node)) {
     return false;
   }
 
@@ -2957,7 +2971,7 @@ function isNodeValid(node) {
 
 
 
-let installedHelperSheets = new WeakMap;
+let installedHelperSheets = new WeakMap();
 function installHelperSheet(win, source, type="agent") {
   if (installedHelperSheets.has(win.document)) {
     return;
@@ -3023,7 +3037,7 @@ function createNode(win, options) {
   for (let name in options.attributes || {}) {
     let value = options.attributes[name];
     if (options.prefix && (name === "class" || name === "id")) {
-      value = options.prefix + value
+      value = options.prefix + value;
     }
     node.setAttribute(name, value);
   }
@@ -3226,7 +3240,3 @@ HighlighterEnvironment.prototype = {
     this._win = null;
   }
 };
-
-XPCOMUtils.defineLazyGetter(this, "DOMUtils", function() {
-  return Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils);
-});
