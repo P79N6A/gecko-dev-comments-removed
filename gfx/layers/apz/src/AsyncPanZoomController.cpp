@@ -64,6 +64,7 @@
 #include "nsTArray.h"                   
 #include "nsThreadUtils.h"              
 #include "SharedMemoryBasic.h"          
+#include "WheelScrollAnimation.h"
 
 
 
@@ -393,8 +394,9 @@ static TimeStamp sFrameTime;
 
 static uint32_t sAsyncPanZoomControllerCount = 0;
 
-static TimeStamp
-GetFrameTime() {
+TimeStamp
+AsyncPanZoomController::GetFrameTime()
+{
   if (sFrameTime.IsNull()) {
     return TimeStamp::Now();
   }
@@ -437,7 +439,7 @@ public:
     , mOverscrollHandoffChain(aOverscrollHandoffChain)
   {
     MOZ_ASSERT(mOverscrollHandoffChain);
-    TimeStamp now = GetFrameTime();
+    TimeStamp now = AsyncPanZoomController::GetFrameTime();
 
     
     
@@ -1076,6 +1078,7 @@ nsEventStatus AsyncPanZoomController::OnTouchStart(const MultiTouchInput& aEvent
     case ANIMATING_ZOOM:
     case SMOOTH_SCROLL:
     case OVERSCROLL_ANIMATION:
+    case WHEEL_SCROLL:
       CurrentTouchBlock()->GetOverscrollHandoffChain()->CancelAnimations(ExcludeOverscroll);
       
     case NOTHING: {
@@ -1154,6 +1157,7 @@ nsEventStatus AsyncPanZoomController::OnTouchMove(const MultiTouchInput& aEvent)
       NS_WARNING("Gesture listener should have handled pinching in OnTouchMove.");
       return nsEventStatus_eIgnore;
 
+    case WHEEL_SCROLL:
     case OVERSCROLL_ANIMATION:
       
       
@@ -1243,6 +1247,7 @@ nsEventStatus AsyncPanZoomController::OnTouchEnd(const MultiTouchInput& aEvent) 
     NS_WARNING("Gesture listener should have handled pinching in OnTouchEnd.");
     return nsEventStatus_eIgnore;
 
+  case WHEEL_SCROLL:
   case OVERSCROLL_ANIMATION:
     
     
@@ -1547,17 +1552,25 @@ nsEventStatus AsyncPanZoomController::OnScrollWheel(const ScrollWheelInput& aEve
     }
 
     case ScrollWheelInput::SCROLLMODE_SMOOTH: {
-      CSSPoint delta = LayoutDevicePoint(deltaX, deltaY) / mFrameMetrics.GetDevPixelsPerCSSPixel();
+      if (mState != WHEEL_SCROLL) {
+        CancelAnimation();
+        SetState(WHEEL_SCROLL);
+
+        nsPoint initialPosition = CSSPoint::ToAppUnits(mFrameMetrics.GetScrollOffset());
+        StartAnimation(new WheelScrollAnimation(
+          *this,
+          initialPosition));
+      }
 
       
       
-      if (mState != SMOOTH_SCROLL) {
-        CancelAnimation();
-        mFrameMetrics.SetSmoothScrollOffset(mFrameMetrics.GetScrollOffset() + delta);
-      } else {
-        mFrameMetrics.SetSmoothScrollOffset(mFrameMetrics.GetSmoothScrollOffset() + delta);
-      }
-      StartSmoothScroll(ScrollSource::Wheel);
+      nsPoint delta =
+        CSSPoint::ToAppUnits(LayoutDevicePoint(deltaX, deltaY) / mFrameMetrics.GetDevPixelsPerCSSPixel());
+      nsPoint velocity =
+        CSSPoint::ToAppUnits(CSSPoint(mX.GetVelocity(), mY.GetVelocity())) * 1000.0f;
+
+      WheelScrollAnimation* animation = mAnimation->AsWheelScrollAnimation();
+      animation->Update(aEvent.mTimeStamp, delta, nsSize(velocity.x, velocity.y));
       break;
     }
   }

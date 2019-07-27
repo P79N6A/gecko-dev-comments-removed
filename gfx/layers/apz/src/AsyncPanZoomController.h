@@ -742,6 +742,7 @@ protected:
 
     SMOOTH_SCROLL,            
 
+    WHEEL_SCROLL              
   };
 
   
@@ -839,6 +840,11 @@ private:
   friend class FlingAnimation;
   friend class OverscrollAnimation;
   friend class SmoothScrollAnimation;
+  friend class WheelScrollAnimation;
+
+  
+  static TimeStamp GetFrameTime();
+
   
   ParentLayerPoint mLastFlingVelocity;
   
