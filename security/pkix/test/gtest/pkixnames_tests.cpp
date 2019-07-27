@@ -1354,7 +1354,11 @@ static const CheckCertHostnameParams CHECK_CERT_HOSTNAME_PARAMS[] =
 
   
   
-  WITH_SAN("a", RDN(CN("a")), ByteString(), Result::ERROR_BAD_DER),
+  
+  
+  
+  WITH_SAN("a", RDN(CN("a")), ByteString(), Success),
+  WITH_SAN("a", RDN(CN("b")), ByteString(), Result::ERROR_BAD_CERT_DOMAIN),
 
   
   
@@ -2218,11 +2222,6 @@ static const NameConstraintParams NAME_CONSTRAINT_PARAMS[] =
     Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success
   },
   { 
-    RDN(CN("a.example.com")), ByteString(),
-    GeneralSubtree(DNSName("a.example.com")),
-    Result::ERROR_BAD_DER, Result::ERROR_BAD_DER
-  },
-  { 
     
     RDN(CN("a.example.com")), RFC822Name("foo@example.com"),
     GeneralSubtree(DNSName("a.example.com")),
@@ -2390,6 +2389,34 @@ static const NameConstraintParams NAME_CONSTRAINT_PARAMS[] =
   },
   { ByteString(), RFC822Name("a@a.uses_underscore.example.com"),
     GeneralSubtree(RFC822Name(".uses_underscore.example.com")),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+
+  
+  
+  
+  
+  { 
+    RDN(CN("a.example.com")), ByteString(),
+    GeneralSubtree(DNSName("a.example.com")),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { 
+    
+    
+    
+    
+    
+    
+    
+    RDN(emailAddress("a@example.com")), ByteString(),
+    GeneralSubtree(RFC822Name("a@example.com")),
+    Success, Success
+  },
+  { 
+    
+    RDN(emailAddress("a@example.com")), NO_SAN,
+    GeneralSubtree(RFC822Name("a@example.com")),
     Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
   },
 };

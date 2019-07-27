@@ -349,7 +349,9 @@ SearchNames( const Input* subjectAltName,
     }
 
     
-    do {
+    
+    
+    while (!altNames.AtEnd()) {
       GeneralNameType presentedIDType;
       Input presentedID;
       rv = ReadGeneralName(altNames, presentedIDType, presentedID);
@@ -371,7 +373,7 @@ SearchNames( const Input* subjectAltName,
           presentedIDType == GeneralNameType::iPAddress) {
         fallBackToCommonName = FallBackToSearchWithinSubject::No;
       }
-    } while (!altNames.AtEnd());
+    }
   }
 
   if (referenceIDType == GeneralNameType::nameConstraints) {
