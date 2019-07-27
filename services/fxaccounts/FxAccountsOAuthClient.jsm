@@ -180,8 +180,22 @@ this.FxAccountsOAuthClient.prototype = {
             this.tearDown();
 
             
-            if (data.closeWindow && target && target.contentWindow) {
-              target.contentWindow.close();
+            if (data.closeWindow && target) {
+              
+              let tabbrowser = target.getTabBrowser();
+
+              if (tabbrowser) {
+                let tab = tabbrowser._getTabForBrowser(target);
+
+                if (tab) {
+                  tabbrowser.removeTab(tab);
+                  log.debug("OAuth flow closed the tab.");
+                } else {
+                  log.debug("OAuth flow failed to close the tab. Tab not found in TabBrowser.");
+                }
+              } else {
+                log.debug("OAuth flow failed to close the tab. TabBrowser not found.");
+              }
             }
             break;
         }
