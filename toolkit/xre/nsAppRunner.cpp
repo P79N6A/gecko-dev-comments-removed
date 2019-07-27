@@ -584,29 +584,6 @@ CanShowProfileManager()
 #endif
 }
 
-static bool
-KeyboardMayHaveIME()
-{
-#ifdef XP_WIN
-  
-  HKL locales[10];
-  int result = GetKeyboardLayoutList(10, locales);
-  for (int i = 0; i < result; i++) {
-    int kb = (uintptr_t)locales[i] & 0xFFFF;
-    if (kb == 0x0411 ||  
-        kb == 0x0412 ||  
-        kb == 0x0C04 ||  
-        kb == 0x0804 || kb == 0x0004 || 
-        kb == 0x7C04 || kb ==  0x0404)  { 
-
-      return true;
-    }
-  }
-#endif
-
-  return false;
-}
-
 bool gSafeMode = false;
 
 
@@ -884,13 +861,6 @@ nsXULAppInfo::GetAccessibilityEnabled(bool* aResult)
 #else
   *aResult = false;
 #endif
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsXULAppInfo::GetKeyboardMayHaveIME(bool* aResult)
-{
-  *aResult = KeyboardMayHaveIME();
   return NS_OK;
 }
 
