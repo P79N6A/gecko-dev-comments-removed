@@ -2974,11 +2974,17 @@ SVGTextDrawPathCallbacks::FillGeometry()
 void
 SVGTextDrawPathCallbacks::StrokeGeometry()
 {
+  
   if (mColor == NS_SAME_AS_FOREGROUND_COLOR ||
       mColor == NS_40PERCENT_FOREGROUND_COLOR) {
-    
-    if (nsSVGUtils::SetupCairoStroke(mFrame, gfx)) {
-      gfx->Stroke();
+    if (nsSVGUtils::HasStroke(mFrame,  nullptr)) {
+      nsRefPtr<gfxPattern> strokePattern =
+        nsSVGUtils::MakeStrokePatternFor(mFrame, gfx,  nullptr);
+      if (strokePattern) {
+        nsSVGUtils::SetupCairoStrokeGeometry(mFrame, gfx,  nullptr);
+        gfx->SetPattern(strokePattern);
+        gfx->Stroke();
+      }
     }
   }
 }

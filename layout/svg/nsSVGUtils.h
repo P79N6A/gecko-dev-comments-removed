@@ -540,13 +540,6 @@ public:
 
 
 
-  static bool SetupCairoStroke(nsIFrame* aFrame, gfxContext *aContext,
-                               gfxTextContextPaint *aContextPaint = nullptr);
-
-  
-
-
-
 
 
   static uint16_t GetGeometryHitTestFlags(nsIFrame* aFrame);
