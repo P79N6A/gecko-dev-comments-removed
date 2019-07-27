@@ -129,7 +129,7 @@ body,
 
 .rooms-footer {
   background: #000;
-  margin: 0 20px;
+  margin: 0 10px;
   text-align: left;
   height: 3em;
   position: relative;
@@ -357,29 +357,6 @@ p.standalone-btn-label {
 .standalone .ended-conversation .local-stream {
   
   display: none;
-}
-
-
-
-
-
-.text-chat-view {
-  height: 60px;
-  color: black;
-}
-
-.text-chat-entries {
-  
-  height: calc(100% - 2em);
-}
-
-.text-chat-box {
-  width: 30%;
-  margin: auto;
-}
-
-.text-chat-box > form > input {
-  width: 100%;
 }
 
 @media screen and (max-width:640px) {

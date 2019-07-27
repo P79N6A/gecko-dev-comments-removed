@@ -260,8 +260,7 @@
   width: 100%;
 }
 
-.standalone .local-stream,
-.standalone .remote-inset-stream {
+.standalone .local-stream {
   
   z-index: 1001;
 }
@@ -554,7 +553,7 @@
   width: 100%;
 }
 
-.local .avatar {
+.conversation .local .avatar {
   position: absolute;
   z-index: 1;
 }
@@ -647,16 +646,15 @@ html, .fx-embedded, #main,
 }
 
 
-@media screen and (min-width:641px) {
-  .standalone .conversation-toolbar {
+@media screen and (min-width: 641px) {
+  .standalone .conversation .conversation-toolbar {
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
   }
 
-  .standalone .local-stream,
-  .standalone .remote-inset-stream {
+  .standalone .conversation .local-stream {
     position: absolute;
     right: 15px;
     bottom: 15px;
@@ -701,11 +699,7 @@ html, .fx-embedded, #main,
     min-height: 500px;
   }
 
-  .standalone .remote-inset-stream {
-    display: none;
-  }
-
-  .standalone .local-stream {
+  .standalone .conversation .local-stream {
     flex: 1;
     min-width: 120px;
     min-height: 150px;
@@ -753,19 +747,20 @@ html, .fx-embedded, #main,
   background: #000;
   height: 50px;
   text-align: left;
-  width: 75%;
+  margin: 0 10px;
 }
 
 .room-conversation-wrapper header h1 {
   font-size: 1.5em;
   color: #fff;
   line-height: 50px;
-  text-indent: 60px;
+  text-indent: 40px;
   background-image: url("../img/firefox-logo.png");
   background-size: 30px;
-  background-position: 20px;
+  background-position: 0 center;
   background-repeat: no-repeat;
   display: inline-block;
+  margin: 0 10px;
 }
 
 .room-conversation-wrapper header a {
@@ -775,7 +770,7 @@ html, .fx-embedded, #main,
 .room-conversation-wrapper header .icon-help {
   display: inline-block;
   background-size: contain;
-  margin-top: 20px;
+  margin-top: 15px;
   width: 20px;
   height: 20px;
   background: transparent url("../img/svg/glyph-help-16x16.svg") no-repeat;
@@ -885,6 +880,7 @@ body[platform="win"] .share-service-dropdown.overflow > .dropdown-menu-item {
   padding-left: 1em;
   padding-right: 1em;
   padding-bottom: 0.5em;
+  margin-bottom: 0.5em;
   background-color: #E8F6FE;
 }
 
@@ -1080,6 +1076,198 @@ html[dir="rtl"] .room-context-btn-edit {
   left: 20px;
 }
 
+.media-layout {
+  
+  height: calc(100% - 50px - 3em);
+}
+
+.media-layout > .media-wrapper {
+  display: flex;
+  flex-flow: column wrap;
+  
+  height: calc(100% - 64px);
+  margin: 0 10px;
+}
+
+.media-wrapper > .focus-stream {
+  
+
+  width: calc(100% - 200px);
+  
+
+  height: 100%;
+  background-color: #4E4E4E;
+}
+
+.media-wrapper > .remote {
+  
+
+
+  overflow: hidden;
+}
+
+.media-wrapper > .remote > .remote-video {
+  object-fit: cover;
+}
+
+
+
+.media-wrapper > .text-chat-view {
+  flex: 0 0 auto;
+  
+  width: 200px;
+  height: 100%;
+}
+
+.media-wrapper.showing-local-streams > .text-chat-view {
+  
+
+  height: calc(100% - 150px);
+}
+
+.media-wrapper.showing-local-streams.receiving-screen-share > .text-chat-view {
+  
+
+  height: calc(100% - 300px);
+}
+
+.media-wrapper > .text-chat-view > .text-chat-entries {
+  
+  height: calc(100% - 40px);
+}
+
+.media-wrapper > .local {
+  flex: 0 1 auto;
+  width: 200px;
+  height: 150px;
+}
+
+.media-wrapper.receiving-screen-share > .screen {
+  order: 1;
+}
+
+.media-wrapper.receiving-screen-share > .text-chat-view {
+  order: 2;
+}
+
+.media-wrapper.receiving-screen-share > .remote {
+  order: 3;
+  flex: 0 1 auto;
+  width: 200px;
+  height: 150px;
+}
+
+.media-wrapper.receiving-screen-share > .local {
+  order: 4;
+}
+
+@media screen and (max-width:640px) {
+  .media-layout {
+    
+    height: calc(100% - 50px - 25px);
+  }
+
+  .media-layout > .media-wrapper {
+    flex-direction: row;
+    margin: 0;
+    width: 100%;
+    
+    height: calc(100% - 38px);
+  }
+
+  .media-wrapper > .focus-stream {
+    width: 100%;
+    
+    height: 70%;
+  }
+
+  .media-wrapper.receiving-screen-share > .focus-stream {
+    height: 50%;
+  }
+
+  .media-wrapper > .text-chat-view > .text-chat-entries {
+    
+    height: calc(100% - 40px);
+    width: 100%;
+  }
+
+  .media-wrapper > .local {
+    
+    position: absolute;
+    
+    z-index: 1001;
+    margin: 3px;
+    right: 0;
+    
+
+    bottom: calc(30% + 29px);
+    width: 120px;
+    height: 120px;
+  }
+
+  html[dir="rtl"] .media-wrapper > .local {
+    right: auto;
+    left: 0;
+  }
+
+  .media-wrapper > .text-chat-view {
+    order: 3;
+    flex: 1 1 auto;
+    width: 100%;
+  }
+
+  .media-wrapper > .text-chat-view,
+  .media-wrapper.showing-local-streams > .text-chat-view,
+  .media-wrapper.showing-local-streams.receiving-screen-share > .text-chat-view {
+    
+    height: 30%;
+  }
+
+  .media-wrapper.receiving-screen-share > .screen {
+    order: 1;
+  }
+
+  .media-wrapper.receiving-screen-share > .remote {
+    
+    order: 2;
+    flex: 1 1 auto;
+    height: 20%;
+    
+
+    width: auto;
+    max-width: 50%;
+  }
+
+  .media-wrapper.receiving-screen-share > .remote > .remote-video {
+      
+    object-fit: contain;
+  }
+
+  .media-wrapper.receiving-screen-share > .local {
+    
+    order: 3;
+    flex: 1 1 auto;
+    height: 20%;
+    
+
+    width: auto;
+    max-width: 50%;
+    
+    position: relative;
+    bottom: auto;
+    right: auto;
+    margin: 0;
+  }
+
+  .media-wrapper.receiving-screen-share > .text-chat-view {
+    order: 4;
+  }
+}
+
+.standalone > .room-conversation-wrapper > .media-layout > .conversation-toolbar {
+  border: none;
+}
+
 
 
 .standalone .room-conversation-wrapper {
@@ -1151,23 +1339,6 @@ html[dir="rtl"] .room-context-btn-edit {
   border-radius: 3px;
   font-weight: normal;
   max-width: 400px;
-}
-
-.standalone-room-info {
-  position: absolute;
-  display: block;
-  top: 0;
-  right: 10px;
-  
-  width: calc(25% - 20px);
-  z-index: 2000000;
-  font-size: 1.2em;
-  padding: .4em;
-  height: 100%;
-}
-
-.standalone-room-info > h2 {
-  color: #fff;
 }
 
 .standalone-context-url {
@@ -1243,7 +1414,7 @@ html[dir="rtl"] .room-context-btn-edit {
   padding: .7em .5em 0;
 }
 
-.fx-embedded .text-chat-box {
+.text-chat-box {
   flex: 0 0 auto;
   max-height: 40px;
   min-height: 40px;
@@ -1309,20 +1480,6 @@ html[dir="rtl"] .room-context-btn-edit {
 }
 
 @media screen and (max-width:640px) {
-  .standalone-room-info {
-    
-
-    position: absolute;
-    width: 100%;
-    right: 0px;
-
-    
-
-
-
-    height: auto;
-  }
-
   .standalone-context-url {
     
 
@@ -1333,9 +1490,7 @@ html[dir="rtl"] .room-context-btn-edit {
   .standalone .room-conversation {
     background: #000;
   }
-  .room-conversation-wrapper header {
-    width: 100%;
-  }
+
   .standalone .room-conversation-wrapper .room-inner-info-area {
     right: 0;
     margin: auto;
@@ -1357,7 +1512,7 @@ html[dir="rtl"] .room-context-btn-edit {
     height: 38px;
     padding: 8px;
   }
-  .standalone .focus-stream {
+  .standalone .conversation .focus-stream {
     
     height: 100%;
   }
@@ -1418,8 +1573,6 @@ html[dir="rtl"] .room-context-btn-edit {
 .remote-video {
   width: 100%;
   height: 100%;
-  display: block;
-  position: absolute;
 }
 
 .screen-share-video {
