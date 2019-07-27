@@ -784,6 +784,9 @@ SelectionCarets::DragSelection(const nsPoint &movePoint)
   }
 
   
+  fs->MaintainSelection(eSelectNoAmount);
+
+  
   nsIFrame *scrollable =
     nsLayoutUtils::GetClosestFrameOfType(anchorFrame, nsGkAtoms::scrollFrame);
   nsWeakFrame weakScrollable = scrollable;
