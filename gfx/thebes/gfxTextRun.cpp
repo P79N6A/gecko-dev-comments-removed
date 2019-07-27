@@ -602,21 +602,6 @@ gfxTextRun::Draw(gfxContext *aContext, gfxPoint aPt, DrawMode aDrawMode,
 
     
     
-    TextRunDrawParams params;
-    params.context = aContext;
-    params.devPerApp = 1.0 / double(GetAppUnitsPerDevUnit());
-    params.isVerticalRun = IsVertical();
-    params.isRTL = IsRightToLeft();
-    params.direction = direction;
-    params.drawMode = aDrawMode;
-    params.callbacks = aCallbacks;
-    params.runContextPaint = aContextPaint;
-    params.paintSVGGlyphs = !aCallbacks || aCallbacks->mShouldPaintSVGGlyphs;
-    params.dt = aContext->GetDrawTarget();
-    params.fontSmoothingBGColor = aContext->GetFontSmoothingBackgroundColor();
-
-    
-    
     BufferAlphaColor syntheticBoldBuffer(aContext);
     gfxRGBA currentColor;
     bool needToRestore = false;
@@ -633,6 +618,21 @@ gfxTextRun::Draw(gfxContext *aContext, gfxPoint aPt, DrawMode aDrawMode,
         syntheticBoldBuffer.PushSolidColor(metrics.mBoundingBox, currentColor,
                                            GetAppUnitsPerDevUnit());
     }
+
+    
+    
+    TextRunDrawParams params;
+    params.context = aContext;
+    params.devPerApp = 1.0 / double(GetAppUnitsPerDevUnit());
+    params.isVerticalRun = IsVertical();
+    params.isRTL = IsRightToLeft();
+    params.direction = direction;
+    params.drawMode = aDrawMode;
+    params.callbacks = aCallbacks;
+    params.runContextPaint = aContextPaint;
+    params.paintSVGGlyphs = !aCallbacks || aCallbacks->mShouldPaintSVGGlyphs;
+    params.dt = aContext->GetDrawTarget();
+    params.fontSmoothingBGColor = aContext->GetFontSmoothingBackgroundColor();
 
     GlyphRunIterator iter(this, aStart, aLength);
     gfxFloat advance = 0.0;
