@@ -342,6 +342,7 @@ var BrowserApp = {
 
     Services.androidBridge.browserApp = this;
 
+    Services.obs.addObserver(this, "Locale:OS", false);
     Services.obs.addObserver(this, "Locale:Changed", false);
     Services.obs.addObserver(this, "Tab:Load", false);
     Services.obs.addObserver(this, "Tab:Selected", false);
@@ -1758,6 +1759,34 @@ var BrowserApp = {
         WebappManager.autoUninstall(JSON.parse(aData));
         break;
 
+      case "Locale:OS":
+        
+        console.log("Locale:OS: " + aData);
+        let currentOSLocale;
+        try {
+          currentOSLocale = Services.prefs.getCharPref("intl.locale.os");
+        } catch (e) {
+        }
+        if (currentOSLocale == aData) {
+          break;
+        }
+
+        console.log("New OS locale.");
+
+        
+        
+        Services.prefs.setCharPref("intl.locale.os", aData);
+        Services.prefs.savePrefFile(null);
+
+        let appLocale;
+        try {
+          appLocale = Services.prefs.getCharPref("general.useragent.locale");
+        } catch (e) {
+        }
+
+        this.computeAcceptLanguages(aData, appLocale);
+        break;
+
       case "Locale:Changed":
         if (aData) {
           
@@ -1779,6 +1808,16 @@ var BrowserApp = {
         
         
         Services.strings.flushBundles();
+
+        
+        let osLocale;
+        try {
+          
+          osLocale = Services.prefs.getCharPref("intl.locale.os");
+        } catch (e) {
+        }
+
+        this.computeAcceptLanguages(osLocale, aData);
         break;
 
       default:
@@ -1786,6 +1825,63 @@ var BrowserApp = {
         break;
 
     }
+  },
+
+  
+
+
+
+
+
+
+
+
+  computeAcceptLanguages(osLocale, appLocale) {
+    let defaultBranch = Services.prefs.getDefaultBranch(null);
+    let defaultAccept = defaultBranch.getComplexValue("intl.accept_languages", Ci.nsIPrefLocalizedString).data;
+    console.log("Default intl.accept_languages = " + defaultAccept);
+
+    
+    
+    
+    if (defaultAccept && defaultAccept.startsWith("chrome://")) {
+      defaultAccept = null;
+    } else {
+      
+      defaultAccept = defaultAccept.toLowerCase();
+    }
+
+    if (appLocale) {
+      appLocale = appLocale.toLowerCase();
+    }
+
+    if (osLocale) {
+      osLocale = osLocale.toLowerCase();
+    }
+
+    
+    let chosen;
+    if (defaultAccept) {
+      
+      
+      chosen = defaultAccept.split(",")
+                            .map(String.trim)
+                            .filter((x) => (x != appLocale && x != osLocale));
+    } else {
+      chosen = [];
+    }
+
+    if (osLocale) {
+      chosen.unshift(osLocale);
+    }
+
+    if (appLocale && appLocale != osLocale) {
+      chosen.unshift(appLocale);
+    }
+
+    let result = chosen.join(",");
+    console.log("Setting intl.accept_languages to " + result);
+    Services.prefs.setCharPref("intl.accept_languages", result);
   },
 
   get defaultBrowserWidth() {

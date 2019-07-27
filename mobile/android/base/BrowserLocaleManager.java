@@ -249,6 +249,37 @@ public class BrowserLocaleManager implements LocaleManager {
         return changed;
     }
 
+    
+
+
+
+
+
+
+
+    public static void storeAndNotifyOSLocale(final SharedPreferences prefs,
+                                              final Locale osLocale) {
+        if (osLocale == null) {
+            return;
+        }
+
+        final String lastOSLocale = prefs.getString("osLocale", null);
+        final String osLocaleString = osLocale.toString();
+
+        if (osLocaleString.equals(lastOSLocale)) {
+            return;
+        }
+
+        
+        prefs.edit().putString("osLocale", osLocaleString).apply();
+
+        
+        
+        final String osLanguageTag = BrowserLocaleManager.getLanguageTag(osLocale);
+        final GeckoEvent localeOSEvent = GeckoEvent.createBroadcastEvent("Locale:OS", osLanguageTag);
+        GeckoAppShell.sendEventToGecko(localeOSEvent);
+    }
+
     @Override
     public String getAndApplyPersistedLocale(Context context) {
         initialize(context);
