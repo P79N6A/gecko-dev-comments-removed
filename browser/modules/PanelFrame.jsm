@@ -157,11 +157,6 @@ let PanelFrame = {
     panel.addEventListener("popupshown", function onpopupshown() {
       panel.removeEventListener("popupshown", onpopupshown);
       SharedFrame.setOwner(notificationFrameId, notificationFrame);
-      
-      
-      
-      
-      
       let initFrameShow = () => {
         notificationFrame.docShell.isActive = true;
         notificationFrame.docShell.isAppTab = true;
@@ -169,6 +164,11 @@ let PanelFrame = {
           dynamicResizer.start(panel, notificationFrame);
         dispatchPanelEvent(aType + "FrameShow");
       };
+      
+      
+      
+      
+      
       anchorBtn.setAttribute("open", "true");
       if (notificationFrame.contentDocument &&
           notificationFrame.contentDocument.readyState == "complete") {

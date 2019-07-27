@@ -421,9 +421,13 @@ function sizeSocialPanelToContent(panel, iframe) {
     let computedWidth = parseInt(cs.marginLeft) + body.offsetWidth + parseInt(cs.marginRight);
     width = Math.max(computedWidth, width);
   }
+
   
-  width += panel.boxObject.width - iframe.boxObject.width;
-  height += panel.boxObject.height - iframe.boxObject.height;
+  if (iframe.boxObject.width && iframe.boxObject.height) {
+    
+    width += panel.boxObject.width - iframe.boxObject.width;
+    height += panel.boxObject.height - iframe.boxObject.height;
+  }
 
   
   
