@@ -436,15 +436,6 @@ enum ParseNodeKind
 
 
 
-
-
-
-
-
-
-
-
-
 enum ParseNodeArity
 {
     PN_NULLARY,                         
@@ -714,15 +705,14 @@ class ParseNode
 
 #define PNX_POPVAR      0x01            /* PNK_VAR or PNK_CONST last result
                                            needs popping */
-#define PNX_GROUPINIT   0x02            /* var [a, b] = [c, d]; unit list */
-#define PNX_FUNCDEFS    0x04            /* contains top-level function statements */
-#define PNX_SETCALL     0x08            /* call expression in lvalue context */
-#define PNX_DESTRUCT    0x10            /* code evaluating destructuring
+#define PNX_FUNCDEFS    0x02            /* contains top-level function statements */
+#define PNX_SETCALL     0x04            /* call expression in lvalue context */
+#define PNX_DESTRUCT    0x08            /* code evaluating destructuring
                                            arguments occurs before function body */
-#define PNX_SPECIALARRAYINIT 0x20       /* one or more of
+#define PNX_ARRAYHOLESPREAD 0x10        /* one or more of
                                            1. array initialiser has holes
                                            2. array initializer has spread node */
-#define PNX_NONCONST    0x40            /* initialiser has non-constants */
+#define PNX_NONCONST    0x20            /* initialiser has non-constants */
 
     static_assert(PNX_NONCONST < (1 << NumListFlagBits), "Not enough bits");
 
