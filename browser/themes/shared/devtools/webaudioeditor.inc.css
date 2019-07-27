@@ -143,6 +143,12 @@ text {
 
 
 
+
+
+.variables-view-scope > .title {
+  display: none;
+}
+
 #web-audio-inspector-title {
   margin: 6px;
 }
