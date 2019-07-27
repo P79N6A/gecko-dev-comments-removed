@@ -506,6 +506,9 @@ class Parser : private JS::AutoGCRooter, public StrictModeGetter
     
     
     bool checkYieldNameValidity();
+    bool yieldExpressionsSupported() {
+        return versionNumber() >= JSVERSION_1_7 || pc->isGenerator();
+    }
 
     virtual bool strictMode() { return pc->sc->strict; }
 
