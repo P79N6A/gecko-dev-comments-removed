@@ -39,4 +39,6 @@
 
 #define BTA_AG_CHLD_VAL    "(0,1,2,3)"
 
+#define SDP_AVRCP_1_5 FALSE
+
 #endif 
