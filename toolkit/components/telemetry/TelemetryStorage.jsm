@@ -155,9 +155,21 @@ this.TelemetryStorage = {
 
 
 
+  addPendingPing: function(pingData) {
+    return TelemetryStorageImpl.addPendingPing(pingData);
+  },
 
-  addPendingPing: function(aPingPath) {
-    return TelemetryStorageImpl.addPendingPing(aPingPath);
+  
+
+
+
+
+
+
+
+
+  addPendingPingFromFile: function(pingPath) {
+    return TelemetryStorageImpl.addPendingPingFromFile(pingPath);
   },
 
   
@@ -423,18 +435,32 @@ let TelemetryStorageImpl = {
 
 
 
-  addPendingPing: function(aPingPath) {
+
+  addPendingPingFromFile: function(pingPath) {
     
     
     
-    return this.loadPingFile(aPingPath).then(ping => {
-        
-        pendingPings.push(ping);
-        
-        Telemetry.getHistogramById("READ_SAVED_PING_SUCCESS").add(1);
-        
-        return this.savePing(ping, false);
-      });
+    return this.loadPingFile(pingPath).then(ping => {
+      
+      Telemetry.getHistogramById("READ_SAVED_PING_SUCCESS").add(1);
+      this.addPendingPing(ping);
+      return this.savePing(ping, false);
+    });
+  },
+
+  
+
+
+
+
+
+
+
+  addPendingPing: function(ping) {
+    
+    pendingPings.push(ping);
+    
+    return this.savePing(ping, false);
   },
 
   

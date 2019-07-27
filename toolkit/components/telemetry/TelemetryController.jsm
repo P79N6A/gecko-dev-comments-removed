@@ -330,7 +330,7 @@ this.TelemetryController = Object.freeze({
 let Impl = {
   _initialized: false,
   _initStarted: false, 
-  _log: null,
+  _logger: null,
   _prevValues: {},
   
   
@@ -353,6 +353,14 @@ let Impl = {
 
   
   _pendingPingRequests: new Map(),
+
+  get _log() {
+    if (!this._logger) {
+      this._logger = Log.repository.getLoggerWithMessagePrefix(LOGGER_NAME, LOGGER_PREFIX);
+    }
+
+    return this._logger;
+  },
 
   
 
@@ -468,7 +476,7 @@ let Impl = {
 
 
   addPendingPingFromFile: function(aPingPath, aRemoveOriginal) {
-    return TelemetryStorage.addPendingPing(aPingPath).then(() => {
+    return TelemetryStorage.addPendingPingFromFile(aPingPath).then(() => {
         if (aRemoveOriginal) {
           return OS.File.remove(aPingPath);
         }
@@ -492,22 +500,29 @@ let Impl = {
 
 
   submitExternalPing: function send(aType, aPayload, aOptions) {
-    this._log.trace("submitExternalPing - Type " + aType + ", Server " + this._server +
-                    ", aOptions " + JSON.stringify(aOptions));
+    this._log.trace("submitExternalPing - type: " + aType + ", server: " + this._server +
+                    ", aOptions: " + JSON.stringify(aOptions));
 
-    let pingData = this.assemblePing(aType, aPayload, aOptions);
+    const pingData = this.assemblePing(aType, aPayload, aOptions);
+    this._log.trace("submitExternalPing - ping assembled, id: " + pingData.id);
+
     
     let archivePromise = TelemetryArchive.promiseArchivePing(pingData)
       .catch(e => this._log.error("submitExternalPing - Failed to archive ping " + pingData.id, e));
 
-    
-    let p = [
-      archivePromise,
+    let p = [ archivePromise ];
+
+    if (!this._initialized) {
       
-      this.doPing(pingData, false)
-          .catch(() => TelemetryStorage.savePing(pingData, true)),
-      this.sendPersistedPings(),
-    ];
+      this._log.trace("submitExternalPing - still initializing, ping is pending");
+      p.push(TelemetryStorage.addPendingPing(pingData));
+    } else {
+      
+      this._log.trace("submitExternalPing - already initialized, ping will be sent");
+      p.push(this.doPing(pingData, false)
+                 .catch(() => TelemetryStorage.savePing(pingData, true)));
+      p.push(this.sendPersistedPings());
+    }
 
     let promise = Promise.all(p);
     this._trackPendingPingTask(promise);
@@ -844,9 +859,6 @@ let Impl = {
   setupTelemetry: function setupTelemetry(testing) {
     this._initStarted = true;
     this._testMode = testing;
-    if (this._testMode && !this._log) {
-      this._log = Log.repository.getLoggerWithMessagePrefix(LOGGER_NAME, LOGGER_PREFIX);
-    }
 
     this._log.trace("setupTelemetry");
 
@@ -891,15 +903,17 @@ let Impl = {
       try {
         this._initialized = true;
 
+        
+        
+        yield this.sendPersistedPings();
+
+        
         yield TelemetryStorage.loadSavedPings();
         
         
         if (TelemetryStorage.pingsOverdue > 0) {
           this._log.trace("setupChromeProcess - Sending " + TelemetryStorage.pingsOverdue +
                           " overdue pings now.");
-          
-          
-          
           yield this.sendPersistedPings();
         }
 
@@ -986,11 +1000,10 @@ let Impl = {
 
   observe: function (aSubject, aTopic, aData) {
     
-    if (!this._log) {
+    if (aTopic == "profile-after-change" || aTopic == "app-startup") {
       
       
       configureLogging();
-      this._log = Log.repository.getLoggerWithMessagePrefix(LOGGER_NAME, LOGGER_PREFIX);
     }
 
     this._log.trace("observe - " + aTopic + " notified.");
