@@ -1489,7 +1489,7 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
   while (true) {
     aRegionToPaint.And(aInvalidRegion, tileBounds);
     if (!aRegionToPaint.IsEmpty()) {
-      if (mResolution != CSSToParentLayerScale(1)) {
+      if (mResolution != 1) {
         
         
         aRegionToPaint = tileBounds;
