@@ -153,19 +153,14 @@ gfxGraphiteShaper::ShapeText(gfxContext      *aContext,
     gr_feature_val *grFeatures = gr_face_featureval_for_lang(mGrFace, grLang);
 
     
-    nsDataHashtable<nsUint32HashKey,uint32_t> mergedFeatures;
-
-    if (MergeFontFeatures(style,
-                          mFont->GetFontEntry()->mFeatureSettings,
-                          aShapedText->DisableLigatures(),
-                          mFont->GetFontEntry()->FamilyName(),
-                          mFallbackToSmallCaps,
-                          mergedFeatures))
-    {
-        
-        GrFontFeatures f = {mGrFace, grFeatures};
-        mergedFeatures.Enumerate(AddFeature, &f);
-    }
+    GrFontFeatures f = {mGrFace, grFeatures};
+    MergeFontFeatures(style,
+                      mFont->GetFontEntry()->mFeatureSettings,
+                      aShapedText->DisableLigatures(),
+                      mFont->GetFontEntry()->FamilyName(),
+                      mFallbackToSmallCaps,
+                      AddFeature,
+                      &f);
 
     size_t numChars = gr_count_unicode_characters(gr_utf16,
                                                   aText, aText + aLength,
