@@ -111,7 +111,7 @@ AdjustCaretFrameForLineEnd(nsIFrame** aFrame, int32_t* aOffset)
 
 nsCaret::nsCaret()
 : mPresShell(nullptr)
-, mBlinkRate(500)
+, mIsBlinking(true)
 , mVisible(false)
 , mDrawn(false)
 , mPendingDraw(false)
@@ -139,8 +139,6 @@ nsresult nsCaret::Init(nsIPresShell *inPresShell)
   mPresShell = do_GetWeakReference(inPresShell);    
   NS_ASSERTION(mPresShell, "Hey, pres shell should support weak refs");
 
-  mBlinkRate = static_cast<uint32_t>(
-    LookAndFeel::GetInt(LookAndFeel::eIntID_CaretBlinkTime, mBlinkRate));
   mShowDuringSelection =
     LookAndFeel::GetInt(LookAndFeel::eIntID_ShowCaretDuringSelection,
                         mShowDuringSelection ? 1 : 0) != 0;
@@ -392,7 +390,7 @@ void nsCaret::EraseCaret()
 {
   if (mDrawn) {
     DrawCaret(true);
-    if (mReadOnly && mBlinkRate) {
+    if (mReadOnly && mIsBlinking) {
       
       
       
@@ -419,7 +417,7 @@ nsresult nsCaret::DrawAtPosition(nsIDOMNode* aNode, int32_t aOffset)
   
   
   
-  mBlinkRate = 0;
+  mIsBlinking = false;
 
   nsCOMPtr<nsIContent> node = do_QueryInterface(aNode);
   nsresult rv = DrawAtPositionWithHint(aNode, aOffset,
@@ -547,7 +545,7 @@ void nsCaret::KillTimer()
 nsresult nsCaret::PrimeTimer()
 {
   
-  if (!mReadOnly && mBlinkRate > 0)
+  if (!mReadOnly && mIsBlinking)
   {
     if (!mBlinkTimer) {
       nsresult  err;
@@ -556,7 +554,10 @@ nsresult nsCaret::PrimeTimer()
         return err;
     }    
 
-    mBlinkTimer->InitWithFuncCallback(CaretBlinkCallback, this, mBlinkRate,
+    uint32_t blinkRate = static_cast<uint32_t>(
+      LookAndFeel::GetInt(LookAndFeel::eIntID_CaretBlinkTime, 500));
+
+    mBlinkTimer->InitWithFuncCallback(CaretBlinkCallback, this, blinkRate,
                                       nsITimer::TYPE_REPEATING_SLACK);
   }
 
