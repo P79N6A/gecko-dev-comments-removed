@@ -2743,6 +2743,8 @@ public:
 
   void SetVisibleRect(const nsRect& aRect);
 
+  void SetReferenceFrame(const nsIFrame* aFrame);
+
   
 
 
