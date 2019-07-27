@@ -65,10 +65,9 @@ public:
   void RemoveCompositorVsyncDispatcher(CompositorVsyncDispatcher* aCompositorVsyncDispatcher);
 
   nsRefPtr<RefreshTimerVsyncDispatcher> GetRefreshTimerVsyncDispatcher();
-
-protected:
   virtual Display& GetGlobalDisplay() = 0; 
 
+protected:
   virtual ~VsyncSource() {}
 };
 
