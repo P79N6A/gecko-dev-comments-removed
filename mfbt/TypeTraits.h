@@ -772,6 +772,45 @@ struct AddLvalueReference
   : detail::AddLvalueReferenceHelper<T>
 {};
 
+namespace detail {
+
+template<typename T, Voidness V = IsVoid<T>::value ? TIsVoid : TIsNotVoid>
+struct AddRvalueReferenceHelper;
+
+template<typename T>
+struct AddRvalueReferenceHelper<T, TIsVoid>
+{
+  typedef void Type;
+};
+
+template<typename T>
+struct AddRvalueReferenceHelper<T, TIsNotVoid>
+{
+  typedef T&& Type;
+};
+
+} 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<typename T>
+struct AddRvalueReference
+  : detail::AddRvalueReferenceHelper<T>
+{};
+
 
 
 template<bool B, typename T = void>
