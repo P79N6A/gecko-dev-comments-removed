@@ -129,6 +129,10 @@ public:
 
   
   bool IsEnded();
+  bool IsNearEnd(int64_t aTime );
+
+  
+  void SetMediaSourceDuration(double aDuration );
 
 #ifdef MOZ_EME
   nsresult SetCDMProxy(CDMProxy* aProxy);
@@ -159,7 +163,7 @@ private:
   void RequestVideoDataFailed(nsresult aResult);
   
   
-  void CheckForWaitOrEndOfStream(MediaData::Type aType);
+  void CheckForWaitOrEndOfStream(MediaData::Type aType, int64_t aTime );
 
   
   
@@ -210,6 +214,7 @@ private:
   bool mDropVideoBeforeThreshold;
 
   bool mEnded;
+  double mMediaSourceDuration;
 
   bool mHasEssentialTrackBuffers;
 
