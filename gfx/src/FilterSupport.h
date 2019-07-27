@@ -11,6 +11,7 @@
 #include "mozilla/TypedEnum.h"
 #include "mozilla/gfx/Rect.h"
 #include "mozilla/gfx/Matrix.h"
+#include "mozilla/gfx/2D.h"
 #include "nsClassHashtable.h"
 #include "nsTArray.h"
 #include "nsRegion.h"
@@ -430,7 +431,8 @@ public:
                           const IntRect& aFillPaintRect,
                           SourceSurface* aStrokePaint,
                           const IntRect& aStrokePaintRect,
-                          nsTArray<RefPtr<SourceSurface>>& aAdditionalImages);
+                          nsTArray<RefPtr<SourceSurface>>& aAdditionalImages,
+                          const DrawOptions& aOptions = DrawOptions());
 
   
 
