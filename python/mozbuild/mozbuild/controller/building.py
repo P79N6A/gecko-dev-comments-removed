@@ -181,12 +181,6 @@ class BuildMonitor(MozbuildObject):
 
     def start_resource_recording(self):
         
-
-        
-        
-        if self._is_windows():
-            return
-
         self.resources.start()
         self._resources_started = True
 
