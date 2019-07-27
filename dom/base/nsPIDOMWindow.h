@@ -699,6 +699,8 @@ public:
   
 
 
+
+
   virtual nsresult
   OpenNoNavigate(const nsAString& aUrl, const nsAString& aName,
                  const nsAString& aOptions, nsIDOMWindow **_retval) = 0;

@@ -1135,6 +1135,7 @@ protected:
 
   
 
+  
   virtual nsresult
   OpenNoNavigate(const nsAString& aUrl,
                  const nsAString& aName,
