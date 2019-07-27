@@ -449,6 +449,9 @@ AppleVTDecoder::InitializeSession()
     CFDictionaryCreateMutable(NULL, 0,
                               &kCFTypeDictionaryKeyCallBacks,
                               &kCFTypeDictionaryValueCallBacks);
+
+
+#if 0
   
   AutoCFRelease<CFStringRef>
         kVTVideoDecoderSpecification_EnableHardwareAcceleratedVideoDecoder =
@@ -458,6 +461,7 @@ AppleVTDecoder::InitializeSession()
   CFDictionarySetValue(spec,
       kVTVideoDecoderSpecification_EnableHardwareAcceleratedVideoDecoder,
       kCFBooleanTrue);
+#endif
 
   VTDecompressionOutputCallbackRecord cb = { PlatformCallback, this };
   rv = VTDecompressionSessionCreate(NULL, 
