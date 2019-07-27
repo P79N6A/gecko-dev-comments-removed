@@ -884,26 +884,6 @@ Http2Compressor::EncodeHeaderBlock(const nsCString &nvInput,
 
     int32_t valueIndex = colonIndex + 1;
 
-    
-    
-    
-    if (name.EqualsLiteral("expect")) {
-      const char *continueHeader =
-        nsHttp::FindToken(beginBuffer + valueIndex, "100-continue",
-                          HTTP_HEADER_VALUE_SEPS);
-      if (continueHeader) {
-        char *writableVal = const_cast<char *>(continueHeader);
-        memset(writableVal, 0, 12);
-        writableVal += 12;
-        
-        while ((*writableVal == ' ') || (*writableVal == '\t') ||
-               (*writableVal == ',')) {
-          *writableVal = ' ';
-          ++writableVal;
-        }
-      }
-    }
-
     while (valueIndex < crlfIndex && beginBuffer[valueIndex] == ' ')
       ++valueIndex;
 

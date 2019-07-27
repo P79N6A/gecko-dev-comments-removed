@@ -1153,10 +1153,12 @@ Http2Session::RecvHeaders(Http2Session *self)
     return NS_OK;
   }
 
+  
   if (self->mInputFrameDataStream->AllHeadersReceived() &&
       !(self->mInputFrameFlags & kFlag_END_STREAM)) {
     
     
+    LOG3(("Http2Session::Illegal Extra HeaderBlock %p 0x%X\n", self, self->mInputFrameID));
     RETURN_SESSION_ERROR(self, PROTOCOL_ERROR);
   }
 
@@ -1212,6 +1214,10 @@ Http2Session::ResponseHeadersComplete()
 
     return NS_OK;
   }
+
+  
+  
+  bool didFirstSetAllRecvd = !mInputFrameDataStream->AllHeadersReceived();
   mInputFrameDataStream->SetAllHeadersReceived();
 
   
@@ -1220,10 +1226,12 @@ Http2Session::ResponseHeadersComplete()
   
 
   nsresult rv;
+  int32_t httpResponseCode; 
   mFlatHTTPResponseHeadersOut = 0;
   rv = mInputFrameDataStream->ConvertResponseHeaders(&mDecompressor,
                                                      mDecompressBuffer,
-                                                     mFlatHTTPResponseHeaders);
+                                                     mFlatHTTPResponseHeaders,
+                                                     httpResponseCode);
   if (rv == NS_ERROR_ABORT) {
     LOG(("Http2Session::ResponseHeadersComplete ConvertResponseHeaders aborted\n"));
     if (mInputFrameDataStream->IsTunnel()) {
@@ -1236,6 +1244,11 @@ Http2Session::ResponseHeadersComplete()
     return NS_OK;
   } else if (NS_FAILED(rv)) {
     return rv;
+  }
+
+  
+  if (((httpResponseCode / 100) == 1) && didFirstSetAllRecvd) {
+    mInputFrameDataStream->UnsetAllHeadersReceived();
   }
 
   ChangeDownstreamState(PROCESSING_COMPLETE_HEADERS);
