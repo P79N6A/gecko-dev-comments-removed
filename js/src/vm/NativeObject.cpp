@@ -2102,11 +2102,62 @@ SetNonexistentProperty(typename ExecutionModeTraits<mode>::ContextType cxArg,
     return SetPropertyByDefining<mode>(cxArg, receiver, id, v, strict);
 }
 
+
+
+
+
 template <ExecutionMode mode>
 static bool
 SetDenseOrTypedArrayElement(typename ExecutionModeTraits<mode>::ContextType cxArg,
                             HandleNativeObject obj, uint32_t index, MutableHandleValue vp,
-                            bool strict);
+                            bool strict)
+{
+    if (IsAnyTypedArray(obj)) {
+        double d;
+        if (mode == ParallelExecution) {
+            
+            
+            if (vp.isObject())
+                return false;
+            if (!NonObjectToNumber(cxArg, vp, &d))
+                return false;
+        } else {
+            if (!ToNumber(cxArg->asJSContext(), vp, &d))
+                return false;
+        }
+
+        
+        
+        
+        uint32_t len = AnyTypedArrayLength(obj);
+        if (index < len) {
+            if (obj->is<TypedArrayObject>())
+                TypedArrayObject::setElement(obj->as<TypedArrayObject>(), index, d);
+            else
+                SharedTypedArrayObject::setElement(obj->as<SharedTypedArrayObject>(), index, d);
+        }
+        return true;
+    }
+
+    bool definesPast;
+    if (!WouldDefinePastNonwritableLength(cxArg, obj, index, strict, &definesPast))
+        return false;
+    if (definesPast) {
+        
+        if (mode == ParallelExecution)
+            return !strict;
+        return true;
+    }
+
+    if (!obj->maybeCopyElementsForWrite(cxArg))
+        return false;
+
+    if (mode == ParallelExecution)
+        return obj->setDenseElementIfHasType(index, vp);
+
+    obj->setDenseElementWithType(cxArg->asJSContext(), index, vp);
+    return true;
+}
 
 
 
@@ -2192,59 +2243,6 @@ SetExistingProperty(typename ExecutionModeTraits<mode>::ContextType cxArg,
         return NativeSet<mode>(cxArg, obj, receiver, shape, strict, vp);
     }
     return SetPropertyByDefining<mode>(cxArg, receiver, id, vp, strict);
-}
-
-template <ExecutionMode mode>
-static bool
-SetDenseOrTypedArrayElement(typename ExecutionModeTraits<mode>::ContextType cxArg,
-                            HandleNativeObject obj, uint32_t index, MutableHandleValue vp,
-                            bool strict)
-{
-    if (IsAnyTypedArray(obj)) {
-        double d;
-        if (mode == ParallelExecution) {
-            
-            
-            if (vp.isObject())
-                return false;
-            if (!NonObjectToNumber(cxArg, vp, &d))
-                return false;
-        } else {
-            if (!ToNumber(cxArg->asJSContext(), vp, &d))
-                return false;
-        }
-
-        
-        
-        
-        uint32_t len = AnyTypedArrayLength(obj);
-        if (index < len) {
-            if (obj->is<TypedArrayObject>())
-                TypedArrayObject::setElement(obj->as<TypedArrayObject>(), index, d);
-            else
-                SharedTypedArrayObject::setElement(obj->as<SharedTypedArrayObject>(), index, d);
-        }
-        return true;
-    }
-
-    bool definesPast;
-    if (!WouldDefinePastNonwritableLength(cxArg, obj, index, strict, &definesPast))
-        return false;
-    if (definesPast) {
-        
-        if (mode == ParallelExecution)
-            return !strict;
-        return true;
-    }
-
-    if (!obj->maybeCopyElementsForWrite(cxArg))
-        return false;
-
-    if (mode == ParallelExecution)
-        return obj->setDenseElementIfHasType(index, vp);
-
-    obj->setDenseElementWithType(cxArg->asJSContext(), index, vp);
-    return true;
 }
 
 template <ExecutionMode mode>
