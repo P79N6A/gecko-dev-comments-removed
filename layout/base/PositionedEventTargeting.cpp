@@ -393,6 +393,9 @@ GetClosest(nsIFrame* aRoot, const nsPoint& aPointRelativeToRootFrame,
 
 
 
+
+
+
 static bool
 IsElementClickableAndReadable(nsIFrame* aFrame, WidgetGUIEvent* aEvent, const EventRadiusPrefs* aPrefs)
 {
@@ -413,11 +416,37 @@ IsElementClickableAndReadable(nsIFrame* aFrame, WidgetGUIEvent* aEvent, const Ev
       (pc->AppUnitsToGfxUnits(frameSize.width) * cumulativeResolution) < limitReadableSize) {
     return false;
   }
-  nsRefPtr<nsFontMetrics> fm;
-  nsLayoutUtils::GetFontMetricsForFrame(aFrame, getter_AddRefs(fm),
-    nsLayoutUtils::FontSizeInflationFor(aFrame));
-  if (fm) {
-    if ((fm->EmHeight() > 0) && 
+  
+  
+  
+  
+  
+  nsIContent *content = aFrame->GetContent();
+  bool testFontSize = false;
+  if (content) {
+    nsINodeList* childNodes = content->ChildNodes();
+    uint32_t childNodeCount = childNodes->Length();
+    if ((content->IsNodeOfType(nsINode::eTEXT)) ||
+      
+
+      (childNodeCount == 1 && childNodes->Item(0) &&
+        childNodes->Item(0)->IsNodeOfType(nsINode::eTEXT))) {
+      
+      
+      
+      
+      
+      
+
+      testFontSize = true;
+    }
+  }
+
+  if (testFontSize) {
+    nsRefPtr<nsFontMetrics> fm;
+    nsLayoutUtils::GetFontMetricsForFrame(aFrame, getter_AddRefs(fm),
+      nsLayoutUtils::FontSizeInflationFor(aFrame));
+    if (fm && fm->EmHeight() > 0 && 
         (pc->AppUnitsToGfxUnits(fm->EmHeight()) * cumulativeResolution) < limitReadableSize) {
       return false;
     }
