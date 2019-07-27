@@ -1014,6 +1014,33 @@ this.PlacesUIUtils = {
            Weave.Service.engineManager.get("tabs") &&
            Weave.Service.engineManager.get("tabs").enabled;
   },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  getImageURLForResolution:
+  function PUIU_getImageURLForResolution(aWindow, aURL, aWidth = 16, aHeight = 16) {
+    let width  = Math.round(aWidth * aWindow.devicePixelRatio);
+    let height = Math.round(aHeight * aWindow.devicePixelRatio);
+    return aURL + (aURL.contains("#") ? "&" : "#") +
+           "-moz-resolution=" + width + "," + height;
+  },
 };
 
 XPCOMUtils.defineLazyServiceGetter(PlacesUIUtils, "RDF",
