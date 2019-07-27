@@ -453,7 +453,7 @@ protected:
   bool HasLowUndecodedData();
 
   
-  bool HasLowUndecodedData(double aUsecs);
+  bool HasLowUndecodedData(int64_t aUsecs);
 
   
   
