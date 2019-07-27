@@ -30,6 +30,37 @@ loop.shared.mixins = (function() {
 
 
 
+
+
+  var UrlHashChangeMixin = {
+    propTypes: {
+      onUrlHashChange: React.PropTypes.func.isRequired
+    },
+
+    componentDidMount: function() {
+      rootObject.addEventListener("hashchange", this.onUrlHashChange, false);
+    },
+
+    componentWillUnmount: function() {
+      rootObject.removeEventListener("hashchange", this.onUrlHashChange, false);
+    }
+  };
+
+  
+
+
+
+
+  var DocumentLocationMixin = {
+    locationReload: function() {
+      rootObject.location.reload();
+    }
+  };
+
+  
+
+
+
   var DropdownMenuMixin = {
     get documentBody() {
       return rootObject.document.body;
@@ -151,6 +182,8 @@ loop.shared.mixins = (function() {
     AudioMixin: AudioMixin,
     setRootObject: setRootObject,
     DropdownMenuMixin: DropdownMenuMixin,
-    DocumentVisibilityMixin: DocumentVisibilityMixin
+    DocumentVisibilityMixin: DocumentVisibilityMixin,
+    DocumentLocationMixin: DocumentLocationMixin,
+    UrlHashChangeMixin: UrlHashChangeMixin
   };
 })();
