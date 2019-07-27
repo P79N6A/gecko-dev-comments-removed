@@ -319,8 +319,9 @@ CopyAndInflateChars(jschar *dst, const JS::Latin1Char *src, size_t srclen)
 
 
 
+template <typename CharT>
 extern bool
-DeflateStringToBuffer(JSContext *maybecx, const jschar *chars,
+DeflateStringToBuffer(JSContext *maybecx, const CharT *chars,
                       size_t charsLength, char *bytes, size_t *length);
 
 

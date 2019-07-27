@@ -44,7 +44,9 @@ JSString::sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf)
     
     if (isExtensible()) {
         JSExtensibleString &extensible = asExtensible();
-        return mallocSizeOf(extensible.nonInlineChars());
+        return extensible.hasLatin1Chars()
+               ? mallocSizeOf(extensible.rawLatin1Chars())
+               : mallocSizeOf(extensible.rawTwoByteChars());
     }
 
     
@@ -59,7 +61,9 @@ JSString::sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf)
     
     
     JSFlatString &flat = asFlat();
-    return mallocSizeOf(flat.chars());
+    return flat.hasLatin1Chars()
+           ? mallocSizeOf(flat.rawLatin1Chars())
+           : mallocSizeOf(flat.rawTwoByteChars());
 }
 
 #ifdef DEBUG
