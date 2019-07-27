@@ -250,12 +250,22 @@ SystemMessageInternal.prototype = {
                                            aExtra);
       debug("Returned status of sending message: " + result);
 
+      
+      
       if (result === MSG_SENT_FAILURE_PERM_DENIED) {
         return;
       }
 
       
       ++pendingPromise.counter;
+
+      let page = this._findPage(aType, aPageURL, manifestURL);
+      if (page) {
+        
+        this._queueMessage(page, aMessage, messageID);
+
+        this._openAppPage(page, aMessage, aExtra, result);
+      }
 
     }, this);
 
@@ -298,6 +308,18 @@ SystemMessageInternal.prototype = {
                                              aPage.manifestURL,
                                              aExtra);
         debug("Returned status of sending message: " + result);
+
+
+        
+        
+        if (result === MSG_SENT_FAILURE_PERM_DENIED) {
+          return;
+        }
+
+        
+        this._queueMessage(aPage, aMessage, messageID);
+
+        this._openAppPage(aPage, aMessage, aExtra, result);
       };
 
       if ('function' !== typeof shouldDispatchFunc) {
@@ -716,30 +738,15 @@ SystemMessageInternal.prototype = {
       return MSG_SENT_FAILURE_PERM_DENIED;
     }
 
-    
-    let page = this._findPage(aType, aPageURL, aManifestURL);
-    if (!page) {
-      debug("Message " + aType + " is not registered for " +
-            aPageURL + " @ " + aManifestURL);
-      return MSG_SENT_FAILURE_PERM_DENIED;
-    }
-    this._queueMessage(page, aMessage, aMessageID);
-
     let appPageIsRunning = false;
     let pageKey = this._createKeyForPage({ type: aType,
                                            manifestURL: aManifestURL,
                                            pageURL: aPageURL });
 
-    let cache = this._findCacheForApp(aManifestURL);
     let targets = this._listeners[aManifestURL];
     if (targets) {
       for (let index = 0; index < targets.length; ++index) {
         let target = targets[index];
-        let manager = target.target;
-
-        
-        manager.sendAsyncMessage("SystemMessageCache:RefreshCache", cache);
-
         
         
         
@@ -758,6 +765,7 @@ SystemMessageInternal.prototype = {
         
         
         
+        let manager = target.target;
         manager.sendAsyncMessage("SystemMessageManager:Message",
                                  { type: aType,
                                    msg: aMessage,
@@ -767,7 +775,6 @@ SystemMessageInternal.prototype = {
       }
     }
 
-    let result = MSG_SENT_SUCCESS;
     if (!appPageIsRunning) {
       
       
@@ -775,11 +782,12 @@ SystemMessageInternal.prototype = {
       
       
       
-      result = MSG_SENT_FAILURE_APP_NOT_RUNNING;
       this._acquireCpuWakeLock(pageKey);
+      return MSG_SENT_FAILURE_APP_NOT_RUNNING;
+    } else {
+      return MSG_SENT_SUCCESS;
     }
-    this._openAppPage(page, aMessage, aExtra, result);
-    return result;
+
   },
 
   _resolvePendingPromises: function(aMessageID) {
