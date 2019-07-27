@@ -344,20 +344,21 @@ static nsresult GetDownloadDirectory(nsIFile **_directory,
   nsDOMDeviceStorage::GetDefaultStorageName(NS_LITERAL_STRING("sdcard"),
                                             storageName);
 
-  DeviceStorageFile dsf(NS_LITERAL_STRING("sdcard"),
-                        storageName,
-                        NS_LITERAL_STRING("downloads"));
-  NS_ENSURE_TRUE(dsf.mFile, NS_ERROR_FILE_ACCESS_DENIED);
+  nsRefPtr<DeviceStorageFile> dsf(
+    new DeviceStorageFile(NS_LITERAL_STRING("sdcard"),
+                          storageName,
+                          NS_LITERAL_STRING("downloads")));
+  NS_ENSURE_TRUE(dsf->mFile, NS_ERROR_FILE_ACCESS_DENIED);
 
   
   if (aSkipChecks) {
-    dsf.mFile.forget(_directory);
+    dsf->mFile.forget(_directory);
     return NS_OK;
   }
 
   
   nsString storageStatus;
-  dsf.GetStatus(storageStatus);
+  dsf->GetStatus(storageStatus);
 
   
   
@@ -374,13 +375,13 @@ static nsresult GetDownloadDirectory(nsIFile **_directory,
   }
 
   bool alreadyThere;
-  nsresult rv = dsf.mFile->Exists(&alreadyThere);
+  nsresult rv = dsf->mFile->Exists(&alreadyThere);
   NS_ENSURE_SUCCESS(rv, rv);
   if (!alreadyThere) {
-    rv = dsf.mFile->Create(nsIFile::DIRECTORY_TYPE, 0770);
+    rv = dsf->mFile->Create(nsIFile::DIRECTORY_TYPE, 0770);
     NS_ENSURE_SUCCESS(rv, rv);
   }
-  dir = dsf.mFile;
+  dir = dsf->mFile;
 #elif defined(ANDROID)
   
   

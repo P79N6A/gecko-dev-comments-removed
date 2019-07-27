@@ -4365,15 +4365,15 @@ nsDOMDeviceStorage::Observe(nsISupports *aSubject,
       return NS_OK;
     }
 
-    DeviceStorageFile dsf(mStorageType, mStorageName);
+    nsRefPtr<DeviceStorageFile> dsf(new DeviceStorageFile(mStorageType, mStorageName));
     nsString status, storageStatus;
 
     
-    dsf.GetStatus(status);
+    dsf->GetStatus(status);
     DispatchStatusChangeEvent(status);
 
     
-    dsf.GetStorageStatus(storageStatus);
+    dsf->GetStorageStatus(storageStatus);
     DispatchStorageStatusChangeEvent(storageStatus);
     return NS_OK;
   }
