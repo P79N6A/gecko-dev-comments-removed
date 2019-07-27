@@ -390,7 +390,9 @@ this.TelemetrySession = Object.freeze({
 
 
   reset: function() {
-    Impl._sessionId = Policy.generateSessionUUID();
+    Impl._sessionId = null;
+    Impl._subsessionId = null;
+    Impl._previousSubsessionId = null;
     Impl._subsessionCounter = 0;
     Impl._profileSubsessionCounter = 0;
     this.uninstall();
@@ -458,7 +460,7 @@ let Impl = {
   _childTelemetry: [],
   
   
-  _sessionId: Policy.generateSessionUUID(),
+  _sessionId: null,
   
   _subsessionId: null,
   
@@ -1086,6 +1088,9 @@ let Impl = {
       return Promise.resolve();
     }
 
+    
+    
+    this._sessionId = Policy.generateSessionUUID();
     this.startNewSubsession();
     
     
