@@ -417,7 +417,10 @@ class ScriptSource
     } data;
 
     uint32_t length_;
-    char *filename_;
+
+    
+    mozilla::UniquePtr<char[], JS::FreePolicy> filename_;
+
     mozilla::UniquePtr<jschar[], JS::FreePolicy> displayURL_;
     mozilla::UniquePtr<jschar[], JS::FreePolicy> sourceMapURL_;
     JSPrincipals *originPrincipals_;
@@ -433,7 +436,11 @@ class ScriptSource
     
     
     
-    char *introducerFilename_;
+    
+    
+    
+    
+    mozilla::UniquePtr<char[], JS::FreePolicy> introducerFilename_;
 
     
     
@@ -547,7 +554,7 @@ class ScriptSource
 
     bool setFilename(ExclusiveContext *cx, const char *filename);
     const char *introducerFilename() const {
-        return introducerFilename_;
+        return introducerFilename_ ? introducerFilename_.get() : filename_.get();
     }
     bool hasIntroductionType() const {
         return introductionType_;
@@ -557,7 +564,7 @@ class ScriptSource
         return introductionType_;
     }
     const char *filename() const {
-        return filename_;
+        return filename_.get();
     }
 
     
