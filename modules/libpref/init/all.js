@@ -696,6 +696,8 @@ pref("canvas.filters.enabled", false);
 
 pref("canvas.path.enabled", true);
 
+pref("canvas.capturestream.enabled", false);
+
 
 
 
