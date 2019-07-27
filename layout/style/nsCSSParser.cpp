@@ -1208,6 +1208,17 @@ protected:
   
   bool mDidUnprefixWebkitBoxInEarlierDecl; 
 
+#ifdef DEBUG
+  
+  
+  
+  
+  
+  
+  
+  bool mSheetPrincipalRequired;
+#endif
+
   
   InfallibleTArray<nsRefPtr<css::GroupRule> > mGroupStack;
 
@@ -1285,6 +1296,9 @@ CSSParserImpl::CSSParserImpl()
     mInFailingSupportsRule(false),
     mSuppressErrors(false),
     mDidUnprefixWebkitBoxInEarlierDecl(false),
+#ifdef DEBUG
+    mSheetPrincipalRequired(true),
+#endif
     mNextFree(nullptr)
 {
 }
@@ -7608,8 +7622,9 @@ bool
 CSSParserImpl::SetValueToURL(nsCSSValue& aValue, const nsString& aURL)
 {
   if (!mSheetPrincipal) {
-    NS_NOTREACHED("Codepaths that expect to parse URLs MUST pass in an "
-                  "origin principal");
+    NS_ASSERTION(!mSheetPrincipalRequired,
+                 "Codepaths that expect to parse URLs MUST pass in an "
+                 "origin principal");
     return false;
   }
 
@@ -15275,6 +15290,17 @@ CSSParserImpl::IsValueValidForProperty(const nsCSSProperty aPropID,
   nsCSSScanner scanner(aPropValue, 0);
   css::ErrorReporter reporter(scanner, mSheet, mChildLoader, nullptr);
   InitScanner(scanner, reporter, nullptr, nullptr, nullptr);
+
+#ifdef DEBUG
+  
+  
+  
+  
+  
+  
+  AutoRestore<bool> autoRestore(mSheetPrincipalRequired);
+  mSheetPrincipalRequired = false;
+#endif
 
   nsAutoSuppressErrors suppressErrors(this);
 
