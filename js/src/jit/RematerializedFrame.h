@@ -30,6 +30,9 @@ class RematerializedFrame
     bool isDebuggee_;
 
     
+    bool hasCallObj_;
+
+    
     uint8_t *top_;
 
     
@@ -107,9 +110,8 @@ class RematerializedFrame
     bool initFunctionScopeObjects(JSContext *cx);
 
     bool hasCallObj() const {
-        return maybeFun() &&
-               fun()->isHeavyweight() &&
-               scopeChain()->is<CallObject>();
+        MOZ_ASSERT(fun()->isHeavyweight());
+        return hasCallObj_;
     }
     CallObject &callObj() const;
 
