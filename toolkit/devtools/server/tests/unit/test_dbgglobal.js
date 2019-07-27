@@ -9,7 +9,7 @@ function run_test()
   
   
   check_except(function() {
-    DebuggerServer.openListener(-1);
+    DebuggerServer.createListener();
   });
   check_except(DebuggerServer.closeAllListeners);
   check_except(DebuggerServer.connectPipe);
@@ -20,7 +20,7 @@ function run_test()
   
   
   check_except(function() {
-    DebuggerServer.openListener(-1);
+    DebuggerServer.createListener();
   });
   check_except(DebuggerServer.closeAllListeners);
   check_except(DebuggerServer.connectPipe);
@@ -28,7 +28,7 @@ function run_test()
   DebuggerServer.registerModule("xpcshell-test/testactors");
 
   
-  DebuggerServer.openListener(-1);
+  DebuggerServer.createListener();
   DebuggerServer.closeAllListeners();
 
   
