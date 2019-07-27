@@ -40,6 +40,15 @@ self.addEventListener("fetch", function(event) {
     respondToServiceWorker(event, "object");
   } else if (event.request.url.indexOf("font") >= 0) {
     respondToServiceWorker(event, "font");
+  } else if (event.request.url.indexOf("iframe") >= 0) {
+    if (event.request.context == "iframe") {
+      event.respondWith(fetch("context_test.js"));
+    }
+  } else if (event.request.url.indexOf("frame") >= 0) {
+    
+    if (event.request.context == "iframe") {
+      event.respondWith(fetch("context_test.js"));
+    }
   }
   
   try {
