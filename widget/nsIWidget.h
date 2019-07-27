@@ -2214,9 +2214,9 @@ protected:
     
     
     nsCOMPtr<nsIWidget> mFirstChild;
-    nsIWidget* mLastChild;
+    nsIWidget* MOZ_NON_OWNING_REF mLastChild;
     nsCOMPtr<nsIWidget> mNextSibling;
-    nsIWidget* mPrevSibling;
+    nsIWidget* MOZ_NON_OWNING_REF mPrevSibling;
     
     bool mOnDestroyCalled;
     nsWindowType mWindowType;
