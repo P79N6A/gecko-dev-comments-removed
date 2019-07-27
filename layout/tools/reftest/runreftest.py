@@ -24,6 +24,7 @@ sys.path.insert(0, SCRIPT_DIRECTORY)
 from automationutils import (
     dumpScreen,
     environment,
+    printstatus,
     processLeakLog
 )
 import mozcrash
@@ -394,13 +395,13 @@ class RefTest(object):
             return
       else:
         try:
-          proc.kill(sig=signal.SIGABRT)
+          process.kill(sig=signal.SIGABRT)
         except OSError:
           
           log.info("Can't trigger Breakpad, process no longer exists")
         return
     log.info("Can't trigger Breakpad, just killing process")
-    proc.kill()
+    process.kill()
 
   
 
