@@ -95,7 +95,6 @@ public:
   
   
   virtual bool ForceZeroStartTime() const override { return true; }
-  virtual int64_t ComputeStartTime(const VideoData* aVideo, const AudioData* aAudio) override { return 0; }
 
   
   

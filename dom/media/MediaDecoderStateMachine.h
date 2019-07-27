@@ -198,14 +198,6 @@ public:
 
   
   
-  
-  
-  
-  
-  void SetDuration(media::TimeUnit aDuration);
-
-  
-  
   bool OnDecodeTaskQueue() const;
   bool OnTaskQueue() const;
 
@@ -275,7 +267,7 @@ public:
     
     
     ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-    if (mStartTime < 0) {
+    if (!HaveStartTime()) {
       return media::TimeIntervals();
     }
 
@@ -613,7 +605,7 @@ protected:
   
   int64_t GetMediaTime() const {
     AssertCurrentThreadInMonitor();
-    return mStartTime + mCurrentPosition;
+    return mCurrentPosition;
   }
 
   
@@ -956,12 +948,6 @@ public:
   
   
   TimeStamp mBufferingStart;
-
-  
-  
-  
-  
-  int64_t mStartTime;
 
   
   
