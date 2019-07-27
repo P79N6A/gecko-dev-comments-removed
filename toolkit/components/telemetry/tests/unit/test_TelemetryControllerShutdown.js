@@ -7,7 +7,7 @@
 "use strict";
 
 Cu.import("resource://gre/modules/Services.jsm", this);
-Cu.import("resource://gre/modules/TelemetryPing.jsm", this);
+Cu.import("resource://gre/modules/TelemetryController.jsm", this);
 Cu.import("resource://gre/modules/Timer.jsm", this);
 Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
 Cu.import("resource://gre/modules/AsyncShutdown.jsm", this);
@@ -58,9 +58,9 @@ add_task(function* test_sendTimeout() {
   httpServer.registerPrefixHandler("/", contentHandler);
   httpServer.start(-1);
 
-  yield TelemetryPing.setup();
-  TelemetryPing.setServer("http://localhost:" + httpServer.identity.primaryPort);
-  TelemetryPing.send("test-ping-type", {});
+  yield TelemetryController.setup();
+  TelemetryController.setServer("http://localhost:" + httpServer.identity.primaryPort);
+  TelemetryController.send("test-ping-type", {});
 
   
   AsyncShutdown.profileBeforeChange._trigger();

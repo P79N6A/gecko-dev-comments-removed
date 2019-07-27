@@ -17,7 +17,7 @@ Cu.import("resource://gre/modules/Services.jsm", this);
 Cu.import("resource://testing-common/httpd.js", this);
 Cu.import("resource://gre/modules/Promise.jsm", this);
 Cu.import("resource://gre/modules/TelemetryStorage.jsm", this);
-Cu.import("resource://gre/modules/TelemetryPing.jsm", this);
+Cu.import("resource://gre/modules/TelemetryController.jsm", this);
 Cu.import("resource://gre/modules/Task.jsm", this);
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 let {OS: {File, Path, Constants}} = Cu.import("resource://gre/modules/osfile.jsm", {});
@@ -68,7 +68,7 @@ let createSavedPings = Task.async(function* (aPingInfos) {
     let num = aPingInfos[type].num;
     let age = now - aPingInfos[type].age;
     for (let i = 0; i < num; ++i) {
-      let pingId = yield TelemetryPing.addPendingPing("test-ping", {}, { overwrite: true });
+      let pingId = yield TelemetryController.addPendingPing("test-ping", {}, { overwrite: true });
       if (aPingInfos[type].age) {
         
         
@@ -175,7 +175,7 @@ function resetTelemetry() {
 
 
 function startTelemetry() {
-  return TelemetryPing.setup();
+  return TelemetryController.setup();
 }
 
 function run_test() {
@@ -189,8 +189,8 @@ function run_test() {
   gDatareportingService.observe(null, "app-startup", null);
   gDatareportingService.observe(null, "profile-after-change", null);
 
-  Services.prefs.setBoolPref(TelemetryPing.Constants.PREF_ENABLED, true);
-  Services.prefs.setCharPref(TelemetryPing.Constants.PREF_SERVER,
+  Services.prefs.setBoolPref(TelemetryController.Constants.PREF_ENABLED, true);
+  Services.prefs.setCharPref(TelemetryController.Constants.PREF_SERVER,
                              "http://localhost:" + gHttpServer.identity.primaryPort);
   run_next_test();
 }
@@ -200,7 +200,7 @@ function run_test() {
 
 
 add_task(function* setupEnvironment() {
-  yield TelemetryPing.setup();
+  yield TelemetryController.setup();
 
   let directory = TelemetryStorage.pingDirectoryPath;
   yield File.makeDir(directory, { ignoreExisting: true, unixMode: OS.Constants.S_IRWXU });

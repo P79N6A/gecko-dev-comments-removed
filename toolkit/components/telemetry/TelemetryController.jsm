@@ -23,7 +23,7 @@ Cu.import("resource://gre/modules/DeferredTask.jsm", this);
 Cu.import("resource://gre/modules/Preferences.jsm");
 
 const LOGGER_NAME = "Toolkit.Telemetry";
-const LOGGER_PREFIX = "TelemetryPing::";
+const LOGGER_PREFIX = "TelemetryController::";
 
 const PREF_BRANCH = "toolkit.telemetry.";
 const PREF_BRANCH_LOG = PREF_BRANCH + "log.";
@@ -121,9 +121,9 @@ let Policy = {
   now: () => new Date(),
 }
 
-this.EXPORTED_SYMBOLS = ["TelemetryPing"];
+this.EXPORTED_SYMBOLS = ["TelemetryController"];
 
-this.TelemetryPing = Object.freeze({
+this.TelemetryController = Object.freeze({
   Constants: Object.freeze({
     PREF_ENABLED: PREF_ENABLED,
     PREF_LOG_LEVEL: PREF_LOG_LEVEL,
@@ -346,9 +346,9 @@ let Impl = {
   
   
   
-  _shutdownBarrier: new AsyncShutdown.Barrier("TelemetryPing: Waiting for clients."),
+  _shutdownBarrier: new AsyncShutdown.Barrier("TelemetryController: Waiting for clients."),
   
-  _connectionsBarrier: new AsyncShutdown.Barrier("TelemetryPing: Waiting for pending ping activity"),
+  _connectionsBarrier: new AsyncShutdown.Barrier("TelemetryController: Waiting for pending ping activity"),
   
   _testMode: false,
 
@@ -919,7 +919,7 @@ let Impl = {
       }
     }.bind(this), this._testMode ? TELEMETRY_TEST_DELAY : TELEMETRY_DELAY);
 
-    AsyncShutdown.sendTelemetry.addBlocker("TelemetryPing: shutting down",
+    AsyncShutdown.sendTelemetry.addBlocker("TelemetryController: shutting down",
                                            () => this.shutdown(),
                                            () => this._getState());
 

@@ -5,7 +5,7 @@ const Cu = Components.utils;
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/TelemetryPing.jsm", this);
+Cu.import("resource://gre/modules/TelemetryController.jsm", this);
 Cu.import("resource://gre/modules/TelemetrySession.jsm", this);
 Cu.import('resource://gre/modules/XPCOMUtils.jsm');
 
@@ -32,7 +32,7 @@ function loadAddonManager() {
   startupManager();
 }
 
-function getSimpleMeasurementsFromTelemetryPing() {
+function getSimpleMeasurementsFromTelemetryController() {
   return TelemetrySession.getPayload().simpleMeasurements;
 }
 
@@ -44,7 +44,7 @@ function initialiseTelemetry() {
     gDatareportingService.observe(null, "profile-after-change", null);
   }
 
-  return TelemetryPing.setup().then(TelemetrySession.setup);
+  return TelemetryController.setup().then(TelemetrySession.setup);
 }
 
 function run_test() {
@@ -91,7 +91,7 @@ add_task(function* actualTest() {
   do_check_null(TelemetryTimestamps.get().baz); 
 
   
-  let simpleMeasurements = getSimpleMeasurementsFromTelemetryPing();
+  let simpleMeasurements = getSimpleMeasurementsFromTelemetryController();
   do_check_true(simpleMeasurements != null); 
   do_check_true(simpleMeasurements.foo > 1); 
   do_check_true(simpleMeasurements.bar > 1); 

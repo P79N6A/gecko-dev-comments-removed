@@ -134,8 +134,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "AddonManagerPrivate",
                                   "resource://gre/modules/AddonManager.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "AsyncShutdown",
                                   "resource://gre/modules/AsyncShutdown.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "TelemetryPing",
-                                  "resource://gre/modules/TelemetryPing.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "TelemetryController",
+                                  "resource://gre/modules/TelemetryController.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "TelemetryStorage",
                                   "resource://gre/modules/TelemetryStorage.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "TelemetryLog",
@@ -967,7 +967,7 @@ let Impl = {
     }
 
     ret.activeTicks = -1;
-    let sr = TelemetryPing.getSessionRecorder();
+    let sr = TelemetryController.getSessionRecorder();
     if (sr) {
       let activeTicks = sr.activeTicks;
       if (isSubsession) {
@@ -1443,7 +1443,7 @@ let Impl = {
       addClientId: true,
       addEnvironment: true,
     };
-    return TelemetryPing.send(getPingType(payload), payload, options);
+    return TelemetryController.send(getPingType(payload), payload, options);
   },
 
   attachObservers: function attachObservers() {
@@ -1508,7 +1508,7 @@ let Impl = {
       return Promise.resolve();
     }
 
-    TelemetryPing.shutdown.addBlocker("TelemetrySession: shutting down",
+    TelemetryController.shutdown.addBlocker("TelemetrySession: shutting down",
                                       () => this.shutdownChromeProcess(),
                                       () => this._getState());
 
@@ -1674,7 +1674,7 @@ let Impl = {
     let shutdownPayload = this.getSessionPayload(REASON_SHUTDOWN, false);
     
     
-    return TelemetryPing.addPendingPing(getPingType(shutdownPayload), shutdownPayload, options)
+    return TelemetryController.addPendingPing(getPingType(shutdownPayload), shutdownPayload, options)
                         .then(() => this.savePendingPingsClassic(),
                               () => this.savePendingPingsClassic());
 #else
@@ -1693,7 +1693,7 @@ let Impl = {
       addClientId: true,
       addEnvironment: true,
     };
-    return TelemetryPing.savePendingPings(getPingType(payload), payload, options);
+    return TelemetryController.savePendingPings(getPingType(payload), payload, options);
   },
 
   testSaveHistograms: function testSaveHistograms(file) {
@@ -1705,7 +1705,7 @@ let Impl = {
       addEnvironment: true,
       overwrite: true,
     };
-    return TelemetryPing.savePing(getPingType(payload), payload, file.path, options);
+    return TelemetryController.savePing(getPingType(payload), payload, file.path, options);
   },
 
   
@@ -1825,7 +1825,7 @@ let Impl = {
       }).bind(this), Ci.nsIThread.DISPATCH_NORMAL);
       
       
-      TelemetryPing.sendPersistedPings();
+      TelemetryController.sendPersistedPings();
       break;
 
 #ifdef MOZ_WIDGET_ANDROID
@@ -1853,7 +1853,7 @@ let Impl = {
           addEnvironment: true,
           overwrite: true,
         };
-        TelemetryPing.addPendingPing(getPingType(payload), payload, options);
+        TelemetryController.addPendingPing(getPingType(payload), payload, options);
       }
       break;
 #endif
@@ -1932,7 +1932,7 @@ let Impl = {
       addEnvironment: true,
     };
 
-    let promise = TelemetryPing.send(getPingType(payload), payload, options);
+    let promise = TelemetryController.send(getPingType(payload), payload, options);
 #if !defined(MOZ_WIDGET_GONK) && !defined(MOZ_WIDGET_ANDROID)
     
     if (saveAsAborted) {
@@ -2011,7 +2011,7 @@ let Impl = {
       addEnvironment: true,
       overrideEnvironment: oldEnvironment,
     };
-    TelemetryPing.send(getPingType(payload), payload, options);
+    TelemetryController.send(getPingType(payload), payload, options);
   },
 
   _isClassicReason: function(reason) {
@@ -2071,7 +2071,7 @@ let Impl = {
     if (abortedExists) {
       this._log.trace("_checkAbortedSessionPing - aborted session found: " + FILE_PATH);
       yield this._abortedSessionSerializer.enqueueTask(
-        () => TelemetryPing.addPendingPingFromFile(FILE_PATH, true));
+        () => TelemetryController.addPendingPingFromFile(FILE_PATH, true));
     }
   }),
 
@@ -2102,6 +2102,6 @@ let Impl = {
       overwrite: true,
     };
     return this._abortedSessionSerializer.enqueueTask(() =>
-      TelemetryPing.savePing(getPingType(payload), payload, FILE_PATH, options));
+      TelemetryController.savePing(getPingType(payload), payload, FILE_PATH, options));
   },
 };

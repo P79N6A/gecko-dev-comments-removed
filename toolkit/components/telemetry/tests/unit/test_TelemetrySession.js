@@ -14,7 +14,7 @@ Cu.import("resource://gre/modules/ClientID.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/LightweightThemeManager.jsm", this);
 Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
-Cu.import("resource://gre/modules/TelemetryPing.jsm", this);
+Cu.import("resource://gre/modules/TelemetryController.jsm", this);
 Cu.import("resource://gre/modules/TelemetrySession.jsm", this);
 Cu.import("resource://gre/modules/TelemetryStorage.jsm", this);
 Cu.import("resource://gre/modules/TelemetryEnvironment.jsm", this);
@@ -97,10 +97,10 @@ function truncateDateToDays(date) {
 function sendPing() {
   TelemetrySession.gatherStartup();
   if (gServerStarted) {
-    TelemetryPing.setServer("http://localhost:" + gHttpServer.identity.primaryPort);
+    TelemetryController.setServer("http://localhost:" + gHttpServer.identity.primaryPort);
     return TelemetrySession.testPing();
   } else {
-    TelemetryPing.setServer("http://doesnotexist");
+    TelemetryController.setServer("http://doesnotexist");
     return TelemetrySession.testPing();
   }
 }
@@ -483,7 +483,7 @@ function run_test() {
 
 add_task(function* asyncSetup() {
   yield TelemetrySession.setup();
-  yield TelemetryPing.setup();
+  yield TelemetryController.setup();
   
   gClientID = yield ClientID.getClientID();
 });
@@ -795,7 +795,7 @@ add_task(function* test_checkSubsessionData() {
   }
 
   
-  let sessionRecorder = TelemetryPing.getSessionRecorder();
+  let sessionRecorder = TelemetryController.getSessionRecorder();
   let activeTicksAtSubsessionStart = sessionRecorder.activeTicks;
   let expectedActiveTicks = activeTicksAtSubsessionStart;
 
@@ -855,7 +855,7 @@ add_task(function* test_dailyCollection() {
 
   
   yield TelemetrySession.setup();
-  TelemetryPing.setServer("http://localhost:" + gHttpServer.identity.primaryPort);
+  TelemetryController.setServer("http://localhost:" + gHttpServer.identity.primaryPort);
 
   
   const COUNT_ID = "TELEMETRY_TEST_COUNT";
@@ -1066,7 +1066,7 @@ add_task(function* test_environmentChange() {
 
   
   yield TelemetrySession.setup();
-  TelemetryPing.setServer("http://localhost:" + gHttpServer.identity.primaryPort);
+  TelemetryController.setServer("http://localhost:" + gHttpServer.identity.primaryPort);
   TelemetryEnvironment._watchPreferences(PREFS_TO_WATCH);
 
   
@@ -1320,7 +1320,7 @@ add_task(function* test_abortedSession() {
   
   const OVERDUE_PING_FILE_AGE = TelemetryStorage.OVERDUE_PING_FILE_AGE + 60 * 1000;
   yield OS.File.setDates(PENDING_PING_FILE, null, Date.now() - OVERDUE_PING_FILE_AGE);
-  yield TelemetryPing.reset();
+  yield TelemetryController.reset();
 
   
   let request = yield gRequestIterator.next();

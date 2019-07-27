@@ -16,7 +16,7 @@
 "use strict";
 
 Cu.import("resource://gre/modules/Services.jsm", this);
-Cu.import("resource://gre/modules/TelemetryPing.jsm", this);
+Cu.import("resource://gre/modules/TelemetryController.jsm", this);
 Cu.import("resource://gre/modules/TelemetrySession.jsm", this);
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
@@ -26,7 +26,7 @@ XPCOMUtils.defineLazyGetter(this, "gDatareportingService",
           .wrappedJSObject);
 
 
-Services.prefs.setBoolPref(TelemetryPing.Constants.PREF_ENABLED, true);
+Services.prefs.setBoolPref(TelemetryController.Constants.PREF_ENABLED, true);
 
 
 Cu.import("resource://testing-common/AppInfo.jsm", this);
