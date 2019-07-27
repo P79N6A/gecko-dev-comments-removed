@@ -284,6 +284,18 @@ ToJSValue(JSContext* aCx,
 
 template <typename T>
 MOZ_WARN_UNUSED_RESULT
+typename EnableIf<IsBaseOf<AllOwningUnionBase, T>::value, bool>::Type
+ToJSValue(JSContext* aCx,
+          const T& aArgument,
+          JS::MutableHandle<JS::Value> aValue)
+{
+  JS::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));
+  return aArgument.ToJSVal(aCx, global, aValue);
+}
+
+
+template <typename T>
+MOZ_WARN_UNUSED_RESULT
 typename EnableIf<IsPointer<T>::value, bool>::Type
 ToJSValue(JSContext* aCx,
           T aArgument,
