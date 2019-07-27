@@ -131,7 +131,7 @@ public:
   int mEntrySize;
 
   
-  int mGeneration;
+  uint32_t mGeneration;
 
   
   ProfilerMarkerLinkedList mStoredMarkers;
@@ -178,7 +178,6 @@ public:
   }
 
   uint32_t bufferGeneration() const {
-    MOZ_ASSERT(mBuffer->mGeneration >= 0);
     return mBuffer->mGeneration;
   }
 
