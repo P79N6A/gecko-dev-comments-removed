@@ -5,6 +5,7 @@
 
 #include "mozilla/dom/FetchDriver.h"
 
+#include "nsIDocument.h"
 #include "nsIInputStream.h"
 #include "nsIOutputStream.h"
 #include "nsIHttpChannel.h"
@@ -42,7 +43,6 @@ FetchDriver::FetchDriver(InternalRequest* aRequest, nsIPrincipal* aPrincipal,
   , mLoadGroup(aLoadGroup)
   , mRequest(aRequest)
   , mFetchRecursionCount(0)
-  , mReferrerPolicy(net::RP_Default)
   , mResponseAvailableCalled(false)
 {
 }
@@ -100,8 +100,24 @@ FetchDriver::ContinueFetch(bool aCORSFlag)
   }
 
   
-  
+  int16_t shouldLoad;
+  rv = NS_CheckContentLoadPolicy(mRequest->ContentPolicyType(),
+                                 requestURI,
+                                 mPrincipal,
+                                 mDocument,
+                                 
+                                 
+                                 EmptyCString(), 
+                                 nullptr, 
+                                 &shouldLoad,
+                                 nsContentUtils::GetContentPolicy(),
+                                 nsContentUtils::GetSecurityManager());
+  if (NS_WARN_IF(NS_FAILED(rv) || NS_CP_REJECTED(shouldLoad))) {
+    
+    return FailWithNetworkError();
+  }
 
+  
   
 
   nsAutoCString scheme;
@@ -289,7 +305,6 @@ FetchDriver::HttpFetch(bool aCORSFlag, bool aCORSPreflightFlag, bool aAuthentica
 {
   
   mResponse = nullptr;
-
   nsresult rv;
 
   nsCOMPtr<nsIIOService> ios = do_GetIOService(&rv);
@@ -406,7 +421,12 @@ FetchDriver::HttpFetch(bool aCORSFlag, bool aCORSPreflightFlag, bool aAuthentica
         return FailWithNetworkError();
       }
 
-      rv = httpChan->SetReferrerWithPolicy(refURI, mReferrerPolicy);
+      net::ReferrerPolicy referrerPolicy = net::RP_Default;
+      if (mDocument) {
+        referrerPolicy = mDocument->GetReferrerPolicy();
+      }
+
+      rv = httpChan->SetReferrerWithPolicy(refURI, referrerPolicy);
       if (NS_WARN_IF(NS_FAILED(rv))) {
         return FailWithNetworkError();
       }
