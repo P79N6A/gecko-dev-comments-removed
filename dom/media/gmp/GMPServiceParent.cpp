@@ -34,6 +34,10 @@
 #include "nsHashKeys.h"
 #include "nsIFile.h"
 #include "nsISimpleEnumerator.h"
+#if defined(MOZ_CRASHREPORTER)
+#include "nsExceptionHandler.h"
+#endif
+#include <limits>
 
 namespace mozilla {
 
@@ -79,7 +83,7 @@ static bool sHaveSetTimeoutPrefCache = false;
 GeckoMediaPluginServiceParent::GeckoMediaPluginServiceParent()
   : mShuttingDown(false)
   , mScannedPluginOnDisk(false)
-  , mWaitingForPluginsAsyncShutdown(false)
+  , mWaitingForPluginsSyncShutdown(false)
 {
   MOZ_ASSERT(NS_IsMainThread());
   if (!sHaveSetTimeoutPrefCache) {
@@ -237,8 +241,9 @@ GeckoMediaPluginServiceParent::Observe(nsISupports* aSubject,
     
     
     
+    
 
-    mWaitingForPluginsAsyncShutdown = true;
+    mWaitingForPluginsSyncShutdown = true;
 
     nsCOMPtr<nsIThread> gmpThread;
     {
@@ -249,18 +254,56 @@ GeckoMediaPluginServiceParent::Observe(nsISupports* aSubject,
     }
 
     if (gmpThread) {
+      LOGD(("%s::%s Starting to unload plugins, waiting for first sync shutdown..."
+            , __CLASS__, __FUNCTION__));
       gmpThread->Dispatch(
         NS_NewRunnableMethod(this,
                              &GeckoMediaPluginServiceParent::UnloadPlugins),
         NS_DISPATCH_NORMAL);
-    } else {
-      MOZ_ASSERT(mPlugins.IsEmpty());
-      mWaitingForPluginsAsyncShutdown = false;
-    }
 
-    
-    while (mWaitingForPluginsAsyncShutdown) {
-      NS_ProcessNextEvent(NS_GetCurrentThread(), true);
+      
+      while (mWaitingForPluginsSyncShutdown) {
+        NS_ProcessNextEvent(NS_GetCurrentThread(), true);
+      }
+
+      
+      auto syncShutdownPluginsRemaining =
+        std::numeric_limits<decltype(mAsyncShutdownPlugins.Length())>::max();
+      for (;;) {
+        {
+          MutexAutoLock lock(mMutex);
+          if (mAsyncShutdownPlugins.IsEmpty()) {
+            LOGD(("%s::%s Finished unloading all plugins"
+                  , __CLASS__, __FUNCTION__));
+#if defined(MOZ_CRASHREPORTER)
+            CrashReporter::RemoveCrashReportAnnotation(
+              NS_LITERAL_CSTRING("AsyncPluginShutdown"));
+#endif
+            break;
+          } else if (mAsyncShutdownPlugins.Length() < syncShutdownPluginsRemaining) {
+            
+            
+            syncShutdownPluginsRemaining = mAsyncShutdownPlugins.Length();
+            LOGD(("%s::%s Still waiting for %d plugins to shutdown..."
+                  , __CLASS__, __FUNCTION__, (int)syncShutdownPluginsRemaining));
+#if defined(MOZ_CRASHREPORTER)
+            nsAutoCString names;
+            for (const auto& plugin : mAsyncShutdownPlugins) {
+              if (!names.IsEmpty()) { names.Append(NS_LITERAL_CSTRING(", ")); }
+              names.Append(plugin->GetDisplayName());
+            }
+            CrashReporter::AnnotateCrashReport(
+              NS_LITERAL_CSTRING("AsyncPluginShutdown"),
+              names);
+#endif
+          }
+        }
+        NS_ProcessNextEvent(NS_GetCurrentThread(), true);
+      }
+    } else {
+      
+      MOZ_ASSERT(mPlugins.IsEmpty());
+      mWaitingForPluginsSyncShutdown = false;
     }
 
   } else if (!strcmp(NS_XPCOM_SHUTDOWN_THREADS_OBSERVER_ID, aTopic)) {
@@ -326,6 +369,7 @@ GeckoMediaPluginServiceParent::AsyncShutdownNeeded(GMPParent* aParent)
   LOGD(("%s::%s %p", __CLASS__, __FUNCTION__, aParent));
   MOZ_ASSERT(NS_GetCurrentThread() == mGMPThread);
 
+  MutexAutoLock lock(mMutex);
   MOZ_ASSERT(!mAsyncShutdownPlugins.Contains(aParent));
   mAsyncShutdownPlugins.AppendElement(aParent);
 }
@@ -333,38 +377,59 @@ GeckoMediaPluginServiceParent::AsyncShutdownNeeded(GMPParent* aParent)
 void
 GeckoMediaPluginServiceParent::AsyncShutdownComplete(GMPParent* aParent)
 {
-  LOGD(("%s::%s %p", __CLASS__, __FUNCTION__, aParent));
+  LOGD(("%s::%s %p '%s'", __CLASS__, __FUNCTION__,
+        aParent, aParent->GetDisplayName().get()));
   MOZ_ASSERT(NS_GetCurrentThread() == mGMPThread);
 
-  mAsyncShutdownPlugins.RemoveElement(aParent);
-  if (mAsyncShutdownPlugins.IsEmpty() && mShuttingDownOnGMPThread) {
+  {
+    MutexAutoLock lock(mMutex);
+    mAsyncShutdownPlugins.RemoveElement(aParent);
+  }
+
+  if (mShuttingDownOnGMPThread) {
     
     
     nsCOMPtr<nsIRunnable> task(NS_NewRunnableMethod(
-      this, &GeckoMediaPluginServiceParent::SetAsyncShutdownComplete));
+      this, &GeckoMediaPluginServiceParent::NotifyAsyncShutdownComplete));
     NS_DispatchToMainThread(task);
   }
 }
 
 void
-GeckoMediaPluginServiceParent::SetAsyncShutdownComplete()
+GeckoMediaPluginServiceParent::NotifyAsyncShutdownComplete()
 {
   MOZ_ASSERT(NS_IsMainThread());
-  mWaitingForPluginsAsyncShutdown = false;
+  
+}
+
+void
+GeckoMediaPluginServiceParent::NotifySyncShutdownComplete()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  mWaitingForPluginsSyncShutdown = false;
 }
 
 void
 GeckoMediaPluginServiceParent::UnloadPlugins()
 {
-  LOGD(("%s::%s async_shutdown=%d", __CLASS__, __FUNCTION__,
-        mAsyncShutdownPlugins.Length()));
   MOZ_ASSERT(NS_GetCurrentThread() == mGMPThread);
-
   MOZ_ASSERT(!mShuttingDownOnGMPThread);
   mShuttingDownOnGMPThread = true;
 
   {
     MutexAutoLock lock(mMutex);
+    LOGD(("%s::%s plugins:%u including async:%u", __CLASS__, __FUNCTION__,
+          mPlugins.Length(), mAsyncShutdownPlugins.Length()));
+#ifdef DEBUG
+    for (const auto& plugin : mPlugins) {
+      LOGD(("%s::%s plugin: '%s'", __CLASS__, __FUNCTION__,
+            plugin->GetDisplayName().get()));
+    }
+    for (const auto& plugin : mAsyncShutdownPlugins) {
+      LOGD(("%s::%s async plugin: '%s'", __CLASS__, __FUNCTION__,
+            plugin->GetDisplayName().get()));
+    }
+#endif
     
     
     for (size_t i = 0; i < mPlugins.Length(); i++) {
@@ -373,11 +438,9 @@ GeckoMediaPluginServiceParent::UnloadPlugins()
     mPlugins.Clear();
   }
 
-  if (mAsyncShutdownPlugins.IsEmpty()) {
-    nsCOMPtr<nsIRunnable> task(NS_NewRunnableMethod(
-      this, &GeckoMediaPluginServiceParent::SetAsyncShutdownComplete));
-    NS_DispatchToMainThread(task);
-  }
+  nsCOMPtr<nsIRunnable> task(NS_NewRunnableMethod(
+    this, &GeckoMediaPluginServiceParent::NotifySyncShutdownComplete));
+  NS_DispatchToMainThread(task);
 }
 
 void

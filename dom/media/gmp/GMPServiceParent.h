@@ -73,7 +73,8 @@ private:
 
   void UnloadPlugins();
   void CrashPlugins();
-  void SetAsyncShutdownComplete();
+  void NotifySyncShutdownComplete();
+  void NotifyAsyncShutdownComplete();
 
   void LoadFromEnvironment();
   void ProcessPossiblePlugin(nsIFile* aDir);
@@ -138,6 +139,7 @@ private:
   
   nsTArray<nsRefPtr<GMPParent>> mPlugins;
   bool mShuttingDown;
+  nsTArray<nsRefPtr<GMPParent>> mAsyncShutdownPlugins;
 
   
   
@@ -158,9 +160,7 @@ private:
     T mValue;
   };
 
-  MainThreadOnly<bool> mWaitingForPluginsAsyncShutdown;
-
-  nsTArray<nsRefPtr<GMPParent>> mAsyncShutdownPlugins; 
+  MainThreadOnly<bool> mWaitingForPluginsSyncShutdown;
 
   nsTArray<nsString> mPluginsWaitingForDeletion;
 
