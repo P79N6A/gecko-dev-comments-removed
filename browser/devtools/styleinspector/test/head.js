@@ -20,15 +20,14 @@ waitForExplicitFinish();
 
 const TEST_URL_ROOT = "http://example.com/browser/browser/devtools/styleinspector/test/";
 const TEST_URL_ROOT_SSL = "https://example.com/browser/browser/devtools/styleinspector/test/";
+const ROOT_TEST_DIR = getRootDirectory(gTestPath);
+const FRAME_SCRIPT_URL = ROOT_TEST_DIR + "doc_frame_script.js";
 
 
-registerCleanupFunction(() => {
-  try {
-    let target = TargetFactory.forTab(gBrowser.selectedTab);
-    gDevTools.closeToolbox(target);
-  } catch (ex) {
-    dump(ex);
-  }
+registerCleanupFunction(function*() {
+  let target = TargetFactory.forTab(gBrowser.selectedTab);
+  yield gDevTools.closeToolbox(target);
+
   while (gBrowser.tabs.length > 1) {
     gBrowser.removeCurrentTab();
   }
@@ -101,17 +100,32 @@ function asyncTest(generator) {
 
 
 function addTab(url) {
+  info("Adding a new tab with URL: '" + url + "'");
   let def = promise.defer();
 
-  let tab = gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function onload() {
-    gBrowser.selectedBrowser.removeEventListener("load", onload, true);
-    info("URL " + url + " loading complete into new test tab");
-    waitForFocus(() => {
-      def.resolve(tab);
-    }, content);
+  window.focus();
+
+  let tab = window.gBrowser.selectedTab = window.gBrowser.addTab(url);
+  let browser = tab.linkedBrowser;
+
+  info("Loading the helper frame script " + FRAME_SCRIPT_URL);
+  
+  
+  
+  
+  
+  
+  let registry = Cc['@mozilla.org/chrome/chrome-registry;1']
+    .getService(Ci.nsIChromeRegistry);
+  let fileURI = registry.convertChromeURL(Services.io.newURI(FRAME_SCRIPT_URL, null, null)).spec;
+  browser.messageManager.loadFrameScript(fileURI, false);
+
+  browser.addEventListener("load", function onload() {
+    browser.removeEventListener("load", onload, true);
+    info("URL '" + url + "' loading complete");
+
+    def.resolve(tab);
   }, true);
-  content.location = url;
 
   return def.promise;
 }
@@ -122,7 +136,9 @@ function addTab(url) {
 
 
 
+
 function getNode(nodeOrSelector) {
+  info("Getting the node for '" + nodeOrSelector + "'");
   return typeof nodeOrSelector === "string" ?
     content.document.querySelector(nodeOrSelector) :
     nodeOrSelector;
@@ -135,18 +151,26 @@ function getNode(nodeOrSelector) {
 
 
 
+function getNodeFront(selector, {walker}) {
+  return walker.querySelector(walker.rootNode, selector);
+}
 
 
-function selectAndHighlightNode(nodeOrSelector, inspector) {
-  info("Highlighting and selecting the node " + nodeOrSelector);
 
-  let node = getNode(nodeOrSelector);
+
+
+
+
+
+
+let selectAndHighlightNode = Task.async(function*(selector, inspector) {
+  info("Highlighting and selecting the node for " + selector);
+
+  let nodeFront = yield getNodeFront(selector, inspector);
   let updated = inspector.toolbox.once("highlighter-ready");
-  inspector.selection.setNode(node, "test-highlight");
-  return updated;
-
-}
-
+  inspector.selection.setNodeFront(nodeFront, "test-highlight");
+  yield updated;
+});
 
 
 
@@ -158,15 +182,13 @@ function selectAndHighlightNode(nodeOrSelector, inspector) {
 
 
 
-
-function selectNode(nodeOrSelector, inspector, reason="test") {
-  info("Selecting the node " + nodeOrSelector);
-
-  let node = getNode(nodeOrSelector);
+let selectNode = Task.async(function*(selector, inspector, reason="test") {
+  info("Selecting the node for '" + selector + "'");
+  let nodeFront = yield getNodeFront(selector, inspector);
   let updated = inspector.once("inspector-updated");
-  inspector.selection.setNode(node, reason);
-  return updated;
-}
+  inspector.selection.setNodeFront(nodeFront, reason);
+  yield updated;
+});
 
 
 
@@ -177,7 +199,7 @@ function selectNode(nodeOrSelector, inspector, reason="test") {
 function clearCurrentNodeSelection(inspector) {
   info("Clearing the current selection");
   let updated = inspector.once("inspector-updated");
-  inspector.selection.setNode(null);
+  inspector.selection.setNodeFront(null);
   return updated;
 }
 
@@ -317,6 +339,50 @@ function wait(ms) {
   let def = promise.defer();
   content.setTimeout(def.resolve, ms);
   return def.promise;
+}
+
+
+
+
+
+
+
+
+function waitForContentMessage(name) {
+  info("Expecting message " + name + " from content");
+
+  let mm = gBrowser.selectedTab.linkedBrowser.messageManager;
+
+  let def = promise.defer();
+  mm.addMessageListener(name, function onMessage(msg) {
+    mm.removeMessageListener(name, onMessage);
+    def.resolve(msg.data);
+  });
+  return def.promise;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+function executeInContent(name, data={}, objects={}, expectResponse=true) {
+  info("Sending message " + name + " to content");
+  let mm = gBrowser.selectedTab.linkedBrowser.messageManager;
+
+  mm.sendAsyncMessage(name, data, objects);
+  if (expectResponse) {
+    return waitForContentMessage(name);
+  } else {
+    return promise.resolve();
+  }
 }
 
 

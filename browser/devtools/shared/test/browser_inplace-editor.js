@@ -4,15 +4,20 @@
 
 "use strict";
 
+let {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
+let {editableField, getInplaceEditorForSpan: inplaceEditor} = devtools.require("devtools/shared/inplace-editor");
 
 
 
+let test = Task.async(function*() {
+  yield promiseTab("data:text/html;charset=utf-8,inline editor tests");
 
-let test = asyncTest(function*() {
-  yield addTab("data:text/html;charset=utf-8,inline editor tests");
   yield testReturnCommit();
   yield testBlurCommit();
   yield testAdvanceCharCommit();
+
+  gBrowser.removeCurrentTab();
+  finish();
 });
 
 function testReturnCommit() {

@@ -289,7 +289,6 @@ CssHtmlTree.prototype = {
 
 
 
-
   highlight: function(aElement) {
     if (!aElement) {
       this.viewedElement = null;
@@ -408,6 +407,10 @@ CssHtmlTree.prototype = {
       return promise.resolve();
     }
 
+    
+    
+    let viewedElement = this.viewedElement;
+
     return promise.all([
       this._createPropertyViews(),
       this.pageStyle.getComputed(this.viewedElement, {
@@ -416,6 +419,10 @@ CssHtmlTree.prototype = {
         markMatched: true
       })
     ]).then(([createViews, computed]) => {
+      if (viewedElement !== this.viewedElement) {
+        return;
+      }
+
       this._matchedProperties = new Set;
       for (let name in computed) {
         if (computed[name].matched) {
