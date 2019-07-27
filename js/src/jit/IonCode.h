@@ -643,6 +643,9 @@ struct IonBlockCounts
     uint32_t offset_;
 
     
+    char *description_;
+
+    
     uint32_t numSuccessors_;
     uint32_t *successors_;
 
@@ -654,9 +657,10 @@ struct IonBlockCounts
 
   public:
 
-    bool init(uint32_t id, uint32_t offset, uint32_t numSuccessors) {
+    bool init(uint32_t id, uint32_t offset, char *description, uint32_t numSuccessors) {
         id_ = id;
         offset_ = offset;
+        description_ = description;
         numSuccessors_ = numSuccessors;
         if (numSuccessors) {
             successors_ = js_pod_calloc<uint32_t>(numSuccessors);
@@ -667,6 +671,7 @@ struct IonBlockCounts
     }
 
     void destroy() {
+        js_free(description_);
         js_free(successors_);
         js_free(code_);
     }
@@ -677,6 +682,10 @@ struct IonBlockCounts
 
     uint32_t offset() const {
         return offset_;
+    }
+
+    const char *description() const {
+        return description_;
     }
 
     size_t numSuccessors() const {

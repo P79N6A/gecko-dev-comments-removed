@@ -3145,18 +3145,30 @@ CodeGenerator::maybeCreateScriptCounts()
         MBasicBlock *block = graph.getBlock(i)->mir();
 
         uint32_t offset = 0;
+        char *description = nullptr;
         if (script) {
-            
-            
-            
             if (MResumePoint *resume = block->entryResumePoint()) {
+                
+                
+                
+                
                 while (resume->caller())
                     resume = resume->caller();
                 offset = script->pcToOffset(resume->pc());
+
+                if (block->entryResumePoint()->caller()) {
+                    
+                    JSScript *innerScript = block->info().script();
+                    description = (char *) js_calloc(200);
+                    if (description) {
+                        JS_snprintf(description, 200, "%s:%d",
+                                    innerScript->filename(), innerScript->lineno());
+                    }
+                }
             }
         }
 
-        if (!counts->block(i).init(block->id(), offset, block->numSuccessors())) {
+        if (!counts->block(i).init(block->id(), offset, description, block->numSuccessors())) {
             js_delete(counts);
             return nullptr;
         }
