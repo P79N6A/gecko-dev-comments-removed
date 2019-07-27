@@ -414,6 +414,7 @@ nsresult imgFrame::Optimize()
   
   
   
+  
   if (mDiscardable) {
     mImageSurface = nullptr;
   }
