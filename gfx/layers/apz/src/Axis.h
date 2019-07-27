@@ -123,13 +123,13 @@ public:
 
 
 
-  float PanDistance();
+  float PanDistance() const;
 
   
 
 
 
-  float PanDistance(ScreenCoord aPos);
+  float PanDistance(ScreenCoord aPos) const;
 
   
 

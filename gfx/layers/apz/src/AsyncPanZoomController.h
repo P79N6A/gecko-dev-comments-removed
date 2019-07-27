@@ -212,7 +212,7 @@ public:
   
 
 
-  bool IsDestroyed();
+  bool IsDestroyed() const;
 
   
 
@@ -220,14 +220,14 @@ public:
 
 
 
-  ViewTransform GetCurrentAsyncTransform();
+  ViewTransform GetCurrentAsyncTransform() const;
 
   
 
 
 
 
-  Matrix4x4 GetNontransientAsyncTransform();
+  Matrix4x4 GetNontransientAsyncTransform() const;
 
   
 
@@ -236,7 +236,7 @@ public:
 
 
 
-  Matrix4x4 GetTransformToLastDispatchedPaint();
+  Matrix4x4 GetTransformToLastDispatchedPaint() const;
 
   
 
@@ -464,7 +464,7 @@ protected:
 
 
 
-  float PanDistance();
+  float PanDistance() const;
 
   
 

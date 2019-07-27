@@ -361,8 +361,9 @@ public:
   already_AddRefed<AsyncPanZoomController> GetTargetAPZC(const ScrollableLayerGuid& aGuid);
   already_AddRefed<AsyncPanZoomController> GetTargetAPZC(const ScreenPoint& aPoint,
                                                          bool* aOutInOverscrolledApzc);
-  void GetInputTransforms(AsyncPanZoomController *aApzc, gfx::Matrix4x4& aTransformToApzcOut,
-                          gfx::Matrix4x4& aTransformToGeckoOut);
+  void GetInputTransforms(const AsyncPanZoomController *aApzc,
+                          gfx::Matrix4x4& aTransformToApzcOut,
+                          gfx::Matrix4x4& aTransformToGeckoOut) const;
 private:
   
   AsyncPanZoomController* FindTargetAPZC(AsyncPanZoomController* aApzc, FrameMetrics::ViewID aScrollId);
@@ -417,7 +418,7 @@ private:
 
 
 
-  mozilla::Monitor mTreeLock;
+  mutable mozilla::Monitor mTreeLock;
   nsRefPtr<AsyncPanZoomController> mRootApzc;
   
 
