@@ -805,17 +805,17 @@ nsNumberControlFrame::GetPseudoElement(nsCSSPseudoElements::Type aType)
   }
 
   if (aType == nsCSSPseudoElements::ePseudo_mozNumberSpinBox) {
-    MOZ_ASSERT(mSpinBox);
+    
     return mSpinBox;
   }
 
   if (aType == nsCSSPseudoElements::ePseudo_mozNumberSpinUp) {
-    MOZ_ASSERT(mSpinUp);
+    
     return mSpinUp;
   }
 
   if (aType == nsCSSPseudoElements::ePseudo_mozNumberSpinDown) {
-    MOZ_ASSERT(mSpinDown);
+    
     return mSpinDown;
   }
 
