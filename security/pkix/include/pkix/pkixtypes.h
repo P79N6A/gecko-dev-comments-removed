@@ -146,8 +146,16 @@ public:
   class IssuerChecker
   {
   public:
+    
+    
+    
+    
+    
+    
+    
     virtual SECStatus Check(const SECItem& potentialIssuerDER,
-                             bool& keepGoing) = 0;
+                const SECItem* additionalNameConstraints,
+                     bool& keepGoing) = 0;
   protected:
     IssuerChecker();
     virtual ~IssuerChecker();

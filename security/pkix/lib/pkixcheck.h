@@ -41,7 +41,8 @@ Result CheckIssuerIndependentProperties(
           unsigned int subCACount,
            TrustLevel* trustLevel = nullptr);
 
-Result CheckNameConstraints(const BackCert& cert,
+Result CheckNameConstraints(const SECItem& encodedNameConstraints,
+                            const BackCert& firstChild,
                             KeyPurposeId requiredEKUIfPresent);
 
 } } 

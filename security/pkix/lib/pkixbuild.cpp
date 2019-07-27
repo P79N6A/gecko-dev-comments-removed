@@ -65,6 +65,7 @@ public:
   }
 
   SECStatus Check(const SECItem& potentialIssuerDER,
+                   const SECItem* additionalNameConstraints,
                    bool& keepGoing);
 
   Result CheckResult() const;
@@ -130,6 +131,7 @@ PathBuildingStep::CheckResult() const
 
 SECStatus
 PathBuildingStep::Check(const SECItem& potentialIssuerDER,
+                         const SECItem* additionalNameConstraints,
                          bool& keepGoing)
 {
   BackCert potentialIssuer(potentialIssuerDER, EndEntityOrCA::MustBeCA,
@@ -157,9 +159,20 @@ PathBuildingStep::Check(const SECItem& potentialIssuerDER,
     }
   }
 
-  rv = CheckNameConstraints(potentialIssuer, requiredEKUIfPresent);
-  if (rv != Success) {
-    return RecordResult(PR_GetError(), keepGoing);
+  if (potentialIssuer.GetNameConstraints()) {
+    rv = CheckNameConstraints(*potentialIssuer.GetNameConstraints(),
+                              subject, requiredEKUIfPresent);
+    if (rv != Success) {
+       return RecordResult(PR_GetError(), keepGoing);
+    }
+  }
+
+  if (additionalNameConstraints) {
+    rv = CheckNameConstraints(*additionalNameConstraints, subject,
+                              requiredEKUIfPresent);
+    if (rv != Success) {
+       return RecordResult(PR_GetError(), keepGoing);
+    }
   }
 
   
