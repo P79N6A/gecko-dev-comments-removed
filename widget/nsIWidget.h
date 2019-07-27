@@ -25,7 +25,6 @@
 
 
 class   nsFontMetrics;
-class   nsRenderingContext;
 class   nsDeviceContext;
 struct  nsFont;
 class   nsIRollupListener;

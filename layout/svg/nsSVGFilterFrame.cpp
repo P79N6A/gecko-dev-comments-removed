@@ -9,7 +9,6 @@
 
 #include "gfxUtils.h"
 #include "nsGkAtoms.h"
-#include "nsRenderingContext.h"
 #include "nsSVGEffects.h"
 #include "nsSVGElement.h"
 #include "mozilla/dom/SVGFilterElement.h"
