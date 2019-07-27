@@ -1834,11 +1834,15 @@ bool DoesD3D11AlphaTextureSharingWork(ID3D11Device *device)
   if (gfxInfo) {
     
     
-    int32_t status;
-    if (NS_SUCCEEDED(gfxInfo->GetFeatureStatus(nsIGfxInfo::FEATURE_DIRECT2D, &status))) {
-      if (status != nsIGfxInfo::FEATURE_STATUS_OK) {
-        return false;
-      }
+    nsString adapterVendor;
+    nsString driverVersion;
+    gfxInfo->GetAdapterVendorID(adapterVendor);
+    gfxInfo->GetAdapterDriverVersion(driverVersion);
+
+    nsAString &intelVendorID = (nsAString &)GfxDriverInfo::GetDeviceVendor(VendorIntel);
+    if (adapterVendor.Equals(intelVendorID, nsCaseInsensitiveStringComparator()) &&
+        driverVersion.Equals(NS_LITERAL_STRING("8.15.10.2086"))) {
+      return false;
     }
   }
 
