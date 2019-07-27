@@ -282,8 +282,12 @@ protected:
 
 
 
+
+
+
     already_AddRefed<mozilla::TextRangeArray>
-        CreateTextRangeArray(GtkIMContext* aContext);
+        CreateTextRangeArray(GtkIMContext* aContext,
+                             const nsAString& aLastDispatchedData);
 
     
 
