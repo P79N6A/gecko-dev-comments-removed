@@ -12,6 +12,11 @@ const { ActorPool, appendExtraActors, createExtraActors } = require("devtools/se
 const { DebuggerServer } = require("devtools/server/main");
 const { dumpProtocolSpec } = require("devtools/server/protocol");
 const makeDebugger = require("./utils/make-debugger");
+const DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
+
+DevToolsUtils.defineLazyGetter(this, "StyleSheetActor", () => {
+  return require("devtools/server/actors/stylesheets").StyleSheetActor;
+});
 
 
 
@@ -93,6 +98,9 @@ function RootActor(aConnection, aParameters) {
   this._onTabListChanged = this.onTabListChanged.bind(this);
   this._onAddonListChanged = this.onAddonListChanged.bind(this);
   this._extraActors = {};
+
+  
+  this._styleSheetActors = new Map();
 
   
   this.makeDebugger = makeDebugger.bind(null, {
@@ -226,6 +234,8 @@ RootActor.prototype = {
       this._parameters.onShutdown();
     }
     this._extraActors = null;
+    this._styleSheetActors.clear();
+    this._styleSheetActors = null;
   },
 
   
@@ -387,6 +397,28 @@ RootActor.prototype = {
       windowUtils.resumeTimeouts();
       windowUtils.suppressEventHandling(false);
     }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  createStyleSheetActor: function(styleSheet) {
+    if (this._styleSheetActors.has(styleSheet)) {
+      return this._styleSheetActors.get(styleSheet);
+    }
+    let actor = new StyleSheetActor(styleSheet, this);
+    this._styleSheetActors.set(styleSheet, actor);
+
+    this._globalActorPool.addActor(actor);
+
+    return actor;
   }
 };
 
