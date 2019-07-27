@@ -92,7 +92,7 @@
   background-clip: content-box;
 }
 
-.controlBar[audio-only] > .volumeStack {
+.controlBar[fullscreen-unavailable] > .volumeStack {
   
   -moz-margin-end: 8px;
 }

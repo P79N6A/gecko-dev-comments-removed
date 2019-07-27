@@ -1,6 +1,6 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 @namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
 @namespace html url("http://www.w3.org/1999/xhtml");
@@ -16,7 +16,7 @@
   background-color: transparent;
   background-repeat: no-repeat;
   background-position: center;
-  -moz-appearance: none;   
+  -moz-appearance: none;   /* Remove the native button appearance and styling */
   margin: 0;
   padding: 0;
   min-height: 28px;
@@ -39,8 +39,8 @@
 
 .playButton {
   background-image: url(chrome://global/skin/media/pauseButton.png);
-  margin-right: -22px; 
-  position: relative; 
+  margin-right: -22px; /* 1/2 of scrubber thumb width, for overhang. */
+  position: relative; /* Trick to work around negative margin interfering with clicking on the button. */
 }
 
 .playButton[paused] {
@@ -92,8 +92,8 @@
   background-clip: content-box;
 }
 
-.controlBar[audio-only] > .volumeStack {
-  
+.controlBar[fullscreen-unavailable] > .volumeStack {
+  /* This value is duplicated in the videocontrols.xml adjustControlSize function. */
   -moz-margin-end: 8px;
 }
 
@@ -107,9 +107,9 @@
 }
 
 .durationLabel {
-  margin-left: -22px; 
-  padding-left: 8px; 
-  padding-top: 2px; 
+  margin-left: -22px; /* 1/2 of scrubber thumb width, for overhang. */
+  padding-left: 8px; /* don't bump into the scrubber bar */
+  padding-top: 2px; /* center vertically with scrubber bar */
   color: rgba(255,255,255,.75);
   font-size: 11px;
   font-family: Helvetica, sans-serif;
@@ -120,8 +120,8 @@
 }
 
 .backgroundBar {
-  
-  
+  /* margin top/bottom: make bar 8px tall (control height = 28, minus 2 * 10 margin) */
+  /* margin left/right: 1/2 of scrubber thumb width, for overhang. */
   margin: 10px 22px;
   background-color: rgba(255,255,255,.5);
   border-radius: 2.5px;
@@ -129,20 +129,20 @@
 
 .bufferBar,
 .progressBar {
-  
-  
+  /* margin top/bottom: make bar 8px tall (control height = 28, minus 2 * 10 margin) */
+  /* margin left/right: 1/2 of scrubber thumb width, for overhang. */
   margin: 10px 22px;
   -moz-appearance: none;
   min-width: 0;
 }
 
-
+/* .progress-bar is an element inside the <progressmeter> implementation. */
 .bufferBar .progress-bar {
-  
-
-
-
-
+  /*
+   * Note that this is drawn on top of the .backgroundBar. So although this
+   * has the same background-color specified, the semitransparent
+   * compositing gives it a different visual appearance.
+   */
   background-color: rgba(255,255,255,.5);
   border-radius: 2.5px;
 }
@@ -152,23 +152,23 @@
   border-radius: 2.5px;
 }
 
-
+/* .scale-slider is an element inside the <scale> implementation. */
 .scrubber .scale-slider,
 .volumeControl .scale-slider {
-  
+  /* Hide the default horizontal bar. */
   -moz-appearance: none;
   background: none;
   margin: 0;
 }
 
 .scrubber .scale-slider {
-  
+  /* abs(margin-top) + margin-bottom + bar height == timeThumb height */
   margin-top: -10px;
   margin-bottom: 10px;
 }
-
+/* .scale-thumb is an element inside the <scale> implementation. */
 .scrubber .scale-thumb {
-  
+  /* Override the default thumb appearance with a custom image. */
   -moz-appearance: none;
   background: transparent;
   border: none;
@@ -200,7 +200,7 @@
 }
 
 .statusIcon {
-  margin-bottom: 28px; 
+  margin-bottom: 28px; /* same height as .controlBar, to keep icon centered above it */
   width: 36px;
   height: 36px;
 }
@@ -217,7 +217,7 @@
   background: url(chrome://global/skin/media/error.png) no-repeat center;
 }
 
-
+/* Overlay Play button */
 .clickToPlay {
   width: 64px;
   height: 64px;
@@ -235,7 +235,7 @@
   opacity: 1;
 }
 
-
+/* Statistics formatting */
 html|*.statsDiv {
   position: relative;
 }
@@ -260,7 +260,7 @@ html|table {
   position: absolute;
 }
 
-
+/* CSS Transitions */
 .clickToPlay {
   transition-property: opacity, background-size;
   transition-duration: 400ms, 400ms;
@@ -297,7 +297,7 @@ html|table {
   opacity: 0;
 }
 
-
+/* Error description formatting */
 .errorLabel {
   font-family: Helvetica, Arial, sans-serif;
   font-size: 11px;
