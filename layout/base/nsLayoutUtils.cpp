@@ -2295,8 +2295,8 @@ nsLayoutUtils::GetTransformToAncestorScale(nsIFrame* aFrame)
 }
 
 
-nsIFrame*
-nsLayoutUtils::FindNearestCommonAncestorFrame(nsIFrame* aFrame1, nsIFrame* aFrame2)
+static nsIFrame*
+FindNearestCommonAncestorFrame(nsIFrame* aFrame1, nsIFrame* aFrame2)
 {
   nsAutoTArray<nsIFrame*,100> ancestors1;
   nsAutoTArray<nsIFrame*,100> ancestors2;
@@ -2450,34 +2450,6 @@ nsLayoutUtils::ContainsPoint(const nsRect& aRect, const nsPoint& aPoint,
   nsRect rect = aRect;
   rect.Inflate(aInflateSize);
   return rect.Contains(aPoint);
-}
-
-bool
-nsLayoutUtils::IsRectVisibleInScrollFrames(nsIFrame* aFrame, const nsRect& aRect)
-{
-  nsIFrame* closestScrollFrame =
-    nsLayoutUtils::GetClosestFrameOfType(aFrame, nsGkAtoms::scrollFrame);
-
-  while (closestScrollFrame) {
-    nsIScrollableFrame* sf = do_QueryFrame(closestScrollFrame);
-    nsRect scrollPortRect = sf->GetScrollPortRect();
-
-    nsRect rectRelativeToScrollFrame = aRect;
-    nsLayoutUtils::TransformRect(aFrame, closestScrollFrame,
-                                 rectRelativeToScrollFrame);
-
-    
-    if (!scrollPortRect.Intersects(rectRelativeToScrollFrame)) {
-      return false;
-    }
-
-    
-    closestScrollFrame =
-      nsLayoutUtils::GetClosestFrameOfType(closestScrollFrame->GetParent(),
-                                           nsGkAtoms::scrollFrame);
-  }
-
-  return true;
 }
 
 bool
@@ -6223,7 +6195,7 @@ nsLayoutUtils::GetTextRunFlagsForStyle(nsStyleContext* aStyleContext,
   }
   WritingMode wm(aStyleContext);
   if (wm.IsVertical()) {
-    switch (aStyleText->mTextOrientation) {
+    switch (aStyleContext->StyleVisibility()->mTextOrientation) {
     case NS_STYLE_TEXT_ORIENTATION_MIXED:
       result |= gfxTextRunFactory::TEXT_ORIENT_VERTICAL_MIXED;
       break;

@@ -4378,13 +4378,6 @@ nsRuleNode::ComputeTextData(void* aStartStruct,
               0, 0);
 
   
-  SetDiscrete(*aRuleData->ValueForTextOrientation(), text->mTextOrientation,
-              canStoreInRuleTree,
-              SETDSC_ENUMERATED | SETDSC_UNSET_INHERIT,
-              parentText->mTextOrientation,
-              NS_STYLE_TEXT_ORIENTATION_MIXED, 0, 0, 0, 0);
-
-  
   SetDiscrete(*aRuleData->ValueForTextCombineUpright(),
               text->mTextCombineUpright,
               canStoreInRuleTree,
@@ -5847,6 +5840,13 @@ nsRuleNode::ComputeVisibilityData(void* aStartStruct,
               SETDSC_ENUMERATED | SETDSC_UNSET_INHERIT,
               parentVisibility->mWritingMode,
               NS_STYLE_WRITING_MODE_HORIZONTAL_TB, 0, 0, 0, 0);
+
+  
+  SetDiscrete(*aRuleData->ValueForTextOrientation(), visibility->mTextOrientation,
+              canStoreInRuleTree,
+              SETDSC_ENUMERATED | SETDSC_UNSET_INHERIT,
+              parentVisibility->mTextOrientation,
+              NS_STYLE_TEXT_ORIENTATION_MIXED, 0, 0, 0, 0);
 
   
   const nsCSSValue* orientation = aRuleData->ValueForImageOrientation();

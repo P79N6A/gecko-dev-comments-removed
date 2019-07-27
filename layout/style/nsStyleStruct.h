@@ -1596,7 +1596,6 @@ struct nsStyleText {
   uint8_t mWordWrap;                    
   uint8_t mHyphens;                     
   uint8_t mTextSizeAdjust;              
-  uint8_t mTextOrientation;             
   uint8_t mTextCombineUpright;          
   uint8_t mControlCharacterVisibility;  
   int32_t mTabSize;                     
@@ -1780,6 +1779,7 @@ struct nsStyleVisibility {
   uint8_t mVisible;                    
   uint8_t mPointerEvents;              
   uint8_t mWritingMode;                
+  uint8_t mTextOrientation;            
 
   bool IsVisible() const {
     return (mVisible == NS_STYLE_VISIBILITY_VISIBLE);
