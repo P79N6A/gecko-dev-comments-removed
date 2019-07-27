@@ -740,6 +740,11 @@ Database::InitSchema(bool* aDatabaseMigrated)
         NS_ENSURE_SUCCESS(rv, rv);
       }
 
+      if (currentSchemaVersion < 28) {
+        rv = MigrateV28Up();
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
       
 
       
@@ -1536,8 +1541,8 @@ Database::MigrateV27Up() {
     "JOIN moz_bookmarks b ON b.fk = h.id "
     "JOIN moz_keywords k ON k.id = b.keyword_id "
     "LEFT JOIN moz_items_annos a ON a.item_id = b.id "
-    "LEFT JOIN moz_anno_attributes n ON a.anno_attribute_id = n.id "
-                                   "AND n.name = 'bookmarkProperties/POSTData'"
+                               "AND a.anno_attribute_id = (SELECT id FROM moz_anno_attributes "
+                                                          "WHERE name = 'bookmarkProperties/POSTData') "
     "WHERE k.place_id ISNULL "
     "GROUP BY keyword"));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1559,6 +1564,38 @@ Database::MigrateV27Up() {
     "(SELECT count(*) FROM moz_keywords WHERE place_id = moz_places.id) "
   ));
   NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
+nsresult
+Database::MigrateV28Up() {
+  MOZ_ASSERT(NS_IsMainThread());
+
+  
+  
+  
+  
+  
+  DebugOnly<nsresult> rv = mMainConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+    "UPDATE moz_keywords "
+    "SET post_data = ( "
+      "SELECT content FROM moz_items_annos a "
+      "JOIN moz_anno_attributes n ON n.id = a.anno_attribute_id "
+      "JOIN moz_bookmarks b on b.id = a.item_id "
+      "WHERE n.name = 'bookmarkProperties/POSTData' "
+      "AND b.keyword_id = moz_keywords.id "
+      "ORDER BY b.lastModified DESC "
+      "LIMIT 1 "
+    ") "
+    "WHERE EXISTS(SELECT 1 FROM moz_bookmarks WHERE keyword_id = moz_keywords.id) "
+  ));
+  
+  
+  
+  
+  
+  MOZ_ASSERT(NS_SUCCEEDED(rv));
 
   return NS_OK;
 }
