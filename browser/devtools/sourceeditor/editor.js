@@ -36,6 +36,8 @@ const { PrefObserver } = require("devtools/styleeditor/utils");
 Cu.import("resource://gre/modules/Services.jsm");
 const L10N = Services.strings.createBundle(L10N_BUNDLE);
 
+const { OS } = Services.appinfo;
+
 
 
 
@@ -298,6 +300,62 @@ Editor.prototype = {
           popup = el.ownerDocument.getElementById(this.config.contextMenu);
         popup.openPopupAtScreen(ev.screenX, ev.screenY, true);
       }, false);
+
+      
+      
+
+      let findKey = L10N.GetStringFromName("find.commandkey");
+      let findAgainKey = L10N.GetStringFromName("findAgain.commandkey");
+      let [accel, modifier] = OS === "Darwin"
+                                      ? ["metaKey", "altKey"]
+                                      : ["ctrlKey", "shiftKey"];
+
+      cm.getWrapperElement().addEventListener("keydown", (ev) => {
+        let key = ev.key.toUpperCase();
+        let node = ev.originalTarget;
+        let isInput = node.tagName === "INPUT";
+        let isSearchInput = isInput && node.type === "search";
+
+        
+        
+        let isDialogInput = isInput &&
+                       node.parentNode &&
+                       node.parentNode.classList.contains("CodeMirror-dialog");
+
+        if (!ev[accel] || !(isSearchInput || isDialogInput)) return;
+
+        if (key === findKey) {
+          ev.preventDefault();
+
+          if (isSearchInput || ev[modifier]) {
+            node.select();
+          }
+        } else if (key === findAgainKey) {
+          ev.preventDefault();
+
+          if (!isSearchInput) return;
+
+          let query = node.value;
+
+          
+          
+          if (!cm.state.search || cm.state.search.query !== query) {
+            cm.state.search = {
+              posFrom: null,
+              posTo: null,
+              overlay: null,
+              query
+            };
+          }
+
+          if (ev.shiftKey) {
+            cm.execCommand("findPrev");
+          } else {
+            cm.execCommand("findNext");
+          }
+        }
+      });
+
 
       cm.on("focus", () => this.emit("focus"));
       cm.on("scroll", () => this.emit("scroll"));
