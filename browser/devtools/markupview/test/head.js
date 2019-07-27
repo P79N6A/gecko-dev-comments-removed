@@ -216,6 +216,18 @@ function getNodeInfo(selector) {
 
 
 
+function setNodeAttribute(selector, attributeName, attributeValue) {
+  return executeInContent("devtools:test:setAttribute",
+                          {selector, attributeName, attributeValue});
+}
+
+
+
+
+
+
+
+
 
 
 function selectAndHighlightNode(nodeOrSelector, inspector) {
