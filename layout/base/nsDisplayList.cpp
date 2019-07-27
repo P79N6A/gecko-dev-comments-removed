@@ -848,20 +848,20 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
     metrics.SetHasScrollgrab(true);
   }
 
-  aRoot->SetFrameMetrics(metrics);
-
   
   
   if (aScrollFrame) {
     if (isRootScrollFrame) {
-      aRoot->SetBackgroundColor(presShell->GetCanvasBackground());
+      metrics.SetBackgroundColor(presShell->GetCanvasBackground());
     } else {
       nsStyleContext* backgroundStyle;
       if (nsCSSRendering::FindBackground(aScrollFrame, &backgroundStyle)) {
-        aRoot->SetBackgroundColor(backgroundStyle->StyleBackground()->mBackgroundColor);
+        metrics.SetBackgroundColor(backgroundStyle->StyleBackground()->mBackgroundColor);
       }
     }
   }
+
+  aRoot->SetFrameMetrics(metrics);
 }
 
 nsDisplayListBuilder::~nsDisplayListBuilder() {

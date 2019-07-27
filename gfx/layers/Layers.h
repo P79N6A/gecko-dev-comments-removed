@@ -1171,17 +1171,6 @@ public:
     }
   }
 
-  void SetBackgroundColor(const gfxRGBA& aColor)
-  {
-    if (mBackgroundColor == aColor) {
-      return;
-    }
-
-    MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) BackgroundColor", this));
-    mBackgroundColor = aColor;
-    Mutated();
-  }
-
   void SetContentDescription(const std::string& aContentDescription)
   {
     if (mContentDescription == aContentDescription) {
@@ -1226,7 +1215,6 @@ public:
   FrameMetrics::ViewID GetScrollbarTargetContainerId() { return mScrollbarTargetId; }
   ScrollDirection GetScrollbarDirection() { return mScrollbarDirection; }
   Layer* GetMaskLayer() const { return mMaskLayer; }
-  gfxRGBA GetBackgroundColor() const { return mBackgroundColor; }
   const std::string& GetContentDescription() const { return mContentDescription; }
 
 
@@ -1655,8 +1643,6 @@ protected:
   
   
   uint64_t mAnimationGeneration;
-  
-  gfxRGBA mBackgroundColor;
   
   
   
