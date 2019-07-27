@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef mozilla_dom_HTMLBRElement_h
 #define mozilla_dom_HTMLBRElement_h
@@ -18,12 +18,12 @@ class HTMLBRElement MOZ_FINAL : public nsGenericHTMLElement,
                                 public nsIDOMHTMLBRElement
 {
 public:
-  HTMLBRElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
+  explicit HTMLBRElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
 
-  
+  // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
 
-  
+  // nsIDOMHTMLBRElement
   NS_DECL_NSIDOMHTMLBRELEMENT
 
   virtual bool ParseAttribute(int32_t aNamespaceID,
@@ -52,8 +52,8 @@ private:
                                     nsRuleData* aData);
 };
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla
 
 #endif
 

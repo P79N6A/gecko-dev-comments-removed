@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #ifndef HTMLDivElement_h___
 #define HTMLDivElement_h___
 
@@ -16,15 +16,15 @@ class HTMLDivElement MOZ_FINAL : public nsGenericHTMLElement,
                                  public nsIDOMHTMLDivElement
 {
 public:
-  HTMLDivElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
+  explicit HTMLDivElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
     : nsGenericHTMLElement(aNodeInfo)
   {
   }
 
-  
+  // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
 
-  
+  // nsIDOMHTMLDivElement
   NS_IMETHOD GetAlign(nsAString& aAlign) MOZ_OVERRIDE
   {
     nsString align;
@@ -66,7 +66,7 @@ private:
                                     nsRuleData* aData);
 };
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla
 
-#endif 
+#endif /* HTMLDivElement_h___ */

@@ -30,8 +30,8 @@ class nsMathMLElement MOZ_FINAL : public nsMathMLElementBase,
                                   public mozilla::dom::Link
 {
 public:
-  nsMathMLElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
-  nsMathMLElement(already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
+  explicit nsMathMLElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
+  explicit nsMathMLElement(already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
 
   
   NS_DECL_ISUPPORTS_INHERITED

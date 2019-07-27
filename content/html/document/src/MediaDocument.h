@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef mozilla_dom_MediaDocument_h
 #define mozilla_dom_MediaDocument_h
@@ -52,17 +52,17 @@ protected:
 
   nsresult LinkStylesheet(const nsAString& aStylesheet);
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+  // |aFormatNames[]| needs to have four elements in the following order: 
+  // a format name with neither dimension nor file, a format name with
+  // filename but w/o dimension, a format name with dimension but w/o filename,
+  // a format name with both of them.  For instance, it can have
+  // "ImageTitleWithNeitherDimensionsNorFile", "ImageTitleWithoutDimensions",
+  // "ImageTitleWithDimesions2",  "ImageTitleWithDimensions2AndFile".
+  //
+  // Also see MediaDocument.properties if you want to define format names
+  // for a new subclass. aWidth and aHeight are pixels for |ImageDocument|,
+  // but could be in other units for other 'media', in which case you have to 
+  // define format names accordingly. 
   void UpdateTitleAndCharset(const nsACString&  aTypeStr,
                              const char* const* aFormatNames = sFormatNames,
                              int32_t            aWidth = 0,
@@ -84,7 +84,7 @@ protected:
   virtual ~MediaDocumentStreamListener();
 
 public:
-  MediaDocumentStreamListener(MediaDocument *aDocument);
+  explicit MediaDocumentStreamListener(MediaDocument* aDocument);
   void SetStreamListener(nsIStreamListener *aListener);
 
   NS_DECL_ISUPPORTS
@@ -97,7 +97,7 @@ public:
   nsCOMPtr<nsIStreamListener>  mNextStream;
 };
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla
 
-#endif
+#endif /* mozilla_dom_MediaDocument_h */

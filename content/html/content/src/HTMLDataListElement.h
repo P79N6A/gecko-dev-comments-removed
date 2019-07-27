@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #ifndef HTMLDataListElement_h___
 #define HTMLDataListElement_h___
 
@@ -15,12 +15,12 @@ namespace dom {
 class HTMLDataListElement MOZ_FINAL : public nsGenericHTMLElement
 {
 public:
-  HTMLDataListElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
+  explicit HTMLDataListElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
     : nsGenericHTMLElement(aNodeInfo)
   {
   }
 
-  
+  // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
 
   nsContentList* Options()
@@ -35,7 +35,7 @@ public:
 
   virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const MOZ_OVERRIDE;
 
-  
+  // This function is used to generate the nsContentList (option elements).
   static bool MatchOptions(nsIContent* aContent, int32_t aNamespaceID,
                              nsIAtom* aAtom, void* aData);
 
@@ -46,11 +46,11 @@ protected:
 
   virtual JSObject* WrapNode(JSContext *aCx) MOZ_OVERRIDE;
 
-  
+  // <option>'s list inside the datalist element.
   nsRefPtr<nsContentList> mOptions;
 };
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla
 
-#endif 
+#endif /* HTMLDataListElement_h___ */

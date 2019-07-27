@@ -26,7 +26,7 @@ public:
     
 
 
-    DocumentFunctionCall(const nsAString& aBaseURI);
+    explicit DocumentFunctionCall(const nsAString& aBaseURI);
 
     TX_DECL_FUNCTION
 
@@ -44,7 +44,7 @@ public:
     
 
 
-    txKeyFunctionCall(txNamespaceMap* aMappings);
+    explicit txKeyFunctionCall(txNamespaceMap* aMappings);
 
     TX_DECL_FUNCTION
 

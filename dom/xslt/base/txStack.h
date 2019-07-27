@@ -86,8 +86,8 @@ public:
 
 
     inline
-    txStackIterator(txStack* aStack) : mStack(aStack),
-                                       mPosition(0)
+    explicit txStackIterator(txStack* aStack) : mStack(aStack),
+                                                mPosition(0)
     {
     }
 

@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef nsXULTemplateResultRDF_h__
 #define nsXULTemplateResultRDF_h__
@@ -15,9 +15,9 @@
 #include "nsRDFBinding.h"
 #include "mozilla/Attributes.h"
 
-
-
-
+/**
+ * A single result of a query on an RDF graph
+ */
 class nsXULTemplateResultRDF MOZ_FINAL : public nsIXULTemplateResult
 {
 public:
@@ -26,7 +26,7 @@ public:
 
     NS_DECL_NSIXULTEMPLATERESULT
 
-    nsXULTemplateResultRDF(nsIRDFResource* aNode);
+    explicit nsXULTemplateResultRDF(nsIRDFResource* aNode);
 
     nsXULTemplateResultRDF(nsRDFQuery* aQuery,
                            const Instantiation& aInst,
@@ -39,43 +39,43 @@ public:
         return (mQuery ? mQuery->Processor() : nullptr);
     }
 
-    
-
-
-
+    /**
+     * Get the value of a variable, first by looking in the assignments and
+     * then the bindings
+     */
     void
     GetAssignment(nsIAtom* aVar, nsIRDFNode** aValue);
 
-    
-
-
-
+    /**
+     * Synchronize the bindings after a change in the RDF graph. Bindings that
+     * would be affected will be assigned appropriately based on the change.
+     */
     bool
     SyncAssignments(nsIRDFResource* aSubject,
                     nsIRDFResource* aPredicate,
                     nsIRDFNode* aTarget);
 
-    
-
-
-
+    /**
+     * Return true if the result has an instantiation involving a particular
+     * memory element.
+     */
     bool
     HasMemoryElement(const MemoryElement& aMemoryElement);
 
 protected:
     ~nsXULTemplateResultRDF();
 
-    
+    // query that generated the result
     nsCOMPtr<nsITemplateRDFQuery> mQuery;
 
-    
+    // resource node
     nsCOMPtr<nsIRDFResource> mNode;
 
-    
+    // data computed from query
     Instantiation mInst;
 
-    
+    // extra assignments made by rules (<binding> tags)
     nsBindingValues mBindingValues;
 };
 
-#endif 
+#endif // nsXULTemplateResultRDF_h__

@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 
 #ifndef mozilla_dom_HTMLHRElement_h
@@ -20,12 +20,12 @@ class HTMLHRElement MOZ_FINAL : public nsGenericHTMLElement,
                                 public nsIDOMHTMLHRElement
 {
 public:
-  HTMLHRElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
+  explicit HTMLHRElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
 
-  // nsISupports
+  
   NS_DECL_ISUPPORTS_INHERITED
 
-  // nsIDOMHTMLHRElement
+  
   NS_DECL_NSIDOMHTMLHRELEMENT
 
   virtual bool ParseAttribute(int32_t aNamespaceID,
@@ -36,13 +36,13 @@ public:
   virtual nsMapRuleToAttributesFunc GetAttributeMappingFunction() const MOZ_OVERRIDE;
   virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const MOZ_OVERRIDE;
 
-  // WebIDL API
+  
   void SetAlign(const nsAString& aAlign, ErrorResult& aError)
   {
     SetHTMLAttr(nsGkAtoms::align, aAlign, aError);
   }
 
-  // The XPCOM GetColor is OK for us
+  
   void SetColor(const nsAString& aColor, ErrorResult& aError)
   {
     SetHTMLAttr(nsGkAtoms::color, aColor, aError);
@@ -57,13 +57,13 @@ public:
     SetHTMLBoolAttr(nsGkAtoms::noshade, aNoShade, aError);
   }
 
-  // The XPCOM GetSize is OK for us
+  
   void SetSize(const nsAString& aSize, ErrorResult& aError)
   {
     SetHTMLAttr(nsGkAtoms::size, aSize, aError);
   }
 
-  // The XPCOM GetWidth is OK for us
+  
   void SetWidth(const nsAString& aWidth, ErrorResult& aError)
   {
     SetHTMLAttr(nsGkAtoms::width, aWidth, aError);
@@ -79,7 +79,7 @@ private:
                                     nsRuleData* aData);
 };
 
-} // namespace dom
-} // namespace mozilla
+} 
+} 
 
-#endif // mozilla_dom_HTMLHRElement_h
+#endif 

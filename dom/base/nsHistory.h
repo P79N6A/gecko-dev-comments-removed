@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 sw=2 et tw=79: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 #ifndef nsHistory_h___
 #define nsHistory_h___
 
@@ -11,7 +11,7 @@
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsIDOMHistory.h"
-#include "nsPIDOMWindow.h" // for GetParentObject
+#include "nsPIDOMWindow.h" 
 #include "nsStringFwd.h"
 #include "nsWrapperCache.h"
 
@@ -20,9 +20,9 @@ class nsISHistory;
 class nsIWeakReference;
 class nsPIDOMWindow;
 
-// Script "History" object
-class nsHistory MOZ_FINAL : public nsIDOMHistory, // Empty, needed for extension
-                                                  // backwards compat
+
+class nsHistory MOZ_FINAL : public nsIDOMHistory, 
+                                                  
                             public nsWrapperCache
 {
 public:
@@ -30,7 +30,7 @@ public:
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(nsHistory)
 
 public:
-  nsHistory(nsPIDOMWindow* aInnerWindow);
+  explicit nsHistory(nsPIDOMWindow* aInnerWindow);
 
   nsPIDOMWindow* GetParentObject() const;
   virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
@@ -62,4 +62,4 @@ protected:
   nsCOMPtr<nsIWeakReference> mInnerWindow;
 };
 
-#endif /* nsHistory_h___ */
+#endif 

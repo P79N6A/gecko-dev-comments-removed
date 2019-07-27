@@ -196,7 +196,7 @@ private:
 
 
   struct ImageObserver {
-    ImageObserver(imgINotificationObserver* aObserver);
+    explicit ImageObserver(imgINotificationObserver* aObserver);
     ~ImageObserver();
 
     nsCOMPtr<imgINotificationObserver> mObserver;

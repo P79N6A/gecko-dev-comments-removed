@@ -1600,7 +1600,7 @@ DelayedDeleteSubprocess(GeckoChildProcessHost* aSubprocess)
 
 struct DelayedDeleteContentParentTask : public nsRunnable
 {
-    DelayedDeleteContentParentTask(ContentParent* aObj) : mObj(aObj) { }
+    explicit DelayedDeleteContentParentTask(ContentParent* aObj) : mObj(aObj) { }
 
     
     NS_IMETHODIMP Run() { return NS_OK; }

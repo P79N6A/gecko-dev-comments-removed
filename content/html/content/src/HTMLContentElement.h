@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef mozilla_dom_HTMLContentElement_h__
 #define mozilla_dom_HTMLContentElement_h__
@@ -19,11 +19,11 @@ class DistributedContentList;
 class HTMLContentElement MOZ_FINAL : public nsGenericHTMLElement
 {
 public:
-  HTMLContentElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
+  explicit HTMLContentElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
 
   NS_IMPL_FROMCONTENT_HTML_WITH_TAG(HTMLContentElement, content)
 
-  
+  // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(HTMLContentElement,
@@ -40,10 +40,10 @@ public:
   virtual void UnbindFromTree(bool aDeep = true,
                               bool aNullParent = true);
 
-  
-
-
-
+  /**
+   * Returns whether if the selector of this insertion point
+   * matches the provided content.
+   */
   bool Match(nsIContent* aContent);
   bool IsInsertionPoint() const { return mIsInsertionPoint; }
   nsCOMArray<nsIContent>& MatchedNodes() { return mMatchedNodes; }
@@ -59,7 +59,7 @@ public:
   virtual nsresult UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
                              bool aNotify);
 
-  
+  // WebIDL methods.
   already_AddRefed<DistributedContentList> GetDistributedNodes();
   void GetSelect(nsAString& aSelect)
   {
@@ -75,19 +75,19 @@ protected:
 
   virtual JSObject* WrapNode(JSContext *aCx) MOZ_OVERRIDE;
 
-  
-
-
-
-
-
-
+  /**
+   * Updates the destination insertion points of the fallback
+   * content of this insertion point. If there are nodes matched
+   * to this insertion point, then destination insertion points
+   * of fallback are cleared, otherwise, this insertion point
+   * is a destination insertion point.
+   */
   void UpdateFallbackDistribution();
 
-  
-
-
-
+  /**
+   * An array of nodes from the ShadowRoot host that match the
+   * content insertion selector.
+   */
   nsCOMArray<nsIContent> mMatchedNodes;
 
   nsAutoPtr<nsCSSSelectorList> mSelectorList;
@@ -98,15 +98,15 @@ protected:
 class DistributedContentList : public nsINodeList
 {
 public:
-  DistributedContentList(HTMLContentElement* aHostElement);
+  explicit DistributedContentList(HTMLContentElement* aHostElement);
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS(DistributedContentList)
 
-  
+  // nsIDOMNodeList
   NS_DECL_NSIDOMNODELIST
 
-  
+  // nsINodeList
   virtual nsIContent* Item(uint32_t aIndex);
   virtual int32_t IndexOf(nsIContent* aContent);
   virtual nsINode* GetParentObject() { return mParent; }
@@ -118,8 +118,8 @@ protected:
   nsCOMArray<nsIContent> mDistributedNodes;
 };
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla
 
-#endif 
+#endif // mozilla_dom_HTMLContentElement_h__
 

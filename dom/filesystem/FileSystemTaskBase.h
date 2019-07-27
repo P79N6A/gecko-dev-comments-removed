@@ -142,7 +142,7 @@ protected:
   
 
 
-  FileSystemTaskBase(FileSystemBase* aFileSystem);
+  explicit FileSystemTaskBase(FileSystemBase* aFileSystem);
 
   
 
