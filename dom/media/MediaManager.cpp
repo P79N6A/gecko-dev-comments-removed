@@ -1577,7 +1577,7 @@ MediaManager::NotifyRecordingStatusChange(nsPIDOMWindow* aWindow,
 
 
 nsresult
-MediaManager::GetUserMedia(bool aPrivileged,
+MediaManager::GetUserMedia(
   nsPIDOMWindow* aWindow, const MediaStreamConstraints& aConstraints,
   nsIDOMGetUserMediaSuccessCallback* aOnSuccess,
   nsIDOMGetUserMediaErrorCallback* aOnError)
@@ -1587,6 +1587,8 @@ MediaManager::GetUserMedia(bool aPrivileged,
   NS_ENSURE_TRUE(aWindow, NS_ERROR_NULL_POINTER);
   NS_ENSURE_TRUE(aOnError, NS_ERROR_NULL_POINTER);
   NS_ENSURE_TRUE(aOnSuccess, NS_ERROR_NULL_POINTER);
+
+  bool privileged = nsContentUtils::IsChromeDoc(aWindow->GetExtantDoc());
 
   nsCOMPtr<nsIDOMGetUserMediaSuccessCallback> onSuccess(aOnSuccess);
   nsCOMPtr<nsIDOMGetUserMediaErrorCallback> onError(aOnError);
@@ -1601,7 +1603,7 @@ MediaManager::GetUserMedia(bool aPrivileged,
 
 
 #if !defined(MOZ_WEBRTC)
-  if (c.mPicture && !aPrivileged) {
+  if (c.mPicture && !privileged) {
     if (aWindow->GetPopupControlState() > openControlled) {
       nsCOMPtr<nsIPopupWindowManager> pm =
         do_GetService(NS_POPUPWINDOWMANAGER_CONTRACTID);
@@ -1653,7 +1655,7 @@ MediaManager::GetUserMedia(bool aPrivileged,
 
   
   if (Preferences::GetBool("media.navigator.permission.disabled", false)) {
-    aPrivileged = true;
+    privileged = true;
   }
   if (!Preferences::GetBool("media.navigator.video.enabled", true)) {
     c.mVideo.SetAsBoolean() = false;
@@ -1681,7 +1683,7 @@ MediaManager::GetUserMedia(bool aPrivileged,
   }
 #endif
 
-  if (c.mVideo.IsMediaTrackConstraints() && !aPrivileged) {
+  if (c.mVideo.IsMediaTrackConstraints() && !privileged) {
     auto& tc = c.mVideo.GetAsMediaTrackConstraints();
     
     if (tc.mBrowserWindow.WasPassed()) {
@@ -1738,7 +1740,7 @@ MediaManager::GetUserMedia(bool aPrivileged,
 #endif
            ) ||
 #endif
-          (!aPrivileged && !HostHasPermission(*docURI))) {
+          (!privileged && !HostHasPermission(*docURI))) {
         return task->Denied(NS_LITERAL_STRING("PERMISSION_DENIED"));
       }
     }
@@ -1767,11 +1769,11 @@ MediaManager::GetUserMedia(bool aPrivileged,
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (isLoop) {
-    aPrivileged = true;
+    privileged = true;
   }
 
   
-  if (aPrivileged ||
+  if (privileged ||
       (c.mFake && !Preferences::GetBool("media.navigator.permission.fake"))) {
     MediaManager::GetMessageLoop()->PostTask(FROM_HERE, task.forget());
   } else {

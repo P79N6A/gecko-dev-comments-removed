@@ -2,6 +2,9 @@
 
 
 
+#ifndef MOZILLA_MEDIAMANAGER_H
+#define MOZILLA_MEDIAMANAGER_H
+
 #include "MediaEngine.h"
 #include "mozilla/Services.h"
 #include "mozilla/unused.h"
@@ -574,9 +577,9 @@ public:
   void RemoveFromWindowList(uint64_t aWindowID,
     GetUserMediaCallbackMediaStreamListener *aListener);
 
-  nsresult GetUserMedia(bool aPrivileged,
+  nsresult GetUserMedia(
     nsPIDOMWindow* aWindow,
-    const dom::MediaStreamConstraints& aRawConstraints,
+    const dom::MediaStreamConstraints& aConstraints,
     nsIDOMGetUserMediaSuccessCallback* onSuccess,
     nsIDOMGetUserMediaErrorCallback* onError);
 
@@ -632,3 +635,5 @@ private:
 };
 
 } 
+
+#endif 
