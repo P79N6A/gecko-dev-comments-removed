@@ -150,6 +150,8 @@ RootActor.prototype = {
     
     getUniqueSelector: true,
     
+    directorScripts: true,
+    
     
     noBlackBoxing: false,
     noPrettyPrinting: false,
