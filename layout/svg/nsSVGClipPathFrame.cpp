@@ -94,7 +94,8 @@ nsSVGClipPathFrame::ApplyClipOrPaintClipMask(nsRenderingContext* aContext,
   
 
   
-  SVGAutoRenderState mode(aContext, SVGAutoRenderState::CLIP_MASK);
+  SVGAutoRenderState mode(aContext->GetDrawTarget(),
+                          SVGAutoRenderState::CLIP_MASK);
 
   
   nsSVGClipPathFrame *clipPathFrame =

@@ -590,7 +590,8 @@ nsDisplayOuterSVG::Paint(nsDisplayListBuilder* aBuilder,
 
   
   
-  SVGAutoRenderState state(aContext, SVGAutoRenderState::GetRenderMode(aContext));
+  SVGAutoRenderState state(aContext->GetDrawTarget(),
+    SVGAutoRenderState::GetRenderMode(aContext->GetDrawTarget()));
 
   if (aBuilder->IsPaintingToWindow()) {
     state.SetPaintingToWindow(true);
