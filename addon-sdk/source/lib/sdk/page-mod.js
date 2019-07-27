@@ -14,10 +14,11 @@ const { getAttachEventType, WorkerHost } = require('./content/utils');
 const { Class } = require('./core/heritage');
 const { Disposable } = require('./core/disposable');
 const { WeakReference } = require('./core/reference');
-const { Worker } = require('./content/worker');
+const { Worker } = require('./deprecated/sync-worker');
 const { EventTarget } = require('./event/target');
 const { on, emit, once, setListeners } = require('./event/core');
 const { on: domOn, removeListener: domOff } = require('./dom/events');
+const { pipe } = require('./event/utils');
 const { isRegExp, isUndefined } = require('./lang/type');
 const { merge } = require('./util/object');
 const { windowIterator } = require('./deprecated/window-utils');
@@ -113,6 +114,7 @@ const PageMod = Class({
     modContract.properties(modelFor),
     EventTarget,
     Disposable,
+    WeakReference
   ],
   extends: WorkerHost(workerFor),
   setup: function PageMod(options) {
@@ -189,10 +191,6 @@ function applyOnExistingDocuments (mod) {
   getTabs().forEach(tab => {
     
     let window = getTabContentWindow(tab);
-    
-    
-    if (!window || !window.frames)
-      return;
     let uri = getTabURI(tab);
     if (has(mod.attachTo, "top") && modMatchesURI(mod, uri))
       onContent(mod, window);
@@ -215,15 +213,11 @@ function createWorker (mod, window) {
     onError: (e) => emit(mod, 'error', e)
   });
   workers.set(mod, worker);
-  worker.on('*', (event, ...args) => {
-    
-    
-    if (event === 'attach')
-      emit(mod, event, worker)
-    else
-      emit(mod, event, ...args);
-  })
-  once(worker, 'detach', () => worker.destroy());
+  pipe(worker, mod);
+  emit(mod, 'attach', worker);
+  once(worker, 'detach', function detach() {
+    worker.destroy();
+  });
 }
 
 function onContent (mod, window) {
@@ -262,20 +256,6 @@ function onContent (mod, window) {
       return;
     domOff(window, eventName, onReady, true);
     createWorker(mod, window);
-
-    
-    
-    if (window.document.readyState == "complete") {
-      mod.on('attach', worker => {
-        try {
-          worker.send('pageshow');
-          emit(worker, 'pageshow');
-        }
-        catch (e) {
-          
-        }
-      });
-    }
   }, true);
 }
 
