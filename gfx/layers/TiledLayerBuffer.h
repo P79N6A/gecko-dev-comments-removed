@@ -94,9 +94,7 @@ class TiledLayerBuffer
 {
 public:
   TiledLayerBuffer()
-    : mFirstTileX(0)
-    , mFirstTileY(0)
-    , mRetainedWidth(0)
+    : mRetainedWidth(0)
     , mRetainedHeight(0)
     , mResolution(1)
     , mTileSize(gfxPlatform::GetPlatform()->GetTileWidth(), gfxPlatform::GetPlatform()->GetTileHeight())
@@ -110,21 +108,13 @@ public:
   
   
   
-  Tile& GetTile(const gfx::IntPoint& aTileOrigin);
-  
-  
-  
-  
-  Tile& GetTile(int x, int y);
+  Tile GetTile(const nsIntPoint& aTileOrigin) const;
 
-  int TileIndex(const gfx::IntPoint& aTileOrigin) const;
-  int TileIndex(int x, int y) const { return x * mRetainedHeight + y; }
-
-  bool HasTile(int index) const { return index >= 0 && index < (int)mRetainedTiles.Length(); }
-  bool HasTile(const gfx::IntPoint& aTileOrigin) const;
-  bool HasTile(int x, int y) const {
-    return x >= 0 && x < mRetainedWidth && y >= 0 && y < mRetainedHeight;
-  }
+  
+  
+  
+  
+  Tile GetTile(int x, int y) const;
 
   const gfx::IntSize& GetTileSize() const { return mTileSize; }
 
@@ -165,6 +155,14 @@ public:
   
   
   float GetResolution() const { return mResolution; }
+  void SetResolution(float aResolution) {
+    if (mResolution == aResolution) {
+      return;
+    }
+
+    Update(nsIntRegion(), nsIntRegion());
+    mResolution = aResolution;
+  }
   bool IsLowPrecision() const { return mResolution < 1; }
 
   typedef Tile* Iterator;
@@ -180,10 +178,6 @@ protected:
   
   void Update(const nsIntRegion& aNewValidRegion, const nsIntRegion& aPaintRegion);
 
-  
-  
-  Tile mPlaceHolderTile;
-
   nsIntRegion     mValidRegion;
   nsIntRegion     mPaintedRegion;
 
@@ -196,8 +190,6 @@ protected:
 
 
   nsTArray<Tile>  mRetainedTiles;
-  int             mFirstTileX;
-  int             mFirstTileY;
   int             mRetainedWidth;  
   int             mRetainedHeight; 
   float           mResolution;
@@ -257,39 +249,24 @@ static inline int floor_div(int a, int b)
   }
 }
 
-template<typename Derived, typename Tile> bool
-TiledLayerBuffer<Derived, Tile>::HasTile(const gfx::IntPoint& aTileOrigin) const {
-  gfx::IntSize scaledTileSize = GetScaledTileSize();
-  return HasTile(floor_div(aTileOrigin.x, scaledTileSize.width) - mFirstTileX,
-                 floor_div(aTileOrigin.y, scaledTileSize.height) - mFirstTileY);
-}
-
-template<typename Derived, typename Tile> Tile&
-TiledLayerBuffer<Derived, Tile>::GetTile(const nsIntPoint& aTileOrigin)
-{
-  if (HasTile(aTileOrigin)) {
-    return mRetainedTiles[TileIndex(aTileOrigin)];
-  }
-  return mPlaceHolderTile;
-}
-
-template<typename Derived, typename Tile> int
-TiledLayerBuffer<Derived, Tile>::TileIndex(const gfx::IntPoint& aTileOrigin) const
+template<typename Derived, typename Tile> Tile
+TiledLayerBuffer<Derived, Tile>::GetTile(const nsIntPoint& aTileOrigin) const
 {
   
   
+  
   gfx::IntSize scaledTileSize = GetScaledTileSize();
-  return TileIndex(floor_div(aTileOrigin.x, scaledTileSize.width) - mFirstTileX,
-                   floor_div(aTileOrigin.y, scaledTileSize.height) - mFirstTileY);
+  int firstTileX = floor_div(mValidRegion.GetBounds().x, scaledTileSize.width);
+  int firstTileY = floor_div(mValidRegion.GetBounds().y, scaledTileSize.height);
+  return GetTile(floor_div(aTileOrigin.x, scaledTileSize.width) - firstTileX,
+                 floor_div(aTileOrigin.y, scaledTileSize.height) - firstTileY);
 }
 
-template<typename Derived, typename Tile> Tile&
-TiledLayerBuffer<Derived, Tile>::GetTile(int x, int y)
+template<typename Derived, typename Tile> Tile
+TiledLayerBuffer<Derived, Tile>::GetTile(int x, int y) const
 {
-  if (HasTile(x, y)) {
-    return mRetainedTiles[TileIndex(x, y)];
-  }
-  return mPlaceHolderTile;
+  int index = x * mRetainedHeight + y;
+  return mRetainedTiles.SafeElementAt(index, AsDerived().GetPlaceholderTile());
 }
 
 template<typename Derived, typename Tile> void
@@ -305,15 +282,15 @@ TiledLayerBuffer<Derived, Tile>::Dump(std::stringstream& aStream,
 
     for (int32_t y = visibleRect.y; y < visibleRect.y + visibleRect.height;) {
       int32_t tileStartY = GetTileStart(y, scaledTileSize.height);
-      nsIntPoint tileOrigin = nsIntPoint(RoundDownToTileEdge(x, scaledTileSize.width),
-                                         RoundDownToTileEdge(y, scaledTileSize.height));
-      Tile& tileTexture = GetTile(tileOrigin);
+      Tile tileTexture =
+        GetTile(nsIntPoint(RoundDownToTileEdge(x, scaledTileSize.width),
+                           RoundDownToTileEdge(y, scaledTileSize.height)));
       int32_t h = scaledTileSize.height - tileStartY;
 
       aStream << "\n" << aPrefix << "Tile (x=" <<
         RoundDownToTileEdge(x, scaledTileSize.width) << ", y=" <<
         RoundDownToTileEdge(y, scaledTileSize.height) << "): ";
-      if (!tileTexture.IsPlaceholderTile()) {
+      if (tileTexture != AsDerived().GetPlaceholderTile()) {
         tileTexture.DumpTexture(aStream);
       } else {
         aStream << "empty tile";
@@ -620,10 +597,6 @@ TiledLayerBuffer<Derived, Tile>::Update(const nsIntRegion& newValidRegion,
 
   mRetainedTiles = newRetainedTiles;
   mValidRegion = newValidRegion;
-
-  mFirstTileX = floor_div(mValidRegion.GetBounds().x, scaledTileSize.width);
-  mFirstTileY = floor_div(mValidRegion.GetBounds().y, scaledTileSize.height);
-
   mPaintedRegion.Or(mPaintedRegion, aPaintRegion);
 }
 
