@@ -149,27 +149,27 @@ struct NS_GFX nsRect :
   MOZ_WARN_UNUSED_RESULT inline nsRect
     ScaleToOtherAppUnitsRoundIn(int32_t aFromAPP, int32_t aToAPP) const;
 
-  MOZ_WARN_UNUSED_RESULT inline nsIntRect
+  MOZ_WARN_UNUSED_RESULT inline mozilla::gfx::IntRect
   ScaleToNearestPixels(float aXScale, float aYScale,
                        nscoord aAppUnitsPerPixel) const;
 
-  MOZ_WARN_UNUSED_RESULT inline nsIntRect
+  MOZ_WARN_UNUSED_RESULT inline mozilla::gfx::IntRect
   ToNearestPixels(nscoord aAppUnitsPerPixel) const;
 
   
-  MOZ_WARN_UNUSED_RESULT inline nsIntRect
+  MOZ_WARN_UNUSED_RESULT inline mozilla::gfx::IntRect
   ScaleToOutsidePixels(float aXScale, float aYScale,
                        nscoord aAppUnitsPerPixel) const;
 
   
-  MOZ_WARN_UNUSED_RESULT inline nsIntRect
+  MOZ_WARN_UNUSED_RESULT inline mozilla::gfx::IntRect
   ToOutsidePixels(nscoord aAppUnitsPerPixel) const;
 
-  MOZ_WARN_UNUSED_RESULT inline nsIntRect
+  MOZ_WARN_UNUSED_RESULT inline mozilla::gfx::IntRect
   ScaleToInsidePixels(float aXScale, float aYScale,
                       nscoord aAppUnitsPerPixel) const;
 
-  MOZ_WARN_UNUSED_RESULT inline nsIntRect
+  MOZ_WARN_UNUSED_RESULT inline mozilla::gfx::IntRect
   ToInsidePixels(nscoord aAppUnitsPerPixel) const;
 
   
@@ -220,11 +220,11 @@ nsRect::ScaleToOtherAppUnitsRoundIn(int32_t aFromAPP, int32_t aToAPP) const
 }
 
 
-inline nsIntRect
+inline mozilla::gfx::IntRect
 nsRect::ScaleToNearestPixels(float aXScale, float aYScale,
                              nscoord aAppUnitsPerPixel) const
 {
-  nsIntRect rect;
+  mozilla::gfx::IntRect rect;
   rect.x = NSToIntRoundUp(NSAppUnitsToDoublePixels(x, aAppUnitsPerPixel) * aXScale);
   rect.y = NSToIntRoundUp(NSAppUnitsToDoublePixels(y, aAppUnitsPerPixel) * aYScale);
   
@@ -236,11 +236,11 @@ nsRect::ScaleToNearestPixels(float aXScale, float aYScale,
 }
 
 
-inline nsIntRect
+inline mozilla::gfx::IntRect
 nsRect::ScaleToOutsidePixels(float aXScale, float aYScale,
                              nscoord aAppUnitsPerPixel) const
 {
-  nsIntRect rect;
+  mozilla::gfx::IntRect rect;
   rect.x = NSToIntFloor(NSAppUnitsToFloatPixels(x, float(aAppUnitsPerPixel)) * aXScale);
   rect.y = NSToIntFloor(NSAppUnitsToFloatPixels(y, float(aAppUnitsPerPixel)) * aYScale);
   
@@ -252,11 +252,11 @@ nsRect::ScaleToOutsidePixels(float aXScale, float aYScale,
 }
 
 
-inline nsIntRect
+inline mozilla::gfx::IntRect
 nsRect::ScaleToInsidePixels(float aXScale, float aYScale,
                             nscoord aAppUnitsPerPixel) const
 {
-  nsIntRect rect;
+  mozilla::gfx::IntRect rect;
   rect.x = NSToIntCeil(NSAppUnitsToFloatPixels(x, float(aAppUnitsPerPixel)) * aXScale);
   rect.y = NSToIntCeil(NSAppUnitsToFloatPixels(y, float(aAppUnitsPerPixel)) * aYScale);
   
@@ -267,29 +267,29 @@ nsRect::ScaleToInsidePixels(float aXScale, float aYScale,
   return rect;
 }
 
-inline nsIntRect
+inline mozilla::gfx::IntRect
 nsRect::ToNearestPixels(nscoord aAppUnitsPerPixel) const
 {
   return ScaleToNearestPixels(1.0f, 1.0f, aAppUnitsPerPixel);
 }
 
-inline nsIntRect
+inline mozilla::gfx::IntRect
 nsRect::ToOutsidePixels(nscoord aAppUnitsPerPixel) const
 {
   return ScaleToOutsidePixels(1.0f, 1.0f, aAppUnitsPerPixel);
 }
 
-inline nsIntRect
+inline mozilla::gfx::IntRect
 nsRect::ToInsidePixels(nscoord aAppUnitsPerPixel) const
 {
   return ScaleToInsidePixels(1.0f, 1.0f, aAppUnitsPerPixel);
 }
 
-const nsIntRect& GetMaxSizedIntRect();
+const mozilla::gfx::IntRect& GetMaxSizedIntRect();
 
 
 nsRect
-ToAppUnits(const nsIntRect& aRect, nscoord aAppUnitsPerPixel);
+ToAppUnits(const mozilla::gfx::IntRect& aRect, nscoord aAppUnitsPerPixel);
 
 #ifdef DEBUG
 

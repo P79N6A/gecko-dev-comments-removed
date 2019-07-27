@@ -394,7 +394,7 @@ private:
     return box;
   }
 
-  static inline pixman_box32_t RectToBox(const nsIntRect &aRect)
+  static inline pixman_box32_t RectToBox(const mozilla::gfx::IntRect &aRect)
   {
     pixman_box32_t box = { aRect.x, aRect.y, aRect.XMost(), aRect.YMost() };
     return box;
@@ -815,12 +815,12 @@ private:
 }  
 }  
 
-class NS_GFX nsIntRegion : public mozilla::gfx::BaseIntRegion<nsIntRegion, nsIntRect, nsIntPoint, nsIntMargin>
+class NS_GFX nsIntRegion : public mozilla::gfx::BaseIntRegion<nsIntRegion, mozilla::gfx::IntRect, nsIntPoint, nsIntMargin>
 {
 public:
   
   nsIntRegion() {}
-  MOZ_IMPLICIT nsIntRegion(const nsIntRect& aRect) : BaseIntRegion(aRect) {}
+  MOZ_IMPLICIT nsIntRegion(const mozilla::gfx::IntRect& aRect) : BaseIntRegion(aRect) {}
   nsIntRegion(const nsIntRegion& aRegion) : BaseIntRegion(aRegion) {}
   nsIntRegion(nsIntRegion&& aRegion) : BaseIntRegion(mozilla::Move(aRegion)) {}
 
