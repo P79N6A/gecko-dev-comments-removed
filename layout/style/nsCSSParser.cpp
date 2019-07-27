@@ -4726,8 +4726,8 @@ CSSParserImpl::ParseRuleSet(RuleAppendFunc aAppendFunc, void* aData,
 
   
 
-  nsRefPtr<css::StyleRule> rule = new css::StyleRule(slist, declaration);
-  rule->SetLineNumberAndColumnNumber(linenum, colnum);
+  nsRefPtr<css::StyleRule> rule = new css::StyleRule(slist, declaration,
+                                                     linenum, colnum);
   (*aAppendFunc)(rule, aData);
 
   return true;
