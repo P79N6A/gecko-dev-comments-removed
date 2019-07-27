@@ -2696,6 +2696,7 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
 
   mPaintThrottler.TaskComplete(GetFrameTime());
   bool needContentRepaint = false;
+  bool viewportUpdated = false;
   if (FuzzyEqualsAdditive(aLayerMetrics.mCompositionBounds.width, mFrameMetrics.mCompositionBounds.width) &&
       FuzzyEqualsAdditive(aLayerMetrics.mCompositionBounds.height, mFrameMetrics.mCompositionBounds.height)) {
     
@@ -2703,6 +2704,7 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
     if (mFrameMetrics.GetViewport().width != aLayerMetrics.GetViewport().width ||
         mFrameMetrics.GetViewport().height != aLayerMetrics.GetViewport().height) {
       needContentRepaint = true;
+      viewportUpdated = true;
     }
     mFrameMetrics.SetViewport(aLayerMetrics.GetViewport());
   }
@@ -2743,7 +2745,8 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
     
 
     if (FuzzyEqualsAdditive(mFrameMetrics.mCompositionBounds.width, aLayerMetrics.mCompositionBounds.width) &&
-        mFrameMetrics.GetDevPixelsPerCSSPixel() == aLayerMetrics.GetDevPixelsPerCSSPixel()) {
+        mFrameMetrics.GetDevPixelsPerCSSPixel() == aLayerMetrics.GetDevPixelsPerCSSPixel() &&
+        !viewportUpdated) {
       
       
       
@@ -2757,6 +2760,7 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
                                       / mFrameMetrics.mPresShellResolution;
       mFrameMetrics.ZoomBy(totalResolutionChange / presShellResolutionChange);
     } else {
+      
       
       
       mFrameMetrics.SetZoom(aLayerMetrics.GetZoom());
