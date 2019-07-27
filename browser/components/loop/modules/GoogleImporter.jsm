@@ -106,8 +106,9 @@ const getPreferred = function(contact, which = "email") {
 
 
 const getUrlParam = function(paramValue, prefName, encode = true) {
-  if (Services.prefs.getPrefType(prefName))
+  if (Services.prefs.getPrefType(prefName)) {
     paramValue = Services.prefs.getCharPref(prefName);
+  }
   paramValue = Services.urlFormatter.formatURL(paramValue);
 
   return encode ? encodeURIComponent(paramValue) : paramValue;

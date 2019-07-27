@@ -464,7 +464,7 @@ loop.store.ActiveRoomStore = (function() {
       this._setRefreshTimeout(actionData.expires);
 
       
-      actionData["sendTwoWayMediaTelemetry"] = this._isDesktop;
+      actionData.sendTwoWayMediaTelemetry = this._isDesktop;
 
       this._sdkDriver.connectSession(actionData);
 

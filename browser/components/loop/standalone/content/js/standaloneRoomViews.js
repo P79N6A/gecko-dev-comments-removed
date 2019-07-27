@@ -126,7 +126,7 @@ loop.standaloneRoomViews = (function(mozL10n) {
           );
         }
         case ROOM_STATES.ENDED: {
-          if (this.props.roomUsed)
+          if (this.props.roomUsed) {
             return (
               React.createElement("div", {className: "ended-conversation"}, 
                 React.createElement(sharedViews.FeedbackView, {
@@ -134,6 +134,7 @@ loop.standaloneRoomViews = (function(mozL10n) {
                 )
               )
             );
+          }
 
           
           

@@ -324,8 +324,9 @@ let LoopCallsInternal = {
 
 
   startDirectCall: function(contact, callType) {
-    if ("id" in this.conversationInProgress)
+    if ("id" in this.conversationInProgress) {
       return false;
+    }
 
     var callData = {
       contact: contact,
