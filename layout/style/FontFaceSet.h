@@ -316,10 +316,6 @@ private:
 
   
   
-  bool mDispatchedLoadingEvent;
-
-  
-  
   
   bool mHasLoadingFontFaces;
 
