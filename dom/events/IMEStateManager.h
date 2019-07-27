@@ -11,6 +11,7 @@
 
 class nsIContent;
 class nsIDOMMouseEvent;
+class nsIEditor;
 class nsINode;
 class nsPIDOMWindow;
 class nsPresContext;
@@ -65,7 +66,8 @@ public:
   
   
   static void UpdateIMEState(const IMEState &aNewIMEState,
-                             nsIContent* aContent);
+                             nsIContent* aContent,
+                             nsIEditor* aEditor);
 
   
   
@@ -89,7 +91,8 @@ public:
   
   
   static void OnFocusInEditor(nsPresContext* aPresContext,
-                              nsIContent* aContent);
+                              nsIContent* aContent,
+                              nsIEditor* aEditor);
 
   
 
@@ -149,7 +152,7 @@ protected:
                                  nsIContent* aContent);
 
   static void EnsureTextCompositionArray();
-  static void CreateIMEContentObserver();
+  static void CreateIMEContentObserver(nsIEditor* aEditor);
   static void DestroyIMEContentObserver();
 
   static bool IsEditable(nsINode* node);
