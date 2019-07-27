@@ -21,6 +21,10 @@ Cu.import("resource://gre/modules/FxAccounts.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/FxAccountsCommon.js");
 
+XPCOMUtils.defineLazyServiceGetter(this, "permissionManager",
+                                   "@mozilla.org/permissionmanager;1",
+                                   "nsIPermissionManager");
+
 this.FxAccountsManager = {
 
   init: function() {
@@ -175,7 +179,7 @@ this.FxAccountsManager = {
 
 
 
-  _handleGetAssertionError: function(reason, aAudience) {
+  _handleGetAssertionError: function(reason, aAudience, aPrincipal) {
     let errno = (reason ? reason.errno : NaN) || NaN;
     
     if (errno == ERRNO_INVALID_AUTH_TOKEN) {
@@ -186,34 +190,42 @@ this.FxAccountsManager = {
           if (exists) {
             return this.getAccount().then(
               (user) => {
-                return this._refreshAuthentication(aAudience, user.email, true);
-              }
-            );
-          
-          } else {
-            return this._localSignOut().then(
-              () => {
-                return this._uiRequest(UI_REQUEST_SIGN_IN_FLOW, aAudience);
-              },
-              (reason) => { 
-                log.error("Signing out in response to server error threw: " + reason);
-                return this._error(reason);
+                return this._refreshAuthentication(aAudience, user.email,
+                                                   aPrincipal,
+                                                   true );
               }
             );
           }
+        }
+      );
+
+      
+      return this._localSignOut().then(
+        () => {
+          return this._uiRequest(UI_REQUEST_SIGN_IN_FLOW, aAudience,
+                                 aPrincipal);
+        },
+        (reason) => {
+          
+          log.error("Signing out in response to server error threw: " +
+                    reason);
+          return this._error(reason);
         }
       );
     }
     return Promise.reject(reason);
   },
 
-  _getAssertion: function(aAudience) {
+  _getAssertion: function(aAudience, aPrincipal) {
     return this._fxAccounts.getAssertion(aAudience).then(
       (result) => {
+        if (aPrincipal) {
+          this._addPermission(aPrincipal);
+        }
         return result;
       },
       (reason) => {
-        return this._handleGetAssertionError(reason, aAudience);
+        return this._handleGetAssertionError(reason, aAudience, aPrincipal);
       }
     );
   },
@@ -228,10 +240,11 @@ this.FxAccountsManager = {
 
 
 
-  _refreshAuthentication: function(aAudience, aEmail, logoutOnFailure=false) {
+  _refreshAuthentication: function(aAudience, aEmail, aPrincipal,
+                                   logoutOnFailure=false) {
     this._refreshing = true;
     return this._uiRequest(UI_REQUEST_REFRESH_AUTH,
-                           aAudience, aEmail).then(
+                           aAudience, aPrincipal, aEmail).then(
       (assertion) => {
         this._refreshing = false;
         return assertion;
@@ -293,7 +306,7 @@ this.FxAccountsManager = {
     );
   },
 
-  _uiRequest: function(aRequest, aAudience, aParams) {
+  _uiRequest: function(aRequest, aAudience, aPrincipal, aParams) {
     let ui = Cc["@mozilla.org/fxaccounts/fxaccounts-ui-glue;1"]
                .createInstance(Ci.nsIFxAccountsUIGlue);
     if (!ui[aRequest]) {
@@ -309,7 +322,7 @@ this.FxAccountsManager = {
         
         
         if (result && result.verified) {
-          return this._getAssertion(aAudience);
+          return this._getAssertion(aAudience, aPrincipal);
         }
 
         return this._error(ERROR_UNVERIFIED_ACCOUNT, {
@@ -320,6 +333,17 @@ this.FxAccountsManager = {
         return this._error(ERROR_UI_ERROR, error);
       }
     );
+  },
+
+  _addPermission: function(aPrincipal) {
+    
+    
+    try {
+      permissionManager.addFromPrincipal(aPrincipal, FXACCOUNTS_PERMISSION,
+                                         Ci.nsIPermissionManager.ALLOW_ACTION);
+    } catch (e) {
+      log.warn("Could not add permission " + e);
+    }
   },
 
   
@@ -478,13 +502,22 @@ this.FxAccountsManager = {
 
 
 
-  getAssertion: function(aAudience, aOptions) {
+
+
+  getAssertion: function(aAudience, aPrincipal, aOptions) {
     if (!aAudience) {
       return this._error(ERROR_INVALID_AUDIENCE);
     }
     if (Services.io.offline) {
       return this._error(ERROR_OFFLINE);
     }
+
+    let secMan = Cc["@mozilla.org/scriptsecuritymanager;1"]
+                   .getService(Ci.nsIScriptSecurityManager);
+    let uri = Services.io.newURI(aPrincipal.origin, null, null);
+    let principal = secMan.getAppCodebasePrincipal(uri,
+      aPrincipal.appId, aPrincipal.isInBrowserElement);
+
     return this.getAccount().then(
       user => {
         if (user) {
@@ -506,21 +539,42 @@ this.FxAccountsManager = {
             if (aOptions.silent) {
               return this._error(ERROR_NO_SILENT_REFRESH_AUTH);
             }
-            let secondsSinceAuth = (Date.now() / 1000) - this._activeSession.authAt;
+            let secondsSinceAuth = (Date.now() / 1000) -
+                                   this._activeSession.authAt;
             if (secondsSinceAuth > gracePeriod) {
-              return this._refreshAuthentication(aAudience, user.email);
+              return this._refreshAuthentication(aAudience, user.email,
+                                                 principal,
+                                                 false );
             }
           }
           
           
           
-          return this._getAssertion(aAudience);
+          
+          
+          
+          
+          
+          let permission = permissionManager.testPermissionFromPrincipal(
+            principal,
+            FXACCOUNTS_PERMISSION
+          );
+          if (permission == Ci.nsIPermissionManager.PROMPT_ACTION &&
+              !this._refreshing) {
+            return this._refreshAuthentication(aAudience, user.email,
+                                               principal,
+                                               false );
+          } else if (permission == Ci.nsIPermissionManager.DENY_ACTION &&
+                     !this._refreshing) {
+            return this._error(ERROR_PERMISSION_DENIED);
+          }
+          return this._getAssertion(aAudience, principal);
         }
         log.debug("No signed in user");
         if (aOptions && aOptions.silent) {
           return Promise.resolve(null);
         }
-        return this._uiRequest(UI_REQUEST_SIGN_IN_FLOW, aAudience);
+        return this._uiRequest(UI_REQUEST_SIGN_IN_FLOW, aAudience, principal);
       }
     );
   }

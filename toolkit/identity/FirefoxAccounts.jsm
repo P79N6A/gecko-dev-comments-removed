@@ -102,6 +102,11 @@ FxAccountsService.prototype = {
     }
   },
 
+  cleanupRPRequest: function(aRp) {
+    aRp.pendingRequest = false;
+    this._rpFlows.set(aRp.id, aRp);
+  },
+
   
 
 
@@ -128,7 +133,9 @@ FxAccountsService.prototype = {
     
     let runnable = {
       run: () => {
-        this.fxAccountsManager.getAssertion(aRpCaller.audience, {silent:true}).then(
+        this.fxAccountsManager.getAssertion(aRpCaller.audience,
+                                            aRpCaller.principal,
+                                            { silent:true }).then(
           data => {
             if (data) {
               this.doLogin(aRpCaller.id, data);
@@ -174,12 +181,25 @@ FxAccountsService.prototype = {
       return;
     }
 
+    
+    
+    
+    if (rp.pendingRequest) {
+      log.debug("request() already called");
+      return;
+    }
+
+    
+    rp.pendingRequest = true;
+    this._rpFlows.set(rp.id, rp);
+
     let options = makeMessageObject(rp);
     objectCopy(aOptions, options);
 
     log.debug("get assertion for " + rp.audience);
 
-    this.fxAccountsManager.getAssertion(rp.audience, options).then(
+    this.fxAccountsManager.getAssertion(rp.audience, rp.principal, options)
+    .then(
       data => {
         log.debug("got assertion for " + rp.audience + ": " + data);
         this.doLogin(aRPId, data);
@@ -192,6 +212,16 @@ FxAccountsService.prototype = {
           return this.doCancel(aRPId);
         }
         this.doError(aRPId, error);
+      }
+    )
+    .then(
+      () => {
+        this.cleanupRPRequest(rp);
+      }
+    )
+    .catch(
+      () => {
+        this.cleanupRPRequest(rp);
       }
     );
   },
