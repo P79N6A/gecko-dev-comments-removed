@@ -378,16 +378,16 @@ TiledContentHost::Composite(EffectChain& aEffectChain,
         ? gfxPrefs::LowPrecisionOpacity() : 1.0f;
 
   nsIntRegion tmpRegion;
-  const nsIntRegion* renderRegion;
+  const nsIntRegion* renderRegion = aVisibleRegion;
+#ifndef MOZ_GFX_OPTIMIZE_MOBILE
   if (PaintWillResample()) {
     
     
     
     tmpRegion = aVisibleRegion->GetBounds();
     renderRegion = &tmpRegion;
-  } else {
-    renderRegion = aVisibleRegion;
   }
+#endif
 
   
   RenderLayerBuffer(mLowPrecisionTiledBuffer,
