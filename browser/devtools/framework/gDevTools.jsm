@@ -627,8 +627,7 @@ let gDevToolsBrowser = {
     
     let chromeEnabled = Services.prefs.getBoolPref("devtools.chrome.enabled");
     let devtoolsRemoteEnabled = Services.prefs.getBoolPref("devtools.debugger.remote-enabled");
-    let remoteEnabled = chromeEnabled && devtoolsRemoteEnabled &&
-                        Services.prefs.getBoolPref("devtools.debugger.chrome-enabled");
+    let remoteEnabled = chromeEnabled && devtoolsRemoteEnabled;
     toggleCmd("Tools:BrowserToolbox", remoteEnabled);
     toggleCmd("Tools:BrowserContentToolbox", remoteEnabled && win.gMultiProcessBrowser);
 

@@ -1328,11 +1328,8 @@ pref("services.sync.prefs.sync.xpinstall.whitelist.required", true);
 
 
 #ifdef MOZ_DEV_EDITION
+pref("lightweightThemes.selectedThemeID", "firefox-devedition@mozilla.org");
 pref("browser.devedition.theme.enabled", true);
-pref("browser.devedition.theme.showCustomizeButton", true);
-#else
-pref("browser.devedition.theme.enabled", false);
-pref("browser.devedition.theme.showCustomizeButton", false);
 #endif
 
 
@@ -1409,7 +1406,6 @@ pref("devtools.responsiveUI.no-reload-notification", false);
 
 
 pref("devtools.debugger.enabled", true);
-pref("devtools.debugger.chrome-enabled", true);
 pref("devtools.debugger.chrome-debugging-host", "localhost");
 pref("devtools.debugger.chrome-debugging-port", 6080);
 pref("devtools.debugger.remote-host", "localhost");
