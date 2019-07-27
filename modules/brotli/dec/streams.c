@@ -1,0 +1,117 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include <string.h>
+#ifndef _WIN32
+#include <unistd.h>
+#endif
+#include "./streams.h"
+
+#if defined(__cplusplus) || defined(c_plusplus)
+extern "C" {
+#endif
+
+int BrotliMemInputFunction(void* data, uint8_t* buf, size_t count) {
+  BrotliMemInput* input = (BrotliMemInput*)data;
+  if (input->pos > input->length) {
+    return -1;
+  }
+  if (input->pos + count > input->length) {
+    count = input->length - input->pos;
+  }
+  memcpy(buf, input->buffer + input->pos, count);
+  input->pos += count;
+  return (int)count;
+}
+
+BrotliInput BrotliInitMemInput(const uint8_t* buffer, size_t length,
+                               BrotliMemInput* mem_input) {
+  BrotliInput input;
+  mem_input->buffer = buffer;
+  mem_input->length = length;
+  mem_input->pos = 0;
+  input.cb_ = &BrotliMemInputFunction;
+  input.data_ = mem_input;
+  return input;
+}
+
+int BrotliMemOutputFunction(void* data, const uint8_t* buf, size_t count) {
+  BrotliMemOutput* output = (BrotliMemOutput*)data;
+  if (output->pos + count > output->length) {
+    return -1;
+  }
+  memcpy(output->buffer + output->pos, buf, count);
+  output->pos += count;
+  return (int)count;
+}
+
+BrotliOutput BrotliInitMemOutput(uint8_t* buffer, size_t length,
+                                 BrotliMemOutput* mem_output) {
+  BrotliOutput output;
+  mem_output->buffer = buffer;
+  mem_output->length = length;
+  mem_output->pos = 0;
+  output.cb_ = &BrotliMemOutputFunction;
+  output.data_ = mem_output;
+  return output;
+}
+
+int BrotliStdinInputFunction(void* data, uint8_t* buf, size_t count) {
+#ifndef _WIN32
+  return (int)read(STDIN_FILENO, buf, count);
+#else
+  return -1;
+#endif
+}
+
+BrotliInput BrotliStdinInput() {
+  BrotliInput in;
+  in.cb_ = BrotliStdinInputFunction;
+  in.data_ = NULL;
+  return in;
+}
+
+int BrotliStdoutOutputFunction(void* data, const uint8_t* buf, size_t count) {
+#ifndef _WIN32
+  return (int)write(STDOUT_FILENO, buf, count);
+#else
+  return -1;
+#endif
+}
+
+BrotliOutput BrotliStdoutOutput() {
+  BrotliOutput out;
+  out.cb_ = BrotliStdoutOutputFunction;
+  out.data_ = NULL;
+  return out;
+}
+
+int BrotliFileOutputFunction(void* data, const uint8_t* buf, size_t count) {
+  return (int)fwrite(buf, 1, count, (FILE*)data);
+}
+
+BrotliOutput BrotliFileOutput(FILE* f) {
+  BrotliOutput out;
+  out.cb_ = BrotliFileOutputFunction;
+  out.data_ = f;
+  return out;
+}
+
+
+#if defined(__cplusplus) || defined(c_plusplus)
+}    
+#endif
