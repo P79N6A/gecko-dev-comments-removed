@@ -33,6 +33,7 @@
 
 using namespace js;
 using namespace js::gc;
+using namespace js::jit;
 
 using mozilla::DebugOnly;
 
@@ -125,17 +126,17 @@ JSRuntime::createJitRuntime(JSContext *cx)
     
     AutoLockForExclusiveAccess atomsLock(cx);
 
-    
-    
-    
-    AutoLockForInterrupt lock(this);
-
     MOZ_ASSERT(!jitRuntime_);
 
-    jitRuntime_ = cx->new_<jit::JitRuntime>();
-
-    if (!jitRuntime_)
+    jit::JitRuntime *jrt = cx->new_<jit::JitRuntime>();
+    if (!jrt)
         return nullptr;
+
+    
+    
+    
+    JitRuntime::AutoMutateBackedges amb(jrt);
+    jitRuntime_ = jrt;
 
     if (!jitRuntime_->initialize(cx)) {
         js_delete(jitRuntime_);

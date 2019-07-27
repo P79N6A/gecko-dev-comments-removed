@@ -645,12 +645,7 @@ FinalizeArenas(FreeOp *fop,
       case FINALIZE_SYMBOL:
         return FinalizeTypedArenas<JS::Symbol>(fop, src, dest, thingKind, budget, keepArenas);
       case FINALIZE_JITCODE:
-      {
-        
-        
-        JSRuntime::AutoLockForInterrupt lock(fop->runtime());
         return FinalizeTypedArenas<jit::JitCode>(fop, src, dest, thingKind, budget, keepArenas);
-      }
       default:
         MOZ_CRASH("Invalid alloc kind");
     }
@@ -1056,7 +1051,7 @@ class js::gc::AutoMaybeStartBackgroundAllocation
     }
 
     ~AutoMaybeStartBackgroundAllocation() {
-        if (runtime && !runtime->currentThreadOwnsInterruptLock())
+        if (runtime)
             runtime->gc.startBackgroundAllocTaskIfIdle();
     }
 };
@@ -2993,7 +2988,7 @@ GCRuntime::requestMajorGC(JS::gcreason::Reason reason)
 
     majorGCRequested = true;
     majorGCTriggerReason = reason;
-    rt->requestInterrupt(JSRuntime::RequestInterruptMainThread);
+    rt->requestInterrupt(JSRuntime::RequestInterruptUrgent);
 }
 
 void
@@ -3005,7 +3000,7 @@ GCRuntime::requestMinorGC(JS::gcreason::Reason reason)
 
     minorGCRequested = true;
     minorGCTriggerReason = reason;
-    rt->requestInterrupt(JSRuntime::RequestInterruptMainThread);
+    rt->requestInterrupt(JSRuntime::RequestInterruptUrgent);
 }
 
 bool
@@ -3022,10 +3017,6 @@ GCRuntime::triggerGC(JS::gcreason::Reason reason)
 
 
     if (!CurrentThreadCanAccessRuntime(rt))
-        return false;
-
-    
-    if (rt->currentThreadOwnsInterruptLock())
         return false;
 
     
@@ -3085,10 +3076,6 @@ GCRuntime::triggerZoneGC(Zone *zone, JS::gcreason::Reason reason)
 
     
     if (zone->usedByExclusiveThread)
-        return false;
-
-    
-    if (rt->currentThreadOwnsInterruptLock())
         return false;
 
     
@@ -5318,10 +5305,8 @@ GCRuntime::endSweepPhase(bool lastGC)
         if (jit::ExecutableAllocator *execAlloc = rt->maybeExecAlloc())
             execAlloc->purge();
 
-        if (rt->jitRuntime() && rt->jitRuntime()->hasIonAlloc()) {
-            JSRuntime::AutoLockForInterrupt lock(rt);
+        if (rt->jitRuntime() && rt->jitRuntime()->hasIonAlloc())
             rt->jitRuntime()->ionAlloc(rt)->purge();
-        }
 
         
 
