@@ -8,10 +8,9 @@
 #define MOZILLA_SOURCEBUFFERDECODER_H_
 
 #include "AbstractMediaDecoder.h"
-#include "MediaDecoderReader.h"
-#include "SourceBufferResource.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/ReentrantMonitor.h"
+#include "SourceBufferResource.h"
 
 namespace mozilla {
 
@@ -75,15 +74,20 @@ public:
     return mReader;
   }
 
-  void SetTaskQueue(MediaTaskQueue* aTaskQueue)
-  {
-    MOZ_ASSERT((!mTaskQueue && aTaskQueue) || (mTaskQueue && !aTaskQueue));
-    mTaskQueue = aTaskQueue;
-  }
-
   
   
   int64_t ConvertToByteOffset(double aTime);
+
+  bool IsDiscarded()
+  {
+    return mDiscarded;
+  }
+
+  void SetDiscarded()
+  {
+    GetResource()->Ended();
+    mDiscarded = true;
+  }
 
   
   bool ContainsTime(double aTime);
@@ -91,14 +95,12 @@ public:
 private:
   virtual ~SourceBufferDecoder();
 
-  
-  RefPtr<MediaTaskQueue> mTaskQueue;
-
   nsRefPtr<MediaResource> mResource;
 
   AbstractMediaDecoder* mParentDecoder;
   nsRefPtr<MediaDecoderReader> mReader;
   int64_t mMediaDuration;
+  bool mDiscarded;
 };
 
 } 
