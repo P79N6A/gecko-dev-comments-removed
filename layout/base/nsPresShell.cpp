@@ -2518,7 +2518,8 @@ PresShell::VerifyHasDirtyRootAncestor(nsIFrame* aFrame)
 
 void
 PresShell::FrameNeedsReflow(nsIFrame *aFrame, IntrinsicDirty aIntrinsicDirty,
-                            nsFrameState aBitToAdd)
+                            nsFrameState aBitToAdd,
+                            ReflowRootHandling aRootHandling)
 {
   NS_PRECONDITION(aBitToAdd == NS_FRAME_IS_DIRTY ||
                   aBitToAdd == NS_FRAME_HAS_DIRTY_CHILDREN ||
@@ -2570,11 +2571,22 @@ PresShell::FrameNeedsReflow(nsIFrame *aFrame, IntrinsicDirty aIntrinsicDirty,
 
     
     
-    bool targetFrameDirty = (aBitToAdd == NS_FRAME_IS_DIRTY);
+    bool targetNeedsReflowFromParent;
+    switch (aRootHandling) {
+      case ePositionOrSizeChange:
+        targetNeedsReflowFromParent = true;
+        break;
+      case eNoPositionOrSizeChange:
+        targetNeedsReflowFromParent = false;
+        break;
+      case eInferFromBitToAdd:
+        targetNeedsReflowFromParent = (aBitToAdd == NS_FRAME_IS_DIRTY);
+        break;
+    }
 
 #define FRAME_IS_REFLOW_ROOT(_f)                   \
   ((_f->GetStateBits() & NS_FRAME_REFLOW_ROOT) &&  \
-   (_f != subtreeRoot || !targetFrameDirty))
+   (_f != subtreeRoot || !targetNeedsReflowFromParent))
 
 
     

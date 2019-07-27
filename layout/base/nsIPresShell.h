@@ -508,9 +508,19 @@ public:
     eTreeChange, 
     eStyleChange 
   };
+  enum ReflowRootHandling {
+    ePositionOrSizeChange, 
+    eNoPositionOrSizeChange, 
+    eInferFromBitToAdd 
+
+    
+    
+  };
   virtual void FrameNeedsReflow(nsIFrame *aFrame,
                                 IntrinsicDirty aIntrinsicDirty,
-                                nsFrameState aBitToAdd) = 0;
+                                nsFrameState aBitToAdd,
+                                ReflowRootHandling aRootHandling =
+                                  eInferFromBitToAdd) = 0;
 
   
 
