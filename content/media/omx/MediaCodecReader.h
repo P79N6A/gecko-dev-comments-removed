@@ -29,6 +29,8 @@ struct MediaCodec;
 
 namespace mozilla {
 
+class MediaTaskQueue;
+
 class MediaCodecReader : public MediaOmxCommonReader
 {
 public:
@@ -54,16 +56,14 @@ public:
   virtual void Shutdown();
 
   
-  
-  
-  
-  virtual bool DecodeAudioData();
+  virtual nsresult ResetDecode() MOZ_OVERRIDE;
 
   
+  virtual void RequestVideoData(bool aSkipToNextKeyframe,
+                                int64_t aTimeThreshold) MOZ_OVERRIDE;
+
   
-  
-  virtual bool DecodeVideoFrame(bool &aKeyframeSkip,
-                                int64_t aTimeThreshold);
+  virtual void RequestAudioData() MOZ_OVERRIDE;
 
   virtual bool HasAudio();
   virtual bool HasVideo();
@@ -111,9 +111,15 @@ protected:
 
     
     CheckedUint32 mInputIndex;
+    
+    
+    
     bool mInputEndOfStream;
+    bool mOutputEndOfStream;
     int64_t mSeekTimeUs;
     bool mFlushed; 
+    bool mDiscontinuity;
+    nsRefPtr<MediaTaskQueue> mTaskQueue;
   };
 
   
@@ -229,6 +235,24 @@ private:
   static bool ConfigureMediaCodec(Track &aTrack);
   void DestroyMediaCodecs();
   static void DestroyMediaCodecs(Track &aTrack);
+
+  bool CreateTaskQueues();
+  void ShutdownTaskQueues();
+  bool DecodeVideoFrameTask(int64_t aTimeThreshold);
+  bool DecodeVideoFrameSync(int64_t aTimeThreshold);
+  bool DecodeAudioDataTask();
+  bool DecodeAudioDataSync();
+  void DispatchVideoTask(int64_t aTimeThreshold);
+  void DispatchAudioTask();
+  inline bool CheckVideoResources() {
+    return (HasVideo() && mVideoTrack.mSource != nullptr &&
+            mVideoTrack.mTaskQueue);
+  }
+
+  inline bool CheckAudioResources() {
+    return (HasAudio() && mAudioTrack.mSource != nullptr &&
+            mAudioTrack.mTaskQueue);
+  }
 
   bool UpdateDuration();
   bool UpdateAudioInfo();
