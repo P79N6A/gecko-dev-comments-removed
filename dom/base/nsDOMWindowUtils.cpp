@@ -20,6 +20,7 @@
 #include "nsFrameManager.h"
 #include "nsRefreshDriver.h"
 #include "mozilla/dom/Touch.h"
+#include "mozilla/PendingPlayerTracker.h"
 #include "nsIObjectLoadingContent.h"
 #include "nsFrame.h"
 #include "mozilla/layers/ShadowLayers.h"
@@ -2654,6 +2655,23 @@ nsDOMWindowUtils::AdvanceTimeAndRefresh(int64_t aMilliseconds)
   MOZ_RELEASE_ASSERT(nsContentUtils::IsCallerChrome());
 
   nsRefreshDriver* driver = GetPresContext()->RefreshDriver();
+
+  
+  
+  
+  
+  
+  
+  
+  
+  nsCOMPtr<nsIDocument> doc = GetDocument();
+  if (doc) {
+    PendingPlayerTracker* tracker = doc->GetPendingPlayerTracker();
+    if (tracker) {
+      tracker->StartPendingPlayers(driver->MostRecentRefresh());
+    }
+  }
+
   driver->AdvanceTimeAndRefresh(aMilliseconds);
 
   RefPtr<LayerTransactionChild> transaction = GetLayerTransaction();
