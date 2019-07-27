@@ -501,24 +501,31 @@ nsGridContainerFrame::ResolveLineRangeHelper(
   }
 
   int32_t start = kAutoLine;
-  if (!aStart.IsAuto()) {
+  if (aStart.IsAuto()) {
+    if (aEnd.IsAuto()) {
+      
+      return LinePair(start, 1); 
+    }
+    if (aEnd.mHasSpan) {
+      if (aEnd.mLineName.IsEmpty()) {
+        
+        MOZ_ASSERT(aEnd.mInteger != 0);
+        return LinePair(start, aEnd.mInteger);
+      }
+      
+      
+      return LinePair(start, 1); 
+    }
+  } else {
     start = ResolveLine(aStart, aStart.mInteger, 0, aLineNameList, aAreaStart,
                         aAreaEnd, aExplicitGridEnd, eLineRangeSideStart,
                         aStyle);
-  }
-  if (aEnd.IsAuto()) {
-    
-    return LinePair(start, 1); 
-  }
-  if (start == kAutoLine && aEnd.mHasSpan) {
-    if (aEnd.mLineName.IsEmpty()) {
+    if (aEnd.IsAuto()) {
       
-      MOZ_ASSERT(aEnd.mInteger != 0);
-      return LinePair(start, aEnd.mInteger);
+      
+      
+      return LinePair(start, start);
     }
-    
-    
-    return LinePair(start, 1); 
   }
 
   uint32_t from = aEnd.mHasSpan ? start : 0;
@@ -555,7 +562,7 @@ nsGridContainerFrame::ResolveLineRange(
     if (MOZ_UNLIKELY(r.first == nsStyleGridLine::kMaxLine)) {
       r.first = nsStyleGridLine::kMaxLine - 1;
     }
-    r.second = r.first + 1;
+    r.second = r.first + 1; 
   }
   return LineRange(r.first, r.second);
 }
