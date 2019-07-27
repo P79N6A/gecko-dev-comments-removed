@@ -56,53 +56,68 @@ GetOrigin(nsIPrincipal* aPrincipal, nsAString& aOrigin, ErrorResult& aRv)
 {
   MOZ_ASSERT(aPrincipal);
 
-  uint16_t appStatus = aPrincipal->GetAppStatus();
+  bool unknownAppId;
+  aRv = aPrincipal->GetUnknownAppId(&unknownAppId);
+  if (NS_WARN_IF(aRv.Failed())) {
+    return;
+  }
 
-  if (appStatus == nsIPrincipal::APP_STATUS_NOT_INSTALLED) {
-    nsAutoString tmp;
-    aRv = nsContentUtils::GetUTFOrigin(aPrincipal, tmp);
+  if (!unknownAppId) {
+    uint32_t appId;
+    aRv = aPrincipal->GetAppId(&appId);
     if (NS_WARN_IF(aRv.Failed())) {
       return;
     }
 
-    aOrigin = tmp;
-    if (aOrigin.EqualsASCII("null")) {
-      nsCOMPtr<nsIURI> uri;
-      aRv = aPrincipal->GetURI(getter_AddRefs(uri));
-      if (NS_WARN_IF(aRv.Failed())) {
+    if (appId != nsIScriptSecurityManager::NO_APP_ID) {
+      
+      
+      
+      nsresult rv;
+      nsCOMPtr<nsIAppsService> appsService =
+        do_GetService("@mozilla.org/AppsService;1", &rv);
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        aRv.Throw(rv);
         return;
       }
 
-      if (NS_WARN_IF(!uri)) {
-        aRv.Throw(NS_ERROR_FAILURE);
-        return;
-      }
-
-      nsAutoCString spec;
-      aRv = uri->GetSpec(spec);
-      if (NS_WARN_IF(aRv.Failed())) {
-        return;
-      }
-
-      aOrigin = NS_ConvertUTF8toUTF16(spec);
+      appsService->GetManifestURLByLocalId(appId, aOrigin);
+      return;
     }
+  }
 
+  nsAutoString tmp;
+  aRv = nsContentUtils::GetUTFOrigin(aPrincipal, tmp);
+  if (NS_WARN_IF(aRv.Failed())) {
     return;
   }
 
-  uint32_t appId = aPrincipal->GetAppId();
+  
+  
 
-  
-  
-  nsresult rv;
-  nsCOMPtr<nsIAppsService> appsService =
-    do_GetService("@mozilla.org/AppsService;1", &rv);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    aRv.Throw(rv);
+  aOrigin = tmp;
+  if (!aOrigin.EqualsASCII("null")) {
     return;
   }
 
-  appsService->GetManifestURLByLocalId(appId, aOrigin);
+  nsCOMPtr<nsIURI> uri;
+  aRv = aPrincipal->GetURI(getter_AddRefs(uri));
+  if (NS_WARN_IF(aRv.Failed())) {
+    return;
+  }
+
+  if (NS_WARN_IF(!uri)) {
+    aRv.Throw(NS_ERROR_FAILURE);
+    return;
+  }
+
+  nsAutoCString spec;
+  aRv = uri->GetSpec(spec);
+  if (NS_WARN_IF(aRv.Failed())) {
+    return;
+  }
+
+  aOrigin = NS_ConvertUTF8toUTF16(spec);
 }
 
 nsIPrincipal*
