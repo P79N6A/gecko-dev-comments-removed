@@ -26,6 +26,10 @@
 #include "nsIWebNavigation.h"
 #include "nsLoadGroup.h"
 #include "nsIScriptError.h"
+#include "nsIURI.h"
+#include "nsIChannelEventSink.h"
+#include "nsAsyncRedirectVerifyHelper.h"
+#include "mozilla/LoadInfo.h"
 
 #include "prlog.h"
 
@@ -150,7 +154,7 @@ nsMixedContentBlocker::~nsMixedContentBlocker()
 {
 }
 
-NS_IMPL_ISUPPORTS(nsMixedContentBlocker, nsIContentPolicy)
+NS_IMPL_ISUPPORTS(nsMixedContentBlocker, nsIContentPolicy, nsIChannelEventSink)
 
 static void
 LogMixedContentMessage(MixedContentTypes aClassification,
@@ -188,6 +192,87 @@ LogMixedContentMessage(MixedContentTypes aClassification,
   nsContentUtils::ReportToConsole(severityFlag, messageCategory, aRootDoc,
                                   nsContentUtils::eSECURITY_PROPERTIES,
                                   messageLookupKey.get(), strings, ArrayLength(strings));
+}
+
+
+
+
+
+
+
+
+NS_IMETHODIMP
+nsMixedContentBlocker::AsyncOnChannelRedirect(nsIChannel* aOldChannel,
+                                              nsIChannel* aNewChannel,
+                                              uint32_t aFlags,
+                                              nsIAsyncVerifyRedirectCallback* aCallback)
+{
+  nsAsyncRedirectAutoCallback autoCallback(aCallback);
+
+  if (!aOldChannel) {
+    NS_ERROR("No channel when evaluating mixed content!");
+    return NS_ERROR_FAILURE;
+  }
+
+  nsresult rv;
+  nsCOMPtr<nsIURI> oldUri;
+  rv = aOldChannel->GetURI(getter_AddRefs(oldUri));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIURI> newUri;
+  rv = aNewChannel->GetURI(getter_AddRefs(newUri));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  nsCOMPtr<nsILoadInfo> loadInfo;
+  rv = aOldChannel->GetLoadInfo(getter_AddRefs(loadInfo));
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (!loadInfo) {
+    
+    
+    
+    
+    
+    
+    return NS_OK;
+  }
+
+  uint32_t contentPolicyType = loadInfo->GetContentPolicyType();
+  nsCOMPtr<nsIPrincipal> requestingPrincipal = loadInfo->LoadingPrincipal();
+
+  
+  
+  
+  nsCOMPtr<nsIURI> requestingLocation;
+  if (requestingPrincipal) {
+    
+    
+    if (nsContentUtils::IsSystemPrincipal(requestingPrincipal)) {
+      return NS_OK;
+    }
+    
+    rv = requestingPrincipal->GetURI(getter_AddRefs(requestingLocation));
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  int16_t decision = REJECT_REQUEST;
+  rv = ShouldLoad(contentPolicyType,
+                  newUri,
+                  requestingLocation,
+                  loadInfo->LoadingNode(),
+                  EmptyCString(),       
+                  nullptr,              
+                  requestingPrincipal,
+                  &decision);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  if (!NS_CP_ACCEPTED(decision)) {
+    autoCallback.DontCallback();
+    return NS_BINDING_FAILED;
+  }
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP
