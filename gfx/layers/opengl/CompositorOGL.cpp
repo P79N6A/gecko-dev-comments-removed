@@ -1272,7 +1272,9 @@ CompositorOGL::DrawQuad(const Rect& aRect,
         
         
         
-        program->Activate();
+        GLint program;
+        mGLContext->fGetIntegerv(LOCAL_GL_CURRENT_PROGRAM, &program);
+        mGLContext->fUseProgram(program);
       }
 #endif
 
