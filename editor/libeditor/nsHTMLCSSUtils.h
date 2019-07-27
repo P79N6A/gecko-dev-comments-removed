@@ -328,8 +328,6 @@ public:
 
 
   already_AddRefed<nsComputedDOMStyle>
-    GetComputedStyle(nsIDOMElement* aElement);
-  already_AddRefed<nsComputedDOMStyle>
     GetComputedStyle(mozilla::dom::Element* aElement);
 
 
