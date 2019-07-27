@@ -206,6 +206,55 @@ function getProfileThreadFromAllocations(allocations) {
 
 
 
+function getFilteredBlueprint({ blueprint, hiddenMarkers }) {
+  
+  
+  let filteredBlueprint = Cu.cloneInto(blueprint, {}, { cloneFunctions: true });
+  let maybeRemovedGroups = new Set();
+  let removedGroups = new Set();
+
+  
+
+  for (let hiddenMarkerName of hiddenMarkers) {
+    maybeRemovedGroups.add(filteredBlueprint[hiddenMarkerName].group);
+    delete filteredBlueprint[hiddenMarkerName];
+  }
+
+  
+
+  for (let maybeRemovedGroup of maybeRemovedGroups) {
+    let markerNames = Object.keys(filteredBlueprint);
+    let isGroupRemoved = markerNames.every(e => filteredBlueprint[e].group != maybeRemovedGroup);
+    if (isGroupRemoved) {
+      removedGroups.add(maybeRemovedGroup);
+    }
+  }
+
+  
+
+  for (let removedGroup of removedGroups) {
+    let markerNames = Object.keys(filteredBlueprint);
+    for (let markerName of markerNames) {
+      let markerDetails = filteredBlueprint[markerName];
+      if (markerDetails.group > removedGroup) {
+        markerDetails.group--;
+      }
+    }
+  }
+
+  return filteredBlueprint;
+};
+
+
+
+
+
+
+
+
+
+
+
 
 
 function deflateProfile(profile) {
@@ -522,6 +571,7 @@ exports.offsetSampleTimes = offsetSampleTimes;
 exports.offsetMarkerTimes = offsetMarkerTimes;
 exports.offsetAndScaleTimestamps = offsetAndScaleTimestamps;
 exports.getProfileThreadFromAllocations = getProfileThreadFromAllocations;
+exports.getFilteredBlueprint = getFilteredBlueprint;
 exports.deflateProfile = deflateProfile;
 exports.deflateThread = deflateThread;
 exports.UniqueStrings = UniqueStrings;

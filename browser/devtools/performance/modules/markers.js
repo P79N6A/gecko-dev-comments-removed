@@ -56,16 +56,6 @@ const { Formatters, CollapseFunctions: collapse } = require("devtools/performanc
 
 const TIMELINE_BLUEPRINT = {
   
-
-
-  "UNKNOWN": {
-    group: 2,
-    colorName: "graphs-grey",
-    collapseFunc: collapse.child,
-    label: Formatters.DefaultLabel
-  },
-
-  
   "Styles": {
     group: 0,
     colorName: "graphs-purple",
@@ -127,7 +117,7 @@ const TIMELINE_BLUEPRINT = {
   
   "ConsoleTime": {
     group: 2,
-    colorName: "graphs-blue",
+    colorName: "graphs-grey",
     label: sublabelForProperty(L10N.getStr("timeline.label.consoleTime"), "causeName"),
     fields: [{
       property: "causeName",
@@ -136,7 +126,7 @@ const TIMELINE_BLUEPRINT = {
   },
   "TimeStamp": {
     group: 2,
-    colorName: "graphs-yellow",
+    colorName: "graphs-blue",
     collapseFunc: collapse.child,
     label: sublabelForProperty(L10N.getStr("timeline.label.timestamp"), "causeName"),
     fields: [{
@@ -145,19 +135,6 @@ const TIMELINE_BLUEPRINT = {
     }],
   },
 };
-
-
-
-
-
-
-
-
-
-
-function getBlueprintFor (marker, blueprint=TIMELINE_BLUEPRINT) {
-  return blueprint[marker.name] || blueprint.UNKNOWN;
-}
 
 
 
@@ -186,4 +163,3 @@ function sublabelForProperty (mainLabel, prop) {
 
 
 exports.TIMELINE_BLUEPRINT = TIMELINE_BLUEPRINT;
-exports.getBlueprintFor = getBlueprintFor;

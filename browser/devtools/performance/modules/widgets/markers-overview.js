@@ -75,7 +75,7 @@ MarkersOverview.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
     this._paintBatches = new Map();
     this._lastGroup = 0;
 
-    for (let type of Object.keys(blueprint).filter(e => !blueprint[e].hidden)) {
+    for (let type in blueprint) {
       this._paintBatches.set(type, { style: blueprint[type], batch: [] });
       this._lastGroup = Math.max(this._lastGroup, blueprint[type].group || 0);
     }
@@ -103,9 +103,9 @@ MarkersOverview.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
 
     
     
+
     for (let marker of markers) {
-      let markerType = this._paintBatches.get(marker.name) || this._paintBatches.get("UNKNOWN");
-      
+      let markerType = this._paintBatches.get(marker.name);
       if (markerType) {
         markerType.batch.push(marker);
       }
