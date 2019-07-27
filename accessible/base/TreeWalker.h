@@ -8,6 +8,8 @@
 
 #include "mozilla/Attributes.h"
 #include <stdint.h>
+#include "mozilla/dom/ChildIterator.h"
+#include "nsCOMPtr.h"
 
 class nsIContent;
 
@@ -16,8 +18,6 @@ namespace a11y {
 
 class Accessible;
 class DocAccessible;
-
-struct WalkState;
 
 
 
@@ -50,10 +50,7 @@ public:
 
 
 
-  Accessible* NextChild()
-  {
-    return NextChildInternal(false);
-  }
+  Accessible* NextChild();
 
 private:
   TreeWalker();
@@ -66,27 +63,23 @@ private:
 
 
 
-
-  Accessible* NextChildInternal(bool aNoWalkUp);
-
-  
-
-
-
-
-
-  void PushState(nsIContent* aNode);
+  dom::AllChildrenIterator* PushState(nsIContent* aContent)
+  {
+    return mStateStack.AppendElement(dom::AllChildrenIterator(aContent,
+                                                              mChildFilter));
+  }
 
   
 
 
-  void PopState();
+  dom::AllChildrenIterator* PopState();
 
   DocAccessible* mDoc;
   Accessible* mContext;
+  nsIContent* mAnchorNode;
+  nsAutoTArray<dom::AllChildrenIterator, 20> mStateStack;
   int32_t mChildFilter;
   uint32_t mFlags;
-  WalkState* mState;
 };
 
 } 
