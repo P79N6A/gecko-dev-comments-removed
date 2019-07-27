@@ -10,162 +10,96 @@
 
 #include <assert.h>
 #include <limits.h>
-#include "vp9/common/vp9_onyxc_int.h"
-#include "vp9/encoder/vp9_onyx_int.h"
-#include "vp9/encoder/vp9_picklpf.h"
-#include "vp9/encoder/vp9_quantize.h"
-#include "vpx_mem/vpx_mem.h"
-#include "vpx_scale/vpx_scale.h"
-#include "vp9/common/vp9_alloccommon.h"
-#include "vp9/common/vp9_loopfilter.h"
+
 #include "./vpx_scale_rtcd.h"
 
-void vp9_yv12_copy_partial_frame_c(YV12_BUFFER_CONFIG *src_ybc,
-                                   YV12_BUFFER_CONFIG *dst_ybc, int fraction) {
-  const int height = src_ybc->y_height;
-  const int stride = src_ybc->y_stride;
-  const int offset = stride * ((height >> 5) * 16 - 8);
-  const int lines_to_copy = MAX(height >> (fraction + 4), 1) << 4;
+#include "vpx_mem/vpx_mem.h"
 
-  assert(src_ybc->y_stride == dst_ybc->y_stride);
-  vpx_memcpy(dst_ybc->y_buffer + offset, src_ybc->y_buffer + offset,
-             stride * (lines_to_copy + 16));
-}
+#include "vp9/common/vp9_loopfilter.h"
+#include "vp9/common/vp9_onyxc_int.h"
+#include "vp9/common/vp9_quant_common.h"
 
-static int calc_partial_ssl_err(YV12_BUFFER_CONFIG *source,
-                                YV12_BUFFER_CONFIG *dest, int Fraction) {
-  int i, j;
-  int Total = 0;
-  int srcoffset, dstoffset;
-  uint8_t *src = source->y_buffer;
-  uint8_t *dst = dest->y_buffer;
+#include "vp9/encoder/vp9_encoder.h"
+#include "vp9/encoder/vp9_picklpf.h"
+#include "vp9/encoder/vp9_quantize.h"
 
-  int linestocopy = (source->y_height >> (Fraction + 4));
-
-  if (linestocopy < 1)
-    linestocopy = 1;
-
-  linestocopy <<= 4;
-
-
-  srcoffset = source->y_stride   * (dest->y_height >> 5) * 16;
-  dstoffset = dest->y_stride     * (dest->y_height >> 5) * 16;
-
-  src += srcoffset;
-  dst += dstoffset;
-
-  
-  
-  for (i = 0; i < linestocopy; i += 16) {
-    for (j = 0; j < source->y_width; j += 16) {
-      unsigned int sse;
-      Total += vp9_mse16x16(src + j, source->y_stride, dst + j, dest->y_stride,
-                            &sse);
-    }
-
-    src += 16 * source->y_stride;
-    dst += 16 * dest->y_stride;
+static int get_max_filter_level(const VP9_COMP *cpi) {
+  if (cpi->oxcf.pass == 2) {
+    return cpi->twopass.section_intra_rating > 8 ? MAX_LOOP_FILTER * 3 / 4
+                                                 : MAX_LOOP_FILTER;
+  } else {
+    return MAX_LOOP_FILTER;
   }
-
-  return Total;
 }
 
 
-static int get_min_filter_level(VP9_COMP *cpi, int base_qindex) {
-  int min_filter_level;
-  min_filter_level = 0;
-
-  return min_filter_level;
-}
-
-
-static int get_max_filter_level(VP9_COMP *cpi, int base_qindex) {
-  int max_filter_level = MAX_LOOP_FILTER;
-  (void)base_qindex;
-
-  if (cpi->twopass.section_intra_rating > 8)
-    max_filter_level = MAX_LOOP_FILTER * 3 / 4;
-
-  return max_filter_level;
-}
-
-
-
-void vp9_set_alt_lf_level(VP9_COMP *cpi, int filt_val) {
-}
-
-void vp9_pick_filter_level(YV12_BUFFER_CONFIG *sd, VP9_COMP *cpi, int partial) {
+static int try_filter_frame(const YV12_BUFFER_CONFIG *sd, VP9_COMP *const cpi,
+                            int filt_level, int partial_frame) {
   VP9_COMMON *const cm = &cpi->common;
-  struct loopfilter *const lf = &cm->lf;
+  int filt_err;
 
-  int best_err = 0;
-  int filt_err = 0;
-  const int min_filter_level = get_min_filter_level(cpi, cm->base_qindex);
-  const int max_filter_level = get_max_filter_level(cpi, cm->base_qindex);
-
-  int filter_step;
-  int filt_high = 0;
-  
-  int filt_mid = lf->filter_level;
-  int filt_low = 0;
-  int filt_best;
-  int filt_direction = 0;
-
-  int Bias = 0;  
-
-  
-  vpx_yv12_copy_y(cm->frame_to_show, &cpi->last_frame_uf);
-
-  lf->sharpness_level = cm->frame_type == KEY_FRAME ? 0
-                                                    : cpi->oxcf.Sharpness;
-
-  
-  
-  filt_mid = clamp(lf->filter_level, min_filter_level, max_filter_level);
-
-  
-  filter_step = filt_mid < 16 ? 4 : filt_mid / 4;
-
-  
-  vp9_set_alt_lf_level(cpi, filt_mid);
-  vp9_loop_filter_frame(cm, &cpi->mb.e_mbd, filt_mid, 1, partial);
-
-  best_err = vp9_calc_ss_err(sd, cm->frame_to_show);
-  filt_best = filt_mid;
+  vp9_loop_filter_frame(cm->frame_to_show, cm, &cpi->mb.e_mbd, filt_level, 1,
+                        partial_frame);
+  filt_err = vp9_get_y_sse(sd, cm->frame_to_show);
 
   
   vpx_yv12_copy_y(&cpi->last_frame_uf, cm->frame_to_show);
 
-  while (filter_step > 0) {
-    Bias = (best_err >> (15 - (filt_mid / 8))) * filter_step;
+  return filt_err;
+}
 
-    if (cpi->twopass.section_intra_rating < 20)
-      Bias = Bias * cpi->twopass.section_intra_rating / 20;
+static int search_filter_level(const YV12_BUFFER_CONFIG *sd, VP9_COMP *cpi,
+                               int partial_frame) {
+  const VP9_COMMON *const cm = &cpi->common;
+  const struct loopfilter *const lf = &cm->lf;
+  const int min_filter_level = 0;
+  const int max_filter_level = get_max_filter_level(cpi);
+  int filt_direction = 0;
+  int best_err, filt_best;
+
+  
+  
+  int filt_mid = clamp(lf->filter_level, min_filter_level, max_filter_level);
+  int filter_step = filt_mid < 16 ? 4 : filt_mid / 4;
+  
+  int ss_err[MAX_LOOP_FILTER + 1];
+
+  
+  vpx_memset(ss_err, 0xFF, sizeof(ss_err));
+
+  
+  vpx_yv12_copy_y(cm->frame_to_show, &cpi->last_frame_uf);
+
+  best_err = try_filter_frame(sd, cpi, filt_mid, partial_frame);
+  filt_best = filt_mid;
+  ss_err[filt_mid] = best_err;
+
+  while (filter_step > 0) {
+    const int filt_high = MIN(filt_mid + filter_step, max_filter_level);
+    const int filt_low = MAX(filt_mid - filter_step, min_filter_level);
+    int filt_err;
 
     
-    if (cpi->common.tx_mode != ONLY_4X4)
-      Bias >>= 1;
+    int bias = (best_err >> (15 - (filt_mid / 8))) * filter_step;
 
-    filt_high = ((filt_mid + filter_step) > max_filter_level)
-                    ? max_filter_level
-                    : (filt_mid + filter_step);
-    filt_low = ((filt_mid - filter_step) < min_filter_level)
-                   ? min_filter_level
-                   : (filt_mid - filter_step);
+    if ((cpi->oxcf.pass == 2) && (cpi->twopass.section_intra_rating < 20))
+      bias = (bias * cpi->twopass.section_intra_rating) / 20;
 
-    if ((filt_direction <= 0) && (filt_low != filt_mid)) {
+    
+    if (cm->tx_mode != ONLY_4X4)
+      bias >>= 1;
+
+    if (filt_direction <= 0 && filt_low != filt_mid) {
       
-      vp9_set_alt_lf_level(cpi, filt_low);
-      vp9_loop_filter_frame(cm, &cpi->mb.e_mbd, filt_low, 1, partial);
-
-      filt_err = vp9_calc_ss_err(sd, cm->frame_to_show);
-
-      
-      vpx_yv12_copy_y(&cpi->last_frame_uf, cm->frame_to_show);
-
+      if (ss_err[filt_low] < 0) {
+        filt_err = try_filter_frame(sd, cpi, filt_low, partial_frame);
+        ss_err[filt_low] = filt_err;
+      } else {
+        filt_err = ss_err[filt_low];
+      }
       
       
-      if ((filt_err - Bias) < best_err) {
+      if ((filt_err - bias) < best_err) {
         
         if (filt_err < best_err)
           best_err = filt_err;
@@ -175,17 +109,15 @@ void vp9_pick_filter_level(YV12_BUFFER_CONFIG *sd, VP9_COMP *cpi, int partial) {
     }
 
     
-    if ((filt_direction >= 0) && (filt_high != filt_mid)) {
-      vp9_set_alt_lf_level(cpi, filt_high);
-      vp9_loop_filter_frame(cm, &cpi->mb.e_mbd, filt_high, 1, partial);
-
-      filt_err = vp9_calc_ss_err(sd, cm->frame_to_show);
-
+    if (filt_direction >= 0 && filt_high != filt_mid) {
+      if (ss_err[filt_high] < 0) {
+        filt_err = try_filter_frame(sd, cpi, filt_high, partial_frame);
+        ss_err[filt_high] = filt_err;
+      } else {
+        filt_err = ss_err[filt_high];
+      }
       
-      vpx_yv12_copy_y(&cpi->last_frame_uf, cm->frame_to_show);
-
-      
-      if (filt_err < (best_err - Bias)) {
+      if (filt_err < (best_err - bias)) {
         best_err = filt_err;
         filt_best = filt_high;
       }
@@ -193,7 +125,7 @@ void vp9_pick_filter_level(YV12_BUFFER_CONFIG *sd, VP9_COMP *cpi, int partial) {
 
     
     if (filt_best == filt_mid) {
-      filter_step = filter_step / 2;
+      filter_step /= 2;
       filt_direction = 0;
     } else {
       filt_direction = (filt_best < filt_mid) ? -1 : 1;
@@ -201,5 +133,31 @@ void vp9_pick_filter_level(YV12_BUFFER_CONFIG *sd, VP9_COMP *cpi, int partial) {
     }
   }
 
-  lf->filter_level = filt_best;
+  return filt_best;
+}
+
+void vp9_pick_filter_level(const YV12_BUFFER_CONFIG *sd, VP9_COMP *cpi,
+                           LPF_PICK_METHOD method) {
+  VP9_COMMON *const cm = &cpi->common;
+  struct loopfilter *const lf = &cm->lf;
+
+  lf->sharpness_level = cm->frame_type == KEY_FRAME ? 0
+                                                    : cpi->oxcf.sharpness;
+
+  if (method == LPF_PICK_MINIMAL_LPF && lf->filter_level) {
+      lf->filter_level = 0;
+  } else if (method >= LPF_PICK_FROM_Q) {
+    const int min_filter_level = 0;
+    const int max_filter_level = get_max_filter_level(cpi);
+    const int q = vp9_ac_quant(cm->base_qindex, 0);
+    
+    
+    int filt_guess = ROUND_POWER_OF_TWO(q * 20723 + 1015158, 18);
+    if (cm->frame_type == KEY_FRAME)
+      filt_guess -= 4;
+    lf->filter_level = clamp(filt_guess, min_filter_level, max_filter_level);
+  } else {
+    lf->filter_level = search_filter_level(sd, cpi,
+                                           method == LPF_PICK_FROM_SUBIMAGE);
+  }
 }

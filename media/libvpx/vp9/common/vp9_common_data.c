@@ -26,8 +26,6 @@ const int mi_width_log2_lookup[BLOCK_SIZES] =
   {0, 0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3};
 const int num_8x8_blocks_wide_lookup[BLOCK_SIZES] =
   {1, 1, 1, 1, 1, 2, 2, 2, 4, 4, 4, 8, 8};
-const int mi_height_log2_lookup[BLOCK_SIZES] =
-  {0, 0, 0, 0, 1, 0, 1, 2, 1, 2, 3, 2, 3};
 const int num_8x8_blocks_high_lookup[BLOCK_SIZES] =
   {1, 1, 1, 1, 2, 1, 2, 4, 2, 4, 8, 4, 8};
 
@@ -108,11 +106,12 @@ const TX_SIZE max_txsize_lookup[BLOCK_SIZES] = {
   TX_16X16, TX_16X16, TX_16X16,
   TX_32X32, TX_32X32, TX_32X32, TX_32X32
 };
-const TX_SIZE max_uv_txsize_lookup[BLOCK_SIZES] = {
-  TX_4X4,   TX_4X4,   TX_4X4,
-  TX_4X4,   TX_4X4,   TX_4X4,
-  TX_8X8,   TX_8X8,   TX_8X8,
-  TX_16X16, TX_16X16, TX_16X16, TX_32X32
+
+const BLOCK_SIZE txsize_to_bsize[TX_SIZES] = {
+    BLOCK_4X4,  
+    BLOCK_8X8,  
+    BLOCK_16X16,  
+    BLOCK_32X32,  
 };
 
 const TX_SIZE tx_mode_to_biggest_tx_size[TX_MODES] = {
@@ -122,8 +121,6 @@ const TX_SIZE tx_mode_to_biggest_tx_size[TX_MODES] = {
   TX_32X32,  
   TX_32X32,  
 };
-
-
 
 const BLOCK_SIZE ss_size_lookup[BLOCK_SIZES][2][2] = {
 
@@ -144,3 +141,23 @@ const BLOCK_SIZE ss_size_lookup[BLOCK_SIZES][2][2] = {
 };
 
 
+
+
+const struct {
+  PARTITION_CONTEXT above;
+  PARTITION_CONTEXT left;
+} partition_context_lookup[BLOCK_SIZES]= {
+  {15, 15},  
+  {15, 14},  
+  {14, 15},  
+  {14, 14},  
+  {14, 12},  
+  {12, 14},  
+  {12, 12},  
+  {12, 8 },  
+  {8,  12},  
+  {8,  8 },  
+  {8,  0 },  
+  {0,  8 },  
+  {0,  0 },  
+};

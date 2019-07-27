@@ -9,8 +9,8 @@
 
 
 
-#ifndef __INC_VP8D_H
-#define __INC_VP8D_H
+#ifndef VP8_COMMON_ONYXD_H_
+#define VP8_COMMON_ONYXD_H_
 
 
 

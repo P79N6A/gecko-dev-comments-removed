@@ -27,8 +27,8 @@
 
 
 
-#ifndef VP8_H
-#define VP8_H
+#ifndef VPX_VP8_H_
+#define VPX_VP8_H_
 
 #include "./vpx_codec.h"
 #include "./vpx_image.h"
@@ -135,4 +135,4 @@ VPX_CTRL_USE_TYPE(VP9_GET_REFERENCE,           vp9_ref_frame_t *)
 }  
 #endif
 
-#endif
+#endif  

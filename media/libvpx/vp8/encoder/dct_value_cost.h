@@ -8,6 +8,13 @@
 
 
 
+#ifndef VP8_ENCODER_DCT_VALUE_COST_H_
+#define VP8_ENCODER_DCT_VALUE_COST_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 
 
@@ -356,3 +363,9 @@ static const short dct_value_cost[2048*2] =
     8134, 8140, 8148, 8170, 8178, 8184, 8192, 8202, 8210, 8216, 8224, 8243,
     8251, 8257, 8265, 8275
 };
+
+#ifdef __cplusplus
+}  
+#endif
+
+#endif

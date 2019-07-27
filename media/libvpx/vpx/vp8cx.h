@@ -7,15 +7,15 @@
 
 
 
-#ifndef VP8CX_H
-#define VP8CX_H
+#ifndef VPX_VP8CX_H_
+#define VPX_VP8CX_H_
 
 
 
 
 
 
-#include "vp8.h"
+#include "./vp8.h"
 
 
 
@@ -38,8 +38,6 @@ extern vpx_codec_iface_t *vpx_codec_vp8_cx(void);
 
 extern vpx_codec_iface_t  vpx_codec_vp9_cx_algo;
 extern vpx_codec_iface_t *vpx_codec_vp9_cx(void);
-extern vpx_codec_iface_t  vpx_codec_vp9x_cx_algo;
-extern vpx_codec_iface_t *vpx_codec_vp9x_cx(void);
 
 
 
@@ -162,8 +160,12 @@ enum vp8e_enc_control_id {
 
 
   VP8E_SET_ARNR_MAXFRAMES,         
-  VP8E_SET_ARNR_STRENGTH,         
-  VP8E_SET_ARNR_TYPE,         
+  VP8E_SET_ARNR_STRENGTH,          
+                                   
+
+  
+  VP8E_SET_ARNR_TYPE,
+
   VP8E_SET_TUNING,                 
   
 
@@ -194,9 +196,17 @@ enum vp8e_enc_control_id {
   VP9E_SET_TILE_ROWS,
   VP9E_SET_FRAME_PARALLEL_DECODING,
   VP9E_SET_AQ_MODE,
+  VP9E_SET_FRAME_PERIODIC_BOOST,
 
   VP9E_SET_SVC,
-  VP9E_SET_SVC_PARAMETERS
+  VP9E_SET_SVC_PARAMETERS,
+  
+
+
+
+
+  VP9E_SET_SVC_LAYER_ID,
+  VP9E_SET_TUNE_CONTENT
 };
 
 
@@ -269,6 +279,12 @@ typedef enum {
 } vp8e_token_partitions;
 
 
+typedef enum {
+  VP9E_CONTENT_DEFAULT,
+  VP9E_CONTENT_SCREEN,
+  VP9E_CONTENT_INVALID
+} vp9e_tune_content;
+
 
 
 
@@ -287,8 +303,8 @@ typedef enum {
 typedef struct vpx_svc_parameters {
   unsigned int width;         
   unsigned int height;        
-  int layer;                  
-  int flags;                  
+  int spatial_layer;          
+  int temporal_layer;         
   int max_quantizer;          
   int min_quantizer;          
   int distance_from_i_frame;  
@@ -296,6 +312,18 @@ typedef struct vpx_svc_parameters {
   int gld_fb_idx;             
   int alt_fb_idx;             
 } vpx_svc_parameters_t;
+
+
+
+
+
+
+
+
+typedef struct vpx_svc_layer_id {
+  int spatial_layer_id;       
+  int temporal_layer_id;      
+} vpx_svc_layer_id_t;
 
 
 
@@ -318,6 +346,7 @@ VPX_CTRL_USE_TYPE(VP8E_SET_SCALEMODE,          vpx_scaling_mode_t *)
 
 VPX_CTRL_USE_TYPE(VP9E_SET_SVC,                int)
 VPX_CTRL_USE_TYPE(VP9E_SET_SVC_PARAMETERS,     vpx_svc_parameters_t *)
+VPX_CTRL_USE_TYPE(VP9E_SET_SVC_LAYER_ID,       vpx_svc_layer_id_t *)
 
 VPX_CTRL_USE_TYPE(VP8E_SET_CPUUSED,            int)
 VPX_CTRL_USE_TYPE(VP8E_SET_ENABLEAUTOALTREF,   unsigned int)
@@ -328,7 +357,7 @@ VPX_CTRL_USE_TYPE(VP8E_SET_TOKEN_PARTITIONS,   int)
 
 VPX_CTRL_USE_TYPE(VP8E_SET_ARNR_MAXFRAMES,     unsigned int)
 VPX_CTRL_USE_TYPE(VP8E_SET_ARNR_STRENGTH,     unsigned int)
-VPX_CTRL_USE_TYPE(VP8E_SET_ARNR_TYPE,     unsigned int)
+VPX_CTRL_USE_TYPE_DEPRECATED(VP8E_SET_ARNR_TYPE,     unsigned int)
 VPX_CTRL_USE_TYPE(VP8E_SET_TUNING,             int) 
 VPX_CTRL_USE_TYPE(VP8E_SET_CQ_LEVEL,      unsigned int)
 
@@ -346,9 +375,12 @@ VPX_CTRL_USE_TYPE(VP9E_SET_FRAME_PARALLEL_DECODING, unsigned int)
 
 VPX_CTRL_USE_TYPE(VP9E_SET_AQ_MODE, unsigned int)
 
+VPX_CTRL_USE_TYPE(VP9E_SET_FRAME_PERIODIC_BOOST, unsigned int)
+
+VPX_CTRL_USE_TYPE(VP9E_SET_TUNE_CONTENT, int) 
 
 #ifdef __cplusplus
 }  
 #endif
 
-#endif
+#endif  

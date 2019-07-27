@@ -7,8 +7,8 @@
 
 
 
-#ifndef VPX_DECODER_H
-#define VPX_DECODER_H
+#ifndef VPX_VPX_DECODER_H_
+#define VPX_VPX_DECODER_H_
 
 
 
@@ -29,7 +29,8 @@
 extern "C" {
 #endif
 
-#include "vpx_codec.h"
+#include "./vpx_codec.h"
+#include "./vpx_frame_buffer.h"
 
   
 
@@ -39,7 +40,7 @@ extern "C" {
 
 
 
-#define VPX_DECODER_ABI_VERSION (2 + VPX_CODEC_ABI_VERSION) /**<\hideinitializer*/
+#define VPX_DECODER_ABI_VERSION (3 + VPX_CODEC_ABI_VERSION) /**<\hideinitializer*/
 
   
 
@@ -66,8 +67,10 @@ extern "C" {
 
 #define VPX_CODEC_CAP_FRAME_THREADING   0x200000 /**< Can support frame-based
                                                       multi-threading */
+#define VPX_CODEC_CAP_EXTERNAL_FRAME_BUFFER 0x400000 
 
-#define VPX_CODEC_USE_POSTPROC   0x10000 
+
+#define VPX_CODEC_USE_POSTPROC   0x10000 /**< Postprocess decoded frame */
 #define VPX_CODEC_USE_ERROR_CONCEALMENT 0x20000 /**< Conceal errors in decoded
   frames */
 #define VPX_CODEC_USE_INPUT_FRAGMENTS   0x40000 /**< The input frame should be
@@ -130,13 +133,9 @@ extern "C" {
 
 
 
-
-
-
-
   vpx_codec_err_t vpx_codec_dec_init_ver(vpx_codec_ctx_t      *ctx,
                                          vpx_codec_iface_t    *iface,
-                                         vpx_codec_dec_cfg_t  *cfg,
+                                         const vpx_codec_dec_cfg_t *cfg,
                                          vpx_codec_flags_t     flags,
                                          int                   ver);
 
@@ -323,6 +322,51 @@ extern "C" {
                                                   vpx_codec_put_slice_cb_fn_t  cb,
                                                   void                        *user_priv);
 
+
+  
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  vpx_codec_err_t vpx_codec_set_frame_buffer_functions(
+      vpx_codec_ctx_t *ctx,
+      vpx_get_frame_buffer_cb_fn_t cb_get,
+      vpx_release_frame_buffer_cb_fn_t cb_release, void *cb_priv);
 
   
 

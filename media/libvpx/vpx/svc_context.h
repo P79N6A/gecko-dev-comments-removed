@@ -16,19 +16,12 @@
 #ifndef VPX_SVC_CONTEXT_H_
 #define VPX_SVC_CONTEXT_H_
 
-#include "vpx/vp8cx.h"
-#include "vpx/vpx_encoder.h"
+#include "./vp8cx.h"
+#include "./vpx_encoder.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-typedef enum SVC_ENCODING_MODE {
-  INTER_LAYER_PREDICTION_I,
-  ALT_INTER_LAYER_PREDICTION_IP,
-  INTER_LAYER_PREDICTION_IP,
-  USE_GOLDEN_FRAME
-} SVC_ENCODING_MODE;
 
 typedef enum SVC_LOG_LEVEL {
   SVC_LOG_ERROR,
@@ -39,8 +32,7 @@ typedef enum SVC_LOG_LEVEL {
 typedef struct {
   
   int spatial_layers;               
-  int first_frame_full_size;        
-  SVC_ENCODING_MODE encoding_mode;  
+  int temporal_layers;               
   SVC_LOG_LEVEL log_level;  
   int log_print;  
                   
@@ -106,12 +98,25 @@ const char *vpx_svc_get_message(const SvcContext *svc_ctx);
 
 
 
+
 size_t vpx_svc_get_frame_size(const SvcContext *svc_ctx);
 
 
 
 
-void *vpx_svc_get_buffer(const SvcContext *svc_ctx);
+
+void *vpx_svc_get_buffer(SvcContext *svc_ctx);
+
+
+
+
+
+size_t vpx_svc_get_rc_stats_buffer_size(const SvcContext *svc_ctx);
+
+
+
+
+char *vpx_svc_get_rc_stats_buffer(const SvcContext *svc_ctx);
 
 
 

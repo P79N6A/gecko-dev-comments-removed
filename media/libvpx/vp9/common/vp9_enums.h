@@ -13,6 +13,10 @@
 
 #include "./vpx_config.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define MI_SIZE_LOG2 3
 #define MI_BLOCK_SIZE_LOG2 (6 - MI_SIZE_LOG2)  // 64 = 2^6
 
@@ -21,6 +25,20 @@
 
 #define MI_MASK (MI_BLOCK_SIZE - 1)
 
+
+
+
+
+
+
+
+typedef enum BITSTREAM_PROFILE {
+  PROFILE_0,
+  PROFILE_1,
+  PROFILE_2,
+  PROFILE_3,
+  MAX_PROFILES
+} BITSTREAM_PROFILE;
 
 typedef enum BLOCK_SIZE {
   BLOCK_4X4,
@@ -52,6 +70,7 @@ typedef enum PARTITION_TYPE {
 #define PARTITION_PLOFFSET   4  // number of probability models per block size
 #define PARTITION_CONTEXTS (4 * PARTITION_PLOFFSET)
 
+
 typedef enum {
   TX_4X4 = 0,                      
   TX_8X8 = 1,                      
@@ -60,12 +79,13 @@ typedef enum {
   TX_SIZES
 } TX_SIZE;
 
+
 typedef enum {
-  ONLY_4X4            = 0,
-  ALLOW_8X8           = 1,
-  ALLOW_16X16         = 2,
-  ALLOW_32X32         = 3,
-  TX_MODE_SELECT      = 4,
+  ONLY_4X4            = 0,        
+  ALLOW_8X8           = 1,        
+  ALLOW_16X16         = 2,        
+  ALLOW_32X32         = 3,        
+  TX_MODE_SELECT      = 4,        
   TX_MODES            = 5,
 } TX_MODE;
 
@@ -73,7 +93,8 @@ typedef enum {
   DCT_DCT   = 0,                      
   ADST_DCT  = 1,                      
   DCT_ADST  = 2,                      
-  ADST_ADST = 3                       
+  ADST_ADST = 3,                      
+  TX_TYPES = 4
 } TX_TYPE;
 
 typedef enum {
@@ -87,4 +108,14 @@ typedef enum {
   SRGB       = 7   
 } COLOR_SPACE;
 
-#endif  
+typedef enum {
+  VP9_LAST_FLAG = 1 << 0,
+  VP9_GOLD_FLAG = 1 << 1,
+  VP9_ALT_FLAG = 1 << 2,
+} VP9_REFFRAME;
+
+#ifdef __cplusplus
+}  
+#endif
+
+#endif

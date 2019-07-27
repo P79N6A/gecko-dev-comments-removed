@@ -7,8 +7,9 @@
 
 
 
-#ifndef VPX_ONCE_H
-#define VPX_ONCE_H
+
+#ifndef VPX_PORTS_VPX_ONCE_H_
+#define VPX_PORTS_VPX_ONCE_H_
 
 #include "vpx_config.h"
 
@@ -72,6 +73,33 @@ static void once(void (*func)(void))
 }
 
 
+#elif CONFIG_MULTITHREAD && defined(__OS2__)
+#define INCL_DOS
+#include <os2.h>
+static void once(void (*func)(void))
+{
+    static int done;
+
+    
+    if(done)
+        return;
+
+    
+
+
+    DosEnterCritSec();
+
+    if (!done)
+    {
+        func();
+        done = 1;
+    }
+
+    
+    DosExitCritSec();
+}
+
+
 #elif CONFIG_MULTITHREAD && HAVE_PTHREAD_H
 #include <pthread.h>
 static void once(void (*func)(void))
@@ -99,4 +127,4 @@ static void once(void (*func)(void))
 }
 #endif
 
-#endif
+#endif  

@@ -7,10 +7,14 @@
 
 
 
-#ifndef LOOKAHEAD_H
-#define LOOKAHEAD_H
+#ifndef VP8_ENCODER_LOOKAHEAD_H_
+#define VP8_ENCODER_LOOKAHEAD_H_
 #include "vpx_scale/yv12config.h"
 #include "vpx/vpx_integer.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 struct lookahead_entry
 {
@@ -105,5 +109,9 @@ vp8_lookahead_peek(struct lookahead_ctx *ctx,
 unsigned int
 vp8_lookahead_depth(struct lookahead_ctx *ctx);
 
+
+#ifdef __cplusplus
+}  
+#endif
 
 #endif

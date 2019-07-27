@@ -8,6 +8,12 @@
 
 
 
+#ifndef VP8_COMMON_VP8_ENTROPYMODEDATA_H_
+#define VP8_COMMON_VP8_ENTROPYMODEDATA_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 
@@ -240,3 +246,9 @@ const vp8_prob vp8_kf_bmode_prob
         { 112,  19,  12,  61, 195, 128,  48,   4,  24 }
     }
 };
+
+#ifdef __cplusplus
+}  
+#endif
+
+#endif

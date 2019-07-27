@@ -8,6 +8,13 @@
 
 
 
+#ifndef VP8_ENCODER_DEFAULTCOEFCOUNTS_H_
+#define VP8_ENCODER_DEFAULTCOEFCOUNTS_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 
 static const unsigned int default_coef_counts[BLOCK_TYPES]
@@ -221,3 +228,9 @@ static const unsigned int default_coef_counts[BLOCK_TYPES]
         },
     },
 };
+
+#ifdef __cplusplus
+}  
+#endif
+
+#endif

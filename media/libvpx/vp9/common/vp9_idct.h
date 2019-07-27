@@ -18,6 +18,10 @@
 #include "vp9/common/vp9_common.h"
 #include "vp9/common/vp9_enums.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 
 #define DCT_CONST_BITS 14
@@ -29,8 +33,8 @@
 #define pair_set_epi16(a, b) \
   _mm_set_epi16(b, a, b, a, b, a, b, a)
 
-#define pair_set_epi32(a, b) \
-  _mm_set_epi32(b, a, b, a)
+#define dual_set_epi16(a, b) \
+  _mm_set_epi16(b, b, b, b, a, a, a, a)
 
 
 
@@ -77,6 +81,16 @@ static const int sinpi_4_9 = 15212;
 
 static INLINE int dct_const_round_shift(int input) {
   int rv = ROUND_POWER_OF_TWO(input, DCT_CONST_BITS);
+#if CONFIG_COEFFICIENT_RANGE_CHECKING
+  
+  
+  
+  
+  
+  
+  assert(INT16_MIN <= rv);
+  assert(rv <= INT16_MAX);
+#endif
   return (int16_t)rv;
 }
 
@@ -103,4 +117,8 @@ void vp9_iht16x16_add(TX_TYPE tx_type, const int16_t *input, uint8_t *dest,
                       int stride, int eob);
 
 
-#endif  
+#ifdef __cplusplus
+}  
+#endif
+
+#endif

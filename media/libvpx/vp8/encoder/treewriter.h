@@ -9,8 +9,8 @@
 
 
 
-#ifndef __INC_TREEWRITER_H
-#define __INC_TREEWRITER_H
+#ifndef VP8_ENCODER_TREEWRITER_H_
+#define VP8_ENCODER_TREEWRITER_H_
 
 
 
@@ -18,6 +18,10 @@
 #include "vp8/common/treecoder.h"
 
 #include "boolhuff.h"       
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef BOOL_CODER vp8_writer;
 
@@ -122,5 +126,9 @@ void vp8_cost_tokens(
 void vp8_cost_tokens2(
     int *Costs, const vp8_prob *, vp8_tree, int
 );
+
+#ifdef __cplusplus
+}  
+#endif
 
 #endif

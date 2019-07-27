@@ -8,6 +8,12 @@
 
 
 
+#ifndef VP8_COMMON_COEFUPDATEPROBS_H_
+#define VP8_COMMON_COEFUPDATEPROBS_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 
@@ -183,3 +189,9 @@ const vp8_prob vp8_coef_update_probs [BLOCK_TYPES] [COEF_BANDS] [PREV_COEF_CONTE
         },
     },
 };
+
+#ifdef __cplusplus
+}  
+#endif
+
+#endif
