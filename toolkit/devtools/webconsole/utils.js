@@ -32,7 +32,7 @@ const REGEX_MATCH_FUNCTION_NAME = /^\(?function\s+([^(\s]+)\s*\(/;
 const REGEX_MATCH_FUNCTION_ARGS = /^\(?function\s*[^\s(]*\s*\((.+?)\)/;
 
 
-const CONSOLE_ENTRY_THRESHOLD = 10
+const CONSOLE_ENTRY_THRESHOLD = 5
 let WebConsoleUtils = {
   
 
