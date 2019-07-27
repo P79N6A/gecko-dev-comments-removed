@@ -1656,8 +1656,8 @@ class MOZ_STACK_CLASS CallMethodHelper
 
     MOZ_ALWAYS_INLINE void CleanupParam(nsXPTCMiniVariant& param, nsXPTType& type);
 
-    MOZ_ALWAYS_INLINE bool HandleDipperParam(nsXPTCVariant* dp,
-                                             const nsXPTParamInfo& paramInfo);
+    MOZ_ALWAYS_INLINE bool AllocateStringClass(nsXPTCVariant* dp,
+                                               const nsXPTParamInfo& paramInfo);
 
     MOZ_ALWAYS_INLINE nsresult Invoke();
 
@@ -2097,8 +2097,17 @@ CallMethodHelper::ConvertIndependentParam(uint8_t i)
     MOZ_ASSERT(!paramInfo.IsShared(), "[shared] implies [noscript]!");
 
     
-    if (paramInfo.IsDipper())
-        return HandleDipperParam(dp, paramInfo);
+    
+    
+    
+    
+    
+    if (paramInfo.IsStringClass()) {
+        if (!AllocateStringClass(dp, paramInfo))
+            return false;
+        if (paramInfo.IsDipper())
+            return true;
+    }
 
     
     if (paramInfo.IsIndirect())
@@ -2156,7 +2165,7 @@ CallMethodHelper::ConvertIndependentParam(uint8_t i)
     }
 
     nsresult err;
-    if (!XPCConvert::JSData2Native(&dp->val, src, type, true, &param_iid, &err)) {
+    if (!XPCConvert::JSData2Native(&dp->val, src, type, !paramInfo.IsStringClass(), &param_iid, &err)) {
         ThrowBadParam(err, i, mCallContext);
         return false;
     }
@@ -2317,8 +2326,7 @@ CallMethodHelper::CleanupParam(nsXPTCMiniVariant& param, nsXPTType& type)
         case nsXPTType::T_CSTRING:
             {
                 nsCString* rs = (nsCString*)param.val.p;
-                if (rs != &EmptyCString() && rs != &NullCString())
-                    delete rs;
+                delete rs;
             }
             break;
         default:
@@ -2328,44 +2336,19 @@ CallMethodHelper::CleanupParam(nsXPTCMiniVariant& param, nsXPTType& type)
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 bool
-CallMethodHelper::HandleDipperParam(nsXPTCVariant* dp,
-                                    const nsXPTParamInfo& paramInfo)
+CallMethodHelper::AllocateStringClass(nsXPTCVariant* dp,
+                                      const nsXPTParamInfo& paramInfo)
 {
     
     uint8_t type_tag = paramInfo.GetType().TagPart();
 
     
-    MOZ_ASSERT(!paramInfo.IsOut(), "Dipper has unexpected flags.");
-
-    
-    
     MOZ_ASSERT(type_tag == nsXPTType::T_ASTRING ||
                type_tag == nsXPTType::T_DOMSTRING ||
                type_tag == nsXPTType::T_UTF8STRING ||
                type_tag == nsXPTType::T_CSTRING,
-               "Unexpected dipper type!");
+               "Unexpected string class type!");
 
     
     

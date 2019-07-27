@@ -132,9 +132,39 @@ public:
     bool IsOut() const    {return 0 != (XPT_PD_IS_OUT(flags));}
     bool IsRetval() const {return 0 != (XPT_PD_IS_RETVAL(flags));}
     bool IsShared() const {return 0 != (XPT_PD_IS_SHARED(flags));}
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     bool IsDipper() const {return 0 != (XPT_PD_IS_DIPPER(flags));}
     bool IsOptional() const {return 0 != (XPT_PD_IS_OPTIONAL(flags));}
     const nsXPTType GetType() const {return type.prefix;}
+
+    bool IsStringClass() const {
+      switch (GetType().TagPart()) {
+        case nsXPTType::T_ASTRING:
+        case nsXPTType::T_DOMSTRING:
+        case nsXPTType::T_UTF8STRING:
+        case nsXPTType::T_CSTRING:
+          return true;
+        default:
+          return false;
+      }
+    }
 
     
     
