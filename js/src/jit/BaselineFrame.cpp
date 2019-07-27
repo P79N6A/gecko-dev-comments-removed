@@ -92,12 +92,8 @@ BaselineFrame::trace(JSTracer *trc, JitFrameIterator &frameIterator)
         MarkLocals(this, trc, nfixed, numValueSlots());
 
         
-        
-        while (nfixed > nlivefixed) {
-            --nfixed;
-            if (!unaliasedLocal(nfixed, DONT_CHECK_ALIASING).isMagic())
-                unaliasedLocal(nfixed, DONT_CHECK_ALIASING).setUndefined();
-        }
+        while (nfixed > nlivefixed)
+            unaliasedLocal(--nfixed, DONT_CHECK_ALIASING).setMagic(JS_UNINITIALIZED_LEXICAL);
 
         
         MarkLocals(this, trc, 0, nlivefixed);

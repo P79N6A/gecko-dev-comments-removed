@@ -747,6 +747,8 @@ IonMarkFunction(MIRType type)
 
 bool ObjectIsCallable(JSObject *obj);
 
+bool ThrowUninitializedLet(JSContext *cx);
+
 } 
 } 
 
