@@ -67,6 +67,7 @@
 #include "nsIDOMXPathEvaluator.h"
 #include "jsfriendapi.h"
 #include "ImportManager.h"
+#include "mozilla/LinkedList.h"
 
 #define XML_DECLARATION_BITS_DECLARATION_EXISTS   (1 << 0)
 #define XML_DECLARATION_BITS_ENCODING_EXISTS      (1 << 1)
@@ -96,8 +97,28 @@ class BoxObject;
 class UndoManager;
 struct LifecycleCallbacks;
 class CallbackFunction;
-}
-}
+
+struct FullscreenRequest : public LinkedListElement<FullscreenRequest>
+{
+  explicit FullscreenRequest(Element* aElement);
+  ~FullscreenRequest();
+
+  nsRefPtr<Element> mElement;
+
+  nsRefPtr<gfx::VRHMDInfo> mVRHMDDevice;
+  
+  
+  bool mIsCallerChrome = false;
+  
+  
+  
+  
+  
+  
+  bool mShouldNotifyNewOrigin = true;
+};
+} 
+} 
 
 
 
@@ -1175,8 +1196,8 @@ public:
   virtual Element* FindImageMap(const nsAString& aNormalizedMapName) override;
 
   virtual Element* GetFullScreenElement() override;
-  virtual void AsyncRequestFullScreen(Element* aElement,
-                                      mozilla::dom::FullScreenOptions& aOptions) override;
+  virtual void AsyncRequestFullScreen(
+    mozilla::UniquePtr<FullscreenRequest>&& aRequest) override;
   virtual void RestorePreviousFullScreenState() override;
   virtual bool IsFullscreenLeaf() override;
   virtual bool IsFullScreenDoc() override;
@@ -1222,8 +1243,7 @@ public:
 
   
   
-  void RequestFullScreen(Element* aElement,
-                         const mozilla::dom::FullScreenOptions& aOptions);
+  void RequestFullScreen(mozilla::UniquePtr<FullscreenRequest>&& aRequest);
 
   
   
@@ -1513,8 +1533,7 @@ protected:
   void NotifyStyleSheetApplicableStateChanged();
 
   
-  void ApplyFullscreen(Element* aElement,
-                       const mozilla::dom::FullScreenOptions& aOptions);
+  void ApplyFullscreen(const FullscreenRequest& aRequest);
 
   nsTArray<nsIObserver*> mCharSetObservers;
 

@@ -30,6 +30,7 @@
 #include "nsExpirationTracker.h"
 #include "nsClassHashtable.h"
 #include "prclist.h"
+#include "mozilla/UniquePtr.h"
 #include <bitset>                        
 
 class imgIRequest;
@@ -84,7 +85,6 @@ class nsDOMCaretPosition;
 class nsViewportInfo;
 class nsIGlobalObject;
 struct nsCSSSelectorList;
-struct FullscreenRequest; 
 
 namespace mozilla {
 class CSSStyleSheet;
@@ -120,6 +120,7 @@ class Event;
 class EventTarget;
 class FontFaceSet;
 class FrameRequestCallback;
+struct FullscreenRequest;
 class ImportManager;
 class HTMLBodyElement;
 struct LifecycleCallbackArgs;
@@ -145,27 +146,12 @@ template<typename> class Sequence;
 template<typename, typename> class CallbackObjectHolder;
 typedef CallbackObjectHolder<NodeFilter, nsIDOMNodeFilter> NodeFilterHolder;
 
-struct FullScreenOptions {
-  FullScreenOptions();
-  nsRefPtr<gfx::VRHMDInfo> mVRHMDDevice;
-  
-  
-  bool mIsCallerChrome = false;
-  
-  
-  
-  
-  
-  
-  bool mShouldNotifyNewOrigin = true;
-};
-
 } 
 } 
 
 #define NS_IDOCUMENT_IID \
-{ 0xdcfa30f2, 0x2197, 0x421f, \
-  { 0xa7, 0x5a, 0x3e, 0x70, 0x18, 0x08, 0xde, 0x81 } }
+{ 0x24fbaa06, 0x322b, 0x495f, \
+  {0x89, 0xcb, 0x33, 0xbc, 0x6f, 0x2d, 0xf6, 0x93} }
 
 
 enum DocumentFlavor {
@@ -197,9 +183,11 @@ NS_GetContentList(nsINode* aRootNode,
 class nsIDocument : public nsINode
 {
   typedef mozilla::dom::GlobalObject GlobalObject;
+
 public:
   typedef mozilla::net::ReferrerPolicy ReferrerPolicyEnum;
   typedef mozilla::dom::Element Element;
+  typedef mozilla::dom::FullscreenRequest FullscreenRequest;
 
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_IDOCUMENT_IID)
   NS_DECL_AND_IMPL_ZEROING_OPERATOR_NEW
@@ -1100,8 +1088,8 @@ public:
 
 
 
-  virtual void AsyncRequestFullScreen(Element* aElement,
-                                      mozilla::dom::FullScreenOptions& aOptions) = 0;
+  virtual void AsyncRequestFullScreen(
+    mozilla::UniquePtr<FullscreenRequest>&& aRequest) = 0;
 
   
 
