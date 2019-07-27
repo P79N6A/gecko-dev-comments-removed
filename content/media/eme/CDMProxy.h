@@ -48,7 +48,10 @@ public:
   
   
   
-  void Init(PromiseId aPromiseId);
+  void Init(PromiseId aPromiseId,
+            const nsAString& aOrigin,
+            const nsAString& aTopLevelOrigin,
+            bool aInPrivateBrowsing);
 
   
   
@@ -165,8 +168,15 @@ public:
 
 private:
 
+  struct InitData {
+    uint32_t mPromiseId;
+    nsAutoString mOrigin;
+    nsAutoString mTopLevelOrigin;
+    bool mInPrivateBrowsing;
+  };
+
   
-  void gmp_Init(uint32_t aPromiseId);
+  void gmp_Init(nsAutoPtr<InitData> aData);
 
   
   void gmp_Shutdown();
