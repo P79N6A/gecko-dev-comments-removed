@@ -461,9 +461,6 @@ struct JSContext : public js::ExclusiveContext,
     js::ObjectSet       cycleDetectorSet;
 
     
-    JSErrorReporter     errorReporter;
-
-    
     void                *data;
     void                *data2;
 
