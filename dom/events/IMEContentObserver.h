@@ -11,6 +11,8 @@
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsIDocShell.h" 
+#include "nsIEditor.h"
+#include "nsIEditorObserver.h"
 #include "nsIReflowObserver.h"
 #include "nsISelectionListener.h"
 #include "nsIScrollObserver.h"
@@ -29,11 +31,12 @@ class EventStateManager;
 
 
 
-class IMEContentObserver MOZ_FINAL : public nsISelectionListener,
-                                     public nsStubMutationObserver,
-                                     public nsIReflowObserver,
-                                     public nsIScrollObserver,
-                                     public nsSupportsWeakReference
+class IMEContentObserver MOZ_FINAL : public nsISelectionListener
+                                   , public nsStubMutationObserver
+                                   , public nsIReflowObserver
+                                   , public nsIScrollObserver
+                                   , public nsSupportsWeakReference
+                                   , public nsIEditorObserver
 {
 public:
   IMEContentObserver();
@@ -41,6 +44,7 @@ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(IMEContentObserver,
                                            nsISelectionListener)
+  NS_DECL_NSIEDITOROBSERVER
   NS_DECL_NSISELECTIONLISTENER
   NS_DECL_NSIMUTATIONOBSERVER_CHARACTERDATACHANGED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED
@@ -125,7 +129,13 @@ private:
   void NotifyContentAdded(nsINode* aContainer, int32_t aStart, int32_t aEnd);
   void ObserveEditableNode();
   
-  bool StoreTextChangeData(const TextChangeData& aTextChangeData);
+
+
+
+
+  void UnregisterObservers(bool aPostEvent);
+  void StoreTextChangeData(const TextChangeData& aTextChangeData);
+  void FlushMergeableNotifications();
 
 #ifdef DEBUG
   void TestMergingTextChangeData();
@@ -136,6 +146,7 @@ private:
   nsCOMPtr<nsIContent> mRootContent;
   nsCOMPtr<nsINode> mEditableNode;
   nsCOMPtr<nsIDocShell> mDocShell;
+  nsCOMPtr<nsIEditor> mEditor;
 
   TextChangeData mTextChangeData;
 
@@ -143,6 +154,8 @@ private:
 
   nsIMEUpdatePreference mUpdatePreference;
   uint32_t mPreAttrChangeLength;
+
+  bool mIsEditorInTransaction;
 };
 
 } 
