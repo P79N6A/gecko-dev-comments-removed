@@ -201,8 +201,19 @@ loop.shared.actions = (function() {
 
 
 
+    CreatedRoom: Action.define("createdRoom", {
+      roomToken: String
+    }),
+
+    
+
+
+
     CreateRoomError: Action.define("createRoomError", {
-      error: Error
+      
+      
+      
+      error: Object
     }),
 
     
@@ -218,7 +229,10 @@ loop.shared.actions = (function() {
 
 
     DeleteRoomError: Action.define("deleteRoomError", {
-      error: Error
+      
+      
+      
+      error: Object
     }),
 
     
