@@ -15,10 +15,9 @@ this.BrowserUtils = {
   
 
 
-  dumpLn: function () {
-    for (let i = 0; i < arguments.length; i++) {
-      dump(arguments[i] + " ");
-    }
+  dumpLn: function (...args) {
+    for (let a of args)
+      dump(a + " ");
     dump("\n");
   },
 
