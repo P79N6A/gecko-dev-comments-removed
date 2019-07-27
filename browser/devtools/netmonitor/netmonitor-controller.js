@@ -799,7 +799,12 @@ function whenDataAvailable(aDataStore, aMandatoryFields) {
 };
 
 const WDA_DEFAULT_VERIFY_INTERVAL = 50; 
-const WDA_DEFAULT_GIVE_UP_TIMEOUT = 2000; 
+
+
+
+
+
+const WDA_DEFAULT_GIVE_UP_TIMEOUT = gDevTools.testing ? 45000 : 2000; 
 
 
 
