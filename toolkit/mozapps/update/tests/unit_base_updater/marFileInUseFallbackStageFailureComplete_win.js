@@ -31,7 +31,7 @@ function doUpdate() {
   
   gStageUpdate = false;
   gSwitchApp = true;
-  runUpdate(1, STATE_PENDING);
+  runUpdate(1, STATE_PENDING, checkUpdateApplied);
 }
 
 function checkUpdateApplied() {

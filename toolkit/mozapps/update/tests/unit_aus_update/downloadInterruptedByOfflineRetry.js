@@ -35,8 +35,10 @@ function xhr_pt1(aXHR) {
 }
 
 function check_test_pt1(request, update) {
-  do_check_eq(gStatusCode, Cr.NS_ERROR_OFFLINE);
-  do_check_eq(update.errorCode, NETWORK_ERROR_OFFLINE);
+  Assert.equal(gStatusCode, Cr.NS_ERROR_OFFLINE,
+               "the download status code" + MSG_SHOULD_EQUAL);
+  Assert.equal(update.errorCode, NETWORK_ERROR_OFFLINE,
+               "the update error code" + MSG_SHOULD_EQUAL);
 
   
   gAUS.onError(request, update);
@@ -70,8 +72,9 @@ function xhr_pt2(aXHR) {
 
 function check_test_pt2(update) {
   
-  do_check_neq(update, null);
-  do_check_eq(update.name, "App Update Test");
+  Assert.ok(!!update, "there should be an update");
+  Assert.equal(update.name, "App Update Test",
+               "the update name" + MSG_SHOULD_EQUAL);
 
   doTestFinish();
 }

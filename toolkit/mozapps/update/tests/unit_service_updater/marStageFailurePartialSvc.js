@@ -20,16 +20,6 @@ function run_test() {
 
   createUpdaterINI(true);
 
-  
-  
-  
-  if (IS_MACOSX) {
-    let now = Date.now();
-    let yesterday = now - (1000 * 60 * 60 * 24);
-    let applyToDir = getApplyDirFile();
-    applyToDir.lastModifiedTime = yesterday;
-  }
-
   setupAppFilesAsync();
 }
 
@@ -43,13 +33,7 @@ function setupAppFilesFinished() {
 
 
 function checkUpdateFinished() {
-  if (IS_WIN || IS_MACOSX) {
-    let running = getPostUpdateFile(".running");
-    debugDump("checking that the post update process running file doesn't " +
-              "exist. Path: " + running.path);
-    do_check_false(running.exists());
-  }
-
+  checkPostUpdateRunningFile(false);
   checkFilesAfterUpdateFailure(getApplyDirFile, true, false);
   checkUpdateLogContents(LOG_PARTIAL_FAILURE);
   standardInit();

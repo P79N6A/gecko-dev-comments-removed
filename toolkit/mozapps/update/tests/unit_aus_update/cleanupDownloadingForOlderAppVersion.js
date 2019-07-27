@@ -24,11 +24,14 @@ function run_test() {
     
     
     
-    do_check_neq(gUpdateManager.activeUpdate, null);
+    Assert.ok(!!gUpdateManager.activeUpdate,
+              "there should be an active update");
   } else {
-    do_check_eq(gUpdateManager.activeUpdate, null);
+    Assert.ok(!gUpdateManager.activeUpdate,
+              "there should not be an active update");
   }
-  do_check_eq(gUpdateManager.updateCount, 0);
+  Assert.equal(gUpdateManager.updateCount, 0,
+               "the update manager update count" + MSG_SHOULD_EQUAL);
 
   doTestFinish();
 }

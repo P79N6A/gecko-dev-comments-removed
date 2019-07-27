@@ -41,7 +41,7 @@ function run_test() {
 function check_status() {
   let status = readStatusFile();
   Assert.notEqual(status, STATE_DOWNLOADING,
-                  "the update should not be downloading");
+                  "the update state" + MSG_SHOULD_EQUAL);
 
   
   

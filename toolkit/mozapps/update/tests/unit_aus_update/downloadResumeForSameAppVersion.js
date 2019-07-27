@@ -22,11 +22,15 @@ function run_test() {
   if (IS_TOOLKIT_GONK) {
     
     
-    do_check_eq(gUpdateManager.updateCount, 0);
+    Assert.equal(gUpdateManager.updateCount, 0,
+                 "the update manager updateCount attribute" + MSG_SHOULD_EQUAL);
   } else {
-    do_check_eq(gUpdateManager.updateCount, 1);
+    Assert.equal(gUpdateManager.updateCount, 1,
+                 "the update manager updateCount attribute" + MSG_SHOULD_EQUAL);
   }
-  do_check_eq(gUpdateManager.activeUpdate.state, STATE_DOWNLOADING);
+  Assert.equal(gUpdateManager.activeUpdate.state, STATE_DOWNLOADING,
+               "the update manager activeUpdate state attribute" +
+               MSG_SHOULD_EQUAL);
 
   
   

@@ -17,19 +17,19 @@ function run_test() {
   gTestFiles[gTestFiles.length - 2].compareContents = "FromPartial\n";
   gTestFiles[gTestFiles.length - 2].comparePerms = 0o644;
   gTestDirs = gTestDirsPartialSuccess;
+  preventDistributionFiles();
   setupUpdaterTest(FILE_PARTIAL_MAR);
+  if (IS_MACOSX) {
+    
+    
+    let testFile = getApplyDirFile(DIR_MACOS + "distribution/testFile", true);
+    writeFile(testFile, "test\n");
+    testFile = getApplyDirFile(DIR_MACOS + "distribution/test/testFile", true);
+    writeFile(testFile, "test\n");
+  }
 
   createUpdaterINI(false);
-
-  
-  
-  
-  if (IS_MACOSX) {
-    let now = Date.now();
-    let yesterday = now - (1000 * 60 * 60 * 24);
-    let applyToDir = getApplyDirFile();
-    applyToDir.lastModifiedTime = yesterday;
-  }
+  setAppBundleModTime();
 
   setupAppFilesAsync();
 }
@@ -40,20 +40,14 @@ function setupAppFilesFinished() {
 
 function checkUpdateFinished() {
   checkFilesAfterUpdateSuccess(getStageDirFile, true, false);
-  checkUpdateLogContents(LOG_PARTIAL_SUCCESS);
-
-  if (IS_WIN || IS_MACOSX) {
-    let running = getPostUpdateFile(".running");
-    debugDump("checking that the post update process running file doesn't " +
-              "exist. Path: " + running.path);
-    do_check_false(running.exists());
-  }
+  checkUpdateLogContents(LOG_PARTIAL_SUCCESS, true);
+  checkPostUpdateRunningFile(false);
 
   
   gStageUpdate = false;
   gSwitchApp = true;
   do_timeout(TEST_CHECK_TIMEOUT, function() {
-    runUpdate(0, STATE_SUCCEEDED);
+    runUpdate(0, STATE_SUCCEEDED, checkUpdateApplied);
   });
 }
 
@@ -75,24 +69,31 @@ function checkUpdateApplied() {
 
 
 function finishCheckUpdateApplied() {
+  checkPostUpdateRunningFile(true);
+
+  let distributionDir = getApplyDirFile(DIR_RESOURCES + "distribution", true);
   if (IS_MACOSX) {
-    debugDump("testing last modified time on the apply to directory has " +
-              "changed after a successful update (bug 600098)");
-    let now = Date.now();
-    let applyToDir = getApplyDirFile();
-    let timeDiff = Math.abs(applyToDir.lastModifiedTime - now);
-    do_check_true(timeDiff < MAC_MAX_TIME_DIFFERENCE);
+    Assert.ok(distributionDir.exists(), MSG_SHOULD_EXIST);
+
+    let testFile = getApplyDirFile(DIR_RESOURCES + "distribution/testFile", true);
+    Assert.ok(testFile.exists(), MSG_SHOULD_EXIST);
+
+    testFile = getApplyDirFile(DIR_RESOURCES + "distribution/test/testFile", true);
+    Assert.ok(testFile.exists(), MSG_SHOULD_EXIST);
+
+    distributionDir = getApplyDirFile(DIR_MACOS + "distribution", true);
+    Assert.ok(!distributionDir.exists(), MSG_SHOULD_NOT_EXIST);
+
+    checkUpdateLogContains("Moving old distribution directory to new location");
+  } else {
+    debugDump("testing that files aren't added with an add-if instruction " +
+              "when the file's destination directory doesn't exist");
+    Assert.ok(!distributionDir.exists(), MSG_SHOULD_NOT_EXIST);
   }
 
-  if (IS_WIN || IS_MACOSX) {
-    let running = getPostUpdateFile(".running");
-    debugDump("checking that the post update process running file exists. " +
-              "Path: " + running.path);
-    do_check_true(running.exists());
-  }
-
+  checkAppBundleModTime();
   checkFilesAfterUpdateSuccess(getApplyDirFile, false, false);
-  checkUpdateLogContents(LOG_PARTIAL_SUCCESS);
+  checkUpdateLogContents(LOG_PARTIAL_SUCCESS, true);
   standardInit();
   checkCallbackAppLog();
 }

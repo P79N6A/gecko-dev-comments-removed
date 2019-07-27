@@ -28,7 +28,7 @@ function checkUpdateFinished() {
   
   gStageUpdate = false;
   gSwitchApp = true;
-  runUpdate(0, STATE_SUCCEEDED);
+  runUpdate(0, STATE_SUCCEEDED, checkUpdateApplied);
 }
 
 function checkUpdateApplied() {

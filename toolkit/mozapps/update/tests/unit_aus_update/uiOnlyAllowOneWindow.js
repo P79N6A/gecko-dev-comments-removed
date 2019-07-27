@@ -37,7 +37,8 @@ function run_test() {
   gUP.showUpdateInstalled();
   
   
-  do_check_true(true);
+  Assert.ok(true,
+            "calling showUpdateInstalled should not attempt to open a window");
 
   debugDump("testing showUpdateAvailable should not call openWindow");
   writeUpdatesToXMLFile(getLocalUpdatesXMLString(""), false);
@@ -53,7 +54,8 @@ function run_test() {
   gUP.showUpdateAvailable(update);
   
   
-  do_check_true(true);
+  Assert.ok(true,
+            "calling showUpdateAvailable should not attempt to open a window");
 
   doTestFinish();
 }

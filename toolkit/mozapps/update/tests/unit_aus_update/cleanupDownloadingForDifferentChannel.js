@@ -28,16 +28,19 @@ function run_test() {
 
   standardInit();
 
-  do_check_eq(gUpdateManager.updateCount, 1);
+  Assert.equal(gUpdateManager.updateCount, 1,
+               "the update manager update count" + MSG_SHOULD_EQUAL);
   let update = gUpdateManager.getUpdateAt(0);
-  do_check_eq(update.name, "Existing");
+  Assert.equal(update.name, "Existing",
+               "the update's name" + MSG_SHOULD_EQUAL);
 
-  do_check_eq(gUpdateManager.activeUpdate, null);
+  Assert.ok(!gUpdateManager.activeUpdate,
+            "there should not be an active update");
   
   
   let file = getUpdatesXMLFile(true);
-  debugDump("verifying contents of " + FILE_UPDATE_ACTIVE);
-  do_check_eq(readFile(file), getLocalUpdatesXMLString(""));
+  Assert.equal(readFile(file), getLocalUpdatesXMLString(""),
+               "the contents of active-update.xml" + MSG_SHOULD_EQUAL);
 
   doTestFinish();
 }

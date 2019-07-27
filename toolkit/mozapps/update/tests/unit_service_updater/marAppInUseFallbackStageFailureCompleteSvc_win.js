@@ -4,6 +4,9 @@
 
 
 
+const START_STATE = STATE_PENDING_SVC;
+const END_STATE = STATE_PENDING;
+
 function run_test() {
   if (!shouldRunServiceTest()) {
     return;
@@ -33,14 +36,14 @@ function setupAppFilesFinished() {
 }
 
 function doUpdate() {
-  runUpdateUsingService(STATE_PENDING_SVC, STATE_APPLIED);
+  runUpdateUsingService(START_STATE, STATE_APPLIED);
 }
 
 function checkUpdateFinished() {
   
   gStageUpdate = false;
   gSwitchApp = true;
-  runUpdate(1, STATE_PENDING);
+  runUpdate(1, END_STATE, checkUpdateApplied);
 }
 
 function checkUpdateApplied() {

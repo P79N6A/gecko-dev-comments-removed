@@ -11,9 +11,9 @@ function run_test() {
   let testFile = getCurrentProcessDir();
   testFile.append("update_write_access_test");
   testFile.create(Ci.nsIFile.NORMAL_FILE_TYPE, PERMS_FILE);
-  do_check_true(testFile.exists());
+  Assert.ok(testFile.exists(), MSG_SHOULD_EXIST);
   testFile.remove(false);
-  do_check_false(testFile.exists());
+  Assert.ok(!testFile.exists(), MSG_SHOULD_NOT_EXIST);
 
   standardInit();
 
@@ -21,32 +21,26 @@ function run_test() {
     
     debugDump("attempting to create mutex");
     let handle = createMutex(getPerInstallationMutexName());
-
-    debugDump("testing that the mutex was successfully created");
-    do_check_true(!!handle);
+    Assert.ok(!!handle, "the update mutex should have been created");
 
     
     
-    debugDump("testing nsIApplicationUpdateService:canCheckForUpdates is " +
-              "false when there is a mutex");
-    do_check_false(gAUS.canCheckForUpdates);
+    Assert.ok(!gAUS.canCheckForUpdates, "should not be able to check for " +
+              "updates when there is an update mutex");
 
     
     
-    debugDump("testing nsIApplicationUpdateService:canApplyUpdates is " +
-                "false when there is a mutex");
-    do_check_false(gAUS.canApplyUpdates);
+    Assert.ok(!gAUS.canApplyUpdates, "should not be able to apply updates " +
+              "when there is an update mutex");
 
     debugDump("destroying mutex");
-    closeHandle(handle)
+    closeHandle(handle);
   }
 
   
-  debugDump("testing nsIApplicationUpdateService:canCheckForUpdates is true");
-  do_check_true(gAUS.canCheckForUpdates);
+  Assert.ok(gAUS.canCheckForUpdates, "should be able to check for updates");
   
-  debugDump("testing nsIApplicationUpdateService:canApplyUpdates is true");
-  do_check_true(gAUS.canApplyUpdates);
+  Assert.ok(gAUS.canApplyUpdates, "should be able to apply updates");
 
   if (IS_WIN) {
     
@@ -54,8 +48,8 @@ function run_test() {
     debugDump("attempting to create mutex");
     let handle = createMutex(getPerInstallationMutexName());
 
-    debugDump("testing that the mutex was not successfully created");
-    do_check_eq(handle, null);
+    Assert.ok(!handle, "should not be able to create the update mutex when " +
+              "the application has created the update mutex");
   }
 
   doTestFinish();
