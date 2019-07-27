@@ -36,15 +36,14 @@ class BluetoothAdapter : public DOMEventTargetHelper
 public:
   NS_DECL_ISUPPORTS_INHERITED
 
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(BluetoothAdapter,
-                                                         DOMEventTargetHelper)
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(BluetoothAdapter,
+                                           DOMEventTargetHelper)
 
   static already_AddRefed<BluetoothAdapter>
   Create(nsPIDOMWindow* aOwner, const BluetoothValue& aValue);
 
   void Notify(const BluetoothSignal& aParam);
 
-  void Unroot();
   void SetPropertyByValue(const BluetoothNamedValue& aValue);
 
   virtual void DisconnectFromOwner() MOZ_OVERRIDE;
@@ -57,12 +56,6 @@ public:
   void GetAddress(nsString& aAddress) const
   {
     aAddress = mAddress;
-  }
-
-  uint32_t
-  Class() const
-  {
-    return mClass;
   }
 
   void
@@ -82,17 +75,6 @@ public:
   {
     return mDiscoverable;
   }
-
-  uint32_t
-  DiscoverableTimeout() const
-  {
-    return mDiscoverableTimeout;
-  }
-
-  void GetDevices(JSContext* aContext, JS::MutableHandle<JS::Value> aDevices,
-                  ErrorResult& aRv);
-  void GetUuids(JSContext* aContext, JS::MutableHandle<JS::Value> aUuids,
-                ErrorResult& aRv);
 
   
 
@@ -166,7 +148,6 @@ public:
   already_AddRefed<DOMRequest>
     SendMediaPlayStatus(const MediaPlayStatus& aMediaPlayStatus, ErrorResult& aRv);
 
-  IMPL_EVENT_HANDLER(devicefound);
   IMPL_EVENT_HANDLER(a2dpstatuschanged);
   IMPL_EVENT_HANDLER(hfpstatuschanged);
   IMPL_EVENT_HANDLER(pairedstatuschanged);
@@ -186,8 +167,6 @@ private:
   BluetoothAdapter(nsPIDOMWindow* aOwner, const BluetoothValue& aValue);
   ~BluetoothAdapter();
 
-  void Root();
-
   already_AddRefed<mozilla::dom::DOMRequest>
     PairUnpair(bool aPair, const nsAString& aDeviceAddress, ErrorResult& aRv);
 
@@ -199,22 +178,32 @@ private:
   BluetoothAdapterAttribute
     ConvertStringToAdapterAttribute(const nsAString& aString);
 
-  JS::Heap<JSObject*> mJsUuids;
-  JS::Heap<JSObject*> mJsDeviceAddresses;
+  void GetPairedDeviceProperties(const nsTArray<nsString>& aDeviceAddresses);
+
+  void HandleDeviceFound(const BluetoothValue& aValue);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  nsTArray<nsRefPtr<BluetoothDevice> > mDevices;
   nsRefPtr<BluetoothDiscoveryHandle> mDiscoveryHandleInUse;
   BluetoothAdapterState mState;
   nsString mAddress;
   nsString mName;
   bool mDiscoverable;
   bool mDiscovering;
-  bool mPairable;
-  bool mPowered;
-  uint32_t mPairableTimeout;
-  uint32_t mDiscoverableTimeout;
-  uint32_t mClass;
-  nsTArray<nsString> mDeviceAddresses;
-  nsTArray<nsString> mUuids;
-  bool mIsRooted;
 };
 
 END_BLUETOOTH_NAMESPACE
