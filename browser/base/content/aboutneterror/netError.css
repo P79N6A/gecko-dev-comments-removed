@@ -2,7 +2,7 @@
 
 
 
-@import url("chrome://browser/skin/in-content/common.css");
+@import url("chrome://global/skin/in-content/common.css");
 
 body {
   display: flex;

@@ -2,7 +2,7 @@
 
 
 
-%include ../../shared/in-content/common.inc.css
+%include ../../../shared/in-content/common.inc.css
 
 xul|tabs {
   padding-right: 0;
