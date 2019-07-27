@@ -36,22 +36,25 @@ function PlacesCategoriesStarter()
   Services.obs.addObserver(this, PlacesUtils.TOPIC_SHUTDOWN, false);
 
   
-  let notify = (function () {
+  let notify = () => {
     if (!this._notifiedBookmarksSvcReady) {
+      
+      
+      
+      this._notifiedBookmarksSvcReady = true;
       
       
       Cc["@mozilla.org/categorymanager;1"]
         .getService(Ci.nsICategoryManager)
-        .deleteCategoryEntry("bookmarks-observer", this, false);
+        .deleteCategoryEntry("bookmark-observers", "PlacesCategoriesStarter", false);
       
       PlacesUtils.observe(null, "bookmarks-service-ready", null);
     }
-  }).bind(this);
+  };
+
   [ "onItemAdded", "onItemRemoved", "onItemChanged", "onBeginUpdateBatch",
-    "onEndUpdateBatch", "onItemVisited",
-    "onItemMoved" ].forEach(function(aMethod) {
-      this[aMethod] = notify;
-    }, this);
+    "onEndUpdateBatch", "onItemVisited", "onItemMoved"
+  ].forEach(aMethod => this[aMethod] = notify);
 }
 
 PlacesCategoriesStarter.prototype = {

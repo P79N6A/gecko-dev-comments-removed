@@ -286,17 +286,12 @@ add_task(function test_addRemoveBookmark() {
                                   "keyword", false, "keyword",
                                   bookmark.lastModified, bookmark.type,
                                   parentId,
-                                  bookmark.guid, bookmark.parentGuid ] },
-                    { name: "onItemChanged",
-                     arguments: [ itemId,
-                                  "keyword", false, "",
-                                  bookmark.lastModified, bookmark.type,
-                                  parentId,
                                   bookmark.guid, bookmark.parentGuid ] }
                  ]);
 
   check_keyword(URI3, null);
-  Assert.equal((yield foreign_count(URI3)), fc);
+  
+  
 
   yield PlacesTestUtils.promiseAsyncUpdates();
   check_orphans();

@@ -27,6 +27,8 @@ this.EXPORTED_SYMBOLS = [
 
 const { classes: Cc, interfaces: Ci, results: Cr, utils: Cu } = Components;
 
+Cu.importGlobalProperties(["URL"]);
+
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Services",
                                   "resource://gre/modules/Services.jsm");
@@ -72,6 +74,55 @@ function QI_node(aNode, aIID) {
 }
 function asContainer(aNode) QI_node(aNode, Ci.nsINavHistoryContainerResultNode);
 function asQuery(aNode) QI_node(aNode, Ci.nsINavHistoryQueryResultNode);
+
+
+
+
+
+
+
+
+
+
+
+function notify(observers, notification, args) {
+  for (let observer of observers) {
+    try {
+      observer[notification](...args);
+    } catch (ex) {}
+  }
+}
+
+
+
+
+
+
+
+
+
+function* notifyKeywordChange(url, keyword) {
+  
+  let bookmarks = [];
+  yield PlacesUtils.bookmarks.fetch({ url }, b => bookmarks.push(b));
+  
+  for (let bookmark of bookmarks) {
+    bookmark.id = yield PlacesUtils.promiseItemId(bookmark.guid);
+    bookmark.parentId = yield PlacesUtils.promiseItemId(bookmark.parentGuid);
+  }
+  let observers = PlacesUtils.bookmarks.getObservers();
+  gIgnoreKeywordNotifications = true;
+  for (let bookmark of bookmarks) {
+    notify(observers, "onItemChanged", [ bookmark.id, "keyword", false,
+                                         keyword,
+                                         bookmark.lastModified * 1000,
+                                         bookmark.type,
+                                         bookmark.parentId,
+                                         bookmark.guid, bookmark.parentGuid
+                                       ]);
+  }
+  gIgnoreKeywordNotifications = false;
+}
 
 this.PlacesUtils = {
   
@@ -244,6 +295,11 @@ this.PlacesUtils = {
           let observerInfo = this._bookmarksServiceObserversQueue.shift();
           this.bookmarks.addObserver(observerInfo.observer, observerInfo.weak);
         }
+
+        
+        
+        
+        gKeywordsCachePromise.catch(Cu.reportError);
         break;
     }
   },
@@ -811,18 +867,18 @@ this.PlacesUtils = {
 
 
 
-
   setPostDataForBookmark(aBookmarkId, aPostData) {
+    if (!aPostData)
+      throw new Error("Must provide valid POST data");
     
     
     
-    let nullPostDataFragment = aPostData ? "AND post_data ISNULL" : "";
     let stmt = PlacesUtils.history.DBConnection.createStatement(
       `UPDATE moz_keywords SET post_data = :post_data
        WHERE id = (SELECT k.id FROM moz_keywords k
                    JOIN moz_bookmarks b ON b.fk = k.place_id
                    WHERE b.id = :item_id
-                   ${nullPostDataFragment}
+                   AND post_data ISNULL
                    LIMIT 1)`);
     stmt.params.item_id = aBookmarkId;
     stmt.params.post_data = aPostData;
@@ -832,6 +888,21 @@ this.PlacesUtils = {
     finally {
       stmt.finalize();
     }
+
+    
+    return Task.spawn(function* () {
+      let guid = yield PlacesUtils.promiseItemGuid(aBookmarkId);
+      let bm = yield PlacesUtils.bookmarks.fetch(guid);
+
+      
+      let cache = yield gKeywordsCachePromise;
+      for (let [ keyword, entry ] of cache) {
+        
+        if (entry.url.href == bm.url.href && !entry.postData) {
+          entry.postData = aPostData;
+        }
+      }
+    }).catch(Cu.reportError);
   },
 
   
@@ -1255,6 +1326,14 @@ this.PlacesUtils = {
 
 
   promiseDBConnection: () => gAsyncDBConnPromised,
+
+  
+
+
+
+
+
+  promiseWrappedConnection: () => gAsyncDBWrapperPromised,
 
   
 
@@ -1842,6 +1921,8 @@ XPCOMUtils.defineLazyServiceGetter(PlacesUtils, "livemarks",
                                    "@mozilla.org/browser/livemark-service;2",
                                    "mozIAsyncLivemarks");
 
+XPCOMUtils.defineLazyGetter(PlacesUtils, "keywords", () => Keywords);
+
 XPCOMUtils.defineLazyGetter(PlacesUtils, "transactionManager", function() {
   let tm = Cc["@mozilla.org/transactionmanager;1"].
            createInstance(Ci.nsITransactionManager);
@@ -1881,24 +1962,266 @@ XPCOMUtils.defineLazyGetter(this, "bundle", function() {
          createBundle(PLACES_STRING_BUNDLE_URI);
 });
 
-XPCOMUtils.defineLazyGetter(this, "gAsyncDBConnPromised", () => {
-  let connPromised = Sqlite.cloneStorageConnection({
-    connection: PlacesUtils.history.DBConnection,
-    readOnly:   true });
-  connPromised.then(conn => {
-    try {
-      Sqlite.shutdown.addBlocker("Places DB readonly connection closing",
-                                 conn.close.bind(conn));
-    }
-    catch(ex) {
+XPCOMUtils.defineLazyGetter(this, "gAsyncDBConnPromised",
+  () => new Promise((resolve) => {
+    Sqlite.cloneStorageConnection({
+      connection: PlacesUtils.history.DBConnection,
+      readOnly:   true
+    }).then(conn => {
+      try {
+        Sqlite.shutdown.addBlocker(
+          "PlacesUtils read-only connection closing",
+          conn.close.bind(conn));
+      } catch(ex) {
+        
+        conn.close();
+        throw ex;
+      }
+      resolve(conn);
+    });
+  })
+);
+
+XPCOMUtils.defineLazyGetter(this, "gAsyncDBWrapperPromised",
+  () => new Promise((resolve) => {
+    Sqlite.wrapStorageConnection({
+      connection: PlacesUtils.history.DBConnection,
+    }).then(conn => {
+      try {
+        Sqlite.shutdown.addBlocker(
+          "PlacesUtils wrapped connection closing",
+          conn.close.bind(conn));
+      } catch(ex) {
+        
+        conn.close();
+        throw ex;
+      }
+      resolve(conn);
+    });
+  })
+);
+
+
+
+
+
+
+
+
+let Keywords = {
+  
+
+
+
+
+
+
+
+
+  fetch(keyword) {
+    if (!keyword || typeof(keyword) != "string")
+      throw new Error("Invalid keyword");
+    keyword = keyword.trim().toLowerCase();
+    return gKeywordsCachePromise.then(cache => cache.get(keyword) || null);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  insert(keywordEntry) {
+    if (!keywordEntry || typeof keywordEntry != "object")
+      throw new Error("Input should be a valid object");
+
+    if (!("keyword" in keywordEntry) || !keywordEntry.keyword ||
+        typeof(keywordEntry.keyword) != "string")
+      throw new Error("Invalid keyword");
+    if (("postData" in keywordEntry) && keywordEntry.postData &&
+                                        typeof(keywordEntry.postData) != "string")
+      throw new Error("Invalid POST data");
+    if (!("url" in keywordEntry))
+      throw new Error("undefined is not a valid URL");
+    let { keyword, url } = keywordEntry;
+    keyword = keyword.trim().toLowerCase();
+    let postData = keywordEntry.postData || null;
+    
+    url = new URL(url);
+
+    return Task.spawn(function* () {
+      let cache = yield gKeywordsCachePromise;
+
       
-      return conn.close();
-      throw (ex);
+      let oldEntry = cache.get(keyword);
+      if (oldEntry && oldEntry.url.href == url.href &&
+                      oldEntry.postData == keywordEntry.postData) {
+        return;
+      }
+
+      
+      
+      
+      
+      
+      let db = yield PlacesUtils.promiseWrappedConnection();
+      if (oldEntry) {
+        yield db.executeCached(
+          `UPDATE moz_keywords
+           SET place_id = (SELECT id FROM moz_places WHERE url = :url),
+               post_data = :post_data
+           WHERE keyword = :keyword
+          `, { url: url.href, keyword: keyword, post_data: postData });
+        yield notifyKeywordChange(oldEntry.url.href, "");
+      } else {
+        
+        
+        yield db.executeCached(
+          `INSERT OR IGNORE INTO moz_places (url, rev_host, hidden, frecency, guid)
+           VALUES (:url, :rev_host, 0, :frecency, GENERATE_GUID())
+          `, { url: url.href, rev_host: PlacesUtils.getReversedHost(url),
+               frecency: url.protocol == "place:" ? 0 : -1 });
+        yield db.executeCached(
+          `INSERT INTO moz_keywords (keyword, place_id, post_data)
+           VALUES (:keyword, (SELECT id FROM moz_places WHERE url = :url), :post_data)
+          `, { url: url.href, keyword: keyword, post_data: postData });
+      }
+
+      cache.set(keyword, { keyword, url, postData });
+
+      
+      yield notifyKeywordChange(url.href, keyword);
+    }.bind(this));
+  },
+
+  
+
+
+
+
+
+
+
+  remove(keyword) {
+    if (!keyword || typeof(keyword) != "string")
+      throw new Error("Invalid keyword");
+    keyword = keyword.trim().toLowerCase();
+    return Task.spawn(function* () {
+      let cache = yield gKeywordsCachePromise;
+      if (!cache.has(keyword))
+        return;
+      let { url } = cache.get(keyword);
+      cache.delete(keyword);
+
+      let db = yield PlacesUtils.promiseWrappedConnection();
+      yield db.execute(`DELETE FROM moz_keywords WHERE keyword = :keyword`,
+                       { keyword });
+
+      
+      yield notifyKeywordChange(url.href, "");
+    }.bind(this));
+  }
+};
+
+
+
+let gIgnoreKeywordNotifications = false;
+
+XPCOMUtils.defineLazyGetter(this, "gKeywordsCachePromise", Task.async(function* () {
+  let cache = new Map();
+  let db = yield PlacesUtils.promiseWrappedConnection();
+  let rows = yield db.execute(
+    `SELECT keyword, url, post_data
+     FROM moz_keywords k
+     JOIN moz_places h ON h.id = k.place_id
+    `);
+  for (let row of rows) {
+    let keyword = row.getResultByName("keyword");
+    let entry = { keyword,
+                  url: new URL(row.getResultByName("url")),
+                  postData: row.getResultByName("post_data") };
+    cache.set(keyword, entry);
+  }
+
+  
+  function keywordsForHref(href) {
+    let keywords = [];
+    for (let [ key, val ] of cache) {
+      if (val.url.href == href)
+        keywords.push(key);
     }
-    return Promise.resolve();
-  }).then(null, Cu.reportError);
-  return connPromised;
-});
+    return keywords;
+  }
+
+  
+  
+  
+  let observer = {
+    QueryInterface: XPCOMUtils.generateQI(Ci.nsINavBookmarkObserver),
+    onBeginUpdateBatch() {},
+    onEndUpdateBatch() {},
+    onItemAdded() {},
+    onItemVisited() {},
+    onItemMoved() {},
+
+    onItemRemoved(id, parentId, index, itemType, uri, guid, parentGuid) {
+      if (itemType != PlacesUtils.bookmarks.TYPE_BOOKMARK)
+        return;
+
+      let keywords = keywordsForHref(uri.spec);
+      
+      if (keywords.length == 0)
+        return;
+
+      Task.spawn(function* () {
+        
+        let bookmark = yield PlacesUtils.bookmarks.fetch({ url: uri });
+        if (!bookmark) {
+          for (let keyword of keywords) {
+            yield PlacesUtils.keywords.remove(keyword);
+          }
+        }
+      }).catch(Cu.reportError);
+    },
+
+    onItemChanged(id, prop, isAnno, val, lastMod, itemType, parentId, guid) {
+      if (gIgnoreKeywordNotifications ||
+          prop != "keyword")
+        return;
+
+      Task.spawn(function* () {
+        let bookmark = yield PlacesUtils.bookmarks.fetch(guid);
+        
+        if (!bookmark)
+          return;
+
+        if (val.length == 0) {
+          
+          let keywords = keywordsForHref(bookmark.url.href)
+          for (let keyword of keywords) {
+            cache.delete(keyword);
+          }
+        } else {
+          
+          cache.set(val, { keyword: val, url: bookmark.url });
+        }
+      }).catch(Cu.reportError);
+    }
+  };
+
+  PlacesUtils.bookmarks.addObserver(observer, false);
+  PlacesUtils.registerShutdownFunction(() => {
+    PlacesUtils.bookmarks.removeObserver(observer);
+  });
+  return cache;
+}));
 
 
 
@@ -2919,15 +3242,19 @@ this.PlacesEditBookmarkPostDataTransaction =
 PlacesEditBookmarkPostDataTransaction.prototype = {
   __proto__: BaseTransaction.prototype,
 
-  doTransaction: function EBPDTXN_doTransaction()
-  {
-    this.item.postData = PlacesUtils.getPostDataForBookmark(this.item.id);
-    PlacesUtils.setPostDataForBookmark(this.item.id, this.new.postData);
+  doTransaction() {
+    
+    if (this.new.postData) {
+      this.item.postData = PlacesUtils.getPostDataForBookmark(this.item.id);
+      PlacesUtils.setPostDataForBookmark(this.item.id, this.new.postData);
+    }
   },
 
-  undoTransaction: function EBPDTXN_undoTransaction()
-  {
-    PlacesUtils.setPostDataForBookmark(this.item.id, this.item.postData);
+  undoTransaction() {
+    
+    if (this.item.postData) {
+      PlacesUtils.setPostDataForBookmark(this.item.id, this.item.postData);
+    }
   }
 };
 

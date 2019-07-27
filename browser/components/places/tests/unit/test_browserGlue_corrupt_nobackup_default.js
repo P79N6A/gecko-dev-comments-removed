@@ -33,7 +33,7 @@ add_task(function* () {
 
   
   
-  yield promiseEndUpdateBatch();
+  yield promiseTopicObserved("places-browser-init-complete");
 
   let bm = yield PlacesUtils.bookmarks.fetch({
     parentGuid: PlacesUtils.bookmarks.toolbarGuid,
