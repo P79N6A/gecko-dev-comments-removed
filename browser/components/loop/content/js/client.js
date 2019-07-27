@@ -37,13 +37,6 @@ loop.Client = (function($) {
     
 
 
-    _hoursToSeconds: function(value) {
-      return value * 60 * 60;
-    },
-
-    
-
-
 
 
 
@@ -124,8 +117,7 @@ loop.Client = (function($) {
 
           cb(null, this._validate(urlData, expectedCallUrlProperties));
 
-          var expiresHours = this._hoursToSeconds(urlData.expiresAt);
-          this.mozLoop.noteCallUrlExpiry(expiresHours);
+          this.mozLoop.noteCallUrlExpiry(urlData.expiresAt);
         } catch (err) {
           console.log("Error requesting call info", err);
           cb(err);
