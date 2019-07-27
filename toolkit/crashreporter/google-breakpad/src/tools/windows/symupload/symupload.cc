@@ -42,9 +42,9 @@
 
 
 
-#include <Windows.h>
-#include <DbgHelp.h>
-#include <WinInet.h>
+#include <windows.h>
+#include <dbghelp.h>
+#include <wininet.h>
 
 #include <cstdio>
 #include <map>

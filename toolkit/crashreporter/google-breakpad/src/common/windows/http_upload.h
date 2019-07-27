@@ -38,8 +38,8 @@
 
 #pragma warning( disable : 4530 ) 
 
-#include <Windows.h>
-#include <WinInet.h>
+#include <windows.h>
+#include <wininet.h>
 
 #include <map>
 #include <string>
@@ -79,7 +79,7 @@ class HTTPUpload {
   
   
   
-  static bool HTTPUpload::ReadResponse(HINTERNET request, wstring* response);
+  static bool ReadResponse(HINTERNET request, wstring* response);
 
   
   static wstring GenerateMultipartBoundary();
@@ -102,7 +102,12 @@ class HTTPUpload {
   static wstring UTF8ToWide(const string &utf8);
 
   
-  static string WideToUTF8(const wstring &wide);
+  static string WideToUTF8(const wstring &wide) {
+      return WideToMBCP(wide, CP_UTF8);
+  }
+
+  
+  static string WideToMBCP(const wstring &wide, unsigned int cp);
 
   
   

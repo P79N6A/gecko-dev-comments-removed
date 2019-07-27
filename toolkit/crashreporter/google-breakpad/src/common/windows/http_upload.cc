@@ -327,11 +327,13 @@ bool HTTPUpload::GetFileContents(const wstring &filename,
   
   
   
-#if _MSC_VER >= 1400  
+  
+  
+#ifdef _MSC_VER
   ifstream file;
   file.open(filename.c_str(), ios::binary);
-#else  
-  ifstream file(_wfopen(filename.c_str(), L"rb"));
+#else 
+  ifstream file(WideToMBCP(filename, CP_ACP).c_str(), ios::binary);
 #endif  
   if (file.is_open()) {
     file.seekg(0, ios::end);
@@ -369,13 +371,13 @@ wstring HTTPUpload::UTF8ToWide(const string &utf8) {
 }
 
 
-string HTTPUpload::WideToUTF8(const wstring &wide) {
+string HTTPUpload::WideToMBCP(const wstring &wide, unsigned int cp) {
   if (wide.length() == 0) {
     return string();
   }
 
   
-  int charcount = WideCharToMultiByte(CP_UTF8, 0, wide.c_str(), -1,
+  int charcount = WideCharToMultiByte(cp, 0, wide.c_str(), -1,
                                       NULL, 0, NULL, NULL);
   if (charcount == 0) {
     return string();
@@ -383,7 +385,7 @@ string HTTPUpload::WideToUTF8(const wstring &wide) {
 
   
   char *buf = new char[charcount];
-  WideCharToMultiByte(CP_UTF8, 0, wide.c_str(), -1, buf, charcount,
+  WideCharToMultiByte(cp, 0, wide.c_str(), -1, buf, charcount,
                       NULL, NULL);
 
   string result(buf);
