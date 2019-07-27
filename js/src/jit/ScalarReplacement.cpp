@@ -143,6 +143,9 @@ IsObjectEscaped(MInstruction *ins, JSObject *objDefault = nullptr)
             JitSpewDef(JitSpew_Escape, "  is escaped by\n", def);
             return true;
 
+          case MDefinition::Op_PostWriteBarrier:
+            break;
+
           case MDefinition::Op_Slots: {
 #ifdef DEBUG
             
@@ -245,6 +248,7 @@ class ObjectMemoryView : public MDefinitionVisitorDefaultNoop
     void visitObjectState(MObjectState *ins);
     void visitStoreFixedSlot(MStoreFixedSlot *ins);
     void visitLoadFixedSlot(MLoadFixedSlot *ins);
+    void visitPostWriteBarrier(MPostWriteBarrier *ins);
     void visitStoreSlot(MStoreSlot *ins);
     void visitLoadSlot(MLoadSlot *ins);
     void visitGuardShape(MGuardShape *ins);
@@ -446,6 +450,17 @@ ObjectMemoryView::visitLoadFixedSlot(MLoadFixedSlot *ins)
 
     
     ins->replaceAllUsesWith(state_->getFixedSlot(ins->slot()));
+
+    
+    ins->block()->discard(ins);
+}
+
+void
+ObjectMemoryView::visitPostWriteBarrier(MPostWriteBarrier *ins)
+{
+    
+    if (ins->object() != obj_)
+        return;
 
     
     ins->block()->discard(ins);
