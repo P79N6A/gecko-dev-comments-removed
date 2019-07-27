@@ -3394,24 +3394,31 @@ SVGTextFrame::MutationObserver::AttributeChanged(
     return;
   }
 
-  
+  mFrame->HandleAttributeChangeInDescendant(aElement, aNameSpaceID, aAttribute);
+}
+
+void
+SVGTextFrame::HandleAttributeChangeInDescendant(Element* aElement,
+                                                int32_t aNameSpaceID,
+                                                nsIAtom* aAttribute)
+{
   if (aElement->Tag() == nsGkAtoms::textPath) {
     if (aNameSpaceID == kNameSpaceID_None &&
         aAttribute == nsGkAtoms::startOffset) {
-      mFrame->NotifyGlyphMetricsChange();
+      NotifyGlyphMetricsChange();
     } else if (aNameSpaceID == kNameSpaceID_XLink &&
                aAttribute == nsGkAtoms::href) {
       
       nsIFrame* childElementFrame = aElement->GetPrimaryFrame();
       if (childElementFrame) {
         childElementFrame->Properties().Delete(nsSVGEffects::HrefProperty());
-        mFrame->NotifyGlyphMetricsChange();
+        NotifyGlyphMetricsChange();
       }
     }
   } else {
     if (aNameSpaceID == kNameSpaceID_None &&
         IsGlyphPositioningAttribute(aAttribute)) {
-      mFrame->NotifyGlyphMetricsChange();
+      NotifyGlyphMetricsChange();
     }
   }
 }

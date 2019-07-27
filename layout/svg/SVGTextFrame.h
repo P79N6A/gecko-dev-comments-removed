@@ -353,6 +353,14 @@ public:
 
 
 
+  void HandleAttributeChangeInDescendant(mozilla::dom::Element* aElement,
+                                         int32_t aNameSpaceID,
+                                         nsIAtom* aAttribute);
+
+  
+
+
+
   void NotifyGlyphMetricsChange();
 
   
