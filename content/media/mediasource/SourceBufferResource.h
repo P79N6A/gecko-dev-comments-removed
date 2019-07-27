@@ -75,6 +75,7 @@ private:
   public:
     ResourceQueue() :
       nsDeque(new ResourceQueueDeallocator()),
+      mLogicalLength(0),
       mOffset(0)
     {
     }
@@ -87,12 +88,7 @@ private:
     
     
     inline uint64_t GetLength() {
-      uint64_t s = mOffset;
-      for (uint32_t i = 0; i < GetSize(); ++i) {
-        ResourceItem* item = ResourceAt(i);
-        s += item->mData.Length();
-      }
-      return s;
+      return mLogicalLength;
     }
 
     
@@ -113,6 +109,7 @@ private:
     }
 
     inline void PushBack(ResourceItem* aItem) {
+      mLogicalLength += aItem->mData.Length();
       nsDeque::Push(aItem);
     }
 
@@ -185,6 +182,8 @@ private:
     }
 
     
+    uint64_t mLogicalLength;
+
     
     uint64_t mOffset;
   };
