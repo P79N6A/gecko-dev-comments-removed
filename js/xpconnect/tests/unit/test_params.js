@@ -8,8 +8,8 @@ const Ci = Components.interfaces;
 function run_test() {
 
   
-  Components.manager.autoRegister(do_get_file('../components/native/xpctest.manifest'));
-  Components.manager.autoRegister(do_get_file('../components/js/xpctest.manifest'));
+  registerAppManifest(do_get_file('../components/native/xpctest.manifest'));
+  registerAppManifest(do_get_file('../components/js/xpctest.manifest'));
 
   
   test_component("@mozilla.org/js/xpc/test/native/Params;1");
