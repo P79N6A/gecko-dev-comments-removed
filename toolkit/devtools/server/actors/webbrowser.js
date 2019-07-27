@@ -330,7 +330,7 @@ BrowserTabList.prototype.getList = function() {
   
   
   let initialMapSize = this._actorByBrowser.size;
-  let foundCount = 0;
+  this._foundCount = 0;
 
   
   
@@ -340,33 +340,86 @@ BrowserTabList.prototype.getList = function() {
   let actorPromises = [];
 
   for (let browser of this._getBrowsers()) {
-    
-    let actor = this._actorByBrowser.get(browser);
-    if (actor) {
-      actorPromises.push(actor.update());
-      foundCount++;
-    } else if (this._isRemoteBrowser(browser)) {
-      actor = new RemoteBrowserTabActor(this._connection, browser);
-      this._actorByBrowser.set(browser, actor);
-      actorPromises.push(actor.connect());
-    } else {
-      actor = new BrowserTabActor(this._connection, browser,
-                                  browser.getTabBrowser());
-      this._actorByBrowser.set(browser, actor);
-      actorPromises.push(promise.resolve(actor));
-    }
-
-    
-    actor.selected = browser === selectedBrowser;
+    let selected = browser === selectedBrowser;
+    actorPromises.push(
+      this._getActorForBrowser(browser)
+          .then(actor => {
+            
+            actor.selected = selected;
+            return actor;
+          })
+    );
   }
 
-  if (this._testing && initialMapSize !== foundCount)
+  if (this._testing && initialMapSize !== this._foundCount)
     throw Error("_actorByBrowser map contained actors for dead tabs");
 
   this._mustNotify = true;
   this._checkListening();
 
   return promise.all(actorPromises);
+};
+
+BrowserTabList.prototype._getActorForBrowser = function(browser) {
+  
+  let actor = this._actorByBrowser.get(browser);
+  if (actor) {
+    this._foundCount++;
+    return actor.update();
+  } else if (this._isRemoteBrowser(browser)) {
+    actor = new RemoteBrowserTabActor(this._connection, browser);
+    this._actorByBrowser.set(browser, actor);
+    this._checkListening();
+    return actor.connect();
+  } else {
+    actor = new BrowserTabActor(this._connection, browser,
+                                browser.getTabBrowser());
+    this._actorByBrowser.set(browser, actor);
+    this._checkListening();
+    return promise.resolve(actor);
+  }
+};
+
+BrowserTabList.prototype.getTab = function({ outerWindowID, tabId }) {
+  if (typeof(outerWindowID) == "number") {
+    
+    for (let browser of this._getBrowsers()) {
+      if (browser.contentWindow) {
+        let windowUtils = browser.contentWindow
+          .QueryInterface(Ci.nsIInterfaceRequestor)
+          .getInterface(Ci.nsIDOMWindowUtils);
+        if (windowUtils.outerWindowID === outerWindowID) {
+          return this._getActorForBrowser(browser);
+        }
+      }
+    }
+    return promise.reject({
+      error: "noTab",
+      message: "Unable to find tab with outerWindowID '" + outerWindowID + "'"
+    });
+  } else if (typeof(tabId) == "number") {
+    
+    for (let browser of this._getBrowsers()) {
+      if (browser.frameLoader.tabParent &&
+          browser.frameLoader.tabParent.tabId === tabId) {
+        return this._getActorForBrowser(browser);
+      }
+    }
+    return promise.reject({
+      error: "noTab",
+      message: "Unable to find tab with tabId '" + tabId + "'"
+    });
+  }
+
+  let topXULWindow = Services.wm.getMostRecentWindow(DebuggerServer.chromeWindowType);
+  if (topXULWindow) {
+    let selectedBrowser = this._getSelectedBrowser(topXULWindow);
+    return this._getActorForBrowser(selectedBrowser);
+  }
+  return promise.reject({
+    error: "noTab",
+    message: "Unable to find any selected browser"
+  });
 };
 
 Object.defineProperty(BrowserTabList.prototype, 'onListChanged', {

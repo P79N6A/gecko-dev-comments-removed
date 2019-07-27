@@ -468,6 +468,8 @@ DebuggerClient.prototype = {
 
   listAddons: function (aOnResponse) { return this.mainRoot.listAddons(aOnResponse); },
 
+  getTab: function (aFilter) { return this.mainRoot.getTab(aFilter); },
+
   
 
 
@@ -1405,6 +1407,51 @@ RootClient.prototype = {
 
   listProcesses: DebuggerClient.requester({ type: "listProcesses" },
                                        { telemetry: "LISTPROCESSES" }),
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  getTab: function (aFilter) {
+    let packet = {
+      to: this.actor,
+      type: "getTab"
+    };
+
+    if (aFilter) {
+      if (typeof(aFilter.outerWindowID) == "number") {
+        packet.outerWindowID = aFilter.outerWindowID;
+      } else if (typeof(aFilter.tabId) == "number") {
+        packet.tabId = aFilter.tabId;
+      } else if ("tab" in aFilter) {
+        let browser = aFilter.tab.linkedBrowser;
+        if (browser.frameLoader.tabParent) {
+          
+          packet.tabId = browser.frameLoader.tabParent.tabId;
+        } else {
+          
+          let windowUtils = browser.contentWindow
+            .QueryInterface(Ci.nsIInterfaceRequestor)
+            .getInterface(Ci.nsIDOMWindowUtils);
+          packet.outerWindowID = windowUtils.outerWindowID;
+        }
+      } else {
+        
+        
+        throw new Error("Unsupported argument given to getTab request");
+      }
+    }
+
+    return this.request(packet);
+  },
 
   
 
