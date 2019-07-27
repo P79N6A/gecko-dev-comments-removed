@@ -17,6 +17,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "SystemAppProxy",
 
 var require = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools.require;
 let Telemetry = require("devtools/shared/telemetry");
+let {showDoorhanger} = require("devtools/shared/doorhanger");
 let {TouchEventHandler} = require("devtools/touch-events");
 
 this.EXPORTED_SYMBOLS = ["ResponsiveUIManager"];
@@ -217,6 +218,13 @@ function ResponsiveUI(aWindow, aTab)
 
   
   ResponsiveUIManager.emit("on", { tab: this.tab });
+
+  
+  showDoorhanger({
+    window: this.mainWindow,
+    type: "deveditionpromo",
+    anchor: this.chromeDoc.querySelector("#content")
+  });
 }
 
 ResponsiveUI.prototype = {

@@ -1307,6 +1307,17 @@ pref("browser.devedition.theme.showCustomizeButton", false);
 #endif
 
 
+pref("devtools.devedition.promo.shown", false);
+pref("devtools.devedition.promo.url", "https://mozilla.org/firefox/developer");
+
+
+#ifdef MOZ_UPDATE_CHANNEL == beta
+  pref("devtools.devedition.promo.enabled", true);
+#else
+  pref("devtools.devedition.promo.enabled", false);
+#endif
+
+
 pref("devtools.errorconsole.enabled", false);
 
 
