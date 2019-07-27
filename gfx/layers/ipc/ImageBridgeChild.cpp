@@ -364,6 +364,10 @@ static void ReleaseImageClientNow(ImageClient* aClient)
 
 void ImageBridgeChild::DispatchReleaseImageClient(ImageClient* aClient)
 {
+  if (!aClient) {
+    return;
+  }
+
   if (!IsCreated()) {
     
     
@@ -423,7 +427,7 @@ static void UpdateImageClientNow(ImageClient* aClient, ImageContainer* aContaine
 void ImageBridgeChild::DispatchImageClientUpdate(ImageClient* aClient,
                                                  ImageContainer* aContainer)
 {
-  if (!IsCreated()) {
+  if (!aClient || !aContainer || !IsCreated()) {
     return;
   }
 
