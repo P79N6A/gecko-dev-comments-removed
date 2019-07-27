@@ -128,6 +128,12 @@ LIRGeneratorX64::visitCompareExchangeTypedArrayElement(MCompareExchangeTypedArra
 }
 
 void
+LIRGeneratorX64::visitAtomicExchangeTypedArrayElement(MAtomicExchangeTypedArrayElement* ins)
+{
+    lowerAtomicExchangeTypedArrayElement(ins,  false);
+}
+
+void
 LIRGeneratorX64::visitAtomicTypedArrayElementBinop(MAtomicTypedArrayElementBinop* ins)
 {
     lowerAtomicTypedArrayElementBinop(ins,  false);
