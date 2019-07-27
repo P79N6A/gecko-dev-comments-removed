@@ -146,9 +146,6 @@ public:
   CompositorChild* GetCompositorChild();
 
   
-  virtual bool AreComponentAlphaLayersEnabled() MOZ_OVERRIDE { return IsCompositingCheap(); }
-
-  
 
 
 
