@@ -325,7 +325,7 @@ RasterImage::Init(const char* aMimeType,
   
   MOZ_ASSERT(!(aFlags & INIT_FLAG_TRANSIENT) ||
                (!(aFlags & INIT_FLAG_DISCARDABLE) &&
-                !(aFlags & INIT_FLAG_DECODE_ON_DRAW),
+                !(aFlags & INIT_FLAG_DECODE_ON_DRAW) &&
                 !(aFlags & INIT_FLAG_DOWNSCALE_DURING_DECODE)),
              "Illegal init flags for transient image");
 
@@ -1374,24 +1374,7 @@ RasterImage::WantDecodedFrames(uint32_t aFlags, bool aShouldSyncNotify)
 NS_IMETHODIMP
 RasterImage::RequestDecode()
 {
-  MOZ_ASSERT(NS_IsMainThread());
-
-  if (mError) {
-    return NS_ERROR_FAILURE;
-  }
-  if (!mHasSize) {
-    mWantFullDecode = true;
-    return NS_OK;
-  }
-
-  
-  
-  
-  
-  
-  LookupFrame(0, mSize, DECODE_FLAGS_DEFAULT,  false);
-
-  return NS_OK;
+  return RequestDecodeForSize(mSize, DECODE_FLAGS_DEFAULT);
 }
 
 
@@ -1403,9 +1386,18 @@ RasterImage::StartDecoding()
       NS_NewRunnableMethod(this, &RasterImage::StartDecoding));
   }
 
+  return RequestDecodeForSize(mSize, FLAG_SYNC_DECODE);
+}
+
+NS_IMETHODIMP
+RasterImage::RequestDecodeForSize(const nsIntSize& aSize, uint32_t aFlags)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
   if (mError) {
     return NS_ERROR_FAILURE;
   }
+
   if (!mHasSize) {
     mWantFullDecode = true;
     return NS_OK;
@@ -1413,10 +1405,19 @@ RasterImage::StartDecoding()
 
   
   
+  nsIntSize targetSize = mDownscaleDuringDecode ? aSize : mSize;
+
+  
+  bool shouldSyncDecodeSmallImages = aFlags & FLAG_SYNC_DECODE;
+
   
   
   
-  LookupFrame(0, mSize, DECODE_FLAGS_DEFAULT,  true);
+  
+  
+  
+  LookupFrame(0, targetSize, DecodeFlags(aFlags),
+               shouldSyncDecodeSmallImages);
 
   return NS_OK;
 }
