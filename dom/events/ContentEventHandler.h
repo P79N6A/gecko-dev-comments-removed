@@ -86,6 +86,12 @@ public:
                                            uint32_t* aOffset,
                                            LineBreakType aLineBreakType);
   
+  
+  
+  static uint32_t GetNativeTextLength(nsIContent* aContent,
+                                      uint32_t aStartOffset,
+                                      uint32_t aEndOffset);
+  
   static uint32_t GetNativeTextLength(nsIContent* aContent,
                                       uint32_t aMaxLength = UINT32_MAX);
 protected:
