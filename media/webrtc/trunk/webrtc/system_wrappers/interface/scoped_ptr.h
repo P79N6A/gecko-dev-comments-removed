@@ -110,6 +110,16 @@
 #include "webrtc/system_wrappers/source/move.h"
 #include "webrtc/typedefs.h"
 
+
+
+
+
+
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-local-typedefs"
+#endif 
+
 namespace webrtc {
 
 
@@ -711,5 +721,10 @@ void swap(scoped_ptr_malloc<T,FF>& a, scoped_ptr_malloc<T,FF>& b) {
 }
 
 }  
+
+
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif 
 
 #endif  
