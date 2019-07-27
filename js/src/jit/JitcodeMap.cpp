@@ -718,6 +718,14 @@ JitcodeGlobalTable::verifySkiplist()
 }
 #endif 
 
+void
+JitcodeGlobalTable::setAllEntriesAsExpired(JSRuntime *rt)
+{
+    AutoSuppressProfilerSampling suppressSampling(rt);
+    for (Range r(*this); !r.empty(); r.popFront())
+        r.front()->setAsExpired();
+}
+
 bool
 JitcodeGlobalTable::markIteratively(JSTracer *trc)
 {
@@ -762,7 +770,7 @@ JitcodeGlobalTable::markIteratively(JSTracer *trc)
         
         
         if (!entry->isSampled(gen, lapCount)) {
-            entry->setGeneration(UINT32_MAX);
+            entry->setAsExpired();
             if (!entry->baseEntry().isJitcodeMarkedFromAnyThread())
                 continue;
         }

@@ -696,17 +696,33 @@ struct JSRuntime : public JS::shadow::Runtime,
     uint32_t profilerSampleBufferGen() {
         return profilerSampleBufferGen_;
     }
+    void resetProfilerSampleBufferGen() {
+        profilerSampleBufferGen_ = 0;
+    }
     void setProfilerSampleBufferGen(uint32_t gen) {
-        profilerSampleBufferGen_ = gen;
+        
+        
+        for (;;) {
+            uint32_t curGen = profilerSampleBufferGen_;
+            if (curGen >= gen)
+                break;
+
+            if (profilerSampleBufferGen_.compareExchange(curGen, gen))
+                break;
+        }
     }
 
     uint32_t profilerSampleBufferLapCount() {
         MOZ_ASSERT(profilerSampleBufferLapCount_ > 0);
         return profilerSampleBufferLapCount_;
     }
+    void resetProfilerSampleBufferLapCount() {
+        profilerSampleBufferLapCount_ = 1;
+    }
     void updateProfilerSampleBufferLapCount(uint32_t lapCount) {
         MOZ_ASSERT(profilerSampleBufferLapCount_ > 0);
 
+        
         
         for (;;) {
             uint32_t curLapCount = profilerSampleBufferLapCount_;

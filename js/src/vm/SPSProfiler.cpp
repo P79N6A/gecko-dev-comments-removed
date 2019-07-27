@@ -14,6 +14,7 @@
 
 #include "jit/BaselineFrame.h"
 #include "jit/BaselineJIT.h"
+#include "jit/JitcodeMap.h"
 #include "jit/JitFrameIterator.h"
 #include "jit/JitFrames.h"
 #include "vm/StringBuffer.h"
@@ -86,6 +87,15 @@ SPSProfiler::enable(bool enabled)
 
 
     ReleaseAllJITCode(rt->defaultFreeOp());
+
+    
+    
+    
+    
+    if (rt->hasJitRuntime() && rt->jitRuntime()->hasJitcodeGlobalTable())
+        rt->jitRuntime()->getJitcodeGlobalTable()->setAllEntriesAsExpired(rt);
+    rt->resetProfilerSampleBufferGen();
+    rt->resetProfilerSampleBufferLapCount();
 
     
     if (rt->jitActivation) {
@@ -466,8 +476,8 @@ AutoSuppressProfilerSampling::AutoSuppressProfilerSampling(JSRuntime *rt
 
 AutoSuppressProfilerSampling::~AutoSuppressProfilerSampling()
 {
-        if (previouslyEnabled_)
-            rt_->enableProfilerSampling();
+    if (previouslyEnabled_)
+        rt_->enableProfilerSampling();
 }
 
 void *
