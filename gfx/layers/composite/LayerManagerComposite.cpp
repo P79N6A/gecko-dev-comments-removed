@@ -704,15 +704,9 @@ LayerManagerComposite::Render()
   }
 
   if (actualBounds.IsEmpty()) {
-    mCompositor->SetFinalDestinationTarget();
     mCompositor->GetWidget()->PostRender(this);
     return;
   }
-
-  
-  RootLayer()->Prepare(RenderTargetPixel::FromUntyped(clipRect));
-
-  mCompositor->SetFinalDestinationTarget();
 
   
   mCompositor->GetWidget()->DrawWindowUnderlay(this, nsIntRect(actualBounds.x,
@@ -728,6 +722,7 @@ LayerManagerComposite::Render()
   }
 
   
+  RootLayer()->Prepare(RenderTargetPixel::FromUntyped(clipRect));
   RootLayer()->RenderLayer(clipRect);
 
   if (!mRegionToClear.IsEmpty()) {

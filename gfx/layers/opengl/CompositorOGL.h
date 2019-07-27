@@ -272,8 +272,6 @@ public:
   const gfx::Matrix4x4& GetProjMatrix() const {
     return mProjMatrix;
   }
-
-  virtual void SetFinalDestinationTarget() MOZ_OVERRIDE;
 private:
   virtual gfx::IntSize GetWidgetSize() const MOZ_OVERRIDE
   {
@@ -299,6 +297,9 @@ private:
 
   
   RefPtr<CompositingRenderTargetOGL> mCurrentRenderTarget;
+#ifdef DEBUG
+  CompositingRenderTargetOGL* mWindowRenderTarget;
+#endif
 
   
 
