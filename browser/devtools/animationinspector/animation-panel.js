@@ -208,6 +208,11 @@ PlayerWidget.prototype = {
     titleHTML += L10N.getStr("player.animationDurationLabel");
     titleHTML += "<strong>" + L10N.getFormatStr("player.timeLabel",
       this.getFormattedTime(state.duration)) + "</strong>";
+    if (state.delay) {
+      titleHTML += L10N.getStr("player.animationDelayLabel");
+      titleHTML += "<strong>" + L10N.getFormatStr("player.timeLabel",
+        this.getFormattedTime(state.delay)) + "</strong>";
+    }
     titleHTML += L10N.getStr("player.animationIterationCountLabel");
     let count = state.iterationCount || L10N.getStr("player.infiniteIterationCount");
     titleHTML += "<strong>" + count + "</strong>";
@@ -267,6 +272,7 @@ PlayerWidget.prototype = {
         "min": "0",
         "max": max,
         "step": "10",
+        "value": "0",
         
         "disabled": "true"
       }
@@ -280,7 +286,7 @@ PlayerWidget.prototype = {
       }
     });
     this.timeDisplayEl.textContent = L10N.getFormatStr("player.timeLabel",
-      this.getFormattedTime());
+      this.getFormattedTime(0));
 
     this.containerEl.appendChild(this.el);
   },
@@ -290,14 +296,11 @@ PlayerWidget.prototype = {
 
 
 
-  getFormattedTime: function(time=this.player.state.currentTime) {
-    let str = time/1000 + "";
-    str = str.split(".");
-    if (str.length === 1) {
-      return str[0] + ".00";
-    } else {
-      return str[0] + "." + str[1].substring(0, 2);
-    }
+  getFormattedTime: function(time) {
+    return (time/1000).toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
   },
 
   
@@ -389,6 +392,12 @@ PlayerWidget.prototype = {
 
   displayTime: function(time) {
     let state = this.player.state;
+
+    
+    
+    if (state.delay) {
+      time = Math.max(0, time - state.delay);
+    }
 
     this.timeDisplayEl.textContent = L10N.getFormatStr("player.timeLabel",
       this.getFormattedTime(time));
