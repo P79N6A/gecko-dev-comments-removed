@@ -26,6 +26,10 @@
 namespace mozilla {
 namespace dom {
 
+namespace workers {
+class WorkerPrivate;
+}
+
 class File;
 
 class WebSocketImpl;
@@ -56,7 +60,7 @@ public:
   
   nsPIDOMWindow* GetParentObject() { return GetOwner(); }
 
-  virtual JSObject* WrapObject(JSContext *cx) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* cx) MOZ_OVERRIDE;
 
 public: 
 
@@ -133,7 +137,10 @@ private:
   
   nsresult CreateAndDispatchSimpleEvent(const nsAString& aName);
   nsresult CreateAndDispatchMessageEvent(const nsACString& aData,
-                                         bool isBinary);
+                                         bool aIsBinary);
+  nsresult CreateAndDispatchMessageEvent(JSContext* aCx,
+                                         const nsACString& aData,
+                                         bool aIsBinary);
   nsresult CreateAndDispatchCloseEvent(bool aWasClean,
                                        uint16_t aCode,
                                        const nsAString& aReason);
@@ -153,6 +160,10 @@ private:
   
   
   WebSocketImpl* mImpl;
+
+  
+  
+  workers::WorkerPrivate* mWorkerPrivate;
 
   bool mKeepingAlive;
   bool mCheckMustKeepAlive;

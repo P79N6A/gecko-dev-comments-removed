@@ -127,6 +127,8 @@ var interfaceNamesInGlobalScope =
 
     "URLSearchParams",
 
+    "WebSocket",
+
     "Worker",
 
     "WorkerGlobalScope",
