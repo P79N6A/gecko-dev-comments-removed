@@ -107,8 +107,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "GlobalState",
   "resource:///modules/sessionstore/GlobalState.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PrivacyFilter",
   "resource:///modules/sessionstore/PrivacyFilter.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "RevivableWindows",
-  "resource:///modules/sessionstore/RevivableWindows.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "RunState",
   "resource:///modules/sessionstore/RunState.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ScratchpadManager",
@@ -703,9 +701,7 @@ let SessionStoreInternal = {
         this.saveStateDelayed(win);
         break;
     }
-
-    
-    RevivableWindows.clear();
+    this._clearRestoringWindows();
   },
 
   
@@ -1017,9 +1013,11 @@ let SessionStoreInternal = {
         SessionCookies.update([winData]);
       }
 
+#ifndef XP_MACOSX
       
       
-      RevivableWindows.add(winData);
+      winData._shouldRestore = true;
+#endif
 
       
       
@@ -1041,8 +1039,9 @@ let SessionStoreInternal = {
         
         
         
-        let numOpenWindows = Object.keys(this._windows).length;
-        let isLastWindow = numOpenWindows == 1 && RevivableWindows.isEmpty;
+        let isLastWindow =
+          Object.keys(this._windows).length == 1 &&
+          !this._closedWindows.some(win => win._shouldRestore || false);
 
         if (hasSaveableTabs || isLastWindow) {
           
@@ -1156,11 +1155,8 @@ let SessionStoreInternal = {
         delete this._windows[ix];
       }
     }
-
     
     this._closedWindows = [];
-    RevivableWindows.clear();
-
     
     var win = this._getMostRecentBrowserWindow();
     if (win) {
@@ -1168,6 +1164,8 @@ let SessionStoreInternal = {
     } else if (RunState.isRunning) {
       SessionSaver.run();
     }
+
+    this._clearRestoringWindows();
   },
 
   
@@ -1221,12 +1219,11 @@ let SessionStoreInternal = {
       }
     }
 
-    
-    RevivableWindows.clear();
-
     if (RunState.isRunning) {
       SessionSaver.run();
     }
+
+    this._clearRestoringWindows();
   },
 
   
@@ -3347,6 +3344,21 @@ let SessionStoreInternal = {
       spliceTo = normalWindowIndex + 1;
 #endif
     this._closedWindows.splice(spliceTo, this._closedWindows.length);
+  },
+
+  
+
+
+
+
+
+
+
+
+  _clearRestoringWindows: function ssi_clearRestoringWindows() {
+    for (let i = 0; i < this._closedWindows.length; i++) {
+      delete this._closedWindows[i]._shouldRestore;
+    }
   },
 
   
