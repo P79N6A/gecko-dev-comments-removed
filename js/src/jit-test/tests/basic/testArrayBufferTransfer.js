@@ -56,6 +56,12 @@ assertEq(buf2.byteLength, 9);
 assertThrowsInstanceOf(()=>XF(buf1), TypeError);
 
 
+var buf3 = newGlobal().eval("new ArrayBuffer(10)");
+var buf4 = XF(buf3, 20);
+assertEq(buf4.byteLength, 20);
+assertThrowsInstanceOf(()=>XF(buf3), TypeError);
+
+
 function test(N1, N2) {
     var buf1 = new ArrayBuffer(N1);
     var i32 = new Int32Array(buf1);
