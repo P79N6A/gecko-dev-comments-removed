@@ -110,9 +110,24 @@ public class LayerMarginsAnimator {
         }
 
         ImmutableViewportMetrics metrics = mTarget.getViewportMetrics();
+        if (!canAnimateMargins(metrics, left, top, right, bottom)) {
+            return;
+        }
 
         mAnimationTask = new LayerMarginsAnimationTask(false, metrics, left, top, right, bottom);
         mTarget.getView().postRenderTask(mAnimationTask);
+    }
+
+    
+
+
+
+    private static boolean canAnimateMargins(final ImmutableViewportMetrics metrics,
+            final float left, final float top, final float right, final float bottom) {
+        return !(FloatUtils.fuzzyEquals(left, metrics.marginLeft) &&
+                    FloatUtils.fuzzyEquals(top, metrics.marginTop) &&
+                    FloatUtils.fuzzyEquals(right, metrics.marginRight) &&
+                    FloatUtils.fuzzyEquals(bottom, metrics.marginBottom));
     }
 
     
