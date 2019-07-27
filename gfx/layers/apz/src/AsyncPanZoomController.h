@@ -326,6 +326,28 @@ public:
 
   int32_t GetLastTouchIdentifier() const;
 
+  
+
+
+
+
+
+
+
+  void ToGlobalScreenCoordinates(ScreenPoint* aVector,
+                                 const ScreenPoint& aAnchor) const;
+
+  
+
+
+
+
+
+
+
+  void ToLocalScreenCoordinates(ScreenPoint* aVector,
+                                const ScreenPoint& aAnchor) const;
+
 protected:
   enum PanZoomState {
     NOTHING,                  
