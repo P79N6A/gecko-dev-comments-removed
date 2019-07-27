@@ -786,7 +786,7 @@ ContentClientIncremental::BeginPaintBuffer(PaintedLayer* aLayer,
         if ((mode == SurfaceMode::SURFACE_COMPONENT_ALPHA) != mHasBufferOnWhite) {
           printf_stderr("Layer's component alpha status has changed\n");
         }
-        printf_stderr("Invalidating entire layer %p\n", aLayer);
+        printf_stderr("Invalidating entire layer %p: no buffer, or content type or component alpha changed\n", aLayer);
       }
 #endif
       

@@ -3227,6 +3227,14 @@ nsLayoutUtils::PaintFrame(nsRenderingContext* aRenderingContext, nsIFrame* aFram
 #endif
   }
 
+#ifdef MOZ_DUMP_PAINTING
+  if (gfxPrefs::DumpClientLayers()) {
+    std::stringstream ss;
+    FrameLayerBuilder::DumpRetainedLayerTree(layerManager, ss, false);
+    printf_stderr("%s", ss.str().c_str());
+  }
+#endif
+
   
   
   
