@@ -13,18 +13,10 @@ add_task(function test_invalid_file() {
                             {tmpPath: sessionCheckpointsPath + ".tmp"});
 
   
-  try {
-    let status = yield CrashMonitor.init();
-    do_check_true(false);
-  } catch (ex) {
-    do_check_true(true);
-  }
+  let status = yield CrashMonitor.init();
+  do_check_true(status === null ? true : false);
 
   
-  try {
-    let checkpoints = yield CrashMonitor.previousCheckpoints;
-    do_check_true(false);
-  } catch (ex) {
-    do_check_true(true);
-  }
+  let checkpoints = yield CrashMonitor.previousCheckpoints;
+  do_check_true(checkpoints === null ? true : false);
 });
