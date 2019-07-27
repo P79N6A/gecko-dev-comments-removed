@@ -308,7 +308,7 @@ public:
     virtual sp<NativeHandle> getSidebandStream() const = 0;
 
     
-    virtual void dumpToString(String8& result, const char* prefix) const = 0;
+    virtual void dump(String8& result, const char* prefix) const = 0;
 
     
     virtual mozilla::TemporaryRef<mozilla::layers::TextureClient>
