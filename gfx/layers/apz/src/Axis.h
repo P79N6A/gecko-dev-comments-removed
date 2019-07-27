@@ -8,6 +8,7 @@
 #define mozilla_layers_Axis_h
 
 #include <sys/types.h>                  
+#include "APZUtils.h"
 #include "Units.h"
 #include "mozilla/TimeStamp.h"          
 #include "nsTArray.h"                   
@@ -16,14 +17,6 @@ namespace mozilla {
 namespace layers {
 
 const float EPSILON = 0.0001f;
-
-
-
-
-
-
-
-const float COORDINATE_EPSILON = 0.01f;
 
 
 

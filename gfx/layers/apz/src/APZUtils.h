@@ -38,11 +38,19 @@ enum class ScrollSource {
 
 typedef uint32_t TouchBehaviorFlags;
 
+
+
+
+
+
+
+const float COORDINATE_EPSILON = 0.01f;
+
 template <typename Units>
 static bool IsZero(const gfx::PointTyped<Units>& aPoint)
 {
-  return FuzzyEqualsAdditive(aPoint.x, 0.0f)
-      && FuzzyEqualsAdditive(aPoint.y, 0.0f);
+  return FuzzyEqualsAdditive(aPoint.x, 0.0f, COORDINATE_EPSILON)
+      && FuzzyEqualsAdditive(aPoint.y, 0.0f, COORDINATE_EPSILON);
 }
 
 }
