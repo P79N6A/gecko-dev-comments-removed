@@ -1318,6 +1318,8 @@ nsSliderFrame::GetThumbRatio() const
 {
   
   
+  
+  
   return mRatio / mozilla::AppUnitsPerCSSPixel();
 }
 
