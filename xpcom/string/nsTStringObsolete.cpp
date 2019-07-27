@@ -4,7 +4,7 @@
 
 
 
-
+#include "nsTArray.h"
 
 
 
@@ -451,6 +451,8 @@ nsTString_CharT::ReplaceChar( const char* aSet, char_type aNewChar )
   }
 }
 
+void ReleaseData(void* aData, uint32_t aFlags);
+
 void
 nsTString_CharT::ReplaceSubstring( const char_type* aTarget, const char_type* aNewValue )
 {
@@ -464,18 +466,98 @@ nsTString_CharT::ReplaceSubstring( const self_type& aTarget, const self_type& aN
   if (aTarget.Length() == 0)
     return;
 
+  struct Segment {
+    uint32_t mBegin, mLength;
+    Segment(uint32_t aBegin, uint32_t aLength)
+      : mBegin(aBegin)
+      , mLength(aLength)
+    {}
+  };
+
+  
+  nsAutoTArray<Segment, 16> nonMatching;
   uint32_t i = 0;
-  while (i < mLength)
+  uint32_t newLength = 0;
+  while (true)
   {
     int32_t r = FindSubstring(mData + i, mLength - i, static_cast<const char_type*>(aTarget.Data()), aTarget.Length(), false);
-    if (r == kNotFound)
+    int32_t until = (r == kNotFound) ? mLength - i : r;
+    nonMatching.AppendElement(Segment(i, until));
+    newLength += until;
+    if (r == kNotFound) {
       break;
+    }
 
-    Replace(i + r, aTarget.Length(), aNewValue);
-    i += r + aNewValue.Length();
+    newLength += aNewValue.Length();
+    i += r + aTarget.Length();
+    if (i >= mLength) {
+      
+      
+      nonMatching.AppendElement(Segment(mLength, 0));
+      break;
+    }
   }
-}
 
+  
+  
+  if (nonMatching.Length() == 1) {
+    MOZ_ASSERT(nonMatching[0].mBegin == 0 && nonMatching[0].mLength == mLength,
+               "We should have the correct non-matching segment.");
+    return;
+  }
+
+  
+  char_type* oldData;
+  uint32_t oldFlags;
+  if (!MutatePrep(newLength, &oldData, &oldFlags))
+    return;
+  if (oldData) {
+    
+    char_traits::copy(mData, oldData, mLength);
+    ::ReleaseData(oldData, oldFlags);
+  }
+
+  if (aTarget.Length() >= aNewValue.Length()) {
+    
+    const uint32_t delta = (aTarget.Length() - aNewValue.Length());
+    for (i = 1; i < nonMatching.Length(); ++i) {
+      
+      
+      
+      const char_type* sourceSegmentPtr = mData + nonMatching[i].mBegin;
+      char_type* destinationSegmentPtr = mData + nonMatching[i].mBegin - i * delta;
+      memmove(destinationSegmentPtr, sourceSegmentPtr,
+              sizeof(char_type) * nonMatching[i].mLength);
+      
+      
+      char_traits::copy(destinationSegmentPtr - aNewValue.Length(),
+                        aNewValue.Data(), aNewValue.Length());
+    }
+  } else {
+    
+    const uint32_t delta = (aNewValue.Length() - aTarget.Length());
+    const uint32_t numNonMatching = nonMatching.Length();
+    if (numNonMatching > 1) {
+      for (i = numNonMatching - 1; i > 0; --i) {
+        
+        
+        
+        const char_type* sourceSegmentPtr = mData + nonMatching[i].mBegin;
+        char_type* destinationSegmentPtr = mData + nonMatching[i].mBegin + i * delta;
+        memmove(destinationSegmentPtr, sourceSegmentPtr,
+                sizeof(char_type) * nonMatching[i].mLength);
+        
+        
+        char_traits::copy(destinationSegmentPtr - aNewValue.Length(),
+                          aNewValue.Data(), aNewValue.Length());
+      }
+    }
+  }
+
+  
+  mLength = newLength;
+  mData[mLength] = char_type(0);
+}
 
 
 
