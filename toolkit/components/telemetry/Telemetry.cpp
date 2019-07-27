@@ -736,9 +736,6 @@ private:
   static TelemetryImpl *sTelemetry;
   AutoHashtable<SlowSQLEntryType> mPrivateSQL;
   AutoHashtable<SlowSQLEntryType> mSanitizedSQL;
-  
-  
-  nsTHashtable<nsCStringHashKey> mTrackedDBs;
   Mutex mHashMutex;
   HangReports mHangReports;
   Mutex mHangReportsMutex;
@@ -1862,35 +1859,6 @@ mCachedTelemetryData(false),
 mLastShutdownTime(0),
 mFailedLockCount(0)
 {
-  
-  const char *trackedDBs[] = {
-    "818200132aebmoouht.sqlite", 
-    "addons.sqlite",
-    "content-prefs.sqlite",
-    "cookies.sqlite",
-    "downloads.sqlite",
-    "extensions.sqlite",
-    "formhistory.sqlite",
-    "healthreport.sqlite",
-    "index.sqlite",
-    "netpredictions.sqlite",
-    "permissions.sqlite",
-    "places.sqlite",
-    "reading-list.sqlite",
-    "search.sqlite",
-    "signons.sqlite",
-    "urlclassifier3.sqlite",
-    "webappsstore.sqlite"
-  };
-
-  for (size_t i = 0; i < ArrayLength(trackedDBs); i++)
-    mTrackedDBs.PutEntry(nsDependentCString(trackedDBs[i]));
-
-#ifdef DEBUG
-  
-  mTrackedDBs.MarkImmutable();
-#endif
-
   
   
   for (uint32_t i = 0; i < Telemetry::HistogramCount; i++) {
@@ -3428,6 +3396,57 @@ TelemetryImpl::SanitizeSQL(const nsACString &sql) {
 
 
 
+struct TrackedDBEntry
+{
+  const char* mName;
+  const uint32_t mNameLength;
+
+  
+  MOZ_CONSTEXPR
+  TrackedDBEntry(const char* aName, uint32_t aNameLength)
+    : mName(aName)
+    , mNameLength(aNameLength)
+  { }
+
+  TrackedDBEntry() = delete;
+  TrackedDBEntry(TrackedDBEntry&) = delete;
+};
+
+#define TRACKEDDB_ENTRY(_name) { _name, (sizeof(_name) - 1) }
+
+
+
+static MOZ_CONSTEXPR_VAR TrackedDBEntry kTrackedDBs[] = {
+  
+  TRACKEDDB_ENTRY("818200132aebmoouht.sqlite"),
+  TRACKEDDB_ENTRY("addons.sqlite"),
+  TRACKEDDB_ENTRY("content-prefs.sqlite"),
+  TRACKEDDB_ENTRY("cookies.sqlite"),
+  TRACKEDDB_ENTRY("downloads.sqlite"),
+  TRACKEDDB_ENTRY("extensions.sqlite"),
+  TRACKEDDB_ENTRY("formhistory.sqlite"),
+  TRACKEDDB_ENTRY("healthreport.sqlite"),
+  TRACKEDDB_ENTRY("index.sqlite"),
+  TRACKEDDB_ENTRY("netpredictions.sqlite"),
+  TRACKEDDB_ENTRY("permissions.sqlite"),
+  TRACKEDDB_ENTRY("places.sqlite"),
+  TRACKEDDB_ENTRY("reading-list.sqlite"),
+  TRACKEDDB_ENTRY("search.sqlite"),
+  TRACKEDDB_ENTRY("signons.sqlite"),
+  TRACKEDDB_ENTRY("urlclassifier3.sqlite"),
+  TRACKEDDB_ENTRY("webappsstore.sqlite")
+};
+
+
+
+static const TrackedDBEntry kTrackedDBPrefixes[] = {
+  TRACKEDDB_ENTRY("indexedDB-")
+};
+
+#undef TRACKEDDB_ENTRY
+
+
+
 
 
 const uint32_t kMaxSlowStatementLength = 1000;
@@ -3437,11 +3456,36 @@ TelemetryImpl::RecordSlowStatement(const nsACString &sql,
                                    const nsACString &dbName,
                                    uint32_t delay)
 {
+  MOZ_ASSERT(!sql.IsEmpty());
+  MOZ_ASSERT(!dbName.IsEmpty());
+
   if (!sTelemetry || !sTelemetry->mCanRecordExtended)
     return;
 
-  bool isFirefoxDB = sTelemetry->mTrackedDBs.Contains(dbName);
-  if (isFirefoxDB) {
+  bool recordStatement = false;
+
+  for (const TrackedDBEntry& nameEntry : kTrackedDBs) {
+    MOZ_ASSERT(nameEntry.mNameLength);
+    const nsDependentCString name(nameEntry.mName, nameEntry.mNameLength);
+    if (dbName == name) {
+      recordStatement = true;
+      break;
+    }
+  }
+
+  if (!recordStatement) {
+    for (const TrackedDBEntry& prefixEntry : kTrackedDBPrefixes) {
+      MOZ_ASSERT(prefixEntry.mNameLength);
+      const nsDependentCString prefix(prefixEntry.mName,
+                                      prefixEntry.mNameLength);
+      if (StringBeginsWith(dbName, prefix)) {
+        recordStatement = true;
+        break;
+      }
+    }
+  }
+
+  if (recordStatement) {
     nsAutoCString sanitizedSQL(SanitizeSQL(sql));
     if (sanitizedSQL.Length() > kMaxSlowStatementLength) {
       sanitizedSQL.SetLength(kMaxSlowStatementLength);
@@ -3571,7 +3615,6 @@ TelemetryImpl::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf)
     n += mPrivateSQL.SizeOfExcludingThis(aMallocSizeOf);
     n += mSanitizedSQL.SizeOfExcludingThis(aMallocSizeOf);
   }
-  n += mTrackedDBs.SizeOfExcludingThis(aMallocSizeOf);
   { 
     MutexAutoLock lock(mHangReportsMutex);
     n += mHangReports.SizeOfExcludingThis(aMallocSizeOf);
