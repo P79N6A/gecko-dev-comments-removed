@@ -109,9 +109,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "SharedPreferences",
 XPCOMUtils.defineLazyModuleGetter(this, "Notifications",
                                   "resource://gre/modules/Notifications.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "ReaderMode",
-                                  "resource://gre/modules/ReaderMode.jsm");
-
 XPCOMUtils.defineLazyModuleGetter(this, "GMPInstallManager",
                                   "resource://gre/modules/GMPInstallManager.jsm");
 
@@ -119,7 +116,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "GMPInstallManager",
 [
   ["SelectHelper", "chrome://browser/content/SelectHelper.js"],
   ["InputWidgetHelper", "chrome://browser/content/InputWidgetHelper.js"],
-  ["AboutReader", "chrome://global/content/reader/aboutReader.js"],
   ["MasterPassword", "chrome://browser/content/MasterPassword.js"],
   ["PluginHelper", "chrome://browser/content/PluginHelper.js"],
   ["OfflineApps", "chrome://browser/content/OfflineApps.js"],
@@ -150,7 +146,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "GMPInstallManager",
   ["Feedback", ["Feedback:Show"], "chrome://browser/content/Feedback.js"],
   ["SelectionHandler", ["TextSelection:Get"], "chrome://browser/content/SelectionHandler.js"],
   ["EmbedRT", ["GeckoView:ImportScript"], "chrome://browser/content/EmbedRT.js"],
-  ["Reader", ["Reader:Removed"], "chrome://browser/content/Reader.js"],
+  ["Reader", ["Reader:Added", "Reader:Removed", "Gesture:DoubleTap"], "chrome://browser/content/Reader.js"],
 ].forEach(function (aScript) {
   let [name, notifications, script] = aScript;
   XPCOMUtils.defineLazyGetter(window, name, function() {
@@ -165,6 +161,39 @@ XPCOMUtils.defineLazyModuleGetter(this, "GMPInstallManager",
   };
   notifications.forEach((notification) => {
     Services.obs.addObserver(observer, notification, false);
+  });
+});
+
+
+[
+  ["Reader", [
+    "Reader:AddToList",
+    "Reader:ArticleGet",
+    "Reader:FaviconRequest",
+    "Reader:ListStatusRequest",
+    "Reader:RemoveFromList",
+    "Reader:Share",
+    "Reader:ShowToast",
+    "Reader:ToolbarVisibility",
+    "Reader:SystemUIVisibility",
+    "Reader:UpdateIsArticle",
+  ], "chrome://browser/content/Reader.js"],
+].forEach(aScript => {
+  let [name, messages, script] = aScript;
+  XPCOMUtils.defineLazyGetter(window, name, function() {
+    let sandbox = {};
+    Services.scriptloader.loadSubScript(script, sandbox);
+    return sandbox[name];
+  });
+
+  let mm = window.getGroupMessageManager("browsers");
+  let listener = (message) => {
+    mm.removeMessageListener(message.name, listener);
+    mm.addMessageListener(message.name, window[name]);
+    window[name].receiveMessage(message);
+  };
+  messages.forEach((message) => {
+    mm.addMessageListener(message, listener);
   });
 });
 
@@ -505,6 +534,9 @@ var BrowserApp = {
     } catch (e) {
       
     }
+
+    let mm = window.getGroupMessageManager("browsers");
+    mm.loadFrameScript("chrome://browser/content/content.js", true);
 
     
     Messaging.sendRequest({ type: "Gecko:Ready" });
@@ -3235,7 +3267,7 @@ function Tab(aURL, aParams) {
   this.clickToPlayPluginsActivated = false;
   this.desktopMode = false;
   this.originalURI = null;
-  this.savedArticle = null;
+  this.isArticle = false;
   this.hasTouchListener = false;
   this.browserWidth = 0;
   this.browserHeight = 0;
@@ -3286,6 +3318,7 @@ Tab.prototype = {
 
     this.browser = document.createElement("browser");
     this.browser.setAttribute("type", "content-targetable");
+    this.browser.setAttribute("messagemanagergroup", "browsers");
     this.setBrowserSize(kDefaultCSSViewportWidth, kDefaultCSSViewportHeight);
 
     
@@ -3580,7 +3613,6 @@ Tab.prototype = {
     BrowserApp.deck.selectedPanel = selectedPanel;
 
     this.browser = null;
-    this.savedArticle = null;
   },
 
   
@@ -3977,14 +4009,6 @@ Tab.prototype = {
 
         if (docURI.startsWith("about:reader")) {
           
-          
-          
-          
-          let contentDocument = this.browser.contentDocument;
-          if (contentDocument.body) {
-            new AboutReader(contentDocument, this.browser.contentWindow);
-          }
-          
           Reader.updatePageAction(this);
         }
 
@@ -4288,31 +4312,6 @@ Tab.prototype = {
           xhr.send(this.tilesData);
           this.tilesData = null;
         }
-
-        
-        
-        if (!Reader.isEnabledForParseOnLoad || this.readerActive) {
-          return;
-        }
-
-        
-        this.savedArticle = null;
-        Reader.updatePageAction(this);
-
-        
-        ReaderMode.parseDocumentFromBrowser(this.browser).then(article => {
-          
-          
-          let currentURL = this.browser.currentURI.specIgnoringRef;
-
-          
-          if (article == null || (article.url != currentURL)) {
-            return;
-          }
-
-          this.savedArticle = article;
-          Reader.updatePageAction(this);
-        }).catch(e => Cu.reportError("Error parsing document from tab: " + e));
       }
     }
   },
