@@ -182,14 +182,6 @@ ServiceWorkerContainer::GetReady(ErrorResult& aRv)
 }
 
 
-already_AddRefed<Promise>
-ServiceWorkerContainer::ClearAllServiceWorkerData(ErrorResult& aRv)
-{
-  aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
-  return nullptr;
-}
-
-
 void
 ServiceWorkerContainer::GetScopeForUrl(const nsAString& aUrl,
                                        nsString& aScope,
@@ -204,14 +196,5 @@ ServiceWorkerContainer::GetScopeForUrl(const nsAString& aUrl,
   aRv = swm->GetScopeForUrl(aUrl, aScope);
 }
 
-
-void
-ServiceWorkerContainer::GetControllingWorkerScriptURLForPath(
-                                                        const nsAString& aPath,
-                                                        nsString& aScriptURL,
-                                                        ErrorResult& aRv)
-{
-  aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
-}
 } 
 } 

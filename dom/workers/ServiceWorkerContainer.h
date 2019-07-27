@@ -57,18 +57,8 @@ public:
   GetReady(ErrorResult& aRv);
 
   
-  already_AddRefed<Promise>
-  ClearAllServiceWorkerData(ErrorResult& aRv);
-
-  
   void
   GetScopeForUrl(const nsAString& aUrl, nsString& aScope, ErrorResult& aRv);
-
-  
-  void
-  GetControllingWorkerScriptURLForPath(const nsAString& aPath,
-                                       nsString& aScriptURL,
-                                       ErrorResult& aRv);
 
   
   void DisconnectFromOwner() MOZ_OVERRIDE;
