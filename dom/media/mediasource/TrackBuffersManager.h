@@ -225,6 +225,17 @@ private:
     nsRefPtr<SharedTrackInfo> mInfo;
     
     nsRefPtr<SharedTrackInfo> mLastInfo;
+
+    void ResetAppendState()
+    {
+      mLastDecodeTimestamp.reset();
+      mLastFrameDuration.reset();
+      mHighestEndTimestamp.reset();
+      mNeedRandomAccessPoint = true;
+
+      mLongestFrameDuration.reset();
+      mNextInsertionIndex.reset();
+    }
   };
 
   bool ProcessFrame(MediaRawData* aSample, TrackData& aTrackData);

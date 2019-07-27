@@ -294,21 +294,16 @@ TrackBuffersManager::CompleteResetParserState()
   MOZ_ASSERT(!mAppendRunning);
   MSE_DEBUG("");
 
-  for (auto track : GetTracksList()) {
+  for (auto& track : GetTracksList()) {
     
-    track->mLastDecodeTimestamp.reset();
     
-    track->mLastFrameDuration.reset();
     
-    track->mHighestEndTimestamp.reset();
     
-    track->mNeedRandomAccessPoint = true;
+    track->ResetAppendState();
 
     
     
     track->mQueuedSamples.Clear();
-    track->mLongestFrameDuration.reset();
-    track->mNextInsertionIndex.reset();
   }
   
   mIncomingBuffers.Clear();
@@ -458,6 +453,9 @@ TrackBuffersManager::CodedFrameRemoval(TimeInterval aInterval)
         }
       }
     }
+
+    bool removeCurrentCodedFrameGroup = false;
+
     
     
     TimeInterval removedInterval;
@@ -479,9 +477,11 @@ TrackBuffersManager::CodedFrameRemoval(TimeInterval aInterval)
         }
         track->mSizeBuffer -= sizeof(*frame) + frame->mSize;
         data.RemoveElementAt(i);
-        MOZ_ASSERT(track->mNextInsertionIndex.isNothing() ||
-                   track->mNextInsertionIndex.ref() != i);
-        if (track->mNextInsertionIndex.isSome() &&
+        removeCurrentCodedFrameGroup |=
+          track->mNextInsertionIndex.isSome() &&
+          track->mNextInsertionIndex.ref() == i;
+        if (!removeCurrentCodedFrameGroup &&
+            track->mNextInsertionIndex.isSome() &&
             track->mNextInsertionIndex.ref() > i) {
           track->mNextInsertionIndex.ref()--;
         }
@@ -505,10 +505,12 @@ TrackBuffersManager::CodedFrameRemoval(TimeInterval aInterval)
         track->mSizeBuffer -= sizeof(*sample) + sample->mSize;
       }
       data.RemoveElementsAt(start, end - start);
-      MOZ_ASSERT(track->mNextInsertionIndex.isNothing() ||
-                 track->mNextInsertionIndex.ref() <= start ||
-                 track->mNextInsertionIndex.ref() >= end);
-      if (track->mNextInsertionIndex.isSome() &&
+      removeCurrentCodedFrameGroup |=
+        track->mNextInsertionIndex.isSome() &&
+        track->mNextInsertionIndex.ref() >= start &&
+        track->mNextInsertionIndex.ref() < end;
+      if (!removeCurrentCodedFrameGroup &&
+          track->mNextInsertionIndex.isSome() &&
           track->mNextInsertionIndex.ref() >= end) {
         track->mNextInsertionIndex.ref() -= end - start;
       }
@@ -518,6 +520,9 @@ TrackBuffersManager::CodedFrameRemoval(TimeInterval aInterval)
                 removedInterval.mStart.ToSeconds(), removedInterval.mEnd.ToSeconds());
       track->mBufferedRanges -= removedInterval;
       dataRemoved = true;
+      if (removeCurrentCodedFrameGroup) {
+        track->ResetAppendState();
+      }
     }
 
     
@@ -1259,16 +1264,10 @@ TrackBuffersManager::ProcessFrame(MediaRawData* aSample,
     }
     for (auto& track : tracks) {
       
-      track->mLastDecodeTimestamp.reset();
       
-      track->mLastFrameDuration.reset();
       
-      track->mHighestEndTimestamp.reset();
       
-      track->mNeedRandomAccessPoint = true;
-
-      track->mLongestFrameDuration.reset();
-      track->mNextInsertionIndex.reset();
+      track->ResetAppendState();
     }
 
     MSE_DEBUG("Discontinuity detected. Restarting process");
