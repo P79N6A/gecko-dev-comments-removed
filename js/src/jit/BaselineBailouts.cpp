@@ -709,8 +709,9 @@ InitFromBailout(JSContext* cx, HandleScript caller, jsbytecode* callerPC,
                 
                 
                 
+                
                 MOZ_ASSERT(!script->isForEval());
-                MOZ_ASSERT(!script->hasPollutedGlobalScope());
+                MOZ_ASSERT(!script->hasNonSyntacticScope());
                 scopeChain = &(script->global());
             }
         }

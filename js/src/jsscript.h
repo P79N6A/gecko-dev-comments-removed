@@ -936,7 +936,7 @@ class JSScript : public js::gc::TenuredCell
     
     
     
-    bool hasPollutedGlobalScope_:1;
+    bool hasNonSyntacticScope_:1;
 
     
     bool selfHosted_:1;
@@ -1176,8 +1176,8 @@ class JSScript : public js::gc::TenuredCell
 
     bool explicitUseStrict() const { return explicitUseStrict_; }
 
-    bool hasPollutedGlobalScope() const {
-        return hasPollutedGlobalScope_;
+    bool hasNonSyntacticScope() const {
+        return hasNonSyntacticScope_;
     }
 
     bool selfHosted() const { return selfHosted_; }
