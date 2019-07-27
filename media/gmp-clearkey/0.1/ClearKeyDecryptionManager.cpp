@@ -169,8 +169,8 @@ ClearKeyDecryptionManager::LoadSession(uint32_t aPromiseId,
                                        uint32_t aSessionIdLength)
 {
   
-  mCallback->RejectPromise(aPromiseId, kGMPNotSupportedError,
-                           nullptr , 0 );
+  mCallback->ResolveLoadSessionPromise(aPromiseId, false);
+
   CK_LOGD("ClearKeyDecryptionManager::LoadSession");
 }
 

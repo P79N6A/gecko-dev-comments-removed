@@ -103,6 +103,13 @@ public:
                                         uint32_t aSessionIdLength) = 0;
 
   
+  
+  
+  
+  virtual void ResolveLoadSessionPromise(uint32_t aPromiseId,
+                                         bool aSuccess) = 0;
+
+  
   virtual void ResolvePromise(uint32_t aPromiseId) = 0;
 
   

@@ -109,6 +109,9 @@ public:
                                   const nsAString& aSessionId);
 
   
+  void OnResolveLoadSessionPromise(uint32_t aPromiseId, bool aSuccess);
+
+  
   void OnSessionMessage(const nsAString& aSessionId,
                         nsTArray<uint8_t>& aMessage,
                         const nsAString& aDestinationURL);

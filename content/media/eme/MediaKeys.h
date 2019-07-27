@@ -59,14 +59,8 @@ public:
   void GetKeySystem(nsString& retval) const;
 
   
-  already_AddRefed<Promise> CreateSession(const nsAString& aInitDataType,
-                                          const ArrayBufferViewOrArrayBuffer& aInitData,
-                                          SessionType aSessionType,
-                                          ErrorResult& aRv);
-
-  
-  already_AddRefed<Promise> LoadSession(const nsAString& aSessionId,
-                                        ErrorResult& aRv);
+  already_AddRefed<MediaKeySession> CreateSession(SessionType aSessionType,
+                                                  ErrorResult& aRv);
 
   
   already_AddRefed<Promise> SetServerCertificate(const ArrayBufferViewOrArrayBuffer& aServerCertificate,
@@ -90,7 +84,12 @@ public:
   
   void OnCDMCreated(PromiseId aId);
   
+  
+  void OnSessionPending(PromiseId aId, MediaKeySession* aSession);
+  
   void OnSessionCreated(PromiseId aId, const nsAString& aSessionId);
+  
+  void OnSessionLoaded(PromiseId aId, bool aSuccess);
   
   void OnSessionClosed(MediaKeySession* aSession);
 
