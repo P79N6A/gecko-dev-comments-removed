@@ -156,9 +156,19 @@ HTMLStyleElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 void
 HTMLStyleElement::UnbindFromTree(bool aDeep, bool aNullParent)
 {
-  nsCOMPtr<nsIDocument> oldDoc = GetCurrentDoc();
+  nsCOMPtr<nsIDocument> oldDoc = GetUncomposedDoc();
+  nsCOMPtr<nsIDocument> oldComposedDoc = GetComposedDoc();
   ShadowRoot* oldShadow = GetContainingShadow();
+
   nsGenericHTMLElement::UnbindFromTree(aDeep, aNullParent);
+
+  if (GetContainingShadow() && !oldComposedDoc) {
+    
+    
+    
+    return;
+  }
+
   UpdateStyleSheetInternal(oldDoc, oldShadow);
 }
 

@@ -106,6 +106,7 @@ static const JSClass gPrototypeJSClass = {
 nsXBLBinding::nsXBLBinding(nsXBLPrototypeBinding* aBinding)
   : mMarkedForDeath(false)
   , mUsingContentXBLScope(false)
+  , mIsShadowRootBinding(false)
   , mPrototypeBinding(aBinding)
 {
   NS_ASSERTION(mPrototypeBinding, "Must have a prototype binding!");
@@ -117,6 +118,7 @@ nsXBLBinding::nsXBLBinding(nsXBLPrototypeBinding* aBinding)
 nsXBLBinding::nsXBLBinding(ShadowRoot* aShadowRoot, nsXBLPrototypeBinding* aBinding)
   : mMarkedForDeath(false),
     mUsingContentXBLScope(false),
+    mIsShadowRootBinding(true),
     mPrototypeBinding(aBinding),
     mContent(aShadowRoot)
 {
@@ -127,7 +129,10 @@ nsXBLBinding::nsXBLBinding(ShadowRoot* aShadowRoot, nsXBLPrototypeBinding* aBind
 
 nsXBLBinding::~nsXBLBinding(void)
 {
-  if (mContent) {
+  if (mContent && !mIsShadowRootBinding) {
+    
+    
+    
     nsXBLBinding::UninstallAnonymousContent(mContent->OwnerDoc(), mContent);
   }
   nsXBLDocumentInfo* info = mPrototypeBinding->XBLDocumentInfo();
@@ -139,7 +144,7 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(nsXBLBinding)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsXBLBinding)
   
   
-  if (tmp->mContent) {
+  if (tmp->mContent && !tmp->mIsShadowRootBinding) {
     nsXBLBinding::UninstallAnonymousContent(tmp->mContent->OwnerDoc(),
                                             tmp->mContent);
   }
@@ -234,13 +239,6 @@ void
 nsXBLBinding::UninstallAnonymousContent(nsIDocument* aDocument,
                                         nsIContent* aAnonParent)
 {
-  if (aAnonParent->HasFlag(NODE_IS_IN_SHADOW_TREE)) {
-    
-    
-    
-    return;
-  }
-
   nsAutoScriptBlocker scriptBlocker;
   
   nsCOMPtr<nsIContent> anonParent = aAnonParent;
@@ -811,7 +809,7 @@ nsXBLBinding::ChangeDocument(nsIDocument* aOldDocument, nsIDocument* aNewDocumen
 
     
     
-    if (mContent) {
+    if (mContent && !mIsShadowRootBinding) {
       nsXBLBinding::UninstallAnonymousContent(aOldDocument, mContent);
     }
 
