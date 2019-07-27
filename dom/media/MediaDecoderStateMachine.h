@@ -420,12 +420,8 @@ protected:
   void PushFront(AudioData* aSample);
   void PushFront(VideoData* aSample);
 
-  
-  
-  
-  
-  already_AddRefed<AudioData> PopAudio();
-  already_AddRefed<VideoData> PopVideo();
+  void OnAudioPopped();
+  void OnVideoPopped();
 
   void VolumeChanged();
   void LogicalPlaybackRateChanged();
