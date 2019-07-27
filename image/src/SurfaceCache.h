@@ -7,6 +7,7 @@
 
 
 
+
 #ifndef MOZILLA_IMAGELIB_SURFACECACHE_H_
 #define MOZILLA_IMAGELIB_SURFACECACHE_H_
 
@@ -15,19 +16,15 @@
 #include "gfxPoint.h"               
 #include "nsCOMPtr.h"               
 #include "mozilla/gfx/Point.h"      
+#include "mozilla/gfx/2D.h"         
 #include "SVGImageContext.h"        
 
-class gfxDrawable;
-
 namespace mozilla {
-
-namespace gfx {
-class DrawTarget;
-} 
-
 namespace image {
 
+class DrawableFrameRef;
 class Image;
+class imgFrame;
 
 
 
@@ -93,6 +90,11 @@ private:
 
 
 
+
+
+
+
+
 struct SurfaceCache
 {
   typedef gfx::IntSize IntSize;
@@ -115,8 +117,14 @@ struct SurfaceCache
 
 
 
-  static already_AddRefed<gfxDrawable> Lookup(const ImageKey    aImageKey,
-                                              const SurfaceKey& aSurfaceKey);
+
+
+
+
+
+
+  static DrawableFrameRef Lookup(const ImageKey    aImageKey,
+                                 const SurfaceKey& aSurfaceKey);
 
   
 
@@ -128,7 +136,7 @@ struct SurfaceCache
 
 
 
-  static void Insert(gfx::SourceSurface*  aSurface,
+  static void Insert(imgFrame*         aSurface,
                      const ImageKey    aImageKey,
                      const SurfaceKey& aSurfaceKey);
 

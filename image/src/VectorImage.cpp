@@ -11,6 +11,7 @@
 #include "gfxPlatform.h"
 #include "gfxUtils.h"
 #include "imgDecoderObserver.h"
+#include "imgFrame.h"
 #include "mozilla/AutoRestore.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/SVGSVGElement.h"
@@ -842,27 +843,30 @@ VectorImage::Draw(gfxContext* aContext,
                               aSVGContext, animTime, aFlags);
 
   if (aFlags & FLAG_BYPASS_SURFACE_CACHE) {
-    CreateDrawableAndShow(params);
+    CreateSurfaceAndShow(params);
     return NS_OK;
   }
 
-  nsRefPtr<gfxDrawable> drawable =
+  DrawableFrameRef frameRef =
     SurfaceCache::Lookup(ImageKey(this),
                          SurfaceKey(params.size, aSVGContext,
                                     animTime, aFlags));
 
   
-  if (drawable) {
-    Show(drawable, params);
+  if (frameRef) {
+    RefPtr<SourceSurface> surface = frameRef->GetSurface();
+    nsRefPtr<gfxDrawable> svgDrawable =
+      new gfxSurfaceDrawable(surface, ThebesIntSize(frameRef->GetSize()));
+    Show(svgDrawable, params);
   } else {
-    CreateDrawableAndShow(params);
+    CreateSurfaceAndShow(params);
   }
 
   return NS_OK;
 }
 
 void
-VectorImage::CreateDrawableAndShow(const SVGDrawingParameters& aParams)
+VectorImage::CreateSurfaceAndShow(const SVGDrawingParameters& aParams)
 {
   mSVGDocumentWrapper->UpdateViewportBounds(aParams.viewportSize);
   mSVGDocumentWrapper->FlushImageTransformInvalidation();
@@ -886,36 +890,30 @@ VectorImage::CreateDrawableAndShow(const SVGDrawingParameters& aParams)
     return Show(svgDrawable, aParams);
 
   
-  RefPtr<gfx::DrawTarget> target =
-    gfxPlatform::GetPlatform()->
-      CreateOffscreenContentDrawTarget(aParams.size,
-                                       gfx::SurfaceFormat::B8G8R8A8);
+  
+  nsRefPtr<imgFrame> frame = new imgFrame;
+  nsresult rv =
+    frame->InitWithDrawable(svgDrawable, ThebesIntSize(aParams.size),
+                            SurfaceFormat::B8G8R8A8,
+                            GraphicsFilter::FILTER_NEAREST, aParams.flags);
 
   
   
   
-  if (!target)
+  if (NS_FAILED(rv))
     return Show(svgDrawable, aParams);
 
-  nsRefPtr<gfxContext> ctx = new gfxContext(target);
+  
+  
+  RefPtr<SourceSurface> surface = frame->GetSurface();
+  if (!surface)
+    return Show(svgDrawable, aParams);
 
   
-  nsIntRect imageRect(ThebesIntRect(aParams.imageRect));
-  gfxUtils::DrawPixelSnapped(ctx, svgDrawable,
-                             ThebesIntSize(aParams.size),
-                             ImageRegion::Create(imageRect),
-                             SurfaceFormat::B8G8R8A8,
-                             GraphicsFilter::FILTER_NEAREST, aParams.flags);
-
-  RefPtr<SourceSurface> surface = target->Snapshot();
-
-  
-  SurfaceCache::Insert(surface, ImageKey(this),
+  SurfaceCache::Insert(frame, ImageKey(this),
                        SurfaceKey(aParams.size, aParams.svgContext,
                                   aParams.animationTime, aParams.flags));
 
-  
-  
   
   nsRefPtr<gfxDrawable> drawable =
     new gfxSurfaceDrawable(surface, ThebesIntSize(aParams.size));
