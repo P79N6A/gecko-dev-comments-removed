@@ -2,6 +2,10 @@
 
 
 
+let {utils: Cu} = Components;
+
+Cu.import("chrome://marionette/content/error.js");
+
 this.EXPORTED_SYMBOLS = ["Marionette"];
 
 
@@ -196,15 +200,5 @@ Marionette.prototype = {
         return;
       }
       this.window.setTimeout(this.waitFor.bind(this), 100, callback, test, deadline);
-  },
-
-  runEmulatorCmd: function runEmulatorCmd(cmd, callback) {
-    this.heartbeatCallback();
-    this.scope.runEmulatorCmd(cmd, callback);
-  },
-
-  runEmulatorShell: function runEmulatorShell(args, callback) {
-    this.heartbeatCallback();
-    this.scope.runEmulatorShell(args, callback);
   },
 };
