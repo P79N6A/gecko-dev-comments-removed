@@ -568,6 +568,10 @@ KEY_MAP_GTK     (PreviousCandidate, GDK_PreviousCandidate)
 KEY_MAP_QT      (PreviousCandidate, Qt::Key_PreviousCandidate)
 
 
+KEY_MAP_GTK     (SingleCandidate, GDK_SingleCandidate)
+KEY_MAP_QT      (SingleCandidate, Qt::Key_SingleCandidate)
+
+
 
 
 
