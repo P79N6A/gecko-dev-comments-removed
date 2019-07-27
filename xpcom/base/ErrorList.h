@@ -117,6 +117,16 @@
   
   
   
+#define MODULE  NS_ERROR_MODULE_WIDGET
+  
+
+  ERROR(NS_SUCCESS_EVENT_CONSUMED,                        SUCCESS(1)),
+#undef MODULE
+
+
+  
+  
+  
 #define MODULE NS_ERROR_MODULE_NETWORK
   
 

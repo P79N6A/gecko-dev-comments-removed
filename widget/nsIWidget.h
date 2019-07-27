@@ -227,6 +227,12 @@ struct nsIMEUpdatePreference {
     NOTIFY_TEXT_CHANGE                   = 1 << 1,
     NOTIFY_POSITION_CHANGE               = 1 << 2,
     
+    
+    
+    
+    
+    NOTIFY_MOUSE_BUTTON_EVENT_ON_CHAR    = 1 << 3,
+    
     NOTIFY_CHANGES_CAUSED_BY_COMPOSITION = 1 << 6,
     
     
@@ -272,6 +278,11 @@ struct nsIMEUpdatePreference {
   bool WantChanges() const
   {
     return WantSelectionChange() || WantTextChange();
+  }
+
+  bool WantMouseButtonEventOnChar() const
+  {
+    return !!(mWantUpdates & NOTIFY_MOUSE_BUTTON_EVENT_ON_CHAR);
   }
 
   bool WantChangesCausedByComposition() const
@@ -506,6 +517,8 @@ enum IMEMessage MOZ_ENUM_TYPE(int8_t)
   
   NOTIFY_IME_OF_POSITION_CHANGE,
   
+  NOTIFY_IME_OF_MOUSE_BUTTON_EVENT,
+  
   
   REQUEST_TO_COMMIT_COMPOSITION,
   
@@ -528,6 +541,14 @@ struct IMENotification
         mTextChangeData.mNewEndOffset = 0;
         mTextChangeData.mCausedByComposition = false;
         break;
+      case NOTIFY_IME_OF_MOUSE_BUTTON_EVENT:
+        mMouseButtonEventData.mEventMessage = 0;
+        mMouseButtonEventData.mOffset = UINT32_MAX;
+        mMouseButtonEventData.mCursorPos.Set(nsIntPoint(0, 0));
+        mMouseButtonEventData.mCharRect.Set(nsIntRect(0, 0, 0, 0));
+        mMouseButtonEventData.mButton = -1;
+        mMouseButtonEventData.mButtons = 0;
+        mMouseButtonEventData.mModifiers = 0;
       default:
         break;
     }
@@ -565,6 +586,56 @@ struct IMENotification
                mNewEndOffset <= INT32_MAX;
       }
     } mTextChangeData;
+
+    
+    struct
+    {
+      
+      uint32_t mEventMessage;
+      
+      uint32_t mOffset;
+      
+      struct
+      {
+        int32_t mX;
+        int32_t mY;
+
+        void Set(const nsIntPoint& aPoint)
+        {
+          mX = aPoint.x;
+          mY = aPoint.y;
+        }
+        nsIntPoint AsIntPoint() const
+        {
+          return nsIntPoint(mX, mY);
+        }
+      } mCursorPos;
+      
+      struct
+      {
+        int32_t mX;
+        int32_t mY;
+        int32_t mWidth;
+        int32_t mHeight;
+
+        void Set(const nsIntRect& aRect)
+        {
+          mX = aRect.x;
+          mY = aRect.y;
+          mWidth = aRect.width;
+          mHeight = aRect.height;
+        }
+        nsIntRect AsIntRect() const
+        {
+          return nsIntRect(mX, mY, mWidth, mHeight);
+        }
+      } mCharRect;
+      
+      int16_t mButton;
+      int16_t mButtons;
+      
+      Modifiers mModifiers;
+    } mMouseButtonEventData;
   };
 
   bool IsCausedByComposition() const
@@ -1816,6 +1887,9 @@ public:
     virtual nsresult ForceUpdateNativeMenuAt(const nsAString& indexString) = 0;
 
     
+
+
+
 
 
     NS_IMETHOD NotifyIME(const IMENotification& aIMENotification) = 0;

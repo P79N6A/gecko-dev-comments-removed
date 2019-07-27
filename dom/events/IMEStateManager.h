@@ -70,6 +70,13 @@ public:
   
   
   
+  static bool OnMouseButtonEventInEditor(nsPresContext* aPresContext,
+                                         nsIContent* aContent,
+                                         nsIDOMMouseEvent* aMouseEvent);
+
+  
+  
+  
   
   
   static void OnClickInEditor(nsPresContext* aPresContext,
