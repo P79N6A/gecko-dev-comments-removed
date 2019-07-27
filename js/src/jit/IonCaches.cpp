@@ -2815,6 +2815,10 @@ SetPropertyIC::update(JSContext *cx, size_t cacheIndex, HandleObject obj,
     RootedPropertyName name(cx, cache.name());
     RootedId id(cx, AtomToId(name));
 
+    RootedTypeObject oldType(cx, obj->getType(cx));
+    if (!oldType)
+        return false;
+
     
     
     NativeSetPropCacheability canCache = CanAttachNone;
@@ -2846,12 +2850,6 @@ SetPropertyIC::update(JSContext *cx, size_t cacheIndex, HandleObject obj,
             }
         }
 
-        
-        
-        
-        if (obj->isNative() && !obj->getType(cx))
-            return false;
-
         RootedShape shape(cx);
         RootedObject holder(cx);
         bool checkTypeset;
@@ -2873,7 +2871,6 @@ SetPropertyIC::update(JSContext *cx, size_t cacheIndex, HandleObject obj,
 
     uint32_t oldSlots = obj->numDynamicSlots();
     RootedShape oldShape(cx, obj->lastProperty());
-    RootedTypeObject oldType(cx, obj->type());
 
     
     if (!SetProperty(cx, obj, name, value, cache.strict(), cache.pc()))
