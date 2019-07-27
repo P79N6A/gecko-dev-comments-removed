@@ -269,4 +269,11 @@ function run_test() {
     check_cert_err_generic(cert, SEC_ERROR_CERT_NOT_IN_NAME_SPACE, certificateUsageSSLServer);
     check_cert_err_generic(cert, 0, certificateUsageSSLClient);
   }
+
+  
+  
+  
+  load_cert("dcisscopy", "C,C,C");
+  check_ok(certFromFile('NameConstraints.dcissallowed.cert'));
+  check_fail(certFromFile('NameConstraints.dcissblocked.cert'));
 }
