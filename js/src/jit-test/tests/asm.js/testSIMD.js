@@ -445,6 +445,25 @@ CheckF4(F32M, 'var x=f4(13.37,2,3,4); var y=f4(4,3,5,2); x=f4m(x,y)', [Math.frou
 CheckF4(F32M, 'var x=f4(13.37,2,3,4); var y=f4(4,3,5,2); x=f4(f4m(x,y))', [Math.fround(13.37) * 4,6,15,8]);
 
 
+assertAsmTypeFail('glob', USE_ASM + I32 + "var f4m=i4.min; function f() {} return f");
+assertAsmTypeFail('glob', USE_ASM + I32 + "var f4d=i4.max; function f() {} return f");
+
+const F32MIN = 'var min = f4.min;'
+const F32MAX = 'var max = f4.max;'
+
+
+
+
+
+CheckF4(F32MIN, 'var x=f4(1,2,3,4); x=min(x,x)', [1,2,3,4]);
+CheckF4(F32MIN, 'var x=f4(13.37,2,3,4); var y=f4(4,3,5,2); x=min(x,y)', [4,2,3,2]);
+CheckF4(F32MIN + FROUND + 'var Infinity = glob.Infinity;', 'var x=f4(0,0,0,0); var y=f4(2310,3,5,0); x=f4(f32(+Infinity),f32(-Infinity),f32(3),f32(-0.)); x=min(x,y)', [2310,-Infinity,3,0]);
+
+CheckF4(F32MAX, 'var x=f4(1,2,3,4); x=max(x,x)', [1,2,3,4]);
+CheckF4(F32MAX, 'var x=f4(13.37,2,3,4); var y=f4(4,3,5,2); x=max(x,y)', [13.37, 3, 5, 4]);
+CheckF4(F32MAX + FROUND + 'var Infinity = glob.Infinity;', 'var x=f4(0,0,0,0); var y=f4(2310,3,5,0); x=f4(f32(+Infinity),f32(-Infinity),f32(3),f32(-0.)); x=max(x,y)', [+Infinity,3,5,0]);
+
+
 var f32x4 = SIMD.float32x4(0, NaN, -0, NaN);
 var another = SIMD.float32x4(NaN, -1, -0, NaN);
 assertEqX4(asmLink(asmCompile('glob', USE_ASM + F32 + F32M + "function f(x, y) {x=f4(x); y=f4(y); x=f4m(x,y); return f4(x);} return f"), this)(f32x4, another), [NaN, NaN, 0, NaN]);
