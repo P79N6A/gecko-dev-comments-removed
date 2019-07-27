@@ -242,9 +242,20 @@ window:not([chromehidden~="toolbar"]) #urlbar-wrapper {
 }
 
 
+:root[devtoolstheme="dark"] #notification-popup-box {
+  border-image: url("chrome://browser/skin/devedition/urlbar-arrow.png") 0 8 0 0 fill;
+}
+
+@media (min-resolution: 1.1dppx) {
+  :root[devtoolstheme="dark"] #notification-popup-box {
+    border-image: url("chrome://browser/skin/devedition/urlbar-arrow@2x.png") 0 16 0 0 fill;
+  }
+}
+
+
+
 #notification-popup-box {
   border-radius: 0;
-  border: none;
   background: transparent;
 }
 
