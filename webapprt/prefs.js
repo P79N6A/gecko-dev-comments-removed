@@ -2,6 +2,9 @@
 
 
 
+
+pref("webapprt.app_update_interval", 86400);
+
 pref("browser.chromeURL", "chrome://webapprt/content/webapp.xul");
 pref("browser.download.folderList", 1);
 
