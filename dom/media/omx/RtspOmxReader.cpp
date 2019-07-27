@@ -48,6 +48,7 @@ RtspOmxReader::Seek(int64_t aTime, int64_t aEndTime)
   
   
   
+  mEnsureActiveFromSeek = true;
   return MediaOmxReader::Seek(aTime, aEndTime);
 }
 
@@ -71,9 +72,13 @@ void RtspOmxReader::EnsureActive() {
   if (mRtspResource) {
     nsIStreamingProtocolController* controller =
         mRtspResource->GetMediaStreamController();
-    if (controller) {
+    
+    
+    
+    if (controller && !mEnsureActiveFromSeek) {
       controller->Play();
     }
+    mEnsureActiveFromSeek = false;
     mRtspResource->SetSuspend(false);
   }
 
