@@ -585,7 +585,7 @@ js::XDRInterpretedFunction(XDRState<mode> *xdr, HandleObject enclosingScope, Han
             script = fun->nonLazyScript();
         }
 
-        if (fun->hasSingletonType())
+        if (fun->isSingleton())
             firstword |= HasSingletonType;
 
         atom = fun->displayAtom();
@@ -594,7 +594,7 @@ js::XDRInterpretedFunction(XDRState<mode> *xdr, HandleObject enclosingScope, Han
         
         
         
-        MOZ_ASSERT_IF(fun->hasSingletonType() &&
+        MOZ_ASSERT_IF(fun->isSingleton() &&
                       !((lazy && lazy->hasBeenCloned()) || (script && script->hasBeenCloned())),
                       fun->environment() == nullptr);
     }
@@ -873,11 +873,11 @@ CreateFunctionPrototype(JSContext *cx, JSProtoKey key)
         return nullptr;
 
     functionProto->initScript(script);
-    types::TypeObject* protoType = functionProto->getType(cx);
-    if (!protoType)
+    types::ObjectGroup* protoGroup = functionProto->getGroup(cx);
+    if (!protoGroup)
         return nullptr;
 
-    protoType->setInterpretedFunction(functionProto);
+    protoGroup->setInterpretedFunction(functionProto);
     script->setFunction(functionProto);
 
     
@@ -885,7 +885,7 @@ CreateFunctionPrototype(JSContext *cx, JSProtoKey key)
 
 
 
-    if (!JSObject::setNewTypeUnknown(cx, &JSFunction::class_, functionProto))
+    if (!JSObject::setNewGroupUnknown(cx, &JSFunction::class_, functionProto))
         return nullptr;
 
     
@@ -1996,7 +1996,7 @@ js::NewFunctionWithProto(ExclusiveContext *cx, HandleObject funobjArg, Native na
     if (funobj) {
         MOZ_ASSERT(funobj->is<JSFunction>());
         MOZ_ASSERT(funobj->getParent() == parent);
-        MOZ_ASSERT_IF(native, funobj->hasSingletonType());
+        MOZ_ASSERT_IF(native, funobj->isSingleton());
     } else {
         
         
@@ -2036,8 +2036,8 @@ bool
 js::CloneFunctionObjectUseSameScript(JSCompartment *compartment, HandleFunction fun)
 {
     return compartment == fun->compartment() &&
-           !fun->hasSingletonType() &&
-           !types::UseNewTypeForClone(fun);
+           !fun->isSingleton() &&
+           !types::UseSingletonForClone(fun);
 }
 
 JSFunction *
@@ -2098,7 +2098,7 @@ js::CloneFunctionObject(JSContext *cx, HandleFunction fun, HandleObject parent, 
 
 
         if (fun->getProto() == clone->getProto())
-            clone->setType(fun->type());
+            clone->setGroup(fun->group());
         return clone;
     }
 

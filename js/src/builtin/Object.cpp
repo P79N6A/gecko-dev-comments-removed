@@ -623,7 +623,8 @@ obj_isPrototypeOf(JSContext *cx, unsigned argc, Value *vp)
 }
 
 PlainObject *
-js::ObjectCreateImpl(JSContext *cx, HandleObject proto, NewObjectKind newKind, HandleTypeObject type)
+js::ObjectCreateImpl(JSContext *cx, HandleObject proto, NewObjectKind newKind,
+                     HandleObjectGroup group)
 {
     
     
@@ -634,17 +635,17 @@ js::ObjectCreateImpl(JSContext *cx, HandleObject proto, NewObjectKind newKind, H
         
         
         
-        RootedTypeObject ntype(cx, type);
-        if (!ntype) {
-            ntype = GetTypeCallerInitObject(cx, JSProto_Null);
-            if (!ntype)
+        RootedObjectGroup ngroup(cx, group);
+        if (!ngroup) {
+            ngroup = GetCallerInitGroup(cx, JSProto_Null);
+            if (!ngroup)
                 return nullptr;
         }
 
-        MOZ_ASSERT(!ntype->proto().toObjectOrNull());
+        MOZ_ASSERT(!ngroup->proto().toObjectOrNull());
 
-        return NewObjectWithType<PlainObject>(cx, ntype, cx->global(), allocKind,
-                                              newKind);
+        return NewObjectWithGroup<PlainObject>(cx, ngroup, cx->global(), allocKind,
+                                               newKind);
     }
 
     return NewObjectWithGivenProto<PlainObject>(cx, proto, cx->global(), allocKind, newKind);
@@ -654,8 +655,8 @@ PlainObject *
 js::ObjectCreateWithTemplate(JSContext *cx, HandlePlainObject templateObj)
 {
     RootedObject proto(cx, templateObj->getProto());
-    RootedTypeObject type(cx, templateObj->type());
-    return ObjectCreateImpl(cx, proto, GenericObject, type);
+    RootedObjectGroup group(cx, templateObj->group());
+    return ObjectCreateImpl(cx, proto, GenericObject, group);
 }
 
 
@@ -1149,7 +1150,7 @@ CreateObjectPrototype(JSContext *cx, JSProtoKey key)
 
 
 
-    if (!JSObject::setNewTypeUnknown(cx, &PlainObject::class_, objectProto))
+    if (!JSObject::setNewGroupUnknown(cx, &PlainObject::class_, objectProto))
         return nullptr;
 
     return objectProto;

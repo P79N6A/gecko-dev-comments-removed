@@ -104,18 +104,8 @@ bool SetImmutablePrototype(js::ExclusiveContext *cx, JS::HandleObject obj, bool 
 class JSObject : public js::gc::Cell
 {
   protected:
-    
-
-
-
     js::HeapPtrShape shape_;
-
-    
-
-
-
-
-    js::HeapPtrTypeObject type_;
+    js::HeapPtrObjectGroup group_;
 
   private:
     friend class js::Shape;
@@ -128,7 +118,7 @@ class JSObject : public js::gc::Cell
                                           bool *succeeded);
 
     
-    static js::types::TypeObject *makeLazyType(JSContext *cx, js::HandleObject obj);
+    static js::types::ObjectGroup *makeLazyGroup(JSContext *cx, js::HandleObject obj);
 
   public:
     js::Shape * lastProperty() const {
@@ -141,7 +131,7 @@ class JSObject : public js::gc::Cell
     }
 
     const js::Class *getClass() const {
-        return type_->clasp();
+        return group_->clasp();
     }
     const JSClass *getJSClass() const {
         return Jsvalify(getClass());
@@ -153,29 +143,29 @@ class JSObject : public js::gc::Cell
         return &getClass()->ops;
     }
 
-    js::types::TypeObject *type() const {
-        MOZ_ASSERT(!hasLazyType());
-        return typeRaw();
+    js::types::ObjectGroup *group() const {
+        MOZ_ASSERT(!hasLazyGroup());
+        return groupRaw();
     }
 
-    js::types::TypeObject *typeRaw() const {
-        return type_;
-    }
-
-    
-
-
-
-    bool hasSingletonType() const {
-        return !!type_->singleton();
+    js::types::ObjectGroup *groupRaw() const {
+        return group_;
     }
 
     
 
 
 
-    bool hasLazyType() const {
-        return type_->lazy();
+    bool isSingleton() const {
+        return !!group_->singleton();
+    }
+
+    
+
+
+
+    bool hasLazyGroup() const {
+        return group_->lazy();
     }
 
     JSCompartment *compartment() const {
@@ -190,7 +180,7 @@ class JSObject : public js::gc::Cell
                                    js::gc::AllocKind kind,
                                    js::gc::InitialHeap heap,
                                    js::HandleShape shape,
-                                   js::HandleTypeObject type);
+                                   js::HandleObjectGroup group);
 
     
     
@@ -331,15 +321,15 @@ class JSObject : public js::gc::Cell
 
 
 
-    static inline bool setSingletonType(js::ExclusiveContext *cx, js::HandleObject obj);
+    static inline bool setSingleton(js::ExclusiveContext *cx, js::HandleObject obj);
 
     
-    inline js::types::TypeObject* getType(JSContext *cx);
-    js::types::TypeObject* uninlinedGetType(JSContext *cx);
+    inline js::types::ObjectGroup* getGroup(JSContext *cx);
+    js::types::ObjectGroup* uninlinedGetGroup(JSContext *cx);
 
-    const js::HeapPtrTypeObject &typeFromGC() const {
+    const js::HeapPtrObjectGroup &groupFromGC() const {
         
-        return type_;
+        return group_;
     }
 
     
@@ -356,7 +346,7 @@ class JSObject : public js::gc::Cell
 
 
     js::TaggedProto getTaggedProto() const {
-        return type_->proto();
+        return group_->proto();
     }
 
     bool hasTenuredProto() const;
@@ -401,11 +391,11 @@ class JSObject : public js::gc::Cell
     }
 
     
-    inline void setType(js::types::TypeObject *newType);
-    void uninlinedSetType(js::types::TypeObject *newType);
+    inline void setGroup(js::types::ObjectGroup *group);
+    void uninlinedSetGroup(js::types::ObjectGroup *group);
 
 #ifdef DEBUG
-    bool hasNewType(const js::Class *clasp, js::types::TypeObject *newType);
+    bool hasNewGroup(const js::Class *clasp, js::types::ObjectGroup *group);
 #endif
 
     
@@ -424,10 +414,10 @@ class JSObject : public js::gc::Cell
 
 
 
-    bool isNewTypeUnknown() const {
-        return lastProperty()->hasObjectFlag(js::BaseShape::NEW_TYPE_UNKNOWN);
+    bool isNewGroupUnknown() const {
+        return lastProperty()->hasObjectFlag(js::BaseShape::NEW_GROUP_UNKNOWN);
     }
-    static bool setNewTypeUnknown(JSContext *cx, const js::Class *clasp, JS::HandleObject obj);
+    static bool setNewGroupUnknown(JSContext *cx, const js::Class *clasp, JS::HandleObject obj);
 
     
     bool wasNewScriptCleared() const {
@@ -493,10 +483,6 @@ class JSObject : public js::gc::Cell
 
     inline js::GlobalObject &global() const;
     inline bool isOwnGlobal() const;
-
-    
-    static inline bool clearType(JSContext *cx, js::HandleObject obj);
-    static bool clearParent(JSContext *cx, js::HandleObject obj);
 
     
 
@@ -605,10 +591,7 @@ class JSObject : public js::gc::Cell
     
 
     static size_t offsetOfShape() { return offsetof(JSObject, shape_); }
-    js::HeapPtrShape *addressOfShape() { return &shape_; }
-
-    static size_t offsetOfType() { return offsetof(JSObject, type_); }
-    js::HeapPtrTypeObject *addressOfType() { return &type_; }
+    static size_t offsetOfGroup() { return offsetof(JSObject, group_); }
 
     
     static const size_t MAX_BYTE_SIZE = 4 * sizeof(void *) + 16 * sizeof(JS::Value);

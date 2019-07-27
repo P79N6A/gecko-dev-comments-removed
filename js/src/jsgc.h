@@ -68,7 +68,7 @@ template <> struct MapTypeToFinalizeKind<LazyScript>        { static const Alloc
 template <> struct MapTypeToFinalizeKind<Shape>             { static const AllocKind kind = FINALIZE_SHAPE; };
 template <> struct MapTypeToFinalizeKind<AccessorShape>     { static const AllocKind kind = FINALIZE_ACCESSOR_SHAPE; };
 template <> struct MapTypeToFinalizeKind<BaseShape>         { static const AllocKind kind = FINALIZE_BASE_SHAPE; };
-template <> struct MapTypeToFinalizeKind<types::TypeObject> { static const AllocKind kind = FINALIZE_TYPE_OBJECT; };
+template <> struct MapTypeToFinalizeKind<types::ObjectGroup> { static const AllocKind kind = FINALIZE_OBJECT_GROUP; };
 template <> struct MapTypeToFinalizeKind<JSFatInlineString> { static const AllocKind kind = FINALIZE_FAT_INLINE_STRING; };
 template <> struct MapTypeToFinalizeKind<JSString>          { static const AllocKind kind = FINALIZE_STRING; };
 template <> struct MapTypeToFinalizeKind<JSExternalString>  { static const AllocKind kind = FINALIZE_EXTERNAL_STRING; };
@@ -605,7 +605,7 @@ class ArenaLists
     ArenaHeader *gcShapeArenasToUpdate;
     ArenaHeader *gcAccessorShapeArenasToUpdate;
     ArenaHeader *gcScriptArenasToUpdate;
-    ArenaHeader *gcTypeObjectArenasToUpdate;
+    ArenaHeader *gcObjectGroupArenasToUpdate;
 
     
     
@@ -626,7 +626,7 @@ class ArenaLists
         gcShapeArenasToUpdate = nullptr;
         gcAccessorShapeArenasToUpdate = nullptr;
         gcScriptArenasToUpdate = nullptr;
-        gcTypeObjectArenasToUpdate = nullptr;
+        gcObjectGroupArenasToUpdate = nullptr;
         savedEmptyObjectArenas = nullptr;
     }
 

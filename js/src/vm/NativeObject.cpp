@@ -1118,9 +1118,9 @@ UpdateShapeTypeAndValue(ExclusiveContext *cx, NativeObject *obj, Shape *shape, c
         
         
         
-        if (types::TypeNewScript *newScript = obj->typeRaw()->newScript()) {
+        if (types::TypeNewScript *newScript = obj->groupRaw()->newScript()) {
             if (newScript->initializedShape() == shape)
-                obj->setType(newScript->initializedType());
+                obj->setGroup(newScript->initializedGroup());
         }
     }
     if (!shape->hasSlot() || !shape->hasDefaultGetter() || !shape->hasDefaultSetter())
@@ -1593,10 +1593,10 @@ GetExistingProperty(JSContext *cx,
     if (shape->hasSlot()) {
         vp.set(obj->getSlot(shape->slot()));
         MOZ_ASSERT_IF(!vp.isMagic(JS_UNINITIALIZED_LEXICAL) &&
-                      !obj->hasSingletonType() &&
+                      !obj->isSingleton() &&
                       !obj->template is<ScopeObject>() &&
                       shape->hasDefaultGetter(),
-                      js::types::TypeHasProperty(cx, obj->type(), shape->propid(), vp));
+                      js::types::TypeHasProperty(cx, obj->group(), shape->propid(), vp));
     } else {
         vp.setUndefined();
     }

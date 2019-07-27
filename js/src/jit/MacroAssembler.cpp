@@ -55,14 +55,14 @@ class TypeWrapper {
             return 0;
         return 1;
     }
-    inline JSObject *getSingleObjectNoBarrier(unsigned) const {
-        if (t_.isSingleObject())
-            return t_.singleObjectNoBarrier();
+    inline JSObject *getSingletonNoBarrier(unsigned) const {
+        if (t_.isSingleton())
+            return t_.singletonNoBarrier();
         return nullptr;
     }
-    inline types::TypeObject *getTypeObjectNoBarrier(unsigned) const {
-        if (t_.isTypeObject())
-            return t_.typeObjectNoBarrier();
+    inline types::ObjectGroup *getGroupNoBarrier(unsigned) const {
+        if (t_.isGroup())
+            return t_.groupNoBarrier();
         return nullptr;
     }
 };
@@ -144,9 +144,9 @@ MacroAssembler::guardTypeSet(const Source &address, const TypeSet *types, Barrie
         
         if (obj == scratch)
             extractObject(address, scratch);
-        loadPtr(Address(obj, JSObject::offsetOfType()), scratch);
+        loadPtr(Address(obj, JSObject::offsetOfGroup()), scratch);
         branchTestPtr(Assembler::NonZero,
-                      Address(scratch, types::TypeObject::offsetOfFlags()),
+                      Address(scratch, types::ObjectGroup::offsetOfFlags()),
                       Imm32(types::OBJECT_FLAG_UNKNOWN_PROPERTIES), &matched);
 
         assumeUnreachable("Unexpected object type");
@@ -175,22 +175,22 @@ MacroAssembler::guardObjectType(Register obj, const TypeSet *types,
 
     BranchGCPtr lastBranch;
     MOZ_ASSERT(!lastBranch.isInitialized());
-    bool hasTypeObjects = false;
+    bool hasObjectGroups = false;
     unsigned count = types->getObjectCount();
     for (unsigned i = 0; i < count; i++) {
-        if (!types->getSingleObjectNoBarrier(i)) {
-            hasTypeObjects = hasTypeObjects || types->getTypeObjectNoBarrier(i);
+        if (!types->getSingletonNoBarrier(i)) {
+            hasObjectGroups = hasObjectGroups || types->getGroupNoBarrier(i);
             continue;
         }
 
         if (lastBranch.isInitialized())
             lastBranch.emit(*this);
 
-        JSObject *object = types->getSingleObjectNoBarrier(i);
+        JSObject *object = types->getSingletonNoBarrier(i);
         lastBranch = BranchGCPtr(Equal, obj, ImmGCPtr(object), &matched);
     }
 
-    if (hasTypeObjects) {
+    if (hasObjectGroups) {
         
         
         
@@ -201,17 +201,17 @@ MacroAssembler::guardObjectType(Register obj, const TypeSet *types,
 
         
         
-        loadPtr(Address(obj, JSObject::offsetOfType()), scratch);
+        loadPtr(Address(obj, JSObject::offsetOfGroup()), scratch);
 
         for (unsigned i = 0; i < count; i++) {
-            if (!types->getTypeObjectNoBarrier(i))
+            if (!types->getGroupNoBarrier(i))
                 continue;
 
             if (lastBranch.isInitialized())
                 lastBranch.emit(*this);
 
-            types::TypeObject *object = types->getTypeObjectNoBarrier(i);
-            lastBranch = BranchGCPtr(Equal, scratch, ImmGCPtr(object), &matched);
+            types::ObjectGroup *group = types->getGroupNoBarrier(i);
+            lastBranch = BranchGCPtr(Equal, scratch, ImmGCPtr(group), &matched);
         }
     }
 
@@ -1192,7 +1192,7 @@ MacroAssembler::initGCThing(Register obj, Register slots, JSObject *templateObj,
     
 
     storePtr(ImmGCPtr(templateObj->lastProperty()), Address(obj, JSObject::offsetOfShape()));
-    storePtr(ImmGCPtr(templateObj->type()), Address(obj, JSObject::offsetOfType()));
+    storePtr(ImmGCPtr(templateObj->group()), Address(obj, JSObject::offsetOfGroup()));
 
     if (templateObj->isNative()) {
         NativeObject *ntemplate = &templateObj->as<NativeObject>();

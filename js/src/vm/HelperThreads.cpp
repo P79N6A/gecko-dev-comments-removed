@@ -891,12 +891,12 @@ GlobalHelperThreadState::finishParseTask(JSContext *maybecx, JSRuntime *rt, void
     
     
     
-    for (gc::ZoneCellIter iter(parseTask->cx->zone(), gc::FINALIZE_TYPE_OBJECT);
+    for (gc::ZoneCellIter iter(parseTask->cx->zone(), gc::FINALIZE_OBJECT_GROUP);
          !iter.done();
          iter.next())
     {
-        types::TypeObject *object = iter.get<types::TypeObject>();
-        TaggedProto proto(object->proto());
+        types::ObjectGroup *group = iter.get<types::ObjectGroup>();
+        TaggedProto proto(group->proto());
         if (!proto.isObject())
             continue;
 
@@ -910,7 +910,7 @@ GlobalHelperThreadState::finishParseTask(JSContext *maybecx, JSRuntime *rt, void
         JSObject *newProto = GetBuiltinPrototypePure(global, key);
         MOZ_ASSERT(newProto);
 
-        object->setProtoUnchecked(TaggedProto(newProto));
+        group->setProtoUnchecked(TaggedProto(newProto));
     }
 
     

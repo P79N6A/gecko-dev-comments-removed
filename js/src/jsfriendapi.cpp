@@ -122,7 +122,7 @@ JS_SplicePrototype(JSContext *cx, HandleObject obj, HandleObject proto)
 
     CHECK_REQUEST(cx);
 
-    if (!obj->hasSingletonType()) {
+    if (!obj->isSingleton()) {
         
 
 
@@ -477,7 +477,7 @@ js::GetObjectProto(JSContext *cx, JS::Handle<JSObject*> obj, JS::MutableHandle<J
     if (IsProxy(obj))
         return JS_GetPrototype(cx, obj, proto);
 
-    proto.set(reinterpret_cast<const shadow::Object*>(obj.get())->type->proto);
+    proto.set(reinterpret_cast<const shadow::Object*>(obj.get())->group->proto);
     return true;
 }
 

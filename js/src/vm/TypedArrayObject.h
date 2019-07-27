@@ -170,7 +170,7 @@ class TypedArrayObject : public NativeObject
 
 
 
-    static const uint32_t SINGLETON_TYPE_BYTE_LENGTH = 1024 * 1024 * 10;
+    static const uint32_t SINGLETON_BYTE_LENGTH = 1024 * 1024 * 10;
 
     static bool isOriginalLengthGetter(Native native);
 

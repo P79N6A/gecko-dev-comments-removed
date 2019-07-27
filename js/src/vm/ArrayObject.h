@@ -44,7 +44,7 @@ class ArrayObject : public NativeObject
                 gc::AllocKind kind,
                 gc::InitialHeap heap,
                 HandleShape shape,
-                HandleTypeObject type,
+                HandleObjectGroup group,
                 uint32_t length);
 
     
@@ -52,7 +52,7 @@ class ArrayObject : public NativeObject
     createArray(ExclusiveContext *cx,
                 gc::InitialHeap heap,
                 HandleShape shape,
-                HandleTypeObject type,
+                HandleObjectGroup group,
                 HeapSlot *elements);
 
     
@@ -70,7 +70,7 @@ class ArrayObject : public NativeObject
                         gc::AllocKind kind,
                         gc::InitialHeap heap,
                         HandleShape shape,
-                        HandleTypeObject type);
+                        HandleObjectGroup group);
 
     static inline ArrayObject *
     finishCreateArray(ArrayObject *obj, HandleShape shape);

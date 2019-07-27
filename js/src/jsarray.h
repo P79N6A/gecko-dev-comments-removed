@@ -80,7 +80,7 @@ enum AllocatingBehaviour {
 
 
 extern ArrayObject *
-NewDenseArray(ExclusiveContext *cx, uint32_t length, HandleTypeObject type,
+NewDenseArray(ExclusiveContext *cx, uint32_t length, HandleObjectGroup group,
               AllocatingBehaviour allocating);
 
 
@@ -193,7 +193,7 @@ extern bool
 NewbornArrayPush(JSContext *cx, HandleObject obj, const Value &v);
 
 extern ArrayObject *
-ArrayConstructorOneArg(JSContext *cx, HandleTypeObject type, int32_t lengthInt);
+ArrayConstructorOneArg(JSContext *cx, HandleObjectGroup group, int32_t lengthInt);
 
 } 
 

@@ -841,9 +841,9 @@ class IonBuilder
     
     bool inlineGenericFallback(JSFunction *target, CallInfo &callInfo, MBasicBlock *dispatchBlock,
                                bool clonedAtCallsite);
-    bool inlineTypeObjectFallback(CallInfo &callInfo, MBasicBlock *dispatchBlock,
-                                  MTypeObjectDispatch *dispatch, MGetPropertyCache *cache,
-                                  MBasicBlock **fallbackTarget);
+    bool inlineObjectGroupFallback(CallInfo &callInfo, MBasicBlock *dispatchBlock,
+                                   MObjectGroupDispatch *dispatch, MGetPropertyCache *cache,
+                                   MBasicBlock **fallbackTarget);
 
     bool atomicsMeetsPreconditions(CallInfo &callInfo, Scalar::Type *arrayElementType);
     void atomicsCheckBounds(CallInfo &callInfo, MInstruction **elements, MDefinition **index);
@@ -892,7 +892,7 @@ class IonBuilder
     bool freezePropTypeSets(types::TemporaryTypeSet *types,
                             JSObject *foundProto, PropertyName *name);
     bool canInlinePropertyOpShapes(const BaselineInspector::ShapeVector &nativeShapes,
-                                   const BaselineInspector::TypeObjectVector &unboxedTypes);
+                                   const BaselineInspector::ObjectGroupVector &unboxedGroups);
 
     types::TemporaryTypeSet *bytecodeTypes(jsbytecode *pc);
 

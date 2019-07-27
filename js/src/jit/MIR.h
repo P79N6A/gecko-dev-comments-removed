@@ -2692,7 +2692,7 @@ class MNewArray
     {
         ArrayObject *obj = templateObject();
         setResultType(MIRType_Object);
-        if (!obj->hasSingletonType())
+        if (!obj->isSingleton())
             setResultTypeSet(MakeSingletonTypeSet(constraints, obj));
     }
 
@@ -2754,7 +2754,7 @@ class MNewArrayCopyOnWrite : public MNullaryInstruction
       : templateObject_(templateObject),
         initialHeap_(initialHeap)
     {
-        MOZ_ASSERT(!templateObject->hasSingletonType());
+        MOZ_ASSERT(!templateObject->isSingleton());
         setResultType(MIRType_Object);
         setResultTypeSet(MakeSingletonTypeSet(constraints, templateObject));
     }
@@ -2798,7 +2798,7 @@ class MNewArrayDynamicLength
     {
         setGuard(); 
         setResultType(MIRType_Object);
-        if (!templateObject->hasSingletonType())
+        if (!templateObject->isSingleton())
             setResultTypeSet(MakeSingletonTypeSet(constraints, templateObject));
     }
 
@@ -2847,7 +2847,7 @@ class MNewObject
         PlainObject *obj = templateObject();
         MOZ_ASSERT_IF(mode != ObjectLiteral, !shouldUseVM());
         setResultType(MIRType_Object);
-        if (!obj->hasSingletonType())
+        if (!obj->isSingleton())
             setResultTypeSet(MakeSingletonTypeSet(constraints, obj));
 
         
@@ -6313,8 +6313,8 @@ class MStringSplit
     JSObject *templateObject() const {
         return &getOperand(2)->toConstant()->value().toObject();
     }
-    types::TypeObject *typeObject() const {
-        return templateObject()->type();
+    types::ObjectGroup *group() const {
+        return templateObject()->group();
     }
     bool possiblyCalls() const MOZ_OVERRIDE {
         return true;
@@ -7152,22 +7152,22 @@ struct LambdaFunctionInfo
     uint16_t flags;
     gc::Cell *scriptOrLazyScript;
     bool singletonType;
-    bool useNewTypeForClone;
+    bool useSingletonForClone;
 
     explicit LambdaFunctionInfo(JSFunction *fun)
       : fun(fun), flags(fun->flags()),
         scriptOrLazyScript(fun->hasScript()
                            ? (gc::Cell *) fun->nonLazyScript()
                            : (gc::Cell *) fun->lazyScript()),
-        singletonType(fun->hasSingletonType()),
-        useNewTypeForClone(types::UseNewTypeForClone(fun))
+        singletonType(fun->isSingleton()),
+        useSingletonForClone(types::UseSingletonForClone(fun))
     {}
 
     LambdaFunctionInfo(const LambdaFunctionInfo &info)
       : fun((JSFunction *) info.fun), flags(info.flags),
         scriptOrLazyScript(info.scriptOrLazyScript),
         singletonType(info.singletonType),
-        useNewTypeForClone(info.useNewTypeForClone)
+        useSingletonForClone(info.useSingletonForClone)
     {}
 };
 
@@ -7181,7 +7181,7 @@ class MLambda
       : MBinaryInstruction(scopeChain, cst), info_(&cst->value().toObject().as<JSFunction>())
     {
         setResultType(MIRType_Object);
-        if (!info().fun->hasSingletonType() && !types::UseNewTypeForClone(info().fun))
+        if (!info().fun->isSingleton() && !types::UseSingletonForClone(info().fun))
             setResultTypeSet(MakeSingletonTypeSet(constraints, info().fun));
     }
 
@@ -7219,8 +7219,8 @@ class MLambdaArrow
       : MBinaryInstruction(scopeChain, this_), info_(fun)
     {
         setResultType(MIRType_Object);
-        MOZ_ASSERT(!types::UseNewTypeForClone(fun));
-        if (!fun->hasSingletonType())
+        MOZ_ASSERT(!types::UseSingletonForClone(fun));
+        if (!fun->isSingleton())
             setResultTypeSet(MakeSingletonTypeSet(constraints, fun));
     }
 
@@ -9195,11 +9195,11 @@ typedef Vector<bool, 4, JitAllocPolicy> BoolVector;
 class InlinePropertyTable : public TempObject
 {
     struct Entry : public TempObject {
-        AlwaysTenured<types::TypeObject *> typeObj;
+        AlwaysTenured<types::ObjectGroup *> group;
         AlwaysTenuredFunction func;
 
-        Entry(types::TypeObject *typeObj, JSFunction *func)
-          : typeObj(typeObj), func(func)
+        Entry(types::ObjectGroup *group, JSFunction *func)
+          : group(group), func(func)
         { }
     };
 
@@ -9226,17 +9226,17 @@ class InlinePropertyTable : public TempObject
         return pc_;
     }
 
-    bool addEntry(TempAllocator &alloc, types::TypeObject *typeObj, JSFunction *func) {
-        return entries_.append(new(alloc) Entry(typeObj, func));
+    bool addEntry(TempAllocator &alloc, types::ObjectGroup *group, JSFunction *func) {
+        return entries_.append(new(alloc) Entry(group, func));
     }
 
     size_t numEntries() const {
         return entries_.length();
     }
 
-    types::TypeObject *getTypeObject(size_t i) const {
+    types::ObjectGroup *getObjectGroup(size_t i) const {
         MOZ_ASSERT(i < numEntries());
-        return entries_[i]->typeObj;
+        return entries_[i]->group;
     }
 
     JSFunction *getFunction(size_t i) const {
@@ -9374,13 +9374,13 @@ class MGetPropertyPolymorphic
     };
 
     Vector<Entry, 4, JitAllocPolicy> nativeShapes_;
-    Vector<types::TypeObject *, 4, JitAllocPolicy> unboxedTypes_;
+    Vector<types::ObjectGroup *, 4, JitAllocPolicy> unboxedGroups_;
     AlwaysTenuredPropertyName name_;
 
     MGetPropertyPolymorphic(TempAllocator &alloc, MDefinition *obj, PropertyName *name)
       : MUnaryInstruction(obj),
         nativeShapes_(alloc),
-        unboxedTypes_(alloc),
+        unboxedGroups_(alloc),
         name_(name)
     {
         setGuard();
@@ -9409,8 +9409,8 @@ class MGetPropertyPolymorphic
         entry.shape = shape;
         return nativeShapes_.append(entry);
     }
-    bool addUnboxedType(types::TypeObject *type) {
-        return unboxedTypes_.append(type);
+    bool addUnboxedGroup(types::ObjectGroup *group) {
+        return unboxedGroups_.append(group);
     }
     size_t numShapes() const {
         return nativeShapes_.length();
@@ -9421,11 +9421,11 @@ class MGetPropertyPolymorphic
     Shape *shape(size_t i) const {
         return nativeShapes_[i].shape;
     }
-    size_t numUnboxedTypes() const {
-        return unboxedTypes_.length();
+    size_t numUnboxedGroups() const {
+        return unboxedGroups_.length();
     }
-    types::TypeObject *unboxedType(size_t i) const {
-        return unboxedTypes_[i];
+    types::ObjectGroup *unboxedGroup(size_t i) const {
+        return unboxedGroups_[i];
     }
     PropertyName *name() const {
         return name_;
@@ -9435,7 +9435,7 @@ class MGetPropertyPolymorphic
     }
     AliasSet getAliasSet() const MOZ_OVERRIDE {
         return AliasSet::Load(AliasSet::ObjectFields | AliasSet::FixedSlot | AliasSet::DynamicSlot |
-                              (unboxedTypes_.empty() ? 0 : (AliasSet::TypedArrayElement | AliasSet::Element)));
+                              (unboxedGroups_.empty() ? 0 : (AliasSet::TypedArrayElement | AliasSet::Element)));
     }
 
     bool mightAlias(const MDefinition *store) const MOZ_OVERRIDE;
@@ -9456,7 +9456,7 @@ class MSetPropertyPolymorphic
     };
 
     Vector<Entry, 4, JitAllocPolicy> nativeShapes_;
-    Vector<types::TypeObject *, 4, JitAllocPolicy> unboxedTypes_;
+    Vector<types::ObjectGroup *, 4, JitAllocPolicy> unboxedGroups_;
     AlwaysTenuredPropertyName name_;
     bool needsBarrier_;
 
@@ -9464,7 +9464,7 @@ class MSetPropertyPolymorphic
                             PropertyName *name)
       : MBinaryInstruction(obj, value),
         nativeShapes_(alloc),
-        unboxedTypes_(alloc),
+        unboxedGroups_(alloc),
         name_(name),
         needsBarrier_(false)
     {
@@ -9484,8 +9484,8 @@ class MSetPropertyPolymorphic
         entry.shape = shape;
         return nativeShapes_.append(entry);
     }
-    bool addUnboxedType(types::TypeObject *type) {
-        return unboxedTypes_.append(type);
+    bool addUnboxedGroup(types::ObjectGroup *group) {
+        return unboxedGroups_.append(group);
     }
     size_t numShapes() const {
         return nativeShapes_.length();
@@ -9496,11 +9496,11 @@ class MSetPropertyPolymorphic
     Shape *shape(size_t i) const {
         return nativeShapes_[i].shape;
     }
-    size_t numUnboxedTypes() const {
-        return unboxedTypes_.length();
+    size_t numUnboxedGroups() const {
+        return unboxedGroups_.length();
     }
-    types::TypeObject *unboxedType(size_t i) const {
-        return unboxedTypes_[i];
+    types::ObjectGroup *unboxedGroup(size_t i) const {
+        return unboxedGroups_[i];
     }
     PropertyName *name() const {
         return name_;
@@ -9519,7 +9519,7 @@ class MSetPropertyPolymorphic
     }
     AliasSet getAliasSet() const MOZ_OVERRIDE {
         return AliasSet::Store(AliasSet::ObjectFields | AliasSet::FixedSlot | AliasSet::DynamicSlot |
-                               (unboxedTypes_.empty() ? 0 : (AliasSet::TypedArrayElement | AliasSet::Element)));
+                               (unboxedGroups_.empty() ? 0 : (AliasSet::TypedArrayElement | AliasSet::Element)));
     }
 };
 
@@ -9533,11 +9533,11 @@ class MDispatchInstruction
         
         
         
-        types::TypeObject *funcType;
+        types::ObjectGroup *funcGroup;
         MBasicBlock *block;
 
-        Entry(JSFunction *func, types::TypeObject *funcType, MBasicBlock *block)
-          : func(func), funcType(funcType), block(block)
+        Entry(JSFunction *func, types::ObjectGroup *funcGroup, MBasicBlock *block)
+          : func(func), funcGroup(funcGroup), block(block)
         { }
     };
     Vector<Entry, 4, JitAllocPolicy> map_;
@@ -9605,8 +9605,8 @@ class MDispatchInstruction
     }
 
   public:
-    void addCase(JSFunction *func, types::TypeObject *funcType, MBasicBlock *block) {
-        map_.append(Entry(func, funcType, block));
+    void addCase(JSFunction *func, types::ObjectGroup *funcGroup, MBasicBlock *block) {
+        map_.append(Entry(func, funcGroup, block));
     }
     uint32_t numCases() const {
         return map_.length();
@@ -9614,8 +9614,8 @@ class MDispatchInstruction
     JSFunction *getCase(uint32_t i) const {
         return map_[i].func;
     }
-    types::TypeObject *getCaseTypeObject(uint32_t i) const {
-        return map_[i].funcType;
+    types::ObjectGroup *getCaseObjectGroup(uint32_t i) const {
+        return map_[i].funcGroup;
     }
     MBasicBlock *getCaseBlock(uint32_t i) const {
         return map_[i].block;
@@ -9640,23 +9640,23 @@ class MDispatchInstruction
 };
 
 
-class MTypeObjectDispatch : public MDispatchInstruction
+class MObjectGroupDispatch : public MDispatchInstruction
 {
     
     InlinePropertyTable *inlinePropertyTable_;
 
-    MTypeObjectDispatch(TempAllocator &alloc, MDefinition *input, InlinePropertyTable *table)
+    MObjectGroupDispatch(TempAllocator &alloc, MDefinition *input, InlinePropertyTable *table)
       : MDispatchInstruction(alloc, input),
         inlinePropertyTable_(table)
     { }
 
   public:
-    INSTRUCTION_HEADER(TypeObjectDispatch)
+    INSTRUCTION_HEADER(ObjectGroupDispatch)
 
-    static MTypeObjectDispatch *New(TempAllocator &alloc, MDefinition *ins,
-                                    InlinePropertyTable *table)
+    static MObjectGroupDispatch *New(TempAllocator &alloc, MDefinition *ins,
+                                     InlinePropertyTable *table)
     {
-        return new(alloc) MTypeObjectDispatch(alloc, ins, table);
+        return new(alloc) MObjectGroupDispatch(alloc, ins, table);
     }
 
     InlinePropertyTable *propTable() const {
@@ -9848,18 +9848,18 @@ class MGuardShapePolymorphic
 };
 
 
-class MGuardObjectType
+class MGuardObjectGroup
   : public MUnaryInstruction,
     public SingleObjectPolicy::Data
 {
-    AlwaysTenured<types::TypeObject *> typeObject_;
+    AlwaysTenured<types::ObjectGroup *> group_;
     bool bailOnEquality_;
     BailoutKind bailoutKind_;
 
-    MGuardObjectType(MDefinition *obj, types::TypeObject *typeObject, bool bailOnEquality,
-                     BailoutKind bailoutKind)
+    MGuardObjectGroup(MDefinition *obj, types::ObjectGroup *group, bool bailOnEquality,
+                      BailoutKind bailoutKind)
       : MUnaryInstruction(obj),
-        typeObject_(typeObject),
+        group_(group),
         bailOnEquality_(bailOnEquality),
         bailoutKind_(bailoutKind)
     {
@@ -9869,18 +9869,18 @@ class MGuardObjectType
     }
 
   public:
-    INSTRUCTION_HEADER(GuardObjectType)
+    INSTRUCTION_HEADER(GuardObjectGroup)
 
-    static MGuardObjectType *New(TempAllocator &alloc, MDefinition *obj, types::TypeObject *typeObject,
-                                 bool bailOnEquality, BailoutKind bailoutKind) {
-        return new(alloc) MGuardObjectType(obj, typeObject, bailOnEquality, bailoutKind);
+    static MGuardObjectGroup *New(TempAllocator &alloc, MDefinition *obj, types::ObjectGroup *group,
+                                  bool bailOnEquality, BailoutKind bailoutKind) {
+        return new(alloc) MGuardObjectGroup(obj, group, bailOnEquality, bailoutKind);
     }
 
     MDefinition *obj() const {
         return getOperand(0);
     }
-    const types::TypeObject *typeObject() const {
-        return typeObject_;
+    const types::ObjectGroup *group() const {
+        return group_;
     }
     bool bailOnEquality() const {
         return bailOnEquality_;
@@ -9889,13 +9889,13 @@ class MGuardObjectType
         return bailoutKind_;
     }
     bool congruentTo(const MDefinition *ins) const MOZ_OVERRIDE {
-        if (!ins->isGuardObjectType())
+        if (!ins->isGuardObjectGroup())
             return false;
-        if (typeObject() != ins->toGuardObjectType()->typeObject())
+        if (group() != ins->toGuardObjectGroup()->group())
             return false;
-        if (bailOnEquality() != ins->toGuardObjectType()->bailOnEquality())
+        if (bailOnEquality() != ins->toGuardObjectGroup()->bailOnEquality())
             return false;
-        if (bailoutKind() != ins->toGuardObjectType()->bailoutKind())
+        if (bailoutKind() != ins->toGuardObjectGroup()->bailoutKind())
             return false;
         return congruentIfOperandsEqual(ins);
     }
@@ -12692,7 +12692,7 @@ bool ElementAccessHasExtraIndexedProperty(types::CompilerConstraintList *constra
 MIRType DenseNativeElementType(types::CompilerConstraintList *constraints, MDefinition *obj);
 BarrierKind PropertyReadNeedsTypeBarrier(JSContext *propertycx,
                                          types::CompilerConstraintList *constraints,
-                                         types::TypeObjectKey *object, PropertyName *name,
+                                         types::ObjectGroupKey *object, PropertyName *name,
                                          types::TemporaryTypeSet *observed, bool updateObserved);
 BarrierKind PropertyReadNeedsTypeBarrier(JSContext *propertycx,
                                          types::CompilerConstraintList *constraints,

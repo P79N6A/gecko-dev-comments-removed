@@ -293,7 +293,7 @@ SetAliasedVarOperation(JSContext *cx, JSScript *script, jsbytecode *pc,
 
     
     
-    PropertyName *name = obj.hasSingletonType()
+    PropertyName *name = obj.isSingleton()
                          ? ScopeCoordinateName(cx->runtime()->scopeCoordinateNameCache, script, pc)
                          : nullptr;
 

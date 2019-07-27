@@ -301,9 +301,9 @@ class ExclusiveContext : public ContextFriendFields,
     }
 
     
-    types::TypeObject *getNewType(const Class *clasp, TaggedProto proto,
-                                  JSObject *associated = nullptr);
-    types::TypeObject *getSingletonType(const Class *clasp, TaggedProto proto);
+    types::ObjectGroup *getNewGroup(const Class *clasp, TaggedProto proto,
+                                    JSObject *associated = nullptr);
+    types::ObjectGroup *getLazySingletonGroup(const Class *clasp, TaggedProto proto);
     inline js::LifoAlloc &typeLifoAlloc();
 
     

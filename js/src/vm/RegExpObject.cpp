@@ -62,16 +62,16 @@ RegExpObjectBuilder::getOrCreate()
 }
 
 bool
-RegExpObjectBuilder::getOrCreateClone(HandleTypeObject type)
+RegExpObjectBuilder::getOrCreateClone(HandleObjectGroup group)
 {
     MOZ_ASSERT(!reobj_);
-    MOZ_ASSERT(type->clasp() == &RegExpObject::class_);
+    MOZ_ASSERT(group->clasp() == &RegExpObject::class_);
 
-    JSObject *parent = type->proto().toObject()->getParent();
+    JSObject *parent = group->proto().toObject()->getParent();
 
     
     
-    reobj_ = NewObjectWithType<RegExpObject>(cx->asJSContext(), type, parent, TenuredObject);
+    reobj_ = NewObjectWithGroup<RegExpObject>(cx->asJSContext(), group, parent, TenuredObject);
     if (!reobj_)
         return false;
     reobj_->initPrivate(nullptr);
@@ -104,8 +104,8 @@ RegExpObjectBuilder::build(HandleAtom source, RegExpFlag flags)
 RegExpObject *
 RegExpObjectBuilder::clone(Handle<RegExpObject *> other)
 {
-    RootedTypeObject type(cx, other->type());
-    if (!getOrCreateClone(type))
+    RootedObjectGroup group(cx, other->group());
+    if (!getOrCreateClone(group))
         return nullptr;
 
     
@@ -708,11 +708,11 @@ RegExpCompartment::createMatchResultTemplateObject(JSContext *cx)
 
     
     Rooted<TaggedProto> proto(cx, templateObject->getTaggedProto());
-    types::TypeObject *type =
-        cx->compartment()->types.newTypeObject(cx, templateObject->getClass(), proto);
-    if (!type)
+    types::ObjectGroup *group =
+        cx->compartment()->types.newObjectGroup(cx, templateObject->getClass(), proto);
+    if (!group)
         return matchResultTemplateObject_; 
-    templateObject->setType(type);
+    templateObject->setGroup(group);
 
     
     RootedValue index(cx, Int32Value(0));
@@ -859,7 +859,7 @@ js::CloneRegExpObject(JSContext *cx, JSObject *obj_)
     RegExpObjectBuilder builder(cx);
     Rooted<RegExpObject*> regex(cx, &obj_->as<RegExpObject>());
     JSObject *res = builder.clone(regex);
-    MOZ_ASSERT_IF(res, res->type() == regex->type());
+    MOZ_ASSERT_IF(res, res->group() == regex->group());
     return res;
 }
 

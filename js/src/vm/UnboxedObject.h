@@ -182,7 +182,7 @@ class UnboxedPlainObject : public JSObject
     static bool obj_watch(JSContext *cx, HandleObject obj, HandleId id, HandleObject callable);
 
     const UnboxedLayout &layout() const {
-        return type()->unboxedLayout();
+        return group()->unboxedLayout();
     }
 
     uint8_t *data() {
@@ -194,7 +194,7 @@ class UnboxedPlainObject : public JSObject
 
     bool convertToNative(JSContext *cx);
 
-    static UnboxedPlainObject *create(JSContext *cx, HandleTypeObject type, NewObjectKind newKind);
+    static UnboxedPlainObject *create(JSContext *cx, HandleObjectGroup group, NewObjectKind newKind);
 
     static void trace(JSTracer *trc, JSObject *object);
 
@@ -208,7 +208,7 @@ class UnboxedPlainObject : public JSObject
 
 bool
 TryConvertToUnboxedLayout(JSContext *cx, Shape *templateShape,
-                          types::TypeObject *type, types::PreliminaryObjectArray *objects);
+                          types::ObjectGroup *group, types::PreliminaryObjectArray *objects);
 
 inline gc::AllocKind
 UnboxedLayout::getAllocKind() const

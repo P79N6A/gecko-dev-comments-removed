@@ -265,7 +265,7 @@ class CallObject : public ScopeObject
 
 
     static CallObject *
-    create(JSContext *cx, HandleShape shape, HandleTypeObject type, uint32_t lexicalBegin);
+    create(JSContext *cx, HandleShape shape, HandleObjectGroup group, uint32_t lexicalBegin);
 
     
 

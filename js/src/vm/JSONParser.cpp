@@ -615,7 +615,7 @@ JSONParserBase::createFinishedObject(PropertyVector &properties)
 
 
 
-    cx->compartment()->types.fixObjectType(cx, obj);
+    cx->compartment()->types.fixObjectGroup(cx, obj);
 
     return obj;
 }
@@ -646,7 +646,7 @@ JSONParserBase::finishArray(MutableHandleValue vp, ElementVector &elements)
         return false;
 
     
-    cx->compartment()->types.fixArrayType(cx, obj);
+    cx->compartment()->types.fixArrayGroup(cx, obj);
 
     vp.setObject(*obj);
     if (!freeElements.append(&elements))

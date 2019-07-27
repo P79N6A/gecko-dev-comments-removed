@@ -164,10 +164,10 @@ js::Nursery::verifyFinalizerList()
         if (overlay->isForwarded())
             obj = static_cast<JSObject *>(overlay->forwardingAddress());
         MOZ_ASSERT(obj);
-        MOZ_ASSERT(obj->type());
-        MOZ_ASSERT(obj->type()->clasp());
-        MOZ_ASSERT(obj->type()->clasp()->finalize);
-        MOZ_ASSERT(obj->type()->clasp()->flags & JSCLASS_FINALIZE_FROM_NURSERY);
+        MOZ_ASSERT(obj->group());
+        MOZ_ASSERT(obj->group()->clasp());
+        MOZ_ASSERT(obj->group()->clasp()->finalize);
+        MOZ_ASSERT(obj->group()->clasp()->flags & JSCLASS_FINALIZE_FROM_NURSERY);
     }
 #endif 
 }
@@ -537,7 +537,7 @@ js::Nursery::forwardBufferPointer(HeapSlot **pSlotsElems)
 
 struct TenureCount
 {
-    types::TypeObject *type;
+    types::ObjectGroup *group;
     int count;
 };
 
@@ -550,8 +550,8 @@ struct Nursery::TenureCountCache
 
     TenureCountCache() { PodZero(this); }
 
-    TenureCount &findEntry(types::TypeObject *type) {
-        return entries[PointerHasher<types::TypeObject *, 3>::hash(type) % ArrayLength(entries)];
+    TenureCount &findEntry(types::ObjectGroup *group) {
+        return entries[PointerHasher<types::ObjectGroup *, 3>::hash(group) % ArrayLength(entries)];
     }
 };
 
@@ -562,11 +562,11 @@ js::Nursery::collectToFixedPoint(MinorCollectionTracer *trc, TenureCountCache &t
         JSObject *obj = static_cast<JSObject*>(p->forwardingAddress());
         traceObject(trc, obj);
 
-        TenureCount &entry = tenureCounts.findEntry(obj->type());
-        if (entry.type == obj->type()) {
+        TenureCount &entry = tenureCounts.findEntry(obj->group());
+        if (entry.group == obj->group()) {
             entry.count++;
-        } else if (!entry.type) {
-            entry.type = obj->type();
+        } else if (!entry.group) {
+            entry.group = obj->group();
             entry.count = 1;
         }
     }
@@ -765,7 +765,7 @@ js::Nursery::MinorGCCallback(JSTracer *jstrc, void **thingp, JSGCTraceKind kind)
 #define TIME_TOTAL(name) (timstampEnd_##name - timstampStart_##name)
 
 void
-js::Nursery::collect(JSRuntime *rt, JS::gcreason::Reason reason, TypeObjectList *pretenureTypes)
+js::Nursery::collect(JSRuntime *rt, JS::gcreason::Reason reason, ObjectGroupList *pretenureGroups)
 {
     if (rt->mainThread.suppressGC)
         return;
@@ -900,11 +900,11 @@ js::Nursery::collect(JSRuntime *rt, JS::gcreason::Reason reason, TypeObjectList 
     
     
     TIME_START(pretenure);
-    if (pretenureTypes && (promotionRate > 0.8 || reason == JS::gcreason::FULL_STORE_BUFFER)) {
+    if (pretenureGroups && (promotionRate > 0.8 || reason == JS::gcreason::FULL_STORE_BUFFER)) {
         for (size_t i = 0; i < ArrayLength(tenureCounts.entries); i++) {
             const TenureCount &entry = tenureCounts.entries[i];
             if (entry.count >= 3000)
-                pretenureTypes->append(entry.type); 
+                pretenureGroups->append(entry.group); 
         }
     }
     TIME_END(pretenure);

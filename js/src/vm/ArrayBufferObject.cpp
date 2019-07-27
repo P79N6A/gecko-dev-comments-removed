@@ -521,9 +521,9 @@ ArrayBufferObject::neuter(JSContext *cx, Handle<ArrayBufferObject*> buffer,
     if (buffer->hasTypedObjectViews()) {
         
         
-        if (!cx->global()->getType(cx))
+        if (!cx->global()->getGroup(cx))
             CrashAtUnhandlableOOM("ArrayBufferObject::neuter");
-        types::MarkTypeObjectFlags(cx, cx->global(), types::OBJECT_FLAG_TYPED_OBJECT_NEUTERED);
+        types::MarkObjectGroupFlags(cx, cx->global(), types::OBJECT_FLAG_TYPED_OBJECT_NEUTERED);
         cx->compartment()->neuteredTypedObjects = 1;
     }
 

@@ -52,9 +52,9 @@ NewObjectCache::newObjectFromHit(JSContext *cx, EntryIndex entry_, js::gc::Initi
 
     
     
-    types::TypeObject *type = templateObj->type_;
+    types::ObjectGroup *group = templateObj->group_;
 
-    if (type->shouldPreTenure())
+    if (group->shouldPreTenure())
         heap = gc::TenuredHeap;
 
     if (cx->runtime()->gc.upcomingZealousGC())
@@ -64,13 +64,13 @@ NewObjectCache::newObjectFromHit(JSContext *cx, EntryIndex entry_, js::gc::Initi
     
     if (allowGC) {
         mozilla::DebugOnly<JSObject *> obj =
-            js::gc::AllocateObjectForCacheHit<allowGC>(cx, entry->kind, heap, type->clasp());
+            js::gc::AllocateObjectForCacheHit<allowGC>(cx, entry->kind, heap, group->clasp());
         MOZ_ASSERT(!obj);
         return nullptr;
     }
 
     MOZ_ASSERT(allowGC == NoGC);
-    JSObject *obj = js::gc::AllocateObjectForCacheHit<NoGC>(cx, entry->kind, heap, type->clasp());
+    JSObject *obj = js::gc::AllocateObjectForCacheHit<NoGC>(cx, entry->kind, heap, group->clasp());
     if (obj) {
         copyCachedToObject(obj, templateObj, entry->kind);
         probes::CreateObject(cx, obj);

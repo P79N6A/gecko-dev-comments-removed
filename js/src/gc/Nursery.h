@@ -40,7 +40,7 @@ class MinorCollectionTracer;
 } 
 
 namespace types {
-struct TypeObject;
+struct ObjectGroup;
 }
 
 namespace jit {
@@ -117,13 +117,13 @@ class Nursery
     
     void freeSlots(HeapSlot *slots);
 
-    typedef Vector<types::TypeObject *, 0, SystemAllocPolicy> TypeObjectList;
+    typedef Vector<types::ObjectGroup *, 0, SystemAllocPolicy> ObjectGroupList;
 
     
 
 
 
-    void collect(JSRuntime *rt, JS::gcreason::Reason reason, TypeObjectList *pretenureTypes);
+    void collect(JSRuntime *rt, JS::gcreason::Reason reason, ObjectGroupList *pretenureGroups);
 
     
 

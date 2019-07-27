@@ -127,7 +127,7 @@ namespace types {
 
 struct TypeZone;
 class TypeSet;
-struct TypeObjectKey;
+struct ObjectGroupKey;
 
 
 
@@ -184,25 +184,25 @@ class Type
         return data > JSVAL_TYPE_UNKNOWN;
     }
 
-    inline TypeObjectKey *objectKey() const;
+    inline ObjectGroupKey *objectKey() const;
 
     
 
-    bool isSingleObject() const {
+    bool isSingleton() const {
         return isObject() && !!(data & 1);
     }
 
-    inline JSObject *singleObject() const;
-    inline JSObject *singleObjectNoBarrier() const;
+    inline JSObject *singleton() const;
+    inline JSObject *singletonNoBarrier() const;
 
     
 
-    bool isTypeObject() const {
+    bool isGroup() const {
         return isObject() && !(data & 1);
     }
 
-    inline TypeObject *typeObject() const;
-    inline TypeObject *typeObjectNoBarrier() const;
+    inline ObjectGroup *group() const;
+    inline ObjectGroup *groupNoBarrier() const;
 
     bool operator == (Type o) const { return data == o.data; }
     bool operator != (Type o) const { return data != o.data; }
@@ -224,8 +224,8 @@ class Type
     }
 
     static inline Type ObjectType(JSObject *obj);
-    static inline Type ObjectType(TypeObject *obj);
-    static inline Type ObjectType(TypeObjectKey *obj);
+    static inline Type ObjectType(ObjectGroup *obj);
+    static inline Type ObjectType(ObjectGroupKey *obj);
 
     static js::ThingRootKind rootKind() { return js::THING_ROOT_TYPE; }
 };
@@ -283,7 +283,7 @@ public:
 
 
 
-    virtual void newObjectState(JSContext *cx, TypeObject *object) {}
+    virtual void newObjectState(JSContext *cx, ObjectGroup *group) {}
 
     
 
@@ -428,7 +428,7 @@ enum : uint32_t {
     OBJECT_FLAG_GENERATION_MASK       = 0x40000000,
     OBJECT_FLAG_GENERATION_SHIFT      = 30,
 };
-typedef uint32_t TypeObjectFlags;
+typedef uint32_t ObjectGroupFlags;
 
 class StackTypeSet;
 class HeapTypeSet;
@@ -463,7 +463,7 @@ class TypeSet
     TypeFlags flags;
 
     
-    TypeObjectKey **objectSet;
+    ObjectGroupKey **objectSet;
 
   public:
 
@@ -519,11 +519,11 @@ class TypeSet
 
 
     inline unsigned getObjectCount() const;
-    inline TypeObjectKey *getObject(unsigned i) const;
-    inline JSObject *getSingleObject(unsigned i) const;
-    inline TypeObject *getTypeObject(unsigned i) const;
-    inline JSObject *getSingleObjectNoBarrier(unsigned i) const;
-    inline TypeObject *getTypeObjectNoBarrier(unsigned i) const;
+    inline ObjectGroupKey *getObject(unsigned i) const;
+    inline JSObject *getSingleton(unsigned i) const;
+    inline ObjectGroup *getGroup(unsigned i) const;
+    inline JSObject *getSingletonNoBarrier(unsigned i) const;
+    inline ObjectGroup *getGroupNoBarrier(unsigned i) const;
 
     
     inline const Class *getObjectClass(unsigned i) const;
@@ -658,7 +658,7 @@ class TemporaryTypeSet : public TypeSet
     TemporaryTypeSet() {}
     TemporaryTypeSet(LifoAlloc *alloc, Type type);
 
-    TemporaryTypeSet(uint32_t flags, TypeObjectKey **objectSet) {
+    TemporaryTypeSet(uint32_t flags, ObjectGroupKey **objectSet) {
         this->flags = flags;
         this->objectSet = objectSet;
     }
@@ -694,7 +694,7 @@ class TemporaryTypeSet : public TypeSet
     }
 
     
-    bool hasObjectFlags(CompilerConstraintList *constraints, TypeObjectFlags flags);
+    bool hasObjectFlags(CompilerConstraintList *constraints, ObjectGroupFlags flags);
 
     
     const Class *getKnownClass(CompilerConstraintList *constraints);
@@ -734,7 +734,7 @@ class TemporaryTypeSet : public TypeSet
     bool maybeEmulatesUndefined(CompilerConstraintList *constraints);
 
     
-    JSObject *getSingleton();
+    JSObject *maybeSingleton();
 
     
     bool propertyNeedsBarrier(CompilerConstraintList *constraints, jsid id);
@@ -767,10 +767,10 @@ class TemporaryTypeSet : public TypeSet
 };
 
 bool
-AddClearDefiniteGetterSetterForPrototypeChain(JSContext *cx, TypeObject *type, HandleId id);
+AddClearDefiniteGetterSetterForPrototypeChain(JSContext *cx, ObjectGroup *group, HandleId id);
 
 bool
-AddClearDefiniteFunctionUsesInScript(JSContext *cx, TypeObject *type,
+AddClearDefiniteFunctionUsesInScript(JSContext *cx, ObjectGroup *group,
                                      JSScript *script, JSScript *calleeScript);
 
 
@@ -919,7 +919,7 @@ class TypeNewScript
 
     
     
-    HeapPtrTypeObject initializedType_;
+    HeapPtrObjectGroup initializedGroup_;
 
   public:
     TypeNewScript() { mozilla::PodZero(this); }
@@ -942,8 +942,8 @@ class TypeNewScript
         return initializedShape_;
     }
 
-    TypeObject *initializedType() const {
-        return initializedType_;
+    ObjectGroup *initializedGroup() const {
+        return initializedGroup_;
     }
 
     JSFunction *function() const {
@@ -955,11 +955,11 @@ class TypeNewScript
 
     void registerNewObject(PlainObject *res);
     void unregisterNewObject(PlainObject *res);
-    bool maybeAnalyze(JSContext *cx, TypeObject *type, bool *regenerate, bool force = false);
+    bool maybeAnalyze(JSContext *cx, ObjectGroup *group, bool *regenerate, bool force = false);
 
-    bool rollbackPartiallyInitializedObjects(JSContext *cx, TypeObject *type);
+    bool rollbackPartiallyInitializedObjects(JSContext *cx, ObjectGroup *group);
 
-    static void make(JSContext *cx, TypeObject *type, JSFunction *fun);
+    static void make(JSContext *cx, ObjectGroup *group, JSFunction *fun);
 
     size_t sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 };
@@ -985,7 +985,7 @@ class TypeNewScript
 
 
 
-struct TypeObject : public gc::TenuredCell
+struct ObjectGroup : public gc::TenuredCell
 {
   private:
     
@@ -1041,7 +1041,7 @@ struct TypeObject : public gc::TenuredCell
 
   private:
     
-    TypeObjectFlags flags_;
+    ObjectGroupFlags flags_;
 
     
     enum AddendumKind {
@@ -1092,17 +1092,17 @@ struct TypeObject : public gc::TenuredCell
 
   public:
 
-    TypeObjectFlags flags() {
+    ObjectGroupFlags flags() {
         maybeSweep(nullptr);
         return flags_;
     }
 
-    void addFlags(TypeObjectFlags flags) {
+    void addFlags(ObjectGroupFlags flags) {
         maybeSweep(nullptr);
         flags_ |= flags;
     }
 
-    void clearFlags(TypeObjectFlags flags) {
+    void clearFlags(ObjectGroupFlags flags) {
         maybeSweep(nullptr);
         flags_ &= ~flags;
     }
@@ -1205,13 +1205,13 @@ struct TypeObject : public gc::TenuredCell
     Property **propertySet;
   public:
 
-    inline TypeObject(const Class *clasp, TaggedProto proto, TypeObjectFlags initialFlags);
+    inline ObjectGroup(const Class *clasp, TaggedProto proto, ObjectGroupFlags initialFlags);
 
-    bool hasAnyFlags(TypeObjectFlags flags) {
+    bool hasAnyFlags(ObjectGroupFlags flags) {
         MOZ_ASSERT((flags & OBJECT_FLAG_DYNAMIC_MASK) == flags);
         return !!(this->flags() & flags);
     }
-    bool hasAllFlags(TypeObjectFlags flags) {
+    bool hasAllFlags(ObjectGroupFlags flags) {
         MOZ_ASSERT((flags & OBJECT_FLAG_DYNAMIC_MASK) == flags);
         return (this->flags() & flags) == flags;
     }
@@ -1262,11 +1262,10 @@ struct TypeObject : public gc::TenuredCell
     void updateNewPropertyTypes(ExclusiveContext *cx, jsid id, HeapTypeSet *types);
     bool addDefiniteProperties(ExclusiveContext *cx, Shape *shape);
     bool matchDefiniteProperties(HandleObject obj);
-    void addPrototype(JSContext *cx, TypeObject *proto);
     void markPropertyNonData(ExclusiveContext *cx, jsid id);
     void markPropertyNonWritable(ExclusiveContext *cx, jsid id);
     void markStateChange(ExclusiveContext *cx);
-    void setFlags(ExclusiveContext *cx, TypeObjectFlags flags);
+    void setFlags(ExclusiveContext *cx, ObjectGroupFlags flags);
     void markUnknown(ExclusiveContext *cx);
     void maybeClearNewScriptOnOOM();
     void clearNewScript(ExclusiveContext *cx);
@@ -1299,22 +1298,22 @@ struct TypeObject : public gc::TenuredCell
     inline void finalize(FreeOp *fop);
     void fixupAfterMovingGC() {}
 
-    static inline ThingRootKind rootKind() { return THING_ROOT_TYPE_OBJECT; }
+    static inline ThingRootKind rootKind() { return THING_ROOT_OBJECT_GROUP; }
 
     static inline uint32_t offsetOfClasp() {
-        return offsetof(TypeObject, clasp_);
+        return offsetof(ObjectGroup, clasp_);
     }
 
     static inline uint32_t offsetOfProto() {
-        return offsetof(TypeObject, proto_);
+        return offsetof(ObjectGroup, proto_);
     }
 
     static inline uint32_t offsetOfAddendum() {
-        return offsetof(TypeObject, addendum_);
+        return offsetof(ObjectGroup, addendum_);
     }
 
     static inline uint32_t offsetOfFlags() {
-        return offsetof(TypeObject, flags_);
+        return offsetof(ObjectGroup, flags_);
     }
 
   private:
@@ -1322,7 +1321,7 @@ struct TypeObject : public gc::TenuredCell
     inline void setBasePropertyCount(uint32_t count);
 
     static void staticAsserts() {
-        JS_STATIC_ASSERT(offsetof(TypeObject, proto_) == offsetof(js::shadow::TypeObject, proto));
+        JS_STATIC_ASSERT(offsetof(ObjectGroup, proto_) == offsetof(js::shadow::ObjectGroup, proto));
     }
 };
 
@@ -1335,15 +1334,15 @@ struct TypeObject : public gc::TenuredCell
 
 
 
-struct NewTypeObjectEntry
+struct NewObjectGroupEntry
 {
-    ReadBarrieredTypeObject object;
+    ReadBarrieredObjectGroup group;
 
     
     JSObject *associated;
 
-    NewTypeObjectEntry(TypeObject *object, JSObject *associated)
-      : object(object), associated(associated)
+    NewObjectGroupEntry(ObjectGroup *group, JSObject *associated)
+      : group(group), associated(associated)
     {}
 
     struct Lookup {
@@ -1367,17 +1366,18 @@ struct NewTypeObjectEntry
     };
 
     static inline HashNumber hash(const Lookup &lookup);
-    static inline bool match(const NewTypeObjectEntry &key, const Lookup &lookup);
-    static void rekey(NewTypeObjectEntry &k, const NewTypeObjectEntry& newKey) { k = newKey; }
+    static inline bool match(const NewObjectGroupEntry &key, const Lookup &lookup);
+    static void rekey(NewObjectGroupEntry &k, const NewObjectGroupEntry& newKey) { k = newKey; }
 };
-typedef HashSet<NewTypeObjectEntry, NewTypeObjectEntry, SystemAllocPolicy> NewTypeObjectTable;
+typedef HashSet<NewObjectGroupEntry, NewObjectGroupEntry, SystemAllocPolicy> NewObjectGroupTable;
 
 
 bool
-UseNewType(JSContext *cx, JSScript *script, jsbytecode *pc);
+UseSingletonForNewObject(JSContext *cx, JSScript *script, jsbytecode *pc);
+
 
 bool
-UseNewTypeForClone(JSFunction *fun);
+UseSingletonForClone(JSFunction *fun);
 
 
 
@@ -1427,7 +1427,7 @@ class TypeScript
                                          uint32_t *hint, TYPESET *typeArray);
 
     
-    static inline TypeObject *InitObject(JSContext *cx, JSScript *script, jsbytecode *pc,
+    static inline ObjectGroup *InitGroup(JSContext *cx, JSScript *script, jsbytecode *pc,
                                          JSProtoKey kind);
 
     
@@ -1499,7 +1499,7 @@ FinishDefinitePropertiesAnalysis(JSContext *cx, CompilerConstraintList *constrai
 
 struct ArrayTableKey;
 typedef HashMap<ArrayTableKey,
-                ReadBarrieredTypeObject,
+                ReadBarrieredObjectGroup,
                 ArrayTableKey,
                 SystemAllocPolicy> ArrayTypeTable;
 
@@ -1509,54 +1509,49 @@ typedef HashMap<ObjectTableKey,ObjectTableEntry,ObjectTableKey,SystemAllocPolicy
 
 struct AllocationSiteKey;
 typedef HashMap<AllocationSiteKey,
-                ReadBarrieredTypeObject,
+                ReadBarrieredObjectGroup,
                 AllocationSiteKey,
                 SystemAllocPolicy> AllocationSiteTable;
 
 class HeapTypeSetKey;
 
 
-struct TypeObjectKey
+struct ObjectGroupKey
 {
-    static intptr_t keyBits(TypeObjectKey *obj) { return (intptr_t) obj; }
-    static TypeObjectKey *getKey(TypeObjectKey *obj) { return obj; }
+    static intptr_t keyBits(ObjectGroupKey *obj) { return (intptr_t) obj; }
+    static ObjectGroupKey *getKey(ObjectGroupKey *obj) { return obj; }
 
-    static inline TypeObjectKey *get(JSObject *obj);
+    static inline ObjectGroupKey *get(JSObject *obj);
+    static inline ObjectGroupKey *get(ObjectGroup *group);
 
-    static TypeObjectKey *get(TypeObject *obj) {
-        MOZ_ASSERT(obj);
-        return (TypeObjectKey *) obj;
-    }
-
-    bool isTypeObject() {
+    bool isGroup() {
         return (uintptr_t(this) & 1) == 0;
     }
-    bool isSingleObject() {
+    bool isSingleton() {
         return (uintptr_t(this) & 1) != 0;
     }
 
-    inline TypeObject *asTypeObject();
-    inline JSObject *asSingleObject();
+    inline ObjectGroup *group();
+    inline JSObject *singleton();
 
-    inline TypeObject *asTypeObjectNoBarrier();
-    inline JSObject *asSingleObjectNoBarrier();
+    inline ObjectGroup *groupNoBarrier();
+    inline JSObject *singletonNoBarrier();
 
     const Class *clasp();
     TaggedProto proto();
     TaggedProto protoMaybeInNursery();
     bool hasTenuredProto();
-    JSObject *singleton();
     TypeNewScript *newScript();
 
     bool unknownProperties();
-    bool hasFlags(CompilerConstraintList *constraints, TypeObjectFlags flags);
+    bool hasFlags(CompilerConstraintList *constraints, ObjectGroupFlags flags);
     bool hasStableClassAndProto(CompilerConstraintList *constraints);
     void watchStateChangeForInlinedCall(CompilerConstraintList *constraints);
     void watchStateChangeForTypedArrayData(CompilerConstraintList *constraints);
     HeapTypeSetKey property(jsid id);
     void ensureTrackedProperty(JSContext *cx, jsid id);
 
-    TypeObject *maybeType();
+    ObjectGroup *maybeGroup();
 };
 
 
@@ -1569,10 +1564,10 @@ struct TypeObjectKey
 
 class HeapTypeSetKey
 {
-    friend struct TypeObjectKey;
+    friend struct ObjectGroupKey;
 
     
-    TypeObjectKey *object_;
+    ObjectGroupKey *object_;
     jsid id_;
 
     
@@ -1583,7 +1578,7 @@ class HeapTypeSetKey
       : object_(nullptr), id_(JSID_EMPTY), maybeTypes_(nullptr)
     {}
 
-    TypeObjectKey *object() const { return object_; }
+    ObjectGroupKey *object() const { return object_; }
     jsid id() const { return id_; }
     HeapTypeSet *maybeTypes() const { return maybeTypes_; }
 
@@ -1705,8 +1700,8 @@ struct TypeCompartment
     void setTypeToHomogenousArray(ExclusiveContext *cx, JSObject *obj, Type type);
 
   public:
-    void fixArrayType(ExclusiveContext *cx, ArrayObject *obj);
-    void fixObjectType(ExclusiveContext *cx, PlainObject *obj);
+    void fixArrayGroup(ExclusiveContext *cx, ArrayObject *obj);
+    void fixObjectGroup(ExclusiveContext *cx, PlainObject *obj);
     void fixRestArgumentsType(ExclusiveContext *cx, ArrayObject *obj);
 
     JSObject *newTypedObject(JSContext *cx, IdValuePair *properties, size_t nproperties);
@@ -1719,17 +1714,11 @@ struct TypeCompartment
     
     void print(JSContext *cx, bool force);
 
-    
-
-
-
-
-
-    TypeObject *newTypeObject(ExclusiveContext *cx, const Class *clasp, Handle<TaggedProto> proto,
-                              TypeObjectFlags initialFlags = 0);
+    ObjectGroup *newObjectGroup(ExclusiveContext *cx, const Class *clasp, Handle<TaggedProto> proto,
+                                ObjectGroupFlags initialFlags = 0);
 
     
-    TypeObject *addAllocationSiteTypeObject(JSContext *cx, AllocationSiteKey key);
+    ObjectGroup *addAllocationSiteObjectGroup(JSContext *cx, AllocationSiteKey key);
 
     void clearTables();
     void sweep(FreeOp *fop);
@@ -1809,10 +1798,10 @@ const char * InferSpewColor(TypeSet *types);
 
 void InferSpew(SpewChannel which, const char *fmt, ...);
 const char * TypeString(Type type);
-const char * TypeObjectString(TypeObject *type);
+const char * ObjectGroupString(ObjectGroup *group);
 
 
-bool TypeHasProperty(JSContext *cx, TypeObject *obj, jsid id, const Value &value);
+bool TypeHasProperty(JSContext *cx, ObjectGroup *group, jsid id, const Value &value);
 
 #else
 
@@ -1821,7 +1810,7 @@ inline const char * InferSpewColor(TypeConstraint *constraint) { return nullptr;
 inline const char * InferSpewColor(TypeSet *types) { return nullptr; }
 inline void InferSpew(SpewChannel which, const char *fmt, ...) {}
 inline const char * TypeString(Type type) { return nullptr; }
-inline const char * TypeObjectString(TypeObject *type) { return nullptr; }
+inline const char * ObjectGroupString(ObjectGroup *group) { return nullptr; }
 
 #endif
 
@@ -1835,7 +1824,7 @@ MOZ_NORETURN MOZ_COLD void TypeFailure(JSContext *cx, const char *fmt, ...);
 
 namespace JS {
 namespace ubi {
-template<> struct Concrete<js::types::TypeObject> : TracerConcrete<js::types::TypeObject> { };
+template<> struct Concrete<js::types::ObjectGroup> : TracerConcrete<js::types::ObjectGroup> { };
 }
 }
 
