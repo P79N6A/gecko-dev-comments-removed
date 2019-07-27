@@ -192,8 +192,7 @@ CSPPolicyURIListener.prototype = {
     if (Components.isSuccessCode(status)) {
       
       
-      this._csp.appendPolicy(this._policy, this._docURI,
-                             this._reportOnly, true);
+      this._csp.appendPolicy(this._policy, this._docURI, this._reportOnly);
     }
     else {
       
@@ -201,8 +200,7 @@ CSPPolicyURIListener.prototype = {
       
       this._csp.log(WARN_FLAG, CSPLocalizer.getFormatStr("errorFetchingPolicy",
                                                          [status]));
-      this._csp.appendPolicy("default-src 'none'", this._docURI,
-                             this._reportOnly, true);
+      this._csp.appendPolicy("default-src 'none'", this._docURI, this._reportOnly);
     }
     
     this._docRequest.resume();

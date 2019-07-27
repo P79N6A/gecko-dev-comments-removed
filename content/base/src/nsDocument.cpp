@@ -2640,7 +2640,7 @@ nsDocument::SendToConsole(nsCOMArray<nsISecurityConsoleMessage>& aMessages)
 
 static nsresult
 AppendCSPFromHeader(nsIContentSecurityPolicy* csp, const nsAString& aHeaderValue,
-                    nsIURI* aSelfURI, bool aReportOnly, bool aSpecCompliant)
+                    nsIURI* aSelfURI, bool aReportOnly)
 {
   
   
@@ -2649,7 +2649,7 @@ AppendCSPFromHeader(nsIContentSecurityPolicy* csp, const nsAString& aHeaderValue
   nsCharSeparatedTokenizer tokenizer(aHeaderValue, ',');
   while (tokenizer.hasMoreTokens()) {
       const nsSubstring& policy = tokenizer.nextToken();
-      rv = csp->AppendPolicy(policy, aSelfURI, aReportOnly, aSpecCompliant);
+      rv = csp->AppendPolicy(policy, aSelfURI, aReportOnly);
       NS_ENSURE_SUCCESS(rv, rv);
 #ifdef PR_LOGGING
       {
@@ -2798,24 +2798,24 @@ nsDocument::InitCSP(nsIChannel* aChannel)
     }
 
     if (appCSP) {
-      csp->AppendPolicy(appCSP, selfURI, false, true);
+      csp->AppendPolicy(appCSP, selfURI, false);
     }
   }
 
   
   if (applyAppManifestCSP) {
-    csp->AppendPolicy(appManifestCSP, selfURI, false, true);
+    csp->AppendPolicy(appManifestCSP, selfURI, false);
   }
 
   
   if (!cspHeaderValue.IsEmpty()) {
-    rv = AppendCSPFromHeader(csp, cspHeaderValue, selfURI, false, true);
+    rv = AppendCSPFromHeader(csp, cspHeaderValue, selfURI, false);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
   
   if (!cspROHeaderValue.IsEmpty()) {
-    rv = AppendCSPFromHeader(csp, cspROHeaderValue, selfURI, true, true);
+    rv = AppendCSPFromHeader(csp, cspROHeaderValue, selfURI, true);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 

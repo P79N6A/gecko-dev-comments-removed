@@ -286,8 +286,7 @@ nsCSPContext::RemovePolicy(uint32_t aIndex)
 NS_IMETHODIMP
 nsCSPContext::AppendPolicy(const nsAString& aPolicyString,
                            nsIURI* aSelfURI,
-                           bool aReportOnly,
-                           bool aSpecCompliant)
+                           bool aReportOnly)
 {
   CSPCONTEXTLOG(("nsCSPContext::AppendPolicy: %s",
                  NS_ConvertUTF16toUTF8(aPolicyString).get()));
@@ -1215,16 +1214,6 @@ nsCSPContext::Read(nsIObjectInputStream* aStream)
     rv = aStream->ReadBoolean(&reportOnly);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    bool specCompliant = false;
-    rv = aStream->ReadBoolean(&specCompliant);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    
-    if (!specCompliant) {
-      continue;
-    }
-
     nsCSPPolicy* policy = nsCSPParser::parseContentSecurityPolicy(policyString,
                                                                   mSelfURI,
                                                                   reportOnly,
@@ -1254,8 +1243,6 @@ nsCSPContext::Write(nsIObjectOutputStream* aStream)
     mPolicies[p]->toString(polStr);
     aStream->WriteWStringZ(polStr.get());
     aStream->WriteBoolean(mPolicies[p]->getReportOnlyFlag());
-    
-    aStream->WriteBoolean(true);
   }
   return NS_OK;
 }

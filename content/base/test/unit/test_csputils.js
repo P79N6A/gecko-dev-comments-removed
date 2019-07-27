@@ -500,7 +500,7 @@ test(function test_FrameAncestor_ignores_userpass_bug779918() {
       function testPermits(aChildUri, aParentUri, aContentType) {
         let cspObj = Cc["@mozilla.org/contentsecuritypolicy;1"]
                        .createInstance(Ci.nsIContentSecurityPolicy);
-        cspObj.appendPolicy(testPolicy, aChildUri, false, false);
+        cspObj.appendPolicy(testPolicy, aChildUri, false);
         let docshellparent = Cc["@mozilla.org/docshell;1"]
                                .createInstance(Ci.nsIDocShell);
         let docshellchild  = Cc["@mozilla.org/docshell;1"]
@@ -748,7 +748,7 @@ test(
       };
 
       const policy = "script-src 'self'";
-      cspObj.appendPolicy(policy, selfURI, false, true);
+      cspObj.appendPolicy(policy, selfURI, false);
 
       
       
