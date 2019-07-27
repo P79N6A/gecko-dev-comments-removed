@@ -137,7 +137,9 @@ CacheStorageChild::RecvOpenResponse(const RequestId& aRequestId,
   
   
   
-  cacheChild->SetFeature(GetFeature());
+  if (cacheChild) {
+    cacheChild->SetFeature(GetFeature());
+  }
 
   listener->RecvOpenResponse(aRequestId, aRv, cacheChild);
   return true;
