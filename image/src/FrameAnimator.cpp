@@ -89,8 +89,7 @@ FrameAnimator::AdvanceFrame(TimeStamp aTime)
   
   
   
-  bool canDisplay = mDoneDecoding ||
-                    (nextFrame && nextFrame->IsImageComplete());
+  bool canDisplay = mDoneDecoding || (nextFrame && nextFrame->ImageComplete());
 
   if (!canDisplay) {
     
@@ -596,8 +595,6 @@ FrameAnimator::DoBlend(nsIntRect* aDirtyRect,
                    compositingFrameData.mRect,
                    compositingPrevFrameData.mRawData,
                    compositingPrevFrameData.mRect);
-
-    mCompositingPrevFrame->Finish();
   }
 
   
@@ -609,7 +606,11 @@ FrameAnimator::DoBlend(nsIntRect* aDirtyRect,
               nextFrameData.mBlendMethod);
 
   
-  mCompositingFrame->Finish();
+  nsresult rv =
+    mCompositingFrame->ImageUpdated(compositingFrameData.mRect);
+  if (NS_FAILED(rv)) {
+    return false;
+  }
 
   mLastCompositedFrameIndex = int32_t(aNextFrameIndex);
 

@@ -204,7 +204,7 @@ public:
       if (succeeded) {
         
         mDstRef->ImageUpdated(mDstRef->GetRect());
-        MOZ_ASSERT(mDstRef->IsImageComplete(),
+        MOZ_ASSERT(mDstRef->ImageComplete(),
                    "Incomplete, but just updated the entire frame");
       }
 
@@ -552,7 +552,6 @@ RasterImage::LookupFrame(uint32_t aFrameNum,
     WantDecodedFrames(aFlags, aShouldSyncNotify);
 
     
-    
     ref = LookupFrameInternal(aFrameNum, aSize, aFlags);
 
     if (!ref) {
@@ -566,14 +565,6 @@ RasterImage::LookupFrame(uint32_t aFrameNum,
   }
 
   MOZ_ASSERT(!ref || !ref->GetIsPaletted(), "Should not have paletted frame");
-
-  
-  
-  
-  if (ref && mHasSourceData && aShouldSyncNotify &&
-      (aFlags & FLAG_SYNC_DECODE)) {
-    ref->WaitUntilComplete();
-  }
 
   return ref;
 }
@@ -1911,7 +1902,7 @@ RasterImage::RequestScale(imgFrame* aFrame,
                           const nsIntSize& aSize)
 {
   
-  if (!aFrame->IsImageComplete()) {
+  if (!aFrame->ImageComplete()) {
     return;
   }
 
@@ -1960,7 +1951,7 @@ RasterImage::DrawWithPreDownscaleIfNeeded(DrawableFrameRef&& aFrameRef,
       
       RequestScale(aFrameRef.get(), aFlags, aSize);
     }
-    if (frameRef && !frameRef->IsImageComplete()) {
+    if (frameRef && !frameRef->ImageComplete()) {
       frameRef.reset();  
     }
   }
@@ -2467,7 +2458,7 @@ RasterImage::OptimalImageSizeForDest(const gfxSize& aDest, uint32_t aWhichFrame,
                                             DecodeFlags(aFlags),
                                             0));
 
-    if (frameRef && frameRef->IsImageComplete()) {
+    if (frameRef && frameRef->ImageComplete()) {
         return destSize;  
     }
     if (!frameRef) {
