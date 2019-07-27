@@ -5,8 +5,10 @@
 
 
 
-if (!(this.SharedArrayBuffer && this.getSharedArrayBuffer && this.setSharedArrayBuffer))
+if (!(this.SharedArrayBuffer && this.getSharedArrayBuffer && this.setSharedArrayBuffer)) {
+    reportCompare(true,true);
     quit(0);
+}
 
 var DEBUG = false;
 
