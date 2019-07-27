@@ -97,6 +97,55 @@ BottomHost.prototype = {
   
 
 
+
+
+  minimize: function BH_minimize(height=0) {
+    if (this.isMinimized) {
+      return;
+    }
+    this.isMinimized = true;
+
+    this.frame.style.marginBottom = -this.frame.height + height + "px";
+    this._splitter.classList.add("disabled");
+
+    let onTransitionEnd = () => {
+      this.frame.removeEventListener("transitionend", onTransitionEnd);
+      this.emit("minimized");
+    };
+    this.frame.addEventListener("transitionend", onTransitionEnd);
+  },
+
+  
+
+
+
+  maximize: function BH_maximize() {
+    if (!this.isMinimized) {
+      return;
+    }
+    this.isMinimized = false;
+
+    this.frame.style.marginBottom = "0";
+    this._splitter.classList.remove("disabled");
+
+    let onTransitionEnd = () => {
+      this.frame.removeEventListener("transitionend", onTransitionEnd);
+      this.emit("maximized");
+    };
+    this.frame.addEventListener("transitionend", onTransitionEnd);
+  },
+
+  
+
+
+
+  toggleMinimizeMode: function BH_toggleMinimizedMode(minHeight) {
+    this.isMinimized ? this.maximize() : this.minimize(minHeight);
+  },
+
+  
+
+
   setTitle: function BH_setTitle(title) {
     
   },
