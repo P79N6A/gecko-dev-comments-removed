@@ -6,48 +6,87 @@
 #ifndef WEBGL_ACTIVE_INFO_H_
 #define WEBGL_ACTIVE_INFO_H_
 
+#include "GLDefs.h"
 #include "js/TypeDecls.h"
+#include "mozilla/Attributes.h"
+#include "nsCycleCollectionParticipant.h" 
+#include "nsISupportsImpl.h" 
 #include "nsString.h"
-#include "WebGLObjectModel.h"
+#include "nsWrapperCache.h"
 
 namespace mozilla {
 
+class WebGLContext;
+
 class WebGLActiveInfo MOZ_FINAL
+    : public nsWrapperCache
 {
 public:
-    WebGLActiveInfo(GLint size, GLenum type, const nsACString& name)
-        : mSize(size)
-        , mType(type)
-        , mName(NS_ConvertASCIItoUTF16(name))
-    {}
+    NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(WebGLActiveInfo)
+    NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(WebGLActiveInfo)
+
+    virtual JSObject* WrapObject(JSContext* js) MOZ_OVERRIDE;
+
+    WebGLContext* GetParentObject() const {
+        return mWebGL;
+    }
+
+
+    WebGLContext* const mWebGL;
+
+    
+    const GLint mElemCount; 
+    const GLenum mElemType; 
+    const nsCString mBaseUserName; 
+
+    
+    const bool mIsArray;
+    const uint8_t mElemSize;
+    const nsCString mBaseMappedName; 
+
+    WebGLActiveInfo(WebGLContext* webgl, GLint elemCount, GLenum elemType, bool isArray,
+                    const nsACString& baseUserName, const nsACString& baseMappedName);
 
     
 
+
+
+
+
+
+
+    static WebGLActiveInfo* CreateInvalid(WebGLContext* webgl) {
+        return new WebGLActiveInfo(webgl);
+    }
+
+    
     GLint Size() const {
-        return mSize;
+        return mElemCount;
     }
 
     GLenum Type() const {
-        return mType;
+        return mElemType;
     }
 
     void GetName(nsString& retval) const {
-        retval = mName;
+        CopyASCIItoUTF16(mBaseUserName, retval);
+        if (mIsArray)
+            retval.AppendLiteral("[0]");
     }
-
-    bool WrapObject(JSContext* aCx, JS::MutableHandle<JSObject*> aReflector);
-
-   NS_INLINE_DECL_REFCOUNTING(WebGLActiveInfo)
 
 private:
-    
-    ~WebGLActiveInfo()
-    {
-    }
+    explicit WebGLActiveInfo(WebGLContext* webgl)
+        : mWebGL(webgl)
+        , mElemCount(0)
+        , mElemType(0)
+        , mBaseUserName("")
+        , mIsArray(false)
+        , mElemSize(0)
+        , mBaseMappedName("")
+    { }
 
-    GLint mSize;
-    GLenum mType;
-    nsString mName;
+    
+    ~WebGLActiveInfo() { }
 };
 
 } 
