@@ -8,16 +8,15 @@
 
 const TAB_URL = EXAMPLE_URL + "doc_with-frame.html";
 
-let gTab, gDebuggee, gPanel, gDebugger;
+let gTab, gPanel, gDebugger;
 let gBreakpoints, gSources, gVariables;
 
 function test() {
   
   requestLongerTimeout(4);
 
-  initDebugger(TAB_URL).then(([aTab, aDebuggee, aPanel]) => {
+  initDebugger(TAB_URL).then(([aTab,, aPanel]) => {
     gTab = aTab;
-    gDebuggee = aDebuggee;
     gPanel = aPanel;
     gDebugger = gPanel.panelWin;
     gBreakpoints = gDebugger.DebuggerController.Breakpoints;
@@ -46,13 +45,7 @@ function addBreakpoint() {
 }
 
 function pauseDebuggee() {
-  
-  
-  executeSoon(() => {
-    EventUtils.sendMouseEvent({ type: "click" },
-      gDebuggee.document.querySelector("button"),
-      gDebuggee);
-  });
+  sendMouseClickToTab(gTab, content.document.querySelector("button"));
 
   
   
@@ -215,7 +208,6 @@ function prepareVariablesAndProperties() {
 
 registerCleanupFunction(function() {
   gTab = null;
-  gDebuggee = null;
   gPanel = null;
   gDebugger = null;
   gBreakpoints = null;
