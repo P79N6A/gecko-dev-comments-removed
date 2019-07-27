@@ -480,21 +480,6 @@ const PLDHashTableOps* PL_DHashGetStubOps(void);
 
 
 
-PLDHashTable* PL_NewDHashTable(
-  const PLDHashTableOps* aOps, uint32_t aEntrySize,
-  uint32_t aLength = PL_DHASH_DEFAULT_INITIAL_LENGTH);
-
-
-
-
-
-
-void PL_DHashTableDestroy(PLDHashTable* aTable);
-
-
-
-
-
 
 
 
