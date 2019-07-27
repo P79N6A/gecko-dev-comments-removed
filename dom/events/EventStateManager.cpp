@@ -3281,12 +3281,13 @@ EventStateManager::PostHandleEvent(nsPresContext* aPresContext,
       }
       if (dispatchedToContentProcess) {
         dragSession->SetCanDrop(true);
-      }
-
-      
-      
-      if (initialDataTransfer)
+      } else if (initialDataTransfer) {
+        
+        
+        
+        
         initialDataTransfer->SetDropEffectInt(dropEffect);
+      }
     }
     break;
 
