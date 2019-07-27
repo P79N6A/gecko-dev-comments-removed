@@ -164,6 +164,10 @@ public:
   Telemetry::HangStack mHangStack;
   
   Telemetry::ThreadHangStats mStats;
+  
+  UniquePtr<HangMonitor::HangAnnotations> mAnnotations;
+  
+  HangMonitor::Observer::Annotators mAnnotators;
 
   BackgroundHangThread(const char* aName,
                        uint32_t aTimeoutMs,
@@ -299,6 +303,8 @@ BackgroundHangManager::RunMonitorThread()
           currentThread->mStackHelper.GetStack(currentThread->mHangStack);
           currentThread->mHangStart = interval;
           currentThread->mHanging = true;
+          currentThread->mAnnotations =
+            currentThread->mAnnotators.GatherAnnotations();
         }
       } else {
         if (MOZ_LIKELY(interval != currentThread->mHangStart)) {
@@ -397,12 +403,12 @@ BackgroundHangThread::ReportHang(PRIntervalTime aHangTime)
        oldHistogram != mStats.mHangs.end(); oldHistogram++) {
     if (newHistogram == *oldHistogram) {
       
-      oldHistogram->Add(aHangTime);
+      oldHistogram->Add(aHangTime, Move(mAnnotations));
       return *oldHistogram;
     }
   }
   
-  newHistogram.Add(aHangTime);
+  newHistogram.Add(aHangTime, Move(mAnnotations));
   mStats.mHangs.append(Move(newHistogram));
   return mStats.mHangs.back();
 }
@@ -642,6 +648,33 @@ BackgroundHangMonitor::Allow()
 #endif
 }
 
+bool
+BackgroundHangMonitor::RegisterAnnotator(HangMonitor::Annotator& aAnnotator)
+{
+#ifdef MOZ_ENABLE_BACKGROUND_HANG_MONITOR
+  BackgroundHangThread* thisThread = BackgroundHangThread::FindThread();
+  if (!thisThread) {
+    return false;
+  }
+  return thisThread->mAnnotators.Register(aAnnotator);
+#else
+  return false;
+#endif
+}
+
+bool
+BackgroundHangMonitor::UnregisterAnnotator(HangMonitor::Annotator& aAnnotator)
+{
+#ifdef MOZ_ENABLE_BACKGROUND_HANG_MONITOR
+  BackgroundHangThread* thisThread = BackgroundHangThread::FindThread();
+  if (!thisThread) {
+    return false;
+  }
+  return thisThread->mAnnotators.Unregister(aAnnotator);
+#else
+  return false;
+#endif
+}
 
 
 
