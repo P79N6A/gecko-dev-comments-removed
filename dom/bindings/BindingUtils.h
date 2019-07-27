@@ -3270,6 +3270,18 @@ GetErrorPrototype(JSContext* aCx, JS::Handle<JSObject*> aForObj)
   return JS_GetErrorPrototype(aCx);
 }
 
+
+
+
+bool SystemGlobalResolve(JSContext* cx, JS::Handle<JSObject*> obj,
+                         JS::Handle<jsid> id, bool* resolvedp);
+
+
+
+
+bool SystemGlobalEnumerate(JSContext* cx, JS::Handle<JSObject*> obj);
+
+
 } 
 } 
 
