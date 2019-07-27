@@ -227,7 +227,7 @@ DirectoryProvider.prototype = {
       
       
       try {
-        dir.create(Ci.nsIFile.DIRECTORY_TYPE, parseInt('0770', 8));
+        dir.create(Ci.nsIFile.DIRECTORY_TYPE, 0770);
       } catch (e) {
         
         log("Error: " + dir.path + " unable to create directory");
