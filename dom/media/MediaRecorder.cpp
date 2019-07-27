@@ -368,11 +368,12 @@ class MediaRecorder::Session: public nsIObserver
 
 public:
   Session(MediaRecorder* aRecorder, int32_t aTimeSlice)
-    : mRecorder(aRecorder),
-      mTimeSlice(aTimeSlice),
-      mStopIssued(false),
-      mCanRetrieveData(false),
-      mIsRegisterProfiler(false)
+    : mRecorder(aRecorder)
+    , mTimeSlice(aTimeSlice)
+    , mStopIssued(false)
+    , mCanRetrieveData(false)
+    , mIsRegisterProfiler(false)
+    , mNeedSessionEndTask(true)
   {
     MOZ_ASSERT(NS_IsMainThread());
 
@@ -396,6 +397,11 @@ public:
     MOZ_ASSERT(NS_IsMainThread());
     mStopIssued = true;
     CleanupStreams();
+    if (mNeedSessionEndTask) {
+      LOG(PR_LOG_DEBUG, ("Session.Stop mNeedSessionEndTask %p", this));
+      
+      DoSessionEndTask(NS_OK);
+    }
     nsContentUtils::UnregisterShutdownObserver(this);
   }
 
@@ -578,6 +584,10 @@ private:
     LOG(PR_LOG_DEBUG, ("Session.InitEncoder %p", this));
     MOZ_ASSERT(NS_IsMainThread());
 
+    if (!mRecorder) {
+      LOG(PR_LOG_DEBUG, ("Session.InitEncoder failure, mRecorder is null %p", this));
+      return;
+    }
     
     
 
@@ -589,6 +599,7 @@ private:
     }
 
     if (!mEncoder) {
+      LOG(PR_LOG_DEBUG, ("Session.InitEncoder !mEncoder %p", this));
       DoSessionEndTask(NS_ERROR_ABORT);
       return;
     }
@@ -597,6 +608,7 @@ private:
     
     
     if (!mTrackUnionStream) {
+      LOG(PR_LOG_DEBUG, ("Session.InitEncoder !mTrackUnionStream %p", this));
       DoSessionEndTask(NS_OK);
       return;
     }
@@ -605,6 +617,7 @@ private:
     if (!mReadThread) {
       nsresult rv = NS_NewNamedThread("Media_Encoder", getter_AddRefs(mReadThread));
       if (NS_FAILED(rv)) {
+        LOG(PR_LOG_DEBUG, ("Session.InitEncoder !mReadThread %p", this));
         DoSessionEndTask(rv);
         return;
       }
@@ -617,7 +630,13 @@ private:
     nsCOMPtr<nsIRunnable> event = new ExtractRunnable(this);
     if (NS_FAILED(mReadThread->Dispatch(event, NS_DISPATCH_NORMAL))) {
       NS_WARNING("Failed to dispatch ExtractRunnable at beginning");
+      LOG(PR_LOG_DEBUG, ("Session.InitEncoder !ReadThread->Dispatch %p", this));
+      DoSessionEndTask(NS_ERROR_ABORT);
     }
+    
+    
+    
+    mNeedSessionEndTask = false;
   }
   
   void DoSessionEndTask(nsresult rv)
@@ -637,6 +656,7 @@ private:
     if (NS_FAILED(NS_DispatchToMainThread(new DestroyRunnable(this)))) {
       MOZ_ASSERT(false, "NS_DispatchToMainThread DestroyRunnable failed");
     }
+    mNeedSessionEndTask = false;
   }
   void CleanupStreams()
   {
@@ -710,6 +730,10 @@ private:
   bool mCanRetrieveData;
   
   bool mIsRegisterProfiler;
+  
+  
+  
+  bool mNeedSessionEndTask;
 };
 
 NS_IMPL_ISUPPORTS(MediaRecorder::Session, nsIObserver)
