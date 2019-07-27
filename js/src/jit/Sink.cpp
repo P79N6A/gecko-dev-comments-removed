@@ -46,6 +46,7 @@ bool
 Sink(MIRGenerator *mir, MIRGraph &graph)
 {
     TempAllocator &alloc = graph.alloc();
+    bool sinkEnabled = mir->optimizationInfo().sinkEnabled();
 
     for (PostorderIterator block = graph.poBegin(); block != graph.poEnd(); block++) {
         if (mir->shouldCancel("Sink"))
@@ -105,6 +106,13 @@ Sink(MIRGenerator *mir, MIRGraph &graph)
                 JitSpewDef(JitSpew_Sink, "  No live uses, recover the instruction on bailout\n", ins);
                 continue;
             }
+
+            
+            
+            
+            
+            if (!sinkEnabled)
+                continue;
 
             
             
