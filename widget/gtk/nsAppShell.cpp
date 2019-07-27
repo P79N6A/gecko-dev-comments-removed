@@ -73,6 +73,12 @@ nsAppShell::~nsAppShell()
 nsresult
 nsAppShell::Init()
 {
+    
+    
+    
+    
+    g_type_init();
+
     if (!gWidgetLog)
         gWidgetLog = PR_NewLogModule("Widget");
     if (!gWidgetFocusLog)
