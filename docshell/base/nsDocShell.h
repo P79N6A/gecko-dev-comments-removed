@@ -640,12 +640,6 @@ protected:
 
     
     already_AddRefed<nsDocShell> GetParentDocshell();
-
-    
-    
-    bool DoAppRedirectIfNeeded(nsIURI * aURI,
-                               nsIDocShellLoadInfo * aLoadInfo,
-                               bool aFirstParty);
 protected:
     nsresult GetCurScrollPos(int32_t scrollOrientation, int32_t * curPos);
     nsresult SetCurScrollPosEx(int32_t curHorizontalPos, int32_t curVerticalPos);
@@ -665,7 +659,7 @@ protected:
     class RestorePresentationEvent : public nsRunnable {
     public:
         NS_DECL_NSIRUNNABLE
-        RestorePresentationEvent(nsDocShell *ds) : mDocShell(ds) {}
+        explicit RestorePresentationEvent(nsDocShell *ds) : mDocShell(ds) {}
         void Revoke() { mDocShell = nullptr; }
     private:
         nsRefPtr<nsDocShell> mDocShell;
@@ -928,7 +922,7 @@ private:
 public:
     class InterfaceRequestorProxy : public nsIInterfaceRequestor {
     public:
-        InterfaceRequestorProxy(nsIInterfaceRequestor* p);
+        explicit InterfaceRequestorProxy(nsIInterfaceRequestor* p);
         NS_DECL_THREADSAFE_ISUPPORTS
         NS_DECL_NSIINTERFACEREQUESTOR
  
