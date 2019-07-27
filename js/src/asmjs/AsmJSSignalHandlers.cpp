@@ -1338,14 +1338,3 @@ js::InterruptRunningJitCode(JSRuntime *rt)
     pthread_kill(thread, sInterruptSignal);
 #endif
 }
-
-
-#if defined(MOZ_ASAN) && defined(JS_STANDALONE) && !defined(_MSC_VER)
-
-
-
-extern "C" MOZ_ASAN_BLACKLIST
-const char* __asan_default_options() {
-    return "allow_user_segv_handler=1";
-}
-#endif
