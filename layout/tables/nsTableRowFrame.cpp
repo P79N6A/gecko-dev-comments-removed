@@ -1470,11 +1470,11 @@ void nsTableRowFrame::InitHasCellWithStyleBSize(nsTableFrame* aTableFrame)
         cellBSize.GetUnit() != eStyleUnit_Auto &&
          
         (!cellBSize.IsCalcUnit() || !cellBSize.HasPercent())) {
-      AddStateBits(NS_ROW_HAS_CELL_WITH_STYLE_HEIGHT);
+      AddStateBits(NS_ROW_HAS_CELL_WITH_STYLE_BSIZE);
       return;
     }
   }
-  RemoveStateBits(NS_ROW_HAS_CELL_WITH_STYLE_HEIGHT);
+  RemoveStateBits(NS_ROW_HAS_CELL_WITH_STYLE_BSIZE);
 }
 
 void

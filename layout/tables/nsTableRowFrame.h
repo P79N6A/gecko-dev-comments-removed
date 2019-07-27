@@ -391,16 +391,16 @@ inline float nsTableRowFrame::GetPctBSize() const
 
 inline bool nsTableRowFrame::HasUnpaginatedBSize()
 {
-  return (mState & NS_TABLE_ROW_HAS_UNPAGINATED_HEIGHT) ==
-         NS_TABLE_ROW_HAS_UNPAGINATED_HEIGHT;
+  return (mState & NS_TABLE_ROW_HAS_UNPAGINATED_BSIZE) ==
+         NS_TABLE_ROW_HAS_UNPAGINATED_BSIZE;
 }
 
 inline void nsTableRowFrame::SetHasUnpaginatedBSize(bool aValue)
 {
   if (aValue) {
-    mState |= NS_TABLE_ROW_HAS_UNPAGINATED_HEIGHT;
+    mState |= NS_TABLE_ROW_HAS_UNPAGINATED_BSIZE;
   } else {
-    mState &= ~NS_TABLE_ROW_HAS_UNPAGINATED_HEIGHT;
+    mState &= ~NS_TABLE_ROW_HAS_UNPAGINATED_BSIZE;
   }
 }
 
