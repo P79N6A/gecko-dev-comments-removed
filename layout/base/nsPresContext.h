@@ -72,7 +72,6 @@ class RestyleManager;
 class CounterStyleManager;
 namespace dom {
 class FontFaceSet;
-class MediaQueryList;
 }
 namespace layers {
 class ContainerLayer;
@@ -271,12 +270,6 @@ public:
     if (mPendingMediaFeatureValuesChanged)
       MediaFeatureValuesChanged(eRebuildStyleIfNeeded);
   }
-
-  
-
-
-  already_AddRefed<mozilla::dom::MediaQueryList>
-    MatchMedia(const nsAString& aMediaQueryList);
 
   
 
@@ -1216,8 +1209,6 @@ public:
 protected:
 
   mozilla::WeakPtr<nsDocShell>             mContainer;
-
-  PRCList               mDOMMediaQueryLists;
 
   
   int32_t               mBaseMinFontSize;

@@ -246,17 +246,12 @@ nsPresContext::nsPresContext(nsIDocument* aDocument, nsPresContextType aType)
   if (log && log->level >= PR_LOG_WARNING) {
     mTextPerf = new gfxTextPerfMetrics();
   }
-
-  PR_INIT_CLIST(&mDOMMediaQueryLists);
 }
 
 nsPresContext::~nsPresContext()
 {
   NS_PRECONDITION(!mShell, "Presshell forgot to clear our mShell pointer");
   SetShell(nullptr);
-
-  NS_ABORT_IF_FALSE(PR_CLIST_IS_EMPTY(&mDOMMediaQueryLists),
-                    "must not have media query lists left");
 
   
   
@@ -347,18 +342,6 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsPresContext)
 
   
   
-  
-  for (PRCList *l = PR_LIST_HEAD(&tmp->mDOMMediaQueryLists);
-       l != &tmp->mDOMMediaQueryLists; l = PR_NEXT_LINK(l)) {
-    MediaQueryList *mql = static_cast<MediaQueryList*>(l);
-    if (mql->HasListeners()) {
-      NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mDOMMediaQueryLists item");
-      cb.NoteXPCOMChild(mql);
-    }
-  }
-
-  
-  
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mPrintSettings);
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mPrefChangedTimer);
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
@@ -371,17 +354,6 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsPresContext)
     tmp->mEventManager->NotifyDestroyPresContext(tmp);
     tmp->mEventManager->SetPresContext(nullptr);
     tmp->mEventManager = nullptr;
-  }
-
-  
-  
-  
-  for (PRCList *l = PR_LIST_HEAD(&tmp->mDOMMediaQueryLists);
-       l != &tmp->mDOMMediaQueryLists; ) {
-    PRCList *next = PR_NEXT_LINK(l);
-    MediaQueryList *mql = static_cast<MediaQueryList*>(l);
-    mql->RemoveAllListeners();
-    l = next;
   }
 
   
@@ -1899,7 +1871,7 @@ nsPresContext::MediaFeatureValuesChanged(StyleRebuildType aShouldRebuild,
   mPendingViewportChange = false;
 
   if (mDocument->IsBeingUsedAsImage()) {
-    MOZ_ASSERT(PR_CLIST_IS_EMPTY(&mDOMMediaQueryLists));
+    MOZ_ASSERT(PR_CLIST_IS_EMPTY(mDocument->MediaQueryLists()));
     return;
   }
 
@@ -1912,7 +1884,7 @@ nsPresContext::MediaFeatureValuesChanged(StyleRebuildType aShouldRebuild,
   
   
 
-  if (!PR_CLIST_IS_EMPTY(&mDOMMediaQueryLists)) {
+  if (!PR_CLIST_IS_EMPTY(mDocument->MediaQueryLists())) {
     
     
     
@@ -1926,8 +1898,8 @@ nsPresContext::MediaFeatureValuesChanged(StyleRebuildType aShouldRebuild,
     
     
     MediaQueryList::NotifyList notifyList;
-    for (PRCList *l = PR_LIST_HEAD(&mDOMMediaQueryLists);
-         l != &mDOMMediaQueryLists; l = PR_NEXT_LINK(l)) {
+    for (PRCList *l = PR_LIST_HEAD(mDocument->MediaQueryLists());
+         l != mDocument->MediaQueryLists(); l = PR_NEXT_LINK(l)) {
       MediaQueryList *mql = static_cast<MediaQueryList*>(l);
       mql->MediumFeaturesChanged(notifyList);
     }
@@ -1969,17 +1941,6 @@ nsPresContext::HandleMediaFeatureValuesChangedEvent()
   if (mPendingMediaFeatureValuesChanged && mShell) {
     MediaFeatureValuesChanged(eRebuildStyleIfNeeded);
   }
-}
-
-already_AddRefed<MediaQueryList>
-nsPresContext::MatchMedia(const nsAString& aMediaQueryList)
-{
-  nsRefPtr<MediaQueryList> result = new MediaQueryList(this, aMediaQueryList);
-
-  
-  PR_INSERT_BEFORE(result, &mDOMMediaQueryLists);
-
-  return result.forget();
 }
 
 nsCompatibility
