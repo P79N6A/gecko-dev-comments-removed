@@ -966,8 +966,24 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
   virtual void SetTransform(const Matrix &aTransform)
     { mTransform = aTransform; mTransformDirty = true; }
+
+  inline void ConcatTransform(const Matrix &aTransform)
+    { SetTransform(aTransform * Matrix(GetTransform())); }
 
   SurfaceFormat GetFormat() { return mFormat; }
 
