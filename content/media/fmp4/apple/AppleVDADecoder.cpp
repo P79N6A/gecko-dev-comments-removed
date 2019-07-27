@@ -125,37 +125,6 @@ AppleVDADecoder::Drain()
 
 
 
-class AppleFrameRef {
-public:
-  Microseconds decode_timestamp;
-  Microseconds composition_timestamp;
-  Microseconds duration;
-  int64_t byte_offset;
-  bool is_sync_point;
-
-  explicit AppleFrameRef(const mp4_demuxer::MP4Sample& aSample)
-  : decode_timestamp(aSample.decode_timestamp)
-  , composition_timestamp(aSample.composition_timestamp)
-  , duration(aSample.duration)
-  , byte_offset(aSample.byte_offset)
-  , is_sync_point(aSample.is_sync_point)
-  {
-  }
-
-  AppleFrameRef(Microseconds aDts,
-                Microseconds aPts,
-                Microseconds aDuration,
-                int64_t aByte_offset,
-                bool aIs_sync_point)
-  : decode_timestamp(aDts)
-  , composition_timestamp(aPts)
-  , duration(aDuration)
-  , byte_offset(aByte_offset)
-  , is_sync_point(aIs_sync_point)
-  {
-  }
-};
-
 
 
 
@@ -214,18 +183,19 @@ PlatformCallback(void* decompressionOutputRefCon,
   CFNumberGetValue(boref, kCFNumberSInt64Type, &byte_offset);
   CFNumberGetValue(kfref, kCFNumberSInt8Type, &is_sync_point);
 
-  nsAutoPtr<AppleFrameRef> frameRef(new AppleFrameRef(dts,
-                                                      pts,
-                                                      duration,
-                                                      byte_offset,
-                                                      is_sync_point == 1));
+  nsAutoPtr<AppleVDADecoder::AppleFrameRef> frameRef(
+    new AppleVDADecoder::AppleFrameRef(dts,
+    pts,
+    duration,
+    byte_offset,
+    is_sync_point == 1));
 
   
   
   decoder->OutputFrame(image, frameRef);
 }
 
-AppleFrameRef*
+AppleVDADecoder::AppleFrameRef*
 AppleVDADecoder::CreateAppleFrameRef(const mp4_demuxer::MP4Sample* aSample)
 {
   MOZ_ASSERT(aSample);
@@ -251,7 +221,7 @@ AppleVDADecoder::ClearReorderedFrames()
 
 nsresult
 AppleVDADecoder::OutputFrame(CVPixelBufferRef aImage,
-                             nsAutoPtr<AppleFrameRef> aFrameRef)
+                             nsAutoPtr<AppleVDADecoder::AppleFrameRef> aFrameRef)
 {
   IOSurfacePtr surface = MacIOSurfaceLib::CVPixelBufferGetIOSurface(aImage);
   MOZ_ASSERT(surface, "Decoder didn't return an IOSurface backed buffer");
