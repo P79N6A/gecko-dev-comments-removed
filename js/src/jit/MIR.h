@@ -1295,6 +1295,8 @@ class MSimdValueX4 : public MQuaternaryInstruction
     }
 
     MDefinition *foldsTo(TempAllocator &alloc);
+
+    ALLOW_CLONE(MSimdValueX4)
 };
 
 
@@ -1329,6 +1331,8 @@ class MSimdSplatX4 : public MUnaryInstruction
     }
 
     MDefinition *foldsTo(TempAllocator &alloc);
+
+    ALLOW_CLONE(MSimdSplatX4)
 };
 
 
@@ -1362,6 +1366,8 @@ class MSimdConstant : public MNullaryInstruction
     AliasSet getAliasSet() const {
         return AliasSet::None();
     }
+
+    ALLOW_CLONE(MSimdConstant)
 };
 
 
@@ -1459,6 +1465,7 @@ class MSimdExtractElement : public MUnaryInstruction
             return false;
         return congruentIfOperandsEqual(other);
     }
+    ALLOW_CLONE(MSimdExtractElement)
 };
 
 
@@ -1503,6 +1510,8 @@ class MSimdInsertElement : public MBinaryInstruction
     bool congruentTo(const MDefinition *ins) const {
         return binaryCongruentTo(ins) && lane_ == ins->toSimdInsertElement()->lane();
     }
+
+    ALLOW_CLONE(MSimdInsertElement)
 };
 
 
@@ -1532,6 +1541,8 @@ class MSimdSignMask : public MUnaryInstruction
             return false;
         return congruentIfOperandsEqual(ins);
     }
+
+    ALLOW_CLONE(MSimdSignMask)
 };
 
 
@@ -1597,6 +1608,8 @@ class MSimdBinaryComp : public MBinaryInstruction
             return false;
         return operation_ == ins->toSimdBinaryComp()->operation();
     }
+
+    ALLOW_CLONE(MSimdBinaryComp)
 };
 
 class MSimdBinaryArith : public MBinaryInstruction
@@ -1658,6 +1671,8 @@ class MSimdBinaryArith : public MBinaryInstruction
             return false;
         return operation_ == ins->toSimdBinaryArith()->operation();
     }
+
+    ALLOW_CLONE(MSimdBinaryArith)
 };
 
 class MSimdBinaryBitwise : public MBinaryInstruction
@@ -1702,6 +1717,8 @@ class MSimdBinaryBitwise : public MBinaryInstruction
             return false;
         return operation_ == ins->toSimdBinaryBitwise()->operation();
     }
+
+    ALLOW_CLONE(MSimdBinaryBitwise)
 };
 
 class MSimdTernaryBitwise : public MTernaryInstruction
@@ -1738,6 +1755,8 @@ class MSimdTernaryBitwise : public MTernaryInstruction
     }
 
     Operation operation() const { return operation_; }
+
+    ALLOW_CLONE(MSimdTernaryBitwise)
 };
 
 
