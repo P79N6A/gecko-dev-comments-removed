@@ -345,6 +345,7 @@ OnSharedPreferenceChangeListener
         }
 
         super.onCreate(savedInstanceState);
+        initActionBar();
 
         
         Bundle intentExtras = getIntent().getExtras();
@@ -411,6 +412,27 @@ OnSharedPreferenceChangeListener
         if (intentExtras != null && intentExtras.containsKey(DataReportingNotification.ALERT_NAME_DATAREPORTING_NOTIFICATION)) {
             NotificationManager notificationManager = (NotificationManager) this.getSystemService(Context.NOTIFICATION_SERVICE);
             notificationManager.cancel(DataReportingNotification.ALERT_NAME_DATAREPORTING_NOTIFICATION.hashCode());
+        }
+    }
+
+    
+
+
+
+
+
+
+
+
+    private void initActionBar() {
+        if (Versions.feature14Plus) {
+            final ActionBar actionBar = getActionBar();
+            if (actionBar != null) {
+                actionBar.setHomeButtonEnabled(true);
+                actionBar.setDisplayHomeAsUpEnabled(true);
+                actionBar.setLogo(R.drawable.logo);
+                actionBar.setDisplayUseLogoEnabled(true);
+            }
         }
     }
 
