@@ -248,6 +248,7 @@ class GCMarker : public JSTracer
     void eagerlyMarkChildren(Shape* shape);
     void eagerlyMarkChildren(JSString* str);
     void eagerlyMarkChildren(JS::Symbol* sym);
+    void eagerlyMarkChildren(LazyScript *thing);
 
     
     template <typename T>
