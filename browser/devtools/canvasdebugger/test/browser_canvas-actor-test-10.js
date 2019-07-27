@@ -7,7 +7,9 @@
 
 
 function ifTestingSupported() {
-  let [target, debuggee, front] = yield initCanavsDebuggerBackend(WEBGL_BINDINGS_URL);
+  let { target, front } = yield initCanvasDebuggerBackend(WEBGL_BINDINGS_URL);
+  
+  let debuggee = target.window.wrappedJSObject
 
   let navigated = once(target, "navigate");
 
