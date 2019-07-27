@@ -69,6 +69,7 @@
 #include "mozilla/dom/TreeWalker.h"
 
 #include "nsIServiceManager.h"
+#include "nsIServiceWorkerManager.h"
 
 #include "nsContentCID.h"
 #include "nsError.h"
@@ -4465,6 +4466,24 @@ nsDocument::SetScriptGlobalObject(nsIScriptGlobalObject *aScriptGlobalObject)
   if (mTemplateContentsOwner && mTemplateContentsOwner != this) {
     mTemplateContentsOwner->SetScriptGlobalObject(aScriptGlobalObject);
   }
+
+  nsCOMPtr<nsIChannel> channel = GetChannel();
+  if (!mMaybeServiceWorkerControlled && channel) {
+    nsLoadFlags loadFlags = 0;
+    channel->GetLoadFlags(&loadFlags);
+    
+    
+    if (loadFlags & nsIRequest::LOAD_BYPASS_CACHE) {
+      NS_WARNING("Page was shift reloaded, skipping ServiceWorker control");
+      return;
+    }
+
+    nsCOMPtr<nsIServiceWorkerManager> swm = do_GetService(SERVICEWORKERMANAGER_CONTRACTID);
+    if (swm) {
+      swm->MaybeStartControlling(this);
+      mMaybeServiceWorkerControlled = true;
+    }
+  }
 }
 
 nsIScriptGlobalObject*
@@ -8482,6 +8501,11 @@ nsDocument::Destroy()
   mExternalResourceMap.Shutdown();
 
   mRegistry = nullptr;
+
+  nsCOMPtr<nsIServiceWorkerManager> swm = do_GetService(SERVICEWORKERMANAGER_CONTRACTID);
+  if (swm) {
+    swm->MaybeStopControlling(this);
+  }
 
   
   

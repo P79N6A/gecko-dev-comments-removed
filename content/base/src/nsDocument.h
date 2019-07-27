@@ -1742,6 +1742,10 @@ private:
   nsCOMPtr<nsIDocument> mMasterDocument;
   nsRefPtr<mozilla::dom::ImportManager> mImportManager;
 
+  
+  
+  bool mMaybeServiceWorkerControlled;
+
 #ifdef DEBUG
 public:
   bool mWillReparent;

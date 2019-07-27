@@ -10,6 +10,7 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/LinkedList.h"
+#include "mozilla/Preferences.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/ServiceWorkerContainer.h"
@@ -72,33 +73,20 @@ private:
 
 
 
-class ServiceWorkerInfo
+class ServiceWorkerInfo MOZ_FINAL
 {
   nsCString mScriptSpec;
+
+  ~ServiceWorkerInfo()
+  { }
+
 public:
-
-  bool
-  IsValid() const
-  {
-    return !mScriptSpec.IsVoid();
-  }
-
-  void
-  Invalidate()
-  {
-    mScriptSpec.SetIsVoid(true);
-  }
+  NS_INLINE_DECL_REFCOUNTING(ServiceWorkerInfo)
 
   const nsCString&
   GetScriptSpec() const
   {
-    MOZ_ASSERT(IsValid());
     return mScriptSpec;
-  }
-
-  ServiceWorkerInfo()
-  {
-    Invalidate();
   }
 
   explicit ServiceWorkerInfo(const nsACString& aScriptSpec)
@@ -110,6 +98,8 @@ public:
 
 class ServiceWorkerRegistration MOZ_FINAL : public nsISupports
 {
+  uint32_t mControlledDocumentsCounter;
+
   virtual ~ServiceWorkerRegistration();
 
 public:
@@ -120,9 +110,9 @@ public:
   
   nsCString mScriptSpec;
 
-  ServiceWorkerInfo mCurrentWorker;
-  ServiceWorkerInfo mWaitingWorker;
-  ServiceWorkerInfo mInstallingWorker;
+  nsRefPtr<ServiceWorkerInfo> mCurrentWorker;
+  nsRefPtr<ServiceWorkerInfo> mWaitingWorker;
+  nsRefPtr<ServiceWorkerInfo> mInstallingWorker;
 
   nsAutoPtr<UpdatePromise> mUpdatePromise;
   nsRefPtr<ServiceWorkerUpdateInstance> mUpdateInstance;
@@ -147,16 +137,37 @@ public:
 
   explicit ServiceWorkerRegistration(const nsACString& aScope);
 
-  ServiceWorkerInfo
-  Newest() const
+  already_AddRefed<ServiceWorkerInfo>
+  Newest()
   {
-    if (mInstallingWorker.IsValid()) {
-      return mInstallingWorker;
-    } else if (mWaitingWorker.IsValid()) {
-      return mWaitingWorker;
+    nsRefPtr<ServiceWorkerInfo> newest;
+    if (mInstallingWorker) {
+      newest = mInstallingWorker;
+    } else if (mWaitingWorker) {
+      newest = mWaitingWorker;
     } else {
-      return mCurrentWorker;
+      newest = mCurrentWorker;
     }
+
+    return newest.forget();
+  }
+
+  void
+  StartControllingADocument()
+  {
+    ++mControlledDocumentsCounter;
+  }
+
+  void
+  StopControllingADocument()
+  {
+    --mControlledDocumentsCounter;
+  }
+
+  bool
+  IsControllingDocuments() const
+  {
+    return mControlledDocumentsCounter > 0;
   }
 };
 
@@ -186,6 +197,11 @@ public:
 
   static ServiceWorkerManager* FactoryCreate()
   {
+    AssertIsOnMainThread();
+    if (!Preferences::GetBool("dom.serviceWorkers.enabled")) {
+      return nullptr;
+    }
+
     ServiceWorkerManager* res = new ServiceWorkerManager;
     NS_ADDREF(res);
     return res;
@@ -215,6 +231,8 @@ public:
     
     
     nsTObserverArray<ServiceWorkerContainer*> mServiceWorkerContainers;
+
+    nsRefPtrHashtable<nsISupportsHashKey, ServiceWorkerRegistration> mControlledDocuments;
 
     ServiceWorkerDomainInfo()
     { }
@@ -290,7 +308,7 @@ private:
 
   void
   Install(ServiceWorkerRegistration* aRegistration,
-          ServiceWorkerInfo aServiceWorkerInfo);
+          ServiceWorkerInfo* aServiceWorkerInfo);
 
   NS_IMETHOD
   CreateServiceWorkerForWindow(nsPIDOMWindow* aWindow,
