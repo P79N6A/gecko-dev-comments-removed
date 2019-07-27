@@ -407,7 +407,10 @@ struct IMEState {
 };
 
 struct InputContext {
-  InputContext() : mNativeIMEContext(nullptr) {}
+  InputContext()
+    : mNativeIMEContext(nullptr)
+    , mMayBeIMEUnaware(false)
+  {}
 
   bool IsPasswordEditor() const
   {
@@ -429,6 +432,11 @@ struct InputContext {
 
 
   void* mNativeIMEContext;
+
+  
+
+
+  bool mMayBeIMEUnaware;
 };
 
 struct InputContextAction {
