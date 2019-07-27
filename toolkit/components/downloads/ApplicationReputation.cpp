@@ -423,6 +423,14 @@ PendingLookup::LookupNext()
   }
 #ifdef XP_WIN
   
+  nsCString serviceUrl;
+  NS_ENSURE_SUCCESS(Preferences::GetCString(PREF_SB_APP_REP_URL, &serviceUrl),
+                    NS_ERROR_NOT_AVAILABLE);
+  if (serviceUrl.EqualsLiteral("")) {
+    return OnComplete(false, NS_ERROR_NOT_AVAILABLE);
+  }
+
+  
   
   if (!IsBinaryFile()) {
     LOG(("Not eligible for remote lookups [this=%x]", this));
@@ -1063,14 +1071,6 @@ nsresult ApplicationReputationService::QueryReputationInternal(
   nsresult rv;
   
   if (!Preferences::GetBool(PREF_SB_MALWARE_ENABLED, false)) {
-    return NS_ERROR_NOT_AVAILABLE;
-  }
-
-  
-  nsCString serviceUrl;
-  NS_ENSURE_SUCCESS(Preferences::GetCString(PREF_SB_APP_REP_URL, &serviceUrl),
-                    NS_ERROR_NOT_AVAILABLE);
-  if (serviceUrl.EqualsLiteral("")) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 

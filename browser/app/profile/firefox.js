@@ -980,7 +980,11 @@ pref("browser.safebrowsing.reportMalwareURL", "http://%LOCALE%.malware-report.mo
 pref("browser.safebrowsing.reportMalwareErrorURL", "http://%LOCALE%.malware-error.mozilla.com/?hl=%LOCALE%");
 
 pref("browser.safebrowsing.malware.reportURL", "https://safebrowsing.google.com/safebrowsing/diagnostic?client=%NAME%&hl=%LOCALE%&site=");
+
+
+#ifndef RELEASE_BUILD
 pref("browser.safebrowsing.appRepURL", "https://sb-ssl.google.com/safebrowsing/clientreport/download?key=%GOOGLE_API_KEY%");
+#endif
 
 #ifdef MOZILLA_OFFICIAL
 
