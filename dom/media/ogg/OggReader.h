@@ -19,12 +19,6 @@
 #include "mozilla/Monitor.h"
 
 namespace mozilla {
-namespace dom {
-class TimeRanges;
-}
-}
-
-namespace mozilla {
 
 
 
@@ -77,7 +71,7 @@ public:
                                 MetadataTags** aTags) override;
   virtual nsRefPtr<SeekPromise>
   Seek(int64_t aTime, int64_t aEndTime) override;
-  virtual nsresult GetBuffered(dom::TimeRanges* aBuffered) override;
+  virtual media::TimeIntervals GetBuffered() override;
 
   virtual bool IsMediaSeekable() override;
 

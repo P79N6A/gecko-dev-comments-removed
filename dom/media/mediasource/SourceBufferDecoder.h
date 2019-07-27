@@ -21,12 +21,6 @@ namespace mozilla {
 class MediaResource;
 class MediaDecoderReader;
 
-namespace dom {
-
-class TimeRanges;
-
-} 
-
 class SourceBufferDecoder final : public AbstractMediaDecoder
 {
 public:
@@ -72,7 +66,7 @@ public:
 
   
   
-  nsresult GetBuffered(dom::TimeRanges* aBuffered);
+  media::TimeIntervals GetBuffered();
 
   void SetReader(MediaDecoderReader* aReader)
   {

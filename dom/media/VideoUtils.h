@@ -23,6 +23,7 @@
 #include "prtime.h"
 #include "AudioSampleFormat.h"
 #include "mozilla/RefPtr.h"
+#include "TimeUnits.h"
 
 using mozilla::CheckedInt64;
 using mozilla::CheckedUint64;
@@ -115,19 +116,14 @@ void DeleteOnMainThread(nsAutoPtr<T>& aObject) {
 
 class MediaResource;
 
-namespace dom {
-class TimeRanges;
-}
 
 
 
 
 
 
-
-void GetEstimatedBufferedTimeRanges(mozilla::MediaResource* aStream,
-                                    int64_t aDurationUsecs,
-                                    mozilla::dom::TimeRanges* aOutBuffered);
+media::TimeIntervals GetEstimatedBufferedTimeRanges(mozilla::MediaResource* aStream,
+                                                    int64_t aDurationUsecs);
 
 
 

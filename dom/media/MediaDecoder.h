@@ -203,15 +203,10 @@
 #ifdef MOZ_EME
 #include "mozilla/CDMProxy.h"
 #endif
+#include "TimeUnits.h"
 
 class nsIStreamListener;
 class nsIPrincipal;
-
-namespace mozilla {
-namespace dom {
-class TimeRanges;
-}
-}
 
 namespace mozilla {
 
@@ -526,7 +521,7 @@ public:
   virtual bool IsTransportSeekable() override;
 
   
-  virtual nsresult GetSeekable(dom::TimeRanges* aSeekable);
+  virtual media::TimeIntervals GetSeekable();
 
   
   
@@ -584,7 +579,7 @@ public:
 
   
   
-  virtual nsresult GetBuffered(dom::TimeRanges* aBuffered);
+  virtual media::TimeIntervals GetBuffered();
 
   
   

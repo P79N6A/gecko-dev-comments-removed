@@ -8,14 +8,11 @@
 #define MOZILLA_MEDIASOURCEUTILS_H_
 
 #include "nsString.h"
+#include "TimeUnits.h"
 
 namespace mozilla {
 
-namespace dom {
-  class TimeRanges;
-} 
-
-nsCString DumpTimeRanges(dom::TimeRanges* aRanges);
+nsCString DumpTimeRanges(const media::TimeIntervals& aRanges);
 
 } 
 

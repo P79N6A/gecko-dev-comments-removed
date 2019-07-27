@@ -24,12 +24,6 @@ class ContainerParser;
 class MediaSourceDecoder;
 class MediaLargeByteBuffer;
 
-namespace dom {
-
-class TimeRanges;
-
-} 
-
 class TrackBuffer final {
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(TrackBuffer);
@@ -58,8 +52,7 @@ public:
 
   
   
-  
-  double Buffered(dom::TimeRanges* aRanges);
+  media::TimeIntervals Buffered();
 
   
   
@@ -99,8 +92,8 @@ public:
   
   
   
-  bool RangeRemoval(mozilla::media::Microseconds aStart,
-                    mozilla::media::Microseconds aEnd);
+  bool RangeRemoval(mozilla::media::TimeUnit aStart,
+                    mozilla::media::TimeUnit aEnd);
 
   
   void AbortAppendData();

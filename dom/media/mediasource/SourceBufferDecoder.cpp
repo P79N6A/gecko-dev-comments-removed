@@ -9,7 +9,6 @@
 #include "prlog.h"
 #include "AbstractMediaDecoder.h"
 #include "MediaDecoderReader.h"
-#include "mozilla/dom/TimeRanges.h"
 
 extern PRLogModuleInfo* GetMediaSourceLog();
 
@@ -234,24 +233,23 @@ SourceBufferDecoder::NotifyDataArrived(const char* aBuffer, uint32_t aLength, in
   mParentDecoder->NotifyDataArrived(nullptr, 0, 0);
 }
 
-nsresult
-SourceBufferDecoder::GetBuffered(dom::TimeRanges* aBuffered)
+media::TimeIntervals
+SourceBufferDecoder::GetBuffered()
 {
-  nsresult rv = mReader->GetBuffered(aBuffered);
-  if (NS_FAILED(rv)) {
-    return rv;
+  media::TimeIntervals buffered = mReader->GetBuffered();
+  if (buffered.IsInvalid()) {
+    return buffered;
   }
 
   
-  aBuffered->Shift((double)mTimestampOffset / USECS_PER_S);
+  buffered.Shift(media::TimeUnit::FromMicroseconds(mTimestampOffset));
 
   if (!WasTrimmed()) {
-    return NS_OK;
+    return buffered;
   }
-  nsRefPtr<dom::TimeRanges> tr = new dom::TimeRanges();
-  tr->Add(0, mTrimmedOffset);
-  aBuffered->Intersection(tr);
-  return NS_OK;
+  media::TimeInterval filter(media::TimeUnit::FromSeconds(0),
+                             media::TimeUnit::FromSeconds(mTrimmedOffset));
+  return buffered.Intersection(filter);
 }
 
 int64_t

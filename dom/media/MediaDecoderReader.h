@@ -12,12 +12,9 @@
 #include "MediaPromise.h"
 #include "MediaQueue.h"
 #include "AudioCompactor.h"
+#include "TimeUnits.h"
 
 namespace mozilla {
-
-namespace dom {
-class TimeRanges;
-}
 
 class MediaDecoderReader;
 class SharedDecoderManager;
@@ -226,7 +223,7 @@ public:
   
   
   
-  virtual nsresult GetBuffered(dom::TimeRanges* aBuffered);
+  virtual media::TimeIntervals GetBuffered();
 
   virtual int64_t ComputeStartTime(const VideoData* aVideo, const AudioData* aAudio);
 

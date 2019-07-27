@@ -277,16 +277,16 @@ public:
     return mState == DECODER_STATE_SEEKING;
   }
 
-  nsresult GetBuffered(dom::TimeRanges* aBuffered) {
+  media::TimeIntervals GetBuffered() {
     
     
     
     ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
     if (mStartTime < 0) {
-      return NS_OK;
+      return media::TimeIntervals();
     }
 
-    return mReader->GetBuffered(aBuffered);
+    return mReader->GetBuffered();
   }
 
   size_t SizeOfVideoQueue() {

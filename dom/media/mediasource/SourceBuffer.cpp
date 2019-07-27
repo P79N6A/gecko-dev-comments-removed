@@ -140,18 +140,14 @@ SourceBuffer::GetBuffered(ErrorResult& aRv)
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return nullptr;
   }
-  nsRefPtr<TimeRanges> ranges = new TimeRanges();
-  double highestEndTime = mTrackBuffer->Buffered(ranges);
-  if (mMediaSource->ReadyState() == MediaSourceReadyState::Ended &&
-      highestEndTime > 0) {
-    
-    
-    
-    ranges->Add(ranges->GetEndTime(), highestEndTime);
-    ranges->Normalize();
-  }
+  
+  
+  
+  media::TimeIntervals ranges = mTrackBuffer->Buffered();
   MSE_DEBUGV("ranges=%s", DumpTimeRanges(ranges).get());
-  return ranges.forget();
+  nsRefPtr<dom::TimeRanges> tr = new dom::TimeRanges();
+  ranges.ToTimeRanges(tr);
+  return tr.forget();
 }
 
 void
@@ -282,8 +278,8 @@ SourceBuffer::DoRangeRemoval(double aStart, double aEnd)
 {
   MSE_DEBUG("DoRangeRemoval(%f, %f)", aStart, aEnd);
   if (mTrackBuffer && !IsInfinite(aStart)) {
-    mTrackBuffer->RangeRemoval(media::Microseconds::FromSeconds(aStart),
-                               media::Microseconds::FromSeconds(aEnd));
+    mTrackBuffer->RangeRemoval(media::TimeUnit::FromSeconds(aStart),
+                               media::TimeUnit::FromSeconds(aEnd));
   }
 }
 

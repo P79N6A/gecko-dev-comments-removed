@@ -11,10 +11,6 @@
 
 namespace mozilla {
 
-namespace dom {
-  class TimeRanges;
-}
-
 class AbstractMediaDecoder;
 class RtspMediaResource;
 
@@ -48,8 +44,8 @@ public:
   
   
   
-  virtual nsresult GetBuffered(dom::TimeRanges* aBuffered) override {
-    return NS_ERROR_NOT_IMPLEMENTED;
+  virtual media::TimeIntervals GetBuffered() override {
+    return media::TimeIntervals::Invalid();
   }
 
   virtual void SetIdle() override;
