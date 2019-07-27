@@ -284,7 +284,6 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
 
     this._onDestroyNode = this._onDestroyNode.bind(this);
     this._onGlobalDestroyed = this._onGlobalDestroyed.bind(this);
-    this._onGlobalCreated = this._onGlobalCreated.bind(this);
   },
 
   destroy: function(conn) {
@@ -323,9 +322,6 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
       holdWeak: true,
       storeCalls: false
     });
-    
-    
-    on(this.tabActor, "window-ready", this._onGlobalCreated);
     
     
     on(this.tabActor, "window-destroyed", this._onGlobalDestroyed);
@@ -399,7 +395,6 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     this.tabActor = null;
     this._initialized = false;
     off(this.tabActor, "window-destroyed", this._onGlobalDestroyed);
-    off(this.tabActor, "window-ready", this._onGlobalCreated);
     this._nativeToActorID = null;
     this._callWatcher.eraseRecording();
     this._callWatcher.finalize();
@@ -572,14 +567,6 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
       this._nativeToActorID.delete(nativeID);
       emit(this, "destroy-node", actor);
     }
-  },
-
-  
-
-
-
-  _onGlobalCreated: function () {
-    this._callWatcher.resumeRecording();
   },
 
   
