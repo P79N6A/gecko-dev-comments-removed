@@ -1543,6 +1543,9 @@ Toolbox.prototype = {
     }));
 
     
+    let win = this.frame.ownerGlobal;
+
+    
     outstanding.push(this.destroyHost());
 
     if (this._requisition) {
@@ -1568,9 +1571,6 @@ Toolbox.prototype = {
       return target.destroy();
     }, console.error).then(() => {
       this.emit("destroyed");
-
-      
-      let win = this.frame.ownerGlobal;
 
       
       
