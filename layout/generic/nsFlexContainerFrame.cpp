@@ -3676,8 +3676,12 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
 
       
       
+      nsSize finalFlexedPhysicalSize =
+        aAxisTracker.PhysicalSizeFromLogicalSizes(item->GetMainSize(),
+                                                  item->GetCrossSize());
       LogicalPoint framePos(outerWM, physicalPosn,
-                            containerWidth - item->Frame()->GetRect().width);
+                            containerWidth - finalFlexedPhysicalSize.width -
+                              item->GetBorderPadding().LeftRight());
 
       
       
@@ -3689,9 +3693,6 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
       if (item->HadMeasuringReflow()) {
         
         
-        nsSize finalFlexedPhysicalSize =
-          aAxisTracker.PhysicalSizeFromLogicalSizes(item->GetMainSize(),
-                                                    item->GetCrossSize());
         if (item->Frame()->GetSize() == finalFlexedPhysicalSize) {
           
           
