@@ -40,7 +40,7 @@ public:
   
   static AbstractThread* GetCurrent() { return sCurrentThreadTLS.get(); }
 
-  AbstractThread(bool aRequireTailDispatch) : mRequireTailDispatch(aRequireTailDispatch) {}
+  AbstractThread(bool aSupportsTailDispatch) : mSupportsTailDispatch(aSupportsTailDispatch) {}
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(AbstractThread);
 
@@ -64,8 +64,11 @@ public:
   virtual TaskDispatcher& TailDispatcher() = 0;
 
   
+  bool SupportsTailDispatch() const { return mSupportsTailDispatch; }
+
   
-  bool RequiresTailDispatch() const { return mRequireTailDispatch; }
+  
+  bool RequiresTailDispatch(AbstractThread* aThread) const;
 
   virtual MediaTaskQueue* AsTaskQueue() { MOZ_CRASH("Not a task queue!"); }
   virtual nsIThread* AsXPCOMThread() { MOZ_CRASH("Not an XPCOM thread!"); }
@@ -82,7 +85,7 @@ protected:
 
   
   
-  const bool mRequireTailDispatch;
+  const bool mSupportsTailDispatch;
 };
 
 } 
