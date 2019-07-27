@@ -1563,21 +1563,6 @@ ServiceWorkerManager::GetServiceWorkerRegistrationInfo(nsIURI* aURI)
   return registration.forget();
 }
 
-namespace {
-
-
-
-void ScopeWithoutStar(const nsACString& aScope, nsACString& out)
-{
-  if (aScope.Last() == '*') {
-    out.Assign(StringHead(aScope, aScope.Length() - 1));
-    return;
-  }
-
-  out.Assign(aScope);
-}
-}; 
-
  void
 ServiceWorkerManager::AddScope(nsTArray<nsCString>& aList, const nsACString& aScope)
 {
@@ -1589,35 +1574,17 @@ ServiceWorkerManager::AddScope(nsTArray<nsCString>& aList, const nsACString& aSc
       return;
     }
 
-    nsCString withoutStar;
-    ScopeWithoutStar(current, withoutStar);
     
     
-    if (aScope.Equals(withoutStar)) {
+    
+    if (StringBeginsWith(aScope, current)) {
       aList.InsertElementAt(i, aScope);
-      return;
-    }
-
-    
-    
-    
-    if (StringBeginsWith(aScope, withoutStar)) {
-      
-      
-      
-      if (aScope.Last() == '*' &&
-          withoutStar.Equals(current)) {
-        aList.InsertElementAt(i+1, aScope);
-      } else {
-        aList.InsertElementAt(i, aScope);
-      }
       return;
     }
   }
 
   aList.AppendElement(aScope);
 }
-
 
  nsCString
 ServiceWorkerManager::FindScopeForPath(nsTArray<nsCString>& aList, const nsACString& aPath)
@@ -1626,15 +1593,9 @@ ServiceWorkerManager::FindScopeForPath(nsTArray<nsCString>& aList, const nsACStr
 
   for (uint32_t i = 0; i < aList.Length(); ++i) {
     const nsCString& current = aList[i];
-    nsCString withoutStar;
-    ScopeWithoutStar(current, withoutStar);
-    if (StringBeginsWith(aPath, withoutStar)) {
-      
-      if (current.Last() == '*' ||
-          aPath.Equals(current)) {
-        match = current;
-        break;
-      }
+    if (StringBeginsWith(aPath, current)) {
+      match = current;
+      break;
     }
   }
 
