@@ -3692,9 +3692,6 @@ class CastableObjectUnwrapper():
             xpconnectUnwrap = "nsresult rv = UnwrapArg<${type}>(cx, val, &objPtr, &objRef.ptr, &val);\n"
 
         if descriptor.hasXPConnectImpls:
-            
-            
-            
             self.substitution["codeOnFailure"] = string.Template(
                 "${type} *objPtr;\n"
                 "SelfRef objRef;\n"
