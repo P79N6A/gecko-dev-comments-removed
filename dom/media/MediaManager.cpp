@@ -421,31 +421,37 @@ VideoDevice::VideoDevice(MediaEngineVideoSource* aSource)
 
 
 bool
-VideoDevice::SatisfyConstraintSet(const MediaTrackConstraintSet &aConstraints)
+VideoDevice::SatisfiesConstraintSets(
+    const nsTArray<const MediaTrackConstraintSet*>& aConstraintSets)
 {
-  if (aConstraints.mFacingMode.WasPassed()) {
+  
+  for (size_t i = 0; i < aConstraintSets.Length(); i++) {
+    auto& c = *aConstraintSets[i];
+    if (c.mFacingMode.WasPassed()) {
+      nsString s;
+      GetFacingMode(s);
+      if (!s.EqualsASCII(dom::VideoFacingModeEnumValues::strings[
+          static_cast<uint32_t>(c.mFacingMode.Value())].value)) {
+        return false;
+      }
+    }
     nsString s;
-    GetFacingMode(s);
-    if (!s.EqualsASCII(dom::VideoFacingModeEnumValues::strings[
-        uint32_t(aConstraints.mFacingMode.Value())].value)) {
+    GetMediaSource(s);
+    if (!s.EqualsASCII(dom::MediaSourceEnumValues::strings[
+        static_cast<uint32_t>(c.mMediaSource)].value)) {
       return false;
     }
   }
-  nsString s;
-  GetMediaSource(s);
-  if (!s.EqualsASCII(dom::MediaSourceEnumValues::strings[
-      uint32_t(aConstraints.mMediaSource)].value)) {
-    return false;
-  }
   
-  return true;
+  return GetSource()->SatisfiesConstraintSets(aConstraintSets);
 }
 
 AudioDevice::AudioDevice(MediaEngineAudioSource* aSource)
   : MediaDevice(aSource) {}
 
 bool
-AudioDevice::SatisfyConstraintSet(const MediaTrackConstraintSet &aConstraints)
+AudioDevice::SatisfiesConstraintSets(
+    const nsTArray<const MediaTrackConstraintSet*>& aConstraintSets)
 {
   
   return true;
@@ -967,9 +973,15 @@ static void
 
   
 
+  
+  
+  
+  nsTArray<const MediaTrackConstraintSet*> aggregateConstraints;
+  aggregateConstraints.AppendElement(&c.mRequired);
+
   for (uint32_t i = 0; i < candidateSet.Length();) {
     
-    if (!candidateSet[i]->SatisfyConstraintSet(c.mRequired)) {
+    if (!candidateSet[i]->SatisfiesConstraintSets(aggregateConstraints)) {
       candidateSet.RemoveElementAt(i);
     } else {
       ++i;
@@ -1008,9 +1020,10 @@ static void
     auto &array = c.mAdvanced.Value();
 
     for (int i = 0; i < int(array.Length()); i++) {
+      aggregateConstraints.AppendElement(&array[i]);
       SourceSet rejects;
       for (uint32_t j = 0; j < candidateSet.Length();) {
-        if (!candidateSet[j]->SatisfyConstraintSet(array[i])) {
+        if (!candidateSet[j]->SatisfiesConstraintSets(aggregateConstraints)) {
           rejects.AppendElement(candidateSet[j]);
           candidateSet.RemoveElementAt(j);
         } else {
@@ -1018,6 +1031,9 @@ static void
         }
       }
       (candidateSet.Length()? tailSet : candidateSet).MoveElementsFrom(rejects);
+      if (!candidateSet.Length()) {
+        aggregateConstraints.RemoveElementAt(aggregateConstraints.Length() - 1);
+      }
     }
   }
 
