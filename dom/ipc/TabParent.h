@@ -208,6 +208,14 @@ public:
                                            nsTArray<nsCString>&& aEnabledCommands,
                                            nsTArray<nsCString>&& aDisabledCommands) override;
     virtual bool RecvSetCursor(const uint32_t& aValue, const bool& aForce) override;
+    virtual bool RecvSetCustomCursor(const nsCString& aUri,
+                                     const uint32_t& aWidth,
+                                     const uint32_t& aHeight,
+                                     const uint32_t& aStride,
+                                     const uint8_t& aFormat,
+                                     const uint32_t& aHotspotX,
+                                     const uint32_t& aHotspotY,
+                                     const bool& aForce) override;
     virtual bool RecvSetBackgroundColor(const nscolor& aValue) override;
     virtual bool RecvSetStatus(const uint32_t& aType, const nsString& aStatus) override;
     virtual bool RecvIsParentWindowMainWidgetVisible(bool* aIsVisible) override;
@@ -600,6 +608,8 @@ private:
     
     
     nsCursor mCursor;
+    nsCOMPtr<imgIContainer> mCustomCursor;
+    uint32_t mCustomCursorHotspotX, mCustomCursorHotspotY;
 
     
     
