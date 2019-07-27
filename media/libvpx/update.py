@@ -530,6 +530,8 @@ def update_and_remove_files(prefix, libvpx_files, files):
 def apply_patches():
     
     os.system("patch -p0 < stdint.patch")
+    
+    os.system("patch -p3 < apple-clang.patch")
 
 def update_readme(commit):
     with open('README_MOZILLA') as f:
