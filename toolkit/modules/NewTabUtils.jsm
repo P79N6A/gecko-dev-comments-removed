@@ -936,7 +936,7 @@ let Links = {
     
     let linkLists = [];
     for (let links of this._providers.values()) {
-      if (links) {
+      if (links && links.sortedLinks) {
         linkLists.push(links.sortedLinks.slice());
       }
     }
