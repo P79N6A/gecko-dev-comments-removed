@@ -6923,150 +6923,6 @@ CheckLabel(FunctionCompiler& f, ParseNode* labeledStmt, LabelVector* maybeLabels
 }
 
 static bool
-CheckLeafCondition(FunctionCompiler& f, ParseNode* cond, ParseNode* thenStmt, ParseNode* elseOrJoinStmt,
-                   MBasicBlock** thenBlock, MBasicBlock** elseOrJoinBlock)
-{
-    MDefinition* condDef;
-    Type condType;
-    if (!CheckExpr(f, cond, &condDef, &condType))
-        return false;
-    if (!condType.isInt())
-        return f.failf(cond, "%s is not a subtype of int", condType.toChars());
-
-    if (!f.branchAndStartThen(condDef, thenBlock, elseOrJoinBlock, thenStmt, elseOrJoinStmt))
-        return false;
-    return true;
-}
-
-static bool
-CheckIfCondition(FunctionCompiler& f, ParseNode* cond, ParseNode* thenStmt, ParseNode* elseOrJoinStmt,
-                 MBasicBlock** thenBlock, MBasicBlock** elseOrJoinBlock);
-
-static bool
-CheckIfConditional(FunctionCompiler& f, ParseNode* conditional, ParseNode* thenStmt, ParseNode* elseOrJoinStmt,
-                   MBasicBlock** thenBlock, MBasicBlock** elseOrJoinBlock)
-{
-    MOZ_ASSERT(conditional->isKind(PNK_CONDITIONAL));
-
-    
-    
-    
-    ParseNode* cond = TernaryKid1(conditional);
-    ParseNode* lhs = TernaryKid2(conditional);
-    ParseNode* rhs = TernaryKid3(conditional);
-
-    MBasicBlock* maybeAndTest = nullptr;
-    MBasicBlock* maybeOrTest = nullptr;
-    MBasicBlock** ifTrueBlock = &maybeAndTest;
-    MBasicBlock** ifFalseBlock = &maybeOrTest;
-    ParseNode* ifTrueBlockNode = lhs;
-    ParseNode* ifFalseBlockNode = rhs;
-
-    
-    uint32_t andTestLiteral = 0;
-    bool skipAndTest = false;
-
-    if (IsLiteralInt(f.m(), lhs, &andTestLiteral)) {
-        skipAndTest = true;
-        if (andTestLiteral == 0) {
-            
-            
-            ifTrueBlock = elseOrJoinBlock;
-            ifTrueBlockNode = elseOrJoinStmt;
-        } else {
-            
-            
-            ifTrueBlock = thenBlock;
-            ifTrueBlockNode = thenStmt;
-        }
-    }
-
-    
-    uint32_t orTestLiteral = 0;
-    bool skipOrTest = false;
-
-    if (IsLiteralInt(f.m(), rhs, &orTestLiteral)) {
-        skipOrTest = true;
-        if (orTestLiteral == 0) {
-            
-            
-            ifFalseBlock = elseOrJoinBlock;
-            ifFalseBlockNode = elseOrJoinStmt;
-        } else {
-            
-            
-            ifFalseBlock = thenBlock;
-            ifFalseBlockNode = thenStmt;
-        }
-    }
-
-    
-    
-    
-    
-    
-    
-    if (skipOrTest && skipAndTest && (!!orTestLiteral == !!andTestLiteral))
-        return CheckLeafCondition(f, conditional, thenStmt, elseOrJoinStmt, thenBlock, elseOrJoinBlock);
-
-    if (!CheckIfCondition(f, cond, ifTrueBlockNode, ifFalseBlockNode, ifTrueBlock, ifFalseBlock))
-        return false;
-    f.assertCurrentBlockIs(*ifTrueBlock);
-
-    
-    if (!skipAndTest) {
-        if (!CheckIfCondition(f, lhs, thenStmt, elseOrJoinStmt, thenBlock, elseOrJoinBlock))
-            return false;
-        f.assertCurrentBlockIs(*thenBlock);
-    }
-
-    if (!skipOrTest) {
-        f.switchToElse(*ifFalseBlock);
-        if (!CheckIfCondition(f, rhs, thenStmt, elseOrJoinStmt, thenBlock, elseOrJoinBlock))
-            return false;
-        f.assertCurrentBlockIs(*thenBlock);
-    }
-
-    
-    if (ifTrueBlock == elseOrJoinBlock) {
-        MOZ_ASSERT(skipAndTest && andTestLiteral == 0);
-        f.switchToElse(*thenBlock);
-    }
-
-    
-    f.assertCurrentBlockIs(*thenBlock);
-    MOZ_ASSERT_IF(!f.inDeadCode(), *thenBlock && *elseOrJoinBlock);
-    return true;
-}
-
-
-
-
-
-
-
-
-
-static bool
-CheckIfCondition(FunctionCompiler& f, ParseNode* cond, ParseNode* thenStmt,
-                 ParseNode* elseOrJoinStmt, MBasicBlock** thenBlock, MBasicBlock** elseOrJoinBlock)
-{
-    JS_CHECK_RECURSION_DONT_REPORT(f.cx(), return f.m().failOverRecursed());
-
-    if (cond->isKind(PNK_CONDITIONAL))
-        return CheckIfConditional(f, cond, thenStmt, elseOrJoinStmt, thenBlock, elseOrJoinBlock);
-
-    
-    if (!CheckLeafCondition(f, cond, thenStmt, elseOrJoinStmt, thenBlock, elseOrJoinBlock))
-        return false;
-
-    
-    f.assertCurrentBlockIs(*thenBlock);
-    MOZ_ASSERT_IF(!f.inDeadCode(), *thenBlock && *elseOrJoinBlock);
-    return true;
-}
-
-static bool
 CheckIf(FunctionCompiler& f, ParseNode* ifStmt)
 {
     
@@ -7086,7 +6942,14 @@ CheckIf(FunctionCompiler& f, ParseNode* ifStmt)
     MBasicBlock* elseBlock = nullptr;
     ParseNode* elseOrJoinStmt = elseStmt ? elseStmt : nextStmt;
 
-    if (!CheckIfCondition(f, cond, thenStmt, elseOrJoinStmt, &thenBlock, &elseBlock))
+    MDefinition* condDef;
+    Type condType;
+    if (!CheckExpr(f, cond, &condDef, &condType))
+        return false;
+    if (!condType.isInt())
+        return f.failf(cond, "%s is not a subtype of int", condType.toChars());
+
+    if (!f.branchAndStartThen(condDef, &thenBlock, &elseBlock, thenStmt, elseOrJoinStmt))
         return false;
 
     if (!CheckStatement(f, thenStmt))
