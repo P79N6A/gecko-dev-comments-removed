@@ -17,6 +17,12 @@ XPCOMUtils.defineLazyGetter(this, "clipboardHelper", function() {
 var uid = 1;
 
 
+const trace = {
+  log: function(...args) {
+  }
+}
+
+
 
 
 
@@ -76,6 +82,8 @@ const HarExporter = {
     if (!file) {
       return resolve();
     }
+
+    trace.log("HarExporter.save; " + options.defaultFileName, options);
 
     return this.fetchHarData(options).then(jsonString => {
       if (!HarUtils.saveToFile(file, jsonString, options.compress)) {
