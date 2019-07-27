@@ -10,7 +10,6 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/dom/BluetoothAdapter2Binding.h"
-#include "mozilla/dom/BluetoothDeviceEvent.h"
 #include "mozilla/dom/Promise.h"
 #include "BluetoothCommon.h"
 #include "nsCOMPtr.h"
@@ -150,11 +149,10 @@ public:
 
   IMPL_EVENT_HANDLER(a2dpstatuschanged);
   IMPL_EVENT_HANDLER(hfpstatuschanged);
+  IMPL_EVENT_HANDLER(pairedstatuschanged);
   IMPL_EVENT_HANDLER(requestmediaplaystatus);
   IMPL_EVENT_HANDLER(scostatuschanged);
   IMPL_EVENT_HANDLER(attributechanged);
-  IMPL_EVENT_HANDLER(devicepaired);
-  IMPL_EVENT_HANDLER(deviceunpaired);
 
   nsPIDOMWindow* GetParentObject() const
   {
@@ -183,36 +181,6 @@ private:
 
   void HandleDeviceFound(const BluetoothValue& aValue);
   void HandlePairingRequest(const BluetoothValue& aValue);
-
-  
-
-
-
-
-
-
-
-  void HandleDevicePaired(const BluetoothValue& aValue);
-
-  
-
-
-
-
-
-
-
-  void HandleDeviceUnpaired(const BluetoothValue& aValue);
-
-  
-
-
-
-
-
-
-  void DispatchDeviceEvent(const nsAString& aType,
-                           const BluetoothDeviceEventInit& aInit);
 
   
 
