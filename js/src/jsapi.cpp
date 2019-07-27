@@ -3309,11 +3309,23 @@ IsFunctionCloneable(HandleFunction fun, HandleObject dynamicScope)
 
     
     
-    JSObject* scope = fun->nonLazyScript()->enclosingStaticScope();
-    if (scope && (!scope->is<StaticEvalObject>() ||
-                  scope->as<StaticEvalObject>().isDirect() ||
-                  scope->as<StaticEvalObject>().isStrict()))
-    {
+    if (JSObject* scope = fun->nonLazyScript()->enclosingStaticScope()) {
+        
+        
+        if (scope->is<StaticNonSyntacticScopeObjects>())
+            return true;
+
+        
+        
+        if (scope->is<StaticEvalObject>() &&
+            !scope->as<StaticEvalObject>().isDirect() &&
+            !scope->as<StaticEvalObject>().isStrict())
+        {
+            return true;
+        }
+
+        
+        
         return false;
     }
 
@@ -3321,7 +3333,8 @@ IsFunctionCloneable(HandleFunction fun, HandleObject dynamicScope)
 }
 
 static JSObject*
-CloneFunctionObject(JSContext* cx, HandleObject funobj, HandleObject dynamicScope)
+CloneFunctionObject(JSContext* cx, HandleObject funobj, HandleObject dynamicScope,
+                    Handle<ScopeObject*> staticScope)
 {
     AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
@@ -3358,7 +3371,21 @@ CloneFunctionObject(JSContext* cx, HandleObject funobj, HandleObject dynamicScop
         return nullptr;
     }
 
-    return CloneFunctionObject(cx, fun, dynamicScope, fun->getAllocKind());
+    if (CanReuseScriptForClone(cx->compartment(), fun, dynamicScope)) {
+        
+        
+#ifdef DEBUG
+        
+        
+        
+        if (!fun->getOrCreateScript(cx))
+            return nullptr;
+        MOZ_ASSERT(!staticScope || fun->nonLazyScript()->hasNonSyntacticScope());
+#endif
+        return CloneFunctionReuseScript(cx, fun, dynamicScope, fun->getAllocKind());
+    }
+
+    return CloneFunctionAndScript(cx, fun, dynamicScope, staticScope, fun->getAllocKind());
 }
 
 namespace JS {
@@ -3366,18 +3393,18 @@ namespace JS {
 JS_PUBLIC_API(JSObject*)
 CloneFunctionObject(JSContext* cx, JS::Handle<JSObject*> funobj)
 {
-    return CloneFunctionObject(cx, funobj, cx->global());
+    return CloneFunctionObject(cx, funobj, cx->global(),  nullptr);
 }
 
 extern JS_PUBLIC_API(JSObject*)
 CloneFunctionObject(JSContext* cx, HandleObject funobj, AutoObjectVector& scopeChain)
 {
     RootedObject dynamicScope(cx);
-    RootedObject unusedStaticScope(cx);
-    if (!CreateScopeObjectsForScopeChain(cx, scopeChain, &dynamicScope, &unusedStaticScope))
+    Rooted<ScopeObject*> staticScope(cx);
+    if (!CreateNonSyntacticScopeChain(cx, scopeChain, &dynamicScope, &staticScope))
         return nullptr;
 
-    return CloneFunctionObject(cx, funobj, dynamicScope);
+    return CloneFunctionObject(cx, funobj, dynamicScope, staticScope);
 }
 
 } 
@@ -4263,7 +4290,7 @@ JS::CloneAndExecuteScript(JSContext* cx, HandleScript scriptArg)
     CHECK_REQUEST(cx);
     RootedScript script(cx, scriptArg);
     if (script->compartment() != cx->compartment()) {
-        script = CloneScript(cx, nullptr, nullptr, script);
+        script = CloneGlobalScript(cx,  nullptr, script);
         if (!script)
             return false;
 
