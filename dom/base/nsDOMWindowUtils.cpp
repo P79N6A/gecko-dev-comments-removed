@@ -19,7 +19,7 @@
 #include "nsFrameManager.h"
 #include "nsRefreshDriver.h"
 #include "mozilla/dom/Touch.h"
-#include "mozilla/PendingPlayerTracker.h"
+#include "mozilla/PendingAnimationTracker.h"
 #include "nsIObjectLoadingContent.h"
 #include "nsFrame.h"
 #include "mozilla/layers/ShadowLayers.h"
@@ -2346,12 +2346,11 @@ nsDOMWindowUtils::AdvanceTimeAndRefresh(int64_t aMilliseconds)
   
   
   
-  
   nsCOMPtr<nsIDocument> doc = GetDocument();
   if (doc) {
-    PendingPlayerTracker* tracker = doc->GetPendingPlayerTracker();
+    PendingAnimationTracker* tracker = doc->GetPendingAnimationTracker();
     if (tracker) {
-      tracker->TriggerPendingPlayersNow();
+      tracker->TriggerPendingAnimationsNow();
     }
   }
 

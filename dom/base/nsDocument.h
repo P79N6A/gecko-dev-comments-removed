@@ -59,7 +59,7 @@
 #include "mozilla/EventListenerManager.h"
 #include "mozilla/EventStates.h"
 #include "mozilla/MemoryReporting.h"
-#include "mozilla/PendingPlayerTracker.h"
+#include "mozilla/PendingAnimationTracker.h"
 #include "mozilla/dom/DOMImplementation.h"
 #include "mozilla/dom/StyleSheetList.h"
 #include "nsDataHashtable.h"
@@ -1050,14 +1050,14 @@ public:
   
   nsSMILAnimationController* GetAnimationController() override;
 
-  virtual mozilla::PendingPlayerTracker*
-  GetPendingPlayerTracker() final override
+  virtual mozilla::PendingAnimationTracker*
+  GetPendingAnimationTracker() final override
   {
-    return mPendingPlayerTracker;
+    return mPendingAnimationTracker;
   }
 
-  virtual mozilla::PendingPlayerTracker*
-  GetOrCreatePendingPlayerTracker() override;
+  virtual mozilla::PendingAnimationTracker*
+  GetOrCreatePendingAnimationTracker() override;
 
   void SetImagesNeedAnimating(bool aAnimating) override;
 
@@ -1542,7 +1542,7 @@ protected:
 
   
   
-  nsRefPtr<mozilla::PendingPlayerTracker> mPendingPlayerTracker;
+  nsRefPtr<mozilla::PendingAnimationTracker> mPendingAnimationTracker;
 
   
   

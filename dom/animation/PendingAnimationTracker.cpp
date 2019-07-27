@@ -3,7 +3,7 @@
 
 
 
-#include "PendingPlayerTracker.h"
+#include "PendingAnimationTracker.h"
 
 #include "mozilla/dom/DocumentTimeline.h"
 #include "nsIFrame.h"
@@ -13,16 +13,16 @@ using namespace mozilla;
 
 namespace mozilla {
 
-NS_IMPL_CYCLE_COLLECTION(PendingPlayerTracker,
+NS_IMPL_CYCLE_COLLECTION(PendingAnimationTracker,
                          mPlayPendingSet,
                          mPausePendingSet,
                          mDocument)
 
-NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(PendingPlayerTracker, AddRef)
-NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(PendingPlayerTracker, Release)
+NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(PendingAnimationTracker, AddRef)
+NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(PendingAnimationTracker, Release)
 
 void
-PendingPlayerTracker::AddPending(dom::Animation& aPlayer,
+PendingAnimationTracker::AddPending(dom::Animation& aPlayer,
                                  AnimationPlayerSet& aSet)
 {
   aSet.PutEntry(&aPlayer);
@@ -34,14 +34,14 @@ PendingPlayerTracker::AddPending(dom::Animation& aPlayer,
 }
 
 void
-PendingPlayerTracker::RemovePending(dom::Animation& aPlayer,
+PendingAnimationTracker::RemovePending(dom::Animation& aPlayer,
                                     AnimationPlayerSet& aSet)
 {
   aSet.RemoveEntry(&aPlayer);
 }
 
 bool
-PendingPlayerTracker::IsWaiting(const dom::Animation& aPlayer,
+PendingAnimationTracker::IsWaiting(const dom::Animation& aPlayer,
                                 const AnimationPlayerSet& aSet) const
 {
   return aSet.Contains(const_cast<dom::Animation*>(&aPlayer));
@@ -71,7 +71,7 @@ TriggerPlayerAtTime(nsRefPtrHashKey<dom::Animation>* aKey,
 }
 
 void
-PendingPlayerTracker::TriggerPendingPlayersOnNextTick(const TimeStamp&
+PendingAnimationTracker::TriggerPendingAnimationsOnNextTick(const TimeStamp&
                                                         aReadyTime)
 {
   mPlayPendingSet.EnumerateEntries(TriggerPlayerAtTime,
@@ -88,7 +88,7 @@ TriggerPlayerNow(nsRefPtrHashKey<dom::Animation>* aKey, void*)
 }
 
 void
-PendingPlayerTracker::TriggerPendingPlayersNow()
+PendingAnimationTracker::TriggerPendingAnimationsNow()
 {
   mPlayPendingSet.EnumerateEntries(TriggerPlayerNow, nullptr);
   mPlayPendingSet.Clear();
@@ -97,7 +97,7 @@ PendingPlayerTracker::TriggerPendingPlayersNow()
 }
 
 void
-PendingPlayerTracker::EnsurePaintIsScheduled()
+PendingAnimationTracker::EnsurePaintIsScheduled()
 {
   if (!mDocument) {
     return;

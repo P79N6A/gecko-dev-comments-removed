@@ -12,7 +12,7 @@
 #include "nsIDocument.h" 
 #include "nsIPresShell.h" 
 #include "nsLayoutUtils.h" 
-#include "PendingPlayerTracker.h" 
+#include "PendingAnimationTracker.h" 
 
 namespace mozilla {
 namespace dom {
@@ -548,7 +548,7 @@ Animation::DoPlay(LimitBehavior aLimitBehavior)
     return;
   }
 
-  PendingPlayerTracker* tracker = doc->GetOrCreatePendingPlayerTracker();
+  PendingAnimationTracker* tracker = doc->GetOrCreatePendingAnimationTracker();
   tracker->AddPlayPending(*this);
 
   
@@ -586,7 +586,7 @@ Animation::DoPause()
     return;
   }
 
-  PendingPlayerTracker* tracker = doc->GetOrCreatePendingPlayerTracker();
+  PendingAnimationTracker* tracker = doc->GetOrCreatePendingAnimationTracker();
   tracker->AddPausePending(*this);
 
   UpdateFinishedState();
@@ -743,7 +743,7 @@ Animation::CancelPendingTasks()
 
   nsIDocument* doc = GetRenderedDocument();
   if (doc) {
-    PendingPlayerTracker* tracker = doc->GetPendingPlayerTracker();
+    PendingAnimationTracker* tracker = doc->GetPendingAnimationTracker();
     if (tracker) {
       if (mPendingState == PendingState::PlayPending) {
         tracker->RemovePlayPending(*this);
@@ -818,7 +818,7 @@ Animation::IsPossiblyOrphanedPendingPlayer() const
     return false;
   }
 
-  PendingPlayerTracker* tracker = doc->GetPendingPlayerTracker();
+  PendingAnimationTracker* tracker = doc->GetPendingAnimationTracker();
   return !tracker ||
          (!tracker->IsWaitingToPlay(*this) &&
           !tracker->IsWaitingToPause(*this));
