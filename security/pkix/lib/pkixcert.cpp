@@ -223,6 +223,10 @@ BackCert::RememberExtension(Reader& extnID, const Input& extnValue,
     0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x01, 0x01
   };
   
+  static const uint8_t id_pkix_ocsp_nocheck[] = {
+    0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x30, 0x01, 0x05
+  };
+  
   static const uint8_t Netscape_certificate_type[] = {
     0x60, 0x86, 0x48, 0x01, 0x86, 0xf8, 0x42, 0x01, 0x01
   };
@@ -236,6 +240,17 @@ BackCert::RememberExtension(Reader& extnID, const Input& extnValue,
   
   
   Input dummyPolicyConstraints;
+
+  
+  
+  Input dummyOCSPNocheck;
+
+  
+  
+  
+  
+  
+  bool emptyValueAllowed = false;
 
   
   
@@ -259,6 +274,17 @@ BackCert::RememberExtension(Reader& extnID, const Input& extnValue,
     out = &inhibitAnyPolicy;
   } else if (extnID.MatchRest(id_pe_authorityInfoAccess)) {
     out = &authorityInfoAccess;
+  } else if (extnID.MatchRest(id_pkix_ocsp_nocheck) && critical) {
+    
+    
+    
+    
+    
+    
+    out = &dummyOCSPNocheck;
+    
+    
+    emptyValueAllowed = true;
   } else if (extnID.MatchRest(Netscape_certificate_type) && critical) {
     out = &criticalNetscapeCertificateType;
   }
@@ -266,7 +292,7 @@ BackCert::RememberExtension(Reader& extnID, const Input& extnValue,
   if (out) {
     
     
-    if (extnValue.GetLength() == 0) {
+    if (extnValue.GetLength() == 0 && !emptyValueAllowed) {
       return Result::ERROR_EXTENSION_VALUE_INVALID;
     }
     if (out->Init(extnValue) != Success) {

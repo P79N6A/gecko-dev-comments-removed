@@ -23,6 +23,7 @@
 
 
 #include "pkix/pkix.h"
+#include "pkixder.h"
 #include "pkixgtest.h"
 #include "pkixtestutil.h"
 
@@ -107,7 +108,145 @@ private:
   }
 };
 
-class pkixcert_extension : public ::testing::Test
+
+
+static const uint8_t tlv_unknownExtensionOID[] = {
+  0x06, 0x12, 0x2b, 0x06, 0x01, 0x04, 0x01, 0xeb, 0x49, 0x85, 0x1a, 0x85, 0x1a,
+  0x85, 0x1a, 0x01, 0x83, 0x74, 0x09, 0x03
+};
+
+
+static const uint8_t tlv_id_pe_authorityInformationAccess[] = {
+  0x06, 0x08, 0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x01, 0x01
+};
+
+
+
+static const uint8_t tlv_wrongExtensionOID[] = {
+  0x06, 0x09, 0x2b, 0x06, 0x06, 0x01, 0x05, 0x05, 0x07, 0x01, 0x01
+};
+
+
+
+
+static const uint8_t tlv_id_ce_unknown[] = {
+  0x06, 0x03, 0x55, 0x1d, 0x37
+};
+
+
+static const uint8_t tlv_id_ce_inhibitAnyPolicy[] = {
+  0x06, 0x03, 0x55, 0x1d, 0x36
+};
+
+
+static const uint8_t tlv_id_pkix_ocsp_nocheck[] = {
+  0x06, 0x09, 0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x30, 0x01, 0x05
+};
+
+template <size_t L>
+inline ByteString
+BytesToByteString(const uint8_t (&bytes)[L])
+{
+  return ByteString(bytes, L);
+}
+
+struct ExtensionTestcase
+{
+  ByteString extension;
+  Result expectedResult;
+};
+
+static const ExtensionTestcase EXTENSION_TESTCASES[] =
+{
+  
+  
+  
+  { TLV(der::SEQUENCE,
+        BytesToByteString(tlv_unknownExtensionOID) +
+        TLV(der::OCTET_STRING, ByteString())),
+    Success
+  },
+
+  
+  
+  
+  { TLV(der::SEQUENCE,
+        BytesToByteString(tlv_unknownExtensionOID) +
+        Boolean(true) +
+        TLV(der::OCTET_STRING, ByteString())),
+    Result::ERROR_UNKNOWN_CRITICAL_EXTENSION
+  },
+
+  
+  
+  
+  
+  { TLV(der::SEQUENCE,
+        BytesToByteString(tlv_id_pe_authorityInformationAccess) +
+        Boolean(true) +
+        TLV(der::OCTET_STRING, TLV(der::SEQUENCE, ByteString()))),
+    Success
+  },
+
+  
+  
+  
+  
+  { TLV(der::SEQUENCE,
+        BytesToByteString(tlv_wrongExtensionOID) +
+        Boolean(true) +
+        TLV(der::OCTET_STRING, ByteString())),
+    Result::ERROR_UNKNOWN_CRITICAL_EXTENSION
+  },
+
+  
+  
+  
+  { TLV(der::SEQUENCE,
+        BytesToByteString(tlv_id_ce_unknown) +
+        Boolean(true) +
+        TLV(der::OCTET_STRING, ByteString())),
+    Result::ERROR_UNKNOWN_CRITICAL_EXTENSION
+  },
+
+  
+  
+  
+  { TLV(der::SEQUENCE,
+        BytesToByteString(tlv_id_ce_inhibitAnyPolicy) +
+        Boolean(true) +
+        TLV(der::OCTET_STRING, Integer(0))),
+    Success
+  },
+
+  
+  
+  
+  
+  
+  { TLV(der::SEQUENCE,
+        BytesToByteString(tlv_id_pkix_ocsp_nocheck) +
+        Boolean(true) +
+        TLV(der::OCTET_STRING, TLV(der::NULLTag, ByteString()))),
+    Success
+  },
+
+  
+  
+  
+  
+  
+  { TLV(der::SEQUENCE,
+        BytesToByteString(tlv_id_pkix_ocsp_nocheck) +
+        Boolean(true) +
+        TLV(der::OCTET_STRING, ByteString())),
+    Success
+  },
+};
+
+class pkixcert_extension
+  : public ::testing::Test
+  , public ::testing::WithParamInterface<ExtensionTestcase>
 {
 protected:
   static TrustEverythingTrustDomain trustDomain;
@@ -115,29 +254,15 @@ protected:
 
  TrustEverythingTrustDomain pkixcert_extension::trustDomain;
 
-
-
-
-TEST_F(pkixcert_extension, UnknownCriticalExtension)
+TEST_P(pkixcert_extension, ExtensionHandledProperly)
 {
-  static const uint8_t unknownCriticalExtensionBytes[] = {
-    0x30, 0x19, 
-      0x06, 0x12, 
-        
-        0x2b, 0x06, 0x01, 0x04, 0x01, 0xeb, 0x49, 0x85, 0x1a,
-        0x85, 0x1a, 0x85, 0x1a, 0x01, 0x83, 0x74, 0x09, 0x03,
-      0x01, 0x01, 0xff, 
-      0x04, 0x00 
-  };
-  static const ByteString
-    unknownCriticalExtension(unknownCriticalExtensionBytes,
-                             sizeof(unknownCriticalExtensionBytes));
-  const char* certCN = "Cert With Unknown Critical Extension";
-  ByteString cert(CreateCertWithOneExtension(certCN, unknownCriticalExtension));
+  const ExtensionTestcase& testcase(GetParam());
+  const char* cn = "Cert Extension Test";
+  ByteString cert(CreateCertWithOneExtension(cn, testcase.extension));
   ASSERT_FALSE(ENCODING_FAILED(cert));
   Input certInput;
   ASSERT_EQ(Success, certInput.Init(cert.data(), cert.length()));
-  ASSERT_EQ(Result::ERROR_UNKNOWN_CRITICAL_EXTENSION,
+  ASSERT_EQ(testcase.expectedResult,
             BuildCertChain(trustDomain, certInput, Now(),
                            EndEntityOrCA::MustBeEndEntity,
                            KeyUsage::noParticularKeyUsageRequired,
@@ -146,172 +271,24 @@ TEST_F(pkixcert_extension, UnknownCriticalExtension)
                            nullptr));
 }
 
-
-
-TEST_F(pkixcert_extension, UnknownNonCriticalExtension)
-{
-  static const uint8_t unknownNonCriticalExtensionBytes[] = {
-    0x30, 0x16, 
-      0x06, 0x12, 
-        
-        0x2b, 0x06, 0x01, 0x04, 0x01, 0xeb, 0x49, 0x85, 0x1a,
-        0x85, 0x1a, 0x85, 0x1a, 0x01, 0x83, 0x74, 0x09, 0x03,
-      0x04, 0x00 
-  };
-  static const ByteString
-    unknownNonCriticalExtension(unknownNonCriticalExtensionBytes,
-                                sizeof(unknownNonCriticalExtensionBytes));
-  const char* certCN = "Cert With Unknown NonCritical Extension";
-  ByteString cert(CreateCertWithOneExtension(certCN,
-                                             unknownNonCriticalExtension));
-  ASSERT_FALSE(ENCODING_FAILED(cert));
-  Input certInput;
-  ASSERT_EQ(Success, certInput.Init(cert.data(), cert.length()));
-  ASSERT_EQ(Success,
-            BuildCertChain(trustDomain, certInput, Now(),
-                           EndEntityOrCA::MustBeEndEntity,
-                           KeyUsage::noParticularKeyUsageRequired,
-                           KeyPurposeId::anyExtendedKeyUsage,
-                           CertPolicyId::anyPolicy,
-                           nullptr));
-}
-
-
-
-
-TEST_F(pkixcert_extension, WrongOIDCriticalExtension)
-{
-  static const uint8_t wrongOIDCriticalExtensionBytes[] = {
-    0x30, 0x10, 
-      0x06, 0x09, 
-        
-        0x2b, 0x06, 0x06, 0x01, 0x05, 0x05, 0x07, 0x01, 0x01,
-      0x01, 0x01, 0xff, 
-      0x04, 0x00 
-  };
-  static const ByteString
-    wrongOIDCriticalExtension(wrongOIDCriticalExtensionBytes,
-                              sizeof(wrongOIDCriticalExtensionBytes));
-  const char* certCN = "Cert With Critical Wrong OID Extension";
-  ByteString cert(CreateCertWithOneExtension(certCN,
-                                             wrongOIDCriticalExtension));
-  ASSERT_FALSE(ENCODING_FAILED(cert));
-  Input certInput;
-  ASSERT_EQ(Success, certInput.Init(cert.data(), cert.length()));
-  ASSERT_EQ(Result::ERROR_UNKNOWN_CRITICAL_EXTENSION,
-            BuildCertChain(trustDomain, certInput, Now(),
-                           EndEntityOrCA::MustBeEndEntity,
-                           KeyUsage::noParticularKeyUsageRequired,
-                           KeyPurposeId::anyExtendedKeyUsage,
-                           CertPolicyId::anyPolicy,
-                           nullptr));
-}
-
-
-
-TEST_F(pkixcert_extension, CriticalAIAExtension)
-{
-  
-  
-  static const uint8_t criticalAIAExtensionBytes[] = {
-    0x30, 0x11, 
-      0x06, 0x08, 
-        
-        0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x01, 0x01,
-      0x01, 0x01, 0xff, 
-      0x04, 0x02, 
-        0x30, 0x00, 
-  };
-  static const ByteString
-    criticalAIAExtension(criticalAIAExtensionBytes,
-                         sizeof(criticalAIAExtensionBytes));
-  const char* certCN = "Cert With Critical AIA Extension";
-  ByteString cert(CreateCertWithOneExtension(certCN, criticalAIAExtension));
-  ASSERT_FALSE(ENCODING_FAILED(cert));
-  Input certInput;
-  ASSERT_EQ(Success, certInput.Init(cert.data(), cert.length()));
-  ASSERT_EQ(Success,
-            BuildCertChain(trustDomain, certInput, Now(),
-                           EndEntityOrCA::MustBeEndEntity,
-                           KeyUsage::noParticularKeyUsageRequired,
-                           KeyPurposeId::anyExtendedKeyUsage,
-                           CertPolicyId::anyPolicy,
-                           nullptr));
-}
-
-
-
-
-TEST_F(pkixcert_extension, UnknownCriticalCEExtension)
-{
-  static const uint8_t unknownCriticalCEExtensionBytes[] = {
-    0x30, 0x0a, 
-      0x06, 0x03, 
-        0x55, 0x1d, 0x37, 
-      0x01, 0x01, 0xff, 
-      0x04, 0x00 
-  };
-  static const ByteString
-    unknownCriticalCEExtension(unknownCriticalCEExtensionBytes,
-                               sizeof(unknownCriticalCEExtensionBytes));
-  const char* certCN = "Cert With Unknown Critical id-ce Extension";
-  ByteString cert(CreateCertWithOneExtension(certCN,
-                                             unknownCriticalCEExtension));
-  ASSERT_FALSE(ENCODING_FAILED(cert));
-  Input certInput;
-  ASSERT_EQ(Success, certInput.Init(cert.data(), cert.length()));
-  ASSERT_EQ(Result::ERROR_UNKNOWN_CRITICAL_EXTENSION,
-            BuildCertChain(trustDomain, certInput, Now(),
-                           EndEntityOrCA::MustBeEndEntity,
-                           KeyUsage::noParticularKeyUsageRequired,
-                           KeyPurposeId::anyExtendedKeyUsage,
-                           CertPolicyId::anyPolicy,
-                           nullptr));
-}
-
-
-
-TEST_F(pkixcert_extension, KnownCriticalCEExtension)
-{
-  static const uint8_t criticalCEExtensionBytes[] = {
-    0x30, 0x0d, 
-      0x06, 0x03, 
-        0x55, 0x1d, 0x36, 
-      0x01, 0x01, 0xff, 
-      0x04, 0x03, 
-        0x02, 0x01, 0x00, 
-  };
-  static const ByteString
-    criticalCEExtension(criticalCEExtensionBytes,
-                        sizeof(criticalCEExtensionBytes));
-  const char* certCN = "Cert With Known Critical id-ce Extension";
-  ByteString cert(CreateCertWithOneExtension(certCN, criticalCEExtension));
-  ASSERT_FALSE(ENCODING_FAILED(cert));
-  Input certInput;
-  ASSERT_EQ(Success, certInput.Init(cert.data(), cert.length()));
-  ASSERT_EQ(Success,
-            BuildCertChain(trustDomain, certInput, Now(),
-                           EndEntityOrCA::MustBeEndEntity,
-                           KeyUsage::noParticularKeyUsageRequired,
-                           KeyPurposeId::anyExtendedKeyUsage,
-                           CertPolicyId::anyPolicy,
-                           nullptr));
-}
+INSTANTIATE_TEST_CASE_P(pkixcert_extension,
+                        pkixcert_extension,
+                        testing::ValuesIn(EXTENSION_TESTCASES));
 
 
 TEST_F(pkixcert_extension, DuplicateSubjectAltName)
 {
-  static const uint8_t DER_BYTES[] = {
-    0x30, 22, 
-      0x06, 3, 
-        0x55, 0x1d, 0x11, 
-      0x04, 15, 
-        0x30, 13, 
-          0x82, 11, 
-            'e', 'x', 'a', 'm', 'p', 'l', 'e', '.', 'c', 'o', 'm'
+  
+  static const uint8_t tlv_id_ce_subjectAltName[] = {
+    0x06, 0x03, 0x55, 0x1d, 0x11
   };
-  static const ByteString DER(DER_BYTES, sizeof(DER_BYTES));
-  static const ByteString extensions[] = { DER, DER, ByteString() };
+
+  ByteString subjectAltName(
+    TLV(der::SEQUENCE,
+        BytesToByteString(tlv_id_ce_subjectAltName) +
+        TLV(der::OCTET_STRING, TLV(der::SEQUENCE, DNSName("example.com")))));
+  static const ByteString extensions[] = { subjectAltName, subjectAltName,
+                                           ByteString() };
   static const char* certCN = "Cert With Duplicate subjectAltName";
   ByteString cert(CreateCertWithExtensions(certCN, extensions));
   ASSERT_FALSE(ENCODING_FAILED(cert));
