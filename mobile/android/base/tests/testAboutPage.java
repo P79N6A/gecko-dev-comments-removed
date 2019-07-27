@@ -5,6 +5,11 @@
 package org.mozilla.gecko.tests;
 
 import org.mozilla.gecko.Actions;
+import org.mozilla.gecko.Element;
+import org.mozilla.gecko.NewTabletUI;
+import org.mozilla.gecko.R;
+
+import android.app.Activity;
 
 
 
@@ -23,7 +28,7 @@ public class testAboutPage extends PixelTest {
 
         
         url = getAbsoluteUrl(mStringHelper.ROBOCOP_BLANK_PAGE_01_URL);
-        loadUrl(url);
+        loadUrlAndWait(url);
 
         
         verifyUrlBarTitle(url);
