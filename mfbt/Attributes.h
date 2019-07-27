@@ -222,6 +222,22 @@
 
 
 
+#if defined(__GNUC__) || defined(__clang__)
+#  define MOZ_NONNULL(...) __attribute__ ((nonnull(__VA_ARGS__)))
+#else
+#  define MOZ_NONNULL(...)
+#endif
+
+
+
+
+
+
+
+
+
+
+
 
 
 

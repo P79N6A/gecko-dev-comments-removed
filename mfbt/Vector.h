@@ -58,6 +58,7 @@ struct VectorImpl
   
 
 
+  MOZ_NONNULL(1)
   static inline void new_(T* aDst)
   {
     new(aDst) T();
@@ -67,6 +68,7 @@ struct VectorImpl
 
 
   template<typename U>
+  MOZ_NONNULL(1)
   static inline void new_(T* aDst, U&& aU)
   {
     new(aDst) T(Forward<U>(aU));
