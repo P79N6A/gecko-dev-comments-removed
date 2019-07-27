@@ -999,6 +999,10 @@ RNewArray::recover(JSContext *cx, SnapshotIterator &iter) const
     RootedTypeObject type(cx);
 
     
+    
+    types::AutoEnterAnalysis enter(cx);
+
+    
     if (!templateObject->hasSingletonType())
         type = templateObject->type();
 
