@@ -57,7 +57,6 @@
 namespace mozilla {
 namespace dom {
 class EventTarget;
-class URLSearchParams;
 }
 }
 
@@ -796,9 +795,6 @@ protected:
     nsCOMPtr<nsIURI>           mFailedURI;
     nsCOMPtr<nsIChannel>       mFailedChannel;
     uint32_t                   mFailedLoadType;
-
-    
-    nsRefPtr<mozilla::dom::URLSearchParams> mURLSearchParams;
 
     
     
