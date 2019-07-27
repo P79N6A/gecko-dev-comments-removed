@@ -47,8 +47,6 @@ class nsIImageLoadingContent;
 class nsStyleContext;
 class nsBlockFrame;
 class nsContainerFrame;
-class gfxASurface;
-class gfxDrawable;
 class nsView;
 class nsIFrame;
 class nsStyleCoord;
@@ -1760,7 +1758,6 @@ public:
     SurfaceFromElementResult();
 
     
-    nsRefPtr<gfxASurface> mSurface;
     mozilla::RefPtr<SourceSurface> mSourceSurface;
     
     DirectDrawInfo mDrawInfo;
