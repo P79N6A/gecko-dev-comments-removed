@@ -91,9 +91,9 @@ loop.store = loop.store || {};
       "getAllRooms",
       "getAllRoomsError",
       "openRoom",
-      "renameRoom",
-      "renameRoomError",
       "shareRoomUrl",
+      "updateRoomContext",
+      "updateRoomContextError",
       "updateRoomList"
     ],
 
@@ -473,25 +473,75 @@ loop.store = loop.store || {};
 
 
 
-    renameRoom: function(actionData) {
-      var oldRoomName = this.getStoreState("roomName");
-      var newRoomName = actionData.newRoomName.trim();
+    updateRoomContext: function(actionData) {
+      this._mozLoop.rooms.get(actionData.roomToken, function(err, room) {
+        if (err) {
+          this.dispatchAction(new sharedActions.UpdateRoomContextError({
+            error: err
+          }));
+          return;
+        }
 
-      
-      if (!newRoomName || oldRoomName === newRoomName) {
-        return;
-      }
-
-      this.setStoreState({error: null});
-      this._mozLoop.rooms.rename(actionData.roomToken, newRoomName,
-        function(err) {
-          if (err) {
-            this.dispatchAction(new sharedActions.RenameRoomError({error: err}));
+        var roomData = {};
+        var context = room.decryptedContext;
+        var oldRoomName = context.roomName;
+        var newRoomName = actionData.newRoomName.trim();
+        if (newRoomName && oldRoomName != newRoomName) {
+          roomData.roomName = newRoomName;
+        }
+        var oldRoomURLs = context.urls;
+        var oldRoomURL = oldRoomURLs && oldRoomURLs[0];
+        
+        
+        var newRoomURL = loop.shared.utils.stripFalsyValues({
+          location: actionData.newRoomURL ? actionData.newRoomURL.trim() : "",
+          thumbnail: actionData.newRoomURL ? actionData.newRoomThumbnail.trim() : "",
+          description: actionData.newRoomDescription ?
+            actionData.newRoomDescription.trim() : ""
+        });
+        
+        
+        
+        
+        var diff = loop.shared.utils.objectDiff(oldRoomURL, newRoomURL);
+        if (diff.added.length || diff.updated.length) {
+          newRoomURL = _.extend(oldRoomURL || {}, newRoomURL);
+          var isValidURL = false;
+          try {
+            isValidURL = new URL(newRoomURL.location);
+          } catch(ex) {}
+          if (isValidURL) {
+            roomData.urls = [newRoomURL];
           }
-        }.bind(this));
+        }
+        
+        
+        
+
+        
+        
+        if (!Object.getOwnPropertyNames(roomData).length) {
+          return;
+        }
+
+        this.setStoreState({error: null});
+        this._mozLoop.rooms.update(actionData.roomToken, roomData,
+          function(err, data) {
+            if (err) {
+              this.dispatchAction(new sharedActions.UpdateRoomContextError({
+                error: err
+              }));
+            }
+          }.bind(this));
+      }.bind(this));
     },
 
-    renameRoomError: function(actionData) {
+    
+
+
+
+
+    updateRoomContextError: function(actionData) {
       this.setStoreState({error: actionData.error});
     }
   });

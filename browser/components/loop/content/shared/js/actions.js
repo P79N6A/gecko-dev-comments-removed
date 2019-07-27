@@ -333,16 +333,18 @@ loop.shared.actions = (function() {
 
 
 
-    RenameRoom: Action.define("renameRoom", {
+    UpdateRoomContext: Action.define("updateRoomContext", {
       roomToken: String,
       newRoomName: String
+      
+      
+      
     }),
 
     
 
 
-
-    RenameRoomError: Action.define("renameRoomError", {
+    UpdateRoomContextError: Action.define("updateRoomContextError", {
       error: [Error, Object]
     }),
 

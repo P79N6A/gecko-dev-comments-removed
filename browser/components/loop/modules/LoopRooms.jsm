@@ -718,21 +718,28 @@ let LoopRoomsInternal = {
 
 
 
-  rename: function(roomToken, newRoomName, callback) {
+
+
+
+
+  update: function(roomToken, roomData, callback) {
     let room = this.rooms.get(roomToken);
     let url = "/rooms/" + encodeURIComponent(roomToken);
 
-    let roomData = this.rooms.get(roomToken);
-    if (!roomData.decryptedContext) {
-      roomData.decryptedContext = {
-        roomName: newRoomName
+    if (!room.decryptedContext) {
+      room.decryptedContext = {
+        roomName: roomData.roomName || room.roomName
       };
     } else {
-      roomData.decryptedContext.roomName = newRoomName;
+      room.decryptedContext.roomName = roomData.roomName || room.roomName;
+    }
+    if (roomData.urls && roomData.urls.length) {
+      
+      room.decryptedContext.urls = [roomData.urls[0]];
     }
 
     Task.spawn(function* () {
-      let {all, encrypted} = yield this.promiseEncryptRoomData(roomData);
+      let {all, encrypted} = yield this.promiseEncryptRoomData(room);
 
       
       let sendData = {
@@ -743,7 +750,7 @@ let LoopRoomsInternal = {
       
       if (!sendData.context) {
         sendData = {
-          roomName: newRoomName
+          roomName: room.decryptedContext.roomName
         };
       } else {
         
@@ -864,8 +871,8 @@ this.LoopRooms = {
     return LoopRoomsInternal.sendConnectionStatus(roomToken, sessionToken, status, callback);
   },
 
-  rename: function(roomToken, newRoomName, callback) {
-    return LoopRoomsInternal.rename(roomToken, newRoomName, callback);
+  update: function(roomToken, roomData, callback) {
+    return LoopRoomsInternal.update(roomToken, roomData, callback);
   },
 
   getGuestCreatedRoom: function() {
