@@ -27,6 +27,7 @@
 #include "mozilla/EnumeratedArray.h"
 #include "FilterSupport.h"
 #include "nsSVGEffects.h"
+#include "Layers.h"
 
 class nsGlobalWindow;
 class nsXULElement;
@@ -456,6 +457,7 @@ public:
   NS_IMETHOD SetIsOpaque(bool isOpaque) override;
   bool GetIsOpaque() override { return mOpaque; }
   NS_IMETHOD Reset() override;
+  mozilla::layers::PersistentBufferProvider* GetBufferProvider(mozilla::layers::LayerManager* aManager);
   already_AddRefed<CanvasLayer> GetCanvasLayer(nsDisplayListBuilder* aBuilder,
                                                CanvasLayer *aOldLayer,
                                                LayerManager *aManager) override;
@@ -640,8 +642,14 @@ protected:
   
 
 
+
+  void ReturnTarget();
+
+  
+
+
   bool IsTargetValid() const {
-    return mTarget != sErrorTarget && mTarget != nullptr;
+    return (sErrorTarget == nullptr || mTarget != sErrorTarget) && (mBufferProvider != nullptr || mTarget);
   }
 
   
@@ -714,6 +722,8 @@ protected:
   
   
   mozilla::RefPtr<mozilla::gfx::DrawTarget> mTarget;
+
+  mozilla::RefPtr<mozilla::layers::PersistentBufferProvider> mBufferProvider;
 
   uint32_t SkiaGLTex() const;
 
