@@ -1428,7 +1428,7 @@ public:
   {
   }
 
-  NS_INLINE_DECL_REFCOUNTING(AsyncSmoothMSDScroll)
+  NS_INLINE_DECL_REFCOUNTING(AsyncSmoothMSDScroll, MOZ_OVERRIDE)
 
   nsSize GetVelocity() {
     
@@ -1620,7 +1620,7 @@ protected:
 
 
 public:
-  NS_INLINE_DECL_REFCOUNTING(AsyncScroll)
+  NS_INLINE_DECL_REFCOUNTING(AsyncScroll, MOZ_OVERRIDE)
 
   
 

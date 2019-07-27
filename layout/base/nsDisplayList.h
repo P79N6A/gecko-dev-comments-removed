@@ -100,8 +100,8 @@ typedef mozilla::EnumSet<mozilla::gfx::CompositionOp> BlendModeSet;
 
 
 #define NS_DISPLAY_DECL_NAME(n, e) \
-  virtual const char* Name() { return n; } \
-  virtual Type GetType() { return e; }
+  virtual const char* Name() MOZ_OVERRIDE { return n; } \
+  virtual Type GetType() MOZ_OVERRIDE { return e; }
 
 
 
@@ -2710,7 +2710,7 @@ public:
   {
     aFrames->AppendElements(mMergedFrames);
   }
-  virtual bool ShouldFlattenAway(nsDisplayListBuilder* aBuilder) {
+  virtual bool ShouldFlattenAway(nsDisplayListBuilder* aBuilder) MOZ_OVERRIDE {
     return true;
   }
   virtual bool IsInvalid(nsRect& aRect) MOZ_OVERRIDE
