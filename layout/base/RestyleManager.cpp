@@ -1605,7 +1605,7 @@ RestyleManager::ProcessPendingRestyles()
   
   
   if (nsLayoutUtils::AreAsyncAnimationsEnabled() &&
-      mPendingRestyles.Count() > 0) {
+      (mPendingRestyles.Count() > 0 || mDoRebuildAllStyleData)) {
     IncrementAnimationGeneration();
     UpdateOnlyAnimationStyles();
   }
