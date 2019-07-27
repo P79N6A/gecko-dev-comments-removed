@@ -456,13 +456,19 @@ pref("font.size.inflation.minTwips", 120);
 
 pref("browser.ui.zoom.force-user-scalable", false);
 
+pref("ui.touch.radius.enabled", true);
+pref("ui.touch.radius.leftmm", 3);
+pref("ui.touch.radius.topmm", 5);
+pref("ui.touch.radius.rightmm", 3);
+pref("ui.touch.radius.bottommm", 2);
+pref("ui.touch.radius.visitedWeight", 120);
 
-
-pref("browser.ui.touch.left", 32);
-pref("browser.ui.touch.right", 32);
-pref("browser.ui.touch.top", 48);
-pref("browser.ui.touch.bottom", 16);
-pref("browser.ui.touch.weight.visited", 120); 
+pref("ui.mouse.radius.enabled", true);
+pref("ui.mouse.radius.leftmm", 3);
+pref("ui.mouse.radius.topmm", 5);
+pref("ui.mouse.radius.rightmm", 3);
+pref("ui.mouse.radius.bottommm", 2);
+pref("ui.mouse.radius.visitedWeight", 120);
 
 
 pref("browser.ui.show-margins-threshold", 10);
