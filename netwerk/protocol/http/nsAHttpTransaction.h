@@ -23,6 +23,7 @@ class nsHttpTransaction;
 class nsHttpPipeline;
 class nsHttpRequestHead;
 class nsHttpConnectionInfo;
+class NullHttpTransaction;
 class SpdyConnectTransaction;
 
 
@@ -132,6 +133,7 @@ public:
     
     
     virtual bool IsNullTransaction() { return false; }
+    virtual NullHttpTransaction *QueryNullTransaction() { return nullptr; }
 
     
     
