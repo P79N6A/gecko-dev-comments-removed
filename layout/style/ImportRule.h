@@ -49,12 +49,12 @@ public:
 #endif
 
   
-  virtual int32_t GetType() const;
-  virtual already_AddRefed<Rule> Clone() const;
+  virtual int32_t GetType() const MOZ_OVERRIDE;
+  virtual already_AddRefed<Rule> Clone() const MOZ_OVERRIDE;
 
   void SetSheet(CSSStyleSheet*);
 
-  virtual size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
+  virtual size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const MOZ_OVERRIDE;
 
   
   NS_DECL_NSIDOMCSSRULE

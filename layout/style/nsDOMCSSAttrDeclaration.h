@@ -31,7 +31,7 @@ public:
 
   
   
-  virtual mozilla::css::Declaration* GetCSSDeclaration(bool aAllocate);
+  virtual mozilla::css::Declaration* GetCSSDeclaration(bool aAllocate) MOZ_OVERRIDE;
   virtual void GetCSSParsingEnvironment(CSSParsingEnvironment& aCSSParseEnv) MOZ_OVERRIDE;
   NS_IMETHOD GetParentRule(nsIDOMCSSRule **aParent) MOZ_OVERRIDE;
 
