@@ -126,7 +126,6 @@ private:
   webrtc::ViEBase* mViEBase;
   webrtc::ViECapture* mViECapture;
   webrtc::ViERender* mViERender;
-  webrtc::CaptureCapability mCapability; 
 
   int mMinFps; 
   MediaSourceType mMediaSource; 
