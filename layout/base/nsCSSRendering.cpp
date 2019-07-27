@@ -2045,21 +2045,43 @@ ComputeLinearGradientLine(nsPresContext* aPresContext,
                           gfxPoint* aLineStart,
                           gfxPoint* aLineEnd)
 {
-  double angle;
   if (aGradient->mBgPosX.GetUnit() == eStyleUnit_None) {
+    double angle;
     if (aGradient->mAngle.IsAngleValue()) {
-      angle = M_PI_2 - aGradient->mAngle.GetAngleValueInRadians();
+      angle = aGradient->mAngle.GetAngleValueInRadians();
+      if (!aGradient->mLegacySyntax) {
+        angle = M_PI_2 - angle;
+      }
     } else {
       angle = -M_PI_2; 
     }
-  } else {
+    gfxPoint center(aBoxSize.width/2, aBoxSize.height/2);
+    *aLineEnd = ComputeGradientLineEndFromAngle(center, angle, aBoxSize);
+    *aLineStart = gfxPoint(aBoxSize.width, aBoxSize.height) - *aLineEnd;
+  } else if (!aGradient->mLegacySyntax) {
     float xSign = aGradient->mBgPosX.GetPercentValue() * 2 - 1;
     float ySign = 1 - aGradient->mBgPosY.GetPercentValue() * 2;
-    angle = atan2(ySign * aBoxSize.width, xSign * aBoxSize.height);
+    double angle = atan2(ySign * aBoxSize.width, xSign * aBoxSize.height);
+    gfxPoint center(aBoxSize.width/2, aBoxSize.height/2);
+    *aLineEnd = ComputeGradientLineEndFromAngle(center, angle, aBoxSize);
+    *aLineStart = gfxPoint(aBoxSize.width, aBoxSize.height) - *aLineEnd;
+  } else {
+    int32_t appUnitsPerPixel = aPresContext->AppUnitsPerDevPixel();
+    *aLineStart = gfxPoint(
+      ConvertGradientValueToPixels(aGradient->mBgPosX, aBoxSize.width,
+                                   appUnitsPerPixel),
+      ConvertGradientValueToPixels(aGradient->mBgPosY, aBoxSize.height,
+                                   appUnitsPerPixel));
+    if (aGradient->mAngle.IsAngleValue()) {
+      MOZ_ASSERT(aGradient->mLegacySyntax);
+      double angle = aGradient->mAngle.GetAngleValueInRadians();
+      *aLineEnd = ComputeGradientLineEndFromAngle(*aLineStart, angle, aBoxSize);
+    } else {
+      
+      
+      *aLineEnd = gfxPoint(aBoxSize.width, aBoxSize.height) - *aLineStart;
+    }
   }
-  gfxPoint center(aBoxSize.width/2, aBoxSize.height/2);
-  *aLineEnd = ComputeGradientLineEndFromAngle(center, angle, aBoxSize);
-  *aLineStart = gfxPoint(aBoxSize.width, aBoxSize.height) - *aLineEnd;
 }
 
 
