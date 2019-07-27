@@ -4,13 +4,13 @@
 
 
 
-#ifndef jit_shared_Assembler_x86_shared_h
-#define jit_shared_Assembler_x86_shared_h
+#ifndef jit_x86_shared_Assembler_x86_shared_h
+#define jit_x86_shared_Assembler_x86_shared_h
 
 #include <cstddef>
 
 #include "jit/shared/Assembler-shared.h"
-#include "jit/shared/BaseAssembler-x86-shared.h"
+#include "jit/x86-shared/BaseAssembler-x86-shared.h"
 
 namespace js {
 namespace jit {

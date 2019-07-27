@@ -4,8 +4,8 @@
 
 
 
-#ifndef jit_shared_MacroAssembler_x86_shared_h
-#define jit_shared_MacroAssembler_x86_shared_h
+#ifndef jit_x86_shared_MacroAssembler_x86_shared_h
+#define jit_x86_shared_MacroAssembler_x86_shared_h
 
 #include "mozilla/Casting.h"
 #include "mozilla/DebugOnly.h"

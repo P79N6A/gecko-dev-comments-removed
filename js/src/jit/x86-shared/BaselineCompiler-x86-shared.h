@@ -4,8 +4,8 @@
 
 
 
-#ifndef jit_shared_BaselineCompiler_x86_shared_h
-#define jit_shared_BaselineCompiler_x86_shared_h
+#ifndef jit_x86_shared_BaselineCompiler_x86_shared_h
+#define jit_x86_shared_BaselineCompiler_x86_shared_h
 
 #include "jit/shared/BaselineCompiler-shared.h"
 

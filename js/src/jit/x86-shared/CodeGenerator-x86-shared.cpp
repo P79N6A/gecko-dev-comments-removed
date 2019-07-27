@@ -4,7 +4,7 @@
 
 
 
-#include "jit/shared/CodeGenerator-x86-shared.h"
+#include "jit/x86-shared/CodeGenerator-x86-shared.h"
 
 #include "mozilla/DebugOnly.h"
 #include "mozilla/MathAlgorithms.h"

@@ -4,8 +4,8 @@
 
 
 
-#ifndef jit_shared_Constants_x86_shared_h
-#define jit_shared_Constants_x86_shared_h
+#ifndef jit_x86_shared_Constants_x86_shared_h
+#define jit_x86_shared_Constants_x86_shared_h
 
 namespace js {
 namespace jit {

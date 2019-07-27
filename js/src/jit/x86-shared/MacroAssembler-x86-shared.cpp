@@ -4,7 +4,7 @@
 
 
 
-#include "jit/shared/MacroAssembler-x86-shared.h"
+#include "jit/x86-shared/MacroAssembler-x86-shared.h"
 
 #include "jit/JitFrames.h"
 #include "jit/MacroAssembler.h"

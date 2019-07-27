@@ -4,10 +4,10 @@
 
 
 
-#ifndef jit_shared_Encoding_x86_shared_h
-#define jit_shared_Encoding_x86_shared_h
+#ifndef jit_x86_shared_Encoding_x86_shared_h
+#define jit_x86_shared_Encoding_x86_shared_h
 
-#include "jit/shared/Constants-x86-shared.h"
+#include "jit/x86-shared/Constants-x86-shared.h"
 
 namespace js {
 namespace jit {

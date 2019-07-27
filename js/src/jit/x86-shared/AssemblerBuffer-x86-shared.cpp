@@ -4,7 +4,7 @@
 
 
 
-#include "jit/shared/AssemblerBuffer-x86-shared.h"
+#include "jit/x86-shared/AssemblerBuffer-x86-shared.h"
 
 #include "jsopcode.h"
 

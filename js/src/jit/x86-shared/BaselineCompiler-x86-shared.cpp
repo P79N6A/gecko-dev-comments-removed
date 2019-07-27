@@ -4,7 +4,7 @@
 
 
 
-#include "jit/shared/BaselineCompiler-x86-shared.h"
+#include "jit/x86-shared/BaselineCompiler-x86-shared.h"
 
 using namespace js;
 using namespace js::jit;
