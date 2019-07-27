@@ -40,12 +40,6 @@ enum MediaEngineState {
 };
 
 
-enum {
-  kVideoTrack = 1,
-  kAudioTrack = 2
-};
-
-
 enum MediaSourceType {
   Camera = (int) dom::MediaSourceEnum::Camera,
   Screen = (int) dom::MediaSourceEnum::Screen,
