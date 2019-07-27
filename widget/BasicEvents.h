@@ -58,6 +58,8 @@ enum nsEventStructType
   NS_CLIPBOARD_EVENT,                
   NS_TRANSITION_EVENT,               
   NS_ANIMATION_EVENT,                
+  NS_SVGZOOM_EVENT,                  
+  NS_SMIL_TIME_EVENT,                
 
   
   NS_COMMAND_EVENT,                  
@@ -65,13 +67,7 @@ enum nsEventStructType
   NS_PLUGIN_EVENT,                   
 
   
-  NS_MUTATION_EVENT,                 
-
-  
-  
-  
-  NS_SVGZOOM_EVENT,                  
-  NS_SMIL_TIME_EVENT                 
+  NS_MUTATION_EVENT                  
 };
 
 
@@ -862,8 +858,7 @@ public:
 
   virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
   {
-    MOZ_ASSERT(eventStructType == NS_GUI_EVENT ||
-                 eventStructType == NS_SVGZOOM_EVENT,
+    MOZ_ASSERT(eventStructType == NS_GUI_EVENT,
                "Duplicate() must be overridden by sub class");
     
     WidgetGUIEvent* result = new WidgetGUIEvent(false, message, nullptr);
@@ -1175,8 +1170,7 @@ public:
 
   virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
   {
-    MOZ_ASSERT(eventStructType == NS_UI_EVENT ||
-                 eventStructType == NS_SMIL_TIME_EVENT,
+    MOZ_ASSERT(eventStructType == NS_UI_EVENT,
                "Duplicate() must be overridden by sub class");
     InternalUIEvent* result = new InternalUIEvent(false, message);
     result->AssignUIEventData(*this, true);

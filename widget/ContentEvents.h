@@ -315,6 +315,76 @@ public:
   }
 };
 
+
+
+
+
+class InternalSVGZoomEvent : public WidgetGUIEvent
+{
+public:
+  virtual InternalSVGZoomEvent* AsSVGZoomEvent() MOZ_OVERRIDE { return this; }
+
+  InternalSVGZoomEvent(bool aIsTrusted, uint32_t aMessage) :
+    WidgetGUIEvent(aIsTrusted, aMessage, nullptr, NS_SVGZOOM_EVENT)
+  {
+    mFlags.mCancelable = false;
+  }
+
+  virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
+  {
+    MOZ_ASSERT(eventStructType == NS_SVGZOOM_EVENT,
+               "Duplicate() must be overridden by sub class");
+    
+    InternalSVGZoomEvent* result = new InternalSVGZoomEvent(false, message);
+    result->AssignSVGZoomEventData(*this, true);
+    result->mFlags = mFlags;
+    return result;
+  }
+
+  void AssignSVGZoomEventData(const InternalSVGZoomEvent& aEvent,
+                              bool aCopyTargets)
+  {
+    AssignGUIEventData(aEvent, aCopyTargets);
+  }
+};
+
+
+
+
+
+class InternalSMILTimeEvent : public InternalUIEvent
+{
+public:
+  virtual InternalSMILTimeEvent* AsSMILTimeEvent() MOZ_OVERRIDE
+  {
+    return this;
+  }
+
+  InternalSMILTimeEvent(bool aIsTrusted, uint32_t aMessage) :
+    InternalUIEvent(aIsTrusted, aMessage, NS_SMIL_TIME_EVENT)
+  {
+    mFlags.mBubbles = false;
+    mFlags.mCancelable = false;
+  }
+
+  virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
+  {
+    MOZ_ASSERT(eventStructType == NS_SMIL_TIME_EVENT,
+               "Duplicate() must be overridden by sub class");
+    InternalSMILTimeEvent* result = new InternalSMILTimeEvent(false, message);
+    result->AssignSMILTimeEventData(*this, true);
+    result->mFlags = mFlags;
+    return result;
+  }
+
+  void AssignSMILTimeEventData(const InternalSMILTimeEvent& aEvent,
+                               bool aCopyTargets)
+  {
+    AssignUIEventData(aEvent, aCopyTargets);
+  }
+};
+
+
 } 
 
 #endif 
