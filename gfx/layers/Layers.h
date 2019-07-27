@@ -1504,26 +1504,6 @@ public:
 
   RenderTargetRect TransformRectToRenderTarget(const LayerIntRect& aRect);
 
-  
-
-
-  void AddExtraDumpInfo(const nsACString& aStr)
-  {
-#ifdef MOZ_DUMP_PAINTING
-    mExtraDumpInfo.AppendElement(aStr);
-#endif
-  }
-
-  
-
-
-  void ClearExtraDumpInfo()
-  {
-#ifdef MOZ_DUMP_PAINTING
-     mExtraDumpInfo.Clear();
-#endif
-  }
-
 protected:
   Layer(LayerManager* aManager, void* aImplData);
 
@@ -1626,9 +1606,6 @@ protected:
   
   
   std::string mContentDescription;
-#ifdef MOZ_DUMP_PAINTING
-  nsTArray<nsCString> mExtraDumpInfo;
-#endif
 };
 
 
