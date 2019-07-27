@@ -54,6 +54,7 @@ import org.mozilla.gecko.util.NativeJSObject;
 import org.mozilla.gecko.util.ProxySelector;
 import org.mozilla.gecko.util.ThreadUtils;
 
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.PendingIntent;
@@ -1200,6 +1201,13 @@ public class GeckoAppShell
             }
 
             
+            intent.addCategory(Intent.CATEGORY_BROWSABLE);
+
+            
+            intent.setComponent(null);
+            nullIntentSelector(intent);
+
+            
             if (intent.getPackage() == null) {
                 return null;
             }
@@ -1279,6 +1287,16 @@ public class GeckoAppShell
         intent.setData(pruned);
 
         return intent;
+    }
+
+    
+    @TargetApi(15)
+    private static void nullIntentSelector(final Intent intent) {
+        if (!Versions.feature15Plus) {
+            return;
+        }
+
+        intent.setSelector(null);
     }
 
     
