@@ -60,7 +60,7 @@ exports.testBufferMain = function (assert) {
   
   assert.throws(() => {
     b.toString('invalid');
-  }, TypeError, 'invalid encoding for Buffer.toString');
+  }, RangeError, 'invalid encoding for Buffer.toString');
 
   
   
@@ -248,7 +248,7 @@ exports.testBufferWrite = function (assert) {
 
   assert.throws(() => {
     b.write('test string', 0, 5, 'invalid');
-  }, TypeError, 'invalid encoding with buffer write throws');
+  }, RangeError, 'invalid encoding with buffer write throws');
   
   assert.throws(function() {
     b.write('', 2048);

@@ -296,6 +296,9 @@ let ready = filter(panelEvents, ({type, target}) =>
   getAttachEventType(modelFor(panelFor(target))) === type);
 
 
+let readyToShow = filter(panelEvents, ({type}) => type === "DOMContentLoaded");
+
+
 
 let start = filter(panelEvents, ({type}) => type === "document-element-inserted");
 
@@ -317,6 +320,10 @@ on(ready, "data", ({target}) => {
   let window = domPanel.getContentDocument(target).defaultView;
 
   workerFor(panel).attach(window);
+});
+
+on(readyToShow, "data", ({target}) => {
+  let panel = panelFor(target);
 
   if (!modelFor(panel).ready) {
     modelFor(panel).ready = true;
