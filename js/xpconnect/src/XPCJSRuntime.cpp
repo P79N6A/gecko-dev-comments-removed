@@ -90,7 +90,8 @@ const char* const XPCJSRuntime::mStrings[] = {
     "lineNumber",           
     "columnNumber",         
     "stack",                
-    "message"               
+    "message",              
+    "lastIndex"             
 };
 
 

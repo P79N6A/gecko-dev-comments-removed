@@ -84,6 +84,7 @@ IsJSXraySupported(JSProtoKey key)
       case JSProto_Function:
       case JSProto_TypedArray:
       case JSProto_SavedFrame:
+      case JSProto_RegExp:
         return true;
       default:
         return false;
@@ -424,6 +425,11 @@ JSXrayTraits::resolveOwnProperty(JSContext *cx, const Wrapper &jsWrapper,
                     FillPropertyDescriptor(desc, nullptr, 0, UndefinedValue());
                 return true;
             }
+        } else if (key == JSProto_RegExp) {
+            if (id == GetRTIdByIndex(cx, XPCJSRuntime::IDX_LASTINDEX)) {
+                JSAutoCompartment ac(cx, target);
+                return getOwnPropertyFromTargetIfSafe(cx, target, wrapper, id, desc);
+            }
         }
 
         
@@ -466,6 +472,12 @@ JSXrayTraits::resolveOwnProperty(JSContext *cx, const Wrapper &jsWrapper,
         ProtoKeyToId(cx, key, &className);
         FillPropertyDescriptor(desc, wrapper, 0, UndefinedValue());
         return JS_IdToValue(cx, className, desc.value());
+    }
+
+    
+    if (key == JSProto_RegExp && id == GetRTIdByIndex(cx, XPCJSRuntime::IDX_LASTINDEX)) {
+        JSAutoCompartment ac(cx, target);
+        return getOwnPropertyFromTargetIfSafe(cx, target, wrapper, id, desc);
     }
 
     
@@ -708,6 +720,9 @@ JSXrayTraits::enumerateNames(JSContext *cx, HandleObject wrapper, unsigned flags
             {
                 return false;
             }
+        } else if (key == JSProto_RegExp) {
+            if (!props.append(GetRTIdByIndex(cx, XPCJSRuntime::IDX_LASTINDEX)))
+                return false;
         }
 
         
@@ -723,6 +738,10 @@ JSXrayTraits::enumerateNames(JSContext *cx, HandleObject wrapper, unsigned flags
         return false;
 
     
+    if (key == JSProto_RegExp && !props.append(GetRTIdByIndex(cx, XPCJSRuntime::IDX_LASTINDEX)))
+        return false;
+
+    
     const js::Class *clasp = js::GetObjectClass(target);
     MOZ_ASSERT(clasp->spec.defined());
 
@@ -735,14 +754,6 @@ JSXrayTraits::enumerateNames(JSContext *cx, HandleObject wrapper, unsigned flags
             return false;
     }
     for (const JSPropertySpec *ps = clasp->spec.prototypeProperties; ps && ps->name; ++ps) {
-        
-        
-        
-        
-        MOZ_ASSERT(!ps->isSelfHosted(),
-                   "Self-hosted accessor added to Xrayable class - ping the XPConnect "
-                   "module owner about adding test coverage");
-
         jsid id;
         if (!PropertySpecNameToPermanentId(cx, ps->name, &id))
             return false;
