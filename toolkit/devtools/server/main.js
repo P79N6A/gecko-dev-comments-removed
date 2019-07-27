@@ -227,6 +227,19 @@ var DebuggerServer = {
   
 
 
+  _checkInit: function DS_checkInit() {
+    if (!this._transportInitialized) {
+      throw "DebuggerServer has not been initialized.";
+    }
+
+    if (!this.createRootActor) {
+      throw "Use DebuggerServer.addActors() to add a root actor implementation.";
+    }
+  },
+
+  
+
+
 
 
 
@@ -927,19 +940,6 @@ var DebuggerServer = {
     mm.sendAsyncMessage("debug:connect", { prefix: prefix });
 
     return deferred.promise;
-  },
-
-  
-
-
-  _checkInit: function DS_checkInit() {
-    if (!this._transportInitialized) {
-      throw "DebuggerServer has not been initialized.";
-    }
-
-    if (!this.createRootActor) {
-      throw "Use DebuggerServer.addActors() to add a root actor implementation.";
-    }
   },
 
   
