@@ -54,6 +54,7 @@ let gPage = {
       
       if (aData == "browser.newtabpage.enhanced") {
         this.update();
+        gIntro.showIfNecessary();
       }
 
       
