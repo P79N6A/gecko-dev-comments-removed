@@ -19,7 +19,7 @@ enum ReferrerPolicy {
 
   
   RP_No_Referrer_When_Downgrade  = nsIHttpChannel::REFERRER_POLICY_NO_REFERRER_WHEN_DOWNGRADE,
-  RP_Default                     = nsIHttpChannel::REFERRER_POLICY_NO_REFERRER_WHEN_DOWNGRADE,
+  RP_Default                     = nsIHttpChannel::REFERRER_POLICY_DEFAULT,
 
   
   RP_Origin_When_Crossorigin     = nsIHttpChannel::REFERRER_POLICY_ORIGIN_WHEN_XORIGIN,

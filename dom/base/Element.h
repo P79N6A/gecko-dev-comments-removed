@@ -1060,6 +1060,8 @@ public:
 
   float FontSizeInflation();
 
+  net::ReferrerPolicy GetReferrerPolicy();
+
 protected:
   
 
