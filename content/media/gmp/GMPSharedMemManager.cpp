@@ -40,6 +40,8 @@ GMPSharedMemManager::MgrAllocShmem(GMPSharedMem::GMPMemoryClasses aClass, size_t
   size_t pagesize = ipc::SharedMemory::SystemPageSize();
   aSize = (aSize + (pagesize-1)) & ~(pagesize-1); 
   bool retval = Alloc(aSize, aType, aMem);
+  
+  MOZ_ASSERT(aMem->Size<uint8_t>() >= aSize);
   if (retval) {
     mData->mGmpAllocated[aClass]++;
   }
@@ -53,6 +55,18 @@ GMPSharedMemManager::MgrDeallocShmem(GMPSharedMem::GMPMemoryClasses aClass, ipc:
 
   size_t size = aMem.Size<uint8_t>();
   size_t total = 0;
+
+  
+  
+  for (uint32_t i = 0; i < GetGmpFreelist(aClass).Length(); i++) {
+    if (NS_WARN_IF(aMem == GetGmpFreelist(aClass)[i])) {
+      
+      
+      MOZ_CRASH("Deallocating Shmem we already have in our cache!");
+      
+    }
+  }
+
   
   
   if (GetGmpFreelist(aClass).Length() > 10) {
