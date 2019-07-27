@@ -64,92 +64,16 @@ namespace jit {
 
 
 
-
-
-
-
-
-
 class AutoTraceLog;
-class TraceLoggerEventPayload;
-class TraceLoggerThread;
-
-
-
-
-
-
-
-
-class TraceLoggerEvent {
-  private:
-    TraceLoggerEventPayload *payload_;
-
-  public:
-    TraceLoggerEvent(TraceLoggerThread *logger, TraceLoggerTextId textId);
-    TraceLoggerEvent(TraceLoggerThread *logger, TraceLoggerTextId type, JSScript *script);
-    TraceLoggerEvent(TraceLoggerThread *logger, TraceLoggerTextId type,
-                     const JS::ReadOnlyCompileOptions &compileOptions);
-    TraceLoggerEvent(TraceLoggerThread *logger, const char *text);
-    TraceLoggerEvent() { payload_ = nullptr; };
-    ~TraceLoggerEvent();
-
-    TraceLoggerEventPayload *payload() const {
-        MOZ_ASSERT(hasPayload());
-        return payload_;
-    }
-    bool hasPayload() const {
-        return !!payload_;
-    }
-};
-
-
-
-
-
-
-
-class TraceLoggerEventPayload {
-    uint32_t textId_;
-    mozilla::UniquePtr<char, JS::FreePolicy> string_;
-    uint32_t uses_;
-
-  public:
-    TraceLoggerEventPayload(uint32_t textId, char *string)
-      : textId_(textId),
-        string_(string),
-        uses_(0)
-    { }
-
-    uint32_t textId() {
-        return textId_;
-    }
-    const char *string() {
-        return string_.get();
-    }
-    uint32_t uses() {
-        return uses_;
-    }
-    void use() {
-        uses_++;
-    }
-    void release() {
-        uses_--;
-    }
-};
 
 class TraceLoggerThread
 {
 #ifdef JS_TRACE_LOGGING
   private:
     typedef HashMap<const void *,
-                    TraceLoggerEventPayload *,
+                    uint32_t,
                     PointerHasher<const void *, 3>,
                     SystemAllocPolicy> PointerHashMap;
-    typedef HashMap<uint32_t,
-                    TraceLoggerEventPayload *,
-                    DefaultHasher<uint32_t>,
-                    SystemAllocPolicy> TextIdHashMap;
 
     uint32_t enabled;
     bool failed;
@@ -157,7 +81,7 @@ class TraceLoggerThread
     mozilla::UniquePtr<TraceLoggerGraph> graph;
 
     PointerHashMap pointerMap;
-    TextIdHashMap extraTextId;
+    Vector<char *, 0, js::SystemAllocPolicy> extraTextId;
 
     ContinuousSpace<EventEntry> events;
 
@@ -226,30 +150,21 @@ class TraceLoggerThread
     
     
     
-    TraceLoggerEventPayload *getOrCreateEventPayload(TraceLoggerTextId textId);
-    TraceLoggerEventPayload *getOrCreateEventPayload(const char *text);
-    TraceLoggerEventPayload *getOrCreateEventPayload(TraceLoggerTextId type, JSScript *script);
-    TraceLoggerEventPayload *getOrCreateEventPayload(TraceLoggerTextId type,
-                                                     const JS::ReadOnlyCompileOptions &script);
+    uint32_t createTextId(const char *text);
+    uint32_t createTextId(TraceLoggerTextId type, JSScript *script);
+    uint32_t createTextId(TraceLoggerTextId type, const JS::ReadOnlyCompileOptions &script);
   private:
-    TraceLoggerEventPayload *getOrCreateEventPayload(TraceLoggerTextId type, const char *filename,
-                                                     size_t lineno, size_t colno, const void *p);
+    uint32_t createTextId(TraceLoggerTextId type, const char *filename, size_t lineno,
+                          size_t colno, const void *p);
 
   public:
     
-    void logTimestamp(TraceLoggerTextId id);
-
-    
-    void startEvent(TraceLoggerTextId id);
-    void startEvent(const TraceLoggerEvent &event);
-    void stopEvent(TraceLoggerTextId id);
-    void stopEvent(const TraceLoggerEvent &event);
-
-    
-    
     void logTimestamp(uint32_t id);
+
+    
     void startEvent(uint32_t id);
     void stopEvent(uint32_t id);
+
   private:
     void stopEvent();
 
@@ -350,6 +265,31 @@ inline bool TraceLoggerDisable(TraceLoggerThread *logger) {
     return false;
 }
 
+inline uint32_t TraceLogCreateTextId(TraceLoggerThread *logger, TraceLoggerTextId type,
+                                     JSScript *script)
+{
+#ifdef JS_TRACE_LOGGING
+    if (logger)
+        return logger->createTextId(type, script);
+#endif
+    return TraceLogger_Error;
+}
+inline uint32_t TraceLogCreateTextId(TraceLoggerThread *logger, TraceLoggerTextId type,
+                                     const JS::ReadOnlyCompileOptions &compileOptions)
+{
+#ifdef JS_TRACE_LOGGING
+    if (logger)
+        return logger->createTextId(type, compileOptions);
+#endif
+    return TraceLogger_Error;
+}
+inline uint32_t TraceLogCreateTextId(TraceLoggerThread *logger, const char *text) {
+#ifdef JS_TRACE_LOGGING
+    if (logger)
+        return logger->createTextId(text);
+#endif
+    return TraceLogger_Error;
+}
 #ifdef JS_TRACE_LOGGING
 bool TraceLogTextIdEnabled(uint32_t textId);
 void TraceLogEnableTextId(JSContext *cx, uint32_t textId);
@@ -361,96 +301,42 @@ inline bool TraceLogTextIdEnabled(uint32_t textId) {
 inline void TraceLogEnableTextId(JSContext *cx, uint32_t textId) {}
 inline void TraceLogDisableTextId(JSContext *cx, uint32_t textId) {}
 #endif
-inline void TraceLogTimestamp(TraceLoggerThread *logger, TraceLoggerTextId textId) {
+inline void TraceLogTimestamp(TraceLoggerThread *logger, uint32_t textId) {
 #ifdef JS_TRACE_LOGGING
     if (logger)
         logger->logTimestamp(textId);
 #endif
 }
-inline void TraceLogStartEvent(TraceLoggerThread *logger, TraceLoggerTextId textId) {
+inline void TraceLogStartEvent(TraceLoggerThread *logger, uint32_t textId) {
 #ifdef JS_TRACE_LOGGING
     if (logger)
         logger->startEvent(textId);
 #endif
 }
-inline void TraceLogStartEvent(TraceLoggerThread *logger, const TraceLoggerEvent &event) {
-#ifdef JS_TRACE_LOGGING
-    if (logger)
-        logger->startEvent(event);
-#endif
-}
-inline void TraceLogStopEvent(TraceLoggerThread *logger, TraceLoggerTextId textId) {
+inline void TraceLogStopEvent(TraceLoggerThread *logger, uint32_t textId) {
 #ifdef JS_TRACE_LOGGING
     if (logger)
         logger->stopEvent(textId);
 #endif
 }
-inline void TraceLogStopEvent(TraceLoggerThread *logger, const TraceLoggerEvent &event) {
-#ifdef JS_TRACE_LOGGING
-    if (logger)
-        logger->stopEvent(event);
-#endif
-}
 
 
-inline void TraceLogTimestampPrivate(TraceLoggerThread *logger, uint32_t id) {
-#ifdef JS_TRACE_LOGGING
-    if (logger)
-        logger->logTimestamp(id);
-#endif
-}
-inline void TraceLogStartEventPrivate(TraceLoggerThread *logger, uint32_t id) {
-#ifdef JS_TRACE_LOGGING
-    if (logger)
-        logger->startEvent(id);
-#endif
-}
-inline void TraceLogStopEventPrivate(TraceLoggerThread *logger, uint32_t id) {
-#ifdef JS_TRACE_LOGGING
-    if (logger)
-        logger->stopEvent(id);
-#endif
-}
-
-
-class AutoTraceLog
-{
+class AutoTraceLog {
 #ifdef JS_TRACE_LOGGING
     TraceLoggerThread *logger;
-    union {
-        const TraceLoggerEvent *event;
-        TraceLoggerTextId id;
-    } payload;
-    bool isEvent;
+    uint32_t textId;
     bool executed;
     AutoTraceLog *prev;
 
   public:
-    AutoTraceLog(TraceLoggerThread *logger,
-                 const TraceLoggerEvent &event MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+    AutoTraceLog(TraceLoggerThread *logger, uint32_t textId MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : logger(logger),
-        isEvent(true),
+        textId(textId),
         executed(false)
     {
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-        payload.event = &event;
         if (logger) {
-            logger->startEvent(event);
-
-            prev = logger->top;
-            logger->top = this;
-        }
-    }
-
-    AutoTraceLog(TraceLoggerThread *logger, TraceLoggerTextId id MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : logger(logger),
-        isEvent(false),
-        executed(false)
-    {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-        payload.id = id;
-        if (logger) {
-            logger->startEvent(id);
+            TraceLogStartEvent(logger, textId);
 
             prev = logger->top;
             logger->top = this;
@@ -469,10 +355,7 @@ class AutoTraceLog
     void stop() {
         if (!executed) {
             executed = true;
-            if (isEvent)
-                logger->stopEvent(*payload.event);
-            else
-                logger->stopEvent(payload.id);
+            TraceLogStopEvent(logger, textId);
         }
 
         if (logger->top == this)

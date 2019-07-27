@@ -1463,8 +1463,7 @@ jit::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, JitFrameIter
             
             
             
-            TraceLoggerEvent scriptEvent(logger, TraceLogger_Scripts, scr);
-            TraceLogStartEvent(logger, scriptEvent);
+            TraceLogStartEvent(logger, TraceLogCreateTextId(logger, TraceLogger_Scripts, scr));
             TraceLogStartEvent(logger, TraceLogger_Baseline);
         }
 
