@@ -108,9 +108,10 @@ public:
     sUnbondingRunnableArray.Clear();
 
     
+    
     NS_ENSURE_TRUE(sBtInterface, NS_ERROR_FAILURE);
     sBtInterface->SetAdapterProperty(
-      BluetoothNamedValue(NS_ConvertUTF8toUTF16("Discoverable"), true),
+      BluetoothNamedValue(NS_ConvertUTF8toUTF16("Discoverable"), false),
       new SetAdapterPropertyResultHandler());
 
     
