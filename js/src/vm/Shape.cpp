@@ -445,7 +445,7 @@ js::ObjectImpl::toDictionaryMode(ThreadSafeContext *cx)
 
 #ifdef JSGC_COMPACTING
     
-    js::AutoDisableCompactingGC nogc(zone()->runtimeFromAnyThread());
+    js::gc::AutoSuppressGC nogc(zone()->runtimeFromAnyThread());
 #endif
 
     
