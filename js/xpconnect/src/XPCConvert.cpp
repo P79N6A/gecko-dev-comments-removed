@@ -908,17 +908,6 @@ XPCConvert::JSObject2NativeInterface(void** dest, HandleObject src,
         
         
         JSObject* inner = js::CheckedUnwrap(src,  false);
-
-        
-        
-        
-        
-        
-        
-        
-        
-        if (!inner && MOZ_UNLIKELY(xpc::WrapperFactory::IsCOW(src)))
-            inner = js::UncheckedUnwrap(src);
         if (!inner) {
             if (pErr)
                 *pErr = NS_ERROR_XPC_SECURITY_MANAGER_VETO;

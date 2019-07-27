@@ -524,18 +524,6 @@ getWrapper(JSContext *cx,
         
         
         
-        
-        
-        
-        
-        
-        
-        if (!inner && MOZ_UNLIKELY(xpc::WrapperFactory::IsCOW(obj)))
-            inner = js::UncheckedUnwrap(obj);
-
-        
-        
-        
         if (!inner)
             return NS_ERROR_XPC_SECURITY_MANAGER_VETO;
         MOZ_ASSERT(!js::IsWrapper(inner));
