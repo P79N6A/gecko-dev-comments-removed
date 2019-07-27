@@ -12,9 +12,9 @@ const FRAMERATE_GRAPH_LOW_RES_INTERVAL = 100;
 const FRAMERATE_GRAPH_HIGH_RES_INTERVAL = 16; 
 
 const FRAMERATE_GRAPH_HEIGHT = 45; 
-const MARKERS_GRAPH_HEADER_HEIGHT = 12; 
-const MARKERS_GRAPH_BODY_HEIGHT = 45; 
-const MARKERS_GROUP_VERTICAL_PADDING = 3.5; 
+const MARKERS_GRAPH_HEADER_HEIGHT = 14; 
+const MARKERS_GRAPH_ROW_HEIGHT = 11; 
+const MARKERS_GROUP_VERTICAL_PADDING = 5; 
 const MEMORY_GRAPH_HEIGHT = 30; 
 
 const GRAPH_SCROLL_EVENTS_DRAIN = 50; 
@@ -82,7 +82,7 @@ let OverviewView = {
   _showMarkersGraph: Task.async(function *() {
     this.markersOverview = new MarkersOverview($("#markers-overview"), TIMELINE_BLUEPRINT);
     this.markersOverview.headerHeight = MARKERS_GRAPH_HEADER_HEIGHT;
-    this.markersOverview.bodyHeight = MARKERS_GRAPH_BODY_HEIGHT;
+    this.markersOverview.rowHeight = MARKERS_GRAPH_ROW_HEIGHT;
     this.markersOverview.groupPadding = MARKERS_GROUP_VERTICAL_PADDING;
     yield this.markersOverview.ready();
 

@@ -23,7 +23,6 @@ loader.lazyRequireGetter(this, "L10N",
 const OVERVIEW_HEADER_HEIGHT = 14; 
 const OVERVIEW_ROW_HEIGHT = 11; 
 
-const OVERVIEW_BODY_HEIGHT = 55; 
 const OVERVIEW_SELECTION_LINE_COLOR = "#666";
 const OVERVIEW_CLIPHEAD_LINE_COLOR = "#555";
 
