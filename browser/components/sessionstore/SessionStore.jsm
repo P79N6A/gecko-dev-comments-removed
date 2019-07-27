@@ -44,8 +44,7 @@ const WINDOW_HIDEABLE_FEATURES = [
   "menubar", "toolbar", "locationbar", "personalbar", "statusbar", "scrollbars"
 ];
 
-
-const FMM_MESSAGES = [
+const MESSAGES = [
   
   
   "SessionStore:setupSyncHandler",
@@ -75,16 +74,6 @@ const FMM_MESSAGES = [
 ];
 
 
-const PPMM_MESSAGES = [
-  
-  
-  
-  
-  
-  "SessionStore:RemoteTabRevived",
-];
-
-
 const TAB_EVENTS = [
   "TabOpen", "TabClose", "TabSelect", "TabShow", "TabHide", "TabPinned",
   "TabUnpinned"
@@ -108,9 +97,7 @@ XPCOMUtils.defineLazyServiceGetter(this, "gScreenManager",
   "@mozilla.org/gfx/screenmanager;1", "nsIScreenManager");
 XPCOMUtils.defineLazyServiceGetter(this, "Telemetry",
   "@mozilla.org/base/telemetry;1", "nsITelemetry");
-XPCOMUtils.defineLazyServiceGetter(this, "ppmm",
-  "@mozilla.org/parentprocessmessagemanager;1",
-  "nsIMessageListenerManager");
+
 XPCOMUtils.defineLazyModuleGetter(this, "console",
   "resource://gre/modules/devtools/Console.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "RecentWindow",
@@ -311,11 +298,6 @@ let SessionStoreInternal = {
   _browserEpochs: new WeakMap(),
 
   
-  
-  
-  _crashedBrowsers: new WeakSet(),
-
-  
   _browserSetState: false,
 
   
@@ -400,8 +382,6 @@ let SessionStoreInternal = {
     OBSERVING.forEach(function(aTopic) {
       Services.obs.addObserver(this, aTopic, true);
     }, this);
-
-    PPMM_MESSAGES.forEach(msg => ppmm.addMessageListener(msg, this));
 
     this._initPrefs();
     this._initialized = true;
@@ -529,8 +509,6 @@ let SessionStoreInternal = {
 
     
     SessionSaver.cancel();
-
-    PPMM_MESSAGES.forEach(msg => ppmm.removeMessageListener(msg, this));
   },
 
   
@@ -575,16 +553,7 @@ let SessionStoreInternal = {
 
 
 
-
-  receiveMessage(aMessage) {
-    
-    if (aMessage.name == "SessionStore:RemoteTabRevived") {
-      this._crashedBrowsers.delete(aMessage.objects.browser);
-      return;
-    }
-
-    
-    
+  receiveMessage: function ssi_receiveMessage(aMessage) {
     var browser = aMessage.target;
     var win = browser.ownerDocument.defaultView;
     let tab = this._getTabForBrowser(browser);
@@ -598,11 +567,6 @@ let SessionStoreInternal = {
         TabState.setSyncHandler(browser, aMessage.objects.handler);
         break;
       case "SessionStore:update":
-        if (this._crashedBrowsers.has(browser.permanentKey)) {
-          
-          
-          return;
-        }
         this.recordTelemetry(aMessage.data.telemetry);
         TabState.update(browser, aMessage.data);
         this.saveStateDelayed(win);
@@ -687,7 +651,7 @@ let SessionStoreInternal = {
         }
         break;
       default:
-        debug(`received unknown message '${aMessage.name}'`);
+        debug("received unknown message '" + aMessage.name + "'");
         break;
     }
   },
@@ -711,6 +675,7 @@ let SessionStoreInternal = {
 
   handleEvent: function ssi_handleEvent(aEvent) {
     var win = aEvent.currentTarget.ownerDocument.defaultView;
+    let browser;
     switch (aEvent.type) {
       case "TabOpen":
         this.onTabAdd(win, aEvent.originalTarget);
@@ -734,9 +699,6 @@ let SessionStoreInternal = {
       case "TabUnpinned":
       case "SwapDocShells":
         this.saveStateDelayed(win);
-        break;
-      case "oop-browser-crashed":
-        this._crashedBrowsers.add(aEvent.originalTarget);
         break;
     }
     this._clearRestoringWindows();
@@ -776,7 +738,7 @@ let SessionStoreInternal = {
     aWindow.__SSi = this._generateWindowID();
 
     let mm = aWindow.getGroupMessageManager("browsers");
-    FMM_MESSAGES.forEach(msg => mm.addMessageListener(msg, this));
+    MESSAGES.forEach(msg => mm.addMessageListener(msg, this));
 
     
     mm.loadFrameScript("chrome://browser/content/content-sessionStore.js", true);
@@ -1105,7 +1067,7 @@ let SessionStoreInternal = {
     DyingWindowCache.set(aWindow, winData);
 
     let mm = aWindow.getGroupMessageManager("browsers");
-    FMM_MESSAGES.forEach(msg => mm.removeMessageListener(msg, this));
+    MESSAGES.forEach(msg => mm.removeMessageListener(msg, this));
 
     delete aWindow.__SSi;
   },
@@ -1298,7 +1260,6 @@ let SessionStoreInternal = {
   onTabAdd: function ssi_onTabAdd(aWindow, aTab, aNoNotification) {
     let browser = aTab.linkedBrowser;
     browser.addEventListener("SwapDocShells", this);
-    browser.addEventListener("oop-browser-crashed", this);
     if (!aNoNotification) {
       this.saveStateDelayed(aWindow);
     }
@@ -1317,7 +1278,6 @@ let SessionStoreInternal = {
     let browser = aTab.linkedBrowser;
     delete browser.__SS_data;
     browser.removeEventListener("SwapDocShells", this);
-    browser.removeEventListener("oop-browser-crashed", this);
 
     
     
