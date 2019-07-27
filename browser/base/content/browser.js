@@ -923,6 +923,7 @@ var gBrowserInit = {
     gHistorySwipeAnimation.init();
 
     if (window.opener && !window.opener.closed &&
+        window.opener.document.documentURIObject.schemeIs("chrome") &&
         PrivateBrowsingUtils.isWindowPrivate(window) == PrivateBrowsingUtils.isWindowPrivate(window.opener)) {
       let openerSidebarBox = window.opener.document.getElementById("sidebar-box");
       
