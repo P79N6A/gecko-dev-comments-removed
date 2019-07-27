@@ -105,6 +105,11 @@ AudioContext::AudioContext(nsPIDOMWindow* aWindow,
   
   mDestination = new AudioDestinationNode(this, aIsOffline, aChannel,
                                           aNumberOfChannels, aLength, aSampleRate);
+}
+
+void
+AudioContext::Init()
+{
   
   
   
@@ -145,6 +150,7 @@ AudioContext::Constructor(const GlobalObject& aGlobal,
   nsRefPtr<AudioContext> object =
     new AudioContext(window, false,
                      AudioChannelService::GetDefaultAudioChannel());
+  object->Init();
 
   RegisterWeakMemoryReporter(object);
 
@@ -163,6 +169,7 @@ AudioContext::Constructor(const GlobalObject& aGlobal,
   }
 
   nsRefPtr<AudioContext> object = new AudioContext(window, false, aChannel);
+  object->Init();
 
   RegisterWeakMemoryReporter(object);
 
