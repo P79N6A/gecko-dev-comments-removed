@@ -87,64 +87,6 @@ public class BrowserLocaleManager implements LocaleManager {
 
 
 
-
-    public static String getLanguage(final Locale locale) {
-        final String language = locale.getLanguage();  
-        
-        if (language.equals("iw")) {
-            return "he";
-        }
-
-        if (language.equals("in")) {
-            return "id";
-        }
-
-        if (language.equals("ji")) {
-            return "yi";
-        }
-
-        return language;
-    }
-
-    
-
-
-
-
-
-
-
-    public static String getLanguageTag(final Locale locale) {
-        
-        
-
-        final String language = getLanguage(locale);
-        final String country = locale.getCountry();    
-        if (country.equals("")) {
-            return language;
-        }
-        return language + "-" + country;
-    }
-
-    public static Locale parseLocaleCode(final String localeCode) {
-        int index;
-        if ((index = localeCode.indexOf('-')) != -1 ||
-            (index = localeCode.indexOf('_')) != -1) {
-            final String langCode = localeCode.substring(0, index);
-            final String countryCode = localeCode.substring(index + 1);
-            return new Locale(langCode, countryCode);
-        } else {
-            return new Locale(localeCode);
-        }
-    }
-
-    
-
-
-
-
-
-
     @Override
     public void initialize(final Context context) {
         if (!inited.compareAndSet(false, true)) {
@@ -275,7 +217,7 @@ public class BrowserLocaleManager implements LocaleManager {
 
         
         
-        final String osLanguageTag = BrowserLocaleManager.getLanguageTag(osLocale);
+        final String osLanguageTag = Locales.getLanguageTag(osLocale);
         final GeckoEvent localeOSEvent = GeckoEvent.createBroadcastEvent("Locale:OS", osLanguageTag);
         GeckoAppShell.sendEventToGecko(localeOSEvent);
     }
@@ -321,7 +263,7 @@ public class BrowserLocaleManager implements LocaleManager {
         persistLocale(context, localeCode);
 
         
-        GeckoEvent ev = GeckoEvent.createBroadcastEvent(EVENT_LOCALE_CHANGED, BrowserLocaleManager.getLanguageTag(getCurrentLocale(context)));
+        GeckoEvent ev = GeckoEvent.createBroadcastEvent(EVENT_LOCALE_CHANGED, Locales.getLanguageTag(getCurrentLocale(context)));
         GeckoAppShell.sendEventToGecko(ev);
 
         return resultant;
@@ -389,7 +331,7 @@ public class BrowserLocaleManager implements LocaleManager {
         if (current == null) {
             return null;
         }
-        return currentLocale = parseLocaleCode(current);
+        return currentLocale = Locales.parseLocaleCode(current);
     }
 
     
@@ -409,7 +351,7 @@ public class BrowserLocaleManager implements LocaleManager {
             return null;
         }
 
-        final Locale locale = parseLocaleCode(localeCode);
+        final Locale locale = Locales.parseLocaleCode(localeCode);
 
         return updateLocale(context, locale);
     }
@@ -495,7 +437,8 @@ public class BrowserLocaleManager implements LocaleManager {
 
 
 
-    public static String getFallbackLocaleTag() {
+    @SuppressWarnings("static-method")
+    public String getFallbackLocaleTag() {
         return FALLBACK_LOCALE_TAG;
     }
 }

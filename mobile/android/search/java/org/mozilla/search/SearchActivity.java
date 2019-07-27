@@ -5,7 +5,7 @@
 package org.mozilla.search;
 
 import org.mozilla.gecko.GeckoAppShell;
-import org.mozilla.gecko.LocaleAware;
+import org.mozilla.gecko.Locales;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.Telemetry;
 import org.mozilla.gecko.TelemetryContract;
@@ -39,7 +39,7 @@ import com.nineoldandroids.animation.ObjectAnimator;
 
 
 
-public class SearchActivity extends LocaleAware.LocaleAwareFragmentActivity
+public class SearchActivity extends Locales.LocaleAwareFragmentActivity
         implements AcceptsSearchQuery, SearchEngineCallback {
 
     private static final String LOGTAG = "GeckoSearchActivity";
