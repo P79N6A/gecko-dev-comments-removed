@@ -36,8 +36,11 @@ public:
   
   
   
+  typedef HRESULT (*ConfigureOutputCallback)(IMFMediaType* aOutputType, void* aData);
   HRESULT SetMediaTypes(IMFMediaType* aInputType,
-                        IMFMediaType* aOutputType);
+                        IMFMediaType* aOutputType,
+                        ConfigureOutputCallback aCallback = nullptr,
+                        void* aData = nullptr);
 
   
   TemporaryRef<IMFAttributes> GetAttributes();
@@ -54,6 +57,7 @@ public:
   HRESULT Input(const uint8_t* aData,
                 uint32_t aDataSize,
                 int64_t aTimestampUsecs);
+  HRESULT Input(IMFSample* aSample);
 
   
   
@@ -78,7 +82,7 @@ public:
 
 private:
 
-  HRESULT SetDecoderOutputType();
+  HRESULT SetDecoderOutputType(ConfigureOutputCallback aCallback, void* aData);
 
   HRESULT CreateInputSample(const uint8_t* aData,
                             uint32_t aDataSize,

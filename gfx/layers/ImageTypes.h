@@ -81,7 +81,12 @@ enum class ImageFormat {
 
 
 
-  OVERLAY_IMAGE
+  OVERLAY_IMAGE,
+
+  
+
+
+  D3D11_SHARE_HANDLE_TEXTURE
 };
 
 enum class StereoMode {

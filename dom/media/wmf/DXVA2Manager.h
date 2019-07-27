@@ -24,8 +24,8 @@ public:
 
   
   
-  
-  static DXVA2Manager* Create();
+  static DXVA2Manager* CreateD3D9DXVA();
+  static DXVA2Manager* CreateD3D11DXVA();
 
   
   
@@ -38,6 +38,8 @@ public:
                               const nsIntRect& aRegion,
                               layers::ImageContainer* aContainer,
                               layers::Image** aOutImage) = 0;
+
+  virtual HRESULT ConfigureForSize(uint32_t aWidth, uint32_t aHeight) { return S_OK; }
 
   virtual ~DXVA2Manager();
 
