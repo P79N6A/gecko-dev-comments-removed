@@ -67,97 +67,6 @@ function getChromeDir(resolvedURI) {
 
 
 
-function getMochitestJarListing(aBasePath, aTestPath, aDir)
-{
-  var zReader = Components.classes["@mozilla.org/libjar/zip-reader;1"].
-                  createInstance(Components.interfaces.nsIZipReader);
-  var fileHandler = Components.classes["@mozilla.org/network/protocol;1?name=file"].
-                    getService(Components.interfaces.nsIFileProtocolHandler);
-
-  var fileName = fileHandler.getFileFromURLSpec(getResolvedURI(aBasePath).JARFile.spec);
-  zReader.open(fileName);
-  
-  var idx = aBasePath.indexOf('/content');
-  var basePath = aBasePath.slice(0, idx);
-
-  var base = "content/" + aDir + "/";
-
-  if (aTestPath) {
-    var extraPath = aTestPath;
-    var pathToCheck = base + aTestPath;
-    if (zReader.hasEntry(pathToCheck)) {
-      var pathEntry = zReader.getEntry(pathToCheck);
-      if (pathEntry.isDirectory) {
-        base = pathToCheck;
-      } else {
-        var singleTestPath = basePath + '/' + base + aTestPath;
-        var singleObject = {};
-        singleObject[singleTestPath] = true;
-        return singleObject;
-      }
-    }
-    else if (zReader.hasEntry(pathToCheck + "/")) {
-      base = pathToCheck + "/";
-    }
-    else {
-      return null;
-    }
-  }
-  var [links, count] = zList(base, zReader, basePath, true);
-  return links;
-}
-
-
-
-
-
-
-
-
-
-
-
-function zList(base, zReader, baseJarName, recurse) {
-  var dirs = zReader.findEntries(base + "*");
-  var links = {};
-  var count = 0;
-  var fileArray = [];
-
-  while(dirs.hasMore()) {
-    var entryName = dirs.getNext();
-    if (entryName.substr(-1) == '/' && entryName.split('/').length == (base.split('/').length + 1) ||
-        (entryName.substr(-1) != '/' && entryName.split('/').length == (base.split('/').length))) {
-      fileArray.push(entryName);
-    }
-  }
-  fileArray.sort();
-  count = fileArray.length;
-  for (var i=0; i < fileArray.length; i++) {
-    var myFile = fileArray[i];
-    if (myFile.substr(-1) === '/' && recurse) {
-      var childCount = 0;
-      [links[myFile], childCount] = zList(myFile, zReader, baseJarName, recurse);
-      count += childCount;
-    } else {
-      if (myFile.indexOf("SimpleTest") == -1) {
-        
-        links[baseJarName + '/' + myFile] = true;
-      }
-    }
-  }
-  return [links, count];
-}
-
-
-
-
-
-
-
-
-
-
-
 function getFileListing(basePath, testPath, dir, srvScope)
 {
   var uri = getResolvedURI(basePath);
@@ -433,10 +342,6 @@ function getTestList(params, callback) {
   scriptLoader.loadSubScript('chrome://mochikit/content/server.js',
                              srvScope);
 
-  if (getResolvedURI(baseurl).JARFile) {
-    links = getMochitestJarListing(baseurl, params.testPath, params.testRoot);
-  } else {
-    links = getFileListing(baseurl, params.testPath, params.testRoot, srvScope);
-  }
+  links = getFileListing(baseurl, params.testPath, params.testRoot, srvScope);
   callback(links);
 }
