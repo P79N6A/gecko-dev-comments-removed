@@ -26,8 +26,6 @@ let ReaderParent = {
     "Reader:ListStatusRequest",
     "Reader:RemoveFromList",
     "Reader:Share",
-    "Reader:ShowToast",
-    "Reader:ToolbarVisibility",
     "Reader:SystemUIVisibility",
     "Reader:UpdateReaderButton",
   ],
@@ -70,15 +68,7 @@ let ReaderParent = {
         
         break;
 
-      case "Reader:ShowToast":
-        
-        break;
-
       case "Reader:SystemUIVisibility":
-        
-        break;
-
-      case "Reader:ToolbarVisibility":
         
         break;
 
