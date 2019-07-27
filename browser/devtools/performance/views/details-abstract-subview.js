@@ -66,6 +66,12 @@ let DetailsSubview = {
   
 
 
+
+  observedPrefs: [],
+
+  
+
+
   _onRecordingStoppedOrSelected: function(_, recording) {
     if (!recording || recording.isRecording()) {
       return;
@@ -103,6 +109,10 @@ let DetailsSubview = {
 
 
   _onPrefChanged: function (_, prefName) {
+    if (~this.observedPrefs.indexOf(prefName) && this._onObservedPrefChange) {
+      this._onObservedPrefChange(_, prefName);
+    }
+
     
     
     let recording = PerformanceController.getCurrentRecording();
@@ -115,7 +125,7 @@ let DetailsSubview = {
     }
 
     if (this._onRerenderPrefChanged) {
-      this._onRerenderPrefChanged();
+      this._onRerenderPrefChanged(_, prefName);
     }
 
     if (DetailsView.isViewSelected(this) || this.canUpdateWhileHidden) {

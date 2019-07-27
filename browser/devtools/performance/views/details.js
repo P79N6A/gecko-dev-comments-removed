@@ -11,12 +11,34 @@ let DetailsView = {
   
 
 
+
   components: {
-    "waterfall": { id: "waterfall-view", view: WaterfallView, requires: ["timeline"] },
-    "js-calltree": { id: "js-calltree-view", view: JsCallTreeView },
-    "js-flamegraph": { id: "js-flamegraph-view", view: JsFlameGraphView, requires: ["timeline"] },
-    "memory-calltree": { id: "memory-calltree-view", view: MemoryCallTreeView, requires: ["memory"], pref: "enable-memory" },
-    "memory-flamegraph": { id: "memory-flamegraph-view", view: MemoryFlameGraphView, requires: ["memory", "timeline"], pref: "enable-memory" }
+    "waterfall": {
+      id: "waterfall-view",
+      view: WaterfallView,
+      requires: ["timeline"]
+    },
+    "js-calltree": {
+      id: "js-calltree-view",
+      view: JsCallTreeView
+    },
+    "js-flamegraph": {
+      id: "js-flamegraph-view",
+      view: JsFlameGraphView,
+      requires: ["timeline"]
+    },
+    "memory-calltree": {
+      id: "memory-calltree-view",
+      view: MemoryCallTreeView,
+      requires: ["memory"],
+      pref: "enable-memory"
+    },
+    "memory-flamegraph": {
+      id: "memory-flamegraph-view",
+      view: MemoryFlameGraphView,
+      requires: ["memory", "timeline"],
+      pref: "enable-memory"
+    }
   },
 
   
@@ -66,12 +88,13 @@ let DetailsView = {
 
   setAvailableViews: Task.async(function* () {
     let mocks = gFront.getMocksInUse();
+
     for (let [name, { view, pref, requires }] of Iterator(this.components)) {
       let recording = PerformanceController.getCurrentRecording();
 
       let isRecorded = recording && !recording.isRecording();
       
-      let isEnabled = !pref || PerformanceController.getPref(pref);
+      let isEnabled = !pref || PerformanceController.getOption(pref);
       
       let isSupported = !requires || requires.every(r => !mocks[r]);
 

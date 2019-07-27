@@ -1227,7 +1227,7 @@ pref("security.sandbox.windows.log.stackTraceDepth", 0);
 
 
 
-pref("security.sandbox.macos.content.level", 0);
+pref("security.sandbox.macos.content.level", 1);
 #endif
 
 
@@ -1438,6 +1438,9 @@ pref("devtools.timeline.enabled", true);
 #else
 pref("devtools.timeline.enabled", false);
 #endif
+
+
+
 pref("devtools.timeline.hiddenMarkers", "[]");
 
 
@@ -1455,6 +1458,7 @@ pref("devtools.profiler.ui.show-platform-data", false);
 pref("devtools.profiler.ui.show-idle-blocks", true);
 
 
+pref("devtools.performance.timeline.hidden-markers", "[]");
 pref("devtools.performance.ui.invert-call-tree", true);
 pref("devtools.performance.ui.invert-flame-graph", false);
 pref("devtools.performance.ui.flatten-tree-recursion", true);

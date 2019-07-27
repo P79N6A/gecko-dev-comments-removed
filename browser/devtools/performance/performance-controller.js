@@ -61,6 +61,8 @@ const EVENTS = {
   PREF_CHANGED: "Performance:PrefChanged",
 
   
+  
+  
   UI_STATE_CHANGED: "Performance:UI:StateChanged",
 
   
@@ -176,6 +178,16 @@ let PerformanceController = {
     this._onRecordingSelectFromView = this._onRecordingSelectFromView.bind(this);
     this._onPrefChanged = this._onPrefChanged.bind(this);
 
+    
+    
+    
+    this._nonBooleanPrefs = new ViewHelpers.Prefs("devtools.performance", {
+      "hidden-markers": ["Json", "timeline.hidden-markers"]
+    });
+
+    this._nonBooleanPrefs.registerObserver();
+    this._nonBooleanPrefs.on("pref-changed", this._onPrefChanged);
+
     ToolbarView.on(EVENTS.PREF_CHANGED, this._onPrefChanged);
     PerformanceView.on(EVENTS.UI_START_RECORDING, this.startRecording);
     PerformanceView.on(EVENTS.UI_STOP_RECORDING, this.stopRecording);
@@ -195,6 +207,9 @@ let PerformanceController = {
 
 
   destroy: function() {
+    this._nonBooleanPrefs.unregisterObserver();
+    this._nonBooleanPrefs.off("pref-changed", this._onPrefChanged);
+
     ToolbarView.off(EVENTS.PREF_CHANGED, this._onPrefChanged);
     PerformanceView.off(EVENTS.UI_START_RECORDING, this.startRecording);
     PerformanceView.off(EVENTS.UI_STOP_RECORDING, this.stopRecording);
@@ -214,7 +229,10 @@ let PerformanceController = {
 
 
 
-  getPref: function (prefName) {
+
+
+
+  getOption: function (prefName) {
     return ToolbarView.optionsView.getPref(prefName);
   },
 
@@ -222,10 +240,28 @@ let PerformanceController = {
 
 
 
+
+  getPref: function (prefName) {
+    return this._nonBooleanPrefs[prefName];
+  },
+
+  
+
+
+
+
+  setPref: function (prefName, prefValue) {
+    this._nonBooleanPrefs[prefName] = prefValue;
+  },
+
+  
+
+
+
   startRecording: Task.async(function *() {
-    let withMemory = this.getPref("enable-memory");
-    let withTicks = this.getPref("enable-framerate");
-    let withAllocations = this.getPref("enable-memory");
+    let withMemory = this.getOption("enable-memory");
+    let withTicks = this.getOption("enable-framerate");
+    let withAllocations = this.getOption("enable-memory");
 
     let recording = this._createRecording({ withMemory, withTicks, withAllocations });
 
@@ -241,7 +277,7 @@ let PerformanceController = {
 
 
   stopRecording: Task.async(function *() {
-    let recording = this._getLatestRecording();
+    let recording = this.getLatestRecording();
 
     this.emit(EVENTS.RECORDING_WILL_STOP, recording);
     yield recording.stopRecording();
@@ -267,7 +303,7 @@ let PerformanceController = {
 
 
   clearRecordings: Task.async(function* () {
-    let latest = this._getLatestRecording();
+    let latest = this.getLatestRecording();
 
     if (latest && latest.isRecording()) {
       yield this.stopRecording();
@@ -335,11 +371,21 @@ let PerformanceController = {
 
 
 
-  _getLatestRecording: function () {
+  getLatestRecording: function () {
     for (let i = this._recordings.length - 1; i >= 0; i--) {
       return this._recordings[i];
     }
     return null;
+  },
+
+  
+
+
+
+  getTimelineBlueprint: function() {
+    let blueprint = TIMELINE_BLUEPRINT;
+    let hiddenMarkers = this.getPref("hidden-markers");
+    return RecordingUtils.getFilteredBlueprint({ blueprint, hiddenMarkers });
   },
 
   
@@ -362,8 +408,8 @@ let PerformanceController = {
 
 
 
-  _onPrefChanged: function (_, prefName, value) {
-    this.emit(EVENTS.PREF_CHANGED, prefName, value);
+  _onPrefChanged: function (_, prefName, prefValue) {
+    this.emit(EVENTS.PREF_CHANGED, prefName, prefValue);
   },
 
   toString: () => "[object PerformanceController]"

@@ -17,6 +17,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Timer.jsm");
 Cu.import("resource://gre/modules/devtools/DevToolsUtils.jsm");
+Cu.import("resource://gre/modules/devtools/event-emitter.js");
 
 this.EXPORTED_SYMBOLS = [
   "Heritage", "ViewHelpers", "WidgetMethods",
@@ -403,14 +404,46 @@ ViewHelpers.L10N.prototype = {
 
 
 
-ViewHelpers.Prefs = function(aPrefsRoot = "", aPrefsObject = {}) {
-  this._root = aPrefsRoot;
-  this._cache = new Map();
 
-  for (let accessorName in aPrefsObject) {
-    let [prefType, prefName] = aPrefsObject[accessorName];
-    this.map(accessorName, prefType, prefName);
+
+
+
+
+
+
+
+ViewHelpers.Prefs = function(aPrefsRoot = "", aPrefsBlueprint = {}) {
+  EventEmitter.decorate(this);
+
+  this._cache = new Map();
+  let self = this;
+
+  for (let [accessorName, [prefType, prefName]] of Iterator(aPrefsBlueprint)) {
+    this._map(accessorName, prefType, aPrefsRoot, prefName);
   }
+
+  let observer = {
+    register: function() {
+      this.branch = Services.prefs.getBranch(aPrefsRoot + ".");
+      this.branch.addObserver("", this, false);
+    },
+    unregister: function() {
+      this.branch.removeObserver("", this);
+    },
+    observe: function(_, __, aPrefName) {
+      
+      
+      let accessor = self._accessor(aPrefsBlueprint, aPrefName);
+      if (!(accessor in self)) {
+        return;
+      }
+      self._cache.delete(aPrefName);
+      self.emit("pref-changed", accessor, self[accessor]);
+    }
+  };
+
+  this.registerObserver = () => observer.register();
+  this.unregisterObserver = () => observer.unregister();
 };
 
 ViewHelpers.Prefs.prototype = {
@@ -421,12 +454,13 @@ ViewHelpers.Prefs.prototype = {
 
 
 
-  _get: function(aType, aPrefName) {
+
+  _get: function(aType, aPrefsRoot, aPrefName) {
     let cachedPref = this._cache.get(aPrefName);
     if (cachedPref !== undefined) {
       return cachedPref;
     }
-    let value = Services.prefs["get" + aType + "Pref"](aPrefName);
+    let value = Services.prefs["get" + aType + "Pref"]([aPrefsRoot, aPrefName].join("."));
     this._cache.set(aPrefName, value);
     return value;
   },
@@ -438,8 +472,9 @@ ViewHelpers.Prefs.prototype = {
 
 
 
-  _set: function(aType, aPrefName, aValue) {
-    Services.prefs["set" + aType + "Pref"](aPrefName, aValue);
+
+  _set: function(aType, aPrefsRoot, aPrefName, aValue) {
+    Services.prefs["set" + aType + "Pref"]([aPrefsRoot, aPrefName].join("."), aValue);
     this._cache.set(aPrefName, aValue);
   },
 
@@ -453,23 +488,33 @@ ViewHelpers.Prefs.prototype = {
 
 
 
-  map: function(aAccessorName, aType, aPrefName, aSerializer = { in: e => e, out: e => e }) {
+
+  _map: function(aAccessorName, aType, aPrefsRoot, aPrefName, aSerializer = { in: e => e, out: e => e }) {
+    if (aPrefName in this) {
+      throw new Error(`Can't use ${aPrefName} because it's already a property.`);
+    }
     if (aType == "Json") {
-      this.map(aAccessorName, "Char", aPrefName, { in: JSON.parse, out: JSON.stringify });
+      this._map(aAccessorName, "Char", aPrefsRoot, aPrefName, { in: JSON.parse, out: JSON.stringify });
       return;
     }
 
     Object.defineProperty(this, aAccessorName, {
-      get: () => aSerializer.in(this._get(aType, [this._root, aPrefName].join("."))),
-      set: (e) => this._set(aType, [this._root, aPrefName].join("."), aSerializer.out(e))
+      get: () => aSerializer.in(this._get(aType, aPrefsRoot, aPrefName)),
+      set: (e) => this._set(aType, aPrefsRoot, aPrefName, aSerializer.out(e))
     });
   },
 
   
 
 
-  refresh: function() {
-    this._cache.clear();
+
+  _accessor: function(aPrefsBlueprint, aPrefName) {
+    for (let [accessorName, [, prefName]] of Iterator(aPrefsBlueprint)) {
+      if (prefName == aPrefName) {
+        return accessorName;
+      }
+    }
+    return null;
   }
 };
 

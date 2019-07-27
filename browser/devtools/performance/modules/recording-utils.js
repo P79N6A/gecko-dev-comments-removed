@@ -3,6 +3,8 @@
 
 "use strict";
 
+const { Cc, Ci, Cu, Cr } = require("chrome");
+
 
 
 
@@ -130,3 +132,50 @@ exports.RecordingUtils.getSamplesFromAllocations = function(allocations) {
   gSamplesFromAllocationCache.set(allocations, samples);
   return samples;
 }
+
+
+
+
+
+
+
+
+
+
+
+exports.RecordingUtils.getFilteredBlueprint = function({ blueprint, hiddenMarkers }) {
+  let filteredBlueprint = Cu.cloneInto(blueprint, {});
+  let maybeRemovedGroups = new Set();
+  let removedGroups = new Set();
+
+  
+
+  for (let hiddenMarkerName of hiddenMarkers) {
+    maybeRemovedGroups.add(filteredBlueprint[hiddenMarkerName].group);
+    delete filteredBlueprint[hiddenMarkerName];
+  }
+
+  
+
+  for (let maybeRemovedGroup of maybeRemovedGroups) {
+    let markerNames = Object.keys(filteredBlueprint);
+    let isGroupRemoved = markerNames.every(e => filteredBlueprint[e].group != maybeRemovedGroup);
+    if (isGroupRemoved) {
+      removedGroups.add(maybeRemovedGroup);
+    }
+  }
+
+  
+
+  for (let removedGroup of removedGroups) {
+    let markerNames = Object.keys(filteredBlueprint);
+    for (let markerName of markerNames) {
+      let markerDetails = filteredBlueprint[markerName];
+      if (markerDetails.group > removedGroup) {
+        markerDetails.group--;
+      }
+    }
+  }
+
+  return filteredBlueprint;
+};
