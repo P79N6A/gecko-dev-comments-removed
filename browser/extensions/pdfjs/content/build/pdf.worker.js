@@ -22,8 +22,8 @@ if (typeof PDFJS === 'undefined') {
   (typeof window !== 'undefined' ? window : this).PDFJS = {};
 }
 
-PDFJS.version = '1.0.907';
-PDFJS.build = 'e9072ac';
+PDFJS.version = '1.0.937';
+PDFJS.build = '308646d';
 
 (function pdfjsWrapper() {
   
@@ -4642,7 +4642,7 @@ var WidgetAnnotation = (function WidgetAnnotationClosure() {
       var name = namedItem.get('T');
       if (name) {
         fieldName.unshift(stringToPDFString(name));
-      } else {
+      } else if (parent && ref) {
         
         
         
@@ -34610,17 +34610,51 @@ var JpxImage = (function JpxImageClosure() {
         var dataLength = lbox - headerSize;
         var jumpDataLength = true;
         switch (tbox) {
-          case 0x6A501A1A: 
-            
-            break;
           case 0x6A703268: 
             jumpDataLength = false; 
             break;
           case 0x636F6C72: 
             
+            var method = data[position];
+            var precedence = data[position + 1];
+            var approximation = data[position + 2];
+            if (method === 1) {
+              
+              var colorspace = readUint32(data, position + 3);
+              switch (colorspace) {
+                case 16: 
+                case 17: 
+                case 18: 
+                  break;
+                default:
+                  warn('Unknown colorspace ' + colorspace);
+                  break;
+              }
+            } else if (method === 2) {
+              info('ICC profile not supported');
+            }
             break;
           case 0x6A703263: 
             this.parseCodestream(data, position, position + dataLength);
+            break;
+          case 0x6A502020: 
+            if (0x0d0a870a !== readUint32(data, position)) {
+              warn('Invalid JP2 signature');
+            }
+            break;
+          
+          case 0x6A501A1A: 
+          case 0x66747970: 
+          case 0x72726571: 
+          case 0x72657320: 
+          case 0x69686472: 
+            break;
+          default:
+            var headerType = String.fromCharCode((tbox >> 24) & 0xFF,
+                                                 (tbox >> 16) & 0xFF,
+                                                 (tbox >> 8) & 0xFF,
+                                                 tbox & 0xFF);
+            warn('Unsupported header type ' + tbox + ' (' + headerType + ')');
             break;
         }
         if (jumpDataLength) {
@@ -35053,6 +35087,11 @@ var JpxImage = (function JpxImageClosure() {
         codeblock.precinctNumber = precinctNumber;
         codeblock.subbandType = subband.type;
         codeblock.Lblock = 3;
+
+        if (codeblock.tbx1_ <= codeblock.tbx0_ ||
+            codeblock.tby1_ <= codeblock.tby0_) {
+          continue;
+        }
         codeblocks.push(codeblock);
         
         var precinct = precincts[precinctNumber];
@@ -35335,11 +35374,11 @@ var JpxImage = (function JpxImageClosure() {
     var tile = context.tiles[tileIndex];
     var packetsIterator = tile.packetsIterator;
     while (position < dataLength) {
-      var packet = packetsIterator.nextPacket();
+      alignToByte();
       if (!readBits(1)) {
-        alignToByte();
         continue;
       }
+      var packet = packetsIterator.nextPacket();
       var layerNumber = packet.layerNumber;
       var queue = [], codeblock;
       for (var i = 0, ii = packet.codeblocks.length; i < ii; i++) {
@@ -35350,13 +35389,13 @@ var JpxImage = (function JpxImageClosure() {
         var codeblockIncluded = false;
         var firstTimeInclusion = false;
         var valueReady;
-        if ('included' in codeblock) {
+        if (codeblock['included'] !== undefined) {
           codeblockIncluded = !!readBits(1);
         } else {
           
           precinct = codeblock.precinct;
           var inclusionTree, zeroBitPlanesTree;
-          if ('inclusionTree' in precinct) {
+          if (precinct['inclusionTree'] !== undefined) {
             inclusionTree = precinct.inclusionTree;
           } else {
             
@@ -35421,7 +35460,7 @@ var JpxImage = (function JpxImageClosure() {
       while (queue.length > 0) {
         var packetItem = queue.shift();
         codeblock = packetItem.codeblock;
-        if (!('data' in codeblock)) {
+        if (codeblock['data'] === undefined) {
           codeblock.data = [];
         }
         codeblock.data.push({
@@ -35451,7 +35490,7 @@ var JpxImage = (function JpxImageClosure() {
       if (blockWidth === 0 || blockHeight === 0) {
         continue;
       }
-      if (!('data' in codeblock)) {
+      if (codeblock['data'] === undefined) {
         continue;
       }
 
@@ -35706,10 +35745,10 @@ var JpxImage = (function JpxImageClosure() {
     var tile = context.tiles[tileIndex];
     for (var c = 0; c < componentsCount; c++) {
       var component = tile.components[c];
-      var qcdOrQcc = (c in context.currentTile.QCC ?
+      var qcdOrQcc = (context.currentTile.QCC[c] !== undefined ?
         context.currentTile.QCC[c] : context.currentTile.QCD);
       component.quantizationParameters = qcdOrQcc;
-      var codOrCoc = (c in context.currentTile.COC ?
+      var codOrCoc = (context.currentTile.COC[c] !== undefined  ?
         context.currentTile.COC[c] : context.currentTile.COD);
       component.codingStyleParameters = codOrCoc;
     }
@@ -35738,7 +35777,7 @@ var JpxImage = (function JpxImageClosure() {
         while (currentLevel < this.levels.length) {
           level = this.levels[currentLevel];
           var index = i + j * level.width;
-          if (index in level.items) {
+          if (level.items[index] !== undefined) {
             value = level.items[index];
             break;
           }

@@ -123,7 +123,11 @@
       
       
       var rtlList = ['ar', 'he', 'fa', 'ps', 'ur'];
-      return (rtlList.indexOf(gLanguage) >= 0 ? 'rtl' : 'ltr');
+
+      
+      var shortCode = gLanguage.split('-')[0];
+
+      return (rtlList.indexOf(shortCode) >= 0) ? 'rtl' : 'ltr';
     },
 
     
