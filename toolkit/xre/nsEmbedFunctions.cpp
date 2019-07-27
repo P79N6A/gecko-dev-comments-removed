@@ -76,8 +76,6 @@
 
 #include "GeckoProfiler.h"
 
- #include "base/histogram.h"
-
 #if defined(MOZ_SANDBOX) && defined(XP_WIN)
 #define TARGET_SANDBOX_EXPORTS
 #include "mozilla/sandboxing/loggingCallbacks.h"
@@ -139,7 +137,6 @@ XRE_LockProfileDirectory(nsIFile* aDirectory,
 }
 
 static int32_t sInitCounter;
-static UniquePtr<base::StatisticsRecorder> gStatisticsRecorder;
 
 nsresult
 XRE_InitEmbedding2(nsIFile *aLibXULDirectory,
@@ -155,9 +152,6 @@ XRE_InitEmbedding2(nsIFile *aLibXULDirectory,
 
   if (++sInitCounter > 1) 
     return NS_OK;
-
-  
-  gStatisticsRecorder = MakeUnique<base::StatisticsRecorder>();
 
   if (!aAppDirectory)
     aAppDirectory = aLibXULDirectory;
@@ -212,7 +206,6 @@ XRE_TermEmbedding()
   gDirServiceProvider->DoShutdown();
   NS_ShutdownXPCOM(nullptr);
   delete gDirServiceProvider;
-  gStatisticsRecorder = nullptr;
 }
 
 const char*
