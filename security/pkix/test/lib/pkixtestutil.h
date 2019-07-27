@@ -36,6 +36,21 @@
 
 namespace mozilla { namespace pkix { namespace test {
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define MOZILLA_PKIX_ARRAY_LENGTH(x) (sizeof(x) / sizeof((x)[0]))
+
 class TestInput : public Input
 {
 public:
