@@ -131,6 +131,9 @@ this.CrashManager.prototype = Object.freeze({
   PROCESS_TYPE_PLUGIN: "plugin",
 
   
+  PROCESS_TYPE_GMPLUGIN: "gmplugin",
+
+  
   PROCESS_TYPE_SUBMISSION: "submission",
 
   
