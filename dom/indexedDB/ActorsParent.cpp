@@ -92,10 +92,6 @@
 #include "ReportInternalError.h"
 #include "snappy/snappy.h"
 
-#ifdef MOZ_NUWA_PROCESS
-#include "nsThread.h"
-#endif
-
 #define DISABLE_ASSERTS_FOR_FUZZING 0
 
 #if DISABLE_ASSERTS_FOR_FUZZING
@@ -2716,8 +2712,7 @@ InsertIndexDataValuesFunction::OnFunctionCall(mozIStorageValueArray* aValues,
   }
 
   
-  if (NS_WARN_IF(!indexValues.SetCapacity(indexValues.Length() + 1,
-                                          fallible))) {
+  if (NS_WARN_IF(!indexValues.SetCapacity(indexValues.Length() + 1))) {
     IDB_REPORT_INTERNAL_ERR();
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -4803,9 +4798,6 @@ struct ConnectionPool::ThreadInfo
 {
   nsCOMPtr<nsIThread> mThread;
   nsRefPtr<ThreadRunnable> mRunnable;
-#ifdef MOZ_NUWA_PROCESS
-  bool mNuwaWorking;
-#endif
 
   ThreadInfo();
 
@@ -4813,17 +4805,6 @@ struct ConnectionPool::ThreadInfo
   ThreadInfo(const ThreadInfo& aOther);
 
   ~ThreadInfo();
-
-  void
-  NuwaSetWorking(bool aWorking)
-#ifdef MOZ_NUWA_PROCESS
-    ;
-#else
-  {
-    AssertIsOnBackgroundThread();
-    MOZ_ASSERT(mThread);
-  }
-#endif
 };
 
 struct ConnectionPool::DatabaseInfo final
@@ -8109,15 +8090,14 @@ ConvertBlobsToActors(PBackgroundParent* aBackgroundActor,
 
   const uint32_t count = aFiles.Length();
 
-  if (NS_WARN_IF(!aActors.SetCapacity(count, fallible))) {
+  if (NS_WARN_IF(!aActors.SetCapacity(count))) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
   const bool collectFileInfos =
     !BackgroundParent::IsOtherProcessActor(aBackgroundActor);
 
-  if (collectFileInfos &&
-      NS_WARN_IF(!aFileInfos.SetCapacity(count, fallible))) {
+  if (collectFileInfos && NS_WARN_IF(!aFileInfos.SetCapacity(count))) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
@@ -9844,8 +9824,6 @@ ConnectionPool::ShutdownThread(ThreadInfo& aThreadInfo)
   MOZ_ASSERT(aThreadInfo.mRunnable);
   MOZ_ASSERT(mTotalThreadCount);
 
-  aThreadInfo.NuwaSetWorking( false);
-
   nsRefPtr<ThreadRunnable> runnable;
   aThreadInfo.mRunnable.swap(runnable);
 
@@ -9974,8 +9952,6 @@ ConnectionPool::ScheduleTransaction(TransactionInfo* aTransactionInfo,
 
       AdjustIdleTimer();
     }
-
-    dbInfo->mThreadInfo.NuwaSetWorking( true);
   }
 
   MOZ_ASSERT(dbInfo->mThreadInfo.mThread);
@@ -10195,8 +10171,6 @@ ConnectionPool::NoteIdleDatabase(DatabaseInfo* aDatabaseInfo)
     return;
   }
 
-  aDatabaseInfo->mThreadInfo.NuwaSetWorking( false);
-
   mIdleDatabases.InsertElementSorted(aDatabaseInfo);
 
   AdjustIdleTimer();
@@ -10239,8 +10213,6 @@ ConnectionPool::NoteClosedDatabase(DatabaseInfo* aDatabaseInfo)
         ShutdownThread(aDatabaseInfo->mThreadInfo);
       } else {
         MOZ_ASSERT(!mIdleThreads.Contains(aDatabaseInfo->mThreadInfo));
-
-        aDatabaseInfo->mThreadInfo.NuwaSetWorking( false);
 
         mIdleThreads.InsertElementSorted(aDatabaseInfo->mThreadInfo);
 
@@ -10373,8 +10345,6 @@ ConnectionPool::CloseDatabase(DatabaseInfo* aDatabaseInfo)
   aDatabaseInfo->mClosing = true;
 
   nsCOMPtr<nsIRunnable> runnable = new CloseConnectionRunnable(aDatabaseInfo);
-
-  aDatabaseInfo->mThreadInfo.NuwaSetWorking( true);
 
   MOZ_ALWAYS_TRUE(NS_SUCCEEDED(
     aDatabaseInfo->mThreadInfo.mThread->Dispatch(runnable,
@@ -10724,9 +10694,6 @@ ThreadRunnable::Run()
 
 ConnectionPool::
 ThreadInfo::ThreadInfo()
-#ifdef MOZ_NUWA_PROCESS
-  : mNuwaWorking(false)
-#endif
 {
   AssertIsOnBackgroundThread();
 
@@ -10737,9 +10704,6 @@ ConnectionPool::
 ThreadInfo::ThreadInfo(const ThreadInfo& aOther)
   : mThread(aOther.mThread)
   , mRunnable(aOther.mRunnable)
-#ifdef MOZ_NUWA_PROCESS
-  , mNuwaWorking(false)
-#endif
 {
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(aOther.mThread);
@@ -10753,51 +10717,8 @@ ThreadInfo::~ThreadInfo()
 {
   AssertIsOnBackgroundThread();
 
-#ifdef MOZ_NUWA_PROCESS
-  MOZ_ASSERT(!mNuwaWorking);
-#endif
-
   MOZ_COUNT_DTOR(ConnectionPool::ThreadInfo);
 }
-
-#ifdef MOZ_NUWA_PROCESS
-
-void
-ConnectionPool::
-ThreadInfo::NuwaSetWorking(bool aWorking)
-{
-  AssertIsOnBackgroundThread();
-  MOZ_ASSERT(mThread);
-
-  if (mNuwaWorking == aWorking) {
-    return;
-  }
-
-  nsCOMPtr<nsIRunnable> runnable = NS_NewRunnableFunction(
-    [aWorking]
-    {
-      MOZ_ASSERT(!IsOnBackgroundThread());
-      MOZ_ASSERT(!NS_IsMainThread());
-
-      auto* thread = static_cast<nsThread*>(NS_GetCurrentThread());
-      MOZ_ASSERT(thread);
-
-      if (aWorking) {
-        thread->SetWorking();
-      } else {
-        thread->SetIdle();
-      }
-    }
-  );
-  MOZ_ASSERT(runnable);
-
-  MOZ_ALWAYS_TRUE(NS_SUCCEEDED(
-    mThread->Dispatch(runnable, NS_DISPATCH_NORMAL)));
-
-  mNuwaWorking = aWorking;
-}
-
-#endif 
 
 ConnectionPool::
 IdleResource::IdleResource(const TimeStamp& aIdleTime)
@@ -11581,7 +11502,7 @@ Database::Invalidate()
       }
 
       FallibleTArray<nsRefPtr<TransactionBase>> transactions;
-      if (NS_WARN_IF(!transactions.SetCapacity(count, fallible))) {
+      if (NS_WARN_IF(!transactions.SetCapacity(count))) {
         return false;
       }
 
@@ -11929,7 +11850,7 @@ Database::AllocPBackgroundIDBTransactionParent(
   }
 
   FallibleTArray<nsRefPtr<FullObjectStoreMetadata>> fallibleObjectStores;
-  if (NS_WARN_IF(!fallibleObjectStores.SetCapacity(nameCount, fallible))) {
+  if (NS_WARN_IF(!fallibleObjectStores.SetCapacity(nameCount))) {
     return nullptr;
   }
 
@@ -15771,7 +15692,7 @@ DatabaseOperationBase::GetStructuredCloneReadInfoFromBlob(
   }
 
   AutoFallibleTArray<uint8_t, 512> uncompressed;
-  if (NS_WARN_IF(!uncompressed.SetLength(uncompressedLength, fallible))) {
+  if (NS_WARN_IF(!uncompressed.SetLength(uncompressedLength))) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
@@ -15958,7 +15879,7 @@ DatabaseOperationBase::IndexDataValuesFromUpdateInfos(
     return NS_OK;
   }
 
-  if (NS_WARN_IF(!aIndexValues.SetCapacity(count, fallible))) {
+  if (NS_WARN_IF(!aIndexValues.SetCapacity(count))) {
     IDB_REPORT_INTERNAL_ERR();
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -20392,7 +20313,7 @@ UpdateIndexDataValuesFunction::OnFunctionCall(mozIStorageValueArray* aValues,
   const uint32_t updateInfoCount = updateInfos.Length();
 
   if (NS_WARN_IF(!indexValues.SetCapacity(indexValues.Length() +
-                                          updateInfoCount, fallible))) {
+                                          updateInfoCount))) {
     IDB_REPORT_INTERNAL_ERR();
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -21147,7 +21068,7 @@ ObjectStoreAddOrPutRequestOp::Init(TransactionBase* aTransaction)
   if (!files.IsEmpty()) {
     const uint32_t count = files.Length();
 
-    if (NS_WARN_IF(!mStoredFileInfos.SetCapacity(count, fallible))) {
+    if (NS_WARN_IF(!mStoredFileInfos.SetCapacity(count))) {
       return false;
     }
 
@@ -21756,8 +21677,7 @@ ObjectStoreGetRequestOp::GetResponse(RequestResponse& aResponse)
 
     if (!mResponse.IsEmpty()) {
       FallibleTArray<SerializedStructuredCloneReadInfo> fallibleCloneInfos;
-      if (NS_WARN_IF(!fallibleCloneInfos.SetLength(mResponse.Length(),
-                                                   fallible))) {
+      if (NS_WARN_IF(!fallibleCloneInfos.SetLength(mResponse.Length()))) {
         aResponse = NS_ERROR_OUT_OF_MEMORY;
         return;
       }
@@ -22305,8 +22225,7 @@ IndexGetRequestOp::GetResponse(RequestResponse& aResponse)
 
     if (!mResponse.IsEmpty()) {
       FallibleTArray<SerializedStructuredCloneReadInfo> fallibleCloneInfos;
-      if (NS_WARN_IF(!fallibleCloneInfos.SetLength(mResponse.Length(),
-                                                   fallible))) {
+      if (NS_WARN_IF(!fallibleCloneInfos.SetLength(mResponse.Length()))) {
         aResponse = NS_ERROR_OUT_OF_MEMORY;
         return;
       }
