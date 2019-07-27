@@ -2988,8 +2988,6 @@ nsHTMLEditor::GetURLForStyleSheet(CSSStyleSheet* aStyleSheet,
   int32_t foundIndex = mStyleSheets.IndexOf(aStyleSheet);
 
   
-  
-  
   if (foundIndex == -1)
     return NS_OK;
 
