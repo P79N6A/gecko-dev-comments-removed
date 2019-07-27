@@ -752,11 +752,19 @@ body[dir=rtl] .generate-url-spinner {
   right: 14px;
 }
 
+body[dir="rtl"] .settings-menu .dropdown-menu {
+  
+
+
+  left: 14px;
+  right: auto;
+}
+
 .settings-menu .icon {
   background-size: contain;
   width: 12px;
   height: 12px;
-  margin-right: 1em;
+  -moz-margin-end: 1em;
   margin-top: 2px;
 }
 
