@@ -64,6 +64,7 @@ public final class GeckoProfile {
     
     private static File sGuestDir;
     private static GeckoProfile sGuestProfile;
+    private static boolean sShouldCheckForGuestProfile = true;
 
     public static boolean sIsUsingCustomProfile;
 
@@ -319,6 +320,7 @@ public final class GeckoProfile {
             
             
             getGuestDir(context).mkdir();
+            sShouldCheckForGuestProfile = true;
             GeckoProfile profile = getGuestProfile(context);
 
             
@@ -367,10 +369,14 @@ public final class GeckoProfile {
 
     public static GeckoProfile getGuestProfile(Context context) {
         if (sGuestProfile == null) {
-            File guestDir = getGuestDir(context);
-            if (guestDir.exists()) {
-                sGuestProfile = get(context, GUEST_PROFILE, guestDir);
-                sGuestProfile.mInGuestMode = true;
+            if (sShouldCheckForGuestProfile) {
+                File guestDir = getGuestDir(context);
+                if (guestDir.exists()) {
+                    sGuestProfile = get(context, GUEST_PROFILE, guestDir);
+                    sGuestProfile.mInGuestMode = true;
+                } else {
+                    sShouldCheckForGuestProfile = false;
+                }
             }
         }
 
