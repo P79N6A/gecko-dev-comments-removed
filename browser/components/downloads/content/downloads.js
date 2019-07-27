@@ -554,7 +554,7 @@ const DownloadsPanel = {
       
       
       
-      for each (let viewItem in DownloadsView._viewItems) {
+      for (let viewItem of DownloadsView._visibleViewItems.values()) {
         viewItem.verifyTargetExists();
       }
 
@@ -677,7 +677,7 @@ const DownloadsView = {
 
 
 
-  _viewItems: {},
+  _visibleViewItems: new Map(),
 
   
 
@@ -815,29 +815,20 @@ const DownloadsView = {
   },
 
   
-
-
-
-
-
-
-
-  getViewItem(aDataItem) {
-    
-    
-    if (aDataItem.downloadGuid in this._viewItems) {
-      return this._viewItems[aDataItem.downloadGuid];
+  onDataItemStateChanged(aDataItem, aOldState) {
+    let viewItem = this._visibleViewItems.get(aDataItem);
+    if (viewItem) {
+      viewItem.onStateChanged(aOldState);
     }
-    return this._invisibleViewItem;
   },
 
   
-
-
-  _invisibleViewItem: Object.freeze({
-    onStateChange() {},
-    onProgressChange() {},
-  }),
+  onDataItemChanged(aDataItem) {
+    let viewItem = this._visibleViewItems.get(aDataItem);
+    if (viewItem) {
+      viewItem.onChanged();
+    }
+  },
 
   
 
@@ -850,7 +841,7 @@ const DownloadsView = {
 
     let element = document.createElement("richlistitem");
     let viewItem = new DownloadsViewItem(aDataItem, element);
-    this._viewItems[aDataItem.downloadGuid] = viewItem;
+    this._visibleViewItems.set(aDataItem, viewItem);
     if (aNewest) {
       this.richListBox.insertBefore(element, this.richListBox.firstChild);
     } else {
@@ -863,14 +854,14 @@ const DownloadsView = {
 
   _removeViewItem(aDataItem) {
     DownloadsCommon.log("Removing a DownloadsViewItem from the downloads list.");
-    let element = this.getViewItem(aDataItem)._element;
+    let element = this._visibleViewItems.get(aDataItem)._element;
     let previousSelectedIndex = this.richListBox.selectedIndex;
     this.richListBox.removeChild(element);
     if (previousSelectedIndex != -1) {
       this.richListBox.selectedIndex = Math.min(previousSelectedIndex,
                                                 this.richListBox.itemCount - 1);
     }
-    delete this._viewItems[aDataItem.downloadGuid];
+    this._visibleViewItems.delete(aDataItem);
   },
 
   
@@ -1052,7 +1043,7 @@ DownloadsViewItem.prototype = {
 
 
 
-  onStateChange(aOldState) {
+  onStateChanged(aOldState) {
     
     
     
@@ -1072,14 +1063,12 @@ DownloadsViewItem.prototype = {
 
     
     this._element.setAttribute("state", this.dataItem.state);
-    this._updateProgress();
-    this._updateStatusLine();
   },
 
   
 
 
-  onProgressChange() {
+  onChanged() {
     this._updateProgress();
     this._updateStatusLine();
   },

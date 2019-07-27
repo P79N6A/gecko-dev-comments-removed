@@ -68,7 +68,6 @@ const NOT_AVAILABLE = Number.MAX_VALUE;
 
 
 
-
 function DownloadElementShell(aDataItem, aPlacesNode, aAnnotations) {
   this._element = document.createElement("richlistitem");
   this._element._shell = this;
@@ -568,8 +567,7 @@ DownloadElementShell.prototype = {
     }
   },
 
-  
-  onStateChange(aOldState) {
+  onStateChanged(aOldState) {
     let metaData = this.getDownloadMetaData();
     metaData.state = this.dataItem.state;
     if (aOldState != nsIDM.DOWNLOAD_FINISHED && aOldState != metaData.state) {
@@ -583,6 +581,7 @@ DownloadElementShell.prototype = {
     }
 
     this._updateDownloadStatusUI();
+
     if (this._element.selected) {
       goUpdateDownloadCommands();
     } else {
@@ -590,8 +589,7 @@ DownloadElementShell.prototype = {
     }
   },
 
-  
-  onProgressChange() {
+  onChanged() {
     this._updateDownloadStatusUI();
   },
 
@@ -934,7 +932,7 @@ DownloadsPlacesView.prototype = {
     
     
     if (!shouldCreateShell &&
-        aDataItem && this.getViewItem(aDataItem) == null) {
+        aDataItem && !this._viewItemsForDataItems.has(aDataItem)) {
       
       
       
@@ -1051,7 +1049,7 @@ DownloadsPlacesView.prototype = {
       throw new Error("Should have had at leaat one shell for this uri");
     }
 
-    let shell = this.getViewItem(aDataItem);
+    let shell = this._viewItemsForDataItems.get(aDataItem);
     if (!shells.has(shell)) {
       throw new Error("Missing download element shell in shells list for url");
     }
@@ -1362,8 +1360,14 @@ DownloadsPlacesView.prototype = {
     this._removeSessionDownloadFromView(aDataItem);
   },
 
-  getViewItem(aDataItem) {
-    return this._viewItemsForDataItems.get(aDataItem, null);
+  
+  onDataItemStateChanged(aDataItem, aOldState) {
+    this._viewItemsForDataItems.get(aDataItem).onStateChanged(aOldState);
+  },
+
+  
+  onDataItemChanged(aDataItem) {
+    this._viewItemsForDataItems.get(aDataItem).onChanged();
   },
 
   supportsCommand(aCommand) {
