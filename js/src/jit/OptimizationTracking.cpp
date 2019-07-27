@@ -384,6 +384,10 @@ class jit::UniqueTrackedTypes
 bool
 UniqueTrackedTypes::getIndexOf(TypeSet::Type ty, uint8_t* indexp)
 {
+    
+    if (ty.isSingletonUnchecked() && IsInsideNursery(ty.singleton()))
+        ty = TypeSet::UnknownType();
+
     TypesMap::AddPtr p = map_.lookupForAdd(ty);
     if (p) {
         *indexp = p->value();

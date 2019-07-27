@@ -973,11 +973,15 @@ CodeGeneratorShared::verifyCompactTrackedOptimizationsMap(JitCode* code, uint32_
 
             
             
-            IonTrackedOptimizationsTypeInfo typeInfo = typesTable->entry(index);
-            TempOptimizationTypeInfoVector tvec(alloc());
-            ReadTempTypeInfoVectorOp top(alloc(), &tvec);
-            typeInfo.forEach(top, allTypes);
-            MOZ_ASSERT(entry.optimizations->matchTypes(tvec));
+            
+            
+            if (!code->runtimeFromMainThread()->gc.storeBuffer.cancelIonCompilations()) {
+                IonTrackedOptimizationsTypeInfo typeInfo = typesTable->entry(index);
+                TempOptimizationTypeInfoVector tvec(alloc());
+                ReadTempTypeInfoVectorOp top(alloc(), &tvec);
+                typeInfo.forEach(top, allTypes);
+                MOZ_ASSERT(entry.optimizations->matchTypes(tvec));
+            }
 
             IonTrackedOptimizationsAttempts attempts = attemptsTable->entry(index);
             TempOptimizationAttemptsVector avec(alloc());
