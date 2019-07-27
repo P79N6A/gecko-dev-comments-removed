@@ -31,6 +31,7 @@
   
   var ConversationToolbar = loop.shared.views.ConversationToolbar;
   var FeedbackView = loop.shared.views.FeedbackView;
+  var Checkbox = loop.shared.views.Checkbox;
 
   
   var ROOM_STATES = loop.store.ROOM_STATES;
@@ -415,11 +416,42 @@
   });
 
   var ShowCase = React.createClass({displayName: "ShowCase",
+    getInitialState: function() {
+      
+      
+      
+      
+      var rtlMode = document.location.search === "?rtl=1";
+
+      return {
+        rtlMode: rtlMode
+      };
+    },
+
+    _handleCheckboxChange: function(newState) {
+      var newLocation = "";
+      if (newState.checked) {
+        newLocation = document.location.href.split("#")[0];
+        newLocation += "?rtl=1";
+      } else {
+        newLocation = document.location.href.split("?")[0];
+      }
+      newLocation += document.location.hash;
+      document.location = newLocation;
+    },
+
     render: function() {
+      if (this.state.rtlMode) {
+        document.documentElement.setAttribute("lang", "ar");
+        document.documentElement.setAttribute("dir", "rtl");
+      }
+
       return (
         React.createElement("div", {className: "showcase"}, 
           React.createElement("header", null, 
             React.createElement("h1", null, "Loop UI Components Showcase"), 
+            React.createElement(Checkbox, {label: "RTL mode?", checked: this.state.rtlMode, 
+              onChange: this._handleCheckboxChange}), 
             React.createElement("nav", {className: "showcase-menu"}, 
               React.Children.map(this.props.children, function(section) {
                 return (

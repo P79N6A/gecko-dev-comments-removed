@@ -62,6 +62,14 @@ window.Frame = React.createClass({
       );
 
       React.render(contents, doc.body, this.fireOnContentsRendered.bind(this));
+
+      
+      
+      
+      if (document.location.search === "?rtl=1") {
+        doc.documentElement.setAttribute("lang", "ar");
+        doc.documentElement.setAttribute("dir", "rtl");
+      }
     } else {
       
       
