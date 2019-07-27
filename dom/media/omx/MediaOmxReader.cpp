@@ -112,7 +112,7 @@ private:
       mOffset += length;
     }
 
-    if (mOffset < mFullLength) {
+    if (static_cast<uint64_t>(mOffset) < mFullLength) {
       
       
       
