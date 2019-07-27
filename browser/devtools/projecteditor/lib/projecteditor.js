@@ -20,6 +20,8 @@ const { ViewHelpers } = Cu.import("resource:///modules/devtools/ViewHelpers.jsm"
 const { DOMHelpers } = Cu.import("resource:///modules/devtools/DOMHelpers.jsm");
 const { Services } = Cu.import("resource://gre/modules/Services.jsm", {});
 const ITCHPAD_URL = "chrome://browser/content/devtools/projecteditor.xul";
+const { confirm } = require("projecteditor/helpers/prompts");
+const { getLocalizedString } = require("projecteditor/helpers/l10n");
 
 
 require("projecteditor/plugins/dirty/dirty");
@@ -728,7 +730,37 @@ var ProjectEditor = Class({
 
   get menuEnabled() {
     return this._menuEnabled;
+  },
+
+  
+
+
+  get hasUnsavedResources() {
+    return this.project.allResources().some(resource=> {
+      let editor = this.editorFor(resource);
+      return editor && !editor.isClean();
+    });
+  },
+
+  
+
+
+
+
+
+
+  confirmUnsaved: function() {
+
+    if (this.hasUnsavedResources) {
+      return confirm(
+        getLocalizedString("projecteditor.confirmUnsavedTitle"),
+        getLocalizedString("projecteditor.confirmUnsavedLabel")
+      );
+    }
+
+    return true;
   }
+
 });
 
 

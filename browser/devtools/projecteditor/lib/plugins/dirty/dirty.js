@@ -31,7 +31,12 @@ var DirtyPlugin = Class({
   },
 
   onAnnotate: function(resource, editor, elt) {
-    if (editor && editor.editor && !editor.editor.isClean()) {
+    
+    if (!editor || !editor.editor) {
+      return;
+    }
+
+    if (!editor.isClean()) {
       elt.textContent = '*' + resource.displayName;
       return true;
     }

@@ -100,6 +100,13 @@ let UI = {
     window.removeEventListener("message", this.onMessage);
   },
 
+  canWindowClose: function() {
+    if (this.projecteditor) {
+      return this.projecteditor.confirmUnsaved();
+    }
+    return true;
+  },
+
   onfocus: function() {
     
     
@@ -665,7 +672,9 @@ let UI = {
 
 let Cmds = {
   quit: function() {
-    window.close();
+    if (UI.canWindowClose()) {
+      window.close();
+    }
   },
 
   
