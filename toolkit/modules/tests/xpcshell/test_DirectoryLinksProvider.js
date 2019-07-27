@@ -558,9 +558,9 @@ add_task(function test_DirectoryLinksProvider_getEnhancedLink() {
 
   
   checkEnhanced("http://example.net/", "net1");
-  checkEnhanced("http://sub.example.net/", "net1");
   checkEnhanced("http://example.net/path", "net1");
   checkEnhanced("https://www.example.net/", "net1");
+  checkEnhanced("https://www3.example.net/", "net1");
 
   
   checkEnhanced("http://example.com", "com2");
@@ -574,6 +574,7 @@ add_task(function test_DirectoryLinksProvider_getEnhancedLink() {
   do_check_eq(inline.url, "http://example.com/echo");
 
   
+  checkEnhanced("http://sub.example.net/", undefined);
   checkEnhanced("http://example.org", undefined);
   checkEnhanced("http://localhost", undefined);
   checkEnhanced("http://127.0.0.1", undefined);

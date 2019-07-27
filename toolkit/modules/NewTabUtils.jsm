@@ -829,33 +829,18 @@ let Links = {
     let pinnedLinks = Array.slice(PinnedLinks.links);
     let links = this._getMergedProviderLinks();
 
-    function getBaseDomain(url) {
-      let uri;
-      try {
-        uri = Services.io.newURI(url, null, null);
-      } catch (e) {
-        return null;
-      }
-
-      try {
-        return Services.eTLD.getBaseDomain(uri);
-      } catch (e) {
-        return uri.asciiHost;
-      }
-    }
-
-    let baseDomains = new Set();
+    let sites = new Set();
     for (let link of pinnedLinks) {
       if (link)
-        baseDomains.add(getBaseDomain(link.url));
+        sites.add(NewTabUtils.extractSite(link.url));
     }
 
     
     links = links.filter(function (link) {
-      let baseDomain = getBaseDomain(link.url);
-      if (baseDomain == null || baseDomains.has(baseDomain))
+      let site = NewTabUtils.extractSite(link.url);
+      if (site == null || sites.has(site))
         return false;
-      baseDomains.add(baseDomain);
+      sites.add(site);
 
       return !BlockedLinks.isBlocked(link) && !PinnedLinks.isPinned(link);
     });
@@ -1183,6 +1168,24 @@ let ExpirationFilter = {
 
 this.NewTabUtils = {
   _initialized: false,
+
+  
+
+
+
+
+
+  extractSite: function Links_extractSite(url) {
+    let uri;
+    try {
+      uri = Services.io.newURI(url, null, null);
+    } catch (ex) {
+      return null;
+    }
+
+    
+    return uri.asciiHost.replace(/^(m|mobile|www\d*)\./, "");
+  },
 
   init: function NewTabUtils_init() {
     if (this.initWithoutProviders()) {
