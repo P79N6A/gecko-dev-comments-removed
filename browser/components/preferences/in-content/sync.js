@@ -301,9 +301,15 @@ let gSyncPane = {
         
         
         return data.verified;
-      }).then(shouldGetProfile => {
-        if (shouldGetProfile) {
-          return fxAccounts.getSignedInUserProfile();
+      }).then(isVerified => {
+        if (isVerified) {
+          let enabled;
+          try {
+            enabled = Services.prefs.getBoolPref("identity.fxaccounts.profile_image.enabled");
+          } catch (ex) {}
+          if (enabled) {
+            return fxAccounts.getSignedInUserProfile();
+          }
         }
       }).then(data => {
         if (data && data.avatar) {
