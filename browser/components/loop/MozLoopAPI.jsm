@@ -422,11 +422,12 @@ function injectLoopAPI(targetWindow) {
 
 
 
-    setLoopCharPref: {
+
+    setLoopPref: {
       enumerable: true,
       writable: true,
-      value: function(prefName, value) {
-        MozLoopService.setLoopCharPref(prefName, value);
+      value: function(prefName, value, prefType) {
+        MozLoopService.setLoopPref(prefName, value, prefType);
       }
     },
 
@@ -443,49 +444,11 @@ function injectLoopAPI(targetWindow) {
 
 
 
-    getLoopCharPref: {
+    getLoopPref: {
       enumerable: true,
       writable: true,
-      value: function(prefName) {
-        return MozLoopService.getLoopCharPref(prefName);
-      }
-    },
-
-    
-
-
-
-
-
-
-
-
-    setLoopBoolPref: {
-      enumerable: true,
-      writable: true,
-      value: function(prefName, value) {
-        MozLoopService.setLoopBoolPref(prefName, value);
-      }
-    },
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-    getLoopBoolPref: {
-      enumerable: true,
-      writable: true,
-      value: function(prefName) {
-        return MozLoopService.getLoopBoolPref(prefName);
+      value: function(prefName, prefType) {
+        return MozLoopService.getLoopPref(prefName);
       }
     },
 

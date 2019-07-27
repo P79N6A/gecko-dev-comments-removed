@@ -463,13 +463,13 @@ loop.conversationViews = (function(mozL10n) {
       document.title = mozL10n.get("conversation_has_ended");
 
       
-      var feebackAPIBaseUrl = navigator.mozLoop.getLoopCharPref(
+      var feebackAPIBaseUrl = navigator.mozLoop.getLoopPref(
         "feedback.baseUrl");
 
       var appVersionInfo = navigator.mozLoop.appVersionInfo;
 
       var feedbackClient = new loop.FeedbackAPIClient(feebackAPIBaseUrl, {
-        product: navigator.mozLoop.getLoopCharPref("feedback.product"),
+        product: navigator.mozLoop.getLoopPref("feedback.product"),
         platform: appVersionInfo.OS,
         channel: appVersionInfo.channel,
         version: appVersionInfo.version

@@ -338,7 +338,7 @@ loop.store.ActiveRoomStore = (function() {
       });
 
       
-      this._mozLoop.setLoopCharPref("seenToS", "seen");
+      this._mozLoop.setLoopPref("seenToS", "seen");
     },
 
     

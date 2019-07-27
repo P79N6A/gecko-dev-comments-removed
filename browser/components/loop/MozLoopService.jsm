@@ -1227,11 +1227,29 @@ this.MozLoopService = {
 
 
 
-  setLoopCharPref: function(prefName, value) {
+
+  setLoopPref: function(prefSuffix, value, prefType) {
+    let prefName = "loop." + prefSuffix;
     try {
-      Services.prefs.setCharPref("loop." + prefName, value);
+      if (!prefType) {
+        prefType = Services.prefs.getPrefType(prefName);
+      }
+      switch (prefType) {
+        case Ci.nsIPrefBranch.PREF_STRING:
+          Services.prefs.setCharPref(prefName, value);
+          break;
+        case Ci.nsIPrefBranch.PREF_INT:
+          Services.prefs.setIntPref(prefName, value);
+          break;
+        case Ci.nsIPrefBranch.PREF_BOOL:
+          Services.prefs.setBoolPref(prefName, value);
+          break;
+        default:
+          log.error("invalid preference type setting " + prefName);
+          break;
+      }
     } catch (ex) {
-      log.error("setLoopCharPref had trouble setting " + prefName +
+      log.error("setLoopPref had trouble setting " + prefName +
         "; exception: " + ex);
     }
   },
@@ -1249,51 +1267,28 @@ this.MozLoopService = {
 
 
 
-  getLoopCharPref: function(prefName) {
+  getLoopPref: function(prefSuffix, prefType) {
+    let prefName = "loop." + prefSuffix;
     try {
-      return Services.prefs.getCharPref("loop." + prefName);
+      if (!prefType) {
+        prefType = Services.prefs.getPrefType(prefName);
+      } else if (prefType != Services.prefs.getPrefType(prefName)) {
+        log.error("invalid type specified for preference");
+        return null;
+      }
+      switch (prefType) {
+        case Ci.nsIPrefBranch.PREF_STRING:
+          return Services.prefs.getCharPref(prefName);
+        case Ci.nsIPrefBranch.PREF_INT:
+          return Services.prefs.getIntPref(prefName);
+        case Ci.nsIPrefBranch.PREF_BOOL:
+          return Services.prefs.getBoolPref(prefName);
+        default:
+          log.error("invalid preference type getting " + prefName);
+          return null;
+      }
     } catch (ex) {
-      log.error("getLoopCharPref had trouble getting " + prefName +
-        "; exception: " + ex);
-      return null;
-    }
-  },
-
-  
-
-
-
-
-
-
-
-  setLoopBoolPref: function(prefName, value) {
-    try {
-      Services.prefs.setBoolPref("loop." + prefName, value);
-    } catch (ex) {
-      log.error("setLoopCharPref had trouble setting " + prefName +
-        "; exception: " + ex);
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  getLoopBoolPref: function(prefName) {
-    try {
-      return Services.prefs.getBoolPref("loop." + prefName);
-    } catch (ex) {
-      log.error("getLoopBoolPref had trouble getting " + prefName +
+      log.error("getLoopPref had trouble getting " + prefName +
         "; exception: " + ex);
       return null;
     }

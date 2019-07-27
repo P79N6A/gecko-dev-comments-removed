@@ -199,7 +199,7 @@ loop.StandaloneMozLoop = (function(mozL10n) {
 
 
 
-    setLoopCharPref: function(prefName, value) {
+    setLoopPref: function(prefName, value) {
       if (prefName === "seenToS") {
         return;
       }
@@ -213,7 +213,7 @@ loop.StandaloneMozLoop = (function(mozL10n) {
 
 
 
-    getLoopCharPref: function(prefName) {
+    getLoopPref: function(prefName) {
       return localStorage.getItem(prefName);
     }
   };

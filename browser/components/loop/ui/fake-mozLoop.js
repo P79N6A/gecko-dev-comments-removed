@@ -49,8 +49,7 @@ var fakeRooms = [
 
 navigator.mozLoop = {
   ensureRegistered: function() {},
-  getLoopCharPref: function() {},
-  getLoopBoolPref: function(pref) {
+  getLoopPref: function(pref) {
     
     if (pref === "rooms.enabled") {
       return true;
