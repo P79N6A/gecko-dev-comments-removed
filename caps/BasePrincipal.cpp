@@ -161,6 +161,15 @@ BasePrincipal::GetOriginSuffix(nsACString& aOriginAttributes)
 }
 
 NS_IMETHODIMP
+BasePrincipal::GetCookieJar(nsACString& aCookieJar)
+{
+  
+  
+  
+  return GetJarPrefix(aCookieJar);
+}
+
+NS_IMETHODIMP
 BasePrincipal::GetAppStatus(uint16_t* aAppStatus)
 {
   if (AppId() == nsIScriptSecurityManager::UNKNOWN_APP_ID) {
