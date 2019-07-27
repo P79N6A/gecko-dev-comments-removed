@@ -14,6 +14,22 @@ button {
   text-shadow: none;
 }
 
+button:hover:active {
+  color: -moz-mac-buttonactivetext;
+}
+
+
+
+button[default="true"]:not(:-moz-window-inactive) {
+  color: -moz-mac-defaultbuttontext;
+}
+
+
+
+button[default="true"]:not(:hover):active {
+  color: ButtonText;
+}
+
 .button-text {
   margin: 1px 0 !important;
   -moz-margin-start: 3px !important;

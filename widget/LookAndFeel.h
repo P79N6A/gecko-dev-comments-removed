@@ -127,9 +127,13 @@ public:
     
 
     
+    eColorID__moz_mac_buttonactivetext,
+    
     eColorID__moz_mac_chrome_active,
     
     eColorID__moz_mac_chrome_inactive,
+    
+    eColorID__moz_mac_defaultbuttontext,
     
     eColorID__moz_mac_focusring,
     
