@@ -158,3 +158,41 @@ function TypedArrayLastIndexOf(searchElement, fromIndex = undefined) {
     
     return -1;
 }
+
+
+function TypedArrayReverse() {
+    
+    if (!IsObject(this) || !IsTypedArray(this)) {
+        return callFunction(CallTypedArrayMethodIfWrapped, this, "TypedArrayReverse");
+    }
+
+    
+    var O = this;
+
+    
+    var len = TypedArrayLength(O);
+
+    
+    var middle = std_Math_floor(len / 2);
+
+    
+    
+    
+    for (var lower = 0; lower !== middle; lower++) {
+        
+        var upper = len - lower - 1;
+
+        
+        var lowerValue = O[lower];
+
+        
+        var upperValue = O[upper];
+
+        
+        O[lower] = upperValue;
+        O[upper] = lowerValue;
+    }
+
+    
+    return O;
+}
