@@ -1030,6 +1030,12 @@ UploadLastDir::FetchDirectoryAndDisplayPicker(nsIDocument* aDoc,
   nsCOMPtr<nsIContentPrefCallback2> prefCallback = 
     new UploadLastDir::ContentPrefCallback(aFilePicker, aFpCallback);
 
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+    
+    prefCallback->HandleCompletion(nsIContentPrefCallback2::COMPLETE_ERROR);
+    return NS_OK;
+  }
+
   
   nsCOMPtr<nsIContentPrefService2> contentPrefService =
     do_GetService(NS_CONTENT_PREF_SERVICE_CONTRACTID);
@@ -1051,6 +1057,11 @@ UploadLastDir::StoreLastUsedDirectory(nsIDocument* aDoc, nsIFile* aDir)
 {
   NS_PRECONDITION(aDoc, "aDoc is null");
   if (!aDir) {
+    return NS_OK;
+  }
+
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+    
     return NS_OK;
   }
 
