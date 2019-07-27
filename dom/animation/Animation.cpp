@@ -114,12 +114,8 @@ Animation::GetComputedTimingAt(const Nullable<TimeDuration>& aLocalTime,
   bool isEndOfFinalIteration = false;
 
   
-  TimeDuration activeTime;
-  
-  
-  
-  if (result.mActiveDuration != TimeDuration::Forever() &&
-      localTime >= aTiming.mDelay + result.mActiveDuration) {
+  StickyTimeDuration activeTime;
+  if (localTime >= aTiming.mDelay + result.mActiveDuration) {
     result.mPhase = ComputedTiming::AnimationPhase_After;
     if (!aTiming.FillsForwards()) {
       
@@ -148,10 +144,10 @@ Animation::GetComputedTimingAt(const Nullable<TimeDuration>& aLocalTime,
   }
 
   
-  TimeDuration iterationTime;
+  StickyTimeDuration iterationTime;
   if (aTiming.mIterationDuration != zeroDuration) {
     iterationTime = isEndOfFinalIteration
-                    ? aTiming.mIterationDuration
+                    ? StickyTimeDuration(aTiming.mIterationDuration)
                     : activeTime % aTiming.mIterationDuration;
   } 
 
@@ -215,19 +211,20 @@ Animation::GetComputedTimingAt(const Nullable<TimeDuration>& aLocalTime,
   return result;
 }
 
-TimeDuration
+StickyTimeDuration
 Animation::ActiveDuration(const AnimationTiming& aTiming)
 {
   if (aTiming.mIterationCount == mozilla::PositiveInfinity<float>()) {
     
     
     
-    const TimeDuration zeroDuration;
+    const StickyTimeDuration zeroDuration;
     return aTiming.mIterationDuration == zeroDuration
            ? zeroDuration
-           : TimeDuration::Forever();
+           : StickyTimeDuration::Forever();
   }
-  return aTiming.mIterationDuration.MultDouble(aTiming.mIterationCount);
+  return StickyTimeDuration(
+    aTiming.mIterationDuration.MultDouble(aTiming.mIterationCount));
 }
 
 bool

@@ -11,6 +11,7 @@
 #include "nsIDocument.h"
 #include "nsWrapperCache.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/StickyTimeDuration.h"
 #include "mozilla/StyleAnimationValue.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/dom/Nullable.h"
@@ -62,7 +63,8 @@ struct ComputedTiming
 
   
   
-  TimeDuration mActiveDuration;
+  
+  StickyTimeDuration mActiveDuration;
 
   
   
@@ -205,7 +207,8 @@ public:
   }
 
   
-  static TimeDuration ActiveDuration(const AnimationTiming& aTiming);
+  static StickyTimeDuration
+  ActiveDuration(const AnimationTiming& aTiming);
 
   
   
