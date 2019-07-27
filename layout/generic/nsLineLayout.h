@@ -670,6 +670,16 @@ protected:
   int32_t ComputeFrameJustification(PerSpanData* psd,
                                     JustificationComputationState& aState);
 
+  void AdvanceAnnotationInlineBounds(PerFrameData* aPFD,
+                                     nscoord aContainerWidth,
+                                     nscoord aDeltaICoord,
+                                     nscoord aDeltaISize);
+
+  void ApplyLineJustificationToAnnotations(PerFrameData* aPFD,
+                                           PerSpanData* aContainingSpan,
+                                           nscoord aDeltaICoord,
+                                           nscoord aDeltaISize);
+
   
   
   nscoord ApplyFrameJustification(

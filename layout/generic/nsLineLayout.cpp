@@ -2532,6 +2532,61 @@ nsLineLayout::ComputeFrameJustification(PerSpanData* aPSD,
   return result;
 }
 
+void
+nsLineLayout::AdvanceAnnotationInlineBounds(PerFrameData* aPFD,
+                                            nscoord aContainerWidth,
+                                            nscoord aDeltaICoord,
+                                            nscoord aDeltaISize)
+{
+  MOZ_ASSERT(aPFD->mFrame->GetType() == nsGkAtoms::rubyTextFrame ||
+             aPFD->mFrame->GetType() == nsGkAtoms::rubyTextContainerFrame);
+  MOZ_ASSERT(aPFD->mSpan, "rt and rtc should have span.");
+
+  WritingMode lineWM = mRootSpan->mWritingMode;
+  WritingMode frameWM = aPFD->mSpan->mWritingMode;
+  LogicalRect bounds = aPFD->mFrame->GetLogicalRect(aContainerWidth);
+  bounds = bounds.ConvertTo(lineWM, frameWM, aContainerWidth);
+  bounds.IStart(lineWM) += aDeltaICoord;
+  bounds.ISize(lineWM) += aDeltaISize;
+  aPFD->mBounds = bounds.ConvertTo(frameWM, lineWM, aContainerWidth);
+  aPFD->mFrame->SetRect(frameWM, aPFD->mBounds, aContainerWidth);
+}
+
+
+
+
+
+
+void
+nsLineLayout::ApplyLineJustificationToAnnotations(PerFrameData* aPFD,
+                                                  PerSpanData* aContainingSpan,
+                                                  nscoord aDeltaICoord,
+                                                  nscoord aDeltaISize)
+{
+  PerFrameData* pfd = aPFD->mNextAnnotation;
+  nscoord containerWidth = ContainerWidthForSpan(aContainingSpan);
+  while (pfd) {
+    AdvanceAnnotationInlineBounds(pfd, containerWidth,
+                                  aDeltaICoord, aDeltaISize);
+
+    
+    
+    
+    
+    
+    
+    
+    PerFrameData* sibling = pfd->mNext;
+    while (sibling && !sibling->GetFlag(PFD_ISLINKEDTOBASE)) {
+      AdvanceAnnotationInlineBounds(sibling, containerWidth,
+                                    aDeltaICoord + aDeltaISize, 0);
+      sibling = sibling->mNext;
+    }
+
+    pfd = pfd->mNextAnnotation;
+  }
+}
+
 nscoord 
 nsLineLayout::ApplyFrameJustification(PerSpanData* aPSD,
                                       JustificationApplicationState& aState)
@@ -2570,6 +2625,7 @@ nsLineLayout::ApplyFrameJustification(PerSpanData* aPSD,
 
       pfd->mBounds.ISize(lineWM) += dw;
 
+      ApplyLineJustificationToAnnotations(pfd, aPSD, deltaICoord, dw);
       deltaICoord += dw;
       pfd->mFrame->SetRect(lineWM, pfd->mBounds, ContainerWidthForSpan(aPSD));
     }
