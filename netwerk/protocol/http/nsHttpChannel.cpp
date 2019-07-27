@@ -5761,7 +5761,10 @@ nsHttpChannel::OnTransportStatus(nsITransport *trans, nsresult status,
         }
 
         if (progress > 0) {
-            MOZ_ASSERT(progress <= progressMax, "unexpected progress values");
+            if (progress > progressMax) {
+                NS_WARNING("unexpected progress values");
+            }
+
             
             if (!mProgressSink) {
                 GetCallback(mProgressSink);
