@@ -8,6 +8,9 @@
 
 #include "nsString.h"
 #include "nsIObserver.h"
+#ifdef MOZ_WIDGET_GONK
+#include "mozilla/StaticPtr.h"
+#endif
 
 #if defined(MOZ_HAVE_CXX11_STRONG_ENUMS) || defined(MOZ_HAVE_CXX11_ENUM_TYPE)
 
@@ -96,7 +99,7 @@ protected:
 protected:
   
   CameraPreferences() { }
-  ~CameraPreferences() { }
+  virtual ~CameraPreferences() { }
 #else
 private:
   
