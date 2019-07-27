@@ -660,8 +660,7 @@ class MochitestOptions(optparse.OptionParser):
         }
 
         
-        
-        options.ignoreMissingLeaks = ["tab", "geckomediaplugin"]
+        options.ignoreMissingLeaks = ["geckomediaplugin"]
 
         return options
 
@@ -871,7 +870,7 @@ class B2GOptions(MochitestOptions):
         options.ignoreMissingLeaks.append("default")
 
         
-        assert "tab" in options.ignoreMissingLeaks, "Ignore failures for tab processes on B2G"
+        options.ignoreMissingLeaks.append("tab")
 
         return options
 
