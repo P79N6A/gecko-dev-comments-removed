@@ -67,6 +67,7 @@ this.SystemMessagePermissionsTable = {
     "wifi-manage": []
   },
   "dummy-system-message": { }, 
+  "dummy-system-message2": { }, 
   "headset-button": { },
   "icc-stkcommand": {
     "settings": ["read", "write"]
