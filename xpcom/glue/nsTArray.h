@@ -1222,6 +1222,7 @@ public:
   
   
   
+protected:
   template<class Item, typename ActualAlloc = Alloc>
   elem_type* ReplaceElementsAt(index_type aStart, size_type aCount,
                                const Item* aArray, size_type aArrayLen)
@@ -1238,7 +1239,7 @@ public:
     AssignRange(aStart, aArrayLen, aArray);
     return Elements() + aStart;
   }
-
+public:
 
   template<class Item>
   
@@ -1251,6 +1252,7 @@ public:
   }
 
   
+protected:
   template<class Item, typename ActualAlloc = Alloc>
   elem_type* ReplaceElementsAt(index_type aStart, size_type aCount,
                                const nsTArray<Item>& aArray)
@@ -1258,6 +1260,7 @@ public:
     return ReplaceElementsAt<Item, ActualAlloc>(
       aStart, aCount, aArray.Elements(), aArray.Length());
   }
+public:
 
   template<class Item>
   
@@ -1269,12 +1272,14 @@ public:
   }
 
   
+protected:
   template<class Item, typename ActualAlloc = Alloc>
   elem_type* ReplaceElementsAt(index_type aStart, size_type aCount,
                                const Item& aItem)
   {
     return ReplaceElementsAt<Item, ActualAlloc>(aStart, aCount, &aItem, 1);
   }
+public:
 
   template<class Item>
   
@@ -1292,12 +1297,14 @@ public:
   }
 
   
+protected:
   template<class Item, typename ActualAlloc = Alloc>
   elem_type* InsertElementsAt(index_type aIndex, const Item* aArray,
                               size_type aArrayLen)
   {
     return ReplaceElementsAt<Item, ActualAlloc>(aIndex, 0, aArray, aArrayLen);
   }
+public:
 
   template<class Item>
   
@@ -1308,6 +1315,7 @@ public:
   }
 
   
+protected:
   template<class Item, class Allocator, typename ActualAlloc = Alloc>
   elem_type* InsertElementsAt(index_type aIndex,
                               const nsTArray_Impl<Item, Allocator>& aArray)
@@ -1315,6 +1323,7 @@ public:
     return ReplaceElementsAt<Item, ActualAlloc>(
       aIndex, 0, aArray.Elements(), aArray.Length());
   }
+public:
 
   template<class Item, class Allocator>
   
@@ -1328,6 +1337,7 @@ public:
   
   
   
+protected:
   template<typename ActualAlloc = Alloc>
   elem_type* InsertElementAt(index_type aIndex)
   {
@@ -1341,6 +1351,7 @@ public:
     elem_traits::Construct(elem);
     return elem;
   }
+public:
 
   
   elem_type* InsertElementAt(index_type aIndex, const mozilla::fallible_t&)
@@ -1349,6 +1360,7 @@ public:
   }
 
   
+protected:
   template<class Item, typename ActualAlloc = Alloc>
   elem_type* InsertElementAt(index_type aIndex, Item&& aItem)
   {
@@ -1362,6 +1374,7 @@ public:
     elem_traits::Construct(elem, mozilla::Forward<Item>(aItem));
     return elem;
   }
+public:
 
   template<class Item>
   
@@ -1410,6 +1423,7 @@ public:
   
   
   
+protected:
   template<class Item, class Comparator, typename ActualAlloc = Alloc>
   elem_type* InsertElementSorted(Item&& aItem, const Comparator& aComp)
   {
@@ -1417,6 +1431,7 @@ public:
     return InsertElementAt<Item, ActualAlloc>(
       index, mozilla::Forward<Item>(aItem));
   }
+public:
 
   template<class Item, class Comparator>
   
@@ -1428,6 +1443,7 @@ public:
   }
 
   
+protected:
   template<class Item, typename ActualAlloc = Alloc>
   elem_type* InsertElementSorted(Item&& aItem)
   {
@@ -1435,6 +1451,7 @@ public:
     return InsertElementSorted<Item, decltype(comp), ActualAlloc>(
       mozilla::Forward<Item>(aItem), comp);
   }
+public:
 
   template<class Item>
   
@@ -1449,6 +1466,7 @@ public:
   
   
   
+protected:
   template<class Item, typename ActualAlloc = Alloc>
   elem_type* AppendElements(const Item* aArray, size_type aArrayLen)
   {
@@ -1461,6 +1479,7 @@ public:
     this->IncrementLength(aArrayLen);
     return Elements() + len;
   }
+public:
 
   template<class Item>
   
@@ -1471,11 +1490,13 @@ public:
   }
 
   
+protected:
   template<class Item, class Allocator, typename ActualAlloc = Alloc>
   elem_type* AppendElements(const nsTArray_Impl<Item, Allocator>& aArray)
   {
     return AppendElements<Item, ActualAlloc>(aArray.Elements(), aArray.Length());
   }
+public:
 
   template<class Item, class Allocator>
   
@@ -1486,6 +1507,7 @@ public:
   }
 
   
+protected:
   template<class Item, typename ActualAlloc = Alloc>
   elem_type* AppendElement(Item&& aItem)
   {
@@ -1498,6 +1520,7 @@ public:
     this->IncrementLength(1);
     return elem;
   }
+public:
 
   template<class Item>
   
@@ -1510,6 +1533,7 @@ public:
   
   
   
+protected:
   template<typename ActualAlloc = Alloc>
   elem_type* AppendElements(size_type aCount) {
     if (!ActualAlloc::Successful(this->template EnsureCapacity<ActualAlloc>(
@@ -1524,6 +1548,7 @@ public:
     this->IncrementLength(aCount);
     return elems;
   }
+public:
 
   
   elem_type* AppendElements(size_type aCount,
@@ -1535,11 +1560,13 @@ public:
   
   
   
+protected:
   template<typename ActualAlloc = Alloc>
   elem_type* AppendElement()
   {
     return AppendElements<ActualAlloc>(1);
   }
+public:
 
   
   elem_type* AppendElement(const mozilla::fallible_t&)
@@ -1661,12 +1688,14 @@ public:
   
   
   
+protected:
   template<typename ActualAlloc = Alloc>
   typename ActualAlloc::ResultType SetCapacity(size_type aCapacity)
   {
     return ActualAlloc::Result(this->template EnsureCapacity<ActualAlloc>(
       aCapacity, sizeof(elem_type)));
   }
+public:
 
   
   bool SetCapacity(size_type aCapacity, const mozilla::fallible_t&)
@@ -1682,6 +1711,7 @@ public:
   
   
   
+protected:
   template<typename ActualAlloc = Alloc>
   typename ActualAlloc::ResultType SetLength(size_type aNewLen)
   {
@@ -1694,6 +1724,7 @@ public:
     TruncateLength(aNewLen);
     return ActualAlloc::ConvertBoolToResultType(true);
   }
+public:
 
   
   bool SetLength(size_type aNewLen, const mozilla::fallible_t&)
@@ -1721,6 +1752,7 @@ public:
   
   
   
+protected:
   template<typename ActualAlloc = Alloc>
   typename ActualAlloc::ResultType EnsureLengthAtLeast(size_type aMinLen)
   {
@@ -1731,6 +1763,7 @@ public:
     }
     return ActualAlloc::ConvertBoolToResultType(true);
   }
+public:
 
   
   bool EnsureLengthAtLeast(size_type aMinLen, const mozilla::fallible_t&)
@@ -1743,6 +1776,7 @@ public:
   
   
   
+protected:
   template<typename ActualAlloc = Alloc>
   elem_type* InsertElementsAt(index_type aIndex, size_type aCount)
   {
@@ -1761,6 +1795,7 @@ public:
 
     return Elements() + aIndex;
   }
+public:
 
   
   elem_type* InsertElementsAt(index_type aIndex, size_type aCount,
@@ -1776,6 +1811,7 @@ public:
   
   
   
+protected:
   template<class Item, typename ActualAlloc = Alloc>
   elem_type* InsertElementsAt(index_type aIndex, size_type aCount,
                               const Item& aItem)
@@ -1795,6 +1831,7 @@ public:
 
     return Elements() + aIndex;
   }
+public:
 
   template<class Item>
   
@@ -2049,6 +2086,17 @@ public:
     base_type::operator=(mozilla::Move(aOther));
     return *this;
   }
+
+  using base_type::AppendElement;
+  using base_type::AppendElements;
+  using base_type::EnsureLengthAtLeast;
+  using base_type::InsertElementAt;
+  using base_type::InsertElementsAt;
+  using base_type::InsertElementSorted;
+  using base_type::MoveElementsFrom;
+  using base_type::ReplaceElementsAt;
+  using base_type::SetCapacity;
+  using base_type::SetLength;
 };
 
 
