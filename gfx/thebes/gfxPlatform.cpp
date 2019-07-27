@@ -2031,15 +2031,16 @@ gfxPlatform::UsesOffMainThreadCompositing()
       gfxPrefs::LayersOffMainThreadCompositionEnabled() ||
       gfxPrefs::LayersOffMainThreadCompositionForceEnabled() ||
       gfxPrefs::LayersOffMainThreadCompositionTestingEnabled();
-#if defined(MOZ_WIDGET_GTK) && defined(NIGHTLY_BUILD)
+#if defined(MOZ_WIDGET_GTK)
     
-    result |=
-      gfxPrefs::LayersAccelerationForceEnabled() ||
-      PR_GetEnv("MOZ_USE_OMTC") ||
-      PR_GetEnv("MOZ_OMTC_ENABLED"); 
-                                    
-                                    
-                                    
+    result |= gfxPrefs::LayersAccelerationForceEnabled();
+
+#if !defined(NIGHTLY_BUILD)
+    
+    
+    
+    result &= PR_GetEnv("MOZ_USE_OMTC") || PR_GetEnv("MOZ_OMTC_ENABLED");
+#endif
 #endif
     firstTime = false;
   }
