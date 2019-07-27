@@ -207,6 +207,16 @@ class Nursery
     HugeSlotsSet hugeSlots;
 
     
+
+
+
+
+
+
+    typedef HashMap<void *, void *, PointerHasher<void *, 1>, SystemAllocPolicy> ForwardedBufferMap;
+    ForwardedBufferMap forwardedBuffers;
+
+    
     static const size_t MaxNurserySlots = 128;
 
     

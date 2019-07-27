@@ -441,14 +441,15 @@ void
 js::Nursery::setElementsForwardingPointer(ObjectElements *oldHeader, ObjectElements *newHeader,
                                           uint32_t nelems)
 {
-    
-
-
-
-    if (nelems - ObjectElements::VALUES_PER_HEADER < 1)
-        return;
     MOZ_ASSERT(isInside(oldHeader));
     MOZ_ASSERT(!isInside(newHeader));
+    if (nelems - ObjectElements::VALUES_PER_HEADER < 1) {
+        if (!forwardedBuffers.initialized() && !forwardedBuffers.init())
+            CrashAtUnhandlableOOM("Nursery::setElementsForwardingPointer");
+        if (!forwardedBuffers.put(oldHeader->elements(), newHeader->elements()))
+            CrashAtUnhandlableOOM("Nursery::setElementsForwardingPointer");
+        return;
+    }
     *reinterpret_cast<HeapSlot **>(oldHeader->elements()) = newHeader->elements();
 }
 
@@ -470,14 +471,18 @@ js::Nursery::forwardBufferPointer(HeapSlot **pSlotsElems)
         return;
 
     
+    
+    do {
+        if (forwardedBuffers.initialized()) {
+            if (ForwardedBufferMap::Ptr p = forwardedBuffers.lookup(old)) {
+                *pSlotsElems = reinterpret_cast<HeapSlot *>(p->value());
+                break;
+            }
+        }
 
+        *pSlotsElems = *reinterpret_cast<HeapSlot **>(old);
+    } while (false);
 
-
-
-
-
-
-    *pSlotsElems = *reinterpret_cast<HeapSlot **>(old);
     MOZ_ASSERT(!isInside(*pSlotsElems));
     MOZ_ASSERT(IsWriteableAddress(*pSlotsElems));
 }
@@ -845,6 +850,7 @@ js::Nursery::collect(JSRuntime *rt, JS::gcreason::Reason reason, TypeObjectList 
     
     TIME_START(updateJitActivations);
     js::jit::UpdateJitActivationsForMinorGC<Nursery>(&rt->mainThread, &trc);
+    forwardedBuffers.finish();
     TIME_END(updateJitActivations);
 
     
