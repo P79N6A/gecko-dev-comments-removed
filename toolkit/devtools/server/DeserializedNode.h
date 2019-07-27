@@ -37,18 +37,18 @@ using NodeId = uint64_t;
 struct DeserializedEdge {
   NodeId         referent;
   
-  const char16_t *name;
+  const char16_t* name;
 
   explicit DeserializedEdge();
-  DeserializedEdge(DeserializedEdge &&rhs);
-  DeserializedEdge &operator=(DeserializedEdge &&rhs);
+  DeserializedEdge(DeserializedEdge&& rhs);
+  DeserializedEdge& operator=(DeserializedEdge&& rhs);
 
   
-  bool init(const protobuf::Edge &edge, HeapSnapshot &owner);
+  bool init(const protobuf::Edge& edge, HeapSnapshot& owner);
 
 private:
-  DeserializedEdge(const DeserializedEdge &) = delete;
-  DeserializedEdge& operator=(const DeserializedEdge &) = delete;
+  DeserializedEdge(const DeserializedEdge&) = delete;
+  DeserializedEdge& operator=(const DeserializedEdge&) = delete;
 };
 
 
@@ -59,35 +59,35 @@ struct DeserializedNode {
 
   NodeId         id;
   
-  const char16_t *typeName;
+  const char16_t* typeName;
   uint64_t       size;
   EdgeVector     edges;
   
   
-  HeapSnapshot   *owner;
+  HeapSnapshot*  owner;
 
   
-  static UniquePtr<DeserializedNode> Create(const protobuf::Node &node,
-                                            HeapSnapshot &owner);
+  static UniquePtr<DeserializedNode> Create(const protobuf::Node& node,
+                                            HeapSnapshot& owner);
 
   DeserializedNode(NodeId id,
-                   const char16_t *typeName,
+                   const char16_t* typeName,
                    uint64_t size,
-                   EdgeVector &&edges,
-                   HeapSnapshot &owner);
+                   EdgeVector&& edges,
+                   HeapSnapshot& owner);
   virtual ~DeserializedNode() { }
 
   
   
-  virtual DeserializedNode &getEdgeReferent(const DeserializedEdge &edge);
+  virtual DeserializedNode& getEdgeReferent(const DeserializedEdge& edge);
 
 protected:
   
-  DeserializedNode(NodeId id, const char16_t *typeName, uint64_t size);
+  DeserializedNode(NodeId id, const char16_t* typeName, uint64_t size);
 
 private:
-  DeserializedNode(const DeserializedNode &) = delete;
-  DeserializedNode &operator=(const DeserializedNode &) = delete;
+  DeserializedNode(const DeserializedNode&) = delete;
+  DeserializedNode& operator=(const DeserializedNode&) = delete;
 };
 
 } 
@@ -103,21 +103,21 @@ template<>
 struct Concrete<DeserializedNode> : public Base
 {
 protected:
-  explicit Concrete(DeserializedNode *ptr) : Base(ptr) { }
-  DeserializedNode &get() const {
-    return *static_cast<DeserializedNode *>(ptr);
+  explicit Concrete(DeserializedNode* ptr) : Base(ptr) { }
+  DeserializedNode& get() const {
+    return *static_cast<DeserializedNode*>(ptr);
   }
 
 public:
   static const char16_t concreteTypeName[];
 
-  static void construct(void *storage, DeserializedNode *ptr) {
+  static void construct(void* storage, DeserializedNode* ptr) {
     new (storage) Concrete(ptr);
   }
 
   Id identifier() const override { return get().id; }
   bool isLive() const override { return false; }
-  const char16_t *typeName() const override;
+  const char16_t* typeName() const override;
   size_t size(mozilla::MallocSizeOf mallocSizeof) const override;
 
   
