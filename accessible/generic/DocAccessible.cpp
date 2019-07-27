@@ -1308,19 +1308,10 @@ DocAccessible::ProcessInvalidationList()
   
   for (uint32_t idx = 0; idx < mInvalidationList.Length(); idx++) {
     nsIContent* content = mInvalidationList[idx];
-    Accessible* accessible = GetAccessible(content);
-    if (!accessible) {
+    if (!HasAccessible(content)) {
       Accessible* container = GetContainerAccessible(content);
-      if (container) {
-        container->UpdateChildren();
-        accessible = GetAccessible(content);
-      }
-    }
-
-    
-    if (accessible) {
-      AutoTreeMutation mut(accessible);
-      CacheChildrenInSubtree(accessible);
+      if (container)
+        UpdateTreeOnInsertion(container);
     }
   }
 
@@ -1633,8 +1624,6 @@ DocAccessible::ProcessContentInserted(Accessible* aContainer,
   if (!HasAccessible(aContainer->GetNode()))
     return;
 
-  bool containerNotUpdated = true;
-
   for (uint32_t idx = 0; idx < aInsertedContent->Length(); idx++) {
     
     
@@ -1644,108 +1633,73 @@ DocAccessible::ProcessContentInserted(Accessible* aContainer,
     
     
 
-    Accessible* presentContainer =
+    Accessible* container =
       GetContainerAccessible(aInsertedContent->ElementAt(idx));
-    if (presentContainer != aContainer)
+    if (container != aContainer)
       continue;
 
-    if (containerNotUpdated) {
-      containerNotUpdated = false;
-
-      if (aContainer == this) {
-        
-        nsIContent* rootContent = nsCoreUtils::GetRoleContent(mDocumentNode);
-        if (rootContent != mContent) {
-          mContent = rootContent;
-          SetRoleMapEntry(aria::GetRoleMap(mContent));
-        }
-
-        
-        
-        
+    if (container == this) {
+      
+      nsIContent* rootContent = nsCoreUtils::GetRoleContent(mDocumentNode);
+      if (rootContent != mContent) {
+        mContent = rootContent;
+        SetRoleMapEntry(aria::GetRoleMap(mContent));
       }
 
       
       
       
-      
-      
-      
-      
-      AutoTreeMutation mut(aContainer);
-      aContainer->InvalidateChildren();
-      CacheChildrenInSubtree(aContainer);
     }
 
-    UpdateTree(aContainer, aInsertedContent->ElementAt(idx), true);
+    
+    
+    if (container->IsHTMLCombobox())
+      container = container->FirstChild();
+
+    
+    
+    
+    
+    
+    UpdateTreeOnInsertion(container);
+    break;
   }
 }
 
 void
-DocAccessible::UpdateTree(Accessible* aContainer, nsIContent* aChildNode,
-                          bool aIsInsert)
+DocAccessible::UpdateTreeOnInsertion(Accessible* aContainer)
 {
-  uint32_t updateFlags = eNoAccessible;
+  for (uint32_t idx = 0; idx < aContainer->ContentChildCount(); idx++) {
+    Accessible* child = aContainer->ContentChildAt(idx);
+    child->SetSurvivingInUpdate(true);
+   }
 
-  
-  Accessible* child = GetAccessible(aChildNode);
-#ifdef A11Y_LOG
-  if (logging::IsEnabled(logging::eTree)) {
-    logging::MsgBegin("TREE", "process content %s",
-                      (aIsInsert ? "insertion" : "removal"));
-    logging::Node("container", aContainer->GetNode());
-    logging::Node("child", aChildNode);
-    if (child)
-      logging::Address("child", child);
-    else
-      logging::MsgEntry("child accessible: null");
-
-    logging::MsgEnd();
-  }
-#endif
+  AutoTreeMutation mut(aContainer);
+  aContainer->InvalidateChildren();
+  aContainer->EnsureChildren();
 
   nsRefPtr<AccReorderEvent> reorderEvent = new AccReorderEvent(aContainer);
-  AutoTreeMutation mut(aContainer);
 
-  if (child) {
-    updateFlags |= UpdateTreeInternal(child, aIsInsert, reorderEvent);
-  } else {
-    if (aIsInsert) {
-      TreeWalker walker(aContainer, aChildNode, TreeWalker::eWalkCache);
-
-      while ((child = walker.NextChild()))
-        updateFlags |= UpdateTreeInternal(child, aIsInsert, reorderEvent);
-    } else {
-      
-      
-      
-      
-      
-      
-      
-      nsINode* containerNode = aContainer->GetNode();
-      for (uint32_t idx = 0; idx < aContainer->ContentChildCount();) {
-        Accessible* child = aContainer->ContentChildAt(idx);
-
-        
-        
-        
-        if (!child->HasOwnContent() || child->IsDoc()) {
-          idx++;
-          continue;
-        }
-
-        nsINode* childNode = child->GetContent();
-        while (childNode != aChildNode && childNode != containerNode &&
-               (childNode = childNode->GetParentNode()));
-
-        if (childNode != containerNode) {
-          updateFlags |= UpdateTreeInternal(child, false, reorderEvent);
-        } else {
-          idx++;
-        }
-      }
+  uint32_t updateFlags = eNoAccessible;
+  for (uint32_t idx = 0; idx < aContainer->ContentChildCount(); idx++) {
+    Accessible* child = aContainer->ContentChildAt(idx);
+    if (child->IsSurvivingInUpdate()) {
+      child->SetSurvivingInUpdate(false);
+      continue;
     }
+
+    
+#ifdef A11Y_LOG
+    if (logging::IsEnabled(logging::eTree)) {
+      logging::MsgBegin("TREE", "process content insertion");
+      logging::Node("container", aContainer->GetNode());
+      logging::Node("child", child->GetContent());
+      logging::Address("child", child);
+      logging::MsgEnd();
+    }
+#endif
+
+    updateFlags |= UpdateTreeInternal(child, true, reorderEvent);
   }
 
   
@@ -1754,7 +1708,7 @@ DocAccessible::UpdateTree(Accessible* aContainer, nsIContent* aChildNode,
 
   
   
-  if (aIsInsert && !(updateFlags & eAlertAccessible)) {
+  if (!(updateFlags & eAlertAccessible)) {
     
     
     Accessible* ancestor = aContainer;
@@ -1773,9 +1727,71 @@ DocAccessible::UpdateTree(Accessible* aContainer, nsIContent* aChildNode,
   }
 
   MaybeNotifyOfValueChange(aContainer);
+  FireDelayedEvent(reorderEvent);
+}
+
+void
+DocAccessible::UpdateTreeOnRemoval(Accessible* aContainer, nsIContent* aChildNode)
+{
+  
+  Accessible* child = GetAccessible(aChildNode);
+#ifdef A11Y_LOG
+  if (logging::IsEnabled(logging::eTree)) {
+    logging::MsgBegin("TREE", "process content removal");
+    logging::Node("container", aContainer->GetNode());
+    logging::Node("child", aChildNode);
+    if (child)
+      logging::Address("child", child);
+    else
+      logging::MsgEntry("child accessible: null");
+
+    logging::MsgEnd();
+  }
+#endif
+
+  uint32_t updateFlags = eNoAccessible;
+  nsRefPtr<AccReorderEvent> reorderEvent = new AccReorderEvent(aContainer);
+  AutoTreeMutation mut(aContainer);
+
+  if (child) {
+    updateFlags |= UpdateTreeInternal(child, false, reorderEvent);
+  } else {
+    
+    
+    
+    
+    
+    
+    
+    nsINode* containerNode = aContainer->GetNode();
+    for (uint32_t idx = 0; idx < aContainer->ContentChildCount();) {
+      Accessible* child = aContainer->ContentChildAt(idx);
+
+      
+      
+      
+      if (!child->HasOwnContent() || child->IsDoc()) {
+        idx++;
+        continue;
+      }
+
+      nsINode* childNode = child->GetContent();
+      while (childNode != aChildNode && childNode != containerNode &&
+             (childNode = childNode->GetParentNode()));
+
+      if (childNode != containerNode) {
+        updateFlags |= UpdateTreeInternal(child, false, reorderEvent);
+      } else {
+        idx++;
+      }
+    }
+  }
 
   
-  
+  if (updateFlags == eNoAccessible)
+    return;
+
+  MaybeNotifyOfValueChange(aContainer);
   FireDelayedEvent(reorderEvent);
 }
 

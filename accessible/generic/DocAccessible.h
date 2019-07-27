@@ -321,7 +321,7 @@ public:
   {
     
     
-    UpdateTree((aContainer ? aContainer : this), aChildNode, false);
+    UpdateTreeOnRemoval((aContainer ? aContainer : this), aChildNode);
   }
   void ContentRemoved(nsIContent* aContainerNode, nsIContent* aChildNode)
   {
@@ -467,8 +467,12 @@ protected:
   
 
 
-  void UpdateTree(Accessible* aContainer, nsIContent* aChildNode,
-                  bool aIsInsert);
+  void UpdateTreeOnInsertion(Accessible* aContainer);
+
+  
+
+
+  void UpdateTreeOnRemoval(Accessible* aContainer, nsIContent* aChildNode);
 
   
 

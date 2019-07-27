@@ -368,12 +368,7 @@ public:
   
 
 
-  bool UpdateChildren();
-
-  
-
-
-  bool EnsureChildren();
+  void EnsureChildren();
 
   
 
@@ -587,6 +582,7 @@ public:
   HyperTextAccessible* AsHyperText();
 
   bool IsHTMLBr() const { return mType == eHTMLBRType; }
+  bool IsHTMLCombobox() const { return mType == eHTMLComboboxType; }
   bool IsHTMLFileInput() const { return mType == eHTMLFileInputType; }
 
   bool IsHTMLListItem() const { return mType == eHTMLLiType; }
@@ -874,6 +870,19 @@ public:
 
 
 
+  bool IsSurvivingInUpdate() const { return mStateFlags & eSurvivingInUpdate; }
+  void SetSurvivingInUpdate(bool aIsSurviving)
+  {
+    if (aIsSurviving)
+      mStateFlags |= eSurvivingInUpdate;
+    else
+      mStateFlags &= ~eSurvivingInUpdate;
+  }
+
+  
+
+
+
   bool HasNameDependentParent() const
     { return mContextFlags & eHasNameDependentParent; }
 
@@ -953,8 +962,9 @@ protected:
     eGroupInfoDirty = 1 << 5, 
     eSubtreeMutating = 1 << 6, 
     eIgnoreDOMUIEvent = 1 << 7, 
+    eSurvivingInUpdate = 1 << 8, 
 
-    eLastStateFlag = eIgnoreDOMUIEvent
+    eLastStateFlag = eSurvivingInUpdate
   };
 
   
@@ -1068,7 +1078,7 @@ protected:
   int32_t mIndexInParent;
 
   static const uint8_t kChildrenFlagsBits = 2;
-  static const uint8_t kStateFlagsBits = 8;
+  static const uint8_t kStateFlagsBits = 9;
   static const uint8_t kContextFlagsBits = 1;
   static const uint8_t kTypeBits = 6;
   static const uint8_t kGenericTypesBits = 13;
