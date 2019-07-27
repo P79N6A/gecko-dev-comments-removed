@@ -4749,3 +4749,13 @@ pref("dom.secureelement.enabled", false);
 
 
 pref("dom.compositionevent.allow_control_characters", false);
+
+#ifdef MOZ_WIDGET_GONK
+
+
+
+pref("memory.report_concurrency", 1);
+#else
+
+pref("memory.report_concurrency", 10);
+#endif
