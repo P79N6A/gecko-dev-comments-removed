@@ -32,7 +32,7 @@ class Volume;
 
 
 class nsVolumeService final : public nsIVolumeService,
-                              public nsIDOMMozWakeLockListener
+                                  public nsIDOMMozWakeLockListener
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -44,6 +44,8 @@ public:
   static already_AddRefed<nsVolumeService> GetSingleton();
   
   static void Shutdown();
+
+  void DumpNoLock(const char* aLabel);
 
   void UpdateVolume(nsIVolume* aVolume, bool aNotifyObservers = true);
   void UpdateVolumeIOThread(const Volume* aVolume);
