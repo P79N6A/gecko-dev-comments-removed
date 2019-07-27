@@ -3735,39 +3735,10 @@ nsPIDOMWindow::SetAudioVolume(float aVolume)
   return NS_OK;
 }
 
-float
-nsPIDOMWindow::GetAudioGlobalVolume()
-{
-  float globalVolume = 1.0;
-  nsCOMPtr<nsPIDOMWindow> window = this;
-
-  do {
-    if (window->GetAudioMuted()) {
-      return 0;
-    }
-
-    globalVolume *= window->GetAudioVolume();
-
-    nsCOMPtr<nsIDOMWindow> win;
-    window->GetParent(getter_AddRefs(win));
-    if (window == win) {
-      break;
-    }
-
-    window = do_QueryInterface(win);
-
-    
-    
-  } while (window && window != this && globalVolume);
-
-  return globalVolume;
-}
-
 void
 nsPIDOMWindow::RefreshMediaElements()
 {
-  nsRefPtr<AudioChannelService> service =
-    AudioChannelService::GetOrCreateAudioChannelService();
+  nsRefPtr<AudioChannelService> service = AudioChannelService::GetOrCreate();
   service->RefreshAgentsVolume(GetCurrentInnerWindow());
 }
 
