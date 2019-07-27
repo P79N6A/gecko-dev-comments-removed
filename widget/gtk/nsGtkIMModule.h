@@ -54,7 +54,7 @@ public:
     
     
     
-    nsGtkIMModule(nsWindow* aOwnerWindow);
+    explicit nsGtkIMModule(nsWindow* aOwnerWindow);
     ~nsGtkIMModule();
 
     
