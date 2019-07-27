@@ -204,13 +204,7 @@ MP4Reader::Shutdown()
   
   mQueuedVideoSample = nullptr;
 
-  if (mPlatform) {
-    if (!mSharedDecoderManager ||
-        !mSharedDecoderManager->IsPDMInUse(mPlatform)) {
-      mPlatform->Shutdown();
-    }
-    mPlatform = nullptr;
-  }
+  mPlatform = nullptr;
 
   return MediaDecoderReader::Shutdown();
 }

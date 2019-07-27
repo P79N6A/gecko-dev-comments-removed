@@ -18,9 +18,6 @@ public:
   virtual ~GMPDecoderModule();
 
   
-  virtual nsresult Shutdown() override;
-
-  
   virtual already_AddRefed<MediaDataDecoder>
   CreateVideoDecoder(const mp4_demuxer::VideoDecoderConfig& aConfig,
                      layers::LayersBackend aLayersBackend,

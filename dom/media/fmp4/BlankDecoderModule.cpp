@@ -207,11 +207,6 @@ class BlankDecoderModule : public PlatformDecoderModule {
 public:
 
   
-  virtual nsresult Shutdown() override {
-    return NS_OK;
-  }
-
-  
   virtual already_AddRefed<MediaDataDecoder>
   CreateVideoDecoder(const mp4_demuxer::VideoDecoderConfig& aConfig,
                      layers::LayersBackend aLayersBackend,

@@ -91,13 +91,6 @@ public:
   
   
   
-  virtual nsresult Shutdown() = 0;
-
-  
-  
-  
-  
-  
   
   
   
