@@ -175,15 +175,17 @@ MaybeFoldConditionBlock(MIRGraph &graph, MBasicBlock *initialBlock)
     
 
     
-    
-    
-    
 
-    
-    
-    
-    
-    
+
+
+
+
+
+
+
+
+
+
 
     MInstruction *ins = initialBlock->lastIns();
     if (!ins->isTest())
