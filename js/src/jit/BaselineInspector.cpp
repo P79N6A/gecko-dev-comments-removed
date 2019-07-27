@@ -598,10 +598,14 @@ BaselineInspector::commonGetPropFunction(jsbytecode *pc, JSObject **holder, Shap
             } else {
                 MOZ_ASSERT(*commonGetter == nstub->getter());
             }
-        } else if (!stub->isGetProp_Fallback() ||
-                   stub->toGetProp_Fallback()->hadUnoptimizableAccess())
-        {
+        } else if (stub->isGetProp_Fallback()) {
             
+            if (stub->toGetProp_Fallback()->hadUnoptimizableAccess())
+                return false;
+        } else if (stub->isGetName_Fallback()) {
+            if (stub->toGetName_Fallback()->hadUnoptimizableAccess())
+                return false;
+        } else {
             return false;
         }
     }
