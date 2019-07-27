@@ -67,12 +67,13 @@ static_assert(1 << defaultShift == sizeof(jsval), "The defaultShift is wrong");
 
 class MacroAssemblerMIPS : public Assembler
 {
-  protected:
+  public:
     
     Operand ToPayload(Operand base);
     Address ToPayload(Address base) {
         return ToPayload(Operand(base)).toAddress();
     }
+  protected:
     Operand ToType(Operand base);
     Address ToType(Address base) {
         return ToType(Operand(base)).toAddress();

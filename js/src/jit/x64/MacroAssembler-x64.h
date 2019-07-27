@@ -161,6 +161,10 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     
     
     
+    Address ToPayload(Address value) {
+        return value;
+    }
+
     void storeValue(ValueOperand val, Operand dest) {
         movq(val.valueReg(), dest);
     }
