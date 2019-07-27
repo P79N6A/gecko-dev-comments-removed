@@ -94,6 +94,8 @@ loop.store = loop.store || {};
         
         callerId: undefined,
         
+        mediaConnected: false,
+        
         progressURL: undefined,
         
         websocketToken: undefined,
@@ -106,7 +108,8 @@ loop.store = loop.store || {};
         
         audioMuted: false,
         
-        videoMuted: false
+        videoMuted: false,
+        remoteVideoEnabled: false
       };
     },
 
@@ -232,6 +235,9 @@ loop.store = loop.store || {};
         "mediaConnected",
         "setMute",
         "fetchRoomEmailLink",
+        "localVideoEnabled",
+        "remoteVideoDisabled",
+        "remoteVideoEnabled",
         "windowUnload"
       ]);
 
@@ -408,6 +414,7 @@ loop.store = loop.store || {};
 
     mediaConnected: function() {
       this._websocket.mediaUp();
+      this.setStoreState({mediaConnected: true});
     },
 
     
@@ -438,6 +445,44 @@ loop.store = loop.store || {};
         }
         this.setStoreState({"emailLink": createdRoomData.roomUrl});
       }.bind(this));
+    },
+
+    
+
+
+
+
+    remoteVideoEnabled: function(actionData) {
+      this.setStoreState({
+        remoteVideoEnabled: true,
+        remoteSrcVideoObject: actionData.srcVideoObject
+      });
+    },
+
+    
+
+
+
+
+    remoteVideoDisabled: function(actionData) {
+      this.setStoreState({
+        remoteVideoEnabled: false,
+        remoteSrcVideoObject: undefined});
+    },
+
+    
+
+
+
+
+
+
+
+
+    localVideoEnabled: function(actionData) {
+      this.setStoreState({
+        localSrcVideoObject: actionData.srcVideoObject
+      });
     },
 
     

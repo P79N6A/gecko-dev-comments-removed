@@ -193,14 +193,7 @@ loop.shared.actions = (function() {
 
     SetupStreamElements: Action.define("setupStreamElements", {
       
-      publisherConfig: Object,
-      
-      getLocalElementFunc: Function,
-      
-      
-      
-      
-      getRemoteElementFunc: Function
+      publisherConfig: Object
     }),
 
     
@@ -223,6 +216,42 @@ loop.shared.actions = (function() {
       isLocal: Boolean,
       videoType: String,
       dimensions: Object
+    }),
+
+    
+
+
+
+
+
+
+
+
+
+    RemoteVideoEnabled: Action.define("remoteVideoEnabled", {
+      
+
+      srcVideoObject: Object
+    }),
+
+    
+
+
+
+
+    RemoteVideoDisabled: Action.define("remoteVideoDisabled", {
+    }),
+
+    
+
+
+
+
+
+    LocalVideoEnabled: Action.define("localVideoEnabled", {
+      
+
+      srcVideoObject: Object
     }),
 
     
@@ -260,8 +289,12 @@ loop.shared.actions = (function() {
     
 
 
+
+
+
     ReceivingScreenShare: Action.define("receivingScreenShare", {
       receiving: Boolean
+      
     }),
 
     

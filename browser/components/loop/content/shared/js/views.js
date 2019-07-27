@@ -678,13 +678,132 @@ loop.shared.views = (function(_, l10n) {
     }
   });
 
+  
+
+
+  var AvatarView = React.createClass({displayName: "AvatarView",
+    mixins: [React.addons.PureRenderMixin],
+
+    render: function() {
+        return React.createElement("div", {className: "avatar"});
+    }
+  });
+
+  
+
+
+
+  var MediaView = React.createClass({displayName: "MediaView",
+    
+    
+    mixins: [React.addons.PureRenderMixin],
+
+    PropTypes: {
+      displayAvatar: React.PropTypes.bool.isRequired,
+      posterUrl: React.PropTypes.string,
+      
+      mediaType: React.PropTypes.string.isRequired,
+      srcVideoObject: React.PropTypes.object
+    },
+
+    componentDidMount: function() {
+      if (!this.props.displayAvatar) {
+        this.attachVideo(this.props.srcVideoObject);
+      }
+    },
+
+    componentDidUpdate: function() {
+      if (!this.props.displayAvatar) {
+        this.attachVideo(this.props.srcVideoObject);
+      }
+    },
+
+    
+
+
+
+
+
+
+
+
+
+    attachVideo: function(srcVideoObject) {
+      if (!srcVideoObject) {
+        
+        return;
+      }
+
+      var videoElement = this.getDOMNode();
+
+      if (videoElement.tagName.toLowerCase() !== "video") {
+        
+        return;
+      }
+
+      
+      var attrName = "";
+      if ("srcObject" in videoElement) {
+        
+        attrName = "srcObject";
+      } else if ("mozSrcObject" in videoElement) {
+        
+        attrName = "mozSrcObject";
+      } else if ("src" in videoElement) {
+        
+        attrName = "src";
+      } else {
+        console.error("Error attaching stream to element - no supported attribute found");
+        return;
+      }
+
+      
+      if (videoElement[attrName] !== srcVideoObject[attrName]) {
+        videoElement[attrName] = srcVideoObject[attrName];
+      }
+      videoElement.play();
+    },
+
+    render: function() {
+      if (this.props.displayAvatar) {
+        return React.createElement(AvatarView, null);
+      }
+
+      if (!this.props.srcVideoObject && !this.props.posterUrl) {
+        return React.createElement("div", {className: "no-video"});
+      }
+
+      var optionalPoster = {};
+      if (this.props.posterUrl) {
+        optionalPoster.poster = this.props.posterUrl;
+      }
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      return (
+        React.createElement("video", React.__spread({},  optionalPoster, 
+               {className: this.props.mediaType + "-video", 
+               muted: true}))
+      );
+    }
+  });
+
   return {
+    AvatarView: AvatarView,
     Button: Button,
     ButtonGroup: ButtonGroup,
     Checkbox: Checkbox,
     ConversationView: ConversationView,
     ConversationToolbar: ConversationToolbar,
     MediaControlButton: MediaControlButton,
+    MediaView: MediaView,
     ScreenShareControlButton: ScreenShareControlButton,
     NotificationListView: NotificationListView
   };

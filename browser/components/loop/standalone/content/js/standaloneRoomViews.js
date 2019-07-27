@@ -337,7 +337,11 @@ loop.standaloneRoomViews = (function(mozL10n) {
         React.PropTypes.instanceOf(loop.store.FxOSActiveRoomStore)
       ]).isRequired,
       dispatcher: React.PropTypes.instanceOf(loop.Dispatcher).isRequired,
-      isFirefox: React.PropTypes.bool.isRequired
+      isFirefox: React.PropTypes.bool.isRequired,
+      
+      localPosterUrl: React.PropTypes.string,
+      remotePosterUrl: React.PropTypes.string,
+      screenSharePosterUrl: React.PropTypes.string
     },
 
     getInitialState: function() {
@@ -385,10 +389,7 @@ loop.standaloneRoomViews = (function(mozL10n) {
       if (this.state.roomState !== ROOM_STATES.MEDIA_WAIT &&
           nextState.roomState === ROOM_STATES.MEDIA_WAIT) {
         this.props.dispatcher.dispatch(new sharedActions.SetupStreamElements({
-          publisherConfig: this.getDefaultPublisherConfig({publishVideo: true}),
-          getLocalElementFunc: this._getElement.bind(this, ".local"),
-          getRemoteElementFunc: this._getElement.bind(this, ".remote"),
-          getScreenShareElementFunc: this._getElement.bind(this, ".screen")
+          publisherConfig: this.getDefaultPublisherConfig({publishVideo: true})
         }));
       }
 
@@ -411,8 +412,10 @@ loop.standaloneRoomViews = (function(mozL10n) {
         
         var node = this._getElement(".remote");
         node.removeAttribute("style");
+      }
 
-        
+      if (this.state.receivingScreenShare != nextState.receivingScreenShare ||
+          this.state.remoteVideoEnabled != nextState.remoteVideoEnabled) {
         this.updateVideoContainer();
       }
     },
@@ -423,6 +426,32 @@ loop.standaloneRoomViews = (function(mozL10n) {
 
     leaveRoom: function() {
       this.props.dispatcher.dispatch(new sharedActions.LeaveRoom());
+    },
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    _matchMedia: function(queryString) {
+      if ("matchMedia" in this.state) {
+        return this.state.matchMedia(queryString);
+      } else if ("matchMedia" in window) {
+        return window.matchMedia(queryString);
+      }
+      return null;
     },
 
     
@@ -458,7 +487,7 @@ loop.standaloneRoomViews = (function(mozL10n) {
       var targetWidth;
 
       node.style.right = "auto";
-      if (window.matchMedia && window.matchMedia("screen and (max-width:640px)").matches) {
+      if (this._matchMedia("screen and (max-width:640px)").matches) {
         
         targetWidth = 180;
         node.style.width = (targetWidth * ratio.width) + "px";
@@ -470,8 +499,25 @@ loop.standaloneRoomViews = (function(mozL10n) {
 
         
         
-        var remoteVideoDimensions = this.getRemoteVideoDimensions(
-          this.state.receivingScreenShare ? "screen" : "camera");
+        var remoteVideoDimensions;
+        var isScreenShare = this.state.receivingScreenShare;
+        var videoDisplayed = isScreenShare ?
+          this.state.screenShareVideoObject || this.props.screenSharePosterUrl :
+          this.state.remoteSrcVideoObject || this.props.remotePosterUrl;
+
+        if ((isScreenShare || this.shouldRenderRemoteVideo()) && videoDisplayed) {
+          remoteVideoDimensions = this.getRemoteVideoDimensions(
+            isScreenShare ? "screen" : "camera");
+        } else {
+          var remoteElement = this.getDOMNode().querySelector(".remote.focus-stream");
+          if (!remoteElement) {
+            return;
+          }
+          remoteVideoDimensions = {
+            streamWidth: remoteElement.offsetWidth,
+            offsetX: remoteElement.offsetLeft
+          };
+        }
 
         targetWidth = remoteVideoDimensions.streamWidth * LOCAL_STREAM_SIZE;
 
@@ -515,7 +561,7 @@ loop.standaloneRoomViews = (function(mozL10n) {
       }
       
       
-      if (window.matchMedia && window.matchMedia("screen and (max-width:640px)").matches) {
+      if (this._matchMedia("screen and (max-width:640px)").matches) {
         return;
       }
 
@@ -557,9 +603,51 @@ loop.standaloneRoomViews = (function(mozL10n) {
              this.state.roomState === ROOM_STATES.HAS_PARTICIPANTS;
     },
 
+    
+
+
+
+
+
+    shouldRenderRemoteVideo: function() {
+      switch(this.state.roomState) {
+        case ROOM_STATES.HAS_PARTICIPANTS:
+          if (this.state.remoteVideoEnabled) {
+            return true;
+          }
+
+          if (this.state.mediaConnected) {
+            
+            
+            return false;
+          }
+
+          return true;
+
+        case ROOM_STATES.READY:
+        case ROOM_STATES.INIT:
+        case ROOM_STATES.JOINING:
+        case ROOM_STATES.SESSION_CONNECTED:
+        case ROOM_STATES.JOINED:
+        case ROOM_STATES.MEDIA_WAIT:
+          
+          
+          return true;
+
+        case ROOM_STATES.CLOSING:
+          
+          return true;
+
+        default:
+          console.warn("StandaloneRoomView.shouldRenderRemoteVideo:" +
+            " unexpected roomState: ", this.state.roomState);
+          return true;
+
+      }
+    },
+
     render: function() {
       var localStreamClasses = React.addons.classSet({
-        hide: !this._roomIsActive(),
         local: true,
         "local-stream": true,
         "local-stream-audio": this.state.videoMuted
@@ -602,10 +690,25 @@ loop.standaloneRoomViews = (function(mozL10n) {
                   mozL10n.get("self_view_hidden_message")
                 ), 
                 React.createElement("div", {className: "video_wrapper remote_wrapper"}, 
-                  React.createElement("div", {className: remoteStreamClasses}), 
-                  React.createElement("div", {className: screenShareStreamClasses})
+                  React.createElement("div", {className: remoteStreamClasses}, 
+                    React.createElement(sharedViews.MediaView, {displayAvatar: !this.shouldRenderRemoteVideo(), 
+                      posterUrl: this.props.remotePosterUrl, 
+                      mediaType: "remote", 
+                      srcVideoObject: this.state.remoteSrcVideoObject})
+                  ), 
+                  React.createElement("div", {className: screenShareStreamClasses}, 
+                    React.createElement(sharedViews.MediaView, {displayAvatar: false, 
+                      posterUrl: this.props.screenSharePosterUrl, 
+                      mediaType: "screen-share", 
+                      srcVideoObject: this.state.screenShareVideoObject})
+                  )
                 ), 
-                React.createElement("div", {className: localStreamClasses})
+                React.createElement("div", {className: localStreamClasses}, 
+                  React.createElement(sharedViews.MediaView, {displayAvatar: this.state.videoMuted, 
+                    posterUrl: this.props.localPosterUrl, 
+                    mediaType: "local", 
+                    srcVideoObject: this.state.localSrcVideoObject})
+                )
               ), 
               React.createElement(sharedViews.ConversationToolbar, {
                 dispatcher: this.props.dispatcher, 

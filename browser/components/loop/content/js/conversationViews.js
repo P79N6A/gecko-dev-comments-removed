@@ -565,13 +565,23 @@ loop.conversationViews = (function(mozL10n) {
 
   var OngoingConversationView = React.createClass({displayName: "OngoingConversationView",
     mixins: [
+      loop.store.StoreMixin("conversationStore"),
       sharedMixins.MediaSetupMixin
     ],
 
     propTypes: {
       dispatcher: React.PropTypes.instanceOf(loop.Dispatcher).isRequired,
+      
       video: React.PropTypes.object,
-      audio: React.PropTypes.object
+      
+      audio: React.PropTypes.object,
+      remoteVideoEnabled: React.PropTypes.bool,
+      
+      
+      mediaConnected: React.PropTypes.bool,
+      
+      localPosterUrl: React.PropTypes.string,
+      remotePosterUrl: React.PropTypes.string
     },
 
     getDefaultProps: function() {
@@ -581,6 +591,10 @@ loop.conversationViews = (function(mozL10n) {
       };
     },
 
+    getInitialState: function() {
+      return this.getStoreState();
+    },
+
     componentDidMount: function() {
       
       
@@ -588,9 +602,7 @@ loop.conversationViews = (function(mozL10n) {
       this.props.dispatcher.dispatch(new sharedActions.SetupStreamElements({
         publisherConfig: this.getDefaultPublisherConfig({
           publishVideo: this.props.video.enabled
-        }),
-        getLocalElementFunc: this._getElement.bind(this, ".local"),
-        getRemoteElementFunc: this._getElement.bind(this, ".remote")
+        })
       }));
     },
 
@@ -616,6 +628,18 @@ loop.conversationViews = (function(mozL10n) {
         }));
     },
 
+    shouldRenderRemoteVideo: function() {
+      if (this.props.mediaConnected) {
+        
+        
+        return this.props.remoteVideoEnabled;
+      }
+
+      
+      
+      return true;
+    },
+
     render: function() {
       var localStreamClasses = React.addons.classSet({
         local: true,
@@ -628,11 +652,22 @@ loop.conversationViews = (function(mozL10n) {
           React.createElement("div", {className: "conversation"}, 
             React.createElement("div", {className: "media nested"}, 
               React.createElement("div", {className: "video_wrapper remote_wrapper"}, 
-                React.createElement("div", {className: "video_inner remote focus-stream"})
+                React.createElement("div", {className: "video_inner remote focus-stream"}, 
+                  React.createElement(sharedViews.MediaView, {displayAvatar: !this.shouldRenderRemoteVideo(), 
+                    posterUrl: this.props.remotePosterUrl, 
+                    mediaType: "remote", 
+                    srcVideoObject: this.state.remoteSrcVideoObject})
+                )
               ), 
-              React.createElement("div", {className: localStreamClasses})
+              React.createElement("div", {className: localStreamClasses}, 
+                React.createElement(sharedViews.MediaView, {displayAvatar: !this.props.video.enabled, 
+                  posterUrl: this.props.localPosterUrl, 
+                  mediaType: "local", 
+                  srcVideoObject: this.state.localSrcVideoObject})
+              )
             ), 
             React.createElement(loop.shared.views.ConversationToolbar, {
+              dispatcher: this.props.dispatcher, 
               video: this.props.video, 
               audio: this.props.audio, 
               publishStream: this.publishStream, 
@@ -742,7 +777,10 @@ loop.conversationViews = (function(mozL10n) {
           return (React.createElement(OngoingConversationView, {
             dispatcher: this.props.dispatcher, 
             video: {enabled: !this.state.videoMuted}, 
-            audio: {enabled: !this.state.audioMuted}}
+            audio: {enabled: !this.state.audioMuted}, 
+            remoteVideoEnabled: this.state.remoteVideoEnabled, 
+            mediaConnected: this.state.mediaConnected, 
+            remoteSrcVideoObject: this.state.remoteSrcVideoObject}
             )
           );
         }

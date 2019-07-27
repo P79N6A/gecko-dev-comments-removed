@@ -104,9 +104,6 @@ loop.OTSdkDriver = (function() {
 
 
     setupStreamElements: function(actionData) {
-      this.getLocalElement = actionData.getLocalElementFunc;
-      this.getScreenShareElementFunc = actionData.getScreenShareElementFunc;
-      this.getRemoteElement = actionData.getRemoteElementFunc;
       this.publisherConfig = actionData.publisherConfig;
 
       this.sdk.on("exception", this._onOTException.bind(this));
@@ -122,8 +119,13 @@ loop.OTSdkDriver = (function() {
 
 
     _publishLocalStreams: function() {
-      this.publisher = this.sdk.initPublisher(this.getLocalElement(),
+      
+      
+      this._mockPublisherEl = document.createElement("div");
+
+      this.publisher = this.sdk.initPublisher(this._mockPublisherEl,
         _.extend(this._getDataChannelSettings, this._getCopyPublisherConfig));
+
       this.publisher.on("streamCreated", this._onLocalStreamCreated.bind(this));
       this.publisher.on("streamDestroyed", this._onLocalStreamDestroyed.bind(this));
       this.publisher.on("accessAllowed", this._onPublishComplete.bind(this));
@@ -182,7 +184,9 @@ loop.OTSdkDriver = (function() {
 
       var config = _.extend(this._getCopyPublisherConfig, options);
 
-      this.screenshare = this.sdk.initPublisher(this.getScreenShareElementFunc(),
+      this._mockScreenSharePreviewEl = document.createElement("div");
+
+      this.screenshare = this.sdk.initPublisher(this._mockScreenSharePreviewEl,
         config);
       this.screenshare.on("accessAllowed", this._onScreenShareGranted.bind(this));
       this.screenshare.on("accessDenied", this._onScreenShareDenied.bind(this));
@@ -222,6 +226,7 @@ loop.OTSdkDriver = (function() {
       this.screenshare.off("accessAllowed accessDenied streamCreated");
       this.screenshare.destroy();
       delete this.screenshare;
+      delete this._mockScreenSharePreviewEl;
       this._noteSharingState(this._windowId ? "browser" : "window", false);
       delete this._windowId;
       return true;
@@ -289,6 +294,7 @@ loop.OTSdkDriver = (function() {
       delete this._publisherReady;
       delete this._publishedLocalStream;
       delete this._subscribedRemoteStream;
+      delete this._mockPublisherEl;
       this.connections = {};
       this._setTwoWayMediaStartTime(this.CONNECTION_START_TIME_UNINITIALIZED);
     },
@@ -499,19 +505,23 @@ loop.OTSdkDriver = (function() {
 
 
     _handleRemoteScreenShareCreated: function(stream) {
-      if (!this.getScreenShareElementFunc) {
-        return;
-      }
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
 
       
-      this.dispatcher.dispatch(new sharedActions.ReceivingScreenShare({
-        receiving: true
-      }));
-
-      var remoteElement = this.getScreenShareElementFunc();
-
-      this.session.subscribe(stream,
-        remoteElement, this._getCopyPublisherConfig);
+      this._mockScreenShareEl = document.createElement("div");
+      this.session.subscribe(stream, this._mockScreenShareEl,
+        this._getCopyPublisherConfig,
+        this._onScreenShareSubscribeCompleted.bind(this));
     },
 
     
@@ -536,17 +546,88 @@ loop.OTSdkDriver = (function() {
         return;
       }
 
-      var remoteElement = this.getRemoteElement();
+      
+      
+      
+      
+
+      
+      
+      
+      
+      this._mockSubscribeEl = document.createElement("div");
 
       this.subscriber = this.session.subscribe(event.stream,
-        remoteElement, this._getCopyPublisherConfig,
-        this._onRemoteSessionSubscribed.bind(this, event.stream.connection));
+        this._mockSubscribeEl, this._getCopyPublisherConfig,
+        this._onSubscribeCompleted.bind(this));
+    },
+
+    
+
+
+
+
+
+
+
+    _onSubscribeCompleted: function(err, sdkSubscriberObject, subscriberVideo) {
+      
+      if (err) {
+        console.log("subscribe error:", err);
+        return;
+      }
+
+      var sdkSubscriberVideo = subscriberVideo ? subscriberVideo :
+        this._mockSubscribeEl.querySelector("video");
+      if (!sdkSubscriberVideo) {
+        console.error("sdkSubscriberVideo unexpectedly falsy!");
+      }
+
+      sdkSubscriberObject.on("videoEnabled", this._onVideoEnabled.bind(this));
+      sdkSubscriberObject.on("videoDisabled", this._onVideoDisabled.bind(this));
+
+      
+      
+      
+      if (sdkSubscriberObject.stream.hasVideo) {
+        this.dispatcher.dispatch(new sharedActions.RemoteVideoEnabled({
+          srcVideoObject: sdkSubscriberVideo}));
+      }
 
       this._subscribedRemoteStream = true;
       if (this._checkAllStreamsConnected()) {
         this._setTwoWayMediaStartTime(performance.now());
         this.dispatcher.dispatch(new sharedActions.MediaConnected());
       }
+
+      this._setupDataChannelIfNeeded(sdkSubscriberObject.stream.connection);
+    },
+
+    
+
+
+
+
+
+
+
+    _onScreenShareSubscribeCompleted: function(err, sdkSubscriberObject, subscriberVideo) {
+      
+      if (err) {
+        console.log("subscribe error:", err);
+        return;
+      }
+
+      var sdkSubscriberVideo = subscriberVideo ? subscriberVideo :
+        this._mockScreenShareEl.querySelector("video");
+
+      
+      
+      
+      this.dispatcher.dispatch(new sharedActions.ReceivingScreenShare({
+        receiving: true, srcVideoObject: sdkSubscriberVideo
+      }));
+
     },
 
     
@@ -558,12 +639,7 @@ loop.OTSdkDriver = (function() {
 
 
 
-    _onRemoteSessionSubscribed: function(connection, err) {
-      if (err) {
-        console.error(err);
-        return;
-      }
-
+    _setupDataChannelIfNeeded: function(connection) {
       if (this._useDataChannels) {
         this.session.signal({
           type: "readyForDataChannel",
@@ -670,6 +746,12 @@ loop.OTSdkDriver = (function() {
       this._notifyMetricsEvent("Publisher.streamCreated");
 
       if (event.stream[STREAM_PROPERTIES.HAS_VIDEO]) {
+
+        var sdkLocalVideo = this._mockPublisherEl.querySelector("video");
+
+        this.dispatcher.dispatch(new sharedActions.LocalVideoEnabled(
+              {srcVideoObject: sdkLocalVideo}));
+
         this.dispatcher.dispatch(new sharedActions.VideoDimensionsChanged({
           isLocal: true,
           videoType: event.stream.videoType,
@@ -739,6 +821,7 @@ loop.OTSdkDriver = (function() {
       this._notifyMetricsEvent("Session.streamDestroyed");
 
       if (event.stream.videoType !== "screen") {
+        delete this._mockSubscribeEl;
         return;
       }
 
@@ -747,6 +830,8 @@ loop.OTSdkDriver = (function() {
       this.dispatcher.dispatch(new sharedActions.ReceivingScreenShare({
         receiving: false
       }));
+
+      delete this._mockScreenShareEl;
     },
 
     
@@ -754,6 +839,7 @@ loop.OTSdkDriver = (function() {
 
     _onLocalStreamDestroyed: function() {
       this._notifyMetricsEvent("Publisher.streamDestroyed");
+      delete this._mockPublisherEl;
     },
 
     
@@ -793,6 +879,8 @@ loop.OTSdkDriver = (function() {
       this.dispatcher.dispatch(new sharedActions.ConnectionFailure({
         reason: FAILURE_DETAILS.MEDIA_DENIED
       }));
+
+      delete this._mockPublisherEl;
     },
 
     _onOTException: function(event) {
@@ -804,6 +892,7 @@ loop.OTSdkDriver = (function() {
           this.publisher.off("accessAllowed accessDenied accessDialogOpened streamCreated");
           this.publisher.destroy();
           delete this.publisher;
+          delete this._mockPublisherEl;
         }
         this.dispatcher.dispatch(new sharedActions.ConnectionFailure({
           reason: FAILURE_DETAILS.UNABLE_TO_PUBLISH_MEDIA
@@ -822,6 +911,42 @@ loop.OTSdkDriver = (function() {
           dimensions: event.stream[STREAM_PROPERTIES.VIDEO_DIMENSIONS]
         }));
       }
+    },
+
+    
+
+
+
+
+
+
+
+
+
+
+    _onVideoEnabled: function(event) {
+      var sdkSubscriberVideo = this._mockSubscribeEl.querySelector("video");
+      if (!sdkSubscriberVideo) {
+        console.error("sdkSubscriberVideo unexpectedly falsy!");
+      }
+
+      this.dispatcher.dispatch(
+        new sharedActions.RemoteVideoEnabled(
+          {srcVideoObject: sdkSubscriberVideo}));
+    },
+
+    
+
+
+
+
+
+
+
+
+    _onVideoDisabled: function(event) {
+      this.dispatcher.dispatch(
+        new sharedActions.RemoteVideoDisabled());
     },
 
     
@@ -868,6 +993,7 @@ loop.OTSdkDriver = (function() {
       this.dispatcher.dispatch(new sharedActions.ScreenSharingState({
         state: SCREEN_SHARE_STATES.INACTIVE
       }));
+      delete this._mockScreenSharePreviewEl;
     },
 
     

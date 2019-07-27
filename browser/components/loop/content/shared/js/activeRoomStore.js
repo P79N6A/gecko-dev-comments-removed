@@ -77,10 +77,15 @@ loop.store.ActiveRoomStore = (function() {
 
     _statesToResetOnLeave: [
       "audioMuted",
+      "localSrcVideoObject",
       "localVideoDimensions",
+      "mediaConnected",
       "receivingScreenShare",
+      "remoteSrcVideoObject",
       "remoteVideoDimensions",
+      "remoteVideoEnabled",
       "screenSharingState",
+      "screenShareVideoObject",
       "videoMuted"
     ],
 
@@ -95,6 +100,7 @@ loop.store.ActiveRoomStore = (function() {
         roomState: ROOM_STATES.INIT,
         audioMuted: false,
         videoMuted: false,
+        remoteVideoEnabled: false,
         failureReason: undefined,
         
         
@@ -115,7 +121,10 @@ loop.store.ActiveRoomStore = (function() {
         roomInfoFailure: null,
         
         roomName: null,
-        socialShareProviders: null
+        
+        socialShareProviders: null,
+        
+        mediaConnected: false
       };
     },
 
@@ -169,11 +178,15 @@ loop.store.ActiveRoomStore = (function() {
         "windowUnload",
         "leaveRoom",
         "feedbackComplete",
+        "localVideoEnabled",
+        "remoteVideoEnabled",
+        "remoteVideoDisabled",
         "videoDimensionsChanged",
         "startScreenShare",
         "endScreenShare",
         "updateSocialShareInfo",
-        "connectionStatus"
+        "connectionStatus",
+        "mediaConnected"
       ]);
     },
 
@@ -553,6 +566,41 @@ loop.store.ActiveRoomStore = (function() {
     
 
 
+
+
+    localVideoEnabled: function(actionData) {
+      this.setStoreState({localSrcVideoObject: actionData.srcVideoObject});
+    },
+
+    
+
+
+
+
+    remoteVideoEnabled: function(actionData) {
+      this.setStoreState({
+        remoteVideoEnabled: true,
+        remoteSrcVideoObject: actionData.srcVideoObject
+      });
+    },
+
+    
+
+
+    remoteVideoDisabled: function() {
+      this.setStoreState({remoteVideoEnabled: false});
+    },
+
+    
+
+
+    mediaConnected: function() {
+      this.setStoreState({mediaConnected: true});
+    },
+
+    
+
+
     screenSharingState: function(actionData) {
       this.setStoreState({screenSharingState: actionData.state});
 
@@ -564,6 +612,9 @@ loop.store.ActiveRoomStore = (function() {
     
 
 
+
+
+
     receivingScreenShare: function(actionData) {
       if (!actionData.receiving &&
           this.getStoreState().remoteVideoDimensions.screen) {
@@ -573,10 +624,15 @@ loop.store.ActiveRoomStore = (function() {
         delete newDimensions.screen;
         this.setStoreState({
           receivingScreenShare: actionData.receiving,
-          remoteVideoDimensions: newDimensions
+          remoteVideoDimensions: newDimensions,
+          screenShareVideoObject: null
         });
       } else {
-        this.setStoreState({receivingScreenShare: actionData.receiving});
+        this.setStoreState({
+          receivingScreenShare: actionData.receiving,
+          screenShareVideoObject: actionData.srcVideoObject ?
+                                  actionData.srcVideoObject : null
+        });
       }
     },
 
@@ -676,7 +732,10 @@ loop.store.ActiveRoomStore = (function() {
 
 
     remotePeerDisconnected: function() {
-      this.setStoreState({roomState: ROOM_STATES.SESSION_CONNECTED});
+      this.setStoreState({
+        roomState: ROOM_STATES.SESSION_CONNECTED,
+        remoteSrcVideoObject: null
+      });
     },
 
     
