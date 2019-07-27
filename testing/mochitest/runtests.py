@@ -1166,12 +1166,12 @@ class Mochitest(MochitestUtilsMixin):
       return options.gmp_path
 
     
-    gmp_path = os.path.join(options.xrePath, 'gmp-fake')
+    gmp_path = os.path.join(options.xrePath, 'gmp-fake', '1.0')
     if os.path.isdir(gmp_path):
       return gmp_path
 
     
-    gmp_path = os.path.join(self.profile.profile, 'plugins', 'gmp-fake')
+    gmp_path = os.path.join(self.profile.profile, 'plugins', 'gmp-fake', '1.0')
     if os.path.isdir(gmp_path):
       return gmp_path
     
