@@ -702,7 +702,7 @@ var SelectionHandler = {
   attachCaret: function sh_attachCaret(aElement) {
     
     if (aElement.disabled || InputWidgetHelper.hasInputWidget(aElement) || !this.isElementEditableText(aElement)) {
-      return;
+      return false;
     }
 
     this._initTargetInfo(aElement, this.TYPE_CURSOR);
@@ -722,6 +722,8 @@ var SelectionHandler = {
       handles: [this.HANDLE_TYPE_MIDDLE]
     });
     this._updateMenu();
+
+    return true;
   },
 
   
