@@ -112,6 +112,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "Notifications",
 XPCOMUtils.defineLazyModuleGetter(this, "ReaderMode",
                                   "resource://gre/modules/ReaderMode.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "GMPInstallManager",
+                                  "resource://gre/modules/GMPInstallManager.jsm");
+
 
 [
   ["SelectHelper", "chrome://browser/content/SelectHelper.js"],
@@ -341,6 +344,9 @@ var BrowserApp = {
           Cc["@mozilla.org/login-manager;1"].getService(Ci.nsILoginManager);
           CastingApps.init();
         }, Ci.nsIThread.DISPATCH_NORMAL);
+
+        BrowserApp.gmpInstallManager = new GMPInstallManager();
+        BrowserApp.gmpInstallManager.simpleCheckAndInstall().then(null, () => {});
 
 #ifdef MOZ_SAFE_BROWSING
         Services.tm.mainThread.dispatch(function() {
@@ -1193,6 +1199,10 @@ var BrowserApp = {
   },
 
   quit: function quit(aClear = { sanitize: {}, dontSaveSession: false }) {
+    if (this.gmpInstallManager) {
+      this.gmpInstallManager.uninit();
+    }
+
     
     let lastBrowser = true;
     let e = Services.wm.getEnumerator("navigator:browser");
