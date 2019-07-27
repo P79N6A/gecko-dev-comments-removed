@@ -12,21 +12,21 @@
 namespace mozilla {
 namespace ipc {
 
+class StreamSocketConsumer;
 class StreamSocketIO;
 class UnixSocketConnector;
 
-class StreamSocket : public ConnectionOrientedSocket
+class StreamSocket final : public ConnectionOrientedSocket
 {
 public:
-  StreamSocket();
+  StreamSocket(StreamSocketConsumer* aConsumer, int aIndex);
 
   
 
 
 
 
-
-  virtual void ReceiveSocketData(nsAutoPtr<UnixSocketBuffer>& aBuffer) = 0;
+  void ReceiveSocketData(nsAutoPtr<UnixSocketBuffer>& aBuffer);
 
   
 
@@ -53,11 +53,16 @@ public:
   
 
   void Close() override;
+  void OnConnectSuccess() override;
+  void OnConnectError() override;
+  void OnDisconnect() override;
 
 protected:
   virtual ~StreamSocket();
 
 private:
+  StreamSocketConsumer* mConsumer;
+  int mIndex;
   StreamSocketIO* mIO;
 };
 
