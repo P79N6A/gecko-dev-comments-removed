@@ -796,20 +796,21 @@ nsHTMLEditRules::GetAlignment(bool *aMixed, nsIHTMLEditor::EAlignment *aAlign)
   *aAlign = nsIHTMLEditor::eLeft;
 
   
-  nsCOMPtr<nsISelection>selection;
   NS_ENSURE_STATE(mHTMLEditor);  
-  nsresult res = mHTMLEditor->GetSelection(getter_AddRefs(selection));
-  NS_ENSURE_SUCCESS(res, res);
+  nsRefPtr<Selection> selection = mHTMLEditor->GetSelection();
+  NS_ENSURE_STATE(selection);
 
   
   NS_ENSURE_STATE(mHTMLEditor);  
-  nsCOMPtr<nsIDOMElement> rootElem = do_QueryInterface(mHTMLEditor->GetRoot());
+  nsCOMPtr<Element> rootElem = mHTMLEditor->GetRoot();
   NS_ENSURE_TRUE(rootElem, NS_ERROR_FAILURE);
 
   int32_t offset, rootOffset;
-  nsCOMPtr<nsIDOMNode> parent = nsEditor::GetNodeLocation(rootElem, &rootOffset);
+  nsCOMPtr<nsINode> parent = nsEditor::GetNodeLocation(rootElem, &rootOffset);
   NS_ENSURE_STATE(mHTMLEditor);
-  res = mHTMLEditor->GetStartNodeAndOffset(selection, getter_AddRefs(parent), &offset);
+  nsresult res = mHTMLEditor->GetStartNodeAndOffset(selection,
+                                                    getter_AddRefs(parent),
+                                                    &offset);
   NS_ENSURE_SUCCESS(res, res);
 
   
@@ -817,7 +818,7 @@ nsHTMLEditRules::GetAlignment(bool *aMixed, nsIHTMLEditor::EAlignment *aAlign)
   if (selection->Collapsed()) {
     
     
-    nodeToExamine = parent;
+    nodeToExamine = GetAsDOMNode(parent);
   }
   else if (!mHTMLEditor) {
     return NS_ERROR_UNEXPECTED;
@@ -825,12 +826,12 @@ nsHTMLEditRules::GetAlignment(bool *aMixed, nsIHTMLEditor::EAlignment *aAlign)
   else if (mHTMLEditor->IsTextNode(parent)) 
   {
     
-    nodeToExamine = parent;
-  } else if (nsEditor::NodeIsType(parent, nsGkAtoms::html) &&
-             offset == rootOffset) {
+    nodeToExamine = GetAsDOMNode(parent);
+  } else if (parent->Tag() == nsGkAtoms::html && offset == rootOffset) {
     
     NS_ENSURE_STATE(mHTMLEditor);
-    mHTMLEditor->GetNextNode(parent, offset, true, address_of(nodeToExamine));
+    nodeToExamine =
+      GetAsDOMNode(mHTMLEditor->GetNextNode(parent, offset, true));
   }
   else
   {
