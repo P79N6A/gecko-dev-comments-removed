@@ -23,6 +23,10 @@
 #include "nsScriptLoader.h"
 #include "nsNetUtil.h"
 
+
+
+
+
 class AutoError {
 public:
   explicit AutoError(mozilla::dom::ImportLoader* loader, bool scriptsBlocked = true)
@@ -49,6 +53,212 @@ private:
 namespace mozilla {
 namespace dom {
 
+
+
+
+
+void
+ImportLoader::Updater::GetReferrerChain(nsINode* aNode,
+                                        nsTArray<nsINode*>& aResult)
+{
+  
+  MOZ_ASSERT(mLoader->mLinks.Contains(aNode));
+
+  aResult.AppendElement(aNode);
+  nsINode* node = aNode;
+  nsRefPtr<ImportManager> manager = mLoader->Manager();
+  for (ImportLoader* referrersLoader = manager->Find(node->OwnerDoc());
+       referrersLoader;
+       referrersLoader = manager->Find(node->OwnerDoc()))
+  {
+    
+    
+    node = referrersLoader->GetMainReferrer();
+    MOZ_ASSERT(node);
+    aResult.AppendElement(node);
+  }
+
+  
+  
+  
+  
+  uint32_t l = aResult.Length();
+  for (uint32_t i = 0; i < l / 2; i++) {
+    Swap(aResult[i], aResult[l - i - 1]);
+  }
+}
+
+bool
+ImportLoader::Updater::ShouldUpdate(nsTArray<nsINode*>& aNewPath)
+{
+  
+  
+  
+  
+  
+  
+  nsTArray<nsINode*> oldPath;
+  GetReferrerChain(mLoader->mLinks[mLoader->mMainReferrer], oldPath);
+  uint32_t max = std::min(oldPath.Length(), aNewPath.Length());
+  MOZ_ASSERT(max > 0);
+  uint32_t lastCommonImportAncestor = 0;
+
+  for (uint32_t i = 0;
+       i < max && oldPath[i]->OwnerDoc() == aNewPath[i]->OwnerDoc();
+       i++)
+  {
+    lastCommonImportAncestor = i;
+  }
+
+  MOZ_ASSERT(lastCommonImportAncestor < max);
+  nsINode* oldLink = oldPath[lastCommonImportAncestor];
+  nsINode* newLink = aNewPath[lastCommonImportAncestor];
+
+  if ((lastCommonImportAncestor == max - 1) &&
+      newLink == oldLink ) {
+    
+    
+    MOZ_ASSERT(oldPath.Length() != aNewPath.Length(),
+               "This would mean that new link == main referrer link");
+    return false;
+  }
+
+  MOZ_ASSERT(aNewPath != oldPath,
+             "How could this happen?");
+  nsIDocument* doc = oldLink->OwnerDoc();
+  MOZ_ASSERT(doc->HasSubImportLink(newLink));
+  MOZ_ASSERT(doc->HasSubImportLink(oldLink));
+
+  return doc->IndexOfSubImportLink(newLink) < doc->IndexOfSubImportLink(oldLink);
+}
+
+void
+ImportLoader::Updater::UpdateMainReferrer(uint32_t aNewIdx)
+{
+  MOZ_ASSERT(aNewIdx < mLoader->mLinks.Length());
+  nsINode* newMainReferrer = mLoader->mLinks[aNewIdx];
+  
+  if (mLoader->mDocument) {
+    
+    
+    nsRefPtr<ImportManager> manager = mLoader->Manager();
+    nsScriptLoader* loader = mLoader->mDocument->ScriptLoader();
+    ImportLoader*& pred = mLoader->mBlockingPredecessor;
+    if (pred) {
+      pred->RemoveBlockedScriptLoader(loader);
+    }
+    
+    pred = manager->GetNearestPredecessor(newMainReferrer);
+    if (pred) {
+      pred->AddBlockedScriptLoader(loader);
+    }
+  }
+  if (mLoader->IsBlocking()) {
+    
+    
+    mLoader->mImportParent->ScriptLoader()->RemoveExecuteBlocker();
+    newMainReferrer->OwnerDoc()->ScriptLoader()->AddExecuteBlocker();
+  }
+  
+  mLoader->mMainReferrer = aNewIdx;
+  mLoader->mImportParent = newMainReferrer->OwnerDoc();
+}
+
+nsINode*
+ImportLoader::Updater::NextDependant(nsINode* aCurrentLink,
+                                     nsTArray<nsINode*>& aPath,
+                                     NodeTable& aVisitedNodes, bool aSkipChildren)
+{
+  
+  if (!aSkipChildren) {
+    
+    ImportLoader* loader = mLoader->Manager()->Find(aCurrentLink);
+    if (loader && loader->GetDocument()) {
+      nsINode* firstSubImport = loader->GetDocument()->GetSubImportLink(0);
+      if (firstSubImport && !aVisitedNodes.Contains(firstSubImport)) {
+        aPath.AppendElement(aCurrentLink);
+        aVisitedNodes.PutEntry(firstSubImport);
+        return firstSubImport;
+      }
+    }
+  }
+
+  aPath.AppendElement(aCurrentLink);
+  
+  while(aPath.Length() > 1) {
+    aCurrentLink = aPath[aPath.Length() - 1];
+    aPath.RemoveElementAt(aPath.Length() - 1);
+
+    
+    ImportLoader* loader =  mLoader->Manager()->Find(aCurrentLink->OwnerDoc());
+    MOZ_ASSERT(loader && loader->GetDocument(), "How can this happend?");
+    nsIDocument* doc = loader->GetDocument();
+    MOZ_ASSERT(doc->HasSubImportLink(aCurrentLink));
+    uint32_t idx = doc->IndexOfSubImportLink(aCurrentLink);
+    nsINode* next = doc->GetSubImportLink(idx + 1);
+    if (next) {
+      
+      
+      
+      MOZ_ASSERT(!aVisitedNodes.Contains(next));
+      aVisitedNodes.PutEntry(next);
+      return next;
+    }
+  }
+
+  return nullptr;
+}
+
+void
+ImportLoader::Updater::UpdateDependants(nsINode* aNode,
+                                        nsTArray<nsINode*>& aPath)
+{
+  NodeTable visitedNodes;
+  nsINode* current = aNode;
+  uint32_t initialLength = aPath.Length();
+  bool neededUpdate = true;
+  while ((current = NextDependant(current, aPath, visitedNodes, !neededUpdate))) {
+    if (!current || aPath.Length() <= initialLength) {
+      break;
+    }
+    ImportLoader* loader = mLoader->Manager()->Find(current);
+    if (!loader) {
+      continue;
+    }
+    Updater& updater = loader->mUpdater;
+    neededUpdate = updater.ShouldUpdate(aPath);
+    if (neededUpdate) {
+      updater.UpdateMainReferrer(loader->mLinks.IndexOf(current));
+    }
+  }
+}
+
+void
+ImportLoader::Updater::UpdateSpanningTree(nsINode* aNode)
+{
+  if (mLoader->mReady || mLoader->mStopped) {
+    
+    return;
+  }
+
+  if (mLoader->mLinks.Length() == 1) {
+    
+    mLoader->mMainReferrer = 0;
+    return;
+  }
+
+  nsTArray<nsINode*> newReferrerChain;
+  GetReferrerChain(aNode, newReferrerChain);
+  if (ShouldUpdate(newReferrerChain)) {
+    UpdateMainReferrer(mLoader->mLinks.Length() - 1);
+    UpdateDependants(aNode, newReferrerChain);
+  }
+}
+
+
+
+
+
 NS_INTERFACE_MAP_BEGIN(ImportLoader)
   NS_INTERFACE_MAP_ENTRY(nsIStreamListener)
   NS_INTERFACE_MAP_ENTRY(nsIRequestObserver)
@@ -66,10 +276,13 @@ NS_IMPL_CYCLE_COLLECTION(ImportLoader,
 ImportLoader::ImportLoader(nsIURI* aURI, nsIDocument* aImportParent)
   : mURI(aURI)
   , mImportParent(aImportParent)
+  , mBlockingPredecessor(nullptr)
   , mReady(false)
   , mStopped(false)
   , mBlockingScripts(false)
-{}
+  , mUpdater(MOZ_THIS_IN_INITIALIZER_LIST())
+{
+}
 
 void
 ImportLoader::BlockScripts()
@@ -84,7 +297,16 @@ ImportLoader::UnblockScripts()
 {
   MOZ_ASSERT(mBlockingScripts);
   mImportParent->ScriptLoader()->RemoveExecuteBlocker();
+  
+  
+  mBlockedScriptLoaders.Clear();
   mBlockingScripts = false;
+}
+
+void
+ImportLoader::SetBlockingPredecessor(ImportLoader* aLoader)
+{
+  mBlockingPredecessor = aLoader;
 }
 
 void
@@ -100,20 +322,48 @@ ImportLoader::DispatchEventIfFinished(nsINode* aNode)
 }
 
 void
+ImportLoader::AddBlockedScriptLoader(nsScriptLoader* aScriptLoader)
+{
+  MOZ_ASSERT(!mBlockedScriptLoaders.Contains(aScriptLoader),
+             "Same scripts loader should be added only once");
+
+  aScriptLoader->AddExecuteBlocker();
+
+  if (mDocument) {
+    
+    
+    mDocument->ScriptLoader()->AddPendingChildLoader(aScriptLoader);
+  }
+  
+  mBlockedScriptLoaders.AppendElement(aScriptLoader);
+}
+
+bool
+ImportLoader::RemoveBlockedScriptLoader(nsScriptLoader* aScriptLoader)
+{
+  aScriptLoader->RemoveExecuteBlocker();
+  if (mDocument) {
+    mDocument->ScriptLoader()->RemovePendingChildLoader(aScriptLoader);
+  }
+  return mBlockedScriptLoaders.RemoveElement(aScriptLoader);
+}
+
+void
 ImportLoader::AddLinkElement(nsINode* aNode)
 {
   
   
   
   
-  mLinks.AppendObject(aNode);
+  mLinks.AppendElement(aNode);
+  mUpdater.UpdateSpanningTree(aNode);
   DispatchEventIfFinished(aNode);
 }
 
 void
 ImportLoader::RemoveLinkElement(nsINode* aNode)
 {
-  mLinks.RemoveObject(aNode);
+  mLinks.RemoveElement(aNode);
 }
 
 
@@ -159,8 +409,8 @@ void
 ImportLoader::Done()
 {
   mReady = true;
-  uint32_t count = mLinks.Count();
-  for (uint32_t i = 0; i < count; i++) {
+  uint32_t l = mLinks.Length();
+  for (uint32_t i = 0; i < l; i++) {
     DispatchLoadEvent(mLinks[i]);
   }
   UnblockScripts();
@@ -172,8 +422,8 @@ ImportLoader::Error(bool aUnblockScripts)
 {
   mDocument = nullptr;
   mStopped = true;
-  uint32_t count = mLinks.Count();
-  for (uint32_t i = 0; i < count; i++) {
+  uint32_t l = mLinks.Length();
+  for (uint32_t i = 0; i < l; i++) {
     DispatchErrorEvent(mLinks[i]);
   }
   if (aUnblockScripts) {
@@ -378,6 +628,10 @@ ImportLoader::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
   nsCOMPtr<nsIDocument> master = mImportParent->MasterDocument();
   mDocument->SetMasterDocument(master);
 
+  for (uint32_t i = 0; i < mBlockedScriptLoaders.Length(); i++) {
+    mDocument->ScriptLoader()->AddPendingChildLoader(mBlockedScriptLoaders[i]);
+  }
+
   
   
   nsCOMPtr<nsIStreamListener> listener;
@@ -391,6 +645,24 @@ ImportLoader::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
                                     true);
   NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_ABORT_ERR);
 
+  nsCOMPtr<nsIURI> originalURI;
+  rv = channel->GetOriginalURI(getter_AddRefs(originalURI));
+  NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_ABORT_ERR);
+
+  nsCOMPtr<nsIURI> URI;
+  rv = channel->GetURI(getter_AddRefs(URI));
+  NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_ABORT_ERR);
+  MOZ_ASSERT(URI, "URI of a channel should never be null");
+
+  bool equals;
+  rv = URI->Equals(originalURI, &equals);
+  NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_ABORT_ERR);
+
+  if (!equals) {
+    
+    Manager()->AddLoaderWithNewURI(this, URI);
+  }
+
   
   mParserStreamListener = listener;
   rv = listener->OnStartRequest(aRequest, aContext);
@@ -399,6 +671,10 @@ ImportLoader::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
   ae.Pass();
   return NS_OK;
 }
+
+
+
+
 
 NS_IMPL_CYCLE_COLLECTION(ImportManager,
                          mImports)
@@ -417,15 +693,77 @@ ImportManager::Get(nsIURI* aURI, nsINode* aNode, nsIDocument* aOrigDocument)
   
   nsRefPtr<ImportLoader> loader;
   mImports.Get(aURI, getter_AddRefs(loader));
-
+  bool needToStart = false;
   if (!loader) {
     loader = new ImportLoader(aURI, aOrigDocument);
     mImports.Put(aURI, loader);
+    needToStart = true;
+  }
+
+  MOZ_ASSERT(loader);
+  
+  
+  
+  
+  if (!aOrigDocument->HasSubImportLink(aNode)) {
+    aOrigDocument->AddSubImportLink(aNode);
+  }
+
+  loader->AddLinkElement(aNode);
+
+  if (needToStart) {
     loader->Open();
   }
-  loader->AddLinkElement(aNode);
-  MOZ_ASSERT(loader);
+
   return loader.forget();
+}
+
+ImportLoader*
+ImportManager::Find(nsIDocument* aImport)
+{
+  return mImports.GetWeak(aImport->GetDocumentURIObject());
+}
+
+ImportLoader*
+ImportManager::Find(nsINode* aLink)
+{
+  HTMLLinkElement* linkElement = static_cast<HTMLLinkElement*>(aLink);
+  nsCOMPtr<nsIURI> uri = linkElement->GetHrefURI();
+  return mImports.GetWeak(uri);
+}
+
+void
+ImportManager::AddLoaderWithNewURI(ImportLoader* aLoader, nsIURI* aNewURI)
+{
+  mImports.Put(aNewURI, aLoader);
+}
+
+nsRefPtr<ImportLoader> ImportManager::GetNearestPredecessor(nsINode* aNode)
+{
+  
+  nsIDocument* doc = aNode->OwnerDoc();
+  int32_t idx = doc->IndexOfSubImportLink(aNode);
+  MOZ_ASSERT(idx != -1, "aNode must be a sub import link of its owner document");
+  if (idx == 0) {
+    if (doc->IsMasterDocument()) {
+      
+      
+      return nullptr;
+    }
+    
+    
+    ImportLoader* owner = Find(doc);
+    MOZ_ASSERT(owner);
+    nsCOMPtr<nsINode> mainReferrer = owner->GetMainReferrer();
+    return GetNearestPredecessor(mainReferrer);
+  }
+  MOZ_ASSERT(idx > 0);
+  HTMLLinkElement* link =
+    static_cast<HTMLLinkElement*>(doc->GetSubImportLink(idx - 1));
+  nsCOMPtr<nsIURI> uri = link->GetHrefURI();
+  nsRefPtr<ImportLoader> ret;
+  mImports.Get(uri, getter_AddRefs(ret));
+  return ret;
 }
 
 } 
