@@ -4,14 +4,33 @@
 "use strict";
 
 const {Cc, Ci, Cu, Cr} = require("chrome");
+loader.lazyRequireGetter(this, "ViewHelpers",
+  "resource:///modules/devtools/ViewHelpers.jsm", true);
+loader.lazyRequireGetter(this, "Services");
 
-Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
+
+const GECKO_SYMBOL = "(Gecko)";
 
 
 
 
 const STRINGS_URI = "chrome://browser/locale/devtools/timeline.properties";
 const L10N = new ViewHelpers.L10N(STRINGS_URI);
+
+
+
+
+const prefs = new ViewHelpers.Prefs("devtools.performance.ui", {
+  showPlatformData: ["Bool", "show-platform-data"]
+});
+
+let SHOW_PLATFORM_DATA = Services.prefs.getBoolPref("devtools.performance.ui.show-platform-data");
+prefs.registerObserver();
+prefs.on("pref-changed", (_,  prefName, prefValue) => {
+  if (prefName === "showPlatformData") {
+    SHOW_PLATFORM_DATA = prefValue;
+  }
+});
 
 
 
@@ -69,19 +88,13 @@ const TIMELINE_BLUEPRINT = {
     group: 1,
     colorName: "graphs-yellow",
     label: L10N.getStr("timeline.label.domevent"),
-    fields: [{
-      property: "type",
-      label: L10N.getStr("timeline.markerDetail.DOMEventType")
-    }, {
-      property: "eventPhase",
-      label: L10N.getStr("timeline.markerDetail.DOMEventPhase"),
-      formatter: getEventPhaseName
-    }]
+    fields: getDOMEventFields,
   },
   "Javascript": {
     group: 1,
     colorName: "graphs-yellow",
     label: getJSLabel,
+    fields: getJSFields,
   },
   "Parse HTML": {
     group: 1,
@@ -128,16 +141,6 @@ const TIMELINE_BLUEPRINT = {
 
 
 
-function getEventPhaseName (marker) {
-  if (marker.eventPhase === Ci.nsIDOMEvent.AT_TARGET) {
-    return L10N.getStr("timeline.markerDetail.DOMEventTargetPhase");
-  } else if (marker.eventPhase === Ci.nsIDOMEvent.CAPTURING_PHASE) {
-    return L10N.getStr("timeline.markerDetail.DOMEventCapturingPhase");
-  } else if (marker.eventPhase === Ci.nsIDOMEvent.BUBBLING_PHASE) {
-    return L10N.getStr("timeline.markerDetail.DOMEventBubblingPhase");
-  }
-}
-
 function getGCLabel (marker={}) {
   let label = L10N.getStr("timeline.label.garbageCollection");
   
@@ -148,11 +151,62 @@ function getGCLabel (marker={}) {
   return label;
 }
 
+
+
+
+
+const JS_MARKER_MAP = {
+  "<script> element":          "Script Tag",
+  "setInterval handler":       "setInterval",
+  "setTimeout handler":        "setTimeout",
+  "FrameRequestCallback":      "requestAnimationFrame",
+  "promise callback":          "Promise Callback",
+  "promise initializer":       "Promise Init",
+  "Worker runnable":           "Worker",
+  "javascript: URI":           "JavaScript URI",
+  
+  
+  "EventHandlerNonNull":       "Event Handler",
+  "EventListener.handleEvent": "Event Handler",
+};
+
 function getJSLabel (marker={}) {
+  let generic = L10N.getStr("timeline.label.javascript2");
   if ("causeName" in marker) {
-    return marker.causeName;
+    return JS_MARKER_MAP[marker.causeName] || generic;
   }
-  return L10N.getStr("timeline.label.javascript2");
+  return generic;
+}
+
+
+
+
+
+
+
+function getJSFields (marker) {
+  if ("causeName" in marker && !JS_MARKER_MAP[marker.causeName]) {
+    return { Reason: (SHOW_PLATFORM_DATA ? marker.causeName : GECKO_SYMBOL) };
+  }
+}
+
+function getDOMEventFields (marker) {
+  let fields = Object.create(null);
+  if ("type" in marker) {
+    fields[L10N.getStr("timeline.markerDetail.DOMEventType")] = marker.type;
+  }
+  if ("eventPhase" in marker) {
+    let phase;
+    if (marker.eventPhase === Ci.nsIDOMEvent.AT_TARGET) {
+      phase = L10N.getStr("timeline.markerDetail.DOMEventTargetPhase");
+    } else if (marker.eventPhase === Ci.nsIDOMEvent.CAPTURING_PHASE) {
+      phase = L10N.getStr("timeline.markerDetail.DOMEventCapturingPhase");
+    } else if (marker.eventPhase === Ci.nsIDOMEvent.BUBBLING_PHASE) {
+      phase = L10N.getStr("timeline.markerDetail.DOMEventBubblingPhase");
+    }
+    fields[L10N.getStr("timeline.markerDetail.DOMEventPhase")] = phase;
+  }
+  return fields;
 }
 
 function getStylesFields (marker) {

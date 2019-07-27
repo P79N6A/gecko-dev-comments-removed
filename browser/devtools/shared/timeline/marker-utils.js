@@ -69,25 +69,24 @@ exports.getMarkerClassName = getMarkerClassName;
 function getMarkerFields (marker) {
   let blueprint = TIMELINE_BLUEPRINT[marker.name];
 
+  
   if (typeof blueprint.fields === "function") {
     let fields = blueprint.fields(marker);
     
     
     return Object.keys(fields || []).map(label => {
+      
       let normalizedLabel = label.indexOf(":") !== -1 ? label : (label + ":");
       return { label: normalizedLabel, value: fields[label] };
     });
   }
+
+  
   return (blueprint.fields || []).reduce((fields, field) => {
     
     if (field.property in marker) {
       let label = field.label;
       let value = marker[field.property];
-      
-      
-      if (typeof field.formatter === "function") {
-        value = field.formatter(marker);
-      }
       fields.push({ label, value });
     }
     return fields;
