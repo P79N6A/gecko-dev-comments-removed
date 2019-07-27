@@ -2532,7 +2532,13 @@ public:
 
 
 
-  static bool UsesAsyncScrolling();
+  static bool UsesAsyncScrolling(nsIFrame* aFrame);
+
+  
+
+
+
+  static bool AsyncPanZoomEnabled(nsIFrame* aFrame);
 
   
 

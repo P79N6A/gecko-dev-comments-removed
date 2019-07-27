@@ -5558,6 +5558,18 @@ LayerManager* PresShell::GetLayerManager()
   return nullptr;
 }
 
+bool PresShell::AsyncPanZoomEnabled()
+{
+  NS_ASSERTION(mViewManager, "Should have view manager");
+  nsView* rootView = mViewManager->GetRootView();
+  if (rootView) {
+    if (nsIWidget* widget = rootView->GetWidget()) {
+      return widget->AsyncPanZoomEnabled();
+    }
+  }
+  return false;
+}
+
 void PresShell::SetIgnoreViewportScrolling(bool aIgnore)
 {
   if (IgnoringViewportScrolling() == aIgnore) {
@@ -11053,10 +11065,10 @@ nsIPresShell::RecomputeFontSizeInflationEnabled()
 
   
   if (!FontSizeInflationForceEnabled()) {
-    if (TabChild::GetFrom(this)) {
+    if (TabChild* tab = TabChild::GetFrom(this)) {
       
       
-      if (!gfxPrefs::AsyncPanZoomEnabled()) {
+      if (!tab->AsyncPanZoomEnabled()) {
         mFontSizeInflationEnabled = false;
         return;
       }

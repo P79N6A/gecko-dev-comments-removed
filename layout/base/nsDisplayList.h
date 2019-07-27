@@ -350,8 +350,8 @@ public:
     if (mMode == PAINTING) {
       
       
-      return (gfxPrefs::LayoutEventRegionsEnabledDoNotUseDirectly() ||
-              gfxPrefs::AsyncPanZoomEnabled());
+      return gfxPrefs::LayoutEventRegionsEnabledDoNotUseDirectly() ||
+             mAsyncPanZoomEnabled;
     }
     return false;
   }
@@ -996,6 +996,7 @@ private:
   bool                           mWindowDraggingAllowed;
   bool                           mIsBuildingForPopup;
   bool                           mForceLayerForScrollParent;
+  bool                           mAsyncPanZoomEnabled;
 };
 
 class nsDisplayItem;

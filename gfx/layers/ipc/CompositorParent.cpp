@@ -50,7 +50,6 @@
 #include "nsDebug.h"                    
 #include "nsISupportsImpl.h"            
 #include "nsIWidget.h"                  
-#include "nsIXULRuntime.h"              
 #include "nsTArray.h"                   
 #include "nsThreadUtils.h"              
 #include "nsXULAppAPI.h"                
@@ -663,14 +662,9 @@ CompositorParent::CompositorParent(nsIWidget* aWidget,
     sIndirectLayerTrees[mRootLayerTreeID].mParent = this;
   }
 
-  if (gfxPrefs::AsyncPanZoomEnabled() &&
-#if !defined(MOZ_B2G) && !defined(MOZ_WIDGET_ANDROID)
-      
-      
-      
-      
-      mozilla::BrowserTabsRemoteAutostart() &&
-#endif
+  
+  
+  if (gfxPlatform::AsyncPanZoomEnabled() &&
       (aWidget->WindowType() == eWindowType_toplevel || aWidget->WindowType() == eWindowType_child)) {
     mApzcTreeManager = new APZCTreeManager();
   }

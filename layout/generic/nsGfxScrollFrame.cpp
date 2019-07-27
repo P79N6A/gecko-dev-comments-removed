@@ -1826,7 +1826,7 @@ ScrollFrameHelper::ScrollFrameHelper(nsContainerFrame* aOuter,
 
   if (IsAlwaysActive() &&
       gfxPrefs::LayersTilesEnabled() &&
-      !nsLayoutUtils::UsesAsyncScrolling() &&
+      !nsLayoutUtils::UsesAsyncScrolling(mOuter) &&
       mOuter->GetContent()) {
     
     
@@ -2030,7 +2030,7 @@ ScrollFrameHelper::ScrollToWithOrigin(nsPoint aScrollPosition,
           mAsyncScroll = nullptr;
         }
 
-        if (gfxPrefs::AsyncPanZoomEnabled()) {
+        if (nsLayoutUtils::AsyncPanZoomEnabled(mOuter)) {
           
           
           
@@ -2914,7 +2914,7 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     shouldBuildLayer = true;
   } else {
     shouldBuildLayer =
-      gfxPrefs::AsyncPanZoomEnabled() &&
+      nsLayoutUtils::AsyncPanZoomEnabled(mOuter) &&
       WantAsyncScroll() &&
       
       
@@ -3085,7 +3085,7 @@ ScrollFrameHelper::ComputeFrameMetrics(Layer* aLayer,
     parentLayerClip = Some(clip);
   }
 
-  bool thisScrollFrameUsesAsyncScrolling = nsLayoutUtils::UsesAsyncScrolling();
+  bool thisScrollFrameUsesAsyncScrolling = nsLayoutUtils::UsesAsyncScrolling(mOuter);
 #if defined(MOZ_WIDGET_ANDROID) && !defined(MOZ_ANDROID_APZ)
   
   
@@ -3403,7 +3403,8 @@ ScrollFrameHelper::ScrollBy(nsIntPoint aDelta,
   }
 
   if (aUnit == nsIScrollableFrame::DEVICE_PIXELS &&
-      !gfxPrefs::AsyncPanZoomEnabled()) {
+      !nsLayoutUtils::AsyncPanZoomEnabled(mOuter))
+  {
     
     
     mVelocityQueue.Sample(GetScrollPosition());

@@ -514,6 +514,8 @@ private:
 
     CSSPoint AdjustTapToChildWidget(const CSSPoint& aPoint);
 
+    bool AsyncPanZoomEnabled() const;
+
     
     
     

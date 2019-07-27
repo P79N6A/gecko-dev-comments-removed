@@ -1372,6 +1372,12 @@ public:
 
 
 
+  virtual bool AsyncPanZoomEnabled() = 0;
+
+  
+
+
+
 
   virtual void SetIgnoreViewportScrolling(bool aIgnore) = 0;
   bool IgnoringViewportScrolling() const

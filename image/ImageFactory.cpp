@@ -47,10 +47,15 @@ ComputeImageFlags(ImageURL* uri, const nsCString& aMimeType, bool isMultiPart)
 
   
   bool isDiscardable = gfxPrefs::ImageMemDiscardable();
-  bool doDecodeOnlyOnDraw = gfxPrefs::ImageDecodeOnlyOnDrawEnabled() &&
-                            gfxPrefs::AsyncPanZoomEnabled();
   bool doDecodeImmediately = gfxPrefs::ImageDecodeImmediatelyEnabled();
   bool doDownscaleDuringDecode = gfxPrefs::ImageDownscaleDuringDecodeEnabled();
+
+  
+  
+  
+  
+  bool doDecodeOnlyOnDraw = gfxPrefs::ImageDecodeOnlyOnDrawEnabled() &&
+                            gfxPrefs::AsyncPanZoomEnabledDoNotUseDirectly();
 
   
   
