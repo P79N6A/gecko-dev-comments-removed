@@ -250,6 +250,39 @@ struct Callback {
 template<typename F>
 class CallbackVector : public Vector<Callback<F>, 4, SystemAllocPolicy> {};
 
+template <typename T, typename Iter0, typename Iter1>
+class ChainedIter
+{
+    Iter0 iter0_;
+    Iter1 iter1_;
+
+  public:
+    ChainedIter(const Iter0 &iter0, const Iter1 &iter1)
+      : iter0_(iter0), iter1_(iter1)
+    {}
+
+    bool done() const { return iter0_.done() && iter1_.done(); }
+    void next() {
+        MOZ_ASSERT(!done());
+        if (!iter0_.done()) {
+            iter0_.next();
+        } else {
+            MOZ_ASSERT(!iter1_.done());
+            iter1_.next();
+        }
+    }
+    T get() const {
+        MOZ_ASSERT(!done());
+        if (!iter0_.done())
+            return iter0_.get();
+        MOZ_ASSERT(!iter1_.done());
+        return iter1_.get();
+    }
+
+    operator T() const { return get(); }
+    T operator->() const { return get(); }
+};
+
 class GCRuntime
 {
   public:
@@ -475,13 +508,16 @@ class GCRuntime
     inline void updateOnFreeArenaAlloc(const ChunkInfo &info);
     inline void updateOnArenaFree(const ChunkInfo &info);
 
-    GCChunkSet::Range allChunks() { return chunkSet.all(); }
-    void moveChunkToFreePool(Chunk *chunk, const AutoLockGC &lock);
-    bool hasChunk(Chunk *chunk) { return chunkSet.has(chunk); }
+    ChunkPool &fullChunks(const AutoLockGC &lock) { return fullChunks_; }
     ChunkPool &availableChunks(const AutoLockGC &lock) { return availableChunks_; }
     ChunkPool &emptyChunks(const AutoLockGC &lock) { return emptyChunks_; }
+    const ChunkPool &fullChunks(const AutoLockGC &lock) const { return fullChunks_; }
     const ChunkPool &availableChunks(const AutoLockGC &lock) const { return availableChunks_; }
     const ChunkPool &emptyChunks(const AutoLockGC &lock) const { return emptyChunks_; }
+    typedef ChainedIter<Chunk *, ChunkPool::Iter, ChunkPool::Iter> NonEmptyChunksIter;
+    NonEmptyChunksIter allNonEmptyChunks() {
+        return NonEmptyChunksIter(ChunkPool::Iter(availableChunks_), ChunkPool::Iter(fullChunks_));
+    }
 
 #ifdef JS_GC_ZEAL
     void startVerifyPreBarriers();
@@ -629,21 +665,22 @@ class GCRuntime
 
   private:
     
-
-
-
-
-    js::GCChunkSet chunkSet;
+    
+    
+    
+    ChunkPool             emptyChunks_;
 
     
+    
+    
+    
+    
+    
+    ChunkPool             availableChunks_;
 
-
-
-
-
-
-    ChunkPool availableChunks_;
-    ChunkPool emptyChunks_;
+    
+    
+    ChunkPool             fullChunks_;
 
     js::RootedValueMap rootsHash;
 
