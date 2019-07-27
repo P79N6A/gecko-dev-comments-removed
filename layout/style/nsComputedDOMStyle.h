@@ -438,6 +438,7 @@ private:
   mozilla::dom::CSSValue* DoGetUserInput();
   mozilla::dom::CSSValue* DoGetUserModify();
   mozilla::dom::CSSValue* DoGetUserSelect();
+  mozilla::dom::CSSValue* DoGetWindowDragging();
 
   
   mozilla::dom::CSSValue* DoGetColumnCount();

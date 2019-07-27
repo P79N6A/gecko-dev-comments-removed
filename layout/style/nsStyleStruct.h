@@ -2598,6 +2598,7 @@ struct nsStyleUserInterface {
   uint8_t   mUserInput;       
   uint8_t   mUserModify;      
   uint8_t   mUserFocus;       
+  uint8_t   mWindowDragging;  
 
   uint8_t   mCursor;          
 
