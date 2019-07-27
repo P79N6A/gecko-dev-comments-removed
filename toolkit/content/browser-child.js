@@ -551,6 +551,12 @@ let AutoCompletePopup = {
   },
 
   openAutocompletePopup: function (input, element) {
+    if (!this._popupOpen) {
+      
+      
+      
+      sendAsyncMessage("FormAutoComplete:MaybeOpenPopup", {});
+    }
     this._input = input;
     this._popupOpen = true;
   },
