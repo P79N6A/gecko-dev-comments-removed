@@ -67,7 +67,7 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
 
     let durationCell = this._createTimeCell(this.frame.duration);
     let percentageCell = this._createExecutionCell(framePercentage);
-    let invocationsCell = this._createInvocationsCell(this.frame.invocations);
+    let samplesCell = this._createSamplesCell(this.frame.samples);
     let functionCell = this._createFunctionCell(arrowNode, frameInfo, this.level);
 
     let targetNode = document.createElement("hbox");
@@ -84,7 +84,7 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
 
     targetNode.appendChild(durationCell);
     targetNode.appendChild(percentageCell);
-    targetNode.appendChild(invocationsCell);
+    targetNode.appendChild(samplesCell);
     targetNode.appendChild(functionCell);
 
     return targetNode;
@@ -130,10 +130,10 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
     cell.setAttribute("value", L10N.numberWithDecimals(percentage, 2) + "%");
     return cell;
   },
-  _createInvocationsCell: function(count) {
+  _createSamplesCell: function(count) {
     let cell = this.document.createElement("label");
     cell.className = "plain call-tree-cell";
-    cell.setAttribute("type", "invocations");
+    cell.setAttribute("type", "samples");
     cell.setAttribute("crop", "end");
     cell.setAttribute("value", count || "");
     return cell;

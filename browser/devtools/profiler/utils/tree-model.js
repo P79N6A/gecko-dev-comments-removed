@@ -132,8 +132,8 @@ function FrameNode({ location, line, category }) {
   this.line = line;
   this.category = category;
   this.sampleTimes = [];
+  this.samples = 0;
   this.duration = 0;
-  this.invocations = 0;
   this.calls = {};
 }
 
@@ -165,8 +165,8 @@ FrameNode.prototype = {
     let location = frame.location;
     let child = _store[location] || (_store[location] = new FrameNode(frame));
     child.sampleTimes.push({ start: time, end: time + duration });
+    child.samples++;
     child.duration += duration;
-    child.invocations++;
     child.insert(frames, ++index, time, duration);
   },
 
