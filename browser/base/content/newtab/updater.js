@@ -154,14 +154,13 @@ let gUpdater = {
 
   _fillEmptyCells: function Updater_fillEmptyCells(aLinks, aCallback) {
     let {cells, sites} = gGrid;
-    let batch = [];
 
     
-    sites.forEach(function (aSite, aIndex) {
+    Promise.all(sites.map((aSite, aIndex) => {
       if (aSite || !aLinks[aIndex])
-        return;
+        return null;
 
-      batch.push(new Promise(resolve => {
+      return new Promise(resolve => {
         
         let site = gGrid.createSite(aLinks[aIndex], cells[aIndex]);
 
@@ -172,9 +171,7 @@ let gUpdater = {
         
         window.getComputedStyle(site.node).opacity;
         gTransformation.showSite(site, resolve);
-      }));
-    });
-
-    Promise.all(batch).then(aCallback);
+      });
+    })).then(aCallback).catch(console.exception);
   }
 };
