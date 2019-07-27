@@ -49,7 +49,6 @@ const GRAPH_STRIPE_PATTERN_LINE_SPACING = 4;
 
 
 const LINE_GRAPH_DAMPEN_VALUES = 0.85;
-const LINE_GRAPH_MIN_SQUARED_DISTANCE_BETWEEN_POINTS = 1; 
 const LINE_GRAPH_TOOLTIP_SAFE_BOUNDS = 8; 
 const LINE_GRAPH_MIN_MAX_TOOLTIP_DISTANCE = 14; 
 
@@ -1235,12 +1234,6 @@ LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
   
 
 
-
-  minSquaredDistanceBetweenPoints: LINE_GRAPH_MIN_SQUARED_DISTANCE_BETWEEN_POINTS,
-
-  
-
-
   withTooltipArrows: true,
 
   
@@ -1266,11 +1259,6 @@ LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
       plottedData,
       plottedMinMaxSum
     } = yield CanvasGraphUtils._performTaskInWorker("plotTimestampsGraph", {
-      width: this._width,
-      height: this._height,
-      dataOffsetX: this.dataOffsetX,
-      dampenValuesFactor: this.dampenValuesFactor,
-      minSquaredDistanceBetweenPoints: this.minSquaredDistanceBetweenPoints,
       timestamps: timestamps,
       interval: interval
     });
@@ -1294,16 +1282,11 @@ LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
     let maxValue = Number.MIN_SAFE_INTEGER;
     let minValue = Number.MAX_SAFE_INTEGER;
     let avgValue = 0;
-    let forceDrawAllPoints = false;
 
     if (this._tempMinMaxSum) {
       maxValue = this._tempMinMaxSum.maxValue;
       minValue = this._tempMinMaxSum.minValue;
       avgValue = this._tempMinMaxSum.avgValue;
-      
-      
-      
-      forceDrawAllPoints = true;
     } else {
       let sumValues = 0;
       for (let { delta, value } of this._data) {
@@ -1332,10 +1315,6 @@ LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
     ctx.lineWidth = this.strokeWidth * this._pixelRatio;
     ctx.beginPath();
 
-    let prevX = 0;
-    let prevY = 0;
-    let minSqDist = this.minSquaredDistanceBetweenPoints;
-
     for (let { delta, value } of this._data) {
       let currX = (delta - this.dataOffsetX) * dataScaleX;
       let currY = height - value * dataScaleY;
@@ -1345,11 +1324,7 @@ LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
         ctx.lineTo(-LINE_GRAPH_STROKE_WIDTH, currY);
       }
 
-      if (forceDrawAllPoints || distSquared(prevX, prevY, currX, currY) >= minSqDist) {
-        ctx.lineTo(currX, currY);
-        prevX = currX;
-        prevY = currY;
-      }
+      ctx.lineTo(currX, currY);
 
       if (delta == lastTick) {
         ctx.lineTo(width + LINE_GRAPH_STROKE_WIDTH, currY);
