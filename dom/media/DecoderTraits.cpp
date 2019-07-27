@@ -282,10 +282,16 @@ static char const *const gMpegAudioCodecs[2] = {
 };
 
 #ifdef MOZ_OMX_WEBM_DECODER
-static char const *const gOMXWebMCodecs[4] = {
+static char const *const gOMXWebMCodecs[] = {
   "vorbis",
   "vp8",
   "vp8.0",
+  
+  
+#if ANDROID_VERSION > 18
+  "vp9",
+  "vp9.0",
+#endif
   nullptr
 };
 #endif 
