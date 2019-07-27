@@ -232,6 +232,7 @@ struct JSCompartment
                                 size_t *tiObjectTypeTables,
                                 size_t *compartmentObject,
                                 size_t *compartmentTables,
+                                size_t *innerViews,
                                 size_t *crossCompartmentWrappers,
                                 size_t *regexpCompartment,
                                 size_t *savedStacksSet);
@@ -275,6 +276,10 @@ struct JSCompartment
     js::ReadBarrieredScriptSourceObject selfHostingScriptSource;
 
     
+    
+    js::InnerViewTable innerViews;
+
+    
     unsigned                     gcIndex;
 
     
@@ -285,9 +290,6 @@ struct JSCompartment
 
 
     JSObject                     *gcIncomingGrayPointers;
-
-    
-    js::ArrayBufferVector        gcLiveArrayBuffers;
 
     
     js::WeakMapBase              *gcWeakMapList;

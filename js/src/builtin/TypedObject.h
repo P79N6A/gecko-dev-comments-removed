@@ -670,10 +670,10 @@ class TypedObject : public ArrayBufferViewObject
     static bool constructUnsized(JSContext *cx, unsigned argc, Value *vp);
 
     
-    void attach(ArrayBufferObject &buffer, int32_t offset);
+    void attach(JSContext *cx, ArrayBufferObject &buffer, int32_t offset);
 
     
-    void attach(TypedObject &typedObj, int32_t offset);
+    void attach(JSContext *cx, TypedObject &typedObj, int32_t offset);
 
     
     void neuter(void *newData);
