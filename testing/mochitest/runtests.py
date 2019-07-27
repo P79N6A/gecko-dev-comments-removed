@@ -46,7 +46,11 @@ from automationutils import (
 
 from datetime import datetime
 from manifestparser import TestManifest
-from manifestparser.filters import subsuite
+from manifestparser.filters import (
+    chunk_by_dir,
+    chunk_by_slice,
+    subsuite,
+)
 from mochitest_options import MochitestOptions
 from mozprofile import Profile, Preferences
 from mozprofile.permissions import ServerLocations
@@ -54,9 +58,6 @@ from urllib import quote_plus as encodeURIComponent
 from mozlog.structured.formatters import TbplFormatter
 from mozlog.structured import commandline
 
-
-
-from mozrunner.utils import findInPath as which
 
 
 
@@ -564,8 +565,6 @@ class MochitestUtilsMixin(object):
             closeWhenDone -- closes the browser after the tests
             hideResultsTable -- hides the table of individual test results
             logFile -- logs test run to an absolute path
-            totalChunks -- how many chunks to split tests into
-            thisChunk -- which chunk to run
             startAt -- name of test to start at
             endAt -- name of test to end at
             timeout -- per-test timeout in seconds
@@ -612,11 +611,6 @@ class MochitestUtilsMixin(object):
                     "consoleLevel=" +
                     encodeURIComponent(
                         options.consoleLevel))
-            if options.totalChunks:
-                self.urlOpts.append("totalChunks=%d" % options.totalChunks)
-                self.urlOpts.append("thisChunk=%d" % options.thisChunk)
-            if options.chunkByDir:
-                self.urlOpts.append("chunkByDir=%d" % options.chunkByDir)
             if options.startAt:
                 self.urlOpts.append("startAt=%s" % options.startAt)
             if options.endAt:
@@ -638,12 +632,6 @@ class MochitestUtilsMixin(object):
                     options.testPath)) and options.repeat > 0:
                 self.urlOpts.append("testname=%s" %
                                     ("/").join([self.TEST_PATH, options.testPath]))
-            if options.testManifest:
-                self.urlOpts.append("testManifest=%s" % options.testManifest)
-                if hasattr(options, 'runOnly') and options.runOnly:
-                    self.urlOpts.append("runOnly=true")
-                else:
-                    self.urlOpts.append("runOnly=false")
             if options.manifestFile:
                 self.urlOpts.append("manifestFile=%s" % options.manifestFile)
             if options.failureFile:
@@ -1863,14 +1851,7 @@ class Mochitest(MochitestUtilsMixin):
         self.setTestRoot(options)
         manifest = self.getTestManifest(options)
         if manifest:
-            
-            
-            
-            info = {}
-            for k, v in mozinfo.info.items():
-                if isinstance(k, unicode):
-                    k = k.encode('ascii')
-                info[k] = v
+            info = mozinfo.info
 
             
             testPath = self.getTestPath(options)
@@ -1879,19 +1860,70 @@ class Mochitest(MochitestUtilsMixin):
                testPath.endswith('.xhtml') or \
                testPath.endswith('.xul') or \
                testPath.endswith('.js'):
-                    
-                    
-                tests = manifest.active_tests(disabled=disabled, **info)
+                
+                
+                tests = manifest.active_tests(
+                    exists=False, disabled=disabled, **info)
                 for test in tests:
                     if 'disabled' in test:
                         del test['disabled']
 
             else:
-                filters = [subsuite(options.subsuite)]
+                
+                
+                
+                
+                
+                def remove_imptest_failure_expectations(tests, values):
+                    return (t for t in tests
+                            if 'imptests/failures' not in t['path'])
+
+                
+                
+                def apply_json_manifest(tests, values):
+                    m = os.path.join(SCRIPT_DIR, options.testManifest)
+                    with open(m, 'r') as f:
+                        m = json.loads(f.read())
+
+                    runtests = m.get('runtests')
+                    exctests = m.get('excludetests')
+                    if runtests is None and exctests is None:
+                        if options.runOnly:
+                            runtests = m
+                        else:
+                            exctests = m
+
+                    disabled = 'disabled by {}'.format(options.testManifest)
+                    for t in tests:
+                        if runtests and not any(t['relpath'].startswith(r)
+                                                for r in runtests):
+                            t['disabled'] = disabled
+                        if exctests and any(t['relpath'].startswith(r)
+                                            for r in exctests):
+                            t['disabled'] = disabled
+                        yield t
+
+                filters = [
+                    remove_imptest_failure_expectations,
+                    subsuite(options.subsuite),
+                ]
+
+                if options.testManifest:
+                    filters.append(apply_json_manifest)
+
+                
+                if options.chunkByDir:
+                    filters.append(chunk_by_dir(options.thisChunk,
+                                                options.totalChunks,
+                                                options.chunkByDir))
+                elif options.totalChunks:
+                    filters.append(chunk_by_slice(options.thisChunk,
+                                                  options.totalChunks))
                 tests = manifest.active_tests(
-                    disabled=disabled, filters=filters, **info)
+                    exists=False, disabled=disabled, filters=filters, **info)
                 if len(tests) == 0:
-                    tests = manifest.active_tests(disabled=True, **info)
+                    tests = manifest.active_tests(
+                        exists=False, disabled=True, **info)
 
         paths = []
 
@@ -2011,15 +2043,6 @@ class Mochitest(MochitestUtilsMixin):
         
         dirs = self.getDirectories(options)
 
-        if options.totalChunks > 1:
-            chunkSize = int(len(dirs) / options.totalChunks) + 1
-            start = chunkSize * (options.thisChunk - 1)
-            end = chunkSize * (options.thisChunk)
-            dirs = dirs[start:end]
-
-        options.totalChunks = None
-        options.thisChunk = None
-        options.chunkByDir = 0
         result = 1  
         inputTestPath = self.getTestPath(options)
         for dir in dirs:

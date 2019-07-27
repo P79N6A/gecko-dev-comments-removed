@@ -9,6 +9,7 @@ possible to define custom filters if the built-in ones are not enough.
 """
 
 from collections import defaultdict, MutableSequence
+import itertools
 import os
 
 from .expression import (
@@ -212,17 +213,28 @@ class chunk_by_dir(InstanceFilter):
             dirs = dirs[:min(self.depth, len(dirs)-1)]
             path = os.sep.join(dirs)
 
-            if path not in tests_by_dir:
+            
+            
+            if path not in ordered_dirs and 'disabled' not in test:
                 ordered_dirs.append(path)
             tests_by_dir[path].append(test)
 
-        tests_per_chunk = float(len(tests_by_dir)) / self.total_chunks
+        tests_per_chunk = float(len(ordered_dirs)) / self.total_chunks
         start = int(round((self.this_chunk - 1) * tests_per_chunk))
         end = int(round(self.this_chunk * tests_per_chunk))
 
         for i in range(start, end):
-            for test in tests_by_dir[ordered_dirs[i]]:
+            for test in tests_by_dir.pop(ordered_dirs[i]):
                 yield test
+
+        
+        
+        
+        if self.this_chunk == 1:
+            disabled_dirs = [v for k, v in tests_by_dir.iteritems()
+                             if k not in ordered_dirs]
+            for disabled_test in itertools.chain(*disabled_dirs):
+                yield disabled_test
 
 
 class chunk_by_runtime(InstanceFilter):

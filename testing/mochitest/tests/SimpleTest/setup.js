@@ -160,6 +160,7 @@ var RunSet = {};
 RunSet.runall = function(e) {
   
   
+  
   if (params.testManifest) {
     getTestManifest("http://mochi.test:8888/" + params.testManifest, params, function(filter) { gTestList = filterTests(filter, gTestList, params.runOnly); RunSet.runtests(); });
   } else {
@@ -173,10 +174,6 @@ RunSet.runtests = function(e) {
 
   if (params.startAt || params.endAt) {
     my_tests = skipTests(my_tests, params.startAt, params.endAt);
-  }
-
-  if (params.totalChunks && params.thisChunk) {
-    my_tests = chunkifyTests(my_tests, params.totalChunks, params.thisChunk, params.chunkByDir, TestRunner.logger);
   }
 
   if (params.shuffle) {
