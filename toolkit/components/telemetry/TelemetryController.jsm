@@ -50,8 +50,6 @@ const TELEMETRY_DELAY = 60000;
 
 const TELEMETRY_TEST_DELAY = 100;
 
-const DEFAULT_RETENTION_DAYS = 14;
-
 const PING_SUBMIT_TIMEOUT_MS = 2 * 60 * 1000;
 
 
@@ -249,11 +247,8 @@ this.TelemetryController = Object.freeze({
 
 
 
-
-
   savePendingPings: function(aType, aPayload, aOptions = {}) {
     let options = aOptions;
-    options.retentionDays = aOptions.retentionDays || DEFAULT_RETENTION_DAYS;
     options.addClientId = aOptions.addClientId || false;
     options.addEnvironment = aOptions.addEnvironment || false;
 
@@ -277,11 +272,8 @@ this.TelemetryController = Object.freeze({
 
 
 
-
-
   addPendingPing: function(aType, aPayload, aOptions = {}) {
     let options = aOptions;
-    options.retentionDays = aOptions.retentionDays || DEFAULT_RETENTION_DAYS;
     options.addClientId = aOptions.addClientId || false;
     options.addEnvironment = aOptions.addEnvironment || false;
     options.overwrite = aOptions.overwrite || false;
@@ -337,11 +329,8 @@ this.TelemetryController = Object.freeze({
 
 
 
-
-
   savePing: function(aType, aPayload, aFilePath, aOptions = {}) {
     let options = aOptions;
-    options.retentionDays = aOptions.retentionDays || DEFAULT_RETENTION_DAYS;
     options.addClientId = aOptions.addClientId || false;
     options.addEnvironment = aOptions.addEnvironment || false;
     options.overwrite = aOptions.overwrite || false;
@@ -674,8 +663,6 @@ let Impl = {
 
 
 
-
-
   savePendingPings: function savePendingPings(aType, aPayload, aOptions) {
     this._log.trace("savePendingPings - Type " + aType + ", Server " + this._server +
                     ", aOptions " + JSON.stringify(aOptions));
@@ -685,8 +672,6 @@ let Impl = {
   },
 
   
-
-
 
 
 
@@ -722,8 +707,6 @@ let Impl = {
   },
 
   
-
-
 
 
 
