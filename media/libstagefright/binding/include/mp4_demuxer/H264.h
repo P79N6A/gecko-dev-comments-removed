@@ -40,6 +40,11 @@ struct SPSData
 
   float sample_ratio;
 
+  uint32_t crop_left;
+  uint32_t crop_right;
+  uint32_t crop_top;
+  uint32_t crop_bottom;
+
   
 
 
@@ -73,9 +78,16 @@ struct SPSData
 
 
 
+
+
   uint8_t chroma_format_idc;
 
   
+
+
+
+
+
 
 
 
