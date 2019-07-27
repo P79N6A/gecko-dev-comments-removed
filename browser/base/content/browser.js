@@ -879,7 +879,7 @@ function _loadURIWithFlags(browser, uri, params) {
   let referrerPolicy = ('referrerPolicy' in params ? params.referrerPolicy :
                         Ci.nsIHttpChannel.REFERRER_POLICY_DEFAULT);
   let charset = params.charset;
-  let postdata = params.postData;
+  let postData = params.postData;
 
   if (!(flags & browser.webNavigation.LOAD_FLAGS_FROM_EXTERNAL)) {
     browser.userTypedClear++;
@@ -893,13 +893,18 @@ function _loadURIWithFlags(browser, uri, params) {
     if (!mustChangeProcess) {
       browser.webNavigation.loadURIWithOptions(uri, flags,
                                                referrer, referrerPolicy,
-                                               postdata, null, null);
+                                               postData, null, null);
     } else {
+      if (postData) {
+        postData = NetUtil.readInputStreamToString(postData, postData.available());
+      }
+
       LoadInOtherProcess(browser, {
         uri: uri,
         flags: flags,
         referrer: referrer ? referrer.spec : null,
         referrerPolicy: referrerPolicy,
+        postData: postData,
       });
     }
   } catch (e) {
@@ -909,7 +914,7 @@ function _loadURIWithFlags(browser, uri, params) {
     
     gBrowser.updateBrowserRemotenessByURL(browser, uri);
     browser.webNavigation.loadURIWithOptions(uri, flags, referrer, referrerPolicy,
-                                             postdata, null, null);
+                                             postData, null, null);
   } finally {
     if (browser.userTypedClear) {
       browser.userTypedClear--;
@@ -2163,16 +2168,10 @@ function getShortcutOrURIAndPostData(url, callback = null) {
                mayInheritPrincipal };
     }
 
-    
-    
-    try {
-      let entry = yield PlacesUtils.keywords.fetch(keyword);
-      if (entry) {
-        shortcutURL = entry.url.href;
-        postData = entry.postData;
-      }
-    } catch (ex) {
-      Components.utils.reportError(`Unable to fetch data for Places keyword "${keyword}": ${ex}`);
+    let entry = yield PlacesUtils.keywords.fetch(keyword);
+    if (entry) {
+      shortcutURL = entry.url.href;
+      postData = entry.postData;
     }
 
     if (!shortcutURL) {
@@ -4378,10 +4377,6 @@ var XULBrowserWindow = {
       if (gURLBar)
         gURLBar.removeAttribute("level");
     }
-
-    
-    
-    gURLBar.formatValue();
 
     try {
       uri = Services.uriFixup.createExposableURI(uri);
@@ -6589,8 +6584,6 @@ var gIdentityHandler = {
   IDENTITY_MODE_MIXED_DISPLAY_LOADED                   : "unknownIdentity mixedContent mixedDisplayContent",  
   IDENTITY_MODE_MIXED_ACTIVE_LOADED                    : "unknownIdentity mixedContent mixedActiveContent",  
   IDENTITY_MODE_MIXED_DISPLAY_LOADED_ACTIVE_BLOCKED    : "unknownIdentity mixedContent mixedDisplayContentLoadedActiveBlocked",  
-  IDENTITY_MODE_MIXED_ACTIVE_BLOCKED                   : "verifiedDomain mixedContent mixedActiveBlocked",  
-  IDENTITY_MODE_MIXED_ACTIVE_BLOCKED_IDENTIFIED        : "verifiedIdentity mixedContent mixedActiveBlocked",  
   IDENTITY_MODE_CHROMEUI                               : "chromeUI",         
 
   
@@ -6774,17 +6767,9 @@ var gIdentityHandler = {
     } else if (unknown) {
       this.setMode(this.IDENTITY_MODE_UNKNOWN);
     } else if (state & nsIWebProgressListener.STATE_IDENTITY_EV_TOPLEVEL) {
-      if (state & nsIWebProgressListener.STATE_BLOCKED_MIXED_ACTIVE_CONTENT) {
-        this.setMode(this.IDENTITY_MODE_MIXED_ACTIVE_BLOCKED_IDENTIFIED);
-      } else {
-        this.setMode(this.IDENTITY_MODE_IDENTIFIED);
-      }
+      this.setMode(this.IDENTITY_MODE_IDENTIFIED);
     } else if (state & nsIWebProgressListener.STATE_IS_SECURE) {
-      if (state & nsIWebProgressListener.STATE_BLOCKED_MIXED_ACTIVE_CONTENT) {
-        this.setMode(this.IDENTITY_MODE_MIXED_ACTIVE_BLOCKED);
-      } else {
-        this.setMode(this.IDENTITY_MODE_DOMAIN_VERIFIED);
-      }
+      this.setMode(this.IDENTITY_MODE_DOMAIN_VERIFIED);
     } else if (state & nsIWebProgressListener.STATE_IS_BROKEN) {
       if (state & nsIWebProgressListener.STATE_LOADED_MIXED_ACTIVE_CONTENT) {
         this.setMode(this.IDENTITY_MODE_MIXED_ACTIVE_LOADED);
@@ -6913,8 +6898,7 @@ var gIdentityHandler = {
     let icon_labels_dir = "ltr";
 
     switch (newMode) {
-    case this.IDENTITY_MODE_DOMAIN_VERIFIED:
-    case this.IDENTITY_MODE_MIXED_ACTIVE_BLOCKED: {
+    case this.IDENTITY_MODE_DOMAIN_VERIFIED: {
       let iData = this.getIdentityData();
 
       
@@ -6934,8 +6918,7 @@ var gIdentityHandler = {
         tooltip = gNavigatorBundle.getString("identity.identified.verified_by_you");
 
       break; }
-    case this.IDENTITY_MODE_IDENTIFIED:
-    case this.IDENTITY_MODE_MIXED_ACTIVE_BLOCKED_IDENTIFIED: {
+    case this.IDENTITY_MODE_IDENTIFIED: {
       
       let iData = this.getIdentityData();
       tooltip = gNavigatorBundle.getFormattedString("identity.identified.verifier",
@@ -7004,11 +6987,9 @@ var gIdentityHandler = {
 
     switch (newMode) {
     case this.IDENTITY_MODE_DOMAIN_VERIFIED:
-    case this.IDENTITY_MODE_MIXED_ACTIVE_BLOCKED:
       verifier = this._identityBox.tooltipText;
       break;
-    case this.IDENTITY_MODE_IDENTIFIED:
-    case this.IDENTITY_MODE_MIXED_ACTIVE_BLOCKED_IDENTIFIED: {
+    case this.IDENTITY_MODE_IDENTIFIED: {
       
       let iData = this.getIdentityData();
       host = owner = iData.subjectOrg;
