@@ -3078,8 +3078,14 @@ nsGlobalWindow::PreHandleEvent(EventChainPreVisitor& aVisitor)
       gEntropyCollector->RandomUpdate((void*)&(aVisitor.mEvent->time),
                                       sizeof(uint32_t));
     }
-  } else if (msg == NS_RESIZE_EVENT) {
-    mIsHandlingResizeEvent = true;
+  } else if (msg == NS_RESIZE_EVENT && aVisitor.mEvent->mFlags.mIsTrusted) {
+    
+    
+    nsCOMPtr<nsPIDOMWindow> window =
+      do_QueryInterface(aVisitor.mEvent->originalTarget);
+    if (window) {
+      mIsHandlingResizeEvent = true;
+    }
   } else if (msg == NS_MOUSE_BUTTON_DOWN &&
              aVisitor.mEvent->mFlags.mIsTrusted) {
     gMouseDown = true;
