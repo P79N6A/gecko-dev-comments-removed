@@ -161,7 +161,26 @@ public:
 
 
 
-  enum ScrollMode { INSTANT, SMOOTH, NORMAL };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  enum ScrollMode { INSTANT, SMOOTH, SMOOTH_MSD, NORMAL };
   
 
 
@@ -184,9 +203,16 @@ public:
 
 
 
-  virtual void ScrollToCSSPixels(const CSSIntPoint& aScrollPosition) = 0;
-  
 
+
+
+
+
+
+  virtual void ScrollToCSSPixels(const CSSIntPoint& aScrollPosition,
+                                 nsIScrollableFrame::ScrollMode aMode
+                                   = nsIScrollableFrame::INSTANT) = 0;
+  
 
 
 
