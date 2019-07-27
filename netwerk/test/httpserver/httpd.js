@@ -2741,8 +2741,6 @@ ServerHandler.prototype =
         var sis = new ScriptableInputStream(fis);
         var s = Cu.Sandbox(gGlobalObject);
         s.importFunction(dump, "dump");
-        s.importFunction(atob, "atob");
-        s.importFunction(btoa, "btoa");
 
         
         
