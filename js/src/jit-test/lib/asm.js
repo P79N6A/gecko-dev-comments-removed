@@ -11,7 +11,8 @@ const HEAP_IMPORTS = "const i8=new glob.Int8Array(b);var u8=new glob.Uint8Array(
                      "const i16=new glob.Int16Array(b);var u16=new glob.Uint16Array(b);"+
                      "const i32=new glob.Int32Array(b);var u32=new glob.Uint32Array(b);"+
                      "const f32=new glob.Float32Array(b);var f64=new glob.Float64Array(b);";
-const BUF_64KB = new ArrayBuffer(64 * 1024);
+const BUF_MIN = 64 * 1024;
+const BUF_64KB = new ArrayBuffer(BUF_MIN);
 
 function asmCompile()
 {
@@ -151,6 +152,34 @@ function assertAsmLinkAlwaysFail(f)
     try {
         f.apply(null, Array.slice(arguments, 1));
     } catch (e) {
+        caught = true;
+    }
+    if (!caught)
+        throw new Error("Didn't catch the link failure error");
+
+    
+    options("werror");
+}
+
+function assertAsmLinkDeprecated(f)
+{
+    if (!isAsmJSCompilationAvailable())
+        return;
+
+    
+    f.apply(null, Array.slice(arguments, 1));
+
+    
+    var oldOpts = options("werror");
+    assertEq(oldOpts.indexOf("werror"), -1);
+
+    
+    var caught = false;
+    try {
+        f.apply(null, Array.slice(arguments, 1));
+    } catch (e) {
+        
+        
         caught = true;
     }
     if (!caught)
