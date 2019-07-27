@@ -968,7 +968,7 @@ private:
 
   const uint32_t mAPZCId;
 
-  ipc::SharedMemoryBasic* mSharedFrameMetricsBuffer;
+  nsRefPtr<ipc::SharedMemoryBasic> mSharedFrameMetricsBuffer;
   CrossProcessMutex* mSharedLock;
   
 
