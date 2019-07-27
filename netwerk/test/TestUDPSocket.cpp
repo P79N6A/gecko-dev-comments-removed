@@ -273,7 +273,7 @@ main(int32_t argc, char *argv[])
   nsRefPtr<UDPServerListener> serverListener = new UDPServerListener();
 
   
-  rv = server->Init(0, false, true, 0);
+  rv = server->Init(0, false);
   NS_ENSURE_SUCCESS(rv, -1);
   int32_t serverPort;
   server->GetPort(&serverPort);
@@ -281,7 +281,7 @@ main(int32_t argc, char *argv[])
 
   
   nsRefPtr<UDPClientListener> clientListener = new UDPClientListener();
-  client->Init(0, false, true, 0);
+  client->Init(0, false);
   client->AsyncListen(clientListener);
 
   
