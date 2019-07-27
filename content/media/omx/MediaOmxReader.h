@@ -9,6 +9,8 @@
 #include "MediaOmxCommonReader.h"
 #include "MediaResource.h"
 #include "MediaDecoderReader.h"
+#include "nsMimeTypes.h"
+#include "MP3FrameParser.h"
 #include "nsRect.h"
 #include <ui/GraphicBuffer.h>
 #include <stagefright/MediaSource.h>
@@ -35,12 +37,13 @@ class MediaOmxReader : public MediaOmxCommonReader
   nsIntSize mInitialFrame;
   int64_t mVideoSeekTimeUs;
   int64_t mAudioSeekTimeUs;
+  int64_t mLastParserDuration;
   int32_t mSkipCount;
-
+  bool mUseParserDuration;
 protected:
   android::sp<android::OmxDecoder> mOmxDecoder;
   android::sp<android::MediaExtractor> mExtractor;
-
+  MP3FrameParser mMP3FrameParser;
   
   
   
@@ -89,6 +92,8 @@ public:
   virtual void Shutdown() MOZ_OVERRIDE;
 
   void ReleaseDecoder();
+
+  int64_t ProcessCachedData(int64_t aOffset, bool aWaitForCompletion);
 
   android::sp<android::MediaSource> GetAudioOffloadTrack();
 };

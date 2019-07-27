@@ -132,7 +132,11 @@ public:
 
   
   bool NeedsData();
-
+  
+  void SetLength(int64_t aLength) {
+    MutexAutoLock mon(mLock);
+    mLength = aLength;
+  }
 private:
 
   
