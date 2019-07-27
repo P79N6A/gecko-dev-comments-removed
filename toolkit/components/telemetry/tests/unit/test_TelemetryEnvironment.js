@@ -284,6 +284,7 @@ function checkSettingsSection(data) {
   
   if ("defaultSearchEngine" in data.settings) {
     checkString(data.settings.defaultSearchEngine);
+    Assert.equal(typeof data.settings.defaultSearchEngineData, "object");
   }
 }
 
@@ -994,6 +995,7 @@ add_task(function* test_defaultSearchEngine() {
   let data = TelemetryEnvironment.currentEnvironment;
   checkEnvironmentData(data);
   Assert.ok(!("defaultSearchEngine" in data.settings));
+  Assert.ok(!("defaultSearchEngineData" in data.settings));
 
   
   
@@ -1011,6 +1013,12 @@ add_task(function* test_defaultSearchEngine() {
   data = TelemetryEnvironment.currentEnvironment;
   checkEnvironmentData(data);
   Assert.equal(data.settings.defaultSearchEngine, "telemetrySearchIdentifier");
+  let expectedSearchEngineData = {
+    name: "telemetrySearchIdentifier",
+    loadPath: "jar:[other]/searchTest.jar!testsearchplugin/telemetrySearchIdentifier.xml",
+    submissionURL: "http://ar.wikipedia.org/wiki/%D8%AE%D8%A7%D8%B5:%D8%A8%D8%AD%D8%AB?search=&sourceid=Mozilla-search"
+  };
+  Assert.deepEqual(data.settings.defaultSearchEngineData, expectedSearchEngineData);
 
   
   for (let engine of Services.search.getEngines()) {
@@ -1025,6 +1033,7 @@ add_task(function* test_defaultSearchEngine() {
   data = TelemetryEnvironment.currentEnvironment;
   checkEnvironmentData(data);
   Assert.equal(data.settings.defaultSearchEngine, "NONE");
+  Assert.deepEqual(data.settings.defaultSearchEngineData, {name:"NONE"});
 
   
   const SEARCH_ENGINE_ID = "telemetry_default";
@@ -1044,6 +1053,12 @@ add_task(function* test_defaultSearchEngine() {
 
   const EXPECTED_SEARCH_ENGINE = "other-" + SEARCH_ENGINE_ID;
   Assert.equal(data.settings.defaultSearchEngine, EXPECTED_SEARCH_ENGINE);
+
+  const EXPECTED_SEARCH_ENGINE_DATA = {
+    name: "telemetry_default",
+    loadPath: "[profile]/searchplugins/telemetrydefault.xml"
+  };
+  Assert.deepEqual(data.settings.defaultSearchEngineData, EXPECTED_SEARCH_ENGINE_DATA);
   TelemetryEnvironment.unregisterChangeListener("testWatch_SearchDefault");
 
   
