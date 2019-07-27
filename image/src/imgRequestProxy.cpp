@@ -695,11 +695,6 @@ imgRequestProxy::PerformClone(imgINotificationObserver* aObserver,
     return rv;
   }
 
-  if (GetOwner() && GetOwner()->GetValidator()) {
-    clone->SetNotificationsDeferred(true);
-    GetOwner()->GetValidator()->AddProxy(clone);
-  }
-
   
   
   
