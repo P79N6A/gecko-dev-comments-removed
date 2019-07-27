@@ -23,8 +23,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "ShortcutUtils",
                                   "resource://gre/modules/ShortcutUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "GMPInstallManager",
                                   "resource://gre/modules/GMPInstallManager.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "NewTabUtils",
-                                  "resource://gre/modules/NewTabUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ContentSearch",
                                   "resource:///modules/ContentSearch.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "AboutHome",
@@ -1122,11 +1120,15 @@ var gBrowserInit = {
 
     
     
-    gBrowser.addEventListener("pageshow", function(event) {
+    if (!gMultiProcessBrowser) {
       
-      if (content && event.target == content.document)
-        setTimeout(pageShowEventHandlers, 0, event.persisted);
-    }, true);
+      
+      gBrowser.addEventListener("pageshow", function(event) {
+        
+        if (content && event.target == content.document)
+          setTimeout(pageShowEventHandlers, 0, event.persisted);
+      }, true);
+    }
 
     if (uriToLoad && uriToLoad != "about:blank") {
       if (uriToLoad instanceof Ci.nsISupportsArray) {
@@ -1296,7 +1298,17 @@ var gBrowserInit = {
     if (Win7Features)
       Win7Features.onOpenWindow();
 
-    FullScreen.init();
+   
+    window.addEventListener("fullscreen", onFullScreen, true);
+
+    
+    
+    window.addEventListener("MozEnteredDomFullscreen", onMozEnteredDomFullscreen, true);
+
+    if (window.fullScreen)
+      onFullScreen();
+    if (document.mozFullScreen)
+      onMozEnteredDomFullscreen();
 
 #ifdef MOZ_SERVICES_SYNC
     
@@ -1427,7 +1439,7 @@ var gBrowserInit = {
 
     gHistorySwipeAnimation.uninit();
 
-    FullScreen.uninit();
+    FullScreen.cleanup();
 
 #ifdef MOZ_SERVICES_SYNC
     gFxAccounts.uninit();
@@ -2258,7 +2270,7 @@ function BrowserPageInfo(doc, initialTab, imageElement) {
   var args = {doc: doc, initialTab: initialTab, imageElement: imageElement};
   var windows = Services.wm.getEnumerator("Browser:page-info");
 
-  var documentURL = doc ? doc.location : window.content.document.location;
+  var documentURL = doc ? doc.location : window.gBrowser.selectedBrowser.contentDocumentAsCPOW.location;
 
   
   while (windows.hasMoreElements()) {
@@ -2754,6 +2766,14 @@ function SwitchToMetro() {
 #endif
 }
 
+function onFullScreen(event) {
+  FullScreen.toggle(event);
+}
+
+function onMozEnteredDomFullscreen(event) {
+  FullScreen.enterDomFullscreen(event);
+}
+
 function getWebNavigation()
 {
   return gBrowser.webNavigation;
@@ -3093,7 +3113,7 @@ const BrowserSearch = {
         let mm = gBrowser.selectedBrowser.messageManager;
         if (url === "about:home") {
           AboutHome.focusInput(mm);
-        } else if (url === "about:newtab" && NewTabUtils.allPages.enabled) {
+        } else if (url === "about:newtab") {
           ContentSearch.focusInput(mm);
         } else {
           openUILinkIn("about:home", "current");
@@ -4361,10 +4381,6 @@ nsBrowserAccess.prototype = {
   isTabContentWindow: function (aWindow) {
     return gBrowser.browsers.some(function (browser) browser.contentWindow == aWindow);
   },
-
-  get contentWindow() {
-    return gBrowser.contentWindow;
-  }
 }
 
 function getTogglableToolbars() {
