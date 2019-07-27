@@ -960,7 +960,7 @@ ReadAllocation(const JitFrameIterator &frame, const LAllocation *a)
 #endif
 
 static void
-MarkExtraActualArguments(JSTracer *trc, const JitFrameIterator &frame)
+MarkThisAndExtraActualArguments(JSTracer *trc, const JitFrameIterator &frame)
 {
     
     
@@ -975,8 +975,12 @@ MarkExtraActualArguments(JSTracer *trc, const JitFrameIterator &frame)
     size_t nargs = frame.numActualArgs();
     size_t nformals = CalleeTokenToFunction(layout->calleeToken())->nargs();
 
-    
     Value *argv = layout->argv();
+
+    
+    gc::MarkValueRoot(trc, argv, "ion-thisv");
+
+    
     for (size_t i = nformals + 1; i < nargs + 1; i++)
         gc::MarkValueRoot(trc, &argv[i], "ion-argv");
 }
@@ -1011,7 +1015,7 @@ MarkIonJSFrame(JSTracer *trc, const JitFrameIterator &frame)
         ionScript = frame.ionScriptFromCalleeToken();
     }
 
-    MarkExtraActualArguments(trc, frame);
+    MarkThisAndExtraActualArguments(trc, frame);
 
     const SafepointIndex *si = ionScript->getSafepointIndex(frame.returnAddressToFp());
 
@@ -1070,7 +1074,7 @@ MarkBailoutFrame(JSTracer *trc, const JitFrameIterator &frame)
 
     
     
-    MarkExtraActualArguments(trc, frame);
+    MarkThisAndExtraActualArguments(trc, frame);
 
     
     
