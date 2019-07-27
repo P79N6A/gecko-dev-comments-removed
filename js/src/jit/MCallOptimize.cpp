@@ -2574,7 +2574,7 @@ IonBuilder::inlineConstructSimdObject(CallInfo &callInfo, SimdTypeDescr *descr)
         return InliningStatus_NotInlined;
 
     
-    MIRType simdType;
+    MIRType simdType = MIRType(-1);  
     switch (descr->type()) {
       case SimdTypeDescr::TYPE_INT32:
         simdType = MIRType_Int32x4;
