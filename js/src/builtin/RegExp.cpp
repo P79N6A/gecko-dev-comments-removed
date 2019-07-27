@@ -59,15 +59,12 @@ js::CreateRegExpMatchResult(JSContext *cx, HandleString input, const MatchPairs 
         if (pair.isUndefined()) {
             MOZ_ASSERT(i != 0); 
             arr->setDenseInitializedLength(i + 1);
-            arr->initDenseElementWithType(cx, i, UndefinedValue());
+            arr->initDenseElement(i, UndefinedValue());
         } else {
             JSLinearString *str = NewDependentString(cx, input, pair.start, pair.length());
             if (!str)
                 return false;
             arr->setDenseInitializedLength(i + 1);
-
-            
-            
             arr->initDenseElement(i, StringValue(str));
         }
     }
@@ -678,8 +675,13 @@ js::regexp_exec(JSContext *cx, unsigned argc, Value *vp)
 
 
 bool
-js::regexp_exec_raw(JSContext *cx, HandleObject regexp, HandleString input, MutableHandleValue output)
+js::regexp_exec_raw(JSContext *cx, HandleObject regexp, HandleString input,
+                    MatchPairs *maybeMatches, MutableHandleValue output)
 {
+    
+    
+    if (maybeMatches && maybeMatches->pairsRaw()[0] >= 0)
+        return CreateRegExpMatchResult(cx, input, *maybeMatches, output);
     return regexp_exec_impl(cx, regexp, input, UpdateRegExpStatics, output);
 }
 

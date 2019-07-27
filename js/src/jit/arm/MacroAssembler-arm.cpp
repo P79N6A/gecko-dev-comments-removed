@@ -4159,6 +4159,17 @@ MacroAssemblerARMCompat::callWithABI(const Address &fun, MoveOp::Type result)
 }
 
 void
+MacroAssemblerARMCompat::callWithABI(Register fun, MoveOp::Type result)
+{
+    
+    ma_mov(fun, r12);
+    uint32_t stackAdjust;
+    callWithABIPre(&stackAdjust);
+    call(r12);
+    callWithABIPost(stackAdjust, result);
+}
+
+void
 MacroAssemblerARMCompat::handleFailureWithHandler(void *handler)
 {
     

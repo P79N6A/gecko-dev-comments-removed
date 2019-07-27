@@ -40,7 +40,7 @@ class RegExpStatics
 
 
 
-    bool                    pendingLazyEvaluation;
+    int32_t                 pendingLazyEvaluation;
 
     
     RegExpStatics           *bufferLink;
@@ -156,6 +156,34 @@ class RegExpStatics
     void getLastParen(JSSubString *out) const;
     void getLeftContext(JSSubString *out) const;
     void getRightContext(JSSubString *out) const;
+
+    const void *addressOfBufferLink() {
+        return &bufferLink;
+    }
+
+    static size_t offsetOfPendingInput() {
+        return offsetof(RegExpStatics, pendingInput);
+    }
+
+    static size_t offsetOfMatchesInput() {
+        return offsetof(RegExpStatics, matchesInput);
+    }
+
+    static size_t offsetOfLazySource() {
+        return offsetof(RegExpStatics, lazySource);
+    }
+
+    static size_t offsetOfLazyFlags() {
+        return offsetof(RegExpStatics, lazyFlags);
+    }
+
+    static size_t offsetOfLazyIndex() {
+        return offsetof(RegExpStatics, lazyIndex);
+    }
+
+    static size_t offsetOfPendingLazyEvaluation() {
+        return offsetof(RegExpStatics, pendingLazyEvaluation);
+    }
 };
 
 class AutoRegExpStaticsBuffer : private JS::CustomAutoRooter
@@ -439,7 +467,7 @@ RegExpStatics::updateLazily(JSContext *cx, JSLinearString *input,
     lazySource = shared->source;
     lazyFlags = shared->flags;
     lazyIndex = lastIndex;
-    pendingLazyEvaluation = true;
+    pendingLazyEvaluation = 1;
 }
 
 inline bool

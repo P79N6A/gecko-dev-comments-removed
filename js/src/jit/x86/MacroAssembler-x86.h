@@ -1120,6 +1120,7 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
     void callWithABI(void *fun, MoveOp::Type result = MoveOp::GENERAL);
     void callWithABI(AsmJSImmPtr fun, MoveOp::Type result = MoveOp::GENERAL);
     void callWithABI(const Address &fun, MoveOp::Type result = MoveOp::GENERAL);
+    void callWithABI(Register fun, MoveOp::Type result = MoveOp::GENERAL);
 
     
     void handleFailureWithHandler(void *handler);

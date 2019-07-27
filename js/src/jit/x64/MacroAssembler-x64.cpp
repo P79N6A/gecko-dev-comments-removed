@@ -360,6 +360,24 @@ MacroAssemblerX64::callWithABI(Address fun, MoveOp::Type result)
 }
 
 void
+MacroAssemblerX64::callWithABI(Register fun, MoveOp::Type result)
+{
+    if (IsIntArgReg(fun)) {
+        
+        
+        moveResolver_.addMove(MoveOperand(fun), MoveOperand(r10), MoveOp::GENERAL);
+        fun = r10;
+    }
+
+    MOZ_ASSERT(!IsIntArgReg(fun));
+
+    uint32_t stackAdjust;
+    callWithABIPre(&stackAdjust);
+    call(Operand(fun));
+    callWithABIPost(stackAdjust, result);
+}
+
+void
 MacroAssemblerX64::handleFailureWithHandler(void *handler)
 {
     
