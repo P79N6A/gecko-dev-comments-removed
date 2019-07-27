@@ -4657,16 +4657,11 @@ mozilla::BrowserTabsRemoteAutostart()
   
   
   bool disabledForA11y = Preferences::GetBool("browser.tabs.remote.autostart.disabled-because-using-a11y", false);
-  
-  bool disabledForIME = trialPref && KeyboardMayHaveIME();
-
   if (prefEnabled) {
     if (gSafeMode) {
       LogE10sBlockedReason("Safe mode");
     } else if (disabledForA11y) {
       LogE10sBlockedReason("An accessibility tool is or was active. See bug 1115956.");
-    } else if (disabledForIME) {
-      LogE10sBlockedReason("The keyboard being used has activated IME");
     } else {
       gBrowserTabsRemoteAutostart = true;
     }
