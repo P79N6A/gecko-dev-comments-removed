@@ -1014,6 +1014,7 @@ public:
     unsigned int max_br;
   };
 
+  
   class VP8Parameters : public Parameters
   {
   public:
