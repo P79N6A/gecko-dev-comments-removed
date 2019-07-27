@@ -1855,6 +1855,14 @@ ContentChild::ActorDestroy(ActorDestroyReason why)
     }
     mIsAlive = false;
 
+#ifdef MOZ_NUWA_PROCESS
+    if (IsNuwaProcess()) {
+        
+        
+        QuickExit();
+    }
+#endif
+
     XRE_ShutdownChildProcess();
 }
 
