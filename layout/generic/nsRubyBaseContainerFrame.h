@@ -66,7 +66,6 @@ public:
 #ifdef DEBUG
   void AssertTextContainersEmpty()
   {
-    MOZ_ASSERT(mSpanContainers.IsEmpty());
     MOZ_ASSERT(mTextContainers.IsEmpty());
   }
 #endif
@@ -79,8 +78,6 @@ protected:
     NS_NewRubyBaseContainerFrame(nsIPresShell* aPresShell,
                                  nsStyleContext* aContext);
   explicit nsRubyBaseContainerFrame(nsStyleContext* aContext) : nsContainerFrame(aContext) {}
-
-  nscoord CalculateMaxSpanISize(nsRenderingContext* aRenderingContext);
 
   struct ReflowState;
   nscoord ReflowColumns(const ReflowState& aReflowState,
@@ -104,11 +101,6 @@ protected:
 
 
 
-
-  
-  
-  nsTArray<nsRubyTextContainerFrame*> mSpanContainers;
-  
   nsTArray<nsRubyTextContainerFrame*> mTextContainers;
 
   nscoord mBaseline;
