@@ -13,6 +13,9 @@ registerCleanupFunction(() => {
 });
 
 
+Services.prefs.clearUserPref("browser.sessionstore.restore_on_demand");
+
+
 
 
 
@@ -217,8 +220,6 @@ add_task(function test_crash_page_not_in_history() {
 
   
   yield crashBrowser(browser);
-  
-  TabState.flush(browser);
 
   
   
@@ -248,8 +249,6 @@ add_task(function test_revived_history_from_remote() {
 
   
   yield crashBrowser(browser);
-  
-  TabState.flush(browser);
 
   
   
@@ -289,8 +288,6 @@ add_task(function test_revived_history_from_non_remote() {
 
   
   yield crashBrowser(browser);
-  
-  TabState.flush(browser);
 
   
   
@@ -341,15 +338,11 @@ add_task(function test_revive_tab_from_session_store() {
 
   
   yield crashBrowser(browser);
-
   is(newTab2.getAttribute("crashed"), "true", "Second tab should be crashed too.");
 
   
-  TabState.flush(browser);
-
-  
   clickButton(browser, "restoreTab");
-  yield promiseBrowserLoaded(browser);
+  yield promiseTabRestored(newTab);
   ok(!newTab.hasAttribute("crashed"), "Tab shouldn't be marked as crashed anymore.");
   is(newTab2.getAttribute("crashed"), "true", "Second tab should still be crashed though.");
 
@@ -370,6 +363,63 @@ add_task(function test_revive_tab_from_session_store() {
 
 
 
+add_task(function test_revive_all_tabs_from_session_store() {
+  let newTab = gBrowser.addTab();
+  gBrowser.selectedTab = newTab;
+  let browser = newTab.linkedBrowser;
+  ok(browser.isRemoteBrowser, "Should be a remote browser");
+  yield promiseBrowserLoaded(browser);
+
+  browser.loadURI(PAGE_1);
+  yield promiseBrowserLoaded(browser);
+
+  let newTab2 = gBrowser.addTab(PAGE_1);
+  let browser2 = newTab2.linkedBrowser;
+  ok(browser2.isRemoteBrowser, "Should be a remote browser");
+  yield promiseBrowserLoaded(browser2);
+
+  browser.loadURI(PAGE_1);
+  yield promiseBrowserLoaded(browser);
+
+  browser.loadURI(PAGE_2);
+  yield promiseBrowserLoaded(browser);
+
+  TabState.flush(browser);
+  TabState.flush(browser2);
+
+  
+  yield crashBrowser(browser);
+  is(newTab2.getAttribute("crashed"), "true", "Second tab should be crashed too.");
+
+  
+  clickButton(browser, "restoreAll");
+  yield promiseTabRestored(newTab);
+  ok(!newTab.hasAttribute("crashed"), "Tab shouldn't be marked as crashed anymore.");
+  ok(!newTab.hasAttribute("pending"), "Tab shouldn't be pending.");
+  ok(!newTab2.hasAttribute("crashed"), "Second tab shouldn't be marked as crashed anymore.");
+  ok(newTab2.hasAttribute("pending"), "Second tab should be pending.");
+
+  gBrowser.selectedTab = newTab2;
+  yield promiseTabRestored(newTab2);
+  ok(!newTab2.hasAttribute("pending"), "Second tab shouldn't be pending.");
+
+  
+  
+  
+  
+  yield promiseContentDocumentURIEquals(browser, PAGE_2);
+  yield promiseContentDocumentURIEquals(browser2, PAGE_1);
+
+  
+  yield promiseHistoryLength(browser, 2);
+
+  gBrowser.removeTab(newTab);
+  gBrowser.removeTab(newTab2);
+});
+
+
+
+
 add_task(function test_close_tab_after_crash() {
   let newTab = gBrowser.addTab();
   gBrowser.selectedTab = newTab;
@@ -384,8 +434,6 @@ add_task(function test_close_tab_after_crash() {
 
   
   yield crashBrowser(browser);
-  
-  TabState.flush(browser);
 
   let promise = promiseEvent(gBrowser.tabContainer, "TabClose");
 

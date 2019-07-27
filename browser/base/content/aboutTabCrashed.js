@@ -38,6 +38,10 @@ function restoreTab() {
   sendEvent("restoreTab");
 }
 
+function restoreAll() {
+  sendEvent("restoreAll");
+}
+
 
 var event = new CustomEvent("AboutTabCrashedLoad", {bubbles:true});
 document.dispatchEvent(event);

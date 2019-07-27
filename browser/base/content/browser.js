@@ -271,6 +271,12 @@ XPCOMUtils.defineLazyGetter(this, "PageMenuParent", function() {
   return new tmp.PageMenuParent();
 });
 
+function* browserWindows() {
+  let windows = Services.wm.getEnumerator("navigator:browser");
+  while (windows.hasMoreElements())
+    yield windows.getNext();
+}
+
 
 
 
@@ -1142,6 +1148,13 @@ var gBrowserInit = {
         break;
       case "restoreTab":
         SessionStore.reviveCrashedTab(tab);
+        break;
+      case "restoreAll":
+        for (let browserWin of browserWindows()) {
+          for (let tab of window.gBrowser.tabs) {
+            SessionStore.reviveCrashedTab(tab);
+          }
+        }
         break;
       }
     }, false, true);
@@ -6479,11 +6492,9 @@ function warnAboutClosingWindow() {
     return gBrowser.warnAboutClosingTabs(gBrowser.closingTabsEnum.ALL);
 
   
-  let e = Services.wm.getEnumerator("navigator:browser");
   let otherPBWindowExists = false;
   let nonPopupPresent = false;
-  while (e.hasMoreElements()) {
-    let win = e.getNext();
+  for (let win of browserWindows()) {
     if (!win.closed && win != window) {
       if (isPBWindow && PrivateBrowsingUtils.isWindowPrivate(win))
         otherPBWindowExists = true;
@@ -7582,9 +7593,7 @@ function switchToTabHavingURI(aURI, aOpenNew, aOpenParams={}) {
   if (isBrowserWindow && switchIfURIInWindow(window))
     return true;
 
-  let winEnum = Services.wm.getEnumerator("navigator:browser");
-  while (winEnum.hasMoreElements()) {
-    let browserWin = winEnum.getNext();
+  for (let browserWin of browserWindows()) {
     
     
     if (browserWin.closed || browserWin == window)
