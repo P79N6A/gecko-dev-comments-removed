@@ -1,12 +1,12 @@
-
-
-
-
-
-
-
-
-
+/*
+ *  Copyright (c) 2012 The WebRTC project authors. All Rights Reserved.
+ *
+ *  Use of this source code is governed by a BSD-style license
+ *  that can be found in the LICENSE file in the root of the source
+ *  tree. An additional intellectual property rights grant can be found
+ *  in the file PATENTS.  All contributing project authors may
+ *  be found in the AUTHORS file in the root of the source tree.
+ */
 
 #include "webrtc/video_engine/vie_input_manager.h"
 
@@ -66,7 +66,6 @@ int ViEInputManager::NumberOfCaptureDevices() {
   CriticalSectionScoped cs(device_info_cs_.get());
   GetDeviceInfo();
   assert(capture_device_info_);
-  capture_device_info_->Refresh();
   return capture_device_info_->NumberOfDevices();
 }
 
@@ -113,7 +112,7 @@ int ViEInputManager::GetCaptureCapability(
   if (result != 0)
     return result;
 
-  
+  // Copy from module type to public type.
   capability.expectedCaptureDelay = module_capability.expectedCaptureDelay;
   capability.height = module_capability.height;
   capability.width = module_capability.width;
@@ -135,7 +134,7 @@ int ViEInputManager::GetOrientation(const char* device_unique_idUTF8,
   VideoCaptureRotation module_orientation;
   int result = capture_device_info_->GetOrientation(device_unique_idUTF8,
                                                     module_orientation);
-  
+  // Copy from module type to public type.
   switch (module_orientation) {
     case kCameraRotate0:
       orientation = RotateCapturedFrame_0;
@@ -175,15 +174,15 @@ int ViEInputManager::CreateCaptureDevice(
                "%s(device_unique_id: %s)", __FUNCTION__, device_unique_idUTF8);
   CriticalSectionScoped cs(map_cs_.get());
 
-  
+  // Make sure the device is not already allocated.
   for (FrameProviderMap::iterator it = vie_frame_provider_map_.begin();
        it != vie_frame_provider_map_.end();
        ++it) {
-    
+    // Make sure this is a capture device.
     if (it->first >= kViECaptureIdBase && it->first <= kViECaptureIdMax) {
       ViECapturer* vie_capture = static_cast<ViECapturer*>(it->second);
       assert(vie_capture);
-      
+      // TODO(mflodman) Can we change input to avoid this cast?
       const char* device_name =
           reinterpret_cast<const char*>(vie_capture->CurrentDeviceName());
       if (strncmp(device_name, device_unique_idUTF8,
@@ -193,7 +192,7 @@ int ViEInputManager::CreateCaptureDevice(
     }
   }
 
-  
+  // Make sure the device name is valid.
   bool found_device = false;
   CriticalSectionScoped cs_devinfo(device_info_cs_.get());
   GetDeviceInfo();
@@ -201,7 +200,7 @@ int ViEInputManager::CreateCaptureDevice(
   for (uint32_t device_index = 0;
        device_index < capture_device_info_->NumberOfDevices(); ++device_index) {
     if (device_unique_idUTF8Length > kVideoCaptureUniqueNameLength) {
-      
+      // User's string length is longer than the max.
       return -1;
     }
 
@@ -212,7 +211,7 @@ int ViEInputManager::CreateCaptureDevice(
                                         found_unique_name,
                                         kVideoCaptureUniqueNameLength);
 
-    
+    // TODO(mflodman) Can we change input to avoid this cast?
     const char* cast_id = reinterpret_cast<const char*>(device_unique_idUTF8);
     if (strncmp(cast_id, reinterpret_cast<const char*>(found_unique_name),
                 strlen(cast_id)) == 0) {
@@ -291,8 +290,8 @@ int ViEInputManager::DestroyCaptureDevice(const int capture_id) {
                "%s(capture_id: %d)", __FUNCTION__, capture_id);
   ViECapturer* vie_capture = NULL;
   {
-    
-    
+    // We need exclusive access to the object to delete it.
+    // Take this write lock first since the read lock is taken before map_cs_.
     ViEManagerWriteScoped wl(this);
     CriticalSectionScoped cs(map_cs_.get());
 
@@ -313,9 +312,9 @@ int ViEInputManager::DestroyCaptureDevice(const int capture_id) {
     }
     vie_frame_provider_map_.erase(capture_id);
     ReturnCaptureId(capture_id);
-    
-    
-    
+    // Leave cs before deleting the capture object. This is because deleting the
+    // object might cause deletions of renderers so we prefer to not have a lock
+    // at that time.
   }
   delete vie_capture;
   return 0;
@@ -359,7 +358,7 @@ bool ViEInputManager::GetFreeCaptureId(int* freecapture_id) {
                __FUNCTION__);
   for (int id = 0; id < kViEMaxCaptureDevices; id++) {
     if (free_capture_device_id_[id]) {
-      
+      // We found a free capture device id.
       free_capture_device_id_[id] = false;
       *freecapture_id = id + kViECaptureIdBase;
       WEBRTC_TRACE(webrtc::kTraceInfo, webrtc::kTraceVideo, ViEId(engine_id_),
@@ -393,7 +392,7 @@ ViEFrameProviderBase* ViEInputManager::ViEFrameProvider(
       return it->second;
   }
 
-  
+  // No capture device set for this channel.
   return NULL;
 }
 
@@ -415,7 +414,7 @@ ViECapturer* ViEInputManager::ViECapturePtr(int capture_id) const {
   return static_cast<ViECapturer*>(ViEFrameProvider(capture_id));
 }
 
-
+// Create different DeviceInfo by _config;
 VideoCaptureModule::DeviceInfo* ViEInputManager::GetDeviceInfo() {
   CaptureDeviceType type = config_.Get<CaptureDeviceInfo>().type;
 
@@ -436,7 +435,7 @@ VideoCaptureModule::DeviceInfo* ViEInputManager::GetDeviceInfo() {
         capture_device_info_ = VideoCaptureFactory::CreateDeviceInfo(ViEModuleId(engine_id_));
         break;
       default:
-        
+        // Don't try to build anything for unknown/unsupported types
         break;
     }
   }
@@ -464,4 +463,4 @@ ViEFrameProviderBase* ViEInputManagerScoped::FrameProvider(
       provider_id);
 }
 
-}  
+}  // namespace webrtc

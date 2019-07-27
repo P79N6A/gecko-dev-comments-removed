@@ -43,7 +43,6 @@ public:
   virtual ~ScreenDeviceInfoImpl(void);
 
   int32_t Init();
-  int32_t Refresh();
 
   virtual uint32_t NumberOfDevices();
   virtual int32_t GetDeviceName(uint32_t deviceNumber,
@@ -81,7 +80,6 @@ public:
   virtual ~AppDeviceInfoImpl(void);
 
   int32_t Init();
-  int32_t Refresh();
 
   virtual uint32_t NumberOfDevices();
   virtual int32_t GetDeviceName(uint32_t deviceNumber,
@@ -118,7 +116,6 @@ public:
   virtual ~WindowDeviceInfoImpl(void) {};
 
   int32_t Init();
-  int32_t Refresh();
 
   virtual uint32_t NumberOfDevices();
   virtual int32_t GetDeviceName(uint32_t deviceNumber,
