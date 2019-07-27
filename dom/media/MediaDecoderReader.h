@@ -188,6 +188,9 @@ public:
   
   size_t SizeOfAudioQueueInBytes() const;
 
+  virtual size_t SizeOfVideoQueueInFrames();
+  virtual size_t SizeOfAudioQueueInFrames();
+
   
   
   virtual void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset) {}
