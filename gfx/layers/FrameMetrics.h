@@ -86,6 +86,7 @@ public:
     , mIsRoot(false)
     , mHasScrollgrab(false)
     , mScrollId(NULL_SCROLL_ID)
+    , mScrollParentId(NULL_SCROLL_ID)
     , mScrollOffset(0, 0)
     , mZoom(1)
     , mUpdateScrollOffset(false)
@@ -117,6 +118,7 @@ public:
            mPresShellId == aOther.mPresShellId &&
            mIsRoot == aOther.mIsRoot &&
            mScrollId == aOther.mScrollId &&
+           mScrollParentId == aOther.mScrollParentId &&
            mScrollOffset == aOther.mScrollOffset &&
            mHasScrollgrab == aOther.mHasScrollgrab &&
            mUpdateScrollOffset == aOther.mUpdateScrollOffset;
@@ -404,6 +406,16 @@ public:
     mScrollId = scrollId;
   }
 
+  ViewID GetScrollParentId() const
+  {
+    return mScrollParentId;
+  }
+
+  void SetScrollParentId(ViewID aParentId)
+  {
+    mScrollParentId = aParentId;
+  }
+
   void SetRootCompositionSize(const CSSSize& aRootCompositionSize)
   {
     mRootCompositionSize = aRootCompositionSize;
@@ -466,6 +478,9 @@ private:
 
   
   ViewID mScrollId;
+
+  
+  ViewID mScrollParentId;
 
   
   

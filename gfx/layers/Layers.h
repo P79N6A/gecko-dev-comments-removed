@@ -836,22 +836,6 @@ public:
 
 
 
-  void SetScrollHandoffParentId(FrameMetrics::ViewID aScrollParentId)
-  {
-    if (mScrollHandoffParentId != aScrollParentId) {
-      MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) ScrollHandoffParentId", this));
-      mScrollHandoffParentId = aScrollParentId;
-      Mutated();
-    }
-  }
-
-  
-
-
-
-
-
-
 
 
 
@@ -1174,7 +1158,6 @@ public:
   uint32_t GetContentFlags() { return mContentFlags; }
   const nsIntRegion& GetVisibleRegion() const { return mVisibleRegion; }
   const FrameMetrics& GetFrameMetrics() const { return mFrameMetrics; }
-  FrameMetrics::ViewID GetScrollHandoffParentId() const { return mScrollHandoffParentId; }
   const EventRegions& GetEventRegions() const { return mEventRegions; }
   ContainerLayer* GetParent() { return mParent; }
   Layer* GetNextSibling() { return mNextSibling; }
@@ -1581,7 +1564,6 @@ protected:
   gfx::UserData mUserData;
   nsIntRegion mVisibleRegion;
   FrameMetrics mFrameMetrics;
-  FrameMetrics::ViewID mScrollHandoffParentId;
   EventRegions mEventRegions;
   gfx::Matrix4x4 mTransform;
   

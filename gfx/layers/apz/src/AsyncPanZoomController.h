@@ -896,12 +896,8 @@ private:
 
 
 public:
-  void SetScrollHandoffParentId(FrameMetrics::ViewID aScrollParentId) {
-    mScrollParentId = aScrollParentId;
-  }
-
   FrameMetrics::ViewID GetScrollHandoffParentId() const {
-    return mScrollParentId;
+    return mFrameMetrics.GetScrollParentId();
   }
 
   
@@ -935,8 +931,6 @@ public:
   bool SnapBackIfOverscrolled();
 
 private:
-  FrameMetrics::ViewID mScrollParentId;
-
   
 
 
