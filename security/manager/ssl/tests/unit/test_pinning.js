@@ -38,6 +38,12 @@ function test_strict() {
   });
 
   
+  
+  
+  add_connection_test("unknownissuer.include-subdomains.pinning.example.com",
+    getXPCOMStatusFromNSS(MOZILLA_PKIX_ERROR_KEY_PINNING_FAILURE));
+
+  
   add_connection_test("bad.include-subdomains.pinning.example.com",
     getXPCOMStatusFromNSS(MOZILLA_PKIX_ERROR_KEY_PINNING_FAILURE));
 
@@ -68,6 +74,9 @@ function test_mitm() {
   add_connection_test("include-subdomains.pinning.example.com", Cr.NS_OK);
   add_connection_test("good.include-subdomains.pinning.example.com", Cr.NS_OK);
 
+  add_connection_test("unknownissuer.include-subdomains.pinning.example.com",
+    getXPCOMStatusFromNSS(SEC_ERROR_UNKNOWN_ISSUER));
+
   
   
   add_connection_test("bad.include-subdomains.pinning.example.com", Cr.NS_OK);
@@ -90,6 +99,9 @@ function test_disabled() {
   add_connection_test("exclude-subdomains.pinning.example.com", Cr.NS_OK);
   add_connection_test("sub.exclude-subdomains.pinning.example.com", Cr.NS_OK);
   add_connection_test("test-mode.pinning.example.com", Cr.NS_OK);
+
+  add_connection_test("unknownissuer.include-subdomains.pinning.example.com",
+    getXPCOMStatusFromNSS(SEC_ERROR_UNKNOWN_ISSUER));
 }
 
 function test_enforce_test_mode() {
@@ -98,6 +110,9 @@ function test_enforce_test_mode() {
     Services.prefs.setIntPref("security.cert_pinning.enforcement_level", 3);
     run_next_test();
   });
+
+  add_connection_test("unknownissuer.include-subdomains.pinning.example.com",
+    getXPCOMStatusFromNSS(MOZILLA_PKIX_ERROR_KEY_PINNING_FAILURE));
 
   
   add_connection_test("bad.include-subdomains.pinning.example.com",
@@ -128,7 +143,7 @@ function check_pinning_telemetry() {
                          .snapshot();
   
   
-  do_check_eq(prod_histogram.counts[0], 2); 
+  do_check_eq(prod_histogram.counts[0], 4); 
   do_check_eq(prod_histogram.counts[1], 4); 
   do_check_eq(test_histogram.counts[0], 2); 
   do_check_eq(test_histogram.counts[1], 0); 
