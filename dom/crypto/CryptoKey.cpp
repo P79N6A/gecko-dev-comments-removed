@@ -952,6 +952,41 @@ CryptoKey::PrivateKeyToJwk(SECKEYPrivateKey* aPrivKey,
 }
 
 SECKEYPublicKey*
+CreateECPublicKey(const SECItem* aKeyData, const nsString& aNamedCurve)
+{
+  ScopedPLArenaPool arena(PORT_NewArena(DER_DEFAULT_CHUNKSIZE));
+  if (!arena) {
+    return nullptr;
+  }
+
+  SECKEYPublicKey* key = PORT_ArenaZNew(arena, SECKEYPublicKey);
+  if (!key) {
+    return nullptr;
+  }
+
+  key->keyType = ecKey;
+  key->pkcs11Slot = nullptr;
+  key->pkcs11ID = CK_INVALID_HANDLE;
+
+  
+  SECItem* params = CreateECParamsForCurve(aNamedCurve, arena);
+  if (!params) {
+    return nullptr;
+  }
+  key->u.ec.DEREncodedParams = *params;
+
+  
+  key->u.ec.publicValue = *aKeyData;
+
+  
+  if (!CryptoKey::PublicKeyValid(key)) {
+    return nullptr;
+  }
+
+  return SECKEY_CopyPublicKey(key);
+}
+
+SECKEYPublicKey*
 CryptoKey::PublicKeyFromJwk(const JsonWebKey& aJwk,
                             const nsNSSShutDownPreventionLock& )
 {
@@ -1002,39 +1037,18 @@ CryptoKey::PublicKeyFromJwk(const JsonWebKey& aJwk,
       return nullptr;
     }
 
-    SECKEYPublicKey* key = PORT_ArenaZNew(arena, SECKEYPublicKey);
-    if (!key) {
+    
+    SECItem* point = CreateECPointForCoordinates(x, y, arena.get());
+    if (!point) {
       return nullptr;
     }
-
-    key->keyType = ecKey;
-    key->pkcs11Slot = nullptr;
-    key->pkcs11ID = CK_INVALID_HANDLE;
 
     nsString namedCurve;
     if (!NormalizeToken(aJwk.mCrv.Value(), namedCurve)) {
       return nullptr;
     }
 
-    
-    SECItem* params = CreateECParamsForCurve(namedCurve, arena.get());
-    if (!params) {
-      return nullptr;
-    }
-    key->u.ec.DEREncodedParams = *params;
-
-    
-    SECItem* point = CreateECPointForCoordinates(x, y, arena.get());
-    if (!point) {
-      return nullptr;
-    }
-    key->u.ec.publicValue = *point;
-
-    if (!PublicKeyValid(key)) {
-      return nullptr;
-    }
-
-    return SECKEY_CopyPublicKey(key);
+    return CreateECPublicKey(point, namedCurve);
   }
 
   return nullptr;
@@ -1112,6 +1126,57 @@ CryptoKey::PublicDhKeyToRaw(SECKEYPublicKey* aPubKey,
                             const nsNSSShutDownPreventionLock& )
 {
   aRetVal.Assign(&aPubKey->u.dh.publicValue);
+  return NS_OK;
+}
+
+SECKEYPublicKey*
+CryptoKey::PublicECKeyFromRaw(CryptoBuffer& aKeyData,
+                              const nsString& aNamedCurve,
+                              const nsNSSShutDownPreventionLock& )
+{
+  ScopedPLArenaPool arena(PORT_NewArena(DER_DEFAULT_CHUNKSIZE));
+  if (!arena) {
+    return nullptr;
+  }
+
+  SECItem rawItem = { siBuffer, nullptr, 0 };
+  if (!aKeyData.ToSECItem(arena, &rawItem)) {
+    return nullptr;
+  }
+
+  uint32_t flen;
+  if (aNamedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_P256)) {
+    flen = 32; 
+  } else if (aNamedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_P384)) {
+    flen = 48; 
+  } else if (aNamedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_P521)) {
+    flen = 66; 
+  } else {
+    return nullptr;
+  }
+
+  
+  
+  if (rawItem.len != (2 * flen + 1)) {
+    return nullptr;
+  }
+
+  
+  if (rawItem.data[0] != EC_POINT_FORM_UNCOMPRESSED) {
+    return nullptr;
+  }
+
+  return CreateECPublicKey(&rawItem, aNamedCurve);
+}
+
+nsresult
+CryptoKey::PublicECKeyToRaw(SECKEYPublicKey* aPubKey,
+                            CryptoBuffer& aRetVal,
+                            const nsNSSShutDownPreventionLock& )
+{
+  if (!aRetVal.Assign(&aPubKey->u.ec.publicValue)) {
+    return NS_ERROR_DOM_OPERATION_ERR;
+  }
   return NS_OK;
 }
 

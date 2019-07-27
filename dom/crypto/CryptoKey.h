@@ -180,6 +180,13 @@ public:
                                    CryptoBuffer& aRetVal,
                                    const nsNSSShutDownPreventionLock& );
 
+  static SECKEYPublicKey* PublicECKeyFromRaw(CryptoBuffer& aKeyData,
+                                             const nsString& aNamedCurve,
+                                             const nsNSSShutDownPreventionLock& );
+  static nsresult PublicECKeyToRaw(SECKEYPublicKey* aPubKey,
+                                   CryptoBuffer& aRetVal,
+                                   const nsNSSShutDownPreventionLock& );
+
   static bool PublicKeyValid(SECKEYPublicKey* aPubKey);
 
   
