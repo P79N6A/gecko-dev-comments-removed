@@ -2041,7 +2041,7 @@ PresShell::ResizeReflowIgnoreOverride(nscoord aWidth, nscoord aHeight)
   
   nsCOMPtr<nsIPresShell> kungFuDeathGrip(this);
 
-  if (!GetPresContext()->SupressingResizeReflow()) {
+  if (!GetPresContext()->SuppressingResizeReflow()) {
     
     
     mDocument->FlushPendingNotifications(Flush_ContentAndNotify);

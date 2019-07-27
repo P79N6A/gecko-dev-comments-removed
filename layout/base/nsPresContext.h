@@ -870,7 +870,7 @@ public:
   
   bool GetPaintFlashing() const;
 
-  bool             SupressingResizeReflow() const { return mSupressResizeReflow; }
+  bool             SuppressingResizeReflow() const { return mSuppressResizeReflow; }
 
   virtual gfxUserFontSet* GetUserFontSetExternal();
   gfxUserFontSet* GetUserFontSetInternal();
@@ -1374,7 +1374,7 @@ protected:
 
   
   
-  unsigned              mSupressResizeReflow : 1;
+  unsigned              mSuppressResizeReflow : 1;
 
   unsigned              mIsVisual : 1;
 
