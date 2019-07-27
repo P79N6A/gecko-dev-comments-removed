@@ -187,7 +187,7 @@ public:
   inline void SetPriorAvailWidth(nscoord aPriorAvailWidth);
 
   
-  inline nsSize GetDesiredSize();
+  inline mozilla::LogicalSize GetDesiredSize();
 
   
   inline void SetDesiredSize(const nsHTMLReflowMetrics & aDesiredSize);
@@ -238,7 +238,7 @@ protected:
   uint32_t     mColIndex;             
 
   nscoord      mPriorAvailWidth;      
-  nsSize       mDesiredSize;          
+  mozilla::LogicalSize mDesiredSize;  
 };
 
 inline nscoord nsTableCellFrame::GetPriorAvailWidth()
@@ -247,13 +247,13 @@ inline nscoord nsTableCellFrame::GetPriorAvailWidth()
 inline void nsTableCellFrame::SetPriorAvailWidth(nscoord aPriorAvailWidth)
 { mPriorAvailWidth = aPriorAvailWidth;}
 
-inline nsSize nsTableCellFrame::GetDesiredSize()
+inline mozilla::LogicalSize nsTableCellFrame::GetDesiredSize()
 { return mDesiredSize; }
 
 inline void nsTableCellFrame::SetDesiredSize(const nsHTMLReflowMetrics & aDesiredSize)
 {
-  mDesiredSize.width = aDesiredSize.Width();
-  mDesiredSize.height = aDesiredSize.Height();
+  mozilla::WritingMode wm = aDesiredSize.GetWritingMode();
+  mDesiredSize = aDesiredSize.Size(wm).ConvertTo(GetWritingMode(), wm);
 }
 
 inline bool nsTableCellFrame::GetContentEmpty()

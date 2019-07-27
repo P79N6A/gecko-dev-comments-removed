@@ -85,10 +85,12 @@ BRFrame::Reflow(nsPresContext* aPresContext,
 {
   DO_GLOBAL_REFLOW_COUNT("BRFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowState, aMetrics, aStatus);
-  aMetrics.Height() = 0; 
-                       
-                       
-  aMetrics.Width() = 0;
+  WritingMode wm = aReflowState.GetWritingMode();
+  LogicalSize finalSize(wm);
+  finalSize.BSize(wm) = 0; 
+                           
+                           
+  finalSize.ISize(wm) = 0;
   aMetrics.SetBlockStartAscent(0);
 
   
@@ -119,11 +121,11 @@ BRFrame::Reflow(nsPresContext* aPresContext,
       aReflowState.rendContext->SetFont(fm); 
       if (fm) {
         nscoord logicalHeight = aReflowState.CalcLineHeight();
-        aMetrics.Height() = logicalHeight;
+        finalSize.BSize(wm) = logicalHeight;
         aMetrics.SetBlockStartAscent(nsLayoutUtils::GetCenteredFontBaseline(fm, logicalHeight));
       }
       else {
-        aMetrics.SetBlockStartAscent(aMetrics.Height() = 0);
+        aMetrics.SetBlockStartAscent(aMetrics.BSize(wm) = 0);
       }
 
       
@@ -132,7 +134,7 @@ BRFrame::Reflow(nsPresContext* aPresContext,
       
       
       
-      aMetrics.Width() = 1;
+      finalSize.ISize(wm) = 1;
     }
 
     
@@ -149,6 +151,7 @@ BRFrame::Reflow(nsPresContext* aPresContext,
     aStatus = NS_FRAME_COMPLETE;
   }
 
+  aMetrics.SetSize(wm, finalSize);
   aMetrics.SetOverflowAreasToDesiredBounds();
 
   mAscent = aMetrics.BlockStartAscent();

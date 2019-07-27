@@ -250,6 +250,12 @@ public:
   }
 
   
+  void ClearSize()
+  {
+    mISize = mBSize = 0;
+  }
+
+  
   
   
   

@@ -712,16 +712,18 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
   
   
   contentRect -= nsPoint(borderPadding.left, borderPadding.top);
-  
-  nsSize contentSize = nsSize(contentRect.XMost(), contentRect.YMost());
 
+  WritingMode wm = aReflowState.GetWritingMode();
+  LogicalSize contentSize(wm, nsSize(contentRect.XMost(), contentRect.YMost()));
+
+  
   
   if (aConfig.mComputedHeight != NS_INTRINSICSIZE) {
     if (aReflowState.AvailableHeight() != NS_INTRINSICSIZE) {
-      contentSize.height = std::min(contentSize.height,
-                                    aConfig.mComputedHeight);
+      contentSize.BSize(wm) = std::min(contentSize.BSize(wm),
+                                       aConfig.mComputedHeight);
     } else {
-      contentSize.height = aConfig.mComputedHeight;
+      contentSize.BSize(wm) = aConfig.mComputedHeight;
     }
   } else {
     
@@ -729,19 +731,21 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
     
     
     
-    contentSize.height = aReflowState.ApplyMinMaxHeight(contentSize.height,
-                                                        aConfig.mConsumedHeight);
+    contentSize.BSize(wm) =
+      aReflowState.ApplyMinMaxHeight(contentSize.BSize(wm),
+                                     aConfig.mConsumedHeight);
   }
-  if (aReflowState.ComputedWidth() != NS_INTRINSICSIZE) {
-    contentSize.width = aReflowState.ComputedWidth();
+  if (aReflowState.ComputedISize() != NS_INTRINSICSIZE) {
+    contentSize.ISize(wm) = aReflowState.ComputedISize();
   } else {
-    contentSize.width = aReflowState.ApplyMinMaxWidth(contentSize.width);
+    contentSize.ISize(wm) =
+      aReflowState.ApplyMinMaxWidth(contentSize.ISize(wm));
   }
 
-  aDesiredSize.Height() = contentSize.height +
-                        borderPadding.TopBottom();
-  aDesiredSize.Width() = contentSize.width +
-                       borderPadding.LeftRight();
+  LogicalMargin bp(wm, borderPadding);
+  contentSize.ISize(wm) += bp.IStartEnd(wm);
+  contentSize.BSize(wm) += bp.BStartEnd(wm);
+  aDesiredSize.SetSize(wm, contentSize);
   aDesiredSize.mOverflowAreas = overflowRects;
   aDesiredSize.UnionOverflowAreasWithDesiredBounds();
 

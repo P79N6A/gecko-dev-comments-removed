@@ -377,8 +377,8 @@ nsTableRowGroupFrame::ReflowChildren(nsPresContext*         aPresContext,
       
       nsHTMLReflowMetrics desiredSize(aReflowState.reflowState,
                                       aDesiredSize.mFlags);
-      desiredSize.Width() = desiredSize.Height() = 0;
-  
+      desiredSize.ClearSize();
+
       
       
       
@@ -645,7 +645,8 @@ nsTableRowGroupFrame::CalculateRowHeights(nsPresContext*           aPresContext,
             nscoord heightOfAreaSpanned = heightOfRowsSpanned + cellSpacingTotal;
             
             nsSize cellFrameSize = cellFrame->GetSize();
-            nsSize cellDesSize = cellFrame->GetDesiredSize();
+            nsSize cellDesSize =
+              cellFrame->GetDesiredSize().GetPhysicalSize(cellFrame->GetWritingMode());
             rowFrame->CalculateCellActualHeight(cellFrame, cellDesSize.height);
             cellFrameSize.height = cellDesSize.height;
             if (cellFrame->HasVerticalAlignBaseline()) {

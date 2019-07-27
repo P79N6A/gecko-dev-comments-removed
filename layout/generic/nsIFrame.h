@@ -712,6 +712,20 @@ public:
                nscoord aContainerWidth) {
     SetRect(aRect.GetPhysicalRect(aWritingMode, aContainerWidth));
   }
+
+  
+
+
+  void SetSize(const mozilla::LogicalSize& aSize) {
+    SetSize(GetWritingMode(), aSize);
+  }
+  
+
+
+  void SetSize(mozilla::WritingMode aWritingMode,
+               const mozilla::LogicalSize& aSize) {
+    SetSize(aSize.GetPhysicalSize(aWritingMode));
+  }
   void SetSize(const nsSize& aSize) {
     SetRect(nsRect(mRect.TopLeft(), aSize));
   }
@@ -1417,6 +1431,10 @@ public:
   virtual nsIFrame* LastInFlow() const {
     return const_cast<nsIFrame*>(this);
   }
+
+  
+
+
 
 
   

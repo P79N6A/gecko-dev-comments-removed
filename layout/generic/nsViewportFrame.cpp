@@ -194,7 +194,8 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
   
   
   
-  nscoord kidHeight = 0;
+  nscoord kidBSize = 0;
+  WritingMode wm = aReflowState.GetWritingMode();
 
   if (mFrames.NotEmpty()) {
     
@@ -214,11 +215,11 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
       kidReflowState.SetComputedHeight(aReflowState.ComputedHeight());
       ReflowChild(kidFrame, aPresContext, kidDesiredSize, kidReflowState,
                   0, 0, 0, aStatus);
-      kidHeight = kidDesiredSize.Height();
+      kidBSize = kidDesiredSize.BSize(wm);
 
       FinishReflowChild(kidFrame, aPresContext, kidDesiredSize, nullptr, 0, 0, 0);
     } else {
-      kidHeight = mFrames.FirstChild()->GetSize().height;
+      kidBSize = LogicalSize(wm, mFrames.FirstChild()->GetSize()).BSize(wm);
     }
   }
 
@@ -226,12 +227,13 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
                "shouldn't happen anymore");
 
   
-  aDesiredSize.Width() = aReflowState.AvailableWidth();
-  
-  
-  aDesiredSize.Height() = aReflowState.ComputedHeight() != NS_UNCONSTRAINEDSIZE
-                          ? aReflowState.ComputedHeight()
-                          : kidHeight;
+  LogicalSize maxSize(wm, aReflowState.AvailableISize(),
+                      
+                      
+                      aReflowState.ComputedBSize() != NS_UNCONSTRAINEDSIZE
+                        ? aReflowState.ComputedBSize()
+                        : kidBSize);
+  aDesiredSize.SetSize(wm, maxSize);
   aDesiredSize.SetOverflowAreasToDesiredBounds();
 
   if (mFrames.NotEmpty()) {
@@ -243,14 +245,14 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
     
     nsHTMLReflowState reflowState(aReflowState);
 
-    if (reflowState.AvailableHeight() == NS_UNCONSTRAINEDSIZE) {
+    if (reflowState.AvailableBSize() == NS_UNCONSTRAINEDSIZE) {
       
       
-      reflowState.AvailableHeight() = aDesiredSize.Height();
+      reflowState.AvailableBSize() = maxSize.BSize(wm);
       
       NS_ASSERTION(reflowState.ComputedPhysicalBorderPadding() == nsMargin(0,0,0,0),
                    "Viewports can't have border/padding");
-      reflowState.SetComputedHeight(aDesiredSize.Height());
+      reflowState.SetComputedBSize(maxSize.BSize(wm));
     }
 
     nsRect rect = AdjustReflowStateAsContainingBlock(&reflowState);

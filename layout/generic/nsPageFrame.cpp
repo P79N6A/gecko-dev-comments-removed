@@ -82,8 +82,7 @@ nsPageFrame::Reflow(nsPresContext*           aPresContext,
     
     
     if (maxSize.width < onePixelInTwips || maxSize.height < onePixelInTwips) {
-      aDesiredSize.Width() = 0;
-      aDesiredSize.Height() = 0;
+      aDesiredSize.ClearSize();
       NS_WARNING("Reflow aborted; no space for content");
       return;
     }
@@ -145,13 +144,17 @@ nsPageFrame::Reflow(nsPresContext*           aPresContext,
                  !frame->GetNextInFlow(), "bad child flow list");
   }
   PR_PL(("PageFrame::Reflow %p ", this));
-  PR_PL(("[%d,%d][%d,%d]\n", aDesiredSize.Width(), aDesiredSize.Height(), aReflowState.AvailableWidth(), aReflowState.AvailableHeight()));
+  PR_PL(("[%d,%d][%d,%d]\n", aDesiredSize.Width(), aDesiredSize.Height(),
+         aReflowState.AvailableWidth(), aReflowState.AvailableHeight()));
 
   
-  aDesiredSize.Width() = aReflowState.AvailableWidth();
-  if (aReflowState.AvailableHeight() != NS_UNCONSTRAINEDSIZE) {
-    aDesiredSize.Height() = aReflowState.AvailableHeight();
+  WritingMode wm = aReflowState.GetWritingMode();
+  LogicalSize finalSize(wm);
+  finalSize.ISize(wm) = aReflowState.AvailableISize();
+  if (aReflowState.AvailableBSize() != NS_UNCONSTRAINEDSIZE) {
+    finalSize.BSize(wm) = aReflowState.AvailableBSize();
   }
+  aDesiredSize.SetSize(wm, finalSize);
 
   aDesiredSize.SetOverflowAreasToDesiredBounds();
   FinishAndStoreOverflow(&aDesiredSize);
@@ -669,12 +672,14 @@ nsPageBreakFrame::Reflow(nsPresContext*           aPresContext,
 
   
   
-  aDesiredSize.Width() = GetIntrinsicWidth();
-  aDesiredSize.Height() = (aReflowState.AvailableHeight() == NS_UNCONSTRAINEDSIZE ?
-                         0 : aReflowState.AvailableHeight());
+  WritingMode wm = aReflowState.GetWritingMode();
+  LogicalSize finalSize(wm, GetIntrinsicWidth(),
+                        aReflowState.AvailableBSize() == NS_UNCONSTRAINEDSIZE ?
+                          0 : aReflowState.AvailableBSize());
   
-  aDesiredSize.Height() -=
-    aDesiredSize.Height() % nsPresContext::CSSPixelsToAppUnits(1);
+  finalSize.BSize(wm) -=
+    finalSize.BSize(wm) % nsPresContext::CSSPixelsToAppUnits(1);
+  aDesiredSize.SetSize(wm, finalSize);
 
   
   

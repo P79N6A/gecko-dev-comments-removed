@@ -969,7 +969,7 @@ nsMathMLContainerFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
   
   
   AddInterFrameSpacingToSize(desiredSize, this);
-  result = desiredSize.Width();
+  result = desiredSize.ISize(GetWritingMode());
   return result;
 }
 
@@ -984,7 +984,7 @@ nsMathMLContainerFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
   
   
   AddInterFrameSpacingToSize(desiredSize, this);
-  result = desiredSize.Width();
+  result = desiredSize.ISize(GetWritingMode());
   return result;
 }
 

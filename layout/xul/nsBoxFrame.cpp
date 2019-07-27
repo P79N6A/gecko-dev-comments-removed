@@ -653,43 +653,46 @@ nsBoxFrame::Reflow(nsPresContext*          aPresContext,
   nsBoxLayoutState state(aPresContext, aReflowState.rendContext,
                          &aReflowState, aReflowState.mReflowDepth);
 
-  nsSize computedSize(aReflowState.ComputedWidth(),aReflowState.ComputedHeight());
+  WritingMode wm = aReflowState.GetWritingMode();
+  LogicalSize computedSize(wm, aReflowState.ComputedISize(),
+                           aReflowState.ComputedBSize());
 
-  nsMargin m;
-  m = aReflowState.ComputedPhysicalBorderPadding();
+  LogicalMargin m = aReflowState.ComputedLogicalBorderPadding();
   
 
-  nsSize prefSize(0,0);
+  LogicalSize prefSize(wm);
 
   
-  NS_ASSERTION(computedSize.width != NS_INTRINSICSIZE,
-               "computed width should always be computed");
-  if (computedSize.height == NS_INTRINSICSIZE) {
-    prefSize = GetPrefSize(state);
+  NS_ASSERTION(computedSize.ISize(wm) != NS_INTRINSICSIZE,
+               "computed inline size should always be computed");
+  if (computedSize.BSize(wm) == NS_INTRINSICSIZE) {
+    nsSize physicalPrefSize = GetPrefSize(state);
     nsSize minSize = GetMinSize(state);
     nsSize maxSize = GetMaxSize(state);
     
-    prefSize = BoundsCheck(minSize, prefSize, maxSize);
+    physicalPrefSize = BoundsCheck(minSize, physicalPrefSize, maxSize);
+    prefSize = LogicalSize(wm, physicalPrefSize);
   }
 
   
-  computedSize.width += m.left + m.right;
+  computedSize.ISize(wm) += m.IStart(wm) + m.IEnd(wm);
 
-  if (aReflowState.ComputedHeight() == NS_INTRINSICSIZE) {
-    computedSize.height = prefSize.height;
+  if (aReflowState.ComputedBSize() == NS_INTRINSICSIZE) {
+    computedSize.BSize(wm) = prefSize.BSize(wm);
     
-    nscoord verticalBorderPadding =
-      aReflowState.ComputedPhysicalBorderPadding().TopBottom();
-    nscoord contentHeight = computedSize.height - verticalBorderPadding;
+    nscoord blockDirBorderPadding =
+      aReflowState.ComputedLogicalBorderPadding().BStartEnd(wm);
+    nscoord contentBSize = computedSize.BSize(wm) - blockDirBorderPadding;
     
     
-    computedSize.height = aReflowState.ApplyMinMaxHeight(contentHeight) +
-                          verticalBorderPadding;
+    computedSize.BSize(wm) = aReflowState.ApplyMinMaxHeight(contentBSize) +
+                             blockDirBorderPadding;
   } else {
-    computedSize.height += m.top + m.bottom;
+    computedSize.BSize(wm) += m.BStart(wm) + m.BEnd(wm);
   }
 
-  nsRect r(mRect.x, mRect.y, computedSize.width, computedSize.height);
+  nsSize physicalSize = computedSize.GetPhysicalSize(wm);
+  nsRect r(mRect.x, mRect.y, physicalSize.width, physicalSize.height);
 
   SetBounds(state, r);
  
@@ -699,7 +702,8 @@ nsBoxFrame::Reflow(nsPresContext*          aPresContext,
   
   
   
-  nscoord ascent = mRect.height;
+  LogicalSize boxSize = GetLogicalSize(wm);
+  nscoord ascent = boxSize.BSize(wm);
 
   
   
@@ -707,8 +711,7 @@ nsBoxFrame::Reflow(nsPresContext*          aPresContext,
     ascent = GetBoxAscent(state);
   }
 
-  aDesiredSize.Width() = mRect.width;
-  aDesiredSize.Height() = mRect.height;
+  aDesiredSize.SetSize(wm, boxSize);
   aDesiredSize.SetBlockStartAscent(ascent);
 
   aDesiredSize.mOverflowAreas = GetOverflowAreas();

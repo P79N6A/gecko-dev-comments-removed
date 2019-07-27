@@ -95,7 +95,7 @@ protected:
 
 
   void AddBordersAndPadding(const nsHTMLReflowState& aReflowState,
-                            nsHTMLReflowMetrics& aDesiredSize);
+                            mozilla::LogicalSize& aDesiredSize);
 
   
 
