@@ -4,7 +4,6 @@
 
 
 #include "X11TextureSourceBasic.h"
-#include "mozilla/layers/BasicCompositor.h"
 #include "gfxXlibSurface.h"
 #include "gfx2DGlue.h"
 

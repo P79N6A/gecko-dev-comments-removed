@@ -16,6 +16,7 @@
 #include "mozilla/gfx/Rect.h"           
 #include "mozilla/gfx/Types.h"          
 #include "mozilla/ipc/ProtocolUtils.h"
+#include "mozilla/layers/Compositor.h"  
 #include "mozilla/layers/CompositorTypes.h"  
 #include "mozilla/layers/Effects.h"     
 #include "mozilla/layers/LayersTypes.h"  
@@ -311,7 +312,7 @@ protected:
   TextureInfo mTextureInfo;
   uint64_t mAsyncID;
   uint64_t mCompositorID;
-  Compositor* mCompositor;
+  RefPtr<Compositor> mCompositor;
   Layer* mLayer;
   RefPtr<CompositableBackendSpecificData> mBackendData;
   uint32_t mFlashCounter; 
