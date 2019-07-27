@@ -480,6 +480,11 @@ pref("media.mediasource.format-reader.mp4", true);
 
 pref("media.format-reader.mp4", true);
 
+
+pref("media.mediasource.format-reader.webm", false);
+
+pref("media.format-reader.webm", false);
+
 #ifdef MOZ_WEBSPEECH
 pref("media.webspeech.recognition.enable", false);
 pref("media.webspeech.synth.enabled", false);
