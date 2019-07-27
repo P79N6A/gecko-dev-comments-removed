@@ -2933,8 +2933,10 @@ MarionetteServerConnection.prototype = {
         
         
         let nullPrevious = (this.curBrowser.curFrameId == null);
-        let listenerWindow =
-                            Services.wm.getOuterWindowWithId(message.json.value);
+        let listenerWindow = null;
+        try {
+          listenerWindow = Services.wm.getOuterWindowWithId(message.json.value);
+        } catch (ex) { }
 
         
         if (this.curBrowser.frameManager.currentRemoteFrame !== null &&
