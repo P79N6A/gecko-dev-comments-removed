@@ -277,7 +277,7 @@ addEventListener("WebChannelMessageToChrome", function (e) {
   let principal = e.target.nodePrincipal ? e.target.nodePrincipal : e.target.document.nodePrincipal;
 
   if (e.detail) {
-    sendAsyncMessage("WebChannelMessageToChrome", e.detail, null, principal);
+    sendAsyncMessage("WebChannelMessageToChrome", e.detail, { eventTarget: e.target }, principal);
   } else  {
     Cu.reportError("WebChannel message failed. No message detail.");
   }
@@ -286,12 +286,30 @@ addEventListener("WebChannelMessageToChrome", function (e) {
 
 addMessageListener("WebChannelMessageToContent", function (e) {
   if (e.data) {
-    content.dispatchEvent(new content.CustomEvent("WebChannelMessageToContent", {
-      detail: Cu.cloneInto({
-        id: e.data.id,
-        message: e.data.message,
-      }, content),
-    }));
+    
+    
+    
+    
+    let eventTarget = e.objects.eventTarget || content;
+
+    
+    
+    let targetPrincipal = eventTarget instanceof Ci.nsIDOMWindow ? eventTarget.document.nodePrincipal : eventTarget.nodePrincipal;
+
+    if (e.principal.subsumes(targetPrincipal)) {
+      
+      
+      let targetWindow = eventTarget instanceof Ci.nsIDOMWindow ? eventTarget : eventTarget.ownerDocument.defaultView;
+
+      eventTarget.dispatchEvent(new targetWindow.CustomEvent("WebChannelMessageToContent", {
+        detail: Cu.cloneInto({
+          id: e.data.id,
+          message: e.data.message,
+        }, targetWindow),
+      }));
+    } else {
+      Cu.reportError("WebChannel message failed. Principal mismatch.");
+    }
   } else {
     Cu.reportError("WebChannel message failed. No message data.");
   }
