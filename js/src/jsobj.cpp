@@ -3562,6 +3562,11 @@ JSObject::addSizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf, JS::ClassIn
         
         
 
+        
+        
+        
+        
+        
     } else if (is<ArgumentsObject>()) {
         info->objectsMallocHeapMisc += as<ArgumentsObject>().sizeOfMisc(mallocSizeOf);
     } else if (is<RegExpStaticsObject>()) {

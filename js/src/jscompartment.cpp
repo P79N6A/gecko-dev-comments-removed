@@ -60,6 +60,7 @@ JSCompartment::JSCompartment(Zone* zone, const JS::CompartmentOptions& options =
     regExps(runtime_),
     globalWriteBarriered(false),
     neuteredTypedObjects(0),
+    objectMetadataState(ImmediateMetadata()),
     propertyTree(thisForCtor()),
     selfHostingScriptSource(nullptr),
     objectMetadataTable(nullptr),
@@ -522,6 +523,11 @@ JSCompartment::markRoots(JSTracer* trc)
     if (jitCompartment_)
         jitCompartment_->mark(trc, this);
 
+    if (objectMetadataState.is<PendingMetadata>())
+        TraceRoot(trc,
+                  objectMetadataState.as<PendingMetadata>().unsafeGet(),
+                  "object pending metadata");
+
     
 
 
@@ -549,6 +555,17 @@ JSCompartment::sweepGlobalObject(FreeOp* fop)
         if (isDebuggee())
             Debugger::detachAllDebuggersFromGlobal(fop, global_);
         global_.set(nullptr);
+    }
+}
+
+void
+JSCompartment::sweepObjectPendingMetadata()
+{
+    if (objectMetadataState.is<PendingMetadata>()) {
+        
+        
+        
+        MOZ_ALWAYS_TRUE(!IsAboutToBeFinalized(&objectMetadataState.as<PendingMetadata>()));
     }
 }
 
@@ -944,3 +961,35 @@ JSCompartment::addTelemetry(const char* filename, DeprecatedLanguageExtension e)
 
     sawDeprecatedLanguageExtension[e] = true;
 }
+
+AutoSetNewObjectMetadata::AutoSetNewObjectMetadata(ExclusiveContext* ecx
+                                                   MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL)
+    : CustomAutoRooter(ecx)
+    , cx_(ecx->maybeJSContext())
+    , prevState_(ecx->compartment()->objectMetadataState)
+{
+    MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+    if (cx_)
+        cx_->compartment()->objectMetadataState = NewObjectMetadataState(DelayMetadata());
+}
+
+AutoSetNewObjectMetadata::~AutoSetNewObjectMetadata()
+{
+    
+    
+    if (!cx_)
+        return;
+
+    if (!cx_->isExceptionPending() && cx_->compartment()->hasObjectPendingMetadata()) {
+        JSObject* obj = cx_->compartment()->objectMetadataState.as<PendingMetadata>();
+        
+        
+        
+        
+        cx_->compartment()->objectMetadataState = prevState_;
+        SetNewObjectMetadata(cx_, obj);
+    } else {
+        cx_->compartment()->objectMetadataState = prevState_;
+    }
+}
+

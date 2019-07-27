@@ -9,6 +9,8 @@
 
 #include "jsobj.h"
 
+#include "mozilla/DebugOnly.h"
+
 #include "jsfun.h"
 
 #include "builtin/MapObject.h"
@@ -259,6 +261,8 @@ ClassCanHaveFixedData(const Class* clasp)
 static MOZ_ALWAYS_INLINE void
 SetNewObjectMetadata(ExclusiveContext* cxArg, JSObject* obj)
 {
+    MOZ_ASSERT(!cxArg->compartment()->hasObjectPendingMetadata());
+
     
     
     if (JSContext* cx = cxArg->maybeJSContext()) {
@@ -293,6 +297,7 @@ JSObject::create(js::ExclusiveContext* cx, js::gc::AllocKind kind, js::gc::Initi
                   (group->clasp()->flags & JSCLASS_SKIP_NURSERY_FINALIZE));
     MOZ_ASSERT_IF(group->hasUnanalyzedPreliminaryObjects(),
                   heap == js::gc::TenuredHeap);
+    MOZ_ASSERT(!cx->compartment()->hasObjectPendingMetadata());
 
     
     
@@ -332,7 +337,10 @@ JSObject::create(js::ExclusiveContext* cx, js::gc::AllocKind kind, js::gc::Initi
         memset(obj->as<JSFunction>().fixedSlots(), 0, size - sizeof(js::NativeObject));
     }
 
-    SetNewObjectMetadata(cx, obj);
+    if (group->clasp()->shouldDelayMetadataCallback())
+        cx->compartment()->setObjectPendingMetadata(cx, obj);
+    else
+        SetNewObjectMetadata(cx, obj);
 
     js::gc::TraceCreateObject(obj);
 

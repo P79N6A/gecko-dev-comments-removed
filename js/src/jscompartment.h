@@ -8,9 +8,11 @@
 #define jscompartment_h
 
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/Variant.h"
 
 #include "prmjtime.h"
 #include "builtin/RegExp.h"
+#include "gc/Barrier.h"
 #include "gc/Zone.h"
 #include "vm/GlobalObject.h"
 #include "vm/PIC.h"
@@ -122,6 +124,90 @@ struct WrapperHasher : public DefaultHasher<CrossCompartmentKey>
 
 typedef HashMap<CrossCompartmentKey, ReadBarrieredValue,
                 WrapperHasher, SystemAllocPolicy> WrapperMap;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct ImmediateMetadata { };
+struct DelayMetadata { };
+using PendingMetadata = ReadBarrieredObject;
+
+using NewObjectMetadataState = mozilla::Variant<ImmediateMetadata,
+                                                DelayMetadata,
+                                                PendingMetadata>;
+
+class MOZ_STACK_CLASS AutoSetNewObjectMetadata : private JS::CustomAutoRooter
+{
+    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER;
+
+    JSContext* cx_;
+    NewObjectMetadataState prevState_;
+
+    AutoSetNewObjectMetadata(const AutoSetNewObjectMetadata& aOther) = delete;
+    void operator=(const AutoSetNewObjectMetadata& aOther) = delete;
+
+  protected:
+    virtual void trace(JSTracer* trc) override {
+        if (prevState_.is<PendingMetadata>()) {
+            TraceRoot(trc,
+                      prevState_.as<PendingMetadata>().unsafeGet(),
+                      "Object pending metadata");
+        }
+    }
+
+  public:
+    explicit AutoSetNewObjectMetadata(ExclusiveContext* ecx MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
+    ~AutoSetNewObjectMetadata();
+};
 
 } 
 
@@ -282,6 +368,23 @@ struct JSCompartment
     
     int32_t                      neuteredTypedObjects;
 
+  private:
+    friend class js::AutoSetNewObjectMetadata;
+    js::NewObjectMetadataState objectMetadataState;
+
+  public:
+    bool hasObjectPendingMetadata() const { return objectMetadataState.is<js::PendingMetadata>(); }
+
+    void setObjectPendingMetadata(JSContext* cx, JSObject* obj) {
+        MOZ_ASSERT(objectMetadataState.is<js::DelayMetadata>());
+        objectMetadataState = js::NewObjectMetadataState(js::PendingMetadata(obj));
+    }
+
+    void setObjectPendingMetadata(js::ExclusiveContext* ecx, JSObject* obj) {
+        if (JSContext* cx = ecx->maybeJSContext())
+            setObjectPendingMetadata(cx, obj);
+    }
+
   public:
     void addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf,
                                 size_t* tiAllocationSiteTables,
@@ -420,6 +523,7 @@ struct JSCompartment
     void sweepCrossCompartmentWrappers();
     void sweepSavedStacks();
     void sweepGlobalObject(js::FreeOp* fop);
+    void sweepObjectPendingMetadata();
     void sweepSelfHostingScriptSource();
     void sweepJitCompartment(js::FreeOp* fop);
     void sweepRegExps();
