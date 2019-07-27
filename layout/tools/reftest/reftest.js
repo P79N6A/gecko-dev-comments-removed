@@ -1177,6 +1177,9 @@ function ServeFiles(manifestPrincipal, depth, aURL, files)
     var testbase = gIOService.newURI("http://localhost:" + gHttpServerPort +
                                      path + dirPath, null, null);
 
+    
+    Services.perms.add(testbase, "allowXULXBL", Services.perms.ALLOW_ACTION);
+
     function FileToURI(file)
     {
         
