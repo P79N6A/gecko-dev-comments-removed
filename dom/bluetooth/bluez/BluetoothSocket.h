@@ -45,7 +45,7 @@ public:
   virtual void OnConnectError() override;
   virtual void OnDisconnect() override;
   virtual void ReceiveSocketData(
-    nsAutoPtr<mozilla::ipc::UnixSocketRawData>& aMessage) override;
+    nsAutoPtr<mozilla::ipc::UnixSocketBuffer>& aBuffer) override;
 
   inline void GetAddress(nsAString& aDeviceAddress)
   {
@@ -58,9 +58,7 @@ public:
 
 
 
-
-
-  bool SendSocketData(mozilla::ipc::UnixSocketRawData* aMessage);
+  void SendSocketData(mozilla::ipc::UnixSocketIOBuffer* aBuffer) override;
 
   
 
@@ -101,7 +99,7 @@ public:
 
 
 
-  void CloseSocket();
+  void CloseSocket() override;
 
   
 

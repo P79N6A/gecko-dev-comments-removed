@@ -28,11 +28,11 @@ public:
 
 
 
-
-
-  bool SendSocketData(UnixSocketRawData* aMessage);
+  void SendSocketData(UnixSocketIOBuffer* aBuffer);
 
   
+
+
 
 
 

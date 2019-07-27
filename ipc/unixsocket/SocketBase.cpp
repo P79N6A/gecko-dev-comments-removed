@@ -283,13 +283,13 @@ SocketIOBase::~SocketIOBase()
 { }
 
 void
-SocketIOBase::EnqueueData(UnixSocketRawData* aData)
+SocketIOBase::EnqueueData(UnixSocketIOBuffer* aBuffer)
 {
-  if (!aData->GetSize()) {
-    delete aData; 
+  if (!aBuffer->GetSize()) {
+    delete aBuffer; 
     return;
   }
-  mOutgoingQ.AppendElement(aData);
+  mOutgoingQ.AppendElement(aBuffer);
 }
 
 bool

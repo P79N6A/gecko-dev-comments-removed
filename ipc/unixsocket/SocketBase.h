@@ -325,7 +325,7 @@ public:
 
 
 
-  virtual void ReceiveSocketData(nsAutoPtr<UnixSocketRawData>& aMessage) = 0;
+  virtual void ReceiveSocketData(nsAutoPtr<UnixSocketBuffer>& aBuffer) = 0;
 
   
 
@@ -333,9 +333,7 @@ public:
 
 
 
-
-
-  virtual bool SendSocketData(UnixSocketRawData* aMessage) = 0;
+  virtual void SendSocketData(UnixSocketIOBuffer* aBuffer) = 0;
 };
 
 
@@ -424,9 +422,9 @@ template <typename T>
 class SocketIOReceiveRunnable final : public SocketIORunnable<T>
 {
 public:
-  SocketIOReceiveRunnable(T* aIO, UnixSocketRawData* aData)
-  : SocketIORunnable<T>(aIO)
-  , mData(aData)
+  SocketIOReceiveRunnable(T* aIO, UnixSocketBuffer* aBuffer)
+    : SocketIORunnable<T>(aIO)
+    , mBuffer(aBuffer)
   { }
 
   NS_IMETHOD Run() override
@@ -445,13 +443,13 @@ public:
     SocketConsumerBase* consumer = io->GetConsumer();
     MOZ_ASSERT(consumer);
 
-    consumer->ReceiveSocketData(mData);
+    consumer->ReceiveSocketData(mBuffer);
 
     return NS_OK;
   }
 
 private:
-  nsAutoPtr<UnixSocketRawData> mData;
+  nsAutoPtr<UnixSocketBuffer> mBuffer;
 };
 
 template <typename T>
@@ -518,7 +516,7 @@ class SocketIOBase
 public:
   virtual ~SocketIOBase();
 
-  void EnqueueData(UnixSocketRawData* aData);
+  void EnqueueData(UnixSocketIOBuffer* aBuffer);
   bool HasPendingData() const;
 
   template <typename T>
@@ -563,7 +561,7 @@ public:
     MOZ_ASSERT(aIO);
 
     while (HasPendingData()) {
-      UnixSocketRawData* outgoing = mOutgoingQ.ElementAt(0);
+      UnixSocketIOBuffer* outgoing = mOutgoingQ.ElementAt(0);
 
       ssize_t res = outgoing->Send(aFd);
       if (res < 0) {
@@ -593,7 +591,7 @@ private:
   
 
 
-  nsTArray<UnixSocketRawData*> mOutgoingQ;
+  nsTArray<UnixSocketIOBuffer*> mOutgoingQ;
 };
 
 
