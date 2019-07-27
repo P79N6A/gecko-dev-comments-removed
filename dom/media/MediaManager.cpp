@@ -1530,6 +1530,23 @@ MediaManager::GetUserMedia(bool aPrivileged,
   }
 #endif
 
+  if (c.mVideo.IsMediaTrackConstraints() && !aPrivileged) {
+    auto& tc = c.mVideo.GetAsMediaTrackConstraints();
+    
+    if (tc.mBrowserWindow.WasPassed()) {
+      tc.mBrowserWindow.Construct(-1);
+    }
+
+    if (tc.mAdvanced.WasPassed()) {
+      uint32_t length = tc.mAdvanced.Value().Length();
+      for (uint32_t i = 0; i < length; i++) {
+        if (tc.mAdvanced.Value()[i].mBrowserWindow.WasPassed()) {
+          tc.mAdvanced.Value()[i].mBrowserWindow.Construct(-1);
+        }
+      }
+    }
+  }
+
   
   nsRefPtr<GetUserMediaRunnable> runnable;
   if (c.mFake) {
@@ -1548,12 +1565,16 @@ MediaManager::GetUserMedia(bool aPrivileged,
     auto& tc = c.mVideo.GetAsMediaTrackConstraints();
     
     if (tc.mMediaSource != dom::MediaSourceEnum::Camera) {
-      if (!Preferences::GetBool("media.getusermedia.screensharing.enabled", false)) {
+      if (tc.mMediaSource == dom::MediaSourceEnum::Browser) {
+        if (!Preferences::GetBool("media.getusermedia.browser.enabled", false)) {
+          return runnable->Denied(NS_LITERAL_STRING("PERMISSION_DENIED"));
+        }
+      } else if (!Preferences::GetBool("media.getusermedia.screensharing.enabled", false)) {
         return runnable->Denied(NS_LITERAL_STRING("PERMISSION_DENIED"));
       }
       
 
-      if (!HostHasPermission(*docURI)) {
+      if (!aPrivileged && !HostHasPermission(*docURI)) {
         return runnable->Denied(NS_LITERAL_STRING("PERMISSION_DENIED"));
       }
     }
