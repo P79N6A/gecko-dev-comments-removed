@@ -155,16 +155,32 @@ class BytecodeSite : public TempObject
     }
 };
 
+enum AnalysisMode {
+    
+    Analysis_None,
+
+    
+
+
+
+    Analysis_DefiniteProperties,
+
+    
+
+
+
+    Analysis_ArgumentsUsage
+};
 
 
 class CompileInfo
 {
   public:
     CompileInfo(JSScript *script, JSFunction *fun, jsbytecode *osrPc, bool constructing,
-                ExecutionMode executionMode, bool scriptNeedsArgsObj,
+                AnalysisMode analysisMode, bool scriptNeedsArgsObj,
                 InlineScriptTree *inlineScriptTree)
       : script_(script), fun_(fun), osrPc_(osrPc), constructing_(constructing),
-        executionMode_(executionMode), scriptNeedsArgsObj_(scriptNeedsArgsObj),
+        analysisMode_(analysisMode), scriptNeedsArgsObj_(scriptNeedsArgsObj),
         inlineScriptTree_(inlineScriptTree)
     {
         MOZ_ASSERT_IF(osrPc, JSOp(*osrPc) == JSOP_LOOPENTRY);
@@ -190,9 +206,9 @@ class CompileInfo
         nslots_ = nimplicit_ + nargs_ + nlocals_ + nstack_;
     }
 
-    CompileInfo(unsigned nlocals, ExecutionMode executionMode)
+    CompileInfo(unsigned nlocals)
       : script_(nullptr), fun_(nullptr), osrPc_(nullptr), osrStaticScope_(nullptr),
-        constructing_(false), executionMode_(executionMode), scriptNeedsArgsObj_(false),
+        constructing_(false), analysisMode_(Analysis_None), scriptNeedsArgsObj_(false),
         inlineScriptTree_(nullptr)
     {
         nimplicit_ = 0;
@@ -429,12 +445,12 @@ class CompileInfo
         return scriptNeedsArgsObj_ && !script()->strict();
     }
 
-    ExecutionMode executionMode() const {
-        return executionMode_;
+    AnalysisMode analysisMode() const {
+        return analysisMode_;
     }
 
-    bool executionModeIsAnalysis() const {
-        return executionMode_ == DefinitePropertiesAnalysis || executionMode_ == ArgumentsUsageAnalysis;
+    bool isAnalysis() const {
+        return analysisMode_ != Analysis_None;
     }
 
     
@@ -520,7 +536,7 @@ class CompileInfo
     jsbytecode *osrPc_;
     NestedScopeObject *osrStaticScope_;
     bool constructing_;
-    ExecutionMode executionMode_;
+    AnalysisMode analysisMode_;
 
     
     

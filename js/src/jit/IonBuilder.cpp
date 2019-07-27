@@ -29,7 +29,6 @@
 #include "jsscriptinlines.h"
 
 #include "jit/CompileInfo-inl.h"
-#include "jit/ExecutionMode-inl.h"
 #include "vm/NativeObject-inl.h"
 
 using namespace js;
@@ -150,10 +149,10 @@ IonBuilder::IonBuilder(JSContext *analysisContext, CompileCompartment *comp,
     pc = info->startPC();
     abortReason_ = AbortReason_Disable;
 
-    MOZ_ASSERT(script()->hasBaselineScript() == (info->executionMode() != ArgumentsUsageAnalysis));
-    MOZ_ASSERT(!!analysisContext == (info->executionMode() == DefinitePropertiesAnalysis));
+    MOZ_ASSERT(script()->hasBaselineScript() == (info->analysisMode() != Analysis_ArgumentsUsage));
+    MOZ_ASSERT(!!analysisContext == (info->analysisMode() == Analysis_DefiniteProperties));
 
-    if (!info->executionModeIsAnalysis())
+    if (!info->isAnalysis())
         script()->baselineScript()->setIonCompiledOrInlined();
 }
 
@@ -354,7 +353,7 @@ IonBuilder::canInlineTarget(JSFunction *target, CallInfo &callInfo)
 
     
     
-    if (target->isInterpreted() && info().executionMode() == DefinitePropertiesAnalysis) {
+    if (target->isInterpreted() && info().analysisMode() == Analysis_DefiniteProperties) {
         RootedScript script(analysisContext, target->getOrCreateScript(analysisContext));
         if (!script)
             return InliningDecision_Error;
@@ -375,8 +374,8 @@ IonBuilder::canInlineTarget(JSFunction *target, CallInfo &callInfo)
     if (callInfo.constructing() && !target->isInterpretedConstructor())
         return DontInline(inlineScript, "Callee is not a constructor");
 
-    ExecutionMode executionMode = info().executionMode();
-    if (!CanIonCompile(inlineScript, executionMode))
+    AnalysisMode analysisMode = info().analysisMode();
+    if (!CanIonCompile(inlineScript, analysisMode))
         return DontInline(inlineScript, "Disabled Ion compilation");
 
     
@@ -669,12 +668,11 @@ IonBuilder::build()
         return false;
 
 #ifdef DEBUG
-    if (info().executionModeIsAnalysis()) {
+    if (info().isAnalysis()) {
         JitSpew(JitSpew_IonScripts, "Analyzing script %s:%d (%p) %s",
                 script()->filename(), script()->lineno(), (void *)script(),
-                ExecutionModeString(info().executionMode()));
+                AnalysisModeString(info().analysisMode()));
     } else {
-        MOZ_ASSERT(info().executionMode() == SequentialExecution);
         JitSpew(JitSpew_IonScripts, "%sompiling script %s:%d (%p) (warmup-counter=%d, level=%s)",
                 (script()->hasIonScript() ? "Rec" : "C"),
                 script()->filename(), script()->lineno(), (void *)script(),
@@ -771,7 +769,7 @@ IonBuilder::build()
         return false;
 
     if (!abortedNewScriptPropertiesTypes().empty()) {
-        MOZ_ASSERT(!info().executionModeIsAnalysis());
+        MOZ_ASSERT(!info().isAnalysis());
         abortReason_ = AbortReason_NewScriptProperties;
         return false;
     }
@@ -926,7 +924,7 @@ IonBuilder::buildInline(IonBuilder *callerBuilder, MResumePoint *callerResumePoi
     replaceMaybeFallbackFunctionGetter(nullptr);
 
     if (!abortedNewScriptPropertiesTypes().empty()) {
-        MOZ_ASSERT(!info().executionModeIsAnalysis());
+        MOZ_ASSERT(!info().isAnalysis());
         abortReason_ = AbortReason_NewScriptProperties;
         return false;
     }
@@ -1063,7 +1061,7 @@ IonBuilder::initScopeChain(MDefinition *callee)
         
         
         
-        if (fun->isHeavyweight() && !info().executionModeIsAnalysis()) {
+        if (fun->isHeavyweight() && !info().isAnalysis()) {
             if (fun->isNamedLambda()) {
                 scope = createDeclEnvObject(callee, scope);
                 if (!scope)
@@ -3983,7 +3981,7 @@ IonBuilder::jsop_try()
 
     
     
-    if (info().executionMode() == ArgumentsUsageAnalysis)
+    if (info().analysisMode() == Analysis_ArgumentsUsage)
         return abort("Try-catch during arguments usage analysis");
 
     graph().setHasTryBlock();
@@ -4386,7 +4384,7 @@ IonBuilder::inlineScriptedCall(CallInfo &callInfo, JSFunction *target)
         return false;
     CompileInfo *info = lifoAlloc->new_<CompileInfo>(calleeScript, target,
                                                      (jsbytecode *)nullptr, callInfo.constructing(),
-                                                     this->info().executionMode(),
+                                                     this->info().analysisMode(),
                                                       false,
                                                      inlineScriptTree);
     if (!info)
@@ -4569,7 +4567,7 @@ IonBuilder::makeInliningDecision(JSObject *targetArg, CallInfo &callInfo)
     JSFunction *target = &targetArg->as<JSFunction>();
 
     
-    if (info().executionMode() == ArgumentsUsageAnalysis)
+    if (info().analysisMode() == Analysis_ArgumentsUsage)
         return InliningDecision_DontInline;
 
     
@@ -4638,7 +4636,7 @@ IonBuilder::makeInliningDecision(JSObject *targetArg, CallInfo &callInfo)
         
         if (targetScript->getWarmUpCount() < optimizationInfo().inliningWarmUpThreshold() &&
             !targetScript->baselineScript()->ionCompiledOrInlined() &&
-            info().executionMode() != DefinitePropertiesAnalysis)
+            info().analysisMode() != Analysis_DefiniteProperties)
         {
             JitSpew(JitSpew_Inlining, "Cannot inline %s:%u: callee is insufficiently hot.",
                     targetScript->filename(), targetScript->lineno());
@@ -4666,7 +4664,7 @@ IonBuilder::selectInliningTargets(const ObjectVector &targets, CallInfo &callInf
 
     
     
-    if (info().executionMode() == DefinitePropertiesAnalysis && targets.length() > 1)
+    if (info().analysisMode() == Analysis_DefiniteProperties && targets.length() > 1)
         return true;
 
     for (size_t i = 0; i < targets.length(); i++) {
@@ -5498,7 +5496,7 @@ IonBuilder::jsop_funapply(uint32_t argc)
 
     types::TemporaryTypeSet *calleeTypes = current->peek(calleeDepth)->resultTypeSet();
     JSFunction *native = getSingleCallTarget(calleeTypes);
-    if (argc != 2 || info().executionMode() == ArgumentsUsageAnalysis) {
+    if (argc != 2 || info().analysisMode() == Analysis_ArgumentsUsage) {
         CallInfo callInfo(alloc(), false);
         if (!callInfo.init(current, argc))
             return false;
@@ -5525,7 +5523,7 @@ IonBuilder::jsop_funapply(uint32_t argc)
 
     if ((!native || !native->isNative() ||
         native->native() != js_fun_apply) &&
-        info().executionMode() != DefinitePropertiesAnalysis)
+        info().analysisMode() != Analysis_DefiniteProperties)
     {
         return abort("fun.apply speculation failed");
     }
@@ -5551,7 +5549,7 @@ IonBuilder::jsop_funapplyarguments(uint32_t argc)
 
     
     
-    if (inliningDepth_ == 0 && info().executionMode() != DefinitePropertiesAnalysis) {
+    if (inliningDepth_ == 0 && info().analysisMode() != Analysis_DefiniteProperties) {
         
         
         
@@ -6037,7 +6035,7 @@ IonBuilder::jsop_newarray(uint32_t count)
 {
     NativeObject *templateObject = inspector->getTemplateObject(pc);
     if (!templateObject) {
-        if (info().executionMode() == ArgumentsUsageAnalysis) {
+        if (info().analysisMode() == Analysis_ArgumentsUsage) {
             MUnknownValue *unknown = MUnknownValue::New(alloc());
             current->add(unknown);
             current->push(unknown);
@@ -6048,7 +6046,7 @@ IonBuilder::jsop_newarray(uint32_t count)
 
     MOZ_ASSERT(templateObject->is<ArrayObject>());
     if (templateObject->type()->unknownProperties()) {
-        if (info().executionMode() == ArgumentsUsageAnalysis) {
+        if (info().analysisMode() == Analysis_ArgumentsUsage) {
             MUnknownValue *unknown = MUnknownValue::New(alloc());
             current->add(unknown);
             current->push(unknown);
@@ -6087,7 +6085,7 @@ IonBuilder::jsop_newarray_copyonwrite()
     
     
     
-    MOZ_ASSERT_IF(info().executionMode() != ArgumentsUsageAnalysis,
+    MOZ_ASSERT_IF(info().analysisMode() != Analysis_ArgumentsUsage,
                   templateObject->type()->hasAnyFlags(types::OBJECT_FLAG_COPY_ON_WRITE));
 
     MNewArrayCopyOnWrite *ins =
@@ -6105,7 +6103,7 @@ IonBuilder::jsop_newobject()
 {
     JSObject *templateObject = inspector->getTemplateObject(pc);
     if (!templateObject) {
-        if (info().executionMode() == ArgumentsUsageAnalysis) {
+        if (info().analysisMode() == Analysis_ArgumentsUsage) {
             MUnknownValue *unknown = MUnknownValue::New(alloc());
             current->add(unknown);
             current->push(unknown);
@@ -7310,7 +7308,7 @@ IonBuilder::jsop_getelem()
 
     
     
-    if (info().executionModeIsAnalysis()) {
+    if (info().isAnalysis()) {
         MInstruction *ins = MCallGetElement::New(alloc(), obj, index);
 
         current->add(ins);
@@ -8286,7 +8284,7 @@ IonBuilder::jsop_setelem()
 
     if (script()->argumentsHasVarBinding() &&
         object->mightBeType(MIRType_MagicOptimizedArguments) &&
-        info().executionMode() != ArgumentsUsageAnalysis)
+        info().analysisMode() != Analysis_ArgumentsUsage)
     {
         return abort("Type is not definitely lazy arguments.");
     }
@@ -9343,7 +9341,7 @@ IonBuilder::jsop_getprop(PropertyName *name)
     MDefinition *obj = current->pop();
     types::TemporaryTypeSet *types = bytecodeTypes(pc);
 
-    if (!info().executionModeIsAnalysis()) {
+    if (!info().isAnalysis()) {
         
         
 
@@ -9369,7 +9367,7 @@ IonBuilder::jsop_getprop(PropertyName *name)
     
     
     
-    if (info().executionModeIsAnalysis() || types->empty()) {
+    if (info().isAnalysis() || types->empty()) {
         MCallGetProperty *call = MCallGetProperty::New(alloc(), obj, name, *pc == JSOP_CALLPROP);
         current->add(call);
 
@@ -9377,7 +9375,7 @@ IonBuilder::jsop_getprop(PropertyName *name)
         
         
         
-        if (info().executionModeIsAnalysis()) {
+        if (info().isAnalysis()) {
             if (!getPropTryConstant(&emitted, obj, name, types) || emitted)
                 return emitted;
         }
@@ -10113,7 +10111,7 @@ IonBuilder::jsop_setprop(PropertyName *name)
 
     
     
-    if (info().executionModeIsAnalysis()) {
+    if (info().isAnalysis()) {
         bool strict = IsStrictSetPC(pc);
         MInstruction *ins = MCallSetProperty::New(alloc(), obj, value, name, strict);
         current->add(ins);
@@ -10816,7 +10814,7 @@ IonBuilder::jsop_this()
     
     
     
-    if (info().executionModeIsAnalysis()) {
+    if (info().isAnalysis()) {
         current->pushSlot(info().thisSlot());
         return true;
     }

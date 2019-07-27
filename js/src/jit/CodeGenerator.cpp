@@ -38,7 +38,6 @@
 
 #include "jsboolinlines.h"
 
-#include "jit/ExecutionMode-inl.h"
 #include "jit/shared/CodeGenerator-shared-inl.h"
 #include "vm/Interpreter-inl.h"
 
@@ -7095,13 +7094,12 @@ bool
 CodeGenerator::link(JSContext *cx, types::CompilerConstraintList *constraints)
 {
     RootedScript script(cx, gen->info().script());
-    ExecutionMode executionMode = gen->info().executionMode();
     OptimizationLevel optimizationLevel = gen->optimizationInfo().level();
 
     
     
-    if (HasIonScript(script, executionMode)) {
-        MOZ_ASSERT(GetIonScript(script, executionMode)->isRecompiling());
+    if (script->hasIonScript()) {
+        MOZ_ASSERT(script->ionScript()->isRecompiling());
         
         
         if (!Invalidate(cx, script,  false,  false))
@@ -7115,7 +7113,7 @@ CodeGenerator::link(JSContext *cx, types::CompilerConstraintList *constraints)
     
     uint32_t warmUpCount = script->getWarmUpCount();
     types::RecompileInfo recompileInfo;
-    if (!types::FinishCompilation(cx, script, executionMode, constraints, &recompileInfo))
+    if (!types::FinishCompilation(cx, script, constraints, &recompileInfo))
         return true;
 
     
@@ -7209,7 +7207,7 @@ CodeGenerator::link(JSContext *cx, types::CompilerConstraintList *constraints)
     if (sps_.enabled())
         ionScript->setHasSPSInstrumentation();
 
-    SetIonScript(cx, script, executionMode, ionScript);
+    script->setIonScript(cx, ionScript);
 
     invalidateEpilogueData_.fixup(&masm);
     Assembler::PatchDataWithValueCheck(CodeLocationLabel(code, invalidateEpilogueData_),

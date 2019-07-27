@@ -117,61 +117,6 @@ class RootedBase<TaggedProto> : public TaggedProtoOperations<Rooted<TaggedProto>
 
 class CallObject;
 
-
-
-
-
-
-
-
-
-
-
-
-
-enum ExecutionMode {
-    
-    SequentialExecution,
-
-    
-
-
-
-
-    
-
-
-
-    DefinitePropertiesAnalysis,
-
-    
-
-
-
-    ArgumentsUsageAnalysis
-};
-
-inline const char *
-ExecutionModeString(ExecutionMode mode)
-{
-    switch (mode) {
-      case SequentialExecution:
-        return "SequentialExecution";
-      case DefinitePropertiesAnalysis:
-        return "DefinitePropertiesAnalysis";
-      case ArgumentsUsageAnalysis:
-        return "ArgumentsUsageAnalysis";
-      default:
-        MOZ_CRASH("Invalid ExecutionMode");
-    }
-}
-
-
-
-
-
-static const unsigned NumExecutionModes = SequentialExecution + 1;
-
 namespace jit {
     struct IonScript;
     class JitAllocPolicy;
@@ -1494,8 +1439,8 @@ class RecompileInfo;
 
 
 bool
-FinishCompilation(JSContext *cx, HandleScript script, ExecutionMode executionMode,
-                  CompilerConstraintList *constraints, RecompileInfo *precompileInfo);
+FinishCompilation(JSContext *cx, HandleScript script, CompilerConstraintList *constraints,
+                  RecompileInfo *precompileInfo);
 
 
 
@@ -1618,30 +1563,28 @@ class CompilerOutput
     
     
     JSScript *script_;
-    ExecutionMode mode_ : 2;
 
     
     bool pendingInvalidation_ : 1;
 
     
     
-    uint32_t sweepIndex_ : 29;
+    uint32_t sweepIndex_ : 31;
 
   public:
-    static const uint32_t INVALID_SWEEP_INDEX = (1 << 29) - 1;
+    static const uint32_t INVALID_SWEEP_INDEX = (1 << 31) - 1u;
 
     CompilerOutput()
-      : script_(nullptr), mode_(SequentialExecution),
+      : script_(nullptr),
         pendingInvalidation_(false), sweepIndex_(INVALID_SWEEP_INDEX)
     {}
 
-    CompilerOutput(JSScript *script, ExecutionMode mode)
-      : script_(script), mode_(mode),
+    explicit CompilerOutput(JSScript *script)
+      : script_(script),
         pendingInvalidation_(false), sweepIndex_(INVALID_SWEEP_INDEX)
     {}
 
     JSScript *script() const { return script_; }
-    inline ExecutionMode mode() const { return mode_; }
 
     inline jit::IonScript *ion() const;
 
