@@ -1361,12 +1361,28 @@ nsStyleSet::RuleNodeWithReplacement(Element* aElement,
                                         eRestyle_CSSAnimations |
                                         eRestyle_SVGAttrAnimations |
                                         eRestyle_StyleAttribute |
+                                        eRestyle_ChangeAnimationPhase |
                                         eRestyle_Force |
                                         eRestyle_ForceDescendants)),
                     
                     
                     nsPrintfCString("unexpected replacement bits 0x%lX",
                                     uint32_t(aReplacements)).get());
+
+  bool skipAnimationRules = false;
+
+  
+  
+  if (aReplacements & eRestyle_ChangeAnimationPhase) {
+    aReplacements |= eRestyle_CSSTransitions |
+                     eRestyle_CSSAnimations |
+                     eRestyle_SVGAttrAnimations |
+                     eRestyle_StyleAttribute;
+
+    nsPresContext* presContext = PresContext();
+    skipAnimationRules = presContext->IsProcessingRestyles() &&
+                         !presContext->IsProcessingAnimationStyleChange();
+  }
 
   
   
@@ -1409,17 +1425,22 @@ nsStyleSet::RuleNodeWithReplacement(Element* aElement,
           
           
           
+          nsPresContext* presContext = PresContext();
           nsAnimationManager* animationManager =
-            PresContext()->AnimationManager();
+            presContext->AnimationManager();
           AnimationPlayerCollection* collection =
             animationManager->GetAnimationPlayers(aElement, aPseudoType, false);
 
           if (collection) {
-            animationManager->UpdateStyleAndEvents(
-              collection, PresContext()->RefreshDriver()->MostRecentRefresh(),
-              EnsureStyleRule_IsNotThrottled);
-            if (collection->mStyleRule) {
-              ruleWalker.ForwardOnPossiblyCSSRule(collection->mStyleRule);
+            if (skipAnimationRules) {
+              collection->PostRestyleForAnimation(presContext);
+            } else {
+              animationManager->UpdateStyleAndEvents(
+                collection, PresContext()->RefreshDriver()->MostRecentRefresh(),
+                EnsureStyleRule_IsNotThrottled);
+              if (collection->mStyleRule) {
+                ruleWalker.ForwardOnPossiblyCSSRule(collection->mStyleRule);
+              }
             }
           }
           break;
@@ -1434,16 +1455,23 @@ nsStyleSet::RuleNodeWithReplacement(Element* aElement,
               aElement, aPseudoType, false);
 
           if (collection) {
-            collection->EnsureStyleRuleFor(
-              presContext->RefreshDriver()->MostRecentRefresh(),
-              EnsureStyleRule_IsNotThrottled);
-            if (collection->mStyleRule) {
-              ruleWalker.ForwardOnPossiblyCSSRule(collection->mStyleRule);
+            if (skipAnimationRules) {
+              collection->PostRestyleForAnimation(presContext);
+            } else {
+              collection->EnsureStyleRuleFor(
+                presContext->RefreshDriver()->MostRecentRefresh(),
+                EnsureStyleRule_IsNotThrottled);
+              if (collection->mStyleRule) {
+                ruleWalker.ForwardOnPossiblyCSSRule(collection->mStyleRule);
+              }
             }
           }
           break;
         }
         case eRestyle_SVGAttrAnimations: {
+          MOZ_ASSERT(aReplacements & eRestyle_ChangeAnimationPhase,
+                     "don't know how to do this level without phase change");
+
           SVGAttrAnimationRuleProcessor* ruleProcessor =
             static_cast<SVGAttrAnimationRuleProcessor*>(
               mRuleProcessors[eSVGAttrAnimationSheet].get());
@@ -1454,6 +1482,9 @@ nsStyleSet::RuleNodeWithReplacement(Element* aElement,
           break;
         }
         case eRestyle_StyleAttribute: {
+          MOZ_ASSERT(aReplacements & eRestyle_ChangeAnimationPhase,
+                     "don't know how to do this level without phase change");
+
           if (!level->mIsImportant) {
             
             MOZ_ASSERT(aPseudoType ==

@@ -324,6 +324,16 @@ enum nsRestyleHint {
 
   
   
+  
+  
+  
+  
+  
+  
+  eRestyle_ChangeAnimationPhase = (1 << 7),
+
+  
+  
   eRestyle_Force = (1<<8),
 
   
