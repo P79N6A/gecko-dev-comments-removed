@@ -187,6 +187,16 @@ function runTests() {
   ok(table.hidden, "Search suggestion table hidden");
 
   
+  let btn = getContentDocument().getElementById("newtab-customize-button");
+  yield promiseClick(btn).then(TestRunner.next);
+
+  isnot(input, getContentDocument().activeElement, "Search input should not be focused");
+  
+  EventUtils.synthesizeKey("k", { accelKey: true });
+  yield promiseSearchEvents(["FocusInput"]).then(TestRunner.next);
+  is(input, getContentDocument().activeElement, "Search input should be focused");
+
+  
   Services.search.currentEngine = oldCurrentEngine;
   yield promiseSearchEvents(["CurrentEngine"]).then(TestRunner.next);
 

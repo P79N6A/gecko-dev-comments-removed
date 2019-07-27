@@ -23,6 +23,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "ShortcutUtils",
                                   "resource://gre/modules/ShortcutUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "GMPInstallManager",
                                   "resource://gre/modules/GMPInstallManager.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "ContentSearch",
+                                  "resource:///modules/ContentSearch.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "AboutHome",
+                                  "resource:///modules/AboutHome.jsm");
 XPCOMUtils.defineLazyServiceGetter(this, "gDNSService",
                                    "@mozilla.org/network/dns-service;1",
                                    "nsIDNSService");
@@ -30,6 +34,7 @@ XPCOMUtils.defineLazyServiceGetter(this, "gDNSService",
 const nsIWebNavigation = Ci.nsIWebNavigation;
 
 var gLastBrowserCharset = null;
+var gPrevCharset = null;
 var gProxyFavIcon = null;
 var gLastValidURLStr = "";
 var gInPrintPreviewMode = false;
@@ -241,6 +246,7 @@ XPCOMUtils.defineLazyGetter(this, "PageMenu", function() {
 
 
 function pageShowEventHandlers(persisted) {
+  charsetLoadListener();
   XULBrowserWindow.asyncUpdateUI();
 
   
@@ -2586,7 +2592,7 @@ let BrowserOnClick = {
         anchorTarget.classList.contains("newtab-link")) {
       event.preventDefault();
       let where = whereToOpenLink(event, false, false);
-      openLinkIn(anchorTarget.href, where, { charset: ownerDoc.characterSet });
+      openUILinkIn(anchorTarget.href, where);
     }
   },
 
@@ -3093,8 +3099,17 @@ const BrowserSearch = {
     }
 #endif
     let openSearchPageIfFieldIsNotActive = function(aSearchBar) {
-      if (!aSearchBar || document.activeElement != aSearchBar.textbox.inputField)
+      let doc = gBrowser.selectedBrowser.contentDocument;
+      let url = doc.documentURI.toLowerCase();
+      let mm = gBrowser.selectedBrowser.messageManager;
+
+      if (url === "about:home") {
+        AboutHome.focusInput(mm);
+      } else if (url === "about:newtab") {
+        ContentSearch.focusInput(mm);
+      } else if (!aSearchBar || document.activeElement != aSearchBar.textbox.inputField) {
         openUILinkIn("about:home", "current");
+      }
     };
 
     let searchBar = this.searchBar;
@@ -3509,7 +3524,9 @@ function updateCharacterEncodingMenuState()
   
   
   
-  if (gBrowser && gBrowser.selectedBrowser.mayEnableCharacterEncodingMenu) {
+  if (gBrowser &&
+      gBrowser.docShell &&
+      gBrowser.docShell.mayEnableCharacterEncodingMenu) {
     if (charsetMenu) {
       charsetMenu.removeAttribute("disabled");
     }
@@ -5354,7 +5371,8 @@ function handleDroppedLink(event, url, name)
 function BrowserSetForcedCharacterSet(aCharset)
 {
   if (aCharset) {
-    gBrowser.selectedBrowser.characterSet = aCharset;
+    gBrowser.docShell.gatherCharsetMenuTelemetry();
+    gBrowser.docShell.charset = aCharset;
     
     if (!PrivateBrowsingUtils.isWindowPrivate(window))
       PlacesUtils.setCharsetForURI(getWebNavigation().currentURI, aCharset);
@@ -5367,11 +5385,35 @@ function BrowserCharsetReload()
   BrowserReloadWithFlags(nsIWebNavigation.LOAD_FLAGS_CHARSET_CHANGE);
 }
 
+function charsetMenuGetElement(parent, charset) {
+  return parent.getElementsByAttribute("charset", charset)[0];
+}
+
 function UpdateCurrentCharset(target) {
-  for (let menuItem of target.getElementsByTagName("menuitem")) {
-    let isSelected = menuItem.getAttribute("charset") ===
-                     CharsetMenu.foldCharset(gBrowser.selectedBrowser.characterSet);
-    menuItem.setAttribute("checked", isSelected);
+    
+    var wnd = document.commandDispatcher.focusedWindow;
+    if ((window == wnd) || (wnd == null)) wnd = window.content;
+
+    
+    if (gPrevCharset) {
+        var pref_item = charsetMenuGetElement(target, gPrevCharset);
+        if (pref_item)
+          pref_item.setAttribute('checked', 'false');
+    }
+
+    var menuitem = charsetMenuGetElement(target, CharsetMenu.foldCharset(wnd.document.characterSet));
+    if (menuitem) {
+        menuitem.setAttribute('checked', 'true');
+    }
+}
+
+function charsetLoadListener() {
+  let currCharset = gBrowser.selectedBrowser.characterSet;
+  let charset = CharsetMenu.foldCharset(currCharset);
+
+  if (charset.length > 0 && (charset != gLastBrowserCharset)) {
+    gPrevCharset = gLastBrowserCharset;
+    gLastBrowserCharset = charset;
   }
 }
 

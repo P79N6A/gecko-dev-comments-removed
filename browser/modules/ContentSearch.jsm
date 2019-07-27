@@ -94,6 +94,17 @@ this.ContentSearch = {
     Services.obs.addObserver(this, "browser-search-engine-modified", false);
   },
 
+  
+
+
+
+
+  focusInput: function (messageManager) {
+    messageManager.sendAsyncMessage(OUTBOUND_MESSAGE, {
+      type: "FocusInput"
+    });
+  },
+
   receiveMessage: function (msg) {
     
     
