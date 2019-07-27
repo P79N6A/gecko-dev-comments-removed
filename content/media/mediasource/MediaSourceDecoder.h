@@ -18,6 +18,7 @@ namespace mozilla {
 
 class MediaResource;
 class MediaDecoderStateMachine;
+class MediaSourceReader;
 class SubBufferDecoder;
 
 namespace dom {
@@ -44,13 +45,12 @@ public:
 
   already_AddRefed<SubBufferDecoder> CreateSubDecoder(const nsACString& aType);
 
-  nsresult EnqueueDecoderInitialization();
-
 private:
   
   
   
   dom::MediaSource* mMediaSource;
+  nsRefPtr<MediaSourceReader> mReader;
 };
 
 } 
