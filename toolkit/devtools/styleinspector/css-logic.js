@@ -901,7 +901,7 @@ const TAB_CHARS = "\t";
 
 
 
-CssLogic.prettifyCSS = function(text) {
+CssLogic.prettifyCSS = function(text, ruleCount) {
   if (CssLogic.LINE_SEPARATOR == null) {
     let os = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULRuntime).OS;
     CssLogic.LINE_SEPARATOR = (os === "WINNT" ? "\r\n" : "\n");
@@ -909,6 +909,12 @@ CssLogic.prettifyCSS = function(text) {
 
   
   text = text.replace(/(?:^\s*<!--[\r\n]*)|(?:\s*-->\s*$)/g, "");
+
+  
+  let lineCount = text.split("\n").length - 1;
+  if (ruleCount !== null && lineCount >= ruleCount) {
+    return text;
+  }
 
   let parts = [];    
   let partStart = 0; 
