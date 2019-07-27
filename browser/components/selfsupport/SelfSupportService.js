@@ -27,18 +27,12 @@ MozSelfSupportInterface.prototype = {
   classDescription: "MozSelfSupport",
   classID: Components.ID("{d30aae8b-f352-4de3-b936-bb9d875df0bb}"),
   contractID: "@mozilla.org/mozselfsupport;1",
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIDOMGlobalPropertyInitializer,
-                                         Ci.nsIObserver]),
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIDOMGlobalPropertyInitializer]),
 
   _window: null,
 
   init: function (window) {
     this._window = window;
-
-    
-    
-    
-    return window.MozSelfSupportImpl._create(this._window, this);
   },
 
   get healthReportDataSubmissionEnabled() {
