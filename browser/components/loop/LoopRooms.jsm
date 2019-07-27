@@ -647,6 +647,37 @@ let LoopRoomsInternal = {
 
 
 
+
+
+
+  sendConnectionStatus: function(roomToken, sessionToken, status, callback) {
+    if (!callback) {
+      callback = function(error) {
+        if (error) {
+          MozLoopService.log.error(error);
+        }
+      };
+    }
+    this._postToRoom(roomToken, {
+      action: "status",
+      event: status.event,
+      state: status.state,
+      connections: status.connections,
+      sendStreams: status.sendStreams,
+      recvStreams: status.recvStreams,
+      sessionToken: sessionToken
+    }, callback);
+  },
+
+  
+
+
+
+
+
+
+
+
   rename: function(roomToken, newRoomName, callback) {
     let room = this.rooms.get(roomToken);
     let url = "/rooms/" + encodeURIComponent(roomToken);
@@ -778,6 +809,10 @@ this.LoopRooms = {
 
   leave: function(roomToken, sessionToken, callback) {
     return LoopRoomsInternal.leave(roomToken, sessionToken, callback);
+  },
+
+  sendConnectionStatus: function(roomToken, sessionToken, status, callback) {
+    return LoopRoomsInternal.sendConnectionStatus(roomToken, sessionToken, status, callback);
   },
 
   rename: function(roomToken, newRoomName, callback) {

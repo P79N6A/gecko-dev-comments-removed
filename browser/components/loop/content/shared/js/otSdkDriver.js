@@ -17,39 +17,47 @@ loop.OTSdkDriver = (function() {
 
 
   var OTSdkDriver = function(options) {
-      if (!options.dispatcher) {
-        throw new Error("Missing option dispatcher");
+    if (!options.dispatcher) {
+      throw new Error("Missing option dispatcher");
+    }
+    if (!options.sdk) {
+      throw new Error("Missing option sdk");
+    }
+
+    this.dispatcher = options.dispatcher;
+    this.sdk = options.sdk;
+
+    this._isDesktop = !!options.isDesktop;
+
+    if (this._isDesktop) {
+      if (!options.mozLoop) {
+        throw new Error("Missing option mozLoop");
       }
-      if (!options.sdk) {
-        throw new Error("Missing option sdk");
-      }
+      this.mozLoop = options.mozLoop;
+    }
 
-      this.dispatcher = options.dispatcher;
-      this.sdk = options.sdk;
+    this.connections = {};
 
-      this._isDesktop = !!options.isDesktop;
+    
+    
+    this._metrics = {
+      connections: 0,
+      sendStreams: 0,
+      recvStreams: 0
+    };
 
-      if (this._isDesktop) {
-        if (!options.mozLoop) {
-          throw new Error("Missing option mozLoop");
-        }
-        this.mozLoop = options.mozLoop;
-      }
+    this.dispatcher.register(this, [
+      "setupStreamElements",
+      "setMute"
+    ]);
 
-      this.connections = {};
-
-      this.dispatcher.register(this, [
-        "setupStreamElements",
-        "setMute"
-      ]);
-
-      
-      
-      
-      
-      
-      this._debugTwoWayMediaTelemetry =
-        loop.shared.utils.getBoolPreference("debug.twoWayMediaTelemetry");
+    
+    
+    
+    
+    
+    this._debugTwoWayMediaTelemetry =
+      loop.shared.utils.getBoolPreference("debug.twoWayMediaTelemetry");
 
     
 
@@ -104,6 +112,7 @@ loop.OTSdkDriver = (function() {
       this.publisher = this.sdk.initPublisher(this.getLocalElement(),
         this._getCopyPublisherConfig());
       this.publisher.on("streamCreated", this._onLocalStreamCreated.bind(this));
+      this.publisher.on("streamDestroyed", this._onLocalStreamDestroyed.bind(this));
       this.publisher.on("accessAllowed", this._onPublishComplete.bind(this));
       this.publisher.on("accessDenied", this._onPublishDenied.bind(this));
       this.publisher.on("accessDialogOpened",
@@ -164,6 +173,7 @@ loop.OTSdkDriver = (function() {
         config);
       this.screenshare.on("accessAllowed", this._onScreenShareGranted.bind(this));
       this.screenshare.on("accessDenied", this._onScreenShareDenied.bind(this));
+      this.screenshare.on("streamCreated", this._onScreenShareStreamCreated.bind(this));
 
       this._noteSharingState(options.videoSource, true);
     },
@@ -193,8 +203,10 @@ loop.OTSdkDriver = (function() {
         return false;
       }
 
+      this._notifyMetricsEvent("Publisher.streamDestroyed");
+
       this.session.unpublish(this.screenshare);
-      this.screenshare.off("accessAllowed accessDenied");
+      this.screenshare.off("accessAllowed accessDenied streamCreated");
       this.screenshare.destroy();
       delete this.screenshare;
       this._noteSharingState(this._windowId ? "browser" : "window", false);
@@ -247,6 +259,8 @@ loop.OTSdkDriver = (function() {
         this.session.off("sessionDisconnected streamCreated streamDestroyed connectionCreated connectionDestroyed streamPropertyChanged");
         this.session.disconnect();
         delete this.session;
+
+        this._notifyMetricsEvent("Session.connectionDestroyed", "local");
       }
       if (this.publisher) {
         this.publisher.off("accessAllowed accessDenied accessDialogOpened streamCreated");
@@ -326,7 +340,11 @@ loop.OTSdkDriver = (function() {
       if (connection && (connection.id in this.connections)) {
         delete this.connections[connection.id];
       }
+
+      this._notifyMetricsEvent("Session.connectionDestroyed", "peer");
+
       this._noteConnectionLengthIfNeeded(this._getTwoWayMediaStartTime(), performance.now());
+
       this.dispatcher.dispatch(new sharedActions.RemotePeerDisconnected({
         peerHungup: event.reason === "clientDisconnected"
       }));
@@ -369,10 +387,91 @@ loop.OTSdkDriver = (function() {
     _onConnectionCreated: function(event) {
       var connection = event.connection;
       if (this.session.connection.id === connection.id) {
+        
+        this._notifyMetricsEvent("Session.connectionCreated", "local");
         return;
       }
       this.connections[connection.id] = connection;
+      this._notifyMetricsEvent("Session.connectionCreated", "peer");
       this.dispatcher.dispatch(new sharedActions.RemotePeerConnected());
+    },
+
+    
+
+
+
+    _getConnectionState: function() {
+      if (this._metrics.sendStreams) {
+        return this._metrics.recvStreams ? "sendrecv" : "sending";
+      }
+
+      if (this._metrics.recvStreams) {
+        return "receiving";
+      }
+
+      return "starting";
+    },
+
+    
+
+
+
+
+
+
+
+    _notifyMetricsEvent: function(eventName, clientType) {
+      if (!eventName) {
+        return;
+      }
+
+      var state;
+
+      
+      
+      
+      switch (eventName) {
+        case "Session.connectionCreated":
+          this._metrics.connections++;
+          if (clientType === "local") {
+            state = "waiting";
+          }
+          break;
+        case "Session.connectionDestroyed":
+          this._metrics.connections--;
+          if (clientType === "local") {
+            state = "cleanup";
+          } else if (!this._metrics.connections) {
+            state = "waiting";
+          }
+          break;
+        case "Publisher.streamCreated":
+          this._metrics.sendStreams++;
+          break;
+        case "Publisher.streamDestroyed":
+          this._metrics.sendStreams--;
+          break;
+        case "Session.streamCreated":
+          this._metrics.recvStreams++;
+          break;
+        case "Session.streamDestroyed":
+          this._metrics.recvStreams--;
+          break;
+        default:
+          console.error("Unexpected event name", eventName);
+          return;
+      }
+      if (!state) {
+        state = this._getConnectionState();
+      }
+
+      this.dispatcher.dispatch(new sharedActions.ConnectionStatus({
+        event: eventName,
+        state: state,
+        connections: this._metrics.connections,
+        sendStreams: this._metrics.sendStreams,
+        recvStreams: this._metrics.recvStreams
+      }));
     },
 
     
@@ -406,6 +505,8 @@ loop.OTSdkDriver = (function() {
 
 
     _onRemoteStreamCreated: function(event) {
+      this._notifyMetricsEvent("Session.streamCreated");
+
       if (event.stream[STREAM_PROPERTIES.HAS_VIDEO]) {
         this.dispatcher.dispatch(new sharedActions.VideoDimensionsChanged({
           isLocal: false,
@@ -438,6 +539,8 @@ loop.OTSdkDriver = (function() {
 
 
     _onLocalStreamCreated: function(event) {
+      this._notifyMetricsEvent("Publisher.streamCreated");
+
       if (event.stream[STREAM_PROPERTIES.HAS_VIDEO]) {
         this.dispatcher.dispatch(new sharedActions.VideoDimensionsChanged({
           isLocal: true,
@@ -505,6 +608,8 @@ loop.OTSdkDriver = (function() {
 
 
     _onRemoteStreamDestroyed: function(event) {
+      this._notifyMetricsEvent("Session.streamDestroyed");
+
       if (event.stream.videoType !== "screen") {
         return;
       }
@@ -514,6 +619,13 @@ loop.OTSdkDriver = (function() {
       this.dispatcher.dispatch(new sharedActions.ReceivingScreenShare({
         receiving: false
       }));
+    },
+
+    
+
+
+    _onLocalStreamDestroyed: function() {
+      this._notifyMetricsEvent("Publisher.streamDestroyed");
     },
 
     
@@ -628,6 +740,13 @@ loop.OTSdkDriver = (function() {
       this.dispatcher.dispatch(new sharedActions.ScreenSharingState({
         state: SCREEN_SHARE_STATES.INACTIVE
       }));
+    },
+
+    
+
+
+    _onScreenShareStreamCreated: function() {
+      this._notifyMetricsEvent("Publisher.streamCreated");
     },
 
     

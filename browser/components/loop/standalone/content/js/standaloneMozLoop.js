@@ -223,6 +223,29 @@ loop.StandaloneMozLoop = (function(mozL10n) {
     },
 
     
+
+
+
+
+
+
+
+    sendConnectionStatus: function(roomToken, sessionToken, status) {
+      this._postToRoom(roomToken, sessionToken, {
+        action: "status",
+        event: status.event,
+        state: status.state,
+        connections: status.connections,
+        sendStreams: status.sendStreams,
+        recvStreams: status.recvStreams
+      }, null, true, function(error) {
+        if (error) {
+          console.error(error);
+        }
+      });
+    },
+
+    
     
     on: function() {},
     once: function() {},

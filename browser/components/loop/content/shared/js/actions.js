@@ -499,6 +499,18 @@ loop.shared.actions = (function() {
 
     SendFeedbackError: Action.define("sendFeedbackError", {
       error: Error
+    }),
+
+    
+
+
+
+    ConnectionStatus: Action.define("connectionStatus", {
+      event: String,
+      state: String,
+      connections: Number,
+      sendStreams: Number,
+      recvStreams: Number
     })
   };
 })();

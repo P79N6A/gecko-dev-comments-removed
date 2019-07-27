@@ -156,7 +156,8 @@ loop.store.ActiveRoomStore = (function() {
         "videoDimensionsChanged",
         "startScreenShare",
         "endScreenShare",
-        "updateSocialShareInfo"
+        "updateSocialShareInfo",
+        "connectionStatus"
       ]);
     },
 
@@ -637,6 +638,17 @@ loop.store.ActiveRoomStore = (function() {
 
     remotePeerDisconnected: function() {
       this.setStoreState({roomState: ROOM_STATES.SESSION_CONNECTED});
+    },
+
+    
+
+
+
+
+    connectionStatus: function(actionData) {
+      this._mozLoop.rooms.sendConnectionStatus(this.getStoreState("roomToken"),
+        this.getStoreState("sessionToken"),
+        actionData);
     },
 
     
