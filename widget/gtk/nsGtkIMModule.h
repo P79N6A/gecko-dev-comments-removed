@@ -69,6 +69,7 @@ public:
                          const InputContextAction* aAction);
     InputContext GetInputContext();
     void OnUpdateComposition();
+    void OnLayoutChange();
 
 protected:
     ~nsGtkIMModule();
@@ -255,6 +256,9 @@ protected:
     
     
     bool mIsDeletingSurrounding;
+    
+    
+    bool mLayoutChanged;
 
     
     

@@ -115,6 +115,7 @@ nsGtkIMModule::nsGtkIMModule(nsWindow* aOwnerWindow)
     , mCompositionState(eCompositionState_NotComposing)
     , mIsIMFocused(false)
     , mIsDeletingSurrounding(false)
+    , mLayoutChanged(false)
 {
     if (!gGtkIMLog) {
         gGtkIMLog = PR_NewLogModule("nsGtkIMModuleWidgets");
@@ -529,13 +530,28 @@ nsGtkIMModule::EndIMEComposition(nsWindow* aCaller)
 }
 
 void
-nsGtkIMModule::OnUpdateComposition()
+nsGtkIMModule::OnLayoutChange()
 {
     if (MOZ_UNLIKELY(IsDestroyed())) {
         return;
     }
 
     SetCursorPosition(GetActiveContext());
+    mLayoutChanged = true;
+}
+
+void
+nsGtkIMModule::OnUpdateComposition()
+{
+    if (MOZ_UNLIKELY(IsDestroyed())) {
+        return;
+    }
+
+    
+    
+    if (!mLayoutChanged) {
+        SetCursorPosition(GetActiveContext());
+    }
 }
 
 void
@@ -1184,6 +1200,14 @@ nsGtkIMModule::DispatchCompositionChangeEvent(
 
     mCompositionState = eCompositionState_CompositionChangeEventDispatched;
 
+    
+    
+    
+    mLayoutChanged = false;
+    mCompositionTargetRange.mOffset = targetOffset;
+    mCompositionTargetRange.mLength =
+        compositionChangeEvent.mRanges->TargetClauseLength();
+
     mLastFocusedWindow->DispatchEvent(&compositionChangeEvent, status);
     if (lastFocusedWindow->IsDestroyed() ||
         lastFocusedWindow != mLastFocusedWindow) {
@@ -1192,14 +1216,6 @@ nsGtkIMModule::DispatchCompositionChangeEvent(
              "compositionchange event"));
         return false;
     }
-
-    
-    
-    
-    mCompositionTargetRange.mOffset = targetOffset;
-    mCompositionTargetRange.mLength =
-        compositionChangeEvent.mRanges->TargetClauseLength();
-
     return true;
 }
 
