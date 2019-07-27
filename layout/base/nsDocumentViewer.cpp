@@ -131,6 +131,7 @@ using namespace mozilla::dom;
 
 
 
+#include "LayoutLogging.h"
 #include "mozilla/Logging.h"
 
 #ifdef NS_PRINTING
@@ -2517,7 +2518,8 @@ nsDocumentViewer::FindContainerView()
             NS_WARNING("Subdocument container has non-subdocument frame");
           }
         } else {
-          NS_WARNING("Subdocument container has no frame");
+          
+          LAYOUT_WARNING("Subdocument container has no frame");
         }
       }
     }
