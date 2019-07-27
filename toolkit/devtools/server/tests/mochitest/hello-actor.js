@@ -1,0 +1,20 @@
+
+
+
+const protocol = require("devtools/server/protocol");
+
+const HelloActor = protocol.ActorClass({
+  typeName: "helloActor",
+
+  initialize: function() {
+    protocol.Actor.prototype.initialize.apply(this, arguments);
+    this.counter = 0;
+  },
+
+  count: protocol.method(function () {
+    return ++this.counter;
+  }, {
+    request: {},
+    response: {count: protocol.RetVal("number")}
+  })
+});

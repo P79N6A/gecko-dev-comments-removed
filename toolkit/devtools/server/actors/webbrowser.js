@@ -861,12 +861,17 @@ TabActor.prototype = {
     }
 
     
-    let actorPool = new ActorPool(this.conn);
-    this._createExtraActors(DebuggerServer.tabActorFactories, actorPool);
-    if (!actorPool.isEmpty()) {
-      this._tabActorPool = actorPool;
+    
+    if (!this._tabActorPool) {
+      this._tabActorPool = new ActorPool(this.conn);
       this.conn.addActorPool(this._tabActorPool);
     }
+
+    
+    
+    
+    this._createExtraActors(DebuggerServer.tabActorFactories,
+      this._tabActorPool);
 
     this._appendExtraActors(response);
     return response;
