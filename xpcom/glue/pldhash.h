@@ -259,6 +259,7 @@ public:
   void Finish();
 
   PLDHashEntryHdr* Lookup(const void* aKey);
+  PLDHashEntryHdr* Search(const void* aKey);
   PLDHashEntryHdr* Add(const void* aKey);
   void Remove(const void* aKey);
 
@@ -489,6 +490,17 @@ void PL_DHashTableFinish(PLDHashTable* aTable);
 
 PLDHashEntryHdr* PL_DHASH_FASTCALL
 PL_DHashTableLookup(PLDHashTable* aTable, const void* aKey);
+
+
+
+
+
+
+
+
+
+PLDHashEntryHdr* PL_DHASH_FASTCALL
+PL_DHashTableSearch(PLDHashTable* aTable, const void* aKey);
 
 
 

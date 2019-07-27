@@ -217,20 +217,15 @@ nsCommandParams::RemoveValue(const char* aName)
 nsCommandParams::HashEntry*
 nsCommandParams::GetNamedEntry(const char* aName)
 {
-  HashEntry *foundEntry =
-    (HashEntry *)PL_DHashTableLookup(&mValuesHash, (void *)aName);
-  if (PL_DHASH_ENTRY_IS_BUSY(foundEntry)) {
-    return foundEntry;
-  }
-  return nullptr;
+  return (HashEntry *)PL_DHashTableSearch(&mValuesHash, (void *)aName);
 }
 
 nsCommandParams::HashEntry*
 nsCommandParams::GetOrMakeEntry(const char* aName, uint8_t entryType)
 {
   HashEntry *foundEntry =
-    (HashEntry *)PL_DHashTableLookup(&mValuesHash, (void *)aName);
-  if (PL_DHASH_ENTRY_IS_BUSY(foundEntry)) { 
+    (HashEntry *)PL_DHashTableSearch(&mValuesHash, (void *)aName);
+  if (foundEntry) { 
     foundEntry->Reset(entryType);
     return foundEntry;
   }
