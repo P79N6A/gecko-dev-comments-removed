@@ -778,6 +778,9 @@ nsSVGEffects::InvalidateRenderingObservers(nsIFrame *aFrame)
   if (!aFrame->GetContent()->IsElement())
     return;
 
+  
+  aFrame->Properties().Delete(nsSVGUtils::ObjectBoundingBoxProperty());
+
   nsSVGRenderingObserverList *observerList =
     GetObserverList(aFrame->GetContent()->AsElement());
   if (observerList) {
@@ -802,6 +805,12 @@ nsSVGEffects::InvalidateRenderingObservers(nsIFrame *aFrame)
 void
 nsSVGEffects::InvalidateDirectRenderingObservers(Element *aElement, uint32_t aFlags )
 {
+  nsIFrame* frame = aElement->GetPrimaryFrame();
+  if (frame) {
+    
+    frame->Properties().Delete(nsSVGUtils::ObjectBoundingBoxProperty());
+  }
+
   if (aElement->HasRenderingObservers()) {
     nsSVGRenderingObserverList *observerList = GetObserverList(aElement);
     if (observerList) {
