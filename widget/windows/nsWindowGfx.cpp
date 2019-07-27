@@ -25,6 +25,7 @@
 using mozilla::plugins::PluginInstanceParent;
 
 #include "nsWindowGfx.h"
+#include "nsAppRunner.h"
 #include <windows.h>
 #include "gfxImageSurface.h"
 #include "gfxUtils.h"
@@ -40,6 +41,7 @@ using mozilla::plugins::PluginInstanceParent;
 #include "WinUtils.h"
 #include "nsIWidgetListener.h"
 #include "mozilla/unused.h"
+#include "nsDebug.h"
 
 #ifdef MOZ_ENABLE_D3D9_LAYER
 #include "LayerManagerD3D9.h"
@@ -184,13 +186,17 @@ bool nsWindow::OnPaint(HDC aDC, uint32_t aNestingLevel)
   if (mozilla::ipc::MessageChannel::IsSpinLoopActive() && mPainting)
     return false;
 
+  
+  
+  
+  
   if (IsPlugin()) {
     
-
-
-
-
-
+    if (mozilla::BrowserTabsRemoteAutostart()) {
+      printf_stderr("nsWindow::OnPaint() bailing on paint!\n");
+      ValidateRect(mWnd, nullptr);
+      return true;
+    }
     RECT updateRect;
     if (!GetUpdateRect(mWnd, &updateRect, FALSE) ||
         (updateRect.left == updateRect.right &&
