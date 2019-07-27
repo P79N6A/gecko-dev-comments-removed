@@ -36,9 +36,9 @@
 namespace js {
 namespace jit {
 
-class SimulatorRuntime;
-SimulatorRuntime *CreateSimulatorRuntime();
-void DestroySimulatorRuntime(SimulatorRuntime *srt);
+class Simulator;
+class Redirection;
+class CachePage;
 
 const intptr_t kPointerAlignment = 4;
 const intptr_t kPointerAlignmentMask = kPointerAlignment - 1;
@@ -137,7 +137,11 @@ class Simulator {
         kNumFPURegisters
     };
 
-    explicit Simulator(SimulatorRuntime *srt);
+    static Simulator *Create();
+    static void Destroy(Simulator *simulator);
+
+    
+    Simulator();
     ~Simulator();
 
     
@@ -147,6 +151,8 @@ class Simulator {
     static inline uintptr_t StackLimit() {
         return Simulator::Current()->stackLimit();
     }
+
+    uintptr_t *addressOfStackLimit();
 
     
     
@@ -315,6 +321,7 @@ class Simulator {
 
     
     char *stack_;
+    uintptr_t stackLimit_;
     bool pc_modified_;
     int icount_;
     int break_count_;
@@ -327,8 +334,6 @@ class Simulator {
     
     SimInstruction *break_pc_;
     Instr break_instr_;
-
-    SimulatorRuntime *srt_;
 
     
     
@@ -347,6 +352,36 @@ class Simulator {
         char *desc_;
     };
     StopCountAndDesc watchedStops_[kNumOfWatchedStops];
+
+  private:
+    Redirection *redirection_;
+
+    
+    struct ICacheHasher {
+        typedef void *Key;
+        typedef void *Lookup;
+        static HashNumber hash(const Lookup &l);
+        static bool match(const Key &k, const Lookup &l);
+    };
+
+  public:
+    typedef HashMap<void *, CachePage *, ICacheHasher, SystemAllocPolicy> ICacheMap;
+
+  protected:
+    ICacheMap icache_;
+
+  public:
+    ICacheMap &icache() {
+        return icache_;
+    }
+
+    Redirection *redirection() const {
+        return redirection_;
+    }
+
+    void setRedirection(js::jit::Redirection *redirection) {
+        redirection_ = redirection;
+    }
 };
 
 #define JS_CHECK_SIMULATOR_RECURSION_WITH_EXTRA(cx, extra, onerror)             \

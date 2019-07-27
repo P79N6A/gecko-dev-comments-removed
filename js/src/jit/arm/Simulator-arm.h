@@ -38,9 +38,8 @@ namespace js {
 namespace jit {
 
 class Simulator;
-class SimulatorRuntime;
-SimulatorRuntime *CreateSimulatorRuntime();
-void DestroySimulatorRuntime(SimulatorRuntime *srt);
+class Redirection;
+class CachePage;
 
 
 
@@ -95,7 +94,11 @@ class Simulator
         num_q_registers = 16
     };
 
-    explicit Simulator(SimulatorRuntime *srt);
+    static Simulator *Create();
+    static void Destroy(Simulator *simulator);
+
+    
+    Simulator();
     ~Simulator();
 
     
@@ -105,6 +108,8 @@ class Simulator
     static inline uintptr_t StackLimit() {
         return Simulator::Current()->stackLimit();
     }
+
+    uintptr_t *addressOfStackLimit();
 
     
     
@@ -333,6 +338,7 @@ class Simulator
 
     
     char *stack_;
+    uintptr_t stackLimit_;
     bool pc_modified_;
     int64_t icount_;
 
@@ -349,8 +355,6 @@ class Simulator
     bool single_stepping_;
     SingleStepCallback single_step_callback_;
     void *single_step_callback_arg_;
-
-    SimulatorRuntime *srt_;
 
     
     
@@ -374,6 +378,35 @@ class Simulator
         return icount_;
     }
 
+  private:
+    Redirection *redirection_;
+
+    
+    struct ICacheHasher {
+        typedef void *Key;
+        typedef void *Lookup;
+        static HashNumber hash(const Lookup &l);
+        static bool match(const Key &k, const Lookup &l);
+    };
+
+  public:
+    typedef HashMap<void *, CachePage *, ICacheHasher, SystemAllocPolicy> ICacheMap;
+
+  protected:
+    ICacheMap icache_;
+
+  public:
+    ICacheMap &icache() {
+        return icache_;
+    }
+
+    Redirection *redirection() const {
+        return redirection_;
+    }
+
+    void setRedirection(js::jit::Redirection *redirection) {
+        redirection_ = redirection;
+    }
 };
 
 #define JS_CHECK_SIMULATOR_RECURSION_WITH_EXTRA(cx, extra, onerror)             \
