@@ -541,6 +541,8 @@ IsChromeJSScript(JSScript* aScript)
   return secman->IsSystemPrincipal(nsJSPrincipals::get(principals));
 }
 
+
+
 template <size_t LEN>
 const char*
 GetFullPathForScheme(const char* filename, const char (&scheme)[LEN]) {
@@ -549,6 +551,23 @@ GetFullPathForScheme(const char* filename, const char (&scheme)[LEN]) {
     return filename + LEN - 1;
   }
   return nullptr;
+}
+
+
+
+template <size_t LEN>
+const char*
+GetPathAfterComponent(const char* filename, const char (&component)[LEN]) {
+  const char* found = nullptr;
+  const char* next = strstr(filename, component);
+  while (next) {
+    
+    
+    found = next + LEN - 1;
+    
+    next = strstr(found - 1, component);
+  }
+  return found;
 }
 
 } 
@@ -566,16 +585,27 @@ ThreadStackHelper::AppendJSEntry(const volatile StackEntry* aEntry,
 
   const char* label;
   if (IsChromeJSScript(aEntry->script())) {
-    const char* const filename = JS_GetScriptFilename(aEntry->script());
-    unsigned lineno = JS_PCToLineNumber(aEntry->script(), aEntry->pc());
+    const char* filename = JS_GetScriptFilename(aEntry->script());
+    const unsigned lineno = JS_PCToLineNumber(aEntry->script(), aEntry->pc());
     MOZ_ASSERT(filename);
 
-    char buffer[64]; 
-    const char* basename;
+    char buffer[128]; 
+
+    
+    
+    const char* basename = GetPathAfterComponent(filename, " -> ");
+    if (basename) {
+      filename = basename;
+    }
 
     basename = GetFullPathForScheme(filename, "chrome://");
     if (!basename) {
       basename = GetFullPathForScheme(filename, "resource://");
+    }
+    if (!basename) {
+      
+      
+      basename = GetPathAfterComponent(filename, "/extensions/");
     }
     if (!basename) {
       
