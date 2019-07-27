@@ -12,6 +12,7 @@
 #include "mozilla/layers/GeckoContentController.h"
 #include "mozilla/layers/CompositorParent.h"
 #include "mozilla/layers/APZCTreeManager.h"
+#include "mozilla/UniquePtr.h"
 #include "base/task.h"
 #include "Layers.h"
 #include "TestLayers.h"
@@ -1727,4 +1728,140 @@ TEST_F(APZCTreeManagerTester, HitTesting2) {
   EXPECT_EQ(gfxPoint(25, 75), transformToGecko.Transform(gfxPoint(25, 25)));
 
   manager->ClearTree();
+}
+
+class TaskRunMetrics {
+public:
+  TaskRunMetrics()
+    : mRunCount(0)
+    , mCancelCount(0)
+  {}
+
+  void IncrementRunCount() {
+    mRunCount++;
+  }
+
+  void IncrementCancelCount() {
+    mCancelCount++;
+  }
+
+  int GetAndClearRunCount() {
+    int runCount = mRunCount;
+    mRunCount = 0;
+    return runCount;
+  }
+
+  int GetAndClearCancelCount() {
+    int cancelCount = mCancelCount;
+    mCancelCount = 0;
+    return cancelCount;
+  }
+
+private:
+  int mRunCount;
+  int mCancelCount;
+};
+
+class MockTask : public CancelableTask {
+public:
+  MockTask(const TaskRunMetrics& aMetrics)
+    : mMetrics(aMetrics)
+  {}
+
+  virtual void Run() {
+    mMetrics.IncrementRunCount();
+  }
+
+  virtual void Cancel() {
+    mMetrics.IncrementCancelCount();
+  }
+
+private:
+  TaskRunMetrics mMetrics;
+};
+
+class APZTaskThrottlerTester : public ::testing::Test {
+public:
+  APZTaskThrottlerTester()
+  {
+    now = TimeStamp::Now();
+    throttler = MakeUnique<TaskThrottler>(now, TimeDuration::FromMilliseconds(100));
+  }
+
+protected:
+  TimeStamp Advance(int aMillis = 5)
+  {
+    now = now + TimeDuration::FromMilliseconds(aMillis);
+    return now;
+  }
+
+  UniquePtr<CancelableTask> NewTask()
+  {
+    return MakeUnique<MockTask>(&metrics);
+  }
+
+  TimeStamp now;
+  UniquePtr<TaskThrottler> throttler;
+  TaskRunMetrics metrics;
+};
+
+TEST_F(APZTaskThrottlerTester, BasicTest) {
+  
+  throttler->PostTask(FROM_HERE, NewTask(), Advance());         
+  EXPECT_EQ(1, metrics.GetAndClearRunCount());
+
+  
+  throttler->PostTask(FROM_HERE, NewTask(), Advance());         
+  EXPECT_EQ(0, metrics.GetAndClearRunCount());
+  throttler->TaskComplete(Advance());                           
+  EXPECT_EQ(1, metrics.GetAndClearRunCount());
+  EXPECT_EQ(0, metrics.GetAndClearCancelCount());
+
+  
+  
+  
+  throttler->PostTask(FROM_HERE, NewTask(), Advance());         
+  throttler->PostTask(FROM_HERE, NewTask(), Advance());         
+  throttler->PostTask(FROM_HERE, NewTask(), Advance());         
+  throttler->PostTask(FROM_HERE, NewTask(), Advance());         
+  throttler->PostTask(FROM_HERE, NewTask(), Advance());         
+  EXPECT_EQ(0, metrics.GetAndClearRunCount());
+  EXPECT_EQ(4, metrics.GetAndClearCancelCount());
+
+  throttler->TaskComplete(Advance());                           
+  EXPECT_EQ(1, metrics.GetAndClearRunCount());
+  throttler->TaskComplete(Advance());                           
+  EXPECT_EQ(0, metrics.GetAndClearRunCount());
+  EXPECT_EQ(0, metrics.GetAndClearCancelCount());
+}
+
+TEST_F(APZTaskThrottlerTester, TimeoutTest) {
+  
+  throttler->PostTask(FROM_HERE, NewTask(), Advance());         
+  EXPECT_EQ(1, metrics.GetAndClearRunCount());
+
+  
+  
+  
+  throttler->PostTask(FROM_HERE, NewTask(), Advance(100));      
+  EXPECT_EQ(1, metrics.GetAndClearRunCount());
+  throttler->TaskComplete(Advance());                           
+  throttler->TaskComplete(Advance());                           
+  EXPECT_EQ(0, metrics.GetAndClearRunCount());
+  EXPECT_EQ(0, metrics.GetAndClearCancelCount());
+
+  
+  
+  throttler->PostTask(FROM_HERE, NewTask(), Advance());         
+  EXPECT_EQ(1, metrics.GetAndClearRunCount());
+  throttler->PostTask(FROM_HERE, NewTask(), Advance());         
+  throttler->PostTask(FROM_HERE, NewTask(), Advance());         
+  throttler->PostTask(FROM_HERE, NewTask(), Advance());         
+  EXPECT_EQ(0, metrics.GetAndClearRunCount());
+  throttler->PostTask(FROM_HERE, NewTask(), Advance(100));      
+  EXPECT_EQ(1, metrics.GetAndClearRunCount());
+  EXPECT_EQ(3, metrics.GetAndClearCancelCount());               
+  throttler->TaskComplete(Advance());                           
+  EXPECT_EQ(0, metrics.GetAndClearRunCount());
+  EXPECT_EQ(0, metrics.GetAndClearCancelCount());
 }
