@@ -161,11 +161,11 @@ public class OuterLayout extends RelativeLayout {
             if (mDragHelper.shouldInterceptTouchEvent(event)) {
                 return true;
             }
-        }
 
-        
-        if (mIsOpen && mDragCallback.canInterceptEventWhileOpen(event)) {
-            return true;
+            
+            if (mIsOpen && mDragCallback.canInterceptEventWhileOpen(event)) {
+                return true;
+            }
         }
         return false;
     }
