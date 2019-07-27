@@ -191,7 +191,8 @@ public:
   bool ParseColorString(const nsSubstring& aBuffer,
                         nsIURI*            aURL,
                         uint32_t           aLineNumber,
-                        nsCSSValue&        aValue);
+                        nsCSSValue&        aValue,
+                        bool               aSuppressErrors = false);
 
   
 
@@ -295,6 +296,10 @@ public:
                               nsIURI* aBaseURL,
                               nsIPrincipal* aSheetPrincipal,
                               nsCSSValue& aValue);
+
+  
+  bool IsValueValidForProperty(const nsCSSProperty aPropID,
+                               const nsAString&    aPropValue);
 
 protected:
   

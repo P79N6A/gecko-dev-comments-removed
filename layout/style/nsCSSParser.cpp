@@ -177,7 +177,8 @@ public:
   bool ParseColorString(const nsSubstring& aBuffer,
                         nsIURI* aURL, 
                         uint32_t aLineNumber, 
-                        nsCSSValue& aValue);
+                        nsCSSValue& aValue,
+                        bool aSuppressErrors );
 
   nsresult ParseSelectorString(const nsSubstring& aSelectorString,
                                nsIURI* aURL, 
@@ -216,6 +217,8 @@ public:
                               nsIPrincipal* aSheetPrincipal,
                               nsCSSValue& aValue);
 
+  bool IsValueValidForProperty(const nsCSSProperty aPropID,
+                               const nsAString& aPropValue);
 
   typedef nsCSSParser::VariableEnumFunc VariableEnumFunc;
 
@@ -1707,15 +1710,24 @@ bool
 CSSParserImpl::ParseColorString(const nsSubstring& aBuffer,
                                 nsIURI* aURI, 
                                 uint32_t aLineNumber, 
-                                nsCSSValue& aValue)
+                                nsCSSValue& aValue,
+                                bool aSuppressErrors )
 {
   nsCSSScanner scanner(aBuffer, aLineNumber);
   css::ErrorReporter reporter(scanner, mSheet, mChildLoader, aURI);
   InitScanner(scanner, reporter, aURI, aURI, nullptr);
 
+  nsAutoSuppressErrors suppressErrors(this, aSuppressErrors);
+
   
   bool colorParsed = ParseColor(aValue) && !GetToken(true);
-  OUTPUT_ERROR();
+
+  if (aSuppressErrors) {
+    CLEAR_ERROR();
+  } else {
+    OUTPUT_ERROR();
+  }
+
   ReleaseScanner();
   return colorParsed;
 }
@@ -13860,7 +13872,7 @@ CSSParserImpl::ParseAnimationOrTransitionShorthand(
     return eParseAnimationOrTransitionShorthand_Inherit;
   }
 
-  static const size_t maxNumProperties = 8;
+  static const size_t maxNumProperties = 7;
   NS_ABORT_IF_FALSE(aNumProperties <= maxNumProperties,
                     "can't handle this many properties");
   nsCSSValueList *cur[maxNumProperties];
@@ -14024,7 +14036,6 @@ CSSParserImpl::ParseAnimation()
     eCSSProperty_animation_direction,
     eCSSProperty_animation_fill_mode,
     eCSSProperty_animation_iteration_count,
-    eCSSProperty_animation_play_state,
     
     
     
@@ -14044,8 +14055,7 @@ CSSParserImpl::ParseAnimation()
   initialValues[3].SetIntValue(NS_STYLE_ANIMATION_DIRECTION_NORMAL, eCSSUnit_Enumerated);
   initialValues[4].SetIntValue(NS_STYLE_ANIMATION_FILL_MODE_NONE, eCSSUnit_Enumerated);
   initialValues[5].SetFloatValue(1.0f, eCSSUnit_Number);
-  initialValues[6].SetIntValue(NS_STYLE_ANIMATION_PLAY_STATE_RUNNING, eCSSUnit_Enumerated);
-  initialValues[7].SetNoneValue();
+  initialValues[6].SetNoneValue();
 
   nsCSSValue values[numProps];
 
@@ -14668,6 +14678,47 @@ CSSParserImpl::ParseValueWithVariables(CSSVariableDeclarations::Type* aType,
   return true;
 }
 
+bool
+CSSParserImpl::IsValueValidForProperty(const nsCSSProperty aPropID,
+                                       const nsAString& aPropValue)
+{
+  mData.AssertInitialState();
+  mTempData.AssertInitialState();
+
+  nsCSSScanner scanner(aPropValue, 0);
+  css::ErrorReporter reporter(scanner, mSheet, mChildLoader, nullptr);
+  InitScanner(scanner, reporter, nullptr, nullptr, nullptr);
+
+  nsAutoSuppressErrors suppressErrors(this);
+
+  mSection = eCSSSection_General;
+  scanner.SetSVGMode(false);
+
+  
+  if (eCSSProperty_UNKNOWN == aPropID) {
+    ReleaseScanner();
+    return false;
+  }
+
+  
+  bool parsedOK = ParseProperty(aPropID);
+
+  
+  parsedOK = parsedOK && ParsePriority() != ePriority_Error;
+
+  
+  parsedOK = parsedOK && !GetToken(true);
+
+  mTempData.ClearProperty(aPropID);
+  mTempData.AssertInitialState();
+  mData.AssertInitialState();
+
+  CLEAR_ERROR();
+  ReleaseScanner();
+
+  return parsedOK;
+}
+
 } 
 
 
@@ -14860,10 +14911,11 @@ bool
 nsCSSParser::ParseColorString(const nsSubstring& aBuffer,
                               nsIURI*            aURI,
                               uint32_t           aLineNumber,
-                              nsCSSValue&        aValue)
+                              nsCSSValue&        aValue,
+                              bool               aSuppressErrors )
 {
   return static_cast<CSSParserImpl*>(mImpl)->
-    ParseColorString(aBuffer, aURI, aLineNumber, aValue);
+    ParseColorString(aBuffer, aURI, aLineNumber, aValue, aSuppressErrors);
 }
 
 nsresult
@@ -14981,3 +15033,12 @@ nsCSSParser::ParseCounterDescriptor(nsCSSCounterDesc aDescID,
     ParseCounterDescriptor(aDescID, aBuffer,
                            aSheetURL, aBaseURL, aSheetPrincipal, aValue);
 }
+
+bool
+nsCSSParser::IsValueValidForProperty(const nsCSSProperty aPropID,
+                                     const nsAString&    aPropValue)
+{
+  return static_cast<CSSParserImpl*>(mImpl)->
+    IsValueValidForProperty(aPropID, aPropValue);
+}
+
