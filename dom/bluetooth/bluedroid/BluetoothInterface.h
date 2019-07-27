@@ -139,9 +139,10 @@ public:
 
   
 
-  bt_status_t DeviceStatusNotification(bthf_network_state_t aNtkState,
-                                       bthf_service_type_t aSvcType,
-                                       int aSignal, int aBattChg);
+  void DeviceStatusNotification(bthf_network_state_t aNtkState,
+                                bthf_service_type_t aSvcType,
+                                int aSignal, int aBattChg,
+                                BluetoothHandsfreeResultHandler* aRes);
 
   
 
