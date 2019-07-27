@@ -170,6 +170,11 @@ public:
 
   static cairo_surface_t *GetDummySurface();
 
+  
+  static size_t GetMaxSurfaceSize() {
+    return 32767;
+  }
+
 private: 
   
   bool InitAlreadyReferenced(cairo_surface_t* aSurface, const IntSize& aSize, SurfaceFormat* aFormat = nullptr);

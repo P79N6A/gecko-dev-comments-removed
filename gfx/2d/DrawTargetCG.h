@@ -183,6 +183,13 @@ public:
   CGContextRef GetCGContext() {
       return mCg;
   }
+
+  
+  
+  static size_t GetMaxSurfaceSize() {
+    return 32767;
+  }
+
 private:
   void MarkChanged();
 
