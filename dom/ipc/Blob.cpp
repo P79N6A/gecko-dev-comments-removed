@@ -359,17 +359,19 @@ public:
   Serialize(InputStreamParams& aParams,
             FileDescriptorArray& )
   {
+    MOZ_RELEASE_ASSERT(mBlobImpl);
+
     nsCOMPtr<nsIRemoteBlob> remote = do_QueryInterface(mBlobImpl);
     MOZ_ASSERT(remote);
-    MOZ_ASSERT(remote->GetBlobChild());
 
-    aParams = RemoteInputStreamParams(
-      nullptr ,
-      remote->GetBlobChild() );
+    BlobChild* actor = remote->GetBlobChild();
+    MOZ_ASSERT(actor);
+
+    aParams = RemoteInputStreamParams(actor->ParentID());
   }
 
   bool
-  Deserialize(const InputStreamParams& aParams,
+  Deserialize(const InputStreamParams& ,
               const FileDescriptorArray& )
   {
     
@@ -419,15 +421,48 @@ public:
   NS_IMETHOD
   Available(uint64_t* aAvailable) MOZ_OVERRIDE
   {
+    if (!IsOnOwningThread()) {
+      nsresult rv = BlockAndWaitForStream();
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      rv = mStream->Available(aAvailable);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+
+#ifdef DEBUG
+    if (NS_IsMainThread()) {
+      NS_WARNING("Someone is trying to do main-thread I/O...");
+    }
+#endif
+
+    nsresult rv;
+
     
-    if (IsOnOwningThread()) {
+    nsCOMPtr<nsIInputStream> inputStream;
+    {
+      MonitorAutoLock lock(mMonitor);
+
+      inputStream = mStream;
+    }
+
+    
+    if (inputStream) {
+      rv = inputStream->Available(aAvailable);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      return NS_OK;
+    }
+
+    
+    if (!mBlobImpl) {
       return NS_BASE_STREAM_CLOSED;
     }
 
-    nsresult rv = BlockAndWaitForStream();
-    NS_ENSURE_SUCCESS(rv, rv);
+    
+    NS_WARNING("Available() called before real stream has been delivered, "
+               "guessing the amount of data available!");
 
-    rv = mStream->Available(aAvailable);
+    rv = mBlobImpl->GetSize(aAvailable);
     NS_ENSURE_SUCCESS(rv, rv);
 
     return NS_OK;
@@ -690,6 +725,7 @@ public:
                                aProcessID,
                                aBlobImpl,
                                 true,
+                                false,
                                 false);
   }
 
@@ -700,6 +736,18 @@ public:
                                aProcessID,
                                nullptr,
                                 false,
+                                true,
+                                false);
+  }
+
+  static already_AddRefed<IDTableEntry>
+  Get(const nsID& aID)
+  {
+    return GetOrCreateInternal(aID,
+                               0,
+                               nullptr,
+                                false,
+                                true,
                                 true);
   }
 
@@ -716,7 +764,8 @@ public:
                                aProcessID,
                                aBlobImpl,
                                 true,
-                                true);
+                                true,
+                                false);
   }
 
   const nsID&
@@ -748,7 +797,8 @@ private:
                       intptr_t aProcessID,
                       DOMFileImpl* aBlobImpl,
                       bool aMayCreate,
-                      bool aMayGet);
+                      bool aMayGet,
+                      bool aIgnoreProcessID);
 };
 
 
@@ -2918,6 +2968,26 @@ BlobParent::Create(PBackgroundParent* aManager,
 }
 
 
+already_AddRefed<DOMFileImpl>
+BlobParent::GetBlobImplForID(const nsID& aID)
+{
+  if (NS_WARN_IF(gProcessType != GeckoProcessType_Default)) {
+    ASSERT_UNLESS_FUZZING();
+    return nullptr;
+  }
+
+  nsRefPtr<IDTableEntry> idTableEntry = IDTableEntry::Get(aID);
+  if (NS_WARN_IF(!idTableEntry)) {
+    return nullptr;
+  }
+
+  nsRefPtr<DOMFileImpl> blobImpl = idTableEntry->BlobImpl();
+  MOZ_ASSERT(blobImpl);
+
+  return blobImpl.forget();
+}
+
+
 template <class ParentManagerType>
 BlobParent*
 BlobParent::GetOrCreateFromImpl(ParentManagerType* aManager,
@@ -3550,7 +3620,8 @@ IDTableEntry::GetOrCreateInternal(const nsID& aID,
                                   intptr_t aProcessID,
                                   DOMFileImpl* aBlobImpl,
                                   bool aMayCreate,
-                                  bool aMayGet)
+                                  bool aMayGet,
+                                  bool aIgnoreProcessID)
 {
   MOZ_ASSERT(gProcessType == GeckoProcessType_Default);
   MOZ_ASSERT(sIDTableMutex);
@@ -3578,7 +3649,7 @@ IDTableEntry::GetOrCreateInternal(const nsID& aID,
         return nullptr;
       }
 
-      if (NS_WARN_IF(entry->mProcessID != aProcessID)) {
+      if (!aIgnoreProcessID && NS_WARN_IF(entry->mProcessID != aProcessID)) {
         return nullptr;
       }
     } else {

@@ -107,17 +107,13 @@ DeserializeInputStream(const InputStreamParams& aParams,
     
     
     case InputStreamParams::TRemoteInputStreamParams: {
-      const RemoteInputStreamParams& params =
-          aParams.get_RemoteInputStreamParams();
-
-      nsRefPtr<DOMFileImpl> blobImpl;
-      if (params.remoteBlobParent()) {
-        blobImpl =
-          static_cast<BlobParent*>(params.remoteBlobParent())->GetBlobImpl();
-      } else {
-        blobImpl =
-          static_cast<BlobChild*>(params.remoteBlobChild())->GetBlobImpl();
+      if (NS_WARN_IF(XRE_GetProcessType() != GeckoProcessType_Default)) {
+        return nullptr;
       }
+
+      const nsID& id = aParams.get_RemoteInputStreamParams().id();
+
+      nsRefPtr<DOMFileImpl> blobImpl = BlobParent::GetBlobImplForID(id);
 
       MOZ_ASSERT(blobImpl, "Invalid blob contents");
 
