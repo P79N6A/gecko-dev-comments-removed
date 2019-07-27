@@ -1,0 +1,37 @@
+
+
+
+
+
+
+
+let URL = `${URL_ROOT}doc_viewsource.html`;
+
+function *viewSource() {
+  let toolbox = yield loadToolbox(URL);
+  let win = yield openScratchpadWindow();
+  let { Scratchpad: scratchpad } = win;
+
+  
+  scratchpad.setText("E G B C B\nA B A G A B\nG E");
+  let scratchpadURL = scratchpad.uniqueName;
+
+  
+  yield toolbox.selectTool("webconsole");
+
+  yield toolbox.viewSourceInScratchpad(scratchpadURL, 2);
+
+  is(scratchpad.editor.getCursor().line, 2,
+    "The correct line is highlighted in scratchpad's editor.");
+
+  win.close();
+  yield unloadToolbox(toolbox);
+  finish();
+}
+
+function test () {
+  Task.spawn(viewSource).then(finish, (aError) => {
+    ok(false, "Got an error: " + aError.message + "\n" + aError.stack);
+    finish();
+  });
+}

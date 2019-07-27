@@ -384,7 +384,7 @@ let CallsListView = Heritage.extend(WidgetMethods, {
       
       if (e.target.classList.contains("call-item-location")) {
         let { file, line } = callItem.attachment.actor;
-        viewSourceInDebugger(file, line);
+        this._viewSourceInDebugger(file, line);
         return;
       }
       
@@ -456,7 +456,7 @@ let CallsListView = Heritage.extend(WidgetMethods, {
 
 
   _onStackFileClick: function(e, { file, line }) {
-    viewSourceInDebugger(file, line);
+    this._viewSourceInDebugger(file, line);
   },
 
   
@@ -501,7 +501,7 @@ let CallsListView = Heritage.extend(WidgetMethods, {
     }
     let callItem = this.selectedItem;
     let { file, line } = callItem.attachment.actor;
-    viewSourceInDebugger(file, line);
+    this._viewSourceInDebugger(file, line);
   },
 
   
@@ -509,5 +509,18 @@ let CallsListView = Heritage.extend(WidgetMethods, {
 
   _onStepOut: function() {
     this.selectedIndex = this.itemCount - 1;
+  },
+
+  
+
+
+  _viewSourceInDebugger: function (file, line) {
+    gToolbox.viewSourceInDebugger(file, line).then(success => {
+      if (success) {
+        window.emit(EVENTS.SOURCE_SHOWN_IN_JS_DEBUGGER);
+      } else {
+        window.emit(EVENTS.SOURCE_NOT_FOUND_IN_JS_DEBUGGER);
+      }
+    });
   }
 });

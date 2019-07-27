@@ -222,7 +222,7 @@ MarkerDetails.prototype = {
 
         aNode.addEventListener("click", (event) => {
           event.preventDefault();
-          viewSourceInDebugger(toolbox, url, line);
+          this.emit("view-source", url, line);
         });
       }
 
@@ -303,35 +303,5 @@ MarkerDetails.prototype = {
   },
 
 };
-
-
-
-
-
-
-
-
-
-let viewSourceInDebugger = Task.async(function *(toolbox, url, line) {
-  
-  
-  
-  let debuggerAlreadyOpen = toolbox.getPanel("jsdebugger");
-  let { panelWin: dbg } = yield toolbox.selectTool("jsdebugger");
-
-  if (!debuggerAlreadyOpen) {
-    yield dbg.once(dbg.EVENTS.SOURCES_ADDED);
-  }
-
-  let { DebuggerView } = dbg;
-  let { Sources } = DebuggerView;
-
-  let item = Sources.getItemForAttachment(a => a.source.url === url);
-  if (item) {
-    return DebuggerView.setEditorLocation(item.attachment.source.actor, line, { noDebug: true });
-  }
-
-  return Promise.reject("Couldn't find the specified source in the debugger.");
-});
 
 exports.MarkerDetails = MarkerDetails;

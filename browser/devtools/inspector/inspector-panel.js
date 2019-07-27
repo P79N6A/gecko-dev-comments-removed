@@ -286,13 +286,6 @@ InspectorPanel.prototype = {
   
 
 
-  get viewSourceUtils() {
-    return this.panelWin.gViewSourceUtils;
-  },
-
-  
-
-
 
 
   markDirty: function InspectorPanel_markDirty() {
