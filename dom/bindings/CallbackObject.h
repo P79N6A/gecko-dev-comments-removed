@@ -50,7 +50,11 @@ public:
   
   
   
-  explicit CallbackObject(JS::Handle<JSObject*> aCallback, nsIGlobalObject *aIncumbentGlobal)
+  
+  
+  
+  explicit CallbackObject(JSContext* aCx, JS::Handle<JSObject*> aCallback,
+                          nsIGlobalObject *aIncumbentGlobal)
   {
     Init(aCallback, aIncumbentGlobal);
   }
