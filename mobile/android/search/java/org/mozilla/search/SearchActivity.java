@@ -19,6 +19,7 @@ import org.mozilla.search.providers.SearchEngineManager;
 import org.mozilla.search.providers.SearchEngineManager.SearchEngineCallback;
 
 import android.content.AsyncQueryHandler;
+import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.graphics.Rect;
@@ -92,6 +93,16 @@ public class SearchActivity extends Locales.LocaleAwareFragmentActivity
     private int cardPaddingX;
     private int cardPaddingY;
 
+    
+
+
+
+    private static class AsyncQueryHandlerImpl extends AsyncQueryHandler {
+        public AsyncQueryHandlerImpl(final ContentResolver that) {
+            super(that);
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         GeckoAppShell.ensureCrashHandling();
@@ -108,7 +119,7 @@ public class SearchActivity extends Locales.LocaleAwareFragmentActivity
         
         searchEngineManager.getEngine(this);
 
-        queryHandler = new AsyncQueryHandler(getContentResolver()) {};
+        queryHandler = new AsyncQueryHandlerImpl(getContentResolver());
 
         searchBar = (SearchBar) findViewById(R.id.search_bar);
         searchBar.setOnClickListener(new View.OnClickListener() {
