@@ -846,7 +846,7 @@ public:
   
   
   
-  MediaTaskQueue* DecodeTaskQueue() const { return mReader->GetTaskQueue(); }
+  MediaTaskQueue* DecodeTaskQueue() const { return mReader->TaskQueue(); }
 
   
   
