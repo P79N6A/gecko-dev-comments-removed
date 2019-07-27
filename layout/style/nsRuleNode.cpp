@@ -495,7 +495,6 @@ static nscoord CalcLengthWith(const nsCSSValue& aValue,
   }
   
   
-  aConditions.SetUncacheable();
   const nsStyleFont *styleFont =
     aStyleFont ? aStyleFont : aStyleContext->StyleFont();
   if (aFontSize == -1) {
@@ -507,6 +506,7 @@ static nscoord CalcLengthWith(const nsCSSValue& aValue,
     case eCSSUnit_EM: {
       
       
+      aConditions.SetFontSizeDependency(aFontSize);
       return ScaleCoordRound(aValue, float(aFontSize));
     }
     case eCSSUnit_XHeight: {
@@ -514,6 +514,7 @@ static nscoord CalcLengthWith(const nsCSSValue& aValue,
       nsRefPtr<nsFontMetrics> fm =
         GetMetricsFor(aPresContext, aStyleContext, styleFont,
                       aFontSize, aUseUserFontSet);
+      aConditions.SetUncacheable();
       return ScaleCoordRound(aValue, float(fm->XHeight()));
     }
     case eCSSUnit_Char: {
@@ -525,6 +526,7 @@ static nscoord CalcLengthWith(const nsCSSValue& aValue,
         fm->GetThebesFontGroup()->GetFirstValidFont()->
           GetMetrics(fm->Orientation()).zeroOrAveCharWidth;
 
+      aConditions.SetUncacheable();
       return ScaleCoordRound(aValue, ceil(aPresContext->AppUnitsPerDevPixel() *
                                           zeroWidth));
     }
