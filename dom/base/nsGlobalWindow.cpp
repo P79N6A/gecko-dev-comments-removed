@@ -7783,46 +7783,15 @@ nsGlobalWindow::GetFrames(nsIDOMWindow** aFrames)
   return rv.ErrorCode();
 }
 
-JSObject* nsGlobalWindow::CallerGlobal()
-{
-  JSContext *cx = nsContentUtils::GetCurrentJSContext();
-  if (!cx) {
-    NS_ERROR("Please don't call this method from C++!");
-
-    return nullptr;
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  JS::Rooted<JSObject*> incumbentGlobal(cx, &IncumbentJSGlobal());
-  JS::Rooted<JSObject*> compartmentGlobal(cx, JS::CurrentGlobalOrNull(cx));
-  nsIPrincipal* incumbentPrin = nsContentUtils::ObjectPrincipal(incumbentGlobal);
-  nsIPrincipal* compartmentPrin = nsContentUtils::ObjectPrincipal(compartmentGlobal);
-  return incumbentPrin->EqualsConsideringDomain(compartmentPrin) ? incumbentGlobal
-                                                                 : compartmentGlobal;
-}
-
-
 nsGlobalWindow*
 nsGlobalWindow::CallerInnerWindow()
 {
   JSContext *cx = nsContentUtils::GetCurrentJSContext();
   NS_ENSURE_TRUE(cx, nullptr);
-  JS::Rooted<JSObject*> scope(cx, CallerGlobal());
+  nsIGlobalObject* global = GetIncumbentGlobal();
+  NS_ENSURE_TRUE(global, nullptr);
+  JS::Rooted<JSObject*> scope(cx, global->GetGlobalJSObject());
+  NS_ENSURE_TRUE(scope, nullptr);
 
   
   
@@ -8258,10 +8227,9 @@ nsGlobalWindow::PostMessageMoz(JSContext* aCx, JS::Handle<JS::Value> aMessage,
   else {
     
     
-    JSObject *global = CallerGlobal();
+    nsIGlobalObject* global = GetIncumbentGlobal();
     NS_ASSERTION(global, "Why is there no global object?");
-    JSCompartment *compartment = js::GetObjectCompartment(global);
-    callerPrin = xpc::GetCompartmentPrincipal(compartment);
+    callerPrin = global->PrincipalOrNull();
   }
   if (!callerPrin) {
     return;
@@ -8823,16 +8791,6 @@ nsGlobalWindow::LeaveModalState()
   nsGlobalWindow *inner = topWin->GetCurrentInnerWindowInternal();
   if (inner)
     inner->mLastDialogQuitTime = TimeStamp::Now();
-
-  if (topWin->mModalStateDepth == 0) {
-    nsCOMPtr<nsIDOMEvent> event;
-    NS_NewDOMEvent(getter_AddRefs(event), topWin, nullptr, nullptr);
-    event->InitEvent(NS_LITERAL_STRING("endmodalstate"), true, false);
-    event->SetTrusted(true);
-    event->GetInternalNSEvent()->mFlags.mOnlyChromeDispatch = true;
-    bool dummy;
-    topWin->DispatchEvent(event, &dummy);
-  }
 }
 
 bool
