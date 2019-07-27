@@ -653,14 +653,6 @@ var LoginManagerContent = {
       return;
     }
 
-    
-    
-    let topWin = win.top;
-    if (/^about:accounts($|\?)/i.test(topWin.document.documentURI)) {
-      log("(form submission ignored -- about:accounts)");
-      return;
-    }
-
     let formSubmitURL = LoginUtils._getActionOrigin(form);
     let messageManager = messageManagerFromWindow(win);
 

@@ -275,6 +275,9 @@ PopupNotifications.prototype = {
 
 
 
+
+
+
   show: function PopupNotifications_show(browser, id, message, anchorID,
                                          mainAction, secondaryActions, options) {
     function isInvalidAction(a) {
