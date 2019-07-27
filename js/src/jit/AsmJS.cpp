@@ -5521,7 +5521,7 @@ ParallelCompilationEnabled(ExclusiveContext *cx)
     
     
     
-    if (HelperThreadState().threadCount <= 1)
+    if (HelperThreadState().threadCount <= 1 || !CanUseExtraThreads())
         return false;
 
     if (!cx->isJSContext())

@@ -1,6 +1,9 @@
 
 
 
+if (helperThreadCount() === 0)
+  quit(0);
+
 var g = newGlobal();
 var dbg = new Debugger;
 var gDO = dbg.addDebuggee(g);

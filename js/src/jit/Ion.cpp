@@ -1803,7 +1803,8 @@ OffThreadCompilationAvailable(JSContext *cx)
     
     
     return cx->runtime()->canUseOffthreadIonCompilation()
-        && HelperThreadState().cpuCount > 1;
+        && HelperThreadState().cpuCount > 1
+        && CanUseExtraThreads();
 #else
     return false;
 #endif

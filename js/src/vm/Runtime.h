@@ -483,6 +483,15 @@ void AssertCurrentThreadCanLock(RuntimeLock which);
 inline void AssertCurrentThreadCanLock(RuntimeLock which) {}
 #endif
 
+inline bool
+CanUseExtraThreads()
+{
+    extern bool gCanUseExtraThreads;
+    return gCanUseExtraThreads;
+}
+
+void DisableExtraThreads();
+
 
 
 

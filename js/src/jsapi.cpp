@@ -4575,7 +4575,7 @@ JS::CanCompileOffThread(JSContext *cx, const ReadOnlyCompileOptions &options, si
 #endif 
     }
 
-    return cx->runtime()->canUseParallelParsing();
+    return cx->runtime()->canUseParallelParsing() && CanUseExtraThreads();
 }
 
 JS_PUBLIC_API(bool)
