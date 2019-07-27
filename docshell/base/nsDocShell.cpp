@@ -10147,8 +10147,19 @@ nsDocShell::DoURILoad(nsIURI * aURI,
         requestingNode = mScriptGlobal->GetExtantDoc();
       }
     }
+
+    bool isSandBoxed = mSandboxFlags & SANDBOXED_ORIGIN;
+    
+    bool inherit = false;
+
     nsCOMPtr<nsIPrincipal> requestingPrincipal = do_QueryInterface(aOwner);
-    if (!requestingPrincipal && aReferrerURI) {
+    if (requestingPrincipal) {
+      inherit = nsContentUtils::ChannelShouldInheritPrincipal(requestingPrincipal,
+                                                              aURI,
+                                                              true, 
+                                                              isSrcdoc);
+    }
+    else if (!requestingPrincipal && aReferrerURI) {
       rv = CreatePrincipalFromReferrer(aReferrerURI,
                                        getter_AddRefs(requestingPrincipal));
       NS_ENSURE_SUCCESS(rv, rv);
@@ -10157,12 +10168,20 @@ nsDocShell::DoURILoad(nsIURI * aURI,
       requestingPrincipal = nsContentUtils::GetSystemPrincipal();
     }
 
+    nsSecurityFlags securityFlags = nsILoadInfo::SEC_NORMAL;
+    if (inherit) {
+      securityFlags |= nsILoadInfo::SEC_FORCE_INHERIT_PRINCIPAL;
+    }
+    if (isSandBoxed) {
+      securityFlags |= nsILoadInfo::SEC_SANDBOXED;
+    }
+
     if (!isSrcdoc) {
         rv = NS_NewChannelInternal(getter_AddRefs(channel),
                                    aURI,
                                    requestingNode,
                                    requestingPrincipal,
-                                   nsILoadInfo::SEC_NORMAL,
+                                   securityFlags,
                                    aContentPolicyType,
                                    channelPolicy,
                                    nullptr,   
@@ -10221,7 +10240,7 @@ nsDocShell::DoURILoad(nsIURI * aURI,
         nsCOMPtr<nsILoadInfo> loadInfo =
           new LoadInfo(requestingPrincipal,
                        requestingNode,
-                       nsILoadInfo::SEC_NORMAL,
+                       securityFlags,
                        aContentPolicyType);
         channel->SetLoadInfo(loadInfo);
     }
@@ -10385,11 +10404,6 @@ nsDocShell::DoURILoad(nsIURI * aURI,
             httpChannel->SetReferrer(aReferrerURI);
         }
     }
-
-    nsCOMPtr<nsIPrincipal> ownerPrincipal = do_QueryInterface(aOwner);
-    nsContentUtils::SetUpChannelOwner(ownerPrincipal, channel, aURI, true,
-                                      mSandboxFlags & SANDBOXED_ORIGIN,
-                                      isSrcdoc);
 
     nsCOMPtr<nsIScriptChannel> scriptChannel = do_QueryInterface(channel);
     if (scriptChannel) {

@@ -663,10 +663,23 @@ static nsresult NewImageChannel(nsIChannel **aResult,
   aLoadFlags |= nsIChannel::LOAD_CLASSIFY_URI;
 
   nsCOMPtr<nsIPrincipal> requestingPrincipal = aLoadingPrincipal;
-  if (!requestingPrincipal) {
+  bool isSandBoxed = false;
+  
+  bool inherit = false;
+  if (requestingPrincipal) {
+    inherit = nsContentUtils::ChannelShouldInheritPrincipal(requestingPrincipal,
+                                                            aURI,
+                                                            false,  
+                                                            false); 
+  }
+  else {
     requestingPrincipal = nsContentUtils::GetSystemPrincipal();
   }
   nsCOMPtr<nsINode> requestingNode = do_QueryInterface(aRequestingContext);
+  nsSecurityFlags securityFlags = nsILoadInfo::SEC_NORMAL;
+  if (inherit) {
+    securityFlags |= nsILoadInfo::SEC_FORCE_INHERIT_PRINCIPAL;
+  }
   
   
   
@@ -675,7 +688,7 @@ static nsresult NewImageChannel(nsIChannel **aResult,
                              aURI,
                              requestingNode,
                              requestingPrincipal,
-                             nsILoadInfo::SEC_NORMAL,
+                             securityFlags,
                              nsIContentPolicy::TYPE_IMAGE,
                              aPolicy,
                              nullptr,   
@@ -685,7 +698,7 @@ static nsresult NewImageChannel(nsIChannel **aResult,
   if (NS_FAILED(rv))
     return rv;
 
-  *aForcePrincipalCheckForCacheEntry = false;
+  *aForcePrincipalCheckForCacheEntry = inherit && !isSandBoxed;
 
   
   newHttpChannel = do_QueryInterface(*aResult);
@@ -710,11 +723,6 @@ static nsresult NewImageChannel(nsIChannel **aResult,
 
     p->AdjustPriority(priority);
   }
-
-  bool setOwner = nsContentUtils::SetUpChannelOwner(aLoadingPrincipal,
-                                                    *aResult, aURI, false,
-                                                    false, false);
-  *aForcePrincipalCheckForCacheEntry = setOwner;
 
   
   

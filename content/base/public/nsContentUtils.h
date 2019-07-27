@@ -1977,15 +1977,10 @@ public:
 
 
 
-
-
-
-  static bool SetUpChannelOwner(nsIPrincipal* aLoadingPrincipal,
-                                nsIChannel* aChannel,
-                                nsIURI* aURI,
-                                bool aInheritForAboutBlank,
-                                bool aIsSandboxed,
-                                bool aForceInherit);
+  static bool ChannelShouldInheritPrincipal(nsIPrincipal* aLoadingPrincipal,
+                                            nsIURI* aURI,
+                                            bool aInheritForAboutBlank,
+                                            bool aForceInherit);
 
   static nsresult Btoa(const nsAString& aBinaryData,
                        nsAString& aAsciiBase64String);

@@ -6440,36 +6440,13 @@ nsContentUtils::URIInheritsSecurityContext(nsIURI *aURI, bool *aResult)
 
 
 bool
-nsContentUtils::SetUpChannelOwner(nsIPrincipal* aLoadingPrincipal,
-                                  nsIChannel* aChannel,
-                                  nsIURI* aURI,
-                                  bool aInheritForAboutBlank,
-                                  bool aIsSandboxed,
-                                  bool aForceInherit)
+nsContentUtils::ChannelShouldInheritPrincipal(nsIPrincipal* aLoadingPrincipal,
+                                              nsIURI* aURI,
+                                              bool aInheritForAboutBlank,
+                                              bool aForceInherit)
 {
-  nsCOMPtr<nsIPrincipal> loadingPrincipal = aLoadingPrincipal;
-  if (!loadingPrincipal) {
-    if (!aIsSandboxed) {
-      
-      return false;
-    }
+  MOZ_ASSERT(aLoadingPrincipal, "Can not check inheritance without a principal");
 
-    
-    
-    
-    loadingPrincipal = do_CreateInstance(NS_NULLPRINCIPAL_CONTRACTID);
-    if (!loadingPrincipal) {
-      NS_RUNTIMEABORT("Failed to create a principal?");
-    }
-  }
-
-  
-  
-  if (aIsSandboxed) {
-    aChannel->SetOwner(nullptr);
-  }
-
-  
   
   
   
@@ -6500,19 +6477,12 @@ nsContentUtils::SetUpChannelOwner(nsIPrincipal* aLoadingPrincipal,
       
       
       (URIIsLocalFile(aURI) &&
-       NS_SUCCEEDED(loadingPrincipal->CheckMayLoad(aURI, false, false)) &&
+       NS_SUCCEEDED(aLoadingPrincipal->CheckMayLoad(aURI, false, false)) &&
        
        
-       !IsSystemPrincipal(loadingPrincipal));
+       !IsSystemPrincipal(aLoadingPrincipal));
   }
-
-  nsCOMPtr<nsILoadInfo> loadInfo =
-    new LoadInfo(loadingPrincipal,
-                 inherit ?
-                   nsILoadInfo::eInheritPrincipal : nsILoadInfo::eDontInheritPrincipal,
-                 aIsSandboxed ? nsILoadInfo::eSandboxed : nsILoadInfo::eNotSandboxed);
-  aChannel->SetLoadInfo(loadInfo);
-  return inherit && !aIsSandboxed;
+  return inherit;
 }
 
 
