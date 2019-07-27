@@ -1066,17 +1066,21 @@ obj_freeze(JSContext *cx, unsigned argc, Value *vp)
     return JSObject::freeze(cx, obj);
 }
 
+
 static bool
 obj_isFrozen(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
-    RootedObject obj(cx);
-    if (!GetFirstArgumentAsObject(cx, args, "Object.preventExtensions", &obj))
-        return false;
 
-    bool frozen;
-    if (!JSObject::isFrozen(cx, obj, &frozen))
-        return false;
+    
+    bool frozen = true;
+
+    
+    if (args.get(0).isObject()) {
+        RootedObject obj(cx, &args.get(0).toObject());
+        if (!JSObject::isFrozen(cx, obj, &frozen))
+            return false;
+    }
     args.rval().setBoolean(frozen);
     return true;
 }
