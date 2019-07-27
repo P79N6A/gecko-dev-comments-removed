@@ -243,10 +243,21 @@ class MDefinitionVisitor
 #undef VISIT_INS
 };
 
+
+
 class MDefinitionVisitorWithDefaults : public MDefinitionVisitor
 {
   public:
 #define VISIT_INS(op) virtual bool visit##op(M##op *) { MOZ_ASSUME_UNREACHABLE("NYI: " #op); }
+    MIR_OPCODE_LIST(VISIT_INS)
+#undef VISIT_INS
+};
+
+
+class MDefinitionVisitorDefaultNoop : public MDefinitionVisitor
+{
+  public:
+#define VISIT_INS(op) virtual bool visit##op(M##op *) { return true; }
     MIR_OPCODE_LIST(VISIT_INS)
 #undef VISIT_INS
 };
