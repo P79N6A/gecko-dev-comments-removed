@@ -2705,24 +2705,23 @@ js::SetClassAndProto(JSContext *cx, HandleObject obj,
                      const Class *clasp, Handle<js::TaggedProto> proto)
 {
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     RootedObject oldproto(cx, obj);
     while (oldproto && oldproto->isNative()) {
         if (oldproto->hasSingletonType()) {
@@ -2732,8 +2731,17 @@ js::SetClassAndProto(JSContext *cx, HandleObject obj,
             if (!oldproto->setUncacheableProto(cx))
                 return false;
         }
+        if (!obj->isDelegate()) {
+            
+            
+            MOZ_ASSERT(obj == oldproto);
+            break;
+        }
         oldproto = oldproto->getProto();
     }
+
+    if (proto.isObject() && !proto.toObject()->setDelegate(cx))
+        return false;
 
     if (obj->hasSingletonType()) {
         

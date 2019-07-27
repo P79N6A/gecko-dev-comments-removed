@@ -4386,6 +4386,9 @@ JSObject::splicePrototype(JSContext *cx, const Class *clasp, Handle<TaggedProto>
     
     MOZ_ASSERT_IF(proto.isObject(), !proto.toObject()->getClass()->ext.outerObject);
 
+    if (proto.isObject() && !proto.toObject()->setDelegate(cx))
+        return false;
+
     
 
 
