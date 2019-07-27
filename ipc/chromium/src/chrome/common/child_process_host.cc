@@ -143,10 +143,10 @@ void ChildProcessHost::OnWaitableEventSignaled(base::WaitableEvent *event) {
   bool did_crash = base::DidProcessCrash(NULL, object);
   if (did_crash) {
     
-    Notify(NotificationType::CHILD_PROCESS_CRASHED);
+    Notify(NotificationType(NotificationType::CHILD_PROCESS_CRASHED));
   }
   
-  Notify(NotificationType::CHILD_PROCESS_HOST_DISCONNECTED);
+  Notify(NotificationType(NotificationType::CHILD_PROCESS_HOST_DISCONNECTED));
 #endif
 }
 
