@@ -7,6 +7,11 @@ var gNextRunFunc;
 var gExpectedStatusResult;
 
 function run_test() {
+  
+  
+  
+  do_get_profile();
+
   setupTestCommon();
 
   debugDump("testing mar download and mar hash verification");

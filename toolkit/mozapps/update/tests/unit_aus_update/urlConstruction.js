@@ -125,6 +125,11 @@ function check_test_pt4() {
 
 
 function run_test_pt5() {
+  
+  
+  
+  do_get_profile();
+
   gCheckFunc = check_test_pt5;
   let url = URL_PREFIX + "%LOCALE%/";
   debugDump("testing url constructed with %LOCALE% - " + url);
