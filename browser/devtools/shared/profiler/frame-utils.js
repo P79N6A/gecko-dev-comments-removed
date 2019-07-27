@@ -59,10 +59,25 @@ exports.parseLocation = function parseLocation (frame) {
 
 
 
+exports.isRoot = function isRoot({ location }) {
+  return location === "(root)";
+};
 
 
-exports.isContent = function isContent ({ category, location }) {
+
+
+
+
+
+
+
+exports.isContent = function isContent (frame) {
+  if (exports.isRoot(frame)) {
+    return true;
+  }
+
   
+  const { category, location } = frame;
   return !!(!category &&
     !CHROME_SCHEMES.find(e => location.includes(e)) &&
     CONTENT_SCHEMES.find(e => location.includes(e)));

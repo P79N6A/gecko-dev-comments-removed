@@ -93,15 +93,20 @@ ThreadNode.prototype = {
 
     let sampleFrames = sample.frames;
 
-    
-    
-    if (options.contentOnly) {
+    if (!options.invertTree) {
       
-      sampleFrames = FrameUtils.filterPlatformData(sampleFrames);
-    } else {
+      
+      
       
       sampleFrames = sampleFrames.slice(1);
     }
+
+    
+    
+    if (options.contentOnly) {
+      sampleFrames = FrameUtils.filterPlatformData(sampleFrames);
+    }
+
     
     
     if (!sampleFrames.length) {
