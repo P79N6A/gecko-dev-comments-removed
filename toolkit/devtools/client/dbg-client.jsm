@@ -987,15 +987,19 @@ DebuggerClient.prototype = {
         typeof this._clients.get(aPacket.from)._onThreadState == "function") {
       this._clients.get(aPacket.from)._onThreadState(aPacket);
     }
+
     
-    
-    
-    if (aPacket.type == UnsolicitedNotifications.tabNavigated &&
-        this._clients.has(aPacket.from) &&
-        this._clients.get(aPacket.from).thread) {
-      let thread = this._clients.get(aPacket.from).thread;
-      let resumption = { from: thread._actor, type: "resumed" };
-      thread._onThreadState(resumption);
+    if (!this.traits.noNeedToFakeResumptionOnNavigation) {
+      
+      
+      
+      if (aPacket.type == UnsolicitedNotifications.tabNavigated &&
+          this._clients.has(aPacket.from) &&
+          this._clients.get(aPacket.from).thread) {
+        let thread = this._clients.get(aPacket.from).thread;
+        let resumption = { from: thread._actor, type: "resumed" };
+        thread._onThreadState(resumption);
+      }
     }
 
     
