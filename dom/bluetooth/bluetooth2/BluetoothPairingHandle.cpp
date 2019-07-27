@@ -82,11 +82,8 @@ BluetoothPairingHandle::SetPinCode(const nsAString& aPinCode, ErrorResult& aRv)
   BluetoothService* bs = BluetoothService::Get();
   BT_ENSURE_TRUE_REJECT(bs, promise, NS_ERROR_NOT_AVAILABLE);
 
-  nsRefPtr<BluetoothReplyRunnable> result =
-    new BluetoothVoidReplyRunnable(nullptr ,
-                                   promise,
-                                   NS_LITERAL_STRING("SetPinCode"));
-  bs->PinReplyInternal(mDeviceAddress, true , aPinCode, result);
+  bs->PinReplyInternal(mDeviceAddress, true , aPinCode,
+                       new BluetoothVoidReplyRunnable(nullptr, promise));
 
   return promise.forget();
 }
@@ -116,12 +113,8 @@ BluetoothPairingHandle::Accept(ErrorResult& aRv)
                         promise,
                         NS_ERROR_DOM_OPERATION_ERR);
 
-  nsRefPtr<BluetoothReplyRunnable> result =
-    new BluetoothVoidReplyRunnable(nullptr ,
-                                   promise,
-                                   NS_LITERAL_STRING("Accept"));
-  bs->SspReplyInternal(
-    mDeviceAddress, variant, true , result);
+  bs->SspReplyInternal(mDeviceAddress, variant, true ,
+                       new BluetoothVoidReplyRunnable(nullptr, promise));
 
   return promise.forget();
 }
@@ -141,22 +134,17 @@ BluetoothPairingHandle::Reject(ErrorResult& aRv)
   BluetoothService* bs = BluetoothService::Get();
   BT_ENSURE_TRUE_REJECT(bs, promise, NS_ERROR_NOT_AVAILABLE);
 
-  nsRefPtr<BluetoothReplyRunnable> result =
-    new BluetoothVoidReplyRunnable(nullptr ,
-                                   promise,
-                                   NS_LITERAL_STRING("Reject"));
-
   if (mType.EqualsLiteral(PAIRING_REQ_TYPE_ENTERPINCODE)) { 
-    bs->PinReplyInternal(
-      mDeviceAddress, false , EmptyString(), result);
+    bs->PinReplyInternal(mDeviceAddress, false , EmptyString(),
+                         new BluetoothVoidReplyRunnable(nullptr, promise));
   } else { 
     BluetoothSspVariant variant;
     BT_ENSURE_TRUE_REJECT(GetSspVariant(variant),
                           promise,
                           NS_ERROR_DOM_OPERATION_ERR);
 
-    bs->SspReplyInternal(
-      mDeviceAddress, variant, false , result);
+    bs->SspReplyInternal(mDeviceAddress, variant, false ,
+                         new BluetoothVoidReplyRunnable(nullptr, promise));
   }
 
   return promise.forget();
