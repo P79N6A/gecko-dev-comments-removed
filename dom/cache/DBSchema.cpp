@@ -28,11 +28,11 @@ namespace dom {
 namespace cache {
 namespace db {
 
-const int32_t kMaxWipeSchemaVersion = 7;
+const int32_t kMaxWipeSchemaVersion = 8;
 
 namespace {
 
-const int32_t kLatestSchemaVersion = 7;
+const int32_t kLatestSchemaVersion = 8;
 const int32_t kMaxEntriesPerStatement = 255;
 
 } 
@@ -343,12 +343,12 @@ InitializeConnection(mozIStorageConnection* aConn)
   
 
   nsAutoCString pragmas(
-#if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_GONK)
+    "PRAGMA journal_mode = WAL; "
     
     
+    "PRAGMA wal_autocheckpoint = 16; "
     
-    "PRAGMA journal_mode = TRUNCATE; "
-#endif
+    "PRAGMA journal_size_limit = 524288; "
     "PRAGMA foreign_keys = ON; "
 
     

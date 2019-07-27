@@ -188,6 +188,9 @@ DBAction::WipeDatabase(nsIFile* aDBFile, nsIFile* aDBDir)
   if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
 
   
+  
+
+  
   rv = BodyDeleteDir(aDBDir);
   if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
 
