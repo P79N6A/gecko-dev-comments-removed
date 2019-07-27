@@ -68,7 +68,7 @@ BEGIN_TEST(testSetProperty_InheritedGlobalSetter)
     
     
     
-    MOZ_ASSERT(!JS_GetClass(global)->resolve);
+    MOZ_RELEASE_ASSERT(!JS_GetClass(global)->resolve);
 
     CHECK(JS_DefineProperty(cx, global, "HOTLOOP", 8, 0));
     EXEC("var n = 0;\n"
@@ -82,4 +82,3 @@ BEGIN_TEST(testSetProperty_InheritedGlobalSetter)
     return true;
 }
 END_TEST(testSetProperty_InheritedGlobalSetter)
-
