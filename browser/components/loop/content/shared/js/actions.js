@@ -362,6 +362,29 @@ loop.shared.actions = (function() {
     
 
 
+
+    ShareRoomUrl: Action.define("shareRoomUrl", {
+      provider: Object,
+      roomUrl: String
+    }),
+
+    
+
+
+
+    AddSocialShareButton: Action.define("addSocialShareButton", {
+    }),
+
+    
+
+
+
+    AddSocialShareProvider: Action.define("addSocialShareProvider", {
+    }),
+
+    
+
+
     RoomFailure: Action.define("roomFailure", {
       error: Object,
       
@@ -378,7 +401,9 @@ loop.shared.actions = (function() {
       
       roomOwner: String,
       roomToken: String,
-      roomUrl: String
+      roomUrl: String,
+      socialShareButtonAvailable: Boolean,
+      socialShareProviders: Array
     }),
 
     
@@ -392,6 +417,15 @@ loop.shared.actions = (function() {
       
       roomOwner: String,
       roomUrl: String
+    }),
+
+    
+
+
+
+    UpdateSocialShareInfo: Action.define("updateSocialShareInfo", {
+      socialShareButtonAvailable: Boolean,
+      socialShareProviders: Array
     }),
 
     

@@ -98,37 +98,68 @@ loop.shared.mixins = (function() {
       this.setState({showMenu: false});
     },
 
-    componentDidMount: function() {
-      this.documentBody.addEventListener("click", this._onBodyClick);
-      rootObject.addEventListener("blur", this.hideDropdownMenu);
-
-      var menu = this.refs.menu;
+    _correctMenuPosition: function() {
+      var menu = this.refs.menu && this.refs.menu.getDOMNode();
       if (!menu) {
         return;
       }
 
       
-      var menuNode = menu.getDOMNode();
-      if (!menuNode) {
-        return;
-      }
-      var menuNodeRect = menuNode.getBoundingClientRect();
+      var x, y;
+      var menuNodeRect = menu.getBoundingClientRect();
+      var x = menuNodeRect.left;
+      var y = menuNodeRect.top;
+      
+      
+      var bodyMargin = 10;
       var bodyRect = {
-        height: this.documentBody.offsetHeight,
-        width: this.documentBody.offsetWidth
+        height: this.documentBody.offsetHeight - bodyMargin,
+        width: this.documentBody.offsetWidth - bodyMargin
       };
 
       
-      var y = menuNodeRect.top + menuNodeRect.height;
-      if (y >= bodyRect.height) {
-        menuNode.style.marginTop = bodyRect.height - y + "px";
+      var anchor = this.refs.anchor && this.refs.anchor.getDOMNode();
+      if (anchor) {
+        
+        
+        var anchorNodeRect = anchor.getBoundingClientRect();
+        
+        
+        x = anchorNodeRect.left - (menuNodeRect.width / 2) + (anchorNodeRect.width / 2);
+        y = anchorNodeRect.top - menuNodeRect.height - anchorNodeRect.height;
       }
 
+      var overflowX = false;
+      var overflowY = false;
       
-      var x = menuNodeRect.left + menuNodeRect.width;
-      if (x >= bodyRect.width) {
-        menuNode.style.marginLeft = bodyRect.width - x + "px";
+      if (x + menuNodeRect.width > bodyRect.width) {
+        
+        x = bodyRect.width - ((anchor ? 0 : x) + menuNodeRect.width);
+        overflowX = true;
       }
+      
+      if (y + menuNodeRect.height > bodyRect.height) {
+        
+        y = bodyRect.height - ((anchor ? 0 : y) + menuNodeRect.height);
+        overflowY = true;
+      }
+
+      if (anchor || overflowX) {
+        menu.style.marginLeft = x + "px";
+      } else if (!menu.style.marginLeft) {
+        menu.style.marginLeft = "auto";
+      }
+
+      if (anchor || overflowY) {
+        menu.style.marginTop =  y + "px";
+      } else if (!menu.style.marginLeft) {
+        menu.style.marginTop = "auto";
+      }
+    },
+
+    componentDidMount: function() {
+      this.documentBody.addEventListener("click", this._onBodyClick);
+      rootObject.addEventListener("blur", this.hideDropdownMenu);
     },
 
     componentWillUnmount: function() {
@@ -138,6 +169,7 @@ loop.shared.mixins = (function() {
 
     showDropdownMenu: function() {
       this.setState({showMenu: true});
+      rootObject.setTimeout(this._correctMenuPosition, 0);
     },
 
     hideDropdownMenu: function() {
@@ -145,7 +177,7 @@ loop.shared.mixins = (function() {
     },
 
     toggleDropdownMenu: function() {
-      this.setState({showMenu: !this.state.showMenu});
+      this[this.state.showMenu ? "hideDropdownMenu" : "showDropdownMenu"]();
     },
   };
 
