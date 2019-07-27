@@ -736,6 +736,11 @@ protected:
                                            bool aMustCallValueAppended,
                                            bool* aChanged,
                                            nsCSSContextType aContext);
+  
+  
+  
+  bool ParseWebkitPrefixedGradient(nsAString& aPrefixedFuncName,
+                                   nsCSSValue& aValue);
 
   bool ParseProperty(nsCSSProperty aPropID);
   bool ParsePropertyByFunction(nsCSSProperty aPropID);
@@ -6685,6 +6690,72 @@ CSSParserImpl::ParsePropertyWithUnprefixingService(
   return success;
 }
 
+bool
+CSSParserImpl::ParseWebkitPrefixedGradient(nsAString& aPrefixedFuncName,
+                                           nsCSSValue& aValue)
+{
+  MOZ_ASSERT(ShouldUseUnprefixingService(),
+             "Should only call if we're allowed to use unprefixing service");
+
+  
+  
+  nsAutoString prefixedFuncBody;
+  mScanner->StartRecording();
+  bool gotCloseParen = SkipUntil(')');
+  mScanner->StopRecording(prefixedFuncBody);
+  if (gotCloseParen) {
+    
+    
+    prefixedFuncBody.Truncate(prefixedFuncBody.Length() - 1);
+  }
+
+  
+  
+  
+  
+  
+  nsCOMPtr<nsICSSUnprefixingService> unprefixingSvc =
+    do_GetService(NS_CSSUNPREFIXINGSERVICE_CONTRACTID);
+  NS_ENSURE_TRUE(unprefixingSvc, false);
+
+  bool success;
+  nsAutoString unprefixedFuncName;
+  nsAutoString unprefixedFuncBody;
+  nsresult rv =
+    unprefixingSvc->GenerateUnprefixedGradientValue(aPrefixedFuncName,
+                                                    prefixedFuncBody,
+                                                    unprefixedFuncName,
+                                                    unprefixedFuncBody,
+                                                    &success);
+
+  if (NS_FAILED(rv) || !success) {
+    return false;
+  }
+
+  
+  
+
+  
+  
+  
+  if (gotCloseParen) {
+    unprefixedFuncBody.Append(char16_t(')'));
+  }
+
+  nsAutoScannerChanger scannerChanger(this, unprefixedFuncBody);
+  if (unprefixedFuncName.EqualsLiteral("linear-gradient")) {
+    return ParseLinearGradient(aValue, false, false);
+  }
+  if (unprefixedFuncName.EqualsLiteral("radial-gradient")) {
+    return ParseRadialGradient(aValue, false, false);
+  }
+
+  NS_ERROR("CSSUnprefixingService returned an unrecognized type of "
+           "gradient function");
+
+  return false;
+}
+
 
 
 bool
@@ -7307,6 +7378,14 @@ CSSParserImpl::ParseVariant(nsCSSValue& aValue,
     }
     if (tmp.LowerCaseEqualsLiteral("radial-gradient")) {
       return ParseRadialGradient(aValue, isRepeating, isLegacy);
+    }
+    if (ShouldUseUnprefixingService() &&
+        !isRepeating && !isLegacy &&
+        StringBeginsWith(tmp, NS_LITERAL_STRING("-webkit-"))) {
+      
+      
+      nsAutoString prefixedFuncName(tmp);
+      return ParseWebkitPrefixedGradient(prefixedFuncName, aValue);
     }
   }
   if ((aVariantMask & VARIANT_IMAGE_RECT) != 0 &&
@@ -10551,7 +10630,11 @@ CSSParserImpl::ParseBackgroundItem(CSSParserImpl::BackgroundParseState& aState)
                  mToken.mIdent.LowerCaseEqualsLiteral("-moz-repeating-linear-gradient") ||
                  mToken.mIdent.LowerCaseEqualsLiteral("-moz-repeating-radial-gradient") ||
                  mToken.mIdent.LowerCaseEqualsLiteral("-moz-image-rect") ||
-                 mToken.mIdent.LowerCaseEqualsLiteral("-moz-element")))) {
+                 mToken.mIdent.LowerCaseEqualsLiteral("-moz-element") ||
+                 (ShouldUseUnprefixingService() &&
+                  (mToken.mIdent.LowerCaseEqualsLiteral("-webkit-gradient") ||
+                   mToken.mIdent.LowerCaseEqualsLiteral("-webkit-linear-gradient") ||
+                   mToken.mIdent.LowerCaseEqualsLiteral("-webkit-radial-gradient")))))) {
       if (haveImage)
         return false;
       haveImage = true;

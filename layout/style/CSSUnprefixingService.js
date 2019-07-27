@@ -151,6 +151,20 @@ CSSUnprefixingService.prototype = {
     
     return false;
   },
+
+  
+  generateUnprefixedGradientValue: function(aPrefixedFuncName,
+                                            aPrefixedFuncBody,
+                                            aUnprefixedFuncName, 
+                                            aUnprefixedFuncBody ) {
+    
+    
+    
+    
+    
+
+    return false;
+  },
 };
 
 this.NSGetFactory = XPCOMUtils.generateNSGetFactory([CSSUnprefixingService]);
