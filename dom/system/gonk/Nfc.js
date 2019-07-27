@@ -62,8 +62,8 @@ const NFC_IPC_WRITE_PERM_MSG_NAMES = [
   "NFC:WriteNDEF",
   "NFC:MakeReadOnlyNDEF",
   "NFC:SendFile",
-  "NFC:RegisterPeerTarget",
-  "NFC:UnregisterPeerTarget"
+  "NFC:RegisterPeerReadyTarget",
+  "NFC:UnregisterPeerReadyTarget"
 ];
 
 const NFC_IPC_MANAGER_PERM_MSG_NAMES = [
@@ -224,52 +224,28 @@ XPCOMUtils.defineLazyGetter(this, "gMessageManager", function () {
       }
     },
 
-    registerPeerTarget: function registerPeerTarget(msg) {
+    registerPeerReadyTarget: function registerPeerReadyTarget(msg) {
       let appInfo = msg.json;
-      
-      if (!this.isValidPeerEvent(appInfo.event)) {
-        return;
-      }
       let targets = this.peerTargetsMap;
       let targetInfo = targets[appInfo.appId];
       
       if (targetInfo) {
-        
-        if (targetInfo.event !== appInfo.event) {
-          
-          targetInfo.event |= appInfo.event;
-        }
-        
         return;
       }
-      
 
       
-      
-      
       let newTargetInfo = { target : msg.target,
-                            event  : appInfo.event };
+                            isPeerReadyCalled: false };
       targets[appInfo.appId] = newTargetInfo;
     },
 
-    unregisterPeerTarget: function unregisterPeerTarget(msg) {
+    unregisterPeerReadyTarget: function unregisterPeerReadyTarget(msg) {
       let appInfo = msg.json;
-      
-      if (!this.isValidPeerEvent(appInfo.event)) {
-        return;
-      }
       let targets = this.peerTargetsMap;
       let targetInfo = targets[appInfo.appId];
       if (targetInfo) {
         
-        if (targetInfo.event === appInfo.event) {
-          
-          delete targets[appInfo.appId]
-        }
-        else {
-          
-          targetInfo.event &= ~appInfo.event;
-        }
+        delete targets[appInfo.appId]
       }
     },
 
@@ -284,39 +260,29 @@ XPCOMUtils.defineLazyGetter(this, "gMessageManager", function () {
       });
     },
 
-    isRegisteredP2PTarget: function isRegisteredP2PTarget(appId, event) {
+    isPeerReadyTarget: function isPeerReadyTarget(appId) {
       let targetInfo = this.peerTargetsMap[appId];
-      
-      return ((targetInfo != null) && ((targetInfo.event & event) !== 0));
+      return (targetInfo != null);
+    },
+
+    isPeerReadyCalled: function isPeerReadyCalled(appId) {
+      let targetInfo = this.peerTargetsMap[appId];
+      return targetInfo.IsPeerReadyCalled;
     },
 
     notifyPeerEvent: function notifyPeerEvent(appId, event) {
       let targetInfo = this.peerTargetsMap[appId];
-      
-      if (this.isRegisteredP2PTarget(appId, event)) {
-        targetInfo.target.sendAsyncMessage("NFC:PeerEvent", {
-          event: event,
-          sessionToken: this.nfc.sessionTokenMap[this.nfc._currentSessionId]
-        });
-        return;
-      }
-      debug("Application ID : " + appId + " is not a registered target" +
-                             "for the event " + event + " notification");
-    },
-
-    isValidPeerEvent: function isValidPeerEvent(event) {
-      
-      return ((event === NFC.NFC_PEER_EVENT_READY) ||
-              (event === NFC.NFC_PEER_EVENT_LOST)  ||
-              (event === (NFC.NFC_PEER_EVENT_READY | NFC.NFC_PEER_EVENT_LOST)));
+      targetInfo.target.sendAsyncMessage("NFC:PeerEvent", {
+        event: event,
+        sessionToken: this.nfc.sessionTokenMap[this.nfc._currentSessionId]
+      });
     },
 
     checkP2PRegistration: function checkP2PRegistration(msg) {
       
       
       let isValid = !!this.nfc.sessionTokenMap[this.nfc._currentSessionId] &&
-                    this.isRegisteredP2PTarget(msg.json.appId,
-                                               NFC.NFC_PEER_EVENT_READY);
+                    this.isPeerReadyTarget(msg.json.appId);
       
       this.currentPeerAppId = (isValid) ? msg.json.appId : null;
 
@@ -378,17 +344,24 @@ XPCOMUtils.defineLazyGetter(this, "gMessageManager", function () {
           debug("Registering target for this SessionToken : " +
                 this.nfc.sessionTokenMap[this.nfc._currentSessionId]);
           return NFC.NFC_SUCCESS;
-        case "NFC:RegisterPeerTarget":
-          this.registerPeerTarget(msg);
+        case "NFC:RegisterPeerReadyTarget":
+          this.registerPeerReadyTarget(msg);
           return null;
-        case "NFC:UnregisterPeerTarget":
-          this.unregisterPeerTarget(msg);
+        case "NFC:UnregisterPeerReadyTarget":
+          this.unregisterPeerReadyTarget(msg);
           return null;
         case "NFC:CheckP2PRegistration":
           this.checkP2PRegistration(msg);
           return null;
         case "NFC:NotifyUserAcceptedP2P":
           
+          if (!this.isPeerReadyTarget(msg.json.appId)) {
+            debug("Application ID : " + appId + " is not a registered PeerReadytarget");
+            return null;
+          }
+
+          let targetInfo = this.peerTargetsMap[msg.json.appId];
+          targetInfo.IsPeerReadyCalled = true;
           this.notifyPeerEvent(msg.json.appId, NFC.NFC_PEER_EVENT_READY);
           return null;
         case "NFC:NotifySendFileStatus":
@@ -530,8 +503,15 @@ Nfc.prototype = {
         delete message.sessionId;
 
         gSystemMessenger.broadcastMessage("nfc-manager-tech-lost", message);
+
+        let appId = gMessageManager.currentPeerAppId;
+
         
-        gMessageManager.notifyPeerEvent(gMessageManager.currentPeerAppId, NFC.NFC_PEER_EVENT_LOST);
+        
+        if (gMessageManager.isPeerReadyTarget(appId) && gMessageManager.isPeerReadyCalled(appId)) {
+          gMessageManager.notifyPeerEvent(appId, NFC.NFC_PEER_EVENT_LOST);
+        }
+
         delete this.sessionTokenMap[this._currentSessionId];
         this._currentSessionId = null;
         this.currentPeerAppId = null;
