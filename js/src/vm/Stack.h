@@ -197,7 +197,6 @@ class AbstractFramePtr
     inline bool isFunctionFrame() const;
     inline bool isGlobalFrame() const;
     inline bool isEvalFrame() const;
-    inline bool isFramePushedByExecute() const;
     inline bool isDebuggerFrame() const;
 
     inline JSScript *script() const;
@@ -235,8 +234,6 @@ class AbstractFramePtr
 
     JSObject *evalPrevScopeChain(JSContext *cx) const;
 
-    inline void *maybeHookData() const;
-    inline void setHookData(void *data) const;
     inline HandleValue returnValue() const;
     inline void setReturnValue(const Value &rval) const;
 
@@ -318,7 +315,6 @@ class InterpreterFrame
         HAS_ARGS_OBJ       =      0x200,  
 
         
-        HAS_HOOK_DATA      =      0x400,  
         HAS_RVAL           =      0x800,  
         HAS_SCOPECHAIN     =     0x1000,  
 
@@ -361,7 +357,7 @@ class InterpreterFrame
     jsbytecode          *prevpc_;
     Value               *prevsp_;
 
-    void                *hookData_;     
+    void                *unused;
 
     
 
@@ -744,24 +740,6 @@ class InterpreterFrame
 
     
 
-    bool hasHookData() const {
-        return !!(flags_ & HAS_HOOK_DATA);
-    }
-
-    void* hookData() const {
-        JS_ASSERT(hasHookData());
-        return hookData_;
-    }
-
-    void* maybeHookData() const {
-        return hasHookData() ? hookData_ : nullptr;
-    }
-
-    void setHookData(void *v) {
-        hookData_ = v;
-        flags_ |= HAS_HOOK_DATA;
-    }
-
     bool hasPushedSPSFrame() {
         return !!(flags_ & HAS_PUSHED_SPS_FRAME);
     }
@@ -846,17 +824,6 @@ class InterpreterFrame
     template <TriggerPostBarriers doPostBarrier>
     void copyFrameAndValues(JSContext *cx, Value *vp, InterpreterFrame *otherfp,
                             const Value *othervp, Value *othersp);
-
-    
-
-
-
-
-
-
-    bool isFramePushedByExecute() const {
-        return !!(flags_ & (GLOBAL | EVAL));
-    }
 
     
 

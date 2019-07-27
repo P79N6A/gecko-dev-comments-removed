@@ -1017,7 +1017,6 @@ js::XDRScript(XDRState<mode> *xdr, HandleObject enclosingScope, HandleScript enc
         scriptp.set(script);
 
         
-        CallNewScriptHook(cx, script, fun);
         if (!fun) {
             RootedGlobalObject global(cx, script->compileAndGo() ? &script->global() : nullptr);
             Debugger::onNewScript(cx, script, global);
@@ -2622,32 +2621,6 @@ JSScript::uninlinedGlobal() const
 }
 
 void
-js::CallNewScriptHook(JSContext *cx, HandleScript script, HandleFunction fun)
-{
-    if (script->selfHosted())
-        return;
-
-    JS_ASSERT(!script->isActiveEval());
-    if (JSNewScriptHook hook = cx->runtime()->debugHooks.newScriptHook) {
-        AutoKeepAtoms keepAtoms(cx->perThreadData);
-        hook(cx, script->filename(), script->lineno(), script, fun,
-             cx->runtime()->debugHooks.newScriptHookData);
-    }
-}
-
-void
-js::CallDestroyScriptHook(FreeOp *fop, JSScript *script)
-{
-    if (script->selfHosted())
-        return;
-
-    
-    if (JSDestroyScriptHook hook = fop->runtime()->debugHooks.destroyScriptHook)
-        hook(fop, script, fop->runtime()->debugHooks.destroyScriptHookData);
-    script->clearTraps(fop);
-}
-
-void
 JSScript::finalize(FreeOp *fop)
 {
     
@@ -2655,7 +2628,7 @@ JSScript::finalize(FreeOp *fop)
     
     
 
-    CallDestroyScriptHook(fop, this);
+    clearTraps(fop);
     fop->runtime()->spsProfiler.onScriptFinalized(this);
 
     if (types)
@@ -3137,7 +3110,6 @@ js::CloneFunctionScript(JSContext *cx, HandleFunction original, HandleFunction c
     cscript->setFunction(clone);
 
     script = clone->nonLazyScript();
-    CallNewScriptHook(cx, script, clone);
     RootedGlobalObject global(cx, script->compileAndGo() ? &script->global() : nullptr);
     Debugger::onNewScript(cx, script, global);
 

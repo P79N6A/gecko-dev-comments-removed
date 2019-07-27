@@ -298,9 +298,6 @@ js::StartOffThreadParseScript(JSContext *cx, const ReadOnlyCompileOptions &optio
     
     gc::AutoSuppressGC suppress(cx);
 
-    SourceBufferHolder srcBuf(chars, length, SourceBufferHolder::NoOwnership);
-    frontend::MaybeCallSourceHandler(cx, options, srcBuf);
-
     EnsureHelperThreadsInitialized(cx);
 
     JS::CompartmentOptions compartmentOptions(cx->compartment()->options());
@@ -701,33 +698,6 @@ GlobalHelperThreadState::canStartGCHelperTask()
     return !gcHelperWorklist().empty();
 }
 
-static void
-CallNewScriptHookForAllScripts(JSContext *cx, HandleScript script)
-{
-    
-    
-    JS_CHECK_RECURSION(cx, return);
-
-    
-    if (script->hasObjects()) {
-        ObjectArray *objects = script->objects();
-        for (size_t i = 0; i < objects->length; i++) {
-            JSObject *obj = objects->vector[i];
-            if (obj->is<JSFunction>()) {
-                JSFunction *fun = &obj->as<JSFunction>();
-                if (fun->hasScript()) {
-                    RootedScript nested(cx, fun->nonLazyScript());
-                    CallNewScriptHookForAllScripts(cx, nested);
-                }
-            }
-        }
-    }
-
-    
-    RootedFunction function(cx, script->functionNonDelazifying());
-    CallNewScriptHook(cx, script, function);
-}
-
 JSScript *
 GlobalHelperThreadState::finishParseTask(JSContext *maybecx, JSRuntime *rt, void *token)
 {
@@ -817,9 +787,6 @@ GlobalHelperThreadState::finishParseTask(JSContext *maybecx, JSRuntime *rt, void
         if (script->compileAndGo())
             compileAndGoGlobal = &script->global();
         Debugger::onNewScript(cx, script, compileAndGoGlobal);
-
-        
-        CallNewScriptHookForAllScripts(cx, script);
 
         
         

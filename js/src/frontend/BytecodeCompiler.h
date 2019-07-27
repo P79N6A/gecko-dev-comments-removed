@@ -46,14 +46,6 @@ CreateScriptSourceObject(ExclusiveContext *cx, const ReadOnlyCompileOptions &opt
 
 
 
-void
-MaybeCallSourceHandler(JSContext *cx, const ReadOnlyCompileOptions &options,
-                       JS::SourceBufferHolder &srcBuf);
-
-
-
-
-
 
 
 

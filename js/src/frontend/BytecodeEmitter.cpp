@@ -2003,8 +2003,6 @@ BytecodeEmitter::tellDebuggerAboutCompiledScript(ExclusiveContext *cx)
     if (!cx->isJSContext())
         return;
 
-    RootedFunction function(cx, script->functionNonDelazifying());
-    CallNewScriptHook(cx->asJSContext(), script, function);
     
     
     if (emitterMode != LazyFunction && !parent) {

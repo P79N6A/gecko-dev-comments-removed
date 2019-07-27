@@ -304,26 +304,9 @@ ReportError(JSContext *cx, const char *message, JSErrorReport *reportp,
     
 
 
-
-
-
-
-
     if (!JS_IsRunning(cx) || !js_ErrorToException(cx, message, reportp, callback, userRef)) {
         if (message)
             CallErrorReporter(cx, message, reportp);
-    } else if (JSDebugErrorHook hook = cx->runtime()->debugHooks.debugErrorHook) {
-        
-
-
-
-
-        int stackDummy;
-        if (!JS_CHECK_STACK_SIZE(GetNativeStackLimit(cx), &stackDummy))
-            return;
-
-        if (cx->errorReporter)
-            hook(cx, message, reportp, cx->runtime()->debugHooks.debugErrorHookData);
     }
 }
 
@@ -901,14 +884,6 @@ js::CallErrorReporter(JSContext *cx, const char *message, JSErrorReport *reportp
 {
     JS_ASSERT(message);
     JS_ASSERT(reportp);
-
-    
-    
-    if (cx->errorReporter) {
-        JSDebugErrorHook hook = cx->runtime()->debugHooks.debugErrorHook;
-        if (hook && !hook(cx, message, reportp, cx->runtime()->debugHooks.debugErrorHookData))
-            return;
-    }
 
     if (JSErrorReporter onError = cx->errorReporter)
         onError(cx, message, reportp);

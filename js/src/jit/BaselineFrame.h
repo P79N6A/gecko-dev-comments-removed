@@ -53,9 +53,6 @@ class BaselineFrame
         EVAL             = 1 << 6,
 
         
-        HAS_HOOK_DATA    = 1 << 7,
-
-        
         HAS_PUSHED_SPS_FRAME = 1 << 8,
 
         
@@ -92,7 +89,7 @@ class BaselineFrame
     JSObject *scopeChain_;                
     JSScript *evalScript_;                
     ArgumentsObject *argsObj_;            
-    void *hookData_;                      
+    void *unused;                         
     uint32_t unwoundScopeOverrideOffset_; 
     uint32_t flags_;
 
@@ -282,19 +279,6 @@ class BaselineFrame
     JSScript *evalScript() const {
         JS_ASSERT(isEvalFrame());
         return evalScript_;
-    }
-
-    bool hasHookData() const {
-        return flags_ & HAS_HOOK_DATA;
-    }
-
-    void *maybeHookData() const {
-        return hasHookData() ? hookData_ : nullptr;
-    }
-
-    void setHookData(void *v) {
-        hookData_ = v;
-        flags_ |= HAS_HOOK_DATA;
     }
 
     bool hasPushedSPSFrame() const {

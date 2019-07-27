@@ -1913,19 +1913,6 @@ class LazyScript : public gc::BarrieredCell<LazyScript>
 
 JS_STATIC_ASSERT(sizeof(LazyScript) % js::gc::CellSize == 0);
 
-
-
-
-
-
-
-
-extern void
-CallNewScriptHook(JSContext *cx, JS::HandleScript script, JS::HandleFunction fun);
-
-extern void
-CallDestroyScriptHook(FreeOp *fop, JSScript *script);
-
 struct SharedScriptData
 {
     uint32_t length;

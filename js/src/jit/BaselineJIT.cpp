@@ -82,12 +82,6 @@ CheckFrame(InterpreterFrame *fp)
     return true;
 }
 
-static bool
-IsJSDEnabled(JSContext *cx)
-{
-    return cx->compartment()->debugMode() && cx->runtime()->debugHooks.callHook;
-}
-
 static IonExecStatus
 EnterBaseline(JSContext *cx, EnterJitData &data)
 {
@@ -116,8 +110,6 @@ EnterBaseline(JSContext *cx, EnterJitData &data)
 
         if (data.osrFrame)
             data.osrFrame->setRunningInJit();
-
-        JS_ASSERT_IF(data.osrFrame, !IsJSDEnabled(cx));
 
         
         CALL_GENERATED_CODE(enter, data.jitcode, data.maxArgc, data.maxArgv, data.osrFrame, data.calleeToken,
@@ -273,9 +265,7 @@ CanEnterBaselineJIT(JSContext *cx, HandleScript script, bool osr)
     
     
     
-    
-    
-    if (IsJSDEnabled(cx) || cx->runtime()->forkJoinWarmup > 0) {
+    if (cx->runtime()->forkJoinWarmup > 0) {
         if (osr)
             return Method_Skipped;
     } else if (script->incUseCount() <= js_JitOptions.baselineUsesBeforeCompile) {
