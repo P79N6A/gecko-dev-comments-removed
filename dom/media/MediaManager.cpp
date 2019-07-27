@@ -1098,6 +1098,8 @@ public:
     MOZ_ASSERT(!mOnFailure);
 
     NS_DispatchToMainThread(runnable);
+    
+    NS_DispatchToMainThread(new GetUserMediaListenerRemove(mWindowID, mListener));
   }
 
   void
@@ -1156,9 +1158,6 @@ public:
       
       
       Fail(aName, aMessage);
-
-      
-      NS_DispatchToMainThread(new GetUserMediaListenerRemove(mWindowID, mListener));
     }
 
     MOZ_ASSERT(!mOnSuccess);
