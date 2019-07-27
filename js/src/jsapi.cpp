@@ -2741,7 +2741,6 @@ JS_AlreadyHasOwnPropertyById(JSContext *cx, HandleObject obj, HandleId id, bool 
 
     
     
-
     if (JSID_IS_INT(id)) {
         uint32_t index = JSID_TO_INT(id);
 
@@ -2820,24 +2819,22 @@ DefinePropertyById(JSContext *cx, HandleObject obj, HandleId id, HandleValue val
 {
     PropertyOp getter = get.op;
     StrictPropertyOp setter = set.op;
+
     
-
-
-
-
-
+    
+    
+    
     if (attrs & (JSPROP_GETTER | JSPROP_SETTER))
         attrs &= ~JSPROP_READONLY;
 
     
-
-
-
-
-
+    
+    
+    
     if (attrs & JSPROP_NATIVE_ACCESSORS) {
         JS_ASSERT(!(attrs & (JSPROP_GETTER | JSPROP_SETTER)));
         JSFunction::Flags zeroFlags = JSAPIToJSFunctionFlags(0);
+
         
         
         RootedAtom atom(cx, JSID_IS_ATOM(id) ? JSID_TO_ATOM(id) : nullptr);
