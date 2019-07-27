@@ -225,6 +225,24 @@ this.PlacesBackups = {
 
 
 
+   toISODateString: function toISODateString(dateObj) {
+    if (!dateObj || dateObj.constructor.name != "Date" || !dateObj.getTime())
+      throw new Error("invalid date object");
+    let padDate = val => ("0" + val).substr(-2, 2);
+    return [
+      dateObj.getFullYear(),
+      padDate(dateObj.getMonth() + 1),
+      padDate(dateObj.getDate())
+    ].join("-");
+   },
+
+  
+
+
+
+
+
+
 
 
 
@@ -233,7 +251,7 @@ this.PlacesBackups = {
     let dateObj = aDateObj || new Date();
     
     
-      return "bookmarks-" + dateObj.toLocaleFormat("%Y-%m-%d") + ".json" +
+      return "bookmarks-" + PlacesBackups.toISODateString(dateObj) + ".json" +
                             (aCompress ? "lz4" : "");
   },
 
