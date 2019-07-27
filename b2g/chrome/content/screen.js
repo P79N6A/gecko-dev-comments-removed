@@ -128,39 +128,39 @@ window.addEventListener('ContentStart', function() {
     }
   }
 
-  function resize(width, height, ratio, shouldFlip) {
+  Services.prefs.setCharPref('layout.css.devPixelsPerPx',
+                             ratio == 1 ? -1 : ratio);
+  let defaultOrientation = width < height ? 'portrait' : 'landscape';
+  GlobalSimulatorScreen.mozOrientation = GlobalSimulatorScreen.screenOrientation = defaultOrientation;
+
+  function resize() {
     GlobalSimulatorScreen.width = width;
     GlobalSimulatorScreen.height = height;
-
-    Services.prefs.setCharPref('layout.css.devPixelsPerPx',
-                               ratio == 1 ? -1 : ratio);
-
-    
-    
-    
-    
-    let scale = 1.0;
 
     
     
     let controls = document.getElementById('controls');
-    let controlsHeight = 0;
-    if (controls) {
-      controlsHeight = controls.getBoundingClientRect().height;
-    }
-    let chromewidth = window.outerWidth - window.innerWidth;
-    let chromeheight = window.outerHeight - window.innerHeight + controlsHeight;
+    let controlsHeight = controls ? controls.getBoundingClientRect().height : 0;
+
     if (isMulet) {
       let tab = browserWindow.gBrowser.selectedTab;
       let responsive = ResponsiveUIManager.getResponsiveUIForTab(tab);
-      responsive.setSize((Math.round(width * scale) + 16*2),
-                        (Math.round(height * scale) + controlsHeight + 61));
+      responsive.setSize(width + 16*2,
+                         height + controlsHeight + 61);
     } else {
-      window.resizeTo(Math.round(width * scale) + chromewidth,
-                      Math.round(height * scale) + chromeheight);
+      let chromewidth = window.outerWidth - window.innerWidth;
+      let chromeheight = window.outerHeight - window.innerHeight + controlsHeight;
+      window.resizeTo(width + chromewidth,
+                      height + chromeheight);
     }
 
     let frameWidth = width, frameHeight = height;
+
+    
+    
+    
+    let shouldFlip = GlobalSimulatorScreen.mozOrientation != GlobalSimulatorScreen.screenOrientation;
+
     if (shouldFlip) {
       frameWidth = height;
       frameHeight = width;
@@ -172,30 +172,29 @@ window.addEventListener('ContentStart', function() {
     style.height = 'calc(100% - ' + controlsHeight + 'px)';
     style.bottom = controlsHeight;
 
+    style.width = frameWidth + "px";
+    style.height = frameHeight + "px";
+
     if (shouldFlip) {
       
-      let shift = Math.floor(Math.abs(frameWidth-frameHeight) / 2);
+      let shift = Math.floor(Math.abs(frameWidth - frameHeight) / 2);
       style.transform +=
         ' rotate(0.25turn) translate(-' + shift + 'px, -' + shift + 'px)';
     }
   }
 
   
-  resize(width, height, ratio, false);
-
-  let defaultOrientation = width < height ? 'portrait' : 'landscape';
-  GlobalSimulatorScreen.mozOrientation = GlobalSimulatorScreen.screenOrientation = defaultOrientation;
+  resize();
 
   
   window.onresize = function() {
-    width = browser.clientWidth;
-    height = browser.clientHeight;
-    if ((defaultOrientation == 'portrait' && width > height) ||
-        (defaultOrientation == 'landscape' && width < height)) {
-      let w = width;
-      width = height;
-      height = w;
-    }
+    let controls = document.getElementById('controls');
+    let controlsHeight = controls ? controls.getBoundingClientRect().height : 0;
+
+    width = window.innerWidth;
+    height = window.innerHeight - controlsHeight;
+
+    queueResize();
   };
 
   
@@ -204,22 +203,30 @@ window.addEventListener('ContentStart', function() {
     let screen = subject.wrappedJSObject;
     let { mozOrientation, screenOrientation } = screen;
 
-    let newWidth = width;
-    let newHeight = height;
     
     
     if (screenOrientation != defaultOrientation) {
-      newWidth = height;
-      newHeight = width;
+      let w = width;
+      width = height;
+      height = w;
     }
+    defaultOrientation = screenOrientation;
 
-    
-    
-    
-    let shouldFlip = mozOrientation != screenOrientation;
-
-    resize(newWidth, newHeight, ratio, shouldFlip);
+    queueResize();
   }, 'simulator-adjust-window-size', false);
+
+  
+  
+  let resizeTimeout;
+  function queueResize() {
+    if (resizeTimeout) {
+      clearTimeout(resizeTimeout);
+    }
+    resizeTimeout = setTimeout(function () {
+      resizeTimeout = null;
+      resize();
+    }, 0);
+  }
 
   
   
