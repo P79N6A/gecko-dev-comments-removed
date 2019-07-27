@@ -340,7 +340,6 @@ LAllocation::aliases(const LAllocation& other) const
     return *this == other;
 }
 
-#ifdef DEBUG
 static const char * const TypeChars[] =
 {
     "g",            
@@ -444,7 +443,6 @@ LAllocation::toString() const
         MOZ_CRASH("what?");
     }
 }
-#endif 
 
 void
 LAllocation::dump() const
