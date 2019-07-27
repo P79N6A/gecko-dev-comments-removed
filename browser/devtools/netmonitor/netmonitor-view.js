@@ -336,6 +336,7 @@ function RequestsMenuView() {
   this._byFile = this._byFile.bind(this);
   this._byDomain = this._byDomain.bind(this);
   this._byType = this._byType.bind(this);
+  this._onSecurityIconClick = this._onSecurityIconClick.bind(this);
 }
 
 RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
@@ -1078,6 +1079,17 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
+  attachSecurityIconClickListener: function ({ target }) {
+    let icon = $(".requests-security-state-icon", target);
+    icon.addEventListener("click", this._onSecurityIconClick);
+  },
+
+  
+
+
+
+
+
 
 
 
@@ -1149,6 +1161,13 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
             requestItem.attachment.requestPostData = value;
             requestItem.attachment.requestHeadersFromUploadStream = currentStore;
+            break;
+          case "securityState":
+            requestItem.attachment.securityState = value;
+            this.updateMenuView(requestItem, key, value);
+            break;
+          case "securityInfo":
+            requestItem.attachment.securityInfo = value;
             break;
           case "responseHeaders":
             requestItem.attachment.responseHeaders = value;
@@ -1305,6 +1324,15 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
         let domain = $(".requests-menu-domain", target);
         domain.setAttribute("value", hostPort);
         domain.setAttribute("tooltiptext", hostPort);
+        break;
+      }
+      case "securityState": {
+        let tooltip = L10N.getStr("netmonitor.security.state." + aValue);
+        let icon = $(".requests-security-state-icon", target);
+        icon.classList.add("security-state-" + aValue);
+        icon.setAttribute("tooltiptext", tooltip);
+
+        this.attachSecurityIconClickListener(aItem);
         break;
       }
       case "status": {
@@ -1610,6 +1638,11 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
     
     this.refreshTooltip(firstItem);
     this.refreshTooltip(secondItem);
+
+    
+    this.attachSecurityIconClickListener(firstItem);
+    this.attachSecurityIconClickListener(secondItem);
+
   },
 
   
@@ -1641,6 +1674,18 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
         aTooltip.setImageContent(src, { maxDim: REQUESTS_TOOLTIP_IMAGE_MAX_DIM });
         return anchor;
       });
+    }
+  },
+
+  
+
+
+
+  _onSecurityIconClick: function(e) {
+    let state = this.selectedItem.attachment.securityState;
+    if (state === "broken" || state === "secure") {
+      
+      NetMonitorView.NetworkDetails.widget.selectedIndex = 5;
     }
   },
 
@@ -2085,7 +2130,18 @@ NetworkDetailsView.prototype = {
 
     
     
-    if (!isHtml && this.widget.selectedIndex == 5) {
+    
+    let hasSecurityInfo = aData.securityState &&
+                          aData.securityState !== "insecure";
+
+    $("#security-tab").hidden = !hasSecurityInfo;
+
+    
+    
+    
+
+    if (!isHtml && this.widget.selectedPanel === $("#preview-tabpanel") ||
+        !hasSecurityInfo && this.widget.selectedPanel === $("#security-tabpanel")) {
       this.widget.selectedIndex = 0;
     }
 
@@ -2153,6 +2209,9 @@ NetworkDetailsView.prototype = {
           yield view._setTimingsInformation(src.eventTimings);
           break;
         case 5: 
+          yield view._setSecurityInfo(src.securityInfo, src.url);
+          break;
+        case 6: 
           yield view._setHtmlPreview(src.responseContent);
           break;
       }
@@ -2655,6 +2714,98 @@ NetworkDetailsView.prototype = {
     iframe.contentDocument.documentElement.innerHTML = responseBody;
 
     window.emit(EVENTS.RESPONSE_HTML_PREVIEW_DISPLAYED);
+  }),
+
+  
+
+
+
+
+
+
+
+
+
+  _setSecurityInfo: Task.async(function* (securityInfo, url) {
+    if (!securityInfo) {
+      
+      
+      
+      
+      
+      
+      return;
+    }
+
+    
+
+
+
+
+
+
+
+
+    function setLabel(selector, value) {
+      let label = $(selector);
+      if (!value) {
+        label.value = L10N.getStr("netmonitor.security.notAvailable");
+        label.setAttribute("tooltiptext", label.value);
+      } else {
+        label.value = value;
+        label.setAttribute("tooltiptext", value);
+      }
+    }
+
+    let errorbox = $("#security-error");
+    let infobox = $("#security-information");
+
+    if (securityInfo.state === "secure") {
+      infobox.hidden = false;
+      errorbox.hidden = true;
+
+      let enabledLabel = L10N.getStr("netmonitor.security.enabled");
+      let disabledLabel = L10N.getStr("netmonitor.security.disabled");
+
+      
+      setLabel("#security-protocol-version-value", securityInfo.protocolVersion);
+      setLabel("#security-ciphersuite-value", securityInfo.cipherSuite);
+
+      
+      let domain = NetMonitorView.RequestsMenu._getUriHostPort(url);
+      let hostHeader = L10N.getFormatStr("netmonitor.security.hostHeader", domain);
+      setLabel("#security-info-host-header", hostHeader);
+
+      
+      setLabel("#security-http-strict-transport-security-value",
+                securityInfo.hsts ? enabledLabel : disabledLabel);
+
+      setLabel("#security-public-key-pinning-value",
+                securityInfo.hpkp ? enabledLabel : disabledLabel);
+
+      
+      let cert = securityInfo.cert;
+      setLabel("#security-cert-subject-cn", cert.subject.commonName);
+      setLabel("#security-cert-subject-o", cert.subject.organization);
+      setLabel("#security-cert-subject-ou", cert.subject.organizationalUnit);
+
+      setLabel("#security-cert-issuer-cn", cert.issuer.commonName);
+      setLabel("#security-cert-issuer-o", cert.issuer.organization);
+      setLabel("#security-cert-issuer-ou", cert.issuer.organizationalUnit);
+
+      setLabel("#security-cert-validity-begins", cert.validity.start);
+      setLabel("#security-cert-validity-expires", cert.validity.end);
+
+      setLabel("#security-cert-sha1-fingerprint", cert.fingerprint.sha1);
+      setLabel("#security-cert-sha256-fingerprint", cert.fingerprint.sha256);
+    } else {
+      infobox.hidden = true;
+      errorbox.hidden = false;
+
+      
+      let plain = DOMParser.parseFromString(securityInfo.errorMessage, "text/html");
+      $("#security-error-message").textContent = plain.body.textContent;
+    }
   }),
 
   _dataSrc: null,
