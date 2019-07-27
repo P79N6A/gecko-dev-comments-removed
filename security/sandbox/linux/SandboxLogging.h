@@ -7,46 +7,16 @@
 #ifndef mozilla_SandboxLogging_h
 #define mozilla_SandboxLogging_h
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#ifndef NDEBUG
-#define NDEBUG 1
-#include "base/strings/safe_sprintf.h"
-#undef NDEBUG
+#if defined(ANDROID)
+#include <android/log.h>
 #else
-#include "base/strings/safe_sprintf.h"
+#include <stdio.h>
 #endif
 
-namespace mozilla {
-
-void SandboxLogError(const char* aMessage);
-}
-
-#define SANDBOX_LOG_LEN 256
-
-
-
-
-
-
-#define SANDBOX_LOG_ERROR(fmt, args...) do {                          \
-  char _sandboxLogBuf[SANDBOX_LOG_LEN];                               \
-  ::base::strings::SafeSPrintf(_sandboxLogBuf, fmt, ## args);         \
-  ::mozilla::SandboxLogError(_sandboxLogBuf);                         \
-} while(0)
+#if defined(ANDROID)
+#define SANDBOX_LOG_ERROR(args...) __android_log_print(ANDROID_LOG_ERROR, "Sandbox", ## args)
+#else
+#define SANDBOX_LOG_ERROR(fmt, args...) fprintf(stderr, "Sandbox: " fmt "\n", ## args)
+#endif
 
 #endif 
