@@ -30,6 +30,14 @@ const kTreeColumnHeader = 2;
 
 
 
+const kTable = 0;
+const kTreeTable = 1;
+const kMathTable = 2;
+
+
+
+
+
 
 
 
@@ -40,7 +48,7 @@ const kTreeColumnHeader = 2;
 
 
 function testTableStruct(aIdentifier, aCellsArray, aColHeaderType,
-                         aCaption, aSummary, aIsTreeTable)
+                         aCaption, aSummary, aTableType, aRowRoles)
 {
   var tableNode = getNode(aIdentifier);
   var isGrid = tableNode.getAttribute("role") == "grid" ||
@@ -52,9 +60,19 @@ function testTableStruct(aIdentifier, aCellsArray, aColHeaderType,
 
   
   var tableObj = {
-    role: aIsTreeTable ? ROLE_TREE_TABLE : ROLE_TABLE,
     children: []
   };
+  switch (aTableType) {
+    case kTable:
+      tableObj.role = ROLE_TABLE;
+      break;
+    case kTreeTable:
+      tableObj.role = ROLE_TREE_TABLE;
+      break;
+    case kMathTable:
+      tableObj.role = ROLE_MATHML_TABLE;
+      break;
+  }
 
   
   if (aCaption) {
@@ -99,7 +117,7 @@ function testTableStruct(aIdentifier, aCellsArray, aColHeaderType,
   
   for (var rowIdx = 0; rowIdx < rowCount; rowIdx++) {
     var rowObj = {
-      role: ROLE_ROW,
+      role: aRowRoles ? aRowRoles[rowIdx] : ROLE_ROW,
       children: []
     };
 
@@ -109,7 +127,8 @@ function testTableStruct(aIdentifier, aCellsArray, aColHeaderType,
       var role = ROLE_NOTHING;
       switch (celltype) {
         case kDataCell:
-          role = (isGrid ? ROLE_GRID_CELL : ROLE_CELL);
+          role = (aTableType == kMathTable ? ROLE_MATHML_CELL :
+                  (isGrid ? ROLE_GRID_CELL : ROLE_CELL));
           break;
         case kRowHeaderCell:
           role = ROLE_ROWHEADER;
