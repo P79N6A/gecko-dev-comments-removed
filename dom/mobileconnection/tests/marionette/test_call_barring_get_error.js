@@ -21,7 +21,7 @@ startTestCommon(function() {
 
     
     .then(() => testGetCallBarringOption("InvalidParameter", {
-      program: 5, 
+      program: 8, 
       serviceClass: 0
     }))
 

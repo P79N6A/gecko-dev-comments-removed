@@ -90,18 +90,41 @@ function testAllPrograms(aPrograms) {
   }, Promise.resolve());
 }
 
+function testUnsupportedPrograms() {
+  
+  let unsupportedPrograms =
+    [MozMobileConnection.CALL_BARRING_PROGRAM_ALL_SERVICE,
+     MozMobileConnection.CALL_BARRING_PROGRAM_OUTGOING_SERVICE,
+     MozMobileConnection.CALL_BARRING_PROGRAM_INCOMING_SERVICE];
+
+  return unsupportedPrograms.reduce((previousPromise, program) => {
+    return previousPromise
+      .then(() => log("Test " + program))
+      .then(() => setProgram(program, false))
+      .then(() => {
+        ok(false, "Should be rejected");
+      }, error => {
+        is(error.name, "RequestNotSupported",
+           "Failed to setProgram: "+ error.name);
+      });
+  }, Promise.resolve());
+}
+
 
 startTestCommon(function() {
   return Promise.resolve()
-    .then(() => setProgram(null, outgoingPrograms))
-    .then(() => setProgram(null, incomingPrograms))
+    .then(() => setAndCheckProgram(null, outgoingPrograms))
+    .then(() => setAndCheckProgram(null, incomingPrograms))
 
     .then(() => log("=== Test outgoing call barring programs ==="))
     .then(() => testAllPrograms(outgoingPrograms))
     .then(() => log("=== Test incoming call barring programs ==="))
     .then(() => testAllPrograms(incomingPrograms))
 
+    .then(() => log("=== Test unsupported call barring programs ==="))
+    .then(() => testUnsupportedPrograms())
+
     .catch(aError => ok(false, "promise rejects during test: " + aError))
-    .then(() => setProgram(null, outgoingPrograms))
-    .then(() => setProgram(null, incomingPrograms));
+    .then(() => setAndCheckProgram(null, outgoingPrograms))
+    .then(() => setAndCheckProgram(null, incomingPrograms));
 });
