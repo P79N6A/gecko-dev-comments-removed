@@ -15,6 +15,7 @@ class Element;
 } 
 
 class nsIDOMNode;
+class nsINode;
 class nsPlaintextEditor;
 
 class nsTextEditUtils
