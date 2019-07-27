@@ -110,11 +110,6 @@ void
 TraceManuallyBarrieredGenericPointerEdge(JSTracer* trc, gc::Cell** thingp, const char* name);
 
 
-
-void
-TraceObjectSlots(JSTracer* trc, NativeObject* obj, uint32_t start, uint32_t nslots);
-
-
 void
 TraceChildren(JSTracer* trc, void* thing, JSGCTraceKind kind);
 
