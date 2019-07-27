@@ -31,6 +31,7 @@
 .standalone .conversation-toolbar {
   padding: 20px;
   height: 64px;
+  border: none;
 }
 
 .standalone .focus-stream {
@@ -1089,16 +1090,19 @@ html[dir="rtl"] .room-context-btn-close {
 }
 
 .media-layout {
+  height: 100%;
+}
+
+.standalone-room-wrapper > .media-layout {
   
-  height: calc(100% - 50px - 3em);
+  height: calc(100% - 50px - 64px - 3em);
 }
 
 .media-layout > .media-wrapper {
   display: flex;
   flex-flow: column wrap;
-  
-  height: calc(100% - 64px);
   margin: 0 10px;
+  height: 100%;
 }
 
 .media-wrapper > .focus-stream {
@@ -1182,17 +1186,19 @@ html[dir="rtl"] .room-context-btn-close {
 }
 
 @media screen and (max-width:640px) {
-  .media-layout {
+  .media-layout-wrapper {
+    height: 100%;
+  }
+
+  .standalone-room-wrapper > .media-layout {
     
-    height: calc(100% - 50px - 25px);
+    height: calc(100% - 50px - 38px - 25px);
   }
 
   .media-layout > .media-wrapper {
     flex-direction: row;
     margin: 0;
     width: 100%;
-    
-    height: calc(100% - 38px);
   }
 
   .media-wrapper > .focus-stream {
