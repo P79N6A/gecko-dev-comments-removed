@@ -11197,11 +11197,7 @@ void
 nsDocument::ExitFullscreen(nsIDocument* aDoc)
 {
   
-  nsCOMPtr<Element> pointerLockedElement =
-    do_QueryReferent(EventStateManager::sPointerLockedElement);
-  if (pointerLockedElement) {
-    UnlockPointer();
-  }
+  UnlockPointer();
 
   if (aDoc)  {
     ExitFullscreenInDocTree(aDoc);
@@ -11258,11 +11254,7 @@ nsDocument::RestorePreviousFullScreenState()
   }
 
   
-  nsCOMPtr<Element> pointerLockedElement =
-    do_QueryReferent(EventStateManager::sPointerLockedElement);
-  if (pointerLockedElement) {
-    UnlockPointer();
-  }
+  UnlockPointer();
 
   nsCOMPtr<nsIDocument> fullScreenDoc = GetFullscreenLeaf(this);
 
@@ -11271,7 +11263,6 @@ nsDocument::RestorePreviousFullScreenState()
   while (doc != this) {
     NS_ASSERTION(doc->IsFullScreenDoc(), "Should be full-screen doc");
     static_cast<nsDocument*>(doc)->CleanupFullscreenState();
-    UnlockPointer();
     DispatchFullScreenChange(doc);
     doc = doc->GetParentDocument();
   }
@@ -11280,7 +11271,6 @@ nsDocument::RestorePreviousFullScreenState()
   NS_ASSERTION(doc == this, "Must have reached this doc.");
   while (doc != nullptr) {
     static_cast<nsDocument*>(doc)->FullScreenStackPop();
-    UnlockPointer();
     DispatchFullScreenChange(doc);
     if (static_cast<nsDocument*>(doc)->mFullScreenStack.IsEmpty()) {
       
@@ -11666,19 +11656,10 @@ nsDocument::RequestFullScreen(Element* aElement,
   
   
   nsIDocument* fullScreenRootDoc = nsContentUtils::GetRootDocument(this);
-  if (fullScreenRootDoc->IsFullScreenDoc()) {
-    
-    
-    UnlockPointer();
-  }
 
   
   
-  nsCOMPtr<Element> pointerLockedElement =
-    do_QueryReferent(EventStateManager::sPointerLockedElement);
-  if (pointerLockedElement) {
-    UnlockPointer();
-  }
+  UnlockPointer();
 
   
   if (aOptions.mVRHMDDevice) {
