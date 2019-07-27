@@ -3,51 +3,29 @@
 
 
 
+"use strict";
 
 
-function test() {
-  let inspector, toolbox;
 
-  gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function onload() {
-    gBrowser.selectedBrowser.removeEventListener("load", onload, true);
-    waitForFocus(function() {
-      let target = TargetFactory.forTab(gBrowser.selectedTab);
-      gDevTools.showToolbox(target, "inspector").then(function(toolbox) {
-        startInspectorTests(toolbox);
-      }).then(null, console.error);
-    }, content);
-  }, true);
 
-  
-  
-  
-  content.location = "data:text/html,<p id='1'>p</p>";
 
-  function startInspectorTests(aToolbox)
-  {
-    toolbox = aToolbox;
-    inspector = toolbox.getCurrentPanel();
-    info("Inspector started");
-    let p = content.document.querySelector("p");
-    inspector.selection.setNode(p);
-    inspector.once("inspector-updated", () => {
-      is(inspector.selection.node, p, "Node selected.");
-      inspector.once("markuploaded", onReload);
-      content.location.reload();
-    });
-  }
 
-  function onReload() {
-    info("Page reloaded");
-    let p = content.document.querySelector("p");
-    inspector.selection.setNode(p);
-    inspector.once("inspector-updated", () => {
-      is(inspector.selection.node, p, "Node re-selected.");
-      toolbox.destroy();
-      toolbox = inspector = null;
-      gBrowser.removeCurrentTab();
-      finish();
-    });
-  }
-}
+const TEST_URI = "data:text/html,<p id='1'>p</p>";
+
+let test = asyncTest(function* () {
+  let { inspector, toolbox } = yield openInspectorForURL(TEST_URI);
+  yield selectNode("p", inspector);
+
+  let markupLoaded = inspector.once("markuploaded");
+
+  info("Reloading page.");
+  content.location.reload();
+
+  info("Waiting for markupview to load after reload.");
+  yield markupLoaded;
+
+  is(inspector.selection.node, getNode("p"), "<p> selected after reload.");
+
+  info("Selecting a node to see that inspector still works.");
+  yield selectNode("body", inspector);
+});

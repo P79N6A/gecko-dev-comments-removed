@@ -1,54 +1,33 @@
 
 
 
-function test() {
-  let doc;
-  let div;
-  let inspector;
+"use strict";
 
-  function createDocument() {
-    div = doc.createElement("div");
-    div.setAttribute("style", "width: 100px; height: 100px; background:yellow;");
-    doc.body.appendChild(div);
 
-    openInspector(aInspector => {
-      inspector = aInspector;
-      inspector.toolbox.highlighter.showBoxModel(getNodeFront(div)).then(runTest);
-    });
-  }
+const TEST_URI = "data:text/html;charset=utf-8," +
+  "browser_inspector_invalidate.js\n" +
+  "<div style=\"width: 100px; height: 100px; background:yellow;\"></div>";
 
-  function runTest() {
-    info("Checking that the highlighter has the right size");
-    let rect = getSimpleBorderRect();
-    is(rect.width, 100, "outline has the right width");
+let test = asyncTest(function*() {
+  let { inspector } = yield openInspectorForURL(TEST_URI);
+  let div = getNode("div");
 
-    waitForBoxModelUpdate().then(testRectWidth);
+  info("Waiting for highlighter to activate");
+  yield inspector.toolbox.highlighter.showBoxModel(getNodeFront(div));
 
-    info("Changing the test element's size");
-    div.style.width = "200px";
-  }
+  let rect = getSimpleBorderRect();
+  is(rect.width, 100, "Outline has the right width.");
 
-  function testRectWidth() {
-    info("Checking that the highlighter has the right size after update");
-    let rect = getSimpleBorderRect();
-    is(rect.width, 200, "outline updated");
-    finishUp();
-  }
+  info("Changing the test element's size");
+  let boxModelUpdated = waitForBoxModelUpdate();
+  div.style.width = "200px";
 
-  function finishUp() {
-    inspector.toolbox.highlighter.hideBoxModel().then(() => {
-      doc = div = inspector = null;
-      gBrowser.removeCurrentTab();
-      finish();
-    });
-  }
+  info("Waiting for the box model to update.");
+  yield boxModelUpdated;
 
-  gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function() {
-    gBrowser.selectedBrowser.removeEventListener("load", arguments.callee, true);
-    doc = content.document;
-    waitForFocus(createDocument, content);
-  }, true);
+  rect = getSimpleBorderRect();
+  is(rect.width, 200, "Outline has the right width after update.");
 
-  content.location = "data:text/html;charset=utf-8,browser_inspector_invalidate.js";
-}
+  info("Waiting for highlighter to hide");
+  yield inspector.toolbox.highlighter.hideBoxModel();
+});

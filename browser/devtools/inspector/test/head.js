@@ -2,6 +2,8 @@
 
 
 
+"use strict";
+
 const Cu = Components.utils;
 const Ci = Components.interfaces;
 const Cc = Components.classes;
@@ -13,8 +15,8 @@ const Cc = Components.classes;
 
 
 
+const TEST_URL_ROOT = "http://example.com/browser/browser/devtools/inspector/test/";
 const { Promise: promise } = Cu.import("resource://gre/modules/Promise.jsm", {});
-const require = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools.require;
 
 
 waitForExplicitFinish();
@@ -47,6 +49,22 @@ SimpleTest.registerCleanupFunction(() => {
   Services.prefs.clearUserPref("devtools.inspector.activeSidebar");
 });
 
+registerCleanupFunction(() => {
+  let target = TargetFactory.forTab(gBrowser.selectedTab);
+  gDevTools.closeToolbox(target);
+
+  
+  
+  
+  
+  EventUtils.synthesizeMouseAtPoint(1, 1, {type: "mousemove"}, window);
+
+  while (gBrowser.tabs.length > 1) {
+    gBrowser.removeCurrentTab();
+  }
+
+});
+
 
 
 
@@ -59,21 +77,24 @@ function asyncTest(generator) {
 
 
 
-function addTab(url) {
-  let def = promise.defer();
-
+let addTab = Task.async(function* (url) {
+  info("Adding a new tab with URL: '" + url + "'");
   let tab = gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function onload() {
-    gBrowser.selectedBrowser.removeEventListener("load", onload, true);
-    info("URL " + url + " loading complete into new test tab");
-    waitForFocus(() => {
-      def.resolve(tab);
-    }, content);
-  }, true);
+  let loaded = once(gBrowser.selectedBrowser, "load", true);
+
   content.location = url;
+  yield loaded;
 
-  return def.promise;
-}
+  info("URL '" + url + "' loading complete");
+
+  let def = promise.defer();
+  let isBlank = url == "about:blank";
+  waitForFocus(def.resolve, content, isBlank);
+
+  yield def.promise;
+
+  return tab;
+});
 
 
 
@@ -81,10 +102,34 @@ function addTab(url) {
 
 
 
-function getNode(nodeOrSelector) {
-  return typeof nodeOrSelector === "string" ?
-    content.document.querySelector(nodeOrSelector) :
-    nodeOrSelector;
+
+
+
+
+
+
+
+
+
+function getNode(nodeOrSelector, options = {}) {
+  let document = options.document || content.document;
+  let noMatches = !!options.expectNoMatch;
+
+  if (typeof nodeOrSelector === "string") {
+    info("Looking for a node that matches selector " + nodeOrSelector);
+    let node = document.querySelector(nodeOrSelector);
+    if (noMatches) {
+      ok(!node, "Selector " + nodeOrSelector + " didn't match any nodes.");
+    }
+    else {
+      ok(node, "Selector " + nodeOrSelector + " matched a node.");
+    }
+
+    return node;
+  }
+
+  info("Looking for a node but selector was not a string.");
+  return nodeOrSelector;
 }
 
 
@@ -102,10 +147,24 @@ function getNode(nodeOrSelector) {
 function selectNode(nodeOrSelector, inspector, reason="test") {
   info("Selecting the node " + nodeOrSelector);
   let node = getNode(nodeOrSelector);
-  let updated = inspector.once("inspector-updated");
+  let updated = inspector.once("inspector-updated", () => {
+    is(inspector.selection.node, node, "Correct node was selected");
+  });
   inspector.selection.setNode(node, reason);
   return updated;
 }
+
+
+
+
+
+
+
+let openInspectorForURL = Task.async(function* (url) {
+  let tab = yield addTab(url);
+  let { inspector, toolbox } = yield openInspector();
+  return { tab, inspector, toolbox };
+});
 
 
 
@@ -167,61 +226,6 @@ function waitForToolboxFrameFocus(toolbox) {
   let win = toolbox.frame.contentWindow;
   waitForFocus(def.resolve, win);
   return def.promise;
-}
-
-
-
-
-
-
-
-let openInspectorSideBar = Task.async(function*(id) {
-  let {toolbox, inspector} = yield openInspector();
-
-  if (!hasSideBarTab(inspector, id)) {
-    info("Waiting for the " + id + " sidebar to be ready");
-    yield inspector.sidebar.once(id + "-ready");
-  }
-
-  info("Selecting the " + id + " sidebar");
-  inspector.sidebar.select(id);
-
-  return {
-    toolbox: toolbox,
-    inspector: inspector,
-    view: inspector.sidebar.getWindowForTab(id)[id].view
-  };
-});
-
-
-
-
-
-
-
-function openComputedView() {
-  return openInspectorSideBar("computedview");
-}
-
-
-
-
-
-
-
-function openRuleView() {
-  return openInspectorSideBar("ruleview");
-}
-
-
-
-
-
-
-
-
-function hasSideBarTab(inspector, id) {
-  return !!inspector.sidebar.getWindowForTab(id);
 }
 
 function getActiveInspector()
@@ -373,40 +377,8 @@ function getHighlitNode()
   }
 }
 
-function computedView()
-{
-  let sidebar = getActiveInspector().sidebar;
-  let iframe = sidebar.tabbox.querySelector(".iframe-computedview");
-  return iframe.contentWindow.computedView;
-}
-
-function computedViewTree()
-{
-  return computedView().view;
-}
-
-function ruleView()
-{
-  let sidebar = getActiveInspector().sidebar;
-  let iframe = sidebar.tabbox.querySelector(".iframe-ruleview");
-  return iframe.contentWindow.ruleView;
-}
-
-function getComputedView() {
-  let inspector = getActiveInspector();
-  return inspector.sidebar.getWindowForTab("computedview").computedview.view;
-}
-
-function waitForView(aName, aCallback) {
-  let inspector = getActiveInspector();
-  if (inspector.sidebar.getTab(aName)) {
-    aCallback();
-  } else {
-    inspector.sidebar.once(aName + "-ready", aCallback);
-  }
-}
-
-function synthesizeKeyFromKeyTag(aKeyId) {
+function synthesizeKeyFromKeyTag(aKeyId, aDocument = null) {
+  let document = aDocument || document;
   let key = document.getElementById(aKeyId);
   isnot(key, null, "Successfully retrieved the <key> node");
 
@@ -432,53 +404,20 @@ function synthesizeKeyFromKeyTag(aKeyId) {
   EventUtils.synthesizeKey(name, modifiers);
 }
 
-function focusSearchBoxUsingShortcut(panelWin, callback) {
-  panelWin.focus();
-  let key = panelWin.document.getElementById("nodeSearchKey");
-  isnot(key, null, "Successfully retrieved the <key> node");
-
-  let modifiersAttr = key.getAttribute("modifiers");
-
-  let name = null;
-
-  if (key.getAttribute("keycode")) {
-    name = key.getAttribute("keycode");
-  } else if (key.getAttribute("key")) {
-    name = key.getAttribute("key");
-  }
-
-  isnot(name, null, "Successfully retrieved keycode/key");
-
-  let modifiers = {
-    shiftKey: modifiersAttr.match("shift"),
-    ctrlKey: modifiersAttr.match("ctrl"),
-    altKey: modifiersAttr.match("alt"),
-    metaKey: modifiersAttr.match("meta"),
-    accelKey: modifiersAttr.match("accel")
-  };
-
+let focusSearchBoxUsingShortcut = Task.async(function* (panelWin, callback) {
+  info("Focusing search box");
   let searchBox = panelWin.document.getElementById("inspector-searchbox");
-  searchBox.addEventListener("focus", function onFocus() {
-    searchBox.removeEventListener("focus", onFocus, false);
-    callback && callback();
-  }, false);
-  EventUtils.synthesizeKey(name, modifiers);
-}
+  let focused = once(searchBox, "focus");
 
-function getComputedPropertyValue(aName)
-{
-  let computedview = getComputedView();
-  let props = computedview.styleDocument.querySelectorAll(".property-view");
+  panelWin.focus();
+  synthesizeKeyFromKeyTag("nodeSearchKey", panelWin.document);
 
-  for (let prop of props) {
-    let name = prop.querySelector(".property-name");
+  yield focused;
 
-    if (name.textContent === aName) {
-      let value = prop.querySelector(".property-value");
-      return value.textContent;
-    }
+  if (callback) {
+    callback();
   }
-}
+});
 
 function isNodeCorrectlyHighlighted(node, prefix="") {
   let boxModel = getBoxModelStatus();
@@ -507,36 +446,33 @@ function getContainerForRawNode(markupView, rawNode)
   return container;
 }
 
-SimpleTest.registerCleanupFunction(function () {
-  let target = TargetFactory.forTab(gBrowser.selectedTab);
-  gDevTools.closeToolbox(target);
-});
-
-
-
-
-function asyncTest(generator) {
-  return () => Task.spawn(generator).then(null, ok.bind(null, false)).then(finish);
-}
 
 
 
 
 
 
-function addTab(url) {
-  info("Adding a new tab with URL: '" + url + "'");
-  let def = promise.defer();
 
-  let tab = gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function onload() {
-    gBrowser.selectedBrowser.removeEventListener("load", onload, true);
-    info("URL '" + url + "' loading complete");
-    waitForFocus(() => {
-      def.resolve(tab);
-    }, content);
-  }, true);
-  content.location = url;
 
-  return def.promise;
+function once(target, eventName, useCapture=false) {
+  info("Waiting for event: '" + eventName + "' on " + target + ".");
+
+  let deferred = promise.defer();
+
+  for (let [add, remove] of [
+    ["addEventListener", "removeEventListener"],
+    ["addListener", "removeListener"],
+    ["on", "off"]
+  ]) {
+    if ((add in target) && (remove in target)) {
+      target[add](eventName, function onEvent(...aArgs) {
+        info("Got event: '" + eventName + "' on " + target + ".");
+        target[remove](eventName, onEvent, useCapture);
+        deferred.resolve.apply(deferred, aArgs);
+      }, useCapture);
+      break;
+    }
+  }
+
+  return deferred.promise;
 }

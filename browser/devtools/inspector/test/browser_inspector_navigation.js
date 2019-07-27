@@ -3,63 +3,41 @@
 
 
 
+"use strict";
 
 
-function test() {
-  let inspector, toolbox;
 
-  gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function onload() {
-    gBrowser.selectedBrowser.removeEventListener("load", onload, true);
-    waitForFocus(function() {
-      let target = TargetFactory.forTab(gBrowser.selectedTab);
-      gDevTools.showToolbox(target, "inspector").then(function(toolbox) {
-        startInspectorTests(toolbox);
-      }).then(null, console.error);
-    }, content);
-  }, true);
+const TEST_URL_FILE = "browser/browser/devtools/inspector/test/" +
+  "browser_inspector_breadcrumbs.html";
 
-  content.location = "http://test1.example.org/browser/browser/devtools/inspector/test/browser_inspector_breadcrumbs.html";
+const TEST_URL_1 = "http://test1.example.org/" + TEST_URL_FILE;
+const TEST_URL_2 = "http://test2.example.org/" + TEST_URL_FILE;
 
-  function startInspectorTests(aToolbox)
-  {
-    toolbox = aToolbox;
-    inspector = toolbox.getCurrentPanel();
-    info("Inspector started");
-    let node = content.document.querySelector("#i1");
-    inspector.selection.setNode(node);
-    inspector.once("inspector-updated", () => {
-      is(inspector.selection.node, node, "Node selected.");
-      inspector.once("markuploaded", onSecondLoad);
-      content.location = "http://test2.example.org/browser/browser/devtools/inspector/test/browser_inspector_breadcrumbs.html";
-    });
-  }
+let test = asyncTest(function* () {
+  let { inspector } = yield openInspectorForURL(TEST_URL_1);
+  let markuploaded = inspector.once("markuploaded");
 
-  function onSecondLoad() {
-    info("New page loaded");
-    let node = content.document.querySelector("#i1");
-    inspector.selection.setNode(node);
+  yield selectNode("#i1", inspector);
 
-    inspector.once("inspector-updated", () => {
-      is(inspector.selection.node, node, "Node re-selected.");
-      inspector.once("markuploaded", onThirdLoad);
-      content.history.go(-1);
-    });
-  }
+  info("Navigating to a different page.");
+  content.location = TEST_URL_2;
 
-  function onThirdLoad() {
-    info("Old page loaded");
-    is(content.location.href, "http://test1.example.org/browser/browser/devtools/inspector/test/browser_inspector_breadcrumbs.html");
-    let node = content.document.querySelector("#i1");
-    inspector.selection.setNode(node);
-    inspector.once("inspector-updated", () => {
-      is(inspector.selection.node, node, "Node re-selected.");
-      inspector.once("markuploaded", onThirdLoad);
-      toolbox.destroy();
-      gBrowser.removeCurrentTab();
-      finish();
-    });
-  }
-}
+  info("Waiting for markup view to load after navigation.");
+  yield markuploaded;
 
+  ok(true, "New page loaded");
+  yield selectNode("#i1", inspector);
 
+  markuploaded = inspector.once("markuploaded");
+
+  info("Going back in history");
+  content.history.go(-1);
+
+  info("Waiting for markup view to load after going back in history.");
+  yield markuploaded;
+
+  ok(true, "Old page loaded");
+  is(content.location.href, TEST_URL_1, "URL is correct.");
+
+  yield selectNode("#i1", inspector);
+});

@@ -1,13 +1,14 @@
 
 
 
+"use strict";
 
 
-const TEST_URI = "http://example.com/browser/browser/devtools/inspector/" +
-                 "test/browser_inspector_cmd_inspect.html";
 
-function test() {
-  helpers.addTabWithToolbar(TEST_URI, function(options) {
+const TEST_URI = TEST_URL_ROOT + "browser_inspector_cmd_inspect.html";
+
+let test = asyncTest(function* () {
+  return helpers.addTabWithToolbar(TEST_URI, function(options) {
     return helpers.audit(options, [
       {
         setup: "inspect",
@@ -128,6 +129,6 @@ function test() {
           status: 'VALID'
         },
       },
-    ]);
-  }).then(finish);
-}
+    ]); 
+  }); 
+}); 

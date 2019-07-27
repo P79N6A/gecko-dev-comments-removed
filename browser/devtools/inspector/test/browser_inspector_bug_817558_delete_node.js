@@ -1,52 +1,28 @@
 
 
 
-function test()
-{
+"use strict";
+
+
+
+const TEST_URL = TEST_URL_ROOT + "browser_inspector_destroyselection.html";
+
+let test = asyncTest(function* () {
+  let { inspector } = yield openInspectorForURL(TEST_URL);
+  let iframe = getNode("iframe");
+  let span = getNode("span", { document: iframe.contentDocument });
+
+  yield selectNode(span, inspector);
+
+  info("Removing selected <span> element.");
+  let parentNode = span.parentNode;
+  span.remove();
+
+  let lh = new LayoutHelpers(window.content);
+  ok(!lh.isNodeConnected(span), "Node considered as disconnected.");
+
   
-
-  let node, iframe, inspector;
-
-  gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function onload() {
-    gBrowser.selectedBrowser.removeEventListener("load", onload, true);
-    waitForFocus(setupTest, content);
-  }, true);
-
-  content.location = "http://mochi.test:8888/browser/browser/devtools/inspector/test/browser_inspector_destroyselection.html";
-
-  function setupTest()
-  {
-    iframe = content.document.querySelector("iframe");
-    node = iframe.contentDocument.querySelector("span");
-    openInspector(runTests);
-  }
-
-  function runTests(aInspector)
-  {
-    inspector = aInspector;
-    inspector.selection.setNode(node);
-    inspector.once("inspector-updated", () => {
-      let parentNode = node.parentNode;
-      parentNode.removeChild(node);
-
-      let tmp = {};
-      Cu.import("resource://gre/modules/devtools/LayoutHelpers.jsm", tmp);
-      let lh = new tmp.LayoutHelpers(window.content);
-      ok(!lh.isNodeConnected(node), "Node considered as disconnected.");
-
-      
-      inspector.once("inspector-updated", () => {
-        is(inspector.selection.node, parentNode, "parent of selection got selected");
-        finishUp();
-      });
-    });
-  };
-
-  function finishUp() {
-    node = null;
-    gBrowser.removeCurrentTab();
-    finish();
-  }
-}
-
+  yield inspector.once("inspector-updated");
+  is(inspector.selection.node, parentNode,
+    "Parent node of selected <span> got selected.");
+});

@@ -3,113 +3,77 @@
 
 
 
+"use strict";
 
 
 
 
-let {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
-let {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
-let {Task} = Cu.import("resource://gre/modules/Task.jsm", {});
+const TEST_PAGE = TEST_URL_ROOT +
+  "browser_inspector_bug_958456_highlight_comments.html";
 
-const TEST_PAGE = "http://mochi.test:8888/browser/browser/devtools/inspector/test/browser_inspector_bug_958456_highlight_comments.html";
-let inspector, markupView, doc;
+let test = asyncTest(function* () {
+  let { inspector } = yield openInspectorForURL(TEST_PAGE);
+  let markupView = inspector.markup;
+  yield selectNode("p", inspector);
 
-function test() {
-  gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function onload() {
-    gBrowser.selectedBrowser.removeEventListener("load", onload, true);
-    doc = content.document;
+  info("Hovering over #id1 and waiting for highlighter to appear.");
+  yield hoverElement("#id1");
+  assertHighlighterShownOn("#id1");
 
-    waitForFocus(function() {
-      openInspector((aInspector, aToolbox) => {
-        inspector = aInspector;
-        markupView = inspector.markup;
-        startTests();
-      });
-    }, content);
-  }, true);
-  content.location = TEST_PAGE;
-}
+  info("Hovering over comment node and ensuring highlighter doesn't appear.");
+  yield hoverComment();
+  assertHighlighterHidden();
 
-function startTests() {
-  Task.spawn(function() {
-    yield prepareHighlighter();
+  info("Hovering over #id1 again and waiting for highlighter to appear.");
+  yield hoverElement("#id1");
+  assertHighlighterShownOn("#id1");
 
-    
-    yield hoverElement("#id1");
-    assertHighlighterShownOn("#id1");
+  info("Hovering over #id2 and waiting for highlighter to appear.");
+  yield hoverElement("#id2");
+  assertHighlighterShownOn("#id2");
 
-    
-    yield hoverComment();
-    assertHighlighterHidden();
+  info("Hovering over <script> and ensuring highlighter doesn't appear.");
+  yield hoverElement("script");
+  assertHighlighterHidden();
 
-    
-    yield hoverElement("#id1");
-    assertHighlighterShownOn("#id1");
+  info("Hovering over #id3 and waiting for highlighter to appear.");
+  yield hoverElement("#id3");
+  assertHighlighterShownOn("#id3");
 
-    
-    yield hoverElement("#id2");
-    assertHighlighterShownOn("#id2");
+  info("Hovering over hidden #id4 and ensuring highlighter doesn't appear.");
+  yield hoverElement("#id4");
+  assertHighlighterHidden();
 
-    
-    yield hoverElement("script");
-    assertHighlighterHidden();
+  function hoverContainer(container) {
+    let promise = inspector.toolbox.once("node-highlight");
+    EventUtils.synthesizeMouse(container.tagLine, 2, 2, {type: "mousemove"},
+        markupView.doc.defaultView);
 
-    
-    yield hoverElement("#id3");
-    assertHighlighterShownOn("#id3");
+    return promise;
+  }
 
-    
-    yield hoverElement("#id4");
-    assertHighlighterHidden();
-  }).then(null, Cu.reportError).then(finishTest);
-}
+  function hoverElement(selector) {
+    info("Hovering node " + selector + " in the markup view");
+    let container = getContainerForRawNode(markupView, getNode(selector));
+    return hoverContainer(container);
+  }
 
-function finishTest() {
-  doc = inspector = markupView = null;
-  gBrowser.removeCurrentTab();
-  finish();
-}
-
-function prepareHighlighter() {
-  
-  let deferred = promise.defer();
-  inspector.selection.setNode(doc.querySelector("p"), null);
-  inspector.once("inspector-updated", () => {
-    deferred.resolve();
-  });
-  return deferred.promise;
-}
-
-function hoverContainer(container) {
-  let deferred = promise.defer();
-  EventUtils.synthesizeMouse(container.tagLine, 2, 2, {type: "mousemove"},
-      markupView.doc.defaultView);
-  inspector.toolbox.once("node-highlight", deferred.resolve);
-  return deferred.promise;
-}
-
-function hoverElement(selector) {
-  info("Hovering node " + selector + " in the markup view");
-  let container = getContainerForRawNode(markupView, doc.querySelector(selector));
-  return hoverContainer(container);
-}
-
-function hoverComment() {
-  info("Hovering the comment node in the markup view");
-  for (let [node, container] of markupView._containers) {
-    if (node.nodeType === Ci.nsIDOMNode.COMMENT_NODE) {
-      return hoverContainer(container);
+  function hoverComment() {
+    info("Hovering the comment node in the markup view");
+    for (let [node, container] of markupView._containers) {
+      if (node.nodeType === Ci.nsIDOMNode.COMMENT_NODE) {
+        return hoverContainer(container);
+      }
     }
   }
-}
 
-function assertHighlighterShownOn(selector) {
-  let node = doc.querySelector(selector);
-  let highlightNode = getHighlitNode();
-  is(node, highlightNode, "Highlighter is shown on the right node: " + selector);
-}
+  function assertHighlighterShownOn(selector) {
+    let node = getNode(selector);
+    let highlightNode = getHighlitNode();
+    is(node, highlightNode, "Highlighter is shown on the right node: " + selector);
+  }
 
-function assertHighlighterHidden() {
-  ok(!isHighlighting(), "Highlighter is hidden");
-}
+  function assertHighlighterHidden() {
+    ok(!isHighlighting(), "Highlighter is hidden");
+  }
+});

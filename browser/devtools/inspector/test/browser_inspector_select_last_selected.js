@@ -4,114 +4,84 @@
 
 
 
-function test() {
-  let inspector, toolbox;
-  let page1 = "http://mochi.test:8888/browser/browser/devtools/inspector/test/browser_inspector_select_last_selected.html";
-  let page2 = "http://mochi.test:8888/browser/browser/devtools/inspector/test/browser_inspector_select_last_selected2.html";
 
-  
-  gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function onload() {
-    gBrowser.selectedBrowser.removeEventListener("load", onload, true);
-    waitForFocus(function() {
-      openInspector((aInspector, aToolbox) => {
-        inspector = aInspector;
-        toolbox = aToolbox;
-        startTests();
-      });
-    }, content);
-  }, true);
-  content.location = page1;
 
-  function startTests() {
-    testSameNodeSelectedOnPageReload();
-  }
+let PAGE_1 = TEST_URL_ROOT + "browser_inspector_select_last_selected.html";
+let PAGE_2 = TEST_URL_ROOT + "browser_inspector_select_last_selected2.html";
 
-  function endTests() {
-    inspector.destroy();
-    toolbox.destroy().then(() => {
-      toolbox = inspector = page1 = page2 = null;
-      gBrowser.removeCurrentTab();
-      finish();
-    });
-  }
 
-  function loadPageAnd(page, callback) {
-    inspector.once("new-root", () => {
-      callback();
-    });
 
-    if (page) {
-      content.location = page;
-    } else {
-      content.location.reload();
-    }
-  }
 
-  function reloadAndReselect(id, callback) {
-    let div = content.document.getElementById(id);
 
-    inspector.once("inspector-updated", () => {
-      is(inspector.selection.node, div);
 
-      loadPageAnd(false, () => {
-        is(inspector.selection.node.id, id, "Node re-selected after reload");
-        callback();
-      });
-    });
-
-    inspector.selection.setNode(div);
-  }
-
-  
-  function testSameNodeSelectedOnPageReload()
+let TEST_DATA = [
   {
-    
-    
-    reloadAndReselect("id1", () => {
-      reloadAndReselect("id2", () => {
-        reloadAndReselect("id3", () => {
-          reloadAndReselect("id4", testBodySelectedOnNavigate);
-        });
-      });
-    });
+    url: PAGE_1,
+    nodeToSelect: "#id1",
+    selectedNode: "#id1"
+  },
+  {
+    url: PAGE_1,
+    nodeToSelect: "#id2",
+    selectedNode: "#id2"
+  },
+  {
+    url: PAGE_1,
+    nodeToSelect: "#id3",
+    selectedNode: "#id3"
+  },
+  {
+    url: PAGE_1,
+    nodeToSelect: "#id4",
+    selectedNode: "#id4"
+  },
+  {
+    url: PAGE_2,
+    nodeToSelect: null,
+    selectedNode: "body"
+  },
+  {
+    url: PAGE_1,
+    nodeToSelect: "#id5",
+    selectedNode: "body"
+  },
+  {
+    url: PAGE_2,
+    nodeToSelect: null,
+    selectedNode: "body"
+  }
+];
+
+let test = asyncTest(function* () {
+  let { inspector } = yield openInspectorForURL(PAGE_1);
+
+  for (let { url, nodeToSelect, selectedNode } of TEST_DATA) {
+    if (nodeToSelect) {
+      info("Selecting node " + nodeToSelect + " before navigation.");
+      yield selectNode(nodeToSelect, inspector);
+    }
+
+    yield navigateToAndWaitForNewRoot(url);
+
+    info("Waiting for inspector to update after new-root event.");
+    yield inspector.once("inspector-updated");
+
+    is(inspector.selection.node, getNode(selectedNode),
+       selectedNode + " is selected after navigation.");
   }
 
-  
-  
-  function testBodySelectedOnNavigate() {
-    
-    
-    loadPageAnd(page2, () => {
-      is(
-        inspector.selection.node.tagName.toLowerCase(),
-        "body",
-        "Node not found, body selected"
-      );
-      testSameNodeSelectedOnNavigateAwayAndBack();
-    });
+  function navigateToAndWaitForNewRoot(url) {
+    info("Navigating and waiting for new-root event after navigation.");
+    let newRoot = inspector.once("new-root");
+
+    if (url == content.location) {
+      info("Reloading page.");
+      content.location.reload();
+    } else {
+      info("Navigating to " + url);
+      content.location = url;
+    }
+
+    return newRoot;
   }
-
-  
-  
-  function testSameNodeSelectedOnNavigateAwayAndBack() {
-    
-    let id = "id5";
-    let div = content.document.getElementById(id);
-
-    inspector.once("inspector-updated", () => {
-      is(inspector.selection.node.id, id);
-
-      
-      loadPageAnd(page1, () => {
-          
-        loadPageAnd(page2, () => {
-          is(inspector.selection.node.id, id, "Node re-selected after navigation");
-          endTests();
-        });
-      });
-    });
-
-    inspector.selection.setNode(div);
-  }
-}
+});

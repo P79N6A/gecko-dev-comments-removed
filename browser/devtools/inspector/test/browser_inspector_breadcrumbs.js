@@ -1,100 +1,54 @@
 
 
 
-function test()
-{
-  ignoreAllUncaughtExceptions();
+"use strict";
 
-  let nodes = [
-    {nodeId: "i1111", result: "i1 i11 i111 i1111"},
-    {nodeId: "i22", result: "i2 i22 i221"},
-    {nodeId: "i2111", result: "i2 i21 i211 i2111"},
-    {nodeId: "i21", result: "i2 i21 i211 i2111"},
-    {nodeId: "i22211", result: "i2 i22 i222 i2221 i22211"},
-    {nodeId: "i22", result: "i2 i22 i222 i2221 i22211"},
-  ];
 
-  let doc;
-  let nodes;
-  let cursor;
-  let inspector;
-  let target;
-  let panel;
-  let container;
 
-  gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function onload() {
-    gBrowser.selectedBrowser.removeEventListener("load", onload, true);
-    doc = content.document;
-    waitForFocus(setupTest, content);
-  }, true);
+const TEST_URI = TEST_URL_ROOT + "browser_inspector_breadcrumbs.html";
+const NODES = [
+  {nodeId: "#i1111", result: "i1 i11 i111 i1111"},
+  {nodeId: "#i22", result: "i2 i22 i221"},
+  {nodeId: "#i2111", result: "i2 i21 i211 i2111"},
+  {nodeId: "#i21", result: "i2 i21 i211 i2111"},
+  {nodeId: "#i22211", result: "i2 i22 i222 i2221 i22211"},
+  {nodeId: "#i22", result: "i2 i22 i222 i2221 i22211"},
+];
 
-  content.location = "http://mochi.test:8888/browser/browser/devtools/inspector/test/browser_inspector_breadcrumbs.html";
+let test = asyncTest(function*() {
+  let { inspector } = yield openInspectorForURL(TEST_URI);
+  let container = inspector.panelDoc.getElementById("inspector-breadcrumbs");
 
-  function setupTest()
-  {
-    for (let i = 0; i < nodes.length; i++) {
-      let node = doc.getElementById(nodes[i].nodeId);
-      nodes[i].node = node;
-      ok(nodes[i].node, "node " + nodes[i].nodeId + " found");
-    }
+  for (let node of NODES) {
+    info("Testing node " + node.nodeId);
 
-    openInspector(runTests);
-  }
+    let documentNode = getNode(node.nodeId);
 
-  function runTests(aInspector)
-  {
-    inspector = aInspector;
-    target = TargetFactory.forTab(gBrowser.selectedTab);
-    panel = gDevTools.getToolbox(target).getPanel("inspector");
-    container = panel.panelDoc.getElementById("inspector-breadcrumbs");
-    cursor = 0;
-    inspector.on("breadcrumbs-updated", nodeSelected);
-    executeSoon(function() {
-      inspector.selection.setNode(nodes[0].node);
-    });
-  }
+    info("Selecting node and waiting for breadcrumbs to update");
+    let breadcrumbsUpdated = inspector.once("breadcrumbs-updated");
+    let nodeSelected = selectNode(documentNode, inspector);
 
-  function nodeSelected()
-  {
-    performTest();
-    cursor++;
+    yield Promise.all([breadcrumbsUpdated, nodeSelected]);
 
-    if (cursor >= nodes.length) {
-      inspector.off("breadcrumbs-updated", nodeSelected);
-      
-      
-      
-      inspector.once("inspector-updated", finishUp);
-    } else {
-      let node = nodes[cursor].node;
-      inspector.selection.setNode(node);
-    }
-  }
-
-  function performTest()
-  {
-    let buttonsLabelIds = nodes[cursor].result.split(" ");
+    info("Performing checks for node " + node.nodeId);
+    let buttonsLabelIds = node.result.split(" ");
 
     
-    is(container.childNodes.length, buttonsLabelIds.length + 2, "Node " + cursor + ": Items count");
+    is(container.childNodes.length, buttonsLabelIds.length + 2,
+      "Node " + node.nodeId + ": Items count");
 
     for (let i = 2; i < container.childNodes.length; i++) {
       let expectedId = "#" + buttonsLabelIds[i - 2];
       let button = container.childNodes[i];
       let labelId = button.querySelector(".breadcrumbs-widget-item-id");
-      is(labelId.textContent, expectedId, "Node " + cursor + ": button " + i + " matches");
+      is(labelId.textContent, expectedId,
+        "Node #" + node.nodeId + ": button " + i + " matches");
     }
 
     let checkedButton = container.querySelector("button[checked]");
     let labelId = checkedButton.querySelector(".breadcrumbs-widget-item-id");
     let id = inspector.selection.node.id;
-    is(labelId.textContent, "#" + id, "Node " + cursor + ": selection matches");
+    is(labelId.textContent, "#" + id,
+      "Node #" + node.nodeId + ": selection matches");
   }
-
-  function finishUp() {
-    doc = nodes = inspector = null;
-    gBrowser.removeCurrentTab();
-    finish();
-  }
-}
+});

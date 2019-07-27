@@ -1,50 +1,26 @@
 
 
 
-function test()
-{
-  let node, iframe, inspector;
+"use strict";
 
-  gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function onload() {
-    gBrowser.selectedBrowser.removeEventListener("load", onload, true);
-    waitForFocus(setupTest, content);
-  }, true);
 
-  content.location = "http://mochi.test:8888/browser/browser/devtools/inspector/test/browser_inspector_destroyselection.html";
 
-  function setupTest()
-  {
-    iframe = content.document.querySelector("iframe");
-    node = iframe.contentDocument.querySelector("span");
-    openInspector(runTests);
-  }
 
-  function runTests(aInspector)
-  {
-    inspector = aInspector;
-    inspector.selection.setNode(node);
+const TEST_URL = TEST_URL_ROOT + "browser_inspector_destroyselection.html";
 
-    inspector.once("inspector-updated", () => {
-      iframe.parentNode.removeChild(iframe);
-      iframe = null;
+let test = asyncTest(function* () {
+  let { inspector } = yield openInspectorForURL(TEST_URL);
 
-      let tmp = {};
-      Cu.import("resource://gre/modules/devtools/LayoutHelpers.jsm", tmp);
-      let lh = new tmp.LayoutHelpers(window.content);
-      ok(!lh.isNodeConnected(node), "Node considered as disconnected.");
-      ok(!inspector.selection.isConnected(), "Selection considered as disconnected");
+  let iframe = getNode("iframe");
+  let node = getNode("span", { document: iframe.contentDocument });
+  yield selectNode(node, inspector);
 
-      inspector.once("inspector-updated", () => {
-        finishUp();
-      });
-    });
-  }
+  info("Removing iframe.");
+  iframe.remove();
 
-  function finishUp() {
-    node = inspector = null;
-    gBrowser.removeCurrentTab();
-    finish();
-  }
-}
+  let lh = new LayoutHelpers(window.content);
+  ok(!lh.isNodeConnected(node), "Node considered as disconnected.");
+  ok(!inspector.selection.isConnected(), "Selection considered as disconnected.");
 
+  yield inspector.once("inspector-updated");
+});

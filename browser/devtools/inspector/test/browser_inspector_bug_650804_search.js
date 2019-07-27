@@ -1,118 +1,82 @@
 
 
 
-function test()
-{
-  let inspector, searchBox, state;
-  let keypressStates = [3,4,8,18,19,20,21,22];
+"use strict";
 
-  
-  
-  
-  
-  
-  
-  let keyStates = [
-    ["d", "b1", false],
-    ["i", "b1", false],
-    ["v", "d1", true],
-    ["VK_DOWN", "d2", true],
-    ["VK_RETURN", "d1", true],
-    [".", "d1", false],
-    ["c", "d1", false],
-    ["1", "d2", true],
-    ["VK_DOWN", "d2", true],
-    ["VK_BACK_SPACE", "d2", false],
-    ["VK_BACK_SPACE", "d2", false],
-    ["VK_BACK_SPACE", "d1", true],
-    ["VK_BACK_SPACE", "d1", false],
-    ["VK_BACK_SPACE", "d1", false],
-    ["VK_BACK_SPACE", "d1", true],
-    [".", "d1", false],
-    ["c", "d1", false],
-    ["1", "d2", true],
-    ["VK_DOWN", "s2", true],
-    ["VK_DOWN", "p1", true],
-    ["VK_UP", "s2", true],
-    ["VK_UP", "d2", true],
-    ["VK_UP", "p1", true],
-    ["VK_BACK_SPACE", "p1", false],
-    ["2", "p3", true],
-    ["VK_BACK_SPACE", "p3", false],
-    ["VK_BACK_SPACE", "p3", false],
-    ["VK_BACK_SPACE", "p3", true],
-    ["r", "p3", false],
-  ];
 
-  gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function onload() {
-    gBrowser.selectedBrowser.removeEventListener("load", onload, true);
-    waitForFocus(setupTest, content);
-  }, true);
 
-  content.location = "http://mochi.test:8888/browser/browser/devtools/" +
-                     "inspector/test/browser_inspector_bug_650804_search.html";
 
-  function $(id) {
-    if (id == null) return null;
-    return content.document.getElementById(id);
-  }
+const TEST_URL = TEST_URL_ROOT + "browser_inspector_bug_650804_search.html";
 
-  function setupTest()
-  {
-    openInspector(startTest);
-  }
 
-  function startTest(aInspector)
-  {
-    inspector = aInspector;
-    inspector.selection.setNode($("b1"));
 
-    searchBox =
-      inspector.panelWin.document.getElementById("inspector-searchbox");
 
-    focusSearchBoxUsingShortcut(inspector.panelWin, function() {
-      searchBox.addEventListener("command", checkState, true);
-      searchBox.addEventListener("keypress", checkState, true);
-      checkStateAndMoveOn(0);
-    });
-  }
+const LISTEN_KEYPRESS = [3,4,8,18,19,20,21,22];
 
-  function checkStateAndMoveOn(index) {
-    if (index == keyStates.length) {
-      finishUp();
-      return;
-    }
 
-    let [key, id, isValid] = keyStates[index];
-    state = index;
 
-    info("pressing key " + key + " to get id " + id);
+
+
+
+
+const KEY_STATES = [
+  ["d", "b1", false],
+  ["i", "b1", false],
+  ["v", "d1", true],
+  ["VK_DOWN", "d2", true], 
+  ["VK_RETURN", "d1", true], 
+  [".", "d1", false],
+  ["c", "d1", false],
+  ["1", "d2", true],
+  ["VK_DOWN", "d2", true], 
+  ["VK_BACK_SPACE", "d2", false],
+  ["VK_BACK_SPACE", "d2", false],
+  ["VK_BACK_SPACE", "d1", true],
+  ["VK_BACK_SPACE", "d1", false],
+  ["VK_BACK_SPACE", "d1", false],
+  ["VK_BACK_SPACE", "d1", true],
+  [".", "d1", false],
+  ["c", "d1", false],
+  ["1", "d2", true],
+  ["VK_DOWN", "s2", true], 
+  ["VK_DOWN", "p1", true], 
+  ["VK_UP", "s2", true], 
+  ["VK_UP", "d2", true], 
+  ["VK_UP", "p1", true],
+  ["VK_BACK_SPACE", "p1", false],
+  ["2", "p3", true],
+  ["VK_BACK_SPACE", "p3", false],
+  ["VK_BACK_SPACE", "p3", false],
+  ["VK_BACK_SPACE", "p3", true],
+  ["r", "p3", false],
+];
+
+let test = asyncTest(function* () {
+  let { inspector } = yield openInspectorForURL(TEST_URL);
+  let { searchBox } = inspector;
+
+  yield selectNode("#b1", inspector);
+  yield focusSearchBoxUsingShortcut(inspector.panelWin);
+
+  let index = 0;
+  for (let [ key, id, isValid ] of KEY_STATES) {
+    let event = (LISTEN_KEYPRESS.indexOf(index) !== -1) ? "keypress" : "command";
+    let eventHandled = once(searchBox, event, true);
+
+    info(index + ": Pressing key " + key + " to get id " + id);
     EventUtils.synthesizeKey(key, {}, inspector.panelWin);
-  }
+    yield eventHandled;
 
-  function checkState(event) {
-    if (event.type == "keypress" && keypressStates.indexOf(state) == -1) {
-      return;
-    }
+    info("Got " + event + " event. Waiting for search query to complete");
+    yield inspector.searchSuggestions._lastQuery;
 
-    inspector.searchSuggestions._lastQuery.then(() => {
-      executeSoon(() => {
-        let [key, id, isValid] = keyStates[state];
-        info(inspector.selection.node.id + " is selected with text " +
-             inspector.searchBox.value);
-        is(inspector.selection.node, $(id),
-           "Correct node is selected for state " + state);
-        is(!searchBox.classList.contains("devtools-no-search-result"), isValid,
-           "Correct searchbox result state for state " + state);
-        checkStateAndMoveOn(state + 1);
-      });
-    });
-  }
+    info(inspector.selection.node.id + " is selected with text " +
+         searchBox.value);
+    is(inspector.selection.node, content.document.getElementById(id),
+       "Correct node is selected for state " + index);
+    is(!searchBox.classList.contains("devtools-no-search-result"), isValid,
+       "Correct searchbox result state for state " + index);
 
-  function finishUp() {
-    searchBox = null;
-    gBrowser.removeCurrentTab();
-    finish();
+    index++;
   }
-}
+});

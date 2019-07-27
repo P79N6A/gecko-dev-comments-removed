@@ -25,20 +25,12 @@ let test = asyncTest(function*() {
   yield openMenu(menu);
 
   yield testMenuItems(div, menu, inspector);
-
-  gBrowser.removeCurrentTab();
 });
 
 function openMenu(menu) {
-  let def = promise.defer();
-
-  menu.addEventListener("popupshowing", function onOpen() {
-    menu.removeEventListener("popupshowing", onOpen, true);
-    def.resolve();
-  }, true);
+  let promise = once(menu, "popupshowing", true);
   menu.openPopup();
-
-  return def.promise;
+  return promise;
 }
 
 function* testMenuItems(div,menu, inspector) {
@@ -49,7 +41,7 @@ function* testMenuItems(div,menu, inspector) {
     
     let onPseudo = inspector.selection.once("pseudoclass");
     let onRefresh = inspector.once("rule-view-refreshed");
-    let onMutations = waitForMutation(inspector);
+    let onMutations = inspector.walker.once("mutations");
 
     menuitem.doCommand();
 
@@ -60,10 +52,4 @@ function* testMenuItems(div,menu, inspector) {
     is(DOMUtils.hasPseudoClassLock(div, ":" + pseudo), true,
       "pseudo-class lock has been applied");
   }
-}
-
-function waitForMutation(inspector) {
-  let def = promise.defer();
-  inspector.walker.once("mutations", def.resolve);
-  return def.promise;
 }

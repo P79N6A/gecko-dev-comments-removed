@@ -1,77 +1,41 @@
 
 
 
-let Toolbox = devtools.Toolbox;
-let TargetFactory = devtools.TargetFactory;
+"use strict";
 
-function test() {
-  const URL_1 = "data:text/html;charset=UTF-8,<div id='one' style='color:red;'>ONE</div>";
-  const URL_2 = "data:text/html;charset=UTF-8,<div id='two' style='color:green;'>TWO</div>";
 
-  let toolbox, inspector;
 
-  
-  let tab = gBrowser.selectedTab = gBrowser.addTab();
-  let target = TargetFactory.forTab(gBrowser.selectedTab);
-  let deferred = promise.defer();
-  let browser = gBrowser.getBrowserForTab(tab);
+const SCHEMA = "data:text/html;charset=UTF-8,";
+const URL_1 = SCHEMA + "<div id='one' style='color:red;'>ONE</div>";
+const URL_2 = SCHEMA + "<div id='two' style='color:green;'>TWO</div>";
 
-  function onTabLoad() {
-    browser.removeEventListener("load", onTabLoad, true);
-    deferred.resolve(null);
-  }
-  browser.addEventListener("load", onTabLoad, true);
-  browser.loadURI(URL_1);
+let test = asyncTest(function* () {
+  let { inspector, toolbox } = yield openInspectorForURL(URL_1);
 
-  
-  deferred.promise.then(() => {
-    return gDevTools.showToolbox(target, null, Toolbox.HostType.BOTTOM);
-  }).then(aToolbox => {
-    toolbox = aToolbox;
-  }).then(() => {
-    
-    return toolbox.selectTool("inspector").then(i => {
-      inspector = i;
-      
-      let testNode = content.document.querySelector("#one");
-      ok(testNode, "We have the test node on page 1");
+  let firstNode = getNode("#one");
 
-      assertMarkupViewIsLoaded();
-    });
-  }).then(() => {
-    
-    let deferred = promise.defer();
+  assertMarkupViewIsLoaded();
+  yield selectNode(firstNode, inspector);
 
-    
-    target.on("will-navigate", () => {
-      info("Navigation to page 2 has started, the inspector should be empty");
-      assertMarkupViewIsEmpty();
-    });
-    inspector.once("new-root", () => {
-      info("Navigation to page 2 was done, the inspector should be back up");
+  let willNavigate = toolbox.target.once("will-navigate");
+  content.location = URL_2;
 
-      
-      let testNode = content.document.querySelector("#two");
-      ok(testNode, "We have the test node on page 2");
+  info("Waiting for will-navigate");
+  yield willNavigate;
 
-      
-      assertMarkupViewIsLoaded();
+  info("Navigation to page 2 has started, the inspector should be empty");
+  assertMarkupViewIsEmpty();
 
-      inspector.selection.setNode(content.document.querySelector("#two"));
-      inspector.once("inspector-updated", () => {
-        deferred.resolve();
-      });
-    });
+  info("Waiting for new-root");
+  yield inspector.once("new-root");
 
-    inspector.selection.setNode(content.document.querySelector("#one"));
-    inspector.once("inspector-updated", () => {
-      browser.loadURI(URL_2);
-    });
+  info("Checking that the page has node #two.");
+  let secondNode = getNode("#two");
 
-    return deferred.promise;
-  }).then(() => {
-    endTests();
-  });
+  info("Navigation to page 2 was done, the inspector should be back up");
+  assertMarkupViewIsLoaded();
+
+  yield selectNode(secondNode, inspector);
 
   function assertMarkupViewIsLoaded() {
     let markupViewBox = inspector.panelDoc.getElementById("markup-box");
@@ -82,10 +46,4 @@ function test() {
     let markupViewBox = inspector.panelDoc.getElementById("markup-box");
     is(markupViewBox.childNodes.length, 0, "The markup-view is unloaded");
   }
-
-  function endTests() {
-    target = browser = tab = inspector = TargetFactory = Toolbox = null;
-    gBrowser.removeCurrentTab();
-    finish();
-  }
-}
+});
