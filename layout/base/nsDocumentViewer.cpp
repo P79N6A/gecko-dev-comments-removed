@@ -1089,11 +1089,6 @@ nsDocumentViewer::PermitUnloadInternal(bool aCallerClosesWindow,
   }
 
   
-  if (sIsBeforeUnloadDisabled) {
-    return NS_OK;
-  }
-
-  
   nsPIDOMWindow *window = mDocument->GetWindow();
 
   if (!window) {
@@ -1147,8 +1142,10 @@ nsDocumentViewer::PermitUnloadInternal(bool aCallerClosesWindow,
   nsCOMPtr<nsIDocShell> docShell(mContainer);
   nsAutoString text;
   beforeUnload->GetReturnValue(text);
-  if (*aShouldPrompt && (event->GetInternalNSEvent()->mFlags.mDefaultPrevented ||
-                         !text.IsEmpty())) {
+
+  if (!sIsBeforeUnloadDisabled && *aShouldPrompt &&
+      (event->GetInternalNSEvent()->mFlags.mDefaultPrevented ||
+       !text.IsEmpty())) {
     
 
     nsCOMPtr<nsIPrompt> prompt = do_GetInterface(docShell);
