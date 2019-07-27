@@ -21,51 +21,50 @@ ImageResource::ImageResource(ImageURL* aURI) :
   mInitialized(false),
   mAnimating(false),
   mError(false)
-{
-}
+{ }
 
 
 Image::eDecoderType
-Image::GetDecoderType(const char *aMimeType)
+Image::GetDecoderType(const char* aMimeType)
 {
   
   eDecoderType rv = eDecoderType_unknown;
 
   
-  if (!strcmp(aMimeType, IMAGE_PNG))
+  if (!strcmp(aMimeType, IMAGE_PNG)) {
     rv = eDecoderType_png;
-  else if (!strcmp(aMimeType, IMAGE_X_PNG))
+
+  } else if (!strcmp(aMimeType, IMAGE_X_PNG)) {
     rv = eDecoderType_png;
 
   
-  else if (!strcmp(aMimeType, IMAGE_GIF))
+  } else if (!strcmp(aMimeType, IMAGE_GIF)) {
     rv = eDecoderType_gif;
 
+  
+  } else if (!strcmp(aMimeType, IMAGE_JPEG)) {
+    rv = eDecoderType_jpeg;
+  } else if (!strcmp(aMimeType, IMAGE_PJPEG)) {
+    rv = eDecoderType_jpeg;
+  } else if (!strcmp(aMimeType, IMAGE_JPG)) {
+    rv = eDecoderType_jpeg;
 
   
-  else if (!strcmp(aMimeType, IMAGE_JPEG))
-    rv = eDecoderType_jpeg;
-  else if (!strcmp(aMimeType, IMAGE_PJPEG))
-    rv = eDecoderType_jpeg;
-  else if (!strcmp(aMimeType, IMAGE_JPG))
-    rv = eDecoderType_jpeg;
-
-  
-  else if (!strcmp(aMimeType, IMAGE_BMP))
+  } else if (!strcmp(aMimeType, IMAGE_BMP)) {
     rv = eDecoderType_bmp;
-  else if (!strcmp(aMimeType, IMAGE_BMP_MS))
+  } else if (!strcmp(aMimeType, IMAGE_BMP_MS)) {
     rv = eDecoderType_bmp;
 
-
   
-  else if (!strcmp(aMimeType, IMAGE_ICO))
+  } else if (!strcmp(aMimeType, IMAGE_ICO)) {
     rv = eDecoderType_ico;
-  else if (!strcmp(aMimeType, IMAGE_ICO_MS))
+  } else if (!strcmp(aMimeType, IMAGE_ICO_MS)) {
     rv = eDecoderType_ico;
 
   
-  else if (!strcmp(aMimeType, IMAGE_ICON_MS))
+  } else if (!strcmp(aMimeType, IMAGE_ICON_MS)) {
     rv = eDecoderType_icon;
+  }
 
   return rv;
 }
@@ -83,15 +82,17 @@ ImageResource::DecrementAnimationConsumers()
 {
   MOZ_ASSERT(NS_IsMainThread(), "Main thread only to encourage serialization "
                                 "with IncrementAnimationConsumers");
-  MOZ_ASSERT(mAnimationConsumers >= 1, "Invalid no. of animation consumers!");
+  MOZ_ASSERT(mAnimationConsumers >= 1,
+             "Invalid no. of animation consumers!");
   mAnimationConsumers--;
 }
 
 nsresult
 ImageResource::GetAnimationModeInternal(uint16_t* aAnimationMode)
 {
-  if (mError)
+  if (mError) {
     return NS_ERROR_FAILURE;
+  }
 
   NS_ENSURE_ARG_POINTER(aAnimationMode);
 
@@ -102,8 +103,9 @@ ImageResource::GetAnimationModeInternal(uint16_t* aAnimationMode)
 nsresult
 ImageResource::SetAnimationModeInternal(uint16_t aAnimationMode)
 {
-  if (mError)
+  if (mError) {
     return NS_ERROR_FAILURE;
+  }
 
   NS_ASSERTION(aAnimationMode == kNormalAnimMode ||
                aAnimationMode == kDontAnimMode ||

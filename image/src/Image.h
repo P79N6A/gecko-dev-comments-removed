@@ -3,8 +3,8 @@
 
 
 
-#ifndef MOZILLA_IMAGELIB_IMAGE_H_
-#define MOZILLA_IMAGELIB_IMAGE_H_
+#ifndef mozilla_image_src_Image_h
+#define mozilla_image_src_Image_h
 
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/TimeStamp.h"
@@ -81,7 +81,7 @@ public:
 
 
   virtual size_t SizeOfSourceWithComputedFallback(
-                                          MallocSizeOf aMallocSizeOf) const = 0;
+    MallocSizeOf aMallocSizeOf) const = 0;
 
   
 
