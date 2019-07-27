@@ -30,6 +30,10 @@
 
 namespace mozilla {
 
+namespace widget {
+struct IMENotification;
+} 
+
 
 enum PhysicalAxis {
   eAxisVertical      = 0x0,
@@ -475,6 +479,10 @@ private:
   friend class LogicalRect;
 
   friend struct IPC::ParamTraits<WritingMode>;
+  
+  
+  
+  friend struct widget::IMENotification;
 
   
 
