@@ -693,6 +693,19 @@ nsCSPContext::SendReports(nsISupports* aBlockedContentSource,
     }
 
     
+    bool isHttpScheme =
+      (NS_SUCCEEDED(reportURI->SchemeIs("http", &isHttpScheme)) && isHttpScheme) ||
+      (NS_SUCCEEDED(reportURI->SchemeIs("https", &isHttpScheme)) && isHttpScheme);
+
+    if (!isHttpScheme) {
+      const char16_t* params[] = { reportURIs[r].get() };
+      CSP_LogLocalizedStr(NS_LITERAL_STRING("reportURInotHttpsOrHttp2").get(),
+                          params, ArrayLength(params),
+                          aSourceFile, aScriptSample, aLineNum, 0,
+                          nsIScriptError::errorFlag, "CSP", mInnerWindowID);
+    }
+
+    
     
     nsLoadFlags flags;
     rv = reportChannel->GetLoadFlags(&flags);
