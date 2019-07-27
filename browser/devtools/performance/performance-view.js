@@ -30,7 +30,7 @@ let PerformanceView = {
 
 
   initialize: function () {
-    this._recordButton = $("#record-button");
+    this._recordButton = $("#main-record-button");
     this._importButton = $("#import-button");
     this._clearButton = $("#clear-button");
 
