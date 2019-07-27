@@ -454,7 +454,6 @@ class MochitestOptions(ArgumentParser):
     def verifyOptions(self, options, mochitest):
         """ verify correct options and cleanup paths """
 
-        mozinfo.update({"e10s": options.e10s})  
         
         mozinfo.update({"strictContentSandbox": options.strictContentSandbox})
         
@@ -625,6 +624,7 @@ class MochitestOptions(ArgumentParser):
         if options.nested_oop:
             if not options.e10s:
                 options.e10s = True
+        mozinfo.update({"e10s": options.e10s})  
 
         options.leakThresholds = {
             "default": options.defaultLeakThreshold,
