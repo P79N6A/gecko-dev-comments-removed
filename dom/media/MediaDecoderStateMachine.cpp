@@ -1505,8 +1505,15 @@ void MediaDecoderStateMachine::DoNotifyWaitingForResourcesStatusChanged()
 void MediaDecoderStateMachine::PlayInternal()
 {
   NS_ASSERTION(OnStateMachineThread(), "Should be on state machine thread.");
-
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+
+  
+  
+  
+  if (mMinimizePreroll) {
+    mMinimizePreroll = false;
+    DispatchDecodeTasksIfNeeded();
+  }
 
   
   
@@ -1526,17 +1533,14 @@ void MediaDecoderStateMachine::PlayInternal()
   
   
   if (mState == DECODER_STATE_BUFFERING) {
-    DECODER_LOG("Changed state from BUFFERING to DECODING");
-    SetState(DECODER_STATE_DECODING);
-    mDecodeStartTime = TimeStamp::Now();
+    StartDecoding();
   }
+
   if (mDecodingFrozenAtStateDecoding) {
     mDecodingFrozenAtStateDecoding = false;
     DispatchDecodeTasksIfNeeded();
   }
-  
-  
-  mMinimizePreroll = false;
+
   ScheduleStateMachine();
 }
 
@@ -3379,6 +3383,7 @@ void
 MediaDecoderStateMachine::SetMinimizePrerollUntilPlaybackStarts()
 {
   AssertCurrentThreadInMonitor();
+  DECODER_LOG("SetMinimizePrerollUntilPlaybackStarts()");
   mMinimizePreroll = true;
 }
 
