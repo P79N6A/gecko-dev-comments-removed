@@ -629,7 +629,7 @@ public:
                                JS::AutoIdVector &props) const MOZ_OVERRIDE;
   virtual bool delete_(JSContext *cx, JS::Handle<JSObject*> proxy,
                        JS::Handle<jsid> id,
-                       bool *bp) const MOZ_OVERRIDE;
+                       JS::ObjectOpResult &result) const MOZ_OVERRIDE;
   virtual bool enumerate(JSContext *cx, JS::Handle<JSObject*> proxy,
                          JS::MutableHandle<JSObject*> vp) const MOZ_OVERRIDE;
   virtual bool preventExtensions(JSContext *cx,
@@ -825,23 +825,20 @@ nsOuterWindowProxy::ownPropertyKeys(JSContext *cx,
 
 bool
 nsOuterWindowProxy::delete_(JSContext *cx, JS::Handle<JSObject*> proxy,
-                            JS::Handle<jsid> id, bool *bp) const
+                            JS::Handle<jsid> id, JS::ObjectOpResult &result) const
 {
   if (nsCOMPtr<nsIDOMWindow> frame = GetSubframeWindow(cx, proxy, id)) {
     
-    
-    *bp = false;
-    return true;
+    return result.failCantDeleteWindowElement();
   }
 
   int32_t index = GetArrayIndexFromId(cx, id);
   if (IsArrayIndex(index)) {
     
-    *bp = true;
-    return true;
+    return result.succeed();
   }
 
-  return js::Wrapper::delete_(cx, proxy, id, bp);
+  return js::Wrapper::delete_(cx, proxy, id, result);
 }
 
 bool

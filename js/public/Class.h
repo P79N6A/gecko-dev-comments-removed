@@ -122,6 +122,9 @@ class ObjectOpResult
     JS_PUBLIC_API(bool) failReadOnly();
     JS_PUBLIC_API(bool) failGetterOnly();
     JS_PUBLIC_API(bool) failCantSetInterposed();
+    JS_PUBLIC_API(bool) failCantDelete();
+    JS_PUBLIC_API(bool) failCantDeleteWindowElement();
+    JS_PUBLIC_API(bool) failCantDeleteWindowNamedProperty();
 
     uint32_t failureCode() const {
         MOZ_ASSERT(!ok());
@@ -202,7 +205,7 @@ typedef bool
 
 typedef bool
 (* JSDeletePropertyOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
-                       bool *succeeded);
+                       JS::ObjectOpResult &result);
 
 
 
@@ -303,7 +306,8 @@ typedef bool
 (* GetOwnPropertyOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
                      JS::MutableHandle<JSPropertyDescriptor> desc);
 typedef bool
-(* DeletePropertyOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id, bool *succeeded);
+(* DeletePropertyOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
+                     JS::ObjectOpResult &result);
 
 typedef bool
 (* WatchOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id, JS::HandleObject callable);

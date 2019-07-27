@@ -274,7 +274,7 @@ ArgumentsObject::createForIon(JSContext *cx, jit::JitFrameLayout *frame, HandleO
 }
 
 static bool
-args_delProperty(JSContext *cx, HandleObject obj, HandleId id, bool *succeeded)
+args_delProperty(JSContext *cx, HandleObject obj, HandleId id, ObjectOpResult &result)
 {
     ArgumentsObject &argsobj = obj->as<ArgumentsObject>();
     if (JSID_IS_INT(id)) {
@@ -286,8 +286,7 @@ args_delProperty(JSContext *cx, HandleObject obj, HandleId id, bool *succeeded)
     } else if (JSID_IS_ATOM(id, cx->names().callee)) {
         argsobj.as<NormalArgumentsObject>().clearCallee();
     }
-    *succeeded = true;
-    return true;
+    return result.succeed();
 }
 
 static bool
@@ -353,8 +352,8 @@ ArgSetter(JSContext *cx, HandleObject obj, HandleId id, MutableHandleValue vp,
 
 
 
-    bool succeeded;
-    return NativeDeleteProperty(cx, argsobj, id, &succeeded) &&
+    ObjectOpResult ignored;
+    return NativeDeleteProperty(cx, argsobj, id, ignored) &&
            NativeDefineProperty(cx, argsobj, id, vp, nullptr, nullptr, attrs, result);
 }
 
@@ -469,8 +468,8 @@ StrictArgSetter(JSContext *cx, HandleObject obj, HandleId id, MutableHandleValue
 
 
 
-    bool succeeded;
-    return NativeDeleteProperty(cx, argsobj, id, &succeeded) &&
+    ObjectOpResult ignored;
+    return NativeDeleteProperty(cx, argsobj, id, ignored) &&
            NativeDefineProperty(cx, argsobj, id, vp, nullptr, nullptr, attrs, result);
 }
 

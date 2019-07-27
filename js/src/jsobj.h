@@ -918,10 +918,10 @@ PutProperty(JSContext *cx, HandleObject obj, HandlePropertyName name, MutableHan
 
 
 inline bool
-DeleteProperty(JSContext *cx, js::HandleObject obj, js::HandleId id, bool *succeeded);
+DeleteProperty(JSContext *cx, HandleObject obj, HandleId id, ObjectOpResult &result);
 
 inline bool
-DeleteElement(JSContext *cx, js::HandleObject obj, uint32_t index, bool *succeeded);
+DeleteElement(JSContext *cx, HandleObject obj, uint32_t index, ObjectOpResult &result);
 
 
 

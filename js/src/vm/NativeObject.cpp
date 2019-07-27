@@ -2322,7 +2322,8 @@ js::NativeSetElement(JSContext *cx, HandleNativeObject obj, HandleObject receive
 
 
 bool
-js::NativeDeleteProperty(JSContext *cx, HandleNativeObject obj, HandleId id, bool *succeeded)
+js::NativeDeleteProperty(JSContext *cx, HandleNativeObject obj, HandleId id,
+                         ObjectOpResult &result)
 {
     
     RootedShape shape(cx);
@@ -2333,20 +2334,18 @@ js::NativeDeleteProperty(JSContext *cx, HandleNativeObject obj, HandleId id, boo
     if (!shape) {
         
         
-        return CallJSDeletePropertyOp(cx, obj->getClass()->delProperty, obj, id, succeeded);
+        return CallJSDeletePropertyOp(cx, obj->getClass()->delProperty, obj, id, result);
     }
 
     cx->runtime()->gc.poke();
 
     
-    if (GetShapeAttributes(obj, shape) & JSPROP_PERMANENT) {
-        *succeeded = false;
-        return true;
-    }
+    if (GetShapeAttributes(obj, shape) & JSPROP_PERMANENT)
+        return result.failCantDelete();
 
-    if (!CallJSDeletePropertyOp(cx, obj->getClass()->delProperty, obj, id, succeeded))
+    if (!CallJSDeletePropertyOp(cx, obj->getClass()->delProperty, obj, id, result))
         return false;
-    if (!*succeeded)
+    if (!result)
         return true;
 
     

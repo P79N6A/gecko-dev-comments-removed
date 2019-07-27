@@ -738,8 +738,8 @@ DefinePropertyOnObject(JSContext *cx, HandleNativeObject obj, HandleId id, const
 
 
     if (callDelProperty) {
-        bool ignored;
-        if (!CallJSDeletePropertyOp(cx, obj->getClass()->delProperty, obj, id, &ignored))
+        ObjectOpResult ignored;
+        if (!CallJSDeletePropertyOp(cx, obj->getClass()->delProperty, obj, id, ignored))
             return false;
     }
 
@@ -2571,9 +2571,11 @@ DefineConstructorAndPrototype(JSContext *cx, HandleObject obj, JSProtoKey key, H
 
 bad:
     if (named) {
-        bool succeeded;
+        ObjectOpResult ignored;
         RootedId id(cx, AtomToId(atom));
-        DeleteProperty(cx, obj, id, &succeeded);
+
+        
+        DeleteProperty(cx, obj, id, ignored);
     }
     if (cached)
         ClearClassObject(obj, key);

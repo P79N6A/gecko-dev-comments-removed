@@ -380,7 +380,7 @@ SetArrayElement(JSContext *cx, HandleObject obj, double index, HandleValue v)
 
 
 static bool
-DeleteArrayElement(JSContext *cx, HandleObject obj, double index, bool *succeeded)
+DeleteArrayElement(JSContext *cx, HandleObject obj, double index, ObjectOpResult &result)
 {
     MOZ_ASSERT(index >= 0);
     MOZ_ASSERT(floor(index) == index);
@@ -403,31 +403,30 @@ DeleteArrayElement(JSContext *cx, HandleObject obj, double index, bool *succeede
             }
         }
 
-        *succeeded = true;
-        return true;
+        return result.succeed();
     }
 
     RootedId id(cx);
     if (!ToId(cx, index, &id))
         return false;
-    return DeleteProperty(cx, obj, id, succeeded);
+    return DeleteProperty(cx, obj, id, result);
 }
 
 
 static bool
 DeletePropertyOrThrow(JSContext *cx, HandleObject obj, double index)
 {
-    bool succeeded;
-    if (!DeleteArrayElement(cx, obj, index, &succeeded))
+    ObjectOpResult success;
+    if (!DeleteArrayElement(cx, obj, index, success))
         return false;
-    if (succeeded)
-        return true;
-
-    RootedId id(cx);
-    RootedValue indexv(cx, NumberValue(index));
-    if (!ValueToId<CanGC>(cx, indexv, &id))
-        return false;
-    return obj->reportNotConfigurable(cx, id, JSREPORT_ERROR);
+    if (!success) {
+        RootedId id(cx);
+        RootedValue indexv(cx, NumberValue(index));
+        if (!ValueToId<CanGC>(cx, indexv, &id))
+            return false;
+        return success.reportError(cx, obj, id);
+    }
+    return true;
 }
 
 bool
@@ -621,8 +620,8 @@ js::ArraySetLength(JSContext *cx, Handle<ArrayObject*> arr, HandleId id,
                 oldLen--;
 
                 
-                bool deleteSucceeded;
-                if (!DeleteElement(cx, arr, oldLen, &deleteSucceeded))
+                ObjectOpResult deleteSucceeded;
+                if (!DeleteElement(cx, arr, oldLen, deleteSucceeded))
                     return false;
                 if (!deleteSucceeded) {
                     newLen = oldLen + 1;
@@ -681,8 +680,8 @@ js::ArraySetLength(JSContext *cx, Handle<ArrayObject*> arr, HandleId id,
                 index = indexes[i];
 
                 
-                bool deleteSucceeded;
-                if (!DeleteElement(cx, arr, index, &deleteSucceeded))
+                ObjectOpResult deleteSucceeded;
+                if (!DeleteElement(cx, arr, index, deleteSucceeded))
                     return false;
                 if (!deleteSucceeded) {
                     newLen = index + 1;

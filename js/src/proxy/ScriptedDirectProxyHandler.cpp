@@ -691,7 +691,8 @@ ScriptedDirectProxyHandler::ownPropertyKeys(JSContext *cx, HandleObject proxy,
 
 
 bool
-ScriptedDirectProxyHandler::delete_(JSContext *cx, HandleObject proxy, HandleId id, bool *bp) const
+ScriptedDirectProxyHandler::delete_(JSContext *cx, HandleObject proxy, HandleId id,
+                                    ObjectOpResult &result) const
 {
     
     RootedObject handler(cx, GetDirectProxyHandlerObject(proxy));
@@ -712,7 +713,7 @@ ScriptedDirectProxyHandler::delete_(JSContext *cx, HandleObject proxy, HandleId 
 
     
     if (trap.isUndefined())
-        return DirectProxyHandler::delete_(cx, proxy, id, bp);
+        return DirectProxyHandler::delete_(cx, proxy, id, result);
 
     
     RootedValue value(cx);
@@ -727,27 +728,23 @@ ScriptedDirectProxyHandler::delete_(JSContext *cx, HandleObject proxy, HandleId 
         return false;
 
     
-    if (ToBoolean(trapResult)) {
-        
-        Rooted<PropertyDescriptor> desc(cx);
-        if (!GetOwnPropertyDescriptor(cx, target, id, &desc))
-            return false;
+    if (!ToBoolean(trapResult))
+        return result.fail(JSMSG_PROXY_DELETE_RETURNED_FALSE);
 
-        
-        if (desc.object() && desc.isPermanent()) {
-            RootedValue v(cx, IdToValue(id));
-            ReportValueError(cx, JSMSG_CANT_DELETE, JSDVG_IGNORE_STACK, v, js::NullPtr());
-            return false;
-        }
+    
+    Rooted<PropertyDescriptor> desc(cx);
+    if (!GetOwnPropertyDescriptor(cx, target, id, &desc))
+        return false;
 
-        
-        *bp = true;
-        return true;
+    
+    if (desc.object() && desc.isPermanent()) {
+        RootedValue v(cx, IdToValue(id));
+        ReportValueError(cx, JSMSG_CANT_DELETE, JSDVG_IGNORE_STACK, v, js::NullPtr());
+        return false;
     }
 
     
-    *bp = false;
-    return true;
+    return result.succeed();
 }
 
 
