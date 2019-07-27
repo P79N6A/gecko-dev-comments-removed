@@ -61,6 +61,9 @@ const EVENTS = {
   PREF_CHANGED: "Performance:PrefChanged",
 
   
+  THEME_CHANGED: "Performance:ThemeChanged",
+
+  
   
   
   UI_STATE_CHANGED: "Performance:UI:StateChanged",
@@ -177,6 +180,7 @@ let PerformanceController = {
     this._onTimelineData = this._onTimelineData.bind(this);
     this._onRecordingSelectFromView = this._onRecordingSelectFromView.bind(this);
     this._onPrefChanged = this._onPrefChanged.bind(this);
+    this._onThemeChanged = this._onThemeChanged.bind(this);
 
     
     
@@ -198,6 +202,7 @@ let PerformanceController = {
     RecordingsView.on(EVENTS.UI_EXPORT_RECORDING, this.exportRecording);
     RecordingsView.on(EVENTS.RECORDING_SELECTED, this._onRecordingSelectFromView);
 
+    gDevTools.on("pref-changed", this._onThemeChanged);
     gFront.on("markers", this._onTimelineData); 
     gFront.on("frames", this._onTimelineData); 
     gFront.on("memory", this._onTimelineData); 
@@ -220,11 +225,19 @@ let PerformanceController = {
     RecordingsView.off(EVENTS.UI_EXPORT_RECORDING, this.exportRecording);
     RecordingsView.off(EVENTS.RECORDING_SELECTED, this._onRecordingSelectFromView);
 
+    gDevTools.off("pref-changed", this._onThemeChanged);
     gFront.off("markers", this._onTimelineData);
     gFront.off("frames", this._onTimelineData);
     gFront.off("memory", this._onTimelineData);
     gFront.off("ticks", this._onTimelineData);
     gFront.off("allocations", this._onTimelineData);
+  },
+
+  
+
+
+  getTheme: function () {
+    return Services.prefs.getCharPref("devtools.theme");
   },
 
   
@@ -412,6 +425,19 @@ let PerformanceController = {
 
   _onPrefChanged: function (_, prefName, prefValue) {
     this.emit(EVENTS.PREF_CHANGED, prefName, prefValue);
+  },
+
+  
+
+
+  _onThemeChanged: function (_, data) {
+    
+    
+    if (data.pref !== "devtools.theme") {
+      return;
+    }
+
+    this.emit(EVENTS.THEME_CHANGED, data.newValue);
   },
 
   toString: () => "[object PerformanceController]"
