@@ -88,7 +88,8 @@ public:
                                  nsTArray<PluginWindowData>&& aPlugins) override;
 
   virtual bool
-  RecvUpdatePluginVisibility(nsTArray<uintptr_t>&& aWindowList) override;
+  RecvUpdatePluginVisibility(const uintptr_t& aOwnerWidget,
+                             nsTArray<uintptr_t>&& aWindowList) override;
 
   
 

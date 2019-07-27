@@ -1526,7 +1526,8 @@ class nsIWidget : public nsISupports {
 
 
 
-    static void UpdateRegisteredPluginWindowVisibility(nsTArray<uintptr_t>& aVisibleList);
+    static void UpdateRegisteredPluginWindowVisibility(uintptr_t aOwnerWidget,
+                                                       nsTArray<uintptr_t>& aVisibleList);
 
     
 

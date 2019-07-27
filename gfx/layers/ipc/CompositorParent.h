@@ -424,6 +424,8 @@ public:
 
   static bool IsInCompositorThread();
 
+  nsIWidget* GetWidget() { return mWidget; }
+
 protected:
   
   virtual ~CompositorParent();

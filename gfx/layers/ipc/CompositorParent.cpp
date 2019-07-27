@@ -1440,12 +1440,9 @@ CompositorParent::AllocPLayerTransactionParent(const nsTArray<LayersBackend>& aB
 {
   MOZ_ASSERT(aId == 0);
 
-  
-  
   gfx::IntRect rect;
   mWidget->GetClientBounds(rect);
   InitializeLayerManager(aBackendHints);
-  mWidget = nullptr;
 
   if (!mLayerManager) {
     NS_WARNING("Failed to initialise Compositor");
@@ -2037,7 +2034,9 @@ UpdatePluginWindowState(uint64_t aId)
       
       
       nsTArray<uintptr_t> aVisibleIdList;
-      unused << lts.mParent->SendUpdatePluginVisibility(aVisibleIdList);
+      uintptr_t parentWidget = (uintptr_t)lts.mParent->GetWidget();
+      unused << lts.mParent->SendUpdatePluginVisibility(parentWidget,
+                                                        aVisibleIdList);
       lts.mUpdatedPluginDataAvailable = false;
       return;
     }
