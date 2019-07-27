@@ -510,7 +510,7 @@ let NetworkHelper = {
 
 
 
-  parseSecurityInfo: function NH_parseSecurityInfo(securityInfo, request) {
+  parseSecurityInfo: function NH_parseSecurityInfo(securityInfo, httpActivity) {
     const info = {
       state: "insecure",
     };
@@ -574,25 +574,24 @@ let NetworkHelper = {
       info.cert = this.parseCertificateInfo(SSLStatus.serverCert);
 
       
-      if (request.URI) {
+      if (httpActivity.hostname) {
         const sss = Cc["@mozilla.org/ssservice;1"]
                       .getService(Ci.nsISiteSecurityService);
 
-        request.QueryInterface(Ci.nsIPrivateBrowsingChannel);
 
         
         
         
-        let flags = (request.isChannelPrivate) ?
+        let flags = (httpActivity.private) ?
                       Ci.nsISocketProvider.NO_PERMANENT_STORAGE : 0;
 
-        let host = request.URI.host;
+        let host = httpActivity.hostname;
 
         info.hsts = sss.isSecureHost(sss.HEADER_HSTS, host, flags);
         info.hpkp = sss.isSecureHost(sss.HEADER_HPKP, host, flags);
       } else {
         DevToolsUtils.reportException("NetworkHelper.parseSecurityInfo",
-          "Could not get HSTS/HPKP status as request.URI not available.");
+          "Could not get HSTS/HPKP status as hostname is not available.");
         info.hsts = false;
         info.hpkp = false;
       }
