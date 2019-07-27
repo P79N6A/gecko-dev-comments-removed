@@ -305,13 +305,19 @@ public:
   struct NonOwningImage {
     explicit NonOwningImage(Image* aImage = nullptr,
                             TimeStamp aTimeStamp = TimeStamp(),
-                            FrameID aFrameID = 0)
-      : mImage(aImage), mTimeStamp(aTimeStamp), mFrameID(aFrameID) {}
+                            FrameID aFrameID = 0,
+                            ProducerID aProducerID = 0)
+      : mImage(aImage), mTimeStamp(aTimeStamp), mFrameID(aFrameID),
+        mProducerID(aProducerID) {}
     Image* mImage;
     TimeStamp mTimeStamp;
     FrameID mFrameID;
+    ProducerID mProducerID;
   };
   
+
+
+
 
 
 
@@ -390,10 +396,12 @@ public:
   bool HasCurrentImage();
 
   struct OwningImage {
+    OwningImage() : mFrameID(0), mProducerID(0), mComposited(false) {}
     nsRefPtr<Image> mImage;
     TimeStamp mTimeStamp;
     FrameID mFrameID;
     ProducerID mProducerID;
+    bool mComposited;
   };
   
 
@@ -466,6 +474,7 @@ public:
 
 
 
+
   uint32_t GetDroppedImageCount()
   {
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
@@ -475,14 +484,18 @@ public:
   PImageContainerChild* GetPImageContainerChild();
   static void NotifyComposite(const ImageCompositeNotification& aNotification);
 
+  
+
+
+  static ProducerID AllocateProducerID();
+
 private:
   typedef mozilla::ReentrantMonitor ReentrantMonitor;
 
   
   B2G_ACL_EXPORT ~ImageContainer();
 
-  void SetCurrentImageInternal(Image* aImage, const TimeStamp& aTimeStamp,
-                               FrameID aFrameID);
+  void SetCurrentImageInternal(const nsTArray<NonOwningImage>& aImages);
 
   
   
@@ -496,8 +509,7 @@ private:
   
   ReentrantMonitor mReentrantMonitor;
 
-  nsRefPtr<Image> mActiveImage;
-  TimeStamp mCurrentImageTimeStamp;
+  nsTArray<OwningImage> mCurrentImages;
 
   
   uint32_t mGenerationCounter;
@@ -512,9 +524,6 @@ private:
 
   
   uint32_t mDroppedImageCount;
-
-  FrameID mCurrentImageFrameID;
-  bool mCurrentImageComposited;
 
   
   
@@ -535,6 +544,9 @@ private:
   ImageClient* mImageClient;
 
   nsTArray<FrameID> mFrameIDsNotYetComposited;
+  
+  
+  ProducerID mCurrentProducerID;
 
   
   
