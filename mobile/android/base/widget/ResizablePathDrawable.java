@@ -14,6 +14,10 @@ import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.Shape;
 
 public class ResizablePathDrawable extends ShapeDrawable {
+    
+    
+    private int alpha = 255;
+
     private final ColorStateList colorStateList;
     private int currentColor;
 
@@ -51,7 +55,19 @@ public class ResizablePathDrawable extends ShapeDrawable {
     @Override
     protected void onDraw(Shape shape, Canvas canvas, Paint paint) {
         paint.setColor(currentColor);
+        
+        
+        
+        
+        
+        paint.setAlpha(alpha);
         super.onDraw(shape, canvas, paint);
+    }
+
+    @Override
+    public void setAlpha(final int alpha) {
+        super.setAlpha(alpha);
+        this.alpha = alpha;
     }
 
     @Override
