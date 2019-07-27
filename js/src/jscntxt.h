@@ -750,10 +750,7 @@ CallErrorReporter(JSContext *cx, const char *message, JSErrorReport *report);
 } 
 
 extern void
-js_ReportIsNotDefined(JSContext *cx, js::HandleScript script, jsbytecode *pc, js::HandleAtom atom);
-
-extern void
-js_ReportIsNotDefined(JSContext *cx, js::HandleAtom atom);
+js_ReportIsNotDefined(JSContext *cx, const char *name);
 
 
 

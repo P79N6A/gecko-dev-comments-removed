@@ -5076,8 +5076,9 @@ GetPropertyHelperInline(JSContext *cx,
 
             if (op == JSOP_GETXPROP) {
                 
-                RootedAtom atom(cx, JSID_TO_ATOM(id));
-                js_ReportIsNotDefined(cx, atom);
+                JSAutoByteString printable;
+                if (js_ValueToPrintable(cx, IdToValue(id), &printable))
+                    js_ReportIsNotDefined(cx, printable.ptr());
                 return false;
             }
 

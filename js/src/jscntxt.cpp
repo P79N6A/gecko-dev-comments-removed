@@ -14,7 +14,6 @@
 #include "mozilla/DebugOnly.h"
 #include "mozilla/MemoryReporting.h"
 
-#include <algorithm>
 #include <ctype.h>
 #include <stdarg.h>
 #include <string.h>
@@ -50,7 +49,6 @@
 #include "jsobjinlines.h"
 #include "jsscriptinlines.h"
 
-#include "vm/ScopeObject-inl.h"
 #include "vm/Stack-inl.h"
 
 using namespace js;
@@ -881,178 +879,10 @@ js::CallErrorReporter(JSContext *cx, const char *message, JSErrorReport *reportp
         onError(cx, message, reportp);
 }
 
-static const size_t MAX_NAME_LENGTH_FOR_EDIT_DISTANCE = 1000;
-static const size_t MAX_REFERENCE_ERROR_NAMES_TO_CHECK = 1000;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static bool ComputeEditDistance(JSContext *cx, HandleAtom atom1,
-                                HandleAtom atom2, size_t *presult)
-{
-    *presult = 0;
-
-    const size_t m = atom1->length();
-    if (m >= MAX_NAME_LENGTH_FOR_EDIT_DISTANCE)
-        return true;
-    const size_t n = atom2->length();
-    if (m >= MAX_NAME_LENGTH_FOR_EDIT_DISTANCE)
-        return true;
-
-    Vector<size_t> d(cx);
-    if (!d.growBy((m + 1) * (n + 1)))
-        return false;
-
-    AutoStableStringChars aChars(cx);
-    AutoStableStringChars bChars(cx);
-    if (!aChars.initTwoByte(cx, atom1) || !bChars.initTwoByte(cx, atom2))
-        return false;
-
-    const char16_t *a = aChars.twoByteRange().start().get();
-    const char16_t *b = bChars.twoByteRange().start().get();
-
-    
-
-
-
-#define D(i, j) (d[(i) * ((n) + 1) + (j)])
-
-    
-
-
-
-    for (size_t i = 0; i <= m; ++i)
-        D(i, 0) = i;
-
-    
-
-
-
-    for (size_t j = 0; j <= n; ++j)
-        D(0, j) = j;
-
-    for (size_t i = 1; i <= m; ++i) {
-        for (size_t j = 1; j <= n; ++j) {
-            
-
-
-
-
-
-            if (a[i - 1] == b[j - 1])
-                D(i, j) = D(i - 1, j - 1); 
-            else {
-                D(i, j) = std::min(
-                                   D(i - 1, j) + 1, 
-                                   std::min(
-                                            D(i, j - 1) + 1, 
-                                            D(i - 1, j - 1) + 1 
-                                            )
-                                   );
-            }
-        }
-    }
-
-    *presult = D(m, n);
-
-#undef D
-
-    return true;
-}
-
 void
-js_ReportIsNotDefined(JSContext *cx, HandleScript script, jsbytecode *pc, HandleAtom atom)
+js_ReportIsNotDefined(JSContext *cx, const char *name)
 {
-    
-
-
-
-
-
-
-
-
-
-    AutoIdVector ids(cx);
-    for (StaticScopeIter<CanGC> ssi(cx, InnermostStaticScope(script, pc)); !ssi.done(); ssi++) {
-        switch (ssi.type()) {
-          case StaticScopeIter<NoGC>::BLOCK:
-            if (!GetPropertyNames(cx, &ssi.block(), JSITER_OWNONLY, &ids)) {
-                
-
-
-
-
-
-                js_ReportIsNotDefined(cx, atom);
-                return;
-            }
-            break;
-
-          case StaticScopeIter<NoGC>::FUNCTION:
-          {
-            RootedScript script(cx, ssi.funScript());
-            for (BindingIter bi(script); !bi.done(); bi++)
-                ids.append(NameToId(bi->name()));
-            break;
-          }
-
-          case StaticScopeIter<CanGC>::NAMED_LAMBDA:
-            ids.append(NameToId(ssi.lambdaName()));
-            break;
-        }
-    }
-    if (!GetPropertyNames(cx, cx->global(), JSITER_OWNONLY, &ids)) {
-        
-        js_ReportIsNotDefined(cx, atom);
-        return;
-    }
-
-    RootedAtom bestMatch(cx);
-    size_t minDistance = (size_t) -1;
-    size_t max = std::min(ids.length(), MAX_REFERENCE_ERROR_NAMES_TO_CHECK);
-    for (size_t i = 0; i < max; ++i) {
-        RootedAtom otherAtom(cx, JSID_TO_ATOM(ids[i]));
-        size_t distance;
-        if (!ComputeEditDistance(cx, atom, otherAtom, &distance))
-            return;
-        if (distance != 0 && distance < minDistance) {
-            bestMatch = JSID_TO_ATOM(ids[i]);
-            minDistance = distance;
-        }
-    }
-
-    if (!bestMatch) {
-        
-        js_ReportIsNotDefined(cx, atom);
-        return;
-    }
-
-    JSAutoByteString bytes1(cx, atom);
-    JSAutoByteString bytes2(cx, bestMatch);
-    JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr,
-                         JSMSG_NOT_DEFINED_DID_YOU_MEAN, bytes1.ptr(),
-                         bytes2.ptr());
-}
-
-void
-js_ReportIsNotDefined(JSContext *cx, HandleAtom atom)
-{
-    JSAutoByteString bytes(cx, atom);
-    JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_NOT_DEFINED,
-                         bytes.ptr());
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_NOT_DEFINED, name);
 }
 
 bool
