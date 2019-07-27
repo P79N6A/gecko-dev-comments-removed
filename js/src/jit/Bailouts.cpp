@@ -35,11 +35,11 @@ jit::Bailout(BailoutStack *sp, BaselineBailoutInfo **bailoutInfo)
                IsInRange(FAKE_JIT_TOP_FOR_BAILOUT + sizeof(IonCommonFrameLayout), 0, 0x1000),
                "Fake jitTop pointer should be within the first page.");
     cx->mainThread().jitTop = FAKE_JIT_TOP_FOR_BAILOUT;
+    gc::AutoSuppressGC suppress(cx);
 
     JitActivationIterator jitActivations(cx->runtime());
     BailoutFrameInfo bailoutData(jitActivations, sp);
     JitFrameIterator iter(jitActivations);
-    MOZ_ASSERT(!iter.ionScript()->invalidated());
 
     TraceLogger *logger = TraceLoggerForMainThread(cx->runtime());
     TraceLogTimestamp(logger, TraceLogger::Bailout);
@@ -78,17 +78,6 @@ jit::Bailout(BailoutStack *sp, BaselineBailoutInfo **bailoutInfo)
         EnsureExitFrame(iter.jsFrame());
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    if (iter.ionScript()->invalidated())
-        iter.ionScript()->decref(cx->runtime()->defaultFreeOp());
-
     return retval;
 }
 
@@ -102,6 +91,7 @@ jit::InvalidationBailout(InvalidationBailoutStack *sp, size_t *frameSizeOut,
 
     
     cx->mainThread().jitTop = FAKE_JIT_TOP_FOR_BAILOUT;
+    gc::AutoSuppressGC suppress(cx);
 
     JitActivationIterator jitActivations(cx->runtime());
     BailoutFrameInfo bailoutData(jitActivations, sp);

@@ -1369,7 +1369,8 @@ class JitActivation : public Activation
 
     
     
-    void removeIonFrameRecovery(IonJSFrameLayout *fp);
+    
+    void maybeTakeIonFrameRecovery(IonJSFrameLayout *fp, RInstructionResults *results);
 
     void markIonRecovery(JSTracer *trc);
 

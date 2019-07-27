@@ -385,33 +385,26 @@ struct BaselineStackBuilder
 
 class SnapshotIteratorForBailout : public SnapshotIterator
 {
-    JitActivation *activation_;
-    JitFrameIterator &iter_;
-
+    RInstructionResults results_;
   public:
-    SnapshotIteratorForBailout(JitActivation *activation, JitFrameIterator &iter)
+
+    SnapshotIteratorForBailout(const JitFrameIterator &iter)
       : SnapshotIterator(iter),
-        activation_(activation),
-        iter_(iter)
+        results_(iter.jsFrame())
     {
         MOZ_ASSERT(iter.isBailoutJS());
     }
 
-    ~SnapshotIteratorForBailout() {
-        
-        
-        activation_->removeIonFrameRecovery(fp_);
-    }
-
     
     
-    bool init(JSContext *cx) {
+    bool init(JSContext *cx, JitActivation *activation) {
+        activation->maybeTakeIonFrameRecovery(fp_, &results_);
+        if (!results_.isInitialized() && !computeInstructionResults(cx, &results_))
+            return false;
 
-        
-        
-        
-        MaybeReadFallback recoverBailout(cx, activation_, &iter_, MaybeReadFallback::Fallback_DoNothing);
-        return initInstructionResults(recoverBailout);
+        MOZ_ASSERT(results_.isInitialized());
+        instructionResults_ = &results_;
+        return true;
     }
 };
 
@@ -525,10 +518,6 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
                 jsbytecode **callPC, const ExceptionBailoutInfo *excInfo,
                 bool *poppedLastSPSFrameOut)
 {
-    
-    
-    MOZ_ASSERT(cx->mainThread().suppressGC);
-
     MOZ_ASSERT(script->hasBaselineScript());
     MOZ_ASSERT(poppedLastSPSFrameOut);
     MOZ_ASSERT(!*poppedLastSPSFrameOut);
@@ -1312,6 +1301,10 @@ jit::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, JitFrameIter
                           bool invalidate, BaselineBailoutInfo **bailoutInfo,
                           const ExceptionBailoutInfo *excInfo, bool *poppedLastSPSFrameOut)
 {
+    
+    
+    MOZ_ASSERT(cx->mainThread().suppressGC);
+
     MOZ_ASSERT(bailoutInfo != nullptr);
     MOZ_ASSERT(*bailoutInfo == nullptr);
 
@@ -1390,8 +1383,8 @@ jit::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, JitFrameIter
         return BAILOUT_RETURN_FATAL_ERROR;
     JitSpew(JitSpew_BaselineBailouts, "  Incoming frame ptr = %p", builder.startFrame());
 
-    SnapshotIteratorForBailout snapIter(activation, iter);
-    if (!snapIter.init(cx))
+    SnapshotIteratorForBailout snapIter(iter);
+    if (!snapIter.init(cx, activation))
         return BAILOUT_RETURN_FATAL_ERROR;
 
 #ifdef TRACK_SNAPSHOTS
@@ -1423,8 +1416,6 @@ jit::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, JitFrameIter
 
     RootedScript topCaller(cx);
     jsbytecode *topCallerPC = nullptr;
-
-    gc::AutoSuppressGC suppress(cx);
 
     while (true) {
         

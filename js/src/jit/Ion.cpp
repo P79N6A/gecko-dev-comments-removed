@@ -2685,7 +2685,7 @@ InvalidateActivation(FreeOp *fop, const JitActivationIterator &activations, bool
     size_t frameno = 1;
 
     for (JitFrameIterator it(activations); !it.done(); ++it, ++frameno) {
-        MOZ_ASSERT_IF(frameno == 1, it.type() == JitFrame_Exit || it.type() == JitFrame_Bailout);
+        MOZ_ASSERT_IF(frameno == 1, it.type() == JitFrame_Exit);
 
 #ifdef DEBUG
         switch (it.type()) {
@@ -2727,7 +2727,7 @@ InvalidateActivation(FreeOp *fop, const JitActivationIterator &activations, bool
         }
 #endif
 
-        if (!it.isIonScripted())
+        if (!it.isIonJS())
             continue;
 
         bool calledFromLinkStub = false;
@@ -2796,8 +2796,7 @@ InvalidateActivation(FreeOp *fop, const JitActivationIterator &activations, bool
         ionCode->setInvalidated();
 
         
-        
-        if (calledFromLinkStub || it.isBailoutJS())
+        if (calledFromLinkStub)
             continue;
 
         
