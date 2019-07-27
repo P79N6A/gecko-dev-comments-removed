@@ -145,6 +145,9 @@ pref("dom.enable_performance", true);
 pref("dom.enable_resource_timing", true);
 
 
+pref("dom.enable_user_timing", true);
+
+
 pref("dom.gamepad.enabled", true);
 #ifdef RELEASE_BUILD
 pref("dom.gamepad.non_standard_events.enabled", false);
