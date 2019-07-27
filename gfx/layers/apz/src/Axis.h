@@ -85,7 +85,11 @@ public:
 
 
 
-  float AdjustDisplacement(float aDisplacement, float& aOverscrollAmountOut);
+
+
+  bool AdjustDisplacement(float aDisplacement,
+                          float& aDisplacementOut,
+                          float& aOverscrollAmountOut);
 
   
 
