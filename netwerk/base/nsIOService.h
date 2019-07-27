@@ -26,7 +26,6 @@
 
 
 #define NS_IPC_IOSERVICE_SET_OFFLINE_TOPIC "ipc:network:set-offline"
-#define NS_IPC_IOSERVICE_SET_CONNECTIVITY_TOPIC "ipc:network:set-connectivity"
 
 static const char gScheme[][sizeof("resource")] =
     {"chrome", "file", "http", "https", "jar", "data", "resource"};
@@ -50,7 +49,6 @@ class nsIOService final : public nsIIOService2
                         , public nsINetUtil
                         , public nsISpeculativeConnect
                         , public nsSupportsWeakReference
-                        , public nsIIOServiceInternal
 {
 public:
     NS_DECL_THREADSAFE_ISUPPORTS
@@ -59,7 +57,6 @@ public:
     NS_DECL_NSIOBSERVER
     NS_DECL_NSINETUTIL
     NS_DECL_NSISPECULATIVECONNECT
-    NS_DECL_NSIIOSERVICEINTERNAL
 
     
     
@@ -89,7 +86,6 @@ private:
     
     nsIOService();
     ~nsIOService();
-    nsresult SetConnectivityInternal(bool aConnectivity);
 
     nsresult OnNetworkLinkEvent(const char *data);
 
@@ -125,8 +121,7 @@ private:
 private:
     bool                                 mOffline;
     bool                                 mOfflineForProfileChange;
-    bool                                 mManageLinkStatus;
-    bool                                 mConnectivity;
+    bool                                 mManageOfflineStatus;
 
     
     
