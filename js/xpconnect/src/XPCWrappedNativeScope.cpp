@@ -347,6 +347,11 @@ XPCWrappedNativeScope::EnsureAddonScope(JSContext *cx, JSAddonId *addonId)
     MOZ_ASSERT(nsContentUtils::IsSystemPrincipal(GetPrincipal()));
 
     
+    
+    if (AddonIdOfObject(global) == addonId)
+        return global;
+
+    
     for (size_t i = 0; i < mAddonScopes.Length(); i++) {
         if (JS::AddonIdOfObject(js::UncheckedUnwrap(mAddonScopes[i])) == addonId)
             return mAddonScopes[i];
