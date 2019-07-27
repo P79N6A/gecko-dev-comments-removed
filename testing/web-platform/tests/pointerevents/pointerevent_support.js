@@ -146,7 +146,7 @@ function rPointerCapture(e) {
 
 
 
-function checkDirection(testToStep, isVertical, currentMoveCount, moveCountToPass, delta) {
+function checkDirection(testToStep, isVertical, currentMoveCount, moveCountToPass, delta, event) {
     if(!isVertical) {
         if(currentMoveCount > moveCountToPass / 2) { 
                 testToStep.step( function() {

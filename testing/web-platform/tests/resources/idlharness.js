@@ -1189,201 +1189,282 @@ IdlInterface.prototype.test_self = function()
 };
 
 
+IdlInterface.prototype.test_member_const = function(member)
+
+{
+    test(function()
+    {
+        assert_own_property(window, this.name,
+                            "window does not have own property " + format_value(this.name));
+
+        
+        
+        
+        assert_own_property(window[this.name], member.name);
+        
+        
+        
+        assert_equals(window[this.name][member.name], constValue(member.value),
+                      "property has wrong value");
+        
+        
+        var desc = Object.getOwnPropertyDescriptor(window[this.name], member.name);
+        assert_false("get" in desc, "property has getter");
+        assert_false("set" in desc, "property has setter");
+        assert_false(desc.writable, "property is writable");
+        assert_true(desc.enumerable, "property is not enumerable");
+        assert_false(desc.configurable, "property is configurable");
+    }.bind(this), this.name + " interface: constant " + member.name + " on interface object");
+    
+    
+    test(function()
+    {
+        assert_own_property(window, this.name,
+                            "window does not have own property " + format_value(this.name));
+
+        if (this.has_extended_attribute("Callback")) {
+            assert_false("prototype" in window[this.name],
+                         this.name + ' should not have a "prototype" property');
+            return;
+        }
+
+        assert_own_property(window[this.name], "prototype",
+                            'interface "' + this.name + '" does not have own property "prototype"');
+
+        assert_own_property(window[this.name].prototype, member.name);
+        assert_equals(window[this.name].prototype[member.name], constValue(member.value),
+                      "property has wrong value");
+        var desc = Object.getOwnPropertyDescriptor(window[this.name], member.name);
+        assert_false("get" in desc, "property has getter");
+        assert_false("set" in desc, "property has setter");
+        assert_false(desc.writable, "property is writable");
+        assert_true(desc.enumerable, "property is not enumerable");
+        assert_false(desc.configurable, "property is configurable");
+    }.bind(this), this.name + " interface: constant " + member.name + " on interface prototype object");
+};
+
+
+
+IdlInterface.prototype.test_member_attribute = function(member)
+
+{
+    test(function()
+    {
+        assert_own_property(window, this.name,
+                            "window does not have own property " + format_value(this.name));
+        assert_own_property(window[this.name], "prototype",
+                            'interface "' + this.name + '" does not have own property "prototype"');
+
+        if (member["static"]) {
+            assert_own_property(window[this.name], member.name,
+                "The interface object must have a property " +
+                format_value(member.name));
+        }
+        else
+        {
+            assert_true(member.name in window[this.name].prototype,
+                "The prototype object must have a property " +
+                format_value(member.name));
+
+            
+            assert_throws(new TypeError(), function() {
+                window[this.name].prototype[member.name];
+            }.bind(this), "getting property on prototype object must throw TypeError");
+            do_interface_attribute_asserts(window[this.name].prototype, member);
+        }
+    }.bind(this), this.name + " interface: attribute " + member.name);
+};
+
+
+IdlInterface.prototype.test_member_operation = function(member)
+
+{
+    test(function()
+    {
+        assert_own_property(window, this.name,
+                            "window does not have own property " + format_value(this.name));
+
+        if (this.has_extended_attribute("Callback")) {
+            assert_false("prototype" in window[this.name],
+                         this.name + ' should not have a "prototype" property');
+            return;
+        }
+
+        assert_own_property(window[this.name], "prototype",
+                            'interface "' + this.name + '" does not have own property "prototype"');
+
+        
+        
+        
+        
+        
+        
+        
+        
+        var prototypeOrInterfaceObject;
+        if (member["static"]) {
+            assert_own_property(window[this.name], member.name,
+                    "interface prototype object missing static operation");
+            prototypeOrInterfaceObject = window[this.name];
+        }
+        else
+        {
+            assert_own_property(window[this.name].prototype, member.name,
+                    "interface prototype object missing non-static operation");
+            prototypeOrInterfaceObject = window[this.name].prototype;
+        }
+
+        var desc = Object.getOwnPropertyDescriptor(prototypeOrInterfaceObject, member.name);
+        
+        
+        assert_false("get" in desc, "property has getter");
+        assert_false("set" in desc, "property has setter");
+        assert_true(desc.writable, "property is not writable");
+        assert_true(desc.enumerable, "property is not enumerable");
+        assert_true(desc.configurable, "property is not configurable");
+        
+        
+        assert_equals(typeof prototypeOrInterfaceObject[member.name], "function",
+                      "property must be a function");
+        
+        
+        
+        
+        
+        
+        
+        assert_equals(prototypeOrInterfaceObject[member.name].length,
+            member.arguments.filter(function(arg) {
+                return !arg.optional;
+            }).length,
+            "property has wrong .length");
+
+        
+        var args = member.arguments.map(function(arg) {
+            return create_suitable_object(arg.idlType);
+        });
+
+        
+        
+        
+        
+        
+        
+        
+        if (!member["static"]) {
+            assert_throws(new TypeError(), function() {
+                window[this.name].prototype[member.name].apply(null, args);
+            }, "calling operation with this = null didn't throw TypeError");
+        }
+
+        
+        
+        
+        
+        
+        assert_throws(new TypeError(), function() {
+            window[this.name].prototype[member.name].apply({}, args);
+        }, "calling operation with this = {} didn't throw TypeError");
+    }.bind(this), this.name + " interface: operation " + member.name +
+    "(" + member.arguments.map(function(m) { return m.idlType.idlType; }) +
+    ")");
+};
+
+
+IdlInterface.prototype.test_member_stringifier = function(member)
+
+{
+    test(function()
+    {
+        assert_own_property(window, this.name,
+                            "window does not have own property " + format_value(this.name));
+
+        if (this.has_extended_attribute("Callback")) {
+            assert_false("prototype" in window[this.name],
+                         this.name + ' should not have a "prototype" property');
+            return;
+        }
+
+        assert_own_property(window[this.name], "prototype",
+                            'interface "' + this.name + '" does not have own property "prototype"');
+
+        
+        var interfacePrototypeObject = window[this.name].prototype;
+        assert_own_property(window[this.name].prototype, "toString",
+                "interface prototype object missing non-static operation");
+
+        var desc = Object.getOwnPropertyDescriptor(interfacePrototypeObject, "toString");
+        
+        
+        
+        assert_false("get" in desc, "property has getter");
+        assert_false("set" in desc, "property has setter");
+        assert_true(desc.writable, "property is not writable");
+        assert_true(desc.enumerable, "property is not enumerable");
+        assert_true(desc.configurable, "property is not configurable");
+        
+        
+        assert_equals(typeof interfacePrototypeObject.toString, "function",
+                      "property must be a function");
+        
+        
+        assert_equals(interfacePrototypeObject.toString.length, 0,
+            "property has wrong .length");
+
+        
+        assert_throws(new TypeError(), function() {
+            window[this.name].prototype.toString.apply(null, []);
+        }, "calling stringifier with this = null didn't throw TypeError");
+
+        
+        
+        
+        
+        
+        assert_throws(new TypeError(), function() {
+            window[this.name].prototype.toString.apply({}, []);
+        }, "calling stringifier with this = {} didn't throw TypeError");
+    }.bind(this), this.name + " interface: stringifier");
+};
+
+
 IdlInterface.prototype.test_members = function()
 
 {
     for (var i = 0; i < this.members.length; i++)
     {
         var member = this.members[i];
-        if (member.untested)
-        {
+        if (member.untested) {
             continue;
         }
-        if (member.type == "const")
-        {
-            test(function()
-            {
-                assert_own_property(window, this.name,
-                                    "window does not have own property " + format_value(this.name));
 
-                
-                
-                
-                assert_own_property(window[this.name], member.name);
-                
-                
-                
-                assert_equals(window[this.name][member.name], constValue(member.value),
-                              "property has wrong value");
-                
-                
-                var desc = Object.getOwnPropertyDescriptor(window[this.name], member.name);
-                assert_false("get" in desc, "property has getter");
-                assert_false("set" in desc, "property has setter");
-                assert_false(desc.writable, "property is writable");
-                assert_true(desc.enumerable, "property is not enumerable");
-                assert_false(desc.configurable, "property is configurable");
-            }.bind(this), this.name + " interface: constant " + member.name + " on interface object");
+        switch (member.type) {
+        case "const":
+            this.test_member_const(member);
+            break;
+
+        case "attribute":
             
             
-            test(function()
-            {
-                assert_own_property(window, this.name,
-                                    "window does not have own property " + format_value(this.name));
-
-                if (this.has_extended_attribute("Callback")) {
-                    assert_false("prototype" in window[this.name],
-                                 this.name + ' should not have a "prototype" property');
-                    return;
-                }
-
-                assert_own_property(window[this.name], "prototype",
-                                    'interface "' + this.name + '" does not have own property "prototype"');
-
-                assert_own_property(window[this.name].prototype, member.name);
-                assert_equals(window[this.name].prototype[member.name], constValue(member.value),
-                              "property has wrong value");
-                var desc = Object.getOwnPropertyDescriptor(window[this.name], member.name);
-                assert_false("get" in desc, "property has getter");
-                assert_false("set" in desc, "property has setter");
-                assert_false(desc.writable, "property is writable");
-                assert_true(desc.enumerable, "property is not enumerable");
-                assert_false(desc.configurable, "property is configurable");
-            }.bind(this), this.name + " interface: constant " + member.name + " on interface prototype object");
-        }
-        else if (member.type == "attribute")
-        {
-            if (member.has_extended_attribute("Unforgeable"))
-            {
-                
-                continue;
+            if (!member.has_extended_attribute("Unforgeable")) {
+                this.test_member_attribute(member);
             }
-            test(function()
-            {
-                assert_own_property(window, this.name,
-                                    "window does not have own property " + format_value(this.name));
-                assert_own_property(window[this.name], "prototype",
-                                    'interface "' + this.name + '" does not have own property "prototype"');
+            break;
 
-                if (member["static"]) {
-                    assert_own_property(window[this.name], member.name,
-                        "The interface object must have a property " +
-                        format_value(member.name));
-                }
-                else
-                {
-                    assert_true(member.name in window[this.name].prototype,
-                        "The prototype object must have a property " +
-                        format_value(member.name));
-
-                    
-                    assert_throws(new TypeError(), function() {
-                        window[this.name].prototype[member.name];
-                    }.bind(this), "getting property on prototype object must throw TypeError");
-                    do_interface_attribute_asserts(window[this.name].prototype, member);
-                }
-            }.bind(this), this.name + " interface: attribute " + member.name);
-        }
-        else if (member.type == "operation")
-        {
+        case "operation":
             
             
-            if (!member.name)
-            {
-                
-                continue;
+            if (member.name) {
+                this.test_member_operation(member);
+            } else if (member.stringifier) {
+                this.test_member_stringifier(member);
             }
-            test(function()
-            {
-                assert_own_property(window, this.name,
-                                    "window does not have own property " + format_value(this.name));
+            break;
 
-                if (this.has_extended_attribute("Callback")) {
-                    assert_false("prototype" in window[this.name],
-                                 this.name + ' should not have a "prototype" property');
-                    return;
-                }
-
-                assert_own_property(window[this.name], "prototype",
-                                    'interface "' + this.name + '" does not have own property "prototype"');
-
-                
-                
-                
-                
-                
-                
-                
-                
-                var prototypeOrInterfaceObject;
-                if (member["static"]) {
-                    assert_own_property(window[this.name], member.name,
-                            "interface prototype object missing static operation");
-                    prototypeOrInterfaceObject = window[this.name];
-                }
-                else
-                {
-                    assert_own_property(window[this.name].prototype, member.name,
-                            "interface prototype object missing non-static operation");
-                    prototypeOrInterfaceObject = window[this.name].prototype;
-                }
-
-                var desc = Object.getOwnPropertyDescriptor(prototypeOrInterfaceObject, member.name);
-                
-                
-                assert_false("get" in desc, "property has getter");
-                assert_false("set" in desc, "property has setter");
-                assert_true(desc.writable, "property is not writable");
-                assert_true(desc.enumerable, "property is not enumerable");
-                assert_true(desc.configurable, "property is not configurable");
-                
-                
-                assert_equals(typeof prototypeOrInterfaceObject[member.name], "function",
-                              "property must be a function");
-                
-                
-                
-                
-                
-                
-                
-                assert_equals(prototypeOrInterfaceObject[member.name].length,
-                    member.arguments.filter(function(arg) {
-                        return !arg.optional;
-                    }).length,
-                    "property has wrong .length");
-
-                
-                var args = member.arguments.map(function(arg) {
-                    return create_suitable_object(arg.idlType);
-                });
-
-                
-                
-                
-                
-                
-                
-                
-                if (!member["static"]) {
-                    assert_throws(new TypeError(), function() {
-                        window[this.name].prototype[member.name].apply(null, args);
-                    }, "calling operation with this = null didn't throw TypeError");
-                }
-
-                
-                
-                
-                
-                
-                assert_throws(new TypeError(), function() {
-                    window[this.name].prototype[member.name].apply({}, args);
-                }, "calling operation with this = {} didn't throw TypeError");
-            }.bind(this), this.name + " interface: operation " + member.name +
-            "(" + member.arguments.map(function(m) { return m.idlType.idlType; }) +
-            ")");
+        default:
+            
+            break;
         }
-        
     }
 };
 
