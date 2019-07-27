@@ -1253,6 +1253,7 @@ void MediaDecoderStateMachine::UpdatePlaybackPositionInternal(int64_t aTime)
   if (aTime > mEndTime) {
     NS_ASSERTION(mCurrentFrameTime > GetDuration(),
                  "CurrentTime must be after duration if aTime > endTime!");
+    DECODER_LOG("Setting new end time to %lld", aTime);
     mEndTime = aTime;
     nsCOMPtr<nsIRunnable> event =
       NS_NewRunnableMethod(mDecoder, &MediaDecoder::DurationChanged);
@@ -1397,6 +1398,21 @@ int64_t MediaDecoderStateMachine::GetEndTime()
   return mEndTime;
 }
 
+
+
+class SeekRunnable : public nsRunnable {
+public:
+  SeekRunnable(MediaDecoder* aDecoder, double aSeekTarget)
+    : mDecoder(aDecoder), mSeekTarget(aSeekTarget) {}
+  NS_IMETHOD Run() {
+    mDecoder->Seek(mSeekTarget, SeekTarget::Accurate);
+    return NS_OK;
+  }
+private:
+  nsRefPtr<MediaDecoder> mDecoder;
+  double mSeekTarget;
+};
+
 void MediaDecoderStateMachine::SetDuration(int64_t aDuration)
 {
   NS_ASSERTION(NS_IsMainThread() || OnDecodeThread(),
@@ -1420,6 +1436,21 @@ void MediaDecoderStateMachine::SetDuration(int64_t aDuration)
   }
 
   mEndTime = mStartTime + aDuration;
+
+  if (mDecoder && mEndTime >= 0 && mEndTime < mCurrentFrameTime) {
+    
+    
+    
+    if (NS_IsMainThread()) {
+      
+      mDecoder->Seek(double(mEndTime) / USECS_PER_S, SeekTarget::Accurate);
+    } else {
+      
+      nsCOMPtr<nsIRunnable> task =
+        new SeekRunnable(mDecoder, double(mEndTime) / USECS_PER_S);
+      NS_DispatchToMainThread(task);
+    }
+  }
 }
 
 void MediaDecoderStateMachine::UpdateEstimatedDuration(int64_t aDuration)
