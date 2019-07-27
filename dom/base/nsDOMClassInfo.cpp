@@ -1017,14 +1017,16 @@ nsDOMClassInfo::NewEnumerate(nsIXPConnectWrappedNative *wrapper,
 
 NS_IMETHODIMP
 nsDOMClassInfo::Resolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                        JSObject *aObj, jsid id, bool *resolvedp, bool *_retval)
+                        JSObject *aObj, jsid aId, bool *resolvedp, bool *_retval)
 {
+  JS::Rooted<JSObject*> obj(cx, aObj);
+  JS::Rooted<jsid> id(cx, aId);
+
   if (id != sConstructor_id) {
     *resolvedp = false;
     return NS_OK;
   }
 
-  JS::Rooted<JSObject*> obj(cx, aObj);
   JS::Rooted<JSObject*> global(cx, ::JS_GetGlobalForObject(cx, obj));
 
   JS::Rooted<JS::Value> val(cx);
@@ -1037,8 +1039,6 @@ nsDOMClassInfo::Resolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     
     
     
-
-    JS::Rooted<jsid> id(cx, sConstructor_id);
     if (!::JS_DefinePropertyById(cx, obj, id, val,
                                  JSPROP_ENUMERATE,
                                  JS_STUBGETTER, JS_STUBSETTER)) {
