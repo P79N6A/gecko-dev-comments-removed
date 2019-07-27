@@ -2,6 +2,7 @@
 
 
 
+
 "use strict";
 
 
@@ -453,6 +454,41 @@ this.PushService = {
 
 
 
+
+
+  _adaptiveEnabled: false,
+
+  
+
+
+
+
+
+
+  _recalculatePing: true,
+
+  
+
+
+
+
+
+  _pingIntervalRetryTimes: {},
+
+  
+
+
+  _lastGoodPingInterval: 0,
+
+  
+
+
+  _upperLimit: 0,
+
+  
+
+
+
   _wsSendMessage: function(msg) {
     if (!this._ws) {
       debug("No WebSocket initialized. Cannot send a message.");
@@ -480,6 +516,8 @@ this.PushService = {
     this._alarmID = null;
 
     this._requestTimeout = prefs.get("requestTimeout");
+    this._adaptiveEnabled = prefs.get('adaptive.enabled');
+    this._upperLimit = prefs.get('adaptive.upperLimit');
 
     this._startListeningIfChannelsPresent();
 
@@ -592,6 +630,8 @@ this.PushService = {
 
   _reconnectAfterBackoff: function() {
     debug("reconnectAfterBackoff()");
+    
+    this._calculateAdaptivePing(true );
 
     
     let retryTimeout = prefs.get("retryBaseInterval") *
@@ -602,6 +642,146 @@ this.PushService = {
 
     debug("Retry in " + retryTimeout + " Try number " + this._retryFailCount);
     this._setAlarm(retryTimeout);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _calculateAdaptivePing: function(wsWentDown) {
+    debug('_calculateAdaptivePing()');
+    if (!this._adaptiveEnabled) {
+      debug('Adaptive ping is disabled');
+      return;
+    }
+
+    if (this._retryFailCount > 0) {
+      debug('Push has failed to connect to the Push Server ' +
+        this._retryFailCount + ' times. ' +
+        'Do not calculate a new pingInterval now');
+      return;
+    }
+
+    if (!this._recalculatePing && !wsWentDown) {
+      debug('We do not need to recalculate the ping now, based on previous data');
+      return;
+    }
+
+    
+    let ns = this._getNetworkInformation();
+
+    if (ns.ip) {
+      
+      debug('mobile');
+      let oldNetwork = prefs.get('adaptive.mobile');
+      let newNetwork = 'mobile-' + ns.mcc + '-' + ns.mnc;
+
+      
+      if (oldNetwork !== newNetwork) {
+        
+        debug('Mobile networks differ. Old network is ' + oldNetwork +
+              ' and new is ' + newNetwork);
+        prefs.set('adaptive.mobile', newNetwork);
+        
+        this._recalculatePing = true;
+        this._pingIntervalRetryTimes = {};
+
+        
+        let defaultPing = prefs.get('pingInterval.default');
+        prefs.set('pingInterval', defaultPing);
+        this._lastGoodPingInterval = defaultPing;
+
+      } else {
+        
+        prefs.set('pingInterval', prefs.get('pingInterval.mobile'));
+        this._lastGoodPingInterval = prefs.get('adaptive.lastGoodPingInterval.mobile');
+      }
+
+    } else {
+      
+      debug('wifi');
+      prefs.set('pingInterval', prefs.get('pingInterval.wifi'));
+      this._lastGoodPingInterval = prefs.get('adaptive.lastGoodPingInterval.wifi');
+    }
+
+    let nextPingInterval;
+    let lastTriedPingInterval = prefs.get('pingInterval');
+    if (wsWentDown) {
+      debug('The WebSocket was disconnected, calculating next ping');
+
+      
+      this._pingIntervalRetryTimes[lastTriedPingInterval] =
+           (this._pingIntervalRetryTimes[lastTriedPingInterval] || 0) + 1;
+
+       
+       
+       if (this._pingIntervalRetryTimes[lastTriedPingInterval] < 2) {
+         debug('pingInterval= ' + lastTriedPingInterval + ' tried only ' +
+           this._pingIntervalRetryTimes[lastTriedPingInterval] + ' times');
+         return;
+       }
+
+       
+       nextPingInterval = Math.floor(lastTriedPingInterval / 2);
+
+      
+      
+      if (nextPingInterval - this._lastGoodPingInterval < prefs.get('adaptive.gap')) {
+        debug('We have reached the gap, we have finished the calculation');
+        debug('nextPingInterval=' + nextPingInterval);
+        debug('lastGoodPing=' + this._lastGoodPingInterval);
+        nextPingInterval = this._lastGoodPingInterval;
+        this._recalculatePing = false;
+      } else {
+        debug('We need to calculate next time');
+        this._recalculatePing = true;
+      }
+
+    } else {
+      debug('The WebSocket is still up');
+      this._lastGoodPingInterval = lastTriedPingInterval;
+      nextPingInterval = Math.floor(lastTriedPingInterval * 1.5);
+    }
+
+    
+    if (this._upperLimit < nextPingInterval) {
+      debug('Next ping will be bigger than the configured upper limit, capping interval');
+      this._recalculatePing = false;
+      this._lastGoodPingInterval = lastTriedPingInterval;
+      nextPingInterval = lastTriedPingInterval;
+    }
+
+    debug('Setting the pingInterval to ' + nextPingInterval);
+    prefs.set('pingInterval', nextPingInterval);
+
+    
+    if (ns.ip) {
+      prefs.set('pingInterval.mobile', nextPingInterval);
+      prefs.set('adaptive.lastGoodPingInterval.mobile', this._lastGoodPingInterval);
+    } else {
+      prefs.set('pingInterval.wifi', nextPingInterval);
+      prefs.set('adaptive.lastGoodPingInterval.wifi', this._lastGoodPingInterval);
+    }
   },
 
   _beginWSSetup: function() {
@@ -1393,10 +1573,6 @@ this.PushService = {
 
     this._waitingForPong = false;
 
-    
-    
-    this._setAlarm(prefs.get("pingInterval"));
-
     let reply = undefined;
     try {
       reply = JSON.parse(message);
@@ -1405,8 +1581,29 @@ this.PushService = {
       return;
     }
 
-    if (typeof reply.messageType != "string") {
-      debug("messageType not a string " + reply.messageType);
+    
+    if (this._currentState != STATE_WAITING_FOR_HELLO) {
+      debug('Reseting _retryFailCount and _pingIntervalRetryTimes');
+      this._retryFailCount = 0;
+      this._pingIntervalRetryTimes = {};
+    }
+
+    let doNotHandle = false;
+    if ((message === '{}') ||
+        (reply.messageType === undefined) ||
+        (reply.messageType === "ping") ||
+        (typeof reply.messageType != "string")) {
+      debug('Pong received');
+      this._calculateAdaptivePing(false);
+      doNotHandle = true;
+    }
+
+    
+    
+    this._setAlarm(prefs.get("pingInterval"));
+
+    
+    if (doNotHandle) {
       return;
     }
 

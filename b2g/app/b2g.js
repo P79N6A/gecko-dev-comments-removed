@@ -459,6 +459,18 @@ pref("services.push.retryBaseInterval", 5000);
 pref("services.push.pingInterval", 1800000); 
 
 pref("services.push.requestTimeout", 10000);
+pref("services.push.pingInterval.default", 180000);
+pref("services.push.pingInterval.mobile", 180000); 
+pref("services.push.pingInterval.wifi", 180000);  
+
+pref("services.push.adaptive.enabled", true);
+pref("services.push.adaptive.lastGoodPingInterval", 180000);
+pref("services.push.adaptive.lastGoodPingInterval.mobile", 180000);
+pref("services.push.adaptive.lastGoodPingInterval.wifi", 180000);
+
+pref("services.push.adaptive.gap", 60000); 
+
+pref("services.push.adaptive.upperLimit", 1740000); 
 
 pref("services.push.udp.wakeupEnabled", true);
 
