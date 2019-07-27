@@ -201,10 +201,25 @@ let AboutHome = {
 
           
           let submission = engine.getSubmission(data.searchTerms, null, "homepage");
-          let where = data.useNewTab ? "tabshifted" : "current";
-          window.openUILinkIn(submission.uri.spec, where, false,
-                              submission.postData);
+          let where = window.whereToOpenLink(data.originalEvent);
 
+          
+          
+          
+          
+          
+          
+          if (where == "current") {
+            aMessage.target.loadURIWithFlags(submission.uri.spec,
+                                             Ci.nsIWebNavigation.LOAD_FLAGS_NONE,
+                                             null, null, submission.postData);
+          } else {
+            let params = {
+              postData: submission.postData,
+              inBackground: Services.prefs.getBoolPref("browser.tabs.loadInBackground"),
+            };
+            window.openLinkIn(submission.uri.spec, where, params);
+          }
           
           let mm = aMessage.target.messageManager;
           mm.sendAsyncMessage("AboutHome:SearchTriggered", aMessage.data.searchData);

@@ -210,15 +210,9 @@ this.ContentSearch = {
     let engine = Services.search.getEngineByName(data.engineName);
     let submission = engine.getSubmission(data.searchString, "", data.whence);
     let browser = msg.target;
-    let newTab;
-    if (data.useNewTab) {
-      newTab = browser.getTabBrowser().addTab();
-      browser = newTab.linkedBrowser;
-    }
+    let win;
     try {
-      browser.loadURIWithFlags(submission.uri.spec,
-                               Ci.nsIWebNavigation.LOAD_FLAGS_NONE, null, null,
-                               submission.postData);
+      win = browser.ownerDocument.defaultView;
     }
     catch (err) {
       
@@ -226,7 +220,25 @@ this.ContentSearch = {
       
       return Promise.resolve();
     }
-    let win = browser.ownerDocument.defaultView;
+
+    let where = win.whereToOpenLink(data.originalEvent);
+
+    
+    
+    
+    
+    
+    if (where == "current") {
+      browser.loadURIWithFlags(submission.uri.spec,
+                               Ci.nsIWebNavigation.LOAD_FLAGS_NONE, null, null,
+                               submission.postData);
+    } else {
+      let params = {
+        postData: submission.postData,
+        inBackground: Services.prefs.getBoolPref("browser.tabs.loadInBackground"),
+      };
+      win.openUILinkIn(submission.uri.spec, where, params);
+    }
     win.BrowserSearch.recordSearchInHealthReport(engine, data.whence,
                                                  data.selection || null);
     return Promise.resolve();
