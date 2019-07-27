@@ -294,15 +294,6 @@ SimpleTest.isnot = function (a, b, name) {
 
 
 
-SimpleTest.is_loosely = function (a, b, name) {
-    var pass = (a == b);
-    var diag = pass ? "" : "got " + repr(a) + ", expected " + repr(b)
-    SimpleTest.ok(pass, name, diag);
-};
-
-
-
-
 SimpleTest.doesThrow = function(fn, name) {
     var gotException = false;
     try {
@@ -1454,7 +1445,6 @@ var is = SimpleTest.is;
 var isfuzzy = SimpleTest.isfuzzy;
 var isnot = SimpleTest.isnot;
 var ise = SimpleTest.ise;
-var is_loosely = SimpleTest.is_loosely;
 var todo = SimpleTest.todo;
 var todo_is = SimpleTest.todo_is;
 var todo_isnot = SimpleTest.todo_isnot;
