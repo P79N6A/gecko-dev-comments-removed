@@ -3447,29 +3447,9 @@ RilObject.prototype = {
       return;
     }
 
-    let newCardState;
-    let index = this._isCdma ? iccStatus.cdmaSubscriptionAppIndex :
-                               iccStatus.gsmUmtsSubscriptionAppIndex;
-
-    if (RILQUIRKS_SUBSCRIPTION_CONTROL && index === -1) {
-      
-      if (this.radioState !== GECKO_RADIOSTATE_READY) {
-        
-        
-        
-        return;
-      }
-
-      for (let i = 0; i < iccStatus.apps.length; i++) {
-        this.setUiccSubscription({appIndex: i, enabled: true});
-      }
-      return;
-    }
-
     
     
-    let app = iccStatus.apps[index];
-    if (iccStatus.cardState !== CARD_STATE_PRESENT || !app) {
+    if (iccStatus.cardState !== CARD_STATE_PRESENT) {
       if (this.cardState !== GECKO_CARDSTATE_UNDETECTED) {
         this.operator = null;
         
@@ -3486,43 +3466,70 @@ RilObject.prototype = {
 
     let ICCRecordHelper = this.context.ICCRecordHelper;
     
-    this.aid = app.aid;
-    this.appType = app.app_type;
-    this.iccInfo.iccType = GECKO_CARD_TYPE[this.appType];
-    
     if (iccStatus.cardState === CARD_STATE_PRESENT &&
         (this.cardState === GECKO_CARDSTATE_UNINITIALIZED ||
          this.cardState === GECKO_CARDSTATE_UNDETECTED)) {
       ICCRecordHelper.readICCID();
     }
 
-    switch (app.app_state) {
-      case CARD_APPSTATE_ILLEGAL:
-        newCardState = GECKO_CARDSTATE_ILLEGAL;
-        break;
-      case CARD_APPSTATE_PIN:
-        newCardState = GECKO_CARDSTATE_PIN_REQUIRED;
-        break;
-      case CARD_APPSTATE_PUK:
-        newCardState = GECKO_CARDSTATE_PUK_REQUIRED;
-        break;
-      case CARD_APPSTATE_SUBSCRIPTION_PERSO:
-        newCardState = PERSONSUBSTATE[app.perso_substate];
-        break;
-      case CARD_APPSTATE_READY:
-        newCardState = GECKO_CARDSTATE_READY;
-        break;
-      case CARD_APPSTATE_UNKNOWN:
-      case CARD_APPSTATE_DETECTED:
-        
-      default:
-        newCardState = GECKO_CARDSTATE_UNKNOWN;
+    if (RILQUIRKS_SUBSCRIPTION_CONTROL) {
+      
+      
+      
+      let neetToActivate = iccStatus.cdmaSubscriptionAppIndex === -1 &&
+                           iccStatus.gsmUmtsSubscriptionAppIndex === -1;
+      if (neetToActivate &&
+          
+          
+          
+          this.radioState === GECKO_RADIOSTATE_READY) {
+        for (let i = 0; i < iccStatus.apps.length; i++) {
+          this.setUiccSubscription({appIndex: i, enabled: true});
+        }
+      }
     }
 
-    let pin1State = app.pin1_replaced ? iccStatus.universalPINState :
-                                        app.pin1;
-    if (pin1State === CARD_PINSTATE_ENABLED_PERM_BLOCKED) {
-      newCardState = GECKO_CARDSTATE_PERMANENT_BLOCKED;
+    let newCardState;
+    let index = this._isCdma ? iccStatus.cdmaSubscriptionAppIndex
+                             : iccStatus.gsmUmtsSubscriptionAppIndex;
+    let app = iccStatus.apps[index];
+    if (app) {
+      
+      this.aid = app.aid;
+      this.appType = app.app_type;
+      this.iccInfo.iccType = GECKO_CARD_TYPE[this.appType];
+
+      switch (app.app_state) {
+        case CARD_APPSTATE_ILLEGAL:
+          newCardState = GECKO_CARDSTATE_ILLEGAL;
+          break;
+        case CARD_APPSTATE_PIN:
+          newCardState = GECKO_CARDSTATE_PIN_REQUIRED;
+          break;
+        case CARD_APPSTATE_PUK:
+          newCardState = GECKO_CARDSTATE_PUK_REQUIRED;
+          break;
+        case CARD_APPSTATE_SUBSCRIPTION_PERSO:
+          newCardState = PERSONSUBSTATE[app.perso_substate];
+          break;
+        case CARD_APPSTATE_READY:
+          newCardState = GECKO_CARDSTATE_READY;
+          break;
+        case CARD_APPSTATE_UNKNOWN:
+        case CARD_APPSTATE_DETECTED:
+          
+        default:
+          newCardState = GECKO_CARDSTATE_UNKNOWN;
+      }
+
+      let pin1State = app.pin1_replaced ? iccStatus.universalPINState :
+                                          app.pin1;
+      if (pin1State === CARD_PINSTATE_ENABLED_PERM_BLOCKED) {
+        newCardState = GECKO_CARDSTATE_PERMANENT_BLOCKED;
+      }
+    } else {
+      
+      newCardState = GECKO_CARDSTATE_UNKNOWN;
     }
 
     if (this.cardState == newCardState) {
