@@ -1,51 +1,65 @@
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
   "resource://gre/modules/Promise.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Task",
-  "resource://gre/modules/Task.jsm");
 Components.utils.import("resource://gre/modules/Timer.jsm", this);
 
-let gTabs = [];
+add_task(function* test_not_found() {
+  info("Check correct 'Phrase not found' on new tab");
 
-registerCleanupFunction(function() {
-  for (let tab of gTabs) {
-    if (!tab)
-      continue;
-    gBrowser.removeTab(tab);
-  }
+  let tab = yield promiseTestPageLoad();
+
+  
+  yield promiseFindFinished("--- THIS SHOULD NEVER MATCH ---", false);
+  let findbar = gBrowser.getFindBar();
+  is(findbar._findStatusDesc.textContent, findbar._notFoundStr,
+     "Findbar status text should be 'Phrase not found'");
+
+  gBrowser.removeTab(tab);
 });
 
-function test() {
-  waitForExplicitFinish();
+add_task(function* test_found() {
+  let tab = yield promiseTestPageLoad();
 
-  Task.spawn(function() {
-    info("Check correct 'Phrase not found' on new tab");
+  
+  yield promiseFindFinished("S", true);
+  ok(!gBrowser.getFindBar()._findStatusDesc.textContent,
+     "Findbar status should be empty");
 
-    
-    yield promiseTestPageLoad();
+  gBrowser.removeTab(tab);
+});
 
-    
-    yield promiseFindFinished("--- THIS SHOULD NEVER MATCH ---", false);
-    let findbar = gBrowser.getFindBar();
-    is(findbar._findStatusDesc.textContent, findbar._notFoundStr,
-       "Findbar status text should be 'Phrase not found'");
 
-    
-    yield promiseTestPageLoad();
 
-    
-    yield promiseFindFinished("s", true);
-    ok(!gBrowser.getFindBar()._findStatusDesc.textContent,
-       "Findbar status should be empty");
+add_task(function* test_tabwise_case_sensitive() {
+  let tab1 = yield promiseTestPageLoad();
+  let findbar1 = gBrowser.getFindBar();
 
-    finish();
-  });
-}
+  let tab2 = yield promiseTestPageLoad();
+  let findbar2 = gBrowser.getFindBar();
+
+  
+  findbar1.getElement("find-case-sensitive").click();
+
+  gBrowser.selectedTab = tab1;
+
+  
+  yield promiseFindFinished("S", true);
+  is(findbar1._findStatusDesc.textContent, findbar1._notFoundStr,
+     "Findbar status text should be 'Phrase not found'");
+
+  gBrowser.selectedTab = tab2;
+
+  
+  yield promiseFindFinished("S", true);
+  ok(!findbar2._findStatusDesc.textContent, "Findbar status should be empty");
+
+  gBrowser.removeTab(tab1);
+  gBrowser.removeTab(tab2);
+});
 
 function promiseTestPageLoad() {
   let deferred = Promise.defer();
 
   let tab = gBrowser.selectedTab = gBrowser.addTab("data:text/html;charset=utf-8,The letter s.");
-  gTabs.push(tab);
   let browser = gBrowser.selectedBrowser;
   browser.addEventListener("load", function listener() {
     if (browser.currentURI.spec == "about:blank")
@@ -53,7 +67,7 @@ function promiseTestPageLoad() {
     info("Page loaded: " + browser.currentURI.spec);
     browser.removeEventListener("load", listener, true);
 
-    deferred.resolve();
+    deferred.resolve(tab);
   }, true);
 
   return deferred.promise;
