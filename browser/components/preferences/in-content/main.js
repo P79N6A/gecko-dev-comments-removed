@@ -92,9 +92,32 @@ var gMainPane = {
     setEventListener("e10sAutoStart", "command",
                      gMainPane.enableE10SChange);
     let e10sCheckbox = document.getElementById("e10sAutoStart");
-    let e10sPref = document.getElementById("browser.tabs.remote.autostart");
-    let e10sTempPref = document.getElementById("e10sTempPref");
-    e10sCheckbox.checked = e10sPref.value || e10sTempPref.value;
+    e10sCheckbox.checked = Services.appinfo.browserTabsRemoteAutostart;
+
+    
+    
+    if (!Services.appinfo.browserTabsRemoteAutostart) {
+      let e10sBlockedReason = Cc["@mozilla.org/supports-string;1"].createInstance(Ci.nsISupportsString);
+      let appinfo = Services.appinfo.QueryInterface(Ci.nsIObserver);
+      appinfo.observe(e10sBlockedReason, "getE10SBlocked", "")
+      if (e10sBlockedReason.data) {
+        if (e10sBlockedReason.data == "Safe mode") {
+          
+          
+          
+          
+          
+          
+          e10sCheckbox.checked = true;
+        } else {
+          e10sCheckbox.disabled = true;
+          e10sCheckbox.label += " (disabled: " + e10sBlockedReason.data + ")";
+        }
+      }
+    }
+
+    
+    
 #endif
 
 #ifdef MOZ_DEV_EDITION
