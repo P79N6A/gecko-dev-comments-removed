@@ -220,7 +220,7 @@ struct ForEachTrackedOptimizationTypeInfoOp
     
     
     virtual void readType(const char* keyedBy, const char* name,
-                          const char* location, unsigned lineno) = 0;
+                          const char* location, mozilla::Maybe<unsigned> lineno) = 0;
 
     
     virtual void operator()(TrackedTypeSite site, const char* mirType) = 0;
