@@ -1,0 +1,18 @@
+
+
+
+
+
+var gJar = "jar:http://example.org/tests/dom/base/test/file_bug945152.jar!/data_big.txt";
+var xhr = new XMLHttpRequest({mozAnon: true, mozSystem: true});
+
+xhr.onprogress = function(e) {
+  xhr.abort();
+  postMessage({type: 'finish' });
+  self.close();
+};
+
+onmessage = function(e) {
+  xhr.open("GET", gJar, true);
+  xhr.send();
+}
