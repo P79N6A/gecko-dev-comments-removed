@@ -1698,7 +1698,7 @@ class Mochitest(MochitestUtilsMixin):
             os.close(tmpfd)
             env["MOZ_PROCESS_LOG"] = processLog
 
-            if interactive:
+            if debuggerInfo:
                 
                 
                 timeout = None
