@@ -820,6 +820,10 @@ protected:
 
   
   
+  int64_t mDecodedAudioEndTime;
+
+  
+  
   int64_t mVideoFrameEndTime;
 
   
