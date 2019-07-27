@@ -26,8 +26,8 @@ const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 const HIGHLIGHTER_STYLESHEET_URI = "resource://gre/modules/devtools/server/actors/highlighter.css";
 const HIGHLIGHTER_PICKED_TIMER = 1000;
 
-const NODE_INFOBAR_HEIGHT = 40; 
-const NODE_INFOBAR_ARROW_SIZE = 15; 
+const NODE_INFOBAR_HEIGHT = 34; 
+const NODE_INFOBAR_ARROW_SIZE = 9; 
 
 const GUIDE_STROKE_WIDTH = 1;
 
