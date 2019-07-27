@@ -62,7 +62,7 @@ var SMILUtil =
     
     var computedStyle;
     if (propName == "font") {
-      var subProps = ["font-style", "font-variant", "font-weight",
+      var subProps = ["font-style", "font-variant-caps", "font-weight",
                       "font-size", "line-height", "font-family"];
       for (var i in subProps) {
         var subPropStyle = SMILUtil.getComputedStyleSimple(elem, subProps[i]);
@@ -78,6 +78,10 @@ var SMILUtil =
           }
         }
       }
+    } else if (propName == "font-variant") {
+      
+      
+      computedStyle = SMILUtil.getComputedStyleSimple(elem, "font-variant-caps");
     } else if (propName == "marker") {
       var subProps = ["marker-end", "marker-mid", "marker-start"];
       for (var i in subProps) {
