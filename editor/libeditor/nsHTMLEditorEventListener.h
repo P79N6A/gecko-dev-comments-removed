@@ -27,7 +27,7 @@ public:
 
 #ifdef DEBUG
   
-  virtual nsresult Connect(nsEditor* aEditor);
+  virtual nsresult Connect(nsEditor* aEditor) MOZ_OVERRIDE;
 #endif
 
 protected:
