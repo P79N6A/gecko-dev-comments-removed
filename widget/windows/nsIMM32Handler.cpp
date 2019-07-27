@@ -268,6 +268,7 @@ nsIMM32Handler::GetIMEUpdatePreference()
 {
   return nsIMEUpdatePreference(
     nsIMEUpdatePreference::NOTIFY_POSITION_CHANGE |
+    nsIMEUpdatePreference::NOTIFY_SELECTION_CHANGE |
     nsIMEUpdatePreference::NOTIFY_MOUSE_BUTTON_EVENT_ON_CHAR);
 }
 
@@ -389,6 +390,32 @@ nsIMM32Handler::OnUpdateComposition(nsWindow* aWindow)
   gIMM32Handler->SetIMERelatedWindowsPos(aWindow, IMEContext);
 }
 
+
+void
+nsIMM32Handler::OnSelectionChange(nsWindow* aWindow,
+                                  const IMENotification& aIMENotification)
+{
+  if (aIMENotification.mSelectionChangeData.mCausedByComposition) {
+    return;
+  }
+
+  switch (sCodePage) {
+    case 932: 
+    case 936: 
+    case 949: 
+    case 950: 
+      EnsureHandlerInstance();
+      break;
+    default:
+      return;
+  }
+
+  
+  
+  nsIMEContext IMEContext(aWindow->GetWindowHandle());
+  gIMM32Handler->AdjustCompositionFont(IMEContext,
+                   aIMENotification.mSelectionChangeData.GetWritingMode());
+}
 
  bool
 nsIMM32Handler::ProcessInputLangChangeMessage(nsWindow* aWindow,
