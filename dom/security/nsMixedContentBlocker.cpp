@@ -7,6 +7,7 @@
 #include "nsMixedContentBlocker.h"
 
 #include "nsContentPolicyUtils.h"
+#include "nsCSPContext.h"
 #include "nsThreadUtils.h"
 #include "nsINode.h"
 #include "nsCOMPtr.h"
@@ -590,6 +591,26 @@ nsMixedContentBlocker::ShouldLoad(bool aHadInsecureImageRedirect,
   
   nsCOMPtr<nsIDocShell> docShell = NS_CP_GetDocShellFromContext(aRequestingContext);
   NS_ENSURE_TRUE(docShell, NS_OK);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  bool isHttpScheme = false;
+  rv = aContentLocation->SchemeIs("http", &isHttpScheme);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (isHttpScheme && docShell->GetDocument()->GetUpgradeInsecureRequests()) {
+    *aDecision = ACCEPT;
+    return NS_OK;
+  }
+
   bool rootHasSecureConnection = false;
   bool allowMixedContent = false;
   bool isRootDocShell = false;
@@ -598,7 +619,6 @@ nsMixedContentBlocker::ShouldLoad(bool aHadInsecureImageRedirect,
     *aDecision = REJECT_REQUEST;
     return rv;
   }
-
 
   
   nsCOMPtr<nsIDocShellTreeItem> sameTypeRoot;
