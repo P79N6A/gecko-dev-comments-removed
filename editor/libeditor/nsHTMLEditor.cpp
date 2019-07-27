@@ -4188,71 +4188,37 @@ nsHTMLEditor::GetLastEditableChild(nsINode& aNode)
   return child;
 }
 
-nsresult 
-nsHTMLEditor::GetFirstEditableLeaf( nsIDOMNode *aNode, nsCOMPtr<nsIDOMNode> *aOutFirstLeaf)
+nsIContent*
+nsHTMLEditor::GetFirstEditableLeaf(nsINode& aNode)
 {
-  
-  nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
-  NS_ENSURE_TRUE(node && aOutFirstLeaf, NS_ERROR_NULL_POINTER);
-  
-  
-  *aOutFirstLeaf = aNode;
-  
-  
-  nsresult res = NS_OK;
-  nsCOMPtr<nsIDOMNode> child = GetAsDOMNode(GetLeftmostChild(node));
-  while (child && (!IsEditable(child) || !nsEditorUtils::IsLeafNode(child)))
-  {
-    nsCOMPtr<nsIDOMNode> tmp;
-    res = GetNextHTMLNode(child, address_of(tmp));
-    NS_ENSURE_SUCCESS(res, res);
-    NS_ENSURE_TRUE(tmp, NS_ERROR_FAILURE);
+  nsCOMPtr<nsIContent> child = GetLeftmostChild(&aNode);
+  while (child && (!IsEditable(child) || child->HasChildren())) {
+    child = GetNextHTMLNode(child);
+
     
-    
-    if (nsEditorUtils::IsDescendantOf(tmp, aNode))
-      child = tmp;
-    else
-    {
-      child = nullptr;  
+    if (!aNode.Contains(child)) {
+      return nullptr;
     }
   }
-  
-  *aOutFirstLeaf = child;
-  return res;
+
+  return child;
 }
 
 
-nsresult 
-nsHTMLEditor::GetLastEditableLeaf(nsIDOMNode *aNode, nsCOMPtr<nsIDOMNode> *aOutLastLeaf)
+nsIContent*
+nsHTMLEditor::GetLastEditableLeaf(nsINode& aNode)
 {
-  
-  nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
-  NS_ENSURE_TRUE(node && aOutLastLeaf, NS_ERROR_NULL_POINTER);
-  
-  
-  *aOutLastLeaf = nullptr;
-  
-  
-  nsCOMPtr<nsIDOMNode> child = GetAsDOMNode(GetRightmostChild(node, false));
-  nsresult res = NS_OK;
-  while (child && (!IsEditable(child) || !nsEditorUtils::IsLeafNode(child)))
-  {
-    nsCOMPtr<nsIDOMNode> tmp;
-    res = GetPriorHTMLNode(child, address_of(tmp));
-    NS_ENSURE_SUCCESS(res, res);
-    NS_ENSURE_TRUE(tmp, NS_ERROR_FAILURE);
+  nsCOMPtr<nsIContent> child = GetRightmostChild(&aNode, false);
+  while (child && (!IsEditable(child) || child->HasChildren())) {
+    child = GetPriorHTMLNode(child);
+
     
-    
-    if (nsEditorUtils::IsDescendantOf(tmp, aNode))
-      child = tmp;
-    else
-    {
-      child = nullptr;
+    if (!aNode.Contains(child)) {
+      return nullptr;
     }
   }
-  
-  *aOutLastLeaf = child;
-  return res;
+
+  return child;
 }
 
 
