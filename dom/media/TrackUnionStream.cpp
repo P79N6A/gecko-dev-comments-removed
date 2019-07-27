@@ -50,8 +50,7 @@ PRLogModuleInfo* gTrackUnionStreamLog;
 #endif
 
 TrackUnionStream::TrackUnionStream(DOMMediaStream* aWrapper) :
-  ProcessedMediaStream(aWrapper),
-  mFilterCallback(nullptr)
+  ProcessedMediaStream(aWrapper)
 {
 #ifdef PR_LOGGING
   if (!gTrackUnionStreamLog) {
@@ -114,7 +113,7 @@ TrackUnionStream::TrackUnionStream(DOMMediaStream* aWrapper) :
             break;
           }
         }
-        if (!found && (!mFilterCallback || mFilterCallback(tracks.get()))) {
+        if (!found) {
           bool trackFinished = false;
           trackAdded = true;
           uint32_t mapIndex = AddTrack(mInputs[i], tracks.get(), aFrom);
@@ -151,14 +150,6 @@ TrackUnionStream::TrackUnionStream(DOMMediaStream* aWrapper) :
       
       mHasCurrentData = true;
     }
-  }
-
-  
-  
-
-  void TrackUnionStream::SetTrackIDFilter(TrackIDFilterCallback aCallback)
-  {
-    mFilterCallback = aCallback;
   }
 
   
