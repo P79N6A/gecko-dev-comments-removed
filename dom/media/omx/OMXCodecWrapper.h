@@ -256,6 +256,7 @@ private:
 
   
   friend class OMXCodecWrapper;
+  friend class InputBufferHelper;
 
   
 

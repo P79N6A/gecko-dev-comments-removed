@@ -34,6 +34,13 @@ using namespace mozilla::layers;
 
 namespace android {
 
+enum BufferState
+{
+  BUFFER_OK,
+  BUFFER_FAIL,
+  WAIT_FOR_NEW_BUFFER
+};
+
 bool
 OMXCodecReservation::ReserveOMXCodec()
 {
@@ -577,9 +584,12 @@ OMXAudioEncoder::Configure(int aChannels, int aInputSampleRate,
 
 class InputBufferHelper MOZ_FINAL {
 public:
-  InputBufferHelper(sp<MediaCodec>& aCodec, Vector<sp<ABuffer> >& aBuffers)
+  InputBufferHelper(sp<MediaCodec>& aCodec, Vector<sp<ABuffer> >& aBuffers,
+                    OMXAudioEncoder& aEncoder, int aInputFlags)
     : mCodec(aCodec)
     , mBuffers(aBuffers)
+    , mOMXAEncoder(aEncoder)
+    , mInputFlags(aInputFlags)
     , mIndex(0)
     , mData(nullptr)
     , mOffset(0)
@@ -608,17 +618,6 @@ public:
     return OK;
   }
 
-  uint8_t* GetPointer() { return mData + mOffset; }
-
-  const size_t AvailableSize() { return mCapicity - mOffset; }
-
-  void IncreaseOffset(size_t aValue)
-  {
-    
-    MOZ_ASSERT(mOffset + aValue <= mCapicity);
-    mOffset += aValue;
-  }
-
   status_t Enqueue(int64_t aTimestamp, int aFlags)
   {
     
@@ -633,9 +632,186 @@ public:
     return OK;
   }
 
+  
+  
+  
+  BufferState ReadChunk(AudioChunk& aChunk, size_t* aSamplesRead)
+  {
+    size_t chunkSamples = aChunk.GetDuration();
+    size_t bytesToCopy = chunkSamples * mOMXAEncoder.mResamplingRatio
+                         * mOMXAEncoder.mChannels * sizeof(AudioDataValue);
+    size_t bytesCopied = 0;
+    if (bytesToCopy <= AvailableSize()) {
+      if (aChunk.IsNull()) {
+        bytesCopied = SendSilenceToBuffer(chunkSamples);
+      } else {
+        bytesCopied = SendChunkToBuffer(aChunk, chunkSamples);
+      }
+      UpdateAfterSendChunk(chunkSamples, bytesCopied, aSamplesRead);
+    } else {
+      
+      nsAutoTArray<AudioDataValue, 9600> pcm;
+      pcm.SetLength(bytesToCopy);
+      AudioDataValue* interleavedSource = pcm.Elements();
+      AudioTrackEncoder::InterleaveTrackData(aChunk, chunkSamples,
+                                             mOMXAEncoder.mChannels,
+                                             interleavedSource);
+
+      
+      
+      size_t subChunkSamples = 0;
+      while(GetNextSubChunk(bytesToCopy, subChunkSamples)) {
+        
+        
+        if (!IsEmpty()) {
+          
+          status_t result = Enqueue(mOMXAEncoder.mTimestamp,
+                                    mInputFlags & ~OMXCodecWrapper::BUFFER_EOS);
+          if (result != OK) {
+            return BUFFER_FAIL;
+          }
+
+          result = Dequeue();
+          if (result == -EAGAIN) {
+            return WAIT_FOR_NEW_BUFFER;
+          }
+          if (result != OK) {
+            return BUFFER_FAIL;
+          }
+        }
+        if (aChunk.IsNull()) {
+          bytesCopied = SendSilenceToBuffer(subChunkSamples);
+        } else {
+          bytesCopied = SendInterleavedSubChunkToBuffer(interleavedSource, subChunkSamples);
+        }
+        UpdateAfterSendChunk(subChunkSamples, bytesCopied, aSamplesRead);
+        
+        interleavedSource += subChunkSamples * mOMXAEncoder.mChannels;
+      }
+    }
+    return BUFFER_OK;
+  }
+
+  
+  
+  void SendEOSToBuffer(size_t* aSamplesRead)
+  {
+    size_t bytesToCopy = SendSilenceToBuffer(1);
+    IncreaseOffset(bytesToCopy);
+    *aSamplesRead = 1;
+  }
+
 private:
+  uint8_t* GetPointer() { return mData + mOffset; }
+
+  const size_t AvailableSize() { return mCapicity - mOffset; }
+
+  void IncreaseOffset(size_t aValue)
+  {
+    
+    MOZ_ASSERT(mOffset + aValue <= mCapicity);
+    mOffset += aValue;
+  }
+
+  bool IsEmpty()
+  {
+    return (mOffset == 0);
+  }
+
+  const size_t GetCapacity()
+  {
+    return mCapicity;
+  }
+
+  
+  void UpdateAfterSendChunk(size_t aSamplesNum, size_t aBytesToCopy,
+                            size_t* aSourceSamplesCopied)
+  {
+    *aSourceSamplesCopied += aSamplesNum;
+    mOMXAEncoder.mTimestamp += aSamplesNum * mOMXAEncoder.mSampleDuration;
+    IncreaseOffset(aBytesToCopy);
+  }
+
+  
+  
+  size_t SendSilenceToBuffer(size_t aSamplesNum)
+  {
+    AudioDataValue* dst = reinterpret_cast<AudioDataValue*>(GetPointer());
+    size_t bytesToCopy = aSamplesNum * mOMXAEncoder.mResamplingRatio
+                         * mOMXAEncoder.mChannels * sizeof(AudioDataValue);
+    memset(dst, 0, bytesToCopy);
+    return bytesToCopy;
+  }
+
+  
+  
+  size_t SendChunkToBuffer(AudioChunk& aSource, size_t aSamplesNum)
+  {
+    AudioDataValue* dst = reinterpret_cast<AudioDataValue*>(GetPointer());
+    size_t bytesToCopy = aSamplesNum * mOMXAEncoder.mResamplingRatio
+                         * mOMXAEncoder.mChannels * sizeof(AudioDataValue);
+    uint32_t dstSamplesCopied = aSamplesNum;
+    if (mOMXAEncoder.mResampler) {
+      nsAutoTArray<AudioDataValue, 9600> pcm;
+      pcm.SetLength(bytesToCopy);
+      AudioTrackEncoder::InterleaveTrackData(aSource, aSamplesNum,
+                                             mOMXAEncoder.mChannels,
+                                             pcm.Elements());
+      int16_t* tempSource = reinterpret_cast<int16_t*>(pcm.Elements());
+      speex_resampler_process_interleaved_int(mOMXAEncoder.mResampler, tempSource,
+                                              &aSamplesNum, dst,
+                                              &dstSamplesCopied);
+    } else {
+      AudioTrackEncoder::InterleaveTrackData(aSource, aSamplesNum,
+                                             mOMXAEncoder.mChannels, dst);
+    }
+    return dstSamplesCopied * mOMXAEncoder.mChannels * sizeof(AudioDataValue);
+  }
+
+  
+  
+  size_t SendInterleavedSubChunkToBuffer(AudioDataValue* aSource,
+                                         size_t aSamplesNum)
+  {
+    AudioDataValue* dst = reinterpret_cast<AudioDataValue*>(GetPointer());
+    uint32_t dstSamplesCopied = aSamplesNum;
+    if (mOMXAEncoder.mResampler) {
+      int16_t* tempSource = reinterpret_cast<int16_t*>(aSource);
+      speex_resampler_process_interleaved_int(mOMXAEncoder.mResampler,
+                                              tempSource, &aSamplesNum,
+                                              dst, &dstSamplesCopied);
+    } else {
+      
+      memcpy(dst, aSource,
+             aSamplesNum * mOMXAEncoder.mChannels * sizeof(AudioDataValue));
+    }
+    return dstSamplesCopied * mOMXAEncoder.mChannels * sizeof(AudioDataValue);
+  }
+
+  
+  
+  bool GetNextSubChunk(size_t& aBytesToCopy, size_t& aSamplesToCopy)
+  {
+    size_t bufferCapabity = GetCapacity();
+    size_t sampleBytes = mOMXAEncoder.mChannels * mOMXAEncoder.mResamplingRatio
+                        * sizeof(AudioDataValue);
+    if (aBytesToCopy) {
+      if (aBytesToCopy > bufferCapabity) {
+        aSamplesToCopy = bufferCapabity / sampleBytes;
+        aBytesToCopy -= aSamplesToCopy * sampleBytes;
+      } else {
+        aSamplesToCopy = aBytesToCopy / sampleBytes;
+        aBytesToCopy = 0;
+      }
+      return true;
+    }
+    return false;
+  }
+
   sp<MediaCodec>& mCodec;
   Vector<sp<ABuffer> >& mBuffers;
+  OMXAudioEncoder& mOMXAEncoder;
+  int mInputFlags;
   size_t mIndex;
   uint8_t* mData;
   size_t mCapicity;
@@ -662,7 +838,7 @@ OMXAudioEncoder::Encode(AudioSegment& aSegment, int aInputFlags)
   size_t numSamples = aSegment.GetDuration();
 
   
-  InputBufferHelper buffer(mCodec, mInputBufs);
+  InputBufferHelper buffer(mCodec, mInputBufs, *this, aInputFlags);
   status_t result = buffer.Dequeue();
   if (result == -EAGAIN) {
     
@@ -677,82 +853,35 @@ OMXAudioEncoder::Encode(AudioSegment& aSegment, int aInputFlags)
     
     AudioSegment::ChunkIterator iter(const_cast<AudioSegment&>(aSegment));
     while (!iter.IsEnded()) {
-      AudioChunk chunk = *iter;
-      size_t sourceSamplesToCopy = chunk.GetDuration(); 
-      size_t bytesToCopy = sourceSamplesToCopy * mChannels *
-                           sizeof(AudioDataValue) * mResamplingRatio;
-      if (bytesToCopy > buffer.AvailableSize()) {
+      BufferState result = buffer.ReadChunk(*iter, &sourceSamplesCopied);
+      if (result == WAIT_FOR_NEW_BUFFER) {
         
         
-        result = buffer.Enqueue(mTimestamp, aInputFlags & ~BUFFER_EOS);
-        NS_ENSURE_TRUE(result == OK, NS_ERROR_FAILURE);
-
-        result = buffer.Dequeue();
-        if (result == -EAGAIN) {
-          
-          
-          aSegment.RemoveLeading(sourceSamplesCopied);
-          return NS_OK;
-        }
-
-        mTimestamp += sourceSamplesCopied * mSampleDuration;
-        sourceSamplesCopied = 0;
-
-        NS_ENSURE_TRUE(result == OK, NS_ERROR_FAILURE);
-      }
-
-      AudioDataValue* dst = reinterpret_cast<AudioDataValue*>(buffer.GetPointer());
-      uint32_t dstSamplesCopied = sourceSamplesToCopy;
-      if (!chunk.IsNull()) {
-        if (mResampler) {
-          nsAutoTArray<AudioDataValue, 9600> pcm;
-          pcm.SetLength(bytesToCopy);
-          
-          AudioTrackEncoder::InterleaveTrackData(chunk, sourceSamplesToCopy,
-                                                 mChannels,
-                                                 pcm.Elements());
-          uint32_t inframes = sourceSamplesToCopy;
-          short* in = reinterpret_cast<short*>(pcm.Elements());
-          speex_resampler_process_interleaved_int(mResampler, in, &inframes,
-                                                              dst, &dstSamplesCopied);
-        } else {
-          AudioTrackEncoder::InterleaveTrackData(chunk, sourceSamplesToCopy,
-                                                 mChannels,
-                                                 dst);
-          dstSamplesCopied = sourceSamplesToCopy * mChannels;
-        }
+        aSegment.RemoveLeading(sourceSamplesCopied);
+        return NS_OK;
+      } else if (result == BUFFER_FAIL) {
+        return NS_ERROR_FAILURE;
       } else {
-        
-        memset(dst, 0, mResamplingRatio * sourceSamplesToCopy * sizeof(AudioDataValue));
+        iter.Next();
       }
-
-      sourceSamplesCopied += sourceSamplesToCopy;
-      buffer.IncreaseOffset(dstSamplesCopied * sizeof(AudioDataValue));
-      iter.Next();
     }
+    
     if (sourceSamplesCopied > 0) {
       aSegment.RemoveLeading(sourceSamplesCopied);
     }
   } else if (aInputFlags & BUFFER_EOS) {
-    
-    
-    size_t bytesToCopy = mChannels * sizeof(AudioDataValue);
-    memset(buffer.GetPointer(), 0, bytesToCopy);
-    buffer.IncreaseOffset(bytesToCopy);
-    sourceSamplesCopied = 1;
+    buffer.SendEOSToBuffer(&sourceSamplesCopied);
   }
 
-  if (sourceSamplesCopied > 0) {
-    int flags = aInputFlags;
-    if (aSegment.GetDuration() > 0) {
-      
-      flags &= ~BUFFER_EOS;
-    }
-    result = buffer.Enqueue(mTimestamp, flags);
-    NS_ENSURE_TRUE(result == OK, NS_ERROR_FAILURE);
-
-    mTimestamp += sourceSamplesCopied * mSampleDuration;
+  
+  MOZ_ASSERT(sourceSamplesCopied > 0, "No data needs to be enqueued!");
+  int flags = aInputFlags;
+  if (aSegment.GetDuration() > 0) {
+    
+    flags &= ~BUFFER_EOS;
   }
+  result = buffer.Enqueue(mTimestamp, flags);
+  NS_ENSURE_TRUE(result == OK, NS_ERROR_FAILURE);
 
   return NS_OK;
 }
