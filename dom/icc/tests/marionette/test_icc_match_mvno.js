@@ -4,8 +4,8 @@
 MARIONETTE_TIMEOUT = 30000;
 MARIONETTE_HEAD_JS = "icc_header.js";
 
-
 let testCases = [
+  
   
   ["imsi", "3102600",            true, true               ],
   
@@ -17,11 +17,18 @@ let testCases = [
   ["imsi", "310260000000000",    true, true               ],
   ["imsi", "310260000000000123", true, false              ],
   ["imsi", "",                   false, "InvalidParameter"],
+  
   ["spn",  "Android",            true, true               ],
   ["spn",  "",                   false, "InvalidParameter"],
   ["spn",  "OneTwoThree",        true, false              ],
   
-  ["gid",  "A1",                 false, "ModeNotSupported"]
+  ["gid",  "",                   false, "InvalidParameter"],
+  ["gid",  "A1",                 true, false              ],
+  ["gid",  "5A",                 true, true               ],
+  ["gid",  "5a",                 true, true               ],
+  ["gid",  "5a4d",               true, true               ],
+  ["gid",  "5A4D",               true, true               ],
+  ["gid",  "5a4d6c",             true, false              ]
 ];
 
 function matchMvno(mvnoType, mvnoData, success, expectedResult) {
