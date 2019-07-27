@@ -17,6 +17,7 @@
 #include "mozilla/css/NameSpaceRule.h"
 #include "mozilla/css/GroupRule.h"
 #include "mozilla/css/ImportRule.h"
+#include "nsCSSRules.h"
 #include "nsIMediaList.h"
 #include "nsIDocument.h"
 #include "nsPresContext.h"
@@ -330,6 +331,96 @@ nsMediaQueryResultCacheKey::Matches(nsPresContext* aPresContext) const
   }
 
   return true;
+}
+
+bool
+nsDocumentRuleResultCacheKey::AddMatchingRule(css::DocumentRule* aRule)
+{
+  MOZ_ASSERT(!mFinalized);
+  return mMatchingRules.AppendElement(aRule);
+}
+
+void
+nsDocumentRuleResultCacheKey::Finalize()
+{
+  mMatchingRules.Sort();
+#ifdef DEBUG
+  mFinalized = true;
+#endif
+}
+
+bool
+nsDocumentRuleResultCacheKey::Matches(
+                       nsPresContext* aPresContext,
+                       const nsTArray<css::DocumentRule*>& aRules) const
+{
+  MOZ_ASSERT(mFinalized);
+
+  
+  
+  for (css::DocumentRule* rule : mMatchingRules) {
+    if (!rule->UseForPresentation(aPresContext)) {
+      return false;
+    }
+  }
+
+  
+  
+
+  
+  auto pm     = mMatchingRules.begin();
+  auto pm_end = mMatchingRules.end();
+
+  
+  auto pr     = aRules.begin();
+  auto pr_end = aRules.end();
+
+  
+  
+  while (pr < pr_end) {
+    while (pm < pm_end && *pm < *pr) {
+      ++pm;
+      MOZ_ASSERT(pm >= pm_end || *pm == *pr,
+                 "shouldn't find rule in mMatchingRules that is not in aRules");
+    }
+    if (pm >= pm_end || *pm != *pr) {
+      if ((*pr)->UseForPresentation(aPresContext)) {
+        return false;
+      }
+    }
+    ++pr;
+  }
+  return true;
+}
+
+#ifdef DEBUG
+void
+nsDocumentRuleResultCacheKey::List(FILE* aOut, int32_t aIndent) const
+{
+  for (css::DocumentRule* rule : mMatchingRules) {
+    nsCString str;
+
+    for (int32_t i = 0; i < aIndent; i++) {
+      str.AppendLiteral("  ");
+    }
+    str.AppendLiteral("{ ");
+
+    nsString condition;
+    rule->GetConditionText(condition);
+    AppendUTF16toUTF8(condition, str);
+
+    str.AppendLiteral(" }\n");
+    fprintf_stderr(aOut, "%s", str.get());
+  }
+}
+#endif
+
+size_t
+nsDocumentRuleResultCacheKey::SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const
+{
+  size_t n = 0;
+  n += mMatchingRules.SizeOfExcludingThis(aMallocSizeOf);
+  return n;
 }
 
 void

@@ -26,6 +26,9 @@ struct nsMediaFeature;
 
 namespace mozilla {
 class CSSStyleSheet;
+namespace css {
+class DocumentRule;
+} 
 } 
 
 struct nsMediaExpression {
@@ -127,6 +130,64 @@ private:
   };
   nsCOMPtr<nsIAtom> mMedium;
   nsTArray<FeatureEntry> mFeatureCache;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class nsDocumentRuleResultCacheKey
+{
+public:
+#ifdef DEBUG
+  nsDocumentRuleResultCacheKey()
+    : mFinalized(false) {}
+#endif
+
+  bool AddMatchingRule(mozilla::css::DocumentRule* aRule);
+  bool Matches(nsPresContext* aPresContext,
+               const nsTArray<mozilla::css::DocumentRule*>& aRules) const;
+
+  bool operator==(const nsDocumentRuleResultCacheKey& aOther) const {
+    MOZ_ASSERT(mFinalized);
+    MOZ_ASSERT(aOther.mFinalized);
+    return mMatchingRules == aOther.mMatchingRules;
+  }
+  bool operator!=(const nsDocumentRuleResultCacheKey& aOther) const {
+    return !(*this == aOther);
+  }
+
+  void Swap(nsDocumentRuleResultCacheKey& aOther) {
+    mMatchingRules.SwapElements(aOther.mMatchingRules);
+#ifdef DEBUG
+    std::swap(mFinalized, aOther.mFinalized);
+#endif
+  }
+
+  void Finalize();
+
+#ifdef DEBUG
+  void List(FILE* aOut = stdout, int32_t aIndex = 0) const;
+#endif
+
+  size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
+
+private:
+  nsTArray<mozilla::css::DocumentRule*> mMatchingRules;
+#ifdef DEBUG
+  bool mFinalized;
+#endif
 };
 
 class nsMediaQuery {
