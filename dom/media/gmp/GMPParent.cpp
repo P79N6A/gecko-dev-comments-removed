@@ -212,6 +212,7 @@ AbortWaitingForGMPAsyncShutdown(nsITimer* aTimer, void* aClosure)
 nsresult
 GMPParent::EnsureAsyncShutdownTimeoutSet()
 {
+  MOZ_ASSERT(mAsyncShutdownRequired);
   if (mAsyncShutdownTimeout) {
     return NS_OK;
   }
@@ -235,9 +236,11 @@ GMPParent::EnsureAsyncShutdownTimeoutSet()
   if (service) {
     timeout = service->AsyncShutdownTimeoutMs();
   }
-  return mAsyncShutdownTimeout->InitWithFuncCallback(
+  rv = mAsyncShutdownTimeout->InitWithFuncCallback(
     &AbortWaitingForGMPAsyncShutdown, this, timeout,
     nsITimer::TYPE_ONE_SHOT);
+  unused << NS_WARN_IF(NS_FAILED(rv));
+  return rv;
 }
 
 bool
@@ -286,17 +289,25 @@ GMPParent::CloseIfUnused()
         NS_LITERAL_CSTRING("Sent BeginAsyncShutdown"));
 #endif
         mAsyncShutdownInProgress = true;
-        if (!SendBeginAsyncShutdown() ||
-            NS_FAILED(EnsureAsyncShutdownTimeoutSet())) {
+        if (!SendBeginAsyncShutdown()) {
 #if defined(MOZ_CRASHREPORTER)
           CrashReporter::AnnotateCrashReport(
             nsPrintfCString("AsyncPluginShutdown-%s@%p", GetDisplayName().get(), this),
-            NS_LITERAL_CSTRING("Could not send BeginAsyncShutdown - Aborting"));
+            NS_LITERAL_CSTRING("Could not send BeginAsyncShutdown - Aborting async shutdown"));
+#endif
+          AbortAsyncShutdown();
+        } else if (NS_FAILED(EnsureAsyncShutdownTimeoutSet())) {
+#if defined(MOZ_CRASHREPORTER)
+          CrashReporter::AnnotateCrashReport(
+            nsPrintfCString("AsyncPluginShutdown-%s@%p", GetDisplayName().get(), this),
+            NS_LITERAL_CSTRING("Could not start timer after sending BeginAsyncShutdown - Aborting async shutdown"));
 #endif
           AbortAsyncShutdown();
         }
       }
     } else {
+      
+      AbortAsyncShutdown();
       
       for (size_t i = mStorage.Length(); i > 0; i--) {
         mStorage[i - 1]->Shutdown();
@@ -346,7 +357,38 @@ GMPParent::CloseActive(bool aDieWhenUnloaded)
       nsPrintfCString("AsyncPluginShutdown-%s@%p", GetDisplayName().get(), this),
       nsPrintfCString("Sent CloseActive, content children to close: %u", mGMPContentChildCount));
 #endif
-    unused << SendCloseActive();
+    if (!SendCloseActive()) {
+#if defined(MOZ_CRASHREPORTER)
+      CrashReporter::AnnotateCrashReport(
+        nsPrintfCString("AsyncPluginShutdown-%s@%p", GetDisplayName().get(), this),
+        NS_LITERAL_CSTRING("Could not send CloseActive - Aborting async shutdown"));
+#endif
+      AbortAsyncShutdown();
+    } else if (IsUsed()) {
+      
+      if (mAsyncShutdownRequired && NS_FAILED(EnsureAsyncShutdownTimeoutSet())) {
+#if defined(MOZ_CRASHREPORTER)
+        CrashReporter::AnnotateCrashReport(
+          nsPrintfCString("AsyncPluginShutdown-%s@%p", GetDisplayName().get(), this),
+          NS_LITERAL_CSTRING("Could not start timer after sending CloseActive - Aborting async shutdown"));
+#endif
+        AbortAsyncShutdown();
+      }
+    } else {
+      
+      
+      
+      
+      
+      
+      
+#if defined(MOZ_CRASHREPORTER)
+      CrashReporter::AnnotateCrashReport(
+        nsPrintfCString("AsyncPluginShutdown-%s@%p", GetDisplayName().get(), this),
+        NS_LITERAL_CSTRING("Content children already destroyed"));
+#endif
+      CloseIfUnused();
+    }
   }
 }
 
