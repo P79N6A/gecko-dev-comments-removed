@@ -14,7 +14,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource://gre/modules/osfile.jsm");
 Cu.import("resource://gre/modules/PlacesUtils.jsm");
-Cu.import("resource://gre/modules/Promise.jsm");
+Cu.import("resource://gre/modules/PromiseUtils.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesBackups",
@@ -188,47 +188,35 @@ BookmarkImporter.prototype = {
 
 
 
-  importFromURL: function BI_importFromURL(aSpec) {
-    let deferred = Promise.defer();
-
-    let streamObserver = {
-      onStreamComplete: function (aLoader, aContext, aStatus, aLength,
-                                  aResult) {
-        let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"].
-                        createInstance(Ci.nsIScriptableUnicodeConverter);
-        converter.charset = "UTF-8";
-
-        try {
-          let jsonString = converter.convertFromByteArray(aResult,
-                                                          aResult.length);
-          deferred.resolve(this.importFromJSON(jsonString));
-        } catch (ex) {
-          Cu.reportError("Failed to import from URL: " + ex);
-          deferred.reject(ex);
-          throw ex;
+  importFromURL(spec) {
+    return new Promise((resolve, reject) => {
+      let streamObserver = {
+        onStreamComplete: (aLoader, aContext, aStatus, aLength, aResult) => {
+          let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"].
+                          createInstance(Ci.nsIScriptableUnicodeConverter);
+          converter.charset = "UTF-8";
+          try {
+            let jsonString = converter.convertFromByteArray(aResult,
+                                                            aResult.length);
+            resolve(this.importFromJSON(jsonString));
+          } catch (ex) {
+            Cu.reportError("Failed to import from URL: " + ex);
+            reject(ex);
+          }
         }
-      }.bind(this)
-    };
+      };
 
-    try {
-      var uri = NetUtil.newURI(aSpec);
-      let principal = Services.scriptSecurityManager.getNoAppCodebasePrincipal(uri);
-      let channel = Services.io.newChannelFromURI2(uri,
-                                                   null,      
-                                                   principal,
-                                                   null,      
-                                                   Ci.nsILoadInfo.SEC_NORMAL,
-                                                   Ci.nsIContentPolicy.TYPE_DATAREQUEST);
-      let streamLoader = Cc["@mozilla.org/network/stream-loader;1"].
-                         createInstance(Ci.nsIStreamLoader);
-
+      let uri = NetUtil.newURI(spec);
+      let channel = NetUtil.newChannel({
+        uri,
+        loadingPrincipal: Services.scriptSecurityManager.getNoAppCodebasePrincipal(uri),
+        contentPolicyType: Ci.nsIContentPolicy.TYPE_DATAREQUEST
+      });
+      let streamLoader = Cc["@mozilla.org/network/stream-loader;1"]
+                           .createInstance(Ci.nsIStreamLoader);
       streamLoader.init(streamObserver);
       channel.asyncOpen(streamLoader, channel);
-    } catch (ex) {
-      deferred.reject(ex);
-    }
-
-    return deferred.promise;
+    });
   },
 
   
@@ -256,8 +244,9 @@ BookmarkImporter.prototype = {
 
 
 
-  importFromJSON: function BI_importFromJSON(aString) {
-    let deferred = Promise.defer();
+  importFromJSON: Task.async(function* (aString) {
+    this._importPromises = [];
+    let deferred = PromiseUtils.defer();
     let nodes =
       PlacesUtils.unwrapNodes(aString, PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER);
 
@@ -360,8 +349,15 @@ BookmarkImporter.prototype = {
 
       PlacesUtils.bookmarks.runInBatchMode(batch, null);
     }
-    return deferred.promise;
-  },
+    yield deferred.promise;
+    
+    
+    try {
+      yield Promise.all(this._importPromises);
+    } finally {
+      delete this._importPromises;
+    }
+  }),
 
   
 
@@ -452,8 +448,18 @@ BookmarkImporter.prototype = {
       case PlacesUtils.TYPE_X_MOZ_PLACE:
         id = PlacesUtils.bookmarks.insertBookmark(
                aContainer, NetUtil.newURI(aData.uri), aIndex, aData.title);
-        if (aData.keyword)
-          PlacesUtils.bookmarks.setKeywordForBookmark(id, aData.keyword);
+        if (aData.keyword) {
+          
+          
+          
+          let postDataAnno = aData.annos &&
+                             aData.annos.find(anno => anno.name == PlacesUtils.POST_DATA_ANNO);
+          let postData = aData.postData || (postDataAnno && postDataAnno.value);
+          let kwPromise = PlacesUtils.keywords.insert({ keyword: aData.keyword,
+                                                        url: aData.uri,
+                                                        postData });
+          this._importPromises.push(kwPromise);
+        }
         if (aData.tags) {
           
           let tags = aData.tags.split(",").map(tag => tag.trim());
