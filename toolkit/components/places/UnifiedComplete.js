@@ -676,37 +676,47 @@ Search.prototype = {
     
     
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
     
     let queries = [ this._adaptiveQuery,
                     this._switchToTabQuery,
                     this._searchQuery ];
 
-    let hasKeyword = false;
+    
+    
+    
+    
+    
+    let hasFirstResult = false;
+
     if (this._searchTokens.length > 0 &&
         PlacesUtils.bookmarks.getURIForKeyword(this._searchTokens[0])) {
+      
       queries.unshift(this._keywordQuery);
-      hasKeyword = true;
+      hasFirstResult = true;
     }
 
-    if (this._shouldAutofill) {
-      if (this._searchTokens.length == 1 && !hasKeyword)
-        yield this._matchSearchEngineUrl();
+    let shouldAutofill = this._shouldAutofill;
+    if (this.pending && !hasFirstResult && shouldAutofill) {
+      
+      hasFirstResult = yield this._matchSearchEngineUrl();
+    }
 
+    if (this.pending && !hasFirstResult && shouldAutofill) {
       
-      let lastSlashIndex = this._searchString.lastIndexOf("/");
-      
-      if (lastSlashIndex != -1) {
-        
-        if (lastSlashIndex < this._searchString.length - 1) {
-          queries.unshift(this._urlQuery);
-        }
-      } else if (this.pending) {
-        
-        
-        let [ query, params ] = this._hostQuery;
-        yield conn.executeCached(query, params, this._onResultRow.bind(this));
-      }
+      hasFirstResult = yield this._matchKnownUrl(conn, queries);
     }
 
     yield this._sleep(Prefs.delay);
@@ -740,54 +750,90 @@ Search.prototype = {
     }
   }),
 
+  _matchKnownUrl: function* (conn, queries) {
+    
+    let lastSlashIndex = this._searchString.lastIndexOf("/");
+    
+    if (lastSlashIndex != -1) {
+      
+      if (lastSlashIndex < this._searchString.length - 1) {
+        
+        
+        
+        
+        
+        let gotResult = false;
+        let [ query, params ] = this._urlPredictQuery;
+        yield conn.executeCached(query, params, row => {
+          gotResult = true;
+          queries.unshift(this._urlQuery);
+        });
+        return gotResult;
+      }
+
+      return false;
+    }
+
+    let gotResult = false;
+    let [ query, params ] = this._hostQuery;
+    yield conn.executeCached(query, params, row => {
+      gotResult = true;
+      this._onResultRow(row);
+    });
+
+    return gotResult;
+  },
+
   _matchSearchEngineUrl: function* () {
     if (!Prefs.autofillSearchEngines)
-      return;
+      return false;
 
     let match = yield PlacesSearchAutocompleteProvider.findMatchByToken(
                                                            this._searchString);
-    if (match) {
-      
-      
-      
-      
-      
-      
-      
-      try {
-        let prefixURI = NetUtil.newURI(this._strippedPrefix);
-        let finalURI = NetUtil.newURI(match.url);
-        if (prefixURI.scheme != finalURI.scheme)
-          return;
-      } catch (e) {}
+    if (!match)
+      return false;
 
-      
-      
-      if (this._strippedPrefix.endsWith("www.") &&
-          !stripHttpAndTrim(match.url).startsWith("www."))
-        return;
+    
+    
+    
+    
+    
+    
+    
+    try {
+      let prefixURI = NetUtil.newURI(this._strippedPrefix);
+      let finalURI = NetUtil.newURI(match.url);
+      if (prefixURI.scheme != finalURI.scheme)
+        return false;
+    } catch (e) {}
 
-      let value = this._strippedPrefix + match.token;
+    
+    
+    if (this._strippedPrefix.endsWith("www.") &&
+        !stripHttpAndTrim(match.url).startsWith("www."))
+      return false;
 
-      
-      
-      
-      if (!value.startsWith(this._originalSearchString)) {
-        Components.utils.reportError(`Trying to inline complete in-the-middle
-                                      ${this._originalSearchString} to ${value}`);
-        return;
-      }
+    let value = this._strippedPrefix + match.token;
 
-      this._result.setDefaultIndex(0);
-      this._addFrecencyMatch({
-        value: value,
-        comment: match.engineName,
-        icon: match.iconUrl,
-        style: "priority-search",
-        finalCompleteValue: match.url,
-        frecency: FRECENCY_SEARCHENGINES_DEFAULT
-      });
+    
+    
+    
+    if (!value.startsWith(this._originalSearchString)) {
+      Components.utils.reportError(`Trying to inline complete in-the-middle
+                                    ${this._originalSearchString} to ${value}`);
+      return false;
     }
+
+    this._result.setDefaultIndex(0);
+    this._addFrecencyMatch({
+      value: value,
+      comment: match.engineName,
+      icon: match.iconUrl,
+      style: "priority-search",
+      finalCompleteValue: match.url,
+      frecency: FRECENCY_SEARCHENGINES_DEFAULT
+    });
+    return true;
   },
 
   _onResultRow: function (row) {
@@ -917,6 +963,7 @@ Search.prototype = {
     let trimmedHost = row.getResultByIndex(QUERYINDEX_URL);
     let untrimmedHost = row.getResultByIndex(QUERYINDEX_TITLE);
     let frecency = row.getResultByIndex(QUERYINDEX_FRECENCY);
+
     
     
     if (untrimmedHost &&
@@ -928,7 +975,19 @@ Search.prototype = {
     
     match.comment = stripHttpAndTrim(trimmedHost);
     match.finalCompleteValue = untrimmedHost;
+
+    try {
+      let iconURI = NetUtil.newURI(untrimmedHost);
+      iconURI.path = "/favicon.ico";
+      match.icon = PlacesUtils.favicons.getFaviconLinkForIcon(iconURI).spec;
+    } catch (e) {
+      
+    }
+
+    
+    
     match.frecency = frecency;
+    match.style = "autofill";
     return match;
   },
 
@@ -962,7 +1021,10 @@ Search.prototype = {
     match.value = this._strippedPrefix + url;
     match.comment = url;
     match.finalCompleteValue = untrimmedURL;
+    
+    
     match.frecency = frecency;
+    match.style = "autofill";
     return match;
   },
 
@@ -1162,6 +1224,9 @@ Search.prototype = {
     if (!Prefs.autofill)
       return false;
 
+    if (!this._searchTokens.length == 1)
+      return false;
+
     
     
     
@@ -1182,18 +1247,11 @@ Search.prototype = {
     
     
     
-    if (/\s/.test(this._originalSearchString)) {
+    if (/\s/.test(this._originalSearchString))
       return false;
-    }
 
-    
-    
-    
-    
-    if (this._searchString.length == 0 ||
-        PlacesUtils.bookmarks.getURIForKeyword(this._searchString)) {
+    if (this._searchString.length == 0)
       return false;
-    }
 
     return true;
   },
@@ -1216,6 +1274,29 @@ Search.prototype = {
       {
         query_type: QUERYTYPE_AUTOFILL_HOST,
         searchString: this._searchString.toLowerCase()
+      }
+    ];
+  },
+
+  
+
+
+
+
+  get _urlPredictQuery() {
+    
+    
+    
+    let slashIndex = this._searchString.indexOf("/");
+
+    let host = this._searchString.substring(0, slashIndex);
+    host = host.toLowerCase();
+
+    return [
+      SQL_HOST_QUERY,
+      {
+        query_type: QUERYTYPE_AUTOFILL_HOST,
+        searchString: host
       }
     ];
   },
