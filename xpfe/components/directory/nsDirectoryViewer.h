@@ -79,7 +79,7 @@ protected:
     nsIInterfaceRequestor*       mRequestor; 
     nsCOMPtr<nsIRDFResource>     mDirectory;
 
-    nsHTTPIndex(nsIInterfaceRequestor* aRequestor);
+    explicit nsHTTPIndex(nsIInterfaceRequestor* aRequestor);
     nsresult CommonInit(void);
     nsresult Init(nsIURI* aBaseURL);
     void        GetDestination(nsIRDFResource* r, nsXPIDLCString& dest);

@@ -58,7 +58,7 @@ public:
     nsCString mStdout;
     nsCString mStderr;
 
-    Subprocess(const char* aTestName) {
+    explicit Subprocess(const char* aTestName) {
         
         PRFileDesc* readStdin;  PRFileDesc* writeStdin;
         PRFileDesc* readStdout; PRFileDesc* writeStdout;

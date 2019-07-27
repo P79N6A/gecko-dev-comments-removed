@@ -212,7 +212,7 @@ public:
   NS_DECL_NSIURLCLASSIFIERCALLBACK
 
   
-  PendingDBLookup(PendingLookup* aPendingLookup);
+  explicit PendingDBLookup(PendingLookup* aPendingLookup);
 
   
   
