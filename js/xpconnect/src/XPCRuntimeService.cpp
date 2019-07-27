@@ -116,12 +116,10 @@ oom:
 
 
 NS_IMETHODIMP
-BackstagePass::GetHelperForLanguage(uint32_t language,
-                                    nsISupports** retval)
+BackstagePass::GetScriptableHelper(nsIXPCScriptable** retval)
 {
-    nsCOMPtr<nsISupports> supports =
-        do_QueryInterface(static_cast<nsIGlobalObject*>(this));
-    supports.forget(retval);
+    nsCOMPtr<nsIXPCScriptable> scriptable = this;
+    scriptable.forget(retval);
     return NS_OK;
 }
 
