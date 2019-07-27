@@ -248,27 +248,6 @@ this.TelemetryController = Object.freeze({
 
 
 
-  savePendingPings: function(aType, aPayload, aOptions = {}) {
-    let options = aOptions;
-    options.addClientId = aOptions.addClientId || false;
-    options.addEnvironment = aOptions.addEnvironment || false;
-
-    return Impl.savePendingPings(aType, aPayload, options);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -657,28 +636,6 @@ let Impl = {
     let promise = Promise.all(p);
     this._trackPendingPingTask(promise);
     return promise;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  savePendingPings: function savePendingPings(aType, aPayload, aOptions) {
-    this._log.trace("savePendingPings - Type " + aType + ", Server " + this._server +
-                    ", aOptions " + JSON.stringify(aOptions));
-
-    let pingData = this.assemblePing(aType, aPayload, aOptions);
-    return TelemetryStorage.savePendingPings(pingData);
   },
 
   
