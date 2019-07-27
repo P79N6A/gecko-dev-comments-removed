@@ -214,6 +214,19 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
     
     
     mBaseline = kidMetrics.BlockStartAscent();
+
+    
+    LogicalSize convertedSize = kidMetrics.Size(lineWM).ConvertTo(wm, lineWM);
+    kid->SetRect(nsRect(bp.IStart(wm), bp.BStart(wm),
+                        convertedSize.ISize(wm), convertedSize.BSize(wm)));
+    kid->FinishAndStoreOverflow(&kidMetrics);
+    kid->DidReflow(aPresContext, nullptr, nsDidReflowStatus::FINISHED);
+
+    convertedSize.ISize(wm) += bp.IStartEnd(wm);
+    convertedSize.BSize(wm) += bp.BStartEnd(wm);
+    aMetrics.SetSize(wm, convertedSize);
+    aMetrics.SetBlockStartAscent(kidMetrics.BlockStartAscent() +
+                                 bp.BStart(wm));
   }
   else {
     
@@ -227,20 +240,20 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
     ll->ReflowFrame(kid, aReflowStatus, &kidMetrics, pushedFrame);
     ll->EndSpan(this);
     ll->SetInFirstLetter(false);
+
+    
+    LogicalSize convertedSize = kidMetrics.Size(lineWM).ConvertTo(wm, lineWM);
+    kid->SetRect(nsRect(bp.IStart(wm), bp.BStart(wm),
+                        convertedSize.ISize(wm), convertedSize.BSize(wm)));
+    kid->FinishAndStoreOverflow(&kidMetrics);
+    kid->DidReflow(aPresContext, nullptr, nsDidReflowStatus::FINISHED);
+
+    convertedSize.ISize(wm) += bp.IStartEnd(wm);
+    convertedSize.BSize(wm) += bp.BStartEnd(wm);
+    aMetrics.SetSize(wm, convertedSize);
+    aMetrics.SetBlockStartAscent(kidMetrics.BlockStartAscent() +
+                                 bp.BStart(wm));
   }
-
-  
-  LogicalSize convertedSize = kidMetrics.Size(lineWM).ConvertTo(wm, lineWM);
-  kid->SetRect(nsRect(bp.IStart(wm), bp.BStart(wm),
-                      convertedSize.ISize(wm), convertedSize.BSize(wm)));
-  kid->FinishAndStoreOverflow(&kidMetrics);
-  kid->DidReflow(aPresContext, nullptr, nsDidReflowStatus::FINISHED);
-
-  convertedSize.ISize(wm) += bp.IStartEnd(wm);
-  convertedSize.BSize(wm) += bp.BStartEnd(wm);
-  aMetrics.SetSize(wm, convertedSize);
-  aMetrics.SetBlockStartAscent(kidMetrics.BlockStartAscent() +
-                               bp.BStart(wm));
 
   
   
