@@ -380,6 +380,13 @@ class MochiRemote(Mochitest):
         options.logFile = self.localLog
         return retVal
 
+    def getTestsToRun(self, options):
+        if options.robocopIni != "":
+            
+            return None
+        else:
+            return super(MochiRemote, self).getTestsToRun(options)
+
     def buildTestPath(self, options, testsToFilter=None):
         if options.robocopIni != "":
             
