@@ -57,6 +57,8 @@
 #if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
 #include "libdisplay/GonkDisplay.h"     
 #include <ui/Fence.h>
+#include "nsWindow.h"
+#include "nsScreenManagerGonk.h"
 #endif
 
 namespace mozilla {
@@ -607,8 +609,6 @@ CompositorOGL::BeginFrame(const nsIntRegion& aInvalidRegion,
     *aRenderBoundsOut = rect;
   }
 
-  mRenderBoundsOut = rect;
-
   GLint width = rect.width;
   GLint height = rect.height;
 
@@ -952,19 +952,6 @@ CompositorOGL::DrawQuad(const Rect& aRect,
     DrawVRDistortion(aRect, aClipRect, aEffectChain, aOpacity, aTransform);
     return;
   }
-
-  
-  
-  Rect destRect = aTransform.TransformBounds(aRect);
-  mPixelsFilled += destRect.width * destRect.height;
-
-  
-  
-  destRect.Inflate(1, 1);
-  if (!mRenderBoundsOut.Intersects(destRect)) {
-    return;
-  }
-
   LayerScope::DrawBegin();
 
   Rect clipRect = aClipRect;
@@ -1012,6 +999,13 @@ CompositorOGL::DrawQuad(const Rect& aRect,
                  : MaskType::Mask2d;
   } else {
     maskType = MaskType::MaskNone;
+  }
+
+  {
+    
+    
+    const Rect destRect = aTransform.TransformBounds(aRect);
+    mPixelsFilled += destRect.width * destRect.height;
   }
 
   
@@ -1409,8 +1403,9 @@ CompositorOGL::SetDispAcquireFence(Layer* aLayer)
   if (!aLayer) {
     return;
   }
-
-  RefPtr<FenceHandle::FdObj> fence = new FenceHandle::FdObj(GetGonkDisplay()->GetPrevDispAcquireFd());
+  nsWindow* window = static_cast<nsWindow*>(mWidget);
+  RefPtr<FenceHandle::FdObj> fence = new FenceHandle::FdObj(
+      window->GetScreen()->GetPrevDispAcquireFd());
   mReleaseFenceHandle.Merge(FenceHandle(fence));
 }
 

@@ -17,7 +17,13 @@
 #define GONKDISPLAY_H
 
 #include <system/window.h>
+#include <utils/StrongPointer.h>
 #include "mozilla/Types.h"
+
+namespace android {
+class DisplaySurface;
+class IGraphicBufferProducer;
+}
 
 namespace mozilla {
 
@@ -26,7 +32,28 @@ typedef void * EGLSurface;
 
 class MOZ_EXPORT GonkDisplay {
 public:
-    virtual ANativeWindow* GetNativeWindow() = 0;
+   
+
+
+
+
+
+
+
+    enum DisplayType {
+        DISPLAY_PRIMARY,
+        DISPLAY_EXTERNAL,
+        DISPLAY_VIRTUAL,
+        NUM_DISPLAY_TYPES
+    };
+
+    struct NativeData {
+        android::sp<ANativeWindow> mNativeWindow;
+#if ANDROID_VERSION >= 17
+        android::sp<android::DisplaySurface> mDisplaySurface;
+#endif
+        float mXdpi;
+    };
 
     virtual void SetEnabled(bool enabled) = 0;
 
@@ -35,8 +62,6 @@ public:
     virtual void OnEnabled(OnEnabledCallbackType callback) = 0;
 
     virtual void* GetHWCDevice() = 0;
-
-    virtual void* GetDispSurface() = 0;
 
     
 
@@ -49,18 +74,9 @@ public:
 
     virtual void UpdateDispSurface(EGLDisplay dpy, EGLSurface sur) = 0;
 
-    
-
-
-
-
-    virtual void SetDispReleaseFd(int fd) = 0;
-
-    
-
-
-
-    virtual int GetPrevDispAcquireFd() = 0;
+    virtual NativeData GetNativeData(
+        GonkDisplay::DisplayType aDisplayType,
+        android::IGraphicBufferProducer* aProducer = nullptr) = 0;
 
     float xdpi;
     int32_t surfaceformat;
@@ -70,4 +86,4 @@ MOZ_EXPORT __attribute__ ((weak))
 GonkDisplay* GetGonkDisplay();
 
 }
-#endif 
+#endif

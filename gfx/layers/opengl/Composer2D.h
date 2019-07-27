@@ -26,6 +26,8 @@
 
 
 
+class nsIWidget;
+
 namespace mozilla {
 namespace layers {
 
@@ -47,13 +49,14 @@ public:
 
 
 
-  virtual bool TryRenderWithHwc(Layer* aRoot, bool aGeometryChanged) = 0;
+  virtual bool TryRenderWithHwc(Layer* aRoot, nsIWidget* aWidget,
+                                bool aGeometryChanged) = 0;
 
   
 
 
 
-  virtual bool Render() = 0;
+  virtual bool Render(nsIWidget* aWidget) = 0;
 
   
 

@@ -19,6 +19,8 @@
 #define GET_NATIVE_WINDOW(aWidget) ((EGLNativeWindowType)aWidget->GetNativeData(NS_NATIVE_WINDOW))
 #include "HwcComposer2D.h"
 #include "libdisplay/GonkDisplay.h"
+#include "nsWindow.h"
+#include "nsScreenManagerGonk.h"
 #endif
 
 #if defined(ANDROID)
@@ -128,7 +130,7 @@ namespace gl {
 } while (0)
 
 static bool
-CreateConfig(EGLConfig* aConfig);
+CreateConfig(EGLConfig* aConfig, nsIWidget* aWidget);
 
 
 
@@ -483,7 +485,7 @@ GLContextEGL::CreateSurfaceForWindow(nsIWidget* aWidget)
     }
 
     EGLConfig config;
-    if (!CreateConfig(&config)) {
+    if (!CreateConfig(&config, aWidget)) {
         MOZ_CRASH("Failed to create EGLConfig!\n");
         return nullptr;
     }
@@ -637,7 +639,7 @@ static const EGLint kEGLConfigAttribsRGBA32[] = {
 };
 
 static bool
-CreateConfig(EGLConfig* aConfig, int32_t depth)
+CreateConfig(EGLConfig* aConfig, int32_t depth, nsIWidget* aWidget)
 {
     EGLConfig configs[64];
     const EGLint* attribs;
@@ -673,12 +675,13 @@ CreateConfig(EGLConfig* aConfig, int32_t depth)
     
     
     
+    nsWindow* window = static_cast<nsWindow*>(aWidget);
     for (int j = 0; j < ncfg; ++j) {
         EGLConfig config = configs[j];
         EGLint format;
         if (sEGLLibrary.fGetConfigAttrib(EGL_DISPLAY(), config,
                                          LOCAL_EGL_NATIVE_VISUAL_ID, &format) &&
-            format == GetGonkDisplay()->surfaceformat)
+            format == window->GetScreen()->GetSurfaceFormat())
         {
             *aConfig = config;
             return true;
@@ -714,20 +717,20 @@ CreateConfig(EGLConfig* aConfig, int32_t depth)
 
 
 static bool
-CreateConfig(EGLConfig* aConfig)
+CreateConfig(EGLConfig* aConfig, nsIWidget* aWidget)
 {
     int32_t depth = gfxPlatform::GetPlatform()->GetScreenDepth();
-    if (!CreateConfig(aConfig, depth)) {
+    if (!CreateConfig(aConfig, depth, aWidget)) {
 #ifdef MOZ_WIDGET_ANDROID
         
         
         if (depth == 16) {
-            return CreateConfig(aConfig, 24);
+            return CreateConfig(aConfig, 24, aWidget);
         }
         
         
         if (depth == 24) {
-            return CreateConfig(aConfig, 16);
+            return CreateConfig(aConfig, 16, aWidget);
         }
 #endif
         return false;
@@ -772,7 +775,7 @@ GLContextProviderEGL::CreateForWindow(nsIWidget *aWidget)
     bool doubleBuffered = true;
 
     EGLConfig config;
-    if (!CreateConfig(&config)) {
+    if (!CreateConfig(&config, aWidget)) {
         MOZ_CRASH("Failed to create EGLConfig!\n");
         return nullptr;
     }
@@ -811,7 +814,7 @@ GLContextProviderEGL::CreateEGLSurface(void* aWindow)
     }
 
     EGLConfig config;
-    if (!CreateConfig(&config)) {
+    if (!CreateConfig(&config, static_cast<nsIWidget*>(aWindow))) {
         MOZ_CRASH("Failed to create EGLConfig!\n");
     }
 
