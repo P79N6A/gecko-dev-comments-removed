@@ -1491,25 +1491,28 @@ jit::AccountForCFGChanges(MIRGenerator *mir, MIRGraph &graph, bool updateAliasAn
 bool
 jit::RemoveUnmarkedBlocks(MIRGenerator *mir, MIRGraph &graph, uint32_t numMarkedBlocks)
 {
-    
     if (numMarkedBlocks == graph.numBlocks()) {
+        
+        
+        
         graph.unmarkBlocks();
-        return true;
-    }
+    } else {
+        
+        for (ReversePostorderIterator iter(graph.rpoBegin()); iter != graph.rpoEnd();) {
+            MBasicBlock *block = *iter++;
 
-    for (ReversePostorderIterator iter(graph.rpoBegin()); iter != graph.rpoEnd();) {
-        MBasicBlock *block = *iter++;
+            if (block->isMarked()) {
+                block->unmark();
+                continue;
+            }
 
-        if (block->isMarked()) {
-            block->unmark();
-            continue;
+            for (size_t i = 0, e = block->numSuccessors(); i != e; ++i)
+                block->getSuccessor(i)->removePredecessor(block);
+            graph.removeBlockIncludingPhis(block);
         }
-
-        for (size_t i = 0, e = block->numSuccessors(); i != e; ++i)
-            block->getSuccessor(i)->removePredecessor(block);
-        graph.removeBlockIncludingPhis(block);
     }
 
+    
     return AccountForCFGChanges(mir, graph, false);
 }
 
