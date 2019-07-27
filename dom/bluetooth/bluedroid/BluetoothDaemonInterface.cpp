@@ -406,6 +406,7 @@ public:
   }
 
   nsresult CreateBondCmd(const nsAString& aBdAddr,
+                         BluetoothTransport aTransport,
                          BluetoothResultHandler* aRes)
   {
     MOZ_ASSERT(NS_IsMainThread());
@@ -2017,10 +2018,11 @@ BluetoothDaemonInterface::CancelDiscovery(BluetoothResultHandler* aRes)
 
 void
 BluetoothDaemonInterface::CreateBond(const nsAString& aBdAddr,
+                                     BluetoothTransport aTransport,
                                      BluetoothResultHandler* aRes)
 {
   static_cast<BluetoothDaemonCoreModule*>
-    (mProtocol)->CreateBondCmd(aBdAddr, aRes);
+    (mProtocol)->CreateBondCmd(aBdAddr, aTransport, aRes);
 }
 
 void
@@ -2037,6 +2039,15 @@ BluetoothDaemonInterface::CancelBond(const nsAString& aBdAddr,
 {
   static_cast<BluetoothDaemonCoreModule*>
     (mProtocol)->CancelBondCmd(aBdAddr, aRes);
+}
+
+
+
+void
+BluetoothDaemonInterface::GetConnectionState(const nsAString& aBdAddr,
+                                             BluetoothResultHandler* aRes)
+{
+  
 }
 
 
@@ -2088,6 +2099,14 @@ BluetoothDaemonInterface::LeTestMode(uint16_t aOpcode, uint8_t* aBuf,
 {
   static_cast<BluetoothDaemonCoreModule*>
     (mProtocol)->LeTestModeCmd(aOpcode, aBuf, aLen, aRes);
+}
+
+
+
+void
+BluetoothDaemonInterface::ReadEnergyInfo(BluetoothResultHandler* aRes)
+{
+  
 }
 
 void
