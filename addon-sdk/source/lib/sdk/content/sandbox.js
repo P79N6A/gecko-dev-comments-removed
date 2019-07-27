@@ -74,7 +74,10 @@ const WorkerSandbox = Class({
 
 
   emitSync: function emitSync(...args) {
-    return emitToContent(this, args);
+    
+    
+    
+    return emitToContent(this, new modelFor(this).sandbox.Array(...args));
   },
 
   
