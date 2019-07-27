@@ -742,26 +742,36 @@ function whenSearchInitDone() {
 
 
 function customizeNewTabPage(aTheme) {
-  let document = getContentDocument();
-  let panel = document.getElementById("newtab-customize-panel");
-  let customizeButton = document.getElementById("newtab-customize-button");
+  let promise = ContentTask.spawn(gBrowser.selectedBrowser, aTheme, function*(aTheme) {
 
-  
-  panel.addEventListener("popupshown", function onShown() {
-    panel.removeEventListener("popupshown", onShown);
+    let document = content.document;
+    let panel = document.getElementById("newtab-customize-panel");
+    let customizeButton = document.getElementById("newtab-customize-button");
 
-    
-    
-    document.getElementById("newtab-customize-" + aTheme).click();
-    executeSoon(() => { panel.hidePopup(); });
+    function panelOpened(opened) {
+      return new Promise( (resolve) => {
+        let options = {attributes: true, oldValue: true};
+        let observer = new content.MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            document.getElementById("newtab-customize-" + aTheme).click();
+            observer.disconnect();
+            if (opened == panel.hasAttribute("open")) {
+              resolve();
+            }
+          });
+        });
+        observer.observe(panel, options);
+      });
+    }
+
+    let opened = panelOpened(true);
+    customizeButton.click();
+    yield opened;
+
+    let closed = panelOpened(false);
+    customizeButton.click();
+    yield closed;
   });
 
-  
-  panel.addEventListener("popuphidden", function onHidden() {
-    panel.removeEventListener("popuphidden", onHidden);
-    executeSoon(TestRunner.next);
-  });
-
-  
-  customizeButton.click();
+  promise.then(TestRunner.next);
 }
