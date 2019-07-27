@@ -9,6 +9,7 @@
 const {Cc, Ci, Cu} = require("chrome");
 const DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
 const EventEmitter = require("devtools/toolkit/event-emitter");
+const promise = require("promise");
 
 loader.lazyImporter(this, "LongStringClient", "resource://gre/modules/devtools/dbg-client.jsm");
 
@@ -614,5 +615,45 @@ WebConsoleClient.prototype = {
 
   clearNetworkRequests: function () {
     this._networkRequests.clear();
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  getString: function(stringGrip) {
+    
+    if (typeof stringGrip != "object" || stringGrip.type != "longString") {
+      return promise.resolve(stringGrip); 
+    }
+
+    
+    if (stringGrip._fullText) {
+      return stringGrip._fullText.promise;
+    }
+
+    let deferred = stringGrip._fullText = promise.defer();
+    let { actor, initial, length } = stringGrip;
+    let longStringClient = this.longString(stringGrip);
+
+    longStringClient.substring(initial.length, length, aResponse => {
+      if (aResponse.error) {
+        DevToolsUtils.reportException("getString",
+            aResponse.error + ": " + aResponse.message);
+
+        deferred.reject(aResponse);
+        return;
+      }
+      deferred.resolve(initial + aResponse.substring);
+    });
+
+    return deferred.promise;
   }
 };

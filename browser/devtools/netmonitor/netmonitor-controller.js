@@ -713,29 +713,7 @@ NetworkEventsHandler.prototype = {
 
 
   getString: function(aStringGrip) {
-    
-    if (typeof aStringGrip != "object" || aStringGrip.type != "longString") {
-      return promise.resolve(aStringGrip); 
-    }
-    
-    if (aStringGrip._fullText) {
-      return aStringGrip._fullText.promise;
-    }
-
-    let deferred = aStringGrip._fullText = promise.defer();
-    let { actor, initial, length } = aStringGrip;
-    let longStringClient = this.webConsoleClient.longString(aStringGrip);
-
-    longStringClient.substring(initial.length, length, aResponse => {
-      if (aResponse.error) {
-        Cu.reportError(aResponse.error + ": " + aResponse.message);
-        deferred.reject(aResponse);
-        return;
-      }
-      deferred.resolve(initial + aResponse.substring);
-    });
-
-    return deferred.promise;
+    return this.webConsoleClient.getString(aStringGrip);
   }
 };
 
