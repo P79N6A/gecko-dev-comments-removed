@@ -62,11 +62,7 @@ const extend = function(target, source) {
 
 const containsParticipant = function(room, participant) {
   for (let user of room.participants) {
-    
-    
-    
-    if (user.roomConnectionId == participant.roomConnectionId &&
-        user.id == participant.id) {
+    if (user.roomConnectionId == participant.roomConnectionId) {
       return true;
     }
   }
@@ -451,10 +447,7 @@ let LoopRoomsInternal = {
 
     let origRoom = this.rooms.get(roomToken);
     let patchData = {
-      roomName: newRoomName,
-      
-      maxSize: origRoom.maxSize,
-      roomOwner: origRoom.roomOwner
+      roomName: newRoomName
     };
     MozLoopService.hawkRequest(this.sessionType, url, "PATCH", patchData)
       .then(response => {
