@@ -23,7 +23,7 @@
 
 
 
-#include "assembler/jit/ExecutableAllocator.h"
+#include "jit/ExecutableAllocator.h"
 
 #if ENABLE_ASSEMBLER && WTF_OS_UNIX && !WTF_OS_SYMBIAN
 
