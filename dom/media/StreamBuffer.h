@@ -154,6 +154,12 @@ public:
     {
       mSegment->ForgetUpTo(aTime);
     }
+    void FlushAfter(TrackTicks aNewEnd)
+    {
+      
+      
+      mSegment->FlushAfter(aNewEnd);
+    }
 
     size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
     {

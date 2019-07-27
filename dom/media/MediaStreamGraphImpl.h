@@ -612,6 +612,13 @@ public:
 
   
 
+
+
+  bool mFlushSourcesNow;
+  bool mFlushSourcesOnNextIteration;
+
+  
+
   
 
 

@@ -263,8 +263,9 @@ TrackUnionStream::TrackUnionStream(DOMMediaStream* aWrapper) :
         *aOutputTrackFinished = true;
       }
 
-      if (interval.mStart >= interval.mEnd)
+      if (interval.mStart >= interval.mEnd) {
         break;
+      }
       next = interval.mEnd;
 
       
@@ -305,6 +306,14 @@ TrackUnionStream::TrackUnionStream(DOMMediaStream* aWrapper) :
         map->mEndOfConsumedInputTicks = inputEndTicks;
         map->mEndOfLastInputIntervalInInputStream = inputEnd;
         map->mEndOfLastInputIntervalInOutputStream = outputEnd;
+
+        if (GraphImpl()->mFlushSourcesNow) {
+          TrackTicks flushto = inputEndTicks;
+          STREAM_LOG(PR_LOG_DEBUG, ("TrackUnionStream %p flushing after %lld of %lld ticks of input data from track %d for track %d",
+              this, flushto, aInputTrack->GetSegment()->GetDuration(), aInputTrack->GetID(), outputTrack->GetID()));
+          aInputTrack->FlushAfter(flushto);
+          MOZ_ASSERT(inputTrackEndPoint >= aInputTrack->GetEnd());
+        }
         
         
         

@@ -91,6 +91,10 @@ public:
   
 
 
+  virtual void FlushAfter(TrackTicks aNewEnd) = 0;
+  
+
+
   virtual void InsertNullDataAtStart(TrackTicks aDuration) = 0;
   
 
@@ -175,6 +179,29 @@ public:
     RemoveLeading(aDuration, 0);
     mChunks.InsertElementAt(0)->SetNull(aDuration);
     mDuration += aDuration;
+  }
+  virtual void FlushAfter(TrackTicks aNewEnd)
+  {
+    if (mChunks.IsEmpty()) {
+      return;
+    }
+
+    if (mChunks[0].IsNull()) {
+      TrackTicks extraToKeep = aNewEnd - mChunks[0].GetDuration();
+      if (extraToKeep < 0) {
+        
+        mChunks[0].SetNull(aNewEnd);
+        extraToKeep = 0;
+      }
+      RemoveTrailing(extraToKeep, 1);
+    } else {
+      if (aNewEnd > mDuration) {
+        NS_ASSERTION(aNewEnd <= mDuration, "can't add data in FlushAfter");
+        return;
+      }
+      RemoveTrailing(aNewEnd, 0);
+    }
+    mDuration = aNewEnd;
   }
   virtual void InsertNullDataAtStart(TrackTicks aDuration)
   {
@@ -348,6 +375,28 @@ protected:
     }
     mChunks.RemoveElementsAt(aStartIndex, chunksToRemove);
     mDuration -= aDuration - t;
+  }
+
+  void RemoveTrailing(TrackTicks aKeep, uint32_t aStartIndex)
+  {
+    NS_ASSERTION(aKeep >= 0, "Can't keep negative duration");
+    TrackTicks t = aKeep;
+    uint32_t i;
+    for (i = aStartIndex; i < mChunks.Length(); ++i) {
+      Chunk* c = &mChunks[i];
+      if (c->GetDuration() > t) {
+        c->SliceTo(0, t);
+        break;
+      }
+      t -= c->GetDuration();
+      if (t == 0) {
+        break;
+      }
+    }
+    if (i+1 < mChunks.Length()) {
+      mChunks.RemoveElementsAt(i+1, mChunks.Length() - (i+1));
+    }
+    
   }
 
   nsTArray<Chunk> mChunks;

@@ -299,6 +299,8 @@ ThreadedDriver::RunThread()
                (long)mIterationStart, (long)mIterationEnd,
                (long)mStateComputedTime, (long)mNextStateComputedTime));
 
+    mGraphImpl->mFlushSourcesNow = mGraphImpl->mFlushSourcesOnNextIteration;
+    mGraphImpl->mFlushSourcesOnNextIteration = false;
     stillProcessing = mGraphImpl->OneIteration(prevCurrentTime,
                                                nextCurrentTime,
                                                StateComputedTime(),
@@ -796,7 +798,9 @@ AudioCallbackDriver::OSXDeviceSwitchingWorkaround()
     
     
     
+    
     if (mCallbackReceivedWhileSwitching++ >= 10) {
+      STREAM_LOG(PR_LOG_DEBUG, ("Got %d callbacks, switching back to CallbackDriver", mCallbackReceivedWhileSwitching));
       
       
       
@@ -1032,8 +1036,10 @@ AudioCallbackDriver::DeviceChangedCallback() {
   if (mSelfReference) {
     return;
   }
+  STREAM_LOG(PR_LOG_ERROR, ("Switching to SystemClockDriver during output switch"));
   mSelfReference.Take(this);
   mCallbackReceivedWhileSwitching = 0;
+  mGraphImpl->mFlushSourcesOnNextIteration = true;
   mNextDriver = new SystemClockDriver(GraphImpl());
   mNextDriver->SetGraphTime(this, mIterationStart, mIterationEnd,
                             mStateComputedTime, mNextStateComputedTime);
