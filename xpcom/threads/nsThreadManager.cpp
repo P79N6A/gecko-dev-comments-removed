@@ -11,6 +11,7 @@
 #include "nsTArray.h"
 #include "nsAutoPtr.h"
 #include "mozilla/ThreadLocal.h"
+#include "mozilla/ReentrantMonitor.h"
 #ifdef MOZ_CANARY
 #include <fcntl.h>
 #include <unistd.h>
@@ -47,6 +48,45 @@ NS_SetMainThread()
 
 typedef nsTArray<nsRefPtr<nsThread>> nsThreadArray;
 
+#ifdef MOZ_NUWA_PROCESS
+class NotifyAllThreadsWereIdle: public nsRunnable
+{
+public:
+
+  NotifyAllThreadsWereIdle(
+    nsTArray<nsRefPtr<nsThreadManager::AllThreadsWereIdleListener>>* aListeners)
+    : mListeners(aListeners)
+  {
+  }
+
+  virtual NS_IMETHODIMP
+  Run() {
+    
+    nsTArray<nsRefPtr<nsThreadManager::AllThreadsWereIdleListener>> arr(*mListeners);
+    for (size_t i = 0; i < arr.Length(); i++) {
+      arr[i]->OnAllThreadsWereIdle();
+    }
+    return NS_OK;
+  }
+
+private:
+  
+  nsTArray<nsRefPtr<nsThreadManager::AllThreadsWereIdleListener>>* mListeners;
+};
+
+struct nsThreadManager::ThreadStatusInfo {
+  Atomic<bool> mWorking;
+  Atomic<bool> mWillBeWorking;
+  bool mIgnored;
+  ThreadStatusInfo()
+    : mWorking(false)
+    , mWillBeWorking(false)
+    , mIgnored(false)
+  {
+  }
+};
+#endif 
+
 
 
 static void
@@ -54,6 +94,24 @@ ReleaseObject(void* aData)
 {
   static_cast<nsISupports*>(aData)->Release();
 }
+
+#ifdef MOZ_NUWA_PROCESS
+void
+nsThreadManager::DeleteThreadStatusInfo(void* aData)
+{
+  nsThreadManager* mgr = nsThreadManager::get();
+  nsThreadManager::ThreadStatusInfo* thrInfo =
+    static_cast<nsThreadManager::ThreadStatusInfo*>(aData);
+  {
+    ReentrantMonitorAutoEnter mon(*(mgr->mMonitor));
+    mgr->mThreadStatusInfos.RemoveElement(thrInfo);
+    if (NS_IsMainThread()) {
+      mgr->mMainThreadStatusInfo = nullptr;
+    }
+  }
+  delete thrInfo;
+}
+#endif
 
 static PLDHashOperator
 AppendAndRemoveThread(PRThread* aKey, nsRefPtr<nsThread>& aThread, void* aArg)
@@ -96,7 +154,18 @@ nsThreadManager::Init()
     return NS_ERROR_FAILURE;
   }
 
+#ifdef MOZ_NUWA_PROCESS
+  if (PR_NewThreadPrivateIndex(
+      &mThreadStatusInfoIndex,
+      nsThreadManager::DeleteThreadStatusInfo) == PR_FAILURE) {
+    return NS_ERROR_FAILURE;
+  }
+#endif 
+
   mLock = new Mutex("nsThreadManager.mLock");
+#ifdef MOZ_NUWA_PROCESS
+  mMonitor = MakeUnique<ReentrantMonitor>("nsThreadManager.mMonitor");
+#endif 
 
 #ifdef MOZ_CANARY
   const int flags = O_WRONLY | O_APPEND | O_CREAT | O_NONBLOCK;
@@ -194,6 +263,9 @@ nsThreadManager::Shutdown()
 
   
   PR_SetThreadPrivate(mCurThreadIndex, nullptr);
+#ifdef MOZ_NUWA_PROCESS
+  PR_SetThreadPrivate(mThreadStatusInfoIndex, nullptr);
+#endif
 }
 
 void
@@ -226,6 +298,9 @@ nsThreadManager::UnregisterCurrentThread(nsThread* aThread)
 
   PR_SetThreadPrivate(mCurThreadIndex, nullptr);
   
+#ifdef MOZ_NUWA_PROCESS
+  PR_SetThreadPrivate(mThreadStatusInfoIndex, nullptr);
+#endif
 }
 
 nsThread*
@@ -249,6 +324,27 @@ nsThreadManager::GetCurrentThread()
 
   return thread.get();  
 }
+
+#ifdef MOZ_NUWA_PROCESS
+nsThreadManager::ThreadStatusInfo*
+nsThreadManager::GetCurrentThreadStatusInfo()
+{
+  void* data = PR_GetThreadPrivate(mThreadStatusInfoIndex);
+  if (!data) {
+    ThreadStatusInfo *thrInfo = new ThreadStatusInfo();
+    PR_SetThreadPrivate(mThreadStatusInfoIndex, thrInfo);
+    data = thrInfo;
+
+    ReentrantMonitorAutoEnter mon(*mMonitor);
+    mThreadStatusInfos.AppendElement(thrInfo);
+    if (NS_IsMainThread()) {
+      mMainThreadStatusInfo = thrInfo;
+    }
+  }
+
+  return static_cast<ThreadStatusInfo*>(data);
+}
+#endif
 
 NS_IMETHODIMP
 nsThreadManager::NewThread(uint32_t aCreationFlags,
@@ -342,3 +438,157 @@ nsThreadManager::GetHighestNumberOfThreads()
   MutexAutoLock lock(*mLock);
   return mHighestNumberOfThreads;
 }
+
+#ifdef MOZ_NUWA_PROCESS
+void
+nsThreadManager::SetIgnoreThreadStatus()
+{
+  GetCurrentThreadStatusInfo()->mIgnored = true;
+}
+
+void
+nsThreadManager::SetThreadIdle(nsIRunnable **aReturnRunnable)
+{
+  SetThreadIsWorking(GetCurrentThreadStatusInfo(), false, aReturnRunnable);
+}
+
+void
+nsThreadManager::SetThreadWorking()
+{
+  SetThreadIsWorking(GetCurrentThreadStatusInfo(), true, nullptr);
+}
+
+void
+nsThreadManager::SetThreadIsWorking(ThreadStatusInfo* aInfo,
+                                    bool aIsWorking,
+                                    nsIRunnable **aReturnRunnable)
+{
+  aInfo->mWillBeWorking = aIsWorking;
+  if (mThreadsIdledListeners.Length() > 0) {
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    bool hasWorkingThread = false;
+    nsRefPtr<NotifyAllThreadsWereIdle> runnable;
+    {
+      ReentrantMonitorAutoEnter mon(*mMonitor);
+      
+      aInfo->mWorking = aIsWorking;
+      if (aIsWorking) {
+        
+        return;
+      }
+
+      for (size_t i = 0; i < mThreadStatusInfos.Length(); i++) {
+        ThreadStatusInfo *info = mThreadStatusInfos[i];
+        if (!info->mIgnored) {
+          if (info->mWorking) {
+            if (info->mWillBeWorking) {
+              hasWorkingThread = true;
+              break;
+            }
+          }
+        }
+      }
+      if (!hasWorkingThread && !mDispatchingToMainThread) {
+        runnable = new NotifyAllThreadsWereIdle(&mThreadsIdledListeners);
+        mDispatchingToMainThread = true;
+      }
+    }
+
+    if (runnable) {
+      if (NS_IsMainThread()) {
+        
+        
+        
+        
+        MOZ_ASSERT(aReturnRunnable,
+                   "aReturnRunnable must be provided on main thread");
+        runnable.forget(aReturnRunnable);
+      } else {
+        NS_DispatchToMainThread(runnable);
+        ResetIsDispatchingToMainThread();
+      }
+    }
+  } else {
+    
+    aInfo->mWorking = aIsWorking;
+  }
+}
+
+void
+nsThreadManager::ResetIsDispatchingToMainThread()
+{
+  ReentrantMonitorAutoEnter mon(*mMonitor);
+  mDispatchingToMainThread = false;
+}
+
+void
+nsThreadManager::AddAllThreadsWereIdleListener(AllThreadsWereIdleListener *listener)
+{
+  MOZ_ASSERT(GetCurrentThreadStatusInfo()->mWorking);
+  mThreadsIdledListeners.AppendElement(listener);
+}
+
+void
+nsThreadManager::RemoveAllThreadsWereIdleListener(AllThreadsWereIdleListener *listener)
+{
+  mThreadsIdledListeners.RemoveElement(listener);
+}
+
+#endif 

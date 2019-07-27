@@ -559,6 +559,13 @@ nsTimerImpl::Fire()
     return;
   }
 
+#ifdef MOZ_NUWA_PROCESS
+  if (IsNuwaProcess() && IsNuwaReady()) {
+    
+    return;
+  }
+#endif
+
   PROFILER_LABEL("Timer", "Fire",
                  js::ProfileEntry::Category::OTHER);
 
