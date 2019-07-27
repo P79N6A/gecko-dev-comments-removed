@@ -3033,19 +3033,17 @@ nsLineLayout::RelativePositionFrames(PerSpanData* psd, nsOverflowAreas& aOverflo
 
   for (PerFrameData* pfd = psd->mFirstFrame; pfd; pfd = pfd->mNext) {
     nsIFrame* frame = pfd->mFrame;
-    nsPoint origin = frame->GetPosition();
 
     
     if (pfd->mRelativePos) {
+      WritingMode frameWM = frame->GetWritingMode();
+      LogicalPoint origin = frame->GetLogicalPosition(mContainerWidth);
       
-      nsMargin physicalOffsets =
-        pfd->mOffsets.GetPhysicalMargin(pfd->mFrame->GetWritingMode());
       
-      
-      nsHTMLReflowState::ApplyRelativePositioning(pfd->mFrame,
-                                                  physicalOffsets,
-                                                  &origin);
-      frame->SetPosition(origin);
+      nsHTMLReflowState::ApplyRelativePositioning(frame, frameWM,
+                                                  pfd->mOffsets, &origin,
+                                                  mContainerWidth);
+      frame->SetPosition(frameWM, origin, mContainerWidth);
     }
 
     
@@ -3099,7 +3097,7 @@ nsLineLayout::RelativePositionFrames(PerSpanData* psd, nsOverflowAreas& aOverflo
                                                  r.VisualOverflow(),
                                                  NS_FRAME_NO_MOVE_VIEW);
 
-    overflowAreas.UnionWith(r + origin);
+    overflowAreas.UnionWith(r + frame->GetPosition());
   }
 
   

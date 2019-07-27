@@ -913,35 +913,27 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
   
   
   
+  LogicalPoint origin(wm, floatMargin.IStart(wm) + floatPos.I(wm),
+                      floatMargin.BStart(wm) + floatPos.B(wm));
 
   
-  LogicalSize size = aFloat->GetLogicalSize(wm);
-  LogicalMargin margin = aFloat->GetLogicalUsedMargin(wm);
-  size.ISize(wm) += margin.IStartEnd(wm);
-  size.BSize(wm) += margin.BStartEnd(wm);
-  nsPoint physicalPos =
-    LogicalRect(wm, floatPos, size).GetPhysicalPosition(wm, mContainerWidth);
-  nsPoint origin(floatMargin.Left(wm) + physicalPos.x,
-                 floatMargin.Top(wm) + physicalPos.y);
-
-  
-  nsHTMLReflowState::ApplyRelativePositioning(aFloat,
-                                             floatOffsets.GetPhysicalMargin(wm),
-                                              &origin);
+  nsHTMLReflowState::ApplyRelativePositioning(aFloat, wm, floatOffsets,
+                                              &origin, mContainerWidth);
 
   
   
   
-  bool moved = aFloat->GetPosition() != origin;
+  bool moved = aFloat->GetLogicalPosition(wm, mContainerWidth) != origin;
   if (moved) {
-    aFloat->SetPosition(origin);
+    aFloat->SetPosition(wm, origin, mContainerWidth);
     nsContainerFrame::PositionFrameView(aFloat);
     nsContainerFrame::PositionChildViews(aFloat);
   }
 
   
   
-  mFloatOverflowAreas.UnionWith(aFloat->GetOverflowAreas() + origin);
+  mFloatOverflowAreas.UnionWith(aFloat->GetOverflowAreas() +
+                                aFloat->GetPosition());
 
   
   
