@@ -9,10 +9,19 @@
 #include "xpcprivate.h"
 #include "CPOWTimer.h"
 
-CPOWTimer::~CPOWTimer() {
+CPOWTimer::~CPOWTimer()
+{
     
-    xpc::CompartmentPrivate* compartment = xpc::CompartmentPrivate::Get(js::GetObjectCompartment(mozilla::dom::GetIncumbentGlobal()
-                                                                                                 ->GetGlobalJSObject()));
+    nsIGlobalObject *global = mozilla::dom::GetIncumbentGlobal();
+    if (!global)
+        return;
+    JSObject *obj = global->GetGlobalJSObject();
+    if (!obj)
+        return;
+    JSCompartment *compartment = js::GetObjectCompartment(obj);
+    xpc::CompartmentPrivate *compartmentPrivate = xpc::CompartmentPrivate::Get(compartment);
+    if (!compartmentPrivate)
+        return;
     PRIntervalTime time = PR_IntervalNow() - startInterval;
-    compartment->CPOWTime += time;
+    compartmentPrivate->CPOWTime += time;
 }
