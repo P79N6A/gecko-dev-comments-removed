@@ -197,8 +197,10 @@ TVTuner::GetStream() const
 nsresult
 TVTuner::InitMediaStream()
 {
-  
+  nsCOMPtr<nsIDOMWindow> window = do_QueryInterface(GetOwner());
+  nsRefPtr<DOMHwMediaStream> stream = DOMHwMediaStream::CreateHwStream(window);
 
+  mStream = stream.forget();
   return NS_OK;
 }
 
