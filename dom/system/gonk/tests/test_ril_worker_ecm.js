@@ -122,9 +122,9 @@ add_test(function test_request_exit_emergencyCbMode_when_dial() {
   };
 
   
-  context.RIL.dialNonEmergencyNumber({number: "0912345678",
-                                      isEmergency: false,
-                                      isDialEmergency: false});
+  context.RIL.dial({number: "0912345678",
+                    isEmergency: false,
+                    isDialEmergency: false});
 
   
   do_check_eq(context.RIL._exitEmergencyCbModeTimeoutID, null);
@@ -167,4 +167,3 @@ add_test(function test_request_exit_emergencyCbMode_explicitly() {
 
   run_next_test();
 });
-
