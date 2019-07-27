@@ -340,8 +340,12 @@ DeleteArrayElement(JSContext *cx, HandleObject obj, double index, bool *succeede
             if (idx < obj->getDenseInitializedLength()) {
                 if (!obj->maybeCopyElementsForWrite(cx))
                     return false;
-                obj->markDenseElementsNotPacked(cx);
-                obj->setDenseElement(idx, MagicValue(JS_ELEMENTS_HOLE));
+                if (idx+1 == obj->getDenseInitializedLength()) {
+                    obj->setDenseInitializedLength(idx);
+                } else {
+                    obj->markDenseElementsNotPacked(cx);
+                    obj->setDenseElement(idx, MagicValue(JS_ELEMENTS_HOLE));
+                }
                 if (!js_SuppressDeletedElement(cx, obj, idx))
                     return false;
             }
@@ -2140,19 +2144,6 @@ js::array_pop(JSContext *cx, unsigned argc, Value *vp)
         
         if (!hole && !DeletePropertyOrThrow(cx, obj, index))
             return false;
-    }
-
-    
-    
-    
-    
-    
-    
-    
-    if (obj->is<ArrayObject>() && obj->getDenseInitializedLength() > index) {
-        if (!obj->maybeCopyElementsForWrite(cx))
-            return false;
-        obj->setDenseInitializedLength(index);
     }
 
     
