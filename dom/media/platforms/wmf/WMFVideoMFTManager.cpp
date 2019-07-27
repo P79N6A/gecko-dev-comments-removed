@@ -482,7 +482,6 @@ WMFVideoMFTManager::Output(int64_t aStreamOffset,
   RefPtr<IMFSample> sample;
   HRESULT hr;
   aOutData = nullptr;
-  int typeChangeCount = 0;
 
   
   
@@ -499,11 +498,6 @@ WMFVideoMFTManager::Output(int64_t aStreamOffset,
       hr = ConfigureVideoFrameGeometry();
       NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
       
-      
-      
-      NS_ENSURE_TRUE(typeChangeCount < 100, MF_E_TRANSFORM_STREAM_CHANGE);
-      
-      ++typeChangeCount;
       continue;
     }
     if (SUCCEEDED(hr)) {
