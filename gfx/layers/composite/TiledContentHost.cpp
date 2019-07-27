@@ -213,8 +213,8 @@ TiledLayerBufferComposite::UseTiles(const SurfaceDescriptorTiles& aTiles,
 
     if (tile.mTextureHost && !tile.mTextureHost->HasInternalBuffer()) {
       MOZ_ASSERT(tile.mSharedLock);
-      int tileX = i % oldRetainedWidth + oldFirstTileX;
-      int tileY = i / oldRetainedWidth + oldFirstTileY;
+      int tileX = i / oldRetainedHeight + oldFirstTileX;
+      int tileY = i % oldRetainedHeight + oldFirstTileY;
 
       if (tileX >= newFirstTileX && tileY >= newFirstTileY &&
           tileX < (newFirstTileX + newRetainedWidth) &&
@@ -237,8 +237,8 @@ TiledLayerBufferComposite::UseTiles(const SurfaceDescriptorTiles& aTiles,
   
   
   for (size_t i = 0; i < tileDescriptors.Length(); i++) {
-    int tileX = i % newRetainedWidth + newFirstTileX;
-    int tileY = i / newRetainedWidth + newFirstTileY;
+    int tileX = i / newRetainedHeight + newFirstTileX;
+    int tileY = i % newRetainedHeight + newFirstTileY;
 
     
     
@@ -247,8 +247,8 @@ TiledLayerBufferComposite::UseTiles(const SurfaceDescriptorTiles& aTiles,
         tileY >= (oldFirstTileY + oldRetainedHeight)) {
       mRetainedTiles[i] = GetPlaceholderTile();
     } else {
-      mRetainedTiles[i] = oldTiles[(tileY - oldFirstTileY) * oldRetainedWidth +
-                                   (tileX - oldFirstTileX)];
+      mRetainedTiles[i] = oldTiles[(tileX - oldFirstTileX) * oldRetainedHeight +
+                                   (tileY - oldFirstTileY)];
       
       
       
@@ -334,8 +334,8 @@ TiledLayerBufferComposite::UseTiles(const SurfaceDescriptorTiles& aTiles,
       }
     }
 
-    tile.x = i % newRetainedWidth + newFirstTileX;
-    tile.y = i / newRetainedWidth + newFirstTileY;
+    tile.x = i / newRetainedHeight + newFirstTileX;
+    tile.y = i % newRetainedHeight + newFirstTileY;
   }
 
   mFirstTileX = newFirstTileX;
