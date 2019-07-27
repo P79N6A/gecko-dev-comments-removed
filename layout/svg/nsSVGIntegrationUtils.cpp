@@ -152,7 +152,8 @@ nsSVGIntegrationUtils::UsingEffectsForFrame(const nsIFrame* aFrame)
   
   
   const nsStyleSVGReset *style = aFrame->StyleSVGReset();
-  return (style->HasFilters() || style->mClipPath || style->mMask);
+  return (style->HasFilters() ||
+          style->mClipPath.GetType() != NS_STYLE_CLIP_PATH_NONE || style->mMask);
 }
 
 

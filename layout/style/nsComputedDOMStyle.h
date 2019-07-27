@@ -586,6 +586,10 @@ private:
   mozilla::dom::CSSValue* CreatePrimitiveValueForStyleFilter(
     const nsStyleFilter& aStyleFilter);
 
+  
+  mozilla::dom::CSSValue* CreatePrimitiveValueForClipPath(
+    const nsStyleBasicShape* aStyleBasicShape, uint8_t aSizingBox);
+
   static nsComputedStyleMap* GetComputedStyleMap();
 
   

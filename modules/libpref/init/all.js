@@ -2007,6 +2007,9 @@ pref("layout.css.mix-blend-mode.enabled", true);
 pref("layout.css.filters.enabled", false);
 
 
+pref("layout.css.clip-path-shapes.enabled", false);
+
+
 pref("layout.css.sticky.enabled", true);
 
 

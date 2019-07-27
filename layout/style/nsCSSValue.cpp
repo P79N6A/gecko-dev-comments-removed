@@ -827,6 +827,32 @@ private:
 } 
 
 void
+nsCSSValue::AppendPolygonToString(nsCSSProperty aProperty, nsAString& aResult,
+                                  Serialization aSerialization) const
+{
+  const nsCSSValue::Array* array = GetArrayValue();
+  NS_ABORT_IF_FALSE(array->Count() > 1 && array->Count() <= 3,
+                    "Polygons must have name and at least one more value.");
+  
+  
+  
+  
+  size_t index = 1;
+  if (array->Count() == 3) {
+    const nsCSSValue& fillRuleValue = array->Item(index);
+    NS_ABORT_IF_FALSE(fillRuleValue.GetUnit() == eCSSUnit_Enumerated,
+                      "Expected polygon fill rule.");
+    int32_t fillRule = fillRuleValue.GetIntValue();
+    AppendASCIItoUTF16(nsCSSProps::ValueToKeyword(fillRule,
+                                                  nsCSSProps::kFillRuleKTable),
+                       aResult);
+    aResult.AppendLiteral(", ");
+    ++index;
+  }
+  array->Item(index).AppendToString(aProperty, aResult, aSerialization);
+}
+
+void
 nsCSSValue::AppendToString(nsCSSProperty aProperty, nsAString& aResult,
                            Serialization aSerialization) const
 {
@@ -922,53 +948,61 @@ nsCSSValue::AppendToString(nsCSSProperty aProperty, nsAString& aResult,
     NS_ABORT_IF_FALSE(array->Count() >= 1,
                       "Functions must have at least one element for the name.");
 
-    
     const nsCSSValue& functionName = array->Item(0);
-    if (functionName.GetUnit() == eCSSUnit_Enumerated) {
-      
-      const nsCSSKeyword functionId = functionName.GetKeywordValue();
-      NS_ConvertASCIItoUTF16 ident(nsCSSKeywords::GetStringValue(functionId));
-      
-      
-      
-      switch (functionId) {
-        case eCSSKeyword_rotatex:
-        case eCSSKeyword_scalex:
-        case eCSSKeyword_skewx:
-        case eCSSKeyword_translatex:
-          ident.Replace(ident.Length() - 1, 1, char16_t('X'));
-          break;
+    NS_ABORT_IF_FALSE(functionName.GetUnit() == eCSSUnit_Enumerated,
+                      "Functions must have an enumerated name.");
 
-        case eCSSKeyword_rotatey:
-        case eCSSKeyword_scaley:
-        case eCSSKeyword_skewy:
-        case eCSSKeyword_translatey:
-          ident.Replace(ident.Length() - 1, 1, char16_t('Y'));
-          break;
+    
+    
+    const nsCSSKeyword functionId = functionName.GetKeywordValue();
+    NS_ConvertASCIItoUTF16 ident(nsCSSKeywords::GetStringValue(functionId));
+    
+    
+    
+    switch (functionId) {
+      case eCSSKeyword_rotatex:
+      case eCSSKeyword_scalex:
+      case eCSSKeyword_skewx:
+      case eCSSKeyword_translatex:
+        ident.Replace(ident.Length() - 1, 1, char16_t('X'));
+        break;
 
-        case eCSSKeyword_rotatez:
-        case eCSSKeyword_scalez:
-        case eCSSKeyword_translatez:
-          ident.Replace(ident.Length() - 1, 1, char16_t('Z'));
-          break;
+      case eCSSKeyword_rotatey:
+      case eCSSKeyword_scaley:
+      case eCSSKeyword_skewy:
+      case eCSSKeyword_translatey:
+        ident.Replace(ident.Length() - 1, 1, char16_t('Y'));
+        break;
 
-        default:
-          break;
-      }
-      nsStyleUtil::AppendEscapedCSSIdent(ident, aResult);
-    } else {
-      MOZ_ASSERT(false, "should no longer have non-enumerated functions");
+      case eCSSKeyword_rotatez:
+      case eCSSKeyword_scalez:
+      case eCSSKeyword_translatez:
+        ident.Replace(ident.Length() - 1, 1, char16_t('Z'));
+        break;
+
+      default:
+        break;
     }
+    nsStyleUtil::AppendEscapedCSSIdent(ident, aResult);
     aResult.Append('(');
 
-    
-    for (size_t index = 1; index < array->Count(); ++index) {
-      array->Item(index).AppendToString(aProperty, aResult,
-                                        aSerialization);
+    switch (functionId) {
+      case eCSSKeyword_polygon:
+        AppendPolygonToString(aProperty, aResult, aSerialization);
+        break;
 
-      
-      if (index + 1 != array->Count())
-        aResult.AppendLiteral(", ");
+      default: {
+        
+        
+        for (size_t index = 1; index < array->Count(); ++index) {
+          array->Item(index).AppendToString(aProperty, aResult,
+                                            aSerialization);
+
+          
+          if (index + 1 != array->Count())
+            aResult.AppendLiteral(", ");
+        }
+      }
     }
 
     
@@ -1084,6 +1118,12 @@ nsCSSValue::AppendToString(nsCSSProperty aProperty, nsAString& aResult,
                                          NS_STYLE_TOUCH_ACTION_NONE,
                                          NS_STYLE_TOUCH_ACTION_MANIPULATION,
                                          aResult);
+      break;
+
+    case eCSSProperty_clip_path:
+      AppendASCIItoUTF16(nsCSSProps::ValueToKeyword(intValue,
+                            nsCSSProps::kClipShapeSizingKTable),
+                         aResult);
       break;
 
     default:
@@ -2045,7 +2085,8 @@ nsCSSValuePairList::AppendToString(nsCSSProperty aProperty,
       break;
 
     if (nsCSSProps::PropHasFlags(aProperty,
-                                 CSS_PROPERTY_VALUE_LIST_USES_COMMAS))
+                                 CSS_PROPERTY_VALUE_LIST_USES_COMMAS) ||
+        aProperty == eCSSProperty_clip_path)
       aResult.Append(char16_t(','));
     aResult.Append(char16_t(' '));
   }
