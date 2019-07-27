@@ -122,33 +122,26 @@ function ensure_results(aSearchString, aExpectedValue) {
     do_check_eq(numSearchesStarted, 1);
   };
 
+  input.onSearchComplete = function() {
+    
+    do_check_eq(numSearchesStarted, 1);
 
-  let promise = new Promise(resolve => {
-    input.onSearchComplete = function() {
+    
+    do_check_eq(input.textValue, autoFilledValue);
+
+    if (completedValue) {
       
-      do_check_eq(numSearchesStarted, 1);
-
       
-      do_check_eq(input.textValue, autoFilledValue);
-
-      if (completedValue) {
-        
-        
-        
-        controller.handleEnter(false);
-        do_check_eq(input.textValue, completedValue);
-      }
-
       
-      remove_all_bookmarks();
-      PlacesTestUtils.clearHistory().then(resolve);
-    };
-  });
+      controller.handleEnter(false);
+      do_check_eq(input.textValue, completedValue);
+    }
+
+    waitForCleanup(run_next_test);
+  };
 
   do_print("Searching for: '" + aSearchString + "'");
   controller.startSearch(aSearchString);
-
-  return promise;
 }
 
 function run_test() {
@@ -160,22 +153,22 @@ function run_test() {
 
   gAutoCompleteTests.forEach(function (testData) {
     let [description, searchString, expectedValue, setupFunc] = testData;
-    add_task(function* () {
+    add_test(function () {
       do_print(description);
       Services.prefs.setBoolPref("browser.urlbar.autocomplete.enabled", true);
       Services.prefs.setBoolPref("browser.urlbar.autoFill", true);
       Services.prefs.setBoolPref("browser.urlbar.autoFill.typed", false);
 
       if (setupFunc) {
-        yield setupFunc();
+        setupFunc();
       }
 
       
       
       
       
-      yield PlacesTestUtils.promiseAsyncUpdates();
-      yield ensure_results(searchString, expectedValue);
+      PlacesTestUtils.promiseAsyncUpdates()
+                     .then(() => ensure_results(searchString, expectedValue));
     })
   }, this);
 
@@ -187,13 +180,21 @@ function add_autocomplete_test(aTestData) {
   gAutoCompleteTests.push(aTestData);
 }
 
-function* addBookmark(aBookmarkObj) {
+function waitForCleanup(aCallback) {
+  remove_all_bookmarks();
+  PlacesTestUtils.clearHistory().then(aCallback);
+}
+
+function addBookmark(aBookmarkObj) {
   do_check_true(!!aBookmarkObj.url);
-  yield PlacesUtils.bookmarks
-                   .insert({ parentGuid: PlacesUtils.bookmarks.unfiledGuid,
-                             url: aBookmarkObj.url });
+  let parentId = aBookmarkObj.parentId ? aBookmarkObj.parentId
+                                       : PlacesUtils.unfiledBookmarksFolderId;
+  let itemId = PlacesUtils.bookmarks
+                          .insertBookmark(parentId,
+                                          NetUtil.newURI(aBookmarkObj.url),
+                                          PlacesUtils.bookmarks.DEFAULT_INDEX,
+                                          "A bookmark");
   if (aBookmarkObj.keyword) {
-    yield PlacesUtils.keywords.insert({ keyword: aBookmarkObj.keyword,
-                                        url: aBookmarkObj.url });
+    PlacesUtils.bookmarks.setKeywordForBookmark(itemId, aBookmarkObj.keyword);
   }
 }

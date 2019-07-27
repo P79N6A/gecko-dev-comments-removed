@@ -46,10 +46,11 @@ const MATCH_BEGINNING_CASE_SENSITIVE = Ci.mozIPlacesAutoComplete.MATCH_BEGINNING
 
 
 
-const QUERYTYPE_FILTERED            = 0;
-const QUERYTYPE_AUTOFILL_HOST       = 1;
-const QUERYTYPE_AUTOFILL_URL        = 2;
-const QUERYTYPE_AUTOFILL_PREDICTURL = 3;
+const QUERYTYPE_KEYWORD       = 0;
+const QUERYTYPE_FILTERED      = 1;
+const QUERYTYPE_AUTOFILL_HOST = 2;
+const QUERYTYPE_AUTOFILL_URL  = 3;
+const QUERYTYPE_AUTOFILL_PREDICTURL  = 4;
 
 
 
@@ -63,7 +64,7 @@ const TITLE_SEARCH_ENGINE_SEPARATOR = " \u00B7\u2013\u00B7 ";
 const TELEMETRY_1ST_RESULT = "PLACES_AUTOCOMPLETE_1ST_RESULT_TIME_MS";
 const TELEMETRY_6_FIRST_RESULTS = "PLACES_AUTOCOMPLETE_6_FIRST_RESULTS_TIME_MS";
 
-const FRECENCY_DEFAULT = 1000;
+const FRECENCY_SEARCHENGINES_DEFAULT = 1000;
 
 
 const QUERYINDEX_QUERYTYPE     = 0;
@@ -148,6 +149,23 @@ const SQL_ADAPTIVE_QUERY =
                             :matchBehavior, :searchBehavior)
    ORDER BY rank DESC, h.frecency DESC`;
 
+const SQL_KEYWORD_QUERY =
+  `/* do not warn (bug 487787) */
+   SELECT :query_type,
+          REPLACE(h.url, '%s', :query_string) AS search_url, h.title,
+     IFNULL(f.url, (SELECT f.url
+                    FROM moz_places
+                    JOIN moz_favicons f ON f.id = favicon_id
+                    WHERE rev_host = h.rev_host
+                    ORDER BY frecency DESC
+                    LIMIT 1)
+           ),
+     1, NULL, NULL, h.visit_count, h.typed, h.id, t.open_count, h.frecency
+   FROM moz_keywords k
+   JOIN moz_places h ON k.place_id = h.id
+   LEFT JOIN moz_favicons f ON f.id = h.favicon_id
+   LEFT JOIN moz_openpages_temp t ON t.url = search_url
+   WHERE k.keyword = LOWER(:keyword)`;
 
 function hostQuery(conditions = "") {
   let query =
@@ -713,8 +731,6 @@ Search.prototype = {
     
     
     yield PlacesSearchAutocompleteProvider.ensureInitialized();
-    if (!this.pending)
-      return;
 
     
     
@@ -756,12 +772,14 @@ Search.prototype = {
     
     let hasFirstResult = false;
 
-    if (this._searchTokens.length > 0) {
+    if (this._searchTokens.length > 0 &&
+        PlacesUtils.bookmarks.getURIForKeyword(this._searchTokens[0])) {
       
-      hasFirstResult = yield this._matchPlacesKeyword();
+      queries.unshift(this._keywordQuery);
+      hasFirstResult = true;
     }
 
-    if (this.pending && this._enableActions && !hasFirstResult) {
+    if (this._enableActions && !hasFirstResult) {
       
       
       hasFirstResult = yield this._matchSearchEngineAlias();
@@ -857,35 +875,6 @@ Search.prototype = {
     return gotResult;
   },
 
-  _matchPlacesKeyword: function* () {
-    
-    let keyword = this._searchTokens[0];
-    let entry = yield PlacesUtils.keywords.fetch(this._searchTokens[0]);
-    if (!entry)
-      return false;
-
-    
-    let searchString = this._trimmedOriginalSearchString;
-    let queryString = "";
-    let queryIndex = searchString.indexOf(" ");
-    if (queryIndex != -1) {
-      queryString = searchString.substring(queryIndex + 1);
-    }
-    
-    queryString = encodeURIComponent(queryString).replace(/%20/g, "+");
-    let escapedURL = entry.url.href.replace("%s", queryString);
-
-    let style = (this._enableActions ? "action " : "") + "keyword";
-    let actionURL = makeActionURL("keyword", { url: escapedURL,
-                                               input: this._originalSearchString });
-    let value = this._enableActions ? actionURL : escapedURL;
-    
-    let comment = entry.url.host;
-
-    this._addMatch({ value, comment, style, frecency: FRECENCY_DEFAULT });
-    return true;
-  },
-
   _matchSearchEngineUrl: function* () {
     if (!Prefs.autofillSearchEngines)
       return false;
@@ -933,7 +922,7 @@ Search.prototype = {
       icon: match.iconUrl,
       style: "priority-search",
       finalCompleteValue: match.url,
-      frecency: FRECENCY_DEFAULT
+      frecency: FRECENCY_SEARCHENGINES_DEFAULT
     });
     return true;
   },
@@ -980,7 +969,7 @@ Search.prototype = {
       comment: match.engineName,
       icon: match.iconUrl,
       style: "action searchengine",
-      frecency: FRECENCY_DEFAULT,
+      frecency: FRECENCY_SEARCHENGINES_DEFAULT,
     });
   },
 
@@ -1063,6 +1052,7 @@ Search.prototype = {
         match = this._processUrlRow(row);
         break;
       case QUERYTYPE_FILTERED:
+      case QUERYTYPE_KEYWORD:
         match = this._processRow(row);
         break;
     }
@@ -1246,6 +1236,17 @@ Search.prototype = {
     
     let title = bookmarkTitle || historyTitle;
 
+    if (queryType == QUERYTYPE_KEYWORD) {
+      match.style = "keyword";
+      if (this._enableActions) {
+        url = makeActionURL("keyword", {
+          url: escapedURL,
+          input: this._originalSearchString,
+        });
+        action = "keyword";
+      }
+    }
+
     
     let showTags = !!tags;
 
@@ -1347,6 +1348,37 @@ Search.prototype = {
         
         
         maxResults: Prefs.maxRichResults
+      }
+    ];
+  },
+
+  
+
+
+
+
+
+  get _keywordQuery() {
+    
+    
+    let searchString = this._trimmedOriginalSearchString;
+    let queryString = "";
+    let queryIndex = searchString.indexOf(" ");
+    if (queryIndex != -1) {
+      queryString = searchString.substring(queryIndex + 1);
+    }
+    
+    queryString = encodeURIComponent(queryString).replace(/%20/g, "+");
+
+    
+    let keyword = this._searchTokens[0];
+
+    return [
+      SQL_KEYWORD_QUERY,
+      {
+        keyword: keyword,
+        query_string: queryString,
+        query_type: QUERYTYPE_KEYWORD
       }
     ];
   },

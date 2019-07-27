@@ -12,8 +12,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "TelemetryStopwatch",
                                   "resource://gre/modules/TelemetryStopwatch.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
                                   "resource://gre/modules/NetUtil.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Task",
-                                  "resource://gre/modules/Task.jsm");
 
 
 
@@ -1170,8 +1168,16 @@ nsPlacesAutoComplete.prototype = {
 
     let style;
     if (aRow.getResultByIndex(kQueryIndexQueryType) == kQueryTypeKeyword) {
-      style = "keyword";
-      title = NetUtil.newURI(escapedEntryURL).host;
+      
+      
+      
+      
+      if (!entryTitle) {
+        style = "keyword";
+      }
+      else {
+        title = entryTitle;
+      }
     }
 
     
@@ -1426,8 +1432,6 @@ urlInlineComplete.prototype = {
       this.stopSearch();
     }
 
-    let pendingSearch = this._pendingSearch = {};
-
     
     
     this._originalSearchString = aSearchString;
@@ -1446,82 +1450,74 @@ urlInlineComplete.prototype = {
 
     this._listener = aListener;
 
-    Task.spawn(function* () {
+    
+    
+    
+    
+    if (this._currentSearchString.length == 0 || !this._db ||
+        PlacesUtils.bookmarks.getURIForKeyword(this._currentSearchString)) {
+      this._finishSearch();
+      return;
+    }
+
+    
+    
+    
+    
+    if (/\s/.test(this._currentSearchString)) {
+      this._finishSearch();
+      return;
+    }
+
+    
+    let lastSlashIndex = this._currentSearchString.lastIndexOf("/");
+
+    
+    if (lastSlashIndex != -1) {
       
-      
-      
-      
-      let dontAutoFill = this._currentSearchString.length == 0 || !this._db ||
-                         (yield PlacesUtils.keywords.fetch(this._currentSearchString));
-      if (this._pendingSearch != pendingSearch)
-        return;
-      if (dontAutoFill) {
+      if (lastSlashIndex < this._currentSearchString.length - 1)
+        this._queryURL();
+      else
         this._finishSearch();
-        return;
-      }
+      return;
+    }
 
-      
-      
-      
-      
-      if (/\s/.test(this._currentSearchString)) {
-        this._finishSearch();
-        return;
-      }
-
-      
-      let lastSlashIndex = this._currentSearchString.lastIndexOf("/");
-
-      
-      if (lastSlashIndex != -1) {
+    
+    let query = this._hostQuery;
+    query.params.search_string = this._currentSearchString.toLowerCase();
+    
+    TelemetryStopwatch.start(DOMAIN_QUERY_TELEMETRY);
+    let ac = this;
+    let wrapper = new AutoCompleteStatementCallbackWrapper(this, {
+      handleResult: function (aResultSet) {
+        let row = aResultSet.getNextRow();
+        let trimmedHost = row.getResultByIndex(0);
+        let untrimmedHost = row.getResultByIndex(1);
         
-        if (lastSlashIndex < this._currentSearchString.length - 1)
-          this._queryURL();
-        else
-          this._finishSearch();
-        return;
-      }
-
-      
-      let query = this._hostQuery;
-      query.params.search_string = this._currentSearchString.toLowerCase();
-      
-      TelemetryStopwatch.start(DOMAIN_QUERY_TELEMETRY);
-      let wrapper = new AutoCompleteStatementCallbackWrapper(this, {
-        handleResult: aResultSet => {
-          if (this._pendingSearch != pendingSearch)
-            return;
-          let row = aResultSet.getNextRow();
-          let trimmedHost = row.getResultByIndex(0);
-          let untrimmedHost = row.getResultByIndex(1);
-          
-          
-          if (untrimmedHost &&
-              !untrimmedHost.toLowerCase().contains(this._originalSearchString.toLowerCase())) {
-            untrimmedHost = null;
-          }
-
-          this._result.appendMatch(this._strippedPrefix + trimmedHost, "", "", "", untrimmedHost);
-
-          
-          
-        },
-
-        handleError: aError => {
-          Components.utils.reportError(
-            "URL Inline Complete: An async statement encountered an " +
-            "error: " + aError.result + ", '" + aError.message + "'");
-        },
-
-        handleCompletion: aReason => {
-          if (this._pendingSearch != pendingSearch)
-            return;
-          TelemetryStopwatch.finish(DOMAIN_QUERY_TELEMETRY);
-          this._finishSearch();
+        
+        if (untrimmedHost &&
+            !untrimmedHost.toLowerCase().contains(ac._originalSearchString.toLowerCase())) {
+          untrimmedHost = null;
         }
-      }, this._db);
-      this._pendingQuery = wrapper.executeAsync([query]);
-    }.bind(this));
+
+        ac._result.appendMatch(ac._strippedPrefix + trimmedHost, "", "", "", untrimmedHost);
+
+        
+        
+      },
+
+      handleError: function (aError) {
+        Components.utils.reportError(
+          "URL Inline Complete: An async statement encountered an " +
+          "error: " + aError.result + ", '" + aError.message + "'");
+      },
+
+      handleCompletion: function (aReason) {
+        TelemetryStopwatch.finish(DOMAIN_QUERY_TELEMETRY);
+        ac._finishSearch();
+      }
+    }, this._db);
+    this._pendingQuery = wrapper.executeAsync([query]);
   },
 
   
@@ -1550,8 +1546,9 @@ urlInlineComplete.prototype = {
     params.searchString = this._currentSearchString;
 
     
+    let ac = this;
     let wrapper = new AutoCompleteStatementCallbackWrapper(this, {
-      handleResult: aResultSet => {
+      handleResult: function(aResultSet) {
         let row = aResultSet.getNextRow();
         let value = row.getResultByIndex(0);
         let url = fixupSearchText(value);
@@ -1559,10 +1556,10 @@ urlInlineComplete.prototype = {
         let prefix = value.slice(0, value.length - stripPrefix(value).length);
 
         
-        let separatorIndex = url.slice(this._currentSearchString.length)
+        let separatorIndex = url.slice(ac._currentSearchString.length)
                                 .search(/[\/\?\#]/);
         if (separatorIndex != -1) {
-          separatorIndex += this._currentSearchString.length;
+          separatorIndex += ac._currentSearchString.length;
           if (url[separatorIndex] == "/") {
             separatorIndex++; 
           }
@@ -1574,24 +1571,24 @@ urlInlineComplete.prototype = {
         
         let untrimmedURL = prefix + url;
         if (untrimmedURL &&
-            !untrimmedURL.toLowerCase().contains(this._originalSearchString.toLowerCase())) {
+            !untrimmedURL.toLowerCase().contains(ac._originalSearchString.toLowerCase())) {
           untrimmedURL = null;
          }
 
-        this._result.appendMatch(this._strippedPrefix + url, "", "", "", untrimmedURL);
+        ac._result.appendMatch(ac._strippedPrefix + url, "", "", "", untrimmedURL);
 
         
         
       },
 
-      handleError: aError => {
+      handleError: function(aError) {
         Components.utils.reportError(
           "URL Inline Complete: An async statement encountered an " +
           "error: " + aError.result + ", '" + aError.message + "'");
       },
 
-      handleCompletion: aReason => {
-        this._finishSearch();
+      handleCompletion: function(aReason) {
+        ac._finishSearch();
       }
     }, this._db);
     this._pendingQuery = wrapper.executeAsync([query]);
@@ -1603,7 +1600,6 @@ urlInlineComplete.prototype = {
     delete this._currentSearchString;
     delete this._result;
     delete this._listener;
-    delete this._pendingSearch;
 
     if (this._pendingQuery) {
       this._pendingQuery.cancel();
