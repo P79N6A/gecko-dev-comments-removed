@@ -340,8 +340,35 @@ TiledContentHost::Composite(EffectChain& aEffectChain,
   
   
   
-  RenderLayerBuffer(mLowPrecisionTiledBuffer, aEffectChain, aOpacity * gfxPrefs::LowPrecisionOpacity(),
-                    aFilter, aClipRect, aLayerProperties->mVisibleRegion, aTransform);
+  
+  
+  
+  
+  float lowPrecisionOpacityReduction;
+  if (aOpacity == 1.0f && gfxPrefs::LowPrecisionOpacity() < 1.0f) {
+    
+    
+    gfxRGBA backgroundColor(0);
+    for (ContainerLayer* ancestor = GetLayer()->GetParent(); ancestor; ancestor = ancestor->GetParent()) {
+      if (ancestor->GetFrameMetrics().IsScrollable()) {
+        backgroundColor = ancestor->GetBackgroundColor();
+        break;
+      }
+    }
+    
+    if (backgroundColor.a == 1.0f) {
+      lowPrecisionOpacityReduction = gfxPrefs::LowPrecisionOpacity();
+    } else {
+      lowPrecisionOpacityReduction = 1.0f;
+    }
+  } else {
+    lowPrecisionOpacityReduction = 1.0f;
+  }
+
+  
+  RenderLayerBuffer(mLowPrecisionTiledBuffer, aEffectChain,
+                    lowPrecisionOpacityReduction * aOpacity, aFilter, aClipRect,
+                    aLayerProperties->mVisibleRegion, aTransform);
   RenderLayerBuffer(mTiledBuffer, aEffectChain, aOpacity, aFilter,
                     aClipRect, aLayerProperties->mVisibleRegion, aTransform);
 
