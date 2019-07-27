@@ -478,8 +478,9 @@ ReadStream::Forget()
 NS_IMETHODIMP
 ReadStream::Close()
 {
+  nsresult rv = mStream->Close();
   NoteClosed();
-  return mStream->Close();
+  return rv;
 }
 
 NS_IMETHODIMP
@@ -488,7 +489,7 @@ ReadStream::Available(uint64_t* aNumAvailableOut)
   nsresult rv = mSnappyStream->Available(aNumAvailableOut);
 
   if (NS_FAILED(rv)) {
-    NoteClosed();
+    Close();
   }
 
   return rv;
@@ -501,12 +502,9 @@ ReadStream::Read(char* aBuf, uint32_t aCount, uint32_t* aNumReadOut)
 
   nsresult rv = mSnappyStream->Read(aBuf, aCount, aNumReadOut);
 
-  
-  
-
   if ((NS_FAILED(rv) && rv != NS_BASE_STREAM_WOULD_BLOCK) ||
       *aNumReadOut == 0) {
-    NoteClosed();
+    Close();
   }
 
   return rv;
@@ -521,12 +519,9 @@ ReadStream::ReadSegments(nsWriteSegmentFun aWriter, void* aClosure,
   nsresult rv = mSnappyStream->ReadSegments(aWriter, aClosure, aCount,
                                             aNumReadOut);
 
-  
-  
-
   if ((NS_FAILED(rv) && rv != NS_BASE_STREAM_WOULD_BLOCK &&
                         rv != NS_ERROR_NOT_IMPLEMENTED) || *aNumReadOut == 0) {
-    NoteClosed();
+    Close();
   }
 
   return rv;
