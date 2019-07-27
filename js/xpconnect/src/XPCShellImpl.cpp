@@ -32,6 +32,7 @@
 #include "nsIPrincipal.h"
 #include "nsJSUtils.h"
 #include "gfxPrefs.h"
+#include "nsIXULRuntime.h"
 
 #include "base/histogram.h"
 
@@ -1474,6 +1475,8 @@ XRE_XPCShellMain(int argc, char** argv, char** envp)
 
         
         gfxPrefs::GetSingleton();
+        
+        BrowserTabsRemoteAutostart();
 
         {
             JS::Rooted<JSObject*> glob(cx, holder->GetJSObject());
