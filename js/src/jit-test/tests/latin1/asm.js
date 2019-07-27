@@ -6,7 +6,6 @@ if (!isAsmJSCompilationAvailable() || !isCachingEnabled())
 
 
 
-toLatin1("funName"); 
 var body1 = "'use asm'; function funName() { return 42 } return funName";
 var m = new Function(body1);
 assertEq(isAsmJSModule(m), true);

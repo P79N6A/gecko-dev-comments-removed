@@ -3,7 +3,7 @@ function f(s) {
     var z = eval(s);
     assertEq(z, 8);
 }
-var s = toLatin1("x + y");
+var s = "x + y";
 f(s); 
 f(s);
 f("x + y;/*\u1200*/"); 
