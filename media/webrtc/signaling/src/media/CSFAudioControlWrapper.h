@@ -16,7 +16,7 @@ namespace CSF
 	public:
 		
 
-		AudioControlWrapper(AudioControl * audioControl){_realAudioControl = audioControl;};
+		explicit AudioControlWrapper(AudioControl * audioControl){_realAudioControl = audioControl;};
 		virtual std::vector<std::string> getRecordingDevices();
 		virtual std::vector<std::string> getPlayoutDevices();
 
