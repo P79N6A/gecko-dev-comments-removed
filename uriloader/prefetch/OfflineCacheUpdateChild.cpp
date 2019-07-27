@@ -34,6 +34,7 @@
 using namespace mozilla::ipc;
 using namespace mozilla::net;
 using mozilla::dom::TabChild;
+using mozilla::dom::ContentChild;
 
 #if defined(PR_LOGGING)
 
@@ -433,8 +434,9 @@ OfflineCacheUpdateChild::Schedule()
     
     
     
-    child->SendPOfflineCacheUpdateConstructor(this, manifestURI, documentURI,
-                                              stickDocument);
+    ContentChild::GetSingleton()->SendPOfflineCacheUpdateConstructor(
+        this, manifestURI, documentURI,
+        stickDocument, child->GetTabId());
 
     
     NS_ADDREF_THIS();
