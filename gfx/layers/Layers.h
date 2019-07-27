@@ -820,11 +820,41 @@ public:
 
 
 
+
+
+
   void SetFrameMetrics(const FrameMetrics& aFrameMetrics)
   {
-    if (mFrameMetrics != aFrameMetrics) {
+    if (mFrameMetrics.Length() != 1 || mFrameMetrics[0] != aFrameMetrics) {
       MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) FrameMetrics", this));
-      mFrameMetrics = aFrameMetrics;
+      mFrameMetrics.ReplaceElementsAt(0, mFrameMetrics.Length(), aFrameMetrics);
+      FrameMetricsChanged();
+      Mutated();
+    }
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  void SetFrameMetrics(const nsTArray<FrameMetrics>& aMetricsArray)
+  {
+    if (mFrameMetrics != aMetricsArray) {
+      MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) FrameMetrics", this));
+      mFrameMetrics = aMetricsArray;
+      FrameMetricsChanged();
       Mutated();
     }
   }
@@ -1157,7 +1187,9 @@ public:
   const nsIntRect* GetClipRect() { return mUseClipRect ? &mClipRect : nullptr; }
   uint32_t GetContentFlags() { return mContentFlags; }
   const nsIntRegion& GetVisibleRegion() const { return mVisibleRegion; }
-  const FrameMetrics& GetFrameMetrics() const { return mFrameMetrics; }
+  const FrameMetrics& GetFrameMetrics(uint32_t aIndex) const;
+  uint32_t GetFrameMetricsCount() const { return mFrameMetrics.Length(); }
+  const nsTArray<FrameMetrics>& GetAllFrameMetrics() { return mFrameMetrics; }
   const EventRegions& GetEventRegions() const { return mEventRegions; }
   ContainerLayer* GetParent() { return mParent; }
   Layer* GetNextSibling() { return mNextSibling; }
@@ -1458,8 +1490,15 @@ public:
   
   
   
-  void SetAsyncPanZoomController(AsyncPanZoomController *controller);
-  AsyncPanZoomController* GetAsyncPanZoomController() const;
+  
+  
+  void SetAsyncPanZoomController(uint32_t aIndex, AsyncPanZoomController *controller);
+  AsyncPanZoomController* GetAsyncPanZoomController(uint32_t aIndex) const;
+  
+  
+private:
+  void FrameMetricsChanged();
+public:
 
   void ApplyPendingUpdatesForThisTransaction();
 
@@ -1563,7 +1602,7 @@ protected:
   nsRefPtr<Layer> mMaskLayer;
   gfx::UserData mUserData;
   nsIntRegion mVisibleRegion;
-  FrameMetrics mFrameMetrics;
+  nsTArray<FrameMetrics> mFrameMetrics;
   EventRegions mEventRegions;
   gfx::Matrix4x4 mTransform;
   
@@ -1583,7 +1622,7 @@ protected:
   nsIntRect mClipRect;
   nsIntRect mTileSourceRect;
   nsIntRegion mInvalidRegion;
-  nsRefPtr<AsyncPanZoomController> mAPZC;
+  nsTArray<nsRefPtr<AsyncPanZoomController> > mApzcs;
   uint32_t mContentFlags;
   bool mUseClipRect;
   bool mUseTileSourceRect;
