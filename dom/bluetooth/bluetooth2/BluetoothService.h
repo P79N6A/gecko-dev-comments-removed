@@ -515,6 +515,9 @@ protected:
   virtual nsresult
   HandleStartup();
 
+  virtual void
+  CompleteToggleBt(bool aEnabled);
+
   
 
 
@@ -540,9 +543,6 @@ protected:
   
   static BluetoothService*
   Create();
-
-  void
-  CompleteToggleBt(bool aEnabled);
 
   typedef nsClassHashtable<nsStringHashKey, BluetoothSignalObserverList >
   BluetoothSignalObserverTable;
