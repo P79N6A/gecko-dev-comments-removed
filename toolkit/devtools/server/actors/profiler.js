@@ -99,6 +99,10 @@ ProfilerActor.prototype = {
       threadFilters: request.threadFilters || DEFAULT_PROFILER_OPTIONS.threadFilters,
     };
 
+    
+    
+    let currentTime = nsIProfilerModule.getElapsedTime();
+
     nsIProfilerModule.StartProfiler(
       options.entries,
       options.interval,
@@ -109,7 +113,7 @@ ProfilerActor.prototype = {
     );
     let { position, totalSize, generation } = this.onGetBufferInfo();
 
-    return { started: true, position, totalSize, generation };
+    return { started: true, position, totalSize, generation, currentTime };
   },
 
   

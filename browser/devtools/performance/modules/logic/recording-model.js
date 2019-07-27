@@ -144,7 +144,6 @@ RecordingModel.prototype = {
     
     
     
-    
     RecordingUtils.offsetSampleTimes(this._profile, this._profilerStartTime);
 
     

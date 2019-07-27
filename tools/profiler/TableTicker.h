@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #ifndef TableTicker_h
 #define TableTicker_h
@@ -17,7 +17,7 @@
 
 namespace mozilla {
 class ProfileGatherer;
-} // namespace mozilla
+} 
 
 typedef mozilla::Vector<std::string> ThreadNameFilterList;
 
@@ -60,13 +60,13 @@ class TableTicker: public Sampler {
     aInfo->SetProfile(profile);
   }
 
-  // Called within a signal. This function must be reentrant
+  
   virtual void Tick(TickSample* sample) override;
 
-  // Immediately captures the calling thread's call stack and returns it.
+  
   virtual SyncProfile* GetBacktrace() override;
 
-  // Called within a signal. This function must be reentrant
+  
   virtual void RequestSave() override
   {
     mSaveRequested = true;
@@ -97,10 +97,10 @@ class TableTicker: public Sampler {
     return mPrimaryThreadProfile;
   }
 
-  void ToStreamAsJSON(std::ostream& stream, float aSinceTime = 0);
-  virtual JSObject *ToJSObject(JSContext *aCx, float aSinceTime = 0);
-  mozilla::UniquePtr<char[]> ToJSON(float aSinceTime = 0);
-  virtual void ToJSObjectAsync(float aSinceTime = 0, mozilla::dom::Promise* aPromise = 0);
+  void ToStreamAsJSON(std::ostream& stream, double aSinceTime = 0);
+  virtual JSObject *ToJSObject(JSContext* aCx, double aSinceTime = 0);
+  mozilla::UniquePtr<char[]> ToJSON(double aSinceTime = 0);
+  virtual void ToJSObjectAsync(double aSinceTime = 0, mozilla::dom::Promise* aPromise = 0);
   void StreamMetaJSCustomObject(SpliceableJSONWriter& aWriter);
   void StreamTaskTracer(SpliceableJSONWriter& aWriter);
   void FlushOnJSShutdown(JSRuntime* aRuntime);
@@ -122,15 +122,15 @@ class TableTicker: public Sampler {
   void ProfileGathered();
 
 protected:
-  // Called within a signal. This function must be reentrant
+  
   virtual void InplaceTick(TickSample* sample);
 
-  // Not implemented on platforms which do not support backtracing
+  
   void doNativeBacktrace(ThreadProfile &aProfile, TickSample* aSample);
 
-  void StreamJSON(SpliceableJSONWriter& aWriter, float aSinceTime);
+  void StreamJSON(SpliceableJSONWriter& aWriter, double aSinceTime);
 
-  // This represent the application's main thread (SAMPLER_INIT)
+  
   ThreadProfile* mPrimaryThreadProfile;
   nsRefPtr<ProfileBuffer> mBuffer;
   bool mSaveRequested;
@@ -145,8 +145,8 @@ protected:
   bool mDisplayListDump;
   bool mProfileRestyle;
 
-  // Keep the thread filter to check against new thread that
-  // are started while profiling
+  
+  
   ThreadNameFilterList mThreadNameFilters;
   bool mPrivacyMode;
   bool mAddMainThreadIO;

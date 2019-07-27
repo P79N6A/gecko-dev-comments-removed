@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
 
 #include "mozilla/ProfileGatherer.h"
 #include "mozilla/Services.h"
@@ -15,7 +15,7 @@ namespace mozilla {
 NS_IMPL_ISUPPORTS0(ProfileGatherer)
 
 ProfileGatherer::ProfileGatherer(TableTicker* aTicker,
-                                 float aSinceTime,
+                                 double aSinceTime,
                                  Promise* aPromise)
   : mPromise(aPromise)
   , mTicker(aTicker)
@@ -29,16 +29,16 @@ ProfileGatherer::GatheredOOPProfile()
 {
   MOZ_ASSERT(NS_IsMainThread());
   if (NS_WARN_IF(!mPromise)) {
-    // If we're not holding on to a Promise, then someone is
-    // calling us erroneously.
+    
+    
     return;
   }
 
   mPendingProfiles--;
 
   if (mPendingProfiles == 0) {
-    // We've got all of the async profiles now. Let's
-    // finish off the profile and resolve the Promise.
+    
+    
     Finish();
   }
 }
@@ -73,17 +73,17 @@ ProfileGatherer::Finish()
 
   AutoJSAPI jsapi;
   if (NS_WARN_IF(!jsapi.Init(mPromise->GlobalJSObject()))) {
-    // We're really hosed if we can't get a JS context for some reason.
-    // We'll tell the TableTicker that we've gathered the profile just
-    // so that it can drop the reference to this ProfileGatherer and maybe
-    // the user can try again.
+    
+    
+    
+    
     mTicker->ProfileGathered();
     return;
   }
 
   JSContext* cx = jsapi.cx();
 
-  // Now parse the JSON so that we resolve with a JS Object.
+  
   JS::RootedValue val(cx);
   {
     NS_ConvertUTF8toUTF16 js_string(nsDependentCString(buf.get()));
@@ -107,4 +107,4 @@ ProfileGatherer::Finish()
   mTicker->ProfileGathered();
 }
 
-} // namespace mozilla
+} 

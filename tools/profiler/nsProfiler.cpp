@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include <string>
 #include <sstream>
@@ -121,7 +121,7 @@ nsProfiler::AddMarker(const char *aMarker)
 }
 
 NS_IMETHODIMP
-nsProfiler::GetProfile(float aSinceTime, char **aProfile)
+nsProfiler::GetProfile(double aSinceTime, char** aProfile)
 {
   mozilla::UniquePtr<char[]> profile = profiler_get_profile(aSinceTime);
   if (profile) {
@@ -145,8 +145,8 @@ AddSharedLibraryInfoToStream(std::ostream& aStream, const SharedLibrary& aLib)
   const std::string &breakpadId = aLib.GetBreakpadId();
   aStream << ",\"breakpadId\":\"" << breakpadId << "\"";
 #ifdef XP_WIN
-  // FIXME: remove this XP_WIN code when the profiler plugin has switched to
-  // using breakpadId.
+  
+  
   std::string pdbSignature = breakpadId.substr(0, 32);
   std::string pdbAgeStr = breakpadId.substr(32,  breakpadId.size() - 1);
 
@@ -205,7 +205,7 @@ nsProfiler::DumpProfileToFile(const char* aFilename)
 }
 
 NS_IMETHODIMP
-nsProfiler::GetProfileData(float aSinceTime, JSContext* aCx,
+nsProfiler::GetProfileData(double aSinceTime, JSContext* aCx,
                            JS::MutableHandle<JS::Value> aResult)
 {
   JS::RootedObject obj(aCx, profiler_get_profile_jsobject(aCx, aSinceTime));
@@ -217,7 +217,7 @@ nsProfiler::GetProfileData(float aSinceTime, JSContext* aCx,
 }
 
 NS_IMETHODIMP
-nsProfiler::GetProfileDataAsync(float aSinceTime, JSContext* aCx,
+nsProfiler::GetProfileDataAsync(double aSinceTime, JSContext* aCx,
                                 nsISupports** aPromise)
 {
   MOZ_ASSERT(NS_IsMainThread());
@@ -245,9 +245,9 @@ nsProfiler::GetProfileDataAsync(float aSinceTime, JSContext* aCx,
 }
 
 NS_IMETHODIMP
-nsProfiler::GetElapsedTime(float* aElapsedTime)
+nsProfiler::GetElapsedTime(double* aElapsedTime)
 {
-  *aElapsedTime = static_cast<float>(profiler_time());
+  *aElapsedTime = profiler_time();
   return NS_OK;
 }
 

@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #ifndef PROFILER_FUNCS_H
 #define PROFILER_FUNCS_H
@@ -16,15 +16,15 @@ class TimeStamp;
 
 namespace dom {
 class Promise;
-} // namespace dom
+} 
 
-} // namespace mozilla
+} 
 
 class ProfilerBacktrace;
 class ProfilerMarkerPayload;
 
-// Returns a handle to pass on exit. This can check that we are popping the
-// correct callstack.
+
+
 inline void* mozilla_sampler_call_enter(const char *aInfo, js::ProfileEntry::Category aCategory,
                                         void *aFrameAddress = nullptr, bool aCopy = false,
                                         uint32_t line = 0);
@@ -59,14 +59,14 @@ const double* mozilla_sampler_get_responsiveness();
 
 void mozilla_sampler_save();
 
-mozilla::UniquePtr<char[]> mozilla_sampler_get_profile(float aSinceTime);
+mozilla::UniquePtr<char[]> mozilla_sampler_get_profile(double aSinceTime);
 
-JSObject *mozilla_sampler_get_profile_data(JSContext *aCx, float aSinceTime);
-void mozilla_sampler_get_profile_data_async(float aSinceTime,
+JSObject *mozilla_sampler_get_profile_data(JSContext* aCx, double aSinceTime);
+void mozilla_sampler_get_profile_data_async(double aSinceTime,
                                             mozilla::dom::Promise* aPromise);
 
-// Make this function easily callable from a debugger in a build without
-// debugging information (work around http://llvm.org/bugs/show_bug.cgi?id=22211)
+
+
 extern "C" {
   void mozilla_sampler_save_profile_to_file(const char* aFilename);
 }
@@ -80,15 +80,15 @@ void mozilla_sampler_init(void* stackTop);
 
 void mozilla_sampler_shutdown();
 
-// Lock the profiler. When locked the profiler is (1) stopped,
-// (2) profile data is cleared, (3) profiler-locked is fired.
-// This is used to lock down the profiler during private browsing
+
+
+
 void mozilla_sampler_lock();
 
-// Unlock the profiler, leaving it stopped and fires profiler-unlocked.
+
 void mozilla_sampler_unlock();
 
-// Register/unregister threads with the profiler
+
 bool mozilla_sampler_register_thread(const char* name, void* stackTop);
 void mozilla_sampler_unregister_thread();
 
