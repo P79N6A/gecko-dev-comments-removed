@@ -77,19 +77,21 @@ let StyleSheetsActor = exports.StyleSheetsActor = protocol.ActorClass({
 
 
   getStyleSheets: method(Task.async(function* () {
-    let documents = [this.document];
+    
+    
+    let windows = [this.window];
     let actors = [];
 
-    for (let doc of documents) {
-      let sheets = yield this._addStyleSheets(doc);
+    for (let win of windows) {
+      let sheets = yield this._addStyleSheets(win);
       actors = actors.concat(sheets);
 
       
-      for (let iframe of doc.querySelectorAll("iframe, browser, frame")) {
-        if (iframe.contentDocument) {
+      for (let iframe of win.document.querySelectorAll("iframe, browser, frame")) {
+        if (iframe.contentDocument && iframe.contentWindow) {
           
           
-          documents.push(iframe.contentDocument);
+          windows.push(iframe.contentWindow);
         }
       }
     }
@@ -131,12 +133,20 @@ let StyleSheetsActor = exports.StyleSheetsActor = protocol.ActorClass({
 
 
 
-  _addStyleSheets: function(doc)
+  _addStyleSheets: function(win)
   {
     return Task.spawn(function*() {
-      if (doc.readyState === "loading") {
+      let doc = win.document;
+      
+      
+      if (doc.readyState === "loading" || doc.readyState === "uninitialized") {
         
-        yield listenOnce(doc.defaultView, "DOMContentLoaded", true);
+        yield listenOnce(win, "DOMContentLoaded", true);
+
+        
+        
+        
+        doc = win.document;
       }
 
       let isChrome = Services.scriptSecurityManager.isSystemPrincipal(doc.nodePrincipal);
