@@ -263,7 +263,7 @@ this.Keyboard = {
         break;
       case 'Keyboard:Register':
         this._keyboardMM = mm;
-        if (kbID !== null) {
+        if (kbID) {
           
           
           this._keyboardID = kbID;

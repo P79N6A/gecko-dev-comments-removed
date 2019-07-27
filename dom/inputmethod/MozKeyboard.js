@@ -21,9 +21,31 @@ XPCOMUtils.defineLazyServiceGetter(this, "tm",
 
 
 
+
 let WindowMap = {
   
   _map: null,
+
+  
+
+
+  _getObjForWin: function(win) {
+    if (!this._map) {
+      this._map = new WeakMap();
+    }
+    if (this._map.has(win)) {
+      return this._map.get(win);
+    } else {
+      let obj = {
+        active: false,
+        kbID: undefined,
+        ipcHelper: null
+      };
+      this._map.set(win, obj);
+
+      return obj;
+    }
+  },
 
   
 
@@ -33,12 +55,7 @@ let WindowMap = {
       return false;
     }
 
-    let obj = this._map.get(win);
-    if (obj && 'active' in obj) {
-      return obj.active;
-    }else{
-      return false;
-    }
+    return this._getObjForWin(win).active;
   },
 
   
@@ -48,13 +65,8 @@ let WindowMap = {
     if (!win) {
       return;
     }
-    if (!this._map) {
-      this._map = new WeakMap();
-    }
-    if (!this._map.has(win)) {
-      this._map.set(win, {});
-    }
-    this._map.get(win).active = isActive;
+    let obj = this._getObjForWin(win);
+    obj.active = isActive;
   },
 
   
@@ -62,15 +74,11 @@ let WindowMap = {
 
   getKbID: function(win) {
     if (!this._map || !win) {
-      return null;
+      return undefined;
     }
 
-    let obj = this._map.get(win);
-    if (obj && 'kbID' in obj) {
-      return obj.kbID;
-    }else{
-      return null;
-    }
+    let obj = this._getObjForWin(win);
+    return obj.kbID;
   },
 
   
@@ -80,13 +88,36 @@ let WindowMap = {
     if (!win) {
       return;
     }
-    if (!this._map) {
-      this._map = new WeakMap();
+    let obj = this._getObjForWin(win);
+    obj.kbID = kbID;
+  },
+
+  
+
+
+  getInputContextIpcHelper: function(win) {
+    if (!win) {
+      return;
     }
-    if (!this._map.has(win)) {
-      this._map.set(win, {});
+    let obj = this._getObjForWin(win);
+    if (!obj.ipcHelper) {
+      obj.ipcHelper = new InputContextDOMRequestIpcHelper(win);
     }
-    this._map.get(win).kbID = kbID;
+    return obj.ipcHelper;
+  },
+
+  
+
+
+  unsetInputContextIpcHelper: function(win) {
+    if (!win) {
+      return;
+    }
+    let obj = this._getObjForWin(win);
+    if (!obj.ipcHelper) {
+      return;
+    }
+    obj.ipcHelper = null;
   }
 };
 
@@ -332,9 +363,9 @@ MozInputMethod.prototype = {
       
       
       var kbID = WindowMap.getKbID(this._window);
-      if (kbID !== null) {
+      if (kbID) {
         cpmmSendAsyncMessageWithKbID(this, 'Keyboard:Register', {});
-      }else{
+      } else {
         let res = cpmm.sendSyncMessage('Keyboard:Register', {});
         WindowMap.setKbID(this._window, res[0]);
       }
@@ -420,6 +451,61 @@ MozInputMethod.prototype = {
 
 
 
+function InputContextDOMRequestIpcHelper(win) {
+  this.initDOMRequestHelper(win,
+    ["Keyboard:GetText:Result:OK",
+     "Keyboard:GetText:Result:Error",
+     "Keyboard:SetSelectionRange:Result:OK",
+     "Keyboard:ReplaceSurroundingText:Result:OK",
+     "Keyboard:SendKey:Result:OK",
+     "Keyboard:SendKey:Result:Error",
+     "Keyboard:SetComposition:Result:OK",
+     "Keyboard:EndComposition:Result:OK",
+     "Keyboard:SequenceError"]);
+}
+
+InputContextDOMRequestIpcHelper.prototype = {
+  __proto__: DOMRequestIpcHelper.prototype,
+  _inputContext: null,
+
+  attachInputContext: function(inputCtx) {
+    if (this._inputContext) {
+      throw new Error("InputContextDOMRequestIpcHelper: detach the context first.");
+    }
+
+    this._inputContext = inputCtx;
+  },
+
+  
+  uninit: function() {
+    WindowMap.unsetInputContextIpcHelper(this._window);
+  },
+
+  detachInputContext: function() {
+    
+    
+    this.forEachPromiseResolver(k => {
+      this.takePromiseResolver(k).reject("InputContext got destroyed");
+    });
+
+    this._inputContext = null;
+  },
+
+  receiveMessage: function(msg) {
+    if (!this._inputContext) {
+      dump('InputContextDOMRequestIpcHelper received message without context attached.\n');
+      return;
+    }
+
+    this._inputContext.receiveMessage(msg);
+  }
+};
+
+ 
+
+
+
+
 function MozInputContext(ctx) {
   this._context = {
     inputtype: ctx.type,
@@ -438,11 +524,10 @@ function MozInputContext(ctx) {
 }
 
 MozInputContext.prototype = {
-  __proto__: DOMRequestIpcHelper.prototype,
-
   _window: null,
   _context: null,
   _contextId: -1,
+  _ipcHelper: null,
 
   classID: Components.ID("{1e38633d-d08b-4867-9944-afa5c648adb6}"),
 
@@ -453,30 +538,12 @@ MozInputContext.prototype = {
 
   init: function ic_init(win) {
     this._window = win;
-    this._utils = win.QueryInterface(Ci.nsIInterfaceRequestor)
-                     .getInterface(Ci.nsIDOMWindowUtils);
-    this.initDOMRequestHelper(win,
-      ["Keyboard:GetText:Result:OK",
-       "Keyboard:GetText:Result:Error",
-       "Keyboard:SetSelectionRange:Result:OK",
-       "Keyboard:ReplaceSurroundingText:Result:OK",
-       "Keyboard:SendKey:Result:OK",
-       "Keyboard:SendKey:Result:Error",
-       "Keyboard:SetComposition:Result:OK",
-       "Keyboard:EndComposition:Result:OK",
-       "Keyboard:SequenceError"]);
+
+    this._ipcHelper = WindowMap.getInputContextIpcHelper(win);
+    this._ipcHelper.attachInputContext(this);
   },
 
   destroy: function ic_destroy() {
-    let self = this;
-
-    
-    
-    this.forEachPromiseResolver(function(k) {
-      self.takePromiseResolver(k).reject("InputContext got destroyed");
-    });
-    this.destroyDOMRequestHelper();
-
     
     
     
@@ -486,6 +553,9 @@ MozInputContext.prototype = {
         this._context[k] = null;
       }
     }
+
+    this._ipcHelper.detachInputContext();
+    this._ipcHelper = null;
 
     this._window = null;
   },
@@ -497,9 +567,10 @@ MozInputContext.prototype = {
     }
 
     let json = msg.json;
-    let resolver = this.takePromiseResolver(json.requestId);
+    let resolver = this._ipcHelper.takePromiseResolver(json.requestId);
 
     if (!resolver) {
+      dump('InputContext received invalid requestId.\n');
       return;
     }
 
@@ -715,10 +786,10 @@ MozInputContext.prototype = {
 
   _sendPromise: function(callback) {
     let self = this;
-    return this.createPromise(function(resolve, reject) {
-      let resolverId = self.getPromiseResolverId({ resolve: resolve, reject: reject });
+    return this._ipcHelper.createPromise(function(resolve, reject) {
+      let resolverId = self._ipcHelper.getPromiseResolverId({ resolve: resolve, reject: reject });
       if (!WindowMap.isActive(self._window)) {
-        self.removePromiseResolver(resolverId);
+        self._ipcHelper.removePromiseResolver(resolverId);
         reject('Input method is not active.');
         return;
       }
