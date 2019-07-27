@@ -4467,13 +4467,7 @@ MacroAssemblerARMCompat::round(FloatRegister input, Register output, Label *bail
     ma_vcmpz(input);
     
     
-    
-    ma_vimm(0.5, ScratchDoubleReg);
-    
-    
     ma_vabs(input, tmp);
-    
-    ma_vadd(ScratchDoubleReg, tmp, tmp);
     as_vmrs(pc);
     ma_b(&handleZero, Assembler::Equal);
     ma_b(&handleNeg, Assembler::Signed);
@@ -4484,6 +4478,13 @@ MacroAssemblerARMCompat::round(FloatRegister input, Register output, Label *bail
     
     
     
+
+    
+    
+    
+    ma_vimm(GetBiggestNumberLessThan(0.5), ScratchDoubleReg);
+    ma_vadd(ScratchDoubleReg, tmp, tmp);
+
     ma_vcvt_F64_U32(tmp, ScratchDoubleReg.uintOverlay());
     ma_vxfer(VFPRegister(ScratchDoubleReg).uintOverlay(), output);
     ma_mov(output, output, SetCond);
@@ -4501,6 +4502,11 @@ MacroAssemblerARMCompat::round(FloatRegister input, Register output, Label *bail
     bind(&handleNeg);
     
     
+
+    
+    ma_vimm(0.5, ScratchDoubleReg);
+    ma_vadd(ScratchDoubleReg, tmp, tmp);
+
     ma_vcvt_F64_U32(tmp, ScratchDoubleReg.uintOverlay());
     ma_vxfer(VFPRegister(ScratchDoubleReg).uintOverlay(), output);
 
@@ -4534,13 +4540,7 @@ MacroAssemblerARMCompat::roundf(FloatRegister input, Register output, Label *bai
     ma_vcmpz_f32(input);
     
     
-    
-    ma_vimm_f32(0.5f, ScratchFloat32Reg);
-    
-    
     ma_vabs_f32(input, tmp);
-    
-    ma_vadd_f32(ScratchFloat32Reg, tmp, tmp);
     as_vmrs(pc);
     ma_b(&handleZero, Assembler::Equal);
     ma_b(&handleNeg, Assembler::Signed);
@@ -4551,6 +4551,13 @@ MacroAssemblerARMCompat::roundf(FloatRegister input, Register output, Label *bai
     
     
     
+
+    
+    
+    
+    ma_vimm_f32(GetBiggestNumberLessThan(0.5f), ScratchFloat32Reg);
+    ma_vadd_f32(ScratchFloat32Reg, tmp, tmp);
+
     ma_vcvt_F32_U32(tmp, ScratchFloat32Reg.uintOverlay());
     ma_vxfer(VFPRegister(ScratchFloat32Reg).uintOverlay(), output);
     ma_mov(output, output, SetCond);
@@ -4566,6 +4573,11 @@ MacroAssemblerARMCompat::roundf(FloatRegister input, Register output, Label *bai
     ma_b(&fin);
 
     bind(&handleNeg);
+
+    
+    ma_vimm_f32(0.5f, ScratchFloat32Reg);
+    ma_vadd_f32(ScratchFloat32Reg, tmp, tmp);
+
     
     
     ma_vcvt_F32_U32(tmp, ScratchFloat32Reg.uintOverlay());
