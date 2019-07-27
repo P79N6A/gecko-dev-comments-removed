@@ -301,12 +301,10 @@ var pktUI = (function() {
             }
            showPanel("chrome://browser/content/pocket/panels/signup.html?pockethost=" + Services.prefs.getCharPref("browser.pocket.site") + "&fxasignedin=" + fxasignedin + "&variant=" + pktApi.getSignupAB(), {
                onShow: function() {
-                    resizePanel({
-                        width: 300,
-                        height: startheight
-                    });
                 },
                onHide: panelDidHide,
+               width: 300,
+               height: startheight
            });
         });
     }
@@ -325,12 +323,6 @@ var pktUI = (function() {
 
         showPanel("chrome://browser/content/pocket/panels/saved.html?pockethost=" + Services.prefs.getCharPref("browser.pocket.site") + "&premiumStatus=" + (pktApi.isPremiumUser() ? '1' : '0'), {
     		onShow: function() {
-                
-                resizePanel({
-                        width: 350,
-                        height: 263
-                });
-
                 
                 if (!isValidURL) {
                     var error = new Error('Only links can be saved');
@@ -369,6 +361,8 @@ var pktUI = (function() {
 				pktApi.addLink(url, options);
 			},
 			onHide: panelDidHide,
+            width: 350,
+            height: 267
     	});
     }
 
@@ -397,6 +391,11 @@ var pktUI = (function() {
     	
     	currentPanelDidShow = options.onShow;
     	currentPanelDidHide = options.onHide;
+
+        resizePanel({
+            width: options.width,
+            height: options.height
+        });
     }
 
     
@@ -411,15 +410,9 @@ var pktUI = (function() {
         var iframe = getPanelFrame();
         iframe.width = options.width;
         iframe.height = options.height;
-        return;
 
     	
     	getPanel().sizeTo(options.width, options.height);
-    	setTimeout(function(){
-    		
-            var height = document.getElementById('pocket-panel-container').clientHeight + 'px';
-	    	getPanelFrame().style.height = height;
-	    },1);
     }
 
     
