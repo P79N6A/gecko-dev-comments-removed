@@ -47,14 +47,16 @@ public class DateTimePicker extends FrameLayout {
     private static final int DEFAULT_END_YEAR = 9999;
     
     private static final int SCREEN_SIZE_THRESHOLD = 5;
-    private boolean mYearEnabled = true;
-    private boolean mMonthEnabled = true;
-    private boolean mWeekEnabled;
-    private boolean mDayEnabled = true;
-    private boolean mHourEnabled = true;
-    private boolean mMinuteEnabled = true;
+
+     boolean mYearEnabled = true;
+     boolean mMonthEnabled = true;
+     boolean mWeekEnabled;
+     boolean mDayEnabled = true;
+     boolean mHourEnabled = true;
+     boolean mMinuteEnabled = true;
+     boolean mIs12HourMode;
     private boolean mCalendarEnabled;
-    private boolean mIs12HourMode;
+
     
     private int mScreenWidth;
     private int mScreenHeight;
@@ -62,13 +64,14 @@ public class DateTimePicker extends FrameLayout {
     private final LinearLayout mPickers;
     private final LinearLayout mDateSpinners;
     private final LinearLayout mTimeSpinners;
-    private final NumberPicker mDaySpinner;
-    private final NumberPicker mMonthSpinner;
-    private final NumberPicker mWeekSpinner;
-    private final NumberPicker mYearSpinner;
-    private final NumberPicker mHourSpinner;
-    private final NumberPicker mMinuteSpinner;
-    private final NumberPicker mAMPMSpinner;
+
+     final NumberPicker mDaySpinner;
+     final NumberPicker mMonthSpinner;
+     final NumberPicker mWeekSpinner;
+     final NumberPicker mYearSpinner;
+     final NumberPicker mHourSpinner;
+     final NumberPicker mMinuteSpinner;
+     final NumberPicker mAMPMSpinner;
     private final CalendarView mCalendar;
     private final EditText mDaySpinnerInput;
     private final EditText mMonthSpinnerInput;
@@ -81,10 +84,11 @@ public class DateTimePicker extends FrameLayout {
     private String[] mShortMonths;
     private String[] mShortAMPMs;
     private int mNumberOfMonths;
-    private Calendar mTempDate;
+
+     Calendar mTempDate;
+     Calendar mCurrentDate;
     private Calendar mMinDate;
     private Calendar mMaxDate;
-    private Calendar mCurrentDate;
     private PickersState mState;
 
     public static enum PickersState { DATE, MONTH, WEEK, TIME, DATETIME };
@@ -406,7 +410,7 @@ public class DateTimePicker extends FrameLayout {
         mDateSpinners.addView(mWeekSpinner);
     }
 
-    private void setDate(Calendar calendar){
+     void setDate(Calendar calendar){
         mCurrentDate = mTempDate;
         if (mCurrentDate.before(mMinDate)) {
             mCurrentDate.setTimeInMillis(mMinDate.getTimeInMillis());
@@ -415,7 +419,7 @@ public class DateTimePicker extends FrameLayout {
         }
     }
 
-    private void updateInputState() {
+     void updateInputState() {
         InputMethodManager inputMethodManager = (InputMethodManager)
           getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
         if (mYearEnabled && inputMethodManager.isActive(mYearSpinnerInput)) {
@@ -436,7 +440,7 @@ public class DateTimePicker extends FrameLayout {
         }
     }
 
-    private void updateSpinners() {
+     void updateSpinners() {
         if (mDayEnabled) {
             if (mCurrentDate.equals(mMinDate)) {
                 mDaySpinner.setMinValue(mCurrentDate.get(Calendar.DAY_OF_MONTH));
@@ -496,13 +500,13 @@ public class DateTimePicker extends FrameLayout {
         }
     }
 
-    private void updateCalendar() {
+     void updateCalendar() {
         if (mCalendarEnabled){
             mCalendar.setDate(mCurrentDate.getTimeInMillis(), false, false);
         }
     }
 
-    private void notifyDateChanged() {
+     void notifyDateChanged() {
         sendAccessibilityEvent(AccessibilityEvent.TYPE_VIEW_SELECTED);
     }
 

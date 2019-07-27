@@ -63,25 +63,26 @@ public class GeckoSwipeRefreshLayout extends ViewGroup {
     private static final float MAX_SWIPE_DISTANCE_FACTOR = .6f;
     private static final int REFRESH_TRIGGER_DISTANCE = 120;
 
-    private SwipeProgressBar mProgressBar; 
-    private View mTarget; 
-    private int mOriginalOffsetTop;
+     SwipeProgressBar mProgressBar; 
+     View mTarget; 
+     int mOriginalOffsetTop;
+     int mFrom;
+     int mMediumAnimationDuration;
+     float mFromPercentage;
+     float mCurrPercentage;
+     int mCurrentTargetOffsetTop;
     private OnRefreshListener mListener;
     private MotionEvent mDownEvent;
-    private int mFrom;
     private boolean mRefreshing;
     private int mTouchSlop;
     private float mDistanceToTriggerSync = -1;
     private float mPrevY;
-    private int mMediumAnimationDuration;
-    private float mFromPercentage;
-    private float mCurrPercentage;
     private int mProgressBarHeight;
-    private int mCurrentTargetOffsetTop;
+
     
     
-    private boolean mReturningToStart;
-    private final DecelerateInterpolator mDecelerateInterpolator;
+     boolean mReturningToStart;
+     final DecelerateInterpolator mDecelerateInterpolator;
     private final AccelerateInterpolator mAccelerateInterpolator;
     private static final int[] LAYOUT_ATTRS = new int[] {
         android.R.attr.enabled
@@ -103,7 +104,7 @@ public class GeckoSwipeRefreshLayout extends ViewGroup {
         }
     };
 
-    private Animation mShrinkTrigger = new Animation() {
+     Animation mShrinkTrigger = new Animation() {
         @Override
         public void applyTransformation(float interpolatedTime, Transformation t) {
             float percent = mFromPercentage + ((0 - mFromPercentage) * interpolatedTime);
@@ -111,7 +112,7 @@ public class GeckoSwipeRefreshLayout extends ViewGroup {
         }
     };
 
-    private final AnimationListener mReturnToStartPositionListener = new BaseAnimationListener() {
+     final AnimationListener mReturnToStartPositionListener = new BaseAnimationListener() {
         @Override
         public void onAnimationEnd(Animation animation) {
             
@@ -120,7 +121,7 @@ public class GeckoSwipeRefreshLayout extends ViewGroup {
         }
     };
 
-    private final AnimationListener mShrinkAnimationListener = new BaseAnimationListener() {
+     final AnimationListener mShrinkAnimationListener = new BaseAnimationListener() {
         @Override
         public void onAnimationEnd(Animation animation) {
             mCurrPercentage = 0;
@@ -213,7 +214,7 @@ public class GeckoSwipeRefreshLayout extends ViewGroup {
         removeCallbacks(mCancel);
     }
 
-    private void animateOffsetToStartPosition(int from, AnimationListener listener) {
+     void animateOffsetToStartPosition(int from, AnimationListener listener) {
         mFrom = from;
         mAnimateToStartPosition.reset();
         mAnimateToStartPosition.setDuration(mMediumAnimationDuration);
@@ -458,7 +459,7 @@ public class GeckoSwipeRefreshLayout extends ViewGroup {
         setTargetOffsetTopAndBottom(targetTop - currentTop);
     }
 
-    private void setTargetOffsetTopAndBottom(int offset) {
+     void setTargetOffsetTopAndBottom(int offset) {
         mTarget.offsetTopAndBottom(offset);
         mCurrentTargetOffsetTop = mTarget.getTop();
     }
