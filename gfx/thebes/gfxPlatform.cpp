@@ -2297,6 +2297,12 @@ gfxPlatform::UsesOffMainThreadCompositing()
     
     result |= gfxPrefs::LayersAccelerationForceEnabled();
 
+#if !defined(NIGHTLY_BUILD)
+    
+    
+    
+    result &= PR_GetEnv("MOZ_USE_OMTC") || PR_GetEnv("MOZ_OMTC_ENABLED");
+#endif
 #endif
     firstTime = false;
   }

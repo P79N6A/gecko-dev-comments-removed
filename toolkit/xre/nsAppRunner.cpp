@@ -3622,7 +3622,23 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
 #ifdef MOZ_X11
   
   
-  XInitThreads();
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+# ifndef NIGHTLY_BUILD
+  if (PR_GetEnv("MOZ_USE_OMTC") ||
+      PR_GetEnv("MOZ_OMTC_ENABLED"))
+# endif
+  {
+    XInitThreads();
+  }
 #endif
 #if defined(MOZ_WIDGET_GTK)
   {
