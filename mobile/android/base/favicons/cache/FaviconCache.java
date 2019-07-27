@@ -101,7 +101,7 @@ public class FaviconCache {
     public final int maxCachedWidth;
 
     
-    public static final long FAILURE_RETRY_MILLISECONDS = 1000 * 60 * 20;
+    public static final long FAILURE_RETRY_MILLISECONDS = 1000 * 60 * 60 * 4;
 
     
     
