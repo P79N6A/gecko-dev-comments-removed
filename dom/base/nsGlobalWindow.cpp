@@ -6070,6 +6070,21 @@ nsGlobalWindow::SetFullScreen(bool aFullScreen)
   return SetFullScreenInternal(aFullScreen, true);
 }
 
+void
+FinishDOMFullscreenChange(nsIDocument* aDoc, bool aInDOMFullscreen)
+{
+  if (aInDOMFullscreen) {
+    
+    nsIDocument::HandlePendingFullscreenRequests(aDoc);
+  } else {
+    
+    
+    
+    
+    nsIDocument::ExitFullscreen(aDoc,  false);
+  }
+}
+
 nsresult
 nsGlobalWindow::SetFullScreenInternal(bool aFullScreen, bool aFullscreenMode,
                                       gfx::VRHMDInfo* aHMD)
@@ -6115,6 +6130,7 @@ nsGlobalWindow::SetFullScreenInternal(bool aFullScreen, bool aFullscreenMode,
     
     
     if (!aFullScreen && mFullscreenMode) {
+      FinishDOMFullscreenChange(mDoc, false);
       return NS_OK;
     }
   }
@@ -6183,21 +6199,11 @@ nsGlobalWindow::FinishFullscreenChange(bool aIsFullscreen)
   
   
   
-  if (mFullScreen) {
-    nsIDocument::HandlePendingFullscreenRequests(mDoc);
-  }
+  FinishDOMFullscreenChange(mDoc, mFullScreen);
 
   
   
   DispatchCustomEvent(NS_LITERAL_STRING("fullscreen"));
-
-  if (!mFullScreen) {
-    
-    
-    
-    
-    nsIDocument::ExitFullscreen(mDoc,  false);
-  }
 
   if (!mWakeLock && mFullScreen) {
     nsRefPtr<power::PowerManagerService> pmService =
