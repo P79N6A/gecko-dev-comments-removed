@@ -76,6 +76,9 @@ public:
   NS_DECL_NSISELECTIONLISTENER
 
   
+  void NotifyBlur();
+
+  
   virtual void ScrollPositionChanged() MOZ_OVERRIDE;
 
   
@@ -86,11 +89,6 @@ public:
   void Terminate();
 
   nsEventStatus HandleEvent(WidgetEvent* aEvent);
-
-  
-
-
-  void SetVisibility(bool aVisible);
 
   bool GetVisibility() const
   {
@@ -110,6 +108,11 @@ private:
   virtual ~SelectionCarets();
 
   SelectionCarets() MOZ_DELETE;
+
+  
+
+
+  void SetVisibility(bool aVisible);
 
   
 
