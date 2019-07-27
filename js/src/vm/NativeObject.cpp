@@ -1393,6 +1393,37 @@ PurgeScopeChain(ExclusiveContext *cx, HandleObject obj, HandleId id)
     return true;
 }
 
+
+
+
+
+static inline bool
+CheckAccessorRedefinition(ExclusiveContext *cx, HandleObject obj, HandleShape shape,
+                          PropertyOp getter, StrictPropertyOp setter, HandleId id, unsigned attrs)
+{
+    MOZ_ASSERT(shape->isAccessorDescriptor());
+    if (shape->configurable() || (getter == shape->getter() && setter == shape->setter()))
+        return true;
+
+    
+
+
+
+
+
+    if ((attrs & JSPROP_REDEFINE_NONCONFIGURABLE) &&
+        obj->is<GlobalObject>() &&
+        !obj->getClass()->isDOMClass())
+    {
+        return true;
+    }
+
+    if (!cx->isJSContext())
+        return false;
+
+    return Throw(cx->asJSContext(), id, JSMSG_CANT_REDEFINE_PROP);
+}
+
 bool
 js::DefineNativeProperty(ExclusiveContext *cx, HandleNativeObject obj, HandleId id, HandleValue value,
                          PropertyOp getter, StrictPropertyOp setter, unsigned attrs)
@@ -1428,6 +1459,8 @@ js::DefineNativeProperty(ExclusiveContext *cx, HandleNativeObject obj, HandleId 
                 shape = obj->lookup(cx, id);
             }
             if (shape->isAccessorDescriptor()) {
+                if (!CheckAccessorRedefinition(cx, obj, shape, getter, setter, id, attrs))
+                    return false;
                 attrs = ApplyOrDefaultAttributes(attrs, shape);
                 shape = NativeObject::changeProperty<SequentialExecution>(cx, obj, shape, attrs,
                                                                           JSPROP_GETTER | JSPROP_SETTER,
@@ -1454,8 +1487,15 @@ js::DefineNativeProperty(ExclusiveContext *cx, HandleNativeObject obj, HandleId 
 
 
         shape = obj->lookup(cx, id);
-        if (shape && shape->isDataDescriptor())
-            attrs = ApplyOrDefaultAttributes(attrs, shape);
+        if (shape) {
+            if (shape->isAccessorDescriptor() &&
+                !CheckAccessorRedefinition(cx, obj, shape, getter, setter, id, attrs))
+            {
+                return false;
+            }
+            if (shape->isDataDescriptor())
+                attrs = ApplyOrDefaultAttributes(attrs, shape);
+        }
     } else {
         
 
@@ -1479,6 +1519,12 @@ js::DefineNativeProperty(ExclusiveContext *cx, HandleNativeObject obj, HandleId 
                 if (!NativeObject::sparsifyDenseElement(cx, obj, JSID_TO_INT(id)))
                     return false;
                 shape = obj->lookup(cx, id);
+            }
+
+            if (shape->isAccessorDescriptor() &&
+                !CheckAccessorRedefinition(cx, obj, shape, getter, setter, id, attrs))
+            {
+                return false;
             }
 
             attrs = ApplyOrDefaultAttributes(attrs, shape);
