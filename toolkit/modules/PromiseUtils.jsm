@@ -23,6 +23,7 @@ this.PromiseUtils = {
 
 
 
+
   resolveOrTimeout : function(promise, delay, rejection)  {
     
     if (!(promise instanceof Promise)) {
