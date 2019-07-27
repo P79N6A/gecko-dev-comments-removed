@@ -36,16 +36,10 @@ function goOnline(callback) {
 function openPanel(url, panelCallback, loadCallback) {
   
   SocialFlyout.open(url, 0, panelCallback);
-  
-  
-  
-  waitForCondition(function() {
-                    return SocialFlyout.panel.state == "open" &&
-                           SocialFlyout.iframe.contentDocument.readyState == "complete";
-                   },
-                   loadCallback,
-                   "flyout is open and loaded");
-
+  SocialFlyout.panel.firstChild.addEventListener("load", function panelLoad() {
+    SocialFlyout.panel.firstChild.removeEventListener("load", panelLoad, true);
+    loadCallback();
+  }, true);
 }
 
 function openChat(url, panelCallback, loadCallback) {
@@ -190,10 +184,6 @@ var tests = {
     let url = "https://example.com/browser/browser/base/content/test/social/social_chat.html";
     let panelCallbackCount = 0;
     
-    
-    let port = SocialSidebar.provider.getWorkerPort();
-    port.postMessage({topic: "test-init"});
-    
     openChat(
       url,
       null,
@@ -210,7 +200,6 @@ var tests = {
               waitForCondition(function() chat.contentDocument.location.href.indexOf("about:socialerror?")==0,
                                function() {
                                 chat.close();
-                                port.close();
                                 next();
                                 },
                                "error page didn't appear");
