@@ -97,7 +97,6 @@ public:
 
   virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
-  UserFontSet* EnsureUserFontSet(nsPresContext* aPresContext);
   UserFontSet* GetUserFontSet() { return mUserFontSet; }
 
   
