@@ -347,6 +347,13 @@ public:
 
 
 
+
+    virtual void PaintSelectionDecorationLine(Rect aPath, nscolor aColor) { }
+
+    
+
+
+
     virtual void NotifyBeforeText(nscolor aColor) { }
 
     
