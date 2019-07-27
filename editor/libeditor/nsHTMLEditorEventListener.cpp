@@ -72,6 +72,11 @@ nsresult
 nsHTMLEditorEventListener::MouseDown(nsIDOMMouseEvent* aMouseEvent)
 {
   nsHTMLEditor* htmlEditor = GetHTMLEditor();
+  
+  
+  if (!htmlEditor->IsAcceptableInputEvent(aMouseEvent)) {
+    return NS_OK;
+  }
 
   
   
@@ -92,11 +97,6 @@ nsHTMLEditorEventListener::MouseDown(nsIDOMMouseEvent* aMouseEvent)
   NS_ENSURE_SUCCESS(rv, rv);
   NS_ENSURE_TRUE(target, NS_ERROR_NULL_POINTER);
   nsCOMPtr<nsIDOMElement> element = do_QueryInterface(target);
-
-  
-  if (element && !htmlEditor->IsDescendantOfEditorRoot(element)) {
-    return NS_OK;
-  }
 
   if (isContextClick || (buttonNumber == 0 && clickCount == 2)) {
     nsCOMPtr<nsISelection> selection;
