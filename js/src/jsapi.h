@@ -3233,13 +3233,6 @@ JS_DeleteElement2(JSContext *cx, JS::HandleObject obj, uint32_t index, bool *suc
 
 
 JS_PUBLIC_API(void)
-JS_ClearNonGlobalObject(JSContext *cx, JS::HandleObject obj);
-
-
-
-
-
-JS_PUBLIC_API(void)
 JS_SetAllNonReservedSlotsToUndefined(JSContext *cx, JSObject *objArg);
 
 
