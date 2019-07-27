@@ -137,7 +137,7 @@ GetEntryDocument()
   
   
   
-  if (!entryWin) {
+  if (!entryWin && global) {
     entryWin = xpc::AddonWindowOrNull(global->GetGlobalJSObject());
   }
 
