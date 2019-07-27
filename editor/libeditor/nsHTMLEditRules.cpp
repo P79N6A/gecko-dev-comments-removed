@@ -451,6 +451,7 @@ nsHTMLEditRules::AfterEditInner(EditAction action,
     
     
     
+    
     if ((action == EditAction::deleteSelection) && mDidRangedDelete)
     {
       res = InsertBRIfNeeded(selection);
@@ -2044,6 +2045,10 @@ nsHTMLEditRules::WillDeleteSelection(Selection* aSelection,
       NS_ENSURE_SUCCESS(res, res);
       res = InsertBRIfNeeded(aSelection);
       NS_ENSURE_SUCCESS(res, res);
+
+      
+      
+      mDidRangedDelete = true;
 
       return NS_OK;
     }
