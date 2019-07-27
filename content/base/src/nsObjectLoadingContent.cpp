@@ -185,39 +185,49 @@ CheckPluginStopEvent::Run()
     return NS_OK;
   }
 
+  
+  
+  
+  
+
   nsCOMPtr<nsIContent> content =
     do_QueryInterface(static_cast<nsIImageLoadingContent *>(objLC));
   if (!InActiveDocument(content)) {
-    
     LOG(("OBJLC [%p]: Unloading plugin outside of document", this));
-    objLC->UnloadObject();
+    objLC->StopPluginInstance();
     return NS_OK;
   }
 
-  if (!content->GetPrimaryFrame()) {
-    LOG(("OBJLC [%p]: CheckPluginStopEvent - No frame, flushing layout", this));
-    nsIDocument* currentDoc = content->GetCurrentDoc();
-    if (currentDoc) {
-      currentDoc->FlushPendingNotifications(Flush_Layout);
-      if (objLC->mPendingCheckPluginStopEvent != this) {
-        LOG(("OBJLC [%p]: CheckPluginStopEvent - superseded in layout flush",
-             this));
-        return NS_OK;
-      } else if (content->GetPrimaryFrame()) {
-        LOG(("OBJLC [%p]: CheckPluginStopEvent - frame gained in layout flush",
-             this));
-        objLC->mPendingCheckPluginStopEvent = nullptr;
-        return NS_OK;
-      }
-    }
-    
-    
-    LOG(("OBJLC [%p]: Stopping plugin that lost frame", this));
-    
-    objLC->StopPluginInstance();
+  if (content->GetPrimaryFrame()) {
+    LOG(("OBJLC [%p]: CheckPluginStopEvent - in active document with frame"
+         ", no action", this));
+    objLC->mPendingCheckPluginStopEvent = nullptr;
+    return NS_OK;
   }
 
-  objLC->mPendingCheckPluginStopEvent = nullptr;
+  
+  
+  LOG(("OBJLC [%p]: CheckPluginStopEvent - No frame, flushing layout", this));
+  nsIDocument* currentDoc = content->GetCurrentDoc();
+  if (currentDoc) {
+    currentDoc->FlushPendingNotifications(Flush_Layout);
+    if (objLC->mPendingCheckPluginStopEvent != this) {
+      LOG(("OBJLC [%p]: CheckPluginStopEvent - superseded in layout flush",
+           this));
+      return NS_OK;
+    } else if (content->GetPrimaryFrame()) {
+      LOG(("OBJLC [%p]: CheckPluginStopEvent - frame gained in layout flush",
+           this));
+      objLC->mPendingCheckPluginStopEvent = nullptr;
+      return NS_OK;
+    }
+  }
+
+  
+  
+  LOG(("OBJLC [%p]: Stopping plugin that lost frame", this));
+  objLC->StopPluginInstance();
+
   return NS_OK;
 }
 
@@ -914,8 +924,9 @@ nsObjectLoadingContent::NotifyOwnerDocumentActivityChanged()
 
   
   
-  if (mInstanceOwner || mInstantiating)
+  if (mInstanceOwner || mInstantiating) {
     QueueCheckPluginStopEvent();
+  }
 }
 
 
@@ -2415,7 +2426,9 @@ nsObjectLoadingContent::DestroyContent()
     mFrameLoader = nullptr;
   }
 
-  QueueCheckPluginStopEvent();
+  if (mInstanceOwner || mInstantiating) {
+    QueueCheckPluginStopEvent();
+  }
 }
 
 
