@@ -70,6 +70,15 @@ class WorkerThread;
 
 
 
+enum WorkerType
+{
+  WorkerTypeDedicated,
+  WorkerTypeShared,
+  WorkerTypeService
+};
+
+
+
 
 class SharedMutex
 {

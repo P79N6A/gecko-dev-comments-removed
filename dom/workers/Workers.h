@@ -42,17 +42,6 @@ namespace mozilla {
 namespace ipc {
 class PrincipalInfo;
 }
-
-namespace dom {
-
-
-enum WorkerType
-{
-  WorkerTypeDedicated,
-  WorkerTypeShared,
-  WorkerTypeService
-};
-}
 }
 
 BEGIN_WORKERS_NAMESPACE
