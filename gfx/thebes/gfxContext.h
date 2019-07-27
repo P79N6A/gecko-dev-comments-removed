@@ -28,6 +28,8 @@ struct RectCornerRadii;
 }
 }
 
+class ClipExporter;
+
 
 
 
@@ -457,6 +459,11 @@ public:
 
     bool ClipContainsRect(const gfxRect& aRect);
 
+     
+
+
+    bool ExportClip(ClipExporter& aExporter);
+
     
 
 
@@ -726,6 +733,14 @@ private:
 
   gfxContext *mContext;
   mozilla::gfx::Pattern *mPattern;
+};
+
+
+
+class ClipExporter : public mozilla::gfx::PathSink {
+public:
+  virtual void BeginClip(const mozilla::gfx::Matrix& aMatrix) = 0;
+  virtual void EndClip() = 0;
 };
 
 #endif 
