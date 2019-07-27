@@ -3214,13 +3214,25 @@ GetLargestLineMainSize(const FlexLine* aFirstLine)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 static nscoord
-ClampFlexContainerMainSize(const nsHTMLReflowState& aReflowState,
-                           const FlexboxAxisTracker& aAxisTracker,
-                           nscoord aUnclampedMainSize,
-                           nscoord aAvailableBSizeForContent,
-                           const FlexLine* aFirstLine,
-                           nsReflowStatus& aStatus)
+ResolveFlexContainerMainSize(const nsHTMLReflowState& aReflowState,
+                             const FlexboxAxisTracker& aAxisTracker,
+                             nscoord aTentativeMainSize,
+                             nscoord aAvailableBSizeForContent,
+                             const FlexLine* aFirstLine,
+                             nsReflowStatus& aStatus)
 {
   MOZ_ASSERT(aFirstLine, "null first line pointer");
 
@@ -3228,18 +3240,18 @@ ClampFlexContainerMainSize(const nsHTMLReflowState& aReflowState,
     
     
     
-    return aUnclampedMainSize;
+    return aTentativeMainSize;
   }
 
-  if (aUnclampedMainSize != NS_INTRINSICSIZE) {
+  if (aTentativeMainSize != NS_INTRINSICSIZE) {
     
     if (aAvailableBSizeForContent == NS_UNCONSTRAINEDSIZE ||
-        aUnclampedMainSize < aAvailableBSizeForContent) {
+        aTentativeMainSize < aAvailableBSizeForContent) {
       
       
       
       
-      return aUnclampedMainSize;
+      return aTentativeMainSize;
     }
 
     
@@ -3255,7 +3267,7 @@ ClampFlexContainerMainSize(const nsHTMLReflowState& aReflowState,
     if (largestLineOuterSize <= aAvailableBSizeForContent) {
       return aAvailableBSizeForContent;
     }
-    return std::min(aUnclampedMainSize, largestLineOuterSize);
+    return std::min(aTentativeMainSize, largestLineOuterSize);
   }
 
   
@@ -3618,9 +3630,9 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
                     aStruts, aAxisTracker, lines);
 
   aContentBoxMainSize =
-    ClampFlexContainerMainSize(aReflowState, aAxisTracker,
-                               aContentBoxMainSize, aAvailableBSizeForContent,
-                               lines.getFirst(), aStatus);
+    ResolveFlexContainerMainSize(aReflowState, aAxisTracker,
+                                 aContentBoxMainSize, aAvailableBSizeForContent,
+                                 lines.getFirst(), aStatus);
 
   for (FlexLine* line = lines.getFirst(); line; line = line->getNext()) {
     line->ResolveFlexibleLengths(aContentBoxMainSize);
