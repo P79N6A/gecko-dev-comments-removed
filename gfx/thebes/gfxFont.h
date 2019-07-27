@@ -1441,7 +1441,11 @@ public:
                                       
                                       
     };
-    virtual const gfxFont::Metrics& GetMetrics() = 0;
+
+    const Metrics& GetMetrics()
+    {
+        return GetHorizontalMetrics();
+    }
 
     
 
@@ -1735,6 +1739,8 @@ public:
     GetSubSuperscriptFont(int32_t aAppUnitsPerDevPixel);
 
 protected:
+    virtual const Metrics& GetHorizontalMetrics() = 0;
+
     
     
     
@@ -1988,7 +1994,7 @@ protected:
 
     
     
-    void SanitizeMetrics(gfxFont::Metrics *aMetrics, bool aIsBadUnderlineFont);
+    void SanitizeMetrics(Metrics *aMetrics, bool aIsBadUnderlineFont);
 
     bool RenderSVGGlyph(gfxContext *aContext, gfxPoint aPoint, DrawMode aDrawMode,
                         uint32_t aGlyphId, gfxTextContextPaint *aContextPaint) const;
