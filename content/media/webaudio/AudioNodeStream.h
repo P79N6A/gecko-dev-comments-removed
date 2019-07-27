@@ -142,8 +142,8 @@ public:
 
 
 
-  double TimeFromDestinationTime(AudioNodeStream* aDestination,
-                                 double aSeconds);
+  double FractionalTicksFromDestinationTime(AudioNodeStream* aDestination,
+                                            double aSeconds);
   
 
 
