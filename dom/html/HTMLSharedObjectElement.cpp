@@ -62,6 +62,9 @@ HTMLSharedObjectElement::SetItemValueText(const nsAString& aValue)
 
 HTMLSharedObjectElement::~HTMLSharedObjectElement()
 {
+#ifdef XP_MACOSX
+  HTMLObjectElement::OnFocusBlurPlugin(this, false);
+#endif
   UnregisterActivityObserver();
   DestroyImageLoadingContent();
 }
@@ -159,6 +162,14 @@ void
 HTMLSharedObjectElement::UnbindFromTree(bool aDeep,
                                         bool aNullParent)
 {
+#ifdef XP_MACOSX
+  
+  
+  
+  
+  
+  HTMLObjectElement::OnFocusBlurPlugin(this, false);
+#endif
   nsObjectLoadingContent::UnbindFromTree(aDeep, aNullParent);
   nsGenericHTMLElement::UnbindFromTree(aDeep, aNullParent);
 }
