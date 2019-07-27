@@ -31,7 +31,7 @@ private:
   
   void NoticeProxyDestruction() { mProxy = 0; }
 
-  nsWeakReference* mProxy;
+  nsWeakReference* MOZ_WEAK_REF mProxy;
 
 protected:
 

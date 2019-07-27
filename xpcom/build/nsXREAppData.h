@@ -7,6 +7,7 @@
 #define nsXREAppData_h
 
 #include <stdint.h>
+#include "mozilla/Attributes.h"
 
 class nsIFile;
 
@@ -30,7 +31,7 @@ struct nsXREAppData
 
 
 
-  nsIFile* directory;
+  nsIFile* MOZ_WEAK_REF directory;
 
   
 
@@ -92,7 +93,7 @@ struct nsXREAppData
 
 
 
-  nsIFile* xreDirectory;
+  nsIFile* MOZ_WEAK_REF xreDirectory;
 
   
 
