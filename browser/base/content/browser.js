@@ -6486,8 +6486,13 @@ var gIdentityHandler = {
     }
 
     
-    if (state & nsIWebProgressListener.STATE_BLOCKED_MIXED_ACTIVE_CONTENT)
+    
+    
+    if (state &
+        (nsIWebProgressListener.STATE_BLOCKED_MIXED_ACTIVE_CONTENT |
+         nsIWebProgressListener.STATE_LOADED_MIXED_ACTIVE_CONTENT)) {
       this.showBadContentDoorhanger(state);
+    }
   },
 
   showBadContentDoorhanger : function(state) {
@@ -6505,9 +6510,15 @@ var gIdentityHandler = {
       state: state
     };
 
+    
+    let iconState = "bad-content-blocked-notification-icon";
+
+    if (state & Ci.nsIWebProgressListener.STATE_LOADED_MIXED_ACTIVE_CONTENT) {
+      iconState = "bad-content-unblocked-notification-icon";
+    }
+
     PopupNotifications.show(gBrowser.selectedBrowser, "bad-content",
-                            "", "bad-content-blocked-notification-icon",
-                            null, null, options);
+                            "", iconState, null, null, options);
   },
 
   
