@@ -11,7 +11,6 @@
 #include "AudioBufferUtils.h"
 #include "AudioMixer.h"
 #include "AudioSegment.h"
-#include "mozilla/Atomics.h"
 
 struct cubeb_stream;
 
@@ -199,8 +198,6 @@ public:
     return mGraphImpl;
   }
 
-  virtual bool OnThread() = 0;
-
 protected:
   
   GraphTime mIterationStart;
@@ -228,6 +225,8 @@ protected:
   };
   WaitState mWaitState;
 
+  
+  bool mNeedAnotherIteration;
   TimeStamp mCurrentTimeStamp;
   
   
@@ -263,9 +262,6 @@ public:
   uint32_t IterationDuration() {
     return MEDIA_GRAPH_TARGET_PERIOD_MS;
   }
-
-  virtual bool OnThread() MOZ_OVERRIDE { return !mThread || NS_GetCurrentThread() == mThread; }
-
 protected:
   nsCOMPtr<nsIThread> mThread;
 };
@@ -388,8 +384,6 @@ public:
 
   bool InCallback();
 
-  virtual bool OnThread() MOZ_OVERRIDE { return !mStarted || InCallback(); }
-
   
 
   bool IsStarted();
@@ -455,7 +449,8 @@ private:
 
   nsCOMPtr<nsIThread> mInitShutdownThread;
   dom::AudioChannel mAudioChannel;
-  Atomic<bool> mInCallback;
+  
+  bool mInCallback;
   
 
 

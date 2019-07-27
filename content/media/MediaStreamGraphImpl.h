@@ -150,12 +150,6 @@ public:
   void Init();
   
   
-  void AssertOnGraphThreadOrNotRunning() {
-    
-    
-    MOZ_ASSERT(mDriver->OnThread() ||
-               (mLifecycleState > LIFECYCLE_RUNNING && NS_IsMainThread()));
-  }
   
 
 
@@ -420,16 +414,7 @@ public:
   void PausedIndefinitly();
   void ResumedFromPaused();
 
-  
-
-
   GraphDriver* CurrentDriver() {
-#ifdef DEBUG
-    
-    if (mDriver->OnThread()) {
-      mMonitor.AssertCurrentThreadOwns();
-    }
-#endif
     return mDriver;
   }
 
@@ -439,35 +424,12 @@ public:
 
 
 
-
-
   void SetCurrentDriver(GraphDriver* aDriver) {
-#ifdef DEBUG
-    
-    if (mDriver->OnThread()) {
-      mMonitor.AssertCurrentThreadOwns();
-    }
-#endif
     mDriver = aDriver;
   }
 
   Monitor& GetMonitor() {
     return mMonitor;
-  }
-
-  void EnsureNextIteration() {
-    mNeedAnotherIteration = true; 
-    if (mGraphDriverAsleep) { 
-      MonitorAutoLock mon(mMonitor);
-      CurrentDriver()->WakeUp(); 
-    }
-  }
-
-  void EnsureNextIterationLocked() {
-    mNeedAnotherIteration = true; 
-    if (mGraphDriverAsleep) { 
-      CurrentDriver()->WakeUp(); 
-    }
   }
 
   
@@ -508,11 +470,6 @@ public:
 
 
   int32_t mPortCount;
-
-  
-  Atomic<bool> mNeedAnotherIteration;
-  
-  Atomic<bool> mGraphDriverAsleep;
 
   
   
@@ -602,6 +559,10 @@ public:
 
 
   TrackRate mSampleRate;
+  
+
+
+  bool mNeedAnotherIteration;
   
 
 
