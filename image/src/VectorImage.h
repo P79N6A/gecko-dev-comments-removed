@@ -3,8 +3,8 @@
 
 
 
-#ifndef mozilla_imagelib_VectorImage_h_
-#define mozilla_imagelib_VectorImage_h_
+#ifndef mozilla_image_src_VectorImage_h
+#define mozilla_image_src_VectorImage_h
 
 #include "Image.h"
 #include "nsIStreamListener.h"
@@ -41,7 +41,8 @@ public:
   nsresult Init(const char* aMimeType,
                 uint32_t aFlags) override;
 
-  virtual size_t SizeOfSourceWithComputedFallback(MallocSizeOf aMallocSizeOf) const override;
+  virtual size_t SizeOfSourceWithComputedFallback(MallocSizeOf aMallocSizeOf)
+    const override;
   virtual size_t SizeOfDecoded(gfxMemoryLocation aLocation,
                                MallocSizeOf aMallocSizeOf) const override;
 
@@ -108,6 +109,7 @@ private:
   bool           mIsInitialized;          
   bool           mDiscardable;            
   bool           mIsFullyLoaded;          
+                                          
   bool           mIsDrawing;              
   bool           mHaveAnimations;         
                                           
@@ -120,7 +122,7 @@ private:
   friend class ImageFactory;
 };
 
-inline NS_IMETHODIMP VectorImage::GetAnimationMode(uint16_t *aAnimationMode) {
+inline NS_IMETHODIMP VectorImage::GetAnimationMode(uint16_t* aAnimationMode) {
   return GetAnimationModeInternal(aAnimationMode);
 }
 
