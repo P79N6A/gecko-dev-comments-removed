@@ -114,7 +114,9 @@ private:
   nsTArray<nsRefPtr<GMPParent>> mAsyncShutdownPlugins; 
   nsCOMPtr<nsITimer> mAsyncShutdownTimeout; 
 
+#ifndef MOZ_WIDGET_GONK
   nsCOMPtr<nsIFile> mStorageBaseDir;
+#endif
 
   
   
