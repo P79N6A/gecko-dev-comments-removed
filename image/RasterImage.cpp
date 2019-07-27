@@ -1199,7 +1199,8 @@ RasterImage::OnImageDataComplete(nsIRequest*, nsISupports*, nsresult aStatus,
   
   
   
-  bool canSyncSizeDecode = mSyncLoad || DecodePool::NumberOfCores() < 2;
+  bool canSyncSizeDecode = mSyncLoad || mTransient ||
+                           DecodePool::NumberOfCores() < 2;
 
   if (canSyncSizeDecode && !mHasSize) {
     
