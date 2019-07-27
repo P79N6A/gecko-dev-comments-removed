@@ -1814,6 +1814,10 @@ IsValidPresentedDNSID(Input hostname)
 
 namespace {
 
+
+
+
+
 bool
 IsValidDNSID(Input hostname, IDRole idRole, AllowWildcards allowWildcards)
 {
@@ -1908,6 +1912,9 @@ IsValidDNSID(Input hostname, IDRole idRole, AllowWildcards allowWildcards)
       case 'k': case 'K': case 'x': case 'X':
       case 'l': case 'L': case 'y': case 'Y':
       case 'm': case 'M': case 'z': case 'Z':
+      
+      
+      case '_':
         labelIsAllNumeric = false;
         labelEndsWithHyphen = false;
         ++labelLength;

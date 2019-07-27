@@ -86,6 +86,27 @@ static const PresentedMatchesReference DNSID_MATCH_PARAMS[] =
   DNS_ID_MISMATCH("*.b.a", "b.a."),
 
   
+  DNS_ID_MATCH("a_b", "a_b"),
+  DNS_ID_MATCH("*.example.com", "uses_underscore.example.com"),
+  DNS_ID_MATCH("*.uses_underscore.example.com", "a.uses_underscore.example.com"),
+
+  
+  DNS_ID_MATCH("_.example.com", "_.example.com"),
+  DNS_ID_MATCH("*.example.com", "_.example.com"),
+  DNS_ID_MATCH("_", "_"),
+  DNS_ID_MATCH("___", "___"),
+  DNS_ID_MATCH("example_", "example_"),
+  DNS_ID_MATCH("_example", "_example"),
+  DNS_ID_MATCH("*._._", "x._._"),
+
+  
+  
+  
+  DNS_ID_MATCH("_1", "_1"),
+  DNS_ID_MATCH("example._1", "example._1"),
+  DNS_ID_MATCH("example.1_", "example.1_"),
+
+  
   DNS_ID_MATCH("d.c.b.a", "d.c.b.a"),
   DNS_ID_BAD_DER("d.*.b.a", "d.c.b.a"),
   DNS_ID_BAD_DER("d.c*.b.a", "d.c.b.a"),
@@ -385,6 +406,16 @@ static const InputValidity DNSNAMES_VALIDITY[] =
   I("A.B.C.D.E.F.G.H.I.J.K.L.M.N.O.P.Q.R.S.T.U.V.W.X.Y.Z", true, true),
   I("0.1.2.3.4.5.6.7.8.9.a", true, true), 
   I("a-b", true, true), 
+
+  
+  I("a_b", true, true),
+  
+  I("_", true, true),
+  I("a_", true, true),
+  I("_a", true, true),
+  I("_1", true, true),
+  I("1_", true, true),
+  I("___", true, true),
 
   
   I("!", false, false),
@@ -1389,6 +1420,14 @@ static const CheckCertHostnameParams CHECK_CERT_HOSTNAME_PARAMS[] =
   
   WITHOUT_SAN("example.com", RDN(CN("")), Result::ERROR_BAD_CERT_DOMAIN),
 
+  WITHOUT_SAN("uses_underscore.example.com", RDN(CN("*.example.com")), Success),
+  WITHOUT_SAN("a.uses_underscore.example.com",
+              RDN(CN("*.uses_underscore.example.com")), Success),
+  WITH_SAN("uses_underscore.example.com", RDN(CN("foo")),
+           DNSName("*.example.com"), Success),
+  WITH_SAN("a.uses_underscore.example.com", RDN(CN("foo")),
+           DNSName("*.uses_underscore.example.com"), Success),
+
   
   WITH_SAN("example.com", RDN(CN("foo")), IPAddress(example_com),
            Result::ERROR_BAD_CERT_DOMAIN),
@@ -2324,6 +2363,34 @@ static const NameConstraintParams NAME_CONSTRAINT_PARAMS[] =
     GeneralSubtree(RFC822Name(".example.com")),
     Result::ERROR_BAD_DER,
     Result::ERROR_BAD_DER
+  },
+
+  
+  
+  
+  { ByteString(), DNSName("uses_underscore.example.com"),
+    GeneralSubtree(DNSName("uses_underscore.example.com")),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { ByteString(), DNSName("uses_underscore.example.com"),
+    GeneralSubtree(DNSName("example.com")),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { ByteString(), DNSName("a.uses_underscore.example.com"),
+    GeneralSubtree(DNSName("uses_underscore.example.com")),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { ByteString(), RFC822Name("a@uses_underscore.example.com"),
+    GeneralSubtree(RFC822Name("uses_underscore.example.com")),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { ByteString(), RFC822Name("uses_underscore@example.com"),
+    GeneralSubtree(RFC822Name("example.com")),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { ByteString(), RFC822Name("a@a.uses_underscore.example.com"),
+    GeneralSubtree(RFC822Name(".uses_underscore.example.com")),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
   },
 };
 
