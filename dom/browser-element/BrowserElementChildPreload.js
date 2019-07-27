@@ -172,12 +172,6 @@ BrowserElementChild.prototype = {
                       true,
                       false);
 
-    addEventListener('touchcarettap',
-                     this._touchCaretTapHandler.bind(this),
-                      true,
-                      false);
-
-
     
     
     
@@ -575,11 +569,6 @@ BrowserElementChild.prototype = {
     }
 
     sendAsyncMsg('metachange', meta);
-  },
-
-  _touchCaretTapHandler: function(e) {
-    e.stopPropagation();
-    sendAsyncMsg('touchcarettap');
   },
 
   _ScrollViewChangeHandler: function(e) {
