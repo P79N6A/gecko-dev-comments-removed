@@ -17,6 +17,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
+import org.mozilla.gecko.util.HardwareUtils;
 
 
 
@@ -83,28 +84,29 @@ public abstract class AnchoredPopup extends PopupWindow {
         }
 
         
+        int offsetY = mContext.getResources().getDimensionPixelOffset(R.dimen.doorhanger_offsetY);
+        final View decorView = ((Activity) mContext).getWindow().getDecorView();
+
         
-        if (mAnchor == null || anchorLocation[1] < 0) {
-            final View decorView = ((Activity) mContext).getWindow().getDecorView();
-
-            
-            
-            if (Versions.preHC) {
-                setWidth(decorView.getWidth());
-                setHeight(decorView.getHeight());
+        
+        
+        if (Versions.preHC) {
+            setWidth(decorView.getWidth());
+            offsetY = mContext.getResources().getDimensionPixelOffset(R.dimen.doorhanger_GB_offsetY);
+            if (mAnchor == null) {
+              mAnchor = decorView;
             }
-
-            showAtLocation(decorView, Gravity.NO_GRAVITY, anchorLocation[0], 0);
+            showAsDropDown(mAnchor, 0, -offsetY);
             return;
         }
 
         
-        int offsetX = mContext.getResources().getDimensionPixelOffset(R.dimen.doorhanger_offsetX);
-        int offsetY = mContext.getResources().getDimensionPixelOffset(R.dimen.doorhanger_offsetY);
-        if (isShowing()) {
-            update(mAnchor, offsetX, -offsetY, -1, -1);
-        } else {
-            showAsDropDown(mAnchor, offsetX, -offsetY);
+        
+        if (mAnchor == null || anchorLocation[1] < 0) {
+            showAtLocation(decorView, Gravity.NO_GRAVITY, 0, offsetY);
+            return;
         }
+
+        showAtLocation(mAnchor, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, offsetY);
     }
 }
