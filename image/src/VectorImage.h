@@ -85,6 +85,13 @@ protected:
   void Show(gfxDrawable* aDrawable, const SVGDrawingParameters& aParams);
 
 private:
+  
+
+
+
+
+  void RecoverFromLossOfSurfaces();
+
   void CancelAllListeners();
   void SendInvalidationNotifications();
 
