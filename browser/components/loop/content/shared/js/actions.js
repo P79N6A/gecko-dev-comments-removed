@@ -361,7 +361,9 @@ loop.shared.actions = (function() {
 
 
     RoomFailure: Action.define("roomFailure", {
-      error: Object
+      error: Object,
+      
+      failedJoinRequest: Boolean
     }),
 
     
