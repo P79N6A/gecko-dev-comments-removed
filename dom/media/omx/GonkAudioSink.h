@@ -17,8 +17,8 @@
 
 
 
-#ifndef AUDIO_SINK_H_
-#define AUDIO_SINK_H_
+#ifndef GONK_AUDIO_SINK_H_
+#define GONK_AUDIO_SINK_H_
 
 #include <utils/Errors.h>
 #include <utils/String8.h>
@@ -39,7 +39,7 @@ namespace mozilla {
 
 
 
-class AudioSink : public android::RefBase
+class GonkAudioSink : public android::RefBase
 {
   typedef android::String8 String8;
   typedef android::status_t status_t;
@@ -54,12 +54,12 @@ public:
   };
 
   
-  typedef size_t (*AudioCallback)(AudioSink* aAudioSink,
+  typedef size_t (*AudioCallback)(GonkAudioSink* aAudioSink,
                                   void* aBuffer,
                                   size_t aSize,
                                   void* aCookie,
                                   cb_event_t aEvent);
-  virtual ~AudioSink() {}
+  virtual ~GonkAudioSink() {}
   virtual ssize_t FrameSize() const = 0;
   virtual status_t GetPosition(uint32_t* aPosition) const = 0;
   virtual status_t SetVolume(float aVolume) const = 0;

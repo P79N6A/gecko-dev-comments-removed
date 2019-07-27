@@ -24,7 +24,7 @@
 #include <utils/Mutex.h>
 #include <AudioTrack.h>
 
-#include "AudioSink.h"
+#include "GonkAudioSink.h"
 
 namespace mozilla {
 
@@ -34,7 +34,7 @@ namespace mozilla {
 
 
 
-class AudioOutput : public AudioSink
+class AudioOutput : public GonkAudioSink
 {
   typedef android::Mutex Mutex;
   typedef android::String8 String8;

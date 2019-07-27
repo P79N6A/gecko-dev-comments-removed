@@ -170,7 +170,7 @@ private:
   
   
   
-  android::sp<AudioSink> mAudioSink;
+  android::sp<GonkAudioSink> mAudioSink;
 
   
   MediaBuffer* mInputBuffer;
@@ -204,11 +204,11 @@ private:
   size_t FillBuffer(void *aData, size_t aSize);
 
   
-  static size_t AudioSinkCallback(AudioSink *aAudioSink,
+  static size_t AudioSinkCallback(GonkAudioSink *aAudioSink,
                                   void *aData,
                                   size_t aSize,
                                   void *aMe,
-                                  AudioSink::cb_event_t aEvent);
+                                  GonkAudioSink::cb_event_t aEvent);
 
   bool IsSeeking();
 
@@ -255,7 +255,7 @@ private:
   void NotifyAudioTearDown();
 
   
-  void SendMetaDataToHal(android::sp<AudioSink>& aSink,
+  void SendMetaDataToHal(android::sp<GonkAudioSink>& aSink,
                          const android::sp<MetaData>& aMeta);
 
   AudioOffloadPlayer(const AudioOffloadPlayer &);
