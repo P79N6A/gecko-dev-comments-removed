@@ -4,6 +4,9 @@
 
 "use strict";
 
+
+const PHONE_NUMBER_CONTAINERS = "td,div";
+
 var SelectionHandler = {
   HANDLE_TYPE_START: "START",
   HANDLE_TYPE_MIDDLE: "MIDDLE",
@@ -317,42 +320,6 @@ var SelectionHandler = {
       return false;
     }
 
-    if (this._isPhoneNumber(selection.toString())) {
-      let anchorNode = selection.anchorNode;
-      let anchorOffset = selection.anchorOffset;
-      let focusNode = null;
-      let focusOffset = null;
-      while (this._isPhoneNumber(selection.toString().trim())) {
-        focusNode = selection.focusNode;
-        focusOffset = selection.focusOffset;
-        selection.modify("extend", "forward", "word");
-        
-        if (focusNode == selection.focusNode && focusOffset == selection.focusOffset) {
-          break;
-        }
-      }
-
-      
-      selection.collapse(focusNode, focusOffset);
-      selection.extend(anchorNode, anchorOffset);
-
-      anchorNode = focusNode;
-      anchorOffset = focusOffset
-
-      while (this._isPhoneNumber(selection.toString().trim())) {
-        focusNode = selection.focusNode;
-        focusOffset = selection.focusOffset;
-        selection.modify("extend", "backward", "word");
-        
-        if (focusNode == selection.focusNode && focusOffset == selection.focusOffset) {
-          break;
-        }
-      }
-
-      selection.collapse(focusNode, focusOffset);
-      selection.extend(anchorNode, anchorOffset);
-    }
-
     
     selection.QueryInterface(Ci.nsISelectionPrivate).addSelectionListener(this);
     this._activeType = this.TYPE_SELECTION;
@@ -389,7 +356,16 @@ var SelectionHandler = {
     if (aOptions.mode == this.SELECT_AT_POINT) {
       
       this._contentWindow.getSelection().removeAllRanges();
-      return this._domWinUtils.selectAtPoint(aOptions.x, aOptions.y, Ci.nsIDOMWindowUtils.SELECT_WORDNOSPACE);
+      if (!this._domWinUtils.selectAtPoint(aOptions.x, aOptions.y, Ci.nsIDOMWindowUtils.SELECT_WORDNOSPACE)) {
+        return false;
+      }
+
+      
+      if (this._isPhoneNumber(this._getSelection().toString())) {
+        this._selectSmartPhoneNumber();
+      }
+
+      return true;
     }
 
     if (aOptions.mode != this.SELECT_ALL) {
@@ -427,6 +403,71 @@ var SelectionHandler = {
     }
 
     return true;
+  },
+
+  
+
+
+
+  _selectSmartPhoneNumber: function() {
+    this._extendPhoneNumberSelection("forward");
+    this._reversePhoneNumberSelectionDir();
+
+    this._extendPhoneNumberSelection("backward");
+    this._reversePhoneNumberSelectionDir();
+  },
+
+  
+
+
+  _extendPhoneNumberSelection: function(direction) {
+    let selection = this._getSelection();
+
+    
+    while (true) {
+      
+      let focusNode = selection.focusNode;
+      let focusOffset = selection.focusOffset;
+      selection.modify("extend", direction, "character");
+
+      
+      if (selection.focusNode == focusNode && selection.focusOffset == focusOffset) {
+        return;
+      }
+
+      
+      if (!this._isPhoneNumber(selection.toString().trim())) {
+        
+        selection.collapse(selection.anchorNode, selection.anchorOffset);
+        selection.extend(focusNode, focusOffset);
+        return;
+      }
+
+      
+      if (selection.focusNode != focusNode) {
+        let nextContainer = (selection.focusNode instanceof Text) ?
+          selection.focusNode.parentNode : selection.focusNode;
+        if (nextContainer.mozMatchesSelector &&
+            nextContainer.mozMatchesSelector(PHONE_NUMBER_CONTAINERS)) {
+          
+          selection.collapse(selection.anchorNode, selection.anchorOffset);
+          selection.extend(focusNode, focusOffset);
+          return
+        }
+      }
+    }
+  },
+
+  
+
+
+  _reversePhoneNumberSelectionDir: function(direction) {
+    let selection = this._getSelection();
+
+    let anchorNode = selection.anchorNode;
+    let anchorOffset = selection.anchorOffset;
+    selection.collapse(selection.focusNode, selection.focusOffset);
+    selection.extend(anchorNode, anchorOffset);
   },
 
   
