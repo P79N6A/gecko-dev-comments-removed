@@ -148,6 +148,8 @@ private:
   
   void RegisterActivityObserver();
   void UnRegisterActivityObserver();
+
+  bool Check3gppPermission();
 };
 
 }
