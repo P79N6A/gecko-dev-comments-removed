@@ -459,7 +459,8 @@ body {
 
 
 .close-button,
-.list-button {
+.list-button,
+.footer {
   display: none;
 }
 
