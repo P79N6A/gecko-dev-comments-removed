@@ -185,11 +185,6 @@ xpc_IsGrayGCThing(void *thing)
     return JS::GCThingIsMarkedGray(thing);
 }
 
-
-
-extern bool
-xpc_GCThingIsGrayCCThing(void *thing);
-
 inline JSScript *
 xpc_UnmarkGrayScript(JSScript *script)
 {
