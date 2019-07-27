@@ -3478,9 +3478,6 @@ nsCSSFrameConstructor::FindHTMLData(Element* aElement,
     
     
     
-    
-    
-    
     return nullptr;
   }
 
