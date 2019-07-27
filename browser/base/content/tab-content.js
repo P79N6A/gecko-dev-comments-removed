@@ -594,7 +594,7 @@ let DOMFullscreenHandler = {
     addMessageListener("DOMFullscreen:CleanUp", this);
     addEventListener("MozDOMFullscreen:Request", this);
     addEventListener("MozDOMFullscreen:NewOrigin", this);
-    addEventListener("MozDOMFullscreen:Exited", this);
+    addEventListener("MozDOMFullscreen:Exit", this);
   },
 
   get _windowUtils() {
@@ -610,7 +610,7 @@ let DOMFullscreenHandler = {
           
           
           
-          sendAsyncMessage("DOMFullscreen:Exited");
+          sendAsyncMessage("DOMFullscreen:Exit");
         }
         break;
       }
@@ -643,8 +643,8 @@ let DOMFullscreenHandler = {
         });
         break;
       }
-      case "MozDOMFullscreen:Exited": {
-        sendAsyncMessage("DOMFullscreen:Exited");
+      case "MozDOMFullscreen:Exit": {
+        sendAsyncMessage("DOMFullscreen:Exit");
         break;
       }
     }
