@@ -170,6 +170,7 @@ static nsresult DeleteEntries(mozIStorageConnection* aConn,
                               nsTArray<IdCount>& aDeletedSecurityIdListOut,
                               uint32_t aPos=0, int32_t aLen=-1);
 static nsresult InsertSecurityInfo(mozIStorageConnection* aConn,
+                                   nsICryptoHash* aCrypto,
                                    const nsACString& aData, int32_t *aIdOut);
 static nsresult DeleteSecurityInfo(mozIStorageConnection* aConn, int32_t aId,
                                    int32_t aCount);
@@ -199,6 +200,8 @@ static nsresult CreateAndBindKeyStatement(mozIStorageConnection* aConn,
                                           const char* aQueryFormat,
                                           const nsAString& aKey,
                                           mozIStorageStatement** aStateOut);
+static nsresult HashCString(nsICryptoHash* aCrypto, const nsACString& aIn,
+                            nsACString& aOut);
 } 
 
 nsresult
@@ -262,7 +265,9 @@ CreateSchema(mozIStorageConnection* aConn)
         "id INTEGER NOT NULL PRIMARY KEY, "
         "request_method TEXT NOT NULL, "
         "request_url_no_query TEXT NOT NULL, "
+        "request_url_no_query_hash BLOB NOT NULL, " 
         "request_url_query TEXT NOT NULL, "
+        "request_url_query_hash BLOB NOT NULL, "    
         "request_referrer TEXT NOT NULL, "
         "request_headers_guard INTEGER NOT NULL, "
         "request_mode INTEGER NOT NULL, "
@@ -287,9 +292,17 @@ CreateSchema(mozIStorageConnection* aConn)
     if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
 
     
+    
+    
+    
+    
+    
+    
+    
     rv = aConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "CREATE INDEX entries_request_url_no_query_index "
-                "ON entries (request_url_no_query);"
+      "CREATE INDEX entries_request_match_index "
+                "ON entries (cache_id, request_url_no_query_hash, "
+                            "request_url_query_hash);"
     ));
     if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
 
@@ -930,8 +943,14 @@ QueryCache(mozIStorageConnection* aConn, CacheId aCacheId,
     "LEFT OUTER JOIN response_headers ON entries.id=response_headers.entry_id "
                                     "AND response_headers.name='vary' "
     "WHERE entries.cache_id=:cache_id "
-      "AND entries.request_url_no_query=:url_no_query "
+      "AND entries.request_url_no_query_hash=:url_no_query_hash "
   );
+
+  if (!aParams.ignoreSearch()) {
+    query.AppendLiteral("AND entries.request_url_query_hash=:url_query_hash ");
+  }
+
+  query.AppendLiteral("AND entries.request_url_no_query=:url_no_query ");
 
   if (!aParams.ignoreSearch()) {
     query.AppendLiteral("AND entries.request_url_query=:url_query ");
@@ -945,6 +964,28 @@ QueryCache(mozIStorageConnection* aConn, CacheId aCacheId,
 
   rv = state->BindInt64ByName(NS_LITERAL_CSTRING("cache_id"), aCacheId);
   if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  nsCOMPtr<nsICryptoHash> crypto =
+    do_CreateInstance(NS_CRYPTO_HASH_CONTRACTID, &rv);
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  nsAutoCString urlWithoutQueryHash;
+  rv = HashCString(crypto, aRequest.urlWithoutQuery(), urlWithoutQueryHash);
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  rv = state->BindUTF8StringAsBlobByName(NS_LITERAL_CSTRING("url_no_query_hash"),
+                                         urlWithoutQueryHash);
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  if (!aParams.ignoreSearch()) {
+    nsAutoCString urlQueryHash;
+    rv = HashCString(crypto, aRequest.urlQuery(), urlQueryHash);
+    if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+    rv = state->BindUTF8StringAsBlobByName(NS_LITERAL_CSTRING("url_query_hash"),
+                                           urlQueryHash);
+    if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+  }
 
   rv = state->BindUTF8StringByName(NS_LITERAL_CSTRING("url_no_query"),
                                    aRequest.urlWithoutQuery());
@@ -1216,10 +1257,11 @@ DeleteEntries(mozIStorageConnection* aConn,
 }
 
 nsresult
-InsertSecurityInfo(mozIStorageConnection* aConn, const nsACString& aData,
-                   int32_t *aIdOut)
+InsertSecurityInfo(mozIStorageConnection* aConn, nsICryptoHash* aCrypto,
+                   const nsACString& aData, int32_t *aIdOut)
 {
   MOZ_ASSERT(aConn);
+  MOZ_ASSERT(aCrypto);
   MOZ_ASSERT(aIdOut);
   MOZ_ASSERT(!aData.IsEmpty());
 
@@ -1227,23 +1269,9 @@ InsertSecurityInfo(mozIStorageConnection* aConn, const nsACString& aData,
   
   
   
-  nsresult rv;
-  nsCOMPtr<nsICryptoHash> crypto =
-    do_CreateInstance(NS_CRYPTO_HASH_CONTRACTID, &rv);
+  nsAutoCString hash;
+  nsresult rv = HashCString(aCrypto, aData, hash);
   if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
-
-  rv = crypto->Init(nsICryptoHash::SHA1);
-  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
-
-  rv = crypto->Update(reinterpret_cast<const uint8_t*>(aData.BeginReading()),
-                      aData.Length());
-  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
-
-  nsAutoCString fullHash;
-  rv = crypto->Finish(false , fullHash);
-  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
-
-  nsDependentCSubstring hash(fullHash, 0, 8);
 
   
   
@@ -1414,10 +1442,14 @@ InsertEntry(mozIStorageConnection* aConn, CacheId aCacheId,
   MOZ_ASSERT(aConn);
 
   nsresult rv = NS_OK;
-  int32_t securityId = -1;
 
+  nsCOMPtr<nsICryptoHash> crypto =
+    do_CreateInstance(NS_CRYPTO_HASH_CONTRACTID, &rv);
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  int32_t securityId = -1;
   if (!aResponse.channelInfo().securityInfo().IsEmpty()) {
-    rv = InsertSecurityInfo(aConn,
+    rv = InsertSecurityInfo(aConn, crypto,
                             aResponse.channelInfo().securityInfo(),
                             &securityId);
     if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
@@ -1428,7 +1460,9 @@ InsertEntry(mozIStorageConnection* aConn, CacheId aCacheId,
     "INSERT INTO entries ("
       "request_method, "
       "request_url_no_query, "
+      "request_url_no_query_hash, "
       "request_url_query, "
+      "request_url_query_hash, "
       "request_referrer, "
       "request_headers_guard, "
       "request_mode, "
@@ -1449,7 +1483,9 @@ InsertEntry(mozIStorageConnection* aConn, CacheId aCacheId,
     ") VALUES ("
       ":request_method, "
       ":request_url_no_query, "
+      ":request_url_no_query_hash, "
       ":request_url_query, "
+      ":request_url_query_hash, "
       ":request_referrer, "
       ":request_headers_guard, "
       ":request_mode, "
@@ -1479,8 +1515,24 @@ InsertEntry(mozIStorageConnection* aConn, CacheId aCacheId,
                                    aRequest.urlWithoutQuery());
   if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
 
+  nsAutoCString urlWithoutQueryHash;
+  rv = HashCString(crypto, aRequest.urlWithoutQuery(), urlWithoutQueryHash);
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  rv = state->BindUTF8StringAsBlobByName(
+    NS_LITERAL_CSTRING("request_url_no_query_hash"), urlWithoutQueryHash);
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
   rv = state->BindUTF8StringByName(NS_LITERAL_CSTRING("request_url_query"),
                                    aRequest.urlQuery());
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  nsAutoCString urlQueryHash;
+  rv = HashCString(crypto, aRequest.urlQuery(), urlQueryHash);
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  rv = state->BindUTF8StringAsBlobByName(
+    NS_LITERAL_CSTRING("request_url_query_hash"), urlQueryHash);
   if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
 
   rv = state->BindStringByName(NS_LITERAL_CSTRING("request_referrer"),
@@ -1942,6 +1994,26 @@ CreateAndBindKeyStatement(mozIStorageConnection* aConn,
 
   state.forget(aStateOut);
 
+  return rv;
+}
+
+nsresult
+HashCString(nsICryptoHash* aCrypto, const nsACString& aIn, nsACString& aOut)
+{
+  MOZ_ASSERT(aCrypto);
+
+  nsresult rv = aCrypto->Init(nsICryptoHash::SHA1);
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  rv = aCrypto->Update(reinterpret_cast<const uint8_t*>(aIn.BeginReading()),
+                       aIn.Length());
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  nsAutoCString fullHash;
+  rv = aCrypto->Finish(false , fullHash);
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  aOut = Substring(fullHash, 0, 8);
   return rv;
 }
 
