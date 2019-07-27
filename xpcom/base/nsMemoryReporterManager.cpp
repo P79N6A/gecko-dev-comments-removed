@@ -1646,6 +1646,15 @@ nsMemoryReporterManager::UnregisterStrongReporter(nsIMemoryReporter* aReporter)
     return NS_OK;
   }
 
+  
+  
+  
+  
+  if (mSavedStrongReporters && mSavedStrongReporters->Contains(aReporter)) {
+    mSavedStrongReporters->RemoveEntry(aReporter);
+    return NS_OK;
+  }
+
   return NS_ERROR_FAILURE;
 }
 
@@ -1659,6 +1668,15 @@ nsMemoryReporterManager::UnregisterWeakReporter(nsIMemoryReporter* aReporter)
 
   if (mWeakReporters->Contains(aReporter)) {
     mWeakReporters->RemoveEntry(aReporter);
+    return NS_OK;
+  }
+
+  
+  
+  
+  
+  if (mSavedWeakReporters && mSavedWeakReporters->Contains(aReporter)) {
+    mSavedWeakReporters->RemoveEntry(aReporter);
     return NS_OK;
   }
 
