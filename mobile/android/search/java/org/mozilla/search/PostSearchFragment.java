@@ -4,7 +4,6 @@
 
 package org.mozilla.search;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.Uri;
@@ -28,15 +27,14 @@ import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.Telemetry;
 import org.mozilla.gecko.TelemetryContract;
 import org.mozilla.search.providers.SearchEngine;
-import org.mozilla.search.providers.SearchEngineManager;
 
 public class PostSearchFragment extends Fragment {
 
     private static final String LOG_TAG = "PostSearchFragment";
 
-    private ProgressBar progressBar;
+    private SearchEngine engine;
 
-    private SearchEngineManager searchEngineManager;
+    private ProgressBar progressBar;
     private WebView webview;
     private View errorView;
 
@@ -66,32 +64,16 @@ public class PostSearchFragment extends Fragment {
         progressBar = null;
     }
 
-    @Override
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
-        searchEngineManager = new SearchEngineManager(activity);
+    public void startSearch(SearchEngine engine, String query) {
+        this.engine = engine;
+
+        final String url = engine.resultsUriForQuery(query);
+        
+        if (!TextUtils.equals(webview.getUrl(), url)) {
+            webview.loadUrl(Constants.ABOUT_BLANK);
+            webview.loadUrl(url);
+        }
     }
-
-    @Override
-    public void onDetach() {
-        super.onDetach();
-        searchEngineManager.destroy();
-        searchEngineManager = null;
-    }
-
-    public void startSearch(final String query) {
-        searchEngineManager.getEngine(new SearchEngineManager.SearchEngineCallback() {
-            @Override
-            public void execute(SearchEngine engine) {
-                final String url = engine.resultsUriForQuery(query);
-
-                
-                webview.loadUrl(Constants.ABOUT_BLANK);
-                webview.loadUrl(url);
-            }
-        });
-    }
-
 
     
 
@@ -108,28 +90,23 @@ public class PostSearchFragment extends Fragment {
             
             networkError = false;
 
-            searchEngineManager.getEngine(new SearchEngineManager.SearchEngineCallback() {
-                @Override
-                public void execute(SearchEngine engine) {
-                    
-                    if (TextUtils.equals(url, Constants.ABOUT_BLANK) || engine.isSearchResultsPage(url)) {
-                        
-                        return;
-                    }
+            
+            if (TextUtils.equals(url, Constants.ABOUT_BLANK) || engine.isSearchResultsPage(url)) {
+                
+                return;
+            }
 
-                    webview.stopLoading();
+            webview.stopLoading();
 
-                    Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL,
-                            TelemetryContract.Method.CONTENT, "search-result");
+            Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL,
+                    TelemetryContract.Method.CONTENT, "search-result");
 
-                    final Intent i = new Intent(Intent.ACTION_VIEW);
+            final Intent i = new Intent(Intent.ACTION_VIEW);
 
-                    
-                    i.setClassName(AppConstants.ANDROID_PACKAGE_NAME, AppConstants.BROWSER_INTENT_CLASS_NAME);
-                    i.setData(Uri.parse(url));
-                    startActivity(i);
-                }
-            });
+            
+            i.setClassName(AppConstants.ANDROID_PACKAGE_NAME, AppConstants.BROWSER_INTENT_CLASS_NAME);
+            i.setData(Uri.parse(url));
+            startActivity(i);
         }
 
         @Override
@@ -179,13 +156,7 @@ public class PostSearchFragment extends Fragment {
 
         @Override
         public void onReceivedTitle(final WebView view, String title) {
-
-            searchEngineManager.getEngine(new SearchEngineManager.SearchEngineCallback() {
-                @Override
-                public void execute(SearchEngine engine) {
-                    view.loadUrl(engine.getInjectableJs());
-                }
-            });
+            view.loadUrl(engine.getInjectableJs());
         }
 
         @Override
