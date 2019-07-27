@@ -276,6 +276,14 @@ var gPluginHandler = {
       return;
     }
 
+    if (eventType == "PluginCrashed" &&
+        !(event.target instanceof Ci.nsIObjectLoadingContent)) {
+      
+      
+      this.pluginInstanceCrashed(event.target, event);
+      return;
+    }
+
     let plugin = event.target;
     let doc = plugin.ownerDocument;
 
@@ -1143,7 +1151,7 @@ var gPluginHandler = {
 
   
   
-  pluginInstanceCrashed: function (plugin, aEvent) {
+  pluginInstanceCrashed: function (target, aEvent) {
     
     if (!(aEvent instanceof Ci.nsIDOMCustomEvent))
       return;
@@ -1161,18 +1169,22 @@ var gPluginHandler = {
 
     let messageString = gNavigatorBundle.getFormattedString("crashedpluginsMessage.title", [pluginName]);
 
-    
-    
-    
+    let plugin = null, doc;
+    if (target instanceof Ci.nsIObjectLoadingContent) {
+      plugin = target;
+      doc = plugin.ownerDocument;
+    } else {
+      doc = target.document;
+      if (!doc) {
+        return;
+      }
+      
+      
+      doPrompt = false;
+    }
 
-    
-    plugin.clientTop;
-    let overlay = this.getPluginUI(plugin, "main");
-    let statusDiv = this.getPluginUI(plugin, "submitStatus");
-    let doc = plugin.ownerDocument;
-#ifdef MOZ_CRASHREPORTER
     let status;
-
+#ifdef MOZ_CRASHREPORTER
     
     if (submittedReport) { 
       status = "submitted";
@@ -1180,30 +1192,14 @@ var gPluginHandler = {
     else if (!submitReports && !doPrompt) {
       status = "noSubmit";
     }
-    else { 
+    else if (!pluginDumpID) {
+      
+      
+      status = "noReport";
+    }
+    else {
       status = "please";
-      this.getPluginUI(plugin, "submitButton").addEventListener("click",
-        function (event) {
-          if (event.button != 0 || !event.isTrusted)
-            return;
-          this.submitReport(pluginDumpID, browserDumpID, plugin);
-          pref.setBoolPref("", optInCB.checked);
-        }.bind(this));
-      let optInCB = this.getPluginUI(plugin, "submitURLOptIn");
-      let pref = Services.prefs.getBranch("dom.ipc.plugins.reportCrashURL");
-      optInCB.checked = pref.getBoolPref("");
     }
-
-    
-    
-    if (!pluginDumpID) {
-        status = "noReport";
-    }
-
-    statusDiv.setAttribute("status", status);
-
-    let helpIcon = this.getPluginUI(plugin, "helpIcon");
-    this.addLinkClickCallback(helpIcon, "openHelpPage");
 
     
     
@@ -1238,26 +1234,15 @@ var gPluginHandler = {
     }
 #endif
 
-    let crashText = this.getPluginUI(plugin, "crashedText");
-    crashText.textContent = messageString;
-
     let browser = gBrowser.getBrowserForDocument(doc.defaultView.top.document);
-
-    let link = this.getPluginUI(plugin, "reloadLink");
-    this.addLinkClickCallback(link, "reloadPage", browser);
-
     let notificationBox = gBrowser.getNotificationBox(browser);
+    let isShowing = false;
 
-    let isShowing = this.shouldShowOverlay(plugin, overlay);
-
-    
-    if (!isShowing) {
+    if (plugin) {
       
-      statusDiv.removeAttribute("status");
-
-      isShowing = this.shouldShowOverlay(plugin, overlay);
+      
+      isShowing = _setUpPluginOverlay.call(this, plugin, doPrompt, browser);
     }
-    this.setVisibility(plugin, overlay, isShowing);
 
     if (isShowing) {
       
@@ -1330,5 +1315,54 @@ var gPluginHandler = {
       }, false);
     }
 
+    
+    
+    function _setUpPluginOverlay(plugin, doPromptSubmit, browser) {
+      if (!plugin) {
+        return false;
+      }
+
+      
+      plugin.clientTop;
+      let overlay = this.getPluginUI(plugin, "main");
+      let statusDiv = this.getPluginUI(plugin, "submitStatus");
+
+      if (doPromptSubmit) {
+        this.getPluginUI(plugin, "submitButton").addEventListener("click",
+        function (event) {
+          if (event.button != 0 || !event.isTrusted)
+            return;
+          this.submitReport(pluginDumpID, browserDumpID, plugin);
+          pref.setBoolPref("", optInCB.checked);
+        }.bind(this));
+        let optInCB = this.getPluginUI(plugin, "submitURLOptIn");
+        let pref = Services.prefs.getBranch("dom.ipc.plugins.reportCrashURL");
+        optInCB.checked = pref.getBoolPref("");
+      }
+
+      statusDiv.setAttribute("status", status);
+
+      let helpIcon = this.getPluginUI(plugin, "helpIcon");
+      this.addLinkClickCallback(helpIcon, "openHelpPage");
+
+      let crashText = this.getPluginUI(plugin, "crashedText");
+      crashText.textContent = messageString;
+
+      let link = this.getPluginUI(plugin, "reloadLink");
+      this.addLinkClickCallback(link, "reloadPage", browser);
+
+      let isShowing = this.shouldShowOverlay(plugin, overlay);
+
+      
+      if (!isShowing) {
+        
+        statusDiv.removeAttribute("status");
+
+        isShowing = this.shouldShowOverlay(plugin, overlay);
+      }
+      this.setVisibility(plugin, overlay, isShowing);
+
+      return isShowing;
+    }
   }
 };
