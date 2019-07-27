@@ -176,6 +176,10 @@ public:
     rv = CollectZramReports(aHandleReport, aData);
     NS_ENSURE_SUCCESS(rv, rv);
 
+    
+    rv = CollectKgslReports(aHandleReport, aData);
+    NS_ENSURE_SUCCESS(rv, rv);
+
     return rv;
   }
 
@@ -859,6 +863,99 @@ private:
     }
 
     closedir(d);
+    return NS_OK;
+  }
+
+  struct AutoDir
+  {
+    AutoDir(DIR* aDir) : mDir(aDir) {}
+    ~AutoDir() { closedir(mDir); };
+    DIR* mDir;
+  };
+
+  struct AutoFile
+  {
+    AutoFile(FILE* aFile) : mFile(aFile) {}
+    ~AutoFile() { fclose(mFile); }
+    FILE* mFile;
+  };
+
+  nsresult
+  CollectKgslReports(nsIHandleReportCallback* aHandleReport,
+                     nsISupports* aData)
+  {
+    
+    
+    
+    
+    
+    
+
+    
+    const char* const kScanFormat =
+        "%" SCNx64 " %" SCNx64 " %" SCNu64 " %" SCNu64
+        " %63s %63s %63s %" SCNu64;
+    const int kNumFields = 8;
+    const size_t kStringSize = 64;
+
+    DIR* d = opendir("/sys/kernel/debug/kgsl/proc/");
+    if (!d) {
+      if (NS_WARN_IF(errno != ENOENT && errno != EACCES)) {
+        return NS_ERROR_FAILURE;
+      }
+      return NS_OK;
+    }
+
+    AutoDir dirGuard(d);
+
+    struct dirent* ent;
+    while ((ent = readdir(d))) {
+      const char* pid = ent->d_name;
+
+      
+      if (pid[0] == '.') {
+        continue;
+      }
+
+      nsPrintfCString memPath("/sys/kernel/debug/kgsl/proc/%s/mem", pid);
+      FILE* memFile = fopen(memPath.get(), "r");
+      if (NS_WARN_IF(!memFile)) {
+        continue;
+      }
+
+      AutoFile fileGuard(memFile);
+
+      
+      nsAutoCString procName;
+      GetThreadName(atoi(pid), procName);
+
+      if (procName.IsEmpty()) {
+        procName.Append("pid=");
+        procName.Append(pid);
+      } else {
+        procName.Append(" (pid=");
+        procName.Append(pid);
+        procName.Append(")");
+      }
+
+      uint64_t gpuaddr, useraddr, size, id, sglen;
+      char flags[kStringSize];
+      char type[kStringSize];
+      char usage[kStringSize];
+
+      
+      char buff[1024];
+      fgets(buff, 1024, memFile);
+
+      while (fscanf(memFile, kScanFormat, &gpuaddr, &useraddr, &size, &id,
+                    flags, type, usage, &sglen) == kNumFields) {
+        nsPrintfCString entryPath("kgsl-memory/%s/%s", procName.get(), usage);
+        REPORT(entryPath,
+               size,
+               NS_LITERAL_CSTRING("A kgsl graphics memory allocation."));
+      }
+    }
+
     return NS_OK;
   }
 
