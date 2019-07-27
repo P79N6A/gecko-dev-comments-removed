@@ -1211,7 +1211,10 @@ void MediaDecoder::PlaybackPositionChanged()
   {
     ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
     if (mDecoderStateMachine) {
-      if (!IsSeeking()) {
+      
+      
+      
+      if (!IsSeeking() && mPlayState != PLAY_STATE_PAUSED) {
         
         
         
