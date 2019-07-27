@@ -3354,8 +3354,8 @@ pref("font.alias-list", "sans,sans-serif,serif,monospace");
 
 
 pref("font.name.serif.el", "Droid Serif"); 
-pref("font.name.sans-serif.el", "Roboto"); 
-pref("font.name.monospace.el", "Droid Sans Mono");
+pref("font.name.sans-serif.el", "Fira Sans");
+pref("font.name.monospace.el", "Fira Mono");
 
 pref("font.name.serif.he", "Charis SIL Compact");
 pref("font.name.sans-serif.he", "Fira Sans");
