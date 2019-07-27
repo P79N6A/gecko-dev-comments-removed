@@ -111,6 +111,22 @@ PluginProcessParent::SetCallRunnableImmediately(bool aCallImmediately)
     mRunCompleteTaskImmediately = aCallImmediately;
 }
 
+
+
+
+
+
+
+
+void
+PluginProcessParent::RunLaunchCompleteTask()
+{
+    if (mLaunchCompleteTask) {
+        mLaunchCompleteTask->Run();
+        mLaunchCompleteTask = nullptr;
+    }
+}
+
 bool
 PluginProcessParent::WaitUntilConnected(int32_t aTimeoutMs)
 {
@@ -119,8 +135,7 @@ PluginProcessParent::WaitUntilConnected(int32_t aTimeoutMs)
         if (result) {
             mLaunchCompleteTask->SetLaunchSucceeded();
         }
-        mLaunchCompleteTask->Run();
-        mLaunchCompleteTask = nullptr;
+        RunLaunchCompleteTask();
     }
     return result;
 }
@@ -131,7 +146,8 @@ PluginProcessParent::OnChannelConnected(int32_t peer_pid)
     GeckoChildProcessHost::OnChannelConnected(peer_pid);
     if (mLaunchCompleteTask && !mRunCompleteTaskImmediately) {
         mLaunchCompleteTask->SetLaunchSucceeded();
-        mMainMsgLoop->PostTask(FROM_HERE, mLaunchCompleteTask.release());
+        mMainMsgLoop->PostTask(FROM_HERE, NewRunnableMethod(this,
+                                   &PluginProcessParent::RunLaunchCompleteTask));
     }
 }
 
@@ -140,7 +156,8 @@ PluginProcessParent::OnChannelError()
 {
     GeckoChildProcessHost::OnChannelError();
     if (mLaunchCompleteTask && !mRunCompleteTaskImmediately) {
-        mMainMsgLoop->PostTask(FROM_HERE, mLaunchCompleteTask.release());
+        mMainMsgLoop->PostTask(FROM_HERE, NewRunnableMethod(this,
+                                   &PluginProcessParent::RunLaunchCompleteTask));
     }
 }
 
