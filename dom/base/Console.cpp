@@ -814,6 +814,7 @@ Console::Trace(JSContext* aCx)
 
 
 METHOD(Dir, "dir");
+METHOD(Dirxml, "dirxml");
 
 METHOD(Group, "group")
 METHOD(GroupCollapsed, "groupCollapsed")
