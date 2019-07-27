@@ -325,6 +325,7 @@ let MozLoopServiceInternal = {
   },
 
   notifyStatusChanged: function(aReason = null) {
+    log.debug("notifyStatusChanged with reason:", aReason);
     Services.obs.notifyObservers(null, "loop-status-changed", aReason);
   },
 
@@ -456,6 +457,7 @@ let MozLoopServiceInternal = {
       
       if (sessionToken.length === 64) {
         Services.prefs.setCharPref(this.getSessionTokenPrefName(sessionType), sessionToken);
+        log.debug("Stored a hawk session token for sessionType", sessionType);
       } else {
         
         log.warn("Loop server sent an invalid session token");
@@ -479,6 +481,7 @@ let MozLoopServiceInternal = {
 
   clearSessionToken: function(sessionType) {
     Services.prefs.clearUserPref(this.getSessionTokenPrefName(sessionType));
+    log.debug("Cleared hawk session token for sessionType", sessionType);
   },
 
   
@@ -526,6 +529,7 @@ let MozLoopServiceInternal = {
         if (!this.storeSessionToken(sessionType, response.headers))
           return;
 
+        log.debug("Successfully registered with server for sessionType", sessionType);
         this.clearError("registration");
       }, (error) => {
         
@@ -567,6 +571,7 @@ let MozLoopServiceInternal = {
     let unregisterURL = "/registration?simplePushURL=" + encodeURIComponent(pushURL);
     return this.hawkRequest(sessionType, unregisterURL, "DELETE")
       .then(() => {
+        log.debug("Successfully unregistered from server for sessionType", sessionType);
         MozLoopServiceInternal.clearSessionToken(sessionType);
       },
       error => {
@@ -1302,6 +1307,7 @@ this.MozLoopService = {
 
 
   logInToFxA: function() {
+    log.debug("logInToFxA with gFxAOAuthTokenData:", !!gFxAOAuthTokenData);
     if (gFxAOAuthTokenData) {
       return Promise.resolve(gFxAOAuthTokenData);
     }
@@ -1349,6 +1355,7 @@ this.MozLoopService = {
 
 
   logOutFromFxA: Task.async(function*() {
+    log.debug("logOutFromFxA");
     yield MozLoopServiceInternal.unregisterFromLoopServer(LOOP_SESSION_TYPE.FXA,
                                                           gPushHandler.pushUrl);
 
