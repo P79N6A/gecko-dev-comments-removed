@@ -1298,6 +1298,13 @@ nsTextEditorState::PrepareEditor(const nsAString *aValue)
     }
 
     newEditor = mEditor; 
+
+    
+    uint32_t originalFlags = 0;
+    newEditor->GetFlags(&originalFlags);
+    if (originalFlags & nsIPlaintextEditor::eEditorMailMask) {
+      editorFlags |= nsIPlaintextEditor::eEditorMailMask;
+    }
   }
 
   
