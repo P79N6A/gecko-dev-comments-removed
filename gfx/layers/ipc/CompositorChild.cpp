@@ -96,7 +96,6 @@ CompositorChild::Create(Transport* aTransport, ProcessId aOtherProcess)
   sCompositor->SendGetTileSize(&width, &height);
   gfxPlatform::GetPlatform()->SetTileSize(width, height);
 
-  
   return sCompositor;
 }
 
@@ -181,14 +180,13 @@ CompositorChild::ActorDestroy(ActorDestroyReason aWhy)
     NS_RUNTIMEABORT("ActorDestroy by IPC channel failure at CompositorChild");
   }
 #endif
-  if (sCompositor) {
-    sCompositor->Release();
-    sCompositor = nullptr;
-  }
+
   
   
   
   
+  sCompositor = nullptr;
+
   MessageLoop::current()->PostTask(
     FROM_HERE,
     NewRunnableMethod(this, &CompositorChild::Release));
