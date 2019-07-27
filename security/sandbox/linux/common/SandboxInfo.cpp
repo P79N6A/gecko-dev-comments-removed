@@ -17,9 +17,22 @@
 #include "base/posix/eintr_wrapper.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/ArrayUtils.h"
-#include "mozilla/DebugOnly.h"
 #include "sandbox/linux/seccomp-bpf/linux_seccomp.h"
 #include "sandbox/linux/services/linux_syscalls.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 namespace mozilla {
 
@@ -34,12 +47,12 @@ HasSeccompBPF()
   
   
   
-  if (prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, nullptr) != -1) {
-    MOZ_CRASH("prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, nullptr)"
-              " didn't fail");
-  }
-  MOZ_ASSERT(errno == EFAULT || errno == EINVAL);
-  return errno == EFAULT;
+
+  int rv = prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, nullptr);
+  MOZ_DIAGNOSTIC_ASSERT(rv == -1, "prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER,"
+                        " nullptr) didn't fail");
+  MOZ_DIAGNOSTIC_ASSERT(errno == EFAULT || errno == EINVAL);
+  return rv == -1 && errno == EFAULT;
 }
 
 static bool
@@ -50,13 +63,12 @@ HasSeccompTSync()
   if (getenv("MOZ_FAKE_NO_SECCOMP_TSYNC")) {
     return false;
   }
-  if (syscall(__NR_seccomp, SECCOMP_SET_MODE_FILTER,
-              SECCOMP_FILTER_FLAG_TSYNC, nullptr) != -1) {
-    MOZ_CRASH("seccomp(..., SECCOMP_FILTER_FLAG_TSYNC, nullptr)"
-              " didn't fail");
-  }
-  MOZ_ASSERT(errno == EFAULT || errno == EINVAL || errno == ENOSYS);
-  return errno == EFAULT;
+  int rv = syscall(__NR_seccomp, SECCOMP_SET_MODE_FILTER,
+                   SECCOMP_FILTER_FLAG_TSYNC, nullptr);
+  MOZ_DIAGNOSTIC_ASSERT(rv == -1, "seccomp(..., SECCOMP_FILTER_FLAG_TSYNC,"
+                        " nullptr) didn't fail");
+  MOZ_DIAGNOSTIC_ASSERT(errno == EFAULT || errno == EINVAL || errno == ENOSYS);
+  return rv == -1 && errno == EFAULT;
 }
 
 static bool
@@ -111,8 +123,11 @@ CanCreateUserNamespace()
     return false;
   }
   
-  DebugOnly<bool> ok = HANDLE_EINTR(waitpid(pid, nullptr, 0)) == pid;
-  MOZ_ASSERT(ok);
+  bool waitpid_ok = HANDLE_EINTR(waitpid(pid, nullptr, 0)) == pid;
+  MOZ_ASSERT(waitpid_ok);
+  if (!waitpid_ok) {
+    return false;
+  }
   setenv(kCacheEnvName, "1", 1);
   return true;
 }
