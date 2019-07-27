@@ -194,6 +194,10 @@ description > html|a {
   padding-bottom: 0; 
 }
 
+#tabsElement {
+  -moz-margin-end: 4px; 
+}
+
 #encryptionPanel {
   margin-top: 15px;
 }
