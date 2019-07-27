@@ -105,20 +105,8 @@ this.DataStoreChangeNotifier = {
       delete this.sysMsgOnChangeLongTimers[storeKey];
     }
 
-    
-    var manifestURLs = dataStoreService.getAppManifestURLsForDataStore(aStore);
-    var enumerate = manifestURLs.enumerate();
-    while (enumerate.hasMoreElements()) {
-      var manifestURL = enumerate.getNext().QueryInterface(Ci.nsISupportsString);
-      debug("Notify app " + manifestURL + " of datastore updates");
-      
-      
-      
-      systemMessenger.sendMessage("datastore-update-" + aStore,
-                                  { owner: aOwner },
-                                  null,
-                                  Services.io.newURI(manifestURL, null, null));
-    }
+    systemMessenger.broadcastMessage("datastore-update-" + aStore,
+                                     { owner: aOwner });
   },
 
   

@@ -14,9 +14,12 @@ Cu.import("resource://gre/modules/PermissionsInstaller.jsm");
 Cu.import("resource://gre/modules/PermissionsTable.jsm");
 Cu.import("resource://gre/modules/PermissionSettings.jsm");
 
+XPCOMUtils.defineLazyServiceGetter(this, "dataStoreService",
+                                   "@mozilla.org/datastore-service;1",
+                                   "nsIDataStoreService");
+
 this.EXPORTED_SYMBOLS = ["SystemMessagePermissionsChecker",
-                         "SystemMessagePermissionsTable",
-                         "SystemMessagePrefixPermissionsTable"];
+                         "SystemMessagePermissionsTable"];
 
 function debug(aStr) {
   
@@ -130,17 +133,6 @@ this.SystemMessagePermissionsTable = {
 };
 
 
-
-
-
-
-
-
-
-this.SystemMessagePrefixPermissionsTable = {
-  "datastore-update-": { },
-};
-
 this.SystemMessagePermissionsChecker = {
   
 
@@ -159,19 +151,9 @@ this.SystemMessagePermissionsChecker = {
 
     let permNames = SystemMessagePermissionsTable[aSysMsgName];
     if (permNames === undefined) {
-      
-      for (let sysMsgPrefix in SystemMessagePrefixPermissionsTable) {
-        if (aSysMsgName.indexOf(sysMsgPrefix) === 0) {
-          permNames = SystemMessagePrefixPermissionsTable[sysMsgPrefix];
-          break;
-        }
-      }
-
-      if (permNames === undefined) {
-        debug("'" + aSysMsgName + "' is not associated with permissions. " +
-              "Please add them to the SystemMessage[Prefix]PermissionsTable.");
-        return null;
-      }
+      debug("'" + aSysMsgName + "' is not associated with permissions. " +
+            "Please add them to the SystemMessage[Prefix]PermissionsTable.");
+      return null;
     }
 
     let object = { };
@@ -199,6 +181,34 @@ this.SystemMessagePermissionsChecker = {
 
 
 
+  isDataStoreSystemMessage: function(aSysMsgName) {
+    return aSysMsgName.indexOf('datastore-update-') === 0;
+  },
+
+  
+
+
+  canDeliverDataStoreSystemMessage: function(aSysMsgName, aManifestURL) {
+    let store = aSysMsgName.substr('datastore-update-'.length);
+
+    
+    let manifestURLs = dataStoreService.getAppManifestURLsForDataStore(store);
+    let enumerate = manifestURLs.enumerate();
+    while (enumerate.hasMoreElements()) {
+      let manifestURL = enumerate.getNext().QueryInterface(Ci.nsISupportsString);
+      if (manifestURL == aManifestURL) {
+        return true;
+      }
+    }
+
+    return false;
+  },
+
+  
+
+
+
+
 
 
 
@@ -214,6 +224,11 @@ this.SystemMessagePermissionsChecker = {
           "aSysMsgName: " + aSysMsgName + ", " +
           "aManifestURL: " + aManifestURL + ", " +
           "aManifest: " + JSON.stringify(aManifest));
+
+    if (this.isDataStoreSystemMessage(aSysMsgName) &&
+        this.canDeliverDataStoreSystemMessage(aSysMsgName, aManifestURL)) {
+      return true;
+    }
 
     let permNames = this.getSystemMessagePermissions(aSysMsgName);
     if (permNames === null) {
@@ -301,6 +316,11 @@ this.SystemMessagePermissionsChecker = {
           "aSysMsgName: " + aSysMsgName + ", " +
           "aPageURL: " + aPageURL + ", " +
           "aManifestURL: " + aManifestURL);
+
+    if (this.isDataStoreSystemMessage(aSysMsgName) &&
+        this.canDeliverDataStoreSystemMessage(aSysMsgName, aManifestURL)) {
+      return true;
+    }
 
     let permNames = this.getSystemMessagePermissions(aSysMsgName);
     if (permNames === null) {
