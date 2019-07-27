@@ -423,6 +423,9 @@ protected:
   
   
   bool mDropdownCanGrow:1;
+
+  
+  bool mForceSelection:1;
   
   
   
