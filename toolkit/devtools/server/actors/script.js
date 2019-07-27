@@ -1197,25 +1197,19 @@ ThreadActor.prototype = {
   
 
 
+
   _breakOnEnter: function(script) {
     let offsets = script.getAllOffsets();
-    let sourceActor = this.sources.createNonSourceMappedActor(script.source);
-
     for (let line = 0, n = offsets.length; line < n; line++) {
       if (offsets[line]) {
-        let location = { line: line };
-        let resp = sourceActor.setBreakpoint(location);
-        dbg_assert(!resp.actualLocation, "No actualLocation should be returned");
-        if (resp.error) {
-          reportError(new Error("Unable to set breakpoint on event listener"));
-          return;
-        }
-        let bpActor = this.breakpointActorMap.getActor({
-          sourceActor: sourceActor,
-          line: location.line
-        });
-        dbg_assert(bpActor, "Breakpoint actor must be created");
-        this._hiddenBreakpoints.set(bpActor.actorID, bpActor);
+        
+        
+        let actor = new BreakpointActor(this);
+        this.threadLifetimePool.addActor(actor);
+        let scripts = this.scripts.getScriptsBySourceAndLine(script.source, line);
+        let entryPoints = findEntryPointsForLine(scripts, line);
+        setBreakpointOnEntryPoints(this, actor, entryPoints);
+        this._hiddenBreakpoints.set(actor.actorID, actor);
         break;
       }
     }
@@ -2871,30 +2865,6 @@ SourceActor.prototype = {
 
 
 
-  _findEntryPointsForLine: function (scripts, line) {
-    const entryPoints = [];
-    for (let script of scripts) {
-      const offsets = script.getLineOffsets(line);
-      if (offsets.length) {
-        entryPoints.push({ script, offsets });
-      }
-    }
-    return entryPoints;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2905,7 +2875,7 @@ SourceActor.prototype = {
     const maxLine = Math.max(...scripts.map(s => s.startLine + s.lineCount));
 
     for (let line = startLine; line < maxLine; line++) {
-      const entryPoints = this._findEntryPointsForLine(scripts, line);
+      const entryPoints = findEntryPointsForLine(scripts, line);
       if (entryPoints.length) {
         return { line, entryPoints };
       }
@@ -2986,7 +2956,7 @@ SourceActor.prototype = {
       
       
       
-      let entryPoints = this._findEntryPointsForLine(scripts, location.line)
+      let entryPoints = findEntryPointsForLine(scripts, location.line)
       if (entryPoints) {
         result = {
           line: location.line,
@@ -3032,30 +3002,12 @@ SourceActor.prototype = {
       }
     }
 
-    this._setBreakpointOnEntryPoints(actor, entryPoints);
+    setBreakpointOnEntryPoints(this.threadActor, actor, entryPoints);
 
     return {
       actor: actor.actorID,
       actualLocation
     };
-  },
-
-  
-
-
-
-
-
-
-
-
-  _setBreakpointOnEntryPoints: function (actor, entryPoints) {
-    for (let { script, offsets } of entryPoints) {
-      for (let offset of offsets) {
-        script.setBreakpoint(offset, actor);
-      }
-      actor.addScript(script, this.threadActor);
-    }
   },
 
   
@@ -4715,6 +4667,8 @@ FrameActor.prototype.requestTypes = {
 
 
 
+
+
 function BreakpointActor(aThreadActor, aLocation, aCondition)
 {
   
@@ -4743,8 +4697,7 @@ BreakpointActor.prototype = {
 
 
 
-  addScript: function (aScript, aThreadActor) {
-    this.threadActor = aThreadActor;
+  addScript: function (aScript) {
     this.scripts.add(aScript);
   },
 
@@ -4812,9 +4765,11 @@ BreakpointActor.prototype = {
 
   onDelete: function (aRequest) {
     
-    this.threadActor.breakpointActorMap.deleteActor(
-      update({}, this.location, { source: this.location.sourceActor.form() })
-    );
+    if (this.location) {
+      this.threadActor.breakpointActorMap.deleteActor(
+        update({}, this.location, { source: this.location.sourceActor.form() })
+      );
+    }
     this.threadActor.threadLifetimePool.removeActor(this);
     
     this.removeScripts();
@@ -5913,3 +5868,46 @@ function getSourceURL(source) {
   }
   return source.url;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function findEntryPointsForLine(scripts, line) {
+  const entryPoints = [];
+  for (let script of scripts) {
+    const offsets = script.getLineOffsets(line);
+    if (offsets.length) {
+      entryPoints.push({ script, offsets });
+    }
+  }
+  return entryPoints;
+}
+
+
+
+
+
+
+
+
+
+
+function setBreakpointOnEntryPoints(threadActor, actor, entryPoints) {
+  for (let { script, offsets } of entryPoints) {
+    for (let offset of offsets) {
+      script.setBreakpoint(offset, actor);
+    }
+    actor.addScript(script);
+  }
+}
+
