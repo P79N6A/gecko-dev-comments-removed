@@ -175,7 +175,7 @@ public:
 
   void SampleContentTransformForFrame(ViewTransform* aOutTransform,
                                       ScreenPoint& aScrollOffset,
-                                      ViewTransform* aOutOverscrollTransform);
+                                      Matrix4x4* aOutOverscrollTransform);
 
   
 
@@ -576,7 +576,7 @@ private:
 
 
 
-  void GetOverscrollTransform(ViewTransform* aTransform) const;
+  void GetOverscrollTransform(Matrix4x4* aTransform) const;
 
   enum AxisLockMode {
     FREE,     
