@@ -1260,7 +1260,17 @@ imgRequest::OnRedirectVerifyCallback(nsresult result)
                                     &schemeLocal))  ||
       (!isHttps && !isChrome && !schemeLocal)) {
     MutexAutoLock lock(mMutex);
-    mHadInsecureRedirect = true;
+
+    
+    
+    
+    
+    nsCOMPtr<nsILoadInfo> loadInfo = mChannel->GetLoadInfo();
+    bool upgradeInsecureRequests = loadInfo ? loadInfo->GetUpgradeInsecureRequests()
+                                            : false;
+    if (!upgradeInsecureRequests) {
+      mHadInsecureRedirect = true;
+    }
   }
 
   
