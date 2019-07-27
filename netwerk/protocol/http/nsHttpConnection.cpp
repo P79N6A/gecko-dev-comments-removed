@@ -592,6 +592,14 @@ nsHttpConnection::Close(nsresult reason)
 
         mTLSFilter = nullptr;
 
+        
+        
+        if (((reason == NS_ERROR_NET_RESET) ||
+             (NS_ERROR_GET_MODULE(reason) == NS_ERROR_MODULE_SECURITY))
+            && mConnInfo) {
+            gHttpHandler->ConnMgr()->ClearHostMapping(mConnInfo);
+        }
+
         if (mSocketTransport) {
             mSocketTransport->SetEventSink(nullptr, nullptr);
 
