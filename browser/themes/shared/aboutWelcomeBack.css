@@ -13,12 +13,8 @@
 
 
 
-#tabList {
+.tree-container:not([available]) {
   display: none;
-}
-
-#tabList[available] {
-  display: -moz-box;
 }
 
 treechildren::-moz-tree-image(icon),
