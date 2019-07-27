@@ -36,7 +36,7 @@ public final class GeckoProfile {
     
     private static final String LOCK_FILE_NAME = ".active_lock";
     public static final String DEFAULT_PROFILE = "default";
-    private static final String GUEST_PROFILE = "guest";
+    public static final String GUEST_PROFILE = "guest";
 
     private static HashMap<String, GeckoProfile> sProfileCache = new HashMap<String, GeckoProfile>();
     private static String sDefaultProfileName;
@@ -177,13 +177,11 @@ public final class GeckoProfile {
             return false;
         }
 
-        final boolean success;
-        try {
-            success = new GeckoProfile(context, profileName).remove();
-        } catch (NoMozillaDirectoryException e) {
-            Log.w(LOGTAG, "Unable to remove profile: no Mozilla directory.", e);
-            return true;
+        final GeckoProfile profile = get(context, profileName);
+        if (profile == null) {
+            return false;
         }
+        final boolean success = profile.remove();
 
         if (success) {
             
