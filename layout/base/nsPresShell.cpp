@@ -7198,11 +7198,10 @@ PresShell::HandleKeyboardEvent(nsINode* aTarget,
                                       defaultPrevented);
 
   
+  
   if (defaultPrevented) {
     *aStatus = nsEventStatus_eConsumeNoDefault;
-    DispatchAfterKeyboardEventInternal(chain, aEvent,
-                                       aEvent.mFlags.mDefaultPrevented, chainIndex);
-
+    DispatchAfterKeyboardEventInternal(chain, aEvent, false, chainIndex);
     
     aEvent.mFlags.mNoCrossProcessBoundaryForwarding = true;
     return;
@@ -7216,6 +7215,15 @@ PresShell::HandleKeyboardEvent(nsINode* aTarget,
   
   EventDispatcher::Dispatch(aTarget, mPresContext,
                             &aEvent, nullptr, aStatus, aEventCB);
+
+  if (aEvent.mFlags.mDefaultPrevented) {
+    
+    
+    
+    
+    DispatchAfterKeyboardEventInternal(chain, aEvent, !targetIsIframe, chainIndex);
+    return;
+  }
 
   
   if (targetIsIframe || !CanDispatchEvent()) {
