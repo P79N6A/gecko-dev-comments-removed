@@ -52,7 +52,7 @@ WidgetEvent::IsQueryContentEvent() const
 bool
 WidgetEvent::IsSelectionEvent() const
 {
-  return mClass == NS_SELECTION_EVENT;
+  return mClass == eSelectionEventClass;
 }
 
 bool
@@ -236,7 +236,7 @@ WidgetEvent::IsAllowedToDispatchDOMEvent() const
     
     
     case eQueryContentEventClass:
-    case NS_SELECTION_EVENT:
+    case eSelectionEventClass:
     case NS_CONTENT_COMMAND_EVENT:
       return false;
 
