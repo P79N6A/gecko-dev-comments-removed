@@ -150,6 +150,11 @@ protected:
   void SetDefaultVolumeControlChannelInternal(int32_t aChannel,
                                               bool aHidden, uint64_t aChildID);
 
+  AudioChannelState CheckTelephonyPolicy(AudioChannel aChannel,
+                                         uint64_t aChildID);
+  void RegisterTelephonyChild(uint64_t aChildID);
+  void UnregisterTelephonyChild(uint64_t aChildID);
+
   AudioChannelService();
   virtual ~AudioChannelService();
 
@@ -224,6 +229,19 @@ protected:
   int32_t mCurrentVisibleHigherChannel;
 
   nsTArray<uint64_t> mWithVideoChildIDs;
+
+  
+  
+  struct TelephonyChild {
+    uint64_t mChildID;
+    uint32_t mInstances;
+
+    explicit TelephonyChild(uint64_t aChildID)
+      : mChildID(aChildID)
+      , mInstances(1)
+    {}
+  };
+  nsTArray<TelephonyChild> mTelephonyChildren;
 
   
   
