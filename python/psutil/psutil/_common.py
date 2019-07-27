@@ -7,13 +7,52 @@
 """Common objects shared by all _ps* modules."""
 
 from __future__ import division
-import sys
-import os
-import stat
 import errno
+import os
+import socket
+import stat
+import sys
 import warnings
+try:
+    import threading
+except ImportError:
+    import dummy_threading as threading
 
-from psutil._compat import namedtuple, long, wraps
+from socket import AF_INET, SOCK_STREAM, SOCK_DGRAM
+
+from psutil._compat import namedtuple, wraps
+
+
+
+AF_INET6 = getattr(socket, 'AF_INET6', None)
+AF_UNIX = getattr(socket, 'AF_UNIX', None)
+
+STATUS_RUNNING = "running"
+STATUS_SLEEPING = "sleeping"
+STATUS_DISK_SLEEP = "disk-sleep"
+STATUS_STOPPED = "stopped"
+STATUS_TRACING_STOP = "tracing-stop"
+STATUS_ZOMBIE = "zombie"
+STATUS_DEAD = "dead"
+STATUS_WAKE_KILL = "wake-kill"
+STATUS_WAKING = "waking"
+STATUS_IDLE = "idle"  
+STATUS_LOCKED = "locked"  
+STATUS_WAITING = "waiting"  
+
+CONN_ESTABLISHED = "ESTABLISHED"
+CONN_SYN_SENT = "SYN_SENT"
+CONN_SYN_RECV = "SYN_RECV"
+CONN_FIN_WAIT1 = "FIN_WAIT1"
+CONN_FIN_WAIT2 = "FIN_WAIT2"
+CONN_TIME_WAIT = "TIME_WAIT"
+CONN_CLOSE = "CLOSE"
+CONN_CLOSE_WAIT = "CLOSE_WAIT"
+CONN_LAST_ACK = "LAST_ACK"
+CONN_LISTEN = "LISTEN"
+CONN_CLOSING = "CLOSING"
+CONN_NONE = "NONE"
+
 
 
 
@@ -28,59 +67,47 @@ def usage_percent(used, total, _round=None):
     else:
         return ret
 
-class constant(int):
-    """A constant type; overrides base int to provide a useful name on str()."""
 
-    def __new__(cls, value, name, doc=None):
-        inst = super(constant, cls).__new__(cls, value)
-        inst._name = name
-        if doc is not None:
-            inst.__doc__ = doc
-        return inst
+def memoize(fun):
+    """A simple memoize decorator for functions supporting (hashable)
+    positional arguments.
+    It also provides a cache_clear() function for clearing the cache:
 
-    def __str__(self):
-        return self._name
-
-    def __eq__(self, other):
-        
-        
-        
-        
-        
-        
-        
-        if isinstance(other, int):
-            return int(self) == other
-        if isinstance(other, long):
-            return long(self) == other
-        if isinstance(other, str):
-            return self._name == other
-        return False
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-def memoize(f):
-    """A simple memoize decorator for functions."""
-    cache= {}
-    def memf(*x):
-        if x not in cache:
-            cache[x] = f(*x)
-        return cache[x]
-    return memf
-
-class cached_property(object):
-    """A memoize decorator for class properties."""
-    enabled = True
-
-    def __init__(self, func):
-        self.func = func
-
-    def __get__(self, instance, type):
-        ret = self.func(instance)
-        if self.enabled:
-            instance.__dict__[self.func.__name__] = ret
+    >>> @memoize
+    ... def foo()
+    ...     return 1
+    ...
+    >>> foo()
+    1
+    >>> foo.cache_clear()
+    >>>
+    """
+    @wraps(fun)
+    def wrapper(*args, **kwargs):
+        key = (args, frozenset(sorted(kwargs.items())))
+        lock.acquire()
+        try:
+            try:
+                return cache[key]
+            except KeyError:
+                ret = cache[key] = fun(*args, **kwargs)
+        finally:
+            lock.release()
         return ret
+
+    def cache_clear():
+        """Clear cache."""
+        lock.acquire()
+        try:
+            cache.clear()
+        finally:
+            lock.release()
+
+    lock = threading.RLock()
+    cache = {}
+    wrapper.cache_clear = cache_clear
+    return wrapper
+
 
 
 def deprecated(replacement=None):
@@ -97,6 +124,24 @@ def deprecated(replacement=None):
             warnings.warn(msg, category=DeprecationWarning, stacklevel=2)
             return fun(*args, **kwargs)
 
+        return inner
+    return outer
+
+
+def deprecated_method(replacement):
+    """A decorator which can be used to mark a method as deprecated
+    'replcement' is the method name which will be called instead.
+    """
+    def outer(fun):
+        msg = "%s() is deprecated; use %s() instead" % (
+            fun.__name__, replacement)
+        if fun.__doc__ is None:
+            fun.__doc__ = msg
+
+        @wraps(fun)
+        def inner(self, *args, **kwargs):
+            warnings.warn(msg, category=DeprecationWarning, stacklevel=2)
+            return getattr(self, replacement)(*args, **kwargs)
         return inner
     return outer
 
@@ -119,100 +164,95 @@ def isfile_strict(path):
 
 
 
-STATUS_RUNNING = constant(0, "running")
-STATUS_SLEEPING = constant(1, "sleeping")
-STATUS_DISK_SLEEP = constant(2, "disk sleep")
-STATUS_STOPPED = constant(3, "stopped")
-STATUS_TRACING_STOP = constant(4, "tracing stop")
-STATUS_ZOMBIE = constant(5, "zombie")
-STATUS_DEAD = constant(6, "dead")
-STATUS_WAKE_KILL = constant(7, "wake kill")
-STATUS_WAKING = constant(8, "waking")
-STATUS_IDLE = constant(9, "idle")  
-STATUS_LOCKED = constant(10, "locked")  
-STATUS_WAITING = constant(11, "waiting")  
-
-CONN_ESTABLISHED = constant(0, "ESTABLISHED")
-CONN_SYN_SENT = constant(1, "SYN_SENT")
-CONN_SYN_RECV = constant(2, "SYN_RECV")
-CONN_FIN_WAIT1 = constant(3, "FIN_WAIT1")
-CONN_FIN_WAIT2 = constant(4, "FIN_WAIT2")
-CONN_TIME_WAIT = constant(5, "TIME_WAIT")
-CONN_CLOSE = constant(6, "CLOSE")
-CONN_CLOSE_WAIT = constant(7, "CLOSE_WAIT")
-CONN_LAST_ACK = constant(8, "LAST_ACK")
-CONN_LISTEN = constant(9, "LISTEN")
-CONN_CLOSING = constant(10, "CLOSING")
-CONN_NONE = constant(20, "NONE")
-
-
-
-import socket
-from socket import AF_INET, SOCK_STREAM, SOCK_DGRAM
-AF_INET6 = getattr(socket, 'AF_INET6', None)
-AF_UNIX = getattr(socket, 'AF_UNIX', None)
-
 conn_tmap = {
-    "all"  : ([AF_INET, AF_INET6, AF_UNIX], [SOCK_STREAM, SOCK_DGRAM]),
-    "tcp"  : ([AF_INET, AF_INET6], [SOCK_STREAM]),
-    "tcp4" : ([AF_INET],           [SOCK_STREAM]),
-    "udp"  : ([AF_INET, AF_INET6], [SOCK_DGRAM]),
-    "udp4" : ([AF_INET],           [SOCK_DGRAM]),
-    "inet" : ([AF_INET, AF_INET6], [SOCK_STREAM, SOCK_DGRAM]),
-    "inet4": ([AF_INET],           [SOCK_STREAM, SOCK_DGRAM]),
-    "inet6": ([AF_INET6],          [SOCK_STREAM, SOCK_DGRAM]),
+    "all": ([AF_INET, AF_INET6, AF_UNIX], [SOCK_STREAM, SOCK_DGRAM]),
+    "tcp": ([AF_INET, AF_INET6], [SOCK_STREAM]),
+    "tcp4": ([AF_INET], [SOCK_STREAM]),
+    "udp": ([AF_INET, AF_INET6], [SOCK_DGRAM]),
+    "udp4": ([AF_INET], [SOCK_DGRAM]),
+    "inet": ([AF_INET, AF_INET6], [SOCK_STREAM, SOCK_DGRAM]),
+    "inet4": ([AF_INET], [SOCK_STREAM, SOCK_DGRAM]),
+    "inet6": ([AF_INET6], [SOCK_STREAM, SOCK_DGRAM]),
 }
 
 if AF_INET6 is not None:
     conn_tmap.update({
-        "tcp6" : ([AF_INET6],          [SOCK_STREAM]),
-        "udp6" : ([AF_INET6],          [SOCK_DGRAM]),
+        "tcp6": ([AF_INET6], [SOCK_STREAM]),
+        "udp6": ([AF_INET6], [SOCK_DGRAM]),
     })
 
 if AF_UNIX is not None:
     conn_tmap.update({
-        "unix" : ([AF_UNIX],           [SOCK_STREAM, SOCK_DGRAM]),
+        "unix": ([AF_UNIX], [SOCK_STREAM, SOCK_DGRAM]),
     })
-
 
 del AF_INET, AF_INET6, AF_UNIX, SOCK_STREAM, SOCK_DGRAM, socket
 
 
 
 
-nt_sysmeminfo = namedtuple('usage', 'total used free percent')
 
-nt_swapmeminfo = namedtuple('swap', 'total used free percent sin sout')
-nt_diskinfo = namedtuple('usage', 'total used free percent')
-nt_partition = namedtuple('partition',  'device mountpoint fstype opts')
-nt_net_iostat = namedtuple('iostat',
-    'bytes_sent bytes_recv packets_sent packets_recv errin errout dropin dropout')
-nt_disk_iostat = namedtuple('iostat', 'read_count write_count read_bytes write_bytes read_time write_time')
-nt_user = namedtuple('user', 'name terminal host started')
+sswap = namedtuple('sswap', ['total', 'used', 'free', 'percent', 'sin',
+                             'sout'])
+
+sdiskusage = namedtuple('sdiskusage', ['total', 'used', 'free', 'percent'])
+
+sdiskio = namedtuple('sdiskio', ['read_count', 'write_count',
+                                 'read_bytes', 'write_bytes',
+                                 'read_time', 'write_time'])
+
+sdiskpart = namedtuple('sdiskpart', ['device', 'mountpoint', 'fstype', 'opts'])
+
+snetio = namedtuple('snetio', ['bytes_sent', 'bytes_recv',
+                               'packets_sent', 'packets_recv',
+                               'errin', 'errout',
+                               'dropin', 'dropout'])
+
+suser = namedtuple('suser', ['name', 'terminal', 'host', 'started'])
+
+sconn = namedtuple('sconn', ['fd', 'family', 'type', 'laddr', 'raddr',
+                             'status', 'pid'])
 
 
-nt_meminfo = namedtuple('meminfo', 'rss vms')
-nt_cputimes = namedtuple('cputimes', 'user system')
-nt_openfile = namedtuple('openfile', 'path fd')
-nt_thread = namedtuple('thread', 'id user_time system_time')
-nt_uids = namedtuple('user', 'real effective saved')
-nt_gids = namedtuple('group', 'real effective saved')
-nt_io = namedtuple('io', 'read_count write_count read_bytes write_bytes')
-nt_ionice = namedtuple('ionice', 'ioclass value')
-nt_ctxsw = namedtuple('amount', 'voluntary involuntary')
 
-class nt_connection(namedtuple('connection',
-                               'fd family type laddr raddr status')):
-        __slots__ = ()
 
-        @property
-        def local_address(self):
-            warnings.warn("'local_address' field is deprecated; use 'laddr'" \
-                          "instead", category=DeprecationWarning, stacklevel=2)
-            return self.laddr
 
-        @property
-        def remote_address(self):
-            warnings.warn("'remote_address' field is deprecated; use 'raddr'" \
-                          "instead", category=DeprecationWarning, stacklevel=2)
-            return self.raddr
+pmem = namedtuple('pmem', ['rss', 'vms'])
+
+pcputimes = namedtuple('pcputimes', ['user', 'system'])
+
+popenfile = namedtuple('popenfile', ['path', 'fd'])
+
+pthread = namedtuple('pthread', ['id', 'user_time', 'system_time'])
+
+puids = namedtuple('puids', ['real', 'effective', 'saved'])
+
+pgids = namedtuple('pgids', ['real', 'effective', 'saved'])
+
+pio = namedtuple('pio', ['read_count', 'write_count',
+                         'read_bytes', 'write_bytes'])
+
+pionice = namedtuple('pionice', ['ioclass', 'value'])
+
+pctxsw = namedtuple('pctxsw', ['voluntary', 'involuntary'])
+
+
+
+
+
+class pconn(
+    namedtuple('pconn',
+               ['fd', 'family', 'type', 'laddr', 'raddr', 'status'])):
+    __slots__ = ()
+
+    @property
+    def local_address(self):
+        warnings.warn("'local_address' field is deprecated; use 'laddr'"
+                      "instead", category=DeprecationWarning, stacklevel=2)
+        return self.laddr
+
+    @property
+    def remote_address(self):
+        warnings.warn("'remote_address' field is deprecated; use 'raddr'"
+                      "instead", category=DeprecationWarning, stacklevel=2)
+        return self.raddr
