@@ -33,14 +33,11 @@ class BluetoothDevice MOZ_FINAL : public DOMEventTargetHelper
 {
 public:
   NS_DECL_ISUPPORTS_INHERITED
-
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(BluetoothDevice,
                                            DOMEventTargetHelper)
 
-  static already_AddRefed<BluetoothDevice>
-  Create(nsPIDOMWindow* aOwner, const BluetoothValue& aValue);
+  
 
-  void Notify(const BluetoothSignal& aParam);
 
   void GetAddress(nsString& aAddress) const
   {
@@ -62,27 +59,28 @@ public:
     return mPaired;
   }
 
-  void GetUuids(nsTArray<nsString>& aUuids) {
+  void GetUuids(nsTArray<nsString>& aUuids) const
+  {
     aUuids = mUuids;
   }
 
-  already_AddRefed<Promise> FetchUuids(ErrorResult& aRv);
+  
 
-  void SetPropertyByValue(const BluetoothNamedValue& aValue);
-
-  BluetoothDeviceAttribute
-  ConvertStringToDeviceAttribute(const nsAString& aString);
-
-  bool
-  IsDeviceAttributeChanged(BluetoothDeviceAttribute aType,
-                           const BluetoothValue& aValue);
-
-  void HandlePropertyChanged(const BluetoothValue& aValue);
-
-  void DispatchAttributeEvent(const nsTArray<nsString>& aTypes);
 
   IMPL_EVENT_HANDLER(attributechanged);
 
+  
+
+
+  already_AddRefed<Promise> FetchUuids(ErrorResult& aRv);
+
+  
+
+
+  static already_AddRefed<BluetoothDevice>
+    Create(nsPIDOMWindow* aOwner, const BluetoothValue& aValue);
+
+  void Notify(const BluetoothSignal& aParam); 
   nsPIDOMWindow* GetParentObject() const
   {
      return GetOwner();
@@ -91,16 +89,83 @@ public:
   virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
   virtual void DisconnectFromOwner() MOZ_OVERRIDE;
 
+  
+
+
+  bool operator==(BluetoothDevice& aDevice) const
+  {
+    nsString address;
+    aDevice.GetAddress(address);
+    return mAddress.Equals(address);
+  }
+
 private:
   BluetoothDevice(nsPIDOMWindow* aOwner, const BluetoothValue& aValue);
   ~BluetoothDevice();
 
-  nsString mAddress;
-  nsRefPtr<BluetoothClassOfDevice> mCod;
-  nsString mName;
-  bool mPaired;
-  nsTArray<nsString> mUuids;
+  
 
+
+
+
+  void SetPropertyByValue(const BluetoothNamedValue& aValue);
+
+  
+
+
+
+
+  void HandlePropertyChanged(const BluetoothValue& aValue);
+
+  
+
+
+  void DispatchAttributeEvent(const nsTArray<nsString>& aTypes);
+
+  
+
+
+
+
+  BluetoothDeviceAttribute
+    ConvertStringToDeviceAttribute(const nsAString& aString);
+
+  
+
+
+
+
+
+  bool IsDeviceAttributeChanged(BluetoothDeviceAttribute aType,
+                                const BluetoothValue& aValue);
+
+  
+
+
+  
+
+
+  nsString mAddress;
+
+  
+
+
+  nsRefPtr<BluetoothClassOfDevice> mCod;
+
+  
+
+
+  nsString mName;
+
+  
+
+
+  bool mPaired;
+
+  
+
+
+  nsTArray<nsString> mUuids;
 };
 
 END_BLUETOOTH_NAMESPACE

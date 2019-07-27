@@ -27,8 +27,14 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  static already_AddRefed<BluetoothManager> Create(nsPIDOMWindow* aWindow);
-  static bool CheckPermission(nsPIDOMWindow* aWindow);
+
+
+  IMPL_EVENT_HANDLER(attributechanged);
+  IMPL_EVENT_HANDLER(adapteradded);
+  IMPL_EVENT_HANDLER(adapterremoved);
+
+  
+
 
   
 
@@ -47,14 +53,9 @@ public:
   
 
 
-
-
-
-  void AppendAdapter(const BluetoothValue& aValue);
-
-  IMPL_EVENT_HANDLER(attributechanged);
-  IMPL_EVENT_HANDLER(adapteradded);
-  IMPL_EVENT_HANDLER(adapterremoved);
+  
+  static already_AddRefed<BluetoothManager> Create(nsPIDOMWindow* aWindow);
+  static bool CheckPermission(nsPIDOMWindow* aWindow);
 
   void Notify(const BluetoothSignal& aData); 
   nsPIDOMWindow* GetParentObject() const
@@ -64,6 +65,14 @@ public:
 
   virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
   virtual void DisconnectFromOwner() MOZ_OVERRIDE;
+
+  
+
+
+
+
+
+  void AppendAdapter(const BluetoothValue& aValue);
 
 private:
   BluetoothManager(nsPIDOMWindow* aWindow);
