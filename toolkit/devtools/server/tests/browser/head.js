@@ -23,13 +23,6 @@ waitForExplicitFinish();
 
 
 
-function asyncTest(generator) {
-  return () => Task.spawn(generator).then(null, ok.bind(null, false)).then(finish);
-}
-
-
-
-
 
 
 let addTab = Task.async(function* (url) {
