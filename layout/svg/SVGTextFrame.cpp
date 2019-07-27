@@ -2736,9 +2736,8 @@ private:
   void SetupContext();
 
   bool IsClipPathChild() const {
-    
-    
-    return mFrame->GetParent()->GetParent()->GetStateBits() &
+    return nsLayoutUtils::GetClosestFrameOfType
+             (mFrame->GetParent(), nsGkAtoms::svgTextFrame)->GetStateBits() &
              NS_STATE_SVG_CLIPPATH_CHILD;
   }
 
