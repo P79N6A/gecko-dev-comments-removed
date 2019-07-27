@@ -1240,46 +1240,66 @@ function do_load_child_test_harness()
 
 
 
-function run_test_in_child(testFile, optionalCallback) 
+
+function run_test_in_child(testFile, optionalCallback)
 {
-  var callback = (typeof optionalCallback == 'undefined') ? 
-                    do_test_finished : optionalCallback;
+  return new Promise((resolve) => {
+    var callback = () => {
+      resolve();
+      if (typeof optionalCallback == 'undefined') {
+        do_test_finished();
+      } else {
+        optionalCallback();
+      }
+    };
 
-  do_load_child_test_harness();
+    do_load_child_test_harness();
 
-  var testPath = do_get_file(testFile).path.replace(/\\/g, "/");
-  do_test_pending("run in child");
-  sendCommand("_testLogger.info('CHILD-TEST-STARTED'); "
-              + "const _TEST_FILE=['" + testPath + "']; "
-              + "_execute_test(); "
-              + "_testLogger.info('CHILD-TEST-COMPLETED');",
-              callback);
+    var testPath = do_get_file(testFile).path.replace(/\\/g, "/");
+    do_test_pending("run in child");
+    sendCommand("_testLogger.info('CHILD-TEST-STARTED'); "
+                + "const _TEST_FILE=['" + testPath + "']; "
+                + "_execute_test(); "
+                + "_testLogger.info('CHILD-TEST-COMPLETED');",
+                callback);
+  });
 }
 
 
 
 
 
-function do_await_remote_message(name, callback)
-{
-  var listener = {
-    receiveMessage: function(message) {
-      if (message.name == name) {
-        mm.removeMessageListener(name, listener);
-        callback();
-        do_test_finished();
-      }
-    }
-  };
 
-  var mm;
-  if (runningInParent) {
-    mm = Cc["@mozilla.org/parentprocessmessagemanager;1"].getService(Ci.nsIMessageBroadcaster);
-  } else {
-    mm = Cc["@mozilla.org/childprocessmessagemanager;1"].getService(Ci.nsISyncMessageSender);
-  }
-  do_test_pending();
-  mm.addMessageListener(name, listener);
+
+
+
+
+function do_await_remote_message(name, optionalCallback)
+{
+  return new Promise((resolve) => {
+    var listener = {
+      receiveMessage: function(message) {
+        if (message.name == name) {
+          mm.removeMessageListener(name, listener);
+          resolve();
+          if (optionalCallback) {
+            optionalCallback();
+          } else {
+            do_test_finished();
+          }
+        }
+      }
+    };
+
+    var mm;
+    if (runningInParent) {
+      mm = Cc["@mozilla.org/parentprocessmessagemanager;1"].getService(Ci.nsIMessageBroadcaster);
+    } else {
+      mm = Cc["@mozilla.org/childprocessmessagemanager;1"].getService(Ci.nsISyncMessageSender);
+    }
+    do_test_pending();
+    mm.addMessageListener(name, listener);
+  });
 }
 
 
