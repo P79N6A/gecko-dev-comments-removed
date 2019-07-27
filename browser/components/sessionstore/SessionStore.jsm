@@ -347,6 +347,9 @@ let SessionStoreInternal = {
   _promiseReadyForInitialization: null,
 
   
+  _windowBusyStates: new WeakMap(),
+
+  
 
 
   get promiseInitialized() {
@@ -1556,8 +1559,7 @@ let SessionStoreInternal = {
       this._resetTabRestoringState(aTab);
     }
 
-    this._setWindowStateBusy(window);
-    this.restoreTabs(window, [aTab], [tabState], 0);
+    this.restoreTab(aTab, tabState);
   },
 
   duplicateTab: function ssi_duplicateTab(aWindow, aTab, aDelta = 0) {
@@ -1579,14 +1581,11 @@ let SessionStoreInternal = {
     tabState.index = Math.max(1, Math.min(tabState.index, tabState.entries.length));
     tabState.pinned = false;
 
-    this._setWindowStateBusy(aWindow);
     let newTab = aTab == aWindow.gBrowser.selectedTab ?
       aWindow.gBrowser.addTab(null, {relatedToCurrent: true, ownerTab: aTab}) :
       aWindow.gBrowser.addTab();
 
-    this.restoreTabs(aWindow, [newTab], [tabState], 0,
-                     true );
-
+    this.restoreTab(newTab, tabState, true );
     return newTab;
   },
 
@@ -1632,13 +1631,12 @@ let SessionStoreInternal = {
     let closedTab = closedTabs.splice(aIndex, 1).shift();
     let closedTabState = closedTab.state;
 
-    this._setWindowStateBusy(aWindow);
     
     let tabbrowser = aWindow.gBrowser;
-    let tab = tabbrowser.addTab();
+    let tab = tabbrowser.selectedTab = tabbrowser.addTab();
 
     
-    this.restoreTabs(aWindow, [tab], [closedTabState], 1);
+    this.restoreTab(tab, closedTabState);
 
     
     tabbrowser.moveTabTo(tab, closedTab.pos);
@@ -2383,8 +2381,11 @@ let SessionStoreInternal = {
         newClosedTabsData.slice(0, this._max_tabs_undo);
     }
 
-    this.restoreTabs(aWindow, tabs, winData.tabs,
-      (overwriteTabs ? (parseInt(winData.selected || "1")) : 0));
+    
+    if (winData.tabs.length) {
+      this.restoreTabs(aWindow, tabs, winData.tabs,
+        (overwriteTabs ? (parseInt(winData.selected || "1")) : 0));
+    }
 
     if (aState.scratchpads) {
       ScratchpadManager.restoreSession(aState.scratchpads);
@@ -2395,6 +2396,7 @@ let SessionStoreInternal = {
 
     TelemetryStopwatch.finish("FX_SESSION_RESTORE_RESTORE_WINDOW_MS");
 
+    this._setWindowStateReady(aWindow);
     this._sendRestoreCompletedNotifications();
   },
 
@@ -2411,13 +2413,7 @@ let SessionStoreInternal = {
 
 
 
-
-
-
-  restoreTabs: function (aWindow, aTabs, aTabData, aSelectTab,
-                         aRestoreImmediately = false)
-  {
-
+  restoreTabs(aWindow, aTabs, aTabData, aSelectTab) {
     var tabbrowser = aWindow.gBrowser;
 
     if (!this._isWindowLoaded(aWindow)) {
@@ -2427,130 +2423,150 @@ let SessionStoreInternal = {
       delete this._windows[aWindow.__SSi]._restoring;
     }
 
-    
-    
-    DirtyWindows.add(aWindow);
+    let numTabsToRestore = aTabs.length;
+    let numTabsInWindow = tabbrowser.tabs.length;
+    let tabsDataArray = this._windows[aWindow.__SSi].tabs;
 
     
     
-    
-    
-    this._windows[aWindow.__SSi].tabs = aTabData.slice();
-    this._windows[aWindow.__SSi].selected = aSelectTab;
-
-    if (aTabs.length == 0) {
+    if (numTabsInWindow == numTabsToRestore) {
       
+      tabsDataArray.length = 0;
+    } else {
       
-      this._setWindowStateReady(aWindow);
-      return;
+      tabsDataArray.splice(numTabsInWindow - numTabsToRestore);
     }
+
+    
+    tabsDataArray.length = numTabsInWindow;
 
     
     if (aSelectTab > 0 && aSelectTab <= aTabs.length) {
       tabbrowser.selectedTab = aTabs[aSelectTab - 1];
+
+      
+      this._windows[aWindow.__SSi].selected = aSelectTab;
     }
 
-    
-    
-    
     
     for (let t = 0; t < aTabs.length; t++) {
-      let tab = aTabs[t];
-      let browser = tabbrowser.getBrowserForTab(tab);
-      let tabData = aTabData[t];
+      this.restoreTab(aTabs[t], aTabData[t]);
+    }
+  },
 
-      if (tabData.pinned)
-        tabbrowser.pinTab(tab);
-      else
-        tabbrowser.unpinTab(tab);
+  
+  restoreTab(tab, tabData, restoreImmediately = false) {
+    let browser = tab.linkedBrowser;
+    let window = tab.ownerDocument.defaultView;
+    let tabbrowser = window.gBrowser;
 
-      if (tabData.hidden)
-        tabbrowser.hideTab(tab);
-      else
-        tabbrowser.showTab(tab);
+    
+    this._setWindowStateBusy(window);
 
-      if (tabData.lastAccessed) {
-        tab.lastAccessed = tabData.lastAccessed;
-      }
+    
+    
+    DirtyWindows.add(window);
 
-      if ("attributes" in tabData) {
-        
-        Object.keys(tabData.attributes).forEach(a => TabAttributes.persist(a));
-      }
+    
+    this._windows[window.__SSi].tabs[tab._tPos] = tabData;
 
-      if (!tabData.entries) {
-        tabData.entries = [];
-      }
-      if (tabData.extData) {
-        tab.__SS_extdata = {};
-        for (let key in tabData.extData)
-         tab.__SS_extdata[key] = tabData.extData[key];
-      } else {
-        delete tab.__SS_extdata;
-      }
-      delete tabData.closedAt; 
-
-      
-      
-      
-      TabState.flush(tab.linkedBrowser);
-
-      
-      let activeIndex = (tabData.index || tabData.entries.length) - 1;
-      activeIndex = Math.min(activeIndex, tabData.entries.length - 1);
-      activeIndex = Math.max(activeIndex, 0);
-
-      
-      tabData.index = activeIndex + 1;
-
-      
-      
-      let activePageData = tabData.entries[activeIndex] || null;
-      let uri = activePageData ? activePageData.url || null : null;
-      tabbrowser.updateBrowserRemotenessByURL(browser, uri);
-
-      
-      
-      
-      let epoch = this._nextRestoreEpoch++;
-      this._browserEpochs.set(browser.permanentKey, epoch);
-
-      
-      
-      browser.__SS_data = tabData;
-      browser.__SS_restoreState = TAB_STATE_NEEDS_RESTORE;
-      browser.setAttribute("pending", "true");
-      tab.setAttribute("pending", "true");
-
-      
-      TabStateCache.update(browser, {
-        history: {entries: tabData.entries, index: tabData.index},
-        scroll: tabData.scroll || null,
-        storage: tabData.storage || null,
-        formdata: tabData.formdata || null,
-        disallow: tabData.disallow || null,
-        pageStyle: tabData.pageStyle || null
-      });
-
-      browser.messageManager.sendAsyncMessage("SessionStore:restoreHistory",
-                                              {tabData: tabData, epoch: epoch});
-
-      
-      if ("attributes" in tabData) {
-        TabAttributes.set(tab, tabData.attributes);
-      }
-
-      
-      
-      if (aRestoreImmediately || tabbrowser.selectedBrowser == browser) {
-        this.restoreTabContent(tab);
-      } else {
-        TabRestoreQueue.add(tab);
-        this.restoreNextTab();
-      }
+    
+    
+    
+    if (tabData.pinned) {
+      tabbrowser.pinTab(tab);
+    } else {
+      tabbrowser.unpinTab(tab);
     }
 
-    this._setWindowStateReady(aWindow);
+    if (tabData.hidden) {
+      tabbrowser.hideTab(tab);
+    } else {
+      tabbrowser.showTab(tab);
+    }
+
+    if (tabData.lastAccessed) {
+      tab.lastAccessed = tabData.lastAccessed;
+    }
+
+    if ("attributes" in tabData) {
+      
+      Object.keys(tabData.attributes).forEach(a => TabAttributes.persist(a));
+    }
+
+    if (!tabData.entries) {
+      tabData.entries = [];
+    }
+    if (tabData.extData) {
+      tab.__SS_extdata = Cu.cloneInto(tabData.extData, {});
+    } else {
+      delete tab.__SS_extdata;
+    }
+
+    
+    delete tabData.closedAt;
+
+    
+    
+    
+    TabState.flush(browser);
+
+    
+    let activeIndex = (tabData.index || tabData.entries.length) - 1;
+    activeIndex = Math.min(activeIndex, tabData.entries.length - 1);
+    activeIndex = Math.max(activeIndex, 0);
+
+    
+    tabData.index = activeIndex + 1;
+
+    
+    
+    let activePageData = tabData.entries[activeIndex] || null;
+    let uri = activePageData ? activePageData.url || null : null;
+    tabbrowser.updateBrowserRemotenessByURL(browser, uri);
+
+    
+    
+    
+    let epoch = this._nextRestoreEpoch++;
+    this._browserEpochs.set(browser.permanentKey, epoch);
+
+    
+    
+    browser.__SS_data = tabData;
+    browser.__SS_restoreState = TAB_STATE_NEEDS_RESTORE;
+    browser.setAttribute("pending", "true");
+    tab.setAttribute("pending", "true");
+
+    
+    TabStateCache.update(browser, {
+      history: {entries: tabData.entries, index: tabData.index},
+      scroll: tabData.scroll || null,
+      storage: tabData.storage || null,
+      formdata: tabData.formdata || null,
+      disallow: tabData.disallow || null,
+      pageStyle: tabData.pageStyle || null
+    });
+
+    browser.messageManager.sendAsyncMessage("SessionStore:restoreHistory",
+                                            {tabData: tabData, epoch: epoch});
+
+    
+    if ("attributes" in tabData) {
+      TabAttributes.set(tab, tabData.attributes);
+    }
+
+    
+    
+    if (restoreImmediately || tabbrowser.selectedBrowser == browser) {
+      this.restoreTabContent(tab);
+    } else {
+      TabRestoreQueue.add(tab);
+      this.restoreNextTab();
+    }
+
+    
+    this._setWindowStateReady(window);
   },
 
   
@@ -3240,8 +3256,16 @@ let SessionStoreInternal = {
 
 
   _setWindowStateReady: function ssi_setWindowStateReady(aWindow) {
-    this._setWindowStateBusyValue(aWindow, false);
-    this._sendWindowStateEvent(aWindow, "Ready");
+    let newCount = (this._windowBusyStates.get(aWindow) || 0) - 1;
+    if (newCount < 0) {
+      throw new Error("Invalid window busy state (less than zero).");
+    }
+    this._windowBusyStates.set(aWindow, newCount);
+
+    if (newCount == 0) {
+      this._setWindowStateBusyValue(aWindow, false);
+      this._sendWindowStateEvent(aWindow, "Ready");
+    }
   },
 
   
@@ -3249,8 +3273,13 @@ let SessionStoreInternal = {
 
 
   _setWindowStateBusy: function ssi_setWindowStateBusy(aWindow) {
-    this._setWindowStateBusyValue(aWindow, true);
-    this._sendWindowStateEvent(aWindow, "Busy");
+    let newCount = (this._windowBusyStates.get(aWindow) || 0) + 1;
+    this._windowBusyStates.set(aWindow, newCount);
+
+    if (newCount == 1) {
+      this._setWindowStateBusyValue(aWindow, true);
+      this._sendWindowStateEvent(aWindow, "Busy");
+    }
   },
 
   
