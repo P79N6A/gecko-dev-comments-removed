@@ -493,9 +493,7 @@ struct WeakMapTracer;
 
 
 typedef void
-(* WeakMapTraceCallback)(WeakMapTracer *trc, JSObject *m,
-                         void *k, JSGCTraceKind kkind,
-                         void *v, JSGCTraceKind vkind);
+(* WeakMapTraceCallback)(WeakMapTracer *trc, JSObject *m, JS::GCCellPtr key, JS::GCCellPtr value);
 
 struct WeakMapTracer {
     JSRuntime            *runtime;
