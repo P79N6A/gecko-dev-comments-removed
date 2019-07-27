@@ -79,16 +79,20 @@ add_task(function* test_archivedPings() {
   yield checkLoadingPings();
 
   
-  let writeToArchivedDir = Task.async(function*(dirname, filename, content) {
+  let writeToArchivedDir = Task.async(function*(dirname, filename, content, compressed) {
     const dirPath = OS.Path.join(gPingsArchivePath, dirname);
     yield OS.File.makeDir(dirPath, { ignoreExisting: true });
     const filePath = OS.Path.join(dirPath, filename);
     const options = { tmpPath: filePath + ".tmp", noOverwrite: false };
+    if (compressed) {
+      options.compression = "lz4";
+    }
     yield OS.File.writeAtomic(filePath, content, options);
   });
 
   const FAKE_ID1 = "10000000-0123-0123-0123-0123456789a1";
   const FAKE_ID2 = "20000000-0123-0123-0123-0123456789a2";
+  const FAKE_ID3 = "20000000-0123-0123-0123-0123456789a3";
   const FAKE_TYPE = "foo";
 
   
@@ -100,6 +104,8 @@ add_task(function* test_archivedPings() {
   yield writeToArchivedDir("2010-02", "2." + FAKE_ID1 + "." + FAKE_TYPE + ".json", "");
   
   yield writeToArchivedDir("2010-02", "3." + FAKE_ID2 + "." + FAKE_TYPE + ".json", "");
+  
+  yield writeToArchivedDir("2010-02", "4." + FAKE_ID3 + "." + FAKE_TYPE + ".jsonlz4", "");
 
   expectedPingList.push({
     id: FAKE_ID1,
@@ -110,6 +116,11 @@ add_task(function* test_archivedPings() {
     id: FAKE_ID2,
     type: "foo",
     timestampCreated: 3,
+  });
+  expectedPingList.push({
+    id: FAKE_ID3,
+    type: "foo",
+    timestampCreated: 4,
   });
   expectedPingList.sort((a, b) => a.timestampCreated - b.timestampCreated);
 

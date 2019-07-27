@@ -423,10 +423,11 @@ let TelemetryStorageImpl = {
 
   saveArchivedPing: Task.async(function*(ping) {
     const creationDate = new Date(ping.creationDate);
-    const filePath = getArchivedPingPath(ping.id, creationDate, ping.type);
+    
+    const filePath = getArchivedPingPath(ping.id, creationDate, ping.type) + "lz4";
     yield OS.File.makeDir(OS.Path.dirname(filePath), { ignoreExisting: true,
                                                        from: OS.Constants.Path.profileDir });
-    yield TelemetryStorage.savePingToFile(ping, filePath, true);
+    yield this.savePingToFile(ping, filePath,  true,  true);
   }),
 
   
@@ -437,12 +438,21 @@ let TelemetryStorageImpl = {
 
 
 
-  loadArchivedPing: function(id, timestampCreated, type) {
+  loadArchivedPing: Task.async(function*(id, timestampCreated, type) {
     this._log.trace("loadArchivedPing - id: " + id + ", timestampCreated: " + timestampCreated + ", type: " + type);
     const path = getArchivedPingPath(id, new Date(timestampCreated), type);
-    this._log.trace("loadArchivedPing - loading ping from: " + path);
-    return this.loadPingFile(path);
-  },
+    const pathCompressed = path + "lz4";
+
+    try {
+      
+      this._log.trace("loadArchivedPing - loading ping from: " + pathCompressed);
+      return yield this.loadPingFile(pathCompressed,  true);
+    } catch (ex if ex.becauseNoSuchFile) {
+      
+      this._log.trace("loadArchivedPing - compressed ping not found, loading: " + path);
+      return yield this.loadPingFile(path,  false);
+    }
+  }),
 
   
 
@@ -452,12 +462,15 @@ let TelemetryStorageImpl = {
 
 
 
-  _removeArchivedPing: function(id, timestampCreated, type) {
+  _removeArchivedPing: Task.async(function*(id, timestampCreated, type) {
     this._log.trace("_removeArchivedPing - id: " + id + ", timestampCreated: " + timestampCreated + ", type: " + type);
     const path = getArchivedPingPath(id, new Date(timestampCreated), type);
+    const pathCompressed = path + "lz4";
+
     this._log.trace("_removeArchivedPing - removing ping from: " + path);
-    return OS.File.remove(path);
-  },
+    yield OS.File.remove(path, {ignoreAbsent: true});
+    yield OS.File.remove(pathCompressed, {ignoreAbsent: true});
+  }),
 
   
 
@@ -530,12 +543,17 @@ let TelemetryStorageImpl = {
 
 
 
-  savePingToFile: function(ping, filePath, overwrite) {
+
+
+  savePingToFile: function(ping, filePath, overwrite, compress = false) {
     return Task.spawn(function*() {
       try {
         let pingString = JSON.stringify(ping);
-        yield OS.File.writeAtomic(filePath, pingString, {tmpPath: filePath + ".tmp",
-                                  noOverwrite: !overwrite});
+        let options = { tmpPath: filePath + ".tmp", noOverwrite: !overwrite };
+        if (compress) {
+          options.compression = "lz4";
+        }
+        yield OS.File.writeAtomic(filePath, pingString, options);
       } catch(e if e.becauseExists) {
       }
     })
@@ -736,8 +754,13 @@ let TelemetryStorageImpl = {
 
 
 
-  loadPingFile: Task.async(function* (aFilePath) {
-    let array = yield OS.File.read(aFilePath);
+
+  loadPingFile: Task.async(function* (aFilePath, aCompressed = false) {
+    let options = {};
+    if (aCompressed) {
+      options.compression = "lz4";
+    }
+    let array = yield OS.File.read(aFilePath, options);
     let decoder = new TextDecoder();
     let string = decoder.decode(array);
 
@@ -770,8 +793,8 @@ let TelemetryStorageImpl = {
     }
 
     let [timestamp, uuid, type, extension] = parts;
-    if (extension != "json") {
-      this._log.trace("_getArchivedPingDataFromFileName - should have a 'json' extension");
+    if (extension != "json" && extension != "jsonlz4") {
+      this._log.trace("_getArchivedPingDataFromFileName - should have 'json' or 'jsonlz4' extension");
       return null;
     }
 
