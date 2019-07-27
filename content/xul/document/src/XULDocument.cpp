@@ -89,6 +89,7 @@
 #include "mozilla/dom/ProcessingInstruction.h"
 #include "mozilla/dom/XULDocumentBinding.h"
 #include "mozilla/EventDispatcher.h"
+#include "mozilla/LoadInfo.h"
 #include "mozilla/Preferences.h"
 #include "nsTextNode.h"
 #include "nsJSUtils.h"
@@ -2829,7 +2830,10 @@ XULDocument::LoadOverlayInternal(nsIURI* aURI, bool aIsDynamic,
             
             
             
-            channel->SetOwner(NodePrincipal());
+            nsCOMPtr<nsILoadInfo> loadInfo =
+                new LoadInfo(NodePrincipal(), LoadInfo::eInheritPrincipal,
+                             LoadInfo::eNotSandboxed);
+            channel->SetLoadInfo(loadInfo);
 
             rv = channel->AsyncOpen(listener, nullptr);
         }

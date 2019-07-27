@@ -1,6 +1,6 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsWyciwyg.h"
 
@@ -84,9 +84,9 @@ WyciwygChannelChild::Init(nsIURI* uri)
   return NS_OK;
 }
 
-
-
-
+//-----------------------------------------------------------------------------
+// WyciwygChannelChild::PWyciwygChannelChild
+//-----------------------------------------------------------------------------
 
 class WyciwygStartRequestEvent : public ChannelEvent
 {
@@ -191,11 +191,11 @@ WyciwygChannelChild::OnDataAvailable(const nsCString& data,
 
   mState = WCC_ONDATA;
 
-  
-  
-  
-  
-  
+  // NOTE: the OnDataAvailable contract requires the client to read all the data
+  // in the inputstream.  This code relies on that ('data' will go away after
+  // this function).  Apparently the previous, non-e10s behavior was to actually
+  // support only reading part of the data, allowing later calls to read the
+  // rest.
   nsCOMPtr<nsIInputStream> stringStream;
   nsresult rv = NS_NewByteInputStream(getter_AddRefs(stringStream),
                                       data.get(),
@@ -247,8 +247,8 @@ WyciwygChannelChild::OnStopRequest(const nsresult& statusCode)
   LOG(("WyciwygChannelChild::RecvOnStopRequest [this=%p status=%u]\n",
            this, statusCode));
 
-  { 
-    
+  { // We need to ensure that all IPDL message dispatching occurs
+    // before we delete the protocol below
     AutoEventEnqueuer ensureSerialDispatch(mEventQ);
 
     mState = WCC_ONSTOP;
@@ -323,18 +323,18 @@ void WyciwygChannelChild::CancelEarly(const nsresult& statusCode)
     PWyciwygChannelChild::Send__delete__(this);
 }
 
+//-----------------------------------------------------------------------------
+// nsIRequest
+//-----------------------------------------------------------------------------
 
-
-
-
-
+/* readonly attribute AUTF8String name; */
 NS_IMETHODIMP
 WyciwygChannelChild::GetName(nsACString & aName)
 {
   return mURI->GetSpec(aName);
 }
 
-
+/* boolean isPending (); */
 NS_IMETHODIMP
 WyciwygChannelChild::IsPending(bool *aIsPending)
 {
@@ -342,7 +342,7 @@ WyciwygChannelChild::IsPending(bool *aIsPending)
   return NS_OK;
 }
 
-
+/* readonly attribute nsresult status; */
 NS_IMETHODIMP
 WyciwygChannelChild::GetStatus(nsresult *aStatus)
 {
@@ -350,7 +350,7 @@ WyciwygChannelChild::GetStatus(nsresult *aStatus)
   return NS_OK;
 }
 
-
+/* void cancel (in nsresult aStatus); */
 NS_IMETHODIMP
 WyciwygChannelChild::Cancel(nsresult aStatus)
 {
@@ -364,21 +364,21 @@ WyciwygChannelChild::Cancel(nsresult aStatus)
   return NS_OK;
 }
 
-
+/* void suspend (); */
 NS_IMETHODIMP
 WyciwygChannelChild::Suspend()
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-
+/* void resume (); */
 NS_IMETHODIMP
 WyciwygChannelChild::Resume()
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-
+/* attribute nsILoadGroup loadGroup; */
 NS_IMETHODIMP
 WyciwygChannelChild::GetLoadGroup(nsILoadGroup * *aLoadGroup)
 {
@@ -401,7 +401,7 @@ WyciwygChannelChild::SetLoadGroup(nsILoadGroup * aLoadGroup)
   return NS_OK;
 }
 
-
+/* attribute nsLoadFlags loadFlags; */
 NS_IMETHODIMP
 WyciwygChannelChild::GetLoadFlags(nsLoadFlags *aLoadFlags)
 {
@@ -416,11 +416,11 @@ WyciwygChannelChild::SetLoadFlags(nsLoadFlags aLoadFlags)
 }
 
 
+//-----------------------------------------------------------------------------
+// nsIChannel
+//-----------------------------------------------------------------------------
 
-
-
-
-
+/* attribute nsIURI originalURI; */
 NS_IMETHODIMP
 WyciwygChannelChild::GetOriginalURI(nsIURI * *aOriginalURI)
 {
@@ -438,7 +438,7 @@ WyciwygChannelChild::SetOriginalURI(nsIURI * aOriginalURI)
   return NS_OK;
 }
 
-
+/* readonly attribute nsIURI URI; */
 NS_IMETHODIMP
 WyciwygChannelChild::GetURI(nsIURI * *aURI)
 {
@@ -447,7 +447,7 @@ WyciwygChannelChild::GetURI(nsIURI * *aURI)
   return NS_OK;
 }
 
-
+/* attribute nsISupports owner; */
 NS_IMETHODIMP
 WyciwygChannelChild::GetOwner(nsISupports * *aOwner)
 {
@@ -475,7 +475,7 @@ WyciwygChannelChild::SetLoadInfo(nsILoadInfo* aLoadInfo)
   return NS_OK;
 }
 
-
+/* attribute nsIInterfaceRequestor notificationCallbacks; */
 NS_IMETHODIMP
 WyciwygChannelChild::GetNotificationCallbacks(nsIInterfaceRequestor * *aCallbacks)
 {
@@ -498,7 +498,7 @@ WyciwygChannelChild::SetNotificationCallbacks(nsIInterfaceRequestor * aCallbacks
   return NS_OK;
 }
 
-
+/* readonly attribute nsISupports securityInfo; */
 NS_IMETHODIMP
 WyciwygChannelChild::GetSecurityInfo(nsISupports * *aSecurityInfo)
 {
@@ -507,7 +507,7 @@ WyciwygChannelChild::GetSecurityInfo(nsISupports * *aSecurityInfo)
   return NS_OK;
 }
 
-
+/* attribute ACString contentType; */
 NS_IMETHODIMP
 WyciwygChannelChild::GetContentType(nsACString & aContentType)
 {
@@ -520,7 +520,7 @@ WyciwygChannelChild::SetContentType(const nsACString & aContentType)
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-
+/* attribute ACString contentCharset; */
 NS_IMETHODIMP
 WyciwygChannelChild::GetContentCharset(nsACString & aContentCharset)
 {
@@ -563,7 +563,7 @@ WyciwygChannelChild::GetContentDispositionHeader(nsACString &aContentDisposition
   return NS_ERROR_NOT_AVAILABLE;
 }
 
-
+/* attribute int64_t contentLength; */
 NS_IMETHODIMP
 WyciwygChannelChild::GetContentLength(int64_t *aContentLength)
 {
@@ -575,7 +575,7 @@ WyciwygChannelChild::SetContentLength(int64_t aContentLength)
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-
+/* nsIInputStream open (); */
 NS_IMETHODIMP
 WyciwygChannelChild::Open(nsIInputStream **_retval)
 {
@@ -590,17 +590,17 @@ GetTabChild(nsIChannel* aChannel)
   return iTabChild ? static_cast<mozilla::dom::TabChild*>(iTabChild.get()) : nullptr;
 }
 
-
+/* void asyncOpen (in nsIStreamListener aListener, in nsISupports aContext); */
 NS_IMETHODIMP
 WyciwygChannelChild::AsyncOpen(nsIStreamListener *aListener, nsISupports *aContext)
 {
   LOG(("WyciwygChannelChild::AsyncOpen [this=%p]\n", this));
 
-  
-  
-  
-  NS_PRECONDITION(mOwner, "Must have a principal");
-  NS_ENSURE_STATE(mOwner);
+  // The only places creating wyciwyg: channels should be
+  // HTMLDocument::OpenCommon and session history.  Both should be setting an
+  // owner or loadinfo.
+  NS_PRECONDITION(mOwner || mLoadInfo, "Must have a principal");
+  NS_ENSURE_STATE(mOwner || mLoadInfo);
 
   NS_ENSURE_ARG_POINTER(aListener);
   NS_ENSURE_TRUE(!mIsPending, NS_ERROR_IN_PROGRESS);
@@ -628,11 +628,11 @@ WyciwygChannelChild::AsyncOpen(nsIStreamListener *aListener, nsISupports *aConte
   return NS_OK;
 }
 
+//-----------------------------------------------------------------------------
+// nsIWyciwygChannel
+//-----------------------------------------------------------------------------
 
-
-
-
-
+/* void writeToCacheEntry (in AString aData); */
 NS_IMETHODIMP
 WyciwygChannelChild::WriteToCacheEntry(const nsAString & aData)
 {
@@ -650,7 +650,7 @@ WyciwygChannelChild::WriteToCacheEntry(const nsAString & aData)
   return NS_OK;
 }
 
-
+/* void closeCacheEntry (in nsresult reason); */
 NS_IMETHODIMP
 WyciwygChannelChild::CloseCacheEntry(nsresult reason)
 {
@@ -665,7 +665,7 @@ WyciwygChannelChild::CloseCacheEntry(nsresult reason)
   return NS_OK;
 }
 
-
+/* void setSecurityInfo (in nsISupports aSecurityInfo); */
 NS_IMETHODIMP
 WyciwygChannelChild::SetSecurityInfo(nsISupports *aSecurityInfo)
 {
@@ -686,24 +686,24 @@ WyciwygChannelChild::SetSecurityInfo(nsISupports *aSecurityInfo)
   return NS_OK;
 }
 
-
+/* void setCharsetAndSource (in long aSource, in ACString aCharset); */
 NS_IMETHODIMP
 WyciwygChannelChild::SetCharsetAndSource(int32_t aSource, const nsACString & aCharset)
 {
-  
-  
+  // mState == WCC_ONSTART when reading from the channel
+  // mState == WCC_INIT when writing to the cache
   NS_ENSURE_TRUE((mState == WCC_ONSTART) ||
                  (mState == WCC_INIT), NS_ERROR_UNEXPECTED);
 
   mCharsetSource = aSource;
   mCharset = aCharset;
 
-  
+  // TODO ensure that nsWyciwygChannel in the parent has still the cache entry
   SendSetCharsetAndSource(mCharsetSource, mCharset);
   return NS_OK;
 }
 
-
+/* ACString getCharsetAndSource (out long aSource); */
 NS_IMETHODIMP
 WyciwygChannelChild::GetCharsetAndSource(int32_t *aSource, nsACString & _retval)
 {
@@ -719,5 +719,5 @@ WyciwygChannelChild::GetCharsetAndSource(int32_t *aSource, nsACString & _retval)
   return NS_OK;
 }
 
-
-}} 
+//------------------------------------------------------------------------------
+}} // mozilla::net
