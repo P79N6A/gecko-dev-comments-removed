@@ -61,6 +61,8 @@ public:
 
     nsresult Init(nsIURI *uri);
 
+    nsresult OverrideSecurityInfo(nsISupports* aSecurityInfo);
+
 private:
     virtual ~nsJARChannel();
 
@@ -87,7 +89,6 @@ private:
     
     
     void OverrideWithSynthesizedResponse(nsIInputStream* aSynthesizedInput);
-    nsresult OverrideSecurityInfo(nsISupports* aSecurityInfo);
 
     nsCString                       mSpec;
 

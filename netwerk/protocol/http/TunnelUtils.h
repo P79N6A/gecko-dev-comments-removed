@@ -15,6 +15,7 @@
 #include "nsITimer.h"
 #include "NullHttpTransaction.h"
 #include "mozilla/TimeStamp.h"
+#include "prio.h"
 
 
 
