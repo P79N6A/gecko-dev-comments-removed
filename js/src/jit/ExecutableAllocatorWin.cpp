@@ -23,6 +23,8 @@
 
 
 
+
+
 #include "mozilla/WindowsVersion.h"
 
 #include "jsfriendapi.h"
@@ -35,14 +37,16 @@ using namespace js::jit;
 
 uint64_t ExecutableAllocator::rngSeed;
 
-size_t ExecutableAllocator::determinePageSize()
+size_t
+ExecutableAllocator::determinePageSize()
 {
     SYSTEM_INFO system_info;
     GetSystemInfo(&system_info);
     return system_info.dwPageSize;
 }
 
-void* ExecutableAllocator::computeRandomAllocationAddress()
+void*
+ExecutableAllocator::computeRandomAllocationAddress()
 {
     
 
@@ -186,7 +190,6 @@ js::jit::AllocateExecutableMemory(void* addr, size_t bytes, unsigned permissions
                                   size_t pageSize)
 {
     MOZ_ASSERT(bytes % pageSize == 0);
-    MOZ_ASSERT(permissions == PAGE_EXECUTE_READWRITE);
 
 #ifdef JS_CPU_X64
     if (sJitExceptionHandler)
@@ -226,27 +229,57 @@ js::jit::DeallocateExecutableMemory(void* addr, size_t bytes, size_t pageSize)
     VirtualFree(addr, 0, MEM_RELEASE);
 }
 
-ExecutablePool::Allocation ExecutableAllocator::systemAlloc(size_t n)
+ExecutablePool::Allocation
+ExecutableAllocator::systemAlloc(size_t n)
 {
     void* allocation = nullptr;
     if (!RandomizeIsBroken()) {
         void* randomAddress = computeRandomAllocationAddress();
-        allocation = AllocateExecutableMemory(randomAddress, n, PAGE_EXECUTE_READWRITE,
+        allocation = AllocateExecutableMemory(randomAddress, n, initialProtectionFlags(Executable),
                                               "js-jit-code", pageSize);
     }
     if (!allocation) {
-        allocation = AllocateExecutableMemory(nullptr, n, PAGE_EXECUTE_READWRITE,
+        allocation = AllocateExecutableMemory(nullptr, n, initialProtectionFlags(Executable),
                                               "js-jit-code", pageSize);
     }
     ExecutablePool::Allocation alloc = { reinterpret_cast<char*>(allocation), n };
     return alloc;
 }
 
-void ExecutableAllocator::systemRelease(const ExecutablePool::Allocation& alloc)
+void
+ExecutableAllocator::systemRelease(const ExecutablePool::Allocation& alloc)
 {
     DeallocateExecutableMemory(alloc.pages, alloc.size, pageSize);
 }
 
-#if ENABLE_ASSEMBLER_WX_EXCLUSIVE
-#error "ASSEMBLER_WX_EXCLUSIVE not yet suported on this platform."
-#endif
+void
+ExecutableAllocator::reprotectRegion(void* start, size_t size, ProtectionSetting setting)
+{
+    MOZ_ASSERT(nonWritableJitCode);
+    MOZ_ASSERT(pageSize);
+
+    
+    
+    intptr_t startPtr = reinterpret_cast<intptr_t>(start);
+    intptr_t pageStartPtr = startPtr & ~(pageSize - 1);
+    void* pageStart = reinterpret_cast<void*>(pageStartPtr);
+    size += (startPtr - pageStartPtr);
+
+    
+    size += (pageSize - 1);
+    size &= ~(pageSize - 1);
+
+    DWORD oldProtect;
+    int flags = (setting == Writable) ? PAGE_READWRITE : PAGE_EXECUTE_READ;
+    if (!VirtualProtect(pageStart, size, flags, &oldProtect))
+        MOZ_CRASH();
+}
+
+ unsigned
+ExecutableAllocator::initialProtectionFlags(ProtectionSetting protection)
+{
+    if (!nonWritableJitCode)
+        return PAGE_EXECUTE_READWRITE;
+
+    return (protection == Writable) ? PAGE_READWRITE : PAGE_EXECUTE_READ;
+}

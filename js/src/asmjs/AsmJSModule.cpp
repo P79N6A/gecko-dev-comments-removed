@@ -62,11 +62,11 @@ using mozilla::Swap;
 static uint8_t*
 AllocateExecutableMemory(ExclusiveContext* cx, size_t bytes)
 {
-#ifdef XP_WIN
-    unsigned permissions = PAGE_EXECUTE_READWRITE;
-#else
-    unsigned permissions = PROT_READ | PROT_WRITE | PROT_EXEC;
-#endif
+    
+    
+    
+    unsigned permissions =
+        ExecutableAllocator::initialProtectionFlags(ExecutableAllocator::Writable);
     void* p = AllocateExecutableMemory(nullptr, bytes, permissions, "asm-js-code", AsmJSPageSize);
     if (!p)
         ReportOutOfMemory(cx);
@@ -297,8 +297,7 @@ AsmJSModule::finish(ExclusiveContext* cx, TokenStream& tokenStream, MacroAssembl
 
     
     
-    
-    pod.codeBytes_ = AlignBytes(masm.bytesNeeded(), SimdMemoryAlignment);
+    pod.codeBytes_ = AlignBytes(masm.bytesNeeded(), AsmJSPageSize);
 
     
     
@@ -947,6 +946,24 @@ AsmJSModule::restoreToInitialState(ArrayBufferObjectMaybeShared* maybePrevBuffer
     restoreHeapToInitialState(maybePrevBuffer);
 }
 
+namespace {
+
+class MOZ_STACK_CLASS AutoMutateCode
+{
+    AutoWritableJitCode awjc_;
+    AutoFlushICache afc_;
+
+   public:
+    AutoMutateCode(JSContext* cx, AsmJSModule& module, const char* name)
+      : awjc_(cx->runtime(), module.codeBase(), module.codeBytes()),
+        afc_(name)
+    {
+        module.setAutoFlushICacheRange();
+    }
+};
+
+}; 
+
 bool
 AsmJSModule::detachHeap(JSContext* cx)
 {
@@ -967,9 +984,7 @@ AsmJSModule::detachHeap(JSContext* cx)
     MOZ_ASSERT_IF(active(), activation()->exitReason() == AsmJSExit::Reason_JitFFI ||
                             activation()->exitReason() == AsmJSExit::Reason_SlowFFI);
 
-    AutoFlushICache afc("AsmJSModule::detachHeap");
-    setAutoFlushICacheRange();
-
+    AutoMutateCode amc(cx, *this, "AsmJSModule::detachHeap");
     restoreHeapToInitialState(maybeHeap_);
 
     MOZ_ASSERT(hasDetachedHeap());
@@ -1717,9 +1732,7 @@ AsmJSModule::changeHeap(Handle<ArrayBufferObject*> newHeap, JSContext* cx)
     if (interrupted_)
         return false;
 
-    AutoFlushICache afc("AsmJSModule::changeHeap");
-    setAutoFlushICacheRange();
-
+    AutoMutateCode amc(cx, *this, "AsmJSModule::changeHeap");
     restoreHeapToInitialState(maybeHeap_);
     initHeap(newHeap, cx);
     return true;
@@ -1756,9 +1769,7 @@ AsmJSModule::setProfilingEnabled(bool enabled, JSContext* cx)
         profilingLabels_.clear();
     }
 
-    
-    AutoFlushICache afc("AsmJSModule::setProfilingEnabled");
-    setAutoFlushICacheRange();
+    AutoMutateCode amc(cx, *this, "AsmJSModule::setProfilingEnabled");
 
     
     

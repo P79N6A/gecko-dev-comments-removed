@@ -233,6 +233,16 @@ BaselineCompiler::compile()
     baselineScript->adoptFallbackStubs(&stubSpace_);
 
     
+    if (cx->zone()->needsIncrementalBarrier())
+        baselineScript->toggleBarriers(true);
+
+    
+    if (cx->runtime()->jitRuntime()->isProfilerInstrumentationEnabled(cx->runtime()))
+        baselineScript->toggleProfilerInstrumentation(true);
+
+    AutoWritableJitCode awjc(code);
+
+    
     for (size_t i = 0; i < icLoadLabels_.length(); i++) {
         CodeOffsetLabel label = icLoadLabels_[i].label;
         label.fixup(&masm);
@@ -245,10 +255,6 @@ BaselineCompiler::compile()
 
     if (modifiesArguments_)
         baselineScript->setModifiesArguments();
-
-    
-    if (cx->zone()->needsIncrementalBarrier())
-        baselineScript->toggleBarriers(true);
 
 #ifdef JS_TRACE_LOGGING
     
@@ -266,10 +272,6 @@ BaselineCompiler::compile()
 
     if (compileDebugInstrumentation_)
         baselineScript->setHasDebugInstrumentation();
-
-    
-    if (cx->runtime()->jitRuntime()->isProfilerInstrumentationEnabled(cx->runtime()))
-        baselineScript->toggleProfilerInstrumentation(true);
 
     
     

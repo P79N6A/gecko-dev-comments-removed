@@ -531,7 +531,7 @@ Imm16::Imm16()
 { }
 
 void
-jit::PatchJump(CodeLocationJump& jump_, CodeLocationLabel label)
+jit::PatchJump(CodeLocationJump& jump_, CodeLocationLabel label, ReprotectCode reprotect)
 {
     
     
@@ -545,11 +545,18 @@ jit::PatchJump(CodeLocationJump& jump_, CodeLocationLabel label)
     int jumpOffset = label.raw() - jump_.raw();
     if (BOffImm::IsInRange(jumpOffset)) {
         
+        MaybeAutoWritableJitCode awjc(jump, sizeof(Instruction), reprotect);
         Assembler::RetargetNearBranch(jump, jumpOffset, c);
     } else {
         
         
         uint8_t** slot = reinterpret_cast<uint8_t**>(jump_.jumpTableEntry());
+
+        
+        MOZ_ASSERT(uintptr_t(slot) > uintptr_t(jump));
+        size_t size = uintptr_t(slot) - uintptr_t(jump) + sizeof(void*);
+        MaybeAutoWritableJitCode awjc(jump, size, reprotect);
+
         Assembler::RetargetFarBranch(jump, slot, label.raw(), c);
     }
 }

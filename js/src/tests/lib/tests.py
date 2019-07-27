@@ -15,7 +15,7 @@ JITFLAGS = {
     'all': [
         [], 
         ['--ion-eager', '--ion-offthread-compile=off'], 
-        ['--ion-eager', '--ion-offthread-compile=off',
+        ['--ion-eager', '--ion-offthread-compile=off', '--non-writable-jitcode',
          '--ion-check-range-analysis', '--ion-extra-checks', '--no-sse3', '--no-threads'],
         ['--baseline-eager'],
         ['--baseline-eager', '--no-fpu'],
