@@ -33,17 +33,18 @@ for (var i = 0; i < lhs_prefix.length; i++) {
         eval(lhs_prefix[i] + "eval('x')" + lhs_suffix[i]);
         assertEq(i, -2);
     } catch (e) {
-        
+        if (/\[/.test(lhs_prefix[i])) {
+            assertEq(e.message, "invalid destructuring target");
+        } else {
+            
 
 
 
 
-        assertEq(e.message, "invalid assignment left-hand side");
+            assertEq(e.message, "invalid assignment left-hand side");
+        }
     }
 }
-
-
-assertEq(y, 5);
 
 
 for (var i = 0; i < lhs_prefix.length; i++) {
@@ -53,6 +54,8 @@ for (var i = 0; i < lhs_prefix.length; i++) {
     } catch (e) {
         if (/\+\+|\-\-/.test(lhs_prefix[i] || lhs_suffix[i]))
             assertEq(e.message, "invalid increment/decrement operand");
+        else if (/\[/.test(lhs_prefix[i]))
+            assertEq(e.message, "invalid destructuring target");
         else
             assertEq(e.message, "invalid assignment left-hand side");
     }

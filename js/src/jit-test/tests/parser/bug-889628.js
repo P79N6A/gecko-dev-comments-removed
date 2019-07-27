@@ -1,5 +1,6 @@
 
 
+
 load(libdir + "asserts.js");
 
 var patterns = [
@@ -11,13 +12,8 @@ var patterns = [
     "{x:y, z:_}",
     "{0:_}",
     "{_}",
-    
+    "[..._]"
 ];
-
-
-
-
-assertThrowsInstanceOf(() => Function("[...x] = [1]"), ReferenceError);
 
 for (var pattern of patterns) {
     var stmt = pattern + " = obj";
@@ -31,8 +27,7 @@ for (var pattern of patterns) {
     
     for (var name of ["eval", "arguments"]) {
         var s = stmt.replace("_", name);
-        assertThrowsInstanceOf(() => Function(s), SyntaxError);
-        assertThrowsInstanceOf(() => eval(s), SyntaxError);
-        assertThrowsInstanceOf(() => eval("'use strict'; " + s), SyntaxError);
+        Function(s);
+        assertThrowsInstanceOf(() => Function("'use strict'; " + s), SyntaxError);
     }
 }

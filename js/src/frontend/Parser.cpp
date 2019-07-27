@@ -666,9 +666,9 @@ Parser<ParseHandler>::reportBadReturn(Node pn, ParseReportKind kind,
 
 template <typename ParseHandler>
 bool
-Parser<ParseHandler>::checkStrictAssignment(Node lhs, AssignmentFlavor flavor)
+Parser<ParseHandler>::checkStrictAssignment(Node lhs)
 {
-    if (!pc->sc->needStrictChecks() && flavor != KeyedDestructuringAssignment)
+    if (!pc->sc->needStrictChecks())
         return true;
 
     JSAtom *atom = handler.isName(lhs);
@@ -680,16 +680,7 @@ Parser<ParseHandler>::checkStrictAssignment(Node lhs, AssignmentFlavor flavor)
         if (!AtomToPrintableString(context, atom, &name))
             return false;
 
-        ParseReportKind kind;
-        unsigned errnum;
-        if (pc->sc->strict || flavor != KeyedDestructuringAssignment) {
-            kind = ParseStrictError;
-            errnum = JSMSG_BAD_STRICT_ASSIGN;
-        } else {
-            kind = ParseError;
-            errnum = JSMSG_BAD_DESTRUCT_ASSIGN;
-        }
-        if (!report(kind, pc->sc->strict, lhs, errnum, name.ptr()))
+        if (!report(ParseStrictError, pc->sc->strict, lhs, JSMSG_BAD_STRICT_ASSIGN, name.ptr()))
             return false;
     }
     return true;
@@ -3065,13 +3056,9 @@ Parser<FullParseHandler>::bindDestructuringVar(BindData<FullParseHandler> *data,
 
 
 
-
-
-
 template <>
 bool
-Parser<FullParseHandler>::checkDestructuring(BindData<FullParseHandler> *data,
-                                             ParseNode *left, bool toplevel)
+Parser<FullParseHandler>::checkDestructuring(BindData<FullParseHandler> *data, ParseNode *left)
 {
     bool ok;
 
@@ -3084,19 +3071,33 @@ Parser<FullParseHandler>::checkDestructuring(BindData<FullParseHandler> *data,
     blockObj = data && data->binder == bindLet ? data->let.blockObj.get() : nullptr;
 
     if (left->isKind(PNK_ARRAY)) {
-        for (ParseNode *pn = left->pn_head; pn; pn = pn->pn_next) {
-            if (!pn->isKind(PNK_ELISION)) {
-                if (pn->isKind(PNK_ARRAY) || pn->isKind(PNK_OBJECT)) {
-                    ok = checkDestructuring(data, pn, false);
+        for (ParseNode *element = left->pn_head; element; element = element->pn_next) {
+            if (!element->isKind(PNK_ELISION)) {
+                ParseNode *target = element;
+                if (target->isKind(PNK_SPREAD)) {
+                    if (target->pn_next) {
+                        report(ParseError, false, target->pn_next, JSMSG_PARAMETER_AFTER_REST);
+                        return false;
+                    }
+                    target = target->pn_kid;
+
+                    
+                    if (target->isKind(PNK_ARRAY) || target->isKind(PNK_OBJECT)) {
+                        report(ParseError, false, target, JSMSG_BAD_DESTRUCT_TARGET);
+                        return false;
+                    }
+                }
+                if (target->isKind(PNK_ARRAY) || target->isKind(PNK_OBJECT)) {
+                    ok = checkDestructuring(data, target);
                 } else {
                     if (data) {
-                        if (!pn->isKind(PNK_NAME)) {
-                            report(ParseError, false, pn, JSMSG_NO_VARIABLE_NAME);
+                        if (!target->isKind(PNK_NAME)) {
+                            report(ParseError, false, target, JSMSG_NO_VARIABLE_NAME);
                             return false;
                         }
-                        ok = bindDestructuringVar(data, pn);
+                        ok = bindDestructuringVar(data, target);
                     } else {
-                        ok = checkAndMarkAsAssignmentLhs(pn, KeyedDestructuringAssignment);
+                        ok = checkAndMarkAsAssignmentLhs(target, KeyedDestructuringAssignment);
                     }
                 }
                 if (!ok)
@@ -3110,7 +3111,7 @@ Parser<FullParseHandler>::checkDestructuring(BindData<FullParseHandler> *data,
             ParseNode *expr = member->pn_right;
 
             if (expr->isKind(PNK_ARRAY) || expr->isKind(PNK_OBJECT)) {
-                ok = checkDestructuring(data, expr, false);
+                ok = checkDestructuring(data, expr);
             } else if (data) {
                 if (!expr->isKind(PNK_NAME)) {
                     report(ParseError, false, expr, JSMSG_NO_VARIABLE_NAME);
@@ -3141,8 +3142,7 @@ Parser<FullParseHandler>::checkDestructuring(BindData<FullParseHandler> *data,
 
 template <>
 bool
-Parser<SyntaxParseHandler>::checkDestructuring(BindData<SyntaxParseHandler> *data,
-                                               Node left, bool toplevel)
+Parser<SyntaxParseHandler>::checkDestructuring(BindData<SyntaxParseHandler> *data, Node left)
 {
     return abortIfSyntaxParser();
 }
@@ -5491,7 +5491,7 @@ Parser<FullParseHandler>::checkAndMarkAsAssignmentLhs(ParseNode *pn, AssignmentF
 {
     switch (pn->getKind()) {
       case PNK_NAME:
-        if (!checkStrictAssignment(pn, flavor))
+        if (!checkStrictAssignment(pn))
             return false;
         if (flavor == KeyedDestructuringAssignment) {
             
@@ -5522,12 +5522,18 @@ Parser<FullParseHandler>::checkAndMarkAsAssignmentLhs(ParseNode *pn, AssignmentF
         break;
 
       case PNK_CALL:
+        if (flavor == KeyedDestructuringAssignment) {
+            report(ParseError, false, pn, JSMSG_BAD_DESTRUCT_TARGET);
+            return false;
+        }
         if (!makeSetCall(pn, JSMSG_BAD_LEFTSIDE_OF_ASS))
             return false;
         break;
 
       default:
-        report(ParseError, false, pn, JSMSG_BAD_LEFTSIDE_OF_ASS);
+        unsigned errnum = (flavor == KeyedDestructuringAssignment) ? JSMSG_BAD_DESTRUCT_TARGET :
+            JSMSG_BAD_LEFTSIDE_OF_ASS;
+        report(ParseError, false, pn, errnum);
         return false;
     }
     return true;
@@ -5544,7 +5550,7 @@ Parser<SyntaxParseHandler>::checkAndMarkAsAssignmentLhs(Node pn, AssignmentFlavo
     {
         return abortIfSyntaxParser();
     }
-    return checkStrictAssignment(pn, flavor);
+    return checkStrictAssignment(pn);
 }
 
 template <typename ParseHandler>
@@ -5654,7 +5660,7 @@ Parser<FullParseHandler>::checkAndMarkAsIncOperand(ParseNode *kid, TokenKind tt,
         return false;
     }
 
-    if (!checkStrictAssignment(kid, IncDecAssignment))
+    if (!checkStrictAssignment(kid))
         return false;
 
     

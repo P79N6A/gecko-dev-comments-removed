@@ -615,7 +615,7 @@ class Parser : private JS::AutoGCRooter, public StrictModeGetter
     bool isValidForStatementLHS(Node pn1, JSVersion version, bool forDecl, bool forEach,
                                 ParseNodeKind headKind);
     bool checkAndMarkAsIncOperand(Node kid, TokenKind tt, bool preorder);
-    bool checkStrictAssignment(Node lhs, AssignmentFlavor flavor);
+    bool checkStrictAssignment(Node lhs);
     bool checkStrictBinding(PropertyName *name, Node pn);
     bool defineArg(Node funcpn, HandlePropertyName name,
                    bool disallowDuplicateArgs = false, Node *duplicatedArg = nullptr);
@@ -628,7 +628,7 @@ class Parser : private JS::AutoGCRooter, public StrictModeGetter
     Node newRegExp();
 
     Node newBindingNode(PropertyName *name, bool functionScope, VarContext varContext = HoistVars);
-    bool checkDestructuring(BindData<ParseHandler> *data, Node left, bool toplevel = true);
+    bool checkDestructuring(BindData<ParseHandler> *data, Node left);
     bool bindDestructuringVar(BindData<ParseHandler> *data, Node pn);
     bool bindDestructuringLHS(Node pn);
     bool makeSetCall(Node pn, unsigned msg);

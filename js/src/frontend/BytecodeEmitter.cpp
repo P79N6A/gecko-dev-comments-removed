@@ -3026,9 +3026,14 @@ EmitDestructuringDecls(ExclusiveContext *cx, BytecodeEmitter *bce, JSOp prologOp
         for (ParseNode *element = pattern->pn_head; element; element = element->pn_next) {
             if (element->isKind(PNK_ELISION))
                 continue;
+            ParseNode *target = element;
+            if (element->isKind(PNK_SPREAD)) {
+                JS_ASSERT(element->pn_kid->isKind(PNK_NAME));
+                target = element->pn_kid;
+            }
             DestructuringDeclEmitter emitter =
-                element->isKind(PNK_NAME) ? EmitDestructuringDecl : EmitDestructuringDecls;
-            if (!emitter(cx, bce, prologOp, element))
+                target->isKind(PNK_NAME) ? EmitDestructuringDecl : EmitDestructuringDecls;
+            if (!emitter(cx, bce, prologOp, target))
                 return false;
         }
         return true;
@@ -3070,6 +3075,8 @@ EmitDestructuringLHS(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, 
     
     
     
+    if (pn->isKind(PNK_SPREAD))
+        pn = pn->pn_kid;
     if (pn->isKind(PNK_ARRAY) || pn->isKind(PNK_OBJECT)) {
         if (!EmitDestructuringOpsHelper(cx, bce, pn, emitOption))
             return false;
@@ -3187,6 +3194,28 @@ EmitDestructuringLHS(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, 
     return true;
 }
 
+static bool EmitSpread(ExclusiveContext *cx, BytecodeEmitter *bce);
+static bool EmitIterator(ExclusiveContext *cx, BytecodeEmitter *bce);
+
+
+
+
+
+static bool
+EmitIteratorNext(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn=nullptr)
+{
+    if (Emit1(cx, bce, JSOP_DUP) < 0)                          
+        return false;
+    if (!EmitAtomOp(cx, cx->names().next, JSOP_CALLPROP, bce)) 
+        return false;
+    if (Emit1(cx, bce, JSOP_SWAP) < 0)                         
+        return false;
+    if (EmitCall(cx, bce, JSOP_CALL, 0, pn) < 0)               
+        return false;
+    CheckTypeSet(cx, bce, JSOP_CALL);
+    return true;
+}
+
 
 
 
@@ -3206,9 +3235,9 @@ EmitDestructuringOpsHelper(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode
 {
     JS_ASSERT(emitOption != DefineVars);
 
-    unsigned index;
     ParseNode *pn2, *pn3;
     bool doElemOp;
+    bool needToPopIterator = false;
 
 #ifdef DEBUG
     int stackDepth = bce->stackDepth;
@@ -3217,26 +3246,33 @@ EmitDestructuringOpsHelper(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode
     JS_ASSERT(pn->isKind(PNK_ARRAY) || pn->isKind(PNK_OBJECT));
 #endif
 
-    index = 0;
+    
+
+
+
+    if (pn->isKind(PNK_ARRAY)) {
+        if (emitOption == InitializeVars) {
+            if (Emit1(cx, bce, JSOP_DUP) < 0)                      
+                return false;
+        }
+        if (!EmitIterator(cx, bce))                                
+            return false;
+        needToPopIterator = true;
+    }
+
     for (pn2 = pn->pn_head; pn2; pn2 = pn2->pn_next) {
         
-        if (Emit1(cx, bce, JSOP_DUP) < 0)
-            return false;
-
-        
 
 
 
 
-
-        doElemOp = true;
-        if (pn->isKind(PNK_ARRAY)) {
-            if (!EmitNumberOp(cx, index, bce))
-                return false;
-            pn3 = pn2;
-        } else {
-            JS_ASSERT(pn->isKind(PNK_OBJECT));
+        if (pn->isKind(PNK_OBJECT)) {
+            doElemOp = true;
             JS_ASSERT(pn2->isKind(PNK_COLON) || pn2->isKind(PNK_SHORTHAND));
+
+            
+            if (Emit1(cx, bce, JSOP_DUP) < 0)
+                return false;
 
             ParseNode *key = pn2->pn_left;
             if (key->isKind(PNK_NUMBER)) {
@@ -3263,19 +3299,79 @@ EmitDestructuringOpsHelper(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode
                     return false;
             }
 
+            if (doElemOp) {
+                
+
+
+
+
+                if (!EmitElemOpBase(cx, bce, JSOP_GETELEM))
+                    return false;
+                JS_ASSERT(bce->stackDepth >= stackDepth + 1);
+            }
+
             pn3 = pn2->pn_right;
-        }
+        } else {
+            JS_ASSERT(pn->isKind(PNK_ARRAY));
 
+            if (pn2->isKind(PNK_SPREAD)) {
+                
+                ptrdiff_t off = EmitN(cx, bce, JSOP_NEWARRAY, 3);          
+                if (off < 0)
+                    return false;
+                CheckTypeSet(cx, bce, JSOP_NEWARRAY);
+                jsbytecode *pc = bce->code(off);
+                SET_UINT24(pc, 0);
 
-        if (doElemOp) {
-            
+                if (!EmitNumberOp(cx, 0, bce))                             
+                    return false;
+                if (!EmitSpread(cx, bce))                                  
+                    return false;
+                if (Emit1(cx, bce, JSOP_POP) < 0)                          
+                    return false;
+                if (Emit1(cx, bce, JSOP_ENDINIT) < 0)
+                    return false;
+                needToPopIterator = false;
+            } else {
+                if (Emit1(cx, bce, JSOP_DUP) < 0)                          
+                    return false;
+                if (!EmitIteratorNext(cx, bce, pn))                        
+                    return false;
+                if (Emit1(cx, bce, JSOP_DUP) < 0)                          
+                    return false;
+                if (!EmitAtomOp(cx, cx->names().done, JSOP_GETPROP, bce))  
+                    return false;
 
+                
+                
+                
+                ptrdiff_t noteIndex = NewSrcNote(cx, bce, SRC_COND);
+                if (noteIndex < 0)
+                    return false;
+                ptrdiff_t beq = EmitJump(cx, bce, JSOP_IFEQ, 0);
+                if (beq < 0)
+                    return false;
 
+                if (Emit1(cx, bce, JSOP_POP) < 0)                          
+                    return false;
+                if (Emit1(cx, bce, JSOP_UNDEFINED) < 0)                    
+                    return false;
 
+                
+                ptrdiff_t jmp = EmitJump(cx, bce, JSOP_GOTO, 0);
+                if (jmp < 0)
+                    return false;
+                SetJumpOffsetAt(bce, beq);
 
-            if (!EmitElemOpBase(cx, bce, JSOP_GETELEM))
-                return false;
-            JS_ASSERT(bce->stackDepth >= stackDepth + 1);
+                if (!EmitAtomOp(cx, cx->names().value, JSOP_GETPROP, bce)) 
+                    return false;
+
+                SetJumpOffsetAt(bce, jmp);
+                if (!SetSrcNoteOffset(cx, bce, noteIndex, 0, jmp - beq))
+                    return false;
+            }
+
+            pn3 = pn2;
         }
 
         
@@ -3289,7 +3385,8 @@ EmitDestructuringOpsHelper(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode
             if (!EmitDestructuringLHS(cx, bce, pn3, emitOption))
                 return false;
 
-            if (emitOption == PushInitialValues) {
+            if (emitOption == PushInitialValues &&
+                (pn->isKind(PNK_OBJECT) || needToPopIterator)) {
                 
 
 
@@ -3312,12 +3409,14 @@ EmitDestructuringOpsHelper(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode
                 }
             }
         }
-
-        ++index;
     }
 
-    if (emitOption == PushInitialValues) {
+    if (needToPopIterator && Emit1(cx, bce, JSOP_POP) < 0)
+        return false;
+
+    if (emitOption == PushInitialValues && pn->isKind(PNK_OBJECT)) {
         
+
 
 
 
@@ -4418,13 +4517,6 @@ EmitForOf(ExclusiveContext *cx, BytecodeEmitter *bce, StmtType type, ParseNode *
         
         if (Emit1(cx, bce, JSOP_UNDEFINED) < 0)                
             return false;
-    } else {
-        
-        
-        if (Emit2(cx, bce, JSOP_PICK, (jsbytecode)2) < 0)      
-            return false;
-        if (Emit2(cx, bce, JSOP_PICK, (jsbytecode)2) < 0)      
-            return false;
     }
 
     
@@ -4507,15 +4599,8 @@ EmitForOf(ExclusiveContext *cx, BytecodeEmitter *bce, StmtType type, ParseNode *
         if (!EmitDupAt(cx, bce, bce->stackDepth - 1 - 2))      
             return false;
     }
-    if (Emit1(cx, bce, JSOP_DUP) < 0)                          
+    if (!EmitIteratorNext(cx, bce, forHead))                   
         return false;
-    if (!EmitAtomOp(cx, cx->names().next, JSOP_CALLPROP, bce)) 
-        return false;
-    if (Emit1(cx, bce, JSOP_SWAP) < 0)                         
-        return false;
-    if (EmitCall(cx, bce, JSOP_CALL, 0, forHead) < 0)          
-        return false;
-    CheckTypeSet(cx, bce, JSOP_CALL);
     if (Emit1(cx, bce, JSOP_DUP) < 0)                          
         return false;
     if (!EmitAtomOp(cx, cx->names().done, JSOP_GETPROP, bce))  
@@ -6063,6 +6148,7 @@ EmitArrayComp(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
 
 
+
 static bool
 EmitSpread(ExclusiveContext *cx, BytecodeEmitter *bce)
 {
@@ -6087,7 +6173,7 @@ EmitArray(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, uint32_t co
             nspread++;
     }
 
-    ptrdiff_t off = EmitN(cx, bce, JSOP_NEWARRAY, 3);
+    ptrdiff_t off = EmitN(cx, bce, JSOP_NEWARRAY, 3);                    
     if (off < 0)
         return false;
     CheckTypeSet(cx, bce, JSOP_NEWARRAY);
@@ -6103,7 +6189,7 @@ EmitArray(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, uint32_t co
     for (atomIndex = 0; pn2; atomIndex++, pn2 = pn2->pn_next) {
         if (!afterSpread && pn2->isKind(PNK_SPREAD)) {
             afterSpread = true;
-            if (!EmitNumberOp(cx, atomIndex, bce))
+            if (!EmitNumberOp(cx, atomIndex, bce))                       
                 return false;
         }
         if (!UpdateSourceCoordNotes(cx, bce, pn2->pn_pos.begin))
@@ -6113,13 +6199,17 @@ EmitArray(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, uint32_t co
                 return false;
         } else {
             ParseNode *expr = pn2->isKind(PNK_SPREAD) ? pn2->pn_kid : pn2;
-            if (!EmitTree(cx, bce, expr))
+            if (!EmitTree(cx, bce, expr))                                
                 return false;
         }
         if (pn2->isKind(PNK_SPREAD)) {
-            if (!EmitIterator(cx, bce))
+            if (!EmitIterator(cx, bce))                                  
                 return false;
-            if (!EmitSpread(cx, bce))
+            if (Emit2(cx, bce, JSOP_PICK, (jsbytecode)2) < 0)            
+                return false;
+            if (Emit2(cx, bce, JSOP_PICK, (jsbytecode)2) < 0)            
+                return false;
+            if (!EmitSpread(cx, bce))                                    
                 return false;
         } else if (afterSpread) {
             if (Emit1(cx, bce, JSOP_INITELEM_INC) < 0)
@@ -6133,7 +6223,7 @@ EmitArray(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, uint32_t co
     }
     JS_ASSERT(atomIndex == count);
     if (afterSpread) {
-        if (Emit1(cx, bce, JSOP_POP) < 0)
+        if (Emit1(cx, bce, JSOP_POP) < 0)                                
             return false;
     }
 
