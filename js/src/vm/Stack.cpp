@@ -1111,7 +1111,8 @@ FrameIter::matchCallee(JSContext *cx, HandleFunction fun) const
     
     
     
-    bool useSameScript = CloneFunctionObjectUseSameScript(fun->compartment(), currentCallee);
+    RootedObject global(cx, &fun->global());
+    bool useSameScript = CloneFunctionObjectUseSameScript(fun->compartment(), currentCallee, global);
     if (useSameScript &&
         (currentCallee->hasScript() != fun->hasScript() ||
          currentCallee->nonLazyScript() != fun->nonLazyScript()))

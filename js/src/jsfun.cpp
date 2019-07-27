@@ -2081,11 +2081,33 @@ js::NewFunctionWithProto(ExclusiveContext *cx, Native native,
 }
 
 bool
-js::CloneFunctionObjectUseSameScript(JSCompartment *compartment, HandleFunction fun)
+js::CloneFunctionObjectUseSameScript(JSCompartment *compartment, HandleFunction fun,
+                                     HandleObject newParent)
 {
-    return compartment == fun->compartment() &&
-           !fun->isSingleton() &&
-           !ObjectGroup::useSingletonForClone(fun);
+    if (compartment != fun->compartment() ||
+        fun->isSingleton() ||
+        ObjectGroup::useSingletonForClone(fun))
+    {
+        return false;
+    }
+
+    if (newParent->is<GlobalObject>())
+        return true;
+
+    
+    
+    
+    
+    
+    if (!IsValidTerminatingScope(newParent))
+        return true;
+
+    
+    
+    
+    
+    return !fun->isInterpreted() ||
+           (fun->hasScript() && fun->nonLazyScript()->hasPollutedGlobalScope());
 }
 
 JSFunction *
@@ -2097,7 +2119,7 @@ js::CloneFunctionObject(JSContext *cx, HandleFunction fun, HandleObject parent,
     MOZ_ASSERT(parent);
     MOZ_ASSERT(!fun->isBoundFunction());
 
-    bool useSameScript = CloneFunctionObjectUseSameScript(cx->compartment(), fun);
+    bool useSameScript = CloneFunctionObjectUseSameScript(cx->compartment(), fun, parent);
 
     if (!useSameScript && fun->isInterpretedLazy()) {
         JSAutoCompartment ac(cx, fun);
@@ -2181,8 +2203,14 @@ js::CloneFunctionObject(JSContext *cx, HandleFunction fun, HandleObject parent,
 
 
 
-    if (cloneRoot->isInterpreted() && !CloneFunctionScript(cx, fun, cloneRoot, newKindArg))
+
+    PollutedGlobalScopeOption globalScopeOption = parent->is<GlobalObject>() ?
+        HasCleanGlobalScope : HasPollutedGlobalScope;
+    if (cloneRoot->isInterpreted() &&
+        !CloneFunctionScript(cx, fun, cloneRoot, globalScopeOption, newKindArg))
+    {
         return nullptr;
+    }
 
     return cloneRoot;
 }
