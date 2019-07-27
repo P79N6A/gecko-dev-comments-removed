@@ -33,6 +33,13 @@ extern PRLogModuleInfo* GetMediaSourceAPILog();
 #define MSE_API(...)
 #endif
 
+
+
+
+
+
+#define EOS_FUZZ_US 125000
+
 namespace mozilla {
 
 MediaSourceReader::MediaSourceReader(MediaSourceDecoder* aDecoder)
@@ -173,13 +180,43 @@ MediaSourceReader::OnNotDecoded(MediaData::Type aType, RequestSampleCallback::No
     GetCallback()->OnNotDecoded(aType, aReason);
     return;
   }
+  
+  
+  MOZ_ASSERT(aReason == RequestSampleCallback::END_OF_STREAM);
+  nsRefPtr<MediaDecoderReader> reader = aType == MediaData::AUDIO_DATA ?
+                                          mAudioReader : mVideoReader;
 
   
-  if (aType == MediaData::AUDIO_DATA && SwitchAudioReader(mLastAudioTime)) {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  int64_t* time = aType == MediaData::AUDIO_DATA ? &mLastAudioTime : &mLastVideoTime;
+  if (reader) {
+    nsRefPtr<dom::TimeRanges> ranges = new dom::TimeRanges();
+    reader->GetBuffered(ranges, 0);
+    if (ranges->Length() > 0) {
+      
+      int64_t end = ranges->GetEndTime() * USECS_PER_S + 0.5;
+      *time = std::max(*time, end);
+    }
+  }
+
+  
+  
+  
+  if (aType == MediaData::AUDIO_DATA && SwitchAudioReader(*time + EOS_FUZZ_US)) {
     RequestAudioData();
     return;
   }
-  if (aType == MediaData::VIDEO_DATA && SwitchVideoReader(mLastVideoTime)) {
+  if (aType == MediaData::VIDEO_DATA && SwitchVideoReader(*time + EOS_FUZZ_US)) {
     RequestVideoData(false, 0);
     return;
   }
