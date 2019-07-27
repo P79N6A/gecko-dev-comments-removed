@@ -2659,10 +2659,14 @@ SpdySession31::DispatchOnTunnel(nsAHttpTransaction *aHttpTransaction,
   
   
   trans->SetDontRouteViaWildCard(true);
+  trans->EnableKeepAlive();
 
   if (FindTunnelCount(ci) < gHttpHandler->MaxConnectionsPerOrigin()) {
     LOG3(("SpdySession31::DispatchOnTunnel %p create on new tunnel %s",
           this, ci->HashKey().get()));
+    
+    
+    
     nsRefPtr<SpdyConnectTransaction> connectTrans =
       new SpdyConnectTransaction(ci, aCallbacks,
                                  trans->Caps(), trans, this);
@@ -2671,13 +2675,14 @@ SpdySession31::DispatchOnTunnel(nsAHttpTransaction *aHttpTransaction,
     SpdyStream31 *tunnel = mStreamTransactionHash.Get(connectTrans);
     MOZ_ASSERT(tunnel);
     RegisterTunnel(tunnel);
+  } else {
+    
+    
+    
+    LOG3(("SpdySession31::DispatchOnTunnel %p trans=%p queue in connection manager",
+          this, trans));
+    gHttpHandler->InitiateTransaction(trans, trans->Priority());
   }
-
-  
-  
-  
-  trans->EnableKeepAlive();
-  gHttpHandler->InitiateTransaction(trans, trans->Priority());
 }
 
 nsresult

@@ -111,6 +111,13 @@ public:
         return mConnInfo->UsingHttpsProxy() && !mTLSFilter && mConnInfo->UsingConnect();
     }
 
+    
+    
+    void ForcePlainText()
+    {
+        mForcePlainText = true;
+    }
+
     nsISocketTransport   *Transport()      { return mSocketTransport; }
     nsAHttpTransaction   *Transaction()    { return mTransaction; }
     nsHttpConnectionInfo *ConnectionInfo() { return mConnInfo; }
@@ -283,6 +290,7 @@ private:
     bool                            mProxyConnectInProgress;
     bool                            mExperienced;
     bool                            mInSpdyTunnel;
+    bool                            mForcePlainText;
 
     
     

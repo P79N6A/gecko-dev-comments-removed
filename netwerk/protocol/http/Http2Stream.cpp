@@ -69,6 +69,7 @@ Http2Stream::Http2Stream(nsAHttpTransaction *httpTransaction,
   , mTotalRead(0)
   , mPushSource(nullptr)
   , mIsTunnel(false)
+  , mPlainTextTunnel(false)
 {
   MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
 
@@ -862,9 +863,11 @@ Http2Stream::ConvertResponseHeaders(Http2Decompressor *decompressor,
 
   if (mIsTunnel) {
     nsresult errcode;
-    if (status.ToInteger(&errcode) != 200) {
-      LOG3(("Http2Stream %p Tunnel not 200", this));
-      return NS_ERROR_ABORT;
+
+    int32_t code = status.ToInteger(&errcode);
+    LOG3(("Http2Stream %p Tunnel Response code %d", this, code));
+    if ((code / 100) != 2) {
+      MapStreamToPlainText();
     }
   }
 
@@ -875,12 +878,14 @@ Http2Stream::ConvertResponseHeaders(Http2Decompressor *decompressor,
     Telemetry::Accumulate(Telemetry::SPDY_SYN_REPLY_RATIO, ratio);
   }
 
+  
+
   aHeadersIn.Truncate();
   aHeadersOut.Append("X-Firefox-Spdy: " NS_HTTP2_DRAFT_TOKEN "\r\n\r\n");
   LOG (("decoded response headers are:\n%s", aHeadersOut.BeginReading()));
-  if (mIsTunnel) {
+  if (mIsTunnel && !mPlainTextTunnel) {
     aHeadersOut.Truncate();
-    LOG(("SpdyStream3::ConvertHeaders %p 0x%X headers removed for tunnel\n",
+    LOG(("Http2Stream::ConvertHeaders %p 0x%X headers removed for tunnel\n",
          this, mStreamID));
   }
   return NS_OK;
@@ -1199,6 +1204,15 @@ Http2Stream::ClearTransactionsBlockedOnTunnel()
     return;
   }
   gHttpHandler->ConnMgr()->ProcessPendingQ(mTransaction->ConnectionInfo());
+}
+
+void
+Http2Stream::MapStreamToPlainText()
+{
+  nsRefPtr<SpdyConnectTransaction> qiTrans(mTransaction->QuerySpdyConnectTransaction());
+  MOZ_ASSERT(qiTrans);
+  mPlainTextTunnel = true;
+  qiTrans->ForcePlainText();
 }
 
 void

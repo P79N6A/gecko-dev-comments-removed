@@ -405,6 +405,12 @@ private:
 
         nsHttpConnection *mConn;
     };
+public:
+    static nsAHttpConnection *MakeConnectionHandle(nsHttpConnection *aWrapped)
+    {
+        return new nsConnectionHandle(aWrapped);
+    }
+private:
 
     
     
