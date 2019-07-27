@@ -324,6 +324,8 @@ var shell = {
     chromeEventHandler.addEventListener('keydown', this, true);
     chromeEventHandler.addEventListener('keypress', this, true);
     chromeEventHandler.addEventListener('keyup', this, true);
+    chromeEventHandler.addEventListener('mozbrowserbeforekeydown', this, true);
+    chromeEventHandler.addEventListener('mozbrowserbeforekeyup', this, true);
 
     window.addEventListener('MozApplicationManifest', this);
     window.addEventListener('mozfullscreenchange', this);
@@ -356,6 +358,8 @@ var shell = {
     window.removeEventListener('keydown', this, true);
     window.removeEventListener('keypress', this, true);
     window.removeEventListener('keyup', this, true);
+    window.removeEventListener('mozbrowserbeforekeydown', this, true);
+    window.removeEventListener('mozbrowserbeforekeyup', this, true);
     window.removeEventListener('MozApplicationManifest', this);
     window.removeEventListener('mozfullscreenchange', this);
     window.removeEventListener('sizemodechange', this);
@@ -422,15 +426,12 @@ var shell = {
 
     
     
-    evt.stopImmediatePropagation();
-    evt.preventDefault(); 
-
-    
-    
     switch (evt.type) {
+      case 'mozbrowserbeforekeydown':
       case 'keydown':
         type = type + '-press';
         break;
+      case 'mozbrowserbeforekeyup':
       case 'keyup':
         type = type + '-release';
         break;
@@ -473,6 +474,8 @@ var shell = {
       case 'keydown':
       case 'keyup':
       case 'keypress':
+      case 'mozbrowserbeforekeydown':
+      case 'mozbrowserbeforekeyup':
         this.filterHardwareKeys(evt);
         break;
       case 'mozfullscreenchange':
