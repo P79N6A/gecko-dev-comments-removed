@@ -411,6 +411,12 @@ class Range : public TempObject {
         return new(alloc) Range(l, h, ExcludesFractionalParts, ExcludesNegativeZero, MaxInt32Exponent);
     }
 
+    
+    
+    static Range *NewInt32SingletonRange(TempAllocator &alloc, int32_t i) {
+        return NewInt32Range(alloc, i, i);
+    }
+
     static Range *NewUInt32Range(TempAllocator &alloc, uint32_t l, uint32_t h) {
         
         
