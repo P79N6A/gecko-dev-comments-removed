@@ -3708,9 +3708,12 @@ DebuggerServer.ObjectActorPreviewers = {
     
     
     
-    for (let keyValuePair of Map.prototype.entries.call(raw)) {
-      let key = Cu.unwaiveXrays(Cu.waiveXrays(keyValuePair)[0]);
-      let value = Cu.unwaiveXrays(Cu.waiveXrays(keyValuePair)[1]);
+    
+    
+    
+    for (let keyValuePair of Cu.waiveXrays(Map.prototype.entries.call(raw))) {
+      let key = Cu.unwaiveXrays(keyValuePair[0]);
+      let value = Cu.unwaiveXrays(keyValuePair[1]);
       key = makeDebuggeeValueIfNeeded(obj, key);
       value = makeDebuggeeValueIfNeeded(obj, value);
       entries.push([threadActor.createValueGrip(key),
