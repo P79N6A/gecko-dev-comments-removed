@@ -1145,29 +1145,37 @@ js::TestIntegrityLevel(JSContext *cx, HandleObject obj, IntegrityLevel level, bo
         return false;
 
     
+    bool configurable = false;
+    bool writable = false;
+
     
     RootedId id(cx);
     for (size_t i = 0, len = props.length(); i < len; i++) {
         id = props[i];
 
-        unsigned attrs;
-        if (!GetPropertyAttributes(cx, obj, id, &attrs))
+        
+        Rooted<PropertyDescriptor> desc(cx);
+        if (!GetOwnPropertyDescriptor(cx, obj, id, &desc))
             return false;
 
         
+        if (!desc.object())
+            continue;
+
         
+        if (!desc.isPermanent())
+            configurable = true;
+
         
-        if (!(attrs & JSPROP_PERMANENT) ||
-            (level == IntegrityLevel::Frozen &&
-             !(attrs & (JSPROP_READONLY | JSPROP_GETTER | JSPROP_SETTER))))
-        {
-            *result = false;
-            return true;
-        }
+        if (desc.isDataDescriptor() && desc.isWritable())
+            writable = true;
     }
 
     
-    *result = true;
+    if (level == IntegrityLevel::Frozen && writable)
+        *result = false;
+    else
+        *result = !configurable;
     return true;
 }
 
