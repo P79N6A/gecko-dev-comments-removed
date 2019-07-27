@@ -25,7 +25,6 @@
 #include "nsIDOMHTMLFormElement.h"
 #include "nsIDOMXULDocument.h"
 #include "nsIFormControl.h"
-#include "nsIProgrammingLanguage.h"
 #include "mozilla/dom/NodeInfo.h"
 #include "nsIScriptContext.h"
 #include "nsIScriptGlobalObject.h"
@@ -859,7 +858,7 @@ nsresult
 XULContentSinkImpl::OpenScript(const char16_t** aAttributes,
                                const uint32_t aLineNumber)
 {
-  uint32_t langID = nsIProgrammingLanguage::JAVASCRIPT;
+  bool isJavaScript = true;
   uint32_t version = JSVERSION_LATEST;
   nsresult rv;
 
@@ -885,7 +884,7 @@ XULContentSinkImpl::OpenScript(const char16_t** aAttributes,
           }
 
           if (nsContentUtils::IsJavascriptMIMEType(mimeType)) {
-              langID = nsIProgrammingLanguage::JAVASCRIPT;
+              isJavaScript = true;
               version = JSVERSION_LATEST;
 
               
@@ -898,7 +897,7 @@ XULContentSinkImpl::OpenScript(const char16_t** aAttributes,
                   return rv;
               }
           } else {
-              langID = nsIProgrammingLanguage::UNKNOWN;
+              isJavaScript = false;
           }
       } else if (key.EqualsLiteral("language")) {
           
@@ -906,20 +905,19 @@ XULContentSinkImpl::OpenScript(const char16_t** aAttributes,
           
           nsAutoString lang(aAttributes[1]);
           if (nsContentUtils::IsJavaScriptLanguage(lang)) {
+              isJavaScript = true;
               version = JSVERSION_DEFAULT;
-              langID = nsIProgrammingLanguage::JAVASCRIPT;
           }
       }
       aAttributes += 2;
   }
 
-  nsCOMPtr<nsIDocument> doc(do_QueryReferent(mDocument));
-
   
-  if (langID == nsIProgrammingLanguage::UNKNOWN) {
+  if (!isJavaScript) {
       return NS_OK;
   }
 
+  nsCOMPtr<nsIDocument> doc(do_QueryReferent(mDocument));
   nsCOMPtr<nsIScriptGlobalObject> globalObject;
   if (doc)
       globalObject = do_QueryInterface(doc->GetWindow());
