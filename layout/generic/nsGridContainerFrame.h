@@ -203,6 +203,15 @@ protected:
     return areas && areas->Contains(aName);
   }
 
+  NS_DECLARE_FRAME_PROPERTY(GridAreaProperty, DeleteValue<GridArea>)
+
+  
+
+
+  static GridArea* GetGridAreaForChild(nsIFrame* aChild) {
+    return static_cast<GridArea*>(aChild->Properties().Get(GridAreaProperty()));
+  }
+
 #ifdef DEBUG
   void SanityCheckAnonymousGridItems() const;
 #endif 
@@ -223,4 +232,4 @@ private:
   uint32_t mGridRowEnd; 
 };
 
-#endif 
+#endif
