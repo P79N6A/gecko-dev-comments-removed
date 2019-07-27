@@ -155,6 +155,7 @@
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/AutoRestore.h"
 #include "mozilla/CycleCollectedJSRuntime.h"
+#include "mozilla/DebugOnly.h"
 #include "mozilla/HoldDropJSObjects.h"
 
 #include "mozilla/LinkedList.h"
@@ -1257,7 +1258,7 @@ class nsCycleCollector : public nsIMemoryReporter
   nsAutoPtr<CCGraphBuilder> mBuilder;
   nsCOMPtr<nsICycleCollectorListener> mListener;
 
-  nsIThread* mThread;
+  DebugOnly<void*> mThread;
 
   nsCycleCollectorParams mParams;
 
@@ -1271,7 +1272,7 @@ class nsCycleCollector : public nsIMemoryReporter
   uint32_t mUnmergedNeeded;
   uint32_t mMergedInARow;
 
-  JSPurpleBuffer* mJSPurpleBuffer;
+  nsRefPtr<JSPurpleBuffer> mJSPurpleBuffer;
 
 private:
   virtual ~nsCycleCollector();
@@ -2041,7 +2042,7 @@ private:
   nsCycleCollectionParticipant* mJSParticipant;
   nsCycleCollectionParticipant* mJSZoneParticipant;
   nsCString mNextEdgeName;
-  nsICycleCollectorListener* mListener;
+  nsCOMPtr<nsICycleCollectorListener> mListener;
   bool mMergeZones;
   bool mRanOutOfMemory;
   nsAutoPtr<NodePool::Enumerator> mCurrNode;
@@ -2578,13 +2579,12 @@ class JSPurpleBuffer
   }
 
 public:
-  explicit JSPurpleBuffer(JSPurpleBuffer*& aReferenceToThis)
+  explicit JSPurpleBuffer(nsRefPtr<JSPurpleBuffer>& aReferenceToThis)
     : mReferenceToThis(aReferenceToThis)
     , mValues(kSegmentSize)
     , mObjects(kSegmentSize)
   {
     mReferenceToThis = this;
-    NS_ADDREF_THIS();
     mozilla::HoldJSObjects(this);
   }
 
@@ -2594,13 +2594,12 @@ public:
     mValues.Clear();
     mObjects.Clear();
     mozilla::DropJSObjects(this);
-    NS_RELEASE_THIS();
   }
 
   NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(JSPurpleBuffer)
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(JSPurpleBuffer)
 
-  JSPurpleBuffer*& mReferenceToThis;
+  nsRefPtr<JSPurpleBuffer>& mReferenceToThis;
 
   
   
@@ -2742,7 +2741,7 @@ public:
   }
 
 private:
-  nsCycleCollector* mCollector;
+  nsRefPtr<nsCycleCollector> mCollector;
   ObjectsVector mObjects;
 };
 
@@ -3006,7 +3005,7 @@ public:
 
 private:
   CCGraph& mGraph;
-  nsICycleCollectorListener* mListener;
+  nsCOMPtr<nsICycleCollectorListener> mListener;
   uint32_t& mCount;
   bool& mFailed;
 };
@@ -3400,8 +3399,7 @@ nsCycleCollector::nsCycleCollector() :
   mBeforeUnlinkCB(nullptr),
   mForgetSkippableCB(nullptr),
   mUnmergedNeeded(0),
-  mMergedInARow(0),
-  mJSPurpleBuffer(nullptr)
+  mMergedInARow(0)
 {
 }
 
