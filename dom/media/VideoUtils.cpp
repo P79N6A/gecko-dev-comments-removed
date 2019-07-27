@@ -213,13 +213,14 @@ ExtractH264CodecDetails(const nsAString& aCodec,
   
   
   
+  
   if (aCodec.Length() != strlen("avc1.PPCCLL")) {
     return false;
   }
 
   
   const nsAString& sample = Substring(aCodec, 0, 5);
-  if (!sample.EqualsASCII("avc1.")) {
+  if (!sample.EqualsASCII("avc1.") && !sample.EqualsASCII("avc3.")) {
     return false;
   }
 
