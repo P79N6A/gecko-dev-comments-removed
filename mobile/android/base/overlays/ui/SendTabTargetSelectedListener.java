@@ -15,4 +15,11 @@ public interface SendTabTargetSelectedListener {
 
 
     public void onSendTabTargetSelected(String targetGUID);
+
+    
+
+
+
+
+    public void onSendTabActionSelected();
 }

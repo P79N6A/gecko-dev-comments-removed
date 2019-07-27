@@ -6,7 +6,6 @@ package org.mozilla.gecko.overlays.ui;
 
 import static org.mozilla.gecko.overlays.ui.SendTabList.State.LIST;
 import static org.mozilla.gecko.overlays.ui.SendTabList.State.LOADING;
-import static org.mozilla.gecko.overlays.ui.SendTabList.State.NONE;
 import static org.mozilla.gecko.overlays.ui.SendTabList.State.SHOW_DEVICES;
 
 import java.util.Arrays;
@@ -111,16 +110,9 @@ public class SendTabList extends ListView {
     public void setSyncClients(final ParcelableClientRecord[] c) {
         final ParcelableClientRecord[] clients = c == null ? new ParcelableClientRecord[0] : c;
 
-        int size = clients.length;
-        if (size == 0) {
-            
-            switchState(NONE);
-            return;
-        }
-
         clientListAdapter.setClientRecordList(Arrays.asList(clients));
 
-        if (size <= MAXIMUM_INLINE_ELEMENTS) {
+        if (clients.length <= MAXIMUM_INLINE_ELEMENTS) {
             
             switchState(LIST);
             return;

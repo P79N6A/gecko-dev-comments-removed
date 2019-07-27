@@ -295,14 +295,17 @@ public class ShareDialog extends LocaleAware.LocaleAwareActivity implements Send
 
 
 
-    public void sendTab(String targetGUID) {
+    @Override
+    public void onSendTabActionSelected() {
         
-        if (sendTabOverrideIntent != null) {
-            startActivity(sendTabOverrideIntent);
-            finish();
-            return;
-        }
+        Assert.isTrue(sendTabOverrideIntent != null);
 
+        startActivity(sendTabOverrideIntent);
+        finish();
+    }
+
+    @Override
+    public void onSendTabTargetSelected(String targetGUID) {
         
         Assert.isTrue(targetGUID != null);
 
@@ -318,11 +321,6 @@ public class ShareDialog extends LocaleAware.LocaleAwareActivity implements Send
 
         startService(serviceIntent);
         slideOut();
-    }
-
-    @Override
-    public void onSendTabTargetSelected(String targetGUID) {
-        sendTab(targetGUID);
     }
 
     public void addToReadingList() {
