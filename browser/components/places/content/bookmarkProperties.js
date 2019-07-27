@@ -467,7 +467,6 @@ var BookmarkPropertiesPanel = {
     
     
     gEditItemOverlay.uninitPanel(true);
-    gEditItemOverlay = null;
     this._endBatch();
     window.arguments[0].performed = true;
   },
@@ -477,7 +476,6 @@ var BookmarkPropertiesPanel = {
     
     
     gEditItemOverlay.uninitPanel(true);
-    gEditItemOverlay = null;
     this._endBatch();
     PlacesUtils.transactionManager.undoTransaction();
     window.arguments[0].performed = false;
