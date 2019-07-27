@@ -259,7 +259,9 @@ this.TelemetryFile = {
 
 
 function pingFilePath(ping) {
-  return OS.Path.join(TelemetryFile.pingDirectoryPath, ping.id);
+  
+  let pingIdentifier = (ping.slug) ? ping.slug : ping.id;
+  return OS.Path.join(TelemetryFile.pingDirectoryPath, pingIdentifier);
 }
 
 function getPingDirectory() {
