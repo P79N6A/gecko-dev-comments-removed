@@ -6924,7 +6924,14 @@ RilObject.prototype[UNSOLICITED_RIL_CONNECTED] = function UNSOLICITED_RIL_CONNEC
   
   this.setRadioEnabled({enabled: false});
 };
-RilObject.prototype[UNSOLICITED_VOICE_RADIO_TECH_CHANGED] = null;
+RilObject.prototype[UNSOLICITED_VOICE_RADIO_TECH_CHANGED] = function UNSOLICITED_VOICE_RADIO_TECH_CHANGED(length) {
+  
+  
+  
+  
+  
+  this._processRadioTech(this.context.Buf.readInt32List()[0]);
+};
 
 
 
