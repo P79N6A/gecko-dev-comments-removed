@@ -632,12 +632,6 @@ let SessionStoreInternal = {
       case "SessionStore:update":
         
         
-        if (this._crashedBrowsers.has(browser.permanentKey)) {
-          return;
-        }
-
-        
-        
         
         let frameLoader = browser.frameLoader ||
                           this._lastKnownFrameLoader.get(browser.permanentKey);
@@ -646,12 +640,6 @@ let SessionStoreInternal = {
         if (frameLoader != aMessage.targetFrameLoader) {
           return;
         }
-
-        
-        
-        this.recordTelemetry(aMessage.data.telemetry);
-        TabState.update(browser, aMessage.data);
-        this.saveStateDelayed(win);
 
         if (aMessage.data.isFinal) {
           
@@ -665,6 +653,18 @@ let SessionStoreInternal = {
           
           TabStateFlusher.resolve(browser, aMessage.data.flushID);
         }
+
+        
+        
+        if (this._crashedBrowsers.has(browser.permanentKey)) {
+          return;
+        }
+
+        
+        
+        this.recordTelemetry(aMessage.data.telemetry);
+        TabState.update(browser, aMessage.data);
+        this.saveStateDelayed(win);
 
         
         
