@@ -156,9 +156,6 @@ RootActor.prototype = {
     memoryActorAllocations: true,
     
     
-    noNeedToFakeResumptionOnNavigation: true,
-    
-    
     
     
     
@@ -196,6 +193,11 @@ RootActor.prototype = {
       this._parameters.onShutdown();
     }
     this._extraActors = null;
+    this.conn = null;
+    this._tabActorPool = null;
+    this._globalActorPool = null;
+    this._parameters = null;
+    this._chromeActor = null;
   },
 
   
