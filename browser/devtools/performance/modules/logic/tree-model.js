@@ -219,7 +219,8 @@ ThreadNode.prototype = {
 
         
         
-        if (!flattenRecursion || frameKey !== prevFrameKey) {
+        let shouldFlatten = flattenRecursion && frameKey === prevFrameKey;
+        if (!shouldFlatten) {
           calls = prevCalls;
         }
 
@@ -233,7 +234,11 @@ ThreadNode.prototype = {
                                         sampleTime, stringTable);
           }
         }
-        frameNode.samples++;
+
+        
+        if (!shouldFlatten) {
+          frameNode.samples++;
+        }
 
         prevFrameKey = frameKey;
         prevCalls = frameNode.calls;
