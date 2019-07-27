@@ -300,6 +300,12 @@ class JSObject : public js::gc::Cell
     void addSizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf, JS::ClassInfo* info);
 
     
+    
+    
+    
+    size_t sizeOfIncludingThisInNursery() const;
+
+    
 
 
 

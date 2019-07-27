@@ -566,6 +566,7 @@ class TracerConcreteWithCompartment : public TracerConcrete<Referent> {
 };
 
 
+
 template<> struct Concrete<JSString> : TracerConcrete<JSString> { };
 template<> struct Concrete<JS::Symbol> : TracerConcrete<JS::Symbol> { };
 template<> struct Concrete<JSScript> : TracerConcreteWithCompartment<JSScript> { };
@@ -574,6 +575,7 @@ template<> struct Concrete<JSScript> : TracerConcreteWithCompartment<JSScript> {
 template<>
 class Concrete<JSObject> : public TracerConcreteWithCompartment<JSObject> {
     const char* jsObjectClassName() const override;
+    size_t size(mozilla::MallocSizeOf mallocSizeOf) const override;
 
   protected:
     explicit Concrete(JSObject* ptr) : TracerConcreteWithCompartment(ptr) { }
