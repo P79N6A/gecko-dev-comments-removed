@@ -4119,11 +4119,6 @@ pref("layout.css.touch_action.enabled", false);
 
 pref("browser.dom.window.dump.enabled", false);
 
-
-pref("profiler.enabled", false);
-pref("profiler.interval", 10);
-pref("profiler.entries", 100000);
-
 #if defined(MOZ_WIDGET_GONK) || defined(MOZ_WIDGET_ANDROID)
 
 pref("dom.netinfo.enabled", true);
