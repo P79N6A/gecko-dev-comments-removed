@@ -292,6 +292,12 @@ ImportLoader::OnStopRequest(nsIRequest* aRequest,
     mParserStreamListener->OnStopRequest(aRequest, aContext, aStatus);
   }
 
+  if (!mDocument) {
+    
+    
+    return NS_ERROR_DOM_ABORT_ERR;
+  }
+
   nsCOMPtr<EventTarget> eventTarget = do_QueryInterface(mDocument);
   EventListenerManager* manager = eventTarget->GetOrCreateListenerManager();
   manager->AddEventListenerByType(this,
