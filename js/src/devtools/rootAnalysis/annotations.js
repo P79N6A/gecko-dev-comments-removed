@@ -64,6 +64,7 @@ var ignoreClasses = {
     "PRIOMethods": true,
     "XPCOMFunctions" : true, 
     "_MD_IOVector" : true,
+    "malloc_table_t": true, 
 };
 
 
