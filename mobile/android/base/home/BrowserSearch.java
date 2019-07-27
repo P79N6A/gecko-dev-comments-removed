@@ -65,8 +65,7 @@ import android.widget.TextView;
 
 
 public class BrowserSearch extends HomeFragment
-                           implements GeckoEventListener,
-                                      SearchEngineBar.OnSearchBarClickListener {
+                           implements GeckoEventListener {
 
     @RobocopTarget
     public interface SuggestClientFactory {
@@ -124,9 +123,6 @@ public class BrowserSearch extends HomeFragment
 
     
     private HomeListView mList;
-
-    
-    private SearchEngineBar mSearchEngineBar;
 
     
     
@@ -272,7 +268,6 @@ public class BrowserSearch extends HomeFragment
         
         mView = (LinearLayout) inflater.inflate(R.layout.browser_search, container, false);
         mList = (HomeListView) mView.findViewById(R.id.home_list_view);
-        mSearchEngineBar = (SearchEngineBar) mView.findViewById(R.id.search_engine_bar);
 
         return mView;
     }
@@ -283,9 +278,6 @@ public class BrowserSearch extends HomeFragment
 
         EventDispatcher.getInstance().unregisterGeckoThreadListener(this,
             "SearchEngines:Data");
-
-        mSearchEngineBar.setAdapter(null);
-        mSearchEngineBar = null;
 
         mList.setAdapter(null);
         mList = null;
@@ -358,12 +350,6 @@ public class BrowserSearch extends HomeFragment
         registerForContextMenu(mList);
         EventDispatcher.getInstance().registerGeckoThreadListener(this,
             "SearchEngines:Data");
-
-        
-        
-        
-        mSearchEngineBar.setSearchEngines(mSearchEngines);
-        mSearchEngineBar.setOnSearchBarClickListener(this);
     }
 
     @Override
@@ -601,8 +587,6 @@ public class BrowserSearch extends HomeFragment
                 mAdapter.notifyDataSetChanged();
             }
 
-            mSearchEngineBar.setSearchEngines(mSearchEngines);
-
             
             
             if (!mSuggestionsEnabled && !suggestionsPrompted && mSuggestClient != null) {
@@ -613,11 +597,6 @@ public class BrowserSearch extends HomeFragment
         }
 
         filterSuggestions();
-    }
-
-    @Override
-    public void onSearchBarClickListener(final SearchEngine searchEngine) {
-        mSearchListener.onSearch(searchEngine, mSearchTerm);
     }
 
     private void maybeSetSuggestClient(final String suggestTemplate, final boolean isPrivate) {
