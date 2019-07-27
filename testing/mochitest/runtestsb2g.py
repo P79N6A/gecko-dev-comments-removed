@@ -113,6 +113,7 @@ class B2GMochitest(MochitestUtilsMixin):
         """ Prepare, configure, run tests and cleanup """
 
         manifest = self.build_profile(options)
+        self.logPreamble(self.getActiveTests(options))
 
         
         self.message_logger.buffering = options.quiet
