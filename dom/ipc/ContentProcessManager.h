@@ -110,6 +110,31 @@ public:
                                  const TabId& aChildTabId,
                                   TabId* aOpenerTabId);
 
+  
+
+
+
+
+
+  already_AddRefed<TabParent>
+  GetTabParentByProcessAndTabId(const ContentParentId& aChildCpId,
+                                const TabId& aChildTabId);
+
+  
+
+
+
+
+
+
+
+
+
+
+  already_AddRefed<TabParent>
+  GetTopLevelTabParentByProcessAndTabId(const ContentParentId& aChildCpId,
+                                        const TabId& aChildTabId);
+
 private:
   static StaticAutoPtr<ContentProcessManager> sSingleton;
   TabId mUniqueId;

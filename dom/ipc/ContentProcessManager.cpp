@@ -6,6 +6,7 @@
 
 #include "ContentProcessManager.h"
 #include "ContentParent.h"
+#include "mozilla/dom/TabParent.h"
 
 #include "mozilla/StaticPtr.h"
 #include "mozilla/ClearOnShutdown.h"
@@ -274,6 +275,63 @@ ContentProcessManager::GetRemoteFrameOpenerTabId(const ContentParentId& aChildCp
   *aOpenerTabId = remoteFrameIter->second.mOpenerTabId;
 
   return true;
+}
+
+already_AddRefed<TabParent>
+ContentProcessManager::GetTabParentByProcessAndTabId(const ContentParentId& aChildCpId,
+                                                     const TabId& aChildTabId)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  auto iter = mContentParentMap.find(aChildCpId);
+  if (NS_WARN_IF(iter == mContentParentMap.end())) {
+    ASSERT_UNLESS_FUZZING();
+    return nullptr;
+  }
+
+  const InfallibleTArray<PBrowserParent*>& browsers =
+    iter->second.mCp->ManagedPBrowserParent();
+  for (uint32_t i = 0; i < browsers.Length(); i++) {
+    nsRefPtr<TabParent> tab = static_cast<TabParent*>(browsers[i]);
+    if (tab->GetTabId() == aChildTabId) {
+      return tab.forget();
+    }
+  }
+
+  return nullptr;
+}
+
+already_AddRefed<TabParent>
+ContentProcessManager::GetTopLevelTabParentByProcessAndTabId(const ContentParentId& aChildCpId,
+                                                             const TabId& aChildTabId)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  
+  
+  ContentParentId currentCpId;
+  TabId currentTabId;
+
+  
+  ContentParentId parentCpId = aChildCpId;
+  TabId openerTabId = aChildTabId;
+
+  
+  
+  do {
+    
+    currentCpId = parentCpId;
+    currentTabId = openerTabId;
+
+    
+    if (!GetParentProcessId(currentCpId, &parentCpId) ||
+        !GetRemoteFrameOpenerTabId(currentCpId, currentTabId, &openerTabId)) {
+      return nullptr;
+    }
+  } while (parentCpId);
+
+  
+  return GetTabParentByProcessAndTabId(currentCpId, currentTabId);
 }
 
 } 
