@@ -244,7 +244,7 @@ class SharedContext
         switch (allowed) {
           case AllowedSyntax::NewTarget:
             
-            return true;
+            return !func->isGenerator();
           case AllowedSyntax::SuperProperty:
             return func->allowSuperProperty();
           default:;
@@ -373,6 +373,11 @@ class FunctionBox : public ObjectBox, public SharedContext
     }
 
     bool allowSyntax(AllowedSyntax allowed) const {
+        
+        
+        
+        if (allowed == AllowedSyntax::NewTarget)
+            return !isGenerator();
         return FunctionAllowsSyntax(function(), allowed);
     }
 };
