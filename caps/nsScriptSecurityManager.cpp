@@ -1310,9 +1310,14 @@ static StaticRefPtr<nsScriptSecurityManager> gScriptSecMan;
 nsScriptSecurityManager::~nsScriptSecurityManager(void)
 {
     Preferences::RemoveObservers(this, kObservedPrefs);
-    if (mDomainPolicy)
+    if (mDomainPolicy) {
         mDomainPolicy->Deactivate();
-    MOZ_ASSERT(!mDomainPolicy);
+    }
+    
+    
+    
+    MOZ_ASSERT_IF(XRE_GetProcessType() == GeckoProcessType_Default,
+                  !mDomainPolicy);
 }
 
 void
@@ -1528,6 +1533,16 @@ nsScriptSecurityManager::GetDomainPolicyActive(bool *aRv)
 NS_IMETHODIMP
 nsScriptSecurityManager::ActivateDomainPolicy(nsIDomainPolicy** aRv)
 {
+    if (XRE_GetProcessType() != GeckoProcessType_Default) {
+        return NS_ERROR_SERVICE_NOT_AVAILABLE;
+    }
+
+    return ActivateDomainPolicyInternal(aRv);
+}
+
+NS_IMETHODIMP
+nsScriptSecurityManager::ActivateDomainPolicyInternal(nsIDomainPolicy** aRv)
+{
     
     
     if (mDomainPolicy) {
@@ -1546,6 +1561,17 @@ void
 nsScriptSecurityManager::DeactivateDomainPolicy()
 {
     mDomainPolicy = nullptr;
+}
+
+void
+nsScriptSecurityManager::CloneDomainPolicy(DomainPolicyClone* aClone)
+{
+    MOZ_ASSERT(aClone);
+    if (mDomainPolicy) {
+        mDomainPolicy->CloneDomainPolicy(aClone);
+    } else {
+        aClone->active() = false;
+    }
 }
 
 NS_IMETHODIMP
