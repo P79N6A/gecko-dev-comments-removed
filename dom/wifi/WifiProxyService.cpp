@@ -71,7 +71,7 @@ public:
 #ifdef MOZ_TASK_TRACER
       
       
-      AutoSourceEvent taskTracerEvent(SourceEventType::WIFI);
+      AutoSourceEvent taskTracerEvent(SourceEventType::Wifi);
       AddLabel("%s %s", mInterface.get(), NS_ConvertUTF16toUTF8(event).get());
 #endif
       nsCOMPtr<nsIRunnable> runnable = new WifiEventDispatcher(event, mInterface);

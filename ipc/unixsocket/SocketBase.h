@@ -503,7 +503,7 @@ public:
 #ifdef MOZ_TASK_TRACER
     
     
-    AutoSourceEvent taskTracerEvent(SourceEventType::UNIXSOCKET);
+    AutoSourceEvent taskTracerEvent(SourceEventType::Unixsocket);
 #endif
 
     nsRefPtr<nsRunnable> r =
