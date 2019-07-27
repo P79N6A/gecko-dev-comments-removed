@@ -564,7 +564,7 @@ gfxPlatformFontList::SystemFindFontForChar(uint32_t aCh, uint32_t aNextCh,
 
         
         
-        if (fontEntry && fontEntry->TestCharacterMap(aCh)) {
+        if (fontEntry && fontEntry->HasCharacter(aCh)) {
             return fontEntry;
         }
     }
@@ -670,7 +670,7 @@ gfxPlatformFontList::CommonFontFallback(uint32_t aCh, uint32_t aNextCh,
 
         
         fontEntry = fallback->FindFontForStyle(*aMatchStyle, needsBold);
-        if (fontEntry && fontEntry->TestCharacterMap(aCh)) {
+        if (fontEntry && fontEntry->HasCharacter(aCh)) {
             *aMatchedFamily = fallback;
             return fontEntry;
         }

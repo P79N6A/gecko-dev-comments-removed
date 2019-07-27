@@ -163,7 +163,6 @@ public:
     }
 
     virtual bool SkipDuringSystemFallback() { return false; }
-    virtual bool TestCharacterMap(uint32_t aCh);
     nsresult InitializeUVSMap();
     uint16_t GetUVSGlyph(uint32_t aCh, uint32_t aVS);
 
@@ -476,6 +475,9 @@ protected:
     GetCMAPFromFontInfo(FontInfoData *aFontInfoData,
                         uint32_t& aUVSOffset,
                         bool& aSymbolFont);
+
+    
+    virtual bool TestCharacterMap(uint32_t aCh);
 
     
     
