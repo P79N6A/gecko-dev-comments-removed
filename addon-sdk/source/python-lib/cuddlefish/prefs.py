@@ -56,6 +56,10 @@ DEFAULT_NO_CONNECTIONS_PREFS = {
     'app.update.enabled' : False,
 
     
+    'browser.newtabpage.directory.source': 'data:application/json,{"jetpack":1}',
+    'browser.newtabpage.directory.ping': '',
+
+    
     'extensions.update.url' : 'http://localhost/extensions-dummy/updateURL',
     'extensions.blocklist.url' : 'http://localhost/extensions-dummy/blocklistURL',
     
