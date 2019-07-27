@@ -162,10 +162,7 @@ let handleContentContextMenu = function (event) {
     }
 
     let customMenuItems = PageMenuChild.build(event.target);
-    let principal = event.target.ownerDocument.nodePrincipal;
-    sendSyncMessage("contextmenu",
-                    { editFlags, spellInfo, customMenuItems, addonInfo, principal },
-                    { event, popupNode: event.target });
+    sendSyncMessage("contextmenu", { editFlags, spellInfo, customMenuItems, addonInfo }, { event, popupNode: event.target });
   }
   else {
     
@@ -512,11 +509,14 @@ let AboutReaderListener = {
 
         ReaderMode.parseDocument(content.document).then(article => {
           
-          
-          let currentURL = Services.io.newURI(content.document.documentURI, null, null).specIgnoringRef;
+          if (article === null || content === null) {
+            return;
+          }
 
           
-          if (article == null || (article.url != currentURL)) {
+          
+          let currentURL = Services.io.newURI(content.document.documentURI, null, null).specIgnoringRef;
+          if (article.url !== currentURL) {
             return;
           }
 
