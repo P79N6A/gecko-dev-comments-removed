@@ -98,7 +98,7 @@ const kExpectedRooms = new Map([
   }]
 ]);
 
-let roomDetail = {
+const kRoomDetail = {
   decryptedContext: {
     roomName: "First Room Name"
   },
@@ -186,12 +186,12 @@ const normalizeRoom = function(room) {
   let newRoom = extend({}, room);
   let name = newRoom.decryptedContext.roomName;
 
-  for (let key of Object.getOwnPropertyNames(roomDetail)) {
+  for (let key of Object.getOwnPropertyNames(kRoomDetail)) {
     
-    if (typeof roomDetail[key] == "object") {
-      newRoom[key] = extend({}, roomDetail[key]);
+    if (typeof kRoomDetail[key] == "object") {
+      newRoom[key] = extend({}, kRoomDetail[key]);
     } else {
-      newRoom[key] = roomDetail[key];
+      newRoom[key] = kRoomDetail[key];
     }
   }
 
@@ -317,8 +317,11 @@ add_task(function* setup_server() {
     res.finish();
   });
 
-  function returnRoomDetails(res, roomName) {
+  function returnRoomDetails(res, roomDetail, roomName) {
     roomDetail.roomName = roomName;
+    
+    delete roomDetail.decryptedContext;
+    delete roomDetail.roomKey;
     res.setStatusLine(null, 200, "OK");
     res.write(JSON.stringify(roomDetail));
     res.processAsync();
@@ -332,6 +335,7 @@ add_task(function* setup_server() {
   
   [...kRoomsResponses.values()].forEach(function(room) {
     loopServer.registerPathHandler("/rooms/" + encodeURIComponent(room.roomToken), (req, res) => {
+      let roomDetail = extend({}, kRoomDetail);
       if (req.method == "POST") {
         let data = getJSONData(req.bodyInputStream);
         res.setStatusLine(null, 200, "OK");
@@ -344,7 +348,7 @@ add_task(function* setup_server() {
         Assert.ok("context" in data, "should have encrypted context");
         
         
-        returnRoomDetails(res, "fakeEncrypted");
+        returnRoomDetails(res, roomDetail, "fakeEncrypted");
       } else {
         roomDetail.context = room.context;
         res.setStatusLine(null, 200, "OK");
@@ -575,10 +579,33 @@ add_task(function* test_sendConnectionStatus() {
 });
 
 
-add_task(function* test_renameRoom() {
+add_task(function* test_updateRoom() {
   let roomToken = "_nxD4V4FflQ";
-  let renameData = yield LoopRooms.promise("rename", roomToken, "fakeName");
-  Assert.equal(renameData.roomName, "fakeEncrypted", "should have set the new name");
+  let fakeContext = {
+    description: "Hello, is it me you're looking for?",
+    location: "https://example.com",
+    thumbnail: "https://example.com/empty.gif"
+  };
+  let updateData = yield LoopRooms.promise("update", roomToken, {
+    roomName: "fakeEncrypted",
+    urls: [fakeContext]
+  });
+  Assert.equal(updateData.roomName, "fakeEncrypted", "should have set the new name");
+  let contextURL = updateData.decryptedContext.urls[0];
+  Assert.equal(contextURL.description, contextURL.description,
+    "should have set the new context URL description");
+  Assert.equal(contextURL.location, contextURL.location,
+    "should have set the new context URL location");
+  Assert.equal(contextURL.thumbnail, contextURL.thumbnail,
+    "should have set the new context URL thumbnail");
+});
+
+add_task(function* test_updateRoom_nameOnly() {
+  let roomToken = "_nxD4V4FflQ";
+  let updateData = yield LoopRooms.promise("update", roomToken, {
+    roomName: "fakeEncrypted"
+  });
+  Assert.equal(updateData.roomName, "fakeEncrypted", "should have set the new name");
 });
 
 add_task(function* test_roomDeleteNotifications() {
