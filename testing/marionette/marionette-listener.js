@@ -13,6 +13,7 @@ let loader = Cc["@mozilla.org/moz/jssubscript-loader;1"]
 
 loader.loadSubScript("chrome://marionette/content/marionette-simpletest.js");
 loader.loadSubScript("chrome://marionette/content/marionette-common.js");
+loader.loadSubScript("chrome://marionette/content/marionette-actions.js");
 Cu.import("chrome://marionette/content/marionette-elements.js");
 Cu.import("resource://gre/modules/FileUtils.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
@@ -40,8 +41,8 @@ let curFrame = content;
 let previousFrame = null;
 let elementManager = new ElementManager([]);
 let accessibility = new Accessibility();
+let actions = new ActionChain(utils, checkForInterrupted);
 let importedScripts = null;
-let inputSource = null;
 
 
 
@@ -69,16 +70,7 @@ let onDOMContentLoaded;
 
 let EVENT_INTERVAL = 30; 
 
-let nextTouchId = 1000;
-
-let touchIds = {};
-
 let multiLast = {};
-let lastCoordinates = null;
-let isTap = false;
-let scrolling = false;
-
-let mouseEventsOnly = false;
 
 Cu.import("resource://gre/modules/Log.jsm");
 let logger = Log.repository.getLogger("Marionette");
@@ -124,7 +116,7 @@ function registerSelf() {
 
 function emitTouchEventForIFrame(message) {
   message = message.json;
-  let identifier = nextTouchId;
+  let identifier = actions.nextTouchId;
 
   let domWindowUtils = curFrame.
     QueryInterface(Components.interfaces.nsIInterfaceRequestor).
@@ -245,7 +237,7 @@ function newSession(msg) {
     
     
     
-    inputSource = Ci.nsIDOMMouseEvent.MOZ_SOURCE_TOUCH;
+    actions.inputSource = Ci.nsIDOMMouseEvent.MOZ_SOURCE_TOUCH;
   }
 }
 
@@ -326,7 +318,7 @@ function deleteSession(msg) {
   
   curFrame = content;
   curFrame.focus();
-  touchIds = {};
+  actions.touchIds = {};
 }
 
 
@@ -378,7 +370,7 @@ function sendError(message, status, trace, command_id) {
 function resetValues() {
   sandbox = null;
   curFrame = content;
-  mouseEventsOnly = false;
+  actions.mouseEventsOnly = false;
 }
 
 
@@ -402,6 +394,22 @@ function wasInterrupted() {
     }
   }
   return sendSyncMessage("MarionetteFrame:getInterruptedState", {})[0].value;
+}
+
+function checkForInterrupted() {
+    if (wasInterrupted()) {
+      if (previousFrame) {
+        
+        cuFrame = actions.frame = previousFrame;
+        previousFrame = null;
+        sandbox = null;
+      }
+      else {
+        
+        sendSyncMessage("Marionette:switchToModalOrigin");
+      }
+      sendSyncMessage("Marionette:switchedToFrame", { restorePrevious: true });
+    }
 }
 
 
@@ -731,7 +739,7 @@ function emitTouchEvent(type, touch) {
                    QueryInterface(Components.interfaces.nsIInterfaceRequestor).
                    getInterface(Components.interfaces.nsIWebNavigation).
                    QueryInterface(Components.interfaces.nsIDocShell);
-    if (docShell.asyncPanZoomEnabled && scrolling) {
+    if (docShell.asyncPanZoomEnabled && actions.scrolling) {
       
       let index = sendSyncMessage("MarionetteFrame:getCurrentFrameId");
       
@@ -764,53 +772,6 @@ function emitTouchEvent(type, touch) {
 
 
 
-
-
-function emitMouseEvent(doc, type, elClientX, elClientY, button, clickCount, modifiers) {
-  if (!wasInterrupted()) {
-    let loggingInfo = "emitting Mouse event of type " + type +
-      " at coordinates (" + elClientX + ", " + elClientY +
-      ") relative to the viewport\n" +
-      " button: " + button + "\n" +
-      " clickCount: " + clickCount + "\n";
-    dumpLog(loggingInfo);
-    
-
-
-
-
-
-
-    let win = doc.defaultView;
-    let domUtils = win.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-                      .getInterface(Components.interfaces.nsIDOMWindowUtils);
-    let mods;
-    if (typeof modifiers != "undefined") {
-      mods = utils._parseModifiers(modifiers);
-    } else {
-      mods = 0;
-    }
-    domUtils.sendMouseEvent(type, elClientX, elClientY, button || 0, clickCount || 1,
-                            mods, false, 0, inputSource);
-  }
-}
-
-
-
-
-function mousetap(doc, x, y, keyModifiers) {
-  emitMouseEvent(doc, 'mousemove', x, y, null, null, keyModifiers);
-  emitMouseEvent(doc, 'mousedown', x, y, null, null, keyModifiers);
-  emitMouseEvent(doc, 'mouseup', x, y, null, null, keyModifiers);
-}
-
-
-
-
-
-
-
-
 function coordinates(target, x, y) {
   let box = target.getBoundingClientRect();
   if (x == null) {
@@ -824,6 +785,7 @@ function coordinates(target, x, y) {
   coords.y = box.top + y;
   return coords;
 }
+
 
 
 
@@ -877,113 +839,6 @@ function checkVisible(el, x, y) {
 }
 
 
-function generateEvents(type, x, y, touchId, target, keyModifiers) {
-  lastCoordinates = [x, y];
-  let doc = curFrame.document;
-  switch (type) {
-    case 'tap':
-      if (mouseEventsOnly) {
-        mousetap(target.ownerDocument, x, y);
-      }
-      else {
-        let touchId = nextTouchId++;
-        let touch = createATouch(target, x, y, touchId);
-        emitTouchEvent('touchstart', touch);
-        emitTouchEvent('touchend', touch);
-        mousetap(target.ownerDocument, x, y);
-      }
-      lastCoordinates = null;
-      break;
-    case 'press':
-      isTap = true;
-      if (mouseEventsOnly) {
-        emitMouseEvent(doc, 'mousemove', x, y, null, null, keyModifiers);
-        emitMouseEvent(doc, 'mousedown', x, y, null, null, keyModifiers);
-      }
-      else {
-        let touchId = nextTouchId++;
-        let touch = createATouch(target, x, y, touchId);
-        emitTouchEvent('touchstart', touch);
-        touchIds[touchId] = touch;
-        return touchId;
-      }
-      break;
-    case 'release':
-      if (mouseEventsOnly) {
-        emitMouseEvent(doc, 'mouseup', lastCoordinates[0], lastCoordinates[1],
-                       null, null, keyModifiers);
-      }
-      else {
-        let touch = touchIds[touchId];
-        touch = createATouch(touch.target, lastCoordinates[0], lastCoordinates[1], touchId);
-        emitTouchEvent('touchend', touch);
-        if (isTap) {
-          mousetap(touch.target.ownerDocument, touch.clientX, touch.clientY, keyModifiers);
-        }
-        delete touchIds[touchId];
-      }
-      isTap = false;
-      lastCoordinates = null;
-      break;
-    case 'cancel':
-      isTap = false;
-      if (mouseEventsOnly) {
-        emitMouseEvent(doc, 'mouseup', lastCoordinates[0], lastCoordinates[1],
-                       null, null, keyModifiers);
-      }
-      else {
-        emitTouchEvent('touchcancel', touchIds[touchId]);
-        delete touchIds[touchId];
-      }
-      lastCoordinates = null;
-      break;
-    case 'move':
-      isTap = false;
-      if (mouseEventsOnly) {
-        emitMouseEvent(doc, 'mousemove', x, y, null, null, keyModifiers);
-      }
-      else {
-        touch = createATouch(touchIds[touchId].target, x, y, touchId);
-        touchIds[touchId] = touch;
-        emitTouchEvent('touchmove', touch);
-      }
-      break;
-    case 'contextmenu':
-      isTap = false;
-      let event = curFrame.document.createEvent('MouseEvents');
-      if (mouseEventsOnly) {
-        target = doc.elementFromPoint(lastCoordinates[0], lastCoordinates[1]);
-      }
-      else {
-        target = touchIds[touchId].target;
-      }
-      let [ clientX, clientY,
-            pageX, pageY,
-            screenX, screenY ] = getCoordinateInfo(target, x, y);
-      event.initMouseEvent('contextmenu', true, true,
-                           target.ownerDocument.defaultView, 1,
-                           screenX, screenY, clientX, clientY,
-                           false, false, false, false, 0, null);
-      target.dispatchEvent(event);
-      break;
-    default:
-      throw {message:"Unknown event type: " + type, code: 500, stack:null};
-  }
-  if (wasInterrupted()) {
-    if (previousFrame) {
-      
-      curFrame = previousFrame;
-      previousFrame = null;
-      sandbox = null;
-    }
-    else {
-      
-      sendSyncMessage("Marionette:switchToModalOrigin");
-    }
-    sendSyncMessage("Marionette:switchedToFrame", { restorePrevious: true });
-  }
-}
-
 
 
 
@@ -1001,10 +856,16 @@ function singleTap(msg) {
     }
     checkActionableAccessibility(acc);
     if (!curFrame.document.createTouch) {
-      mouseEventsOnly = true;
+      actions.mouseEventsOnly = true;
     }
-    c = coordinates(el, msg.json.corx, msg.json.cory);
-    generateEvents('tap', c.x, c.y, null, el);
+    let c = coordinates(el, msg.json.corx, msg.json.cory);
+    if (!actions.mouseEventsOnly) {
+      let touchId = actions.nextTouchId++;
+      let touch = createATouch(el, c.x, c.y, touchId);
+      emitTouchEvent('touchstart', touch);
+      emitTouchEvent('touchend', touch);
+    }
+    actions.mouseTap(el.ownerDocument, c.x, c.y);
     sendOk(msg.json.command_id);
   }
   catch (e) {
@@ -1074,155 +935,14 @@ function checkActionableAccessibility(accesible) {
 
 
 
-function getCoordinateInfo(el, corx, cory) {
-  let win = el.ownerDocument.defaultView;
-  return [ corx, 
-           cory, 
-           corx + win.pageXOffset, 
-           cory + win.pageYOffset, 
-           corx + win.mozInnerScreenX, 
-           cory + win.mozInnerScreenY 
-         ];
-}
-
-
-
-
 
 function createATouch(el, corx, cory, touchId) {
   let doc = el.ownerDocument;
   let win = doc.defaultView;
   let [clientX, clientY, pageX, pageY, screenX, screenY] =
-    getCoordinateInfo(el, corx, cory);
+    actions.getCoordinateInfo(el, corx, cory);
   let atouch = doc.createTouch(win, el, touchId, pageX, pageY, screenX, screenY, clientX, clientY);
   return atouch;
-}
-
-
-
-
-
-
-function actions(chain, touchId, command_id, i, keyModifiers) {
-  if (typeof i === "undefined") {
-    i = 0;
-  }
-  if (typeof keyModifiers === "undefined") {
-    keyModifiers = {
-      shiftKey: false,
-      ctrlKey: false,
-      altKey: false,
-      metaKey: false
-    };
-  }
-  if (i == chain.length) {
-    sendResponse({value: touchId}, command_id);
-    return;
-  }
-  let pack = chain[i];
-  let command = pack[0];
-  let el;
-  let c;
-  i++;
-  if (['press', 'wait', 'keyDown', 'keyUp'].indexOf(command) == -1) {
-    
-    if (!(touchId in touchIds) && !mouseEventsOnly) {
-      sendError("Element has not been pressed", 500, null, command_id);
-      return;
-    }
-  }
-  switch(command) {
-    case 'keyDown':
-      utils.sendKeyDown(pack[1], keyModifiers, curFrame);
-      actions(chain, touchId, command_id, i, keyModifiers);
-      break;
-    case 'keyUp':
-      utils.sendKeyUp(pack[1], keyModifiers, curFrame);
-      actions(chain, touchId, command_id, i, keyModifiers);
-      break;
-    case 'click':
-      el = elementManager.getKnownElement(pack[1], curFrame);
-      let button = pack[2];
-      let clickCount = pack[3];
-      c = coordinates(el, null, null);
-      emitMouseEvent(el.ownerDocument, 'mousemove', c.x, c.y, button, clickCount,
-                     keyModifiers);
-      emitMouseEvent(el.ownerDocument, 'mousedown', c.x, c.y, button, clickCount,
-                     keyModifiers);
-      emitMouseEvent(el.ownerDocument, 'mouseup', c.x, c.y, button, clickCount,
-                     keyModifiers);
-      if (button == 2) {
-        emitMouseEvent(el.ownerDocument, 'contextmenu', c.x, c.y, button, clickCount,
-                       keyModifiers);
-      }
-      actions(chain, touchId, command_id, i, keyModifiers);
-      break;
-    case 'press':
-      if (lastCoordinates) {
-        generateEvents('cancel', lastCoordinates[0], lastCoordinates[1],
-                       touchId, null, keyModifiers);
-        sendError("Invalid Command: press cannot follow an active touch event", 500, null, command_id);
-        return;
-      }
-      
-      if ((i != chain.length) && (chain[i][0].indexOf('move') !== -1)) {
-        scrolling = true;
-      }
-      el = elementManager.getKnownElement(pack[1], curFrame);
-      c = coordinates(el, pack[2], pack[3]);
-      touchId = generateEvents('press', c.x, c.y, null, el, keyModifiers);
-      actions(chain, touchId, command_id, i, keyModifiers);
-      break;
-    case 'release':
-      generateEvents('release', lastCoordinates[0], lastCoordinates[1],
-                     touchId, null, keyModifiers);
-      actions(chain, null, command_id, i, keyModifiers);
-      scrolling =  false;
-      break;
-    case 'move':
-      el = elementManager.getKnownElement(pack[1], curFrame);
-      c = coordinates(el);
-      generateEvents('move', c.x, c.y, touchId, null, keyModifiers);
-      actions(chain, touchId, command_id, i, keyModifiers);
-      break;
-    case 'moveByOffset':
-      generateEvents('move', lastCoordinates[0] + pack[1], lastCoordinates[1] + pack[2],
-                     touchId, null, keyModifiers);
-      actions(chain, touchId, command_id, i, keyModifiers);
-      break;
-    case 'wait':
-      if (pack[1] != null ) {
-        let time = pack[1]*1000;
-        
-        let standard = 750;
-        try {
-          standard = Services.prefs.getIntPref("ui.click_hold_context_menus.delay");
-        }
-        catch (e){}
-        if (time >= standard && isTap) {
-            chain.splice(i, 0, ['longPress'], ['wait', (time-standard)/1000]);
-            time = standard;
-        }
-        checkTimer.initWithCallback(function() {
-          actions(chain, touchId, command_id, i, keyModifiers);
-        }, time, Ci.nsITimer.TYPE_ONE_SHOT);
-      }
-      else {
-        actions(chain, touchId, command_id, i, keyModifiers);
-      }
-      break;
-    case 'cancel':
-      generateEvents('cancel', lastCoordinates[0], lastCoordinates[1],
-                     touchId, null, keyModifiers);
-      actions(chain, touchId, command_id, i, keyModifiers);
-      scrolling = false;
-      break;
-    case 'longPress':
-      generateEvents('contextmenu', lastCoordinates[0], lastCoordinates[1],
-                     touchId, null, keyModifiers);
-      actions(chain, touchId, command_id, i, keyModifiers);
-      break;
-  }
 }
 
 
@@ -1232,20 +952,21 @@ function actionChain(msg) {
   let command_id = msg.json.command_id;
   let args = msg.json.chain;
   let touchId = msg.json.nextId;
-  try {
-    let commandArray = elementManager.convertWrappedArguments(args, curFrame);
-    
-    if (touchId == null) {
-      touchId = nextTouchId++;
-    }
-    if (!curFrame.document.createTouch) {
-      mouseEventsOnly = true;
-    }
-    actions(commandArray, touchId, command_id);
-  }
-  catch (e) {
-    sendError(e.message, e.code, e.stack, msg.json.command_id);
-  }
+
+  let callbacks = {};
+  callbacks.onSuccess = (value) => {
+    sendResponse(value, command_id);
+  };
+  callbacks.onError = (message, code, trace) => {
+    sendError(message, code, trace, msg.json.command_id);
+  };
+
+  let touchProvider = {};
+  touchProvider.createATouch = createATouch;
+  touchProvider.emitTouchEvent = emitTouchEvent;
+
+  actions.dispatchActions(args, touchId, curFrame, elementManager, callbacks,
+                          touchProvider);
 }
 
 
