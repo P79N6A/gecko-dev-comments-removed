@@ -83,7 +83,9 @@ BroadcastChannelParent::CheckAndDeliver(const ClonedMessageData& aData,
 
   if (aOrigin == mOrigin && aChannel == mChannel) {
     
-    if (aData.blobsParent().IsEmpty()) {
+    
+    if (aData.blobsParent().IsEmpty() ||
+        static_cast<BlobParent*>(aData.blobsParent()[0])->GetBackgroundManager() == Manager()) {
       unused << SendNotify(aData);
       return;
     }
