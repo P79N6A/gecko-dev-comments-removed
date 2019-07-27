@@ -73,15 +73,20 @@ XPCOMUtils.defineLazyServiceGetter(this, "faviconSvc",
                                    "nsIFaviconService");
 
 
-function _imageFromURI(uri, privateMode, callback) {
-  let channel = ioSvc.newChannelFromURI(uri);
+function _imageFromURI(doc, uri, privateMode, callback) {
+  let channel = ioSvc.newChannelFromURI2(uri,
+                                         doc,
+                                         null,  
+                                         null,  
+                                         Ci.nsILoadInfo.SEC_NORMAL,
+                                         Ci.nsIContentPolicy.TYPE_IMAGE);
   try {
     channel.QueryInterface(Ci.nsIPrivateBrowsingChannel);
     channel.setPrivate(privateMode);
   } catch (e) {
     
   }
-  NetUtil.asyncFetch(channel, function(inputStream, resultCode) {
+  NetUtil.asyncFetch2(channel, function(inputStream, resultCode) {
     if (!Components.isSuccessCode(resultCode))
       return;
     try {
@@ -99,11 +104,11 @@ function _imageFromURI(uri, privateMode, callback) {
 }
 
 
-function getFaviconAsImage(iconurl, privateMode, callback) {
+function getFaviconAsImage(doc, iconurl, privateMode, callback) {
   if (iconurl)
-    _imageFromURI(NetUtil.newURI(iconurl), privateMode, callback);
+    _imageFromURI(doc, NetUtil.newURI(iconurl), privateMode, callback);
   else
-    _imageFromURI(faviconSvc.defaultFavicon, privateMode, callback);
+    _imageFromURI(doc, faviconSvc.defaultFavicon, privateMode, callback);
 }
 
 
@@ -497,13 +502,16 @@ TabWindow.prototype = {
     preview.visible = AeroPeek.enabled;
     preview.active = this.tabbrowser.selectedTab == controller.tab;
     
-    getFaviconAsImage(null, PrivateBrowsingUtils.isWindowPrivate(this.win), function (img) {
-      
-      
-      if (!preview.icon)
-        preview.icon = img;
-    });
-
+    getFaviconAsImage(
+      controller.linkedBrowser.contentWindow.document,
+      null,
+      PrivateBrowsingUtils.isWindowPrivate(this.win),
+      function (img) {
+        
+        
+        if (!preview.icon)
+          preview.icon = img;
+      });
     return preview;
   },
 
@@ -588,14 +596,17 @@ TabWindow.prototype = {
   
   onLinkIconAvailable: function (aBrowser, aIconURL) {
     let self = this;
-    getFaviconAsImage(aIconURL, PrivateBrowsingUtils.isWindowPrivate(this.win), function (img) {
-      let index = self.tabbrowser.browsers.indexOf(aBrowser);
-      
-      if (index != -1) {
-        let tab = self.tabbrowser.tabs[index];
-        self.previews.get(tab).icon = img;
-      }
-    });
+    getFaviconAsImage(
+      aBrowser.contentWindow.document,
+      aIconURL,PrivateBrowsingUtils.isWindowPrivate(this.win),
+      function (img) {
+        let index = self.tabbrowser.browsers.indexOf(aBrowser);
+        
+        if (index != -1) {
+          let tab = self.tabbrowser.tabs[index];
+          self.previews.get(tab).icon = img;
+        }
+      });
   }
 }
 
