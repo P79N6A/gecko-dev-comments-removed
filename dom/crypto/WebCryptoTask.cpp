@@ -322,7 +322,7 @@ private:
   
   virtual void Resolve() MOZ_OVERRIDE
   {
-    TypedArrayCreator<Uint8Array> ret(mResult);
+    TypedArrayCreator<ArrayBuffer> ret(mResult);
     mResultPromise->MaybeResolve(ret);
   }
 };
@@ -987,7 +987,7 @@ private:
   {
     if (mSign) {
       
-      TypedArrayCreator<Uint8Array> ret(mResult);
+      TypedArrayCreator<ArrayBuffer> ret(mResult);
       mResultPromise->MaybeResolve(ret);
     } else {
       
@@ -1116,7 +1116,7 @@ private:
   virtual void Resolve() MOZ_OVERRIDE
   {
     if (mSign) {
-      TypedArrayCreator<Uint8Array> ret(mSignature);
+      TypedArrayCreator<ArrayBuffer> ret(mSignature);
       mResultPromise->MaybeResolve(ret);
     } else {
       mResultPromise->MaybeResolve(mVerified);
@@ -1745,7 +1745,7 @@ private:
       return;
     }
 
-    TypedArrayCreator<Uint8Array> ret(mResult);
+    TypedArrayCreator<ArrayBuffer> ret(mResult);
     mResultPromise->MaybeResolve(ret);
   }
 };
