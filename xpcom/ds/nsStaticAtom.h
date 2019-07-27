@@ -22,7 +22,9 @@ typedef char16_t nsStaticAtomStringType;
 
 struct nsStaticAtom
 {
-  nsStringBuffer* mStringBuffer;
+  
+  
+  nsStringBuffer* MOZ_NON_OWNING_REF mStringBuffer;
   nsIAtom** mAtom;
 };
 
