@@ -202,7 +202,6 @@ protected:
     
     
     uint32_t              mBlinkRate;         
-    nscoord               mCaretWidthCSSPx;   
     float                 mCaretAspectRatio;  
 
     bool                  mVisible;           
