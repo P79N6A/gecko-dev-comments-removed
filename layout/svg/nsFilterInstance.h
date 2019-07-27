@@ -55,11 +55,11 @@ public:
 
 
 
-  static nsresult PaintFilteredFrame(nsRenderingContext *aContext,
-                                     nsIFrame *aFilteredFrame,
+  static nsresult PaintFilteredFrame(nsIFrame *aFilteredFrame,
+                                     nsRenderingContext *aContext,
+                                     const gfxMatrix& aTransform,
                                      nsSVGFilterPaintCallback *aPaintCallback,
-                                     const nsRegion* aDirtyArea,
-                                     nsIFrame* aTransformRoot = nullptr);
+                                     const nsRegion* aDirtyArea);
 
   
 
@@ -107,13 +107,14 @@ public:
 
 
 
+
   nsFilterInstance(nsIFrame *aTargetFrame,
                    nsSVGFilterPaintCallback *aPaintCallback,
+                   const gfxMatrix& aPaintTransform,
                    const nsRegion *aPostFilterDirtyRegion = nullptr,
                    const nsRegion *aPreFilterDirtyRegion = nullptr,
                    const nsRect *aOverridePreFilterVisualOverflowRect = nullptr,
-                   const gfxRect *aOverrideBBox = nullptr,
-                   nsIFrame* aTransformRoot = nullptr);
+                   const gfxRect *aOverrideBBox = nullptr);
 
   
 
@@ -313,7 +314,12 @@ private:
   SourceInfo mSourceGraphic;
   SourceInfo mFillPaint;
   SourceInfo mStrokePaint;
-  nsIFrame* mTransformRoot;
+
+  
+
+
+  gfxMatrix               mPaintTransform;
+
   nsTArray<mozilla::RefPtr<SourceSurface>> mInputImages;
   nsTArray<FilterPrimitiveDescription> mPrimitiveDescriptions;
   int32_t mAppUnitsPerCSSPx;

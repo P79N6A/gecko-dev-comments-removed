@@ -9,11 +9,12 @@
 #include "gfxRect.h"
 #include "nsQueryFrame.h"
 
+class gfxMatrix;
 class nsIFrame;
 class nsRenderingContext;
+class SVGBBox;
 
 struct nsPoint;
-class SVGBBox;
 struct nsRect;
 struct nsIntRect;
 
@@ -48,19 +49,35 @@ public:
   NS_DECL_QUERYFRAME_TARGET(nsISVGChildFrame)
 
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   virtual nsresult PaintSVG(nsRenderingContext* aContext,
-                            const nsIntRect *aDirtyRect,
-                            nsIFrame* aTransformRoot = nullptr) = 0;
+                            const gfxMatrix& aTransform,
+                            const nsIntRect* aDirtyRect = nullptr) = 0;
 
   
 

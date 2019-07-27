@@ -193,8 +193,8 @@ nsSVGForeignObjectFrame::IsSVGTransformed(Matrix *aOwnTransform,
 
 nsresult
 nsSVGForeignObjectFrame::PaintSVG(nsRenderingContext *aContext,
-                                  const nsIntRect *aDirtyRect,
-                                  nsIFrame* aTransformRoot)
+                                  const gfxMatrix& aTransform,
+                                  const nsIntRect* aDirtyRect)
 {
   NS_ASSERTION(!NS_SVGDisplayListPaintingEnabled() ||
                (mState & NS_FRAME_IS_NONDISPLAY),
@@ -208,9 +208,7 @@ nsSVGForeignObjectFrame::PaintSVG(nsRenderingContext *aContext,
   if (!kid)
     return NS_OK;
 
-  gfxMatrix canvasTM = GetCanvasTM(FOR_PAINTING, aTransformRoot);
-
-  if (canvasTM.IsSingular()) {
+  if (aTransform.IsSingular()) {
     NS_WARNING("Can't render foreignObject element!");
     return NS_ERROR_FAILURE;
   }
@@ -223,7 +221,7 @@ nsSVGForeignObjectFrame::PaintSVG(nsRenderingContext *aContext,
                  (mState & NS_FRAME_IS_NONDISPLAY),
                  "Display lists handle dirty rect intersection test");
     
-    gfxMatrix invmatrix = canvasTM;
+    gfxMatrix invmatrix = aTransform;
     DebugOnly<bool> ok = invmatrix.Invert();
     NS_ASSERTION(ok, "inverse of non-singular matrix should be non-singular");
 
@@ -254,7 +252,7 @@ nsSVGForeignObjectFrame::PaintSVG(nsRenderingContext *aContext,
 
     gfxRect clipRect =
       nsSVGUtils::GetClipRectForFrame(this, 0.0f, 0.0f, width, height);
-    nsSVGUtils::SetClipRect(gfx, canvasTM, clipRect);
+    nsSVGUtils::SetClipRect(gfx, aTransform, clipRect);
   }
 
   
@@ -262,7 +260,7 @@ nsSVGForeignObjectFrame::PaintSVG(nsRenderingContext *aContext,
   
   float cssPxPerDevPx = PresContext()->
     AppUnitsToFloatCSSPixels(PresContext()->AppUnitsPerDevPixel());
-  gfxMatrix canvasTMForChildren = canvasTM;
+  gfxMatrix canvasTMForChildren = aTransform;
   canvasTMForChildren.Scale(cssPxPerDevPx, cssPxPerDevPx);
 
   gfx->Multiply(canvasTMForChildren);

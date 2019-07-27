@@ -296,10 +296,10 @@ public:
   
 
   static void
-  PaintFrameWithEffects(nsRenderingContext *aContext,
-                        const nsIntRect *aDirtyRect,
-                        nsIFrame *aFrame,
-                        nsIFrame* aTransformRoot = nullptr);
+  PaintFrameWithEffects(nsIFrame *aFrame,
+                        nsRenderingContext *aContext,
+                        const gfxMatrix& aTransform,
+                        const nsIntRect *aDirtyRect = nullptr);
 
   
 
