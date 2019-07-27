@@ -42,36 +42,6 @@ void * const js::NullPtr::constNullValue = nullptr;
 
 JS_PUBLIC_DATA(void * const) JS::NullPtr::constNullValue = nullptr;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 static inline void
 PushMarkStack(GCMarker* gcmarker, JSObject* thing) {
     gcmarker->traverse(thing);
@@ -264,17 +234,6 @@ CheckMarkedThing<jsid>(JSTracer* trc, jsid id)
                   trc->runtime()->gc.state() == NO_INCREMENTAL || \
                   trc->runtime()->gc.state() == MARK_ROOTS);
 
-#define FOR_EACH_GC_LAYOUT(D) \
-    D(Object, JSObject) \
-    D(String, JSString) \
-    D(Symbol, JS::Symbol) \
-    D(Script, JSScript) \
-    D(Shape, js::Shape) \
-    D(BaseShape, js::BaseShape) \
-    D(JitCode, js::jit::JitCode) \
-    D(LazyScript, js::LazyScript) \
-    D(ObjectGroup, js::ObjectGroup)
-
 
 enum class TraceKind {
 #define NAMES(name, _) name,
@@ -361,7 +320,7 @@ ConvertToBase(T* thingp)
 }
 
 template <typename T> void DispatchToTracer(JSTracer* trc, T* thingp, const char* name);
-template <typename T> void DoTracing(JS::CallbackTracer* trc, T* thingp, const char* name);
+template <typename T> void DoCallback(JS::CallbackTracer* trc, T* thingp, const char* name);
 template <typename T> void DoMarking(GCMarker* gcmarker, T thing);
 static bool ShouldMarkCrossCompartment(JSTracer* trc, JSObject* src, Cell* cell);
 static bool ShouldMarkCrossCompartment(JSTracer* trc, JSObject* src, Value val);
@@ -464,7 +423,7 @@ DispatchToTracer(JSTracer* trc, T* thingp, const char* name)
 
     if (trc->isMarkingTracer())
         return DoMarking(static_cast<GCMarker*>(trc), *thingp);
-    return DoTracing(static_cast<JS::CallbackTracer*>(trc), thingp, name);
+    return DoCallback(trc->asCallbackTracer(), thingp, name);
 }
 
 template <typename T>
@@ -550,59 +509,6 @@ DoMarking<jsid>(GCMarker* gcmarker, jsid id)
         DoMarking(gcmarker, JSID_TO_SYMBOL(id));
 }
 
-template <typename T>
-void
-DoTracing(JS::CallbackTracer* trc, T* thingp, const char* name)
-{
-    JSGCTraceKind kind = MapTypeToTraceKind<typename mozilla::RemovePointer<T>::Type>::kind;
-    JS::AutoTracingName ctx(trc, name);
-    trc->invoke((void**)thingp, kind);
-}
-
-template <>
-void
-DoTracing<Value>(JS::CallbackTracer* trc, Value* vp, const char* name)
-{
-    if (vp->isObject()) {
-        JSObject* prior = &vp->toObject();
-        JSObject* obj = prior;
-        DoTracing(trc, &obj, name);
-        if (obj != prior)
-            vp->setObjectOrNull(obj);
-    } else if (vp->isString()) {
-        JSString* prior = vp->toString();
-        JSString* str = prior;
-        DoTracing(trc, &str, name);
-        if (str != prior)
-            vp->setString(str);
-    } else if (vp->isSymbol()) {
-        JS::Symbol* prior = vp->toSymbol();
-        JS::Symbol* sym = prior;
-        DoTracing(trc, &sym, name);
-        if (sym != prior)
-            vp->setSymbol(sym);
-    }
-}
-
-template <>
-void
-DoTracing<jsid>(JS::CallbackTracer* trc, jsid* idp, const char* name)
-{
-    if (JSID_IS_STRING(*idp)) {
-        JSString* prior = JSID_TO_STRING(*idp);
-        JSString* str = prior;
-        DoTracing(trc, &str, name);
-        if (str != prior)
-            *idp = NON_INTEGER_ATOM_TO_JSID(reinterpret_cast<JSAtom*>(str));
-    } else if (JSID_IS_SYMBOL(*idp)) {
-        JS::Symbol* prior = JSID_TO_SYMBOL(*idp);
-        JS::Symbol* sym = prior;
-        DoTracing(trc, &sym, name);
-        if (sym != prior)
-            *idp = SYMBOL_TO_JSID(sym);
-    }
-}
-
 namespace js {
 namespace gc {
 
@@ -619,7 +525,7 @@ MarkPermanentAtom(JSTracer* trc, JSAtom* atom, const char* name)
     if (trc->isMarkingTracer())
         atom->markIfUnmarked();
     else
-        DoTracing(trc->asCallbackTracer(), reinterpret_cast<JSString**>(&atom), name);
+        DoCallback(trc->asCallbackTracer(), reinterpret_cast<JSString**>(&atom), name);
 }
 
 void
@@ -636,7 +542,7 @@ MarkWellKnownSymbol(JSTracer* trc, JS::Symbol* sym)
         MOZ_ASSERT(sym->description()->isMarked());
         sym->markIfUnmarked();
     } else {
-        DoTracing(trc->asCallbackTracer(), &sym, "wellKnownSymbol");
+        DoCallback(trc->asCallbackTracer(), &sym, "wellKnownSymbol");
     }
 }
 
