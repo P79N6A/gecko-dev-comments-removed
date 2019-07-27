@@ -14,17 +14,21 @@ loop.shared.models = (function() {
 
   var ConversationModel = Backbone.Model.extend({
     defaults: {
-      connected:    false,     
-      ongoing:      false,     
-      callerId:     undefined, 
-      loopToken:    undefined, 
-      loopVersion:  undefined, 
-                               
-                               
-                               
-      sessionId:    undefined, 
-      sessionToken: undefined, 
-      apiKey:       undefined  
+      connected:    false,         
+      ongoing:      false,         
+      callerId:     undefined,     
+      loopToken:    undefined,     
+      loopVersion:  undefined,     
+                                   
+                                   
+                                   
+      sessionId:    undefined,     
+      sessionToken: undefined,     
+      apiKey:       undefined,     
+      callType:     undefined,     
+                                   
+      selectedCallType: undefined  
+                                   
     },
 
     
@@ -114,7 +118,7 @@ loop.shared.models = (function() {
       this._pendingCallTimer = setTimeout(
         handleOutgoingCallTimeout.bind(this), this.pendingCallTimeout);
 
-      this.setSessionData(sessionData);
+      this.setOutgoingSessionData(sessionData);
       this.trigger("call:outgoing");
     },
 
@@ -132,12 +136,28 @@ loop.shared.models = (function() {
 
 
 
-    setSessionData: function(sessionData) {
+
+    setOutgoingSessionData: function(sessionData) {
       
       this.set({
         sessionId:    sessionData.sessionId,
         sessionToken: sessionData.sessionToken,
         apiKey:       sessionData.apiKey
+      });
+    },
+
+    
+
+
+
+
+    setIncomingSessionData: function(sessionData) {
+      
+      this.set({
+        sessionId:    sessionData.sessionId,
+        sessionToken: sessionData.sessionToken,
+        apiKey:       sessionData.apiKey,
+        callType:     sessionData.callType || "audio-video"
       });
     },
 
@@ -167,6 +187,22 @@ loop.shared.models = (function() {
       this.session.disconnect();
       this.set("ongoing", false)
           .once("session:ended", this.stopListening, this);
+    },
+
+    
+
+
+
+
+
+    hasVideoStream: function(callType) {
+      if (callType === "incoming") {
+        return this.get("callType") === "audio-video";
+      }
+      if (callType === "outgoing") {
+        return this.get("selectedCallType") === "audio-video";
+      }
+      return undefined;
     },
 
     

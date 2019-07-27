@@ -1,8 +1,8 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
+/* global loop, sinon */
 
 var expect = chai.expect;
 
@@ -17,14 +17,15 @@ describe("loop.shared.models", function() {
     sandbox.useFakeTimers();
     fakeXHR = sandbox.useFakeXMLHttpRequest();
     requests = [];
-    
+    // https://github.com/cjohansen/Sinon.JS/issues/393
     fakeXHR.xhr.onCreate = function(xhr) {
       requests.push(xhr);
     };
     fakeSessionData = {
       sessionId:    "sessionId",
       sessionToken: "sessionToken",
-      apiKey:       "apiKey"
+      apiKey:       "apiKey",
+      callType:     "callType"
     };
     fakeSession = _.extend({
       connect: function () {},
@@ -101,13 +102,14 @@ describe("loop.shared.models", function() {
       describe("#outgoing", function() {
         beforeEach(function() {
           sandbox.stub(conversation, "endSession");
-          sandbox.stub(conversation, "setSessionData");
+          sandbox.stub(conversation, "setOutgoingSessionData");
+          sandbox.stub(conversation, "setIncomingSessionData");
         });
 
-        it("should save the sessionData", function() {
+        it("should save the outgoing sessionData", function() {
           conversation.outgoing(fakeSessionData);
 
-          sinon.assert.calledOnce(conversation.setSessionData);
+          sinon.assert.calledOnce(conversation.setOutgoingSessionData);
         });
 
         it("should trigger a `call:outgoing` event", function(done) {
@@ -139,13 +141,24 @@ describe("loop.shared.models", function() {
       });
 
       describe("#setSessionData", function() {
-        it("should update conversation session information", function() {
-          conversation.setSessionData(fakeSessionData);
+        it("should update outgoing conversation session information",
+           function() {
+             conversation.setOutgoingSessionData(fakeSessionData);
 
-          expect(conversation.get("sessionId")).eql("sessionId");
-          expect(conversation.get("sessionToken")).eql("sessionToken");
-          expect(conversation.get("apiKey")).eql("apiKey");
-        });
+             expect(conversation.get("sessionId")).eql("sessionId");
+             expect(conversation.get("sessionToken")).eql("sessionToken");
+             expect(conversation.get("apiKey")).eql("apiKey");
+           });
+
+        it("should update incoming conversation session information",
+           function() {
+             conversation.setIncomingSessionData(fakeSessionData);
+
+             expect(conversation.get("sessionId")).eql("sessionId");
+             expect(conversation.get("sessionToken")).eql("sessionToken");
+             expect(conversation.get("apiKey")).eql("apiKey");
+             expect(conversation.get("callType")).eql("callType");
+           });
       });
 
       describe("#startSession", function() {
@@ -358,6 +371,30 @@ describe("loop.shared.models", function() {
 
             sinon.assert.calledOnce(model.stopListening);
           });
+      });
+
+      describe("#hasVideoStream", function() {
+        var model;
+
+        beforeEach(function() {
+          model = new sharedModels.ConversationModel(fakeSessionData, {
+            sdk: fakeSDK,
+            pendingCallTimeout: 1000
+          });
+          model.startSession();
+        });
+
+        it("should return true for incoming callType", function() {
+          model.set("callType", "audio-video");
+
+          expect(model.hasVideoStream("incoming")).to.eql(true);
+        });
+
+        it("should return true for outgoing callType", function() {
+          model.set("selectedCallType", "audio-video");
+
+          expect(model.hasVideoStream("outgoing")).to.eql(true);
+        });
       });
     });
   });

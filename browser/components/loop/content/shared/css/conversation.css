@@ -194,6 +194,41 @@
   font-weight: normal;
 }
 
+.call-audio-only {
+  width: 26px;
+  height: 26px;
+  border-left: 1px solid rgba(255,255,255,.4);
+  border-top-right-radius: 2px;
+  border-bottom-right-radius: 2px;
+  background-color: #74BF43;
+  background-image: url("../img/audio-inverse-14x14.png");
+  background-size: 1rem;
+  background-position: center;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
+
+  .call-audio-only:hover {
+    background-color: #6cb23e;
+  }
+
+
+.call-audio-video {
+  background-image: url("../img/video-inverse-14x14.png");
+  background-position: 96% center;
+  background-repeat: no-repeat;
+  background-size: 1rem;
+}
+
+@media (min-resolution: 2dppx) {
+  .call-audio-only {
+    background-image: url("../img/audio-inverse-14x14@2x.png");
+  }
+  .call-audio-video {
+    background-image: url("../img/video-inverse-14x14@2x.png");
+  }
+}
+
 
 
 .expired-url-info {
@@ -214,7 +249,14 @@
 
 
 
-.native-dropdown-menu {
+
+
+
+
+
+
+.native-dropdown-menu,
+.native-dropdown-large-parent {
   
   padding: 0;
   position: absolute; 
@@ -226,18 +268,34 @@
   border-color: #aaa #111 #111 #aaa;
 }
 
-.decline-block-menu li {
-  padding: 0 10px 0 5px;
-  list-style: none;
-  font-size: .9em;
-  color: #000;
-  cursor: pointer;
-}
+  
 
-  .decline-block-menu li:hover {
-    color: #FFF;
-    background: #111;
+
+
+
+  .native-dropdown-large-parent {
+    position: relative;
+    display: block;
   }
+
+  .native-dropdown-menu li,
+  .native-dropdown-large-parent li {
+    list-style: none;
+    cursor: pointer;
+    color: #000;
+  }
+
+  .native-dropdown-menu li:hover,
+  .native-dropdown-large-parent li:hover,
+  .native-dropdown-large-parent li:hover button {
+    color: #fff;
+    background-color: #111;
+  }
+
+.conversation-window-dropdown li {
+  padding: 0 10px 0 5px;
+  font-size: .9em;
+}
 
 
 
