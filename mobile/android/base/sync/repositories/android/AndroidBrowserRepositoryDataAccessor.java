@@ -217,8 +217,6 @@ public abstract class AndroidBrowserRepositoryDataAccessor {
       
       
       size = index;
-      ContentValues[] temp = new ContentValues[size];
-      System.arraycopy(cvs, 0, temp, 0, size); 
     }
 
     int inserted = context.getContentResolver().bulkInsert(getUri(), cvs);
