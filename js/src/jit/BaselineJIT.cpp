@@ -172,7 +172,7 @@ jit::EnterBaselineAtBranch(JSContext *cx, InterpreterFrame *fp, jsbytecode *pc)
     
     
     if (fp->isDebuggee()) {
-        MOZ_ASSERT(baseline->hasDebugInstrumentation());
+        MOZ_RELEASE_ASSERT(baseline->hasDebugInstrumentation());
         data.jitcode += MacroAssembler::ToggledCallSize(data.jitcode);
     }
 
@@ -293,6 +293,29 @@ jit::CanEnterBaselineAtBranch(JSContext *cx, InterpreterFrame *fp, bool newType)
 
    if (!CheckFrame(fp))
        return Method_CantCompile;
+
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   if (fp->isDebuggee() && !Debugger::ensureExecutionObservabilityOfOsrFrame(cx, fp))
+       return Method_Error;
 
    RootedScript script(cx, fp->script());
    return CanEnterBaselineJIT(cx, script, fp);
