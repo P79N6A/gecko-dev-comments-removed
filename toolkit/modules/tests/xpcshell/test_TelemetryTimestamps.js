@@ -5,6 +5,7 @@ const Cu = Components.utils;
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/TelemetrySession.jsm", this);
 
 
 
@@ -13,25 +14,21 @@ Cu.import("resource://testing-common/AppInfo.jsm");
 updateAppInfo();
 
 function getSimpleMeasurementsFromTelemetryPing() {
-  return Cu.import("resource://gre/modules/TelemetryPing.jsm", {}).
-    TelemetryPing.getPayload().simpleMeasurements;
+  return TelemetrySession.getPayload().simpleMeasurements;
 }
 
 function run_test() {
+  
+  do_get_profile();
+
   do_test_pending();
   const Telemetry = Services.telemetry;
-  Telemetry.asyncFetchTelemetryData(function () {
-    try {
-      actualTest();
-    }
-    catch(e) {
-      do_throw("Failed: " + e);
-    }
-    do_test_finished();
-  });
+  Telemetry.asyncFetchTelemetryData(run_next_test);
 }
 
-function actualTest() {
+add_task(function* actualTest() {
+  yield TelemetrySession.setup();
+
   
   let tmp = {};
   Cu.import("resource://gre/modules/TelemetryTimestamps.jsm", tmp);
@@ -66,5 +63,9 @@ function actualTest() {
   do_check_true(simpleMeasurements != null); 
   do_check_true(simpleMeasurements.foo > 1); 
   do_check_true(simpleMeasurements.bar > 1); 
-  do_check_null(simpleMeasurements.baz); 
-}
+  do_check_eq(undefined, simpleMeasurements.baz); 
+
+  yield TelemetrySession.shutdown();
+
+  do_test_finished();
+});

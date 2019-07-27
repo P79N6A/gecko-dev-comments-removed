@@ -6,7 +6,7 @@
 const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm", this);
-Cu.import("resource://gre/modules/TelemetryPing.jsm", this);
+Cu.import("resource://gre/modules/TelemetrySession.jsm", this);
 
 function run_test() {
   do_test_pending();
@@ -16,5 +16,5 @@ function run_test() {
     do_test_finished();
   }, "gather-telemetry", false);
 
-  TelemetryPing.observe(null, "idle-daily", null);
+  TelemetrySession.observe(null, "idle-daily", null);
 }

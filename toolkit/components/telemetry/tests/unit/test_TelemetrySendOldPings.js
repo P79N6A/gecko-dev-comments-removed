@@ -22,6 +22,7 @@ Cu.import("resource://testing-common/httpd.js", this);
 Cu.import("resource://gre/modules/Promise.jsm", this);
 Cu.import("resource://gre/modules/TelemetryFile.jsm", this);
 Cu.import("resource://gre/modules/TelemetryPing.jsm", this);
+Cu.import("resource://gre/modules/TelemetrySession.jsm", this);
 Cu.import("resource://gre/modules/Task.jsm", this);
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 let {OS: {File, Path, Constants}} = Cu.import("resource://gre/modules/osfile.jsm", {});
@@ -65,14 +66,11 @@ let gSeenPings = 0;
 
 function createSavedPings(aNum, aAge) {
   return Task.spawn(function*(){
-    
-    
-    
     let pings = [];
     let age = Date.now() - aAge;
 
     for (let i = 0; i < aNum; ++i) {
-      let payload = TelemetryPing.getPayload();
+      let payload = TelemetrySession.getPayload();
       let ping = { slug: "test-ping-" + gCreatedPings, reason: "test", payload: payload };
 
       yield TelemetryFile.savePing(ping);
@@ -175,9 +173,8 @@ function stopHttpServer() {
 
 
 
-
 function resetTelemetry() {
-  TelemetryPing.uninstall();
+  TelemetrySession.uninstall();
   
   
   let gen = TelemetryFile.popPendingPings();
@@ -190,6 +187,10 @@ function resetTelemetry() {
 
 function startTelemetry() {
   return TelemetryPing.setup();
+}
+
+function startTelemetrySession() {
+  return TelemetrySession.setup();
 }
 
 function run_test() {
@@ -213,6 +214,7 @@ function run_test() {
 
 
 add_task(function* test_expired_pings_are_deleted() {
+  yield startTelemetrySession();
   let expiredPings = yield createSavedPings(EXPIRED_PINGS, EXPIRED_PING_FILE_AGE);
   yield startTelemetry();
   assertReceivedPings(0);
@@ -224,6 +226,7 @@ add_task(function* test_expired_pings_are_deleted() {
 
 
 add_task(function* test_recent_pings_not_sent() {
+  yield startTelemetrySession();
   let recentPings = yield createSavedPings(RECENT_PINGS);
   yield startTelemetry();
   assertReceivedPings(0);
@@ -235,6 +238,7 @@ add_task(function* test_recent_pings_not_sent() {
 
 
 add_task(function* test_most_recent_pings_kept() {
+  yield startTelemetrySession();
   let head = yield createSavedPings(LRU_PINGS);
   let tail = yield createSavedPings(3, ONE_MINUTE_MS);
   let pings = head.concat(tail);
@@ -259,6 +263,7 @@ add_task(function* test_most_recent_pings_kept() {
 
 
 add_task(function* test_overdue_pings_trigger_send() {
+  yield startTelemetrySession();
   let recentPings = yield createSavedPings(RECENT_PINGS);
   let expiredPings = yield createSavedPings(EXPIRED_PINGS, EXPIRED_PING_FILE_AGE);
   let overduePings = yield createSavedPings(OVERDUE_PINGS, OVERDUE_PING_FILE_AGE);
