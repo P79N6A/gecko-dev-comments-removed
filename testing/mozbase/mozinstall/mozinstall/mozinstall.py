@@ -280,10 +280,11 @@ def _install_exe(src, dest):
 
     
     os.environ['__compat_layer'] = 'RunAsInvoker'
-    cmd = [src, '/S', '/D=%s' % os.path.realpath(dest)]
+    cmd = '"%s" /extractdir=%s' % (src, os.path.realpath(dest))
 
     
     result = subprocess.call(cmd)
+
     if result is not 0:
         raise Exception('Execution of installer failed.')
 
