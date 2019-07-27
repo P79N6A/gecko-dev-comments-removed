@@ -51,21 +51,6 @@ public:
   
   
 
-  
-
-
-  void Connect();
-
-  
-  
-
-  nsresult Accept(int aFd,
-                  const struct sockaddr* aAddress,
-                  socklen_t aAddressLength) override;
-
-  
-  
-
   nsresult QueryReceiveBuffer(UnixSocketIOBuffer** aBuffer) override;
   void ConsumeBuffer() override;
   void DiscardBuffer() override;
@@ -82,8 +67,6 @@ public:
   void ShutdownOnIOThread() override;
 
 private:
-  void FireSocketError();
-
   
 
 
@@ -94,22 +77,7 @@ private:
   
 
 
-  nsAutoPtr<UnixSocketConnector> mConnector;
-
-  
-
-
   bool mShuttingDownOnIOThread;
-
-  
-
-
-  socklen_t mAddressLength;
-
-  
-
-
-  struct sockaddr_storage mAddress;
 
   
 
@@ -127,15 +95,12 @@ StreamSocketIO::StreamSocketIO(nsIThread* aConsumerThread,
                                MessageLoop* aIOLoop,
                                StreamSocket* aStreamSocket,
                                UnixSocketConnector* aConnector)
-  : ConnectionOrientedSocketIO(aConsumerThread, aIOLoop)
+  : ConnectionOrientedSocketIO(aConsumerThread, aIOLoop, aConnector)
   , mStreamSocket(aStreamSocket)
-  , mConnector(aConnector)
   , mShuttingDownOnIOThread(false)
-  , mAddressLength(0)
   , mDelayedConnectTask(nullptr)
 {
   MOZ_ASSERT(mStreamSocket);
-  MOZ_ASSERT(mConnector);
 }
 
 StreamSocketIO::StreamSocketIO(nsIThread* aConsumerThread,
@@ -146,15 +111,13 @@ StreamSocketIO::StreamSocketIO(nsIThread* aConsumerThread,
   : ConnectionOrientedSocketIO(aConsumerThread,
                                aIOLoop,
                                aFd,
-                               aConnectionStatus)
+                               aConnectionStatus,
+                               aConnector)
   , mStreamSocket(aStreamSocket)
-  , mConnector(aConnector)
   , mShuttingDownOnIOThread(false)
-  , mAddressLength(0)
   , mDelayedConnectTask(nullptr)
 {
   MOZ_ASSERT(mStreamSocket);
-  MOZ_ASSERT(mConnector);
 }
 
 StreamSocketIO::~StreamSocketIO()
@@ -202,73 +165,6 @@ StreamSocketIO::CancelDelayedConnectTask()
 
   mDelayedConnectTask->Cancel();
   ClearDelayedConnectTask();
-}
-
-void
-StreamSocketIO::Connect()
-{
-  MOZ_ASSERT(MessageLoopForIO::current() == GetIOLoop());
-  MOZ_ASSERT(mConnector);
-
-  MOZ_ASSERT(!IsOpen());
-
-  struct sockaddr* address = reinterpret_cast<struct sockaddr*>(&mAddress);
-  mAddressLength = sizeof(mAddress);
-
-  int fd;
-  nsresult rv = mConnector->CreateStreamSocket(address, &mAddressLength, fd);
-  if (NS_FAILED(rv)) {
-    FireSocketError();
-    return;
-  }
-  SetFd(fd);
-
-  
-  rv = UnixSocketWatcher::Connect(address, mAddressLength);
-  NS_WARN_IF(NS_FAILED(rv));
-}
-
-void
-StreamSocketIO::FireSocketError()
-{
-  MOZ_ASSERT(MessageLoopForIO::current() == GetIOLoop());
-
-  
-  Close();
-
-  
-  GetConsumerThread()->Dispatch(
-    new SocketIOEventRunnable(this, SocketIOEventRunnable::CONNECT_ERROR),
-    NS_DISPATCH_NORMAL);
-}
-
-
-
-nsresult
-StreamSocketIO::Accept(int aFd,
-                       const struct sockaddr* aAddress,
-                       socklen_t aAddressLength)
-{
-  MOZ_ASSERT(MessageLoopForIO::current() == GetIOLoop());
-  MOZ_ASSERT(GetConnectionStatus() == SOCKET_IS_CONNECTING);
-
-  SetSocket(aFd, SOCKET_IS_CONNECTED);
-
-  
-  mAddressLength = aAddressLength;
-  memcpy(&mAddress, aAddress, mAddressLength);
-
-  
-  GetConsumerThread()->Dispatch(
-    new SocketIOEventRunnable(this, SocketIOEventRunnable::CONNECT_SUCCESS),
-    NS_DISPATCH_NORMAL);
-
-  AddWatchers(READ_WATCHER, true);
-  if (HasPendingData()) {
-    AddWatchers(WRITE_WATCHER, false);
-  }
-
-  return NS_OK;
 }
 
 

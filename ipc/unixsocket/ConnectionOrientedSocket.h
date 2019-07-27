@@ -31,9 +31,11 @@ class ConnectionOrientedSocketIO
 public:
   virtual ~ConnectionOrientedSocketIO();
 
-  virtual nsresult Accept(int aFd,
-                          const struct sockaddr* aAddress,
-                          socklen_t aAddressLength) = 0;
+  nsresult Accept(int aFd,
+                  const struct sockaddr* aAddress,
+                  socklen_t aAddressLength);
+
+  nsresult Connect();
 
   void Send(UnixSocketIOBuffer* aBuffer);
 
@@ -56,9 +58,11 @@ protected:
 
 
 
+
   ConnectionOrientedSocketIO(nsIThread* aConsumerThread,
                              MessageLoop* aIOLoop,
-                             int aFd, ConnectionStatus aConnectionStatus);
+                             int aFd, ConnectionStatus aConnectionStatus,
+                             UnixSocketConnector* aConnector);
 
   
 
@@ -66,8 +70,26 @@ protected:
 
 
 
+
   ConnectionOrientedSocketIO(nsIThread* aConsumerThread,
-                             MessageLoop* aIOLoop);
+                             MessageLoop* aIOLoop,
+                             UnixSocketConnector* aConnector);
+
+private:
+  
+
+
+  nsAutoPtr<UnixSocketConnector> mConnector;
+
+  
+
+
+  socklen_t mPeerAddressLength;
+
+  
+
+
+  struct sockaddr_storage mPeerAddress;
 };
 
 class ConnectionOrientedSocket : public DataSocket
