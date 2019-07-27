@@ -3269,10 +3269,6 @@ function SearchService() {
 SearchService.prototype = {
   classID: Components.ID("{7319788a-fe93-4db3-9f39-818cf08f4256}"),
 
-  get wrappedJSObject() {
-    return this;
-  },
-
   
   
   _initRV: Cr.NS_OK,

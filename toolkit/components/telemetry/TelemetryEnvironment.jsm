@@ -881,7 +881,7 @@ EnvironmentCache.prototype = {
     
     this._currentEnvironment.settings.defaultSearchEngine = this._getDefaultSearchEngine();
     this._currentEnvironment.settings.defaultSearchEngineData =
-      Services.search.wrappedJSObject.getDefaultEngineInfo();
+      Services.search.getDefaultEngineInfo();
   },
 
   
