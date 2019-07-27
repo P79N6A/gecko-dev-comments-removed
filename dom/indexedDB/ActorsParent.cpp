@@ -92,6 +92,10 @@
 #include "ReportInternalError.h"
 #include "snappy/snappy.h"
 
+#ifdef MOZ_NUWA_PROCESS
+#include "nsThread.h"
+#endif
+
 #define DISABLE_ASSERTS_FOR_FUZZING 0
 
 #if DISABLE_ASSERTS_FOR_FUZZING
@@ -203,7 +207,7 @@ static_assert(kMaxConnectionThreadCount >= kMaxIdleConnectionThreadCount,
 
 
 
-const uint32_t kConnectionIdleCheckpointsMS = 2 * 1000; 
+const uint32_t kConnectionIdleMaintenanceMS = 2 * 1000; 
 
 
 
@@ -4339,6 +4343,13 @@ class DatabaseConnection final
 {
   friend class ConnectionPool;
 
+  enum CheckpointMode
+  {
+    CheckpointMode_Full,
+    CheckpointMode_Restart,
+    CheckpointMode_Truncate
+  };
+
 public:
   class AutoSavepoint;
   class CachedStatement;
@@ -4350,6 +4361,7 @@ private:
   nsInterfaceHashtable<nsCStringHashKey, mozIStorageStatement>
     mCachedStatements;
   nsRefPtr<UpdateRefcountFunction> mUpdateRefcountFunction;
+  bool mInReadTransaction;
   bool mInWriteTransaction;
 
 #ifdef DEBUG
@@ -4393,6 +4405,9 @@ public:
   nsresult
   BeginWriteTransaction();
 
+  nsresult
+  CommitWriteTransaction();
+
   void
   RollbackWriteTransaction();
 
@@ -4409,7 +4424,15 @@ public:
   RollbackSavepoint();
 
   nsresult
-  Checkpoint(bool aIdle);
+  Checkpoint()
+  {
+    AssertIsOnConnectionThread();
+
+    return CheckpointInternal(CheckpointMode_Full);
+  }
+
+  void
+  DoIdleProcessing(bool aNeedsCheckpoint);
 
   void
   Close();
@@ -4422,6 +4445,19 @@ private:
 
   nsresult
   Init();
+
+  nsresult
+  CheckpointInternal(CheckpointMode aMode);
+
+  nsresult
+  GetFreelistCount(CachedStatement& aCachedStatement, uint32_t* aFreelistCount);
+
+  nsresult
+  ReclaimFreePagesWhileIdle(CachedStatement& aFreelistStatement,
+                            CachedStatement& aRollbackStatement,
+                            uint32_t aFreelistCount,
+                            bool aNeedsCheckpoint,
+                            bool* aFreedSomePages);
 };
 
 class MOZ_STACK_CLASS DatabaseConnection::AutoSavepoint final
@@ -4626,11 +4662,11 @@ public:
 
 private:
   class ConnectionRunnable;
-  class CheckpointConnectionRunnable;
   class CloseConnectionRunnable;
   struct DatabaseInfo;
   struct DatabasesCompleteCallback;
   class FinishCallbackWrapper;
+  class IdleConnectionRunnable;
   struct IdleDatabaseInfo;
   struct IdleResource;
   struct IdleThreadInfo;
@@ -4644,6 +4680,7 @@ private:
 
   nsTArray<IdleThreadInfo> mIdleThreads;
   nsTArray<IdleDatabaseInfo> mIdleDatabases;
+  nsTArray<DatabaseInfo*> mDatabasesPerformingIdleMaintenance;
   nsCOMPtr<nsITimer> mIdleTimer;
   TimeStamp mTargetIdleTime;
 
@@ -4754,7 +4791,7 @@ private:
   MaybeFireCallback(DatabasesCompleteCallback* aCallback);
 
   void
-  CheckpointDatabase(DatabaseInfo* aDatabaseInfo);
+  PerformIdleDatabaseMaintenance(DatabaseInfo* aDatabaseInfo);
 
   void
   CloseDatabase(DatabaseInfo* aDatabaseInfo);
@@ -4778,19 +4815,21 @@ protected:
   { }
 };
 
-class ConnectionPool::CheckpointConnectionRunnable final
+class ConnectionPool::IdleConnectionRunnable final
   : public ConnectionRunnable
 {
+  bool mNeedsCheckpoint;
+
 public:
-  explicit
-  CheckpointConnectionRunnable(DatabaseInfo* aDatabaseInfo)
+  IdleConnectionRunnable(DatabaseInfo* aDatabaseInfo, bool aNeedsCheckpoint)
     : ConnectionRunnable(aDatabaseInfo)
+    , mNeedsCheckpoint(aNeedsCheckpoint)
   { }
 
   NS_DECL_ISUPPORTS_INHERITED
 
 private:
-  ~CheckpointConnectionRunnable()
+  ~IdleConnectionRunnable()
   { }
 
   NS_DECL_NSIRUNNABLE
@@ -4818,6 +4857,9 @@ struct ConnectionPool::ThreadInfo
 {
   nsCOMPtr<nsIThread> mThread;
   nsRefPtr<ThreadRunnable> mRunnable;
+#ifdef MOZ_NUWA_PROCESS
+  bool mNuwaWorking;
+#endif
 
   ThreadInfo();
 
@@ -4825,6 +4867,17 @@ struct ConnectionPool::ThreadInfo
   ThreadInfo(const ThreadInfo& aOther);
 
   ~ThreadInfo();
+
+  void
+  NuwaSetWorking(bool aWorking)
+#ifdef MOZ_NUWA_PROCESS
+    ;
+#else
+  {
+    AssertIsOnBackgroundThread();
+    MOZ_ASSERT(mThread);
+  }
+#endif
 };
 
 struct ConnectionPool::DatabaseInfo final
@@ -4842,6 +4895,7 @@ struct ConnectionPool::DatabaseInfo final
   uint32_t mReadTransactionCount;
   uint32_t mWriteTransactionCount;
   bool mNeedsCheckpoint;
+  bool mIdle;
   bool mCloseOnIdle;
   bool mClosing;
 
@@ -8405,6 +8459,7 @@ DatabaseConnection::DatabaseConnection(
                                       FileManager* aFileManager)
   : mStorageConnection(aStorageConnection)
   , mFileManager(aFileManager)
+  , mInReadTransaction(false)
   , mInWriteTransaction(false)
 #ifdef DEBUG
   , mDEBUGSavepointCount(0)
@@ -8430,10 +8485,11 @@ nsresult
 DatabaseConnection::Init()
 {
   AssertIsOnConnectionThread();
+  MOZ_ASSERT(!mInReadTransaction);
   MOZ_ASSERT(!mInWriteTransaction);
 
   CachedStatement stmt;
-  nsresult rv = GetCachedStatement(NS_LITERAL_CSTRING("BEGIN"), &stmt);
+  nsresult rv = GetCachedStatement(NS_LITERAL_CSTRING("BEGIN;"), &stmt);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -8442,6 +8498,8 @@ DatabaseConnection::Init()
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
+
+  mInReadTransaction = true;
 
   return NS_OK;
 }
@@ -8492,6 +8550,7 @@ DatabaseConnection::BeginWriteTransaction()
 {
   AssertIsOnConnectionThread();
   MOZ_ASSERT(mStorageConnection);
+  MOZ_ASSERT(mInReadTransaction);
   MOZ_ASSERT(!mInWriteTransaction);
 
   PROFILER_LABEL("IndexedDB",
@@ -8500,7 +8559,8 @@ DatabaseConnection::BeginWriteTransaction()
 
   
   CachedStatement rollbackStmt;
-  nsresult rv = GetCachedStatement(NS_LITERAL_CSTRING("ROLLBACK"), &rollbackStmt);
+  nsresult rv =
+    GetCachedStatement(NS_LITERAL_CSTRING("ROLLBACK;"), &rollbackStmt);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -8509,6 +8569,8 @@ DatabaseConnection::BeginWriteTransaction()
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
+
+  mInReadTransaction = false;
 
   if (!mUpdateRefcountFunction) {
     MOZ_ASSERT(mFileManager);
@@ -8528,7 +8590,7 @@ DatabaseConnection::BeginWriteTransaction()
   }
 
   CachedStatement beginStmt;
-  rv = GetCachedStatement(NS_LITERAL_CSTRING("BEGIN IMMEDIATE"), &beginStmt);
+  rv = GetCachedStatement(NS_LITERAL_CSTRING("BEGIN IMMEDIATE;"), &beginStmt);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -8562,10 +8624,38 @@ DatabaseConnection::BeginWriteTransaction()
   return NS_OK;
 }
 
+nsresult
+DatabaseConnection::CommitWriteTransaction()
+{
+  AssertIsOnConnectionThread();
+  MOZ_ASSERT(mStorageConnection);
+  MOZ_ASSERT(!mInReadTransaction);
+  MOZ_ASSERT(mInWriteTransaction);
+
+  PROFILER_LABEL("IndexedDB",
+                 "DatabaseConnection::CommitWriteTransaction",
+                 js::ProfileEntry::Category::STORAGE);
+
+  CachedStatement stmt;
+  nsresult rv = GetCachedStatement(NS_LITERAL_CSTRING("COMMIT;"), &stmt);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  rv = stmt->Execute();
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  mInWriteTransaction = false;
+  return NS_OK;
+}
+
 void
 DatabaseConnection::RollbackWriteTransaction()
 {
   AssertIsOnConnectionThread();
+  MOZ_ASSERT(!mInReadTransaction);
   MOZ_ASSERT(mStorageConnection);
 
   PROFILER_LABEL("IndexedDB",
@@ -8577,7 +8667,7 @@ DatabaseConnection::RollbackWriteTransaction()
   }
 
   DatabaseConnection::CachedStatement stmt;
-  nsresult rv = GetCachedStatement(NS_LITERAL_CSTRING("ROLLBACK"), &stmt);
+  nsresult rv = GetCachedStatement(NS_LITERAL_CSTRING("ROLLBACK;"), &stmt);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return;
   }
@@ -8585,6 +8675,8 @@ DatabaseConnection::RollbackWriteTransaction()
   
   
   unused << stmt->Execute();
+
+  mInWriteTransaction = false;
 }
 
 void
@@ -8592,6 +8684,8 @@ DatabaseConnection::FinishWriteTransaction()
 {
   AssertIsOnConnectionThread();
   MOZ_ASSERT(mStorageConnection);
+  MOZ_ASSERT(!mInReadTransaction);
+  MOZ_ASSERT(!mInWriteTransaction);
 
   PROFILER_LABEL("IndexedDB",
                  "DatabaseConnection::FinishWriteTransaction",
@@ -8601,14 +8695,8 @@ DatabaseConnection::FinishWriteTransaction()
     mUpdateRefcountFunction->Reset();
   }
 
-  if (!mInWriteTransaction) {
-    return;
-  }
-
-  mInWriteTransaction = false;
-
   CachedStatement stmt;
-  nsresult rv = GetCachedStatement(NS_LITERAL_CSTRING("BEGIN"), &stmt);
+  nsresult rv = GetCachedStatement(NS_LITERAL_CSTRING("BEGIN;"), &stmt);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return;
   }
@@ -8617,6 +8705,8 @@ DatabaseConnection::FinishWriteTransaction()
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return;
   }
+
+  mInReadTransaction = true;
 }
 
 nsresult
@@ -8718,23 +8808,46 @@ DatabaseConnection::RollbackSavepoint()
 }
 
 nsresult
-DatabaseConnection::Checkpoint(bool aIdle)
+DatabaseConnection::CheckpointInternal(CheckpointMode aMode)
 {
   AssertIsOnConnectionThread();
+  MOZ_ASSERT(!mInReadTransaction);
+  MOZ_ASSERT(!mInWriteTransaction);
 
   PROFILER_LABEL("IndexedDB",
-                 "DatabaseConnection::Checkpoint",
+                 "DatabaseConnection::CheckpointInternal",
                  js::ProfileEntry::Category::STORAGE);
 
+  nsAutoCString stmtString;
+  stmtString.AssignLiteral("PRAGMA wal_checkpoint(");
+
+  switch (aMode) {
+    case CheckpointMode_Full:
+      
+      
+      stmtString.AppendLiteral("FULL");
+      break;
+
+    case CheckpointMode_Restart:
+      
+      
+      
+      stmtString.AppendLiteral("RESTART");
+      break;
+
+    case CheckpointMode_Truncate:
+      
+      stmtString.AppendLiteral("TRUNCATE");
+      break;
+
+    default:
+      MOZ_CRASH("Unknown CheckpointMode!");
+  }
+
+  stmtString.AppendLiteral(");");
+
   CachedStatement stmt;
-  nsresult rv =
-    GetCachedStatement(aIdle ?
-    
-      NS_LITERAL_CSTRING("PRAGMA wal_checkpoint(TRUNCATE)") :
-    
-    
-      NS_LITERAL_CSTRING("PRAGMA wal_checkpoint(FULL)"),
-      &stmt);
+  nsresult rv = GetCachedStatement(stmtString, &stmt);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -8744,6 +8857,246 @@ DatabaseConnection::Checkpoint(bool aIdle)
     return rv;
   }
 
+  return NS_OK;
+}
+
+void
+DatabaseConnection::DoIdleProcessing(bool aNeedsCheckpoint)
+{
+  AssertIsOnConnectionThread();
+  MOZ_ASSERT(mInReadTransaction);
+  MOZ_ASSERT(!mInWriteTransaction);
+
+  PROFILER_LABEL("IndexedDB",
+                 "DatabaseConnection::DoIdleProcessing",
+                 js::ProfileEntry::Category::STORAGE);
+
+  DatabaseConnection::CachedStatement freelistStmt;
+  uint32_t freelistCount;
+  nsresult rv = GetFreelistCount(freelistStmt, &freelistCount);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    freelistCount = 0;
+  }
+
+  CachedStatement rollbackStmt;
+  CachedStatement beginStmt;
+  if (aNeedsCheckpoint || freelistCount) {
+    rv = GetCachedStatement(NS_LITERAL_CSTRING("ROLLBACK;"), &rollbackStmt);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return;
+    }
+
+    rv = GetCachedStatement(NS_LITERAL_CSTRING("BEGIN;"), &beginStmt);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return;
+    }
+
+    
+    
+    unused << rollbackStmt->Execute();
+
+    mInReadTransaction = false;
+  }
+
+  bool freedSomePages = false;
+
+  if (freelistCount) {
+    rv = ReclaimFreePagesWhileIdle(freelistStmt,
+                                   rollbackStmt,
+                                   freelistCount,
+                                   aNeedsCheckpoint,
+                                   &freedSomePages);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      MOZ_ASSERT(!freedSomePages);
+    }
+
+    
+    MOZ_ASSERT(!mInReadTransaction);
+    MOZ_ASSERT(!mInWriteTransaction);
+  }
+
+  
+  if (aNeedsCheckpoint || freedSomePages) {
+    rv = CheckpointInternal(CheckpointMode_Truncate);
+    unused << NS_WARN_IF(NS_FAILED(rv));
+  }
+
+  
+  if (beginStmt) {
+    rv = beginStmt->Execute();
+    if (NS_SUCCEEDED(rv)) {
+      mInReadTransaction = true;
+    } else {
+      NS_WARNING("Falied to restart read transaction!");
+    }
+  }
+}
+
+nsresult
+DatabaseConnection::ReclaimFreePagesWhileIdle(
+                                            CachedStatement& aFreelistStatement,
+                                            CachedStatement& aRollbackStatement,
+                                            uint32_t aFreelistCount,
+                                            bool aNeedsCheckpoint,
+                                            bool* aFreedSomePages)
+{
+  AssertIsOnConnectionThread();
+  MOZ_ASSERT(aFreelistStatement);
+  MOZ_ASSERT(aRollbackStatement);
+  MOZ_ASSERT(aFreelistCount);
+  MOZ_ASSERT(aFreedSomePages);
+  MOZ_ASSERT(!mInReadTransaction);
+  MOZ_ASSERT(!mInWriteTransaction);
+
+  PROFILER_LABEL("IndexedDB",
+                 "DatabaseConnection::ReclaimFreePagesWhileIdle",
+                 js::ProfileEntry::Category::STORAGE);
+
+  
+  nsIThread* currentThread = NS_GetCurrentThread();
+  MOZ_ASSERT(currentThread);
+
+  if (NS_HasPendingEvents(currentThread)) {
+    *aFreedSomePages = false;
+    return NS_OK;
+  }
+
+  
+  
+  nsAutoCString stmtString;
+  stmtString.AssignLiteral("PRAGMA incremental_vacuum(");
+  stmtString.AppendInt(std::max(uint64_t(1), uint64_t(aFreelistCount / 10)));
+  stmtString.AppendLiteral(");");
+
+  
+  CachedStatement incrementalVacuumStmt;
+  nsresult rv = GetCachedStatement(stmtString, &incrementalVacuumStmt);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  CachedStatement beginImmediateStmt;
+  rv = GetCachedStatement(NS_LITERAL_CSTRING("BEGIN IMMEDIATE;"),
+                          &beginImmediateStmt);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  CachedStatement commitStmt;
+  rv = GetCachedStatement(NS_LITERAL_CSTRING("COMMIT;"), &commitStmt);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  if (aNeedsCheckpoint) {
+    
+    
+    
+    rv = CheckpointInternal(CheckpointMode_Restart);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+  }
+
+  
+  rv = beginImmediateStmt->Execute();
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  mInWriteTransaction = true;
+
+  bool freedSomePages = false;
+
+  while (aFreelistCount) {
+    if (NS_HasPendingEvents(currentThread)) {
+      
+      
+      
+      rv = NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
+      break;
+    }
+
+    rv = incrementalVacuumStmt->Execute();
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      break;
+    }
+
+    freedSomePages = true;
+
+    rv = GetFreelistCount(aFreelistStatement, &aFreelistCount);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      break;
+    }
+  }
+
+  if (NS_SUCCEEDED(rv) && freedSomePages) {
+    
+    rv = commitStmt->Execute();
+    if (NS_SUCCEEDED(rv)) {
+      mInWriteTransaction = false;
+    } else {
+      NS_WARNING("Failed to commit!");
+    }
+  }
+
+  if (NS_FAILED(rv)) {
+    MOZ_ASSERT(mInWriteTransaction);
+
+    
+    unused << aRollbackStatement->Execute();
+
+    mInWriteTransaction = false;
+
+    return rv;
+  }
+
+  *aFreedSomePages = freedSomePages;
+  return NS_OK;
+}
+
+nsresult
+DatabaseConnection::GetFreelistCount(CachedStatement& aCachedStatement,
+                                     uint32_t* aFreelistCount)
+{
+  AssertIsOnConnectionThread();
+  MOZ_ASSERT(aFreelistCount);
+
+  PROFILER_LABEL("IndexedDB",
+                 "DatabaseConnection::GetFreelistCount",
+                 js::ProfileEntry::Category::STORAGE);
+
+  nsresult rv;
+
+  if (!aCachedStatement) {
+    rv = GetCachedStatement(NS_LITERAL_CSTRING("PRAGMA freelist_count;"),
+                            &aCachedStatement);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+  }
+
+  bool hasResult;
+  rv = aCachedStatement->ExecuteStep(&hasResult);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  MOZ_ASSERT(hasResult);
+
+  
+  
+  mozStorageStatementScoper scoper(aCachedStatement);
+
+  int32_t freelistCount;
+  rv = aCachedStatement->GetInt32(0, &freelistCount);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  MOZ_ASSERT(freelistCount >= 0);
+
+  *aFreelistCount = uint32_t(freelistCount);
   return NS_OK;
 }
 
@@ -9497,8 +9850,8 @@ ConnectionPool::IdleTimerCallback(nsITimer* aTimer, void* aClosure)
     IdleDatabaseInfo& info = self->mIdleDatabases[index];
 
     if (now >= info.mIdleTime) {
-      if (info.mDatabaseInfo->mNeedsCheckpoint) {
-        self->CheckpointDatabase(info.mDatabaseInfo);
+      if (info.mDatabaseInfo->mIdle) {
+        self->PerformIdleDatabaseMaintenance(info.mDatabaseInfo);
       } else {
         self->CloseDatabase(info.mDatabaseInfo);
       }
@@ -9947,6 +10300,8 @@ ConnectionPool::ShutdownThread(ThreadInfo& aThreadInfo)
   MOZ_ASSERT(aThreadInfo.mRunnable);
   MOZ_ASSERT(mTotalThreadCount);
 
+  aThreadInfo.NuwaSetWorking( false);
+
   nsRefPtr<ThreadRunnable> runnable;
   aThreadInfo.mRunnable.swap(runnable);
 
@@ -9977,12 +10332,18 @@ ConnectionPool::CloseIdleDatabases()
                  js::ProfileEntry::Category::STORAGE);
 
   if (!mIdleDatabases.IsEmpty()) {
-    for (uint32_t count = mIdleDatabases.Length(), index = 0;
-         index < count;
-         index++) {
-      CloseDatabase(mIdleDatabases[index].mDatabaseInfo);
+    for (IdleDatabaseInfo& idleInfo : mIdleDatabases) {
+      CloseDatabase(idleInfo.mDatabaseInfo);
     }
     mIdleDatabases.Clear();
+  }
+
+  if (!mDatabasesPerformingIdleMaintenance.IsEmpty()) {
+    for (DatabaseInfo* dbInfo : mDatabasesPerformingIdleMaintenance) {
+      MOZ_ASSERT(dbInfo);
+      CloseDatabase(dbInfo);
+    }
+    mDatabasesPerformingIdleMaintenance.Clear();
   }
 }
 
@@ -10020,6 +10381,8 @@ ConnectionPool::ScheduleTransaction(TransactionInfo* aTransactionInfo,
   DatabaseInfo* dbInfo = aTransactionInfo->mDatabaseInfo;
   MOZ_ASSERT(dbInfo);
 
+  dbInfo->mIdle = false;
+
   if (dbInfo->mClosing) {
     MOZ_ASSERT(!mIdleDatabases.Contains(dbInfo));
     MOZ_ASSERT(
@@ -10054,6 +10417,23 @@ ConnectionPool::ScheduleTransaction(TransactionInfo* aTransactionInfo,
         } else {
           NS_WARNING("Failed to make new thread!");
         }
+      } else if (!mDatabasesPerformingIdleMaintenance.IsEmpty()) {
+        
+        
+        
+        nsCOMPtr<nsIRunnable> runnable = new nsRunnable();
+
+        for (uint32_t index = mDatabasesPerformingIdleMaintenance.Length();
+             index > 0;
+             index--) {
+          DatabaseInfo* dbInfo = mDatabasesPerformingIdleMaintenance[index - 1];
+          MOZ_ASSERT(dbInfo);
+          MOZ_ASSERT(dbInfo->mThreadInfo.mThread);
+
+          MOZ_ALWAYS_TRUE(NS_SUCCEEDED(
+            dbInfo->mThreadInfo.mThread->Dispatch(runnable,
+                                                  NS_DISPATCH_NORMAL)));
+        }
       }
 
       if (!created) {
@@ -10075,6 +10455,8 @@ ConnectionPool::ScheduleTransaction(TransactionInfo* aTransactionInfo,
 
       AdjustIdleTimer();
     }
+
+    dbInfo->mThreadInfo.NuwaSetWorking( true);
   }
 
   MOZ_ASSERT(dbInfo->mThreadInfo.mThread);
@@ -10221,6 +10603,9 @@ ConnectionPool::NoteFinishedTransaction(uint64_t aTransactionId)
 #endif
 
   if (!dbInfo->TotalTransactionCount()) {
+    MOZ_ASSERT(!dbInfo->mIdle);
+    dbInfo->mIdle = true;
+
     NoteIdleDatabase(dbInfo);
   }
 }
@@ -10294,6 +10679,8 @@ ConnectionPool::NoteIdleDatabase(DatabaseInfo* aDatabaseInfo)
     return;
   }
 
+  aDatabaseInfo->mThreadInfo.NuwaSetWorking( false);
+
   mIdleDatabases.InsertElementSorted(aDatabaseInfo);
 
   AdjustIdleTimer();
@@ -10336,6 +10723,8 @@ ConnectionPool::NoteClosedDatabase(DatabaseInfo* aDatabaseInfo)
         ShutdownThread(aDatabaseInfo->mThreadInfo);
       } else {
         MOZ_ASSERT(!mIdleThreads.Contains(aDatabaseInfo->mThreadInfo));
+
+        aDatabaseInfo->mThreadInfo.NuwaSetWorking( false);
 
         mIdleThreads.InsertElementSorted(aDatabaseInfo->mThreadInfo);
 
@@ -10433,21 +10822,26 @@ ConnectionPool::MaybeFireCallback(DatabasesCompleteCallback* aCallback)
 }
 
 void
-ConnectionPool::CheckpointDatabase(DatabaseInfo* aDatabaseInfo)
+ConnectionPool::PerformIdleDatabaseMaintenance(DatabaseInfo* aDatabaseInfo)
 {
   AssertIsOnOwningThread();
   MOZ_ASSERT(aDatabaseInfo);
   MOZ_ASSERT(!aDatabaseInfo->TotalTransactionCount());
   MOZ_ASSERT(aDatabaseInfo->mThreadInfo.mThread);
   MOZ_ASSERT(aDatabaseInfo->mThreadInfo.mRunnable);
-  MOZ_ASSERT(aDatabaseInfo->mNeedsCheckpoint);
+  MOZ_ASSERT(aDatabaseInfo->mIdle);
   MOZ_ASSERT(!aDatabaseInfo->mCloseOnIdle);
   MOZ_ASSERT(!aDatabaseInfo->mClosing);
-
-  aDatabaseInfo->mNeedsCheckpoint = false;
+  MOZ_ASSERT(mIdleDatabases.Contains(aDatabaseInfo));
+  MOZ_ASSERT(!mDatabasesPerformingIdleMaintenance.Contains(aDatabaseInfo));
 
   nsCOMPtr<nsIRunnable> runnable =
-    new CheckpointConnectionRunnable(aDatabaseInfo);
+    new IdleConnectionRunnable(aDatabaseInfo, aDatabaseInfo->mNeedsCheckpoint);
+
+  aDatabaseInfo->mNeedsCheckpoint = false;
+  aDatabaseInfo->mIdle = false;
+
+  mDatabasesPerformingIdleMaintenance.AppendElement(aDatabaseInfo);
 
   MOZ_ALWAYS_TRUE(NS_SUCCEEDED(
     aDatabaseInfo->mThreadInfo.mThread->Dispatch(runnable,
@@ -10464,10 +10858,13 @@ ConnectionPool::CloseDatabase(DatabaseInfo* aDatabaseInfo)
   MOZ_ASSERT(aDatabaseInfo->mThreadInfo.mRunnable);
   MOZ_ASSERT(!aDatabaseInfo->mClosing);
 
+  aDatabaseInfo->mIdle = false;
   aDatabaseInfo->mNeedsCheckpoint = false;
   aDatabaseInfo->mClosing = true;
 
   nsCOMPtr<nsIRunnable> runnable = new CloseConnectionRunnable(aDatabaseInfo);
+
+  aDatabaseInfo->mThreadInfo.NuwaSetWorking( true);
 
   MOZ_ALWAYS_TRUE(NS_SUCCEEDED(
     aDatabaseInfo->mThreadInfo.mThread->Dispatch(runnable,
@@ -10485,7 +10882,8 @@ ConnectionPool::CloseDatabaseWhenIdleInternal(const nsACString& aDatabaseId)
                  js::ProfileEntry::Category::STORAGE);
 
   if (DatabaseInfo* dbInfo = mDatabases.Get(aDatabaseId)) {
-    if (mIdleDatabases.RemoveElement(dbInfo)) {
+    if (mIdleDatabases.RemoveElement(dbInfo) ||
+        mDatabasesPerformingIdleMaintenance.RemoveElement(dbInfo)) {
       CloseDatabase(dbInfo);
       AdjustIdleTimer();
     } else {
@@ -10510,38 +10908,43 @@ ConnectionRunnable::ConnectionRunnable(DatabaseInfo* aDatabaseInfo)
   MOZ_ASSERT(mOwningThread);
 }
 
-NS_IMPL_ISUPPORTS_INHERITED0(ConnectionPool::CheckpointConnectionRunnable,
+NS_IMPL_ISUPPORTS_INHERITED0(ConnectionPool::IdleConnectionRunnable,
                              ConnectionPool::ConnectionRunnable)
 
 NS_IMETHODIMP
 ConnectionPool::
-CheckpointConnectionRunnable::Run()
+IdleConnectionRunnable::Run()
 {
   MOZ_ASSERT(mDatabaseInfo);
+  MOZ_ASSERT(!mDatabaseInfo->mIdle);
 
-  PROFILER_LABEL("IndexedDB",
-                 "ConnectionPool::CheckpointConnectionRunnable::Run",
-                 js::ProfileEntry::Category::STORAGE);
+  nsCOMPtr<nsIEventTarget> owningThread;
+  mOwningThread.swap(owningThread);
 
-  if (mOwningThread) {
+  if (owningThread) {
     mDatabaseInfo->AssertIsOnConnectionThread();
     MOZ_ASSERT(mDatabaseInfo->mConnection);
-
-    nsCOMPtr<nsIEventTarget> owningThread;
-    mOwningThread.swap(owningThread);
-
-    mDatabaseInfo->mConnection->Checkpoint( true);
+    mDatabaseInfo->mConnection->DoIdleProcessing(mNeedsCheckpoint);
 
     MOZ_ALWAYS_TRUE(NS_SUCCEEDED(
       owningThread->Dispatch(this, NS_DISPATCH_NORMAL)));
     return NS_OK;
   }
 
-  if (!mDatabaseInfo->TotalTransactionCount()) {
-    nsRefPtr<ConnectionPool> connectionPool = mDatabaseInfo->mConnectionPool;
-    MOZ_ASSERT(connectionPool);
+  nsRefPtr<ConnectionPool> connectionPool = mDatabaseInfo->mConnectionPool;
+  MOZ_ASSERT(connectionPool);
 
-    connectionPool->NoteIdleDatabase(mDatabaseInfo);
+  if (mDatabaseInfo->mClosing) {
+    MOZ_ASSERT(!connectionPool->
+                 mDatabasesPerformingIdleMaintenance.Contains(mDatabaseInfo));
+  } else {
+    MOZ_ALWAYS_TRUE(
+      connectionPool->
+        mDatabasesPerformingIdleMaintenance.RemoveElement(mDatabaseInfo));
+
+    if (!mDatabaseInfo->TotalTransactionCount()) {
+      connectionPool->NoteIdleDatabase(mDatabaseInfo);
+    }
   }
 
   return NS_OK;
@@ -10602,6 +11005,7 @@ DatabaseInfo::DatabaseInfo(ConnectionPool* aConnectionPool,
   , mReadTransactionCount(0)
   , mWriteTransactionCount(0)
   , mNeedsCheckpoint(false)
+  , mIdle(false)
   , mCloseOnIdle(false)
   , mClosing(false)
 #ifdef DEBUG
@@ -10817,6 +11221,9 @@ ThreadRunnable::Run()
 
 ConnectionPool::
 ThreadInfo::ThreadInfo()
+#ifdef MOZ_NUWA_PROCESS
+  : mNuwaWorking(false)
+#endif
 {
   AssertIsOnBackgroundThread();
 
@@ -10827,6 +11234,9 @@ ConnectionPool::
 ThreadInfo::ThreadInfo(const ThreadInfo& aOther)
   : mThread(aOther.mThread)
   , mRunnable(aOther.mRunnable)
+#ifdef MOZ_NUWA_PROCESS
+  , mNuwaWorking(false)
+#endif
 {
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(aOther.mThread);
@@ -10840,8 +11250,51 @@ ThreadInfo::~ThreadInfo()
 {
   AssertIsOnBackgroundThread();
 
+#ifdef MOZ_NUWA_PROCESS
+  MOZ_ASSERT(!mNuwaWorking);
+#endif
+
   MOZ_COUNT_DTOR(ConnectionPool::ThreadInfo);
 }
+
+#ifdef MOZ_NUWA_PROCESS
+
+void
+ConnectionPool::
+ThreadInfo::NuwaSetWorking(bool aWorking)
+{
+  AssertIsOnBackgroundThread();
+  MOZ_ASSERT(mThread);
+
+  if (mNuwaWorking == aWorking) {
+    return;
+  }
+
+  nsCOMPtr<nsIRunnable> runnable = NS_NewRunnableFunction(
+    [aWorking]
+    {
+      MOZ_ASSERT(!IsOnBackgroundThread());
+      MOZ_ASSERT(!NS_IsMainThread());
+
+      auto* thread = static_cast<nsThread*>(NS_GetCurrentThread());
+      MOZ_ASSERT(thread);
+
+      if (aWorking) {
+        thread->SetWorking();
+      } else {
+        thread->SetIdle();
+      }
+    }
+  );
+  MOZ_ASSERT(runnable);
+
+  MOZ_ALWAYS_TRUE(NS_SUCCEEDED(
+    mThread->Dispatch(runnable, NS_DISPATCH_NORMAL)));
+
+  mNuwaWorking = aWorking;
+}
+
+#endif 
 
 ConnectionPool::
 IdleResource::IdleResource(const TimeStamp& aIdleTime)
@@ -10874,9 +11327,9 @@ IdleResource::~IdleResource()
 ConnectionPool::
 IdleDatabaseInfo::IdleDatabaseInfo(DatabaseInfo* aDatabaseInfo)
   : IdleResource(TimeStamp::NowLoRes() +
-                 (aDatabaseInfo->mNeedsCheckpoint ?
-                 TimeDuration::FromMilliseconds(kConnectionIdleCheckpointsMS) :
-                 TimeDuration::FromMilliseconds(kConnectionIdleCloseMS)))
+                 (aDatabaseInfo->mIdle ?
+                  TimeDuration::FromMilliseconds(kConnectionIdleMaintenanceMS) :
+                  TimeDuration::FromMilliseconds(kConnectionIdleCloseMS)))
   , mDatabaseInfo(aDatabaseInfo)
 {
   AssertIsOnBackgroundThread();
@@ -16280,12 +16733,13 @@ DatabaseOperationBase::DeleteObjectStoreDataTableRowsWithIndexes(
                                   keyRangeClause);
     }
 
-    rv = aConnection->GetCachedStatement(
-      NS_LITERAL_CSTRING("SELECT index_data_values, key "
-                           "FROM object_data "
-                           "WHERE object_store_id = :") + objectStoreIdString +
-      keyRangeClause +
-      NS_LITERAL_CSTRING(";"),
+    rv = aConnection->GetCachedStatement(NS_LITERAL_CSTRING(
+      "SELECT index_data_values, key "
+        "FROM object_data "
+        "WHERE object_store_id = :") +
+        objectStoreIdString +
+        keyRangeClause +
+        NS_LITERAL_CSTRING(";"),
       &selectStmt);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
@@ -18411,9 +18865,9 @@ VersionChangeOp::DoDatabaseWork(DatabaseConnection* aConnection)
   }
 
   DatabaseConnection::CachedStatement updateStmt;
-  rv = aConnection->GetCachedStatement(
-    NS_LITERAL_CSTRING("UPDATE database "
-                       "SET version = :version"),
+  rv = aConnection->GetCachedStatement(NS_LITERAL_CSTRING(
+    "UPDATE database "
+      "SET version = :version;"),
     &updateStmt);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
@@ -19462,7 +19916,8 @@ CommitOp::AssertForeignKeyConsistency(DatabaseConnection* aConnection)
 
   DatabaseConnection::CachedStatement pragmaStmt;
   MOZ_ALWAYS_TRUE(NS_SUCCEEDED(
-    aConnection->GetCachedStatement(NS_LITERAL_CSTRING("PRAGMA foreign_keys;"), &pragmaStmt)));
+    aConnection->GetCachedStatement(NS_LITERAL_CSTRING("PRAGMA foreign_keys;"),
+                                    &pragmaStmt)));
 
   bool hasResult;
   MOZ_ALWAYS_TRUE(NS_SUCCEEDED(pragmaStmt->ExecuteStep(&hasResult)));
@@ -19476,7 +19931,9 @@ CommitOp::AssertForeignKeyConsistency(DatabaseConnection* aConnection)
 
   DatabaseConnection::CachedStatement checkStmt;
   MOZ_ALWAYS_TRUE(NS_SUCCEEDED(
-    aConnection->GetCachedStatement(NS_LITERAL_CSTRING("PRAGMA foreign_key_check;"), &checkStmt)));
+    aConnection->GetCachedStatement(
+      NS_LITERAL_CSTRING("PRAGMA foreign_key_check;"),
+      &checkStmt)));
 
   MOZ_ALWAYS_TRUE(NS_SUCCEEDED(checkStmt->ExecuteStep(&hasResult)));
 
@@ -19528,23 +19985,16 @@ CommitOp::Run()
           if (NS_SUCCEEDED(mResultCode)) {
             AssertForeignKeyConsistency(connection);
 
-            DatabaseConnection::CachedStatement stmt;
-            mResultCode = connection->GetCachedStatement(NS_LITERAL_CSTRING("COMMIT"), &stmt);
-            NS_WARN_IF_FALSE(NS_SUCCEEDED(mResultCode),
-                             "Failed to get 'COMMIT' statement!");
+            mResultCode = connection->CommitWriteTransaction();
+            NS_WARN_IF_FALSE(NS_SUCCEEDED(mResultCode), "Commit failed!");
 
-            if (NS_SUCCEEDED(mResultCode)) {
-              mResultCode = stmt->Execute();
-              NS_WARN_IF_FALSE(NS_SUCCEEDED(mResultCode), "Commit failed!");
+            if (NS_SUCCEEDED(mResultCode) &&
+                mTransaction->GetMode() == IDBTransaction::READ_WRITE_FLUSH) {
+              mResultCode = connection->Checkpoint();
+            }
 
-              if (mTransaction->GetMode() == IDBTransaction::READ_WRITE_FLUSH &&
-                  NS_SUCCEEDED(mResultCode)) {
-                mResultCode = connection->Checkpoint( false);
-              }
-
-              if (NS_SUCCEEDED(mResultCode) && fileRefcountFunction) {
-                fileRefcountFunction->DidCommit();
-              }
+            if (NS_SUCCEEDED(mResultCode) && fileRefcountFunction) {
+              fileRefcountFunction->DidCommit();
             }
           }
         }
@@ -19704,7 +20154,7 @@ CreateObjectStoreOp::DoDatabaseWork(DatabaseConnection* aConnection)
   DatabaseConnection::CachedStatement stmt;
   rv = aConnection->GetCachedStatement(NS_LITERAL_CSTRING(
     "INSERT INTO object_store (id, auto_increment, name, key_path) "
-    "VALUES (:id, :auto_increment, :name, :key_path)"),
+      "VALUES (:id, :auto_increment, :name, :key_path);"),
     &stmt);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
