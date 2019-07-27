@@ -8,6 +8,7 @@
 #include <math.h>                       
 #include <algorithm>                    
 #include "AsyncPanZoomController.h"     
+#include "mozilla/dom/AnimationPlayer.h" 
 #include "mozilla/layers/APZCTreeManager.h" 
 #include "FrameMetrics.h"               
 #include "mozilla/Attributes.h"         
@@ -15,6 +16,7 @@
 #include "mozilla/gfx/Rect.h"           
 #include "mozilla/mozalloc.h"           
 #include "mozilla/FloatingPoint.h"      
+#include "mozilla/StaticPtr.h"          
 #include "nsMathUtils.h"                
 #include "nsPrintfCString.h"            
 #include "nsThreadUtils.h"              
