@@ -188,6 +188,7 @@ public class AccountActivity extends AccountAuthenticatorActivity {
         cancelConnectHandler(v);
         
         cancelButton.setOnClickListener(new OnClickListener() {
+          @Override
           public void onClick(View v) {
             cancelClickHandler(v);
           }

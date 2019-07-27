@@ -158,6 +158,7 @@ implements RecordsChannelDelegate,
 
     
     RecordsChannelDelegate channelAToBDelegate = new RecordsChannelDelegate() {
+      @Override
       public void onFlowCompleted(RecordsChannel recordsChannel, long fetchEnd, long storeEnd) {
         session.onFirstFlowCompleted(recordsChannel, fetchEnd, storeEnd);
       }

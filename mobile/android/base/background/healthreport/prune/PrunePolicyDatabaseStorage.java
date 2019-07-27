@@ -41,10 +41,12 @@ public class PrunePolicyDatabaseStorage implements PrunePolicyStorage {
     this.currentEnvironmentID = -1;
   }
 
+  @Override
   public void pruneEvents(final int count) {
     getStorage().pruneEvents(count);
   }
 
+  @Override
   public void pruneEnvironments(final int count) {
     getStorage().pruneEnvironments(count);
 
@@ -59,10 +61,12 @@ public class PrunePolicyDatabaseStorage implements PrunePolicyStorage {
 
 
 
+  @Override
   public int deleteDataBefore(final long time) {
     return getStorage().deleteDataBefore(time, getCurrentEnvironmentID());
   }
 
+  @Override
   public void cleanup() {
     final HealthReportDatabaseStorage storage = getStorage();
     
@@ -70,14 +74,17 @@ public class PrunePolicyDatabaseStorage implements PrunePolicyStorage {
     storage.vacuum();
   }
 
+  @Override
   public int getEventCount() {
     return getStorage().getEventCount();
   }
 
+  @Override
   public int getEnvironmentCount() {
     return getStorage().getEnvironmentCount();
   }
 
+  @Override
   public void close() {
     if (client != null) {
       client.release();

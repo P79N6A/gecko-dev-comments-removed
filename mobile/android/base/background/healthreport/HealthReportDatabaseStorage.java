@@ -1371,10 +1371,12 @@ public class HealthReportDatabaseStorage implements HealthReportStorage {
                     "date, environment, measurement_name, measurement_version, field_name");
   }
 
+  @Override
   public int getEventCount() {
     return getRowCount("events");
   }
 
+  @Override
   public int getEnvironmentCount() {
     return getRowCount("environments");
   }
@@ -1394,6 +1396,7 @@ public class HealthReportDatabaseStorage implements HealthReportStorage {
 
 
 
+  @Override
   public int deleteDataBefore(final long time, final int curEnv) {
     final SQLiteDatabase db = this.helper.getWritableDatabase();
     db.beginTransaction();
@@ -1598,6 +1601,7 @@ public class HealthReportDatabaseStorage implements HealthReportStorage {
 
 
 
+  @Override
   public void pruneEnvironments(final int numToPrune) {
     final SQLiteDatabase db = this.helper.getWritableDatabase();
     db.beginTransaction();
@@ -1625,6 +1629,7 @@ public class HealthReportDatabaseStorage implements HealthReportStorage {
 
 
 
+  @Override
   public void pruneEvents(final int maxNumToPrune) {
     final SQLiteDatabase db = this.helper.getWritableDatabase();
 

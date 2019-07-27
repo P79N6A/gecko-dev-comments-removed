@@ -19,6 +19,7 @@ public abstract class AbstractNonRepositorySyncStage extends AbstractSessionMana
     
   }
 
+  @Override
   public Integer getStorageVersion() {
     return null; 
   }
