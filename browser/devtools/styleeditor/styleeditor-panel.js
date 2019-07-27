@@ -111,11 +111,14 @@ StyleEditorPanel.prototype = {
 
 
 
+
+
+
   selectStyleSheet: function(href, line, col) {
     if (!this._debuggee || !this.UI) {
       return;
     }
-    this.UI.selectStyleSheet(href, line - 1, col ? col - 1 : 0);
+    return this.UI.selectStyleSheet(href, line - 1, col ? col - 1 : 0);
   },
 
   

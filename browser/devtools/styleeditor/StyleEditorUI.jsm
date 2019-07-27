@@ -634,6 +634,7 @@ StyleEditorUI.prototype = {
 
 
 
+
   _selectEditor: function(editor, line, col) {
     line = line || 0;
     col = col || 0;
@@ -708,6 +709,9 @@ StyleEditorUI.prototype = {
 
 
 
+
+
+
   selectStyleSheet: function(stylesheet, line, col) {
     this._styleSheetToSelect = {
       stylesheet: stylesheet,
@@ -717,7 +721,7 @@ StyleEditorUI.prototype = {
 
     
 
-    this.switchToSelectedSheet();
+    return this.switchToSelectedSheet();
   },
 
 
