@@ -178,7 +178,6 @@ class RegExpParser
 
     RegExpTree* ParsePattern();
     RegExpTree* ParseDisjunction();
-    RegExpTree* ParseGroup();
     RegExpTree* ParseCharacterClass();
 
     
