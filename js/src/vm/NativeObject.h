@@ -1237,14 +1237,6 @@ class NativeObject : public JSObject
     static size_t offsetOfSlots() { return offsetof(NativeObject, slots_); }
 };
 
-
-
-class PlainObject : public NativeObject
-{
-  public:
-    static const js::Class class_;
-};
-
 inline void
 NativeObject::privateWriteBarrierPre(void **oldval)
 {

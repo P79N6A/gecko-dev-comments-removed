@@ -847,7 +847,7 @@ Debugger::wrapDebuggeeValue(JSContext *cx, MutableHandleValue vp)
             vp.setObject(*dobj);
         }
     } else if (vp.isMagic()) {
-        RootedPlainObject optObj(cx, NewBuiltinClassInstance<PlainObject>(cx));
+        RootedObject optObj(cx, NewBuiltinClassInstance(cx, &JSObject::class_));
         if (!optObj)
             return false;
 
@@ -1050,7 +1050,7 @@ Debugger::newCompletionValue(JSContext *cx, JSTrapStatus status, Value value_,
     }
 
     
-    RootedPlainObject obj(cx, NewBuiltinClassInstance<PlainObject>(cx));
+    RootedNativeObject obj(cx, NewNativeBuiltinClassInstance(cx, &JSObject::class_));
     if (!obj ||
         !wrapDebuggeeValue(cx, &value) ||
         !DefineNativeProperty(cx, obj, key, value, JS_PropertyStub, JS_StrictPropertyStub,
@@ -1102,7 +1102,7 @@ Debugger::parseResumptionValue(Maybe<AutoCompartment> &ac, bool ok, const Value 
     bool okResumption = rv.isObject();
     if (okResumption) {
         obj = &rv.toObject();
-        okResumption = obj->is<PlainObject>();
+        okResumption = obj->is<JSObject>();
     }
     if (okResumption) {
         shape = obj->lastProperty();
@@ -4402,7 +4402,7 @@ DebuggerScript_getAllColumnOffsets(JSContext *cx, unsigned argc, Value *vp)
         if (!flowData[offset].hasNoEdges() &&
             (flowData[offset].lineno() != lineno ||
              flowData[offset].column() != column)) {
-            RootedPlainObject entry(cx, NewBuiltinClassInstance<PlainObject>(cx));
+            RootedObject entry(cx, NewBuiltinClassInstance(cx, &JSObject::class_));
             if (!entry)
                 return false;
 
@@ -5748,7 +5748,8 @@ DebuggerGenericEval(JSContext *cx, const char *fullMethodName, const Value &code
     
     if (evalWithBindings) {
         
-        RootedPlainObject nenv(cx, NewObjectWithGivenProto<PlainObject>(cx, nullptr, env));
+        RootedNativeObject nenv(cx, NewNativeObjectWithGivenProto(cx, &JSObject::class_,
+                                                                  nullptr, env));
         if (!nenv)
             return false;
         RootedId id(cx);
@@ -7174,7 +7175,7 @@ Builder::newObject(JSContext *cx)
 {
     AutoCompartment ac(cx, debuggerObject);
 
-    RootedPlainObject obj(cx, NewBuiltinClassInstance<PlainObject>(cx));
+    RootedObject obj(cx, NewBuiltinClassInstance(cx, &JSObject::class_));
 
     
     return Object(cx, *this, obj);

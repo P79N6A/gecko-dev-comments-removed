@@ -939,14 +939,13 @@ class TypeNewScript
     
     
     static const uint32_t PRELIMINARY_OBJECT_COUNT = 20;
-    PlainObject **preliminaryObjects;
+    NativeObject **preliminaryObjects;
 
     
     
     
     
-    
-    HeapPtrPlainObject templateObject_;
+    HeapPtrNativeObject templateObject_;
 
     
     
@@ -991,7 +990,7 @@ class TypeNewScript
         return true;
     }
 
-    PlainObject *templateObject() const {
+    NativeObject *templateObject() const {
         return templateObject_;
     }
 
@@ -1010,8 +1009,8 @@ class TypeNewScript
     void fixupAfterMovingGC();
 #endif
 
-    void registerNewObject(PlainObject *res);
-    void unregisterNewObject(PlainObject *res);
+    void registerNewObject(NativeObject *res);
+    void unregisterNewObject(NativeObject *res);
     bool maybeAnalyze(JSContext *cx, TypeObject *type, bool *regenerate, bool force = false);
 
     void rollbackPartiallyInitializedObjects(JSContext *cx, TypeObject *type);
@@ -1689,7 +1688,7 @@ struct TypeCompartment
 
   public:
     void fixArrayType(ExclusiveContext *cx, ArrayObject *obj);
-    void fixObjectType(ExclusiveContext *cx, PlainObject *obj);
+    void fixObjectType(ExclusiveContext *cx, NativeObject *obj);
     void fixRestArgumentsType(ExclusiveContext *cx, ArrayObject *obj);
 
     JSObject *newTypedObject(JSContext *cx, IdValuePair *properties, size_t nproperties);

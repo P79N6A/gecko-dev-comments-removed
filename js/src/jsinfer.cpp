@@ -2769,7 +2769,7 @@ UpdateObjectTableEntryTypes(ExclusiveContext *cx, ObjectTableEntry &entry,
 }
 
 void
-TypeCompartment::fixObjectType(ExclusiveContext *cx, PlainObject *obj)
+TypeCompartment::fixObjectType(ExclusiveContext *cx, NativeObject *obj)
 {
     AutoEnterAnalysis enter(cx);
 
@@ -2786,6 +2786,9 @@ TypeCompartment::fixObjectType(ExclusiveContext *cx, PlainObject *obj)
 
 
 
+    MOZ_ASSERT(obj->is<JSObject>());
+
+    
 
 
 
@@ -2819,7 +2822,7 @@ TypeCompartment::fixObjectType(ExclusiveContext *cx, PlainObject *obj)
 
     
     Rooted<TaggedProto> objProto(cx, obj->getTaggedProto());
-    TypeObject *objType = newTypeObject(cx, &PlainObject::class_, objProto);
+    TypeObject *objType = newTypeObject(cx, &JSObject::class_, objProto);
     if (!objType || !objType->addDefiniteProperties(cx, obj->lastProperty()))
         return;
 
@@ -2892,7 +2895,7 @@ TypeCompartment::newTypedObject(JSContext *cx, IdValuePair *properties, size_t n
         return nullptr;
 
     gc::AllocKind allocKind = gc::GetGCObjectKind(nproperties);
-    size_t nfixed = gc::GetGCKindSlots(allocKind, &PlainObject::class_);
+    size_t nfixed = gc::GetGCKindSlots(allocKind, &JSObject::class_);
 
     ObjectTableKey::Lookup lookup(properties, nproperties, nfixed);
     ObjectTypeTable::AddPtr p = objectTypeTable->lookupForAdd(lookup);
@@ -2900,7 +2903,7 @@ TypeCompartment::newTypedObject(JSContext *cx, IdValuePair *properties, size_t n
     if (!p)
         return nullptr;
 
-    RootedPlainObject obj(cx, NewBuiltinClassInstance<PlainObject>(cx, allocKind));
+    RootedNativeObject obj(cx, NewNativeBuiltinClassInstance(cx, &JSObject::class_, allocKind));
     if (!obj) {
         cx->clearPendingException();
         return nullptr;
@@ -3773,8 +3776,8 @@ TypeNewScript::make(JSContext *cx, TypeObject *type, JSFunction *fun)
 
     newScript->fun = fun;
 
-    PlainObject **preliminaryObjects =
-        type->zone()->pod_calloc<PlainObject *>(PRELIMINARY_OBJECT_COUNT);
+    NativeObject **preliminaryObjects =
+        type->zone()->pod_calloc<NativeObject *>(PRELIMINARY_OBJECT_COUNT);
     if (!preliminaryObjects)
         return;
 
@@ -3785,7 +3788,7 @@ TypeNewScript::make(JSContext *cx, TypeObject *type, JSFunction *fun)
 }
 
 void
-TypeNewScript::registerNewObject(PlainObject *res)
+TypeNewScript::registerNewObject(NativeObject *res)
 {
     MOZ_ASSERT(!analyzed());
 
@@ -3810,7 +3813,7 @@ TypeNewScript::registerNewObject(PlainObject *res)
 }
 
 void
-TypeNewScript::unregisterNewObject(PlainObject *res)
+TypeNewScript::unregisterNewObject(NativeObject *res)
 {
     MOZ_ASSERT(!analyzed());
 
@@ -3868,7 +3871,7 @@ CommonPrefix(Shape *first, Shape *second)
 }
 
 static bool
-ChangeObjectFixedSlotCount(JSContext *cx, PlainObject *obj, gc::AllocKind allocKind)
+ChangeObjectFixedSlotCount(JSContext *cx, NativeObject *obj, gc::AllocKind allocKind)
 {
     MOZ_ASSERT(OnlyHasDataProperties(obj->lastProperty()));
 
@@ -3942,7 +3945,7 @@ TypeNewScript::maybeAnalyze(JSContext *cx, TypeObject *type, bool *regenerate, b
     Shape *prefixShape = nullptr;
     size_t maxSlotSpan = 0;
     for (size_t i = 0; i < PRELIMINARY_OBJECT_COUNT; i++) {
-        PlainObject *obj = preliminaryObjects[i];
+        NativeObject *obj = preliminaryObjects[i];
         if (!obj)
             continue;
 
@@ -3981,7 +3984,7 @@ TypeNewScript::maybeAnalyze(JSContext *cx, TypeObject *type, bool *regenerate, b
         
         Shape *newPrefixShape = nullptr;
         for (size_t i = 0; i < PRELIMINARY_OBJECT_COUNT; i++) {
-            PlainObject *obj = preliminaryObjects[i];
+            NativeObject *obj = preliminaryObjects[i];
             if (!obj)
                 continue;
             if (!ChangeObjectFixedSlotCount(cx, obj, kind))
@@ -3998,13 +4001,13 @@ TypeNewScript::maybeAnalyze(JSContext *cx, TypeObject *type, bool *regenerate, b
     }
 
     RootedTypeObject typeRoot(cx, type);
-    templateObject_ = NewObjectWithType<PlainObject>(cx, typeRoot, cx->global(), kind, MaybeSingletonObject);
+    templateObject_ = NewNativeObjectWithType(cx, typeRoot, cx->global(), kind, MaybeSingletonObject);
     if (!templateObject_)
         return false;
 
     Vector<Initializer> initializerVector(cx);
 
-    RootedPlainObject templateRoot(cx, templateObject());
+    RootedNativeObject templateRoot(cx, templateObject());
     if (!jit::AnalyzeNewScriptDefiniteProperties(cx, fun, type, templateRoot, &initializerVector))
         return false;
 
@@ -4138,7 +4141,7 @@ TypeNewScript::rollbackPartiallyInitializedObjects(JSContext *cx, TypeObject *ty
         }
 
         
-        RootedPlainObject obj(cx, &thisv.toObject().as<PlainObject>());
+        RootedNativeObject obj(cx, &thisv.toObject().as<NativeObject>());
 
         
         bool finished = false;
@@ -4216,7 +4219,7 @@ TypeNewScript::sweep()
     
     if (preliminaryObjects) {
         for (size_t i = 0; i < PRELIMINARY_OBJECT_COUNT; i++) {
-            PlainObject **ptr = &preliminaryObjects[i];
+            NativeObject **ptr = &preliminaryObjects[i];
             if (*ptr && IsObjectAboutToBeFinalized(ptr))
                 *ptr = nullptr;
         }

@@ -163,6 +163,15 @@ class TypedProto : public NativeObject
 class TypeDescr : public NativeObject
 {
   public:
+    
+    
+    
+    
+    
+    
+    static const Class class_;
+
+  public:
     TypedProto &typedProto() const {
         return getReservedSlot(JS_DESCR_SLOT_TYPROTO).toObject().as<TypedProto>();
     }
@@ -489,12 +498,12 @@ class StructTypeDescr : public ComplexTypeDescr
     size_t maybeForwardedFieldOffset(size_t index) const;
 
   private:
-    ArrayObject &fieldInfoObject(size_t slot) const {
-        return getReservedSlot(slot).toObject().as<ArrayObject>();
+    NativeObject &fieldInfoObject(size_t slot) const {
+        return getReservedSlot(slot).toObject().as<NativeObject>();
     }
 
-    ArrayObject &maybeForwardedFieldInfoObject(size_t slot) const {
-        return MaybeForwarded(&fieldInfoObject(slot))->as<ArrayObject>();
+    NativeObject &maybeForwardedFieldInfoObject(size_t slot) const {
+        return MaybeForwarded(&getReservedSlot(slot).toObject())->as<NativeObject>();
     }
 };
 

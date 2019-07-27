@@ -123,6 +123,8 @@ class JSObject : public js::gc::Cell
     static js::types::TypeObject *makeLazyType(JSContext *cx, js::HandleObject obj);
 
   public:
+    static const js::Class class_;
+
     js::Shape * lastProperty() const {
         MOZ_ASSERT(shape_);
         return shape_;
@@ -1028,12 +1030,12 @@ GetInitialHeap(NewObjectKind newKind, const Class *clasp)
 
 
 
-extern PlainObject *
+extern NativeObject *
 CreateThisForFunctionWithProto(JSContext *cx, js::HandleObject callee, JSObject *proto,
                                NewObjectKind newKind = GenericObject);
 
 
-extern PlainObject *
+extern NativeObject *
 CreateThisForFunction(JSContext *cx, js::HandleObject callee, NewObjectKind newKind);
 
 
