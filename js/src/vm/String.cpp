@@ -320,6 +320,28 @@ JSRope::flattenInternal(ExclusiveContext *maybecx)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     const size_t wholeLength = length();
     size_t wholeCapacity;
     CharT *wholeChars;
