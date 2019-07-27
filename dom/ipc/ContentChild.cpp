@@ -607,6 +607,9 @@ ContentChild::Init(MessageLoop* aIOLoop,
     
     
     GetIPCChannel()->BlockScripts();
+    
+    
+    GetIPCChannel()->SetAbortOnError(true);
 
 #ifdef MOZ_X11
     
