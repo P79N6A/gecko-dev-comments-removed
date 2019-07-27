@@ -3,6 +3,8 @@
 %brandDTD;
 <!ENTITY % browserDTD SYSTEM "chrome:
 %browserDTD;
+<!ENTITY % browserPocketDTD SYSTEM "chrome:
+%browserPocketDTD;
 <!ENTITY % baseMenuDTD SYSTEM "chrome:
 %baseMenuDTD;
 <!ENTITY % charsetDTD SYSTEM "chrome:
