@@ -2,7 +2,12 @@
 
 
 
-package org.mozilla.search.autocomplete;
+package org.mozilla.gecko;
+
+import org.mozilla.gecko.AppConstants;
+import org.mozilla.gecko.GeckoAppShell;
+import org.mozilla.gecko.mozglue.RobocopTarget;
+import org.mozilla.gecko.util.HardwareUtils;
 
 import org.json.JSONArray;
 
@@ -25,7 +30,11 @@ import java.util.ArrayList;
 
 public class SuggestClient {
     private static final String LOGTAG = "GeckoSuggestClient";
-    private static final String USER_AGENT = "";
+
+    
+    
+    private static final String USER_AGENT = HardwareUtils.isTablet() ?
+        AppConstants.USER_AGENT_FENNEC_TABLET : AppConstants.USER_AGENT_FENNEC_MOBILE;
 
     private final Context mContext;
     private final int mTimeout;
@@ -49,6 +58,14 @@ public class SuggestClient {
         mSuggestTemplate = suggestTemplate;
         mTimeout = timeout;
         mCheckNetwork = true;
+    }
+
+    
+
+
+    @RobocopTarget
+    public SuggestClient(Context context, String suggestTemplate, int timeout) {
+        this(context, suggestTemplate, timeout, Integer.MAX_VALUE);
     }
 
     
