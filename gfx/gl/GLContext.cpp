@@ -1740,10 +1740,9 @@ GLContext::UpdatePixelFormat()
     MOZ_ASSERT(caps.color == !!format.green);
     MOZ_ASSERT(caps.color == !!format.blue);
 
-    MOZ_ASSERT(caps.alpha == !!format.alpha);
-
     
     
+    MOZ_ASSERT(caps.alpha == !!format.alpha || !caps.alpha);
     MOZ_ASSERT(caps.depth == !!format.depth || !caps.depth);
     MOZ_ASSERT(caps.stencil == !!format.stencil || !caps.stencil);
 
