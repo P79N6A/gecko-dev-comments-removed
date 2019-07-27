@@ -54,6 +54,7 @@ class Heap;
 
 namespace js {
 class JS_FRIEND_API(BaseProxyHandler);
+class InterpreterFrame;
 } 
 
 extern JS_FRIEND_API(void)
@@ -86,6 +87,10 @@ JS_GetCustomIteratorCount(JSContext *cx);
 
 extern JS_FRIEND_API(bool)
 JS_NondeterministicGetWeakMapKeys(JSContext *cx, JS::HandleObject obj, JS::MutableHandleObject ret);
+
+
+extern JS_FRIEND_API(unsigned)
+JS_PCToLineNumber(JSScript *script, jsbytecode *pc);
 
 
 
@@ -194,7 +199,28 @@ js_DumpObject(JSObject *obj);
 
 extern JS_FRIEND_API(void)
 js_DumpChars(const char16_t *s, size_t n);
+
+extern JS_FRIEND_API(void)
+js_DumpValue(const JS::Value &val);
+
+extern JS_FRIEND_API(void)
+js_DumpId(jsid id);
+
+extern JS_FRIEND_API(void)
+js_DumpInterpreterFrame(JSContext *cx, js::InterpreterFrame *start = nullptr);
+
 #endif
+
+extern JS_FRIEND_API(void)
+js_DumpBacktrace(JSContext *cx);
+
+namespace JS {
+
+
+extern JS_FRIEND_API(char *)
+FormatStackDump(JSContext *cx, char *buf, bool showArgs, bool showLocals, bool showThisProps);
+
+} 
 
 
 
