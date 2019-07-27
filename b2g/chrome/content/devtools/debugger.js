@@ -179,11 +179,6 @@ let RemoteDebugger = {
     DebuggerServer.addBrowserActors("navigator:browser", restrictPrivileges);
 
     
-    if (!restrictPrivileges) {
-      DebuggerServer.allowChromeProcess = true;
-    }
-
-    
 
 
 

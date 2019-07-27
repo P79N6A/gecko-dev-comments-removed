@@ -627,14 +627,11 @@ DebuggerClient.prototype = {
 
 
 
-
   attachProcess: function (aId) {
     let packet = {
-      to: "root",
-      type: "attachProcess"
-    }
-    if (typeof(aId) == "number") {
-      packet.id = aId;
+      to: 'root',
+      type: 'attachProcess',
+      id: aId
     }
     return this.request(packet);
   },

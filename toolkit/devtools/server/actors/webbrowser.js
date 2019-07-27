@@ -36,35 +36,6 @@ function getWindowID(window) {
                .currentInnerWindowID;
 }
 
-function getDocShellChromeEventHandler(docShell) {
-  let handler = docShell.chromeEventHandler;
-  if (!handler) {
-    try {
-      
-      
-      handler = docShell.QueryInterface(Ci.nsIInterfaceRequestor)
-                        .getInterface(Ci.nsIDOMWindow);
-    } catch(e) {}
-  }
-  return handler;
-}
-function getChildDocShells(docShell) {
-  let docShellsEnum = docShell.getDocShellEnumerator(
-    Ci.nsIDocShellTreeItem.typeAll,
-    Ci.nsIDocShell.ENUMERATE_FORWARDS
-  );
-
-  let docShells = [];
-  while (docShellsEnum.hasMoreElements()) {
-    let docShell = docShellsEnum.getNext();
-    docShell.QueryInterface(Ci.nsIInterfaceRequestor)
-            .getInterface(Ci.nsIWebProgress);
-    docShells.push(docShell);
-  }
-  return docShells;
-}
-exports.getChildDocShells = getChildDocShells;
-
 
 
 
@@ -609,10 +580,6 @@ function TabActor(aConnection)
     shouldAddNewGlobalAsDebuggee: this._shouldAddNewGlobalAsDebuggee
   });
 
-  
-  
-  this.listenForNewDocShells = Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_CONTENT;
-
   this.traits = { reconfigure: true, frames: true };
 }
 
@@ -640,7 +607,10 @@ TabActor.prototype = {
 
 
   get chromeEventHandler() {
-    return getDocShellChromeEventHandler(this.docShell);
+    
+    return this.docShell.chromeEventHandler ||
+           this.docShell.QueryInterface(Ci.nsIInterfaceRequestor)
+                        .getInterface(Ci.nsIContentFrameMessageManager);
   },
 
   
@@ -664,20 +634,29 @@ TabActor.prototype = {
 
 
   get docShells() {
-    return getChildDocShells(this.docShell);
+    let docShellsEnum = this.docShell.getDocShellEnumerator(
+      Ci.nsIDocShellTreeItem.typeAll,
+      Ci.nsIDocShell.ENUMERATE_FORWARDS
+    );
+
+    let docShells = [];
+    while (docShellsEnum.hasMoreElements()) {
+      let docShell = docShellsEnum.getNext();
+      docShell.QueryInterface(Ci.nsIInterfaceRequestor)
+              .getInterface(Ci.nsIWebProgress);
+      docShells.push(docShell);
+    }
+
+    return docShells;
   },
 
   
 
 
   get window() {
-    
-    if (this.docShell) {
-      return this.docShell
-        .QueryInterface(Ci.nsIInterfaceRequestor)
-        .getInterface(Ci.nsIDOMWindow);
-    }
-    return null;
+    return this.docShell
+      .QueryInterface(Ci.nsIInterfaceRequestor)
+      .getInterface(Ci.nsIDOMWindow);
   },
 
   
@@ -782,20 +761,16 @@ TabActor.prototype = {
     dbg_assert(this.actorID,
                "tab should have an actorID.");
 
-    let response = {
-      actor: this.actorID
-    };
+    let windowUtils = this.window
+      .QueryInterface(Ci.nsIInterfaceRequestor)
+      .getInterface(Ci.nsIDOMWindowUtils);
 
-    
-    
-    if (this.window) {
-      response.title = this.title;
-      response.url = this.url;
-      let windowUtils = this.window
-        .QueryInterface(Ci.nsIInterfaceRequestor)
-        .getInterface(Ci.nsIDOMWindowUtils);
-      response.outerWindowID = windowUtils.outerWindowID;
-    }
+    let response = {
+      actor: this.actorID,
+      title: this.title,
+      url: this.url,
+      outerWindowID: windowUtils.outerWindowID
+    };
 
     
     let actorPool = new ActorPool(this.conn);
@@ -894,24 +869,21 @@ TabActor.prototype = {
     
     this._pushContext();
 
+    this._progressListener = new DebuggerProgressListener(this);
+
     
-    if (this.window) {
-      this._progressListener = new DebuggerProgressListener(this);
+    this._originalWindow = this.window;
 
-      
-      this._originalWindow = this.window;
-
-      
-      
-      DevToolsUtils.executeSoon(() => this._watchDocshells());
-    }
+    
+    
+    DevToolsUtils.executeSoon(() => this._watchDocshells());
 
     this._attached = true;
   },
 
   _watchDocshells: function BTA_watchDocshells() {
     
-    if (this.listenForNewDocShells) {
+    if (Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_CONTENT) {
       Services.obs.addObserver(this, "webnavigation-create", false);
     }
     Services.obs.addObserver(this, "webnavigation-destroy", false);
@@ -955,34 +927,26 @@ TabActor.prototype = {
     }
     if (aTopic == "webnavigation-create") {
       aSubject.QueryInterface(Ci.nsIDocShell);
-      this._onDocShellCreated(aSubject);
+      
+      
+      
+      
+      
+      
+      
+      DevToolsUtils.executeSoon(() => {
+        
+        
+        if (this._isRootDocShell(aSubject)) {
+          this._progressListener.watch(aSubject);
+        }
+        this._notifyDocShellsUpdate([aSubject]);
+      });
     } else if (aTopic == "webnavigation-destroy") {
-      this._onDocShellDestroy(aSubject);
+      let webProgress = aSubject.QueryInterface(Ci.nsIInterfaceRequestor)
+                                .getInterface(Ci.nsIWebProgress);
+      this._notifyDocShellDestroy(webProgress);
     }
-  },
-
-  _onDocShellCreated: function (docShell) {
-    
-    
-    
-    
-    
-    
-    
-    DevToolsUtils.executeSoon(() => {
-      
-      
-      if (this._isRootDocShell(docShell)) {
-        this._progressListener.watch(docShell);
-      }
-      this._notifyDocShellsUpdate([docShell]);
-    });
-  },
-
-  _onDocShellDestroy: function (docShell) {
-    let webProgress = docShell.QueryInterface(Ci.nsIInterfaceRequestor)
-                              .getInterface(Ci.nsIWebProgress);
-    this._notifyDocShellDestroy(webProgress);
   },
 
   _isRootDocShell: function (docShell) {
@@ -998,9 +962,7 @@ TabActor.prototype = {
   
   _docShellsToWindows: function (docshells) {
     return docshells.map(docShell => {
-      let webProgress = docShell.QueryInterface(Ci.nsIInterfaceRequestor)
-                                .getInterface(Ci.nsIWebProgress);
-      let window = webProgress.DOMWindow;
+      let window = docShell.DOMWindow;
       let id = window.QueryInterface(Ci.nsIInterfaceRequestor)
                      .getInterface(Ci.nsIDOMWindowUtils)
                      .outerWindowID;
@@ -1035,7 +997,6 @@ TabActor.prototype = {
   },
 
   _notifyDocShellDestroy: function (webProgress) {
-    webProgress = webProgress.QueryInterface(Ci.nsIWebProgress);
     let id = webProgress.DOMWindow
                         .QueryInterface(Ci.nsIInterfaceRequestor)
                         .getInterface(Ci.nsIDOMWindowUtils)
@@ -1135,17 +1096,15 @@ TabActor.prototype = {
     if (this.docShell) {
       this._progressListener.unwatch(this.docShell);
     }
-    if (this._processListener) {
-      this._progressListener.destroy();
-      this._progressListener = null;
-      this._originalWindow = null;
+    this._progressListener.destroy();
+    this._progressListener = null;
+    this._originalWindow = null;
 
-      
-      if (this.listenForNewDocShells) {
-        Services.obs.removeObserver(this, "webnavigation-create");
-      }
-      Services.obs.removeObserver(this, "webnavigation-destroy");
+    
+    if (Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_CONTENT) {
+      Services.obs.removeObserver(this, "webnavigation-create", false);
     }
+    Services.obs.removeObserver(this, "webnavigation-destroy", false);
 
     this._popContext();
 
@@ -1345,11 +1304,9 @@ TabActor.prototype = {
 
     this._windowDestroyed(this.window, null, true);
 
-    
-    
-    this._setWindow(window);
-
     DevToolsUtils.executeSoon(() => {
+      this._setWindow(window);
+
       
       this._windowReady(window, true);
       DevToolsUtils.executeSoon(() => {
@@ -2061,7 +2018,11 @@ DebuggerProgressListener.prototype = {
                                           Ci.nsIWebProgress.NOTIFY_STATE_WINDOW |
                                           Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT);
 
-    let handler = getDocShellChromeEventHandler(docShell);
+    
+    let handler = docShell.chromeEventHandler ||
+                  docShell.QueryInterface(Ci.nsIInterfaceRequestor)
+                    .getInterface(Ci.nsIContentFrameMessageManager);
+
     handler.addEventListener("DOMWindowCreated", this._onWindowCreated, true);
     handler.addEventListener("pageshow", this._onWindowCreated, true);
     handler.addEventListener("pagehide", this._onWindowHidden, true);
@@ -2081,7 +2042,11 @@ DebuggerProgressListener.prototype = {
       webProgress.removeProgressListener(this);
     } catch(e) {}
 
-    let handler = getDocShellChromeEventHandler(docShell);
+    
+    let handler = docShell.chromeEventHandler ||
+                  docShell.QueryInterface(Ci.nsIInterfaceRequestor)
+                    .getInterface(Ci.nsIContentFrameMessageManager);
+
     handler.removeEventListener("DOMWindowCreated", this._onWindowCreated, true);
     handler.removeEventListener("pageshow", this._onWindowCreated, true);
     handler.removeEventListener("pagehide", this._onWindowHidden, true);
@@ -2092,10 +2057,18 @@ DebuggerProgressListener.prototype = {
   },
 
   _getWindowsInDocShell: function(docShell) {
-    return getChildDocShells(docShell).map(d => {
-      return d.QueryInterface(Ci.nsIInterfaceRequestor)
-              .getInterface(Ci.nsIDOMWindow);
-    });
+    let docShellsEnum = docShell.getDocShellEnumerator(
+      Ci.nsIDocShellTreeItem.typeAll,
+      Ci.nsIDocShell.ENUMERATE_FORWARDS
+    );
+
+    let windows = [];
+    while (docShellsEnum.hasMoreElements()) {
+      let w = docShellsEnum.getNext().QueryInterface(Ci.nsIInterfaceRequestor)
+                                     .getInterface(Ci.nsIDOMWindow);
+      windows.push(w);
+    }
+    return windows;
   },
 
   onWindowCreated: DevToolsUtils.makeInfallible(function(evt) {

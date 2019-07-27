@@ -116,31 +116,29 @@ BrowserToolboxProcess.prototype = {
 
 
   _initServer: function() {
-    if (this.debuggerServer) {
-      dumpn("The chrome toolbox server is already running.");
-      return;
-    }
-
     dumpn("Initializing the chrome toolbox server.");
 
-    
-    
-    
-    
-    
-    this.loader = new DevToolsLoader();
-    this.loader.invisibleToDebugger = true;
-    this.loader.main("devtools/server/main");
-    this.debuggerServer = this.loader.DebuggerServer;
-    dumpn("Created a separate loader instance for the DebuggerServer.");
+    if (!this.loader) {
+      
+      
+      
+      
+      
+      this.loader = new DevToolsLoader();
+      this.loader.invisibleToDebugger = true;
+      this.loader.main("devtools/server/main");
+      this.debuggerServer = this.loader.DebuggerServer;
+      dumpn("Created a separate loader instance for the DebuggerServer.");
 
-    
-    this.debuggerServer.on("connectionchange", this.emit.bind(this));
+      
+      this.debuggerServer.on("connectionchange", this.emit.bind(this));
+    }
 
-    this.debuggerServer.init();
-    this.debuggerServer.addBrowserActors();
-    this.debuggerServer.allowChromeProcess = true;
-    dumpn("initialized and added the browser actors for the DebuggerServer.");
+    if (!this.debuggerServer.initialized) {
+      this.debuggerServer.init();
+      this.debuggerServer.addBrowserActors();
+      dumpn("initialized and added the browser actors for the DebuggerServer.");
+    }
 
     let chromeDebuggingPort =
       Services.prefs.getIntPref("devtools.debugger.chrome-debugging-port");

@@ -10,6 +10,9 @@ const { Cc, Ci, Cu } = require("chrome");
 const Services = require("Services");
 const { ActorPool, appendExtraActors, createExtraActors } = require("devtools/server/actors/common");
 const { DebuggerServer } = require("devtools/server/main");
+const makeDebugger = require("./utils/make-debugger");
+
+loader.lazyRequireGetter(this, "StyleSheetActor", "devtools/server/actors/stylesheets", true);
 
 loader.lazyGetter(this, "ppmm", () => {
   return Cc["@mozilla.org/parentprocessmessagemanager;1"].getService(Ci.nsIMessageBroadcaster);
@@ -96,10 +99,14 @@ function RootActor(aConnection, aParameters) {
   this._onAddonListChanged = this.onAddonListChanged.bind(this);
   this._extraActors = {};
 
-  this._globalActorPool = new ActorPool(this.conn);
-  this.conn.addActorPool(this._globalActorPool);
+  
+  this._styleSheetActors = new Map();
 
-  this._chromeActor = null;
+  
+  this.makeDebugger = makeDebugger.bind(null, {
+    findDebuggees: dbg => dbg.findAllGlobals(),
+    shouldAddNewGlobalAsDebuggee: () => true
+  });
 }
 
 RootActor.prototype = {
@@ -153,16 +160,7 @@ RootActor.prototype = {
     getUsedFontFaces: true,
     
     
-    memoryActorAllocations: true,
-    
-    
-    
-    
-    
-    
-    get allowChromeProcess() {
-      return DebuggerServer.allowChromeProcess;
-    },
+    memoryActorAllocations: true
   },
 
   
@@ -181,6 +179,66 @@ RootActor.prototype = {
   
 
 
+  get isRootActor() true,
+
+  
+
+
+  get window() isWorker ? null : Services.wm.getMostRecentWindow(DebuggerServer.chromeWindowType),
+
+  
+
+
+  get windows() {
+    return this.docShells.map(docShell => {
+      return docShell.QueryInterface(Ci.nsIInterfaceRequestor)
+                     .getInterface(Ci.nsIDOMWindow);
+    });
+  },
+
+  
+
+
+  get url() { return this.window ? this.window.document.location.href : null; },
+
+  
+
+
+  get docShell() {
+    return this.window
+      .QueryInterface(Ci.nsIInterfaceRequestor)
+      .getInterface(Ci.nsIDocShell);
+  },
+
+  
+
+
+  get docShells() {
+    let docShellsEnum = this.docShell.getDocShellEnumerator(
+      Ci.nsIDocShellTreeItem.typeAll,
+      Ci.nsIDocShell.ENUMERATE_FORWARDS
+    );
+
+    let docShells = [];
+    while (docShellsEnum.hasMoreElements()) {
+      docShells.push(docShellsEnum.getNext());
+    }
+
+    return docShells;
+  },
+
+  
+
+
+  get webProgress() {
+    return this.docShell
+      .QueryInterface(Ci.nsIInterfaceRequestor)
+      .getInterface(Ci.nsIWebProgress);
+  },
+
+  
+
+
   disconnect: function() {
     
     if (this._parameters.tabList) {
@@ -193,6 +251,8 @@ RootActor.prototype = {
       this._parameters.onShutdown();
     }
     this._extraActors = null;
+    this._styleSheetActors.clear();
+    this._styleSheetActors = null;
   },
 
   
@@ -320,34 +380,13 @@ RootActor.prototype = {
   },
 
   onAttachProcess: function (aRequest) {
-    if (!DebuggerServer.allowChromeProcess) {
-      return { error: "forbidden",
-               message: "You are not allowed to debug chrome." };
+    let mm = ppmm.getChildAt(aRequest.id);
+    if (!mm) {
+      return { error: "noProcess",
+               message: "There is no process with id '" + aRequest.id + "'." };
     }
-    if (("id" in aRequest) && typeof(aRequest.id) != "number") {
-      return { error: "wrongParameter",
-               message: "attachProcess requires a valid `id` attribute." };
-    }
-    
-    
-    if ((!("id" in aRequest)) || aRequest.id === 0) {
-      if (!this._chromeActor) {
-        
-        let { ChromeActor } = require("devtools/server/actors/chrome");
-        this._chromeActor = new ChromeActor(this.conn);
-        this._globalActorPool.addActor(this._chromeActor);
-      }
-
-      return { form: this._chromeActor.form() };
-    } else {
-      let mm = ppmm.getChildAt(aRequest.id);
-      if (!mm) {
-        return { error: "noProcess",
-                 message: "There is no process with id '" + aRequest.id + "'." };
-      }
-      return DebuggerServer.connectToContent(this.conn, mm)
-                           .then(form => ({ form }));
-    }
+    return DebuggerServer.connectToContent(this.conn, mm)
+                         .then(form => ({ form: form }));
   },
 
   
@@ -366,6 +405,60 @@ RootActor.prototype = {
   
   _createExtraActors: createExtraActors,
   _appendExtraActors: appendExtraActors,
+
+  
+
+  
+
+
+  preNest: function() {
+    
+    let e = Services.wm.getEnumerator(null);
+    while (e.hasMoreElements()) {
+      let win = e.getNext();
+      let windowUtils = win.QueryInterface(Ci.nsIInterfaceRequestor)
+                           .getInterface(Ci.nsIDOMWindowUtils);
+      windowUtils.suppressEventHandling(true);
+      windowUtils.suspendTimeouts();
+    }
+  },
+
+  
+
+
+  postNest: function(aNestData) {
+    
+    let e = Services.wm.getEnumerator(null);
+    while (e.hasMoreElements()) {
+      let win = e.getNext();
+      let windowUtils = win.QueryInterface(Ci.nsIInterfaceRequestor)
+                           .getInterface(Ci.nsIDOMWindowUtils);
+      windowUtils.resumeTimeouts();
+      windowUtils.suppressEventHandling(false);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  createStyleSheetActor: function(styleSheet) {
+    if (this._styleSheetActors.has(styleSheet)) {
+      return this._styleSheetActors.get(styleSheet);
+    }
+    let actor = new StyleSheetActor(styleSheet, this);
+    this._styleSheetActors.set(styleSheet, actor);
+
+    this._globalActorPool.addActor(actor);
+
+    return actor;
+  },
 
   
 

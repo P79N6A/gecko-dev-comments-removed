@@ -440,11 +440,7 @@ WebConsoleFrame.prototype = {
 
 
   get persistLog() {
-    
-    
-    
-    
-    return this.owner._browserConsole || Services.prefs.getBoolPref(PREF_PERSISTLOG);
+    return Services.prefs.getBoolPref(PREF_PERSISTLOG);
   },
 
   
@@ -3430,7 +3426,7 @@ JSTerm.prototype = {
 
     let selectedNodeActor = null;
     let inspectorSelection = this.hud.owner.getInspectorSelection();
-    if (inspectorSelection && inspectorSelection.nodeFront) {
+    if (inspectorSelection) {
       selectedNodeActor = inspectorSelection.nodeFront.actorID;
     }
 
