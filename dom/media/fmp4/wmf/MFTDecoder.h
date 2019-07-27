@@ -37,7 +37,7 @@ public:
   
   
   HRESULT SetMediaTypes(IMFMediaType* aInputType,
-                        const GUID& aOutputSubType);
+                        IMFMediaType* aOutputType);
 
   
   TemporaryRef<IMFAttributes> GetAttributes();
@@ -92,7 +92,7 @@ private:
 
   RefPtr<IMFTransform> mDecoder;
 
-  GUID mOutputSubtype;
+  RefPtr<IMFMediaType> mOutputType;
 
   
   bool mMFTProvidesOutputSamples;
