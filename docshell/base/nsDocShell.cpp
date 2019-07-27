@@ -17,6 +17,7 @@
 #include "mozilla/dom/TabChild.h"
 #include "mozilla/dom/ProfileTimelineMarkerBinding.h"
 #include "mozilla/dom/ToJSValue.h"
+#include "mozilla/dom/workers/ServiceWorkerManager.h"
 #include "mozilla/EventStateManager.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
@@ -52,7 +53,6 @@
 #include "nsIAuthPrompt2.h"
 #include "nsIChannelEventSink.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
-#include "nsIServiceWorkerManager.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsIScriptObjectPrincipal.h"
 #include "nsIScrollableFrame.h"
@@ -217,6 +217,7 @@ static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
 
 using namespace mozilla;
 using namespace mozilla::dom;
+using mozilla::dom::workers::ServiceWorkerManager;
 
 
 static bool gAddedPreferencesVarCache = false;
@@ -2997,7 +2998,6 @@ nsDocShell::PopProfileTimelineMarkers(
       marker->mName = NS_ConvertUTF8toUTF16(startPayload->GetName());
       marker->mStart = startPayload->GetTime();
       marker->mEnd = startPayload->GetTime();
-      marker->mStack = startPayload->GetStack();
       startPayload->AddDetails(aCx, *marker);
       continue;
     }
@@ -14041,13 +14041,15 @@ nsDocShell::ShouldPrepareForIntercept(nsIURI* aURI, bool aIsNavigate,
     return NS_OK;
   }
 
-  nsCOMPtr<nsIServiceWorkerManager> swm = services::GetServiceWorkerManager();
+  nsRefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
   if (!swm) {
     return NS_OK;
   }
 
   if (aIsNavigate) {
-    return swm->IsAvailableForURI(aURI, aShouldIntercept);
+    OriginAttributes attrs(GetAppId(), GetIsInBrowserElement());
+    *aShouldIntercept = swm->IsAvailable(attrs, aURI);
+    return NS_OK;
   }
 
   nsCOMPtr<nsIDocument> doc = GetDocument();
@@ -14055,13 +14057,19 @@ nsDocShell::ShouldPrepareForIntercept(nsIURI* aURI, bool aIsNavigate,
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  return swm->IsControlled(doc, aShouldIntercept);
+  ErrorResult rv;
+  *aShouldIntercept = swm->IsControlled(doc, rv);
+  if (NS_WARN_IF(rv.Failed())) {
+    return rv.StealNSResult();
+  }
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 nsDocShell::ChannelIntercepted(nsIInterceptedChannel* aChannel)
 {
-  nsCOMPtr<nsIServiceWorkerManager> swm = services::GetServiceWorkerManager();
+  nsRefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
   if (!swm) {
     aChannel->Cancel();
     return NS_OK;
@@ -14081,7 +14089,16 @@ nsDocShell::ChannelIntercepted(nsIInterceptedChannel* aChannel)
   }
 
   bool isReload = mLoadType & LOAD_CMD_RELOAD;
-  return swm->DispatchFetchEvent(doc, aChannel, isReload);
+
+  OriginAttributes attrs(GetAppId(), GetIsInBrowserElement());
+
+  ErrorResult error;
+  swm->DispatchFetchEvent(attrs, doc, aChannel, isReload, error);
+  if (NS_WARN_IF(error.Failed())) {
+    return error.StealNSResult();
+  }
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP
