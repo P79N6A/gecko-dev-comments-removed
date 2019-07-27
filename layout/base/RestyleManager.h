@@ -470,6 +470,8 @@ private:
   
   bool mDoRebuildAllStyleData : 1;
   
+  bool mInRebuildAllStyleData : 1;
+  
   bool mObservingRefreshDriver : 1;
   
   bool mInStyleRefresh : 1;

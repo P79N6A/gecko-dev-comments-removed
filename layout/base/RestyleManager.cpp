@@ -65,6 +65,7 @@ FrameTagToString(const nsIFrame* aFrame)
 RestyleManager::RestyleManager(nsPresContext* aPresContext)
   : mPresContext(aPresContext)
   , mDoRebuildAllStyleData(false)
+  , mInRebuildAllStyleData(false)
   , mObservingRefreshDriver(false)
   , mInStyleRefresh(false)
   , mSkipAnimationRules(false)
@@ -1529,6 +1530,8 @@ RestyleManager::RebuildAllStyleData(nsChangeHint aExtraHint,
 void
 RestyleManager::DoRebuildAllStyleData(RestyleTracker& aRestyleTracker)
 {
+  mInRebuildAllStyleData = true;
+
   
   
   nsresult rv = mPresContext->StyleSet()->BeginReconstruct();
@@ -1577,12 +1580,16 @@ RestyleManager::DoRebuildAllStyleData(RestyleTracker& aRestyleTracker)
                                changeHint, aRestyleTracker, restyleHint);
   FlushOverflowChangedTracker();
 
-  
-  
-  
-  
-  
-  mPresContext->StyleSet()->EndReconstruct();
+  if (mInRebuildAllStyleData) {
+    
+    
+    
+    
+    
+    mPresContext->StyleSet()->EndReconstruct();
+
+    mInRebuildAllStyleData = false;
+  }
 }
 
 void
