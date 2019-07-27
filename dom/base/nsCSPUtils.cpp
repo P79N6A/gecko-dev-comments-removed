@@ -279,7 +279,6 @@ nsCSPSchemeSrc::toString(nsAString& outStr) const
 
 nsCSPHostSrc::nsCSPHostSrc(const nsAString& aHost)
   : mHost(aHost)
-  , mAllowHttps(false)
 {
   ToLowerCase(mHost);
 }
@@ -308,16 +307,7 @@ nsCSPHostSrc::permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirected
   NS_ENSURE_SUCCESS(rv, false);
   if (!mScheme.IsEmpty() &&
       !mScheme.EqualsASCII(scheme.get())) {
-
-    
-    
-    
-    bool isHttpsScheme =
-      (NS_SUCCEEDED(aUri->SchemeIs("https", &isHttpsScheme)) && isHttpsScheme);
-
-    if (!(isHttpsScheme && mAllowHttps)) {
-      return false;
-    }
+    return false;
   }
 
   
@@ -396,13 +386,7 @@ nsCSPHostSrc::permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirected
   if (mPort.IsEmpty()) {
     int32_t port = NS_GetDefaultPort(NS_ConvertUTF16toUTF8(mScheme).get());
     if (port != uriPort) {
-      
-      
-      
-      
-      if (!(uriPort == NS_GetDefaultPort("https") && mAllowHttps)) {
-        return false;
-      }
+      return false;
     }
   }
   
@@ -447,11 +431,10 @@ nsCSPHostSrc::toString(nsAString& outStr) const
 }
 
 void
-nsCSPHostSrc::setScheme(const nsAString& aScheme, bool aAllowHttps)
+nsCSPHostSrc::setScheme(const nsAString& aScheme)
 {
   mScheme = aScheme;
   ToLowerCase(mScheme);
-  mAllowHttps = aAllowHttps;
 }
 
 void
