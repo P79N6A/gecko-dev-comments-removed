@@ -698,7 +698,9 @@ protected:
   
 
 
-  bool IsTargetValid() { return mTarget != sErrorTarget && mTarget != nullptr; }
+  bool IsTargetValid() const {
+    return mTarget != sErrorTarget && mTarget != nullptr;
+  }
 
   
 
@@ -763,6 +765,8 @@ protected:
   
   
   mozilla::RefPtr<mozilla::gfx::DrawTarget> mTarget;
+
+  uint32_t SkiaGLTex() const;
 
   
 
