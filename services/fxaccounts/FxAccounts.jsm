@@ -856,10 +856,20 @@ FxAccountsInternal.prototype = {
     }
   },
 
+  _requireHttps: function() {
+    let allowHttp = false;
+    try {
+      allowHttp = Services.prefs.getBoolPref("identity.fxaccounts.allowHttp");
+    } catch(e) {
+      
+    }
+    return allowHttp !== true;
+  },
+
   
   getAccountsSignUpURI: function() {
     let url = Services.urlFormatter.formatURLPref("identity.fxaccounts.remote.signup.uri");
-    if (!/^https:/.test(url)) { 
+    if (this._requireHttps() && !/^https:/.test(url)) { 
       throw new Error("Firefox Accounts server must use HTTPS");
     }
     return url;
@@ -868,7 +878,7 @@ FxAccountsInternal.prototype = {
   
   getAccountsSignInURI: function() {
     let url = Services.urlFormatter.formatURLPref("identity.fxaccounts.remote.signin.uri");
-    if (!/^https:/.test(url)) { 
+    if (this._requireHttps() && !/^https:/.test(url)) { 
       throw new Error("Firefox Accounts server must use HTTPS");
     }
     return url;
@@ -878,7 +888,7 @@ FxAccountsInternal.prototype = {
   
   promiseAccountsForceSigninURI: function() {
     let url = Services.urlFormatter.formatURLPref("identity.fxaccounts.remote.force_auth.uri");
-    if (!/^https:/.test(url)) { 
+    if (this._requireHttps() && !/^https:/.test(url)) { 
       throw new Error("Firefox Accounts server must use HTTPS");
     }
     let currentState = this.currentAccountState;
