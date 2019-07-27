@@ -372,6 +372,11 @@ EngineStore.prototype = {
         this.moveEngine(this._getEngineByName(e.name), i);
       } else {
         
+
+        
+        
+        e.alias = "";
+
         this._engines.splice(i, 0, e);
         this._ops.push(new EngineUnhideOp(e, i));
         added++;
