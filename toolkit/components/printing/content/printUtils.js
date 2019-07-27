@@ -5,89 +5,25 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var gPrintSettingsAreGlobal = false;
 var gSavePrintSettings = false;
 var gFocusedElement = null;
 
 var PrintUtils = {
   bailOut: function () {
-    let pref = Components.classes["@mozilla.org/preferences-service;1"]
-                         .getService(Components.interfaces.nsIPrefBranch);
-    let allow_for_testing = false;
-    try {
-      allow_for_testing = pref.getBoolPref("print.enable_e10s_testing");
-    } catch(e) {
-      
-    }
-    if (this.usingRemoteTabs && !allow_for_testing) {
+    let remote = window.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+            .getInterface(Components.interfaces.nsIWebNavigation)
+            .QueryInterface(Components.interfaces.nsILoadContext)
+            .useRemoteTabs;
+    if (remote) {
       alert("e10s printing is not implemented yet. Bug 927188.");
       return true;
     }
     return false;
   },
 
-  
-
-
-
-
-
-  showPageSetup: function () {
+  showPageSetup: function ()
+  {
     if (this.bailOut()) {
       return;
     }
@@ -109,94 +45,37 @@ var PrintUtils = {
     return true;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  print: function (aWindow, aBrowser)
+  print: function (aWindow)
   {
     if (this.bailOut()) {
       return;
     }
-
-    if (!aWindow) {
-      
-      
-      if (this.usingRemoteTabs) {
-        throw new Error("Windows running with remote tabs must explicitly pass " +
-                        "a content window to PrintUtils.print.");
+    var webBrowserPrint = this.getWebBrowserPrint(aWindow);
+    var printSettings = this.getPrintSettings();
+    try {
+      webBrowserPrint.print(printSettings, null);
+      if (gPrintSettingsAreGlobal && gSavePrintSettings) {
+        var PSSVC = Components.classes["@mozilla.org/gfx/printsettings-service;1"]
+                              .getService(Components.interfaces.nsIPrintSettingsService);
+        PSSVC.savePrintSettingsToPrefs(printSettings, true,
+                                       printSettings.kInitSaveAll);
+        PSSVC.savePrintSettingsToPrefs(printSettings, false,
+                                       printSettings.kInitSavePrinterName);
       }
-      
-      aWindow = window.content;
-    }
-
-    if (Cu.isCrossProcessWrapper(aWindow)) {
-      if (!aBrowser) {
-        throw new Error("PrintUtils.print expects a remote browser passed as " +
-                        "an argument if the content window is a CPOW.");
-      }
-    } else {
+    } catch (e) {
       
       
-      aBrowser = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                        .getInterface(Ci.nsIWebNavigation)
-                        .QueryInterface(Ci.nsIDocShell)
-                        .chromeEventHandler;
+      
+      
     }
-
-    if (!aBrowser) {
-      throw new Error("PrintUtils.print could not resolve content window " +
-                      "to a browser.");
-    }
-
-    let printSettings = this.getPrintSettings();
-
-    let mm = aBrowser.messageManager;
-    mm.sendAsyncMessage("Printing:Print", null, {
-      printSettings: printSettings,
-      contentWindow: aWindow,
-    });
   },
 
   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  printPreview: function (aListenerObj)
+  
+  
+  
+  
+  printPreview: function (aCallback)
   {
     if (this.bailOut()) {
       return;
@@ -204,34 +83,35 @@ var PrintUtils = {
     
     
     
-    if (!this.inPrintPreview) {
-      this._listener = aListenerObj;
-      this._sourceBrowser = aListenerObj.getSourceBrowser();
-      this._originalTitle = this._sourceBrowser.contentTitle;
+    if (!document.getElementById("print-preview-toolbar")) {
+      this._callback = aCallback;
+      this._sourceBrowser = aCallback.getSourceBrowser();
+      this._originalTitle = this._sourceBrowser.contentDocument.title;
       this._originalURL = this._sourceBrowser.currentURI.spec;
     } else {
       
       
       
-      this._sourceBrowser = this._listener.getPrintPreviewBrowser();
+      this._sourceBrowser = this._callback.getPrintPreviewBrowser();
       this._sourceBrowser.collapsed = true;
     }
 
     this._webProgressPP = {};
-    let ppParams        = {};
-    let notifyOnOpen    = {};
-    let printSettings   = this.getPrintSettings();
+    var ppParams        = {};
+    var notifyOnOpen    = {};
+    var webBrowserPrint = this.getWebBrowserPrint();
+    var printSettings   = this.getPrintSettings();
     
     
     
     
     
-    let PPROMPTSVC = Components.classes["@mozilla.org/embedcomp/printingprompt-service;1"]
+    var PPROMPTSVC = Components.classes["@mozilla.org/embedcomp/printingprompt-service;1"]
                                .getService(Components.interfaces.nsIPrintingPromptService);
     
     
     try {
-      PPROMPTSVC.showProgress(window, null, printSettings, this._obsPP, false,
+      PPROMPTSVC.showProgress(window, webBrowserPrint, printSettings, this._obsPP, false,
                               this._webProgressPP, ppParams, notifyOnOpen);
       if (ppParams.value) {
         ppParams.value.docTitle = this._originalTitle;
@@ -240,118 +120,27 @@ var PrintUtils = {
 
       
       
-      if (!notifyOnOpen.value.valueOf() || this._webProgressPP.value == null) {
+      if (!notifyOnOpen.value.valueOf() || this._webProgressPP.value == null)
         this.enterPrintPreview();
-      }
     } catch (e) {
       this.enterPrintPreview();
     }
   },
 
-  
-
-
-
-
-
-
-
-
   getWebBrowserPrint: function (aWindow)
   {
-    let Deprecated = Components.utils.import("resource://gre/modules/Deprecated.jsm", {}).Deprecated;
-    let text = "getWebBrowserPrint is now deprecated, and fully unsupported for " +
-               "multi-process browsers. Please use a frame script to get " +
-               "access to nsIWebBrowserPrint from content.";
-    let url = "https://developer.mozilla.org/en-US/docs/Printing_from_a_XUL_App";
-    Deprecated.warning(text, url);
-
-    if (this.usingRemoteTabs) {
-      return {};
-    }
-
     var contentWindow = aWindow || window.content;
     return contentWindow.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
                         .getInterface(Components.interfaces.nsIWebBrowserPrint);
   },
 
-  
-
-
-
-
-
-
   getPrintPreview: function() {
-    let Deprecated = Components.utils.import("resource://gre/modules/Deprecated.jsm", {}).Deprecated;
-    let text = "getPrintPreview is now deprecated, and fully unsupported for " +
-               "multi-process browsers. Please use a frame script to get " +
-               "access to nsIWebBrowserPrint from content.";
-    let url = "https://developer.mozilla.org/en-US/docs/Printing_from_a_XUL_App";
-    Deprecated.warning(text, url);
-
-    if (this.usingRemoteTabs) {
-      return {};
-    }
-
-    return this._listener.getPrintPreviewBrowser().docShell.printPreview;
-  },
-
-  get inPrintPreview() {
-    return document.getElementById("print-preview-toolbar") != null;
+    return this._callback.getPrintPreviewBrowser().docShell.printPreview;
   },
 
   
   
   
-
-  _listener: null,
-  _closeHandlerPP: null,
-  _webProgressPP: null,
-  _sourceBrowser: null,
-  _originalTitle: "",
-  _originalURL: "",
-
-  get usingRemoteTabs() {
-    
-    
-    let usingRemoteTabs =
-      window.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-            .getInterface(Components.interfaces.nsIWebNavigation)
-            .QueryInterface(Components.interfaces.nsILoadContext)
-            .useRemoteTabs;
-    delete this.usingRemoteTabs;
-    return this.usingRemoteTabs = usingRemoteTabs;
-  },
-
-  receiveMessage(aMessage) {
-    if (!this._webProgressPP.value) {
-      
-      
-      return;
-    }
-
-    let listener = this._webProgressPP.value;
-    let data = aMessage.data;
-
-    switch (aMessage.name) {
-      case "Printing:Preview:ProgressChange": {
-        return listener.onProgressChange(null, null,
-                                         data.curSelfProgress,
-                                         data.maxSelfProgress,
-                                         data.curTotalProgress,
-                                         data.maxTotalProgress);
-        break;
-      }
-
-      case "Printing:Preview:StateChange": {
-        return listener.onStateChange(null, null,
-                                      data.stateFlags,
-                                      data.status);
-        break;
-      }
-    }
-  },
 
   setPrinterDefaultsForSelectedPrinter: function (aPSSVC, aPrintSettings)
   {
@@ -389,8 +178,15 @@ var PrintUtils = {
     return printSettings;
   },
 
+  _closeHandlerPP: null,
+  _webProgressPP: null,
+  _callback: null,
+  _sourceBrowser: null,
+  _originalTitle: "",
+  _originalURL: "",
+
   
-  _obsPP:
+  _obsPP: 
   {
     observe: function(aSubject, aTopic, aData)
     {
@@ -403,89 +199,84 @@ var PrintUtils = {
       if (iid.equals(Components.interfaces.nsIObserver) ||
           iid.equals(Components.interfaces.nsISupportsWeakReference) ||
           iid.equals(Components.interfaces.nsISupports))
-        return this;
+        return this;   
       throw Components.results.NS_NOINTERFACE;
     }
   },
 
   enterPrintPreview: function ()
   {
-    
-    
-    
-    
-    
-    let ppBrowser = this._listener.getPrintPreviewBrowser();
-    let mm = ppBrowser.messageManager;
-    let printSettings = this.getPrintSettings();
-    mm.sendAsyncMessage("Printing:Preview:Enter", null, {
-      printSettings: printSettings,
-      contentWindow: this._sourceBrowser.contentWindowAsCPOW,
-    });
+    gFocusedElement = document.commandDispatcher.focusedElement;
 
-    if (this._webProgressPP.value) {
-      mm.addMessageListener("Printing:Preview:StateChange", this);
-      mm.addMessageListener("Printing:Preview:ProgressChange", this);
+    var webBrowserPrint;
+    var printSettings  = this.getPrintSettings();
+    var originalWindow = this._sourceBrowser.contentWindow;
+
+    try {
+      webBrowserPrint = this.getPrintPreview();
+      webBrowserPrint.printPreview(printSettings, originalWindow,
+                                   this._webProgressPP.value);
+    } catch (e) {
+      
+      
+      
+      
+
+      
+      this._callback.onEnter();
+      this._callback.onExit();
+      return;
     }
 
-    let onEntered = (message) => {
-      mm.removeMessageListener("Printing:PrintPreview:Entered", onEntered);
-      
-      
-      gFocusedElement = document.commandDispatcher.focusedElement;
+    var printPreviewTB = document.getElementById("print-preview-toolbar");
+    if (printPreviewTB) {
+      printPreviewTB.updateToolbar();
+      var browser = this._callback.getPrintPreviewBrowser();
+      browser.collapsed = false;
+      browser.contentWindow.focus();
+      return;
+    }
 
-      let printPreviewTB = document.getElementById("print-preview-toolbar");
-      if (printPreviewTB) {
-        printPreviewTB.updateToolbar();
-        ppBrowser.collapsed = false;
-        ppBrowser.focus();
-        return;
-      }
+    
+    
+    var docShell = originalWindow.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+                                 .getInterface(Components.interfaces.nsIWebNavigation)
+                                 .QueryInterface(Components.interfaces.nsIDocShell);
+    docShell.isActive = true;
 
-      
-      
-      this._sourceBrowser.docShellIsActive = true;
+    
+    
+    var XUL_NS =
+      "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
+    printPreviewTB = document.createElementNS(XUL_NS, "toolbar");
+    printPreviewTB.setAttribute("printpreview", true);
+    printPreviewTB.id = "print-preview-toolbar";
+    printPreviewTB.className = "toolbar-primary";
 
-      
-      
-      const XUL_NS =
-        "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
-      printPreviewTB = document.createElementNS(XUL_NS, "toolbar");
-      printPreviewTB.setAttribute("printpreview", true);
-      printPreviewTB.id = "print-preview-toolbar";
-      printPreviewTB.className = "toolbar-primary";
+    var navToolbox = this._callback.getNavToolbox();
+    navToolbox.parentNode.insertBefore(printPreviewTB, navToolbox);
 
-      let navToolbox = this._listener.getNavToolbox();
-      navToolbox.parentNode.insertBefore(printPreviewTB, navToolbox);
-      printPreviewTB.initialize(ppBrowser);
+    
+    if (document.documentElement.hasAttribute("onclose"))
+      this._closeHandlerPP = document.documentElement.getAttribute("onclose");
+    else
+      this._closeHandlerPP = null;
+    document.documentElement.setAttribute("onclose", "PrintUtils.exitPrintPreview(); return false;");
 
-      
-      if (document.documentElement.hasAttribute("onclose"))
-        this._closeHandlerPP = document.documentElement.getAttribute("onclose");
-      else
-        this._closeHandlerPP = null;
-      document.documentElement.setAttribute("onclose", "PrintUtils.exitPrintPreview(); return false;");
+    
+    window.addEventListener("keydown", this.onKeyDownPP, true);
+    window.addEventListener("keypress", this.onKeyPressPP, true);
 
-      
-      window.addEventListener("keydown", this.onKeyDownPP, true);
-      window.addEventListener("keypress", this.onKeyPressPP, true);
+    var browser = this._callback.getPrintPreviewBrowser();
+    browser.collapsed = false;
+    browser.contentWindow.focus();
 
-      ppBrowser.collapsed = false;
-      ppBrowser.focus();
-      
-      this._listener.onEnter();
-    };
-
-    mm.addMessageListener("Printing:Preview:Entered", onEntered);
+    
+    this._callback.onEnter();
   },
 
   exitPrintPreview: function ()
   {
-    let ppBrowser = this._listener.getPrintPreviewBrowser();
-    let browserMM = ppBrowser.messageManager;
-    browserMM.sendAsyncMessage("Printing:Preview:Exit");
-    browserMM.removeMessageListener("Printing:Preview:StateChange", this);
-    browserMM.removeMessageListener("Printing:Preview:ProgressChange", this);
     window.removeEventListener("keydown", this.onKeyDownPP, true);
     window.removeEventListener("keypress", this.onKeyPressPP, true);
 
@@ -493,11 +284,14 @@ var PrintUtils = {
     document.documentElement.setAttribute("onclose", this._closeHandlerPP);
     this._closeHandlerPP = null;
 
-    
-    let printPreviewTB = document.getElementById("print-preview-toolbar");
-    this._listener.getNavToolbox().parentNode.removeChild(printPreviewTB);
+    var webBrowserPrint = this.getPrintPreview();
+    webBrowserPrint.exitPrintPreview();
 
-    let fm = Components.classes["@mozilla.org/focus-manager;1"]
+    
+    var printPreviewTB = document.getElementById("print-preview-toolbar");
+    this._callback.getNavToolbox().parentNode.removeChild(printPreviewTB);
+
+    var fm = Components.classes["@mozilla.org/focus-manager;1"]
                        .getService(Components.interfaces.nsIFocusManager);
     if (gFocusedElement)
       fm.setFocus(gFocusedElement, fm.FLAG_NOSCROLL);
@@ -505,7 +299,7 @@ var PrintUtils = {
       window.content.focus();
     gFocusedElement = null;
 
-    this._listener.onExit();
+    this._callback.onExit();
   },
 
   onKeyDownPP: function (aEvent)
@@ -535,7 +329,7 @@ var PrintUtils = {
       var printKey = document.getElementById("printKb").getAttribute("key").toUpperCase();
       var pressedKey = String.fromCharCode(aEvent.charCode).toUpperCase();
       if (printKey == pressedKey) {
-        printPreviewTB.print();
+	  PrintUtils.print();
       }
     }
     
