@@ -93,7 +93,6 @@ var HarAutomation = Class({
     
     
     this.collector = new HarCollector({
-      collector: this,
       webConsoleClient: this.webConsoleClient,
       debuggerClient: this.debuggerClient
     });
@@ -202,41 +201,9 @@ var HarAutomation = Class({
 
   
 
-  
-
-
-
-
-
-
-
-
-
 
   getString: function(aStringGrip) {
-    
-    if (typeof aStringGrip != "object" || aStringGrip.type != "longString") {
-      return resolve(aStringGrip); 
-    }
-    
-    if (aStringGrip._fullText) {
-      return aStringGrip._fullText.promise;
-    }
-
-    let deferred = aStringGrip._fullText = defer();
-    let { actor, initial, length } = aStringGrip;
-    let longStringClient = this.webConsoleClient.longString(aStringGrip);
-
-    longStringClient.substring(initial.length, length, aResponse => {
-      if (aResponse.error) {
-        Cu.reportError(aResponse.error + ": " + aResponse.message);
-        deferred.reject(aResponse);
-        return;
-      }
-      deferred.resolve(initial + aResponse.substring);
-    });
-
-    return deferred.promise;
+    return this.webConsoleClient.getString(aStringGrip);
   },
 
   

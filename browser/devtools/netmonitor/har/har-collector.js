@@ -23,7 +23,6 @@ const trace = {
 function HarCollector(options) {
   this.webConsoleClient = options.webConsoleClient;
   this.debuggerClient = options.debuggerClient;
-  this.collector = options.collector;
 
   this.onNetworkEvent = this.onNetworkEvent.bind(this);
   this.onNetworkEventUpdate = this.onNetworkEventUpdate.bind(this);
@@ -424,7 +423,7 @@ HarCollector.prototype = {
 
 
   getString: function(stringGrip) {
-    let promise = this.collector.getString(stringGrip);
+    let promise = this.webConsoleClient.getString(stringGrip);
     this.requests.push(promise);
     return promise;
   }

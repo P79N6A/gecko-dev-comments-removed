@@ -69,7 +69,7 @@ ToolboxOverlay.prototype = {
 
 function register(toolbox) {
   if (overlays.has(toolbox)) {
-    throw Error("Theere is an existing overlay for the toolbox");
+    throw Error("There is an existing overlay for the toolbox");
   }
 
   
