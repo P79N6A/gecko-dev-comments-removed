@@ -3,6 +3,8 @@
 
 
 
+"use strict";
+
 this.EXPORTED_SYMBOLS = [ "DownloadUtils" ];
 
 
@@ -76,7 +78,7 @@ let gStr = {
 
 
 this.__defineGetter__("gBundle", function() {
-  delete gBundle;
+  delete this.gBundle;
   return this.gBundle = Cc["@mozilla.org/intl/stringbundle;1"].
                         getService(Ci.nsIStringBundleService).
                         createBundle(kDownloadProperties);
@@ -270,13 +272,11 @@ this.DownloadUtils = {
     if (aSeconds > aLastSec / 2) {
       
       
-      let (diff = aSeconds - aLastSec) {
-        aSeconds = aLastSec + (diff < 0 ? .3 : .1) * diff;
-      }
+      let diff = aSeconds - aLastSec;
+      aSeconds = aLastSec + (diff < 0 ? .3 : .1) * diff;
 
       
       
-      let diff = aSeconds - aLastSec;
       let diffPct = diff / aLastSec * 100;
       if (Math.abs(diff) < 5 || Math.abs(diffPct) < 5)
         aSeconds = aLastSec - (diff < 0 ? .4 : .2);
