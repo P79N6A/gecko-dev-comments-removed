@@ -87,6 +87,12 @@ public:
   
   bool DecodersContainTime(double aTime);
 
+  
+  void Ended();
+
+  
+  bool IsEnded();
+
 private:
   enum SwitchType {
     SWITCH_OPTIONAL,
@@ -108,6 +114,8 @@ private:
 
   nsRefPtr<MediaDecoderReader> mAudioReader;
   nsRefPtr<MediaDecoderReader> mVideoReader;
+
+  bool mEnded;
 };
 
 } 

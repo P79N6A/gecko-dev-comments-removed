@@ -47,6 +47,8 @@ public:
 
   already_AddRefed<SourceBufferDecoder> CreateSubDecoder(const nsACString& aType);
 
+  void Ended();
+
   void SetMediaSourceDuration(double aDuration);
 
   
