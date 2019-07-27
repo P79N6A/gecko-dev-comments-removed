@@ -536,6 +536,9 @@ Nfc.prototype = {
         if (SessionHelper.isP2PSession(sessionId)) {
           if (message.records) {
             
+            
+            
+            gMessageManager.callDefaultFoundHandler(message);
           } else {
             gMessageManager.onPeerEvent(NFC.PEER_EVENT_FOUND, message.sessionToken);
           }
