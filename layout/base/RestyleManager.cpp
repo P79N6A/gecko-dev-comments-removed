@@ -941,7 +941,8 @@ RestyleManager::RestyleElement(Element*        aElement,
 
   
   
-  if (mPresContext->UsesRootEMUnits() && aPrimaryFrame) {
+  if (mPresContext->UsesRootEMUnits() && aPrimaryFrame &&
+      !mInRebuildAllStyleData) {
     nsStyleContext *oldContext = aPrimaryFrame->StyleContext();
     if (!oldContext->GetParent()) { 
       nsRefPtr<nsStyleContext> newContext = mPresContext->StyleSet()->
@@ -949,10 +950,9 @@ RestyleManager::RestyleElement(Element*        aElement,
       if (oldContext->StyleFont()->mFont.size !=
           newContext->StyleFont()->mFont.size) {
         
-        newContext = nullptr;
         mRebuildAllRestyleHint |= aRestyleHint;
         NS_UpdateHint(mRebuildAllExtraHint, aMinHint);
-        DoRebuildAllStyleData(aRestyleTracker);
+        StartRebuildAllStyleData(aRestyleTracker);
         return;
       }
     }
