@@ -875,10 +875,12 @@ GMPDownloader.prototype = {
         
         let now = Math.round(Date.now() / 1000);
         GMPPrefs.set(GMPPrefs.KEY_ADDON_LAST_UPDATE, now, gmpAddon.id);
-        GMPPrefs.set(GMPPrefs.KEY_ADDON_PATH,
-                     installToDirPath.path, gmpAddon.id);
+        
+        
         GMPPrefs.set(GMPPrefs.KEY_ADDON_VERSION, gmpAddon.version,
                      gmpAddon.id);
+        GMPPrefs.set(GMPPrefs.KEY_ADDON_PATH,
+                     installToDirPath.path, gmpAddon.id);
         this._deferred.resolve(extractedPaths);
       }, err => {
         this._deferred.reject(err);
