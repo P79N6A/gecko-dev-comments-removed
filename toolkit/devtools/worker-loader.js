@@ -29,9 +29,28 @@ this.EXPORTED_SYMBOLS = ["WorkerDebuggerLoader", "worker"];
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 function resolveId(id, baseId) {
   return baseId + "/../" + id;
 };
+
+
+
+
+
+
+
+
 
 
 function normalizeId(id) {
@@ -49,8 +68,7 @@ function normalizeId(id) {
     case "..":
       if (stack.length === 0) {
         if (root !== undefined) {
-          throw new Error("can't convert absolute id " + id + " to " +
-                          "normalized id because it's going past root!");
+          throw new Error("Can't normalize absolute id '" + id + "'!");
         } else {
           stack.push("..");
         }
@@ -70,6 +88,14 @@ function normalizeId(id) {
 
   return (root ? root : "") + stack.join("/");
 }
+
+
+
+
+
+
+
+
 
 
 function createModule(id) {
@@ -117,8 +143,19 @@ function createModule(id) {
 
 
 
+
+
 function WorkerDebuggerLoader(options) {
   
+
+
+
+
+
+
+
+
+
   function resolveURL(url) {
     let found = false;
     for (let [path, baseURL] of paths) {
@@ -129,8 +166,7 @@ function WorkerDebuggerLoader(options) {
       }
     }
     if (!found) {
-      throw new Error("can't resolve relative URL " + url + " to absolute " +
-                      "URL!");
+      throw new Error("Can't resolve relative URL '" + url + "'!");
     }
 
     
@@ -138,6 +174,13 @@ function WorkerDebuggerLoader(options) {
   }
 
   
+
+
+
+
+
+
+
   function loadModule(module, url) {
     
     
@@ -151,11 +194,11 @@ function WorkerDebuggerLoader(options) {
 
     let sandbox = createSandbox(url, prototype);
     try {
-      loadInSandbox(url, sandbox);
+      loadSubScript(url, sandbox);
     } catch (error) {
       if (/^Error opening input stream/.test(String(error))) {
-        throw new Error("can't load module " + module.id + " with url " + url +
-                        "!");
+        throw new Error("Can't load module '" + module.id + "' with url '" +
+                        url + "'!");
       }
       throw error;
     }
@@ -168,12 +211,20 @@ function WorkerDebuggerLoader(options) {
   };
 
   
-  
+
+
+
+
+
+
+
+
+
   function createRequire(requirer) {
     return function require(id) {
       
       if (id === undefined) {
-        throw new Error("can't require module without id!");
+        throw new Error("Can't require module without id!");
       }
 
       
@@ -186,8 +237,8 @@ function WorkerDebuggerLoader(options) {
         
         if (id.startsWith(".")) {
           if (requirer === undefined) {
-            throw new Error("can't require top-level module with relative id " +
-                            id + "!");
+            throw new Error("Can't require top-level module with relative id " +
+                            "'" + id + "'!");
           }
           id = resolve(id, requirer.id);
         }
@@ -235,7 +286,7 @@ function WorkerDebuggerLoader(options) {
 
   let createSandbox = options.createSandbox;
   let globals = options.globals || Object.create(null);
-  let loadInSandbox = options.loadInSandbox;
+  let loadSubScript = options.loadSubScript;
 
   
   
@@ -250,7 +301,7 @@ function WorkerDebuggerLoader(options) {
   
   
   
-  let paths = options.paths || {};
+  let paths = options.paths || Object.create(null);
   paths = Object.keys(paths)
                 .sort((a, b) => b.length - a.length)
                 .map(path => [path, paths[path]]);
@@ -262,95 +313,157 @@ function WorkerDebuggerLoader(options) {
 
 this.WorkerDebuggerLoader = WorkerDebuggerLoader;
 
-const chrome = { CC: undefined, Cc: undefined, ChromeWorker: undefined,
-                 Cm: undefined, Ci: undefined, Cu: undefined,
-                 Cr: undefined, components: undefined };
 
 
 
-if (typeof Components === "object") {
-  const { Constructor: CC, classes: Cc, manager: Cm, interfaces: Ci,
-          results: Cr, utils: Cu } = Components;
 
-  const principal = CC('@mozilla.org/systemprincipal;1', 'nsIPrincipal')();
+let PromiseDebugging = {
+  getState: function () {
+    throw new Error("PromiseDebugging is not available in workers!");
+  }
+};
 
-  
-  const createSandbox = function (name, prototype) {
-    return Cu.Sandbox(principal, {
-      invisibleToDebugger: true,
-      sandboxName: name,
-      sandboxPrototype: prototype,
-      wantComponents: false,
-      wantXrays: false
+let chrome = {
+  CC: undefined,
+  Cc: undefined,
+  ChromeWorker: undefined,
+  Cm: undefined,
+  Ci: undefined,
+  Cu: undefined,
+  Cr: undefined,
+  components: undefined
+};
+
+let loader = {
+  lazyGetter: function (object, name, lambda) {
+    Object.defineProperty(object, name, {
+      get: function () {
+        delete object[name];
+        return object[name] = lambda.apply(object);
+      },
+      configurable: true,
+      enumerable: true
     });
-  };
+  },
+  lazyImporter: function () {
+    throw new Error("Can't import JSM from worker thread!");
+  },
+  lazyServiceGetter: function () {
+    throw new Error("Can't import XPCOM service from worker thread!");
+  },
+  lazyRequireGetter: function (obj, property, module, destructure) {
+    Object.defineProperty(obj, property, {
+      get: () => destructure ? worker.require(module)[property]
+                             : worker.require(module || property)
+    });
+  }
+};
 
-  const loadSubScript = Cc['@mozilla.org/moz/jssubscript-loader;1'].
-                        getService(Ci.mozIJSSubScriptLoader).loadSubScript;
 
-  
-  const loadInSandbox = function (url, sandbox) {
-    loadSubScript(url, sandbox, "UTF-8");
-  };
 
-  
-  
-  let sandbox = Cu.Sandbox(principal, {});
-  Cu.evalInSandbox(
-    "Components.utils.import('resource://gre/modules/jsdebugger.jsm');" +
-    "addDebuggerToGlobal(this);",
-    sandbox
-  );
-  const Debugger = sandbox.Debugger;
 
-  const Timer = Cu.import("resource://gre/modules/Timer.jsm", {});
-  const xpcInspector = Cc["@mozilla.org/jsinspector;1"].
+
+
+let {
+  Debugger,
+  createSandbox,
+  dump,
+  loadSubScript,
+  reportError,
+  setImmediate,
+  xpcInspector
+} = (function () {
+  if (typeof Components === "object") { 
+    let {
+      Constructor: CC,
+      classes: Cc,
+      manager: Cm,
+      interfaces: Ci,
+      results: Cr,
+      utils: Cu
+    } = Components;
+
+    let principal = CC('@mozilla.org/systemprincipal;1', 'nsIPrincipal')();
+
+    
+    
+    let sandbox = Cu.Sandbox(principal, {});
+    Cu.evalInSandbox(
+      "Components.utils.import('resource://gre/modules/jsdebugger.jsm');" +
+      "addDebuggerToGlobal(this);",
+      sandbox
+    );
+    let Debugger = sandbox.Debugger;
+
+    let createSandbox = function(name, prototype) {
+      return Cu.Sandbox(principal, {
+        invisibleToDebugger: true,
+        sandboxName: name,
+        sandboxPrototype: prototype,
+        wantComponents: false,
+        wantXrays: false
+      });
+    };
+
+    let subScriptLoader = Cc['@mozilla.org/moz/jssubscript-loader;1'].
+                 getService(Ci.mozIJSSubScriptLoader);
+
+    let loadSubScript = function (url, sandbox) {
+      subScriptLoader.loadSubScript(url, sandbox, "UTF-8");
+    };
+
+    let reportError = Cu.reportError;
+
+    let Timer = Cu.import("resource://gre/modules/Timer.jsm", {});
+
+    let setImmediate = function (callback) {
+      Timer.setTimeout(callback, 0);
+    }
+
+    let xpcInspector = Cc["@mozilla.org/jsinspector;1"].
                        getService(Ci.nsIJSInspector);
 
-  let worker = this.worker = new WorkerDebuggerLoader({
-    createSandbox: createSandbox,
-    globals: {
-      "isWorker": true,
-      "reportError": Cu.reportError,
-      "loader": {
-        lazyGetter: function (aObject, aName, aLambda) {
-          Object.defineProperty(aObject, aName, {
-            get: function () {
-              delete aObject[aName];
-              return aObject[aName] = aLambda.apply(aObject);
-            },
-            configurable: true,
-            enumerable: true
-          });
-        },
-        lazyImporter: function () { throw new Error("Can't import JSM from worker debugger server") },
-        lazyServiceGetter: function () { throw new Error("Can't import XPCOM from worker debugger server") },
-        lazyRequireGetter: function (obj, property, module, destructure) {
-          Object.defineProperty(obj, property, {
-            get: () => destructure
-              ? worker.require(module)[property]
-              : worker.require(module || property)
-          });
-        }
-      }
-    },
-    loadInSandbox: loadInSandbox,
-    modules: {
-      "Services": {},
-      "chrome": chrome,
-      "promise": Promise,
-      "Debugger": Debugger,
-      "xpcInspector": xpcInspector,
-      "Timer": Object.create(Timer),
-      "PromiseDebugging": PromiseDebugging
-    },
-    paths: {
-      "": "resource://gre/modules/commonjs/",
-      "devtools": "resource:///modules/devtools",
-      "devtools/server": "resource://gre/modules/devtools/server",
-      "devtools/toolkit": "resource://gre/modules/devtools",
-      "source-map": "resource://gre/modules/devtools/source-map",
-      "xpcshell-test": "resource://test",
-    }
-  });
-}
+    return {
+      Debugger,
+      createSandbox,
+      dump,
+      loadSubScript,
+      reportError,
+      setImmediate,
+      xpcInspector
+    };
+  } else { 
+    throw new Error("Not yet implemented!");
+  }
+}).call(this);
+
+
+
+
+this.worker = new WorkerDebuggerLoader({
+  createSandbox: createSandbox,
+  globals: {
+    "isWorker": true,
+    "dump": dump,
+    "loader": loader,
+    "reportError": reportError,
+    "setImmediate": setImmediate
+  },
+  loadSubScript: loadSubScript,
+  modules: {
+    "Debugger": Debugger,
+    "PromiseDebugging": PromiseDebugging,
+    "Services": Object.create(null),
+    "chrome": chrome,
+    "promise": Promise,
+    "xpcInspector": xpcInspector
+  },
+  paths: {
+    "": "resource://gre/modules/commonjs/",
+    "devtools": "resource:///modules/devtools",
+    "devtools/server": "resource://gre/modules/devtools/server",
+    "devtools/toolkit": "resource://gre/modules/devtools",
+    "source-map": "resource://gre/modules/devtools/source-map",
+    "xpcshell-test": "resource://test"
+  }
+});
