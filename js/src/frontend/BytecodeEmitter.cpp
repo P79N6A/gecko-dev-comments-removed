@@ -5047,19 +5047,30 @@ BytecodeEmitter::emitNormalFor(ParseNode *pn, ptrdiff_t top)
     ParseNode *forBody = pn->pn_right;
 
     
-    JSOp op = JSOP_POP;
-    ParseNode *pn3 = forHead->pn_kid1;
-    if (!pn3) {
+    bool forLoopRequiresFreshening = false;
+    JSOp op;
+    ParseNode *init = forHead->pn_kid1;
+    if (!init) {
         
         
         op = JSOP_NOP;
+    } else if (init->isKind(PNK_FRESHENBLOCK)) {
+        
+        op = JSOP_NOP;
+
+        
+        
+        
+        forLoopRequiresFreshening = true;
     } else {
         emittingForInit = true;
-        if (!updateSourceCoordNotes(pn3->pn_pos.begin))
+        if (!updateSourceCoordNotes(init->pn_pos.begin))
             return false;
-        if (!emitTree(pn3))
+        if (!emitTree(init))
             return false;
         emittingForInit = false;
+
+        op = JSOP_POP;
     }
 
     
@@ -5100,18 +5111,37 @@ BytecodeEmitter::emitNormalFor(ParseNode *pn, ptrdiff_t top)
     ptrdiff_t tmp2 = offset();
 
     
+    
+    
     StmtInfoBCE *stmt = &stmtInfo;
     do {
         stmt->update = offset();
     } while ((stmt = stmt->down) != nullptr && stmt->type == STMT_LABEL);
 
     
-    pn3 = forHead->pn_kid3;
-    if (pn3) {
-        if (!updateSourceCoordNotes(pn3->pn_pos.begin))
+    
+    if (forLoopRequiresFreshening) {
+        
+        
+        
+        
+        
+        StmtInfoBCE *parent = stmtInfo.down;
+        MOZ_ASSERT(parent->type == STMT_BLOCK);
+        MOZ_ASSERT(parent->isBlockScope);
+
+        if (parent->staticScope->as<StaticBlockObject>().needsClone()) {
+            if (!emit1(JSOP_FRESHENBLOCKSCOPE))
+                return false;
+        }
+    }
+
+    
+    if (ParseNode *update = forHead->pn_kid3) {
+        if (!updateSourceCoordNotes(update->pn_pos.begin))
             return false;
         op = JSOP_POP;
-        if (!emitTree(pn3))
+        if (!emitTree(update))
             return false;
 
         

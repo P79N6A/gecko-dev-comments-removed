@@ -28,6 +28,7 @@ class AsmJSModule;
 class InterpreterRegs;
 class CallObject;
 class ScopeObject;
+class ClonedBlockObject;
 class ScriptFrameIter;
 class SPSProfiler;
 class InterpreterFrame;
@@ -233,6 +234,8 @@ class AbstractFramePtr
     inline void setReturnValue(const Value &rval) const;
 
     bool hasPushedSPSFrame() const;
+
+    inline bool freshenBlock(JSContext *cx) const;
 
     inline void popBlock(JSContext *cx) const;
     inline void popWith(JSContext *cx) const;
@@ -587,14 +590,18 @@ class InterpreterFrame
 
     inline void pushOnScopeChain(ScopeObject &scope);
     inline void popOffScopeChain();
+    inline void replaceInnermostScope(ScopeObject &scope);
 
     
 
 
 
 
+
+
     bool pushBlock(JSContext *cx, StaticBlockObject &block);
     void popBlock(JSContext *cx);
+    bool freshenBlock(JSContext *cx);
 
     
 
