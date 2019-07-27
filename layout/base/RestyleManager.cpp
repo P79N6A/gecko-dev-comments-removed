@@ -1454,9 +1454,7 @@ RestyleManager::RebuildAllStyleData(nsChangeHint aExtraHint)
   
   
   
-  DoRebuildAllStyleData(mPendingRestyles, aExtraHint,
-                        nsRestyleHint(eRestyle_Subtree |
-                                      eRestyle_ForceDescendants));
+  DoRebuildAllStyleData(mPendingRestyles, aExtraHint, eRestyle_Subtree);
 
   mPostAnimationRestyles = false;
   mSkipAnimationRules = false;
@@ -1483,8 +1481,10 @@ RestyleManager::DoRebuildAllStyleData(RestyleTracker& aRestyleTracker,
     return;
   }
 
-  if ((aRestyleHint & (eRestyle_Subtree | eRestyle_ForceDescendants)) !=
-      (eRestyle_Subtree | eRestyle_ForceDescendants)) {
+  aRestyleHint = aRestyleHint | eRestyle_ForceDescendants;
+
+  if (!(aRestyleHint & eRestyle_Subtree) &&
+      (aRestyleHint & ~(eRestyle_Force | eRestyle_ForceDescendants))) {
     
     
     
