@@ -56,10 +56,14 @@
 
 
 
+
+
+
 #ifndef NS_UNICODE_SCRIPT_CODES
 #define NS_UNICODE_SCRIPT_CODES
 
 #pragma pack(1)
+
 
 struct nsCharProps1 {
   unsigned char mMirrorOffsetIndex:5;
@@ -67,15 +71,18 @@ struct nsCharProps1 {
   unsigned char mCombiningClass:8;
 };
 
+
+
 struct nsCharProps2 {
   unsigned char mScriptCode:8;
   unsigned char mEAW:3;
   unsigned char mCategory:5;
   unsigned char mBidiCategory:5;
   unsigned char mXidmod:4;
-  signed char mNumericValue:5;
-  unsigned char mHanVariant:2;
+  signed char   mNumericValue:5;
+  unsigned char mVertOrient:2;
 };
+
 
 #pragma pack()
 
