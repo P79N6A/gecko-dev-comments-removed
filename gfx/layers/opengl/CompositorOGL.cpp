@@ -474,8 +474,8 @@ DecomposeIntoNoRepeatRects(const Rect& aRect,
 
   
   
-  br = Point(xwrap ? WrapTexCoord(br.x) : br.x.value,
-             ywrap ? WrapTexCoord(br.y) : br.y.value);
+  br = Point(xwrap ? WrapTexCoord(br.x) : br.x,
+             ywrap ? WrapTexCoord(br.y) : br.y);
 
   
   

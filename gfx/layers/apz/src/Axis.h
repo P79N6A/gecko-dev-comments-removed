@@ -88,8 +88,8 @@ public:
 
 
   bool AdjustDisplacement(CSSCoord aDisplacement,
-                          CSSCoord& aDisplacementOut,
-                          CSSCoord& aOverscrollAmountOut);
+                           float& aDisplacementOut,
+                           float& aOverscrollAmountOut);
 
   
 
