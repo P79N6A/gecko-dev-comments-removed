@@ -50,6 +50,7 @@
 #include "nsPluginStreamListenerPeer.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/LoadInfo.h"
+#include "mozilla/plugins/PluginAsyncSurrogate.h"
 #include "mozilla/plugins/PluginBridge.h"
 #include "mozilla/plugins/PluginTypes.h"
 #include "mozilla/Preferences.h"
@@ -110,6 +111,7 @@
 using namespace mozilla;
 using mozilla::TimeStamp;
 using mozilla::plugins::PluginTag;
+using mozilla::plugins::PluginAsyncSurrogate;
 
 
 
@@ -830,6 +832,7 @@ nsPluginHost::InstantiatePluginInstance(const char *aMimeType, nsIURI* aURL,
   if (NS_FAILED(rv)) {
     return NS_ERROR_FAILURE;
   }
+  const bool isAsyncInit = (rv == NS_PLUGIN_INIT_PENDING);
 
   nsRefPtr<nsNPAPIPluginInstance> instance;
   rv = instanceOwner->GetInstance(getter_AddRefs(instance));
@@ -837,11 +840,9 @@ nsPluginHost::InstantiatePluginInstance(const char *aMimeType, nsIURI* aURL,
     return rv;
   }
 
-  if (instance) {
-    instanceOwner->CreateWidget();
-
-    
-    instanceOwner->CallSetWindow();
+  
+  if (!isAsyncInit && instance) {
+    CreateWidget(instanceOwner);
   }
 
   
@@ -3327,6 +3328,14 @@ nsresult nsPluginHost::NewPluginStreamListener(nsIURI* aURI,
   return NS_OK;
 }
 
+void nsPluginHost::CreateWidget(nsPluginInstanceOwner* aOwner)
+{
+  aOwner->CreateWidget();
+
+  
+  aOwner->CallSetWindow();
+}
+
 NS_IMETHODIMP nsPluginHost::Observe(nsISupports *aSubject,
                                     const char *aTopic,
                                     const char16_t *someData)
@@ -3952,6 +3961,12 @@ PluginDestructionGuard::PluginDestructionGuard(nsNPAPIPluginInstance *aInstance)
   : mInstance(aInstance)
 {
   Init();
+}
+
+PluginDestructionGuard::PluginDestructionGuard(PluginAsyncSurrogate *aSurrogate)
+  : mInstance(static_cast<nsNPAPIPluginInstance*>(aSurrogate->GetNPP()->ndata))
+{
+  InitAsync();
 }
 
 PluginDestructionGuard::PluginDestructionGuard(NPP npp)
