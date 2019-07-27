@@ -15,6 +15,7 @@
 #include "mozilla/StyleAnimationValue.h"
 #include "mozilla/dom/AnimationTimeline.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/Nullable.h"
 #include "nsSMILKeySpline.h"
 #include "nsStyleStruct.h"
 #include "mozilla/Attributes.h"
@@ -384,8 +385,22 @@ public:
   
   
   
-  static ComputedTiming GetComputedTimingAt(TimeDuration aLocalTime,
-                                            const AnimationTiming& aTiming);
+  
+  
+  
+  
+  static ComputedTiming
+  GetComputedTimingAt(const Nullable<mozilla::TimeDuration>& aLocalTime,
+                      const AnimationTiming& aTiming);
+
+  
+  
+  static ComputedTiming
+  GetComputedTimingAt(mozilla::TimeDuration aLocalTime,
+                      const AnimationTiming& aTiming) {
+    return GetComputedTimingAt(Nullable<mozilla::TimeDuration>(aLocalTime),
+                               aTiming);
+  }
 
   
   static mozilla::TimeDuration ActiveDuration(const AnimationTiming& aTiming);

@@ -486,7 +486,7 @@ ElementAnimation::HasAnimationOfProperty(nsCSSProperty aProperty) const
 }
 
 ComputedTiming
-ElementAnimation::GetComputedTimingAt(TimeDuration aLocalTime,
+ElementAnimation::GetComputedTimingAt(const Nullable<TimeDuration>& aLocalTime,
                                       const AnimationTiming& aTiming)
 {
   const TimeDuration zeroDuration;
@@ -506,12 +506,19 @@ ElementAnimation::GetComputedTimingAt(TimeDuration aLocalTime,
 
   
   
+  if (aLocalTime.IsNull()) {
+    return result;
+  }
+  const TimeDuration& localTime = aLocalTime.Value();
+
+  
+  
   
   bool isEndOfFinalIteration = false;
 
   
   TimeDuration activeTime;
-  if (aLocalTime >= aTiming.mDelay + result.mActiveDuration) {
+  if (localTime >= aTiming.mDelay + result.mActiveDuration) {
     result.mPhase = ComputedTiming::AnimationPhase_After;
     if (!aTiming.FillsForwards()) {
       
@@ -524,7 +531,7 @@ ElementAnimation::GetComputedTimingAt(TimeDuration aLocalTime,
     isEndOfFinalIteration =
       aTiming.mIterationCount != 0.0 &&
       aTiming.mIterationCount == floor(aTiming.mIterationCount);
-  } else if (aLocalTime < aTiming.mDelay) {
+  } else if (localTime < aTiming.mDelay) {
     result.mPhase = ComputedTiming::AnimationPhase_Before;
     if (!aTiming.FillsBackwards()) {
       
@@ -536,7 +543,7 @@ ElementAnimation::GetComputedTimingAt(TimeDuration aLocalTime,
     MOZ_ASSERT(result.mActiveDuration != zeroDuration,
                "How can we be in the middle of a zero-duration interval?");
     result.mPhase = ComputedTiming::AnimationPhase_Active;
-    activeTime = aLocalTime - aTiming.mDelay;
+    activeTime = localTime - aTiming.mDelay;
   }
 
   
