@@ -127,14 +127,6 @@ public abstract class GeckoApp
     SensorEventListener,
     Tabs.OnTabsChangedListener {
 
-    protected GeckoApp() {
-        
-        
-        
-        
-        GeckoProfile.setBrowserDBFactory(getBrowserDBFactory());
-    }
-
     private static final String LOGTAG = "GeckoApp";
     private static final int ONE_DAY_MS = 1000*60*60*24;
 
@@ -237,8 +229,6 @@ public abstract class GeckoApp
     public SharedPreferences getSharedPreferences() {
         return GeckoSharedPrefs.forApp(this);
     }
-
-    protected abstract BrowserDB.Factory getBrowserDBFactory();
 
     @Override
     public Activity getActivity() {

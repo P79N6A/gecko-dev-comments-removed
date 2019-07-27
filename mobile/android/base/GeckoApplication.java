@@ -6,6 +6,7 @@ package org.mozilla.gecko;
 
 import org.mozilla.gecko.db.BrowserContract;
 import org.mozilla.gecko.db.BrowserDB;
+import org.mozilla.gecko.db.LocalBrowserDB;
 import org.mozilla.gecko.home.HomePanelsManager;
 import org.mozilla.gecko.lwt.LightweightTheme;
 import org.mozilla.gecko.mozglue.GeckoLoader;
@@ -18,6 +19,8 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.util.Log;
+
+import java.io.File;
 
 public class GeckoApplication extends Application 
     implements ContextGetter {
@@ -128,6 +131,26 @@ public class GeckoApplication extends Application
 
         
         NotificationHelper.getInstance(context).init();
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        GeckoProfile.setBrowserDBFactory(new BrowserDB.Factory() {
+            @Override
+            public BrowserDB get(String profileName, File profileDir) {
+                
+                
+                
+                return new LocalBrowserDB(profileName);
+            }
+        });
+
         super.onCreate();
     }
 

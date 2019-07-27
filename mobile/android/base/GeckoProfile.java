@@ -221,6 +221,8 @@ public final class GeckoProfile {
             
             
             
+            
+            
             Log.d(LOGTAG, "Defaulting to StubBrowserDB.");
             sDBFactory = StubBrowserDB.getFactory();
         }

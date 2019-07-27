@@ -3271,20 +3271,6 @@ public class BrowserApp extends GeckoApp
     }
 
     
-    @Override
-    protected BrowserDB.Factory getBrowserDBFactory() {
-        return new BrowserDB.Factory() {
-            @Override
-            public BrowserDB get(String profileName, File profileDir) {
-                
-                
-                
-                return new LocalBrowserDB(profileName);
-            }
-        };
-    }
-
-    
 
 
 
