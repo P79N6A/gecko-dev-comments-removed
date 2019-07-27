@@ -432,7 +432,8 @@ struct AnimationPlayerCollection : public PRCList
   bool HasCurrentAnimations() const;
   
   
-  bool HasCurrentAnimationsForProperty(nsCSSProperty aProperty) const;
+  bool HasCurrentAnimationsForProperties(const nsCSSProperty* aProperties,
+                                         size_t aPropertyCount) const;
 
   
   TimeStamp mStyleRuleRefreshTime;

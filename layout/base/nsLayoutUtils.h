@@ -2128,8 +2128,9 @@ public:
 
 
 
-  static bool HasCurrentAnimationsForProperty(nsIContent* aContent,
-                                              nsCSSProperty aProperty);
+  static bool HasCurrentAnimationsForProperties(nsIContent* aContent,
+                                                const nsCSSProperty* aProperties,
+                                                size_t aPropertyCount);
 
   
 
