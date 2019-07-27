@@ -5,6 +5,15 @@ const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
+let RIL = {};
+Cu.import("resource://gre/modules/ril_consts.js", RIL);
+
+XPCOMUtils.defineLazyGetter(this, "gStkCmdFactory", function() {
+  let stk = {};
+  Cu.import("resource://gre/modules/StkProactiveCmdFactory.jsm", stk);
+  return stk.StkProactiveCmdFactory;
+});
+
 
 
 
@@ -57,10 +66,14 @@ function run_test() {
   let mobileConnectionMessenger = Cc["@mozilla.org/ril/system-messenger-helper;1"]
                                   .getService(Ci.nsIMobileConnectionMessenger);
 
+  let iccMessenger = Cc["@mozilla.org/ril/system-messenger-helper;1"]
+                     .getService(Ci.nsIIccMessenger);
+
   ok(telephonyMessenger !== null, "Get TelephonyMessenger.");
   ok(smsMessenger != null, "Get SmsMessenger.");
   ok(cellbroadcastMessenger != null, "Get CellbroadcastMessenger.");
   ok(mobileConnectionMessenger != null, "Get MobileConnectionMessenger.");
+  ok(iccMessenger != null, "Get IccMessenger.");
 
   run_next_test();
 }
@@ -510,4 +523,589 @@ add_test(function test_mobileconnection_notify_cdma_info() {
   });
 
   run_next_test();
+});
+
+
+
+
+add_test(function test_icc_stk_cmd_factory_create_command_error() {
+  let messenger = newRILSystemMessenger();
+
+  
+  try {
+    gStkCmdFactory.createCommand({
+      commandNumber: 0,
+      typeOfCommand: RIL.STK_CMD_MORE_TIME, 
+      commandQualifier: 0x00
+    });
+
+    ok(false, "Failed to verify the protection of createCommand()!");
+  } catch (e) {
+    equal(e.message, "Unknown Command Type: " + RIL.STK_CMD_MORE_TIME);
+  }
+
+  run_next_test();
+});
+
+
+
+
+add_test(function test_icc_stk_cmd_factory_create_system_msg_invalid_cmd_type() {
+  let messenger = newRILSystemMessenger();
+  let iccId = "99887766554433221100";
+
+  
+  try {
+    gStkCmdFactory.createCommandMessage({
+      QueryInterface: XPCOMUtils.generateQI([Ci.nsIStkProactiveCmd]),
+
+      
+      commandNumber: 0,
+      typeOfCommand: RIL.STK_CMD_MORE_TIME, 
+      commandQualifier: 0
+    });
+
+    ok(false, "Failed to identify invalid typeOfCommand!");
+  } catch (e) {
+    equal(e.message, "Unknown Command Type: " + RIL.STK_CMD_MORE_TIME);
+  }
+
+  run_next_test();
+});
+
+
+
+
+add_test(function test_icc_stk_cmd_factory_create_system_msg_incorrect_cmd_type() {
+  let messenger = newRILSystemMessenger();
+  let iccId = "99887766554433221100";
+
+  
+  try {
+    gStkCmdFactory.createCommandMessage({
+      QueryInterface: XPCOMUtils.generateQI([Ci.nsIStkProactiveCmd,
+                                             Ci.nsIStkProvideLocalInfoCmd]),
+
+      
+      commandNumber: 0,
+      typeOfCommand: RIL.STK_CMD_POLL_INTERVAL, 
+      commandQualifier: 0,
+      
+      localInfoType: 0x00,
+    });
+
+    ok(false, "Failed to identify incorrect typeOfCommand!");
+  } catch (e) {
+    ok(e.message.indexOf("Failed to convert command into concrete class: ") !== -1);
+  }
+
+  run_next_test();
+});
+
+
+
+
+add_test(function test_icc_notify_stk_proactive_command() {
+  let messenger = newRILSystemMessenger();
+  let iccId = "99887766554433221100";
+  let WHT = 0xFFFFFFFF;
+  let BLK = 0x000000FF;
+  let RED = 0xFF0000FF;
+  let GRN = 0x00FF00FF;
+  let BLU = 0x0000FFFF;
+  let TSP = 0;
+  
+  let basicIcon = {
+    width: 8,
+    height: 8,
+    codingScheme: "basic",
+    pixels: [WHT, WHT, WHT, WHT, WHT, WHT, WHT, WHT,
+             BLK, BLK, BLK, BLK, BLK, BLK, WHT, WHT,
+             WHT, BLK, WHT, BLK, BLK, WHT, BLK, WHT,
+             WHT, BLK, BLK, WHT, WHT, BLK, BLK, WHT,
+             WHT, BLK, BLK, WHT, WHT, BLK, BLK, WHT,
+             WHT, BLK, WHT, BLK, BLK, WHT, BLK, WHT,
+             WHT, WHT, BLK, BLK, BLK, BLK, WHT, WHT,
+             WHT, WHT, WHT, WHT, WHT, WHT, WHT, WHT]
+  };
+  
+  let colorIcon = {
+    width: 8,
+    height: 8,
+    codingScheme: "color",
+    pixels: [BLU, BLU, BLU, BLU, BLU, BLU, BLU, BLU,
+             BLU, RED, RED, RED, RED, RED, RED, BLU,
+             BLU, RED, GRN, GRN, GRN, RED, RED, BLU,
+             BLU, RED, RED, GRN, GRN, RED, RED, BLU,
+             BLU, RED, RED, GRN, GRN, RED, RED, BLU,
+             BLU, RED, RED, GRN, GRN, GRN, RED, BLU,
+             BLU, RED, RED, RED, RED, RED, RED, BLU,
+             BLU, BLU, BLU, BLU, BLU, BLU, BLU, BLU]
+  };
+  
+  let colorTransparencyIcon = {
+    width: 8,
+    height: 8,
+    codingScheme: "color-transparency",
+    pixels: [TSP, TSP, TSP, TSP, TSP, TSP, TSP, TSP,
+             TSP, RED, RED, RED, RED, RED, RED, TSP,
+             TSP, RED, GRN, GRN, GRN, RED, RED, TSP,
+             TSP, RED, RED, GRN, GRN, RED, RED, TSP,
+             TSP, RED, RED, GRN, GRN, RED, RED, TSP,
+             TSP, RED, RED, GRN, GRN, GRN, RED, TSP,
+             TSP, RED, RED, RED, RED, RED, RED, TSP,
+             TSP, TSP, TSP, TSP, TSP, TSP, TSP, TSP]
+  };
+
+  let cmdCount = 0;
+
+  
+  let messages = [
+    
+    {
+      commandNumber: ++cmdCount,
+      typeOfCommand: RIL.STK_CMD_REFRESH,
+      commandQualifier: 0x04 
+    },
+    
+    {
+      commandNumber: ++cmdCount,
+      typeOfCommand: RIL.STK_CMD_POLL_INTERVAL,
+      commandQualifier: 0x00, 
+      options: {
+        timeUnit: RIL.STK_TIME_UNIT_TENTH_SECOND,
+        timeInterval: 0x05
+      }
+    },
+    
+    {
+      commandNumber: ++cmdCount,
+      typeOfCommand: RIL.STK_CMD_POLL_OFF,
+      commandQualifier: 0x00, 
+    },
+    
+    {
+      commandNumber: ++cmdCount,
+      typeOfCommand: RIL.STK_CMD_PROVIDE_LOCAL_INFO,
+      commandQualifier: 0x01, 
+      options: {
+        localInfoType: 0x01 
+      }
+    },
+    
+    {
+      commandNumber: ++cmdCount,
+      typeOfCommand: RIL.STK_CMD_SET_UP_EVENT_LIST,
+      commandQualifier: 0x00, 
+      options: {
+        eventList: [ 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+                     0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
+                     0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+                     0x18, 0x19, 0x1A, 0x1B, 0x1C ]
+      }
+    },
+    
+    {
+      commandNumber: ++cmdCount,
+      typeOfCommand: RIL.STK_CMD_SET_UP_EVENT_LIST,
+      commandQualifier: 0x00, 
+      options: {
+        eventList: null
+      }
+    },
+    
+    {
+      commandNumber: ++cmdCount,
+      typeOfCommand: RIL.STK_CMD_SET_UP_MENU,
+      commandQualifier: 0x80, 
+      options: {
+        title: "Toolkit Menu 1",
+        items: [
+          { identifier: 0x01, text: "Menu Item 1" },
+          { identifier: 0x02, text: "Menu Item 2" },
+          { identifier: 0x03, text: "Menu Item 3" }
+        ],
+        presentationType: RIL.STK_PRESENTATION_TYPE_NOT_SPECIFIED,
+        isHelpAvailable: true
+      }
+    },
+    
+    
+    {
+      commandNumber: ++cmdCount,
+      typeOfCommand: RIL.STK_CMD_SET_UP_MENU,
+      commandQualifier: 0x00, 
+      options: {
+        title: "Toolkit Menu 2",
+        items: [
+          { identifier: 0x01,
+            text: "Menu Item 1",
+            iconSelfExplanatory: true,
+            icons: [basicIcon]
+          },
+          { identifier: 0x02,
+            text: "Menu Item 2",
+            iconSelfExplanatory: false,
+            icons: [basicIcon, colorIcon]
+          },
+          { identifier: 0x03,
+            text: "Menu Item 3",
+            iconSelfExplanatory: true,
+            icons: [basicIcon, colorIcon, colorTransparencyIcon]
+          },
+        ],
+        nextActionList: [
+          RIL.STK_NEXT_ACTION_END_PROACTIVE_SESSION,
+          RIL.STK_NEXT_ACTION_NULL,
+          RIL.STK_NEXT_ACTION_NULL,
+          RIL.STK_NEXT_ACTION_NULL
+        ],
+        iconSelfExplanatory: false,
+        icons: [basicIcon, colorIcon, colorTransparencyIcon],
+        presentationType: RIL.STK_PRESENTATION_TYPE_NOT_SPECIFIED,
+        isHelpAvailable: false
+      }
+    },
+    
+    {
+      commandNumber: ++cmdCount,
+      typeOfCommand: RIL.STK_CMD_SELECT_ITEM,
+      commandQualifier: RIL.STK_PRESENTATION_TYPE_NOT_SPECIFIED,
+      options: {
+        items: [
+          { identifier: 0x01, text: "Menu Item 1" },
+          { identifier: 0x02, text: "Menu Item 2" },
+          { identifier: 0x03, text: "Menu Item 3" }
+        ],
+        isHelpAvailable: false
+      }
+    },
+    
+    
+    {
+      commandNumber: ++cmdCount,
+      typeOfCommand: RIL.STK_CMD_SELECT_ITEM,
+      commandQualifier: RIL.STK_PRESENTATION_TYPE_NAVIGATION_OPTIONS,
+      options: {
+        title: "Selected Toolkit Menu",
+        items: [
+          { identifier: 0x01,
+            text: "Menu Item 1",
+            iconSelfExplanatory: true,
+            icons: [basicIcon]
+          },
+          { identifier: 0x02,
+            text: "Menu Item 2",
+            iconSelfExplanatory: false,
+            icons: [basicIcon, colorIcon]
+          },
+          { identifier: 0x03,
+            text: "Menu Item 3",
+            iconSelfExplanatory: true,
+            icons: [basicIcon, colorIcon, colorTransparencyIcon]
+          },
+        ],
+        nextActionList: [
+          RIL.STK_NEXT_ACTION_END_PROACTIVE_SESSION,
+          RIL.STK_NEXT_ACTION_NULL,
+          RIL.STK_NEXT_ACTION_NULL,
+          RIL.STK_NEXT_ACTION_NULL
+        ],
+        defaultItem: 0x02,
+        iconSelfExplanatory: false,
+        icons: [basicIcon, colorIcon, colorTransparencyIcon],
+        isHelpAvailable: false
+      }
+    },
+    
+    {
+      commandNumber: ++cmdCount,
+      typeOfCommand: RIL.STK_CMD_DISPLAY_TEXT,
+      commandQualifier: 0x01, 
+      options: {
+        text: "Display Text 1",
+        isHighPriority: true,
+        userClear: false,
+        responseNeeded: false
+      }
+    },
+    
+    {
+      commandNumber: ++cmdCount,
+      typeOfCommand: RIL.STK_CMD_DISPLAY_TEXT,
+      commandQualifier: 0x80, 
+      options: {
+        text: "Display Text 2",
+        isHighPriority: false,
+        userClear: true,
+        responseNeeded: true,
+        duration: {
+          timeUnit: RIL.STK_TIME_UNIT_TENTH_SECOND,
+          timeInterval: 0x05
+        },
+        iconSelfExplanatory: true,
+        icons: [basicIcon]
+      }
+    },
+    
+    {
+      commandNumber: ++cmdCount,
+      typeOfCommand: RIL.STK_CMD_SET_UP_IDLE_MODE_TEXT,
+      commandQualifier: 0x00, 
+      options: {
+        text: "Setup Idle Mode Text"
+      }
+    },
+    
+    {
+      commandNumber: ++cmdCount,
+      typeOfCommand: RIL.STK_CMD_SEND_SS,
+      commandQualifier: 0x00, 
+      options: {
+        text: "Send SS",
+        iconSelfExplanatory: true,
+        icons: [colorIcon]
+      }
+    },
+    
+    {
+      commandNumber: ++cmdCount,
+      typeOfCommand: RIL.STK_CMD_SEND_USSD,
+      commandQualifier: 0x00, 
+      options: {
+        text: "Send USSD"
+      }
+    },
+    
+    {
+      commandNumber: ++cmdCount,
+      typeOfCommand: RIL.STK_CMD_SEND_SMS,
+      commandQualifier: 0x00, 
+      options: {
+        text: "Send SMS",
+        iconSelfExplanatory: false,
+        icons: [colorTransparencyIcon]
+      }
+    },
+    
+    {
+      commandNumber: ++cmdCount,
+      typeOfCommand: RIL.STK_CMD_SEND_DTMF,
+      commandQualifier: 0x00, 
+      options: {
+        text: "Send DTMF",
+        iconSelfExplanatory: true,
+        icons: [basicIcon]
+      }
+    },
+    
+    {
+      commandNumber: ++cmdCount,
+      typeOfCommand: RIL.STK_CMD_GET_INKEY,
+      commandQualifier: 0x84, 
+      options: {
+        text: "Get Input Key",
+        minLength: 1,
+        maxLength: 1,
+        duration: {
+          timeUnit: RIL.STK_TIME_UNIT_SECOND,
+          timeInterval: 0x0A
+        },
+        isAlphabet: false,
+        isUCS2: false,
+        isYesNoRequested: true,
+        isHelpAvailable: true,
+        iconSelfExplanatory: false,
+        icons: [colorIcon]
+      }
+    },
+    
+    {
+      commandNumber: ++cmdCount,
+      typeOfCommand: RIL.STK_CMD_GET_INPUT,
+      commandQualifier: 0x0F, 
+      options: {
+        text: "Get Input Text",
+        minLength: 1,
+        maxLength: 255,
+        defaultText: "Default Input Text",
+        isAlphabet: true,
+        isUCS2: true,
+        hideInput: true,
+        isPacked: true,
+        isHelpAvailable: false,
+        iconSelfExplanatory: true,
+        icons: [basicIcon]
+      }
+    },
+    
+    {
+      commandNumber: ++cmdCount,
+      typeOfCommand: RIL.STK_CMD_SET_UP_CALL,
+      commandQualifier: 0x00, 
+      options: {
+        address: "+0987654321"
+      }
+    },
+    
+    {
+      commandNumber: ++cmdCount,
+      typeOfCommand: RIL.STK_CMD_SET_UP_CALL,
+      commandQualifier: 0x00, 
+      options: {
+        address: "+0987654321",
+        confirmMessage: {
+          text: "Confirm Message",
+          iconSelfExplanatory: false,
+          icons: [colorIcon]
+        },
+        callMessage: {
+          text: "Call Message",
+          iconSelfExplanatory: true,
+          icons: [basicIcon]
+        },
+        duration: {
+          timeUnit: RIL.STK_TIME_UNIT_SECOND,
+          timeInterval: 0x0A
+        }
+      }
+    },
+    
+    {
+      commandNumber: ++cmdCount,
+      typeOfCommand: RIL.STK_CMD_LAUNCH_BROWSER,
+      commandQualifier: RIL.STK_BROWSER_MODE_USING_NEW_BROWSER,
+      options: {
+        url: "http://www.mozilla.org",
+        mode: RIL.STK_BROWSER_MODE_USING_NEW_BROWSER
+      }
+    },
+    
+    {
+      commandNumber: ++cmdCount,
+      typeOfCommand: RIL.STK_CMD_LAUNCH_BROWSER,
+      commandQualifier: RIL.STK_BROWSER_MODE_USING_NEW_BROWSER,
+      options: {
+        url: "http://www.mozilla.org",
+        mode: RIL.STK_BROWSER_MODE_USING_NEW_BROWSER,
+        confirmMessage: {
+          text: "Confirm Message for Launch Browser",
+          iconSelfExplanatory: false,
+          icons: [colorTransparencyIcon]
+        }
+      }
+    },
+    
+    {
+      commandNumber: ++cmdCount,
+      typeOfCommand: RIL.STK_CMD_PLAY_TONE,
+      commandQualifier: 0x01, 
+      options: {
+        isVibrate: true
+      }
+    },
+    
+    {
+      commandNumber: ++cmdCount,
+      typeOfCommand: RIL.STK_CMD_PLAY_TONE,
+      commandQualifier: 0x00, 
+      options: {
+        text: "Play Tone",
+        tone: RIL.STK_TONE_TYPE_CONGESTION,
+        isVibrate: false,
+        duration: {
+          timeUnit: RIL.STK_TIME_UNIT_SECOND,
+          timeInterval: 0x0A
+        },
+        iconSelfExplanatory: true,
+        icons: [basicIcon]
+      }
+    },
+    
+    {
+      commandNumber: ++cmdCount,
+      typeOfCommand: RIL.STK_CMD_TIMER_MANAGEMENT,
+      commandQualifier: RIL.STK_TIMER_DEACTIVATE,
+      options: {
+        timerId: 0x08,
+        timerAction: RIL.STK_TIMER_DEACTIVATE
+      }
+    },
+    
+    {
+      commandNumber: ++cmdCount,
+        typeOfCommand: RIL.STK_CMD_TIMER_MANAGEMENT,
+        commandQualifier: RIL.STK_TIMER_START,
+        options: {
+          timerId: 0x01,
+          timerValue: (12 * 60 * 60) + (30 * 60) + (30), 
+          timerAction: RIL.STK_TIMER_START
+        }
+    },
+    
+    {
+      commandNumber: ++cmdCount,
+      typeOfCommand: RIL.STK_CMD_OPEN_CHANNEL,
+      commandQualifier: 0x00,  
+      options: {
+      }
+    },
+    
+    {
+      commandNumber: ++cmdCount,
+      typeOfCommand: RIL.STK_CMD_OPEN_CHANNEL,
+      commandQualifier: 0x00,  
+      options: {
+        text: "Open Channel",
+        iconSelfExplanatory: false,
+        icons: [colorIcon]
+      }
+    },
+    
+    {
+      commandNumber: ++cmdCount,
+      typeOfCommand: RIL.STK_CMD_CLOSE_CHANNEL,
+      commandQualifier: 0x00,  
+      options: {
+        text: "Close Channel",
+        iconSelfExplanatory: true,
+        icons: [colorTransparencyIcon]
+      }
+    },
+    
+    {
+      commandNumber: ++cmdCount,
+      typeOfCommand: RIL.STK_CMD_SEND_DATA,
+      commandQualifier: 0x00,  
+      options: {
+        iconSelfExplanatory: false,
+        icons: [basicIcon]
+      }
+    },
+    
+    {
+      commandNumber: ++cmdCount,
+      typeOfCommand: RIL.STK_CMD_RECEIVE_DATA,
+      commandQualifier: 0x00,  
+      options: {
+        text: "Receive Data"
+      }
+    },
+    null 
+  ];
+
+  messages.forEach(function(aMessage) {
+    if (!aMessage) {
+      run_next_test();
+      return;
+    }
+
+    messenger.notifyStkProactiveCommand(iccId,
+                                        gStkCmdFactory.createCommand(aMessage));
+
+    equal_received_system_message("icc-stkcommand", {
+      iccId: iccId,
+      command: aMessage
+    });
+  });
 });
