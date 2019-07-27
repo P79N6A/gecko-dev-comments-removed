@@ -60,7 +60,7 @@ TriggerAnimationAtTime(nsRefPtrHashKey<dom::Animation>* aKey,
   
   
   
-  if (timeline->IsUnderTestControl()) {
+  if (!timeline->TracksWallclockTime()) {
     return PL_DHASH_NEXT;
   }
 

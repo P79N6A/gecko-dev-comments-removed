@@ -47,6 +47,29 @@ public:
     return AnimationUtils::TimeDurationToDouble(GetCurrentTime());
   }
 
+  
+
+
+
+
+
+
+
+
+  virtual bool TracksWallclockTime() const = 0;
+
+  
+
+
+
+
+
+
+  virtual Nullable<TimeDuration> ToTimelineTime(const TimeStamp&
+                                                  aTimeStamp) const = 0;
+
+  virtual TimeStamp ToTimeStamp(const TimeDuration& aTimelineTime) const = 0;
+
 protected:
   nsCOMPtr<nsIGlobalObject> mWindow;
 };

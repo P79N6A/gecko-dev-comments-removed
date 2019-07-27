@@ -40,28 +40,19 @@ public:
   
   virtual Nullable<TimeDuration> GetCurrentTime() const override;
 
-  
-  
-  
-  
-  
-  Nullable<TimeDuration> ToTimelineTime(const TimeStamp& aTimeStamp) const;
-  TimeStamp ToTimeStamp(const TimeDuration& aTimelineTime) const;
-
-  nsRefreshDriver* GetRefreshDriver() const;
-  
-  
-  
-  
-  
-  bool IsUnderTestControl() const
+  bool TracksWallclockTime() const override
   {
     nsRefreshDriver* refreshDriver = GetRefreshDriver();
-    return refreshDriver && refreshDriver->IsTestControllingRefreshesEnabled();
+    return !refreshDriver ||
+           !refreshDriver->IsTestControllingRefreshesEnabled();
   }
+  Nullable<TimeDuration> ToTimelineTime(const TimeStamp& aTimeStamp) const
+                                                                     override;
+  TimeStamp ToTimeStamp(const TimeDuration& aTimelineTime) const override;
 
 protected:
   TimeStamp GetCurrentTimeStamp() const;
+  nsRefreshDriver* GetRefreshDriver() const;
 
   nsCOMPtr<nsIDocument> mDocument;
 

@@ -460,11 +460,10 @@ AddAnimationsForProperty(nsIFrame* aFrame, nsCSSProperty aProperty,
     
     
     
-    if (anim->PlayState() == AnimationPlayState::Pending) {
-      nsRefreshDriver* driver = anim->Timeline()->GetRefreshDriver();
-      if (driver && driver->IsTestControllingRefreshesEnabled()) {
-        continue;
-      }
+    
+    if (anim->PlayState() == AnimationPlayState::Pending &&
+        !anim->Timeline()->TracksWallclockTime()) {
+      continue;
     }
 
     AddAnimationForProperty(aFrame, *property, anim, aLayer, aData, aPending);
