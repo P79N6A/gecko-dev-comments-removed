@@ -80,6 +80,9 @@ public:
     mDiscarded = true;
   }
 
+  
+  bool ContainsTime(double aTime);
+
 private:
   MediaSourceDecoder* mParentDecoder;
   nsRefPtr<MediaDecoderReader> mReader;

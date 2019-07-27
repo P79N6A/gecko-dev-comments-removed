@@ -77,9 +77,6 @@ public:
   void Evict(double aStart, double aEnd);
 
   
-  bool AllContainsTime(double aTime);
-
-  
   double GetHighestBufferedEndTime();
 
 private:

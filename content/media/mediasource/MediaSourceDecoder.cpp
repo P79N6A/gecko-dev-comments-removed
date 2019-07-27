@@ -181,6 +181,9 @@ public:
     return mDecoder->IsShutdown();
   }
 
+  
+  bool DecodersContainTime(double aTime);
+
 private:
   
   int64_t mTimeThreshold;
@@ -533,6 +536,17 @@ private:
 };
 }
 
+bool
+MediaSourceReader::DecodersContainTime(double aTime)
+{
+  for (uint32_t i = 0; i < mDecoders.Length(); ++i) {
+    if (!mDecoders[i]->IsDiscarded() && mDecoders[i]->ContainsTime(aTime)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 nsresult
 MediaSourceReader::Seek(int64_t aTime, int64_t aStartTime, int64_t aEndTime,
                         int64_t aCurrentTime)
@@ -540,7 +554,7 @@ MediaSourceReader::Seek(int64_t aTime, int64_t aStartTime, int64_t aEndTime,
   MSE_DEBUG("MediaSourceReader(%p)::Seek(aTime=%lld, aStart=%lld, aEnd=%lld, aCurrent=%lld)",
             this, aTime, aStartTime, aEndTime, aCurrentTime);
   double target = static_cast<double>(aTime) / USECS_PER_S;
-  if (!mMediaSource->ActiveSourceBuffers()->AllContainsTime(target)) {
+  if (!DecodersContainTime(target)) {
     MSE_DEBUG("MediaSourceReader(%p)::Seek no active buffer contains target=%f", this, target);
     NS_DispatchToMainThread(new ChangeToHaveMetadata(mDecoder));
   }
@@ -549,7 +563,7 @@ MediaSourceReader::Seek(int64_t aTime, int64_t aStartTime, int64_t aEndTime,
   
   
   
-  while (!mMediaSource->ActiveSourceBuffers()->AllContainsTime(target)
+  while (!DecodersContainTime(target)
          && !IsShutdown()) {
     MSE_DEBUG("MediaSourceReader(%p)::Seek waiting for target=%f", this, target);
     mMediaSource->WaitForData();

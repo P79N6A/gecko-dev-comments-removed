@@ -108,9 +108,6 @@ public:
   
   void Evict(double aStart, double aEnd);
 
-  
-  bool ContainsTime(double aTime);
-
   double GetBufferedStart();
   double GetBufferedEnd();
 
