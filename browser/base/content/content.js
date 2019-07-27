@@ -370,6 +370,9 @@ let ClickEventHandler = {
 
     let originalTarget = event.originalTarget;
     let ownerDoc = originalTarget.ownerDocument;
+    if (!ownerDoc) {
+      return;
+    }
 
     
     if (ownerDoc.documentURI.startsWith("about:certerror")) {
