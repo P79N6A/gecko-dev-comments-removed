@@ -775,9 +775,6 @@ class TreeMetadataEmitter(LoggingMixin):
                 if ext not in allowed_suffixes:
                     raise SandboxValidationError(
                         '%s has an unknown file type.' % f, context)
-                if variable.startswith('GENERATED_'):
-                    l = passthru.variables.setdefault('GARBAGE', [])
-                    l.append(f)
 
             
             sorted_files = sorted(context[variable], key=canonical_suffix_for_file)
