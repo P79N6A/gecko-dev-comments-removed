@@ -15,6 +15,14 @@
 #include "updatehelper.h"
 #endif
 
+#ifdef XP_WIN
+
+
+#include "primaryCert.h"
+#include "secondaryCert.h"
+#include "xpcshellCert.h"
+#endif
+
 #define UPDATER_NO_STRING_GLUE_STL
 #include "nsVersionComparator.cpp"
 #undef UPDATER_NO_STRING_GLUE_STL
@@ -41,54 +49,12 @@ static char *outbuf = nullptr;
 
 
 
-
-
-BOOL
-LoadFileInResource(int name, int type, const uint8_t *&data, uint32_t& size)
-{
-  HMODULE handle = GetModuleHandle(nullptr);
-  if (!handle) {
-    return FALSE;
-  }
-
-  HRSRC resourceInfoBlockHandle = FindResource(handle, 
-                                               MAKEINTRESOURCE(name),
-                                               MAKEINTRESOURCE(type));
-  if (!resourceInfoBlockHandle) {
-    FreeLibrary(handle);
-    return FALSE;
-  }
-
-  HGLOBAL resourceHandle = LoadResource(handle, resourceInfoBlockHandle);
-  if (!resourceHandle) {
-    FreeLibrary(handle);
-    return FALSE;
-  }
-
-  size = SizeofResource(handle, resourceInfoBlockHandle);
-  data = static_cast<const uint8_t*>(::LockResource(resourceHandle));
-  FreeLibrary(handle);
-  return TRUE;
-}
-
-
-
-
-
-
-
-
-
-
+template<uint32_t SIZE>
 int
-VerifyLoadedCert(MarFile *archive, int name, int type)
+VerifyLoadedCert(MarFile *archive, const uint8_t (&certData)[SIZE])
 {
-  uint32_t size = 0;
-  const uint8_t *data = nullptr;
-  if (!LoadFileInResource(name, type, data, size) || !data || !size) {
-    return CERT_LOAD_ERROR;
-  }
-
+  const uint32_t size = SIZE;
+  const uint8_t * const data = &certData[0];
   if (mar_verify_signaturesW(archive, &data, &size, 1)) {
     return CERT_VERIFY_ERROR;
   }
@@ -118,11 +84,11 @@ ArchiveReader::VerifySignature()
   
   int rv;
   if (DoesFallbackKeyExist()) {
-    rv = VerifyLoadedCert(mArchive, IDR_XPCSHELL_CERT, TYPE_CERT);
+    rv = VerifyLoadedCert(mArchive, xpcshellCertData);
   } else {
-    rv = VerifyLoadedCert(mArchive, IDR_PRIMARY_CERT, TYPE_CERT);
+    rv = VerifyLoadedCert(mArchive, primaryCertData);
     if (rv != OK) {
-      rv = VerifyLoadedCert(mArchive, IDR_BACKUP_CERT, TYPE_CERT);
+      rv = VerifyLoadedCert(mArchive, secondaryCertData);
     }
   }
   return rv;
