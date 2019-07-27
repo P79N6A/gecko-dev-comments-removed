@@ -79,3 +79,22 @@ function loadSegment(sb, typedArrayOrArrayBuffer) {
     sb.appendBuffer(typedArray);
   });
 }
+
+function fetchAndLoad(sb, prefix, chunks, suffix) {
+
+  
+  var buffers = {};
+  var fetches = [];
+  for (var chunk of chunks) {
+    fetches.push(fetchWithXHR(prefix + chunk + suffix).then(((c, x) => buffers[c] = x).bind(null, chunk)));
+  }
+
+  
+  return Promise.all(fetches).then(function() {
+    var rv = Promise.resolve();
+    for (var chunk of chunks) {
+      rv = rv.then(loadSegment.bind(null, sb, buffers[chunk]));
+    }
+    return rv;
+  });
+}
