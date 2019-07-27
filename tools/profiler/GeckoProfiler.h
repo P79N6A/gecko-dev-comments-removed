@@ -173,6 +173,22 @@ static inline char** profiler_get_features() { return nullptr; }
 
 
 
+
+
+
+
+static inline void profiler_get_buffer_info(uint32_t *aCurrentPosition,
+                                            uint32_t *aTotalSize,
+                                            uint32_t *aGeneration)
+{
+  *aCurrentPosition = 0;
+  *aTotalSize = 0;
+  *aGeneration = 0;
+}
+
+
+
+
 static inline void profiler_lock() {}
 
 
