@@ -325,6 +325,8 @@ private:
 
 struct CustomElementData
 {
+  NS_INLINE_DECL_REFCOUNTING(CustomElementData)
+
   explicit CustomElementData(nsIAtom* aType);
   
   
@@ -346,6 +348,9 @@ struct CustomElementData
 
   
   void RunCallbackQueue();
+
+private:
+  virtual ~CustomElementData() {}
 };
 
 
@@ -1520,7 +1525,7 @@ private:
   
   
   
-  static mozilla::Maybe<nsTArray<mozilla::dom::CustomElementData*>> sProcessingStack;
+  static mozilla::Maybe<nsTArray<nsRefPtr<mozilla::dom::CustomElementData>>> sProcessingStack;
 
   
   

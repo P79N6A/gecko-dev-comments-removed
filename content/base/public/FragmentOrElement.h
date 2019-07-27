@@ -412,7 +412,7 @@ public:
     
 
 
-    nsAutoPtr<CustomElementData> mCustomElementData;
+    nsRefPtr<CustomElementData> mCustomElementData;
   };
 
 protected:
