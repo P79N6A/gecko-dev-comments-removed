@@ -96,6 +96,7 @@ private:
   
   nsRefPtr<MediaRawData> mQueuedSample;
   bool mNeedReIndex;
+  bool mNeedSPSForTelemetry;
 
   
   
