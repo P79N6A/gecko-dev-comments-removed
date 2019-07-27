@@ -14,6 +14,7 @@
 #include "nsIPrefBranch.h"
 #include "nsIViewSourceChannel.h"
 #include "nsChannelProperties.h"
+#include "nsContentUtils.h"
 
 #include "nsIScriptSecurityManager.h"
 #include "nsIPrincipal.h"
@@ -856,10 +857,31 @@ nsJARChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *ctx)
         
         
         rv = NS_NewDownloader(getter_AddRefs(mDownloader), this);
-        if (NS_SUCCEEDED(rv))
-            rv = NS_OpenURI(mDownloader, nullptr, mJarBaseURI, nullptr,
-                            mLoadGroup, mCallbacks,
-                            mLoadFlags & ~(LOAD_DOCUMENT_URI | LOAD_CALL_CONTENT_SNIFFERS));
+        if (NS_SUCCEEDED(rv)) {
+            
+            
+            if (mLoadInfo) {
+              rv = NS_OpenURIInternal(mDownloader,
+                                      nullptr,   
+                                      mJarBaseURI,
+                                      mLoadInfo,
+                                      mLoadGroup,
+                                      mCallbacks,
+                                      mLoadFlags & ~(LOAD_DOCUMENT_URI | LOAD_CALL_CONTENT_SNIFFERS));
+            }
+            else {
+              rv = NS_OpenURIInternal(mDownloader,
+                                      nullptr,   
+                                      mJarBaseURI,
+                                      nullptr, 
+                                      nsContentUtils::GetSystemPrincipal(),
+                                      nsILoadInfo::SEC_NORMAL,
+                                      nsIContentPolicy::TYPE_OTHER,
+                                      mLoadGroup,
+                                      mCallbacks,
+                                      mLoadFlags & ~(LOAD_DOCUMENT_URI | LOAD_CALL_CONTENT_SNIFFERS));
+            }
+        }
     } else if (mOpeningRemote) {
         
     } else {
