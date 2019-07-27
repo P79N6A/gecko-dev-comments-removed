@@ -1,11 +1,11 @@
 
 
 
-
-'use strict'
+'use strict';
 
 const { defer: async } = require('sdk/lang/functional');
 const { before, after } = require('sdk/test/utils');
+const { resolve } = require('sdk/core/promise');
 
 let AFTER_RUN = 0;
 let BEFORE_RUN = 0;
@@ -55,11 +55,22 @@ exports.testSyncAfter = function (assert) {
   AFTER_RUN = 0;
 };
 
+exports.testGeneratorBefore = function*(assert) {
+  assert.equal(BEFORE_RUN, 1, 'before function was called for generator test');
+  BEFORE_RUN = 0;
+  AFTER_RUN = 0;
+  yield resolve();
+}
+
+exports.testGeneratorAfter = function*(assert) {
+  assert.equal(AFTER_RUN, 1, 'after function was called for generator test');
+  BEFORE_RUN = 0;
+  AFTER_RUN = 0;
+  yield resolve();
+};
+
 before(exports, (name, assert, done) => {
-  if (name === 'testABeforeNameAsync')
-    BEFORE_RUN = 2;
-  else
-    BEFORE_RUN = 1;
+  BEFORE_RUN = (name === 'testABeforeNameAsync') ? 2 : 1;
   assert.pass('assert passed into before function');
   async(done)();
 });
@@ -67,10 +78,7 @@ before(exports, (name, assert, done) => {
 after(exports, (name, assert, done) => {
   
   
-  if (name === 'testAfterAsync')
-    AFTER_RUN = 2;
-  else
-    AFTER_RUN = 1;
+  AFTER_RUN = (name === 'testAfterAsync') ? 2 : 1;
   assert.pass('assert passed into after function');
   async(done)();
 });

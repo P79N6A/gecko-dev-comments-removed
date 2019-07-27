@@ -539,7 +539,7 @@ exports.testFork = function (assert) {
 
 after(exports, cleanUp);
 
-require("test").run(exports);
+require("sdk/test").run(exports);
 
 
 module.exports = {};

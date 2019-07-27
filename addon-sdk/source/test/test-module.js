@@ -1,7 +1,6 @@
 
 
 
-
 "use strict";
 
 
@@ -34,4 +33,4 @@ exports["test can't override exported property"] = function(assert) {
   assert.equal(hotkeys.Hotkey, Hotkey, "exports can't be overriden");
 };
 
-require("test").run(exports);
+require("sdk/test").run(exports);

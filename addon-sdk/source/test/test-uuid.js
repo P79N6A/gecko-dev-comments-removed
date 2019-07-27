@@ -1,7 +1,6 @@
 
 
 
-
 "use strict";
 
 const { uuid } = require('sdk/util/uuid');
@@ -24,4 +23,4 @@ exports['test parse uuid'] = function(assert) {
   assert.equal(String(actual), firefoxUUID, 'serializes to the same value');
 };
 
-require('test').run(exports);
+require('sdk/test').run(exports);

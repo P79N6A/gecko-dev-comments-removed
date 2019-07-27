@@ -1,7 +1,6 @@
 
 
 
-
 "use strict";
 
 const { ns } = require("sdk/core/namespace");
@@ -118,4 +117,4 @@ exports["test ns inheritance"] = function(assert) {
             "descendants properties are inherited");
 };
 
-require("test").run(exports);
+require("sdk/test").run(exports);

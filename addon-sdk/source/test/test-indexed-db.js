@@ -1,7 +1,6 @@
 
 
 
-
 "use strict";
 
 let xulApp = require("sdk/system/xul-app");
@@ -191,4 +190,4 @@ function testRead(assert, done) {
   }
 }
 
-require("test").run(exports);
+require("sdk/test").run(exports);

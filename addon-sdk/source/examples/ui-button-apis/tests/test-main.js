@@ -3,7 +3,15 @@
 
 "use strict";
 
-var { actionButton, toggleButton, icon } = require("main");
+try {
+  
+  var { actionButton, toggleButton, icon } = require("main");
+}
+catch (e) {
+  
+  let mainURI = "../lib/main";
+  var { actionButton, toggleButton, icon } = require(mainURI);
+}
 var self = require("sdk/self");
 
 exports.testActionButton = function(assert) {

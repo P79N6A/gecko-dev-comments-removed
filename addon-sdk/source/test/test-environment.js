@@ -1,7 +1,6 @@
 
 
 
-
 'use strict';
 
 const { env } = require('sdk/system/environment');
@@ -47,4 +46,4 @@ exports['test unset'] = function(assert) {
   assert.equal('BLA4' in env, false, 'BLA4 env variable no longer exists' );
 };
 
-require('test').run(exports);
+require('sdk/test').run(exports);

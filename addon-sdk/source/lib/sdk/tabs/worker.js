@@ -3,7 +3,7 @@
 
 'use strict';
 
-const ContentWorker = require('../content/worker-parent').Worker;
+const ContentWorker = require('../content/worker').Worker;
 
 function Worker(options, window) {
   options.window = window;

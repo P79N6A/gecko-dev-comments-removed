@@ -96,6 +96,9 @@ public class FindInPageBar extends LinearLayout implements TextWatcher, View.OnC
     }
 
     public void hide() {
+        
+        mFindText.setText("");
+
         setVisibility(GONE);
         getInputMethodManager(mFindText).hideSoftInputFromWindow(mFindText.getWindowToken(), 0);
         GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("FindInPage:Closed", null));

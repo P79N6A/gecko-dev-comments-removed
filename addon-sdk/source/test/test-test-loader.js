@@ -1,7 +1,6 @@
 
 
 
-
 "use strict"
 
 const { LoaderWithHookedConsole } = require("sdk/test/loader");
