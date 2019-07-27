@@ -82,6 +82,9 @@ const NOTAB_MESSAGES = new Set([
   "SessionStore:setupSyncHandler",
 
   
+  "SessionStore:crashedTabRevived",
+
+  
   "SessionStore:update",
 ]);
 
