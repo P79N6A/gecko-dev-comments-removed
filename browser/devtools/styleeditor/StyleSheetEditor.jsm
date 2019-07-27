@@ -20,6 +20,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/FileUtils.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource://gre/modules/osfile.jsm");
+Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/devtools/event-emitter.js");
 Cu.import("resource:///modules/devtools/StyleEditorUtil.jsm");
 
@@ -48,6 +49,7 @@ const UNUSED_CLASS = "cm-unused-line";
 
 
 
+const SELECTOR_HIGHLIGHT_TIMEOUT = 500;
 
 
 
@@ -66,7 +68,13 @@ const UNUSED_CLASS = "cm-unused-line";
 
 
 
-function StyleSheetEditor(styleSheet, win, file, isNew, walker) {
+
+
+
+
+
+
+function StyleSheetEditor(styleSheet, win, file, isNew, walker, highlighter) {
   EventEmitter.decorate(this);
 
   this.styleSheet = styleSheet;
@@ -75,6 +83,7 @@ function StyleSheetEditor(styleSheet, win, file, isNew, walker) {
   this._window = win;
   this._isNew = isNew;
   this.walker = walker;
+  this.highlighter = highlighter;
 
   this._state = {   
     text: "",
@@ -99,6 +108,7 @@ function StyleSheetEditor(styleSheet, win, file, isNew, walker) {
   this.markLinkedFileBroken = this.markLinkedFileBroken.bind(this);
   this.saveToFile = this.saveToFile.bind(this);
   this.updateStyleSheet = this.updateStyleSheet.bind(this);
+  this._onMouseMove = this._onMouseMove.bind(this);
 
   this._focusOnSourceEditorReady = false;
   this.cssSheet.on("property-change", this._onPropertyChange);
@@ -377,6 +387,10 @@ StyleSheetEditor.prototype = {
       sourceEditor.setSelection(this._state.selection.start,
                                 this._state.selection.end);
 
+      if (this.highlighter && this.walker) {
+        sourceEditor.container.addEventListener("mousemove", this._onMouseMove);
+      }
+
       this.emit("source-editor-load");
     });
   },
@@ -468,6 +482,52 @@ StyleSheetEditor.prototype = {
 
     this.styleSheet.update(this._state.text, transitionsEnabled);
   },
+
+  
+
+
+
+  _onMouseMove: function(e) {
+    this.highlighter.hide();
+
+    if (this.mouseMoveTimeout) {
+      this._window.clearTimeout(this.mouseMoveTimeout);
+      this.mouseMoveTimeout = null;
+    }
+
+    this.mouseMoveTimeout = this._window.setTimeout(() => {
+      this._highlightSelectorAt(e.clientX, e.clientY);
+    }, SELECTOR_HIGHLIGHT_TIMEOUT);
+  },
+
+  
+
+
+
+
+
+
+  _highlightSelectorAt: Task.async(function*(x, y) {
+    
+    let info;
+    try {
+      let pos = this.sourceEditor.getPositionFromCoords({left: x, top: y});
+      info = this.sourceEditor.getInfoAt(pos);
+    } catch (e) {}
+    if (!info || info.state !== "selector") {
+      return;
+    }
+
+    let node = yield this.walker.getStyleSheetOwnerNode(this.styleSheet.actorID);
+    yield this.highlighter.show(node, {
+      selector: info.selector,
+      hideInfoBar: true,
+      showOnly: "border",
+      region: "border"
+    });
+
+    this.emit("node-highlighted");
+  }),
 
   
 
@@ -639,6 +699,10 @@ StyleSheetEditor.prototype = {
       this._sourceEditor.off("dirty-change", this._onPropertyChange);
       this._sourceEditor.off("save", this.saveToFile);
       this._sourceEditor.off("change", this.updateStyleSheet);
+      if (this.highlighter && this.walker && this._sourceEditor.container) {
+        this._sourceEditor.container.removeEventListener("mousemove",
+          this._onMouseMove);
+      }
       this._sourceEditor.destroy();
     }
     this.cssSheet.off("property-change", this._onPropertyChange);

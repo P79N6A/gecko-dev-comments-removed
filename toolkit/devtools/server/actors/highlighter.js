@@ -33,9 +33,13 @@ const INFO_BAR_OFFSET = 5;
 const ARROW_LINE_MIN_DISTANCE = 10;
 
 
+const MAX_HIGHLIGHTED_ELEMENTS = 100;
+
+
 let HIGHLIGHTER_CLASSES = exports.HIGHLIGHTER_CLASSES = {
   "BoxModelHighlighter": BoxModelHighlighter,
-  "CssTransformHighlighter": CssTransformHighlighter
+  "CssTransformHighlighter": CssTransformHighlighter,
+  "SelectorHighlighter": SelectorHighlighter
 };
 
 
@@ -1223,6 +1227,69 @@ CssTransformHighlighter.prototype = Heritage.extend(XULBasedHighlighter.prototyp
     this._svgRoot.removeAttribute("hidden");
   }
 });
+
+
+
+
+
+
+function SelectorHighlighter(tabActor) {
+  this.tabActor = tabActor;
+  this._highlighters = [];
+}
+
+SelectorHighlighter.prototype = {
+  
+
+
+
+
+
+
+
+
+  show: function(node, options={}) {
+    this.hide();
+
+    if (!isNodeValid(node) || !options.selector) {
+      return;
+    }
+
+    let nodes = [];
+    try {
+      nodes = [...node.ownerDocument.querySelectorAll(options.selector)];
+    } catch (e) {}
+
+    delete options.selector;
+
+    let i = 0;
+    for (let matchingNode of nodes) {
+      if (i >= MAX_HIGHLIGHTED_ELEMENTS) {
+        break;
+      }
+
+      let highlighter = new BoxModelHighlighter(this.tabActor);
+      if (options.fill) {
+        highlighter.regionFill[options.region || "border"] = options.fill;
+      }
+      highlighter.show(matchingNode, options);
+      this._highlighters.push(highlighter);
+      i ++;
+    }
+  },
+
+  hide: function() {
+    for (let highlighter of this._highlighters) {
+      highlighter.destroy();
+    }
+    this._highlighters = [];
+  },
+
+  destroy: function() {
+    this.hide();
+    this.tabActor = null;
+  }
+};
 
 
 
