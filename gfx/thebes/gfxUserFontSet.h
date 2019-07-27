@@ -258,7 +258,7 @@ public:
     
     bool OnLoadComplete(gfxMixedFontFamily *aFamily,
                         gfxProxyFontEntry *aProxy,
-                        const uint8_t *aFontData, uint32_t aLength,
+                        const uint8_t* aFontData, uint32_t aLength,
                         nsresult aDownloadStatus);
 
     
@@ -570,7 +570,7 @@ protected:
     
     
     gfxFontEntry* LoadFont(gfxMixedFontFamily *aFamily,
-                           const uint8_t *aFontData, uint32_t &aLength);
+                           const uint8_t* aFontData, uint32_t &aLength);
 
     
     void StoreUserFontData(gfxFontEntry*      aFontEntry,

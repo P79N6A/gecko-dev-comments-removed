@@ -253,8 +253,11 @@ FT2FontEntry::CreateFontInstance(const gfxFontStyle *aFontStyle, bool aNeedsBold
 
 
 FT2FontEntry*
-FT2FontEntry::CreateFontEntry(const gfxProxyFontEntry &aProxyEntry,
-                              const uint8_t *aFontData,
+FT2FontEntry::CreateFontEntry(const nsAString& aFontName,
+                              uint16_t aWeight,
+                              int16_t aStretch,
+                              bool aItalic,
+                              const uint8_t* aFontData,
                               uint32_t aLength)
 {
     
@@ -276,12 +279,12 @@ FT2FontEntry::CreateFontEntry(const gfxProxyFontEntry &aProxyEntry,
     
     
     FT2FontEntry* fe =
-        FT2FontEntry::CreateFontEntry(face, nullptr, 0, aProxyEntry.Name(),
+        FT2FontEntry::CreateFontEntry(face, nullptr, 0, aFontName,
                                       aFontData);
     if (fe) {
-        fe->mItalic = aProxyEntry.mItalic;
-        fe->mWeight = aProxyEntry.mWeight;
-        fe->mStretch = aProxyEntry.mStretch;
+        fe->mItalic = aItalic;
+        fe->mWeight = aWeight;
+        fe->mStretch = aStretch;
         fe->mIsUserFont = true;
     }
     return fe;
@@ -379,7 +382,7 @@ FT2FontEntry*
 FT2FontEntry::CreateFontEntry(FT_Face aFace,
                               const char* aFilename, uint8_t aIndex,
                               const nsAString& aName,
-                              const uint8_t *aFontData)
+                              const uint8_t* aFontData)
 {
     FT2FontEntry *fe = new FT2FontEntry(aName);
     fe->mItalic = FTFaceIsItalic(aFace);
@@ -1509,8 +1512,10 @@ FindFullName(nsStringHashKey::KeyType aKey,
 }
 
 gfxFontEntry* 
-gfxFT2FontList::LookupLocalFont(const gfxProxyFontEntry *aProxyEntry,
-                                const nsAString& aFontName)
+gfxFT2FontList::LookupLocalFont(const nsAString& aFontName,
+                                uint16_t aWeight,
+                                int16_t aStretch,
+                                bool aItalic)
 {
     
     FullFontNameSearch data(aFontName);
@@ -1538,9 +1543,9 @@ gfxFT2FontList::LookupLocalFont(const gfxProxyFontEntry *aProxyEntry,
                                       data.mFontEntry->mFTFontIndex,
                                       data.mFontEntry->Name(), nullptr);
     if (fe) {
-        fe->mItalic = aProxyEntry->mItalic;
-        fe->mWeight = aProxyEntry->mWeight;
-        fe->mStretch = aProxyEntry->mStretch;
+        fe->mItalic = aItalic;
+        fe->mWeight = aWeight;
+        fe->mStretch = aStretch;
         fe->mIsUserFont = fe->mIsLocalUserFont = true;
     }
 
@@ -1564,14 +1569,18 @@ gfxFT2FontList::GetDefaultFont(const gfxFontStyle* aStyle)
 }
 
 gfxFontEntry*
-gfxFT2FontList::MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
-                                 const uint8_t *aFontData,
+gfxFT2FontList::MakePlatformFont(const nsAString& aFontName,
+                                 uint16_t aWeight,
+                                 int16_t aStretch,
+                                 bool aItalic,
+                                 const uint8_t* aFontData,
                                  uint32_t aLength)
 {
     
     
     
-    return FT2FontEntry::CreateFontEntry(*aProxyEntry, aFontData, aLength);
+    return FT2FontEntry::CreateFontEntry(aFontName, aWeight, aStretch,
+                                         aItalic, aFontData, aLength);
 }
 
 static PLDHashOperator
