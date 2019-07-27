@@ -567,7 +567,7 @@ bool GrGpuGL::uploadTexData(const GrGLTexture::Desc& desc,
     size_t trimRowBytes = width * bpp;
 
     
-    SkAutoSMalloc<128 * 128> tempStorage;
+    GrAutoMalloc<128 * 128> tempStorage;
 
     
     
@@ -1674,7 +1674,7 @@ bool GrGpuGL::onReadPixels(GrRenderTarget* target,
 
     
     
-    SkAutoSMalloc<32 * sizeof(GrColor)> scratch;
+    GrAutoMalloc<32 * sizeof(GrColor)> scratch;
     if (rowBytes != tightRowBytes) {
         if (this->glCaps().packRowLengthSupport()) {
             SkASSERT(!(rowBytes % sizeof(GrColor)));

@@ -232,4 +232,16 @@ typedef unsigned __int64 uint64_t;
     #define GR_STROKE_PATH_RENDERING                 0
 #endif
 
+
+
+
+
+
+
+
+
+#if !defined(GR_ALWAYS_ALLOCATE_ON_HEAP)
+    #define GR_ALWAYS_ALLOCATE_ON_HEAP 0
+#endif
+
 #endif
