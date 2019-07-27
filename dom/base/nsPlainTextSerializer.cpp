@@ -22,8 +22,6 @@
 #include "mozilla/dom/Element.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/BinarySearch.h"
-#include "nsComputedDOMStyle.h"
-#include "nsIDocument.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -120,12 +118,10 @@ NS_IMPL_ISUPPORTS(nsPlainTextSerializer,
 
 
 NS_IMETHODIMP 
-nsPlainTextSerializer::Init(nsIDocument* aDocument, uint32_t aFlags,
-                            uint32_t aWrapColumn, const char* aCharSet,
-                            bool aIsCopying, bool aIsWholeDocument)
+nsPlainTextSerializer::Init(uint32_t aFlags, uint32_t aWrapColumn,
+                            const char* aCharSet, bool aIsCopying,
+                            bool aIsWholeDocument)
 {
-  MOZ_ASSERT(aDocument);
-
 #ifdef DEBUG
   
   if (aFlags & nsIDocumentEncoder::OutputFormatFlowed) {
@@ -189,10 +185,6 @@ nsPlainTextSerializer::Init(nsIDocument* aDocument, uint32_t aFlags,
 
   
   mFlags &= ~nsIDocumentEncoder::OutputNoFramesContent;
-
-  
-  
-  aDocument->FlushPendingNotifications(Flush_Style);
 
   return NS_OK;
 }
@@ -364,7 +356,6 @@ nsPlainTextSerializer::AppendElementStart(Element* aElement,
 
   if (isContainer) {
     rv = DoOpenContainer(id);
-    mPreformatStack.push(IsElementPreformatted(mElement));
   }
   else {
     rv = DoAddLeaf(id);
@@ -398,7 +389,6 @@ nsPlainTextSerializer::AppendElementEnd(Element* aElement,
   rv = NS_OK;
   if (isContainer) {
     rv = DoCloseContainer(id);
-    mPreformatStack.pop();
   }
 
   mElement = nullptr;
@@ -1547,7 +1537,7 @@ nsPlainTextSerializer::Write(const nsAString& aStr)
 
     
     
-    NS_ASSERTION(mCurrentLine.IsEmpty() || IsInPre(),
+    NS_ASSERTION(mCurrentLine.IsEmpty(),
                  "Mixed wrapping data and nonwrapping data on the same line");
     if (!mCurrentLine.IsEmpty()) {
       FlushLine();
@@ -1765,22 +1755,28 @@ nsPlainTextSerializer::GetIdForContent(nsIContent* aContent)
   return localName->IsStaticAtom() ? localName : nullptr;
 }
 
+
+
+
+
+
+
+  
 bool
 nsPlainTextSerializer::IsInPre()
 {
-  return !mPreformatStack.empty() && mPreformatStack.top();
-}
-
-bool
-nsPlainTextSerializer::IsElementPreformatted(Element* aElement)
-{
-  nsRefPtr<nsStyleContext> styleContext =
-    nsComputedDOMStyle::GetStyleContextForElementNoFlush(aElement, nullptr,
-                                                         nullptr);
-  if (styleContext) {
-    const nsStyleText* textStyle = styleContext->StyleText();
-    return textStyle->WhiteSpaceOrNewlineIsSignificant();
+  int32_t i = mTagStackIndex;
+  while(i > 0) {
+    if (mTagStack[i - 1] == nsGkAtoms::pre)
+      return true;
+    if (nsContentUtils::IsHTMLBlock(mTagStack[i - 1])) {
+      
+      return false;
+    }
+    --i;
   }
+
+  
   return false;
 }
 

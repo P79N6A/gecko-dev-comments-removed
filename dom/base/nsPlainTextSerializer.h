@@ -22,8 +22,6 @@
 #include "nsString.h"
 #include "nsTArray.h"
 
-#include <stack>
-
 class nsIContent;
 
 namespace mozilla {
@@ -40,9 +38,9 @@ public:
   NS_DECL_ISUPPORTS
 
   
-  NS_IMETHOD Init(nsIDocument* aDocument, uint32_t flags,
-                  uint32_t aWrapColumn, const char* aCharSet,
-                  bool aIsCopying, bool aRewriteEncodingDeclaration) MOZ_OVERRIDE;
+  NS_IMETHOD Init(uint32_t flags, uint32_t aWrapColumn,
+                  const char* aCharSet, bool aIsCopying,
+                  bool aIsWholeDocument) MOZ_OVERRIDE;
 
   NS_IMETHOD AppendText(nsIContent* aText, int32_t aStartOffset,
                         int32_t aEndOffset, nsAString& aStr) MOZ_OVERRIDE;
@@ -113,9 +111,6 @@ protected:
   bool PopBool(nsTArray<bool>& aStack);
 
   bool ShouldReplaceContainerWithPlaceholder(nsIAtom* aTag);
-
-private:
-  bool IsElementPreformatted(mozilla::dom::Element* aElement);
 
 protected:
   nsString         mCurrentLine;
@@ -200,11 +195,6 @@ protected:
   
   nsIAtom**        mTagStack;
   uint32_t         mTagStackIndex;
-
-  
-  
-  
-  std::stack<bool> mPreformatStack;
 
   
   uint32_t          mIgnoreAboveIndex;

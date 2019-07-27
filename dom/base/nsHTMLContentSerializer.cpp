@@ -192,7 +192,7 @@ nsHTMLContentSerializer::AppendElementStart(Element* aElement,
 
   bool lineBreakBeforeOpen = LineBreakBeforeOpen(ns, name);
 
-  if ((mDoFormat || forceFormat) && !mDoRaw && !PreLevel()) {
+  if ((mDoFormat || forceFormat) && !mPreLevel && !mDoRaw) {
     if (mColPos && lineBreakBeforeOpen) {
       AppendNewLineToString(aStr);
     }
@@ -225,7 +225,7 @@ nsHTMLContentSerializer::AppendElementStart(Element* aElement,
   MaybeEnterInPreContent(content);
 
   
-  if ((mDoFormat || forceFormat) && !mDoRaw && !PreLevel())
+  if ((mDoFormat || forceFormat) && !mPreLevel && !mDoRaw)
     IncrIndentation(name);
 
   
@@ -280,8 +280,8 @@ nsHTMLContentSerializer::AppendElementStart(Element* aElement,
     ++mDisableEntityEncoding;
   }
 
-  if ((mDoFormat || forceFormat) && !mDoRaw && !PreLevel() &&
-    LineBreakAfterOpen(ns, name)) {
+  if ((mDoFormat || forceFormat) && !mPreLevel &&
+    !mDoRaw && LineBreakAfterOpen(ns, name)) {
     AppendNewLineToString(aStr);
   }
 
@@ -312,18 +312,18 @@ nsHTMLContentSerializer::AppendElementEnd(Element* aElement,
   bool forceFormat = !(mFlags & nsIDocumentEncoder::OutputIgnoreMozDirty) &&
                      content->HasAttr(kNameSpaceID_None, nsGkAtoms::mozdirty);
 
-  if ((mDoFormat || forceFormat) && !mDoRaw && !PreLevel()) {
+  if ((mDoFormat || forceFormat) && !mPreLevel && !mDoRaw) {
     DecrIndentation(name);
   }
 
   if (name == nsGkAtoms::script) {
     nsCOMPtr<nsIScriptElement> script = do_QueryInterface(aElement);
 
-    if (ShouldMaintainPreLevel() && script && script->IsMalformed()) {
+    if (script && script->IsMalformed()) {
       
       
       
-      --PreLevel();
+      --mPreLevel;
       return NS_OK;
     }
   }
@@ -351,7 +351,7 @@ nsHTMLContentSerializer::AppendElementEnd(Element* aElement,
     }
   }
 
-  if ((mDoFormat || forceFormat) && !mDoRaw && !PreLevel()) {
+  if ((mDoFormat || forceFormat) && !mPreLevel && !mDoRaw) {
 
     bool lineBreakBeforeClose = LineBreakBeforeClose(ns, name);
 
@@ -377,8 +377,8 @@ nsHTMLContentSerializer::AppendElementEnd(Element* aElement,
 
   MaybeLeaveFromPreContent(content);
 
-  if ((mDoFormat || forceFormat)&& !mDoRaw  && !PreLevel()
-      && LineBreakAfterClose(ns, name)) {
+  if ((mDoFormat || forceFormat) && !mPreLevel
+      && !mDoRaw && LineBreakAfterClose(ns, name)) {
     AppendNewLineToString(aStr);
   }
   else {
