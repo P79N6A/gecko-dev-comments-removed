@@ -271,7 +271,46 @@ H264::vui_parameters(BitReader& aBr, SPSData& aDest)
     aDest.fixed_frame_rate_flag = aBr.ReadBit();
   }
 
-  
+  bool hrd_present = false;
+  if (aBr.ReadBit()) { 
+    hrd_parameters(aBr);
+    hrd_present = true;
+  }
+  if (aBr.ReadBit()) { 
+    hrd_parameters(aBr);
+    hrd_present = true;
+  }
+  if (hrd_present) {
+    aBr.ReadBit(); 
+  }
+  aDest.pic_struct_present_flag = aBr.ReadBit();
+  aDest.bitstream_restriction_flag = aBr.ReadBit();
+  if (aDest.bitstream_restriction_flag) {
+    aDest.motion_vectors_over_pic_boundaries_flag = aBr.ReadBit();
+    aDest.max_bytes_per_pic_denom = aBr.ReadUE();
+    aDest.max_bits_per_mb_denom = aBr.ReadUE();
+    aDest.log2_max_mv_length_horizontal = aBr.ReadUE();
+    aDest.log2_max_mv_length_vertical = aBr.ReadUE();
+    aDest.max_num_reorder_frames = aBr.ReadUE();
+    aDest.max_dec_frame_buffering = aBr.ReadUE();
+  }
+}
+
+ void
+H264::hrd_parameters(BitReader& aBr)
+{
+  uint32_t cpb_cnt_minus1 = aBr.ReadUE();
+  aBr.ReadBits(4); 
+  aBr.ReadBits(4); 
+  for (uint32_t SchedSelIdx = 0; SchedSelIdx <= cpb_cnt_minus1; SchedSelIdx++) {
+    aBr.ReadUE(); 
+    aBr.ReadUE(); 
+    aBr.ReadBit(); 
+  }
+  aBr.ReadBits(5); 
+  aBr.ReadBits(5); 
+  aBr.ReadBits(5); 
+  aBr.ReadBits(5); 
 }
 
  bool

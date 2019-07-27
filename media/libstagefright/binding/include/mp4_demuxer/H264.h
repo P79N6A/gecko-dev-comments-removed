@@ -109,7 +109,6 @@ struct SPSData
 
 
 
-
   bool delta_pic_order_always_zero_flag;
 
   
@@ -239,6 +238,105 @@ struct SPSData
   uint32_t time_scale;
   bool fixed_frame_rate_flag;
 
+  
+
+  
+
+
+
+
+
+
+
+  bool pic_struct_present_flag;
+
+  
+
+
+
+
+
+  bool bitstream_restriction_flag;
+
+  
+
+
+
+
+
+
+
+
+
+
+  bool motion_vectors_over_pic_boundaries_flag;
+
+  
+
+
+
+
+  uint32_t max_bytes_per_pic_denom;
+
+  
+
+
+
+
+
+  uint32_t max_bits_per_mb_denom;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+   uint32_t log2_max_mv_length_horizontal;
+   uint32_t log2_max_mv_length_vertical;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   uint32_t max_num_reorder_frames;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+   uint32_t max_dec_frame_buffering;
+
   SPSData();
 };
 
@@ -254,6 +352,8 @@ public:
 
 private:
   static void vui_parameters(BitReader& aBr, SPSData& aDest);
+  
+  static void hrd_parameters(BitReader& aBr);
 };
 
 } 
