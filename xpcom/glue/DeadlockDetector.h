@@ -78,20 +78,6 @@ public:
   }
 
   
-  
-  
-  void Print(FILE* aFile) const
-  {
-#ifdef NS_TRACE_MALLOC
-    if (this != &kNone && mCallStack) {
-      NS_TraceMallocPrintStackTrace(aFile, mCallStack);
-      return;
-    }
-#endif
-    fputs("  [stack trace unavailable]\n", aFile);
-  }
-
-  
   static const CallStack kNone;
 };
 

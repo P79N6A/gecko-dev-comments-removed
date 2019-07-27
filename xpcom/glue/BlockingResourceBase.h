@@ -113,11 +113,8 @@ private:
 
 
 
-
-
     bool Print(const DDT::ResourceAcquisition& aFirstSeen,
-               nsACString& aOut,
-               bool aPrintFirstSeenCx = false) const;
+               nsACString& aOut) const;
 
     
 
