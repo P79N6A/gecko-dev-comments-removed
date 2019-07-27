@@ -179,6 +179,10 @@ struct gfxFontStyle {
 
     int8_t ComputeWeight() const;
 
+    
+    
+    void AdjustForSubSuperscript(int32_t aAppUnitsPerDevPixel);
+
     bool Equals(const gfxFontStyle& other) const {
         return
             (*reinterpret_cast<const uint64_t*>(&size) ==
