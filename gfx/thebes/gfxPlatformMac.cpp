@@ -88,7 +88,7 @@ gfxPlatformMac::gfxPlatformMac()
     
     struct rlimit limits;
     if (getrlimit(RLIMIT_NOFILE, &limits) == 0) {
-        limits.rlim_cur = std::min(rlim_t(16384), limits.rlim_max);
+        limits.rlim_cur = std::min(rlim_t(OPEN_MAX), limits.rlim_max);
         if (setrlimit(RLIMIT_NOFILE, &limits) != 0) {
             NS_WARNING("Unable to bump RLIMIT_NOFILE to the maximum number on this OS");
         }
