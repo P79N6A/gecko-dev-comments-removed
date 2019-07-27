@@ -249,7 +249,7 @@ public:
     const NetAddr& GetPeerAddr() { return mPeerAddr; }
 
     nsresult OverrideSecurityInfo(nsISupports* aSecurityInfo);
-    void OverrideURI(nsIURI* aRedirectedURI);
+    nsresult OverrideURI(nsIURI* aRedirectedURI);
 
 public: 
     bool IsNavigation();
