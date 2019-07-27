@@ -1373,7 +1373,7 @@ APZCTreeManager::GetAPZCAtPoint(HitTestingTreeNode* aNode,
     }
 
     
-    if (!result) {
+    if (*aOutHitResult == NoApzcHit) {
       APZCTM_LOG("Testing ParentLayer point %s (Layer %s) against node %p\n",
           Stringify(aHitTestPoint).c_str(),
           hitTestPointForChildLayers ? Stringify(hitTestPointForChildLayers.ref()).c_str() : "nil",
@@ -1392,14 +1392,14 @@ APZCTreeManager::GetAPZCAtPoint(HitTestingTreeNode* aNode,
     
     
     
-    if (result && apzc && apzc->IsOverscrolled()) {
+    if (*aOutHitResult != NoApzcHit && apzc && apzc->IsOverscrolled()) {
       APZCTM_LOG("Result is inside overscrolled APZC %p\n", apzc);
       *aOutHitResult = OverscrolledApzc;
       return nullptr;
     }
 
-    if (result) {
-      if (!gfxPrefs::LayoutEventRegionsEnabled()) {
+    if (*aOutHitResult != NoApzcHit) {
+      if (result && !gfxPrefs::LayoutEventRegionsEnabled()) {
         
         
         
