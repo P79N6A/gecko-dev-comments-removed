@@ -175,6 +175,9 @@ static DllBlockInfo sWindowsDllBlocklist[] = {
   
   { "vwcsource.ax", MAKE_VERSION(1, 5, 0, 0) },
 
+  
+  { "nlsp.dll", MAKE_VERSION(6, 23, 2012, 19) },
+
   { nullptr, 0 }
 };
 
