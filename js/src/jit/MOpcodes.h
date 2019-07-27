@@ -242,8 +242,7 @@ namespace jit {
     _(ForkJoinGetSlice)                                                     \
     _(GuardThreadExclusive)                                                 \
     _(InterruptCheckPar)                                                    \
-    _(RecompileCheck)                                                       \
-    _(UnknownValue)
+    _(RecompileCheck)
 
 
 #define FORWARD_DECLARE(op) class M##op;
