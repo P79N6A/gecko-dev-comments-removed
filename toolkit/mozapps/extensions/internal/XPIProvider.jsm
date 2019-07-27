@@ -657,8 +657,12 @@ function isUsableAddon(aAddon) {
   if (aAddon.type == "theme" && aAddon.internalName == XPIProvider.defaultSkin)
     return true;
 
-  if (mustSign(aAddon.type) && aAddon.signedState <= AddonManager.SIGNEDSTATE_MISSING)
-    return false;
+  if (mustSign(aAddon.type)) {
+    if (aAddon.signedState <= AddonManager.SIGNEDSTATE_MISSING)
+      return false;
+    if (aAddon.foreignInstall && aAddon.signedState < AddonManager.SIGNEDSTATE_SIGNED)
+      return false;
+  }
 
   if (aAddon.blocklistState == Blocklist.STATE_BLOCKED)
     return false;
@@ -2751,9 +2755,12 @@ this.XPIProvider = {
 
         let jsonfile = stagingDir.clone();
         jsonfile.append(id + ".json");
+        
+        let foreignInstall = !jsonfile.exists();
+        let addon;
 
         try {
-          aManifests[aLocation.name][id] = syncLoadManifestFromFile(stageDirEntry);
+          addon = syncLoadManifestFromFile(stageDirEntry);
         }
         catch (e) {
           logger.error("Unable to read add-on manifest from " + stageDirEntry.path, e);
@@ -2763,9 +2770,9 @@ this.XPIProvider = {
           continue;
         }
 
-        let addon = aManifests[aLocation.name][id];
-
-        if ((addon.signedState <= AddonManager.SIGNEDSTATE_MISSING) && mustSign(addon.type)) {
+        if (mustSign(addon.type) &&
+            (addon.signedState <= AddonManager.SIGNEDSTATE_MISSING ||
+            (foreignInstall && addon.signedState < AddonManager.SIGNEDSTATE_SIGNED))) {
           logger.warn("Refusing to install staged add-on " + id + " with signed state " + addon.signedState);
           seenFiles.push(stageDirEntry.leafName);
           seenFiles.push(jsonfile.leafName);
@@ -2774,7 +2781,7 @@ this.XPIProvider = {
 
         
         
-        if (jsonfile.exists()) {
+        if (!foreignInstall) {
           logger.debug("Found updated metadata for " + id + " in " + aLocation.name);
           let fis = Cc["@mozilla.org/network/file-input-stream;1"].
                        createInstance(Ci.nsIFileInputStream);
@@ -2785,6 +2792,10 @@ this.XPIProvider = {
             fis.init(jsonfile, -1, 0, 0);
             let metadata = json.decodeFromStream(fis, jsonfile.fileSize);
             addon.importMetadata(metadata);
+
+            
+            
+            aManifests[aLocation.name][id] = addon;
           }
           catch (e) {
             
@@ -3379,6 +3390,9 @@ this.XPIProvider = {
       newAddon.installDate = aAddonState.mtime;
       newAddon.updateDate = aAddonState.mtime;
       newAddon.foreignInstall = isDetectedInstall;
+
+      
+      newAddon.appDisabled = !isUsableAddon(newAddon);
 
       if (aMigrateData) {
         
