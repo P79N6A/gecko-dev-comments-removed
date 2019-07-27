@@ -386,10 +386,6 @@ private:
 
 class DrawableFrameRef MOZ_FINAL
 {
-  
-  typedef void (DrawableFrameRef::* ConvertibleToBool)(float*****, double*****);
-  void nonNull(float*****, double*****) {}
-
 public:
   DrawableFrameRef() { }
 
@@ -416,10 +412,7 @@ public:
     return *this;
   }
 
-  operator ConvertibleToBool() const
-  {
-    return bool(mFrame) ? &DrawableFrameRef::nonNull : 0;
-  }
+  explicit operator bool() const { return bool(mFrame); }
 
   imgFrame* operator->()
   {
@@ -461,10 +454,6 @@ private:
 
 class RawAccessFrameRef MOZ_FINAL
 {
-  
-  typedef void (RawAccessFrameRef::* ConvertibleToBool)(float*****, double*****);
-  void nonNull(float*****, double*****) {}
-
 public:
   RawAccessFrameRef() { }
 
@@ -503,10 +492,7 @@ public:
     return *this;
   }
 
-  operator ConvertibleToBool() const
-  {
-    return bool(mFrame) ? &RawAccessFrameRef::nonNull : 0;
-  }
+  explicit operator bool() const { return bool(mFrame); }
 
   imgFrame* operator->()
   {

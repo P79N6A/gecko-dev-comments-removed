@@ -153,9 +153,6 @@ struct Zone
 
 class JS_FRIEND_API(GCCellPtr)
 {
-    typedef void (GCCellPtr::* ConvertibleToBool)();
-    void nonNull() {}
-
   public:
     
     GCCellPtr(void *gcthing, JSGCTraceKind traceKind) : ptr(checkedCast(gcthing, traceKind)) {}
@@ -179,9 +176,9 @@ class JS_FRIEND_API(GCCellPtr)
     }
 
     
-    operator ConvertibleToBool() const {
+    explicit operator bool() const {
         MOZ_ASSERT(bool(asCell()) == (kind() != JSTRACE_NULL));
-        return asCell() ? &GCCellPtr::nonNull : 0;
+        return asCell();
     }
 
     

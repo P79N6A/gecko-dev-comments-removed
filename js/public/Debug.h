@@ -142,8 +142,6 @@ class Builder {
     class BuiltThing {
         friend class BuilderOrigin;
 
-        void nonNull() {}
-
       protected:
         
         Builder &owner;
@@ -170,10 +168,9 @@ class Builder {
             return *this;
         }
 
-        typedef void (BuiltThing::* ConvertibleToBool)();
-        operator ConvertibleToBool() const {
+        explicit operator bool() const {
             
-            return value ? &BuiltThing::nonNull : 0;
+            return value;
         }
 
       private:
@@ -221,8 +218,7 @@ class Builder {
         bool defineProperty(JSContext *cx, const char *name, JS::HandleObject value);
         bool defineProperty(JSContext *cx, const char *name, Object &value);
 
-        using Base::ConvertibleToBool;
-        using Base::operator ConvertibleToBool;
+        using Base::operator bool;
     };
 
     
