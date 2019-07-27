@@ -2324,11 +2324,7 @@ pref("layout.css.scroll-behavior.damping-ratio", "1.0");
 pref("layout.css.scroll-snap.enabled", true);
 
 
-#ifdef RELEASE_BUILD
-pref("layout.css.font-loading-api.enabled", false);
-#else
 pref("layout.css.font-loading-api.enabled", true);
-#endif
 
 
 pref("dom.mouseEvent.offsetXY.enabled", true);
