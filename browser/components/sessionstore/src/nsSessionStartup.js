@@ -166,23 +166,30 @@ SessionStartup.prototype = {
         
         
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        let stateFlagPresent = (this._initialState &&
-                                this._initialState.session &&
-                                this._initialState.session.state);
+
+        if (!this._initialState) {
+          
+          
+          
+          this._previousSessionCrashed = false;
+
+        } else {
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          let stateFlagPresent = (this._initialState.session &&
+                                  this._initialState.session.state);
 
 
-        this._previousSessionCrashed = !stateFlagPresent ||
-                                       (this._initialState.session.state == STATE_RUNNING_STR);
+          this._previousSessionCrashed = !stateFlagPresent ||
+            (this._initialState.session.state == STATE_RUNNING_STR);
+        }
       }
 
       
