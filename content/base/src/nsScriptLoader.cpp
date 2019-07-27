@@ -49,6 +49,7 @@
 #include "nsSandboxFlags.h"
 #include "nsContentTypeParser.h"
 #include "nsINetworkPredictor.h"
+#include "ImportManager.h"
 #include "mozilla/dom/EncodingUtils.h"
 
 #include "mozilla/CORSMode.h"
@@ -1227,7 +1228,7 @@ nsScriptLoader::ReadyToExecuteScripts()
   if (!SelfReadyToExecuteScripts()) {
     return false;
   }
-  
+
   for (nsIDocument* doc = mDocument; doc; doc = doc->GetParentDocument()) {
     nsScriptLoader* ancestor = doc->ScriptLoader();
     if (!ancestor->SelfReadyToExecuteScripts() &&
@@ -1237,9 +1238,43 @@ nsScriptLoader::ReadyToExecuteScripts()
     }
   }
 
+  if (!mDocument->IsMasterDocument()) {
+    nsRefPtr<ImportManager> im = mDocument->ImportManager();
+    nsRefPtr<ImportLoader> loader = im->Find(mDocument);
+    MOZ_ASSERT(loader, "How can we have an import document without a loader?");
+
+    
+    
+    nsCOMPtr<nsINode> referrer = loader->GetMainReferrer();
+    MOZ_ASSERT(referrer, "There has to be a main referring link for each imports");
+
+    
+    
+    
+    
+    nsRefPtr<ImportLoader> lastPred = im->GetNearestPredecessor(referrer);
+    if (!lastPred) {
+      
+      return true;
+    }
+
+    nsCOMPtr<nsIDocument> doc = lastPred->GetDocument();
+    if (!doc || (doc && !doc->ScriptLoader()->SelfReadyToExecuteScripts())) {
+      
+      
+      
+      
+      
+      lastPred->AddBlockedScriptLoader(this);
+      
+      
+      loader->SetBlockingPredecessor(lastPred);
+      return false;
+    }
+  }
+
   return true;
 }
-
 
 
 static bool
