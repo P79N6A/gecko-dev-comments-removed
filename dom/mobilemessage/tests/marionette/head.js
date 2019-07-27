@@ -91,6 +91,49 @@ function ensureMobileMessage() {
 
 
 
+let mobileConnection;
+function ensureMobileConnection(aServiceId) {
+  return new Promise(function(resolve, reject) {
+    let permissions = [{
+      "type": "mobileconnection",
+      "allow": 1,
+      "context": document,
+    }];
+    SpecialPowers.pushPermissions(permissions, function() {
+      ok(true, "permissions pushed: " + JSON.stringify(permissions));
+
+      let serviceId = aServiceId || 0;
+      mobileConnection = window.navigator.mozMobileConnections[serviceId];
+      if (mobileConnection) {
+        log("navigator.mozMobileConnections[" + serviceId + "] is instance of " +
+            mobileConnection.constructor);
+      } else {
+        log("navigator.mozMobileConnections[" + serviceId + "] is undefined");
+      }
+
+      if (mobileConnection instanceof MozMobileConnection) {
+        resolve(mobileConnection);
+      } else {
+        reject();
+      }
+    });
+  });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 function waitForManagerEvent(aEventName, aMatchFunc) {
   let deferred = Promise.defer();
@@ -498,6 +541,28 @@ function sendMultipleRawSmsToEmulatorAndWait(aPdus) {
     promises.push(sendRawSmsToEmulator(pdu));
   }
 
+  return Promise.all(promises);
+}
+
+
+
+
+
+
+
+
+
+function setEmulatorVoiceStateAndWait(aState) {
+  let promises = [];
+  promises.push(new Promise(function(resolve, reject) {
+    mobileConnection.addEventListener("voicechange", function onevent(aEvent) {
+      log("voicechange: connected=" + mobileConnection.voice.connected);
+      mobileConnection.removeEventListener("voicechange", onevent);
+      resolve(aEvent);
+    })
+  }));
+
+  promises.push(runEmulatorCmdSafe("gsm voice " + aState));
   return Promise.all(promises);
 }
 
