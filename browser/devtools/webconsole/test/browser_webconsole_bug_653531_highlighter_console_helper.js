@@ -5,13 +5,6 @@
 
 
 
-
-
-
-thisTestLeaksUncaughtRejectionsAndShouldBeFixed("Protocol error (unknownError): TypeError: this.conn.getActor(...) is null");
-
-
-
 let inspector, h1, outputNode;
 
 function createDocument() {

@@ -3102,7 +3102,7 @@ Widgets.ObjectRenderers.add({
     
     this.message.widgets.add(this);
 
-    this.linkToInspector();
+    this.linkToInspector().then(null, Cu.reportError);
   },
 
   
@@ -3115,69 +3115,69 @@ Widgets.ObjectRenderers.add({
 
 
 
-  linkToInspector: function()
+  linkToInspector: Task.async(function*()
   {
     if (this._linkedToInspector) {
-      return this._linkedToInspector;
+      return;
     }
 
-    this._linkedToInspector = Task.spawn(function*() {
-      
-      if (this.objectActor.preview.nodeType !== Ci.nsIDOMNode.ELEMENT_NODE) {
-        throw null;
-      }
+    
+    if (this.objectActor.preview.nodeType !== Ci.nsIDOMNode.ELEMENT_NODE) {
+      throw new Error("The object cannot be linked to the inspector as it " +
+        "isn't an element node");
+    }
 
-      
-      let target = this.message.output.toolboxTarget;
-      this.toolbox = gDevTools.getToolbox(target);
-      if (!this.toolbox) {
-        throw null;
-      }
+    
+    let target = this.message.output.toolboxTarget;
+    this.toolbox = gDevTools.getToolbox(target);
+    if (!this.toolbox) {
+      throw new Error("The object cannot be linked to the inspector without a " +
+        "toolbox");
+    }
 
-      
-      yield this.toolbox.initInspector();
-      this._nodeFront = yield this.toolbox.walker.getNodeActorFromObjectActor(this.objectActor.actor);
-      if (!this._nodeFront) {
-        throw null;
-      }
+    
+    yield this.toolbox.initInspector();
+    this._nodeFront = yield this.toolbox.walker.getNodeActorFromObjectActor(this.objectActor.actor);
+    if (!this._nodeFront) {
+      throw new Error("The object cannot be linked to the inspector, the " +
+        "corresponding nodeFront could not be found");
+    }
 
-      
-      if (!this.document) {
-        throw null;
-      }
+    
+    if (!this.document) {
+      throw new Error("The object cannot be linked to the inspector, the " +
+        "message was got cleared away");
+    }
 
-      this.highlightDomNode = this.highlightDomNode.bind(this);
-      this.element.addEventListener("mouseover", this.highlightDomNode, false);
-      this.unhighlightDomNode = this.unhighlightDomNode.bind(this);
-      this.element.addEventListener("mouseout", this.unhighlightDomNode, false);
+    this.highlightDomNode = this.highlightDomNode.bind(this);
+    this.element.addEventListener("mouseover", this.highlightDomNode, false);
+    this.unhighlightDomNode = this.unhighlightDomNode.bind(this);
+    this.element.addEventListener("mouseout", this.unhighlightDomNode, false);
 
-      this._openInspectorNode = this._anchor("", {
-        className: "open-inspector",
-        onClick: this.openNodeInInspector.bind(this)
-      });
-      this._openInspectorNode.title = l10n.getStr("openNodeInInspector");
-    }.bind(this));
+    this._openInspectorNode = this._anchor("", {
+      className: "open-inspector",
+      onClick: this.openNodeInInspector.bind(this)
+    });
+    this._openInspectorNode.title = l10n.getStr("openNodeInInspector");
 
-    return this._linkedToInspector;
-  },
+    this._linkedToInspector = true;
+  }),
 
   
 
 
 
 
-  highlightDomNode: function()
+  highlightDomNode: Task.async(function*()
   {
-    return Task.spawn(function*() {
-      yield this.linkToInspector();
-      let isAttached = yield this.toolbox.walker.isInDOMTree(this._nodeFront);
-      if (isAttached) {
-        yield this.toolbox.highlighterUtils.highlightNodeFront(this._nodeFront);
-      } else {
-        throw null;
-      }
-    }.bind(this));
-  },
+    yield this.linkToInspector();
+    let isAttached = yield this.toolbox.walker.isInDOMTree(this._nodeFront);
+    if (isAttached) {
+      yield this.toolbox.highlighterUtils.highlightNodeFront(this._nodeFront);
+    } else {
+      throw null;
+    }
+  }),
 
   
 
@@ -3188,7 +3188,7 @@ Widgets.ObjectRenderers.add({
   {
     return this.linkToInspector().then(() => {
       return this.toolbox.highlighterUtils.unhighlight();
-    });
+    }).then(null, Cu.reportError);
   },
 
   
@@ -3198,22 +3198,20 @@ Widgets.ObjectRenderers.add({
 
 
 
-  openNodeInInspector: function()
+  openNodeInInspector: Task.async(function*()
   {
-    return Task.spawn(function*() {
-      yield this.linkToInspector();
-      yield this.toolbox.selectTool("inspector");
+    yield this.linkToInspector();
+    yield this.toolbox.selectTool("inspector");
 
-      let isAttached = yield this.toolbox.walker.isInDOMTree(this._nodeFront);
-      if (isAttached) {
-        let onReady = this.toolbox.inspector.once("inspector-updated");
-        yield this.toolbox.selection.setNodeFront(this._nodeFront, "console");
-        yield onReady;
-      } else {
-        throw null;
-      }
-    }.bind(this));
-  },
+    let isAttached = yield this.toolbox.walker.isInDOMTree(this._nodeFront);
+    if (isAttached) {
+      let onReady = this.toolbox.inspector.once("inspector-updated");
+      yield this.toolbox.selection.setNodeFront(this._nodeFront, "console");
+      yield onReady;
+    } else {
+      throw null;
+    }
+  }),
 
   destroy: function()
   {
