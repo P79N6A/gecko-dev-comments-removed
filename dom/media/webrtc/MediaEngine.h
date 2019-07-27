@@ -39,16 +39,6 @@ enum MediaEngineState {
   kReleased
 };
 
-
-enum MediaSourceType {
-  Camera = (int) dom::MediaSourceEnum::Camera,
-  Screen = (int) dom::MediaSourceEnum::Screen,
-  Application = (int) dom::MediaSourceEnum::Application,
-  Window, 
-  Browser = (int) dom::MediaSourceEnum::Browser, 
-  Microphone
-};
-
 class MediaEngine
 {
 public:
@@ -64,12 +54,12 @@ public:
 
   
 
-  virtual void EnumerateVideoDevices(MediaSourceType,
+  virtual void EnumerateVideoDevices(dom::MediaSourceEnum,
                                      nsTArray<nsRefPtr<MediaEngineVideoSource> >*) = 0;
 
   
 
-  virtual void EnumerateAudioDevices(MediaSourceType,
+  virtual void EnumerateAudioDevices(dom::MediaSourceEnum,
                                      nsTArray<nsRefPtr<MediaEngineAudioSource> >*) = 0;
 
 protected:
@@ -127,7 +117,7 @@ public:
   virtual bool IsFake() = 0;
 
   
-  virtual const MediaSourceType GetMediaSource() = 0;
+  virtual const dom::MediaSourceEnum GetMediaSource() = 0;
 
   
   
