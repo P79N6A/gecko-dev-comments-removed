@@ -41,6 +41,8 @@ const nsITelephonyService = Ci.nsITelephonyService;
 const CALL_WAKELOCK_TIMEOUT = 5000;
 
 
+
+const CDMA_FIRST_CALL_INDEX = 1;
 const CDMA_SECOND_CALL_INDEX = 2;
 
 const DIAL_ERROR_INVALID_STATE_ERROR = "InvalidStateError";
@@ -470,7 +472,7 @@ TelephonyService.prototype = {
     return null;
   },
 
-  _addCdmaChildCall: function(aClientId, aNumber, aParentId) {
+  _addCdmaChildCall: function(aClientId, aNumber) {
     let childCall = {
       callIndex: CDMA_SECOND_CALL_INDEX,
       state: RIL.CALL_STATE_DIALING,
@@ -480,7 +482,7 @@ TelephonyService.prototype = {
       isConference: false,
       isSwitchable: false,
       isMergeable: true,
-      parentId: aParentId
+      parentId: CDMA_FIRST_CALL_INDEX
     };
 
     
@@ -669,7 +671,7 @@ TelephonyService.prototype = {
         
         aCallback.notifyDialCallSuccess(aClientId, CDMA_SECOND_CALL_INDEX,
                                         response.number);
-        this._addCdmaChildCall(aClientId, response.number, currentCdmaCallIndex);
+        this._addCdmaChildCall(aClientId, response.number);
       }
     });
   },
