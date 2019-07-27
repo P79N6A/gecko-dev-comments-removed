@@ -20,6 +20,7 @@ loop.panel = (function(_, mozL10n) {
   var TabView = React.createClass({displayName: "TabView",
     propTypes: {
       buttonsHidden: React.PropTypes.array,
+      children: React.PropTypes.arrayOf(React.PropTypes.element),
       mozLoop: React.PropTypes.object,
       
       selectedTab: React.PropTypes.string
@@ -468,6 +469,10 @@ loop.panel = (function(_, mozL10n) {
 
 
   var UserIdentity = React.createClass({displayName: "UserIdentity",
+    propTypes: {
+      displayName: React.PropTypes.string.isRequired
+    },
+
     render: function() {
       return (
         React.createElement("p", {className: "user-identity"}, 
