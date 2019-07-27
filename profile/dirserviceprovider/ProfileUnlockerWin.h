@@ -4,8 +4,8 @@
 
 
 
-#ifndef mozilla_ProfileUnlockerWin_h
-#define mozilla_ProfileUnlockerWin_h
+#ifndef ProfileUnlockerWin_h
+#define ProfileUnlockerWin_h
 
 #include <windows.h>
 #include <restartmanager.h>

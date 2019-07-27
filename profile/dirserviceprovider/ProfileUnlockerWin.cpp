@@ -4,7 +4,7 @@
 
 
 
-#include "mozilla/ProfileUnlockerWin.h"
+#include "ProfileUnlockerWin.h"
 #include "nsCOMPtr.h"
 #include "nsIFile.h"
 #include "nsTArray.h"
