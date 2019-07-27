@@ -164,6 +164,8 @@ class Nursery
     
     void forwardBufferPointer(HeapSlot **pSlotsElems);
 
+    static void forwardBufferPointer(JSTracer* trc, HeapSlot **pSlotsElems);
+
     size_t sizeOfHeapCommitted() const {
         return numActiveChunks_ * gc::ChunkSize;
     }
