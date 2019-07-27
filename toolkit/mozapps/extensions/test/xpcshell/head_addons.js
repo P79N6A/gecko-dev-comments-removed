@@ -1575,7 +1575,16 @@ function callback_soon(aFunction) {
 
 
 function promiseAddonsByIDs(list) {
-  let deferred = Promise.defer();
-  AddonManager.getAddonsByIDs(list, deferred.resolve);
-  return deferred.promise;
+  return new Promise((resolve, reject) => AddonManager.getAddonsByIDs(list, resolve));
+}
+
+
+
+
+
+
+
+
+function promiseAddonByID(aId) {
+  return new Promise((resolve, reject) => AddonManager.getAddonByID(aId, resolve));
 }

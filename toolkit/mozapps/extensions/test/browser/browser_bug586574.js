@@ -21,6 +21,18 @@ var gSetDefault;
 var gResetToAutomatic;
 var gResetToManual;
 
+
+
+
+disableBackgroundUpdateTimer();
+var updatesEnabled = Services.prefs.getBoolPref(PREF_UPDATE_ENABLED);
+var autoDefault = Services.prefs.getBoolPref(PREF_AUTOUPDATE_DEFAULT);
+registerCleanupFunction(() => {
+  Services.prefs.setBoolPref(PREF_UPDATE_ENABLED, updatesEnabled);
+  Services.prefs.setBoolPref(PREF_AUTOUPDATE_DEFAULT, autoDefault);
+  enableBackgroundUpdateTimer();
+});
+
 function test() {
   waitForExplicitFinish();
 

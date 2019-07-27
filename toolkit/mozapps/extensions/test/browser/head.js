@@ -108,6 +108,41 @@ function checkOpenWindows(aWindowID) {
     ok(false, "Found unexpected " + aWindowID + " window still open");
 }
 
+
+
+let gCatMan = Components.classes["@mozilla.org/categorymanager;1"]
+                           .getService(Components.interfaces.nsICategoryManager);
+
+
+let backgroundUpdateConfig = "@mozilla.org/addons/integration;1,getService,addon-background-update-timer,extensions.update.interval,86400";
+let blocklistUpdateConfig = "@mozilla.org/extensions/blocklist;1,getService,blocklist-background-update-timer,extensions.blocklist.interval,86400";
+
+let UTIMER = "update-timer";
+let AMANAGER = "addonManager";
+let BLOCKLIST = "nsBlocklistService";
+
+function disableBackgroundUpdateTimer() {
+  info("Disabling " + UTIMER + " " + AMANAGER);
+  backgroundUpdateConfig = gCatMan.getCategoryEntry(UTIMER, AMANAGER);
+  gCatMan.deleteCategoryEntry(UTIMER, AMANAGER, true);
+}
+
+function enableBackgroundUpdateTimer() {
+  info("Enabling " + UTIMER + " " + AMANAGER);
+  gCatMan.addCategoryEntry(UTIMER, AMANAGER, backgroundUpdateConfig, false, true);
+}
+
+function disableBlocklistUpdateTimer() {
+  info("Disabling " + UTIMER + " " + BLOCKLIST);
+  blocklistUpdateConfig = gCatMan.getCategoryEntry(UTIMER, BLOCKLIST);
+  gCatMan.deleteCategoryEntry(UTIMER, BLOCKLIST, true);
+}
+
+function enableBlocklistUpdateTimer() {
+  info("Enabling " + UTIMER + " " + BLOCKLIST);
+  gCatMan.addCategoryEntry(UTIMER, BLOCKLIST, blocklistUpdateConfig, false, true);
+}
+
 registerCleanupFunction(function() {
   
   for (let pref of gRestorePrefs) {

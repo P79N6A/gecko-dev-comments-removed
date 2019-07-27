@@ -384,9 +384,7 @@ function run_test_6() {
     "onDownloadEnded"
   ], continue_test_6);
 
-  
-  
-  gInternalManager.notify(null);
+  AddonManagerInternal.backgroundUpdateCheck();
 }
 
 function continue_test_6(install) {
@@ -484,9 +482,7 @@ function run_test_7() {
       "onExternalInstall"
     ], check_test_7);
 
-    
-    
-    gInternalManager.notify(null);
+    AddonManagerInternal.backgroundUpdateCheck();
   });
 }
 
@@ -552,9 +548,7 @@ function run_test_7_cache() {
       "onExternalInstall"
     ], check_test_7_cache);
 
-    
-    
-    gInternalManager.notify(null);
+    AddonManagerInternal.backgroundUpdateCheck();
   });
 }
 
@@ -984,8 +978,7 @@ function run_test_14() {
       },
     });
 
-    
-    gInternalManager.notify(null);
+    AddonManagerInternal.backgroundUpdateCheck();
   });
 }
 
@@ -1083,8 +1076,7 @@ function run_test_15() {
       },
     });
 
-    
-    gInternalManager.notify(null);
+    AddonManagerInternal.backgroundUpdateCheck();
   });
 }
 
@@ -1182,8 +1174,8 @@ function run_test_17() {
   Services.prefs.setCharPref(PREF_GETADDONS_BYIDS_PERFORMANCE,
                              "http://localhost:" + gPort + "/data/test_update.xml");
   Services.prefs.setBoolPref(PREF_GETADDONS_CACHE_ENABLED, true);
-  
-  gInternalManager.notify(null);
+
+  AddonManagerInternal.backgroundUpdateCheck();
 }
 
 

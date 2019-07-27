@@ -53,7 +53,7 @@ function run_test_1() {
   ], callback_soon(check_test_1));
 
   
-  gInternalManager.notify(null);
+  AddonManagerInternal.backgroundUpdateCheck();
 }
 
 function check_test_1() {
@@ -78,15 +78,8 @@ function run_test_2() {
     }
   });
 
-  function observer() {
-    Services.obs.removeObserver(arguments.callee, "addons-background-update-complete");
-    do_execute_soon(run_test_3);
-  }
-
-  Services.obs.addObserver(observer, "addons-background-update-complete", false);
-
   
-  gInternalManager.notify(null);
+  AddonManagerInternal.backgroundUpdateCheck().then(run_test_3);
 }
 
 
@@ -107,8 +100,7 @@ function run_test_3() {
     "onInstallEnded",
   ], callback_soon(check_test_3));
 
-  
-  gInternalManager.notify(null);
+  AddonManagerInternal.backgroundUpdateCheck();
 }
 
 function check_test_3() {
@@ -136,15 +128,7 @@ function run_test_4() {
     }
   });
 
-  function observer() {
-    Services.obs.removeObserver(arguments.callee, "addons-background-update-complete");
-    do_execute_soon(run_test_5);
-  }
-
-  Services.obs.addObserver(observer, "addons-background-update-complete", false);
-
-  
-  gInternalManager.notify(null);
+  AddonManagerInternal.backgroundUpdateCheck().then(run_test_5);
 }
 
 
@@ -160,15 +144,7 @@ function run_test_5() {
     }
   });
 
-  function observer() {
-    Services.obs.removeObserver(arguments.callee, "addons-background-update-complete");
-    do_execute_soon(run_test_6);
-  }
-
-  Services.obs.addObserver(observer, "addons-background-update-complete", false);
-
-  
-  gInternalManager.notify(null);
+  AddonManagerInternal.backgroundUpdateCheck().then(run_test_6);
 }
 
 
@@ -191,8 +167,7 @@ function run_test_6() {
     "onInstallEnded",
   ], callback_soon(check_test_6));
 
-  
-  gInternalManager.notify(null);
+  AddonManagerInternal.backgroundUpdateCheck();
 }
 
 function check_test_6() {
@@ -202,20 +177,13 @@ function check_test_6() {
     }
   });
 
-  function observer() {
-    Services.obs.removeObserver(arguments.callee, "addons-background-update-complete");
-    restartManager();
-
-    AddonManager.getAddonByID("hotfix@tests.mozilla.org", function(aAddon) {
+  AddonManagerInternal.backgroundUpdateCheck()
+    .then(promiseRestartManager)
+    .then(() => promiseAddonByID("hotfix@tests.mozilla.org"))
+    .then(aAddon => {
       aAddon.uninstall();
-      do_execute_soon(run_test_7);
+      run_test_7();
     });
-  }
-
-  Services.obs.addObserver(observer, "addons-background-update-complete", false);
-
-  
-  gInternalManager.notify(null);
 }
 
 
@@ -236,8 +204,7 @@ function run_test_7() {
     "onInstallEnded",
   ], check_test_7);
 
-  
-  gInternalManager.notify(null);
+  AddonManagerInternal.backgroundUpdateCheck();
 }
 
 function check_test_7(aInstall) {
@@ -263,8 +230,7 @@ function check_test_7(aInstall) {
     "onInstallEnded",
   ], callback_soon(finish_test_7));
 
-  
-  gInternalManager.notify(null);
+  AddonManagerInternal.backgroundUpdateCheck();
 }
 
 function finish_test_7() {
@@ -299,8 +265,7 @@ function run_test_8() {
     "onInstallEnded",
   ], check_test_8);
 
-  
-  gInternalManager.notify(null);
+  AddonManagerInternal.backgroundUpdateCheck();
 }
 
 function check_test_8() {
@@ -321,8 +286,7 @@ function check_test_8() {
     "onInstallEnded",
   ], finish_test_8);
 
-  
-  gInternalManager.notify(null);
+  AddonManagerInternal.backgroundUpdateCheck();
 }
 
 function finish_test_8() {

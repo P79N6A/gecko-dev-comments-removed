@@ -58,8 +58,8 @@ function run_test_1() {
   Services.prefs.setCharPref(PREF_GETADDONS_BYIDS_PERFORMANCE,
                              "http://localhost:" + gPort + "/data/test_update.xml");
   Services.prefs.setBoolPref(PREF_GETADDONS_CACHE_ENABLED, true);
-  
-  gInternalManager.notify(null);
+
+  AddonManagerInternal.backgroundUpdateCheck();
 }
 
 
