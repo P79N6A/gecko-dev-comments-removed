@@ -10,7 +10,8 @@ let Log = require("resource://gre/modules/AndroidLog.jsm");
 
 let log = Log.d.bind(null, "WebappManagerWorker");
 
-onmessage = function(event) {
+
+onmessage = function(event) { 
   let { url, path } = event.data;
 
   let file = OS.File.open(path, { truncate: true });
