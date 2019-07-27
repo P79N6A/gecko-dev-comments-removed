@@ -15,15 +15,16 @@
 #define MAX_ALLOW_MEMORY_BUFFER 1024000
 namespace mozilla {
 
-class ErrorResult;
+class AudioNodeStream;
 class DOMMediaStream;
-class EncodedBufferCache;
-class MediaEncoder;
-class ProcessedMediaStream;
+class ErrorResult;
 class MediaInputPort;
 struct MediaRecorderOptions;
+class MediaStream;
 
 namespace dom {
+
+class AudioNode;
 
 
 
@@ -43,7 +44,8 @@ class MediaRecorder : public DOMEventTargetHelper,
   friend class CreateAndDispatchBlobEventRunnable;
 
 public:
-  MediaRecorder(DOMMediaStream&, nsPIDOMWindow* aOwnerWindow);
+  MediaRecorder(DOMMediaStream& aSourceMediaStream, nsPIDOMWindow* aOwnerWindow);
+  MediaRecorder(AudioNode& aSrcAudioNode, uint32_t aSrcOutput, nsPIDOMWindow* aOwnerWindow);
 
   
   virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
@@ -68,15 +70,23 @@ public:
   
   void RequestData(ErrorResult& aResult);
   
-  DOMMediaStream* Stream() const { return mStream; }
+  DOMMediaStream* Stream() const { return mDOMStream; }
   
   RecordingState State() const { return mState; }
   
   void GetMimeType(nsString &aMimeType);
 
+  
   static already_AddRefed<MediaRecorder>
   Constructor(const GlobalObject& aGlobal,
               DOMMediaStream& aStream,
+              const MediaRecorderOptions& aInitDict,
+              ErrorResult& aRv);
+  
+  static already_AddRefed<MediaRecorder>
+  Constructor(const GlobalObject& aGlobal,
+              AudioNode& aSrcAudioNode,
+              uint32_t aSrcOutput,
               const MediaRecorderOptions& aInitDict,
               ErrorResult& aRv);
 
@@ -108,7 +118,19 @@ protected:
   
   void RemoveSession(Session* aSession);
   
-  nsRefPtr<DOMMediaStream> mStream;
+  MediaStream* GetSourceMediaStream();
+  nsIPrincipal* GetSourcePrincipal();
+  
+  nsRefPtr<DOMMediaStream> mDOMStream;
+  
+  nsRefPtr<AudioNode> mAudioNode;
+  
+  
+  
+  nsRefPtr<AudioNodeStream> mPipeStream;
+  
+  nsRefPtr<MediaInputPort> mInputPort;
+
   
   RecordingState mState;
   
