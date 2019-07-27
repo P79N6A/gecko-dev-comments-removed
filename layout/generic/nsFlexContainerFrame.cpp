@@ -238,22 +238,44 @@ public:
 
 
 
+  LogicalPoint
+  LogicalPointFromFlexRelativePoint(nscoord aMainCoord,
+                                    nscoord aCrossCoord,
+                                    nscoord aContainerMainSize,
+                                    nscoord aContainerCrossSize) const {
+    nscoord logicalCoordInMainAxis = mIsMainAxisReversed ?
+      aContainerMainSize - aMainCoord : aMainCoord;
+    nscoord logicalCoordInCrossAxis = mIsCrossAxisReversed ?
+      aContainerCrossSize - aCrossCoord : aCrossCoord;
 
-  nsPoint PhysicalPointFromFlexRelativePoint(nscoord aMainCoord,
-                                             nscoord aCrossCoord,
-                                             nscoord aContainerMainSize,
-                                             nscoord aContainerCrossSize) const {
-    nscoord physicalCoordInMainAxis =
-      PhysicalCoordFromFlexRelativeCoord(aMainCoord, aContainerMainSize,
-                                         mMainAxis);
-    nscoord physicalCoordInCrossAxis =
-      PhysicalCoordFromFlexRelativeCoord(aCrossCoord, aContainerCrossSize,
-                                         mCrossAxis);
-
-    return IsMainAxisHorizontal() ?
-      nsPoint(physicalCoordInMainAxis, physicalCoordInCrossAxis) :
-      nsPoint(physicalCoordInCrossAxis, physicalCoordInMainAxis);
+    return mIsRowOriented ?
+      LogicalPoint(mWM, logicalCoordInMainAxis, logicalCoordInCrossAxis) :
+      LogicalPoint(mWM, logicalCoordInCrossAxis, logicalCoordInMainAxis);
   }
+
+  
+
+
+
+
+
+
+
+
+  LogicalSize LogicalSizeFromFlexRelativeSizes(nscoord aMainSize,
+                                               nscoord aCrossSize) const {
+    return mIsRowOriented ?
+      LogicalSize(mWM, aMainSize, aCrossSize) :
+      LogicalSize(mWM, aCrossSize, aMainSize);
+  }
+
+  
+
+
+
+
+
+
 
 
   nsSize PhysicalSizeFromFlexRelativeSizes(nscoord aMainSize,
@@ -1734,10 +1756,12 @@ public:
   
   
   
+  
   void EnterChildFrame(nscoord aChildFrameSize)
   {
-    if (!AxisGrowsInPositiveDirection(mAxis))
+    if (mIsAxisReversed) {
       mPosition += aChildFrameSize;
+    }
   }
 
   
@@ -1746,15 +1770,17 @@ public:
   
   void ExitChildFrame(nscoord aChildFrameSize)
   {
-    if (AxisGrowsInPositiveDirection(mAxis))
+    if (!mIsAxisReversed) {
       mPosition += aChildFrameSize;
+    }
   }
 
 protected:
   
-  explicit PositionTracker(AxisOrientationType aAxis)
+  PositionTracker(AxisOrientationType aAxis, bool aIsAxisReversed)
     : mPosition(0),
-      mAxis(aAxis)
+      mAxis(aAxis),
+      mIsAxisReversed(aIsAxisReversed)
   {}
 
   
@@ -1764,7 +1790,12 @@ protected:
 
   
   nscoord mPosition;               
+  
   const AxisOrientationType mAxis; 
+  
+  const bool mIsAxisReversed; 
+                              
+                              
 };
 
 
@@ -2383,7 +2414,8 @@ MainAxisPositionTracker::
                           const FlexLine* aLine,
                           uint8_t aJustifyContent,
                           nscoord aContentBoxMainSize)
-  : PositionTracker(aAxisTracker.GetMainAxis()),
+  : PositionTracker(aAxisTracker.GetMainAxis(),
+                    aAxisTracker.IsMainAxisReversed()),
     mPackingSpaceRemaining(aContentBoxMainSize), 
     mNumAutoMarginsInMainAxis(0),
     mNumPackingSpacesRemaining(0),
@@ -2534,7 +2566,8 @@ CrossAxisPositionTracker::
                            nscoord aContentBoxCrossSize,
                            bool aIsCrossSizeDefinite,
                            const FlexboxAxisTracker& aAxisTracker)
-  : PositionTracker(aAxisTracker.GetCrossAxis()),
+  : PositionTracker(aAxisTracker.GetCrossAxis(),
+                    aAxisTracker.IsCrossAxisReversed()),
     mPackingSpaceRemaining(0),
     mNumPackingSpacesRemaining(0),
     mAlignContent(aAlignContent)
@@ -2687,7 +2720,8 @@ CrossAxisPositionTracker::TraversePackingSpace()
 
 SingleLineCrossAxisPositionTracker::
   SingleLineCrossAxisPositionTracker(const FlexboxAxisTracker& aAxisTracker)
-  : PositionTracker(aAxisTracker.GetCrossAxis())
+  : PositionTracker(aAxisTracker.GetCrossAxis(),
+                    aAxisTracker.IsCrossAxisReversed())
 {
 }
 
@@ -3733,49 +3767,55 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
   
   
   
-  nsMargin containerBorderPadding(aReflowState.ComputedPhysicalBorderPadding());
-  containerBorderPadding.ApplySkipSides(GetSkipSides(&aReflowState));
-  const nsPoint containerContentBoxOrigin(containerBorderPadding.left,
-                                          containerBorderPadding.top);
-  WritingMode outerWM = aReflowState.GetWritingMode();
+  WritingMode flexWM = aReflowState.GetWritingMode();
+  LogicalMargin containerBP = aReflowState.ComputedLogicalBorderPadding();
+
+  
+  
+  
+  
+  const LogicalSides skipSides =
+    GetLogicalSkipSides(&aReflowState) | LogicalSides(eLogicalSideBitsBEnd);
+  containerBP.ApplySkipSides(skipSides);
+
+  const LogicalPoint containerContentBoxOrigin(flexWM,
+                                               containerBP.IStart(flexWM),
+                                               containerBP.BStart(flexWM));
+
   nscoord containerWidth = aAxisTracker.IsMainAxisHorizontal() ?
                              aContentBoxMainSize : contentBoxCrossSize;
+  containerWidth += aReflowState.ComputedPhysicalBorderPadding().LeftRight();
 
   
   
   for (const FlexLine* line = lines.getFirst(); line; line = line->getNext()) {
     for (const FlexItem* item = line->GetFirstItem(); item;
          item = item->getNext()) {
-      nsPoint physicalPosn = aAxisTracker.PhysicalPointFromFlexRelativePoint(
+      LogicalPoint framePos = aAxisTracker.LogicalPointFromFlexRelativePoint(
                                item->GetMainPosition(),
                                item->GetCrossPosition(),
                                aContentBoxMainSize,
                                contentBoxCrossSize);
       
       
-      physicalPosn += containerContentBoxOrigin;
+      framePos += containerContentBoxOrigin;
 
       
       
-      nsSize finalFlexedPhysicalSize =
-        aAxisTracker.PhysicalSizeFromFlexRelativeSizes(item->GetMainSize(),
-                                                       item->GetCrossSize());
-      LogicalPoint framePos(outerWM, physicalPosn,
-                            containerWidth - finalFlexedPhysicalSize.width -
-                              item->GetBorderPadding().LeftRight());
-
-      
-      
-      const nscoord itemNormalBPos = framePos.B(outerWM);
+      const nscoord itemNormalBPos = framePos.B(flexWM);
 
       
       
       bool itemNeedsReflow = true; 
       if (item->HadMeasuringReflow()) {
+        LogicalSize finalFlexItemCBSize =
+          aAxisTracker.LogicalSizeFromFlexRelativeSizes(item->GetMainSize(),
+                                                        item->GetCrossSize());
         
         
-        if (finalFlexedPhysicalSize ==
-            item->Frame()->GetContentRectRelativeToSelf().Size()) {
+        if (finalFlexItemCBSize ==
+            LogicalSize(flexWM,
+                        item->Frame()->GetContentRectRelativeToSelf().Size())) {
           
           
           
@@ -3805,6 +3845,11 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
       }
     }
   }
+
+  
+  
+  nsMargin containerBorderPadding(aReflowState.ComputedPhysicalBorderPadding());
+  containerBorderPadding.ApplySkipSides(GetSkipSides(&aReflowState));
 
   nsSize desiredContentBoxSize =
     aAxisTracker.PhysicalSizeFromFlexRelativeSizes(aContentBoxMainSize,
