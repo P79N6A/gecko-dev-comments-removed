@@ -26,6 +26,7 @@
 #include "mozilla/ErrorNames.h"
 #include "mozilla/LoadContext.h"
 #include "mozilla/dom/BindingUtils.h"
+#include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/DOMError.h"
 #include "mozilla/dom/ErrorEvent.h"
 #include "mozilla/dom/Headers.h"
@@ -67,6 +68,9 @@ using namespace mozilla::dom;
 using namespace mozilla::ipc;
 
 BEGIN_WORKERS_NAMESPACE
+
+#define PURGE_DOMAIN_DATA "browser:purge-domain-data"
+#define PURGE_SESSION_HISTORY "browser:purge-session-history"
 
 static_assert(nsIHttpChannelInternal::CORS_MODE_SAME_ORIGIN == static_cast<uint32_t>(RequestMode::Same_origin),
               "RequestMode enumeration value should match Necko CORS mode value.");
@@ -217,6 +221,7 @@ NS_IMPL_RELEASE(ServiceWorkerManager)
 NS_INTERFACE_MAP_BEGIN(ServiceWorkerManager)
   NS_INTERFACE_MAP_ENTRY(nsIServiceWorkerManager)
   NS_INTERFACE_MAP_ENTRY(nsIIPCBackgroundChildCreateCallback)
+  NS_INTERFACE_MAP_ENTRY(nsIObserver)
   if (aIID.Equals(NS_GET_IID(ServiceWorkerManager)))
     foundInterface = static_cast<nsIServiceWorkerManager*>(this);
   else
@@ -236,6 +241,17 @@ ServiceWorkerManager::ServiceWorkerManager()
     nsTArray<ServiceWorkerRegistrationData> data;
     swr->GetRegistrations(data);
     LoadRegistrations(data);
+
+    nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
+    if (obs) {
+      DebugOnly<nsresult> rv;
+      rv = obs->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, false );
+      MOZ_ASSERT(NS_SUCCEEDED(rv));
+      rv = obs->AddObserver(this, PURGE_SESSION_HISTORY, false );
+      MOZ_ASSERT(NS_SUCCEEDED(rv));
+      rv = obs->AddObserver(this, PURGE_DOMAIN_DATA, false );
+      MOZ_ASSERT(NS_SUCCEEDED(rv));
+    }
   }
 }
 
@@ -536,6 +552,8 @@ class ServiceWorkerRegisterJob final : public ServiceWorkerJob,
     UPDATE_JOB = 1,
   } mJobType;
 
+  bool mCanceled;
+
 public:
   NS_DECL_ISUPPORTS_INHERITED
 
@@ -551,6 +569,7 @@ public:
     , mCallback(aCallback)
     , mPrincipal(aPrincipal)
     , mJobType(REGISTER_JOB)
+    , mCanceled(false)
   { }
 
   
@@ -561,12 +580,27 @@ public:
     , mRegistration(aRegistration)
     , mCallback(aCallback)
     , mJobType(UPDATE_JOB)
+    , mCanceled(false)
   { }
+
+  bool
+  IsRegisterJob() const override
+  {
+    return true;
+  }
+
+  void
+  Cancel()
+  {
+    mQueue = nullptr;
+    mCanceled = true;
+  }
 
   void
   Start() override
   {
     MOZ_ASSERT(NS_IsMainThread());
+    MOZ_ASSERT(!mCanceled);
 
     nsRefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
     if (!swm->HasBackgroundActor()) {
@@ -605,6 +639,12 @@ public:
   void
   ComparisonResult(nsresult aStatus, bool aInCacheAndEqual, const nsAString& aNewCacheName) override
   {
+    nsRefPtr<ServiceWorkerRegisterJob> kungFuDeathGrip = this;
+    if (mCanceled) {
+      Fail(NS_ERROR_DOM_TYPE_ERR);
+      return;
+    }
+
     if (NS_WARN_IF(NS_FAILED(aStatus))) {
       Fail(NS_ERROR_DOM_TYPE_ERR);
       return;
@@ -672,11 +712,19 @@ public:
   }
 
   
+  
   void
   Fail(const ErrorEventInit& aError)
   {
     MOZ_ASSERT(mCallback);
-    mCallback->UpdateFailed(aError);
+    nsRefPtr<ServiceWorkerUpdateFinishCallback> callback = mCallback.forget();
+    
+    
+    
+    
+    
+    nsRefPtr<ServiceWorkerRegisterJob> kungFuDeathGrip = this;
+    callback->UpdateFailed(aError);
     FailCommon(NS_ERROR_DOM_JS_EXCEPTION);
   }
 
@@ -684,11 +732,18 @@ public:
   void
   ContinueInstall()
   {
+    
+    
     nsRefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
     MOZ_ASSERT(swm->mSetOfScopesBeingUpdated.Contains(mRegistration->mScope));
     swm->mSetOfScopesBeingUpdated.Remove(mRegistration->mScope);
     
     
+
+    nsRefPtr<ServiceWorkerRegisterJob> kungFuDeathGrip = this;
+    if (mCanceled) {
+      return Fail(NS_ERROR_DOM_ABORT_ERR);
+    }
 
     
     if (mRegistration->mInstallingWorker) {
@@ -703,6 +758,7 @@ public:
     mRegistration->mInstallingWorker->UpdateState(ServiceWorkerState::Installing);
 
     Succeed();
+    
 
     
     nsCOMPtr<nsIRunnable> upr =
@@ -743,6 +799,8 @@ private:
   void
   Update()
   {
+    
+    MOZ_ASSERT(!mCanceled);
     MOZ_ASSERT(mRegistration);
     nsCOMPtr<nsIRunnable> r =
       NS_NewRunnableMethod(this, &ServiceWorkerRegisterJob::ContinueUpdate);
@@ -755,6 +813,11 @@ private:
   ContinueUpdate()
   {
     AssertIsOnMainThread();
+    nsRefPtr<ServiceWorkerRegisterJob> kungFuDeathGrip = this;
+    if (mCanceled) {
+      return Fail(NS_ERROR_DOM_ABORT_ERR);
+    }
+
     if (mRegistration->mInstallingWorker) {
       
       mRegistration->mInstallingWorker->UpdateState(ServiceWorkerState::Redundant);
@@ -800,7 +863,6 @@ private:
       }
     }
 
-    mCallback = nullptr;
     nsRefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
     swm->MaybeRemoveRegistration(mRegistration);
     
@@ -812,18 +874,31 @@ private:
   
   
   
+  
   void
   Fail(nsresult aRv)
   {
     MOZ_ASSERT(mCallback);
-    mCallback->UpdateFailed(aRv);
+    nsRefPtr<ServiceWorkerUpdateFinishCallback> callback = mCallback.forget();
+    
+    
+    
+    
+    
+    nsRefPtr<ServiceWorkerRegisterJob> kungFuDeathGrip = this;
+    callback->UpdateFailed(aRv);
     FailCommon(aRv);
   }
 
   void
   ContinueAfterInstallEvent(bool aInstallEventSuccess, bool aActivateImmediately)
   {
-    if (NS_WARN_IF(!mRegistration->mInstallingWorker)) {
+    if (mCanceled) {
+      return Done(NS_ERROR_DOM_ABORT_ERR);
+    }
+
+    if (!mRegistration->mInstallingWorker) {
+      NS_WARNING("mInstallingWorker was null.");
       return Done(NS_ERROR_DOM_ABORT_ERR);
     }
 
@@ -865,6 +940,28 @@ private:
 };
 
 NS_IMPL_ISUPPORTS_INHERITED0(ServiceWorkerRegisterJob, ServiceWorkerJob);
+
+void
+ServiceWorkerJobQueue::CancelJobs()
+{
+  if (mJobs.IsEmpty()) {
+    return;
+  }
+
+  
+  
+  nsRefPtr<ServiceWorkerJob> runningJob = mJobs[0];
+  
+  if (runningJob->IsRegisterJob()) {
+    ServiceWorkerRegisterJob* job = static_cast<ServiceWorkerRegisterJob*>(runningJob.get());
+    job->Cancel();
+  }
+
+  
+  
+  
+  mJobs.Clear();
+}
 
 NS_IMETHODIMP
 ContinueUpdateRunnable::Run()
@@ -1907,20 +2004,23 @@ ServiceWorkerManager::HandleError(JSContext* aCx,
   ServiceWorkerJobQueue* queue = mJobQueues.Get(aScope);
   MOZ_ASSERT(queue);
   ServiceWorkerJob* job = queue->Peek();
-  ServiceWorkerRegisterJob* regJob = static_cast<ServiceWorkerRegisterJob*>(job);
-  MOZ_ASSERT(regJob);
+  if (job) {
+    MOZ_ASSERT(job->IsRegisterJob());
+    nsRefPtr<ServiceWorkerRegisterJob> regJob = static_cast<ServiceWorkerRegisterJob*>(job);
 
-  RootedDictionary<ErrorEventInit> init(aCx);
-  init.mMessage = aMessage;
-  init.mFilename = aFilename;
-  init.mLineno = aLineNumber;
-  init.mColno = aColumnNumber;
+    RootedDictionary<ErrorEventInit> init(aCx);
+    init.mMessage = aMessage;
+    init.mFilename = aFilename;
+    init.mLineno = aLineNumber;
+    init.mColno = aColumnNumber;
 
   NS_WARNING(nsPrintfCString(
               "Script error caused ServiceWorker registration to fail: %s:%u '%s'",
               NS_ConvertUTF16toUTF8(aFilename).get(), aLineNumber,
               NS_ConvertUTF16toUTF8(aMessage).get()).get());
-  regJob->Fail(init);
+    regJob->Fail(init);
+  }
+
   return true;
 }
 
@@ -2987,18 +3087,12 @@ ServiceWorkerManager::MaybeRemoveRegistration(ServiceWorkerRegistrationInfo* aRe
 }
 
 void
-ServiceWorkerManager::RemoveRegistration(ServiceWorkerRegistrationInfo* aRegistration)
+ServiceWorkerManager::RemoveRegistrationInternal(ServiceWorkerRegistrationInfo* aRegistration)
 {
   MOZ_ASSERT(aRegistration);
   MOZ_ASSERT(!aRegistration->IsControllingDocuments());
   MOZ_ASSERT(mServiceWorkerRegistrationInfos.Contains(aRegistration->mScope));
   ServiceWorkerManager::RemoveScope(mOrderedScopes, aRegistration->mScope);
-
-  
-  nsRefPtr<ServiceWorkerRegistrationInfo> reg;
-  mServiceWorkerRegistrationInfos.Remove(aRegistration->mScope,
-                                         getter_AddRefs(reg));
-  MOZ_ASSERT(reg);
 
   
   
@@ -3009,14 +3103,14 @@ ServiceWorkerManager::RemoveRegistration(ServiceWorkerRegistrationInfo* aRegistr
   MOZ_ASSERT(mActor);
 
   PrincipalInfo principalInfo;
-  if (NS_WARN_IF(NS_FAILED(PrincipalToPrincipalInfo(reg->mPrincipal,
+  if (NS_WARN_IF(NS_FAILED(PrincipalToPrincipalInfo(aRegistration->mPrincipal,
                                                     &principalInfo)))) {
     
     
     NS_WARNING("Unable to unregister serviceworker due to possible OOM");
     return;
   }
-  mActor->SendUnregisterServiceWorker(principalInfo, NS_ConvertUTF8toUTF16(reg->mScope));
+  mActor->SendUnregisterServiceWorker(principalInfo, NS_ConvertUTF8toUTF16(aRegistration->mScope));
 }
 
 class ServiceWorkerDataInfo final : public nsIServiceWorkerInfo
@@ -3042,7 +3136,86 @@ private:
   nsString mActiveCacheName;
   nsString mWaitingCacheName;
 };
+void
+ServiceWorkerManager::RemoveRegistration(ServiceWorkerRegistrationInfo* aRegistration)
+{
+  RemoveRegistrationInternal(aRegistration);
+  MOZ_ASSERT(mServiceWorkerRegistrationInfos.Contains(aRegistration->mScope));
+  mServiceWorkerRegistrationInfos.Remove(aRegistration->mScope);
+}
 
+namespace {
+
+
+
+
+
+
+
+
+bool
+HasRootDomain(nsIURI* aURI, const nsACString& aDomain)
+{
+  AssertIsOnMainThread();
+  MOZ_ASSERT(aURI);
+
+  nsAutoCString host;
+  nsresult rv = aURI->GetHost(host);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return false;
+  }
+
+  nsACString::const_iterator start, end;
+  host.BeginReading(start);
+  host.EndReading(end);
+  if (!FindInReadable(aDomain, start, end)) {
+    return false;
+  }
+
+  if (host.Equals(aDomain)) {
+    return true;
+  }
+
+  
+  if (start.get() == host.BeginReading()) {
+    
+    return false;
+  }
+
+  char prevChar = *(--start);
+  return prevChar == '.';
+}
+
+
+PLDHashOperator
+UnregisterIfMatchesHost(const nsACString& aScope,
+                        ServiceWorkerRegistrationInfo* aReg,
+                        void* aData)
+{
+  
+  
+  
+  ServiceWorkerRegistrationInfo* toRemove = nullptr;
+  if (aData) {
+    const nsACString& domain = *static_cast<nsACString*>(aData);
+    nsCOMPtr<nsIURI> scopeURI;
+    nsresult rv = NS_NewURI(getter_AddRefs(scopeURI), aScope, nullptr, nullptr);
+    
+    if (NS_SUCCEEDED(rv) && HasRootDomain(scopeURI, domain)) {
+      toRemove = aReg;
+    }
+  } else {
+    toRemove = aReg;
+  }
+
+  if (toRemove) {
+    nsRefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
+    swm->ForceUnregister(toRemove);
+  }
+
+  return PL_DHASH_NEXT;
+}
+} 
 NS_IMPL_ISUPPORTS(ServiceWorkerDataInfo, nsIServiceWorkerInfo)
 
  already_AddRefed<ServiceWorkerDataInfo>
@@ -3143,6 +3316,38 @@ ServiceWorkerManager::GetAllRegistrations(nsIArray** aResult)
   return NS_OK;
 }
 
+
+void
+ServiceWorkerManager::ForceUnregister(ServiceWorkerRegistrationInfo* aRegistration)
+{
+  MOZ_ASSERT(aRegistration);
+
+  ServiceWorkerJobQueue* mQueue;
+  mJobQueues.Get(aRegistration->mScope, &mQueue);
+  if (mQueue) {
+    mQueue->CancelJobs();
+  }
+
+  
+  Unregister(aRegistration->mPrincipal, nullptr, NS_ConvertUTF8toUTF16(aRegistration->mScope));
+}
+
+NS_IMETHODIMP
+ServiceWorkerManager::Remove(const nsACString& aHost)
+{
+  AssertIsOnMainThread();
+  mServiceWorkerRegistrationInfos.EnumerateRead(UnregisterIfMatchesHost, &const_cast<nsACString&>(aHost));
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+ServiceWorkerManager::RemoveAll()
+{
+  AssertIsOnMainThread();
+  mServiceWorkerRegistrationInfos.EnumerateRead(UnregisterIfMatchesHost, nullptr);
+  return NS_OK;
+}
+
 static PLDHashOperator
 UpdateEachRegistration(const nsACString& aKey,
                        ServiceWorkerRegistrationInfo* aInfo,
@@ -3161,6 +3366,43 @@ ServiceWorkerManager::UpdateAllRegistrations()
   AssertIsOnMainThread();
 
   mServiceWorkerRegistrationInfos.EnumerateRead(UpdateEachRegistration, this);
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+ServiceWorkerManager::Observe(nsISupports* aSubject,
+                              const char* aTopic,
+                              const char16_t* aData)
+{
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
+
+  nsAutoTArray<ContentParent*,1> children;
+  ContentParent::GetAll(children);
+
+  if (strcmp(aTopic, PURGE_SESSION_HISTORY) == 0) {
+    for (uint32_t i = 0; i < children.Length(); i++) {
+      unused << children[i]->SendRemoveServiceWorkerRegistrations();
+    }
+
+    RemoveAll();
+  } else if (strcmp(aTopic, PURGE_DOMAIN_DATA) == 0) {
+    nsAutoString domain(aData);
+    for (uint32_t i = 0; i < children.Length(); i++) {
+      unused << children[i]->SendRemoveServiceWorkerRegistrationsForDomain(domain);
+    }
+
+    Remove(NS_ConvertUTF16toUTF8(domain));
+  } else if (strcmp(aTopic, NS_XPCOM_SHUTDOWN_OBSERVER_ID) == 0) {
+    nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
+    if (obs) {
+      obs->RemoveObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID);
+      obs->RemoveObserver(this, PURGE_SESSION_HISTORY);
+      obs->RemoveObserver(this, PURGE_DOMAIN_DATA);
+    }
+  } else {
+    MOZ_CRASH("Received message we aren't supposed to be registered for!");
+  }
 
   return NS_OK;
 }
