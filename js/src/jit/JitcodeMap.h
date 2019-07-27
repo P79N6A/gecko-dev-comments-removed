@@ -122,7 +122,7 @@ class JitcodeGlobalEntry
 
         
         
-        IonTrackedTypeVector *optsAllTypes_;
+        types::TypeSet::TypeList *optsAllTypes_;
 
         struct ScriptNamePair {
             JSScript *script;
@@ -163,7 +163,7 @@ class JitcodeGlobalEntry
         void initTrackedOptimizations(const IonTrackedOptimizationsRegionTable *regionTable,
                                       const IonTrackedOptimizationsTypesTable *typesTable,
                                       const IonTrackedOptimizationsAttemptsTable *attemptsTable,
-                                      IonTrackedTypeVector *allTypes)
+                                      types::TypeSet::TypeList *allTypes)
         {
             optsRegionTable_ = regionTable;
             optsTypesTable_ = typesTable;
@@ -214,22 +214,7 @@ class JitcodeGlobalEntry
             return !!optsRegionTable_;
         }
 
-        IonTrackedOptimizationsAttempts trackedOptimizationAttempts(uint8_t index) {
-            MOZ_ASSERT(hasTrackedOptimizations());
-            return optsAttemptsTable_->entry(index);
-        }
-
-        IonTrackedOptimizationsTypeInfo trackedOptimizationTypeInfo(uint8_t index) {
-            MOZ_ASSERT(hasTrackedOptimizations());
-            return optsTypesTable_->entry(index);
-        }
-
-        const IonTrackedTypeVector *allTrackedTypes() {
-            MOZ_ASSERT(hasTrackedOptimizations());
-            return optsAllTypes_;
-        }
-
-        mozilla::Maybe<uint8_t> trackedOptimizationIndexAtAddr(void *ptr);
+        bool optimizationAttemptsAtAddr(void *ptr, mozilla::Maybe<AttemptsVector> &attempts);
     };
 
     struct BaselineEntry : public BaseEntry
@@ -560,46 +545,6 @@ class JitcodeGlobalEntry
 
     
     static char *createScriptString(JSContext *cx, JSScript *script, size_t *length=nullptr);
-
-    bool hasTrackedOptimizations() const {
-        switch (kind()) {
-          case Ion:
-            return ionEntry().hasTrackedOptimizations();
-          case Baseline:
-          case IonCache:
-          case Dummy:
-            break;
-          default:
-            MOZ_CRASH("Invalid JitcodeGlobalEntry kind.");
-        }
-        return false;
-    }
-
-    mozilla::Maybe<uint8_t> trackedOptimizationIndexAtAddr(void *addr) {
-        switch (kind()) {
-          case Ion:
-            return ionEntry().trackedOptimizationIndexAtAddr(addr);
-          case Baseline:
-          case IonCache:
-          case Dummy:
-            break;
-          default:
-            MOZ_CRASH("Invalid JitcodeGlobalEntry kind.");
-        }
-        return mozilla::Nothing();
-    }
-
-    IonTrackedOptimizationsAttempts trackedOptimizationAttempts(uint8_t index) {
-        return ionEntry().trackedOptimizationAttempts(index);
-    }
-
-    IonTrackedOptimizationsTypeInfo trackedOptimizationTypeInfo(uint8_t index) {
-        return ionEntry().trackedOptimizationTypeInfo(index);
-    }
-
-    const IonTrackedTypeVector *allTrackedTypes() {
-        return ionEntry().allTrackedTypes();
-    }
 };
 
 
