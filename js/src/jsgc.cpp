@@ -965,7 +965,7 @@ GCRuntime::updateOnArenaFree(const ChunkInfo &info)
     ++numArenasFreeCommitted;
 }
 
-inline void
+void
 Chunk::addArenaToFreeList(JSRuntime *rt, ArenaHeader *aheader)
 {
     MOZ_ASSERT(!aheader->allocated());
@@ -977,6 +977,13 @@ Chunk::addArenaToFreeList(JSRuntime *rt, ArenaHeader *aheader)
 }
 
 void
+Chunk::addArenaToDecommittedList(JSRuntime *rt, const ArenaHeader *aheader)
+{
+    ++info.numArenasFree;
+    decommittedArenas.set(Chunk::arenaIndex(aheader->arenaAddress()));
+}
+
+void
 Chunk::recycleArena(ArenaHeader *aheader, SortedArenaList &dest, AllocKind thingKind,
                     size_t thingsPerArena)
 {
@@ -985,13 +992,18 @@ Chunk::recycleArena(ArenaHeader *aheader, SortedArenaList &dest, AllocKind thing
 }
 
 void
-Chunk::releaseArena(JSRuntime *rt, ArenaHeader *aheader, const AutoLockGC &lock)
+Chunk::releaseArena(JSRuntime *rt, ArenaHeader *aheader, const AutoLockGC &lock,
+                    ArenaDecommitState state )
 {
     MOZ_ASSERT(aheader->allocated());
     MOZ_ASSERT(!aheader->hasDelayedMarking);
 
-    aheader->setAsNotAllocated();
-    addArenaToFreeList(rt, aheader);
+    if (state == IsCommitted) {
+        aheader->setAsNotAllocated();
+        addArenaToFreeList(rt, aheader);
+    } else {
+        addArenaToDecommittedList(rt, aheader);
+    }
 
     if (info.numArenasFree == 1) {
         MOZ_ASSERT(!info.prevp);
@@ -3186,110 +3198,45 @@ GCRuntime::decommitAllWithoutUnlocking(const AutoLockGC &lock)
 void
 GCRuntime::decommitArenas(const AutoLockGC &lock)
 {
-    Chunk **availableListHeadp = &availableChunkListHead;
-    Chunk *chunk = *availableListHeadp;
-    if (!chunk)
-        return;
+    
+    for (ChunkPool::Enum e(emptyChunks(lock)); !e.empty(); e.popFront())
+        MOZ_ASSERT(e.front()->info.numArenasFreeCommitted == 0);
 
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    MOZ_ASSERT(chunk->info.prevp == availableListHeadp);
-    while (Chunk *next = chunk->info.next) {
-        MOZ_ASSERT(next->info.prevp == &chunk->info.next);
-        chunk = next;
+    
+    
+    mozilla::Vector<Chunk *> toDecommit;
+    for (Chunk *chunk = availableChunkListHead; chunk; chunk = chunk->info.next) {
+        if (!toDecommit.append(chunk)) {
+            
+            
+            return onOutOfMallocMemory(lock);
+        }
     }
 
-    for (;;) {
-        while (chunk->info.numArenasFreeCommitted != 0) {
-            ArenaHeader *aheader = chunk->fetchNextFreeArena(rt);
+    
+    
+    static_assert(SIZE_MAX / ChunkSize < SSIZE_MAX, "A vector of Chunk cannot overflow ssize_t.");
+    for (ssize_t i = toDecommit.length() - 1; i > 0; --i) {
+        Chunk *chunk = toDecommit[i];
+        MOZ_ASSERT(chunk);
 
-            Chunk **savedPrevp = chunk->info.prevp;
-            if (!chunk->hasAvailableArenas())
-                chunk->removeFromAvailableList();
-
-            size_t arenaIndex = Chunk::arenaIndex(aheader->arenaAddress());
+        
+        
+        while (chunk->info.numArenasFreeCommitted) {
+            ArenaHeader *aheader = chunk->allocateArena(rt, nullptr, FINALIZE_OBJECT0, lock);
             bool ok;
             {
-                
-
-
-
-
-                Maybe<AutoUnlockGC> maybeUnlock;
-                if (!isHeapBusy())
-                    maybeUnlock.emplace(rt);
+                AutoUnlockGC unlock(rt);
                 ok = MarkPagesUnused(aheader->getArena(), ArenaSize);
             }
+            chunk->releaseArena(rt, aheader, lock, Chunk::ArenaDecommitState(ok));
 
-            if (ok) {
-                ++chunk->info.numArenasFree;
-                chunk->decommittedArenas.set(arenaIndex);
-            } else {
-                chunk->addArenaToFreeList(rt, aheader);
-            }
-            MOZ_ASSERT(chunk->hasAvailableArenas());
-            MOZ_ASSERT(!chunk->unused());
-            if (chunk->info.numArenasFree == 1) {
-                
-
-
-
-
-
-
-                Chunk **insertPoint = savedPrevp;
-                if (savedPrevp != availableListHeadp) {
-                    Chunk *prev = Chunk::fromPointerToNext(savedPrevp);
-                    if (!prev->hasAvailableArenas())
-                        insertPoint = availableListHeadp;
-                }
-                chunk->insertToAvailableList(insertPoint);
-            } else {
-                MOZ_ASSERT(chunk->info.prevp);
-            }
-
-            if (chunkAllocationSinceLastGC || !ok) {
-                
-
-
-
+            
+            
+            if ( !ok)
                 return;
-            }
         }
-
-        
-
-
-
-        MOZ_ASSERT_IF(chunk->info.prevp, *chunk->info.prevp == chunk);
-        if (chunk->info.prevp == availableListHeadp || !chunk->info.prevp)
-            break;
-
-        
-
-
-
-        chunk = chunk->getPrevious();
     }
 }
 
@@ -6268,8 +6215,14 @@ GCRuntime::onOutOfMallocMemory()
     
     allocTask.cancel(GCParallelTask::CancelAndWait);
 
-    
     AutoLockGC lock(rt);
+    onOutOfMallocMemory(lock);
+}
+
+void
+GCRuntime::onOutOfMallocMemory(const AutoLockGC &lock)
+{
+    
     freeEmptyChunks(rt, lock);
 
     
