@@ -37,12 +37,6 @@ let gSubDialog = {
     
     
     this._frame.addEventListener("load", this._onLoad.bind(this));
-
-    chromeBrowser.addEventListener("unload", function(aEvent) {
-      if (aEvent.target.location.href != "about:blank") {
-        this.close();
-      }
-    }.bind(this), true);
   },
 
   uninit: function() {
