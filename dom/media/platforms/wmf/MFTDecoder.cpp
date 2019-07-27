@@ -201,15 +201,15 @@ MFTDecoder::Output(RefPtr<IMFSample>* aOutput)
 
   MFT_OUTPUT_DATA_BUFFER output = {0};
 
-  bool providedSample = false;
   RefPtr<IMFSample> sample;
-  if (*aOutput) {
-    output.pSample = *aOutput;
-    providedSample = true;
-  } else if (!mMFTProvidesOutputSamples) {
-    hr = CreateOutputSample(&sample);
-    NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
-    output.pSample = sample;
+  if (!mMFTProvidesOutputSamples) {
+    if (*aOutput) {
+      output.pSample = *aOutput;
+    } else  {
+      hr = CreateOutputSample(&sample);
+      NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
+      output.pSample = sample;
+    }
   }
 
   DWORD status = 0;
@@ -248,7 +248,7 @@ MFTDecoder::Output(RefPtr<IMFSample>* aOutput)
   }
 
   *aOutput = output.pSample; 
-  if (mMFTProvidesOutputSamples && !providedSample) {
+  if (mMFTProvidesOutputSamples) {
     
     
     
