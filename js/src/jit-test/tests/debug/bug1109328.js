@@ -1,4 +1,3 @@
-
 try {
     gcslice(0)(""());
 } catch (e) {}

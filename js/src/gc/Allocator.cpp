@@ -89,20 +89,7 @@ GCIfNeeded(ExclusiveContext *cx)
         }
     }
 
-    
-    JSRuntime *unsafeRt = cx->zone()->runtimeFromAnyThread();
-    if (unsafeRt->gc.usage.gcBytes() >= unsafeRt->gc.tunables.gcMaxBytes()) {
-        if (cx->isJSContext()) {
-            JSRuntime *rt = cx->asJSContext()->runtime();
-            JS::PrepareForFullGC(rt);
-            AutoKeepAtoms keepAtoms(cx->perThreadData);
-            rt->gc.gc(GC_SHRINK, JS::gcreason::LAST_DITCH);
-            rt->gc.waitBackgroundSweepOrAllocEnd();
-        }
-    }
-
-    
-    return unsafeRt->gc.usage.gcBytes() < unsafeRt->gc.tunables.gcMaxBytes();
+    return true;
 }
 
 template <AllowGC allowGC>
@@ -110,10 +97,8 @@ static inline bool
 CheckAllocatorState(ExclusiveContext *cx, AllocKind kind)
 {
     if (allowGC) {
-        if (!GCIfNeeded(cx)) {
-            ReportOutOfMemory(cx);
+        if (!GCIfNeeded(cx))
             return false;
-        }
     }
 
     if (!cx->isJSContext())
