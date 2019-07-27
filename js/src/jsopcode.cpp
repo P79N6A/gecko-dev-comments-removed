@@ -1753,7 +1753,13 @@ FindStartPC(JSContext* cx, const FrameIter& iter, int spindex, int skipStackHits
 
     if (spindex == JSDVG_SEARCH_STACK) {
         size_t index = iter.numFrameSlots();
-        MOZ_ASSERT(index >= size_t(parser.stackDepthAtPC(current)));
+
+        
+        
+        
+        
+        if (index < size_t(parser.stackDepthAtPC(current)))
+            return true;
 
         
         
