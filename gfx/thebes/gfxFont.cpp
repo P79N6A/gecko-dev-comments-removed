@@ -1887,6 +1887,32 @@ gfxFont::Draw(gfxTextRun *aTextRun, uint32_t aStart, uint32_t aEnd,
     fontParams.isVerticalFont =
         aOrientation == gfxTextRunFactory::TEXT_ORIENT_VERTICAL_UPRIGHT;
 
+    bool sideways = false;
+    gfxPoint origPt = *aPt;
+    if (aRunParams.isVerticalRun && !fontParams.isVerticalFont) {
+        sideways = true;
+        aRunParams.context->Save();
+        gfxPoint p(aPt->x * aRunParams.devPerApp,
+                   aPt->y * aRunParams.devPerApp);
+        const Metrics& metrics = GetMetrics(eHorizontal);
+        
+        
+        
+        
+        
+        
+        
+        
+        aRunParams.context->SetMatrix(aRunParams.context->CurrentMatrix().
+            Translate(p).       
+            Rotate(M_PI / 2.0). 
+            Translate(-p).      
+            Translate(gfxPoint(0, metrics.emAscent - metrics.emDescent) / 2));
+                                
+                                
+                                
+    }
+
     nsAutoPtr<gfxTextContextPaint> contextPaint;
     if (fontParams.haveSVGGlyphs && !fontParams.contextPaint) {
         
@@ -1975,6 +2001,11 @@ gfxFont::Draw(gfxTextRun *aTextRun, uint32_t aStart, uint32_t aEnd,
 
     aRunParams.dt->SetTransform(oldMat);
     aRunParams.dt->SetPermitSubpixelAA(oldSubpixelAA);
+
+    if (sideways) {
+        aRunParams.context->Restore();
+        *aPt = gfxPoint(origPt.x, origPt.y + (aPt->x - origPt.x));
+    }
 }
 
 bool
