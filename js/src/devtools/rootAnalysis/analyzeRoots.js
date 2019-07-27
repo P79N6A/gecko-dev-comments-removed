@@ -412,8 +412,7 @@ function computePrintedLines(functionName)
 
     
     var currentBody = null;
-    for (var i = 0; i < lines.length; i++) {
-        var line = lines[i];
+    for (var line of lines) {
         if (/^block:/.test(line)) {
             if (match = /:(loop#[\d#]+)/.exec(line)) {
                 var loop = match[1];
@@ -578,6 +577,13 @@ var each = Math.floor(N/numBatches);
 var start = minStream + each * (batch - 1);
 var end = Math.min(minStream + each * batch - 1, maxStream);
 
+
+
+
+
+var theFunctionNameToFind;
+
+
 for (var nameIndex = start; nameIndex <= end; nameIndex++) {
     var name = xdb.read_key(nameIndex);
     var functionName = name.readString();
@@ -586,6 +592,15 @@ for (var nameIndex = start; nameIndex <= end; nameIndex++) {
     var json = data.readString();
     xdb.free_string(data);
     functionBodies = JSON.parse(json);
+
+    if (theFunctionNameToFind) {
+        if (functionName == theFunctionNameToFind) {
+            printErr("nameIndex = " + nameIndex);
+            quit(1);
+        } else {
+            continue;
+        }
+    }
 
     for (var body of functionBodies)
         body.suppressed = [];
