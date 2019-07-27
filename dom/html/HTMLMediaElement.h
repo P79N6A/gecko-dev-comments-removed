@@ -1297,6 +1297,19 @@ protected:
   nsRefPtr<VideoTrackList> mVideoTrackList;
 
   MediaWaitingFor mWaitingFor;
+
+  enum ElementInTreeState {
+    
+    ELEMENT_NOT_INTREE,
+    
+    ELEMENT_INTREE,
+    
+    
+    ELEMENT_NOT_INTREE_HAD_INTREE
+  };
+
+  ElementInTreeState mElementInTreeState;
+
 };
 
 } 
