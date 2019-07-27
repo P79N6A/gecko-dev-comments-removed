@@ -79,6 +79,18 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozilla_JSONWriter_h
 #define mozilla_JSONWriter_h
 
@@ -217,8 +229,21 @@ class JSONWriter
     }
   };
 
+public:
+  
+  
+  
+  
+  
+  enum CollectionStyle {
+    MultiLineStyle,   
+    SingleLineStyle
+  };
+
+private:
   const UniquePtr<JSONWriteFunc> mWriter;
   Vector<bool, 8> mNeedComma;     
+  Vector<bool, 8> mNeedNewlines;  
   size_t mDepth;                  
 
   void Indent()
@@ -236,10 +261,12 @@ class JSONWriter
     if (mNeedComma[mDepth]) {
       mWriter->Write(",");
     }
-    if (mDepth > 0) {
+    if (mDepth > 0 && mNeedNewlines[mDepth]) {
       mWriter->Write("\n");
+      Indent();
+    } else if (mNeedComma[mDepth]) {
+      mWriter->Write(" ");
     }
-    Indent();
   }
 
   void PropertyNameAndColon(const char* aName)
@@ -272,15 +299,18 @@ class JSONWriter
     mNeedComma[mDepth] = true;
   }
 
-  void NewCommaEntry()
+  void NewVectorEntries()
   {
     
     
     MOZ_RELEASE_ASSERT(mNeedComma.growByUninitialized(1));
+    MOZ_RELEASE_ASSERT(mNeedNewlines.growByUninitialized(1));
     mNeedComma[mDepth] = false;
+    mNeedNewlines[mDepth] = true;
   }
 
-  void StartCollection(const char* aMaybePropertyName, const char* aStartChar)
+  void StartCollection(const char* aMaybePropertyName, const char* aStartChar,
+                       CollectionStyle aStyle = MultiLineStyle)
   {
     Separator();
     if (aMaybePropertyName) {
@@ -291,15 +321,21 @@ class JSONWriter
     mWriter->Write(aStartChar);
     mNeedComma[mDepth] = true;
     mDepth++;
-    NewCommaEntry();
+    NewVectorEntries();
+    mNeedNewlines[mDepth] =
+      mNeedNewlines[mDepth - 1] && aStyle == MultiLineStyle;
   }
 
   
   void EndCollection(const char* aEndChar)
   {
-    mDepth--;
-    mWriter->Write("\n");
-    Indent();
+    if (mNeedNewlines[mDepth]) {
+      mWriter->Write("\n");
+      mDepth--;
+      Indent();
+    } else {
+      mDepth--;
+    }
     mWriter->Write(aEndChar);
   }
 
@@ -307,9 +343,10 @@ public:
   explicit JSONWriter(UniquePtr<JSONWriteFunc> aWriter)
     : mWriter(Move(aWriter))
     , mNeedComma()
+    , mNeedNewlines()
     , mDepth(0)
   {
-    NewCommaEntry();
+    NewVectorEntries();
   }
 
   
@@ -323,7 +360,10 @@ public:
   
 
   
-  void Start() { StartCollection(nullptr, "{"); }
+  void Start(CollectionStyle aStyle = MultiLineStyle)
+  {
+    StartCollection(nullptr, "{", aStyle);
+  }
 
   
   void End() { EndCollection("}\n"); }
@@ -396,19 +436,33 @@ public:
   void PointerElement(const void* aPtr) { PointerProperty(nullptr, aPtr); }
 
   
-  void StartArrayProperty(const char* aName) { StartCollection(aName, "["); }
+  void StartArrayProperty(const char* aName,
+                          CollectionStyle aStyle = MultiLineStyle)
+  {
+    StartCollection(aName, "[", aStyle);
+  }
 
   
-  void StartArrayElement() { StartArrayProperty(nullptr); }
+  void StartArrayElement(CollectionStyle aStyle = MultiLineStyle)
+  {
+    StartArrayProperty(nullptr, aStyle);
+  }
 
   
   void EndArray() { EndCollection("]"); }
 
   
-  void StartObjectProperty(const char* aName) { StartCollection(aName, "{"); }
+  void StartObjectProperty(const char* aName,
+                           CollectionStyle aStyle = MultiLineStyle)
+  {
+    StartCollection(aName, "{", aStyle);
+  }
 
   
-  void StartObjectElement() { StartObjectProperty(nullptr); }
+  void StartObjectElement(CollectionStyle aStyle = MultiLineStyle)
+  {
+    StartObjectProperty(nullptr, aStyle);
+  }
 
   
   void EndObject() { EndCollection("}"); }
