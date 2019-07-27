@@ -201,6 +201,10 @@ static nsresult BindId(mozIStorageStatement* aState, const nsACString& aName,
                        const nsID* aId);
 static nsresult ExtractId(mozIStorageStatement* aState, uint32_t aPos,
                           nsID* aIdOut);
+static nsresult CreateAndBindKeyStatement(mozIStorageConnection* aConn,
+                                          const char* aQueryFormat,
+                                          const nsAString& aKey,
+                                          mozIStorageStatement** aStateOut);
 } 
 
 nsresult
@@ -742,17 +746,18 @@ StorageGetCacheId(mozIStorageConnection* aConn, Namespace aNamespace,
   *aFoundCacheOut = false;
 
   
+  
+  
+  const char* query = "SELECT cache_id FROM storage "
+                      "WHERE namespace=:namespace AND %s "
+                      "ORDER BY rowid;";
+
   nsCOMPtr<mozIStorageStatement> state;
-  nsresult rv = aConn->CreateStatement(NS_LITERAL_CSTRING(
-    "SELECT cache_id FROM storage WHERE namespace=:namespace AND key IS :key "
-                                 "ORDER BY rowid;"
-  ), getter_AddRefs(state));
+  nsresult rv = CreateAndBindKeyStatement(aConn, query, aKey,
+                                          getter_AddRefs(state));
   if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
 
   rv = state->BindInt32ByName(NS_LITERAL_CSTRING("namespace"), aNamespace);
-  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
-
-  rv = state->BindStringAsBlobByName(NS_LITERAL_CSTRING("key"), aKey);
   if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
 
   bool hasMoreData = false;
@@ -807,16 +812,16 @@ StorageForgetCache(mozIStorageConnection* aConn, Namespace aNamespace,
   MOZ_ASSERT(aConn);
 
   
+  
+  
+  const char *query = "DELETE FROM storage WHERE namespace=:namespace AND %s;";
+
   nsCOMPtr<mozIStorageStatement> state;
-  nsresult rv = aConn->CreateStatement(NS_LITERAL_CSTRING(
-    "DELETE FROM storage WHERE namespace=:namespace AND key IS :key;"
-  ), getter_AddRefs(state));
+  nsresult rv = CreateAndBindKeyStatement(aConn, query, aKey,
+                                          getter_AddRefs(state));
   if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
 
   rv = state->BindInt32ByName(NS_LITERAL_CSTRING("namespace"), aNamespace);
-  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
-
-  rv = state->BindStringAsBlobByName(NS_LITERAL_CSTRING("key"), aKey);
   if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
 
   rv = state->Execute();
@@ -1864,6 +1869,45 @@ ExtractId(mozIStorageStatement* aState, uint32_t aPos, nsID* aIdOut)
 
   bool success = aIdOut->Parse(idString.get());
   if (NS_WARN_IF(!success)) { return NS_ERROR_UNEXPECTED; }
+
+  return rv;
+}
+
+nsresult
+CreateAndBindKeyStatement(mozIStorageConnection* aConn,
+                          const char* aQueryFormat,
+                          const nsAString& aKey,
+                          mozIStorageStatement** aStateOut)
+{
+  MOZ_ASSERT(aConn);
+  MOZ_ASSERT(aQueryFormat);
+  MOZ_ASSERT(aStateOut);
+
+  
+  
+  
+  
+  
+  
+  const char* constraint = nullptr;
+  if (aKey.IsEmpty()) {
+    constraint = "key IS NULL";
+  } else {
+    constraint = "key=:key";
+  }
+
+  nsPrintfCString query(aQueryFormat, constraint);
+
+  nsCOMPtr<mozIStorageStatement> state;
+  nsresult rv = aConn->CreateStatement(query, getter_AddRefs(state));
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  if (!aKey.IsEmpty()) {
+    rv = state->BindStringAsBlobByName(NS_LITERAL_CSTRING("key"), aKey);
+    if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+  }
+
+  state.forget(aStateOut);
 
   return rv;
 }
