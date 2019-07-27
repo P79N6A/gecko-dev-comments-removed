@@ -40,12 +40,17 @@ extern GFX2D_API PRLogModuleInfo *GetGFX2DLog();
 namespace mozilla {
 namespace gfx {
 
-const int LOG_DEBUG = 1;
+
+
+
+const int LOG_CRITICAL = 1;
 const int LOG_WARNING = 2;
-const int LOG_CRITICAL = 3;
+const int LOG_DEBUG = 3;
+const int LOG_DEBUG_PRLOG = 4;
+const int LOG_EVERYTHING = 5; 
 
 #if defined(DEBUG)
-const int LOG_DEFAULT = LOG_DEBUG;
+const int LOG_DEFAULT = LOG_EVERYTHING;
 #else
 const int LOG_DEFAULT = LOG_CRITICAL;
 #endif
@@ -54,12 +59,16 @@ const int LOG_DEFAULT = LOG_CRITICAL;
 
 inline PRLogModuleLevel PRLogLevelForLevel(int aLevel) {
   switch (aLevel) {
-  case LOG_DEBUG:
-    return PR_LOG_DEBUG;
-  case LOG_WARNING:
-    return PR_LOG_WARNING;
   case LOG_CRITICAL:
     return PR_LOG_ERROR;
+  case LOG_WARNING:
+    return PR_LOG_WARNING;
+  case LOG_DEBUG:
+    return PR_LOG_DEBUG;
+  case LOG_DEBUG_PRLOG:
+    return PR_LOG_DEBUG;
+  case LOG_EVERYTHING:
+    return PR_LOG_ALWAYS;
   }
   return PR_LOG_DEBUG;
 }
@@ -87,6 +96,10 @@ public:
   
   
   
+  
+  
+  
+  
   static int32_t sGfxLogLevel;
 
 private:
@@ -101,29 +114,62 @@ private:
 
 struct BasicLogger
 {
-  static void OutputMessage(const std::string &aString, int aLevel) {
+  
+  
+  
+  static bool ShouldOutputMessage(int aLevel) {
+    if (PreferenceAccess::sGfxLogLevel >= aLevel) {
 #if defined(WIN32) && !defined(PR_LOGGING)
-    if (aLevel >= PreferenceAccess::sGfxLogLevel) {
-      ::OutputDebugStringA(aString.c_str());
-    }
-#elif defined(PR_LOGGING) && !(defined(MOZ_WIDGET_GONK) || defined(MOZ_WIDGET_ANDROID))
-    if (PR_LOG_TEST(GetGFX2DLog(), PRLogLevelForLevel(aLevel))) {
-      PR_LogPrint(aString.c_str());
-    }
+      return true;
+#elif defined(MOZ_WIDGET_GONK) || defined(MOZ_WIDGET_ANDROID)
+      return true;
+#elif defined(PR_LOGGING)
+      if (PR_LOG_TEST(GetGFX2DLog(), PRLogLevelForLevel(aLevel))) {
+        return true;
+      } else if ((PreferenceAccess::sGfxLogLevel >= LOG_DEBUG_PRLOG) ||
+                 (aLevel < LOG_DEBUG)) {
+        return true;
+      }
 #else
-    if (aLevel >= PreferenceAccess::sGfxLogLevel) {
-#if defined(MOZ_WIDGET_GONK) || defined(MOZ_WIDGET_ANDROID)
-      printf_stderr("%s", aString.c_str());
-#else
-      printf("%s", aString.c_str());
+      return true;
 #endif
     }
+    return false;
+  }
+
+  static void OutputMessage(const std::string &aString,
+                            int aLevel,
+                            bool aNoNewline) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (PreferenceAccess::sGfxLogLevel >= aLevel) {
+#if defined(WIN32) && !defined(PR_LOGGING)
+      ::OutputDebugStringA((aNoNewline ? aString : aString+"\n").c_str());
+#elif defined(MOZ_WIDGET_GONK) || defined(MOZ_WIDGET_ANDROID)
+      printf_stderr("%s%s", aString.c_str(), aNoNewline ? "" : "\n");
+#elif defined(PR_LOGGING)
+      if (PR_LOG_TEST(GetGFX2DLog(), PRLogLevelForLevel(aLevel))) {
+        PR_LogPrint("%s%s", aString.c_str(), aNoNewline ? "" : "\n");
+      } else if ((PreferenceAccess::sGfxLogLevel >= LOG_DEBUG_PRLOG) ||
+                 (aLevel < LOG_DEBUG)) {
+        printf("%s%s", aString.c_str(), aNoNewline ? "" : "\n");
+      }
+#else
+      printf("%s%s", aString.c_str(), aNoNewline ? "" : "\n");
 #endif
+    }
   }
 };
 
 struct CriticalLogger {
-  static void OutputMessage(const std::string &aString, int aLevel);
+  static void OutputMessage(const std::string &aString, int aLevel, bool aNoNewline);
 };
 
 
@@ -145,7 +191,8 @@ public:
 };
 
 MOZ_BEGIN_ENUM_CLASS(LogOptions, int)
-  NoNewline = 0x01
+  NoNewline = 0x01,
+  AutoPrefix = 0x02
 MOZ_END_ENUM_CLASS(LogOptions)
 
 template<typename T>
@@ -160,58 +207,156 @@ template<int L, typename Logger = BasicLogger>
 class Log
 {
 public:
-  explicit Log(LogOptions aOptions = LogOptions(0)) : mOptions(aOptions) {}
+  explicit Log(int aOptions = (int)LogOptions::AutoPrefix)
+    : mOptions(aOptions)
+    , mLogIt(BasicLogger::ShouldOutputMessage(L))
+  {
+    if (mLogIt && AutoPrefix()) {
+      mMessage << "[GFX" << L << "]: ";
+    }
+  }
   ~Log() {
     Flush();
   }
 
   void Flush() {
-    if (!(int(mOptions) & int(LogOptions::NoNewline))) {
-      mMessage << '\n';
-    }
+    if (MOZ_LIKELY(!LogIt())) return;
+
     std::string str = mMessage.str();
     if (!str.empty()) {
       WriteLog(str);
     }
-    mMessage.str("");
+    if (AutoPrefix()) {
+      mMessage.str("[GFX");
+      mMessage << L << "]: ";
+    } else {
+      mMessage.str("");
+    }
     mMessage.clear();
   }
 
-  Log &operator <<(char aChar) { mMessage << aChar; return *this; }
-  Log &operator <<(const std::string &aLogText) { mMessage << aLogText; return *this; }
-  Log &operator <<(const char aStr[]) { mMessage << static_cast<const char*>(aStr); return *this; }
-  Log &operator <<(bool aBool) { mMessage << (aBool ? "true" : "false"); return *this; }
-  Log &operator <<(int aInt) { mMessage << aInt; return *this; }
-  Log &operator <<(unsigned int aInt) { mMessage << aInt; return *this; }
-  Log &operator <<(long aLong) { mMessage << aLong; return *this; }
-  Log &operator <<(unsigned long aLong) { mMessage << aLong; return *this; }
-  Log &operator <<(long long aLong) { mMessage << aLong; return *this; }
-  Log &operator <<(unsigned long long aLong) { mMessage << aLong; return *this; }
-  Log &operator <<(Float aFloat) { mMessage << aFloat; return *this; }
-  Log &operator <<(double aDouble) { mMessage << aDouble; return *this; }
+  Log &operator <<(char aChar) {
+    if (MOZ_UNLIKELY(LogIt())) {
+      mMessage << aChar;
+    }
+    return *this;
+  }
+  Log &operator <<(const std::string &aLogText) { 
+    if (MOZ_UNLIKELY(LogIt())) {
+      mMessage << aLogText;
+    }
+    return *this;
+  }
+  Log &operator <<(const char aStr[]) {
+    if (MOZ_UNLIKELY(LogIt())) {
+      mMessage << static_cast<const char*>(aStr);
+    }
+    return *this;
+  }
+  Log &operator <<(bool aBool) {
+    if (MOZ_UNLIKELY(LogIt())) {
+      mMessage << (aBool ? "true" : "false");
+    }
+    return *this;
+  }
+  Log &operator <<(int aInt) {
+    if (MOZ_UNLIKELY(LogIt())) {
+      mMessage << aInt;
+    }
+    return *this;
+  }
+  Log &operator <<(unsigned int aInt) {
+    if (MOZ_UNLIKELY(LogIt())) {
+      mMessage << aInt;
+    }
+    return *this;
+  }
+  Log &operator <<(long aLong) {
+    if (MOZ_UNLIKELY(LogIt())) {
+      mMessage << aLong;
+    }
+    return *this;
+  }
+  Log &operator <<(unsigned long aLong) {
+    if (MOZ_UNLIKELY(LogIt())) {
+      mMessage << aLong;
+    }
+    return *this;
+  }
+  Log &operator <<(long long aLong) {
+    if (MOZ_UNLIKELY(LogIt())) {
+      mMessage << aLong;
+    }
+    return *this;
+  }
+  Log &operator <<(unsigned long long aLong) {
+    if (MOZ_UNLIKELY(LogIt())) {
+      mMessage << aLong;
+    }
+    return *this;
+  }
+  Log &operator <<(Float aFloat) {
+    if (MOZ_UNLIKELY(LogIt())) {
+      mMessage << aFloat;
+    }
+    return *this;
+  }
+  Log &operator <<(double aDouble) {
+    if (MOZ_UNLIKELY(LogIt())) {
+      mMessage << aDouble;
+    }
+    return *this;
+  }
   template <typename T, typename Sub, typename Coord>
-  Log &operator <<(const BasePoint<T, Sub, Coord>& aPoint)
-    { mMessage << "Point" << aPoint; return *this; }
+  Log &operator <<(const BasePoint<T, Sub, Coord>& aPoint) {
+    if (MOZ_UNLIKELY(LogIt())) {
+      mMessage << "Point" << aPoint;
+    }
+    return *this;
+  }
   template <typename T, typename Sub>
-  Log &operator <<(const BaseSize<T, Sub>& aSize)
-    { mMessage << "Size(" << aSize.width << "," << aSize.height << ")"; return *this; }
+  Log &operator <<(const BaseSize<T, Sub>& aSize) {
+    if (MOZ_UNLIKELY(LogIt())) {
+      mMessage << "Size(" << aSize.width << "," << aSize.height << ")";
+    }
+    return *this;
+  }
   template <typename T, typename Sub, typename Point, typename SizeT, typename Margin>
-  Log &operator <<(const BaseRect<T, Sub, Point, SizeT, Margin>& aRect)
-    { mMessage << "Rect" << aRect; return *this; }
-  Log &operator<<(const Matrix& aMatrix)
-    { mMessage << "Matrix(" << aMatrix._11 << " " << aMatrix._12 << " ; " << aMatrix._21 << " " << aMatrix._22 << " ; " << aMatrix._31 << " " << aMatrix._32 << ")"; return *this; }
+  Log &operator <<(const BaseRect<T, Sub, Point, SizeT, Margin>& aRect) {
+    if (MOZ_UNLIKELY(LogIt())) {
+      mMessage << "Rect" << aRect;
+    }
+    return *this;
+  }
+  Log &operator<<(const Matrix& aMatrix) {
+    if (MOZ_UNLIKELY(LogIt())) {
+      mMessage << "Matrix(" << aMatrix._11 << " " << aMatrix._12 << " ; " << aMatrix._21 << " " << aMatrix._22 << " ; " << aMatrix._31 << " " << aMatrix._32 << ")";
+    }
+    return *this;
+  }
   template<typename T>
-  Log &operator<<(Hexa<T> aHex)
-    { mMessage << "0x" << std::hex << aHex.mVal << std::dec; return *this; }
+  Log &operator<<(Hexa<T> aHex) {
+    if (MOZ_UNLIKELY(LogIt())) {
+      mMessage << "0x" << std::hex << aHex.mVal << std::dec;
+    }
+    return *this;
+  }
+
+  inline bool LogIt() const { return mLogIt; }
+  inline bool NoNewline() const { return mOptions & int(LogOptions::NoNewline); }
+  inline bool AutoPrefix() const { return mOptions & int(LogOptions::AutoPrefix); }
+
 
 private:
-
   void WriteLog(const std::string &aString) {
-    Logger::OutputMessage(aString, L);
+    if (MOZ_UNLIKELY(LogIt())) {
+      Logger::OutputMessage(aString, L, NoNewline());
+    }
   }
 
   std::stringstream mMessage;
-  LogOptions mOptions;
+  int mOptions;
+  bool mLogIt;
 };
 
 typedef Log<LOG_DEBUG> DebugLog;
@@ -257,7 +402,7 @@ class TreeLog
 {
 public:
   explicit TreeLog(const std::string& aPrefix = "")
-        : mLog(LogOptions::NoNewline),
+        : mLog(int(LogOptions::NoNewline)),
           mPrefix(aPrefix),
           mDepth(0),
           mStartOfLine(true),
