@@ -868,6 +868,7 @@ KEY_MAP_ANDROID (MediaPlayPause, AKEYCODE_MEDIA_PLAY_PAUSE)
 
 
 KEY_MAP_WIN     (MediaSelect, VK_LAUNCH_MEDIA_SELECT)
+KEY_MAP_GTK     (MediaSelect, GDK_AudioMedia)
 
 
 KEY_MAP_WIN     (MediaStop, VK_MEDIA_STOP)
@@ -912,16 +913,65 @@ KEY_MAP_ANDROID (VolumeMute, AKEYCODE_VOLUME_MUTE)
 
 
 
+KEY_MAP_GTK     (LaunchCalculator, GDK_Calculator)
+KEY_MAP_QT      (LaunchCalculator, Qt::Key_Calculator)
+KEY_MAP_ANDROID (LaunchCalculator, AKEYCODE_CALCULATOR)
+
+
+KEY_MAP_GTK     (LaunchCalendar, GDK_Calendar)
+KEY_MAP_QT      (LaunchCalendar, Qt::Key_Calendar)
+KEY_MAP_ANDROID (LaunchCalendar, AKEYCODE_CALENDAR)
+
+
 KEY_MAP_WIN     (LaunchMail, VK_LAUNCH_MAIL)
 KEY_MAP_GTK     (LaunchMail, GDK_Mail)
 KEY_MAP_QT      (LaunchMail, Qt::Key_LaunchMail)
 KEY_MAP_ANDROID (LaunchMail, AKEYCODE_ENVELOPE)
 
 
+
+
+KEY_MAP_GTK     (LaunchMediaPlayer, GDK_CD)
+KEY_MAP_GTK     (LaunchMediaPlayer, GDK_Video)
+KEY_MAP_QT      (LaunchMediaPlayer, Qt::Key_LaunchMedia)
+KEY_MAP_QT      (LaunchMediaPlayer, Qt::Key_CD)
+KEY_MAP_QT      (LaunchMediaPlayer, Qt::Key_Video)
+
+
+KEY_MAP_GTK     (LaunchMusicPlayer, GDK_Music)
+KEY_MAP_QT      (LaunchMusicPlayer, Qt::Key_Music)
+KEY_MAP_ANDROID (LaunchMusicPlayer, AKEYCODE_MUSIC)
+
+
+KEY_MAP_GTK     (LaunchMyComputer, GDK_MyComputer)
+KEY_MAP_GTK     (LaunchMyComputer, GDK_Explorer)
+KEY_MAP_QT      (LaunchMyComputer, Qt::Key_Explorer)
+
+
+KEY_MAP_GTK     (LaunchScreenSaver, GDK_ScreenSaver)
+KEY_MAP_QT      (LaunchScreenSaver, Qt::Key_ScreenSaver)
+
+
+KEY_MAP_GTK     (LaunchSpreadsheet, GDK_Excel)
+KEY_MAP_QT      (LaunchSpreadsheet, Qt::Key_Excel)
+
+
+KEY_MAP_GTK     (LaunchWebBrowser, GDK_WWW)
+KEY_MAP_QT      (LaunchWebBrowser, Qt::Key_WWW)
+KEY_MAP_ANDROID (LaunchWebBrowser, AKEYCODE_EXPLORER)
+
+
+KEY_MAP_GTK     (LaunchWebCam, GDK_WebCam)
+KEY_MAP_QT      (LaunchWebCam, Qt::Key_WebCam)
+
+
+KEY_MAP_GTK     (LaunchWordProcessor, GDK_Word)
+KEY_MAP_QT      (LaunchWordProcessor, Qt::Key_Word)
+
+
 KEY_MAP_WIN     (LaunchApplication1, VK_LAUNCH_APP1)
 KEY_MAP_GTK     (LaunchApplication1, GDK_Launch0)
 KEY_MAP_QT      (LaunchApplication1, Qt::Key_Launch0)
-KEY_MAP_ANDROID (LaunchApplication1, AKEYCODE_EXPLORER)
 
 
 KEY_MAP_WIN     (LaunchApplication2, VK_LAUNCH_APP2)
