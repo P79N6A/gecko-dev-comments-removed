@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef vm_String_inl_h
 #define vm_String_inl_h
@@ -73,10 +73,10 @@ template <AllowGC allowGC>
 static MOZ_ALWAYS_INLINE JSInlineString *
 NewFatInlineString(ThreadSafeContext *cx, mozilla::Range<const jschar> chars)
 {
-    
-
-
-
+    /*
+     * Don't bother trying to find a static atom; measurement shows that not
+     * many get here (for one, Atomize is catching them).
+     */
 
     size_t len = chars.length();
     jschar *storage;
@@ -116,7 +116,7 @@ StringWriteBarrierPostRemove(js::ThreadSafeContext *maybecx, JSString **strp)
 {
 }
 
-} 
+} /* namespace js */
 
 MOZ_ALWAYS_INLINE bool
 JSString::validateLength(js::ThreadSafeContext *maybecx, size_t length)
@@ -188,7 +188,7 @@ MOZ_ALWAYS_INLINE JSLinearString *
 JSDependentString::new_(js::ExclusiveContext *cx, JSLinearString *baseArg, size_t start,
                         size_t length)
 {
-    
+    /* Try to avoid long chains of dependent strings. */
     while (baseArg->isDependent()) {
         start += baseArg->asDependent().baseOffset();
         baseArg = baseArg->asDependent().base();
@@ -197,11 +197,11 @@ JSDependentString::new_(js::ExclusiveContext *cx, JSLinearString *baseArg, size_
     MOZ_ASSERT(start + length <= baseArg->length());
     MOZ_ASSERT(baseArg->isFlat());
 
-    
-
-
-
-
+    /*
+     * Do not create a string dependent on inline chars from another string,
+     * both to avoid the awkward moving-GC hazard this introduces and because it
+     * is more efficient to immediately undepend here.
+     */
     bool useFatInline = baseArg->hasTwoByteChars()
                         ? JSFatInlineString::twoByteLengthFits(length)
                         : JSFatInlineString::latin1LengthFits(length);
@@ -412,7 +412,7 @@ js::StaticStrings::getLength2(jschar c1, jschar c2)
 MOZ_ALWAYS_INLINE void
 JSString::finalize(js::FreeOp *fop)
 {
-    
+    /* FatInline strings are in a different arena. */
     JS_ASSERT(getAllocKind() != js::gc::FINALIZE_FAT_INLINE_STRING);
 
     if (isFlat())
@@ -453,7 +453,7 @@ inline void
 JSExternalString::finalize(js::FreeOp *fop)
 {
     const JSStringFinalizer *fin = externalFinalizer();
-    fin->finalize(fin, const_cast<jschar *>(nonInlineChars()));
+    fin->finalize(fin, const_cast<jschar *>(rawTwoByteChars()));
 }
 
-#endif 
+#endif /* vm_String_inl_h */

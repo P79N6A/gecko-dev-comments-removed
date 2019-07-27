@@ -601,8 +601,8 @@ js_GetLocalizedErrorMessage(ExclusiveContext *cx, void *userRef, const char *loc
     return errorString;
 }
 
-JS_FRIEND_API(const jschar*)
-js::GetErrorTypeName(JSRuntime* rt, int16_t exnType)
+JS_FRIEND_API(JSFlatString *)
+js::GetErrorTypeName(JSRuntime *rt, int16_t exnType)
 {
     
 
@@ -614,7 +614,7 @@ js::GetErrorTypeName(JSRuntime* rt, int16_t exnType)
         return nullptr;
     }
     JSProtoKey key = GetExceptionProtoKey(JSExnType(exnType));
-    return ClassName(key, rt)->chars();
+    return ClassName(key, rt);
 }
 
 bool
@@ -770,6 +770,7 @@ js_ReportUncaughtException(JSContext *cx)
     
     const char *filename_str = "filename";
     JSAutoByteString filename;
+    AutoStableStringChars strChars(cx);
     if (!reportp && exnObject && IsDuckTypedErrorObject(cx, exnObject, &filename_str))
     {
         
@@ -840,8 +841,8 @@ js_ReportUncaughtException(JSContext *cx)
             
             
             
-            if (JSFlatString *flat = str->ensureFlat(cx))
-                report.ucmessage = flat->chars();
+            if (str->ensureFlat(cx) && strChars.initTwoByte(cx, str))
+                report.ucmessage = strChars.twoByteChars();
         }
     }
 

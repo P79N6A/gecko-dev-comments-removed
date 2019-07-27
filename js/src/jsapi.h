@@ -4169,15 +4169,20 @@ JS_FileEscapedString(FILE *fp, JSString *str, char quote);
 
 
 
+
+
+
+
+
 extern JS_PUBLIC_API(size_t)
 JS_GetStringLength(JSString *str);
+
+extern JS_PUBLIC_API(bool)
+JS_StringIsFlat(JSString *str);
 
 
 extern JS_PUBLIC_API(bool)
 JS_StringHasLatin1Chars(JSString *str);
-
-extern JS_PUBLIC_API(const jschar *)
-JS_GetStringCharsAndLength(JSContext *cx, JSString *str, size_t *length);
 
 extern JS_PUBLIC_API(const JS::Latin1Char *)
 JS_GetLatin1StringCharsAndLength(JSContext *cx, const JS::AutoCheckCannotGC &nogc, JSString *str,
@@ -4199,23 +4204,20 @@ JS_GetTwoByteExternalStringChars(JSString *str);
 extern JS_PUBLIC_API(bool)
 JS_CopyStringChars(JSContext *cx, mozilla::Range<jschar> dest, JSString *str);
 
-extern JS_PUBLIC_API(const jschar *)
-JS_GetInternedStringChars(JSString *str);
+extern JS_PUBLIC_API(const JS::Latin1Char *)
+JS_GetLatin1InternedStringChars(const JS::AutoCheckCannotGC &nogc, JSString *str);
 
 extern JS_PUBLIC_API(const jschar *)
-JS_GetInternedStringCharsAndLength(JSString *str, size_t *length);
-
-extern JS_PUBLIC_API(const jschar *)
-JS_GetStringCharsZ(JSContext *cx, JSString *str);
-
-extern JS_PUBLIC_API(const jschar *)
-JS_GetStringCharsZAndLength(JSContext *cx, JSString *str, size_t *length);
+JS_GetTwoByteInternedStringChars(const JS::AutoCheckCannotGC &nogc, JSString *str);
 
 extern JS_PUBLIC_API(JSFlatString *)
 JS_FlattenString(JSContext *cx, JSString *str);
 
+extern JS_PUBLIC_API(const JS::Latin1Char *)
+JS_GetLatin1FlatStringChars(const JS::AutoCheckCannotGC &nogc, JSFlatString *str);
+
 extern JS_PUBLIC_API(const jschar *)
-JS_GetFlatStringChars(JSFlatString *str);
+JS_GetTwoByteFlatStringChars(const JS::AutoCheckCannotGC &nogc, JSFlatString *str);
 
 static MOZ_ALWAYS_INLINE JSFlatString *
 JSID_TO_FLAT_STRING(jsid id)
@@ -4227,7 +4229,7 @@ JSID_TO_FLAT_STRING(jsid id)
 static MOZ_ALWAYS_INLINE JSFlatString *
 JS_ASSERT_STRING_IS_FLAT(JSString *str)
 {
-    JS_ASSERT(JS_GetFlatStringChars((JSFlatString *)str));
+    JS_ASSERT(JS_StringIsFlat(str));
     return (JSFlatString *)str;
 }
 
@@ -4387,9 +4389,6 @@ namespace JS {
 
 extern JS_PUBLIC_API(JSAddonId *)
 NewAddonId(JSContext *cx, JS::HandleString str);
-
-extern JS_PUBLIC_API(const jschar *)
-CharsZOfAddonId(JSAddonId *id);
 
 extern JS_PUBLIC_API(JSString *)
 StringOfAddonId(JSAddonId *id);
