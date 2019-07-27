@@ -87,6 +87,7 @@ function BrowserElementParent() {
 
   Services.obs.addObserver(this, 'oop-frameloader-crashed',  true);
   Services.obs.addObserver(this, 'copypaste-docommand',  true);
+  Services.obs.addObserver(this, 'ask-children-to-execute-copypaste-command',  true);
 }
 
 BrowserElementParent.prototype = {
@@ -203,6 +204,7 @@ BrowserElementParent.prototype = {
       "got-set-input-method-active": this._gotDOMRequestResult,
       "selectionstatechanged": this._handleSelectionStateChanged,
       "scrollviewchange": this._handleScrollViewChange,
+      "caretstatechanged": this._handleCaretStateChanged,
     };
 
     let mmSecuritySensitiveCalls = {
@@ -435,6 +437,34 @@ BrowserElementParent.prototype = {
   _handleSelectionStateChanged: function(data) {
     let evt = this._createEvent('selectionstatechanged', data.json,
                                  false);
+    this._frameElement.dispatchEvent(evt);
+  },
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  _handleCaretStateChanged: function(data) {
+    let evt = this._createEvent('caretstatechanged', data.json,
+                                 false);
+
+    let self = this;
+    function sendDoCommandMsg(cmd) {
+      let data = { command: cmd };
+      self._sendAsyncMsg('copypaste-do-command', data);
+    }
+    Cu.exportFunction(sendDoCommandMsg, evt.detail, { defineAs: 'sendDoCommandMsg' });
+
     this._frameElement.dispatchEvent(evt);
   },
 
@@ -977,6 +1007,11 @@ BrowserElementParent.prototype = {
     case 'copypaste-docommand':
       if (this._isAlive() && this._frameElement.isEqualNode(subject.wrappedJSObject)) {
         this._sendAsyncMsg('do-command', { command: data });
+      }
+      break;
+    case 'ask-children-to-execute-copypaste-command':
+      if (this._isAlive() && this._frameElement == subject.wrappedJSObject) {
+        this._sendAsyncMsg('copypaste-do-command', { command: data });
       }
       break;
     default:
