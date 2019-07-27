@@ -2,38 +2,41 @@
 
 
 
-import sys
 import binascii
 
-def file_byte_generator(filename, block_size = 512):
+def _file_byte_generator(filename):
   with open(filename, "rb") as f:
-    while True:
-      block = f.read(block_size)
-      if block:
-        for byte in block:
-          yield byte
-      else:
-        break
+    contents = f.read()
 
-def create_header(array_name, in_filename):
-  hexified = ["0x" + binascii.hexlify(byte) for byte in file_byte_generator(in_filename)]
-  print "const uint8_t " + array_name + "[] = {"
-  print ", ".join(hexified)
-  print "};"
-  return 0
+    
+    
+    
+    if not contents:
+      return ['\0']
 
-def create_empty_header(array_name):
-  
-  
-  
-  
-  print "const uint8_t " + array_name + "[] = { 0x0 };"
-  return 0
+    return contents
 
-if __name__ == '__main__':
-  if len(sys.argv) < 2:
-    print 'ERROR: usage: gen_cert_header.py array_name in_filename'
-    sys.exit(1);
-  if len(sys.argv) == 2:
-    sys.exit(create_empty_header(sys.argv[1]))
-  sys.exit(create_header(sys.argv[1], sys.argv[2]))
+def _create_header(array_name, cert_bytes):
+  hexified = ["0x" + binascii.hexlify(byte) for byte in cert_bytes]
+  substs = { 'array_name': array_name, 'bytes': ', '.join(hexified) }
+  return "const uint8_t %(array_name)s[] = {\n%(bytes)s\n};\n" % substs
+
+
+
+
+
+
+array_names = [
+  'marketplaceProdPublicRoot',
+  'marketplaceProdReviewersRoot',
+  'marketplaceDevPublicRoot',
+  'marketplaceDevReviewersRoot',
+  'marketplaceStageRoot',
+  'trustedAppPublicRoot',
+  'trustedAppTestRoot',
+  'xpcshellRoot',
+]
+
+for n in array_names:
+  
+  globals()[n] = lambda header, cert_filename, name=n: header.write(_create_header(name, _file_byte_generator(cert_filename)))
