@@ -9,6 +9,7 @@
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/StyleAnimationValue.h"
+#include "mozilla/dom/AnimationPlayer.h"
 
 #include "nsPresContext.h"
 #include "nsRuleProcessorData.h"
@@ -23,6 +24,7 @@
 
 using namespace mozilla;
 using namespace mozilla::css;
+using mozilla::dom::AnimationPlayer;
 
 void
 nsAnimationManager::UpdateStyleAndEvents(ElementAnimationCollection*
@@ -41,7 +43,7 @@ nsAnimationManager::GetEventsForCurrentTime(ElementAnimationCollection*
                                             EventArray& aEventsToDispatch)
 {
   for (uint32_t animIdx = aCollection->mAnimations.Length(); animIdx-- != 0; ) {
-    ElementAnimation* anim = aCollection->mAnimations[animIdx];
+    AnimationPlayer* anim = aCollection->mAnimations[animIdx];
 
     ComputedTiming computedTiming = anim->GetComputedTiming(anim->mTiming);
 
@@ -61,7 +63,7 @@ nsAnimationManager::GetEventsForCurrentTime(ElementAnimationCollection*
           
           
           uint32_t message =
-            anim->mLastNotification == ElementAnimation::LAST_NOTIFICATION_NONE
+            anim->mLastNotification == AnimationPlayer::LAST_NOTIFICATION_NONE
               ? NS_ANIMATION_START : NS_ANIMATION_ITERATION;
 
           anim->mLastNotification = computedTiming.mCurrentIteration;
@@ -80,7 +82,7 @@ nsAnimationManager::GetEventsForCurrentTime(ElementAnimationCollection*
         
         
         if (anim->mLastNotification ==
-            ElementAnimation::LAST_NOTIFICATION_NONE) {
+            AnimationPlayer::LAST_NOTIFICATION_NONE) {
           
           
           
@@ -94,8 +96,8 @@ nsAnimationManager::GetEventsForCurrentTime(ElementAnimationCollection*
         }
         
         if (anim->mLastNotification !=
-            ElementAnimation::LAST_NOTIFICATION_END) {
-          anim->mLastNotification = ElementAnimation::LAST_NOTIFICATION_END;
+            AnimationPlayer::LAST_NOTIFICATION_END) {
+          anim->mLastNotification = AnimationPlayer::LAST_NOTIFICATION_END;
           AnimationEventInfo ei(aCollection->mElement,
                                 anim->mName, NS_ANIMATION_END,
                                 computedTiming.mActiveDuration,
@@ -268,7 +270,7 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
       
       if (!collection->mAnimations.IsEmpty()) {
         for (size_t newIdx = newAnimations.Length(); newIdx-- != 0;) {
-          ElementAnimation* newAnim = newAnimations[newIdx];
+          AnimationPlayer* newAnim = newAnimations[newIdx];
 
           
           
@@ -276,10 +278,10 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
           
           
           
-          nsRefPtr<ElementAnimation> oldAnim;
+          nsRefPtr<AnimationPlayer> oldAnim;
           size_t oldIdx = collection->mAnimations.Length();
           while (oldIdx-- != 0) {
-            ElementAnimation* a = collection->mAnimations[oldIdx];
+            AnimationPlayer* a = collection->mAnimations[oldIdx];
             if (a->mName == newAnim->mName) {
               oldAnim = a;
               break;
@@ -429,8 +431,8 @@ nsAnimationManager::BuildAnimations(nsStyleContext* aStyleContext,
       continue;
     }
 
-    nsRefPtr<ElementAnimation> dest =
-      *aAnimations.AppendElement(new ElementAnimation(aTimeline));
+    nsRefPtr<AnimationPlayer> dest =
+      *aAnimations.AppendElement(new AnimationPlayer(aTimeline));
 
     dest->mName = src.GetName();
 

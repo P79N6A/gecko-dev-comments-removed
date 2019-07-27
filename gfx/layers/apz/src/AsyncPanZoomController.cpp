@@ -8,7 +8,6 @@
 #include <stdint.h>                     
 #include <sys/types.h>                  
 #include <algorithm>                    
-#include "AnimationCommon.h"            
 #include "AsyncPanZoomController.h"     
 #include "Compositor.h"                 
 #include "CompositorParent.h"           
@@ -32,6 +31,7 @@
 #include "mozilla/ReentrantMonitor.h"   
 #include "mozilla/StaticPtr.h"          
 #include "mozilla/TimeStamp.h"          
+#include "mozilla/dom/AnimationPlayer.h" 
 #include "mozilla/dom/Touch.h"          
 #include "mozilla/gfx/BasePoint.h"      
 #include "mozilla/gfx/BaseRect.h"       
@@ -347,7 +347,7 @@ static const double ALLOWED_DIRECT_PAN_ANGLE = M_PI / 3.0;
 
 
 
-StaticAutoPtr<css::ComputedTimingFunction> gComputedTimingFunction;
+StaticAutoPtr<ComputedTimingFunction> gComputedTimingFunction;
 
 
 
@@ -700,7 +700,7 @@ AsyncPanZoomController::InitializeGlobalState()
     return;
   sInitialized = true;
 
-  gComputedTimingFunction = new css::ComputedTimingFunction();
+  gComputedTimingFunction = new ComputedTimingFunction();
   gComputedTimingFunction->Init(
     nsTimingFunction(NS_STYLE_TRANSITION_TIMING_FUNCTION_EASE));
   ClearOnShutdown(&gComputedTimingFunction);
