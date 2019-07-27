@@ -46,7 +46,7 @@ enum MediaSourceType {
   Screen = (int) dom::MediaSourceEnum::Screen,
   Application = (int) dom::MediaSourceEnum::Application,
   Window, 
-  
+  Browser = (int) dom::MediaSourceEnum::Browser, 
   Microphone
 };
 
