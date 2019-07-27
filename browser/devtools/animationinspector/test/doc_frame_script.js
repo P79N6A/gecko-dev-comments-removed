@@ -26,3 +26,21 @@ addMessageListener("Test:ToggleAnimationPlayer", function(msg) {
 
   sendAsyncMessage("Test:ToggleAnimationPlayer");
 });
+
+
+
+
+
+
+
+
+
+
+addMessageListener("Test:SetNodeStyle", function(msg) {
+  let {propertyName, propertyValue} = msg.data;
+  let {node} = msg.objects;
+
+  node.style[propertyName] = propertyValue;
+
+  sendAsyncMessage("Test:SetNodeStyle");
+});

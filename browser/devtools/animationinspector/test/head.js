@@ -5,11 +5,12 @@
 "use strict";
 
 const Cu = Components.utils;
-let {gDevTools} = Cu.import("resource:///modules/devtools/gDevTools.jsm", {});
-let {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
-let {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
-let TargetFactory = devtools.TargetFactory;
-let {console} = Components.utils.import("resource://gre/modules/devtools/Console.jsm", {});
+const {gDevTools} = Cu.import("resource:///modules/devtools/gDevTools.jsm", {});
+const {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
+const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
+const TargetFactory = devtools.TargetFactory;
+const {console} = Components.utils.import("resource://gre/modules/devtools/Console.jsm", {});
+const {ViewHelpers} = Cu.import("resource:///modules/devtools/ViewHelpers.jsm", {});
 
 
 waitForExplicitFinish();
@@ -263,12 +264,30 @@ function executeInContent(name, data={}, objects={}, expectResponse=true) {
 
 
 let togglePlayPauseButton = Task.async(function*(widget) {
+  let nextState = widget.player.state.playState === "running" ? "paused" : "running";
+
   
   
   
   
-  yield widget.onPlayPauseBtnClick();
+  let onClicked = widget.onPlayPauseBtnClick();
+
+  
+  
+  ok(widget.el.classList.contains(nextState),
+    "The button's state was changed in the UI before the request was sent");
+
+  yield onClicked;
 
   
   yield widget.player.once(widget.player.AUTO_REFRESH_EVENT);
 });
+
+
+
+
+
+
+function isNodeVisible(node) {
+  return !!node.getClientRects().length;
+}

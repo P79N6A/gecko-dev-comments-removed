@@ -138,6 +138,8 @@ function PlayerWidget(player, containerEl) {
 
   this.onStateChanged = this.onStateChanged.bind(this);
   this.onPlayPauseBtnClick = this.onPlayPauseBtnClick.bind(this);
+
+  this.metaDataComponent = new PlayerMetaDataHeader();
 }
 
 PlayerWidget.prototype = {
@@ -159,6 +161,7 @@ PlayerWidget.prototype = {
 
     this.stopTimelineAnimation();
     this.stopListeners();
+    this.metaDataComponent.destroy();
 
     this.el.remove();
     this.playPauseBtnEl = this.currentTimeEl = this.timeDisplayEl = null;
@@ -184,45 +187,8 @@ PlayerWidget.prototype = {
       }
     });
 
-    
-    let titleEl = createNode({
-      parent: this.el,
-      attributes: {
-        "class": "animation-title"
-      }
-    });
-    let titleHTML = "";
-
-    
-    if (state.name) {
-      
-      titleHTML += L10N.getStr("player.animationNameLabel");
-      titleHTML += "<strong>" + state.name + "</strong>";
-    } else {
-      
-      titleHTML += L10N.getStr("player.transitionNameLabel");
-    }
-
-    
-    titleHTML += "<span class='meta-data'>";
-    titleHTML += L10N.getStr("player.animationDurationLabel");
-    titleHTML += "<strong>" + L10N.getFormatStr("player.timeLabel",
-      this.getFormattedTime(state.duration)) + "</strong>";
-
-    if (state.delay) {
-      titleHTML += L10N.getStr("player.animationDelayLabel");
-      titleHTML += "<strong>" + L10N.getFormatStr("player.timeLabel",
-        this.getFormattedTime(state.delay)) + "</strong>";
-    }
-
-    if (state.iterationCount !== 1) {
-      titleHTML += L10N.getStr("player.animationIterationCountLabel");
-      let count = state.iterationCount || L10N.getStr("player.infiniteIterationCount");
-      titleHTML += "<strong>" + count + "</strong>";
-    }
-
-    titleHTML += "</span>";
-    titleEl.innerHTML = titleHTML;
+    this.metaDataComponent.createMarkup(this.el);
+    this.metaDataComponent.render(state);
 
     
     let timelineEl = createNode({
@@ -301,18 +267,6 @@ PlayerWidget.prototype = {
 
 
 
-  getFormattedTime: function(time) {
-    return (time/1000).toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
-  },
-
-  
-
-
-
-
 
 
   onPlayPauseBtnClick: function() {
@@ -328,7 +282,8 @@ PlayerWidget.prototype = {
 
   onStateChanged: function() {
     let state = this.player.state;
-    this.updateWidgetState(state.playState);
+    this.updateWidgetState(state);
+    this.metaDataComponent.render(state);
 
     switch (state.playState) {
       case "finished":
@@ -354,7 +309,7 @@ PlayerWidget.prototype = {
   pause: function() {
     
     
-    this.updateWidgetState("paused");
+    this.updateWidgetState({playState: "paused"});
     return this.player.pause().then(() => {
       this.stopTimelineAnimation();
     });
@@ -368,12 +323,12 @@ PlayerWidget.prototype = {
   play: function() {
     
     
-    this.updateWidgetState("running");
+    this.updateWidgetState({playState: "running"});
     this.startTimelineAnimation();
     return this.player.play();
   },
 
-  updateWidgetState: function(playState) {
+  updateWidgetState: function({playState}) {
     this.el.className = "player-widget " + playState;
   },
 
@@ -417,7 +372,7 @@ PlayerWidget.prototype = {
 
     
     this.timeDisplayEl.textContent = L10N.getFormatStr("player.timeLabel",
-      this.getFormattedTime(time));
+      L10N.numberWithDecimals(time / 1000, 2));
 
     
     if (!state.iterationCount && time !== state.duration) {
@@ -434,6 +389,162 @@ PlayerWidget.prototype = {
       cancelAnimationFrame(this.rafID);
       this.rafID = null;
     }
+  }
+};
+
+
+
+
+
+
+
+function PlayerMetaDataHeader() {
+  
+  
+  this.state = {};
+}
+
+PlayerMetaDataHeader.prototype = {
+  createMarkup: function(containerEl) {
+    
+    this.el = createNode({
+      parent: containerEl,
+      attributes: {
+        "class": "animation-title"
+      }
+    });
+
+    
+    this.nameLabel = createNode({
+      parent: this.el,
+      nodeType: "span"
+    });
+
+    this.nameValue = createNode({
+      parent: this.el,
+      nodeType: "strong",
+      attributes: {
+        "style": "display:none;"
+      }
+    });
+
+    
+    let metaData = createNode({
+      parent: this.el,
+      nodeType: "span",
+      attributes: {
+        "class": "meta-data"
+      }
+    });
+
+    
+    this.durationLabel = createNode({
+      parent: metaData,
+      nodeType: "span"
+    });
+    this.durationLabel.textContent = L10N.getStr("player.animationDurationLabel");
+
+    this.durationValue = createNode({
+      parent: metaData,
+      nodeType: "strong"
+    });
+
+    
+    this.delayLabel = createNode({
+      parent: metaData,
+      nodeType: "span",
+      attributes: {
+        "style": "display:none;"
+      }
+    });
+    this.delayLabel.textContent = L10N.getStr("player.animationDelayLabel");
+
+    this.delayValue = createNode({
+      parent: metaData,
+      nodeType: "strong"
+    });
+
+    
+    
+    this.iterationLabel = createNode({
+      parent: metaData,
+      nodeType: "span",
+      attributes: {
+        "style": "display:none;"
+      }
+    });
+    this.iterationLabel.textContent = L10N.getStr("player.animationIterationCountLabel");
+
+    this.iterationValue = createNode({
+      parent: metaData,
+      nodeType: "strong",
+      attributes: {
+        "style": "display:none;"
+      }
+    });
+  },
+
+  destroy: function() {
+    this.state = null;
+    this.el.remove();
+    this.el = null;
+    this.nameLabel = this.nameValue = null;
+    this.durationLabel = this.durationValue = null;
+    this.delayLabel = this.delayValue = null;
+    this.iterationLabel = this.iterationValue = null;
+  },
+
+  render: function(state) {
+    
+    if (state.name !== this.state.name) {
+      if (state.name) {
+        
+        this.nameLabel.textContent = L10N.getStr("player.animationNameLabel");
+        this.nameValue.style.display = "inline";
+        this.nameValue.textContent = state.name;
+      } else {
+        
+        this.nameLabel.textContent = L10N.getStr("player.transitionNameLabel");
+        this.nameValue.style.display = "none";
+      }
+    }
+
+    
+    if (state.duration !== this.state.duration) {
+      this.durationValue.textContent = L10N.getFormatStr("player.timeLabel",
+        L10N.numberWithDecimals(state.duration / 1000, 2));
+    }
+
+    
+    if (state.delay !== this.state.delay) {
+      if (state.delay) {
+        this.delayLabel.style.display = "inline";
+        this.delayValue.style.display = "inline";
+        this.delayValue.textContent = L10N.getFormatStr("player.timeLabel",
+          L10N.numberWithDecimals(state.delay / 1000, 2));
+      } else {
+        
+        this.delayLabel.style.display = "none";
+        this.delayValue.style.display = "none";
+      }
+    }
+
+    
+    if (state.iterationCount !== this.state.iterationCount) {
+      if (state.iterationCount !== 1) {
+        this.iterationLabel.style.display = "inline";
+        this.iterationValue.style.display = "inline";
+        let count = state.iterationCount ||
+                    L10N.getStr("player.infiniteIterationCount");
+        this.iterationValue.innerHTML = count;
+      } else {
+        
+        this.iterationLabel.style.display = "none";
+        this.iterationValue.style.display = "none";
+      }
+    }
+
+    this.state = state;
   }
 };
 
