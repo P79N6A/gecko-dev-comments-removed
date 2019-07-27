@@ -9,6 +9,8 @@ let protocol = require("devtools/server/protocol");
 let { method, RetVal, Arg, types } = protocol;
 const { reportException } = require("devtools/toolkit/DevToolsUtils");
 loader.lazyRequireGetter(this, "events", "sdk/event/core");
+loader.lazyRequireGetter(this, "StackFrameCache",
+                         "devtools/server/actors/utils/stack", true);
 
 
 
@@ -60,17 +62,14 @@ let MemoryActor = protocol.ActorClass({
     return this._dbg;
   },
 
-  initialize: function(conn, parent) {
+  initialize: function(conn, parent, frameCache = new StackFrameCache()) {
     protocol.Actor.prototype.initialize.call(this, conn);
     this.parent = parent;
     this._mgr = Cc["@mozilla.org/memory-reporter-manager;1"]
                   .getService(Ci.nsIMemoryReporterManager);
     this.state = "detached";
     this._dbg = null;
-    this._framesToCounts = null;
-    this._framesToIndices = null;
-    this._framesToForms = null;
-
+    this._frameCache = frameCache;
     this._onWindowReady = this._onWindowReady.bind(this);
 
     events.on(this.parent, "window-ready", this._onWindowReady);
@@ -124,25 +123,9 @@ let MemoryActor = protocol.ActorClass({
     }
   },
 
-  _initFrames: function() {
-    if (this._framesToCounts) {
-      
-      return;
-    }
-
-    this._framesToCounts = new Map();
-    this._framesToIndices = new Map();
-    this._framesToForms = new Map();
-  },
-
   _clearFrames: function() {
     if (this.dbg.memory.trackingAllocationSites) {
-      this._framesToCounts.clear();
-      this._framesToCounts = null;
-      this._framesToIndices.clear();
-      this._framesToIndices = null;
-      this._framesToForms.clear();
-      this._framesToForms = null;
+      this._frameCache.clearFrames();
     }
   },
 
@@ -153,7 +136,7 @@ let MemoryActor = protocol.ActorClass({
     if (this.state == "attached") {
       if (isTopLevel && this.dbg.memory.trackingAllocationSites) {
         this._clearDebuggees();
-        this._initFrames();
+        nthis._frameCache.initFrames();
       }
       this.dbg.addDebuggees();
     }
@@ -177,7 +160,7 @@ let MemoryActor = protocol.ActorClass({
 
 
   startRecordingAllocations: method(expectState("attached", function(options = {}) {
-    this._initFrames();
+    this._frameCache.initFrames();
     this.dbg.memory.allocationSamplingProbability = options.probability != null
       ? options.probability
       : 1.0;
@@ -278,93 +261,17 @@ let MemoryActor = protocol.ActorClass({
       
       
       
-      this._assignFrameIndices(waived);
-      this._createFrameForms(waived);
-      this._countFrame(waived);
+      let index = this._frameCache.addFrame(waived);
 
-      packet.allocations.push(this._framesToIndices.get(waived));
+      packet.allocations.push(index);
       packet.allocationsTimestamps.push(timestamp);
     }
 
-    
-    
-    
-    const size = this._framesToForms.size;
-    packet.frames = Array(size).fill(null);
-    packet.counts = Array(size).fill(0);
-
-    
-    for (let [stack, index] of this._framesToIndices) {
-      packet.frames[index] = this._framesToForms.get(stack);
-      packet.counts[index] = this._framesToCounts.get(stack) || 0;
-    }
-
-    return packet;
+    return this._frameCache.updateFramePacket(packet);
   }), {
     request: {},
     response: RetVal("json")
   }),
-
-  
-
-
-
-
-
-
-  _assignFrameIndices: function(frame) {
-    if (this._framesToIndices.has(frame)) {
-      return;
-    }
-
-    if (frame) {
-      this._assignFrameIndices(frame.parent);
-    }
-
-    const index = this._framesToIndices.size;
-    this._framesToIndices.set(frame, index);
-  },
-
-  
-
-
-
-
-
-  _createFrameForms: function(frame) {
-    if (this._framesToForms.has(frame)) {
-      return;
-    }
-
-    let form = null;
-    if (frame) {
-      form = {
-        line: frame.line,
-        column: frame.column,
-        source: frame.source,
-        functionDisplayName: frame.functionDisplayName,
-        parent: this._framesToIndices.get(frame.parent)
-      };
-      this._createFrameForms(frame.parent);
-    }
-
-    this._framesToForms.set(frame, form);
-  },
-
-  
-
-
-
-
-
-  _countFrame: function(frame) {
-    if (!this._framesToCounts.has(frame)) {
-      this._framesToCounts.set(frame, 1);
-    } else {
-      let count = this._framesToCounts.get(frame);
-      this._framesToCounts.set(frame, count + 1);
-    }
-  },
 
   
 

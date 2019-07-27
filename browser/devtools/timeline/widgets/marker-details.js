@@ -5,6 +5,7 @@
 "use strict";
 
 let { Ci } = require("chrome");
+let WebConsoleUtils = require("devtools/toolkit/webconsole/utils").Utils;
 
 
 
@@ -106,7 +107,10 @@ MarkerDetails.prototype = {
 
 
 
-  render: function(marker) {
+
+
+
+  render: function({toolbox: toolbox, marker: marker, frames: frames}) {
     this.empty();
 
     
@@ -138,6 +142,84 @@ MarkerDetails.prototype = {
         this.renderDOMEventMarker(this._parent, marker);
         break;
       default:
+    }
+
+    if (marker.stack) {
+      let property = "timeline.markerDetail.stack";
+      if (marker.endStack) {
+        property = "timeline.markerDetail.startStack";
+      }
+      this.renderStackTrace({toolbox: toolbox, parent: this._parent, property: property,
+                             frameIndex: marker.stack, frames: frames});
+    }
+
+    if (marker.endStack) {
+      this.renderStackTrace({toolbox: toolbox, parent: this._parent, property: "timeline.markerDetail.endStack",
+                             frameIndex: marker.endStack, frames: frames});
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  renderStackTrace: function({toolbox: toolbox, parent: parent,
+                              property: property, frameIndex: frameIndex,
+                              frames: frames}) {
+    let labelName = this._document.createElement("label");
+    labelName.className = "plain marker-details-labelname";
+    labelName.setAttribute("value", L10N.getStr(property));
+    parent.appendChild(labelName);
+
+    while (frameIndex > 0) {
+      let frame = frames[frameIndex];
+      let url = frame.source;
+      let displayName = frame.functionDisplayName;
+      let line = frame.line;
+
+      let hbox = this._document.createElement("hbox");
+
+      if (displayName) {
+        let functionLabel = this._document.createElement("label");
+        functionLabel.setAttribute("value", displayName);
+        hbox.appendChild(functionLabel);
+      }
+
+      if (url) {
+        let aNode = this._document.createElement("a");
+        aNode.className = "waterfall-marker-location theme-link devtools-monospace";
+        aNode.href = url;
+        aNode.draggable = false;
+        aNode.setAttribute("title", url);
+
+        let text = WebConsoleUtils.abbreviateSourceURL(url) + ":" + line;
+        let label = this._document.createElement("label");
+        label.setAttribute("value", text);
+        aNode.appendChild(label);
+        hbox.appendChild(aNode);
+
+        aNode.addEventListener("click", (event) => {
+          event.preventDefault();
+          viewSourceInDebugger(toolbox, url, line);
+        });
+      }
+
+      if (!displayName && !url) {
+        let label = this._document.createElement("label");
+        label.setAttribute("value", L10N.getStr("timeline.markerDetail.unknownFrame"));
+        hbox.appendChild(label);
+      }
+
+      parent.appendChild(hbox);
+
+      frameIndex = frame.parent;
     }
   },
 
@@ -185,6 +267,36 @@ MarkerDetails.prototype = {
     }
   },
 
-}
+};
+
+
+
+
+
+
+
+
+
+let viewSourceInDebugger = Task.async(function *(toolbox, url, line) {
+  
+  
+  
+  let debuggerAlreadyOpen = toolbox.getPanel("jsdebugger");
+  let { panelWin: dbg } = yield toolbox.selectTool("jsdebugger");
+
+  if (!debuggerAlreadyOpen) {
+    yield dbg.once(dbg.EVENTS.SOURCES_ADDED);
+  }
+
+  let { DebuggerView } = dbg;
+  let { Sources } = DebuggerView;
+
+  let item = Sources.getItemForAttachment(a => a.source.url === url);
+  if (item) {
+    return DebuggerView.setEditorLocation(item.attachment.source.actor, line, { noDebug: true });
+  }
+
+  return Promise.reject("Couldn't find the specified source in the debugger.");
+});
 
 exports.MarkerDetails = MarkerDetails;

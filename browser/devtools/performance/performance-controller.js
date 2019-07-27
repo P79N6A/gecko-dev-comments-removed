@@ -147,6 +147,7 @@ let PerformanceController = {
   _startTime: RECORDING_UNAVAILABLE,
   _endTime: RECORDING_UNAVAILABLE,
   _markers: [],
+  _frames: [],
   _memory: [],
   _ticks: [],
   _profilerData: {},
@@ -169,6 +170,7 @@ let PerformanceController = {
 
     gFront.on("ticks", this._onTimelineData); 
     gFront.on("markers", this._onTimelineData); 
+    gFront.on("frames", this._onTimelineData); 
     gFront.on("memory", this._onTimelineData); 
   },
 
@@ -183,6 +185,7 @@ let PerformanceController = {
 
     gFront.off("ticks", this._onTimelineData);
     gFront.off("markers", this._onTimelineData);
+    gFront.off("frames", this._onTimelineData);
     gFront.off("memory", this._onTimelineData);
   },
 
@@ -205,6 +208,7 @@ let PerformanceController = {
     this._startTime = startTime;
     this._endTime = RECORDING_IN_PROGRESS;
     this._markers = [];
+    this._frames = [];
     this._memory = [];
     this._ticks = [];
 
@@ -256,6 +260,7 @@ let PerformanceController = {
     this._startTime = recordingData.interval.startTime;
     this._endTime = recordingData.interval.endTime;
     this._markers = recordingData.markers;
+    this._frames = recordingData.frames;
     this._memory = recordingData.memory;
     this._ticks = recordingData.ticks;
     this._profilerData = recordingData.profilerData;
@@ -304,6 +309,14 @@ let PerformanceController = {
 
 
 
+  getFrames: function() {
+    return this._frames;
+  },
+
+  
+
+
+
   getMemory: function() {
     return this._memory;
   },
@@ -330,10 +343,11 @@ let PerformanceController = {
   getAllData: function() {
     let interval = this.getInterval();
     let markers = this.getMarkers();
+    let frames = this.getFrames();
     let memory = this.getMemory();
     let ticks = this.getTicks();
     let profilerData = this.getProfilerData();
-    return { interval, markers, memory, ticks, profilerData };
+    return { interval, markers, frames, memory, ticks, profilerData };
   },
 
   
@@ -344,6 +358,11 @@ let PerformanceController = {
     if (eventName == "markers") {
       let [markers] = data;
       Array.prototype.push.apply(this._markers, markers);
+    }
+    
+    else if (eventName == "frames") {
+      let [delta, frames] = data;
+      Array.prototype.push.apply(this._frames, frames);
     }
     
     else if (eventName == "memory") {

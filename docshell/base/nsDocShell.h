@@ -23,6 +23,7 @@
 #include "mozilla/TimeStamp.h"
 #include "GeckoProfiler.h"
 #include "mozilla/dom/ProfileTimelineMarkerBinding.h"
+#include "jsapi.h"
 
 
 #include "nsCOMPtr.h"
@@ -30,6 +31,7 @@
 #include "nsString.h"
 #include "nsAutoPtr.h"
 #include "nsThreadUtils.h"
+#include "nsContentUtils.h"
 
 
 #define REFRESH_REDIRECT_TIMER 15000
@@ -272,6 +274,9 @@ public:
             MOZ_COUNT_CTOR(TimelineMarker);
             MOZ_ASSERT(aName);
             aDocShell->Now(&mTime);
+            if (aMetaData == TRACING_INTERVAL_START) {
+                CaptureStack();
+            }
         }
 
         TimelineMarker(nsDocShell* aDocShell, const char* aName,
@@ -284,6 +289,9 @@ public:
             MOZ_COUNT_CTOR(TimelineMarker);
             MOZ_ASSERT(aName);
             aDocShell->Now(&mTime);
+            if (aMetaData == TRACING_INTERVAL_START) {
+                CaptureStack();
+            }
         }
 
         virtual ~TimelineMarker()
@@ -299,6 +307,9 @@ public:
             return strcmp(mName, other->mName) == 0;
         }
 
+        
+        
+        
         
         
         virtual void AddDetails(mozilla::dom::ProfileTimelineMarker& aMarker)
@@ -330,11 +341,42 @@ public:
             return mCause;
         }
 
+        JSObject* GetStack()
+        {
+            if (mStackTrace) {
+                return mStackTrace->get();
+            }
+            return nullptr;
+        }
+
+    protected:
+
+        void CaptureStack()
+        {
+            JSContext* ctx = nsContentUtils::GetCurrentJSContext();
+            if (ctx) {
+                JS::RootedObject stack(ctx);
+                if (JS::CaptureCurrentStack(ctx, &stack)) {
+                    mStackTrace.emplace(ctx, stack.get());
+                } else {
+                    JS_ClearPendingException(ctx);
+                }
+            }
+        }
+
     private:
+
         const char* mName;
         TracingMetadata mMetaData;
         DOMHighResTimeStamp mTime;
         nsString mCause;
+
+        
+        
+        
+        
+        
+        mozilla::Maybe<JS::PersistentRooted<JSObject*>> mStackTrace;
     };
 
     

@@ -2887,6 +2887,7 @@ nsDocShell::PopProfileTimelineMarkers(JSContext* aCx,
   
 
   nsTArray<mozilla::dom::ProfileTimelineMarker> profileTimelineMarkers;
+  SequenceRooter<mozilla::dom::ProfileTimelineMarker> rooter(aCx, &profileTimelineMarkers);
 
   
   
@@ -2938,17 +2939,18 @@ nsDocShell::PopProfileTimelineMarkers(JSContext* aCx,
           } else {
             
             if (!isPaint || (isPaint && hasSeenPaintedLayer)) {
-              mozilla::dom::ProfileTimelineMarker marker;
+              mozilla::dom::ProfileTimelineMarker* marker =
+                profileTimelineMarkers.AppendElement();
 
-              marker.mName = NS_ConvertUTF8toUTF16(startPayload->GetName());
-              marker.mStart = startPayload->GetTime();
-              marker.mEnd = endPayload->GetTime();
+              marker->mName = NS_ConvertUTF8toUTF16(startPayload->GetName());
+              marker->mStart = startPayload->GetTime();
+              marker->mEnd = endPayload->GetTime();
+              marker->mStack = startPayload->GetStack();
               if (isPaint) {
-                marker.mRectangles.Construct(layerRectangles);
-              } else {
-                startPayload->AddDetails(marker);
+                marker->mRectangles.Construct(layerRectangles);
               }
-              profileTimelineMarkers.AppendElement(marker);
+              startPayload->AddDetails(*marker);
+              endPayload->AddDetails(*marker);
             }
 
             
