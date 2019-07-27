@@ -40,6 +40,11 @@ public:
 
   static PSharedBufferManagerParent* Create(Transport* aTransport, ProcessId aOtherProcess);
 
+  
+
+
+
+  static SharedBufferManagerParent* GetInstance(ProcessId id);
 #ifdef MOZ_HAVE_SURFACEDESCRIPTORGRALLOC
   android::sp<android::GraphicBuffer> GetGraphicBuffer(int64_t key);
   static android::sp<android::GraphicBuffer> GetGraphicBuffer(GrallocBufferRef aRef);
@@ -61,7 +66,7 @@ public:
   
 
 
-  static void DropGrallocBuffer(ProcessId id, mozilla::layers::SurfaceDescriptor aDesc);
+  void DropGrallocBuffer(mozilla::layers::SurfaceDescriptor aDesc);
 
   
   IToplevelProtocol*
@@ -71,6 +76,10 @@ public:
   MessageLoop* GetMessageLoop();
 
 protected:
+  
+
+
+  static std::map<base::ProcessId, SharedBufferManagerParent*> sManagers;
 
   
 
@@ -82,32 +91,19 @@ protected:
   
   static void DropGrallocBufferSync(SharedBufferManagerParent* mgr, mozilla::layers::SurfaceDescriptor aDesc);
 
-  
-
-
-
-
-  static SharedBufferManagerParent* GetInstance(ProcessId id);
-
-  
-
-
-  static std::map<base::ProcessId, SharedBufferManagerParent*> sManagers;
-
 #ifdef MOZ_HAVE_SURFACEDESCRIPTORGRALLOC
   
 
 
   std::map<int64_t, android::sp<android::GraphicBuffer> > mBuffers;
+  Mutex mBuffersMutex;
 #endif
   
   Transport* mTransport;
   base::ProcessId mOwner;
   base::Thread* mThread;
-  bool mDestroyed;
-  Mutex mLock;
-
   static uint64_t sBufferKey;
+
   static StaticAutoPtr<Monitor> sManagerMonitor;
 };
 
