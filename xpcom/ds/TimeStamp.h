@@ -387,11 +387,20 @@ public:
   MOZ_CONSTEXPR TimeStamp() : mValue(0) {}
   
 
-#ifdef MOZ_WIDGET_GONK
-  TimeStamp(int64_t aAndroidTime) : mValue(aAndroidTime)
+  
+
+
+
+
+
+
+
+#if defined(MOZ_WIDGET_GONK) || defined(MOZ_WIDGET_COCOA)
+  static TimeStamp FromSystemTime(int64_t aSystemTime)
   {
-    static_assert(sizeof(aAndroidTime) == sizeof(TimeStampValue),
-                  "Android timestamp should be same units as TimeStampValue");
+    static_assert(sizeof(aSystemTime) == sizeof(TimeStampValue),
+                  "System timestamp should be same units as TimeStampValue");
+    return TimeStamp(aSystemTime);
   }
 #endif
 
