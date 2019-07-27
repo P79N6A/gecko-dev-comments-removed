@@ -118,19 +118,21 @@ var FullScreen = {
         
         
         
-        let originalTarget = event.originalTarget;
+        
         let browser;
-        if (this._isBrowser(originalTarget)) {
-          browser = originalTarget;
+        if (event.target == gBrowser) {
+          browser = event.originalTarget;
         } else {
-          let topWin = originalTarget.ownerDocument.defaultView.top;
+          let topWin = event.target.ownerDocument.defaultView.top;
           browser = gBrowser.getBrowserForContentWindow(topWin);
           if (!browser) {
             document.mozCancelFullScreen();
             break;
           }
         }
-        this.enterDomFullscreen(browser);
+        if (!this.enterDomFullscreen(browser)) {
+          break;
+        }
         
         
         
@@ -166,7 +168,7 @@ var FullScreen = {
 
   enterDomFullscreen : function(aBrowser) {
     if (!document.mozFullScreen)
-      return;
+      return false;
 
     
     
@@ -174,7 +176,7 @@ var FullScreen = {
     
     if (gBrowser.selectedBrowser != aBrowser) {
       document.mozCancelFullScreen();
-      return;
+      return false;
     }
 
     let focusManager = Services.focus;
@@ -182,7 +184,7 @@ var FullScreen = {
       
       
       document.mozCancelFullScreen();
-      return;
+      return false;
     }
 
     document.documentElement.setAttribute("inDOMFullscreen", true);
@@ -204,6 +206,7 @@ var FullScreen = {
     
     this.hideNavToolbox(true);
     this._fullScrToggler.hidden = true;
+    return true;
   },
 
   cleanup: function () {
@@ -235,13 +238,6 @@ var FullScreen = {
           .broadcastAsyncMessage("DOMFullscreen:CleanUp");
   },
 
-  _isBrowser: function (aNode) {
-    if (aNode.tagName != "xul:browser") {
-      return false;
-    }
-    let systemPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
-    return aNode.nodePrincipal == systemPrincipal;
-  },
   _isRemoteBrowser: function (aBrowser) {
     return gMultiProcessBrowser && aBrowser.getAttribute("remote") == "true";
   },
