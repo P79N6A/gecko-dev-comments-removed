@@ -72,11 +72,12 @@ AppleATDecoder::Input(MediaRawData* aSample)
       (unsigned long long)aSample->mSize);
 
   
-  mTaskQueue->Dispatch(
+  nsCOMPtr<nsIRunnable> runnable =
       NS_NewRunnableMethodWithArg<nsRefPtr<MediaRawData>>(
         this,
         &AppleATDecoder::SubmitSample,
-        nsRefPtr<MediaRawData>(aSample)));
+        nsRefPtr<MediaRawData>(aSample));
+  mTaskQueue->Dispatch(runnable.forget());
 
   return NS_OK;
 }
