@@ -48,7 +48,7 @@ public class MediaCastingBar extends RelativeLayout implements View.OnClickListe
         mMediaStop = (ImageButton) content.findViewById(R.id.media_stop);
         mMediaStop.setOnClickListener(this);
 
-        mCastingTo = (TextView) content.findViewById(R.id.media_casting_to);
+        mCastingTo = (TextView) content.findViewById(R.id.media_sending_to);
 
         
         
