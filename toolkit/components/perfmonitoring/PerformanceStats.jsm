@@ -174,8 +174,12 @@ let Probes = {
 
 
   jank: new Probe("jank", {
-    set isActive(x) {  },
-    get isActive() { return true; },
+    set isActive(x) {
+      performanceStatsService.isMonitoringJank = x;
+    },
+    get isActive() {
+      return performanceStatsService.isMonitoringJank;
+    },
     extract: function(xpcom) {
       let durations = xpcom.getDurations();
       return {
@@ -225,8 +229,12 @@ let Probes = {
 
 
   cpow: new Probe("cpow", {
-    set isActive(x) {  },
-    get isActive() { return true; },
+    set isActive(x) {
+      performanceStatsService.isMonitoringCPOW = x;
+    },
+    get isActive() {
+      return performanceStatsService.isMonitoringCPOW;
+    },
     extract: function(xpcom) {
       return {
         totalCPOWTime: xpcom.totalCPOWTime
@@ -528,7 +536,3 @@ function Snapshot({xpcom, probes}) {
   }
   this.processData = new PerformanceData({xpcom: xpcom.getProcessData(), probes});
 }
-
-
-
-performanceStatsService.isStopwatchActive = true;
