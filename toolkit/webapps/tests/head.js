@@ -267,7 +267,8 @@ function TestAppInfo(aApp, aIsPackaged) {
           removed = true;
         } catch (ex if ex instanceof OS.File.Error &&
                  (ex.winLastError == OS.Constants.Win.ERROR_ACCESS_DENIED ||
-                  ex.winLastError == OS.Constants.Win.ERROR_SHARING_VIOLATION)) {
+                  ex.winLastError == OS.Constants.Win.ERROR_SHARING_VIOLATION ||
+                  ex.winLastError == OS.Constants.Win.ERROR_DIR_NOT_EMPTY)) {
           
           yield wait(100);
         }
