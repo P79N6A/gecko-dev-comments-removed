@@ -354,8 +354,13 @@ def processSingleLeakFile(leakLogFileName, processType, leakThreshold):
 
   
   if totalBytesLeaked > leakThreshold:
-    
-    prefix = "TEST-UNEXPECTED-FAIL"
+    if processType and processType == "tab":
+      
+      log.info("WARNING | leakcheck | ignoring leaks in tab process")
+      prefix = "WARNING"
+    else:
+      
+      prefix = "TEST-UNEXPECTED-FAIL"
   else:
     prefix = "WARNING"
   
