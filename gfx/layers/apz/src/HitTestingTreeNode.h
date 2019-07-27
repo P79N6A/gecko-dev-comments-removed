@@ -41,10 +41,6 @@ class AsyncPanZoomController;
 
 
 
-
-
-
-
 class HitTestingTreeNode {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(HitTestingTreeNode);
 
@@ -67,7 +63,8 @@ public:
   HitTestingTreeNode* GetParent() const;
 
   
-  AsyncPanZoomController* Apzc() const;
+  AsyncPanZoomController* GetApzc() const;
+  AsyncPanZoomController* GetNearestContainingApzc() const;
   bool IsPrimaryHolder() const;
 
   
@@ -80,6 +77,8 @@ public:
   void Dump(const char* aPrefix = "") const;
 
 private:
+  void SetApzcParent(AsyncPanZoomController* aApzc);
+
   nsRefPtr<HitTestingTreeNode> mLastChild;
   nsRefPtr<HitTestingTreeNode> mPrevSibling;
   nsRefPtr<HitTestingTreeNode> mParent;
