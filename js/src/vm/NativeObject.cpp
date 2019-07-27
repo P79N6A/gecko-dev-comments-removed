@@ -1990,26 +1990,47 @@ SetPropertyByDefining(typename ExecutionModeTraits<mode>::ContextType cxArg,
     
     
     
-    bool extensible;
+    
+    
+    bool existing;
     if (mode == ParallelExecution) {
-        if (receiver->is<ProxyObject>())
+        
+        
+        NativeObject *npobj;
+        Shape *shape;
+        if (!LookupPropertyPure(cxArg, receiver, id, &npobj, &shape))
             return false;
-        extensible = receiver->nonProxyIsExtensible();
+        existing = (npobj == receiver);
     } else {
-        if (!JSObject::isExtensible(cxArg->asJSContext(), receiver, &extensible))
+        if (!HasOwnProperty(cxArg->asJSContext(), receiver, id, &existing))
             return false;
     }
-    if (!extensible) {
-        
-        
-        if (strict)
-            return receiver->reportNotExtensible(cxArg);
-        if (mode == SequentialExecution &&
-            cxArg->asJSContext()->compartment()->options().extraWarnings(cxArg->asJSContext()))
-        {
-            return receiver->reportNotExtensible(cxArg, JSREPORT_STRICT | JSREPORT_WARNING);
+
+    
+    
+    
+    if (!existing) {
+        bool extensible;
+        if (mode == ParallelExecution) {
+            if (receiver->is<ProxyObject>())
+                return false;
+            extensible = receiver->nonProxyIsExtensible();
+        } else {
+            if (!JSObject::isExtensible(cxArg->asJSContext(), receiver, &extensible))
+                return false;
         }
-        return true;
+        if (!extensible) {
+            
+            
+            if (strict)
+                return receiver->reportNotExtensible(cxArg);
+            if (mode == SequentialExecution &&
+                cxArg->asJSContext()->compartment()->options().extraWarnings(cxArg->asJSContext()))
+            {
+                return receiver->reportNotExtensible(cxArg, JSREPORT_STRICT | JSREPORT_WARNING);
+            }
+            return true;
+        }
     }
 
     
@@ -2027,6 +2048,10 @@ SetPropertyByDefining(typename ExecutionModeTraits<mode>::ContextType cxArg,
     }
 
     
+    unsigned attrs =
+        existing
+        ? JSPROP_IGNORE_ENUMERATE | JSPROP_IGNORE_READONLY | JSPROP_IGNORE_PERMANENT
+        : JSPROP_ENUMERATE;
     JSPropertyOp getter = clasp->getProperty;
     JSStrictPropertyOp setter = clasp->setProperty;
     MOZ_ASSERT(getter != JS_PropertyStub);
@@ -2035,11 +2060,11 @@ SetPropertyByDefining(typename ExecutionModeTraits<mode>::ContextType cxArg,
         if (mode == ParallelExecution)
             return false;
         return JSObject::defineGeneric(cxArg->asJSContext(), receiver, id, v, getter, setter,
-                                       JSPROP_ENUMERATE);
+                                       attrs);
     }
     Rooted<NativeObject*> nativeReceiver(cxArg, &receiver->as<NativeObject>());
     return DefinePropertyOrElement<mode>(cxArg, nativeReceiver, id, getter, setter,
-                                         JSPROP_ENUMERATE, v, true, strict);
+                                         attrs, v, true, strict);
 }
 
 
