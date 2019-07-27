@@ -751,8 +751,6 @@ protected:
   static mozilla::StaticRefPtr<ITfCategoryMgr> sCategoryMgr;
 
   
-  static DWORD          sTsfClientId;
-  
   
   
   
@@ -764,6 +762,9 @@ protected:
 
   static mozilla::StaticRefPtr<ITfInputProcessorProfiles>
     sInputProcessorProfiles;
+
+  
+  static DWORD sClientId;
 
   
   static bool sCreateNativeCaretForATOK;
