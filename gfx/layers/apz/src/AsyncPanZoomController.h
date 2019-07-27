@@ -800,7 +800,6 @@ public:
   bool TakeOverFling(ScreenPoint aVelocity);
 
 private:
-  friend class OverscrollableAnimation;
   friend class FlingAnimation;
   friend class OverscrollSnapBackAnimation;
   
@@ -1038,9 +1037,6 @@ public:
 
   virtual bool Sample(FrameMetrics& aFrameMetrics,
                       const TimeDuration& aDelta) = 0;
-
-  
-  virtual void Cancel() {}
 
   
 

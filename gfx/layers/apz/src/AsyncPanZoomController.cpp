@@ -412,34 +412,13 @@ GetFrameTime() {
   return sFrameTime;
 }
 
-
-
-
-class OverscrollableAnimation: public AsyncPanZoomAnimation {
-public:
-  OverscrollableAnimation(AsyncPanZoomController& aApzc,
-                          const TimeDuration& aRepaintInterval = TimeDuration::Forever())
-    : AsyncPanZoomAnimation(aRepaintInterval)
-    , mApzc(aApzc)
-  {
-  }
-
-  virtual void Cancel() MOZ_OVERRIDE
-  {
-    mApzc.mX.ClearOverscroll();
-    mApzc.mY.ClearOverscroll();
-  }
-
-protected:
-  AsyncPanZoomController& mApzc;
-};
-
-class FlingAnimation: public OverscrollableAnimation {
+class FlingAnimation: public AsyncPanZoomAnimation {
 public:
   FlingAnimation(AsyncPanZoomController& aApzc,
                  bool aApplyAcceleration,
                  bool aAllowOverscroll)
-    : OverscrollableAnimation(aApzc, TimeDuration::FromMilliseconds(gfxPrefs::APZFlingRepaintInterval()))
+    : AsyncPanZoomAnimation(TimeDuration::FromMilliseconds(gfxPrefs::APZFlingRepaintInterval()))
+    , mApzc(aApzc)
     , mAllowOverscroll(aAllowOverscroll)
   {
     TimeStamp now = GetFrameTime();
@@ -594,6 +573,7 @@ private:
          + (aSupplemental * gfxPrefs::APZFlingAccelSupplementalMultiplier());
   }
 
+  AsyncPanZoomController& mApzc;
   bool mAllowOverscroll;
 };
 
@@ -656,10 +636,10 @@ private:
   CSSToScreenScale mEndZoom;
 };
 
-class OverscrollSnapBackAnimation: public OverscrollableAnimation {
+class OverscrollSnapBackAnimation: public AsyncPanZoomAnimation {
 public:
   OverscrollSnapBackAnimation(AsyncPanZoomController& aApzc)
-    : OverscrollableAnimation(aApzc)
+    : mApzc(aApzc)
   {
   }
 
@@ -671,6 +651,8 @@ public:
     bool continueY = mApzc.mY.SampleSnapBack(aDelta);
     return continueX || continueY;
   }
+private:
+  AsyncPanZoomController& mApzc;
 };
 
 void
@@ -1771,10 +1753,13 @@ void AsyncPanZoomController::CancelAnimation() {
   ReentrantMonitorAutoEnter lock(mMonitor);
   APZC_LOG("%p running CancelAnimation in state %d\n", this, mState);
   SetState(NOTHING);
-  if (mAnimation) {
-    mAnimation->Cancel();
-    mAnimation = nullptr;
-    
+  mAnimation = nullptr;
+  
+  
+  
+  if (mX.IsOverscrolled() || mY.IsOverscrolled()) {
+    mX.ClearOverscroll();
+    mY.ClearOverscroll();
     RequestContentRepaint();
     ScheduleComposite();
     UpdateSharedCompositorFrameMetrics();
