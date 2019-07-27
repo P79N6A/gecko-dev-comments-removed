@@ -20,6 +20,7 @@ Cu.import("resource://services-common/rest.js");
 Cu.importGlobalProperties(["URL"]);
 
 const AUTH_ENDPOINT = "/authorization";
+const DESTROY_ENDPOINT = "/destroy";
 
 
 
@@ -73,6 +74,25 @@ this.FxAccountsOAuthGrantClient.prototype = {
     };
 
     return this._createRequest(AUTH_ENDPOINT, "POST", params);
+  },
+
+  
+
+
+
+
+
+
+
+  destroyToken: function (token) {
+    if (!token) {
+      throw new Error("Missing 'token' parameter");
+    }
+    let params = {
+      token: token,
+    };
+
+    return this._createRequest(DESTROY_ENDPOINT, "POST", params);
   },
 
   

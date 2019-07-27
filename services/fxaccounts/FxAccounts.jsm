@@ -45,6 +45,7 @@ let publicProperties = [
   "now",
   "promiseAccountsForceSigninURI",
   "promiseAccountsChangeProfileURI",
+  "removeCachedOAuthToken",
   "resendVerificationEmail",
   "setSignedInUser",
   "signOut",
@@ -70,18 +71,24 @@ let publicProperties = [
 
 
 
-let AccountState = function(fxaInternal) {
+let AccountState = function(fxaInternal, signedInUserStorage, accountData = null) {
   this.fxaInternal = fxaInternal;
+  this.signedInUserStorage = signedInUserStorage;
+  this.signedInUser = accountData ? {version: DATA_FORMAT_VERSION, accountData} : null;
+  this.uid = accountData ? accountData.uid : null;
+  this.oauthTokens = {};
 };
 
 AccountState.prototype = {
   cert: null,
   keyPair: null,
   signedInUser: null,
+  oauthTokens: null,
   whenVerifiedDeferred: null,
   whenKeysReadyDeferred: null,
   profile: null,
   promiseInitialAccountData: null,
+  uid: null,
 
   get isCurrent() this.fxaInternal && this.fxaInternal.currentAccountState === this,
 
@@ -101,6 +108,7 @@ AccountState.prototype = {
     this.cert = null;
     this.keyPair = null;
     this.signedInUser = null;
+    this.uid = null;
     this.fxaInternal = null;
     this.initProfilePromise = null;
 
@@ -110,7 +118,17 @@ AccountState.prototype = {
     }
   },
 
-  getUserAccountData: function() {
+  
+  signOut() {
+    this.cert = null;
+    this.keyPair = null;
+    this.signedInUser = null;
+    this.oauthTokens = {};
+    this.uid = null;
+    return this.persistUserData();
+  },
+
+  getUserAccountData() {
     if (!this.isCurrent) {
       return this.reject(new Error("Another user has signed in"));
     }
@@ -124,32 +142,69 @@ AccountState.prototype = {
     }
 
     
-    return this.promiseInitialAccountData = this.fxaInternal.signedInUserStorage.get().then(
-      user => {
+    
+    let accountData = null;
+    let oauthTokens = {};
+    return this.promiseInitialAccountData = this.signedInUserStorage.get()
+      .then(user => {
         if (logPII) {
-          
-          
-          log.debug("getUserAccountData -> " + JSON.stringify(user));
+          log.debug("getUserAccountData", user);
         }
-        if (user && user.version == this.version) {
-          log.debug("setting signed in user");
-          this.signedInUser = user;
-        }
-        this.promiseInitialAccountData = null;
-        return this.resolve(user ? user.accountData : null);
-      },
-      err => {
+        
+        
+        
+        
+        
+        accountData = user ? user.accountData : null;
+      }, err => {
+        
         this.promiseInitialAccountData = null;
         if (err instanceof OS.File.Error && err.becauseNoSuchFile) {
           
           
-          return this.resolve(null);
+          return;
         }
-        return this.reject(err);
-      }
-    );
+        
+        
+        log.error("Failed to read signed in user data", err);
+      }).then(() => {
+        if (!accountData) {
+          return null;
+        }
+        return this.signedInUserStorage.getOAuthTokens();
+      }).then(tokenData => {
+        if (tokenData && tokenData.tokens &&
+            tokenData.version == DATA_FORMAT_VERSION &&
+            tokenData.uid == accountData.uid ) {
+          oauthTokens = tokenData.tokens;
+        }
+      }, err => {
+        
+        if (err instanceof OS.File.Error && err.becauseNoSuchFile) {
+          
+          return;
+        }
+        log.error("Failed to read oauth tokens", err)
+      }).then(() => {
+        
+        
+        this.promiseInitialAccountData = null;
+        if (this.isCurrent) {
+          
+          
+          
+          
+          this.oauthTokens = oauthTokens;
+          this.uid = accountData ? accountData.uid : null;
+        }
+        return accountData;
+      });
+      
   },
 
+  
+  
+  
   setUserAccountData: function(accountData) {
     if (!this.isCurrent) {
       return this.reject(new Error("Another user has signed in"));
@@ -157,10 +212,18 @@ AccountState.prototype = {
     if (this.promiseInitialAccountData) {
       throw new Error("Can't set account data before it's been read.");
     }
+    if (!accountData) {
+      
+      throw new Error("Attempt to use setUserAccountData with null user data.");
+    }
+    if (accountData.uid != this.uid) {
+      
+      throw new Error("Attempt to use setUserAccountData with a different user.");
+    }
     
     
     this.signedInUser = {version: DATA_FORMAT_VERSION, accountData: accountData};
-    return this.fxaInternal.signedInUserStorage.set(this.signedInUser)
+    return this.signedInUserStorage.set(this.signedInUser)
         .then(() => this.resolve(accountData));
   },
 
@@ -289,7 +352,107 @@ AccountState.prototype = {
     return Promise.reject(error);
   },
 
-};
+  
+  
+
+  
+  _cachePreamble() {
+    if (!this.isCurrent) {
+      throw new Error("Another user has signed in");
+    }
+  },
+
+  
+  
+  
+  setCachedToken(scopeArray, tokenData) {
+    this._cachePreamble();
+    if (!tokenData.token) {
+      throw new Error("No token");
+    }
+    let key = getScopeKey(scopeArray);
+    this.oauthTokens[key] = tokenData;
+    
+    this._persistCachedTokens();
+  },
+
+  
+  getCachedToken(scopeArray) {
+    this._cachePreamble();
+    let key = getScopeKey(scopeArray);
+    if (this.oauthTokens[key]) {
+      
+      
+      log.trace("getCachedToken returning cached token");
+      return this.oauthTokens[key];
+    }
+    return null;
+  },
+
+  
+  getAllCachedTokens() {
+    this._cachePreamble();
+    let result = [];
+    for (let [key, tokenValue] in Iterator(this.oauthTokens)) {
+      result.push(tokenValue);
+    }
+    return result;
+  },
+
+  
+  
+  removeCachedToken(token) {
+    this._cachePreamble();
+    let data = this.oauthTokens;
+    for (let [key, tokenValue] in Iterator(data)) {
+      if (tokenValue.token == token) {
+        delete data[key];
+        
+        this._persistCachedTokens();
+        return tokenValue;
+      }
+    }
+    return null;
+  },
+
+  
+  
+  
+  _persistCachedTokens() {
+    this._cachePreamble();
+    let record;
+    if (this.uid) {
+      record = {
+        version: DATA_FORMAT_VERSION,
+        uid: this.uid,
+        tokens: this.oauthTokens,
+      };
+    } else {
+      record = null;
+    }
+    return this.signedInUserStorage.setOAuthTokens(record).catch(
+      err => {
+        log.error("Failed to save account data for token cache", err);
+      }
+    );
+  },
+
+  persistUserData() {
+    return this._persistCachedTokens().catch(err => {
+      log.error("Failed to persist cached tokens", err);
+    }).then(() => {
+      return this.signedInUserStorage.set(this.signedInUser);
+    }).catch(err => {
+      log.error("Failed to persist account data", err);
+    });
+  },
+}
+
+
+function getScopeKey(scopeArray) {
+  let normalizedScopes = scopeArray.map(item => item.toLowerCase());
+  return normalizedScopes.sort().join("|");
+}
 
 
 
@@ -350,6 +513,11 @@ this.FxAccounts = function (mockInternal) {
 
   if (mockInternal) {
     
+    
+    if (mockInternal.signedInUserStorage) {
+      internal.currentAccountState.signedInUserStorage = mockInternal.signedInUserStorage;
+    }
+    
     external.internal = internal;
   }
 
@@ -373,22 +541,32 @@ function FxAccountsInternal() {
   
   
   
-  
-  
-  this.currentTimer = null;
-  this.currentAccountState = new AccountState(this);
 
-  
-  
   
 #if defined(MOZ_B2G)
   this.signedInUserStorage = new JSONStorage({
 #else
   this.signedInUserStorage = new LoginManagerStorage({
 #endif
+    
+    
     filename: DEFAULT_STORAGE_FILENAME,
+    oauthTokensFilename: DEFAULT_OAUTH_TOKENS_FILENAME,
     baseDir: OS.Constants.Path.profileDir,
   });
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  this.currentTimer = null;
+  this.currentAccountState = new AccountState(this, this.signedInUserStorage);
 }
 
 
@@ -522,19 +700,22 @@ FxAccountsInternal.prototype = {
     log.debug("setSignedInUser - aborting any existing flows");
     this.abortExistingFlow();
 
-    let record = {version: this.version, accountData: credentials};
-    let currentState = this.currentAccountState;
-    
-    currentState.signedInUser = JSON.parse(JSON.stringify(record));
+    let currentAccountState = this.currentAccountState = new AccountState(
+      this,
+      this.signedInUserStorage,
+      JSON.parse(JSON.stringify(credentials)) 
+    );
 
     
     
-    return this.signedInUserStorage.set(record).then(() => {
+    return currentAccountState.persistUserData().then(() => {
       this.notifyObservers(ONLOGIN_NOTIFICATION);
       if (!this.isUserEmailVerified(credentials)) {
         this.startVerifiedCheck(credentials);
       }
-    }).then(result => currentState.resolve(result));
+    }).then(() => {
+      return currentAccountState.resolve();
+    });
   },
 
   
@@ -591,7 +772,7 @@ FxAccountsInternal.prototype = {
       this.currentTimer = 0;
     }
     this.currentAccountState.abort();
-    this.currentAccountState = new AccountState(this);
+    this.currentAccountState = new AccountState(this, this.signedInUserStorage);
   },
 
   accountStatus: function accountStatus() {
@@ -603,12 +784,31 @@ FxAccountsInternal.prototype = {
     });
   },
 
+  _destroyOAuthToken: function(tokenData) {
+    let client = new FxAccountsOAuthGrantClient({
+      serverURL: tokenData.server,
+      client_id: FX_OAUTH_CLIENT_ID
+    });
+    return client.destroyToken(tokenData.token)
+  },
+
+  _destroyAllOAuthTokens: function(tokenInfos) {
+    
+    let promises = [];
+    for (let tokenInfo of tokenInfos) {
+      promises.push(this._destroyOAuthToken(tokenInfo));
+    }
+    return Promise.all(promises);
+  },
+
   signOut: function signOut(localOnly) {
     let currentState = this.currentAccountState;
     let sessionToken;
+    let tokensToRevoke;
     return currentState.getUserAccountData().then(data => {
       
       sessionToken = data && data.sessionToken;
+      tokensToRevoke = currentState.getAllCachedTokens();
       return this._signOutLocal();
     }).then(() => {
       
@@ -621,8 +821,15 @@ FxAccountsInternal.prototype = {
           
           
           return this._signOutServer(sessionToken);
-        }).then(null, err => {
-          log.error("Error during remote sign out of Firefox Accounts: " + err);
+        }).catch(err => {
+          log.error("Error during remote sign out of Firefox Accounts", err);
+        }).then(() => {
+          return this._destroyAllOAuthTokens(tokensToRevoke);
+        }).catch(err => {
+          log.error("Error during destruction of oauth tokens during signout", err);
+        }).then(() => {
+          
+          this.notifyObservers("testhelper-fxa-signout-complete");
         });
       }
     }).then(() => {
@@ -635,9 +842,10 @@ FxAccountsInternal.prototype = {
 
 
   _signOutLocal: function signOutLocal() {
-    this.abortExistingFlow();
-    this.currentAccountState.signedInUser = null; 
-    return this.signedInUserStorage.set(null);
+    let currentAccountState = this.currentAccountState;
+    return currentAccountState.signOut().then(() => {
+      this.abortExistingFlow(); 
+    });
   },
 
   _signOutServer: function signOutServer(sessionToken) {
@@ -1021,36 +1229,97 @@ FxAccountsInternal.prototype = {
 
 
 
+
+
   getOAuthToken: Task.async(function* (options = {}) {
     log.debug("getOAuthToken enter");
-
-    if (!options.scope) {
-      throw this._error(ERROR_INVALID_PARAMETER, "Missing 'scope' option");
+    let scope = options.scope;
+    if (typeof scope === "string") {
+      scope = [scope];
     }
 
-    let oAuthURL = Services.urlFormatter.formatURLPref("identity.fxaccounts.remote.oauth.uri");
+    if (!scope || !scope.length) {
+      throw this._error(ERROR_INVALID_PARAMETER, "Missing or invalid 'scope' option");
+    }
+
+    yield this._getVerifiedAccountOrReject();
+
+    
+    let currentState = this.currentAccountState;
+    let cached = currentState.getCachedToken(scope);
+    if (cached) {
+      log.debug("getOAuthToken returning a cached token");
+      return cached.token;
+    }
+
+    
+    let scopeString = scope.join(" ");
     let client = options.client;
 
     if (!client) {
       try {
+        let defaultURL = Services.urlFormatter.formatURLPref("identity.fxaccounts.remote.oauth.uri");
         client = new FxAccountsOAuthGrantClient({
-          serverURL: oAuthURL,
+          serverURL: defaultURL,
           client_id: FX_OAUTH_CLIENT_ID
         });
       } catch (e) {
         throw this._error(ERROR_INVALID_PARAMETER, e);
       }
     }
+    let oAuthURL = client.serverURL.href;
 
     try {
-      yield this._getVerifiedAccountOrReject();
+      log.debug("getOAuthToken fetching new token from", oAuthURL);
       let assertion = yield this.getAssertion(oAuthURL);
-      let result = yield client.getTokenFromAssertion(assertion, options.scope);
-      return result.access_token;
+      let result = yield client.getTokenFromAssertion(assertion, scopeString);
+      let token = result.access_token;
+      
+      if (token) {
+        let entry = {token: token, server: oAuthURL};
+        
+        
+        
+        
+        let cached = currentState.getCachedToken(scope);
+        if (cached) {
+          log.debug("Detected a race for this token - revoking the new one.");
+          this._destroyOAuthToken(entry);
+          return cached.token;
+        }
+        currentState.setCachedToken(scope, entry);
+      }
+      return token;
     } catch (err) {
       throw this._errorToErrorClass(err);
     }
   }),
+
+  
+
+
+
+
+
+
+
+
+
+
+
+   removeCachedOAuthToken: Task.async(function* (options) {
+    if (!options.token || typeof options.token !== "string") {
+      throw this._error(ERROR_INVALID_PARAMETER, "Missing or invalid 'token' option");
+    }
+    let currentState = this.currentAccountState;
+    let existing = currentState.removeCachedToken(options.token);
+    if (existing) {
+      
+      this._destroyOAuthToken(existing).catch(err => {
+        log.warn("FxA failed to revoke a cached token", err);
+      });
+    }
+   }),
 
   _getVerifiedAccountOrReject: Task.async(function* () {
     let data = yield this.currentAccountState.getUserAccountData();
@@ -1148,6 +1417,7 @@ FxAccountsInternal.prototype = {
 function JSONStorage(options) {
   this.baseDir = options.baseDir;
   this.path = OS.Path.join(options.baseDir, options.filename);
+  this.oauthTokensPath = OS.Path.join(options.baseDir, options.oauthTokensFilename);
 };
 
 JSONStorage.prototype = {
@@ -1158,7 +1428,17 @@ JSONStorage.prototype = {
 
   get: function() {
     return CommonUtils.readJSON(this.path);
-  }
+  },
+
+  setOAuthTokens: function(contents) {
+    return OS.File.makeDir(this.baseDir, {ignoreExisting: true})
+      .then(CommonUtils.writeJSON.bind(null, contents, this.oauthTokensPath));
+  },
+
+  getOAuthTokens: function(contents) {
+    return CommonUtils.readJSON(this.oauthTokensPath);
+  },
+
 };
 
 
@@ -1347,6 +1627,16 @@ LoginManagerStorage.prototype = {
     return data;
   }),
 
+  
+  
+  
+  getOAuthTokens() {
+    return this.jsonStorage.getOAuthTokens();
+  },
+
+  setOAuthTokens(contents) {
+    return this.jsonStorage.setOAuthTokens(contents);
+  },
 }
 
 
