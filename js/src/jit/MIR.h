@@ -831,6 +831,13 @@ class MInstruction
         resumePoint_(nullptr)
     { }
 
+    
+    
+    
+    
+    
+    MDefinition *foldsToStoredValue(TempAllocator &alloc, MDefinition *loaded);
+
     void setResumePoint(MResumePoint *resumePoint);
 
     
