@@ -132,6 +132,9 @@ public:
                            bool aNotify) override;
   virtual nsresult UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttr,
                              bool aNotify) override;
+  virtual nsresult AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+                                const nsAttrValue* aValue,
+                                bool aNotify) override;
 
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
@@ -1064,6 +1067,11 @@ protected:
   
   nsRefPtr<StreamSizeListener> mMediaStreamSizeListener;
 
+  
+  
+  nsRefPtr<MediaSource> mSrcMediaSource;
+
+  
   
   nsRefPtr<MediaSource> mMediaSource;
 
