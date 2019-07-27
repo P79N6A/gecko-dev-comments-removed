@@ -155,6 +155,13 @@ public:
       sEnabledTextStore->OnLayoutChangeInternal() : NS_OK;
   }
 
+  static nsresult OnUpdateComposition()
+  {
+    NS_ASSERTION(IsInTSFMode(), "Not in TSF mode, shouldn't be called");
+    return sEnabledTextStore ?
+      sEnabledTextStore->OnUpdateCompositionInternal() : NS_OK;
+  }
+
   static nsresult OnMouseButtonEvent(const IMENotification& aIMENotification)
   {
     NS_ASSERTION(IsInTSFMode(), "Not in TSF mode, shouldn't be called");
@@ -281,9 +288,23 @@ protected:
 
   
   
+  
+  void     DispatchEvent(mozilla::WidgetGUIEvent& aEvent);
+  void     OnLayoutInformationAvaliable();
+
+  
+  
   void     FlushPendingActions();
+  
+  void     MaybeFlushPendingNotifications();
 
   nsresult OnLayoutChangeInternal();
+  nsresult OnUpdateCompositionInternal();
+
+  void     NotifyTSFOfTextChange(const TS_TEXTCHANGE& aTextChange);
+  void     NotifyTSFOfSelectionChange();
+  bool     NotifyTSFOfLayoutChange(bool aFlush);
+
   HRESULT  HandleRequestAttrs(DWORD aFlags,
                               ULONG aFilterCount,
                               const TS_ATTRID* aFilterAttrs);
@@ -760,6 +781,14 @@ protected:
   bool                         mPendingDestroy;
   
   bool                         mNativeCaretIsCreated;
+  
+  
+  
+  
+  
+  
+  bool                         mDeferNotifyingTSF;
+
 
   
   static mozilla::StaticRefPtr<ITfThreadMgr> sThreadMgr;
