@@ -55,7 +55,6 @@ GMPParent::GMPParent()
   , mDeleteProcessOnlyOnUnload(false)
   , mAbnormalShutdownInProgress(false)
   , mIsBlockingDeletion(false)
-  , mCanDecrypt(false)
   , mGMPContentChildCount(0)
   , mAsyncShutdownRequired(false)
   , mAsyncShutdownInProgress(false)
@@ -757,20 +756,16 @@ GMPParent::ReadGMPMetaData()
       }
     }
 
-    if (cap->mAPIName.EqualsLiteral(GMP_API_DECRYPTOR) ||
-        cap->mAPIName.EqualsLiteral(GMP_API_DECRYPTOR_COMPAT)) {
-      mCanDecrypt = true;
-
 #if defined(XP_LINUX) && defined(MOZ_GMP_SANDBOX)
-      if (!mozilla::SandboxInfo::Get().CanSandboxMedia()) {
-        printf_stderr("GMPParent::ReadGMPMetaData: Plugin \"%s\" is an EME CDM"
-                      " but this system can't sandbox it; not loading.\n",
-                      mDisplayName.get());
-        delete cap;
-        return NS_ERROR_FAILURE;
-      }
-#endif
+    if (cap->mAPIName.EqualsLiteral(GMP_API_DECRYPTOR) &&
+        !mozilla::SandboxInfo::Get().CanSandboxMedia()) {
+      printf_stderr("GMPParent::ReadGMPMetaData: Plugin \"%s\" is an EME CDM"
+                    " but this system can't sandbox it; not loading.\n",
+                    mDisplayName.get());
+      delete cap;
+      return NS_ERROR_FAILURE;
     }
+#endif
 
     mCapabilities.AppendElement(cap);
   }
@@ -785,12 +780,7 @@ GMPParent::ReadGMPMetaData()
 bool
 GMPParent::CanBeSharedCrossNodeIds() const
 {
-  return mNodeId.IsEmpty() &&
-    
-    
-    
-    
-    !mCanDecrypt;
+  return mNodeId.IsEmpty();
 }
 
 bool
