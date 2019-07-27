@@ -121,23 +121,7 @@ class HeapBase {};
 template <typename T>
 class PersistentRootedBase {};
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-struct NullPtr
-{
-    static void * const constNullValue;
-};
+static void* const ConstNullValue = nullptr;
 
 namespace gc {
 struct Cell;
@@ -189,20 +173,6 @@ template <typename T> class PersistentRooted;
 
 
 JS_FRIEND_API(bool) isGCEnabled();
-
-
-
-
-
-
-
-
-
-
-struct JS_PUBLIC_API(NullPtr)
-{
-    static void * const constNullValue;
-};
 
 JS_FRIEND_API(void) HeapObjectPostBarrier(JSObject** objp);
 JS_FRIEND_API(void) HeapObjectRelocate(JSObject** objp);
@@ -433,18 +403,10 @@ class MOZ_NONHEAP_CLASS Handle : public js::HandleBase<T>
         ptr = reinterpret_cast<const T*>(handle.address());
     }
 
-    
-    MOZ_IMPLICIT Handle(js::NullPtr) {
+    MOZ_IMPLICIT Handle(decltype(nullptr)) {
         static_assert(mozilla::IsPointer<T>::value,
-                      "js::NullPtr overload not valid for non-pointer types");
-        ptr = reinterpret_cast<const T*>(&js::NullPtr::constNullValue);
-    }
-
-    
-    MOZ_IMPLICIT Handle(JS::NullPtr) {
-        static_assert(mozilla::IsPointer<T>::value,
-                      "JS::NullPtr overload not valid for non-pointer types");
-        ptr = reinterpret_cast<const T*>(&JS::NullPtr::constNullValue);
+                      "nullptr_t overload not valid for non-pointer types");
+        ptr = reinterpret_cast<const T*>(&js::ConstNullValue);
     }
 
     MOZ_IMPLICIT Handle(MutableHandle<T> handle) {
@@ -614,7 +576,7 @@ class InternalHandle<T*>
 
 
     explicit InternalHandle(T* field)
-      : holder(reinterpret_cast<void * const*>(&js::NullPtr::constNullValue)),
+      : holder(&js::ConstNullValue),
         offset(uintptr_t(field))
     {}
 

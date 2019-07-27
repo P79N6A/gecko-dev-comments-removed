@@ -941,7 +941,7 @@ GetOrCreateMapEntryForPrototype(JSContext *cx, JS::Handle<JSObject*> proto)
 
   
   JS::Rooted<JSObject*> entry(cx);
-  entry = JS_NewObjectWithGivenProto(cx, nullptr, JS::NullPtr());
+  entry = JS_NewObjectWithGivenProto(cx, nullptr, nullptr);
   if (!entry) {
     return nullptr;
   }

@@ -39,7 +39,7 @@ class ArrayObject;
 
 
 extern ArrayObject * JS_FASTCALL
-NewDenseEmptyArray(JSContext* cx, HandleObject proto = NullPtr(),
+NewDenseEmptyArray(JSContext* cx, HandleObject proto = nullptr,
                    NewObjectKind newKind = GenericObject);
 
 
@@ -47,7 +47,7 @@ NewDenseEmptyArray(JSContext* cx, HandleObject proto = NullPtr(),
 
 
 extern ArrayObject * JS_FASTCALL
-NewDenseUnallocatedArray(ExclusiveContext* cx, uint32_t length, HandleObject proto = NullPtr(),
+NewDenseUnallocatedArray(ExclusiveContext* cx, uint32_t length, HandleObject proto = nullptr,
                          NewObjectKind newKind = GenericObject);
 
 
@@ -55,12 +55,12 @@ NewDenseUnallocatedArray(ExclusiveContext* cx, uint32_t length, HandleObject pro
 
 
 extern ArrayObject * JS_FASTCALL
-NewDensePartlyAllocatedArray(ExclusiveContext* cx, uint32_t length, HandleObject proto = NullPtr(),
+NewDensePartlyAllocatedArray(ExclusiveContext* cx, uint32_t length, HandleObject proto = nullptr,
                              NewObjectKind newKind = GenericObject);
 
 
 extern ArrayObject * JS_FASTCALL
-NewDenseFullyAllocatedArray(ExclusiveContext* cx, uint32_t length, HandleObject proto = NullPtr(),
+NewDenseFullyAllocatedArray(ExclusiveContext* cx, uint32_t length, HandleObject proto = nullptr,
                             NewObjectKind newKind = GenericObject);
 
 enum AllocatingBehaviour {
@@ -80,12 +80,12 @@ NewDenseArray(ExclusiveContext* cx, uint32_t length, HandleObjectGroup group,
 
 extern ArrayObject*
 NewDenseCopiedArray(JSContext* cx, uint32_t length, HandleArrayObject src,
-                    uint32_t elementOffset, HandleObject proto = NullPtr());
+                    uint32_t elementOffset, HandleObject proto = nullptr);
 
 
 extern ArrayObject*
 NewDenseCopiedArray(JSContext* cx, uint32_t length, const Value* values,
-                    HandleObject proto = NullPtr(), NewObjectKind newKind = GenericObject);
+                    HandleObject proto = nullptr, NewObjectKind newKind = GenericObject);
 
 
 extern ArrayObject*

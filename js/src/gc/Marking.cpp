@@ -104,9 +104,6 @@ using mozilla::PodCopy;
 
 
 
-void * const js::NullPtr::constNullValue = nullptr;
-
-JS_PUBLIC_DATA(void * const) JS::NullPtr::constNullValue = nullptr;
 
 
 

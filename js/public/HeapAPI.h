@@ -158,15 +158,15 @@ class JS_FRIEND_API(GCCellPtr)
     GCCellPtr(void* gcthing, JSGCTraceKind traceKind) : ptr(checkedCast(gcthing, traceKind)) {}
 
     
+    MOZ_IMPLICIT GCCellPtr(decltype(nullptr)) : ptr(checkedCast(nullptr, JSTRACE_NULL)) {}
+
+    
     explicit GCCellPtr(JSObject* obj) : ptr(checkedCast(obj, JSTRACE_OBJECT)) { }
     explicit GCCellPtr(JSFunction* fun) : ptr(checkedCast(fun, JSTRACE_OBJECT)) { }
     explicit GCCellPtr(JSString* str) : ptr(checkedCast(str, JSTRACE_STRING)) { }
     explicit GCCellPtr(JSFlatString* str) : ptr(checkedCast(str, JSTRACE_STRING)) { }
     explicit GCCellPtr(JSScript* script) : ptr(checkedCast(script, JSTRACE_SCRIPT)) { }
     explicit GCCellPtr(const Value& v);
-
-    
-    static GCCellPtr NullPtr() { return GCCellPtr(nullptr, JSTRACE_NULL); }
 
     JSGCTraceKind kind() const {
         JSGCTraceKind traceKind = JSGCTraceKind(ptr & JSTRACE_OUTOFLINE);

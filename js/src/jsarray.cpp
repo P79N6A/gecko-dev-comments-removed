@@ -2285,12 +2285,12 @@ NewFullyAllocatedArrayTryReuseGroup(JSContext* cx, JSObject* obj, size_t length)
 
     if (group->maybeUnboxedLayout()) {
         if (length > UnboxedArrayObject::MaximumCapacity)
-            return NewDenseFullyAllocatedArray(cx, length, NullPtr(), newKind);
+            return NewDenseFullyAllocatedArray(cx, length, nullptr, newKind);
 
         return UnboxedArrayObject::create(cx, group, length, newKind);
     }
 
-    ArrayObject* res = NewDenseFullyAllocatedArray(cx, length, NullPtr(), newKind);
+    ArrayObject* res = NewDenseFullyAllocatedArray(cx, length, nullptr, newKind);
     if (!res)
         return nullptr;
 
@@ -2326,9 +2326,9 @@ NewPartlyAllocatedArrayTryReuseGroup(JSContext* cx, JSObject* obj, size_t length
         newKind = TenuredObject;
 
     if (group->maybeUnboxedLayout())
-        return NewDensePartlyAllocatedArray(cx, length, NullPtr(), newKind);
+        return NewDensePartlyAllocatedArray(cx, length, nullptr, newKind);
 
-    ArrayObject* res = NewDensePartlyAllocatedArray(cx, length, NullPtr(), newKind);
+    ArrayObject* res = NewDensePartlyAllocatedArray(cx, length, nullptr, newKind);
     if (!res)
         return nullptr;
 
@@ -3470,12 +3470,12 @@ js::NewDenseArray(ExclusiveContext* cx, uint32_t length, HandleObjectGroup group
 
     ArrayObject* arr;
     if (allocating == NewArray_Unallocating) {
-        arr = NewDenseUnallocatedArray(cx, length, NullPtr(), newKind);
+        arr = NewDenseUnallocatedArray(cx, length, nullptr, newKind);
     } else if (allocating == NewArray_PartlyAllocating) {
-        arr = NewDensePartlyAllocatedArray(cx, length, NullPtr(), newKind);
+        arr = NewDensePartlyAllocatedArray(cx, length, nullptr, newKind);
     } else {
         MOZ_ASSERT(allocating == NewArray_FullyAllocating);
-        arr = NewDenseFullyAllocatedArray(cx, length, NullPtr(), newKind);
+        arr = NewDenseFullyAllocatedArray(cx, length, nullptr, newKind);
     }
     if (!arr)
         return nullptr;
@@ -3581,7 +3581,7 @@ js::ArrayInfo(JSContext* cx, unsigned argc, Value* vp)
         RootedValue arg(cx, args[i]);
 
         UniquePtr<char[], JS::FreePolicy> bytes =
-            DecompileValueGenerator(cx, JSDVG_SEARCH_STACK, arg, NullPtr());
+            DecompileValueGenerator(cx, JSDVG_SEARCH_STACK, arg, nullptr);
         if (!bytes)
             return false;
         if (arg.isPrimitive() ||

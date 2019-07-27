@@ -301,7 +301,7 @@ frontend::CompileScript(ExclusiveContext* cx, LifoAlloc* alloc, HandleObject sco
     BytecodeEmitter::EmitterMode emitterMode =
         options.selfHostingMode ? BytecodeEmitter::SelfHosting : BytecodeEmitter::Normal;
     BytecodeEmitter bce( nullptr, &parser, &globalsc, script,
-                         js::NullPtr(), options.forEval,
+                         nullptr, options.forEval,
                         evalCaller, evalStaticScope, insideNonGlobalEval,
                         options.lineno, emitterMode);
     if (!bce.init())
@@ -524,8 +524,8 @@ frontend::CompileLazyFunction(JSContext* cx, Handle<LazyScript*> lazy, const cha
 
     MOZ_ASSERT(!options.forEval);
     BytecodeEmitter bce( nullptr, &parser, pn->pn_funbox, script, lazy,
-                         false,  js::NullPtr(),
-                         js::NullPtr(),
+                         false,  nullptr,
+                         nullptr,
                          false, options.lineno,
                         BytecodeEmitter::LazyFunction);
     if (!bce.init())
@@ -651,9 +651,9 @@ CompileFunctionBody(JSContext* cx, MutableHandleFunction fun, const ReadOnlyComp
         script->bindings = fn->pn_funbox->bindings;
 
         BytecodeEmitter funbce( nullptr, &parser, fn->pn_funbox, script,
-                                js::NullPtr(),  false,
-                                js::NullPtr(),
-                                js::NullPtr(),
+                                nullptr,  false,
+                                nullptr,
+                                nullptr,
                                 false, options.lineno);
         if (!funbce.init())
             return false;
@@ -686,5 +686,5 @@ frontend::CompileStarGeneratorBody(JSContext* cx, MutableHandleFunction fun,
                                    const ReadOnlyCompileOptions& options, const AutoNameVector& formals,
                                    JS::SourceBufferHolder& srcBuf)
 {
-    return CompileFunctionBody(cx, fun, options, formals, srcBuf, NullPtr(), StarGenerator);
+    return CompileFunctionBody(cx, fun, options, formals, srcBuf, nullptr, StarGenerator);
 }

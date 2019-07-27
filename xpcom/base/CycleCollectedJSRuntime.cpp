@@ -128,7 +128,7 @@ struct NoteWeakMapChildrenTracer : public JS::CallbackTracer
   NoteWeakMapChildrenTracer(JSRuntime* aRt,
                             nsCycleCollectionNoteRootCallback& aCb)
     : JS::CallbackTracer(aRt, TraceWeakMappingChild), mCb(aCb),
-      mTracedAny(false), mMap(nullptr), mKey(JS::GCCellPtr::NullPtr()),
+      mTracedAny(false), mMap(nullptr), mKey(nullptr),
       mKeyDelegate(nullptr)
   {
   }
@@ -202,7 +202,7 @@ TraceWeakMapping(js::WeakMapTracer* aTrc, JSObject* aMap,
   
   
   if (!AddToCCKind(aKey.kind())) {
-    aKey = JS::GCCellPtr::NullPtr();
+    aKey = nullptr;
   }
 
   JSObject* kdelegate = nullptr;
@@ -226,8 +226,7 @@ TraceWeakMapping(js::WeakMapTracer* aTrc, JSObject* aMap,
     
     if (!tracer->mChildTracer.mTracedAny &&
         aKey && JS::GCThingIsMarkedGray(aKey) && kdelegate) {
-      tracer->mCb.NoteWeakMapping(aMap, aKey, kdelegate,
-                                  JS::GCCellPtr::NullPtr());
+      tracer->mCb.NoteWeakMapping(aMap, aKey, kdelegate, nullptr);
     }
   }
 }
@@ -267,7 +266,7 @@ private:
     }
 
     if (!AddToCCKind(aKey.kind())) {
-      aKey = JS::GCCellPtr::NullPtr();
+      aKey = nullptr;
     }
 
     if (delegateMightNeedMarking && aKey.isObject()) {

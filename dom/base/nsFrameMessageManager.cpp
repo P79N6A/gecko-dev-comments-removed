@@ -675,7 +675,7 @@ GetParamsForMessage(JSContext* aCx,
   
   
   nsAutoString json;
-  NS_ENSURE_TRUE(JS_Stringify(aCx, &v, JS::NullPtr(), JS::NullHandleValue,
+  NS_ENSURE_TRUE(JS_Stringify(aCx, &v, nullptr, JS::NullHandleValue,
                               JSONCreator, &json), false);
   NS_ENSURE_TRUE(!json.IsEmpty(), false);
 

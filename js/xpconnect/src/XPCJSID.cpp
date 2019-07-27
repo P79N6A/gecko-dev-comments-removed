@@ -712,7 +712,7 @@ nsJSCID::Construct(nsIXPConnectWrappedNative* wrapper,
 
     
     RootedId name(cx, rt->GetStringID(XPCJSRuntime::IDX_CREATE_INSTANCE));
-    XPCCallContext ccx(JS_CALLER, cx, obj, JS::NullPtr(), name, args.length(), args.array(),
+    XPCCallContext ccx(JS_CALLER, cx, obj, nullptr, name, args.length(), args.array(),
                        args.rval().address());
 
     *_retval = XPCWrappedNative::CallMethod(ccx);
