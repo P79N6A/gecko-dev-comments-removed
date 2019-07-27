@@ -1145,7 +1145,10 @@ gfxFcPlatformFontList::GetFontList(nsIAtom *aLangGroup,
 gfxFontFamily*
 gfxFcPlatformFontList::GetDefaultFont(const gfxFontStyle* aStyle)
 {
-    return FindGenericFamily(NS_LITERAL_STRING("serif"), nsGkAtoms::x_western);
+    
+    
+    return FindGenericFamily(NS_LITERAL_STRING("-moz-default"),
+                             aStyle->language);
 }
 
 gfxFontEntry*
