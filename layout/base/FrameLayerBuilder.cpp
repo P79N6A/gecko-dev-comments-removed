@@ -245,6 +245,56 @@ static inline MaskLayerImageCache* GetMaskLayerImageCache()
 
 
 
+struct PossiblyInfiniteRegion
+{
+  PossiblyInfiniteRegion() : mIsInfinite(false) {}
+  MOZ_IMPLICIT PossiblyInfiniteRegion(const nsIntRegion& aRegion)
+   : mRegion(aRegion)
+   , mIsInfinite(false)
+  {}
+  MOZ_IMPLICIT PossiblyInfiniteRegion(const nsIntRect& aRect)
+   : mRegion(aRect)
+   , mIsInfinite(false)
+  {}
+
+  
+  static PossiblyInfiniteRegion InfiniteRegion()
+  {
+    PossiblyInfiniteRegion r;
+    r.mIsInfinite = true;
+    return r;
+  }
+
+  bool IsInfinite() const { return mIsInfinite; }
+  bool Intersects(const nsIntRegion& aRegion) const
+  {
+    if (IsInfinite()) {
+      return true;
+    }
+    return !mRegion.Intersect(aRegion).IsEmpty();
+  }
+
+  void AccumulateAndSimplifyOutward(const PossiblyInfiniteRegion& aRegion)
+  {
+    if (!IsInfinite()) {
+      if (aRegion.IsInfinite()) {
+        mIsInfinite = true;
+        mRegion.SetEmpty();
+      } else {
+        mRegion.OrWith(aRegion.mRegion);
+        mRegion.SimplifyOutward(8);
+      }
+    }
+  }
+
+protected:
+  nsIntRegion mRegion;
+  bool mIsInfinite;
+};
+
+
+
+
 
 
 
@@ -268,8 +318,7 @@ public:
     mOpaqueForAnimatedGeometryRootParent(false),
     mImage(nullptr),
     mCommonClipCount(-1),
-    mNewChildLayersIndex(-1),
-    mVisibleAboveRegionIsInfinite(false)
+    mNewChildLayersIndex(-1)
   {}
 
 #ifdef MOZ_DUMP_PAINTING
@@ -321,52 +370,9 @@ public:
 
   already_AddRefed<ImageContainer> CanOptimizeImageLayer(nsDisplayListBuilder* aBuilder);
 
-  void AddVisibleAboveRegion(const nsIntRegion& aAbove)
-  {
-    if (!mVisibleAboveRegionIsInfinite) {
-      mVisibleAboveRegion.Or(mVisibleAboveRegion, aAbove);
-      mVisibleAboveRegion.SimplifyOutward(8);
-    }
-  }
-
-  void CopyAboveRegion(PaintedLayerData* aOther)
-  {
-    if (mVisibleAboveRegionIsInfinite) {
-      return;
-    }
-
-    
-    
-    
-    
-    
-    
-    bool aOtherCanDrawAnywhere = aOther->IsSubjectToAsyncTransforms()
-                              && !aOther->mVisibleRegion.IsEmpty();
-
-    if (aOther->mVisibleAboveRegionIsInfinite || aOtherCanDrawAnywhere) {
-      SetVisibleAboveRegionIsInfinite();
-    } else {
-      mVisibleAboveRegion.Or(mVisibleAboveRegion, aOther->mVisibleAboveRegion);
-      mVisibleAboveRegion.Or(mVisibleAboveRegion, aOther->mVisibleRegion);
-      mVisibleAboveRegion.SimplifyOutward(8);
-    }
-  }
-
-  void SetVisibleAboveRegionIsInfinite()
-  {
-    mVisibleAboveRegionIsInfinite = true;
-    mVisibleAboveRegion.SetEmpty();
-  }
-
-  bool VisibleAboveRegionIntersects(const nsIntRect& aRect) const
-  {
-    return mVisibleAboveRegionIsInfinite || mVisibleAboveRegion.Intersects(aRect);
-  }
-
   bool VisibleAboveRegionIntersects(const nsIntRegion& aRegion) const
   {
-    return mVisibleAboveRegionIsInfinite || !mVisibleAboveRegion.Intersect(aRegion).IsEmpty();
+    return mVisibleAboveRegion.Intersects(aRegion);
   }
 
   bool VisibleRegionIntersects(const nsIntRect& aRect) const
@@ -502,8 +508,6 @@ public:
 
 
   nsIntRect mBounds;
-
-private:
   
 
 
@@ -511,12 +515,7 @@ private:
 
 
 
-  nsIntRegion  mVisibleAboveRegion;
-  
-
-
-
-  bool mVisibleAboveRegionIsInfinite;
+  PossiblyInfiniteRegion mVisibleAboveRegion;
 
 };
 
@@ -855,6 +854,31 @@ protected:
 
   bool ChooseAnimatedGeometryRoot(const nsDisplayList& aList,
                                   const nsIFrame **aAnimatedGeometryRoot);
+
+  
+
+
+
+
+
+
+
+
+  void UpdateVisibleAboveRegionForNewItem(const nsIntRect& aVisibleRect,
+                                          bool aCanMoveFreely,
+                                          const nsIntRect* aClipRectIfAny);
+
+  
+
+
+
+
+
+
+
+
+  void UpdateVisibleAboveRegionOnPop(PaintedLayerData* aData,
+                                     PaintedLayerData* aNextPaintedLayerData);
 
   nsDisplayListBuilder*            mBuilder;
   LayerManager*                    mManager;
@@ -2268,8 +2292,7 @@ ContainerState::PopPaintedLayerData()
     
     
     
-    PaintedLayerData* nextData = mPaintedLayerDataStack[lastIndex - 1];
-    nextData->CopyAboveRegion(data);
+    UpdateVisibleAboveRegionOnPop(data, mPaintedLayerDataStack[lastIndex - 1]);
   }
 
   mPaintedLayerDataStack.RemoveElementAt(lastIndex);
@@ -2720,6 +2743,54 @@ ContainerState::ComputeOpaqueRect(nsDisplayItem* aItem,
   return opaquePixels;
 }
 
+void
+ContainerState::UpdateVisibleAboveRegionForNewItem(const nsIntRect& aVisibleRect,
+                                                   bool aCanMoveFreely,
+                                                   const nsIntRect* aClipRectIfAny)
+{
+  PaintedLayerData* data = GetTopPaintedLayerData();
+  if (!data) {
+    return;
+  }
+
+  PossiblyInfiniteRegion& visibleAboveRegion = data->mVisibleAboveRegion;
+
+  if (aCanMoveFreely) {
+    
+    
+    
+    
+    
+    
+    
+    visibleAboveRegion.AccumulateAndSimplifyOutward(
+      aClipRectIfAny ? *aClipRectIfAny : PossiblyInfiniteRegion::InfiniteRegion());
+  } else {
+    visibleAboveRegion.AccumulateAndSimplifyOutward(aVisibleRect);
+  }
+}
+
+void
+ContainerState::UpdateVisibleAboveRegionOnPop(PaintedLayerData* aData,
+                                              PaintedLayerData* aNextPaintedLayerData)
+{
+  PossiblyInfiniteRegion& visibleAboveRegion =
+    aNextPaintedLayerData->mVisibleAboveRegion;
+
+  
+  
+  
+  
+  
+  
+  if (aData->IsSubjectToAsyncTransforms() && !aData->mVisibleRegion.IsEmpty()) {
+    visibleAboveRegion.AccumulateAndSimplifyOutward(PossiblyInfiniteRegion::InfiniteRegion());
+  } else {
+    visibleAboveRegion.AccumulateAndSimplifyOutward(aData->mVisibleAboveRegion);
+    visibleAboveRegion.AccumulateAndSimplifyOutward(aData->mVisibleRegion);
+  }
+}
+
 
 
 
@@ -2953,27 +3024,12 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList)
       } else {
         ownLayer->SetClipRect(nullptr);
       }
-      PaintedLayerData* data = GetTopPaintedLayerData();
-      if (data) {
-        
-        
-        
-        
-        if (prerenderedTransform) {
-          if (!itemClip.HasClip()) {
-            
-            
-            data->SetVisibleAboveRegionIsInfinite();
-          } else {
-            
-            
-            
-            data->AddVisibleAboveRegion(clipRect);
-          }
-        } else {
-          data->AddVisibleAboveRegion(itemVisibleRect);
-        }
-      }
+
+      
+      
+      
+      UpdateVisibleAboveRegionForNewItem(itemVisibleRect, prerenderedTransform,
+                                         itemClip.HasClip() ? &clipRect : nullptr);
 
       
       
