@@ -1,3 +1,8 @@
+
+
+
+
+
 (function(window, undefined) {
   'use strict';
 
@@ -1467,7 +1472,7 @@
     
     
     
-    var pretranslate = document.documentElement.dataset.noCompleteBug ?
+    var pretranslate = document.documentElement.getAttribute("data-noCompleteBug") ?
       true : !isPretranslated;
     waitFor('interactive', init.bind(navigator.mozL10n, pretranslate));
   }
@@ -1492,7 +1497,7 @@
   }
 
   function inlineLocalization() {
-    var locale = this.ctx.getLocale(navigator.language);
+    var locale = this.ctx.getLocale(navigator.language || navigator.browserLanguage);
     var scriptLoc = locale.isPseudo ? this.ctx.defaultLocale : locale.id;
     var script = document.documentElement
                          .querySelector('script[type="application/l10n"]' +
