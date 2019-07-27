@@ -743,7 +743,7 @@ protected:
   int32_t mRangeOffset;
   
   
-  nsIntPoint mCachedMousePoint;
+  mozilla::LayoutDeviceIntPoint mCachedMousePoint;
 
   
   mozilla::Modifiers mCachedModifiers;
