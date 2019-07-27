@@ -30,6 +30,10 @@ public:
   };
 
   static nsresult BodyCreateDir(nsIFile* aBaseDir);
+  
+  
+  
+  static nsresult BodyDeleteDir(nsIFile* aBaseDir);
   static nsresult BodyGetCacheDir(nsIFile* aBaseDir, const nsID& aId,
                                   nsIFile** aCacheDirOut);
 

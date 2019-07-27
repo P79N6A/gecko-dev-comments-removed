@@ -14,6 +14,8 @@
 #include "nsIFile.h"
 #include "nsIURI.h"
 #include "nsNetUtil.h"
+#include "DBSchema.h"
+#include "FileUtils.h"
 
 namespace mozilla {
 namespace dom {
@@ -75,6 +77,8 @@ DBAction::OpenConnection(const QuotaInfo& aQuotaInfo, nsIFile* aDBDir,
   MOZ_ASSERT(aDBDir);
   MOZ_ASSERT(aConnOut);
 
+  nsCOMPtr<mozIStorageConnection> conn;
+
   bool exists;
   nsresult rv = aDBDir->Exists(&exists);
   if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
@@ -123,21 +127,48 @@ DBAction::OpenConnection(const QuotaInfo& aQuotaInfo, nsIFile* aDBDir,
     do_GetService(MOZ_STORAGE_SERVICE_CONTRACTID);
   if (NS_WARN_IF(!ss)) { return NS_ERROR_UNEXPECTED; }
 
-  rv = ss->OpenDatabaseWithFileURL(dbFileUrl, aConnOut);
+  rv = ss->OpenDatabaseWithFileURL(dbFileUrl, getter_AddRefs(conn));
   if (rv == NS_ERROR_FILE_CORRUPTED) {
     NS_WARNING("Cache database corrupted. Recreating empty database.");
 
+    conn = nullptr;
+
     
     
-    rv = dbFile->Remove(false);
+    rv = WipeDatabase(dbFile, aDBDir);
     if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
 
-    
-
-    rv = ss->OpenDatabaseWithFileURL(dbFileUrl, aConnOut);
+    rv = ss->OpenDatabaseWithFileURL(dbFileUrl, getter_AddRefs(conn));
   }
   if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
-  MOZ_ASSERT(*aConnOut);
+
+  
+  int32_t schemaVersion = 0;
+  rv = conn->GetSchemaVersion(&schemaVersion);
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+  if (schemaVersion > 0 && schemaVersion < DBSchema::kMaxWipeSchemaVersion) {
+    conn = nullptr;
+    rv = WipeDatabase(dbFile, aDBDir);
+    if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+    rv = ss->OpenDatabaseWithFileURL(dbFileUrl, getter_AddRefs(conn));
+  }
+
+  conn.forget(aConnOut);
+
+  return rv;
+}
+
+nsresult
+DBAction::WipeDatabase(nsIFile* aDBFile, nsIFile* aDBDir)
+{
+  nsresult rv = aDBFile->Remove(false);
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  
+  rv = FileUtils::BodyDeleteDir(aDBDir);
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
   return rv;
 }
 

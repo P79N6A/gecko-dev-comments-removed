@@ -88,6 +88,9 @@ public:
                                  Namespace aNamespace,
                                  nsTArray<nsString>& aKeysOut);
 
+  
+  static const int32_t kMaxWipeSchemaVersion;
+
 private:
   typedef int32_t EntryId;
 
