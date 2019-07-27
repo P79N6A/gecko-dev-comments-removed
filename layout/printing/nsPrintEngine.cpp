@@ -2264,8 +2264,8 @@ nsPrintEngine::ReflowPrintObject(nsPrintObject * aPO)
         fprintf(fd, "Title: %s\n", docStr.get());
         fprintf(fd, "URL:   %s\n", urlStr.get());
         fprintf(fd, "--------------- Frames ----------------\n");
-        nsRefPtr<nsRenderingContext> renderingContext =
-          mPrt->mPrintDocDC->CreateRenderingContext();
+        
+        
         RootFrameList(aPO->mPresContext, fd, 0);
         
         fprintf(fd, "---------------------------------------\n\n");
@@ -2504,8 +2504,7 @@ nsPrintEngine::DoPrint(nsPrintObject * aPO)
         poPresContext->SetIsRenderingOnlySelection(true);
         
         
-        nsRefPtr<nsRenderingContext> rc =
-          mPrt->mPrintDC->CreateRenderingContext();
+        nsRenderingContext rc(mPrt->mPrintDC->CreateRenderingContext());
 
         
         
@@ -2519,7 +2518,7 @@ nsPrintEngine::DoPrint(nsPrintObject * aPO)
         nsRefPtr<Selection> selectionPS =
           poPresShell->GetCurrentSelection(nsISelectionController::SELECTION_NORMAL);
 
-        rv = GetPageRangeForSelection(poPresShell, poPresContext, *rc, selectionPS, pageSequence,
+        rv = GetPageRangeForSelection(poPresShell, poPresContext, rc, selectionPS, pageSequence,
                                       &startFrame, startPageNum, startRect,
                                       &endFrame, endPageNum, endRect);
         if (NS_SUCCEEDED(rv)) {
@@ -3810,8 +3809,8 @@ void DumpLayoutData(char*              aTitleStr,
     fprintf(fd, "URL:   %s\n", aURLStr?aURLStr:"");
     fprintf(fd, "--------------- Frames ----------------\n");
     fprintf(fd, "--------------- Frames ----------------\n");
-    nsRefPtr<nsRenderingContext> renderingContext =
-      aDC->CreateRenderingContext();
+    
+    
     RootFrameList(aPresContext, fd, 0);
     
     fprintf(fd, "---------------------------------------\n\n");

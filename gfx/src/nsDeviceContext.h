@@ -21,6 +21,7 @@
 #include "mozilla/AppUnits.h"           
 
 class gfxASurface;
+class gfxContext;
 class gfxTextPerfMetrics;
 class gfxUserFontSet;
 struct nsFont;
@@ -32,7 +33,6 @@ class nsIScreen;
 class nsIScreenManager;
 class nsIWidget;
 struct nsRect;
-class nsRenderingContext;
 
 class nsDeviceContext MOZ_FINAL
 {
@@ -61,7 +61,7 @@ public:
 
 
 
-    already_AddRefed<nsRenderingContext> CreateRenderingContext();
+    already_AddRefed<gfxContext> CreateRenderingContext();
 
     
 
