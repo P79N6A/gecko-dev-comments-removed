@@ -1422,8 +1422,8 @@ void
 FullGCTimerFired(nsITimer* aTimer, void* aClosure)
 {
   nsJSContext::KillFullGCTimer();
-  uintptr_t reason = reinterpret_cast<uintptr_t>(aClosure);
-  nsJSContext::GarbageCollectNow(static_cast<JS::gcreason::Reason>(reason),
+  MOZ_ASSERT(!aClosure, "Don't pass a closure to FullGCTimerFired");
+  nsJSContext::GarbageCollectNow(JS::gcreason::FULL_GC_TIMER,
                                  nsJSContext::IncrementalGC);
 }
 
@@ -2386,9 +2386,8 @@ DOMGCSliceCallback(JSRuntime *aRt, JS::GCProgress aProgress, const JS::GCDescrip
     if (aDesc.isCompartment_) {
       if (!sFullGCTimer && !sShuttingDown) {
         CallCreateInstance("@mozilla.org/timer;1", &sFullGCTimer);
-        JS::gcreason::Reason reason = JS::gcreason::FULL_GC_TIMER;
         sFullGCTimer->InitWithFuncCallback(FullGCTimerFired,
-                                           reinterpret_cast<void *>(reason),
+                                           nullptr,
                                            NS_FULL_GC_DELAY,
                                            nsITimer::TYPE_ONE_SHOT);
       }
