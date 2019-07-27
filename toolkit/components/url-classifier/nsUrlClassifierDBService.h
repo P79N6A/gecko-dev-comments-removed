@@ -87,6 +87,9 @@ private:
   
   nsresult ReadTablesFromPrefs();
 
+  
+  void BuildTables(bool trackingProtectionEnabled, nsCString& tables);
+
   nsRefPtr<nsUrlClassifierDBServiceWorker> mWorker;
   nsCOMPtr<nsIUrlClassifierDBServiceWorker> mWorkerProxy;
 
