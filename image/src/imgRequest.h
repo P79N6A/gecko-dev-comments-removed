@@ -116,7 +116,7 @@ public:
 
   
   
-  bool HadInsecureRedirect() const { return mHadInsecureRedirect; }
+  bool HadInsecureRedirect() const;
 
   
   int32_t GetCORSMode() const { return mCORSMode; }
