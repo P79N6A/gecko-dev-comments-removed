@@ -1,8 +1,6 @@
 
 
 
-let {Services} = Cu.import("resource://gre/modules/Services.jsm", {});
-let {Loader} = Cu.import("resource://gre/modules/commonjs/toolkit/loader.js", {});
 let {OutputParser} = devtools.require("devtools/output-parser");
 
 let parser;
@@ -96,7 +94,7 @@ function testParseNonCssHTMLAttribute() {
 
 
 function finishUp() {
-  Services = Loader = OutputParser = parser = doc = null;
+  OutputParser = parser = doc = null;
   gBrowser.removeCurrentTab();
   finish();
 }

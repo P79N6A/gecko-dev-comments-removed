@@ -16,8 +16,6 @@ const promise = Cu.import("resource://gre/modules/Promise.jsm", {}).Promise;
 const EventEmitter = require("devtools/toolkit/event-emitter");
 const {Tooltip} = require("devtools/shared/widgets/Tooltip");
 const Editor = require("devtools/sourceeditor/editor");
-const Telemetry = require("devtools/shared/telemetry");
-const telemetry = new Telemetry();
 
 
 const EVENTS = {
@@ -85,7 +83,6 @@ let EventsHandler = {
 
 
   initialize: function() {
-    telemetry.toolOpened("shadereditor");
     this._onHostChanged = this._onHostChanged.bind(this);
     this._onTabNavigated = this._onTabNavigated.bind(this);
     this._onProgramLinked = this._onProgramLinked.bind(this);
@@ -101,7 +98,6 @@ let EventsHandler = {
 
 
   destroy: function() {
-    telemetry.toolClosed("shadereditor");
     gToolbox.off("host-changed", this._onHostChanged);
     gTarget.off("will-navigate", this._onTabNavigated);
     gTarget.off("navigate", this._onTabNavigated);
