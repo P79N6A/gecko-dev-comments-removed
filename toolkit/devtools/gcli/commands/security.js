@@ -66,8 +66,8 @@ exports.items = [
           
           if (dir === POLICY_REPORT_ONLY) {
             outHeader = curPolicy[POLICY_REPORT_ONLY] === true ?
-                          CONTENT_SECURITY_POLICY :
-                          CONTENT_SECURITY_POLICY_REPORT_ONLY;
+                          CONTENT_SECURITY_POLICY_REPORT_ONLY :
+                          CONTENT_SECURITY_POLICY;
             continue;
           }
 
