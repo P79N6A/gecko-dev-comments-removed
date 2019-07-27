@@ -2616,6 +2616,16 @@ public class BrowserApp extends GeckoApp
 
         fm.beginTransaction().add(R.id.search_container, mBrowserSearch, BROWSER_SEARCH_TAG).commitAllowingStateLoss();
         mBrowserSearch.setUserVisibleHint(true);
+
+        
+        
+        
+        
+        
+        
+        
+        
+        getActivity().getWindow().setBackgroundDrawableResource(android.R.color.white);
     }
 
     private void hideBrowserSearch() {
@@ -2632,6 +2642,8 @@ public class BrowserApp extends GeckoApp
         getSupportFragmentManager().beginTransaction()
                 .remove(mBrowserSearch).commitAllowingStateLoss();
         mBrowserSearch.setUserVisibleHint(false);
+
+        getWindow().setBackgroundDrawable(null);
     }
 
     
