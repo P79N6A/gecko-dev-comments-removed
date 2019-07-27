@@ -226,6 +226,15 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
     aMetrics.SetSize(wm, convertedSize);
     aMetrics.SetBlockStartAscent(kidMetrics.BlockStartAscent() +
                                  bp.BStart(wm));
+
+    
+    
+    
+    
+    aMetrics.UnionOverflowAreasWithDesiredBounds();
+    ConsiderChildOverflow(aMetrics.mOverflowAreas, kid);
+
+    FinishAndStoreOverflow(&aMetrics);
   }
   else {
     
@@ -246,12 +255,6 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
 
     nsLayoutUtils::SetBSizeFromFontMetrics(this, aMetrics, bp, lineWM, wm);
   }
-
-  
-  
-  
-  aMetrics.UnionOverflowAreasWithDesiredBounds();
-  ConsiderChildOverflow(aMetrics.mOverflowAreas, kid);
 
   if (!NS_INLINE_IS_BREAK_BEFORE(aReflowStatus)) {
     
@@ -286,8 +289,6 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
       }
     }
   }
-
-  FinishAndStoreOverflow(&aMetrics);
 
   NS_FRAME_SET_TRUNCATION(aReflowStatus, aReflowState, aMetrics);
 }
