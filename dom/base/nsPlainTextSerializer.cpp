@@ -670,7 +670,7 @@ nsPlainTextSerializer::DoOpenContainer(nsIAtom* aTag)
 
   
   
-  else if (nsContentUtils::IsHTMLBlock(aTag)) {
+  else if (IsElementBlock(mElement)) {
     EnsureVerticalSpace(0);
   }
 
@@ -887,8 +887,7 @@ nsPlainTextSerializer::DoCloseContainer(nsIAtom* aTag)
   else if (aTag == nsGkAtoms::q) {
     Write(NS_LITERAL_STRING("\""));
   }
-  else if (nsContentUtils::IsHTMLBlock(aTag)
-           && aTag != nsGkAtoms::script) {
+  else if (IsElementBlock(mElement) && aTag != nsGkAtoms::script) {
     
     
     
@@ -1776,6 +1775,20 @@ nsPlainTextSerializer::IsElementPreformatted(Element* aElement)
   }
   
   return GetIdForContent(aElement) == nsGkAtoms::pre;
+}
+
+bool
+nsPlainTextSerializer::IsElementBlock(Element* aElement)
+{
+  nsRefPtr<nsStyleContext> styleContext =
+    nsComputedDOMStyle::GetStyleContextForElementNoFlush(aElement, nullptr,
+                                                         nullptr);
+  if (styleContext) {
+    const nsStyleDisplay* displayStyle = styleContext->StyleDisplay();
+    return displayStyle->IsBlockOutsideStyle();
+  }
+  
+  return nsContentUtils::IsHTMLBlock(GetIdForContent(aElement));
 }
 
 
