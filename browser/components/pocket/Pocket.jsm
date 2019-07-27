@@ -66,6 +66,30 @@ let Pocket = {
     window.pktUI.pocketPanelDidHide(event);
   },
 
+  
+  
+  onLocationChange(browser, locationURI) {
+    if (!locationURI) {
+      return;
+    }
+    let widget = CustomizableUI.getWidget("pocket-button");
+    for (let instance of widget.instances) {
+      let node = instance.node;
+      if (!node ||
+          node.ownerDocument != browser.ownerDocument) {
+        continue;
+      }
+      if (node) {
+        let win = browser.ownerDocument.defaultView;
+        node.disabled = win.pktApi.isUserLoggedIn() &&
+                        !locationURI.schemeIs("http") &&
+                        !locationURI.schemeIs("https") &&
+                        !(locationURI.schemeIs("about") &&
+                          locationURI.spec.toLowerCase().startsWith("about:reader?url="));
+      }
+    }
+  },
+
   _urlToSave: null,
   _titleToSave: null,
   savePage(browser, url, title) {

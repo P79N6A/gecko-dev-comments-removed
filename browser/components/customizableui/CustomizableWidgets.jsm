@@ -1106,13 +1106,8 @@ if (Services.prefs.getBoolPref("browser.pocket.enabled")) {
       viewId: "PanelUI-pocketView",
       label: label,
       tooltiptext: tooltiptext,
-      
-      onViewShowing: function() {
-        return Pocket.onPanelViewShowing.apply(this, arguments);
-      },
-      onViewHiding: function() {
-        return Pocket.onPanelViewHiding.apply(this, arguments);
-      },
+      onViewShowing: Pocket.onPanelViewShowing,
+      onViewHiding: Pocket.onPanelViewHiding,
 
       
       
