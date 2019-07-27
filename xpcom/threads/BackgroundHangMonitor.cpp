@@ -360,6 +360,13 @@ BackgroundHangThread::ReportHang(PRIntervalTime aHangTime)
   
   
 
+  
+  for (const char** f = &mHangStack.back(); f >= mHangStack.begin(); f--) {
+    if (!mHangStack.IsInBuffer(*f) && !strcmp(*f, "js::RunScript")) {
+      mHangStack.erase(f);
+    }
+  }
+
   Telemetry::HangHistogram newHistogram(Move(mHangStack));
   for (Telemetry::HangHistogram* oldHistogram = mStats.mHangs.begin();
        oldHistogram != mStats.mHangs.end(); oldHistogram++) {

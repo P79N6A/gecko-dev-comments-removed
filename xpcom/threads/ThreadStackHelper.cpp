@@ -673,9 +673,7 @@ ThreadStackHelper::FillStackBuffer()
     }
 #endif
     const char* const label = entry->label();
-    if (mStackToFill->IsSameAsEntry(prevLabel, label) ||
-        !strcmp(label, "js::RunScript")) {
-      
+    if (mStackToFill->IsSameAsEntry(prevLabel, label)) {
       
       continue;
     }
