@@ -571,8 +571,7 @@ pref("apz.test.logging_enabled", false);
 pref("gfx.hidpi.enabled", 2);
 #endif
 
-#if !defined(MOZ_WIDGET_GONK) && !defined(MOZ_WIDGET_ANDROID)
-
+#if !defined(MOZ_WIDGET_ANDROID)
 
 pref("layout.scroll.root-frame-containers", false);
 #endif
