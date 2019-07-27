@@ -8328,8 +8328,7 @@ GenerateFFIInterpExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &e
                                          MIRType_Int32,     
                                          MIRType_Pointer }; 
     MIRTypeVector invokeArgTypes(m.cx());
-    if (!invokeArgTypes.append(typeArray, ArrayLength(typeArray)))
-        return false;
+    invokeArgTypes.infallibleAppend(typeArray, ArrayLength(typeArray));
 
     
     
@@ -8446,9 +8445,7 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
     
     
     MIRTypeVector coerceArgTypes(m.cx());
-    if (!coerceArgTypes.append(MIRType_Pointer)) 
-        return false;
-
+    coerceArgTypes.infallibleAppend(MIRType_Pointer); 
     unsigned offsetToCoerceArgv = AlignBytes(StackArgBytes(coerceArgTypes), sizeof(double));
     unsigned totalCoerceBytes = offsetToCoerceArgv + sizeof(Value) + MaybeSavedGlobalReg;
     unsigned coerceFrameSize = StackDecrementForCall(masm, AsmJSStackAlignment, totalCoerceBytes);
@@ -8708,9 +8705,6 @@ GenerateBuiltinThunk(ModuleCompiler &m, AsmJSExit::BuiltinKind builtin)
     MOZ_ASSERT(masm.framePushed() == 0);
 
     MIRTypeVector argTypes(m.cx());
-    if (!argTypes.reserve(2))
-        return false;
-
     switch (builtin) {
       case AsmJSExit::Builtin_ToInt32:
         argTypes.infallibleAppend(MIRType_Int32);

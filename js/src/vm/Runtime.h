@@ -841,9 +841,6 @@ struct JSRuntime : public JS::shadow::Runtime,
 
     js::NativeObject *selfHostingGlobal_;
 
-    static js::GlobalObject *
-    createSelfHostingGlobal(JSContext *cx);
-
     
     js::InterpreterStack interpreterStack_;
 
