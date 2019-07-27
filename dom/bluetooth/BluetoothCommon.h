@@ -12,19 +12,6 @@
 #include "nsString.h"
 #include "nsTArray.h"
 
-#if MOZ_IS_GCC && MOZ_GCC_VERSION_AT_LEAST(4, 7, 0)
-
-#define INIT_ARRAY_AT(in_, out_) \
-  [in_] = out_
-#else
-
-#define INIT_ARRAY_AT(in_, out_) \
-  out_
-#endif
-
-#define CONVERT(in_, out_) \
-  INIT_ARRAY_AT(in_, out_)
-
 extern bool gBluetoothDebugFlag;
 
 #define SWITCH_BT_DEBUG(V) (gBluetoothDebugFlag = V)
@@ -165,10 +152,10 @@ enum BluetoothBondState {
   BOND_STATE_BONDED
 };
 
-enum BluetoothTypeOfDevice {
-  TYPE_OF_DEVICE_BREDR,
-  TYPE_OF_DEVICE_BLE,
-  TYPE_OF_DEVICE_DUAL
+enum BluetoothDeviceType {
+  DEVICE_TYPE_BREDR,
+  DEVICE_TYPE_BLE,
+  DEVICE_TYPE_DUAL
 };
 
 enum BluetoothPropertyType {
@@ -192,13 +179,6 @@ enum BluetoothScanMode {
   SCAN_MODE_NONE,
   SCAN_MODE_CONNECTABLE,
   SCAN_MODE_CONNECTABLE_DISCOVERABLE
-};
-
-enum BluetoothSspVariant {
-  SSP_VARIANT_PASSKEY_CONFIRMATION,
-  SSP_VARIANT_PASSKEY_ENTRY,
-  SSP_VARIANT_CONSENT,
-  SSP_VARIANT_PASSKEY_NOTIFICATION
 };
 
 struct BluetoothUuid {
@@ -243,7 +223,7 @@ struct BluetoothProperty {
   int32_t mInt32;
 
   
-  BluetoothTypeOfDevice mTypeOfDevice;
+  BluetoothDeviceType mDeviceType;
 
   
   BluetoothServiceRecord mServiceRecord;
