@@ -194,9 +194,10 @@ function updateBanner(messages) {
 
   messages.forEach(function(message) {
     
-    if ("target_geo" in message && message.target_geo != gCountryCode) {
+    if ("countries" in message && message.countries.indexOf(gCountryCode) === -1) {
       return;
     }
+
     let id = Home.banner.add({
       text: message.text,
       icon: message.icon,
