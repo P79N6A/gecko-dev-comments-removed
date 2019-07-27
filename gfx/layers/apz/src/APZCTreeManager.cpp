@@ -19,6 +19,7 @@
 #include "mozilla/mozalloc.h"           
 #include "mozilla/TouchEvents.h"
 #include "mozilla/Preferences.h"        
+#include "mozilla/EventStateManager.h"  
 #include "nsDebug.h"                    
 #include "nsPoint.h"                    
 #include "nsThreadUtils.h"              
@@ -891,8 +892,8 @@ APZCTreeManager::ReceiveInputEvent(WidgetInputEvent& aEvent,
     }
     case eWheelEventClass: {
       WidgetWheelEvent& wheelEvent = *aEvent.AsWheelEvent();
-      if (wheelEvent.IsControl() ||
-          wheelEvent.deltaMode != nsIDOMWheelEvent::DOM_DELTA_LINE)
+      if (wheelEvent.deltaMode != nsIDOMWheelEvent::DOM_DELTA_LINE ||
+          !EventStateManager::WheelEventIsScrollAction(&wheelEvent))
       {
         
         

@@ -225,6 +225,9 @@ public:
                                                     const WidgetEvent& aEvent);
 
   
+  static bool WheelEventIsScrollAction(WidgetWheelEvent* aEvent);
+
+  
   
   
   
