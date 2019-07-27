@@ -1153,6 +1153,10 @@ protected:
 
   
   
+  bool mPlayingThroughTheAudioChannelBeforeSeek;
+
+  
+  
   bool mPausedForInactiveDocumentOrChannel;
 
   
