@@ -1362,8 +1362,7 @@ pref("network.http.tcp_keepalive.short_lived_idle_time", 10);
 pref("network.http.tcp_keepalive.long_lived_connections", true);
 pref("network.http.tcp_keepalive.long_lived_idle_time", 600);
 
-pref("network.http.enforce-framing.http1", false); 
-pref("network.http.enforce-framing.soft", true);
+pref("network.http.enforce-framing.http1", false);
 
 
 
@@ -1588,9 +1587,6 @@ pref("network.dnsCacheExpirationGracePeriod", 60);
 
 
 pref("network.dns.disablePrefetch", false);
-
-
-pref("network.dns.offline-localhost", true);
 
 
 
@@ -4561,7 +4557,7 @@ pref("reader.parse-on-load.enabled", true);
 pref("reader.parse-on-load.force-enabled", false);
 
 
-pref("reader.font_size", 3);
+pref("reader.font_size", 5);
 
 
 
