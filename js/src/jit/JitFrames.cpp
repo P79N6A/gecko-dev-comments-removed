@@ -1001,7 +1001,7 @@ MarkThisAndArguments(JSTracer *trc, const JitFrameIterator &frame)
     size_t nformals = 0;
     if (CalleeTokenIsFunction(layout->calleeToken())) {
         JSFunction *fun = CalleeTokenToFunction(layout->calleeToken());
-        nformals = fun->nonLazyScript()->argumentsAliasesFormals() ? 0 : fun->nargs();
+        nformals = fun->nonLazyScript()->argumentsHasVarBinding() ? 0 : fun->nargs();
     }
 
     Value *argv = layout->argv();
