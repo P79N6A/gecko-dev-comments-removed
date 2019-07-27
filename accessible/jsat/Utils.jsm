@@ -415,21 +415,41 @@ this.Utils = {
   },
 
   getLandmarkName: function getLandmarkName(aAccessible) {
-    const landmarks = [
+    return this.matchRoles(aAccessible, [
       'banner',
       'complementary',
       'contentinfo',
       'main',
       'navigation',
       'search'
-    ];
+    ]);
+  },
+
+  getMathRole: function getMathRole(aAccessible) {
+    return this.matchRoles(aAccessible, [
+      'base',
+      'close-fence',
+      'denominator',
+      'numerator',
+      'open-fence',
+      'overscript',
+      'presubscript',
+      'presuperscript',
+      'root-index',
+      'subscript',
+      'superscript',
+      'underscript'
+    ]);
+  },
+
+  matchRoles: function matchRoles(aAccessible, aRoles) {
     let roles = this.getAttributes(aAccessible)['xml-roles'];
     if (!roles) {
       return;
     }
 
     
-    return this.matchAttributeValue(roles, landmarks);
+    return this.matchAttributeValue(roles, aRoles);
   },
 
   getEmbeddedControl: function getEmbeddedControl(aLabel) {
@@ -884,8 +904,12 @@ PivotContext.prototype = {
       if (!aAccessible) {
         return null;
       }
-      if ([Roles.CELL, Roles.COLUMNHEADER, Roles.ROWHEADER].indexOf(
-        aAccessible.role) < 0) {
+      if ([
+            Roles.CELL,
+            Roles.COLUMNHEADER,
+            Roles.ROWHEADER,
+            Roles.MATHML_CELL
+          ].indexOf(aAccessible.role) < 0) {
           return null;
       }
       try {
@@ -950,7 +974,9 @@ PivotContext.prototype = {
         cellInfo.current.columnHeaderCells))];
     }
     cellInfo.rowHeaders = [];
-    if (cellInfo.rowChanged && cellInfo.current.role === Roles.CELL) {
+    if (cellInfo.rowChanged &&
+        (cellInfo.current.role === Roles.CELL ||
+         cellInfo.current.role === Roles.MATHML_CELL)) {
       cellInfo.rowHeaders = [headers for (headers of getHeaders( 
         cellInfo.current.rowHeaderCells))];
     }
