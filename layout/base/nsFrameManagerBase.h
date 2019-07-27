@@ -30,15 +30,7 @@ class nsStyleSet;
 class nsFrameManagerBase
 {
 public:
-  nsFrameManagerBase()
-    : mPresShell(nullptr)
-    , mStyleSet(nullptr)
-    , mRootFrame(nullptr)
-    , mUndisplayedMap(nullptr)
-    , mDisplayContentsMap(nullptr)
-    , mIsDestroyingFrames(false)
-  {
-  }
+  nsFrameManagerBase();
 
   bool IsDestroyingFrames() { return mIsDestroyingFrames; }
 
@@ -64,7 +56,7 @@ protected:
   
   nsStyleSet*                     mStyleSet;
   nsIFrame*                       mRootFrame;
-  PLDHashTable                    mPlaceholderMap;
+  PLDHashTable2                   mPlaceholderMap;
   UndisplayedMap*                 mUndisplayedMap;
   UndisplayedMap*                 mDisplayContentsMap;
   bool                            mIsDestroyingFrames;  
