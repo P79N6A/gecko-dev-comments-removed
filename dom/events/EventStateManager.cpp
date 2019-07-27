@@ -2674,6 +2674,67 @@ NodeAllowsClickThrough(nsINode* aNode)
 }
 #endif
 
+void
+EventStateManager::PostHandleKeyboardEvent(WidgetKeyboardEvent* aKeyboardEvent,
+                                           nsEventStatus& aStatus,
+                                           bool dispatchedToContentProcess)
+{
+  if (aStatus == nsEventStatus_eConsumeNoDefault) {
+    return;
+  }
+
+  
+  
+  switch(aKeyboardEvent->keyCode) {
+    case NS_VK_TAB:
+    case NS_VK_F6:
+      
+      if (!aKeyboardEvent->IsAlt()) {
+        
+        
+        
+        
+        if (dispatchedToContentProcess)
+          break;
+
+        EnsureDocument(mPresContext);
+        nsIFocusManager* fm = nsFocusManager::GetFocusManager();
+        if (fm && mDocument) {
+          
+          bool isDocMove =
+            aKeyboardEvent->IsControl() || aKeyboardEvent->keyCode == NS_VK_F6;
+          uint32_t dir = aKeyboardEvent->IsShift() ?
+            (isDocMove ? static_cast<uint32_t>(nsIFocusManager::MOVEFOCUS_BACKWARDDOC) :
+                         static_cast<uint32_t>(nsIFocusManager::MOVEFOCUS_BACKWARD)) :
+            (isDocMove ? static_cast<uint32_t>(nsIFocusManager::MOVEFOCUS_FORWARDDOC) :
+                         static_cast<uint32_t>(nsIFocusManager::MOVEFOCUS_FORWARD));
+          nsCOMPtr<nsIDOMElement> result;
+          fm->MoveFocus(mDocument->GetWindow(), nullptr, dir,
+                        nsIFocusManager::FLAG_BYKEY,
+                        getter_AddRefs(result));
+        }
+        aStatus = nsEventStatus_eConsumeNoDefault;
+      }
+      return;
+    case 0:
+      
+      break;
+    default:
+      return;
+  }
+
+  switch(aKeyboardEvent->mKeyNameIndex) {
+    case KEY_NAME_INDEX_ZoomIn:
+    case KEY_NAME_INDEX_ZoomOut:
+      ChangeFullZoom(
+        aKeyboardEvent->mKeyNameIndex == KEY_NAME_INDEX_ZoomIn ? 1 : -1);
+      aStatus = nsEventStatus_eConsumeNoDefault;
+      break;
+    default:
+      break;
+  }
+}
+
 nsresult
 EventStateManager::PostHandleEvent(nsPresContext* aPresContext,
                                    WidgetEvent* aEvent,
@@ -3185,40 +3246,9 @@ EventStateManager::PostHandleEvent(nsPresContext* aPresContext,
     break;
 
   case NS_KEY_PRESS:
-    if (nsEventStatus_eConsumeNoDefault != *aStatus) {
+    {
       WidgetKeyboardEvent* keyEvent = aEvent->AsKeyboardEvent();
-      
-      if (!keyEvent->IsAlt()) {
-        switch(keyEvent->keyCode) {
-          case NS_VK_TAB:
-          case NS_VK_F6:
-            
-            
-            
-            
-            if (dispatchedToContentProcess)
-              break;
-
-            EnsureDocument(mPresContext);
-            nsIFocusManager* fm = nsFocusManager::GetFocusManager();
-            if (fm && mDocument) {
-              
-              bool isDocMove =
-                keyEvent->IsControl() || keyEvent->keyCode == NS_VK_F6;
-              uint32_t dir = keyEvent->IsShift() ?
-                  (isDocMove ? static_cast<uint32_t>(nsIFocusManager::MOVEFOCUS_BACKWARDDOC) :
-                               static_cast<uint32_t>(nsIFocusManager::MOVEFOCUS_BACKWARD)) :
-                  (isDocMove ? static_cast<uint32_t>(nsIFocusManager::MOVEFOCUS_FORWARDDOC) :
-                               static_cast<uint32_t>(nsIFocusManager::MOVEFOCUS_FORWARD));
-              nsCOMPtr<nsIDOMElement> result;
-              fm->MoveFocus(mDocument->GetWindow(), nullptr, dir,
-                            nsIFocusManager::FLAG_BYKEY,
-                            getter_AddRefs(result));
-            }
-            *aStatus = nsEventStatus_eConsumeNoDefault;
-            break;
-        }
-      }
+      PostHandleKeyboardEvent(keyEvent, *aStatus, dispatchedToContentProcess);
     }
     break;
 
