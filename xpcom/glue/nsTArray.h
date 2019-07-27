@@ -1292,19 +1292,37 @@ public:
   }
 
   
-  template<class Item>
+  template<class Item, typename ActualAlloc = Alloc>
   elem_type* InsertElementsAt(index_type aIndex, const Item* aArray,
                               size_type aArrayLen)
   {
-    return ReplaceElementsAt(aIndex, 0, aArray, aArrayLen);
+    return ReplaceElementsAt<Item, ActualAlloc>(aIndex, 0, aArray, aArrayLen);
+  }
+
+  template<class Item>
+  
+  elem_type* InsertElementsAt(index_type aIndex, const Item* aArray,
+                              size_type aArrayLen, const mozilla::fallible_t&)
+  {
+    return InsertElementsAt<Item, FallibleAlloc>(aIndex, aArray, aArrayLen);
   }
 
   
-  template<class Item, class Allocator>
+  template<class Item, class Allocator, typename ActualAlloc = Alloc>
   elem_type* InsertElementsAt(index_type aIndex,
                               const nsTArray_Impl<Item, Allocator>& aArray)
   {
-    return ReplaceElementsAt(aIndex, 0, aArray.Elements(), aArray.Length());
+    return ReplaceElementsAt<Item, ActualAlloc>(
+      aIndex, 0, aArray.Elements(), aArray.Length());
+  }
+
+  template<class Item, class Allocator>
+  
+  elem_type* InsertElementsAt(index_type aIndex,
+                              const nsTArray_Impl<Item, Allocator>& aArray,
+                              const mozilla::fallible_t&)
+  {
+    return InsertElementsAt<Item, Allocator, FallibleAlloc>(aIndex, aArray);
   }
 
   
