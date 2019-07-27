@@ -57,7 +57,7 @@ public:
   
   virtual void Shutdown();
   virtual TableAccessible* AsTable() { return this; }
-  virtual a11y::role NativeRole();
+  virtual a11y::role NativeRole() MOZ_OVERRIDE;
 
 protected:
   virtual ~XULTreeGridAccessible();
@@ -88,7 +88,7 @@ public:
 
   
   virtual void Shutdown();
-  virtual a11y::role NativeRole();
+  virtual a11y::role NativeRole() MOZ_OVERRIDE;
   virtual ENameValueFlag Name(nsString& aName);
   virtual Accessible* ChildAtPoint(int32_t aX, int32_t aY,
                                    EWhichChildAtPoint aWhichChild);
@@ -142,30 +142,25 @@ public:
                                            LeafAccessible)
 
   
-
-  NS_IMETHOD GetBounds(int32_t* aX, int32_t* aY,
-                       int32_t* aWidth, int32_t* aHeight);
-
-  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
-  NS_IMETHOD DoAction(uint8_t aIndex);
-
-  
   NS_FORWARD_NSIACCESSIBLETABLECELL(xpcAccessibleTableCell::)
 
   
   virtual TableCellAccessible* AsTableCell() { return this; }
   virtual void Shutdown();
+  virtual nsIntRect Bounds() const MOZ_OVERRIDE;
   virtual ENameValueFlag Name(nsString& aName);
   virtual Accessible* FocusedChild();
   virtual already_AddRefed<nsIPersistentProperties> NativeAttributes() MOZ_OVERRIDE;
   virtual int32_t IndexInParent() const;
   virtual Relation RelationByType(RelationType aType) MOZ_OVERRIDE;
-  virtual a11y::role NativeRole();
-  virtual uint64_t NativeState();
-  virtual uint64_t NativeInteractiveState() const;
+  virtual a11y::role NativeRole() MOZ_OVERRIDE;
+  virtual uint64_t NativeState() MOZ_OVERRIDE;
+  virtual uint64_t NativeInteractiveState() const MOZ_OVERRIDE;
 
   
-  virtual uint8_t ActionCount();
+  virtual uint8_t ActionCount() MOZ_OVERRIDE;
+  virtual void ActionNameAt(uint8_t aIndex, nsAString& aName) MOZ_OVERRIDE;
+  virtual bool DoAction(uint8_t aIndex) MOZ_OVERRIDE;
 
   
   virtual TableAccessible* Table() const MOZ_OVERRIDE;

@@ -28,8 +28,8 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  virtual a11y::role NativeRole();
-  virtual uint64_t NativeState();
+  virtual a11y::role NativeRole() MOZ_OVERRIDE;
+  virtual uint64_t NativeState() MOZ_OVERRIDE;
 
 protected:
   virtual ~HTMLListAccessible() { }
@@ -48,13 +48,10 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  NS_IMETHOD GetBounds(int32_t* aX, int32_t* aY,
-                       int32_t* aWidth, int32_t* aHeight);
-
-  
   virtual void Shutdown();
-  virtual a11y::role NativeRole();
-  virtual uint64_t NativeState();
+  virtual nsIntRect Bounds() const MOZ_OVERRIDE;
+  virtual a11y::role NativeRole() MOZ_OVERRIDE;
+  virtual uint64_t NativeState() MOZ_OVERRIDE;
 
   
   HTMLListBulletAccessible* Bullet() const { return mBullet; }
@@ -83,8 +80,8 @@ public:
   
   virtual nsIFrame* GetFrame() const;
   virtual ENameValueFlag Name(nsString& aName);
-  virtual a11y::role NativeRole();
-  virtual uint64_t NativeState();
+  virtual a11y::role NativeRole() MOZ_OVERRIDE;
+  virtual uint64_t NativeState() MOZ_OVERRIDE;
   virtual void AppendTextTo(nsAString& aText, uint32_t aStartOffset = 0,
                             uint32_t aLength = UINT32_MAX);
 

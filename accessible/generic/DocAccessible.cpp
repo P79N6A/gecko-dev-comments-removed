@@ -313,20 +313,14 @@ DocAccessible::FocusedChild()
   return FocusMgr()->FocusedAccessible();
 }
 
-NS_IMETHODIMP
+void
 DocAccessible::TakeFocus()
 {
-  if (IsDefunct())
-    return NS_ERROR_FAILURE;
-
   
   nsFocusManager* fm = nsFocusManager::GetFocusManager();
-  NS_ENSURE_STATE(fm);
-
   nsCOMPtr<nsIDOMElement> newFocus;
-  return fm->MoveFocus(mDocumentNode->GetWindow(), nullptr,
-                       nsIFocusManager::MOVEFOCUS_ROOT, 0,
-                       getter_AddRefs(newFocus));
+  fm->MoveFocus(mDocumentNode->GetWindow(), nullptr,
+                nsFocusManager::MOVEFOCUS_ROOT, 0, getter_AddRefs(newFocus));
 }
 
 
@@ -645,19 +639,19 @@ DocAccessible::GetFrame() const
 }
 
 
-void
-DocAccessible::GetBoundsRect(nsRect& aBounds, nsIFrame** aRelativeFrame)
+nsRect
+DocAccessible::RelativeBounds(nsIFrame** aRelativeFrame) const
 {
   *aRelativeFrame = GetFrame();
 
   nsIDocument *document = mDocumentNode;
   nsIDocument *parentDoc = nullptr;
 
+  nsRect bounds;
   while (document) {
     nsIPresShell *presShell = document->GetShell();
-    if (!presShell) {
-      return;
-    }
+    if (!presShell)
+      return nsRect();
 
     nsRect scrollPort;
     nsIScrollableFrame* sf = presShell->GetRootScrollFrameAsScrollableExternal();
@@ -665,9 +659,9 @@ DocAccessible::GetBoundsRect(nsRect& aBounds, nsIFrame** aRelativeFrame)
       scrollPort = sf->GetScrollPortRect();
     } else {
       nsIFrame* rootFrame = presShell->GetRootFrame();
-      if (!rootFrame) {
-        return;
-      }
+      if (!rootFrame)
+        return nsRect();
+
       scrollPort = rootFrame->GetRect();
     }
 
@@ -676,14 +670,16 @@ DocAccessible::GetBoundsRect(nsRect& aBounds, nsIFrame** aRelativeFrame)
       
       
       
-      aBounds.IntersectRect(scrollPort, aBounds);
+      bounds.IntersectRect(scrollPort, bounds);
     }
     else {  
-      aBounds = scrollPort;
+      bounds = scrollPort;
     }
 
     document = parentDoc = document->GetParentDocument();
   }
+
+  return bounds;
 }
 
 

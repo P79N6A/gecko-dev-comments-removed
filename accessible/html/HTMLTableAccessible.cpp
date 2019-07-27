@@ -460,7 +460,7 @@ HTMLTableAccessible::RelationByType(RelationType aType)
 
 
 Accessible*
-HTMLTableAccessible::Caption()
+HTMLTableAccessible::Caption() const
 {
   Accessible* child = mChildren.SafeElementAt(0, nullptr);
   return child && child->Role() == roles::CAPTION ? child : nullptr;

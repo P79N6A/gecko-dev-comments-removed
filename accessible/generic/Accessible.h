@@ -11,8 +11,8 @@
 #include "mozilla/a11y/Role.h"
 #include "mozilla/a11y/States.h"
 
-#include "nsIAccessible.h"
-#include "nsIAccessibleHyperLink.h"
+#include "xpcAccessible.h"
+#include "xpcAccessibleHyperLink.h"
 #include "nsIAccessibleStates.h"
 #include "xpcAccessibleSelectable.h"
 #include "xpcAccessibleValue.h"
@@ -27,6 +27,7 @@ struct nsRoleMapEntry;
 struct nsRect;
 class nsIFrame;
 class nsIAtom;
+struct nsIntRect;
 class nsView;
 
 namespace mozilla {
@@ -122,8 +123,8 @@ typedef nsRefPtrHashtable<nsPtrHashKey<const void>, Accessible>
   { 0xbd, 0x50, 0x42, 0x6b, 0xd1, 0xd6, 0xe1, 0xad }    \
 }
 
-class Accessible : public nsIAccessible,
-                   public nsIAccessibleHyperLink,
+class Accessible : public xpcAccessible,
+                   public xpcAccessibleHyperLink,
                    public xpcAccessibleSelectable,
                    public xpcAccessibleValue
 {
@@ -133,9 +134,10 @@ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(Accessible, nsIAccessible)
 
-  NS_DECL_NSIACCESSIBLE
-  NS_DECL_NSIACCESSIBLEHYPERLINK
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ACCESSIBLE_IMPL_IID)
+
+  
+  NS_IMETHOD GetNativeInterface(void** aOutAccessible);
 
   
   
@@ -523,7 +525,37 @@ public:
   
 
 
-  virtual void GetBoundsRect(nsRect& aRect, nsIFrame** aRelativeFrame);
+  virtual nsIntRect Bounds() const;
+
+  
+
+
+  virtual nsRect RelativeBounds(nsIFrame** aRelativeFrame) const;
+
+  
+
+
+  virtual void SetSelected(bool aSelect);
+
+  
+
+
+  void TakeSelection();
+
+  
+
+
+  virtual void TakeFocus();
+
+  
+
+
+  void ScrollTo(uint32_t aHow) const;
+
+  
+
+
+  void ScrollToPoint(uint32_t aCoordinateType, int32_t aX, int32_t aY);
 
   
   
@@ -624,6 +656,26 @@ public:
   
 
 
+  virtual void ActionNameAt(uint8_t aIndex, nsAString& aName);
+
+  
+
+
+  void ActionDescriptionAt(uint8_t aIndex, nsAString& aDescription)
+  {
+    nsAutoString name;
+    ActionNameAt(aIndex, name);
+    TranslateString(name, aDescription);
+  }
+
+  
+
+
+  virtual bool DoAction(uint8_t aIndex);
+
+  
+
+
   virtual KeyBinding AccessKey() const;
 
   
@@ -632,6 +684,7 @@ public:
 
   virtual KeyBinding KeyboardShortcut() const;
 
+  
   
   
 
@@ -979,7 +1032,7 @@ protected:
 
 
 
-  uint32_t GetActionRule();
+  uint32_t GetActionRule() const;
 
   
 
@@ -1028,6 +1081,7 @@ protected:
   void StaticAsserts() const;
 
   friend class DocAccessible;
+  friend class xpcAccessible;
 
   nsAutoPtr<mozilla::a11y::EmbeddedObjCollector> mEmbeddedObjCollector;
   int32_t mIndexOfEmbeddedChild;

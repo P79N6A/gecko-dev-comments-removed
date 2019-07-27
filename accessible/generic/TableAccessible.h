@@ -25,7 +25,7 @@ public:
   
 
 
-  virtual Accessible* Caption() { return nullptr; }
+  virtual Accessible* Caption() const { return nullptr; }
 
   
 

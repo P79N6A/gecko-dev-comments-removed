@@ -61,17 +61,15 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
-  NS_IMETHOD DoAction(uint8_t index);
-  NS_IMETHOD TakeFocus();
+  virtual void Shutdown() MOZ_OVERRIDE;
+  virtual void Value(nsString& aValue) MOZ_OVERRIDE;
+  virtual uint64_t NativeLinkState() const MOZ_OVERRIDE;
+  virtual void TakeFocus() MOZ_OVERRIDE;
 
   
-  virtual void Shutdown();
-  virtual void Value(nsString& aValue);
-  virtual uint64_t NativeLinkState() const;
-
-  
-  virtual uint8_t ActionCount();
+  virtual uint8_t ActionCount() MOZ_OVERRIDE;
+  virtual void ActionNameAt(uint8_t aIndex, nsAString& aName) MOZ_OVERRIDE;
+  virtual bool DoAction(uint8_t index) MOZ_OVERRIDE;
   virtual KeyBinding AccessKey() const;
 
   
@@ -104,7 +102,7 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  virtual a11y::role NativeRole();
+  virtual a11y::role NativeRole() MOZ_OVERRIDE;
 
 protected:
   virtual ~EnumRoleAccessible() { }

@@ -22,13 +22,9 @@ public:
   XULSliderAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
-  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
-  NS_IMETHOD DoAction(uint8_t aIndex);
-
-  
   virtual void Value(nsString& aValue);
-  virtual a11y::role NativeRole();
-  virtual uint64_t NativeInteractiveState() const;
+  virtual a11y::role NativeRole() MOZ_OVERRIDE;
+  virtual uint64_t NativeInteractiveState() const MOZ_OVERRIDE;
   virtual bool NativelyUnavailable() const;
   virtual bool CanHaveAnonChildren();
 
@@ -40,7 +36,9 @@ public:
   virtual bool SetCurValue(double aValue) MOZ_OVERRIDE;
 
   
-  virtual uint8_t ActionCount();
+  virtual uint8_t ActionCount() MOZ_OVERRIDE;
+  virtual void ActionNameAt(uint8_t aIndex, nsAString& aName) MOZ_OVERRIDE;
+  virtual bool DoAction(uint8_t aIndex) MOZ_OVERRIDE;
 
 protected:
   
@@ -68,7 +66,7 @@ public:
   XULThumbAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
-  virtual a11y::role NativeRole();
+  virtual a11y::role NativeRole() MOZ_OVERRIDE;
 };
 
 } 

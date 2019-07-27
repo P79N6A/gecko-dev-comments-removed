@@ -22,9 +22,9 @@ public:
 
   
   virtual void Value(nsString& aValue);
-  virtual a11y::role NativeRole();
-  virtual uint64_t NativeState();
-  virtual uint64_t NativeInteractiveState() const;
+  virtual a11y::role NativeRole() MOZ_OVERRIDE;
+  virtual uint64_t NativeState() MOZ_OVERRIDE;
+  virtual uint64_t NativeInteractiveState() const MOZ_OVERRIDE;
 
   
   virtual Accessible* ContainerWidget() const;
@@ -40,8 +40,8 @@ public:
   XULColorPickerAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
-  virtual a11y::role NativeRole();
-  virtual uint64_t NativeState();
+  virtual a11y::role NativeRole() MOZ_OVERRIDE;
+  virtual uint64_t NativeState() MOZ_OVERRIDE;
 
   
   virtual bool IsWidget() const;

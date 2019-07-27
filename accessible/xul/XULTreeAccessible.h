@@ -41,8 +41,8 @@ public:
   
   virtual void Shutdown();
   virtual void Value(nsString& aValue);
-  virtual a11y::role NativeRole();
-  virtual uint64_t NativeState();
+  virtual a11y::role NativeRole() MOZ_OVERRIDE;
+  virtual uint64_t NativeState() MOZ_OVERRIDE;
   virtual Accessible* ChildAtPoint(int32_t aX, int32_t aY,
                                    EWhichChildAtPoint aWhichChild);
 
@@ -147,26 +147,21 @@ public:
                                            AccessibleWrap)
 
   
-  NS_IMETHOD GetBounds(int32_t *aX, int32_t *aY,
-                       int32_t *aWidth, int32_t *aHeight);
-
-  NS_IMETHOD SetSelected(bool aSelect);
-  NS_IMETHOD TakeFocus();
-
-  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
-  NS_IMETHOD DoAction(uint8_t aIndex);
-
-  
-  virtual void Shutdown();
-  virtual GroupPos GroupPosition();
-  virtual uint64_t NativeState();
-  virtual uint64_t NativeInteractiveState() const;
-  virtual int32_t IndexInParent() const;
+  virtual void Shutdown() MOZ_OVERRIDE;
+  virtual nsIntRect Bounds() const MOZ_OVERRIDE;
+  virtual GroupPos GroupPosition() MOZ_OVERRIDE;
+  virtual uint64_t NativeState() MOZ_OVERRIDE;
+  virtual uint64_t NativeInteractiveState() const MOZ_OVERRIDE;
+  virtual int32_t IndexInParent() const MOZ_OVERRIDE;
   virtual Relation RelationByType(RelationType aType) MOZ_OVERRIDE;
-  virtual Accessible* FocusedChild();
+  virtual Accessible* FocusedChild() MOZ_OVERRIDE;
+  virtual void SetSelected(bool aSelect) MOZ_OVERRIDE;
+  virtual void TakeFocus() MOZ_OVERRIDE;
 
   
-  virtual uint8_t ActionCount();
+  virtual uint8_t ActionCount() MOZ_OVERRIDE;
+  virtual void ActionNameAt(uint8_t aIndex, nsAString& aName) MOZ_OVERRIDE;
+  virtual bool DoAction(uint8_t aIndex) MOZ_OVERRIDE;
 
   
   virtual Accessible* ContainerWidget() const;
@@ -240,7 +235,7 @@ public:
   
   virtual void Shutdown();
   virtual ENameValueFlag Name(nsString& aName);
-  virtual a11y::role NativeRole();
+  virtual a11y::role NativeRole() MOZ_OVERRIDE;
 
   
   virtual void RowInvalidated(int32_t aStartColIdx, int32_t aEndColIdx);

@@ -35,15 +35,13 @@ public:
   }
 
   
-  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
-  NS_IMETHOD DoAction(uint8_t index);
-
-  
-  virtual mozilla::a11y::role NativeRole();
+  virtual mozilla::a11y::role NativeRole() MOZ_OVERRIDE;
   virtual uint64_t NativeState();
 
   
-  virtual uint8_t ActionCount();
+  virtual uint8_t ActionCount() MOZ_OVERRIDE;
+  virtual void ActionNameAt(uint8_t aIndex, nsAString& aName) MOZ_OVERRIDE;
+  virtual bool DoAction(uint8_t aIndex) MOZ_OVERRIDE;
 
   
   virtual bool IsWidget() const;
@@ -66,7 +64,7 @@ public:
   }
 
   
-  virtual uint64_t NativeState();
+  virtual uint64_t NativeState() MOZ_OVERRIDE;
   virtual void GetPositionAndSizeInternal(int32_t *aPosInSet,
                                           int32_t *aSetSize);
 };
@@ -85,16 +83,14 @@ public:
   HTMLButtonAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
-  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
-  NS_IMETHOD DoAction(uint8_t index);
+  virtual mozilla::a11y::role NativeRole() MOZ_OVERRIDE;
+  virtual uint64_t State() MOZ_OVERRIDE;
+  virtual uint64_t NativeState() MOZ_OVERRIDE;
 
   
-  virtual mozilla::a11y::role NativeRole();
-  virtual uint64_t State();
-  virtual uint64_t NativeState();
-
-  
-  virtual uint8_t ActionCount();
+  virtual uint8_t ActionCount() MOZ_OVERRIDE;
+  virtual void ActionNameAt(uint8_t aIndex, nsAString& aName) MOZ_OVERRIDE;
+  virtual bool DoAction(uint8_t aIndex) MOZ_OVERRIDE;
 
   
   virtual bool IsWidget() const;
@@ -120,21 +116,19 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
-  NS_IMETHOD DoAction(uint8_t index);
-
-  
   virtual already_AddRefed<nsIEditor> GetEditor() const;
 
   
   virtual void Value(nsString& aValue);
   virtual void ApplyARIAState(uint64_t* aState) const;
-  virtual mozilla::a11y::role NativeRole();
-  virtual uint64_t NativeState();
+  virtual mozilla::a11y::role NativeRole() MOZ_OVERRIDE;
+  virtual uint64_t NativeState() MOZ_OVERRIDE;
   virtual already_AddRefed<nsIPersistentProperties> NativeAttributes() MOZ_OVERRIDE;
 
   
-  virtual uint8_t ActionCount();
+  virtual uint8_t ActionCount() MOZ_OVERRIDE;
+  virtual void ActionNameAt(uint8_t aIndex, nsAString& aName) MOZ_OVERRIDE;
+  virtual bool DoAction(uint8_t aIndex) MOZ_OVERRIDE;
 
   
   virtual bool IsWidget() const;
@@ -162,7 +156,7 @@ public:
   HTMLFileInputAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
-  virtual mozilla::a11y::role NativeRole();
+  virtual mozilla::a11y::role NativeRole() MOZ_OVERRIDE;
   virtual nsresult HandleAccEvent(AccEvent* aAccEvent);
 };
 
@@ -205,7 +199,7 @@ public:
 
   
   virtual void Value(nsString& aValue);
-  virtual mozilla::a11y::role NativeRole();
+  virtual mozilla::a11y::role NativeRole() MOZ_OVERRIDE;
 
   
   virtual double MaxValue() const MOZ_OVERRIDE;
@@ -228,7 +222,7 @@ public:
   HTMLGroupboxAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
-  virtual mozilla::a11y::role NativeRole();
+  virtual mozilla::a11y::role NativeRole() MOZ_OVERRIDE;
   virtual Relation RelationByType(RelationType aType) MOZ_OVERRIDE;
 
 protected:
@@ -236,7 +230,7 @@ protected:
   virtual ENameValueFlag NativeName(nsString& aName) MOZ_OVERRIDE;
 
   
-  nsIContent* GetLegend();
+  nsIContent* GetLegend() const;
 };
 
 
@@ -249,7 +243,7 @@ public:
   HTMLLegendAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
-  virtual mozilla::a11y::role NativeRole();
+  virtual mozilla::a11y::role NativeRole() MOZ_OVERRIDE;
   virtual Relation RelationByType(RelationType aType) MOZ_OVERRIDE;
 };
 
@@ -263,7 +257,7 @@ public:
 
   
   virtual already_AddRefed<nsIPersistentProperties> NativeAttributes() MOZ_OVERRIDE;
-  virtual mozilla::a11y::role NativeRole();
+  virtual mozilla::a11y::role NativeRole() MOZ_OVERRIDE;
   virtual Relation RelationByType(RelationType aType) MOZ_OVERRIDE;
 
 protected:
@@ -284,7 +278,7 @@ public:
   HTMLFigcaptionAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
-  virtual mozilla::a11y::role NativeRole();
+  virtual mozilla::a11y::role NativeRole() MOZ_OVERRIDE;
   virtual Relation RelationByType(RelationType aType) MOZ_OVERRIDE;
 };
 

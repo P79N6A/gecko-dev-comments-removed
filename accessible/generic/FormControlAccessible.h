@@ -31,8 +31,8 @@ public:
 
   
   virtual void Value(nsString& aValue);
-  virtual mozilla::a11y::role NativeRole();
-  virtual uint64_t NativeState();
+  virtual mozilla::a11y::role NativeRole() MOZ_OVERRIDE;
+  virtual uint64_t NativeState() MOZ_OVERRIDE;
 
   
   virtual double MaxValue() const MOZ_OVERRIDE;
@@ -58,14 +58,12 @@ public:
   RadioButtonAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
-  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
-  NS_IMETHOD DoAction(uint8_t aIndex);
-
-  
   virtual mozilla::a11y::role NativeRole();
 
   
-  virtual uint8_t ActionCount();
+  virtual uint8_t ActionCount() MOZ_OVERRIDE;
+  virtual void ActionNameAt(uint8_t aIndex, nsAString& aName) MOZ_OVERRIDE;
+  virtual bool DoAction(uint8_t aIndex) MOZ_OVERRIDE;
 
   enum { eAction_Click = 0 };
 
