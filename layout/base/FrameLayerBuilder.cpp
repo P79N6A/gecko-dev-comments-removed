@@ -2078,8 +2078,13 @@ ContainerState::PopThebesLayerData()
 
 static bool
 SuppressComponentAlpha(nsDisplayListBuilder* aBuilder,
-                       nsDisplayItem* aItem)
+                       nsDisplayItem* aItem,
+                       const nsRect& aComponentAlphaBounds)
 {
+  const nsRegion* windowTransparentRegion = aBuilder->GetFinalTransparentRegion();
+  if (!windowTransparentRegion || windowTransparentRegion->IsEmpty())
+    return false;
+
   
   
   nsIFrame* f = aItem->Frame();
@@ -2091,7 +2096,15 @@ SuppressComponentAlpha(nsDisplayListBuilder* aBuilder,
     if (t->IsTransformed())
       return false;
   }
-  return true;
+
+  return windowTransparentRegion->Intersects(aComponentAlphaBounds);
+}
+
+static bool
+WindowHasTransparency(nsDisplayListBuilder* aBuilder)
+{
+  const nsRegion* windowTransparentRegion = aBuilder->GetFinalTransparentRegion();
+  return windowTransparentRegion && !windowTransparentRegion->IsEmpty();
 }
 
 void
@@ -2191,7 +2204,9 @@ ThebesLayerData::Accumulate(ContainerState* aState,
        
        
        
-       if (tmp.GetNumRects() <= 4 || aItem->Frame()->PresContext()->IsChrome()) {
+       if (tmp.GetNumRects() <= 4 ||
+           (WindowHasTransparency(aState->mBuilder) &&
+            aItem->Frame()->PresContext()->IsChrome())) {
         mOpaqueRegion = tmp;
       }
     }
@@ -2203,7 +2218,7 @@ ThebesLayerData::Accumulate(ContainerState* aState,
       nsIntRect componentAlphaRect =
         aState->ScaleToOutsidePixels(componentAlpha, false).Intersect(aVisibleRect);
       if (!mOpaqueRegion.Contains(componentAlphaRect)) {
-        if (SuppressComponentAlpha(aState->mBuilder, aItem)) {
+        if (SuppressComponentAlpha(aState->mBuilder, aItem, componentAlpha)) {
           aItem->DisableComponentAlpha();
         } else {
           mNeedComponentAlpha = true;
