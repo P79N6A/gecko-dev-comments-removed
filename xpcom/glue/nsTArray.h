@@ -1503,7 +1503,6 @@ public:
     return AppendElements<ActualAlloc>(1);
   }
 
-  template<class Item>
   
   elem_type* AppendElement(const mozilla::fallible_t&)
   {
