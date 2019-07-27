@@ -273,7 +273,7 @@ SystemMessageInternal.prototype = {
                                    type: aType,
                                    msg: aMessage,
                                    extra: aExtra });
-      return Promise.resolve();
+      return;
     }
 
     
@@ -285,50 +285,37 @@ SystemMessageInternal.prototype = {
 
     let shouldDispatchFunc = this._getMessageConfigurator(aType).shouldDispatch;
 
-    if (!this._pages.length) {
-      return Promise.resolve();
-    }
-
     
-    let promises = [];
-    for (let i = 0; i < this._pages.length; i++) {
-      let promise = ((page) => {
-        return new Promise((resolve, reject) => {
-          if (page.type !== aType) {
-            resolve();
-            return;
-          }
+    this._pages.forEach(function(aPage) {
+      if (aPage.type !== aType) {
+        return;
+      }
 
-          let doDispatch = () => {
-            let result = this._sendMessageCommon(aType,
-                                                 aMessage,
-                                                 messageID,
-                                                 page.pageURL,
-                                                 page.manifestURL,
-                                                 aExtra);
-            debug("Returned status of sending message: " + result);
-            resolve();
-          };
+      let doDispatch = () => {
+        let result = this._sendMessageCommon(aType,
+                                             aMessage,
+                                             messageID,
+                                             aPage.pageURL,
+                                             aPage.manifestURL,
+                                             aExtra);
+        debug("Returned status of sending message: " + result);
+      };
 
-          if ('function' !== typeof shouldDispatchFunc) {
-            
-            
+      if ('function' !== typeof shouldDispatchFunc) {
+        
+        
+        doDispatch();
+        return;
+      }
+
+      shouldDispatchFunc(aPage.manifestURL, aPage.pageURL, aType, aMessage, aExtra)
+        .then(aShouldDispatch => {
+          if (aShouldDispatch) {
             doDispatch();
-            return;
           }
-
-          shouldDispatchFunc(page.manifestURL, page.pageURL, aType, aMessage, aExtra)
-            .then(aShouldDispatch => {
-              if (aShouldDispatch) {
-                doDispatch();
-              }
-            });
         });
-      })(this._pages[i]);
-      promises.push(promise);
-    }
 
-    return Promise.all(promises);
+    }, this);
   },
 
   registerPage: function(aType, aPageURI, aManifestURI) {
