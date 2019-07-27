@@ -658,6 +658,12 @@ struct nsStylePadding {
   static nsChangeHint DifferenceAlwaysHandledForDescendants() {
     
     
+    
+    
+    
+    
+    
+    
     return nsChangeHint(0);
   }
 
