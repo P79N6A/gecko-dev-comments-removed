@@ -109,7 +109,6 @@ using mozilla::image::ImageOps;
 using mozilla::image::Orientation;
 
 #define GRID_ENABLED_PREF_NAME "layout.css.grid.enabled"
-#define RUBY_ENABLED_PREF_NAME "layout.css.ruby.enabled"
 #define STICKY_ENABLED_PREF_NAME "layout.css.sticky.enabled"
 #define TEXT_ALIGN_TRUE_ENABLED_PREF_NAME "layout.css.text-align-true-value.enabled"
 
@@ -184,78 +183,6 @@ GridEnabledPrefChangeCallback(const char* aPrefName, void* aClosure)
   if (sIndexOfInlineGridInDisplayTable >= 0) {
     nsCSSProps::kDisplayKTable[sIndexOfInlineGridInDisplayTable] =
       isGridEnabled ? eCSSKeyword_inline_grid : eCSSKeyword_UNKNOWN;
-  }
-}
-
-static void
-RubyEnabledPrefChangeCallback(const char* aPrefName, void* aClosure)
-{
-  MOZ_ASSERT(strncmp(aPrefName, RUBY_ENABLED_PREF_NAME,
-                     ArrayLength(RUBY_ENABLED_PREF_NAME)) == 0,
-             "We only registered this callback for a single pref, so it "
-             "should only be called for that pref");
-
-  static int32_t sIndexOfRubyInDisplayTable;
-  static int32_t sIndexOfRubyBaseInDisplayTable;
-  static int32_t sIndexOfRubyBaseContainerInDisplayTable;
-  static int32_t sIndexOfRubyTextInDisplayTable;
-  static int32_t sIndexOfRubyTextContainerInDisplayTable;
-  static bool sAreRubyKeywordIndicesInitialized; 
-
-  bool isRubyEnabled =
-    Preferences::GetBool(RUBY_ENABLED_PREF_NAME, false);
-  if (!sAreRubyKeywordIndicesInitialized) {
-    
-    
-    sIndexOfRubyInDisplayTable =
-      nsCSSProps::FindIndexOfKeyword(eCSSKeyword_ruby,
-                                     nsCSSProps::kDisplayKTable);
-    MOZ_ASSERT(sIndexOfRubyInDisplayTable >= 0,
-               "Couldn't find ruby in kDisplayKTable");
-    sIndexOfRubyBaseInDisplayTable =
-      nsCSSProps::FindIndexOfKeyword(eCSSKeyword_ruby_base,
-                                     nsCSSProps::kDisplayKTable);
-    MOZ_ASSERT(sIndexOfRubyBaseInDisplayTable >= 0,
-               "Couldn't find ruby-base in kDisplayKTable");
-    sIndexOfRubyBaseContainerInDisplayTable =
-      nsCSSProps::FindIndexOfKeyword(eCSSKeyword_ruby_base_container,
-                                     nsCSSProps::kDisplayKTable);
-    MOZ_ASSERT(sIndexOfRubyBaseContainerInDisplayTable >= 0,
-               "Couldn't find ruby-base-container in kDisplayKTable");
-    sIndexOfRubyTextInDisplayTable =
-      nsCSSProps::FindIndexOfKeyword(eCSSKeyword_ruby_text,
-                                     nsCSSProps::kDisplayKTable);
-    MOZ_ASSERT(sIndexOfRubyTextInDisplayTable >= 0,
-               "Couldn't find ruby-text in kDisplayKTable");
-    sIndexOfRubyTextContainerInDisplayTable =
-      nsCSSProps::FindIndexOfKeyword(eCSSKeyword_ruby_text_container,
-                                     nsCSSProps::kDisplayKTable);
-    MOZ_ASSERT(sIndexOfRubyTextContainerInDisplayTable >= 0,
-               "Couldn't find ruby-text-container in kDisplayKTable");
-    sAreRubyKeywordIndicesInitialized = true;
-  }
-
-  
-  
-  if (sIndexOfRubyInDisplayTable >= 0) {
-    nsCSSProps::kDisplayKTable[sIndexOfRubyInDisplayTable] =
-      isRubyEnabled ? eCSSKeyword_ruby : eCSSKeyword_UNKNOWN;
-  }
-  if (sIndexOfRubyBaseInDisplayTable >= 0) {
-    nsCSSProps::kDisplayKTable[sIndexOfRubyBaseInDisplayTable] =
-      isRubyEnabled ? eCSSKeyword_ruby_base : eCSSKeyword_UNKNOWN;
-  }
-  if (sIndexOfRubyBaseContainerInDisplayTable >= 0) {
-    nsCSSProps::kDisplayKTable[sIndexOfRubyBaseContainerInDisplayTable] =
-      isRubyEnabled ? eCSSKeyword_ruby_base_container : eCSSKeyword_UNKNOWN;
-  }
-  if (sIndexOfRubyTextInDisplayTable >= 0) {
-    nsCSSProps::kDisplayKTable[sIndexOfRubyTextInDisplayTable] =
-      isRubyEnabled ? eCSSKeyword_ruby_text : eCSSKeyword_UNKNOWN;
-  }
-  if (sIndexOfRubyTextContainerInDisplayTable >= 0) {
-    nsCSSProps::kDisplayKTable[sIndexOfRubyTextContainerInDisplayTable] =
-      isRubyEnabled ? eCSSKeyword_ruby_text_container : eCSSKeyword_UNKNOWN;
   }
 }
 
@@ -2130,6 +2057,34 @@ nsLayoutUtils::RoundedRectIntersectRect(const nsRect& aRoundedRect,
   r2.IntersectRect(rectFullWidth, aContainedRect);
 
   nsRegion result;
+  result.Or(r1, r2);
+  return result;
+}
+
+nsIntRegion
+nsLayoutUtils::RoundedRectIntersectIntRect(const nsIntRect& aRoundedRect,
+                                           const gfxCornerSizes& aCorners,
+                                           const nsIntRect& aContainedRect)
+{
+  
+  
+  nsIntRect rectFullHeight = aRoundedRect;
+  uint32_t xDiff = std::max(aCorners.TopLeft().width, aCorners.BottomLeft().width);
+  rectFullHeight.x += xDiff;
+  rectFullHeight.width -= std::max(aCorners.TopRight().width,
+                                   aCorners.BottomRight().width) + xDiff;
+  nsIntRect r1;
+  r1.IntersectRect(rectFullHeight, aContainedRect);
+
+  nsIntRect rectFullWidth = aRoundedRect;
+  uint32_t yDiff = std::max(aCorners.TopLeft().height, aCorners.TopRight().height);
+  rectFullWidth.y += yDiff;
+  rectFullWidth.height -= std::max(aCorners.BottomLeft().height,
+                                   aCorners.BottomRight().height) + yDiff;
+  nsIntRect r2;
+  r2.IntersectRect(rectFullWidth, aContainedRect);
+
+  nsIntRegion result;
   result.Or(r1, r2);
   return result;
 }
@@ -6114,9 +6069,6 @@ nsLayoutUtils::Initialize()
   Preferences::RegisterCallback(GridEnabledPrefChangeCallback,
                                 GRID_ENABLED_PREF_NAME);
   GridEnabledPrefChangeCallback(GRID_ENABLED_PREF_NAME, nullptr);
-  Preferences::RegisterCallback(RubyEnabledPrefChangeCallback,
-                                RUBY_ENABLED_PREF_NAME);
-  RubyEnabledPrefChangeCallback(RUBY_ENABLED_PREF_NAME, nullptr);
   Preferences::RegisterCallback(StickyEnabledPrefChangeCallback,
                                 STICKY_ENABLED_PREF_NAME);
   StickyEnabledPrefChangeCallback(STICKY_ENABLED_PREF_NAME, nullptr);
@@ -6139,8 +6091,6 @@ nsLayoutUtils::Shutdown()
 
   Preferences::UnregisterCallback(GridEnabledPrefChangeCallback,
                                   GRID_ENABLED_PREF_NAME);
-  Preferences::UnregisterCallback(RubyEnabledPrefChangeCallback,
-                                  RUBY_ENABLED_PREF_NAME);
   Preferences::UnregisterCallback(StickyEnabledPrefChangeCallback,
                                   STICKY_ENABLED_PREF_NAME);
 

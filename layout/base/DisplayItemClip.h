@@ -86,6 +86,7 @@ public:
   
   
   bool MayIntersect(const nsRect& aRect) const;
+
   
   
   
@@ -111,6 +112,7 @@ public:
   
   
   bool IsRectAffectedByClip(const nsRect& aRect) const;
+  bool IsRectAffectedByClip(const nsIntRect& aRect, float aXScale, float aYScale, int32_t A2D) const;
 
   
   nsRect NonRoundedIntersection() const;
