@@ -45,6 +45,7 @@ let publicProperties = [
   "now",
   "promiseAccountsForceSigninURI",
   "promiseAccountsChangeProfileURI",
+  "promiseAccountsManageURI",
   "removeCachedOAuthToken",
   "resendVerificationEmail",
   "setSignedInUser",
@@ -1213,6 +1214,28 @@ FxAccountsInternal.prototype = {
       let newQueryPortion = url.indexOf("?") == -1 ? "?" : "&";
       newQueryPortion += "email=" + encodeURIComponent(accountData.email);
       newQueryPortion += "&uid=" + encodeURIComponent(accountData.uid);
+      return url + newQueryPortion;
+    }).then(result => currentState.resolve(result));
+  },
+
+  
+  
+  promiseAccountsManageURI: function() {
+    let url = Services.urlFormatter.formatURLPref("identity.fxaccounts.settings.uri");
+    if (this._requireHttps() && !/^https:/.test(url)) { 
+      throw new Error("Firefox Accounts server must use HTTPS");
+    }
+    let currentState = this.currentAccountState;
+    
+    
+    
+    return this.getSignedInUser().then(accountData => {
+      if (!accountData) {
+        return null;
+      }
+      let newQueryPortion = url.indexOf("?") == -1 ? "?" : "&";
+      newQueryPortion += "uid=" + encodeURIComponent(accountData.uid) +
+                         "&email=" + encodeURIComponent(accountData.email);
       return url + newQueryPortion;
     }).then(result => currentState.resolve(result));
   },
