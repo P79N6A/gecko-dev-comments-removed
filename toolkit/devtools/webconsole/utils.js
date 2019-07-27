@@ -32,7 +32,7 @@ const REGEX_MATCH_FUNCTION_NAME = /^\(?function\s+([^(\s]+)\s*\(/;
 const REGEX_MATCH_FUNCTION_ARGS = /^\(?function\s*[^\s(]*\s*\((.+?)\)/;
 
 
-const CONSOLE_ENTRY_THRESHOLD = 5
+const CONSOLE_ENTRY_THRESHOLD = 5;
 
 
 
@@ -550,7 +550,7 @@ let WebConsoleUtils = {
   _usageCount: 0,
   get usageCount() {
     if (WebConsoleUtils._usageCount < CONSOLE_ENTRY_THRESHOLD) {
-      WebConsoleUtils._usageCount = Services.prefs.getIntPref("devtools.selfxss.count")
+      WebConsoleUtils._usageCount = Services.prefs.getIntPref("devtools.selfxss.count");
       if (Services.prefs.getBoolPref("devtools.chrome.enabled")) {
         WebConsoleUtils.usageCount = CONSOLE_ENTRY_THRESHOLD;
       }
@@ -912,7 +912,7 @@ function JSPropertyProvider(aDbgObject, anEnvironment, aInputValue, aCursor)
       return null;
     }
 
-    if (/\[\d+\]$/.test(prop))Â {
+    if (/\[\d+\]$/.test(prop)) {
       
       
       obj = getArrayMemberProperty(obj, prop);
@@ -1514,6 +1514,10 @@ ConsoleAPIListener.prototype =
 
 
 
+let WebConsoleCommands = {
+  _registeredCommands: new Map(),
+
+  
 
 
 
@@ -1521,9 +1525,83 @@ ConsoleAPIListener.prototype =
 
 
 
-function JSTermHelpers(aOwner)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  register: function(name, command) {
+    this._registeredCommands.set(name, command);
+  },
+
+  
+
+
+
+
+  unregister: function(name) {
+    this._registeredCommands.delete(name);
+  },
+
+  
+
+
+
+
+
+
+  getCommand: function(name) {
+    return this._registeredCommands.get(name);
+  },
+
+  
+
+
+
+
+
+
+  hasCommand: function(name) {
+    return this._registeredCommands.has(name);
+  },
+};
+
+exports.WebConsoleCommands = WebConsoleCommands;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+WebConsoleCommands.register("$", function JSTH_$(aOwner, aSelector)
 {
-  
+  return aOwner.window.document.querySelector(aSelector);
+});
 
 
 
@@ -1531,39 +1609,82 @@ function JSTermHelpers(aOwner)
 
 
 
-  aOwner.sandbox.$ = function JSTH_$(aSelector)
-  {
-    return aOwner.window.document.querySelector(aSelector);
+
+
+WebConsoleCommands.register("$$", function JSTH_$$(aOwner, aSelector)
+{
+  return aOwner.window.document.querySelectorAll(aSelector);
+});
+
+
+
+
+
+
+
+WebConsoleCommands.register("$_", {
+  get: function(aOwner) {
+    return aOwner.consoleActor.getLastConsoleInputEvaluation();
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
+WebConsoleCommands.register("$x", function JSTH_$x(aOwner, aXPath, aContext)
+{
+  let nodes = new aOwner.window.wrappedJSObject.Array();
+  let doc = aOwner.window.document;
+  aContext = aContext || doc;
+
+  let results = doc.evaluate(aXPath, aContext, null,
+                             Ci.nsIDOMXPathResult.ANY_TYPE, null);
+  let node;
+  while ((node = results.iterateNext())) {
+    nodes.push(node);
+  }
+
+  return nodes;
+});
+
+
+
+
+
+
+
+WebConsoleCommands.register("$0", {
+  get: function(aOwner) {
+    return aOwner.makeDebuggeeValue(aOwner.selectedNode);
+  }
+});
+
+
+
+
+WebConsoleCommands.register("clear", function JSTH_clear(aOwner)
+{
+  aOwner.helperResult = {
+    type: "clearOutput",
   };
-
-  
-
+});
 
 
 
 
-
-
-  aOwner.sandbox.$$ = function JSTH_$$(aSelector)
-  {
-    return aOwner.window.document.querySelectorAll(aSelector);
+WebConsoleCommands.register("clearHistory", function JSTH_clearHistory(aOwner)
+{
+  aOwner.helperResult = {
+    type: "clearHistory",
   };
-
-  
-
-
-
-
-
-  Object.defineProperty(aOwner.sandbox, "$_", {
-    get: function() {
-      return aOwner.consoleActor.getLastConsoleInputEvaluation();
-    },
-    enumerable: true,
-    configurable: true
-  });
-
-  
+});
 
 
 
@@ -1572,96 +1693,37 @@ function JSTermHelpers(aOwner)
 
 
 
-  aOwner.sandbox.$x = function JSTH_$x(aXPath, aContext)
-  {
-    let nodes = new aOwner.window.wrappedJSObject.Array();
-    let doc = aOwner.window.document;
-    aContext = aContext || doc;
-
-    let results = doc.evaluate(aXPath, aContext, null,
-                               Ci.nsIDOMXPathResult.ANY_TYPE, null);
-    let node;
-    while ((node = results.iterateNext())) {
-      nodes.push(node);
-    }
-
-    return nodes;
-  };
-
-  
-
-
-
-
-
-  Object.defineProperty(aOwner.sandbox, "$0", {
-    get: function() {
-      return aOwner.makeDebuggeeValue(aOwner.selectedNode)
-    },
-    enumerable: true,
-    configurable: true
-  });
-
-  
-
-
-  aOwner.sandbox.clear = function JSTH_clear()
-  {
-    aOwner.helperResult = {
-      type: "clearOutput",
-    };
-  };
-
-  
-
-
-  aOwner.sandbox.clearHistory = function JSTH_clearHistory()
-  {
-    aOwner.helperResult = {
-      type: "clearHistory",
-    };
-  };
-
-  
+WebConsoleCommands.register("keys", function JSTH_keys(aOwner, aObject)
+{
+  return aOwner.window.wrappedJSObject.Object.keys(WebConsoleUtils.unwrap(aObject));
+});
 
 
 
 
 
 
-  aOwner.sandbox.keys = function JSTH_keys(aObject)
-  {
-    return aOwner.window.wrappedJSObject.Object.keys(WebConsoleUtils.unwrap(aObject));
-  };
-
-  
 
 
+WebConsoleCommands.register("values", function JSTH_values(aOwner, aObject)
+{
+  let arrValues = new aOwner.window.wrappedJSObject.Array();
+  let obj = WebConsoleUtils.unwrap(aObject);
+
+  for (let prop in obj) {
+    arrValues.push(obj[prop]);
+  }
+
+  return arrValues;
+});
 
 
 
 
-  aOwner.sandbox.values = function JSTH_values(aObject)
-  {
-    let arrValues = new aOwner.window.wrappedJSObject.Array();
-    let obj = WebConsoleUtils.unwrap(aObject);
-
-    for (let prop in obj) {
-      arrValues.push(obj[prop]);
-    }
-
-    return arrValues;
-  };
-
-  
-
-
-  aOwner.sandbox.help = function JSTH_help()
-  {
-    aOwner.helperResult = { type: "help" };
-  };
-
-  
+WebConsoleCommands.register("help", function JSTH_help(aOwner)
+{
+  aOwner.helperResult = { type: "help" };
+});
 
 
 
@@ -1672,142 +1734,179 @@ function JSTermHelpers(aOwner)
 
 
 
-  aOwner.sandbox.cd = function JSTH_cd(aWindow)
-  {
-    if (!aWindow) {
-      aOwner.consoleActor.evalWindow = null;
-      aOwner.helperResult = { type: "cd" };
-      return;
-    }
 
-    if (typeof aWindow == "string") {
-      aWindow = aOwner.window.document.querySelector(aWindow);
-    }
-    if (aWindow instanceof Ci.nsIDOMElement && aWindow.contentWindow) {
-      aWindow = aWindow.contentWindow;
-    }
-    if (!(aWindow instanceof Ci.nsIDOMWindow)) {
-      aOwner.helperResult = { type: "error", message: "cdFunctionInvalidArgument" };
-      return;
-    }
 
-    aOwner.consoleActor.evalWindow = aWindow;
+WebConsoleCommands.register("cd", function JSTH_cd(aOwner, aWindow)
+{
+  if (!aWindow) {
+    aOwner.consoleActor.evalWindow = null;
     aOwner.helperResult = { type: "cd" };
+    return;
+  }
+
+  if (typeof aWindow == "string") {
+    aWindow = aOwner.window.document.querySelector(aWindow);
+  }
+  if (aWindow instanceof Ci.nsIDOMElement && aWindow.contentWindow) {
+    aWindow = aWindow.contentWindow;
+  }
+  if (!(aWindow instanceof Ci.nsIDOMWindow)) {
+    aOwner.helperResult = { type: "error", message: "cdFunctionInvalidArgument" };
+    return;
+  }
+
+  aOwner.consoleActor.evalWindow = aWindow;
+  aOwner.helperResult = { type: "cd" };
+});
+
+
+
+
+
+
+
+WebConsoleCommands.register("inspect", function JSTH_inspect(aOwner, aObject)
+{
+  let dbgObj = aOwner.makeDebuggeeValue(aObject);
+  let grip = aOwner.createValueGrip(dbgObj);
+  aOwner.helperResult = {
+    type: "inspectObject",
+    input: aOwner.evalInput,
+    object: grip,
   };
-
-  
-
+});
 
 
 
 
-  aOwner.sandbox.inspect = function JSTH_inspect(aObject)
-  {
-    let dbgObj = aOwner.makeDebuggeeValue(aObject);
-    let grip = aOwner.createValueGrip(dbgObj);
+
+
+
+
+WebConsoleCommands.register("pprint", function JSTH_pprint(aOwner, aObject)
+{
+  if (aObject === null || aObject === undefined || aObject === true ||
+      aObject === false) {
     aOwner.helperResult = {
-      type: "inspectObject",
-      input: aOwner.evalInput,
-      object: grip,
+      type: "error",
+      message: "helperFuncUnsupportedTypeError",
     };
-  };
+    return null;
+  }
 
+  aOwner.helperResult = { rawOutput: true };
+
+  if (typeof aObject == "function") {
+    return aObject + "\n";
+  }
+
+  let output = [];
+
+  let obj = WebConsoleUtils.unwrap(aObject);
+  for (let name in obj) {
+    let desc = WebConsoleUtils.getPropertyDescriptor(obj, name) || {};
+    if (desc.get || desc.set) {
+      
+      let getGrip = VariablesView.getGrip(desc.get);
+      let setGrip = VariablesView.getGrip(desc.set);
+      let getString = VariablesView.getString(getGrip);
+      let setString = VariablesView.getString(setGrip);
+      output.push(name + ":", "  get: " + getString, "  set: " + setString);
+    }
+    else {
+      let valueGrip = VariablesView.getGrip(obj[name]);
+      let valueString = VariablesView.getString(valueGrip);
+      output.push(name + ": " + valueString);
+    }
+  }
+
+  return "  " + output.join("\n  ");
+});
+
+
+
+
+
+
+
+
+WebConsoleCommands.register("print", function JSTH_print(aOwner, aValue)
+{
+  aOwner.helperResult = { rawOutput: true };
+  if (typeof aValue === "symbol") {
+    return Symbol.prototype.toString.call(aValue);
+  }
   
+  
+  
+  
+  return String(Cu.waiveXrays(aValue));
+});
 
 
 
 
 
 
-  aOwner.sandbox.pprint = function JSTH_pprint(aObject)
-  {
-    if (aObject === null || aObject === undefined || aObject === true ||
-        aObject === false) {
-      aOwner.helperResult = {
-        type: "error",
-        message: "helperFuncUnsupportedTypeError",
-      };
-      return null;
+
+
+WebConsoleCommands.register("copy", function JSTH_copy(aOwner, aValue)
+{
+  let payload;
+  try {
+    if (aValue instanceof Ci.nsIDOMElement) {
+      payload = aValue.outerHTML;
+    } else if (typeof aValue == "string") {
+      payload = aValue;
+    } else {
+      payload = JSON.stringify(aValue, null, "  ");
     }
+  } catch (ex) {
+    payload = "/* " + ex  + " */";
+  }
+  aOwner.helperResult = {
+    type: "copyValueToClipboard",
+    value: payload,
+  };
+});
 
-    aOwner.helperResult = { rawOutput: true };
 
-    if (typeof aObject == "function") {
-      return aObject + "\n";
+
+
+
+
+
+
+
+function addWebConsoleCommands(owner) {
+  if (!owner) {
+    throw new Error("The owner is required");
+  }
+  for (let [name, command] of WebConsoleCommands._registeredCommands) {
+    if (typeof command === "function") {
+      owner.sandbox[name] = command.bind(undefined, owner);
     }
-
-    let output = [];
-
-    let obj = WebConsoleUtils.unwrap(aObject);
-    for (let name in obj) {
-      let desc = WebConsoleUtils.getPropertyDescriptor(obj, name) || {};
-      if (desc.get || desc.set) {
+    else if (typeof command === "object") {
+      let clone = Object.assign({}, command, {
         
-        let getGrip = VariablesView.getGrip(desc.get);
-        let setGrip = VariablesView.getGrip(desc.set);
-        let getString = VariablesView.getString(getGrip);
-        let setString = VariablesView.getString(setGrip);
-        output.push(name + ":", "  get: " + getString, "  set: " + setString);
+        
+        enumerable: true,
+        configurable: true
+      });
+
+      if (typeof command.get === "function") {
+        clone.get = command.get.bind(undefined, owner);
       }
-      else {
-        let valueGrip = VariablesView.getGrip(obj[name]);
-        let valueString = VariablesView.getString(valueGrip);
-        output.push(name + ": " + valueString);
+      if (typeof command.set === "function") {
+        clone.set = command.set.bind(undefined, owner);
       }
+
+      Object.defineProperty(owner.sandbox, name, clone);
     }
-
-    return "  " + output.join("\n  ");
-  };
-
-  
-
-
-
-
-
-
-  aOwner.sandbox.print = function JSTH_print(aValue)
-  {
-    aOwner.helperResult = { rawOutput: true };
-    if (typeof aValue === "symbol") {
-      return Symbol.prototype.toString.call(aValue);
-    }
-    
-    
-    
-    
-    return String(Cu.waiveXrays(aValue));
-  };
-
-  
-
-
-
-
-
-
-  aOwner.sandbox.copy = function JSTH_copy(aValue)
-  {
-    let payload;
-    try {
-      if (aValue instanceof Ci.nsIDOMElement) {
-        payload = aValue.outerHTML;
-      } else if (typeof aValue == "string") {
-        payload = aValue;
-      } else {
-        payload = JSON.stringify(aValue, null, "  ");
-      }
-    } catch (ex) {
-      payload = "/* " + ex  + " */";
-    }
-    aOwner.helperResult = {
-      type: "copyValueToClipboard",
-      value: payload,
-    };
-  };
+  }
 }
-exports.JSTermHelpers = JSTermHelpers;
 
+exports.addWebConsoleCommands = addWebConsoleCommands;
 
 
 

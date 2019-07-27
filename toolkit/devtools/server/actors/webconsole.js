@@ -32,8 +32,8 @@ XPCOMUtils.defineLazyGetter(this, "events", () => {
 });
 
 for (let name of ["WebConsoleUtils", "ConsoleServiceListener",
-                  "ConsoleAPIListener", "JSTermHelpers", "JSPropertyProvider",
-                  "ConsoleReflowListener"]) {
+    "ConsoleAPIListener", "addWebConsoleCommands", "JSPropertyProvider",
+    "ConsoleReflowListener"]) {
   Object.defineProperty(this, name, {
     get: function(prop) {
       if (prop == "WebConsoleUtils") {
@@ -299,7 +299,7 @@ WebConsoleActor.prototype =
 
 
 
-  _jstermHelpersCache: null,
+  _webConsoleCommandsCache: null,
 
   actorPrefix: "console",
 
@@ -358,7 +358,7 @@ WebConsoleActor.prototype =
     }
     this._actorPool = null;
 
-    this._jstermHelpersCache = null;
+    this._webConsoleCommandsCache = null;
     this._lastConsoleInputEvaluation = null;
     this._evalWindow = null;
     this._netEvents.clear();
@@ -882,14 +882,16 @@ WebConsoleActor.prototype =
     
     let lastNonAlphaIsDot = /[.][a-zA-Z0-9$]*$/.test(reqText);
     if (!lastNonAlphaIsDot) {
-      if (!this._jstermHelpersCache) {
+      if (!this._webConsoleCommandsCache) {
         let helpers = {
           sandbox: Object.create(null)
         };
-        JSTermHelpers(helpers);
-        this._jstermHelpersCache = Object.getOwnPropertyNames(helpers.sandbox);
+        addWebConsoleCommands(helpers);
+        this._webConsoleCommandsCache =
+          Object.getOwnPropertyNames(helpers.sandbox);
       }
-      matches = matches.concat(this._jstermHelpersCache.filter(n => n.startsWith(result.matchProp)));
+      matches = matches.concat(this._webConsoleCommandsCache
+          .filter(n => n.startsWith(result.matchProp)));
     }
 
     return {
@@ -972,7 +974,7 @@ WebConsoleActor.prototype =
 
 
 
-  _getJSTermHelpers: function WCA__getJSTermHelpers(aDebuggerGlobal)
+  _getWebConsoleCommands: function(aDebuggerGlobal)
   {
     let helpers = {
       window: this.evalWindow,
@@ -983,7 +985,7 @@ WebConsoleActor.prototype =
       helperResult: null,
       consoleActor: this,
     };
-    JSTermHelpers(helpers);
+    addWebConsoleCommands(helpers);
 
     let evalWindow = this.evalWindow;
     function maybeExport(obj, name) {
@@ -1015,6 +1017,7 @@ WebConsoleActor.prototype =
   },
 
   
+
 
 
 
@@ -1126,7 +1129,7 @@ WebConsoleActor.prototype =
     }
 
     
-    let helpers = this._getJSTermHelpers(dbgWindow);
+    let helpers = this._getWebConsoleCommands(dbgWindow);
     let bindings = helpers.sandbox;
     if (bindSelf) {
       bindings._self = bindSelf;
@@ -1139,6 +1142,7 @@ WebConsoleActor.prototype =
       }
     }
 
+    
     
     
     let found$ = false, found$$ = false;
