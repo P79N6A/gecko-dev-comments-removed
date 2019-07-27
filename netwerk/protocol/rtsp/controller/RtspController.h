@@ -7,12 +7,10 @@
 #ifndef RtspController_h
 #define RtspController_h
 
-#include "mozilla/Mutex.h"
 #include "nsIStreamingProtocolController.h"
 #include "nsIChannel.h"
 #include "nsCOMPtr.h"
 #include "nsString.h"
-#include "nsITimer.h"
 #include "RTSPSource.h"
 
 namespace mozilla {
@@ -28,10 +26,6 @@ public:
 
   RtspController(nsIChannel *channel);
   ~RtspController();
-
-  
-  static void PlayTimerCallback(nsITimer *aTimer, void *aClosure);
-  static void PauseTimerCallback(nsITimer *aTimer, void *aClosure);
 
 private:
   enum State {
@@ -53,13 +47,6 @@ private:
   State mState;
   
   android::sp<android::RTSPSource> mRtspSource;
-  
-  Mutex mTimerLock;
-  
-  
-  
-  nsCOMPtr<nsITimer> mPlayTimer;
-  nsCOMPtr<nsITimer> mPauseTimer;
 };
 
 }

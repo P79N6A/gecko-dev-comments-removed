@@ -14,6 +14,8 @@
 #include "nsString.h"
 #include "nsTArray.h"
 #include "mozilla/net/RtspChannelChild.h"
+#include "mozilla/Mutex.h"
+#include "nsITimer.h"
 
 namespace mozilla {
 namespace net {
@@ -52,6 +54,10 @@ class RtspControllerChild : public nsIStreamingProtocolController
   void AllowIPC();
   void DisallowIPC();
 
+  
+  static void PlayTimerCallback(nsITimer *aTimer, void *aClosure);
+  static void PauseTimerCallback(nsITimer *aTimer, void *aClosure);
+
  private:
   bool mIPCOpen;
   
@@ -73,6 +79,16 @@ class RtspControllerChild : public nsIStreamingProtocolController
   uint32_t mSuspendCount;
   
   void ReleaseChannel();
+  
+  Mutex mTimerLock;
+  
+  
+  
+  nsCOMPtr<nsITimer> mPlayTimer;
+  nsCOMPtr<nsITimer> mPauseTimer;
+  
+  
+  void StopPlayAndPauseTimer();
 };
 } 
 } 
