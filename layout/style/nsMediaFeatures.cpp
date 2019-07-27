@@ -109,13 +109,19 @@ GetDeviceContextFor(nsPresContext* aPresContext)
   return aPresContext->DeviceContext();
 }
 
+static bool
+ShouldResistFingerprinting(nsPresContext* aPresContext)
+{
+    return nsContentUtils::ShouldResistFingerprinting(aPresContext->GetDocShell());
+}
+
 
 static nsSize
 GetDeviceSize(nsPresContext* aPresContext)
 {
     nsSize size;
 
-    if (aPresContext->IsDeviceSizePageSize()) {
+    if (ShouldResistFingerprinting(aPresContext) || aPresContext->IsDeviceSizePageSize()) {
         size = GetSize(aPresContext);
     } else if (aPresContext->IsRootPaginatedDocument()) {
         
@@ -223,13 +229,17 @@ static nsresult
 GetColor(nsPresContext* aPresContext, const nsMediaFeature*,
          nsCSSValue& aResult)
 {
-    
-    
-    
-    
-    nsDeviceContext *dx = GetDeviceContextFor(aPresContext);
-    uint32_t depth;
-    dx->GetDepth(depth);
+    uint32_t depth = 24; 
+
+    if (!ShouldResistFingerprinting(aPresContext)) {
+        
+        
+        
+        
+        nsDeviceContext *dx = GetDeviceContextFor(aPresContext);
+        dx->GetDepth(depth);
+    }
+
     
     
     
@@ -267,10 +277,15 @@ static nsresult
 GetResolution(nsPresContext* aPresContext, const nsMediaFeature*,
               nsCSSValue& aResult)
 {
-    
-    
-    float dpi = float(nsPresContext::AppUnitsPerCSSInch()) /
-                float(aPresContext->AppUnitsPerDevPixel());
+    float dpi = 96; 
+
+    if (!ShouldResistFingerprinting(aPresContext)) {
+      
+      
+      dpi = float(nsPresContext::AppUnitsPerCSSInch()) /
+            float(aPresContext->AppUnitsPerDevPixel());
+    }
+
     aResult.SetFloatValue(dpi, eCSSUnit_Inch);
     return NS_OK;
 }
@@ -299,15 +314,26 @@ static nsresult
 GetDevicePixelRatio(nsPresContext* aPresContext, const nsMediaFeature*,
                     nsCSSValue& aResult)
 {
-  float ratio = aPresContext->CSSPixelsToDevPixels(1.0f);
-  aResult.SetFloatValue(ratio, eCSSUnit_Number);
-  return NS_OK;
+    if (!ShouldResistFingerprinting(aPresContext)) {
+        float ratio = aPresContext->CSSPixelsToDevPixels(1.0f);
+        aResult.SetFloatValue(ratio, eCSSUnit_Number);
+    } else {
+        aResult.SetFloatValue(1.0, eCSSUnit_Number);
+    }
+    return NS_OK;
 }
 
 static nsresult
 GetSystemMetric(nsPresContext* aPresContext, const nsMediaFeature* aFeature,
                 nsCSSValue& aResult)
 {
+    aResult.Reset();
+    if (ShouldResistFingerprinting(aPresContext)) {
+        
+        
+        return NS_OK;
+    }
+
     MOZ_ASSERT(aFeature->mValueType == nsMediaFeature::eBoolInteger,
                "unexpected type");
     nsIAtom *metricAtom = *aFeature->mData.mMetric;
@@ -321,6 +347,10 @@ GetWindowsTheme(nsPresContext* aPresContext, const nsMediaFeature* aFeature,
                 nsCSSValue& aResult)
 {
     aResult.Reset();
+    if (ShouldResistFingerprinting(aPresContext)) {
+        return NS_OK;
+    }
+
 #ifdef XP_WIN
     uint8_t windowsThemeId =
         nsCSSRuleProcessor::GetWindowsThemeIdentifier();
@@ -346,6 +376,10 @@ GetOperatinSystemVersion(nsPresContext* aPresContext, const nsMediaFeature* aFea
                          nsCSSValue& aResult)
 {
     aResult.Reset();
+    if (ShouldResistFingerprinting(aPresContext)) {
+        return NS_OK;
+    }
+
 #ifdef XP_WIN
     int32_t metricResult;
     if (NS_SUCCEEDED(

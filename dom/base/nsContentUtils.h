@@ -200,6 +200,9 @@ public:
                                   JS::MutableHandle<JSPropertyDescriptor> aDesc);
 
   
+  static bool ShouldResistFingerprinting(nsIDocShell* aDocShell);
+
+  
 
 
 
@@ -1918,6 +1921,16 @@ public:
 
 
 
+  static bool ResistFingerprinting()
+  {
+    return sPrivacyResistFingerprinting;
+  }
+
+  
+
+
+
+
 
   static bool HasPluginWithUncontrolledEventDispatch(nsIDocument* aDoc);
 
@@ -2453,6 +2466,7 @@ private:
   static bool sIsUserTimingLoggingEnabled;
   static bool sIsExperimentalAutocompleteEnabled;
   static bool sEncodeDecodeURLHash;
+  static bool sPrivacyResistFingerprinting;
 
   static nsHtml5StringParser* sHTMLFragmentParser;
   static nsIParser* sXMLFragmentParser;
