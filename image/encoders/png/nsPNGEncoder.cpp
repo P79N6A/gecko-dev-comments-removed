@@ -351,7 +351,8 @@ nsPNGEncoder::ParseOptions(const nsAString& aOptions,
 
   while (char* token = nsCRT::strtok(options, ";", &options)) {
     
-    char* equals = token, *value = nullptr;
+    char* equals = token;
+    char* value = nullptr;
     while(*equals != '=' && *equals) {
       ++equals;
     }

@@ -1990,7 +1990,8 @@ nsresult nsBidiPresUtils::ProcessText(const char16_t*       aText,
 
             nscoord subWidth;
             
-            const char16_t* visualLeftPart, *visualRightSide;
+            const char16_t* visualLeftPart;
+            const char16_t* visualRightSide;
             if (level & 1) {
               
               posResolve->visualIndex = visualStart + (subRunLength - (posResolve->logicalIndex + 1 - start));

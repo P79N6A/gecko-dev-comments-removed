@@ -695,7 +695,8 @@ nsXULTemplateBuilder::UpdateResultInContainer(nsIXULTemplateResult* aOldResult,
     
     
     
-    nsTemplateMatch* replacedmatch = nullptr, * replacedmatchtodelete = nullptr;
+    nsTemplateMatch* replacedmatch = nullptr;
+    nsTemplateMatch* replacedmatchtodelete = nullptr;
 
     if (aOldResult) {
         nsTemplateMatch* firstmatch;
