@@ -40,21 +40,29 @@ Cu.import("resource://gre/modules/Services.jsm");
 
 
 
-const PREF_LOG_LEVEL = "services.hawk.loglevel";
 
 
 
-const PREF_LOG_SENSITIVE_DETAILS = "services.hawk.log.sensitive";
+const PREF_LOG_LEVEL = "services.common.hawk.log.appender.dump";
+
+
+
+const PREF_LOG_SENSITIVE_DETAILS = "services.common.hawk.log.sensitive";
 
 XPCOMUtils.defineLazyGetter(this, "log", function() {
   let log = Log.repository.getLogger("Hawk");
-  log.addAppender(new Log.DumpAppender());
-  log.level = Log.Level.Error;
+  
+  
+  
+  log.level = Log.Level.Debug;
+  let appender = new Log.DumpAppender();
+  log.addAppender(appender);
+  appender.level = Log.Level.Error;
   try {
     let level =
       Services.prefs.getPrefType(PREF_LOG_LEVEL) == Ci.nsIPrefBranch.PREF_STRING
       && Services.prefs.getCharPref(PREF_LOG_LEVEL);
-    log.level = Log.Level[level] || Log.Level.Error;
+    appender.level = Log.Level[level] || Log.Level.Error;
   } catch (e) {
     log.error(e);
   }
@@ -102,9 +110,14 @@ this.HawkClient.prototype = {
 
 
 
-  _constructError: function(restResponse, errorString) {
+  _constructError: function(restResponse, error) {
     let errorObj = {
-      error: errorString,
+      error: error,
+      
+      
+      
+      
+      errorString: error.toString(),
       message: restResponse.statusText,
       code: restResponse.status,
       errno: restResponse.status
@@ -190,6 +203,12 @@ this.HawkClient.prototype = {
     let self = this;
 
     function _onComplete(error) {
+      
+      
+      
+      if (error) {
+        log.warn("hawk request error", error);
+      }
       let restResponse = this.response;
       let status = restResponse.status;
 

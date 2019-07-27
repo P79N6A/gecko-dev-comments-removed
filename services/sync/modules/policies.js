@@ -593,7 +593,12 @@ ErrorHandler.prototype = {
     root.addAppender(fapp);
 
     
-    Log.repository.getLogger("FirefoxAccounts").addAppender(fapp);
+    for (let extra of ["FirefoxAccounts", "Hawk", "Common.TokenServerClient"]) {
+      let log = Log.repository.getLogger(extra);
+      for (let appender of [fapp, dapp, capp]) {
+        log.addAppender(appender);
+      }
+    }
   },
 
   observe: function observe(subject, topic, data) {
