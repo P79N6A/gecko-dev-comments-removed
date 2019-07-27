@@ -819,7 +819,12 @@ NotifyOffThreadScriptLoadCompletedRunnable::Run()
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  nsresult rv = mLoader->ProcessOffThreadRequest(mRequest, &mToken);
+  
+  
+  nsRefPtr<nsScriptLoadRequest> request = mRequest.forget();
+  nsRefPtr<nsScriptLoader> loader = mLoader.forget();
+
+  nsresult rv = loader->ProcessOffThreadRequest(request, &mToken);
 
   if (mToken) {
     
