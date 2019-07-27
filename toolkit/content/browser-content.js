@@ -458,9 +458,17 @@ let Printing = {
       printSettings = null;
     }
 
-    let print = contentWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                             .getInterface(Ci.nsIWebBrowserPrint);
-    print.print(printSettings, null);
+    let rv = Cr.NS_OK;
+    try {
+      let print = contentWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                               .getInterface(Ci.nsIWebBrowserPrint);
+      print.print(printSettings, null);
+    } catch(e) {
+      
+      
+      rv = e.result;
+    }
+    sendAsyncMessage("Printing:Print:Done", { rv }, { printSettings });
   },
 
   updatePageCount() {
