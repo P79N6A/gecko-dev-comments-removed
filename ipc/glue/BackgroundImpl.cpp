@@ -439,6 +439,11 @@ private:
         threadLocalInfo->mActor->Close();
         threadLocalInfo->mActor->AssertActorDestroyed();
 
+        ProcessHandle otherProcess = threadLocalInfo->mActor->OtherProcess();
+        if (otherProcess != kInvalidProcessHandle) {
+          base::CloseProcessHandle(otherProcess);
+        }
+
         
         
         if (!NS_IsMainThread()) {
