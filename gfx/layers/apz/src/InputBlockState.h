@@ -45,12 +45,16 @@ public:
 
   bool IsTargetConfirmed() const;
 
+protected:
+  void UpdateTargetApzc(const nsRefPtr<AsyncPanZoomController>& aTargetApzc);
+
 private:
   nsRefPtr<AsyncPanZoomController> mTargetApzc;
-  nsRefPtr<const OverscrollHandoffChain> mOverscrollHandoffChain;
   bool mTargetConfirmed;
   const uint64_t mBlockId;
 protected:
+  nsRefPtr<const OverscrollHandoffChain> mOverscrollHandoffChain;
+
   
   
   
@@ -106,7 +110,7 @@ public:
 
 
 
-  void DispatchImmediate(const InputData& aEvent) const;
+  virtual void DispatchImmediate(const InputData& aEvent);
 
   
 
@@ -154,7 +158,8 @@ class WheelBlockState : public CancelableBlockState
 {
 public:
   WheelBlockState(const nsRefPtr<AsyncPanZoomController>& aTargetApzc,
-                  bool aTargetConfirmed);
+                  bool aTargetConfirmed,
+                  const ScrollWheelInput& aEvent);
 
   bool IsReadyForHandling() const override;
   bool HasEvents() const override;
@@ -162,6 +167,7 @@ public:
   void HandleEvents() override;
   bool MustStayActive() override;
   const char* Type() override;
+  void DispatchImmediate(const InputData& aEvent) override;
 
   void AddEvent(const ScrollWheelInput& aEvent);
 
@@ -169,8 +175,46 @@ public:
     return this;
   }
 
+  
+
+
+
+
+
+
+  bool ShouldAcceptNewEvent(const ScrollWheelInput& aEvent) const;
+
+  
+
+
+
+
+
+
+
+  bool InTransaction() const;
+
+  
+
+
+
+  void EndTransaction();
+
+  
+
+
+  bool AllowScrollHandoff() const;
+
+private:
+  
+
+
+  void Update(const ScrollWheelInput& aEvent);
+
 private:
   nsTArray<ScrollWheelInput> mEvents;
+  TimeStamp mLastEventTime;
+  bool mTransactionEnded;
 };
 
 

@@ -23,6 +23,7 @@ class AsyncPanZoomController;
 class OverscrollHandoffChain;
 class CancelableBlockState;
 class TouchBlockState;
+class WheelBlockState;
 
 
 
@@ -88,7 +89,17 @@ public:
 
 
 
+  WheelBlockState* CurrentWheelBlock() const;
+  
+
+
+
   bool HasReadyTouchBlock() const;
+  
+
+
+
+  WheelBlockState* GetCurrentWheelTransaction() const;
 
 private:
   ~InputQueue();

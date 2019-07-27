@@ -361,6 +361,14 @@ public:
   ParentLayerPoint ToParentLayerCoordinates(const ScreenPoint& aVector,
                                             const ScreenPoint& aAnchor) const;
 
+  
+  
+  bool CanScroll(const ScrollWheelInput& aEvent) const;
+
+  
+  
+  bool CanScroll(double aDeltaX, double aDeltaY) const;
+
 protected:
   
   ~AsyncPanZoomController();
@@ -422,6 +430,10 @@ protected:
 
 
   nsEventStatus OnScrollWheel(const ScrollWheelInput& aEvent);
+
+  void GetScrollWheelDelta(const ScrollWheelInput& aEvent,
+                           double& aOutDeltaX,
+                           double& aOutDeltaY) const;
 
   
 
@@ -848,6 +860,9 @@ private:
   void StartOverscrollAnimation(const ParentLayerPoint& aVelocity);
 
   void StartSmoothScroll(ScrollSource aSource);
+
+  
+  bool AllowScrollHandoffInWheelTransaction() const;
 
   
 

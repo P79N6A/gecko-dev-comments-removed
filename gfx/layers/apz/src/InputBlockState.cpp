@@ -49,11 +49,17 @@ InputBlockState::SetConfirmedTargetApzc(const nsRefPtr<AsyncPanZoomController>& 
   printf_stderr("%p replacing unconfirmed target %p with real target %p\n",
       this, mTargetApzc.get(), aTargetApzc.get());
 
+  UpdateTargetApzc(aTargetApzc);
+  return true;
+}
+
+void
+InputBlockState::UpdateTargetApzc(const nsRefPtr<AsyncPanZoomController>& aTargetApzc)
+{
   
   mTargetApzc = aTargetApzc;
   mTransformToApzc = aTargetApzc ? aTargetApzc->GetTransformToThis() : gfx::Matrix4x4();
   mOverscrollHandoffChain = (mTargetApzc ? mTargetApzc->BuildOverscrollHandoffChain() : nullptr);
-  return true;
 }
 
 const nsRefPtr<AsyncPanZoomController>&
@@ -135,23 +141,56 @@ CancelableBlockState::IsReadyForHandling() const
 }
 
 void
-CancelableBlockState::DispatchImmediate(const InputData& aEvent) const
+CancelableBlockState::DispatchImmediate(const InputData& aEvent)
 {
   MOZ_ASSERT(!HasEvents());
   MOZ_ASSERT(GetTargetApzc());
   GetTargetApzc()->HandleInputEvent(aEvent, mTransformToApzc);
 }
 
+
+static uint64_t sLastWheelBlockId = InputBlockState::NO_BLOCK_ID;
+
 WheelBlockState::WheelBlockState(const nsRefPtr<AsyncPanZoomController>& aTargetApzc,
-                                 bool aTargetConfirmed)
+                                 bool aTargetConfirmed,
+                                 const ScrollWheelInput& aInitialEvent)
   : CancelableBlockState(aTargetApzc, aTargetConfirmed)
+  , mTransactionEnded(false)
 {
+  sLastWheelBlockId = GetBlockId();
+  Update(aInitialEvent);
+
+  if (aTargetConfirmed) {
+    
+    
+    
+    
+    nsRefPtr<AsyncPanZoomController> apzc =
+      mOverscrollHandoffChain->FindFirstScrollable(aInitialEvent);
+    if (apzc && apzc != GetTargetApzc()) {
+      UpdateTargetApzc(apzc);
+    }
+  }
+}
+
+void
+WheelBlockState::Update(const ScrollWheelInput& aEvent)
+{
+  mLastEventTime = aEvent.mTimeStamp;
 }
 
 void
 WheelBlockState::AddEvent(const ScrollWheelInput& aEvent)
 {
+  Update(aEvent);
   mEvents.AppendElement(aEvent);
+}
+
+void
+WheelBlockState::DispatchImmediate(const InputData& aEvent)
+{
+  Update(aEvent.AsScrollWheelInput());
+  CancelableBlockState::DispatchImmediate(aEvent);
 }
 
 bool
@@ -190,13 +229,61 @@ WheelBlockState::HandleEvents()
 bool
 WheelBlockState::MustStayActive()
 {
-  return false;
+  return !mTransactionEnded;
 }
 
 const char*
 WheelBlockState::Type()
 {
   return "scroll wheel";
+}
+
+bool
+WheelBlockState::ShouldAcceptNewEvent(const ScrollWheelInput& aEvent) const
+{
+  if (!InTransaction()) {
+    
+    return false;
+  }
+  nsRefPtr<AsyncPanZoomController> apzc = GetTargetApzc();
+  if (!apzc || apzc->IsDestroyed()) {
+    return false;
+  }
+
+  
+  
+  TimeDuration duration = aEvent.mTimeStamp - mLastEventTime;
+  if (duration.ToMilliseconds() >= gfxPrefs::MouseWheelTransactionTimeoutMs()) {
+    return false;
+  }
+
+  
+  return true;
+}
+
+bool
+WheelBlockState::InTransaction() const
+{
+  
+  
+  if (GetBlockId() != sLastWheelBlockId) {
+    return false;
+  }
+  return !mTransactionEnded;
+}
+
+bool
+WheelBlockState::AllowScrollHandoff() const
+{
+  
+  
+  return !IsTargetConfirmed() || !InTransaction();
+}
+
+void
+WheelBlockState::EndTransaction()
+{
+  mTransactionEnded = true;
 }
 
 TouchBlockState::TouchBlockState(const nsRefPtr<AsyncPanZoomController>& aTargetApzc,

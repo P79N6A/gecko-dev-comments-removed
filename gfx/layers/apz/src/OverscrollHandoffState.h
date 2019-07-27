@@ -113,6 +113,8 @@ public:
   
   bool HasFastMovingApzc() const;
 
+  nsRefPtr<AsyncPanZoomController> FindFirstScrollable(const ScrollWheelInput& aInput) const;
+
 private:
   std::vector<nsRefPtr<AsyncPanZoomController>> mChain;
 

@@ -150,6 +150,11 @@ public:
   
 
 
+  bool CanScroll(double aDelta) const;
+
+  
+
+
 
   bool CanScrollNow() const;
 
