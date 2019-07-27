@@ -59,6 +59,8 @@ public class MainActivity extends FragmentActivity implements AcceptsSearchQuery
     private View preSearch;
     private View postSearch;
 
+    private View settingsButton;
+
     private View suggestions;
     private SuggestionsFragment suggestionsFragment;
 
@@ -119,6 +121,16 @@ public class MainActivity extends FragmentActivity implements AcceptsSearchQuery
         preSearch = findViewById(R.id.presearch);
         postSearch = findViewById(R.id.postsearch);
 
+        settingsButton = findViewById(R.id.settings_button);
+
+        
+        settingsButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(MainActivity.this, SearchPreferenceActivity.class));
+            }
+        });
+
         suggestions = findViewById(R.id.suggestions);
         suggestionsFragment = (SuggestionsFragment) getSupportFragmentManager().findFragmentById(R.id.suggestions);
 
@@ -155,6 +167,7 @@ public class MainActivity extends FragmentActivity implements AcceptsSearchQuery
         editText = null;
         preSearch = null;
         postSearch = null;
+        settingsButton = null;
         suggestionsFragment = null;
         suggestions = null;
         animationText = null;
@@ -195,7 +208,7 @@ public class MainActivity extends FragmentActivity implements AcceptsSearchQuery
 
     @Override
     public void onSuggest(String query) {
-       editText.setText(query);
+        editText.setText(query);
     }
 
     @Override
@@ -296,6 +309,8 @@ public class MainActivity extends FragmentActivity implements AcceptsSearchQuery
         }
         this.editState = editState;
 
+        updateSettingsButtonVisibility();
+
         editText.setActive(editState == EditState.EDITING);
         suggestions.setVisibility(editState == EditState.EDITING ? View.VISIBLE : View.INVISIBLE);
     }
@@ -306,8 +321,19 @@ public class MainActivity extends FragmentActivity implements AcceptsSearchQuery
         }
         this.searchState = searchState;
 
+        updateSettingsButtonVisibility();
+
         preSearch.setVisibility(searchState == SearchState.PRESEARCH ? View.VISIBLE : View.INVISIBLE);
         postSearch.setVisibility(searchState == SearchState.POSTSEARCH ? View.VISIBLE : View.INVISIBLE);
+    }
+
+    private void updateSettingsButtonVisibility() {
+        
+        if (searchState == SearchState.PRESEARCH && editState == EditState.WAITING) {
+            settingsButton.setVisibility(View.VISIBLE);
+        } else {
+            settingsButton.setVisibility(View.INVISIBLE);
+        }
     }
 
     @Override
