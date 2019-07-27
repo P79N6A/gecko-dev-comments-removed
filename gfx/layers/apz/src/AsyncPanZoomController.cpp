@@ -497,9 +497,9 @@ public:
     if (!shouldContinueFlingX && !shouldContinueFlingY) {
       APZC_LOG("%p ending fling animation. overscrolled=%d\n", &mApzc, mApzc.IsOverscrolled());
       
-      if (mApzc.IsOverscrolled()) {
-        mDeferredTasks.append(NewRunnableMethod(&mApzc, &AsyncPanZoomController::StartSnapBack));
-      }
+      
+      mDeferredTasks.append(NewRunnableMethod(&mApzc,
+          &AsyncPanZoomController::CallSnapBackOverscrolledApzc));
       return false;
     }
 
@@ -654,6 +654,11 @@ public:
   OverscrollSnapBackAnimation(AsyncPanZoomController& aApzc)
     : mApzc(aApzc)
   {
+    
+    
+    
+    mApzc.mX.SetVelocity(0);
+    mApzc.mY.SetVelocity(0);
   }
 
   virtual bool Sample(FrameMetrics& aFrameMetrics,
@@ -1767,6 +1772,13 @@ bool AsyncPanZoomController::CallDispatchScroll(const ScreenPoint& aStartPoint, 
                                           aOverscrollHandoffChainIndex);
 }
 
+void AsyncPanZoomController::CallSnapBackOverscrolledApzc() {
+  APZCTreeManager* treeManagerLocal = mTreeManager;
+  if (treeManagerLocal) {
+    treeManagerLocal->SnapBackOverscrolledApzc(this);
+  }
+}
+
 void AsyncPanZoomController::TrackTouch(const MultiTouchInput& aEvent) {
   ScreenIntPoint prevTouchPoint(mX.GetPos(), mY.GetPos());
   ScreenIntPoint touchPoint = GetFirstTouchScreenPoint(aEvent);
@@ -1955,6 +1967,16 @@ void AsyncPanZoomController::FlushRepaintForOverscrollHandoff() {
   ReentrantMonitorAutoEnter lock(mMonitor);
   RequestContentRepaint();
   UpdateSharedCompositorFrameMetrics();
+}
+
+bool AsyncPanZoomController::SnapBackIfOverscrolled() {
+  ReentrantMonitorAutoEnter lock(mMonitor);
+  if (IsOverscrolled()) {
+    APZC_LOG("%p is overscrolled, starting snap-back\n", this);
+    StartSnapBack();
+    return true;
+  }
+  return false;
 }
 
 bool AsyncPanZoomController::IsPannable() const {

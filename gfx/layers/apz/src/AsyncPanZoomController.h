@@ -903,6 +903,12 @@ public:
 
   void FlushRepaintForOverscrollHandoff();
 
+  
+
+
+
+  bool SnapBackIfOverscrolled();
+
 private:
   FrameMetrics::ViewID mScrollParentId;
 
@@ -913,6 +919,12 @@ private:
 
   bool CallDispatchScroll(const ScreenPoint& aStartPoint, const ScreenPoint& aEndPoint,
                           uint32_t aOverscrollHandoffChainIndex);
+
+  
+
+
+
+  void CallSnapBackOverscrolledApzc();
 
   
 

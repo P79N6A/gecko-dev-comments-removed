@@ -907,6 +907,23 @@ APZCTreeManager::CancelAnimationsForOverscrollHandoffChain()
   return mOverscrollHandoffChain.length() > 0;
 }
 
+void
+APZCTreeManager::SnapBackOverscrolledApzc(AsyncPanZoomController* aApzc)
+{
+  
+  
+  BuildOverscrollHandoffChain(aApzc);
+  MonitorAutoLock lock(mTreeLock);
+  
+  
+  for (uint32_t i = 0; i < mOverscrollHandoffChain.length(); ++i) {
+    if (mOverscrollHandoffChain[i]->SnapBackIfOverscrolled()) {
+      break;
+    }
+  }
+  mOverscrollHandoffChain.clear();
+}
+
 bool
 APZCTreeManager::CanBePanned(AsyncPanZoomController* aApzc)
 {
