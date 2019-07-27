@@ -102,7 +102,7 @@ protected:
   }
 
 
-  nsIntRect mBufferRect;
+  gfx::IntRect mBufferRect;
   nsIntPoint mBufferRotation;
   bool mInitialised;
 };

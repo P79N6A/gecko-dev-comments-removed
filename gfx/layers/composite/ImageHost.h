@@ -59,7 +59,7 @@ public:
 
   virtual void SetCompositor(Compositor* aCompositor) override;
 
-  virtual void SetPictureRect(const nsIntRect& aPictureRect) override
+  virtual void SetPictureRect(const gfx::IntRect& aPictureRect) override
   {
     mPictureRect = aPictureRect;
     mHasPictureRect = true;
@@ -87,7 +87,7 @@ protected:
 
   CompositableTextureHostRef mFrontBuffer;
   CompositableTextureSourceRef mTextureSource;
-  nsIntRect mPictureRect;
+  gfx::IntRect mPictureRect;
   bool mHasPictureRect;
   bool mLocked;
 };
@@ -112,14 +112,14 @@ public:
                          const nsIntRegion* aVisibleRegion = nullptr) override;
   virtual LayerRenderState GetRenderState() override;
   virtual void UseOverlaySource(OverlaySource aOverlay) override;
-  virtual void SetPictureRect(const nsIntRect& aPictureRect) override
+  virtual void SetPictureRect(const gfx::IntRect& aPictureRect) override
   {
     mPictureRect = aPictureRect;
     mHasPictureRect = true;
   }
   virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix);
 protected:
-  nsIntRect mPictureRect;
+  gfx::IntRect mPictureRect;
   bool mHasPictureRect;
   OverlaySource mOverlay;
 };

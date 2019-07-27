@@ -56,7 +56,7 @@ IsSameDimension(dom::ScreenOrientation o1, dom::ScreenOrientation o2)
 }
 
 static bool
-ContentMightReflowOnOrientationChange(const nsIntRect& rect)
+ContentMightReflowOnOrientationChange(const IntRect& rect)
 {
   return rect.width != rect.height;
 }
