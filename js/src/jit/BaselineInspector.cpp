@@ -23,7 +23,7 @@ SetElemICInspector::sawOOBDenseWrite() const
 
     
     for (ICStub* stub = icEntry_->firstStub(); stub; stub = stub->next()) {
-        if (stub->isSetElem_DenseOrUnboxedArrayAdd())
+        if (stub->isSetElem_DenseAdd())
             return true;
     }
 
@@ -59,7 +59,7 @@ SetElemICInspector::sawDenseWrite() const
 
     
     for (ICStub* stub = icEntry_->firstStub(); stub; stub = stub->next()) {
-        if (stub->isSetElem_DenseOrUnboxedArrayAdd() || stub->isSetElem_DenseOrUnboxedArray())
+        if (stub->isSetElem_DenseAdd() || stub->isSetElem_Dense())
             return true;
     }
     return false;

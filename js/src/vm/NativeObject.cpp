@@ -329,11 +329,8 @@ NativeObject::setLastPropertyMakeNonNative(Shape* shape)
     MOZ_ASSERT(shape->compartment() == compartment());
     MOZ_ASSERT(shape->slotSpan() == 0);
     MOZ_ASSERT(shape->numFixedSlots() == 0);
-
-    if (hasDynamicElements())
-        js_free(getElementsHeader());
-    if (hasDynamicSlots())
-        js_free(slots_);
+    MOZ_ASSERT(!hasDynamicElements());
+    MOZ_ASSERT(!hasDynamicSlots());
 
     shape_ = shape;
 }
@@ -689,9 +686,6 @@ ReallocateElements(ExclusiveContext* cx, JSObject* obj, ObjectElements* oldHeade
             obj->zone()->pod_realloc<HeapSlot>(reinterpret_cast<HeapSlot*>(oldHeader),
                                                oldCount, newCount));
 }
-
-
-
 
 
 

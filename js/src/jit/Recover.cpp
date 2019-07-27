@@ -1214,6 +1214,10 @@ RNewArray::recover(JSContext* cx, SnapshotIterator& iter) const
     RootedValue result(cx);
     RootedObjectGroup group(cx);
 
+    
+    if (!templateObject->isSingleton())
+        group = templateObject->group();
+
     JSObject* resultObject = NewDenseArray(cx, count_, group, allocatingBehaviour_);
     if (!resultObject)
         return false;

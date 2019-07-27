@@ -283,20 +283,8 @@ Snapshot(JSContext* cx, HandleObject pobj_, unsigned flags, AutoIdVector* props)
             if (!enumerate(cx, pobj, properties))
                  return false;
 
-            RootedId id(cx);
             for (size_t n = 0; n < properties.length(); n++) {
-                id = properties[n];
-                bool enumerable = true;
-
-                
-                
-                
-                
-                
-                if (pobj->is<UnboxedArrayObject>() && id == NameToId(cx->names().length))
-                    enumerable = false;
-
-                if (!Enumerate(cx, pobj, id, enumerable, flags, ht, props))
+                if (!Enumerate(cx, pobj, properties[n], true, flags, ht, props))
                     return false;
             }
 

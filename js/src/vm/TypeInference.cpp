@@ -2381,8 +2381,6 @@ TemporaryTypeSet::propertyNeedsBarrier(CompilerConstraintList* constraints, jsid
 bool
 js::ClassCanHaveExtraProperties(const Class* clasp)
 {
-    if (clasp == &UnboxedPlainObject::class_ || clasp == &UnboxedArrayObject::class_)
-        return false;
     return clasp->resolve
         || clasp->ops.lookupProperty
         || clasp->ops.getProperty
@@ -3339,19 +3337,16 @@ PreliminaryObjectArray::sweep()
 void
 PreliminaryObjectArrayWithTemplate::trace(JSTracer* trc)
 {
-    if (shape_)
-        TraceEdge(trc, &shape_, "PreliminaryObjectArrayWithTemplate_shape");
+    TraceEdge(trc, &shape_, "PreliminaryObjectArrayWithTemplate_shape");
 }
 
  void
 PreliminaryObjectArrayWithTemplate::writeBarrierPre(PreliminaryObjectArrayWithTemplate* objects)
 {
-    Shape* shape = objects->shape();
-
-    if (!shape || !shape->runtimeFromAnyThread()->needsIncrementalBarrier())
+    if (!objects->shape()->runtimeFromAnyThread()->needsIncrementalBarrier())
         return;
 
-    JS::Zone* zone = shape->zoneFromAnyThread();
+    JS::Zone* zone = objects->shape()->zoneFromAnyThread();
     if (zone->needsIncrementalBarrier())
         objects->trace(zone->barrierTracer());
 }
@@ -3411,37 +3406,33 @@ PreliminaryObjectArrayWithTemplate::maybeAnalyze(ExclusiveContext* cx, ObjectGro
     ScopedJSDeletePtr<PreliminaryObjectArrayWithTemplate> preliminaryObjects(this);
     group->detachPreliminaryObjects();
 
-    if (shape()) {
-        MOZ_ASSERT(shape()->slotSpan() != 0);
-        MOZ_ASSERT(OnlyHasDataProperties(shape()));
+    MOZ_ASSERT(shape()->slotSpan() != 0);
+    MOZ_ASSERT(OnlyHasDataProperties(shape()));
 
-        
-        
-        for (size_t i = 0; i < PreliminaryObjectArray::COUNT; i++) {
-            JSObject* objBase = preliminaryObjects->get(i);
-            if (!objBase)
-                continue;
-            PlainObject* obj = &objBase->as<PlainObject>();
+    
+    
+    for (size_t i = 0; i < PreliminaryObjectArray::COUNT; i++) {
+        JSObject* objBase = preliminaryObjects->get(i);
+        if (!objBase)
+            continue;
+        PlainObject* obj = &objBase->as<PlainObject>();
 
-            if (obj->inDictionaryMode() || !OnlyHasDataProperties(obj->lastProperty()))
-                return;
+        if (obj->inDictionaryMode() || !OnlyHasDataProperties(obj->lastProperty()))
+            return;
 
-            if (CommonPrefix(obj->lastProperty(), shape()) != shape())
-                return;
-        }
+        if (CommonPrefix(obj->lastProperty(), shape()) != shape())
+            return;
     }
 
     TryConvertToUnboxedLayout(cx, shape(), group, preliminaryObjects);
     if (group->maybeUnboxedLayout())
         return;
 
-    if (shape()) {
-        
-        
-        
-        
-        group->addDefiniteProperties(cx, shape());
-    }
+    
+    
+    
+    
+    group->addDefiniteProperties(cx, shape());
 }
 
 

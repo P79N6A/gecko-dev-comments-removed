@@ -2917,29 +2917,25 @@ class MNewArray
     
     bool convertDoubleElements_;
 
-    jsbytecode* pc_;
-
     MNewArray(CompilerConstraintList* constraints, uint32_t count, MConstant* templateConst,
-              gc::InitialHeap initialHeap, AllocatingBehaviour allocating, jsbytecode* pc);
+              gc::InitialHeap initialHeap, AllocatingBehaviour allocating);
 
   public:
     INSTRUCTION_HEADER(NewArray)
 
     static MNewArray* New(TempAllocator& alloc, CompilerConstraintList* constraints,
                           uint32_t count, MConstant* templateConst,
-                          gc::InitialHeap initialHeap, AllocatingBehaviour allocating,
-                          jsbytecode* pc)
+                          gc::InitialHeap initialHeap, AllocatingBehaviour allocating)
     {
-        return new(alloc) MNewArray(constraints, count, templateConst,
-                                    initialHeap, allocating, pc);
+        return new(alloc) MNewArray(constraints, count, templateConst, initialHeap, allocating);
     }
 
     uint32_t count() const {
         return count_;
     }
 
-    JSObject* templateObject() const {
-        return getOperand(0)->toConstant()->value().toObjectOrNull();
+    ArrayObject* templateObject() const {
+        return &getOperand(0)->toConstant()->value().toObject().as<ArrayObject>();
     }
 
     gc::InitialHeap initialHeap() const {
@@ -2948,10 +2944,6 @@ class MNewArray
 
     AllocatingBehaviour allocatingBehaviour() const {
         return allocating_;
-    }
-
-    jsbytecode* pc() const {
-        return pc_;
     }
 
     bool convertDoubleElements() const {
@@ -2976,7 +2968,7 @@ class MNewArray
     bool canRecoverOnBailout() const override {
         
         
-        return templateObject() != nullptr;
+        return true;
     }
 };
 
@@ -7599,10 +7591,8 @@ class MElements
   : public MUnaryInstruction,
     public SingleObjectPolicy::Data
 {
-    bool unboxed_;
-
-    explicit MElements(MDefinition* object, bool unboxed)
-      : MUnaryInstruction(object), unboxed_(unboxed)
+    explicit MElements(MDefinition* object)
+      : MUnaryInstruction(object)
     {
         setResultType(MIRType_Elements);
         setMovable();
@@ -7611,19 +7601,15 @@ class MElements
   public:
     INSTRUCTION_HEADER(Elements)
 
-    static MElements* New(TempAllocator& alloc, MDefinition* object, bool unboxed = false) {
-        return new(alloc) MElements(object, unboxed);
+    static MElements* New(TempAllocator& alloc, MDefinition* object) {
+        return new(alloc) MElements(object);
     }
 
     MDefinition* object() const {
         return getOperand(0);
     }
-    bool unboxed() const {
-        return unboxed_;
-    }
     bool congruentTo(const MDefinition* ins) const override {
-        return congruentIfOperandsEqual(ins) &&
-               ins->toElements()->unboxed() == unboxed();
+        return congruentIfOperandsEqual(ins);
     }
     AliasSet getAliasSet() const override {
         return AliasSet::Load(AliasSet::ObjectFields);
@@ -7852,96 +7838,6 @@ class MSetInitializedLength
     }
 
     ALLOW_CLONE(MSetInitializedLength)
-};
-
-
-class MUnboxedArrayLength
-  : public MUnaryInstruction,
-    public SingleObjectPolicy::Data
-{
-    explicit MUnboxedArrayLength(MDefinition* object)
-      : MUnaryInstruction(object)
-    {
-        setResultType(MIRType_Int32);
-        setMovable();
-    }
-
-  public:
-    INSTRUCTION_HEADER(UnboxedArrayLength)
-
-    static MUnboxedArrayLength* New(TempAllocator& alloc, MDefinition* object) {
-        return new(alloc) MUnboxedArrayLength(object);
-    }
-
-    MDefinition* object() const {
-        return getOperand(0);
-    }
-    bool congruentTo(const MDefinition* ins) const override {
-        return congruentIfOperandsEqual(ins);
-    }
-    AliasSet getAliasSet() const override {
-        return AliasSet::Load(AliasSet::ObjectFields);
-    }
-
-    ALLOW_CLONE(MUnboxedArrayLength)
-};
-
-
-class MUnboxedArrayInitializedLength
-  : public MUnaryInstruction,
-    public SingleObjectPolicy::Data
-{
-    explicit MUnboxedArrayInitializedLength(MDefinition* object)
-      : MUnaryInstruction(object)
-    {
-        setResultType(MIRType_Int32);
-        setMovable();
-    }
-
-  public:
-    INSTRUCTION_HEADER(UnboxedArrayInitializedLength)
-
-    static MUnboxedArrayInitializedLength* New(TempAllocator& alloc, MDefinition* object) {
-        return new(alloc) MUnboxedArrayInitializedLength(object);
-    }
-
-    MDefinition* object() const {
-        return getOperand(0);
-    }
-    bool congruentTo(const MDefinition* ins) const override {
-        return congruentIfOperandsEqual(ins);
-    }
-    AliasSet getAliasSet() const override {
-        return AliasSet::Load(AliasSet::ObjectFields);
-    }
-
-    ALLOW_CLONE(MUnboxedArrayInitializedLength)
-};
-
-
-class MIncrementUnboxedArrayInitializedLength
-  : public MUnaryInstruction,
-    public SingleObjectPolicy::Data
-{
-    explicit MIncrementUnboxedArrayInitializedLength(MDefinition* obj)
-      : MUnaryInstruction(obj)
-    {}
-
-  public:
-    INSTRUCTION_HEADER(IncrementUnboxedArrayInitializedLength)
-
-    static MIncrementUnboxedArrayInitializedLength* New(TempAllocator& alloc, MDefinition* obj) {
-        return new(alloc) MIncrementUnboxedArrayInitializedLength(obj);
-    }
-
-    MDefinition* object() const {
-        return getOperand(0);
-    }
-    AliasSet getAliasSet() const override {
-        return AliasSet::Store(AliasSet::ObjectFields);
-    }
-
-    ALLOW_CLONE(MIncrementUnboxedArrayInitializedLength)
 };
 
 
@@ -8470,16 +8366,11 @@ class MLoadElementHole
   : public MTernaryInstruction,
     public SingleObjectPolicy::Data
 {
-    
-    JSValueType unboxedType_;
-
     bool needsNegativeIntCheck_;
     bool needsHoleCheck_;
 
-    MLoadElementHole(MDefinition* elements, MDefinition* index, MDefinition* initLength,
-                     JSValueType unboxedType, bool needsHoleCheck)
+    MLoadElementHole(MDefinition* elements, MDefinition* index, MDefinition* initLength, bool needsHoleCheck)
       : MTernaryInstruction(elements, index, initLength),
-        unboxedType_(unboxedType),
         needsNegativeIntCheck_(true),
         needsHoleCheck_(needsHoleCheck)
     {
@@ -8500,10 +8391,8 @@ class MLoadElementHole
     INSTRUCTION_HEADER(LoadElementHole)
 
     static MLoadElementHole* New(TempAllocator& alloc, MDefinition* elements, MDefinition* index,
-                                 MDefinition* initLength, JSValueType unboxedType,
-                                 bool needsHoleCheck) {
-        return new(alloc) MLoadElementHole(elements, index, initLength,
-                                           unboxedType, needsHoleCheck);
+                                 MDefinition* initLength, bool needsHoleCheck) {
+        return new(alloc) MLoadElementHole(elements, index, initLength, needsHoleCheck);
     }
 
     MDefinition* elements() const {
@@ -8515,9 +8404,6 @@ class MLoadElementHole
     MDefinition* initLength() const {
         return getOperand(2);
     }
-    JSValueType unboxedType() const {
-        return unboxedType_;
-    }
     bool needsNegativeIntCheck() const {
         return needsNegativeIntCheck_;
     }
@@ -8528,8 +8414,6 @@ class MLoadElementHole
         if (!ins->isLoadElementHole())
             return false;
         const MLoadElementHole* other = ins->toLoadElementHole();
-        if (unboxedType() != other->unboxedType())
-            return false;
         if (needsHoleCheck() != other->needsHoleCheck())
             return false;
         if (needsNegativeIntCheck() != other->needsNegativeIntCheck())
@@ -8537,9 +8421,7 @@ class MLoadElementHole
         return congruentIfOperandsEqual(other);
     }
     AliasSet getAliasSet() const override {
-        return AliasSet::Load(unboxedType() == JSVAL_TYPE_MAGIC
-                              ? AliasSet::Element
-                              : AliasSet::UnboxedElement);
+        return AliasSet::Load(AliasSet::Element);
     }
     void collectRangeInfoPreTrunc() override;
 
@@ -8758,12 +8640,8 @@ class MStoreElementHole
     public MStoreElementCommon,
     public MixPolicy<SingleObjectPolicy, NoFloatPolicy<3> >::Data
 {
-    JSValueType unboxedType_;
-
     MStoreElementHole(MDefinition* object, MDefinition* elements,
-                      MDefinition* index, MDefinition* value, JSValueType unboxedType)
-      : unboxedType_(unboxedType)
-    {
+                      MDefinition* index, MDefinition* value) {
         initOperand(0, object);
         initOperand(1, elements);
         initOperand(2, index);
@@ -8776,8 +8654,8 @@ class MStoreElementHole
     INSTRUCTION_HEADER(StoreElementHole)
 
     static MStoreElementHole* New(TempAllocator& alloc, MDefinition* object, MDefinition* elements,
-                                  MDefinition* index, MDefinition* value, JSValueType unboxedType) {
-        return new(alloc) MStoreElementHole(object, elements, index, value, unboxedType);
+                                  MDefinition* index, MDefinition* value) {
+        return new(alloc) MStoreElementHole(object, elements, index, value);
     }
 
     MDefinition* object() const {
@@ -8792,16 +8670,10 @@ class MStoreElementHole
     MDefinition* value() const {
         return getOperand(3);
     }
-    JSValueType unboxedType() const {
-        return unboxedType_;
-    }
     AliasSet getAliasSet() const override {
         
         
-        return AliasSet::Store(AliasSet::ObjectFields |
-                               ((unboxedType() == JSVAL_TYPE_MAGIC)
-                                ? AliasSet::Element
-                                : AliasSet::UnboxedElement));
+        return AliasSet::Store(AliasSet::Element | AliasSet::ObjectFields);
     }
 
     ALLOW_CLONE(MStoreElementHole)
@@ -13348,8 +13220,6 @@ MControlInstruction* MDefinition::toControlInstruction() {
 
 bool ElementAccessIsDenseNative(CompilerConstraintList* constraints,
                                 MDefinition* obj, MDefinition* id);
-JSValueType UnboxedArrayElementType(CompilerConstraintList* constraints, MDefinition* obj,
-                                    MDefinition* id);
 bool ElementAccessIsAnyTypedArray(CompilerConstraintList* constraints,
                                   MDefinition* obj, MDefinition* id,
                                   Scalar::Type* arrayType);

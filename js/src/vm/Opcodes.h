@@ -1272,18 +1272,7 @@
 
  \
     macro(JSOP_GETELEM_SUPER, 125, "getelem-super", NULL, 1,  3,  1, JOF_BYTE |JOF_ELEM|JOF_LEFTASSOC) \
-    
-
-
-
-
-
-
-
-
-
- \
-    macro(JSOP_SPREADCALLARRAY, 126, "spreadcallarray", NULL, 4,  0,  1, JOF_UINT24) \
+    macro(JSOP_UNUSED126,  126, "unused126", NULL,      1,  0,  0,  JOF_BYTE) \
     \
     
 
