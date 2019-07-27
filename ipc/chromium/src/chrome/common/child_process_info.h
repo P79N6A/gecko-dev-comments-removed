@@ -91,7 +91,7 @@ class ChildProcessInfo {
   }
 
   
-  ChildProcessInfo(ProcessType type);
+  explicit ChildProcessInfo(ProcessType type);
 
  private:
   ProcessType type_;

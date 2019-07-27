@@ -32,7 +32,7 @@ class AtExitManager {
   
   
   
-  AtExitManager(bool shadow);
+  explicit AtExitManager(bool shadow);
 
  public:
   typedef void (*AtExitCallbackType)(void*);

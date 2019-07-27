@@ -49,13 +49,13 @@ public:
 
 
 
-  CrossProcessMutex(const char* aName);
+  explicit CrossProcessMutex(const char* aName);
   
 
 
 
 
-  CrossProcessMutex(CrossProcessMutexHandle aHandle);
+  explicit CrossProcessMutex(CrossProcessMutexHandle aHandle);
 
   
 
