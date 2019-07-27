@@ -394,6 +394,118 @@ function waitForAdapterEvent(aAdapter, aEventName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function waitForAdapterStateChanged(aAdapter, aStateChangesInOrder) {
+  let deferred = Promise.defer();
+
+  let stateIndex = 0;
+  let prevStateIndex = 0;
+  let statesArray = [];
+  let changedAttrs = [];
+  aAdapter.onattributechanged = function(aEvent) {
+    for (let i in aEvent.attrs) {
+      changedAttrs.push(aEvent.attrs[i]);
+      switch (aEvent.attrs[i]) {
+        case "state":
+          log("  'state' changed to " + aAdapter.state);
+
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          let stateIndex = aStateChangesInOrder.indexOf(aAdapter.state);
+          if (stateIndex >= prevStateIndex && stateIndex + 1 > statesArray.length) {
+            statesArray.push(aAdapter.state);
+            prevStateIndex = stateIndex;
+
+            if (statesArray.length == aStateChangesInOrder.length) {
+              aAdapter.onattributechanged = null;
+              ok(true, "BluetoothAdapter event 'onattributechanged' got.");
+              deferred.resolve(changedAttrs);
+            }
+          } else {
+            ok(false, "The order of 'onattributechanged' events is unexpected.");
+          }
+
+          break;
+        case "name":
+          log("  'name' changed to " + aAdapter.name);
+          if (aAdapter.state == "enabling") {
+            isnot(aAdapter.name, "", "adapter.name");
+          }
+          else if (aAdapter.state == "disabling") {
+            is(aAdapter.name, "", "adapter.name");
+          }
+          break;
+        case "address":
+          log("  'address' changed to " + aAdapter.address);
+          if (aAdapter.state == "enabling") {
+            isnot(aAdapter.address, "", "adapter.address");
+          }
+          else if (aAdapter.state == "disabling") {
+            is(aAdapter.address, "", "adapter.address");
+          }
+          break;
+        case "discoverable":
+          log("  'discoverable' changed to " + aAdapter.discoverable);
+          if (aAdapter.state == "enabling") {
+            is(aAdapter.discoverable, true, "adapter.discoverable");
+          }
+          else if (aAdapter.state == "disabling") {
+            is(aAdapter.discoverable, false, "adapter.discoverable");
+          }
+          break;
+        case "discovering":
+          log("  'discovering' changed to " + aAdapter.discovering);
+          if (aAdapter.state == "enabling") {
+            is(aAdapter.discovering, true, "adapter.discovering");
+          }
+          else if (aAdapter.state == "disabling") {
+            is(aAdapter.discovering, false, "adapter.discovering");
+          }
+          break;
+        case "unknown":
+        default:
+          ok(false, "Unknown attribute '" + aEvent.attrs[i] + "' changed." );
+          break;
+      }
+    }
+  };
+
+  return deferred.promise;
+}
+
+
+
+
 function cleanUp() {
   waitFor(function() {
     SpecialPowers.flushPermissions(function() {
@@ -417,7 +529,7 @@ function startBluetoothTestBase(aPermissions, aTestCaseMain) {
 }
 
 function startBluetoothTest(aReenable, aTestCaseMain) {
-  startBluetoothTestBase(["settings-read", "settings-write"], function() {
+  startBluetoothTestBase([], function() {
     let origEnabled, needEnable;
     return Promise.resolve()
       .then(function() {
