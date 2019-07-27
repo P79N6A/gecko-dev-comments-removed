@@ -217,7 +217,6 @@ function safePrefGetter(aPrefBranch, aName, aDefault) {
 
 
 
-
 function AutoCompleteStatementCallbackWrapper(aAutocomplete, aCallback,
                                               aDBConnection)
 {
@@ -1046,20 +1045,19 @@ nsPlacesAutoComplete.prototype = {
     let query = this._getSuggestionPrefQuery();
 
     
-    let (params = query.params) {
-      params.parent = PlacesUtils.tagsFolderId;
-      params.query_type = kQueryTypeFiltered;
-      params.matchBehavior = aMatchBehavior;
-      params.searchBehavior = this._behavior;
+    let params = query.params;
+    params.parent = PlacesUtils.tagsFolderId;
+    params.query_type = kQueryTypeFiltered;
+    params.matchBehavior = aMatchBehavior;
+    params.searchBehavior = this._behavior;
 
-      
-      
-      params.searchString = aTokens.join(" ");
+    
+    
+    params.searchString = aTokens.join(" ");
 
-      
-      
-      params.maxResults = this._maxRichResults;
-    }
+    
+    
+    params.maxResults = this._maxRichResults;
 
     return query;
   },
@@ -1069,15 +1067,15 @@ nsPlacesAutoComplete.prototype = {
     let query = this._openPagesQuery;
 
     
-    let (params = query.params) {
-      params.query_type = kQueryTypeFiltered;
-      params.matchBehavior = this._matchBehavior;
-      params.searchBehavior = this._behavior;
-      
-      
-      params.searchString = aTokens.join(" ");
-      params.maxResults = this._maxRichResults;
-    }
+    let params = query.params;
+    params.query_type = kQueryTypeFiltered;
+    params.matchBehavior = this._matchBehavior;
+    params.searchBehavior = this._behavior;
+
+    
+    
+    params.searchString = aTokens.join(" ");
+    params.maxResults = this._maxRichResults;
 
     return query;
   },
@@ -1106,11 +1104,10 @@ nsPlacesAutoComplete.prototype = {
     let keyword = aTokens[0];
 
     let query = this._keywordQuery;
-    let (params = query.params) {
-      params.keyword = keyword;
-      params.query_string = queryString;
-      params.query_type = kQueryTypeKeyword;
-    }
+    let params = query.params;
+    params.keyword = keyword;
+    params.query_string = queryString;
+    params.query_type = kQueryTypeKeyword;
 
     return query;
   },
@@ -1128,13 +1125,12 @@ nsPlacesAutoComplete.prototype = {
     }
 
     let query = this._adaptiveQuery;
-    let (params = query.params) {
-      params.parent = PlacesUtils.tagsFolderId;
-      params.search_string = this._currentSearchString;
-      params.query_type = kQueryTypeFiltered;
-      params.matchBehavior = aMatchBehavior;
-      params.searchBehavior = this._behavior;
-    }
+    let params = query.params;
+    params.parent = PlacesUtils.tagsFolderId;
+    params.search_string = this._currentSearchString;
+    params.query_type = kQueryTypeFiltered;
+    params.matchBehavior = aMatchBehavior;
+    params.searchBehavior = this._behavior;
 
     return query;
   },
@@ -1543,13 +1539,12 @@ urlInlineComplete.prototype = {
     
     
     let query = this._urlQuery;
-    let (params = query.params) {
-      params.matchBehavior = MATCH_BEGINNING_CASE_SENSITIVE;
-      params.searchBehavior |= Ci.mozIPlacesAutoComplete.BEHAVIOR_HISTORY |
-                               Ci.mozIPlacesAutoComplete.BEHAVIOR_TYPED |
-                               Ci.mozIPlacesAutoComplete.BEHAVIOR_URL;
-      params.searchString = this._currentSearchString;
-    }
+    let params = query.params;
+    params.matchBehavior = MATCH_BEGINNING_CASE_SENSITIVE;
+    params.searchBehavior |= Ci.mozIPlacesAutoComplete.BEHAVIOR_HISTORY |
+                             Ci.mozIPlacesAutoComplete.BEHAVIOR_TYPED |
+                             Ci.mozIPlacesAutoComplete.BEHAVIOR_URL;
+    params.searchString = this._currentSearchString;
 
     
     let ac = this;
