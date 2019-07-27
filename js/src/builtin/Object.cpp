@@ -50,9 +50,39 @@ obj_propertyIsEnumerable(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
+    HandleValue idValue = args.get(0);
+
     
-    RootedId id(cx);
-    if (!ValueToId<CanGC>(cx, args.get(0), &id))
+    
+
+    
+    jsid id;
+    if (args.thisv().isObject() && ValueToId<NoGC>(cx, idValue, &id)) {
+        JSObject *obj = &args.thisv().toObject(), *pobj;
+
+        
+        Shape *shape;
+        if (!obj->is<ProxyObject>() &&
+            HasOwnProperty<NoGC>(cx, obj->getOps()->lookupGeneric, obj, id, &pobj, &shape))
+        {
+            
+            if (!shape) {
+                args.rval().setBoolean(false);
+                return true;
+            }
+
+            
+            if (pobj->isNative()) {
+                unsigned attrs = GetShapeAttributes(pobj, shape);
+                args.rval().setBoolean((attrs & JSPROP_ENUMERATE) != 0);
+                return true;
+            }
+        }
+    }
+
+    
+    RootedId idRoot(cx);
+    if (!ValueToId<CanGC>(cx, idValue, &idRoot))
         return false;
 
     
@@ -61,28 +91,12 @@ obj_propertyIsEnumerable(JSContext *cx, unsigned argc, Value *vp)
         return false;
 
     
-    RootedObject pobj(cx);
-    RootedShape prop(cx);
-    if (!JSObject::lookupGeneric(cx, obj, id, &pobj, &prop))
+    Rooted<PropertyDescriptor> desc(cx);
+    if (!GetOwnPropertyDescriptor(cx, obj, idRoot, &desc))
         return false;
 
     
-    if (!prop) {
-        args.rval().setBoolean(false);
-        return true;
-    }
-
-    if (pobj != obj) {
-        args.rval().setBoolean(false);
-        return true;
-    }
-
-    
-    unsigned attrs;
-    if (!JSObject::getGenericAttributes(cx, pobj, id, &attrs))
-        return false;
-
-    args.rval().setBoolean((attrs & JSPROP_ENUMERATE) != 0);
+    args.rval().setBoolean(desc.object() && desc.isEnumerable());
     return true;
 }
 
