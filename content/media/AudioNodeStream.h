@@ -54,7 +54,8 @@ public:
       mKind(aKind),
       mNumberOfInputChannels(2),
       mMarkAsFinishedAfterThisBlock(false),
-      mAudioParamStream(false)
+      mAudioParamStream(false),
+      mPassThrough(false)
   {
     MOZ_ASSERT(NS_IsMainThread());
     mChannelCountMode = ChannelCountMode::Max;
@@ -85,6 +86,7 @@ public:
   void SetChannelMixingParameters(uint32_t aNumberOfChannels,
                                   ChannelCountMode aChannelCountMoe,
                                   ChannelInterpretation aChannelInterpretation);
+  void SetPassThrough(bool aPassThrough);
   ChannelInterpretation GetChannelInterpretation()
   {
     return mChannelInterpretation;
@@ -192,6 +194,8 @@ protected:
   bool mMarkAsFinishedAfterThisBlock;
   
   bool mAudioParamStream;
+  
+  bool mPassThrough;
 };
 
 }

@@ -133,6 +133,9 @@ public:
 
   uint32_t Id() const { return mId; }
 
+  bool PassThrough() const;
+  void SetPassThrough(bool aPassThrough);
+
   uint32_t ChannelCount() const { return mChannelCount; }
   virtual void SetChannelCount(uint32_t aChannelCount, ErrorResult& aRv)
   {
@@ -267,6 +270,9 @@ private:
   ChannelCountMode mChannelCountMode;
   ChannelInterpretation mChannelInterpretation;
   const uint32_t mId;
+  
+  
+  bool mPassThrough;
 #ifdef DEBUG
   
   
