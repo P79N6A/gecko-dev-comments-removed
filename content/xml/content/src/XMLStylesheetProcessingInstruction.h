@@ -35,8 +35,6 @@ public:
   {
   }
 
-  virtual ~XMLStylesheetProcessingInstruction();
-
   virtual JSObject* WrapNode(JSContext *aCx) MOZ_OVERRIDE;
 
   
@@ -74,6 +72,8 @@ public:
   using ProcessingInstruction::SetData; 
 
 protected:
+  virtual ~XMLStylesheetProcessingInstruction();
+
   nsCOMPtr<nsIURI> mOverriddenBaseURI;
 
   already_AddRefed<nsIURI> GetStyleSheetURL(bool* aIsInline) MOZ_OVERRIDE;

@@ -20,7 +20,6 @@ class ProcessingInstruction : public nsGenericDOMDataNode,
 public:
   ProcessingInstruction(already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo,
                         const nsAString& aData);
-  virtual ~ProcessingInstruction();
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -54,6 +53,8 @@ public:
     aTarget = NodeName();
   }
 protected:
+  virtual ~ProcessingInstruction();
+
   
 
 
