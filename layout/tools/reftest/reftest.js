@@ -689,11 +689,7 @@ function BuildConditionSandbox(aURL) {
     sandbox.haveTestPlugin = !!testPlugin && !gBrowserIsRemote;
 
     
-    var box = gContainingWindow.document.createElement("box");
-    box.setAttribute("id", "_box_windowsDefaultTheme");
-    gContainingWindow.document.documentElement.appendChild(box);
-    sandbox.windowsDefaultTheme = (gContainingWindow.getComputedStyle(box, null).display == "none");
-    gContainingWindow.document.documentElement.removeChild(box);
+    sandbox.windowsDefaultTheme = gContainingWindow.matchMedia("(-moz-windows-default-theme)").matches;
 
     var prefs = CC["@mozilla.org/preferences-service;1"].
                 getService(CI.nsIPrefBranch);
