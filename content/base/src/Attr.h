@@ -81,6 +81,14 @@ public:
   virtual nsIDOMNode* AsDOMNode() { return this; }
 
   
+  
+  static Attr* FromDOMAttr(nsIDOMAttr* aDOMAttr)
+  {
+    nsCOMPtr<nsIAttribute> iattr = do_QueryInterface(aDOMAttr);
+    return static_cast<mozilla::dom::Attr*>(iattr.get());
+  }
+
+  
   virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   
