@@ -258,6 +258,13 @@ pref("browser.search.order.2", "chrome://browser/locale/region.properties");
 pref("browser.search.order.3", "chrome://browser/locale/region.properties");
 
 
+pref("browser.search.geoSpecificDefaults", true);
+pref("browser.search.defaultenginename.US", "chrome://browser/locale/region.properties");
+pref("browser.search.order.US.1", "chrome://browser/locale/region.properties");
+pref("browser.search.order.US.2", "chrome://browser/locale/region.properties");
+pref("browser.search.order.US.3", "chrome://browser/locale/region.properties");
+
+
 pref("browser.search.update", false);
 
 
@@ -270,9 +277,6 @@ pref("browser.search.jarURIs", "chrome://browser/locale/searchplugins/");
 
 
 pref("browser.search.noCurrentEngine", true);
-
-
-pref("browser.search.geoip.url", "");
 
 
 pref("browser.casting.enabled", true);
