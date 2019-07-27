@@ -1603,7 +1603,7 @@ pref("network.dnsCacheEntries", 400);
 pref("network.dnsCacheExpiration", 60);
 
 
-pref("network.dns.get-ttl", false);
+pref("network.dns.get-ttl", true);
 
 
 
