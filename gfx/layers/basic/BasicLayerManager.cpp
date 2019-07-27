@@ -656,6 +656,8 @@ PixmanTransform(const gfxImageSurface* aDest,
 
   
   if (!pixman_transform_invert(&pixTransformInverted, &pixTransform)) {
+    pixman_image_unref(dest);
+    pixman_image_unref(src);
     return;
   }
   pixman_image_set_transform(src, &pixTransformInverted);
