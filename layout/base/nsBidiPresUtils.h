@@ -27,10 +27,7 @@ class nsBlockInFlowLineIterator;
 class nsStyleContext;
 struct nsSize;
 template<class T> class nsTHashtable;
-namespace mozilla {
-  class WritingMode;
-  class LogicalMargin;
-}
+namespace mozilla { class WritingMode; }
 
 
 
@@ -162,11 +159,11 @@ public:
 
 
 
-  static void ReorderFrames(nsIFrame* aFirstFrameOnLine,
-                            int32_t aNumFramesOnLine,
+  static void ReorderFrames(nsIFrame*            aFirstFrameOnLine,
+                            int32_t              aNumFramesOnLine,
                             mozilla::WritingMode aLineWM,
-                            const nsSize& aContainerSize,
-                            nscoord aStart);
+                            const nsSize&        aContainerSize,
+                            nscoord              aStart);
 
   
 
@@ -418,13 +415,6 @@ private:
   
 
 
-  static nscoord RepositionRubyFrame(
-    nsIFrame* aFrame,
-    const nsContinuationStates* aContinuationStates,
-    const mozilla::WritingMode aContainerWM,
-    const mozilla::LogicalMargin& aBorderPadding);
-
-  
 
 
 
@@ -436,17 +426,12 @@ private:
 
 
 
-
-
-
-
-  static nscoord RepositionFrame(nsIFrame* aFrame,
-                                 bool aIsEvenLevel,
-                                 nscoord aStartOrEnd,
-                                 const nsContinuationStates* aContinuationStates,
-                                 mozilla::WritingMode aContainerWM,
-                                 bool aContainerReverseOrder,
-                                 const nsSize& aContainerSize);
+  static void RepositionFrame(nsIFrame*              aFrame,
+                              bool                   aIsEvenLevel,
+                              nscoord&               aStart,
+                              nsContinuationStates*  aContinuationStates,
+                              mozilla::WritingMode   aContainerWM,
+                              const nsSize&          aContainerSize);
 
   
 
@@ -483,11 +468,11 @@ private:
 
 
 
-   static void IsFirstOrLast(nsIFrame* aFrame,
-                             const nsContinuationStates* aContinuationStates,
-                             bool aSpanInLineOrder ,
-                             bool& aIsFirst ,
-                             bool& aIsLast );
+   static void IsFirstOrLast(nsIFrame*              aFrame,
+                             nsContinuationStates*  aContinuationStates,
+                             bool                   aSpanInLineOrder ,
+                             bool&                  aIsFirst ,
+                             bool&                  aIsLast );
 
   
 

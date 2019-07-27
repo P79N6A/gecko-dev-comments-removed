@@ -7,9 +7,7 @@
 
 
 #include "nsRubyBaseContainerFrame.h"
-#include "nsRubyTextContainerFrame.h"
-#include "nsRubyBaseFrame.h"
-#include "nsRubyTextFrame.h"
+
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/WritingModes.h"
@@ -60,6 +58,148 @@ nsRubyBaseContainerFrame::GetFrameName(nsAString& aResult) const
   return MakeFrameName(NS_LITERAL_STRING("RubyBaseContainer"), aResult);
 }
 #endif
+
+
+
+
+
+
+struct MOZ_STACK_CLASS mozilla::RubyColumn
+{
+  nsRubyBaseFrame* mBaseFrame;
+  nsAutoTArray<nsRubyTextFrame*, RTC_ARRAY_SIZE> mTextFrames;
+  bool mIsIntraLevelWhitespace;
+  RubyColumn() : mBaseFrame(nullptr), mIsIntraLevelWhitespace(false) { }
+};
+
+class MOZ_STACK_CLASS RubyColumnEnumerator
+{
+public:
+  RubyColumnEnumerator(nsRubyBaseContainerFrame* aRBCFrame,
+                       const nsTArray<nsRubyTextContainerFrame*>& aRTCFrames);
+
+  void Next();
+  bool AtEnd() const;
+
+  uint32_t GetLevelCount() const { return mFrames.Length(); }
+  nsRubyContentFrame* GetFrameAtLevel(uint32_t aIndex) const;
+  void GetColumn(RubyColumn& aColumn) const;
+
+private:
+  
+  
+  
+  nsAutoTArray<nsRubyContentFrame*, RTC_ARRAY_SIZE + 1> mFrames;
+  
+  bool mAtIntraLevelWhitespace;
+};
+
+RubyColumnEnumerator::RubyColumnEnumerator(
+  nsRubyBaseContainerFrame* aBaseContainer,
+  const nsTArray<nsRubyTextContainerFrame*>& aTextContainers)
+  : mAtIntraLevelWhitespace(false)
+{
+  const uint32_t rtcCount = aTextContainers.Length();
+  mFrames.SetCapacity(rtcCount + 1);
+
+  nsIFrame* rbFrame = aBaseContainer->GetFirstPrincipalChild();
+  MOZ_ASSERT(!rbFrame || rbFrame->GetType() == nsGkAtoms::rubyBaseFrame);
+  mFrames.AppendElement(static_cast<nsRubyContentFrame*>(rbFrame));
+  for (uint32_t i = 0; i < rtcCount; i++) {
+    nsRubyTextContainerFrame* container = aTextContainers[i];
+    
+    
+    nsIFrame* rtFrame = !container->IsSpanContainer() ?
+      container->GetFirstPrincipalChild() : nullptr;
+    MOZ_ASSERT(!rtFrame || rtFrame->GetType() == nsGkAtoms::rubyTextFrame);
+    mFrames.AppendElement(static_cast<nsRubyContentFrame*>(rtFrame));
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  for (uint32_t i = 0, iend = mFrames.Length(); i < iend; i++) {
+    nsRubyContentFrame* frame = mFrames[i];
+    if (frame && frame->IsIntraLevelWhitespace()) {
+      mAtIntraLevelWhitespace = true;
+      break;
+    }
+  }
+}
+
+void
+RubyColumnEnumerator::Next()
+{
+  bool advancingToIntraLevelWhitespace = false;
+  for (uint32_t i = 0, iend = mFrames.Length(); i < iend; i++) {
+    nsRubyContentFrame* frame = mFrames[i];
+    
+    
+    
+    
+    
+    if (frame && (!mAtIntraLevelWhitespace ||
+                  frame->IsIntraLevelWhitespace())) {
+      nsIFrame* nextSibling = frame->GetNextSibling();
+      MOZ_ASSERT(!nextSibling || nextSibling->GetType() == frame->GetType(),
+                 "Frame type should be identical among a level");
+      mFrames[i] = frame = static_cast<nsRubyContentFrame*>(nextSibling);
+      if (!advancingToIntraLevelWhitespace &&
+          frame && frame->IsIntraLevelWhitespace()) {
+        advancingToIntraLevelWhitespace = true;
+      }
+    }
+  }
+  MOZ_ASSERT(!advancingToIntraLevelWhitespace || !mAtIntraLevelWhitespace,
+             "Should never have adjacent intra-level whitespace columns");
+  mAtIntraLevelWhitespace = advancingToIntraLevelWhitespace;
+}
+
+bool
+RubyColumnEnumerator::AtEnd() const
+{
+  for (uint32_t i = 0, iend = mFrames.Length(); i < iend; i++) {
+    if (mFrames[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+nsRubyContentFrame*
+RubyColumnEnumerator::GetFrameAtLevel(uint32_t aIndex) const
+{
+  
+  
+  
+  
+  
+  
+  nsRubyContentFrame* frame = mFrames[aIndex];
+  return !mAtIntraLevelWhitespace ||
+         (frame && frame->IsIntraLevelWhitespace()) ? frame : nullptr;
+}
+
+void
+RubyColumnEnumerator::GetColumn(RubyColumn& aColumn) const
+{
+  nsRubyContentFrame* rbFrame = GetFrameAtLevel(0);
+  MOZ_ASSERT(!rbFrame || rbFrame->GetType() == nsGkAtoms::rubyBaseFrame);
+  aColumn.mBaseFrame = static_cast<nsRubyBaseFrame*>(rbFrame);
+  aColumn.mTextFrames.ClearAndRetainStorage();
+  for (uint32_t i = 1, iend = mFrames.Length(); i < iend; i++) {
+    nsRubyContentFrame* rtFrame = GetFrameAtLevel(i);
+    MOZ_ASSERT(!rtFrame || rtFrame->GetType() == nsGkAtoms::rubyTextFrame);
+    aColumn.mTextFrames.AppendElement(static_cast<nsRubyTextFrame*>(rtFrame));
+  }
+  aColumn.mIsIntraLevelWhitespace = mAtIntraLevelWhitespace;
+}
 
 static gfxBreakPriority
 LineBreakBefore(nsIFrame* aFrame,
@@ -153,7 +293,8 @@ CalculateColumnPrefISize(nsRenderingContext* aRenderingContext,
 nsRubyBaseContainerFrame::AddInlineMinISize(
   nsRenderingContext *aRenderingContext, nsIFrame::InlineMinISizeData *aData)
 {
-  AutoRubyTextContainerArray textContainers(this);
+  AutoTextContainerArray textContainers;
+  GetTextContainers(textContainers);
 
   for (uint32_t i = 0, iend = textContainers.Length(); i < iend; i++) {
     if (textContainers[i]->IsSpanContainer()) {
@@ -201,7 +342,8 @@ nsRubyBaseContainerFrame::AddInlineMinISize(
 nsRubyBaseContainerFrame::AddInlinePrefISize(
   nsRenderingContext *aRenderingContext, nsIFrame::InlinePrefISizeData *aData)
 {
-  AutoRubyTextContainerArray textContainers(this);
+  AutoTextContainerArray textContainers;
+  GetTextContainers(textContainers);
 
   nscoord sum = 0;
   for (nsIFrame* frame = this; frame; frame = frame->GetNextInFlow()) {
@@ -231,6 +373,15 @@ nsRubyBaseContainerFrame::IsFrameOfType(uint32_t aFlags) const
   }
   return nsContainerFrame::IsFrameOfType(aFlags &
          ~(nsIFrame::eLineParticipant));
+}
+
+void
+nsRubyBaseContainerFrame::GetTextContainers(TextContainerArray& aTextContainers)
+{
+  MOZ_ASSERT(aTextContainers.IsEmpty());
+  for (RubyTextContainerIterator iter(this); !iter.AtEnd(); iter.Next()) {
+    aTextContainers.AppendElement(iter.GetTextContainer());
+  }
 }
 
  bool
@@ -264,7 +415,7 @@ struct nsRubyBaseContainerFrame::ReflowState
 {
   bool mAllowInitialLineBreak;
   bool mAllowLineBreak;
-  const AutoRubyTextContainerArray& mTextContainers;
+  const TextContainerArray& mTextContainers;
   const nsHTMLReflowState& mBaseReflowState;
   const nsTArray<UniquePtr<nsHTMLReflowState>>& mTextReflowStates;
 };
@@ -287,9 +438,11 @@ nsRubyBaseContainerFrame::Reflow(nsPresContext* aPresContext,
     return;
   }
 
+  AutoTextContainerArray textContainers;
+  GetTextContainers(textContainers);
+
   MoveOverflowToChildList();
   
-  AutoRubyTextContainerArray textContainers(this);
   const uint32_t rtcCount = textContainers.Length();
   for (uint32_t i = 0; i < rtcCount; i++) {
     textContainers[i]->MoveOverflowToChildList();
@@ -320,8 +473,7 @@ nsRubyBaseContainerFrame::Reflow(nsPresContext* aPresContext,
     }
 
     nsHTMLReflowState* reflowState = new nsHTMLReflowState(
-      aPresContext, *aReflowState.parentReflowState, textContainer,
-      availSize.ConvertTo(textContainer->GetWritingMode(), lineWM));
+      aPresContext, *aReflowState.parentReflowState, textContainer, availSize);
     reflowStates.AppendElement(reflowState);
     nsLineLayout* lineLayout = new nsLineLayout(aPresContext,
                                                 reflowState->mFloatManager,
@@ -428,10 +580,10 @@ struct MOZ_STACK_CLASS nsRubyBaseContainerFrame::PullFrameState
 {
   ContinuationTraversingState mBase;
   nsAutoTArray<ContinuationTraversingState, RTC_ARRAY_SIZE> mTexts;
-  const AutoRubyTextContainerArray& mTextContainers;
+  const TextContainerArray& mTextContainers;
 
   PullFrameState(nsRubyBaseContainerFrame* aBaseContainer,
-                 const AutoRubyTextContainerArray& aTextContainers);
+                 const TextContainerArray& aTextContainers);
 };
 
 nscoord
@@ -682,7 +834,7 @@ nsRubyBaseContainerFrame::ReflowOneColumn(const ReflowState& aReflowState,
 
 nsRubyBaseContainerFrame::PullFrameState::PullFrameState(
     nsRubyBaseContainerFrame* aBaseContainer,
-    const AutoRubyTextContainerArray& aTextContainers)
+    const TextContainerArray& aTextContainers)
   : mBase(aBaseContainer)
   , mTextContainers(aTextContainers)
 {
@@ -698,8 +850,7 @@ nsRubyBaseContainerFrame::PullOneColumn(nsLineLayout* aLineLayout,
                                         RubyColumn& aColumn,
                                         bool& aIsComplete)
 {
-  const AutoRubyTextContainerArray& textContainers =
-    aPullFrameState.mTextContainers;
+  const TextContainerArray& textContainers = aPullFrameState.mTextContainers;
   const uint32_t rtcCount = textContainers.Length();
 
   nsIFrame* nextBase = GetNextInFlowChild(aPullFrameState.mBase);

@@ -7,17 +7,9 @@
 #ifndef mozilla_RubyUtils_h_
 #define mozilla_RubyUtils_h_
 
-#include "nsTArray.h"
 #include "nsGkAtoms.h"
-
-#define RTC_ARRAY_SIZE 1
-
-class nsRubyFrame;
-class nsRubyBaseFrame;
-class nsRubyTextFrame;
-class nsRubyContentFrame;
-class nsRubyBaseContainerFrame;
-class nsRubyTextContainerFrame;
+#include "nsRubyBaseContainerFrame.h"
+#include "nsRubyTextContainerFrame.h"
 
 namespace mozilla {
 
@@ -71,69 +63,20 @@ public:
 
 
 
-class MOZ_STACK_CLASS AutoRubyTextContainerArray final
-  : public nsAutoTArray<nsRubyTextContainerFrame*, RTC_ARRAY_SIZE>
+class MOZ_STACK_CLASS RubyTextContainerIterator
 {
 public:
-  explicit AutoRubyTextContainerArray(nsRubyBaseContainerFrame* aBaseContainer);
-};
-
-
-
-
-class MOZ_STACK_CLASS RubySegmentEnumerator
-{
-public:
-  explicit RubySegmentEnumerator(nsRubyFrame* aRubyFrame);
+  explicit RubyTextContainerIterator(nsRubyBaseContainerFrame* aBaseContainer);
 
   void Next();
-  bool AtEnd() const { return !mBaseContainer; }
-
-  nsRubyBaseContainerFrame* GetBaseContainer() const
+  bool AtEnd() const { return !mFrame; }
+  nsRubyTextContainerFrame* GetTextContainer() const
   {
-    return mBaseContainer;
+    return static_cast<nsRubyTextContainerFrame*>(mFrame);
   }
 
 private:
-  nsRubyBaseContainerFrame* mBaseContainer;
-};
-
-
-
-
-
-
-struct MOZ_STACK_CLASS RubyColumn
-{
-  nsRubyBaseFrame* mBaseFrame;
-  nsAutoTArray<nsRubyTextFrame*, RTC_ARRAY_SIZE> mTextFrames;
-  bool mIsIntraLevelWhitespace;
-  RubyColumn() : mBaseFrame(nullptr), mIsIntraLevelWhitespace(false) { }
-};
-
-
-
-
-class MOZ_STACK_CLASS RubyColumnEnumerator
-{
-public:
-  RubyColumnEnumerator(nsRubyBaseContainerFrame* aRBCFrame,
-                       const AutoRubyTextContainerArray& aRTCFrames);
-
-  void Next();
-  bool AtEnd() const;
-
-  uint32_t GetLevelCount() const { return mFrames.Length(); }
-  nsRubyContentFrame* GetFrameAtLevel(uint32_t aIndex) const;
-  void GetColumn(RubyColumn& aColumn) const;
-
-private:
-  
-  
-  
-  nsAutoTArray<nsRubyContentFrame*, RTC_ARRAY_SIZE + 1> mFrames;
-  
-  bool mAtIntraLevelWhitespace;
+  nsIFrame* mFrame;
 };
 
 }
