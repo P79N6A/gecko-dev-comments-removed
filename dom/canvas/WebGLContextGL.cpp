@@ -2106,6 +2106,7 @@ WebGLContext::ReadPixels(GLint x, GLint y, GLsizei width,
 
     
     
+
     const bool formatHasAlpha = format == LOCAL_GL_ALPHA ||
                                 format == LOCAL_GL_RGBA;
     if (!formatHasAlpha)
