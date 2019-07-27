@@ -119,9 +119,6 @@ function testClasses() {
     assertClassError("class NAME { }", TypeError);
 
     
-    assertClassError("class NAME extends null { constructor() { (() => 0); }", InternalError);
-
-    
     
     assertClassError("class NAME { constructor() { } constructor(a) { } }", SyntaxError);
     let methods = [["method() { }", simpleMethod("method", "method", false)],
