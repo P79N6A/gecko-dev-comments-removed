@@ -13,6 +13,7 @@ const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
 Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/Log.jsm");
+Cu.import("resource://gre/modules/Preferences.jsm");
 
 const LOGGER_NAME = "Toolkit.Telemetry";
 
@@ -26,6 +27,14 @@ this.TelemetryEnvironment = {
   _doNotify: false,
 
   
+  RECORD_PREF_STATE: 1, 
+  RECORD_PREF_VALUE: 2, 
+
+  
+  
+  _watchedPrefs: null,
+
+  
 
 
   init: function () {
@@ -37,6 +46,7 @@ this.TelemetryEnvironment = {
     this._log = Log.repository.getLoggerWithMessagePrefix(LOGGER_NAME, "TelemetryEnvironment::");
     this._log.trace("init");
     this._shutdown = false;
+    this._startWatchingPrefs();
   },
 
   
@@ -51,6 +61,7 @@ this.TelemetryEnvironment = {
 
     this._log.trace("shutdown");
     this._shutdown = true;
+    this._stopWatchingPrefs();
     this._changeListeners.clear();
     yield this._collectTask;
   }),
@@ -86,6 +97,97 @@ this.TelemetryEnvironment = {
 
 
 
+  _watchPreferences: function (aPreferences) {
+    if (this._watchedPrefs) {
+      this._stopWatchingPrefs();
+    }
+
+    this._watchedPrefs = aPreferences;
+    this._startWatchingPrefs();
+  },
+
+  
+
+
+
+
+
+  _getPrefData: function () {
+    if (!this._watchedPrefs) {
+      return {};
+    }
+
+    let prefData = {};
+    for (let pref in this._watchedPrefs) {
+      
+      if (!Preferences.isSet(pref)) {
+        continue;
+      }
+
+      
+      
+      let prefValue = undefined;
+      if (this._watchedPrefs[pref] == this.RECORD_PREF_STATE) {
+        prefValue = null;
+      } else {
+        prefValue = Preferences.get(pref, null);
+      }
+      prefData[pref] = prefValue;
+    }
+    return prefData;
+  },
+
+  
+
+
+  _startWatchingPrefs: function () {
+    this._log.trace("_startWatchingPrefs - " + this._watchedPrefs);
+
+    if (!this._watchedPrefs) {
+      return;
+    }
+
+    for (let pref in this._watchedPrefs) {
+      Preferences.observe(pref, this._onPrefChanged, this);
+    }
+  },
+
+  
+
+
+  _stopWatchingPrefs: function () {
+    this._log.trace("_stopWatchingPrefs");
+
+    if (!this._watchedPrefs) {
+      return;
+    }
+
+    for (let pref in this._watchedPrefs) {
+      Preferences.ignore(pref, this._onPrefChanged, this);
+    }
+
+    this._watchedPrefs = null;
+  },
+
+  _onPrefChanged: function () {
+    this._log.trace("_onPrefChanged");
+    this._onEnvironmentChange("pref-changed");
+  },
+
+  
+
+
+
+  _getSettings: function () {
+    return {
+      "userPrefs": this._getPrefData(),
+    };
+  },
+
+  
+
+
+
   getEnvironmentData: function() {
     if (this._shutdown) {
       this._log.error("getEnvironmentData - Already shut down");
@@ -105,7 +207,25 @@ this.TelemetryEnvironment = {
 
   _doGetEnvironmentData: Task.async(function* () {
     this._log.trace("getEnvironmentData");
-    return {};
+
+    
+    let sections = {
+      "settings": () => this._getSettings(),
+    };
+
+    let data = {};
+    
+    
+    
+    for (let s in sections) {
+      try {
+        data[s] = sections[s]();
+      } catch (e) {
+        this._log.error("getEnvironmentData - There was an exception collecting " + s, e);
+      }
+    }
+
+    return data;
   }),
 
   _onEnvironmentChange: function (what) {
