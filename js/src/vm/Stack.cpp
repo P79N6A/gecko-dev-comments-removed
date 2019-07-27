@@ -1124,8 +1124,12 @@ FrameIter::matchCallee(JSContext *cx, HandleFunction fun) const
     
     
     bool useSameScript = CloneFunctionObjectUseSameScript(fun->compartment(), currentCallee);
-    if (useSameScript && currentCallee->nonLazyScript() != fun->nonLazyScript())
+    if (useSameScript &&
+        (currentCallee->hasScript() != fun->hasScript() ||
+         currentCallee->nonLazyScript() != fun->nonLazyScript()))
+    {
         return false;
+    }
 
     
     
