@@ -38,6 +38,9 @@ namespace mozilla {
 namespace dom {
 class TabChild;
 }
+namespace plugins {
+class PluginWidgetChild;
+}
 namespace layers {
 class Composer2D;
 class CompositorChild;
@@ -2037,6 +2040,16 @@ public:
 
     static already_AddRefed<nsIWidget>
     CreatePuppetWidget(TabChild* aTabChild);
+
+    
+
+
+
+
+
+    static already_AddRefed<nsIWidget>
+    CreatePluginProxyWidget(TabChild* aTabChild,
+                            mozilla::plugins::PluginWidgetChild* aActor);
 
     
 
