@@ -168,6 +168,12 @@ gfxCoreTextShaper::ShapeText(gfxContext      *aContext,
     for (uint32_t runIndex = 0; runIndex < numRuns; runIndex++) {
         CTRunRef aCTRun =
             (CTRunRef)::CFArrayGetValueAtIndex(glyphRuns, runIndex);
+        
+        CFRange range = ::CTRunGetStringRange(aCTRun);
+        if (range.location + range.length <= startOffset ||
+            range.location - startOffset >= aLength) {
+            continue;
+        }
         CFDictionaryRef runAttr = ::CTRunGetAttributes(aCTRun);
         if (runAttr != attrObj) {
             
@@ -178,7 +184,6 @@ gfxCoreTextShaper::ShapeText(gfxContext      *aContext,
             if (font1 != font2) {
                 
                 
-                CFRange range = ::CTRunGetStringRange(aCTRun);
                 if (range.length == 1 &&
                     gfxFontUtils::IsVarSelector(aText[range.location -
                                                       startOffset])) {
