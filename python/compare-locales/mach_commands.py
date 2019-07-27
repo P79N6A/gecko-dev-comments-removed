@@ -48,13 +48,13 @@ class CompareLocales(MachCommandBase):
         try:
             self.substs  
             if not l10n_ini:
-                l10n_ini = mozpack.path.join(
+                l10n_ini = mozpath.join(
                     self.topsrcdir,
                     self.substs['MOZ_BUILD_APP'],
                     'locales', 'l10n.ini'
                 )
             if not l10n_base:
-                l10n_base = mozpack.path.join(
+                l10n_base = mozpath.join(
                     self.topsrcdir,
                     self.substs['L10NBASEDIR']
                 )
@@ -67,7 +67,7 @@ class CompareLocales(MachCommandBase):
             try:
                 
                 
-                merge_dir = mozpack.path.join(
+                merge_dir = mozpath.join(
                     self.topobjdir,
                     self.substs['MOZ_BUILD_APP'],
                     'locales', 'merge-{ab_CD}'
