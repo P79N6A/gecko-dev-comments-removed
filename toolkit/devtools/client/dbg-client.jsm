@@ -66,6 +66,8 @@ let wantVerbose =
   Services.prefs.getPrefType(VERBOSE_PREF) !== Services.prefs.PREF_INVALID &&
   Services.prefs.getBoolPref(VERBOSE_PREF);
 
+let noop = () => {};
+
 function dumpn(str) {
   if (wantLogging) {
     dump("DBG-CLIENT: " + str + "\n");
@@ -443,7 +445,7 @@ DebuggerClient.prototype = {
 
 
 
-  attachTab: function (aTabActor, aOnResponse) {
+  attachTab: function (aTabActor, aOnResponse = noop) {
     if (this._clients.has(aTabActor)) {
       let cachedTab = this._clients.get(aTabActor);
       let cachedResponse = {
@@ -478,7 +480,7 @@ DebuggerClient.prototype = {
 
 
 
-  attachAddon: function DC_attachAddon(aAddonActor, aOnResponse) {
+  attachAddon: function DC_attachAddon(aAddonActor, aOnResponse = noop) {
     let packet = {
       to: aAddonActor,
       type: "attach"
@@ -506,7 +508,7 @@ DebuggerClient.prototype = {
 
 
   attachConsole:
-  function (aConsoleActor, aListeners, aOnResponse) {
+  function (aConsoleActor, aListeners, aOnResponse = noop) {
     let packet = {
       to: aConsoleActor,
       type: "startListeners",
@@ -539,7 +541,7 @@ DebuggerClient.prototype = {
 
 
 
-  attachThread: function (aThreadActor, aOnResponse, aOptions={}) {
+  attachThread: function (aThreadActor, aOnResponse = noop, aOptions={}) {
     if (this._clients.has(aThreadActor)) {
       setTimeout(() => aOnResponse({}, this._clients.get(aThreadActor)), 0);
       return;
@@ -568,7 +570,7 @@ DebuggerClient.prototype = {
 
 
 
-  attachTracer: function (aTraceActor, aOnResponse) {
+  attachTracer: function (aTraceActor, aOnResponse = noop) {
     if (this._clients.has(aTraceActor)) {
       setTimeout(() => aOnResponse({}, this._clients.get(aTraceActor)), 0);
       return;
@@ -1277,7 +1279,7 @@ TabClient.prototype = {
 
 
 
-  attachThread: function(aOptions={}, aOnResponse) {
+  attachThread: function(aOptions={}, aOnResponse = noop) {
     if (this.thread) {
       setTimeout(() => aOnResponse({}, this.thread), 0);
       return;
@@ -1625,7 +1627,7 @@ ThreadClient.prototype = {
 
   pauseOnExceptions: function (aPauseOnExceptions,
                                aIgnoreCaughtExceptions,
-                               aOnResponse) {
+                               aOnResponse = noop) {
     this._pauseOnExceptions = aPauseOnExceptions;
     this._ignoreCaughtExceptions = aIgnoreCaughtExceptions;
 
@@ -1661,7 +1663,7 @@ ThreadClient.prototype = {
 
 
 
-  pauseOnDOMEvents: function (events, onResponse) {
+  pauseOnDOMEvents: function (events, onResponse = noop) {
     this._pauseOnDOMEvents = events;
     
     
@@ -1739,7 +1741,8 @@ ThreadClient.prototype = {
 
 
 
-  setBreakpoint: function ({ url, line, column, condition }, aOnResponse) {
+  setBreakpoint: function ({ url, line, column, condition },
+                           aOnResponse = noop) {
     
     let doSetBreakpoint = (aCallback) => {
       const location = {
@@ -1767,9 +1770,7 @@ ThreadClient.prototype = {
             root.traits.conditionalBreakpoints ? condition : undefined
           );
         }
-        if (aOnResponse) {
-          aOnResponse(aResponse, bpClient);
-        }
+        aOnResponse(aResponse, bpClient);
         if (aCallback) {
           aCallback();
         }
