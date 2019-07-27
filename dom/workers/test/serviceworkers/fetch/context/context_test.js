@@ -12,8 +12,16 @@ self.addEventListener("fetch", function(event) {
     if (event.request.context == "image") {
       event.respondWith(fetch("realimg.jpg"));
     }
-  } else {
+  } else if (event.request.url.indexOf("responsive.jpg") >= 0) {
+    if (event.request.context == "imageset") {
+      event.respondWith(fetch("realimg.jpg"));
+    }
+  }
+  
+  try {
+    event.respondWith(Promise.reject(event.request.url));
+  } catch(e) {
     
-    event.respondWith(Promise.reject());
+    
   }
 });
