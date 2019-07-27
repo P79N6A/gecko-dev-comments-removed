@@ -198,10 +198,16 @@ protected:
     tm = new TestAPZCTreeManager();
     apzc = new TestAsyncPanZoomController(0, mcc, tm, mGestureBehavior);
     apzc->SetFrameMetrics(TestFrameMetrics());
+
+    
+    
+    
+    tm->BuildOverscrollHandoffChain(apzc);
   }
 
   virtual void TearDown()
   {
+    tm->ClearOverscrollHandoffChain();
     apzc->Destroy();
   }
 
@@ -271,7 +277,6 @@ ApzcTap(AsyncPanZoomController* apzc, int aX, int aY, int& aTime,
 
 static void
 ApzcPan(AsyncPanZoomController* aApzc,
-        TestAPZCTreeManager* aTreeManager,
         int& aTime,
         int aTouchStartY,
         int aTouchEndY,
@@ -281,11 +286,6 @@ ApzcPan(AsyncPanZoomController* aApzc,
 {
   const int TIME_BETWEEN_TOUCH_EVENT = 100;
   const int OVERCOME_TOUCH_TOLERANCE = 100;
-
-  
-  
-  
-  aTreeManager->BuildOverscrollHandoffChain(aApzc);
 
   
   nsEventStatus status = ApzcDown(aApzc, 10, aTouchStartY + OVERCOME_TOUCH_TOLERANCE, aTime);
@@ -328,10 +328,6 @@ ApzcPan(AsyncPanZoomController* aApzc,
   }
 
   aTime += TIME_BETWEEN_TOUCH_EVENT;
-
-  
-  
-  aTreeManager->ClearOverscrollHandoffChain();
 }
 
 
@@ -340,7 +336,6 @@ ApzcPan(AsyncPanZoomController* aApzc,
 
 static void
 ApzcPanAndCheckStatus(AsyncPanZoomController* aApzc,
-                      TestAPZCTreeManager* aTreeManager,
                       int& aTime,
                       int aTouchStartY,
                       int aTouchEndY,
@@ -349,7 +344,7 @@ ApzcPanAndCheckStatus(AsyncPanZoomController* aApzc,
                       nsTArray<uint32_t>* aAllowedTouchBehaviors)
 {
   nsEventStatus statuses[4]; 
-  ApzcPan(aApzc, aTreeManager, aTime, aTouchStartY, aTouchEndY, false, aAllowedTouchBehaviors, &statuses);
+  ApzcPan(aApzc, aTime, aTouchStartY, aTouchEndY, false, aAllowedTouchBehaviors, &statuses);
 
   nsEventStatus touchStartStatus;
   if (hasTouchListeners || gfxPrefs::TouchActionEnabled()) {
@@ -796,7 +791,7 @@ protected:
     allowedTouchBehaviors.AppendElement(aBehavior);
 
     
-    ApzcPanAndCheckStatus(apzc, tm, time, touchStart, touchEnd, !aShouldTriggerScroll, false, &allowedTouchBehaviors);
+    ApzcPanAndCheckStatus(apzc, time, touchStart, touchEnd, !aShouldTriggerScroll, false, &allowedTouchBehaviors);
     apzc->SampleContentTransformForFrame(testStartTime, &viewTransformOut, pointOut);
 
     if (aShouldTriggerScroll) {
@@ -808,7 +803,7 @@ protected:
     }
 
     
-    ApzcPanAndCheckStatus(apzc, tm, time, touchEnd, touchStart, !aShouldTriggerScroll, false, &allowedTouchBehaviors);
+    ApzcPanAndCheckStatus(apzc, time, touchEnd, touchStart, !aShouldTriggerScroll, false, &allowedTouchBehaviors);
     apzc->SampleContentTransformForFrame(testStartTime, &viewTransformOut, pointOut);
 
     EXPECT_EQ(ScreenPoint(), pointOut);
@@ -828,7 +823,7 @@ protected:
     
     nsTArray<uint32_t> allowedTouchBehaviors;
     allowedTouchBehaviors.AppendElement(mozilla::layers::AllowedTouchBehavior::VERTICAL_PAN);
-    ApzcPanAndCheckStatus(apzc, tm, time, touchStart, touchEnd, true, true, &allowedTouchBehaviors);
+    ApzcPanAndCheckStatus(apzc, time, touchStart, touchEnd, true, true, &allowedTouchBehaviors);
 
     
     
@@ -896,7 +891,7 @@ TEST_F(APZCBasicTester, Fling) {
   ViewTransform viewTransformOut;
 
   
-  ApzcPan(apzc, tm, time, touchStart, touchEnd);
+  ApzcPan(apzc, time, touchStart, touchEnd);
   ScreenPoint lastPoint;
   for (int i = 1; i < 50; i+=1) {
     apzc->SampleContentTransformForFrame(testStartTime+TimeDuration::FromMilliseconds(i), &viewTransformOut, pointOut);
@@ -919,7 +914,7 @@ protected:
     int touchEnd = 10;
 
     
-    ApzcPan(apzc, tm, time, touchStart, touchEnd);
+    ApzcPan(apzc, time, touchStart, touchEnd);
     
     EXPECT_EQ(2, mcc->RunThroughDelayedTasks());
 
@@ -966,7 +961,7 @@ TEST_F(APZCBasicTester, OverScrollPanning) {
   int time = 0;
   int touchStart = 500;
   int touchEnd = 10;
-  ApzcPan(apzc, tm, time, touchStart, touchEnd);
+  ApzcPan(apzc, time, touchStart, touchEnd);
   EXPECT_TRUE(apzc->IsOverscrolled());
 
   
@@ -1006,7 +1001,7 @@ TEST_F(APZCBasicTester, OverScrollAbort) {
   int time = 0;
   int touchStart = 500;
   int touchEnd = 10;
-  ApzcPan(apzc, tm, time, touchStart, touchEnd);
+  ApzcPan(apzc, time, touchStart, touchEnd);
   EXPECT_TRUE(apzc->IsOverscrolled());
 
   ScreenPoint pointOut;
@@ -1033,7 +1028,7 @@ TEST_F(APZCBasicTester, OverScrollPanningAbort) {
   int time = 0;
   int touchStart = 500;
   int touchEnd = 10;
-  ApzcPan(apzc, tm, time, touchStart, touchEnd,
+  ApzcPan(apzc, time, touchStart, touchEnd,
           true);                   
   EXPECT_TRUE(apzc->IsOverscrolled());
 
@@ -1601,7 +1596,9 @@ TEST_F(APZCTreeManagerTester, HitTesting2) {
   
   
   
-  ApzcPan(apzcroot, manager, time, 100, 50);
+  manager->BuildOverscrollHandoffChain(apzcroot);
+  ApzcPan(apzcroot, time, 100, 50);
+  manager->ClearOverscrollHandoffChain();
 
   
   hit = GetTargetAPZC(manager, ScreenPoint(75, 75), transformToApzc, transformToGecko);
@@ -1627,7 +1624,9 @@ TEST_F(APZCTreeManagerTester, HitTesting2) {
   
   
   
-  ApzcPan(apzcroot, manager, time, 100, 50);
+  manager->BuildOverscrollHandoffChain(apzcroot);
+  ApzcPan(apzcroot, time, 100, 50);
+  manager->ClearOverscrollHandoffChain();
 
   
   hit = GetTargetAPZC(manager, ScreenPoint(75, 75), transformToApzc, transformToGecko);
