@@ -353,7 +353,7 @@ add_task(function test_history_expiration()
 
   
   
-  yield promiseClearHistory();
+  yield PlacesTestUtils.clearHistory();
   yield promiseExpirableDownloadVisit();
   yield promiseExpirableDownloadVisit(httpUrl("interruptible.txt"));
 
@@ -396,7 +396,7 @@ add_task(function test_history_clear()
   yield downloadOne.start();
   yield downloadTwo.start();
 
-  yield promiseClearHistory();
+  yield PlacesTestUtils.clearHistory();
 
   
   yield deferred.promise;
