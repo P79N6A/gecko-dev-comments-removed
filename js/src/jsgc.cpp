@@ -2922,24 +2922,30 @@ ArenaLists::queueForegroundThingsForSweep(FreeOp *fop)
     gcScriptArenasToUpdate = arenaListsToSweep[FINALIZE_SCRIPT];
 }
 
-static void *
-RunLastDitchGC(JSContext *cx, JS::Zone *zone, AllocKind thingKind)
+ void *
+GCRuntime::tryRefillFreeListFromMainThread(JSContext *cx, AllocKind thingKind)
 {
-    PrepareZoneForGC(zone);
+    ArenaLists *arenas = cx->arenas();
+    Zone *zone = cx->zone();
 
-    JSRuntime *rt = cx->runtime();
+    AutoMaybeStartBackgroundAllocation maybeStartBGAlloc;
+
+    void *thing = arenas->allocateFromArena(zone, thingKind, maybeStartBGAlloc);
+    if (MOZ_LIKELY(thing))
+        return thing;
 
     
-    AutoKeepAtoms keepAtoms(cx->perThreadData);
-    rt->gc.gc(GC_NORMAL, JS::gcreason::LAST_DITCH);
-
     
+    
+    
+    
+    cx->runtime()->gc.waitBackgroundSweepOrAllocEnd();
 
+    thing = arenas->allocateFromArena(zone, thingKind, maybeStartBGAlloc);
+    if (thing)
+        return thing;
 
-
-
-    size_t thingSize = Arena::thingSize(thingKind);
-    return zone->arenas.allocateFromFreeList(thingKind, thingSize);
+    return nullptr;
 }
 
 template <AllowGC allowGC>
@@ -2950,43 +2956,29 @@ GCRuntime::refillFreeListFromMainThread(JSContext *cx, AllocKind thingKind)
     MOZ_ASSERT(!rt->isHeapBusy(), "allocating while under GC");
     MOZ_ASSERT_IF(allowGC, !rt->currentThreadHasExclusiveAccess());
 
-    ArenaLists *arenas = cx->arenas();
-    Zone *zone = cx->zone();
+    
+    void *thing = tryRefillFreeListFromMainThread(cx, thingKind);
+    if (MOZ_LIKELY(thing))
+        return thing;
 
-    bool outOfMemory = false;  
-    bool ranGC = false;  
-    do {
-        if (MOZ_UNLIKELY(outOfMemory)) {
-            
-            
-            if (!allowGC)
-                return nullptr;
-
-            if (void *thing = RunLastDitchGC(cx, zone, thingKind))
-                return thing;
-            ranGC = true;
-        }
-
-        AutoMaybeStartBackgroundAllocation maybeStartBGAlloc;
-        void *thing = arenas->allocateFromArena(zone, thingKind, maybeStartBGAlloc);
-        if (MOZ_LIKELY(thing))
-            return thing;
-
+    
+    {
         
         
-        
-        
-        
-        rt->gc.waitBackgroundSweepOrAllocEnd();
+        if (!allowGC)
+            return nullptr;
 
-        thing = arenas->allocateFromArena(zone, thingKind, maybeStartBGAlloc);
-        if (MOZ_LIKELY(thing))
-            return thing;
+        JS::PrepareZoneForGC(cx->zone());
+        AutoKeepAtoms keepAtoms(cx->perThreadData);
+        rt->gc.gc(GC_NORMAL, JS::gcreason::LAST_DITCH);
+    }
 
-        
-        outOfMemory = true;
-    } while (!ranGC);
+    
+    thing = tryRefillFreeListFromMainThread(cx, thingKind);
+    if (thing)
+        return thing;
 
+    
     MOZ_ASSERT(allowGC, "A fallible allocation must not report OOM on failure.");
     js_ReportOutOfMemory(cx);
     return nullptr;
