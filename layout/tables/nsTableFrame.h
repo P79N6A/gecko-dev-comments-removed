@@ -50,6 +50,8 @@ public:
       nsDisplayItem(aBuilder, aFrame),
       mPartHasFixedBackground(false) {}
 
+  virtual bool IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuilder,
+                                                nsIFrame* aFrame) MOZ_OVERRIDE;
   
   
   

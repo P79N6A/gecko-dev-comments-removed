@@ -1105,6 +1105,16 @@ public:
 
 
 
+
+
+
+  virtual bool IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuilder,
+                                                nsIFrame* aFrame)
+  { return false; }
+  
+
+
+
   virtual bool ShouldFixToViewport(nsDisplayListBuilder* aBuilder)
   { return false; }
 
@@ -2169,6 +2179,8 @@ public:
                                    const nsRect& aAllowVisibleRegionExpansion) MOZ_OVERRIDE;
   virtual nsRegion GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
                                    bool* aSnap) MOZ_OVERRIDE;
+  virtual bool IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuilder,
+                                                nsIFrame* aFrame) MOZ_OVERRIDE;
   virtual bool IsUniform(nsDisplayListBuilder* aBuilder, nscolor* aColor) MOZ_OVERRIDE;
   
 
@@ -2583,6 +2595,8 @@ public:
   virtual nsRegion GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
                                    bool* aSnap) MOZ_OVERRIDE;
   virtual bool IsUniform(nsDisplayListBuilder* aBuilder, nscolor* aColor) MOZ_OVERRIDE;
+  virtual bool IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuilder,
+                                                nsIFrame* aFrame) MOZ_OVERRIDE;
   virtual void Paint(nsDisplayListBuilder* aBuilder, nsRenderingContext* aCtx) MOZ_OVERRIDE;
   virtual bool ComputeVisibility(nsDisplayListBuilder* aBuilder,
                                  nsRegion* aVisibleRegion,
