@@ -19,8 +19,9 @@ namespace ipc {
 
 
 
-class ListenSocketIO final : public UnixSocketWatcher
-                           , public SocketIOBase
+class ListenSocketIO final
+  : public UnixSocketWatcher
+  , public SocketIOBase
 {
 public:
   class ListenTask;
@@ -31,18 +32,7 @@ public:
                  const nsACString& aAddress);
   ~ListenSocketIO();
 
-  void        GetSocketAddr(nsAString& aAddrStr) const;
-  DataSocket* GetDataSocket();
-  SocketBase* GetSocketBase() override;
-
-  
-  
-
-  bool IsShutdownOnMainThread() const override;
-  void ShutdownOnMainThread() override;
-
-  bool IsShutdownOnIOThread() const override;
-  void ShutdownOnIOThread() override;
+  void GetSocketAddr(nsAString& aAddrStr) const;
 
   
   
@@ -60,6 +50,17 @@ public:
   void OnConnected() override;
   void OnError(const char* aFunction, int aErrno) override;
   void OnListening() override;
+
+  
+  
+
+  SocketBase* GetSocketBase() override;
+
+  bool IsShutdownOnMainThread() const override;
+  bool IsShutdownOnIOThread() const override;
+
+  void ShutdownOnMainThread() override;
+  void ShutdownOnIOThread() override;
 
 private:
   void FireSocketError();
@@ -133,53 +134,6 @@ ListenSocketIO::GetSocketAddr(nsAString& aAddrStr) const
     return;
   }
   mConnector->GetSocketAddr(mAddr, aAddrStr);
-}
-
-DataSocket*
-ListenSocketIO::GetDataSocket()
-{
-  MOZ_CRASH("Listen sockets cannot transfer data");
-
-  return nullptr;
-}
-
-SocketBase*
-ListenSocketIO::GetSocketBase()
-{
-  return mListenSocket.get();
-}
-
-bool
-ListenSocketIO::IsShutdownOnMainThread() const
-{
-  MOZ_ASSERT(NS_IsMainThread());
-
-  return mListenSocket == nullptr;
-}
-
-void
-ListenSocketIO::ShutdownOnMainThread()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(!IsShutdownOnMainThread());
-
-  mListenSocket = nullptr;
-}
-
-bool
-ListenSocketIO::IsShutdownOnIOThread() const
-{
-  return mShuttingDownOnIOThread;
-}
-
-void
-ListenSocketIO::ShutdownOnIOThread()
-{
-  MOZ_ASSERT(!NS_IsMainThread());
-  MOZ_ASSERT(!mShuttingDownOnIOThread);
-
-  Close(); 
-  mShuttingDownOnIOThread = true;
 }
 
 void
@@ -321,6 +275,47 @@ ListenSocketIO::SetSocketFlags(int aFd)
 
 
 
+SocketBase*
+ListenSocketIO::GetSocketBase()
+{
+  return mListenSocket.get();
+}
+
+bool
+ListenSocketIO::IsShutdownOnMainThread() const
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  return mListenSocket == nullptr;
+}
+
+bool
+ListenSocketIO::IsShutdownOnIOThread() const
+{
+  return mShuttingDownOnIOThread;
+}
+
+void
+ListenSocketIO::ShutdownOnMainThread()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(!IsShutdownOnMainThread());
+
+  mListenSocket = nullptr;
+}
+
+void
+ListenSocketIO::ShutdownOnIOThread()
+{
+  MOZ_ASSERT(!NS_IsMainThread());
+  MOZ_ASSERT(!mShuttingDownOnIOThread);
+
+  Close(); 
+  mShuttingDownOnIOThread = true;
+}
+
+
+
 
 
 class ListenSocketIO::ListenTask final
@@ -427,6 +422,14 @@ ListenSocket::GetSocketAddr(nsAString& aAddrStr)
     return;
   }
   mIO->GetSocketAddr(aAddrStr);
+}
+
+
+
+void
+ListenSocket::CloseSocket()
+{
+  Close();
 }
 
 } 

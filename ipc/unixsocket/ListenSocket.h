@@ -61,14 +61,12 @@ public:
 
   void GetSocketAddr(nsAString& aAddrStr);
 
-private:
-
   
-  void CloseSocket() override
-  {
-    Close();
-  }
+  
 
+  void CloseSocket() override;
+
+private:
   ListenSocketIO* mIO;
 };
 
