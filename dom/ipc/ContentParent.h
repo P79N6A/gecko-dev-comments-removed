@@ -377,6 +377,8 @@ public:
     virtual bool
     DeallocPContentPermissionRequestParent(PContentPermissionRequestParent* actor) override;
 
+    bool HasGamepadListener() const { return mHasGamepadListener; }
+
 protected:
     void OnChannelConnected(int32_t pid) override;
     virtual void ActorDestroy(ActorDestroyReason why) override;
@@ -840,6 +842,10 @@ private:
 
     virtual bool RecvUpdateDropEffect(const uint32_t& aDragAction,
                                       const uint32_t& aDropEffect) override;
+
+    virtual bool RecvGamepadListenerAdded() override;
+    virtual bool RecvGamepadListenerRemoved() override;
+
     
     
     
@@ -884,6 +890,7 @@ private:
     bool mSendDataStoreInfos;
     bool mIsForBrowser;
     bool mIsNuwaProcess;
+    bool mHasGamepadListener;
 
     
     

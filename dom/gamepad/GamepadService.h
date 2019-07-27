@@ -6,7 +6,6 @@
 #define mozilla_dom_GamepadService_h_
 
 #include <stdint.h>
-#include "Gamepad.h"
 #include "nsAutoPtr.h"
 #include "nsCOMArray.h"
 #include "nsIGamepadServiceTest.h"
@@ -16,10 +15,13 @@
 #include "nsITimer.h"
 #include "nsTArray.h"
 
+#include "mozilla/dom/GamepadBinding.h"
 namespace mozilla {
 namespace dom {
 
 class EventTarget;
+class GamepadChangeEvent;
+class Gamepad;
 
 class GamepadService : public nsIObserver
 {
@@ -27,6 +29,8 @@ class GamepadService : public nsIObserver
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
 
+  
+  static bool IsServiceRunning();
   
   static already_AddRefed<GamepadService> GetService();
   
@@ -40,8 +44,9 @@ class GamepadService : public nsIObserver
   void RemoveListener(nsGlobalWindow* aWindow);
 
   
-  uint32_t AddGamepad(const char* aID, GamepadMappingType aMapping,
+  void AddGamepad(uint32_t aIndex, const nsAString& aID, GamepadMappingType aMapping,
                       uint32_t aNumButtons, uint32_t aNumAxes);
+
   
   void RemoveGamepad(uint32_t aIndex);
 
@@ -51,8 +56,6 @@ class GamepadService : public nsIObserver
   
   void NewButtonEvent(uint32_t aIndex, uint32_t aButton, bool aPressed,
                       double aValue);
-  
-  void NewButtonEvent(uint32_t aIndex, uint32_t aButton, bool aPressed);
 
   
   
@@ -62,6 +65,11 @@ class GamepadService : public nsIObserver
   
   void SyncGamepadState(uint32_t aIndex, Gamepad* aGamepad);
 
+  
+  already_AddRefed<Gamepad> GetGamepad(uint32_t aIndex);
+
+  
+  void Update(const GamepadChangeEvent& aGamepadEvent);
  protected:
   GamepadService();
   virtual ~GamepadService() {};
@@ -115,37 +123,13 @@ class GamepadService : public nsIObserver
 
   
   
-  nsTArray<nsRefPtr<Gamepad> > mGamepads;
+  nsRefPtrHashtable<nsUint32HashKey, Gamepad> mGamepads;
   
   
   nsTArray<nsRefPtr<nsGlobalWindow> > mListeners;
   nsCOMPtr<nsITimer> mTimer;
-  nsCOMPtr<nsIFocusManager> mFocusManager;
-  nsCOMPtr<nsIObserver> mObserver;
-};
-
-
-class GamepadServiceTest : public nsIGamepadServiceTest
-{
-public:
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIGAMEPADSERVICETEST
-
-  GamepadServiceTest();
-
-  static already_AddRefed<GamepadServiceTest> CreateService();
-
-private:
-  static GamepadServiceTest* sSingleton;
-  virtual ~GamepadServiceTest() {};
 };
 
 }  
 }  
-
-#define NS_GAMEPAD_TEST_CID \
-{ 0xfb1fcb57, 0xebab, 0x4cf4, \
-{ 0x96, 0x3b, 0x1e, 0x4d, 0xb8, 0x52, 0x16, 0x96 } }
-#define NS_GAMEPAD_TEST_CONTRACTID "@mozilla.org/gamepad-test;1"
-
 #endif 

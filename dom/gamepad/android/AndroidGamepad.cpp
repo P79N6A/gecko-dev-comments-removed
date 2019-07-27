@@ -3,22 +3,17 @@
 
 
 
-#include "Hal.h"
 #include "AndroidBridge.h"
 
-using namespace mozilla::hal;
-
 namespace mozilla {
-namespace hal_impl {
+namespace dom {
 
-void
-StartMonitoringGamepadStatus()
+void StartGamepadMonitoring()
 {
   widget::GeckoAppShell::StartMonitoringGamepad();
 }
 
-void
-StopMonitoringGamepadStatus()
+void StopGamepadMonitoring()
 {
   widget::GeckoAppShell::StopMonitoringGamepad();
 }

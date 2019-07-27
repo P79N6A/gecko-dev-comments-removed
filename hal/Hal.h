@@ -17,7 +17,6 @@
 #include "mozilla/dom/battery/Types.h"
 #include "mozilla/dom/network/Types.h"
 #include "mozilla/dom/power/Types.h"
-#include "mozilla/hal_sandbox/PHal.h"
 #include "mozilla/dom/ScreenOrientation.h"
 #include "mozilla/HalScreenConfiguration.h"
 
@@ -597,16 +596,6 @@ void StartForceQuitWatchdog(hal::ShutdownMode aMode, int32_t aTimeoutSecs);
 
 
 void FactoryReset(mozilla::dom::FactoryResetReason& aReason);
-
-
-
-
-void StartMonitoringGamepadStatus();
-
-
-
-
-void StopMonitoringGamepadStatus();
 
 
 

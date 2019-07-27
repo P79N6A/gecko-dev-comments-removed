@@ -271,13 +271,6 @@ DisableSensorNotifications(SensorType aSensor) {
   Hal()->SendDisableSensorNotifications(aSensor);
 }
 
-
-void StartMonitoringGamepadStatus()
-{}
-
-void StopMonitoringGamepadStatus()
-{}
-
 void
 EnableWakeLockNotifications()
 {

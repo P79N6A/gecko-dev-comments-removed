@@ -2,13 +2,18 @@
 
 
 
-#include "mozilla/Hal.h"
+#include "mozilla/dom/GamepadService.h"
+#include "mozilla/dom/ContentChild.h"
+#include "mozilla/dom/Gamepad.h"
+#include "mozilla/dom/GamepadAxisMoveEvent.h"
+#include "mozilla/dom/GamepadButtonEvent.h"
+#include "mozilla/dom/GamepadEvent.h"
+#include "mozilla/dom/GamepadMonitoring.h"
+
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPtr.h"
 
-#include "GamepadService.h"
-#include "Gamepad.h"
 #include "nsAutoPtr.h"
 #include "nsIDOMEvent.h"
 #include "nsIDOMDocument.h"
@@ -19,10 +24,6 @@
 #include "nsITimer.h"
 #include "nsThreadUtils.h"
 #include "mozilla/Services.h"
-
-#include "mozilla/dom/GamepadAxisMoveEvent.h"
-#include "mozilla/dom/GamepadButtonEvent.h"
-#include "mozilla/dom/GamepadEvent.h"
 
 #include <cstddef>
 
@@ -82,7 +83,11 @@ GamepadService::BeginShutdown()
     mTimer->Cancel();
   }
   if (mStarted) {
-    mozilla::hal::StopMonitoringGamepadStatus();
+    if (XRE_GetProcessType() == GeckoProcessType_Default) {
+      MaybeStopGamepadMonitoring();
+    } else {
+      ContentChild::GetSingleton()->SendGamepadListenerRemoved();
+    }
     mStarted = false;
   }
   
@@ -99,7 +104,6 @@ GamepadService::AddListener(nsGlobalWindow* aWindow)
 {
   MOZ_ASSERT(aWindow);
   MOZ_ASSERT(aWindow->IsInnerWindow());
-
   if (mShuttingDown) {
     return;
   }
@@ -109,10 +113,13 @@ GamepadService::AddListener(nsGlobalWindow* aWindow)
   }
 
   if (!mStarted && mEnabled) {
-    mozilla::hal::StartMonitoringGamepadStatus();
+    if (XRE_GetProcessType() == GeckoProcessType_Default) {
+      StartGamepadMonitoring();
+    } else {
+      ContentChild::GetSingleton()->SendGamepadListenerAdded();
+    }
     mStarted = true;
   }
-
   mListeners.AppendElement(aWindow);
 }
 
@@ -139,8 +146,20 @@ GamepadService::RemoveListener(nsGlobalWindow* aWindow)
   }
 }
 
-uint32_t
-GamepadService::AddGamepad(const char* aId,
+already_AddRefed<Gamepad>
+GamepadService::GetGamepad(uint32_t aIndex)
+{
+  nsRefPtr<Gamepad> gamepad;
+  if (mGamepads.Get(aIndex, getter_AddRefs(gamepad))) {
+    return gamepad.forget();
+  }
+
+  return nullptr;
+}
+
+void
+GamepadService::AddGamepad(uint32_t aIndex,
+                           const nsAString& aId,
                            GamepadMappingType aMapping,
                            uint32_t aNumButtons,
                            uint32_t aNumAxes)
@@ -148,63 +167,40 @@ GamepadService::AddGamepad(const char* aId,
   
   nsRefPtr<Gamepad> gamepad =
     new Gamepad(nullptr,
-                NS_ConvertUTF8toUTF16(nsDependentCString(aId)),
-                0,
+                aId,
+                0, 
                 aMapping,
                 aNumButtons,
                 aNumAxes);
-  int index = -1;
-  for (uint32_t i = 0; i < mGamepads.Length(); i++) {
-    if (!mGamepads[i]) {
-      mGamepads[i] = gamepad;
-      index = i;
-      break;
-    }
-  }
-  if (index == -1) {
-    mGamepads.AppendElement(gamepad);
-    index = mGamepads.Length() - 1;
-  }
 
-  gamepad->SetIndex(index);
-  NewConnectionEvent(index, true);
-
-  return index;
+  
+  mGamepads.Put(aIndex, gamepad);
+  NewConnectionEvent(aIndex, true);
 }
 
 void
 GamepadService::RemoveGamepad(uint32_t aIndex)
 {
-  if (aIndex < mGamepads.Length()) {
-    mGamepads[aIndex]->SetConnected(false);
-    NewConnectionEvent(aIndex, false);
-    
-    if (aIndex == mGamepads.Length() - 1) {
-      mGamepads.RemoveElementAt(aIndex);
-    } else {
-      
-      
-      mGamepads[aIndex] = nullptr;
-    }
+  nsRefPtr<Gamepad> gamepad = GetGamepad(aIndex);
+  if (!gamepad) {
+    NS_WARNING("Trying to delete gamepad with invalid index");
+    return;
   }
-}
-
-void
-GamepadService::NewButtonEvent(uint32_t aIndex, uint32_t aButton, bool aPressed)
-{
-  
-  NewButtonEvent(aIndex, aButton, aPressed, aPressed ? 1.0L : 0.0L);
+  gamepad->SetConnected(false);
+    NewConnectionEvent(aIndex, false);
+  mGamepads.Remove(aIndex);
 }
 
 void
 GamepadService::NewButtonEvent(uint32_t aIndex, uint32_t aButton, bool aPressed,
                                double aValue)
 {
-  if (mShuttingDown || aIndex >= mGamepads.Length()) {
+  nsRefPtr<Gamepad> gamepad = GetGamepad(aIndex);
+  if (mShuttingDown || !gamepad) {
     return;
   }
 
-  mGamepads[aIndex]->SetButton(aButton, aPressed, aValue);
+  gamepad->SetButton(aButton, aPressed, aValue);
 
   
   
@@ -227,15 +223,15 @@ GamepadService::NewButtonEvent(uint32_t aIndex, uint32_t aButton, bool aPressed,
       first_time = true;
     }
 
-    nsRefPtr<Gamepad> gamepad = listeners[i]->GetGamepad(aIndex);
-    if (gamepad) {
-      gamepad->SetButton(aButton, aPressed, aValue);
+    nsRefPtr<Gamepad> listenerGamepad = listeners[i]->GetGamepad(aIndex);
+    if (listenerGamepad) {
+      listenerGamepad->SetButton(aButton, aPressed, aValue);
       if (first_time) {
-        FireConnectionEvent(listeners[i], gamepad, true);
+        FireConnectionEvent(listeners[i], listenerGamepad, true);
       }
       if (mNonstandardEventsEnabled) {
         
-        FireButtonEvent(listeners[i], gamepad, aButton, aValue);
+        FireButtonEvent(listeners[i], listenerGamepad, aButton, aValue);
       }
     }
   }
@@ -266,10 +262,11 @@ GamepadService::FireButtonEvent(EventTarget* aTarget,
 void
 GamepadService::NewAxisMoveEvent(uint32_t aIndex, uint32_t aAxis, double aValue)
 {
-  if (mShuttingDown || aIndex >= mGamepads.Length()) {
+  nsRefPtr<Gamepad> gamepad = GetGamepad(aIndex);
+  if (mShuttingDown || !gamepad) {
     return;
   }
-  mGamepads[aIndex]->SetAxis(aAxis, aValue);
+  gamepad->SetAxis(aAxis, aValue);
 
   
   
@@ -292,15 +289,15 @@ GamepadService::NewAxisMoveEvent(uint32_t aIndex, uint32_t aAxis, double aValue)
       first_time = true;
     }
 
-    nsRefPtr<Gamepad> gamepad = listeners[i]->GetGamepad(aIndex);
-    if (gamepad) {
-      gamepad->SetAxis(aAxis, aValue);
+    nsRefPtr<Gamepad> listenerGamepad = listeners[i]->GetGamepad(aIndex);
+    if (listenerGamepad) {
+      listenerGamepad->SetAxis(aAxis, aValue);
       if (first_time) {
-        FireConnectionEvent(listeners[i], gamepad, true);
+        FireConnectionEvent(listeners[i], listenerGamepad, true);
       }
       if (mNonstandardEventsEnabled) {
         
-        FireAxisMoveEvent(listeners[i], gamepad, aAxis, aValue);
+        FireAxisMoveEvent(listeners[i], listenerGamepad, aAxis, aValue);
       }
     }
   }
@@ -332,7 +329,9 @@ GamepadService::FireAxisMoveEvent(EventTarget* aTarget,
 void
 GamepadService::NewConnectionEvent(uint32_t aIndex, bool aConnected)
 {
-  if (mShuttingDown || aIndex >= mGamepads.Length()) {
+  nsRefPtr<Gamepad> gamepad = GetGamepad(aIndex);
+
+  if (mShuttingDown || !gamepad) {
     return;
   }
 
@@ -358,10 +357,10 @@ GamepadService::NewConnectionEvent(uint32_t aIndex, bool aConnected)
 
       SetWindowHasSeenGamepad(listeners[i], aIndex);
 
-      nsRefPtr<Gamepad> gamepad = listeners[i]->GetGamepad(aIndex);
-      if (gamepad) {
+      nsRefPtr<Gamepad> listenerGamepad = listeners[i]->GetGamepad(aIndex);
+      if (listenerGamepad) {
         
-        FireConnectionEvent(listeners[i], gamepad, aConnected);
+        FireConnectionEvent(listeners[i], listenerGamepad, aConnected);
       }
     }
   } else {
@@ -374,11 +373,11 @@ GamepadService::NewConnectionEvent(uint32_t aIndex, bool aConnected)
       
 
       if (WindowHasSeenGamepad(listeners[i], aIndex)) {
-        nsRefPtr<Gamepad> gamepad = listeners[i]->GetGamepad(aIndex);
-        if (gamepad) {
-          gamepad->SetConnected(false);
+        nsRefPtr<Gamepad> listenerGamepad = listeners[i]->GetGamepad(aIndex);
+        if (listenerGamepad) {
+          listenerGamepad->SetConnected(false);
           
-          FireConnectionEvent(listeners[i], gamepad, false);
+          FireConnectionEvent(listeners[i], listenerGamepad, false);
           listeners[i]->RemoveGamepad(aIndex);
         }
       }
@@ -409,11 +408,19 @@ GamepadService::FireConnectionEvent(EventTarget* aTarget,
 void
 GamepadService::SyncGamepadState(uint32_t aIndex, Gamepad* aGamepad)
 {
-  if (mShuttingDown || !mEnabled || aIndex > mGamepads.Length()) {
+  nsRefPtr<Gamepad> gamepad = GetGamepad(aIndex);
+  if (mShuttingDown || !mEnabled || !gamepad) {
     return;
   }
 
-  aGamepad->SyncState(mGamepads[aIndex]);
+  aGamepad->SyncState(gamepad);
+}
+
+
+bool
+GamepadService::IsServiceRunning()
+{
+  return !!gGamepadServiceSingleton;
 }
 
 
@@ -461,8 +468,13 @@ GamepadService::SetWindowHasSeenGamepad(nsGlobalWindow* aWindow,
   if (aHasSeen) {
     aWindow->SetHasSeenGamepadInput(true);
     nsCOMPtr<nsISupports> window = ToSupports(aWindow);
-    nsRefPtr<Gamepad> gamepad = mGamepads[aIndex]->Clone(window);
-    aWindow->AddGamepad(aIndex, gamepad);
+    nsRefPtr<Gamepad> gamepad = GetGamepad(aIndex);
+    MOZ_ASSERT(gamepad);
+    if (!gamepad) {
+      return;
+    }
+    nsRefPtr<Gamepad> clonedGamepad = gamepad->Clone(window);
+    aWindow->AddGamepad(aIndex, clonedGamepad);
   } else {
     aWindow->RemoveGamepad(aIndex);
   }
@@ -486,13 +498,16 @@ GamepadService::TimeoutHandler(nsITimer* aTimer, void* aClosure)
   }
 
   if (self->mListeners.Length() == 0) {
-    mozilla::hal::StopMonitoringGamepadStatus();
+    if (XRE_GetProcessType() == GeckoProcessType_Default) {
+      MaybeStopGamepadMonitoring();
+    } else {
+      ContentChild::GetSingleton()->SendGamepadListenerRemoved();
+    }
+
     self->mStarted = false;
-    if (!self->mGamepads.IsEmpty()) {
       self->mGamepads.Clear();
     }
   }
-}
 
 void
 GamepadService::StartCleanupTimer()
@@ -510,71 +525,26 @@ GamepadService::StartCleanupTimer()
   }
 }
 
-
-
-
-
-
-NS_IMPL_ISUPPORTS(GamepadServiceTest, nsIGamepadServiceTest)
-
-GamepadServiceTest* GamepadServiceTest::sSingleton = nullptr;
-
-
-already_AddRefed<GamepadServiceTest>
-GamepadServiceTest::CreateService()
+void
+GamepadService::Update(const GamepadChangeEvent& aEvent)
 {
-  if (sSingleton == nullptr) {
-    sSingleton = new GamepadServiceTest();
+  if (aEvent.type() == GamepadChangeEvent::TGamepadAdded) {
+    const GamepadAdded& a = aEvent.get_GamepadAdded();
+    AddGamepad(a.index(), a.id(),
+               static_cast<GamepadMappingType>(a.mapping()),
+               a.num_buttons(), a.num_axes());
+  } else if (aEvent.type() == GamepadChangeEvent::TGamepadRemoved) {
+    const GamepadRemoved& a = aEvent.get_GamepadRemoved();
+    RemoveGamepad(a.index());
+  } else if (aEvent.type() == GamepadChangeEvent::TGamepadButtonInformation) {
+    const GamepadButtonInformation& a = aEvent.get_GamepadButtonInformation();
+    NewButtonEvent(a.index(), a.button(), a.pressed(), a.value());
+  } else if (aEvent.type() == GamepadChangeEvent::TGamepadAxisInformation) {
+    const GamepadAxisInformation& a = aEvent.get_GamepadAxisInformation();
+    NewAxisMoveEvent(a.index(), a.axis(), a.value());
+  } else {
+    MOZ_CRASH("We shouldn't be here!");
   }
-  nsRefPtr<GamepadServiceTest> service = sSingleton;
-  return service.forget();
-}
-
-GamepadServiceTest::GamepadServiceTest()
-{
-  
-  nsRefPtr<GamepadService> service = GamepadService::GetService();
-}
-
-
-NS_IMETHODIMP GamepadServiceTest::AddGamepad(const char* aID,
-                                             uint32_t aMapping,
-                                             uint32_t aNumButtons,
-                                             uint32_t aNumAxes,
-                                             uint32_t* aRetval)
-{
-  *aRetval = gGamepadServiceSingleton->AddGamepad(aID,
-                                                  static_cast<GamepadMappingType>(aMapping),
-                                                  aNumButtons,
-                                                  aNumAxes);
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP GamepadServiceTest::RemoveGamepad(uint32_t aIndex)
-{
-  gGamepadServiceSingleton->RemoveGamepad(aIndex);
-  return NS_OK;
-}
-
-
-
-NS_IMETHODIMP GamepadServiceTest::NewButtonEvent(uint32_t aIndex,
-                                                 uint32_t aButton,
-                                                 bool aPressed)
-{
-  gGamepadServiceSingleton->NewButtonEvent(aIndex, aButton, aPressed);
-  return NS_OK;
-}
-
-
-
-NS_IMETHODIMP GamepadServiceTest::NewAxisMoveEvent(uint32_t aIndex,
-                                                   uint32_t aAxis,
-                                                   double aValue)
-{
-  gGamepadServiceSingleton->NewAxisMoveEvent(aIndex, aAxis, aValue);
-  return NS_OK;
 }
 
 } 
