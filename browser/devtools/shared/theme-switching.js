@@ -24,24 +24,35 @@
       return;
     }
 
-    if (oldTheme && newTheme != oldTheme) {
-      StylesheetUtils.removeSheet(
-        window,
-        DEVTOOLS_SKIN_URL + oldTheme + "-theme.css",
-        "author"
-      );
+    let oldThemeDef = gDevTools.getThemeDefinition(oldTheme);
+    let newThemeDef = gDevTools.getThemeDefinition(newTheme);
+
+    
+    if (oldThemeDef) {
+      for (let url of oldThemeDef.stylesheets) {
+        StylesheetUtils.removeSheet(window, url, "author");
+      }
     }
 
-    StylesheetUtils.loadSheet(
-      window,
-      DEVTOOLS_SKIN_URL + newTheme + "-theme.css",
-      "author"
-    );
+    
+    let newThemeDef = gDevTools.getThemeDefinition(newTheme);
+
+    
+    
+    if (!newThemeDef) {
+      newThemeDef = gDevTools.getThemeDefinition("light");
+    }
+
+    for (let url of newThemeDef.stylesheets) {
+      StylesheetUtils.loadSheet(window, url, "author");
+    }
 
     
     let hiddenDOMWindow = Cc["@mozilla.org/appshell/appShellService;1"]
                  .getService(Ci.nsIAppShellService)
                  .hiddenDOMWindow;
+
+    
     if (!hiddenDOMWindow.matchMedia("(-moz-overlay-scrollbars)").matches) {
       let scrollbarsUrl = Services.io.newURI(
         DEVTOOLS_SKIN_URL + "floating-scrollbars-light.css", null, null);
@@ -62,8 +73,26 @@
       forceStyle();
     }
 
-    documentElement.classList.remove("theme-" + oldTheme);
-    documentElement.classList.add("theme-" + newTheme);
+    if (oldThemeDef) {
+      for (let name of oldThemeDef.classList) {
+        documentElement.classList.remove(name);
+      }
+
+      if (oldThemeDef.onUnapply) {
+        oldThemeDef.onUnapply(window, newTheme);
+      }
+    }
+
+    for (let name of newThemeDef.classList) {
+      documentElement.classList.add(name);
+    }
+
+    if (newThemeDef.onApply) {
+      newThemeDef.onApply(window, oldTheme);
+    }
+
+    
+    gDevTools.emit("theme-switched", window, newTheme, oldTheme);
   }
 
   function handlePrefChange(event, data) {

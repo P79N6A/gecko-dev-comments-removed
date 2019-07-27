@@ -26,9 +26,9 @@ const MAX_ORDINAL = 99;
 
 
 
-
 this.DevTools = function DevTools() {
   this._tools = new Map();     
+  this._themes = new Map();    
   this._toolboxes = new Map(); 
 
   
@@ -222,6 +222,136 @@ DevTools.prototype = {
 
     for (let [id, definition] of this._tools) {
       if (this.getToolDefinition(id)) {
+        definitions.push(definition);
+      }
+    }
+
+    return definitions.sort(this.ordinalSort);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  registerTheme: function DT_registerTheme(themeDefinition) {
+    let themeId = themeDefinition.id;
+
+    if (!themeId) {
+      throw new Error("Invalid theme id");
+    }
+
+    if (this._themes.get(themeId)) {
+      throw new Error("Theme with the same id is already registered");
+    }
+
+    this._themes.set(themeId, themeDefinition);
+
+    this.emit("theme-registered", themeId);
+  },
+
+  
+
+
+
+
+
+
+  unregisterTheme: function DT_unregisterTheme(theme) {
+    let themeId = null;
+    if (typeof theme == "string") {
+      themeId = theme;
+      theme = this._themes.get(theme);
+    }
+    else {
+      themeId = theme.id;
+    }
+
+    let currTheme = Services.prefs.getCharPref("devtools.theme");
+
+    
+    
+    
+    if (!Services.startup.shuttingDown && theme.id == currTheme) {
+      Services.prefs.setCharPref("devtools.theme", "light");
+
+      let data = {
+        pref: "devtools.theme",
+        newValue: "light",
+        oldValue: currTheme
+      };
+
+      gDevTools.emit("pref-changed", data);
+
+      this.emit("theme-unregistered", theme);
+    }
+
+    this._themes.delete(themeId);
+  },
+
+  
+
+
+
+
+
+
+
+
+  getThemeDefinition: function DT_getThemeDefinition(themeId) {
+    let theme = this._themes.get(themeId);
+    if (!theme) {
+      return null;
+    }
+    return theme;
+  },
+
+  
+
+
+
+
+
+  getThemeDefinitionMap: function DT_getThemeDefinitionMap() {
+    let themes = new Map();
+
+    for (let [id, definition] of this._themes) {
+      if (this.getThemeDefinition(id)) {
+        themes.set(id, definition);
+      }
+    }
+
+    return themes;
+  },
+
+  
+
+
+
+
+
+  getThemeDefinitionArray: function DT_getThemeDefinitionArray() {
+    let definitions = [];
+
+    for (let [id, definition] of this._themes) {
+      if (this.getThemeDefinition(id)) {
         definitions.push(definition);
       }
     }
