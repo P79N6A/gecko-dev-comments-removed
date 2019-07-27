@@ -177,8 +177,8 @@ public:
 
   
 private:
-  virtual void AddStates(EventStates aStates);
-  virtual void RemoveStates(EventStates aStates);
+  virtual void AddStates(EventStates aStates) MOZ_OVERRIDE;
+  virtual void RemoveStates(EventStates aStates) MOZ_OVERRIDE;
 
 public:
 

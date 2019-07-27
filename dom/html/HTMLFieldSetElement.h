@@ -93,7 +93,7 @@ public:
 
   
 
-  virtual EventStates IntrinsicState() const;
+  virtual EventStates IntrinsicState() const MOZ_OVERRIDE;
 
 
   
