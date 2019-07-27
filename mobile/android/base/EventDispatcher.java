@@ -140,35 +140,32 @@ public final class EventDispatcher {
     }
 
     public void dispatchEvent(final NativeJSContainer message) {
-        EventCallback callback = null;
-        try {
-            
-            final String type = message.getString("type");
+        
+        final String type = message.getString("type");
 
-            final List<NativeEventListener> listeners;
-            synchronized (mGeckoThreadNativeListeners) {
-                listeners = mGeckoThreadNativeListeners.get(type);
-            }
-
-            final String guid = message.optString(GUID, null);
-            if (guid != null) {
-                callback = new GeckoEventCallback(guid, type);
-            }
-
-            if (listeners != null) {
-                if (listeners.size() == 0) {
-                    Log.w(LOGTAG, "No listeners for " + type);
-                }
-                for (final NativeEventListener listener : listeners) {
-                    listener.handleMessage(type, message, callback);
-                }
-                
-                
-                return;
-            }
-        } catch (final IllegalArgumentException e) {
-            
+        final List<NativeEventListener> listeners;
+        synchronized (mGeckoThreadNativeListeners) {
+            listeners = mGeckoThreadNativeListeners.get(type);
         }
+
+        final String guid = message.optString(GUID, null);
+        EventCallback callback = null;
+        if (guid != null) {
+            callback = new GeckoEventCallback(guid, type);
+        }
+
+        if (listeners != null) {
+            if (listeners.size() == 0) {
+                Log.w(LOGTAG, "No listeners for " + type);
+            }
+            for (final NativeEventListener listener : listeners) {
+                listener.handleMessage(type, message, callback);
+            }
+            
+            
+            return;
+        }
+
         try {
             
             dispatchEvent(new JSONObject(message.toString()), callback);
