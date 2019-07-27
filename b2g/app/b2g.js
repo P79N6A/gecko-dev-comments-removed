@@ -367,9 +367,6 @@ pref("urlclassifier.alternate_error_page", "blocked");
 pref("urlclassifier.gethashnoise", 4);
 
 
-pref("urlclassifier.gethash.timeout_ms", 5000);
-
-
 
 
 pref("urlclassifier.max-complete-age", 2700);
