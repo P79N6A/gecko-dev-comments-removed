@@ -308,7 +308,9 @@ public:
     mozilla::gfx::BackendType GetPreferredCanvasBackend() {
       return mPreferredCanvasBackend;
     }
-
+    mozilla::gfx::BackendType GetFallbackCanvasBackend() {
+      return mFallbackCanvasBackend;
+    }
     
 
 
@@ -638,6 +640,16 @@ public:
     }
 
     virtual void FlushContentDrawing() {}
+
+    
+
+
+
+    mozilla::TemporaryRef<DrawTarget>
+      CreateDrawTargetForBackend(mozilla::gfx::BackendType aBackend,
+                                 const mozilla::gfx::IntSize& aSize,
+                                 mozilla::gfx::SurfaceFormat aFormat);
+
 protected:
     gfxPlatform();
     virtual ~gfxPlatform();
@@ -649,15 +661,6 @@ protected:
 
 
     virtual already_AddRefed<mozilla::gfx::VsyncSource> CreateHardwareVsyncSource();
-
-    
-
-
-
-    mozilla::TemporaryRef<DrawTarget>
-      CreateDrawTargetForBackend(mozilla::gfx::BackendType aBackend,
-                                 const mozilla::gfx::IntSize& aSize,
-                                 mozilla::gfx::SurfaceFormat aFormat);
 
     
 

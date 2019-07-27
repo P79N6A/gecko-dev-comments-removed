@@ -21,6 +21,7 @@
 #include "mozilla/layers/PLayerChild.h"  
 #include "mozilla/layers/LayerTransactionChild.h"
 #include "mozilla/layers/TextureClientPool.h" 
+#include "mozilla/layers/PersistentBufferProvider.h"
 #include "ClientReadbackLayer.h"        
 #include "nsAString.h"
 #include "nsIWidgetListener.h"
