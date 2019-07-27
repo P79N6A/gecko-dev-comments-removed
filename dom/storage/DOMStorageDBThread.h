@@ -15,6 +15,7 @@
 #include "nsCOMPtr.h"
 #include "nsClassHashtable.h"
 #include "nsIFile.h"
+#include "nsIThreadInternal.h"
 
 class mozIStorageConnection;
 
@@ -208,6 +209,34 @@ public:
     uint32_t mFlushFailureCount;
   };
 
+  class ThreadObserver MOZ_FINAL : public nsIThreadObserver
+  {
+    NS_DECL_THREADSAFE_ISUPPORTS
+    NS_DECL_NSITHREADOBSERVER
+
+    ThreadObserver()
+      : mHasPendingEvents(false)
+      , mMonitor("DOMStorageThreadMonitor")
+    {
+    }
+
+    bool HasPendingEvents() {
+      mMonitor.AssertCurrentThreadOwns();
+      return mHasPendingEvents;
+    }
+    void ClearPendingEvents() {
+      mMonitor.AssertCurrentThreadOwns();
+      mHasPendingEvents = false;
+    }
+    Monitor& GetMonitor() { return mMonitor; }
+
+  private:
+    virtual ~ThreadObserver() {}
+    bool mHasPendingEvents;
+    
+    Monitor mMonitor;
+  };
+
 public:
   DOMStorageDBThread();
   virtual ~DOMStorageDBThread() {}
@@ -251,8 +280,9 @@ private:
   PRThread* mThread;
 
   
-  Monitor mMonitor;
+  nsRefPtr<ThreadObserver> mThreadObserver;
 
+  
   
   bool mStopIOThread;
 
