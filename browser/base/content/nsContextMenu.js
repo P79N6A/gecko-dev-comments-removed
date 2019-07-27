@@ -941,7 +941,8 @@ nsContextMenu.prototype = {
 
   
   reloadFrame: function() {
-    this.target.ownerDocument.location.reload();
+    this.browser.messageManager.sendAsyncMessage("ContextMenu:ReloadFrame",
+                                                 null, { target: this.target });
   },
 
   
