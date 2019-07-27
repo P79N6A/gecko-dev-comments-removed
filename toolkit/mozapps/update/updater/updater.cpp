@@ -2191,17 +2191,8 @@ UpdateThreadFunc(void *param)
       
       
       
-      
-      char* cwd = getcwd(nullptr, 0);
-      if (cwd) {
-        if (utimes(cwd, nullptr) != 0) {
-          LOG(("Couldn't set access/modification time on application bundle."));
-        }
-        free(cwd);
-      }
-      else {
-        LOG(("Couldn't get current working directory for setting "
-             "access/modification time on application bundle."));
+      if (!sStagedUpdate && utimes(gInstallDirPath, nullptr) != 0) {
+        LOG(("Couldn't set access/modification time on application bundle."));
       }
 #endif
 
