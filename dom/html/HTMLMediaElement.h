@@ -340,7 +340,11 @@ public:
 
   MediaStream* GetSrcMediaStream() const
   {
-    NS_ASSERTION(mPlaybackStream, "Don't call this when not playing a stream");
+    NS_ASSERTION(mSrcStream, "Don't call this when not playing a stream");
+    if (!mPlaybackStream) {
+      
+      return mSrcStream->GetStream();
+    }
     return mPlaybackStream->GetStream();
   }
 

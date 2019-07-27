@@ -2894,18 +2894,21 @@ void HTMLMediaElement::SetupSrcMediaStreamPlayback(DOMMediaStream* aStream)
   }
 
   
-  
-  
-  
-  mPlaybackStream = DOMMediaStream::CreateTrackUnionStream(window);
-  mPlaybackStreamInputPort = mPlaybackStream->GetStream()->AsProcessedStream()->
-    AllocateInputPort(mSrcStream->GetStream(), MediaInputPort::FLAG_BLOCK_OUTPUT);
+  if (!mSrcStream->GetStream()->AsCameraPreviewStream()) {
+    
+    
+    
+    
+    mPlaybackStream = DOMMediaStream::CreateTrackUnionStream(window);
+    mPlaybackStreamInputPort = mPlaybackStream->GetStream()->AsProcessedStream()->
+      AllocateInputPort(mSrcStream->GetStream(), MediaInputPort::FLAG_BLOCK_OUTPUT);
 
-  nsRefPtr<nsIPrincipal> principal = GetCurrentPrincipal();
-  mPlaybackStream->CombineWithPrincipal(principal);
+    nsRefPtr<nsIPrincipal> principal = GetCurrentPrincipal();
+    mPlaybackStream->CombineWithPrincipal(principal);
 
-  
-  GetSrcMediaStream()->AsProcessedStream()->SetAutofinish(true);
+    
+    GetSrcMediaStream()->AsProcessedStream()->SetAutofinish(true);
+  }
 
   nsRefPtr<MediaStream> stream = mSrcStream->GetStream();
   if (stream) {
@@ -2953,7 +2956,9 @@ void HTMLMediaElement::EndSrcMediaStreamPlayback()
   }
   mSrcStream->DisconnectTrackListListeners(AudioTracks(), VideoTracks());
 
-  mPlaybackStreamInputPort->Destroy();
+  if (mPlaybackStreamInputPort) {
+    mPlaybackStreamInputPort->Destroy();
+  }
 
   
   mSrcStreamListener->Forget();
