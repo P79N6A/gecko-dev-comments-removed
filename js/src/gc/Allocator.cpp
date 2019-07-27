@@ -6,11 +6,8 @@
 
 #include "gc/Allocator.h"
 
-#include "mozilla/UniquePtr.h"
-
 #include "jscntxt.h"
 
-#include "gc/GCInternals.h"
 #include "gc/GCTrace.h"
 #include "gc/Nursery.h"
 #include "jit/JitCompartment.h"
@@ -22,23 +19,101 @@
 using namespace js;
 using namespace gc;
 
+static inline bool
+ShouldNurseryAllocateObject(const Nursery &nursery, InitialHeap heap)
+{
+    return nursery.isEnabled() && heap != TenuredHeap;
+}
+
+
+
+
+
 template <AllowGC allowGC>
-bool
-GCRuntime::checkAllocatorState(JSContext *cx, AllocKind kind)
+inline JSObject *
+TryNewNurseryObject(JSContext *cx, size_t thingSize, size_t nDynamicSlots, const Class *clasp)
+{
+    MOZ_ASSERT(!IsAtomsCompartment(cx->compartment()));
+    JSRuntime *rt = cx->runtime();
+    Nursery &nursery = rt->gc.nursery;
+    JSObject *obj = nursery.allocateObject(cx, thingSize, nDynamicSlots, clasp);
+    if (obj)
+        return obj;
+
+    if (allowGC && !rt->mainThread.suppressGC) {
+        cx->minorGC(JS::gcreason::OUT_OF_NURSERY);
+
+        
+        if (nursery.isEnabled()) {
+            JSObject *obj = nursery.allocateObject(cx, thingSize, nDynamicSlots, clasp);
+            MOZ_ASSERT(obj);
+            return obj;
+        }
+    }
+    return nullptr;
+}
+
+static inline bool
+PossiblyFail()
+{
+    JS_OOM_POSSIBLY_FAIL_BOOL();
+    return true;
+}
+
+static inline bool
+GCIfNeeded(ExclusiveContext *cx)
+{
+    if (cx->isJSContext()) {
+        JSContext *ncx = cx->asJSContext();
+        JSRuntime *rt = ncx->runtime();
+
+#ifdef JS_GC_ZEAL
+        if (rt->gc.needZealousGC())
+            rt->gc.runDebugGC();
+#endif
+
+        
+        
+        if (rt->hasPendingInterrupt())
+            rt->gc.gcIfRequested(ncx);
+
+        
+        
+        
+        if (rt->gc.isIncrementalGCInProgress() &&
+            cx->zone()->usage.gcBytes() > cx->zone()->threshold.gcTriggerBytes())
+        {
+            PrepareZoneForGC(cx->zone());
+            AutoKeepAtoms keepAtoms(cx->perThreadData);
+            rt->gc.gc(GC_NORMAL, JS::gcreason::INCREMENTAL_TOO_SLOW);
+        }
+    }
+
+    return true;
+}
+
+template <AllowGC allowGC>
+static inline bool
+CheckAllocatorState(ExclusiveContext *cx, AllocKind kind)
 {
     if (allowGC) {
-        if (!gcIfNeededPerAllocation(cx))
+        if (!GCIfNeeded(cx))
             return false;
     }
 
+    if (!cx->isJSContext())
+        return true;
+
+    JSContext *ncx = cx->asJSContext();
+    JSRuntime *rt = ncx->runtime();
 #if defined(JS_GC_ZEAL) || defined(DEBUG)
-    MOZ_ASSERT_IF(rt->isAtomsCompartment(cx->compartment()),
+    MOZ_ASSERT_IF(rt->isAtomsCompartment(ncx->compartment()),
                   kind == FINALIZE_STRING ||
                   kind == FINALIZE_FAT_INLINE_STRING ||
                   kind == FINALIZE_SYMBOL ||
                   kind == FINALIZE_JITCODE);
     MOZ_ASSERT(!rt->isHeapBusy());
-    MOZ_ASSERT(isAllocAllowed());
+    MOZ_ASSERT(rt->gc.isAllocAllowed());
 #endif
 
     
@@ -46,8 +121,8 @@ GCRuntime::checkAllocatorState(JSContext *cx, AllocKind kind)
         JS::AutoAssertOnGC::VerifyIsSafeToGC(rt);
 
     
-    if (js::oom::ShouldFailWithOOM()) {
-        ReportOutOfMemory(cx);
+    if (!PossiblyFail()) {
+        ReportOutOfMemory(ncx);
         return false;
     }
 
@@ -55,8 +130,8 @@ GCRuntime::checkAllocatorState(JSContext *cx, AllocKind kind)
 }
 
 template <typename T>
- void
-GCRuntime::checkIncrementalZoneState(ExclusiveContext *cx, T *t)
+static inline void
+CheckIncrementalZoneState(ExclusiveContext *cx, T *t)
 {
 #ifdef DEBUG
     if (!cx->isJSContext())
@@ -68,32 +143,8 @@ GCRuntime::checkIncrementalZoneState(ExclusiveContext *cx, T *t)
 #endif
 }
 
-bool
-GCRuntime::gcIfNeededPerAllocation(JSContext *cx)
-{
-#ifdef JS_GC_ZEAL
-    if (needZealousGC())
-        runDebugGC();
-#endif
 
-    
-    
-    if (rt->hasPendingInterrupt())
-        gcIfRequested(cx);
 
-    
-    
-    
-    if (isIncrementalGCInProgress() &&
-        cx->zone()->usage.gcBytes() > cx->zone()->threshold.gcTriggerBytes())
-    {
-        PrepareZoneForGC(cx->zone());
-        AutoKeepAtoms keepAtoms(cx->perThreadData);
-        gc(GC_NORMAL, JS::gcreason::INCREMENTAL_TOO_SLOW);
-    }
-
-    return true;
-}
 
 
 
@@ -113,17 +164,14 @@ js::Allocate(ExclusiveContext *cx, AllocKind kind, size_t nDynamicSlots, Initial
     static_assert(sizeof(JSObject_Slots0) >= CellSize,
                   "All allocations must be at least the allocator-imposed minimum size.");
 
-    
-    if (!cx->isJSContext())
-        return GCRuntime::tryNewTenuredObject<NoGC>(cx, kind, thingSize, nDynamicSlots);
-
-    JSContext *ncx = cx->asJSContext();
-    JSRuntime *rt = ncx->runtime();
-    if (!rt->gc.checkAllocatorState<allowGC>(ncx, kind))
+    if (!CheckAllocatorState<allowGC>(cx, kind))
         return nullptr;
 
-    if (ncx->nursery().isEnabled() && heap != TenuredHeap) {
-        JSObject *obj = rt->gc.tryNewNurseryObject<allowGC>(ncx, thingSize, nDynamicSlots, clasp);
+    if (cx->isJSContext() &&
+        ShouldNurseryAllocateObject(cx->asJSContext()->nursery(), heap))
+    {
+        JSObject *obj = TryNewNurseryObject<allowGC>(cx->asJSContext(), thingSize, nDynamicSlots,
+                                                     clasp);
         if (obj)
             return obj;
 
@@ -136,7 +184,26 @@ js::Allocate(ExclusiveContext *cx, AllocKind kind, size_t nDynamicSlots, Initial
             return nullptr;
     }
 
-    return GCRuntime::tryNewTenuredObject<allowGC>(cx, kind, thingSize, nDynamicSlots);
+    HeapSlot *slots = nullptr;
+    if (nDynamicSlots) {
+        slots = cx->zone()->pod_malloc<HeapSlot>(nDynamicSlots);
+        if (MOZ_UNLIKELY(!slots))
+            return nullptr;
+        Debug_SetSlotRangeToCrashOnTouch(slots, nDynamicSlots);
+    }
+
+    JSObject *obj = reinterpret_cast<JSObject *>(cx->arenas()->allocateFromFreeList(kind, thingSize));
+    if (!obj)
+        obj = reinterpret_cast<JSObject *>(GCRuntime::refillFreeListFromAnyThread<allowGC>(cx, kind));
+
+    if (obj)
+        obj->setInitialSlotsMaybeNonNative(slots);
+    else
+        js_free(slots);
+
+    CheckIncrementalZoneState(cx, obj);
+    TraceTenuredAlloc(obj, kind);
+    return obj;
 }
 template JSObject *js::Allocate<JSObject, NoGC>(ExclusiveContext *cx, gc::AllocKind kind,
                                                 size_t nDynamicSlots, gc::InitialHeap heap,
@@ -144,65 +211,6 @@ template JSObject *js::Allocate<JSObject, NoGC>(ExclusiveContext *cx, gc::AllocK
 template JSObject *js::Allocate<JSObject, CanGC>(ExclusiveContext *cx, gc::AllocKind kind,
                                                  size_t nDynamicSlots, gc::InitialHeap heap,
                                                  const Class *clasp);
-
-
-
-template <AllowGC allowGC>
-JSObject *
-GCRuntime::tryNewNurseryObject(JSContext *cx, size_t thingSize, size_t nDynamicSlots, const Class *clasp)
-{
-    MOZ_ASSERT(!IsAtomsCompartment(cx->compartment()));
-    JSObject *obj = nursery.allocateObject(cx, thingSize, nDynamicSlots, clasp);
-    if (obj)
-        return obj;
-
-    if (allowGC && !rt->mainThread.suppressGC) {
-        minorGC(cx, JS::gcreason::OUT_OF_NURSERY);
-
-        
-        if (nursery.isEnabled()) {
-            JSObject *obj = nursery.allocateObject(cx, thingSize, nDynamicSlots, clasp);
-            MOZ_ASSERT(obj);
-            return obj;
-        }
-    }
-    return nullptr;
-}
-
-typedef mozilla::UniquePtr<HeapSlot, JS::FreePolicy> UniqueSlots;
-
-static inline UniqueSlots
-MakeSlotArray(ExclusiveContext *cx, size_t count)
-{
-    HeapSlot *slots = nullptr;
-    if (count) {
-        slots = cx->zone()->pod_malloc<HeapSlot>(count);
-        if (slots)
-            Debug_SetSlotRangeToCrashOnTouch(slots, count);
-    }
-    return UniqueSlots(slots);
-}
-
-template <AllowGC allowGC>
-JSObject *
-GCRuntime::tryNewTenuredObject(ExclusiveContext *cx, AllocKind kind, size_t thingSize,
-                               size_t nDynamicSlots)
-{
-    
-    
-    AutoSuppressGCAnalysis suppress(cx);
-
-    UniqueSlots slots = MakeSlotArray(cx, nDynamicSlots);
-    if (nDynamicSlots && !slots)
-        return nullptr;
-
-    JSObject *obj = tryNewTenuredThing<JSObject, allowGC>(cx, kind, thingSize);
-
-    if (obj)
-        obj->setInitialSlotsMaybeNonNative(slots.release());
-
-    return obj;
-}
 
 template <typename T, AllowGC allowGC >
 T *
@@ -214,15 +222,18 @@ js::Allocate(ExclusiveContext *cx)
 
     AllocKind kind = MapTypeToFinalizeKind<T>::kind;
     size_t thingSize = sizeof(T);
+
     MOZ_ASSERT(thingSize == Arena::thingSize(kind));
+    if (!CheckAllocatorState<allowGC>(cx, kind))
+        return nullptr;
 
-    if (cx->isJSContext()) {
-        JSContext *ncx = cx->asJSContext();
-        if (!ncx->runtime()->gc.checkAllocatorState<allowGC>(ncx, kind))
-            return nullptr;
-    }
+    T *t = static_cast<T *>(cx->arenas()->allocateFromFreeList(kind, thingSize));
+    if (!t)
+        t = static_cast<T *>(GCRuntime::refillFreeListFromAnyThread<allowGC>(cx, kind));
 
-    return GCRuntime::tryNewTenuredThing<T, allowGC>(cx, kind, thingSize);
+    CheckIncrementalZoneState(cx, t);
+    gc::TraceTenuredAlloc(t, kind);
+    return t;
 }
 
 #define FOR_ALL_NON_OBJECT_GC_LAYOUTS(macro) \
@@ -243,195 +254,3 @@ js::Allocate(ExclusiveContext *cx)
     template type *js::Allocate<type, CanGC>(ExclusiveContext *cx);
 FOR_ALL_NON_OBJECT_GC_LAYOUTS(DECL_ALLOCATOR_INSTANCES)
 #undef DECL_ALLOCATOR_INSTANCES
-
-template <typename T, AllowGC allowGC>
- T *
-GCRuntime::tryNewTenuredThing(ExclusiveContext *cx, AllocKind kind, size_t thingSize)
-{
-    T *t = reinterpret_cast<T *>(cx->arenas()->allocateFromFreeList(kind, thingSize));
-    if (!t)
-        t = reinterpret_cast<T *>(refillFreeListFromAnyThread<allowGC>(cx, kind));
-
-    checkIncrementalZoneState(cx, t);
-    TraceTenuredAlloc(t, kind);
-    return t;
-}
-
-template <AllowGC allowGC>
- void *
-GCRuntime::refillFreeListFromAnyThread(ExclusiveContext *cx, AllocKind thingKind)
-{
-    MOZ_ASSERT(cx->arenas()->freeLists[thingKind].isEmpty());
-
-    if (cx->isJSContext())
-        return refillFreeListFromMainThread<allowGC>(cx->asJSContext(), thingKind);
-
-    return refillFreeListOffMainThread(cx, thingKind);
-}
-
-template <AllowGC allowGC>
- void *
-GCRuntime::refillFreeListFromMainThread(JSContext *cx, AllocKind thingKind)
-{
-    JSRuntime *rt = cx->runtime();
-    MOZ_ASSERT(!rt->isHeapBusy(), "allocating while under GC");
-    MOZ_ASSERT_IF(allowGC, !rt->currentThreadHasExclusiveAccess());
-
-    
-    void *thing = tryRefillFreeListFromMainThread(cx, thingKind);
-    if (MOZ_LIKELY(thing))
-        return thing;
-
-    
-    {
-        
-        
-        if (!allowGC)
-            return nullptr;
-
-        JS::PrepareForFullGC(rt);
-        AutoKeepAtoms keepAtoms(cx->perThreadData);
-        rt->gc.gc(GC_SHRINK, JS::gcreason::LAST_DITCH);
-    }
-
-    
-    thing = tryRefillFreeListFromMainThread(cx, thingKind);
-    if (thing)
-        return thing;
-
-    
-    MOZ_ASSERT(allowGC, "A fallible allocation must not report OOM on failure.");
-    ReportOutOfMemory(cx);
-    return nullptr;
-}
-
- void *
-GCRuntime::tryRefillFreeListFromMainThread(JSContext *cx, AllocKind thingKind)
-{
-    ArenaLists *arenas = cx->arenas();
-    Zone *zone = cx->zone();
-
-    AutoMaybeStartBackgroundAllocation maybeStartBGAlloc;
-
-    void *thing = arenas->allocateFromArena(zone, thingKind, maybeStartBGAlloc);
-    if (MOZ_LIKELY(thing))
-        return thing;
-
-    
-    
-    
-    
-    
-    cx->runtime()->gc.waitBackgroundSweepOrAllocEnd();
-
-    thing = arenas->allocateFromArena(zone, thingKind, maybeStartBGAlloc);
-    if (thing)
-        return thing;
-
-    return nullptr;
-}
-
- void *
-GCRuntime::refillFreeListOffMainThread(ExclusiveContext *cx, AllocKind thingKind)
-{
-    ArenaLists *arenas = cx->arenas();
-    Zone *zone = cx->zone();
-    JSRuntime *rt = zone->runtimeFromAnyThread();
-
-    AutoMaybeStartBackgroundAllocation maybeStartBGAlloc;
-
-    
-    
-    
-    AutoLockHelperThreadState lock;
-    while (rt->isHeapBusy())
-        HelperThreadState().wait(GlobalHelperThreadState::PRODUCER);
-
-    void *thing = arenas->allocateFromArena(zone, thingKind, maybeStartBGAlloc);
-    if (thing)
-        return thing;
-
-    ReportOutOfMemory(cx);
-    return nullptr;
-}
-
-TenuredCell *
-ArenaLists::allocateFromArena(JS::Zone *zone, AllocKind thingKind,
-                              AutoMaybeStartBackgroundAllocation &maybeStartBGAlloc)
-{
-    JSRuntime *rt = zone->runtimeFromAnyThread();
-    Maybe<AutoLockGC> maybeLock;
-
-    
-    if (backgroundFinalizeState[thingKind] != BFS_DONE)
-        maybeLock.emplace(rt);
-
-    ArenaList &al = arenaLists[thingKind];
-    ArenaHeader *aheader = al.takeNextArena();
-    if (aheader) {
-        
-        MOZ_ASSERT(!aheader->isEmpty());
-
-        return allocateFromArenaInner<HasFreeThings>(zone, aheader, thingKind);
-    }
-
-    
-    
-    if (maybeLock.isNothing())
-        maybeLock.emplace(rt);
-
-    Chunk *chunk = rt->gc.pickChunk(maybeLock.ref(), maybeStartBGAlloc);
-    if (!chunk)
-        return nullptr;
-
-    
-    
-    aheader = rt->gc.allocateArena(chunk, zone, thingKind, maybeLock.ref());
-    if (!aheader)
-        return nullptr;
-
-    MOZ_ASSERT(!maybeLock->wasUnlocked());
-    MOZ_ASSERT(al.isCursorAtEnd());
-    al.insertAtCursor(aheader);
-
-    return allocateFromArenaInner<IsEmpty>(zone, aheader, thingKind);
-}
-
-template <ArenaLists::ArenaAllocMode hasFreeThings>
-TenuredCell *
-ArenaLists::allocateFromArenaInner(JS::Zone *zone, ArenaHeader *aheader, AllocKind kind)
-{
-    size_t thingSize = Arena::thingSize(kind);
-
-    FreeSpan span;
-    if (hasFreeThings) {
-        MOZ_ASSERT(aheader->hasFreeThings());
-        span = aheader->getFirstFreeSpan();
-        aheader->setAsFullyUsed();
-    } else {
-        MOZ_ASSERT(!aheader->hasFreeThings());
-        Arena *arena = aheader->getArena();
-        span.initFinal(arena->thingsStart(kind), arena->thingsEnd() - thingSize, thingSize);
-    }
-    freeLists[kind].setHead(&span);
-
-    if (MOZ_UNLIKELY(zone->wasGCStarted()))
-        zone->runtimeFromAnyThread()->gc.arenaAllocatedDuringGC(zone, aheader);
-    TenuredCell *thing = freeLists[kind].allocate(thingSize);
-    MOZ_ASSERT(thing); 
-    return thing;
-}
-
-void
-GCRuntime::arenaAllocatedDuringGC(JS::Zone *zone, ArenaHeader *arena)
-{
-    if (zone->needsIncrementalBarrier()) {
-        arena->allocatedDuringIncremental = true;
-        marker.delayMarkingArena(arena);
-    } else if (zone->isGCSweeping()) {
-        arena->setNextAllocDuringSweep(arenasAllocatedDuringSweep);
-        arenasAllocatedDuringSweep = arena;
-    }
-}
-
-

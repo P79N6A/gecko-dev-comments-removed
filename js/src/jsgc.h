@@ -49,8 +49,6 @@ namespace gcstats {
 struct Statistics;
 }
 
-class Nursery;
-
 namespace gc {
 
 struct FinalizePhase;
@@ -783,6 +781,11 @@ class ArenaLists
     }
 
     
+    
+    
+    TenuredCell *allocateFromArena(JS::Zone *zone, AllocKind thingKind);
+
+    
 
 
     void adoptArenas(JSRuntime *runtime, ArenaLists *fromArenaLists);
@@ -838,12 +841,12 @@ class ArenaLists
 
     enum ArenaAllocMode { HasFreeThings = true, IsEmpty = false };
     template <ArenaAllocMode hasFreeThings>
-    TenuredCell *allocateFromArenaInner(JS::Zone *zone, ArenaHeader *aheader, AllocKind kind);
+    inline TenuredCell *allocateFromArenaInner(JS::Zone *zone, ArenaHeader *aheader,
+                                               AllocKind thingKind);
 
     inline void normalizeBackgroundFinalizeState(AllocKind thingKind);
 
     friend class GCRuntime;
-    friend class js::Nursery;
 };
 
 
