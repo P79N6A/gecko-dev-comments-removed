@@ -74,10 +74,20 @@ MarkValidRegion(void *addr, size_t len)
 
 static const uint64_t SharedArrayMappedSize = AsmJSMappedSize + AsmJSPageSize;
 static_assert(sizeof(SharedArrayRawBuffer) < AsmJSPageSize, "Page size not big enough");
+
+
+
+
+
+
+
+
+static mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> numLive;
+static const uint32_t maxLive = 1000;
 #endif
 
 SharedArrayRawBuffer *
-SharedArrayRawBuffer::New(uint32_t length)
+SharedArrayRawBuffer::New(JSContext *cx, uint32_t length)
 {
     
     
@@ -88,13 +98,27 @@ SharedArrayRawBuffer::New(uint32_t length)
 
 #ifdef JS_CODEGEN_X64
     
+    
+    if (++numLive >= maxLive) {
+        JSRuntime *rt = cx->runtime();
+        if (rt->largeAllocationFailureCallback)
+            rt->largeAllocationFailureCallback(rt->largeAllocationFailureCallbackData);
+        if (numLive >= maxLive) {
+            numLive--;
+            return nullptr;
+        }
+    }
+    
     void *p = MapMemory(SharedArrayMappedSize, false);
-    if (!p)
+    if (!p) {
+        numLive--;
         return nullptr;
+    }
 
     size_t validLength = AsmJSPageSize + length;
     if (!MarkValidRegion(p, validLength)) {
         UnmapMemory(p, SharedArrayMappedSize);
+        numLive--;
         return nullptr;
     }
 #   if defined(MOZ_VALGRIND) && defined(VALGRIND_DISABLE_ADDR_ERROR_REPORTING_IN_RANGE)
@@ -134,6 +158,7 @@ SharedArrayRawBuffer::dropReference()
         uint8_t *p = this->dataPointer() - AsmJSPageSize;
         MOZ_ASSERT(uintptr_t(p) % AsmJSPageSize == 0);
 #ifdef JS_CODEGEN_X64
+        numLive--;
         UnmapMemory(p, SharedArrayMappedSize);
 #       if defined(MOZ_VALGRIND) \
            && defined(VALGRIND_ENABLE_ADDR_ERROR_REPORTING_IN_RANGE)
@@ -226,7 +251,7 @@ SharedArrayBufferObject::New(JSContext *cx, uint32_t length)
         return nullptr;
     }
 
-    SharedArrayRawBuffer *buffer = SharedArrayRawBuffer::New(length);
+    SharedArrayRawBuffer *buffer = SharedArrayRawBuffer::New(cx, length);
     if (!buffer)
         return nullptr;
 

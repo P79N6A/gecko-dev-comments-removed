@@ -61,7 +61,7 @@ class SharedArrayRawBuffer
     }
 
   public:
-    static SharedArrayRawBuffer *New(uint32_t length);
+    static SharedArrayRawBuffer *New(JSContext *cx, uint32_t length);
 
     
     
