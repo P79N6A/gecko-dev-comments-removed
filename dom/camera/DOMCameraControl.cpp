@@ -1448,7 +1448,7 @@ nsDOMCameraControl::OnUserError(CameraControlListener::UserContext aContext, nsr
       break;
 
     case CameraControlListener::kInSetConfiguration:
-      if (mSetInitialConfig) {
+      if (mSetInitialConfig && mCameraControl) {
         
         
         
