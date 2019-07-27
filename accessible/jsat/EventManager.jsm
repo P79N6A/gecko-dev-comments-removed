@@ -44,7 +44,7 @@ this.EventManager = function EventManager(aContentScope, aContentControl) {
 };
 
 this.EventManager.prototype = {
-  editState: {},
+  editState: { editing: false },
 
   start: function start() {
     try {
@@ -198,11 +198,14 @@ this.EventManager.prototype = {
         
         
         
-        if (Utils.getState(acc).contains(States.FOCUSED)) {
+        let state = Utils.getState(acc);
+        if (state.contains(States.FOCUSED)) {
           this._setEditingMode(aEvent, caretOffset);
+          if (state.contains(States.EDITABLE)) {
+            this.present(Presentation.textSelectionChanged(acc.getText(0, -1),
+              caretOffset, caretOffset, 0, 0, aEvent.isFromUserInput));
+          }
         }
-        this.present(Presentation.textSelectionChanged(acc.getText(0,-1),
-                     caretOffset, caretOffset, 0, 0, aEvent.isFromUserInput));
         break;
       }
       case Events.OBJECT_ATTRIBUTE_CHANGED:
@@ -213,10 +216,10 @@ this.EventManager.prototype = {
           
           break;
         }
-        if (Utils.isHidden(aEvent.accessible)) {
-          this._handleHide(evt);
-        } else {
-          this._handleShow(aEvent);
+        let hidden = Utils.isHidden(aEvent.accessible);
+        this[hidden ? '_handleHide' : '_handleShow'](evt);
+        if (this.inTest) {
+          this.sendMsgFunc("AccessFu:AriaHidden", { hidden: hidden });
         }
         break;
       }
@@ -253,6 +256,10 @@ this.EventManager.prototype = {
              Roles.DOCUMENT,
              Roles.APPLICATION].indexOf(acc.role) < 0) {
           this.contentControl.autoMove(acc);
+       }
+
+       if (this.inTest) {
+        this.sendMsgFunc("AccessFu:Focused");
        }
        break;
       }
