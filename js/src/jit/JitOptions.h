@@ -67,9 +67,6 @@ struct JitOptions
     uint32_t osrPcMismatchesBeforeRecompile;
     uint32_t smallFunctionMaxBytecodeLength_;
 
-    
-    bool disableUnboxedObjects;
-
     JitOptions();
     bool isSmallFunction(JSScript* script) const;
     void setEagerCompilation();
