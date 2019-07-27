@@ -65,11 +65,20 @@ let WebProgressListener = {
 
   _setupJSON: function setupJSON(aWebProgress, aRequest) {
     if (aWebProgress) {
+      let domWindowID;
+      try {
+        domWindowID = aWebProgress && aWebProgress.DOMWindowID;
+      } catch (e) {
+        
+        
+        domWindowID = null;
+      }
+
       aWebProgress = {
         isTopLevel: aWebProgress.isTopLevel,
         isLoadingDocument: aWebProgress.isLoadingDocument,
         loadType: aWebProgress.loadType,
-        DOMWindowID: aWebProgress.DOMWindowID,
+        DOMWindowID: domWindowID
       };
     }
 
