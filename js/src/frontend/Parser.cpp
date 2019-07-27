@@ -121,36 +121,7 @@ MarkUsesAsHoistedLexical(ParseNode *pn)
     
     while ((pnu = *pnup) != nullptr && pnu->pn_blockid >= start) {
         MOZ_ASSERT(pnu->isUsed());
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        if (pnu->pn_blockid == start || pnu->pn_pos < pn->pn_pos)
-            pnu->pn_dflags |= PND_LET;
+        pnu->pn_dflags |= PND_LET;
         pnup = &pnu->pn_link;
     }
 }
