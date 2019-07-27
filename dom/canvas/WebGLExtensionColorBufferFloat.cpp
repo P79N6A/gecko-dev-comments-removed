@@ -23,8 +23,13 @@ WebGLExtensionColorBufferFloat::~WebGLExtensionColorBufferFloat()
 bool
 WebGLExtensionColorBufferFloat::IsSupported(const WebGLContext* context)
 {
-    return context->GL()->IsSupported(gl::GLFeature::renderbuffer_color_float) &&
-           context->GL()->IsSupported(gl::GLFeature::frag_color_float);
+    gl::GLContext* gl = context->GL();
+
+    
+    
+    
+    return gl->IsSupported(gl::GLFeature::renderbuffer_color_float) ||
+           gl->IsANGLE();
 }
 
 IMPL_WEBGL_EXTENSION_GOOP(WebGLExtensionColorBufferFloat)
