@@ -120,27 +120,19 @@ nsStyleLinkElement::SetLineNumber(uint32_t aLineNumber)
 }
 
  bool
-nsStyleLinkElement::IsImportEnabled(nsIPrincipal* aPrincipal)
+nsStyleLinkElement::IsImportEnabled()
 {
   static bool sAdded = false;
-  static bool sWebComponentsEnabled;
+  static bool sImportsEnabled;
   if (!sAdded) {
     
-    Preferences::AddBoolVarCache(&sWebComponentsEnabled,
-                                 "dom.webcomponents.enabled",
+    Preferences::AddBoolVarCache(&sImportsEnabled,
+                                 "dom.htmlimports.enabled",
                                  false);
     sAdded = true;
   }
 
-  if (sWebComponentsEnabled) {
-    return true;
-  }
-
-  
-  
-  
-  return aPrincipal &&
-    aPrincipal->GetAppStatus() == nsIPrincipal::APP_STATUS_CERTIFIED;
+  return sImportsEnabled;
 }
 
 static uint32_t ToLinkMask(const nsAString& aLink, nsIPrincipal* aPrincipal)
@@ -155,8 +147,8 @@ static uint32_t ToLinkMask(const nsAString& aLink, nsIPrincipal* aPrincipal)
     return nsStyleLinkElement::eNEXT;
   else if (aLink.EqualsLiteral("alternate"))
     return nsStyleLinkElement::eALTERNATE;
-  else if (aLink.EqualsLiteral("import") && aPrincipal &&
-           nsStyleLinkElement::IsImportEnabled(aPrincipal))
+  else if (aLink.EqualsLiteral("import") &&
+           nsStyleLinkElement::IsImportEnabled())
     return nsStyleLinkElement::eHTMLIMPORT;
   else 
     return 0;
