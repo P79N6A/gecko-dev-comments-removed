@@ -1855,29 +1855,21 @@ nsFrameSelection::GetFrameForNodeOffset(nsIContent*        aNode,
       theNode = childNode;
     }
 
-#ifdef DONT_DO_THIS_YET
     
     
-
-    
-    
-
-    if (theNode->IsElement())
+    if (theNode->IsElement() &&
+        theNode->GetChildCount() &&
+        !theNode->HasIndependentSelection())
     {
       int32_t newOffset = 0;
 
-      if (aOffset > childIndex)
-      {
+      if (aOffset > childIndex) {
         numChildren = theNode->GetChildCount();
-
         newOffset = numChildren;
       }
 
       return GetFrameForNodeOffset(theNode, newOffset, aHint, aReturnOffset);
-    }
-    else
-#endif 
-    {
+    } else {
       
       
 
