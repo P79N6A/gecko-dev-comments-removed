@@ -1939,6 +1939,15 @@ js::TryConvertToUnboxedLayout(ExclusiveContext* cx, Shape* templateShape,
                 return true;
         }
 
+        
+        
+        for (Shape::Range<NoGC> r(templateShape); !r.empty(); r.popFront()) {
+            jsid id = r.front().propid();
+            uint32_t dummy;
+            if (!JSID_IS_ATOM(id) || JSID_TO_ATOM(id)->isIndex(&dummy))
+                return true;
+        }
+
         layoutSize = ComputePlainObjectLayout(cx, templateShape, properties);
 
         
