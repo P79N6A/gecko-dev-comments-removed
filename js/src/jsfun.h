@@ -32,6 +32,7 @@ class JSFunction : public js::NativeObject
         NormalFunction = 0,
         Arrow,                      
         Method,                     
+        ClassConstructor,
         Getter,
         Setter,
         AsmJS,                      
@@ -52,18 +53,18 @@ class JSFunction : public js::NativeObject
 
         SELF_HOSTED      = 0x0080,  
 
-        
-        HAS_REST         = 0x0200,  
-        INTERPRETED_LAZY = 0x0400,  
-        RESOLVED_LENGTH  = 0x0800,  
-        RESOLVED_NAME    = 0x1000,  
+        HAS_REST         = 0x0100,  
+        INTERPRETED_LAZY = 0x0200,  
+        RESOLVED_LENGTH  = 0x0400,  
+        RESOLVED_NAME    = 0x0800,  
 
-        FUNCTION_KIND_SHIFT = 13,
-        FUNCTION_KIND_MASK  = 0x7 << FUNCTION_KIND_SHIFT,
+        FUNCTION_KIND_SHIFT = 12,
+        FUNCTION_KIND_MASK  = 0xf << FUNCTION_KIND_SHIFT,
 
         ASMJS_KIND = AsmJS << FUNCTION_KIND_SHIFT,
         ARROW_KIND = Arrow << FUNCTION_KIND_SHIFT,
         METHOD_KIND = Method << FUNCTION_KIND_SHIFT,
+        CLASSCONSTRUCTOR_KIND = ClassConstructor << FUNCTION_KIND_SHIFT,
         GETTER_KIND = Getter << FUNCTION_KIND_SHIFT,
         SETTER_KIND = Setter << FUNCTION_KIND_SHIFT,
 
@@ -73,7 +74,7 @@ class JSFunction : public js::NativeObject
         ASMJS_CTOR = ASMJS_KIND | NATIVE_CTOR,
         ASMJS_LAMBDA_CTOR = ASMJS_KIND | NATIVE_CTOR | LAMBDA,
         INTERPRETED_METHOD = INTERPRETED | METHOD_KIND,
-        INTERPRETED_CLASS_CONSTRUCTOR = INTERPRETED | METHOD_KIND | CONSTRUCTOR,
+        INTERPRETED_CLASS_CONSTRUCTOR = INTERPRETED | CLASSCONSTRUCTOR_KIND | CONSTRUCTOR,
         INTERPRETED_GETTER = INTERPRETED | GETTER_KIND,
         INTERPRETED_SETTER = INTERPRETED | SETTER_KIND,
         INTERPRETED_LAMBDA = INTERPRETED | LAMBDA | CONSTRUCTOR,
@@ -165,14 +166,11 @@ class JSFunction : public js::NativeObject
     
     bool isArrow()                  const { return kind() == Arrow; }
     
-    bool isMethod()                 const { return kind() == Method; }
+    bool isMethod()                 const { return kind() == Method || kind() == ClassConstructor; }
+    bool isClassConstructor()       const { return kind() == ClassConstructor; }
 
     bool isGetter()                 const { return kind() == Getter; }
     bool isSetter()                 const { return kind() == Setter; }
-
-    bool isClassConstructor() const {
-        return kind() == Method && isConstructor();
-    }
 
     bool allowSuperProperty() const {
         return isMethod() || isGetter() || isSetter();

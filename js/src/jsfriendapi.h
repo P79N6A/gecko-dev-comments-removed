@@ -2442,7 +2442,7 @@ FunctionObjectToShadowFunction(JSObject* fun)
 }
 
 
-static const unsigned JS_FUNCTION_INTERPRETED_BITS = 0x401;
+static const unsigned JS_FUNCTION_INTERPRETED_BITS = 0x0201;
 
 
 static MOZ_ALWAYS_INLINE bool
