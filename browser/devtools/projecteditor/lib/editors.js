@@ -175,6 +175,9 @@ var TextEditor = Class({
     this.editor.on("cursorActivity", (...args) => {
       this.emit("cursorActivity", ...args);
     });
+    this.editor.on("focus", (...args) => {
+      this.emit("focus", ...args);
+    });
 
     this.appended = this.editor.appendTo(this.elt);
   },

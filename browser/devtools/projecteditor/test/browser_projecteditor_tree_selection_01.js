@@ -60,10 +60,27 @@ function selectFileSubsequentLoad(projecteditor, resource) {
   }
 
   
+  let focusPromise = promise.resolve();
+  if (projecteditor.currentEditor.editor) {
+    focusPromise = onEditorFocus(projecteditor.currentEditor);
+  }
+
+  
   
   let [editorActivated] = yield promise.all([
     onceEditorActivated(projecteditor)
   ]);
 
   is (editorActivated, projecteditor.currentEditor,  "Editor has been activated for " + resource.path);
+
+  yield focusPromise;
+}
+
+function onEditorFocus(editor) {
+  let def = promise.defer();
+  editor.on("focus", function focus() {
+    editor.off("focus", focus);
+    def.resolve();
+  });
+  return def.promise;
 }

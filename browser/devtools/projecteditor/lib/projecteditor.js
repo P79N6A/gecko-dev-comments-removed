@@ -386,8 +386,9 @@ var ProjectEditor = Class({
 
 
   openResource: function(resource) {
-    this.shells.open(resource);
+    let shell = this.shells.open(resource);
     this.projectTree.selectResource(resource);
+    shell.editor.focus();
   },
 
   
@@ -546,6 +547,10 @@ var ProjectEditor = Class({
     this._editorListenAndDispatch(editor, "cursorActivity", "onEditorCursorActivity");
     this._editorListenAndDispatch(editor, "load", "onEditorLoad");
     this._editorListenAndDispatch(editor, "save", "onEditorSave");
+
+    editor.on("focus", () => {
+      this.projectTree.selectResource(this.resourceFor(editor));
+    });
   },
 
   
@@ -584,8 +589,6 @@ var ProjectEditor = Class({
 
 
   pluginDispatch: function(handler, ...args) {
-    
-    
     emit(this, handler, ...args);
     this.plugins.forEach(plugin => {
       try {
@@ -608,8 +611,6 @@ var ProjectEditor = Class({
 
 
   _editorListenAndDispatch: function(editor, event, handler) {
-    
-    
     editor.on(event, (...args) => {
       this.pluginDispatch(handler, editor, this.resourceFor(editor), ...args);
     });
