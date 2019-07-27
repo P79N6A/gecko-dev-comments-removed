@@ -1578,9 +1578,6 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     void destroyBreakpointSite(js::FreeOp *fop, jsbytecode *pc);
 
     void clearBreakpointsIn(js::FreeOp *fop, js::Debugger *dbg, JSObject *handler);
-    void clearTraps(js::FreeOp *fop);
-
-    void markTrapClosures(JSTracer *trc);
 
     
 

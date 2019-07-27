@@ -371,7 +371,6 @@ JSRuntime::~JSRuntime()
 
         
         for (CompartmentsIter comp(this, SkipAtoms); !comp.done(); comp.next()) {
-            comp->clearTraps(defaultFreeOp());
             if (WatchpointMap *wpmap = comp->watchpointMap)
                 wpmap->clear();
         }
