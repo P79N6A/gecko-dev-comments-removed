@@ -30,11 +30,12 @@ public:
 
   nsRefPtr<ShutdownPromise> Shutdown();
 
+  bool AppendData(MediaLargeByteBuffer* aData, TimeUnit aTimestampOffset) override;
+
   
   
   
-  nsRefPtr<AppendPromise> AppendData(MediaLargeByteBuffer* aData,
-                                     TimeUnit aTimestampOffset ) override;
+  nsRefPtr<AppendPromise> BufferAppend() override;
 
   
   
@@ -162,6 +163,7 @@ private:
                          SourceBufferDecoder* aDecoder);
 
   nsAutoPtr<ContainerParser> mParser;
+  nsRefPtr<MediaLargeByteBuffer> mInputBuffer;
 
   
   
@@ -196,6 +198,7 @@ private:
 
   
   TimeUnit mLastTimestampOffset;
+  TimeUnit mTimestampOffset;
   TimeUnit mAdjustedTimestamp;
 
   

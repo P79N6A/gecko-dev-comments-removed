@@ -30,9 +30,13 @@ public:
 
   
   
+  virtual bool
+  AppendData(MediaLargeByteBuffer* aData, TimeUnit aTimestampOffset) = 0;
+
   
-  virtual nsRefPtr<AppendPromise>
-  AppendData(MediaLargeByteBuffer* aData, TimeUnit aTimestampOffset ) = 0;
+  
+  
+  virtual nsRefPtr<AppendPromise> BufferAppend() = 0;
 
   
   virtual void AbortAppendData() = 0;
