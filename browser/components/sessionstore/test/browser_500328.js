@@ -32,7 +32,7 @@ function checkState(tab) {
       elem.id = "new-elem";
       doc.body.appendChild(elem);
 
-      contentWindow.history.forward();
+      tab.linkedBrowser.goForward();
     }
     else if (popStateCount == 1) {
       popStateCount++;
@@ -42,30 +42,33 @@ function checkState(tab) {
       
       
       
-      is(Cu.waiveXrays(aEvent.state).obj3.toString(), '/^a$/', "second popstate object.");
+      runInContent(tab.linkedBrowser, function(win, event) {
+        return Cu.waiveXrays(event.state).obj3.toString();
+      }, aEvent).then(function(stateStr) {
+        is(stateStr, '/^a$/', "second popstate object.");
 
-      
-      
-      
-      let doc = contentWindow.document;
-      let newElem = doc.getElementById("new-elem");
-      ok(newElem, "doc should contain new-elem.");
-      newElem.parentNode.removeChild(newElem);
-      ok(!doc.getElementById("new-elem"), "new-elem should be removed.");
+        
+        
+        
+        let doc = contentWindow.document;
+        let newElem = doc.getElementById("new-elem");
+        ok(newElem, "doc should contain new-elem.");
+        newElem.parentNode.removeChild(newElem);
+        ok(!doc.getElementById("new-elem"), "new-elem should be removed.");
 
-      
-      tab.linkedBrowser.removeEventListener("popstate", arguments.callee, true);
-      gBrowser.removeTab(tab);
-      finish();
+        tab.linkedBrowser.removeEventListener("popstate", arguments.callee, true);
+        gBrowser.removeTab(tab);
+        finish();
+      });
     }
-  }, true);
+  });
 
   
   
   tab.linkedBrowser.contentWindow.testState = 'foo';
 
   
-  tab.linkedBrowser.contentWindow.history.back();
+  tab.linkedBrowser.goBack();
 }
 
 function test() {
@@ -89,28 +92,27 @@ function test() {
       
       
       
-      let contentWindow = tab.linkedBrowser.contentWindow;
-      let history = contentWindow.history;
-      history.pushState({obj1:1}, "title-obj1");
-      history.pushState({obj2:2}, "title-obj2", "?page2");
-      history.replaceState({obj3:/^a$/}, "title-obj3");
+      function contentTest(win) {
+        let history = win.history;
+        history.pushState({obj1:1}, "title-obj1");
+        history.pushState({obj2:2}, "title-obj2", "?page2");
+        history.replaceState({obj3:/^a$/}, "title-obj3");
+      }
+      runInContent(browser, contentTest, null).then(function() {
+        SyncHandlers.get(tab.linkedBrowser).flush();
+        let state = ss.getTabState(tab);
+        gBrowser.removeTab(tab);
 
-      SyncHandlers.get(tab.linkedBrowser).flush();
-      let state = ss.getTabState(tab);
-      gBrowser.removeTab(tab);
+        
+        
+        let tab2 = gBrowser.addTab("about:blank");
+        ss.setTabState(tab2, state, true);
 
-      
-      
-      let tab2 = gBrowser.addTab("about:blank");
-      ss.setTabState(tab2, state, true);
-
-      
-      whenTabRestored(tab2, function() {
-        SimpleTest.executeSoon(function() {
+        
+        whenTabRestored(tab2, function() {
           checkState(tab2);
         });
       });
-
     });
   });
 }
