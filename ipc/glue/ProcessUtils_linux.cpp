@@ -219,6 +219,11 @@ ProcLoaderClientGeckoInit()
   sProcLoaderLoop = MessageLoop::current();
 }
 
+bool ProcLoaderIsInitialized()
+{
+  return sProcLoaderPid != 0;
+}
+
 
 
 
