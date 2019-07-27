@@ -129,8 +129,11 @@ public:
 
 private:
   
-  void SetCaretElementPosition(const nsRect& aRect);
-  void SetSelectionBarElementPosition(const nsRect& aRect);
+  void SetCaretElementStyle(const nsRect& aRect);
+  void SetSelectionBarElementStyle(const nsRect& aRect);
+
+  
+  float GetZoomLevel();
 
   
   dom::Element* CaretImageElement() const
@@ -201,6 +204,12 @@ private:
   
   
   nsRefPtr<DummyTouchListener> mDummyTouchListener{new DummyTouchListener()};
+
+  
+  static float sWidth;
+  static float sHeight;
+  static float sMarginLeft;
+  static float sBarWidth;
 
 }; 
 

@@ -4607,6 +4607,12 @@ pref("caret.manages-android-actionbar", false);
 pref("layout.accessiblecaret.enabled", false);
 
 
+pref("layout.accessiblecaret.width", "44.0");
+pref("layout.accessiblecaret.height", "47.0");
+pref("layout.accessiblecaret.margin-left", "-23.5");
+pref("layout.accessiblecaret.bar.width", "2.0");
+
+
 
 pref("layout.accessiblecaret.timeout_ms", 3000);
 
