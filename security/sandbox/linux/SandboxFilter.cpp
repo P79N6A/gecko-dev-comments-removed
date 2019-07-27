@@ -381,6 +381,9 @@ void SandboxFilterImplGMP::Build() {
   
   
   Deny(EACCES, SYSCALL(getpriority));
+  
+  
+  Deny(EACCES, SYSCALL(setpriority));
 
   
   
