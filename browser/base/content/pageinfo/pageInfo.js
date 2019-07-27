@@ -237,12 +237,14 @@ const nsICertificateDialogs = Components.interfaces.nsICertificateDialogs;
 const CERTIFICATEDIALOGS_CONTRACTID = "@mozilla.org/nsCertificateDialogs;1"
 
 
-try {
-  const gClipboardHelper = Components.classes["@mozilla.org/widget/clipboardhelper;1"].getService(Components.interfaces.nsIClipboardHelper);
+function getClipboardHelper() {
+    try {
+        return Components.classes["@mozilla.org/widget/clipboardhelper;1"].getService(Components.interfaces.nsIClipboardHelper);
+    } catch(e) {
+        
+    }
 }
-catch(e) {
-  
-}
+const gClipboardHelper = getClipboardHelper();
 
 
 const nsIImageLoadingContent = Components.interfaces.nsIImageLoadingContent;
