@@ -248,7 +248,7 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
             
             
             
-            if (widget::GeckoAppShell::PumpMessageLoop()) {
+            if (AndroidBridge::Bridge()->PumpMessageLoop()) {
                 return true;
             }
 
