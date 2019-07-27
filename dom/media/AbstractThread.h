@@ -53,11 +53,6 @@ public:
 
   
   
-  void MaybeTailDispatch(already_AddRefed<nsIRunnable> aRunnable,
-                         DispatchFailureHandling aFailureHandling = AssertDispatchSuccess);
-
-  
-  
   virtual bool IsDispatchReliable() { return true; }
 
   
