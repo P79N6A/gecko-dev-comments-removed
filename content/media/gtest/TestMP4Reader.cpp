@@ -11,7 +11,6 @@
 #include "MockMediaDecoderOwner.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/dom/TimeRanges.h"
-#include "mtransport/runnable_utils.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -19,6 +18,8 @@ using namespace mozilla::dom;
 class TestBinding
 {
 public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(TestBinding);
+
   nsRefPtr<MP4Decoder> decoder;
   nsRefPtr<MockMediaResource> resource;
   nsRefPtr<MP4Reader> reader;
@@ -35,14 +36,17 @@ public:
     decoder->SetResource(resource);
 
     reader->Init(nullptr);
+  }
 
+  void Init() {
     nsCOMPtr<nsIThread> thread;
     nsresult rv = NS_NewThread(getter_AddRefs(thread),
-                               WrapRunnable(this, &TestBinding::ReadMetadata));
+                               NS_NewRunnableMethod(this, &TestBinding::ReadMetadata));
     EXPECT_EQ(NS_OK, rv);
     thread->Shutdown();
   }
 
+private:
   virtual ~TestBinding()
   {
     decoder = nullptr;
@@ -51,7 +55,6 @@ public:
     SharedThreadPool::SpinUntilShutdown();
   }
 
-private:
   void ReadMetadata()
   {
     MediaInfo info;
@@ -62,13 +65,14 @@ private:
 
 TEST(MP4Reader, BufferedRange)
 {
-  TestBinding b;
+  nsRefPtr<TestBinding> b = new TestBinding();
+  b->Init();
 
   
-  b.resource->MockAddBufferedRange(248400, 327455);
+  b->resource->MockAddBufferedRange(248400, 327455);
 
   nsRefPtr<TimeRanges> ranges = new TimeRanges();
-  EXPECT_EQ(NS_OK, b.reader->GetBuffered(ranges, 0));
+  EXPECT_EQ(NS_OK, b->reader->GetBuffered(ranges, 0));
   EXPECT_EQ(1U, ranges->Length());
   double start = 0;
   EXPECT_EQ(NS_OK, ranges->Start(0, &start));
@@ -80,15 +84,16 @@ TEST(MP4Reader, BufferedRange)
 
 TEST(MP4Reader, BufferedRangeMissingLastByte)
 {
-  TestBinding b;
+  nsRefPtr<TestBinding> b = new TestBinding();
+  b->Init();
 
   
-  b.resource->MockClearBufferedRanges();
-  b.resource->MockAddBufferedRange(248400, 324912);
-  b.resource->MockAddBufferedRange(324913, 327455);
+  b->resource->MockClearBufferedRanges();
+  b->resource->MockAddBufferedRange(248400, 324912);
+  b->resource->MockAddBufferedRange(324913, 327455);
 
   nsRefPtr<TimeRanges> ranges = new TimeRanges();
-  EXPECT_EQ(NS_OK, b.reader->GetBuffered(ranges, 0));
+  EXPECT_EQ(NS_OK, b->reader->GetBuffered(ranges, 0));
   EXPECT_EQ(1U, ranges->Length());
   double start = 0;
   EXPECT_EQ(NS_OK, ranges->Start(0, &start));
@@ -100,15 +105,16 @@ TEST(MP4Reader, BufferedRangeMissingLastByte)
 
 TEST(MP4Reader, BufferedRangeSyncFrame)
 {
-  TestBinding b;
+  nsRefPtr<TestBinding> b = new TestBinding();
+  b->Init();
 
   
   
-  b.resource->MockClearBufferedRanges();
-  b.resource->MockAddBufferedRange(146336, 327455);
+  b->resource->MockClearBufferedRanges();
+  b->resource->MockAddBufferedRange(146336, 327455);
 
   nsRefPtr<TimeRanges> ranges = new TimeRanges();
-  EXPECT_EQ(NS_OK, b.reader->GetBuffered(ranges, 0));
+  EXPECT_EQ(NS_OK, b->reader->GetBuffered(ranges, 0));
   EXPECT_EQ(1U, ranges->Length());
   double start = 0;
   EXPECT_EQ(NS_OK, ranges->Start(0, &start));
@@ -120,7 +126,8 @@ TEST(MP4Reader, BufferedRangeSyncFrame)
 
 TEST(MP4Reader, CompositionOrder)
 {
-  TestBinding b("mediasource_test.mp4");
+  nsRefPtr<TestBinding> b = new TestBinding("mediasource_test.mp4");
+  b->Init();
 
   
   
@@ -145,27 +152,27 @@ TEST(MP4Reader, CompositionOrder)
   
   
 
-  b.resource->MockClearBufferedRanges();
+  b->resource->MockClearBufferedRanges();
   
-  b.resource->MockAddBufferedRange(48, 5503);   
-  b.resource->MockAddBufferedRange(5503, 5648); 
-  b.resource->MockAddBufferedRange(6228, 6803); 
+  b->resource->MockAddBufferedRange(48, 5503);   
+  b->resource->MockAddBufferedRange(5503, 5648); 
+  b->resource->MockAddBufferedRange(6228, 6803); 
 
   
-  b.resource->MockAddBufferedRange(5648, 6228);
-  b.resource->MockAddBufferedRange(6803, 7383);
-  b.resource->MockAddBufferedRange(7618, 8199);
-  b.resource->MockAddBufferedRange(8199, 8779);
-  b.resource->MockAddBufferedRange(8962, 9563);
-  b.resource->MockAddBufferedRange(9734, 10314);
-  b.resource->MockAddBufferedRange(10314, 10895);
-  b.resource->MockAddBufferedRange(11207, 11787);
-  b.resource->MockAddBufferedRange(12035, 12616);
-  b.resource->MockAddBufferedRange(12616, 13196);
-  b.resource->MockAddBufferedRange(13220, 13901);
+  b->resource->MockAddBufferedRange(5648, 6228);
+  b->resource->MockAddBufferedRange(6803, 7383);
+  b->resource->MockAddBufferedRange(7618, 8199);
+  b->resource->MockAddBufferedRange(8199, 8779);
+  b->resource->MockAddBufferedRange(8962, 9563);
+  b->resource->MockAddBufferedRange(9734, 10314);
+  b->resource->MockAddBufferedRange(10314, 10895);
+  b->resource->MockAddBufferedRange(11207, 11787);
+  b->resource->MockAddBufferedRange(12035, 12616);
+  b->resource->MockAddBufferedRange(12616, 13196);
+  b->resource->MockAddBufferedRange(13220, 13901);
 
   nsRefPtr<TimeRanges> ranges = new TimeRanges();
-  EXPECT_EQ(NS_OK, b.reader->GetBuffered(ranges, 0));
+  EXPECT_EQ(NS_OK, b->reader->GetBuffered(ranges, 0));
   EXPECT_EQ(2U, ranges->Length());
 
   double start = 0;
@@ -185,7 +192,8 @@ TEST(MP4Reader, CompositionOrder)
 
 TEST(MP4Reader, Normalised)
 {
-  TestBinding b("mediasource_test.mp4");
+  nsRefPtr<TestBinding> b = new TestBinding("mediasource_test.mp4");
+  b->Init();
 
   
   
@@ -210,11 +218,11 @@ TEST(MP4Reader, Normalised)
   
   
 
-  b.resource->MockClearBufferedRanges();
-  b.resource->MockAddBufferedRange(48, 13901);
+  b->resource->MockClearBufferedRanges();
+  b->resource->MockAddBufferedRange(48, 13901);
 
   nsRefPtr<TimeRanges> ranges = new TimeRanges();
-  EXPECT_EQ(NS_OK, b.reader->GetBuffered(ranges, 0));
+  EXPECT_EQ(NS_OK, b->reader->GetBuffered(ranges, 0));
   EXPECT_EQ(1U, ranges->Length());
 
   double start = 0;
