@@ -18,6 +18,7 @@
 #include "mozilla/NullPtr.h"
 #include "mozilla/unused.h"
 #include "mozilla/dom/Exceptions.h"
+#include "nsContentUtils.h"
 #include "nsString.h"
 #include "nsThreadUtils.h"
 
@@ -35,6 +36,11 @@ SandboxLogJSStack(void)
 {
   if (!NS_IsMainThread()) {
     
+    
+    
+    return;
+  }
+  if (!nsContentUtils::XPConnect()) {
     
     
     return;
