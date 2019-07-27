@@ -680,11 +680,6 @@ GetIndexFromString(JSString *str)
 bool
 DebugPrologue(JSContext *cx, BaselineFrame *frame, jsbytecode *pc, bool *mustReturn)
 {
-    
-    
-    if (frame->script()->isDebuggee())
-        frame->setIsDebuggee();
-
     *mustReturn = false;
 
     switch (Debugger::onEnterFrame(cx, frame)) {
@@ -759,6 +754,13 @@ DebugEpilogue(JSContext *cx, BaselineFrame *frame, jsbytecode *pc, bool ok)
     
     frame->clearOverridePc();
     return true;
+}
+
+void
+FrameIsDebuggeeCheck(BaselineFrame *frame)
+{
+    if (frame->script()->isDebuggee())
+        frame->setIsDebuggee();
 }
 
 JSObject *
