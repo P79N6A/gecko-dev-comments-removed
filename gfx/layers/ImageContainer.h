@@ -466,29 +466,6 @@ public:
     return mDroppedImageCount;
   }
 
-  
-
-
-
-
-  void NotifyPaintedImage(Image* aPainted) {
-    ReentrantMonitorAutoEnter mon(mReentrantMonitor);
-
-    nsRefPtr<Image> current = mActiveImage;
-    if (aPainted == current) {
-      if (mPaintTime.IsNull()) {
-        mPaintTime = TimeStamp::Now();
-        mPaintCount++;
-      }
-    } else if (!mPreviousImagePainted) {
-      
-      
-      
-      mPaintCount++;
-      mPreviousImagePainted = true;
-    }
-  }
-
   PImageContainerChild* GetPImageContainerChild();
   static void NotifyComposite(const ImageCompositeNotification& aNotification);
 
@@ -510,15 +487,6 @@ private:
 
   
   
-  
-  void CurrentImageChanged() {
-    mReentrantMonitor.AssertCurrentThreadIn();
-    mPreviousImagePainted = !mPaintTime.IsNull();
-    mPaintTime = TimeStamp();
-  }
-
-  
-  
   ReentrantMonitor mReentrantMonitor;
 
   nsRefPtr<Image> mActiveImage;
@@ -533,17 +501,10 @@ private:
   uint32_t mPaintCount;
 
   
-  
-  TimeStamp mPaintTime;
-
-  
   TimeDuration mPaintDelay;
 
   
   uint32_t mDroppedImageCount;
-
-  
-  bool mPreviousImagePainted;
 
   bool mCurrentImageComposited;
 
