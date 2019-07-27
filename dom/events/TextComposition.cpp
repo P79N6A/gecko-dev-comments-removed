@@ -59,6 +59,30 @@ TextComposition::MatchesNativeContext(nsIWidget* aWidget) const
   return mNativeContext == aWidget->GetInputContext().mNativeIMEContext;
 }
 
+bool
+TextComposition::MaybeDispatchCompositionUpdate(const WidgetTextEvent* aEvent)
+{
+  if (Destroyed()) {
+    return false;
+  }
+
+  if (mLastData == aEvent->theText) {
+    return true;
+  }
+
+  WidgetCompositionEvent compositionUpdate(aEvent->mFlags.mIsTrusted,
+                                           NS_COMPOSITION_UPDATE,
+                                           aEvent->widget);
+  compositionUpdate.time = aEvent->time;
+  compositionUpdate.timeStamp = aEvent->timeStamp;
+  mLastData = compositionUpdate.data = aEvent->theText;
+
+  nsEventStatus status = nsEventStatus_eConsumeNoDefault;
+  EventDispatcher::Dispatch(mNode, mPresContext,
+                            &compositionUpdate, nullptr, &status, nullptr);
+  return !Destroyed();
+}
+
 void
 TextComposition::DispatchEvent(WidgetGUIEvent* aEvent,
                                nsEventStatus* aStatus,
@@ -79,6 +103,57 @@ TextComposition::DispatchEvent(WidgetGUIEvent* aEvent,
   if (mRequestedToCommitOrCancel && !aIsSynthesized) {
     *aStatus = nsEventStatus_eConsumeNoDefault;
     return;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (!aIsSynthesized && (mIsRequestingCommit || mIsRequestingCancel)) {
+    nsString* committingData = nullptr;
+    switch (aEvent->message) {
+      case NS_COMPOSITION_UPDATE:
+      case NS_COMPOSITION_END:
+        committingData = &aEvent->AsCompositionEvent()->data;
+        break;
+      case NS_TEXT_TEXT:
+        committingData = &aEvent->AsTextEvent()->theText;
+        break;
+      default:
+        NS_WARNING("Unexpected event comes during committing or "
+                   "canceling composition");
+        break;
+    }
+    if (committingData) {
+      if (mIsRequestingCommit && committingData->IsEmpty() &&
+          mLastData != IDEOGRAPHIC_SPACE) {
+        committingData->Assign(mLastData);
+      } else if (mIsRequestingCancel && !committingData->IsEmpty()) {
+        committingData->Truncate();
+      }
+
+      if (aEvent->message == NS_COMPOSITION_UPDATE) {
+        
+        
+        if (committingData->Equals(mLastData)) {
+          return;
+        }
+      } else if (aEvent->message == NS_TEXT_TEXT) {
+        
+        
+        if (!MaybeDispatchCompositionUpdate(aEvent->AsTextEvent())) {
+          NS_WARNING("Dispatching compositionupdate caused destroying");
+          return;
+        }
+      }
+    }
   }
 
   if (aEvent->message == NS_COMPOSITION_UPDATE) {

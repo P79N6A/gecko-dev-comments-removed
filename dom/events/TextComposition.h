@@ -250,6 +250,14 @@ private:
   
 
 
+
+
+
+  bool MaybeDispatchCompositionUpdate(const WidgetTextEvent* aEvent);
+
+  
+
+
   void NotityUpdateComposition(WidgetGUIEvent* aEvent);
 
   
