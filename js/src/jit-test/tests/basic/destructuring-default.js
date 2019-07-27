@@ -103,13 +103,6 @@ function testLetBlock(pattern, input) {
 }
 testAll(testLetBlock);
 
-function testLetExpression(pattern, input) {
-  return new Function('input',
-    'return (let (' + pattern + ' = input) [a, b, c, d, e, f]);'
-  )(input);
-}
-testAll(testLetExpression);
-
 
 const [ca = 1, cb = 2] = [];
 assertEq(ca, 1);

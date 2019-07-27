@@ -29,20 +29,6 @@ function test()
 
 
 
-    let(x=[]) function(){try {x} catch(x) {} }
-
-
-
-  try
-  {
-    eval('for(let [y] = (let (x) (y)) in []) function(){}');
-  }
-  catch(ex)
-  {
-  }
-
-
-
 
 
 

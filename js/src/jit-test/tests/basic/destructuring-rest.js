@@ -139,12 +139,3 @@ function testLetBlock(pattern, input, binding) {
   )(input);
 }
 testDeclaration(testLetBlock);
-
-function testLetExpression(pattern, input, binding) {
-  binding = binding || 'rest';
-  return new Function('input',
-    'return (let (' + pattern + ' = input) ' + binding + ');'
-  )(input);
-}
-testDeclaration(testLetExpression);
-

@@ -3686,8 +3686,7 @@ Parser<SyntaxParseHandler>::pushLetScope(HandleStaticBlockObject blockObj, StmtI
 
 template <typename ParseHandler>
 typename ParseHandler::Node
-Parser<ParseHandler>::deprecatedLetBlockOrExpression(YieldHandling yieldHandling,
-                                                     LetContext letContext)
+Parser<ParseHandler>::deprecatedLetBlock(YieldHandling yieldHandling)
 {
     MOZ_ASSERT(tokenStream.isCurrentTokenType(TOK_LET));
 
@@ -3710,81 +3709,21 @@ Parser<ParseHandler>::deprecatedLetBlockOrExpression(YieldHandling yieldHandling
     if (!block)
         return null();
 
-    bool needExprStmt = false;
-    if (letContext == LetStatement) {
-        bool matched;
-        if (!tokenStream.matchToken(&matched, TOK_LC, TokenStream::Operand))
-            return null();
-        if (!matched) {
-            
+    MUST_MATCH_TOKEN(TOK_LC, JSMSG_CURLY_BEFORE_LET);
 
+    Node expr = statements(yieldHandling);
+    if (!expr)
+        return null();
+    MUST_MATCH_TOKEN(TOK_RC, JSMSG_CURLY_AFTER_LET);
 
+    addTelemetry(JSCompartment::DeprecatedLetBlock);
+    if (!report(ParseWarning, pc->sc->strict(), expr, JSMSG_DEPRECATED_LET_BLOCK))
+        return null();
 
-
-
-
-
-
-
-
-
-
-
-
-
-            if (!reportWithOffset(ParseStrictError, pc->sc->strict(), begin,
-                                  JSMSG_STRICT_CODE_LET_EXPR_STMT))
-            {
-                return null();
-            }
-
-            
-
-
-
-
-            needExprStmt = true;
-            letContext = LetExpression;
-        }
-    }
-
-    Node expr;
-    if (letContext == LetStatement) {
-        expr = statements(yieldHandling);
-        if (!expr)
-            return null();
-        MUST_MATCH_TOKEN(TOK_RC, JSMSG_CURLY_AFTER_LET);
-
-        addTelemetry(JSCompartment::DeprecatedLetBlock);
-        if (!report(ParseWarning, pc->sc->strict(), expr, JSMSG_DEPRECATED_LET_BLOCK))
-            return null();
-    } else {
-        MOZ_ASSERT(letContext == LetExpression);
-        expr = assignExpr(InAllowed, yieldHandling);
-        if (!expr)
-            return null();
-
-        addTelemetry(JSCompartment::DeprecatedLetExpression);
-        if (!report(ParseWarning, pc->sc->strict(), expr, JSMSG_DEPRECATED_LET_EXPRESSION))
-            return null();
-    }
     handler.setLexicalScopeBody(block, expr);
     PopStatementPC(tokenStream, pc);
 
     TokenPos letPos(begin, pos().end);
-
-    if (letContext == LetExpression) {
-        if (needExprStmt) {
-            if (!MatchOrInsertSemicolon(tokenStream))
-                return null();
-        }
-
-        Node letExpr = handler.newLetExpression(vars, block, letPos);
-        if (!letExpr)
-            return null();
-
-        return needExprStmt ? handler.newExprStatement(letExpr, pos().end) : letExpr;
-    }
 
     return handler.newLetBlock(vars, block, letPos);
 }
@@ -4247,19 +4186,12 @@ Parser<FullParseHandler>::letDeclarationOrBlock(YieldHandling yieldHandling)
     if (!tokenStream.peekToken(&tt))
         return null();
     if (tt == TOK_LP) {
-        ParseNode* node =
-            deprecatedLetBlockOrExpression(yieldHandling, LetStatement);
+        ParseNode* node = deprecatedLetBlock(yieldHandling);
         if (!node)
             return nullptr;
 
-        if (node->isKind(PNK_LETBLOCK)) {
-            MOZ_ASSERT(node->isArity(PN_BINARY));
-        } else {
-            MOZ_ASSERT(node->isKind(PNK_SEMI));
-            MOZ_ASSERT(node->pn_kid->isKind(PNK_LETEXPR));
-            MOZ_ASSERT(node->pn_kid->isArity(PN_BINARY));
-        }
-
+        MOZ_ASSERT(node->isKind(PNK_LETBLOCK));
+        MOZ_ASSERT(node->isArity(PN_BINARY));
         return node;
     }
 
@@ -4752,7 +4684,6 @@ Parser<FullParseHandler>::forStatement(YieldHandling yieldHandling)
     
 
 
-
     bool isForDecl = false;
 
     
@@ -4790,19 +4721,13 @@ Parser<FullParseHandler>::forStatement(YieldHandling yieldHandling)
                 handler.disableSyntaxParser();
                 bool constDecl = tt == TOK_CONST;
                 tokenStream.consumeKnownToken(tt);
-                if (!tokenStream.peekToken(&tt))
+                isForDecl = true;
+                blockObj = StaticBlockObject::create(context);
+                if (!blockObj)
                     return null();
-                if (tt == TOK_LP) {
-                    pn1 = deprecatedLetBlockOrExpression(yieldHandling, LetExpression);
-                } else {
-                    isForDecl = true;
-                    blockObj = StaticBlockObject::create(context);
-                    if (!blockObj)
-                        return null();
-                    pn1 = variables(yieldHandling,
-                                    constDecl ? PNK_CONST : PNK_LET, nullptr, blockObj,
-                                    DontHoistVars);
-                }
+                pn1 = variables(yieldHandling,
+                                constDecl ? PNK_CONST : PNK_LET, nullptr, blockObj,
+                                DontHoistVars);
             } else {
                 pn1 = expr(InProhibited, yieldHandling);
             }
@@ -7060,8 +6985,6 @@ LegacyCompExprTransplanter::transplant(ParseNode* pn)
 
 
 
-
-
 template <typename ParseHandler>
 static unsigned
 LegacyComprehensionHeadBlockScopeDepth(ParseContext<ParseHandler>* pc)
@@ -7122,7 +7045,6 @@ Parser<FullParseHandler>::legacyComprehensionTail(ParseNode* bodyExpr, unsigned 
         adjust = pn->pn_blockid - blockid;
     } else {
         
-
 
 
 
@@ -8257,6 +8179,7 @@ Parser<ParseHandler>::arrayInitializer(YieldHandling yieldHandling)
 
 
 
+
         if (index == 0 && !spread) {
             bool matched;
             if (!tokenStream.matchToken(&matched, TOK_FOR))
@@ -8650,9 +8573,6 @@ Parser<ParseHandler>::primaryExpr(YieldHandling yieldHandling, TokenKind tt,
 
       case TOK_LC:
         return propertyList(yieldHandling, ObjectLiteral);
-
-      case TOK_LET:
-        return deprecatedLetBlockOrExpression(yieldHandling, LetExpression);
 
       case TOK_LP: {
         TokenKind next;

@@ -586,7 +586,7 @@ struct JSCompartment
         DeprecatedLegacyGenerator = 2,      
         DeprecatedExpressionClosure = 3,    
         DeprecatedLetBlock = 4,             
-        DeprecatedLetExpression = 5,        
+        
         DeprecatedNoSuchMethod = 6,         
         DeprecatedFlagsArgument = 7,        
         RegExpSourceProperty = 8,           

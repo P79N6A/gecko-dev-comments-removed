@@ -4865,34 +4865,8 @@ BytecodeEmitter::emitIf(ParseNode* pn)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 MOZ_NEVER_INLINE bool
-BytecodeEmitter::emitLet(ParseNode* pnLet)
+BytecodeEmitter::emitLetBlock(ParseNode* pnLet)
 {
     MOZ_ASSERT(pnLet->isArity(PN_BINARY));
     ParseNode* varList = pnLet->pn_left;
@@ -6725,7 +6699,6 @@ BytecodeEmitter::emitConditionalExpression(ConditionalExpression& conditional)
 
 
 
-
     MOZ_ASSERT(stackDepth > 0);
     stackDepth--;
     if (!emitTree(&conditional.elseExpression()))
@@ -7542,8 +7515,7 @@ BytecodeEmitter::emitTree(ParseNode* pn)
         break;
 
       case PNK_LETBLOCK:
-      case PNK_LETEXPR:
-        ok = emitLet(pn);
+        ok = emitLetBlock(pn);
         break;
 
       case PNK_CONST:

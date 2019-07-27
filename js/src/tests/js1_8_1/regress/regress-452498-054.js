@@ -31,11 +31,6 @@ function test()
   function f() { var x; eval("let x, x;"); }
   f();
 
-
-
-
-  eval("let(x) function(){ x = this; }()");
-
   reportCompare(expect, actual, summary);
 
   exitFunc ('test');
