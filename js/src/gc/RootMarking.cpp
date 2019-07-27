@@ -134,27 +134,6 @@ MarkExactStackRoots(JSRuntime* rt, JSTracer *trc)
     MarkExactStackRootsAcrossTypes<PerThreadData*>(&rt->mainThread, trc);
 }
 
-MOZ_NEVER_INLINE void
-ConservativeGCData::recordStackTop()
-{
-    
-    uintptr_t dummy;
-    nativeStackTop = &dummy;
-
-    
-
-
-
-#if defined(_MSC_VER)
-# pragma warning(push)
-# pragma warning(disable: 4611)
-#endif
-    (void) setjmp(registerSnapshot.jmpbuf);
-#if defined(_MSC_VER)
-# pragma warning(pop)
-#endif
-}
-
 void
 JS::AutoIdArray::trace(JSTracer *trc)
 {
