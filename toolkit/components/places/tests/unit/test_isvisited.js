@@ -59,7 +59,7 @@ add_task(function test_execute()
       
       
       
-      do_log_info("Could not construct URI for '" + currentURL + "'; ignoring");
+      do_print("Could not construct URI for '" + currentURL + "'; ignoring");
     }
     if (cantAddUri) {
       try {

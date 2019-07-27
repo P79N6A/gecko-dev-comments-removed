@@ -766,17 +766,6 @@ function do_check_guid_for_bookmark(aId,
 
 
 
-function do_log_info(aMessage)
-{
-  print("TEST-INFO | " + _TEST_FILE + " | " + aMessage);
-}
-
-
-
-
-
-
-
 
 
 
