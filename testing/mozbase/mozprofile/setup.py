@@ -6,7 +6,7 @@ import sys
 from setuptools import setup
 
 PACKAGE_NAME = 'mozprofile'
-PACKAGE_VERSION = '0.23'
+PACKAGE_VERSION = '0.24'
 
 
 assert sys.version_info[0] == 2
