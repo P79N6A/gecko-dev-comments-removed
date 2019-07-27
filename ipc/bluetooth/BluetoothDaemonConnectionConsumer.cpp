@@ -13,10 +13,10 @@ namespace ipc {
 
 
 
-BluetoothDaemonConnectionConsumer::BluetoothDaemonConnectionConsumer()
+DaemonSocketConsumer::DaemonSocketConsumer()
 { }
 
-BluetoothDaemonConnectionConsumer::~BluetoothDaemonConnectionConsumer()
+DaemonSocketConsumer::~DaemonSocketConsumer()
 { }
 
 }

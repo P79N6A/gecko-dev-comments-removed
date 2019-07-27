@@ -31,7 +31,7 @@ class BluetoothDaemonSocketInterface;
 
 class BluetoothDaemonInterface final
   : public BluetoothInterface
-  , public mozilla::ipc::BluetoothDaemonConnectionConsumer
+  , public mozilla::ipc::DaemonSocketConsumer
   , public mozilla::ipc::ListenSocketConsumer
 {
 public:
