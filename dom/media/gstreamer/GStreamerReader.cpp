@@ -195,6 +195,9 @@ nsresult GStreamerReader::Init(MediaDecoderReader* aCloneDonor)
   g_signal_connect(G_OBJECT(mPlayBin), "element-added",
                    G_CALLBACK(GStreamerReader::PlayElementAddedCb), this);
 
+  g_signal_connect(G_OBJECT(mPlayBin), "element-added",
+                   G_CALLBACK(GStreamerReader::ElementAddedCb), this);
+
   return NS_OK;
 }
 
@@ -212,6 +215,47 @@ GStreamerReader::Error(GstBus *aBus, GstMessage *aMessage)
   }
 
   return GST_BUS_PASS;
+}
+
+void GStreamerReader::ElementAddedCb(GstBin *aPlayBin,
+                                     GstElement *aElement,
+                                     gpointer aUserData)
+{
+  const gchar *name =
+    gst_plugin_feature_get_name(GST_PLUGIN_FEATURE(gst_element_get_factory(aElement)));
+
+  if (!strcmp(name, "uridecodebin")) {
+    g_signal_connect(G_OBJECT(aElement), "autoplug-sort",
+                     G_CALLBACK(GStreamerReader::ElementFilterCb), aUserData);
+  }
+}
+
+GValueArray *GStreamerReader::ElementFilterCb(GstURIDecodeBin *aBin,
+                                              GstPad *aPad,
+                                              GstCaps *aCaps,
+                                              GValueArray *aFactories,
+                                              gpointer aUserData)
+{
+  return ((GStreamerReader*)aUserData)->ElementFilter(aBin, aPad, aCaps, aFactories);
+}
+
+GValueArray *GStreamerReader::ElementFilter(GstURIDecodeBin *aBin,
+                                            GstPad *aPad,
+                                            GstCaps *aCaps,
+                                            GValueArray *aFactories)
+{
+  GValueArray *filtered = g_value_array_new(aFactories->n_values);
+
+  for (unsigned int i = 0; i < aFactories->n_values; i++) {
+    GValue *value = &aFactories->values[i];
+    GstPluginFeature *factory = GST_PLUGIN_FEATURE(g_value_peek_pointer(value));
+
+    if (!GStreamerFormatHelper::IsPluginFeatureBlacklisted(factory)) {
+      g_value_array_append(filtered, value);
+    }
+  }
+
+  return filtered;
 }
 
 void GStreamerReader::PlayBinSourceSetupCb(GstElement* aPlayBin,
@@ -1182,7 +1226,6 @@ GStreamerReader::ShouldAutoplugFactory(GstElementFactory* aFactory, GstCaps* aCa
 
   return autoplug;
 }
-
 
 
 

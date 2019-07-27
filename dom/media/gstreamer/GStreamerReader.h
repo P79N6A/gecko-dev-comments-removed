@@ -25,6 +25,8 @@
 #include "ImageContainer.h"
 #include "nsRect.h"
 
+struct GstURIDecodeBin;
+
 namespace mozilla {
 
 namespace dom {
@@ -89,6 +91,30 @@ private:
 
   static GstBusSyncReply ErrorCb(GstBus *aBus, GstMessage *aMessage, gpointer aUserData);
   GstBusSyncReply Error(GstBus *aBus, GstMessage *aMessage);
+
+  
+
+
+
+
+  static void ElementAddedCb(GstBin *aPlayBin,
+                             GstElement *aElement,
+                             gpointer aUserData);
+
+  
+
+
+
+  static GValueArray *ElementFilterCb(GstURIDecodeBin *aBin,
+                                      GstPad *aPad,
+                                      GstCaps *aCaps,
+                                      GValueArray *aFactories,
+                                      gpointer aUserData);
+
+  GValueArray *ElementFilter(GstURIDecodeBin *aBin,
+                             GstPad *aPad,
+                             GstCaps *aCaps,
+                             GValueArray *aFactories);
 
   
 
