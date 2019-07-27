@@ -17,7 +17,8 @@
 namespace mozilla {
 namespace dom {
 
-class MobileConnection MOZ_FINAL : public DOMEventTargetHelper
+class MobileConnection MOZ_FINAL : public DOMEventTargetHelper,
+                                   private nsIMobileConnectionListener
 {
   
 
