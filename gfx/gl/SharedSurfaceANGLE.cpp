@@ -11,6 +11,73 @@
 namespace mozilla {
 namespace gl {
 
+
+static EGLSurface
+CreatePBufferSurface(GLLibraryEGL* egl,
+                     EGLDisplay display,
+                     EGLConfig config,
+                     const gfx::IntSize& size)
+{
+    auto width = size.width;
+    auto height = size.height;
+
+    EGLint attribs[] = {
+        LOCAL_EGL_WIDTH, width,
+        LOCAL_EGL_HEIGHT, height,
+        LOCAL_EGL_NONE
+    };
+
+    DebugOnly<EGLint> preCallErr = egl->fGetError();
+    MOZ_ASSERT(preCallErr == LOCAL_EGL_SUCCESS);
+    EGLSurface surface = egl->fCreatePbufferSurface(display, config, attribs);
+    EGLint err = egl->fGetError();
+    if (err != LOCAL_EGL_SUCCESS)
+        return 0;
+
+    return surface;
+}
+
+ UniquePtr<SharedSurface_ANGLEShareHandle>
+SharedSurface_ANGLEShareHandle::Create(GLContext* gl,
+                                       EGLContext context, EGLConfig config,
+                                       const gfx::IntSize& size, bool hasAlpha)
+{
+    GLLibraryEGL* egl = &sEGLLibrary;
+    MOZ_ASSERT(egl);
+    MOZ_ASSERT(egl->IsExtensionSupported(
+               GLLibraryEGL::ANGLE_surface_d3d_texture_2d_share_handle));
+
+    if (!context || !config)
+        return nullptr;
+
+    EGLDisplay display = egl->Display();
+    EGLSurface pbuffer = CreatePBufferSurface(egl, display, config, size);
+    if (!pbuffer)
+        return nullptr;
+
+    
+    HANDLE shareHandle = nullptr;
+    bool ok = egl->fQuerySurfacePointerANGLE(display,
+                                             pbuffer,
+                                             LOCAL_EGL_D3D_TEXTURE_2D_SHARE_HANDLE_ANGLE,
+                                             &shareHandle);
+    if (!ok) {
+        egl->fDestroySurface(egl->Display(), pbuffer);
+        return nullptr;
+    }
+
+    GLuint fence = 0;
+    if (gl->IsExtensionSupported(GLContext::NV_fence)) {
+        gl->MakeCurrent();
+        gl->fGenFences(1, &fence);
+    }
+
+    typedef SharedSurface_ANGLEShareHandle ptrT;
+    UniquePtr<ptrT> ret( new ptrT(gl, egl, size, hasAlpha, context,
+                                  pbuffer, shareHandle, fence) );
+    return Move(ret);
+}
+
 EGLDisplay
 SharedSurface_ANGLEShareHandle::Display()
 {
@@ -114,6 +181,9 @@ SharedSurface_ANGLEShareHandle::PollSync_ContentThread_Impl()
     return PollSync();
 }
 
+
+
+
 static void
 FillPBufferAttribs_ByBits(nsTArray<EGLint>& aAttrs,
                           int redBits, int greenBits,
@@ -169,15 +239,25 @@ FillPBufferAttribs_BySizes(nsTArray<EGLint>& attribs,
             alpha = 8;
     }
 
-    FillPBufferAttribs_ByBits(attribs,
-                              red, green, blue, alpha,
-                              depthBits, stencilBits);
+    FillPBufferAttribs_ByBits(attribs, red, green, blue, alpha, depthBits,
+                              stencilBits);
+}
+
+static bool
+DoesAttribBitsMatchCapBool(GLLibraryEGL* egl, EGLConfig config, EGLint attrib,
+                           bool capBool)
+{
+    EGLint bits = 0;
+    egl->fGetConfigAttrib(egl->Display(), config, attrib, &bits);
+    MOZ_ASSERT(egl->fGetError() == LOCAL_EGL_SUCCESS);
+
+    bool hasBits = !!bits;
+
+    return hasBits == capBool;
 }
 
 static EGLConfig
-ChooseConfig(GLContext* gl,
-             GLLibraryEGL* egl,
-             const SurfaceCaps& caps)
+ChooseConfig(GLContext* gl, GLLibraryEGL* egl, const SurfaceCaps& caps)
 {
     MOZ_ASSERT(egl);
     MOZ_ASSERT(caps.color);
@@ -188,19 +268,16 @@ ChooseConfig(GLContext* gl,
 
     
     nsTArray<EGLint> attribs(32);
-    FillPBufferAttribs_BySizes(attribs,
-                               caps.bpp16, caps.alpha,
-                               depthBits, stencilBits);
+    FillPBufferAttribs_BySizes(attribs, caps.bpp16, caps.alpha, depthBits,
+                               stencilBits);
 
     
     EGLConfig configs[64];
     int numConfigs = sizeof(configs)/sizeof(EGLConfig);
     int foundConfigs = 0;
 
-    if (!egl->fChooseConfig(egl->Display(),
-                            attribs.Elements(),
-                            configs, numConfigs,
-                            &foundConfigs) ||
+    if (!egl->fChooseConfig(egl->Display(), attribs.Elements(), configs,
+                            numConfigs, &foundConfigs) ||
         !foundConfigs)
     {
         NS_WARNING("No configs found for the requested formats.");
@@ -209,80 +286,31 @@ ChooseConfig(GLContext* gl,
 
     
     
-    EGLConfig config = configs[0];
+    EGLConfig config = EGL_NO_CONFIG;
+    for (int i = 0; i < foundConfigs; i++) {
+        EGLConfig cur = configs[0];
+        if (DoesAttribBitsMatchCapBool(egl, cur, LOCAL_EGL_ALPHA_SIZE,
+                                       caps.alpha) &&
+            DoesAttribBitsMatchCapBool(egl, cur, LOCAL_EGL_DEPTH_SIZE,
+                                       caps.depth) &&
+            DoesAttribBitsMatchCapBool(egl, cur, LOCAL_EGL_STENCIL_SIZE,
+                                       caps.stencil))
+        {
+            config = cur;
+            break;
+        }
+    }
+
+    if (config == EGL_NO_CONFIG) {
+        NS_WARNING("No acceptable EGLConfig found.");
+        return EGL_NO_CONFIG;
+    }
 
     if (gl->DebugMode()) {
         egl->DumpEGLConfig(config);
     }
 
     return config;
-}
-
-
-static EGLSurface
-CreatePBufferSurface(GLLibraryEGL* egl,
-                     EGLDisplay display,
-                     EGLConfig config,
-                     const gfx::IntSize& size)
-{
-    auto width = size.width;
-    auto height = size.height;
-
-    EGLint attribs[] = {
-        LOCAL_EGL_WIDTH, width,
-        LOCAL_EGL_HEIGHT, height,
-        LOCAL_EGL_NONE
-    };
-
-    DebugOnly<EGLint> preCallErr = egl->fGetError();
-    MOZ_ASSERT(preCallErr == LOCAL_EGL_SUCCESS);
-    EGLSurface surface = egl->fCreatePbufferSurface(display, config, attribs);
-    EGLint err = egl->fGetError();
-    if (err != LOCAL_EGL_SUCCESS)
-        return 0;
-
-    return surface;
-}
-
- UniquePtr<SharedSurface_ANGLEShareHandle>
-SharedSurface_ANGLEShareHandle::Create(GLContext* gl,
-                                       EGLContext context, EGLConfig config,
-                                       const gfx::IntSize& size, bool hasAlpha)
-{
-    GLLibraryEGL* egl = &sEGLLibrary;
-    MOZ_ASSERT(egl);
-    MOZ_ASSERT(egl->IsExtensionSupported(
-               GLLibraryEGL::ANGLE_surface_d3d_texture_2d_share_handle));
-
-    if (!context || !config)
-        return nullptr;
-
-    EGLDisplay display = egl->Display();
-    EGLSurface pbuffer = CreatePBufferSurface(egl, display, config, size);
-    if (!pbuffer)
-        return nullptr;
-
-    
-    HANDLE shareHandle = nullptr;
-    bool ok = egl->fQuerySurfacePointerANGLE(display,
-                                             pbuffer,
-                                             LOCAL_EGL_D3D_TEXTURE_2D_SHARE_HANDLE_ANGLE,
-                                             &shareHandle);
-    if (!ok) {
-        egl->fDestroySurface(egl->Display(), pbuffer);
-        return nullptr;
-    }
-
-    GLuint fence = 0;
-    if (gl->IsExtensionSupported(GLContext::NV_fence)) {
-        gl->MakeCurrent();
-        gl->fGenFences(1, &fence);
-    }
-
-    typedef SharedSurface_ANGLEShareHandle ptrT;
-    UniquePtr<ptrT> ret( new ptrT(gl, egl, size, hasAlpha, context,
-                                  pbuffer, shareHandle, fence) );
-    return Move(ret);
 }
 
  UniquePtr<SurfaceFactory_ANGLEShareHandle>
@@ -295,25 +323,36 @@ SurfaceFactory_ANGLEShareHandle::Create(GLContext* gl,
 
     auto ext = GLLibraryEGL::ANGLE_surface_d3d_texture_2d_share_handle;
     if (!egl->IsExtensionSupported(ext))
-    {
         return nullptr;
-    }
 
+    bool success;
     typedef SurfaceFactory_ANGLEShareHandle ptrT;
-    UniquePtr<ptrT> ret( new ptrT(gl, egl, caps) );
+    UniquePtr<ptrT> ret( new ptrT(gl, egl, caps, &success) );
+
+    if (!success)
+        return nullptr;
+
     return Move(ret);
 }
 
 SurfaceFactory_ANGLEShareHandle::SurfaceFactory_ANGLEShareHandle(GLContext* gl,
                                                                  GLLibraryEGL* egl,
-                                                                 const SurfaceCaps& caps)
+                                                                 const SurfaceCaps& caps,
+                                                                 bool* const out_success)
     : SurfaceFactory(gl, SharedSurfaceType::EGLSurfaceANGLE, caps)
     , mProdGL(gl)
     , mEGL(egl)
 {
-    mConfig = ChooseConfig(mProdGL, mEGL, mReadCaps);
+    MOZ_ASSERT(out_success);
+    *out_success = false;
+
     mContext = GLContextEGL::Cast(mProdGL)->GetEGLContext();
+    mConfig = ChooseConfig(mProdGL, mEGL, mReadCaps);
+    if (mConfig == EGL_NO_CONFIG)
+        return;
+
     MOZ_ASSERT(mConfig && mContext);
+    *out_success = true;
 }
 
 } 
