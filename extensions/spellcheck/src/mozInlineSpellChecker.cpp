@@ -1345,7 +1345,6 @@ mozInlineSpellChecker::DoSpellCheckSelection(mozInlineSpellWordUtil& aWordUtil,
 
   int32_t count = aSpellCheckSelection->GetRangeCount();
 
-  nsCOMPtr<nsIDOMRange> checkRange;
   for (int32_t idx = 0; idx < count; idx++) {
     nsRange *range = aSpellCheckSelection->GetRangeAt(idx);
     if (range) {
@@ -1369,13 +1368,11 @@ mozInlineSpellChecker::DoSpellCheckSelection(mozInlineSpellWordUtil& aWordUtil,
 
   bool doneChecking;
   for (int32_t idx = 0; idx < count; idx++) {
-    auto& checkRange = ranges[idx];
-
     
     
     
     
-    status.mRange = checkRange;
+    status.mRange = ranges[idx];
     rv = DoSpellCheck(aWordUtil, aSpellCheckSelection, &status,
                       &doneChecking);
     NS_ENSURE_SUCCESS(rv, rv);
