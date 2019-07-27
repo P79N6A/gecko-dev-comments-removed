@@ -30,6 +30,12 @@ namespace mozilla {
 
 
 
+
+
+
+
+
+
 template<class T>
 MOZ_ALWAYS_INLINE size_t
 PointerRangeSize(T* aBegin, T* aEnd)
