@@ -156,6 +156,12 @@ public:
     SetLayer(aLayer);
     mAttached = true;
     mKeepAttached = aFlags & KEEP_ATTACHED;
+
+    
+    RefPtr<TextureHost> frontBuffer = GetAsTextureHost();
+    if (frontBuffer) {
+      UseTextureHost(frontBuffer);
+    }
   }
   
   
