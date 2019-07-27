@@ -832,7 +832,7 @@ nsSMILAnimationController::AddStyleUpdate(AnimationElementPtrKey* aKey,
   
   
   
-  nsRestyleHint rshint = key.mIsCSS ? eRestyle_StyleAttribute
+  nsRestyleHint rshint = key.mIsCSS ? eRestyle_StyleAttribute_Animations
                                     : eRestyle_SVGAttrAnimations;
   restyleTracker->AddPendingRestyle(key.mElement, rshint, nsChangeHint(0));
 
