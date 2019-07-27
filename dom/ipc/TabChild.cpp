@@ -2858,6 +2858,19 @@ TabChild::OnHideTooltip()
 }
 
 bool
+TabChild::RecvRequestNotifyAfterRemotePaint()
+{
+  
+  CompositorChild* compositor = CompositorChild::Get();
+
+  
+  
+  
+  compositor->RequestNotifyAfterRemotePaint(this);
+  return true;
+}
+
+bool
 TabChild::RecvUIResolutionChanged()
 {
   static_cast<PuppetWidget*>(mWidget.get())->ClearBackingScaleCache();

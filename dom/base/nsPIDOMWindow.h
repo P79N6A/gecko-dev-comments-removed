@@ -724,6 +724,18 @@ public:
   {
     return mMarkedCCGeneration;
   }
+
+  
+  
+  void SetRequestNotifyAfterRemotePaint()
+  {
+    mSendAfterRemotePaint = true;
+  }
+
+  
+  
+  void SendAfterRemotePaintIfRequested();
+
 protected:
   
   
@@ -815,6 +827,10 @@ protected:
   bool mHasNotifiedGlobalCreated;
 
   uint32_t mMarkedCCGeneration;
+
+  
+  
+  bool mSendAfterRemotePaint;
 };
 
 

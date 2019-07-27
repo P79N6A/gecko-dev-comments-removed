@@ -18,11 +18,19 @@
 #include "nsHashKeys.h"                 
 #include "nsISupportsImpl.h"            
 #include "ThreadSafeRefcountingWithMainThreadDestruction.h"
+#include "nsWeakReference.h"
 
 class nsIObserver;
 
 namespace mozilla {
+
+namespace dom {
+  class TabChild;
+}
+
 namespace layers {
+
+using mozilla::dom::TabChild;
 
 class ClientLayerManager;
 class CompositorParent;
@@ -62,6 +70,14 @@ public:
 
   virtual bool RecvDidComposite(const uint64_t& aId, const uint64_t& aTransactionId) MOZ_OVERRIDE;
 
+  
+
+
+
+
+
+  void RequestNotifyAfterRemotePaint(TabChild* aTabChild);
+
 private:
   
   virtual ~CompositorChild();
@@ -82,6 +98,9 @@ private:
 
   virtual bool RecvReleaseSharedCompositorFrameMetrics(const ViewID& aId,
                                                        const uint32_t& aAPZCId) MOZ_OVERRIDE;
+
+  virtual bool
+  RecvRemotePaintIsReady() MOZ_OVERRIDE;
 
   
   class SharedFrameMetricsData {
@@ -116,6 +135,10 @@ private:
   
   
   static CompositorChild* sCompositor;
+
+  
+  
+  nsWeakPtr mWeakTabChild;      
 
   DISALLOW_EVIL_CONSTRUCTORS(CompositorChild);
 
