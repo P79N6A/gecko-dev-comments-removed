@@ -1561,14 +1561,31 @@ nsIOService::SpeculativeConnect(nsIURI *aURI,
     nsresult rv;
     nsCOMPtr<nsIProtocolProxyService> pps =
             do_GetService(NS_PROTOCOLPROXYSERVICE_CONTRACTID, &rv);
-    if (NS_FAILED(rv))
-        return rv;
+    NS_ENSURE_SUCCESS(rv, rv);
 
+    nsCOMPtr<nsIScriptSecurityManager> secMan(
+        do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv));
+    NS_ENSURE_SUCCESS(rv, rv);
+    nsCOMPtr<nsIPrincipal> systemPrincipal;
+    rv = secMan->GetSystemPrincipal(getter_AddRefs(systemPrincipal));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+    
+    
+    
+    
     nsCOMPtr<nsIChannel> channel;
-    rv = NewChannelFromURI(aURI, getter_AddRefs(channel));
-    if (NS_FAILED(rv)) {
-        return rv;
-    }
+    rv = NewChannelFromURI2(aURI,
+                            nullptr, 
+                            systemPrincipal,
+                            nullptr, 
+                            nsILoadInfo::SEC_NORMAL,
+                            nsIContentPolicy::TYPE_OTHER,
+                            getter_AddRefs(channel));
+
+    NS_ENSURE_SUCCESS(rv, rv);
 
     nsCOMPtr<nsICancelable> cancelable;
     nsRefPtr<IOServiceProxyCallback> callback =
