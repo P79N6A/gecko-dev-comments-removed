@@ -179,6 +179,7 @@ class SharedContext
     ExclusiveContext *const context;
     AnyContextFlags anyCxFlags;
     bool strictScript;
+    bool localStrict;
     bool extraWarnings;
 
     
@@ -187,6 +188,7 @@ class SharedContext
       : context(cx),
         anyCxFlags(),
         strictScript(directives.strict()),
+        localStrict(false),
         extraWarnings(extraWarnings)
     {}
 
@@ -209,8 +211,12 @@ class SharedContext
     inline bool allLocalsAliased();
 
     bool strict() {
-        
-        return strictScript;
+        return strictScript || localStrict;
+    }
+    bool setLocalStrictMode(bool strict) {
+        bool retVal = localStrict;
+        localStrict = strict;
+        return retVal;
     }
 
     
