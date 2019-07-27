@@ -467,12 +467,8 @@ SimdTypeDescr::alignment(Type t)
 
 
 
-
-
 static TypedProto *
-CreatePrototypeObjectForComplexTypeInstance(JSContext *cx,
-                                            Handle<TypeDescr*> descr,
-                                            HandleObject ctorPrototype)
+CreatePrototypeObjectForComplexTypeInstance(JSContext *cx, HandleObject ctorPrototype)
 {
     RootedObject ctorPrototypePrototype(cx, GetPrototype(cx, ctorPrototype));
     if (!ctorPrototypePrototype)
@@ -613,10 +609,17 @@ ArrayMetaTypeDescr::create(JSContext *cx,
     if (!CreateUserSizeAndAlignmentProperties(cx, obj))
         return nullptr;
 
+    
+    
     Rooted<TypedProto*> prototypeObj(cx);
-    prototypeObj = CreatePrototypeObjectForComplexTypeInstance(cx, obj, arrayTypePrototype);
-    if (!prototypeObj)
-        return nullptr;
+    if (elementType->getReservedSlot(JS_DESCR_SLOT_ARRAYPROTO).isObject()) {
+        prototypeObj = &elementType->getReservedSlot(JS_DESCR_SLOT_ARRAYPROTO).toObject().as<TypedProto>();
+    } else {
+        prototypeObj = CreatePrototypeObjectForComplexTypeInstance(cx, arrayTypePrototype);
+        if (!prototypeObj)
+            return nullptr;
+        elementType->setReservedSlot(JS_DESCR_SLOT_ARRAYPROTO, ObjectValue(*prototypeObj));
+    }
 
     obj->initReservedSlot(JS_DESCR_SLOT_TYPROTO, ObjectValue(*prototypeObj));
 
@@ -970,7 +973,7 @@ StructMetaTypeDescr::create(JSContext *cx,
         return nullptr;
 
     Rooted<TypedProto*> prototypeObj(cx);
-    prototypeObj = CreatePrototypeObjectForComplexTypeInstance(cx, descr, structTypePrototype);
+    prototypeObj = CreatePrototypeObjectForComplexTypeInstance(cx, structTypePrototype);
     if (!prototypeObj)
         return nullptr;
 
