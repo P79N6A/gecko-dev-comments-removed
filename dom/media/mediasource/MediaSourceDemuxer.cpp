@@ -400,7 +400,7 @@ MediaSourceTrackDemuxer::GetSample(DemuxerFailureReason& aFailure)
     
     mNextSampleTime = ranges.GetStart();
   }
-  if (!ranges.Contains(mNextSampleTime)) {
+  if (!ranges.ContainsWithStrictEnd(mNextSampleTime)) {
     aFailure = DemuxerFailureReason::WAITING_FOR_DATA;
     return nullptr;
   }
