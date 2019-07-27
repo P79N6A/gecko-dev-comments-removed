@@ -325,12 +325,26 @@ private:
   
   
 
-  already_AddRefed<Decoder> CreateDecoder(bool aDoSizeDecode, uint32_t aFlags);
+  
 
-  void WantDecodedFrames(uint32_t aFlags, bool aShouldSyncNotify);
 
-  NS_IMETHOD Decode(DecodeStrategy aStrategy, uint32_t aFlags,
-                    bool aDoSizeDecode = false);
+
+
+
+  NS_IMETHOD Decode(DecodeStrategy aStrategy,
+                    const Maybe<nsIntSize>& aSize,
+                    uint32_t aFlags);
+
+  
+
+
+
+
+  already_AddRefed<Decoder> CreateDecoder(const Maybe<nsIntSize>& aSize,
+                                          uint32_t aFlags);
+
+  void WantDecodedFrames(const nsIntSize& aSize, uint32_t aFlags,
+                         bool aShouldSyncNotify);
 
 private: 
   nsIntSize                  mSize;

@@ -139,6 +139,24 @@ public:
 
 
 
+
+  virtual nsresult SetTargetSize(const nsIntSize& aSize)
+  {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
   void SetSendPartialInvalidations(bool aSend)
   {
     MOZ_ASSERT(!mInitialized, "Shouldn't be initialized yet");
@@ -231,6 +249,12 @@ public:
   void SetSize(const nsIntSize& aSize, const Orientation& aOrientation)
   {
     PostSize(aSize.width, aSize.height, aOrientation);
+  }
+
+  nsIntSize GetSize() const
+  {
+    MOZ_ASSERT(HasSize());
+    return mImageMetadata.GetSize();
   }
 
   
@@ -333,8 +357,18 @@ protected:
                      BlendMethod aBlendMethod = BlendMethod::OVER);
 
   
-  
-  void PostInvalidation(nsIntRect& aRect);
+
+
+
+
+
+
+
+
+
+
+  void PostInvalidation(const nsIntRect& aRect,
+                        const Maybe<nsIntRect>& aRectAtTargetSize = Nothing());
 
   
   
