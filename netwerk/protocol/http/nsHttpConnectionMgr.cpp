@@ -2181,6 +2181,9 @@ nsHttpConnectionMgr::CreateTransport(nsConnectionEntry *ent,
         }
     }
 
+    
+    
+    
     nsresult rv = sock->SetupPrimaryStreams();
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -2404,8 +2407,9 @@ nsHttpConnectionMgr::OnMsgCancelTransaction(int32_t reason, void *param)
                  ++index) {
                 nsHalfOpenSocket *half = ent->mHalfOpens[index];
                 if (trans == half->Transaction()) {
-                    ent->RemoveHalfOpen(half);
                     half->Abandon();
+                    
+                    break;
                 }
             }
         }
@@ -3894,21 +3898,25 @@ void
 nsHttpConnectionMgr::
 nsConnectionEntry::RemoveHalfOpen(nsHalfOpenSocket *halfOpen)
 {
-    if (halfOpen->IsSpeculative()) {
-      Telemetry::AutoCounter<Telemetry::HTTPCONNMGR_UNUSED_SPECULATIVE_CONN> unusedSpeculativeConn;
-      ++unusedSpeculativeConn;
+    
+    
+    if (mHalfOpens.RemoveElement(halfOpen)) {
 
-      if (halfOpen->IsFromPredictor()) {
-        Telemetry::AutoCounter<Telemetry::PREDICTOR_TOTAL_PRECONNECTS_UNUSED> totalPreconnectsUnused;
-        ++totalPreconnectsUnused;
-      }
+        if (halfOpen->IsSpeculative()) {
+            Telemetry::AutoCounter<Telemetry::HTTPCONNMGR_UNUSED_SPECULATIVE_CONN> unusedSpeculativeConn;
+            ++unusedSpeculativeConn;
+
+            if (halfOpen->IsFromPredictor()) {
+                Telemetry::AutoCounter<Telemetry::PREDICTOR_TOTAL_PRECONNECTS_UNUSED> totalPreconnectsUnused;
+                ++totalPreconnectsUnused;
+            }
+        }
+
+        MOZ_ASSERT(gHttpHandler->ConnMgr()->mNumHalfOpenConns);
+        if (gHttpHandler->ConnMgr()->mNumHalfOpenConns) { 
+            gHttpHandler->ConnMgr()->mNumHalfOpenConns--;
+        }
     }
-
-    
-    
-    
-    mHalfOpens.RemoveElement(halfOpen);
-    gHttpHandler->ConnMgr()->mNumHalfOpenConns--;
 
     if (!UnconnectedHalfOpens())
         
