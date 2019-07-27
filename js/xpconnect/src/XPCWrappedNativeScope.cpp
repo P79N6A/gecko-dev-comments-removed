@@ -56,11 +56,7 @@ RemoteXULForbidsXBLScope(nsIPrincipal *aPrincipal, HandleObject aGlobal)
   
   
   
-  
-  
-  
-  
-  if (JS_GetClass(aGlobal) == &SafeJSContextGlobalClass || IsSandbox(aGlobal))
+  if (IsSandbox(aGlobal))
       return false;
 
   

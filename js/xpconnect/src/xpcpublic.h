@@ -443,9 +443,8 @@ UnwrapReflectorToISupports(JSObject *reflector);
 
 
 
-
-
-
+JSObject *
+UnprivilegedJunkScope();
 
 JSObject *
 PrivilegedJunkScope();
@@ -464,13 +463,6 @@ CompilationScope();
 
 nsGlobalWindow*
 WindowOrNull(JSObject *aObj);
-
-
-
-
-
-JSObject *
-GetSafeJSContextGlobal();
 
 
 

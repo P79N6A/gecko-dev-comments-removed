@@ -11104,7 +11104,7 @@ class CGDictionary(CGThing):
                 AutoJSAPI jsapi;
                 jsapi.Init();
                 JSContext *cx = jsapi.cx();
-                JSAutoCompartment ac(cx, xpc::GetSafeJSContextGlobal()); // Usage approved by bholley
+                JSAutoCompartment ac(cx, xpc::UnprivilegedJunkScope()); // Usage approved by bholley
                 JS::Rooted<JS::Value> obj(cx);
                 return ToObjectInternal(cx, &obj) && StringifyToJSON(cx, &obj, aJSON);
             """))

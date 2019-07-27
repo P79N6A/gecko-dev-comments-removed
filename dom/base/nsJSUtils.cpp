@@ -124,7 +124,7 @@ nsJSUtils::ReportPendingException(JSContext *aContext)
         
         MOZ_ASSERT(NS_IsMainThread());
         MOZ_ASSERT(aContext == nsContentUtils::GetSafeJSContext());
-        scope = xpc::GetSafeJSContextGlobal();
+        scope = xpc::UnprivilegedJunkScope(); 
       }
       JSAutoCompartment ac(aContext, scope);
       JS_ReportPendingException(aContext);
