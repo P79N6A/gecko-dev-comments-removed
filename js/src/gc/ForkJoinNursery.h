@@ -36,6 +36,7 @@ namespace gc {
 class ForkJoinGCShared;
 class ForkJoinNursery;
 class ForkJoinNurseryCollectionTracer;
+class RelocationOverlay;
 
 
 
