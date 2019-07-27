@@ -10,7 +10,6 @@
 #include "mozilla/dom/cache/Action.h"
 #include "mozilla/dom/cache/Manager.h"
 #include "mozilla/dom/cache/ManagerId.h"
-#include "mozilla/dom/cache/OfflineStorage.h"
 #include "mozilla/dom/quota/OriginOrPatternString.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "nsIFile.h"
@@ -22,18 +21,19 @@ namespace {
 
 using mozilla::dom::Nullable;
 using mozilla::dom::cache::QuotaInfo;
-using mozilla::dom::quota::Client;
 using mozilla::dom::quota::OriginOrPatternString;
 using mozilla::dom::quota::QuotaManager;
 using mozilla::dom::quota::PERSISTENCE_TYPE_DEFAULT;
 using mozilla::dom::quota::PersistenceType;
 
 
+
 class QuotaReleaseRunnable MOZ_FINAL : public nsRunnable
 {
 public:
-  explicit QuotaReleaseRunnable(const QuotaInfo& aQuotaInfo)
+  QuotaReleaseRunnable(const QuotaInfo& aQuotaInfo, const nsACString& aQuotaId)
     : mQuotaInfo(aQuotaInfo)
+    , mQuotaId(aQuotaId)
   { }
 
   NS_IMETHOD Run() MOZ_OVERRIDE
@@ -43,7 +43,7 @@ public:
     MOZ_ASSERT(qm);
     qm->AllowNextSynchronizedOp(OriginOrPatternString::FromOrigin(mQuotaInfo.mOrigin),
                                 Nullable<PersistenceType>(PERSISTENCE_TYPE_DEFAULT),
-                                mQuotaInfo.mStorageId);
+                                mQuotaId);
     return NS_OK;
   }
 
@@ -51,6 +51,7 @@ private:
   ~QuotaReleaseRunnable() { }
 
   const QuotaInfo mQuotaInfo;
+  const nsCString mQuotaId;
 };
 
 } 
@@ -74,15 +75,15 @@ class Context::QuotaInitRunnable MOZ_FINAL : public nsIRunnable
 public:
   QuotaInitRunnable(Context* aContext,
                     Manager* aManager,
+                    const nsACString& aQuotaId,
                     Action* aQuotaIOThreadAction)
     : mContext(aContext)
-    , mThreadsafeHandle(aContext->CreateThreadsafeHandle())
     , mManager(aManager)
+    , mQuotaId(aQuotaId)
     , mQuotaIOThreadAction(aQuotaIOThreadAction)
     , mInitiatingThread(NS_GetCurrentThread())
-    , mResult(NS_OK)
     , mState(STATE_INIT)
-    , mNeedsQuotaRelease(false)
+    , mResult(NS_OK)
   {
     MOZ_ASSERT(mContext);
     MOZ_ASSERT(mManager);
@@ -151,15 +152,13 @@ private:
   }
 
   nsRefPtr<Context> mContext;
-  nsRefPtr<ThreadsafeHandle> mThreadsafeHandle;
   nsRefPtr<Manager> mManager;
+  const nsCString mQuotaId;
   nsRefPtr<Action> mQuotaIOThreadAction;
   nsCOMPtr<nsIThread> mInitiatingThread;
+  State mState;
   nsresult mResult;
   QuotaInfo mQuotaInfo;
-  nsMainThreadPtrHandle<OfflineStorage> mOfflineStorage;
-  State mState;
-  bool mNeedsQuotaRelease;
 
 public:
   NS_DECL_ISUPPORTS_INHERITED
@@ -231,19 +230,13 @@ Context::QuotaInitRunnable::Run()
         return NS_OK;
       }
 
-      QuotaManager::GetStorageId(PERSISTENCE_TYPE_DEFAULT,
-                                 mQuotaInfo.mOrigin,
-                                 Client::DOMCACHE,
-                                 NS_LITERAL_STRING("cache"),
-                                 mQuotaInfo.mStorageId);
-
       
       
       
       mState = STATE_WAIT_FOR_OPEN_ALLOWED;
       rv = qm->WaitForOpenAllowed(OriginOrPatternString::FromOrigin(mQuotaInfo.mOrigin),
                                   Nullable<PersistenceType>(PERSISTENCE_TYPE_DEFAULT),
-                                  mQuotaInfo.mStorageId, this);
+                                  mQuotaId, this);
       if (NS_FAILED(rv)) {
         Resolve(rv);
         return NS_OK;
@@ -254,16 +247,8 @@ Context::QuotaInitRunnable::Run()
     case STATE_WAIT_FOR_OPEN_ALLOWED:
     {
       MOZ_ASSERT(NS_IsMainThread());
-
-      mNeedsQuotaRelease = true;
-
       QuotaManager* qm = QuotaManager::Get();
       MOZ_ASSERT(qm);
-
-      nsRefPtr<OfflineStorage> offlineStorage =
-        OfflineStorage::Register(mThreadsafeHandle, mQuotaInfo);
-      mOfflineStorage = new nsMainThreadPtrHolder<OfflineStorage>(offlineStorage);
-
       mState = STATE_ENSURE_ORIGIN_INITIALIZED;
       nsresult rv = qm->IOThread()->Dispatch(this, nsIThread::DISPATCH_NORMAL);
       if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -313,15 +298,8 @@ Context::QuotaInitRunnable::Run()
       if (mQuotaIOThreadAction) {
         mQuotaIOThreadAction->CompleteOnInitiatingThread(mResult);
       }
-      mContext->OnQuotaInit(mResult, mQuotaInfo, mOfflineStorage);
+      mContext->OnQuotaInit(mResult, mQuotaInfo);
       mState = STATE_COMPLETE;
-
-      if (mNeedsQuotaRelease) {
-        
-        nsCOMPtr<nsIRunnable> runnable = new QuotaReleaseRunnable(mQuotaInfo);
-        MOZ_ALWAYS_TRUE(NS_SUCCEEDED(NS_DispatchToMainThread(runnable)));
-      }
-
       
       
       Clear();
@@ -343,7 +321,6 @@ Context::QuotaInitRunnable::Run()
 
 class Context::ActionRunnable MOZ_FINAL : public nsIRunnable
                                         , public Action::Resolver
-                                        , public Context::Activity
 {
 public:
   ActionRunnable(Context* aContext, nsIEventTarget* aTarget, Action* aAction,
@@ -377,15 +354,12 @@ public:
     return rv;
   }
 
-  virtual bool
-  MatchesCacheId(CacheId aCacheId) const MOZ_OVERRIDE
-  {
+  bool MatchesCacheId(CacheId aCacheId) {
     NS_ASSERT_OWNINGTHREAD(Action::Resolver);
     return mAction->MatchesCacheId(aCacheId);
   }
 
-  virtual void
-  Cancel() MOZ_OVERRIDE
+  void Cancel()
   {
     NS_ASSERT_OWNINGTHREAD(Action::Resolver);
     mAction->CancelOnInitiatingThread();
@@ -418,7 +392,7 @@ private:
     NS_ASSERT_OWNINGTHREAD(Action::Resolver);
     MOZ_ASSERT(mContext);
     MOZ_ASSERT(mAction);
-    mContext->RemoveActivity(this);
+    mContext->OnActionRunnableComplete(this);
     mContext = nullptr;
     mAction = nullptr;
   }
@@ -508,99 +482,6 @@ Context::ActionRunnable::Run()
   return NS_OK;
 }
 
-void
-Context::ThreadsafeHandle::AllowToClose()
-{
-  if (mOwningThread == NS_GetCurrentThread()) {
-    AllowToCloseOnOwningThread();
-    return;
-  }
-
-  
-  
-  nsCOMPtr<nsIRunnable> runnable =
-    NS_NewRunnableMethod(this, &ThreadsafeHandle::AllowToCloseOnOwningThread);
-  MOZ_ALWAYS_TRUE(NS_SUCCEEDED(
-    mOwningThread->Dispatch(runnable, nsIThread::DISPATCH_NORMAL)));
-}
-
-void
-Context::ThreadsafeHandle::InvalidateAndAllowToClose()
-{
-  if (mOwningThread == NS_GetCurrentThread()) {
-    InvalidateAndAllowToCloseOnOwningThread();
-    return;
-  }
-
-  
-  
-  nsCOMPtr<nsIRunnable> runnable =
-    NS_NewRunnableMethod(this, &ThreadsafeHandle::InvalidateAndAllowToCloseOnOwningThread);
-  MOZ_ALWAYS_TRUE(NS_SUCCEEDED(
-    mOwningThread->Dispatch(runnable, nsIThread::DISPATCH_NORMAL)));
-}
-
-Context::ThreadsafeHandle::ThreadsafeHandle(Context* aContext)
-  : mStrongRef(aContext)
-  , mWeakRef(aContext)
-  , mOwningThread(NS_GetCurrentThread())
-{
-}
-
-Context::ThreadsafeHandle::~ThreadsafeHandle()
-{
-  
-  
-  
-  
-  if (!mStrongRef || mOwningThread == NS_GetCurrentThread()) {
-    return;
-  }
-
-  
-  
-  nsCOMPtr<nsIRunnable> runnable =
-    NS_NewNonOwningRunnableMethod(mStrongRef.forget().take(), &Context::Release);
-  MOZ_ALWAYS_TRUE(NS_SUCCEEDED(
-    mOwningThread->Dispatch(runnable, nsIThread::DISPATCH_NORMAL)));
-}
-
-void
-Context::ThreadsafeHandle::AllowToCloseOnOwningThread()
-{
-  MOZ_ASSERT(mOwningThread == NS_GetCurrentThread());
-  
-  
-  
-  
-  mStrongRef = nullptr;
-}
-
-void
-Context::ThreadsafeHandle::InvalidateAndAllowToCloseOnOwningThread()
-{
-  MOZ_ASSERT(mOwningThread == NS_GetCurrentThread());
-  
-  
-  
-  if (mWeakRef) {
-    mWeakRef->Invalidate();
-  }
-  
-  
-  MOZ_ASSERT(!mStrongRef);
-}
-
-void
-Context::ThreadsafeHandle::ContextDestroyed(Context* aContext)
-{
-  MOZ_ASSERT(mOwningThread == NS_GetCurrentThread());
-  MOZ_ASSERT(!mStrongRef);
-  MOZ_ASSERT(mWeakRef);
-  MOZ_ASSERT(mWeakRef == aContext);
-  mWeakRef = nullptr;
-}
-
 
 already_AddRefed<Context>
 Context::Create(Manager* aManager, Action* aQuotaIOThreadAction)
@@ -608,7 +489,8 @@ Context::Create(Manager* aManager, Action* aQuotaIOThreadAction)
   nsRefPtr<Context> context = new Context(aManager);
 
   nsRefPtr<QuotaInitRunnable> runnable =
-    new QuotaInitRunnable(context, aManager, aQuotaIOThreadAction);
+    new QuotaInitRunnable(context, aManager, NS_LITERAL_CSTRING("Cache"),
+                          aQuotaIOThreadAction);
   nsresult rv = runnable->Dispatch();
   if (NS_FAILED(rv)) {
     
@@ -653,29 +535,9 @@ Context::CancelAll()
   NS_ASSERT_OWNINGTHREAD(Context);
   mState = STATE_CONTEXT_CANCELED;
   mPendingActions.Clear();
-  {
-    ActivityList::ForwardIterator iter(mActivityList);
-    while (iter.HasMore()) {
-      iter.GetNext()->Cancel();
-    }
-  }
-  AllowToClose();
-}
-
-void
-Context::Invalidate()
-{
-  NS_ASSERT_OWNINGTHREAD(Context);
-  mManager->Invalidate();
-  CancelAll();
-}
-
-void
-Context::AllowToClose()
-{
-  NS_ASSERT_OWNINGTHREAD(Context);
-  if (mThreadsafeHandle) {
-    mThreadsafeHandle->AllowToClose();
+  for (uint32_t i = 0; i < mActionRunnables.Length(); ++i) {
+    nsRefPtr<ActionRunnable> runnable = mActionRunnables[i];
+    runnable->Cancel();
   }
 }
 
@@ -683,20 +545,15 @@ void
 Context::CancelForCacheId(CacheId aCacheId)
 {
   NS_ASSERT_OWNINGTHREAD(Context);
-
-  
-  for (int32_t i = mPendingActions.Length() - 1; i >= 0; --i) {
+  for (uint32_t i = 0; i < mPendingActions.Length(); ++i) {
     if (mPendingActions[i].mAction->MatchesCacheId(aCacheId)) {
       mPendingActions.RemoveElementAt(i);
     }
   }
-
-  
-  ActivityList::ForwardIterator iter(mActivityList);
-  while (iter.HasMore()) {
-    Activity* activity = iter.GetNext();
-    if (activity->MatchesCacheId(aCacheId)) {
-      activity->Cancel();
+  for (uint32_t i = 0; i < mActionRunnables.Length(); ++i) {
+    nsRefPtr<ActionRunnable> runnable = mActionRunnables[i];
+    if (runnable->MatchesCacheId(aCacheId)) {
+      runnable->Cancel();
     }
   }
 }
@@ -706,8 +563,14 @@ Context::~Context()
   NS_ASSERT_OWNINGTHREAD(Context);
   MOZ_ASSERT(mManager);
 
-  if (mThreadsafeHandle) {
-    mThreadsafeHandle->ContextDestroyed(this);
+  
+  nsCOMPtr<nsIRunnable> runnable =
+    new QuotaReleaseRunnable(mQuotaInfo, NS_LITERAL_CSTRING("Cache"));
+  nsresult rv = NS_DispatchToMainThread(runnable, nsIThread::DISPATCH_NORMAL);
+  if (NS_FAILED(rv)) {
+    
+    
+    MOZ_CRASH("Failed to dispatch QuotaReleaseRunnable to main thread.");
   }
 
   mManager->RemoveContext(this);
@@ -726,12 +589,11 @@ Context::DispatchAction(nsIEventTarget* aTarget, Action* aAction)
     
     MOZ_CRASH("Failed to dispatch ActionRunnable to target thread.");
   }
-  AddActivity(runnable);
+  mActionRunnables.AppendElement(runnable);
 }
 
 void
-Context::OnQuotaInit(nsresult aRv, const QuotaInfo& aQuotaInfo,
-                     nsMainThreadPtrHandle<OfflineStorage>& aOfflineStorage)
+Context::OnQuotaInit(nsresult aRv, const QuotaInfo& aQuotaInfo)
 {
   NS_ASSERT_OWNINGTHREAD(Context);
 
@@ -742,15 +604,12 @@ Context::OnQuotaInit(nsresult aRv, const QuotaInfo& aQuotaInfo,
       mPendingActions[i].mAction->CompleteOnInitiatingThread(aRv);
     }
     mPendingActions.Clear();
-    mThreadsafeHandle = nullptr;
     
     return;
   }
 
   MOZ_ASSERT(mState == STATE_CONTEXT_INIT);
   mState = STATE_CONTEXT_READY;
-
-  mOfflineStorage = aOfflineStorage;
 
   for (uint32_t i = 0; i < mPendingActions.Length(); ++i) {
     DispatchAction(mPendingActions[i].mTarget, mPendingActions[i].mAction);
@@ -759,32 +618,11 @@ Context::OnQuotaInit(nsresult aRv, const QuotaInfo& aQuotaInfo,
 }
 
 void
-Context::AddActivity(Activity* aActivity)
+Context::OnActionRunnableComplete(ActionRunnable* aActionRunnable)
 {
   NS_ASSERT_OWNINGTHREAD(Context);
-  MOZ_ASSERT(aActivity);
-  MOZ_ASSERT(!mActivityList.Contains(aActivity));
-  mActivityList.AppendElement(aActivity);
-}
-
-void
-Context::RemoveActivity(Activity* aActivity)
-{
-  NS_ASSERT_OWNINGTHREAD(Context);
-  MOZ_ASSERT(aActivity);
-  MOZ_ALWAYS_TRUE(mActivityList.RemoveElement(aActivity));
-  MOZ_ASSERT(!mActivityList.Contains(aActivity));
-}
-
-already_AddRefed<Context::ThreadsafeHandle>
-Context::CreateThreadsafeHandle()
-{
-  NS_ASSERT_OWNINGTHREAD(Context);
-  if (!mThreadsafeHandle) {
-    mThreadsafeHandle = new ThreadsafeHandle(this);
-  }
-  nsRefPtr<ThreadsafeHandle> ref = mThreadsafeHandle;
-  return ref.forget();
+  MOZ_ASSERT(aActionRunnable);
+  MOZ_ALWAYS_TRUE(mActionRunnables.RemoveElement(aActionRunnable));
 }
 
 } 
