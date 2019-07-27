@@ -453,6 +453,8 @@ private:
                       RestyleTracker& aRestyleTracker,
                       nsRestyleHint   aRestyleHint);
 
+  void FinishRebuildAllStyleData();
+
   void StyleChangeReflow(nsIFrame* aFrame, nsChangeHint aHint);
 
   

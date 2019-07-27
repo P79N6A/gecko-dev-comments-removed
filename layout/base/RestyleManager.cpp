@@ -1582,17 +1582,21 @@ RestyleManager::DoRebuildAllStyleData(RestyleTracker& aRestyleTracker)
                                changeHint, aRestyleTracker, restyleHint);
 
   EndProcessingRestyles();
+}
 
-  if (mInRebuildAllStyleData) {
-    
-    
-    
-    
-    
-    mPresContext->StyleSet()->EndReconstruct();
+void
+RestyleManager::FinishRebuildAllStyleData()
+{
+  MOZ_ASSERT(mInRebuildAllStyleData, "bad caller");
 
-    mInRebuildAllStyleData = false;
-  }
+  
+  
+  
+  
+  
+  mPresContext->StyleSet()->EndReconstruct();
+
+  mInRebuildAllStyleData = false;
 }
 
 void
@@ -1693,6 +1697,10 @@ RestyleManager::EndProcessingRestyles()
   
   
   mInStyleRefresh = false;
+
+  if (mInRebuildAllStyleData) {
+    FinishRebuildAllStyleData();
+  }
 
   mPresContext->FrameConstructor()->EndUpdate();
 
