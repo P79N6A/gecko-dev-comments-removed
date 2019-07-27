@@ -44,8 +44,12 @@ import org.mozilla.gecko.mozglue.RobocopTarget;
 import org.mozilla.gecko.mozglue.generatorannotations.OptionalGeneratedParameter;
 import org.mozilla.gecko.mozglue.generatorannotations.WrapElementForJNI;
 import org.mozilla.gecko.prompts.PromptService;
+import org.mozilla.gecko.util.EventCallback;
+import org.mozilla.gecko.util.GeckoRequest;
 import org.mozilla.gecko.util.HardwareUtils;
+import org.mozilla.gecko.util.NativeEventListener;
 import org.mozilla.gecko.util.NativeJSContainer;
+import org.mozilla.gecko.util.NativeJSObject;
 import org.mozilla.gecko.util.ProxySelector;
 import org.mozilla.gecko.util.ThreadUtils;
 
@@ -158,6 +162,8 @@ public class GeckoAppShell
     private static Sensor gOrientationSensor;
     private static Sensor gProximitySensor;
     private static Sensor gLightSensor;
+
+    private static final String GECKOREQUEST_RESPONSE_KEY = "response";
 
     
 
@@ -403,6 +409,36 @@ public class GeckoAppShell
 
         
         PENDING_EVENTS.add(e);
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+    @RobocopTarget
+    public static void sendRequestToGecko(final GeckoRequest request) {
+        final String responseMessage = "Gecko:Request" + request.getId();
+
+        EventDispatcher.getInstance().registerGeckoThreadListener(new NativeEventListener() {
+            @Override
+            public void handleMessage(String event, NativeJSObject message, EventCallback callback) {
+                EventDispatcher.getInstance().unregisterGeckoThreadListener(this, event);
+                if (!message.has(GECKOREQUEST_RESPONSE_KEY)) {
+                    request.onError();
+                    return;
+                }
+                request.onResponse(message.getObject(GECKOREQUEST_RESPONSE_KEY));
+            }
+        }, responseMessage);
+
+        sendEventToGecko(GeckoEvent.createBroadcastEvent(request.getName(), request.getData()));
     }
 
     
