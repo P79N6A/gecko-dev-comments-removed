@@ -136,10 +136,14 @@ static const size_t UINT32_CHAR_BUFFER_LENGTH = sizeof("4294967295") - 1;
 
 
 
+
+
+
+
 class JSString : public js::gc::TenuredCell
 {
   protected:
-    static const size_t NUM_INLINE_CHARS_LATIN1 = 2 * sizeof(void *) / sizeof(char);
+    static const size_t NUM_INLINE_CHARS_LATIN1   = 2 * sizeof(void *) / sizeof(JS::Latin1Char);
     static const size_t NUM_INLINE_CHARS_TWO_BYTE = 2 * sizeof(void *) / sizeof(char16_t);
 
     
@@ -234,29 +238,29 @@ class JSString : public js::gc::TenuredCell
 
 
 
-    static const uint32_t FLAT_BIT              = JS_BIT(0);
-    static const uint32_t HAS_BASE_BIT          = JS_BIT(1);
-    static const uint32_t INLINE_CHARS_BIT      = JS_BIT(2);
-    static const uint32_t ATOM_BIT              = JS_BIT(3);
+    static const uint32_t FLAT_BIT               = JS_BIT(0);
+    static const uint32_t HAS_BASE_BIT           = JS_BIT(1);
+    static const uint32_t INLINE_CHARS_BIT       = JS_BIT(2);
+    static const uint32_t ATOM_BIT               = JS_BIT(3);
 
-    static const uint32_t ROPE_FLAGS            = 0;
-    static const uint32_t DEPENDENT_FLAGS       = HAS_BASE_BIT;
-    static const uint32_t UNDEPENDED_FLAGS      = FLAT_BIT | HAS_BASE_BIT;
-    static const uint32_t EXTENSIBLE_FLAGS      = FLAT_BIT | JS_BIT(4);
-    static const uint32_t EXTERNAL_FLAGS        = FLAT_BIT | JS_BIT(5);
+    static const uint32_t ROPE_FLAGS             = 0;
+    static const uint32_t DEPENDENT_FLAGS        = HAS_BASE_BIT;
+    static const uint32_t UNDEPENDED_FLAGS       = FLAT_BIT | HAS_BASE_BIT;
+    static const uint32_t EXTENSIBLE_FLAGS       = FLAT_BIT | JS_BIT(4);
+    static const uint32_t EXTERNAL_FLAGS         = FLAT_BIT | JS_BIT(5);
 
-    static const uint32_t FAT_INLINE_MASK       = INLINE_CHARS_BIT | JS_BIT(4);
-    static const uint32_t PERMANENT_ATOM_MASK   = ATOM_BIT | JS_BIT(5);
+    static const uint32_t FAT_INLINE_MASK        = INLINE_CHARS_BIT | JS_BIT(4);
+    static const uint32_t PERMANENT_ATOM_MASK    = ATOM_BIT | JS_BIT(5);
 
     
-    static const uint32_t INIT_INLINE_FLAGS     = FLAT_BIT | INLINE_CHARS_BIT;
-    static const uint32_t INIT_FAT_INLINE_FLAGS = FLAT_BIT | FAT_INLINE_MASK;
+    static const uint32_t INIT_THIN_INLINE_FLAGS = FLAT_BIT | INLINE_CHARS_BIT;
+    static const uint32_t INIT_FAT_INLINE_FLAGS  = FLAT_BIT | FAT_INLINE_MASK;
 
-    static const uint32_t TYPE_FLAGS_MASK       = JS_BIT(6) - 1;
+    static const uint32_t TYPE_FLAGS_MASK        = JS_BIT(6) - 1;
 
-    static const uint32_t LATIN1_CHARS_BIT      = JS_BIT(6);
+    static const uint32_t LATIN1_CHARS_BIT       = JS_BIT(6);
 
-    static const uint32_t MAX_LENGTH            = js::MaxStringLength;
+    static const uint32_t MAX_LENGTH             = js::MaxStringLength;
 
     static const JS::Latin1Char MAX_LATIN1_CHAR = 0xff;
 
@@ -770,28 +774,9 @@ class JSExtensibleString : public JSFlatString
 static_assert(sizeof(JSExtensibleString) == sizeof(JSString),
               "string subclasses must be binary-compatible with JSString");
 
-
-
-
-
-
 class JSInlineString : public JSFlatString
 {
   public:
-    static const size_t MAX_LENGTH_LATIN1 = NUM_INLINE_CHARS_LATIN1 - 1;
-    static const size_t MAX_LENGTH_TWO_BYTE = NUM_INLINE_CHARS_TWO_BYTE - 1;
-
-    template <js::AllowGC allowGC>
-    static inline JSInlineString *new_(js::ExclusiveContext *cx);
-
-    inline char16_t *initTwoByte(size_t length);
-    inline JS::Latin1Char *initLatin1(size_t length);
-
-    template <typename CharT>
-    inline CharT *init(size_t length);
-
-    inline void resetLength(size_t length);
-
     MOZ_ALWAYS_INLINE
     const JS::Latin1Char *latin1Chars(const JS::AutoCheckCannotGC &nogc) const {
         MOZ_ASSERT(JSString::isInline());
@@ -806,12 +791,8 @@ class JSInlineString : public JSFlatString
         return d.inlineStorageTwoByte;
     }
 
-    static bool latin1LengthFits(size_t length) {
-        return length <= MAX_LENGTH_LATIN1;
-    }
-    static bool twoByteLengthFits(size_t length) {
-        return length <= MAX_LENGTH_TWO_BYTE;
-    }
+    static bool latin1LengthFits(size_t length);
+    static bool twoByteLengthFits(size_t length);
 
     template<typename CharT>
     static bool lengthFits(size_t length);
@@ -823,6 +804,41 @@ class JSInlineString : public JSFlatString
 
 static_assert(sizeof(JSInlineString) == sizeof(JSString),
               "string subclasses must be binary-compatible with JSString");
+
+
+
+
+
+
+class JSThinInlineString : public JSInlineString
+{
+  public:
+    static const size_t MAX_LENGTH_LATIN1 = NUM_INLINE_CHARS_LATIN1 - 1;
+    static const size_t MAX_LENGTH_TWO_BYTE = NUM_INLINE_CHARS_TWO_BYTE - 1;
+
+    template <js::AllowGC allowGC>
+    static inline JSThinInlineString *new_(js::ExclusiveContext *cx);
+
+    inline char16_t *initTwoByte(size_t length);
+    inline JS::Latin1Char *initLatin1(size_t length);
+
+    template <typename CharT>
+    inline CharT *init(size_t length);
+
+    static bool latin1LengthFits(size_t length) {
+        return length <= MAX_LENGTH_LATIN1;
+    }
+    static bool twoByteLengthFits(size_t length) {
+        return length <= MAX_LENGTH_TWO_BYTE;
+    }
+
+    template<typename CharT>
+    static bool lengthFits(size_t length);
+};
+
+static_assert(sizeof(JSThinInlineString) == sizeof(JSString),
+              "string subclasses must be binary-compatible with JSString");
+
 
 
 
@@ -1299,12 +1315,28 @@ template<>
 MOZ_ALWAYS_INLINE bool
 JSInlineString::lengthFits<JS::Latin1Char>(size_t length)
 {
-    return latin1LengthFits(length);
+    
+    return JSFatInlineString::latin1LengthFits(length);
 }
 
 template<>
 MOZ_ALWAYS_INLINE bool
 JSInlineString::lengthFits<char16_t>(size_t length)
+{
+    
+    return JSFatInlineString::twoByteLengthFits(length);
+}
+
+template<>
+MOZ_ALWAYS_INLINE bool
+JSThinInlineString::lengthFits<JS::Latin1Char>(size_t length)
+{
+    return latin1LengthFits(length);
+}
+
+template<>
+MOZ_ALWAYS_INLINE bool
+JSThinInlineString::lengthFits<char16_t>(size_t length)
 {
     return twoByteLengthFits(length);
 }
@@ -1321,6 +1353,20 @@ MOZ_ALWAYS_INLINE bool
 JSFatInlineString::lengthFits<char16_t>(size_t length)
 {
     return twoByteLengthFits(length);
+}
+
+MOZ_ALWAYS_INLINE bool
+JSInlineString::latin1LengthFits(size_t length)
+{
+    
+    return JSFatInlineString::latin1LengthFits(length);
+}
+
+MOZ_ALWAYS_INLINE bool
+JSInlineString::twoByteLengthFits(size_t length)
+{
+    
+    return JSFatInlineString::twoByteLengthFits(length);
 }
 
 template<>
