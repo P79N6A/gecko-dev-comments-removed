@@ -585,13 +585,25 @@ BrowserElementChild.prototype = {
   },
 
   _ClickHandler: function(e) {
-    let elem = e.target;
-    if (elem instanceof Ci.nsIDOMHTMLAnchorElement && elem.href) {
-      
-      if ((Services.appinfo.OS == 'Darwin' && e.metaKey) ||
-          (Services.appinfo.OS != 'Darwin' && e.ctrlKey) ||
-           e.button == 1) {
-        sendAsyncMsg('opentab', {url: elem.href});
+
+    let isHTMLLink = node =>
+      ((node instanceof Ci.nsIDOMHTMLAnchorElement && node.href) ||
+       (node instanceof Ci.nsIDOMHTMLAreaElement && node.href) ||
+        node instanceof Ci.nsIDOMHTMLLinkElement);
+
+    
+    
+    if ((Services.appinfo.OS == 'Darwin' && e.metaKey) ||
+        (Services.appinfo.OS != 'Darwin' && e.ctrlKey) ||
+         e.button == 1) {
+
+      let node = e.target;
+      while (node && !isHTMLLink(node)) {
+        node = node.parentNode;
+      }
+
+      if (node) {
+        sendAsyncMsg('opentab', {url: node.href});
       }
     }
   },
