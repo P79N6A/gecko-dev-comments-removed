@@ -3,18 +3,11 @@
 
 "use strict";
 
-self.onmessage = e => {
-  const { id, task, args } = e.data;
 
-  switch (task) {
-    case "plotTimestampsGraph":
-      plotTimestampsGraph(id, args);
-      break;
-    default:
-      self.postMessage({ id, error: e.message + "\n" + e.stack });
-      break;
-  }
-};
+
+
+importScripts("resource://gre/modules/workers/require.js");
+const { createTask } = require("resource:///modules/devtools/shared/worker-helper");
 
 
 
@@ -23,13 +16,13 @@ self.onmessage = e => {
 
 
 
-function plotTimestampsGraph(id, args) {
-  let plottedData = plotTimestamps(args.timestamps, args.interval);
-  let plottedMinMaxSum = getMinMaxAvg(plottedData, args.timestamps, args.duration);
+createTask(self, "plotTimestampsGraph", function ({ timestamps, interval, duration }) {
+  let plottedData = plotTimestamps(timestamps, interval);
+  let plottedMinMaxSum = getMinMaxAvg(plottedData, timestamps, duration);
 
-  let response = { id, plottedData, plottedMinMaxSum };
-  self.postMessage(response);
-}
+  return { plottedData, plottedMinMaxSum };
+});
+
 
 
 

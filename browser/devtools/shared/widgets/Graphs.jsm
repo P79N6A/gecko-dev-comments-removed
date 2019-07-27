@@ -9,6 +9,7 @@ Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
 const promise = Cu.import("resource://gre/modules/Promise.jsm", {}).Promise;
 const {Task} = Cu.import("resource://gre/modules/Task.jsm", {});
 const {EventEmitter} = Cu.import("resource://gre/modules/devtools/event-emitter.js", {});
+const {DevToolsWorker} = Cu.import("resource:///modules/devtools/shared/worker.js", {});
 
 this.EXPORTED_SYMBOLS = [
   "GraphCursor",
@@ -2153,35 +2154,9 @@ this.CanvasGraphUtils = {
 
 
 
-
-
-  _performTaskInWorker: function(task, args, transferrable) {
-    let worker = this._graphUtilsWorker || new ChromeWorker(WORKER_URL);
-    let id = this._graphUtilsTaskId++;
-    worker.postMessage({ task, id, args }, transferrable);
-    return this._waitForWorkerResponse(worker, id);
-  },
-
-  
-
-
-
-
-
-
-
-  _waitForWorkerResponse: function(worker, id) {
-    let deferred = promise.defer();
-
-    worker.addEventListener("message", function listener({ data }) {
-      if (data.id != id) {
-        return;
-      }
-      worker.removeEventListener("message", listener);
-      deferred.resolve(data);
-    });
-
-    return deferred.promise;
+  _performTaskInWorker: function(task, data) {
+    let worker = this._graphUtilsWorker || new DevToolsWorker(WORKER_URL);
+    return worker.performTask(task, data);
   }
 };
 
