@@ -292,6 +292,10 @@ TimerManager.prototype = {
 
   registerTimer: function TM_registerTimer(id, callback, interval) {
     LOG("TimerManager:registerTimer - id: " + id);
+    if (id in this._timers && callback != this._timers[id].callback) {
+      LOG("TimerManager:registerTimer - Ignoring second registration for " + id);
+      return;
+    }
     let prefLastUpdate = PREF_APP_UPDATE_LASTUPDATETIME_FMT.replace(/%ID%/, id);
     
     
