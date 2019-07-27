@@ -1451,6 +1451,10 @@ TelephonyService.prototype = {
 
 
 
+
+
+
+
   _disconnectCalls: function(aClientId, aCalls,
                              aFailCause = RIL.GECKO_CALL_ERROR_NORMAL_CALL_CLEARING) {
     if (DEBUG) debug("_disconnectCalls: " + JSON.stringify(aCalls));
@@ -1473,7 +1477,7 @@ TelephonyService.prototype = {
 
     disconnectedCalls.forEach(call => {
       call.state = nsITelephonyService.CALL_STATE_DISCONNECTED;
-      call.disconnectedReason = aFailCause;
+      call.failCause = aFailCause;
 
       if (call.parentId) {
         let parentCall = this._currentCalls[aClientId][call.parentId];
@@ -1482,7 +1486,13 @@ TelephonyService.prototype = {
 
       this._notifyCallEnded(call);
 
-      callsForStateChanged.push(call);
+      if (call.hangUpLocal || !call.failCause ||
+          call.failCause === RIL.GECKO_CALL_ERROR_NORMAL_CALL_CLEARING) {
+        callsForStateChanged.push(call);
+      } else {
+        this._notifyAllListeners("notifyError",
+                                 [aClientId, call.callIndex, call.failCause]);
+      }
 
       delete this._currentCalls[aClientId][call.callIndex];
     });
