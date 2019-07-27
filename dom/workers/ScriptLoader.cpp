@@ -1004,34 +1004,29 @@ private:
       
       
       
-      if (!nsContentUtils::IsSystemPrincipal(channelPrincipal)) {
-        bool isResource;
-        rv = NS_URIChainHasFlags(finalURI,
-                                 nsIProtocolHandler::URI_IS_UI_RESOURCE,
-                                 &isResource);
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        if (isResource) {
-          rv = ssm->GetSystemPrincipal(getter_AddRefs(channelPrincipal));
-          NS_ENSURE_SUCCESS(rv, rv);
-        }
-      }
-
-      
-      
-      
       
       
       if (nsContentUtils::IsSystemPrincipal(loadPrincipal)) {
         if (!nsContentUtils::IsSystemPrincipal(channelPrincipal)) {
-          return NS_ERROR_DOM_BAD_URI;
+          
+          
+          
+          bool isResource;
+          rv = NS_URIChainHasFlags(finalURI,
+                                   nsIProtocolHandler::URI_IS_UI_RESOURCE,
+                                   &isResource);
+          NS_ENSURE_SUCCESS(rv, rv);
+
+          if (isResource) {
+            
+            
+            channelPrincipal = loadPrincipal;
+          } else {
+            return NS_ERROR_DOM_BAD_URI;
+          }
         }
       }
       else  {
-        nsCString scheme;
-        rv = finalURI->GetScheme(scheme);
-        NS_ENSURE_SUCCESS(rv, rv);
-
         
         
         if (NS_FAILED(loadPrincipal->CheckMayLoad(finalURI, false, true))) {
