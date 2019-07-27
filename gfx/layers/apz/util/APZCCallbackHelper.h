@@ -45,17 +45,9 @@ public:
 
 
 
-    static bool HasValidPresShellId(nsIDOMWindowUtils* aUtils,
-                                    const FrameMetrics& aMetrics);
-
-    
 
 
-
-
-
-    static void UpdateRootFrame(nsIDOMWindowUtils* aUtils,
-                                nsIPresShell* aPresShell,
+    static void UpdateRootFrame(nsIPresShell* aPresShell,
                                 FrameMetrics& aMetrics);
 
     
@@ -66,13 +58,6 @@ public:
 
     static void UpdateSubFrame(nsIContent* aContent,
                                FrameMetrics& aMetrics);
-
-    
-    static already_AddRefed<nsIDOMWindowUtils> GetDOMWindowUtils(const nsIDocument* aDoc);
-
-    
-
-    static already_AddRefed<nsIDOMWindowUtils> GetDOMWindowUtils(const nsIContent* aContent);
 
     
 

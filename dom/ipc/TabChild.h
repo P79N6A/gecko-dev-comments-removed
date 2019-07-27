@@ -197,6 +197,8 @@ protected:
     already_AddRefed<nsIDOMWindowUtils> GetDOMWindowUtils();
     
     already_AddRefed<nsIDocument> GetDocument() const;
+    
+    already_AddRefed<nsIPresShell> GetPresShell() const;
 
     
     
