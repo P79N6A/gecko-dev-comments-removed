@@ -1365,12 +1365,12 @@ struct JSRuntime : public JS::shadow::Runtime,
 
 
 
-
-    JS_FRIEND_API(void*) onOutOfMemory(void* p, size_t nbytes);
-    JS_FRIEND_API(void*) onOutOfMemory(void* p, size_t nbytes, JSContext* cx);
+    JS_FRIEND_API(void*) onOutOfMemory(js::AllocFunction allocator, size_t nbytes,
+                                       void* reallocPtr = nullptr, JSContext* maybecx = nullptr);
 
     
-    JS_FRIEND_API(void*) onOutOfMemoryCanGC(void* p, size_t bytes);
+    JS_FRIEND_API(void*) onOutOfMemoryCanGC(js::AllocFunction allocator, size_t nbytes,
+                                            void* reallocPtr = nullptr);
 
     void addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf, JS::RuntimeSizes* runtime);
 
@@ -1434,7 +1434,7 @@ struct JSRuntime : public JS::shadow::Runtime,
             reportAllocationOverflow();
             return nullptr;
         }
-        return (T*)onOutOfMemoryCanGC(reinterpret_cast<void*>(1), numElems * sizeof(T));
+        return (T*)onOutOfMemoryCanGC(js::AllocFunction::Calloc, numElems * sizeof(T));
     }
 
     template <typename T>
@@ -1446,7 +1446,7 @@ struct JSRuntime : public JS::shadow::Runtime,
             reportAllocationOverflow();
             return nullptr;
         }
-        return (T*)onOutOfMemoryCanGC(p, newSize * sizeof(T));
+        return (T*)onOutOfMemoryCanGC(js::AllocFunction::Realloc, newSize * sizeof(T), p);
     }
 
     
