@@ -550,8 +550,6 @@ class SnapshotIterator
     
     
 
-    SnapshotIterator(IonScript* ionScript, SnapshotOffset snapshotOffset,
-                     JitFrameLayout* fp, const MachineState& machine);
     explicit SnapshotIterator(const JitFrameIterator& iter);
     SnapshotIterator();
 
