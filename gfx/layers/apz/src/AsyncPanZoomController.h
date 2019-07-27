@@ -491,7 +491,7 @@ protected:
   
 
 
-  const ScreenPoint GetVelocityVector();
+  const ScreenPoint GetVelocityVector() const;
 
   
 

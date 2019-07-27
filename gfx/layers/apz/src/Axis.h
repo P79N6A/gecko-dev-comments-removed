@@ -151,7 +151,7 @@ public:
   
 
 
-  float GetVelocity();
+  float GetVelocity() const;
 
   
 
