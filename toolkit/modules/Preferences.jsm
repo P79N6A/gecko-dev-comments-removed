@@ -15,7 +15,7 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 
 
-const MAX_INT = Math.pow(2, 31) - 1;
+const MAX_INT = 0x7FFFFFFF; 
 const MIN_INT = -MAX_INT;
 
 this.Preferences =
