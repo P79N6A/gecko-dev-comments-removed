@@ -4000,7 +4000,7 @@ bool nsWindow::DispatchMouseEvent(uint32_t aEventType, WPARAM wParam,
   pluginEvent.wParam = wParam;     
   pluginEvent.lParam = lParam;
 
-  event.pluginEvent = (void *)&pluginEvent;
+  event.mPluginEvent.Copy(pluginEvent);
 
   
   if (mWidgetListener) {

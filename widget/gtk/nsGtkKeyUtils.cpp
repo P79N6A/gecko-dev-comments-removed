@@ -1005,7 +1005,7 @@ KeymapWrapper::InitKeyEvent(WidgetKeyboardEvent& aKeyEvent,
     
     
     
-    aKeyEvent.pluginEvent = (void *)aGdkKeyEvent;
+    aKeyEvent.mPluginEvent.Copy(*aGdkKeyEvent);
     aKeyEvent.time = aGdkKeyEvent->time;
     aKeyEvent.mNativeKeyEvent = static_cast<void*>(aGdkKeyEvent);
     aKeyEvent.mIsRepeat = sRepeatState == REPEATING &&

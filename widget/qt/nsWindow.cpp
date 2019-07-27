@@ -1124,7 +1124,7 @@ InitKeyEvent(WidgetKeyboardEvent& aEvent, QKeyEvent* aQEvent)
     
     
     
-    aEvent.pluginEvent = (void *)aQEvent;
+    aEvent.mPluginEvent.Copy(*aQEvent);
 }
 
 nsEventStatus

@@ -480,6 +480,11 @@ enum nsEventStructType
 #define NS_EDITOR_EVENT_START    6100
 #define NS_EDITOR_INPUT          (NS_EDITOR_EVENT_START)
 
+namespace IPC {
+template<typename T>
+struct ParamTraits;
+}
+
 namespace mozilla {
 
 
@@ -838,12 +843,11 @@ protected:
   WidgetGUIEvent(bool aIsTrusted, uint32_t aMessage, nsIWidget* aWidget,
                  nsEventStructType aStructType) :
     WidgetEvent(aIsTrusted, aMessage, aStructType),
-    widget(aWidget), pluginEvent(nullptr)
+    widget(aWidget)
   {
   }
 
-  WidgetGUIEvent() :
-    pluginEvent(nullptr)
+  WidgetGUIEvent()
   {
   }
 
@@ -852,7 +856,7 @@ public:
 
   WidgetGUIEvent(bool aIsTrusted, uint32_t aMessage, nsIWidget* aWidget) :
     WidgetEvent(aIsTrusted, aMessage, NS_GUI_EVENT),
-    widget(aWidget), pluginEvent(nullptr)
+    widget(aWidget)
   {
   }
 
@@ -872,7 +876,68 @@ public:
   nsCOMPtr<nsIWidget> widget;
 
   
-  void* pluginEvent;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  class PluginEvent MOZ_FINAL
+  {
+    nsTArray<uint8_t> mBuffer;
+
+    friend struct IPC::ParamTraits<mozilla::WidgetGUIEvent>;
+
+  public:
+
+    MOZ_EXPLICIT_CONVERSION operator bool() const
+    {
+      return !mBuffer.IsEmpty();
+    }
+
+    template<typename T>
+    MOZ_EXPLICIT_CONVERSION operator const T*() const
+    {
+      return mBuffer.IsEmpty()
+             ? nullptr
+             : reinterpret_cast<const T*>(mBuffer.Elements());
+    }
+
+    template <typename T>
+    void Copy(const T& other)
+    {
+      static_assert(!mozilla::IsPointer<T>::value, "Don't want a pointer!");
+      mBuffer.SetLength(sizeof(T));
+      memcpy(mBuffer.Elements(), &other, mBuffer.Length());
+    }
+
+    void Clear()
+    {
+      mBuffer.Clear();
+    }
+  };
+
+  
+  PluginEvent mPluginEvent;
 
   void AssignGUIEventData(const WidgetGUIEvent& aEvent, bool aCopyTargets)
   {
@@ -880,9 +945,7 @@ public:
 
     
 
-    
-    
-    pluginEvent = nullptr;
+    mPluginEvent = aEvent.mPluginEvent;
   }
 };
 
