@@ -524,6 +524,15 @@ public:
     
     void Load();
 
+    
+    
+    void SetLoader(nsFontFaceLoader* aLoader) { mLoader = aLoader; }
+    nsFontFaceLoader* GetLoader() { return mLoader; }
+    nsIPrincipal* GetPrincipal() { return mPrincipal; }
+    uint32_t GetSrcIndex() { return mSrcIndex; }
+    void GetFamilyNameAndURIForLogging(nsACString& aFamilyName,
+                                       nsACString& aURI);
+
 protected:
     const uint8_t* SanitizeOpenTypeData(const uint8_t* aData,
                                         uint32_t aLength,

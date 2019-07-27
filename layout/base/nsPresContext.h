@@ -58,7 +58,6 @@ struct nsStyleBorder;
 class nsIRunnable;
 class gfxUserFontSet;
 class gfxTextPerfMetrics;
-class nsUserFontSet;
 struct nsFontFaceRuleContainer;
 class nsPluginFrame;
 class nsTransitionManager;
@@ -72,6 +71,7 @@ class EventStateManager;
 class RestyleManager;
 class CounterStyleManager;
 namespace dom {
+class FontFaceSet;
 class MediaQueryList;
 }
 namespace layers {
@@ -871,6 +871,8 @@ public:
   
   void UserFontSetUpdated();
 
+  mozilla::dom::FontFaceSet* Fonts();
+
   void FlushCounterStyles();
   void RebuildCounterStyles(); 
 
@@ -1247,7 +1249,7 @@ protected:
   nsInvalidateRequestList mUndeliveredInvalidateRequestsBeforeLastPaint;
 
   
-  nsUserFontSet*        mUserFontSet;
+  nsRefPtr<mozilla::dom::FontFaceSet> mFontFaceSet;
 
   
   nsAutoPtr<gfxTextPerfMetrics>   mTextPerf;
@@ -1329,7 +1331,7 @@ protected:
   unsigned              mPendingViewportChange : 1;
 
   
-  unsigned              mUserFontSetDirty : 1;
+  unsigned              mFontFaceSetDirty : 1;
   
   unsigned              mGetUserFontSetCalled : 1;
   
