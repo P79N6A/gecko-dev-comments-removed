@@ -137,6 +137,7 @@ public:
   void ResetAnimation();
   float GetCurrentTime();
   void SetCurrentTime(float aTime);
+  void TickRefreshDriver();
 
   
 

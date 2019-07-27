@@ -862,6 +862,13 @@ nsRefreshDriver::EnsureTimerStarted(bool aAdjustingTimer)
     return;
   }
 
+  if (mPresContext->Document()->IsBeingUsedAsImage()) {
+    
+    MOZ_ASSERT(!mActiveTimer,
+               "image document refresh driver should never have its own timer");
+    return;
+  }
+
   
   
   
