@@ -492,7 +492,8 @@ int32_t DeviceInfoDS::CreateCapabilityMap(
     {
         hr = streamConfig->GetStreamCaps(tmp, &pmt,
                                          reinterpret_cast<BYTE*> (&caps));
-        if (!FAILED(hr))
+        
+        if (!FAILED(hr) && pmt)
         {
             if (pmt->majortype == MEDIATYPE_Video
                 && pmt->formattype == FORMAT_VideoInfo2)
