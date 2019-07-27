@@ -1719,11 +1719,12 @@ static int vcmEnsureExternalCodec(
 
     
     if (send) {
-      VideoEncoder* encoder = nullptr;
+	VideoEncoder* encoder = nullptr;
 #ifdef MOZ_WEBRTC_OMX
-      encoder = OMXVideoCodec::CreateEncoder(OMXVideoCodec::CodecType::CODEC_H264);
+	encoder = OMXVideoCodec::CreateEncoder(
+	    OMXVideoCodec::CodecType::CODEC_H264);
 #else
-      encoder = mozilla::GmpVideoCodec::CreateEncoder();
+	encoder = mozilla::GmpVideoCodec::CreateEncoder();
 #endif
       if (encoder) {
         return conduit->SetExternalSendCodec(config, encoder);
@@ -2312,13 +2313,14 @@ uint32_t vcmGetVideoH264ProfileLevelID()
 {
   
   
-  int32_t level = 13; 
-
-  vcmGetVideoLevel(0, &level);
-  level &= 0xFF;
-  level |= 0x42E000;
-
-  return (uint32_t) level;
+#ifdef MOZ_WEBRTC_OMX
+  
+  return 0x42E00C;
+#else
+  
+  
+  return 0x42E00D;
+#endif
 }
 
 
@@ -2782,13 +2784,6 @@ static short vcmGetVideoPref(uint16_t codec,
     return 0;
   }
   return VCM_ERROR;
-}
-
-short vcmGetVideoLevel(uint16_t codec,
-                       int32_t *level) {
-  return vcmGetVideoPref(codec,
-                         "media.navigator.video.h264.level",
-                         level);
 }
 
 short vcmGetVideoMaxFs(uint16_t codec,
