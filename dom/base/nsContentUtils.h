@@ -1245,7 +1245,14 @@ public:
 
 
 
-  static bool HasNonEmptyTextContent(nsINode* aNode);
+
+  enum TextContentDiscoverMode MOZ_ENUM_TYPE(uint8_t) {
+    eRecurseIntoChildren, eDontRecurseIntoChildren
+  };
+
+  static bool HasNonEmptyTextContent(
+    nsINode* aNode,
+    TextContentDiscoverMode aDiscoverMode = eDontRecurseIntoChildren);
 
   
 
