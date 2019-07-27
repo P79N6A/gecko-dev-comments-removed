@@ -73,8 +73,9 @@ function SelectorSearch(aInspector, aInputNode) {
 exports.SelectorSearch = SelectorSearch;
 
 SelectorSearch.prototype = {
-
-  get walker() this.inspector.walker,
+  get walker() {
+    return this.inspector.walker;
+  },
 
   
   States: {
