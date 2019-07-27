@@ -1128,39 +1128,39 @@ private:
     int32_t mNameSpaceID;
     
     
-    bool mSuppressWhiteSpaceOptimizations;
+    bool mSuppressWhiteSpaceOptimizations:1;
     
-    bool mIsText;
-    
-    
-    bool mIsGeneratedContent;
-    
-    bool mIsAnonymousContentCreatorContent;
-    
-    bool mIsRootPopupgroup;
+    bool mIsText:1;
     
     
+    bool mIsGeneratedContent:1;
     
+    bool mIsAnonymousContentCreatorContent:1;
     
-    bool mIsAllInline;
+    bool mIsRootPopupgroup:1;
     
     
     
     
-    
-    bool mIsBlock;
-    
+    bool mIsAllInline:1;
     
     
     
-    bool mHasInlineEnds;
     
     
-    bool mIsPopup;
+    bool mIsBlock:1;
     
-    bool mIsLineParticipant;
     
-    bool mIsForSVGAElement;
+    
+    
+    bool mHasInlineEnds:1;
+    
+    
+    bool mIsPopup:1;
+    
+    bool mIsLineParticipant:1;
+    
+    bool mIsForSVGAElement:1;
 
   private:
     FrameConstructionItem(const FrameConstructionItem& aOther) MOZ_DELETE; 
