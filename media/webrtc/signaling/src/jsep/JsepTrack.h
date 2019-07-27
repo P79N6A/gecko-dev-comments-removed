@@ -34,6 +34,10 @@ public:
                             const JsepCodecDescription** config) const = 0;
   virtual const SdpExtmapAttributeList::Extmap* GetExt(
       const std::string& ext_name) const = 0;
+  virtual std::vector<uint8_t> GetUniquePayloadTypes() const = 0;
+
+  virtual void AddUniquePayloadType(uint8_t pt) = 0;
+  virtual void ClearUniquePayloadTypes() = 0;
 };
 
 class JsepTrack
@@ -70,15 +74,48 @@ public:
     return mTrackId;
   }
 
+  virtual const std::string&
+  GetCNAME() const
+  {
+    return mCNAME;
+  }
+
+  virtual void
+  SetCNAME(const std::string& cname)
+  {
+    mCNAME = cname;
+  }
+
   virtual Direction
   GetDirection() const
   {
     return mDirection;
   }
 
+  virtual const std::vector<uint32_t>&
+  GetSsrcs() const
+  {
+    return mSsrcs;
+  }
+
+  virtual void
+  AddSsrc(uint32_t ssrc)
+  {
+    mSsrcs.push_back(ssrc);
+  }
+
   
   virtual const JsepTrackNegotiatedDetails*
   GetNegotiatedDetails() const
+  {
+    if (mNegotiatedDetails) {
+      return mNegotiatedDetails.get();
+    }
+    return nullptr;
+  }
+
+  virtual JsepTrackNegotiatedDetails*
+  GetNegotiatedDetails()
   {
     if (mNegotiatedDetails) {
       return mNegotiatedDetails.get();
@@ -102,13 +139,17 @@ private:
   const mozilla::SdpMediaSection::MediaType mType;
   const std::string mStreamId;
   const std::string mTrackId;
+  std::string mCNAME;
   const Direction mDirection;
   UniquePtr<JsepTrackNegotiatedDetails> mNegotiatedDetails;
+  std::vector<uint32_t> mSsrcs;
 };
 
 
 struct JsepTrackPair {
   size_t mLevel;
+  
+  Maybe<size_t> mBundleLevel;
   RefPtr<JsepTrack> mSending;
   RefPtr<JsepTrack> mReceiving;
   RefPtr<JsepTransport> mRtpTransport;

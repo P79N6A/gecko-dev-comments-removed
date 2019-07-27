@@ -81,7 +81,8 @@ class MediaPipeline : public sigslot::has_slots<> {
                 int level,
                 RefPtr<MediaSessionConduit> conduit,
                 RefPtr<TransportFlow> rtp_transport,
-                RefPtr<TransportFlow> rtcp_transport)
+                RefPtr<TransportFlow> rtcp_transport,
+                nsAutoPtr<MediaPipelineFilter> filter)
       : direction_(direction),
         stream_(stream),
         track_id_(track_id),
@@ -99,7 +100,9 @@ class MediaPipeline : public sigslot::has_slots<> {
         rtp_bytes_sent_(0),
         rtp_bytes_received_(0),
         pc_(pc),
-        description_() {
+        description_(),
+        filter_(filter),
+        rtp_parser_(webrtc::RtpHeaderParser::Create()) {
       
       
       
@@ -123,13 +126,6 @@ class MediaPipeline : public sigslot::has_slots<> {
 
   virtual nsresult Init();
 
-  
-  
-  
-  
-  
-  
-  void SetUsingBundle_s(bool decision);
   MediaPipelineFilter* UpdateFilterFromRemoteDescription_s(
       nsAutoPtr<MediaPipelineFilter> filter);
 
@@ -247,16 +243,6 @@ class MediaPipeline : public sigslot::has_slots<> {
   
   TransportInfo rtp_;
   TransportInfo rtcp_;
-  
-  
-  
-  
-  
-  
-  
-  
-  nsAutoPtr<TransportInfo> possible_bundle_rtp_;
-  nsAutoPtr<TransportInfo> possible_bundle_rtcp_;
 
   
   
@@ -370,10 +356,11 @@ public:
                         bool is_video,
                         RefPtr<MediaSessionConduit> conduit,
                         RefPtr<TransportFlow> rtp_transport,
-                        RefPtr<TransportFlow> rtcp_transport) :
+                        RefPtr<TransportFlow> rtcp_transport,
+                        nsAutoPtr<MediaPipelineFilter> filter) :
       MediaPipeline(pc, TRANSMIT, main_thread, sts_thread,
                     domstream->GetStream(), TRACK_INVALID, level,
-                    conduit, rtp_transport, rtcp_transport),
+                    conduit, rtp_transport, rtcp_transport, filter),
       listener_(new PipelineListener(conduit)),
       domstream_(domstream),
       is_video_(is_video)
@@ -536,25 +523,11 @@ class MediaPipelineReceive : public MediaPipeline {
                        RefPtr<MediaSessionConduit> conduit,
                        RefPtr<TransportFlow> rtp_transport,
                        RefPtr<TransportFlow> rtcp_transport,
-                       RefPtr<TransportFlow> bundle_rtp_transport,
-                       RefPtr<TransportFlow> bundle_rtcp_transport,
                        nsAutoPtr<MediaPipelineFilter> filter) :
       MediaPipeline(pc, RECEIVE, main_thread, sts_thread,
                     stream, track_id, level, conduit, rtp_transport,
-                    rtcp_transport),
+                    rtcp_transport, filter),
       segments_added_(0) {
-    filter_ = filter;
-    rtp_parser_ = webrtc::RtpHeaderParser::Create();
-    if (bundle_rtp_transport) {
-      if (bundle_rtcp_transport) {
-        MOZ_ASSERT(bundle_rtp_transport != bundle_rtcp_transport);
-        possible_bundle_rtp_ = new TransportInfo(bundle_rtp_transport, RTP);
-        possible_bundle_rtcp_ = new TransportInfo(bundle_rtcp_transport, RTCP);
-      } else {
-        possible_bundle_rtp_ = new TransportInfo(bundle_rtp_transport, MUX);
-        possible_bundle_rtcp_ = new TransportInfo(bundle_rtp_transport, MUX);
-      }
-    }
   }
 
   int segments_added() const { return segments_added_; }
@@ -579,13 +552,10 @@ class MediaPipelineReceiveAudio : public MediaPipelineReceive {
                             RefPtr<AudioSessionConduit> conduit,
                             RefPtr<TransportFlow> rtp_transport,
                             RefPtr<TransportFlow> rtcp_transport,
-                            RefPtr<TransportFlow> bundle_rtp_transport,
-                            RefPtr<TransportFlow> bundle_rtcp_transport,
                             nsAutoPtr<MediaPipelineFilter> filter) :
       MediaPipelineReceive(pc, main_thread, sts_thread,
                            stream, track_id, level, conduit, rtp_transport,
-                           rtcp_transport, bundle_rtp_transport,
-                           bundle_rtcp_transport, filter),
+                           rtcp_transport, filter),
       listener_(new PipelineListener(stream->AsSourceStream(),
                                      track_id, conduit)) {
   }
@@ -645,13 +615,10 @@ class MediaPipelineReceiveVideo : public MediaPipelineReceive {
                             RefPtr<VideoSessionConduit> conduit,
                             RefPtr<TransportFlow> rtp_transport,
                             RefPtr<TransportFlow> rtcp_transport,
-                            RefPtr<TransportFlow> bundle_rtp_transport,
-                            RefPtr<TransportFlow> bundle_rtcp_transport,
                             nsAutoPtr<MediaPipelineFilter> filter) :
       MediaPipelineReceive(pc, main_thread, sts_thread,
                            stream, track_id, level, conduit, rtp_transport,
-                           rtcp_transport, bundle_rtp_transport,
-                           bundle_rtcp_transport, filter),
+                           rtcp_transport, filter),
       renderer_(new PipelineRenderer(MOZ_THIS_IN_INITIALIZER_LIST())),
       listener_(new PipelineListener(stream->AsSourceStream(), track_id)) {
   }

@@ -5314,3 +5314,48 @@ sdp_result_e sdp_build_attr_msid(sdp_t *sdp_p,
                         attr_p->attr.msid.appdata);
     return SDP_SUCCESS;
 }
+
+sdp_result_e sdp_parse_attr_ssrc(sdp_t *sdp_p,
+                                 sdp_attr_t *attr_p,
+                                 const char *ptr)
+{
+    sdp_result_e result;
+
+    attr_p->attr.ssrc.ssrc =
+        (uint32_t)sdp_getnextnumtok(ptr, &ptr, " \t", &result);
+
+    if (result != SDP_SUCCESS) {
+        sdp_parse_error(sdp_p, "%s Warning: Bad ssrc attribute, cannot parse ssrc",
+                        sdp_p->debug_str);
+        sdp_p->conf_p->num_invalid_param++;
+        return SDP_INVALID_PARAMETER;
+    }
+
+    
+    while (*ptr == ' ' || *ptr == '\t') {
+        ptr++;
+    }
+
+    
+
+    ptr = sdp_getnextstrtok(ptr,
+                            attr_p->attr.ssrc.attribute,
+                            sizeof(attr_p->attr.ssrc.attribute),
+                            "\r\n",
+                            &result);
+
+    return SDP_SUCCESS;
+}
+
+
+sdp_result_e sdp_build_attr_ssrc(sdp_t *sdp_p,
+                                 sdp_attr_t *attr_p,
+                                 flex_string *fs)
+{
+    flex_string_sprintf(fs, "a=ssrc:%s%s%s\r\n",
+                        attr_p->attr.ssrc.ssrc,
+                        attr_p->attr.ssrc.attribute[0] ? " " : "",
+                        attr_p->attr.ssrc.attribute);
+    return SDP_SUCCESS;
+}
+

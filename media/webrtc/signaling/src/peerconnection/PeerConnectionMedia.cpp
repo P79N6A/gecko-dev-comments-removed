@@ -363,8 +363,13 @@ PeerConnectionMedia::StartIceChecks(const mozilla::JsepSession& session) {
     }
 
     if (transport->mState == JsepTransport::kJsepTransportClosed) {
+      CSFLogDebug(logTag, "Transport %u is disabled",
+                          static_cast<unsigned>(i));
       numComponentsByLevel.push_back(0);
     } else {
+      CSFLogDebug(logTag, "Transport %u has %u components",
+                          static_cast<unsigned>(i),
+                          static_cast<unsigned>(transport->mComponents));
       numComponentsByLevel.push_back(transport->mComponents);
     }
   }
@@ -738,22 +743,6 @@ PeerConnectionMedia::GetRemoteStreamById(const std::string& id)
   
   
   return nullptr;
-}
-
-bool
-PeerConnectionMedia::SetUsingBundle_m(int aMLine, bool decision)
-{
-  ASSERT_ON_THREAD(mMainThread);
-  for (size_t i = 0; i < mRemoteSourceStreams.Length(); ++i) {
-    if (mRemoteSourceStreams[i]->SetUsingBundle_m(aMLine, decision)) {
-      
-      return true;
-    }
-  }
-  CSFLogWarn(logTag, "Could not locate level %d to set bundle flag to %s",
-                     static_cast<int>(aMLine),
-                     decision ? "true" : "false");
-  return false;
 }
 
 static void
@@ -1197,25 +1186,6 @@ RefPtr<MediaPipeline> SourceStreamInfo::GetPipelineByLevel_m(int aMLine) {
   }
 
   return nullptr;
-}
-
-bool RemoteSourceStreamInfo::SetUsingBundle_m(int aMLine, bool decision) {
-  ASSERT_ON_THREAD(mParent->GetMainThread());
-
-  
-  MediaPipeline *pipeline = GetPipelineByLevel_m(aMLine);
-
-  if (pipeline) {
-    RUN_ON_THREAD(mParent->GetSTSThread(),
-                  WrapRunnable(
-                      RefPtr<MediaPipeline>(pipeline),
-                      &MediaPipeline::SetUsingBundle_s,
-                      decision
-                  ),
-                  NS_DISPATCH_NORMAL);
-    return true;
-  }
-  return false;
 }
 
 }  

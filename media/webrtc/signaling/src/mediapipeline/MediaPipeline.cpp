@@ -95,24 +95,6 @@ nsresult MediaPipeline::Init_s() {
     }
   }
 
-  if (possible_bundle_rtp_) {
-    MOZ_ASSERT(possible_bundle_rtcp_);
-    MOZ_ASSERT(possible_bundle_rtp_->transport_);
-    MOZ_ASSERT(possible_bundle_rtcp_->transport_);
-
-    res = ConnectTransport_s(*possible_bundle_rtp_);
-    if (NS_FAILED(res)) {
-      return res;
-    }
-
-    if (possible_bundle_rtcp_->transport_ != possible_bundle_rtp_->transport_) {
-      res = ConnectTransport_s(*possible_bundle_rtcp_);
-      if (NS_FAILED(res)) {
-        return res;
-      }
-    }
-  }
-
   return NS_OK;
 }
 
@@ -128,8 +110,6 @@ void MediaPipeline::ShutdownTransport_s() {
   transport_->Detach();
   rtp_.transport_ = nullptr;
   rtcp_.transport_ = nullptr;
-  possible_bundle_rtp_ = nullptr;
-  possible_bundle_rtcp_ = nullptr;
 }
 
 void MediaPipeline::StateChange(TransportFlow *flow, TransportLayer::State state) {
@@ -305,13 +285,6 @@ void MediaPipeline::UpdateRtcpMuxState(TransportInfo &info) {
         rtcp_.send_srtp_ = info.send_srtp_;
         rtcp_.recv_srtp_ = info.recv_srtp_;
       }
-    } else if (possible_bundle_rtcp_ &&
-               info.transport_ == possible_bundle_rtcp_->transport_) {
-      possible_bundle_rtcp_->state_ = info.state_;
-      if (!possible_bundle_rtcp_->send_srtp_) {
-        possible_bundle_rtcp_->send_srtp_ = info.send_srtp_;
-        possible_bundle_rtcp_->recv_srtp_ = info.recv_srtp_;
-      }
     }
   }
 }
@@ -398,47 +371,21 @@ void MediaPipeline::RtpPacketReceived(TransportLayer *layer,
     return;
   }
 
-  TransportInfo* info = &rtp_;
-
-  if (possible_bundle_rtp_ &&
-      possible_bundle_rtp_->transport_->Contains(layer)) {
-    
-    info = possible_bundle_rtp_;
-  }
-
-  
-  
-  if (info->state_ != MP_OPEN) {
+  if (rtp_.state_ != MP_OPEN) {
     MOZ_MTLOG(ML_ERROR, "Discarding incoming packet; pipeline not open");
     return;
   }
 
-  if (info->transport_->state() != TransportLayer::TS_OPEN) {
+  if (rtp_.transport_->state() != TransportLayer::TS_OPEN) {
     MOZ_MTLOG(ML_ERROR, "Discarding incoming packet; transport not open");
     return;
   }
 
   
-  MOZ_ASSERT(info->recv_srtp_);
+  MOZ_ASSERT(rtp_.recv_srtp_);
 
   if (direction_ == TRANSMIT) {
     return;
-  }
-
-  if (possible_bundle_rtp_ && (info == &rtp_))  {
-    
-    
-    
-    
-    SetUsingBundle_s(false);
-    MOZ_MTLOG(ML_INFO, "Ruled out the possibility that we're receiving bundle "
-                       "for " << description_);
-    
-    
-    
-    
-    
-    
   }
 
   if (!len) {
@@ -457,17 +404,6 @@ void MediaPipeline::RtpPacketReceived(TransportLayer *layer,
       return;
     }
   }
-
-  if (possible_bundle_rtp_) {
-    
-    
-    SetUsingBundle_s(true);
-    MOZ_MTLOG(ML_INFO, "Confirmed the possibility that we're receiving bundle");
-  }
-
-  
-  MOZ_ASSERT(!possible_bundle_rtp_);
-  MOZ_ASSERT(!possible_bundle_rtcp_);
 
   
   ScopedDeletePtr<unsigned char> inner_data(
@@ -508,26 +444,14 @@ void MediaPipeline::RtcpPacketReceived(TransportLayer *layer,
     return;
   }
 
-  TransportInfo* info = &rtcp_;
-  if (possible_bundle_rtcp_ &&
-      possible_bundle_rtcp_->transport_->Contains(layer)) {
-    info = possible_bundle_rtcp_;
-  }
-
-  if (info->state_ != MP_OPEN) {
+  if (rtcp_.state_ != MP_OPEN) {
     MOZ_MTLOG(ML_DEBUG, "Discarding incoming packet; pipeline not open");
     return;
   }
 
-  if (info->transport_->state() != TransportLayer::TS_OPEN) {
+  if (rtcp_.transport_->state() != TransportLayer::TS_OPEN) {
     MOZ_MTLOG(ML_ERROR, "Discarding incoming packet; transport not open");
     return;
-  }
-
-  if (possible_bundle_rtp_ && (info == &rtcp_)) {
-    
-    
-    SetUsingBundle_s(false);
   }
 
   if (!len) {
@@ -539,41 +463,32 @@ void MediaPipeline::RtcpPacketReceived(TransportLayer *layer,
     return;
   }
 
-  MediaPipelineFilter::Result filter_result = MediaPipelineFilter::PASS;
-  if (filter_) {
-    filter_result = filter_->FilterRTCP(data, len);
-    if (filter_result == MediaPipelineFilter::FAIL) {
-      return;
-    }
-  }
-
-  if (filter_result == MediaPipelineFilter::PASS && possible_bundle_rtp_) {
-    
-    
-    SetUsingBundle_s(true);
-  }
-
-  
-  
-  
-  
-  increment_rtcp_packets_received();
-
-  MOZ_ASSERT(info->recv_srtp_);  
-
   
   ScopedDeletePtr<unsigned char> inner_data(
       new unsigned char[len]);
   memcpy(inner_data, data, len);
   int out_len;
 
-  nsresult res = info->recv_srtp_->UnprotectRtcp(inner_data,
+  nsresult res = rtcp_.recv_srtp_->UnprotectRtcp(inner_data,
                                                  len,
                                                  len,
                                                  &out_len);
 
   if (!NS_SUCCEEDED(res))
     return;
+
+  MediaPipelineFilter::Result filter_result = MediaPipelineFilter::PASS;
+  if (filter_) {
+    filter_result = filter_->FilterRTCP(inner_data, out_len);
+    if (filter_result == MediaPipelineFilter::FAIL) {
+      MOZ_MTLOG(ML_NOTICE, "Dropping rtcp packet");
+      return;
+    }
+  }
+
+  increment_rtcp_packets_received();
+
+  MOZ_ASSERT(rtcp_.recv_srtp_);  
 
   (void)conduit_->ReceivedRTCPPacket(inner_data, out_len);  
 }
@@ -690,7 +605,6 @@ nsresult MediaPipelineTransmit::TransportReady_s(TransportInfo &info) {
   MediaPipeline::TransportReady_s(info);
 
   
-  MOZ_ASSERT(!possible_bundle_rtp_);
   if (&info == &rtp_) {
     listener_->SetActive(true);
   }
@@ -765,55 +679,7 @@ MediaPipeline::TransportInfo* MediaPipeline::GetTransportInfo_s(
     return &rtcp_;
   }
 
-  if (possible_bundle_rtp_) {
-    if (flow == possible_bundle_rtp_->transport_) {
-      return possible_bundle_rtp_;
-    }
-
-    if (flow == possible_bundle_rtcp_->transport_) {
-      return possible_bundle_rtcp_;
-    }
-  }
-
   return nullptr;
-}
-
-void MediaPipeline::SetUsingBundle_s(bool decision) {
-  ASSERT_ON_THREAD(sts_thread_);
-  
-  
-  
-  if (!possible_bundle_rtp_) {
-    if (!decision) {
-      
-      filter_ = nullptr;
-    }
-    return;
-  }
-
-  if (direction_ == RECEIVE) {
-    if (decision) {
-      MOZ_MTLOG(ML_INFO, "Non-master pipeline confirmed bundle for "
-                         << description_);
-      
-      
-      DisconnectTransport_s(rtp_);
-      DisconnectTransport_s(rtcp_);
-      rtp_ = *possible_bundle_rtp_;
-      rtcp_ = *possible_bundle_rtcp_;
-    } else {
-      MOZ_MTLOG(ML_INFO, "Non-master pipeline confirmed no bundle for "
-                         << description_);
-      
-      DisconnectTransport_s(*possible_bundle_rtp_);
-      DisconnectTransport_s(*possible_bundle_rtcp_);
-      filter_ = nullptr;
-    }
-
-    
-    possible_bundle_rtp_ = nullptr;
-    possible_bundle_rtcp_ = nullptr;
-  }
 }
 
 MediaPipelineFilter* MediaPipeline::UpdateFilterFromRemoteDescription_s(
