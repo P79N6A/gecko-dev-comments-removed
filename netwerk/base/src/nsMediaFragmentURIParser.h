@@ -39,40 +39,40 @@ public:
   explicit nsMediaFragmentURIParser(nsCString& aRef);
 
   
-  bool HasStartTime() const { return !mStart.empty(); }
+  bool HasStartTime() const { return mStart.isSome(); }
 
   
   
-  double GetStartTime() const { return mStart.ref(); }
+  double GetStartTime() const { return *mStart; }
 
   
-  bool HasEndTime() const { return !mEnd.empty(); }
-
-  
-  
-  double GetEndTime() const { return mEnd.ref(); }
-
-  
-  bool HasClip() const { return !mClip.empty(); }
-
-  
-  bool HasResolution() const { return !mResolution.empty(); }
-
-  
-  nsIntSize GetResolution() const { return mResolution.ref(); }
+  bool HasEndTime() const { return mEnd.isSome(); }
 
   
   
+  double GetEndTime() const { return *mEnd; }
+
   
-  nsIntRect GetClip() const { return mClip.ref(); }
+  bool HasClip() const { return mClip.isSome(); }
+
+  
+  bool HasResolution() const { return mResolution.isSome(); }
+
+  
+  nsIntSize GetResolution() const { return *mResolution; }
+
+  
+  
+  
+  nsIntRect GetClip() const { return *mClip; }
 
   
   
   ClipUnit GetClipUnit() const { return mClipUnit; }
 
-  bool HasSampleSize() const { return !mSampleSize.empty(); }
+  bool HasSampleSize() const { return mSampleSize.isSome(); }
 
-  int GetSampleSize() const { return mSampleSize.ref(); }
+  int GetSampleSize() const { return *mSampleSize; }
 
 private:
   
