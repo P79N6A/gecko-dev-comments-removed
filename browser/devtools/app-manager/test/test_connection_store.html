@@ -26,8 +26,11 @@
     <script type="application/javascript;version=1.8">
       const Cu = Components.utils;
       Cu.import("resource://gre/modules/devtools/dbg-server.jsm");
-      DebuggerServer.init(function () { return true; });
-      DebuggerServer.addBrowserActors();
+
+      if (!DebuggerServer.initialized) {
+        DebuggerServer.init(function () { return true; });
+        DebuggerServer.addBrowserActors();
+      }
 
       window.onload = function() {
         SimpleTest.waitForExplicitFinish();
