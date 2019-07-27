@@ -433,6 +433,7 @@ Parser<ParseHandler>::Parser(ExclusiveContext *cx, LifoAlloc *alloc,
     sawDeprecatedForEach(false),
     sawDeprecatedDestructuringForIn(false),
     sawDeprecatedLegacyGenerator(false),
+    sawDeprecatedExpressionClosure(false),
     handler(cx, *alloc, tokenStream, foldConstants, syntaxParser, lazyOuterFunction)
 {
     {
@@ -2273,6 +2274,10 @@ Parser<ParseHandler>::functionArgsAndBodyGeneric(Node pn, HandleFunction fun, Fu
             report(ParseError, false, null(), JSMSG_CURLY_BEFORE_BODY);
             return false;
         }
+
+        if (kind != Arrow)
+            sawDeprecatedExpressionClosure = true;
+
         tokenStream.ungetToken();
         bodyType = ExpressionBody;
         fun->setIsExprClosure();
@@ -7600,6 +7605,7 @@ Parser<ParseHandler>::accumulateTelemetry()
         DeprecatedForEach = 0,            
         DeprecatedDestructuringForIn = 1, 
         DeprecatedLegacyGenerator = 2,    
+        DeprecatedExpressionClosure = 3,  
     };
 
     
@@ -7609,6 +7615,8 @@ Parser<ParseHandler>::accumulateTelemetry()
         (*cb)(JS_TELEMETRY_DEPRECATED_LANGUAGE_EXTENSIONS_IN_CONTENT, DeprecatedDestructuringForIn);
     if (sawDeprecatedLegacyGenerator)
         (*cb)(JS_TELEMETRY_DEPRECATED_LANGUAGE_EXTENSIONS_IN_CONTENT, DeprecatedLegacyGenerator);
+    if (sawDeprecatedExpressionClosure)
+        (*cb)(JS_TELEMETRY_DEPRECATED_LANGUAGE_EXTENSIONS_IN_CONTENT, DeprecatedExpressionClosure);
 }
 
 template class Parser<FullParseHandler>;
