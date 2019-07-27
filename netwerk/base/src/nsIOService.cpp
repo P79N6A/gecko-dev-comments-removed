@@ -149,6 +149,15 @@ nsIOService::nsIOService()
     , mChannelEventSinks(NS_CHANNEL_EVENT_SINK_CATEGORY)
     , mAutoDialEnabled(false)
 {
+    
+    
+
+    
+    mNetworkLinkSelfAddr.raw.family = PR_AF_UNSPEC;
+
+    
+    mNetworkLinkID = NS_Get32BitsOfPseudoRandom();
+    mNetworkLinkID = (mNetworkLinkID << 32) | NS_Get32BitsOfPseudoRandom();
 }
 
 nsresult
@@ -1082,6 +1091,38 @@ NS_IMETHODIMP
 nsIOService::GetManageOfflineStatus(bool* aManage) {
     *aManage = mManageOfflineStatus;
     return NS_OK;
+}
+
+uint64_t
+nsIOService::GetNetworkLinkID() const
+{
+    return mNetworkLinkID;
+}
+
+NS_IMETHODIMP
+nsIOService::GetNetworkLinkID(nsACString &aNetworkLinkID)
+{
+    char temp[21];
+    PR_snprintf(temp, sizeof(temp), "%llu", mNetworkLinkID);
+    aNetworkLinkID.Append(temp);
+
+    return NS_OK;
+}
+
+
+
+
+void
+nsIOService::UpdateNetworkLinkID(const mozilla::net::NetAddr aCurrentSelfAddr)
+{
+    if (IsLoopBackAddress(&aCurrentSelfAddr) ||
+        mNetworkLinkSelfAddr.EqualsIP(aCurrentSelfAddr)) {
+        return;
+    }
+    mNetworkLinkSelfAddr = aCurrentSelfAddr;
+
+    mNetworkLinkID = NS_Get32BitsOfPseudoRandom();
+    mNetworkLinkID = (mNetworkLinkID << 32) | NS_Get32BitsOfPseudoRandom();
 }
 
 nsresult

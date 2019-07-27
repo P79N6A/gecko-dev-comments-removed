@@ -200,6 +200,9 @@ public:
     void    SetupSecondaryTLS();
     void    SetInSpdyTunnel(bool arg);
 
+    
+    bool    PeerHasPrivateIP();
+
 private:
     
     enum TCPKeepaliveConfig {

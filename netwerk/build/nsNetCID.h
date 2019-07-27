@@ -458,6 +458,16 @@
 }
 
 
+#define NS_NETWORKZONEPOLICY_CONTRACTID "@mozilla.org/network/networkzonepolicy;1"
+#define NS_NETWORKZONEPOLICY_CID \
+{ /* {afcabf86-d401-41f0-a511-7a444ce31c71} */ \
+    0xafcabf86, \
+    0xd401, \
+    0x41f0, \
+    { 0xa5, 0x11, 0x7a, 0x44, 0x4c, 0xe3, 0x1c, 0x71 } \
+}
+
+
 
 
 
