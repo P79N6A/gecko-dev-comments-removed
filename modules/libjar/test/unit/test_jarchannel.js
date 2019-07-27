@@ -58,8 +58,9 @@ Listener.prototype = {
     onStartRequest: function(request, ctx) {
         this.gotStartRequest = true;
     },
-    onStopRequest: function(request, ctx) {
+    onStopRequest: function(request, ctx, status) {
         this.gotStopRequest = true;
+        do_check_eq(status, 0);
         if (this._callback) {
             this._callback.call(null, this);
         }
@@ -211,6 +212,43 @@ if (!inChild) {
       }), null);
   });
 
+} 
+
+if (inChild) {
+    
+
+
+    add_test(function testSimultaneous() {
+        var uri = jarBase + "/inner1.zip";
+
+        
+        obs.notifyObservers(null, "chrome-flush-caches", null);
+
+        
+        var chan_first = ios.newChannel(uri, null, null)
+                            .QueryInterface(Ci.nsIJARChannel);
+        chan_first.asyncOpen(new Listener(function(l) {
+        }), null);
+
+        
+        var num = 10;
+        var chan = [];
+        for (var i = 0; i < num; i++) {
+            chan[i] = ios.newChannel(uri, null, null)
+                         .QueryInterface(Ci.nsIJARChannel);
+            chan[i].ensureChildFd();
+            chan[i].asyncOpen(new Listener(function(l) {
+            }), null);
+        }
+
+        
+        var chan_last = ios.newChannel(uri, null, null)
+                           .QueryInterface(Ci.nsIJARChannel);
+        chan_last.ensureChildFd();
+        chan_last.asyncOpen(new Listener(function(l) {
+            run_next_test();
+        }), null);
+    });
 } 
 
 function run_test() run_next_test();
