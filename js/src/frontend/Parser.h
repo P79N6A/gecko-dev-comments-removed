@@ -357,6 +357,11 @@ class Parser : private JS::AutoGCRooter, public StrictModeGetter
     const bool          foldConstants:1;
 
   private:
+#if DEBUG
+    
+    bool checkOptionsCalled:1;
+#endif
+
     
 
 
@@ -394,6 +399,8 @@ class Parser : private JS::AutoGCRooter, public StrictModeGetter
            Parser<SyntaxParseHandler> *syntaxParser,
            LazyScript *lazyOuterFunction);
     ~Parser();
+
+    bool checkOptions();
 
     
     
