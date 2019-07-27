@@ -113,8 +113,7 @@ imgRequestProxy::imgRequestProxy() :
   mIsInLoadGroup(false),
   mListenerIsStrongRef(false),
   mDecodeRequested(false),
-  mDeferNotifications(false),
-  mSentStartContainer(false)
+  mDeferNotifications(false)
 {
   
 
@@ -739,11 +738,10 @@ void imgRequestProxy::OnStartContainer()
 {
   LOG_FUNC(GetImgLog(), "imgRequestProxy::OnStartContainer");
 
-  if (mListener && !mCanceled && !mSentStartContainer) {
+  if (mListener && !mCanceled) {
     
     nsCOMPtr<imgINotificationObserver> kungFuDeathGrip(mListener);
     mListener->Notify(this, imgINotificationObserver::SIZE_AVAILABLE, nullptr);
-    mSentStartContainer = true;
   }
 }
 
@@ -783,10 +781,6 @@ void imgRequestProxy::OnStopDecode()
     
     
     GetOwner()->UpdateCacheEntrySize();
-
-    
-    if (GetOwner()->GetMultipart())
-      mSentStartContainer = false;
   }
 }
 

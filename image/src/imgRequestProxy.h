@@ -228,10 +228,6 @@ private:
   
   
   bool mDeferNotifications;
-
-  
-  
-  bool mSentStartContainer;
 };
 
 
