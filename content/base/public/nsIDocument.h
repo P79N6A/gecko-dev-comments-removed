@@ -1741,8 +1741,20 @@ public:
 
 
 
-
   bool IsActive() const { return mDocumentContainer && !mRemovedFromDocShell; }
+
+  
+
+
+
+
+
+
+  bool IsCurrentActiveDocument() const
+  {
+    nsPIDOMWindow *inner = GetInnerWindow();
+    return inner && inner->IsCurrentInnerWindow() && inner->GetDoc() == this;
+  }
 
   
 
