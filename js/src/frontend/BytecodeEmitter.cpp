@@ -3080,6 +3080,13 @@ frontend::EmitFunctionScript(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNo
     if (Emit1(cx, bce, JSOP_RETRVAL) < 0)
         return false;
 
+    
+    
+    
+    
+    if (bce->sc->allLocalsAliased())
+        bce->script->bindings.setAllLocalsAliased();
+
     if (!JSScript::fullyInitFromEmitter(cx, bce->script, bce))
         return false;
 
