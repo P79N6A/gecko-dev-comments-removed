@@ -4,15 +4,13 @@
 
 
 
-#include <stdio.h>
 #include "pldhash.h"
+#include "gtest/gtest.h"
 
 
 
 
-namespace TestPLDHash {
-
-static bool test_pldhash_Init_capacity_ok()
+TEST(PLDHashTableTest, InitCapacityOk)
 {
   
   
@@ -29,11 +27,9 @@ static bool test_pldhash_Init_capacity_ok()
   
   PLDHashTable t(PL_DHashGetStubOps(), sizeof(PLDHashEntryStub),
                  PL_DHASH_MAX_INITIAL_LENGTH);
-
-  return true;
 }
 
-static bool test_pldhash_lazy_storage()
+TEST(PLDHashTableTest, LazyStorage)
 {
   PLDHashTable t(PL_DHashGetStubOps(), sizeof(PLDHashEntryStub));
 
@@ -41,45 +37,28 @@ static bool test_pldhash_lazy_storage()
   
   
 
-  if (t.Capacity() != 0) {
-    return false;
-  }
+  ASSERT_EQ(t.Capacity(), 0u);
+  ASSERT_EQ(t.EntrySize(), sizeof(PLDHashEntryStub));
+  ASSERT_EQ(t.EntryCount(), 0u);
+  ASSERT_EQ(t.Generation(), 0u);
 
-  if (t.EntrySize() != sizeof(PLDHashEntryStub)) {
-    return false;
-  }
-
-  if (t.EntryCount() != 0) {
-    return false;
-  }
-
-  if (t.Generation() != 0) {
-    return false;
-  }
-
-  if (PL_DHashTableSearch(&t, (const void*)1)) {
-    return false;   
-  }
+  ASSERT_TRUE(!PL_DHashTableSearch(&t, (const void*)1));
 
   
   PL_DHashTableRemove(&t, (const void*)2);
 
   for (auto iter = t.Iter(); !iter.Done(); iter.Next()) {
-    return false; 
+    ASSERT_TRUE(false); 
   }
 
   for (auto iter = t.RemovingIter(); !iter.Done(); iter.Next()) {
-    return false; 
+    ASSERT_TRUE(false); 
   }
 
   
   
   mozilla::MallocSizeOf mallocSizeOf = nullptr;
-  if (PL_DHashTableSizeOfExcludingThis(&t, nullptr, mallocSizeOf) != 0) {
-    return false;   
-  }
-
-  return true;
+  ASSERT_EQ(PL_DHashTableSizeOfExcludingThis(&t, nullptr, mallocSizeOf), 0u);
 }
 
 
@@ -106,7 +85,7 @@ static const PLDHashTableOps trivialOps = {
   TrivialInitEntry
 };
 
-static bool test_pldhash_move_semantics()
+TEST(PLDHashTableTest, MoveSemantics)
 {
   PLDHashTable t1(&trivialOps, sizeof(PLDHashEntryStub));
   PL_DHashTableAdd(&t1, (const void*)88);
@@ -135,54 +114,38 @@ static bool test_pldhash_move_semantics()
   PLDHashTable t9(&trivialOps, sizeof(PLDHashEntryStub));
   PL_DHashTableAdd(&t9, (const void*)88);
   PLDHashTable t10(mozilla::Move(t9));  
-
-  return true;
 }
 
-static bool test_pldhash_Clear()
+TEST(PLDHashTableTest, Clear)
 {
   PLDHashTable t1(&trivialOps, sizeof(PLDHashEntryStub));
 
   t1.Clear();
-  if (t1.EntryCount() != 0) {
-    return false;
-  }
+  ASSERT_EQ(t1.EntryCount(), 0u);
 
   t1.ClearAndPrepareForLength(100);
-  if (t1.EntryCount() != 0) {
-    return false;
-  }
+  ASSERT_EQ(t1.EntryCount(), 0u);
 
   PL_DHashTableAdd(&t1, (const void*)77);
   PL_DHashTableAdd(&t1, (const void*)88);
   PL_DHashTableAdd(&t1, (const void*)99);
-  if (t1.EntryCount() != 3) {
-    return false;
-  }
+  ASSERT_EQ(t1.EntryCount(), 3u);
 
   t1.Clear();
-  if (t1.EntryCount() != 0) {
-    return false;
-  }
+  ASSERT_EQ(t1.EntryCount(), 0u);
 
   PL_DHashTableAdd(&t1, (const void*)55);
   PL_DHashTableAdd(&t1, (const void*)66);
   PL_DHashTableAdd(&t1, (const void*)77);
   PL_DHashTableAdd(&t1, (const void*)88);
   PL_DHashTableAdd(&t1, (const void*)99);
-  if (t1.EntryCount() != 5) {
-    return false;
-  }
+  ASSERT_EQ(t1.EntryCount(), 5u);
 
   t1.ClearAndPrepareForLength(8192);
-  if (t1.EntryCount() != 0) {
-    return false;
-  }
-
-  return true;
+  ASSERT_EQ(t1.EntryCount(), 0u);
 }
 
-static bool test_pldhash_Iterator()
+TEST(PLDHashTableIterator, Iterator)
 {
   PLDHashTable t(&trivialOps, sizeof(PLDHashEntryStub));
 
@@ -197,7 +160,7 @@ static bool test_pldhash_Iterator()
   
   for (PLDHashTable::Iterator iter(&t); !iter.Done(); iter.Next()) {
     (void) iter.Get();
-    return false;   
+    ASSERT_TRUE(false); 
   }
 
   
@@ -221,14 +184,10 @@ static bool test_pldhash_Iterator()
     }
     n++;
   }
-  if (!saw77 || !saw88 || !saw99 || n != 3) {
-    return false;
-  }
-
-  return true;
+  ASSERT_TRUE(saw77 && saw88 && saw99 && n == 3);
 }
 
-static bool test_pldhash_RemovingIterator()
+TEST(PLDHashTableTest, RemovingIterator)
 {
   PLDHashTable t(&trivialOps, sizeof(PLDHashEntryStub));
 
@@ -245,18 +204,16 @@ static bool test_pldhash_RemovingIterator()
   for (intptr_t i = 0; i < 64; i++) {
     PL_DHashTableAdd(&t, (const void*)i);
   }
-  if (t.EntryCount() != 64 || t.Capacity() != 128) {
-    return false;
-  }
+  ASSERT_EQ(t.EntryCount(), 64u);
+  ASSERT_EQ(t.Capacity(), 128u);
 
   
   
   for (PLDHashTable::RemovingIterator iter(&t); !iter.Done(); iter.Next()) {
     (void) iter.Get();
   }
-  if (t.EntryCount() != 64 || t.Capacity() != 128) {
-    return false;
-  }
+  ASSERT_EQ(t.EntryCount(), 64u);
+  ASSERT_EQ(t.Capacity(), 128u);
 
   
   
@@ -266,9 +223,8 @@ static bool test_pldhash_RemovingIterator()
       iter.Remove();
     }
   }
-  if (t.EntryCount() != 48 || t.Capacity() != 128) {
-    return false;
-  }
+  ASSERT_EQ(t.EntryCount(), 48u);
+  ASSERT_EQ(t.Capacity(), 128u);
 
   
   
@@ -278,25 +234,22 @@ static bool test_pldhash_RemovingIterator()
       iter.Remove();
     }
   }
-  if (t.EntryCount() != 32 || t.Capacity() != 64) {
-    return false;
-  }
+  ASSERT_EQ(t.EntryCount(), 32u);
+  ASSERT_EQ(t.Capacity(), 64u);
 
   
   
   for (auto iter = t.RemovingIter(); !iter.Done(); iter.Next()) {
     iter.Remove();
   }
-  if (t.EntryCount() != 0 || t.Capacity() != PL_DHASH_MIN_CAPACITY) {
-    return false;
-  }
-
-  return true;
+  ASSERT_EQ(t.EntryCount(), 0u);
+  ASSERT_EQ(t.Capacity(), unsigned(PL_DHASH_MIN_CAPACITY));
 }
 
 
+
 #ifndef MOZ_WIDGET_ANDROID
-static bool test_pldhash_grow_to_max_capacity()
+TEST(PLDHashTableTest, GrowToMaxCapacity)
 {
   
   PLDHashTable* t =
@@ -315,49 +268,10 @@ static bool test_pldhash_grow_to_max_capacity()
   
   if (numInserted != PL_DHASH_MAX_CAPACITY - (PL_DHASH_MAX_CAPACITY >> 5)) {
     delete t;
-    return false;
+    ASSERT_TRUE(false);
   }
 
   delete t;
-  return true;
 }
 #endif
 
-
-
-typedef bool (*TestFunc)();
-#define DECL_TEST(name) { #name, name }
-
-static const struct Test {
-  const char* name;
-  TestFunc    func;
-} tests[] = {
-  DECL_TEST(test_pldhash_Init_capacity_ok),
-  DECL_TEST(test_pldhash_lazy_storage),
-  DECL_TEST(test_pldhash_move_semantics),
-  DECL_TEST(test_pldhash_Clear),
-  DECL_TEST(test_pldhash_Iterator),
-  DECL_TEST(test_pldhash_RemovingIterator),
-
-
-#ifndef MOZ_WIDGET_ANDROID
-  DECL_TEST(test_pldhash_grow_to_max_capacity),
-#endif
-  { nullptr, nullptr }
-};
-
-} 
-
-using namespace TestPLDHash;
-
-int main(int argc, char *argv[])
-{
-  bool success = true;
-  for (const Test* t = tests; t->name != nullptr; ++t) {
-    bool test_result = t->func();
-    printf("%35s : %s\n", t->name, test_result ? "SUCCESS" : "FAILURE");
-    if (!test_result)
-      success = false;
-  }
-  return success ? 0 : -1;
-}
