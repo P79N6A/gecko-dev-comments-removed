@@ -511,7 +511,12 @@ nsHttpTransaction::OnTransportStatus(nsITransport* transport,
     LOG(("nsHttpTransaction::OnSocketStatus [this=%p status=%x progress=%lld]\n",
         this, status, progress));
 
-    if (TimingEnabled()) {
+    
+    
+    
+    
+    
+    if (TimingEnabled() && GetRequestStart().IsNull()) {
         if (status == NS_NET_STATUS_RESOLVING_HOST) {
             SetDomainLookupStart(TimeStamp::Now());
         } else if (status == NS_NET_STATUS_RESOLVED_HOST) {
