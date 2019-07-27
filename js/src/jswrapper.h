@@ -4,8 +4,8 @@
 
 
 
-#ifndef proxy_jswrapper_h
-#define proxy_jswrapper_h
+#ifndef jswrapper_h
+#define jswrapper_h
 
 #include "mozilla/Attributes.h"
 

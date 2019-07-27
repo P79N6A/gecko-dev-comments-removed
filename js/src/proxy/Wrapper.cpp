@@ -4,11 +4,10 @@
 
 
 
-#include "jswrapper.h"
-
 #include "jscntxt.h"
 #include "jscompartment.h"
 #include "jsexn.h"
+#include "jswrapper.h"
 
 #include "vm/ErrorObject.h"
 #include "vm/WrapperObject.h"

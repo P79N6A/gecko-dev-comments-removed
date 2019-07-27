@@ -4,9 +4,8 @@
 
 
 
-#include "jswrapper.h"
-
 #include "jsiter.h"
+#include "jswrapper.h"
 
 #include "proxy/DeadObjectProxy.h"
 #include "vm/WrapperObject.h"

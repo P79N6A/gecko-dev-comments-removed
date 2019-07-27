@@ -4,14 +4,13 @@
 
 
 
-#include "jsproxy.h"
-
 #include <string.h>
 
 #include "jsapi.h"
 #include "jscntxt.h"
 #include "jsfun.h"
 #include "jsgc.h"
+#include "jsproxy.h"
 #include "jswrapper.h"
 
 #include "gc/Marking.h"
