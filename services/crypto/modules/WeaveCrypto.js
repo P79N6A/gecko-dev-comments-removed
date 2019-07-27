@@ -138,7 +138,7 @@ WeaveCrypto.prototype = {
         } catch(e) {
             
             
-            let file = Services.dirsvc.get("GreD", Ci.nsILocalFile);
+            let file = Services.dirsvc.get("GreBinD", Ci.nsILocalFile);
             file.append(path);
             this.log("Trying again with path " + file.path);
             nsslib = ctypes.open(file.path);
