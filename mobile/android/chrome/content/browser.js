@@ -2607,14 +2607,20 @@ var NativeWindow = {
       if (SelectionHandler.canSelect(this._target)) {
         
         
-        if (SelectionHandler.startSelection(this._target,
-          { mode: SelectionHandler.SELECT_AT_POINT, x: event.clientX, y: event.clientY })) {
+        let selectionResult = SelectionHandler.startSelection(this._target,
+          { mode: SelectionHandler.SELECT_AT_POINT,
+            x: event.clientX,
+            y: event.clientY
+          }
+        );
+        if (selectionResult === SelectionHandler.ERROR_NONE) {
           event.preventDefault();
           return;
         }
+
         
         
-        if (SelectionHandler.attachCaret(this._target)) {
+        if (SelectionHandler.attachCaret(this._target) === SelectionHandler.ERROR_NONE) {
           event.preventDefault();
           return;
         }
@@ -5090,7 +5096,10 @@ var BrowserEventHandler = {
           
           let element = this._highlightElement;
           if (element && element == BrowserApp.getFocusedInput(BrowserApp.selectedBrowser)) {
-            SelectionHandler.attachCaret(element);
+            let result = SelectionHandler.attachCaret(element);
+            if (result !== SelectionHandler.ERROR_NONE) {
+              dump("Unexpected failure during caret attach: " + result);
+            }
           }
         } catch(e) {
           Cu.reportError(e);
