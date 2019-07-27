@@ -19,11 +19,14 @@ namespace mozilla {
 namespace dom {
 class Element;
 class EventTarget;
+struct IgnoreModifierState;
 }
 }
 
 class nsXBLWindowKeyHandler : public nsIDOMEventListener
 {
+  typedef mozilla::dom::IgnoreModifierState IgnoreModifierState;
+
 public:
   nsXBLWindowKeyHandler(nsIDOMElement* aElement, mozilla::dom::EventTarget* aTarget);
 
@@ -45,7 +48,8 @@ protected:
   
   bool WalkHandlersAndExecute(nsIDOMKeyEvent* aKeyEvent, nsIAtom* aEventType,
                               nsXBLPrototypeHandler* aHandler,
-                              uint32_t aCharCode, bool aIgnoreShiftKey,
+                              uint32_t aCharCode,
+                              const IgnoreModifierState& aIgnoreModifierState,
                               bool aExecute);
 
   
@@ -59,9 +63,9 @@ protected:
   nsresult EnsureHandlers();
 
   
-  bool EventMatched(nsXBLPrototypeHandler* inHandler, nsIAtom* inEventType,
-                      nsIDOMKeyEvent* inEvent, uint32_t aCharCode,
-                      bool aIgnoreShiftKey);
+  bool EventMatched(nsXBLPrototypeHandler* aHandler, nsIAtom* aEventType,
+                    nsIDOMKeyEvent* aEvent, uint32_t aCharCode,
+                    const IgnoreModifierState& aIgnoreModifierState);
 
   
   bool IsHTMLEditableFieldFocused();
