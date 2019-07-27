@@ -19,9 +19,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
+import android.provider.Browser;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -1427,22 +1426,28 @@ public abstract class GeckoApp
 
 
 
-
-
-
-
-
-    protected void loadStartupTab(String url, int flags) {
-        if (url == null) {
-            if (!mShouldRestore) {
-                
-                
-                Tabs.getInstance().loadUrl(AboutPages.HOME, flags);
-            }
-        } else {
-            
-            Tabs.getInstance().loadUrl(url, flags);
+    protected void loadStartupTabWithAboutHome(final int flags) {
+        if (!mShouldRestore) {
+            Tabs.getInstance().loadUrl(AboutPages.HOME, flags);
         }
+    }
+
+    
+
+
+
+
+
+
+    protected void loadStartupTabWithExternalUrl(final String url, final String extraApplicationId,
+            final int flags) {
+        
+        if (url == null) {
+            loadStartupTabWithAboutHome(flags);
+            return;
+        }
+
+        Tabs.getInstance().loadUrl(url, extraApplicationId, flags);
     }
 
     private void initialize() {
@@ -1509,10 +1514,11 @@ public abstract class GeckoApp
             if (ACTION_HOMESCREEN_SHORTCUT.equals(action)) {
                 flags |= Tabs.LOADURL_PINNED;
             }
-            loadStartupTab(passedUri, flags);
+            final String extraApplicationId = intent.getStringExtra(Browser.EXTRA_APPLICATION_ID);
+            loadStartupTabWithExternalUrl(passedUri, extraApplicationId, flags);
         } else {
             if (!mIsRestoringActivity) {
-                loadStartupTab(null, Tabs.LOADURL_NEW_TAB);
+                loadStartupTabWithAboutHome(Tabs.LOADURL_NEW_TAB);
             }
 
             Tabs.getInstance().notifyListeners(null, Tabs.TabEvents.RESTORED);
@@ -1824,9 +1830,10 @@ public abstract class GeckoApp
                         TabQueueHelper.openQueuedUrls(GeckoApp.this, mProfile, TabQueueHelper.FILE_NAME, true);
                     } else {
                         String uri = intent.getDataString();
-                        Tabs.getInstance().loadUrl(uri, Tabs.LOADURL_NEW_TAB |
-                                                                Tabs.LOADURL_USER_ENTERED |
-                                                                Tabs.LOADURL_EXTERNAL);
+                        final String extraApplicationId = intent.getStringExtra(Browser.EXTRA_APPLICATION_ID);
+                        Tabs.getInstance().loadUrl(uri, extraApplicationId, Tabs.LOADURL_NEW_TAB |
+                                                                            Tabs.LOADURL_USER_ENTERED |
+                                                                            Tabs.LOADURL_EXTERNAL);
                     }
                 }
             });

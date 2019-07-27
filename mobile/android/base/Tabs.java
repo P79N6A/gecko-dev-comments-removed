@@ -343,6 +343,20 @@ public class Tabs implements GeckoEventListener {
         return mTabs.get(id);
     }
 
+    public synchronized Tab getTabForApplicationId(final String applicationId) {
+        if (applicationId == null) {
+            return null;
+        }
+
+        for (final Tab tab : mOrder) {
+            if (applicationId.equals(tab.getApplicationId())) {
+                return tab;
+            }
+        }
+
+        return null;
+    }
+
     
     @RobocopTarget
     public synchronized void closeTab(Tab tab) {
@@ -796,7 +810,15 @@ public class Tabs implements GeckoEventListener {
 
 
     public Tab loadUrl(String url, int flags) {
-        return loadUrl(url, null, -1, flags);
+        return loadUrl(url, null, -1, null, flags);
+    }
+
+    public Tab loadUrl(final String url, final String applicationId, final int flags) {
+        return loadUrl(url, null, -1, applicationId, flags);
+    }
+
+    public Tab loadUrl(final String url, final String searchEngine, final int parentId, final int flags) {
+        return loadUrl(url, searchEngine, parentId, null, flags);
     }
 
     
@@ -810,9 +832,11 @@ public class Tabs implements GeckoEventListener {
 
 
 
-    public Tab loadUrl(String url, String searchEngine, int parentId, int flags) {
+
+    public Tab loadUrl(final String url, final String searchEngine, final int parentId,
+                   final String applicationId, final int flags) {
         JSONObject args = new JSONObject();
-        Tab added = null;
+        Tab tabToSelect = null;
         boolean delayLoad = (flags & LOADURL_DELAY_LOAD) != 0;
 
         
@@ -828,14 +852,42 @@ public class Tabs implements GeckoEventListener {
             args.put("engine", searchEngine);
             args.put("parentId", parentId);
             args.put("userEntered", userEntered);
-            args.put("newTab", (flags & LOADURL_NEW_TAB) != 0);
             args.put("isPrivate", isPrivate);
             args.put("pinned", (flags & LOADURL_PINNED) != 0);
-            args.put("delayLoad", delayLoad);
             args.put("desktopMode", desktopMode);
+
+            final boolean needsNewTab;
+            if (applicationId == null) {
+                needsNewTab = (flags & LOADURL_NEW_TAB) != 0;
+            } else {
+                final Tab applicationTab = getTabForApplicationId(applicationId);
+                if (applicationTab == null) {
+                    needsNewTab = true;
+                } else {
+                    needsNewTab = false;
+                    delayLoad = false;
+                    background = false;
+
+                    tabToSelect = applicationTab;
+                    final int tabToSelectId = tabToSelect.getId();
+                    args.put("tabID", tabToSelectId);
+
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    selectTab(tabToSelect.getId());
+                }
+            }
+
+            args.put("newTab", needsNewTab);
+            args.put("delayLoad", delayLoad);
             args.put("selected", !background);
 
-            if ((flags & LOADURL_NEW_TAB) != 0) {
+            if (needsNewTab) {
                 int tabId = getNextTabId();
                 args.put("tabID", tabId);
 
@@ -847,8 +899,9 @@ public class Tabs implements GeckoEventListener {
                 
                 final int tabIndex = -1;
 
-                added = addTab(tabId, tabUrl, external, parentId, url, isPrivate, tabIndex);
-                added.setDesktopMode(desktopMode);
+                tabToSelect = addTab(tabId, tabUrl, external, parentId, url, isPrivate, tabIndex);
+                tabToSelect.setDesktopMode(desktopMode);
+                tabToSelect.setApplicationId(applicationId);
             }
         } catch (Exception e) {
             Log.w(LOGTAG, "Error building JSON arguments for loadUrl.", e);
@@ -856,22 +909,22 @@ public class Tabs implements GeckoEventListener {
 
         GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Tab:Load", args.toString()));
 
-        if (added == null) {
+        if (tabToSelect == null) {
             return null;
         }
 
         if (!delayLoad && !background) {
-            selectTab(added.getId());
+            selectTab(tabToSelect.getId());
         }
 
         
         if (AboutPages.isBuiltinIconPage(url)) {
             Log.d(LOGTAG, "Setting about: tab favicon inline.");
-            added.addFavicon(url, Favicons.browserToolbarFaviconSize, "");
-            added.loadFavicon();
+            tabToSelect.addFavicon(url, Favicons.browserToolbarFaviconSize, "");
+            tabToSelect.loadFavicon();
         }
 
-        return added;
+        return tabToSelect;
     }
 
     public Tab addTab() {
