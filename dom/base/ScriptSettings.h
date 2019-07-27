@@ -307,7 +307,7 @@ private:
 
   
   bool mOwnErrorReporting;
-  bool mOldDontReportUncaught;
+  bool mOldAutoJSAPIOwnsErrorReporting;
   Maybe<JSErrorReporter> mOldErrorReporter;
 
   void InitInternal(JSObject* aGlobal, JSContext* aCx, bool aIsMainThread);

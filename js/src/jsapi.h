@@ -1601,7 +1601,8 @@ class JS_PUBLIC_API(ContextOptions) {
   public:
     ContextOptions()
       : privateIsNSISupports_(false),
-        dontReportUncaught_(false)
+        dontReportUncaught_(false),
+        autoJSAPIOwnsErrorReporting_(false)
     {
     }
 
@@ -1625,9 +1626,28 @@ class JS_PUBLIC_API(ContextOptions) {
         return *this;
     }
 
+    bool autoJSAPIOwnsErrorReporting() const { return autoJSAPIOwnsErrorReporting_; }
+    ContextOptions &setAutoJSAPIOwnsErrorReporting(bool flag) {
+        autoJSAPIOwnsErrorReporting_ = flag;
+        return *this;
+    }
+    ContextOptions &toggleAutoJSAPIOwnsErrorReporting() {
+        autoJSAPIOwnsErrorReporting_ = !autoJSAPIOwnsErrorReporting_;
+        return *this;
+    }
+
+
   private:
     bool privateIsNSISupports_ : 1;
     bool dontReportUncaught_ : 1;
+    
+    
+    
+    
+    
+    
+    
+    bool autoJSAPIOwnsErrorReporting_ : 1;
 };
 
 JS_PUBLIC_API(ContextOptions &)
@@ -1928,7 +1948,7 @@ typedef struct JSCTypesCallbacks JSCTypesCallbacks;
 
 
 extern JS_PUBLIC_API(void)
-JS_SetCTypesCallbacks(JSObject *ctypesObj, const JSCTypesCallbacks *callbacks);
+JS_SetCTypesCallbacks(JSObject *ctypesObj, JSCTypesCallbacks *callbacks);
 #endif
 
 typedef bool
@@ -4679,13 +4699,13 @@ struct JSLocaleCallbacks {
 
 
 extern JS_PUBLIC_API(void)
-JS_SetLocaleCallbacks(JSRuntime *rt, const JSLocaleCallbacks *callbacks);
+JS_SetLocaleCallbacks(JSRuntime *rt, JSLocaleCallbacks *callbacks);
 
 
 
 
 
-extern JS_PUBLIC_API(const JSLocaleCallbacks *)
+extern JS_PUBLIC_API(JSLocaleCallbacks *)
 JS_GetLocaleCallbacks(JSRuntime *rt);
 
 

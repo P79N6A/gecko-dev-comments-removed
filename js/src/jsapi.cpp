@@ -3741,7 +3741,7 @@ struct AutoLastFrameCheck
     ~AutoLastFrameCheck() {
         if (cx->isExceptionPending() &&
             !JS_IsRunning(cx) &&
-            !cx->options().dontReportUncaught()) {
+            (!cx->options().dontReportUncaught() && !cx->options().autoJSAPIOwnsErrorReporting())) {
             js_ReportUncaughtException(cx);
         }
     }
@@ -5542,13 +5542,13 @@ JS_ResetDefaultLocale(JSRuntime *rt)
 }
 
 JS_PUBLIC_API(void)
-JS_SetLocaleCallbacks(JSRuntime *rt, const JSLocaleCallbacks *callbacks)
+JS_SetLocaleCallbacks(JSRuntime *rt, JSLocaleCallbacks *callbacks)
 {
     AssertHeapIsIdle(rt);
     rt->localeCallbacks = callbacks;
 }
 
-JS_PUBLIC_API(const JSLocaleCallbacks *)
+JS_PUBLIC_API(JSLocaleCallbacks *)
 JS_GetLocaleCallbacks(JSRuntime *rt)
 {
     
