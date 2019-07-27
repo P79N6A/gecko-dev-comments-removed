@@ -98,10 +98,17 @@ void LaunchMacPostProcess(const char* aAppBundle);
 # include <linux/ioprio.h>
 # include <sys/resource.h>
 
+#if ANDROID_VERSION < 21
 
 
 
 extern "C" MOZ_EXPORT int ioprio_set(int which, int who, int ioprio);
+#else
+# include <sys/syscall.h>
+static int ioprio_set(int which, int who, int ioprio) {
+      return syscall(__NR_ioprio_set, which, who, ioprio);
+}
+#endif
 
 # define MAYBE_USE_HARD_LINKS 1
 static bool sUseHardLinks = true;
