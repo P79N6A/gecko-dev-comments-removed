@@ -19,7 +19,7 @@ class DocAccessible;
 class EventQueue
 {
 protected:
-  EventQueue(DocAccessible* aDocument) : mDocument(aDocument) { }
+  explicit EventQueue(DocAccessible* aDocument) : mDocument(aDocument) { }
 
   
 

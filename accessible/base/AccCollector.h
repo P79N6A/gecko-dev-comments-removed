@@ -81,7 +81,7 @@ public:
 
 protected:
   
-  EmbeddedObjCollector(Accessible* aRoot) :
+  explicit EmbeddedObjCollector(Accessible* aRoot) :
     AccCollector(aRoot, filters::GetEmbeddedObject) { }
 
   virtual void AppendObject(Accessible* aAccessible);
