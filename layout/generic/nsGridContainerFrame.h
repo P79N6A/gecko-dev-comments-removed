@@ -353,6 +353,10 @@ protected:
   {
     mGridColEnd = std::max(mGridColEnd, aArea.mCols.HypotheticalEnd());
     mGridRowEnd = std::max(mGridRowEnd, aArea.mRows.HypotheticalEnd());
+    MOZ_ASSERT(mGridColEnd <= uint32_t(nsStyleGridLine::kMaxLine -
+                                       nsStyleGridLine::kMinLine) &&
+               mGridRowEnd <= uint32_t(nsStyleGridLine::kMaxLine -
+                                       nsStyleGridLine::kMinLine));
   }
 
   
@@ -465,6 +469,16 @@ private:
   
   uint32_t mGridColEnd; 
   uint32_t mGridRowEnd; 
+
+  
+
+
+
+
+
+  uint32_t mExplicitGridOffsetCol;
+  uint32_t mExplicitGridOffsetRow;
+
   
 
 
