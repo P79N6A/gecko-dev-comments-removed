@@ -112,6 +112,7 @@ class MInstruction;
 class MBasicBlock;
 class MNode;
 class MUse;
+class MPhi;
 class MIRGraph;
 class MResumePoint;
 class MControlInstruction;
@@ -119,7 +120,9 @@ class MControlInstruction;
 
 class MUse : public TempObject, public InlineListNode<MUse>
 {
+    
     friend class MDefinition;
+    friend class MPhi;
 
     MDefinition *producer_; 
     MNode *consumer_;       
@@ -129,6 +132,7 @@ class MUse : public TempObject, public InlineListNode<MUse>
         consumer_(consumer)
     { }
 
+    
     
     
     void setProducerUnchecked(MDefinition *producer) {
@@ -663,10 +667,16 @@ class MDefinition : public MNode
     }
 
     void addUse(MUse *use) {
+        MOZ_ASSERT(use->producer() == this);
         uses_.pushFront(use);
     }
     void addUseUnchecked(MUse *use) {
+        MOZ_ASSERT(use->producer() == this);
         uses_.pushFrontUnchecked(use);
+    }
+    void replaceUse(MUse *old, MUse *now) {
+        MOZ_ASSERT(now->producer() == this);
+        uses_.replace(old, now);
     }
     void replaceAllUsesWith(MDefinition *dom);
 
