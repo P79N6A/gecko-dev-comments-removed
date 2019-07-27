@@ -94,8 +94,9 @@ struct nsWidgetInitData {
       mBorderStyle(eBorderStyle_default),
       mPopupHint(ePopupTypePanel),
       mPopupLevel(ePopupLevelTop),
-      clipChildren(false), 
-      clipSiblings(false), 
+      mScreenId(0),
+      clipChildren(false),
+      clipSiblings(false),
       mDropShadow(false),
       mListenForResizes(false),
       mUnicode(true),
@@ -113,6 +114,10 @@ struct nsWidgetInitData {
   nsBorderStyle mBorderStyle;
   nsPopupType   mPopupHint;
   nsPopupLevel  mPopupLevel;
+  
+  
+  
+  uint32_t      mScreenId;
   
   bool          clipChildren, clipSiblings, mDropShadow;
   bool          mListenForResizes;

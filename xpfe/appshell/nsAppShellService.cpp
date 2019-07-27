@@ -58,11 +58,12 @@ using namespace mozilla;
 
 class nsIAppShell;
 
-nsAppShellService::nsAppShellService() : 
+nsAppShellService::nsAppShellService() :
   mXPCOMWillShutDown(false),
   mXPCOMShuttingDown(false),
   mModalWindowCount(0),
-  mApplicationProvidedHiddenWindow(false)
+  mApplicationProvidedHiddenWindow(false),
+  mScreenId(0)
 {
   nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
 
@@ -88,6 +89,13 @@ NS_IMETHODIMP
 nsAppShellService::CreateHiddenWindow()
 {
   return CreateHiddenWindowHelper(false);
+}
+
+NS_IMETHODIMP
+nsAppShellService::SetScreenId(uint32_t aScreenId)
+{
+  mScreenId = aScreenId;
+  return NS_OK;
 }
 
 void
@@ -599,6 +607,13 @@ nsAppShellService::JustCreateTopWindow(nsIXULWindow *aParent,
     reg->IsLocaleRTL(package, &isRTL);
     widgetInitData.mRTL = isRTL;
   }
+
+#ifdef MOZ_WIDGET_GONK
+  
+  
+  
+  widgetInitData.mScreenId = mScreenId;
+#endif
 
   nsresult rv = window->Initialize(parent, center ? aParent : nullptr,
                                    aUrl, aInitialWidth, aInitialHeight,
