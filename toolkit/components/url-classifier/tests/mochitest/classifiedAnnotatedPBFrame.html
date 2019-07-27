@@ -1,0 +1,22 @@
+<!DOCTYPE HTML>
+
+
+<html>
+<head>
+<title></title>
+
+<link id="badcss" rel="stylesheet" type="text/css" href="http://tracking.example.com/tests/toolkit/components/url-classifier/tests/mochitest/evil.css"></link>
+
+</head>
+<body>
+
+<script id="badscript" data-touched="not sure" src="http://tracking.example.com/tests/toolkit/components/url-classifier/tests/mochitest/evil.js" onload="this.dataset.touched = 'yes';" onerror="this.dataset.touched = 'no';"></script>
+
+
+<img id="badimage" data-touched="not sure" src="http://tracking.example.com/tests/toolkit/components/url-classifier/tests/mochitest/raptor.jpg?pbmode=test" onload="this.dataset.touched = 'yes';" onerror="this.dataset.touched = 'no';"/>
+
+The following should not be hidden:
+<div id="styleCheck">STYLE TEST</div>
+
+</body>
+</html>
