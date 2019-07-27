@@ -21,6 +21,7 @@ class nsPIDOMWindow;
 class nsGlobalWindow;
 class nsIScriptContext;
 class nsIDocument;
+class nsIDocShell;
 
 namespace mozilla {
 namespace dom {
@@ -62,6 +63,16 @@ private:
 
 void InitScriptSettings();
 void DestroyScriptSettings();
+
+
+
+
+
+
+
+
+void UseEntryScriptProfiling();
+void UnuseEntryScriptProfiling();
 
 
 
@@ -331,6 +342,8 @@ private:
   
   nsIPrincipal* mWebIDLCallerPrincipal;
   friend nsIPrincipal* GetWebIDLCallerPrincipal();
+
+  nsIDocShell* mDocShellForJSRunToCompletion;
 };
 
 

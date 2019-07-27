@@ -951,6 +951,10 @@ private:
     nsWeakPtr mOpenedRemote;
 
     
+    
+    uint32_t          mJSRunToCompletionDepth;
+
+    
     bool mProfileTimelineRecording;
 
 #ifdef MOZ_ENABLE_PROFILER_SPS
