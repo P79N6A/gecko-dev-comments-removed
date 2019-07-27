@@ -41,6 +41,9 @@ const JS_HAS_SYMBOLS = typeof Symbol === "function";
 const ITERATOR_SYMBOL = JS_HAS_SYMBOLS ? Symbol.iterator : "@@iterator";
 
 
+const DOMPromise = Promise;
+
+
 
 
 
@@ -685,8 +688,7 @@ this.PromiseWalker = {
   scheduleWalkerLoop: function()
   {
     this.walkerLoopScheduled = true;
-    Services.tm.currentThread.dispatch(this.walkerLoop,
-                                       Ci.nsIThread.DISPATCH_NORMAL);
+    DOMPromise.resolve().then(() => this.walkerLoop());
   },
 
   
