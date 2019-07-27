@@ -9,7 +9,7 @@
 
 
 
-#include "jit/IonSpewer.h"
+#include "jit/JitSpewer.h"
 
 namespace js {
 namespace jit {

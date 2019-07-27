@@ -112,7 +112,7 @@ LoopUnroller::go(LoopIterationBound *bound)
     
     static const size_t UnrollCount = 10;
 
-    IonSpew(IonSpew_Unrolling, "Attempting to unroll loop");
+    JitSpew(JitSpew_Unrolling, "Attempting to unroll loop");
 
     header = bound->header;
     JS_ASSERT(header->isLoopHeader());
@@ -151,7 +151,7 @@ LoopUnroller::go(LoopIterationBound *bound)
                 continue;
             if (ins->isTest() || ins->isGoto() || ins->isInterruptCheck())
                 continue;
-            IonSpew(IonSpew_Unrolling, "Aborting: can't clone instruction %s", ins->opName());
+            JitSpew(JitSpew_Unrolling, "Aborting: can't clone instruction %s", ins->opName());
             return;
         }
     }
@@ -179,7 +179,7 @@ LoopUnroller::go(LoopIterationBound *bound)
 
     
 
-    IonSpew(IonSpew_Unrolling, "Unrolling loop");
+    JitSpew(JitSpew_Unrolling, "Unrolling loop");
 
     
     
