@@ -287,6 +287,9 @@ CustomHost.prototype = {
     
     
     let topWindow = this.frame.ownerDocument.defaultView;
+    if (!topWindow) {
+      return;
+    }
     let json = {name:"toolbox-" + msg, uid: this.uid};
     if (data) {
       json.data = data;

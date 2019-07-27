@@ -913,34 +913,47 @@ let UI = {
       let json = JSON.parse(event.data);
       switch (json.name) {
         case "toolbox-close":
-          this.closeToolboxUI();
+          
+          
+          
+          
+          
+          
+          
+          
+          this.toolboxPromise = null;
+          this._closeToolboxUI();
           break;
       }
     } catch(e) { console.error(e); }
   },
 
   destroyToolbox: function() {
+    
     if (this.toolboxPromise) {
-      return this.toolboxPromise.then(toolbox => {
-        toolbox.destroy();
-        this.toolboxPromise = null;
-      }, console.error);
+      let toolboxPromise = this.toolboxPromise;
+      this.toolboxPromise = null;
+      return toolboxPromise.then(toolbox => {
+        return toolbox.destroy();
+      }).catch(console.error)
+        .then(() => this._closeToolboxUI())
+        .catch(console.error);
     }
     return promise.resolve();
   },
 
   createToolbox: function() {
+    
+    if (this.toolboxPromise) {
+      return this.toolboxPromise;
+    }
     this.toolboxPromise = AppManager.getTarget().then((target) => {
-      return this.showToolbox(target);
+      return this._showToolbox(target);
     }, console.error);
     return this.busyUntil(this.toolboxPromise, "opening toolbox");
   },
 
-  showToolbox: function(target) {
-    if (this.toolboxIframe) {
-      return;
-    }
-
+  _showToolbox: function(target) {
     let splitter = document.querySelector(".devtools-horizontal-splitter");
     splitter.removeAttribute("hidden");
 
@@ -964,7 +977,7 @@ let UI = {
   updateToolboxFullscreenState: function() {
     let panel = document.querySelector("#deck").selectedPanel;
     let nbox = document.querySelector("#notificationbox");
-    if (panel.id == "deck-panel-details" &&
+    if (panel && panel.id == "deck-panel-details" &&
         AppManager.selectedProject.type != "packaged" &&
         this.toolboxIframe) {
       nbox.setAttribute("toolboxfullscreen", "true");
@@ -973,7 +986,11 @@ let UI = {
     }
   },
 
-  closeToolboxUI: function() {
+  _closeToolboxUI: function() {
+    if (!this.toolboxIframe) {
+      return;
+    }
+
     this.resetFocus();
     Services.prefs.setIntPref("devtools.toolbox.footer.height", this.toolboxIframe.height);
 
