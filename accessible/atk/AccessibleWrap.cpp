@@ -800,11 +800,12 @@ getParentCB(AtkObject *aAtkObj)
     atkParent = parent ? AccessibleWrap::GetAtkObject(parent) : nullptr;
   } else if (ProxyAccessible* proxy = GetProxy(aAtkObj)) {
     ProxyAccessible* parent = proxy->Parent();
-    if (parent)
+    if (parent) {
       atkParent = GetWrapperFor(parent);
-
-    
-    atkParent = AccessibleWrap::GetAtkObject(proxy->OuterDocOfRemoteBrowser());
+    } else {
+      
+      atkParent = AccessibleWrap::GetAtkObject(proxy->OuterDocOfRemoteBrowser());
+    }
   }
 
   if (atkParent)
