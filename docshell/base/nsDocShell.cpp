@@ -352,11 +352,7 @@ IsElementAnchor(nsIContent* aContent)
 {
   
   
-  if (!aContent->IsHTMLElement()) {
-    return false;
-  }
-  nsIAtom* nameAtom = aContent->Tag();
-  return nameAtom == nsGkAtoms::a || nameAtom == nsGkAtoms::area;
+  return aContent->IsAnyOfHTMLElements(nsGkAtoms::a, nsGkAtoms::area);
 }
 
 static void
@@ -13396,7 +13392,8 @@ nsDocShell::OnLinkClickSync(nsIContent* aContent,
   
   
   
-  if (nsGkAtoms::form == aContent->Tag() && ShouldBlockLoadingForBackButton()) {
+  if (aContent->IsHTMLElement(nsGkAtoms::form) &&
+      ShouldBlockLoadingForBackButton()) {
     return NS_OK;
   }
 

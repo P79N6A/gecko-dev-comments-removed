@@ -1672,7 +1672,7 @@ bool IsAllowedAsChild(nsIContent* aNewChild, nsINode* aParent,
         
         
         
-        aNewChild->Tag() == nsGkAtoms::_template ||
+        aNewChild->NodeInfo()->NameAtom() == nsGkAtoms::_template ||
         aNewChild->GetShadowRoot()) &&
        nsContentUtils::ContentIsHostIncludingDescendantOf(aParent,
                                                           aNewChild))) {

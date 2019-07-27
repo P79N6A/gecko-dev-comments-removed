@@ -431,7 +431,7 @@ nsPlainTextSerializer::DoOpenContainer(nsIAtom* aTag)
 {
   
   
-  if (ShouldReplaceContainerWithPlaceholder(mElement->Tag())) {
+  if (ShouldReplaceContainerWithPlaceholder(mElement->NodeInfo()->NameAtom())) {
     if (mIgnoredChildNodeLevel == 0) {
       
       Write(NS_LITERAL_STRING("\xFFFC"));
@@ -776,7 +776,7 @@ nsPlainTextSerializer::DoOpenContainer(nsIAtom* aTag)
 nsresult
 nsPlainTextSerializer::DoCloseContainer(nsIAtom* aTag)
 {
-  if (ShouldReplaceContainerWithPlaceholder(mElement->Tag())) {
+  if (ShouldReplaceContainerWithPlaceholder(mElement->NodeInfo()->NameAtom())) {
     mIgnoredChildNodeLevel--;
     return NS_OK;
   }
@@ -1777,7 +1777,7 @@ nsPlainTextSerializer::GetIdForContent(nsIContent* aContent)
     return nullptr;
   }
 
-  nsIAtom* localName = aContent->Tag();
+  nsIAtom* localName = aContent->NodeInfo()->NameAtom();
   return localName->IsStaticAtom() ? localName : nullptr;
 }
 

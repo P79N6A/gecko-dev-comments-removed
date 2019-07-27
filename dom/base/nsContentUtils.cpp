@@ -2546,7 +2546,8 @@ nsContentUtils::GenerateStateKey(nsIContent* aContent,
     
     
     if (aContent->IsElement()) {
-      KeyAppendString(nsDependentAtomString(aContent->Tag()), aKey);
+      KeyAppendString(nsDependentAtomString(aContent->NodeInfo()->NameAtom()),
+                      aKey);
     }
     else {
       
@@ -4122,7 +4123,7 @@ nsContentUtils::CreateContextualFragment(nsINode* aContextNode,
     
     if (contextAsContent && !contextAsContent->IsHTMLElement(nsGkAtoms::html)) {
       aRv = ParseFragmentHTML(aFragment, frag,
-                              contextAsContent->Tag(),
+                              contextAsContent->NodeInfo()->NameAtom(),
                               contextAsContent->GetNameSpaceID(),
                               (document->GetCompatibilityMode() ==
                                eCompatibility_NavQuirks),

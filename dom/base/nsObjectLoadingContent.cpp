@@ -1017,7 +1017,7 @@ nsObjectLoadingContent::BuildParametersArray()
   
   
   
-  if (content->Tag() == nsGkAtoms::object &&
+  if (content->IsHTMLElement(nsGkAtoms::object) &&
       !content->HasAttr(kNameSpaceID_None, nsGkAtoms::src)) {
     MozPluginParameter param;
     content->GetAttr(kNameSpaceID_None, nsGkAtoms::data, param.mValue);
@@ -2901,7 +2901,7 @@ nsObjectLoadingContent::LoadFallback(FallbackType aType, bool aNotify) {
     aType = eFallbackAlternate;
   }
 
-  if (thisContent->Tag() == nsGkAtoms::object &&
+  if (thisContent->IsHTMLElement(nsGkAtoms::object) &&
       (aType == eFallbackUnsupported ||
        aType == eFallbackDisabled ||
        aType == eFallbackBlocklisted))
