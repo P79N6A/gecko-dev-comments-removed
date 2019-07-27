@@ -12,6 +12,10 @@
 
 
 
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "ViewSourceBrowser",
+  "resource://gre/modules/ViewSourceBrowser.jsm");
+
 var gViewSourceUtils = {
 
   mnsIWebBrowserPersist: Components.interfaces.nsIWebBrowserPersist,
@@ -58,6 +62,34 @@ var gViewSourceUtils = {
     } else {
       this._openInInternalViewer(aArgsOrURL, aPageDescriptor, aDocument, aLineNumber);
     }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  viewSourceInBrowser: function(aArgs) {
+    let viewSourceBrowser = new ViewSourceBrowser(aArgs.viewSourceBrowser);
+    viewSourceBrowser.loadViewSource(aArgs);
   },
 
   
