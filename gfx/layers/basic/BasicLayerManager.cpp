@@ -150,7 +150,7 @@ public:
   bool Setup2DTransform()
   {
     
-    return mLayer->GetEffectiveTransform().CanDraw2D(&mTransform);
+    return mLayer->GetEffectiveTransformForBuffer().CanDraw2D(&mTransform);
   }
 
   
@@ -875,7 +875,8 @@ BasicLayerManager::PaintLayer(gfxContext* aTarget,
       temp->Paint();
     }
 #endif
-    gfx3DMatrix effectiveTransform = gfx::To3DMatrix(aLayer->GetEffectiveTransform());
+    gfx3DMatrix effectiveTransform;
+    effectiveTransform = gfx::To3DMatrix(aLayer->GetEffectiveTransform());
     nsRefPtr<gfxASurface> result =
       Transform3D(untransformedDT->Snapshot(), aTarget, bounds,
                   effectiveTransform, destRect);

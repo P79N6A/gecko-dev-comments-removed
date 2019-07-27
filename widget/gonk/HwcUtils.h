@@ -87,8 +87,11 @@ static bool CalculateClipRect(const gfx::Matrix& aTransform,
 
 
 
+
+
 static bool PrepareVisibleRegion(const nsIntRegion& aVisible,
-                                 const gfx::Matrix& aTransform,
+                                 const gfx::Matrix& aLayerTransform,
+                                 const gfx::Matrix& aLayerBufferTransform,
                                  nsIntRect aClip, nsIntRect aBufferRect,
                                  RectVector* aVisibleRegionScreen);
 
@@ -112,7 +115,11 @@ static bool PrepareVisibleRegion(const nsIntRegion& aVisible,
 
 
 
-static bool PrepareLayerRects(nsIntRect aVisible, const gfx::Matrix& aTransform,
+
+
+static bool PrepareLayerRects(nsIntRect aVisible,
+                              const gfx::Matrix& aLayerTransform,
+                              const gfx::Matrix& aLayerBufferTransform,
                               nsIntRect aClip, nsIntRect aBufferRect,
                               bool aYFlipped,
                               hwc_rect_t* aSourceCrop,

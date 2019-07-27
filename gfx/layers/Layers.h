@@ -1399,6 +1399,23 @@ public:
 
 
 
+
+  virtual const gfx::Matrix4x4& GetEffectiveTransformForBuffer() const
+  {
+    return mEffectiveTransform;
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
   virtual void ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface) = 0;
 
   
