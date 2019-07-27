@@ -34,7 +34,6 @@ class AccessibleWrap : public Accessible,
 public: 
   AccessibleWrap(nsIContent* aContent, DocAccessible* aDoc) :
     Accessible(aContent, aDoc) { }
-  virtual ~AccessibleWrap() { }
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -176,6 +175,7 @@ public:
   static IDispatch *NativeAccessible(nsIAccessible *aXPAccessible);
 
 protected:
+  virtual ~AccessibleWrap() { }
 
   
 
