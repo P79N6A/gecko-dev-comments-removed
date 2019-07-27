@@ -90,10 +90,19 @@ function buildOptionListForChildren(node) {
   let result = [];
   for (let child = node.firstChild; child; child = child.nextSibling) {
     if (child.tagName == 'OPTION' || child.tagName == 'OPTGROUP') {
+      let textContent =
+        child.tagName == 'OPTGROUP' ? child.getAttribute("label")
+                                    : child.textContent;
+
+      if (textContent != null) {
+        textContent = textContent.trim();
+      } else {
+        textContent = ""
+      }
+
       let info = {
         tagName: child.tagName,
-        textContent: child.tagName == 'OPTGROUP' ? child.getAttribute("label").trim()
-                                                 : child.textContent.trim(),
+        textContent: textContent,
         
         
         
