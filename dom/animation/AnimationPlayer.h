@@ -21,6 +21,12 @@
 #undef CurrentTime
 #endif
 
+
+
+#ifdef GetCurrentTime
+#undef GetCurrentTime
+#endif
+
 struct JSContext;
 class nsCSSPropertySet;
 class nsIDocument;
