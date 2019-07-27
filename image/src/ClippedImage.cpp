@@ -40,7 +40,7 @@ public:
   {
     MOZ_ASSERT(mSurface, "Must have a valid surface");
     if (aSVGContext) {
-      mSVGContext.construct(*aSVGContext);
+      mSVGContext.emplace(*aSVGContext);
     }
   }
 
@@ -49,8 +49,8 @@ public:
                float aFrame,
                uint32_t aFlags)
   {
-    bool matchesSVGContext = (!aSVGContext && mSVGContext.empty()) ||
-                             *aSVGContext == mSVGContext.ref();
+    bool matchesSVGContext = (!aSVGContext && !mSVGContext) ||
+                             (*aSVGContext == *mSVGContext);
     return mViewportSize == aViewportSize &&
            matchesSVGContext &&
            mFrame == aFrame &&
@@ -128,13 +128,13 @@ ClippedImage::ShouldClip()
   
   
   
-  if (mShouldClip.empty()) {
+  if (mShouldClip.isNothing()) {
     int32_t width, height;
     nsRefPtr<imgStatusTracker> innerImageStatusTracker =
       InnerImage()->GetStatusTracker();
     if (InnerImage()->HasError()) {
       
-      mShouldClip.construct(false);
+      mShouldClip.emplace(false);
     } else if (NS_SUCCEEDED(InnerImage()->GetWidth(&width)) && width > 0 &&
                NS_SUCCEEDED(InnerImage()->GetHeight(&height)) && height > 0) {
       
@@ -142,7 +142,7 @@ ClippedImage::ShouldClip()
 
       
       
-      mShouldClip.construct(!mClip.IsEqualInterior(nsIntRect(0, 0, width, height)));
+      mShouldClip.emplace(!mClip.IsEqualInterior(nsIntRect(0, 0, width, height)));
     } else if (innerImageStatusTracker &&
                innerImageStatusTracker->IsLoading()) {
       
@@ -152,12 +152,12 @@ ClippedImage::ShouldClip()
     } else {
       
       
-      mShouldClip.construct(false);
+      mShouldClip.emplace(false);
     }
   }
 
-  MOZ_ASSERT(!mShouldClip.empty(), "Should have computed a result");
-  return mShouldClip.ref();
+  MOZ_ASSERT(mShouldClip.isSome(), "Should have computed a result");
+  return *mShouldClip;
 }
 
 NS_IMPL_ISUPPORTS_INHERITED0(ClippedImage, ImageWrapper)
