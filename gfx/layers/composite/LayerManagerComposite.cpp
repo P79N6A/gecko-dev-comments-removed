@@ -59,8 +59,6 @@
 #include "TextRenderer.h"               
 
 class gfxContext;
-struct nsIntSize;
-
 
 namespace mozilla {
 namespace layers {

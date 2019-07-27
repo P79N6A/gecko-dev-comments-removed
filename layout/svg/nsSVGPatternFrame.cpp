@@ -346,7 +346,7 @@ nsSVGPatternFrame::PaintPattern(const DrawTarget* aDrawTarget,
   bool resultOverflows;
   IntSize surfaceSize =
     nsSVGUtils::ConvertToSurfaceSize(
-      transformedBBox.Size(), &resultOverflows).ToIntSize();
+      transformedBBox.Size(), &resultOverflows);
 
   
   if (surfaceSize.width <= 0 || surfaceSize.height <= 0) {

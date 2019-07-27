@@ -21,8 +21,6 @@
 #include "nsRegion.h"                   
 #include "LayersTypes.h"
 
-struct nsIntSize;
-
 namespace mozilla {
 namespace gfx {
 class Matrix;
@@ -389,7 +387,7 @@ protected:
 
 
   gfxContentType BufferContentType();
-  bool BufferSizeOkFor(const nsIntSize& aSize);
+  bool BufferSizeOkFor(const gfx::IntSize& aSize);
   
 
 
