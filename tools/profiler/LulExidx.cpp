@@ -325,9 +325,9 @@ ExceptionTableInfo::ExtabEntryExtract(const struct exidx_entry* entry,
        (_lval) = *(reinterpret_cast<const uint32_t*>(_addr)); } while (0)
 
 # define GET_EXIDX_U32(_lval, _addr) \
-            GET_EX_U32(_lval, _addr, mr_exidx_)
+            GET_EX_U32(_lval, _addr, mr_exidx_avma_)
 # define GET_EXTAB_U32(_lval, _addr) \
-            GET_EX_U32(_lval, _addr, mr_extab_)
+            GET_EX_U32(_lval, _addr, mr_extab_avma_)
 
   uint32_t data;
   GET_EXIDX_U32(data, &entry->data);
@@ -575,10 +575,10 @@ int ExceptionTableInfo::ExtabEntryDecode(const uint8_t* buf, size_t buf_size)
 void ExceptionTableInfo::Start()
 {
   const struct exidx_entry* start
-    = reinterpret_cast<const struct exidx_entry*>(mr_exidx_.data());
+    = reinterpret_cast<const struct exidx_entry*>(mr_exidx_avma_.data());
   const struct exidx_entry* end
-    = reinterpret_cast<const struct exidx_entry*>(mr_exidx_.data()
-                                                  + mr_exidx_.length());
+    = reinterpret_cast<const struct exidx_entry*>(mr_exidx_avma_.data()
+                                                  + mr_exidx_avma_.length());
 
   
   
@@ -586,17 +586,11 @@ void ExceptionTableInfo::Start()
 
     
     
-    
-    
-    
-    
-    
-    uint32_t svma = (reinterpret_cast<char*>(Prel31ToAddr(&entry->addr))
-                     - mapping_addr_ + loading_addr_) & 0x7fffffff;
-    uint32_t next_svma;
+    uint32_t avma = reinterpret_cast<uint32_t>(Prel31ToAddr(&entry->addr));
+    uint32_t next_avma;
     if (entry < end - 1) {
-      next_svma = (reinterpret_cast<char*>(Prel31ToAddr(&((entry + 1)->addr)))
-                   - mapping_addr_ + loading_addr_) & 0x7fffffff;
+      next_avma
+        = reinterpret_cast<uint32_t>(Prel31ToAddr(&((entry + 1)->addr)));
     } else {
       
       
@@ -612,20 +606,22 @@ void ExceptionTableInfo::Start()
       
       
       
-      bool plausible = false;
-      next_svma = svma + 1;
-      if (text_last_svma_ != 0) {
-        uint32_t maybe_next_svma = text_last_svma_ + 1;
-        if (maybe_next_svma > svma && maybe_next_svma - svma <= 4096) {
-          next_svma = maybe_next_svma;
-          plausible = true;
-        }
+
+      bool plausible;
+      uint32_t maybe_next_avma = text_last_avma_ + 1;
+      if (maybe_next_avma > avma && maybe_next_avma - avma <= 4096) {
+        next_avma = maybe_next_avma;
+        plausible = true;
+      } else {
+        next_avma = avma + 1;
+        plausible = false;
       }
-      if (!plausible) {
+
+      if (!plausible && avma != text_last_avma_ + 1) {
         char buf[100];
         snprintf(buf, sizeof(buf),
                  "ExceptionTableInfo: implausible EXIDX last entry size %d"
-                 "; using 1 instead.", (int32_t)(text_last_svma_ - svma));
+                 "; using 1 instead.", (int32_t)(text_last_avma_ - avma));
         buf[sizeof(buf)-1] = 0;
         log_(buf);
       }
@@ -672,7 +668,7 @@ void ExceptionTableInfo::Start()
     
     
     
-    handler_->AddStackFrame(svma + text_bias_, next_svma - svma);
+    handler_->AddStackFrame(avma, next_avma - avma);
     int ret = ExtabEntryDecode(buf, buf_used);
     if (ret < 0) {
       handler_->DeleteStackFrame();
