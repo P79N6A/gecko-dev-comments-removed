@@ -2999,21 +2999,9 @@ class MArrayState
   private:
     uint32_t numElements_;
 
-    explicit MArrayState(MDefinition *arr)
-    {
-        
-        setResultType(MIRType_Object);
-        setRecoveredOnBailout();
-        numElements_ = arr->toNewArray()->count();
-    }
+    explicit MArrayState(MDefinition *arr);
 
-    bool init(TempAllocator &alloc, MDefinition *obj, MDefinition *len) {
-        if (!MVariadicInstruction::init(alloc, numElements() + 2))
-            return false;
-        initOperand(0, obj);
-        initOperand(1, len);
-        return true;
-    }
+    bool init(TempAllocator &alloc, MDefinition *obj, MDefinition *len);
 
     void initElement(uint32_t index, MDefinition *def) {
         initOperand(index + 2, def);
@@ -3023,27 +3011,8 @@ class MArrayState
     INSTRUCTION_HEADER(ArrayState)
 
     static MArrayState *New(TempAllocator &alloc, MDefinition *arr, MDefinition *undefinedVal,
-                            MDefinition *initLength)
-    {
-        MArrayState *res = new(alloc) MArrayState(arr);
-        if (!res || !res->init(alloc, arr, initLength))
-            return nullptr;
-        for (size_t i = 0; i < res->numElements(); i++)
-            res->initElement(i, undefinedVal);
-        return res;
-    }
-
-    static MArrayState *Copy(TempAllocator &alloc, MArrayState *state)
-    {
-        MDefinition *arr = state->array();
-        MDefinition *len = state->initializedLength();
-        MArrayState *res = new(alloc) MArrayState(arr);
-        if (!res || !res->init(alloc, arr, len))
-            return nullptr;
-        for (size_t i = 0; i < res->numElements(); i++)
-            res->initElement(i, state->getElement(i));
-        return res;
-    }
+                            MDefinition *initLength);
+    static MArrayState *Copy(TempAllocator &alloc, MArrayState *state);
 
     MDefinition *array() const {
         return getOperand(0);
@@ -11697,6 +11666,19 @@ class MNewDenseArrayPar : public MBinaryInstruction
 
 
 
+struct MStoreToRecover : public TempObject, public InlineSpaghettiStackNode<MStoreToRecover>
+{
+    MDefinition *operand;
+
+    explicit MStoreToRecover(MDefinition *operand)
+      : operand(operand)
+    { }
+};
+
+typedef InlineSpaghettiStack<MStoreToRecover> MStoresToRecoverList;
+
+
+
 
 class MResumePoint MOZ_FINAL :
   public MNode
@@ -11715,7 +11697,14 @@ class MResumePoint MOZ_FINAL :
     friend class MBasicBlock;
     friend void AssertBasicGraphCoherency(MIRGraph &graph);
 
+    
+    
     FixedList<MUse> operands_;
+
+    
+    
+    MStoresToRecoverList stores_;
+
     jsbytecode *pc_;
     MResumePoint *caller_;
     MInstruction *instruction_;
@@ -11744,16 +11733,21 @@ class MResumePoint MOZ_FINAL :
   public:
     static MResumePoint *New(TempAllocator &alloc, MBasicBlock *block, jsbytecode *pc,
                              MResumePoint *parent, Mode mode);
-    static MResumePoint *New(TempAllocator &alloc, MBasicBlock *block, jsbytecode *pc,
-                             MResumePoint *parent, Mode mode,
+    static MResumePoint *New(TempAllocator &alloc, MBasicBlock *block, MResumePoint *model,
                              const MDefinitionVector &operands);
     static MResumePoint *Copy(TempAllocator &alloc, MResumePoint *src);
 
     MNode::Kind kind() const {
         return MNode::ResumePoint;
     }
-    size_t numOperands() const {
+    size_t numAllocatedOperands() const {
         return operands_.length();
+    }
+    uint32_t stackDepth() const {
+        return numAllocatedOperands();
+    }
+    size_t numOperands() const {
+        return numAllocatedOperands();
     }
     size_t indexOf(const MUse *u) const MOZ_FINAL MOZ_OVERRIDE {
         MOZ_ASSERT(u >= &operands_[0]);
@@ -11777,9 +11771,6 @@ class MResumePoint MOZ_FINAL :
     }
     jsbytecode *pc() const {
         return pc_;
-    }
-    uint32_t stackDepth() const {
-        return operands_.length();
     }
     MResumePoint *caller() const {
         return caller_;
@@ -11814,13 +11805,26 @@ class MResumePoint MOZ_FINAL :
     }
 
     void releaseUses() {
-        for (size_t i = 0; i < operands_.length(); i++) {
+        for (size_t i = 0, e = numOperands(); i < e; i++) {
             if (operands_[i].hasProducer())
                 operands_[i].releaseProducer();
         }
     }
 
     bool writeRecoverData(CompactBufferWriter &writer) const;
+
+    
+    
+    
+    
+    void addStore(TempAllocator &alloc, MDefinition *store, const MResumePoint *cache = nullptr);
+
+    MStoresToRecoverList::iterator storesBegin() const {
+        return stores_.begin();
+    }
+    MStoresToRecoverList::iterator storesEnd() const {
+        return stores_.end();
+    }
 
     virtual void dump(FILE *fp) const;
     virtual void dump() const;
