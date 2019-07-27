@@ -10,6 +10,7 @@ const IOService = Cc["@mozilla.org/network/io-service;1"]
   .getService(Ci.nsIIOService);
 const {Spectrum} = require("devtools/shared/widgets/Spectrum");
 const {CubicBezierWidget} = require("devtools/shared/widgets/CubicBezierWidget");
+const {MdnDocsWidget} = require("devtools/shared/widgets/MdnDocsWidget");
 const {CSSFilterEditorWidget} = require("devtools/shared/widgets/FilterWidget");
 const EventEmitter = require("devtools/toolkit/event-emitter");
 const {colorUtils} = require("devtools/css-color");
@@ -40,6 +41,7 @@ const BORDER_RE = /^border(-(top|bottom|left|right))?$/ig;
 const XHTML_NS = "http://www.w3.org/1999/xhtml";
 const SPECTRUM_FRAME = "chrome://browser/content/devtools/spectrum-frame.xhtml";
 const CUBIC_BEZIER_FRAME = "chrome://browser/content/devtools/cubic-bezier-frame.xhtml";
+const MDN_DOCS_FRAME = "chrome://browser/content/devtools/mdn-docs-frame.xhtml";
 const FILTER_FRAME = "chrome://browser/content/devtools/filter-frame.xhtml";
 const ESCAPE_KEYCODE = Ci.nsIDOMKeyEvent.DOM_VK_ESCAPE;
 const RETURN_KEYCODE = Ci.nsIDOMKeyEvent.DOM_VK_RETURN;
@@ -738,25 +740,66 @@ Tooltip.prototype = {
 
 
 
-  setColorPickerContent: function(color) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  setIFrameContent: function({width, height}, url) {
+
     let def = promise.defer();
 
     
     let iframe = this.doc.createElementNS(XHTML_NS, "iframe");
     iframe.setAttribute("transparent", true);
-    iframe.setAttribute("width", "210");
-    iframe.setAttribute("height", "216");
+    iframe.setAttribute("width", width);
+    iframe.setAttribute("height", height);
     iframe.setAttribute("flex", "1");
     iframe.setAttribute("class", "devtools-tooltip-iframe");
-
-    let panel = this.panel;
-    let xulWin = this.doc.ownerGlobal;
 
     
     function onLoad() {
       iframe.removeEventListener("load", onLoad, true);
-      let win = iframe.contentWindow.wrappedJSObject;
+      def.resolve(iframe);
+    }
+    iframe.addEventListener("load", onLoad, true);
 
+    
+    iframe.setAttribute("src", url);
+
+    
+    this.content = iframe;
+
+    return def.promise;
+  },
+
+  
+
+
+
+
+  setColorPickerContent: function(color) {
+    let dimensions = {width: "210", height: "216"};
+    let panel = this.panel;
+    return this.setIFrameContent(dimensions, SPECTRUM_FRAME).then(onLoaded);
+
+    function onLoaded(iframe) {
+      let win = iframe.contentWindow.wrappedJSObject;
+      let def = promise.defer();
       let container = win.document.getElementById("spectrum");
       let spectrum = new Spectrum(container, color);
 
@@ -775,14 +818,8 @@ Tooltip.prototype = {
           finalizeSpectrum();
         }, true);
       }
+      return def.promise;
     }
-    iframe.addEventListener("load", onLoad, true);
-    iframe.setAttribute("src", SPECTRUM_FRAME);
-
-    
-    this.content = iframe;
-
-    return def.promise;
   },
 
   
@@ -791,24 +828,13 @@ Tooltip.prototype = {
 
 
   setCubicBezierContent: function(bezier) {
-    let def = promise.defer();
-
-    
-    let iframe = this.doc.createElementNS(XHTML_NS, "iframe");
-    iframe.setAttribute("transparent", true);
-    iframe.setAttribute("width", "410");
-    iframe.setAttribute("height", "360");
-    iframe.setAttribute("flex", "1");
-    iframe.setAttribute("class", "devtools-tooltip-iframe");
-
+    let dimensions = {width: "410", height: "360"};
     let panel = this.panel;
-    let xulWin = this.doc.ownerGlobal;
+    return this.setIFrameContent(dimensions, CUBIC_BEZIER_FRAME).then(onLoaded);
 
-    
-    function onLoad() {
-      iframe.removeEventListener("load", onLoad, true);
+    function onLoaded(iframe) {
       let win = iframe.contentWindow.wrappedJSObject;
-
+      let def = promise.defer();
       let container = win.document.getElementById("container");
       let widget = new CubicBezierWidget(container, bezier);
 
@@ -821,14 +847,8 @@ Tooltip.prototype = {
           def.resolve(widget);
         }, true);
       }
+      return def.promise;
     }
-    iframe.addEventListener("load", onLoad, true);
-    iframe.setAttribute("src", CUBIC_BEZIER_FRAME);
-
-    
-    this.content = iframe;
-
-    return def.promise;
   },
 
   
@@ -837,29 +857,21 @@ Tooltip.prototype = {
 
 
   setFilterContent: function(filter) {
-    let def = promise.defer();
-
-    
-    let iframe = this.doc.createElementNS(XHTML_NS, "iframe");
-    iframe.setAttribute("transparent", true);
-    iframe.setAttribute("width", "350");
-    iframe.setAttribute("flex", "1");
-    iframe.setAttribute("class", "devtools-tooltip-iframe");
-
+    let dimensions = {width: "350", height: "350"};
     let panel = this.panel;
+    return this.setIFrameContent(dimensions, FILTER_FRAME).then(onLoaded);
 
-    function onLoad() {
-      iframe.removeEventListener("load", onLoad, true);
-      let win = iframe.contentWindow.wrappedJSObject,
-          doc = win.document.documentElement;
-
+    function onLoaded(iframe) {
+      let win = iframe.contentWindow.wrappedJSObject;
+      let doc = win.document.documentElement;
+      let def = promise.defer();
       let container = win.document.getElementById("container");
       let widget = new CSSFilterEditorWidget(container, filter);
 
-      iframe.height = doc.offsetHeight
+      iframe.height = doc.offsetHeight;
 
       widget.on("render", e => {
-        iframe.height = doc.offsetHeight
+        iframe.height = doc.offsetHeight;
       });
 
       
@@ -871,14 +883,8 @@ Tooltip.prototype = {
           def.resolve(widget);
         }, true);
       }
+      return def.promise;
     }
-    iframe.addEventListener("load", onLoad, true);
-    iframe.setAttribute("src", FILTER_FRAME);
-
-    
-    this.content = iframe;
-
-    return def.promise;
   },
 
   
@@ -909,7 +915,33 @@ Tooltip.prototype = {
       let str = yield data.string();
       this.setImageContent(str, { hideDimensionLabel: true, maxDim: size });
     }
-  })
+  }),
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  setMdnDocsContent: function() {
+    let dimensions = {width: "410", height: "300"};
+    return this.setIFrameContent(dimensions, MDN_DOCS_FRAME).then(onLoaded);
+
+    function onLoaded(iframe) {
+      let win = iframe.contentWindow.wrappedJSObject;
+      
+      let widget = new MdnDocsWidget(win.document);
+      return widget;
+    }
+  }
 };
 
 
@@ -1534,6 +1566,46 @@ SwatchCubicBezierTooltip.prototype = Heritage.extend(SwatchBasedEditorTooltip.pr
     });
   }
 });
+
+
+
+
+
+
+function CssDocsTooltip(doc) {
+  this.tooltip = new Tooltip(doc, {
+    consumeOutsideClick: true,
+    closeOnKeys: [ESCAPE_KEYCODE, RETURN_KEYCODE],
+    noAutoFocus: false
+  });
+  this.widget = this.tooltip.setMdnDocsContent();
+}
+
+module.exports.CssDocsTooltip = CssDocsTooltip;
+
+CssDocsTooltip.prototype = {
+  
+
+
+
+  show: function(anchor, propertyName) {
+
+    function loadCssDocs(widget) {
+      return widget.loadCssDocs(propertyName);
+    }
+
+    this.widget.then(loadCssDocs);
+    this.tooltip.show(anchor, "topcenter bottomleft");
+  },
+
+  hide: function() {
+    this.tooltip.hide();
+  },
+
+  destroy: function() {
+    this.tooltip.destroy();
+  }
+};
 
 
 
