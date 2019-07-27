@@ -1173,7 +1173,7 @@ SuppressDeletedPropertyHelper(JSContext *cx, HandleObject obj, StringPredicate p
                             return false;
 
                         Rooted<PropertyDescriptor> desc(cx);
-                        if (!JS_GetPropertyDescriptorById(cx, proto, id, &desc))
+                        if (!GetPropertyDescriptor(cx, proto, id, &desc))
                             return false;
 
                         if (desc.object()) {
