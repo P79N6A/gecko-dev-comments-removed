@@ -935,20 +935,23 @@ LayerTransactionParent::RecvChildAsyncMessages(InfallibleTArray<AsyncChildMessag
         MOZ_ASSERT(tex.get());
         compositable->RemoveTextureHost(tex);
 
-        
-        ImageBridgeParent::SendFenceHandleToTrackerIfPresent(
-                             GetChildProcessId(),
-                             op.holderId(),
-                             op.transactionId(),
-                             op.textureParent(),
-                             compositable);
-
-        
-        ImageBridgeParent::ReplyRemoveTexture(
-                             GetChildProcessId(),
-                             OpReplyRemoveTexture(true, 
-                                                  op.holderId(),
-                                                  op.transactionId()));
+        if (ImageBridgeParent::GetInstance(GetChildProcessId())) {
+          
+          ImageBridgeParent::SendFenceHandleToTrackerIfPresent(
+            GetChildProcessId(),
+            op.holderId(),
+            op.transactionId(),
+            op.textureParent(),
+            compositable);
+          
+          ImageBridgeParent::ReplyRemoveTexture(
+            GetChildProcessId(),
+            OpReplyRemoveTexture(true, 
+            op.holderId(),
+            op.transactionId()));
+        } else {
+          NS_ERROR("ImageBridgeParent should exist");
+        }
         break;
       }
       default:

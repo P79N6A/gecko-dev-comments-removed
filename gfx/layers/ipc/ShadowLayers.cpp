@@ -470,10 +470,14 @@ ShadowLayerForwarder::RemoveTextureFromCompositableAsync(AsyncTransactionTracker
   } else {
     
     
+#ifdef MOZ_WIDGET_GONK
     mPendingAsyncMessages.push_back(OpRemoveTextureAsync(CompositableClient::GetTrackersHolderId(aCompositable->GetIPDLActor()),
                                     aAsyncTransactionTracker->GetId(),
                                     nullptr, aCompositable->GetIPDLActor(),
                                     nullptr, aTexture->GetIPDLActor()));
+#else
+    NS_RUNTIMEABORT("not reached");
+#endif
   }
   CompositableClient::HoldUntilComplete(aCompositable->GetIPDLActor(),
                                         aAsyncTransactionTracker);
