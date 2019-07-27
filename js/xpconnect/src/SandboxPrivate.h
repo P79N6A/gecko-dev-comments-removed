@@ -16,8 +16,6 @@
 #include "js/RootingAPI.h"
 
 
-
-
 class SandboxPrivate : public nsIGlobalObject,
                        public nsIScriptObjectPrincipal,
                        public nsSupportsWeakReference,
