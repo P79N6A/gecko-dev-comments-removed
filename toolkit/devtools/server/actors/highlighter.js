@@ -228,6 +228,7 @@ let HighlighterActor = exports.HighlighterActor = protocol.ActorClass({
 
   _isPicking: false,
   _hoveredNode: null,
+  _currentNode: null,
 
   pick: method(function() {
     if (this._isPicking) {
@@ -249,17 +250,80 @@ let HighlighterActor = exports.HighlighterActor = protocol.ActorClass({
           this._highlighter.hide();
         }, HIGHLIGHTER_PICKED_TIMER);
       }
-      events.emit(this._walker, "picker-node-picked", this._findAndAttachElement(event));
+      if (!this._currentNode) {
+        this._currentNode = this._findAndAttachElement(event);
+      }
+      events.emit(this._walker, "picker-node-picked", this._currentNode);
     };
 
     this._onHovered = event => {
       this._preventContentEvent(event);
-      let res = this._findAndAttachElement(event);
-      if (this._hoveredNode !== res.node) {
-        this._highlighter.show(res.node.rawNode);
-        events.emit(this._walker, "picker-node-hovered", res);
-        this._hoveredNode = res.node;
+      this._currentNode = this._findAndAttachElement(event);
+      if (this._hoveredNode !== this._currentNode.node) {
+        this._highlighter.show( this._currentNode.node.rawNode);
+        events.emit(this._walker, "picker-node-hovered", this._currentNode);
+        this._hoveredNode = this._currentNode.node;
       }
+    };
+
+    this._onKey = event => {
+      if (!this._currentNode || !this._isPicking) {
+        return;
+      }
+
+      this._preventContentEvent(event);
+      let currentNode = this._currentNode.node.rawNode;
+
+      
+
+
+
+
+
+
+      switch(event.keyCode) {
+        case Ci.nsIDOMKeyEvent.DOM_VK_LEFT: 
+          if (!currentNode.parentElement) {
+            return;
+          }
+          currentNode = currentNode.parentElement;
+          break;
+
+        case Ci.nsIDOMKeyEvent.DOM_VK_RIGHT: 
+          if (!currentNode.children.length) {
+            return;
+          }
+
+          
+          let child = currentNode.firstElementChild;
+          
+          
+          let hoveredNode = this._hoveredNode.rawNode;
+          for (let sibling of currentNode.children) {
+            if (sibling.contains(hoveredNode) || sibling === hoveredNode) {
+              child = sibling;
+            }
+          }
+
+          currentNode = child;
+          break;
+
+        case Ci.nsIDOMKeyEvent.DOM_VK_RETURN: 
+          this._onPick(event);
+          return;
+
+        case Ci.nsIDOMKeyEvent.DOM_VK_ESCAPE: 
+          this.cancelPick();
+          events.emit(this._walker, "picker-node-canceled");
+          return;
+
+        default: return;
+      }
+
+      
+      this._currentNode = this._walker.attachElement(currentNode);
+      this._highlighter.show(this._currentNode.node.rawNode);
+      events.emit(this._walker, "picker-node-hovered", this._currentNode);
     };
 
     this._tabActor.window.focus();
@@ -285,6 +349,8 @@ let HighlighterActor = exports.HighlighterActor = protocol.ActorClass({
     target.addEventListener("mousedown", this._preventContentEvent, true);
     target.addEventListener("mouseup", this._preventContentEvent, true);
     target.addEventListener("dblclick", this._preventContentEvent, true);
+    target.addEventListener("keydown", this._onKey, true);
+    target.addEventListener("keyup", this._preventContentEvent, true);
   },
 
   _stopPickerListeners: function() {
@@ -294,6 +360,8 @@ let HighlighterActor = exports.HighlighterActor = protocol.ActorClass({
     target.removeEventListener("mousedown", this._preventContentEvent, true);
     target.removeEventListener("mouseup", this._preventContentEvent, true);
     target.removeEventListener("dblclick", this._preventContentEvent, true);
+    target.removeEventListener("keydown", this._onKey, true);
+    target.removeEventListener("keyup", this._preventContentEvent, true);
   },
 
   _highlighterReady: function() {
