@@ -292,10 +292,12 @@ ReadingListImpl.prototype = {
 
 
 
-  addItemFromBrowser: Task.async(function* (browser) {
+
+
+  addItemFromBrowser: Task.async(function* (browser, url) {
     let metadata = yield getMetadataFromBrowser(browser);
     let itemData = {
-      url: browser.currentURI,
+      url: url,
       title: metadata.title,
       resolvedURL: metadata.url,
       excerpt: metadata.description,
