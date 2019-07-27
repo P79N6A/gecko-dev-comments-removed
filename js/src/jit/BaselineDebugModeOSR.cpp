@@ -400,7 +400,24 @@ PatchBaselineFramesForDebugMode(JSContext *cx, const Debugger::ExecutionObservab
             BaselineScript *bl = script->baselineScript();
             ICEntry::Kind kind = entry.frameKind;
 
-            if (kind == ICEntry::Kind_Op) {
+            if (kind == ICEntry::Kind_Op || kind == ICEntry::Kind_NonOp) {
+                uint8_t *retAddr;
+                if (kind == ICEntry::Kind_Op) {
+                    
+                    retAddr = bl->returnAddressForIC(bl->icEntryFromPCOffset(pcOffset));
+                } else {
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    MOZ_ASSERT(iter.baselineFrame()->isDebuggerHandlingException());
+                    retAddr = bl->returnAddressForIC(bl->anyKindICEntryFromPCOffset(pcOffset));
+                }
+
                 
                 
                 
@@ -408,9 +425,6 @@ PatchBaselineFramesForDebugMode(JSContext *cx, const Debugger::ExecutionObservab
                 
                 
                 
-                
-                
-                uint8_t *retAddr = bl->returnAddressForIC(bl->icEntryFromPCOffset(pcOffset));
                 SpewPatchBaselineFrame(prev->returnAddress(), retAddr, script, kind, pc);
                 DebugModeOSRVolatileJitFrameIterator::forwardLiveIterators(
                     cx, prev->returnAddress(), retAddr);
