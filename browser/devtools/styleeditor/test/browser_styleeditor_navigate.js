@@ -6,6 +6,7 @@
 
 
 const TESTCASE_URI = TEST_BASE_HTTPS + "simple.html";
+const NEW_URI = TEST_BASE_HTTPS + "media.html";
 
 const LINE_NO = 5;
 const COL_NO = 3;
@@ -19,20 +20,18 @@ add_task(function* () {
   info("Selecting the second editor");
   yield ui.selectStyleSheet(ui.editors[1].styleSheet, LINE_NO, COL_NO);
 
-  info("Reloading page.");
-  executeInContent("devtools:test:reload", {}, {}, false );
+  info("Navigating to another page.");
+  executeInContent("devtools:test:navigate", { location: NEW_URI }, {}, false);
 
-  info("Waiting for sheets to be loaded after reload.");
+  info("Waiting for sheets to be loaded after navigation.");
   yield ui.once("stylesheets-reset");
 
-  is(ui.editors.length, 2, "Two sheets present after reload.");
-
   info("Waiting for source editor to be ready.");
-  yield ui.editors[1].getSourceEditor();
+  yield ui.editors[0].getSourceEditor();
 
-  is(ui.selectedEditor, ui.editors[1], "second editor is selected after reload");
+  is(ui.selectedEditor, ui.editors[0], "first editor is selected");
 
   let {line, ch} = ui.selectedEditor.sourceEditor.getCursor();
-  is(line, LINE_NO, "correct line selected");
-  is(ch, COL_NO, "correct column selected");
+  is(line, 0, "first line is selected");
+  is(ch, 0, "first column is selected");
 });
