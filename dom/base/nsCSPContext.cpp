@@ -185,8 +185,9 @@ nsCSPContext::ShouldLoad(nsContentPolicyType aContentType,
       
       
       if (!isPreload) {
+        nsCOMPtr<nsIURI> originalURI = do_QueryInterface(aExtra);
         this->AsyncReportViolation(aContentLocation,
-                                   mSelfURI,
+                                   originalURI,   
                                    violatedDirective,
                                    p,             
                                    EmptyString(), 
@@ -418,7 +419,7 @@ nsCSPContext::GetAllowsHash(const nsAString& aContent,
       mPolicies[p]->getDirectiveStringForContentType(                          \
                         nsIContentPolicy::TYPE_ ## contentPolicyType,          \
                         violatedDirective);                                    \
-      this->AsyncReportViolation(selfISupports, mSelfURI, violatedDirective, p, \
+      this->AsyncReportViolation(selfISupports, nullptr, violatedDirective, p, \
                                  NS_LITERAL_STRING(observerTopic),             \
                                  aSourceFile, aScriptSample, aLineNum);        \
     }                                                                          \
@@ -540,6 +541,23 @@ nsCSPContext::SetRequestContext(nsIURI* aSelfURI,
   return NS_OK;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 nsresult
 nsCSPContext::SendReports(nsISupports* aBlockedContentSource,
                           nsIURI* aOriginalURI,
@@ -569,7 +587,15 @@ nsCSPContext::SendReports(nsISupports* aBlockedContentSource,
     nsCOMPtr<nsIURI> uri = do_QueryInterface(aBlockedContentSource);
     
     if (uri) {
-      uri->GetSpecIgnoringRef(reportBlockedURI);
+      
+      
+      if (aOriginalURI) {
+        
+        
+        uri->GetPrePath(reportBlockedURI);
+      } else {
+        uri->GetSpecIgnoringRef(reportBlockedURI);
+      }
     } else {
       nsCOMPtr<nsISupportsCString> cstr = do_QueryInterface(aBlockedContentSource);
       if (cstr) {
@@ -585,11 +611,9 @@ nsCSPContext::SendReports(nsISupports* aBlockedContentSource,
   }
 
   
-  if (aOriginalURI) {
-    nsAutoCString reportDocumentURI;
-    aOriginalURI->GetSpecIgnoringRef(reportDocumentURI);
-    report.mCsp_report.mDocument_uri = NS_ConvertUTF8toUTF16(reportDocumentURI);
-  }
+  nsAutoCString reportDocumentURI;
+  mSelfURI->GetSpecIgnoringRef(reportDocumentURI);
+  report.mCsp_report.mDocument_uri = NS_ConvertUTF8toUTF16(reportDocumentURI);
 
   
   nsAutoString originalPolicy;
@@ -731,7 +755,7 @@ nsCSPContext::SendReports(nsISupports* aBlockedContentSource,
 
     rv = cp->ShouldLoad(nsIContentPolicy::TYPE_CSP_REPORT,
                         reportURI,
-                        aOriginalURI,
+                        mSelfURI,
                         nullptr,        
                         EmptyCString(), 
                         nullptr,        
@@ -1047,7 +1071,7 @@ nsCSPContext::PermitsAncestry(nsIDocShell* aDocShell, bool* outPermitsAncestry)
         bool okToSendAncestor = NS_SecurityCompareURIs(ancestorsArray[a], mSelfURI, true);
 
         this->AsyncReportViolation((okToSendAncestor ? ancestorsArray[a] : nullptr),
-                                   mSelfURI,
+                                   nullptr,       
                                    violatedDirective,
                                    i,             
                                    EmptyString(), 
@@ -1080,7 +1104,7 @@ nsCSPContext::PermitsBaseURI(nsIURI* aURI, bool* outPermitsBaseURI)
       nsAutoString violatedDirective;
       mPolicies[i]->getDirectiveStringForBaseURI(violatedDirective);
       this->AsyncReportViolation(aURI,
-                                 mSelfURI,
+                                 nullptr,       
                                  violatedDirective,
                                  i,             
                                  EmptyString(), 
