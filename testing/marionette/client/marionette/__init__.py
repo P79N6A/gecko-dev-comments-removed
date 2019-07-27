@@ -2,6 +2,10 @@
 
 
 
+
+__version__ = '0.16'
+
+
 from .marionette_test import MarionetteTestCase, MarionetteJSTestCase, CommonTestCase, expectedFailure, skip, SkipTest
 from .runner import (
         B2GTestCaseMixin,
