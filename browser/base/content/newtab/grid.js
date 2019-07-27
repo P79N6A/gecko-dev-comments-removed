@@ -7,7 +7,7 @@
 
 
 
-const GRID_BOTTOM_EXTRA = 4; 
+const GRID_BOTTOM_EXTRA = 7; 
 const GRID_WIDTH_EXTRA = 1; 
 
 
@@ -203,7 +203,6 @@ let gGrid = {
     }
 
     let availSpace = document.documentElement.clientHeight - this._cellMargin -
-                     document.querySelector("#newtab-margin-undo-container").offsetHeight -
                      document.querySelector("#newtab-search-container").offsetHeight;
     let visibleRows = Math.floor(availSpace / this._cellHeight);
     this._node.style.height = this._computeHeight() + "px";
