@@ -13,8 +13,11 @@
 
 #include "jstypes.h"
 
+#include "js/Date.h"
 #include "js/RootingAPI.h"
 #include "js/TypeDecls.h"
+
+#include "vm/DateTime.h"
 
 namespace js {
 
@@ -26,8 +29,8 @@ namespace js {
 
 
 
-extern JS_FRIEND_API(JSObject*)
-NewDateObjectMsec(JSContext* cx, double msec_time);
+extern JSObject*
+NewDateObjectMsec(JSContext* cx, JS::ClippedTime t);
 
 
 

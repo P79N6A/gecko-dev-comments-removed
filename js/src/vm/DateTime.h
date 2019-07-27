@@ -39,19 +39,6 @@ const unsigned SecondsPerDay = SecondsPerHour * 24;
 
 const double StartOfTime = -8.64e15;
 const double EndOfTime = 8.64e15;
-const double MaxTimeMagnitude = 8.64e15;
-
-
-inline double
-TimeClip(double time)
-{
-    
-    if (!mozilla::IsFinite(time) || mozilla::Abs(time) > MaxTimeMagnitude)
-        return JS::GenericNaN();
-
-    
-    return JS::ToInteger(time + (+0.0));
-}
 
 
 

@@ -9,6 +9,7 @@
 
 #include "jsobj.h"
 
+#include "js/Date.h"
 #include "js/Value.h"
 
 namespace js {
@@ -46,8 +47,8 @@ class DateObject : public NativeObject
     }
 
     
-    void setUTCTime(double t);
-    void setUTCTime(double t, MutableHandleValue vp);
+    void setUTCTime(JS::ClippedTime t);
+    void setUTCTime(JS::ClippedTime t, MutableHandleValue vp);
 
     inline double cachedLocalTime(DateTimeInfo* dtInfo);
 
