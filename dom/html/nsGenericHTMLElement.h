@@ -1334,15 +1334,21 @@ public:
   
 
 
+
+
+
+
+  void ForgetFieldSet(nsIContent* aFieldset);
+
+  
+
+
   bool CanBeDisabled() const;
 
   virtual bool IsHTMLFocusable(bool aWithMouse, bool* aIsFocusable,
                                  int32_t* aTabIndex) override;
 
   virtual bool IsLabelable() const override;
-
-private:
-  void ClearFieldSet();
 
 protected:
   virtual ~nsGenericHTMLFormElement();
@@ -1413,7 +1419,7 @@ protected:
   nsRefPtr<mozilla::dom::HTMLFormElement> mForm;
 
   
-  nsRefPtr<mozilla::dom::HTMLFieldSetElement> mFieldSet;
+  mozilla::dom::HTMLFieldSetElement* mFieldSet;
 };
 
 class nsGenericHTMLFormElementWithState : public nsGenericHTMLFormElement
