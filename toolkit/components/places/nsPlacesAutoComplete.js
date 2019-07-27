@@ -345,6 +345,10 @@ function nsPlacesAutoComplete()
     return db;
   });
 
+  this._customQuery = (conditions = "") => {
+    return this._db.createAsyncStatement(baseQuery(conditions));
+  };
+
   XPCOMUtils.defineLazyGetter(this, "_defaultQuery", function() {
     return this._db.createAsyncStatement(baseQuery());
   });
@@ -463,6 +467,7 @@ function nsPlacesAutoComplete()
   this._prefs = Cc["@mozilla.org/preferences-service;1"].
                 getService(Ci.nsIPrefService).
                 getBranch(kBrowserUrlbarBranch);
+  this._syncEnabledPref(true);
   this._loadPrefs(true);
 
   
@@ -526,8 +531,13 @@ nsPlacesAutoComplete.prototype = {
     let {query, tokens} =
       this._getSearch(this._getUnfilteredSearchTokens(this._currentSearchString));
     let queries = tokens.length ?
-      [this._getBoundKeywordQuery(tokens), this._getBoundAdaptiveQuery(), this._getBoundOpenPagesQuery(tokens), query] :
-      [this._getBoundAdaptiveQuery(), this._getBoundOpenPagesQuery(tokens), query];
+      [this._getBoundKeywordQuery(tokens), this._getBoundAdaptiveQuery()] :
+      [this._getBoundAdaptiveQuery()];
+
+    if (this._hasBehavior("openpage")) {
+      queries.push(this._getBoundOpenPagesQuery(tokens));
+    }
+    queries.push(query);
 
     
     this._telemetryStartTime = Date.now();
@@ -688,7 +698,7 @@ nsPlacesAutoComplete.prototype = {
       }
     }
     else if (aTopic == kPrefChanged) {
-      this._loadPrefs();
+      this._loadPrefs(aSubject, aTopic, aData);
     }
   },
 
@@ -799,11 +809,49 @@ nsPlacesAutoComplete.prototype = {
   
 
 
+  _syncEnabledPref: function PAC_syncEnabledPref(init = false)
+  {
+    let suggestPrefs = ["suggest.history", "suggest.bookmark", "suggest.openpage"];
+    let types = ["History", "Bookmark", "Openpage", "Typed"];
+
+    if (init) {
+      
+      this._enabled = safePrefGetter(this._prefs, kBrowserUrlbarAutocompleteEnabledPref,
+                                     true);
+      this._suggestHistory = safePrefGetter(this._prefs, "suggest.history", true);
+      this._suggestBookmark = safePrefGetter(this._prefs, "suggest.bookmark", true);
+      this._suggestOpenpage = safePrefGetter(this._prefs, "suggest.openpage", true);
+      this._suggestTyped = safePrefGetter(this._prefs, "suggest.history.onlyTyped", false);
+    }
+
+    if (this._enabled) {
+      
+      
+      if (types.every(type => this["_suggest" + type] == false)) {
+        for (let type of suggestPrefs) {
+          this._prefs.setBoolPref(type, true);
+        }
+      }
+    } else {
+      
+      for (let type of suggestPrefs) {
+        this._prefs.setBoolPref(type, false);
+      }
+    }
+  },
+
+  
 
 
 
 
-  _loadPrefs: function PAC_loadPrefs(aRegisterObserver)
+
+
+
+
+
+
+  _loadPrefs: function PAC_loadPrefs(aRegisterObserver, aTopic, aData)
   {
     this._enabled = safePrefGetter(this._prefs,
                                    kBrowserUrlbarAutocompleteEnabledPref,
@@ -823,13 +871,36 @@ nsPlacesAutoComplete.prototype = {
                                                  "restrict.openpage", "%");
     this._matchTitleToken = safePrefGetter(this._prefs, "match.title", "#");
     this._matchURLToken = safePrefGetter(this._prefs, "match.url", "@");
-    this._defaultBehavior = safePrefGetter(this._prefs, "default.behavior", 0);
+
+    this._suggestHistory = safePrefGetter(this._prefs, "suggest.history", true);
+    this._suggestBookmark = safePrefGetter(this._prefs, "suggest.bookmark", true);
+    this._suggestOpenpage = safePrefGetter(this._prefs, "suggest.openpage", true);
+    this._suggestTyped = safePrefGetter(this._prefs, "suggest.history.onlyTyped", false);
+
     
-    this._emptySearchDefaultBehavior =
-      this._defaultBehavior |
-      safePrefGetter(this._prefs, "default.behavior.emptyRestriction",
-                     Ci.mozIPlacesAutoComplete.BEHAVIOR_HISTORY |
-                     Ci.mozIPlacesAutoComplete.BEHAVIOR_TYPED);
+    if (!this._suggestHistory) {
+      this._suggestTyped = false;
+    }
+    let types = ["History", "Bookmark", "Openpage", "Typed"];
+    this._defaultBehavior = types.reduce((memo, type) => {
+      let prefValue = this["_suggest" + type];
+      return memo | (prefValue &&
+                     Ci.mozIPlacesAutoComplete["BEHAVIOR_" + type.toUpperCase()]);
+    }, 0);
+
+    
+    
+    
+    
+    this._emptySearchDefaultBehavior = Ci.mozIPlacesAutoComplete.BEHAVIOR_RESTRICT;
+    if (this._suggestHistory) {
+      this._emptySearchDefaultBehavior |= Ci.mozIPlacesAutoComplete.BEHAVIOR_HISTORY |
+                                          Ci.mozIPlacesAutoComplete.BEHAVIOR_TYPED;
+    } else if (this._suggestBookmark) {
+      this._emptySearchDefaultBehavior |= Ci.mozIPlacesAutoComplete.BEHAVIOR_BOOKMARK;
+    } else {
+      this._emptySearchDefaultBehavior |= Ci.mozIPlacesAutoComplete.BEHAVIOR_OPENPAGE;
+    }
 
     
     if (this._matchBehavior != MATCH_ANYWHERE &&
@@ -840,6 +911,12 @@ nsPlacesAutoComplete.prototype = {
     
     if (aRegisterObserver) {
       this._prefs.addObserver("", this, false);
+    }
+
+    
+    
+    if (aData == kBrowserUrlbarAutocompleteEnabledPref) {
+      this._syncEnabledPref();
     }
   },
 
@@ -856,33 +933,43 @@ nsPlacesAutoComplete.prototype = {
 
   _getSearch: function PAC_getSearch(aTokens)
   {
+    let foundToken = false;
+    let restrict = (behavior) => {
+      if (!foundToken) {
+        this._behavior = 0;
+        this._setBehavior("restrict");
+        foundToken = true;
+      }
+      this._setBehavior(behavior);
+    };
+
     
     
     for (let i = aTokens.length - 1; i >= 0; i--) {
       switch (aTokens[i]) {
         case this._restrictHistoryToken:
-          this._setBehavior("history");
+          restrict("history");
           break;
         case this._restrictBookmarkToken:
-          this._setBehavior("bookmark");
+          restrict("bookmark");
           break;
         case this._restrictTagToken:
-          this._setBehavior("tag");
+          restrict("tag");
           break;
         case this._restrictOpenPageToken:
           if (!this._enableActions) {
             continue;
           }
-          this._setBehavior("openpage");
+          restrict("openpage");
           break;
         case this._matchTitleToken:
-          this._setBehavior("title");
+          restrict("title");
           break;
         case this._matchURLToken:
-          this._setBehavior("url");
+          restrict("url");
           break;
         case this._restrictTypedToken:
-          this._setBehavior("typed");
+          restrict("typed");
           break;
         default:
           
@@ -909,6 +996,38 @@ nsPlacesAutoComplete.prototype = {
 
 
 
+  _getSuggestionPrefQuery: function PAC_getSuggestionPrefQuery()
+  {
+    if (!this._hasBehavior("restrict") && this._hasBehavior("history") &&
+        this._hasBehavior("bookmark")) {
+      return this._hasBehavior("typed") ? this._customQuery("AND h.typed = 1")
+                                        : this._defaultQuery;
+    }
+    let conditions = [];
+    if (this._hasBehavior("history")) {
+      
+      
+      
+      conditions.push("+h.visit_count > 0");
+    }
+    if (this._hasBehavior("typed")) {
+      conditions.push("h.typed = 1");
+    }
+    if (this._hasBehavior("bookmark")) {
+      conditions.push("bookmarked");
+    }
+    if (this._hasBehavior("tag")) {
+      conditions.push("tags NOTNULL");
+    }
+
+    return conditions.length ? this._customQuery("AND " + conditions.join(" AND "))
+                             : this._defaultQuery;
+  },
+
+  
+
+
+
 
 
 
@@ -922,17 +1041,7 @@ nsPlacesAutoComplete.prototype = {
   _getBoundSearchQuery: function PAC_getBoundSearchQuery(aMatchBehavior,
                                                          aTokens)
   {
-    
-    
-    
-    
-    
-    
-    let query = this._hasBehavior("tag") ? this._tagsQuery :
-                this._hasBehavior("bookmark") ? this._bookmarkQuery :
-                this._hasBehavior("typed") ? this._typedQuery :
-                this._hasBehavior("history") ? this._historyQuery :
-                this._defaultQuery;
+    let query = this._getSuggestionPrefQuery();
 
     
     let (params = query.params) {
@@ -1046,7 +1155,7 @@ nsPlacesAutoComplete.prototype = {
 
     
     
-    let [url, action] = this._enableActions && openPageCount > 0 ?
+    let [url, action] = this._enableActions && openPageCount > 0 && this._hasBehavior("openpage") ?
                         ["moz-action:switchtab," + escapedEntryURL, "action "] :
                         [escapedEntryURL, ""];
 
@@ -1083,8 +1192,8 @@ nsPlacesAutoComplete.prototype = {
 
     
     
-    if (this._hasBehavior("history") &&
-        !(this._hasBehavior("bookmark") || this._hasBehavior("tag"))) {
+    if (this._hasBehavior("history") && !this._hasBehavior("bookmark") &&
+        !showTags) {
       showTags = false;
       style = "favicon";
     }
@@ -1432,7 +1541,9 @@ urlInlineComplete.prototype = {
     let query = this._urlQuery;
     let (params = query.params) {
       params.matchBehavior = MATCH_BEGINNING_CASE_SENSITIVE;
-      params.searchBehavior = Ci.mozIPlacesAutoComplete["BEHAVIOR_URL"];
+      params.searchBehavior |= Ci.mozIPlacesAutoComplete.BEHAVIOR_HISTORY |
+                               Ci.mozIPlacesAutoComplete.BEHAVIOR_TYPED |
+                               Ci.mozIPlacesAutoComplete.BEHAVIOR_URL;
       params.searchString = this._currentSearchString;
     }
 

@@ -246,8 +246,10 @@ function task_addPageBook(aURI, aTitle, aBook, aTags, aKey, aTransitionType, aNo
 function run_test() {
   print("\n");
   
-  prefs.setIntPref("browser.urlbar.search.sources", 3);
-  prefs.setIntPref("browser.urlbar.default.behavior", 0);
+  prefs.setBoolPref("browser.urlbar.suggest.history", true);
+  prefs.setBoolPref("browser.urlbar.suggest.bookmark", true);
+  prefs.setBoolPref("browser.urlbar.suggest.openpage", true);
+  prefs.setBoolPref("browser.urlbar.suggest.history.onlyTyped", false);
 
   
   do_test_pending();
