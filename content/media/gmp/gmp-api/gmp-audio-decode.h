@@ -35,6 +35,10 @@ public:
   virtual void DrainComplete() = 0;
 
   virtual void ResetComplete() = 0;
+
+  
+  
+  virtual void Error(GMPErr aError) = 0;
 };
 
 
@@ -46,24 +50,24 @@ public:
   
   
   
-  virtual GMPErr InitDecode(const GMPAudioCodec& aCodecSettings,
-                            GMPAudioDecoderCallback* aCallback) = 0;
+  virtual void InitDecode(const GMPAudioCodec& aCodecSettings,
+                          GMPAudioDecoderCallback* aCallback) = 0;
 
   
   
-  virtual GMPErr Decode(GMPAudioSamples* aEncodedSamples) = 0;
-
-  
-  
-  
-  
-  virtual GMPErr Reset() = 0;
+  virtual void Decode(GMPAudioSamples* aEncodedSamples) = 0;
 
   
   
   
   
-  virtual GMPErr Drain() = 0;
+  virtual void Reset() = 0;
+
+  
+  
+  
+  
+  virtual void Drain() = 0;
 
   
   virtual void DecodingComplete() = 0;

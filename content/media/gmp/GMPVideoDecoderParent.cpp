@@ -267,6 +267,19 @@ GMPVideoDecoderParent::RecvResetComplete()
 }
 
 bool
+GMPVideoDecoderParent::RecvError(const GMPErr& aError)
+{
+  if (!mCallback) {
+    return false;
+  }
+
+  
+  mCallback->Error(aError);
+
+  return true;
+}
+
+bool
 GMPVideoDecoderParent::RecvParentShmemForPool(Shmem& aEncodedBuffer)
 {
   if (aEncodedBuffer.IsWritable()) {

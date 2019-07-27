@@ -57,6 +57,10 @@ public:
   virtual void DrainComplete() = 0;
 
   virtual void ResetComplete() = 0;
+
+  
+  
+  virtual void Error(GMPErr aError) = 0;
 };
 
 
@@ -72,11 +76,11 @@ public:
   
   
   
-  virtual GMPErr InitDecode(const GMPVideoCodec& aCodecSettings,
-                            const uint8_t* aCodecSpecific,
-                            uint32_t aCodecSpecificLength,
-                            GMPVideoDecoderCallback* aCallback,
-                            int32_t aCoreCount) = 0;
+  virtual void InitDecode(const GMPVideoCodec& aCodecSettings,
+                          const uint8_t* aCodecSpecific,
+                          uint32_t aCodecSpecificLength,
+                          GMPVideoDecoderCallback* aCallback,
+                          int32_t aCoreCount) = 0;
 
   
   
@@ -90,23 +94,23 @@ public:
   
   
   
-  virtual GMPErr Decode(GMPVideoEncodedFrame* aInputFrame,
-                        bool aMissingFrames,
-                        const uint8_t* aCodecSpecificInfo,
-                        uint32_t aCodecSpecificInfoLength,
-                        int64_t aRenderTimeMs = -1) = 0;
+  virtual void Decode(GMPVideoEncodedFrame* aInputFrame,
+                      bool aMissingFrames,
+                      const uint8_t* aCodecSpecificInfo,
+                      uint32_t aCodecSpecificInfoLength,
+                      int64_t aRenderTimeMs = -1) = 0;
 
   
   
   
   
-  virtual GMPErr Reset() = 0;
+  virtual void Reset() = 0;
 
   
   
   
   
-  virtual GMPErr Drain() = 0;
+  virtual void Drain() = 0;
 
   
   virtual void DecodingComplete() = 0;

@@ -51,6 +51,10 @@ public:
   virtual void Encoded(GMPVideoEncodedFrame* aEncodedFrame,
                        const uint8_t* aCodecSpecificInfo,
                        uint32_t aCodecSpecificInfoLength) = 0;
+
+  
+  
+  virtual void Error(GMPErr aError) = 0;
 };
 
 
@@ -72,12 +76,12 @@ public:
   
   
   
-  virtual GMPErr InitEncode(const GMPVideoCodec& aCodecSettings,
-                            const uint8_t* aCodecSpecific,
-                            uint32_t aCodecSpecificLength,
-                            GMPVideoEncoderCallback* aCallback,
-                            int32_t aNumberOfCores,
-                            uint32_t aMaxPayloadSize) = 0;
+  virtual void InitEncode(const GMPVideoCodec& aCodecSettings,
+                          const uint8_t* aCodecSpecific,
+                          uint32_t aCodecSpecificLength,
+                          GMPVideoEncoderCallback* aCallback,
+                          int32_t aNumberOfCores,
+                          uint32_t aMaxPayloadSize) = 0;
 
   
   
@@ -90,11 +94,11 @@ public:
   
   
   
-  virtual GMPErr Encode(GMPVideoi420Frame* aInputFrame,
-                        const uint8_t* aCodecSpecificInfo,
-                        uint32_t aCodecSpecificInfoLength,
-                        const GMPVideoFrameType* aFrameTypes,
-                        uint32_t aFrameTypesLength) = 0;
+  virtual void Encode(GMPVideoi420Frame* aInputFrame,
+                      const uint8_t* aCodecSpecificInfo,
+                      uint32_t aCodecSpecificInfoLength,
+                      const GMPVideoFrameType* aFrameTypes,
+                      uint32_t aFrameTypesLength) = 0;
 
   
   
@@ -102,19 +106,19 @@ public:
   
   
   
-  virtual GMPErr SetChannelParameters(uint32_t aPacketLoss, uint32_t aRTT) = 0;
+  virtual void SetChannelParameters(uint32_t aPacketLoss, uint32_t aRTT) = 0;
 
   
   
   
   
-  virtual GMPErr SetRates(uint32_t aNewBitRate, uint32_t aFrameRate) = 0;
+  virtual void SetRates(uint32_t aNewBitRate, uint32_t aFrameRate) = 0;
 
   
   
   
   
-  virtual GMPErr SetPeriodicKeyFrames(bool aEnable) = 0;
+  virtual void SetPeriodicKeyFrames(bool aEnable) = 0;
 
   
   virtual void EncodingComplete() = 0;

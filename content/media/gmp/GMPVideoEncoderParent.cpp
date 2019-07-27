@@ -220,6 +220,19 @@ GMPVideoEncoderParent::RecvEncoded(const GMPVideoEncodedFrameData& aEncodedFrame
 }
 
 bool
+GMPVideoEncoderParent::RecvError(const GMPErr& aError)
+{
+  if (!mCallback) {
+    return false;
+  }
+
+  
+  mCallback->Error(aError);
+
+  return true;
+}
+
+bool
 GMPVideoEncoderParent::RecvParentShmemForPool(Shmem& aFrameBuffer)
 {
   if (aFrameBuffer.IsWritable()) {
