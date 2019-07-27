@@ -1011,6 +1011,7 @@ public:
 
 protected:
   virtual ~MediaDecoder();
+  void SetStateMachineParameters();
 
   
 
