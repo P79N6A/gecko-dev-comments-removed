@@ -5,9 +5,6 @@
 
 
 function run_test() {
-  
-  DEBUG_AUS_TEST = true;
-
   if (!shouldRunServiceTest()) {
     return;
   }
@@ -36,5 +33,6 @@ function checkUpdateFinished() {
 
 function checkUpdateApplied() {
   checkFilesAfterUpdateSuccess(getApplyDirFile, false, false);
+  standardInit();
   checkCallbackAppLog();
 }

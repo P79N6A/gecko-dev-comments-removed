@@ -6,9 +6,6 @@
 
 
 function run_test() {
-  
-  DEBUG_AUS_TEST = true;
-
   if (!shouldRunServiceTest()) {
     return;
   }
@@ -66,5 +63,6 @@ function checkUpdateApplied() {
 function checkUpdate() {
   checkFilesAfterUpdateFailure(getApplyDirFile, true, false);
   checkUpdateLogContains(ERR_RENAME_FILE);
+  standardInit();
   checkCallbackAppLog();
 }

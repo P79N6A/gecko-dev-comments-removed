@@ -114,13 +114,19 @@
 
 
 
+
+
+
+
+
+
 'use strict';
 
 const { classes: Cc, interfaces: Ci, manager: Cm, results: Cr,
         utils: Cu } = Components;
 
-Cu.import("resource://gre/modules/AddonManager.jsm");
-Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/AddonManager.jsm", this);
+Cu.import("resource://gre/modules/Services.jsm", this);
 
 const IS_MACOSX = ("nsILocalFileMac" in Ci);
 
@@ -150,6 +156,8 @@ const UPDATE_WINDOW_NAME = "Update:Wizard";
 const URL_HOST = "http://example.com";
 const URL_PATH_UPDATE_XML = "/chrome/toolkit/mozapps/update/tests/chrome/update.sjs";
 const REL_PATH_DATA = "chrome/toolkit/mozapps/update/tests/data";
+
+
 
 const URL_HTTP_UPDATE_XML = URL_HOST + URL_PATH_UPDATE_XML;
 const URL_HTTPS_UPDATE_XML = "https://example.com" + URL_PATH_UPDATE_XML;
@@ -202,6 +210,8 @@ var gWin;
 var gDocElem;
 var gPrefToCheck;
 var gDisableNoUpdateAddon = false;
+var gDisableUpdateCompatibilityAddon = false;
+var gDisableUpdateVersionAddon = false;
 
 
 
@@ -1125,21 +1135,27 @@ function setupAddons(aCallback) {
   function setNoUpdateAddonsDisabledState() {
     AddonManager.getAllAddons(function(aAddons) {
       aAddons.forEach(function(aAddon) {
-        if (aAddon.name.indexOf("appdisabled") == 0) {
+        if (aAddon.name.startsWith("appdisabled")) {
           if (!aAddon.userDisabled) {
             aAddon.userDisabled = true;
           }
         }
 
-        if (aAddon.name.indexOf("noupdate") == 0) {
-          if (gDisableNoUpdateAddon) {
-            if (!aAddon.userDisabled) {
-              aAddon.userDisabled = true;
-            }
-          } else {
-            if (aAddon.userDisabled) {
-              aAddon.userDisabled = false;
-            }
+        if (aAddon.name.startsWith("noupdate")) {
+          if (aAddon.userDisabled != gDisableNoUpdateAddon) {
+            aAddon.userDisabled = gDisableNoUpdateAddon;
+          }
+        }
+
+        if (aAddon.name.startsWith("updatecompatibility")) {
+          if (aAddon.userDisabled != gDisableUpdateCompatibilityAddon) {
+            aAddon.userDisabled = gDisableUpdateCompatibilityAddon;
+          }
+        }
+
+        if (aAddon.name.startsWith("updateversion")) {
+          if (aAddon.userDisabled != gDisableUpdateVersionAddon) {
+            aAddon.userDisabled = gDisableUpdateVersionAddon;
           }
         }
       });

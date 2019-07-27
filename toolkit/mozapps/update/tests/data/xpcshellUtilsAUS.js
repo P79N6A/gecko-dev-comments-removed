@@ -9,7 +9,8 @@ const { classes: Cc, interfaces: Ci, manager: Cm, results: Cr,
 
 load("../data/xpcshellConstantsPP.js");
 
-Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/Services.jsm", this);
+Cu.import("resource://gre/modules/ctypes.jsm", this);
 
 const DIR_MACOS = IS_MACOSX ? "Contents/MacOS/" : "";
 const DIR_RESOURCES = IS_MACOSX ? "Contents/Resources/" : "";
@@ -1196,7 +1197,6 @@ function getSpecialFolderDir(aCSIDL) {
     do_throw("Windows only function called by a different platform!");
   }
 
-  Cu.import("resource://gre/modules/ctypes.jsm");
   let lib = ctypes.open("shell32");
   let SHGetSpecialFolderPath = lib.declare("SHGetSpecialFolderPathW",
                                            ctypes.winapi_abi,
@@ -1531,8 +1531,13 @@ function runUpdate(aExpectedExitValue, aExpectedStatus, aCallback) {
     }
     let updateLog = getUpdatesPatchDir();
     updateLog.append(FILE_UPDATE_LOG);
-    logTestInfo("contents of " + updateLog.path + ":\n" +
-                readFileBytes(updateLog).replace(/\r\n/g, "\n"));
+    
+    let contents = readFileBytes(updateLog).replace(/\r\n/g, "\n");
+    let aryLogContents = contents.split("\n");
+    logTestInfo("contents of " + updateLog.path + ":");
+    aryLogContents.forEach(function RU_LC_FE(aLine) {
+      logTestInfo(aLine);
+    });
   }
   debugDump("testing updater binary process exitValue against expected " +
             "exit value");
@@ -2075,7 +2080,7 @@ function runUpdateUsingService(aInitialStatus, aExpectedStatus, aCheckSvcLog) {
 
   function timerCallback(aTimer) {
     
-    let status = readStatusState();
+    let status = readStatusFile();
     
     
     
@@ -2098,8 +2103,13 @@ function runUpdateUsingService(aInitialStatus, aExpectedStatus, aCheckSvcLog) {
       logTestInfo("update.status contents: " + readStatusFile());
       let updateLog = getUpdatesPatchDir();
       updateLog.append(FILE_UPDATE_LOG);
-      logTestInfo("contents of " + updateLog.path + ":\n" +
-                  readFileBytes(updateLog).replace(/\r\n/g, "\n"));
+      
+      let contents = readFileBytes(updateLog).replace(/\r\n/g, "\n");
+      let aryLogContents = contents.split("\n");
+      logTestInfo("contents of " + updateLog.path + ":");
+      aryLogContents.forEach(function RUUS_TC_LC_FE(aLine) {
+        logTestInfo(aLine);
+      });
     }
     debugDump("testing update status against expected status");
     do_check_eq(status, aExpectedStatus);
@@ -2470,7 +2480,22 @@ function checkUpdateLogContents(aCompareLogFile, aExcludeDistributionDir) {
     do_check_true(true);
   } else {
     logTestInfo("log contents are not correct");
-    do_check_eq(compareLogContents, updateLogContents);
+    let aryLog = updateLogContents.split("\n");
+    let aryCompare = compareLogContents.split("\n");
+    
+    
+    aryLog.push("");
+    aryCompare.push("");
+    
+    
+    for (let i = 0; i < aryLog.length; ++i) {
+      if (aryCompare[i] != aryLog[i]) {
+        logTestInfo("the first incorrect line in the log is: " + aryLog[i]);
+        do_check_eq(aryCompare[i], aryLog[i]);
+      }
+    }
+    
+    do_throw("Unable to find incorrect log contents!");
   }
 }
 
@@ -2489,7 +2514,6 @@ function checkUpdateLogContains(aCheckString) {
     do_check_true(true);
   } else {
     logTestInfo("log file does not contain: " + aCheckString);
-    logTestInfo("log file contents:\n" + updateLogContents);
     do_check_true(false);
   }
 }

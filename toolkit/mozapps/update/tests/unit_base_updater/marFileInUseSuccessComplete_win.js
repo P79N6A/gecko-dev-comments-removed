@@ -5,9 +5,6 @@
 
 
 function run_test() {
-  
-  DEBUG_AUS_TEST = true;
-
   setupTestCommon();
   gTestFiles = gTestFilesCompleteSuccess;
   gTestDirs = gTestDirsCompleteSuccess;
@@ -37,5 +34,6 @@ function checkUpdateApplied() {
 function checkUpdate() {
   checkFilesAfterUpdateSuccess(getApplyDirFile, false, true);
   checkUpdateLogContains(ERR_BACKUP_DISCARD);
+  standardInit();
   checkCallbackAppLog();
 }

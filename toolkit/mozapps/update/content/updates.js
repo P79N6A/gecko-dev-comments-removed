@@ -5,15 +5,14 @@
 
 'use strict';
 
-Components.utils.import("resource://gre/modules/DownloadUtils.jsm");
-Components.utils.import("resource://gre/modules/AddonManager.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
 
 
+const {classes: CoC, interfaces: CoI, results: CoR, utils: CoU} = Components;
 
-const CoC = Components.classes;
-const CoI = Components.interfaces;
-const CoR = Components.results;
+CoU.import("resource://gre/modules/DownloadUtils.jsm", this);
+CoU.import("resource://gre/modules/AddonManager.jsm", this);
+CoU.import("resource://gre/modules/Services.jsm", this);
+CoU.import("resource://gre/modules/UpdateTelemetry.jsm", this);
 
 const XMLNS_XUL = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
@@ -22,15 +21,16 @@ const PREF_APP_UPDATE_BILLBOARD_TEST_URL  = "app.update.billboard.test_url";
 const PREF_APP_UPDATE_CERT_ERRORS         = "app.update.cert.errors";
 const PREF_APP_UPDATE_ENABLED             = "app.update.enabled";
 const PREF_APP_UPDATE_LOG                 = "app.update.log";
-const PREF_APP_UPDATE_MANUAL_URL          = "app.update.url.manual";
-const PREF_APP_UPDATE_NEVER_BRANCH        = "app.update.never.";
 const PREF_APP_UPDATE_NOTIFIEDUNSUPPORTED = "app.update.notifiedUnsupported";
 const PREF_APP_UPDATE_TEST_LOOP           = "app.update.test.loop";
-const PREF_PLUGINS_UPDATEURL              = "plugins.update.url";
+const PREF_APP_UPDATE_URL_MANUAL          = "app.update.url.manual";
+
+const PREFBRANCH_APP_UPDATE_NEVER         = "app.update.never.";
 
 const PREF_EM_HOTFIX_ID                   = "extensions.hotfix.id";
+const PREF_PLUGINS_UPDATE_URL             = "plugins.update.url";
 
-const UPDATE_TEST_LOOP_INTERVAL     = 2000;
+const UPDATE_TEST_LOOP_INTERVAL = 2000;
 
 const URI_UPDATES_PROPERTIES  = "chrome://mozapps/locale/update/updates.properties";
 
@@ -149,34 +149,8 @@ var gUpdates = {
 
 
 
-
-  _sendLastPageCodePing: function(pageID) {
-    var pageMap = { invalid: 0,
-                    dummy: 1,
-                    checking: 2,
-                    pluginupdatesfound: 3,
-                    noupdatesfound: 4,
-                    manualUpdate: 5,
-                    unsupported: 6,
-                    incompatibleCheck: 7,
-                    updatesfoundbasic: 8,
-                    updatesfoundbillboard: 9,
-                    license: 10,
-                    incompatibleList: 11,
-                    downloading: 12,
-                    errors: 13,
-                    errorextra: 14,
-                    errorpatching: 15,
-                    finished: 16,
-                    finishedBackground: 17,
-                    installed: 18 };
-    try {
-      Services.telemetry.getHistogramById("UPDATER_WIZ_LAST_PAGE_CODE").
-        add(pageMap[pageID] || pageMap.invalid);
-    }
-    catch (e) {
-      Components.utils.reportError(e);
-    }
+  _submitTelemetry: function(aPageID) {
+    AUSTLMY.pingWizLastPageCode(aPageID);
   },
 
   
@@ -269,7 +243,7 @@ var gUpdates = {
     
     
     
-    var neverPrefName = PREF_APP_UPDATE_NEVER_BRANCH + this.update.appVersion;
+    var neverPrefName = PREFBRANCH_APP_UPDATE_NEVER + this.update.appVersion;
     Services.prefs.setBoolPref(neverPrefName, true);
   },
 
@@ -288,7 +262,7 @@ var gUpdates = {
     var pageid = document.documentElement.currentPage.pageid;
     if ("onWizardFinish" in this._pages[pageid])
       this._pages[pageid].onWizardFinish();
-    this._sendLastPageCodePing(pageid);
+    this._submitTelemetry(pageid);
   },
 
   
@@ -300,7 +274,7 @@ var gUpdates = {
     var pageid = document.documentElement.currentPage.pageid;
     if ("onWizardCancel" in this._pages[pageid])
       this._pages[pageid].onWizardCancel();
-    this._sendLastPageCodePing(pageid);
+    this._submitTelemetry(pageid);
   },
 
   
@@ -550,7 +524,7 @@ var gUpdates = {
                        "or the findUpdates method!";
           if (addon.id)
             errMsg += " Add-on ID: " + addon.id;
-          Components.utils.reportError(errMsg);
+          CoU.reportError(errMsg);
           return;
         }
 
@@ -574,7 +548,7 @@ var gUpdates = {
             self.addons.push(addon);
         }
         catch (e) {
-          Components.utils.reportError(e);
+          CoU.reportError(e);
         }
       });
 
@@ -627,7 +601,7 @@ var gCheckingPage = {
     
     
     
-    Services.prefs.deleteBranch(PREF_APP_UPDATE_NEVER_BRANCH);
+    Services.prefs.deleteBranch(PREFBRANCH_APP_UPDATE_NEVER);
 
     
     
@@ -738,18 +712,18 @@ var gPluginsPage = {
 
 
   _url: null,
-  
+
   
 
 
   onPageShow: function() {
     var prefs = Services.prefs;
-    if (prefs.getPrefType(PREF_PLUGINS_UPDATEURL) == prefs.PREF_INVALID) {
+    if (prefs.getPrefType(PREF_PLUGINS_UPDATE_URL) == prefs.PREF_INVALID) {
       gUpdates.wiz.goTo("noupdatesfound");
       return;
     }
-    
-    this._url = Services.urlFormatter.formatURLPref(PREF_PLUGINS_UPDATEURL);
+
+    this._url = Services.urlFormatter.formatURLPref(PREF_PLUGINS_UPDATE_URL);
     var link = document.getElementById("pluginupdateslink");
     link.setAttribute("href", this._url);
 
@@ -776,7 +750,7 @@ var gPluginsPage = {
     gUpdates.setButtons(null, null, "okButton", true);
     gUpdates.wiz.getButton("finish").focus();
   },
-  
+
   
 
 
@@ -908,7 +882,7 @@ var gIncompatibleCheckPage = {
 
 var gManualUpdatePage = {
   onPageShow: function() {
-    var manualURL = Services.urlFormatter.formatURLPref(PREF_APP_UPDATE_MANUAL_URL);
+    var manualURL = Services.urlFormatter.formatURLPref(PREF_APP_UPDATE_URL_MANUAL);
     var manualUpdateLinkLabel = document.getElementById("manualUpdateLinkLabel");
     manualUpdateLinkLabel.value = manualURL;
     manualUpdateLinkLabel.setAttribute("url", manualURL);
@@ -1711,7 +1685,7 @@ var gErrorsPage = {
 
     var errorReason = document.getElementById("errorReason");
     errorReason.value = statusText;
-    var manualURL = Services.urlFormatter.formatURLPref(PREF_APP_UPDATE_MANUAL_URL);
+    var manualURL = Services.urlFormatter.formatURLPref(PREF_APP_UPDATE_URL_MANUAL);
     var errorLinkLabel = document.getElementById("errorLinkLabel");
     errorLinkLabel.value = manualURL;
     errorLinkLabel.setAttribute("url", manualURL);
@@ -1750,7 +1724,7 @@ var gErrorExtraPage = {
       }
       else
         document.getElementById("genericBackgroundErrorLabel").hidden = false;
-      var manualURL = Services.urlFormatter.formatURLPref(PREF_APP_UPDATE_MANUAL_URL);
+      var manualURL = Services.urlFormatter.formatURLPref(PREF_APP_UPDATE_URL_MANUAL);
       var errorLinkLabel = document.getElementById("errorExtraLinkLabel");
       errorLinkLabel.value = manualURL;
       errorLinkLabel.setAttribute("url", manualURL);
@@ -1773,7 +1747,7 @@ var gErrorPatchingPage = {
   onWizardNext: function() {
     switch (gUpdates.update.selectedPatch.state) {
       case STATE_PENDING:
-      case STATE_PENDING_SVC: 
+      case STATE_PENDING_SVC:
         gUpdates.wiz.goTo("finished");
         break;
       case STATE_DOWNLOADING:
