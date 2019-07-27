@@ -60,8 +60,8 @@ public:
   AnimationTimeline* Timeline() const { return mTimeline; }
   Nullable<double> GetStartTime() const;
   Nullable<double> GetCurrentTime() const;
-  void Play(UpdateFlags aUpdateFlags);
-  void Pause(UpdateFlags aUpdateFlags);
+  virtual void Play(UpdateFlags aUpdateFlags);
+  virtual void Pause(UpdateFlags aUpdateFlags);
   bool IsRunningOnCompositor() const { return mIsRunningOnCompositor; }
 
   
@@ -112,14 +112,76 @@ class CSSAnimationPlayer MOZ_FINAL : public dom::AnimationPlayer
 public:
  explicit CSSAnimationPlayer(dom::AnimationTimeline* aTimeline)
     : dom::AnimationPlayer(aTimeline)
+    , mIsStylePaused(false)
+    , mPauseShouldStick(false)
   {
   }
 
   virtual CSSAnimationPlayer*
   AsCSSAnimationPlayer() MOZ_OVERRIDE { return this; }
 
+  virtual void Play(UpdateFlags aUpdateFlags) MOZ_OVERRIDE;
+  virtual void Pause(UpdateFlags aUpdateFlags) MOZ_OVERRIDE;
+
+  void PlayFromStyle();
+  void PauseFromStyle();
+
+  bool IsStylePaused() const { return mIsStylePaused; }
+
 protected:
   virtual ~CSSAnimationPlayer() { }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  bool mIsStylePaused;
+  bool mPauseShouldStick;
 };
 
 } 

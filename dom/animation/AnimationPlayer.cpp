@@ -39,6 +39,8 @@ AnimationPlayer::Play(UpdateFlags aFlags)
 {
   
   
+  
+  
   if (!mIsPaused) {
     return;
   }
@@ -164,4 +166,40 @@ AnimationPlayer::MaybePostRestyle() const
 }
 
 } 
+
+void
+CSSAnimationPlayer::Play(UpdateFlags aUpdateFlags)
+{
+  mPauseShouldStick = false;
+  AnimationPlayer::Play(aUpdateFlags);
+}
+
+void
+CSSAnimationPlayer::Pause(UpdateFlags aUpdateFlags)
+{
+  mPauseShouldStick = true;
+  AnimationPlayer::Pause(aUpdateFlags);
+}
+
+void
+CSSAnimationPlayer::PlayFromStyle()
+{
+  mIsStylePaused = false;
+  if (!mPauseShouldStick) {
+    AnimationPlayer::Play(eNoUpdate);
+  }
+}
+
+void
+CSSAnimationPlayer::PauseFromStyle()
+{
+  
+  if (mIsStylePaused) {
+    return;
+  }
+
+  mIsStylePaused = true;
+  AnimationPlayer::Pause(eNoUpdate);
+}
+
 } 
