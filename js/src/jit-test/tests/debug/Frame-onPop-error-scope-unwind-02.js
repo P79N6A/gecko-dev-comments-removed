@@ -7,8 +7,9 @@ dbg.onEnterFrame = function (f) {
   if (f.callee && f.callee.name == "f") {
     f.onPop = function() {
       
-      correct = (f.environment.getVariable("e") === undefined &&
-                 f.environment.getVariable("outer") === 43);
+      
+      correct = (f.environment.getVariable("e") === 42 &&
+                 f.environment.getVariable("outer") === undefined);
     };
   }
 };
