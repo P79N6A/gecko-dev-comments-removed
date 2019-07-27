@@ -149,10 +149,10 @@ IsSubFunc(WebGLTexImageFunc func)
 
 
 static bool
-IsTexImageCubemapTarget(GLenum texImageTarget)
+IsTexImageCubemapTarget(GLenum target)
 {
-    return (texImageTarget >= LOCAL_GL_TEXTURE_CUBE_MAP_POSITIVE_X &&
-            texImageTarget <= LOCAL_GL_TEXTURE_CUBE_MAP_NEGATIVE_Z);
+    return (target >= LOCAL_GL_TEXTURE_CUBE_MAP_POSITIVE_X &&
+            target <= LOCAL_GL_TEXTURE_CUBE_MAP_NEGATIVE_Z);
 }
 
 
@@ -712,7 +712,7 @@ WebGLContext::ValidateTexImageType(GLenum type, WebGLTexImageFunc func)
 
 
 bool
-WebGLContext::ValidateCompTexImageSize(GLint level, GLenum format,
+WebGLContext::ValidateCompTexImageSize(GLenum target, GLint level, GLenum format,
                                        GLint xoffset, GLint yoffset,
                                        GLsizei width, GLsizei height,
                                        GLsizei levelWidth, GLsizei levelHeight,
@@ -884,7 +884,7 @@ WebGLContext::ValidateCompTexImageDataSize(GLint level, GLenum format,
 
 
 bool
-WebGLContext::ValidateTexImageSize(TexImageTarget texImageTarget, GLint level,
+WebGLContext::ValidateTexImageSize(GLenum target, GLint level,
                                    GLint width, GLint height, GLint depth,
                                    WebGLTexImageFunc func)
 {
@@ -903,8 +903,8 @@ WebGLContext::ValidateTexImageSize(TexImageTarget texImageTarget, GLint level,
     if (level > 31)
         level = 31;
 
-    const GLuint maxTexImageSize = MaxTextureSizeForTarget(TexImageTargetToTexTarget(texImageTarget)) >> level;
-    const bool isCubemapTarget = IsTexImageCubemapTarget(texImageTarget.get());
+    const GLuint maxTexImageSize = MaxTextureSizeForTarget(target) >> level;
+    const bool isCubemapTarget = IsTexImageCubemapTarget(target);
     const bool isSub = IsSubFunc(func);
 
     if (!isSub && isCubemapTarget && (width != height)) {
@@ -918,7 +918,7 @@ WebGLContext::ValidateTexImageSize(TexImageTarget texImageTarget, GLint level,
         return false;
     }
 
-    if (texImageTarget == LOCAL_GL_TEXTURE_2D || isCubemapTarget)
+    if (target == LOCAL_GL_TEXTURE_2D || isCubemapTarget)
     {
         
 
@@ -978,7 +978,7 @@ WebGLContext::ValidateTexImageSize(TexImageTarget texImageTarget, GLint level,
     }
 
     
-    if (texImageTarget == LOCAL_GL_TEXTURE_3D) {
+    if (target == LOCAL_GL_TEXTURE_3D) {
         if (depth < 0) {
             ErrorInvalidValue("%s: depth must be >= 0", InfoFrom(func));
             return false;
@@ -1308,7 +1308,7 @@ WebGLContext::ValidateCopyTexImage(GLenum format, WebGLTexImageFunc func)
 
 
 bool
-WebGLContext::ValidateTexImage(GLuint dims, TexImageTarget texImageTarget,
+WebGLContext::ValidateTexImage(GLuint dims, GLenum target,
                                GLint level, GLint internalFormat,
                                GLint xoffset, GLint yoffset, GLint zoffset,
                                GLint width, GLint height, GLint depth,
@@ -1316,6 +1316,10 @@ WebGLContext::ValidateTexImage(GLuint dims, TexImageTarget texImageTarget,
                                WebGLTexImageFunc func)
 {
     const char* info = InfoFrom(func);
+
+    
+    if (!ValidateTexImageTarget(dims, target, func))
+        return false;
 
     
     if (level < 0) {
@@ -1353,7 +1357,7 @@ WebGLContext::ValidateTexImage(GLuint dims, TexImageTarget texImageTarget,
     }
 
     
-    if (!ValidateTexImageSize(texImageTarget, level, width, height, 0, func))
+    if (!ValidateTexImageSize(target, level, width, height, 0, func))
         return false;
 
     
@@ -1361,21 +1365,21 @@ WebGLContext::ValidateTexImage(GLuint dims, TexImageTarget texImageTarget,
 
 
 
-    WebGLTexture* tex = activeBoundTextureForTexImageTarget(texImageTarget);
+    WebGLTexture* tex = activeBoundTextureForTexImageTarget(target);
     if (!tex) {
         ErrorInvalidOperation("%s: no texture is bound to target %s",
-                              info, WebGLContext::EnumName(texImageTarget.get()));
+                              info, WebGLContext::EnumName(target));
         return false;
     }
 
     if (IsSubFunc(func)) {
-        if (!tex->HasImageInfoAt(texImageTarget, level)) {
+        if (!tex->HasImageInfoAt(target, level)) {
             ErrorInvalidOperation("%s: no texture image previously defined for target %s at level %d",
-                                  info, WebGLContext::EnumName(texImageTarget.get()), level);
+                                  info, WebGLContext::EnumName(target), level);
             return false;
         }
 
-        const WebGLTexture::ImageInfo& imageInfo = tex->ImageInfoAt(texImageTarget, level);
+        const WebGLTexture::ImageInfo& imageInfo = tex->ImageInfoAt(target, level);
         if (!ValidateTexSubImageSize(xoffset, yoffset, zoffset,
                                      width, height, depth,
                                      imageInfo.Width(), imageInfo.Height(), 0,
@@ -1397,7 +1401,7 @@ WebGLContext::ValidateTexImage(GLuint dims, TexImageTarget texImageTarget,
     }
 
     
-    if (texImageTarget != LOCAL_GL_TEXTURE_2D &&
+    if (target != LOCAL_GL_TEXTURE_2D &&
         (format == LOCAL_GL_DEPTH_COMPONENT ||
          format == LOCAL_GL_DEPTH_STENCIL))
     {
