@@ -32,7 +32,7 @@ ReadStructuredCloneImageData(JSContext* aCx, JSStructuredCloneReader* aReader)
     nsRefPtr<ImageData> imageData = new ImageData(width, height,
                                                   dataArray.toObject());
     
-    if (!imageData->WrapObject(aCx, &result)) {
+    if (!imageData->WrapObject(aCx, JS::NullPtr(), &result)) {
       return nullptr;
     }
   }
