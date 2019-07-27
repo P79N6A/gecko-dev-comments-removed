@@ -206,6 +206,11 @@ class ObjectElements
     
     uint32_t length;
 
+    void staticAsserts() {
+        static_assert(sizeof(ObjectElements) == VALUES_PER_HEADER * sizeof(Value),
+                      "Elements size and values-per-Elements mismatch");
+    }
+
     bool shouldConvertDoubleElements() const {
         return flags & CONVERT_DOUBLE_ELEMENTS;
     }
@@ -249,13 +254,8 @@ class ObjectElements
 
     static bool ConvertElementsToDoubles(JSContext *cx, uintptr_t elements);
 
-    
-    
     static const size_t VALUES_PER_HEADER = 2;
 };
-
-static_assert(ObjectElements::VALUES_PER_HEADER * sizeof(HeapSlot) == sizeof(ObjectElements),
-              "ObjectElements doesn't fit in the given number of slots");
 
 
 extern HeapSlot *const emptyObjectElements;
