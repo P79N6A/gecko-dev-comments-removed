@@ -385,6 +385,10 @@ PendingLookup::IsBinaryFile()
   return
     
     
+#ifdef XP_WIN 
+    StringEndsWith(fileName, NS_LITERAL_STRING(".zip")) ||
+#endif
+    
     StringEndsWith(fileName, NS_LITERAL_STRING(".apk")) ||
     
     StringEndsWith(fileName, NS_LITERAL_STRING(".bas")) ||
@@ -404,9 +408,7 @@ PendingLookup::IsBinaryFile()
     StringEndsWith(fileName, NS_LITERAL_STRING(".app")) ||
     StringEndsWith(fileName, NS_LITERAL_STRING(".dmg")) ||
     StringEndsWith(fileName, NS_LITERAL_STRING(".osx")) ||
-    StringEndsWith(fileName, NS_LITERAL_STRING(".pkg")) ||
-    
-    StringEndsWith(fileName, NS_LITERAL_STRING(".zip"));
+    StringEndsWith(fileName, NS_LITERAL_STRING(".pkg"));
 }
 
 ClientDownloadRequest::DownloadType
