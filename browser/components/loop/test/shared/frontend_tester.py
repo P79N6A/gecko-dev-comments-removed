@@ -17,7 +17,6 @@ DEBUG = False
 
 
 
-
 class ThreadingSimpleServer(SocketServer.ThreadingMixIn,
                             BaseHTTPServer.HTTPServer):
     pass
@@ -60,6 +59,16 @@ class BaseTestFrontendUnits(MarionetteTestCase):
 
     def setUp(self):
         super(BaseTestFrontendUnits, self).setUp()
+
+        
+        
+        
+        
+        
+        
+        self.marionette.enforce_gecko_prefs({
+            "browser.tabs.remote.autostart": True
+        })
 
         
         
