@@ -994,7 +994,8 @@ nsXBLService::LoadBindingDocumentInfo(nsIContent* aBoundElement,
 
       nsCOMPtr<nsIDocument> document;
       FetchBindingDocument(aBoundElement, aBoundDocument, documentURI,
-                           aBindingURI, aForceSyncLoad, getter_AddRefs(document));
+                           aBindingURI, aOriginPrincipal, aForceSyncLoad,
+                           getter_AddRefs(document));
 
       if (document) {
         nsBindingManager *xblDocBindingManager = document->BindingManager();
@@ -1031,7 +1032,8 @@ nsXBLService::LoadBindingDocumentInfo(nsIContent* aBoundElement,
 nsresult
 nsXBLService::FetchBindingDocument(nsIContent* aBoundElement, nsIDocument* aBoundDocument,
                                    nsIURI* aDocumentURI, nsIURI* aBindingURI,
-                                   bool aForceSyncLoad, nsIDocument** aResult)
+                                   nsIPrincipal* aOriginPrincipal, bool aForceSyncLoad,
+                                   nsIDocument** aResult)
 {
   nsresult rv = NS_OK;
   
@@ -1058,8 +1060,25 @@ nsXBLService::FetchBindingDocument(nsIContent* aBoundElement, nsIDocument* aBoun
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  
+  
+  
+  
+  
+  nsCOMPtr<nsIPrincipal> requestingPrincipal = aOriginPrincipal ? aOriginPrincipal
+                                                                : nsContentUtils::GetSystemPrincipal();
   nsCOMPtr<nsIChannel> channel;
-  rv = NS_NewChannel(getter_AddRefs(channel), aDocumentURI, nullptr, loadGroup);
+  
+  
+  rv = NS_NewChannelInternal(getter_AddRefs(channel),
+                             aDocumentURI,
+                             aBoundDocument,
+                             requestingPrincipal,
+                             nsILoadInfo::SEC_NORMAL,
+                             nsIContentPolicy::TYPE_OTHER,
+                             nullptr,   
+                             loadGroup);
+
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIInterfaceRequestor> sameOriginChecker = nsContentUtils::GetSameOriginChecker();

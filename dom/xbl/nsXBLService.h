@@ -78,7 +78,8 @@ protected:
   
   nsresult FetchBindingDocument(nsIContent* aBoundElement, nsIDocument* aBoundDocument,
                                 nsIURI* aDocumentURI, nsIURI* aBindingURI,
-                                bool aForceSyncLoad, nsIDocument** aResult);
+                                nsIPrincipal* aOriginPrincipal, bool aForceSyncLoad,
+                                nsIDocument** aResult);
 
   
 
