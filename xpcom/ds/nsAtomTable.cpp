@@ -571,11 +571,6 @@ class CheckStaticAtomSizes
 nsresult
 RegisterStaticAtoms(const nsStaticAtom* aAtoms, uint32_t aAtomCount)
 {
-  
-  
-  
-  
-
   if (!gStaticAtomTable && !gStaticAtomTableSealed) {
     gStaticAtomTable = new nsDataHashtable<nsStringHashKey, nsIAtom*>();
   }
@@ -592,27 +587,21 @@ RegisterStaticAtoms(const nsStaticAtom* aAtoms, uint32_t aAtomCount)
       GetAtomHashEntry((char16_t*)aAtoms[i].mStringBuffer->Data(),
                        stringLen, &hash);
 
-    if (he->mAtom) {
-      
-      
-      if (!he->mAtom->IsPermanent()) {
+    AtomImpl* atom = he->mAtom;
+    if (atom) {
+      if (!atom->IsPermanent()) {
         
         
-        
-        PromoteToPermanent(he->mAtom);
+        PromoteToPermanent(atom);
       }
-
-      *aAtoms[i].mAtom = he->mAtom;
     } else {
-      AtomImpl* atom = new PermanentAtomImpl(aAtoms[i].mStringBuffer,
-                                             stringLen,
-                                             hash);
+      atom = new PermanentAtomImpl(aAtoms[i].mStringBuffer, stringLen, hash);
       he->mAtom = atom;
-      *aAtoms[i].mAtom = atom;
+    }
+    *aAtoms[i].mAtom = atom;
 
-      if (!gStaticAtomTableSealed) {
-        gStaticAtomTable->Put(nsAtomString(atom), atom);
-      }
+    if (!gStaticAtomTableSealed) {
+      gStaticAtomTable->Put(nsAtomString(atom), atom);
     }
   }
   return NS_OK;
