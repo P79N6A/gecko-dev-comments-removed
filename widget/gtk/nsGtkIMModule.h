@@ -164,6 +164,16 @@ protected:
                     eCompositionState_CompositionChangeEventDispatched);
     }
 
+    
+
+
+
+
+
+
+
+    bool IsValidContext(GtkIMContext* aContext) const;
+
 #ifdef PR_LOGGING
     const char* GetCompositionStateName()
     {
@@ -264,7 +274,8 @@ protected:
     void ResetIME();
 
     
-    void GetCompositionString(nsAString &aCompositionString);
+    void GetCompositionString(GtkIMContext* aContext,
+                              nsAString& aCompositionString);
 
     
     already_AddRefed<mozilla::TextRangeArray> CreateTextRangeArray();
