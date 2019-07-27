@@ -4686,7 +4686,9 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
         break;
 
       
-      if(nsUXThemeData::CheckForCompositor())
+      
+      if(mSizeMode != nsSizeMode_Fullscreen &&
+         nsUXThemeData::CheckForCompositor())
         break;
 
       if (wParam == TRUE) {
