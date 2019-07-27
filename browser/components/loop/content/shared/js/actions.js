@@ -72,6 +72,12 @@ loop.shared.actions = (function() {
     
 
 
+    PeerHungupCall: Action.define("peerHungupCall", {
+    }),
+
+    
+
+
 
 
     ConnectionProgress: Action.define("connectionProgress", {
@@ -85,6 +91,35 @@ loop.shared.actions = (function() {
     ConnectionFailure: Action.define("connectionFailure", {
       
       reason: String
+    }),
+
+    
+
+
+
+    SetupStreamElements: Action.define("setupStreamElements", {
+      
+      publisherConfig: Object,
+      
+      getLocalElementFunc: Function,
+      
+      getRemoteElementFunc: Function
+    }),
+
+    
+
+
+    MediaConnected: Action.define("mediaConnected", {
+    }),
+
+    
+
+
+    SetMute: Action.define("setMute", {
+      
+      type: String,
+      
+      enabled: Boolean
     })
   };
 })();

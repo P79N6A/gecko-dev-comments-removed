@@ -158,6 +158,15 @@ loop.conversationViews = (function(mozL10n) {
 
       window.addEventListener('orientationchange', this.updateVideoContainer);
       window.addEventListener('resize', this.updateVideoContainer);
+
+      
+      
+      
+      this.props.dispatcher.dispatch(new sharedActions.SetupStreamElements({
+        publisherConfig: this._getPublisherConfig(),
+        getLocalElementFunc: this._getElement.bind(this, ".local"),
+        getRemoteElementFunc: this._getElement.bind(this, ".remote")
+      }));
     },
 
     componentWillUnmount: function() {
@@ -165,9 +174,41 @@ loop.conversationViews = (function(mozL10n) {
       window.removeEventListener('resize', this.updateVideoContainer);
     },
 
+    
+
+
+
+
+    _getElement: function(className) {
+      return this.getDOMNode().querySelector(className);
+    },
+
+    
+
+
+    _getPublisherConfig: function() {
+      
+      
+      return {
+        insertMode: "append",
+        width: "100%",
+        height: "100%",
+        publishVideo: this.props.video.enabled,
+        style: {
+          bugDisplayMode: "off",
+          buttonDisplayMode: "off",
+          nameDisplayMode: "off"
+        }
+      }
+    },
+
+    
+
+
+
     updateVideoContainer: function() {
-      var localStreamParent = document.querySelector('.local .OT_publisher');
-      var remoteStreamParent = document.querySelector('.remote .OT_subscriber');
+      var localStreamParent = this._getElement('.local .OT_publisher');
+      var remoteStreamParent = this._getElement('.remote .OT_subscriber');
       if (localStreamParent) {
         localStreamParent.style.width = "100%";
       }
@@ -176,13 +217,26 @@ loop.conversationViews = (function(mozL10n) {
       }
     },
 
+    
+
+
     hangup: function() {
       this.props.dispatcher.dispatch(
         new sharedActions.HangupCall());
     },
 
+    
+
+
+
+
+
     publishStream: function(type, enabled) {
-      
+      this.props.dispatcher.dispatch(
+        new sharedActions.SetMute({
+          type: type,
+          enabled: enabled
+        }));
     },
 
     render: function() {
@@ -286,7 +340,8 @@ loop.conversationViews = (function(mozL10n) {
         case CALL_STATES.ONGOING: {
           return (OngoingConversationView({
             dispatcher: this.props.dispatcher, 
-            video: {enabled: this.state.callType === CALL_TYPES.AUDIO_VIDEO}}
+            video: {enabled: this.state.videoMuted}, 
+            audio: {enabled: this.state.audioMuted}}
             )
           );
         }

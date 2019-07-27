@@ -227,6 +227,8 @@ loop.Client = (function($) {
 
 
     setupOutgoingCall: function(calleeIds, callType, cb) {
+      
+      
       this.mozLoop.hawkRequest(this.mozLoop.LOOP_SESSION_TYPE.FXA,
         "/calls", "POST", {
           calleeId: calleeIds,
