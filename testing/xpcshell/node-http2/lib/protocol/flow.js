@@ -81,7 +81,9 @@ Flow.prototype._receive = function _receive(frame, callback) {
 
 
 Flow.prototype._write = function _write(frame, encoding, callback) {
-  if (frame.flags.END_STREAM || (frame.type === 'RST_STREAM')) {
+  var sentToUs = (this._flowControlId === undefined) || (frame.stream === this._flowControlId);
+
+  if (sentToUs && (frame.flags.END_STREAM || (frame.type === 'RST_STREAM'))) {
     this._ended = true;
   }
 
@@ -99,8 +101,7 @@ Flow.prototype._write = function _write(frame, encoding, callback) {
     this._receive(frame, callback);
   }
 
-  if ((frame.type === 'WINDOW_UPDATE') &&
-      ((this._flowControlId === undefined) || (frame.stream === this._flowControlId))) {
+  if (sentToUs && (frame.type === 'WINDOW_UPDATE')) {
     this._updateWindow(frame);
   }
 };

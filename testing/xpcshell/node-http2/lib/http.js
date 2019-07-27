@@ -753,7 +753,8 @@ function requestRaw(options, callback) {
   if (typeof options === "string") {
     options = url.parse(options);
   }
-  if ((options.protocol && options.protocol !== "http:") || !options.plain) {
+  options.plain = true;
+  if (options.protocol && options.protocol !== "http:") {
     throw new Error('This interface only supports http-schemed URLs');
   }
   return (options.agent || exports.globalAgent).request(options, callback);
@@ -763,7 +764,8 @@ function requestTLS(options, callback) {
   if (typeof options === "string") {
     options = url.parse(options);
   }
-  if ((options.protocol && options.protocol !== "https:") || options.plain) {
+  options.plain = false;
+  if (options.protocol && options.protocol !== "https:") {
     throw new Error('This interface only supports https-schemed URLs');
   }
   return (options.agent || exports.globalAgent).request(options, callback);
@@ -773,7 +775,8 @@ function getRaw(options, callback) {
   if (typeof options === "string") {
     options = url.parse(options);
   }
-  if ((options.protocol && options.protocol !== "http:") || !options.plain) {
+  options.plain = true;
+  if (options.protocol && options.protocol !== "http:") {
     throw new Error('This interface only supports http-schemed URLs');
   }
   return (options.agent || exports.globalAgent).get(options, callback);
@@ -783,7 +786,8 @@ function getTLS(options, callback) {
   if (typeof options === "string") {
     options = url.parse(options);
   }
-  if ((options.protocol && options.protocol !== "https:") || options.plain) {
+  options.plain = false;
+  if (options.protocol && options.protocol !== "https:") {
     throw new Error('This interface only supports https-schemed URLs');
   }
   return (options.agent || exports.globalAgent).get(options, callback);
@@ -876,7 +880,7 @@ Agent.prototype.request = function request(options, callback) {
     httpsRequest.on('socket', function(socket) {
       var negotiatedProtocol = socket.alpnProtocol || socket.npnProtocol;
       if (negotiatedProtocol != null) { 
-        negotiated()
+        negotiated();
       } else {
         socket.on('secureConnect', negotiated);
       }
@@ -894,11 +898,12 @@ Agent.prototype.request = function request(options, callback) {
         endpoint.pipe(endpoint.socket).pipe(endpoint);
       }
       if (started) {
+        
         if (endpoint) {
+          
           endpoint.close();
-        } else {
-          httpsRequest.abort();
         }
+        
       } else {
         if (endpoint) {
           self._log.info({ e: endpoint, server: options.host + ':' + options.port },

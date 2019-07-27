@@ -2,22 +2,12 @@ var fs = require('fs');
 var path = require('path');
 var http2 = require('..');
 
-var options = process.env.HTTP2_PLAIN ? {
-  plain: true
-} : {
-  key: fs.readFileSync(path.join(__dirname, '/localhost.key')),
-  cert: fs.readFileSync(path.join(__dirname, '/localhost.crt'))
-};
-
-
-options.log = require('../test/util').createLogger('server');
-
 
 var cachedFile = fs.readFileSync(path.join(__dirname, './server.js'));
 var cachedUrl = '/server.js';
 
 
-var server = http2.createServer(options, function(request, response) {
+function onRequest(request, response) {
   var filename = path.join(__dirname, request.url);
 
   
@@ -44,6 +34,22 @@ var server = http2.createServer(options, function(request, response) {
     response.writeHead('404');
     response.end();
   }
-});
+}
 
+
+var log = require('../test/util').createLogger('server');
+
+
+var server;
+if (process.env.HTTP2_PLAIN) {
+  server = http2.raw.createServer({
+    log: log
+  }, onRequest);
+} else {
+  server = http2.createServer({
+    log: log,
+    key: fs.readFileSync(path.join(__dirname, '/localhost.key')),
+    cert: fs.readFileSync(path.join(__dirname, '/localhost.crt'))
+  }, onRequest);
+}
 server.listen(process.env.HTTP2_PORT || 8080);

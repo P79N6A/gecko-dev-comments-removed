@@ -254,7 +254,7 @@ describe('flow.js', function() {
 
         
         flow1.pipe(flow2).pipe(flow1);
-      })
+      });
     });
   });
 });
