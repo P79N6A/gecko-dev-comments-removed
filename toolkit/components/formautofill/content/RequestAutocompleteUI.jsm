@@ -26,11 +26,12 @@ XPCOMUtils.defineLazyModuleGetter(this, "Task",
 
 
 this.RequestAutocompleteUI = function (aAutofillData) {
-  Services.console.logStringMessage("rAc UI request: " +
-                                    JSON.stringify(aAutofillData));
+  this._autofillData = aAutofillData;
 }
 
 this.RequestAutocompleteUI.prototype = {
+  _autofillData: null,
+
   show: Task.async(function* () {
     
     
@@ -38,7 +39,10 @@ this.RequestAutocompleteUI.prototype = {
     let uiPromise = new Promise(resolve => resolveFn = resolve);
 
     
-    let args = { resolveFn: resolveFn };
+    let args = {
+      resolveFn: resolveFn,
+      autofillData: this._autofillData,
+    };
     args.wrappedJSObject = args;
 
     

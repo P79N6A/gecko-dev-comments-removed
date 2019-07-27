@@ -193,7 +193,8 @@ let FormAutofillTest = {
     
     let promiseUIWindow =
         TestUtils.waitForNotification("formautofill-window-initialized");
-    let ui = yield FormAutofill.integration.createRequestAutocompleteUI({});
+    let ui = yield FormAutofill.integration.createRequestAutocompleteUI(
+                                                         aFormAutofillData);
     let promiseResult = ui.show();
 
     
@@ -202,6 +203,26 @@ let FormAutofillTest = {
       promiseResult: promiseResult,
     };
   }),
+};
+
+let TestData = {
+  
+
+
+  get requestEmailOnly() {
+    return {
+      sections: [{
+        name: "",
+        addressSections: [{
+          addressType: "",
+          fields: [{
+            fieldName: "email",
+            contactType: "",
+          }],
+        }],
+      }],
+    };
+  },
 };
 
 

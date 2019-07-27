@@ -27,6 +27,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "Task",
 function FormHandler(aForm, aWindow) {
   this.form = aForm;
   this.window = aWindow;
+
+  this.fieldDetails = [];
 }
 
 FormHandler.prototype = {
@@ -43,20 +45,28 @@ FormHandler.prototype = {
   
 
 
+
+
+
+
+
+
+
+
+
+
+  fieldDetails: null,
+
+  
+
+
   handleRequestAutocomplete: Task.async(function* () {
     
     
     
     let reason = "";
     try {
-      let data = this.collectFormElements();
-
-      let ui = yield FormAutofill.integration.createRequestAutocompleteUI(data);
-      let result = yield ui.show();
-
-      
-      
-      reason = result.canceled ? "cancel" : "success";
+      reason = yield this.promiseRequestAutocomplete();
     } catch (ex) {
       Cu.reportError(ex);
     }
@@ -75,7 +85,36 @@ FormHandler.prototype = {
 
 
 
-  collectFormElements: function () {
+
+
+
+
+  promiseRequestAutocomplete: Task.async(function* () {
+    let data = this.collectFormFields();
+    if (!data) {
+      return "disabled";
+    }
+
+    let ui = yield FormAutofill.integration.createRequestAutocompleteUI(data);
+    let result = yield ui.show();
+    if (result.canceled) {
+      return "cancel";
+    }
+
+    this.autofillFormFields(result);
+
+    return "success";
+  }),
+
+  
+
+
+
+
+
+
+
+  collectFormFields: function () {
     let autofillData = {
       sections: [],
     };
@@ -91,6 +130,22 @@ FormHandler.prototype = {
       if (!info.fieldName || ["on", "off"].indexOf(info.fieldName) != -1) {
         continue;
       }
+
+      
+      if (this.fieldDetails.some(f => f.section == info.section &&
+                                      f.addressType == info.addressType &&
+                                      f.contactType == info.contactType &&
+                                      f.fieldName == info.fieldName)) {
+        
+        return null;
+      }
+      this.fieldDetails.push({
+        section: info.section,
+        addressType: info.addressType,
+        contactType: info.contactType,
+        fieldName: info.fieldName,
+        element: element,
+      });
 
       
       let section = autofillData.sections
@@ -123,6 +178,38 @@ FormHandler.prototype = {
     }
 
     return autofillData;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  autofillFormFields: function (aAutofillResult) {
+    for (let field of aAutofillResult.fields) {
+      
+      let fieldDetail = this.fieldDetails
+                            .find(f => f.section == field.section &&
+                                       f.addressType == field.addressType &&
+                                       f.contactType == field.contactType &&
+                                       f.fieldName == field.fieldName);
+      if (!fieldDetail) {
+        continue;
+      }
+
+      fieldDetail.element.value = field.value;
+    }
   },
 
   
