@@ -114,15 +114,6 @@ public class SendTabList extends ListView {
         final ParcelableClientRecord[] clients = c == null ? new ParcelableClientRecord[0] : c;
 
         clientListAdapter.setClientRecordList(Arrays.asList(clients));
-
-        if (clients.length <= MAXIMUM_INLINE_ELEMENTS) {
-            
-            switchState(LIST);
-            return;
-        }
-
-        
-        switchState(SHOW_DEVICES);
     }
 
     
