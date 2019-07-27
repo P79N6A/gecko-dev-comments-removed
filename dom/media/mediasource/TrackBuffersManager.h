@@ -217,11 +217,18 @@ private:
     
     UniquePtr<TrackInfo> mInfo;
   };
+
   bool ProcessFrame(MediaRawData* aSample, TrackData& aTrackData);
+  void RejectProcessing(nsresult aRejectValue, const char* aName);
+  void ResolveProcessing(bool aResolveValue, const char* aName);
   MediaPromiseRequestHolder<CodedFrameProcessingPromise> mProcessingRequest;
   MediaPromiseHolder<CodedFrameProcessingPromise> mProcessingPromise;
 
   MediaPromiseHolder<AppendPromise> mAppendPromise;
+  
+  
+  
+  bool mAppendRunning;
 
   
   nsTArray<TrackData*> GetTracksList();

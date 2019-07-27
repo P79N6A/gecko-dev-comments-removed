@@ -45,6 +45,7 @@ TrackBuffersManager::TrackBuffersManager(dom::SourceBuffer* aParent, MediaSource
   , mType(aType)
   , mParser(ContainerParser::CreateForMIMEType(aType))
   , mProcessedInput(0)
+  , mAppendRunning(false)
   , mTaskQueue(new MediaTaskQueue(GetMediaThreadPool(MediaThreadType::PLAYBACK)))
   , mParent(new nsMainThreadPtrHolder<dom::SourceBuffer>(aParent, false ))
   , mParentDecoder(new nsMainThreadPtrHolder<MediaSourceDecoder>(aParentDecoder, false ))
@@ -75,6 +76,7 @@ TrackBuffersManager::AppendIncomingBuffer(IncomingBuffer aData)
 {
   MOZ_ASSERT(OnTaskQueue());
   mIncomingBuffers.AppendElement(aData);
+  mAbort = false;
 }
 
 nsRefPtr<TrackBuffersManager::AppendPromise>
@@ -86,6 +88,9 @@ TrackBuffersManager::BufferAppend()
   return ProxyMediaCall(GetTaskQueue(), this,
                         __func__, &TrackBuffersManager::InitSegmentParserLoop);
 }
+
+
+
 
 
 
@@ -105,6 +110,7 @@ void
 TrackBuffersManager::ResetParserState()
 {
   MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(!mAppendRunning, "AbortAppendData must have been called");
   MSE_DEBUG("");
 
   
@@ -117,6 +123,13 @@ TrackBuffersManager::ResetParserState()
       NS_NewRunnableMethod(this, &TrackBuffersManager::CompleteResetParserState);
     GetTaskQueue()->Dispatch(task.forget());
   }
+
+  
+  
+  
+  
+  
+  SetAppendState(AppendState::WAITING_FOR_SEGMENT);
 }
 
 nsRefPtr<TrackBuffersManager::RangeRemovalPromise>
@@ -138,12 +151,13 @@ TrackBuffersManager::EvictData(TimeUnit aPlaybackTime,
                                TimeUnit* aBufferStartTime)
 {
   MOZ_ASSERT(NS_IsMainThread());
+  MSE_DEBUG("");
 
   int64_t toEvict = GetSize() - aThreshold;
   if (toEvict <= 0) {
     return EvictDataResult::NO_DATA_EVICTED;
   }
-  MSE_DEBUG("Reaching our size limit, schedule eviction of %lld bytes", toEvict);
+  MSE_DEBUG("Reaching our size limit, schedule eviction of %lld bytes", toEvict);
 
   nsCOMPtr<nsIRunnable> task =
     NS_NewRunnableMethodWithArgs<TimeUnit, uint32_t>(
@@ -158,6 +172,8 @@ void
 TrackBuffersManager::EvictBefore(TimeUnit aTime)
 {
   MOZ_ASSERT(NS_IsMainThread());
+  MSE_DEBUG("");
+
   nsCOMPtr<nsIRunnable> task =
     NS_NewRunnableMethodWithArg<TimeInterval>(
       this, &TrackBuffersManager::CodedFrameRemoval,
@@ -168,6 +184,7 @@ TrackBuffersManager::EvictBefore(TimeUnit aTime)
 media::TimeIntervals
 TrackBuffersManager::Buffered()
 {
+  MSE_DEBUG("");
   MonitorAutoLock mon(mMonitor);
   
   
@@ -256,7 +273,8 @@ void
 TrackBuffersManager::CompleteResetParserState()
 {
   MOZ_ASSERT(OnTaskQueue());
-  MOZ_ASSERT(mAppendPromise.IsEmpty());
+  MOZ_ASSERT(!mAppendRunning);
+  MSE_DEBUG("");
 
   for (auto track : GetTracksList()) {
     
@@ -299,9 +317,6 @@ TrackBuffersManager::CompleteResetParserState()
 
   
   SetAppendState(AppendState::WAITING_FOR_SEGMENT);
-
-  
-  mAbort = false;
 }
 
 void
@@ -380,7 +395,7 @@ bool
 TrackBuffersManager::CodedFrameRemoval(TimeInterval aInterval)
 {
   MOZ_ASSERT(OnTaskQueue());
-  MOZ_ASSERT(mAppendPromise.IsEmpty(), "Logic error: Append in progress");
+  MOZ_ASSERT(!mAppendRunning, "Logic error: Append in progress");
   MSE_DEBUG("From %.2fs to %.2f",
             aInterval.mStart.ToSeconds(), aInterval.mEnd.ToSeconds());
 
@@ -502,7 +517,7 @@ TrackBuffersManager::InitSegmentParserLoop()
 {
   MOZ_ASSERT(OnTaskQueue());
 
-  MOZ_ASSERT(mAppendPromise.IsEmpty());
+  MOZ_ASSERT(mAppendPromise.IsEmpty() && !mAppendRunning);
   nsRefPtr<AppendPromise> p = mAppendPromise.Ensure(__func__);
 
   AppendIncomingBuffers();
@@ -616,7 +631,10 @@ void
 TrackBuffersManager::NeedMoreData()
 {
   MSE_DEBUG("");
-  RestoreCachedVariables();
+  if (!mAbort) {
+    RestoreCachedVariables();
+  }
+  mAppendRunning = false;
   mAppendPromise.ResolveIfExists(mActiveTrack, __func__);
 }
 
@@ -624,6 +642,7 @@ void
 TrackBuffersManager::RejectAppend(nsresult aRejectValue, const char* aName)
 {
   MSE_DEBUG("rv=%d", aRejectValue);
+  mAppendRunning = false;
   mAppendPromise.RejectIfExists(aRejectValue, aName);
 }
 
@@ -688,6 +707,8 @@ TrackBuffersManager::InitializationSegmentReceived()
 void
 TrackBuffersManager::OnDemuxerInitDone(nsresult)
 {
+  MOZ_ASSERT(OnTaskQueue());
+  MSE_DEBUG("mAbort:%d", static_cast<bool>(mAbort));
   mDemuxerInitRequest.Complete();
 
   if (mAbort) {
@@ -878,6 +899,7 @@ TrackBuffersManager::OnDemuxerInitFailed(DemuxerFailureReason aFailure)
 nsRefPtr<TrackBuffersManager::CodedFrameProcessingPromise>
 TrackBuffersManager::CodedFrameProcessing()
 {
+  MOZ_ASSERT(OnTaskQueue());
   MOZ_ASSERT(mProcessingPromise.IsEmpty());
   nsRefPtr<CodedFrameProcessingPromise> p = mProcessingPromise.Ensure(__func__);
 
@@ -910,12 +932,10 @@ void
 TrackBuffersManager::OnDemuxFailed(TrackType aTrack,
                                    DemuxerFailureReason aFailure)
 {
-  MSE_DEBUG("Failed to demux %s, failure = %d",
-      aTrack == TrackType::kVideoTrack ? "video" : "audio", aFailure);
-  if (mAbort) {
-    mProcessingPromise.RejectIfExists(NS_ERROR_ABORT, __func__);
-    return;
-  }
+  MOZ_ASSERT(OnTaskQueue());
+  MSE_DEBUG("Failed to demux %s, failure:%d mAbort:%d",
+            aTrack == TrackType::kVideoTrack ? "video" : "audio",
+            aFailure, static_cast<bool>(mAbort));
   switch (aFailure) {
     case DemuxerFailureReason::END_OF_STREAM:
     case DemuxerFailureReason::WAITING_FOR_DATA:
@@ -926,11 +946,11 @@ TrackBuffersManager::OnDemuxFailed(TrackType aTrack,
       }
       break;
     case DemuxerFailureReason::DEMUXER_ERROR:
-      mProcessingPromise.RejectIfExists(NS_ERROR_FAILURE, __func__);
+      RejectProcessing(NS_ERROR_FAILURE, __func__);
       break;
     case DemuxerFailureReason::CANCELED:
     case DemuxerFailureReason::SHUTDOWN:
-      mProcessingPromise.RejectIfExists(NS_ERROR_ABORT, __func__);
+      RejectProcessing(NS_ERROR_ABORT, __func__);
       break;
     default:
       MOZ_ASSERT(false);
@@ -941,8 +961,14 @@ TrackBuffersManager::OnDemuxFailed(TrackType aTrack,
 void
 TrackBuffersManager::DoDemuxVideo()
 {
+  MOZ_ASSERT(OnTaskQueue());
+  MSE_DEBUG("mAbort:%d", static_cast<bool>(mAbort));
   if (!HasVideo()) {
     DoDemuxAudio();
+    return;
+  }
+  if (mAbort) {
+    RejectProcessing(NS_ERROR_ABORT, __func__);
     return;
   }
   mVideoTracks.mDemuxRequest.Begin(mVideoTracks.mDemuxer->GetSamples(-1)
@@ -954,12 +980,9 @@ TrackBuffersManager::DoDemuxVideo()
 void
 TrackBuffersManager::OnVideoDemuxCompleted(nsRefPtr<MediaTrackDemuxer::SamplesHolder> aSamples)
 {
+  MOZ_ASSERT(OnTaskQueue());
   MSE_DEBUG("%d video samples demuxed", aSamples->mSamples.Length());
   mVideoTracks.mDemuxRequest.Complete();
-  if (mAbort) {
-    mProcessingPromise.RejectIfExists(NS_ERROR_ABORT, __func__);
-    return;
-  }
   mVideoTracks.mQueuedSamples.AppendElements(aSamples->mSamples);
   DoDemuxAudio();
 }
@@ -967,12 +990,14 @@ TrackBuffersManager::OnVideoDemuxCompleted(nsRefPtr<MediaTrackDemuxer::SamplesHo
 void
 TrackBuffersManager::DoDemuxAudio()
 {
-  if (mAbort) {
-    mProcessingPromise.RejectIfExists(NS_ERROR_ABORT, __func__);
-    return;
-  }
+  MOZ_ASSERT(OnTaskQueue());
+  MSE_DEBUG("mAbort:%d", static_cast<bool>(mAbort));
   if (!HasAudio()) {
     CompleteCodedFrameProcessing();
+    return;
+  }
+  if (mAbort) {
+    RejectProcessing(NS_ERROR_ABORT, __func__);
     return;
   }
   mAudioTracks.mDemuxRequest.Begin(mAudioTracks.mDemuxer->GetSamples(-1)
@@ -984,12 +1009,9 @@ TrackBuffersManager::DoDemuxAudio()
 void
 TrackBuffersManager::OnAudioDemuxCompleted(nsRefPtr<MediaTrackDemuxer::SamplesHolder> aSamples)
 {
+  MOZ_ASSERT(OnTaskQueue());
   MSE_DEBUG("%d audio samples demuxed", aSamples->mSamples.Length());
   mAudioTracks.mDemuxRequest.Complete();
-  if (mAbort) {
-    mProcessingPromise.RejectIfExists(NS_ERROR_ABORT, __func__);
-    return;
-  }
   mAudioTracks.mQueuedSamples.AppendElements(aSamples->mSamples);
   CompleteCodedFrameProcessing();
 }
@@ -998,6 +1020,7 @@ void
 TrackBuffersManager::CompleteCodedFrameProcessing()
 {
   MOZ_ASSERT(OnTaskQueue());
+  MSE_DEBUG("mAbort:%d", static_cast<bool>(mAbort));
 
   
 
@@ -1045,7 +1068,7 @@ TrackBuffersManager::CompleteCodedFrameProcessing()
 
   
   if (mParser->MediaSegmentRange().IsNull()) {
-    mProcessingPromise.ResolveIfExists(true, __func__);
+    ResolveProcessing(true, __func__);
     return;
   }
 
@@ -1061,7 +1084,29 @@ TrackBuffersManager::CompleteCodedFrameProcessing()
   SetAppendState(AppendState::WAITING_FOR_SEGMENT);
 
   
-  mProcessingPromise.ResolveIfExists(false, __func__);
+  ResolveProcessing(false, __func__);
+}
+
+void
+TrackBuffersManager::RejectProcessing(nsresult aRejectValue, const char* aName)
+{
+  if (mAbort) {
+    
+    
+    mAppendRunning = false;
+  }
+  mProcessingPromise.RejectIfExists(aRejectValue, __func__);
+}
+
+void
+TrackBuffersManager::ResolveProcessing(bool aResolveValue, const char* aName)
+{
+  if (mAbort) {
+    
+    
+    mAppendRunning = false;
+  }
+  mProcessingPromise.ResolveIfExists(aResolveValue, __func__);
 }
 
 bool
@@ -1313,6 +1358,7 @@ TrackBuffersManager::ProcessFrame(MediaRawData* aSample,
 void
 TrackBuffersManager::RecreateParser()
 {
+  MOZ_ASSERT(OnTaskQueue());
   
   
   
@@ -1331,6 +1377,7 @@ TrackBuffersManager::RecreateParser()
 nsTArray<TrackBuffersManager::TrackData*>
 TrackBuffersManager::GetTracksList()
 {
+  MOZ_ASSERT(OnTaskQueue());
   nsTArray<TrackData*> tracks;
   if (HasVideo()) {
     tracks.AppendElement(&mVideoTracks);
@@ -1344,6 +1391,7 @@ TrackBuffersManager::GetTracksList()
 void
 TrackBuffersManager::RestoreCachedVariables()
 {
+  MOZ_ASSERT(OnTaskQueue());
   if (mTimestampOffset != mLastTimestampOffset) {
     nsCOMPtr<nsIRunnable> task =
       NS_NewRunnableMethodWithArg<TimeUnit>(
