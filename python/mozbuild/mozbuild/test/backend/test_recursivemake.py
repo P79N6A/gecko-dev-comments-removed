@@ -687,6 +687,37 @@ class TestRecursiveMakeBackend(BackendTester):
             stem = '%s/android_eclipse/%s' % (env.topobjdir, project_name)
             self.assertIn(command_template % (stem, stem), lines)
 
+    def test_install_manifests_package_tests(self):
+        """Ensure test suites honor package_tests=False."""
+        env = self._consume('test-manifests-package-tests', RecursiveMakeBackend)
+
+        tests_dir = mozpath.join(env.topobjdir, '_tests')
+
+        all_tests_path = mozpath.join(env.topobjdir, 'all-tests.json')
+        self.assertTrue(os.path.exists(all_tests_path))
+
+        with open(all_tests_path, 'rt') as fh:
+            o = json.load(fh)
+
+            self.assertIn('mochitest.js', o)
+            self.assertIn('not_packaged.java', o)
+
+        man_dir = mozpath.join(env.topobjdir, '_build_manifests', 'install')
+        self.assertTrue(os.path.isdir(man_dir))
+
+        full = mozpath.join(man_dir, 'tests')
+        self.assertTrue(os.path.exists(full))
+
+        m = InstallManifest(path=full)
+
+        
+        self.assertTrue('testing/mochitest/tests/mochitest.js' in m)
+
+        
+        
+        
+        self.assertFalse('instrumentation/./not_packaged.java' in m)
+
 
 if __name__ == '__main__':
     main()
