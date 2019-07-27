@@ -3572,9 +3572,19 @@ nsHTMLDocument::QueryCommandSupported(const nsAString& commandID)
   
   
   
-  bool restricted = commandID.LowerCaseEqualsLiteral("paste");
-  if (restricted && !nsContentUtils::IsCallerChrome()) {
-    return false;
+  
+  
+  
+  if (!nsContentUtils::IsCallerChrome()) {
+    if (commandID.LowerCaseEqualsLiteral("paste")) {
+      return false;
+    }
+    if (nsContentUtils::IsCutCopyRestricted()) {
+      if (commandID.LowerCaseEqualsLiteral("cut") ||
+          commandID.LowerCaseEqualsLiteral("copy")) {
+        return false;
+      }
+    }
   }
 
   

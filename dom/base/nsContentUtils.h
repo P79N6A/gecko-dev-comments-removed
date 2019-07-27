@@ -1867,6 +1867,15 @@ public:
 
 
 
+  static bool IsCutCopyRestricted()
+  {
+    return !sIsCutCopyAllowed;
+  }
+
+  
+
+
+
 
   static bool IsCutCopyAllowed();
 
@@ -2434,6 +2443,7 @@ private:
   static bool sAllowXULXBL_for_file;
   static bool sIsFullScreenApiEnabled;
   static bool sTrustedFullScreenOnly;
+  static bool sIsCutCopyAllowed;
   static uint32_t sHandlingInputTimeout;
   static bool sIsPerformanceTimingEnabled;
   static bool sIsResourceTimingEnabled;
