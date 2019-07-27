@@ -53,11 +53,11 @@ NS_IMPL_RELEASE_INHERITED(AudioBufferSourceNode, AudioNode)
 
 
 
-class AudioBufferSourceNodeEngine : public AudioNodeEngine
+class AudioBufferSourceNodeEngine final : public AudioNodeEngine
 {
 public:
-  explicit AudioBufferSourceNodeEngine(AudioNode* aNode,
-                                       AudioDestinationNode* aDestination) :
+  AudioBufferSourceNodeEngine(AudioNode* aNode,
+                              AudioDestinationNode* aDestination) :
     AudioNodeEngine(aNode),
     mStart(0.0), mBeginProcessing(0),
     mStop(STREAM_TIME_MAX),
@@ -713,12 +713,12 @@ void
 AudioBufferSourceNode::NotifyMainThreadStateChanged()
 {
   if (mStream->IsFinished()) {
-    class EndedEventDispatcher : public nsRunnable
+    class EndedEventDispatcher final : public nsRunnable
     {
     public:
       explicit EndedEventDispatcher(AudioBufferSourceNode* aNode)
         : mNode(aNode) {}
-      NS_IMETHODIMP Run()
+      NS_IMETHODIMP Run() override
       {
         
         if (!nsContentUtils::IsSafeToRunScript()) {

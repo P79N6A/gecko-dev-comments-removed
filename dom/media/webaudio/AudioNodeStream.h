@@ -31,7 +31,8 @@ class AudioNodeEngine;
 
 
 
-class AudioNodeStream : public ProcessedMediaStream {
+class AudioNodeStream : public ProcessedMediaStream
+{
   typedef dom::ChannelCountMode ChannelCountMode;
   typedef dom::ChannelInterpretation ChannelInterpretation;
 

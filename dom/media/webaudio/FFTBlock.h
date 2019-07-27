@@ -16,7 +16,8 @@ namespace mozilla {
 
 
 
-class FFTBlock {
+class FFTBlock final
+{
 public:
   explicit FFTBlock(uint32_t aFFTSize)
     : mFFT(nullptr)

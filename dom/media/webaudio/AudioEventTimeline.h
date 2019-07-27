@@ -21,8 +21,10 @@ namespace mozilla {
 namespace dom {
 
 
-struct AudioTimelineEvent {
-  enum Type : uint32_t {
+struct AudioTimelineEvent final
+{
+  enum Type : uint32_t
+  {
     SetValue,
     LinearRamp,
     ExponentialRamp,

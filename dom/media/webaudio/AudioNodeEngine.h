@@ -27,7 +27,8 @@ class AudioNodeStream;
 
 
 
-class ThreadSharedFloatArrayBufferList : public ThreadSharedObject {
+class ThreadSharedFloatArrayBufferList final : public ThreadSharedObject
+{
 public:
   
 
@@ -37,7 +38,8 @@ public:
     mContents.SetLength(aCount);
   }
 
-  struct Storage {
+  struct Storage final
+  {
     Storage() :
       mDataToFree(nullptr),
       mFree(nullptr),
@@ -234,7 +236,8 @@ AudioBufferSumOfSquares(const float* aInput, uint32_t aLength);
 
 
 
-class AudioNodeEngine {
+class AudioNodeEngine
+{
 public:
   
   typedef nsAutoTArray<AudioChunk, 1> OutputChunks;

@@ -18,7 +18,7 @@ namespace mozilla {
 
 
 
-class BufferDecoder : public AbstractMediaDecoder
+class BufferDecoder final : public AbstractMediaDecoder
 {
 public:
   
