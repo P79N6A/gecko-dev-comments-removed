@@ -27,14 +27,14 @@ bool AbsolutePath(FilePath* path) {
   return true;
 }
 
-bool Delete(const FilePath& path, bool recursive) {
+bool Delete(const FilePath& path) {
   if (path.value().length() >= MAX_PATH)
     return false;
 
   
   
   
-  if (!recursive && DeleteFile(path.value().c_str()) != 0)
+  if (DeleteFile(path.value().c_str()) != 0)
     return true;
 
   
@@ -48,8 +48,7 @@ bool Delete(const FilePath& path, bool recursive) {
   file_operation.wFunc = FO_DELETE;
   file_operation.pFrom = double_terminated_path;
   file_operation.fFlags = FOF_NOERRORUI | FOF_SILENT | FOF_NOCONFIRMATION;
-  if (!recursive)
-    file_operation.fFlags |= FOF_NORECURSION | FOF_FILESONLY;
+  file_operation.fFlags |= FOF_NORECURSION | FOF_FILESONLY;
   int err = SHFileOperation(&file_operation);
   
   
@@ -96,26 +95,6 @@ bool ShellCopy(const FilePath& from_path, const FilePath& to_path,
     file_operation.fFlags |= FOF_NORECURSION | FOF_FILESONLY;
 
   return (SHFileOperation(&file_operation) == 0);
-}
-
-bool CopyDirectory(const FilePath& from_path, const FilePath& to_path,
-                   bool recursive) {
-  if (recursive)
-    return ShellCopy(from_path, to_path, true);
-
-  
-  
-  if (!PathExists(to_path)) {
-    
-    
-    if (win_util::GetWinVersion() >= win_util::WINVERSION_VISTA)
-      CreateDirectory(to_path);
-    else
-      ShellCopy(from_path, to_path, false);
-  }
-
-  FilePath directory = from_path.Append(L"*.*");
-  return ShellCopy(directory, to_path, false);
 }
 
 bool PathExists(const FilePath& path) {

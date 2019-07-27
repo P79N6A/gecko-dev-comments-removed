@@ -8,9 +8,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <fnmatch.h>
-#ifndef ANDROID
-#include <fts.h>
-#endif
 #include <libgen.h>
 #include <stdio.h>
 #include <string.h>
@@ -53,7 +50,7 @@ bool AbsolutePath(FilePath* path) {
 
 
 
-bool Delete(const FilePath& path, bool recursive) {
+bool Delete(const FilePath& path) {
   const char* path_str = path.value().c_str();
   struct stat file_info;
   int test = stat(path_str, &file_info);
@@ -64,174 +61,8 @@ bool Delete(const FilePath& path, bool recursive) {
   }
   if (!S_ISDIR(file_info.st_mode))
     return (unlink(path_str) == 0);
-  if (!recursive)
-    return (rmdir(path_str) == 0);
 
-#ifdef ANDROID
-  
-  return false;
-#else
-  bool success = true;
-  int ftsflags = FTS_PHYSICAL | FTS_NOSTAT;
-  char top_dir[PATH_MAX];
-  if (base::strlcpy(top_dir, path_str,
-                    arraysize(top_dir)) >= arraysize(top_dir)) {
-    return false;
-  }
-  char* dir_list[2] = { top_dir, NULL };
-  FTS* fts = fts_open(dir_list, ftsflags, NULL);
-  if (fts) {
-    FTSENT* fts_ent = fts_read(fts);
-    while (success && fts_ent != NULL) {
-      switch (fts_ent->fts_info) {
-        case FTS_DNR:
-        case FTS_ERR:
-          
-          success = false;
-          continue;
-          break;
-        case FTS_DP:
-          success = (rmdir(fts_ent->fts_accpath) == 0);
-          break;
-        case FTS_D:
-          break;
-        case FTS_NSOK:
-        case FTS_F:
-        case FTS_SL:
-        case FTS_SLNONE:
-          success = (unlink(fts_ent->fts_accpath) == 0);
-          break;
-        default:
-          DCHECK(false);
-          break;
-      }
-      fts_ent = fts_read(fts);
-    }
-    fts_close(fts);
-  }
-  return success;
-#endif
-}
-
-bool Move(const FilePath& from_path, const FilePath& to_path) {
-  if (rename(from_path.value().c_str(), to_path.value().c_str()) == 0)
-    return true;
-
-  if (!CopyDirectory(from_path, to_path, true))
-    return false;
-
-  Delete(from_path, true);
-  return true;
-}
-
-bool CopyDirectory(const FilePath& from_path,
-                   const FilePath& to_path,
-                   bool recursive) {
-  
-  
-  
-  
-  DCHECK(to_path.value().find('*') == std::string::npos);
-  DCHECK(from_path.value().find('*') == std::string::npos);
-
-  char top_dir[PATH_MAX];
-  if (base::strlcpy(top_dir, from_path.value().c_str(),
-                    arraysize(top_dir)) >= arraysize(top_dir)) {
-    return false;
-  }
-
-#ifdef ANDROID
-  
-  return false;
-#else
-  char* dir_list[] = { top_dir, NULL };
-  FTS* fts = fts_open(dir_list, FTS_PHYSICAL | FTS_NOSTAT, NULL);
-  if (!fts) {
-    CHROMIUM_LOG(ERROR) << "fts_open failed: " << strerror(errno);
-    return false;
-  }
-
-  int error = 0;
-  FTSENT* ent;
-  while (!error && (ent = fts_read(fts)) != NULL) {
-    
-    
-    std::string suffix(&ent->fts_path[from_path.value().size()]);
-    
-    if (!suffix.empty()) {
-      DCHECK_EQ('/', suffix[0]);
-      suffix.erase(0, 1);
-    }
-    const FilePath target_path = to_path.Append(suffix);
-    switch (ent->fts_info) {
-      case FTS_D:  
-        
-        
-        if (!recursive && ent->fts_level > 0) {
-          if (fts_set(fts, ent, FTS_SKIP) != 0)
-            error = errno;
-          continue;
-        }
-
-        
-        
-        if (mkdir(target_path.value().c_str(), 0777) != 0) {
-          if (errno != EEXIST)
-            error = errno;
-        }
-        break;
-      case FTS_F:     
-      case FTS_NSOK:  
-        errno = 0;
-        if (!CopyFile(FilePath(ent->fts_path), target_path))
-          error = errno ? errno : EINVAL;
-        break;
-      case FTS_DP:   
-      case FTS_DOT:  
-        
-        continue;
-      case FTS_DC:   
-        
-        if (fts_set(fts, ent, FTS_SKIP) != 0)
-          error = errno;
-        break;
-      case FTS_DNR:  
-      case FTS_ERR:  
-      case FTS_NS:   
-        
-        error = ent->fts_errno;
-        break;
-      case FTS_SL:      
-      case FTS_SLNONE:  
-        CHROMIUM_LOG(WARNING) << "CopyDirectory() skipping symbolic link: " <<
-            ent->fts_path;
-        continue;
-      case FTS_DEFAULT:  
-        CHROMIUM_LOG(WARNING) << "CopyDirectory() skipping file of unknown type: " <<
-            ent->fts_path;
-        continue;
-      default:
-        NOTREACHED();
-        continue;  
-    }
-  }
-  
-  if (!error && errno != 0)
-    error = errno;
-
-  if (!fts_close(fts)) {
-    
-    
-    if (!error)
-      error = errno;
-  }
-
-  if (error) {
-    CHROMIUM_LOG(ERROR) << "CopyDirectory(): " << strerror(error);
-    return false;
-  }
-  return true;
-#endif
+  return (rmdir(path_str) == 0);
 }
 
 bool PathExists(const FilePath& path) {

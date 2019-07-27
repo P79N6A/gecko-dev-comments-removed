@@ -16,7 +16,6 @@
 #include <sys/stat.h>
 #elif defined(OS_POSIX) 
 #include <sys/types.h>
-#include <fts.h>
 #include <sys/stat.h>
 #endif
 
@@ -89,31 +88,14 @@ void ReplaceExtension(std::wstring* file_name, const std::wstring& extension);
 
 
 
+bool Delete(const FilePath& path);
 
-
-
-
-bool Delete(const FilePath& path, bool recursive);
-
-bool Delete(const std::wstring& path, bool recursive);
+bool Delete(const std::wstring& path);
 
 
 bool CopyFile(const FilePath& from_path, const FilePath& to_path);
 
 bool CopyFile(const std::wstring& from_path, const std::wstring& to_path);
-
-
-
-
-
-
-
-
-bool CopyDirectory(const FilePath& from_path, const FilePath& to_path,
-                   bool recursive);
-
-bool CopyDirectory(const std::wstring& from_path, const std::wstring& to_path,
-                   bool recursive);
 
 
 
