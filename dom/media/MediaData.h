@@ -22,6 +22,9 @@ class Image;
 class ImageContainer;
 }
 
+class LargeDataBuffer;
+class DataBuffer;
+
 
 class MediaData {
 public:
@@ -30,7 +33,8 @@ public:
 
   enum Type {
     AUDIO_DATA = 0,
-    VIDEO_DATA
+    VIDEO_DATA,
+    RAW_DATA
   };
 
   MediaData(Type aType,
@@ -40,7 +44,9 @@ public:
     : mType(aType)
     , mOffset(aOffset)
     , mTime(aTimestamp)
+    , mTimecode(aTimestamp)
     , mDuration(aDuration)
+    , mKeyframe(false)
     , mDiscontinuity(false)
   {}
 
@@ -48,13 +54,19 @@ public:
   const Type mType;
 
   
-  const int64_t mOffset;
+  int64_t mOffset;
 
   
-  const int64_t mTime;
+  int64_t mTime;
 
   
-  const int64_t mDuration;
+  
+  int64_t mTimecode;
+
+  
+  int64_t mDuration;
+
+  bool mKeyframe;
 
   
   
@@ -63,6 +75,16 @@ public:
   int64_t GetEndTime() const { return mTime + mDuration; }
 
 protected:
+  explicit MediaData(Type aType)
+    : mType(aType)
+    , mOffset(0)
+    , mTime(0)
+    , mTimecode(0)
+    , mDuration(0)
+    , mKeyframe(false)
+    , mDiscontinuity(false)
+  {}
+
   virtual ~MediaData() {}
 
 };
@@ -256,16 +278,11 @@ public:
   const IntSize mDisplay;
 
   
-  
-  const int64_t mTimecode;
-
-  
   nsRefPtr<Image> mImage;
 
   
   
   const bool mDuplicate;
-  const bool mKeyframe;
 
   VideoData(int64_t aOffset,
             int64_t aTime,
@@ -283,13 +300,129 @@ protected:
   ~VideoData();
 };
 
+class CryptoTrack
+{
+public:
+  CryptoTrack() : valid(false) {}
+  bool valid;
+  int32_t mode;
+  int32_t iv_size;
+  nsTArray<uint8_t> key;
+};
+
+class CryptoSample : public CryptoTrack
+{
+public:
+  nsTArray<uint16_t> plain_sizes;
+  nsTArray<uint32_t> encrypted_sizes;
+  nsTArray<uint8_t> iv;
+  nsTArray<nsCString> session_ids;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class MediaRawData;
+
+class MediaRawDataWriter
+{
+public:
+  
+  uint8_t* mData;
+  
+  size_t mSize;
+
+  
+
+  
+  
+  bool SetSize(size_t aSize);
+  
+  bool Prepend(const uint8_t* aData, size_t aSize);
+  
+  bool Replace(const uint8_t* aData, size_t aSize);
+  
+  void Clear();
+
+private:
+  friend class MediaRawData;
+  explicit MediaRawDataWriter(MediaRawData* aMediaRawData);
+  bool EnsureSize(size_t aSize);
+  MediaRawData* mTarget;
+  nsRefPtr<LargeDataBuffer> mBuffer;
+};
+
+class MediaRawData : public MediaData {
+public:
+  MediaRawData();
+  MediaRawData(const uint8_t* aData, size_t mSize);
+
+  
+  const uint8_t* mData;
+  
+  size_t mSize;
+
+  CryptoSample mCrypto;
+  nsRefPtr<DataBuffer> mExtraData;
+
+  
+  virtual already_AddRefed<MediaRawData> Clone() const;
+  
+  
+  virtual MediaRawDataWriter* CreateWriter();
+  virtual size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const;
+
+protected:
+  ~MediaRawData();
+
+private:
+  friend class MediaRawDataWriter;
+  
+  
+  
+  
+  
+  bool EnsureCapacity(size_t aSize);
+  nsRefPtr<LargeDataBuffer> mBuffer;
+  uint32_t mPadding;
+  MediaRawData(const MediaRawData&); 
+};
+
   
   
 class LargeDataBuffer : public FallibleTArray<uint8_t> {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(LargeDataBuffer);
+  LargeDataBuffer() = default;
+  explicit LargeDataBuffer(size_t aCapacity) : FallibleTArray<uint8_t>(aCapacity) {}
 
 private:
   ~LargeDataBuffer() {}
+};
+
+  
+class DataBuffer : public nsTArray<uint8_t> {
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(DataBuffer);
+
+private:
+  ~DataBuffer() {}
 };
 
 } 
