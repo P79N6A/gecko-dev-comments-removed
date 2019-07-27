@@ -288,8 +288,19 @@ for (var nameIndex = minStream; nameIndex <= maxStream; nameIndex++) {
     
     var markerPos = functionName.indexOf(internalMarker);
     if (markerPos > 0) {
-        var inChargeXTor = functionName.substr(0, markerPos) + functionName.substr(markerPos + internalMarker.length);
+        var inChargeXTor = functionName.replace(internalMarker, "");
         print("D " + memo(inChargeXTor) + " " + memo(functionName));
+
+        
+        
+        
+        
+        
+        
+        if (functionName.indexOf("::~") > 0) {
+            var calledDestructor = inChargeXTor.replace("(int32)", "()");
+            print("D " + memo(calledDestructor) + " " + memo(inChargeXTor));
+        }
     }
 
     xdb.free_string(name);
