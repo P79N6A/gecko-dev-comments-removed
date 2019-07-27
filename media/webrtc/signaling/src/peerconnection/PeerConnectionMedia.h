@@ -331,8 +331,7 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
   
   void UpdateSinkIdentity_m(nsIPrincipal* aPrincipal, const PeerIdentity* aSinkIdentity);
   
-  
-  bool AnyLocalStreamIsolated(nsIPrincipal *scriptPrincipal) const;
+  bool AnyLocalStreamHasPeerIdentity() const;
   
   
   void UpdateRemoteStreamPrincipals_m(nsIPrincipal* aPrincipal);

@@ -580,18 +580,15 @@ PeerConnectionMedia::ConnectDtlsListener_s(const RefPtr<TransportFlow>& aFlow)
 
 
 
-
-
-
 bool
-PeerConnectionMedia::AnyLocalStreamIsolated(nsIPrincipal *scriptPrincipal) const
+PeerConnectionMedia::AnyLocalStreamHasPeerIdentity() const
 {
   ASSERT_ON_THREAD(mMainThread);
 
   for (uint32_t u = 0; u < mLocalSourceStreams.Length(); u++) {
     
     DOMMediaStream* stream = mLocalSourceStreams[u]->GetMediaStream();
-    if (!scriptPrincipal->Subsumes(stream->GetPrincipal())) {
+    if (stream->GetPeerIdentity()) {
       return true;
     }
   }
