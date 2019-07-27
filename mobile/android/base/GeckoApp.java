@@ -1177,6 +1177,8 @@ public abstract class GeckoApp
             Class.forName("android.os.AsyncTask");
         } catch (ClassNotFoundException e) {}
 
+        MemoryMonitor.getInstance().init(getApplicationContext());
+
         
         
         
@@ -1185,6 +1187,13 @@ public abstract class GeckoApp
         
         GeckoAppShell.setContextGetter(this);
         GeckoAppShell.setGeckoInterface(this);
+
+        Tabs.getInstance().attachToContext(this);
+        try {
+            Favicons.initializeWithContext(this);
+        } catch (Exception e) {
+            Log.e(LOGTAG, "Exception starting favicon cache. Corrupt resources?", e);
+        }
 
         
         
@@ -1227,20 +1236,6 @@ public abstract class GeckoApp
                     GeckoThread.createAndStart();
                 }
             }, 1000 * 5 );
-        }
-
-        
-        
-        
-        ThreadUtils.reduceGeckoPriority();
-
-        MemoryMonitor.getInstance().init(getApplicationContext());
-
-        Tabs.getInstance().attachToContext(this);
-        try {
-            Favicons.initializeWithContext(this);
-        } catch (Exception e) {
-            Log.e(LOGTAG, "Exception starting favicon cache. Corrupt resources?", e);
         }
 
         Bundle stateBundle = getIntent().getBundleExtra(EXTRA_STATE_BUNDLE);
@@ -1610,10 +1605,6 @@ public abstract class GeckoApp
         } else if (NotificationHelper.HELPER_BROADCAST_ACTION.equals(action)) {
             NotificationHelper.getInstance(getApplicationContext()).handleNotificationIntent(intent);
         }
-
-        
-        
-        ThreadUtils.resetGeckoPriority();
     }
 
     private String restoreSessionTabs(final boolean isExternalURL) throws SessionRestoreException {
