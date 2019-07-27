@@ -92,8 +92,14 @@ public:
                     double aWidth,
                     double aHeight,
                     bool   aRepaint) MOZ_OVERRIDE
-  
-  { return Resize(aWidth, aHeight, aRepaint); }
+  {
+    if (mBounds.x != aX || mBounds.y != aY) {
+      NotifyWindowMoved(aX, aY);
+    }
+    mBounds.x = aX;
+    mBounds.y = aY;
+    return Resize(aWidth, aHeight, aRepaint);
+  }
 
   
   
@@ -196,6 +202,8 @@ public:
 
   
   nsIntPoint GetWindowPosition();
+
+  NS_IMETHOD GetScreenBounds(nsIntRect &aRect) MOZ_OVERRIDE;
 
 protected:
   bool mEnabled;
