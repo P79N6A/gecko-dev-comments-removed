@@ -4,6 +4,7 @@
 
 "use strict";
 
+const LOOPBACK_ADDR = "127.0.0.";
 
 const iceStateTransitions = {
   "new": ["checking", "closed"], 
@@ -1901,6 +1902,24 @@ PeerConnectionWrapper.prototype = {
 
 
 
+  audioInOfferOptions : function
+    PCW_audioInOfferOptions(options) {
+    if (!options) {
+      return 0;
+    }
+    if (options.offerToReceiveAudio) {
+      return 1;
+    } else {
+      return 0;
+    }
+  },
+
+  
+
+
+
+
+
   countVideoTracksInMediaConstraint : function
     PCW_countVideoTracksInMediaConstraint(constraints) {
     if ((!constraints) || (constraints.length === 0)) {
@@ -1913,6 +1932,24 @@ PeerConnectionWrapper.prototype = {
       }
     }
     return videoTracks;
+  },
+
+  
+
+
+
+
+
+  videoInOfferOptions : function
+    PCW_videoInOfferOptions(options) {
+    if (!options) {
+      return 0;
+    }
+    if (options.offerToReceiveVideo) {
+      return 1;
+    } else {
+      return 0;
+    }
   },
 
   
@@ -2018,6 +2055,59 @@ PeerConnectionWrapper.prototype = {
         }
       }, 60000);
     }
+  },
+
+  verifySdp : function PCW_verifySdp(desc, expectedType, constraints, offerOptions) {
+    info("Examining this SessionDescription: " + JSON.stringify(desc));
+    info("constraints: " + JSON.stringify(constraints));
+    info("offerOptions: " + JSON.stringify(offerOptions));
+    ok(desc, "SessionDescription is not null");
+    is(desc.type, expectedType, "SessionDescription type is " + expectedType);
+    ok(desc.sdp.length > 10, "SessionDescription body length is plausible");
+    ok(desc.sdp.contains("a=ice-ufrag"), "ICE username is present in SDP");
+    ok(desc.sdp.contains("a=ice-pwd"), "ICE password is present in SDP");
+    ok(desc.sdp.contains("a=fingerprint"), "ICE fingerprint is present in SDP");
+    
+    ok(!desc.sdp.contains(LOOPBACK_ADDR), "loopback interface is absent from SDP");
+    
+    ok(desc.sdp.contains("a=candidate"), "at least one ICE candidate is present in SDP");
+    
+
+    
+    var audioTracks = this.countAudioTracksInMediaConstraint(constraints);
+    if (constraints.length === 0) {
+      audioTracks = this.audioInOfferOptions(offerOptions);
+    }
+    info("expected audio tracks: " + audioTracks);
+    if (audioTracks == 0) {
+      ok(!desc.sdp.contains("m=audio"), "audio m-line is absent from SDP");
+    } else {
+      ok(desc.sdp.contains("m=audio"), "audio m-line is present in SDP");
+      ok(desc.sdp.contains("a=rtpmap:109 opus/48000/2"), "OPUS codec is present in SDP");
+      
+      
+      ok(desc.sdp.contains("a=rtcp-mux"), "RTCP Mux is offered in SDP");
+
+    }
+
+    
+    var videoTracks = this.countVideoTracksInMediaConstraint(constraints);
+    if (constraints.length === 0) {
+      videoTracks = this.videoInOfferOptions(offerOptions);
+    }
+    info("expected video tracks: " + videoTracks);
+    if (videoTracks == 0) {
+      ok(!desc.sdp.contains("m=video"), "video m-line is absent from SDP");
+    } else {
+      ok(desc.sdp.contains("m=video"), "video m-line is present in SDP");
+      if (this.h264) {
+        ok(desc.sdp.contains("a=rtpmap:126 H264/90000"), "H.264 codec is present in SDP");
+      } else {
+        ok(desc.sdp.contains("a=rtpmap:120 VP8/90000"), "VP8 codec is present in SDP");
+      }
+      ok(desc.sdp.contains("a=rtcp-mux"), "RTCP Mux is offered in SDP");
+    }
+
   },
 
   
