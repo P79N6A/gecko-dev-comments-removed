@@ -72,7 +72,6 @@ class WebGLContextBoundObject;
 class WebGLActiveInfo;
 class WebGLExtensionBase;
 class WebGLBuffer;
-struct WebGLVertexAttribData;
 class WebGLShader;
 class WebGLProgram;
 class WebGLQuery;
@@ -83,7 +82,7 @@ class WebGLSampler;
 class WebGLShaderPrecisionFormat;
 class WebGLTexture;
 class WebGLVertexArray;
-
+struct WebGLVertexAttribData;
 
 namespace dom {
 class ImageData;
@@ -96,6 +95,8 @@ template<typename> struct Nullable;
 namespace gfx {
 class SourceSurface;
 }
+
+typedef WebGLRefPtr<WebGLQuery> WebGLQueryRefPtr;
 
 WebGLTexelFormat GetWebGLTexelFormat(TexInternalFormat format);
 
@@ -350,7 +351,7 @@ public:
     void ClearDepth(GLclampf v);
     void ClearStencil(GLint v);
     void ColorMask(WebGLboolean r, WebGLboolean g, WebGLboolean b, WebGLboolean a);
-    void CompileShader(WebGLShader *shader);
+    void CompileShader(WebGLShader* shader);
     void CompressedTexImage2D(GLenum target, GLint level,
                               GLenum internalformat, GLsizei width,
                               GLsizei height, GLint border,
@@ -825,30 +826,6 @@ public:
 
 
 public:
-    already_AddRefed<WebGLQuery> CreateQuery();
-    void DeleteQuery(WebGLQuery *query);
-    void BeginQuery(GLenum target, WebGLQuery *query);
-    void EndQuery(GLenum target);
-    bool IsQuery(WebGLQuery *query);
-    already_AddRefed<WebGLQuery> GetQuery(GLenum target, GLenum pname);
-    JS::Value GetQueryObject(JSContext* cx, WebGLQuery *query, GLenum pname);
-    void GetQueryObject(JSContext* cx, WebGLQuery *query, GLenum pname,
-                        JS::MutableHandle<JS::Value> retval) {
-        retval.set(GetQueryObject(cx, query, pname));
-    }
-
-private:
-    
-    WebGLRefPtr<WebGLQuery> mActiveOcclusionQuery;
-
-    
-    WebGLRefPtr<WebGLQuery> mActiveTransformFeedbackQuery;
-
-    WebGLRefPtr<WebGLQuery>* GetQueryTargetSlot(GLenum target, const char* infos);
-
-
-
-public:
     void BindBuffer(GLenum target, WebGLBuffer* buf);
     void BindBufferBase(GLenum target, GLuint index, WebGLBuffer* buffer);
     void BindBufferRange(GLenum target, GLuint index, WebGLBuffer* buffer,
@@ -878,6 +855,14 @@ private:
     WebGLRefPtr<WebGLBuffer>* GetBufferSlotByTarget(GLenum target, const char* infos);
     WebGLRefPtr<WebGLBuffer>* GetBufferSlotByTargetIndexed(GLenum target, GLuint index, const char* infos);
     bool ValidateBufferUsageEnum(GLenum target, const char* infos);
+
+
+
+protected:
+    WebGLQueryRefPtr* GetQueryTargetSlot(GLenum target);
+
+    WebGLQueryRefPtr mActiveOcclusionQuery;
+    WebGLQueryRefPtr mActiveTransformFeedbackQuery;
 
 
 

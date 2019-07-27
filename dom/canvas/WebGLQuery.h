@@ -73,7 +73,7 @@ private:
 
     
     
-    friend class WebGLContext;
+    friend class WebGL2Context;
 };
 
 } 

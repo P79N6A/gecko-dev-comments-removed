@@ -164,16 +164,18 @@ public:
 
     bool ValidateClearBuffer(const char* info, GLenum buffer, GLint drawbuffer, size_t elemCount);
 
+
     
     
-    
-    
 
-
-
-
-
+    already_AddRefed<WebGLQuery> CreateQuery();
+    void DeleteQuery(WebGLQuery* query);
+    bool IsQuery(WebGLQuery* query);
+    void BeginQuery(GLenum target, WebGLQuery* query);
+    void EndQuery(GLenum target);
+    already_AddRefed<WebGLQuery> GetQuery(GLenum target, GLenum pname);
     void GetQueryParameter(JSContext*, WebGLQuery* query, GLenum pname, JS::MutableHandleValue retval);
+
 
     
     
@@ -204,6 +206,7 @@ public:
 
     
     
+
     already_AddRefed<WebGLTransformFeedback> CreateTransformFeedback();
     void DeleteTransformFeedback(WebGLTransformFeedback* tf);
     bool IsTransformFeedback(WebGLTransformFeedback* tf);
@@ -245,7 +248,6 @@ public:
 
 
 private:
-
     WebGL2Context();
 
     bool ValidateSizedInternalFormat(GLenum internalFormat, const char* info);
