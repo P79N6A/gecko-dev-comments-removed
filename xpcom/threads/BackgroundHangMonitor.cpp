@@ -147,7 +147,7 @@ public:
                        uint32_t aMaxTimeoutMs);
 
   
-  void ReportHang(PRIntervalTime aHangTime);
+  Telemetry::HangHistogram& ReportHang(PRIntervalTime aHangTime);
   
   void ReportPermaHang();
   
@@ -354,7 +354,7 @@ BackgroundHangThread::~BackgroundHangThread()
   Telemetry::RecordThreadHangStats(mStats);
 }
 
-void
+Telemetry::HangHistogram&
 BackgroundHangThread::ReportHang(PRIntervalTime aHangTime)
 {
   
@@ -366,12 +366,13 @@ BackgroundHangThread::ReportHang(PRIntervalTime aHangTime)
     if (newHistogram == *oldHistogram) {
       
       oldHistogram->Add(aHangTime);
-      return;
+      return *oldHistogram;
     }
   }
   
   newHistogram.Add(aHangTime);
   mStats.mHangs.append(Move(newHistogram));
+  return mStats.mHangs.back();
 }
 
 void
@@ -380,8 +381,11 @@ BackgroundHangThread::ReportPermaHang()
   
   
 
-  
-  ReportHang(mMaxTimeout);
+  Telemetry::HangHistogram& hang = ReportHang(mMaxTimeout);
+  Telemetry::HangStack& stack = hang.GetNativeStack();
+  if (stack.empty()) {
+    mStackHelper.GetNativeStack(stack);
+  }
 }
 
 MOZ_ALWAYS_INLINE void
