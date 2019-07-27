@@ -1010,6 +1010,9 @@ class GCRuntime
     bool isFull;
 
     
+    bool isCompacting;
+
+    
     JSGCInvocationKind invocationKind;
 
     
