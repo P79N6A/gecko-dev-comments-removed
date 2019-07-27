@@ -613,14 +613,19 @@ MediaDecoderStateMachine::NeedToSkipToNextKeyframe()
   
   
   
-  bool isLowOnDecodedAudio = !mIsAudioPrerolling && IsAudioDecoding() &&
+  
+  
+  bool isLowOnDecodedAudio = !mReader->IsAsync() &&
+                             !mIsAudioPrerolling && IsAudioDecoding() &&
                              (GetDecodedAudioDuration() <
                               mLowAudioThresholdUsecs * mPlaybackRate);
   bool isLowOnDecodedVideo = !mIsVideoPrerolling &&
                              (mDecodedVideoEndTime - GetClock() <
                               LOW_VIDEO_THRESHOLD_USECS * mPlaybackRate);
-  if ((isLowOnDecodedAudio || isLowOnDecodedVideo) && !HasLowUndecodedData()) {
-    DECODER_LOG("Skipping video decode to the next keyframe");
+  bool lowUndecoded = HasLowUndecodedData();
+  if ((isLowOnDecodedAudio || isLowOnDecodedVideo) && !lowUndecoded) {
+    DECODER_LOG("Skipping video decode to the next keyframe lowAudio=%d lowVideo=%d lowUndecoded=%d async=%d",
+                isLowOnDecodedAudio, isLowOnDecodedVideo, lowUndecoded, mReader->IsAsync());
     return true;
   }
 
@@ -998,6 +1003,10 @@ MediaDecoderStateMachine::OnVideoDecoded(VideoData* aVideoSample)
       
       
       
+      
+      if (mReader->IsAsync()) {
+        return;
+      }
       TimeDuration decodeTime = TimeStamp::Now() - mVideoDecodeStartTime;
       if (THRESHOLD_FACTOR * DurationToUsecs(decodeTime) > mLowAudioThresholdUsecs &&
           !HasLowUndecodedData())
