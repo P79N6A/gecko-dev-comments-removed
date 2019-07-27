@@ -85,6 +85,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.PowerManager;
+import android.os.Process;
 import android.os.StrictMode;
 import android.provider.ContactsContract;
 import android.provider.MediaStore.Images.Media;
@@ -199,12 +200,11 @@ public abstract class GeckoApp
 
     private EventListener mWebappEventListener;
 
+    private Intent mRestartIntent;
+
     abstract public int getLayout();
 
     abstract protected String getDefaultProfileName() throws NoMozillaDirectoryException;
-
-    private static final String RESTARTER_ACTION = "org.mozilla.gecko.restart";
-    private static final String RESTARTER_CLASS = "org.mozilla.gecko.Restarter";
 
     @SuppressWarnings("serial")
     class SessionRestoreException extends Exception {
@@ -676,6 +676,12 @@ public abstract class GeckoApp
                 if (rec != null) {
                   rec.recordGeckoStartupTime(mGeckoReadyStartupTimer.getElapsed());
                 }
+
+            } else if (event.equals("Gecko:Exited")) {
+                
+                doShutdown();
+                return;
+
             } else if ("NativeApp:IsDebuggable".equals(event)) {
                 JSONObject ret = new JSONObject();
                 ret.put("isDebuggable", getIsDebuggable());
@@ -1517,6 +1523,7 @@ public abstract class GeckoApp
         EventDispatcher.getInstance().registerGeckoThreadListener((GeckoEventListener)this,
             "Gecko:Ready",
             "Gecko:DelayedStartup",
+            "Gecko:Exited",
             "Accessibility:Event",
             "NativeApp:IsDebuggable");
 
@@ -2008,6 +2015,7 @@ public abstract class GeckoApp
         EventDispatcher.getInstance().unregisterGeckoThreadListener((GeckoEventListener)this,
             "Gecko:Ready",
             "Gecko:DelayedStartup",
+            "Gecko:Exited",
             "Accessibility:Event",
             "NativeApp:IsDebuggable");
 
@@ -2079,6 +2087,28 @@ public abstract class GeckoApp
         super.onDestroy();
 
         Tabs.unregisterOnTabsChangedListener(this);
+
+        if (!isFinishing()) {
+            
+            return;
+        }
+
+        if (GeckoThread.checkLaunchState(GeckoThread.LaunchState.GeckoRunning)) {
+            
+            GeckoAppShell.sendEventToGeckoSync(GeckoEvent.createAppBackgroundingEvent());
+        }
+
+        if (mRestartIntent != null) {
+            
+            final Intent intent = new Intent();
+            intent.setClass(getApplicationContext(), Restarter.class)
+                  .putExtra("pid", Process.myPid())
+                  .putExtra(Intent.EXTRA_INTENT, mRestartIntent);
+            startService(intent);
+        } else {
+            
+            Process.killProcess(Process.myPid());
+        }
     }
 
     
@@ -2140,43 +2170,41 @@ public abstract class GeckoApp
 
     @Override
     public void doRestart() {
-        doRestart(RESTARTER_ACTION, null, null);
+        doRestart(null, null);
     }
 
     public void doRestart(String args) {
-        doRestart(RESTARTER_ACTION, args, null);
+        doRestart(args, null);
     }
 
     public void doRestart(Intent intent) {
-        doRestart(RESTARTER_ACTION, null, intent);
+        doRestart(null, intent);
     }
 
-    public void doRestart(String action, String args, Intent restartIntent) {
-        Log.d(LOGTAG, "doRestart(\"" + action + "\")");
-        try {
-            Intent intent = new Intent(action);
-            intent.setClassName(AppConstants.ANDROID_PACKAGE_NAME, RESTARTER_CLASS);
-
-            
-            if (args != null) {
-                intent.putExtra("args", args);
-            }
-
-            if (restartIntent != null) {
-                intent.putExtra(Intent.EXTRA_INTENT, restartIntent);
-            }
-
-            intent.putExtra("didRestart", true);
-            Log.d(LOGTAG, "Restart intent: " + intent.toString());
-            GeckoAppShell.killAnyZombies();
-            startActivity(intent);
-        } catch (Exception e) {
-            Log.e(LOGTAG, "Error effecting restart.", e);
+    public void doRestart(String args, Intent restartIntent) {
+        if (restartIntent == null) {
+            restartIntent = new Intent(Intent.ACTION_MAIN);
         }
 
-        finish();
+        if (args != null) {
+            restartIntent.putExtra("args", args);
+        }
+
+        mRestartIntent = restartIntent;
+        Log.d(LOGTAG, "doRestart(\"" + restartIntent + "\")");
+
+        doShutdown();
+    }
+
+    private void doShutdown() {
         
-        GeckoAppShell.waitForAnotherGeckoProc();
+        runOnUiThread(new Runnable() {
+            @Override public void run() {
+                if (!isFinishing() && (Versions.preJBMR1 || !isDestroyed())) {
+                    finish();
+                }
+            }
+        });
     }
 
     public void handleNotification(String action, String alertName, String alertCookie) {
