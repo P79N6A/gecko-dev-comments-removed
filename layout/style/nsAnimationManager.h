@@ -132,9 +132,6 @@ public:
                        nsCSSPseudoElements::Type aPseudoType,
                        bool aCreateIfNeeded);
 
-  
-  void UpdateAllThrottledStyles();
-
 protected:
   virtual void ElementCollectionRemoved() MOZ_OVERRIDE
   {
@@ -161,14 +158,6 @@ private:
                     float aToKey, nsStyleContext* aToContext);
   nsIStyleRule* GetAnimationRule(mozilla::dom::Element* aElement,
                                  nsCSSPseudoElements::Type aPseudoType);
-
-  
-  
-  
-  void UpdateThrottledStylesForSubtree(nsIContent* aContent,
-                                       nsStyleContext* aParentStyle,
-                                       nsStyleChangeList &aChangeList);
-  void UpdateAllThrottledStylesInternal();
 
   
   void DoDispatchEvents();

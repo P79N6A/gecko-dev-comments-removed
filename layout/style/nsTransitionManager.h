@@ -139,27 +139,6 @@ public:
 
   void FlushTransitions(FlushFlags aFlags);
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  void UpdateAllThrottledStyles();
-
   ElementAnimationCollection* GetElementTransitions(
     mozilla::dom::Element *aElement,
     nsCSSPseudoElements::Type aPseudoType,
@@ -182,13 +161,6 @@ private:
                              nsCSSPropertySet* aWhichStarted);
   void WalkTransitionRule(ElementDependentRuleProcessorData* aData,
                           nsCSSPseudoElements::Type aPseudoType);
-  
-  
-  
-  void UpdateThrottledStylesForSubtree(nsIContent* aContent,
-                                       nsStyleContext* aParentStyle,
-                                       nsStyleChangeList &aChangeList);
-  void UpdateAllThrottledStylesInternal();
 
   bool mInAnimationOnlyStyleUpdate;
 };
