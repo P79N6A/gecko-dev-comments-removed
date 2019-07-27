@@ -13,7 +13,6 @@ import signal
 import subprocess
 import sys
 import tempfile
-from urlparse import urlparse
 import zipfile
 import mozinfo
 
@@ -21,7 +20,6 @@ __all__ = [
   "ZipFileReader",
   "addCommonOptions",
   "dumpLeakLog",
-  "isURL",
   "processLeakLog",
   'KeyValueParseError',
   'parseKeyValue',
@@ -106,11 +104,6 @@ class ZipFileReader(object):
 
     for name in self._zipfile.namelist():
       self._extractname(name, path)
-
-def isURL(thing):
-  """Return True if |thing| looks like a URL."""
-  
-  return len(urlparse(thing).scheme) >= 2
 
 
 

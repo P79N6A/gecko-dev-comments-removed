@@ -2,13 +2,14 @@
 
 
 
+from urlparse import urlparse
 import mozinfo
 import moznetwork
 import optparse
 import os
 import tempfile
 
-from automationutils import addCommonOptions, isURL
+from automationutils import addCommonOptions
 from mozprofile import DEFAULT_PORTS
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -504,7 +505,7 @@ class MochitestOptions(optparse.OptionParser):
         if options.certPath:
             options.certPath = mochitest.getFullPath(options.certPath)
 
-        if options.symbolsPath and not isURL(options.symbolsPath):
+        if options.symbolsPath and len(urlparse(options.symbolsPath).scheme) < 2:
             options.symbolsPath = mochitest.getFullPath(options.symbolsPath)
 
         
