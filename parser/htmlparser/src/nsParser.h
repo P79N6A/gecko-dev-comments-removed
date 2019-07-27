@@ -66,6 +66,12 @@ class nsParser : public nsIParser,
                  public nsIStreamListener,
                  public nsSupportsWeakReference
 {
+    
+
+
+
+    virtual ~nsParser();
+
   public:
     
 
@@ -85,12 +91,6 @@ class nsParser : public nsIParser,
 
 
     nsParser();
-
-    
-
-
-
-    virtual ~nsParser();
 
     
 

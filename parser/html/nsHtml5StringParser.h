@@ -25,7 +25,6 @@ class nsHtml5StringParser : public nsParserBase
 
 
     nsHtml5StringParser();
-    virtual ~nsHtml5StringParser();
 
     
 
@@ -57,6 +56,8 @@ class nsHtml5StringParser : public nsParserBase
                            bool aScriptingEnabledForNoscriptParsing);
 
   private:
+
+    virtual ~nsHtml5StringParser();
 
     nsresult Tokenize(const nsAString& aSourceBuffer,
                       nsIDocument* aDocument,
