@@ -41,6 +41,9 @@ function runTests() {
   yield whenPagesUpdated(null, true);
   yield addNewTabPageTab();
   checkGrid("2,1,3,4,,,,,");
+
+  
+  is(getCell(1).site.link.type, "history", "added link is history");
 }
 
 function link(id) {
