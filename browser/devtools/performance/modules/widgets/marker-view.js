@@ -11,7 +11,7 @@
 const { Cc, Ci, Cu, Cr } = require("chrome");
 const { Heritage } = require("resource:///modules/devtools/ViewHelpers.jsm");
 const { AbstractTreeItem } = require("resource:///modules/devtools/AbstractTreeItem.jsm");
-const { TIMELINE_BLUEPRINT: ORIGINAL_BP } = require("devtools/performance/markers");
+const { getBlueprintFor } = require("devtools/performance/markers");
 
 loader.lazyRequireGetter(this, "MarkerUtils",
   "devtools/performance/marker-utils");
@@ -139,7 +139,6 @@ MarkerView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
     if (!submarkers || !submarkers.length) {
       return;
     }
-    let blueprint = this.root._blueprint;
     let startTime = this.root._interval.startTime;
     let endTime = this.root._interval.endTime;
     let newLevel = this.level + 1;
@@ -147,14 +146,6 @@ MarkerView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
     for (let i = 0, len = submarkers.length; i < len; i++) {
       let marker = submarkers[i];
 
-      
-      
-      if (!(marker.name in blueprint)) {
-        if (!(marker.name in ORIGINAL_BP)) {
-          console.warn(`Marker not found in timeline blueprint: ${marker.name}.`);
-        }
-        continue;
-      }
       if (!isMarkerInRange(marker, startTime|0, endTime|0)) {
         continue;
       }
@@ -175,15 +166,20 @@ MarkerView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
 
   _buildMarkerCells: function(doc, targetNode, arrowNode) {
     let marker = this.marker;
-    let style = this.root._blueprint[marker.name];
+    let blueprint = getBlueprintFor(marker, this.root._blueprint);
     let startTime = this.root._interval.startTime;
     let endTime = this.root._interval.endTime;
 
-    let sidebarCell = this._buildMarkerSidebar(
-      doc, style, marker);
+    
+    
+    
+    
+    if (blueprint.hidden) {
+      return;
+    }
 
-    let timebarCell = this._buildMarkerTimebar(
-      doc, style, marker, startTime, endTime, arrowNode);
+    let sidebarCell = this._buildMarkerSidebar(doc, blueprint, marker);
+    let timebarCell = this._buildMarkerTimebar(doc, blueprint, marker, startTime, endTime, arrowNode);
 
     targetNode.appendChild(sidebarCell);
     targetNode.appendChild(timebarCell);

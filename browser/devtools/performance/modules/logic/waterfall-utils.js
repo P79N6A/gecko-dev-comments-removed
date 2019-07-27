@@ -7,7 +7,7 @@
 
 
 
-loader.lazyRequireGetter(this, "TIMELINE_BLUEPRINT",
+loader.lazyRequireGetter(this, "getBlueprintFor",
   "devtools/performance/markers", true);
 
 
@@ -18,14 +18,14 @@ loader.lazyRequireGetter(this, "TIMELINE_BLUEPRINT",
 
 function collapseMarkersIntoNode({ markerNode, markersList, blueprint }) {
   let { getCurrentParentNode, collapseMarker, addParentNode, popParentNode } = createParentNodeFactory(markerNode);
-  blueprint = blueprint || TIMELINE_BLUEPRINT;
 
   for (let i = 0, len = markersList.length; i < len; i++) {
     let curr = markersList[i];
 
     let parentNode = getCurrentParentNode();
-    let def = blueprint[curr.name];
-    let collapse = def.collapseFunc || (() => null);
+    let definition = getBlueprintFor(curr, blueprint);
+
+    let collapse = definition.collapseFunc || (() => null);
     let peek = distance => markersList[i + distance];
     let foundParent = false;
 
