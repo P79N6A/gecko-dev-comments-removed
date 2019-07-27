@@ -114,11 +114,9 @@ ReleaseData(void* aData, uint32_t aFlags)
   } else if (aFlags & nsSubstring::F_OWNED) {
     free(aData);
     STRING_STAT_INCREMENT(AdoptFree);
-#ifdef NS_BUILD_REFCNT_LOGGING
     
     
-    NS_LogDtor(aData, "StringAdopt", 1);
-#endif 
+    MOZ_LOG_DTOR(aData, "StringAdopt", 1);
   }
   
 }
