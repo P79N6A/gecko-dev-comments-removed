@@ -1058,18 +1058,29 @@ TrackBuffersManager::ProcessFrame(MediaRawData* aSample,
        decodeTimestamp < trackBuffer.mLastDecodeTimestamp.ref()) ||
       (trackBuffer.mLastDecodeTimestamp.isSome() &&
        decodeTimestamp - trackBuffer.mLastDecodeTimestamp.ref() > 2*trackBuffer.mLastFrameDuration.ref())) {
+
+    
     if (mParent->mAppendMode == SourceBufferAppendMode::Segments) {
+      
       mGroupEndTimestamp = presentationTimestamp;
     }
+    
     if (mParent->mAppendMode == SourceBufferAppendMode::Sequence) {
+      
       mGroupStartTimestamp = Some(mGroupEndTimestamp);
     }
     for (auto& track : tracks) {
+      
       track->mLastDecodeTimestamp.reset();
+      
       track->mLastFrameDuration.reset();
+      
       track->mHighestEndTimestamp.reset();
+      
       track->mNeedRandomAccessPoint = true;
     }
+    MSE_DEBUG("Detected discontinuity. Restarting process");
+    
     return true;
   }
 
@@ -1179,7 +1190,18 @@ TrackBuffersManager::ProcessFrame(MediaRawData* aSample,
   if (firstRemovedIndex >= 0) {
     data.InsertElementAt(firstRemovedIndex, aSample);
   } else {
-    data.AppendElement(aSample);
+    if (data.IsEmpty() || aSample->mTimecode > data.LastElement()->mTimecode) {
+      data.AppendElement(aSample);
+    } else {
+      
+      for (uint32_t i = 0; i < data.Length(); i++) {
+        const auto& sample = data[i];
+        if (sample->mTimecode > aSample->mTimecode) {
+          data.InsertElementAt(i, aSample);
+          break;
+        }
+      }
+    }
   }
   trackBuffer.mSizeBuffer += sizeof(*aSample) + aSample->mSize;
 
