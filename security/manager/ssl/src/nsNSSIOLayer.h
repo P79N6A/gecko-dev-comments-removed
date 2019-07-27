@@ -239,6 +239,7 @@ public:
   
   
   bool mUseStaticFallbackList;
+  bool mUnrestrictedRC4Fallback;
   uint16_t mVersionFallbackLimit;
 private:
   mozilla::Mutex mutex;
