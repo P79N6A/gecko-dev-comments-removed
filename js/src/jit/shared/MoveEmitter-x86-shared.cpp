@@ -97,6 +97,12 @@ MoveEmitterX86::maybeEmitOptimizedCycle(const MoveResolver &moves, size_t i,
 void
 MoveEmitterX86::emit(const MoveResolver &moves)
 {
+#if defined(JS_CODEGEN_X86) && defined(DEBUG)
+    
+    if (hasScratchRegister())
+        masm.mov(ImmWord(0xdeadbeef), scratchRegister());
+#endif
+
     for (size_t i = 0; i < moves.numMoves(); i++) {
         const MoveOp &move = moves.getMove(i);
         const MoveOperand &from = move.from();
@@ -365,15 +371,15 @@ MoveEmitterX86::emitInt32Move(const MoveOperand &from, const MoveOperand &to)
     } else {
         
         MOZ_ASSERT(from.isMemory());
-#ifdef JS_CODEGEN_X64
-        
-        masm.load32(toAddress(from), ScratchReg);
-        masm.move32(ScratchReg, toOperand(to));
-#else
-        
-        masm.Push(toOperand(from));
-        masm.Pop(toPopOperand(to));
-#endif
+        if (hasScratchRegister()) {
+            Register reg = scratchRegister();
+            masm.load32(toAddress(from), reg);
+            masm.move32(reg, toOperand(to));
+        } else {
+            
+            masm.Push(toOperand(from));
+            masm.Pop(toPopOperand(to));
+        }
     }
 }
 
@@ -390,30 +396,30 @@ MoveEmitterX86::emitGeneralMove(const MoveOperand &from, const MoveOperand &to)
             masm.lea(toOperand(from), to.reg());
     } else if (from.isMemory()) {
         
-#ifdef JS_CODEGEN_X64
-        
-        masm.loadPtr(toAddress(from), ScratchReg);
-        masm.mov(ScratchReg, toOperand(to));
-#else
-        
-        masm.Push(toOperand(from));
-        masm.Pop(toPopOperand(to));
-#endif
+        if (hasScratchRegister()) {
+            Register reg = scratchRegister();
+            masm.loadPtr(toAddress(from), reg);
+            masm.mov(reg, toOperand(to));
+        } else {
+            
+            masm.Push(toOperand(from));
+            masm.Pop(toPopOperand(to));
+        }
     } else {
         
         MOZ_ASSERT(from.isEffectiveAddress());
-#ifdef JS_CODEGEN_X64
-        
-        masm.lea(toOperand(from), ScratchReg);
-        masm.mov(ScratchReg, toOperand(to));
-#else
-        
-        
-        
-        masm.Push(from.base());
-        masm.Pop(toPopOperand(to));
-        masm.addPtr(Imm32(from.disp()), toOperand(to));
-#endif
+        if (hasScratchRegister()) {
+            Register reg = scratchRegister();
+            masm.lea(toOperand(from), reg);
+            masm.mov(reg, toOperand(to));
+        } else {
+            
+            
+            
+            masm.Push(from.base());
+            masm.Pop(toPopOperand(to));
+            masm.addPtr(Imm32(from.disp()), toOperand(to));
+        }
     }
 }
 
