@@ -200,8 +200,6 @@ class MozbuildSandbox(Sandbox):
         will be treated as relative to topsrcdir.
         """
         if os.path.isabs(path):
-            
-            assert path[0] == '/'
             if filesystem_absolute:
                 return path
             for root in [self.topsrcdir] + self.external_source_dirs:
