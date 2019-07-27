@@ -293,7 +293,7 @@ public:
       
       
       
-      mParser = new mp4_demuxer::MoofParser(mStream, 0, &mMonitor);
+      mParser = new mp4_demuxer::MoofParser(mStream, 0,  false, &mMonitor);
       mInitData = new LargeDataBuffer();
     } else if (!mStream || !mParser) {
       return false;
