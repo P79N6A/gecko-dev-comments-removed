@@ -204,19 +204,6 @@ this.TelemetryController = Object.freeze({
 
 
 
-  addPendingPingFromFile: function(aPingPath, aRemoveOriginal) {
-    return Impl.addPendingPingFromFile(aPingPath, aRemoveOriginal);
-  },
-
-  
-
-
-
-
-
-
-
-
 
 
 
@@ -282,6 +269,16 @@ this.TelemetryController = Object.freeze({
     options.overwrite = aOptions.overwrite || false;
 
     return Impl.addPendingPing(aType, aPayload, options);
+  },
+
+  
+
+
+
+
+
+  addAbortedSessionPing: function addAbortedSessionPing(aFilePath) {
+    return Impl.addAbortedSessionPing(aFilePath);
   },
 
   
@@ -508,23 +505,6 @@ let Impl = {
 
 
 
-
-  addPendingPingFromFile: function(aPingPath, aRemoveOriginal) {
-    return TelemetryStorage.addPendingPingFromFile(aPingPath).then(() => {
-        if (aRemoveOriginal) {
-          return OS.File.remove(aPingPath);
-        }
-      }, error => this._log.error("addPendingPingFromFile - Unable to add the pending ping", error));
-  },
-
-  
-
-
-
-
-
-
-
   _getNextPingSendTime: function(now) {
     const todayDate = truncateToDays(now);
     const tomorrowDate = tomorrow(todayDate);
@@ -719,6 +699,26 @@ let Impl = {
     return TelemetryStorage.savePingToFile(pingData, aFilePath, aOptions.overwrite)
                         .then(() => pingData.id);
   },
+
+  
+
+
+
+
+
+  addAbortedSessionPing: Task.async(function* addAbortedSessionPing(aFilePath) {
+    this._log.trace("addAbortedSessionPing");
+
+    let ping = yield TelemetryStorage.loadPingFile(aFilePath);
+    try {
+      yield TelemetryStorage.addPendingPing(ping);
+      yield TelemetryArchive.promiseArchivePing(ping);
+    } catch (e) {
+      this._log.error("addAbortedSessionPing - Unable to add the pending ping", e);
+    } finally {
+      yield OS.File.remove(aFilePath);
+    }
+  }),
 
   onPingRequestFinished: function(success, startTime, ping, isPersisted) {
     this._log.trace("onPingRequestFinished - success: " + success + ", persisted: " + isPersisted);
