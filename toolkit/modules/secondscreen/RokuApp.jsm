@@ -291,17 +291,18 @@ function RemoteMirror(url, win, viewport, mirrorStartedCallback, contentWindow) 
   let cWidth =  Math.max(viewport.cssWidth, viewport.width);
   let cHeight = Math.max(viewport.cssHeight, viewport.height);
 
-  const MAX_WIDTH = 800;
-  const MAX_HEIGHT = 600;
+  const MAX_WIDTH = 1280;
+  const MAX_HEIGHT = 720;
 
   let tWidth = 0;
   let tHeight = 0;
 
+  
   if ((cWidth / MAX_WIDTH) > (cHeight / MAX_HEIGHT)) {
-    tHeight = Math.ceil((MAX_WIDTH / cWidth) * cHeight);
+    tHeight = Math.ceil((MAX_WIDTH / (4* cWidth)) * cHeight) * 4;
     tWidth = MAX_WIDTH;
   } else {
-    tWidth = Math.ceil((MAX_HEIGHT / cHeight) * cWidth);
+    tWidth = Math.ceil((MAX_HEIGHT / (4 * cHeight)) * cWidth) * 4;
     tHeight = MAX_HEIGHT;
   }
 
