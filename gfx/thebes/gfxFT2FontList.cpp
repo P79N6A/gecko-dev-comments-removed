@@ -635,7 +635,7 @@ public:
             nullptr
         };
 
-        MOZ_ASSERT(XRE_IsParentProcess(),
+        MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default,
                    "StartupCacheFontNameCache should only be used in chrome "
                    "process");
         mCache = mozilla::scache::StartupCache::GetSingleton();
@@ -1148,7 +1148,7 @@ gfxFT2FontList::FindFonts()
     mCodepointsWithNoFonts.SetRange(0,0x1f);     
     mCodepointsWithNoFonts.SetRange(0x7f,0x9f);  
 
-    if (!XRE_IsParentProcess()) {
+    if (XRE_GetProcessType() != GeckoProcessType_Default) {
         
         InfallibleTArray<FontListEntry> fonts;
         mozilla::dom::ContentChild::GetSingleton()->SendReadFontList(&fonts);

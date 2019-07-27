@@ -3199,7 +3199,7 @@ nsObjectLoadingContent::ShouldPlay(FallbackType &aReason, bool aIgnoreCurrentTyp
     sPrefsInitialized = true;
   }
 
-  if (XRE_IsParentProcess() &&
+  if (XRE_GetProcessType() == GeckoProcessType_Default &&
       BrowserTabsRemoteAutostart()) {
     
     

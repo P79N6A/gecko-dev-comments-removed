@@ -72,7 +72,7 @@ nsresult nsPluginNativeWindowGtk::CallSetWindow(nsRefPtr<nsNPAPIPluginInstance> 
 {
   if (aPluginInstance) {
     if (type == NPWindowTypeWindow &&
-        XRE_IsContentProcess()) {
+        XRE_GetProcessType() == GeckoProcessType_Content) {
       
       
       

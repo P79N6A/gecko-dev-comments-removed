@@ -261,7 +261,7 @@ OnStatsReport_m(WebrtcGlobalChild* aThisChild,
   }
 
   
-  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
 
   StatsRequest* request = StatsRequest::Get(aRequestId);
 
@@ -332,7 +332,7 @@ static void OnGetLogging_m(WebrtcGlobalChild* aThisChild,
   }
 
   
-  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
 
   LogRequest* request = LogRequest::Get(aRequestId);
 
@@ -443,7 +443,7 @@ WebrtcGlobalInformation::GetAllStats(
     return;
   }
 
-  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
 
   
   
@@ -534,7 +534,7 @@ WebrtcGlobalInformation::GetLogging(
     return;
   }
 
-  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
 
   
   

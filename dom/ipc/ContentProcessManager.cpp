@@ -32,7 +32,7 @@ ContentProcessManager::sSingleton;
  ContentProcessManager*
 ContentProcessManager::GetSingleton()
 {
-  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
 
   if (!sSingleton) {
     sSingleton = new ContentProcessManager();

@@ -427,7 +427,7 @@ WrapperFactory::Rewrap(JSContext* cx, HandleObject existing, HandleObject obj)
         
         if ((IdentifyStandardInstance(obj) == JSProto_Function ||
             (jsipc::IsCPOW(obj) && JS::IsCallable(obj) &&
-             XRE_IsContentProcess())))
+             XRE_GetProcessType() == GeckoProcessType_Content)))
         {
             wrapper = &FilteringWrapper<CrossCompartmentSecurityWrapper, OpaqueWithCall>::singleton;
         }

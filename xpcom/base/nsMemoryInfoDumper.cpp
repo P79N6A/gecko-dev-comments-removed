@@ -484,7 +484,7 @@ public:
       
       
       
-      if (XRE_IsParentProcess()) {
+      if (XRE_GetProcessType() == GeckoProcessType_Default) {
         
         process.AssignLiteral("Main Process");
       } else if (ContentChild* cc = ContentChild::GetSingleton()) {

@@ -1449,7 +1449,7 @@ MediaManager::NotifyRecordingStatusChange(nsPIDOMWindow* aWindow,
 
   
   
-  if (!XRE_IsParentProcess()) {
+  if (XRE_GetProcessType() != GeckoProcessType_Default) {
     unused <<
       dom::ContentChild::GetSingleton()->SendRecordingDeviceEvents(aMsg,
                                                                    requestURL,

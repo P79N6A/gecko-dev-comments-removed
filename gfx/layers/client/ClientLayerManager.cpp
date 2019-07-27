@@ -221,7 +221,7 @@ ClientLayerManager::BeginTransactionWithTarget(gfxContext* aTarget)
 
   
   
-  if (aTarget && XRE_IsParentProcess()) {
+  if (aTarget && XRE_GetProcessType() == GeckoProcessType_Default) {
     mShadowTarget = aTarget;
   } else {
     NS_ASSERTION(!aTarget,
@@ -370,7 +370,7 @@ ClientLayerManager::GetRemoteRenderer()
 CompositorChild*
 ClientLayerManager::GetCompositorChild()
 {
-  if (!XRE_IsParentProcess()) {
+  if (XRE_GetProcessType() != GeckoProcessType_Default) {
     return CompositorChild::Get();
   }
   return GetRemoteRenderer();

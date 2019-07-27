@@ -697,7 +697,7 @@ nsFocusManager::WindowRaised(nsIDOMWindow* aWindow)
   
   
   
-  if (XRE_IsParentProcess()) {
+  if (XRE_GetProcessType() == GeckoProcessType_Default) {
     ActivateOrDeactivate(window, true);
   }
 
@@ -760,7 +760,7 @@ nsFocusManager::WindowLowered(nsIDOMWindow* aWindow)
   
   
   
-  if (XRE_IsParentProcess()) {
+  if (XRE_GetProcessType() == GeckoProcessType_Default) {
     ActivateOrDeactivate(window, false);
   }
 

@@ -60,7 +60,7 @@ static const uint32_t NodeIdSaltLength = 32;
 already_AddRefed<GeckoMediaPluginServiceParent>
 GeckoMediaPluginServiceParent::GetSingleton()
 {
-  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
   nsRefPtr<GeckoMediaPluginService> service(
     GeckoMediaPluginServiceParent::GetGeckoMediaPluginService());
 #ifdef DEBUG
@@ -144,7 +144,7 @@ GeckoMediaPluginServiceParent::InitStorage()
   MOZ_ASSERT(NS_IsMainThread());
 
   
-  if (!XRE_IsParentProcess()) {
+  if (XRE_GetProcessType() != GeckoProcessType_Default) {
     return NS_OK;
   }
 

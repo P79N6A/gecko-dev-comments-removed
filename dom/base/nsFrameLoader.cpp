@@ -1601,12 +1601,12 @@ nsFrameLoader::ShouldUseRemoteProcess()
 
   
   
-  if (XRE_IsContentProcess() &&
+  if (XRE_GetProcessType() == GeckoProcessType_Content &&
       !CompositorChild::ChildProcessHasCompositor()) {
     return false;
   }
 
-  if (XRE_IsContentProcess() &&
+  if (XRE_GetProcessType() == GeckoProcessType_Content &&
       !(PR_GetEnv("MOZ_NESTED_OOP_TABS") ||
         Preferences::GetBool("dom.ipc.tabs.nested.enabled", false))) {
     return false;
@@ -2650,7 +2650,7 @@ nsFrameLoader::ResetPermissionManagerStatus()
 {
   
   
-  if (XRE_IsContentProcess()) {
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
     return;
   }
 

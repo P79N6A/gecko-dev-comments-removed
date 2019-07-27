@@ -425,7 +425,7 @@ nsCoreUtils::IsTabDocument(nsIDocument* aDocumentNode)
   treeItem->GetParent(getter_AddRefs(parentTreeItem));
 
   
-  if (XRE_IsContentProcess())
+  if (XRE_GetProcessType() == GeckoProcessType_Content)
     return !parentTreeItem;
 
   

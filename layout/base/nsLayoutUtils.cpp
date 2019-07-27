@@ -3402,7 +3402,7 @@ nsLayoutUtils::PaintFrame(nsRenderingContext* aRenderingContext, nsIFrame* aFram
     
     
     
-    if (XRE_IsParentProcess()) {
+    if (XRE_GetProcessType() == GeckoProcessType_Default) {
       rootPresContext->ComputePluginGeometryUpdates(aFrame, &builder, &list);
       
       

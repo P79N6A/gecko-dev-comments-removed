@@ -406,7 +406,7 @@ NS_DebugBreak(uint32_t aSeverity, const char* aStr, const char* aExpr,
       
       
       
-      if (XRE_IsParentProcess()) {
+      if (XRE_GetProcessType() == GeckoProcessType_Default) {
         nsCString note("xpcom_runtime_abort(");
         note += buf.buffer;
         note += ")";

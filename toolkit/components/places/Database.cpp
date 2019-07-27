@@ -581,7 +581,7 @@ Database::Database()
   , mClosed(false)
   , mConnectionShutdown(new DatabaseShutdown(this))
 {
-  MOZ_ASSERT(!XRE_IsContentProcess(),
+  MOZ_ASSERT(XRE_GetProcessType() != GeckoProcessType_Content,
              "Cannot instantiate Places in the content process");
   
   MOZ_ASSERT(!gDatabase);
