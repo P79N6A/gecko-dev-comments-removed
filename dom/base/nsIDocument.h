@@ -1897,7 +1897,8 @@ public:
 
 
   virtual void MaybePreLoadImage(nsIURI* uri,
-                                 const nsAString& aCrossOriginAttr) = 0;
+                                 const nsAString& aCrossOriginAttr,
+                                 ReferrerPolicy aReferrerPolicy) = 0;
 
   
 

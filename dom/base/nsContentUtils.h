@@ -30,6 +30,7 @@
 #include "mozilla/dom/AutocompleteInfoBinding.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/FloatingPoint.h"
+#include "mozilla/net/ReferrerPolicy.h"
 #include "nsIContentPolicy.h"
 
 #if defined(XP_WIN)
@@ -625,10 +626,13 @@ public:
 
 
 
+
+
   static nsresult LoadImage(nsIURI* aURI,
                             nsIDocument* aLoadingDocument,
                             nsIPrincipal* aLoadingPrincipal,
                             nsIURI* aReferrer,
+                            mozilla::net::ReferrerPolicy aReferrerPolicy,
                             imgINotificationObserver* aObserver,
                             int32_t aLoadFlags,
                             const nsAString& initiatorType,

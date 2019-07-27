@@ -19,6 +19,7 @@
 #include "nsStringGlue.h"
 #include "nsError.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
+#include "mozilla/net/ReferrerPolicy.h"
 
 class imgCacheValidator;
 class imgLoader;
@@ -52,6 +53,7 @@ public:
   typedef mozilla::image::Image Image;
   typedef mozilla::image::ImageURL ImageURL;
   typedef mozilla::image::ProgressTracker ProgressTracker;
+  typedef mozilla::net::ReferrerPolicy ReferrerPolicy;
 
   explicit imgRequest(imgLoader* aLoader);
 
@@ -64,7 +66,8 @@ public:
                 imgCacheEntry *aCacheEntry,
                 void *aLoadId,
                 nsIPrincipal* aLoadingPrincipal,
-                int32_t aCORSMode);
+                int32_t aCORSMode,
+                ReferrerPolicy aReferrerPolicy);
 
   void ClearLoader();
 
@@ -115,6 +118,9 @@ public:
 
   
   int32_t GetCORSMode() const { return mCORSMode; }
+
+  
+  ReferrerPolicy GetReferrerPolicy() const { return mReferrerPolicy; }
 
   
   
@@ -252,6 +258,9 @@ private:
   
   
   int32_t mCORSMode;
+
+  
+  ReferrerPolicy mReferrerPolicy;
 
   nsresult mImageErrorCode;
 

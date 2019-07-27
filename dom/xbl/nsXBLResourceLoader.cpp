@@ -120,7 +120,8 @@ nsXBLResourceLoader::LoadResources(bool* aResult)
       
       
       nsRefPtr<imgRequestProxy> req;
-      nsContentUtils::LoadImage(url, doc, docPrincipal, docURL, nullptr,
+      nsContentUtils::LoadImage(url, doc, docPrincipal, docURL,
+                                doc->GetReferrerPolicy(), nullptr,
                                 nsIRequest::LOAD_BACKGROUND, EmptyString(),
                                 getter_AddRefs(req));
     }

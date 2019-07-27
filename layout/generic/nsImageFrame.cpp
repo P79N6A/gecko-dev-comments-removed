@@ -1981,6 +1981,7 @@ nsImageFrame::LoadIcon(const nsAString& aSpec,
 
 
                        nullptr,      
+                       mozilla::net::RP_Default,
                        nullptr,      
                        loadGroup,
                        gIconLoad,
