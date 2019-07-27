@@ -159,6 +159,10 @@ private:
   void InitializationTask();
 
   
+  
+  void UpdateStreamBlockingForPlayState();
+
+  
   void UpdateStreamBlockingForStateMachinePlaying();
 
   void Shutdown();

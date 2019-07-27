@@ -395,8 +395,6 @@ public:
   
   
 
-  void UpdateStreamBlockingForPlayState();
-
   
 
 
