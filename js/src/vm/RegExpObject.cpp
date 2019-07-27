@@ -709,6 +709,12 @@ RegExpCompartment::createMatchResultTemplateObject(JSContext *cx)
         return matchResultTemplateObject_; 
 
     
+    Rooted<TaggedProto> proto(cx, templateObject->getTaggedProto());
+    types::TypeObject *type =
+        cx->compartment()->types.newTypeObject(cx, templateObject->getClass(), proto);
+    templateObject->setType(type);
+
+    
     RootedValue index(cx, Int32Value(0));
     if (!baseops::DefineProperty(cx, templateObject, cx->names().index, index,
                                  JS_PropertyStub, JS_StrictPropertyStub, JSPROP_ENUMERATE))
@@ -726,6 +732,10 @@ RegExpCompartment::createMatchResultTemplateObject(JSContext *cx)
               shape->previous()->propidRef() == NameToId(cx->names().index));
     JS_ASSERT(shape->slot() == 1 &&
               shape->propidRef() == NameToId(cx->names().input));
+
+    
+    
+    types::AddTypePropertyId(cx, templateObject, JSID_VOID, types::Type::StringType());
 
     matchResultTemplateObject_.set(templateObject);
 
