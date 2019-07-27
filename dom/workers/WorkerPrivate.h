@@ -759,6 +759,13 @@ public:
     return mLoadInfo.mPrivateBrowsing;
   }
 
+  
+  bool
+  ServiceWorkersTestingInWindow() const
+  {
+    return mLoadInfo.mServiceWorkersTestingInWindow;
+  }
+
   void
   GetAllSharedWorkers(nsTArray<nsRefPtr<SharedWorker>>& aSharedWorkers);
 
@@ -1245,6 +1252,7 @@ public:
     return mPreferences[WORKERPREF_SERVICEWORKERS];
   }
 
+  
   bool
   ServiceWorkersTestingEnabled() const
   {
