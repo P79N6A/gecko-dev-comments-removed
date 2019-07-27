@@ -103,14 +103,6 @@ add_task(function* mouse() {
   checkState(state, "x", ["xfoo", "xbar"], -1);
 
   
-  state = yield msg("mousemove", 0);
-  checkState(state, "xfoo", ["xfoo", "xbar"], 0);
-
-  
-  state = yield msg("mousemove", 1);
-  checkState(state, "xbar", ["xfoo", "xbar"], 1);
-
-  
   
   
   state = yield msg("mousedown", 1);

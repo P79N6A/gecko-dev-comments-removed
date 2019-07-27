@@ -37,33 +37,6 @@ let messageHandlers = {
     ack();
   },
 
-  mousemove: function (suggestionIdx) {
-    
-    
-    let row = gController._table.children[suggestionIdx];
-    let rect = row.getBoundingClientRect();
-    let left = content.mozInnerScreenX + rect.left;
-    let x = left + rect.width / 2;
-    let y = content.mozInnerScreenY + rect.top + rect.height / 2;
-
-    let utils = content.SpecialPowers.getDOMWindowUtils(content);
-    let scale = utils.screenPixelsPerCSSPixel;
-
-    let widgetToolkit = content.SpecialPowers.
-                        Cc["@mozilla.org/xre/app-info;1"].
-                        getService(content.SpecialPowers.Ci.nsIXULRuntime).
-                        widgetToolkit;
-    let nativeMsg = widgetToolkit == "cocoa" ? 5 : 
-                    widgetToolkit == "windows" ? 1 : 
-                    3; 
-
-    row.addEventListener("mousemove", function onMove() {
-      row.removeEventListener("mousemove", onMove);
-      ack();
-    });
-    utils.sendNativeMouseEvent(x * scale, y * scale, nativeMsg, 0, null);
-  },
-
   mousedown: function (suggestionIdx) {
     gController.onClick = () => {
       gController.onClick = null;
