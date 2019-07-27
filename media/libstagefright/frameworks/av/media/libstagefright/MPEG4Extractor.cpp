@@ -40,6 +40,9 @@
 #include <utils/String8.h>
 #include "nsTArray.h"
 
+static const uint32_t kMAX_ALLOCATION =
+    (SIZE_MAX < INT32_MAX ? SIZE_MAX : INT32_MAX) - 128;
+
 namespace stagefright {
 
 class MPEG4Source : public MediaSource {
@@ -760,6 +763,11 @@ status_t MPEG4Extractor::parseChunk(off64_t *offset, int depth) {
             return ERROR_MALFORMED;
         }
     } else if (chunk_size < 8) {
+        
+        return ERROR_MALFORMED;
+    }
+
+    if (chunk_size >= kMAX_ALLOCATION) {
         
         return ERROR_MALFORMED;
     }
@@ -1844,7 +1852,7 @@ status_t MPEG4Extractor::parseChunk(off64_t *offset, int depth) {
             }
 
             
-            if (size > (size_t)-1 - chunk_size) {
+            if (size >= kMAX_ALLOCATION - chunk_size) {
                 return ERROR_MALFORMED;
             }
             uint8_t *buffer = new uint8_t[size + chunk_size];
@@ -2197,12 +2205,15 @@ status_t MPEG4Extractor::parseMetaData(off64_t offset, size_t size) {
         return ERROR_MALFORMED;
     }
 
-    uint8_t *buffer = new uint8_t[size + 1];
+    FallibleTArray<uint8_t> bufferBackend;
+    if (!bufferBackend.SetLength(size + 1)) {
+        
+        return OK;
+    }
+
+    uint8_t *buffer = bufferBackend.Elements();
     if (mDataSource->readAt(
                 offset, buffer, size) != (ssize_t)size) {
-        delete[] buffer;
-        buffer = NULL;
-
         return ERROR_IO;
     }
 
@@ -2372,9 +2383,6 @@ status_t MPEG4Extractor::parseMetaData(off64_t offset, size_t size) {
                     metadataKey, (const char *)buffer + 8);
         }
     }
-
-    delete[] buffer;
-    buffer = NULL;
 
     return OK;
 }
@@ -2693,7 +2701,7 @@ status_t MPEG4Source::parseChunk(off64_t *offset) {
         return ERROR_MALFORMED;
     }
 
-    if (chunk_size >= INT32_MAX - 128) {
+    if (chunk_size >= kMAX_ALLOCATION) {
         
         return ERROR_MALFORMED;
     }
