@@ -1952,7 +1952,7 @@ size_t ArenaHeader::countUsedCells()
 }
 
 ArenaHeader *
-ArenaList::removeRemainingArenas(ArenaHeader **arenap, const AutoLockGC &lock)
+ArenaList::removeRemainingArenas(ArenaHeader **arenap)
 {
     
     
@@ -1966,53 +1966,52 @@ ArenaList::removeRemainingArenas(ArenaHeader **arenap, const AutoLockGC &lock)
     return remainingArenas;
 }
 
-
-
-
-
-ArenaHeader *
-ArenaList::pickArenasToRelocate(JSRuntime *runtime)
+static bool
+ShouldRelocateAllArenas(JSRuntime *runtime)
 {
-    AutoLockGC lock(runtime);
+    
+    
+    
+    
+#if defined(DEBUG) && defined(JS_PUNBOX64)
+    return true;
+#else
+    return runtime->gc.zeal() == ZealCompactValue;
+#endif
+}
+
+
+
+
+
+ArenaHeader **
+ArenaList::pickArenasToRelocate(size_t &arenaTotalOut, size_t &relocTotalOut)
+{
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
     check();
-    if (isEmpty())
-        return nullptr;
-
-    
-    
-    
-    bool relocateAll = runtime->gc.zeal() == ZealCompactValue;
-#if defined(DEBUG) && defined(JS_PUNBOX64)
-    relocateAll = true;
-#endif
-    if (relocateAll) {
-        ArenaHeader *allArenas = head();
-        clear();
-        return allArenas;
-    }
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
 
     if (isCursorAtEnd())
         return nullptr;
 
     ArenaHeader **arenap = cursorp_;               
     size_t previousFreeCells = 0;                  
+    size_t followingUsedCells = 0;                 
+    size_t arenaCount = 0;                         
+    size_t arenaIndex = 0;                         
 
-    
-    size_t followingUsedCells = 0;
-    for (ArenaHeader *arena = *arenap; arena; arena = arena->next)
+    for (ArenaHeader *arena = *cursorp_; arena; arena = arena->next) {
         followingUsedCells += arena->countUsedCells();
+        arenaCount++;
+    }
 
     mozilla::DebugOnly<size_t> lastFreeCells(0);
     size_t cellsPerArena = Arena::thingsPerArena((*arenap)->getThingSize());
@@ -2020,7 +2019,8 @@ ArenaList::pickArenasToRelocate(JSRuntime *runtime)
     while (*arenap) {
         ArenaHeader *arena = *arenap;
         if (followingUsedCells <= previousFreeCells)
-            return removeRemainingArenas(arenap, lock);
+            break;
+
         size_t freeCells = arena->countFreeCells();
         size_t usedCells = cellsPerArena - freeCells;
         followingUsedCells -= usedCells;
@@ -2030,10 +2030,16 @@ ArenaList::pickArenasToRelocate(JSRuntime *runtime)
 #endif
         previousFreeCells += freeCells;
         arenap = &arena->next;
+        arenaIndex++;
     }
 
-    check();
-    return nullptr;
+    size_t relocCount = arenaCount - arenaIndex;
+    MOZ_ASSERT(relocCount < arenaCount);
+    MOZ_ASSERT((relocCount == 0) == (!*arenap));
+    arenaTotalOut += arenaCount;
+    relocTotalOut += relocCount;
+
+    return arenap;
 }
 
 #ifdef DEBUG
@@ -2148,36 +2154,79 @@ ArenaList::relocateArenas(ArenaHeader *toRelocate, ArenaHeader *relocated,
     return relocated;
 }
 
-ArenaHeader *
-ArenaLists::relocateArenas(ArenaHeader *relocatedList, gcstats::Statistics& stats)
+
+
+static const double MIN_ZONE_RECLAIM_PERCENT = 2.0;
+
+static bool ShouldRelocateZone(size_t arenaCount, size_t relocCount, JS::gcreason::Reason reason)
 {
+    if (relocCount == 0)
+        return false;
+
+    if (reason == JS::gcreason::MEM_PRESSURE || reason == JS::gcreason::LAST_DITCH)
+        return true;
+
+    return (relocCount * 100.0) / arenaCount >= MIN_ZONE_RECLAIM_PERCENT;
+}
+
+bool
+ArenaLists::relocateArenas(ArenaHeader *&relocatedListOut, JS::gcreason::Reason reason,
+                           gcstats::Statistics& stats)
+{
+
+    
+    
+    MOZ_ASSERT(CurrentThreadCanAccessRuntime(runtime_));
+    MOZ_ASSERT(runtime_->isHeapCompacting());
+    MOZ_ASSERT(!runtime_->gc.isBackgroundSweeping());
+
     
     purge();
     checkEmptyFreeLists();
 
-    for (size_t i = 0; i < FINALIZE_LIMIT; i++) {
-        if (CanRelocateAllocKind(AllocKind(i))) {
-            ArenaList &al = arenaLists[i];
-            ArenaHeader *toRelocate = al.pickArenasToRelocate(runtime_);
-            if (toRelocate)
-                relocatedList = al.relocateArenas(toRelocate, relocatedList, stats);
+    if (ShouldRelocateAllArenas(runtime_)) {
+        for (size_t i = 0; i < FINALIZE_LIMIT; i++) {
+            if (CanRelocateAllocKind(AllocKind(i))) {
+                ArenaList &al = arenaLists[i];
+                ArenaHeader *allArenas = al.head();
+                al.clear();
+                relocatedListOut = al.relocateArenas(allArenas, relocatedListOut, stats);
+            }
+        }
+    } else {
+        size_t arenaCount = 0;
+        size_t relocCount = 0;
+        ArenaHeader **toRelocate[FINALIZE_LIMIT] = {nullptr};
+
+        for (size_t i = 0; i < FINALIZE_LIMIT; i++) {
+            if (CanRelocateAllocKind(AllocKind(i)))
+                toRelocate[i] = arenaLists[i].pickArenasToRelocate(arenaCount, relocCount);
+        }
+
+        if (!ShouldRelocateZone(arenaCount, relocCount, reason))
+            return false;
+
+        for (size_t i = 0; i < FINALIZE_LIMIT; i++) {
+            if (toRelocate[i]) {
+                ArenaList &al = arenaLists[i];
+                ArenaHeader *arenas = al.removeRemainingArenas(toRelocate[i]);
+                relocatedListOut = al.relocateArenas(arenas, relocatedListOut, stats);
+            }
         }
     }
 
     
-
-
-
-
-
+    
+    
+    
     purge();
     checkEmptyFreeLists();
 
-    return relocatedList;
+    return true;
 }
 
 ArenaHeader *
-GCRuntime::relocateArenas()
+GCRuntime::relocateArenas(JS::gcreason::Reason reason)
 {
     gcstats::AutoPhase ap(stats, gcstats::PHASE_COMPACT_MOVE);
 
@@ -2187,9 +2236,9 @@ GCRuntime::relocateArenas()
         MOZ_ASSERT(!zone->isPreservingCode());
 
         if (CanRelocateZone(rt, zone)) {
-            zone->setGCState(Zone::Compact);
             jit::StopAllOffThreadCompilations(zone);
-            relocatedList = zone->arenas.relocateArenas(relocatedList, stats);
+            if (zone->arenas.relocateArenas(relocatedList, reason, stats))
+                zone->setGCState(Zone::Compact);
         }
     }
 
@@ -2244,7 +2293,6 @@ GCRuntime::sweepZoneAfterCompacting(Zone *zone)
 
     for (CompartmentsInZoneIter c(zone); !c.done(); c.next()) {
         c->sweepInnerViews();
-        c->sweepCrossCompartmentWrappers();
         c->sweepBaseShapeTable();
         c->sweepInitialShapeTable();
         c->objectGroups.sweep(fop);
@@ -2389,14 +2437,16 @@ ArenasToUpdate::next(AutoLockHelperThreadState& lock)
 
     initialized = true;
     for (; !zone.done(); zone.next()) {
-        for (kind = 0; kind < FINALIZE_LIMIT; ++kind) {
-            if (shouldProcessKind(kind)) {
-                for (arena = zone.get()->arenas.getFirstArena(AllocKind(kind));
-                     arena;
-                     arena = arena->next)
-                {
-                    return arena;
-                    resumePoint:;
+        if (zone->isGCCompacting()) {
+            for (kind = 0; kind < FINALIZE_LIMIT; ++kind) {
+                if (shouldProcessKind(kind)) {
+                    for (arena = zone.get()->arenas.getFirstArena(AllocKind(kind));
+                         arena;
+                         arena = arena->next)
+                    {
+                        return arena;
+                      resumePoint:;
+                    }
                 }
             }
         }
@@ -2560,8 +2610,10 @@ GCRuntime::updatePointersToRelocatedCells()
         comp->fixupAfterMovingGC();
 
     
-    for (CompartmentsIter comp(rt, SkipAtoms); !comp.done(); comp.next())
+    for (CompartmentsIter comp(rt, SkipAtoms); !comp.done(); comp.next()) {
         comp->sweepCrossCompartmentWrappers();
+        comp->markCrossCompartmentWrappers(&trc);
+    }
 
     
     
@@ -2595,7 +2647,7 @@ GCRuntime::updatePointersToRelocatedCells()
     WatchpointMap::sweepAll(rt);
     Debugger::sweepAll(rt->defaultFreeOp());
     for (GCZonesIter zone(rt); !zone.done(); zone.next()) {
-        if (CanRelocateZone(rt, zone))
+        if (zone->isGCCompacting())
             rt->gc.sweepZoneAfterCompacting(zone);
     }
 
@@ -5419,7 +5471,7 @@ GCRuntime::endSweepPhase(bool lastGC)
 }
 
 GCRuntime::IncrementalProgress
-GCRuntime::compactPhase(bool lastGC)
+GCRuntime::compactPhase(bool lastGC, JS::gcreason::Reason reason)
 {
     gcstats::AutoPhase ap(stats, gcstats::PHASE_COMPACT);
 
@@ -5435,8 +5487,9 @@ GCRuntime::compactPhase(bool lastGC)
     MOZ_ASSERT(rt->gc.nursery.isEmpty());
     assertBackgroundSweepingFinished();
 
-    ArenaHeader *relocatedList = relocateArenas();
-    updatePointersToRelocatedCells();
+    ArenaHeader *relocatedList = relocateArenas(reason);
+    if (relocatedList)
+        updatePointersToRelocatedCells();
 
 #ifdef DEBUG
     for (ArenaHeader *arena = relocatedList; arena; arena = arena->next) {
@@ -5470,7 +5523,7 @@ GCRuntime::compactPhase(bool lastGC)
 #ifdef DEBUG
     CheckHashTablesAfterMovingGC(rt);
     for (GCZonesIter zone(rt); !zone.done(); zone.next()) {
-        if (CanRelocateZone(rt, zone)) {
+        if (zone->isGCCompacting()) {
             MOZ_ASSERT(!zone->isPreservingCode());
             zone->arenas.checkEmptyFreeLists();
 
@@ -5877,9 +5930,11 @@ GCRuntime::incrementalCollectSlice(SliceBudget &budget, JS::gcreason::Reason rea
             break;
 
       case COMPACT:
-        if (isCompacting && compactPhase(lastGC) == NotFinished)
+        if (isCompacting && compactPhase(lastGC, reason) == NotFinished)
             break;
+
         finishCollection();
+
         incrementalState = NO_INCREMENTAL;
         break;
 

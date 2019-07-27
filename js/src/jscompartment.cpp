@@ -502,7 +502,7 @@ JSCompartment::wrap(JSContext *cx, MutableHandle<PropDesc> desc)
 void
 JSCompartment::markCrossCompartmentWrappers(JSTracer *trc)
 {
-    MOZ_ASSERT(!zone()->isCollecting());
+    MOZ_ASSERT(!zone()->isCollecting() || trc->runtime()->isHeapCompacting());
 
     for (WrapperMap::Enum e(crossCompartmentWrappers); !e.empty(); e.popFront()) {
         Value v = e.front().value();
