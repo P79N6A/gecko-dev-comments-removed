@@ -1676,12 +1676,6 @@ public:
 
 
 
-  void PaintForFrame(nsDisplayListBuilder* aBuilder, nsRenderingContext* aCtx,
-                     nsIFrame* aForFrame, uint32_t aFlags);
-  
-
-
-
   nsRect GetBounds(nsDisplayListBuilder* aBuilder) const;
   
 
