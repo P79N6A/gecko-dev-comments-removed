@@ -124,10 +124,10 @@ let gConversationWindowData = new Map();
 
 let MozLoopServiceInternal = {
   conversationContexts: new Map(),
+  pushURLs: new Map(),
 
   mocks: {
     pushHandler: undefined,
-    webSocket: undefined,
   },
 
   
@@ -332,56 +332,28 @@ let MozLoopServiceInternal = {
 
 
 
-  promiseRegisteredWithPushServer: function(sessionType) {
-    if (!this.deferredRegistrations.has(sessionType)) {
-      return Promise.reject(new Error("promiseRegisteredWithPushServer must be called while there is a " +
-                            "deferred in deferredRegistrations in order to prevent reentrancy"));
-    }
+
+
+
+
+
+
+
+  createNotificationChannel: function(channelID, sessionType, serviceType, onNotification) {
+    log.debug("createNotificationChannel", channelID, sessionType, serviceType);
     
-    function registerForNotification(channelID, onNotification) {
-      log.debug("registerForNotification", channelID);
-      return new Promise((resolve, reject) => {
-        function onRegistered(error, pushUrl) {
-          log.debug("registerForNotification onRegistered:", error, pushUrl);
-          if (error) {
-            reject(Error(error));
-          } else {
-            resolve(pushUrl);
-          }
+    return new Promise((resolve, reject) => {
+      let onRegistered = (error, pushURL, channelID) => {
+        log.debug("createNotificationChannel onRegistered:", error, pushURL, channelID);
+        if (error) {
+          reject(Error(error));
+        } else {
+          resolve(this.registerWithLoopServer(sessionType, serviceType, pushURL));
         }
+      }
 
-        
-        let pushURL = MozLoopServiceInternal.pushHandler.registeredChannels[channelID];
-        if (pushURL) {
-          log.debug("Using the existing push endpoint for channelID:", channelID);
-          resolve(pushURL);
-          return;
-        }
-
-        MozLoopServiceInternal.pushHandler.register(channelID, onRegistered, onNotification);
-      });
-    }
-
-    let options = this.mocks.webSocket ? { mockWebSocket: this.mocks.webSocket } : {};
-    this.pushHandler.initialize(options);
-
-    if (sessionType == LOOP_SESSION_TYPE.GUEST) {
-      let callsRegGuest = registerForNotification(MozLoopService.channelIDs.callsGuest,
-                                                  LoopCalls.onNotification);
-
-      let roomsRegGuest = registerForNotification(MozLoopService.channelIDs.roomsGuest,
-                                                  roomsPushNotification);
-      return Promise.all([callsRegGuest, roomsRegGuest]);
-    } else if (sessionType == LOOP_SESSION_TYPE.FXA) {
-      let callsRegFxA = registerForNotification(MozLoopService.channelIDs.callsFxA,
-                                                LoopCalls.onNotification);
-
-      let roomsRegFxA = registerForNotification(MozLoopService.channelIDs.roomsFxA,
-                                                roomsPushNotification);
-      return Promise.all([callsRegFxA, roomsRegFxA]);
-    }
-
-    return Promise.reject(new Error("promiseRegisteredWithPushServer: Invalid sessionType"));
+      this.pushHandler.register(channelID, onRegistered, onNotification);
+    });
   },
 
   
@@ -392,34 +364,160 @@ let MozLoopServiceInternal = {
 
 
 
+
+
   promiseRegisteredWithServers: function(sessionType = LOOP_SESSION_TYPE.GUEST) {
-    if (this.deferredRegistrations.has(sessionType)) {
-      log.debug("promiseRegisteredWithServers: registration already completed or in progress:", sessionType);
-      return this.deferredRegistrations.get(sessionType).promise;
+    if (sessionType !== LOOP_SESSION_TYPE.GUEST && sessionType !== LOOP_SESSION_TYPE.FXA) {
+      return Promise.reject(new Error("promiseRegisteredWithServers: Invalid sessionType"));
     }
 
-    let result = null;
-    let deferred = Promise.defer();
+    if (this.deferredRegistrations.has(sessionType)) {
+      log.debug("promiseRegisteredWithServers: registration already completed or in progress:",
+                sessionType);
+      return this.deferredRegistrations.get(sessionType);
+    }
+
+    let options = this.mocks.webSocket ? { mockWebSocket: this.mocks.webSocket } : {};
+    this.pushHandler.initialize(options); 
+
+    let callsID = sessionType == LOOP_SESSION_TYPE.GUEST ?
+          MozLoopService.channelIDs.callsGuest :
+          MozLoopService.channelIDs.callsFxA,
+        roomsID = sessionType == LOOP_SESSION_TYPE.GUEST ?
+          MozLoopService.channelIDs.roomsGuest :
+          MozLoopService.channelIDs.roomsFxA;
+
+    let regPromise = this.createNotificationChannel(
+      callsID, sessionType, "calls", LoopCalls.onNotification).then(() => {
+        return this.createNotificationChannel(
+          roomsID, sessionType, "rooms", roomsPushNotification)});
+
     log.debug("assigning to deferredRegistrations for sessionType:", sessionType);
-    this.deferredRegistrations.set(sessionType, deferred);
+    this.deferredRegistrations.set(sessionType, regPromise);
 
     
-    result = deferred.promise;
-
-    this.promiseRegisteredWithPushServer(sessionType).then(() => {
-      return this.registerWithLoopServer(sessionType);
-    }).then(() => {
-      deferred.resolve("registered to status:" + sessionType);
-      
-      
-    }, error => {
-      log.error("Failed to register with Loop server with sessionType " + sessionType, error);
-      deferred.reject(error);
+    
+    regPromise.catch((error) => {
+      log.error("Failed to register with Loop server with sessionType ", sessionType, error);
       this.deferredRegistrations.delete(sessionType);
       log.debug("Cleared deferredRegistration for sessionType:", sessionType);
     });
 
-    return result;
+    return regPromise;
+  },
+
+  
+
+
+
+
+
+
+
+
+  registerWithLoopServer: function(sessionType, serviceType, pushURL, retry = true) {
+    log.debug("registerWithLoopServer with sessionType:", sessionType, serviceType, retry);
+    if (!pushURL || !sessionType || !serviceType) {
+      return Promise.reject(new Error("Invalid or missing parameters for registerWithLoopServer"));
+    }
+
+    let pushURLs = this.pushURLs.get(sessionType);
+
+    
+    if (!pushURLs) {
+      pushURLs = {calls: undefined, rooms: undefined};
+      this.pushURLs.set(sessionType, pushURLs);
+    }
+
+    if (pushURLs[serviceType] == pushURL) {
+      return Promise.resolve(pushURL);
+    }
+
+    let newURLs = {calls: pushURLs.calls,
+                   rooms: pushURLs.rooms};
+    newURLs[serviceType] = pushURL;
+
+    return this.hawkRequestInternal(sessionType, "/registration", "POST",
+                                    {simplePushURLs: newURLs}).then(
+      (response) => {
+        
+        if (!this.storeSessionToken(sessionType, response.headers)) {
+          throw new Error("session-token-wrong-size");
+        }
+
+        
+        pushURLs[serviceType] = pushURL;
+        log.debug("Successfully registered with server for sessionType", sessionType);
+        this.clearError("registration");
+        return pushURL;
+      }, (error) => {
+        
+        
+        if (error.code === 401) {
+          
+          
+          
+          if (retry) {
+            return this.registerWithLoopServer(sessionType, serviceType, pushURL, false);
+          }
+        }
+
+        log.error("Failed to register with the loop server. Error: ", error);
+        throw error;
+      }
+    );
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  unregisterFromLoopServer: function(sessionType) {
+    let prefType = Services.prefs.getPrefType(this.getSessionTokenPrefName(sessionType));
+    if (prefType == Services.prefs.PREF_INVALID) {
+      log.debug("already unregistered from LoopServer", sessionType);
+      return Promise.resolve("already unregistered");
+    }
+
+    let error,
+        pushURLs = this.pushURLs.get(sessionType),
+        callsPushURL = pushURLs ? pushURLs.calls : null,
+        roomsPushURL = pushURLs ? pushURLs.rooms : null;
+    this.pushURLs.delete(sessionType);
+
+    let unregister = (sessionType, pushURL) => {
+      if (!pushURL) {
+        return Promise.resolve("no pushURL of this type to unregister");
+      }
+
+      let unregisterURL = "/registration?simplePushURL=" + encodeURIComponent(pushURL);
+      return this.hawkRequestInternal(sessionType, unregisterURL, "DELETE").then(
+        () => {
+          log.debug("Successfully unregistered from server for sessionType = ", sessionType);
+          return "unregistered sessionType " + sessionType;
+        },
+        error => {
+          if (error.code === 401) {
+            
+            log.debug("already unregistered - invalid token", sessionType);
+            return "already unregistered, sessionType = " + sessionType;
+          }
+
+          log.error("Failed to unregister with the loop server. Error: ", error);
+          throw error;
+        });
+    }
+
+    return Promise.all([unregister(sessionType, callsPushURL), unregister(sessionType, roomsPushURL)]);
   },
 
   
@@ -440,6 +538,7 @@ let MozLoopServiceInternal = {
 
 
   hawkRequestInternal: function(sessionType, path, method, payloadObj, retryOn401 = true) {
+    log.debug("hawkRequestInternal: ", sessionType, path, method);
     if (!gHawkClient) {
       gHawkClient = new HawkClient(this.loopServerUri);
     }
@@ -473,15 +572,17 @@ let MozLoopServiceInternal = {
 
     let handle401Error = (error) => {
       if (sessionType === LOOP_SESSION_TYPE.FXA) {
-        MozLoopService.logOutFromFxA().then(() => {
+        return MozLoopService.logOutFromFxA().then(() => {
           
           this.setError("login", error);
+          throw error;
         });
       } else if (this.urlExpiryTimeIsInFuture()) {
         
         
         this.setError("registration", error);
       }
+      throw error;
     };
 
     return gHawkClient.request(path, method, credentials, payloadObj).then(
@@ -499,12 +600,11 @@ let MozLoopServiceInternal = {
               return this.hawkRequestInternal(sessionType, path, method, payloadObj, false);
             },
             () => {
-              handle401Error(error); 
-              throw error;
+              return handle401Error(error); 
             }
           );
         }
-        handle401Error(error);
+        return handle401Error(error);
       }
       throw error;
     });
@@ -559,7 +659,6 @@ let MozLoopServiceInternal = {
         break;
       default:
         throw new Error("Unknown LOOP_SESSION_TYPE");
-        break;
     }
     return "loop.hawk-session-token" + suffix;
   },
@@ -601,112 +700,6 @@ let MozLoopServiceInternal = {
   clearSessionToken: function(sessionType) {
     Services.prefs.clearUserPref(this.getSessionTokenPrefName(sessionType));
     log.debug("Cleared hawk session token for sessionType", sessionType);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  registerWithLoopServer: function(sessionType, retry = true) {
-    log.debug("registerWithLoopServer with sessionType:", sessionType);
-
-    let callsPushURL, roomsPushURL;
-    if (sessionType == LOOP_SESSION_TYPE.FXA) {
-      callsPushURL = this.pushHandler.registeredChannels[MozLoopService.channelIDs.callsFxA];
-      roomsPushURL = this.pushHandler.registeredChannels[MozLoopService.channelIDs.roomsFxA];
-    } else if (sessionType == LOOP_SESSION_TYPE.GUEST) {
-      callsPushURL = this.pushHandler.registeredChannels[MozLoopService.channelIDs.callsGuest];
-      roomsPushURL = this.pushHandler.registeredChannels[MozLoopService.channelIDs.roomsGuest];
-    }
-
-    if (!callsPushURL || !roomsPushURL) {
-      return Promise.reject(new Error("Invalid sessionType or missing push URLs for registerWithLoopServer: " + sessionType));
-    }
-
-    
-    
-    let msg = {
-        simplePushURL: callsPushURL,
-        simplePushURLs: {
-          calls: callsPushURL,
-          rooms: roomsPushURL,
-        },
-    };
-    return this.hawkRequestInternal(sessionType, "/registration", "POST", msg, false)
-      .then((response) => {
-        
-        if (!this.storeSessionToken(sessionType, response.headers)) {
-          return Promise.reject(new Error("session-token-wrong-size"));
-        }
-
-        log.debug("Successfully registered with server for sessionType", sessionType);
-        this.clearError("registration");
-        return undefined;
-      }, (error) => {
-        
-        
-        if (error.code === 401) {
-          
-          if (retry) {
-            return this.registerWithLoopServer(sessionType, false);
-          }
-        }
-
-        log.error("Failed to register with the loop server. Error: ", error);
-        let deferred = Promise.defer();
-        deferred.promise.then(() => {
-          log.debug("registration retry succeeded");
-        },
-        error => {
-          log.debug("registration retry failed");
-        });
-        this.setError("registration", error, () => MozLoopService.delayedInitialize(deferred));
-        throw error;
-      }
-    );
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  unregisterFromLoopServer: function(sessionType, pushURL) {
-    let prefType = Services.prefs.getPrefType(this.getSessionTokenPrefName(sessionType));
-    if (prefType == Services.prefs.PREF_INVALID) {
-      return Promise.resolve("already unregistered");
-    }
-
-    let unregisterURL = "/registration?simplePushURL=" + encodeURIComponent(pushURL);
-    return this.hawkRequestInternal(sessionType, unregisterURL, "DELETE")
-      .then(() => {
-        log.debug("Successfully unregistered from server for sessionType", sessionType);
-      },
-      error => {
-        if (error.code === 401) {
-          
-          return;
-        }
-
-        log.error("Failed to unregister with the loop server. Error: ", error);
-        throw error;
-      });
   },
 
   
@@ -1295,21 +1288,6 @@ this.MozLoopService = {
 
 
 
-
-
-  generateLocalID: function(notUnique = ((id) => {return false})) {
-    do {
-      var id = Date.now().toString(36) + Math.floor((Math.random() * 4096)).toString(16);
-    }
-    while (notUnique(id));
-    return id;
-  },
-
-  
-
-
-
-
   get doNotDisturb() {
     return MozLoopServiceInternal.doNotDisturb;
   },
@@ -1494,24 +1472,21 @@ this.MozLoopService = {
 
   logOutFromFxA: Task.async(function*() {
     log.debug("logOutFromFxA");
-    let pushHandler = MozLoopServiceInternal.pushHandler;
-    let callsPushUrl = pushHandler.registeredChannels[MozLoopService.channelIDs.callsFxA];
-    let roomsPushUrl = pushHandler.registeredChannels[MozLoopService.channelIDs.roomsFxA];
     try {
-      if (callsPushUrl) {
-        yield MozLoopServiceInternal.unregisterFromLoopServer(LOOP_SESSION_TYPE.FXA, callsPushUrl);
-      }
-      if (roomsPushUrl) {
-        yield MozLoopServiceInternal.unregisterFromLoopServer(LOOP_SESSION_TYPE.FXA, roomsPushUrl);
-      }
-    } catch (error) {
-      throw error;
-    } finally {
+      yield MozLoopServiceInternal.unregisterFromLoopServer(LOOP_SESSION_TYPE.FXA);
+    }
+    catch (err) {
+      throw err
+    }
+    finally {
       MozLoopServiceInternal.clearSessionToken(LOOP_SESSION_TYPE.FXA);
-
       MozLoopServiceInternal.fxAOAuthTokenData = null;
       MozLoopServiceInternal.fxAOAuthProfile = null;
       MozLoopServiceInternal.deferredRegistrations.delete(LOOP_SESSION_TYPE.FXA);
+      
+      
+      MozLoopServiceInternal.pushHandler.unregister(MozLoopService.channelIDs.callsFxA);
+      MozLoopServiceInternal.pushHandler.unregister(MozLoopService.channelIDs.roomsFxA);
 
       
       

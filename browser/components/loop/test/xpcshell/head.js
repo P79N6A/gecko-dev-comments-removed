@@ -102,6 +102,10 @@ let mockPushHandler = {
     registerCallback(this.registrationResult, this.registrationPushURL, channelId);
   },
 
+  unregister: function(channelID) {
+    return;
+  },
+
   
 
 
