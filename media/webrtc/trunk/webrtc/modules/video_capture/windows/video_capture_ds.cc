@@ -213,6 +213,8 @@ int32_t VideoCaptureDS::SetCameraOutputIfNeeded(
     int32_t capabilityIndex;
 
     
+    _requestedCapability = requestedCapability;
+    
     if ((capabilityIndex = _dsInfo.GetBestMatchedCapability(_deviceUniqueId,
                                                             _requestedCapability,
                                                             capability)) < 0)
