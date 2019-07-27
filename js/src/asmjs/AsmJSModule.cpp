@@ -4,7 +4,7 @@
 
 
 
-#include "jit/AsmJSModule.h"
+#include "asmjs/AsmJSModule.h"
 
 #include <errno.h>
 

@@ -4,8 +4,8 @@
 
 
 
-#ifndef jit_AsmJSSignalHandlers_h
-#define jit_AsmJSSignalHandlers_h
+#ifndef asmjs_AsmJSSignalHandlers_h
+#define asmjs_AsmJSSignalHandlers_h
 
 struct JSRuntime;
 

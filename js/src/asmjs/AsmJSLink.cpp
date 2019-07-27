@@ -4,7 +4,7 @@
 
 
 
-#include "jit/AsmJSLink.h"
+#include "asmjs/AsmJSLink.h"
 
 #include "mozilla/PodOperations.h"
 
@@ -17,8 +17,8 @@
 #include "jsprf.h"
 #include "jswrapper.h"
 
+#include "asmjs/AsmJSModule.h"
 #include "frontend/BytecodeCompiler.h"
-#include "jit/AsmJSModule.h"
 #include "jit/Ion.h"
 #include "jit/JitCommon.h"
 #ifdef JS_ION_PERF

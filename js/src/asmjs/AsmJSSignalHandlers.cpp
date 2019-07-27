@@ -4,12 +4,12 @@
 
 
 
-#include "jit/AsmJSSignalHandlers.h"
+#include "asmjs/AsmJSSignalHandlers.h"
 
 #include "mozilla/DebugOnly.h"
 
+#include "asmjs/AsmJSModule.h"
 #include "assembler/assembler/MacroAssembler.h"
-#include "jit/AsmJSModule.h"
 #include "vm/Runtime.h"
 
 using namespace js;

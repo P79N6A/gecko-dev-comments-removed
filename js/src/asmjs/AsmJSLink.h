@@ -4,8 +4,8 @@
 
 
 
-#ifndef jit_AsmJSLink_h
-#define jit_AsmJSLink_h
+#ifndef asmjs_AsmJSLink_h
+#define asmjs_AsmJSLink_h
 
 #include "NamespaceImports.h"
 

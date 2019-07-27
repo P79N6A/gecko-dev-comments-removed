@@ -4,7 +4,7 @@
 
 
 
-#include "jit/AsmJS.h"
+#include "asmjs/AsmJSValidate.h"
 
 #include "mozilla/Move.h"
 #include "mozilla/UniquePtr.h"
@@ -17,10 +17,10 @@
 #include "jsprf.h"
 #include "prmjtime.h"
 
+#include "asmjs/AsmJSLink.h"
+#include "asmjs/AsmJSModule.h"
+#include "asmjs/AsmJSSignalHandlers.h"
 #include "frontend/Parser.h"
-#include "jit/AsmJSLink.h"
-#include "jit/AsmJSModule.h"
-#include "jit/AsmJSSignalHandlers.h"
 #include "jit/CodeGenerator.h"
 #include "jit/CompileWrappers.h"
 #include "jit/MIR.h"

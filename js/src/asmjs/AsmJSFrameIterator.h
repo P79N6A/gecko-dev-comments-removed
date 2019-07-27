@@ -4,8 +4,8 @@
 
 
 
-#ifndef jit_AsmJSFrameIterator_h
-#define jit_AsmJSFrameIterator_h
+#ifndef asmjs_AsmJSFrameIterator_h
+#define asmjs_AsmJSFrameIterator_h
 
 #include "mozilla/NullPtr.h"
 

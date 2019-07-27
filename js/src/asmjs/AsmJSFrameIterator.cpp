@@ -4,10 +4,10 @@
 
 
 
-#include "jit/AsmJSFrameIterator.h"
+#include "asmjs/AsmJSFrameIterator.h"
 
-#include "jit/AsmJS.h"
-#include "jit/AsmJSModule.h"
+#include "asmjs/AsmJSModule.h"
+#include "asmjs/AsmJSValidate.h"
 #include "jit/IonMacroAssembler.h"
 
 using namespace js;
