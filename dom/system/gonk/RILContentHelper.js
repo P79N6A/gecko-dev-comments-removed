@@ -21,6 +21,7 @@ Cu.import("resource://gre/modules/DOMRequestHelper.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
+
 XPCOMUtils.defineLazyGetter(this, "RIL", function () {
   let obj = {};
   Cu.import("resource://gre/modules/ril_consts.js", obj);
@@ -59,13 +60,16 @@ const RIL_IPC_MSG_NAMES = [
   "RIL:GetServiceState"
 ];
 
+
 XPCOMUtils.defineLazyServiceGetter(this, "cpmm",
                                    "@mozilla.org/childprocessmessagemanager;1",
                                    "nsISyncMessageSender");
 
+
 XPCOMUtils.defineLazyServiceGetter(this, "UUIDGenerator",
                   "@mozilla.org/uuid-generator;1",
                   "nsIUUIDGenerator");
+
 
 XPCOMUtils.defineLazyGetter(this, "gNumRadioInterfaces", function() {
   let appInfo = Cc["@mozilla.org/xre/app-info;1"];
@@ -77,7 +81,7 @@ XPCOMUtils.defineLazyGetter(this, "gNumRadioInterfaces", function() {
     try {
       ril = Cc["@mozilla.org/ril;1"].getService(Ci.nsIRadioInterfaceLayer);
     } catch(e) {}
-    return ril.numRadioInterfaces
+    return ril.numRadioInterfaces;
   }
 
   return Services.prefs.getIntPref(kPrefRilNumRadioInterfaces);
