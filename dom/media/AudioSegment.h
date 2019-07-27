@@ -198,10 +198,7 @@ public:
       MOZ_ASSERT(channels == segmentChannelCount);
       output.SetLength(channels);
       bufferPtrs.SetLength(channels);
-#if !defined(MOZILLA_XPCOMRT_API)
-
       uint32_t inFrames = c.mDuration;
-#endif 
       
       NS_ASSERTION((UINT32_MAX - aInRate + 1) / c.mDuration >= aOutRate,
                    "Dropping samples");
@@ -211,13 +208,10 @@ public:
         T* out = output[i].AppendElements(outSize);
         uint32_t outFrames = outSize;
 
-#if !defined(MOZILLA_XPCOMRT_API)
-
         dom::WebAudioUtils::SpeexResamplerProcess(aResampler, i,
                                                   in, &inFrames,
                                                   out, &outFrames);
         MOZ_ASSERT(inFrames == c.mDuration);
-#endif 
         bufferPtrs[i] = out;
         output[i].SetLength(outFrames);
       }

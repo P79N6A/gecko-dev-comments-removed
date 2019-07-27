@@ -199,14 +199,12 @@ AudioSegment::WriteTo(uint64_t aID, AudioMixer& aMixer, uint32_t aOutputChannels
 
     offset += frames * aOutputChannels;
 
-#if !defined(MOZILLA_XPCOMRT_API)
     if (!c.mTimeStamp.IsNull()) {
       TimeStamp now = TimeStamp::Now();
       
       LogTime(AsyncLatencyLogger::AudioMediaStreamTrack, aID,
               (now - c.mTimeStamp).ToMilliseconds(), c.mTimeStamp);
     }
-#endif 
   }
 
   if (offset) {
