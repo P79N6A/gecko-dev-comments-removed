@@ -2550,18 +2550,7 @@ MediaDecoderStateMachine::SeekCompleted()
     newCurrentTime = mAudioStartTime = seekTime;
   } else if (HasAudio()) {
     AudioData* audio = AudioQueue().PeekFront();
-    mAudioStartTime = audio ? audio->mTime : seekTime;
-
-    
-    
-    
-    
-    
-    if (audio && audio->mTime <= seekTime && seekTime < audio->GetEndTime()) {
-      newCurrentTime = audio->mTime;
-    } else {
-      newCurrentTime = video ? video->mTime : seekTime;
-    }
+    newCurrentTime = mAudioStartTime = audio ? audio->mTime : seekTime;
   } else {
     newCurrentTime = video ? video->mTime : seekTime;
   }
