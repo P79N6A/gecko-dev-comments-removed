@@ -105,10 +105,8 @@ nsHttp::CreateAtomTable()
     
     
     
-    if (!PL_DHashTableInit(&sAtomTable, &ops, sizeof(PLDHashEntryStub),
-                           fallible, NUM_HTTP_ATOMS + 10)) {
-        return NS_ERROR_OUT_OF_MEMORY;
-    }
+    PL_DHashTableInit(&sAtomTable, &ops, sizeof(PLDHashEntryStub),
+                      NUM_HTTP_ATOMS + 10);
 
     
     const char *const atoms[] = {

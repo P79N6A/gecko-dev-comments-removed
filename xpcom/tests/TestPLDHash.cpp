@@ -24,10 +24,18 @@ static bool test_pldhash_Init_capacity_ok()
   
   
   
-  if (!PL_DHashTableInit(&t, PL_DHashGetStubOps(), sizeof(PLDHashEntryStub),
-                         mozilla::fallible, PL_DHASH_MAX_INITIAL_LENGTH)) {
-    return false;
-  }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  PL_DHashTableInit(&t, PL_DHashGetStubOps(), sizeof(PLDHashEntryStub),
+                    PL_DHASH_MAX_INITIAL_LENGTH);
 
   
   if (!t.IsInitialized()) {
@@ -36,67 +44,6 @@ static bool test_pldhash_Init_capacity_ok()
 
   
   PL_DHashTableFinish(&t);
-  if (t.IsInitialized()) {
-    return false;
-  }
-
-  return true;
-}
-
-static bool test_pldhash_Init_capacity_too_large()
-{
-  PLDHashTable t;
-
-  
-  if (t.IsInitialized()) {
-    return false;
-  }
-
-  
-  if (PL_DHashTableInit(&t, PL_DHashGetStubOps(),
-                        sizeof(PLDHashEntryStub),
-                        mozilla::fallible,
-                        PL_DHASH_MAX_INITIAL_LENGTH + 1)) {
-    return false;   
-  }
-  
-
-  
-  if (t.IsInitialized()) {
-    return false;
-  }
-
-  return true;
-}
-
-static bool test_pldhash_Init_overflow()
-{
-  PLDHashTable t;
-
-  
-  if (t.IsInitialized()) {
-    return false;
-  }
-
-  
-  
-  
-  
-  
-  
-
-  struct OneKBEntry {
-      PLDHashEntryHdr hdr;
-      char buf[1024 - sizeof(PLDHashEntryHdr)];
-  };
-
-  if (PL_DHashTableInit(&t, PL_DHashGetStubOps(), sizeof(OneKBEntry),
-                        mozilla::fallible, PL_DHASH_MAX_INITIAL_LENGTH)) {
-    return false;   
-  }
-  
-
-  
   if (t.IsInitialized()) {
     return false;
   }
@@ -226,8 +173,6 @@ static const struct Test {
   TestFunc    func;
 } tests[] = {
   DECL_TEST(test_pldhash_Init_capacity_ok),
-  DECL_TEST(test_pldhash_Init_capacity_too_large),
-  DECL_TEST(test_pldhash_Init_overflow),
   DECL_TEST(test_pldhash_lazy_storage),
 
 #ifndef MOZ_WIDGET_ANDROID
