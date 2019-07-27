@@ -223,7 +223,9 @@ public:
 
 
 
-  void SetTargetAPZC(uint64_t aInputBlockId, const ScrollableLayerGuid& aGuid);
+
+  void SetTargetAPZC(uint64_t aInputBlockId,
+                     const nsTArray<ScrollableLayerGuid>& aTargets);
 
   
 
@@ -404,8 +406,9 @@ private:
   AsyncPanZoomController* GetAPZCAtPoint(AsyncPanZoomController* aApzc,
                                          const gfx::Point& aHitTestPoint,
                                          HitTestResult* aOutHitResult);
-  already_AddRefed<AsyncPanZoomController> CommonAncestor(AsyncPanZoomController* aApzc1, AsyncPanZoomController* aApzc2);
-  already_AddRefed<AsyncPanZoomController> RootAPZCForLayersId(AsyncPanZoomController* aApzc);
+  already_AddRefed<AsyncPanZoomController> GetMultitouchTarget(AsyncPanZoomController* aApzc1, AsyncPanZoomController* aApzc2) const;
+  already_AddRefed<AsyncPanZoomController> CommonAncestor(AsyncPanZoomController* aApzc1, AsyncPanZoomController* aApzc2) const;
+  already_AddRefed<AsyncPanZoomController> RootAPZCForLayersId(AsyncPanZoomController* aApzc) const;
   already_AddRefed<AsyncPanZoomController> GetTouchInputBlockAPZC(const MultiTouchInput& aEvent,
                                                                   HitTestResult* aOutHitResult);
   nsEventStatus ProcessTouchInput(MultiTouchInput& aInput,
