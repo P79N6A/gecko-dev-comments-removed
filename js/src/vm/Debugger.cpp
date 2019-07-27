@@ -4475,6 +4475,7 @@ Debugger::observesScript(JSScript *script) const
 Debugger::replaceFrameGuts(JSContext *cx, AbstractFramePtr from, AbstractFramePtr to,
                            ScriptFrameIter &iter)
 {
+    
     for (Debugger::FrameRange r(from); !r.empty(); r.popFront()) {
         RootedNativeObject frameobj(cx, r.frontFrame());
         Debugger *dbg = r.frontDebugger();
@@ -4496,6 +4497,9 @@ Debugger::replaceFrameGuts(JSContext *cx, AbstractFramePtr from, AbstractFramePt
             return false;
         }
     }
+
+    
+    DebugScopes::rekeyMissingScopes(cx, from, to);
 
     return true;
 }
