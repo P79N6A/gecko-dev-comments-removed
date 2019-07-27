@@ -799,7 +799,7 @@ let gTests = [
   run: function checkNoAlwaysOnHttp() {
     
     let deferred = Promise.defer();
-    let browser = gBrowser.selectedTab.linkedBrowser;
+    let browser = gBrowser.selectedBrowser;
     browser.addEventListener("load", function onload() {
       browser.removeEventListener("load", onload, true);
       deferred.resolve();

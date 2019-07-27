@@ -52,7 +52,7 @@ let tests = [
     
     
     
-    gContentDoc = gBrowser.selectedTab.linkedBrowser.contentDocument;
+    gContentDoc = gBrowser.selectedBrowser.contentDocument;
     gContentDoc.addEventListener("visibilitychange", onVisibilityChange, false);
     gContentAPI.showHighlight("appMenu");
 

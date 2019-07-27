@@ -26,7 +26,7 @@ function test() {
 function continueTest(aOldFrecency) {
   
   PlacesUtils.history.markPageAsTyped(TEST_URI);
-  gBrowser.selectedTab.linkedBrowser.loadURI(TEST_URI.spec);
+  gBrowser.selectedBrowser.loadURI(TEST_URI.spec);
 
   
   let historyObserver = {

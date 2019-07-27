@@ -44,7 +44,7 @@ let tests = [
                                "https://example.com/");
 
     loadUITourTestPage(function(contentWindow) {
-      let tabBrowser = gBrowser.selectedTab.linkedBrowser;
+      let tabBrowser = gBrowser.selectedBrowser;
       
       
       tabBrowser.addEventListener("load", function onload(evt) {

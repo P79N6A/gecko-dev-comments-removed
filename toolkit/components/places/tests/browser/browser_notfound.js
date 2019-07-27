@@ -12,7 +12,7 @@ function test() {
   const TEST_URL = "http://mochi.test:8888/notFoundPage.html";
   
   PlacesUtils.history.markPageAsTyped(NetUtil.newURI(TEST_URL));
-  gBrowser.selectedTab.linkedBrowser.loadURI(TEST_URL);
+  gBrowser.selectedBrowser.loadURI(TEST_URL);
 
   
   let historyObserver = {
