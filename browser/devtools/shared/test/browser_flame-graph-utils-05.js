@@ -3,7 +3,7 @@
 
 
 
-let {FlameGraphUtils} = Cu.import("resource:///modules/devtools/FlameGraph.jsm", {});
+let {FlameGraphUtils} = devtools.require("devtools/shared/widgets/FlameGraph");
 
 add_task(function*() {
   yield promiseTab("about:blank");
