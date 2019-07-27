@@ -2154,11 +2154,7 @@ pref("layout.css.grid.enabled", false);
 pref("layout.css.ruby.enabled", false);
 
 
-#ifdef RELEASE_BUILD
-pref("layout.css.display-contents.enabled", false);
-#else
 pref("layout.css.display-contents.enabled", true);
-#endif
 
 
 pref("layout.css.box-decoration-break.enabled", true);
