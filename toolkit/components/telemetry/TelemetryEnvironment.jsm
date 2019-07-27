@@ -890,7 +890,8 @@ EnvironmentCache.prototype = {
 
 
   _updateProfile: Task.async(function* () {
-    let profileAccessor = new ProfileAge(null, this._log);
+    const logger = Log.repository.getLoggerWithMessagePrefix(LOGGER_NAME, "ProfileAge - ");
+    let profileAccessor = new ProfileAge(null, logger);
 
     let creationDate = yield profileAccessor.created;
     let resetDate = yield profileAccessor.reset;
