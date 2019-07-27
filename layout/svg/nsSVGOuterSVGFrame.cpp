@@ -496,7 +496,7 @@ nsSVGOuterSVGFrame::DidReflow(nsPresContext*   aPresContext,
 
   
   
-  PresContext()->PresShell()->SynthesizeMouseMove(false, false);
+  PresContext()->PresShell()->SynthesizeMouseMove(false);
 }
 
  bool
