@@ -2092,6 +2092,9 @@ nsListControlFrame::KeyDown(nsIDOMEvent* aKeyEvent)
 
   
   
+  
+  
+  
 
   const WidgetKeyboardEvent* keyEvent =
     aKeyEvent->GetInternalNSEvent()->AsKeyboardEvent();
@@ -2449,16 +2452,33 @@ nsListEventListener::HandleEvent(nsIDOMEvent* aEvent)
 
   nsAutoString eventType;
   aEvent->GetType(eventType);
-  if (eventType.EqualsLiteral("keydown"))
+  if (eventType.EqualsLiteral("keydown")) {
     return mFrame->nsListControlFrame::KeyDown(aEvent);
-  if (eventType.EqualsLiteral("keypress"))
+  }
+  if (eventType.EqualsLiteral("keypress")) {
     return mFrame->nsListControlFrame::KeyPress(aEvent);
-  if (eventType.EqualsLiteral("mousedown"))
+  }
+  if (eventType.EqualsLiteral("mousedown")) {
+    bool defaultPrevented = false;
+    aEvent->GetDefaultPrevented(&defaultPrevented);
+    if (defaultPrevented) {
+      return NS_OK;
+    }
     return mFrame->nsListControlFrame::MouseDown(aEvent);
-  if (eventType.EqualsLiteral("mouseup"))
+  }
+  if (eventType.EqualsLiteral("mouseup")) {
+    bool defaultPrevented = false;
+    aEvent->GetDefaultPrevented(&defaultPrevented);
+    if (defaultPrevented) {
+      return NS_OK;
+    }
     return mFrame->nsListControlFrame::MouseUp(aEvent);
-  if (eventType.EqualsLiteral("mousemove"))
+  }
+  if (eventType.EqualsLiteral("mousemove")) {
+    
+    
     return mFrame->nsListControlFrame::MouseMove(aEvent);
+  }
 
   NS_ABORT();
   return NS_OK;

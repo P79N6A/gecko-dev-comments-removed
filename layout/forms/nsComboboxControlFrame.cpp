@@ -47,6 +47,12 @@
 #include "mozilla/MouseEvents.h"
 #include "mozilla/unused.h"
 
+#ifdef XP_WIN
+#define COMBOBOX_ROLLUP_CONSUME_EVENT 0
+#else
+#define COMBOBOX_ROLLUP_CONSUME_EVENT 1
+#endif
+
 using namespace mozilla;
 using namespace mozilla::gfx;
 
@@ -1109,6 +1115,18 @@ nsComboboxControlFrame::HandleEvent(nsPresContext* aPresContext,
     return NS_OK;
   }
 
+#if COMBOBOX_ROLLUP_CONSUME_EVENT == 0
+  if (aEvent->message == NS_MOUSE_BUTTON_DOWN) {
+    nsIWidget* widget = GetNearestWidget();
+    if (widget && GetContent() == widget->GetLastRollup()) {
+      
+      
+      *aEventStatus = nsEventStatus_eConsumeNoDefault;
+      return NS_OK;
+    }
+  }
+#endif
+
   
   
   const nsStyleUserInterface* uiStyle = StyleUserInterface();
@@ -1400,10 +1418,7 @@ nsComboboxControlFrame::Rollup(uint32_t aCount, bool aFlush,
     return false;
   }
 
-  bool consume = true;
-#ifdef XP_WIN
-  consume = false;
-#endif
+  bool consume = !!COMBOBOX_ROLLUP_CONSUME_EVENT;
   nsWeakFrame weakFrame(this);
   mListControlFrame->AboutToRollup(); 
   if (!weakFrame.IsAlive()) {
@@ -1421,6 +1436,9 @@ nsComboboxControlFrame::Rollup(uint32_t aCount, bool aFlush,
     viewManager->UpdateWidgetGeometry();
   }
 
+  if (aLastRolledUp) {
+    *aLastRolledUp = GetContent();
+  }
   return consume;
 }
 
