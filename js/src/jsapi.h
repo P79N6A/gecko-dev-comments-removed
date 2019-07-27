@@ -803,16 +803,6 @@ JS_NumberValue(double d)
 JS_PUBLIC_API(bool)
 JS_StringHasBeenInterned(JSContext *cx, JSString *str);
 
-
-
-
-
-
-
-
-JS_PUBLIC_API(jsid)
-INTERNED_STRING_TO_JSID(JSContext *cx, JSString *str);
-
 namespace JS {
 
 

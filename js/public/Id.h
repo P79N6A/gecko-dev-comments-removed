@@ -60,6 +60,16 @@ JSID_TO_STRING(jsid id)
     return (JSString *)JSID_BITS(id);
 }
 
+
+
+
+
+
+
+
+JS_PUBLIC_API(jsid)
+INTERNED_STRING_TO_JSID(JSContext *cx, JSString *str);
+
 static MOZ_ALWAYS_INLINE bool
 JSID_IS_ZERO(jsid id)
 {
