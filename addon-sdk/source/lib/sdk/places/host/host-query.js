@@ -1,7 +1,6 @@
 
 
 
-
 "use strict";
 
 module.metadata = {
@@ -13,7 +12,7 @@ module.metadata = {
 };
 
 const { Cc, Ci } = require('chrome');
-const { defer, all, resolve } = require('../../core/promise');
+const { all } = require('../../core/promise');
 const { safeMerge, omit } = require('../../util/object');
 const historyService = Cc['@mozilla.org/browser/nav-history-service;1']
                      .getService(Ci.nsINavHistoryService);
@@ -45,13 +44,11 @@ const PLACES_PROPERTIES = [
 ];
 
 function execute (queries, options) {
-  let deferred = defer();
-  let root = historyService
-    .executeQueries(queries, queries.length, options).root;
-
-  let items = collect([], root);
-  deferred.resolve(items);
-  return deferred.promise;
+  return new Promise(resolve => {
+    let root = historyService
+        .executeQueries(queries, queries.length, options).root;
+    resolve(collect([], root));
+  });
 }
 
 function collect (acc, node) {
@@ -69,40 +66,35 @@ function collect (acc, node) {
 }
 
 function query (queries, options) {
-  queries = queries || [];
-  options = options || {}; 
-  let deferred = defer();
-  let optionsObj, queryObjs;
+  return new Promise((resolve, reject) => {
+    queries = queries || [];
+    options = options || {};
+    let optionsObj, queryObjs;
 
-  try {
     optionsObj = historyService.getNewQueryOptions();
     queryObjs = [].concat(queries).map(createQuery);
     if (!queryObjs.length) {
       queryObjs = [historyService.getNewQuery()];
     }
     safeMerge(optionsObj, options);
-  } catch (e) {
-    deferred.reject(e);
-    return deferred.promise;
-  }
 
-  
+    
 
 
-  optionsObj.excludeQueries = true;
+    optionsObj.excludeQueries = true;
 
-  execute(queryObjs, optionsObj).then(function (results) {
-    if (optionsObj.queryType === 0) {
-      return results.map(normalize);
-    } else if (optionsObj.queryType === 1) {
-      
-      
-      return all(results.map(({itemId}) =>
-        send('sdk-places-bookmarks-get', { id: itemId })));
-    }
-  }).then(deferred.resolve, deferred.reject);
-  
-  return deferred.promise;
+    execute(queryObjs, optionsObj).then((results) => {
+      if (optionsObj.queryType === 0) {
+        return results.map(normalize);
+      }
+      else if (optionsObj.queryType === 1) {
+        
+        
+        return all(results.map(({itemId}) =>
+          send('sdk-places-bookmarks-get', { id: itemId })));
+      }
+    }).then(resolve, reject);
+  });
 }
 exports.query = query;
 
@@ -150,7 +142,8 @@ function normalize (historyObj) {
     else if (prop === 'time') {
       
       obj.time = Math.floor(historyObj.time / 1000)
-    } else if (prop === 'accessCount')
+    }
+    else if (prop === 'accessCount')
       obj.visitCount = historyObj[prop];
     else
       obj[prop] = historyObj[prop];
