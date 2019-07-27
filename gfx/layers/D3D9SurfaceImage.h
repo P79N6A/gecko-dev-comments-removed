@@ -41,12 +41,6 @@ public:
   
   const D3DSURFACE_DESC& GetDesc() const;
 
-  
-  
-  
-  
-  HANDLE GetShareHandle();
-
   gfx::IntSize GetSize() MOZ_OVERRIDE;
 
   virtual TemporaryRef<gfx::SourceSurface> GetAsSourceSurface() MOZ_OVERRIDE;
@@ -66,6 +60,7 @@ private:
   RefPtr<TextureClient> mTextureClient;
   HANDLE mShareHandle;
   D3DSURFACE_DESC mDesc;
+  bool mValid;
 };
 
 } 

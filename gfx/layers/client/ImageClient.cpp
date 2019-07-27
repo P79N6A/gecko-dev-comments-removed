@@ -147,6 +147,13 @@ ImageClientSingle::UpdateImage(ImageContainer* aContainer, uint32_t aContentFlag
     return false;
   }
 
+  
+  
+  
+  if (!image->IsValid()) {
+    return true;
+  }
+
   if (mLastPaintedImageSerial == image->GetSerial()) {
     return true;
   }
