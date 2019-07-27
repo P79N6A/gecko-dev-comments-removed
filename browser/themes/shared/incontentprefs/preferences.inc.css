@@ -358,6 +358,17 @@ description > html|a {
 
 
 
+
+#defaultFontType,
+#serif,
+#sans-serif,
+#monospace {
+  min-width: 30ch;
+}
+
+
+
+
 #sync-migrate-upgrade-description {
   
   min-width: 100px
