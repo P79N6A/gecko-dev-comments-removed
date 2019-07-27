@@ -3627,19 +3627,6 @@ MacroAssemblerARM::ma_call(ImmPtr dest)
 }
 
 void
-MacroAssemblerARM::ma_callAndStoreRet(const Register r, uint32_t stackArgBytes)
-{
-    
-    
-    
-    
-    JS_ASSERT(stackArgBytes == 0);
-    AutoForbidPools afp(this);
-    as_dtr(IsStore, 32, Offset, pc, DTRAddr(sp, DtrOffImm(0)));
-    as_blx(r);
-}
-
-void
 MacroAssemblerARMCompat::breakpoint()
 {
     as_bkpt();

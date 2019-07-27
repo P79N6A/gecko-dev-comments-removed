@@ -13,80 +13,42 @@ using namespace js;
 using namespace js::jit;
 
 static uint8_t *
-ReturnAddressForExitCall(uint8_t **psp)
+ReturnAddressFromFP(uint8_t *fp)
 {
-    uint8_t *sp = *psp;
-#if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
     
     
-    
-    return *(uint8_t**)(sp - sizeof(void*));
-#elif defined(JS_CODEGEN_ARM)
-    
-    
-    
-    
-    
-    return *(uint8_t**)sp;
-#elif defined(JS_CODEGEN_MIPS)
-    
-    
-    
-    
-    if (uintptr_t(sp) & 0x1) {
-        sp = *psp -= 0x1;  
-        return *(uint8_t**)sp;
-    }
-    return *(uint8_t**)(sp + ShadowStackSpace);
-#else
-# error "Unknown architecture!"
-#endif
+    static_assert(AsmJSFrameSize == sizeof(void*), "Frame size mismatch");
+    return *(uint8_t**)fp;
 }
 
-static uint8_t *
-ReturnAddressForJitCall(uint8_t *sp)
+AsmJSFrameIterator::AsmJSFrameIterator(const AsmJSActivation &activation)
+  : module_(&activation.module()),
+    fp_(activation.exitFP())
 {
-    
-    
-    return *(uint8_t**)(sp - sizeof(void*));
-}
-
-AsmJSFrameIterator::AsmJSFrameIterator(const AsmJSActivation *activation)
-  : module_(nullptr)
-{
-    if (!activation || activation->isInterruptedSP())
+    if (!fp_)
         return;
-
-    module_ = &activation->module();
-    sp_ = activation->exitSP();
-
-    settle(ReturnAddressForExitCall(&sp_));
+    settle(ReturnAddressFromFP(fp_));
 }
 
 void
 AsmJSFrameIterator::operator++()
 {
-    settle(ReturnAddressForJitCall(sp_));
+    JS_ASSERT(!done());
+    fp_ += callsite_->stackDepth();
+    settle(ReturnAddressFromFP(fp_));
 }
 
 void
 AsmJSFrameIterator::settle(uint8_t *returnAddress)
 {
     callsite_ = module_->lookupCallSite(returnAddress);
-    if (!callsite_ || callsite_->isEntry()) {
-        module_ = nullptr;
-        return;
-    }
+    JS_ASSERT(callsite_);
 
     if (callsite_->isEntry()) {
-        module_ = nullptr;
+        fp_ = nullptr;
+        JS_ASSERT(done());
         return;
     }
-
-    sp_ += callsite_->stackDepth();
-
-    if (callsite_->isExit())
-        return settle(ReturnAddressForJitCall(sp_));
 
     JS_ASSERT(callsite_->isNormal());
 }

@@ -3025,21 +3025,6 @@ MacroAssemblerMIPS::ma_callIonHalfPush(const Register r)
 }
 
 void
-MacroAssemblerMIPS::ma_callAndStoreRet(const Register r, uint32_t stackArgBytes)
-{
-    
-    
-    
-    
-    
-    JS_ASSERT(stackArgBytes == 4 * sizeof(uintptr_t));
-
-    
-    as_jalr(r);
-    as_sw(ra, StackPointer, 4 * sizeof(uintptr_t));
-}
-
-void
 MacroAssemblerMIPS::ma_call(ImmPtr dest)
 {
     ma_liPatchable(CallReg, dest);

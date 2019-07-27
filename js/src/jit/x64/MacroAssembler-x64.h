@@ -109,9 +109,6 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         call(target);
         appendCallSite(desc);
     }
-    void callExit(AsmJSImmPtr target, uint32_t stackArgBytes) {
-        call(CallSiteDesc::Exit(), target);
-    }
 
     
     

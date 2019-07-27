@@ -399,9 +399,6 @@ class MacroAssemblerARM : public Assembler
     void ma_call(ImmPtr dest);
 
     
-    void ma_callAndStoreRet(const Register reg, uint32_t stackArgBytes);
-
-    
     
     
     
@@ -585,11 +582,6 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     void call(const CallSiteDesc &desc, AsmJSImmPtr imm) {
         call(imm);
         appendCallSite(desc);
-    }
-    void callExit(AsmJSImmPtr imm, uint32_t stackArgBytes) {
-        movePtr(imm, CallReg);
-        ma_callAndStoreRet(CallReg, stackArgBytes);
-        appendCallSite(CallSiteDesc::Exit());
     }
     void callIonFromAsmJS(const Register reg) {
         ma_callIonNoPush(reg);
