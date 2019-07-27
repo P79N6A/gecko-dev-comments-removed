@@ -231,7 +231,12 @@ private:
   
   struct FontFaceRecord {
     nsRefPtr<FontFace> mFontFace;
-    uint8_t mSheetType;
+    uint8_t mSheetType;  
+
+    
+    
+    
+    bool mLoadEventShouldFire;
   };
 
   already_AddRefed<gfxUserFontEntry> FindOrCreateUserFontEntryFromFontFace(
@@ -299,7 +304,7 @@ private:
 
   
   
-  nsTArray<nsRefPtr<FontFace>> mNonRuleFaces;
+  nsTArray<FontFaceRecord> mNonRuleFaces;
 
   
   
