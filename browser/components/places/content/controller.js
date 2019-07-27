@@ -129,8 +129,6 @@ PlacesController.prototype = {
   isCommandEnabled: function PC_isCommandEnabled(aCommand) {
     if (PlacesUIUtils.useAsyncTransactions) {
       switch (aCommand) {
-      case "cmd_delete":
-      case "placesCmd_delete":
       case "placesCmd_new:folder":
       case "placesCmd_new:bookmark":
       case "placesCmd_createBookmark":
@@ -243,7 +241,7 @@ PlacesController.prototype = {
       break;
     case "cmd_delete":
     case "placesCmd_delete":
-      this.remove("Remove Selection");
+      this.remove("Remove Selection").then(null, Components.utils.reportError);
       break;
     case "placesCmd_deleteDataHost":
       var host;
@@ -873,8 +871,16 @@ PlacesController.prototype = {
         
         var tagItemId = PlacesUtils.getConcreteItemId(node.parent);
         var uri = NetUtil.newURI(node.uri);
-        let txn = new PlacesUntagURITransaction(uri, [tagItemId]);
-        transactions.push(txn);
+        if (PlacesUIUtils.useAsyncTransactions) {
+          let tag = node.parent.title;
+          if (!tag)
+            tag = PlacesUtils.bookmarks.getItemTitle(tagItemId);
+          transactions.push(PlacesTransactions.Untag({ uri: uri, tag: tag }));
+        }
+        else {
+          let txn = new PlacesUntagURITransaction(uri, [tagItemId]);
+          transactions.push(txn);
+        }
       }
       else if (PlacesUtils.nodeIsTagQuery(node) && node.parent &&
                PlacesUtils.nodeIsQuery(node.parent) &&
@@ -884,11 +890,16 @@ PlacesController.prototype = {
         
         
         
-        var tag = node.title;
-        var URIs = PlacesUtils.tagging.getURIsForTag(tag);
-        for (var j = 0; j < URIs.length; j++) {
-          let txn = new PlacesUntagURITransaction(URIs[j], [tag]);
-          transactions.push(txn);
+        let tag = node.title;
+        let URIs = PlacesUtils.tagging.getURIsForTag(tag);
+        if (PlacesUIUtils.useAsyncTransactions) {
+          transactions.push(PlacesTransactions.Untag({ tag: tag, uris: URIs }));
+        }
+        else {
+          for (var j = 0; j < URIs.length; j++) {
+            let txn = new PlacesUntagURITransaction(URIs[j], [tag]);
+            transactions.push(txn);
+          }
         }
       }
       else if (PlacesUtils.nodeIsURI(node) &&
@@ -916,8 +927,14 @@ PlacesController.prototype = {
           
           removedFolders.push(node);
         }
-        let txn = new PlacesRemoveItemTransaction(node.itemId);
-        transactions.push(txn);
+        if (PlacesUIUtils.useAsyncTransactions) {
+          transactions.push(
+            PlacesTransactions.Remove({ guid: node.bookmarkGuid }));
+        }
+        else {
+          let txn = new PlacesRemoveItemTransaction(node.itemId);
+          transactions.push(txn);
+        }
       }
     }
   },
@@ -927,7 +944,7 @@ PlacesController.prototype = {
 
 
 
-  _removeRowsFromBookmarks: function PC__removeRowsFromBookmarks(txnName) {
+  _removeRowsFromBookmarks: Task.async(function* (txnName) {
     var ranges = this._view.removableSelectionRanges;
     var transactions = [];
     var removedFolders = [];
@@ -936,10 +953,15 @@ PlacesController.prototype = {
       this._removeRange(ranges[i], transactions, removedFolders);
 
     if (transactions.length > 0) {
-      var txn = new PlacesAggregatedTransaction(txnName, transactions);
-      PlacesUtils.transactionManager.doTransaction(txn);
+      if (PlacesUIUtils.useAsyncTransactions) {
+        yield PlacesTransactions.transact(transactions);
+      }
+      else {
+        var txn = new PlacesAggregatedTransaction(txnName, transactions);
+        PlacesUtils.transactionManager.doTransaction(txn);
+      }
     }
-  },
+  }),
 
   
 
@@ -974,7 +996,7 @@ PlacesController.prototype = {
           try {
             gen.next();
           } catch (ex if ex instanceof StopIteration) {}
-        }, Ci.nsIThread.DISPATCH_NORMAL); 
+        }, Ci.nsIThread.DISPATCH_NORMAL);
         yield undefined;
       }
     }
@@ -1015,7 +1037,7 @@ PlacesController.prototype = {
 
 
 
-  remove: function PC_remove(aTxnName) {
+  remove: Task.async(function* (aTxnName) {
     if (!this._hasRemovableSelection(false))
       return;
 
@@ -1023,20 +1045,30 @@ PlacesController.prototype = {
 
     var root = this._view.result.root;
 
-    if (PlacesUtils.nodeIsFolder(root))
-      this._removeRowsFromBookmarks(aTxnName);
+    if (PlacesUtils.nodeIsFolder(root)) {
+      if (PlacesUIUtils.useAsyncTransactions)
+        yield this._removeRowsFromBookmarks(aTxnName);
+      else
+        this._removeRowsFromBookmarks(aTxnName);
+    }
     else if (PlacesUtils.nodeIsQuery(root)) {
       var queryType = PlacesUtils.asQuery(root).queryOptions.queryType;
-      if (queryType == Ci.nsINavHistoryQueryOptions.QUERY_TYPE_BOOKMARKS)
-        this._removeRowsFromBookmarks(aTxnName);
-      else if (queryType == Ci.nsINavHistoryQueryOptions.QUERY_TYPE_HISTORY)
+      if (queryType == Ci.nsINavHistoryQueryOptions.QUERY_TYPE_BOOKMARKS) {
+        if (PlacesUIUtils.useAsyncTransactions)
+          yield this._removeRowsFromBookmarks(aTxnName);
+        else
+          this._removeRowsFromBookmarks(aTxnName);
+      }
+      else if (queryType == Ci.nsINavHistoryQueryOptions.QUERY_TYPE_HISTORY) {
         this._removeRowsFromHistory();
-      else
+      }
+      else {
         NS_ASSERT(false, "implement support for QUERY_TYPE_UNIFIED");
+      }
     }
     else
       NS_ASSERT(false, "unexpected root");
-  },
+  }),
 
   
 
@@ -1736,7 +1768,7 @@ function doGetPlacesControllerForCommand(aCommand)
 {
   
   
-  let popupNode; 
+  let popupNode;
   try {
     popupNode = document.popupNode;
   } catch (e) {
