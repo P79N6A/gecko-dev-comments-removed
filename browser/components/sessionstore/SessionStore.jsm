@@ -63,11 +63,9 @@ const FMM_MESSAGES = [
 
   
   
+  
+  
   "SessionStore:restoreTabContentComplete",
-
-  
-  
-  "SessionStore:restoreDocumentComplete",
 
   
   
@@ -690,21 +688,14 @@ let SessionStoreInternal = {
             Services.obs.notifyObservers(browser, NOTIFY_TAB_RESTORED, null);
           }
 
-          if (tab) {
-            SessionStoreInternal._resetLocalTabRestoringState(tab);
-            SessionStoreInternal.restoreNextTab();
-          }
-        }
-        break;
-      case "SessionStore:restoreDocumentComplete":
-        if (this.isCurrentEpoch(browser, aMessage.data.epoch)) {
-          
-          
           let tab = browser.__SS_restore_tab;
 
           delete browser.__SS_restore_data;
           delete browser.__SS_restore_tab;
           delete browser.__SS_data;
+
+          SessionStoreInternal._resetLocalTabRestoringState(tab);
+          SessionStoreInternal.restoreNextTab();
 
           this._sendTabRestoredNotification(tab);
         }

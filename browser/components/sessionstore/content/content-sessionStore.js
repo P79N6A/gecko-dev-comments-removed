@@ -97,9 +97,6 @@ let EventListener = {
 
     
     gContentRestore.restoreDocument();
-
-    
-    sendAsyncMessage("SessionStore:restoreDocumentComplete", {epoch: epoch});
   }
 };
 
@@ -152,7 +149,6 @@ let MessageListener = {
         if (!didStartLoad) {
           
           sendAsyncMessage("SessionStore:restoreTabContentComplete", {epoch: epoch});
-          sendAsyncMessage("SessionStore:restoreDocumentComplete", {epoch: epoch});
         }
         break;
       case "SessionStore:resetRestore":
