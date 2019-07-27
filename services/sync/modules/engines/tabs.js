@@ -7,6 +7,7 @@ this.EXPORTED_SYMBOLS = ["TabEngine", "TabSetRecord"];
 const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
 const TABS_TTL = 604800;           
+const TAB_ENTRIES_LIMIT = 25;      
 
 Cu.import("resource://gre/modules/Preferences.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -129,23 +130,40 @@ TabStore.prototype = {
           continue;
         }
 
-        
-        
-        let entry = tabState.entries[tabState.index - 1];
+        let acceptable = !filter ? (url) => url :
+                                   (url) => url && !filteredUrls.test(url);
+
+        let entries = tabState.entries;
+        let index = tabState.index;
+        let current = entries[index - 1];
 
         
         
-        if (!entry.url || filter && filteredUrls.test(entry.url)) {
+        if (!acceptable(current.url)) {
           continue;
         }
 
         
         
+        
+        let candidates = (entries.length == index) ?
+                         entries :
+                         entries.slice(0, index);
+
+        let urls = candidates.map((entry) => entry.url)
+                             .filter(acceptable)
+                             .reverse();                       
+
+        
+        if (urls.length > TAB_ENTRIES_LIMIT) {
+          urls.length = TAB_ENTRIES_LIMIT;
+        }
+
         allTabs.push({
-          title: entry.title || "",
-          urlHistory: [entry.url],
+          title: current.title || "",
+          urlHistory: urls,
           icon: tabState.attributes && tabState.attributes.image || "",
-          lastUsed: Math.floor((tabState.lastAccessed || 0) / 1000)
+          lastUsed: Math.floor((tabState.lastAccessed || 0) / 1000),
         });
       }
     }
