@@ -215,6 +215,13 @@ protected:
                 Orientation aOrientation = Orientation());
 
   
+  
+  
+  
+  
+  
+  
+  
   void PostHasTransparency();
 
   
