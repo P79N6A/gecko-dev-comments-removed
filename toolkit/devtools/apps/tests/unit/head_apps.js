@@ -7,12 +7,25 @@ const Cu = Components.utils;
 const Cr = Components.results;
 const CC = Components.Constructor;
 
-Cu.import("resource://gre/modules/devtools/dbg-server.jsm");
-Cu.import("resource://gre/modules/devtools/dbg-client.jsm");
-
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/FileUtils.jsm");
+
+
+
+do_get_profile();
+
+
+
+do_get_webappsdir();
+
+
+Cu.import("resource://testing-common/AppInfo.jsm");
+updateAppInfo();
+
+Cu.import("resource://gre/modules/devtools/dbg-server.jsm");
+Cu.import("resource://gre/modules/devtools/dbg-client.jsm");
+
 
 let gClient, gActor;
 
@@ -68,19 +81,7 @@ function installTestApp(zipName, appId, onDone) {
 function setup() {
   
   
-  do_get_profile();
-
-  
-  
-  do_get_webappsdir();
-
-  
-  Components.utils.import("resource://testing-common/AppInfo.jsm");
-  updateAppInfo();
-
-  
-  
-  Components.utils.import('resource://gre/modules/Webapps.jsm');
+  Cu.import('resource://gre/modules/Webapps.jsm');
   DOMApplicationRegistry.allAppsLaunchable = true;
 
   
