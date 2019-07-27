@@ -1029,6 +1029,9 @@ static const uint8_t ipv4_addr_bytes[] = {
 };
 static const uint8_t ipv4_addr_bytes_as_str[] = "\x01\x02\x03\x04";
 static const uint8_t ipv4_addr_str[] = "1.2.3.4";
+static const uint8_t ipv4_addr_bytes_FFFFFFFF[8] = {
+  1, 2, 3, 4, 0xff, 0xff, 0xff, 0xff
+};
 
 static const uint8_t ipv4_compatible_ipv6_addr_bytes[] = {
   0, 0, 0, 0,
@@ -1060,6 +1063,14 @@ static const uint8_t ipv6_addr_bytes_as_str[] =
 
 static const uint8_t ipv6_addr_str[] =
   "1122:3344:5566:7788:99aa:bbcc:ddee:ff11";
+
+static const uint8_t ipv4_other_addr_bytes[] = {
+  5, 6, 7, 8
+};
+static const uint8_t ipv4_other_addr_str[] = "5.6.7.8";
+static const uint8_t ipv4_other_addr_bytes_FFFFFFFF[] = {
+  5, 6, 7, 8, 0xff, 0xff, 0xff, 0xff
+};
 
 
 
@@ -1716,6 +1727,76 @@ static const NameConstraintParams NAME_CONSTRAINT_PARAMS[] =
   { RDN(CN("b.example.com")), NO_SAN, GeneralSubtree(DNSName("a.example.com")),
     Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success
   },
+  { 
+    RDN(CN("a.example.com")), ByteString(),
+    GeneralSubtree(DNSName("a.example.com")),
+    Result::ERROR_BAD_DER, Result::ERROR_BAD_DER
+  },
+  { 
+    
+    RDN(CN("a.example.com")), RFC822Name("foo@example.com"),
+    GeneralSubtree(DNSName("a.example.com")),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { 
+    
+    RDN(CN("a.example.com")), RFC822Name("foo@example.com"),
+    GeneralSubtree(DNSName("b.example.com")),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success
+  },
+  { 
+    RDN(CN("a.example.com")), DNSName("b.example.com"),
+    GeneralSubtree(DNSName("a.example.com")),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success
+  },
+  { 
+    RDN(CN("a.example.com")), DNSName("b.example.com"),
+    GeneralSubtree(DNSName("b.example.com")),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE,
+  },
+  { 
+    RDN(CN("a.example.com")), IPAddress(ipv4_addr_bytes),
+    GeneralSubtree(DNSName("a.example.com")),
+    Success, Success
+  },
+  { 
+    RDN(CN("a.example.com")), IPAddress(ipv4_addr_bytes),
+    GeneralSubtree(DNSName("b.example.com")),
+    Success, Success
+  },
+
+  { 
+    
+    RDN(CN(ipv4_addr_str)), RFC822Name("foo@example.com"),
+    GeneralSubtree(IPAddress(ipv4_addr_bytes_FFFFFFFF)),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { 
+    
+    RDN(CN(ipv4_addr_str)), RFC822Name("foo@example.com"),
+    GeneralSubtree(IPAddress(ipv4_other_addr_bytes_FFFFFFFF)),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success
+  },
+  { 
+    RDN(CN(ipv4_addr_str)), DNSName("b.example.com"),
+    GeneralSubtree(IPAddress(ipv4_addr_bytes_FFFFFFFF)),
+    Success, Success
+  },
+  { 
+    RDN(CN(ipv4_addr_str)), DNSName("b.example.com"),
+    GeneralSubtree(IPAddress(ipv4_addr_bytes_FFFFFFFF)),
+    Success, Success
+  },
+  { 
+    RDN(CN(ipv4_addr_str)), IPAddress(ipv4_other_addr_bytes),
+    GeneralSubtree(IPAddress(ipv4_addr_bytes_FFFFFFFF)),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success
+  },
+  { 
+    RDN(CN(ipv4_addr_str)), IPAddress(ipv4_other_addr_bytes),
+    GeneralSubtree(IPAddress(ipv4_other_addr_bytes_FFFFFFFF)),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
 
   
   
@@ -1798,9 +1879,9 @@ TEST_P(pkixnames_CheckNameConstraints,
     ASSERT_EQ(Success,
               nameConstraints.Init(nameConstraintsDER.data(),
                                    nameConstraintsDER.length()));
-    ASSERT_EQ((param.expectedPermittedSubtreesResult == Success &&
-               param.expectedExcludedSubtreesResult == Success)
-                ? Success
+    ASSERT_EQ((param.expectedPermittedSubtreesResult ==
+               param.expectedExcludedSubtreesResult)
+                ? param.expectedExcludedSubtreesResult
                 : Result::ERROR_CERT_NOT_IN_NAME_SPACE,
               CheckNameConstraints(nameConstraints, cert,
                                    KeyPurposeId::id_kp_serverAuth));
