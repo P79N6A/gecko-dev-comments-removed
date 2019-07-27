@@ -123,7 +123,7 @@ public:
 
   const nsCString& GetDisplayName() const;
   const nsCString& GetVersion() const;
-  const nsCString& GetPluginId() const;
+  const uint32_t GetPluginId() const;
 
   
   bool CanBeSharedCrossNodeIds() const;
@@ -192,7 +192,7 @@ private:
   nsCString mDisplayName; 
   nsCString mDescription; 
   nsCString mVersion;
-  nsCString mPluginId;
+  uint32_t mPluginId;
   nsTArray<nsAutoPtr<GMPCapability>> mCapabilities;
   GMPProcessParent* mProcess;
   bool mDeleteProcessOnlyOnUnload;

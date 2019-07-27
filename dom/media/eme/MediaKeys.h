@@ -81,7 +81,7 @@ public:
 
   
   void OnCDMCreated(PromiseId aId,
-                    const nsACString& aNodeId, const nsACString& aPluginId);
+                    const nsACString& aNodeId, const uint32_t aPluginId);
 
   
   
