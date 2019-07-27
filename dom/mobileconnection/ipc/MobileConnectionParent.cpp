@@ -423,7 +423,19 @@ MobileConnectionRequestParent::DoRequest(const SetCallForwardingRequest& aReques
 {
   NS_ENSURE_TRUE(mMobileConnection, false);
 
-  AutoSafeJSContext cx;
+  
+  
+  
+  
+  
+  
+  
+  AutoJSAPI jsapi;
+  if (NS_WARN_IF(!jsapi.Init(xpc::PrivilegedJunkScope()))) {
+    return false;
+  }
+
+  JSContext* cx = jsapi.cx();
   JS::Rooted<JS::Value> options(cx);
   if (!ToJSValue(cx, aRequest.options(), &options)) {
     JS_ClearPendingException(cx);
@@ -446,7 +458,19 @@ MobileConnectionRequestParent::DoRequest(const SetCallBarringRequest& aRequest)
 {
   NS_ENSURE_TRUE(mMobileConnection, false);
 
-  AutoSafeJSContext cx;
+  
+  
+  
+  
+  
+  
+  
+  AutoJSAPI jsapi;
+  if (NS_WARN_IF(!jsapi.Init(xpc::PrivilegedJunkScope()))) {
+    return false;
+  }
+
+  JSContext* cx = jsapi.cx();
   JS::Rooted<JS::Value> options(cx);
   if (!ToJSValue(cx, aRequest.options(), &options)) {
     JS_ClearPendingException(cx);
@@ -461,7 +485,19 @@ MobileConnectionRequestParent::DoRequest(const GetCallBarringRequest& aRequest)
 {
   NS_ENSURE_TRUE(mMobileConnection, false);
 
-  AutoSafeJSContext cx;
+  
+  
+  
+  
+  
+  
+  
+  AutoJSAPI jsapi;
+  if (NS_WARN_IF(!jsapi.Init(xpc::PrivilegedJunkScope()))) {
+    return false;
+  }
+
+  JSContext* cx = jsapi.cx();
   JS::Rooted<JS::Value> options(cx);
   if (!ToJSValue(cx, aRequest.options(), &options)) {
     JS_ClearPendingException(cx);
@@ -476,7 +512,19 @@ MobileConnectionRequestParent::DoRequest(const ChangeCallBarringPasswordRequest&
 {
   NS_ENSURE_TRUE(mMobileConnection, false);
 
-  AutoSafeJSContext cx;
+  
+  
+  
+  
+  
+  
+  
+  AutoJSAPI jsapi;
+  if (NS_WARN_IF(!jsapi.Init(xpc::PrivilegedJunkScope()))) {
+    return false;
+  }
+
+  JSContext* cx = jsapi.cx();
   JS::Rooted<JS::Value> options(cx);
   if (!ToJSValue(cx, aRequest.options(), &options)) {
     JS_ClearPendingException(cx);

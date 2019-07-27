@@ -117,7 +117,7 @@ MobileConnectionInfo::Update(nsIMobileConnectionInfo* aInfo)
   CONVERT_STRING_TO_NULLABLE_ENUM(type, MobileConnectionType, mType);
 
   
-  AutoSafeJSContext cx;
+  AutoJSContext cx;
   JS::Rooted<JS::Value> signalStrength(cx, JSVAL_VOID);
   aInfo->GetSignalStrength(&signalStrength);
   if (signalStrength.isNumber()) {
