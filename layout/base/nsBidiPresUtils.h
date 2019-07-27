@@ -366,24 +366,6 @@ public:
 
 
 
-
-  static void CopyLogicalToVisual(const nsAString& aSource,
-                                  nsAString& aDest,
-                                  nsBidiLevel aBaseDirection,
-                                  bool aOverride);
-
-  
-
-
-
-
-
-
-
-
-
-
-
   static nsBidiLevel BidiLevelFromStyle(nsStyleContext* aStyleContext);
 
 private:
@@ -557,16 +539,6 @@ private:
   
   static void StripBidiControlCharacters(char16_t* aText,
                                          int32_t&   aTextLength);
-
-  static bool WriteLogicalToVisual(const char16_t* aSrc,
-                                     uint32_t aSrcLength,
-                                     char16_t* aDest,
-                                     nsBidiLevel aBaseDirection,
-                                     nsBidi* aBidiEngine);
-
-  static void WriteReverse(const char16_t* aSrc,
-                           uint32_t aSrcLength,
-                           char16_t* aDest);
 };
 
 #endif 
