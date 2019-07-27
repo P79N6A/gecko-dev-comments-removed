@@ -265,7 +265,10 @@ MockClient.prototype = {
       return new MockResponse(200, item);
     },
 
-    delete(body, routeMatch) {
+    
+    
+    
+    ["delete"](body, routeMatch) {
       let id = routeMatch[1];
       let item = this.itemByID(id);
       if (!item) {
