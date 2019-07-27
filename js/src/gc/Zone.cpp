@@ -104,33 +104,35 @@ Zone::onTooMuchMalloc()
 }
 
 void
-Zone::sweep(FreeOp *fop, bool releaseTypes, bool *oom)
+Zone::sweepAnalysis(FreeOp *fop, bool releaseTypes)
 {
     
-
-
-
+    
     if (active)
         releaseTypes = false;
 
-    GCRuntime &gc = fop->runtime()->gc;
+    bool oom = false;
+    types.sweep(fop, releaseTypes, &oom);
 
-    {
-        gcstats::MaybeAutoPhase ap(gc.stats, !gc.isHeapCompacting(),
-                                   gcstats::PHASE_DISCARD_ANALYSIS);
-        types.sweep(fop, releaseTypes, oom);
-    }
-
-    if (!fop->runtime()->debuggerList.isEmpty()) {
-        gcstats::MaybeAutoPhase ap2(gc.stats, !gc.isHeapCompacting(),
-                                    gcstats::PHASE_SWEEP_BREAKPOINT);
-        sweepBreakpoints(fop);
+    
+    
+    
+    
+    
+    
+    if (oom) {
+        setPreservingCode(false);
+        discardJitCode(fop);
+        types.clearAllNewScriptsOnOOM();
     }
 }
 
 void
 Zone::sweepBreakpoints(FreeOp *fop)
 {
+    if (fop->runtime()->debuggerList.isEmpty())
+        return;
+
     
 
 

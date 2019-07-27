@@ -4705,11 +4705,14 @@ GCRuntime::beginSweepingZoneGroup()
                 c->sweepSavedStacks();
                 c->sweepGlobalObject(&fop);
                 c->sweepSelfHostingScriptSource();
-                c->sweepJitCompartment(&fop);
                 c->sweepDebugScopes();
+                c->sweepJitCompartment(&fop);
                 c->sweepWeakMaps();
                 c->sweepNativeIterators();
             }
+
+            
+            
 
             
             WatchpointMap::sweepAll(rt);
@@ -4726,22 +4729,18 @@ GCRuntime::beginSweepingZoneGroup()
         }
 
         {
+            gcstats::MaybeAutoPhase ap(stats, !isHeapCompacting(),
+                                       gcstats::PHASE_DISCARD_ANALYSIS);
             for (GCZoneGroupIter zone(rt); !zone.done(); zone.next()) {
-                
-                
-                
-                
-                
-                
-                
-                bool oom = false;
-                zone->sweep(&fop, releaseObservedTypes && !zone->isPreservingCode(), &oom);
+                zone->sweepAnalysis(&fop, releaseObservedTypes && !zone->isPreservingCode());
+            }
+        }
 
-                if (oom) {
-                    zone->setPreservingCode(false);
-                    zone->discardJitCode(&fop);
-                    zone->types.clearAllNewScriptsOnOOM();
-                }
+        {
+            gcstats::MaybeAutoPhase ap(stats, !isHeapCompacting(),
+                                       gcstats::PHASE_SWEEP_BREAKPOINT);
+            for (GCZoneGroupIter zone(rt); !zone.done(); zone.next()) {
+                zone->sweepBreakpoints(&fop);
             }
         }
     }
