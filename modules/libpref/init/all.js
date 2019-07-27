@@ -4766,11 +4766,7 @@ pref("camera.control.face_detection.enabled", true);
 
 
 
-#ifdef RELEASE_BUILD
-pref("dom.caches.enabled", false);
-#else
 pref("dom.caches.enabled", true);
-#endif 
 
 #ifdef MOZ_WIDGET_GONK
 
