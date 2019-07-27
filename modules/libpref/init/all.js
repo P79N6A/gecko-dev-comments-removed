@@ -4024,11 +4024,6 @@ pref("image.cache.size", 5242880);
 pref("image.cache.timeweight", 500);
 
 
-
-pref("image.decode-only-on-draw.enabled", false);
-
-
-
 pref("image.decode-immediately.enabled", false);
 
 

@@ -412,7 +412,6 @@ private:
 
   
   bool                       mHasSize:1;       
-  bool                       mDecodeOnlyOnDraw:1; 
   bool                       mTransient:1;     
   bool                       mSyncLoad:1;      
   bool                       mDiscardable:1;   

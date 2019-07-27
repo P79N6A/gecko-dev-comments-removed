@@ -265,7 +265,6 @@ RasterImage::RasterImage(ImageURL* aURI ) :
   mFrameCount(0),
   mRetryCount(0),
   mHasSize(false),
-  mDecodeOnlyOnDraw(false),
   mTransient(false),
   mSyncLoad(false),
   mDiscardable(false),
@@ -309,17 +308,14 @@ RasterImage::Init(const char* aMimeType,
   NS_ENSURE_ARG_POINTER(aMimeType);
 
   
-  
   MOZ_ASSERT(!(aFlags & INIT_FLAG_TRANSIENT) ||
                (!(aFlags & INIT_FLAG_DISCARDABLE) &&
-                !(aFlags & INIT_FLAG_DECODE_ONLY_ON_DRAW) &&
                 !(aFlags & INIT_FLAG_DOWNSCALE_DURING_DECODE)),
              "Illegal init flags for transient image");
 
   
   mSourceDataMimeType.Assign(aMimeType);
   mDiscardable = !!(aFlags & INIT_FLAG_DISCARDABLE);
-  mDecodeOnlyOnDraw = !!(aFlags & INIT_FLAG_DECODE_ONLY_ON_DRAW);
   mWantFullDecode = !!(aFlags & INIT_FLAG_DECODE_IMMEDIATELY);
   mTransient = !!(aFlags & INIT_FLAG_TRANSIENT);
   mDownscaleDuringDecode = !!(aFlags & INIT_FLAG_DOWNSCALE_DURING_DECODE);
@@ -1260,13 +1256,6 @@ RasterImage::NotifyForLoadEvent(Progress aProgress)
              (mProgressTracker->GetProgress() & FLAG_SIZE_AVAILABLE),
              "Should have notified that the size is available if we have it");
 
-  if (mDecodeOnlyOnDraw) {
-    
-    
-    
-    aProgress |= FLAG_FRAME_COMPLETE | FLAG_DECODE_COMPLETE;
-  }
-
   
   if (mError) {
     aProgress |= FLAG_HAS_ERROR;
@@ -1538,11 +1527,6 @@ RasterImage::CreateDecoder(const Maybe<IntSize>& aSize, uint32_t aFlags)
 NS_IMETHODIMP
 RasterImage::RequestDecode()
 {
-  
-  if (mDecodeOnlyOnDraw) {
-    return NS_OK;
-  }
-
   return RequestDecodeForSize(mSize, DECODE_FLAGS_DEFAULT);
 }
 
@@ -1550,11 +1534,6 @@ RasterImage::RequestDecode()
 NS_IMETHODIMP
 RasterImage::StartDecoding()
 {
-  
-  if (mDecodeOnlyOnDraw) {
-    return NS_OK;
-  }
-
   return RequestDecodeForSize(mSize, FLAG_SYNC_DECODE_IF_FAST);
 }
 

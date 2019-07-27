@@ -52,52 +52,34 @@ ComputeImageFlags(ImageURL* uri, const nsCString& aMimeType, bool isMultiPart)
 
   
   
-  
-  bool doDecodeOnlyOnDraw = gfxPrefs::ImageDecodeOnlyOnDrawEnabled() &&
-                            gfxPlatform::AsyncPanZoomEnabled();
-
-  
-  
   bool isChrome = false;
   rv = uri->SchemeIs("chrome", &isChrome);
   if (NS_SUCCEEDED(rv) && isChrome) {
-    isDiscardable = doDecodeOnlyOnDraw = false;
+    isDiscardable = false;
   }
 
-  
   
   bool isResource = false;
   rv = uri->SchemeIs("resource", &isResource);
   if (NS_SUCCEEDED(rv) && isResource) {
-    isDiscardable = doDecodeOnlyOnDraw = false;
+    isDiscardable = false;
   }
 
   
-  
-  if ((doDownscaleDuringDecode || doDecodeOnlyOnDraw) &&
-      !ShouldDownscaleDuringDecode(aMimeType)) {
+  if (doDownscaleDuringDecode && !ShouldDownscaleDuringDecode(aMimeType)) {
     doDownscaleDuringDecode = false;
-    doDecodeOnlyOnDraw = false;
-  }
-
-  
-  if (doDecodeImmediately) {
-    doDecodeOnlyOnDraw = false;
   }
 
   
   
   if (isMultiPart) {
-    isDiscardable = doDecodeOnlyOnDraw = doDownscaleDuringDecode = false;
+    isDiscardable = doDownscaleDuringDecode = false;
   }
 
   
   uint32_t imageFlags = Image::INIT_FLAG_NONE;
   if (isDiscardable) {
     imageFlags |= Image::INIT_FLAG_DISCARDABLE;
-  }
-  if (doDecodeOnlyOnDraw) {
-    imageFlags |= Image::INIT_FLAG_DECODE_ONLY_ON_DRAW;
   }
   if (doDecodeImmediately) {
     imageFlags |= Image::INIT_FLAG_DECODE_IMMEDIATELY;
