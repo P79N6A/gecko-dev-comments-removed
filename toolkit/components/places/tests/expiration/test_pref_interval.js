@@ -21,27 +21,11 @@ const DEFAULT_TIMER_DELAY_SECONDS = 3 * 60;
 
 const EXPIRE_AGGRESSIVITY_MULTIPLIER = 3;
 
+Cu.import("resource://testing-common/MockRegistrar.jsm");
 
 
-const Cm = Components.manager.QueryInterface(Ci.nsIComponentRegistrar);
 const TIMER_CONTRACT_ID = "@mozilla.org/timer;1";
-const kMockCID = Components.ID("52bdf457-4de3-48ae-bbbb-f3cbcbcad05f");
-
-
-let gOriginalCID = Cm.contractIDToCID(TIMER_CONTRACT_ID);
-
-
-let gMockTimerFactory = {
-  createInstance: function MTF_createInstance(aOuter, aIID) {
-    if (aOuter != null)
-      throw Cr.NS_ERROR_NO_AGGREGATION;
-    return mockTimerImpl.QueryInterface(aIID);
-  },
-
-  QueryInterface: XPCOMUtils.generateQI([
-    Ci.nsIFactory,
-  ])
-}
+let mockCID;
 
 let mockTimerImpl = {
   initWithCallback: function MTI_initWithCallback(aCallback, aDelay, aType) {
@@ -64,10 +48,7 @@ let mockTimerImpl = {
 }
 
 function replace_timer_factory() {
-  Cm.registerFactory(kMockCID,
-                     "Mock timer",
-                     TIMER_CONTRACT_ID,
-                     gMockTimerFactory);
+  mockCID = MockRegistrar.register(TIMER_CONTRACT_ID, mockTimerImpl);
 }
 
 do_register_cleanup(function() {
@@ -76,12 +57,7 @@ do_register_cleanup(function() {
   shutdownExpiration();
 
   
-  Cm.unregisterFactory(kMockCID,
-                       gMockTimerFactory);
-  Cm.registerFactory(gOriginalCID,
-                     "",
-                     TIMER_CONTRACT_ID,
-                     null);
+  MockRegistrar.unregister(mockCID);
 });
 
 

@@ -7,22 +7,9 @@
 
 
 
+Components.utils.import("resource://testing-common/MockRegistrar.jsm");
+
 const Cm = Components.manager;
-
-const kPromptServiceUUID = "{6cc9c9fe-bc0b-432b-a410-253ef8bcc699}";
-const kPromptServiceContractID = "@mozilla.org/embedcomp/prompt-service;1";
-
-
-const kPromptServiceFactory = Cm.getClassObject(Cc[kPromptServiceContractID],
-                                                Ci.nsIFactory);
-
-let fakePromptServiceFactory = {
-  createInstance: function(aOuter, aIid) {
-    if (aOuter != null)
-      throw Cr.NS_ERROR_NO_AGGREGATION;
-    return promptService.QueryInterface(aIid);
-  }
-};
 
 let promptService = {
   _buttonChoice: 0,
@@ -55,9 +42,9 @@ let promptService = {
   }
 };
 
-Cm.QueryInterface(Ci.nsIComponentRegistrar)
-  .registerFactory(Components.ID(kPromptServiceUUID), "Prompt Service",
-                   kPromptServiceContractID, fakePromptServiceFactory);
+let mockCID =
+  MockRegistrar.register("@mozilla.org/embedcomp/prompt-service;1",
+                         promptService);
 
 this.__defineGetter__("dm", function() {
   delete this.dm;
@@ -94,14 +81,7 @@ function run_test() {
     httpserv.stop(do_test_finished);
 
     
-    Cm.QueryInterface(Ci.nsIComponentRegistrar)
-      .unregisterFactory(Components.ID(kPromptServiceUUID),
-                         fakePromptServiceFactory);
-
-    
-    Cm.QueryInterface(Ci.nsIComponentRegistrar)
-      .registerFactory(Components.ID(kPromptServiceUUID), "Prompt Service",
-                       kPromptServiceContractID, kPromptServiceFactory);
+    MockRegistrar.unregister(mockCID);
   }
 
   do_test_pending();

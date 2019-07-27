@@ -3,6 +3,7 @@
 
 
 let SocialService = Components.utils.import("resource://gre/modules/SocialService.jsm", {}).SocialService;
+let MockRegistrar = Components.utils.import("resource://testing-common/MockRegistrar.jsm", {}).MockRegistrar;
 
 
 
@@ -59,11 +60,8 @@ function runTests(tests, cbPreTest, cbPostTest, cbFinish) {
 
 
 
-const FAKE_CID = Cc["@mozilla.org/uuid-generator;1"].
-    getService(Ci.nsIUUIDGenerator).generateUUID();
 
 const ALERTS_SERVICE_CONTRACT_ID = "@mozilla.org/alerts-service;1";
-const ALERTS_SERVICE_CID = Components.ID(Cc[ALERTS_SERVICE_CONTRACT_ID].number);
 
 function MockAlertsService() {}
 
@@ -97,25 +95,13 @@ MockAlertsService.prototype = {
     }
 };
 
-var factory = {
-    createInstance: function(aOuter, aIID) {
-        if (aOuter != null)
-            throw Cr.NS_ERROR_NO_AGGREGATION;
-        return new MockAlertsService().QueryInterface(aIID);
-    }
-};
-
+let originalAlertsServiceCID;
 function replaceAlertsService() {
-  Components.manager.QueryInterface(Ci.nsIComponentRegistrar)
-            .registerFactory(FAKE_CID, "",
-                             ALERTS_SERVICE_CONTRACT_ID,
-                             factory)
+  originalAlertsServiceCID =
+    MockRegistrar.register(ALERTS_SERVICE_CONTRACT_ID, MockAlertsService);
 }
 
 function restoreAlertsService() {
-  Components.manager.QueryInterface(Ci.nsIComponentRegistrar)
-            .registerFactory(ALERTS_SERVICE_CID, "",
-                             ALERTS_SERVICE_CONTRACT_ID,
-                             null);
+  MockRegistrar.unregister(originalAlertsServiceCID);
 }
 
