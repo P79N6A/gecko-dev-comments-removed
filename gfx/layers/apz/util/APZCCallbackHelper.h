@@ -70,10 +70,6 @@ public:
 
     
 
-    static void InitializeRootDisplayport(nsIPresShell* aPresShell);
-
-    
-
 
 
 

@@ -266,36 +266,6 @@ APZCCallbackHelper::GetOrCreateScrollIdentifiers(nsIContent* aContent,
     return false;
 }
 
-void
-APZCCallbackHelper::InitializeRootDisplayport(nsIPresShell* aPresShell)
-{
-  
-  
-  
-  
-  
-  
-  
-  if (!aPresShell) {
-    return;
-  }
-
-  MOZ_ASSERT(aPresShell->GetDocument());
-  nsIContent* content = aPresShell->GetDocument()->GetDocumentElement();
-  if (!content) {
-    return;
-  }
-
-  uint32_t presShellId;
-  FrameMetrics::ViewID viewId;
-  if (APZCCallbackHelper::GetOrCreateScrollIdentifiers(content, &presShellId, &viewId)) {
-    
-    
-    nsLayoutUtils::SetDisplayPortMargins(content, aPresShell, ScreenMargin(), 0,
-        nsLayoutUtils::RepaintMode::DoNotRepaint);
-  }
-}
-
 class FlingSnapEvent : public nsRunnable
 {
     typedef mozilla::layers::FrameMetrics::ViewID ViewID;
