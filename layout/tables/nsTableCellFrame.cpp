@@ -867,7 +867,7 @@ nsTableCellFrame::Reflow(nsPresContext*           aPresContext,
   DO_GLOBAL_REFLOW_COUNT("nsTableCellFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowState, aDesiredSize, aStatus);
 
-  if (aReflowState.mFlags.mSpecialHeightReflow) {
+  if (aReflowState.mFlags.mSpecialBSizeReflow) {
     FirstInFlow()->AddStateBits(NS_TABLE_CELL_HAD_SPECIAL_REFLOW);
   }
 
@@ -902,7 +902,7 @@ nsTableCellFrame::Reflow(nsPresContext*           aPresContext,
   NS_ASSERTION(firstKid, "Frame construction error, a table cell always has an inner cell frame");
   nsTableFrame* tableFrame = GetTableFrame();
 
-  if (aReflowState.mFlags.mSpecialHeightReflow) {
+  if (aReflowState.mFlags.mSpecialBSizeReflow) {
     const_cast<nsHTMLReflowState&>(aReflowState).
       SetComputedBSize(BSize(wm) - borderPadding.BStartEnd(wm));
     DISPLAY_REFLOW_CHANGE();
@@ -927,16 +927,16 @@ nsTableCellFrame::Reflow(nsPresContext*           aPresContext,
   
   
   
-  if (!aReflowState.mFlags.mSpecialHeightReflow) {
+  if (!aReflowState.mFlags.mSpecialBSizeReflow) {
     
     
     
     kidReflowState.mPercentBSizeObserver = this;
   }
   
-  kidReflowState.mFlags.mSpecialHeightReflow = false;
+  kidReflowState.mFlags.mSpecialBSizeReflow = false;
 
-  if (aReflowState.mFlags.mSpecialHeightReflow ||
+  if (aReflowState.mFlags.mSpecialBSizeReflow ||
       (FirstInFlow()->GetStateBits() & NS_TABLE_CELL_HAD_SPECIAL_REFLOW)) {
     
     
@@ -1016,7 +1016,7 @@ nsTableCellFrame::Reflow(nsPresContext*           aPresContext,
 
   
 
-  if (aReflowState.mFlags.mSpecialHeightReflow) {
+  if (aReflowState.mFlags.mSpecialBSizeReflow) {
     if (aDesiredSize.BSize(wm) > BSize(wm)) {
       
       

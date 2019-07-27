@@ -822,7 +822,7 @@ nsTableRowFrame::ReflowChildren(nsPresContext*           aPresContext,
     if (!aReflowState.ShouldReflowAllKids() &&
         !aTableFrame.IsGeometryDirty() &&
         !NS_SUBTREE_DIRTY(kidFrame)) {
-      if (!aReflowState.mFlags.mSpecialHeightReflow)
+      if (!aReflowState.mFlags.mSpecialBSizeReflow)
         doReflowChild = false;
     }
     else if ((NS_UNCONSTRAINEDSIZE != aReflowState.AvailableBSize())) {
@@ -832,7 +832,7 @@ nsTableRowFrame::ReflowChildren(nsPresContext*           aPresContext,
         doReflowChild = false;
       }
     }
-    if (aReflowState.mFlags.mSpecialHeightReflow) {
+    if (aReflowState.mFlags.mSpecialBSizeReflow) {
       if (!isPaginated && !(cellFrame->GetStateBits() &
                             NS_FRAME_CONTAINS_RELATIVE_BSIZE)) {
         continue;
@@ -1013,7 +1013,7 @@ nsTableRowFrame::ReflowChildren(nsPresContext*           aPresContext,
   
   aDesiredSize.ISize(wm) = aReflowState.AvailableISize();
 
-  if (aReflowState.mFlags.mSpecialHeightReflow) {
+  if (aReflowState.mFlags.mSpecialBSizeReflow) {
     aDesiredSize.BSize(wm) = BSize(wm);
   } else if (NS_UNCONSTRAINEDSIZE == aReflowState.AvailableBSize()) {
     aDesiredSize.BSize(wm) = CalcBSize(aReflowState);

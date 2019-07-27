@@ -529,7 +529,7 @@ public:
   int16_t mReflowDepth;
 
   struct ReflowStateFlags {
-    uint16_t mSpecialHeightReflow:1; 
+    uint16_t mSpecialBSizeReflow:1;  
                                      
     uint16_t mNextInFlowUntouched:1; 
                                      

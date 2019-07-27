@@ -179,16 +179,16 @@ nsHTMLReflowState::nsHTMLReflowState(
   MOZ_ASSERT(aPresContext, "no pres context");
   MOZ_ASSERT(aFrame, "no frame");
   MOZ_ASSERT(aPresContext == aFrame->PresContext(), "wrong pres context");
-  NS_PRECONDITION(!mFlags.mSpecialHeightReflow ||
+  NS_PRECONDITION(!mFlags.mSpecialBSizeReflow ||
                   !NS_SUBTREE_DIRTY(aFrame),
-                  "frame should be clean when getting special height reflow");
+                  "frame should be clean when getting special bsize reflow");
 
   parentReflowState = &aParentReflowState;
 
   
   
   
-  if (!mFlags.mSpecialHeightReflow)
+  if (!mFlags.mSpecialBSizeReflow)
     frame->AddStateBits(parentReflowState->frame->GetStateBits() &
                         NS_FRAME_IS_DIRTY);
 
@@ -613,7 +613,7 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameT
   
   
   if (IS_TABLE_CELL(aFrameType) &&
-      (mFlags.mSpecialHeightReflow ||
+      (mFlags.mSpecialBSizeReflow ||
        (frame->FirstInFlow()->GetStateBits() &
          NS_TABLE_CELL_HAD_SPECIAL_REFLOW)) &&
       (frame->GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_BSIZE)) {
@@ -671,7 +671,7 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameT
   if (!IsBResize() && mCBReflowState &&
       (IS_TABLE_CELL(mCBReflowState->frame->GetType()) || 
        mCBReflowState->mFlags.mHeightDependsOnAncestorCell) &&
-      !mCBReflowState->mFlags.mSpecialHeightReflow && 
+      !mCBReflowState->mFlags.mSpecialBSizeReflow && 
       dependsOnCBBSize) {
     SetBResize(true);
     mFlags.mHeightDependsOnAncestorCell = true;

@@ -1864,7 +1864,7 @@ nsTableFrame::Reflow(nsPresContext*           aPresContext,
     }
     nsIFrame* lastChildReflowed = nullptr;
 
-    NS_ASSERTION(!aReflowState.mFlags.mSpecialHeightReflow,
+    NS_ASSERTION(!aReflowState.mFlags.mSpecialBSizeReflow,
                  "Shouldn't be in special bsize reflow here!");
 
     
@@ -1894,7 +1894,7 @@ nsTableFrame::Reflow(nsPresContext*           aPresContext,
 
       
       CalcDesiredBSize(aReflowState, aDesiredSize);
-      mutable_rs.mFlags.mSpecialHeightReflow = true;
+      mutable_rs.mFlags.mSpecialBSizeReflow = true;
 
       ReflowTable(aDesiredSize, aReflowState, aReflowState.AvailableBSize(),
                   lastChildReflowed, aStatus);
@@ -1909,7 +1909,7 @@ nsTableFrame::Reflow(nsPresContext*           aPresContext,
       }
       haveDesiredBSize = true;
 
-      mutable_rs.mFlags.mSpecialHeightReflow = false;
+      mutable_rs.mFlags.mSpecialBSizeReflow = false;
     }
   }
   else {
@@ -2715,7 +2715,7 @@ nsTableFrame::InitChildReflowState(nsHTMLReflowState& aReflowState)
   aReflowState.Init(presContext, nullptr, pCollapseBorder, &padding);
 
   NS_ASSERTION(!mBits.mResizedColumns ||
-               !aReflowState.parentReflowState->mFlags.mSpecialHeightReflow,
+               !aReflowState.parentReflowState->mFlags.mSpecialBSizeReflow,
                "should not resize columns on special bsize reflow");
   if (mBits.mResizedColumns) {
     aReflowState.SetHResize(true);
@@ -3026,7 +3026,7 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
     
     if (reflowAllKids ||
         NS_SUBTREE_DIRTY(kidFrame) ||
-        (aReflowState.reflowState.mFlags.mSpecialHeightReflow &&
+        (aReflowState.reflowState.mFlags.mSpecialBSizeReflow &&
          (isPaginated || (kidFrame->GetStateBits() &
                           NS_FRAME_CONTAINS_RELATIVE_BSIZE)))) {
       if (pageBreak) {
