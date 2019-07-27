@@ -21,6 +21,7 @@
 
 #include "StaticPtr.h"
 #include "PeerConnectionImpl.h"
+#include "mozIGeckoMediaPluginService.h"
 
 namespace mozilla {
 class PeerConnectionCtxShutdown;
@@ -75,6 +76,17 @@ class PeerConnectionCtx : public CSF::CC_Observer {
 
   mozilla::dom::PCImplSipccState sipcc_state() { return mSipccState; }
 
+  bool isReady() {
+    
+    if (mGMPService) {
+      return mGMPReady;
+    }
+    return true;
+  }
+
+  void queueJSEPOperation(nsRefPtr<nsIRunnable> aJSEPOperation);
+  void onGMPReady();
+
   
   friend class PeerConnectionImpl;
   friend class PeerConnectionWrapper;
@@ -92,7 +104,7 @@ class PeerConnectionCtx : public CSF::CC_Observer {
   std::map<const std::string, PeerConnectionImpl *> mPeerConnections;
 
   PeerConnectionCtx() :  mSipccState(mozilla::dom::PCImplSipccState::Idle),
-                         mCCM(nullptr), mDevice(nullptr) {}
+                         mCCM(nullptr), mDevice(nullptr), mGMPReady(false) {}
   
   PeerConnectionCtx(const PeerConnectionCtx& other) MOZ_DELETE;
   void operator=(const PeerConnectionCtx& other) MOZ_DELETE;
@@ -105,6 +117,8 @@ class PeerConnectionCtx : public CSF::CC_Observer {
     mSipccState = aState;
   }
 
+  void initGMP();
+
   static void
   EverySecondTelemetryCallback_m(nsITimer* timer, void *);
 
@@ -113,6 +127,7 @@ class PeerConnectionCtx : public CSF::CC_Observer {
   int mConnectionCounter;
 
   nsCOMPtr<nsITimer> mTelemetryTimer;
+
 public:
   
   
@@ -124,6 +139,15 @@ private:
   mozilla::dom::PCImplSipccState mSipccState;  
   CSF::CallControlManagerPtr mCCM;
   CSF::CC_DevicePtr mDevice;
+
+  
+  
+  
+  
+  
+  nsCOMPtr<mozIGeckoMediaPluginService> mGMPService;
+  bool mGMPReady;
+  nsTArray<nsRefPtr<nsIRunnable>> mQueuedJSEPOperations;
 
   static PeerConnectionCtx *gInstance;
 public:

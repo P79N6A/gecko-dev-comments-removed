@@ -239,75 +239,43 @@ int VcmSIPCCBinding::getVideoCodecs()
   return VcmSIPCCBinding::gVideoCodecMask;
 }
 
-static void GMPDummy() {};
-
-bool VcmSIPCCBinding::scanForGmpCodecs()
-{
-  if (!gSelf) {
-    return false;
-  }
-  if (!gSelf->mGMPService) {
-    gSelf->mGMPService = do_GetService("@mozilla.org/gecko-media-plugin-service;1");
-    if (!gSelf->mGMPService) {
-      return false;
-    }
-  }
-
-  
-  
-  
-  
-  
-
-  
-  
-  nsCOMPtr<nsIThread> thread;
-  nsresult rv = gSelf->mGMPService->GetThread(getter_AddRefs(thread));
-  if (NS_FAILED(rv)) {
-    return false;
-  }
-  
-  mozilla::SyncRunnable::DispatchToThread(thread,
-                                          WrapRunnableNM(&GMPDummy));
-  return true;
-}
-
 int VcmSIPCCBinding::getVideoCodecsGmp()
 {
-  if (!gInitGmpCodecs) {
-    if (scanForGmpCodecs()) {
-      gInitGmpCodecs = true;
-    }
+  
+  
+  if (!gSelf->mGMPService) {
+    gSelf->mGMPService = do_GetService("@mozilla.org/gecko-media-plugin-service;1");
   }
-  if (gInitGmpCodecs) {
-    if (!gSelf->mGMPService) {
-     gSelf->mGMPService = do_GetService("@mozilla.org/gecko-media-plugin-service;1");
-    }
-    if (gSelf->mGMPService) {
-      
 
-      nsTArray<nsCString> tags;
-      tags.AppendElement(NS_LITERAL_CSTRING("h264"));
-
-      
-      bool has_gmp;
-      nsresult rv;
-      rv = gSelf->mGMPService->HasPluginForAPI(NS_LITERAL_STRING(""),
-                                               NS_LITERAL_CSTRING("encode-video"),
-                                               &tags,
-                                               &has_gmp);
-      if (NS_SUCCEEDED(rv) && has_gmp) {
-        rv = gSelf->mGMPService->HasPluginForAPI(NS_LITERAL_STRING(""),
-                                                 NS_LITERAL_CSTRING("decode-video"),
-                                                 &tags,
-                                                 &has_gmp);
-        if (NS_SUCCEEDED(rv) && has_gmp) {
-          return VCM_CODEC_RESOURCE_H264;
-        }
-      }
-    }
+  if (!gSelf->mGMPService) {
+    return 0;
   }
-  return 0;
+
+  
+
+  nsTArray<nsCString> tags;
+  tags.AppendElement(NS_LITERAL_CSTRING("h264"));
+
+  
+  bool has_gmp;
+  nsresult rv;
+  rv = gSelf->mGMPService->HasPluginForAPI(NS_LITERAL_STRING(""),
+                                           NS_LITERAL_CSTRING("encode-video"),
+                                           &tags,
+                                           &has_gmp);
+  if (NS_FAILED(rv) || !has_gmp) {
+    return 0;
+  }
+
+  rv = gSelf->mGMPService->HasPluginForAPI(NS_LITERAL_STRING(""),
+                                           NS_LITERAL_CSTRING("decode-video"),
+                                           &tags,
+                                           &has_gmp);
+  if (NS_FAILED(rv) || !has_gmp) {
+    return 0;
+  }
+
+  return VCM_CODEC_RESOURCE_H264;
 }
 
 int VcmSIPCCBinding::getVideoCodecsHw()
