@@ -27,6 +27,12 @@ window.addEventListener("load", function testOnLoad() {
 let sdkpath = null;
 
 
+function realPath(chrome) {
+  return chrome.substring("chrome://mochitests/content/jetpack-addon/".length)
+               .replace(".xpi", "");
+}
+
+
 function installAddon(url) {
   return new Promise(function(resolve, reject) {
     AddonManager.getInstallForURL(url, function(install) {
@@ -68,8 +74,12 @@ function installAddon(url) {
           resolve(addon);
         },
 
+        onDownloadFailed: function(install) {
+          reject("Download failed: " + install.error);
+        },
+
         onInstallFailed: function(install) {
-          reject();
+          reject("Install failed: " + install.error);
         }
       });
 
@@ -110,10 +120,15 @@ function waitForResults() {
 
 
 let testAddon = Task.async(function*({ url, expected }) {
+  dump("TEST-INFO | jetpack-addon-harness.js | Installing test add-on " + realPath(url) + "\n");
   let addon = yield installAddon(url);
+
   let results = yield waitForResults();
+
+  dump("TEST-INFO | jetpack-addon-harness.js | Uninstalling test add-on " + realPath(url) + "\n");
   yield uninstallAddon(addon);
 
+  dump("TEST-INFO | jetpack-addon-harness.js | Testing add-on " + realPath(url) + " is complete\n");
   return results;
 });
 
@@ -196,13 +211,20 @@ function testInit() {
         testAddon(filename).then(results => {
           passed += results.passed;
           failed += results.failed;
-        }).then(testNextAddon);
+        }).then(testNextAddon, error => {
+          
+          
+          
+          failed++;
+          dump("TEST-UNEXPECTED-FAIL | jetpack-addon-harness.js | Error testing " + realPath(filename.url) + ": " + error + "\n");
+          finish();
+        });
       }
 
       testNextAddon();
     }
     catch (e) {
-      dump("TEST-UNEXPECTED-FAIL: jetpack-addon-harness.js | error starting test harness (" + e + ")\n");
+      dump("TEST-UNEXPECTED-FAIL | jetpack-addon-harness.js | error starting test harness (" + e + ")\n");
       dump(e.stack);
     }
   });
