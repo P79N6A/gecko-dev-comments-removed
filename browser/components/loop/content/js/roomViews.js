@@ -232,7 +232,10 @@ loop.roomViews = (function(mozL10n) {
       });
 
       switch(this.state.roomState) {
-        case ROOM_STATES.FAILED: {
+        case ROOM_STATES.FAILED:
+        case ROOM_STATES.FULL: {
+          
+          
           return loop.conversation.GenericFailureView({
             cancelCall: this.closeWindow}
           );

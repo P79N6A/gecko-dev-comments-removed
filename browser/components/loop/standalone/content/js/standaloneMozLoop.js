@@ -47,7 +47,7 @@ loop.StandaloneMozLoop = (function(mozL10n) {
     var message = "HTTP " + jqXHR.status + " " + errorThrown;
 
     
-    var err = new Error(message);
+    var err = new Error(message + (jsonErr.error ? "; " + jsonErr.error : ""));
     err.errno = jsonErr.errno;
 
     callback(err);

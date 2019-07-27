@@ -25,7 +25,9 @@ loop.store.ActiveRoomStore = (function() {
     
     HAS_PARTICIPANTS: "room-has-participants",
     
-    FAILED: "room-failed"
+    FAILED: "room-failed",
+    
+    FULL: "room-full"
   };
 
   
@@ -109,14 +111,14 @@ loop.store.ActiveRoomStore = (function() {
 
 
 
-
     roomFailure: function(actionData) {
       console.error("Error in state `" + this._storeState.roomState + "`:",
         actionData.error);
 
       this.setStoreState({
         error: actionData.error,
-        roomState: ROOM_STATES.FAILED
+        roomState: actionData.error.errno === 202 ? ROOM_STATES.FULL
+                                                  : ROOM_STATES.FAILED
       });
     },
 
