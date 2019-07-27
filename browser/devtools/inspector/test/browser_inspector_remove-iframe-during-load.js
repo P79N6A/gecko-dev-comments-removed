@@ -9,39 +9,38 @@
 const TEST_URL = TEST_URL_ROOT + "doc_inspector_remove-iframe-during-load.html";
 
 add_task(function* () {
-  let {inspector, toolbox, testActor} = yield openInspectorForURL("about:blank");
+  let {inspector, toolbox} = yield openInspectorForURL("about:blank");
   yield selectNode("body", inspector);
 
   
   
-  yield testActor.loadAndWaitForCustomEvent(TEST_URL);
+  let done = waitForContentMessage("Test:TestPageProcessingDone");
+  content.location = TEST_URL;
+  yield done;
 
   
   
   
   
   
-  ok(!(yield testActor.hasNode("iframe")),
-     "Iframes added by the content page should have been removed");
+  ok(!getNode("iframe", {expectNoMatch: true}),
+    "Iframes added by the content page should have been removed");
 
   
   info("Creating and removing an iframe.");
-  let onMarkupLoaded = inspector.once("markuploaded");
-  testActor.eval("new " + function () {
-    var iframe = document.createElement("iframe");
-    document.body.appendChild(iframe);
-    iframe.remove();
-  });
+  let iframe = content.document.createElement("iframe");
+  content.document.body.appendChild(iframe);
+  iframe.remove();
 
-  ok(!(yield testActor.hasNode("iframe")),
-     "The after-load iframe should have been removed.");
+  ok(!getNode("iframe", {expectNoMatch: true}),
+    "The after-load iframe should have been removed.");
 
   info("Waiting for markup-view to load.");
-  yield onMarkupLoaded;
+  yield inspector.once("markuploaded");
 
   
-  ok(!(yield testActor.hasNode("iframe")), "Iframe has been removed.");
-  is((yield testActor.getProperty("#yay", "textContent")), "load", "Load event fired.");
+  ok(!getNode("iframe", {expectNoMatch: true}), "Iframe has been removed.");
+  is(getNode("#yay").textContent, "load", "Load event fired.");
 
   yield selectNode("#yay", inspector);
 });
