@@ -13,18 +13,26 @@
 
 
 
+#ifdef ANDROID
+
+#define MOZ_SANDBOX_EXPORT MOZ_EXPORT
+#else
+
+#define MOZ_SANDBOX_EXPORT MOZ_EXPORT __attribute__((weak))
+#endif
+
 namespace mozilla {
 
 #ifdef MOZ_CONTENT_SANDBOX
 
 
-MOZ_EXPORT void SetContentProcessSandbox();
+MOZ_SANDBOX_EXPORT void SetContentProcessSandbox();
 #endif
 
 #ifdef MOZ_GMP_SANDBOX
 
 
-MOZ_EXPORT void SetMediaPluginSandbox(const char *aFilePath);
+MOZ_SANDBOX_EXPORT void SetMediaPluginSandbox(const char *aFilePath);
 #endif
 
 } 
