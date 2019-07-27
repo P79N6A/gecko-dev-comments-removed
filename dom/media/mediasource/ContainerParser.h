@@ -55,6 +55,7 @@ public:
   
   
   MediaByteRange MediaSegmentRange();
+  MediaByteRange InitSegmentRange();
 
   static ContainerParser* CreateForMIMEType(const nsACString& aType);
 
@@ -62,7 +63,8 @@ protected:
   nsRefPtr<MediaLargeByteBuffer> mInitData;
   nsRefPtr<SourceBufferResource> mResource;
   bool mHasInitData;
-  MediaByteRange mCompleteByteRange;
+  MediaByteRange mCompleteMediaSegmentRange;
+  MediaByteRange mCompleteInitSegmentRange;
   const nsCString mType;
 };
 
