@@ -1404,6 +1404,8 @@ pref("devtools.inspector.showAllAnonymousContent", false);
 
 pref("devtools.inspector.mdnDocsTooltip.enabled", true);
 
+pref("devtools.inspector.animationInspectorV3", false);
+
 
 pref("devtools.defaultColorUnit", "hex");
 
