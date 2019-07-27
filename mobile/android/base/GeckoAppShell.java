@@ -255,7 +255,7 @@ public class GeckoAppShell
 
     
     public static native void registerJavaUiThread();
-    public static native void nativeInit();
+    public static native void nativeInit(ClassLoader clsLoader);
 
     
     public static native void onResume();
@@ -340,7 +340,7 @@ public class GeckoAppShell
         Looper.myQueue().addIdleHandler(idleHandler);
 
         
-        GeckoAppShell.nativeInit();
+        nativeInit(GeckoAppShell.class.getClassLoader());
 
         
         String combinedArgs = apkPath + " -greomni " + apkPath;
