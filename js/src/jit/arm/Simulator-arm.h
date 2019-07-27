@@ -37,9 +37,15 @@
 namespace js {
 namespace jit {
 
+class Simulator;
 class SimulatorRuntime;
 SimulatorRuntime *CreateSimulatorRuntime();
 void DestroySimulatorRuntime(SimulatorRuntime *srt);
+
+
+
+
+typedef void (*SingleStepCallback)(void *arg, Simulator *sim, void *pc);
 
 
 enum VFPRoundingMode {
@@ -147,6 +153,9 @@ class Simulator
     void set_resume_pc(int32_t value) {
         resume_pc_ = value;
     }
+
+    void enable_single_stepping(SingleStepCallback cb, void *arg);
+    void disable_single_stepping();
 
     uintptr_t stackLimit() const;
     bool overRecursed(uintptr_t newsp = 0) const;
@@ -331,6 +340,11 @@ class Simulator
     
     SimInstruction *break_pc_;
     Instr break_instr_;
+
+    
+    bool single_stepping_;
+    SingleStepCallback single_step_callback_;
+    void *single_step_callback_arg_;
 
     SimulatorRuntime *srt_;
 

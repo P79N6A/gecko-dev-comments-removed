@@ -343,8 +343,8 @@ HandleSimulatorInterrupt(JSRuntime *rt, AsmJSActivation *activation, void *fault
 
 #if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
     const AsmJSModule &module = activation->module();
-    if (module.containsPC((void *)rt->mainThread.simulator()->get_pc()) &&
-        module.containsPC(faultingAddress))
+    if (module.containsFunctionPC((void *)rt->mainThread.simulator()->get_pc()) &&
+        module.containsFunctionPC(faultingAddress))
     {
         activation->setResumePC(nullptr);
         int32_t nextpc = int32_t(module.interruptExit());
@@ -446,7 +446,7 @@ HandleException(PEXCEPTION_POINTERS exception)
         return false;
 
     const AsmJSModule &module = activation->module();
-    if (!module.containsPC(pc))
+    if (!module.containsFunctionPC(pc))
         return false;
 
     
@@ -454,7 +454,7 @@ HandleException(PEXCEPTION_POINTERS exception)
     
     
     
-    if (module.containsPC(faultingAddress)) {
+    if (module.containsFunctionPC(faultingAddress)) {
         activation->setResumePC(pc);
         *ppc = module.interruptExit();
 
@@ -649,7 +649,7 @@ HandleMachException(JSRuntime *rt, const ExceptionRequest &request)
         return true;
     }
 
-    if (!module.containsPC(pc))
+    if (!module.containsFunctionPC(pc))
         return false;
 
     
@@ -657,7 +657,7 @@ HandleMachException(JSRuntime *rt, const ExceptionRequest &request)
     
     
     
-    if (module.containsPC(faultingAddress)) {
+    if (module.containsFunctionPC(faultingAddress)) {
         activation->setResumePC(pc);
         *ppc = module.interruptExit();
 
@@ -899,7 +899,7 @@ HandleSignal(int signum, siginfo_t *info, void *ctx)
         return true;
     }
 
-    if (!module.containsPC(pc))
+    if (!module.containsFunctionPC(pc))
         return false;
 
     
@@ -907,7 +907,7 @@ HandleSignal(int signum, siginfo_t *info, void *ctx)
     
     
     
-    if (module.containsPC(faultingAddress)) {
+    if (module.containsFunctionPC(faultingAddress)) {
         activation->setResumePC(pc);
         *ppc = module.interruptExit();
 

@@ -570,7 +570,7 @@ class PerThreadData : public PerThreadDataFriendFields
     js::Activation *activation_;
 
     
-    js::AsmJSActivation *asmJSActivationStack_;
+    js::AsmJSActivation * volatile asmJSActivationStack_;
 
     
     js::jit::AutoFlushICache *autoFlushICache_;

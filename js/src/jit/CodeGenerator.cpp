@@ -21,6 +21,7 @@
 #ifdef JSGC_GENERATIONAL
 # include "gc/Nursery.h"
 #endif
+#include "jit/AsmJSModule.h"
 #include "jit/IonCaches.h"
 #include "jit/IonLinker.h"
 #include "jit/IonOptimizationLevels.h"
@@ -6482,23 +6483,23 @@ CodeGenerator::visitRestPar(LRestPar *lir)
 }
 
 bool
-CodeGenerator::generateAsmJS(Label *stackOverflowLabel)
+CodeGenerator::generateAsmJS(AsmJSFunctionLabels *labels)
 {
     IonSpew(IonSpew_Codegen, "# Emitting asm.js code");
 
     
     sps_.disable();
 
-    Label overflowThunk;
-    Label *maybeOverflowThunk = omitOverRecursedCheck() ? nullptr : &overflowThunk;
+    if (!omitOverRecursedCheck())
+        labels->overflowThunk.construct();
 
-    GenerateAsmJSFunctionPrologue(masm, frameSize(), maybeOverflowThunk, stackOverflowLabel);
+    GenerateAsmJSFunctionPrologue(masm, frameSize(), labels);
 
     if (!generateBody())
         return false;
 
     masm.bind(&returnLabel_);
-    GenerateAsmJSFunctionEpilogue(masm, frameSize(), maybeOverflowThunk, stackOverflowLabel);
+    GenerateAsmJSFunctionEpilogue(masm, frameSize(), labels);
 
 #if defined(JS_ION_PERF)
     
@@ -6507,6 +6508,8 @@ CodeGenerator::generateAsmJS(Label *stackOverflowLabel)
 
     if (!generateOutOfLineCode())
         return false;
+
+    masm.bind(&labels->end);
 
     
     

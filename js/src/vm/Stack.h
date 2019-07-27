@@ -1480,6 +1480,7 @@ class AsmJSActivation : public Activation
     SPSProfiler *profiler_;
     void *resumePC_;
     uint8_t *fp_;
+    uint32_t exitReason_;
 
   public:
     AsmJSActivation(JSContext *cx, AsmJSModule &module);
@@ -1494,12 +1495,16 @@ class AsmJSActivation : public Activation
     uint8_t *fp() const { return fp_; }
 
     
+    AsmJSExitReason exitReason() const { return AsmJSExitReason(exitReason_); }
+
+    
     static unsigned offsetOfContext() { return offsetof(AsmJSActivation, cx_); }
     static unsigned offsetOfResumePC() { return offsetof(AsmJSActivation, resumePC_); }
 
     
     static unsigned offsetOfErrorRejoinSP() { return offsetof(AsmJSActivation, errorRejoinSP_); }
     static unsigned offsetOfFP() { return offsetof(AsmJSActivation, fp_); }
+    static unsigned offsetOfExitReason() { return offsetof(AsmJSActivation, exitReason_); }
 
     
     void setResumePC(void *pc) { resumePC_ = pc; }
