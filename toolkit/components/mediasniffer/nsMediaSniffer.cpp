@@ -38,6 +38,26 @@ nsMediaSniffer::nsMediaSnifferEntry nsMediaSniffer::sSnifferEntries[] = {
   PATTERN_ENTRY("\xFF\xFF\xFF", "ID3", AUDIO_MP3)
 };
 
+static bool MatchesMP4orISOBrand(const uint8_t aData[4])
+{
+  
+  if (aData[0] == 0x6D &&
+      aData[1] == 0x70 &&
+      aData[2] == 0x34) {
+    return true;
+  }
+
+  
+  if (aData[0] == 0x69 &&
+      aData[1] == 0x73 &&
+      aData[2] == 0x6F &&
+      (aData[3] == 0x6D || aData[3] == 0x32)) {
+    return true;
+  }
+
+  return false;
+}
+
 
 
 static bool MatchesMP4(const uint8_t* aData, const uint32_t aLength)
@@ -59,24 +79,18 @@ static bool MatchesMP4(const uint8_t* aData, const uint32_t aLength)
       aData[7] != 0x70) {
     return false;
   }
-  for (uint32_t i = 2; i <= boxSize / 4 - 1 ; i++) {
-    if (i == 3) {
-      continue;
-    }
-    
-    if (aData[4*i]   == 0x6D &&
-        aData[4*i+1] == 0x70 &&
-        aData[4*i+2] == 0x34) {
-      return true;
-    }
-    
-    if (aData[4*i]   == 0x69 &&
-        aData[4*i+1] == 0x73 &&
-        aData[4*i+2] == 0x6F &&
-        (aData[4*i+3] == 0x6D || aData[4*i+3] == 0x32)) {
-      return true;
-    }
+  if (MatchesMP4orISOBrand(&aData[8])) {
+    return true;
   }
+  
+  uint32_t bytesRead = 16;
+  while (bytesRead < boxSize) {
+    if (MatchesMP4orISOBrand(&aData[bytesRead])) {
+      return true;
+    }
+    bytesRead += 4;
+  }
+
   return false;
 }
 
