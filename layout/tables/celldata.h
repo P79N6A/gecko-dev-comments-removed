@@ -125,7 +125,7 @@ private:
   
 
 
-  CellData(nsTableCellFrame* aOrigCell);  
+  explicit CellData(nsTableCellFrame* aOrigCell);  
 
   
   ~CellData(); 
@@ -240,7 +240,7 @@ protected:
 class BCCellData : public CellData
 {
 public:
-  BCCellData(nsTableCellFrame* aOrigCell);
+  explicit BCCellData(nsTableCellFrame* aOrigCell);
   ~BCCellData();
 
   BCData mData;

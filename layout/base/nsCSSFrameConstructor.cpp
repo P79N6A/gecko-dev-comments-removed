@@ -672,7 +672,7 @@ struct nsAbsoluteItems : nsFrameItems {
   
   nsContainerFrame* containingBlock;
 
-  nsAbsoluteItems(nsContainerFrame* aContainingBlock);
+  explicit nsAbsoluteItems(nsContainerFrame* aContainingBlock);
 #ifdef DEBUG
   
   

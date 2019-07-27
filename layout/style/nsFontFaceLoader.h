@@ -27,7 +27,7 @@ class nsFontFaceLoader;
 class nsUserFontSet : public gfxUserFontSet
 {
 public:
-  nsUserFontSet(nsPresContext* aContext);
+  explicit nsUserFontSet(nsPresContext* aContext);
 
   
   void Destroy();

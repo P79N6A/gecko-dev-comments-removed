@@ -31,7 +31,7 @@ class nsMathMLContainerFrame : public nsContainerFrame,
                                public nsMathMLFrame {
   friend class nsMathMLmfencedFrame;
 public:
-  nsMathMLContainerFrame(nsStyleContext* aContext) : nsContainerFrame(aContext) {}
+  explicit nsMathMLContainerFrame(nsStyleContext* aContext) : nsContainerFrame(aContext) {}
 
   NS_DECL_QUERYFRAME_TARGET(nsMathMLContainerFrame)
   NS_DECL_QUERYFRAME
@@ -472,7 +472,7 @@ public:
   }
 
 protected:
-  nsMathMLmathBlockFrame(nsStyleContext* aContext) : nsBlockFrame(aContext) {
+  explicit nsMathMLmathBlockFrame(nsStyleContext* aContext) : nsBlockFrame(aContext) {
     
     
     AddStateBits(NS_BLOCK_FLOAT_MGR);
@@ -548,7 +548,7 @@ public:
   }
 
 protected:
-  nsMathMLmathInlineFrame(nsStyleContext* aContext) : nsInlineFrame(aContext) {}
+  explicit nsMathMLmathInlineFrame(nsStyleContext* aContext) : nsInlineFrame(aContext) {}
   virtual ~nsMathMLmathInlineFrame() {}
 };
 

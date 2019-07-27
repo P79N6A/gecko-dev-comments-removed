@@ -24,7 +24,7 @@ public:
 
 
 
-  nsFormControlFrame(nsStyleContext*);
+  explicit nsFormControlFrame(nsStyleContext*);
 
   virtual nsIAtom* GetType() const MOZ_OVERRIDE;
 

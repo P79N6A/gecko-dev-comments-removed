@@ -37,7 +37,7 @@ public:
 
   typedef mozilla::dom::Element Element;
 
-  RestyleManager(nsPresContext* aPresContext);
+  explicit RestyleManager(nsPresContext* aPresContext);
 
 private:
   

@@ -38,7 +38,7 @@ private:
 
     
     
-    nsCSSCompressedDataBlock(uint32_t aNumProps)
+    explicit nsCSSCompressedDataBlock(uint32_t aNumProps)
       : mStyleBits(0), mNumProps(aNumProps)
     {}
 

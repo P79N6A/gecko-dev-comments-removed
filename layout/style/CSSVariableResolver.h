@@ -32,7 +32,7 @@ public:
 
 
 
-  CSSVariableResolver(CSSVariableValues* aOutput)
+  explicit CSSVariableResolver(CSSVariableValues* aOutput)
     : mOutput(aOutput)
 #ifdef DEBUG
     , mResolved(false)

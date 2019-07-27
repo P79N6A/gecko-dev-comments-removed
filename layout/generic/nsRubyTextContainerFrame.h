@@ -54,7 +54,7 @@ protected:
   friend nsContainerFrame*
     NS_NewRubyTextContainerFrame(nsIPresShell* aPresShell,
                                  nsStyleContext* aContext);
-  nsRubyTextContainerFrame(nsStyleContext* aContext) : nsBlockFrame(aContext) {}
+  explicit nsRubyTextContainerFrame(nsStyleContext* aContext) : nsBlockFrame(aContext) {}
   
   
   

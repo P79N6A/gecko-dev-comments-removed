@@ -75,7 +75,7 @@ public:
   }
 
 protected:
-  nsMathMLmoFrame(nsStyleContext* aContext) : nsMathMLTokenFrame(aContext) {}
+  explicit nsMathMLmoFrame(nsStyleContext* aContext) : nsMathMLTokenFrame(aContext) {}
   virtual ~nsMathMLmoFrame();
   
   nsMathMLChar     mMathMLChar; 

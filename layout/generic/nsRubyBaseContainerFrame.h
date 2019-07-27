@@ -48,7 +48,7 @@ protected:
   friend nsContainerFrame*
     NS_NewRubyBaseContainerFrame(nsIPresShell* aPresShell,
                                  nsStyleContext* aContext);
-  nsRubyBaseContainerFrame(nsStyleContext* aContext) : nsContainerFrame(aContext) {}
+  explicit nsRubyBaseContainerFrame(nsStyleContext* aContext) : nsContainerFrame(aContext) {}
   
 
 
