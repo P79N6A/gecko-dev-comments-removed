@@ -331,7 +331,6 @@ private:
       : mImage(aImage)
       , mBytesToDecode(0)
       , mRequestStatus(REQUEST_INACTIVE)
-      , mChunkCount(0)
       , mAllocatedNewFrame(false)
     {
       MOZ_ASSERT(aImage, "aImage cannot be null");
@@ -358,13 +357,6 @@ private:
       REQUEST_WORK_DONE,
       REQUEST_STOPPED
     } mRequestStatus;
-
-    
-
-    TimeDuration mDecodeTime;
-
-    
-    int32_t mChunkCount;
 
     
 
