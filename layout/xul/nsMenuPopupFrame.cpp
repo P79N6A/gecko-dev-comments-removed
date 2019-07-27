@@ -1297,6 +1297,13 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove, bool aS
   mRect.height = mPrefSize.height;
 
   
+  
+  if (mAnchorType == MenuPopupAnchorType_Rect &&
+      parentWidth < mPrefSize.width) {
+    mRect.width = mPrefSize.width;
+  }
+
+  
   nsPoint screenPoint;
 
   
@@ -1483,7 +1490,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove, bool aS
   if (aSizedToPopup) {
     nsBoxLayoutState state(PresContext());
     
-    SetBounds(state, nsRect(mRect.x, mRect.y, parentWidth, mRect.height));
+    SetBounds(state, mRect);
   }
 
   return NS_OK;
