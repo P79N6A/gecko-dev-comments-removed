@@ -73,6 +73,10 @@ public:
 
   int64_t GetEvictionOffset(Microseconds aTime);
 
+  
+  
+  Microseconds GetNextKeyframeTime();
+
 private:
   AudioDecoderConfig mAudioConfig;
   VideoDecoderConfig mVideoConfig;
@@ -84,6 +88,7 @@ private:
   nsTArray<Interval<Microseconds>> mCachedTimeRanges;
   Microseconds mTimestampOffset;
   Monitor* mMonitor;
+  Microseconds mNextKeyframeTime;
 };
 
 } 
