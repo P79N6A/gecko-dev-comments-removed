@@ -544,8 +544,8 @@ TiledLayerBuffer<Derived, Tile>::Update(const nsIntRegion& newValidRegion,
       
       
       nsIntPoint tileOrigin(tileStartX, tileStartY);
-      AsDerived().ValidateTile(newTile, nsIntPoint(tileStartX, tileStartY),
-                               tileDrawRegion);
+      newTile = AsDerived().ValidateTile(newTile, nsIntPoint(tileStartX, tileStartY),
+                                         tileDrawRegion);
       NS_ASSERTION(!newTile.IsPlaceholderTile(), "Unexpected placeholder tile - failed to allocate?");
 #ifdef GFX_TILEDLAYER_PREF_WARNINGS
       printf_stderr("Store Validate tile %i, %i -> %i\n", tileStartX, tileStartY, index);
