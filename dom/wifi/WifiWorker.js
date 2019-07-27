@@ -1764,6 +1764,7 @@ function WifiWorker() {
                     "WifiManager:importCert",
                     "WifiManager:getImportedCerts",
                     "WifiManager:deleteCert",
+                    "WifiManager:setWifiEnabled",
                     "child-process-shutdown"];
 
   messages.forEach((function(msgName) {
@@ -2714,6 +2715,9 @@ WifiWorker.prototype = {
     }
 
     switch (aMessage.name) {
+      case "WifiManager:setWifiEnabled":
+        this.setWifiEnabled(msg);
+        break;
       case "WifiManager:getNetworks":
         this.getNetworks(msg);
         break;
@@ -2909,7 +2913,47 @@ WifiWorker.prototype = {
       WifiManager.start();
   },
 
-  setWifiEnabled: function(enabled, callback) {
+  
+
+
+
+
+
+
+
+  ignoreWifiEnabledFromSettings: false,
+  setWifiEnabled: function(msg) {
+    const message = "WifiManager:setWifiEnabled:Return";
+    let self = this;
+    let enabled = msg.data;
+
+    self.ignoreWifiEnabledFromSettings = true;
+    
+    if (enabled === WifiManager.enabled) {
+      this._sendMessage(message, true, true, msg);
+    }
+
+    
+    if (enabled && (this.tetheringSettings[SETTINGS_WIFI_TETHERING_ENABLED] ||
+        WifiManager.isWifiTetheringEnabled(WifiManager.tetheringState))) {
+      self._sendMessage(message, false, "Can't enable Wifi while hotspot mode is enabled", msg);
+    }
+
+    
+    if (!enabled) {
+      this._clearPendingRequest();
+    }
+
+    WifiManager.setWifiEnabled(enabled, function(ok) {
+      if (ok === 0 || ok === "no change") {
+        self._sendMessage(message, true, true, msg);
+      } else {
+        self._sendMessage(message, false, "Set power saving mode failed", msg);
+      }
+    });
+  },
+
+  _setWifiEnabled: function(enabled, callback) {
     
     if (!enabled) {
       this._clearPendingRequest();
@@ -2918,6 +2962,7 @@ WifiWorker.prototype = {
     WifiManager.setWifiEnabled(enabled, callback);
   },
 
+  
   
   
   queueRequest: function(data, callback) {
@@ -3362,10 +3407,11 @@ WifiWorker.prototype = {
   shutdown: function() {
     debug("shutting down ...");
     this.queueRequest({command: "setWifiEnabled", value: false}, function(data) {
-      this.setWifiEnabled(false, this._setWifiEnabledCallback.bind(this));
+      this._setWifiEnabled(false, this._setWifiEnabledCallback.bind(this));
     }.bind(this));
   },
 
+  
   requestProcessing: false,   
                               
                               
@@ -3437,6 +3483,10 @@ WifiWorker.prototype = {
   },
 
   handleWifiEnabled: function(enabled) {
+    if (this.ignoreWifiEnabledFromSettings) {
+      return;
+    }
+
     
     if (enabled) {
       this.queueRequest({command: "setWifiApEnabled", value: false}, function(data) {
@@ -3451,7 +3501,7 @@ WifiWorker.prototype = {
     }
 
     this.queueRequest({command: "setWifiEnabled", value: enabled}, function(data) {
-      this.setWifiEnabled(enabled, this._setWifiEnabledCallback.bind(this));
+      this._setWifiEnabled(enabled, this._setWifiEnabledCallback.bind(this));
     }.bind(this));
 
     if (!enabled) {
@@ -3472,7 +3522,7 @@ WifiWorker.prototype = {
       this.queueRequest({command: "setWifiEnabled", value: false}, function(data) {
         if (WifiManager.isWifiEnabled(WifiManager.state)) {
           this.disconnectedByWifiTethering = true;
-          this.setWifiEnabled(false, this._setWifiEnabledCallback.bind(this));
+          this._setWifiEnabled(false, this._setWifiEnabledCallback.bind(this));
         } else {
           this.requestDone();
         }
@@ -3486,7 +3536,7 @@ WifiWorker.prototype = {
     if (!enabled) {
       this.queueRequest({command: "setWifiEnabled", value: true}, function(data) {
         if (this.disconnectedByWifiTethering) {
-          this.setWifiEnabled(true, this._setWifiEnabledCallback.bind(this));
+          this._setWifiEnabled(true, this._setWifiEnabledCallback.bind(this));
         } else {
           this.requestDone();
         }
@@ -3523,6 +3573,7 @@ WifiWorker.prototype = {
 
   handle: function handle(aName, aResult) {
     switch(aName) {
+      
       case SETTINGS_WIFI_ENABLED:
         this.handleWifiEnabled(aResult)
         break;
