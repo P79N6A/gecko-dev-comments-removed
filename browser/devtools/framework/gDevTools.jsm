@@ -781,6 +781,11 @@ let gDevToolsBrowser = {
   
 
 
+  isWebIDEInitialized: promise.defer(),
+
+  
+
+
   uninstallWebIDEWidget: function() {
     if (this.isWebIDEWidgetInstalled()) {
       CustomizableUI.removeWidgetFromArea("webide-button");
