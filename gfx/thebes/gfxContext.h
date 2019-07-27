@@ -63,11 +63,6 @@ public:
     
 
 
-    gfxASurface *OriginalSurface();
-
-    
-
-
 
 
 
@@ -708,7 +703,6 @@ private:
   const AzureState &CurrentState() const { return mStateStack[mStateStack.Length() - 1]; }
 
   cairo_t *mRefCairo;
-  nsRefPtr<gfxASurface> mSurface;
   int32_t mFlags;
 
   mozilla::RefPtr<DrawTarget> mDT;
@@ -882,15 +876,12 @@ public:
     }
     ~gfxContextAutoDisableSubpixelAntialiasing()
     {
-        if (mSurface) {
-            mSurface->SetSubpixelAntialiasingEnabled(mSubpixelAntialiasingEnabled);
-        } else if (mDT) {
+        if (mDT) {
             mDT->SetPermitSubpixelAA(mSubpixelAntialiasingEnabled);
         }
     }
 
 private:
-    nsRefPtr<gfxASurface> mSurface;
     mozilla::RefPtr<mozilla::gfx::DrawTarget> mDT;
     bool mSubpixelAntialiasingEnabled;
 };
