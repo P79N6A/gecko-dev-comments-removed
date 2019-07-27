@@ -368,6 +368,12 @@ public class ToolbarEditText extends CustomEditText
                     
                     
                     
+                    
+                    
+                    final InputMethodManager imm = InputMethods.getInputMethodManager(mContext);
+                    if (imm != null) {
+                        imm.restartInput(ToolbarEditText.this);
+                    }
                     return false;
                 }
                 return super.deleteSurroundingText(beforeLength, afterLength);
