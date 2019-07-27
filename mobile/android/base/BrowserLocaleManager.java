@@ -87,21 +87,38 @@ public class BrowserLocaleManager implements LocaleManager {
 
 
 
+    public static String getLanguage(final Locale locale) {
+        final String language = locale.getLanguage();  
+        
+        if (language.equals("iw")) {
+            return "he";
+        }
+
+        if (language.equals("in")) {
+            return "id";
+        }
+
+        if (language.equals("ji")) {
+            return "yi";
+        }
+
+        return language;
+    }
+
+    
+
+
+
+
+
+
+
     public static String getLanguageTag(final Locale locale) {
         
         
 
-        String language = locale.getLanguage();  
-        
-        if (language.equals("iw")) {
-            language = "he";
-        } else if (language.equals("in")) {
-            language = "id";
-        } else if (language.equals("ji")) {
-            language = "yi";
-        }
-
-        String country = locale.getCountry();    
+        final String language = getLanguage(locale);
+        final String country = locale.getCountry();    
         if (country.equals("")) {
             return language;
         }
