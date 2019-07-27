@@ -122,6 +122,7 @@ TrackBuffer::Shutdown()
 {
   mParentDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
   mShutdown = true;
+  mInitializationPromise.RejectIfExists(NS_ERROR_ABORT, __func__);
 
   MOZ_ASSERT(mShutdownPromise.IsEmpty());
   nsRefPtr<ShutdownPromise> p = mShutdownPromise.Ensure(__func__);
@@ -148,18 +149,21 @@ TrackBuffer::ContinueShutdown()
     return;
   }
 
+  mCurrentDecoder = nullptr;
   mInitializedDecoders.Clear();
   mParentDecoder = nullptr;
 
   mShutdownPromise.Resolve(true, __func__);
 }
 
-nsRefPtr<TrackBuffer::InitializationPromise>
+nsRefPtr<TrackBufferAppendPromise>
 TrackBuffer::AppendData(LargeDataBuffer* aData, int64_t aTimestampOffset)
 {
   MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(mInitializationPromise.IsEmpty());
+
   DecodersToInitialize decoders(this);
-  nsRefPtr<InitializationPromise> p = mInitializationPromise.Ensure(__func__);
+  nsRefPtr<TrackBufferAppendPromise> p = mInitializationPromise.Ensure(__func__);
   bool hadInitData = mParser->HasInitData();
   bool hadCompleteInitData = mParser->HasCompleteInitData();
   nsRefPtr<LargeDataBuffer> oldInit = mParser->InitData();
@@ -439,7 +443,7 @@ TrackBuffer::NewDecoder(int64_t aTimestampOffset)
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(mParentDecoder);
 
-  DiscardDecoder();
+  DiscardCurrentDecoder();
 
   nsRefPtr<SourceBufferDecoder> decoder = mParentDecoder->CreateSubDecoder(mType, aTimestampOffset);
   if (!decoder) {
@@ -488,13 +492,21 @@ TrackBuffer::InitializeDecoder(SourceBufferDecoder* aDecoder)
   mParentDecoder->GetReentrantMonitor().AssertNotCurrentThreadIn();
   ReentrantMonitorAutoEnter mon(mParentDecoder->GetReentrantMonitor());
 
+  if (mCurrentDecoder != aDecoder) {
+    MSE_DEBUG("TrackBuffer(%p) append was cancelled. Aborting initialization.",
+              this);
+    
+    
+    return;
+  }
+
   
   
   
   
   if (mShutdown) {
     MSE_DEBUG("TrackBuffer(%p) was shut down. Aborting initialization.", this);
-    mInitializationPromise.RejectIfExists(NS_ERROR_ABORT, __func__);
+    RemoveDecoder(aDecoder);
     return;
   }
 
@@ -532,7 +544,6 @@ TrackBuffer::InitializeDecoder(SourceBufferDecoder* aDecoder)
   reader->SetIdle();
   if (mShutdown) {
     MSE_DEBUG("TrackBuffer(%p) was shut down while reading metadata. Aborting initialization.", this);
-    mInitializationPromise.RejectIfExists(NS_ERROR_ABORT, __func__);
     return;
   }
 
@@ -577,10 +588,17 @@ void
 TrackBuffer::CompleteInitializeDecoder(SourceBufferDecoder* aDecoder)
 {
   ReentrantMonitorAutoEnter mon(mParentDecoder->GetReentrantMonitor());
+  if (mCurrentDecoder != aDecoder) {
+    MSE_DEBUG("TrackBuffer(%p) append was cancelled. Aborting initialization.",
+              this);
+    
+    
+    return;
+  }
+
   if (mShutdown) {
-    MSE_DEBUG("TrackBuffer(%p) was shut down while reading metadata. Aborting initialization.", this);
+    MSE_DEBUG("TrackBuffer(%p) was shut down. Aborting initialization.", this);
     RemoveDecoder(aDecoder);
-    mInitializationPromise.RejectIfExists(NS_ERROR_ABORT, __func__);
     return;
   }
 
@@ -648,12 +666,10 @@ TrackBuffer::RegisterDecoder(SourceBufferDecoder* aDecoder)
 }
 
 void
-TrackBuffer::DiscardDecoder()
+TrackBuffer::DiscardCurrentDecoder()
 {
   ReentrantMonitorAutoEnter mon(mParentDecoder->GetReentrantMonitor());
-  if (mCurrentDecoder) {
-    mCurrentDecoder->GetResource()->Ended();
-  }
+  EndCurrentDecoder();
   mCurrentDecoder = nullptr;
 }
 
@@ -671,10 +687,8 @@ TrackBuffer::Detach()
 {
   MOZ_ASSERT(NS_IsMainThread());
   if (mCurrentDecoder) {
-    DiscardDecoder();
+    DiscardCurrentDecoder();
   }
-  
-  mInitializationPromise.RejectIfExists(NS_ERROR_ABORT, __func__);
 }
 
 bool
@@ -741,13 +755,17 @@ TrackBuffer::ResetParserState()
     
     
     mParser = ContainerParser::CreateForMIMEType(mType);
-    DiscardDecoder();
+    DiscardCurrentDecoder();
   }
 }
 
 void
-TrackBuffer::Abort()
+TrackBuffer::AbortAppendData()
 {
+  DiscardCurrentDecoder();
+  
+  
+  
   mInitializationPromise.RejectIfExists(NS_ERROR_ABORT, __func__);
 }
 
@@ -839,7 +857,7 @@ TrackBuffer::RemoveDecoder(SourceBufferDecoder* aDecoder)
     mDecoders.RemoveElement(aDecoder);
 
     if (mCurrentDecoder == aDecoder) {
-      DiscardDecoder();
+      DiscardCurrentDecoder();
     }
   }
   aDecoder->GetReader()->GetTaskQueue()->Dispatch(task);

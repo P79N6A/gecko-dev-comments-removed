@@ -7,8 +7,8 @@
 #ifndef MOZILLA_TRACKBUFFER_H_
 #define MOZILLA_TRACKBUFFER_H_
 
+#include "SourceBuffer.h"
 #include "SourceBufferDecoder.h"
-#include "MediaPromise.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/mozalloc.h"
@@ -33,8 +33,6 @@ class TrackBuffer MOZ_FINAL {
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(TrackBuffer);
 
-  typedef MediaPromise<bool, nsresult,  false> InitializationPromise;
-
   TrackBuffer(MediaSourceDecoder* aParentDecoder, const nsACString& aType);
 
   nsRefPtr<ShutdownPromise> Shutdown();
@@ -42,8 +40,8 @@ public:
   
   
   
-  nsRefPtr<InitializationPromise> AppendData(LargeDataBuffer* aData,
-                                             int64_t aTimestampOffset );
+  nsRefPtr<TrackBufferAppendPromise> AppendData(LargeDataBuffer* aData,
+                                                int64_t aTimestampOffset );
 
   
   
@@ -64,7 +62,7 @@ public:
 
   
   
-  void DiscardDecoder();
+  void DiscardCurrentDecoder();
   
   void EndCurrentDecoder();
 
@@ -104,7 +102,7 @@ public:
   bool RangeRemoval(int64_t aStart, int64_t aEnd);
 
   
-  void Abort();
+  void AbortAppendData();
 
 #ifdef MOZ_EME
   nsresult SetCDMProxy(CDMProxy* aProxy);
@@ -205,7 +203,7 @@ private:
   bool mDecoderPerSegment;
   bool mShutdown;
 
-  MediaPromiseHolder<InitializationPromise> mInitializationPromise;
+  MediaPromiseHolder<TrackBufferAppendPromise> mInitializationPromise;
 
 };
 

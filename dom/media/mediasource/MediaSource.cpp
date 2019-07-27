@@ -248,11 +248,11 @@ MediaSource::RemoveSourceBuffer(SourceBuffer& aSourceBuffer, ErrorResult& aRv)
     aRv.Throw(NS_ERROR_DOM_NOT_FOUND_ERR);
     return;
   }
-  if (sourceBuffer->Updating()) {
-    
-    
-    sourceBuffer->Abort();
-  }
+
+  sourceBuffer->AbortBufferAppend();
+  
+  
+
   
   
   

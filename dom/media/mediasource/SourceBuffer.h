@@ -7,6 +7,7 @@
 #ifndef mozilla_dom_SourceBuffer_h_
 #define mozilla_dom_SourceBuffer_h_
 
+#include "MediaPromise.h"
 #include "MediaSource.h"
 #include "js/RootingAPI.h"
 #include "mozilla/Assertions.h"
@@ -32,6 +33,7 @@ class ErrorResult;
 class LargeDataBuffer;
 class TrackBuffer;
 template <typename T> class AsyncEventRunner;
+typedef MediaPromise<bool, nsresult,  true> TrackBufferAppendPromise;
 
 namespace dom {
 
@@ -80,7 +82,7 @@ public:
   void AppendBuffer(const ArrayBufferView& aData, ErrorResult& aRv);
 
   void Abort(ErrorResult& aRv);
-  void Abort();
+  void AbortBufferAppend();
 
   void Remove(double aStart, double aEnd, ErrorResult& aRv);
   
@@ -139,7 +141,8 @@ private:
 
   
   void AppendData(const uint8_t* aData, uint32_t aLength, ErrorResult& aRv);
-  void AppendData(LargeDataBuffer* aData, double aTimestampOffset);
+  void AppendData(LargeDataBuffer* aData, double aTimestampOffset,
+                  uint32_t aAppendID);
 
   
   
@@ -169,6 +172,13 @@ private:
 
   SourceBufferAppendMode mAppendMode;
   bool mUpdating;
+
+  
+  
+  
+  uint32_t mUpdateID;
+
+  MediaPromiseConsumerHolder<TrackBufferAppendPromise> mPendingAppend;
 };
 
 } 
