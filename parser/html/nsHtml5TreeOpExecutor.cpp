@@ -413,7 +413,11 @@ nsHtml5TreeOpExecutor::RunFlushLoop()
         GetParser()->GetStreamParser();
       
       
-      GetParser()->ParseUntilBlocked();
+      nsresult rv = GetParser()->ParseUntilBlocked();
+      if (NS_FAILED(rv)) {
+        MarkAsBroken(rv);
+        return;
+      }
     }
 
     if (mOpQueue.IsEmpty()) {
@@ -496,21 +500,24 @@ nsHtml5TreeOpExecutor::RunFlushLoop()
   }
 }
 
-void
+nsresult
 nsHtml5TreeOpExecutor::FlushDocumentWrite()
 {
+  nsresult rv = IsBroken();
+  NS_ENSURE_SUCCESS(rv, rv);
+
   FlushSpeculativeLoads(); 
                 
 
   if (MOZ_UNLIKELY(!mParser)) {
     
     mOpQueue.Clear(); 
-    return;
+    return rv;
   }
   
   if (mFlushState != eNotFlushing) {
     
-    return;
+    return rv;
   }
 
   mFlushState = eInFlush;
@@ -543,7 +550,7 @@ nsHtml5TreeOpExecutor::FlushDocumentWrite()
     }
     NS_ASSERTION(mFlushState == eInDocUpdate, 
       "Tried to perform tree op outside update batch.");
-    nsresult rv = iter->Perform(this, &scriptElement);
+    rv = iter->Perform(this, &scriptElement);
     if (NS_FAILED(rv)) {
       MarkAsBroken(rv);
       break;
@@ -558,13 +565,14 @@ nsHtml5TreeOpExecutor::FlushDocumentWrite()
 
   if (MOZ_UNLIKELY(!mParser)) {
     
-    return;
+    return rv;
   }
 
   if (scriptElement) {
     
     RunScript(scriptElement);
   }
+  return rv;
 }
 
 

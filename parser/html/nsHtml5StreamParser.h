@@ -217,7 +217,7 @@ class nsHtml5StreamParser : public nsICharsetDetectionObserver {
     }
 #endif
 
-    void MarkAsBroken();
+    void MarkAsBroken(nsresult aRv);
 
     
 

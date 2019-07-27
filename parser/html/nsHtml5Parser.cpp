@@ -238,7 +238,8 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
 
 
 
-    mExecutor->WillBuildModel(eDTDMode_unknown);
+    rv = mExecutor->WillBuildModel(eDTDMode_unknown);
+    NS_ENSURE_SUCCESS(rv, rv);
   }
 
   
@@ -256,7 +257,7 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
     }
     mDocumentClosed = true;
     if (!mBlocked && !mInDocumentWrite) {
-      ParseUntilBlocked();
+      return ParseUntilBlocked();
     }
     return NS_OK;
   }
@@ -379,7 +380,8 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
 
       if (mTreeBuilder->HasScript()) {
         mTreeBuilder->Flush(); 
-        mExecutor->FlushDocumentWrite(); 
+        rv = mExecutor->FlushDocumentWrite(); 
+        NS_ENSURE_SUCCESS(rv, rv);
         
         
         if (mExecutor->IsComplete()) {
@@ -438,7 +440,8 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
       "Buffer wasn't tokenized to completion?");
     
     mTreeBuilder->Flush(); 
-    mExecutor->FlushDocumentWrite(); 
+    rv = mExecutor->FlushDocumentWrite(); 
+    NS_ENSURE_SUCCESS(rv, rv);
   } else if (stackBuffer.hasMore()) {
     
     
@@ -596,11 +599,13 @@ nsHtml5Parser::IsScriptCreated()
 
 
 
-void
+nsresult
 nsHtml5Parser::ParseUntilBlocked()
 {
-  if (mBlocked || mExecutor->IsComplete() || NS_FAILED(mExecutor->IsBroken())) {
-    return;
+  nsresult rv = mExecutor->IsBroken();
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (mBlocked || mExecutor->IsComplete()) {
+    return NS_OK;
   }
   NS_ASSERTION(mExecutor->HasStarted(), "Bad life cycle.");
   NS_ASSERTION(!mInDocumentWrite,
@@ -613,7 +618,7 @@ nsHtml5Parser::ParseUntilBlocked()
       if (mFirstBuffer == mLastBuffer) {
         if (mExecutor->IsComplete()) {
           
-          return;
+          return NS_OK;
         }
         if (mDocumentClosed) {
           NS_ASSERTION(!GetStreamParser(),
@@ -622,8 +627,10 @@ nsHtml5Parser::ParseUntilBlocked()
           mTreeBuilder->StreamEnded();
           mTreeBuilder->Flush();
           mExecutor->FlushDocumentWrite();
+          
+          
           mTokenizer->end();
-          return;            
+          return NS_OK;
         }
         
         NS_ASSERTION(!mLastBuffer->getStart() && !mLastBuffer->getEnd(),
@@ -645,14 +652,14 @@ nsHtml5Parser::ParseUntilBlocked()
           NS_ASSERTION(mExecutor->IsInFlushLoop(),
               "How did we come here without being in the flush loop?");
         }
-        return; 
+        return NS_OK; 
       }
       mFirstBuffer = mFirstBuffer->next;
       continue;
     }
 
     if (mBlocked || mExecutor->IsComplete()) {
-      return;
+      return NS_OK;
     }
 
     
@@ -669,10 +676,11 @@ nsHtml5Parser::ParseUntilBlocked()
       }
       if (mTreeBuilder->HasScript()) {
         mTreeBuilder->Flush();
-        mExecutor->FlushDocumentWrite();
+        nsresult rv = mExecutor->FlushDocumentWrite();
+        NS_ENSURE_SUCCESS(rv, rv);
       }
       if (mBlocked) {
-        return;
+        return NS_OK;
       }
     }
     continue;
