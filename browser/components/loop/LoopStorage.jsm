@@ -5,7 +5,16 @@
 
 const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
-Cu.importGlobalProperties(["indexedDB"]);
+
+try {
+  Cu.importGlobalProperties(["indexedDB"]);
+} catch (ex) {
+  
+  if (typeof window !== 'undefined' && "console" in window) {
+    console.log("Failed to import indexedDB; if this isn't a unit test," +
+                " something is wrong", ex);
+  }
+}
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");

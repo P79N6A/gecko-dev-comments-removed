@@ -116,6 +116,8 @@ function injectLoopAPI(targetWindow) {
 
 
 
+
+
     userProfile: {
       enumerable: true,
       get: function() {
@@ -384,13 +386,15 @@ function injectLoopAPI(targetWindow) {
 
 
 
+
+
+
     hawkRequest: {
       enumerable: true,
       writable: true,
-      value: function(path, method, payloadObj, callback) {
+      value: function(sessionType, path, method, payloadObj, callback) {
         
-        
-        MozLoopService.hawkRequest(LOOP_SESSION_TYPE.GUEST, path, method, payloadObj).then((response) => {
+        MozLoopService.hawkRequest(sessionType, path, method, payloadObj).then((response) => {
           callback(null, response.body);
         }, hawkError => {
           
@@ -409,10 +413,9 @@ function injectLoopAPI(targetWindow) {
 
     LOOP_SESSION_TYPE: {
       enumerable: true,
-      writable: false,
-      value: function() {
-        return LOOP_SESSION_TYPE;
-      },
+      get: function() {
+        return Cu.cloneInto(LOOP_SESSION_TYPE, targetWindow);
+      }
     },
 
     logInToFxA: {
@@ -450,11 +453,21 @@ function injectLoopAPI(targetWindow) {
         if (!appVersionInfo) {
           let defaults = Services.prefs.getDefaultBranch(null);
 
-          appVersionInfo = Cu.cloneInto({
-            channel: defaults.getCharPref("app.update.channel"),
-            version: appInfo.version,
-            OS: appInfo.OS
-          }, targetWindow);
+          
+          
+          try {
+            appVersionInfo = Cu.cloneInto({
+              channel: defaults.getCharPref("app.update.channel"),
+              version: appInfo.version,
+              OS: appInfo.OS
+            }, targetWindow);
+          } catch (ex) {
+            
+            if (typeof window !== 'undefined' && "console" in window) {
+              console.log("Failed to construct appVersionInfo; if this isn't " +
+                          "an xpcshell unit test, something is wrong", ex);
+            }
+          }
         }
         return appVersionInfo;
       }
@@ -510,17 +523,23 @@ function injectLoopAPI(targetWindow) {
   Services.obs.addObserver(onStatusChanged, "loop-status-changed", false);
   Services.obs.addObserver(onDOMWindowDestroyed, "dom-window-destroyed", false);
 
-  targetWindow.navigator.wrappedJSObject.__defineGetter__("mozLoop", function() {
-    
-    
-    
-    
-    delete targetWindow.navigator.wrappedJSObject.mozLoop;
-    return targetWindow.navigator.wrappedJSObject.mozLoop = contentObj;
-  });
+  if ("navigator" in targetWindow) {
+    targetWindow.navigator.wrappedJSObject.__defineGetter__("mozLoop", function () {
+      
+      
+      
+      
+      delete targetWindow.navigator.wrappedJSObject.mozLoop;
+      return targetWindow.navigator.wrappedJSObject.mozLoop = contentObj;
+    });
 
-  
-  hookWindowCloseForPanelClose(targetWindow);
+    
+    hookWindowCloseForPanelClose(targetWindow);
+  } else {
+    
+    return targetWindow.mozLoop = contentObj;
+  }
+
 }
 
 function getChromeWindow(contentWin) {

@@ -703,6 +703,11 @@ this.MozLoopService = {
 
 
   initialize: function() {
+
+    
+    
+    Object.freeze(this);
+
     
     if (!Services.prefs.getBoolPref("loop.enabled") ||
         Services.prefs.getBoolPref("loop.throttled")) {
@@ -1052,4 +1057,3 @@ this.MozLoopService = {
     return MozLoopServiceInternal.hawkRequest(sessionType, path, method, payloadObj);
   },
 };
-Object.freeze(this.MozLoopService);

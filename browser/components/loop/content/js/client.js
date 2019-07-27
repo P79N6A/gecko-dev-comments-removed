@@ -108,29 +108,37 @@ loop.Client = (function($) {
 
 
     _requestCallUrlInternal: function(nickname, cb) {
-      this.mozLoop.hawkRequest("/call-url/", "POST", {callerId: nickname},
-                               function (error, responseText) {
-        if (error) {
-          this._telemetryAdd("LOOP_CLIENT_CALL_URL_REQUESTS_SUCCESS", false);
-          this._failureHandler(cb, error);
-          return;
-        }
+      var sessionType;
+      if (this.mozLoop.userProfile) {
+        sessionType = this.mozLoop.LOOP_SESSION_TYPE.FXA;
+      } else {
+        sessionType = this.mozLoop.LOOP_SESSION_TYPE.GUEST;
+      }
+      
+      this.mozLoop.hawkRequest(sessionType, "/call-url/", "POST",
+                               {callerId: nickname},
+        function (error, responseText) {
+          if (error) {
+            this._telemetryAdd("LOOP_CLIENT_CALL_URL_REQUESTS_SUCCESS", false);
+            this._failureHandler(cb, error);
+            return;
+          }
 
-        try {
-          var urlData = JSON.parse(responseText);
+          try {
+            var urlData = JSON.parse(responseText);
 
-          
-          
-          var returnData = this._validate(urlData, expectedCallUrlProperties);
+            
+            
+            var returnData = this._validate(urlData, expectedCallUrlProperties);
 
-          this._telemetryAdd("LOOP_CLIENT_CALL_URL_REQUESTS_SUCCESS", true);
-          cb(null, returnData);
-        } catch (err) {
-          this._telemetryAdd("LOOP_CLIENT_CALL_URL_REQUESTS_SUCCESS", false);
-          console.log("Error requesting call info", err);
-          cb(err);
-        }
-      }.bind(this));
+            this._telemetryAdd("LOOP_CLIENT_CALL_URL_REQUESTS_SUCCESS", true);
+            cb(null, returnData);
+          } catch (err) {
+            this._telemetryAdd("LOOP_CLIENT_CALL_URL_REQUESTS_SUCCESS", false);
+            console.log("Error requesting call info", err);
+            cb(err);
+          }
+        }.bind(this));
     },
 
     
@@ -154,8 +162,7 @@ loop.Client = (function($) {
     },
 
     _deleteCallUrlInternal: function(token, cb) {
-      this.mozLoop.hawkRequest("/call-url/" + token, "DELETE", null,
-                               function (error, responseText) {
+      function deleteRequestCallback(error, responseText) {
         if (error) {
           this._failureHandler(cb, error);
           return;
@@ -167,10 +174,17 @@ loop.Client = (function($) {
           console.log("Error deleting call info", err);
           cb(err);
         }
-      }.bind(this));
+      }
+
+      
+      this.mozLoop.hawkRequest(this.mozLoop.LOOP_SESSION_TYPE.GUEST,
+                               "/call-url/" + token, "DELETE", null,
+                               deleteRequestCallback.bind(this));
     },
 
     
+
+
 
 
 
