@@ -3,6 +3,7 @@
 
 
 Components.utils.import("resource:///modules/SitePermissions.jsm");
+Components.utils.import("resource://gre/modules/BrowserUtils.jsm");
 
 const nsIQuotaManager = Components.interfaces.nsIQuotaManager;
 
@@ -231,20 +232,6 @@ function onIndexedDBUsageCallback(uri, usage, fileUsage)
   }
 }
 
-
-function makeNicePluginName(aName) {
-  if (aName == "Shockwave Flash")
-    return "Adobe Flash";
-
-  
-  
-  
-  
-  
-  let newName = aName.replace(/[\s\d\.\-\_\(\)]+$/, "").replace(/\bplug-?in\b/i, "").trim();
-  return newName;
-}
-
 function fillInPluginPermissionTemplate(aPluginName, aPermissionString) {
   let permPluginTemplate = document.getElementById("permPluginTemplate").cloneNode(true);
   permPluginTemplate.setAttribute("permString", aPermissionString);
@@ -288,7 +275,7 @@ function initPluginsRow() {
     for (let mimeType of plugin.getMimeTypes()) {
       let permString = pluginHost.getPermissionStringForType(mimeType);
       if (!permissionMap.has(permString)) {
-        var name = makeNicePluginName(plugin.name);
+        let name = BrowserUtils.makeNicePluginName(plugin.name);
         if (permString.startsWith("plugin-vulnerable:")) {
           name += " \u2014 " + vulnerableLabel;
         }

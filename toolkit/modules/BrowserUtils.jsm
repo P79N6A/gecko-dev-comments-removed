@@ -179,4 +179,29 @@ this.BrowserUtils = {
 
     return "_blank";
   },
+
+  
+
+
+
+
+
+  makeNicePluginName: function (aName) {
+    if (aName == "Shockwave Flash")
+      return "Adobe Flash";
+    
+    if (/^Java\W/.exec(aName))
+      return "Java";
+
+    
+    
+    
+    
+    
+    
+    let newName = aName.replace(/\(.*?\)/g, "").
+                        replace(/[\s\d\.\-\_\(\)]+$/, "").
+                        replace(/\bplug-?in\b/i, "").trim();
+    return newName;
+  },
 };

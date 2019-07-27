@@ -14,6 +14,7 @@ this.EXPORTED_SYMBOLS = [ "PluginContent" ];
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/Timer.jsm");
+Cu.import("resource://gre/modules/BrowserUtils.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "gNavigatorBundle", function() {
   const url = "chrome://browser/locale/browser.properties";
@@ -119,7 +120,7 @@ PluginContent.prototype = {
 
     if (this.isKnownPlugin(pluginElement)) {
       pluginTag = pluginHost.getPluginTagForType(pluginElement.actualType);
-      pluginName = this.makeNicePluginName(pluginTag.name);
+      pluginName = BrowserUtils.makeNicePluginName(pluginTag.name);
 
       permissionString = pluginHost.getPermissionStringForType(pluginElement.actualType);
       fallbackType = pluginElement.defaultFallbackType;
@@ -140,26 +141,6 @@ PluginContent.prototype = {
              fallbackType: fallbackType,
              blocklistState: blocklistState,
            };
-  },
-
-  
-  makeNicePluginName : function (aName) {
-    if (aName == "Shockwave Flash")
-      return "Adobe Flash";
-    
-    if (/^Java\W/.exec(aName))
-      return "Java";
-
-    
-    
-    
-    
-    
-    
-    let newName = aName.replace(/\(.*?\)/g, "").
-                        replace(/[\s\d\.\-\_\(\)]+$/, "").
-                        replace(/\bplug-?in\b/i, "").trim();
-    return newName;
   },
 
   
@@ -843,7 +824,7 @@ PluginContent.prototype = {
 
     
     if (!gmpPlugin) {
-      pluginName = this.makeNicePluginName(pluginName);
+      pluginName = BrowserUtils.makeNicePluginName(pluginName);
     }
 
     let messageString = gNavigatorBundle.formatStringFromName("crashedpluginsMessage.title", [pluginName], 1);
