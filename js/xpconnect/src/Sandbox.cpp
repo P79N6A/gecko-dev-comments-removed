@@ -406,10 +406,31 @@ sandbox_addProperty(JSContext *cx, HandleObject obj, HandleId id, MutableHandleV
     
     RootedObject unwrappedProto(cx, js::UncheckedUnwrap(proto,  false));
 
-    if (!JS_CopyPropertyFrom(cx, id, unwrappedProto, obj))
+    Rooted<JSPropertyDescriptor> pd(cx);
+    if (!JS_GetPropertyDescriptorById(cx, proto, id, &pd))
         return false;
 
-    Rooted<JSPropertyDescriptor> pd(cx);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (pd.object() && pd.isPermanent()) {
+        if (!JS_SetPropertyById(cx, proto, id, vp))
+            return false;
+    } else {
+        if (!JS_CopyPropertyFrom(cx, id, unwrappedProto, obj))
+            return false;
+    }
+
     if (!JS_GetPropertyDescriptorById(cx, obj, id, &pd))
         return false;
     unsigned attrs = pd.attributes() & ~(JSPROP_GETTER | JSPROP_SETTER);
