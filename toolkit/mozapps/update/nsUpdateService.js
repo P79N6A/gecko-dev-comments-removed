@@ -2290,6 +2290,8 @@ UpdateService.prototype = {
       Services.prefs.setIntPref(PREF_APP_UPDATE_CERT_ERRORS, errCount);
       maxErrors = getPref("getIntPref", PREF_APP_UPDATE_CERT_MAXERRORS, 5);
     } else {
+      
+      AUSTLMY.pingCheckExError(this._pingSuffix, update.errorCode);
       update.errorCode = BACKGROUNDCHECK_MULTIPLE_FAILURES;
       errCount = getPref("getIntPref", PREF_APP_UPDATE_BACKGROUNDERRORS, 0);
       errCount++;
@@ -2313,7 +2315,6 @@ UpdateService.prototype = {
           break;
         default:
           checkCode = AUSTLMY.CHK_GENERAL_ERROR_PROMPT;
-          AUSTLMY.pingCheckExError(this._pingSuffix, update.errorCode);
       }
     } else {
       switch (update.errorCode) {
@@ -2325,7 +2326,6 @@ UpdateService.prototype = {
           break;
         default:
           checkCode = AUSTLMY.CHK_GENERAL_ERROR_SILENT;
-          AUSTLMY.pingCheckExError(this._pingSuffix, update.errorCode);
       }
     }
     AUSTLMY.pingCheckCode(this._pingSuffix, checkCode);
@@ -3494,15 +3494,10 @@ Checker.prototype = {
     if (AppConstants.platform == "gonk") {
       let sysLibs = {};
       Cu.import("resource://gre/modules/systemlibs.js", sysLibs);
-      let productDevice = sysLibs.libcutils.property_get("ro.product.device");
-      let buildType = sysLibs.libcutils.property_get("ro.build.type");
       url = url.replace(/%PRODUCT_MODEL%/g,
                         sysLibs.libcutils.property_get("ro.product.model"));
-      if (buildType == "user") {
-        url = url.replace(/%PRODUCT_DEVICE%/g, productDevice);
-      } else {
-        url = url.replace(/%PRODUCT_DEVICE%/g, productDevice + "-" + buildType);
-      }
+      url = url.replace(/%PRODUCT_DEVICE%/g,
+                        sysLibs.libcutils.property_get("ro.product.device"));
       url = url.replace(/%B2G_VERSION%/g,
                         getPref("getCharPref", PREF_APP_B2G_VERSION, null));
     }
