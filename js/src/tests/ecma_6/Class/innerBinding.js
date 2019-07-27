@@ -1,15 +1,28 @@
 
 
 
+
 if (classesEnabled()) {
 
 
 
 
-function syntaxWrapper() {
+
+function statementWrapper() {
     eval("class Foo { constructor() { } tryBreak() { Foo = 4; } }");
 }
-assertThrowsInstanceOf(syntaxWrapper, SyntaxError);
+
+function expressionWrapper() { 
+    
+    eval(`var x = class Foo { constructor() { }; tryBreak() { Foo = 4; } };
+          new x().tryBreak();`);
+}
+
+assertThrowsInstanceOf(statementWrapper, SyntaxError);
+assertThrowsInstanceOf(expressionWrapper, TypeError);
+
+
+
 
 
 
@@ -30,6 +43,11 @@ assertThrowsInstanceOf(()=>eval(\`class Bar {
                                     [Bar] () { };
                                  }\`), ReferenceError);
 
+assertThrowsInstanceOf(()=>eval(\`(class Bar {
+                                    constructor() { };
+                                    [Bar] () { };
+                                 })\`), ReferenceError);
+
 // There's no magic "inner binding" global
 {
     class Foo {
@@ -43,6 +61,15 @@ assertThrowsInstanceOf(()=>eval(\`class Bar {
         }
     }
     assertEq(new Foo().test(), false);
+    assertEq(new class foo {
+        constructor() { };
+        test() {
+            return new class bar {
+                constructor() { }
+                test() { return foo === bar }
+            }().test();
+        }
+    }().test(), false);
 }
 
 // Inner bindings are shadowable
@@ -52,7 +79,19 @@ assertThrowsInstanceOf(()=>eval(\`class Bar {
         test(Foo) { return Foo; }
     }
     assertEq(new Foo().test(4), 4);
+    assertEq(new class foo {
+        constructor() { };
+        test(foo) { return foo }
+    }().test(4), 4);
 }
+
+// Inner bindings in expressions should shadow even existing names.
+class Foo { constructor() { } static method() { throw new Error("NO!"); } }
+assertEq(new class Foo {
+            constructor() { };
+            static method() { return 4; };
+            test() { return Foo.method(); }
+         }().test(), 4);
 
 // The outer binding is distinct from the inner one
 {
@@ -68,6 +107,8 @@ assertThrowsInstanceOf(()=>eval(\`class Bar {
     assertEq(X, 13);
     new orig_X().f();
 }
+
+
 `;
 
 eval(test);
