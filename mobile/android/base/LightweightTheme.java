@@ -10,14 +10,12 @@ import java.util.List;
 
 import org.json.JSONObject;
 import org.mozilla.gecko.AppConstants.Versions;
-import org.mozilla.gecko.GeckoSharedPrefs;
 import org.mozilla.gecko.gfx.BitmapUtils;
 import org.mozilla.gecko.util.GeckoEventListener;
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.gecko.util.ThreadUtils.AssertBehavior;
 
 import android.app.Application;
-import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -26,6 +24,8 @@ import android.graphics.Rect;
 import android.graphics.Shader;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -36,10 +36,8 @@ import android.view.ViewParent;
 public class LightweightTheme implements GeckoEventListener {
     private static final String LOGTAG = "GeckoLightweightTheme";
 
-    private static final String PREFS_URL = "lightweightTheme.headerURL";
-    private static final String PREFS_COLOR = "lightweightTheme.color";
-
     private final Application mApplication;
+    final Handler mHandler;
 
     private Bitmap mBitmap;
     private int mColor;
@@ -55,90 +53,15 @@ public class LightweightTheme implements GeckoEventListener {
 
     private final List<OnChangeListener> mListeners;
 
-    class LightweightThemeRunnable implements Runnable {
-        private String mHeaderURL;
-        private String mColor;
-
-        private String mSavedURL;
-        private String mSavedColor;
-
-        LightweightThemeRunnable() {
-        }
-
-        LightweightThemeRunnable(final String headerURL, final String color) {
-            mHeaderURL = headerURL;
-            mColor = color;
-        }
-
-        private void loadFromPrefs() {
-            SharedPreferences prefs = GeckoSharedPrefs.forProfile(mApplication);
-            mSavedURL = prefs.getString(PREFS_URL, null);
-            mSavedColor = prefs.getString(PREFS_COLOR, null);
-        }
-
-        private void saveToPrefs() {
-            GeckoSharedPrefs.forProfile(mApplication)
-                            .edit()
-                            .putString(PREFS_URL, mHeaderURL)
-                            .putString(PREFS_COLOR, mColor)
-                            .apply();
-
-            
-            mSavedURL = mHeaderURL;
-            mSavedColor = mColor;
-        }
-
-        @Override
-        public void run() {
-            
-            loadFromPrefs();
-
-            if (TextUtils.isEmpty(mHeaderURL)) {
-                
-                
-                mHeaderURL = mSavedURL;
-                mColor = mSavedColor;
-                if (TextUtils.isEmpty(mHeaderURL)) {
-                    
-                    
-                    return;
-                }
-            } else if (TextUtils.equals(mHeaderURL, mSavedURL)) {
-                
-                
-                return;
-            } else {
-                
-                saveToPrefs();
-            }
-
-            String croppedURL = mHeaderURL;
-            int mark = croppedURL.indexOf('?');
-            if (mark != -1) {
-                croppedURL = croppedURL.substring(0, mark);
-            }
-
-            
-            final Bitmap bitmap = BitmapUtils.decodeUrl(croppedURL);
-            ThreadUtils.postToUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    setLightweightTheme(bitmap, mColor);
-                }
-            });
-        }
-    }
-
     public LightweightTheme(Application application) {
         mApplication = application;
+        mHandler = new Handler(Looper.getMainLooper());
         mListeners = new ArrayList<OnChangeListener>();
 
         
         EventDispatcher.getInstance().registerGeckoThreadListener(this,
             "LightweightTheme:Update",
             "LightweightTheme:Disable");
-
-        ThreadUtils.postToBackgroundThread(new LightweightThemeRunnable());
     }
 
     public void addListener(final OnChangeListener listener) {
@@ -159,13 +82,27 @@ public class LightweightTheme implements GeckoEventListener {
                 final String headerURL = lightweightTheme.getString("headerURL");
                 final String color = lightweightTheme.optString("accentcolor");
 
-                ThreadUtils.postToBackgroundThread(new LightweightThemeRunnable(headerURL, color));
-            } else if (event.equals("LightweightTheme:Disable")) {
                 
-                
-                clearPrefs();
+                ThreadUtils.postToBackgroundThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        String croppedURL = headerURL;
+                        int mark = croppedURL.indexOf('?');
+                        if (mark != -1)
+                            croppedURL = croppedURL.substring(0, mark);
 
-                ThreadUtils.postToUiThread(new Runnable() {
+                        
+                        final Bitmap bitmap = BitmapUtils.decodeUrl(croppedURL);
+                        mHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                setLightweightTheme(bitmap, color);
+                            }
+                        });
+                    }
+                });
+            } else if (event.equals("LightweightTheme:Disable")) {
+                mHandler.post(new Runnable() {
                     @Override
                     public void run() {
                         resetLightweightTheme();
@@ -175,17 +112,6 @@ public class LightweightTheme implements GeckoEventListener {
         } catch (Exception e) {
             Log.e(LOGTAG, "Exception handling message \"" + event + "\":", e);
         }
-    }
-
-    
-
-
-    private void clearPrefs() {
-        GeckoSharedPrefs.forProfile(mApplication)
-                        .edit()
-                        .remove(PREFS_URL)
-                        .remove(PREFS_COLOR)
-                        .apply();
     }
 
     
@@ -210,12 +136,29 @@ public class LightweightTheme implements GeckoEventListener {
         final int bitmapWidth = bitmap.getWidth();
         final int bitmapHeight = bitmap.getHeight();
 
-        try {
-            mColor = Color.parseColor(color);
-        } catch (Exception e) {
+        boolean useDominantColor = true;
+        if (!TextUtils.isEmpty(color)) {
+            try {
+                mColor = Color.parseColor(color);
+                useDominantColor = false;
+            } catch (IllegalArgumentException e) {
+                
+            }
+        }
+
+        
+        if (useDominantColor) {
             
+            int cropLength = mApplication.getResources().getDimensionPixelSize(R.dimen.browser_toolbar_height);
+
             
-            mColor = Color.TRANSPARENT;
+            Bitmap cropped = Bitmap.createBitmap(bitmap,
+                                                 0, 0,
+                                                 cropLength > bitmapWidth ? bitmapWidth : cropLength,
+                                                 cropLength > bitmapHeight ? bitmapHeight : cropLength);
+
+            
+            mColor = BitmapUtils.getDominantColor(cropped, false);
         }
 
         
@@ -253,9 +196,8 @@ public class LightweightTheme implements GeckoEventListener {
             canvas.drawBitmap(bitmap, null, rect, paint);
         }
 
-        for (OnChangeListener listener : mListeners) {
+        for (OnChangeListener listener : mListeners)
             listener.onLightweightThemeChanged();
-        }
     }
 
     
