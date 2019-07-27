@@ -22,7 +22,7 @@ namespace mozilla {
 
 class ContainerParser;
 class MediaSourceDecoder;
-class LargeDataBuffer;
+class MediaLargeByteBuffer;
 
 namespace dom {
 
@@ -41,7 +41,7 @@ public:
   
   
   
-  nsRefPtr<TrackBufferAppendPromise> AppendData(LargeDataBuffer* aData,
+  nsRefPtr<TrackBufferAppendPromise> AppendData(MediaLargeByteBuffer* aData,
                                                 int64_t aTimestampOffset );
 
   
@@ -133,7 +133,7 @@ private:
 
   
   
-  bool AppendDataToCurrentResource(LargeDataBuffer* aData,
+  bool AppendDataToCurrentResource(MediaLargeByteBuffer* aData,
                                    uint32_t aDuration );
 
   

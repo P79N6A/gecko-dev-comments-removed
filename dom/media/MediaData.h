@@ -22,8 +22,8 @@ class Image;
 class ImageContainer;
 }
 
-class LargeDataBuffer;
-class DataBuffer;
+class MediaLargeByteBuffer;
+class MediaByteBuffer;
 
 
 class MediaData {
@@ -369,7 +369,7 @@ private:
   explicit MediaRawDataWriter(MediaRawData* aMediaRawData);
   bool EnsureSize(size_t aSize);
   MediaRawData* mTarget;
-  nsRefPtr<LargeDataBuffer> mBuffer;
+  nsRefPtr<MediaLargeByteBuffer> mBuffer;
 };
 
 class MediaRawData : public MediaData {
@@ -383,7 +383,7 @@ public:
   size_t mSize;
 
   const CryptoSample& mCrypto;
-  nsRefPtr<DataBuffer> mExtraData;
+  nsRefPtr<MediaByteBuffer> mExtraData;
 
   
   virtual already_AddRefed<MediaRawData> Clone() const;
@@ -403,7 +403,7 @@ private:
   
   
   bool EnsureCapacity(size_t aSize);
-  nsRefPtr<LargeDataBuffer> mBuffer;
+  nsRefPtr<MediaLargeByteBuffer> mBuffer;
   CryptoSample mCryptoInternal;
   uint32_t mPadding;
   MediaRawData(const MediaRawData&); 
@@ -411,21 +411,21 @@ private:
 
   
   
-class LargeDataBuffer : public FallibleTArray<uint8_t> {
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(LargeDataBuffer);
-  LargeDataBuffer() = default;
-  explicit LargeDataBuffer(size_t aCapacity) : FallibleTArray<uint8_t>(aCapacity) {}
+class MediaLargeByteBuffer : public FallibleTArray<uint8_t> {
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaLargeByteBuffer);
+  MediaLargeByteBuffer() = default;
+  explicit MediaLargeByteBuffer(size_t aCapacity) : FallibleTArray<uint8_t>(aCapacity) {}
 
 private:
-  ~LargeDataBuffer() {}
+  ~MediaLargeByteBuffer() {}
 };
 
   
-class DataBuffer : public nsTArray<uint8_t> {
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(DataBuffer);
+class MediaByteBuffer : public nsTArray<uint8_t> {
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaByteBuffer);
 
 private:
-  ~DataBuffer() {}
+  ~MediaByteBuffer() {}
 };
 
 } 

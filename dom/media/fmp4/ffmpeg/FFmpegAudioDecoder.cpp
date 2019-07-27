@@ -22,7 +22,7 @@ FFmpegAudioDecoder<LIBAV_VER>::FFmpegAudioDecoder(
 {
   MOZ_COUNT_CTOR(FFmpegAudioDecoder);
   
-  mExtraData = new DataBuffer;
+  mExtraData = new MediaByteBuffer;
   mExtraData->AppendElements(*aConfig.mCodecSpecificConfig);
 }
 

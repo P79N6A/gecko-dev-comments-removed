@@ -71,7 +71,7 @@ TrackTypeToStr(TrackType aTrack)
 #endif
 
 bool
-AccumulateSPSTelemetry(const DataBuffer* aExtradata)
+AccumulateSPSTelemetry(const MediaByteBuffer* aExtradata)
 {
   SPSData spsdata;
   if (H264::DecodeSPSFromExtraData(aExtradata, spsdata)) {
@@ -781,7 +781,7 @@ MP4Reader::Update(TrackType aTrack)
 
     
     if (!mFoundSPSForTelemetry && sample && AnnexB::HasSPS(sample)) {
-      nsRefPtr<DataBuffer> extradata = AnnexB::ExtractExtraData(sample);
+      nsRefPtr<MediaByteBuffer> extradata = AnnexB::ExtractExtraData(sample);
       mFoundSPSForTelemetry = AccumulateSPSTelemetry(extradata);
     }
 

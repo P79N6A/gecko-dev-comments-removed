@@ -331,14 +331,14 @@ struct SPSData
 class H264
 {
 public:
-  static bool DecodeSPSFromExtraData(const mozilla::DataBuffer* aExtraData, SPSData& aDest);
+  static bool DecodeSPSFromExtraData(const mozilla::MediaByteBuffer* aExtraData, SPSData& aDest);
   
 
 
 
-  static already_AddRefed<mozilla::DataBuffer> DecodeNALUnit(const mozilla::DataBuffer* aNAL);
+  static already_AddRefed<mozilla::MediaByteBuffer> DecodeNALUnit(const mozilla::MediaByteBuffer* aNAL);
   
-  static bool DecodeSPS(const mozilla::DataBuffer* aSPS, SPSData& aDest);
+  static bool DecodeSPS(const mozilla::MediaByteBuffer* aSPS, SPSData& aDest);
   
   
   static bool EnsureSPSIsSane(SPSData& aSPS);

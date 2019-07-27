@@ -9,7 +9,7 @@ template <class T> struct already_AddRefed;
 
 namespace mozilla {
 class MediaRawData;
-class DataBuffer;
+class MediaByteBuffer;
 }
 namespace mp4_demuxer
 {
@@ -27,27 +27,27 @@ public:
   static bool ConvertSampleTo4BytesAVCC(mozilla::MediaRawData* aSample);
 
   
-  static already_AddRefed<mozilla::DataBuffer> ConvertExtraDataToAnnexB(
-    const mozilla::DataBuffer* aExtraData);
+  static already_AddRefed<mozilla::MediaByteBuffer> ConvertExtraDataToAnnexB(
+    const mozilla::MediaByteBuffer* aExtraData);
   
   
   
-  static already_AddRefed<mozilla::DataBuffer> ExtractExtraData(
+  static already_AddRefed<mozilla::MediaByteBuffer> ExtractExtraData(
     const mozilla::MediaRawData* aSample);
   static bool HasSPS(const mozilla::MediaRawData* aSample);
-  static bool HasSPS(const mozilla::DataBuffer* aExtraData);
+  static bool HasSPS(const mozilla::MediaByteBuffer* aExtraData);
   
   static bool IsAVCC(const mozilla::MediaRawData* aSample);
   
   static bool IsAnnexB(const mozilla::MediaRawData* aSample);
   
-  static bool CompareExtraData(const mozilla::DataBuffer* aExtraData1,
-                               const mozilla::DataBuffer* aExtraData2);
+  static bool CompareExtraData(const mozilla::MediaByteBuffer* aExtraData1,
+                               const mozilla::MediaByteBuffer* aExtraData2);
 
 private:
   
   static void ConvertSPSOrPPS(ByteReader& aReader, uint8_t aCount,
-                              mozilla::DataBuffer* aAnnexB);
+                              mozilla::MediaByteBuffer* aAnnexB);
 };
 
 } 

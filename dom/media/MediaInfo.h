@@ -112,7 +112,7 @@ public:
     , mDisplay(nsIntSize(aWidth, aHeight))
     , mStereoMode(StereoMode::MONO)
     , mImage(nsIntSize(aWidth, aHeight))
-    , mExtraData(new DataBuffer)
+    , mExtraData(new MediaByteBuffer)
   {
   }
 
@@ -131,7 +131,7 @@ public:
   
   nsIntSize mImage;
 
-  nsRefPtr<DataBuffer> mExtraData;
+  nsRefPtr<MediaByteBuffer> mExtraData;
 };
 
 class AudioInfo : public TrackInfo {
@@ -144,8 +144,8 @@ public:
     , mBitDepth(0)
     , mProfile(0)
     , mExtendedProfile(0)
-    , mCodecSpecificConfig(new DataBuffer)
-    , mExtraData(new DataBuffer)
+    , mCodecSpecificConfig(new MediaByteBuffer)
+    , mExtraData(new MediaByteBuffer)
   {
   }
 
@@ -164,8 +164,8 @@ public:
   
   int8_t mExtendedProfile;
 
-  nsRefPtr<DataBuffer> mCodecSpecificConfig;
-  nsRefPtr<DataBuffer> mExtraData;
+  nsRefPtr<MediaByteBuffer> mCodecSpecificConfig;
+  nsRefPtr<MediaByteBuffer> mExtraData;
 
   virtual bool IsValid() const override
   {

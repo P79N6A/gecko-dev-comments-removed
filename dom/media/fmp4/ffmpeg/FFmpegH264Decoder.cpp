@@ -33,7 +33,7 @@ FFmpegH264Decoder<LIBAV_VER>::FFmpegH264Decoder(
 {
   MOZ_COUNT_CTOR(FFmpegH264Decoder);
   
-  mExtraData = new DataBuffer;
+  mExtraData = new MediaByteBuffer;
   mExtraData->AppendElements(*aConfig.mExtraData);
 }
 
