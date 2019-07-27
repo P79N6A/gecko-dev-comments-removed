@@ -367,7 +367,6 @@ endif
 # Create Android ARchives and metadata for download by local
 # developers using Gradle.
 ifdef MOZ_ANDROID_GECKOLIBS_AAR
-ifndef MOZ_DISABLE_GECKOVIEW
 geckoaar-revision := $(BUILDID)
 
 UPLOAD_EXTRA_FILES += \
@@ -393,11 +392,8 @@ INNER_MAKE_GECKOLIBS_AAR= \
     --distdir '$(_ABS_DIST)' \
     '$(_ABS_DIST)'
 else
-INNER_MAKE_GECKOLIBS_AAR=echo 'Android geckolibs.aar packaging requires packaging geckoview'
-endif # MOZ_DISABLE_GECKOVIEW
-else
 INNER_MAKE_GECKOLIBS_AAR=echo 'Android geckolibs.aar packaging is disabled'
-endif # MOZ_ANDROID_GECKOLIBS_AAR
+endif
 
 ifdef MOZ_OMX_PLUGIN
 DIST_FILES += libomxplugin.so libomxplugingb.so libomxplugingb235.so \
@@ -730,6 +726,11 @@ UPLOAD_FILES= \
   $(call QUOTED_WILDCARD,$(DIST)/$(LANGPACK)) \
   $(call QUOTED_WILDCARD,$(wildcard $(DIST)/$(PARTIAL_MAR))) \
   $(call QUOTED_WILDCARD,$(DIST)/$(PKG_PATH)$(TEST_PACKAGE)) \
+  $(call QUOTED_WILDCARD,$(DIST)/$(PKG_PATH)$(CPP_TEST_PACKAGE)) \
+  $(call QUOTED_WILDCARD,$(DIST)/$(PKG_PATH)$(XPC_TEST_PACKAGE)) \
+  $(call QUOTED_WILDCARD,$(DIST)/$(PKG_PATH)$(MOCHITEST_PACKAGE)) \
+  $(call QUOTED_WILDCARD,$(DIST)/$(PKG_PATH)$(REFTEST_PACKAGE)) \
+  $(call QUOTED_WILDCARD,$(DIST)/$(PKG_PATH)$(WP_TEST_PACKAGE)) \
   $(call QUOTED_WILDCARD,$(DIST)/$(PKG_PATH)$(SYMBOL_ARCHIVE_BASENAME).zip) \
   $(call QUOTED_WILDCARD,$(DIST)/$(SDK)) \
   $(call QUOTED_WILDCARD,$(MOZ_SOURCESTAMP_FILE)) \
