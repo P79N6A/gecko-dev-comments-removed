@@ -67,22 +67,6 @@
 
 
 
-XPCOMUtils.defineLazyModuleGetter(this, "DownloadUtils",
-                                  "resource://gre/modules/DownloadUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "DownloadsCommon",
-                                  "resource:///modules/DownloadsCommon.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "OS",
-                                  "resource://gre/modules/osfile.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
-                                  "resource://gre/modules/PrivateBrowsingUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
-                                  "resource://gre/modules/PlacesUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
-                                  "resource://gre/modules/NetUtil.jsm");
-
-
-
-
 
 
 
@@ -866,7 +850,7 @@ const DownloadsView = {
 
   _removeViewItem(aDataItem) {
     DownloadsCommon.log("Removing a DownloadsViewItem from the downloads list.");
-    let element = this._visibleViewItems.get(aDataItem)._element;
+    let element = this._visibleViewItems.get(aDataItem).element;
     let previousSelectedIndex = this.richListBox.selectedIndex;
     this.richListBox.removeChild(element);
     if (previousSelectedIndex != -1) {
@@ -1000,37 +984,20 @@ const DownloadsView = {
 
 
 function DownloadsViewItem(aDataItem, aElement) {
-  this._element = aElement;
   this.dataItem = aDataItem;
+  this.element = aElement;
+  this.element._shell = this;
 
-  this.lastEstimatedSecondsLeft = Infinity;
+  this.element.setAttribute("type", "download");
+  this.element.classList.add("download-state");
 
-  
-  
-  
-  
-  this.image = "moz-icon://" + this.dataItem.download.target.path + "?size=32";
-
-  let attributes = {
-    "type": "download",
-    "class": "download-state",
-    "state": this.dataItem.state,
-    "progress": this.dataItem.inProgress ? this.dataItem.percentComplete : 100,
-    "target": OS.Path.basename(this.dataItem.download.target.path),
-    "image": this.image
-  };
-
-  for (let attributeName in attributes) {
-    this._element.setAttribute(attributeName, attributes[attributeName]);
-  }
-
-  
-  this._updateProgress();
-  this._updateStatusLine();
+  this._updateState();
   this.verifyTargetExists();
 }
 
 DownloadsViewItem.prototype = {
+  __proto__: DownloadElementShell.prototype,
+
   
 
 
@@ -1041,19 +1008,6 @@ DownloadsViewItem.prototype = {
 
   _element: null,
 
-  
-
-
-  _progressElement: null,
-
-  
-  
-
-  
-
-
-
-
   onStateChanged() {
     
     
@@ -1062,156 +1016,22 @@ DownloadsViewItem.prototype = {
     
     
     if (this.dataItem.state == Ci.nsIDownloadManager.DOWNLOAD_FINISHED) {
-      this._element.setAttribute("image", this.image + "&state=normal");
+      this.element.setAttribute("image", this.image + "&state=normal");
 
       
       
       
       
-      this._element.setAttribute("exists", "true");
+      this.element.setAttribute("exists", "true");
     }
 
     
-    this._element.setAttribute("state", this.dataItem.state);
+    this.element.setAttribute("state", this.dataItem.state);
   },
-
-  
-
 
   onChanged() {
     this._updateProgress();
-    this._updateStatusLine();
   },
-
-  
-  
-
-  
-
-
-  _updateProgress() {
-    if (this.dataItem.starting) {
-      
-      this._element.setAttribute("progressmode", "normal");
-      this._element.setAttribute("progress", "0");
-    } else if (this.dataItem.state == Ci.nsIDownloadManager.DOWNLOAD_SCANNING ||
-               this.dataItem.percentComplete == -1) {
-      
-      
-      this._element.setAttribute("progressmode", "undetermined");
-    } else {
-      
-      this._element.setAttribute("progressmode", "normal");
-      this._element.setAttribute("progress", this.dataItem.percentComplete);
-    }
-
-    
-    if (!this._progressElement) {
-      this._progressElement =
-           document.getAnonymousElementByAttribute(this._element, "anonid",
-                                                   "progressmeter");
-    }
-
-    
-    if (this._progressElement) {
-      let event = document.createEvent("Events");
-      event.initEvent("ValueChange", true, true);
-      this._progressElement.dispatchEvent(event);
-    }
-  },
-
-  
-
-
-
-  _updateStatusLine() {
-    const nsIDM = Ci.nsIDownloadManager;
-
-    let status = "";
-    let statusTip = "";
-
-    if (this.dataItem.paused) {
-      let transfer = DownloadUtils.getTransferTotal(this.dataItem.download.currentBytes,
-                                                    this.dataItem.maxBytes);
-
-      
-      
-      status = DownloadsCommon.strings.statusSeparatorBeforeNumber(
-                                            DownloadsCommon.strings.statePaused,
-                                            transfer);
-    } else if (this.dataItem.state == nsIDM.DOWNLOAD_DOWNLOADING) {
-      
-      
-      
-      [status] =
-        DownloadUtils.getDownloadStatusNoRate(this.dataItem.download.currentBytes,
-                                              this.dataItem.maxBytes,
-                                              this.dataItem.download.speed,
-                                              this.lastEstimatedSecondsLeft);
-
-      
-      let newEstimatedSecondsLeft;
-      [statusTip, newEstimatedSecondsLeft] =
-        DownloadUtils.getDownloadStatus(this.dataItem.download.currentBytes,
-                                        this.dataItem.maxBytes,
-                                        this.dataItem.download.speed,
-                                        this.lastEstimatedSecondsLeft);
-      this.lastEstimatedSecondsLeft = newEstimatedSecondsLeft;
-    } else if (this.dataItem.starting) {
-      status = DownloadsCommon.strings.stateStarting;
-    } else if (this.dataItem.state == nsIDM.DOWNLOAD_SCANNING) {
-      status = DownloadsCommon.strings.stateScanning;
-    } else if (!this.dataItem.inProgress) {
-      let stateLabel = function () {
-        let s = DownloadsCommon.strings;
-        switch (this.dataItem.state) {
-          case nsIDM.DOWNLOAD_FAILED:           return s.stateFailed;
-          case nsIDM.DOWNLOAD_CANCELED:         return s.stateCanceled;
-          case nsIDM.DOWNLOAD_BLOCKED_PARENTAL: return s.stateBlockedParentalControls;
-          case nsIDM.DOWNLOAD_BLOCKED_POLICY:   return s.stateBlockedPolicy;
-          case nsIDM.DOWNLOAD_DIRTY:            return s.stateDirty;
-          case nsIDM.DOWNLOAD_FINISHED:         return this._fileSizeText;
-        }
-        return null;
-      }.apply(this);
-
-      let [displayHost, fullHost] =
-        DownloadUtils.getURIHost(this.dataItem.download.source.referrer ||
-                                 this.dataItem.download.source.url);
-
-      let end = new Date(this.dataItem.endTime);
-      let [displayDate, fullDate] = DownloadUtils.getReadableDates(end);
-
-      
-      
-      
-      
-      let firstPart = DownloadsCommon.strings.statusSeparator(stateLabel,
-                                                              displayHost);
-      status = DownloadsCommon.strings.statusSeparator(firstPart, displayDate);
-      statusTip = DownloadsCommon.strings.statusSeparator(fullHost, fullDate);
-    }
-
-    this._element.setAttribute("status", status);
-    this._element.setAttribute("statusTip", statusTip || status);
-  },
-
-  
-
-
-
-  get _fileSizeText() {
-    
-    let fileSize = this.dataItem.maxBytes;
-    if (fileSize < 0) {
-      return DownloadsCommon.strings.sizeUnknown;
-    }
-    let [size, unit] = DownloadUtils.convertByteUnits(fileSize);
-    return DownloadsCommon.strings.sizeWithUnits(size, unit);
-  },
-
-  
-  
 
   
 
@@ -1222,15 +1042,15 @@ DownloadsViewItem.prototype = {
 
   verifyTargetExists() {
     
-    if (!this.dataItem.download.succeeded) {
+    if (!this.download.succeeded) {
       return;
     }
 
-    OS.File.exists(this.dataItem.download.target.path).then(aExists => {
+    OS.File.exists(this.download.target.path).then(aExists => {
       if (aExists) {
-        this._element.setAttribute("exists", "true");
+        this.element.setAttribute("exists", "true");
       } else {
-        this._element.removeAttribute("exists");
+        this.element.removeAttribute("exists");
       }
     }).catch(Cu.reportError);
   },

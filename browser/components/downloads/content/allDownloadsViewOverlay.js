@@ -2,31 +2,10 @@
 
 
 
-
-
-
-
-
-
-let Cu = Components.utils;
-let Ci = Components.interfaces;
-let Cc = Components.classes;
-
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/NetUtil.jsm");
-Cu.import("resource://gre/modules/DownloadUtils.jsm");
-Cu.import("resource:///modules/DownloadsCommon.jsm");
-Cu.import("resource://gre/modules/PlacesUtils.jsm");
-Cu.import("resource://gre/modules/Promise.jsm");
-Cu.import("resource://gre/modules/osfile.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
-                                  "resource://gre/modules/PrivateBrowsingUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "DownloadsDataItem",
+                                  "resource:///modules/DownloadsCommon.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "RecentWindow",
                                   "resource:///modules/RecentWindow.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
-                                  "resource://gre/modules/FileUtils.jsm");
 
 const nsIDM = Ci.nsIDownloadManager;
 
@@ -153,12 +132,12 @@ DownloadsHistoryDataItem.prototype = {
 
 
 
-function DownloadElementShell(aSessionDataItem, aHistoryDataItem) {
-  this._element = document.createElement("richlistitem");
-  this._element._shell = this;
+function HistoryDownloadElementShell(aSessionDataItem, aHistoryDataItem) {
+  this.element = document.createElement("richlistitem");
+  this.element._shell = this;
 
-  this._element.classList.add("download");
-  this._element.classList.add("download-state");
+  this.element.classList.add("download");
+  this.element.classList.add("download-state");
 
   if (aSessionDataItem) {
     this.sessionDataItem = aSessionDataItem;
@@ -168,11 +147,8 @@ function DownloadElementShell(aSessionDataItem, aHistoryDataItem) {
   }
 }
 
-DownloadElementShell.prototype = {
-  
-
-
-  get element() this._element,
+HistoryDownloadElementShell.prototype = {
+  __proto__: DownloadElementShell.prototype,
 
   
 
@@ -183,17 +159,11 @@ DownloadElementShell.prototype = {
   ensureActive() {
     if (!this._active) {
       this._active = true;
-      this._element.setAttribute("active", true);
+      this.element.setAttribute("active", true);
       this._updateUI();
     }
   },
   get active() !!this._active,
-
-  
-
-
-
-  get download() this.dataItem.download,
 
   
 
@@ -236,16 +206,6 @@ DownloadElementShell.prototype = {
     return aValue;
   },
 
-  
-  get _progressElement() {
-    if (!("__progressElement" in this)) {
-      this.__progressElement =
-        document.getAnonymousElementByAttribute(this._element, "anonid",
-                                                "progressmeter");
-    }
-    return this.__progressElement;
-  },
-
   _updateUI() {
     
     if (!this.active) {
@@ -255,150 +215,20 @@ DownloadElementShell.prototype = {
     
     this._targetFileChecked = false;
 
-    this._element.setAttribute("displayName", this.displayName);
-    this._element.setAttribute("image", this.image);
-
-    this._updateActiveStatusUI();
+    this._updateState();
   },
 
-  
-  
-  
-  _updateActiveStatusUI() {
-    if (!this.active) {
-      throw new Error("_updateActiveStatusUI called for an inactive item.");
-    }
-
-    this._element.setAttribute("state", this.dataItem.state);
-    this._element.setAttribute("status", this.statusText);
-
-    
-    if (!this._sessionDataItem) {
-      return;
-    }
-
-    
-    if (this.dataItem.starting) {
-      
-      this._element.setAttribute("progressmode", "normal");
-      this._element.setAttribute("progress", "0");
-    } else if (this.dataItem.state == nsIDM.DOWNLOAD_SCANNING ||
-               this.dataItem.percentComplete == -1) {
-      
-      
-      this._element.setAttribute("progressmode", "undetermined");
-    } else {
-      
-      this._element.setAttribute("progressmode", "normal");
-      this._element.setAttribute("progress", this.dataItem.percentComplete);
-    }
-
-    
-    if (this._progressElement) {
-      let event = document.createEvent("Events");
-      event.initEvent("ValueChange", true, true);
-      this._progressElement.dispatchEvent(event);
-    }
-  },
-
-  
-
-
-  get image() {
-    if (this.download.target.path) {
-      return "moz-icon://" + this.download.target.path + "?size=32";
-    }
-
-    
-    return "moz-icon://.unknown?size=32";
-  },
-
-  
-
-
-
-
-  get displayName() {
-    if (!this.download.target.path) {
-      return this.download.source.url;
-    }
-    return OS.Path.basename(this.download.target.path);
-  },
-
-  get statusText() {
-    let s = DownloadsCommon.strings;
-    if (this.dataItem.inProgress) {
-      if (this.dataItem.paused) {
-        let transfer =
-          DownloadUtils.getTransferTotal(this.download.currentBytes,
-                                         this.dataItem.maxBytes);
-
-         
-         
-         return s.statusSeparatorBeforeNumber(s.statePaused, transfer);
-      }
-      if (this.dataItem.state == nsIDM.DOWNLOAD_DOWNLOADING) {
-        let [status, newEstimatedSecondsLeft] =
-          DownloadUtils.getDownloadStatus(this.download.currentBytes,
-                                          this.dataItem.maxBytes,
-                                          this.download.speed,
-                                          this._lastEstimatedSecondsLeft || Infinity);
-        this._lastEstimatedSecondsLeft = newEstimatedSecondsLeft;
-        return status;
-      }
-      if (this.dataItem.starting) {
-        return s.stateStarting;
-      }
-      if (this.dataItem.state == nsIDM.DOWNLOAD_SCANNING) {
-        return s.stateScanning;
-      }
-
-      throw new Error("_getStatusText called with a bogus download state");
-    }
-
-    
-    let stateLabel = "";
-    switch (this.dataItem.state) {
-      case nsIDM.DOWNLOAD_FAILED:
-        stateLabel = s.stateFailed;
-        break;
-      case nsIDM.DOWNLOAD_CANCELED:
-        stateLabel = s.stateCanceled;
-        break;
-      case nsIDM.DOWNLOAD_BLOCKED_PARENTAL:
-        stateLabel = s.stateBlockedParentalControls;
-        break;
-      case nsIDM.DOWNLOAD_BLOCKED_POLICY:
-        stateLabel = s.stateBlockedPolicy;
-        break;
-      case nsIDM.DOWNLOAD_DIRTY:
-        stateLabel = s.stateDirty;
-        break;
-      case nsIDM.DOWNLOAD_FINISHED:
-        
-        if (this.dataItem.maxBytes !== undefined) {
-          let [size, unit] =
-              DownloadUtils.convertByteUnits(this.dataItem.maxBytes);
-          stateLabel = s.sizeWithUnits(size, unit);
-          break;
-        }
-        
-      default:
-        stateLabel = s.sizeUnknown;
-        break;
-    }
-
-    let referrer = this.download.source.referrer ||
-                   this.download.source.url;
-    let [displayHost, fullHost] = DownloadUtils.getURIHost(referrer);
-
-    let date = new Date(this.dataItem.endTime);
-    let [displayDate, fullDate] = DownloadUtils.getReadableDates(date);
+  get statusTextAndTip() {
+    let status = this.rawStatusTextAndTip;
 
     
     
-    let firstPart = s.statusSeparator(stateLabel, displayHost);
-    return s.statusSeparator(firstPart, displayDate);
+    if (this.dataItem.state == nsIDM.DOWNLOAD_DOWNLOADING) {
+      status.text = status.tip;
+    }
+    status.tip = "";
+
+    return status;
   },
 
   onStateChanged() {
@@ -409,10 +239,13 @@ DownloadElementShell.prototype = {
     
     
     if (this.dataItem.state == nsIDM.DOWNLOAD_FINISHED) {
-      this._element.setAttribute("image", this.image + "&state=normal");
+      this.element.setAttribute("image", this.image + "&state=normal");
     }
 
-    if (this._element.selected) {
+    
+    this.element.setAttribute("state", this.dataItem.state);
+
+    if (this.element.selected) {
       goUpdateDownloadCommands();
     } else {
       goUpdateCommand("downloadsCmd_clearDownloads");
@@ -420,7 +253,7 @@ DownloadElementShell.prototype = {
   },
 
   onChanged() {
-    this._updateActiveStatusUI();
+    this._updateProgress();
   },
 
   
@@ -602,7 +435,7 @@ DownloadElementShell.prototype = {
     }
 
     
-    if (this._element.selected) {
+    if (this.element.selected) {
       goUpdateDownloadCommands();
     }
   }),
@@ -847,7 +680,7 @@ DownloadsPlacesView.prototype = {
         historyDataItem = new DownloadsHistoryDataItem(aPlacesNode);
         historyDataItem.updateFromMetaData(metaData);
       }
-      let shell = new DownloadElementShell(aDataItem, historyDataItem);
+      let shell = new HistoryDownloadElementShell(aDataItem, historyDataItem);
       shell.element._placesNode = aPlacesNode;
       newOrUpdatedShell = shell;
       shellsForURI.add(shell);
