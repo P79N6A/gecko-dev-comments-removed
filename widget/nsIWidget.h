@@ -1691,6 +1691,13 @@ class nsIWidget : public nsISupports {
 
 
 
+
+    virtual nsEventStatus DispatchAPZAwareEvent(mozilla::WidgetInputEvent* aEvent) = 0;
+
+    
+
+
+
     NS_IMETHOD EnableDragDrop(bool aEnable) = 0;
    
     

@@ -326,7 +326,7 @@ nsWindow::DispatchTouchEventForAPZ(const MultiTouchInput& aInput,
     
     
     
-    DispatchEventForAPZ(&event, aGuid, aInputBlockId);
+    ProcessUntransformedAPZEvent(&event, aGuid, aInputBlockId);
 }
 
 class DispatchTouchInputOnControllerThread : public Task

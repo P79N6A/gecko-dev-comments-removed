@@ -232,6 +232,9 @@ public:
   NS_IMETHOD              UnregisterTouchWindow() MOZ_OVERRIDE;
   NS_IMETHOD_(TextEventDispatcher*) GetTextEventDispatcher() MOZ_OVERRIDE MOZ_FINAL;
 
+  
+  nsEventStatus DispatchAPZAwareEvent(mozilla::WidgetInputEvent* aEvent) MOZ_OVERRIDE;
+
   void NotifyWindowDestroyed();
   void NotifySizeMoveDone();
   void NotifyWindowMoved(int32_t aX, int32_t aY);
@@ -328,10 +331,9 @@ protected:
   virtual already_AddRefed<GeckoContentController> CreateRootContentController();
 
   
-  
-  nsEventStatus DispatchEventForAPZ(mozilla::WidgetGUIEvent* aEvent,
-                                    const ScrollableLayerGuid& aGuid,
-                                    uint64_t aInputBlockId);
+  nsEventStatus ProcessUntransformedAPZEvent(mozilla::WidgetInputEvent* aEvent,
+                                             const ScrollableLayerGuid& aGuid,
+                                             uint64_t aInputBlockId);
 
   const nsIntRegion RegionFromArray(const nsTArray<nsIntRect>& aRects);
   void ArrayFromRegion(const nsIntRegion& aRegion, nsTArray<nsIntRect>& aRects);
