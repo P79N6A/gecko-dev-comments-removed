@@ -544,7 +544,7 @@ SampleAPZAnimations(const LayerMetricsWrapper& aLayer, TimeStamp aSampleTime)
 }
 
 Matrix4x4
-AdjustAndCombineWithCSSTransform(const Matrix4x4& asyncTransform, Layer* aLayer)
+AdjustForClip(const Matrix4x4& asyncTransform, Layer* aLayer)
 {
   Matrix4x4 result = asyncTransform;
 
@@ -559,9 +559,6 @@ AdjustAndCombineWithCSSTransform(const Matrix4x4& asyncTransform, Layer* aLayer)
       result.ChangeBasis(shadowClipRect->x, shadowClipRect->y, 0);
     }
   }
-
-  
-  result = aLayer->GetTransform() * result;
   return result;
 }
 
@@ -622,10 +619,12 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(Layer *aLayer)
   }
 
   if (hasAsyncTransform) {
+    
+    
+    
+    
     SetShadowTransform(aLayer,
-        AdjustAndCombineWithCSSTransform(combinedAsyncTransform, aLayer));
-    NS_ASSERTION(!aLayer->AsLayerComposite()->GetShadowTransformSetByAnimation(),
-                 "overwriting animated transform!");
+        aLayer->GetLocalTransform() * AdjustForClip(combinedAsyncTransform, aLayer));
 
     const FrameMetrics& bottom = LayerMetricsWrapper::BottommostScrollableMetrics(aLayer);
     MOZ_ASSERT(bottom.IsScrollable());  
@@ -641,12 +640,15 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(Layer *aLayer)
     
     
     
-    Matrix4x4 transformWithoutOverscroll = AdjustAndCombineWithCSSTransform(
-        combinedAsyncTransformWithoutOverscroll, aLayer);
+    
+    
+    
+    Matrix4x4 transformWithoutOverscrollOrOmta = aLayer->GetTransform() *
+        AdjustForClip(combinedAsyncTransformWithoutOverscroll, aLayer);
     
     
     AlignFixedAndStickyLayers(aLayer, aLayer, bottom.GetScrollId(), oldTransform,
-                              transformWithoutOverscroll, fixedLayerMargins);
+                              transformWithoutOverscrollOrOmta, fixedLayerMargins);
 
     appliedTransform = true;
   }
