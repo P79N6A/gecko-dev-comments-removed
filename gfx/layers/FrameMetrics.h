@@ -12,6 +12,7 @@
 #include "mozilla/gfx/Rect.h"           
 #include "mozilla/gfx/ScaleFactor.h"    
 #include "mozilla/gfx/Logging.h"        
+#include "gfxColor.h"
 
 namespace IPC {
 template <typename T> struct ParamTraits;
@@ -97,6 +98,7 @@ public:
     , mUseDisplayPortMargins(false)
     , mPresShellId(-1)
     , mViewport(0, 0, 0, 0)
+    , mBackgroundColor(0, 0, 0, 0)
   {}
 
   
@@ -122,7 +124,8 @@ public:
            mScrollParentId == aOther.mScrollParentId &&
            mScrollOffset == aOther.mScrollOffset &&
            mHasScrollgrab == aOther.mHasScrollgrab &&
-           mUpdateScrollOffset == aOther.mUpdateScrollOffset;
+           mUpdateScrollOffset == aOther.mUpdateScrollOffset &&
+           mBackgroundColor == aOther.mBackgroundColor;
   }
   bool operator!=(const FrameMetrics& aOther) const
   {
@@ -467,6 +470,16 @@ public:
     return mViewport;
   }
 
+  const gfxRGBA& GetBackgroundColor() const
+  {
+    return mBackgroundColor;
+  }
+
+  void SetBackgroundColor(const gfxRGBA& aBackgroundColor)
+  {
+    mBackgroundColor = aBackgroundColor;
+  }
+
 private:
   
   
@@ -535,6 +548,9 @@ private:
   
   
   CSSRect mViewport;
+
+  
+  gfxRGBA mBackgroundColor;
 };
 
 

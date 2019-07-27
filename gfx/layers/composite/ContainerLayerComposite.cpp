@@ -268,15 +268,16 @@ RenderLayers(ContainerT* aContainer,
   
   if (aContainer->HasScrollableFrameMetrics() && !aContainer->IsScrollInfoLayer()) {
     bool overscrolled = false;
+    gfxRGBA color;
     for (uint32_t i = 0; i < aContainer->GetFrameMetricsCount(); i++) {
       AsyncPanZoomController* apzc = aContainer->GetAsyncPanZoomController(i);
       if (apzc && apzc->IsOverscrolled()) {
         overscrolled = true;
+        color = aContainer->GetFrameMetrics(i).GetBackgroundColor();
         break;
       }
     }
     if (overscrolled) {
-      gfxRGBA color = aContainer->GetBackgroundColor();
       
       
       
