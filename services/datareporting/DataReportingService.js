@@ -298,56 +298,60 @@ DataReportingService.prototype = Object.freeze({
     }.bind(this));
   },
 
-  _loadClientID: Task.async(function* () {
+  _loadClientID: function () {
     if (this._loadClientIdTask) {
       return this._loadClientIdTask;
     }
 
-    
-    
-    
-    
-    
-
-    
-    try {
-      let state = yield CommonUtils.readJSON(this._stateFilePath);
-      if (state && 'clientID' in state && typeof(state.clientID) == 'string') {
-        this._clientID = state.clientID;
-        this._loadClientIdTask = null;
-        return this._clientID;
-      }
-    } catch (e) {
+    this._loadClientIdTask = Task.spawn(function* () {
       
-    }
-
-    
-    try {
-      let fhrStatePath = OS.Path.join(OS.Constants.Path.profileDir, "healthreport", "state.json");
-      let state = yield CommonUtils.readJSON(fhrStatePath);
-      if (state && 'clientID' in state && typeof(state.clientID) == 'string') {
-        this._clientID = state.clientID;
-        this._loadClientIdTask = null;
-        this._saveClientID();
-        return this._clientID;
-      }
-    } catch (e) {
       
-    }
+      
+      
+      
 
-    
-    this._clientID = CommonUtils.generateUUID();
-    this._loadClientIdTask = null;
-    this._saveClientIdTask = this._saveClientID();
+      
+      try {
+        let state = yield CommonUtils.readJSON(this._stateFilePath);
+        if (state && 'clientID' in state && typeof(state.clientID) == 'string') {
+          this._clientID = state.clientID;
+          this._loadClientIdTask = null;
+          return this._clientID;
+        }
+      } catch (e) {
+        
+      }
 
-    
-    
-    
-    
-    yield this._saveClientIdTask;
+      
+      try {
+        let fhrStatePath = OS.Path.join(OS.Constants.Path.profileDir, "healthreport", "state.json");
+        let state = yield CommonUtils.readJSON(fhrStatePath);
+        if (state && 'clientID' in state && typeof(state.clientID) == 'string') {
+          this._clientID = state.clientID;
+          this._loadClientIdTask = null;
+          this._saveClientID();
+          return this._clientID;
+        }
+      } catch (e) {
+        
+      }
 
-    return this._clientID;
-  }),
+      
+      this._clientID = CommonUtils.generateUUID();
+      this._loadClientIdTask = null;
+      this._saveClientIdTask = this._saveClientID();
+
+      
+      
+      
+      
+      yield this._saveClientIdTask;
+
+      return this._clientID;
+    }.bind(this));
+
+    return this._loadClientIdTask;
+  },
 
   _saveClientID: Task.async(function* () {
     let obj = { clientID: this._clientID };
@@ -364,13 +368,8 @@ DataReportingService.prototype = Object.freeze({
 
 
   getClientID: function() {
-    if (this._loadClientIdTask) {
-      return this._loadClientIdTask;
-    }
-
     if (!this._clientID) {
-      this._loadClientIdTask = this._loadClientID();
-      return this._loadClientIdTask;
+      return this._loadClientID();
     }
 
     return Promise.resolve(this._clientID);
