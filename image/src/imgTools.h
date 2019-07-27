@@ -4,6 +4,9 @@
 
 
 
+#ifndef mozilla_image_src_imgITools_h
+#define mozilla_image_src_imgITools_h
+
 #include "imgITools.h"
 
 #define NS_IMGTOOLS_CID \
@@ -25,3 +28,4 @@ public:
 private:
   virtual ~imgTools();
 };
+#endif 
