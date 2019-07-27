@@ -276,7 +276,7 @@ public:
 
 
 
-    inline unsigned int Version() const {
+    inline uint32_t Version() const {
         return mVersion;
     }
 
@@ -318,7 +318,7 @@ protected:
 
 
 
-    unsigned int mVersion;
+    uint32_t mVersion;
     nsCString mVersionString;
     ContextProfile mProfile;
 
@@ -659,6 +659,16 @@ public:
             mGL.mLocalErrorScope = nullptr;
         }
     };
+
+    bool GetPotentialInteger(GLenum pname, GLint* param) {
+        LocalErrorScope localError(*this);
+
+        fGetIntegerv(pname, param);
+
+        GLenum err = localError.GetError();
+        MOZ_ASSERT_IF(err != LOCAL_GL_NO_ERROR, err == LOCAL_GL_INVALID_ENUM);
+        return err == LOCAL_GL_NO_ERROR;
+    }
 
 private:
     static void GLAPIENTRY StaticDebugCallback(GLenum source,

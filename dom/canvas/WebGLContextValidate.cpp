@@ -1680,30 +1680,21 @@ WebGLContext::InitAndValidateGL()
             
 
             
-            error = gl->fGetError();
-            if (error != LOCAL_GL_NO_ERROR) {
-                GenerateWarning("GL error 0x%x occurred during WebGL context initialization!", error);
-                return false;
-            }
-
             
-            
-            GLint maxVertexOutputComponents,
-                  minFragmentInputComponents;
-            gl->fGetIntegerv(LOCAL_GL_MAX_VERTEX_OUTPUT_COMPONENTS, &maxVertexOutputComponents);
-            gl->fGetIntegerv(LOCAL_GL_MAX_FRAGMENT_INPUT_COMPONENTS, &minFragmentInputComponents);
+            GLint maxVertexOutputComponents = 0;
+            GLint maxFragmentInputComponents = 0;
 
-            error = gl->fGetError();
-            switch (error) {
-                case LOCAL_GL_NO_ERROR:
-                    mGLMaxVaryingVectors = std::min(maxVertexOutputComponents, minFragmentInputComponents) / 4;
-                    break;
-                case LOCAL_GL_INVALID_ENUM:
-                    mGLMaxVaryingVectors = 16; 
-                    break;
-                default:
-                    GenerateWarning("GL error 0x%x occurred during WebGL context initialization!", error);
-                    return false;
+            const bool ok = (gl->GetPotentialInteger(LOCAL_GL_MAX_VERTEX_OUTPUT_COMPONENTS,
+                                                     &maxVertexOutputComponents) &&
+                             gl->GetPotentialInteger(LOCAL_GL_MAX_FRAGMENT_INPUT_COMPONENTS,
+                                                     &maxFragmentInputComponents));
+
+            if (ok) {
+                mGLMaxVaryingVectors = std::min(maxVertexOutputComponents,
+                                                maxFragmentInputComponents) / 4;
+            } else {
+                mGLMaxVaryingVectors = 16;
+                
             }
         }
     }
