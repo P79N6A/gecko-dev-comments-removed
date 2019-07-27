@@ -218,7 +218,7 @@ public:
   
   void RestyleTable()
   {
-    nsTableFrame* tableFrame = nsTableFrame::GetTableFrame(this);
+    nsTableFrame* tableFrame = GetTableFrame();
     if (tableFrame && tableFrame->IsFrameOfType(nsIFrame::eMathML)) {
       
       ((nsMathMLmtableFrame*)tableFrame)->RestyleTable();
