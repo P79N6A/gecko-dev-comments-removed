@@ -1376,7 +1376,8 @@ Accessible::ARIATransformRole(role aRole)
     
     if (mParent && mParent->Role() == roles::COMBOBOX) {
       return roles::COMBOBOX_LIST;
-
+    } else {
+      
       Relation rel = RelationByType(RelationType::NODE_CHILD_OF);
       Accessible* targetAcc = nullptr;
       while ((targetAcc = rel.Next()))
