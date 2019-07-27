@@ -17,14 +17,6 @@
 
 #include "mozilla/layers/LayersTypes.h"
 
-#ifdef MOZ_TREMOR
-#include "tremor/ivorbiscodec.h"
-#else
-#include "vorbis/codec.h"
-#endif
-
-#include "OpusParser.h"
-
 namespace mozilla {
 static const unsigned NS_PER_USEC = 1000;
 static const double NS_PER_S = 1e9;
@@ -138,6 +130,21 @@ public:
   virtual ~WebMVideoDecoder() {}
 };
 
+
+class WebMAudioDecoder
+{
+public:
+  virtual nsresult Init() = 0;
+  virtual void Shutdown() = 0;
+  virtual nsresult ResetDecode() = 0;
+  virtual nsresult DecodeHeader(const unsigned char* aData, size_t aLength) = 0;
+  virtual nsresult FinishInit(AudioInfo& aInfo) = 0;
+  virtual bool Decode(const unsigned char* aData, size_t aLength,
+                      int64_t aOffset, uint64_t aTstampUsecs,
+                      int64_t aDiscardPadding, int32_t* aTotalFrames) = 0;
+  virtual ~WebMAudioDecoder() {}
+};
+
 class WebMReader : public MediaDecoderReader
 {
 public:
@@ -201,10 +208,9 @@ public:
   void SetLastVideoFrameTime(int64_t aFrameTime);
   layers::LayersBackend GetLayersBackendType() { return mLayersBackendType; }
   FlushableMediaTaskQueue* GetVideoTaskQueue() { return mVideoTaskQueue; }
+  uint64_t GetCodecDelay() { return mCodecDelay; }
 
 protected:
-  
-  bool InitOpusDecoder();
 
   
   
@@ -213,12 +219,6 @@ protected:
   
   
   bool DecodeAudioPacket(NesteggPacketHolder* aHolder);
-  bool DecodeVorbis(const unsigned char* aData, size_t aLength,
-                    int64_t aOffset, uint64_t aTstampUsecs,
-                    int32_t* aTotalFrames);
-  bool DecodeOpus(const unsigned char* aData, size_t aLength,
-                  int64_t aOffset, uint64_t aTstampUsecs,
-                  nestegg_packet* aPacket);
 
   
   
@@ -246,21 +246,8 @@ private:
   
   nestegg* mContext;
 
-  
+  nsAutoPtr<WebMAudioDecoder> mAudioDecoder;
   nsAutoPtr<WebMVideoDecoder> mVideoDecoder;
-
-  
-  vorbis_info mVorbisInfo;
-  vorbis_comment mVorbisComment;
-  vorbis_dsp_state mVorbisDsp;
-  vorbis_block mVorbisBlock;
-  int64_t mPacketCount;
-
-  
-  nsAutoPtr<OpusParser> mOpusParser;
-  OpusMSDecoder *mOpusDecoder;
-  uint16_t mSkip;        
-  uint64_t mSeekPreroll; 
 
   
   
@@ -279,6 +266,9 @@ private:
 
   
   uint64_t mCodecDelay;
+
+  
+  uint64_t mSeekPreroll;
 
   
   
@@ -309,10 +299,6 @@ private:
   bool mHasVideo;
   bool mHasAudio;
 
-  
-  
-  
-  bool mPaddingDiscarded;
 };
 
 } 
