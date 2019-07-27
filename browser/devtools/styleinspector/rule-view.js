@@ -1161,7 +1161,6 @@ function CssRuleView(inspector, document, aStore, aPageStyle) {
   this.store = aStore || {};
   this.pageStyle = aPageStyle;
 
-  this._editorsExpandedForFilter = [];
   this._outputParser = new OutputParser();
 
   this._onKeypress = this._onKeypress.bind(this);
@@ -1587,7 +1586,7 @@ CssRuleView.prototype = {
       this.searchPropertyValue = this.searchPropertyMatch ?
                                  this.searchPropertyMatch[2] : this.searchValue;
 
-      this._clearHighlights();
+      this._clearHighlight(this.element);
       this._clearRules();
       this._createEditors();
 
@@ -1649,7 +1648,6 @@ CssRuleView.prototype = {
     this._prefObserver.destroy();
 
     this._outputParser = null;
-    this._editorsExpandedForFilter = null;
 
     
     if (this._contextmenu) {
@@ -2057,19 +2055,8 @@ CssRuleView.prototype = {
 
     
     for (let textProp of rule.textProps) {
-      let editor = textProp.editor;
-      let isPropertyHighlighted = this._highlightRuleProperty(editor);
-      let isComputedHighlighted = this._highlightComputedProperty(editor);
-
-      if (isPropertyHighlighted || isComputedHighlighted) {
+      if (this._highlightProperty(textProp.editor)) {
         isHighlighted = true;
-      }
-
-      
-      
-      if (!isPropertyHighlighted && isComputedHighlighted &&
-          !editor.computed.hasAttribute("user-open")) {
-        this._expandComputedListForFilter(editor);
       }
     }
 
@@ -2122,6 +2109,49 @@ CssRuleView.prototype = {
     }
 
     return isStyleSheetHighlighted;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _highlightProperty: function(editor) {
+    let isPropertyHighlighted = this._highlightRuleProperty(editor);
+    let isComputedHighlighted = this._highlightComputedProperty(editor);
+
+    
+    
+    if (!isPropertyHighlighted && isComputedHighlighted &&
+        !editor.computed.hasAttribute("user-open")) {
+      editor.expandForFilter();
+    }
+
+    return isPropertyHighlighted || isComputedHighlighted;
+  },
+
+  
+
+
+
+
+
+
+  _updatePropertyHighlight: function(editor) {
+    if (!this.searchValue) {
+      return;
+    }
+
+    this._clearHighlight(editor.element);
+
+    if (this._highlightProperty(editor)) {
+      this.searchField.classList.remove("devtools-style-searchbox-no-match");
+    }
   },
 
   
@@ -2189,18 +2219,6 @@ CssRuleView.prototype = {
 
 
 
-  _expandComputedListForFilter: function(editor) {
-    editor.expandForFilter();
-    this._editorsExpandedForFilter.push(editor);
-  },
-
-  
-
-
-
-
-
-
 
 
 
@@ -2242,16 +2260,15 @@ CssRuleView.prototype = {
 
 
 
-  _clearHighlights: function() {
-    for (let element of this.element.querySelectorAll(".ruleview-highlight")) {
-      element.classList.remove("ruleview-highlight");
+  _clearHighlight: function(element) {
+    for (let el of element.querySelectorAll(".ruleview-highlight")) {
+      el.classList.remove("ruleview-highlight");
     }
 
-    for (let editor of this._editorsExpandedForFilter) {
-      editor.collapseForFilter();
+    for (let computed of element.querySelectorAll(
+          ".ruleview-computedlist[filter-open]")) {
+      computed.parentNode._textPropertyEditor.collapseForFilter();
     }
-
-    this._editorsExpandedForFilter = [];
   },
 
   
@@ -2789,6 +2806,7 @@ RuleEditor.prototype = {
 
 function TextPropertyEditor(aRuleEditor, aProperty) {
   this.ruleEditor = aRuleEditor;
+  this.ruleView = this.ruleEditor.ruleView;
   this.doc = this.ruleEditor.doc;
   this.popup = this.ruleEditor.ruleView.popup;
   this.prop = aProperty;
@@ -2823,6 +2841,7 @@ TextPropertyEditor.prototype = {
   _create: function() {
     this.element = this.doc.createElementNS(HTML_NS, "li");
     this.element.classList.add("ruleview-property");
+    this.element._textPropertyEditor = this;
 
     this.container = createChild(this.element, "div", {
       class: "ruleview-propertycontainer"
@@ -3112,6 +3131,9 @@ TextPropertyEditor.prototype = {
 
     
     this._updateComputed();
+
+    
+    this.ruleView._updatePropertyHighlight(this);
   },
 
   _onStartEditing: function() {
