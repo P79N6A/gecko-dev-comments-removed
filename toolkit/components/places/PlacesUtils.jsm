@@ -1520,6 +1520,29 @@ this.PlacesUtils = {
 
 
 
+  promiseFaviconLinkUrl: function (aPageUrl) {
+    let deferred = Promise.defer();
+    if (!(aPageUrl instanceof Ci.nsIURI))
+      aPageUrl = NetUtil.newURI(aPageUrl);
+
+    PlacesUtils.favicons.getFaviconURLForPage(aPageUrl, uri => {
+      if (uri) {
+        uri = PlacesUtils.favicons.getFaviconLinkForIcon(uri);
+        deferred.resolve(uri);
+      } else {
+        deferred.reject();
+      }
+    });
+    return deferred.promise;
+  },
+
+  
+
+
+
+
+
+
 
 
 
