@@ -847,8 +847,8 @@ WebrtcOMXH264VideoEncoder::Encode(const webrtc::I420VideoFrame& aInputImage,
   
   
   
-  if (aInputImage.width() != mWidth ||
-      aInputImage.height() != mHeight) {
+  if (aInputImage.width() < 0 || (uint32_t)aInputImage.width() != mWidth ||
+      aInputImage.height() < 0 || (uint32_t)aInputImage.height() != mHeight) {
     mWidth = aInputImage.width();
     mHeight = aInputImage.height();
     mOMXReconfigure = true;
