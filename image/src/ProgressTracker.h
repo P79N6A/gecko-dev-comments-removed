@@ -77,11 +77,8 @@ public:
   MOZ_DECLARE_REFCOUNTED_TYPENAME(ProgressTracker)
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(ProgressTracker)
 
-  
-  
-  
-  explicit ProgressTracker(Image* aImage)
-    : mImage(aImage)
+  ProgressTracker()
+    : mImage(nullptr)
     , mProgress(NoProgress)
   { }
 
@@ -159,7 +156,7 @@ public:
   
   
   void AddObserver(IProgressObserver* aObserver);
-  bool RemoveObserver(IProgressObserver* aObserver, nsresult aStatus);
+  bool RemoveObserver(IProgressObserver* aObserver);
   size_t ObserverCount() const {
     MOZ_ASSERT(NS_IsMainThread(), "Use mObservers on main thread only");
     return mObservers.Length();
@@ -195,7 +192,7 @@ private:
   
   
   
-  void EmulateRequestFinished(IProgressObserver* aObserver, nsresult aStatus);
+  void EmulateRequestFinished(IProgressObserver* aObserver);
 
   
   void FireFailureNotification();
