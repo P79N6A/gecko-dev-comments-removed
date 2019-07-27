@@ -261,6 +261,18 @@ ExpectTagAndGetValueAtEnd(Input outer, uint8_t expectedTag,
 
 namespace internal {
 
+enum class IntegralValueRestriction
+{
+  NoRestriction,
+  MustBePositive,
+  MustBe0To127,
+};
+
+Result IntegralBytes(Reader& input, uint8_t tag,
+                     IntegralValueRestriction valueRestriction,
+              Input& value,
+     Input::size_type* significantBytes = nullptr);
+
 
 
 template <typename T> inline Result
@@ -269,21 +281,22 @@ IntegralValue(Reader& input, uint8_t tag, T& value)
   
   
   
-  Reader valueReader;
-  Result rv = ExpectTagAndGetValue(input, tag, valueReader);
+  Input valueBytes;
+  Result rv = IntegralBytes(input, tag, IntegralValueRestriction::MustBe0To127,
+                            valueBytes, nullptr);
   if (rv != Success) {
     return rv;
   }
+  Reader valueReader(valueBytes);
   uint8_t valueByte;
   rv = valueReader.Read(valueByte);
   if (rv != Success) {
-    return rv;
-  }
-  if (valueByte & 0x80) { 
-    return Result::ERROR_BAD_DER;
+    return NotReached("IntegralBytes already validated the value.", rv);
   }
   value = valueByte;
-  return End(valueReader);
+  rv = End(valueReader);
+  assert(rv == Success); 
+  return rv;
 }
 
 } 
@@ -377,6 +390,19 @@ TimeChoice(Reader& input,  Time& time)
 
 
 
+
+
+inline Result
+PositiveInteger(Reader& input,  Input& value,
+                 Input::size_type* significantBytes = nullptr)
+{
+  return internal::IntegralBytes(
+           input, INTEGER, internal::IntegralValueRestriction::MustBePositive,
+           value, significantBytes);
+}
+
+
+
 inline Result
 Integer(Reader& input,  uint8_t& value)
 {
@@ -446,40 +472,9 @@ CertificateSerialNumber(Reader& input,  Input& value)
   
   
   
-
-  Result rv = ExpectTagAndGetValue(input, INTEGER, value);
-  if (rv != Success) {
-    return rv;
-  }
-
-  if (value.GetLength() == 0) {
-    return Result::ERROR_BAD_DER;
-  }
-
-  
-  
-  
-  
-  
-  if (value.GetLength() > 1) {
-    Reader valueInput(value);
-    uint8_t firstByte;
-    rv = valueInput.Read(firstByte);
-    if (rv != Success) {
-      return rv;
-    }
-    uint8_t secondByte;
-    rv = valueInput.Read(secondByte);
-    if (rv != Success) {
-      return rv;
-    }
-    if ((firstByte == 0x00 && (secondByte & 0x80) == 0) ||
-        (firstByte == 0xff && (secondByte & 0x80) != 0)) {
-      return Result::ERROR_BAD_DER;
-    }
-  }
-
-  return Success;
+  return internal::IntegralBytes(
+           input, INTEGER, internal::IntegralValueRestriction::NoRestriction,
+           value);
 }
 
 

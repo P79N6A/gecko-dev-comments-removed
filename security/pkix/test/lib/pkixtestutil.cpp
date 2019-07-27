@@ -121,20 +121,20 @@ TamperOnce( ByteString& item, const ByteString& from,
 
 
 ByteString
-TLV(uint8_t tag, const ByteString& value)
+TLV(uint8_t tag, size_t length, const ByteString& value)
 {
   ByteString result;
   result.push_back(tag);
 
   if (value.length() < 128) {
-    result.push_back(static_cast<uint8_t>(value.length()));
+    result.push_back(static_cast<uint8_t>(length));
   } else if (value.length() < 256) {
     result.push_back(0x81u);
-    result.push_back(static_cast<uint8_t>(value.length()));
+    result.push_back(static_cast<uint8_t>(length));
   } else if (value.length() < 65536) {
     result.push_back(0x82u);
-    result.push_back(static_cast<uint8_t>(value.length() / 256));
-    result.push_back(static_cast<uint8_t>(value.length() % 256));
+    result.push_back(static_cast<uint8_t>(length / 256));
+    result.push_back(static_cast<uint8_t>(length % 256));
   } else {
     
     

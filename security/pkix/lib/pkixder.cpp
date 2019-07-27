@@ -548,6 +548,72 @@ TimeChoice(Reader& tagged, uint8_t expectedTag,  Time& time)
   return Success;
 }
 
+Result
+IntegralBytes(Reader& input, uint8_t tag,
+              IntegralValueRestriction valueRestriction,
+               Input& value,
+               Input::size_type* significantBytes)
+{
+  Result rv = ExpectTagAndGetValue(input, tag, value);
+  if (rv != Success) {
+    return rv;
+  }
+  Reader reader(value);
+
+  
+  
+  uint8_t firstByte;
+  rv = reader.Read(firstByte);
+  if (rv != Success) {
+    return rv;
+  }
+
+  
+  
+  bool prefixed = !reader.AtEnd() && (firstByte == 0 || firstByte == 0xff);
+
+  if (prefixed) {
+    uint8_t nextByte;
+    if (reader.Read(nextByte) != Success) {
+      return NotReached("Read of one byte failed but not at end.",
+                        Result::FATAL_ERROR_LIBRARY_FAILURE);
+    }
+    if ((firstByte & 0x80) == (nextByte & 0x80)) {
+      return Result::ERROR_BAD_DER;
+    }
+  }
+
+  switch (valueRestriction) {
+    case IntegralValueRestriction::MustBe0To127:
+      if (value.GetLength() != 1 || (firstByte & 0x80) != 0) {
+        return Result::ERROR_BAD_DER;
+      }
+      break;
+
+    case IntegralValueRestriction::MustBePositive:
+      if ((value.GetLength() == 1 && firstByte == 0) ||
+          (firstByte & 0x80) != 0) {
+        return Result::ERROR_BAD_DER;
+      }
+      break;
+
+    case IntegralValueRestriction::NoRestriction:
+      break;
+  }
+
+  if (significantBytes) {
+    *significantBytes = value.GetLength();
+    if (prefixed) {
+      assert(*significantBytes > 1);
+      --*significantBytes;
+    }
+
+    assert(*significantBytes > 0);
+  }
+
+  return Success;
+}
+
 } 
 
 } } } 
