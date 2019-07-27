@@ -540,7 +540,7 @@ var gPopupBlockerObserver = {
         
         if (!blockedPopup.popupWindowURI)
           continue;
-        var popupURIspec = blockedPopup.popupWindowURI;
+        var popupURIspec = blockedPopup.popupWindowURI.spec;
 
         
         
