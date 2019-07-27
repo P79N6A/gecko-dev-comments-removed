@@ -1363,6 +1363,39 @@ add_task(function* test_abortedSession() {
   yield TelemetrySession.shutdown();
 });
 
+add_task(function* test_abortedSession_Shutdown() {
+  if (gIsAndroid || gIsGonk) {
+    
+    return;
+  }
+
+  const ABORTED_FILE = OS.Path.join(DATAREPORTING_PATH, ABORTED_PING_FILE_NAME);
+
+  let schedulerTickCallback = null;
+  let now = fakeNow(2040, 1, 1, 0, 0, 0);
+  
+  fakeSchedulerTimer(callback => schedulerTickCallback = callback, () => {});
+  yield TelemetrySession.reset();
+
+  Assert.ok((yield OS.File.exists(DATAREPORTING_PATH)),
+            "Telemetry must create the aborted session directory when starting.");
+
+  
+  now = fakeNow(futureDate(now, ABORTED_SESSION_UPDATE_INTERVAL_MS));
+  
+  Assert.ok(!!schedulerTickCallback);
+  
+  yield schedulerTickCallback();
+  
+  Assert.ok((yield OS.File.exists(ABORTED_FILE)), "There must be an aborted session ping.");
+
+  
+  
+  yield OS.File.remove(ABORTED_FILE);
+
+  yield TelemetrySession.shutdown();
+});
+
 add_task(function* test_abortedDailyCoalescing() {
   if (gIsAndroid || gIsGonk) {
     
