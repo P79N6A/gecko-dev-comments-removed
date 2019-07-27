@@ -127,6 +127,11 @@ public:
   SimpleTextureClientPool* GetSimpleTileTexturePool(gfx::SurfaceFormat aFormat);
 
   
+  void ReturnTextureClientDeferred(TextureClient& aClient);
+  void ReturnTextureClient(TextureClient& aClient);
+  void ReportClientLost(TextureClient& aClient);
+
+  
   
   virtual void ClearCachedResources(Layer* aSubtree = nullptr) MOZ_OVERRIDE;
 
