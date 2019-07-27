@@ -688,6 +688,8 @@ nsresult MediaPipelineTransmit::ReplaceTrack(DOMMediaStream *domstream,
   }
   domstream_ = domstream; 
   stream_ = domstream->GetStream();
+  
+  listener_->UnsetTrackId(stream_->GraphImpl());
   track_id_ = track_id;
   AttachToTrack(track_id);
   return NS_OK;
@@ -853,6 +855,24 @@ nsresult MediaPipeline::PipelineTransport::SendRtcpPacket_s(
                                out_len);
 }
 
+void MediaPipelineTransmit::PipelineListener::
+UnsetTrackId(MediaStreamGraphImpl* graph) {
+#ifndef USE_FAKE_MEDIA_STREAMS
+  class Message : public ControlMessage {
+  public:
+    Message(PipelineListener* listener) :
+      ControlMessage(nullptr), listener_(listener) {}
+    virtual void Run() override
+    {
+      listener_->UnsetTrackIdImpl();
+    }
+    nsRefPtr<PipelineListener> listener_;
+  };
+  graph->AppendMessage(new Message(this));
+#else
+  UnsetTrackIdImpl();
+#endif
+}
 
 void MediaPipelineTransmit::PipelineListener::
 NotifyRealtimeData(MediaStreamGraph* graph, TrackID tid,
