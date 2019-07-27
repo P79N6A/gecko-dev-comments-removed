@@ -498,7 +498,7 @@ this.OpenGraphBuilder = {
     return endpointURL;
   },
 
-  getData: function(browser) {
+  getData: function(browser, target) {
     let res = {
       url: this._validateURL(browser, browser.currentURI.spec),
       title: browser.contentDocument.title,
@@ -507,7 +507,12 @@ this.OpenGraphBuilder = {
     this._getMetaData(browser, res);
     this._getLinkData(browser, res);
     this._getPageData(browser, res);
+    res.microdata = this.getMicrodata(browser, target);
     return res;
+  },
+
+  getMicrodata: function (browser, target) {
+    return getMicrodata(browser.contentDocument, target);
   },
 
   _getMetaData: function(browser, o) {
@@ -522,7 +527,14 @@ this.OpenGraphBuilder = {
       if (!value)
         continue;
       value = unescapeService.unescape(value.trim());
-      switch (el.getAttribute("property") || el.getAttribute("name")) {
+      let key = el.getAttribute("property") || el.getAttribute("name");
+      if (!key)
+        continue;
+      
+      
+      
+      o[key] = value;
+      switch (key) {
         case "title":
         case "og:title":
           o.title = value;
@@ -577,6 +589,19 @@ this.OpenGraphBuilder = {
         case "image_src":
           o.previews.push(url);
           break;
+        case "alternate":
+          
+          
+          
+          
+          
+          if (!o.alternate)
+            o.alternate = [];
+          o.alternate.push({
+            "type": el.getAttribute("type"),
+            "href": el.getAttribute("href"),
+            "title": el.getAttribute("title")
+          })
       }
     }
   },
@@ -610,3 +635,43 @@ this.OpenGraphBuilder = {
     return l;
   }
 };
+
+
+
+function  getMicrodata(document, target) {
+
+  function _getObject(item) {
+    let result = {};
+    if (item.itemType.length)
+      result.types = [i for (i of item.itemType)];
+    if (item.itemId)
+      result.itemId = item.itemid;
+    if (item.properties.length)
+      result.properties = {};
+    for (let elem of item.properties) {
+      let value;
+      if (elem.itemScope)
+        value = _getObject(elem);
+      else if (elem.itemValue)
+        value = elem.itemValue;
+      
+      else if (elem.hasAttribute("content"))
+        value = elem.getAttribute("content");
+
+      for (let prop of elem.itemProp) {
+        if (!result.properties[prop])
+          result.properties[prop] = [];
+        result.properties[prop].push(value);
+      }
+    }
+    return result;
+  }
+
+  let result = { items: [] };
+  let elms = target ? [target] : document.getItems();
+  for (let el of elms) {
+    if (el.itemScope)
+      result.items.push(_getObject(el));
+  }
+  return result;
+}

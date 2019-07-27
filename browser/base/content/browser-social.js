@@ -600,7 +600,7 @@ SocialShare = {
     sizeSocialPanelToContent(this.panel, iframe);
   },
 
-  sharePage: function(providerOrigin, graphData) {
+  sharePage: function(providerOrigin, graphData, target) {
     
     
     
@@ -619,7 +619,8 @@ SocialShare = {
     
     
     
-    let sharedURI = graphData ? Services.io.newURI(graphData.url, null, null) :
+    let pageData = graphData ? graphData : this.currentShare;
+    let sharedURI = pageData ? Services.io.newURI(pageData.url, null, null) :
                                 gBrowser.currentURI;
     if (!this.canSharePage(sharedURI))
       return;
@@ -628,7 +629,6 @@ SocialShare = {
     
     
     
-    let pageData = graphData ? graphData : this.currentShare;
     if (!pageData || sharedURI == gBrowser.currentURI) {
       pageData = OpenGraphBuilder.getData(gBrowser);
       if (graphData) {
@@ -637,6 +637,10 @@ SocialShare = {
           pageData[p] = graphData[p];
         }
       }
+    }
+    
+    if (!pageData.microdata && target) {
+      pageData.microdata = OpenGraphBuilder.getMicrodata(gBrowser, target);
     }
     this.currentShare = pageData;
 
@@ -1353,10 +1357,10 @@ SocialMarks = {
     return this._toolbarHelper;
   },
 
-  markLink: function(aOrigin, aUrl) {
+  markLink: function(aOrigin, aUrl, aTarget) {
     
     let id = this._toolbarHelper.idFromOrigin(aOrigin);
-    document.getElementById(id).markLink(aUrl);
+    document.getElementById(id).markLink(aUrl, aTarget);
   }
 };
 
