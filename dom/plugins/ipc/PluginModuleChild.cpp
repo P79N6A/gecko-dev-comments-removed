@@ -280,7 +280,7 @@ PluginModuleChild::InitForChrome(const std::string& aPluginFilename,
 
     nsPluginFile pluginFile(localFile);
 
-#if defined(MOZ_X11) || defined(OS_MACOSX)
+#if defined(MOZ_X11) || defined(XP_MACOSX)
     nsPluginInfo info = nsPluginInfo();
     if (NS_FAILED(pluginFile.GetPluginInfo(info, &mLibrary))) {
         return false;

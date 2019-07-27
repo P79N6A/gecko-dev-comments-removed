@@ -130,7 +130,7 @@ PluginInstanceChild::PluginInstanceChild(const NPPluginFuncs* aPluginIface,
     , mMode(aMode)
     , mNames(aNames)
     , mValues(aValues)
-#if defined(XP_MACOSX)
+#if defined(XP_DARWIN)
     , mContentsScaleFactor(1.0)
 #endif
     , mDrawingModel(kDefaultDrawingModel)
@@ -1280,6 +1280,8 @@ PluginInstanceChild::AnswerNPP_SetWindow(const NPRemoteWindow& aWindow)
 #elif defined(ANDROID)
     
 #elif defined(MOZ_WIDGET_QT)
+    
+#elif defined(MOZ_WIDGET_UIKIT)
     
 #else
 #  error Implement me for your OS
@@ -2933,7 +2935,7 @@ PluginInstanceChild::MaybeCreatePlatformHelperSurface(void)
 bool
 PluginInstanceChild::EnsureCurrentBuffer(void)
 {
-#ifndef XP_MACOSX
+#ifndef XP_DARWIN
     nsIntRect toInvalidate(0, 0, 0, 0);
     gfxIntSize winSize = gfxIntSize(mWindow.width, mWindow.height);
 
@@ -2979,7 +2981,7 @@ PluginInstanceChild::EnsureCurrentBuffer(void)
     }
 
     return true;
-#else 
+#elif defined(XP_MACOSX)
 
     if (!mDoubleBufferCARenderer.HasCALayer()) {
         void *caLayer = nullptr;
@@ -3033,9 +3035,8 @@ PluginInstanceChild::EnsureCurrentBuffer(void)
         nsIntRect toInvalidate(0, 0, mWindow.width, mWindow.height);
         mAccumulatedInvalidRect.UnionRect(mAccumulatedInvalidRect, toInvalidate);
     }
-  
-    return true;
 #endif
+    return true;
 }
 
 void
