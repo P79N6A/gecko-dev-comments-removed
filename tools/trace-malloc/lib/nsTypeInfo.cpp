@@ -14,6 +14,7 @@
 
 
 
+#include <exception> 
 #include <typeinfo>
 #include <ctype.h>
 
