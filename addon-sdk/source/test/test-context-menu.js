@@ -11,6 +11,7 @@ const { Loader } = require('sdk/test/loader');
 const timer = require("sdk/timers");
 const { merge } = require("sdk/util/object");
 const { defer } = require("sdk/core/promise");
+const observers = require("sdk/system/events");
 
 
 const ITEM_CLASS = "addon-context-menu-item";
@@ -103,7 +104,7 @@ exports.testSelectorContextMatch = function (assert, done) {
   });
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("image"), function (popup) {
+    test.showMenu("#image", function (popup) {
       test.checkMenu([item], [], []);
       test.done();
     });
@@ -125,7 +126,7 @@ exports.testSelectorAncestorContextMatch = function (assert, done) {
   });
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("span-link"), function (popup) {
+    test.showMenu("#span-link", function (popup) {
       test.checkMenu([item], [], []);
       test.done();
     });
@@ -209,7 +210,7 @@ exports.testPageContextNoMatch = function (assert, done) {
   ];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("image"), function (popup) {
+    test.showMenu("#image", function (popup) {
       test.checkMenu(items, items, []);
       test.done();
     });
@@ -249,9 +250,8 @@ exports.testSelectionContextMatchInTextField = function (assert, done) {
   });
 
   test.withTestDoc(function (window, doc) {
-    let textfield = doc.getElementById("textfield");
-    textfield.setSelectionRange(0, textfield.value.length);
-    test.showMenu(textfield, function (popup) {
+    test.selectRange("#textfield", 0, null);
+    test.showMenu("#textfield", function (popup) {
       test.checkMenu([item], [], []);
       test.done();
     });
@@ -271,9 +271,8 @@ exports.testSelectionContextNoMatchInTextField = function (assert, done) {
   });
 
   test.withTestDoc(function (window, doc) {
-    let textfield = doc.getElementById("textfield");
-    textfield.setSelectionRange(0, 0);
-    test.showMenu(textfield, function (popup) {
+    test.selectRange("#textfield", 0, 0);
+    test.showMenu("#textfield", function (popup) {
       test.checkMenu([item], [item], []);
       test.done();
     });
@@ -314,25 +313,31 @@ exports.testSelectionContextInNewTab = function (assert, done) {
     let link = doc.getElementById("targetlink");
     link.click();
 
-    test.delayedEventListener(this.tabBrowser, "load", function () {
-      let browser = test.tabBrowser.selectedBrowser;
-      let window = browser.contentWindow;
-      let doc = browser.contentDocument;
-      window.getSelection().selectAllChildren(doc.body);
-
-      test.showMenu(null, function (popup) {
-        test.checkMenu([item], [], []);
-        popup.hidePopup();
-
-        test.tabBrowser.removeTab(test.tabBrowser.selectedTab);
-        test.tabBrowser.selectedTab = test.tab;
+    let tablistener = event => {
+      this.tabBrowser.tabContainer.removeEventListener("TabOpen", tablistener, false);
+      let tab = event.target;
+      let browser = tab.linkedBrowser;
+      this.loadFrameScript(browser);
+      this.delayedEventListener(browser, "load", () => {
+        let window = browser.contentWindow;
+        let doc = browser.contentDocument;
+        window.getSelection().selectAllChildren(doc.body);
 
         test.showMenu(null, function (popup) {
-          test.checkMenu([item], [item], []);
-          test.done();
+          test.checkMenu([item], [], []);
+          popup.hidePopup();
+
+          test.tabBrowser.removeTab(test.tabBrowser.selectedTab);
+          test.tabBrowser.selectedTab = test.tab;
+
+          test.showMenu(null, function (popup) {
+            test.checkMenu([item], [item], []);
+            test.done();
+          });
         });
-      });
-    }, true);
+      }, true);
+    };
+    this.tabBrowser.tabContainer.addEventListener("TabOpen", tablistener, false);
   });
 };
 
@@ -349,8 +354,7 @@ exports.testSelectionContextButtonMatch = function (assert, done) {
 
   test.withTestDoc(function (window, doc) {
     window.getSelection().selectAllChildren(doc.body);
-    let button = doc.getElementById("button");
-    test.showMenu(button, function (popup) {
+    test.showMenu("#button", function (popup) {
       test.checkMenu([item], [], []);
       test.done();
     });
@@ -369,8 +373,7 @@ exports.testSelectionContextButtonNoMatch = function (assert, done) {
   });
 
   test.withTestDoc(function (window, doc) {
-    let button = doc.getElementById("button");
-    test.showMenu(button, function (popup) {
+    test.showMenu("#button", function (popup) {
       test.checkMenu([item], [item], []);
       test.done();
     });
@@ -435,55 +438,6 @@ exports.testURLContextNoMatch = function (assert, done) {
   });
 };
 
-
-
-
-
-exports.testURLContextRemove = function (assert, done) {
-  let test = new TestHelper(assert, done);
-  let loader = test.newLoader();
-
-  let shouldBeEvaled = false;
-  let context = loader.cm.URLContext("*.bogus.com");
-  let item = loader.cm.Item({
-    label: "item",
-    context: context,
-    contentScript: 'self.postMessage("ok"); self.on("context", function () true);',
-    onMessage: function (msg) {
-      assert.ok(shouldBeEvaled,
-                  "content script should be evaluated when expected");
-      assert.equal(msg, "ok", "Should have received the right message");
-      shouldBeEvaled = false;
-    }
-  });
-
-  test.withTestDoc(function (window, doc) {
-    test.showMenu(null, function (popup) {
-      test.checkMenu([item], [item], []);
-
-      item.context.remove(context);
-
-      shouldBeEvaled = true;
-
-      test.hideMenu(function () {
-        test.showMenu(null, function (popup) {
-          test.checkMenu([item], [], []);
-
-          assert.ok(!shouldBeEvaled,
-                      "content script should have been evaluated");
-
-          test.hideMenu(function () {
-            
-            test.showMenu(null, function (popup) {
-              test.checkMenu([item], [], []);
-              test.done();
-            });
-          });
-        });
-      });
-    });
-  });
-};
 
 
 
@@ -772,7 +726,7 @@ exports.testContentContextMatchActiveElement = function (assert, done) {
   ];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("image"), function (popup) {
+    test.showMenu("#image", function (popup) {
       test.checkMenu(items, [items[2], items[3]], []);
       test.done();
     });
@@ -810,7 +764,7 @@ exports.testContentContextNoMatchActiveElement = function (assert, done) {
   ];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("image"), function (popup) {
+    test.showMenu("#image", function (popup) {
       test.checkMenu(items, items, []);
       test.done();
     });
@@ -848,7 +802,7 @@ exports.testContentContextNoMatchActiveElement = function (assert, done) {
   ];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("image"), function (popup) {
+    test.showMenu("#image", function (popup) {
       test.checkMenu(items, items, []);
       test.done();
     });
@@ -915,7 +869,6 @@ exports.testContentScriptFile = function (assert, done) {
       itemScript[1].resolve();
     }
   });
-  console.log(item.contentScriptFile, item2.contentScriptFile);
 
   test.showMenu(null, function (popup) {
     test.checkMenu([item, item2], [], []);
@@ -950,7 +903,6 @@ exports.testContentContextArgs = function (assert, done) {
 };
 
 
-
 exports.testMultipleContexts = function (assert, done) {
   let test = new TestHelper(assert, done);
   let loader = test.newLoader();
@@ -958,14 +910,10 @@ exports.testMultipleContexts = function (assert, done) {
   let item = new loader.cm.Item({
     label: "item",
     context: [loader.cm.SelectorContext("a[href]"), loader.cm.PageContext()],
-    contentScript: 'self.on("context", function () self.postMessage());',
-    onMessage: function () {
-      test.fail("Context listener should not be called");
-    }
   });
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("span-link"), function (popup) {
+    test.showMenu("#span-link", function (popup) {
       test.checkMenu([item], [item], []);
       test.done();
     });
@@ -984,7 +932,7 @@ exports.testRemoveContext = function (assert, done) {
   });
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("image"), function (popup) {
+    test.showMenu("#image", function (popup) {
 
       
       test.checkMenu([item], [], []);
@@ -992,7 +940,7 @@ exports.testRemoveContext = function (assert, done) {
 
       
       item.context.remove(ctxt);
-      test.showMenu(doc.getElementById("image"), function (popup) {
+      test.showMenu("#image", function (popup) {
         test.checkMenu([item], [item], []);
         test.done();
       });
@@ -1000,6 +948,87 @@ exports.testRemoveContext = function (assert, done) {
   });
 };
 
+
+exports.testSetContextRemove = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+
+  let ctxt = loader.cm.SelectorContext("img");
+  let item = new loader.cm.Item({
+    label: "item",
+    context: ctxt
+  });
+
+  test.withTestDoc(function (window, doc) {
+    test.showMenu("#image", function (popup) {
+
+      
+      test.checkMenu([item], [], []);
+      popup.hidePopup();
+
+      
+      item.context = [];
+      test.showMenu("#image", function (popup) {
+        test.checkMenu([item], [item], []);
+        test.done();
+      });
+    });
+  });
+};
+
+
+exports.testAddContext = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+
+  let ctxt = loader.cm.SelectorContext("img");
+  let item = new loader.cm.Item({
+    label: "item"
+  });
+
+  test.withTestDoc(function (window, doc) {
+    test.showMenu("#image", function (popup) {
+
+      
+      test.checkMenu([item], [item], []);
+      popup.hidePopup();
+
+      
+      item.context.add(ctxt);
+      test.showMenu("#image", function (popup) {
+        test.checkMenu([item], [], []);
+        test.done();
+      });
+    });
+  });
+};
+
+
+exports.testSetContextAdd = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+
+  let ctxt = loader.cm.SelectorContext("img");
+  let item = new loader.cm.Item({
+    label: "item"
+  });
+
+  test.withTestDoc(function (window, doc) {
+    test.showMenu("#image", function (popup) {
+
+      
+      test.checkMenu([item], [item], []);
+      popup.hidePopup();
+
+      
+      item.context = [ctxt];
+      test.showMenu("#image", function (popup) {
+        test.checkMenu([item], [], []);
+        test.done();
+      });
+    });
+  });
+};
 
 
 exports.testOverflow = function (assert, done) {
@@ -1636,12 +1665,12 @@ exports.testOverflowTransition = function (assert, done) {
   let allItems = pItems.concat(aItems);
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("link"), function (popup) {
+    test.showMenu("#link", function (popup) {
       
       test.checkMenu(allItems, [], []);
       popup.hidePopup();
 
-      test.showMenu(doc.getElementById("text"), function (popup) {
+      test.showMenu("#text", function (popup) {
         
         test.checkMenu(allItems, aItems, []);
         popup.hidePopup();
@@ -1651,12 +1680,12 @@ exports.testOverflowTransition = function (assert, done) {
           test.checkMenu(allItems, allItems, []);
           popup.hidePopup();
 
-          test.showMenu(doc.getElementById("text"), function (popup) {
+          test.showMenu("#text", function (popup) {
             
             test.checkMenu(allItems, aItems, []);
             popup.hidePopup();
 
-            test.showMenu(doc.getElementById("link"), function (popup) {
+            test.showMenu("#link", function (popup) {
               
               test.checkMenu(allItems, [], []);
               popup.hidePopup();
@@ -1666,7 +1695,7 @@ exports.testOverflowTransition = function (assert, done) {
                 test.checkMenu(allItems, allItems, []);
                 popup.hidePopup();
 
-                test.showMenu(doc.getElementById("link"), function (popup) {
+                test.showMenu("#link", function (popup) {
                   
                   test.checkMenu(allItems, [], []);
                   test.done();
@@ -1758,7 +1787,7 @@ exports.testMenuCommand = function (assert, done) {
   });
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("span-link"), function (popup) {
+    test.showMenu("#span-link", function (popup) {
       test.checkMenu([topMenu], [], []);
       let topMenuElt = test.getItemElt(popup, topMenu);
       let topMenuPopup = topMenuElt.firstChild;
@@ -1884,7 +1913,7 @@ exports.testMenuClick = function (assert, done) {
   });
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("span-link"), function (popup) {
+    test.showMenu("#span-link", function (popup) {
       test.checkMenu([topMenu], [], []);
       let topMenuElt = test.getItemElt(popup, topMenu);
       let topMenuPopup = topMenuElt.firstChild;
@@ -2224,7 +2253,7 @@ exports.testDrawImageOnClickNode = function (assert, done) {
           test.done();
       }
     });
-    test.showMenu(doc.getElementById("image"), function (popup) {
+    test.showMenu("#image", function (popup) {
       test.checkMenu([item], [], []);
       test.getItemElt(popup, item).click();
     });
@@ -2560,7 +2589,7 @@ exports.testAlreadyOpenIframe = function (assert, done) {
     let item = new loader.cm.Item({
       label: "item"
     });
-    test.showMenu(doc.getElementById("iframe"), function (popup) {
+    test.showMenu("#iframe", function (popup) {
       test.checkMenu([item], [], []);
       test.done();
     });
@@ -3004,7 +3033,7 @@ exports.testSubItemDefaultVisible = function (assert, done) {
   let hiddenItems = [items[0].items[2]];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("image"), function (popup) {
+    test.showMenu("#image", function (popup) {
       test.checkMenu(items, hiddenItems, []);
       test.done();
     });
@@ -3175,7 +3204,7 @@ exports.testSelectionInInnerFrameMatch = function (assert, done) {
     let frame = doc.getElementById("iframe");
     frame.contentWindow.getSelection().selectAllChildren(frame.contentDocument.body);
 
-    test.showMenu(frame.contentDocument.getElementById("text"), function (popup) {
+    test.showMenu(["#iframe", "#text"], function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3201,7 +3230,7 @@ exports.testSelectionInOuterFrameNoMatch = function (assert, done) {
     let frame = doc.getElementById("iframe");
     window.getSelection().selectAllChildren(doc.body);
 
-    test.showMenu(frame.contentDocument.getElementById("text"), function (popup) {
+    test.showMenu(["#iframe", "#text"], function (popup) {
       test.checkMenu(items, items, []);
       test.done();
     });
@@ -3288,7 +3317,7 @@ exports.testPredicateContextTargetName = function (assert, done) {
   })];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("button"), function (popup) {
+    test.showMenu("#button", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3310,7 +3339,7 @@ exports.testPredicateContextTargetIDSet = function (assert, done) {
   })];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("button"), function (popup) {
+    test.showMenu("#button", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3331,7 +3360,7 @@ exports.testPredicateContextTargetIDNotSet = function (assert, done) {
   })];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementsByClassName("predicate-test-a")[0], function (popup) {
+    test.showMenu(".predicate-test-a", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3352,7 +3381,7 @@ exports.testPredicateContextTextBoxIsEditable = function (assert, done) {
   })];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("textbox"), function (popup) {
+    test.showMenu("#textbox", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3373,7 +3402,7 @@ exports.testPredicateContextReadonlyTextBoxIsNotEditable = function (assert, don
   })];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("readonly-textbox"), function (popup) {
+    test.showMenu("#readonly-textbox", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3394,7 +3423,7 @@ exports.testPredicateContextDisabledTextBoxIsNotEditable = function (assert, don
   })];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("disabled-textbox"), function (popup) {
+    test.showMenu("#disabled-textbox", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3415,7 +3444,7 @@ exports.testPredicateContextTextAreaIsEditable = function (assert, done) {
   })];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("textfield"), function (popup) {
+    test.showMenu("#textfield", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3436,7 +3465,7 @@ exports.testPredicateContextButtonIsNotEditable = function (assert, done) {
   })];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("button"), function (popup) {
+    test.showMenu("#button", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3458,7 +3487,7 @@ exports.testPredicateContextNonInputIsNotEditable = function (assert, done) {
   })];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("image"), function (popup) {
+    test.showMenu("#image", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3480,7 +3509,7 @@ exports.testPredicateContextEditableElement = function (assert, done) {
   })];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("editable"), function (popup) {
+    test.showMenu("#editable", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3549,9 +3578,8 @@ exports.testPredicateContextSelectionInTextBox = function (assert, done) {
 
   test.withTestDoc(function (window, doc) {
     let textbox = doc.getElementById("textbox");
-    textbox.focus();
-    textbox.setSelectionRange(3, 6);
-    test.showMenu(textbox, function (popup) {
+    test.selectRange("#textbox", 3, 6);
+    test.showMenu("#textbox", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3574,7 +3602,7 @@ exports.testPredicateContextTargetSrcSet = function (assert, done) {
 
   test.withTestDoc(function (window, doc) {
     image = doc.getElementById("image");
-    test.showMenu(image, function (popup) {
+    test.showMenu("#image", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3595,7 +3623,7 @@ exports.testPredicateContextTargetSrcNotSet = function (assert, done) {
   })];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("link"), function (popup) {
+    test.showMenu("#link", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3618,7 +3646,7 @@ exports.testPredicateContextTargetLinkSet = function (assert, done) {
   })];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementsByClassName("predicate-test-a")[0], function (popup) {
+    test.showMenu(".predicate-test-a", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3639,7 +3667,7 @@ exports.testPredicateContextTargetLinkNotSet = function (assert, done) {
   })];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("image"), function (popup) {
+    test.showMenu("#image", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3660,7 +3688,7 @@ exports.testPredicateContextTargetLinkSetNestedImage = function (assert, done) {
   })];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("predicate-test-nested-image"), function (popup) {
+    test.showMenu("#predicate-test-nested-image", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3681,7 +3709,7 @@ exports.testPredicateContextTargetLinkSetNestedStructure = function (assert, don
   })];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("predicate-test-nested-structure"), function (popup) {
+    test.showMenu("#predicate-test-nested-structure", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3703,7 +3731,7 @@ exports.testPredicateContextTargetValueSet = function (assert, done) {
   })];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("textbox"), function (popup) {
+    test.showMenu("#textbox", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3724,7 +3752,7 @@ exports.testPredicateContextTargetValueNotSet = function (assert, done) {
   })];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("image"), function (popup) {
+    test.showMenu("#image", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -4099,13 +4127,68 @@ TestHelper.prototype = {
   },
 
   
+  loadFrameScript: function(browser = this.browserWindow.gBrowser.selectedBrowser) {
+    function frame_script() {
+      let { interfaces: Ci } = Components;
+      addMessageListener('test:contextmenu', ({ data: { selectors } }) => {
+        let targetNode = null;
+        let contentWin = content;
+        if (selectors) {
+          while (selectors.length) {
+            targetNode = contentWin.document.querySelector(selectors.shift());
+            if (selectors.length)
+              contentWin = targetNode.contentWindow;
+          }
+        }
+
+        let rect = targetNode ?
+                   targetNode.getBoundingClientRect() :
+                   { left: 0, top: 0, width: 0, height: 0 };
+        contentWin.QueryInterface(Ci.nsIInterfaceRequestor)
+                  .getInterface(Ci.nsIDOMWindowUtils)
+                  .sendMouseEvent('contextmenu',
+                  rect.left + (rect.width / 2),
+                  rect.top + (rect.height / 2),
+                  2, 1, 0);
+      });
+
+      addMessageListener('test:ping', () => {
+        sendAsyncMessage('test:pong');
+      });
+
+      addMessageListener('test:select', ({ data: { selector, start, end } }) => {
+        let element = content.document.querySelector(selector);
+        element.focus();
+        if (end === null)
+          end = element.value.length;
+        element.setSelectionRange(start, end);
+      });
+    }
+
+    let messageManager = browser.messageManager;
+    messageManager.loadFrameScript("data:,(" + frame_script.toString() + ")();", true);
+  },
+
+  selectRange: function(selector, start, end) {
+    let messageManager = this.browserWindow.gBrowser.selectedBrowser.messageManager;
+    messageManager.sendAsyncMessage('test:select', { selector, start, end });
+  },
+
   
   
-  showMenu: function(targetNode, onshownCallback) {
+  
+  
+  
+  
+  showMenu: function(selectors, onshownCallback) {
     let { promise, resolve } = defer();
 
-    function sendEvent() {
-      this.delayedEventListener(this.browserWindow, "popupshowing",
+    if (selectors && !Array.isArray(selectors))
+      selectors = [selectors];
+
+    let sendEvent = () => {
+      let menu = this.browserWindow.document.getElementById("contentAreaContextMenu");
+      this.delayedEventListener(menu, "popupshowing",
         function (e) {
           let popup = e.target;
           if (onshownCallback) {
@@ -4114,35 +4197,41 @@ TestHelper.prototype = {
           resolve(popup);
         }, false);
 
-      let rect = targetNode ?
-                 targetNode.getBoundingClientRect() :
-                 { left: 0, top: 0, width: 0, height: 0 };
-      let contentWin = targetNode ? targetNode.ownerDocument.defaultView
-                                  : this.browserWindow.content;
-      contentWin.
-        QueryInterface(Ci.nsIInterfaceRequestor).
-        getInterface(Ci.nsIDOMWindowUtils).
-        sendMouseEvent("contextmenu",
-                       rect.left + (rect.width / 2),
-                       rect.top + (rect.height / 2),
-                       2, 1, 0);
+      let messageManager = this.browserWindow.gBrowser.selectedBrowser.messageManager;
+      messageManager.sendAsyncMessage('test:contextmenu', { selectors });
     }
 
     
     
     
-    if (!targetNode && !this.oldSelectedTab && !this.oldBrowserWindow) {
+    let flushMessages = () => {
+      let listener = () => {
+        messageManager.removeMessageListener('test:pong', listener);
+        sendEvent();
+      };
+
+      let messageManager = this.browserWindow.gBrowser.selectedBrowser.messageManager;
+      messageManager.addMessageListener('test:pong', listener);
+      messageManager.sendAsyncMessage('test:ping');
+    }
+
+    
+    
+    
+    if (!selectors && !this.oldSelectedTab && !this.oldBrowserWindow) {
       this.oldSelectedTab = this.tabBrowser.selectedTab;
       this.tab = this.tabBrowser.addTab("about:blank");
       let browser = this.tabBrowser.getBrowserForTab(this.tab);
 
       this.delayedEventListener(browser, "load", function () {
         this.tabBrowser.selectedTab = this.tab;
-        sendEvent.call(this);
+        this.loadFrameScript();
+        flushMessages();
       }, true);
     }
-    else
-      sendEvent.call(this);
+    else {
+      flushMessages();
+    }
 
     return promise;
   },
@@ -4155,9 +4244,14 @@ TestHelper.prototype = {
 
   
   
-  withNewWindow: function (onloadCallback) {
-    let win = this.browserWindow.OpenBrowserWindow();
-    this.delayedEventListener(win, "load", onloadCallback, true);
+  withNewWindow: function (onloadCallback, makePrivate = false) {
+    let win = this.browserWindow.OpenBrowserWindow({ private: makePrivate });
+    observers.once("browser-delayed-startup-finished", () => {
+      
+      win.gBrowser.selectedTab = win.gBrowser.addTab();
+      this.loadFrameScript();
+      this.delayedEventListener(win.gBrowser.selectedBrowser, "load", onloadCallback, true);
+    });
     this.oldBrowserWindow = this.browserWindow;
     this.browserWindow = win;
   },
@@ -4165,10 +4259,7 @@ TestHelper.prototype = {
   
   
   withNewPrivateWindow: function (onloadCallback) {
-    let win = this.browserWindow.OpenBrowserWindow({private: true});
-    this.delayedEventListener(win, "load", onloadCallback, true);
-    this.oldBrowserWindow = this.browserWindow;
-    this.browserWindow = win;
+    this.withNewWindow(onloadCallback, true);
   },
 
   
@@ -4180,6 +4271,7 @@ TestHelper.prototype = {
 
     this.delayedEventListener(browser, "load", function () {
       this.tabBrowser.selectedTab = this.tab;
+      this.loadFrameScript();
       onloadCallback.call(this, browser.contentWindow, browser.contentDocument);
     }, true, function(evt) {
       return evt.target.location == TEST_DOC_URL;
