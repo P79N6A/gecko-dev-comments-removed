@@ -123,17 +123,22 @@ public:
 
     mTimecodeScale = parser.GetTimecodeScale();
 
-    if (mapping.IsEmpty()) {
-      
-      
-      
-      if (IsInitSegmentPresent(aData, aLength)) {
-        MSE_DEBUG("WebMContainerParser(%p)::ParseStartAndEndTimestamps: Stashed init of %u bytes.",
-                  this, aLength);
-
-        mInitData.ReplaceElementsAt(0, mInitData.Length(), aData, aLength);
+    
+    
+    
+    if (IsInitSegmentPresent(aData, aLength)) {
+      uint32_t length = aLength;
+      if (!mapping.IsEmpty()) {
+        length = mapping[0].mSyncOffset;
+        MOZ_ASSERT(length <= aLength);
       }
+      MSE_DEBUG("WebMContainerParser(%p)::ParseStartAndEndTimestamps: Stashed init of %u bytes.",
+                this, length);
 
+      mInitData.ReplaceElementsAt(0, mInitData.Length(), aData, length);
+    }
+
+    if (mapping.IsEmpty()) {
       return false;
     }
 
