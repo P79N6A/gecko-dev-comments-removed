@@ -445,7 +445,7 @@ GonkVideoDecoderManager::Input(mp4_demuxer::MP4Sample* aSample)
   status_t rv;
   if (aSample != nullptr) {
     
-    mp4_demuxer::AnnexB::ConvertSample(aSample);
+    mp4_demuxer::AnnexB::ConvertSampleToAnnexB(aSample);
     
 
     QueueFrameTimeIn(aSample->composition_timestamp, aSample->duration);

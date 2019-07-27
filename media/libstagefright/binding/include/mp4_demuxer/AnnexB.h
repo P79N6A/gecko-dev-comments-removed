@@ -19,7 +19,7 @@ class AnnexB
 public:
   
   
-  static void ConvertSample(MP4Sample* aSample);
+  static void ConvertSampleToAnnexB(MP4Sample* aSample);
 
   
   static already_AddRefed<ByteBuffer> ConvertExtraDataToAnnexB(
