@@ -5,8 +5,6 @@
 var PKT_SIGNUP_OVERLAY = function (options) 
 {
     var myself = this;
-    this.baseHost = "getpocket.com";
-
     this.inited = false;
     this.active = false;
     this.delayedStateSaved = false;
@@ -14,12 +12,12 @@ var PKT_SIGNUP_OVERLAY = function (options)
     this.variant = window.___PKT__SIGNUP_VARIANT;
     this.tagline = window.___PKT__SIGNUP_TAGLINE || '';
     this.preventCloseTimerCancel = false;
-    
     this.translations = {};
     this.closeValid = true;
     this.mouseInside = false;
     this.autocloseTimer = null;
     this.variant = "";
+    this.inoverflowmenu = false;
     this.pockethost = "getpocket.com";
     this.fxasignedin = false;
     this.panelId = 0;
@@ -60,7 +58,7 @@ var PKT_SIGNUP_OVERLAY = function (options)
     };
     this.getTranslations = function()
     {
-        var language = window.navigator.language.toLowerCase();
+        var language = this.locale || '';
         this.dictJSON = {};
 
         var dictsuffix = 'en-US';
@@ -134,11 +132,15 @@ var PKT_SIGNUP_OVERLAY = function (options)
             dictsuffix = 'pl';
         }
 
-        
-        dictsuffix = 'en';
-
         this.dictJSON = Translations[dictsuffix];
-        
+        if (typeof this.dictJSON !== 'object')
+        {
+            this.dictJSON = Translations['en'];
+        }
+        if (typeof this.dictJSON !== 'object')
+        {
+            this.dictJSON = {};
+        }
     };
 };
 
@@ -162,6 +164,16 @@ PKT_SIGNUP_OVERLAY.prototype = {
         {
             this.pockethost = host[1];
         }
+        var inoverflowmenu = window.location.href.match(/inoverflowmenu=([\w|\.]*)&?/);
+        if (inoverflowmenu && inoverflowmenu.length > 1)
+        {
+            this.inoverflowmenu = (inoverflowmenu[1] == 'true');
+        }
+        var locale = window.location.href.match(/locale=([\w|\.]*)&?/);
+        if (locale && locale.length > 1)
+        {
+           this.locale = locale[1].toLowerCase();
+        }
 
         this.panelId = pktPanelMessaging.panelIdFromURL(window.location.href);
 
@@ -178,6 +190,12 @@ PKT_SIGNUP_OVERLAY.prototype = {
         this.dictJSON.pockethost = this.pockethost;
 
         
+        if (this.inoverflowmenu)
+        {
+            $('body').addClass('pkt_ext_signup_overflow');
+        }
+
+        
         if (this.variant == 'storyboard')
         {
             $('body').append(Handlebars.templates.signupstoryboard_shell(this.dictJSON));
@@ -186,6 +204,7 @@ PKT_SIGNUP_OVERLAY.prototype = {
         {
             $('body').append(Handlebars.templates.signup_shell(this.dictJSON));
         }
+
 
         
         thePKT_SIGNUP.sendMessage("show");

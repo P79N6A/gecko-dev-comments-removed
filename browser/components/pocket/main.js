@@ -41,7 +41,6 @@
 
 
 
-
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ReaderMode", "resource://gre/modules/ReaderMode.jsm");
 
@@ -53,16 +52,18 @@ var pktUI = (function() {
     var _currentPanelDidHide;
 	var _isHidden = false;
 	var _notificationTimeout;
-    
+
     
     
     
     var _panelId = 0;
 
-    var prefBranch = Services.prefs.getBranch("browser.pocket.settings.");
+	var prefBranch = Services.prefs.getBranch("browser.pocket.settings.");
 
-    var savePanelWidth = 350;
-    var savePanelHeights = {collapsed: 153, expanded: 272};
+	var overflowMenuWidth = 230;
+	var overflowMenuHeight = 475;
+	var savePanelWidth = 350;
+	var savePanelHeights = {collapsed: 153, expanded: 272};
 
 	
 
@@ -118,13 +119,6 @@ var pktUI = (function() {
 	
 
 
-	function onUnload() {
-	
-	}
-	
-	
-
-
 	function hideIntegrationIfNeeded() {
 		
 		var hideIntegration = false;
@@ -166,7 +160,9 @@ var pktUI = (function() {
 
 
     function pocketButtonOnCommand(event) {
-        tryToSaveCurrentPage();
+    
+    	tryToSaveCurrentPage();
+    
     }
     
     function pocketPanelDidShow(event) {
@@ -292,7 +288,13 @@ var pktUI = (function() {
         {
             var fxasignedin = (typeof userdata == 'object' && userdata !== null) ? '1' : '0';
             var startheight = 490;
-            if (pktApi.getSignupAB() == 'storyboard')
+            var inOverflowMenu = isInOverflowMenu();
+            
+            if (inOverflowMenu) 
+            {
+            	startheight = overflowMenuHeight;
+            }
+            else if (pktApi.getSignupAB() == 'storyboard')
             {
                 startheight = 460;
                 if (fxasignedin == '1')
@@ -307,14 +309,23 @@ var pktUI = (function() {
                     startheight = 436;
                 }
             }
-           var panelId = showPanel("chrome://browser/content/pocket/panels/signup.html?pockethost=" + Services.prefs.getCharPref("browser.pocket.site") + "&fxasignedin=" + fxasignedin + "&variant=" + pktApi.getSignupAB(), {
-               onShow: function() {
-                },
-               onHide: panelDidHide,
-               width: 300,
-               height: startheight
-           });
-        });
+            var variant;
+            if (inOverflowMenu)
+            {
+                variant = 'overflow';
+            }
+            else
+            {
+                variant = pktApi.getSignupAB();
+            }
+            var panelId = showPanel("chrome://browser/content/pocket/panels/signup.html?pockethost=" + Services.prefs.getCharPref("browser.pocket.site") + "&fxasignedin=" + fxasignedin + "&variant=" + variant + '&inoverflowmenu=' + inOverflowMenu + "&locale=" + getUILocale(), {
+            		onShow: function() {
+                    },
+        			onHide: panelDidHide,
+            		width: inOverflowMenu ? overflowMenuWidth : 300,
+            		height: startheight
+            	});
+            });
     }
 
     
@@ -329,7 +340,13 @@ var pktUI = (function() {
 
         var isValidURL = (typeof url !== 'undefined' && (url.startsWith("http") || url.startsWith('https')));
 
-        var panelId = showPanel("chrome://browser/content/pocket/panels/saved.html?pockethost=" + Services.prefs.getCharPref("browser.pocket.site") + "&premiumStatus=" + (pktApi.isPremiumUser() ? '1' : '0'), {
+        var inOverflowMenu = isInOverflowMenu();
+        var startheight = pktApi.isPremiumUser() && isValidURL ? savePanelHeights.expanded : savePanelHeights.collapsed;
+        if (inOverflowMenu) {
+        	startheight = overflowMenuHeight;
+        }
+
+    	var panelId = showPanel("chrome://browser/content/pocket/panels/saved.html?pockethost=" + Services.prefs.getCharPref("browser.pocket.site") + "&premiumStatus=" + (pktApi.isPremiumUser() ? '1' : '0') + '&inoverflowmenu='+inOverflowMenu + "&locale=" + getUILocale(), {
     		onShow: function() {
                 var saveLinkMessageId = 'saveLink';
 
@@ -350,7 +367,8 @@ var pktUI = (function() {
                     var error = {
                         message: 'You must be connected to the Internet in order to save to Pocket. Please connect to the Internet and try again.'
                     };
-                    pktUIMessaging.sendErrorMessageToPanel(panelId, saveLinkMessageId, error);                    return;
+                    pktUIMessaging.sendErrorMessageToPanel(panelId, saveLinkMessageId, error);
+                    return;
                 }
 
                 
@@ -375,7 +393,7 @@ var pktUI = (function() {
                         var errorMessage = error.message || "There was an error when trying to save to Pocket.";
                         var panelError = { message: errorMessage}
 
-                         
+                        
                         pktUIMessaging.sendErrorMessageToPanel(panelId, saveLinkMessageId, panelError);
                     }
                 }
@@ -389,8 +407,8 @@ var pktUI = (function() {
 				pktApi.addLink(url, options);
 			},
 			onHide: panelDidHide,
-            width: savePanelWidth,
-            height: pktApi.isPremiumUser() && isValidURL ? savePanelHeights.expanded : savePanelHeights.collapsed
+    		width: inOverflowMenu ? overflowMenuWidth : savePanelWidth,
+    		height: startheight
     	});
     }
 
@@ -398,6 +416,7 @@ var pktUI = (function() {
 
 
     function showPanel(url, options) {
+
         
         _panelId += 1;
         url += ("&panelId=" + _panelId);
@@ -423,11 +442,10 @@ var pktUI = (function() {
     	_currentPanelDidShow = options.onShow;
     	_currentPanelDidHide = options.onHide;
 
-        resizePanel({
-            width: options.width,
-            height: options.height
-        });
-
+    	resizePanel({
+    		width: options.width,
+    		height: options.height
+    	});
         return _panelId;
     }
 
@@ -452,6 +470,7 @@ var pktUI = (function() {
 
 
     function panelDidHide() {
+        
     }
 
     
@@ -463,18 +482,17 @@ var pktUI = (function() {
     	
         var didInitAttributeKey = 'did_init';
         var didInitMessageListener = iframe.getAttribute(didInitAttributeKey);
-        if (typeof didInitMessageListener !== "undefined" && didInitMessageListener == 1) {
+    	if (typeof didInitMessageListener !== "undefined" && didInitMessageListener == 1) {
             return;
         }
-
     	iframe.setAttribute(didInitAttributeKey, 1);
 
 		
 		
 		
 		
-		var _showMessageId = "show";
-        pktUIMessaging.addMessageListener(_showMessageId, function(panelId, data) {
+        var _showMessageId = "show";
+		pktUIMessaging.addMessageListener(_showMessageId, function(panelId, data) {
 			
 			pktUIMessaging.sendMessageToPanel(panelId, _showMessageId);
 		});
@@ -495,34 +513,35 @@ var pktUI = (function() {
         });
 
 		
-		var _closeMessageId = "close";
-       pktUIMessaging.addMessageListener(_closeMessageId, function(panelId, data) {
+        var _closeMessageId = "close";
+		pktUIMessaging.addMessageListener(_closeMessageId, function(panelId, data) {
 			getPanel().hidePopup();
 		});
 
 		
-		var _getCurrentURLMessageId = "getCurrentURL";
-       pktUIMessaging.addMessageListener(_getCurrentURLMessageId, function(panelId, data) {
+        var _getCurrentURLMessageId = "getCurrentURL";
+		pktUIMessaging.addMessageListener(_getCurrentURLMessageId, function(panelId, data) {
             pktUIMessaging.sendResponseMessageToPanel(panelId, _getCurrentURLMessageId, getCurrentUrl());
 		});
 
         var _resizePanelMessageId = "resizePanel";
-        pktUIMessaging.addMessageListener(_resizePanelMessageId, function(panelId, data) {
-           resizePanel(data);
+		pktUIMessaging.addMessageListener(_resizePanelMessageId, function(panelId, data) {
+			resizePanel(data);
         });
 
 		
-       pktUIMessaging.addMessageListener("listenerReady", function(panelId, data) {
+		pktUIMessaging.addMessageListener("listenerReady", function(panelId, data) {
 
-       });
+		});
 
-       pktUIMessaging.addMessageListener("collapseSavePanel", function(panelId, data) {
-           if (!pktApi.isPremiumUser())
-               resizePanel({width:savePanelWidth, height:savePanelHeights.collapsed});
+		pktUIMessaging.addMessageListener("collapseSavePanel", function(panelId, data) {
+			if (!pktApi.isPremiumUser() && !isInOverflowMenu())
+				resizePanel({width:savePanelWidth, height:savePanelHeights.collapsed});
 		});
 
 		pktUIMessaging.addMessageListener("expandSavePanel", function(panelId, data) {
-           resizePanel({width:savePanelWidth, height:savePanelHeights.expanded});
+			if (!isInOverflowMenu())
+				resizePanel({width:savePanelWidth, height:savePanelHeights.expanded});
 		});
 
 		
@@ -537,56 +556,56 @@ var pktUI = (function() {
 		});
 
 		
-		var _getSuggestedTagsMessageId = "getSuggestedTags";
-       pktUIMessaging.addMessageListener(_getSuggestedTagsMessageId, function(panelId, data) {
-           pktApi.getSuggestedTagsForURL(data.url, {
+        var _getSuggestedTagsMessageId = "getSuggestedTags";
+		pktUIMessaging.addMessageListener(_getSuggestedTagsMessageId, function(panelId, data) {
+			pktApi.getSuggestedTagsForURL(data.url, {
 				success: function(data, response) {
 					var suggestedTags = data.suggested_tags;
 					var successResponse = {
 						status: "success",
 						value: {
-							suggestedTags : suggestedTags
+							suggestedTags: suggestedTags
 						}
 					}
-					pktUIMessaging.sendResponseMessageToPanel(panelId, _getSuggestedTagsMessageId, successResponse);
+                    pktUIMessaging.sendResponseMessageToPanel(panelId, _getSuggestedTagsMessageId, successResponse);
 				},
 				error: function(error, response) {
-					pktUIMessaging.sendErrorResponseMessageToPanel(panelId, _getSuggestedTagsMessageId, error);
+                    pktUIMessaging.sendErrorResponseMessageToPanel(panelId, _getSuggestedTagsMessageId, error);
 				}
 			})
 		});
 
 		
-		var _addTagsMessageId = "addTags";
-       pktUIMessaging.addMessageListener(_addTagsMessageId, function(panelId, data) {
-           pktApi.addTagsToURL(data.url, data.tags, {
+        var _addTagsMessageId = "addTags";
+		pktUIMessaging.addMessageListener(_addTagsMessageId, function(panelId, data) {
+			pktApi.addTagsToURL(data.url, data.tags, {
 				success: function(data, response) {
 				    var successResponse = {status: "success"};
                     pktUIMessaging.sendResponseMessageToPanel(panelId, _addTagsMessageId, successResponse);
 				},
 				error: function(error, response) {
-				  pktUIMessaging.sendErrorResponseMessageToPanel(panelId, _addTagsMessageId, error);
+                    pktUIMessaging.sendErrorResponseMessageToPanel(panelId, _addTagsMessageId, error);
 				}
 			});
 		});
 
 		
-		var _deleteItemMessageId = "deleteItem";
-       pktUIMessaging.addMessageListener(_deleteItemMessageId, function(panelId, data) {
-           pktApi.deleteItem(data.itemId, {
+        var _deleteItemMessageId = "deleteItem";
+		pktUIMessaging.addMessageListener(_deleteItemMessageId, function(panelId, data) {
+			pktApi.deleteItem(data.itemId, {
 				success: function(data, response) {
 				    var successResponse = {status: "success"};
                     pktUIMessaging.sendResponseMessageToPanel(panelId, _deleteItemMessageId, successResponse);
 				},
 				error: function(error, response) {
-					pktUIMessaging.sendErrorResponseMessageToPanel(panelId, _deleteItemMessageId, error);
+				    pktUIMessaging.sendErrorResponseMessageToPanel(panelId, _deleteItemMessageId, error);
 				}
 			})
 		});
 	}
+
 	
-	
-	
+
 	
 
 
@@ -597,18 +616,18 @@ var pktUI = (function() {
             gBrowser.selectedTab = tab;
         }
 	}
+
+
     
-    
-    
-    
+
     function getCurrentUrl() {
     	return getBrowser().currentURI.spec;
     }
-    
+
     function getCurrentTitle() {
         return getBrowser().contentTitle;
     }
-    
+
     function getPanel() {
         var frame = getPanelFrame();
         var panel = frame;
@@ -617,27 +636,45 @@ var pktUI = (function() {
         }
     	return panel;
     }
-    
+
     function getPanelFrame() {
     	return document.getElementById('pocket-panel-iframe');
     }
     
+    function isInOverflowMenu() {
+        var frame = getPanelFrame();
+        var view = frame;
+        while (view && view.localName != "panelview") {
+            view = view.parentNode;
+        }
+
+        var isSubview = (view && view.getAttribute("current") == "true");
+        return isSubview;
+    }
+
     function hasLegacyExtension() {
     	return !!document.getElementById('RIL_urlbar_add');
     }
-    
+
     function isHidden() {
     	return _isHidden;
     }
-    
+
     function getFirefoxAccountSignedInUser(callback) {
-       fxAccounts.getSignedInUser().then(userData => {
-           callback(userData);
-       }).then(null, error => {
-           callback();
-       });
+	    fxAccounts.getSignedInUser().then(userData => {
+    		callback(userData);
+    	}).then(null, error => {
+      		callback();
+	    });
     }
     
+    function getUILocale() {
+    	var locale = Cc["@mozilla.org/chrome/chrome-registry;1"].
+             getService(Ci.nsIXULChromeRegistry).
+             getSelectedLocale("browser");
+        return locale;
+    }
+
     
 
 
@@ -707,8 +744,8 @@ var pktUI = (function() {
 	      dropmarkerAnimationNode.style.listStyleImage = dropmarkerStyle.listStyleImage;
 	    }
 	
-	    let isInOverflowPanel = button.getAttribute("overflowedItem") == "true";
-	    if (!isInOverflowPanel) {
+	    let isInOverflowMenu = button.getAttribute("overflowedItem") == "true";
+	    if (!isInOverflowMenu) {
 	      notifier.setAttribute("notification", "finish");
 	      button.setAttribute("notification", "finish");
 	      dropmarkerNotifier.setAttribute("notification", "finish");
@@ -740,9 +777,7 @@ var pktUI = (function() {
 
         pocketBookmarkBarOpenPocketCommand,
 
-    	tryToSaveUrl: tryToSaveUrl,
-    	
-		isHidden
+    	tryToSaveUrl: tryToSaveUrl
     };
 }());
 
