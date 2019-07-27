@@ -632,8 +632,7 @@ let PlacesProvider = {
             i++;
         }
         for (let link of outOfOrder) {
-          i = BinarySearch.insertionIndexOf(links, link,
-                                            Links.compareLinks.bind(Links));
+          i = BinarySearch.insertionIndexOf(Links.compareLinks, links, link);
           links.splice(i, 0, link);
         }
 
@@ -872,6 +871,8 @@ let Links = {
 
 
 
+
+
   compareLinks: function Links_compareLinks(aLink1, aLink2) {
     for (let prop of this._sortProperties) {
       if (!(prop in aLink1) || !(prop in aLink2))
@@ -1037,7 +1038,7 @@ let Links = {
   },
 
   _binsearch: function Links__binsearch(aArray, aLink, aMethod) {
-    return BinarySearch[aMethod](aArray, aLink, this.compareLinks.bind(this));
+    return BinarySearch[aMethod](this.compareLinks, aArray, aLink);
   },
 
   
@@ -1065,6 +1066,8 @@ let Links = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
                                          Ci.nsISupportsWeakReference])
 };
+
+Links.compareLinks = Links.compareLinks.bind(Links);
 
 
 

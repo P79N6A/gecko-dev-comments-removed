@@ -18,8 +18,8 @@ this.BinarySearch = Object.freeze({
 
 
 
-  indexOf: function (array, target, comparator) {
-    let [found, idx] = this.search(array, target, comparator);
+  indexOf: function (comparator, array, target) {
+    let [found, idx] = this.search(comparator, array, target);
     return found ? idx : -1;
   },
 
@@ -32,8 +32,8 @@ this.BinarySearch = Object.freeze({
 
 
 
-  insertionIndexOf: function (array, target, comparator) {
-    return this.search(array, target, comparator)[1];
+  insertionIndexOf: function (comparator, array, target) {
+    return this.search(comparator, array, target)[1];
   },
 
   
@@ -56,7 +56,7 @@ this.BinarySearch = Object.freeze({
 
 
 
-  search: function (array, target, comparator) {
+  search: function (comparator, array, target) {
     let low = 0;
     let high = array.length - 1;
     while (low <= high) {
