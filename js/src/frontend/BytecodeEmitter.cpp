@@ -117,7 +117,8 @@ BytecodeEmitter::BytecodeEmitter(BytecodeEmitter *parent,
                                  HandleScript script, Handle<LazyScript *> lazyScript,
                                  bool insideEval, HandleScript evalCaller,
                                  Handle<StaticEvalObject *> staticEvalScope,
-                                 bool hasGlobalScope, uint32_t lineNum, EmitterMode emitterMode)
+                                 bool insideNonGlobalEval, uint32_t lineNum,
+                                 EmitterMode emitterMode)
   : sc(sc),
     parent(parent),
     script(sc->context, script),
@@ -147,7 +148,7 @@ BytecodeEmitter::BytecodeEmitter(BytecodeEmitter *parent,
     emittingForInit(false),
     emittingRunOnceLambda(false),
     insideEval(insideEval),
-    hasGlobalScope(hasGlobalScope),
+    insideNonGlobalEval(insideNonGlobalEval),
     emitterMode(emitterMode)
 {
     MOZ_ASSERT_IF(evalCaller, insideEval);
@@ -1635,7 +1636,12 @@ TryConvertFreeName(BytecodeEmitter *bce, ParseNode *pn)
 
     
     
-    if (!bce->script->compileAndGo() || !bce->hasGlobalScope)
+    if (bce->insideNonGlobalEval)
+        return false;
+
+    
+    
+    if (bce->script->hasPollutedGlobalScope())
         return false;
 
     
@@ -5412,7 +5418,7 @@ EmitFunc(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, bool needsPr
             BytecodeEmitter bce2(bce, bce->parser, funbox, script,  js::NullPtr(),
                                  bce->insideEval, bce->evalCaller,
                                   js::NullPtr(),
-                                 bce->hasGlobalScope, lineNum, bce->emitterMode);
+                                 bce->insideNonGlobalEval, lineNum, bce->emitterMode);
             if (!bce2.init())
                 return false;
 

@@ -292,17 +292,14 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
     if (!script)
         return nullptr;
 
-    
-    JSObject *globalScope =
-        scopeChain && scopeChain == &scopeChain->global() ? (JSObject*) scopeChain : nullptr;
-    MOZ_ASSERT_IF(globalScope, globalScope->isNative());
-    MOZ_ASSERT_IF(globalScope, JSCLASS_HAS_GLOBAL_FLAG_AND_SLOTS(globalScope->getClass()));
-
+    bool insideNonGlobalEval =
+        evalStaticScope && evalStaticScope->enclosingScopeForStaticScopeIter();
     BytecodeEmitter::EmitterMode emitterMode =
         options.selfHostingMode ? BytecodeEmitter::SelfHosting : BytecodeEmitter::Normal;
     BytecodeEmitter bce( nullptr, &parser, &globalsc, script,
                          js::NullPtr(), options.forEval,
-                        evalCaller, evalStaticScope, !!globalScope, options.lineno, emitterMode);
+                        evalCaller, evalStaticScope, insideNonGlobalEval,
+                        options.lineno, emitterMode);
     if (!bce.init())
         return nullptr;
 
