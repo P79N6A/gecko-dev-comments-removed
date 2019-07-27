@@ -194,6 +194,13 @@ let gGrid = {
 
   _resizeGrid: function Grid_resizeGrid() {
     
+    
+    
+    if (document.readyState != "complete") {
+      return;
+    }
+
+    
     if (this._cellMargin === undefined) {
       let refCell = document.querySelector(".newtab-cell");
       this._cellMargin = parseFloat(getComputedStyle(refCell).marginTop) * 2;
