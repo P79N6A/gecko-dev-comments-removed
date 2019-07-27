@@ -870,6 +870,9 @@ cairo_type1_font_subset_look_for_seac(cairo_type1_font_subset_t *font,
 
 
 
+		if (unlikely (sp < 5))
+		    return CAIRO_INT_STATUS_UNSUPPORTED;
+
 		status = use_standard_encoding_glyph (font, stack[3]);
 		if (unlikely (status))
 		    return status;
