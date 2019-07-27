@@ -1823,10 +1823,14 @@ MediaCacheStream::FlushPartialBlockInternal(bool aNotifyAll)
            BLOCK_SIZE - blockOffset);
     gMediaCache->AllocateAndWriteBlock(this, mPartialBlockBuffer,
         mMetadataInPartialBlockBuffer ? MODE_METADATA : MODE_PLAYBACK);
-    if (aNotifyAll) {
-      
-      mon.NotifyAll();
-    }
+  }
+
+  
+  
+  
+  if ((blockOffset > 0 || mChannelOffset == 0) && aNotifyAll) {
+    
+    mon.NotifyAll();
   }
 }
 
