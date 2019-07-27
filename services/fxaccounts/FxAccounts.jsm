@@ -1030,7 +1030,30 @@ LoginManagerStorage.prototype = {
     
     
     if (data.accountData.kA || data.accountData.kB || data.keyFetchToken) {
-      log.info("account data needs migration to the login manager.");
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      if (!this._isLoggedIn) {
+        
+        log.info("account data needs migration to the login manager but the MP is locked.");
+        let result = {
+          version: data.version,
+          accountData: {},
+        };
+        for (let fieldName of FXA_PWDMGR_PLAINTEXT_FIELDS) {
+          result.accountData[fieldName] = data.accountData[fieldName];
+        }
+        return result;
+      }
+      
+      log.info("account data is being migrated to the login manager.");
       yield this.set(data);
     }
 
