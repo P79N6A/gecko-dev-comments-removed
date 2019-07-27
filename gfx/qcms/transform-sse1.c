@@ -48,7 +48,7 @@ void qcms_transform_data_rgb_out_lut_sse1(qcms_transform *transform,
     const __m128 scale = _mm_load_ps(floatScaleX4);
 
     
-    __m128 vec_r, vec_g, vec_b, result;
+    __m128 vec_r, vec_g, vec_b, result, result_hi;
 
     
     if (!length)
@@ -84,9 +84,11 @@ void qcms_transform_data_rgb_out_lut_sse1(qcms_transform *transform,
         result = _mm_mul_ps(vec_r, scale);
 
         
+        
+
+        result_hi = _mm_movehl_ps(result, result);
+        *((__m64 *)&output[2]) = _mm_cvtps_pi32(result_hi);
         *((__m64 *)&output[0]) = _mm_cvtps_pi32(result);
-        result = _mm_movehl_ps(result, result);
-        *((__m64 *)&output[2]) = _mm_cvtps_pi32(result) ;
 
         
         vec_r = _mm_load_ss(&igtbl_r[src[0]]);
@@ -165,7 +167,7 @@ void qcms_transform_data_rgba_out_lut_sse1(qcms_transform *transform,
     const __m128 scale = _mm_load_ps(floatScaleX4);
 
     
-    __m128 vec_r, vec_g, vec_b, result;
+    __m128 vec_r, vec_g, vec_b, result, result_hi;
     unsigned char alpha;
 
     
@@ -207,9 +209,10 @@ void qcms_transform_data_rgba_out_lut_sse1(qcms_transform *transform,
         result = _mm_mul_ps(vec_r, scale);
 
         
+
+        result_hi = _mm_movehl_ps(result, result);
+        *((__m64 *)&output[2]) = _mm_cvtps_pi32(result_hi);
         *((__m64 *)&output[0]) = _mm_cvtps_pi32(result);
-        result = _mm_movehl_ps(result, result);
-        *((__m64 *)&output[2]) = _mm_cvtps_pi32(result);
 
         
         vec_r = _mm_load_ss(&igtbl_r[src[0]]);
