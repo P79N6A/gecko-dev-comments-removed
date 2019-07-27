@@ -5,16 +5,20 @@
 
 #include "WorkerRunnable.h"
 
+#include "nsGlobalWindow.h"
 #include "nsIEventTarget.h"
+#include "nsIGlobalObject.h"
 #include "nsIRunnable.h"
 #include "nsThreadUtils.h"
 
 #include "mozilla/DebugOnly.h"
+#include "mozilla/dom/ScriptSettings.h"
 
 #include "js/RootingAPI.h"
 #include "js/Value.h"
 
 #include "WorkerPrivate.h"
+#include "WorkerScope.h"
 
 USING_WORKERS_NAMESPACE
 
@@ -258,9 +262,10 @@ WorkerRunnable::Run()
     return NS_OK;
   }
 
-  JSContext* cx;
+  nsCOMPtr<nsIGlobalObject> globalObject;
+  bool isMainThread = !targetIsWorkerThread && !mWorkerPrivate->GetParent();
+  MOZ_ASSERT(isMainThread == NS_IsMainThread());
   nsRefPtr<WorkerPrivate> kungFuDeathGrip;
-  nsCxPusher pusher;
 
   if (targetIsWorkerThread) {
     if (mWorkerPrivate->AllPendingRunnablesShouldBeCanceled() &&
@@ -280,44 +285,51 @@ WorkerRunnable::Run()
       return NS_OK;
     }
 
-    cx = mWorkerPrivate->GetJSContext();
-    MOZ_ASSERT(cx);
+    globalObject = mWorkerPrivate->GlobalScope();
   }
   else {
-    cx = mWorkerPrivate->ParentJSContext();
-    MOZ_ASSERT(cx);
-
     kungFuDeathGrip = mWorkerPrivate;
-
-    if (!mWorkerPrivate->GetParent()) {
-      AssertIsOnMainThread();
-      pusher.Push(cx);
+    if (isMainThread) {
+      globalObject = static_cast<nsGlobalWindow*>(mWorkerPrivate->GetWindow());
+    } else {
+      globalObject = mWorkerPrivate->GetParent()->GlobalScope();
     }
   }
 
-  JSAutoRequest ar(cx);
-
-  JS::Rooted<JSObject*> targetCompartmentObject(cx);
-  if (targetIsWorkerThread) {
-    targetCompartmentObject = JS::CurrentGlobalOrNull(cx);
+  
+  
+  
+  
+  
+  
+  
+  
+  mozilla::dom::AutoJSAPI jsapi;
+  Maybe<mozilla::dom::AutoEntryScript> aes;
+  JSContext* cx;
+  if (globalObject) {
+    aes.construct(globalObject, isMainThread, isMainThread ? nullptr :
+                                              GetCurrentThreadJSContext());
+    cx = aes.ref().cx();
   } else {
-    targetCompartmentObject = mWorkerPrivate->GetWrapper();
+    jsapi.Init();
+    cx = jsapi.cx();
   }
 
+  
+  
   Maybe<JSAutoCompartment> ac;
-  if (targetCompartmentObject) {
-    ac.construct(cx, targetCompartmentObject);
+  if (!targetIsWorkerThread && mWorkerPrivate->GetWrapper()) {
+    ac.construct(cx, mWorkerPrivate->GetWrapper());
   }
 
   bool result = WorkerRun(cx, mWorkerPrivate);
 
   
   
-  
-  if (targetIsWorkerThread &&
-      ac.empty() &&
-      js::DefaultObjectForContextOrNull(cx)) {
-    ac.construct(cx, js::DefaultObjectForContextOrNull(cx));
+  if (targetIsWorkerThread && aes.empty() && mWorkerPrivate->GlobalScope()) {
+    aes.construct(mWorkerPrivate->GlobalScope(), false, GetCurrentThreadJSContext());
+    cx = aes.ref().cx();
   }
 
   PostRun(cx, mWorkerPrivate, result);
