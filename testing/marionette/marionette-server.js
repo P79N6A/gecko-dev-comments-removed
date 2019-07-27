@@ -1167,6 +1167,16 @@ MarionetteServerConnection.prototype = {
       return;
     }
 
+    
+    
+    
+    
+    
+    if (appName == "Firefox") {
+      sendError("Cannot navigate in chrome context", 13, null, command_id);
+      return;
+    }
+
     this.getCurrentWindow().location.href = aRequest.parameters.url;
     let checkTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
     let start = new Date().getTime();
