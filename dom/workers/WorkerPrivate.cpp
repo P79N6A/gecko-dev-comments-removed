@@ -3944,10 +3944,8 @@ WorkerPrivate::DoRunLoop(JSContext* aCx)
   for (;;) {
     
     
-    if (!workerCompartment) {
-      if (JSObject* global = js::DefaultObjectForContextOrNull(aCx)) {
-        workerCompartment.emplace(aCx, global);
-      }
+    if (!workerCompartment && GlobalScope()) {
+      workerCompartment.emplace(aCx, GlobalScope()->GetGlobalJSObject());
     }
 
     Status currentStatus;
