@@ -2796,6 +2796,9 @@ WebSocketChannel::AsyncOpen(nsIURI *aURI,
               getter_AddRefs(localChannel));
   NS_ENSURE_SUCCESS(rv, rv);
 
+  rv = localChannel->SetLoadInfo(mLoadInfo);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   
   
   localChannel->SetNotificationCallbacks(this);

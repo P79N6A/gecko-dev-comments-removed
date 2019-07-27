@@ -722,6 +722,7 @@ WebSocket::Init(JSContext* aCx,
   
   int16_t shouldLoad = nsIContentPolicy::ACCEPT;
   nsCOMPtr<nsIDocument> originDoc = nsContentUtils::GetDocumentFromScriptContext(sc);
+  mOriginDocument = do_GetWeakReference(originDoc);
   rv = NS_CheckContentLoadPolicy(nsIContentPolicy::TYPE_WEBSOCKET,
                                  mURI,
                                  mPrincipal,
@@ -800,6 +801,17 @@ WebSocket::EstablishConnection()
     rv = loadGroup->AddRequest(this, nullptr);
     NS_ENSURE_SUCCESS(rv, rv);
   }
+
+  
+  
+  nsCOMPtr<nsIDocument> doc = do_QueryReferent(mOriginDocument);
+  nsCOMPtr<nsILoadInfo> loadInfo =
+    new LoadInfo(mPrincipal,
+                 doc,
+                 nsILoadInfo::SEC_NORMAL,
+                 nsIContentPolicy::TYPE_WEBSOCKET);
+  rv = wsChannel->SetLoadInfo(loadInfo);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   if (!mRequestedProtocolList.IsEmpty()) {
     rv = wsChannel->SetProtocol(mRequestedProtocolList);
