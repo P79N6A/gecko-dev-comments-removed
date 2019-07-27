@@ -925,7 +925,8 @@ nsSVGElement::WalkAnimatedContentStyleRules(nsRuleWalker* aRuleWalker)
     
     
     
-    shell->RestyleForAnimation(this, eRestyle_Self);
+    shell->RestyleForAnimation(this,
+      eRestyle_SVGAttrAnimations | eRestyle_ChangeAnimationPhase);
   } else {
     
     
