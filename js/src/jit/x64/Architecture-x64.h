@@ -24,6 +24,13 @@ static const uint32_t ShadowStackSpace = 32;
 static const uint32_t ShadowStackSpace = 0;
 #endif
 
+
+
+
+
+
+
+static const uint32_t MaxAliasedRegisters = 1;
 class Registers {
   public:
     typedef X86Registers::RegisterID Code;
