@@ -2930,8 +2930,6 @@ void
 nsDisplayBackgroundColor::Paint(nsDisplayListBuilder* aBuilder,
                                 nsRenderingContext* aCtx)
 {
-  DrawTarget& aDrawTarget = *aCtx->GetDrawTarget();
-
   if (mColor == NS_RGBA(0, 0, 0, 0)) {
     return;
   }
@@ -2944,6 +2942,8 @@ nsDisplayBackgroundColor::Paint(nsDisplayListBuilder* aBuilder,
   
   
   
+  DrawTarget& aDrawTarget = *aCtx->GetDrawTarget();
+
   Rect rect = NSRectToSnappedRect(borderBox,
                                   mFrame->PresContext()->AppUnitsPerDevPixel(),
                                   aDrawTarget);
