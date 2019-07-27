@@ -53,6 +53,14 @@ struct BufferSlotData {
   int32_t  mFrameType;
 };
 
+
+const float kBufferThresholdPerc = 0.8f;
+
+const uint32_t kPlayoutDelayMs = 3000;
+
+
+
+
 class RtspTrackBuffer
 {
 public:
@@ -61,11 +69,12 @@ public:
   , mSlotSize(aSlotSize)
   , mTotalBufferSize(BUFFER_SLOT_NUM * mSlotSize)
   , mFrameType(0)
-  , mIsStarted(false) {
+  , mIsStarted(false)
+  , mDuringPlayoutDelay(false)
+  , mPlayoutDelayMs(kPlayoutDelayMs)
+  , mPlayoutDelayTimer(nullptr) {
     MOZ_COUNT_CTOR(RtspTrackBuffer);
-#ifdef PR_LOGGING
     mTrackIdx = aTrackIdx;
-#endif
     MOZ_ASSERT(mSlotSize < UINT32_MAX / BUFFER_SLOT_NUM);
     mRingBuffer = new uint8_t[mTotalBufferSize];
     Reset();
@@ -93,6 +102,7 @@ public:
   void Stop() {
     MonitorAutoLock monitor(mMonitor);
     mIsStarted = false;
+    StopPlayoutDelay();
   }
 
   
@@ -118,6 +128,34 @@ public:
     Reset();
   }
 
+  
+  
+  
+  void StartPlayoutDelay() {
+    mDuringPlayoutDelay = true;
+  }
+  void LockStartPlayoutDelay() {
+    MonitorAutoLock monitor(mMonitor);
+    StartPlayoutDelay();
+  }
+
+  
+  void StopPlayoutDelay() {
+    if (mPlayoutDelayTimer) {
+      mPlayoutDelayTimer->Cancel();
+      mPlayoutDelayTimer = nullptr;
+    }
+    mDuringPlayoutDelay = false;
+  }
+  void LockStopPlayoutDelay() {
+    MonitorAutoLock monitor(mMonitor);
+    StopPlayoutDelay();
+  }
+
+  bool IsBufferOverThreshold();
+  void CreatePlayoutDelayTimer(unsigned long delayMs);
+  static void PlayoutDelayTimerCallback(nsITimer *aTimer, void *aClosure);
+
 private:
   
   void SetFrameType(uint32_t aFrameType) {
@@ -127,10 +165,8 @@ private:
 
   
   Monitor mMonitor;
-#ifdef PR_LOGGING
   
   int32_t mTrackIdx;
-#endif
   
   
   
@@ -159,6 +195,13 @@ private:
 
   
   bool mIsStarted;
+
+  
+  bool mDuringPlayoutDelay;
+  
+  uint32_t mPlayoutDelayMs;
+  
+  nsCOMPtr<nsITimer> mPlayoutDelayTimer;
 };
 
 nsresult RtspTrackBuffer::ReadBuffer(uint8_t* aToBuffer, uint32_t aToBufferSize,
@@ -177,9 +220,16 @@ nsresult RtspTrackBuffer::ReadBuffer(uint8_t* aToBuffer, uint32_t aToBufferSize,
   
   
   while (1) {
+    
+    if (mDuringPlayoutDelay) {
+      monitor.Wait();
+      continue;
+    }
+
     if (mBufferSlotData[mConsumerIdx].mFrameType & MEDIASTREAM_FRAMETYPE_END_OF_STREAM) {
       return NS_BASE_STREAM_CLOSED;
     }
+
     if (mBufferSlotData[mConsumerIdx].mLength > 0) {
       
       if ((int32_t)aToBufferSize < mBufferSlotData[mConsumerIdx].mLength) {
@@ -271,6 +321,12 @@ void RtspTrackBuffer::WriteBuffer(const char *aFromBuffer, uint32_t aWriteCount,
     RTSPMLOG("Return because the mFrameType is set");
     return;
   }
+
+  
+  if (mDuringPlayoutDelay && !mPlayoutDelayTimer) {
+    CreatePlayoutDelayTimer(mPlayoutDelayMs);
+  }
+
   
   bool isMultipleSlots = false;
   
@@ -314,6 +370,12 @@ void RtspTrackBuffer::WriteBuffer(const char *aFromBuffer, uint32_t aWriteCount,
     memcpy(&(mRingBuffer[mSlotSize * mProducerIdx]), aFromBuffer, aWriteCount);
   }
 
+  
+  
+  if (mDuringPlayoutDelay && IsBufferOverThreshold()) {
+    StopPlayoutDelay();
+  }
+
   if (mProducerIdx <= mConsumerIdx && mConsumerIdx < mProducerIdx + slots
       && mBufferSlotData[mConsumerIdx].mLength > 0) {
     
@@ -322,6 +384,7 @@ void RtspTrackBuffer::WriteBuffer(const char *aFromBuffer, uint32_t aWriteCount,
     if (aFrameType & MEDIASTREAM_FRAMETYPE_END_OF_STREAM) {
       mBufferSlotData[mProducerIdx].mLength = 0;
       mBufferSlotData[mProducerIdx].mTime = 0;
+      StopPlayoutDelay();
     } else {
       mBufferSlotData[mProducerIdx].mLength = aWriteCount;
       mBufferSlotData[mProducerIdx].mTime = aFrameTime;
@@ -342,6 +405,7 @@ void RtspTrackBuffer::WriteBuffer(const char *aFromBuffer, uint32_t aWriteCount,
     if (aFrameType & MEDIASTREAM_FRAMETYPE_END_OF_STREAM) {
       mBufferSlotData[mProducerIdx].mLength = 0;
       mBufferSlotData[mProducerIdx].mTime = 0;
+      StopPlayoutDelay();
     } else {
       mBufferSlotData[mProducerIdx].mLength = aWriteCount;
       mBufferSlotData[mProducerIdx].mTime = aFrameTime;
@@ -368,8 +432,57 @@ void RtspTrackBuffer::Reset() {
     mBufferSlotData[i].mTime = BUFFER_SLOT_EMPTY;
     mBufferSlotData[i].mFrameType = MEDIASTREAM_FRAMETYPE_NORMAL;
   }
+  StopPlayoutDelay();
   mMonitor.NotifyAll();
 }
+
+bool
+RtspTrackBuffer::IsBufferOverThreshold()
+{
+  static int32_t numSlotsThreshold =
+    BUFFER_SLOT_NUM * kBufferThresholdPerc;
+
+  int32_t numSlotsUsed = mProducerIdx - mConsumerIdx;
+  if (numSlotsUsed < 0) {  
+    numSlotsUsed = (BUFFER_SLOT_NUM - mConsumerIdx) + mProducerIdx;
+  }
+  if (numSlotsUsed > numSlotsThreshold) {
+    return true;
+  }
+
+  return false;
+}
+
+void
+RtspTrackBuffer::CreatePlayoutDelayTimer(unsigned long delayMs)
+{
+  if (delayMs <= 0) {
+    return;
+  }
+  mPlayoutDelayTimer = do_CreateInstance("@mozilla.org/timer;1");
+  if (mPlayoutDelayTimer) {
+    mPlayoutDelayTimer->InitWithFuncCallback(PlayoutDelayTimerCallback,
+                                             this, delayMs,
+                                             nsITimer::TYPE_ONE_SHOT);
+  }
+}
+
+
+void
+RtspTrackBuffer::PlayoutDelayTimerCallback(nsITimer *aTimer,
+                                           void *aClosure)
+{
+  MOZ_ASSERT(aTimer);
+  MOZ_ASSERT(aClosure);
+
+  RtspTrackBuffer *self = static_cast<RtspTrackBuffer*>(aClosure);
+  MonitorAutoLock lock(self->mMonitor);
+  self->StopPlayoutDelay();
+  lock.NotifyAll();
+}
+
+
+
 
 RtspMediaResource::RtspMediaResource(MediaDecoder* aDecoder,
     nsIChannel* aChannel, nsIURI* aURI, const nsACString& aContentType)
@@ -756,6 +869,22 @@ nsresult RtspMediaResource::SeekTime(int64_t aOffset)
   }
 
   return mMediaStreamController->Seek(aOffset);
+}
+
+void
+RtspMediaResource::EnablePlayoutDelay()
+{
+  for (uint32_t i = 0; i < mTrackBuffer.Length(); ++i) {
+    mTrackBuffer[i]->LockStartPlayoutDelay();
+  }
+}
+
+void
+RtspMediaResource::DisablePlayoutDelay()
+{
+  for (uint32_t i = 0; i < mTrackBuffer.Length(); ++i) {
+    mTrackBuffer[i]->LockStopPlayoutDelay();
+  }
 }
 
 } 

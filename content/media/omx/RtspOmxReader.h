@@ -65,6 +65,9 @@ public:
 
   virtual void SetIdle() MOZ_OVERRIDE;
 
+  virtual nsresult ReadMetadata(MediaInfo *aInfo, MetadataTags **aTags)
+    MOZ_FINAL MOZ_OVERRIDE;
+
 private:
   
   

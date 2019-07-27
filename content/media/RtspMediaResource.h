@@ -7,6 +7,8 @@
 #define RtspMediaResource_h_
 
 #include "MediaResource.h"
+#include "mozilla/Monitor.h"
+#include "nsITimer.h"
 
 namespace mozilla {
 
@@ -111,6 +113,12 @@ public:
 
   
   nsresult SeekTime(int64_t aOffset);
+
+  
+  
+  
+  void EnablePlayoutDelay();
+  void DisablePlayoutDelay();
 
   
   virtual nsresult ReadAt(int64_t aOffset, char* aBuffer,

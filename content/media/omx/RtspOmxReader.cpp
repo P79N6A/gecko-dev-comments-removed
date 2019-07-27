@@ -41,6 +41,7 @@ nsresult RtspOmxReader::Seek(int64_t aTime, int64_t aStartTime,
   
   if (mRtspResource) {
     mRtspResource->SeekTime(aTime);
+    mRtspResource->EnablePlayoutDelay();
   }
 
   
@@ -78,6 +79,24 @@ void RtspOmxReader::EnsureActive() {
 
   
   MediaOmxReader::EnsureActive();
+}
+
+nsresult RtspOmxReader::ReadMetadata(MediaInfo *aInfo, MetadataTags **aTags)
+{
+  
+  
+  mRtspResource->DisablePlayoutDelay();
+  EnsureActive();
+  nsresult rv = MediaOmxReader::ReadMetadata(aInfo, aTags);
+
+  if (rv == NS_OK && !IsWaitingMediaResources()) {
+    mRtspResource->EnablePlayoutDelay();
+  } else if (IsWaitingMediaResources()) {
+    
+    
+    SetIdle();
+  }
+  return rv;
 }
 
 } 
