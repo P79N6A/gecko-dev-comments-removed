@@ -499,6 +499,16 @@ protected:
 
 
 
+
+
+
+  nsresult DoSecureToInsecureSubmitCheck(nsIURI* aActionURL,
+                                         bool* aCancelSubmit);
+
+  
+
+
+
   already_AddRefed<nsISupports> DoResolveName(const nsAString& aName, bool aFlushContent);
 
   
