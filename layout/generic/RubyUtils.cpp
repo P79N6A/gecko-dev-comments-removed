@@ -5,6 +5,7 @@
 
 
 #include "RubyUtils.h"
+#include "nsRubyBaseContainerFrame.h"
 
 using namespace mozilla;
 
