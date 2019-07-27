@@ -15,6 +15,40 @@
 namespace mozilla {
 
 inline bool
+EnsureLongPath(nsAString& aDosPath)
+{
+  uint32_t aDosPathOriginalLen = aDosPath.Length();
+  auto inputPath = PromiseFlatString(aDosPath);
+  
+  DWORD longPathLen = GetLongPathNameW(inputPath.get(),
+                                       aDosPath.BeginWriting(),
+                                       aDosPathOriginalLen);
+  if (longPathLen == 0) {
+    return false;
+  }
+  aDosPath.SetLength(longPathLen);
+  if (longPathLen <= aDosPathOriginalLen) {
+    
+    return true;
+  }
+  
+  longPathLen = GetLongPathNameW(inputPath.get(),
+                                 aDosPath.BeginWriting(), aDosPath.Length());
+  if (longPathLen == 0) {
+    return false;
+  }
+  
+  
+  
+  if (longPathLen < aDosPath.Length()) {
+    aDosPath.SetLength(longPathLen);
+    return true;
+  }
+  
+  return false;
+}
+
+inline bool
 NtPathToDosPath(const nsAString& aNtPath, nsAString& aDosPath)
 {
   aDosPath.Truncate();
@@ -76,7 +110,7 @@ NtPathToDosPath(const nsAString& aNtPath, nsAString& aDosPath)
       if (found) {
         aDosPath = driveTemplate;
         aDosPath += pathComponent;
-        return true;
+        return EnsureLongPath(aDosPath);
       }
     }
     
