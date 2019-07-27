@@ -957,9 +957,16 @@ CacheStorageService::RemoveEntry(CacheEntry* aEntry, bool aOnlyUnreferenced)
     return false;
   }
 
-  if (aOnlyUnreferenced && aEntry->IsReferenced()) {
-    LOG(("  still referenced, not removing"));
-    return false;
+  if (aOnlyUnreferenced) {
+    if (aEntry->IsReferenced()) {
+      LOG(("  still referenced, not removing"));
+      return false;
+    }
+
+    if (!aEntry->IsUsingDisk() && IsForcedValidEntry(entryKey)) {
+      LOG(("  forced valid, not removing"));
+      return false;
+    }
   }
 
   CacheEntryTable* entries;
@@ -1025,6 +1032,75 @@ CacheStorageService::RecordMemoryOnlyEntry(CacheEntry* aEntry,
   else {
     RemoveExactEntry(entries, entryKey, aEntry, aOverwrite);
   }
+}
+
+
+
+bool CacheStorageService::IsForcedValidEntry(nsACString &aCacheEntryKey)
+{
+  TimeStamp validUntil;
+
+  mozilla::MutexAutoLock lock(mLock);
+
+  if (!mForcedValidEntries.Get(aCacheEntryKey, &validUntil)) {
+    return false;
+  }
+
+  if (validUntil.IsNull()) {
+    return false;
+  }
+
+  
+  if (TimeStamp::NowLoRes() <= validUntil) {
+    return true;
+  }
+
+  
+  mForcedValidEntries.Remove(aCacheEntryKey);
+  return false;
+}
+
+
+
+void CacheStorageService::ForceEntryValidFor(nsACString &aCacheEntryKey,
+                                             uint32_t aSecondsToTheFuture)
+{
+  mozilla::MutexAutoLock lock(mLock);
+
+  TimeStamp now = TimeStamp::NowLoRes();
+  ForcedValidEntriesPrune(now);
+
+  
+  TimeStamp validUntil = now + TimeDuration::FromSeconds(aSecondsToTheFuture);
+
+  mForcedValidEntries.Put(aCacheEntryKey, validUntil);
+}
+
+namespace { 
+
+PLDHashOperator PruneForcedValidEntries(
+  const nsACString& aKey, TimeStamp& aTimeStamp, void* aClosure)
+{
+  TimeStamp* now = static_cast<TimeStamp*>(aClosure);
+  if (aTimeStamp < *now) {
+    return PL_DHASH_REMOVE;
+  }
+
+  return PL_DHASH_NEXT;
+}
+
+} 
+
+
+void CacheStorageService::ForcedValidEntriesPrune(TimeStamp &now)
+{
+  static TimeDuration const oneMinute = TimeDuration::FromSeconds(60);
+  static TimeStamp dontPruneUntil = now + oneMinute;
+  if (now < dontPruneUntil)
+    return;
+
+  mForcedValidEntries.Enumerate(PruneForcedValidEntries, &now);
+  dontPruneUntil = now + oneMinute;
 }
 
 void
