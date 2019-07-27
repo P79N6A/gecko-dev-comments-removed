@@ -16,10 +16,6 @@ this.PageStyle = Object.freeze({
     return PageStyleInternal.collect(docShell, frameTree);
   },
 
-  restore: function (docShell, frameList, pageStyle) {
-    PageStyleInternal.restore(docShell, frameList, pageStyle);
-  },
-
   restoreTree: function (docShell, data) {
     PageStyleInternal.restoreTree(docShell, data);
   }
@@ -53,29 +49,6 @@ let PageStyleInternal = {
     }
 
     return result && Object.keys(result).length ? result : null;
-  },
-
-  
-
-
-
-
-
-
-
-
-  restore: function (docShell, frameList, pageStyle) {
-    let disabled = pageStyle == NO_STYLE;
-
-    let markupDocumentViewer =
-      docShell.contentViewer;
-    markupDocumentViewer.authorStyleDisabled = disabled;
-
-    for (let [frame, data] of frameList) {
-      Array.forEach(frame.document.styleSheets, function(aSS) {
-        aSS.disabled = aSS.title && aSS.title != pageStyle;
-      });
-    }
   },
 
   

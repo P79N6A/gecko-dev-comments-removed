@@ -15,6 +15,19 @@ const Ci = Components.interfaces;
 
 
 this.ScrollPosition = Object.freeze({
+  collect(frame) {
+    return ScrollPositionInternal.collect(frame);
+  },
+
+  restoreTree(root, data) {
+    ScrollPositionInternal.restoreTree(root, data);
+  }
+});
+
+
+
+
+let ScrollPositionInternal = {
   
 
 
@@ -87,4 +100,4 @@ this.ScrollPosition = Object.freeze({
       }
     });
   }
-});
+};

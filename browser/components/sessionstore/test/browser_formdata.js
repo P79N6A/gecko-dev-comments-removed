@@ -62,54 +62,6 @@ add_task(function test_formdata() {
 
 
 
-add_task(function test_old_format() {
-  const URL = "data:text/html;charset=utf-8,<input%20id=input>";
-  const VALUE = "value-" + Math.random();
-
-  
-  let tab = gBrowser.addTab(URL);
-  let browser = tab.linkedBrowser;
-  yield promiseBrowserLoaded(browser);
-
-  
-  let state = {entries: [{url: URL, formdata: {id: {input: VALUE}}}]};
-  yield promiseTabState(tab, state);
-  is((yield getInputValue(browser, "input")), VALUE, "form data restored");
-
-  
-  gBrowser.removeTab(tab);
-});
-
-
-
-
-
-add_task(function test_old_format_inner_html() {
-  const URL = "data:text/html;charset=utf-8,<h1>mozilla</h1>" +
-              "<script>document.designMode='on'</script>";
-  const VALUE = "<h1>value-" + Math.random() + "</h1>";
-
-  
-  let tab = gBrowser.addTab(URL);
-  let browser = tab.linkedBrowser;
-  yield promiseBrowserLoaded(browser);
-
-  
-  let state = {entries: [{url: URL, innerHTML: VALUE}]};
-  yield promiseTabState(tab, state);
-
-  
-  let html = yield getInnerHTML(browser);
-  is(html, VALUE, "editable document has been restored correctly");
-
-  
-  gBrowser.removeTab(tab);
-});
-
-
-
-
-
 
 add_task(function test_url_check() {
   const URL = "data:text/html;charset=utf-8,<input%20id=input>";

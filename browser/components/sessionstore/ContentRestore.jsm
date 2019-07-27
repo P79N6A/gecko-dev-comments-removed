@@ -284,42 +284,6 @@ ContentRestoreInternal.prototype = {
 
 
 
-
-
-
-
-  getFramesToRestore: function (content, data) {
-    function hasExpectedURL(aDocument, aURL) {
-      return !aURL || aURL.replace(/#.*/, "") == aDocument.location.href.replace(/#.*/, "");
-    }
-
-    let frameList = [];
-
-    function enumerateFrame(content, data) {
-      
-      if (!hasExpectedURL(content.document, data.url)) {
-        return;
-      }
-
-      frameList.push([content, data]);
-
-      for (let i = 0; i < content.frames.length; i++) {
-        if (data.children && data.children[i]) {
-          enumerateFrame(content.frames[i], data.children[i]);
-        }
-      }
-    }
-
-    enumerateFrame(content, data);
-
-    return frameList;
-  },
-
-  
-
-
-
-
   restoreDocument: function () {
     this._epoch = 0;
 
@@ -329,34 +293,12 @@ ContentRestoreInternal.prototype = {
     let {entry, pageStyle, formdata, scrollPositions} = this._restoringDocument;
     this._restoringDocument = null;
 
-    let window = this.docShell.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindow);
-    let frameList = this.getFramesToRestore(window, entry);
+    let window = this.docShell.QueryInterface(Ci.nsIInterfaceRequestor)
+                               .getInterface(Ci.nsIDOMWindow);
 
-    
-    if (typeof(pageStyle) === "string") {
-      PageStyle.restore(this.docShell, frameList, pageStyle);
-    } else {
-      PageStyle.restoreTree(this.docShell, pageStyle);
-    }
-
+    PageStyle.restoreTree(this.docShell, pageStyle);
     FormData.restoreTree(window, formdata);
     ScrollPosition.restoreTree(window, scrollPositions);
-
-    
-    for (let [frame, data] of frameList) {
-      if (data.hasOwnProperty("formdata") || data.hasOwnProperty("innerHTML")) {
-        let formdata = data.formdata || {};
-        formdata.url = data.url;
-
-        if (data.hasOwnProperty("innerHTML")) {
-          formdata.innerHTML = data.innerHTML;
-        }
-
-        FormData.restore(frame, formdata);
-      }
-
-      ScrollPosition.restore(frame, data.scroll || "");
-    }
   },
 
   

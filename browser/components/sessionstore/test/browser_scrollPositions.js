@@ -102,30 +102,6 @@ add_task(function test_scroll_nested() {
   gBrowser.removeTab(tab2);
 });
 
-
-
-
-
-add_task(function test_scroll_old_format() {
-  const TAB_STATE = { entries: [{url: URL, scroll: SCROLL_STR}] };
-
-  
-  let tab = gBrowser.addTab("about:blank");
-  let browser = tab.linkedBrowser;
-  yield promiseBrowserLoaded(browser);
-
-  
-  yield promiseTabState(tab, TAB_STATE);
-
-  
-  let scroll = yield sendMessage(browser, "ss-test:getScrollPosition");
-  is(JSON.stringify(scroll), JSON.stringify({x: SCROLL_X, y: SCROLL_Y}),
-    "scroll position has been restored correctly");
-
-  
-  gBrowser.removeTab(tab);
-});
-
 function checkScroll(tab, expected, msg) {
   let browser = tab.linkedBrowser;
   TabState.flush(browser);
