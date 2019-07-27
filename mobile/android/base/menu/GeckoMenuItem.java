@@ -444,7 +444,9 @@ public class GeckoMenuItem implements MenuItem {
 
     @Override
     public MenuItem setVisible(boolean visible) {
-        if (mVisible != visible) {
+        
+        
+        if (isActionItem() || mVisible != visible) {
             mVisible = visible;
             if (mShouldDispatchChanges) {
                 mMenu.onItemChanged(this);
