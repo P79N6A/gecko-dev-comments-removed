@@ -11,7 +11,6 @@ function test(arr) {
             
             assertEq(Object.getOwnPropertyNames(desc).join(","), "value");
             assertEq(desc.value, "ponies");
-            return true;
         }
     });
     var hits = 0;
