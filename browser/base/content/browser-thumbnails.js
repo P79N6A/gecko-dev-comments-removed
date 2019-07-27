@@ -126,6 +126,10 @@ let gBrowserThumbnails = {
   
   _shouldCapture: function Thumbnails_shouldCapture(aBrowser) {
     
+    if (gMultiProcessBrowser)
+      return false;
+
+    
     if (aBrowser != gBrowser.selectedBrowser)
       return false;
 
