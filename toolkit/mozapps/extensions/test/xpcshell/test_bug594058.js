@@ -20,7 +20,7 @@ var gCachePurged = false;
 
 
 var WindowWatcher = {
-  openWindow: function(parent, url, name, features, arguments) {
+  openWindow: function(parent, url, name, features, args) {
     do_check_false(gCachePurged);
   },
 

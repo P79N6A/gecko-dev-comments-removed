@@ -60,13 +60,13 @@ var PluginHost = {
 
 
 var WindowWatcher = {
-  openWindow: function(parent, url, name, features, arguments) {
+  openWindow: function(parent, url, name, features, args) {
     
     do_check_eq(url, URI_EXTENSION_BLOCKLIST_DIALOG);
     
-    do_check_eq(arguments.wrappedJSObject.list.length, 1);
+    do_check_eq(args.wrappedJSObject.list.length, 1);
     
-    var item = arguments.wrappedJSObject.list[0];
+    var item = args.wrappedJSObject.list[0];
     do_check_true(item.item instanceof Ci.nsIPluginTag);
     do_check_neq(item.name, "test_bug514327_outdated");
 

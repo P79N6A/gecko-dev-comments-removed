@@ -26,12 +26,12 @@ profileDir.append("extensions");
 
 
 var WindowWatcher = {
-  openWindow: function(parent, url, name, features, arguments) {
+  openWindow: function(parent, url, name, features, args) {
     
     do_check_eq(url, URI_EXTENSION_BLOCKLIST_DIALOG);
 
     
-    var list = arguments.wrappedJSObject.list;
+    var list = args.wrappedJSObject.list;
     list.forEach(function(aItem) {
       if (!aItem.blocked)
         aItem.disable = true;

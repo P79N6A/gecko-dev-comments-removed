@@ -17,7 +17,7 @@ var gExpectedURL = null;
 
 
 var WindowWatcher = {
-  openWindow: function(parent, url, name, features, arguments) {
+  openWindow: function(parent, url, name, features, args) {
     do_check_eq(url, gExpectedURL);
     gExpectedURL = null;
   },

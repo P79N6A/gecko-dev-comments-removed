@@ -38,7 +38,6 @@ profileDir.append("extensions");
 
 var WindowWatcher = {
   expected: false,
-  arguments: null,
 
   openWindow: function(parent, url, name, features, args) {
     do_check_true(Services.startup.interrupted);
