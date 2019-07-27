@@ -49,7 +49,9 @@ public:
   virtual ~GMPVideoEncoderCallback() {}
 
   virtual void Encoded(GMPVideoEncodedFrame* aEncodedFrame,
-                       const GMPCodecSpecificInfo& aCodecSpecificInfo) = 0;
+                       GMPBufferType aBufferType,
+                       const uint8_t* aCodecSpecificInfo,
+                       uint32_t aCodecSpecificInfoLength) = 0;
 };
 
 
@@ -58,6 +60,8 @@ class GMPVideoEncoder
 public:
   virtual ~GMPVideoEncoder() {}
 
+  
+  
   
   
   
@@ -84,8 +88,12 @@ public:
   
   
   
+  
+  
+  
   virtual GMPErr Encode(GMPVideoi420Frame* aInputFrame,
-                        const GMPCodecSpecificInfo& aCodecSpecificInfo,
+                        const uint8_t* aCodecSpecificInfo,
+                        uint32_t aCodecSpecificInfoLength,
                         const GMPVideoFrameType* aFrameTypes,
                         uint32_t aFrameTypesLength) = 0;
 
