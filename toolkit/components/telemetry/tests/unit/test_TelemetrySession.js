@@ -1582,6 +1582,7 @@ add_task(function* test_schedulerUserIdle() {
   
   now.setHours(23);
   now.setMinutes(50);
+  fakeNow(now);
   fakeIdleNotification("idle");
   Assert.equal(schedulerTimeout, 10 * 60 * 1000);
 
