@@ -18,7 +18,7 @@
 
 
 #ifdef MOZ_VERIFY_MAR_SIGNATURE
-#ifdef TEST_UPDATER
+#ifdef UPDATER_XPCSHELL_CERT
 #include "../xpcshellCert.h"
 #else
 #include "primaryCert.h"
@@ -85,7 +85,7 @@ ArchiveReader::VerifySignature()
 #ifndef MOZ_VERIFY_MAR_SIGNATURE
   return OK;
 #else
-#ifdef TEST_UPDATER
+#ifdef UPDATER_XPCSHELL_CERT
   int rv = VerifyLoadedCert(mArchive, xpcshellCertData);
 #else
   int rv = VerifyLoadedCert(mArchive, primaryCertData);
