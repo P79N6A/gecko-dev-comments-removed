@@ -792,7 +792,13 @@ public:
 
 
 
+
   void UIResolutionChanged();
+
+ 
+
+
+  void UIResolutionChangedSync();
 
   
 
