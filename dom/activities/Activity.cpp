@@ -68,10 +68,18 @@ Activity::Initialize(nsPIDOMWindow* aWindow,
   mProxy = do_CreateInstance("@mozilla.org/dom/activities/proxy;1", &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  
+  
+  
+  bool ok;
   JS::Rooted<JS::Value> optionsValue(aCx);
-  if (!ToJSValue(aCx, aOptions, &optionsValue)) {
-    return NS_ERROR_FAILURE;
+  {
+    JSAutoCompartment ac(aCx, xpc::PrivilegedJunkScope());
+    ok = ToJSValue(aCx, aOptions, &optionsValue);
+    NS_ENSURE_TRUE(ok, NS_ERROR_FAILURE);
   }
+  ok = JS_WrapValue(aCx, &optionsValue);
+  NS_ENSURE_TRUE(ok, NS_ERROR_FAILURE);
 
   mProxy->StartActivity(static_cast<nsIDOMDOMRequest*>(this), optionsValue, aWindow);
   return NS_OK;
