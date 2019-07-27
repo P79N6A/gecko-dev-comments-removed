@@ -716,12 +716,8 @@ audio:not([controls]) > xul|videocontrols {
   -moz-binding: none;
 }
 
-
-
-@supports (object-fit: contain) {
-  video {
-    object-fit: contain;
-  }
+video {
+  object-fit: contain;
 }
 
 audio:not([controls]) {
