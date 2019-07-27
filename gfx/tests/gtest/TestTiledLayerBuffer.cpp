@@ -43,12 +43,18 @@ TEST(TiledLayerBuffer, TilesPlacement) {
 
           
           
-          for (int i = 0; i < width * height; ++i) {
-            ASSERT_TRUE(p1.TilePosition(i).x >= firstX);
-            ASSERT_TRUE(p1.TilePosition(i).x < firstX + width);
-            ASSERT_TRUE(p1.TilePosition(i).y >= firstY);
-            ASSERT_TRUE(p1.TilePosition(i).y < firstY + height);
-          }
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
 
         }
       }
