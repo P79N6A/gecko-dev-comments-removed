@@ -295,6 +295,11 @@ let MozLoopServiceInternal = {
       return;
     }
 
+    
+    
+    
+    Services.prefs.setCharPref("loop.seenToS", "seen");
+
     this.openChatWindow(null,
                         this.localizedStrings["incoming_call_title"].textContent,
                         "about:loopconversation#incoming/" + version);
