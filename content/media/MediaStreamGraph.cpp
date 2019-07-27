@@ -508,6 +508,10 @@ MediaStreamGraphImpl::UpdateStreamOrder()
         stream->AsSourceStream()->NeedsMixing()) {
       shouldAEC = true;
     }
+    
+    if (stream->AsAudioNodeStream()) {
+      audioTrackPresent = true;
+    }
     for (StreamBuffer::TrackIter tracks(stream->GetStreamBuffer(), MediaSegment::AUDIO);
          !tracks.IsEnded(); tracks.Next()) {
       audioTrackPresent = true;
