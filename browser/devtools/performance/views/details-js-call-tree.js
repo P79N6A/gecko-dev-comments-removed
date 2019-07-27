@@ -96,6 +96,9 @@ let JsCallTreeView = Heritage.extend(DetailsSubview, {
     root.on("link", this._onLink);
 
     
+    root.on("focus", () => this.emit("focus"));
+
+    
     let container = $("#js-calltree-view > .call-tree-cells-container");
     container.innerHTML = "";
     root.attachTo(container);
