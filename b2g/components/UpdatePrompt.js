@@ -312,6 +312,9 @@ UpdatePrompt.prototype = {
     }
 
     switch (aDetail.result) {
+      
+      case "low-battery":
+        break;
       case "wait":
         
         this.waitForIdle();
