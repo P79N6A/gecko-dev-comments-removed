@@ -55,6 +55,16 @@ XPCOMUtils.defineLazyGetter(this, "gCertUtils", function() {
 XPCOMUtils.defineLazyModuleGetter(this, "UpdateChannel",
                                   "resource://gre/modules/UpdateChannel.jsm");
 
+
+
+
+
+
+
+
+
+const CHECK_FOR_ADDONS_TIMEOUT_DELAY_MS = 20000;
+
 function getScopedLogger(prefix) {
   
   
@@ -369,8 +379,11 @@ GMPInstallManager.prototype = {
     
     this._request.setRequestHeader("Pragma", "no-cache");
 
-    this._request.addEventListener("error", this.onErrorXML.bind(this) ,false);
-    this._request.addEventListener("load", this.onLoadXML.bind(this), false);
+    this._request.timeout = CHECK_FOR_ADDONS_TIMEOUT_DELAY_MS;
+    this._request.addEventListener("error", event => this.onFailXML("onErrorXML", event), false);
+    this._request.addEventListener("abort", event => this.onFailXML("onAbortXML", event), false);
+    this._request.addEventListener("timeout", event => this.onFailXML("onTimeoutXML", event), false);
+    this._request.addEventListener("load", event => this.onLoadXML(event), false);
 
     log.info("sending request to: " + url);
     this._request.send(null);
@@ -506,20 +519,30 @@ GMPInstallManager.prototype = {
 
   onLoadXML: function(event) {
     let log = getScopedLogger("onLoadXML");
-    log.info("request completed downloading document");
+    try {
+      log.info("request completed downloading document");
+      let certs = null;
+      if (!Services.prefs.prefHasUserValue(GMPPrefs.KEY_URL_OVERRIDE) &&
+          GMPPrefs.get(GMPPrefs.KEY_CERT_CHECKATTRS, undefined, true)) {
+        certs = gCertUtils.readCertPrefs(GMPPrefs.CERTS_BRANCH);
+      }
 
-    let certs = null;
-    if (!Services.prefs.prefHasUserValue(GMPPrefs.KEY_URL_OVERRIDE) &&
-        GMPPrefs.get(GMPPrefs.KEY_CERT_CHECKATTRS, undefined, true)) {
-      certs = gCertUtils.readCertPrefs(GMPPrefs.CERTS_BRANCH);
+      let allowNonBuiltIn = !GMPPrefs.get(GMPPrefs.KEY_CERT_REQUIREBUILTIN,
+        undefined, true);
+      log.info("allowNonBuiltIn: " + allowNonBuiltIn);
+
+      gCertUtils.checkCert(this._request.channel, allowNonBuiltIn, certs);
+
+      this.parseResponseXML();
+    } catch (ex) {
+      log.error("could not load xml: " + ex);
+      this._deferred.reject({
+        target: event.target,
+        status: this._getChannelStatus(event.target),
+        message: "" + ex,
+      });
+      delete this._deferred;
     }
-
-    let allowNonBuiltIn = !GMPPrefs.get(GMPPrefs.KEY_CERT_REQUIREBUILTIN,
-                                        undefined, true);
-    log.info("allowNonBuiltIn: " + allowNonBuiltIn);
-    gCertUtils.checkCert(this._request.channel, allowNonBuiltIn, certs);
-
-    this.parseResponseXML();
   },
 
   
@@ -527,7 +550,7 @@ GMPInstallManager.prototype = {
 
   _getChannelStatus: function(request) {
     let log = getScopedLogger("_getChannelStatus");
-    let status = 0;
+    let status = null;
     try {
       status = request.status;
       log.info("request.status is: " + request.status);
@@ -535,7 +558,7 @@ GMPInstallManager.prototype = {
     catch (e) {
     }
 
-    if (status == 0) {
+    if (status == null) {
       status = request.channel.QueryInterface(Ci.nsIRequest).status;
     }
     return status;
@@ -545,11 +568,14 @@ GMPInstallManager.prototype = {
 
 
 
-  onErrorXML: function(event) {
-    let log = getScopedLogger("onErrorXML");
+
+
+
+  onFailXML: function(failure, event) {
+    let log = getScopedLogger(failure);
     let request = event.target;
     let status = this._getChannelStatus(request);
-    let message = "request.status: " + status;
+    let message = "request.status: " + status +  "(" + event.type + ")";
     log.warn(message);
     this._deferred.reject({
       target: request,
