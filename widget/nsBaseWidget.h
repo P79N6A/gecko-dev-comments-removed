@@ -364,7 +364,10 @@ protected:
 protected:
   
   
-  bool StoreWindowClipRegion(const nsTArray<nsIntRect>& aRects);
+  bool IsWindowClipRegionEqual(const nsTArray<nsIntRect>& aRects);
+
+  
+  void StoreWindowClipRegion(const nsTArray<nsIntRect>& aRects);
 
   virtual already_AddRefed<nsIWidget>
   AllocateChildPopupWidget()
