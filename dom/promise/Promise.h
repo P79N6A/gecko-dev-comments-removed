@@ -194,11 +194,6 @@ private:
     Rejected
   };
 
-  enum PromiseTaskSync {
-    SyncTask,
-    AsyncTask
-  };
-
   void SetState(PromiseState aState)
   {
     MOZ_ASSERT(mState == Pending);
@@ -215,11 +210,10 @@ private:
   
   
   
-  void RunTask();
+  void EnqueueCallbackTasks();
 
-  void RunResolveTask(JS::Handle<JS::Value> aValue,
-                      Promise::PromiseState aState,
-                      PromiseTaskSync aAsynchronous);
+  void MaybeSettle(JS::Handle<JS::Value> aValue,
+                   Promise::PromiseState aState);
 
   void AppendCallbacks(PromiseCallback* aResolveCallback,
                        PromiseCallback* aRejectCallback);
@@ -236,19 +230,14 @@ private:
   }
 
   void MaybeResolveInternal(JSContext* aCx,
-                            JS::Handle<JS::Value> aValue,
-                            PromiseTaskSync aSync = AsyncTask);
+                            JS::Handle<JS::Value> aValue);
   void MaybeRejectInternal(JSContext* aCx,
-                           JS::Handle<JS::Value> aValue,
-                           PromiseTaskSync aSync = AsyncTask);
+                           JS::Handle<JS::Value> aValue);
 
   void ResolveInternal(JSContext* aCx,
-                       JS::Handle<JS::Value> aValue,
-                       PromiseTaskSync aSync = AsyncTask);
-
+                       JS::Handle<JS::Value> aValue);
   void RejectInternal(JSContext* aCx,
-                      JS::Handle<JS::Value> aValue,
-                      PromiseTaskSync aSync = AsyncTask);
+                      JS::Handle<JS::Value> aValue);
 
   template <typename T>
   void MaybeSomething(T& aArgument, MaybeFunc aFunc) {
@@ -313,7 +302,6 @@ private:
   
   JS::Heap<JSObject*> mFullfillmentStack;
   PromiseState mState;
-  bool mTaskPending;
   bool mHadRejectCallback;
 
   bool mResolvePending;
