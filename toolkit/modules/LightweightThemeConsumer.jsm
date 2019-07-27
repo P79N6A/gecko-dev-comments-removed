@@ -111,6 +111,11 @@ LightweightThemeConsumer.prototype = {
     let active = !!aData.headerURL;
     let stateChanging = (active != this._active);
 
+    
+    
+    
+    root.style.removeProperty("color");
+    root.style.removeProperty("background-color");
     if (active) {
       root.style.color = aData.textcolor || "black";
       root.style.backgroundColor = aData.accentcolor || "white";
@@ -119,8 +124,6 @@ LightweightThemeConsumer.prototype = {
       root.setAttribute("lwthemetextcolor", luminance <= 110 ? "dark" : "bright");
       root.setAttribute("lwtheme", "true");
     } else {
-      root.style.color = "";
-      root.style.backgroundColor = "";
       root.removeAttribute("lwthemetextcolor");
       root.removeAttribute("lwtheme");
     }
