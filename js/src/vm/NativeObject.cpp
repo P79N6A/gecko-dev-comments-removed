@@ -2110,7 +2110,6 @@ SetExistingProperty(typename ExecutionModeTraits<mode>::ContextType cxArg,
                     HandleObject pobj, HandleShape foundShape, MutableHandleValue vp, bool strict)
 {
     RootedShape shape(cxArg, foundShape);
-    unsigned attrs = JSPROP_ENUMERATE;
     if (IsImplicitDenseOrTypedArrayElement(shape)) {
         
         if (pobj != obj)
@@ -2147,21 +2146,23 @@ SetExistingProperty(typename ExecutionModeTraits<mode>::ContextType cxArg,
             }
         }
 
-        if (pobj == receiver) {
-            attrs = shape->attributes();
-        } else {
+        if (pobj != receiver) {
             
 
-            if (!shape->shadowable()) {
+            if (!shape->shadowable() &&
+                !(pobj->is<ArrayObject>() && id == NameToId(cxArg->names().length)))
+            {
+                
                 if (shape->hasDefaultSetter() && !shape->hasGetterValue())
                     return true;
 
+                
                 if (mode == ParallelExecution)
                     return false;
-
                 return shape->set(cxArg->asJSContext(), obj, receiver, strict, vp);
             }
 
+            
             
             shape = nullptr;
         }
@@ -2217,15 +2218,14 @@ SetExistingProperty(typename ExecutionModeTraits<mode>::ContextType cxArg,
         return true;
     }
 
-    if (obj->is<ArrayObject>() && id == NameToId(cxArg->names().length)) {
-        Rooted<ArrayObject*> arr(cxArg, &obj->as<ArrayObject>());
-        return ArraySetLength<mode>(cxArg, arr, id, attrs, vp, strict);
-    }
+    if (shape) {
+        if (obj->is<ArrayObject>() && id == NameToId(cxArg->names().length)) {
+            Rooted<ArrayObject*> arr(cxArg, &obj->as<ArrayObject>());
+            return ArraySetLength<mode>(cxArg, arr, id, shape->attributes(), vp, strict);
+        }
 
-    if (shape)
         return NativeSet<mode>(cxArg, obj, receiver, shape, strict, vp);
-
-    MOZ_ASSERT(attrs == JSPROP_ENUMERATE);
+    }
     return SetPropertyByDefining<mode>(cxArg, receiver, id, vp, strict);
 }
 
