@@ -2278,6 +2278,7 @@ pref("editor.positioning.offset",            0);
 
 pref("dom.use_watchdog", true);
 pref("dom.max_chrome_script_run_time", 20);
+pref("dom.max_child_script_run_time", 2);
 pref("dom.max_script_run_time", 10);
 
 
@@ -2326,6 +2327,9 @@ pref("dom.ipc.plugins.timeoutSecs", 45);
 pref("dom.ipc.plugins.parentTimeoutSecs", 0);
 
 
+pref("dom.ipc.plugins.contentTimeoutSecs", 2);
+
+
 pref("dom.ipc.plugins.processLaunchTimeoutSecs", 45);
 #ifdef XP_WIN
 
@@ -2341,6 +2345,7 @@ pref("dom.ipc.tabs.shutdownTimeoutSecs", 5);
 #else
 
 pref("dom.ipc.plugins.timeoutSecs", 0);
+pref("dom.ipc.plugins.contentTimeoutSecs", 0);
 pref("dom.ipc.plugins.processLaunchTimeoutSecs", 0);
 pref("dom.ipc.plugins.parentTimeoutSecs", 0);
 #ifdef XP_WIN

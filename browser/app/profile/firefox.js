@@ -1805,4 +1805,10 @@ pref("extensions.interposition.prefetching", true);
 pref("browser.defaultbrowser.notificationbar", false);
 
 
-pref("dom.ipc.cpow.timeout", 0);
+
+pref("dom.ipc.cpow.timeout", 500);
+
+
+
+pref("dom.ipc.processHangMonitor", true);
+pref("dom.ipc.reportProcessHangs", true);
