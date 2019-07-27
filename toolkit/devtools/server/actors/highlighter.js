@@ -48,7 +48,8 @@ const SIMPLE_OUTLINE_SHEET = ".__fx-devtools-hide-shortcut__ {" +
 let HIGHLIGHTER_CLASSES = exports.HIGHLIGHTER_CLASSES = {
   "BoxModelHighlighter": BoxModelHighlighter,
   "CssTransformHighlighter": CssTransformHighlighter,
-  "SelectorHighlighter": SelectorHighlighter
+  "SelectorHighlighter": SelectorHighlighter,
+  "RectHighlighter": RectHighlighter
 };
 
 
@@ -343,6 +344,16 @@ let CustomHighlighterActor = exports.CustomHighlighterActor = protocol.ActorClas
   },
 
   
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1469,6 +1480,86 @@ SelectorHighlighter.prototype = {
   destroy: function() {
     this.hide();
     this.tabActor = null;
+  }
+};
+
+
+
+
+
+
+
+
+function RectHighlighter(tabActor) {
+  this.win = tabActor.window;
+  this.layoutHelpers = new LayoutHelpers(this.win);
+  this.markup = new CanvasFrameAnonymousContentHelper(tabActor,
+    this._buildMarkup.bind(this));
+}
+
+RectHighlighter.prototype = {
+  _buildMarkup: function() {
+    let doc = this.win.document;
+
+    let container = doc.createElement("div");
+    container.className = "highlighter-container";
+    container.innerHTML = '<div id="highlighted-rect" ' +
+                          'class="highlighted-rect" hidden="true">';
+
+    return container;
+  },
+
+  destroy: function() {
+    this.win = null;
+    this.layoutHelpers = null;
+    this.markup.destroy();
+  },
+
+  _hasValidOptions: function(options) {
+    let isValidNb = n => typeof n === "number" && n >= 0 && isFinite(n);
+    return options && options.rect &&
+           isValidNb(options.rect.x) &&
+           isValidNb(options.rect.y) &&
+           options.rect.width && isValidNb(options.rect.width) &&
+           options.rect.height && isValidNb(options.rect.height);
+  },
+
+  
+
+
+
+
+
+
+
+
+  show: function(node, options) {
+    if (!this._hasValidOptions(options) || !node || !node.ownerDocument) {
+      this.hide();
+      return;
+    }
+
+    let contextNode = node.ownerDocument.documentElement;
+
+    
+    let {bounds} = this.layoutHelpers.getAdjustedQuads(contextNode);
+    let x = "left:" + (bounds.x + options.rect.x) + "px;";
+    let y = "top:" + (bounds.y + options.rect.y) + "px;";
+    let width = "width:" + options.rect.width + "px;";
+    let height = "height:" + options.rect.height + "px;";
+
+    let style = x + y + width + height;
+    if (options.fill) {
+      style += "background:" + options.fill + ";";
+    }
+
+    
+    this.markup.setAttributeForElement("highlighted-rect", "style", style);
+    this.markup.removeAttributeForElement("highlighted-rect", "hidden");
+  },
+
+  hide: function() {
+    this.markup.setAttributeForElement("highlighted-rect", "hidden", "true");
   }
 };
 
