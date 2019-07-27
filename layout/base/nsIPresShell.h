@@ -797,17 +797,6 @@ public:
   
 
 
-
-  virtual void SetMayHaveTouchCaret(bool aSet) = 0;
-
-  
-
-
-  virtual bool MayHaveTouchCaret() = 0;
-
-  
-
-
   virtual already_AddRefed<mozilla::SelectionCarets> GetSelectionCarets() const = 0;
 
   

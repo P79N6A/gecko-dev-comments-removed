@@ -778,12 +778,6 @@ public:
   
 
 
-
-  bool NeedToWaitForContent() const;
-
-  
-
-
   void ResetInputState();
 
 private:

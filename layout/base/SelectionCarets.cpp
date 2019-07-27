@@ -319,12 +319,6 @@ SelectionCarets::SetVisibility(bool aVisible)
 
   dom::Element* endElement = mPresShell->GetSelectionCaretsEndElement();
   SetElementVisibility(endElement, mVisible && mEndCaretVisible);
-
-  
-  
-  
-  
-  mPresShell->SetMayHaveTouchCaret(mVisible);
 }
 
 void
