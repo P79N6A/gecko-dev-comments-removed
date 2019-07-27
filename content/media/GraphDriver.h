@@ -143,6 +143,8 @@ public:
     MOZ_CRASH("This is not an Audio GraphDriver!");
   }
 
+  bool InCallback();
+
   virtual AudioCallbackDriver* AsAudioCallbackDriver() {
     return nullptr;
   }
@@ -439,6 +441,16 @@ private:
 
 
   bool mStarted;
+  
+  bool mInCallback;
+
+  struct AutoInCallback
+  {
+    AutoInCallback(AudioCallbackDriver* aDriver);
+    ~AutoInCallback();
+    AudioCallbackDriver* mDriver;
+  };
+
 };
 
 }
