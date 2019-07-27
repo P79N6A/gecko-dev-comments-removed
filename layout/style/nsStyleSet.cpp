@@ -1341,6 +1341,11 @@ nsStyleSet::RuleNodeWithReplacement(Element* aElement,
                     nsPrintfCString("unexpected replacement bits 0x%lX",
                                     uint32_t(aReplacements)).get());
 
+  
+  
+  
+  
+
   nsTArray<RuleNodeInfo> rules;
   for (nsRuleNode* ruleNode = aOldRuleNode; !ruleNode->IsRoot();
        ruleNode = ruleNode->GetParent()) {
