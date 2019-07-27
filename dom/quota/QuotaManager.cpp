@@ -2015,6 +2015,35 @@ QuotaManager::InitializeRepository(PersistenceType aPersistenceType)
   return NS_OK;
 }
 
+namespace {
+
+
+
+
+
+bool
+MaybeRemoveCorruptDirectory(const nsAString& aLeafName, nsIFile* aDir)
+{
+#ifdef NIGHTLY_BUILD
+  MOZ_ASSERT(aDir);
+
+  if (aLeafName != NS_LITERAL_STRING("morgue")) {
+    return false;
+  }
+
+  NS_WARNING("QuotaManager removing corrupt morgue directory.");
+
+  nsresult rv = aDir->Remove(true );
+  NS_ENSURE_SUCCESS(rv, false);
+
+  return true;
+#else
+  return false
+#endif 
+}
+
+} 
+
 nsresult
 QuotaManager::InitializeOrigin(PersistenceType aPersistenceType,
                                const nsACString& aGroup,
@@ -2070,6 +2099,10 @@ QuotaManager::InitializeOrigin(PersistenceType aPersistenceType,
     if (!isDirectory) {
       NS_WARNING("Unknown file found!");
       return NS_ERROR_UNEXPECTED;
+    }
+
+    if (MaybeRemoveCorruptDirectory(leafName, file)) {
+      continue;
     }
 
     Client::Type clientType;
@@ -4171,6 +4204,10 @@ AsyncUsageRunnable::AddToUsage(QuotaManager* aQuotaManager,
           NS_WARNING("Unknown file found!");
           return NS_ERROR_UNEXPECTED;
         }
+      }
+
+      if (MaybeRemoveCorruptDirectory(leafName, file)) {
+        continue;
       }
 
       Client::Type clientType;
