@@ -225,8 +225,8 @@ SVGImageElement::IsAttributeMapped(const nsIAtom* name) const
 
 
 bool
-SVGImageElement::GetGeometryBounds(Rect* aBounds, Float aStrokeWidth,
-                                   CapStyle aCapStyle, const Matrix& aTransform)
+SVGImageElement::GetGeometryBounds(
+  Rect* aBounds, const StrokeOptions& aStrokeOptions, const Matrix& aTransform)
 {
   Rect rect;
   GetAnimatedLengthValues(&rect.x, &rect.y, &rect.width,
