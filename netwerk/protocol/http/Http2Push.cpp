@@ -166,7 +166,8 @@ Http2PushedStream::ReadSegments(nsAHttpSegmentReader *,
 
   
   SetSentFin(true);
-  Http2Stream::mAllHeadersSent = 1;
+  Http2Stream::mRequestHeadersDone = 1;
+  Http2Stream::mOpenGenerated = 1;
   Http2Stream::ChangeState(UPSTREAM_COMPLETE);
   *count = 0;
   return NS_OK;
