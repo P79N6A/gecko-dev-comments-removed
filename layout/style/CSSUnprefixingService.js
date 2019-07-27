@@ -176,26 +176,30 @@ CSSUnprefixingService.prototype = {
 
         
         
-        newValue = aPrefixedFuncBody.replace(/(top|bottom|left|right)+\s*(top|bottom|left|right)*/, function(str){
-            var words = str.split(/\s+/);
-            for(var i=0; i<words.length; i++){
-                switch(words[i].toLowerCase()){
-                    case 'top':
-                        words[i] = 'bottom';
-                        break;
-                    case 'bottom':
-                        words[i] = 'top';
-                        break;
-                    case 'left':
-                        words[i] = 'right';
-                        break;
-                    case 'right':
-                        words[i] = 'left';
+        if(unprefixedFuncName.indexOf('linear') > -1){
+            newValue = aPrefixedFuncBody.replace(/(top|bottom|left|right)+\s*(top|bottom|left|right)*/, function(str){
+                var words = str.split(/\s+/);
+                for(var i=0; i<words.length; i++){
+                    switch(words[i].toLowerCase()){
+                        case 'top':
+                            words[i] = 'bottom';
+                            break;
+                        case 'bottom':
+                            words[i] = 'top';
+                            break;
+                        case 'left':
+                            words[i] = 'right';
+                            break;
+                        case 'right':
+                            words[i] = 'left';
+                    }
                 }
-            }
-            str = words.join(' ');
-            return ( 'to ' + str);
-        });
+                str = words.join(' ');
+                return ( 'to ' + str);
+            });
+        }else{
+            newValue = aPrefixedFuncBody.replace(/(top|bottom|left|right)+\s/, 'at $1 ');
+        }
 
         newValue = newValue.replace(/\d+deg/, function (val) {
              return (360 - (parseInt(val)-90))+'deg';
