@@ -738,7 +738,8 @@ RenderFrameParent::RenderFrameParent(nsFrameLoader* aFrameLoader,
     }
   }
 
-  if (gfxPlatform::UsesOffMainThreadCompositing()) {
+  if (gfxPlatform::UsesOffMainThreadCompositing() &&
+      XRE_GetProcessType() == GeckoProcessType_Default) {
     
     
     *aId = mLayersId = CompositorParent::AllocateLayerTreeId();
