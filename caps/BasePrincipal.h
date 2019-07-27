@@ -11,6 +11,9 @@
 #include "nsIScriptSecurityManager.h"
 #include "nsJSPrincipals.h"
 
+class nsIObjectOutputStream;
+class nsIObjectInputStream;
+
 namespace mozilla {
 
 
@@ -46,6 +49,9 @@ public:
   static BasePrincipal* Cast(nsIPrincipal* aPrin) { return static_cast<BasePrincipal*>(aPrin); }
 
   struct OriginAttributes {
+    
+    
+    
     uint32_t mAppId;
     bool mIsInBrowserElement;
 
@@ -61,6 +67,9 @@ public:
     {
       return !(*this == aOther);
     }
+
+    void Serialize(nsIObjectOutputStream* aStream) const;
+    nsresult Deserialize(nsIObjectInputStream* aStream);
   };
 
   const OriginAttributes& OriginAttributesRef() { return mOriginAttributes; }

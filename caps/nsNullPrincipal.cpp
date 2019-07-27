@@ -17,8 +17,6 @@
 #include "nsMemory.h"
 #include "nsNetUtil.h"
 #include "nsIClassInfoImpl.h"
-#include "nsIObjectInputStream.h"
-#include "nsIObjectOutputStream.h"
 #include "nsNetCID.h"
 #include "nsError.h"
 #include "nsIScriptSecurityManager.h"
@@ -162,20 +160,13 @@ nsNullPrincipal::Read(nsIObjectInputStream* aStream)
   
   
   
-  nsresult rv = aStream->Read32(&mOriginAttributes.mAppId);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = aStream->ReadBoolean(&mOriginAttributes.mIsInBrowserElement);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return NS_OK;
+  return mOriginAttributes.Deserialize(aStream);
 }
 
 NS_IMETHODIMP
 nsNullPrincipal::Write(nsIObjectOutputStream* aStream)
 {
-  aStream->Write32(AppId());
-  aStream->WriteBoolean(IsInBrowserElement());
+  OriginAttributesRef().Serialize(aStream);
   return NS_OK;
 }
 
