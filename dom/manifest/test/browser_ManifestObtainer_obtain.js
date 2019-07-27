@@ -1,10 +1,7 @@
 
 
 'use strict';
-const {
-  ManifestObtainer
-} = Cu.import('resource://gre/modules/WebManifest.jsm', {});
-
+Cu.import('resource://gre/modules/ManifestObtainer.jsm', this);
 requestLongerTimeout(4); 
 const defaultURL =
   'http://example.org/tests/dom/manifest/test/resource.sjs';

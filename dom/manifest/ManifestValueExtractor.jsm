@@ -7,16 +7,21 @@
 
 
 'use strict';
+const imports = {};
 const {
   classes: Cc,
   interfaces: Ci
 } = Components;
+imports.DOMUtils = Cc['@mozilla.org/inspector/dom-utils;1']
+  .getService(Ci.inIDOMUtils);
 
-function ValueExtractor(aConsole) {
+this.EXPORTED_SYMBOLS = ['ManifestValueExtractor']; 
+
+function ManifestValueExtractor(aConsole) {
   this.console = aConsole;
 }
 
-ValueExtractor.prototype = {
+ManifestValueExtractor.prototype = {
   
   
   
@@ -26,8 +31,8 @@ ValueExtractor.prototype = {
   
   
   extractValue({
-      expectedType, object, objectName, property, trim
-    }) {
+    expectedType, object, objectName, property, trim
+  }) {
     const value = object[property];
     const isArray = Array.isArray(value);
     
@@ -49,17 +54,15 @@ ValueExtractor.prototype = {
   },
   extractColorValue(spec) {
     const value = this.extractValue(spec);
-    const DOMUtils = Cc['@mozilla.org/inspector/dom-utils;1']
-      .getService(Ci.inIDOMUtils);
     let color;
-    if (DOMUtils.isValidCSSColor(value)) {
+    if (imports.DOMUtils.isValidCSSColor(value)) {
       color = value;
-    } else if (value) {
+    } else {
       const msg = `background_color: ${value} is not a valid CSS color.`;
       this.console.warn(msg);
     }
     return color;
   }
 };
-this.ValueExtractor = ValueExtractor; 
-this.EXPORTED_SYMBOLS = ['ValueExtractor']; 
+
+this.ManifestValueExtractor = ManifestValueExtractor; 
