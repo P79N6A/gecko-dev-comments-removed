@@ -4418,6 +4418,11 @@ pref("dom.push.adaptive.upperLimit", 1740000);
 pref("dom.push.udp.wakeupEnabled", false);
 
 
+pref("dom.push.http2.reset_retry_count_after_ms", 60000);
+pref("dom.push.http2.maxRetries", 2);
+pref("dom.push.http2.retryInterval", 5000);
+
+
 pref("dom.mozNetworkStats.enabled", false);
 
 
