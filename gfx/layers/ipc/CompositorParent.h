@@ -20,6 +20,7 @@
 #include "ShadowLayersManager.h"        
 #include "base/basictypes.h"            
 #include "base/platform_thread.h"       
+#include "base/thread.h"                
 #include "mozilla/Assertions.h"         
 #include "mozilla/Attributes.h"         
 #include "mozilla/Monitor.h"            
@@ -64,7 +65,27 @@ private:
   uint64_t mLayersId;
 };
 
-class CompositorThreadHolder;
+class CompositorThreadHolder MOZ_FINAL
+{
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING_WITH_MAIN_THREAD_DESTRUCTION(CompositorThreadHolder)
+
+public:
+  CompositorThreadHolder();
+
+  base::Thread* GetCompositorThread() const {
+    return mCompositorThread;
+  }
+
+private:
+  ~CompositorThreadHolder();
+
+  base::Thread* const mCompositorThread;
+
+  static base::Thread* CreateCompositorThread();
+  static void DestroyCompositorThread(base::Thread* aCompositorThread);
+
+  friend class CompositorParent;
+};
 
 class CompositorParent : public PCompositorParent,
                          public ShadowLayersManager

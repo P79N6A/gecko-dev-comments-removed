@@ -9,6 +9,7 @@
 #include <stddef.h>                     
 #include <stdint.h>                     
 #include "CompositableTransactionParent.h"
+#include "CompositorParent.h"
 #include "mozilla/Assertions.h"         
 #include "mozilla/Attributes.h"         
 #include "mozilla/ipc/ProtocolUtils.h"
@@ -153,6 +154,8 @@ private:
   static std::map<base::ProcessId, ImageBridgeParent*> sImageBridges;
 
   static MessageLoop* sMainLoop;
+
+  nsRefPtr<CompositorThreadHolder> mCompositorThreadHolder;
 };
 
 } 
