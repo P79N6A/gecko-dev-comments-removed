@@ -180,7 +180,8 @@ nsXULPopupManager::GetInstance()
 }
 
 bool
-nsXULPopupManager::Rollup(uint32_t aCount, const nsIntPoint* pos, nsIContent** aLastRolledUp)
+nsXULPopupManager::Rollup(uint32_t aCount, bool aFlush,
+                          const nsIntPoint* pos, nsIContent** aLastRolledUp)
 {
   bool consume = false;
 
@@ -248,7 +249,16 @@ nsXULPopupManager::Rollup(uint32_t aCount, const nsIntPoint* pos, nsIContent** a
       }
     }
 
+    nsPresContext* presContext = item->Frame()->PresContext();
+    nsRefPtr<nsViewManager> viewManager = presContext->PresShell()->GetViewManager();
+
     HidePopup(item->Content(), true, true, false, true, lastPopup);
+
+    if (aFlush) {
+      
+      
+      viewManager->UpdateWidgetGeometry();
+    }
   }
 
   return consume;
@@ -2160,7 +2170,7 @@ nsXULPopupManager::HandleKeyboardEventWithKeyCode(
 #endif
       
       if (aTopVisibleMenuItem) {
-        Rollup(0, nullptr, nullptr);
+        Rollup(0, false, nullptr, nullptr);
       } else if (mActiveMenuBar) {
         mActiveMenuBar->MenuClosed();
       }
@@ -2438,7 +2448,7 @@ nsXULPopupManager::KeyDown(nsIDOMKeyEvent* aKeyEvent)
         
         
         if (mPopups)
-          Rollup(0, nullptr, nullptr);
+          Rollup(0, false, nullptr, nullptr);
         else if (mActiveMenuBar)
           mActiveMenuBar->MenuClosed();
       }

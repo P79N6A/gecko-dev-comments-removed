@@ -1392,7 +1392,8 @@ nsComboboxControlFrame::SetInitialChildList(ChildListID     aListID,
   
 
 bool
-nsComboboxControlFrame::Rollup(uint32_t aCount, const nsIntPoint* pos, nsIContent** aLastRolledUp)
+nsComboboxControlFrame::Rollup(uint32_t aCount, bool aFlush,
+                               const nsIntPoint* pos, nsIContent** aLastRolledUp)
 {
   if (!mDroppedDown) {
     return false;
@@ -1411,6 +1412,14 @@ nsComboboxControlFrame::Rollup(uint32_t aCount, const nsIntPoint* pos, nsIConten
   if (weakFrame.IsAlive()) {
     mListControlFrame->CaptureMouseEvents(false);
   }
+
+  if (aFlush && weakFrame.IsAlive()) {
+    
+    
+    nsViewManager* viewManager = mDropdownFrame->GetView()->GetViewManager();
+    viewManager->UpdateWidgetGeometry();
+  }
+
   return consume;
 }
 
