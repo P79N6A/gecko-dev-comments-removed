@@ -45,6 +45,7 @@
 #include "nsThemeConstants.h"
 #include "nsTransitionManager.h"
 #include "nsDisplayList.h"
+#include "nsIDOMXULSelectCntrlItemEl.h"
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/EventStateManager.h"
 #include "mozilla/EventStates.h"
@@ -1754,7 +1755,7 @@ void nsMenuPopupFrame::ChangeByPage(bool aIsUp)
 
   
   if (newMenu) {
-    ChangeMenuItem(newMenu, false);
+    ChangeMenuItem(newMenu, false, true);
   }
 }
 
@@ -1785,7 +1786,8 @@ nsMenuPopupFrame::CurrentMenuIsBeingDestroyed()
 
 NS_IMETHODIMP
 nsMenuPopupFrame::ChangeMenuItem(nsMenuFrame* aMenuItem,
-                                 bool aSelectFirstItem)
+                                 bool aSelectFirstItem,
+                                 bool aFromKey)
 {
   if (mCurrentMenu == aMenuItem)
     return NS_OK;
@@ -1812,6 +1814,26 @@ nsMenuPopupFrame::ChangeMenuItem(nsMenuFrame* aMenuItem,
   if (aMenuItem) {
     EnsureMenuItemIsVisible(aMenuItem);
     aMenuItem->SelectMenu(true);
+
+    
+    
+#ifdef XP_WIN
+    if (aFromKey && IsOpen()) {
+      nsIFrame* parentMenu = GetParent();
+      if (parentMenu) {
+        nsCOMPtr<nsIDOMXULMenuListElement> menulist = do_QueryInterface(parentMenu->GetContent());
+        if (menulist) {
+          
+          
+          
+          nsContentUtils::DispatchXULCommand(aMenuItem->GetContent(),
+                                             nsContentUtils::IsCallerChrome(),
+                                             nullptr, PresContext()->PresShell(),
+                                             false, false, false, false);
+        }
+      }
+    }
+#endif
   }
 
   mCurrentMenu = aMenuItem;

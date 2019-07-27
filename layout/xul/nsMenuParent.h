@@ -31,7 +31,10 @@ public:
   
   
   
-  NS_IMETHOD ChangeMenuItem(nsMenuFrame* aMenuItem, bool aSelectFirstItem) = 0;
+  
+  NS_IMETHOD ChangeMenuItem(nsMenuFrame* aMenuItem,
+                            bool aSelectFirstItem,
+                            bool aFromKey) = 0;
 
   
   virtual bool IsOpen() = 0;
