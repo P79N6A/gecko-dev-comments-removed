@@ -339,9 +339,6 @@ APZCTreeManager::PrepareAPZCForLayer(const LayerMetricsWrapper& aLayer,
           apzc->GetParent()->GetGuid().mScrollId);
     }
 
-    
-    aOutParent = apzc;
-
     if (newApzc) {
       if (apzc->IsRootForLayersId()) {
         
@@ -381,6 +378,9 @@ APZCTreeManager::PrepareAPZCForLayer(const LayerMetricsWrapper& aLayer,
     apzc->AddHitTestRegion(unobscured);
     APZCTM_LOG("Adding region %s to visible region of APZC %p\n", Stringify(unobscured).c_str(), apzc);
   }
+
+  
+  aOutParent = apzc;
 
   return apzc;
 }
