@@ -178,7 +178,7 @@ class CompileInfo
             MOZ_ASSERT(fun_->isTenured());
         }
 
-        osrStaticScope_ = osrPc ? script->getStaticScope(osrPc) : nullptr;
+        osrStaticScope_ = osrPc ? script->getStaticBlockScope(osrPc) : nullptr;
 
         nimplicit_ = StartArgSlot(script)                   
                    + (fun ? 1 : 0);                         

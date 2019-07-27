@@ -147,30 +147,33 @@ AssertDynamicScopeMatchesStaticScope(JSContext *cx, JSScript *script, JSObject *
     for (StaticScopeIter<NoGC> i(enclosingScope); !i.done(); i++) {
         if (i.hasDynamicScopeObject()) {
             switch (i.type()) {
-              case StaticScopeIter<NoGC>::BLOCK:
-                MOZ_ASSERT(&i.block() == scope->as<ClonedBlockObject>().staticScope());
-                scope = &scope->as<ClonedBlockObject>().enclosingScope();
-                break;
-              case StaticScopeIter<NoGC>::WITH:
-                MOZ_ASSERT(&i.staticWith() == scope->as<DynamicWithObject>().staticScope());
-                scope = &scope->as<DynamicWithObject>().enclosingScope();
-                break;
-              case StaticScopeIter<NoGC>::FUNCTION:
+              case StaticScopeIter<NoGC>::Function:
                 MOZ_ASSERT(scope->as<CallObject>().callee().nonLazyScript() == i.funScript());
                 scope = &scope->as<CallObject>().enclosingScope();
                 break;
-              case StaticScopeIter<NoGC>::NAMED_LAMBDA:
+              case StaticScopeIter<NoGC>::Block:
+                MOZ_ASSERT(&i.block() == scope->as<ClonedBlockObject>().staticScope());
+                scope = &scope->as<ClonedBlockObject>().enclosingScope();
+                break;
+              case StaticScopeIter<NoGC>::With:
+                MOZ_ASSERT(&i.staticWith() == scope->as<DynamicWithObject>().staticScope());
+                scope = &scope->as<DynamicWithObject>().enclosingScope();
+                break;
+              case StaticScopeIter<NoGC>::NamedLambda:
                 scope = &scope->as<DeclEnvObject>().enclosingScope();
+                break;
+              case StaticScopeIter<NoGC>::Eval:
+                scope = &scope->as<CallObject>().enclosingScope();
                 break;
             }
         }
     }
 
     
-
-
-
-
+    
+    MOZ_ASSERT(!scope->is<ScopeObject>() ||
+               (scope->is<DynamicWithObject>() &&
+                !scope->as<DynamicWithObject>().isSyntactic()));
 #endif
 }
 
@@ -353,7 +356,7 @@ InterpreterFrame::markValues(JSTracer *trc, Value *sp, jsbytecode *pc)
     size_t nlivefixed = script->nbodyfixed();
 
     if (nfixed != nlivefixed) {
-        NestedScopeObject *staticScope = script->getStaticScope(pc);
+        NestedScopeObject *staticScope = script->getStaticBlockScope(pc);
         while (staticScope && !staticScope->is<StaticBlockObject>())
             staticScope = staticScope->enclosingNestedScope();
 
