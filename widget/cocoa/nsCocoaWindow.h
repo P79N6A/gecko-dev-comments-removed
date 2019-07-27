@@ -285,7 +285,9 @@ public:
                                         nsIWidget *aWidget, bool aActivate) override;
     NS_IMETHOD              SetSizeMode(int32_t aMode) override;
     NS_IMETHOD              HideWindowChrome(bool aShouldHide) override;
-    void                    EnteredFullScreen(bool aFullScreen);
+    virtual void            PrepareForDOMFullscreenTransition() override;
+    void EnteredFullScreen(bool aFullScreen, bool aNativeMode = true);
+    inline bool ShouldToggleNativeFullscreen(bool aFullScreen);
     NS_IMETHOD              MakeFullScreen(bool aFullScreen, nsIScreen* aTargetScreen = nullptr) override;
     NS_IMETHOD              Resize(double aWidth, double aHeight, bool aRepaint) override;
     NS_IMETHOD              Resize(double aX, double aY, double aWidth, double aHeight, bool aRepaint) override;
@@ -409,12 +411,21 @@ protected:
   bool                 mWindowMadeHere; 
   bool                 mSheetNeedsShow; 
                                         
-  bool                 mFullScreen;
+  bool                 mInFullScreenMode;
   bool                 mInFullScreenTransition; 
                                                 
+  
+  
+  
+  bool                 mInDOMFullscreenTransition;
   bool                 mModal;
 
-  bool                 mUsesNativeFullScreen; 
+  
+  bool                 mSupportsNativeFullScreen;
+  
+  
+  
+  bool                 mInNativeFullScreenMode;
 
   bool                 mIsAnimationSuppressed;
 
