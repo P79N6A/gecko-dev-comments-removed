@@ -4,13 +4,13 @@
 
 
 
-#ifndef jit_x86_BaselineHelpers_x86_h
-#define jit_x86_BaselineHelpers_x86_h
+#ifndef jit_x64_SharedICHelpers_x64_h
+#define jit_x64_SharedICHelpers_x64_h
 
 #include "jit/BaselineFrame.h"
 #include "jit/BaselineIC.h"
-#include "jit/BaselineRegisters.h"
 #include "jit/MacroAssembler.h"
+#include "jit/SharedICRegisters.h"
 
 namespace js {
 namespace jit {
@@ -41,7 +41,6 @@ EmitCallIC(CodeOffsetLabel* patchOffset, MacroAssembler& masm)
     masm.loadPtr(Address(BaselineStubReg, (int32_t) ICEntry::offsetOfFirstStub()),
                  BaselineStubReg);
 
-    
     
     masm.call(Operand(BaselineStubReg, ICStub::offsetOfStubCode()));
 }
@@ -74,20 +73,18 @@ inline void
 EmitTailCallVM(JitCode* target, MacroAssembler& masm, uint32_t argSize)
 {
     
+    masm.movq(BaselineFrameReg, ScratchReg);
+    masm.addq(Imm32(BaselineFrame::FramePointerOffset), ScratchReg);
+    masm.subq(BaselineStackReg, ScratchReg);
 
     
-    masm.movl(BaselineFrameReg, eax);
-    masm.addl(Imm32(BaselineFrame::FramePointerOffset), eax);
-    masm.subl(BaselineStackReg, eax);
+    masm.movq(ScratchReg, rdx);
+    masm.subq(Imm32(argSize), rdx);
+    masm.store32(rdx, Address(BaselineFrameReg, BaselineFrame::reverseOffsetOfFrameSize()));
 
     
-    masm.movl(eax, ebx);
-    masm.subl(Imm32(argSize), ebx);
-    masm.store32(ebx, Address(BaselineFrameReg, BaselineFrame::reverseOffsetOfFrameSize()));
-
-    
-    masm.makeFrameDescriptor(eax, JitFrame_BaselineJS);
-    masm.push(eax);
+    masm.makeFrameDescriptor(ScratchReg, JitFrame_BaselineJS);
+    masm.push(ScratchReg);
     masm.push(BaselineTailCallReg);
     masm.jmp(target);
 }
@@ -97,9 +94,9 @@ EmitCreateStubFrameDescriptor(MacroAssembler& masm, Register reg)
 {
     
     
-    masm.movl(BaselineFrameReg, reg);
-    masm.addl(Imm32(sizeof(void*) * 2), reg);
-    masm.subl(BaselineStackReg, reg);
+    masm.movq(BaselineFrameReg, reg);
+    masm.addq(Imm32(sizeof(void*) * 2), reg);
+    masm.subq(BaselineStackReg, reg);
 
     masm.makeFrameDescriptor(reg, JitFrame_BaselineStub);
 }
@@ -107,8 +104,8 @@ EmitCreateStubFrameDescriptor(MacroAssembler& masm, Register reg)
 inline void
 EmitCallVM(JitCode* target, MacroAssembler& masm)
 {
-    EmitCreateStubFrameDescriptor(masm, eax);
-    masm.push(eax);
+    EmitCreateStubFrameDescriptor(masm, ScratchReg);
+    masm.push(ScratchReg);
     masm.call(target);
 }
 
@@ -117,25 +114,23 @@ static const uint32_t STUB_FRAME_SIZE = 4 * sizeof(void*);
 static const uint32_t STUB_FRAME_SAVED_STUB_OFFSET = sizeof(void*);
 
 inline void
-EmitEnterStubFrame(MacroAssembler& masm, Register scratch)
+EmitEnterStubFrame(MacroAssembler& masm, Register)
 {
-    MOZ_ASSERT(scratch != BaselineTailCallReg);
-
     EmitRestoreTailCallReg(masm);
 
     
-    masm.movl(BaselineFrameReg, scratch);
-    masm.addl(Imm32(BaselineFrame::FramePointerOffset), scratch);
-    masm.subl(BaselineStackReg, scratch);
+    masm.movq(BaselineFrameReg, ScratchReg);
+    masm.addq(Imm32(BaselineFrame::FramePointerOffset), ScratchReg);
+    masm.subq(BaselineStackReg, ScratchReg);
 
-    masm.store32(scratch, Address(BaselineFrameReg, BaselineFrame::reverseOffsetOfFrameSize()));
-
-    
-    
+    masm.store32(ScratchReg, Address(BaselineFrameReg, BaselineFrame::reverseOffsetOfFrameSize()));
 
     
-    masm.makeFrameDescriptor(scratch, JitFrame_BaselineJS);
-    masm.push(scratch);
+    
+
+    
+    masm.makeFrameDescriptor(ScratchReg, JitFrame_BaselineJS);
+    masm.push(ScratchReg);
     masm.push(BaselineTailCallReg);
 
     
@@ -152,10 +147,9 @@ EmitLeaveStubFrame(MacroAssembler& masm, bool calledIntoIon = false)
     
     
     if (calledIntoIon) {
-        Register scratch = BaselineTailCallReg;
-        masm.pop(scratch);
-        masm.shrl(Imm32(FRAMESIZE_SHIFT), scratch);
-        masm.addl(scratch, BaselineStackReg);
+        masm.pop(ScratchReg);
+        masm.shrq(Imm32(FRAMESIZE_SHIFT), ScratchReg);
+        masm.addq(ScratchReg, BaselineStackReg);
     } else {
         masm.mov(BaselineFrameReg, BaselineStackReg);
     }
@@ -283,12 +277,11 @@ EmitStubGuardFailure(MacroAssembler& masm)
     
 
     
-    masm.loadPtr(Address(BaselineStubReg, (int32_t) ICStub::offsetOfNext()), BaselineStubReg);
+    masm.loadPtr(Address(BaselineStubReg, ICStub::offsetOfNext()), BaselineStubReg);
 
     
-    masm.jmp(Operand(BaselineStubReg, (int32_t) ICStub::offsetOfStubCode()));
+    masm.jmp(Operand(BaselineStubReg, ICStub::offsetOfStubCode()));
 }
-
 
 } 
 } 

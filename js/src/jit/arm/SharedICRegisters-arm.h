@@ -4,8 +4,8 @@
 
 
 
-#ifndef jit_arm_BaselineRegisters_arm_h
-#define jit_arm_BaselineRegisters_arm_h
+#ifndef jit_arm_SharedICRegisters_arm_h
+#define jit_arm_SharedICRegisters_arm_h
 
 #include "jit/MacroAssembler.h"
 

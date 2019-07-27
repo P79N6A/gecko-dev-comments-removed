@@ -4,8 +4,8 @@
 
 
 
-#include "jit/BaselineHelpers.h"
 #include "jit/BaselineIC.h"
+#include "jit/SharedICHelpers.h"
 
 using namespace js;
 using namespace js::jit;

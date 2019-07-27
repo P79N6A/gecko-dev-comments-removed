@@ -4,8 +4,8 @@
 
 
 
-#ifndef jit_mips_BaselineRegisters_mips_h
-#define jit_mips_BaselineRegisters_mips_h
+#ifndef jit_mips_SharedICRegisters_mips_h
+#define jit_mips_SharedICRegisters_mips_h
 
 #include "jit/MacroAssembler.h"
 

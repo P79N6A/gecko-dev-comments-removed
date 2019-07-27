@@ -4,13 +4,13 @@
 
 
 
-#ifndef jit_mips_BaselineHelpers_mips_h
-#define jit_mips_BaselineHelpers_mips_h
+#ifndef jit_mips_SharedICHelpers_mips_h
+#define jit_mips_SharedICHelpers_mips_h
 
 #include "jit/BaselineFrame.h"
 #include "jit/BaselineIC.h"
-#include "jit/BaselineRegisters.h"
 #include "jit/MacroAssembler.h"
+#include "jit/SharedICRegisters.h"
 
 namespace js {
 namespace jit {
