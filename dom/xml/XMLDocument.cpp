@@ -434,7 +434,7 @@ XMLDocument::Load(const nsAString& aUrl, ErrorResult& aRv)
   mListenerManager = elm;
 
   
-  nsCOMPtr<nsIInterfaceRequestor> req = nsContentUtils::GetSameOriginChecker();
+  nsCOMPtr<nsIInterfaceRequestor> req = nsContentUtils::SameOriginChecker();
 
   nsCOMPtr<nsIChannel> channel;
   

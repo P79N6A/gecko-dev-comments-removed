@@ -5648,7 +5648,7 @@ nsContentUtils::StringContainsASCIIUpper(const nsAString& aStr)
 
 
 nsIInterfaceRequestor*
-nsContentUtils::GetSameOriginChecker()
+nsContentUtils::SameOriginChecker()
 {
   if (!sSameOriginChecker) {
     sSameOriginChecker = new SameOriginCheckerImpl();

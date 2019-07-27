@@ -1635,7 +1635,7 @@ public:
 
   
   static nsresult CheckSameOrigin(nsIChannel *aOldChannel, nsIChannel *aNewChannel);
-  static nsIInterfaceRequestor* GetSameOriginChecker();
+  static nsIInterfaceRequestor* SameOriginChecker();
 
   
 
