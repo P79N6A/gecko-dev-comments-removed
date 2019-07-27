@@ -490,6 +490,9 @@ PeerConnectionImpl::ConvertRTCConfiguration(const RTCConfiguration& aSrc,
     if (!(isStun || isStuns || isTurn || isTurns)) {
       return NS_ERROR_FAILURE;
     }
+    if (isTurns || isStuns) {
+      continue; 
+    }
     nsAutoCString spec;
     rv = url->GetSpec(spec);
     NS_ENSURE_SUCCESS(rv, rv);
