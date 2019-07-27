@@ -829,11 +829,11 @@ pref("devtools.dump.emit", false);
 
 pref("devtools.discovery.log", false);
 
-pref("devtools.remote.wifi.scan", false);
+pref("devtools.remote.wifi.scan", true);
 
 
 
-pref("devtools.remote.wifi.visible", false);
+pref("devtools.remote.wifi.visible", true);
 
 pref("devtools.remote.tls-handshake-timeout", 10000);
 
