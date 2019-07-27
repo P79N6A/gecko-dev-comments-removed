@@ -252,12 +252,6 @@ protected:
     GtkIMContext* GetContext();
 
     
-    
-    
-    
-    bool IsEditable();
-
-    
     bool IsDestroyed() { return !mOwnerWindow; }
 
     

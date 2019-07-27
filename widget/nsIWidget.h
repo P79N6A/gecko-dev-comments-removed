@@ -384,9 +384,20 @@ struct IMEState {
   {
   }
 
+  
+  
+  
   bool IsEditable() const
   {
     return mEnabled == ENABLED || mEnabled == PASSWORD;
+  }
+  
+  
+  
+  
+  bool MaybeEditable() const
+  {
+    return IsEditable() || mEnabled == PLUGIN;
   }
 };
 
