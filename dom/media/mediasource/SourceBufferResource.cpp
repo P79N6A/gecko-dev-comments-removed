@@ -48,28 +48,46 @@ SourceBufferResource::Read(char* aBuffer, uint32_t aCount, uint32_t* aBytes)
   SBR_DEBUGV("SourceBufferResource(%p)::Read(aBuffer=%p, aCount=%u, aBytes=%p)",
              this, aBytes, aCount, aBytes);
   ReentrantMonitorAutoEnter mon(mMonitor);
-  bool blockingRead = !!aBytes;
 
-  while (blockingRead &&
+  return ReadInternal(aBuffer, aCount, aBytes,  !aBytes);
+}
+
+nsresult
+SourceBufferResource::ReadInternal(char* aBuffer, uint32_t aCount, uint32_t* aBytes, bool aMayBlock)
+{
+  mMonitor.AssertCurrentThreadIn();
+  MOZ_ASSERT_IF(!aMayBlock, aBytes);
+
+  
+  
+  
+  uint64_t readOffset = mOffset;
+
+  while (aMayBlock &&
          !mEnded &&
-         mOffset + aCount > static_cast<uint64_t>(GetLength())) {
-    SBR_DEBUGV("SourceBufferResource(%p)::Read waiting for data", this);
-    mon.Wait();
+         readOffset + aCount > static_cast<uint64_t>(GetLength())) {
+    SBR_DEBUGV("SourceBufferResource(%p)::ReadInternal waiting for data", this);
+    mMonitor.Wait();
   }
 
-  uint32_t available = GetLength() - mOffset;
+  uint32_t available = GetLength() - readOffset;
   uint32_t count = std::min(aCount, available);
-  SBR_DEBUGV("SourceBufferResource(%p)::Read() mOffset=%llu GetLength()=%u available=%u count=%u mEnded=%d",
-             this, mOffset, GetLength(), available, count, mEnded);
+  SBR_DEBUGV("SourceBufferResource(%p)::ReadInternal() readOffset=%llu GetLength()=%u available=%u count=%u mEnded=%d",
+             this, readOffset, GetLength(), available, count, mEnded);
   if (available == 0) {
-    SBR_DEBUGV("SourceBufferResource(%p)::Read() reached EOF", this);
+    SBR_DEBUGV("SourceBufferResource(%p)::ReadInternal() reached EOF", this);
     *aBytes = 0;
     return NS_OK;
   }
 
-  mInputBuffer.CopyData(mOffset, count, aBuffer);
+  mInputBuffer.CopyData(readOffset, count, aBuffer);
   *aBytes = count;
-  mOffset += count;
+
+  
+  
+  
+  mOffset = readOffset + count;
+
   return NS_OK;
 }
 
@@ -79,11 +97,20 @@ SourceBufferResource::ReadAt(int64_t aOffset, char* aBuffer, uint32_t aCount, ui
   SBR_DEBUG("SourceBufferResource(%p)::ReadAt(aOffset=%lld, aBuffer=%p, aCount=%u, aBytes=%p)",
             this, aOffset, aBytes, aCount, aBytes);
   ReentrantMonitorAutoEnter mon(mMonitor);
+  return ReadAtInternal(aOffset, aBuffer, aCount, aBytes,  !aBytes);
+}
+
+nsresult
+SourceBufferResource::ReadAtInternal(int64_t aOffset, char* aBuffer, uint32_t aCount, uint32_t* aBytes,
+                                     bool aMayBlock)
+{
+  mMonitor.AssertCurrentThreadIn();
   nsresult rv = SeekInternal(aOffset);
   if (NS_FAILED(rv)) {
     return rv;
   }
-  return Read(aBuffer, aCount, aBytes);
+
+  return ReadInternal(aBuffer, aCount, aBytes, aMayBlock);
 }
 
 nsresult
@@ -134,11 +161,14 @@ SourceBufferResource::ReadFromCache(char* aBuffer, int64_t aOffset, uint32_t aCo
   SBR_DEBUG("SourceBufferResource(%p)::ReadFromCache(aBuffer=%p, aOffset=%lld, aCount=%u)",
             this, aBuffer, aOffset, aCount);
   ReentrantMonitorAutoEnter mon(mMonitor);
-  int64_t oldOffset = mOffset;
   uint32_t bytesRead;
-  nsresult rv = ReadAt(aOffset, aBuffer, aCount, &bytesRead);
-  mOffset = oldOffset;
-  return rv;
+  int64_t oldOffset = mOffset;
+  nsresult rv = ReadAtInternal(aOffset, aBuffer, aCount, &bytesRead,  false);
+  mOffset = oldOffset; 
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  return bytesRead == aCount ? NS_OK : NS_ERROR_FAILURE;
 }
 
 uint32_t
