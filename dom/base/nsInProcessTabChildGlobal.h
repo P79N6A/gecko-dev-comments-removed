@@ -28,7 +28,7 @@ class EventChainPreVisitor;
 } 
 
 class nsInProcessTabChildGlobal : public mozilla::DOMEventTargetHelper,
-                                  public nsFrameScriptExecutor,
+                                  public nsMessageManagerScriptExecutor,
                                   public nsIInProcessContentFrameMessageManager,
                                   public nsIGlobalObject,
                                   public nsIScriptObjectPrincipal,

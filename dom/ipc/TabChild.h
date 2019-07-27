@@ -173,7 +173,7 @@ protected:
 
 
 class TabChildBase : public nsISupports,
-                     public nsFrameScriptExecutor,
+                     public nsMessageManagerScriptExecutor,
                      public ipc::MessageManagerCallback
 {
 public:

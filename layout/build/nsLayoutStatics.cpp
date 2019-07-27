@@ -316,7 +316,7 @@ nsLayoutStatics::Shutdown()
   
   
 
-  nsFrameScriptExecutor::Shutdown();
+  nsMessageManagerScriptExecutor::Shutdown();
   nsFocusManager::Shutdown();
 #ifdef MOZ_XUL
   nsXULPopupManager::Shutdown();
