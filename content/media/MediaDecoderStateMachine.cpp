@@ -2162,9 +2162,6 @@ MediaDecoderStateMachine::SeekCompleted()
   
   DECODER_LOG(PR_LOG_DEBUG, "Seek completed, mCurrentFrameTime=%lld", mCurrentFrameTime);
 
-  
-  
-  mScheduler->FreezeScheduling();
   {
     ReentrantMonitorAutoExit exitMon(mDecoder->GetReentrantMonitor());
     NS_DispatchToMainThread(stopEvent, NS_DISPATCH_SYNC);
@@ -2176,7 +2173,6 @@ MediaDecoderStateMachine::SeekCompleted()
   mQuickBuffering = false;
 
   ScheduleStateMachine();
-  mScheduler->ThawScheduling();
 }
 
 
