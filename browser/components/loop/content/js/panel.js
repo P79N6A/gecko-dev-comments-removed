@@ -117,7 +117,7 @@ loop.panel = (function(_, mozL10n) {
 
 
   var AvailabilityDropdown = React.createClass({displayName: "AvailabilityDropdown",
-    mixins: [sharedMixins.DropdownMenuMixin],
+    mixins: [sharedMixins.DropdownMenuMixin()],
 
     getInitialState: function() {
       return {
@@ -322,7 +322,7 @@ loop.panel = (function(_, mozL10n) {
       mozLoop: React.PropTypes.object.isRequired
     },
 
-    mixins: [sharedMixins.DropdownMenuMixin, sharedMixins.WindowCloseMixin],
+    mixins: [sharedMixins.DropdownMenuMixin(), sharedMixins.WindowCloseMixin],
 
     handleClickSettingsEntry: function() {
       
@@ -941,6 +941,7 @@ loop.panel = (function(_, mozL10n) {
     ), document.querySelector("#main"));
 
     document.body.setAttribute("dir", mozL10n.getDirection());
+    document.body.setAttribute("platform", loop.shared.utils.getPlatform());
 
     
     var evtObject = document.createEvent('Event');

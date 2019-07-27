@@ -85,108 +85,163 @@ loop.shared.mixins = (function() {
 
 
 
-  var DropdownMenuMixin = {
-    get documentBody() {
-      return rootObject.document.body;
-    },
 
-    getInitialState: function() {
-      return {showMenu: false};
-    },
 
-    _onBodyClick: function(event) {
-      var menuButton = this.refs["menu-button"] && this.refs["menu-button"].getDOMNode();
-      if (this.refs.anchor) {
-        menuButton = this.refs.anchor.getDOMNode();
-      }
-      
-      
-      if (event.target !== menuButton) {
-        this.setState({ showMenu: false });
-      }
-    },
 
-    _correctMenuPosition: function() {
-      var menu = this.refs.menu && this.refs.menu.getDOMNode();
-      if (!menu) {
-        return;
-      }
 
-      
-      var x, y;
-      var menuNodeRect = menu.getBoundingClientRect();
-      var x = menuNodeRect.left;
-      var y = menuNodeRect.top;
-      
-      
-      var bodyMargin = 10;
-      var bodyRect = {
-        height: this.documentBody.offsetHeight - bodyMargin,
-        width: this.documentBody.offsetWidth - bodyMargin
-      };
 
-      
-      var anchor = this.refs.anchor && this.refs.anchor.getDOMNode();
-      if (anchor) {
+
+  var DropdownMenuMixin = function(boundingBoxSelector) {
+    return {
+      get documentBody() {
+        return rootObject.document.body;
+      },
+
+      getInitialState: function() {
+        return {
+          showMenu: false
+        };
+      },
+
+      _onBodyClick: function(event) {
+        var menuButton = this.refs["menu-button"] && this.refs["menu-button"].getDOMNode();
+        if (this.refs.anchor) {
+          menuButton = this.refs.anchor.getDOMNode();
+        }
         
         
-        var anchorNodeRect = anchor.getBoundingClientRect();
+        if (event.target !== menuButton) {
+          this.setState({ showMenu: false });
+        }
+      },
+
+      _correctMenuPosition: function() {
+        var menu = this.refs.menu && this.refs.menu.getDOMNode();
+        if (!menu) {
+          return;
+        }
+        if (menu.style.maxWidth)
+          menu.style.maxWidth = "none";
+        if (menu.style.maxHeight)
+          menu.style.maxHeight = "none";
+
+        
+        var x, y, boundingBox, boundingRect;
         
         
-        x = anchorNodeRect.left - (menuNodeRect.width / 2) + (anchorNodeRect.width / 2);
-        y = anchorNodeRect.top - menuNodeRect.height - anchorNodeRect.height;
-      }
-
-      var overflowX = false;
-      var overflowY = false;
-      
-      if (x + menuNodeRect.width > bodyRect.width) {
+        var boundOffset = 4;
+        var menuNodeRect = menu.getBoundingClientRect();
         
-        x = bodyRect.width - ((anchor ? 0 : x) + menuNodeRect.width);
-        overflowX = true;
-      }
-      
-      if (y + menuNodeRect.height > bodyRect.height) {
         
-        y = bodyRect.height - ((anchor ? 0 : y) + menuNodeRect.height);
-        overflowY = true;
+        if (boundingBoxSelector) {
+          boundingBox = this.documentBody.querySelector(boundingBoxSelector);
+          if (boundingBox) {
+            boundingRect = boundingBox.getBoundingClientRect();
+          }
+        }
+        if (!boundingRect) {
+          boundingRect = {
+            height: this.documentBody.offsetHeight,
+            left: 0,
+            top: 0,
+            width: this.documentBody.offsetWidth
+          };
+        }
+        
+        
+        boundingRect.width -= boundOffset;
+        boundingRect.height -= boundOffset;
+
+        var x = menuNodeRect.left;
+        var y = menuNodeRect.top;
+
+        
+        var anchor = this.refs.anchor && this.refs.anchor.getDOMNode();
+        if (anchor) {
+          
+          
+          var anchorNodeRect = anchor.getBoundingClientRect();
+          
+          
+          x = Math.floor(anchorNodeRect.left - (menuNodeRect.width / 2) + (anchorNodeRect.width / 2));
+          y = Math.floor(anchorNodeRect.top - menuNodeRect.height - anchorNodeRect.height);
+        }
+
+        var overflowX = false;
+        var overflowY = false;
+        
+        if (x + menuNodeRect.width > boundingRect.width) {
+          
+          x = Math.floor(boundingRect.width - ((anchor ? 0 : x) + menuNodeRect.width));
+          overflowX = true;
+        }
+        
+        if (y + menuNodeRect.height > boundingRect.height) {
+          
+          y = Math.floor(boundingRect.height - ((anchor ? 0 : y) + menuNodeRect.height));
+          overflowY = true;
+        }
+
+        if (anchor || overflowX) {
+          
+          
+          
+          
+          if (menuNodeRect.width > boundingRect.width) {
+            menu.classList.add("overflow");
+            menu.style.maxWidth = boundingRect.width + "px";
+          }
+          menu.style.marginLeft = x + "px";
+        } else if (!menu.style.marginLeft) {
+          menu.style.marginLeft = "auto";
+        }
+
+        if (anchor || overflowY) {
+          if (menuNodeRect.height > (boundingRect.height + y)) {
+            menu.classList.add("overflow");
+            
+            
+            menu.style.maxHeight = (boundingRect.height + y) + "px";
+            
+            
+            
+            y += menuNodeRect.height - (boundingRect.height + y);
+          }
+          menu.style.marginTop =  y + "px";
+        } else if (!menu.style.marginLeft) {
+          menu.style.marginTop = "auto";
+        }
+
+        menu.style.visibility = "visible";
+      },
+
+      componentDidMount: function() {
+        this.documentBody.addEventListener("click", this._onBodyClick);
+        rootObject.addEventListener("blur", this.hideDropdownMenu);
+      },
+
+      componentWillUnmount: function() {
+        this.documentBody.removeEventListener("click", this._onBodyClick);
+        rootObject.removeEventListener("blur", this.hideDropdownMenu);
+      },
+
+      showDropdownMenu: function() {
+        this.setState({showMenu: true}, this._correctMenuPosition);
+      },
+
+      hideDropdownMenu: function() {
+        this.setState({showMenu: false}, function() {
+          var menu = this.refs.menu && this.refs.menu.getDOMNode();
+          if (menu) {
+            menu.style.visibility = "hidden";
+          }
+        });
+      },
+
+      toggleDropdownMenu: function() {
+        this[this.state.showMenu ? "hideDropdownMenu" : "showDropdownMenu"]();
       }
-
-      if (anchor || overflowX) {
-        menu.style.marginLeft = x + "px";
-      } else if (!menu.style.marginLeft) {
-        menu.style.marginLeft = "auto";
-      }
-
-      if (anchor || overflowY) {
-        menu.style.marginTop =  y + "px";
-      } else if (!menu.style.marginLeft) {
-        menu.style.marginTop = "auto";
-      }
-    },
-
-    componentDidMount: function() {
-      this.documentBody.addEventListener("click", this._onBodyClick);
-      rootObject.addEventListener("blur", this.hideDropdownMenu);
-    },
-
-    componentWillUnmount: function() {
-      this.documentBody.removeEventListener("click", this._onBodyClick);
-      rootObject.removeEventListener("blur", this.hideDropdownMenu);
-    },
-
-    showDropdownMenu: function() {
-      this.setState({showMenu: true});
-      rootObject.setTimeout(this._correctMenuPosition, 0);
-    },
-
-    hideDropdownMenu: function() {
-      this.setState({showMenu: false});
-    },
-
-    toggleDropdownMenu: function() {
-      this[this.state.showMenu ? "hideDropdownMenu" : "showDropdownMenu"]();
-    }
+    };
   };
 
   

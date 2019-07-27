@@ -264,6 +264,25 @@ var inChrome = typeof Components != "undefined" && "utils" in Components;
 
 
 
+
+
+
+
+  var getPlatform = function(os) {
+    os = getOS(os);
+    var platform = "other";
+    if (os.indexOf("mac") > -1) {
+      platform = "mac";
+    } else if (os.indexOf("win") > -1) {
+      platform = "win";
+    }
+    return platform;
+  };
+
+  
+
+
+
   function locationData() {
     return {
       hash: window.location.hash,
@@ -632,6 +651,7 @@ var inChrome = typeof Components != "undefined" && "utils" in Components;
     getBoolPreference: getBoolPreference,
     getOS: getOS,
     getOSVersion: getOSVersion,
+    getPlatform: getPlatform,
     isChrome: isChrome,
     isFirefox: isFirefox,
     isFirefoxOS: isFirefoxOS,
