@@ -179,7 +179,12 @@ nsXPCWrappedJSClass::CallQueryInterfaceOnJSObject(JSContext* cx,
     
     
     
-    if (!xpc::AccessCheck::isChrome(js::GetObjectCompartment(jsobj))) {
+    
+    
+    
+    if (!AccessCheck::isChrome(jsobj) ||
+        !AccessCheck::isChrome(js::UncheckedUnwrap(jsobj)))
+    {
         return nullptr;
     }
 
