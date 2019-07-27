@@ -1351,10 +1351,18 @@ class DebugScopeProxy : public BaseProxyHandler
                 else
                     frame.unaliasedLocal(local) = vp;
             } else {
-                if (action == GET)
+                if (action == GET) {
+                    
+                    
+                    
+                    if (!block->staticBlock().needsClone()) {
+                        *accessResult = ACCESS_LOST;
+                        return true;
+                    }
                     vp.set(block->var(i, DONT_CHECK_ALIASING));
-                else
+                } else {
                     block->setVar(i, vp, DONT_CHECK_ALIASING);
+                }
             }
 
             *accessResult = ACCESS_UNALIASED;
