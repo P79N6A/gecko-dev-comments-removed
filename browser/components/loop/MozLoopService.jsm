@@ -520,7 +520,13 @@ let MozLoopServiceInternal = {
 
 
   registerWithLoopServer: function(sessionType, pushUrls, retry = true) {
-    return this.hawkRequest(sessionType, "/registration", "POST", { simplePushURLs: pushUrls})
+    
+    
+    let msg = {
+        simplePushURL: pushUrls.calls,
+        simplePushURLs: pushUrls
+    };
+    return this.hawkRequest(sessionType, "/registration", "POST", msg)
       .then((response) => {
         
         
