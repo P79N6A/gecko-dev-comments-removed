@@ -2077,6 +2077,11 @@ private:
   PtrInfo* AddWeakMapNode(JS::GCCellPtr aThing);
   PtrInfo* AddWeakMapNode(JSObject* aObject);
 
+  void SetFirstChild()
+  {
+    mCurrPi->SetFirstChild(mEdgeBuilder.Mark());
+  }
+
   void SetLastChild()
   {
     mCurrPi->SetLastChild(mEdgeBuilder.Mark());
@@ -2253,7 +2258,7 @@ CCGraphBuilder::BuildGraph(SliceBudget& aBudget)
 
     
     
-    mCurrPi->SetFirstChild(mEdgeBuilder.Mark());
+    SetFirstChild();
 
     if (pi->mParticipant) {
       nsresult rv = pi->mParticipant->Traverse(pi->mPointer, *this);
