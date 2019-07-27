@@ -96,7 +96,6 @@ BasicLayerManager::PushGroupForLayer(gfxContext* aContext, Layer* aLayer,
     
     
     *aNeedsClipToVisibleRegion = !didCompleteClip || aRegion.GetNumRects() > 1;
-    MOZ_ASSERT(!aContext->IsCairo());
     aContext->PushGroup(gfxContentType::COLOR);
     result = aContext;
   } else {
@@ -175,37 +174,22 @@ public:
     const nsIntRegion& visibleRegion = mLayer->GetEffectiveVisibleRegion();
     const nsIntRect& bounds = visibleRegion.GetBounds();
 
-    if (mTarget->IsCairo()) {
-      nsRefPtr<gfxASurface> currentSurface = mTarget->CurrentSurface();
-      const gfxRect& targetOpaqueRect = currentSurface->GetOpaqueRect();
+    DrawTarget *dt = mTarget->GetDrawTarget();
+    const IntRect& targetOpaqueRect = dt->GetOpaqueRect();
 
-      
-      
-      if (targetOpaqueRect.IsEmpty() && visibleRegion.GetNumRects() == 1 &&
-          (mLayer->GetContentFlags() & Layer::CONTENT_OPAQUE) &&
-          !mTransform.HasNonAxisAlignedTransform()) {
-        currentSurface->SetOpaqueRect(
-            mTarget->UserToDevice(gfxRect(bounds.x, bounds.y, bounds.width, bounds.height)));
+    
+    
+    if (targetOpaqueRect.IsEmpty() && visibleRegion.GetNumRects() == 1 &&
+        (mLayer->GetContentFlags() & Layer::CONTENT_OPAQUE) &&
+        !mTransform.HasNonAxisAlignedTransform()) {
+
+      gfx::Rect opaqueRect = dt->GetTransform().TransformBounds(
+        gfx::Rect(bounds.x, bounds.y, bounds.width, bounds.height));
+      opaqueRect.RoundIn();
+      IntRect intOpaqueRect;
+      if (opaqueRect.ToIntRect(&intOpaqueRect)) {
+        mTarget->GetDrawTarget()->SetOpaqueRect(intOpaqueRect);
         mPushedOpaqueRect = true;
-      }
-    } else {
-      DrawTarget *dt = mTarget->GetDrawTarget();
-      const IntRect& targetOpaqueRect = dt->GetOpaqueRect();
-
-      
-      
-      if (targetOpaqueRect.IsEmpty() && visibleRegion.GetNumRects() == 1 &&
-          (mLayer->GetContentFlags() & Layer::CONTENT_OPAQUE) &&
-          !mTransform.HasNonAxisAlignedTransform()) {
-
-        gfx::Rect opaqueRect = dt->GetTransform().TransformBounds(
-          gfx::Rect(bounds.x, bounds.y, bounds.width, bounds.height));
-        opaqueRect.RoundIn();
-        IntRect intOpaqueRect;
-        if (opaqueRect.ToIntRect(&intOpaqueRect)) {
-          mTarget->GetDrawTarget()->SetOpaqueRect(intOpaqueRect);
-          mPushedOpaqueRect = true;
-        }
       }
     }
   }
@@ -214,12 +198,7 @@ public:
   
   
   void ClearOpaqueRect() {
-    if (mTarget->IsCairo()) {
-      nsRefPtr<gfxASurface> currentSurface = mTarget->CurrentSurface();
-      currentSurface->SetOpaqueRect(gfxRect());
-    } else {
-      mTarget->GetDrawTarget()->SetOpaqueRect(IntRect());
-    }
+    mTarget->GetDrawTarget()->SetOpaqueRect(IntRect());
   }
 
   gfxContext* mTarget;
