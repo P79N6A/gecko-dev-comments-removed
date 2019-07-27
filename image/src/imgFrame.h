@@ -236,6 +236,14 @@ public:
 
   void WaitUntilComplete() const;
 
+  
+
+
+
+
+
+  uint32_t GetBytesPerPixel() const { return GetIsPaletted() ? 1 : 4; }
+
   IntSize GetImageSize() const { return mImageSize; }
   nsIntRect GetRect() const;
   IntSize GetSize() const { return mSize; }

@@ -291,7 +291,10 @@ struct SurfaceCache
 
 
 
-  static bool CanHold(const IntSize& aSize);
+
+
+
+  static bool CanHold(const IntSize& aSize, uint32_t aBytesPerPixel = 4);
   static bool CanHold(size_t aSize);
 
   
