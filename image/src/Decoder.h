@@ -407,6 +407,13 @@ protected:
 
 
 
+  void CompleteDecode();
+
+  
+
+
+
+
 
 
 
@@ -457,6 +464,7 @@ protected:
   bool mDecodeDone;
   bool mDataError;
   bool mDecodeAborted;
+  bool mShouldReportError;
   bool mImageIsTransient;
   bool mImageIsLocked;
 
