@@ -3,7 +3,8 @@
 
 
 
-#include "mozilla/layers/CanvasClient.h"
+#include "CanvasClient.h"
+
 #include "ClientCanvasLayer.h"          
 #include "CompositorChild.h"            
 #include "GLContext.h"                  
@@ -169,7 +170,7 @@ CanvasClientSurfaceStream::Update(gfx::IntSize aSize, ClientCanvasLayer* aLayer)
     return;
   }
 
-  if (surf->Type() != SharedSurfaceType::Gralloc) {
+  if (surf->mType != SharedSurfaceType::Gralloc) {
     printf_stderr("Unexpected non-Gralloc SharedSurface in IPC path!");
     MOZ_ASSERT(false);
     return;

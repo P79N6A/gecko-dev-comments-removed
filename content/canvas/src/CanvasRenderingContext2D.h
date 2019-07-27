@@ -30,7 +30,7 @@ class nsGlobalWindow;
 class nsXULElement;
 
 namespace mozilla {
-namespace gfx {
+namespace gl {
 class SourceSurface;
 class SurfaceStream;
 }
@@ -711,7 +711,7 @@ protected:
   
   mozilla::RefPtr<mozilla::gfx::DrawTarget> mTarget;
 
-  RefPtr<gfx::SurfaceStream> mStream;
+  RefPtr<gl::SurfaceStream> mStream;
 
   
 

@@ -23,25 +23,14 @@
 #include "mozilla/gfx/Point.h"
 
 namespace mozilla {
-    namespace gfx {
-        class SurfaceStream;
-        class SharedSurface;
-    }
-    namespace gl {
-        class GLContext;
-        class SharedSurface_GL;
-        class SurfaceFactory_GL;
-    }
-}
-
-namespace mozilla {
 namespace gl {
+
+class GLContext;
+class SharedSurface;
+class SurfaceStream;
 
 class DrawBuffer
 {
-protected:
-    typedef struct gfx::SurfaceCaps SurfaceCaps;
-
 public:
     
     
@@ -53,8 +42,10 @@ public:
 
 protected:
     GLContext* const mGL;
+public:
     const gfx::IntSize mSize;
     const GLuint mFB;
+protected:
     const GLuint mColorMSRB;
     const GLuint mDepthRB;
     const GLuint mStencilRB;
@@ -75,43 +66,33 @@ protected:
 
 public:
     virtual ~DrawBuffer();
-
-    const gfx::IntSize& Size() const {
-        return mSize;
-    }
-
-    GLuint FB() const {
-        return mFB;
-    }
 };
 
 class ReadBuffer
 {
-protected:
-    typedef struct gfx::SurfaceCaps SurfaceCaps;
-
 public:
     
     static ReadBuffer* Create(GLContext* gl,
                               const SurfaceCaps& caps,
                               const GLFormats& formats,
-                              SharedSurface_GL* surf);
+                              SharedSurface* surf);
 
 protected:
     GLContext* const mGL;
-
+public:
     const GLuint mFB;
+protected:
     
     const GLuint mDepthRB;
     const GLuint mStencilRB;
     
-    SharedSurface_GL* mSurf; 
+    SharedSurface* mSurf; 
 
     ReadBuffer(GLContext* gl,
                GLuint fb,
                GLuint depthRB,
                GLuint stencilRB,
-               SharedSurface_GL* surf)
+               SharedSurface* surf)
         : mGL(gl)
         , mFB(fb)
         , mDepthRB(depthRB)
@@ -123,15 +104,11 @@ public:
     virtual ~ReadBuffer();
 
     
-    void Attach(SharedSurface_GL* surf);
+    void Attach(SharedSurface* surf);
 
     const gfx::IntSize& Size() const;
 
-    GLuint FB() const {
-        return mFB;
-    }
-
-    SharedSurface_GL* SharedSurf() const {
+    SharedSurface* SharedSurf() const {
         return mSurf;
     }
 };
@@ -139,13 +116,6 @@ public:
 
 class GLScreenBuffer
 {
-protected:
-    typedef class gfx::SurfaceStream SurfaceStream;
-    typedef class gfx::SharedSurface SharedSurface;
-    typedef gfx::SurfaceStreamType SurfaceStreamType;
-    typedef gfx::SharedSurfaceType SharedSurfaceType;
-    typedef struct gfx::SurfaceCaps SurfaceCaps;
-
 public:
     
     static GLScreenBuffer* Create(GLContext* gl,
@@ -154,8 +124,10 @@ public:
 
 protected:
     GLContext* const mGL;         
-    SurfaceCaps mCaps;
-    SurfaceFactory_GL* mFactory;  
+public:
+    const SurfaceCaps mCaps;
+protected:
+    SurfaceFactory* mFactory;  
     RefPtr<SurfaceStream> mStream;
 
     DrawBuffer* mDraw;            
@@ -176,7 +148,7 @@ protected:
 
     GLScreenBuffer(GLContext* gl,
                    const SurfaceCaps& caps,
-                   SurfaceFactory_GL* factory,
+                   SurfaceFactory* factory,
                    SurfaceStream* stream)
         : mGL(gl)
         , mCaps(caps)
@@ -202,11 +174,11 @@ public:
         return mStream;
     }
 
-    SurfaceFactory_GL* Factory() const {
+    SurfaceFactory* Factory() const {
         return mFactory;
     }
 
-    SharedSurface_GL* SharedSurf() const {
+    SharedSurface* SharedSurf() const {
         MOZ_ASSERT(mRead);
         return mRead->SharedSurf();
     }
@@ -215,26 +187,22 @@ public:
         return mCaps.preserve;
     }
 
-    const SurfaceCaps& Caps() const {
-        return mCaps;
-    }
-
     GLuint DrawFB() const {
         if (!mDraw)
             return ReadFB();
 
-        return mDraw->FB();
+        return mDraw->mFB;
     }
 
     GLuint ReadFB() const {
-        return mRead->FB();
+        return mRead->mFB;
     }
 
     void DeletingFB(GLuint fb);
 
     const gfx::IntSize& Size() const {
         MOZ_ASSERT(mRead);
-        MOZ_ASSERT(!mDraw || mDraw->Size() == mRead->Size());
+        MOZ_ASSERT(!mDraw || mDraw->mSize == mRead->Size());
         return mRead->Size();
     }
 
@@ -267,7 +235,7 @@ public:
 
 
 
-    void Morph(SurfaceFactory_GL* newFactory, SurfaceStreamType streamType);
+    void Morph(SurfaceFactory* newFactory, SurfaceStreamType streamType);
 
 protected:
     
@@ -278,13 +246,13 @@ public:
 
     bool Resize(const gfx::IntSize& size);
 
-    void Readback(SharedSurface_GL* src, gfx::DataSourceSurface* dest);
+    void Readback(SharedSurface* src, gfx::DataSourceSurface* dest);
 
 protected:
     bool Attach(SharedSurface* surface, const gfx::IntSize& size);
 
     bool CreateDraw(const gfx::IntSize& size, DrawBuffer** out_buffer);
-    ReadBuffer* CreateRead(SharedSurface_GL* surf);
+    ReadBuffer* CreateRead(SharedSurface* surf);
 
 public:
     

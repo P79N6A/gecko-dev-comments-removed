@@ -14,7 +14,6 @@
 class GL_CONTEXT_PROVIDER_NAME
 {
 public:
-    typedef gfx::SurfaceCaps SurfaceCaps;
     
 
 
