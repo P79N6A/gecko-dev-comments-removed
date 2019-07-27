@@ -438,6 +438,26 @@ function stripPrefix(spec)
 
 
 
+
+
+
+function stripHttpAndTrim(spec) {
+  if (spec.startsWith("http://")) {
+    spec = spec.slice(7);
+  }
+  if (spec.endsWith("?")) {
+    spec = spec.slice(0, -1);
+  }
+  if (spec.endsWith("/")) {
+    spec = spec.slice(0, -1);
+  }
+  return spec;
+}
+
+
+
+
+
 function Search(searchString, searchParam, autocompleteListener,
                 resultListener, autocompleteSearch) {
   
@@ -716,8 +736,9 @@ Search.prototype = {
     }
 
     
+    let urlMapKey = stripHttpAndTrim(match.value);
     if ((!match.placeId || !this._usedPlaceIds.has(match.placeId)) &&
-        !this._usedURLs.has(match.value)) {
+        !this._usedURLs.has(urlMapKey)) {
       
       
       
@@ -726,7 +747,7 @@ Search.prototype = {
       
       if (match.placeId)
         this._usedPlaceIds.add(match.placeId);
-      this._usedURLs.add(match.value);
+      this._usedURLs.add(urlMapKey);
 
       this._result.appendMatch(match.value,
                                match.comment,
@@ -759,7 +780,6 @@ Search.prototype = {
     
     if (untrimmedHost &&
         !untrimmedHost.toLowerCase().contains(this._trimmedOriginalSearchString.toLowerCase())) {
-      
       untrimmedHost = null;
     }
 
@@ -794,7 +814,6 @@ Search.prototype = {
     let untrimmedURL = prefix + url;
     if (untrimmedURL &&
         !untrimmedURL.toLowerCase().contains(this._trimmedOriginalSearchString.toLowerCase())) {
-      
       untrimmedURL = null;
      }
 
@@ -871,6 +890,9 @@ Search.prototype = {
         match.style = "bookmark";
       }
     }
+
+    if (action)
+      match.style = "action " + match.style;
 
     match.value = url;
     match.comment = title;
