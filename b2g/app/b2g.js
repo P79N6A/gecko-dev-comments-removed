@@ -664,12 +664,6 @@ pref("javascript.options.mem.gc_low_frequency_heap_growth", 120);
 pref("javascript.options.mem.high_water_mark", 6);
 pref("javascript.options.mem.gc_allocation_threshold_mb", 1);
 pref("javascript.options.mem.gc_decommit_threshold_mb", 1);
-#ifdef JSGC_GENERATIONAL
-pref("javascript.options.mem.gc_min_empty_chunk_count", 1);
-#else
-pref("javascript.options.mem.gc_min_empty_chunk_count", 0);
-#endif
-pref("javascript.options.mem.gc_max_empty_chunk_count", 2);
 
 
 pref("ui.showHideScrollbars", 1);
@@ -1013,7 +1007,7 @@ pref("services.sync.fxaccounts.enabled", true);
 pref("identity.fxaccounts.enabled", true);
 
 
-pref("services.mobileid.server.uri", "https://msisdn-dev.stage.mozaws.net");
+pref("services.mobileid.server.uri", "https://msisdn.services.mozilla.com");
 
 
 pref("dom.mapped_arraybuffer.enabled", true);
