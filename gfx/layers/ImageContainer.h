@@ -373,6 +373,9 @@ public:
 
   bool HasCurrentImage();
 
+  struct OwningImage {
+    nsRefPtr<Image> mImage;
+  };
   
 
 
@@ -382,43 +385,7 @@ public:
 
 
 
-
-
-  already_AddRefed<Image> LockCurrentImage();
-
-  
-
-
-
-  void UnlockCurrentImage();
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  already_AddRefed<gfx::SourceSurface> GetCurrentAsSourceSurface(gfx::IntSize* aSizeResult);
-
-  
-
-
-  already_AddRefed<gfx::SourceSurface> LockCurrentAsSourceSurface(gfx::IntSize* aSizeResult,
-                                                              Image** aCurrentImage = nullptr);
+  void GetCurrentImages(nsTArray<OwningImage>* aImages);
 
   
 
@@ -554,39 +521,19 @@ private:
 class AutoLockImage
 {
 public:
-  explicit AutoLockImage(ImageContainer *aContainer) : mContainer(aContainer) { mImage = mContainer->LockCurrentImage(); }
-  AutoLockImage(ImageContainer *aContainer, RefPtr<gfx::SourceSurface> *aSurface) : mContainer(aContainer) {
-    *aSurface = mContainer->LockCurrentAsSourceSurface(&mSize, getter_AddRefs(mImage));
-  }
-  ~AutoLockImage() { if (mContainer) { mContainer->UnlockCurrentImage(); } }
-
-  Image* GetImage() { return mImage; }
-  const gfx::IntSize &GetSize() { return mSize; }
-
-  void Unlock() { 
-    if (mContainer) {
-      mImage = nullptr;
-      mContainer->UnlockCurrentImage();
-      mContainer = nullptr;
-    }
+  explicit AutoLockImage(ImageContainer *aContainer)
+  {
+    aContainer->GetCurrentImages(&mImages);
   }
 
-  
-
-
-
-
-  void Refresh() {
-    if (mContainer) {
-      mContainer->UnlockCurrentImage();
-      mImage = mContainer->LockCurrentImage();
-    }
+  bool HasImage() const { return !mImages.IsEmpty(); }
+  Image* GetImage() const
+  {
+    return mImages.IsEmpty() ? nullptr : mImages[0].mImage.get();
   }
 
 private:
-  ImageContainer *mContainer;
-  nsRefPtr<Image> mImage;
-  gfx::IntSize mSize;
+  nsAutoTArray<ImageContainer::OwningImage,4> mImages;
 };
 
 struct PlanarYCbCrData {

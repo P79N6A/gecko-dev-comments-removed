@@ -52,9 +52,8 @@ void VideoFrameContainer::SetCurrentFrame(const gfxIntSize& aIntrinsicSize,
   
   
   
-  nsRefPtr<Image> kungFuDeathGrip;
-  kungFuDeathGrip = mImageContainer->LockCurrentImage();
-  mImageContainer->UnlockCurrentImage();
+  nsTArray<ImageContainer::OwningImage> kungFuDeathGrip;
+  mImageContainer->GetCurrentImages(&kungFuDeathGrip);
 
   mImageContainer->SetCurrentImage(aImage);
   gfx::IntSize newFrameSize = mImageContainer->GetCurrentSize();
@@ -71,9 +70,8 @@ void VideoFrameContainer::ClearCurrentFrame()
 
   
   
-  nsRefPtr<Image> kungFuDeathGrip;
-  kungFuDeathGrip = mImageContainer->LockCurrentImage();
-  mImageContainer->UnlockCurrentImage();
+  nsTArray<ImageContainer::OwningImage> kungFuDeathGrip;
+  mImageContainer->GetCurrentImages(&kungFuDeathGrip);
 
   mImageContainer->ClearAllImages();
   mImageSizeChanged = false;
