@@ -527,7 +527,7 @@ LiveRangeAllocator<VREG, forLSRA>::init()
                 LDefinition *def = ins->getDef(j);
                 if (def->isBogusTemp())
                     continue;
-                if (!vregs[def].init(alloc(), block, *ins, def,  false))
+                if (!vregs[def].init(alloc(), *ins, def,  false))
                     return false;
             }
 
@@ -535,14 +535,14 @@ LiveRangeAllocator<VREG, forLSRA>::init()
                 LDefinition *def = ins->getTemp(j);
                 if (def->isBogusTemp())
                     continue;
-                if (!vregs[def].init(alloc(), block, *ins, def,  true))
+                if (!vregs[def].init(alloc(), *ins, def,  true))
                     return false;
             }
         }
         for (size_t j = 0; j < block->numPhis(); j++) {
             LPhi *phi = block->getPhi(j);
             LDefinition *def = phi->getDef(0);
-            if (!vregs[def].init(alloc(), block, phi, def,  false))
+            if (!vregs[def].init(alloc(), phi, def,  false))
                 return false;
         }
     }
