@@ -48,11 +48,19 @@ AppleVDADecoder::AppleVDADecoder(const mp4_demuxer::VideoDecoderConfig& aConfig,
   
   mPictureWidth = mConfig.image_width;
   mPictureHeight = mConfig.image_height;
+  mMaxRefFrames = 4;
   mp4_demuxer::SPSData spsdata;
   if (mp4_demuxer::H264::DecodeSPSFromExtraData(mConfig.extra_data, spsdata) &&
       spsdata.pic_width && spsdata.pic_height) {
     mPictureWidth = spsdata.pic_width;
     mPictureHeight = spsdata.pic_height;
+    
+    
+    
+    
+    mMaxRefFrames =
+      (spsdata.max_num_ref_frames + 1) > mMaxRefFrames ?
+        spsdata.max_num_ref_frames + 1 : mMaxRefFrames;
   }
 
   LOG("Creating AppleVDADecoder for %dx%d h.264 video",
@@ -282,17 +290,9 @@ AppleVDADecoder::OutputFrame(CVPixelBufferRef aImage,
   
   mReorderQueue.Push(data);
   
-  while (mReorderQueue.Length() > 0) {
+  while (mReorderQueue.Length() > mMaxRefFrames) {
     nsRefPtr<VideoData> readyData = mReorderQueue.Pop();
-    if (readyData->mTime <= aFrameRef->decode_timestamp) {
-      LOG("returning queued frame with pts %lld", readyData->mTime);
       mCallback->Output(readyData);
-    } else {
-      LOG("requeued frame with pts %lld > %lld",
-          readyData->mTime, aFrameRef->decode_timestamp);
-      mReorderQueue.Push(readyData);
-      break;
-    }
   }
   LOG("%llu decoded frames queued",
       static_cast<unsigned long long>(mReorderQueue.Length()));
