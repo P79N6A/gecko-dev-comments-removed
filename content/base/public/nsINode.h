@@ -37,7 +37,6 @@ class nsIContent;
 class nsIDocument;
 class nsIDOMElement;
 class nsIDOMNodeList;
-class nsIDOMUserDataHandler;
 class nsIEditor;
 class nsIFrame;
 class nsIMutationObserver;
@@ -245,8 +244,7 @@ private:
 
 
 #define DOM_USER_DATA         1
-#define DOM_USER_DATA_HANDLER 2
-#define SMIL_MAPPED_ATTR_ANIMVAL 3
+#define SMIL_MAPPED_ATTR_ANIMVAL 2
 
 
 #define NS_INODE_IID \
@@ -1155,10 +1153,8 @@ public:
 
 
 
-
-
   nsresult SetUserData(const nsAString& aKey, nsIVariant* aData,
-                       nsIDOMUserDataHandler* aHandler, nsIVariant** aResult);
+                       nsIVariant** aResult);
 
   
 
@@ -1649,7 +1645,6 @@ public:
   nsDOMAttributeMap* GetAttributes();
   void SetUserData(JSContext* aCx, const nsAString& aKey,
                    JS::Handle<JS::Value> aData,
-                   nsIDOMUserDataHandler* aHandler,
                    JS::MutableHandle<JS::Value> aRetval,
                    mozilla::ErrorResult& aError);
   void GetUserData(JSContext* aCx, const nsAString& aKey,
@@ -2045,9 +2040,9 @@ ToCanonicalSupports(nsINode* aPointer)
   { \
     return nsINode::IsEqualNode(aArg, aResult); \
   } \
-  NS_IMETHOD SetUserData(const nsAString& aKey, nsIVariant* aData, nsIDOMUserDataHandler* aHandler, nsIVariant** aResult) __VA_ARGS__ \
+  NS_IMETHOD SetUserData(const nsAString& aKey, nsIVariant* aData, nsIVariant** aResult) __VA_ARGS__ \
   { \
-    return nsINode::SetUserData(aKey, aData, aHandler, aResult); \
+    return nsINode::SetUserData(aKey, aData, aResult); \
   } \
   NS_IMETHOD GetUserData(const nsAString& aKey, nsIVariant** aResult) __VA_ARGS__ \
   { \

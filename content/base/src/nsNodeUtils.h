@@ -14,7 +14,6 @@
 struct CharacterDataChangeInfo;
 class nsIVariant;
 class nsIDOMNode;
-class nsIDOMUserDataHandler;
 template<class E> class nsCOMArray;
 class nsCycleCollectionTraversalCallback;
 
@@ -203,26 +202,6 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-
-  static nsresult CallUserDataHandlers(nsCOMArray<nsINode> &aNodesWithProperties,
-                                       nsIDocument *aOwnerDocument,
-                                       uint16_t aOperation, bool aCloned);
-
-  
-
-
-
-
-
-
   static void TraverseUserData(nsINode* aNode,
                                nsCycleCollectionTraversalCallback &aCb);
 
@@ -234,10 +213,7 @@ public:
 
 
 
-
-  static nsresult CloneNodeImpl(nsINode *aNode, bool aDeep,
-                                bool aCallUserDataHandlers,
-                                nsINode **aResult);
+  static nsresult CloneNodeImpl(nsINode *aNode, bool aDeep, nsINode **aResult);
 
   
 
