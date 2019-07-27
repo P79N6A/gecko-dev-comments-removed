@@ -529,6 +529,7 @@ struct JSCompartment
 
 
     void traceOutgoingCrossCompartmentWrappers(JSTracer* trc);
+    static void traceIncomingCrossCompartmentEdgesForZoneGC(JSTracer* trc);
 
     bool preserveJitCode() { return gcPreserveJitCode; }
 
