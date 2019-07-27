@@ -33,12 +33,18 @@ class TooltoolMixin(object):
         
         
         if 'tooltool_authentication_file' in self.config:
-            return self.config['tooltool_authentication_file']
-
-        if self._is_windows():
-            return r'c:\builds\relengapi.tok'
+            fn = self.config['tooltool_authentication_file']
+        elif self._is_windows():
+            fn = r'c:\builds\relengapi.tok'
         else:
-            return '/builds/relengapi.tok'
+            fn = '/builds/relengapi.tok'
+
+        
+        
+        
+        
+        if os.path.exists(fn):
+            return fn
 
     def tooltool_fetch(self, manifest, bootstrap_cmd=None,
                        output_dir=None, privileged=False, cache=None):

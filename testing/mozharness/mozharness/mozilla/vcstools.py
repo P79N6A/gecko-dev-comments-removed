@@ -39,14 +39,20 @@ class VCSToolsScript(VCSScript):
                     )
                     self.chmod(file_path, 0755)
         else:
+            
+            
             for vcs_tool in VCS_TOOLS:
                 file_path = self.which(vcs_tool)
+
+                
+                
+                if type(self.query_exe(vcs_tool)) is list:
+                    continue
+
+                if not self.is_exe(file_path):
+                    self.critical("%s is not executable." % file_path)
+
                 if file_path is None:
-                    file_path = self.query_exe(vcs_tool)
-
-                    if not self.is_exe(file_path):
-                        self.critical("%s is not executable." % file_path)
-
                     self.fatal("This machine is missing %s, if this is your "
                                "local machine you can use --cfg "
                                "developer_config.py" % vcs_tool)
