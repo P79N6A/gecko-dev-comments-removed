@@ -96,6 +96,12 @@ extern JSObject*
 NewDenseCopyOnWriteArray(JSContext* cx, HandleArrayObject templateObject, gc::InitialHeap heap);
 
 
+extern JSObject*
+NewFullyAllocatedArrayTryReuseGroup(JSContext* cx, JSObject* obj, size_t length,
+                                    NewObjectKind newKind = GenericObject,
+                                    bool forceAnalyze = false);
+
+
 
 
 
@@ -153,8 +159,8 @@ JSString*
 ArrayJoin(JSContext* cx, HandleObject obj, HandleLinearString sepstr, uint32_t length);
 
 extern bool
-array_concat_dense(JSContext* cx, Handle<ArrayObject*> arr1, Handle<ArrayObject*> arr2,
-                   Handle<ArrayObject*> result);
+array_concat_dense(JSContext* cx, HandleObject arr1, HandleObject arr2,
+                   HandleObject result);
 
 bool
 array_join(JSContext* cx, unsigned argc, js::Value* vp);
@@ -163,7 +169,7 @@ extern JSString*
 array_join_impl(JSContext* cx, HandleValue array, HandleString sep);
 
 extern void
-ArrayShiftMoveElements(ArrayObject* obj);
+ArrayShiftMoveElements(JSObject* obj);
 
 extern bool
 array_shift(JSContext* cx, unsigned argc, js::Value* vp);

@@ -37,6 +37,7 @@
 #include "vm/Interpreter-inl.h"
 #include "vm/ScopeObject-inl.h"
 #include "vm/StringObject-inl.h"
+#include "vm/UnboxedObject-inl.h"
 
 using mozilla::BitwiseCast;
 using mozilla::DebugOnly;
@@ -5154,29 +5155,13 @@ RemoveExistingTypedArraySetElemStub(JSContext* cx, ICSetElem_Fallback* stub, Han
     return false;
 }
 
-static size_t
-SetElemObjectInitializedLength(JSObject *obj)
-{
-    if (obj->isNative())
-        return obj->as<NativeObject>().getDenseInitializedLength();
-    return obj->as<UnboxedArrayObject>().initializedLength();
-}
-
-static size_t
-SetElemObjectCapacity(JSObject *obj)
-{
-    if (obj->isNative())
-        return obj->as<NativeObject>().getDenseCapacity();
-    return obj->as<UnboxedArrayObject>().capacity();
-}
-
 static bool
 CanOptimizeDenseOrUnboxedArraySetElem(JSObject* obj, uint32_t index,
                                       Shape* oldShape, uint32_t oldCapacity, uint32_t oldInitLength,
                                       bool* isAddingCaseOut, size_t* protoDepthOut)
 {
-    uint32_t initLength = SetElemObjectInitializedLength(obj);
-    uint32_t capacity = SetElemObjectCapacity(obj);
+    uint32_t initLength = GetAnyBoxedOrUnboxedInitializedLength(obj);
+    uint32_t capacity = GetAnyBoxedOrUnboxedCapacity(obj);
 
     *isAddingCaseOut = false;
     *protoDepthOut = 0;
@@ -5263,9 +5248,9 @@ DoSetElemFallback(JSContext* cx, BaselineFrame* frame, ICSetElem_Fallback* stub_
     
     uint32_t oldCapacity = 0;
     uint32_t oldInitLength = 0;
-    if (obj->isNative() && index.isInt32() && index.toInt32() >= 0) {
-        oldCapacity = obj->as<NativeObject>().getDenseCapacity();
-        oldInitLength = obj->as<NativeObject>().getDenseInitializedLength();
+    if (index.isInt32() && index.toInt32() >= 0) {
+        oldCapacity = GetAnyBoxedOrUnboxedCapacity(obj);
+        oldInitLength = GetAnyBoxedOrUnboxedInitializedLength(obj);
     }
 
     if (op == JSOP_INITELEM) {
@@ -5533,8 +5518,6 @@ ICSetElem_DenseOrUnboxedArray::Compiler::generateStubCode(MacroAssembler& masm)
     
     Register key = masm.extractInt32(R1, ExtractTemp1);
 
-    Address valueAddr(BaselineStackReg, ICStackValueOffset);
-
     if (unboxedType_ == JSVAL_TYPE_MAGIC) {
         
 
@@ -5569,6 +5552,8 @@ ICSetElem_DenseOrUnboxedArray::Compiler::generateStubCode(MacroAssembler& masm)
         regs.takeUnchecked(obj);
         regs.takeUnchecked(key);
 
+        Address valueAddr(BaselineStackReg, ICStackValueOffset);
+
         
         
         
@@ -5598,10 +5583,11 @@ ICSetElem_DenseOrUnboxedArray::Compiler::generateStubCode(MacroAssembler& masm)
         masm.loadPtr(Address(obj, UnboxedArrayObject::offsetOfElements()), scratchReg);
 
         
-        BaseIndex address(obj, key, ScaleFromElemWidth(UnboxedTypeSize(unboxedType_)));
+        BaseIndex address(scratchReg, key, ScaleFromElemWidth(UnboxedTypeSize(unboxedType_)));
 
         EmitUnboxedPreBarrierForBaseline(masm, address, unboxedType_);
 
+        Address valueAddr(BaselineStackReg, ICStackValueOffset + sizeof(Value));
         masm.Push(R0);
         masm.loadValue(valueAddr, R0);
         masm.storeUnboxedProperty(address, unboxedType_,
@@ -5748,8 +5734,6 @@ ICSetElemDenseOrUnboxedArrayAddCompiler::generateStubCode(MacroAssembler& masm)
     
     Register key = masm.extractInt32(R1, ExtractTemp1);
 
-    Address valueAddr(BaselineStackReg, ICStackValueOffset);
-
     if (unboxedType_ == JSVAL_TYPE_MAGIC) {
         
 
@@ -5793,6 +5777,9 @@ ICSetElemDenseOrUnboxedArrayAddCompiler::generateStubCode(MacroAssembler& masm)
         masm.branchTest32(Assembler::Zero, elementsFlags,
                           Imm32(ObjectElements::CONVERT_DOUBLE_ELEMENTS),
                           &dontConvertDoubles);
+
+        Address valueAddr(BaselineStackReg, ICStackValueOffset);
+
         
         
         if (cx->runtime()->jitSupportsFloatingPoint)
@@ -5815,31 +5802,31 @@ ICSetElemDenseOrUnboxedArrayAddCompiler::generateStubCode(MacroAssembler& masm)
         masm.and32(Imm32(UnboxedArrayObject::InitializedLengthMask), scratchReg);
         masm.branch32(Assembler::NotEqual, scratchReg, key, &failure);
 
-        Address lengthAddr(obj, UnboxedArrayObject::offsetOfLength());
-
         
         masm.checkUnboxedArrayCapacity(obj, Int32Key(key), scratchReg, &failure);
+
+        
+        masm.loadPtr(Address(obj, UnboxedArrayObject::offsetOfElements()), scratchReg);
+
+        
+        
+        masm.Push(R0);
+        Address valueAddr(BaselineStackReg, ICStackValueOffset + sizeof(Value));
+        masm.loadValue(valueAddr, R0);
+        BaseIndex address(scratchReg, key, ScaleFromElemWidth(UnboxedTypeSize(unboxedType_)));
+        masm.storeUnboxedProperty(address, unboxedType_,
+                                  ConstantOrRegister(TypedOrValueRegister(R0)), &failurePopR0);
+        masm.Pop(R0);
 
         
         masm.add32(Imm32(1), initLengthAddr);
 
         
+        Address lengthAddr(obj, UnboxedArrayObject::offsetOfLength());
         Label skipIncrementLength;
         masm.branch32(Assembler::Above, lengthAddr, key, &skipIncrementLength);
         masm.add32(Imm32(1), lengthAddr);
         masm.bind(&skipIncrementLength);
-
-        
-        masm.loadPtr(Address(obj, UnboxedArrayObject::offsetOfElements()), scratchReg);
-
-        masm.Push(R0);
-        masm.loadValue(valueAddr, R0);
-
-        
-        BaseIndex address(obj, key, ScaleFromElemWidth(UnboxedTypeSize(unboxedType_)));
-        masm.storeUnboxedProperty(address, unboxedType_,
-                                  ConstantOrRegister(TypedOrValueRegister(R0)), &failurePopR0);
-        masm.Pop(R0);
     }
 
     EmitReturnFromIC(masm);
@@ -9956,18 +9943,11 @@ GetTemplateObjectForNative(JSContext* cx, HandleScript script, jsbytecode* pc,
     }
 
     if (native == js::array_concat) {
-        if (args.thisv().isObject() &&
-            args.thisv().toObject().is<ArrayObject>() &&
-            !args.thisv().toObject().isSingleton() &&
-            !args.thisv().toObject().group()->hasUnanalyzedPreliminaryObjects())
-        {
-            RootedObject proto(cx, args.thisv().toObject().getProto());
-            res.set(NewDenseEmptyArray(cx, proto, TenuredObject));
+        if (args.thisv().isObject() && !args.thisv().toObject().isSingleton()) {
+            res.set(NewFullyAllocatedArrayTryReuseGroup(cx, &args.thisv().toObject(), 0,
+                                                        TenuredObject,  true));
             if (!res)
                 return false;
-
-            res->setGroup(args.thisv().toObject().group());
-            return true;
         }
     }
 
