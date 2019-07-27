@@ -444,10 +444,6 @@ GLScreenBuffer::Swap(const gfx::IntSize& size)
     mFront = mBack;
     mBack = newBack;
 
-    
-    if (mFront) {
-        mFront->Surf()->ProducerRelease();
-    }
     if (mBack) {
         mBack->Surf()->ProducerAcquire();
     }
@@ -468,6 +464,14 @@ GLScreenBuffer::Swap(const gfx::IntSize& size)
         
         
         
+    }
+
+    
+    
+    
+    
+    if (mFront) {
+        mFront->Surf()->ProducerRelease();
     }
 
     return true;
