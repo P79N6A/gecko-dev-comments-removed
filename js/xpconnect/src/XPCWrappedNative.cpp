@@ -1166,7 +1166,7 @@ XPCWrappedNative::InitTearOff(XPCWrappedNativeTearOff* aTearOff,
 
     
     
-    nsRefPtr<nsISupports> obj;
+    nsRefPtr<nsISupports> qiResult;
 
     
     
@@ -1182,14 +1182,14 @@ XPCWrappedNative::InitTearOff(XPCWrappedNativeTearOff* aTearOff,
 
     aTearOff->SetReserved();
 
-    if (NS_FAILED(identity->QueryInterface(*iid, getter_AddRefs(obj))) || !obj) {
+    if (NS_FAILED(identity->QueryInterface(*iid, getter_AddRefs(qiResult))) || !qiResult) {
         aTearOff->SetInterface(nullptr);
         return NS_ERROR_NO_INTERFACE;
     }
 
     
     if (iid->Equals(NS_GET_IID(nsIClassInfo))) {
-        nsCOMPtr<nsISupports> alternate_identity(do_QueryInterface(obj));
+        nsCOMPtr<nsISupports> alternate_identity(do_QueryInterface(qiResult));
         if (alternate_identity.get() != identity) {
             aTearOff->SetInterface(nullptr);
             return NS_ERROR_NO_INTERFACE;
@@ -1212,7 +1212,7 @@ XPCWrappedNative::InitTearOff(XPCWrappedNativeTearOff* aTearOff,
     
     
 
-    nsCOMPtr<nsIXPConnectWrappedJS> wrappedJS(do_QueryInterface(obj));
+    nsCOMPtr<nsIXPConnectWrappedJS> wrappedJS(do_QueryInterface(qiResult));
     if (wrappedJS) {
         RootedObject jso(cx, wrappedJS->GetJSObject());
         if (jso == mFlatJSObject) {
@@ -1274,7 +1274,7 @@ XPCWrappedNative::InitTearOff(XPCWrappedNativeTearOff* aTearOff,
     }
 
     aTearOff->SetInterface(aInterface);
-    aTearOff->SetNative(obj.forget().take());
+    aTearOff->SetNative(qiResult.forget().take());
     if (needJSObject && !InitTearOffJSObject(aTearOff))
         return NS_ERROR_OUT_OF_MEMORY;
 
