@@ -120,6 +120,12 @@ NativeRegExpMacroAssembler::GenerateCode(JSContext* cx, bool match_only)
     
     masm.bind(&entry_label_);
 
+#ifdef JS_CODEGEN_ARM64
+    
+    MOZ_ASSERT(!masm.GetStackPointer64().Is(sp));
+    masm.moveStackPtrTo(masm.getStackPointer());
+#endif
+
     
     size_t pushedNonVolatileRegisters = 0;
     for (GeneralRegisterForwardIterator iter(savedNonVolatileRegisters); iter.more(); ++iter) {
@@ -387,7 +393,7 @@ NativeRegExpMacroAssembler::GenerateCode(JSContext* cx, bool match_only)
 
         
         LiveGeneralRegisterSet volatileRegs(GeneralRegisterSet::Volatile());
-#if defined(JS_CODEGEN_ARM)
+#if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_ARM64)
         volatileRegs.add(Register::FromCode(Registers::lr));
 #elif defined(JS_CODEGEN_MIPS)
         volatileRegs.add(Register::FromCode(Registers::ra));

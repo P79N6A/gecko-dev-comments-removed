@@ -61,16 +61,16 @@ ptrdiff_t Assembler::LinkAndGetOffsetTo(BufferOffset branch, Label* label) {
   if (armbuffer_.oom())
     return js::jit::LabelBase::INVALID_OFFSET;
 
-  
   if (label->bound()) {
+    
     ptrdiff_t branch_offset = ptrdiff_t(branch.getOffset() / element_size);
     ptrdiff_t label_offset = ptrdiff_t(label->offset() / element_size);
     return label_offset - branch_offset;
   }
 
-  
-  
   if (!label->used()) {
+    
+    
     label->use(branch.getOffset());
     return js::jit::LabelBase::INVALID_OFFSET;
   }
@@ -285,6 +285,7 @@ void Assembler::adrp(Instruction* at, const Register& rd, int imm21) {
 void Assembler::adrp(const Register& rd, Label* label) {
   VIXL_ASSERT(AllowPageOffsetDependentCode());
 
+  
   BufferOffset offset = Emit(0);
   Instruction* ins = getInstructionAt(offset);
 
@@ -402,6 +403,7 @@ bool MozBaseAssembler::PatchConstantPoolLoad(void* loadAddr, void* constPoolAddr
   uint32_t index = load->ImmLLiteral();
 
   
+  
   uint32_t* constPool = reinterpret_cast<uint32_t*>(constPoolAddr);
   Instruction* source = reinterpret_cast<Instruction*>(&constPool[index]);
 
@@ -424,6 +426,10 @@ struct PoolHeader {
     union {
       struct {
         uint32_t size : 15;
+
+	
+	
+	
         bool isNatural : 1;
         uint32_t ONES : 16;
       };
@@ -469,14 +475,13 @@ void MozBaseAssembler::WritePoolHeader(uint8_t* start, js::jit::Pool* p, bool is
   JS_STATIC_ASSERT(sizeof(PoolHeader) == 4);
 
   
-  uint8_t* pool = start + sizeof(PoolHeader) + p->getPoolSize();
+  const uintptr_t totalPoolSize = sizeof(PoolHeader) + p->getPoolSize();
+  const uintptr_t totalPoolInstructions = totalPoolSize / sizeof(Instruction);
 
-  uintptr_t size = pool - start;
-  VIXL_ASSERT((size & 3) == 0);
-  size = size >> 2;
-  VIXL_ASSERT(size < (1 << 15));
+  VIXL_ASSERT((totalPoolSize & 0x3) == 0);
+  VIXL_ASSERT(totalPoolInstructions < (1 << 15));
 
-  PoolHeader header(size, isNatural);
+  PoolHeader header(totalPoolInstructions, isNatural);
   *(PoolHeader*)start = header;
 }
 

@@ -18,15 +18,17 @@
 #include "jit/RegisterSets.h"
 #include "vm/HelperThreads.h"
 
-#if defined(JS_CODEGEN_ARM)
-#define JS_USE_LINK_REGISTER
+#if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_ARM64)
+
+# define JS_USE_LINK_REGISTER
 #endif
 
-#if defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_ARM)
+#if defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_ARM64)
 
 
-#    define JS_SMALL_BRANCH
+# define JS_SMALL_BRANCH
 #endif
+
 namespace js {
 namespace jit {
 
@@ -706,9 +708,13 @@ static const uint32_t AsmJSFrameBytesAfterReturnAddress = sizeof(void*);
 
 static const unsigned AsmJSActivationGlobalDataOffset = 0;
 static const unsigned AsmJSHeapGlobalDataOffset = sizeof(void*);
-static const unsigned AsmJSNaN64GlobalDataOffset = 2 * sizeof(void*);
-static const unsigned AsmJSNaN32GlobalDataOffset = 2 * sizeof(void*) + sizeof(double);
-
+#if defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_ARM64)
+static const unsigned AsmJSNaN64GlobalDataOffset = 3 * sizeof(void*);
+static const unsigned AsmJSNaN32GlobalDataOffset = 3 * sizeof(void*) + sizeof(double);
+#else
+static const unsigned AsmJSNaN64GlobalDataOffset = 4 * sizeof(void*);
+static const unsigned AsmJSNaN32GlobalDataOffset = 4 * sizeof(void*) + sizeof(double);
+#endif
 
 
 
@@ -769,7 +775,7 @@ class AsmJSHeapAccess
         cmpDelta_ = cmp == NoLengthCheck ? 0 : insnOffset - cmp;
         MOZ_ASSERT(offsetWithinWholeSimdVector_ == offsetWithinWholeSimdVector);
     }
-#elif defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
+#elif defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_ARM64) || defined(JS_CODEGEN_MIPS)
     explicit AsmJSHeapAccess(uint32_t insnOffset)
     {
         mozilla::PodZero(this);  
