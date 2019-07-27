@@ -805,52 +805,60 @@ AudioCallbackDriver::DataCallback(AudioDataValue* aBuffer, long aFrames)
   if (!mIterationDurationMS) {
     mIterationDurationMS = durationMS;
   } else {
-    mIterationDurationMS += durationMS;
-    mIterationDurationMS /= 2;
+    mIterationDurationMS = (mIterationDurationMS*3) + durationMS;
+    mIterationDurationMS /= 4;
   }
 
   mBuffer.SetBuffer(aBuffer, aFrames);
-
+  
+  
   mScratchBuffer.Empty(mBuffer);
+  
+  
+  if (mBuffer.Available()) {
 
-  mStateComputedTime = mNextStateComputedTime;
+    mStateComputedTime = mNextStateComputedTime;
 
-  
-  
-  
-  mNextStateComputedTime =
-    mGraphImpl->RoundUpToNextAudioBlock(mStateComputedTime + mBuffer.Available());
+    
+    
+    
+    mNextStateComputedTime =
+      mGraphImpl->RoundUpToNextAudioBlock(mStateComputedTime + mBuffer.Available());
 
-  mIterationStart = mIterationEnd;
-  
-  
-  
-  GraphTime inGraph = mStateComputedTime - mIterationStart;
-  
-  
-  
-  
-  
-  
-  mIterationEnd = mIterationStart + 0.8 * inGraph;
+    mIterationStart = mIterationEnd;
+    
+    
+    
+    GraphTime inGraph = mStateComputedTime - mIterationStart;
+    
+    
+    
+    
+    
+    
+    mIterationEnd = mIterationStart + 0.8 * inGraph;
 
-  STREAM_LOG(PR_LOG_DEBUG, ("interval[%ld; %ld] state[%ld; %ld] (frames: %ld) (durationMS: %u) (duration ticks: %ld)\n",
-             (long)mIterationStart, (long)mIterationEnd,
-             (long)mStateComputedTime, (long)mNextStateComputedTime,
-             (long)aFrames, (uint32_t)durationMS,
-             (long)(mNextStateComputedTime - mStateComputedTime)));
+    STREAM_LOG(PR_LOG_DEBUG, ("interval[%ld; %ld] state[%ld; %ld] (frames: %ld) (durationMS: %u) (duration ticks: %ld)\n",
+                              (long)mIterationStart, (long)mIterationEnd,
+                              (long)mStateComputedTime, (long)mNextStateComputedTime,
+                              (long)aFrames, (uint32_t)durationMS,
+                              (long)(mNextStateComputedTime - mStateComputedTime)));
 
-  mCurrentTimeStamp = TimeStamp::Now();
+    mCurrentTimeStamp = TimeStamp::Now();
 
-  if (mStateComputedTime < mIterationEnd) {
-    STREAM_LOG(PR_LOG_WARNING, ("Media graph global underrun detected"));
-    mIterationEnd = mStateComputedTime;
+    if (mStateComputedTime < mIterationEnd) {
+      STREAM_LOG(PR_LOG_WARNING, ("Media graph global underrun detected"));
+      mIterationEnd = mStateComputedTime;
+    }
+
+    stillProcessing = mGraphImpl->OneIteration(mIterationStart,
+                                               mIterationEnd,
+                                               mStateComputedTime,
+                                               mNextStateComputedTime);
+  } else {
+    NS_WARNING("DataCallback buffer filled entirely from scratch buffer, skipping iteration.");
+    stillProcessing = true;
   }
-
-  stillProcessing = mGraphImpl->OneIteration(mIterationStart,
-                                             mIterationEnd,
-                                             mStateComputedTime,
-                                             mNextStateComputedTime);
 
   mBuffer.BufferFilled();
 
@@ -896,7 +904,7 @@ AudioCallbackDriver::MixerCallback(AudioDataValue* aMixedBuffer,
   uint32_t toWrite = mBuffer.Available();
 
   if (!mBuffer.Available()) {
-    NS_WARNING("MediaStreamGraph SpillBuffer full, expect frame drop.");
+    NS_WARNING("DataCallback buffer full, expect frame drops.");
   }
 
   MOZ_ASSERT(mBuffer.Available() <= aFrames);

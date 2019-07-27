@@ -121,6 +121,11 @@ public:
     aBuffer.WriteFrames(mBuffer, framesToWrite);
 
     mPosition -= FramesToSamples(CHANNELS, framesToWrite);
+    
+    if (mPosition > 0) {
+      PodMove(mBuffer, mBuffer + FramesToSamples(CHANNELS, framesToWrite),
+              mPosition);
+    }
 
     return framesToWrite;
   }
