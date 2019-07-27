@@ -321,8 +321,17 @@ public class GeckoAppShell
             return;
         }
         sLayerView = lv;
+
         
-        editableListener = new GeckoEditable();
+        
+        
+        if (editableListener == null) {
+            
+            editableListener = new GeckoEditable();
+        } else {
+            
+            GeckoAppShell.notifyIMEContext(GeckoEditableListener.IME_STATE_DISABLED, "", "", "");
+        }
     }
 
     @RobocopTarget
