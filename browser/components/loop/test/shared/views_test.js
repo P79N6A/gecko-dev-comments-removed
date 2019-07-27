@@ -460,10 +460,6 @@ describe("loop.shared.views", function() {
       });
 
       describe("#startPublishing", function() {
-        beforeEach(function() {
-          sandbox.stub(fakePublisher, "on");
-        });
-
         it("should publish local stream", function() {
           comp.startPublishing();
 
@@ -471,15 +467,10 @@ describe("loop.shared.views", function() {
           sinon.assert.calledOnce(fakeSession.publish);
         });
 
+        
+        
         it("should start listening to OT publisher accessDialogOpened and " +
-          " accessDenied events",
-          function() {
-            comp.startPublishing();
-
-            sinon.assert.called(fakePublisher.on);
-            sinon.assert.calledWith(fakePublisher.on,
-                                    "accessDialogOpened accessDenied");
-          });
+          " accessDenied events");
       });
 
       describe("#stopPublishing", function() {

@@ -5,7 +5,12 @@
 
 
 
-(function(root, factory) {
+(function(factory) {
+
+  
+  
+  var root = (typeof self == 'object' && self.self == self && self) ||
+            (typeof global == 'object' && global.global == global && global);
 
   
   if (typeof define === 'function' && define.amd) {
@@ -17,15 +22,16 @@
 
   
   } else if (typeof exports !== 'undefined') {
-    var _ = require('underscore');
-    factory(root, exports, _);
+    var _ = require('underscore'), $;
+    try { $ = require('jquery'); } catch(e) {}
+    factory(root, exports, _, $);
 
   
   } else {
     root.Backbone = factory(root, {}, root._, (root.jQuery || root.Zepto || root.ender || root.$));
   }
 
-}(this, function(root, Backbone, _, $) {
+}(function(root, Backbone, _, $) {
 
   
   
@@ -35,13 +41,10 @@
   var previousBackbone = root.Backbone;
 
   
-  var array = [];
-  var push = array.push;
-  var slice = array.slice;
-  var splice = array.splice;
+  var slice = [].slice;
 
   
-  Backbone.VERSION = '1.1.2';
+  Backbone.VERSION = '1.2.1';
 
   
   
@@ -67,106 +70,47 @@
 
   
   
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  var Events = Backbone.Events = {
-
-    
-    
-    on: function(name, callback, context) {
-      if (!eventsApi(this, 'on', name, [callback, context]) || !callback) return this;
-      this._events || (this._events = {});
-      var events = this._events[name] || (this._events[name] = []);
-      events.push({callback: callback, context: context, ctx: context || this});
-      return this;
-    },
-
-    
-    
-    once: function(name, callback, context) {
-      if (!eventsApi(this, 'once', name, [callback, context]) || !callback) return this;
-      var self = this;
-      var once = _.once(function() {
-        self.off(name, once);
-        callback.apply(this, arguments);
-      });
-      once._callback = callback;
-      return this.on(name, once, context);
-    },
-
-    
-    
-    
-    
-    off: function(name, callback, context) {
-      var retain, ev, events, names, i, l, j, k;
-      if (!this._events || !eventsApi(this, 'off', name, [callback, context])) return this;
-      if (!name && !callback && !context) {
-        this._events = void 0;
-        return this;
-      }
-      names = name ? [name] : _.keys(this._events);
-      for (i = 0, l = names.length; i < l; i++) {
-        name = names[i];
-        if (events = this._events[name]) {
-          this._events[name] = retain = [];
-          if (callback || context) {
-            for (j = 0, k = events.length; j < k; j++) {
-              ev = events[j];
-              if ((callback && callback !== ev.callback && callback !== ev.callback._callback) ||
-                  (context && context !== ev.context)) {
-                retain.push(ev);
-              }
-            }
-          }
-          if (!retain.length) delete this._events[name];
-        }
-      }
-
-      return this;
-    },
-
-    
-    
-    
-    
-    trigger: function(name) {
-      if (!this._events) return this;
-      var args = slice.call(arguments, 1);
-      if (!eventsApi(this, 'trigger', name, args)) return this;
-      var events = this._events[name];
-      var allEvents = this._events.all;
-      if (events) triggerEvents(events, args);
-      if (allEvents) triggerEvents(allEvents, arguments);
-      return this;
-    },
-
-    
-    
-    stopListening: function(obj, name, callback) {
-      var listeningTo = this._listeningTo;
-      if (!listeningTo) return this;
-      var remove = !name && !callback;
-      if (!callback && typeof name === 'object') callback = this;
-      if (obj) (listeningTo = {})[obj._listenId] = obj;
-      for (var id in listeningTo) {
-        obj = listeningTo[id];
-        obj.off(name, callback, this);
-        if (remove || _.isEmpty(obj._events)) delete this._listeningTo[id];
-      }
-      return this;
+  var addMethod = function(length, method, attribute) {
+    switch (length) {
+      case 1: return function() {
+        return _[method](this[attribute]);
+      };
+      case 2: return function(value) {
+        return _[method](this[attribute], value);
+      };
+      case 3: return function(iteratee, context) {
+        return _[method](this[attribute], iteratee, context);
+      };
+      case 4: return function(iteratee, defaultVal, context) {
+        return _[method](this[attribute], iteratee, defaultVal, context);
+      };
+      default: return function() {
+        var args = slice.call(arguments);
+        args.unshift(this[attribute]);
+        return _[method].apply(_, args);
+      };
     }
-
   };
+  var addUnderscoreMethods = function(Class, methods, attribute) {
+    _.each(methods, function(length, method) {
+      if (_[method]) Class.prototype[method] = addMethod(length, method, attribute);
+    });
+  };
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  var Events = Backbone.Events = {};
 
   
   var eventSplitter = /\s+/;
@@ -174,27 +118,228 @@
   
   
   
-  var eventsApi = function(obj, action, name, rest) {
-    if (!name) return true;
+  
+  
+  var eventsApi = function(iteratee, memo, name, callback, opts) {
+    var i = 0, names;
+    if (name && typeof name === 'object') {
+      
+      if (callback !== void 0 && 'context' in opts && opts.context === void 0) opts.context = callback;
+      for (names = _.keys(name); i < names.length ; i++) {
+        memo = iteratee(memo, names[i], name[names[i]], opts);
+      }
+    } else if (name && eventSplitter.test(name)) {
+      
+      for (names = name.split(eventSplitter); i < names.length; i++) {
+        memo = iteratee(memo, names[i], callback, opts);
+      }
+    } else {
+      memo = iteratee(memo, name, callback, opts);
+    }
+    return memo;
+  };
+
+  
+  
+  Events.on = function(name, callback, context) {
+    return internalOn(this, name, callback, context);
+  };
+
+  
+  
+  var internalOn = function(obj, name, callback, context, listening) {
+    obj._events = eventsApi(onApi, obj._events || {}, name, callback, {
+        context: context,
+        ctx: obj,
+        listening: listening
+    });
+
+    if (listening) {
+      var listeners = obj._listeners || (obj._listeners = {});
+      listeners[listening.id] = listening;
+    }
+
+    return obj;
+  };
+
+  
+  
+  Events.listenTo =  function(obj, name, callback) {
+    if (!obj) return this;
+    var id = obj._listenId || (obj._listenId = _.uniqueId('l'));
+    var listeningTo = this._listeningTo || (this._listeningTo = {});
+    var listening = listeningTo[id];
 
     
-    if (typeof name === 'object') {
-      for (var key in name) {
-        obj[action].apply(obj, [key, name[key]].concat(rest));
-      }
-      return false;
+    
+    if (!listening) {
+      var thisId = this._listenId || (this._listenId = _.uniqueId('l'));
+      listening = listeningTo[id] = {obj: obj, objId: id, id: thisId, listeningTo: listeningTo, count: 0};
     }
 
     
-    if (eventSplitter.test(name)) {
-      var names = name.split(eventSplitter);
-      for (var i = 0, l = names.length; i < l; i++) {
-        obj[action].apply(obj, [names[i]].concat(rest));
+    internalOn(obj, name, callback, this, listening);
+    return this;
+  };
+
+  
+  var onApi = function(events, name, callback, options) {
+    if (callback) {
+      var handlers = events[name] || (events[name] = []);
+      var context = options.context, ctx = options.ctx, listening = options.listening;
+      if (listening) listening.count++;
+
+      handlers.push({ callback: callback, context: context, ctx: context || ctx, listening: listening });
+    }
+    return events;
+  };
+
+  
+  
+  
+  
+  Events.off =  function(name, callback, context) {
+    if (!this._events) return this;
+    this._events = eventsApi(offApi, this._events, name, callback, {
+        context: context,
+        listeners: this._listeners
+    });
+    return this;
+  };
+
+  
+  
+  Events.stopListening =  function(obj, name, callback) {
+    var listeningTo = this._listeningTo;
+    if (!listeningTo) return this;
+
+    var ids = obj ? [obj._listenId] : _.keys(listeningTo);
+
+    for (var i = 0; i < ids.length; i++) {
+      var listening = listeningTo[ids[i]];
+
+      
+      
+      if (!listening) break;
+
+      listening.obj.off(name, callback, this);
+    }
+    if (_.isEmpty(listeningTo)) this._listeningTo = void 0;
+
+    return this;
+  };
+
+  
+  var offApi = function(events, name, callback, options) {
+    
+    if (!events) return;
+
+    var i = 0, listening;
+    var context = options.context, listeners = options.listeners;
+
+    
+    if (!name && !callback && !context) {
+      var ids = _.keys(listeners);
+      for (; i < ids.length; i++) {
+        listening = listeners[ids[i]];
+        delete listeners[listening.id];
+        delete listening.listeningTo[listening.objId];
       }
-      return false;
+      return;
     }
 
-    return true;
+    var names = name ? [name] : _.keys(events);
+    for (; i < names.length; i++) {
+      name = names[i];
+      var handlers = events[name];
+
+      
+      if (!handlers) break;
+
+      
+      var remaining = [];
+      for (var j = 0; j < handlers.length; j++) {
+        var handler = handlers[j];
+        if (
+          callback && callback !== handler.callback &&
+            callback !== handler.callback._callback ||
+              context && context !== handler.context
+        ) {
+          remaining.push(handler);
+        } else {
+          listening = handler.listening;
+          if (listening && --listening.count === 0) {
+            delete listeners[listening.id];
+            delete listening.listeningTo[listening.objId];
+          }
+        }
+      }
+
+      
+      if (remaining.length) {
+        events[name] = remaining;
+      } else {
+        delete events[name];
+      }
+    }
+    if (_.size(events)) return events;
+  };
+
+  
+  
+  
+  
+  Events.once =  function(name, callback, context) {
+    
+    var events = eventsApi(onceMap, {}, name, callback, _.bind(this.off, this));
+    return this.on(events, void 0, context);
+  };
+
+  
+  Events.listenToOnce =  function(obj, name, callback) {
+    
+    var events = eventsApi(onceMap, {}, name, callback, _.bind(this.stopListening, this, obj));
+    return this.listenTo(obj, events);
+  };
+
+  
+  
+  var onceMap = function(map, name, callback, offer) {
+    if (callback) {
+      var once = map[name] = _.once(function() {
+        offer(name, once);
+        callback.apply(this, arguments);
+      });
+      once._callback = callback;
+    }
+    return map;
+  };
+
+  
+  
+  
+  
+  Events.trigger =  function(name) {
+    if (!this._events) return this;
+
+    var length = Math.max(0, arguments.length - 1);
+    var args = Array(length);
+    for (var i = 0; i < length; i++) args[i] = arguments[i + 1];
+
+    eventsApi(triggerApi, this._events, name, void 0, args);
+    return this;
+  };
+
+  
+  var triggerApi = function(objEvents, name, cb, args) {
+    if (objEvents) {
+      var events = objEvents[name];
+      var allEvents = objEvents.all;
+      if (events && allEvents) allEvents = allEvents.slice();
+      if (events) triggerEvents(events, args);
+      if (allEvents) triggerEvents(allEvents, [name].concat(args));
+    }
+    return objEvents;
   };
 
   
@@ -210,22 +355,6 @@
       default: while (++i < l) (ev = events[i]).callback.apply(ev.ctx, args); return;
     }
   };
-
-  var listenMethods = {listenTo: 'on', listenToOnce: 'once'};
-
-  
-  
-  
-  _.each(listenMethods, function(implementation, method) {
-    Events[method] = function(obj, name, callback) {
-      var listeningTo = this._listeningTo || (this._listeningTo = {});
-      var id = obj._listenId || (obj._listenId = _.uniqueId('l'));
-      listeningTo[id] = obj;
-      if (!callback && typeof name === 'object') callback = this;
-      obj[implementation](name, callback, this);
-      return this;
-    };
-  });
 
   
   Events.bind   = Events.on;
@@ -248,7 +377,7 @@
   var Model = Backbone.Model = function(attributes, options) {
     var attrs = attributes || {};
     options || (options = {});
-    this.cid = _.uniqueId('c');
+    this.cid = _.uniqueId(this.cidPrefix);
     this.attributes = {};
     if (options.collection) this.collection = options.collection;
     if (options.parse) attrs = this.parse(attrs, options) || {};
@@ -270,6 +399,10 @@
     
     
     idAttribute: 'id',
+
+    
+    
+    cidPrefix: 'c',
 
     
     
@@ -303,13 +436,18 @@
     },
 
     
+    matches: function(attrs) {
+      return !!_.iteratee(attrs, this)(this.attributes);
+    },
+
+    
     
     
     set: function(key, val, options) {
-      var attr, attrs, unset, changes, silent, changing, prev, current;
       if (key == null) return this;
 
       
+      var attrs;
       if (typeof key === 'object') {
         attrs = key;
         options = val;
@@ -323,29 +461,32 @@
       if (!this._validate(attrs, options)) return false;
 
       
-      unset           = options.unset;
-      silent          = options.silent;
-      changes         = [];
-      changing        = this._changing;
-      this._changing  = true;
+      var unset      = options.unset;
+      var silent     = options.silent;
+      var changes    = [];
+      var changing   = this._changing;
+      this._changing = true;
 
       if (!changing) {
         this._previousAttributes = _.clone(this.attributes);
         this.changed = {};
       }
-      current = this.attributes, prev = this._previousAttributes;
+
+      var current = this.attributes;
+      var changed = this.changed;
+      var prev    = this._previousAttributes;
 
       
       if (this.idAttribute in attrs) this.id = attrs[this.idAttribute];
 
       
-      for (attr in attrs) {
+      for (var attr in attrs) {
         val = attrs[attr];
         if (!_.isEqual(current[attr], val)) changes.push(attr);
         if (!_.isEqual(prev[attr], val)) {
-          this.changed[attr] = val;
+          changed[attr] = val;
         } else {
-          delete this.changed[attr];
+          delete changed[attr];
         }
         unset ? delete current[attr] : current[attr] = val;
       }
@@ -353,7 +494,7 @@
       
       if (!silent) {
         if (changes.length) this._pending = options;
-        for (var i = 0, l = changes.length; i < l; i++) {
+        for (var i = 0; i < changes.length; i++) {
           this.trigger('change:' + changes[i], this, current[changes[i]], options);
         }
       }
@@ -401,13 +542,14 @@
     
     changedAttributes: function(diff) {
       if (!diff) return this.hasChanged() ? _.clone(this.changed) : false;
-      var val, changed = false;
       var old = this._changing ? this._previousAttributes : this.attributes;
+      var changed = {};
       for (var attr in diff) {
-        if (_.isEqual(old[attr], (val = diff[attr]))) continue;
-        (changed || (changed = {}))[attr] = val;
+        var val = diff[attr];
+        if (_.isEqual(old[attr], val)) continue;
+        changed[attr] = val;
       }
-      return changed;
+      return _.size(changed) ? changed : false;
     },
 
     
@@ -425,15 +567,14 @@
 
     
     
-    
     fetch: function(options) {
-      options = options ? _.clone(options) : {};
-      if (options.parse === void 0) options.parse = true;
+      options = _.extend({parse: true}, options);
       var model = this;
       var success = options.success;
       options.success = function(resp) {
-        if (!model.set(model.parse(resp, options), options)) return false;
-        if (success) success(model, resp, options);
+        var serverAttrs = options.parse ? model.parse(resp, options) : resp;
+        if (!model.set(serverAttrs, options)) return false;
+        if (success) success.call(options.context, model, resp, options);
         model.trigger('sync', model, resp, options);
       };
       wrapError(this, options);
@@ -444,9 +585,8 @@
     
     
     save: function(key, val, options) {
-      var attrs, method, xhr, attributes = this.attributes;
-
       
+      var attrs;
       if (key == null || typeof key === 'object') {
         attrs = key;
         options = val;
@@ -454,46 +594,43 @@
         (attrs = {})[key] = val;
       }
 
-      options = _.extend({validate: true}, options);
+      options = _.extend({validate: true, parse: true}, options);
+      var wait = options.wait;
 
       
       
       
-      if (attrs && !options.wait) {
+      if (attrs && !wait) {
         if (!this.set(attrs, options)) return false;
       } else {
         if (!this._validate(attrs, options)) return false;
       }
 
       
-      if (attrs && options.wait) {
-        this.attributes = _.extend({}, attributes, attrs);
-      }
-
       
-      
-      if (options.parse === void 0) options.parse = true;
       var model = this;
       var success = options.success;
+      var attributes = this.attributes;
       options.success = function(resp) {
         
         model.attributes = attributes;
-        var serverAttrs = model.parse(resp, options);
-        if (options.wait) serverAttrs = _.extend(attrs || {}, serverAttrs);
-        if (_.isObject(serverAttrs) && !model.set(serverAttrs, options)) {
-          return false;
-        }
-        if (success) success(model, resp, options);
+        var serverAttrs = options.parse ? model.parse(resp, options) : resp;
+        if (wait) serverAttrs = _.extend({}, attrs, serverAttrs);
+        if (serverAttrs && !model.set(serverAttrs, options)) return false;
+        if (success) success.call(options.context, model, resp, options);
         model.trigger('sync', model, resp, options);
       };
       wrapError(this, options);
 
-      method = this.isNew() ? 'create' : (options.patch ? 'patch' : 'update');
-      if (method === 'patch') options.attrs = attrs;
-      xhr = this.sync(method, this, options);
+      
+      if (attrs && wait) this.attributes = _.extend({}, attributes, attrs);
+
+      var method = this.isNew() ? 'create' : (options.patch ? 'patch' : 'update');
+      if (method === 'patch' && !options.attrs) options.attrs = attrs;
+      var xhr = this.sync(method, this, options);
 
       
-      if (attrs && options.wait) this.attributes = attributes;
+      this.attributes = attributes;
 
       return xhr;
     },
@@ -505,25 +642,27 @@
       options = options ? _.clone(options) : {};
       var model = this;
       var success = options.success;
+      var wait = options.wait;
 
       var destroy = function() {
+        model.stopListening();
         model.trigger('destroy', model, model.collection, options);
       };
 
       options.success = function(resp) {
-        if (options.wait || model.isNew()) destroy();
-        if (success) success(model, resp, options);
+        if (wait) destroy();
+        if (success) success.call(options.context, model, resp, options);
         if (!model.isNew()) model.trigger('sync', model, resp, options);
       };
 
+      var xhr = false;
       if (this.isNew()) {
-        options.success();
-        return false;
+        _.defer(options.success);
+      } else {
+        wrapError(this, options);
+        xhr = this.sync('delete', this, options);
       }
-      wrapError(this, options);
-
-      var xhr = this.sync('delete', this, options);
-      if (!options.wait) destroy();
+      if (!wait) destroy();
       return xhr;
     },
 
@@ -536,7 +675,8 @@
         _.result(this.collection, 'url') ||
         urlError();
       if (this.isNew()) return base;
-      return base.replace(/([^\/])$/, '$1/') + encodeURIComponent(this.id);
+      var id = this.get(this.idAttribute);
+      return base.replace(/[^\/]$/, '$&/') + encodeURIComponent(id);
     },
 
     
@@ -557,7 +697,7 @@
 
     
     isValid: function(options) {
-      return this._validate({}, _.extend(options || {}, { validate: true }));
+      return this._validate({}, _.defaults({validate: true}, options));
     },
 
     
@@ -574,16 +714,11 @@
   });
 
   
-  var modelMethods = ['keys', 'values', 'pairs', 'invert', 'pick', 'omit'];
+  var modelMethods = { keys: 1, values: 1, pairs: 1, invert: 1, pick: 0,
+      omit: 0, chain: 1, isEmpty: 1 };
 
   
-  _.each(modelMethods, function(method) {
-    Model.prototype[method] = function() {
-      var args = slice.call(arguments);
-      args.unshift(this.attributes);
-      return _[method].apply(_, args);
-    };
-  });
+  addUnderscoreMethods(Model, modelMethods, 'attributes');
 
   
   
@@ -625,7 +760,7 @@
     
     
     toJSON: function(options) {
-      return this.map(function(model){ return model.toJSON(options); });
+      return this.map(function(model) { return model.toJSON(options); });
     },
 
     
@@ -640,25 +775,12 @@
 
     
     remove: function(models, options) {
+      options = _.extend({}, options);
       var singular = !_.isArray(models);
       models = singular ? [models] : _.clone(models);
-      options || (options = {});
-      var i, l, index, model;
-      for (i = 0, l = models.length; i < l; i++) {
-        model = models[i] = this.get(models[i]);
-        if (!model) continue;
-        delete this._byId[model.id];
-        delete this._byId[model.cid];
-        index = this.indexOf(model);
-        this.models.splice(index, 1);
-        this.length--;
-        if (!options.silent) {
-          options.index = index;
-          model.trigger('remove', model, this, options);
-        }
-        this._removeReference(model, options);
-      }
-      return singular ? models[0] : models;
+      var removed = this._removeModels(models, options);
+      if (!options.silent && removed) this.trigger('update', this, options);
+      return singular ? removed[0] : removed;
     },
 
     
@@ -667,34 +789,31 @@
     
     set: function(models, options) {
       options = _.defaults({}, options, setOptions);
-      if (options.parse) models = this.parse(models, options);
+      if (options.parse && !this._isModel(models)) models = this.parse(models, options);
       var singular = !_.isArray(models);
-      models = singular ? (models ? [models] : []) : _.clone(models);
-      var i, l, id, model, attrs, existing, sort;
+      models = singular ? (models ? [models] : []) : models.slice();
+      var id, model, attrs, existing, sort;
       var at = options.at;
-      var targetModel = this.model;
+      if (at != null) at = +at;
+      if (at < 0) at += this.length + 1;
       var sortable = this.comparator && (at == null) && options.sort !== false;
       var sortAttr = _.isString(this.comparator) ? this.comparator : null;
       var toAdd = [], toRemove = [], modelMap = {};
       var add = options.add, merge = options.merge, remove = options.remove;
       var order = !sortable && add && remove ? [] : false;
+      var orderChanged = false;
 
       
       
-      for (i = 0, l = models.length; i < l; i++) {
-        attrs = models[i] || {};
-        if (attrs instanceof Model) {
-          id = model = attrs;
-        } else {
-          id = attrs[targetModel.prototype.idAttribute || 'id'];
-        }
+      for (var i = 0; i < models.length; i++) {
+        attrs = models[i];
 
         
         
-        if (existing = this.get(id)) {
+        if (existing = this.get(attrs)) {
           if (remove) modelMap[existing.cid] = true;
-          if (merge) {
-            attrs = attrs === model ? model.attributes : attrs;
+          if (merge && attrs !== existing) {
+            attrs = this._isModel(attrs) ? attrs.attributes : attrs;
             if (options.parse) attrs = existing.parse(attrs, options);
             existing.set(attrs, options);
             if (sortable && !sort && existing.hasChanged(sortAttr)) sort = true;
@@ -711,30 +830,38 @@
 
         
         model = existing || model;
-        if (order && (model.isNew() || !modelMap[model.id])) order.push(model);
-        modelMap[model.id] = true;
+        if (!model) continue;
+        id = this.modelId(model.attributes);
+        if (order && (model.isNew() || !modelMap[id])) {
+          order.push(model);
+
+          
+          orderChanged = orderChanged || !this.models[i] || model.cid !== this.models[i].cid;
+        }
+
+        modelMap[id] = true;
       }
 
       
       if (remove) {
-        for (i = 0, l = this.length; i < l; ++i) {
+        for (var i = 0; i < this.length; i++) {
           if (!modelMap[(model = this.models[i]).cid]) toRemove.push(model);
         }
-        if (toRemove.length) this.remove(toRemove, options);
+        if (toRemove.length) this._removeModels(toRemove, options);
       }
 
       
-      if (toAdd.length || (order && order.length)) {
+      if (toAdd.length || orderChanged) {
         if (sortable) sort = true;
         this.length += toAdd.length;
         if (at != null) {
-          for (i = 0, l = toAdd.length; i < l; i++) {
+          for (var i = 0; i < toAdd.length; i++) {
             this.models.splice(at + i, 0, toAdd[i]);
           }
         } else {
           if (order) this.models.length = 0;
           var orderedModels = order || toAdd;
-          for (i = 0, l = orderedModels.length; i < l; i++) {
+          for (var i = 0; i < orderedModels.length; i++) {
             this.models.push(orderedModels[i]);
           }
         }
@@ -745,10 +872,13 @@
 
       
       if (!options.silent) {
-        for (i = 0, l = toAdd.length; i < l; i++) {
-          (model = toAdd[i]).trigger('add', model, this, options);
+        var addOpts = at != null ? _.clone(options) : options;
+        for (var i = 0; i < toAdd.length; i++) {
+          if (at != null) addOpts.index = at + i;
+          (model = toAdd[i]).trigger('add', model, this, addOpts);
         }
-        if (sort || (order && order.length)) this.trigger('sort', this, options);
+        if (sort || orderChanged) this.trigger('sort', this, options);
+        if (toAdd.length || toRemove.length) this.trigger('update', this, options);
       }
 
       
@@ -760,8 +890,8 @@
     
     
     reset: function(models, options) {
-      options || (options = {});
-      for (var i = 0, l = this.models.length; i < l; i++) {
+      options = options ? _.clone(options) : {};
+      for (var i = 0; i < this.models.length; i++) {
         this._removeReference(this.models[i], options);
       }
       options.previousModels = this.models;
@@ -779,8 +909,7 @@
     
     pop: function(options) {
       var model = this.at(this.length - 1);
-      this.remove(model, options);
-      return model;
+      return this.remove(model, options);
     },
 
     
@@ -791,8 +920,7 @@
     
     shift: function(options) {
       var model = this.at(0);
-      this.remove(model, options);
-      return model;
+      return this.remove(model, options);
     },
 
     
@@ -803,23 +931,22 @@
     
     get: function(obj) {
       if (obj == null) return void 0;
-      return this._byId[obj] || this._byId[obj.id] || this._byId[obj.cid];
+      var id = this.modelId(this._isModel(obj) ? obj.attributes : obj);
+      return this._byId[obj] || this._byId[id] || this._byId[obj.cid];
     },
 
     
     at: function(index) {
+      if (index < 0) index += this.length;
       return this.models[index];
     },
 
     
     
     where: function(attrs, first) {
-      if (_.isEmpty(attrs)) return first ? void 0 : [];
+      var matches = _.matches(attrs);
       return this[first ? 'find' : 'filter'](function(model) {
-        for (var key in attrs) {
-          if (attrs[key] !== model.get(key)) return false;
-        }
-        return true;
+        return matches(model.attributes);
       });
     },
 
@@ -856,14 +983,13 @@
     
     
     fetch: function(options) {
-      options = options ? _.clone(options) : {};
-      if (options.parse === void 0) options.parse = true;
+      options = _.extend({parse: true}, options);
       var success = options.success;
       var collection = this;
       options.success = function(resp) {
         var method = options.reset ? 'reset' : 'set';
         collection[method](resp, options);
-        if (success) success(collection, resp, options);
+        if (success) success.call(options.context, collection, resp, options);
         collection.trigger('sync', collection, resp, options);
       };
       wrapError(this, options);
@@ -875,13 +1001,15 @@
     
     create: function(model, options) {
       options = options ? _.clone(options) : {};
-      if (!(model = this._prepareModel(model, options))) return false;
-      if (!options.wait) this.add(model, options);
+      var wait = options.wait;
+      model = this._prepareModel(model, options);
+      if (!model) return false;
+      if (!wait) this.add(model, options);
       var collection = this;
       var success = options.success;
-      options.success = function(model, resp) {
-        if (options.wait) collection.add(model, options);
-        if (success) success(model, resp, options);
+      options.success = function(model, resp, callbackOpts) {
+        if (wait) collection.add(model, callbackOpts);
+        if (success) success.call(callbackOpts.context, model, resp, callbackOpts);
       };
       model.save(null, options);
       return model;
@@ -895,7 +1023,15 @@
 
     
     clone: function() {
-      return new this.constructor(this.models);
+      return new this.constructor(this.models, {
+        model: this.model,
+        comparator: this.comparator
+      });
+    },
+
+    
+    modelId: function (attrs) {
+      return attrs[this.model.prototype.idAttribute || 'id'];
     },
 
     
@@ -909,7 +1045,10 @@
     
     
     _prepareModel: function(attrs, options) {
-      if (attrs instanceof Model) return attrs;
+      if (this._isModel(attrs)) {
+        if (!attrs.collection) attrs.collection = this;
+        return attrs;
+      }
       options = options ? _.clone(options) : {};
       options.collection = this;
       var model = new this.model(attrs, options);
@@ -919,15 +1058,47 @@
     },
 
     
+    
+    _removeModels: function(models, options) {
+      var removed = [];
+      for (var i = 0; i < models.length; i++) {
+        var model = this.get(models[i]);
+        if (!model) continue;
+
+        var index = this.indexOf(model);
+        this.models.splice(index, 1);
+        this.length--;
+
+        if (!options.silent) {
+          options.index = index;
+          model.trigger('remove', model, this, options);
+        }
+
+        removed.push(model);
+        this._removeReference(model, options);
+      }
+      return removed.length ? removed : false;
+    },
+
+    
+    
+    _isModel: function (model) {
+      return model instanceof Model;
+    },
+
+    
     _addReference: function(model, options) {
       this._byId[model.cid] = model;
-      if (model.id != null) this._byId[model.id] = model;
-      if (!model.collection) model.collection = this;
+      var id = this.modelId(model.attributes);
+      if (id != null) this._byId[id] = model;
       model.on('all', this._onModelEvent, this);
     },
 
     
     _removeReference: function(model, options) {
+      delete this._byId[model.cid];
+      var id = this.modelId(model.attributes);
+      if (id != null) delete this._byId[id];
       if (this === model.collection) delete model.collection;
       model.off('all', this._onModelEvent, this);
     },
@@ -939,9 +1110,13 @@
     _onModelEvent: function(event, model, collection, options) {
       if ((event === 'add' || event === 'remove') && collection !== this) return;
       if (event === 'destroy') this.remove(model, options);
-      if (model && event === 'change:' + model.idAttribute) {
-        delete this._byId[model.previous(model.idAttribute)];
-        if (model.id != null) this._byId[model.id] = model;
+      if (event === 'change') {
+        var prevId = this.modelId(model.previousAttributes());
+        var id = this.modelId(model.attributes);
+        if (prevId !== id) {
+          if (prevId != null) delete this._byId[prevId];
+          if (id != null) this._byId[id] = model;
+        }
       }
       this.trigger.apply(this, arguments);
     }
@@ -951,27 +1126,23 @@
   
   
   
-  var methods = ['forEach', 'each', 'map', 'collect', 'reduce', 'foldl',
-    'inject', 'reduceRight', 'foldr', 'find', 'detect', 'filter', 'select',
-    'reject', 'every', 'all', 'some', 'any', 'include', 'contains', 'invoke',
-    'max', 'min', 'toArray', 'size', 'first', 'head', 'take', 'initial', 'rest',
-    'tail', 'drop', 'last', 'without', 'difference', 'indexOf', 'shuffle',
-    'lastIndexOf', 'isEmpty', 'chain', 'sample'];
+  var collectionMethods = { forEach: 3, each: 3, map: 3, collect: 3, reduce: 4,
+      foldl: 4, inject: 4, reduceRight: 4, foldr: 4, find: 3, detect: 3, filter: 3,
+      select: 3, reject: 3, every: 3, all: 3, some: 3, any: 3, include: 2,
+      contains: 2, invoke: 0, max: 3, min: 3, toArray: 1, size: 1, first: 3,
+      head: 3, take: 3, initial: 3, rest: 3, tail: 3, drop: 3, last: 3,
+      without: 0, difference: 0, indexOf: 3, shuffle: 1, lastIndexOf: 3,
+      isEmpty: 1, chain: 1, sample: 3, partition: 3 };
 
   
-  _.each(methods, function(method) {
-    Collection.prototype[method] = function() {
-      var args = slice.call(arguments);
-      args.unshift(this.models);
-      return _[method].apply(_, args);
-    };
-  });
+  addUnderscoreMethods(Collection, collectionMethods, 'models');
 
   
   var attributeMethods = ['groupBy', 'countBy', 'sortBy', 'indexBy'];
 
   
   _.each(attributeMethods, function(method) {
+    if (!_[method]) return;
     Collection.prototype[method] = function(value, context) {
       var iterator = _.isFunction(value) ? value : function(model) {
         return model.get(value);
@@ -995,11 +1166,9 @@
   
   var View = Backbone.View = function(options) {
     this.cid = _.uniqueId('view');
-    options || (options = {});
     _.extend(this, _.pick(options, viewOptions));
     this._ensureElement();
     this.initialize.apply(this, arguments);
-    this.delegateEvents();
   };
 
   
@@ -1034,23 +1203,37 @@
     
     
     remove: function() {
-      this.$el.remove();
+      this._removeElement();
       this.stopListening();
       return this;
     },
 
     
     
-    setElement: function(element, delegate) {
-      if (this.$el) this.undelegateEvents();
-      this.$el = element instanceof Backbone.$ ? element : Backbone.$(element);
-      this.el = this.$el[0];
-      if (delegate !== false) this.delegateEvents();
+    
+    _removeElement: function() {
+      this.$el.remove();
+    },
+
+    
+    
+    setElement: function(element) {
+      this.undelegateEvents();
+      this._setElement(element);
+      this.delegateEvents();
       return this;
     },
 
     
     
+    
+    
+    
+    _setElement: function(el) {
+      this.$el = el instanceof Backbone.$ ? el : Backbone.$(el);
+      this.el = this.$el[0];
+    },
+
     
     
     
@@ -1065,22 +1248,15 @@
     
     
     delegateEvents: function(events) {
-      if (!(events || (events = _.result(this, 'events')))) return this;
+      events || (events = _.result(this, 'events'));
+      if (!events) return this;
       this.undelegateEvents();
       for (var key in events) {
         var method = events[key];
-        if (!_.isFunction(method)) method = this[events[key]];
+        if (!_.isFunction(method)) method = this[method];
         if (!method) continue;
-
         var match = key.match(delegateEventSplitter);
-        var eventName = match[1], selector = match[2];
-        method = _.bind(method, this);
-        eventName += '.delegateEvents' + this.cid;
-        if (selector === '') {
-          this.$el.on(eventName, method);
-        } else {
-          this.$el.on(eventName, selector, method);
-        }
+        this.delegate(match[1], match[2], _.bind(method, this));
       }
       return this;
     },
@@ -1088,9 +1264,30 @@
     
     
     
-    undelegateEvents: function() {
-      this.$el.off('.delegateEvents' + this.cid);
+    delegate: function(eventName, selector, listener) {
+      this.$el.on(eventName + '.delegateEvents' + this.cid, selector, listener);
       return this;
+    },
+
+    
+    
+    
+    undelegateEvents: function() {
+      if (this.$el) this.$el.off('.delegateEvents' + this.cid);
+      return this;
+    },
+
+    
+    
+    undelegate: function(eventName, selector, listener) {
+      this.$el.off(eventName + '.delegateEvents' + this.cid, selector, listener);
+      return this;
+    },
+
+    
+    
+    _createElement: function(tagName) {
+      return document.createElement(tagName);
     },
 
     
@@ -1102,11 +1299,17 @@
         var attrs = _.extend({}, _.result(this, 'attributes'));
         if (this.id) attrs.id = _.result(this, 'id');
         if (this.className) attrs['class'] = _.result(this, 'className');
-        var $el = Backbone.$('<' + _.result(this, 'tagName') + '>').attr(attrs);
-        this.setElement($el, false);
+        this.setElement(this._createElement(_.result(this, 'tagName')));
+        this._setAttributes(attrs);
       } else {
-        this.setElement(_.result(this, 'el'), false);
+        this.setElement(_.result(this, 'el'));
       }
+    },
+
+    
+    
+    _setAttributes: function(attributes) {
+      this.$el.attr(attributes);
     }
 
   });
@@ -1176,23 +1379,18 @@
     }
 
     
-    
-    
-    if (params.type === 'PATCH' && noXhrPatch) {
-      params.xhr = function() {
-        return new ActiveXObject("Microsoft.XMLHTTP");
-      };
-    }
+    var error = options.error;
+    options.error = function(xhr, textStatus, errorThrown) {
+      options.textStatus = textStatus;
+      options.errorThrown = errorThrown;
+      if (error) error.call(options.context, xhr, textStatus, errorThrown);
+    };
 
     
     var xhr = options.xhr = Backbone.ajax(_.extend(params, options));
     model.trigger('request', model, xhr, options);
     return xhr;
   };
-
-  var noXhrPatch =
-    typeof window !== 'undefined' && !!window.ActiveXObject &&
-      !(window.XMLHttpRequest && (new XMLHttpRequest).dispatchEvent);
 
   
   var methodMap = {
@@ -1251,17 +1449,18 @@
       var router = this;
       Backbone.history.route(route, function(fragment) {
         var args = router._extractParameters(route, fragment);
-        router.execute(callback, args);
-        router.trigger.apply(router, ['route:' + name].concat(args));
-        router.trigger('route', name, args);
-        Backbone.history.trigger('route', router, name, args);
+        if (router.execute(callback, args, name) !== false) {
+          router.trigger.apply(router, ['route:' + name].concat(args));
+          router.trigger('route', name, args);
+          Backbone.history.trigger('route', router, name, args);
+        }
       });
       return this;
     },
 
     
     
-    execute: function(callback, args) {
+    execute: function(callback, args, name) {
       if (callback) callback.apply(this, args);
     },
 
@@ -1335,12 +1534,6 @@
   var rootStripper = /^\/+|\/+$/g;
 
   
-  var isExplorer = /msie [\w.]+/;
-
-  
-  var trailingSlash = /\/$/;
-
-  
   var pathStripper = /#.*$/;
 
   
@@ -1355,7 +1548,29 @@
 
     
     atRoot: function() {
-      return this.location.pathname.replace(/[^\/]$/, '$&/') === this.root;
+      var path = this.location.pathname.replace(/[^\/]$/, '$&/');
+      return path === this.root && !this.getSearch();
+    },
+
+    
+    matchRoot: function() {
+      var path = this.decodeFragment(this.location.pathname);
+      var root = path.slice(0, this.root.length - 1) + '/';
+      return root === this.root;
+    },
+
+    
+    
+    
+    decodeFragment: function(fragment) {
+      return decodeURI(fragment.replace(/%25/g, '%2525'));
+    },
+
+    
+    
+    getSearch: function() {
+      var match = this.location.href.replace(/#.*/, '').match(/\?.+/);
+      return match ? match[0] : '';
     },
 
     
@@ -1366,13 +1581,18 @@
     },
 
     
+    getPath: function() {
+      var path = this.decodeFragment(
+        this.location.pathname + this.getSearch()
+      ).slice(this.root.length - 1);
+      return path.charAt(0) === '/' ? path.slice(1) : path;
+    },
+
     
-    getFragment: function(fragment, forcePushState) {
+    getFragment: function(fragment) {
       if (fragment == null) {
-        if (this._hasPushState || !this._wantsHashChange || forcePushState) {
-          fragment = decodeURI(this.location.pathname + this.location.search);
-          var root = this.root.replace(trailingSlash, '');
-          if (!fragment.indexOf(root)) fragment = fragment.slice(root.length);
+        if (this._usePushState || !this._wantsHashChange) {
+          fragment = this.getPath();
         } else {
           fragment = this.getHash();
         }
@@ -1383,7 +1603,7 @@
     
     
     start: function(options) {
-      if (History.started) throw new Error("Backbone.history has already been started");
+      if (History.started) throw new Error('Backbone.history has already been started');
       History.started = true;
 
       
@@ -1391,35 +1611,15 @@
       this.options          = _.extend({root: '/'}, this.options, options);
       this.root             = this.options.root;
       this._wantsHashChange = this.options.hashChange !== false;
+      this._hasHashChange   = 'onhashchange' in window;
+      this._useHashChange   = this._wantsHashChange && this._hasHashChange;
       this._wantsPushState  = !!this.options.pushState;
-      this._hasPushState    = !!(this.options.pushState && this.history && this.history.pushState);
-      var fragment          = this.getFragment();
-      var docMode           = document.documentMode;
-      var oldIE             = (isExplorer.exec(navigator.userAgent.toLowerCase()) && (!docMode || docMode <= 7));
+      this._hasPushState    = !!(this.history && this.history.pushState);
+      this._usePushState    = this._wantsPushState && this._hasPushState;
+      this.fragment         = this.getFragment();
 
       
       this.root = ('/' + this.root + '/').replace(rootStripper, '/');
-
-      if (oldIE && this._wantsHashChange) {
-        var frame = Backbone.$('<iframe src="javascript:0" tabindex="-1">');
-        this.iframe = frame.hide().appendTo('body')[0].contentWindow;
-        this.navigate(fragment);
-      }
-
-      
-      
-      if (this._hasPushState) {
-        Backbone.$(window).on('popstate', this.checkUrl);
-      } else if (this._wantsHashChange && ('onhashchange' in window) && !oldIE) {
-        Backbone.$(window).on('hashchange', this.checkUrl);
-      } else if (this._wantsHashChange) {
-        this._checkUrlInterval = setInterval(this.checkUrl, this.interval);
-      }
-
-      
-      
-      this.fragment = fragment;
-      var loc = this.location;
 
       
       
@@ -1428,18 +1628,48 @@
         
         
         if (!this._hasPushState && !this.atRoot()) {
-          this.fragment = this.getFragment(null, true);
-          this.location.replace(this.root + '#' + this.fragment);
+          var root = this.root.slice(0, -1) || '/';
+          this.location.replace(root + '#' + this.getPath());
           
           return true;
 
         
         
-        } else if (this._hasPushState && this.atRoot() && loc.hash) {
-          this.fragment = this.getHash().replace(routeStripper, '');
-          this.history.replaceState({}, document.title, this.root + this.fragment);
+        } else if (this._hasPushState && this.atRoot()) {
+          this.navigate(this.getHash(), {replace: true});
         }
 
+      }
+
+      
+      
+      
+      if (!this._hasHashChange && this._wantsHashChange && !this._usePushState) {
+        this.iframe = document.createElement('iframe');
+        this.iframe.src = 'javascript:0';
+        this.iframe.style.display = 'none';
+        this.iframe.tabIndex = -1;
+        var body = document.body;
+        
+        var iWindow = body.insertBefore(this.iframe, body.firstChild).contentWindow;
+        iWindow.document.open();
+        iWindow.document.close();
+        iWindow.location.hash = '#' + this.fragment;
+      }
+
+      
+      var addEventListener = window.addEventListener || function (eventName, listener) {
+        return attachEvent('on' + eventName, listener);
+      };
+
+      
+      
+      if (this._usePushState) {
+        addEventListener('popstate', this.checkUrl, false);
+      } else if (this._useHashChange && !this.iframe) {
+        addEventListener('hashchange', this.checkUrl, false);
+      } else if (this._wantsHashChange) {
+        this._checkUrlInterval = setInterval(this.checkUrl, this.interval);
       }
 
       if (!this.options.silent) return this.loadUrl();
@@ -1448,7 +1678,25 @@
     
     
     stop: function() {
-      Backbone.$(window).off('popstate', this.checkUrl).off('hashchange', this.checkUrl);
+      
+      var removeEventListener = window.removeEventListener || function (eventName, listener) {
+        return detachEvent('on' + eventName, listener);
+      };
+
+      
+      if (this._usePushState) {
+        removeEventListener('popstate', this.checkUrl, false);
+      } else if (this._useHashChange && !this.iframe) {
+        removeEventListener('hashchange', this.checkUrl, false);
+      }
+
+      
+      if (this.iframe) {
+        document.body.removeChild(this.iframe);
+        this.iframe = null;
+      }
+
+      
       if (this._checkUrlInterval) clearInterval(this._checkUrlInterval);
       History.started = false;
     },
@@ -1463,9 +1711,13 @@
     
     checkUrl: function(e) {
       var current = this.getFragment();
+
+      
+      
       if (current === this.fragment && this.iframe) {
-        current = this.getFragment(this.getHash(this.iframe));
+        current = this.getHash(this.iframe.contentWindow);
       }
+
       if (current === this.fragment) return false;
       if (this.iframe) this.navigate(current);
       this.loadUrl();
@@ -1475,6 +1727,8 @@
     
     
     loadUrl: function(fragment) {
+      
+      if (!this.matchRoot()) return false;
       fragment = this.fragment = this.getFragment(fragment);
       return _.any(this.handlers, function(handler) {
         if (handler.route.test(fragment)) {
@@ -1495,31 +1749,42 @@
       if (!History.started) return false;
       if (!options || options === true) options = {trigger: !!options};
 
-      var url = this.root + (fragment = this.getFragment(fragment || ''));
+      
+      fragment = this.getFragment(fragment || '');
 
       
-      fragment = fragment.replace(pathStripper, '');
+      var root = this.root;
+      if (fragment === '' || fragment.charAt(0) === '?') {
+        root = root.slice(0, -1) || '/';
+      }
+      var url = root + fragment;
+
+      
+      fragment = this.decodeFragment(fragment.replace(pathStripper, ''));
 
       if (this.fragment === fragment) return;
       this.fragment = fragment;
 
       
-      if (fragment === '' && url !== '/') url = url.slice(0, -1);
-
-      
-      if (this._hasPushState) {
+      if (this._usePushState) {
         this.history[options.replace ? 'replaceState' : 'pushState']({}, document.title, url);
 
       
       
       } else if (this._wantsHashChange) {
         this._updateHash(this.location, fragment, options.replace);
-        if (this.iframe && (fragment !== this.getFragment(this.getHash(this.iframe)))) {
+        if (this.iframe && (fragment !== this.getHash(this.iframe.contentWindow))) {
+          var iWindow = this.iframe.contentWindow;
+
           
           
           
-          if(!options.replace) this.iframe.document.open().close();
-          this._updateHash(this.iframe.location, fragment, options.replace);
+          if (!options.replace) {
+            iWindow.document.open();
+            iWindow.document.close();
+          }
+
+          this._updateHash(iWindow.location, fragment, options.replace);
         }
 
       
@@ -1598,7 +1863,7 @@
   var wrapError = function(model, options) {
     var error = options.error;
     options.error = function(resp) {
-      if (error) error(model, resp, options);
+      if (error) error.call(options.context, model, resp, options);
       model.trigger('error', model, resp, options);
     };
   };
