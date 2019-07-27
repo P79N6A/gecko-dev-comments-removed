@@ -359,6 +359,13 @@ nsHTMLReflowState::Init(nsPresContext* aPresContext,
                    "very large sizes, not attempts at intrinsic inline-size "
                    "calculation");
 
+  if (AvailableBSize() != NS_UNCONSTRAINEDSIZE && parentReflowState &&
+      parentReflowState->GetWritingMode().IsOrthogonalTo(mWritingMode)) {
+    
+    
+    AvailableBSize() = NS_UNCONSTRAINEDSIZE;
+  }
+
   mStylePosition = frame->StylePosition();
   mStyleDisplay = frame->StyleDisplay();
   mStyleVisibility = frame->StyleVisibility();
