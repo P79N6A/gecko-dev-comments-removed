@@ -62,6 +62,20 @@ types.addDictType("AllocationsRecordingOptions", {
 let MemoryActor = protocol.ActorClass({
   typeName: "memory",
 
+  
+
+
+
+  events: {
+    
+    
+    
+    "garbage-collection": {
+      type: "garbage-collection",
+      data: Arg(0, "json"),
+    },
+  },
+
   get dbg() {
     if (!this._dbg) {
       this._dbg = this.parent.makeDebugger();
@@ -77,6 +91,10 @@ let MemoryActor = protocol.ActorClass({
     this.state = "detached";
     this._dbg = null;
     this._frameCache = frameCache;
+
+    this._onGarbageCollection = data =>
+      events.emit(this, "garbage-collection", data);
+
     this._onWindowReady = this._onWindowReady.bind(this);
 
     events.on(this.parent, "window-ready", this._onWindowReady);
@@ -95,8 +113,13 @@ let MemoryActor = protocol.ActorClass({
   
 
 
+
+
+
+
   attach: method(expectState("detached", function() {
     this.dbg.addDebuggees();
+    this.dbg.memory.onGarbageCollection = this._onGarbageCollection;
     this.state = "attached";
   },
   `attaching to the debugger`), {
