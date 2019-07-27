@@ -91,6 +91,17 @@ const AudioNodeModel = Class({
 
 
 
+
+  getAutomationData: function (paramName) {
+    return this.actor.getAutomationData(paramName);
+  },
+
+  
+
+
+
+
+
   addToGraph: function (graph) {
     graph.addNode(this.id, {
       type: this.type,

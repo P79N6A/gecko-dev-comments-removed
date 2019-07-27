@@ -10,7 +10,8 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
 Cu.import("resource:///modules/devtools/gDevTools.jsm");
 
-const require = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools.require;
+const devtools = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools;
+const { require } = devtools;
 
 let { console } = Cu.import("resource://gre/modules/devtools/Console.jsm", {});
 let { EventTarget } = require("sdk/event/target");
@@ -21,6 +22,8 @@ const STRINGS_URI = "chrome://browser/locale/devtools/webaudioeditor.properties"
 const L10N = new ViewHelpers.L10N(STRINGS_URI);
 const Telemetry = require("devtools/shared/telemetry");
 const telemetry = new Telemetry();
+devtools.lazyImporter(this, "LineGraphWidget",
+  "resource:///modules/devtools/Graphs.jsm");
 
 
 const { defer, all } = Cu.import("resource://gre/modules/Promise.jsm", {}).Promise;
@@ -54,10 +57,16 @@ const EVENTS = {
   UI_PROPERTIES_TAB_RENDERED: "WebAudioEditor:UIPropertiesTabRendered",
 
   
+  UI_AUTOMATION_TAB_RENDERED: "WebAudioEditor:UIAutomationTabRendered",
+
   
   
   
-  UI_GRAPH_RENDERED: "WebAudioEditor:UIGraphRendered"
+  
+  UI_GRAPH_RENDERED: "WebAudioEditor:UIGraphRendered",
+
+  
+  UI_INSPECTOR_RESIZE: "WebAudioEditor:UIInspectorResize"
 };
 
 
