@@ -101,18 +101,18 @@ void* ProfileEntry::get_tagPtr() {
 
 
 
-ProfileBuffer::ProfileBuffer(int aEntrySize)
+ProfileBuffer::ProfileBuffer(int aEntrySize, uint32_t aGeneration)
   : mEntries(MakeUnique<ProfileEntry[]>(aEntrySize))
   , mWritePos(0)
   , mReadPos(0)
   , mEntrySize(aEntrySize)
-  , mGeneration(0)
+  , mGeneration(aGeneration)
 {
 }
 
 ProfileBuffer::~ProfileBuffer()
 {
-  mGeneration = INT_MAX;
+  mGeneration = UINT32_MAX;
   deleteExpiredStoredMarkers();
 }
 
@@ -121,6 +121,11 @@ void ProfileBuffer::addTag(const ProfileEntry& aTag)
 {
   mEntries[mWritePos++] = aTag;
   if (mWritePos == mEntrySize) {
+    
+    
+    
+    
+    MOZ_ASSERT(mGeneration != UINT32_MAX - 2);
     mGeneration++;
     mWritePos = 0;
   }
