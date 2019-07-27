@@ -261,9 +261,7 @@ BasicCompositor::DrawQuad(const gfx::Rect& aRect,
       return;
     }
 
-    Matrix destTransform;
-    destTransform.Translate(-aRect.x, -aRect.y);
-    dest->SetTransform(destTransform);
+    dest->SetTransform(Matrix::Translation(-aRect.x, -aRect.y));
 
     
     new3DTransform = To3DMatrix(aTransform);
@@ -274,7 +272,7 @@ BasicCompositor::DrawQuad(const gfx::Rect& aRect,
     transformBounds.RoundOut();
 
     
-    newTransform.Translate(transformBounds.x, transformBounds.y);
+    newTransform = Matrix::Translation(transformBounds.x, transformBounds.y);
 
     
     
@@ -441,9 +439,8 @@ BasicCompositor::BeginFrame(const nsIntRegion& aInvalidRegion,
 
   
   
-  Matrix transform;
-  transform.Translate(-invalidRect.x, -invalidRect.y);
-  mRenderTarget->mDrawTarget->SetTransform(transform);
+  mRenderTarget->mDrawTarget->SetTransform(Matrix::Translation(-invalidRect.x,
+                                                               -invalidRect.y));
 
   gfxUtils::ClipToRegion(mRenderTarget->mDrawTarget, invalidRegionSafe);
 
