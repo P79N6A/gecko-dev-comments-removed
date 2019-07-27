@@ -113,8 +113,6 @@ IsBidiUI()
   return Preferences::GetBool("bidi.browser.ui");
 }
 
-
-
 nsCaret::nsCaret()
 : mOverrideOffset(0)
 , mIsBlinkOn(false)
@@ -125,12 +123,10 @@ nsCaret::nsCaret()
 {
 }
 
-
 nsCaret::~nsCaret()
 {
   StopBlinking();
 }
-
 
 nsresult nsCaret::Init(nsIPresShell *inPresShell)
 {
@@ -203,7 +199,6 @@ nsCaret::ComputeMetrics(nsIFrame* aFrame, int32_t aOffset, nscoord aCaretHeight)
   return result;
 }
 
-
 void nsCaret::Terminate()
 {
   
@@ -223,16 +218,13 @@ void nsCaret::Terminate()
   mOverrideContent = nullptr;
 }
 
-
 NS_IMPL_ISUPPORTS(nsCaret, nsISelectionListener)
-
 
 nsISelection* nsCaret::GetSelection()
 {
   nsCOMPtr<nsISelection> sel(do_QueryReferent(mDomSelectionWeak));
   return sel;
 }
-
 
 void nsCaret::SetSelection(nsISelection *aDOMSel)
 {
@@ -242,8 +234,6 @@ void nsCaret::SetSelection(nsISelection *aDOMSel)
   SchedulePaint();
 }
 
-
-
 void nsCaret::SetVisible(bool inMakeVisible)
 {
   mVisible = inMakeVisible;
@@ -251,8 +241,6 @@ void nsCaret::SetVisible(bool inMakeVisible)
   ResetBlinking();
   SchedulePaint();
 }
-
-
 
 bool nsCaret::IsVisible()
 {
@@ -277,8 +265,6 @@ bool nsCaret::IsVisible()
 
   return true;
 }
-
-
 
 void nsCaret::SetCaretReadOnly(bool inMakeReadonly)
 {
@@ -527,8 +513,6 @@ void nsCaret::PaintCaret(nsDisplayListBuilder *aBuilder,
   }
 }
 
-
-
 NS_IMETHODIMP
 nsCaret::NotifySelectionChanged(nsIDOMDocument *, nsISelection *aDomSel,
                                 int16_t aReason)
@@ -555,8 +539,6 @@ nsCaret::NotifySelectionChanged(nsIDOMDocument *, nsISelection *aDomSel,
   return NS_OK;
 }
 
-
-
 void nsCaret::ResetBlinking()
 {
   mIsBlinkOn = true;
@@ -582,7 +564,6 @@ void nsCaret::ResetBlinking()
                                       nsITimer::TYPE_REPEATING_SLACK);
   }
 }
-
 
 void nsCaret::StopBlinking()
 {
@@ -865,7 +846,6 @@ nsCaret::ComputeCaretRects(nsIFrame* aFrame, int32_t aFrameOffset,
                        aCaretRect->width);
   }
 }
-
 
 
 void nsCaret::CaretBlinkCallback(nsITimer* aTimer, void* aClosure)
