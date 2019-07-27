@@ -92,20 +92,13 @@ public:
     virtual ~gfxUserFontFamily() { }
 
     
-    
-    
-    void AddFontEntry(gfxFontEntry *aFontEntry) {
+    void AddFontEntry(gfxFontEntry* aFontEntry) {
         
+        nsRefPtr<gfxFontEntry> fe = aFontEntry;
         
-        
+        mAvailableFonts.RemoveElement(aFontEntry);
         mAvailableFonts.AppendElement(aFontEntry);
-        uint32_t i = mAvailableFonts.Length() - 1;
-        while (i > 0) {
-            if (mAvailableFonts[--i] == aFontEntry) {
-                mAvailableFonts.RemoveElementAt(i);
-                break;
-            }
-        }
+
         if (aFontEntry->mFamilyName.IsEmpty()) {
             aFontEntry->mFamilyName = Name();
         } else {
@@ -117,35 +110,6 @@ public:
             MOZ_ASSERT(thisName.Equals(entryName));
 #endif
         }
-        ResetCharacterMap();
-    }
-
-    
-    void ReplaceFontEntry(gfxFontEntry *aUserFontEntry,
-                          gfxFontEntry *aRealFontEntry) {
-        uint32_t numFonts = mAvailableFonts.Length();
-        uint32_t i;
-        for (i = 0; i < numFonts; i++) {
-            gfxFontEntry *fe = mAvailableFonts[i];
-            if (fe == aUserFontEntry) {
-                
-                
-                mAvailableFonts[i] = aRealFontEntry;
-                if (aRealFontEntry->mFamilyName.IsEmpty()) {
-                    aRealFontEntry->mFamilyName = Name();
-                } else {
-#ifdef DEBUG
-                  nsString thisName = Name();
-                  nsString entryName = aRealFontEntry->mFamilyName;
-                  ToLowerCase(thisName);
-                  ToLowerCase(entryName);
-                  MOZ_ASSERT(thisName.Equals(entryName));
-#endif
-                }
-                break;
-            }
-        }
-        NS_ASSERTION(i < numFonts, "font entry not found in family!");
         ResetCharacterMap();
     }
 
@@ -212,7 +176,8 @@ public:
                                gfxSparseBitSet* aUnicodeRanges);
 
     
-    void AddFontFace(const nsAString& aFamilyName, gfxFontEntry* aFontEntry);
+    void AddFontFace(const nsAString& aFamilyName,
+                     gfxUserFontEntry* aUserFontEntry);
 
     
     bool HasFamily(const nsAString& aFamilyName) const
@@ -226,47 +191,22 @@ public:
 
     
     
-    gfxFontEntry *FindFontEntry(gfxFontFamily *aFamily,
-                                const gfxFontStyle& aFontStyle,
-                                bool& aNeedsBold,
-                                bool& aWaitForUserFont);
+    gfxUserFontEntry* FindUserFontEntry(gfxFontFamily* aFamily,
+                                        const gfxFontStyle& aFontStyle,
+                                        bool& aNeedsBold,
+                                        bool& aWaitForUserFont);
 
     
     
     
-    
-    gfxFontFamily *FindFamilyFor(gfxFontEntry *aFontEntry) const;
+    virtual nsresult CheckFontLoad(const gfxFontFaceSrc* aFontFaceSrc,
+                                   nsIPrincipal** aPrincipal,
+                                   bool* aBypassCache) = 0;
 
     
     
-    
-    virtual nsresult CheckFontLoad(const gfxFontFaceSrc *aFontFaceSrc,
-                                   nsIPrincipal **aPrincipal,
-                                   bool *aBypassCache) = 0;
-
-    
-    
-    virtual nsresult StartLoad(gfxUserFontFamily *aFamily,
-                               gfxUserFontEntry *aUserFontEntry,
-                               const gfxFontFaceSrc *aFontFaceSrc) = 0;
-
-    
-    
-    
-    
-    
-    
-    bool OnLoadComplete(gfxUserFontFamily *aFamily,
-                        gfxUserFontEntry *aUserFontEntry,
-                        const uint8_t* aFontData, uint32_t aLength,
-                        nsresult aDownloadStatus);
-
-    
-    
-    
-    virtual void ReplaceFontEntry(gfxUserFontFamily *aFamily,
-                                  gfxUserFontEntry *aUserFontEntry,
-                                  gfxFontEntry *aFontEntry) = 0;
+    virtual nsresult StartLoad(gfxUserFontEntry* aUserFontEntry,
+                               const gfxFontFaceSrc* aFontFaceSrc) = 0;
 
     
     
@@ -293,21 +233,21 @@ public:
         
         
         
-        static void CacheFont(gfxFontEntry *aFontEntry,
+        static void CacheFont(gfxFontEntry* aFontEntry,
                               EntryPersistence aPersistence = kDiscardable);
 
         
         
-        static void ForgetFont(gfxFontEntry *aFontEntry);
+        static void ForgetFont(gfxFontEntry* aFontEntry);
 
         
         
         
         
         
-        static gfxFontEntry* GetFont(nsIURI           *aSrcURI,
-                                     nsIPrincipal     *aPrincipal,
-                                     gfxUserFontEntry *aUserFontEntry,
+        static gfxFontEntry* GetFont(nsIURI* aSrcURI,
+                                     nsIPrincipal* aPrincipal,
+                                     gfxUserFontEntry* aUserFontEntry,
                                      bool              aPrivate);
 
         
@@ -339,7 +279,7 @@ public:
         struct Key {
             nsCOMPtr<nsIURI>        mURI;
             nsCOMPtr<nsIPrincipal>  mPrincipal; 
-            gfxFontEntry           *mFontEntry;
+            gfxFontEntry*           mFontEntry;
             uint32_t                mCRC32;
             uint32_t                mLength;
             bool                    mPrivate;
@@ -452,7 +392,7 @@ public:
             
             
             
-            gfxFontEntry          *mFontEntry;
+            gfxFontEntry*          mFontEntry;
 
             
             bool                   mPrivate;
@@ -461,8 +401,12 @@ public:
             EntryPersistence       mPersistence;
         };
 
-        static nsTHashtable<Entry> *sUserFonts;
+        static nsTHashtable<Entry>* sUserFonts;
     };
+
+    void SetLocalRulesUsed() {
+        mLocalRulesUsed = true;
+    }
 
 protected:
     
@@ -472,15 +416,14 @@ protected:
     virtual bool GetPrivateBrowsing() = 0;
 
     
-    virtual nsresult SyncLoadFontData(gfxUserFontEntry *aFontToLoad,
-                                      const gfxFontFaceSrc *aFontFaceSrc,
+    virtual nsresult SyncLoadFontData(gfxUserFontEntry* aFontToLoad,
+                                      const gfxFontFaceSrc* aFontFaceSrc,
                                       uint8_t* &aBuffer,
                                       uint32_t &aBufferLength) = 0;
 
     
-    virtual nsresult LogMessage(gfxUserFontFamily *aFamily,
-                                gfxUserFontEntry *aUserFontEntry,
-                                const char *aMessage,
+    virtual nsresult LogMessage(gfxUserFontEntry* aUserFontEntry,
+                                const char* aMessage,
                                 uint32_t aFlags = nsIScriptError::errorFlag,
                                 nsresult aStatus = NS_OK) = 0;
 
@@ -530,14 +473,14 @@ public:
         STATUS_END_OF_LIST
     };
 
-    gfxUserFontEntry(gfxUserFontSet *aFontSet,
+    gfxUserFontEntry(gfxUserFontSet* aFontSet,
                      const nsTArray<gfxFontFaceSrc>& aFontFaceSrcList,
                      uint32_t aWeight,
                      int32_t aStretch,
                      uint32_t aItalicStyle,
                      const nsTArray<gfxFontFeature>& aFeatureSettings,
                      uint32_t aLanguageOverride,
-                     gfxSparseBitSet *aUnicodeRanges);
+                     gfxSparseBitSet* aUnicodeRanges);
 
     virtual ~gfxUserFontEntry();
 
@@ -548,29 +491,35 @@ public:
                  uint32_t aItalicStyle,
                  const nsTArray<gfxFontFeature>& aFeatureSettings,
                  uint32_t aLanguageOverride,
-                 gfxSparseBitSet *aUnicodeRanges);
+                 gfxSparseBitSet* aUnicodeRanges);
 
-    virtual gfxFont *CreateFontInstance(const gfxFontStyle *aFontStyle, bool aNeedsBold);
+    virtual gfxFont* CreateFontInstance(const gfxFontStyle* aFontStyle, bool aNeedsBold);
+
+    gfxFontEntry* GetPlatformFontEntry() { return mPlatformFontEntry; }
+
+    
+    
+    
+    
+    
+    
+    bool OnLoadComplete(const uint8_t* aFontData, uint32_t aLength,
+                        nsresult aDownloadStatus);
 
 protected:
-    const uint8_t* SanitizeOpenTypeData(gfxUserFontFamily *aFamily,
-                                        const uint8_t* aData,
+    const uint8_t* SanitizeOpenTypeData(const uint8_t* aData,
                                         uint32_t aLength,
                                         uint32_t& aSaneLength,
                                         bool aIsCompressed);
 
     
-    
-    
-    LoadStatus LoadNext(gfxUserFontFamily *aFamily,
-                        bool& aLocalRulesUsed);
+    LoadStatus LoadNext();
 
     
     
     
     
-    gfxFontEntry* LoadFont(gfxUserFontFamily *aFamily,
-                           const uint8_t* aFontData, uint32_t &aLength);
+    bool LoadFont(const uint8_t* aFontData, uint32_t &aLength);
 
     
     void StoreUserFontData(gfxFontEntry*      aFontEntry,
@@ -592,10 +541,11 @@ protected:
     LoadingState             mLoadingState;
     bool                     mUnsupportedFormat;
 
+    nsRefPtr<gfxFontEntry>   mPlatformFontEntry;
     nsTArray<gfxFontFaceSrc> mSrcList;
     uint32_t                 mSrcIndex; 
-    nsFontFaceLoader        *mLoader; 
-    gfxUserFontSet          *mFontSet; 
+    nsFontFaceLoader*        mLoader; 
+    gfxUserFontSet*          mFontSet; 
     nsCOMPtr<nsIPrincipal>   mPrincipal;
 };
 

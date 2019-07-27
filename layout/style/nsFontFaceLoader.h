@@ -34,8 +34,7 @@ public:
 
   
   
-  nsresult StartLoad(gfxUserFontFamily* aFamily,
-                     gfxUserFontEntry* aFontToLoad,
+  nsresult StartLoad(gfxUserFontEntry* aFontToLoad,
                      const gfxFontFaceSrc* aFontFaceSrc) MOZ_OVERRIDE;
 
   
@@ -46,10 +45,7 @@ public:
 
   nsPresContext* GetPresContext() { return mPresContext; }
 
-  virtual void ReplaceFontEntry(gfxUserFontFamily* aFamily,
-                                gfxUserFontEntry* aUserFontEntry,
-                                gfxFontEntry* aFontEntry) MOZ_OVERRIDE;
-
+  
   nsCSSFontFaceRule* FindRuleForEntry(gfxFontEntry* aFontEntry);
 
 protected:
@@ -62,7 +58,7 @@ protected:
   
   
   struct FontFaceRuleRecord {
-    nsRefPtr<gfxFontEntry>       mFontEntry;
+    nsRefPtr<gfxUserFontEntry>   mUserFontEntry;
     nsFontFaceRuleContainer      mContainer;
   };
 
@@ -70,13 +66,12 @@ protected:
                   nsTArray<FontFaceRuleRecord>& oldRules,
                   bool& aFontSetModified);
 
-  already_AddRefed<gfxFontEntry> FindOrCreateFontFaceFromRule(
+  already_AddRefed<gfxUserFontEntry> FindOrCreateFontFaceFromRule(
                                                    const nsAString& aFamilyName,
                                                    nsCSSFontFaceRule* aRule,
                                                    uint8_t aSheetType);
 
-  virtual nsresult LogMessage(gfxUserFontFamily* aFamily,
-                              gfxUserFontEntry* aUserFontEntry,
+  virtual nsresult LogMessage(gfxUserFontEntry* aUserFontEntry,
                               const char* aMessage,
                               uint32_t aFlags = nsIScriptError::errorFlag,
                               nsresult aStatus = NS_OK) MOZ_OVERRIDE;
@@ -94,6 +89,9 @@ protected:
 
   virtual void DoRebuildUserFontSet() MOZ_OVERRIDE;
 
+  
+  nsCSSFontFaceRule* FindRuleForUserFontEntry(gfxUserFontEntry* aUserFontEntry);
+
   nsPresContext* mPresContext;  
 
   
@@ -107,8 +105,7 @@ protected:
 class nsFontFaceLoader : public nsIStreamLoaderObserver
 {
 public:
-  nsFontFaceLoader(gfxUserFontFamily* aFontFamily,
-                   gfxUserFontEntry* aFontToLoad, nsIURI* aFontURI,
+  nsFontFaceLoader(gfxUserFontEntry* aFontToLoad, nsIURI* aFontURI,
                    nsUserFontSet* aFontSet, nsIChannel* aChannel);
 
   NS_DECL_ISUPPORTS
@@ -133,8 +130,7 @@ protected:
   virtual ~nsFontFaceLoader();
 
 private:
-  nsRefPtr<gfxUserFontFamily> mFontFamily;
-  nsRefPtr<gfxUserFontEntry>  mFontEntry;
+  nsRefPtr<gfxUserFontEntry>  mUserFontEntry;
   nsCOMPtr<nsIURI>        mFontURI;
   nsRefPtr<nsUserFontSet> mFontSet;
   nsCOMPtr<nsIChannel>    mChannel;
