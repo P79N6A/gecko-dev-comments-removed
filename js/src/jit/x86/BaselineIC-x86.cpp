@@ -54,7 +54,7 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler& masm)
 
     
     
-    Register scratchReg = BaselineTailCallReg;
+    Register scratchReg = ICTailCallReg;
 
     Label revertRegister, maybeNegZero;
     switch(op_) {

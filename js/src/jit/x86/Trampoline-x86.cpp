@@ -897,7 +897,7 @@ JitRuntime::generateDebugTrapHandler(JSContext* cx)
     
     
     
-    masm.movePtr(ImmPtr(nullptr), BaselineStubReg);
+    masm.movePtr(ImmPtr(nullptr), ICStubReg);
     EmitEnterStubFrame(masm, scratch3);
 
     JitCode* code = cx->runtime()->jitRuntime()->getVMWrapper(HandleDebugTrapInfo);

@@ -21,29 +21,29 @@ static const size_t ICStackValueOffset = sizeof(void*);
 inline void
 EmitRestoreTailCallReg(MacroAssembler& masm)
 {
-    masm.pop(BaselineTailCallReg);
+    masm.pop(ICTailCallReg);
 }
 
 inline void
 EmitRepushTailCallReg(MacroAssembler& masm)
 {
-    masm.push(BaselineTailCallReg);
+    masm.push(ICTailCallReg);
 }
 
 inline void
 EmitCallIC(CodeOffsetLabel* patchOffset, MacroAssembler& masm)
 {
     
-    CodeOffsetLabel offset = masm.movWithPatch(ImmWord(-1), BaselineStubReg);
+    CodeOffsetLabel offset = masm.movWithPatch(ImmWord(-1), ICStubReg);
     *patchOffset = offset;
 
     
-    masm.loadPtr(Address(BaselineStubReg, (int32_t) ICEntry::offsetOfFirstStub()),
-                 BaselineStubReg);
+    masm.loadPtr(Address(ICStubReg, (int32_t) ICEntry::offsetOfFirstStub()),
+                 ICStubReg);
 
     
     
-    masm.call(Operand(BaselineStubReg, ICStub::offsetOfStubCode()));
+    masm.call(Operand(ICStubReg, ICStub::offsetOfStubCode()));
 }
 
 inline void
@@ -52,10 +52,10 @@ EmitEnterTypeMonitorIC(MacroAssembler& masm,
 {
     
     
-    masm.loadPtr(Address(BaselineStubReg, (int32_t) monitorStubOffset), BaselineStubReg);
+    masm.loadPtr(Address(ICStubReg, (int32_t) monitorStubOffset), ICStubReg);
 
     
-    masm.jmp(Operand(BaselineStubReg, (int32_t) ICStub::offsetOfStubCode()));
+    masm.jmp(Operand(ICStubReg, (int32_t) ICStub::offsetOfStubCode()));
 }
 
 inline void
@@ -88,7 +88,7 @@ EmitTailCallVM(JitCode* target, MacroAssembler& masm, uint32_t argSize)
     
     masm.makeFrameDescriptor(eax, JitFrame_BaselineJS);
     masm.push(eax);
-    masm.push(BaselineTailCallReg);
+    masm.push(ICTailCallReg);
     masm.jmp(target);
 }
 
@@ -119,7 +119,7 @@ static const uint32_t STUB_FRAME_SAVED_STUB_OFFSET = sizeof(void*);
 inline void
 EmitEnterStubFrame(MacroAssembler& masm, Register scratch)
 {
-    MOZ_ASSERT(scratch != BaselineTailCallReg);
+    MOZ_ASSERT(scratch != ICTailCallReg);
 
     EmitRestoreTailCallReg(masm);
 
@@ -136,10 +136,10 @@ EmitEnterStubFrame(MacroAssembler& masm, Register scratch)
     
     masm.makeFrameDescriptor(scratch, JitFrame_BaselineJS);
     masm.push(scratch);
-    masm.push(BaselineTailCallReg);
+    masm.push(ICTailCallReg);
 
     
-    masm.push(BaselineStubReg);
+    masm.push(ICStubReg);
     masm.push(BaselineFrameReg);
     masm.mov(BaselineStackReg, BaselineFrameReg);
 }
@@ -152,7 +152,7 @@ EmitLeaveStubFrame(MacroAssembler& masm, bool calledIntoIon = false)
     
     
     if (calledIntoIon) {
-        Register scratch = BaselineTailCallReg;
+        Register scratch = ICTailCallReg;
         masm.pop(scratch);
         masm.shrl(Imm32(FRAMESIZE_SHIFT), scratch);
         masm.addl(scratch, BaselineStackReg);
@@ -161,14 +161,14 @@ EmitLeaveStubFrame(MacroAssembler& masm, bool calledIntoIon = false)
     }
 
     masm.pop(BaselineFrameReg);
-    masm.pop(BaselineStubReg);
+    masm.pop(ICStubReg);
 
     
-    masm.pop(BaselineTailCallReg);
+    masm.pop(ICTailCallReg);
 
     
     
-    masm.storePtr(BaselineTailCallReg, Address(BaselineStackReg, 0));
+    masm.storePtr(ICTailCallReg, Address(BaselineStackReg, 0));
 }
 
 inline void
@@ -178,16 +178,16 @@ EmitStowICValues(MacroAssembler& masm, int values)
     switch(values) {
       case 1:
         
-        masm.pop(BaselineTailCallReg);
+        masm.pop(ICTailCallReg);
         masm.pushValue(R0);
-        masm.push(BaselineTailCallReg);
+        masm.push(ICTailCallReg);
         break;
       case 2:
         
-        masm.pop(BaselineTailCallReg);
+        masm.pop(ICTailCallReg);
         masm.pushValue(R0);
         masm.pushValue(R1);
-        masm.push(BaselineTailCallReg);
+        masm.push(ICTailCallReg);
         break;
     }
 }
@@ -199,23 +199,23 @@ EmitUnstowICValues(MacroAssembler& masm, int values, bool discard = false)
     switch(values) {
       case 1:
         
-        masm.pop(BaselineTailCallReg);
+        masm.pop(ICTailCallReg);
         if (discard)
             masm.addPtr(Imm32(sizeof(Value)), BaselineStackReg);
         else
             masm.popValue(R0);
-        masm.push(BaselineTailCallReg);
+        masm.push(ICTailCallReg);
         break;
       case 2:
         
-        masm.pop(BaselineTailCallReg);
+        masm.pop(ICTailCallReg);
         if (discard) {
             masm.addPtr(Imm32(sizeof(Value) * 2), BaselineStackReg);
         } else {
             masm.popValue(R1);
             masm.popValue(R0);
         }
-        masm.push(BaselineTailCallReg);
+        masm.push(ICTailCallReg);
         break;
     }
 }
@@ -228,18 +228,18 @@ EmitCallTypeUpdateIC(MacroAssembler& masm, JitCode* code, uint32_t objectOffset)
     
 
     
-    masm.push(BaselineStubReg);
+    masm.push(ICStubReg);
 
     
     
-    masm.loadPtr(Address(BaselineStubReg, (int32_t) ICUpdatedStub::offsetOfFirstUpdateStub()),
-                 BaselineStubReg);
+    masm.loadPtr(Address(ICStubReg, (int32_t) ICUpdatedStub::offsetOfFirstUpdateStub()),
+                 ICStubReg);
 
     
-    masm.call(Operand(BaselineStubReg, ICStub::offsetOfStubCode()));
+    masm.call(Operand(ICStubReg, ICStub::offsetOfStubCode()));
 
     
-    masm.pop(BaselineStubReg);
+    masm.pop(ICStubReg);
 
     
     
@@ -254,7 +254,7 @@ EmitCallTypeUpdateIC(MacroAssembler& masm, JitCode* code, uint32_t objectOffset)
 
     masm.pushValue(R0);
     masm.pushValue(R1);
-    masm.push(BaselineStubReg);
+    masm.push(ICStubReg);
 
     
     masm.loadPtr(Address(BaselineFrameReg, 0), R0.scratchReg());
@@ -283,10 +283,10 @@ EmitStubGuardFailure(MacroAssembler& masm)
     
 
     
-    masm.loadPtr(Address(BaselineStubReg, (int32_t) ICStub::offsetOfNext()), BaselineStubReg);
+    masm.loadPtr(Address(ICStubReg, (int32_t) ICStub::offsetOfNext()), ICStubReg);
 
     
-    masm.jmp(Operand(BaselineStubReg, (int32_t) ICStub::offsetOfStubCode()));
+    masm.jmp(Operand(ICStubReg, (int32_t) ICStub::offsetOfStubCode()));
 }
 
 

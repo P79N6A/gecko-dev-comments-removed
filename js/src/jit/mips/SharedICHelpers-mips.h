@@ -35,15 +35,15 @@ inline void
 EmitCallIC(CodeOffsetLabel* patchOffset, MacroAssembler& masm)
 {
     
-    CodeOffsetLabel offset = masm.movWithPatch(ImmWord(-1), BaselineStubReg);
+    CodeOffsetLabel offset = masm.movWithPatch(ImmWord(-1), ICStubReg);
     *patchOffset = offset;
 
     
-    masm.loadPtr(Address(BaselineStubReg, ICEntry::offsetOfFirstStub()), BaselineStubReg);
+    masm.loadPtr(Address(ICStubReg, ICEntry::offsetOfFirstStub()), ICStubReg);
 
     
     
-    masm.loadPtr(Address(BaselineStubReg, ICStub::offsetOfStubCode()), R2.scratchReg());
+    masm.loadPtr(Address(ICStubReg, ICStub::offsetOfStubCode()), R2.scratchReg());
 
     
     masm.call(R2.scratchReg());
@@ -55,11 +55,11 @@ EmitEnterTypeMonitorIC(MacroAssembler& masm,
 {
     
     
-    masm.loadPtr(Address(BaselineStubReg, (uint32_t) monitorStubOffset), BaselineStubReg);
+    masm.loadPtr(Address(ICStubReg, (uint32_t) monitorStubOffset), ICStubReg);
 
     
     
-    masm.loadPtr(Address(BaselineStubReg, ICStub::offsetOfStubCode()), R2.scratchReg());
+    masm.loadPtr(Address(ICStubReg, ICStub::offsetOfStubCode()), R2.scratchReg());
 
     
     masm.branch(R2.scratchReg());
@@ -97,7 +97,7 @@ EmitTailCallVM(JitCode* target, MacroAssembler& masm, uint32_t argSize)
     
     
     
-    MOZ_ASSERT(BaselineTailCallReg == ra);
+    MOZ_ASSERT(ICTailCallReg == ra);
     masm.makeFrameDescriptor(t6, JitFrame_BaselineJS);
     masm.subPtr(Imm32(sizeof(CommonFrameLayout)), StackPointer);
     masm.storePtr(t6, Address(StackPointer, CommonFrameLayout::offsetOfDescriptor()));
@@ -139,7 +139,7 @@ static const uint32_t STUB_FRAME_SAVED_STUB_OFFSET = offsetof(BaselineStubFrame,
 inline void
 EmitEnterStubFrame(MacroAssembler& masm, Register scratch)
 {
-    MOZ_ASSERT(scratch != BaselineTailCallReg);
+    MOZ_ASSERT(scratch != ICTailCallReg);
 
     
     masm.movePtr(BaselineFrameReg, scratch);
@@ -155,11 +155,11 @@ EmitEnterStubFrame(MacroAssembler& masm, Register scratch)
     masm.makeFrameDescriptor(scratch, JitFrame_BaselineJS);
     masm.subPtr(Imm32(STUB_FRAME_SIZE), StackPointer);
     masm.storePtr(scratch, Address(StackPointer, offsetof(BaselineStubFrame, descriptor)));
-    masm.storePtr(BaselineTailCallReg, Address(StackPointer,
+    masm.storePtr(ICTailCallReg, Address(StackPointer,
                                                offsetof(BaselineStubFrame, returnAddress)));
 
     
-    masm.storePtr(BaselineStubReg, Address(StackPointer,
+    masm.storePtr(ICStubReg, Address(StackPointer,
                                            offsetof(BaselineStubFrame, savedStub)));
     masm.storePtr(BaselineFrameReg, Address(StackPointer,
                                             offsetof(BaselineStubFrame, savedFrame)));
@@ -187,11 +187,11 @@ EmitLeaveStubFrame(MacroAssembler& masm, bool calledIntoIon = false)
     masm.loadPtr(Address(StackPointer, offsetof(BaselineStubFrame, savedFrame)),
                  BaselineFrameReg);
     masm.loadPtr(Address(StackPointer, offsetof(BaselineStubFrame, savedStub)),
-                 BaselineStubReg);
+                 ICStubReg);
 
     
     masm.loadPtr(Address(StackPointer, offsetof(BaselineStubFrame, returnAddress)),
-                 BaselineTailCallReg);
+                 ICTailCallReg);
 
     
     masm.loadPtr(Address(StackPointer, offsetof(BaselineStubFrame, descriptor)), ScratchRegister);
@@ -249,23 +249,23 @@ EmitCallTypeUpdateIC(MacroAssembler& masm, JitCode* code, uint32_t objectOffset)
     
     
     masm.subPtr(Imm32(2 * sizeof(intptr_t)), StackPointer);
-    masm.storePtr(BaselineStubReg, Address(StackPointer, sizeof(intptr_t)));
-    masm.storePtr(BaselineTailCallReg, Address(StackPointer, 0));
+    masm.storePtr(ICStubReg, Address(StackPointer, sizeof(intptr_t)));
+    masm.storePtr(ICTailCallReg, Address(StackPointer, 0));
 
     
     
-    masm.loadPtr(Address(BaselineStubReg, ICUpdatedStub::offsetOfFirstUpdateStub()),
-                 BaselineStubReg);
+    masm.loadPtr(Address(ICStubReg, ICUpdatedStub::offsetOfFirstUpdateStub()),
+                 ICStubReg);
 
     
-    masm.loadPtr(Address(BaselineStubReg, ICStub::offsetOfStubCode()), R2.scratchReg());
+    masm.loadPtr(Address(ICStubReg, ICStub::offsetOfStubCode()), R2.scratchReg());
 
     
     masm.call(R2.scratchReg());
 
     
-    masm.loadPtr(Address(StackPointer, 0), BaselineTailCallReg);
-    masm.loadPtr(Address(StackPointer, sizeof(intptr_t)), BaselineStubReg);
+    masm.loadPtr(Address(StackPointer, 0), ICTailCallReg);
+    masm.loadPtr(Address(StackPointer, sizeof(intptr_t)), ICStubReg);
     masm.addPtr(Imm32(2 * sizeof(intptr_t)), StackPointer);
 
     
@@ -280,7 +280,7 @@ EmitCallTypeUpdateIC(MacroAssembler& masm, JitCode* code, uint32_t objectOffset)
 
     masm.pushValue(R0);
     masm.pushValue(R1);
-    masm.push(BaselineStubReg);
+    masm.push(ICStubReg);
 
     
     masm.loadPtr(Address(BaselineFrameReg, 0), R0.scratchReg());
@@ -312,13 +312,13 @@ EmitStubGuardFailure(MacroAssembler& masm)
     
 
     
-    masm.loadPtr(Address(BaselineStubReg, ICStub::offsetOfNext()), BaselineStubReg);
+    masm.loadPtr(Address(ICStubReg, ICStub::offsetOfNext()), ICStubReg);
 
     
-    masm.loadPtr(Address(BaselineStubReg, ICStub::offsetOfStubCode()), R2.scratchReg());
+    masm.loadPtr(Address(ICStubReg, ICStub::offsetOfStubCode()), R2.scratchReg());
 
     
-    MOZ_ASSERT(BaselineTailCallReg == ra);
+    MOZ_ASSERT(ICTailCallReg == ra);
     masm.branch(R2.scratchReg());
 }
 

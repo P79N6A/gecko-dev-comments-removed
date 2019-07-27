@@ -34,16 +34,16 @@ inline void
 EmitCallIC(CodeOffsetLabel* patchOffset, MacroAssembler& masm)
 {
     
-    CodeOffsetLabel offset = masm.movWithPatch(ImmWord(-1), BaselineStubReg);
+    CodeOffsetLabel offset = masm.movWithPatch(ImmWord(-1), ICStubReg);
     *patchOffset = offset;
 
     
-    masm.loadPtr(Address(BaselineStubReg, ICEntry::offsetOfFirstStub()), BaselineStubReg);
+    masm.loadPtr(Address(ICStubReg, ICEntry::offsetOfFirstStub()), ICStubReg);
 
     
     
     MOZ_ASSERT(R2 == ValueOperand(r1, r0));
-    masm.loadPtr(Address(BaselineStubReg, ICStub::offsetOfStubCode()), r0);
+    masm.loadPtr(Address(ICStubReg, ICStub::offsetOfStubCode()), r0);
 
     
     masm.ma_blx(r0);
@@ -55,12 +55,12 @@ EmitEnterTypeMonitorIC(MacroAssembler& masm,
 {
     
     
-    masm.loadPtr(Address(BaselineStubReg, (uint32_t) monitorStubOffset), BaselineStubReg);
+    masm.loadPtr(Address(ICStubReg, (uint32_t) monitorStubOffset), ICStubReg);
 
     
     
     MOZ_ASSERT(R2 == ValueOperand(r1, r0));
-    masm.loadPtr(Address(BaselineStubReg, ICStub::offsetOfStubCode()), r0);
+    masm.loadPtr(Address(ICStubReg, ICStub::offsetOfStubCode()), r0);
 
     
     masm.branch(r0);
@@ -98,7 +98,7 @@ EmitTailCallVM(JitCode* target, MacroAssembler& masm, uint32_t argSize)
     
     
     
-    MOZ_ASSERT(BaselineTailCallReg == lr);
+    MOZ_ASSERT(ICTailCallReg == lr);
     masm.makeFrameDescriptor(r0, JitFrame_BaselineJS);
     masm.push(r0);
     masm.push(lr);
@@ -132,7 +132,7 @@ static const uint32_t STUB_FRAME_SAVED_STUB_OFFSET = sizeof(void*);
 inline void
 EmitEnterStubFrame(MacroAssembler& masm, Register scratch)
 {
-    MOZ_ASSERT(scratch != BaselineTailCallReg);
+    MOZ_ASSERT(scratch != ICTailCallReg);
 
     
     masm.mov(BaselineFrameReg, scratch);
@@ -147,10 +147,10 @@ EmitEnterStubFrame(MacroAssembler& masm, Register scratch)
     
     masm.makeFrameDescriptor(scratch, JitFrame_BaselineJS);
     masm.push(scratch);
-    masm.push(BaselineTailCallReg);
+    masm.push(ICTailCallReg);
 
     
-    masm.push(BaselineStubReg);
+    masm.push(ICStubReg);
     masm.push(BaselineFrameReg);
     masm.mov(BaselineStackReg, BaselineFrameReg);
 
@@ -174,10 +174,10 @@ EmitLeaveStubFrame(MacroAssembler& masm, bool calledIntoIon = false)
     }
 
     masm.pop(BaselineFrameReg);
-    masm.pop(BaselineStubReg);
+    masm.pop(ICStubReg);
 
     
-    masm.pop(BaselineTailCallReg);
+    masm.pop(ICTailCallReg);
 
     
     masm.pop(ScratchRegister);
@@ -235,25 +235,25 @@ EmitCallTypeUpdateIC(MacroAssembler& masm, JitCode* code, uint32_t objectOffset)
 
     
     
-    masm.push(BaselineStubReg);
-    masm.push(BaselineTailCallReg);
+    masm.push(ICStubReg);
+    masm.push(ICTailCallReg);
 
     
     
-    masm.loadPtr(Address(BaselineStubReg, ICUpdatedStub::offsetOfFirstUpdateStub()),
-                 BaselineStubReg);
+    masm.loadPtr(Address(ICStubReg, ICUpdatedStub::offsetOfFirstUpdateStub()),
+                 ICStubReg);
 
     
 
     
-    masm.loadPtr(Address(BaselineStubReg, ICStub::offsetOfStubCode()), r0);
+    masm.loadPtr(Address(ICStubReg, ICStub::offsetOfStubCode()), r0);
 
     
     masm.ma_blx(r0);
 
     
-    masm.pop(BaselineTailCallReg);
-    masm.pop(BaselineStubReg);
+    masm.pop(ICTailCallReg);
+    masm.pop(ICStubReg);
 
     
     
@@ -268,7 +268,7 @@ EmitCallTypeUpdateIC(MacroAssembler& masm, JitCode* code, uint32_t objectOffset)
 
     masm.pushValue(R0);
     masm.pushValue(R1);
-    masm.push(BaselineStubReg);
+    masm.push(ICStubReg);
 
     
     masm.loadPtr(Address(BaselineFrameReg, 0), R0.scratchReg());
@@ -302,13 +302,13 @@ EmitStubGuardFailure(MacroAssembler& masm)
     
 
     
-    masm.loadPtr(Address(BaselineStubReg, ICStub::offsetOfNext()), BaselineStubReg);
+    masm.loadPtr(Address(ICStubReg, ICStub::offsetOfNext()), ICStubReg);
 
     
-    masm.loadPtr(Address(BaselineStubReg, ICStub::offsetOfStubCode()), r0);
+    masm.loadPtr(Address(ICStubReg, ICStub::offsetOfStubCode()), r0);
 
     
-    MOZ_ASSERT(BaselineTailCallReg == lr);
+    MOZ_ASSERT(ICTailCallReg == lr);
     masm.branch(r0);
 }
 
