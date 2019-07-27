@@ -1741,6 +1741,8 @@ public:
 protected:
     virtual const Metrics& GetHorizontalMetrics() = 0;
 
+    const Metrics* CreateVerticalMetrics();
+
     
     
     
@@ -1977,6 +1979,9 @@ protected:
     nsAutoPtr<gfxFontShaper>   mGraphiteShaper;
 
     mozilla::RefPtr<mozilla::gfx::ScaledFont> mAzureScaledFont;
+
+    
+    nsAutoPtr<const Metrics> mVerticalMetrics;
 
     
     

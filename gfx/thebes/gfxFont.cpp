@@ -3080,6 +3080,9 @@ gfxFont::InitMetricsFromSfntTables(Metrics& aMetrics)
         }
     }
 
+#undef SET_SIGNED
+#undef SET_UNSIGNED
+
     mIsValid = true;
 
     return true;
@@ -3203,6 +3206,152 @@ gfxFont::SanitizeMetrics(gfxFont::Metrics *aMetrics, bool aIsBadUnderlineFont)
     if (aMetrics->underlineSize > aMetrics->maxAscent) {
         aMetrics->underlineSize = aMetrics->maxAscent;
     }
+}
+
+
+
+
+
+
+
+
+
+
+const gfxFont::Metrics*
+gfxFont::CreateVerticalMetrics()
+{
+    const uint32_t kHheaTableTag = TRUETYPE_TAG('h','h','e','a');
+    const uint32_t kVheaTableTag = TRUETYPE_TAG('v','h','e','a');
+    const uint32_t kPostTableTag = TRUETYPE_TAG('p','o','s','t');
+    const uint32_t kOS_2TableTag = TRUETYPE_TAG('O','S','/','2');
+    uint32_t len;
+
+    Metrics* metrics = new Metrics;
+    ::memset(metrics, 0, sizeof(Metrics));
+
+    
+    
+    metrics->emHeight = GetAdjustedSize();
+    metrics->emAscent = metrics->emHeight / 2;
+    metrics->emDescent = metrics->emHeight - metrics->emAscent;
+
+    metrics->maxAscent = metrics->emAscent;
+    metrics->maxDescent = metrics->emDescent;
+
+    const float UNINITIALIZED_LEADING = -10000.0f;
+    metrics->externalLeading = UNINITIALIZED_LEADING;
+
+#define SET_UNSIGNED(field,src) metrics->field = uint16_t(src) * mFUnitsConvFactor
+#define SET_SIGNED(field,src)   metrics->field = int16_t(src) * mFUnitsConvFactor
+
+    gfxFontEntry::AutoTable os2Table(mFontEntry, kOS_2TableTag);
+    if (os2Table) {
+        const OS2Table *os2 =
+            reinterpret_cast<const OS2Table*>(hb_blob_get_data(os2Table, &len));
+        
+        if (len >= offsetof(OS2Table, sTypoLineGap) + sizeof(int16_t)) {
+            SET_SIGNED(strikeoutSize, os2->yStrikeoutSize);
+            SET_SIGNED(aveCharWidth, int16_t(os2->sTypoAscender) -
+                                     int16_t(os2->sTypoDescender));
+            metrics->maxAscent =
+                std::max(metrics->maxAscent, int16_t(os2->xAvgCharWidth) *
+                                             gfxFloat(mFUnitsConvFactor));
+            metrics->maxDescent =
+                std::max(metrics->maxDescent, int16_t(os2->xAvgCharWidth) *
+                                              gfxFloat(mFUnitsConvFactor));
+        }
+    }
+
+    
+    
+    if (!metrics->aveCharWidth) {
+        gfxFontEntry::AutoTable hheaTable(mFontEntry, kHheaTableTag);
+        if (hheaTable) {
+            const HheaTable* hhea =
+                reinterpret_cast<const HheaTable*>(hb_blob_get_data(hheaTable,
+                                                                    &len));
+            if (len >= sizeof(HheaTable)) {
+                SET_SIGNED(aveCharWidth, int16_t(hhea->ascender) -
+                                         int16_t(hhea->descender));
+                metrics->maxAscent = metrics->aveCharWidth / 2;
+                metrics->maxDescent =
+                    metrics->aveCharWidth - metrics->maxAscent;
+            }
+        }
+    }
+
+    
+    gfxFontEntry::AutoTable vheaTable(mFontEntry, kVheaTableTag);
+    if (vheaTable) {
+        const HheaTable* vhea =
+            reinterpret_cast<const HheaTable*>(hb_blob_get_data(vheaTable,
+                                                                &len));
+        if (len >= sizeof(HheaTable)) {
+            SET_UNSIGNED(maxAdvance, vhea->advanceWidthMax);
+            SET_SIGNED(maxAscent, vhea->ascender);
+            SET_SIGNED(maxDescent, -int16_t(vhea->descender));
+            SET_SIGNED(externalLeading, vhea->lineGap);
+        }
+    }
+
+    
+    
+    
+    
+    
+    if (!metrics->aveCharWidth ||
+        metrics->externalLeading == UNINITIALIZED_LEADING) {
+        const Metrics& horizMetrics = GetHorizontalMetrics();
+        if (!metrics->aveCharWidth) {
+            metrics->aveCharWidth = horizMetrics.maxAscent + horizMetrics.maxDescent;
+        }
+        if (metrics->externalLeading == UNINITIALIZED_LEADING) {
+            metrics->externalLeading = horizMetrics.externalLeading;
+        }
+    }
+
+    
+    gfxFontEntry::AutoTable postTable(mFontEntry, kPostTableTag);
+    if (postTable) {
+        const PostTable *post =
+            reinterpret_cast<const PostTable*>(hb_blob_get_data(postTable,
+                                                                &len));
+        if (len >= offsetof(PostTable, underlineThickness) +
+                       sizeof(uint16_t)) {
+            SET_UNSIGNED(underlineSize, post->underlineThickness);
+            
+            if (!metrics->strikeoutSize) {
+                metrics->strikeoutSize = metrics->underlineSize;
+            }
+        }
+    }
+
+#undef SET_UNSIGNED
+#undef SET_SIGNED
+
+    
+    
+    
+    metrics->maxAdvance = std::max(metrics->maxAdvance, metrics->aveCharWidth);
+
+    
+    
+    
+    
+    metrics->underlineSize = std::max(1.0, metrics->underlineSize);
+    metrics->underlineOffset = 0; 
+
+    metrics->strikeoutSize = std::max(1.0, metrics->strikeoutSize);
+    metrics->strikeoutOffset =
+        metrics->maxDescent - 0.5 * metrics->strikeoutSize;
+
+    
+    metrics->spaceWidth = metrics->aveCharWidth;
+    metrics->zeroOrAveCharWidth = metrics->aveCharWidth;
+    metrics->maxHeight = metrics->maxAscent + metrics->maxDescent;
+    metrics->xHeight = metrics->emHeight / 2;
+
+    return metrics;
 }
 
 gfxFloat
