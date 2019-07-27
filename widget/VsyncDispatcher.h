@@ -12,8 +12,6 @@
 #include "nsTArray.h"
 #include "ThreadSafeRefcountingWithMainThreadDestruction.h"
 
-class MessageLoop;
-
 namespace mozilla {
 class TimeStamp;
 
@@ -21,23 +19,10 @@ namespace layers {
 class CompositorVsyncObserver;
 }
 
-
-class VsyncSource
-{
-public:
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(VsyncSource)
-  virtual void EnableVsync() = 0;
-  virtual void DisableVsync() = 0;
-  virtual bool IsVsyncEnabled() = 0;
-
-protected:
-  virtual ~VsyncSource() {}
-}; 
-
 class VsyncObserver
 {
   
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING_WITH_MAIN_THREAD_DESTRUCTION(VsyncObserver)
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(VsyncObserver)
 
 public:
   
@@ -55,7 +40,8 @@ class VsyncDispatcher
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(VsyncDispatcher)
 
 public:
-  static VsyncDispatcher* GetInstance();
+  VsyncDispatcher();
+
   
   
   
@@ -63,24 +49,15 @@ public:
   
   
   void NotifyVsync(TimeStamp aVsyncTimestamp);
-  void SetVsyncSource(VsyncSource* aVsyncSource);
 
   
-  void AddCompositorVsyncObserver(VsyncObserver* aVsyncObserver);
-  void RemoveCompositorVsyncObserver(VsyncObserver* aVsyncObserver);
+  void SetCompositorVsyncObserver(VsyncObserver* aVsyncObserver);
+  void Shutdown();
 
 private:
-  VsyncDispatcher();
   virtual ~VsyncDispatcher();
-  void DispatchTouchEvents(bool aNotifiedCompositors, TimeStamp aVsyncTime);
-
-  
-  bool NotifyVsyncObservers(TimeStamp aVsyncTimestamp, nsTArray<nsRefPtr<VsyncObserver>>& aObservers);
-
-  
   Mutex mCompositorObserverLock;
-  nsTArray<nsRefPtr<VsyncObserver>> mCompositorObservers;
-  nsRefPtr<VsyncSource> mVsyncSource;
+  nsRefPtr<VsyncObserver> mCompositorVsyncObserver;
 }; 
 
 } 
