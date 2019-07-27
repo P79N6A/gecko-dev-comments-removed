@@ -250,7 +250,7 @@ nsBlockReflowContext::ReflowBlock(const nsRect&       aSpace,
     }
   }
 
-  nscoord tI = 0, tB = 0;
+  LogicalPoint tPt(mWritingMode);
   
   
   
@@ -262,16 +262,12 @@ nsBlockReflowContext::ReflowBlock(const nsRect&       aSpace,
     
 
     WritingMode frameWM = aFrameRS.GetWritingMode();
-    mICoord = tI =
+    mICoord = tPt.I(mWritingMode) =
       mSpace.IStart(mWritingMode) +
       aFrameRS.ComputedLogicalMargin().ConvertTo(mWritingMode,
                                                  frameWM).IStart(mWritingMode);
-    mBCoord = tB = mSpace.BStart(mWritingMode) +
-                   mBStartMargin.get() + aClearance;
-
-    
-    tI = aSpace.x + aFrameRS.ComputedPhysicalMargin().left;
-    tB = aSpace.y + mBStartMargin.get() + aClearance;
+    mBCoord = tPt.B(mWritingMode) = mSpace.BStart(mWritingMode) +
+                                    mBStartMargin.get() + aClearance;
 
     if ((mFrame->GetStateBits() & NS_BLOCK_FLOAT_MGR) == 0)
       aFrameRS.mBlockDelta =
@@ -286,9 +282,11 @@ nsBlockReflowContext::ReflowBlock(const nsRect&       aSpace,
   mMetrics.BSize(mWritingMode) = nscoord(0xdeadbeef);
 #endif
 
-  mOuterReflowState.mFloatManager->Translate(tI, tB);
+  WritingMode oldWM =
+    mOuterReflowState.mFloatManager->Translate(mWritingMode, tPt,
+                                               mContainerWidth);
   mFrame->Reflow(mPresContext, mMetrics, aFrameRS, aFrameReflowStatus);
-  mOuterReflowState.mFloatManager->Translate(-tI, -tB);
+  mOuterReflowState.mFloatManager->Untranslate(oldWM, tPt, mContainerWidth);
 
 #ifdef DEBUG
   if (!NS_INLINE_IS_BREAK_BEFORE(aFrameReflowStatus)) {

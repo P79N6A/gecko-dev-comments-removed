@@ -476,8 +476,10 @@ public:
 
 
 
-  static void RecoverFloatsFor(nsIFrame*       aFrame,
-                               nsFloatManager& aFloatManager);
+  static void RecoverFloatsFor(nsIFrame*            aFrame,
+                               nsFloatManager&      aFloatManager,
+                               mozilla::WritingMode aWM,
+                               nscoord              aContainerWidth);
 
   
 
@@ -541,7 +543,9 @@ protected:
   
 
 
-  void RecoverFloats(nsFloatManager& aFloatManager);
+  void RecoverFloats(nsFloatManager&      aFloatManager,
+                     mozilla::WritingMode aWM,
+                     nscoord              aContainerWidth);
 
   
 

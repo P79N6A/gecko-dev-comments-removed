@@ -1846,8 +1846,9 @@ nsBlockFrame::PropagateFloatDamage(nsBlockReflowState& aState,
     nsRect overflow = aLine->GetOverflowArea(eScrollableOverflow);
     nscoord lineYCombinedA = overflow.y + aDeltaY;
     nscoord lineYCombinedB = lineYCombinedA + overflow.height;
-    if (floatManager->IntersectsDamage(lineYA, lineYB) ||
-        floatManager->IntersectsDamage(lineYCombinedA, lineYCombinedB)) {
+    WritingMode wm = aState.mReflowState.GetWritingMode();
+    if (floatManager->IntersectsDamage(wm, lineYA, lineYB) ||
+        floatManager->IntersectsDamage(wm, lineYCombinedA, lineYCombinedB)) {
       aLine->MarkDirty();
       return;
     }
@@ -3184,7 +3185,8 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
                   LogicalSize(frame->GetWritingMode(), availSpace.Size()));
     blockHtmlRS.mFlags.mHasClearance = aLine->HasClearance();
 
-    nsFloatManager::SavedState floatManagerState;
+    nsFloatManager::SavedState
+      floatManagerState(aState.mReflowState.GetWritingMode());
     if (mayNeedRetry) {
       blockHtmlRS.mDiscoveredClearance = &clearanceFrame;
       aState.mFloatManager->PushState(&floatManagerState);
@@ -3449,7 +3451,8 @@ nsBlockFrame::ReflowInlineFrames(nsBlockReflowState& aState,
       int32_t forceBreakOffset = -1;
       gfxBreakPriority forceBreakPriority = gfxBreakPriority::eNoBreak;
       do {
-        nsFloatManager::SavedState floatManagerState;
+        nsFloatManager::SavedState
+          floatManagerState(aState.mReflowState.GetWritingMode());
         aState.mReflowState.mFloatManager->PushState(&floatManagerState);
 
         
@@ -5984,14 +5987,15 @@ nsBlockFrame::ReflowPushedFloats(nsBlockReflowState& aState,
 }
 
 void
-nsBlockFrame::RecoverFloats(nsFloatManager& aFloatManager)
+nsBlockFrame::RecoverFloats(nsFloatManager& aFloatManager, WritingMode aWM,
+                            nscoord aContainerWidth)
 {
   
   nsIFrame* stop = nullptr; 
                            
   for (nsIFrame* f = mFloats.FirstChild(); f && f != stop; f = f->GetNextSibling()) {
-    nsRect region = nsFloatManager::GetRegionFor(f);
-    aFloatManager.AddFloat(f, region);
+    LogicalRect region = nsFloatManager::GetRegionFor(aWM, f, aContainerWidth);
+    aFloatManager.AddFloat(f, region, aWM, aContainerWidth);
     if (!stop && f->GetNextInFlow())
       stop = f->GetNextInFlow();
   }
@@ -5999,20 +6003,22 @@ nsBlockFrame::RecoverFloats(nsFloatManager& aFloatManager)
   
   for (nsIFrame* oc = GetFirstChild(kOverflowContainersList);
        oc; oc = oc->GetNextSibling()) {
-    RecoverFloatsFor(oc, aFloatManager);
+    RecoverFloatsFor(oc, aFloatManager, aWM, aContainerWidth);
   }
 
   
   for (nsBlockFrame::line_iterator line = begin_lines(); line != end_lines(); ++line) {
     if (line->IsBlock()) {
-      RecoverFloatsFor(line->mFirstChild, aFloatManager);
+      RecoverFloatsFor(line->mFirstChild, aFloatManager, aWM, aContainerWidth);
     }
   }
 }
 
 void
 nsBlockFrame::RecoverFloatsFor(nsIFrame*       aFrame,
-                               nsFloatManager& aFloatManager)
+                               nsFloatManager& aFloatManager,
+                               WritingMode     aWM,
+                               nscoord         aContainerWidth)
 {
   NS_PRECONDITION(aFrame, "null frame");
   
@@ -6024,10 +6030,10 @@ nsBlockFrame::RecoverFloatsFor(nsIFrame*       aFrame,
     
     
     
-    nsPoint pos = block->GetNormalPosition();
-    aFloatManager.Translate(pos.x, pos.y);
-    block->RecoverFloats(aFloatManager);
-    aFloatManager.Translate(-pos.x, -pos.y);
+    LogicalPoint pos = block->GetLogicalNormalPosition(aWM, aContainerWidth);
+    WritingMode oldWM = aFloatManager.Translate(aWM, pos, aContainerWidth);
+    block->RecoverFloats(aFloatManager, aWM, aContainerWidth);
+    aFloatManager.Untranslate(oldWM, pos, aContainerWidth);
   }
 }
 
