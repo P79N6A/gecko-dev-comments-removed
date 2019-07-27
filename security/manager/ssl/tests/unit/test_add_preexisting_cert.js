@@ -31,7 +31,7 @@ function run_test() {
   let hasEVPolicy = {};
   let verifiedChain = {};
   equal(PRErrorCodeSuccess, certDB.verifyCertNow(ee, certificateUsageSSLServer,
-                                                 NO_FLAGS, verifiedChain,
+                                                 NO_FLAGS, null, verifiedChain,
                                                  hasEVPolicy));
   
   
@@ -42,6 +42,6 @@ function run_test() {
   certDB.addCertFromBase64(base64_cert, "p,p,p", "ignored_argument");
   equal(SEC_ERROR_UNTRUSTED_ISSUER, certDB.verifyCertNow(ee,
                                                          certificateUsageSSLServer,
-                                                         NO_FLAGS, verifiedChain,
+                                                         NO_FLAGS, null, verifiedChain,
                                                          hasEVPolicy));
 }

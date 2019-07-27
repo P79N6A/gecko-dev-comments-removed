@@ -138,7 +138,8 @@ function loadCertificates(certFile) {
     
     
     let errorCode = gCertDB.verifyCertNow(cert, 2 ,
-                                          Ci.nsIX509CertDB.LOCAL_ONLY, {}, {});
+                                          Ci.nsIX509CertDB.LOCAL_ONLY, null,
+                                          {}, {});
     if (errorCode != 0 &&
         errorCode != -8180 ) {
       continue;
