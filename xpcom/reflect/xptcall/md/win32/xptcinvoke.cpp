@@ -69,14 +69,12 @@ noparams:
         mov     eax,methodIndex
         call    dword ptr[edx+eax*4] 
         mov     esp,ebp
-#ifdef __clang__
         
         
         
         
         pop     ebp
         ret
-#endif
     }
 }
 #pragma warning(default : 4035) // restore default
