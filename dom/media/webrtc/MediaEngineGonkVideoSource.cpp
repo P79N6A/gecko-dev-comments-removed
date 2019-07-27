@@ -362,21 +362,26 @@ MediaEngineGonkVideoSource::OnHardwareStateChange(HardwareState aState,
                                                   nsresult aReason)
 {
   ReentrantMonitorAutoEnter sync(mCallbackMonitor);
-  if (aState == CameraControlListener::kHardwareClosed) {
-    
-    
-    
-    
-    if (mState != kAllocated) {
+  switch (aState) {
+    case CameraControlListener::kHardwareClosed:
+    case CameraControlListener::kHardwareOpenFailed:
       mState = kReleased;
       mCallbackMonitor.Notify();
-    }
-  } else {
-    
-    NS_DispatchToMainThread(WrapRunnable(nsRefPtr<MediaEngineGonkVideoSource>(this),
-                                         &MediaEngineGonkVideoSource::GetRotation));
-    mState = kStarted;
-    mCallbackMonitor.Notify();
+      break;
+    case CameraControlListener::kHardwareOpen:
+      
+      NS_DispatchToMainThread(WrapRunnable(nsRefPtr<MediaEngineGonkVideoSource>(this),
+                                           &MediaEngineGonkVideoSource::GetRotation));
+      mState = kStarted;
+      mCallbackMonitor.Notify();
+      break;
+    case CameraControlListener::kHardwareUninitialized:
+      
+      
+      break;
+    default:
+      MOZ_ASSERT_UNREACHABLE("Unanticipated camera hardware state");
+      break;
   }
 }
 
