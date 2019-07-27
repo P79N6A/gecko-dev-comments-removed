@@ -30,6 +30,12 @@ gDevTools.testing = true;
 let DEFAULT_PREFS = [
   "devtools.debugger.log",
   "devtools.performance.ui.invert-call-tree",
+  "devtools.performance.ui.flatten-tree-recursion",
+  "devtools.performance.ui.show-platform-data",
+  "devtools.performance.ui.show-idle-blocks",
+  "devtools.performance.ui.enable-memory",
+  "devtools.performance.ui.enable-framerate",
+
   
   "devtools.performance_dev.enabled"
 ].reduce((prefs, pref) => {

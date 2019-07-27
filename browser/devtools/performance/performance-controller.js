@@ -130,7 +130,6 @@ let gToolbox, gTarget, gFront;
 
 let startupPerformance = Task.async(function*() {
   yield promise.all([
-    PrefObserver.register(),
     PerformanceController.initialize(),
     PerformanceView.initialize()
   ]);
@@ -141,28 +140,10 @@ let startupPerformance = Task.async(function*() {
 
 let shutdownPerformance = Task.async(function*() {
   yield promise.all([
-    PrefObserver.unregister(),
     PerformanceController.destroy(),
     PerformanceView.destroy()
   ]);
 });
-
-
-
-
-
-let PrefObserver = {
-  register: function() {
-    this.branch = Services.prefs.getBranch("devtools.profiler.");
-    this.branch.addObserver("", this, false);
-  },
-  unregister: function() {
-    this.branch.removeObserver("", this);
-  },
-  observe: function(subject, topic, pref) {
-    Prefs.refresh();
-  }
-};
 
 
 
@@ -232,13 +213,13 @@ let PerformanceController = {
   startRecording: Task.async(function *() {
     let recording = this._createRecording();
 
+    let withMemory = this.getPref("enable-memory");
+    let withTicks = this.getPref("enable-framerate");
+    let withAllocations = true;
+
     this.emit(EVENTS.RECORDING_WILL_START, recording);
-    yield recording.startRecording({
-      withTicks: true,
-      withMemory: true,
-      withAllocations: true
-    });
-    this.emit(EVENTS.RECORDING_STARTED, recording);
+    yield recording.startRecording({ withTicks, withMemory, withAllocations });
+    this.emit(EVENTS.RECORDING_STARTED, recording, { withTicks, withMemory, withAllocations });
 
     this.setCurrentRecording(recording);
   }),
@@ -359,15 +340,6 @@ let PerformanceController = {
 
 
 EventEmitter.decorate(PerformanceController);
-
-
-
-
-const Prefs = new ViewHelpers.Prefs("devtools.profiler", {
-  flattenTreeRecursion: ["Bool", "ui.flatten-tree-recursion"],
-  showPlatformData: ["Bool", "ui.show-platform-data"],
-  showIdleBlocks: ["Bool", "ui.show-idle-blocks"],
-});
 
 
 

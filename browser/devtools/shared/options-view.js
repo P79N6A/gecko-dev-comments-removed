@@ -93,6 +93,13 @@ OptionsView.prototype = {
     let $el = this.$(`menuitem[data-pref="${prefName}"]`, this.menupopup);
     let value = this.prefObserver.get(prefName);
 
+    
+    
+    if (!$el) {
+      this.emit(PREF_CHANGE_EVENT, prefName);
+      return;
+    }
+
     if (value) {
       $el.setAttribute("checked", value);
     } else {
