@@ -19,7 +19,6 @@
 #include "asmjs/AsmJSSignalHandlers.h"
 
 #include "mozilla/DebugOnly.h"
-#include "mozilla/PodOperations.h"
 
 #include "asmjs/AsmJSModule.h"
 #include "vm/Runtime.h"
@@ -29,81 +28,6 @@ using namespace js::jit;
 
 using JS::GenericNaN;
 using mozilla::DebugOnly;
-using mozilla::PodArrayZero;
-
-#if defined(ANDROID)
-# include <sys/system_properties.h>
-# if defined(MOZ_LINKER)
-extern "C" MFBT_API bool IsSignalHandlingBroken();
-# endif
-
-static bool
-IsSignalHandlingBrokenOnAndroid()
-{
-    
-    
-    
-    
-    
-    char version_string[PROP_VALUE_MAX];
-    PodArrayZero(version_string);
-    if (__system_property_get("ro.build.version.sdk", version_string) > 0) {
-        long version = atol(version_string);
-        if (version && version <= 10)
-            return true;
-    }
-
-# if defined(MOZ_LINKER)
-    
-    
-    
-    
-    
-    
-    if (IsSignalHandlingBroken())
-        return true;
-# endif
-
-    return false;
-}
-#endif
-
-
-
-
-static JSRuntime *
-RuntimeForCurrentThread()
-{
-    PerThreadData *threadData = TlsPerThreadData.get();
-    if (!threadData)
-        return nullptr;
-
-    return threadData->runtimeIfOnOwnerThread();
-}
-
-
-
-
-
-
-class AutoSetHandlingSignal
-{
-    JSRuntime *rt;
-
-  public:
-    explicit AutoSetHandlingSignal(JSRuntime *rt)
-      : rt(rt)
-    {
-        MOZ_ASSERT(!rt->handlingSignal);
-        rt->handlingSignal = true;
-    }
-
-    ~AutoSetHandlingSignal()
-    {
-        MOZ_ASSERT(rt->handlingSignal);
-        rt->handlingSignal = false;
-    }
-};
 
 #if defined(XP_WIN)
 # define XMM_sig(p,i) ((p)->Xmm##i)
@@ -228,10 +152,69 @@ class AutoSetHandlingSignal
 #  define R15_sig(p) ((p)->uc_mcontext.mc_r15)
 # endif
 #elif defined(XP_MACOSX)
-# define EIP_sig(p) ((p)->uc_mcontext->__ss.__eip)
-# define RIP_sig(p) ((p)->uc_mcontext->__ss.__rip)
+
 #else
 # error "Don't know how to read/write to the thread state via the mcontext_t."
+#endif
+
+
+
+
+#if !defined(XP_MACOSX)
+static JSRuntime *
+RuntimeForCurrentThread()
+{
+    PerThreadData *threadData = TlsPerThreadData.get();
+    if (!threadData)
+        return nullptr;
+
+    return threadData->runtimeIfOnOwnerThread();
+}
+#endif 
+
+
+
+
+
+
+class AutoSetHandlingSignal
+{
+    JSRuntime *rt;
+
+  public:
+    explicit AutoSetHandlingSignal(JSRuntime *rt)
+      : rt(rt)
+    {
+        MOZ_ASSERT(!rt->handlingSignal);
+        rt->handlingSignal = true;
+    }
+
+    ~AutoSetHandlingSignal()
+    {
+        MOZ_ASSERT(rt->handlingSignal);
+        rt->handlingSignal = false;
+    }
+};
+
+#if defined(JS_CODEGEN_X64)
+template <class T>
+static void
+SetXMMRegToNaN(bool isFloat32, T *xmm_reg)
+{
+    if (isFloat32) {
+        JS_STATIC_ASSERT(sizeof(T) == 4 * sizeof(float));
+        float *floats = reinterpret_cast<float*>(xmm_reg);
+        floats[0] = GenericNaN();
+        floats[1] = 0;
+        floats[2] = 0;
+        floats[3] = 0;
+    } else {
+        JS_STATIC_ASSERT(sizeof(T) == 2 * sizeof(double));
+        double *dbls = reinterpret_cast<double*>(xmm_reg);
+        dbls[0] = GenericNaN();
+        dbls[1] = 0;
+    }
+}
 #endif
 
 #if defined(XP_WIN)
@@ -245,7 +228,7 @@ class AutoSetHandlingSignal
 # include <sys/ucontext.h> 
 #endif
 
-#if defined(JS_CPU_X64)
+#if defined(JS_CODEGEN_X64)
 # if defined(__DragonFly__)
 #  include <machine/npx.h> 
 # elif defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || \
@@ -334,6 +317,18 @@ enum { REG_EIP = 14 };
 # endif  
 #endif 
 
+#if defined(ANDROID) && defined(MOZ_LINKER)
+
+
+
+
+
+
+extern "C" MFBT_API bool IsSignalHandlingBroken();
+#else
+static bool IsSignalHandlingBroken() { return false; }
+#endif 
+
 #if !defined(XP_WIN)
 # define CONTEXT ucontext_t
 #endif
@@ -348,33 +343,41 @@ enum { REG_EIP = 14 };
 # define PC_sig(p) EPC_sig(p)
 #endif
 
+static bool
+HandleSimulatorInterrupt(JSRuntime *rt, AsmJSActivation *activation, void *faultingAddress)
+{
+    
+    
+    
+    
+    
+
+#if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
+    const AsmJSModule &module = activation->module();
+    if (module.containsFunctionPC((void *)rt->mainThread.simulator()->get_pc()) &&
+        module.containsFunctionPC(faultingAddress))
+    {
+        activation->setResumePC(nullptr);
+        int32_t nextpc = int32_t(module.interruptExit());
+        rt->mainThread.simulator()->set_resume_pc(nextpc);
+        return true;
+    }
+#endif
+    return false;
+}
+
+#if !defined(XP_MACOSX)
 static uint8_t **
 ContextToPC(CONTEXT *context)
 {
+#ifdef JS_CODEGEN_NONE
+    MOZ_CRASH();
+#else
     return reinterpret_cast<uint8_t**>(&PC_sig(context));
+#endif
 }
 
-#if defined(JS_CPU_X64)
-template <class T>
-static void
-SetXMMRegToNaN(bool isFloat32, T *xmm_reg)
-{
-    if (isFloat32) {
-        JS_STATIC_ASSERT(sizeof(T) == 4 * sizeof(float));
-        float *floats = reinterpret_cast<float*>(xmm_reg);
-        floats[0] = GenericNaN();
-        floats[1] = 0;
-        floats[2] = 0;
-        floats[3] = 0;
-    } else {
-        JS_STATIC_ASSERT(sizeof(T) == 2 * sizeof(double));
-        double *dbls = reinterpret_cast<double*>(xmm_reg);
-        dbls[0] = GenericNaN();
-        dbls[1] = 0;
-    }
-}
-
-# if !defined(XP_MACOSX)
+# if defined(JS_CODEGEN_X64)
 static void
 SetRegisterToCoercedUndefined(CONTEXT *context, bool isFloat32, AnyRegister reg)
 {
@@ -421,12 +424,12 @@ SetRegisterToCoercedUndefined(CONTEXT *context, bool isFloat32, AnyRegister reg)
     }
 }
 # endif  
-#endif 
+#endif   
 
 #if defined(XP_WIN)
 
 static bool
-HandleFault(PEXCEPTION_POINTERS exception)
+HandleException(PEXCEPTION_POINTERS exception)
 {
     EXCEPTION_RECORD *record = exception->ExceptionRecord;
     CONTEXT *context = exception->ContextRecord;
@@ -441,13 +444,19 @@ HandleFault(PEXCEPTION_POINTERS exception)
     if (record->NumberParameters < 2)
         return false;
 
-    
+    void *faultingAddress = (void*)record->ExceptionInformation[1];
+
     JSRuntime *rt = RuntimeForCurrentThread();
+
+    
     if (!rt || rt->handlingSignal)
         return false;
     AutoSetHandlingSignal handling(rt);
 
-    AsmJSActivation *activation = rt->mainThread.asmJSActivationStack();
+    if (rt->jitRuntime() && rt->jitRuntime()->handleAccessViolation(rt, faultingAddress))
+        return true;
+
+    AsmJSActivation *activation = PerThreadData::innermostAsmJSActivation();
     if (!activation)
         return false;
 
@@ -455,10 +464,23 @@ HandleFault(PEXCEPTION_POINTERS exception)
     if (!module.containsFunctionPC(pc))
         return false;
 
-# if defined(JS_CPU_X64)
     
     
-    void *faultingAddress = (void*)record->ExceptionInformation[1];
+    
+    
+    
+    if (module.containsFunctionPC(faultingAddress)) {
+        activation->setResumePC(pc);
+        *ppc = module.interruptExit();
+
+        JSRuntime::AutoLockForInterrupt lock(rt);
+        module.unprotectCode(rt);
+        return true;
+    }
+
+# if defined(JS_CODEGEN_X64)
+    
+    
     if (!module.maybeHeap() ||
         faultingAddress < module.maybeHeap() ||
         faultingAddress >= module.maybeHeap() + AsmJSMappedSize)
@@ -490,9 +512,9 @@ HandleFault(PEXCEPTION_POINTERS exception)
 }
 
 static LONG WINAPI
-AsmJSFaultHandler(LPEXCEPTION_POINTERS exception)
+AsmJSExceptionHandler(LPEXCEPTION_POINTERS exception)
 {
-    if (HandleFault(exception))
+    if (HandleException(exception))
         return EXCEPTION_CONTINUE_EXECUTION;
 
     
@@ -505,16 +527,18 @@ AsmJSFaultHandler(LPEXCEPTION_POINTERS exception)
 static uint8_t **
 ContextToPC(x86_thread_state_t &state)
 {
-# if defined(JS_CPU_X64)
+# if defined(JS_CODEGEN_X64)
     JS_STATIC_ASSERT(sizeof(state.uts.ts64.__rip) == sizeof(void*));
     return reinterpret_cast<uint8_t**>(&state.uts.ts64.__rip);
+# elif defined(JS_CODEGEN_NONE)
+    MOZ_CRASH();
 # else
     JS_STATIC_ASSERT(sizeof(state.uts.ts32.__eip) == sizeof(void*));
     return reinterpret_cast<uint8_t**>(&state.uts.ts32.__eip);
 # endif
 }
 
-# if defined(JS_CPU_X64)
+# if defined(JS_CODEGEN_X64)
 static bool
 SetRegisterToCoercedUndefined(mach_port_t rtThread, x86_thread_state64_t &state,
                               const AsmJSHeapAccess &heapAccess)
@@ -626,18 +650,45 @@ HandleMachException(JSRuntime *rt, const ExceptionRequest &request)
     if (request.body.exception != EXC_BAD_ACCESS || request.body.codeCnt != 2)
         return false;
 
+    void *faultingAddress = (void*)request.body.code[1];
+
+    if (rt->jitRuntime() && rt->jitRuntime()->handleAccessViolation(rt, faultingAddress))
+        return true;
+
     AsmJSActivation *activation = rt->mainThread.asmJSActivationStack();
     if (!activation)
         return false;
 
     const AsmJSModule &module = activation->module();
+    if (HandleSimulatorInterrupt(rt, activation, faultingAddress)) {
+        JSRuntime::AutoLockForInterrupt lock(rt);
+        module.unprotectCode(rt);
+        return true;
+    }
+
     if (!module.containsFunctionPC(pc))
         return false;
 
-# if defined(JS_CPU_X64)
     
     
-    void *faultingAddress = (void*)request.body.code[1];
+    
+    
+    
+    if (module.containsFunctionPC(faultingAddress)) {
+        activation->setResumePC(pc);
+        *ppc = module.interruptExit();
+
+        JSRuntime::AutoLockForInterrupt lock(rt);
+        module.unprotectCode(rt);
+
+        
+        kret = thread_set_state(rtThread, x86_THREAD_STATE, (thread_state_t)&state, x86_THREAD_STATE_COUNT);
+        return kret == KERN_SUCCESS;
+    }
+
+# if defined(JS_CODEGEN_X64)
+    
+    
     if (!module.maybeHeap() ||
         faultingAddress < module.maybeHeap() ||
         faultingAddress >= module.maybeHeap() + AsmJSMappedSize)
@@ -828,30 +879,55 @@ AsmJSMachExceptionHandler::install(JSRuntime *rt)
 
 
 static bool
-HandleFault(int signum, siginfo_t *info, void *ctx)
+HandleSignal(int signum, siginfo_t *info, void *ctx)
 {
     CONTEXT *context = (CONTEXT *)ctx;
     uint8_t **ppc = ContextToPC(context);
     uint8_t *pc = *ppc;
 
-    
+    void *faultingAddress = info->si_addr;
+
     JSRuntime *rt = RuntimeForCurrentThread();
+
+    
     if (!rt || rt->handlingSignal)
         return false;
     AutoSetHandlingSignal handling(rt);
 
-    AsmJSActivation *activation = rt->mainThread.asmJSActivationStack();
+    if (rt->jitRuntime() && rt->jitRuntime()->handleAccessViolation(rt, faultingAddress))
+        return true;
+
+    AsmJSActivation *activation = PerThreadData::innermostAsmJSActivation();
     if (!activation)
         return false;
 
     const AsmJSModule &module = activation->module();
+    if (HandleSimulatorInterrupt(rt, activation, faultingAddress)) {
+        JSRuntime::AutoLockForInterrupt lock(rt);
+        module.unprotectCode(rt);
+        return true;
+    }
+
     if (!module.containsFunctionPC(pc))
         return false;
 
-# if defined(JS_CPU_X64)
     
     
-    void *faultingAddress = info->si_addr;
+    
+    
+    
+    if (module.containsFunctionPC(faultingAddress)) {
+        activation->setResumePC(pc);
+        *ppc = module.interruptExit();
+
+        JSRuntime::AutoLockForInterrupt lock(rt);
+        module.unprotectCode(rt);
+        return true;
+    }
+
+# if defined(JS_CODEGEN_X64)
+    
+    
     if (!module.maybeHeap() ||
         faultingAddress < module.maybeHeap() ||
         faultingAddress >= module.maybeHeap() + AsmJSMappedSize)
@@ -878,12 +954,12 @@ HandleFault(int signum, siginfo_t *info, void *ctx)
 # endif
 }
 
-static struct sigaction sPrevSEGVHandler;
+static struct sigaction sPrevHandler;
 
 static void
 AsmJSFaultHandler(int signum, siginfo_t *info, void *context)
 {
-    if (HandleFault(signum, info, context))
+    if (HandleSignal(signum, info, context))
         return;
 
     
@@ -898,132 +974,56 @@ AsmJSFaultHandler(int signum, siginfo_t *info, void *context)
     
     
     
-    if (sPrevSEGVHandler.sa_flags & SA_SIGINFO)
-        sPrevSEGVHandler.sa_sigaction(signum, info, context);
-    else if (sPrevSEGVHandler.sa_handler == SIG_DFL || sPrevSEGVHandler.sa_handler == SIG_IGN)
-        sigaction(signum, &sPrevSEGVHandler, nullptr);
+    if (sPrevHandler.sa_flags & SA_SIGINFO)
+        sPrevHandler.sa_sigaction(signum, info, context);
+    else if (sPrevHandler.sa_handler == SIG_DFL || sPrevHandler.sa_handler == SIG_IGN)
+        sigaction(signum, &sPrevHandler, nullptr);
     else
-        sPrevSEGVHandler.sa_handler(signum);
+        sPrevHandler.sa_handler(signum);
 }
 #endif
 
-static void
-RedirectIonBackedgesToInterruptCheck(JSRuntime *rt)
-{
-    if (jit::JitRuntime *jitRuntime = rt->jitRuntime()) {
-        
-        
-        
-        
-        if (!jitRuntime->mutatingBackedgeList())
-            jitRuntime->patchIonBackedges(rt, jit::JitRuntime::BackedgeInterruptCheck);
-    }
-}
-
-static void
-RedirectJitCodeToInterruptCheck(JSRuntime *rt, CONTEXT *context)
-{
-    RedirectIonBackedgesToInterruptCheck(rt);
-
-    if (AsmJSActivation *activation = rt->mainThread.asmJSActivationStack()) {
-        const AsmJSModule &module = activation->module();
-
-#if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
-        if (module.containsFunctionPC((void*)rt->mainThread.simulator()->get_pc()))
-            rt->mainThread.simulator()->set_resume_pc(int32_t(module.interruptExit()));
-#endif
-
-        uint8_t **ppc = ContextToPC(context);
-        uint8_t *pc = *ppc;
-        if (module.containsFunctionPC(pc)) {
-            activation->setResumePC(pc);
-            *ppc = module.interruptExit();
-        }
-    }
-}
-
-#if !defined(XP_WIN)
-
-
-
-
-
-static const int sInterruptSignal = SIGVTALRM;
-
-static void
-JitInterruptHandler(int signum, siginfo_t *info, void *context)
-{
-    if (JSRuntime *rt = RuntimeForCurrentThread())
-        RedirectJitCodeToInterruptCheck(rt, (CONTEXT*)context);
-}
+#if !defined(XP_MACOSX)
+static bool sInstalledHandlers = false;
 #endif
 
 bool
-js::EnsureSignalHandlersInstalled(JSRuntime *rt)
+js::EnsureAsmJSSignalHandlersInstalled(JSRuntime *rt)
 {
+#ifdef JS_CODEGEN_NONE
+    
+    return false;
+#endif
+
+    if (IsSignalHandlingBroken())
+        return false;
+
 #if defined(XP_MACOSX)
     
-    if (!rt->asmJSMachExceptionHandler.installed() && !rt->asmJSMachExceptionHandler.install(rt))
-        return false;
-#endif
-
-    
-    
-    
-    static bool sTried = false;
-    static bool sResult = false;
-    if (sTried)
-        return sResult;
-    sTried = true;
-
-#if defined(ANDROID)
-    
-    if (IsSignalHandlingBrokenOnAndroid())
-        return false;
-#endif
-
-#if defined(XP_WIN)
-    
-    
-    if (!AddVectoredExceptionHandler(true, AsmJSFaultHandler))
-        return false;
+    return rt->asmJSMachExceptionHandler.installed() || rt->asmJSMachExceptionHandler.install(rt);
 #else
     
     
-    struct sigaction interruptHandler;
-    interruptHandler.sa_flags = SA_SIGINFO;
-    interruptHandler.sa_sigaction = &JitInterruptHandler;
-    sigemptyset(&interruptHandler.sa_mask);
-    struct sigaction prev;
-    if (sigaction(sInterruptSignal, &interruptHandler, &prev))
-        MOZ_CRASH("unable to install interrupt handler");
+    if (sInstalledHandlers)
+        return true;
 
-    
-    
-    
-    if ((prev.sa_flags & SA_SIGINFO && prev.sa_sigaction) ||
-        (prev.sa_handler != SIG_DFL && prev.sa_handler != SIG_IGN))
-    {
-        MOZ_CRASH("contention for interrupt signal");
-    }
-
-    
-    
-    
-# if !defined(XP_MACOSX)
-    
-    
-    
-    struct sigaction faultHandler;
-    faultHandler.sa_flags = SA_SIGINFO | SA_NODEFER;
-    faultHandler.sa_sigaction = &AsmJSFaultHandler;
-    sigemptyset(&faultHandler.sa_mask);
-    if (sigaction(SIGSEGV, &faultHandler, &sPrevSEGVHandler))
+# if defined(XP_WIN)
+    if (!AddVectoredExceptionHandler(true, AsmJSExceptionHandler))
         return false;
-# endif 
-#endif 
+# else
+    
+    
+    
+    struct sigaction sigAction;
+    sigAction.sa_flags = SA_SIGINFO | SA_NODEFER;
+    sigAction.sa_sigaction = &AsmJSFaultHandler;
+    sigemptyset(&sigAction.sa_mask);
+    if (sigaction(SIGSEGV, &sigAction, &sPrevHandler))
+        return false;
+# endif
 
-    sResult = true;
+    sInstalledHandlers = true;
+#endif
     return true;
 }
 
@@ -1036,50 +1036,28 @@ js::EnsureSignalHandlersInstalled(JSRuntime *rt)
 
 
 
-void
-js::InterruptRunningJitCode(JSRuntime *rt)
-{
-    
-    
-    if (!rt->canUseSignalHandlers())
-        return;
 
-    
-    
-    
-    if (rt == RuntimeForCurrentThread()) {
-        RedirectIonBackedgesToInterruptCheck(rt);
+void
+js::RequestInterruptForAsmJSCode(JSRuntime *rt, int interruptModeRaw)
+{
+    switch (JSRuntime::InterruptMode(interruptModeRaw)) {
+      case JSRuntime::RequestInterruptMainThread:
+      case JSRuntime::RequestInterruptAnyThread:
+        break;
+      case JSRuntime::RequestInterruptAnyThreadDontStopIon:
+      case JSRuntime::RequestInterruptAnyThreadForkJoin:
+        
+        
+        
         return;
     }
 
-    
-    
-#if defined(XP_WIN)
-    
-    
-    HANDLE thread = (HANDLE)rt->ownerThreadNative();
-    if (SuspendThread(thread) == -1)
-        MOZ_CRASH("Failed to suspend main thread");
+    AsmJSActivation *activation = rt->mainThread.asmJSActivationStack();
+    if (!activation)
+        return;
 
-    CONTEXT context;
-    context.ContextFlags = CONTEXT_CONTROL;
-    if (!GetThreadContext(thread, &context))
-        MOZ_CRASH("Failed to get suspended thread context");
-
-    RedirectJitCodeToInterruptCheck(rt, &context);
-
-    if (!SetThreadContext(thread, &context))
-        MOZ_CRASH("Failed to set suspended thread context");
-
-    if (ResumeThread(thread) == -1)
-        MOZ_CRASH("Failed to resume main thread");
-#else
-    
-    
-    
-    pthread_t thread = (pthread_t)rt->ownerThreadNative();
-    pthread_kill(thread, sInterruptSignal);
-#endif
+    MOZ_ASSERT(rt->currentThreadOwnsInterruptLock());
+    activation->module().protectCode(rt);
 }
 
 

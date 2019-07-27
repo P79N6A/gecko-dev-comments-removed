@@ -1667,7 +1667,9 @@ ForkJoinShared::setAbortFlagAndRequestInterrupt(bool fatal)
     abort_ = true;
     fatal_ = fatal_ || fatal;
 
-    cx_->runtime()->requestInterrupt(JSRuntime::RequestInterruptCanWait);
+    
+    
+    cx_->runtime()->requestInterrupt(JSRuntime::RequestInterruptAnyThreadForkJoin);
 }
 
 void

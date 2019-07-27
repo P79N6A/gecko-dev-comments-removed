@@ -167,7 +167,7 @@ JitRuntime::JitRuntime()
     baselineDebugModeOSRHandler_(nullptr),
     functionWrappers_(nullptr),
     osrTempData_(nullptr),
-    mutatingBackedgeList_(false),
+    ionCodeProtected_(false),
     ionReturnOverride_(MagicValue(JS_ARG_POISON)),
     jitcodeGlobalTable_(nullptr)
 {
@@ -191,6 +191,7 @@ bool
 JitRuntime::initialize(JSContext *cx)
 {
     MOZ_ASSERT(cx->runtime()->currentThreadHasExclusiveAccess());
+    MOZ_ASSERT(cx->runtime()->currentThreadOwnsInterruptLock());
 
     AutoCompartment ac(cx, cx->atomsCompartment());
 
@@ -365,6 +366,8 @@ JitRuntime::freeOsrTempData()
 ExecutableAllocator *
 JitRuntime::createIonAlloc(JSContext *cx)
 {
+    MOZ_ASSERT(cx->runtime()->currentThreadOwnsInterruptLock());
+
     ionAlloc_ = js_new<ExecutableAllocator>();
     if (!ionAlloc_)
         js_ReportOutOfMemory(cx);
@@ -372,10 +375,76 @@ JitRuntime::createIonAlloc(JSContext *cx)
 }
 
 void
+JitRuntime::ensureIonCodeProtected(JSRuntime *rt)
+{
+    MOZ_ASSERT(rt->currentThreadOwnsInterruptLock());
+
+    if (!rt->signalHandlersInstalled() || ionCodeProtected_ || !ionAlloc_)
+        return;
+
+    
+    
+    ionAlloc_->toggleAllCodeAsAccessible(false);
+    ionCodeProtected_ = true;
+}
+
+bool
+JitRuntime::handleAccessViolation(JSRuntime *rt, void *faultingAddress)
+{
+    if (!rt->signalHandlersInstalled() || !ionAlloc_ || !ionAlloc_->codeContains((char *) faultingAddress))
+        return false;
+
+    
+    
+    
+    
+    MOZ_ASSERT(!rt->currentThreadOwnsInterruptLock());
+
+    
+    
+    
+    JSRuntime::AutoLockForInterrupt lock(rt);
+
+    
+    
+    
+    ensureIonCodeAccessible(rt);
+    return true;
+}
+
+void
+JitRuntime::ensureIonCodeAccessible(JSRuntime *rt)
+{
+    MOZ_ASSERT(rt->currentThreadOwnsInterruptLock());
+
+    
+    
+#ifndef XP_MACOSX
+    MOZ_ASSERT(CurrentThreadCanAccessRuntime(rt));
+#endif
+
+    if (ionCodeProtected_) {
+        ionAlloc_->toggleAllCodeAsAccessible(true);
+        ionCodeProtected_ = false;
+    }
+
+    if (rt->hasPendingInterrupt()) {
+        
+        
+        
+        
+        
+        
+        patchIonBackedges(rt, BackedgeInterruptCheck);
+    }
+}
+
+void
 JitRuntime::patchIonBackedges(JSRuntime *rt, BackedgeTarget target)
 {
-    MOZ_ASSERT_IF(target == BackedgeLoopHeader, mutatingBackedgeList_);
-    MOZ_ASSERT_IF(target == BackedgeInterruptCheck, !mutatingBackedgeList_);
+#ifndef XP_MACOSX
+    MOZ_ASSERT(CurrentThreadCanAccessRuntime(rt));
+#endif
 
     
     
@@ -388,6 +457,47 @@ JitRuntime::patchIonBackedges(JSRuntime *rt, BackedgeTarget target)
             PatchBackedge(patchableBackedge->backedge, patchableBackedge->loopHeader, target);
         else
             PatchBackedge(patchableBackedge->backedge, patchableBackedge->interruptCheck, target);
+    }
+}
+
+void
+jit::RequestInterruptForIonCode(JSRuntime *rt, JSRuntime::InterruptMode mode)
+{
+    JitRuntime *jitRuntime = rt->jitRuntime();
+    if (!jitRuntime)
+        return;
+
+    MOZ_ASSERT(rt->currentThreadOwnsInterruptLock());
+
+    
+    
+    switch (mode) {
+      case JSRuntime::RequestInterruptMainThread:
+        
+        
+        
+        
+        MOZ_ASSERT(CurrentThreadCanAccessRuntime(rt));
+        jitRuntime->ensureIonCodeAccessible(rt);
+        break;
+
+      case JSRuntime::RequestInterruptAnyThread:
+        
+        
+        
+        
+        
+        jitRuntime->ensureIonCodeProtected(rt);
+        break;
+
+      case JSRuntime::RequestInterruptAnyThreadDontStopIon:
+      case JSRuntime::RequestInterruptAnyThreadForkJoin:
+        
+        
+        break;
+
+      default:
+        MOZ_CRASH("Bad interrupt mode");
     }
 }
 
@@ -761,6 +871,10 @@ void
 JitCode::finalize(FreeOp *fop)
 {
     
+    
+    MOZ_ASSERT(fop->runtime()->currentThreadOwnsInterruptLock());
+
+    
     if (hasBytecodeMap_) {
         MOZ_ASSERT(fop->runtime()->jitRuntime()->hasJitcodeGlobalTable());
         fop->runtime()->jitRuntime()->getJitcodeGlobalTable()->removeEntry(raw());
@@ -769,7 +883,7 @@ JitCode::finalize(FreeOp *fop)
     
     
     
-    if (fop->runtime()->jitRuntime())
+    if (fop->runtime()->jitRuntime() && !fop->runtime()->jitRuntime()->ionCodeProtected())
         memset(code_, JS_SWEPT_CODE_PATTERN, bufferSize_);
     code_ = nullptr;
 
@@ -1030,9 +1144,6 @@ IonScript::copyPatchableBackedges(JSContext *cx, JitCode *code,
                                   PatchableBackedgeInfo *backedges,
                                   MacroAssembler &masm)
 {
-    JitRuntime *jrt = cx->runtime()->jitRuntime();
-    JitRuntime::AutoMutateBackedges amb(jrt);
-
     for (size_t i = 0; i < backedgeEntries_; i++) {
         PatchableBackedgeInfo &info = backedges[i];
         PatchableBackedge *patchableBackedge = &backedgeList()[i];
@@ -1056,7 +1167,7 @@ IonScript::copyPatchableBackedges(JSContext *cx, JitCode *code,
         else
             PatchBackedge(backedge, loopHeader, JitRuntime::BackedgeLoopHeader);
 
-        jrt->addPatchableBackedge(patchableBackedge);
+        cx->runtime()->jitRuntime()->addPatchableBackedge(patchableBackedge);
     }
 }
 
@@ -1247,10 +1358,11 @@ IonScript::unlinkFromRuntime(FreeOp *fop)
     
     
     
-    JitRuntime *jrt = fop->runtime()->jitRuntime();
-    JitRuntime::AutoMutateBackedges amb(jrt);
-    for (size_t i = 0; i < backedgeEntries_; i++)
-        jrt->removePatchableBackedge(&backedgeList()[i]);
+    JSRuntime *rt = fop->runtime();
+    for (size_t i = 0; i < backedgeEntries_; i++) {
+        PatchableBackedge *backedge = &backedgeList()[i];
+        rt->jitRuntime()->removePatchableBackedge(backedge);
+    }
 
     
     

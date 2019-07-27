@@ -91,3 +91,18 @@ void ExecutableAllocator::reprotectRegion(void* start, size_t size, ProtectionSe
 }
 #endif
 
+void
+ExecutablePool::toggleAllCodeAsAccessible(bool accessible)
+{
+    char* begin = m_allocation.pages;
+    size_t size = m_freePtr - begin;
+
+    if (size) {
+        
+        
+        
+        int flags = accessible ? PROT_READ | PROT_WRITE | PROT_EXEC : PROT_NONE;
+        if (mprotect(begin, size, flags))
+            MOZ_CRASH();
+    }
+}

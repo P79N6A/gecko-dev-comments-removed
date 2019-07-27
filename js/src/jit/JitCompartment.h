@@ -219,9 +219,10 @@ class JitRuntime
 
     
     
+    bool ionCodeProtected_;
+
     
     
-    volatile bool mutatingBackedgeList_;
     InlineList<PatchableBackedge> backedgeList_;
 
     
@@ -273,39 +274,29 @@ class JitRuntime
     ExecutableAllocator *execAlloc() const {
         return execAlloc_;
     }
+
     ExecutableAllocator *getIonAlloc(JSContext *cx) {
+        MOZ_ASSERT(cx->runtime()->currentThreadOwnsInterruptLock());
         return ionAlloc_ ? ionAlloc_ : createIonAlloc(cx);
     }
+
     ExecutableAllocator *ionAlloc(JSRuntime *rt) {
+        MOZ_ASSERT(rt->currentThreadOwnsInterruptLock());
         return ionAlloc_;
     }
+
     bool hasIonAlloc() const {
         return !!ionAlloc_;
     }
 
-    class AutoMutateBackedges
-    {
-        JitRuntime *jrt_;
-      public:
-        AutoMutateBackedges(JitRuntime *jrt) : jrt_(jrt) {
-            MOZ_ASSERT(!jrt->mutatingBackedgeList_);
-            jrt->mutatingBackedgeList_ = true;
-        }
-        ~AutoMutateBackedges() {
-            MOZ_ASSERT(jrt_->mutatingBackedgeList_);
-            jrt_->mutatingBackedgeList_ = false;
-        }
-    };
-
-    bool mutatingBackedgeList() const {
-        return mutatingBackedgeList_;
+    bool ionCodeProtected() {
+        return ionCodeProtected_;
     }
+
     void addPatchableBackedge(PatchableBackedge *backedge) {
-        MOZ_ASSERT(mutatingBackedgeList_);
         backedgeList_.pushFront(backedge);
     }
     void removePatchableBackedge(PatchableBackedge *backedge) {
-        MOZ_ASSERT(mutatingBackedgeList_);
         backedgeList_.remove(backedge);
     }
 
@@ -314,7 +305,11 @@ class JitRuntime
         BackedgeInterruptCheck
     };
 
+    void ensureIonCodeProtected(JSRuntime *rt);
+    void ensureIonCodeAccessible(JSRuntime *rt);
     void patchIonBackedges(JSRuntime *rt, BackedgeTarget target);
+
+    bool handleAccessViolation(JSRuntime *rt, void *faultingAddress);
 
     JitCode *getVMWrapper(const VMFunction &f) const;
     JitCode *debugTrapHandler(JSContext *cx);
