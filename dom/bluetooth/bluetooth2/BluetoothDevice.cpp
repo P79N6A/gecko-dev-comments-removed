@@ -382,7 +382,7 @@ BluetoothDevice::UpdatePropertiesFromAdvData(const nsTArray<uint8_t>& aAdvData)
             dataLength -= 2;
           }
 
-          char uuidStr[36];
+          char uuidStr[37]; 
           if (type == GAP_INCOMPLETE_UUID16 || type == GAP_COMPLETE_UUID16) {
             
             snprintf(uuidStr, sizeof(uuidStr),
