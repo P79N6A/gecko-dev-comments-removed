@@ -20,7 +20,6 @@
 #include "nsIDocument.h"
 #include "nsContentUtils.h"
 #include "ChildIterator.h"
-#include "nsCxPusher.h"
 #ifdef MOZ_XUL
 #include "nsIXULDocument.h"
 #endif
@@ -58,6 +57,7 @@
 #include "nsDOMClassInfo.h"
 
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/ShadowRoot.h"
 
 using namespace mozilla;
@@ -730,78 +730,69 @@ nsXBLBinding::ChangeDocument(nsIDocument* aOldDocument, nsIDocument* aNewDocumen
 
   
   if (mPrototypeBinding->HasImplementation()) {
-    nsCOMPtr<nsIScriptGlobalObject> global =  do_QueryInterface(
-                                                                aOldDocument->GetScopeObject());
-    if (global) {
-      nsCOMPtr<nsIScriptContext> context = global->GetContext();
-      if (context) {
-        JSContext *cx = context->GetNativeContext();
+    AutoJSAPI jsapi;
+    
+    
+    
+    
+    if (jsapi.Init(aOldDocument->GetScopeObject())) {
+      JSContext* cx = jsapi.cx();
 
-        nsCxPusher pusher;
-        pusher.Push(cx);
-
+      JS::Rooted<JSObject*> scriptObject(cx, mBoundElement->GetWrapper());
+      if (scriptObject) {
         
         
         
         
         
-        JS::Rooted<JSObject*> scope(cx, global->GetGlobalJSObject());
-        JS::Rooted<JSObject*> scriptObject(cx, mBoundElement->GetWrapper());
-        if (scope && scriptObject) {
-          
-          
-          
-          
-          
 
-          
-          JSAutoCompartment ac(cx, scriptObject);
+        
+        JSAutoCompartment ac(cx, scriptObject);
 
-          JS::Rooted<JSObject*> base(cx, scriptObject);
-          JS::Rooted<JSObject*> proto(cx);
-          for ( ; true; base = proto) { 
-            if (!JS_GetPrototype(cx, base, &proto)) {
-              return;
-            }
-            if (!proto) {
-              break;
-            }
-
-            if (JS_GetClass(proto) != &gPrototypeJSClass) {
-              
-              continue;
-            }
-
-            nsRefPtr<nsXBLDocumentInfo> docInfo =
-              static_cast<nsXBLDocumentInfo*>(::JS_GetPrivate(proto));
-            if (!docInfo) {
-              
-              continue;
-            }
-
-            JS::Value protoBinding = ::JS_GetReservedSlot(proto, 0);
-
-            if (protoBinding.toPrivate() != mPrototypeBinding) {
-              
-              continue;
-            }
-
-            
-            
-            JS::Rooted<JSObject*> grandProto(cx);
-            if (!JS_GetPrototype(cx, proto, &grandProto)) {
-              return;
-            }
-            ::JS_SetPrototype(cx, base, grandProto);
+        JS::Rooted<JSObject*> base(cx, scriptObject);
+        JS::Rooted<JSObject*> proto(cx);
+        for ( ; true; base = proto) { 
+          if (!JS_GetPrototype(cx, base, &proto)) {
+            return;
+          }
+          if (!proto) {
             break;
           }
 
-          mPrototypeBinding->UndefineFields(cx, scriptObject);
+          if (JS_GetClass(proto) != &gPrototypeJSClass) {
+            
+            continue;
+          }
+
+          nsRefPtr<nsXBLDocumentInfo> docInfo =
+            static_cast<nsXBLDocumentInfo*>(::JS_GetPrivate(proto));
+          if (!docInfo) {
+            
+            continue;
+          }
+
+          JS::Value protoBinding = ::JS_GetReservedSlot(proto, 0);
+
+          if (protoBinding.toPrivate() != mPrototypeBinding) {
+            
+            continue;
+          }
 
           
           
-          
+          JS::Rooted<JSObject*> grandProto(cx);
+          if (!JS_GetPrototype(cx, proto, &grandProto)) {
+            return;
+          }
+          ::JS_SetPrototype(cx, base, grandProto);
+          break;
         }
+
+        mPrototypeBinding->UndefineFields(cx, scriptObject);
+
+        
+        
+        
       }
     }
   }
