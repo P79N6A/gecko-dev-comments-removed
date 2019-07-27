@@ -314,6 +314,8 @@ private:
   public:
     explicit RefreshDriverVsyncObserver(VsyncRefreshDriverTimer* aVsyncRefreshDriverTimer)
       : mVsyncRefreshDriverTimer(aVsyncRefreshDriverTimer)
+      , mRefreshTickLock("RefreshTickLock")
+      , mProcessedVsync(true)
     {
       MOZ_ASSERT(NS_IsMainThread());
     }
@@ -321,6 +323,19 @@ private:
     virtual bool NotifyVsync(TimeStamp aVsyncTimestamp) MOZ_OVERRIDE
     {
       if (!NS_IsMainThread()) {
+        MOZ_ASSERT(XRE_IsParentProcess());
+        
+        
+        
+        { 
+          MonitorAutoLock lock(mRefreshTickLock);
+          mRecentVsync = aVsyncTimestamp;
+          if (!mProcessedVsync) {
+            return true;
+          }
+          mProcessedVsync = false;
+        }
+
         nsCOMPtr<nsIRunnable> vsyncEvent =
              NS_NewRunnableMethodWithArg<TimeStamp>(this,
                                                     &RefreshDriverVsyncObserver::TickRefreshDriver,
@@ -346,6 +361,12 @@ private:
     {
       MOZ_ASSERT(NS_IsMainThread());
 
+      if (XRE_IsParentProcess()) {
+        MonitorAutoLock lock(mRefreshTickLock);
+        aVsyncTimestamp = mRecentVsync;
+        mProcessedVsync = true;
+      }
+
       
       
       
@@ -358,6 +379,9 @@ private:
     
     
     VsyncRefreshDriverTimer* mVsyncRefreshDriverTimer;
+    Monitor mRefreshTickLock;
+    TimeStamp mRecentVsync;
+    bool mProcessedVsync;
   }; 
 
   virtual ~VsyncRefreshDriverTimer()
