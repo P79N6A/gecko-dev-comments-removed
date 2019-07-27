@@ -2482,22 +2482,6 @@ XPCWrappedNative::HasNativeMember(HandleId name)
 }
 
 
-NS_IMETHODIMP XPCWrappedNative::FinishInitForWrappedGlobal()
-{
-    
-    MOZ_ASSERT(mScriptableInfo);
-    MOZ_ASSERT(mScriptableInfo->GetFlags().IsGlobalObject());
-    MOZ_ASSERT(HasProto());
-
-    
-    bool success = GetProto()->CallPostCreatePrototype();
-    if (!success)
-        return NS_ERROR_FAILURE;
-
-    return NS_OK;
-}
-
-
 NS_IMETHODIMP XPCWrappedNative::DebugDump(int16_t depth)
 {
 #ifdef DEBUG
