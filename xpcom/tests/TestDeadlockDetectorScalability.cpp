@@ -5,6 +5,7 @@
 
 
 #include "TestHarness.h"
+#include "nsIMemoryReporter.h"
 
 
 
@@ -38,6 +39,7 @@
 #undef DD_TEST1
 #undef DD_TEST2
 #undef DD_TEST3
+#undef DD_TEST4
 
 
 
@@ -154,6 +156,45 @@ MaxDepsNsq(const int N, const int K)
 
 
 
+#ifdef DD_TEST4
+
+
+
+
+
+static nsresult
+OneLockNDepsUsedSeveralTimes(const size_t N, const size_t K)
+{
+    
+    moz_lock_t lock_1 = NEWLOCK("deadlockDetector.scalability.t4.master");
+    for (size_t n = 0; n < N; n++) {
+        
+        moz_lock_t lock_2 = NEWLOCK("deadlockDetector.scalability.t4.child");
+
+        
+        AUTOLOCK(m, lock_1);
+
+        
+        for (size_t k = 0; k < K; k++) {
+            AUTOLOCK(c, lock_2);
+        }
+
+        
+        DELETELOCK(lock_2);
+    }
+
+    
+    DELETELOCK(lock_1);
+
+    PASS();
+}
+
+#endif
+
+
+
+MOZ_DEFINE_MALLOC_SIZE_OF(DeadlockDetectorMallocSizeOf)
+
 int
 main(int argc, char** argv)
 {
@@ -186,6 +227,17 @@ main(int argc, char** argv)
     if (NS_FAILED(MaxDepsNsq(1 << 10, 10))) 
         rv = 1;
 #endif
+
+#ifndef DD_TEST4
+    puts("Skipping not-requested OneLockNDepsUsedSeveralTimes() test");
+#else
+    if (NS_FAILED(OneLockNDepsUsedSeveralTimes(1 << 17, 3))) 
+        rv = 1;
+#endif
+
+    size_t memory_used = mozilla::BlockingResourceBase::SizeOfDeadlockDetector(
+        DeadlockDetectorMallocSizeOf);
+    printf_stderr("Used %d bytes\n", (int)memory_used);
 
     return rv;
 }
