@@ -442,9 +442,12 @@ public:
 
 
 
-  TimeStamp GetPaintTime() {
+
+
+  TimeDuration GetPaintDelay()
+  {
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
-    return mPaintTime;
+    return mPaintDelay;
   }
 
   
@@ -480,7 +483,6 @@ public:
   }
 
   PImageContainerChild* GetPImageContainerChild();
-
   static void NotifyComposite(const ImageCompositeNotification& aNotification);
 
 private:
@@ -497,9 +499,7 @@ private:
   
   void EnsureActiveImage();
 
-  
-  
-  ReentrantMonitor mReentrantMonitor;
+  void NotifyCompositeInternal(const ImageCompositeNotification& aNotification);
 
   
   
@@ -510,7 +510,9 @@ private:
     mPaintTime = TimeStamp();
   }
 
-  void NotifyCompositeInternal(const ImageCompositeNotification& aNotification) {}
+  
+  
+  ReentrantMonitor mReentrantMonitor;
 
   nsRefPtr<Image> mActiveImage;
   
@@ -524,6 +526,9 @@ private:
   
   
   TimeStamp mPaintTime;
+
+  
+  TimeDuration mPaintDelay;
 
   
   bool mPreviousImagePainted;

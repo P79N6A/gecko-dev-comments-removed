@@ -79,13 +79,6 @@ protected:
   gfxIntSize mIntrinsicSize;
   
   
-  TimeStamp mPaintTarget;
-  
-  
-  
-  TimeDuration mPaintDelay;
-  
-  
   
   
   
