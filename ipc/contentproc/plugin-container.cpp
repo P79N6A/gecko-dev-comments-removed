@@ -85,8 +85,9 @@ content_process_main(int argc, char* argv[])
 {
     
     
-    if (argc < 1)
+    if (argc < 1) {
       return 3;
+    }
     XRE_SetProcessType(argv[--argc]);
 
     bool isNuwa = false;
