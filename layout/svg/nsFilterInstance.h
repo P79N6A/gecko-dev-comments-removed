@@ -109,7 +109,9 @@ public:
 
 
 
+
   nsFilterInstance(nsIFrame *aTargetFrame,
+                   const nsTArray<nsStyleFilter>& aFilterChain,
                    nsSVGFilterPaintCallback *aPaintCallback,
                    const gfxMatrix& aPaintTransform,
                    const nsRegion *aPostFilterDirtyRegion = nullptr,
@@ -205,7 +207,7 @@ private:
 
 
 
-  nsresult BuildPrimitives();
+  nsresult BuildPrimitives(const nsTArray<nsStyleFilter>& aFilterChain);
 
   
 
