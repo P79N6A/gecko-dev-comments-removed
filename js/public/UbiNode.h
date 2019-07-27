@@ -190,6 +190,21 @@ class Base {
     
     
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    typedef uintptr_t Id;
+    virtual Id identifier() const { return reinterpret_cast<Id>(ptr); }
+
+    
+    
+    
     virtual bool isLive() const { return true; };
 
     
@@ -365,20 +380,8 @@ class Node {
         return base()->edges(cx, wantNames);
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    typedef uintptr_t Id;
-    Id identifier() const { return reinterpret_cast<Id>(base()->ptr); }
+    typedef Base::Id Id;
+    Id identifier() const { return base()->identifier(); }
 
     
     
