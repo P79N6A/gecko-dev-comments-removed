@@ -20,6 +20,22 @@ XPCOMUtils.defineLazyModuleGetter(this, "PanelFrame", "resource:///modules/Panel
     
 
 
+    promiseDocumentVisible(aDocument) {
+      if (!aDocument.hidden) {
+        return Promise.resolve();
+      }
+
+      return new Promise((resolve) => {
+        aDocument.addEventListener("visibilitychange", function onVisibilityChanged() {
+          aDocument.removeEventListener("visibilitychange", onVisibilityChanged);
+          resolve();
+        });
+      });
+    },
+
+    
+
+
 
 
 
@@ -32,7 +48,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "PanelFrame", "resource:///modules/Panel
           
           function showTab() {
             if (!tabId) {
-              resolve();
+              resolve(LoopUI.promiseDocumentVisible(iframe.contentDocument));
               return;
             }
 
@@ -44,7 +60,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "PanelFrame", "resource:///modules/Panel
               }
             }, win));
             win.dispatchEvent(ev);
-            resolve();
+            resolve(LoopUI.promiseDocumentVisible(iframe.contentDocument));
           }
 
           
