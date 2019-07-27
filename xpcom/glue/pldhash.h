@@ -104,16 +104,12 @@ PL_DHASH_ENTRY_IS_BUSY(PLDHashEntryHdr* aEntry)
 
 
 
-
-
-typedef enum PLDHashOperator
+enum PLDHashOperator
 {
-  PL_DHASH_LOOKUP = 0,        
-  PL_DHASH_ADD = 1,           
-  PL_DHASH_REMOVE = 2,        
   PL_DHASH_NEXT = 0,          
-  PL_DHASH_STOP = 1           
-} PLDHashOperator;
+  PL_DHASH_STOP = 1,          
+  PL_DHASH_REMOVE = 2         
+};
 
 
 
@@ -314,12 +310,12 @@ public:
   Iterator Iterate() const { return Iterator(this); }
 
 private:
+  PLDHashNumber GetKeyHash(const void* aKey);
+
   PLDHashEntryHdr* PL_DHASH_FASTCALL
-    SearchTable(const void* aKey, PLDHashNumber aKeyHash, PLDHashOperator aOp);
+    SearchTable(const void* aKey, PLDHashNumber aKeyHash, bool aIsAdd);
 
   PLDHashEntryHdr* PL_DHASH_FASTCALL FindFreeEntry(PLDHashNumber aKeyHash);
-
-  PLDHashEntryHdr* Operate(const void* aKey, PLDHashOperator aOp);
 
   bool ChangeTable(int aDeltaLog2);
 };

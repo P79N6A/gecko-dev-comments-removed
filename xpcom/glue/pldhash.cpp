@@ -352,7 +352,7 @@ PL_DHashTableFinish(PLDHashTable* aTable)
 
 PLDHashEntryHdr* PL_DHASH_FASTCALL
 PLDHashTable::SearchTable(const void* aKey, PLDHashNumber aKeyHash,
-                          PLDHashOperator aOp)
+                          bool aIsAdd)
 {
   METER(mStats.mSearches++);
   NS_ASSERTION(!(aKeyHash & COLLISION_FLAG),
@@ -390,7 +390,7 @@ PLDHashTable::SearchTable(const void* aKey, PLDHashNumber aKeyHash,
         firstRemoved = entry;
       }
     } else {
-      if (aOp == PL_DHASH_ADD) {
+      if (aIsAdd) {
         entry->keyHash |= COLLISION_FLAG;
       }
     }
@@ -402,7 +402,7 @@ PLDHashTable::SearchTable(const void* aKey, PLDHashNumber aKeyHash,
     entry = ADDRESS_ENTRY(this, hash1);
     if (PL_DHASH_ENTRY_IS_FREE(entry)) {
       METER(mStats.mMisses++);
-      return (firstRemoved && aOp == PL_DHASH_ADD) ? firstRemoved : entry;
+      return (firstRemoved && aIsAdd) ? firstRemoved : entry;
     }
 
     if (MATCH_ENTRY_KEYHASH(entry, aKeyHash) &&
@@ -527,14 +527,9 @@ PLDHashTable::ChangeTable(int aDeltaLog2)
   return true;
 }
 
-MOZ_ALWAYS_INLINE PLDHashEntryHdr*
-PLDHashTable::Operate(const void* aKey, PLDHashOperator aOp)
+MOZ_ALWAYS_INLINE PLDHashNumber
+PLDHashTable::GetKeyHash(const void* aKey)
 {
-  PLDHashEntryHdr* entry;
-
-  MOZ_ASSERT(aOp == PL_DHASH_LOOKUP || mRecursionLevel == 0);
-  INCREMENT_RECURSION_LEVEL(this);
-
   PLDHashNumber keyHash = mOps->hashKey(this, aKey);
   keyHash *= PL_DHASH_GOLDEN_RATIO;
 
@@ -542,96 +537,18 @@ PLDHashTable::Operate(const void* aKey, PLDHashOperator aOp)
   ENSURE_LIVE_KEYHASH(keyHash);
   keyHash &= ~COLLISION_FLAG;
 
-  switch (aOp) {
-    case PL_DHASH_LOOKUP:
-      METER(mStats.mLookups++);
-      entry = SearchTable(aKey, keyHash, aOp);
-      break;
+  return keyHash;
+}
 
-    case PL_DHASH_ADD: {
-      
+MOZ_ALWAYS_INLINE PLDHashEntryHdr*
+PLDHashTable::Lookup(const void* aKey)
+{
+  INCREMENT_RECURSION_LEVEL(this);
 
+  METER(mStats.mLookups++);
 
-
-
-      uint32_t capacity = Capacity();
-      if (mEntryCount + mRemovedCount >= MaxLoad(capacity)) {
-        
-        int deltaLog2;
-        if (mRemovedCount >= capacity >> 2) {
-          METER(mStats.mCompresses++);
-          deltaLog2 = 0;
-        } else {
-          METER(mStats.mGrows++);
-          deltaLog2 = 1;
-        }
-
-        
-
-
-
-
-        if (!ChangeTable(deltaLog2) &&
-            mEntryCount + mRemovedCount >= MaxLoadOnGrowthFailure(capacity)) {
-          METER(mStats.mAddFailures++);
-          entry = nullptr;
-          break;
-        }
-      }
-
-      
-
-
-
-      entry = SearchTable(aKey, keyHash, aOp);
-      if (!ENTRY_IS_LIVE(entry)) {
-        
-        METER(mStats.mAddMisses++);
-        if (ENTRY_IS_REMOVED(entry)) {
-          METER(mStats.mAddOverRemoved++);
-          mRemovedCount--;
-          keyHash |= COLLISION_FLAG;
-        }
-        if (mOps->initEntry && !mOps->initEntry(this, entry, aKey)) {
-          
-          memset(entry + 1, 0, mEntrySize - sizeof(*entry));
-          entry = nullptr;
-          break;
-        }
-        entry->keyHash = keyHash;
-        mEntryCount++;
-      }
-      METER(else {
-        mStats.mAddHits++;
-      });
-      break;
-    }
-
-    case PL_DHASH_REMOVE:
-      entry = SearchTable(aKey, keyHash, aOp);
-      if (ENTRY_IS_LIVE(entry)) {
-        
-        METER(mStats.mRemoveHits++);
-        PL_DHashTableRawRemove(this, entry);
-
-        
-        uint32_t capacity = Capacity();
-        if (capacity > PL_DHASH_MIN_CAPACITY &&
-            mEntryCount <= MinLoad(capacity)) {
-          METER(mStats.mShrinks++);
-          (void) ChangeTable(-1);
-        }
-      }
-      METER(else {
-        mStats.mRemoveMisses++;
-      });
-      entry = nullptr;
-      break;
-
-    default:
-      NS_NOTREACHED("0");
-      entry = nullptr;
-  }
+  PLDHashNumber keyHash = GetKeyHash(aKey);
+  PLDHashEntryHdr* entry = SearchTable(aKey, keyHash,  false);
 
   DECREMENT_RECURSION_LEVEL(this);
 
@@ -639,21 +556,102 @@ PLDHashTable::Operate(const void* aKey, PLDHashOperator aOp)
 }
 
 MOZ_ALWAYS_INLINE PLDHashEntryHdr*
-PLDHashTable::Lookup(const void* aKey)
-{
-  return Operate(aKey, PL_DHASH_LOOKUP);
-}
-
-MOZ_ALWAYS_INLINE PLDHashEntryHdr*
 PLDHashTable::Add(const void* aKey)
 {
-  return Operate(aKey, PL_DHASH_ADD);
+  PLDHashNumber keyHash;
+  PLDHashEntryHdr* entry;
+
+  MOZ_ASSERT(mRecursionLevel == 0);
+  INCREMENT_RECURSION_LEVEL(this);
+
+  
+
+
+
+
+  uint32_t capacity = Capacity();
+  if (mEntryCount + mRemovedCount >= MaxLoad(capacity)) {
+    
+    int deltaLog2;
+    if (mRemovedCount >= capacity >> 2) {
+      METER(mStats.mCompresses++);
+      deltaLog2 = 0;
+    } else {
+      METER(mStats.mGrows++);
+      deltaLog2 = 1;
+    }
+
+    
+
+
+
+
+    if (!ChangeTable(deltaLog2) &&
+        mEntryCount + mRemovedCount >= MaxLoadOnGrowthFailure(capacity)) {
+      METER(mStats.mAddFailures++);
+      entry = nullptr;
+      goto exit;
+    }
+  }
+
+  
+
+
+
+  keyHash = GetKeyHash(aKey);
+  entry = SearchTable(aKey, keyHash,  true);
+  if (!ENTRY_IS_LIVE(entry)) {
+    
+    METER(mStats.mAddMisses++);
+    if (ENTRY_IS_REMOVED(entry)) {
+      METER(mStats.mAddOverRemoved++);
+      mRemovedCount--;
+      keyHash |= COLLISION_FLAG;
+    }
+    if (mOps->initEntry && !mOps->initEntry(this, entry, aKey)) {
+      
+      memset(entry + 1, 0, mEntrySize - sizeof(*entry));
+      entry = nullptr;
+      goto exit;
+    }
+    entry->keyHash = keyHash;
+    mEntryCount++;
+  }
+  METER(else {
+    mStats.mAddHits++;
+  });
+
+exit:
+  DECREMENT_RECURSION_LEVEL(this);
+  return entry;
 }
 
 MOZ_ALWAYS_INLINE void
 PLDHashTable::Remove(const void* aKey)
 {
-  Operate(aKey, PL_DHASH_REMOVE);
+  MOZ_ASSERT(mRecursionLevel == 0);
+  INCREMENT_RECURSION_LEVEL(this);
+
+  PLDHashNumber keyHash = GetKeyHash(aKey);
+  PLDHashEntryHdr* entry = SearchTable(aKey, keyHash,  false);
+  if (ENTRY_IS_LIVE(entry)) {
+    
+    METER(mStats.mRemoveHits++);
+    PL_DHashTableRawRemove(this, entry);
+
+    
+    uint32_t capacity = Capacity();
+    if (capacity > PL_DHASH_MIN_CAPACITY &&
+        mEntryCount <= MinLoad(capacity)) {
+      METER(mStats.mShrinks++);
+      (void) ChangeTable(-1);
+    }
+  }
+  METER(else {
+    mStats.mRemoveMisses++;
+  });
+
+  DECREMENT_RECURSION_LEVEL(this);
 }
 
 PLDHashEntryHdr* PL_DHASH_FASTCALL
