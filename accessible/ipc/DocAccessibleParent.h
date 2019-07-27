@@ -94,11 +94,17 @@ public:
   
 
 
-  ProxyAccessible* GetAccessible(uintptr_t aID) const
+  ProxyAccessible* GetAccessible(uintptr_t aID)
   {
+    if (!aID)
+      return this;
+
     ProxyEntry* e = mAccessibles.GetEntry(aID);
     return e ? e->mProxy : nullptr;
   }
+
+  const ProxyAccessible* GetAccessible(uintptr_t aID) const
+    { return const_cast<DocAccessibleParent*>(this)->GetAccessible(aID); }
 
 private:
 
