@@ -158,6 +158,14 @@ public:
     return amount;
   }
 
+  void Reset()
+  {
+    mBuffer = nullptr;
+    mCapacity = 0;
+    mStart = 0;
+    mCount = 0;
+  }
+
 private:
   nsAutoArrayPtr<uint8_t> mBuffer;
   uint32_t mCapacity;
@@ -211,6 +219,8 @@ public:
 
   
   void Shutdown();
+
+  void Reset();
 
   
   
@@ -342,6 +352,9 @@ private:
   int mOutRate;
   int mChannels;
   int mOutChannels;
+#if defined(__ANDROID__)
+  dom::AudioChannel mAudioChannel;
+#endif
   
   int64_t mWritten;
   AudioClock mAudioClock;
