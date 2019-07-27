@@ -169,6 +169,12 @@ public:
     return remove(*min);
   }
 
+  
+  void checkCoherency()
+  {
+    checkCoherency(mRoot, nullptr);
+  }
+
 private:
   
 
