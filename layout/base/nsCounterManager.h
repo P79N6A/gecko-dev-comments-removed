@@ -26,7 +26,7 @@ struct nsCounterNode : public nsGenConNode {
         INCREMENT, 
         USE        
     };
-    
+
     Type mType;
 
     
@@ -100,7 +100,7 @@ struct nsCounterUseNode : public nsCounterNode {
     {
         NS_ASSERTION(aContentIndex <= INT32_MAX, "out of range");
     }
-    
+
     virtual bool InitTextFrame(nsGenConList* aList,
             nsIFrame* aPseudoFrame, nsIFrame* aTextFrame) MOZ_OVERRIDE;
 
@@ -203,7 +203,7 @@ public:
 
     
     void SetScope(nsCounterNode *aNode);
-  
+
     
     
     void RecalcAll();
