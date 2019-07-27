@@ -13,9 +13,7 @@ add_task(function test_load_start() {
   yield promiseBrowserLoaded(browser);
 
   
-  yield BrowserTestUtils.loadURI(browser, "about:mozilla");
-
-  
+  browser.loadURI("about:mozilla");
   yield promiseContentMessage(browser, "ss-test:OnHistoryReplaceEntry");
   yield promiseRemoveTab(tab);
 

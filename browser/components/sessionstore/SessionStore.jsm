@@ -214,6 +214,16 @@ this.SessionStore = {
     SessionStoreInternal.setTabState(aTab, aState);
   },
 
+  
+  
+  
+  _restoreTabAndLoad: function ss_restoreTabAndLoad(aTab, aState, aLoadArguments) {
+    SessionStoreInternal.setTabState(aTab, aState, {
+      restoreImmediately: true,
+      loadArguments: aLoadArguments
+    });
+  },
+
   duplicateTab: function ss_duplicateTab(aWindow, aTab, aDelta = 0) {
     return SessionStoreInternal.duplicateTab(aWindow, aTab, aDelta);
   },
@@ -300,10 +310,6 @@ this.SessionStore = {
 
   reviveCrashedTab(aTab) {
     return SessionStoreInternal.reviveCrashedTab(aTab);
-  },
-
-  navigateAndRestore(tab, loadArguments, historyIndex) {
-    return SessionStoreInternal.navigateAndRestore(tab, loadArguments, historyIndex);
   }
 };
 
@@ -626,6 +632,12 @@ let SessionStoreInternal = {
       case "SessionStore:update":
         
         
+        if (this._crashedBrowsers.has(browser.permanentKey)) {
+          return;
+        }
+
+        
+        
         
         let frameLoader = browser.frameLoader ||
                           this._lastKnownFrameLoader.get(browser.permanentKey);
@@ -634,6 +646,12 @@ let SessionStoreInternal = {
         if (frameLoader != aMessage.targetFrameLoader) {
           return;
         }
+
+        
+        
+        this.recordTelemetry(aMessage.data.telemetry);
+        TabState.update(browser, aMessage.data);
+        this.saveStateDelayed(win);
 
         if (aMessage.data.isFinal) {
           
@@ -647,18 +665,6 @@ let SessionStoreInternal = {
           
           TabStateFlusher.resolve(browser, aMessage.data.flushID);
         }
-
-        
-        
-        if (this._crashedBrowsers.has(browser.permanentKey)) {
-          return;
-        }
-
-        
-        
-        this.recordTelemetry(aMessage.data.telemetry);
-        TabState.update(browser, aMessage.data);
-        this.saveStateDelayed(win);
 
         
         
@@ -820,7 +826,6 @@ let SessionStoreInternal = {
       case "XULFrameLoaderCreated":
         if (target.tagName == "browser" && target.frameLoader && target.permanentKey) {
           this._lastKnownFrameLoader.set(target.permanentKey, target.frameLoader);
-          this.resetEpoch(target);
         }
         break;
       default:
@@ -1814,13 +1819,6 @@ let SessionStoreInternal = {
         return;
       }
 
-      let window = newTab.ownerDocument && newTab.ownerDocument.defaultView;
-
-      
-      if (!window || !window.__SSi) {
-        return;
-      }
-
       
       
       
@@ -2167,57 +2165,6 @@ let SessionStoreInternal = {
 
     let data = TabState.collect(aTab);
     this.restoreTab(aTab, data);
-  },
-
-  
-
-
-
-
-
-
-  navigateAndRestore(tab, loadArguments, historyIndex) {
-    let window = tab.ownerDocument.defaultView;
-    let browser = tab.linkedBrowser;
-
-    
-    
-    window.gBrowser.setTabTitleLoading(tab);
-    tab.setAttribute("busy", "true");
-
-    
-    TabStateFlusher.flush(browser).then(() => {
-      
-      if (tab.closing || !tab.linkedBrowser) {
-        return;
-      }
-
-      let window = tab.ownerDocument && tab.ownerDocument.defaultView;
-
-      
-      if (!window || !window.__SSi) {
-        return;
-      }
-
-      let tabState = TabState.clone(tab);
-      let options = {restoreImmediately: true};
-
-      if (historyIndex >= 0) {
-        tabState.index = historyIndex + 1;
-        tabState.index = Math.max(1, Math.min(tabState.index, tabState.entries.length));
-      } else {
-        tabState.userTypedValue = null;
-        options.loadArguments = loadArguments;
-      }
-
-      
-      if (tab.linkedBrowser.__SS_restoreState) {
-        this._resetLocalTabRestoringState(tab);
-      }
-
-      
-      this.restoreTab(tab, tabState, options);
-    });
   },
 
   
@@ -3729,14 +3676,6 @@ let SessionStoreInternal = {
     return this.getCurrentEpoch(browser) == epoch;
   },
 
-  
-
-
-
-
-  resetEpoch(browser) {
-    this._browserEpochs.delete(browser.permanentKey);
-  }
 };
 
 

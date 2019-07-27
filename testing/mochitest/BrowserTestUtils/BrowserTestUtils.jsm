@@ -28,9 +28,6 @@ Cc["@mozilla.org/globalmessagemanager;1"]
   .loadFrameScript(
     "chrome://mochikit/content/tests/BrowserTestUtils/content-utils.js", true);
 
-XPCOMUtils.defineLazyModuleGetter(this, "E10SUtils",
-  "resource:///modules/E10SUtils.jsm");
-
 this.BrowserTestUtils = {
   
 
@@ -143,49 +140,16 @@ this.BrowserTestUtils = {
 
   browserLoaded(browser, includeSubFrames=false) {
     return new Promise(resolve => {
-      let mm = browser.ownerDocument.defaultView.messageManager;
-      mm.addMessageListener("browser-test-utils:loadEvent", function onLoad(msg) {
-        if (msg.target == browser && (!msg.data.subframe || includeSubFrames)) {
-          mm.removeMessageListener("browser-test-utils:loadEvent", onLoad);
+      browser.messageManager.addMessageListener("browser-test-utils:loadEvent",
+                                                 function onLoad(msg) {
+        if (!msg.data.subframe || includeSubFrames) {
+          browser.messageManager.removeMessageListener(
+            "browser-test-utils:loadEvent", onLoad);
           resolve();
         }
       });
     });
   },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  loadURI: Task.async(function* (browser, uri) {
-    
-    browser.loadURI(uri);
-
-    
-    if (!browser.ownerDocument.defaultView.gMultiProcessBrowser) {
-      return;
-    }
-
-    
-    let process = browser.isRemoteBrowser ? Ci.nsIXULRuntime.PROCESS_TYPE_CONTENT
-                                          : Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT;
-
-    
-    
-    
-    if (!E10SUtils.canLoadURIInProcess(uri, process)) {
-      yield this.waitForEvent(browser, "XULFrameLoaderCreated");
-    }
-  }),
 
   
 

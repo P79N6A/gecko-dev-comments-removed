@@ -162,7 +162,7 @@ add_task(function* save_worthy_tabs_nonremote_final() {
   ok(browser.isRemoteBrowser, "browser is remote");
 
   
-  yield BrowserTestUtils.loadURI(browser, "about:robots");
+  browser.loadURI("about:robots");
   ok(!browser.isRemoteBrowser, "browser is not remote anymore");
 
   
