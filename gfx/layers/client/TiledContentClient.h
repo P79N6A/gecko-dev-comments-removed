@@ -9,6 +9,7 @@
 #include <stddef.h>                     
 #include <stdint.h>                     
 #include <algorithm>                    
+#include <limits>
 #include "Layers.h"                     
 #include "TiledLayerBuffer.h"           
 #include "Units.h"                      
@@ -399,6 +400,8 @@ public:
     , mLastPaintContentType(gfxContentType::COLOR)
     , mLastPaintSurfaceMode(SurfaceMode::SURFACE_OPAQUE)
     , mSharedFrameMetricsHelper(nullptr)
+    , mTilingOrigin(std::numeric_limits<int32_t>::max(),
+                    std::numeric_limits<int32_t>::max())
   {}
 
   void PaintThebes(const nsIntRegion& aNewValidRegion,
@@ -475,6 +478,16 @@ private:
   SharedFrameMetricsHelper*  mSharedFrameMetricsHelper;
   
   std::vector<gfx::Tile> mMoz2DTiles;
+  
+
+
+
+
+
+
+
+
+  gfx::IntPoint mTilingOrigin;
   
 
 
