@@ -4171,10 +4171,6 @@ SingleStepCallback(void *arg, jit::Simulator *sim, void *pc)
 {
     JSRuntime *rt = reinterpret_cast<JSRuntime*>(arg);
 
-    
-    if (!rt->spsProfiler.enabled())
-        return;
-
     JS::ProfilingFrameIterator::RegisterState state;
     state.pc = pc;
     state.sp = (void*)sim->get_register(jit::Simulator::sp);
