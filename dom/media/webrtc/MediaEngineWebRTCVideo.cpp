@@ -208,14 +208,15 @@ MediaEngineWebRTCVideoSource::GetCapability(size_t aIndex,
 
 nsresult
 MediaEngineWebRTCVideoSource::Allocate(const dom::MediaTrackConstraints &aConstraints,
-                                       const MediaEnginePrefs &aPrefs)
+                                       const MediaEnginePrefs &aPrefs,
+                                       const nsString& aDeviceId)
 {
   LOG((__FUNCTION__));
   if (mState == kReleased && mInitDone) {
     
     
 
-    if (!ChooseCapability(aConstraints, aPrefs)) {
+    if (!ChooseCapability(aConstraints, aPrefs, aDeviceId)) {
       return NS_ERROR_UNEXPECTED;
     }
     if (mViECapture->AllocateCaptureDevice(GetUUID().get(),

@@ -120,7 +120,8 @@ MediaEngineTabVideoSource::GetUUID(nsACString_internal& aUuid)
 
 nsresult
 MediaEngineTabVideoSource::Allocate(const dom::MediaTrackConstraints& aConstraints,
-                                    const MediaEnginePrefs& aPrefs)
+                                    const MediaEnginePrefs& aPrefs,
+                                    const nsString& aDeviceId)
 {
   
   

@@ -259,9 +259,31 @@ MediaEngineWebRTCAudioSource::Config(bool aEchoOn, uint32_t aEcho,
   return NS_OK;
 }
 
+
+
+
+
+
+
+
+
+uint32_t MediaEngineWebRTCAudioSource::GetBestFitnessDistance(
+    const nsTArray<const dom::MediaTrackConstraintSet*>& aConstraintSets,
+    const nsString& aDeviceId)
+{
+  uint32_t distance = 0;
+
+  for (const MediaTrackConstraintSet* cs : aConstraintSets) {
+    distance = GetMinimumFitnessDistance(*cs, false, aDeviceId);
+    break; 
+  }
+  return distance;
+}
+
 nsresult
 MediaEngineWebRTCAudioSource::Allocate(const dom::MediaTrackConstraints &aConstraints,
-                                       const MediaEnginePrefs &aPrefs)
+                                       const MediaEnginePrefs &aPrefs,
+                                       const nsString& aDeviceId)
 {
   if (mState == kReleased) {
     if (mInitDone) {

@@ -164,6 +164,15 @@ public:
     mHasFakeTracks = aHasFakeTracks;
   }
 
+  
+  virtual nsresult Allocate(const dom::MediaTrackConstraints &aConstraints,
+                            const MediaEnginePrefs &aPrefs,
+                            const nsString& aDeviceId) = 0;
+
+  virtual uint32_t GetBestFitnessDistance(
+      const nsTArray<const dom::MediaTrackConstraintSet*>& aConstraintSets,
+      const nsString& aDeviceId) = 0;
+
 protected:
   
   explicit MediaEngineSource(MediaEngineState aState)
@@ -224,13 +233,6 @@ class MediaEngineVideoSource : public MediaEngineSource
 public:
   virtual ~MediaEngineVideoSource() {}
 
-  
-  virtual nsresult Allocate(const dom::MediaTrackConstraints &aConstraints,
-                            const MediaEnginePrefs &aPrefs) = 0;
-
-  virtual uint32_t GetBestFitnessDistance(
-      const nsTArray<const dom::MediaTrackConstraintSet*>& aConstraintSets) = 0;
-
 protected:
   explicit MediaEngineVideoSource(MediaEngineState aState)
     : MediaEngineSource(aState) {}
@@ -245,10 +247,6 @@ class MediaEngineAudioSource : public MediaEngineSource
 {
 public:
   virtual ~MediaEngineAudioSource() {}
-
-  
-  virtual nsresult Allocate(const dom::MediaTrackConstraints &aConstraints,
-                            const MediaEnginePrefs &aPrefs) = 0;
 
 protected:
   explicit MediaEngineAudioSource(MediaEngineState aState)
