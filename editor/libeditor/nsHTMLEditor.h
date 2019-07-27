@@ -513,7 +513,7 @@ protected:
 
 
 
-  bool IsTextPropertySetByContent(nsIContent*      aContent,
+  bool IsTextPropertySetByContent(nsINode*         aNode,
                                   nsIAtom*         aProperty,
                                   const nsAString* aAttribute,
                                   const nsAString* aValue,

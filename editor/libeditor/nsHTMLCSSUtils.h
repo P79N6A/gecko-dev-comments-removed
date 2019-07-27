@@ -83,7 +83,8 @@ public:
 
 
 
-  bool IsCSSEditableProperty(nsIContent* aNode, nsIAtom* aProperty, const nsAString* aAttribute);
+  bool IsCSSEditableProperty(nsINode* aNode, nsIAtom* aProperty,
+                             const nsAString* aAttribute);
   bool IsCSSEditableProperty(nsIDOMNode* aNode, nsIAtom* aProperty, const nsAString* aAttribute);
 
   
@@ -187,7 +188,7 @@ public:
 
 
 
-  bool IsCSSEquivalentToHTMLInlineStyleSet(nsIContent* aContent,
+  bool IsCSSEquivalentToHTMLInlineStyleSet(nsINode* aContent,
                                            nsIAtom* aProperty,
                                            const nsAString* aAttribute,
                                            const nsAString& aValue,
