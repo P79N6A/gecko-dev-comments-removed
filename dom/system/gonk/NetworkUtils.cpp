@@ -440,7 +440,6 @@ CommandResult::CommandResult(int32_t aResultCode)
     strerror_r(abs(aResultCode), strerrorBuf, STRERROR_R_BUF_SIZE);
     mResult.mReason = NS_ConvertUTF8toUTF16(strerrorBuf);
   }
-  mResult.mRet = true;
 }
 
 CommandResult::CommandResult(const mozilla::dom::NetworkResultOptions& aResult)
@@ -1535,6 +1534,7 @@ void NetworkUtils::ExecuteCommand(NetworkParams aOptions)
     BUILD_ENTRY(resetConnections),
     BUILD_ENTRY(createNetwork),
     BUILD_ENTRY(destroyNetwork),
+    BUILD_ENTRY(getNetId),
 
     #undef BUILD_ENTRY
   };
@@ -1704,6 +1704,7 @@ CommandResult NetworkUtils::setDNS(NetworkParams& aOptions)
     
     static CommandFunc COMMAND_CHAIN[] = {
       setInterfaceDns,
+      addDefaultRouteToNetwork,
       defaultAsyncSuccessHandler
     };
     NetIdManager::NetIdInfo netIdInfo;
@@ -1717,7 +1718,12 @@ CommandResult NetworkUtils::setDNS(NetworkParams& aOptions)
   if (SDK_VERSION >= 18) {
     
     static CommandFunc COMMAND_CHAIN[] = {
+    #if ANDROID_VERSION == 18
+      
+      
+      
       setDefaultInterface,
+    #endif
       setInterfaceDns,
       defaultAsyncSuccessHandler
     };
@@ -1896,6 +1902,17 @@ CommandResult NetworkUtils::setDefaultRouteLegacy(NetworkParams& aOptions)
     } else { 
       RETURN_IF_FAILED(mNetUtils->do_ifc_set_default_route(autoIfname.get(), inet_addr(gateway)));
     }
+  }
+
+  
+  if (SDK_VERSION >= 18) {
+    
+    static CommandFunc COMMAND_CHAIN[] = {
+      setDefaultInterface,
+      defaultAsyncSuccessHandler
+    };
+    runChain(aOptions, COMMAND_CHAIN, setDnsFail);
+    return CommandResult::Pending();
   }
 
   return SUCCESS;
@@ -2514,6 +2531,27 @@ CommandResult NetworkUtils::destroyNetwork(NetworkParams& aOptions)
   aOptions.mNetId = netIdInfo.mNetId;
   runChain(aOptions, COMMAND_CHAIN, defaultAsyncFailureHandler);
   return CommandResult::Pending();
+}
+
+
+
+
+CommandResult NetworkUtils::getNetId(NetworkParams& aOptions)
+{
+  NetworkResultOptions result;
+
+  if (SDK_VERSION < 20) {
+    
+    result.mNetId = GET_FIELD(mIfname);
+    return result;
+  }
+
+  NetIdManager::NetIdInfo netIdInfo;
+  if (-1 == mNetIdManager.lookup(GET_FIELD(mIfname), &netIdInfo)) {
+    return ESRCH;
+  }
+  result.mNetId.AppendInt(netIdInfo.mNetId, 10);
+  return result;
 }
 
 void NetworkUtils::sendBroadcastMessage(uint32_t code, char* reason)

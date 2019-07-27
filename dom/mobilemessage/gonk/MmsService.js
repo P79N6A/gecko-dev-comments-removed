@@ -167,6 +167,10 @@ XPCOMUtils.defineLazyServiceGetter(this, "gMobileConnectionService",
                                    "@mozilla.org/mobileconnection/mobileconnectionservice;1",
                                    "nsIMobileConnectionService");
 
+XPCOMUtils.defineLazyServiceGetter(this, "gNetworkService",
+                                   "@mozilla.org/network/service;1",
+                                   "nsINetworkService");
+
 XPCOMUtils.defineLazyGetter(this, "MMS", function() {
   let MMS = {};
   Cu.import("resource://gre/modules/MmsPduHelper.jsm", MMS);
@@ -706,33 +710,38 @@ XPCOMUtils.defineLazyGetter(this, "gMmsTransactionHelper", function() {
           url = mmsConnection.mmsc;
         }
 
-        let startTransaction = () => {
+        let startTransaction = netId => {
           if (DEBUG) debug("sendRequest: register proxy filter to " + url);
           let proxyFilter = new MmsProxyFilter(mmsConnection, url);
           gpps.registerFilter(proxyFilter, 0);
 
           cancellable.xhr =
             this.sendHttpRequest(mmsConnection, method,
-                                 url, istream, proxyFilter,
+                                 url, istream, proxyFilter, netId,
                                  (aHttpStatus, aData) =>
                                    cancellable.done(aHttpStatus, aData));
         };
 
-        mmsConnection.ensureRouting(url)
-          .then(() => startTransaction(),
-                (aError) => {
-                  debug("Failed to ensureRouting: " + aError);
+        let onRejected = aReason => {
+          debug(aReason);
+          mmsConnection.release();
+          cancellable.done(_HTTP_STATUS_FAILED_TO_ROUTE, null);
+        };
 
-                  mmsConnection.release();
-                  cancellable.done(_HTTP_STATUS_FAILED_TO_ROUTE, null);
-                });
+        
+        
+        mmsConnection.ensureRouting(url)
+          .then(() => gNetworkService.getNetId(mmsConnection.networkInterface.name),
+                (aReason) => onRejected('Failed to ensureRouting: ' + aReason))
+          .then((netId) => startTransaction(netId),
+                (aReason) => onRejected('Failed to getNetId: ' + aReason));
       });
 
       return cancellable;
     },
 
     sendHttpRequest: function(mmsConnection, method, url, istream, proxyFilter,
-                              callback) {
+                              netId, callback) {
       let releaseMmsConnectionAndCallback = (httpStatus, data) => {
         gpps.unregisterFilter(proxyFilter);
         
@@ -745,6 +754,7 @@ XPCOMUtils.defineLazyGetter(this, "gMmsTransactionHelper", function() {
                   .createInstance(Ci.nsIXMLHttpRequest);
 
         
+        xhr.networkInterfaceId = netId;
         xhr.open(method, url, true);
         xhr.responseType = "arraybuffer";
         if (istream) {
