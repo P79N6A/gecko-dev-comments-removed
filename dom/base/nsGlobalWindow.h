@@ -499,6 +499,7 @@ public:
   virtual nsresult SetFullScreenInternal(bool aIsFullScreen, bool aRequireTrust);
   bool FullScreen() const;
 
+  
   virtual void SetHasGamepadEventListener(bool aHasGamepad = true);
 
   
@@ -739,6 +740,7 @@ public:
   SlowScriptResponse ShowSlowScriptDialog();
 
 #ifdef MOZ_GAMEPAD
+  
   void AddGamepad(uint32_t aIndex, mozilla::dom::Gamepad* aGamepad);
   void RemoveGamepad(uint32_t aIndex);
   void GetGamepads(nsTArray<nsRefPtr<mozilla::dom::Gamepad> >& aGamepads);
@@ -754,6 +756,7 @@ public:
                                             void* aUserArg);
 #endif
 
+  
   
   void EnableGamepadUpdates();
   void DisableGamepadUpdates();
@@ -1486,6 +1489,7 @@ protected:
   
   bool                   mInnerObjectsFreed : 1;
 
+  
   
   bool                   mHasGamepad : 1;
 #ifdef MOZ_GAMEPAD
