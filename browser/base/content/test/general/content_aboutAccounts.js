@@ -29,6 +29,11 @@ addEventListener("DOMContentLoaded", function domContentLoaded(event) {
     }
     iframe.removeEventListener("load", iframeLoaded, true);
     sendAsyncMessage("test:iframe:load", {url: iframe.getAttribute("src")});
+    
+    
+    iframe.contentWindow.addEventListener("FirefoxAccountsTestResponse", function (event) {
+      sendAsyncMessage("test:response", {data: event.detail.data});
+    }, true);
   }, true);
 }, true);
 
