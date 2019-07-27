@@ -40,11 +40,18 @@ let test_transport = Task.async(function*(transportFactory) {
 
   
   function write_data({copyFrom}) {
-    NetUtil.asyncFetch(getTestTempFile("bulk-input"), function(input, status) {
-      copyFrom(input).then(() => {
-        input.close();
-      });
-    });
+    NetUtil.asyncFetch2(
+      getTestTempFile("bulk-input"),
+      function(input, status) {
+        copyFrom(input).then(() => {
+          input.close();
+        });
+      },
+      null,      
+      Services.scriptSecurityManager.getSystemPrincipal(),
+      null,      
+      Ci.nsILoadInfo.SEC_NORMAL,
+      Ci.nsIContentPolicy.TYPE_OTHER);
   }
 
   
@@ -148,13 +155,20 @@ function verify() {
 
   
   let compareDeferred = promise.defer();
-  NetUtil.asyncFetch(getTestTempFile("bulk-output"), input => {
-    let outputData = NetUtil.readInputStreamToString(input, reallyLong.length);
-    
-    do_check_true(outputData === reallyLong);
-    input.close();
-    compareDeferred.resolve();
-  });
+  NetUtil.asyncFetch2(
+    getTestTempFile("bulk-output"),
+    input => {
+      let outputData = NetUtil.readInputStreamToString(input, reallyLong.length);
+      
+      do_check_true(outputData === reallyLong);
+      input.close();
+      compareDeferred.resolve();
+    },
+    null,      
+    Services.scriptSecurityManager.getSystemPrincipal(),
+    null,      
+    Ci.nsILoadInfo.SEC_NORMAL,
+    Ci.nsIContentPolicy.TYPE_OTHER);
 
   return compareDeferred.promise.then(cleanup_files);
 }
