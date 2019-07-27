@@ -105,19 +105,23 @@ static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegD2 = esi;
 
 
 #if defined(__GNUC__)
-static const uint32_t ABIStackAlignment = 16;
+static MOZ_CONSTEXPR_VAR uint32_t ABIStackAlignment = 16;
 #else
-static const uint32_t ABIStackAlignment = 4;
+static MOZ_CONSTEXPR_VAR uint32_t ABIStackAlignment = 4;
 #endif
-static const uint32_t CodeAlignment = 16;
-static const uint32_t JitStackAlignment = 16;
+static MOZ_CONSTEXPR_VAR uint32_t CodeAlignment = 16;
+static MOZ_CONSTEXPR_VAR uint32_t JitStackAlignment = 16;
+
+static MOZ_CONSTEXPR_VAR uint32_t JitStackValueAlignment = JitStackAlignment / sizeof(Value);
+static_assert(JitStackAlignment % sizeof(Value) == 0 && JitStackValueAlignment >= 1,
+  "Stack alignment should be a non-zero multiple of sizeof(Value)");
 
 
 
 
 
-static const bool SupportsSimd = true;
-static const uint32_t SimdMemoryAlignment = 16;
+static MOZ_CONSTEXPR_VAR bool SupportsSimd = true;
+static MOZ_CONSTEXPR_VAR uint32_t SimdMemoryAlignment = 16;
 
 static_assert(CodeAlignment % SimdMemoryAlignment == 0,
   "Code alignment should be larger than any of the alignments which are used for "

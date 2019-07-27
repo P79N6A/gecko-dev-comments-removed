@@ -3140,11 +3140,10 @@ CodeGenerator::emitPushArguments(LApplyArgsGeneric *apply, Register extraStackSp
     masm.movePtr(argcreg, extraStackSpace);
 
     
-    const uint32_t alignment = JitStackAlignment / sizeof(Value);
-    if (alignment > 1) {
+    if (JitStackValueAlignment > 1) {
         MOZ_ASSERT(frameSize() % JitStackAlignment == 0,
             "Stack padding assumes that the frameSize is correct");
-        MOZ_ASSERT(alignment == 2);
+        MOZ_ASSERT(JitStackValueAlignment == 2);
         Label noPaddingNeeded;
         
         masm.branchTestPtr(Assembler::NonZero, argcreg, Imm32(1), &noPaddingNeeded);
@@ -3161,8 +3160,8 @@ CodeGenerator::emitPushArguments(LApplyArgsGeneric *apply, Register extraStackSp
     
     
     
-    if (alignment > 1) {
-        MOZ_ASSERT(alignment == 2);
+    if (JitStackValueAlignment > 1) {
+        MOZ_ASSERT(JitStackValueAlignment == 2);
         Label noPaddingNeeded;
         
         masm.branchTestPtr(Assembler::NonZero, argcreg, Imm32(1), &noPaddingNeeded);

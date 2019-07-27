@@ -1763,8 +1763,9 @@ class LIRGraph
         
         
         
-        size_t Alignment = Max(size_t(JitStackAlignment), sizeof(Value));
-        return AlignBytes(localSlotCount(), Alignment);
+        
+        
+        return AlignBytes(localSlotCount(), JitStackAlignment);
     }
     size_t paddedLocalSlotsSize() const {
         return paddedLocalSlotCount();

@@ -161,23 +161,27 @@ static MOZ_CONSTEXPR_VAR FloatRegister f30 = { FloatRegisters::f30, FloatRegiste
 
 
 
-static const uint32_t ABIStackAlignment = 8;
-static const uint32_t CodeAlignment = 4;
-static const uint32_t JitStackAlignment = 8;
+static MOZ_CONSTEXPR_VAR uint32_t ABIStackAlignment = 8;
+static MOZ_CONSTEXPR_VAR uint32_t CodeAlignment = 4;
+static MOZ_CONSTEXPR_VAR uint32_t JitStackAlignment = 8;
+
+static MOZ_CONSTEXPR_VAR uint32_t JitStackValueAlignment = JitStackAlignment / sizeof(Value);
+static_assert(JitStackAlignment % sizeof(Value) == 0 && JitStackValueAlignment >= 1,
+  "Stack alignment should be a non-zero multiple of sizeof(Value)");
 
 
 
 
 
-static const bool SupportsSimd = false;
+static MOZ_CONSTEXPR_VAR bool SupportsSimd = false;
 
 
 
-static const uint32_t SimdMemoryAlignment = 8;
+static MOZ_CONSTEXPR_VAR uint32_t SimdMemoryAlignment = 8;
 
-static const uint32_t AsmJSStackAlignment = SimdMemoryAlignment;
+static MOZ_CONSTEXPR_VAR uint32_t AsmJSStackAlignment = SimdMemoryAlignment;
 
-static const Scale ScalePointer = TimesFour;
+static MOZ_CONSTEXPR_VAR Scale ScalePointer = TimesFour;
 
 
 

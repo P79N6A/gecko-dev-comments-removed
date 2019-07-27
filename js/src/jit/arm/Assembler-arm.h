@@ -146,16 +146,20 @@ static MOZ_CONSTEXPR_VAR FloatRegister d15 = {FloatRegisters::d15, VFPRegister::
 
 
 
-static const uint32_t ABIStackAlignment = 8;
-static const uint32_t CodeAlignment = 8;
-static const uint32_t JitStackAlignment = 8;
+static MOZ_CONSTEXPR_VAR uint32_t ABIStackAlignment = 8;
+static MOZ_CONSTEXPR_VAR uint32_t CodeAlignment = 8;
+static MOZ_CONSTEXPR_VAR uint32_t JitStackAlignment = 8;
+
+static MOZ_CONSTEXPR_VAR uint32_t JitStackValueAlignment = JitStackAlignment / sizeof(Value);
+static_assert(JitStackAlignment % sizeof(Value) == 0 && JitStackValueAlignment >= 1,
+  "Stack alignment should be a non-zero multiple of sizeof(Value)");
 
 
 
 
 
-static const bool SupportsSimd = false;
-static const uint32_t SimdMemoryAlignment = 8;
+static MOZ_CONSTEXPR_VAR bool SupportsSimd = false;
+static MOZ_CONSTEXPR_VAR uint32_t SimdMemoryAlignment = 8;
 
 static_assert(CodeAlignment % SimdMemoryAlignment == 0,
   "Code alignment should be larger than any of the alignments which are used for "

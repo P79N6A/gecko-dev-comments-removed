@@ -2486,8 +2486,7 @@ MacroAssembler::profilerPreCallImpl(Register reg, Register reg2)
 void
 MacroAssembler::alignJitStackBasedOnNArgs(Register nargs)
 {
-    const uint32_t alignment = JitStackAlignment / sizeof(Value);
-    if (alignment == 1)
+    if (JitStackValueAlignment == 1)
         return;
 
     
@@ -2500,7 +2499,7 @@ MacroAssembler::alignJitStackBasedOnNArgs(Register nargs)
 
     
     
-    MOZ_ASSERT(alignment == 2);
+    MOZ_ASSERT(JitStackValueAlignment == 2);
 
     
     
@@ -2535,8 +2534,7 @@ MacroAssembler::alignJitStackBasedOnNArgs(Register nargs)
 void
 MacroAssembler::alignJitStackBasedOnNArgs(uint32_t nargs)
 {
-    const uint32_t alignment = JitStackAlignment / sizeof(Value);
-    if (alignment == 1)
+    if (JitStackValueAlignment == 1)
         return;
 
     
@@ -2549,7 +2547,7 @@ MacroAssembler::alignJitStackBasedOnNArgs(uint32_t nargs)
 
     
     
-    MOZ_ASSERT(alignment == 2);
+    MOZ_ASSERT(JitStackValueAlignment == 2);
 
     
     
