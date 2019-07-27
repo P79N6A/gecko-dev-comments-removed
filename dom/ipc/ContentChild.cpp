@@ -2251,13 +2251,6 @@ ContentChild::RecvFilePathUpdate(const nsString& aStorageType,
                                  const nsString& aPath,
                                  const nsCString& aReason)
 {
-    if (nsDOMDeviceStorage::InstanceCount() == 0) {
-        
-        
-
-        return true;
-    }
-
     nsRefPtr<DeviceStorageFile> dsf = new DeviceStorageFile(aStorageType, aStorageName, aPath);
 
     nsString reason;
@@ -2807,6 +2800,8 @@ ContentChild::RecvInvokeDragSession(nsTArray<IPCDataTransfer>&& aTransfers,
             BlobChild* blob = static_cast<BlobChild*>(item.data().get_PBlobChild());
             nsRefPtr<FileImpl> fileImpl = blob->GetBlobImpl();
             variant->SetAsISupports(fileImpl);
+          } else {
+            continue;
           }
           dataTransfer->SetDataWithPrincipal(NS_ConvertUTF8toUTF16(item.flavor()),
                                              variant, i,
