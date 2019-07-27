@@ -6123,7 +6123,8 @@ nsTextFrame::PaintText(nsRenderingContext* aRenderingContext, nsPoint aPt,
 
   PropertyProvider provider(this, iter, nsTextFrame::eInflated);
   
-  provider.InitializeForDisplay(true);
+  
+  provider.InitializeForDisplay(!IsSelected());
 
   gfxContext* ctx = aRenderingContext->ThebesContext();
   const bool rtl = mTextRun->IsRightToLeft();
@@ -8696,7 +8697,8 @@ nsTextFrame::RecomputeOverflow(nsIFrame* aBlockFrame)
     return result;
 
   PropertyProvider provider(this, iter, nsTextFrame::eInflated);
-  provider.InitializeForDisplay(true);
+  
+  provider.InitializeForDisplay(false);
 
   gfxTextRun::Metrics textMetrics =
     mTextRun->MeasureText(provider.GetStart().GetSkippedOffset(),
