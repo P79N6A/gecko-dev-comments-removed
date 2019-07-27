@@ -460,7 +460,7 @@ js::proxy_createFunction(JSContext *cx, unsigned argc, Value *vp)
     
     
     RootedObject ccHolder(cx, JS_NewObjectWithGivenProto(cx, Jsvalify(&CallConstructHolder),
-                                                         js::NullPtr(), cx->global()));
+                                                         js::NullPtr()));
     if (!ccHolder)
         return false;
     ccHolder->as<NativeObject>().setReservedSlot(0, ObjectValue(*call));

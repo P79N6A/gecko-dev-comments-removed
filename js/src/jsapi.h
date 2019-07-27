@@ -2480,8 +2480,7 @@ JS_GetObjectRuntime(JSObject *obj);
 
 
 extern JS_PUBLIC_API(JSObject *)
-JS_NewObjectWithGivenProto(JSContext *cx, const JSClass *clasp, JS::Handle<JSObject*> proto,
-                           JS::Handle<JSObject*> parent = JS::NullPtr());
+JS_NewObjectWithGivenProto(JSContext *cx, const JSClass *clasp, JS::Handle<JSObject*> proto);
 
 
 extern JS_PUBLIC_API(JSObject *)
