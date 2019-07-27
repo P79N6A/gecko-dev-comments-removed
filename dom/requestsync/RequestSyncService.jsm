@@ -678,6 +678,7 @@ this.RequestSyncService = {
     }, timeout, Ci.nsITimer.TYPE_ONE_SHOT);
 
     
+    debug("Sending message.");
     let promise =
       systemMessenger.sendMessage('request-sync',
                                   this.createPartialTaskObject(aObj.data),
