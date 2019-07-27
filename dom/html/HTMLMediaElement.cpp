@@ -11,9 +11,7 @@
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/AsyncEventDispatcher.h"
-#ifdef MOZ_EME
 #include "mozilla/dom/MediaEncryptedEvent.h"
-#endif
 
 #include "base/basictypes.h"
 #include "nsIDOMHTMLMediaElement.h"
@@ -694,6 +692,8 @@ void HTMLMediaElement::AbortExistingLoads()
   mSuspendedForPreloadNone = false;
   mDownloadSuspendedByCache = false;
   mMediaInfo = MediaInfo();
+  mIsEncrypted = false;
+  mPendingEncryptedInitData.mInitDatas.Clear();
   mSourcePointer = nullptr;
   mLastNextFrameStatus = NEXT_FRAME_UNINITIALIZED;
 
@@ -1861,8 +1861,7 @@ NS_IMETHODIMP HTMLMediaElement::SetMuted(bool aMuted)
 }
 
 already_AddRefed<DOMMediaStream>
-HTMLMediaElement::CaptureStreamInternal(bool aFinishWhenEnded,
-                                        MediaStreamGraph* aGraph)
+HTMLMediaElement::CaptureStreamInternal(bool aFinishWhenEnded)
 {
   nsIDOMWindow* window = OwnerDoc()->GetInnerWindow();
   if (!window) {
@@ -1874,7 +1873,7 @@ HTMLMediaElement::CaptureStreamInternal(bool aFinishWhenEnded,
   }
 #endif
   OutputMediaStream* out = mOutputStreams.AppendElement();
-  out->mStream = DOMMediaStream::CreateTrackUnionStream(window, aGraph);
+  out->mStream = DOMMediaStream::CreateTrackUnionStream(window);
   nsRefPtr<nsIPrincipal> principal = GetCurrentPrincipal();
   out->mStream->CombineWithPrincipal(principal);
   out->mStream->SetCORSMode(mCORSMode);
@@ -1886,8 +1885,8 @@ HTMLMediaElement::CaptureStreamInternal(bool aFinishWhenEnded,
   
   out->mStream->GetStream()->ChangeExplicitBlockerCount(1);
   if (mDecoder) {
-    mDecoder->AddOutputStream(out->mStream->GetStream()->AsProcessedStream(),
-                              aFinishWhenEnded);
+    mDecoder->AddOutputStream(
+        out->mStream->GetStream()->AsProcessedStream(), aFinishWhenEnded);
     if (mReadyState >= HAVE_METADATA) {
       
       if (HasAudio()) {
@@ -1905,10 +1904,9 @@ HTMLMediaElement::CaptureStreamInternal(bool aFinishWhenEnded,
 }
 
 already_AddRefed<DOMMediaStream>
-HTMLMediaElement::MozCaptureStream(ErrorResult& aRv,
-                                   MediaStreamGraph* aGraph)
+HTMLMediaElement::MozCaptureStream(ErrorResult& aRv)
 {
-  nsRefPtr<DOMMediaStream> stream = CaptureStreamInternal(false, aGraph);
+  nsRefPtr<DOMMediaStream> stream = CaptureStreamInternal(false);
   if (!stream) {
     aRv.Throw(NS_ERROR_FAILURE);
     return nullptr;
@@ -1918,10 +1916,9 @@ HTMLMediaElement::MozCaptureStream(ErrorResult& aRv,
 }
 
 already_AddRefed<DOMMediaStream>
-HTMLMediaElement::MozCaptureStreamUntilEnded(ErrorResult& aRv,
-                                             MediaStreamGraph* aGraph)
+HTMLMediaElement::MozCaptureStreamUntilEnded(ErrorResult& aRv)
 {
-  nsRefPtr<DOMMediaStream> stream = CaptureStreamInternal(true, aGraph);
+  nsRefPtr<DOMMediaStream> stream = CaptureStreamInternal(true);
   if (!stream) {
     aRv.Throw(NS_ERROR_FAILURE);
     return nullptr;
@@ -2793,7 +2790,7 @@ nsresult HTMLMediaElement::FinishDecoderSetup(MediaDecoder* aDecoder,
   for (uint32_t i = 0; i < mOutputStreams.Length(); ++i) {
     OutputMediaStream* ms = &mOutputStreams[i];
     aDecoder->AddOutputStream(ms->mStream->GetStream()->AsProcessedStream(),
-                              ms->mFinishWhenEnded);
+        ms->mFinishWhenEnded);
   }
 
   
@@ -3088,7 +3085,7 @@ void HTMLMediaElement::MetadataLoaded(const MediaInfo* aInfo,
                                       nsAutoPtr<const MetadataTags> aTags)
 {
   mMediaInfo = *aInfo;
-  mIsEncrypted = aInfo->IsEncrypted();
+  mIsEncrypted = aInfo->IsEncrypted() | mPendingEncryptedInitData.IsEncrypted();
   mTags = aTags.forget();
   mLoadedDataFired = false;
   ChangeReadyState(nsIDOMHTMLMediaElement::HAVE_METADATA);
@@ -3114,9 +3111,11 @@ void HTMLMediaElement::MetadataLoaded(const MediaInfo* aInfo,
       return;
     }
 
-#ifdef MOZ_EME
-    DispatchEncrypted(aInfo->mCrypto.mInitData, aInfo->mCrypto.mType);
-#endif
+    
+    for (const auto& initData : mPendingEncryptedInitData.mInitDatas) {
+      DispatchEncrypted(initData.mInitData, initData.mType);
+    }
+    mPendingEncryptedInitData.mInitDatas.Clear();
   }
 
   
@@ -4474,11 +4473,19 @@ HTMLMediaElement::SetOnencrypted(EventHandlerNonNull* handler)
     elm->SetEventHandler(nsGkAtoms::onencrypted, EmptyString(), handler);
   }
 }
+#endif 
 
 void
 HTMLMediaElement::DispatchEncrypted(const nsTArray<uint8_t>& aInitData,
                                     const nsAString& aInitDataType)
 {
+  if (mReadyState == nsIDOMHTMLMediaElement::HAVE_NOTHING) {
+    
+    
+    mPendingEncryptedInitData.AddInitData(aInitDataType, aInitData);
+    return;
+  }
+
   nsRefPtr<MediaEncryptedEvent> event;
   if (IsCORSSameOrigin()) {
     event = MediaEncryptedEvent::Constructor(this, aInitDataType, aInitData);
@@ -4491,6 +4498,7 @@ HTMLMediaElement::DispatchEncrypted(const nsTArray<uint8_t>& aInitData,
   asyncDispatcher->PostDOMEvent();
 }
 
+#ifdef MOZ_EME
 bool
 HTMLMediaElement::IsEventAttributeName(nsIAtom* aName)
 {

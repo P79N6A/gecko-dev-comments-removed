@@ -557,11 +557,13 @@ public:
 
   mozilla::dom::EventHandlerNonNull* GetOnencrypted();
   void SetOnencrypted(mozilla::dom::EventHandlerNonNull* listener);
+#endif 
 
   void DispatchEncrypted(const nsTArray<uint8_t>& aInitData,
                          const nsAString& aInitDataType) override;
 
 
+#ifdef MOZ_EME
   bool IsEventAttributeName(nsIAtom* aName) override;
 
   
@@ -576,11 +578,9 @@ public:
     return mAutoplayEnabled;
   }
 
-  already_AddRefed<DOMMediaStream> MozCaptureStream(ErrorResult& aRv,
-                                                    MediaStreamGraph* aGraph = nullptr);
+  already_AddRefed<DOMMediaStream> MozCaptureStream(ErrorResult& aRv);
 
-  already_AddRefed<DOMMediaStream> MozCaptureStreamUntilEnded(ErrorResult& aRv,
-                                                              MediaStreamGraph* aGraph = nullptr);
+  already_AddRefed<DOMMediaStream> MozCaptureStreamUntilEnded(ErrorResult& aRv);
 
   bool MozAudioCaptured() const
   {
@@ -726,8 +726,7 @@ protected:
 
 
 
-  already_AddRefed<DOMMediaStream> CaptureStreamInternal(bool aFinishWhenEnded,
-                                                         MediaStreamGraph* aGraph = nullptr);
+  already_AddRefed<DOMMediaStream> CaptureStreamInternal(bool aFinishWhenEnded);
 
   
 
@@ -1321,6 +1320,9 @@ protected:
 
   
   bool mIsEncrypted;
+
+  
+  EncryptionInfo mPendingEncryptedInitData;
 
   
   bool mDownloadSuspendedByCache;
