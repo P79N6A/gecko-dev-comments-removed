@@ -497,7 +497,13 @@ public class BrowserApp extends GeckoApp
         mAboutHomeStartupTimer = new Telemetry.UptimeTimer("FENNEC_STARTUP_TIME_ABOUTHOME");
 
         final Intent intent = getIntent();
+
+        
+        
+        
+        
         final GeckoProfile p = GeckoProfile.get(this);
+
         if (p != null && !p.inGuestMode()) {
             
             
