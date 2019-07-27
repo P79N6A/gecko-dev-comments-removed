@@ -228,8 +228,6 @@ protected:
   };
   WaitState mWaitState;
 
-  
-  bool mNeedAnotherIteration;
   TimeStamp mCurrentTimeStamp;
   
   

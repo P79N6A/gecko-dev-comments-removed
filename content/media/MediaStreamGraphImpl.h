@@ -455,14 +455,19 @@ public:
     return mMonitor;
   }
 
-  
-
-
-
-
   void EnsureNextIteration() {
-    MonitorAutoLock mon(mMonitor);
-    CurrentDriver()->EnsureNextIterationLocked();
+    mNeedAnotherIteration = true; 
+    if (mGraphDriverAsleep) { 
+      MonitorAutoLock mon(mMonitor);
+      CurrentDriver()->WakeUp(); 
+    }
+  }
+
+  void EnsureNextIterationLocked() {
+    mNeedAnotherIteration = true; 
+    if (mGraphDriverAsleep) { 
+      CurrentDriver()->WakeUp(); 
+    }
   }
 
   
@@ -503,6 +508,11 @@ public:
 
 
   int32_t mPortCount;
+
+  
+  Atomic<bool> mNeedAnotherIteration;
+  
+  Atomic<bool> mGraphDriverAsleep;
 
   
   
@@ -592,10 +602,6 @@ public:
 
 
   TrackRate mSampleRate;
-  
-
-
-  bool mNeedAnotherIteration;
   
 
 
