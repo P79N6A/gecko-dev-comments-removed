@@ -1294,6 +1294,7 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
   tileRegion.SubOut(GetValidRegion());
   tileRegion.SubOut(aDirtyRegion); 
 
+  backBuffer->Unlock();
   backBuffer->SetWaste(tileRegion.Area() * mResolution * mResolution);
 
   if (createdTextureClient) {
