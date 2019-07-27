@@ -661,8 +661,7 @@ void HTMLMediaElement::AbortExistingLoads()
   }
 
   mError = nullptr;
-  mBegun = false;
-  mLoadedDataFired = false;
+  mLoadedFirstFrame = false;
   mAutoplaying = true;
   mIsLoadingFromSourceChildren = false;
   mSuspendedAfterFirstFrame = false;
@@ -2028,7 +2027,7 @@ HTMLMediaElement::HTMLMediaElement(already_AddRefed<mozilla::dom::NodeInfo>& aNo
     mPlayed(new TimeRanges),
     mCurrentPlayRangeStart(-1.0),
     mBegun(false),
-    mLoadedDataFired(false),
+    mLoadedFirstFrame(false),
     mAutoplaying(true),
     mAutoplayEnabled(true),
     mPaused(true),
@@ -2777,7 +2776,7 @@ public:
     mHaveCurrentData = true;
     if (mElement) {
       nsRefPtr<HTMLMediaElement> deathGrip = mElement;
-      mElement->FirstFrameLoaded();
+      mElement->FirstFrameLoaded(false);
     }
     UpdateReadyStateForData();
     DoNotifyOutput();
@@ -2872,6 +2871,7 @@ void HTMLMediaElement::SetupSrcMediaStreamPlayback(DOMMediaStream* aStream)
   mNetworkState = nsIDOMHTMLMediaElement::NETWORK_IDLE;
   AddRemoveSelfReference();
   
+  
 }
 
 void HTMLMediaElement::EndSrcMediaStreamPlayback()
@@ -2921,7 +2921,6 @@ void HTMLMediaElement::MetadataLoaded(const MediaInfo* aInfo,
 {
   mHasAudio = aInfo->HasAudio();
   mTags = aTags;
-  mLoadedDataFired = false;
   ChangeReadyState(nsIDOMHTMLMediaElement::HAVE_METADATA);
   DispatchAsyncEvent(NS_LITERAL_STRING("durationchange"));
   DispatchAsyncEvent(NS_LITERAL_STRING("loadedmetadata"));
@@ -2941,19 +2940,25 @@ void HTMLMediaElement::MetadataLoaded(const MediaInfo* aInfo,
   }
 }
 
-void HTMLMediaElement::FirstFrameLoaded()
+void HTMLMediaElement::FirstFrameLoaded(bool aResourceFullyLoaded)
 {
-  NS_ASSERTION(!mSuspendedAfterFirstFrame, "Should not have already suspended");
-
+  ChangeReadyState(aResourceFullyLoaded ?
+    nsIDOMHTMLMediaElement::HAVE_ENOUGH_DATA :
+    nsIDOMHTMLMediaElement::HAVE_CURRENT_DATA);
   ChangeDelayLoadStatus(false);
 
+  NS_ASSERTION(!mSuspendedAfterFirstFrame, "Should not have already suspended");
+
   if (mDecoder && mAllowSuspendAfterFirstFrame && mPaused &&
+      !aResourceFullyLoaded &&
       !HasAttr(kNameSpaceID_None, nsGkAtoms::autoplay) &&
       mPreloadAction == HTMLMediaElement::PRELOAD_METADATA) {
     mSuspendedAfterFirstFrame = true;
     mDecoder->Suspend();
-  } else if (mDownloadSuspendedByCache &&
-             mDecoder && !mDecoder->IsEnded()) {
+  } else if (mLoadedFirstFrame &&
+             mDownloadSuspendedByCache &&
+             mDecoder &&
+             !mDecoder->IsEnded()) {
     
     
     
@@ -2965,6 +2970,26 @@ void HTMLMediaElement::FirstFrameLoaded()
     ChangeReadyState(nsIDOMHTMLMediaElement::HAVE_ENOUGH_DATA);
     return;
   }
+}
+
+void HTMLMediaElement::ResourceLoaded()
+{
+  NS_ASSERTION(!mSrcStream, "Don't call this for streams");
+
+  mBegun = false;
+  mNetworkState = nsIDOMHTMLMediaElement::NETWORK_IDLE;
+  AddRemoveSelfReference();
+  if (mReadyState >= nsIDOMHTMLMediaElement::HAVE_METADATA) {
+    
+    
+    
+    ChangeReadyState(mSrcStream ? nsIDOMHTMLMediaElement::HAVE_CURRENT_DATA
+                     : nsIDOMHTMLMediaElement::HAVE_ENOUGH_DATA);
+  }
+  
+  DispatchAsyncEvent(NS_LITERAL_STRING("progress"));
+  
+  DispatchAsyncEvent(NS_LITERAL_STRING("suspend"));
 }
 
 void HTMLMediaElement::NetworkError()
@@ -3123,6 +3148,7 @@ void HTMLMediaElement::UpdateReadyStateForData(MediaDecoderOwner::NextFrameStatu
     
     
     
+    
     return;
   }
 
@@ -3134,9 +3160,10 @@ void HTMLMediaElement::UpdateReadyStateForData(MediaDecoderOwner::NextFrameStatu
     return;
   }
 
-  if (mDownloadSuspendedByCache && mDecoder && !mDecoder->IsEnded()) {
-    
-    
+  if (mReadyState > nsIDOMHTMLMediaElement::HAVE_METADATA &&
+      mDownloadSuspendedByCache &&
+      mDecoder &&
+      !mDecoder->IsEnded()) {
     
     
     
@@ -3214,9 +3241,10 @@ void HTMLMediaElement::ChangeReadyState(nsMediaReadyState aState)
 
   if (oldState < nsIDOMHTMLMediaElement::HAVE_CURRENT_DATA &&
       mReadyState >= nsIDOMHTMLMediaElement::HAVE_CURRENT_DATA &&
-      !mLoadedDataFired) {
+      !mLoadedFirstFrame)
+  {
     DispatchAsyncEvent(NS_LITERAL_STRING("loadeddata"));
-    mLoadedDataFired = true;
+    mLoadedFirstFrame = true;
   }
 
   if (mReadyState == nsIDOMHTMLMediaElement::HAVE_CURRENT_DATA) {

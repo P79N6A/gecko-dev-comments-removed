@@ -164,7 +164,13 @@ public:
 
   
   
-  virtual void FirstFrameLoaded() MOZ_FINAL MOZ_OVERRIDE;
+  
+  
+  virtual void FirstFrameLoaded(bool aResourceFullyLoaded) MOZ_FINAL MOZ_OVERRIDE;
+
+  
+  
+  virtual void ResourceLoaded() MOZ_FINAL MOZ_OVERRIDE;
 
   
   
@@ -231,6 +237,10 @@ public:
   
   
   virtual void UpdateReadyStateForData(MediaDecoderOwner::NextFrameStatus aNextFrame) MOZ_FINAL MOZ_OVERRIDE;
+
+  
+  
+  void ChangeReadyState(nsMediaReadyState aState);
 
   
   bool CanActivateAutoplay();
@@ -530,7 +540,7 @@ public:
 
   already_AddRefed<Promise> SetMediaKeys(MediaKeys* mediaKeys,
                                          ErrorResult& aRv);
-
+  
   MediaWaitingFor WaitingFor() const;
 
   mozilla::dom::EventHandlerNonNull* GetOnencrypted();
@@ -637,11 +647,6 @@ protected:
     HTMLMediaElement* mOuter;
     nsCOMPtr<nsITimer> mTimer;
   };
-
-  
-
-
-  void ChangeReadyState(nsMediaReadyState aState);
 
   
 
@@ -928,7 +933,7 @@ protected:
   
   
   void Seek(double aTime, SeekTarget::Type aSeekType, ErrorResult& aRv);
-
+  
   
   void UpdateAudioChannelPlayingState();
 
@@ -1100,7 +1105,8 @@ protected:
   bool mBegun;
 
   
-  bool mLoadedDataFired;
+  
+  bool mLoadedFirstFrame;
 
   
   

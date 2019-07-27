@@ -440,6 +440,7 @@ MediaDecoder::MediaDecoder() :
   mIsExitingDormant(false),
   mPlayState(PLAY_STATE_PAUSED),
   mNextState(PLAY_STATE_PAUSED),
+  mCalledResourceLoaded(false),
   mIgnoreProgressData(false),
   mInfiniteStream(false),
   mOwner(nullptr),
@@ -723,8 +724,20 @@ void MediaDecoder::MetadataLoaded(MediaInfo* aInfo, MetadataTags* aTags)
     mOwner->MetadataLoaded(aInfo, aTags);
   }
 
+  if (!mCalledResourceLoaded) {
+    StartProgress();
+  } else if (mOwner) {
+    
+    
+    mOwner->DispatchAsyncEvent(NS_LITERAL_STRING("progress"));
+  }
+
+  
+  
+  bool notifyResourceIsLoaded = !mCalledResourceLoaded &&
+                                IsDataCachedToEndOfResource();
   if (mOwner) {
-    mOwner->FirstFrameLoaded();
+    mOwner->FirstFrameLoaded(notifyResourceIsLoaded);
   }
 
   
@@ -743,9 +756,43 @@ void MediaDecoder::MetadataLoaded(MediaInfo* aInfo, MetadataTags* aTags)
     }
   }
 
+  if (notifyResourceIsLoaded) {
+    ResourceLoaded();
+  }
+
   
   
   NotifySuspendedStatusChanged();
+}
+
+void MediaDecoder::ResourceLoaded()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  
+  
+  
+  
+  if (mShuttingDown)
+    return;
+
+  {
+    
+    
+    ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
+    if (mIgnoreProgressData || mCalledResourceLoaded || mPlayState == PLAY_STATE_LOADING)
+      return;
+
+    Progress(false);
+
+    mCalledResourceLoaded = true;
+    StopProgress();
+  }
+
+  
+  if (mOwner) {
+    mOwner->ResourceLoaded();
+  }
 }
 
 void MediaDecoder::ResetConnectionState()
@@ -982,12 +1029,12 @@ void MediaDecoder::NotifyDownloadEnded(nsresult aStatus)
   }
 
   if (NS_SUCCEEDED(aStatus)) {
-    UpdateReadyStateForData();
-    
-    
-  } else if (aStatus != NS_BASE_STREAM_CLOSED) {
+    ResourceLoaded();
+  }
+  else if (aStatus != NS_BASE_STREAM_CLOSED) {
     NetworkError();
   }
+  UpdateReadyStateForData();
 }
 
 void MediaDecoder::NotifyPrincipalChanged()
