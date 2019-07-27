@@ -56,7 +56,7 @@ public:
 
 
 
-  BasicLayerManager(BasicLayerManagerType aType);
+  explicit BasicLayerManager(BasicLayerManagerType aType);
   
 
 
@@ -72,7 +72,7 @@ public:
 
 
 
-  BasicLayerManager(nsIWidget* aWidget);
+  explicit BasicLayerManager(nsIWidget* aWidget);
 
 protected:
   virtual ~BasicLayerManager();
