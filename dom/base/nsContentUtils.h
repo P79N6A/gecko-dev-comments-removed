@@ -919,6 +919,11 @@ public:
   
 
 
+  static nsContentPolicyType InternalContentPolicyTypeToExternal(nsContentPolicyType aType);
+
+  
+
+
 
 
 

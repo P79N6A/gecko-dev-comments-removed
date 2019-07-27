@@ -49,7 +49,7 @@ class nsContentPolicy : public nsIContentPolicy
     
     
     nsresult CheckPolicy(CPMethod policyMethod, SCPMethod simplePolicyMethod,
-                         uint32_t contentType,
+                         nsContentPolicyType contentType,
                          nsIURI *aURI, nsIURI *origURI,
                          nsISupports *requestingContext,
                          const nsACString &mimeGuess, nsISupports *extra,
