@@ -15,11 +15,6 @@ const INVALID_AUTH_TOKEN = 110;
 
 const MAX_SOFT_START_TICKET_NUMBER = 16777214;
 
-const LOOP_SESSION_TYPE = {
-  GUEST: 1,
-  FXA: 2,
-};
-
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
@@ -27,7 +22,7 @@ Cu.import("resource://gre/modules/osfile.jsm", this);
 Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/FxAccountsOAuthClient.jsm");
 
-this.EXPORTED_SYMBOLS = ["MozLoopService", "LOOP_SESSION_TYPE"];
+this.EXPORTED_SYMBOLS = ["MozLoopService"];
 
 XPCOMUtils.defineLazyModuleGetter(this, "console",
   "resource://gre/modules/devtools/Console.jsm");
@@ -217,16 +212,14 @@ let MozLoopServiceInternal = {
 
 
 
-
-
-  hawkRequest: function(sessionType, path, method, payloadObj) {
+  hawkRequest: function(path, method, payloadObj) {
     if (!gHawkClient) {
       gHawkClient = new HawkClient(this.loopServerUri);
     }
 
     let sessionToken;
     try {
-      sessionToken = Services.prefs.getCharPref(this.getSessionTokenPrefName(sessionType));
+      sessionToken = Services.prefs.getCharPref("loop.hawk-session-token");
     } catch (x) {
       
     }
@@ -244,22 +237,6 @@ let MozLoopServiceInternal = {
     });
   },
 
-  getSessionTokenPrefName: function(sessionType) {
-    let suffix;
-    switch (sessionType) {
-      case LOOP_SESSION_TYPE.GUEST:
-        suffix = "";
-        break;
-      case LOOP_SESSION_TYPE.FXA:
-        suffix = ".fxa";
-        break;
-      default:
-        throw new Error("Unknown LOOP_SESSION_TYPE");
-        break;
-    }
-    return "loop.hawk-session-token" + suffix;
-  },
-
   
 
 
@@ -267,14 +244,12 @@ let MozLoopServiceInternal = {
 
 
 
-
-
-  storeSessionToken: function(sessionType, headers) {
+  storeSessionToken: function(headers) {
     let sessionToken = headers["hawk-session-token"];
     if (sessionToken) {
       
       if (sessionToken.length === 64) {
-        Services.prefs.setCharPref(this.getSessionTokenPrefName(sessionType), sessionToken);
+        Services.prefs.setCharPref("loop.hawk-session-token", sessionToken);
       } else {
         
         console.warn("Loop server sent an invalid session token");
@@ -299,15 +274,7 @@ let MozLoopServiceInternal = {
       return;
     }
 
-    this.registerWithLoopServer(LOOP_SESSION_TYPE.GUEST, pushUrl).then(() => {
-      gRegisteredDeferred.resolve();
-      
-      
-    }, (error) => {
-      Cu.reportError("Failed to register with Loop server: " + error.errno);
-      gRegisteredDeferred.reject(error.errno);
-      gRegisteredDeferred = null;
-    });
+    this.registerWithLoopServer(pushUrl);
   },
 
   
@@ -316,18 +283,19 @@ let MozLoopServiceInternal = {
 
 
 
-
-
-  registerWithLoopServer: function(sessionType, pushUrl, retry = true) {
-    return this.hawkRequest(sessionType, "/registration", "POST", { simplePushURL: pushUrl})
+  registerWithLoopServer: function(pushUrl, noRetry) {
+    this.hawkRequest("/registration", "POST", { simplePushURL: pushUrl})
       .then((response) => {
         
         
         
-        if (!this.storeSessionToken(sessionType, response.headers))
+        if (!this.storeSessionToken(response.headers))
           return;
 
         this.clearError("registration");
+        gRegisteredDeferred.resolve();
+        
+        
       }, (error) => {
         
         
@@ -339,16 +307,16 @@ let MozLoopServiceInternal = {
           }
 
           
-          Services.prefs.clearUserPref(this.getSessionTokenPrefName(sessionType));
-          if (retry) {
-            return this.registerWithLoopServer(sessionType, pushUrl, false);
-          }
+          Services.prefs.clearUserPref("loop.hawk-session-token");
+          this.registerWithLoopServer(pushUrl, true);
+          return;
         }
 
         
         Cu.reportError("Failed to register with the loop server. error: " + error);
         this.setError("registration", error);
-        throw error;
+        gRegisteredDeferred.reject(error.errno);
+        gRegisteredDeferred = null;
       }
     );
   },
@@ -541,7 +509,7 @@ let MozLoopServiceInternal = {
 
 
   promiseFxAOAuthParameters: function() {
-    return this.hawkRequest(LOOP_SESSION_TYPE.FXA, "/fxa-oauth/params", "POST").then(response => {
+    return this.hawkRequest("/fxa-oauth/params", "POST").then(response => {
       return JSON.parse(response.body);
     });
   },
@@ -619,7 +587,7 @@ let MozLoopServiceInternal = {
       code: code,
       state: state,
     };
-    return this.hawkRequest(LOOP_SESSION_TYPE.FXA, "/fxa-oauth/token", "POST", payload).then(response => {
+    return this.hawkRequest("/fxa-oauth/token", "POST", payload).then(response => {
       return JSON.parse(response.body);
     });
   },
@@ -953,15 +921,6 @@ this.MozLoopService = {
     }).then(tokenData => {
       gFxAOAuthTokenData = tokenData;
       return tokenData;
-    }).then(tokenData => {
-      return gRegisteredDeferred.promise.then(Task.async(function*() {
-        if (gPushHandler.pushUrl) {
-          yield MozLoopServiceInternal.registerWithLoopServer(LOOP_SESSION_TYPE.FXA, gPushHandler.pushUrl);
-        } else {
-          throw new Error("No pushUrl for FxA registration");
-        }
-        return gFxAOAuthTokenData;
-      }));
     },
     error => {
       gFxAOAuthTokenData = null;
@@ -982,9 +941,7 @@ this.MozLoopService = {
 
 
 
-
-
-  hawkRequest: function(sessionType, path, method, payloadObj) {
+  hawkRequest: function(path, method, payloadObj) {
     return MozLoopServiceInternal.hawkRequest(path, method, payloadObj);
   },
 };
