@@ -76,7 +76,7 @@ function test_message_class_0() {
          "Message's sentTimestamp should be equal to SENT_TIMESTAMP");
 
       
-      let cursor = manager.getMessages(null, false);
+      let cursor = manager.getMessages();
       cursor.onsuccess = function onsuccess() {
         if (cursor.result) {
           
