@@ -105,9 +105,12 @@ this.AutoCompleteE10S = {
     let resultsArray = [];
     let count = results.matchCount;
     for (let i = 0; i < count; i++) {
-      let result = results.getValueAt(i);
-      resultsArray.push(result);
-      AutoCompleteE10SView.addResult(result, results.getStyleAt(i));
+      
+      
+      
+      resultsArray.push(results.getValueAt(i));
+      AutoCompleteE10SView.addResult(results.getLabelAt(i),
+                                     results.getStyleAt(i));
     }
 
     this.popup.view = AutoCompleteE10SView;
