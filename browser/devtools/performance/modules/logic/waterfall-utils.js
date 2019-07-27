@@ -7,6 +7,8 @@
 
 
 
+loader.lazyRequireGetter(this, "extend",
+  "sdk/util/object", true);
 loader.lazyRequireGetter(this, "MarkerUtils",
   "devtools/performance/marker-utils");
 
@@ -16,8 +18,21 @@ loader.lazyRequireGetter(this, "MarkerUtils",
 
 
 
-function collapseMarkersIntoNode({ markerNode, markersList, filter }) {
-  let { getCurrentParentNode, collapseMarker, addParentNode, popParentNode } = createParentNodeFactory(markerNode);
+
+
+function createParentNode (marker) {
+  return extend(marker, { submarkers: [] });
+}
+
+
+
+
+
+
+
+
+function collapseMarkersIntoNode({ rootNode, markersList, filter }) {
+  let { getCurrentParentNode, pushNode, popParentNode } = createParentNodeFactory(rootNode);
 
   for (let i = 0, len = markersList.length; i < len; i++) {
     let curr = markersList[i];
@@ -29,48 +44,52 @@ function collapseMarkersIntoNode({ markerNode, markersList, filter }) {
 
     let parentNode = getCurrentParentNode();
     let blueprint = MarkerUtils.getBlueprintFor(curr);
-    let collapse = blueprint.collapseFunc || (() => null);
-    let peek = distance => markersList[i + distance];
 
-    let collapseInfo = collapse(parentNode, curr, peek);
-    if (collapseInfo) {
-      let { collapse, toParent, finalize } = collapseInfo;
+    let nestable = "nestable" in blueprint ? blueprint.nestable : true;
+    let collapsible = "collapsible" in blueprint ? blueprint.collapsible : true;
 
+    let finalized = null;
+
+    
+    
+    
+    if (collapsible) {
+      curr = createParentNode(curr);
+    }
+
+    
+    
+    if (!nestable) {
+      pushNode(rootNode, curr);
+      continue;
+    }
+
+    
+    
+    while (!finalized && parentNode) {
       
-      if (typeof toParent === "object") {
-        addParentNode(toParent);
+      
+      
+      if (nestable && curr.end <= parentNode.end) {
+        pushNode(parentNode, curr);
+        finalized = true;
+        break;
       }
 
-      if (collapse) {
-        collapseMarker(curr);
-      }
-
       
       
-      if (finalize) {
+      
+      if (nestable) {
         popParentNode();
+        parentNode = getCurrentParentNode();
+        continue;
       }
-    } else {
-      markerNode.submarkers.push(curr);
+    }
+
+    if (!finalized) {
+      pushNode(rootNode, curr);
     }
   }
-}
-
-
-
-
-
-
-
-
-
-function makeParentMarkerNode (marker) {
-  let node = Object.create(null);
-  for (let prop in marker) {
-    node[prop] = marker[prop];
-  }
-  node.submarkers = [];
-  return node;
 }
 
 
@@ -98,6 +117,14 @@ function createParentNodeFactory (root) {
       if (lastParent.end == void 0) {
         lastParent.end = lastParent.submarkers[lastParent.submarkers.length - 1].end;
       }
+
+      
+      
+      
+      if (!lastParent.submarkers.length) {
+        delete lastParent.submarkers;
+      }
+
       return lastParent;
     },
 
@@ -109,26 +136,19 @@ function createParentNodeFactory (root) {
     
 
 
+    pushNode: (parent, marker) => {
+      parent.submarkers.push(marker);
 
-    addParentNode: (marker) => {
-      let parentMarker = makeParentMarkerNode(marker);
-      (factory.getCurrentParentNode() || root).submarkers.push(parentMarker);
-      parentMarkers.push(parentMarker);
-    },
-
-    
-
-
-    collapseMarker: (marker) => {
-      if (parentMarkers.length === 0) {
-        throw new Error("Cannot collapse marker with no parents.");
+      
+      
+      if (marker.submarkers) {
+        parentMarkers.push(marker);
       }
-      factory.getCurrentParentNode().submarkers.push(marker);
     }
   };
 
   return factory;
 }
 
-exports.makeParentMarkerNode = makeParentMarkerNode;
+exports.createParentNode = createParentNode;
 exports.collapseMarkersIntoNode = collapseMarkersIntoNode;

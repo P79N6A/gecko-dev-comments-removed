@@ -27,6 +27,10 @@ const GECKO_SYMBOL = "(Gecko)";
 
 
 function isMarkerValid (marker, filter) {
+  if (!filter || filter.length === 0) {
+    return true;
+  }
+
   let isUnknown = !(marker.name in TIMELINE_BLUEPRINT);
   if (isUnknown) {
     return filter.indexOf("UNKNOWN") === -1;
@@ -296,80 +300,6 @@ const DOM = {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-const CollapseFunctions = {
-  
-
-
-  identical: function (parent, curr, peek) {
-    let next = peek(1);
-    
-    
-    if (parent && parent.name == curr.name) {
-      let finalize = next && next.name !== curr.name;
-      return { collapse: true, finalize };
-    }
-    
-    
-    if (next && curr.name == next.name) {
-      return { toParent: { name: curr.name, start: curr.start }, collapse: true };
-    }
-  },
-
-  
-
-
-  adjacent: function (parent, curr, peek) {
-    let next = peek(1);
-    if (next && (next.start < curr.end || next.start - curr.end <= 10 )) {
-      return CollapseFunctions.identical(parent, curr, peek);
-    }
-  },
-
-  
-
-
-
-  child: function (parent, curr, peek) {
-    let next = peek(1);
-    
-    if (parent && curr.end <= parent.end) {
-      let finalize = next && next.end > parent.end;
-      return { collapse: true, finalize };
-    }
-  },
-
-  
-
-
-
-  parent: function (parent, curr, peek) {
-    let next = peek(1);
-    
-    
-    if (next && curr.end >= next.end) {
-      return { toParent: curr };
-    }
-  },
-};
-
-
-
-
-
 const JS_MARKER_MAP = {
   "<script> element":          "Script Tag",
   "setInterval handler":       "setInterval",
@@ -480,6 +410,5 @@ exports.getMarkerLabel = getMarkerLabel;
 exports.getMarkerClassName = getMarkerClassName;
 exports.getMarkerFields = getMarkerFields;
 exports.DOM = DOM;
-exports.CollapseFunctions = CollapseFunctions;
 exports.Formatters = Formatters;
 exports.getBlueprintFor = getBlueprintFor;

@@ -4,15 +4,7 @@
 "use strict";
 
 const { L10N } = require("devtools/performance/global");
-const { Formatters, CollapseFunctions: collapse } = require("devtools/performance/marker-utils");
-
-
-
-
-
-
-
-
+const { Formatters } = require("devtools/performance/marker-utils");
 
 
 
@@ -61,28 +53,24 @@ const TIMELINE_BLUEPRINT = {
   "UNKNOWN": {
     group: 2,
     colorName: "graphs-grey",
-    collapseFunc: collapse.child,
-    label: Formatters.UnknownLabel
+    label: Formatters.UnknownLabel,
   },
 
   
   "Styles": {
     group: 0,
     colorName: "graphs-purple",
-    collapseFunc: collapse.child,
     label: L10N.getStr("timeline.label.styles2"),
     fields: Formatters.StylesFields,
   },
   "Reflow": {
     group: 0,
     colorName: "graphs-purple",
-    collapseFunc: collapse.child,
     label: L10N.getStr("timeline.label.reflow2"),
   },
   "Paint": {
     group: 0,
     colorName: "graphs-green",
-    collapseFunc: collapse.child,
     label: L10N.getStr("timeline.label.paint"),
   },
 
@@ -90,33 +78,28 @@ const TIMELINE_BLUEPRINT = {
   "DOMEvent": {
     group: 1,
     colorName: "graphs-yellow",
-    collapseFunc: collapse.parent,
     label: L10N.getStr("timeline.label.domevent"),
     fields: Formatters.DOMEventFields,
   },
   "Javascript": {
     group: 1,
     colorName: "graphs-yellow",
-    collapseFunc: either(collapse.parent, collapse.child),
     label: Formatters.JSLabel,
     fields: Formatters.JSFields
   },
   "Parse HTML": {
     group: 1,
     colorName: "graphs-yellow",
-    collapseFunc: either(collapse.parent, collapse.child),
     label: L10N.getStr("timeline.label.parseHTML"),
   },
   "Parse XML": {
     group: 1,
     colorName: "graphs-yellow",
-    collapseFunc: either(collapse.parent, collapse.child),
     label: L10N.getStr("timeline.label.parseXML"),
   },
   "GarbageCollection": {
     group: 1,
     colorName: "graphs-red",
-    collapseFunc: either(collapse.parent, collapse.child),
     label: Formatters.GCLabel,
     fields: [
       { property: "causeName", label: "Reason:" },
@@ -126,14 +109,12 @@ const TIMELINE_BLUEPRINT = {
   "nsCycleCollector::Collect": {
     group: 1,
     colorName: "graphs-red",
-    collapseFunc: either(collapse.parent, collapse.child),
     label: "Cycle Collection",
     fields: Formatters.CycleCollectionFields,
   },
   "nsCycleCollector::ForgetSkippable": {
     group: 1,
     colorName: "graphs-red",
-    collapseFunc: either(collapse.parent, collapse.child),
     label: "Cycle Collection",
     fields: Formatters.CycleCollectionFields,
   },
@@ -147,33 +128,20 @@ const TIMELINE_BLUEPRINT = {
       property: "causeName",
       label: L10N.getStr("timeline.markerDetail.consoleTimerName")
     }],
+    nestable: false,
+    collapsible: false,
   },
   "TimeStamp": {
     group: 2,
     colorName: "graphs-blue",
-    collapseFunc: collapse.child,
     label: sublabelForProperty(L10N.getStr("timeline.label.timestamp"), "causeName"),
     fields: [{
       property: "causeName",
       label: "Label:"
     }],
+    collapsible: false,
   },
 };
-
-
-
-
-
-
-
-function either(...fun) {
-  return function() {
-    for (let f of fun) {
-      let result = f.apply(null, arguments);
-      if (result !== undefined) return result;
-    }
-  }
-}
 
 
 
