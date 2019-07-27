@@ -1085,6 +1085,12 @@ public class BrowserApp extends GeckoApp
                 }
             });
         }
+
+        
+        
+        if (hasFocus) {
+            mBrowserToolbar.onParentFocus();
+        }
     }
 
     private void setBrowserToolbarListeners() {
