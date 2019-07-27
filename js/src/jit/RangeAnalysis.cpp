@@ -563,7 +563,7 @@ Range::setDouble(double l, double h)
         hasInt32LowerBound_ = false;
     }
     if (h >= INT32_MIN && h <= INT32_MAX) {
-        upper_ = int32_t(ceil(h));
+        upper_ = int32_t(::ceil(h));
         hasInt32UpperBound_ = true;
     } else {
         upper_ = INT32_MAX;
@@ -979,6 +979,25 @@ Range::floor(TempAllocator &alloc, const Range *op)
     return copy;
 }
 
+Range *
+Range::ceil(TempAllocator &alloc, const Range *op)
+{
+    Range *copy = new(alloc) Range(*op);
+
+    
+    
+    
+    
+    if (copy->hasInt32Bounds())
+        copy->max_exponent_ = copy->exponentImpliedByInt32Bounds();
+    else if (copy->max_exponent_ < MaxFiniteExponent)
+        copy->max_exponent_++;
+
+    copy->canHaveFractionalPart_ = false;
+    copy->assertInvariants();
+    return copy;
+}
+
 bool
 Range::negativeZeroMul(const Range *lhs, const Range *rhs)
 {
@@ -1205,6 +1224,13 @@ MFloor::computeRange(TempAllocator &alloc)
 {
     Range other(getOperand(0));
     setRange(Range::floor(alloc, &other));
+}
+
+void
+MCeil::computeRange(TempAllocator &alloc)
+{
+    Range other(getOperand(0));
+    setRange(Range::ceil(alloc, &other));
 }
 
 void
