@@ -33,6 +33,7 @@ using mozilla::MakeUnique;
 using mozilla::UniquePtr;
 
 WCHAR* MakeCommandLine(int argc, WCHAR **argv);
+BOOL PathAppendSafe(LPWSTR base, LPCWSTR extra);
 
 
 

@@ -111,7 +111,6 @@ static bool sUseHardLinks = true;
 
 #ifdef XP_WIN
 #include "updatehelper.h"
-#include <aclapi.h>
 
 
 
@@ -2394,9 +2393,8 @@ int NS_main(int argc, NS_tchar **argv)
   bool useService = false;
   bool testOnlyFallbackKeyExists = false;
   bool noServiceFallback = getenv("MOZ_NO_SERVICE_FALLBACK") != nullptr;
-  bool emulateElevation = getenv("MOZ_EMULATE_ELEVATION_PATH") != nullptr;
   putenv(const_cast<char*>("MOZ_NO_SERVICE_FALLBACK="));
-  putenv(const_cast<char*>("MOZ_EMULATE_ELEVATION_PATH="));
+
   
   
 #ifdef MOZ_MAINTENANCE_SERVICE
@@ -2484,6 +2482,12 @@ int NS_main(int argc, NS_tchar **argv)
   if (!WriteStatusFile("applying")) {
     LOG(("failed setting status to 'applying'"));
     return 1;
+  }
+
+  if (sStagedUpdate) {
+    LOG(("Performing a staged update"));
+  } else if (sReplaceRequest) {
+    LOG(("Performing a replace request"));
   }
 
 #ifdef MOZ_WIDGET_GONK
@@ -2614,15 +2618,13 @@ int NS_main(int argc, NS_tchar **argv)
       return 1;
     }
 
-    if (!emulateElevation) {
-      updateLockFileHandle = CreateFileW(updateLockFilePath,
-                                        GENERIC_READ | GENERIC_WRITE,
-                                        0,
-                                        nullptr,
-                                        OPEN_ALWAYS,
-                                        FILE_FLAG_DELETE_ON_CLOSE,
-                                        nullptr);
-    }
+    updateLockFileHandle = CreateFileW(updateLockFilePath,
+                                       GENERIC_READ | GENERIC_WRITE,
+                                       0,
+                                       nullptr,
+                                       OPEN_ALWAYS,
+                                       FILE_FLAG_DELETE_ON_CLOSE,
+                                       nullptr);
 
     NS_tsnprintf(elevatedLockFilePath,
                  sizeof(elevatedLockFilePath)/sizeof(elevatedLockFilePath[0]),
@@ -2773,8 +2775,7 @@ int NS_main(int argc, NS_tchar **argv)
       
       
       
-      
-      if (!useService && sStagedUpdate && !emulateElevation) {
+      if (!useService && sStagedUpdate) {
         if (updateLockFileHandle != INVALID_HANDLE_VALUE) {
           CloseHandle(updateLockFileHandle);
         }
@@ -2800,145 +2801,35 @@ int NS_main(int argc, NS_tchar **argv)
         }
       }
 
-      DWORD returnCode = 0;
-
       
       
       
       
       
       
-      if (!useService && !noServiceFallback &&
+      if (!useService && !noServiceFallback && 
           updateLockFileHandle == INVALID_HANDLE_VALUE) {
+        SHELLEXECUTEINFO sinfo;
+        memset(&sinfo, 0, sizeof(SHELLEXECUTEINFO));
+        sinfo.cbSize       = sizeof(SHELLEXECUTEINFO);
+        sinfo.fMask        = SEE_MASK_FLAG_NO_UI |
+                             SEE_MASK_FLAG_DDEWAIT |
+                             SEE_MASK_NOCLOSEPROCESS;
+        sinfo.hwnd         = nullptr;
+        sinfo.lpFile       = argv[0];
+        sinfo.lpParameters = cmdLine;
+        sinfo.lpVerb       = L"runas";
+        sinfo.nShow        = SW_SHOWNORMAL;
 
-        
-        RPC_WSTR guidString = RPC_WSTR(L"");
-        GUID guid;
-        HRESULT hr = CoCreateGuid(&guid);
-        BOOL result = TRUE;
-        bool safeToUpdate = true;
-        WCHAR secureUpdaterPath[MAX_PATH + 1] = { L'\0' };
-        WCHAR secureDirPath[MAX_PATH + 1] = { L'\0' };
-        if (SUCCEEDED(hr)) {
-          UuidToString(&guid, &guidString);
-          result = PathGetSiblingFilePath(secureDirPath, argv[0],
-                                          reinterpret_cast<LPCWSTR>(guidString));
-          RpcStringFree(&guidString);
+        bool result = ShellExecuteEx(&sinfo);
+        free(cmdLine);
+
+        if (result) {
+          WaitForSingleObject(sinfo.hProcess, INFINITE);
+          CloseHandle(sinfo.hProcess);
         } else {
-          
-          result = PathGetSiblingFilePath(secureDirPath, argv[0], L"tmp_update");
+          WriteStatusFile(ELEVATION_CANCELED);
         }
-
-        if (!result) {
-          fprintf(stderr, "Could not obtain secure update directory path");
-          safeToUpdate = false;
-        }
-
-        
-        if (safeToUpdate) {
-          result = CreateDirectoryW(secureDirPath, nullptr);
-          if (!result) {
-            fprintf(stderr, "Could not create secure update directory");
-            safeToUpdate = false;
-          }
-        }
-
-        
-        if (safeToUpdate) {
-          wcsncpy(secureUpdaterPath, secureDirPath, MAX_PATH);
-          result = PathAppendSafe(secureUpdaterPath, L"updater.exe");
-          if (!result) {
-            fprintf(stderr, "Could not obtain secure updater file name");
-            safeToUpdate = false;
-          }
-        }
-
-        
-        if (safeToUpdate) {
-          result = CopyFileW(argv[0], secureUpdaterPath, TRUE);
-          if (!result) {
-            fprintf(stderr, "Could not copy updater to secure location");
-            safeToUpdate = false;
-          }
-        }
-
-        
-        
-        
-        
-        HANDLE handle = INVALID_HANDLE_VALUE;
-        if (safeToUpdate) {
-          handle = CreateFileW(secureDirPath, GENERIC_READ, FILE_SHARE_READ,
-                               nullptr, OPEN_EXISTING,
-                               FILE_FLAG_BACKUP_SEMANTICS, nullptr);
-          safeToUpdate = handle != INVALID_HANDLE_VALUE;
-        }
-
-        
-        
-        PACL originalACL = nullptr;
-        PSECURITY_DESCRIPTOR sd = nullptr;
-        if (safeToUpdate) {
-          safeToUpdate = UACHelper::DenyWriteACLOnPath(secureDirPath,
-                                                       &originalACL, &sd);
-        }
-
-        
-        
-        if (safeToUpdate) {
-          if (!UACHelper::IsDirectorySafe(secureDirPath)) {
-            safeToUpdate = false;
-          }
-        }
-
-        if (!safeToUpdate) {
-          fprintf(stderr, "Will not proceed to copy secure updater because it "
-                          "is not safe to do so.");
-          WriteStatusFile(SECURE_LOCATION_UPDATE_ERROR);
-        } else {
-          SHELLEXECUTEINFO sinfo;
-          memset(&sinfo, 0, sizeof(SHELLEXECUTEINFO));
-          sinfo.cbSize       = sizeof(SHELLEXECUTEINFO);
-          sinfo.fMask        = SEE_MASK_FLAG_NO_UI |
-                              SEE_MASK_FLAG_DDEWAIT |
-                              SEE_MASK_NOCLOSEPROCESS;
-          sinfo.hwnd         = nullptr;
-          sinfo.lpFile       = secureUpdaterPath;
-          sinfo.lpParameters = cmdLine;
-          sinfo.lpVerb       = emulateElevation ? L"open" : L"runas";
-          sinfo.nShow        = SW_SHOWNORMAL;
-
-          bool result = ShellExecuteEx(&sinfo);
-          free(cmdLine);
-
-          if (result) {
-            WaitForSingleObject(sinfo.hProcess, INFINITE);
-            
-            GetExitCodeProcess(sinfo.hProcess, &returnCode);
-            CloseHandle(sinfo.hProcess);
-          } else {
-            WriteStatusFile(ELEVATION_CANCELED);
-          }
-        }
-
-        
-        if (originalACL) {
-          SetNamedSecurityInfoW(const_cast<LPWSTR>(secureDirPath), SE_FILE_OBJECT,
-                                DACL_SECURITY_INFORMATION, nullptr, nullptr,
-                                originalACL, nullptr);
-        }
-        if (sd) {
-          LocalFree(sd);
-        }
-
-        
-        if (INVALID_HANDLE_VALUE != handle) {
-          CloseHandle(handle);
-        }
-
-        
-        DeleteFileW(secureUpdaterPath);
-        RemoveDirectoryW(secureDirPath);
       }
 
       if (argc > callbackIndex) {
@@ -2953,7 +2844,7 @@ int NS_main(int argc, NS_tchar **argv)
         
         
         
-        return returnCode;
+        return 0;
       } else if(useService) {
         
         
@@ -2974,13 +2865,6 @@ int NS_main(int argc, NS_tchar **argv)
     }
   }
 #endif
-
-  if (sStagedUpdate) {
-    LOG(("Performing a staged update"));
-  }
-  else if (sReplaceRequest) {
-    LOG(("Performing a replace request"));
-  }
 
 #if defined(MOZ_WIDGET_GONK)
   
@@ -3286,7 +3170,7 @@ int NS_main(int argc, NS_tchar **argv)
         }
       }
     }
-    EXIT_WHEN_ELEVATED(elevatedLockFilePath, updateLockFileHandle, gSucceeded ? 0 : 1);
+    EXIT_WHEN_ELEVATED(elevatedLockFilePath, updateLockFileHandle, 0);
 #endif 
 #ifdef XP_MACOSX
     if (gSucceeded) {
