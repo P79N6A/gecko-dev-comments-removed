@@ -230,7 +230,7 @@ public:
 
 
 
-  
+
   virtual nsresult StartDocumentLoad(const char* aCommand,
                                      nsIChannel* aChannel,
                                      nsILoadGroup* aLoadGroup,
@@ -456,7 +456,7 @@ public:
   {
     mBidiEnabled = true;
   }
-  
+
   
 
 
@@ -464,7 +464,7 @@ public:
   {
     return mMathMLEnabled;
   }
-  
+
   void SetMathMLEnabled()
   {
     mMathMLEnabled = true;
@@ -477,7 +477,7 @@ public:
   {
     return mIsInitialDocumentInWindow;
   }
-  
+
   
 
 
@@ -486,7 +486,7 @@ public:
   {
     mIsInitialDocumentInWindow = aIsInitialDocument;
   }
-  
+
 
   
 
@@ -687,7 +687,7 @@ public:
   {
     mParentDocument = aParent;
   }
-  
+
   
 
 
@@ -838,7 +838,7 @@ public:
   Element* GetHeadElement() {
     return GetHtmlChildElement(nsGkAtoms::head);
   }
-  
+
   
 
 
@@ -873,7 +873,7 @@ public:
 
 
   virtual int32_t GetNumberOfStyleSheets() const = 0;
-  
+
   
 
 
@@ -881,7 +881,7 @@ public:
 
 
   virtual nsIStyleSheet* GetStyleSheetAt(int32_t aIndex) const = 0;
-  
+
   
 
 
@@ -925,7 +925,7 @@ public:
 
 
   virtual void SetStyleSheetApplicableState(nsIStyleSheet* aSheet,
-                                            bool aApplicable) = 0;  
+                                            bool aApplicable) = 0;
 
   enum additionalSheetType {
     eAgentSheet,
@@ -1029,7 +1029,7 @@ public:
     nsPIDOMWindow* outer = mWindow ? mWindow->GetOuterWindow() : nullptr;
     return outer && outer->IsBackground();
   }
-  
+
   
 
 
@@ -1060,7 +1060,7 @@ public:
 
   
 
- 
+
   virtual nsScriptLoader* ScriptLoader() = 0;
 
   
@@ -1474,7 +1474,7 @@ public:
 
 
   virtual void RemovedFromDocShell() = 0;
-  
+
   
 
 
@@ -1583,7 +1583,7 @@ public:
   nsCompatibility GetCompatibilityMode() const {
     return mCompatMode;
   }
-  
+
   
 
 
@@ -1717,7 +1717,7 @@ public:
   {
     return mDisplayDocument;
   }
-  
+
   
 
 
@@ -1759,7 +1759,7 @@ public:
       return mObservers;
     }
   protected:
-    nsAutoTArray< nsCOMPtr<nsIObserver>, 8 > mObservers;    
+    nsAutoTArray< nsCOMPtr<nsIObserver>, 8 > mObservers;
   };
 
   
@@ -2171,7 +2171,7 @@ public:
 
   
   void RegisterPendingLinkUpdate(mozilla::dom::Link* aLink);
-  
+
   
   
   void UnregisterPendingLinkUpdate(mozilla::dom::Link* aElement);
@@ -2203,7 +2203,7 @@ public:
                      uint32_t aParamsLength = 0) const;
 
   virtual void PostVisibilityUpdateEvent() = 0;
-  
+
   bool IsSyntheticDocument() const { return mIsSyntheticDocument; }
 
   void SetNeedLayoutFlush() {
@@ -2708,7 +2708,7 @@ protected:
   
   
   bool mMayStartLayout;
-  
+
   
   bool mHaveFiredTitleChange;
 
@@ -2727,7 +2727,7 @@ protected:
   
   
   bool mAllowDNSPrefetch;
-  
+
   
   bool mIsStaticDocument;
 
@@ -2875,7 +2875,7 @@ protected:
   
   
   uint32_t mPartID;
-  
+
   
   
   uint32_t mMarkedCCGeneration;
@@ -3024,8 +3024,8 @@ NS_NewVideoDocument(nsIDocument** aInstancePtrResult);
 
 nsresult
 NS_NewDOMDocument(nsIDOMDocument** aInstancePtrResult,
-                  const nsAString& aNamespaceURI, 
-                  const nsAString& aQualifiedName, 
+                  const nsAString& aNamespaceURI,
+                  const nsAString& aQualifiedName,
                   nsIDOMDocumentType* aDoctype,
                   nsIURI* aDocumentURI,
                   nsIURI* aBaseURI,
