@@ -55,9 +55,10 @@ public:
     return malloc(aBytes);
   }
 
-  void* calloc_(size_t aBytes)
+  template <typename T>
+  T* pod_calloc(size_t aNumElems)
   {
-    return calloc(aBytes, 1);
+    return static_cast<T*>(calloc(aNumElems, sizeof(T)));
   }
 
   void* realloc_(void* aPtr, size_t aOldBytes, size_t aBytes)
