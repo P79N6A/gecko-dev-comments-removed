@@ -21,6 +21,7 @@
 #include "mp4_demuxer/H264.h"
 #include "SharedDecoderManager.h"
 #include "mp4_demuxer/MP4TrackDemuxer.h"
+#include <algorithm>
 
 #ifdef MOZ_EME
 #include "mozilla/CDMProxy.h"
@@ -91,6 +92,11 @@ AccumulateSPSTelemetry(const ByteBuffer* aExtradata)
     Telemetry::Accumulate(Telemetry::VIDEO_DECODED_H264_SPS_LEVEL,
                           (spsdata.level_idc >= 10 && spsdata.level_idc <= 52) ?
                           spsdata.level_idc : 0);
+
+    
+    
+    Telemetry::Accumulate(Telemetry::VIDEO_H264_SPS_MAX_NUM_REF_FRAMES,
+                          std::min(spsdata.max_num_ref_frames, 17u));
 
     return true;
   }
