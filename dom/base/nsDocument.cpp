@@ -1713,11 +1713,8 @@ nsDocument::~nsDocument()
 
   
   
-  if (mSubDocuments) {
-    PL_DHashTableDestroy(mSubDocuments);
-
-    mSubDocuments = nullptr;
-  }
+  delete mSubDocuments;
+  mSubDocuments = nullptr;
 
   
   
@@ -2121,10 +2118,8 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsDocument)
     tmp->mStyleSheetSetList = nullptr;
   }
 
-  if (tmp->mSubDocuments) {
-    PL_DHashTableDestroy(tmp->mSubDocuments);
-    tmp->mSubDocuments = nullptr;
-  }
+  delete tmp->mSubDocuments;
+  tmp->mSubDocuments = nullptr;
 
   tmp->mFrameRequestCallbacks.Clear();
 
@@ -2320,11 +2315,8 @@ nsDocument::ResetToURI(nsIURI *aURI, nsILoadGroup *aLoadGroup,
 
   
   
-  if (mSubDocuments) {
-    PL_DHashTableDestroy(mSubDocuments);
-
-    mSubDocuments = nullptr;
-  }
+  delete mSubDocuments;
+  mSubDocuments = nullptr;
 
   
   
@@ -4005,7 +3997,7 @@ nsDocument::SetSubDocumentFor(Element* aElement, nsIDocument* aSubDoc)
         SubDocInitEntry
       };
 
-      mSubDocuments = PL_NewDHashTable(&hash_table_ops, sizeof(SubDocMapEntry));
+      mSubDocuments = new PLDHashTable2(&hash_table_ops, sizeof(SubDocMapEntry));
     }
 
     
