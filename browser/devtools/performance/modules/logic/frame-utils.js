@@ -6,8 +6,8 @@
 const { Cc, Ci, Cu, Cr } = require("chrome");
 
 loader.lazyRequireGetter(this, "Services");
-loader.lazyRequireGetter(this, "CATEGORY_OTHER",
-  "devtools/performance/global", true);
+loader.lazyRequireGetter(this, "global",
+  "devtools/performance/global");
 
 
 const CHAR_CODE_A = "a".charCodeAt(0);
@@ -166,16 +166,13 @@ function parseLocation(location, fallbackLine, fallbackColumn) {
 
 
 
-
-
-
-
-
-function isContent({ location, category }) {
+function computeIsContentAndCategory(frame) {
   
-  if (category) {
-    return false;
+  if (frame.category) {
+    return;
   }
+
+  let location = frame.location;
 
   
   
@@ -183,12 +180,37 @@ function isContent({ location, category }) {
   
   for (let i = 0; i < location.length; i++) {
     if (location.charCodeAt(i) === CHAR_CODE_LPAREN) {
-      return isContentScheme(location, i + 1);
+      if (isContentScheme(location, i + 1)) {
+        frame.isContent = true;
+        return;
+      }
+
+      for (let j = i + 1; j < location.length; j++) {
+        if (location.charCodeAt(j) === CHAR_CODE_R &&
+            isChromeScheme(location, j) &&
+            (location.indexOf("resource://gre/modules/devtools") !== -1 ||
+             location.indexOf("resource:///modules/devtools") !== -1)) {
+          frame.category = global.CATEGORY_DEVTOOLS;
+          return;
+        }
+      }
+
+      break;
     }
   }
 
   
-  return isContentScheme(location, 0);
+  if (isContentScheme(location, 0)) {
+    frame.isContent = true;
+    return;
+  }
+
+  if (location === "EnterJIT") {
+    frame.category = global.CATEGORY_JIT;
+    return;
+  }
+
+  frame.category = global.CATEGORY_OTHER;
 }
 
 
@@ -247,10 +269,17 @@ function InflatedFrame(index, frameTable, stringTable, allocationsTable) {
   this.optimizations = frame[OPTIMIZATIONS_SLOT];
   this.line = frame[LINE_SLOT];
   this.column = undefined;
-  this.category = category;
-  this.metaCategory = category || CATEGORY_OTHER;
   this.allocations = allocationsTable ? allocationsTable[index] : 0;
-  this.isContent = isContent(this);
+  this.category = category;
+  this.isContent = false;
+
+  
+  
+  
+  
+  
+  
+  computeIsContentAndCategory(this);
 };
 
 
@@ -284,7 +313,7 @@ InflatedFrame.prototype.getFrameKey = function getFrameKey(options) {
     
     
     options.isMetaCategoryOut = true;
-    return this.metaCategory;
+    return this.category;
   }
 
   
@@ -418,8 +447,8 @@ function isNumeric(c) {
   return c >= CHAR_CODE_0 && c <= CHAR_CODE_9;
 }
 
+exports.computeIsContentAndCategory = computeIsContentAndCategory;
 exports.parseLocation = parseLocation;
-exports.isContent = isContent;
 exports.getInflatedFrameCache = getInflatedFrameCache;
 exports.getOrAddInflatedFrame = getOrAddInflatedFrame;
 exports.InflatedFrame = InflatedFrame;
