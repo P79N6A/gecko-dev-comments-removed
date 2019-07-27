@@ -148,6 +148,8 @@ var interfaceNamesInGlobalScope =
 
     "XMLHttpRequest",
 
+    "XMLHttpRequestEventTarget",
+
     "XMLHttpRequestUpload",
 
     "URL",
