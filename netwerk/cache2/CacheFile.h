@@ -90,12 +90,14 @@ public:
   nsresult ElementsSize(uint32_t *_retval);
   nsresult SetExpirationTime(uint32_t aExpirationTime);
   nsresult GetExpirationTime(uint32_t *_retval);
-  nsresult SetLastModified(uint32_t aLastModified);
-  nsresult GetLastModified(uint32_t *_retval);
   nsresult SetFrecency(uint32_t aFrecency);
   nsresult GetFrecency(uint32_t *_retval);
+  nsresult GetLastModified(uint32_t *_retval);
   nsresult GetLastFetched(uint32_t *_retval);
   nsresult GetFetchCount(uint32_t *_retval);
+  
+  
+  nsresult OnFetched();
 
   bool DataSize(int64_t* aSize);
   void Key(nsACString& aKey) { aKey = mKey; }
