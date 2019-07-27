@@ -294,10 +294,14 @@ IsConvertibleToCallbackInterface(JSContext* cx, JS::Handle<JSObject*> obj)
 
 
 
+
+
 static_assert((size_t)constructors::id::_ID_Start ==
-              (size_t)prototypes::id::_ID_Count,
+              (size_t)prototypes::id::_ID_Count &&
+              (size_t)namedpropertiesobjects::id::_ID_Start ==
+              (size_t)constructors::id::_ID_Count,
               "Overlapping or discontiguous indexes.");
-const size_t kProtoAndIfaceCacheCount = constructors::id::_ID_Count;
+const size_t kProtoAndIfaceCacheCount = namedpropertiesobjects::id::_ID_Count;
 
 class ProtoAndIfaceCache
 {
