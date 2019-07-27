@@ -44,6 +44,13 @@ SimpleTest.registerCleanupFunction(() => {
   gDevTools.testing = false;
 });
 
+
+
+
+function asyncTest(generator) {
+  return () => Task.spawn(generator).then(null, ok.bind(null, false)).then(finishTest);
+}
+
 function log(aMsg)
 {
   dump("*** WebConsoleTest: " + aMsg + "\n");
