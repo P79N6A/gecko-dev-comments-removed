@@ -1069,6 +1069,9 @@ pref("dom.mapped_arraybuffer.enabled", true);
 #endif
 
 
+pref("dom.broadcastChannel.enabled", true);
+
+
 pref("dom.udpsocket.enabled", true);
 
 
