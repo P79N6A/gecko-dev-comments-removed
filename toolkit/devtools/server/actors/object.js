@@ -145,6 +145,12 @@ ObjectActor.prototype = {
     promiseState.creationTimestamp = Date.now() -
       PromiseDebugging.getPromiseLifetime(rawPromise);
 
+    
+    
+    try {
+      promiseState.timeToSettle = PromiseDebugging.getTimeToSettle(rawPromise);
+    } catch(e) {}
+
     return promiseState;
   },
 
