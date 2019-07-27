@@ -93,11 +93,9 @@ public:
   virtual nsresult Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult) const MOZ_OVERRIDE;
 
   
-  virtual void GetItemValueText(nsAString& aText) MOZ_OVERRIDE
+  virtual void GetItemValueText(DOMString& aText) MOZ_OVERRIDE
   {
-    DOMString value;
-    GetSrc(value);
-    value.ToString(aText);
+    GetSrc(aText);
   }
   virtual void SetItemValueText(const nsAString& aText) MOZ_OVERRIDE
   {

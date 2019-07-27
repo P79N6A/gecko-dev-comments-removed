@@ -28,7 +28,7 @@ public:
   
   NS_DECL_NSIDOMHTMLTABLECAPTIONELEMENT
 
-  void GetAlign(nsString& aAlign)
+  void GetAlign(DOMString& aAlign)
   {
     GetHTMLAttr(nsGkAtoms::align, aAlign);
   }

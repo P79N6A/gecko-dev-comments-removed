@@ -2141,7 +2141,7 @@ HTMLMediaElement::~HTMLMediaElement()
 }
 
 void
-HTMLMediaElement::GetItemValueText(nsAString& aValue)
+HTMLMediaElement::GetItemValueText(DOMString& aValue)
 {
   
   GetURIAttr(nsGkAtoms::src, nullptr, aValue);
