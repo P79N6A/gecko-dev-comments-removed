@@ -355,7 +355,7 @@ class JS_FRIEND_API(BaseProxyHandler)
 
 
 
-class JS_PUBLIC_API(DirectProxyHandler) : public BaseProxyHandler
+class JS_FRIEND_API(DirectProxyHandler) : public BaseProxyHandler
 {
   public:
     explicit MOZ_CONSTEXPR DirectProxyHandler(const void *aFamily, bool aHasPrototype = false,
