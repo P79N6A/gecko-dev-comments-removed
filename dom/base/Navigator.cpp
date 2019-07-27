@@ -809,7 +809,7 @@ Navigator::Vibrate(const nsTArray<uint32_t>& aPattern)
 
   
   
-  if (pattern.IsEmpty() || !sVibratorEnabled) {
+  if (!sVibratorEnabled) {
     return true;
   }
 
