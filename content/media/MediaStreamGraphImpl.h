@@ -27,39 +27,6 @@ class LinkedList;
 
 
 
-
-static const int MEDIA_GRAPH_TARGET_PERIOD_MS = 10;
-
-
-
-
-
-static const int SCHEDULE_SAFETY_MARGIN_MS = 10;
-
-
-
-
-
-
-
-
-
-static const int AUDIO_TARGET_MS = 2*MEDIA_GRAPH_TARGET_PERIOD_MS +
-    SCHEDULE_SAFETY_MARGIN_MS;
-
-
-
-
-
-
-
-static const int VIDEO_TARGET_MS = 2*MEDIA_GRAPH_TARGET_PERIOD_MS +
-    SCHEDULE_SAFETY_MARGIN_MS;
-
-
-
-
-
 struct StreamUpdate {
   int64_t mGraphUpdateIndex;
   nsRefPtr<MediaStream> mStream;
@@ -100,7 +67,8 @@ protected:
   MediaStream* mStream;
 };
 
-struct MessageBlock {
+class MessageBlock {
+public:
   int64_t mGraphUpdateIndex;
   nsTArray<nsAutoPtr<ControlMessage> > mMessages;
 };
@@ -113,10 +81,8 @@ struct MessageBlock {
 
 
 
-
 class MediaStreamGraphImpl : public MediaStreamGraph,
-                             public nsIMemoryReporter,
-                             public MixerCallbackReceiver {
+                             public nsIMemoryReporter {
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIMEMORYREPORTER
@@ -188,7 +154,7 @@ public:
 
   
   nsTArray<MessageBlock>& MessageQueue() {
-    CurrentDriver()->GetThreadMonitor().AssertCurrentThreadOwns();
+    mMonitor.AssertCurrentThreadOwns();
     return mFrontMessageQueue;
   }
 
@@ -230,7 +196,7 @@ public:
   void UpdateGraph(GraphTime aEndBlockingDecisions);
 
   void SwapMessageQueues() {
-    CurrentDriver()->GetThreadMonitor().AssertCurrentThreadOwns();
+    mMonitor.AssertCurrentThreadOwns();
     mFrontMessageQueue.SwapElements(mBackMessageQueue);
   }
   
@@ -361,15 +327,6 @@ public:
 
 
   TrackTicks PlayAudio(MediaStream* aStream, GraphTime aFrom, GraphTime aTo);
-
-  
-
-
-  virtual void MixerCallback(AudioDataValue* aMixedBuffer,
-                             AudioSampleFormat aFormat,
-                             uint32_t aChannels,
-                             uint32_t aFrames,
-                             uint32_t aSampleRate) MOZ_OVERRIDE;
   
 
 
@@ -448,6 +405,20 @@ public:
 
   
 
+
+
+
+
+  void SetCurrentDriver(GraphDriver* aDriver) {
+    mDriverHolder.SetCurrentDriver(aDriver);
+  }
+
+  Monitor& GetMonitor() {
+    return mMonitor;
+  }
+
+  
+
   
   
   
@@ -479,6 +450,13 @@ public:
 
   
   
+  
+  
+  
+  Monitor mMonitor;
+
+  
+  
 
   
 
@@ -496,6 +474,12 @@ public:
   nsTArray<MessageBlock> mFrontMessageQueue;
   
   nsTArray<MessageBlock> mBackMessageQueue;
+
+  
+  bool MessagesQueued() {
+    mMonitor.AssertCurrentThreadOwns();
+    return !mBackMessageQueue.IsEmpty();
+  }
   
 
 

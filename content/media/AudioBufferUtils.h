@@ -36,14 +36,14 @@ public:
   AudioCallbackBufferWrapper()
     : mBuffer(nullptr),
       mSamples(0),
-      mSampleWriteOffset(0)
+      mSampleWriteOffset(1)
   {}
   
 
 
 
   void SetBuffer(T* aBuffer, uint32_t aFrames) {
-    MOZ_ASSERT(!mBuffer && !mSamples && mSampleWriteOffset,
+    MOZ_ASSERT(!mBuffer && !mSamples,
         "SetBuffer called twice.");
     mBuffer = aBuffer;
     mSamples = FramesToSamples(CHANNELS, aFrames);
@@ -75,10 +75,12 @@ public:
 
 
   void BufferFilled() {
-    MOZ_ASSERT(Available() == 0,
-        "Audio Buffer is not full by the end of the callback.");
-    MOZ_ASSERT(mSamples && mSampleWriteOffset && mBuffer,
-               "Buffer not set.");
+    
+    
+    
+    NS_WARN_IF_FALSE(Available() == 0 || mSampleWriteOffset == 0,
+            "Audio Buffer is not full by the end of the callback.");
+    MOZ_ASSERT(mSamples, "Buffer not set.");
     mSamples = 0;
     mSampleWriteOffset = 0;
     mBuffer = nullptr;

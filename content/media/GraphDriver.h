@@ -6,13 +6,49 @@
 #ifndef GRAPHDRIVER_H_
 #define GRAPHDRIVER_H_
 
+#include "nsAutoPtr.h"
+#include "nsAutoRef.h"
+#include "AudioBufferUtils.h"
+#include "AudioMixer.h"
+#include "AudioSegment.h"
+
+struct cubeb_stream;
+
 namespace mozilla {
 
 
 
 
 
-static const int32_t INITIAL_CURRENT_TIME = 1;
+
+
+static const int MEDIA_GRAPH_TARGET_PERIOD_MS = 10;
+
+
+
+
+
+static const int SCHEDULE_SAFETY_MARGIN_MS = 10;
+
+
+
+
+
+
+
+
+
+static const int AUDIO_TARGET_MS = 2*MEDIA_GRAPH_TARGET_PERIOD_MS +
+    SCHEDULE_SAFETY_MARGIN_MS;
+
+
+
+
+
+
+
+static const int VIDEO_TARGET_MS = 2*MEDIA_GRAPH_TARGET_PERIOD_MS +
+    SCHEDULE_SAFETY_MARGIN_MS;
 
 class MediaStreamGraphImpl;
 class MessageBlock;
@@ -22,6 +58,8 @@ class MessageBlock;
 
 typedef int64_t GraphTime;
 const GraphTime GRAPH_TIME_MAX = MEDIA_TIME_MAX;
+
+class AudioCallbackDriver;
 
 
 
@@ -35,14 +73,8 @@ class GraphDriver
 {
 public:
   GraphDriver(MediaStreamGraphImpl* aGraphImpl);
-  virtual ~GraphDriver()
-  { }
 
-  
-
-
-
-  virtual void RunThread() = 0;
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(GraphDriver);
   
 
   virtual void GetIntervalForIteration(GraphTime& aFrom,
@@ -56,19 +88,34 @@ public:
   
   virtual void WakeUp() = 0;
   
+  
+  virtual bool Init(dom::AudioChannel aChannel = dom::AudioChannel::Normal) { return true; }
+  virtual void Destroy() {}
+  
   virtual void Start() = 0;
   
   virtual void Stop() = 0;
   
-  virtual void Dispatch(nsIRunnable* aEvent) = 0;
+  virtual void Revive() = 0;
+  
+
+
+
+
+
+  virtual uint32_t IterationDuration() = 0;
+
+  
+  bool Switching() {
+    return mNextDriver || mPreviousDriver;
+  }
 
   
 
 
 
   virtual TimeStamp GetCurrentTimeStamp() {
-    MOZ_ASSERT(false, "This clock does not support getting the current time stamp.");
-    return TimeStamp();
+    return mCurrentTimeStamp;
   }
 
   bool IsWaiting() {
@@ -92,55 +139,54 @@ public:
     return mStateComputedTime;
   }
 
-  
-
-
-
-
-  void UpdateStateComputedTime(GraphTime aStateComputedTime) {
-    MOZ_ASSERT(aStateComputedTime > mIterationEnd);
-
-    mStateComputedTime = aStateComputedTime;
+  virtual void GetAudioBuffer(float** aBuffer, long& aFrames) {
+    MOZ_CRASH("This is not an Audio GraphDriver!");
   }
 
-  Monitor& GetThreadMonitor() {
-    return mMonitor;
+  virtual AudioCallbackDriver* AsAudioCallbackDriver() {
+    return nullptr;
   }
 
   
 
 
 
-  void EnsureImmediateWakeUpLocked() {
-    mMonitor.AssertCurrentThreadOwns();
-    mWaitState = WAITSTATE_WAKING_UP;
-    mMonitor.Notify();
-  }
+  virtual void SwitchAtNextIteration(GraphDriver* aDriver);
+
+  
+
+
+
+  void SetGraphTime(GraphDriver* aPreviousDriver,
+                    GraphTime aLastSwitchNextIterationStart,
+                    GraphTime aLastSwitchNextIterationEnd,
+                    GraphTime aLastSwitchNextStateComputedTime,
+                    GraphTime aLastSwitchStateComputedTime);
 
   
 
 
 
 
-  void EnsureNextIteration() {
-    MonitorAutoLock lock(mMonitor);
-    EnsureNextIterationLocked();
-  }
+  void UpdateStateComputedTime(GraphTime aStateComputedTime);
 
   
 
 
-  void EnsureNextIterationLocked() {
-    mMonitor.AssertCurrentThreadOwns();
 
-    if (mNeedAnotherIteration) {
-      return;
-    }
-    mNeedAnotherIteration = true;
-    if (IsWaitingIndefinitly()) {
-      WakeUp();
-    }
-  }
+  void EnsureImmediateWakeUpLocked();
+
+  
+
+
+
+
+  void EnsureNextIteration();
+
+  
+
+
+  void EnsureNextIterationLocked();
 
 protected:
   
@@ -149,13 +195,12 @@ protected:
   GraphTime mIterationEnd;
   
   GraphTime mStateComputedTime;
+  GraphTime mNextStateComputedTime;
   
   
   MediaStreamGraphImpl* mGraphImpl;
 
   
-
-
   enum WaitState {
     
     WAITSTATE_RUNNING,
@@ -170,9 +215,18 @@ protected:
   };
   WaitState mWaitState;
 
-  bool mNeedAnotherIteration;
   
-  Monitor mMonitor;
+  bool mNeedAnotherIteration;
+  TimeStamp mCurrentTimeStamp;
+  
+  
+  
+  nsRefPtr<GraphDriver> mPreviousDriver;
+  
+  
+  nsRefPtr<GraphDriver> mNextDriver;
+  virtual ~GraphDriver()
+  { }
 };
 
 
@@ -186,22 +240,31 @@ public:
   DriverHolder(MediaStreamGraphImpl* aGraphImpl);
   GraphTime GetCurrentTime();
 
+  
   void Switch(GraphDriver* aDriver);
+  
+  
+  
+  void SwitchAtNextIteration(GraphDriver* aDriver);
 
   GraphDriver* GetDriver() {
     MOZ_ASSERT(mDriver);
     return mDriver.get();
   }
 
+  void SetCurrentDriver(GraphDriver* aDriver) {
+    mDriver = aDriver;
+  }
+
 protected:
   
-  nsAutoPtr<GraphDriver> mDriver;
+  nsRefPtr<GraphDriver> mDriver;
   
   
   MediaStreamGraphImpl* mGraphImpl;
   
-  
-  GraphTime mLastSwitchOffset;
+  GraphTime mNextIterationStart;
+  GraphTime mNextStateComputedTime;
 };
 
 class MediaStreamGraphInitThreadRunnable;
@@ -216,10 +279,17 @@ public:
   virtual ~ThreadedDriver();
   virtual void Start() MOZ_OVERRIDE;
   virtual void Stop() MOZ_OVERRIDE;
-  virtual void Dispatch(nsIRunnable* aEvent) MOZ_OVERRIDE;
+  virtual void Revive() MOZ_OVERRIDE;
+  
+
+
+
   void RunThread();
-  friend MediaStreamGraphInitThreadRunnable;
-private:
+  friend class MediaStreamGraphInitThreadRunnable;
+  uint32_t IterationDuration() {
+    return MEDIA_GRAPH_TARGET_PERIOD_MS;
+  }
+protected:
   nsCOMPtr<nsIThread> mThread;
 };
 
@@ -238,12 +308,10 @@ public:
   virtual void WaitForNextIteration() MOZ_OVERRIDE;
   virtual void WakeUp() MOZ_OVERRIDE;
 
-  virtual TimeStamp GetCurrentTimeStamp() MOZ_OVERRIDE;
 
 private:
   TimeStamp mInitialTimeStamp;
   TimeStamp mLastTimeStamp;
-  TimeStamp mCurrentTimeStamp;
 };
 
 
@@ -260,10 +328,117 @@ public:
   virtual GraphTime GetCurrentTime() MOZ_OVERRIDE;
   virtual void WaitForNextIteration() MOZ_OVERRIDE;
   virtual void WakeUp() MOZ_OVERRIDE;
+  virtual TimeStamp GetCurrentTimeStamp() MOZ_OVERRIDE;
 
 private:
   
   GraphTime mSlice;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class AudioCallbackDriver : public GraphDriver,
+                            public MixerCallbackReceiver
+{
+public:
+  AudioCallbackDriver(MediaStreamGraphImpl* aGraphImpl);
+  virtual ~AudioCallbackDriver();
+
+  virtual bool Init(dom::AudioChannel aChannel) MOZ_OVERRIDE;
+  virtual void Destroy() MOZ_OVERRIDE;
+  virtual void Start() MOZ_OVERRIDE;
+  virtual void Stop() MOZ_OVERRIDE;
+  virtual void Revive() MOZ_OVERRIDE;
+  virtual void GetIntervalForIteration(GraphTime& aFrom,
+                                       GraphTime& aTo) MOZ_OVERRIDE;
+  virtual GraphTime GetCurrentTime() MOZ_OVERRIDE;
+  virtual void WaitForNextIteration() MOZ_OVERRIDE { }
+  virtual void WakeUp() MOZ_OVERRIDE;
+
+  
+  static long DataCallback_s(cubeb_stream * aStream,
+                             void * aUser, void * aBuffer,
+                             long aFrames);
+  static void StateCallback_s(cubeb_stream* aStream, void * aUser,
+                              cubeb_state aState);
+  
+
+
+
+
+  long DataCallback(AudioDataValue* aBuffer, long aFrames);
+  
+
+  void StateCallback(cubeb_state aState);
+  
+
+  uint32_t IterationDuration();
+
+  
+
+  virtual void MixerCallback(AudioDataValue* aMixedBuffer,
+                             AudioSampleFormat aFormat,
+                             uint32_t aChannels,
+                             uint32_t aFrames,
+                             uint32_t aSampleRate) MOZ_OVERRIDE;
+
+  virtual AudioCallbackDriver* AsAudioCallbackDriver() {
+    return this;
+  }
+
+  bool IsStarted();
+private:
+  
+  static const uint32_t ChannelCount = 2;
+  
+
+
+
+  SpillBuffer<AudioDataValue, WEBAUDIO_BLOCK_SIZE * 2, ChannelCount> mScratchBuffer;
+  
+
+  AudioCallbackBufferWrapper<AudioDataValue, ChannelCount> mBuffer;
+  
+
+  nsAutoRef<cubeb_stream> mAudioStream;
+  
+  uint32_t mSampleRate;
+  
+
+  uint32_t mIterationDurationMS;
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  bool mStarted;
 };
 
 }
