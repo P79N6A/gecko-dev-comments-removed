@@ -650,19 +650,15 @@ let DirectoryLinksProvider = {
     let chosenSuggestedLink = flattenedLinks[suggestedIndex];
 
     
-    this._callObservers("onLinkChanged", {
-      url: chosenSuggestedLink.url,
-      title: chosenSuggestedLink.title,
+    this._callObservers("onLinkChanged", Object.assign({
       frecency: SUGGESTED_FRECENCY,
-      lastVisitDate: chosenSuggestedLink.lastVisitDate,
-      type: chosenSuggestedLink.type,
 
       
       
       
       targetedSite: targetedSites.get(chosenSuggestedLink.url).length ?
         targetedSites.get(chosenSuggestedLink.url)[0] : null
-    });
+    }, chosenSuggestedLink));
     return chosenSuggestedLink;
    },
 

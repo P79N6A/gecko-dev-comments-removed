@@ -423,6 +423,56 @@ add_task(function test_topSitesWithSuggestedLinks() {
   NewTabUtils.getProviderLinks = origGetProviderLinks;
 });
 
+add_task(function test_suggestedAttributes() {
+  let origIsTopPlacesSite = NewTabUtils.isTopPlacesSite;
+  NewTabUtils.isTopPlacesSite = () => true;
+
+  let frecent_sites = ["top.site.com"];
+  let imageURI = "https://image/";
+  let title = "the title";
+  let type = "affiliate";
+  let url = "http://test.url/";
+  let data = {
+    suggested: [{
+      frecent_sites,
+      imageURI,
+      title,
+      type,
+      url
+    }]
+  };
+  let dataURI = "data:application/json," + escape(JSON.stringify(data));
+
+  yield promiseSetupDirectoryLinksProvider({linksURL: dataURI});
+
+  
+  let gLinks = NewTabUtils.links;
+  gLinks.addProvider(DirectoryLinksProvider);
+  gLinks.populateCache();
+  yield new Promise(resolve => {
+    NewTabUtils.allPages.register({
+      observe: _ => _,
+      update() {
+        NewTabUtils.allPages.unregister(this);
+        resolve();
+      }
+    });
+  });
+
+  
+  let link = gLinks.getLinks()[0];
+  do_check_eq(link.imageURI, imageURI);
+  do_check_eq(link.targetedSite, frecent_sites[0]);
+  do_check_eq(link.title, title);
+  do_check_eq(link.type, type);
+  do_check_eq(link.url, url);
+
+  
+  NewTabUtils.isTopPlacesSite = origIsTopPlacesSite;
+  gLinks.removeProvider(DirectoryLinksProvider);
+  DirectoryLinksProvider.removeObserver(gLinks);
+});
+
 add_task(function test_frequencyCappedSites_views() {
   Services.prefs.setCharPref(kPingUrlPref, "");
   let origIsTopPlacesSite = NewTabUtils.isTopPlacesSite;
