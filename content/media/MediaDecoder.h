@@ -779,15 +779,6 @@ public:
 
   
   
-  
-  void ConstructMediaTracks();
-
-  
-  
-  virtual void RemoveMediaTracks() MOZ_OVERRIDE;
-
-  
-  
   void FirstFrameLoaded();
 
   
@@ -1218,14 +1209,6 @@ protected:
   
   
   bool mMinimizePreroll;
-
-  
-  
-  bool mMediaTracksConstructed;
-
-  
-  
-  nsAutoPtr<MediaInfo> mInfo;
 };
 
 } 
