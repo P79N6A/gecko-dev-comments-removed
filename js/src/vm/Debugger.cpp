@@ -7,6 +7,7 @@
 #include "vm/Debugger-inl.h"
 
 #include "mozilla/DebugOnly.h"
+#include "mozilla/ScopeExit.h"
 
 #include "jscntxt.h"
 #include "jscompartment.h"
@@ -46,6 +47,7 @@ using JS::dbg::Builder;
 using js::frontend::IsIdentifier;
 using mozilla::ArrayLength;
 using mozilla::DebugOnly;
+using mozilla::MakeScopeExit;
 using mozilla::Maybe;
 using mozilla::UniquePtr;
 
@@ -3308,65 +3310,76 @@ Debugger::addDebuggeeGlobal(JSContext* cx, Handle<GlobalObject*> global)
 
 
 
-    bool inDebuggees = false;
-    bool inGlobalDebuggers = false;
-    bool inZoneDebuggers = false;
-    bool inDebuggeeZones = false;
 
     AutoCompartment ac(cx, global);
     Zone* zone = global->zone();
 
+    
     auto* globalDebuggers = GlobalObject::getOrCreateDebuggers(cx, global);
     if (!globalDebuggers)
-        goto error;
-    if (!globalDebuggers->append(this))
-        goto oom;
-    inGlobalDebuggers = true;
-
-    if (!debuggees.put(global))
-        goto oom;
-    inDebuggees = true;
-
-    Zone::DebuggerVector* zoneDebuggers;
-    if (!debuggeeZones.has(zone)) {
-        zoneDebuggers = zone->getOrCreateDebuggers(cx);
-        if (!zoneDebuggers)
-            goto error;
-        if (!zoneDebuggers->append(this))
-            goto oom;
-        inZoneDebuggers = true;
-
-        if (!debuggeeZones.put(zone))
-            goto oom;
-        inDebuggeeZones = true;
+        return false;
+    if (!globalDebuggers->append(this)) {
+        ReportOutOfMemory(cx);
+        return false;
     }
+    auto globalDebuggersGuard = MakeScopeExit([&] {
+        globalDebuggers->popBack();
+    });
 
+    
+    if (!debuggees.put(global)) {
+        ReportOutOfMemory(cx);
+        return false;
+    }
+    auto debuggeesGuard = MakeScopeExit([&] {
+        debuggees.remove(global);
+    });
+
+    bool addingZoneRelation = !debuggeeZones.has(zone);
+
+    
+    auto* zoneDebuggers = zone->getOrCreateDebuggers(cx);
+    if (!zoneDebuggers)
+        return false;
+    if (addingZoneRelation && !zoneDebuggers->append(this)) {
+        ReportOutOfMemory(cx);
+        return false;
+    }
+    auto zoneDebuggersGuard = MakeScopeExit([&] {
+        if (addingZoneRelation)
+            zoneDebuggers->popBack();
+    });
+
+    
+    if (addingZoneRelation && !debuggeeZones.put(zone)) {
+        ReportOutOfMemory(cx);
+        return false;
+    }
+    auto debuggeeZonesGuard = MakeScopeExit([&] {
+        if (addingZoneRelation)
+            debuggeeZones.remove(zone);
+    });
+
+    
     if (trackingAllocationSites && !Debugger::addAllocationsTracking(cx, *global))
-        goto error;
+            return false;
+    auto allocationsTrackingGuard = MakeScopeExit([&] {
+        if (trackingAllocationSites)
+            Debugger::removeAllocationsTracking(*global);
+    });
 
+    
     debuggeeCompartment->setIsDebuggee();
     debuggeeCompartment->updateDebuggerObservesAsmJS();
-
     if (observesAllExecution() && !ensureExecutionObservabilityOfCompartment(cx, debuggeeCompartment))
-        goto error;
+        return false;
 
+    globalDebuggersGuard.release();
+    debuggeesGuard.release();
+    zoneDebuggersGuard.release();
+    debuggeeZonesGuard.release();
+    allocationsTrackingGuard.release();
     return true;
-
-  oom:
-    ReportOutOfMemory(cx);
-    
-
-  error:
-    
-    if (inGlobalDebuggers)
-        globalDebuggers->popBack();
-    if (inDebuggees)
-        debuggees.remove(global);
-    if (inZoneDebuggers)
-        zoneDebuggers->popBack();
-    if (inDebuggeeZones)
-        debuggeeZones.remove(zone);
-    return false;
 }
 
 bool
