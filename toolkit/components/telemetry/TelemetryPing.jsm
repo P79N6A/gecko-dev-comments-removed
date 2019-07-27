@@ -350,16 +350,10 @@ let Impl = {
     }
 
     if (aOptions.addEnvironment) {
-      return TelemetryEnvironment.getEnvironmentData().then(environment => {
-        pingData.environment = environment;
-        return pingData;
-      },
-      error => {
-        this._log.error("assemblePing - Rejection", error);
-      });
+      pingData.environment = TelemetryEnvironment.currentEnvironment;
     }
 
-    return Promise.resolve(pingData);
+    return pingData;
   },
 
   popPayloads: function popPayloads() {
@@ -427,19 +421,16 @@ let Impl = {
     this._log.trace("send - Type " + aType + ", Server " + this._server +
                     ", aOptions " + JSON.stringify(aOptions));
 
-    let promise = this.assemblePing(aType, aPayload, aOptions)
-        .then(pingData => {
-          
-          let p = [
-            
-            this.doPing(pingData, false)
-                .catch(() => TelemetryFile.savePing(pingData, true)),
-            this.sendPersistedPings(),
-          ];
-          return Promise.all(p);
-        },
-        error => this._log.error("send - Rejection", error));
+    let pingData = this.assemblePing(aType, aPayload, aOptions);
+    
+    let p = [
+      
+      this.doPing(pingData, false)
+          .catch(() => TelemetryFile.savePing(pingData, true)),
+      this.sendPersistedPings(),
+    ];
 
+    let promise = Promise.all(p);
     this._trackPendingPingTask(promise);
     return promise;
   },
@@ -481,9 +472,8 @@ let Impl = {
     this._log.trace("savePendingPings - Type " + aType + ", Server " + this._server +
                     ", aOptions " + JSON.stringify(aOptions));
 
-    return this.assemblePing(aType, aPayload, aOptions)
-        .then(pingData => TelemetryFile.savePendingPings(pingData),
-              error => this._log.error("savePendingPings - Rejection", error));
+    let pingData = this.assemblePing(aType, aPayload, aOptions);
+    return TelemetryFile.savePendingPings(pingData);
   },
 
   
@@ -509,16 +499,14 @@ let Impl = {
     this._log.trace("savePing - Type " + aType + ", Server " + this._server +
                     ", aOptions " + JSON.stringify(aOptions));
 
-    return this.assemblePing(aType, aPayload, aOptions)
-      .then(pingData => {
-        if ("filePath" in aOptions) {
-          return TelemetryFile.savePingToFile(pingData, aOptions.filePath, aOptions.overwrite)
-                              .then(() => { return pingData.id; });
-        } else {
-          return TelemetryFile.savePing(pingData, aOptions.overwrite)
-                              .then(() => { return pingData.id; });
-        }
-      }, error => this._log.error("savePing - Rejection", error));
+    let pingData = this.assemblePing(aType, aPayload, aOptions);
+    if ("filePath" in aOptions) {
+      return TelemetryFile.savePingToFile(pingData, aOptions.filePath, aOptions.overwrite)
+                          .then(() => { return pingData.id; });
+    } else {
+      return TelemetryFile.savePing(pingData, aOptions.overwrite)
+                          .then(() => { return pingData.id; });
+    }
   },
 
   onPingRequestFinished: function(success, startTime, ping, isPersisted) {
@@ -775,8 +763,6 @@ let Impl = {
       try {
         this._initialized = true;
 
-        yield TelemetryEnvironment.init();
-
         yield TelemetryFile.loadSavedPings();
         
         
@@ -842,13 +828,6 @@ let Impl = {
       yield this._shutdownBarrier.wait();
       
       yield this._connectionsBarrier.wait();
-
-      
-      try {
-        yield TelemetryEnvironment.shutdown();
-      } catch (e) {
-        this._log.error("_cleanupOnShutdown - environment shutdown failure", e);
-      }
     } finally {
       
       this._initialized = false;
