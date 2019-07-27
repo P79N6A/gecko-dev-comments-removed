@@ -50,7 +50,7 @@ exports.reportException = function reportException(aWho, aException) {
 
   dump(msg + "\n");
 
-  if (Cu.reportError) {
+  if (Cu && Cu.reportError) {
     
 
 
