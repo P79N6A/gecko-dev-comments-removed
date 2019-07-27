@@ -29,9 +29,15 @@ ToJSValue(JSContext* aCx,
           JS::MutableHandle<JS::Value> aValue);
 
 
-MOZ_WARN_UNUSED_RESULT inline bool
+
+
+
+
+template<typename T>
+MOZ_WARN_UNUSED_RESULT
+typename EnableIf<IsSame<T, bool>::value, bool>::Type
 ToJSValue(JSContext* aCx,
-          bool aArgument,
+          T aArgument,
           JS::MutableHandle<JS::Value> aValue)
 {
   
@@ -176,15 +182,6 @@ ToJSValue(JSContext* aCx,
 
 
 
-namespace tojsvalue_detail {
-bool
-ISupportsToJSValue(JSContext* aCx,
-                   nsISupports* aArgument,
-                   JS::MutableHandle<JS::Value> aValue);
-} 
-
-
-
 template <class T>
 MOZ_WARN_UNUSED_RESULT
 typename EnableIf<!IsBaseOf<nsWrapperCache, T>::value &&
@@ -197,7 +194,9 @@ ToJSValue(JSContext* aCx,
   
   MOZ_ASSERT(JS::CurrentGlobalOrNull(aCx));
 
-  return tojsvalue_detail::ISupportsToJSValue(aCx, &aArgument, aValue);
+  qsObjectHelper helper(ToSupports(&aArgument), nullptr);
+  JS::Rooted<JSObject*> scope(aCx, JS::CurrentGlobalOrNull(aCx));
+  return XPCOMObjectToJsval(aCx, scope, helper, nullptr, true, aValue);
 }
 
 
@@ -255,6 +254,16 @@ ToJSValue(JSContext* aCx, const JS::Rooted<JS::Value>& aArgument,
 {
   aValue.set(aArgument);
   return MaybeWrapValue(aCx, aValue);
+}
+
+
+
+MOZ_WARN_UNUSED_RESULT inline bool
+ToJSValue(JSContext* aCx, const JS::Rooted<JSObject*>& aArgument,
+          JS::MutableHandle<JS::Value> aValue)
+{
+  aValue.setObjectOrNull(aArgument);
+  return MaybeWrapObjectOrNullValue(aCx, aValue);
 }
 
 

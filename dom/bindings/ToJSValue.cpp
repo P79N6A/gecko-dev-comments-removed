@@ -38,19 +38,6 @@ ToJSValue(JSContext* aCx, const nsAString& aArgument,
 }
 
 
-namespace tojsvalue_detail {
-
-bool
-ISupportsToJSValue(JSContext* aCx,
-                   nsISupports* aArgument,
-                   JS::MutableHandle<JS::Value> aValue)
-{
-  nsresult rv = nsContentUtils::WrapNative(aCx, aArgument, aValue);
-  return NS_SUCCEEDED(rv);
-}
-
-} 
-
 bool
 ToJSValue(JSContext* aCx,
           nsresult aArgument,
