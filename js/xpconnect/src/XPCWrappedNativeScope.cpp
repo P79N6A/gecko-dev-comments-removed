@@ -428,15 +428,11 @@ XPCWrappedNativeScope::~XPCWrappedNativeScope()
 
     
 
-    if (mWrappedNativeMap) {
-        MOZ_ASSERT(0 == mWrappedNativeMap->Count(), "scope has non-empty map");
-        delete mWrappedNativeMap;
-    }
+    MOZ_ASSERT(0 == mWrappedNativeMap->Count(), "scope has non-empty map");
+    delete mWrappedNativeMap;
 
-    if (mWrappedNativeProtoMap) {
-        MOZ_ASSERT(0 == mWrappedNativeProtoMap->Count(), "scope has non-empty map");
-        delete mWrappedNativeProtoMap;
-    }
+    MOZ_ASSERT(0 == mWrappedNativeProtoMap->Count(), "scope has non-empty map");
+    delete mWrappedNativeProtoMap;
 
     
     
@@ -833,21 +829,20 @@ XPCWrappedNativeScope::DebugDump(int16_t depth)
         XPC_LOG_ALWAYS(("mComponents @ %x", mComponents.get()));
         XPC_LOG_ALWAYS(("mGlobalJSObject @ %x", mGlobalJSObject.get()));
 
-        XPC_LOG_ALWAYS(("mWrappedNativeMap @ %x with %d wrappers(s)",         \
-                        mWrappedNativeMap,                                    \
-                        mWrappedNativeMap ? mWrappedNativeMap->Count() : 0));
+        XPC_LOG_ALWAYS(("mWrappedNativeMap @ %x with %d wrappers(s)",
+                        mWrappedNativeMap, mWrappedNativeMap->Count()));
         
-        if (depth && mWrappedNativeMap && mWrappedNativeMap->Count()) {
+        if (depth && mWrappedNativeMap->Count()) {
             XPC_LOG_INDENT();
             mWrappedNativeMap->Enumerate(WrappedNativeMapDumpEnumerator, &depth);
             XPC_LOG_OUTDENT();
         }
 
-        XPC_LOG_ALWAYS(("mWrappedNativeProtoMap @ %x with %d protos(s)",      \
-                        mWrappedNativeProtoMap,                               \
-                        mWrappedNativeProtoMap ? mWrappedNativeProtoMap->Count() : 0));
+        XPC_LOG_ALWAYS(("mWrappedNativeProtoMap @ %x with %d protos(s)",
+                        mWrappedNativeProtoMap,
+                        mWrappedNativeProtoMap->Count()));
         
-        if (depth && mWrappedNativeProtoMap && mWrappedNativeProtoMap->Count()) {
+        if (depth && mWrappedNativeProtoMap->Count()) {
             XPC_LOG_INDENT();
             mWrappedNativeProtoMap->Enumerate(WrappedNativeProtoMapDumpEnumerator, &depth);
             XPC_LOG_OUTDENT();
