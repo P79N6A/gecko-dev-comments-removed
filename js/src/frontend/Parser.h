@@ -438,7 +438,7 @@ class Parser : private JS::AutoGCRooter, public StrictModeGetter
 
 
 
-    JSFunction *newFunction(HandleAtom atom, FunctionSyntaxKind kind, JSObject *proto = nullptr);
+    JSFunction *newFunction(HandleAtom atom, FunctionSyntaxKind kind, HandleObject proto);
 
     void trace(JSTracer *trc);
 

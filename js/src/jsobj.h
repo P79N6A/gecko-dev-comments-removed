@@ -1127,7 +1127,7 @@ GetInitialHeap(NewObjectKind newKind, const Class *clasp)
 
 
 extern JSObject *
-CreateThisForFunctionWithProto(JSContext *cx, js::HandleObject callee, JSObject *proto,
+CreateThisForFunctionWithProto(JSContext *cx, js::HandleObject callee, HandleObject proto,
                                NewObjectKind newKind = GenericObject);
 
 

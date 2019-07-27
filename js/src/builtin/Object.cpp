@@ -1140,7 +1140,7 @@ CreateObjectPrototype(JSContext *cx, JSProtoKey key)
 
 
 
-    RootedPlainObject objectProto(cx, NewObjectWithGivenProto<PlainObject>(cx, nullptr,
+    RootedPlainObject objectProto(cx, NewObjectWithGivenProto<PlainObject>(cx, NullPtr(),
                                                                            self, SingletonObject));
     if (!objectProto)
         return nullptr;

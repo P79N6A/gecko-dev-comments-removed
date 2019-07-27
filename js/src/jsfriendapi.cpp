@@ -136,7 +136,7 @@ JS_NewObjectWithUniqueType(JSContext *cx, const JSClass *clasp, HandleObject pro
 
 
 
-    RootedObject obj(cx, NewObjectWithGivenProto(cx, (const js::Class *)clasp, nullptr,
+    RootedObject obj(cx, NewObjectWithGivenProto(cx, (const js::Class *)clasp, NullPtr(),
                                                  parent, SingletonObject));
     if (!obj)
         return nullptr;
