@@ -22,6 +22,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "CharsetMenu",
 XPCOMUtils.defineLazyModuleGetter(this, "ShortcutUtils",
                                   "resource://gre/modules/ShortcutUtils.jsm");
 
+XPCOMUtils.defineLazyServiceGetter(this, "gDNSService",
+                                   "@mozilla.org/network/dns-service;1",
+                                   "nsIDNSService");
+
 const nsIWebNavigation = Ci.nsIWebNavigation;
 
 var gLastBrowserCharset = null;
@@ -745,6 +749,101 @@ const gFormSubmitObserver = {
   }
 };
 
+function gKeywordURIFixup(fixupInfo, topic, data) {
+  fixupInfo.QueryInterface(Ci.nsIURIFixupInfo);
+
+  
+  
+  
+  let alternativeURI = fixupInfo.fixedURI;
+  if (!fixupInfo.fixupUsedKeyword || !alternativeURI) {
+    return;
+  }
+
+  
+  let docshellRef = fixupInfo.consumer;
+  try {
+    docshellRef.QueryInterface(Ci.nsIDocumentLoader);
+  } catch (ex) {
+    return;
+  }
+
+  
+  let browser = gBrowser.getBrowserForDocument(docshellRef.document);
+  if (!browser)
+    return;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  let previousURI = browser.currentURI;
+
+  
+  
+  let weakBrowser = Cu.getWeakReference(browser);
+  browser = null;
+
+  
+  let hostName = alternativeURI.host;
+  
+  let asciiHost = alternativeURI.asciiHost;
+
+  let onLookupComplete = (request, record, status) => {
+    let browser = weakBrowser.get();
+    if (!Components.isSuccessCode(status) || !browser)
+      return;
+
+    let currentURI = browser.currentURI;
+    
+    if (!currentURI.equals(previousURI) &&
+        !currentURI.equals(fixupInfo.preferredURI)) {
+      return;
+    }
+
+    
+    let notificationBox = gBrowser.getNotificationBox(browser);
+    if (notificationBox.getNotificationWithValue("keyword-uri-fixup"))
+      return;
+
+    let message = gNavigatorBundle.getFormattedString(
+      "keywordURIFixup.message", [hostName]);
+    let yesMessage = gNavigatorBundle.getFormattedString(
+      "keywordURIFixup.goTo", [hostName])
+
+    let buttons = [
+      {
+        label: yesMessage,
+        accessKey: gNavigatorBundle.getString("keywordURIFixup.goTo.accesskey"),
+        callback: function() {
+          let pref = "browser.fixup.domainwhitelist." + asciiHost;
+          Services.prefs.setBoolPref(pref, true);
+          openUILinkIn(alternativeURI.spec, "current");
+        }
+      },
+      {
+        label: gNavigatorBundle.getString("keywordURIFixup.dismiss"),
+        accessKey: gNavigatorBundle.getString("keywordURIFixup.dismiss.accesskey"),
+        callback: function() {
+          let notification = notificationBox.getNotificationWithValue("keyword-uri-fixup");
+          notificationBox.removeNotification(notification, true);
+        }
+      }
+    ];
+    let notification =
+      notificationBox.appendNotification(message,"keyword-uri-fixup", null,
+                                         notificationBox.PRIORITY_INFO_HIGH,
+                                         buttons);
+    notification.persistence = 1;
+  };
+
+  gDNSService.asyncResolve(hostName, 0, onLookupComplete, Services.tm.mainThread);
+}
+
 var gBrowserInit = {
   delayedStartupFinished: false,
 
@@ -1051,6 +1150,7 @@ var gBrowserInit = {
     Services.obs.addObserver(gXPInstallObserver, "addon-install-failed", false);
     Services.obs.addObserver(gXPInstallObserver, "addon-install-complete", false);
     Services.obs.addObserver(gFormSubmitObserver, "invalidformsubmit", false);
+    Services.obs.addObserver(gKeywordURIFixup, "keyword-uri-fixup", false);
 
     BrowserOffline.init();
     OfflineApps.init();
@@ -1354,6 +1454,7 @@ var gBrowserInit = {
       Services.obs.removeObserver(gXPInstallObserver, "addon-install-failed");
       Services.obs.removeObserver(gXPInstallObserver, "addon-install-complete");
       Services.obs.removeObserver(gFormSubmitObserver, "invalidformsubmit");
+      Services.obs.removeObserver(gKeywordURIFixup, "keyword-uri-fixup");
 
       try {
         gPrefService.removeObserver(gHomeButton.prefDomain, gHomeButton);
