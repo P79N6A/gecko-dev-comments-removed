@@ -161,10 +161,15 @@ public class ToolbarDisplayLayout extends ThemedLinearLayout
                     (LinearLayout.LayoutParams) mSiteSecurity.getLayoutParams();
             lp.height = res.getDimensionPixelSize(R.dimen.new_tablet_site_security_height);
             lp.width = res.getDimensionPixelSize(R.dimen.new_tablet_site_security_width);
+            
+            lp.rightMargin = res.getDimensionPixelSize(R.dimen.new_tablet_site_security_right_margin);
             mSiteSecurity.setLayoutParams(lp);
             final int siteSecurityVerticalPadding =
                     res.getDimensionPixelSize(R.dimen.new_tablet_site_security_padding_vertical);
-            mSiteSecurity.setPadding(0, siteSecurityVerticalPadding, 0, siteSecurityVerticalPadding);
+            final int siteSecurityHorizontalPadding =
+                    res.getDimensionPixelSize(R.dimen.new_tablet_site_security_padding_horizontal);
+            mSiteSecurity.setPadding(siteSecurityHorizontalPadding, siteSecurityVerticalPadding,
+                    siteSecurityHorizontalPadding, siteSecurityVerticalPadding);
 
             
             
