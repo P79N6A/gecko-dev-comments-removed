@@ -78,7 +78,7 @@ public class GeckoView extends LayerView
 
             
 
-            GeckoLoader.loadMozGlue();
+            GeckoLoader.loadMozGlue(context);
             BrowserDB.setEnableContentProviders(false);
          }
 
