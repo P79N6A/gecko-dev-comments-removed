@@ -1648,8 +1648,7 @@ MLimitedTruncate::computeRange(TempAllocator &alloc)
     setRange(output);
 }
 
-static Range *
-GetTypedArrayRange(TempAllocator &alloc, Scalar::Type type)
+static Range *GetTypedArrayRange(TempAllocator &alloc, int type)
 {
     switch (type) {
       case Scalar::Uint8Clamped:
@@ -1669,12 +1668,10 @@ GetTypedArrayRange(TempAllocator &alloc, Scalar::Type type)
 
       case Scalar::Float32:
       case Scalar::Float64:
-      case Scalar::Float32x4:
-      case Scalar::Int32x4:
-      case Scalar::MaxTypedArrayViewType:
         break;
     }
-    return nullptr;
+
+  return nullptr;
 }
 
 void
@@ -1682,7 +1679,7 @@ MLoadTypedArrayElement::computeRange(TempAllocator &alloc)
 {
     
     
-    setRange(GetTypedArrayRange(alloc, readType()));
+    setRange(GetTypedArrayRange(alloc, arrayType()));
 }
 
 void
