@@ -1099,8 +1099,13 @@ class GCRuntime
     
 
 
+    bool compactingEnabled;
 
-    unsigned compactingDisabled;
+    
+
+
+
+    unsigned compactingDisabledCount;
 
     
 

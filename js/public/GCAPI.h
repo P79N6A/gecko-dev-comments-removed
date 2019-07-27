@@ -306,21 +306,6 @@ IsIncrementalGCEnabled(JSRuntime *rt);
 
 
 
-
-
-extern JS_PUBLIC_API(void)
-DisableCompactingGC(JSRuntime *rt);
-
-
-
-
-extern JS_PUBLIC_API(bool)
-IsCompactingGCEnabled(JSRuntime *rt);
-
-
-
-
-
 extern JS_PUBLIC_API(bool)
 IsIncrementalGCInProgress(JSRuntime *rt);
 
