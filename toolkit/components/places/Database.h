@@ -9,6 +9,7 @@
 #include "nsWeakReference.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIObserver.h"
+#include "nsIAsyncShutdown.h"
 #include "mozilla/storage.h"
 #include "mozilla/storage/StatementCache.h"
 #include "mozilla/Attributes.h"
@@ -30,11 +31,6 @@
 
 
 
-#define TOPIC_PROFILE_BEFORE_CHANGE "profile-before-change"
-
-
-
-
 #define TOPIC_PLACES_SHUTDOWN "places-shutdown"
 
 
@@ -42,6 +38,14 @@
 #define TOPIC_PLACES_WILL_CLOSE_CONNECTION "places-will-close-connection"
 
 #define TOPIC_PLACES_CONNECTION_CLOSED "places-connection-closed"
+
+
+
+#define TOPIC_SIMULATE_PLACES_MUST_CLOSE_1 "test-simulate-places-shutdown-phase-1"
+
+
+
+#define TOPIC_SIMULATE_PLACES_MUST_CLOSE_2 "test-simulate-places-shutdown-phase-2"
 
 class nsIRunnable;
 
@@ -59,6 +63,8 @@ enum JournalMode {
   
 , JOURNAL_WAL
 };
+
+class DatabaseShutdown;
 
 class Database final : public nsIObserver
                      , public nsSupportsWeakReference
@@ -81,8 +87,7 @@ public:
   
 
 
-
-  void Shutdown();
+  already_AddRefed<nsIAsyncShutdownClient> GetConnectionShutdown();
 
   
 
@@ -161,17 +166,7 @@ public:
 
 
 
-  already_AddRefed<mozIStorageStatement>
-  GetStatement(const nsACString& aQuery) const
-  {
-    if (mShuttingDown) {
-      return nullptr;
-    }
-    if (NS_IsMainThread()) {
-      return mMainThreadStatements.GetCachedStatement(aQuery);
-    }
-    return mAsyncThreadStatements.GetCachedStatement(aQuery);
-  }
+  already_AddRefed<mozIStorageStatement>  GetStatement(const nsACString& aQuery) const;
 
   
 
@@ -199,17 +194,17 @@ public:
 
 
 
-  already_AddRefed<mozIStorageAsyncStatement>
-  GetAsyncStatement(const nsACString& aQuery) const
-  {
-    if (mShuttingDown) {
-      return nullptr;
-    }
-    MOZ_ASSERT(NS_IsMainThread());
-    return mMainThreadAsyncStatements.GetCachedStatement(aQuery);
-  }
+  already_AddRefed<mozIStorageAsyncStatement> GetAsyncStatement(const nsACString& aQuery) const;
 
 protected:
+  
+
+
+
+  void Shutdown();
+
+  bool IsShutdownStarted() const;
+
   
 
 
@@ -253,7 +248,7 @@ protected:
 
   
 
-  
+
   nsresult InitTempTriggers();
 
   
@@ -278,6 +273,8 @@ protected:
 
   nsresult UpdateBookmarkRootTitles();
 
+  friend class DatabaseShutdown;
+
 private:
   ~Database();
 
@@ -296,8 +293,22 @@ private:
 
   int32_t mDBPageSize;
   uint16_t mDatabaseStatus;
-  bool mShuttingDown;
   bool mClosed;
+
+  
+
+
+
+  already_AddRefed<nsIAsyncShutdownClient> GetShutdownPhase();
+
+  
+
+
+
+
+
+
+  nsRefPtr<DatabaseShutdown> mConnectionShutdown;
 };
 
 } 

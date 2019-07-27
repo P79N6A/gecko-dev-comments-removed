@@ -93,54 +93,6 @@ const ONRESULT_CHUNK_SIZE = 300;
 
 
 
-XPCOMUtils.defineLazyGetter(this, "operationsBarrier", () =>
-  new AsyncShutdown.Barrier("History.jsm: wait until all connections are closed")
-);
-
-
-
-
- XPCOMUtils.defineLazyGetter(this, "DBConnPromised", () =>
-  Task.spawn(function*() {
-    let db = yield PlacesUtils.promiseWrappedConnection();
-    try {
-      Sqlite.shutdown.addBlocker(
-        "Places History.jsm: Closing database wrapper",
-        Task.async(function*() {
-          yield operationsBarrier.wait();
-          gIsClosed = true;
-          yield db.close();
-        }),
-        () => ({
-          fetchState: () => ({
-            isClosed: gIsClosed,
-            operations: operationsBarrier.state,
-          })
-        })
-      );
-    } catch (ex) {
-      
-      
-      db.close();
-      throw ex;
-    }
-    return db;
-  })
-);
-
-
-
-
-let gIsClosed = false;
-function ensureModuleIsOpen() {
-  if (gIsClosed) {
-    throw new Error("History.jsm has been shutdown");
-  }
-}
-
-
-
-
 
 
 
@@ -262,8 +214,6 @@ this.History = Object.freeze({
 
 
   remove: function (pages, onResult = null) {
-    ensureModuleIsOpen();
-
     
     if (Array.isArray(pages)) {
       if (pages.length == 0) {
@@ -294,29 +244,8 @@ this.History = Object.freeze({
       throw new TypeError("Invalid function: " + onResult);
     }
 
-    return Task.spawn(function*() {
-      let promise = remove(normalizedPages, onResult);
-
-      operationsBarrier.client.addBlocker(
-        "History.remove",
-        promise,
-        {
-          
-          
-          
-          fetchState: () => ({
-            guids: guids.length,
-            urls: normalizedPages.urls.map(u => u.protocol),
-          })
-        });
-
-      try {
-        return (yield promise);
-      } finally {
-        
-        operationsBarrier.client.removeBlocker(promise);
-      }
-    });
+    return PlacesUtils.withConnectionWrapper("History.jsm: remove",
+      db => remove(db, normalizedPages, onResult));
   },
 
   
@@ -349,8 +278,6 @@ this.History = Object.freeze({
 
 
   removeVisitsByFilter: function(filter, onResult = null) {
-    ensureModuleIsOpen();
-
     if (!filter || typeof filter != "object") {
       throw new TypeError("Expected a filter");
     }
@@ -374,21 +301,9 @@ this.History = Object.freeze({
       throw new TypeError("Invalid function: " + onResult);
     }
 
-    return Task.spawn(function*() {
-      let promise = removeVisitsByFilter(filter, onResult);
-
-      operationsBarrier.client.addBlocker(
-        "History.removeVisitsByFilter",
-        promise
-      );
-
-      try {
-        return (yield promise);
-      } finally {
-        
-        operationsBarrier.client.removeBlocker(promise);
-      }
-    });
+    return PlacesUtils.withConnectionWrapper("History.jsm: removeVisitsByFilter",
+      db => removeVisitsByFilter(db, filter, onResult)
+    );
   },
 
   
@@ -418,19 +333,9 @@ this.History = Object.freeze({
 
 
   clear() {
-    ensureModuleIsOpen();
-
-    return Task.spawn(function* () {
-      let promise = clear();
-      operationsBarrier.client.addBlocker("History.clear", promise);
-
-      try {
-        return (yield promise);
-      } finally {
-        
-        operationsBarrier.client.removeBlocker(promise);
-      }
-    });
+    return PlacesUtils.withConnectionWrapper("History.jsm: clear",
+      clear
+    );
   },
 
   
@@ -557,9 +462,7 @@ let invalidateFrecencies = Task.async(function*(db, idList) {
 });
 
 
-let clear = Task.async(function* () {
-  let db = yield DBConnPromised;
-
+let clear = Task.async(function* (db) {
   
   yield db.execute("DELETE FROM moz_historyvisits");
 
@@ -708,9 +611,7 @@ let notifyOnResult = Task.async(function*(data, onResult) {
 });
 
 
-let removeVisitsByFilter = Task.async(function*(filter, onResult = null) {
-  let db = yield DBConnPromised;
-
+let removeVisitsByFilter = Task.async(function*(db, filter, onResult = null) {
   
   
   
@@ -797,8 +698,7 @@ let removeVisitsByFilter = Task.async(function*(filter, onResult = null) {
 
 
 
-let remove = Task.async(function*({guids, urls}, onResult = null) {
-  let db = yield DBConnPromised;
+let remove = Task.async(function*(db, {guids, urls}, onResult = null) {
   
   let query =
     `SELECT id, url, guid, foreign_count, title, frecency FROM moz_places
