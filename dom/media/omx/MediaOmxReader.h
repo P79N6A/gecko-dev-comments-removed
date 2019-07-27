@@ -92,7 +92,7 @@ public:
   
   virtual bool IsWaitingMediaResources() MOZ_OVERRIDE;
 
-  virtual bool IsDormantNeeded();
+  virtual bool IsDormantNeeded() { return true;}
   virtual void ReleaseMediaResources();
 
   virtual void PreReadMetadata() MOZ_OVERRIDE;

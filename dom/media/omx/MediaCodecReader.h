@@ -65,7 +65,7 @@ public:
   virtual bool IsWaitingMediaResources();
 
   
-  virtual bool IsDormantNeeded();
+  virtual bool IsDormantNeeded() { return true;}
 
   
   virtual void ReleaseMediaResources();

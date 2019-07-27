@@ -154,8 +154,6 @@ public:
   
   bool Init(sp<MediaExtractor>& extractor);
 
-  bool IsDormantNeeded();
-
   
   
   bool EnsureMetadata();
