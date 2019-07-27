@@ -1651,9 +1651,15 @@ pref("pdfjs.firstRun", true);
 pref("pdfjs.previousHandler.preferredAction", 0);
 pref("pdfjs.previousHandler.alwaysAskBeforeHandling", false);
 
+
 #ifdef NIGHTLY_BUILD
 
+#ifdef UNIX_BUT_NOT_MAC
 pref("shumway.disabled", true);
+#else
+pref("shumway.disabled", false);
+pref("shumway.swf.whitelist", "http://g-ecx.images-amazon.com/*/AiryBasicRenderer*.swf");
+#endif
 #endif
 
 
