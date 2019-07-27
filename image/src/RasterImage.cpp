@@ -1505,6 +1505,7 @@ RasterImage::InitDecoder(bool aDoSizeDecode)
   
   mDecoder->SetSizeDecode(aDoSizeDecode);
   mDecoder->SetDecodeFlags(mFrameDecodeFlags);
+  mDecoder->SetSendPartialInvalidations(!mHasBeenDecoded);
   mDecoder->Init();
   CONTAINER_ENSURE_SUCCESS(mDecoder->GetDecoderError());
 
@@ -2407,16 +2408,6 @@ RasterImage::FinishedSomeDecoding(ShutdownReason aReason ,
     }
   }
 
-  if (GetCurrentFrameIndex() > 0) {
-    
-    
-    invalidRect = nsIntRect();
-  }
-  if (mHasBeenDecoded && !invalidRect.IsEmpty()) {
-    
-    invalidRect = mDecoded ? GetFirstFrameRect()
-                           : nsIntRect();
-  }
   if (!invalidRect.IsEmpty() && wasDefaultFlags) {
     
     UpdateImageContainer();
