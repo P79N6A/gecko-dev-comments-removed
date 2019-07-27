@@ -1106,7 +1106,12 @@ window.addEventListener('ContentStart', function update_onContentStart() {
 
   
   let size = Math.floor(stats.totalBytes / 1024) - 1024;
-  Services.prefs.setIntPref("browser.cache.disk.capacity", size);
+
+  
+  let oldSize = Services.prefs.getIntPref("browser.cache.disk.capacity");
+  if (size < oldSize) {
+    Services.prefs.setIntPref("browser.cache.disk.capacity", size);
+  }
 })();
 #endif
 
