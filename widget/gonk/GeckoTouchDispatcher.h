@@ -44,7 +44,7 @@ class GeckoTouchDispatcher
 
 public:
   GeckoTouchDispatcher();
-  void NotifyTouch(MultiTouchInput& aData, uint64_t aEventTime);
+  void NotifyTouch(MultiTouchInput& aTouch, uint64_t aEventTime);
   void DispatchTouchEvent(MultiTouchInput& aMultiTouch);
   void DispatchTouchMoveEvents(uint64_t aVsyncTime);
   static bool NotifyVsync(uint64_t aVsyncTimestamp);
@@ -80,6 +80,9 @@ private:
 
   
   uint64_t mLastTouchTime;
+
+  
+  uint64_t mDelayedVsyncThreshold;
 };
 
 } 
