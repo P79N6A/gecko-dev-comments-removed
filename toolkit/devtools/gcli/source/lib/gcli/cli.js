@@ -2070,6 +2070,10 @@ Requisition.prototype.exec = function(options) {
       }
     }
 
+    if (data != null && typeof data === 'string') {
+      data = data.replace(/^Protocol error: /, ''); 
+    }
+
     data = (data != null && data.isTypedData) ? data : {
       isTypedData: true,
       data: data,
