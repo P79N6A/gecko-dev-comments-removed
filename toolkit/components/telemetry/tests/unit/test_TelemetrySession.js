@@ -32,6 +32,7 @@ const PING_TYPE_MAIN = "main";
 const PING_TYPE_SAVED_SESSION = "saved-session";
 
 const REASON_SAVED_SESSION = "saved-session";
+const REASON_SHUTDOWN = "shutdown";
 const REASON_TEST_PING = "test-ping";
 const REASON_DAILY = "daily";
 const REASON_ENVIRONMENT_CHANGE = "environment-change";
@@ -1015,7 +1016,10 @@ add_task(function* test_runOldPingFile() {
   do_check_false(histogramsFile.exists());
 });
 
-add_task(function* test_savedSessionClientID() {
+add_task(function* test_savedPingsOnShutdown() {
+  
+  
+  const expectedPings = (gIsAndroid) ? 1 : 2;
   
   
   const dir = TelemetryFile.pingDirectoryPath;
@@ -1024,9 +1028,19 @@ add_task(function* test_savedSessionClientID() {
   yield TelemetrySession.shutdown();
 
   yield TelemetryFile.loadSavedPings();
-  Assert.equal(TelemetryFile.pingsLoaded, 1);
-  let ping = TelemetryFile.popPendingPings().next();
-  Assert.equal(ping.value.clientId, gDataReportingClientID);
+  Assert.equal(TelemetryFile.pingsLoaded, expectedPings);
+
+  let pingsIterator = TelemetryFile.popPendingPings();
+  for (let ping of pingsIterator) {
+    Assert.ok("type" in ping);
+
+    let expectedReason =
+      (ping.type == PING_TYPE_SAVED_SESSION) ? REASON_SAVED_SESSION : REASON_SHUTDOWN;
+
+    checkPingFormat(ping, ping.type, true, true);
+    Assert.equal(ping.payload.info.reason, expectedReason);
+    Assert.equal(ping.clientId, gDataReportingClientID);
+  }
 });
 
 add_task(function* test_savedSessionData() {

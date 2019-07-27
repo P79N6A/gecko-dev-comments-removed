@@ -40,6 +40,7 @@ const REASON_IDLE_DAILY = "idle-daily";
 const REASON_GATHER_PAYLOAD = "gather-payload";
 const REASON_TEST_PING = "test-ping";
 const REASON_ENVIRONMENT_CHANGE = "environment-change";
+const REASON_SHUTDOWN = "shutdown";
 
 const ENVIRONMENT_CHANGE_LISTENER = "TelemetrySession::onEnvironmentChange";
 
@@ -1271,8 +1272,36 @@ let Impl = {
     cpmm.sendAsyncMessage(MESSAGE_TELEMETRY_PAYLOAD, payload);
   },
 
+  
+
+
   savePendingPings: function savePendingPings() {
     this._log.trace("savePendingPings");
+
+#ifndef MOZ_WIDGET_ANDROID
+    let options = {
+      retentionDays: RETENTION_DAYS,
+      addClientId: true,
+      addEnvironment: true,
+      overwrite: true,
+    };
+
+    let shutdownPayload = this.getSessionPayload(REASON_SHUTDOWN, false);
+    
+    
+    return TelemetryPing.savePing(getPingType(shutdownPayload), shutdownPayload, options)
+                        .then(() => this.savePendingPingsClassic(),
+                              () => this.savePendingPingsClassic());
+#else
+    return this.savePendingPingsClassic();
+#endif
+  },
+
+  
+
+
+  savePendingPingsClassic: function savePendingPingsClassic() {
+    this._log.trace("savePendingPingsClassic");
     let payload = this.getSessionPayload(REASON_SAVED_SESSION, false);
     let options = {
       retentionDays: RETENTION_DAYS,
