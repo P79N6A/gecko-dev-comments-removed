@@ -150,6 +150,7 @@ public:
   NS_IMETHOD              SetModal(bool aModal);
   virtual uint32_t        GetMaxTouchPoints() const;
   NS_IMETHOD              SetWindowClass(const nsAString& xulWinType);
+  virtual nsresult        SetWindowClipRegion(const nsTArray<nsIntRect>& aRects, bool aIntersectWithExisting);
   
   
   
@@ -298,6 +299,9 @@ protected:
                                      const nsIntRect &aRect,
                                      nsDeviceContext *aContext,
                                      nsWidgetInitData *aInitData);
+
+  const nsIntRegion RegionFromArray(const nsTArray<nsIntRect>& aRects);
+  void ArrayFromRegion(const nsIntRegion& aRegion, nsTArray<nsIntRect>& aRects);
 
   virtual nsIContent* GetLastRollup()
   {

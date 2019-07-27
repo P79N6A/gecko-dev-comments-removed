@@ -462,7 +462,7 @@ MouseScrollHandler::ProcessNativeMouseWheelMessage(nsWindowBase* aWidget,
     
     
     
-    if (destWindow->WindowType() == eWindowType_plugin) {
+    if (destWindow->IsPlugin()) {
       destWindow = destWindow->GetParentWindowBase(false);
       if (!destWindow) {
         PR_LOG(gMouseScrollLog, PR_LOG_ALWAYS,
@@ -501,7 +501,7 @@ MouseScrollHandler::ProcessNativeMouseWheelMessage(nsWindowBase* aWidget,
   
   
   
-  if (aWidget->WindowType() == eWindowType_plugin &&
+  if (aWidget->IsPlugin() &&
       aWidget->GetWindowHandle() == pluginWnd) {
     nsWindowBase* destWindow = aWidget->GetParentWindowBase(false);
     if (!destWindow) {
@@ -1532,7 +1532,7 @@ MouseScrollHandler::SynthesizingEvent::NativeMessageReceived(nsWindowBase* aWidg
     }
     
     
-    if (aWidget && aWidget->WindowType() == eWindowType_plugin &&
+    if (aWidget && aWidget->IsPlugin() &&
         !WinUtils::GetNSWindowBasePtr(mWnd)) {
       return;
     }

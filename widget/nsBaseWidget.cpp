@@ -662,6 +662,59 @@ nsBaseWidget::GetWindowClipRegion(nsTArray<nsIntRect>* aRects)
   }
 }
 
+const nsIntRegion
+nsBaseWidget::RegionFromArray(const nsTArray<nsIntRect>& aRects)
+{
+  nsIntRegion region;
+  for (uint32_t i = 0; i < aRects.Length(); ++i) {
+    region.Or(region, aRects[i]);
+  }
+  return region;
+}
+
+void
+nsBaseWidget::ArrayFromRegion(const nsIntRegion& aRegion, nsTArray<nsIntRect>& aRects)
+{
+  const nsIntRect* r;
+  for (nsIntRegionRectIterator iter(aRegion); (r = iter.Next());) {
+    aRects.AppendElement(*r);
+  }
+}
+
+nsresult
+nsBaseWidget::SetWindowClipRegion(const nsTArray<nsIntRect>& aRects,
+                                  bool aIntersectWithExisting)
+{
+  if (!aIntersectWithExisting) {
+    nsBaseWidget::StoreWindowClipRegion(aRects);
+  } else {
+    
+    if (mClipRects && mClipRectCount == aRects.Length() &&
+        memcmp(mClipRects,
+               aRects.Elements(),
+               sizeof(nsIntRect)*mClipRectCount) == 0) {
+      return NS_OK;
+    }
+
+    
+    nsTArray<nsIntRect> currentRects;
+    GetWindowClipRegion(&currentRects);
+    
+    nsIntRegion currentRegion = RegionFromArray(currentRects);
+    
+    nsIntRegion newRegion = RegionFromArray(aRects);
+    
+    nsIntRegion intersection;
+    intersection.And(currentRegion, newRegion);
+    
+    nsTArray<nsIntRect> rects;
+    ArrayFromRegion(intersection, rects);
+    
+    nsBaseWidget::StoreWindowClipRegion(rects);
+  }
+  return NS_OK;
+}
+
 
 
 

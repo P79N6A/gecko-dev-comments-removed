@@ -548,7 +548,9 @@ nsWindow::Create(nsIWidget *aParent,
   
   
   
-  if(aInitData->mWindowType == eWindowType_plugin) {
+  if (aInitData->mWindowType == eWindowType_plugin ||
+      aInitData->mWindowType == eWindowType_plugin_ipc_chrome ||
+      aInitData->mWindowType == eWindowType_plugin_ipc_content) {
     style |= WS_DISABLED;
   }
   mWnd = ::CreateWindowExW(extendedStyle,
@@ -574,7 +576,7 @@ nsWindow::Create(nsIWidget *aParent,
     WinUtils::dwmSetWindowAttributePtr(mWnd, DWMWA_NONCLIENT_RTL_LAYOUT, &dwAttribute, sizeof dwAttribute);
   }
 
-  if (mWindowType != eWindowType_plugin &&
+  if (!IsPlugin() &&
       mWindowType != eWindowType_invisible &&
       MouseScrollHandler::Device::IsFakeScrollableWindowNeeded()) {
     
@@ -794,6 +796,8 @@ DWORD nsWindow::WindowStyle()
 
   switch (mWindowType) {
     case eWindowType_plugin:
+    case eWindowType_plugin_ipc_chrome:
+    case eWindowType_plugin_ipc_content:
     case eWindowType_child:
       style = WS_OVERLAPPED;
       break;
@@ -873,6 +877,8 @@ DWORD nsWindow::WindowExStyle()
   switch (mWindowType)
   {
     case eWindowType_plugin:
+    case eWindowType_plugin_ipc_chrome:
+    case eWindowType_plugin_ipc_content:
     case eWindowType_child:
       return 0;
 
@@ -1417,7 +1423,7 @@ NS_METHOD nsWindow::Move(double aX, double aY)
     
     
     
-    if (mWindowType == eWindowType_plugin &&
+    if (IsPlugin() &&
         (!mLayerManager || mLayerManager->GetBackendType() == LayersBackend::LAYERS_D3D9) &&
         mClipRects &&
         (mClipRectCount != 1 || !mClipRects[0].IsEqualInterior(nsIntRect(0, 0, mBounds.width, mBounds.height)))) {
@@ -2641,16 +2647,6 @@ void nsWindow::SetTransparencyMode(nsTransparencyMode aMode)
   GetTopLevelWindow(true)->SetWindowTranslucencyInner(aMode);
 }
 
-static const nsIntRegion
-RegionFromArray(const nsTArray<nsIntRect>& aRects)
-{
-  nsIntRegion region;
-  for (uint32_t i = 0; i < aRects.Length(); ++i) {
-    region.Or(region, aRects[i]);
-  }
-  return region;
-}
-
 void nsWindow::UpdateOpaqueRegion(const nsIntRegion &aOpaqueRegion)
 {
   if (!HasGlass() || GetParent())
@@ -2663,7 +2659,7 @@ void nsWindow::UpdateOpaqueRegion(const nsIntRegion &aOpaqueRegion)
   if (!aOpaqueRegion.IsEmpty()) {
     nsIntRect pluginBounds;
     for (nsIWidget* child = GetFirstChild(); child; child = child->GetNextSibling()) {
-      if (child->WindowType() == eWindowType_plugin) {
+      if (child->IsPlugin()) {
         
         nsIntRect childBounds;
         child->GetBounds(childBounds);
@@ -5328,7 +5324,7 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
   case WM_GESTURENOTIFY:
     {
       if (mWindowType != eWindowType_invisible &&
-          mWindowType != eWindowType_plugin) {
+          !IsPlugin()) {
         
         
         
@@ -6424,6 +6420,13 @@ nsWindow::ConfigureChildren(const nsTArray<Configuration>& aConfigurations)
   
   
   
+  if (mWindowType == eWindowType_plugin_ipc_chrome) {
+    return NS_OK;
+  }
+
+  
+  
+  
   for (uint32_t i = 0; i < aConfigurations.Length(); ++i) {
     const Configuration& configuration = aConfigurations[i];
     nsWindow* w = static_cast<nsWindow*>(configuration.mChild);
@@ -6483,48 +6486,11 @@ CreateHRGNFromArray(const nsTArray<nsIntRect>& aRects)
   return ::ExtCreateRegion(nullptr, buf.Length(), data);
 }
 
-static void
-ArrayFromRegion(const nsIntRegion& aRegion, nsTArray<nsIntRect>& aRects)
-{
-  const nsIntRect* r;
-  for (nsIntRegionRectIterator iter(aRegion); (r = iter.Next());) {
-    aRects.AppendElement(*r);
-  }
-}
-
 nsresult
 nsWindow::SetWindowClipRegion(const nsTArray<nsIntRect>& aRects,
                               bool aIntersectWithExisting)
 {
-  if (!aIntersectWithExisting) {
-    if (!StoreWindowClipRegion(aRects))
-      return NS_OK;
-  } else {
-    
-    if (mClipRects && mClipRectCount == aRects.Length() &&
-        memcmp(mClipRects,
-               aRects.Elements(),
-               sizeof(nsIntRect)*mClipRectCount) == 0) {
-      return NS_OK;
-    }
-
-    
-    nsTArray<nsIntRect> currentRects;
-    GetWindowClipRegion(&currentRects);
-    
-    nsIntRegion currentRegion = RegionFromArray(currentRects);
-    
-    nsIntRegion newRegion = RegionFromArray(aRects);
-    
-    nsIntRegion intersection;
-    intersection.And(currentRegion, newRegion);
-    
-    nsTArray<nsIntRect> rects;
-    ArrayFromRegion(intersection, rects);
-    
-    if (!StoreWindowClipRegion(rects))
-      return NS_OK;
-  }
+  nsBaseWidget::SetWindowClipRegion(aRects, aIntersectWithExisting);
 
   HRGN dest = CreateHRGNFromArray(aRects);
   if (!dest)
@@ -6544,8 +6510,8 @@ nsWindow::SetWindowClipRegion(const nsTArray<nsIntRect>& aRects,
   
   
   
-  if(mWindowType == eWindowType_plugin) {
-    if(NULLREGION == ::CombineRgn(dest, dest, dest, RGN_OR)) {
+  if (IsPlugin()) {
+    if (NULLREGION == ::CombineRgn(dest, dest, dest, RGN_OR)) {
       ::ShowWindow(mWnd, SW_HIDE);
       ::EnableWindow(mWnd, FALSE);
     } else {
@@ -7146,7 +7112,7 @@ LRESULT CALLBACK nsWindow::MozSpecialMouseProc(int code, WPARAM wParam, LPARAM l
         if (mozWin) {
           
           
-          if (static_cast<nsWindow*>(mozWin)->mWindowType == eWindowType_plugin)
+          if (static_cast<nsWindow*>(mozWin)->IsPlugin())
             ScheduleHookTimer(ms->hwnd, (UINT)wParam);
         } else {
           ScheduleHookTimer(ms->hwnd, (UINT)wParam);
