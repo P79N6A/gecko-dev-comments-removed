@@ -52,8 +52,6 @@ public:
   
   
   TileHost()
-  : x(-1)
-  , y(-1)
   {}
 
   
@@ -67,8 +65,6 @@ public:
     , mTextureHostOnWhite(aTextureHostOnWhite)
     , mTextureSource(aSource)
     , mTextureSourceOnWhite(aSourceOnWhite)
-    , x(-1)
-    , y(-1)
   {}
 
   TileHost(const TileHost& o) {
@@ -77,9 +73,6 @@ public:
     mTextureSource = o.mTextureSource;
     mTextureSourceOnWhite = o.mTextureSourceOnWhite;
     mSharedLock = o.mSharedLock;
-    mPreviousSharedLock = o.mPreviousSharedLock;
-    x = o.x;
-    y = o.y;
   }
   TileHost& operator=(const TileHost& o) {
     if (this == &o) {
@@ -90,9 +83,6 @@ public:
     mTextureSource = o.mTextureSource;
     mTextureSourceOnWhite = o.mTextureSourceOnWhite;
     mSharedLock = o.mSharedLock;
-    mPreviousSharedLock = o.mPreviousSharedLock;
-    x = o.x;
-    y = o.y;
     return *this;
   }
 
@@ -108,14 +98,6 @@ public:
   void ReadUnlock() {
     if (mSharedLock) {
       mSharedLock->ReadUnlock();
-      mSharedLock = nullptr;
-    }
-  }
-
-  void ReadUnlockPrevious() {
-    if (mPreviousSharedLock) {
-      mPreviousSharedLock->ReadUnlock();
-      mPreviousSharedLock = nullptr;
     }
   }
 
@@ -129,14 +111,10 @@ public:
   }
 
   RefPtr<gfxSharedReadLock> mSharedLock;
-  RefPtr<gfxSharedReadLock> mPreviousSharedLock;
   CompositableTextureHostRef mTextureHost;
   CompositableTextureHostRef mTextureHostOnWhite;
   mutable CompositableTextureSourceRef mTextureSource;
   mutable CompositableTextureSourceRef mTextureSourceOnWhite;
-  
-  int x;
-  int y;
 };
 
 class TiledLayerBufferComposite
@@ -145,14 +123,13 @@ class TiledLayerBufferComposite
   friend class TiledLayerBuffer<TiledLayerBufferComposite, TileHost>;
 
 public:
+  typedef TiledLayerBuffer<TiledLayerBufferComposite, TileHost>::Iterator Iterator;
+
   TiledLayerBufferComposite();
-  ~TiledLayerBufferComposite();
-
-  bool UseTiles(const SurfaceDescriptorTiles& aTileDescriptors,
-                Compositor* aCompositor,
-                ISurfaceAllocator* aAllocator);
-
-  void Clear();
+  TiledLayerBufferComposite(ISurfaceAllocator* aAllocator,
+                            const SurfaceDescriptorTiles& aDescriptor,
+                            const nsIntRegion& aOldPaintedRegion,
+                            Compositor* aCompositor);
 
   TileHost GetPlaceholderTile() const { return TileHost(); }
 
@@ -160,16 +137,43 @@ public:
   
   const CSSToParentLayerScale2D& GetFrameResolution() { return mFrameResolution; }
 
+  void ReadUnlock();
+
+  void ReleaseTextureHosts();
+
+  
+
+
+
+
+  void Upload();
+
   void SetCompositor(Compositor* aCompositor);
+
+  bool HasDoubleBufferedTiles() { return mHasDoubleBufferedTiles; }
+
+  bool IsValid() const { return mIsValid; }
 
   
   
   static void RecycleCallback(TextureHost* textureHost, void* aClosure);
 
 protected:
+  TileHost ValidateTile(TileHost aTile,
+                        const gfx::IntPoint& aTileRect,
+                        const nsIntRegion& dirtyRect);
+
+  
+  void ReleaseTile(TileHost aTile) {}
+
   void SwapTiles(TileHost& aTileA, TileHost& aTileB) { std::swap(aTileA, aTileB); }
 
+  void UnlockTile(TileHost aTile) {}
+  void PostValidate(const nsIntRegion& aPaintRegion) {}
+private:
   CSSToParentLayerScale2D mFrameResolution;
+  bool mHasDoubleBufferedTiles;
+  bool mIsValid;
 };
 
 
@@ -229,10 +233,11 @@ public:
 
   virtual void SetCompositor(Compositor* aCompositor) override
   {
-    MOZ_ASSERT(aCompositor);
     CompositableHost::SetCompositor(aCompositor);
     mTiledBuffer.SetCompositor(aCompositor);
     mLowPrecisionTiledBuffer.SetCompositor(aCompositor);
+    mOldTiledBuffer.SetCompositor(aCompositor);
+    mOldLowPrecisionTiledBuffer.SetCompositor(aCompositor);
   }
 
   virtual bool UseTiledLayerBuffer(ISurfaceAllocator* aAllocator,
@@ -274,7 +279,7 @@ private:
                          gfx::Matrix4x4 aTransform);
 
   
-  void RenderTile(TileHost& aTile,
+  void RenderTile(const TileHost& aTile,
                   const gfxRGBA* aBackgroundColor,
                   EffectChain& aEffectChain,
                   float aOpacity,
@@ -289,6 +294,10 @@ private:
 
   TiledLayerBufferComposite    mTiledBuffer;
   TiledLayerBufferComposite    mLowPrecisionTiledBuffer;
+  TiledLayerBufferComposite    mOldTiledBuffer;
+  TiledLayerBufferComposite    mOldLowPrecisionTiledBuffer;
+  bool                         mPendingUpload;
+  bool                         mPendingLowPrecisionUpload;
 };
 
 }
