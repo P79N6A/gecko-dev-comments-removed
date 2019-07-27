@@ -61,7 +61,7 @@ const BinaryInputStream = CC("@mozilla.org/binaryinputstream;1",
 
 let gLastRequestPath;
 
-let relatedTile1 = {
+let suggestedTile1 = {
   url: "http://turbotax.com",
   type: "affiliate",
   lastVisitDate: 3,
@@ -72,7 +72,7 @@ let relatedTile1 = {
     "taxslayer.com"
   ]
 };
-let relatedTile2 = {
+let suggestedTile2 = {
   url: "http://irs.gov",
   type: "affiliate",
   lastVisitDate: 2,
@@ -83,7 +83,7 @@ let relatedTile2 = {
     "taxslayer.com"
   ]
 };
-let relatedTile3 = {
+let suggestedTile3 = {
   url: "http://hrblock.com",
   type: "affiliate",
   lastVisitDate: 1,
@@ -94,7 +94,7 @@ let relatedTile3 = {
     "taxslayer.com"
   ]
 };
-let someOtherSite = {url: "http://someothersite.com", title: "Not_A_Related_Site"};
+let someOtherSite = {url: "http://someothersite.com", title: "Not_A_Suggested_Site"};
 
 function getHttpHandler(path) {
   let code = 200;
@@ -214,11 +214,11 @@ function run_test() {
   });
 }
 
-add_task(function test_updateRelatedTile() {
+add_task(function test_updateSuggestedTile() {
   let topSites = ["site0.com", "1040.com", "site2.com", "hrblock.com", "site4.com", "freetaxusa.com", "site6.com"];
 
   
-  let data = {"suggested": [relatedTile1, relatedTile2, relatedTile3], "directory": [someOtherSite]};
+  let data = {"suggested": [suggestedTile1, suggestedTile2, suggestedTile3], "directory": [someOtherSite]};
   let dataURI = 'data:application/json,' + JSON.stringify(data);
 
   let testObserver = new TestFirstRun();
@@ -237,15 +237,15 @@ add_task(function test_updateRelatedTile() {
     return links;
   }
 
-  do_check_eq(DirectoryLinksProvider._updateRelatedTile(), undefined);
+  do_check_eq(DirectoryLinksProvider._updateSuggestedTile(), undefined);
 
   function TestFirstRun() {
     this.promise = new Promise(resolve => {
       this.onLinkChanged = (directoryLinksProvider, link) => {
         links.unshift(link);
-        let possibleLinks = [relatedTile1.url, relatedTile2.url, relatedTile3.url];
+        let possibleLinks = [suggestedTile1.url, suggestedTile2.url, suggestedTile3.url];
 
-        isIdentical([...DirectoryLinksProvider._topSitesWithRelatedLinks], ["hrblock.com", "1040.com", "freetaxusa.com"]);
+        isIdentical([...DirectoryLinksProvider._topSitesWithSuggestedLinks], ["hrblock.com", "1040.com", "freetaxusa.com"]);
         do_check_true(possibleLinks.indexOf(link.url) > -1);
         do_check_eq(link.frecency, Infinity);
         do_check_eq(link.type, "affiliate");
@@ -254,12 +254,12 @@ add_task(function test_updateRelatedTile() {
     });
   }
 
-  function TestChangingRelatedTile() {
+  function TestChangingSuggestedTile() {
     this.count = 0;
     this.promise = new Promise(resolve => {
       this.onLinkChanged = (directoryLinksProvider, link) => {
         this.count++;
-        let possibleLinks = [relatedTile1.url, relatedTile2.url, relatedTile3.url];
+        let possibleLinks = [suggestedTile1.url, suggestedTile2.url, suggestedTile3.url];
 
         do_check_true(possibleLinks.indexOf(link.url) > -1);
         do_check_eq(link.type, "affiliate");
@@ -273,13 +273,13 @@ add_task(function test_updateRelatedTile() {
           links.unshift(link);
           do_check_eq(link.frecency, Infinity);
         }
-        isIdentical([...DirectoryLinksProvider._topSitesWithRelatedLinks], ["hrblock.com", "freetaxusa.com"]);
+        isIdentical([...DirectoryLinksProvider._topSitesWithSuggestedLinks], ["hrblock.com", "freetaxusa.com"]);
         resolve();
       }
     });
   }
 
-  function TestRemovingRelatedTile() {
+  function TestRemovingSuggestedTile() {
     this.count = 0;
     this.promise = new Promise(resolve => {
       this.onLinkChanged = (directoryLinksProvider, link) => {
@@ -289,7 +289,7 @@ add_task(function test_updateRelatedTile() {
         do_check_eq(this.count, 1);
         do_check_eq(link.frecency, 0);
         do_check_eq(link.url, links.shift().url);
-        isIdentical([...DirectoryLinksProvider._topSitesWithRelatedLinks], []);
+        isIdentical([...DirectoryLinksProvider._topSitesWithSuggestedLinks], []);
         resolve();
       }
     });
@@ -304,15 +304,15 @@ add_task(function test_updateRelatedTile() {
   let removedTopsite = topSites.shift();
   do_check_eq(removedTopsite, "site0.com");
   do_check_false(NewTabUtils.isTopPlacesSite(removedTopsite));
-  let updateRelatedTile = DirectoryLinksProvider._handleLinkChanged({
+  let updateSuggestedTile = DirectoryLinksProvider._handleLinkChanged({
     url: "http://" + removedTopsite,
     type: "history",
   });
-  do_check_false(updateRelatedTile);
+  do_check_false(updateSuggestedTile);
 
   
   
-  testObserver = new TestChangingRelatedTile();
+  testObserver = new TestChangingSuggestedTile();
   DirectoryLinksProvider.addObserver(testObserver);
   removedTopsite = topSites.shift();
   do_check_eq(removedTopsite, "1040.com");
@@ -328,7 +328,7 @@ add_task(function test_updateRelatedTile() {
   
   
   topSites = [];
-  testObserver = new TestRemovingRelatedTile();
+  testObserver = new TestRemovingSuggestedTile();
   DirectoryLinksProvider.addObserver(testObserver);
   DirectoryLinksProvider.onManyLinksChanged();
   yield testObserver.promise;
@@ -339,8 +339,8 @@ add_task(function test_updateRelatedTile() {
   NewTabUtils.getProviderLinks = origGetProviderLinks;
 });
 
-add_task(function test_relatedLinksMap() {
-  let data = {"suggested": [relatedTile1, relatedTile2, relatedTile3], "directory": [someOtherSite]};
+add_task(function test_suggestedLinksMap() {
+  let data = {"suggested": [suggestedTile1, suggestedTile2, suggestedTile3], "directory": [someOtherSite]};
   let dataURI = 'data:application/json,' + JSON.stringify(data);
 
   yield promiseSetupDirectoryLinksProvider({linksURL: dataURI});
@@ -348,29 +348,29 @@ add_task(function test_relatedLinksMap() {
 
   
   do_check_eq(links.length, 1);
-  let expected_data = [{url: "http://someothersite.com", title: "Not_A_Related_Site", frecency: DIRECTORY_FRECENCY, lastVisitDate: 1}];
+  let expected_data = [{url: "http://someothersite.com", title: "Not_A_Suggested_Site", frecency: DIRECTORY_FRECENCY, lastVisitDate: 1}];
   isIdentical(links, expected_data);
 
   
   expected_data = {
-    "taxact.com": [relatedTile1, relatedTile2, relatedTile3],
-    "hrblock.com": [relatedTile1, relatedTile2],
-    "1040.com": [relatedTile1, relatedTile3],
-    "taxslayer.com": [relatedTile1, relatedTile2, relatedTile3],
-    "freetaxusa.com": [relatedTile2, relatedTile3],
+    "taxact.com": [suggestedTile1, suggestedTile2, suggestedTile3],
+    "hrblock.com": [suggestedTile1, suggestedTile2],
+    "1040.com": [suggestedTile1, suggestedTile3],
+    "taxslayer.com": [suggestedTile1, suggestedTile2, suggestedTile3],
+    "freetaxusa.com": [suggestedTile2, suggestedTile3],
   };
 
-  DirectoryLinksProvider._relatedLinks.forEach((relatedLinks, site) => {
-    let relatedLinksItr = relatedLinks.values();
+  DirectoryLinksProvider._suggestedLinks.forEach((suggestedLinks, site) => {
+    let suggestedLinksItr = suggestedLinks.values();
     for (let link of expected_data[site]) {
-      isIdentical(relatedLinksItr.next().value, link);
+      isIdentical(suggestedLinksItr.next().value, link);
     }
   })
 
   yield promiseCleanDirectoryLinksProvider();
 });
 
-add_task(function test_topSitesWithRelatedLinks() {
+add_task(function test_topSitesWithSuggestedLinks() {
   let topSites = ["site0.com", "1040.com", "site2.com", "hrblock.com", "site4.com", "freetaxusa.com", "site6.com"];
   let origIsTopPlacesSite = NewTabUtils.isTopPlacesSite;
   NewTabUtils.isTopPlacesSite = function(site) {
@@ -384,38 +384,38 @@ add_task(function test_topSitesWithRelatedLinks() {
   }
 
   
-  do_check_eq(DirectoryLinksProvider._topSitesWithRelatedLinks.size, 0);
+  do_check_eq(DirectoryLinksProvider._topSitesWithSuggestedLinks.size, 0);
 
-  let data = {"suggested": [relatedTile1, relatedTile2, relatedTile3], "directory": [someOtherSite]};
+  let data = {"suggested": [suggestedTile1, suggestedTile2, suggestedTile3], "directory": [someOtherSite]};
   let dataURI = 'data:application/json,' + JSON.stringify(data);
 
   yield promiseSetupDirectoryLinksProvider({linksURL: dataURI});
   let links = yield fetchData();
 
   
-  do_check_eq(DirectoryLinksProvider._relatedLinks.size, 5);
+  do_check_eq(DirectoryLinksProvider._suggestedLinks.size, 5);
 
   
-  let expectedTopSitesWithRelatedLinks = ["hrblock.com", "1040.com", "freetaxusa.com"];
+  let expectedTopSitesWithSuggestedLinks = ["hrblock.com", "1040.com", "freetaxusa.com"];
   DirectoryLinksProvider._handleManyLinksChanged();
-  isIdentical([...DirectoryLinksProvider._topSitesWithRelatedLinks], expectedTopSitesWithRelatedLinks);
+  isIdentical([...DirectoryLinksProvider._topSitesWithSuggestedLinks], expectedTopSitesWithSuggestedLinks);
 
   
   let popped = topSites.pop();
   DirectoryLinksProvider._handleLinkChanged({url: "http://" + popped});
-  isIdentical([...DirectoryLinksProvider._topSitesWithRelatedLinks], expectedTopSitesWithRelatedLinks);
+  isIdentical([...DirectoryLinksProvider._topSitesWithSuggestedLinks], expectedTopSitesWithSuggestedLinks);
 
   
   popped = topSites.pop();
-  expectedTopSitesWithRelatedLinks.pop();
+  expectedTopSitesWithSuggestedLinks.pop();
   DirectoryLinksProvider._handleLinkChanged({url: "http://" + popped});
-  isIdentical([...DirectoryLinksProvider._topSitesWithRelatedLinks], expectedTopSitesWithRelatedLinks);
+  isIdentical([...DirectoryLinksProvider._topSitesWithSuggestedLinks], expectedTopSitesWithSuggestedLinks);
 
   
   topSites.push(popped);
-  expectedTopSitesWithRelatedLinks.push(popped);
+  expectedTopSitesWithSuggestedLinks.push(popped);
   DirectoryLinksProvider._handleLinkChanged({url: "http://" + popped});
-  isIdentical([...DirectoryLinksProvider._topSitesWithRelatedLinks], expectedTopSitesWithRelatedLinks);
+  isIdentical([...DirectoryLinksProvider._topSitesWithSuggestedLinks], expectedTopSitesWithSuggestedLinks);
 
   
   NewTabUtils.isTopPlacesSite = origIsTopPlacesSite;

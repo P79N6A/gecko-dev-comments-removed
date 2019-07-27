@@ -58,7 +58,7 @@ const ALLOWED_IMAGE_SCHEMES = new Set(["https", "data"]);
 const DIRECTORY_FRECENCY = 1000;
 
 
-const RELATED_FRECENCY = Infinity;
+const SUGGESTED_FRECENCY = Infinity;
 
 
 const PING_SCORE_DIVISOR = 10000;
@@ -91,12 +91,12 @@ let DirectoryLinksProvider = {
   
 
 
-  _relatedLinks: new Map(),
+  _suggestedLinks: new Map(),
 
   
 
 
-  _topSitesWithRelatedLinks: new Set(),
+  _topSitesWithSuggestedLinks: new Set(),
 
   get _observedPrefs() Object.freeze({
     enhanced: PREF_NEWTAB_ENHANCED,
@@ -201,11 +201,11 @@ let DirectoryLinksProvider = {
     }
   },
 
-  _cacheRelatedLinks: function(link) {
-    for (let relatedSite of link.frecent_sites) {
-      let relatedMap = this._relatedLinks.get(relatedSite) || new Map();
-      relatedMap.set(link.url, link);
-      this._relatedLinks.set(relatedSite, relatedMap);
+  _cacheSuggestedLinks: function(link) {
+    for (let suggestedSite of link.frecent_sites) {
+      let suggestedMap = this._suggestedLinks.get(suggestedSite) || new Map();
+      suggestedMap.set(link.url, link);
+      this._suggestedLinks.set(suggestedSite, suggestedMap);
     }
   },
 
@@ -415,7 +415,7 @@ let DirectoryLinksProvider = {
     this._readDirectoryLinksFile().then(rawLinks => {
       
       this._enhancedLinks.clear();
-      this._relatedLinks.clear();
+      this._suggestedLinks.clear();
 
       let validityFilter = function(link) {
         
@@ -437,7 +437,7 @@ let DirectoryLinksProvider = {
 
         
         
-        this._cacheRelatedLinks(link);
+        this._cacheSuggestedLinks(link);
       });
 
       return rawLinks.directory.filter(validityFilter).map((link, position) => {
@@ -476,13 +476,13 @@ let DirectoryLinksProvider = {
   },
 
   _handleManyLinksChanged: function() {
-    this._topSitesWithRelatedLinks.clear();
-    this._relatedLinks.forEach((relatedLinks, site) => {
+    this._topSitesWithSuggestedLinks.clear();
+    this._suggestedLinks.forEach((suggestedLinks, site) => {
       if (NewTabUtils.isTopPlacesSite(site)) {
-        this._topSitesWithRelatedLinks.add(site);
+        this._topSitesWithSuggestedLinks.add(site);
       }
     });
-    this._updateRelatedTile();
+    this._updateSuggestedTile();
   },
 
   
@@ -492,16 +492,16 @@ let DirectoryLinksProvider = {
 
   _handleLinkChanged: function(aLink) {
     let changedLinkSite = NewTabUtils.extractSite(aLink.url);
-    let linkStored = this._topSitesWithRelatedLinks.has(changedLinkSite);
+    let linkStored = this._topSitesWithSuggestedLinks.has(changedLinkSite);
 
     if (!NewTabUtils.isTopPlacesSite(changedLinkSite) && linkStored) {
-      this._topSitesWithRelatedLinks.delete(changedLinkSite);
+      this._topSitesWithSuggestedLinks.delete(changedLinkSite);
       return true;
     }
 
-    if (this._relatedLinks.has(changedLinkSite) &&
+    if (this._suggestedLinks.has(changedLinkSite) &&
         NewTabUtils.isTopPlacesSite(changedLinkSite) && !linkStored) {
-      this._topSitesWithRelatedLinks.add(changedLinkSite);
+      this._topSitesWithSuggestedLinks.add(changedLinkSite);
       return true;
     }
     return false;
@@ -517,7 +517,7 @@ let DirectoryLinksProvider = {
     
     setTimeout(() => {
       if (this._handleLinkChanged(aLink)) {
-        this._updateRelatedTile();
+        this._updateSuggestedTile();
       }
     }, 0);
   },
@@ -535,7 +535,7 @@ let DirectoryLinksProvider = {
 
 
 
-  _updateRelatedTile: function() {
+  _updateSuggestedTile: function() {
     let sortedLinks = NewTabUtils.getProviderLinks(this);
 
     if (!sortedLinks) {
@@ -559,7 +559,7 @@ let DirectoryLinksProvider = {
       }
     }
 
-    if (this._topSitesWithRelatedLinks.size == 0) {
+    if (this._topSitesWithSuggestedLinks.size == 0) {
       
       return;
     }
@@ -571,40 +571,40 @@ let DirectoryLinksProvider = {
     
     let possibleLinks = new Map();
     let targetedSites = new Map();
-    this._topSitesWithRelatedLinks.forEach(topSiteWithRelatedLink => {
-      let relatedLinksMap = this._relatedLinks.get(topSiteWithRelatedLink);
-      relatedLinksMap.forEach((relatedLink, url) => {
-        possibleLinks.set(url, relatedLink);
+    this._topSitesWithSuggestedLinks.forEach(topSiteWithSuggestedLink => {
+      let suggestedLinksMap = this._suggestedLinks.get(topSiteWithSuggestedLink);
+      suggestedLinksMap.forEach((suggestedLink, url) => {
+        possibleLinks.set(url, suggestedLink);
 
         
         
         if (!targetedSites.get(url)) {
           targetedSites.set(url, []);
         }
-        targetedSites.get(url).push(topSiteWithRelatedLink);
+        targetedSites.get(url).push(topSiteWithSuggestedLink);
       })
     });
     let flattenedLinks = [...possibleLinks.values()];
 
     
-    let relatedIndex = Math.floor(Math.random() * flattenedLinks.length);
-    let chosenRelatedLink = flattenedLinks[relatedIndex];
+    let suggestedIndex = Math.floor(Math.random() * flattenedLinks.length);
+    let chosenSuggestedLink = flattenedLinks[suggestedIndex];
 
     
     this._callObservers("onLinkChanged", {
-      url: chosenRelatedLink.url,
-      title: chosenRelatedLink.title,
-      frecency: RELATED_FRECENCY,
-      lastVisitDate: chosenRelatedLink.lastVisitDate,
-      type: chosenRelatedLink.type,
+      url: chosenSuggestedLink.url,
+      title: chosenSuggestedLink.title,
+      frecency: SUGGESTED_FRECENCY,
+      lastVisitDate: chosenSuggestedLink.lastVisitDate,
+      type: chosenSuggestedLink.type,
 
       
       
       
-      targetedSite: targetedSites.get(chosenRelatedLink.url).length ?
-        targetedSites.get(chosenRelatedLink.url)[0] : null
+      targetedSite: targetedSites.get(chosenSuggestedLink.url).length ?
+        targetedSites.get(chosenSuggestedLink.url)[0] : null
     });
-    return chosenRelatedLink;
+    return chosenSuggestedLink;
    },
 
   
