@@ -676,7 +676,7 @@ class IonBuilder
 
     
     InliningDecision canInlineTarget(JSFunction *target, CallInfo &callInfo);
-    InliningDecision makeInliningDecision(JSObject *target, CallInfo &callInfo);
+    InliningDecision makeInliningDecision(JSFunction *target, CallInfo &callInfo);
     bool selectInliningTargets(ObjectVector &targets, CallInfo &callInfo,
                                BoolVector &choiceSet, uint32_t *numInlineable);
 
@@ -751,7 +751,6 @@ class IonBuilder
     InliningStatus inlineSetTypedObjectOffset(CallInfo &callInfo);
     bool elementAccessIsTypedObjectArrayOfScalarType(MDefinition* obj, MDefinition* id,
                                                      ScalarTypeDescr::Type *arrayType);
-    InliningStatus inlineConstructTypedObject(CallInfo &callInfo, SizedTypeDescr *target);
 
     
     InliningStatus inlineIsCallable(CallInfo &callInfo);
@@ -778,9 +777,8 @@ class IonBuilder
     
     InliningStatus inlineNativeCall(CallInfo &callInfo, JSFunction *target);
     InliningStatus inlineNativeGetter(CallInfo &callInfo, JSFunction *target);
-    InliningStatus inlineNonFunctionCall(CallInfo &callInfo, JSObject *target);
     bool inlineScriptedCall(CallInfo &callInfo, JSFunction *target);
-    InliningStatus inlineSingleCall(CallInfo &callInfo, JSObject *target);
+    InliningStatus inlineSingleCall(CallInfo &callInfo, JSFunction *target);
 
     
     InliningStatus inlineCallsite(ObjectVector &targets, ObjectVector &originals,

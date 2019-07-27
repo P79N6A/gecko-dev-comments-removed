@@ -292,7 +292,14 @@ IonBuilder::getPolyCallTargets(types::TemporaryTypeSet *calleeTypes, bool constr
         return false;
     for(unsigned i = 0; i < objCount; i++) {
         JSObject *obj = calleeTypes->getSingleObject(i);
-        if (!obj) {
+        JSFunction *fun;
+        if (obj) {
+            if (!obj->is<JSFunction>()) {
+                targets.clear();
+                return true;
+            }
+            fun = &obj->as<JSFunction>();
+        } else {
             types::TypeObject *typeObj = calleeTypes->getTypeObject(i);
             MOZ_ASSERT(typeObj);
             if (!typeObj->interpretedFunction) {
@@ -300,19 +307,19 @@ IonBuilder::getPolyCallTargets(types::TemporaryTypeSet *calleeTypes, bool constr
                 return true;
             }
 
-            obj = typeObj->interpretedFunction;
+            fun = typeObj->interpretedFunction;
             *gotLambda = true;
         }
 
         
         
         
-        if (constructing ? !obj->isConstructor() : !obj->isCallable()) {
+        if (constructing && !fun->isInterpretedConstructor() && !fun->isNativeConstructor()) {
             targets.clear();
             return true;
         }
 
-        DebugOnly<bool> appendOk = targets.append(obj);
+        DebugOnly<bool> appendOk = targets.append(fun);
         MOZ_ASSERT(appendOk);
     }
 
@@ -4410,17 +4417,11 @@ IonBuilder::patchInlinedReturns(CallInfo &callInfo, MIRGraphReturns &returns, MB
 }
 
 IonBuilder::InliningDecision
-IonBuilder::makeInliningDecision(JSObject *targetArg, CallInfo &callInfo)
+IonBuilder::makeInliningDecision(JSFunction *target, CallInfo &callInfo)
 {
     
-    if (targetArg == nullptr)
+    if (target == nullptr)
         return InliningDecision_DontInline;
-
-    
-    if (!targetArg->is<JSFunction>())
-        return InliningDecision_Inline;
-
-    JSFunction *target = &targetArg->as<JSFunction>();
 
     
     if (info().executionMode() == ArgumentsUsageAnalysis)
@@ -4498,7 +4499,7 @@ IonBuilder::selectInliningTargets(ObjectVector &targets, CallInfo &callInfo, Boo
         return true;
 
     for (size_t i = 0; i < targets.length(); i++) {
-        JSObject *target = targets[i];
+        JSFunction *target = &targets[i]->as<JSFunction>();
         bool inlineable;
         InliningDecision decision = makeInliningDecision(target, callInfo);
         switch (decision) {
@@ -4515,16 +4516,11 @@ IonBuilder::selectInliningTargets(ObjectVector &targets, CallInfo &callInfo, Boo
             MOZ_CRASH("Unhandled InliningDecision value!");
         }
 
-        if (target->is<JSFunction>()) {
-            
-            if (inlineable && target->as<JSFunction>().isInterpreted()) {
-                totalSize += target->as<JSFunction>().nonLazyScript()->length();
-                if (totalSize > optimizationInfo().inlineMaxTotalBytecodeLength())
-                    inlineable = false;
-            }
-        } else {
-            
-            inlineable = false;
+        
+        if (inlineable && target->isInterpreted()) {
+            totalSize += target->nonLazyScript()->length();
+            if (totalSize > optimizationInfo().inlineMaxTotalBytecodeLength())
+                inlineable = false;
         }
 
         choiceSet.append(inlineable);
@@ -4652,12 +4648,9 @@ IonBuilder::getInlineableGetPropertyCache(CallInfo &callInfo)
 }
 
 IonBuilder::InliningStatus
-IonBuilder::inlineSingleCall(CallInfo &callInfo, JSObject *targetArg)
+IonBuilder::inlineSingleCall(CallInfo &callInfo, JSFunction *target)
 {
-    if (!targetArg->is<JSFunction>())
-        return inlineNonFunctionCall(callInfo, targetArg);
-
-    JSFunction *target = &targetArg->as<JSFunction>();
+    
     if (target->isNative())
         return inlineNativeCall(callInfo, target);
 
@@ -4682,7 +4675,7 @@ IonBuilder::inlineCallsite(ObjectVector &targets, ObjectVector &originals,
     
     
     if (!propCache.get() && targets.length() == 1) {
-        JSObject *target = targets[0];
+        JSFunction *target = &targets[0]->as<JSFunction>();
         InliningDecision decision = makeInliningDecision(target, callInfo);
         switch (decision) {
           case InliningDecision_Error:
@@ -5487,19 +5480,14 @@ IonBuilder::jsop_call(uint32_t argc, bool constructing)
     bool hasClones = false;
     ObjectVector targets(alloc());
     for (uint32_t i = 0; i < originals.length(); i++) {
-        JSObject *obj = originals[i];
-        if (obj->is<JSFunction>()) {
-            JSFunction *fun = &obj->as<JSFunction>();
-            if (fun->hasScript() && fun->nonLazyScript()->shouldCloneAtCallsite()) {
-                if (JSFunction *clone = ExistingCloneFunctionAtCallsite(compartment->callsiteClones(),
-                                                                        fun, script(), pc))
-                {
-                    obj = clone;
-                    hasClones = true;
-                }
+        JSFunction *fun = &originals[i]->as<JSFunction>();
+        if (fun->hasScript() && fun->nonLazyScript()->shouldCloneAtCallsite()) {
+            if (JSFunction *clone = ExistingCloneFunctionAtCallsite(compartment->callsiteClones(), fun, script(), pc)) {
+                fun = clone;
+                hasClones = true;
             }
         }
-        if (!targets.append(obj))
+        if (!targets.append(fun))
             return false;
     }
 
@@ -5516,7 +5504,7 @@ IonBuilder::jsop_call(uint32_t argc, bool constructing)
 
     
     JSFunction *target = nullptr;
-    if (targets.length() == 1 && targets[0]->is<JSFunction>())
+    if (targets.length() == 1)
         target = &targets[0]->as<JSFunction>();
 
     if (target && status == InliningStatus_WarmUpCountTooLow) {
