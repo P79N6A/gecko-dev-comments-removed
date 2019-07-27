@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 
+import org.mozilla.gecko.GeckoProfile;
 import org.mozilla.gecko.PrivateTab;
 import org.mozilla.gecko.Tab;
-import org.mozilla.gecko.TabsAccessor;
 import org.mozilla.gecko.db.BrowserContract;
 import org.mozilla.gecko.db.TabsProvider;
 
@@ -103,7 +103,9 @@ public class testFilterOpenTab extends ContentProviderTest {
             tabs.add(tab6);
 
             
-            TabsAccessor.persistLocalTabs(mResolver, tabs);
+            
+            final DatabaseHelper helper = new DatabaseHelper(getActivity(), mAsserter);
+            helper.getProfileDB().getTabsAccessor().persistLocalTabs(mResolver, tabs);
 
             
             Cursor c = getTabsFromLocalClient();

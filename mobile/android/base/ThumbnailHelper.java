@@ -7,7 +7,6 @@ package org.mozilla.gecko;
 
 import org.mozilla.gecko.db.BrowserDB;
 import org.mozilla.gecko.gfx.BitmapUtils;
-import org.mozilla.gecko.gfx.IntSize;
 import org.mozilla.gecko.mozglue.DirectBufferAllocator;
 import org.mozilla.gecko.mozglue.generatorannotations.WrapElementForJNI;
 
@@ -69,16 +68,21 @@ public final class ThumbnailHelper {
         mHeight = -1;
     }
 
-    public void getAndProcessThumbnailFor(Tab tab) {
+    public void getAndProcessThumbnailFor(Tab tab, final BrowserDB db) {
         if (AboutPages.isAboutHome(tab.getURL())) {
             tab.updateThumbnail(null, CachePolicy.NO_STORE);
+            return;
+        }
+
+        
+        if (db == null) {
             return;
         }
 
         if (tab.getState() == Tab.STATE_DELAYED) {
             String url = tab.getURL();
             if (url != null) {
-                byte[] thumbnail = BrowserDB.getThumbnailForUrl(GeckoAppShell.getContext().getContentResolver(), url);
+                byte[] thumbnail = db.getThumbnailForUrl(GeckoAppShell.getContext().getContentResolver(), url);
                 if (thumbnail != null) {
                     
                     setTabThumbnail(tab, null, thumbnail, CachePolicy.STORE);
