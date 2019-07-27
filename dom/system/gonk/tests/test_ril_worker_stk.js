@@ -1420,17 +1420,17 @@ add_test(function test_stk_event_download_location_status() {
     do_check_eq(pduHelper.readHexOctet(), 19);
 
     
+    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_EVENT_LIST |
+                                          COMPREHENSIONTLV_FLAG_CR);
+    do_check_eq(pduHelper.readHexOctet(), 1);
+    do_check_eq(pduHelper.readHexOctet(), STK_EVENT_TYPE_LOCATION_STATUS);
+
+    
     do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_DEVICE_ID |
                                           COMPREHENSIONTLV_FLAG_CR);
     do_check_eq(pduHelper.readHexOctet(), 2);
     do_check_eq(pduHelper.readHexOctet(), STK_DEVICE_ID_ME);
     do_check_eq(pduHelper.readHexOctet(), STK_DEVICE_ID_SIM);
-
-    
-    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_EVENT_LIST |
-                                          COMPREHENSIONTLV_FLAG_CR);
-    do_check_eq(pduHelper.readHexOctet(), 1);
-    do_check_eq(pduHelper.readHexOctet(), STK_EVENT_TYPE_LOCATION_STATUS);
 
     
     do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_LOCATION_STATUS |
@@ -1502,17 +1502,17 @@ add_test(function test_stk_event_download_language_selection() {
     do_check_eq(pduHelper.readHexOctet(), 11);
 
     
+    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_EVENT_LIST |
+                                          COMPREHENSIONTLV_FLAG_CR);
+    do_check_eq(pduHelper.readHexOctet(), 1);
+    do_check_eq(pduHelper.readHexOctet(), STK_EVENT_TYPE_LANGUAGE_SELECTION);
+
+    
     do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_DEVICE_ID |
                                           COMPREHENSIONTLV_FLAG_CR);
     do_check_eq(pduHelper.readHexOctet(), 2);
     do_check_eq(pduHelper.readHexOctet(), STK_DEVICE_ID_ME);
     do_check_eq(pduHelper.readHexOctet(), STK_DEVICE_ID_SIM);
-
-    
-    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_EVENT_LIST |
-                                          COMPREHENSIONTLV_FLAG_CR);
-    do_check_eq(pduHelper.readHexOctet(), 1);
-    do_check_eq(pduHelper.readHexOctet(), STK_EVENT_TYPE_LANGUAGE_SELECTION);
 
     
     do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_LANGUAGE);
@@ -1557,17 +1557,17 @@ add_test(function test_stk_event_download_user_activity() {
     do_check_eq(pduHelper.readHexOctet(), 7);
 
     
+    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_EVENT_LIST |
+                                          COMPREHENSIONTLV_FLAG_CR);
+    do_check_eq(pduHelper.readHexOctet(), 1);
+    do_check_eq(pduHelper.readHexOctet(), STK_EVENT_TYPE_USER_ACTIVITY);
+
+    
     do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_DEVICE_ID |
                                           COMPREHENSIONTLV_FLAG_CR);
     do_check_eq(pduHelper.readHexOctet(), 2);
     do_check_eq(pduHelper.readHexOctet(), STK_DEVICE_ID_ME);
     do_check_eq(pduHelper.readHexOctet(), STK_DEVICE_ID_SIM);
-
-    
-    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_EVENT_LIST |
-                                          COMPREHENSIONTLV_FLAG_CR);
-    do_check_eq(pduHelper.readHexOctet(), 1);
-    do_check_eq(pduHelper.readHexOctet(), STK_EVENT_TYPE_USER_ACTIVITY);
 
     run_next_test();
   };
@@ -1606,17 +1606,17 @@ add_test(function test_stk_event_download_idle_screen_available() {
     do_check_eq(pduHelper.readHexOctet(), 7);
 
     
+    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_EVENT_LIST |
+                                          COMPREHENSIONTLV_FLAG_CR);
+    do_check_eq(pduHelper.readHexOctet(), 1);
+    do_check_eq(pduHelper.readHexOctet(), STK_EVENT_TYPE_IDLE_SCREEN_AVAILABLE);
+
+    
     do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_DEVICE_ID |
                                           COMPREHENSIONTLV_FLAG_CR);
     do_check_eq(pduHelper.readHexOctet(), 2);
     do_check_eq(pduHelper.readHexOctet(), STK_DEVICE_ID_DISPLAY);
     do_check_eq(pduHelper.readHexOctet(), STK_DEVICE_ID_SIM);
-
-    
-    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_EVENT_LIST |
-                                          COMPREHENSIONTLV_FLAG_CR);
-    do_check_eq(pduHelper.readHexOctet(), 1);
-    do_check_eq(pduHelper.readHexOctet(), STK_EVENT_TYPE_IDLE_SCREEN_AVAILABLE);
 
     run_next_test();
   };
@@ -1657,17 +1657,17 @@ add_test(function test_stk_event_download_browser_termination() {
     do_check_eq(pduHelper.readHexOctet(), 10);
 
     
+    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_EVENT_LIST |
+                                          COMPREHENSIONTLV_FLAG_CR);
+    do_check_eq(pduHelper.readHexOctet(), 1);
+    do_check_eq(pduHelper.readHexOctet(), STK_EVENT_TYPE_BROWSER_TERMINATION);
+
+    
     do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_DEVICE_ID |
                                           COMPREHENSIONTLV_FLAG_CR);
     do_check_eq(pduHelper.readHexOctet(), 2);
     do_check_eq(pduHelper.readHexOctet(), STK_DEVICE_ID_ME);
     do_check_eq(pduHelper.readHexOctet(), STK_DEVICE_ID_SIM);
-
-    
-    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_EVENT_LIST |
-                                          COMPREHENSIONTLV_FLAG_CR);
-    do_check_eq(pduHelper.readHexOctet(), 1);
-    do_check_eq(pduHelper.readHexOctet(), STK_EVENT_TYPE_BROWSER_TERMINATION);
 
     
     do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_BROWSER_TERMINATION_CAUSE |
