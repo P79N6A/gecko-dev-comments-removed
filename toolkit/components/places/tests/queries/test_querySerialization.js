@@ -416,17 +416,6 @@ const queryOptionSwitches = [
   },
   
   {
-    property: "excludeReadOnlyFolders",
-    desc:     "nsINavHistoryQueryOptions.excludeReadOnlyFolders",
-    matches:  simplePropertyMatches,
-    runs:     [
-      function (aQuery, aQueryOptions) {
-        aQueryOptions.excludeReadOnlyFolders = true;
-      }
-    ]
-  },
-  
-  {
     property: "expandQueries",
     desc:     "nsINavHistoryQueryOptions.expandQueries",
     matches:  simplePropertyMatches,

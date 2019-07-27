@@ -1376,8 +1376,8 @@ PlacesToolbar.prototype = {
         elt.localName != "menupopup") {
       let eltRect = elt.getBoundingClientRect();
       let eltIndex = Array.indexOf(this._rootElt.childNodes, elt);
-      if (PlacesUtils.nodeIsFolder(elt._placesNode) &&
-          !PlacesUtils.nodeIsReadOnly(elt._placesNode)) {
+      if (PlacesUIUtils.nodeIsFolder(elt._placesNode) &&
+          !PlacesUIUtils.isContentsReadOnly(elt._placesNode)) {
         
         
         

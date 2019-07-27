@@ -44,6 +44,43 @@ XPCOMUtils.defineLazyModuleGetter(this, "Weave",
 
 const TAB_DROP_TYPE = "application/x-moz-tabbrowser-tab";
 
+
+
+function IsLivemark(aItemId) {
+  
+  
+  let self = IsLivemark;
+  if (!("ids" in self)) {
+    const LIVEMARK_ANNO = PlacesUtils.LMANNO_FEEDURI;
+
+    let idsVec = PlacesUtils.annotations.getItemsWithAnnotation(LIVEMARK_ANNO);
+    self.ids = new Set(idsVec);
+
+    let obs = Object.freeze({
+      QueryInterface: XPCOMUtils.generateQI(Ci.nsIAnnotationObserver),
+
+      onItemAnnotationSet(itemId, annoName) {
+        if (annoName == LIVEMARK_ANNO)
+          self.ids.add(itemId);
+      },
+
+      onItemAnnotationRemoved(itemId, annoName) {
+        
+        if (annoName == LIVEMARK_ANNO || annoName == "")
+          self.ids.delete(itemId);
+      },
+
+      onPageAnnotationSet() { },
+      onPageAnnotationRemoved() { },
+    });
+    PlacesUtils.annotations.addObserver(obs);
+    PlacesUtils.registerShutdownFunction(() => {
+      PlacesUtils.annotations.removeObserver(obs);
+    });
+  }
+  return self.ids.has(aItemId);
+}
+
 this.PlacesUIUtils = {
   ORGANIZER_LEFTPANE_VERSION: 7,
   ORGANIZER_FOLDER_ANNO: "PlacesOrganizer/OrganizerFolder",
@@ -563,6 +600,89 @@ this.PlacesUIUtils = {
   
 
 
+
+
+
+
+
+  canUserRemove: function (aNode) {
+    let parentNode = aNode.parent;
+    if (!parentNode)
+      throw new Error("canUserRemove doesn't accept root nodes");
+
+    
+    
+    if (aNode.itemId == -1) {
+      
+      
+      
+      return !PlacesUtils.nodeIsFolder(parentNode);
+    }
+
+    
+    return !this.isContentsReadOnly(parentNode);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  isContentsReadOnly: function (aNodeOrItemId) {
+    let itemId;
+    if (typeof(aNodeOrItemId) == "number") {
+      itemId = aNodeOrItemId;
+    }
+    else if (PlacesUtils.nodeIsFolder(aNodeOrItemId)) {
+      itemId = PlacesUtils.getConcreteItemId(aNodeOrItemId);
+    }
+    else {
+      throw new Error("invalid value for aNodeOrItemId");
+    }
+
+    if (itemId == PlacesUtils.placesRootId || IsLivemark(itemId))
+      return true;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if ("get" in Object.getOwnPropertyDescriptor(this, "leftPaneFolderId"))
+      return false;
+
+    return itemId == this.leftPaneFolderId ||
+           itemId == this.allBookmarksFolderId;
+  },
+
+  
+
+
   _confirmOpenInTabs:
   function PUIU__confirmOpenInTabs(numTabsToOpen, aWindow) {
     const WARN_ON_OPEN_PREF = "browser.tabs.warnOnOpen";
@@ -962,8 +1082,6 @@ this.PlacesUIUtils = {
         
         as.setItemAnnotation(folderId, PlacesUtils.EXCLUDE_FROM_BACKUP_ANNO, 1,
                              0, as.EXPIRE_NEVER);
-        
-        bs.setFolderReadonly(folderId, true);
 
         if (aIsRoot) {
           

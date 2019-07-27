@@ -238,6 +238,15 @@ private:
 
 
 
+
+
+
+  bool IsLivemark(int64_t aFolderId);
+
+  
+
+
+
   nsresult ReadRoots();
 
   nsresult AdjustIndices(int64_t aFolder,
