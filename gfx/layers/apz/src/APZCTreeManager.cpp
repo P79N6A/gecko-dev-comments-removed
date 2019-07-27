@@ -246,7 +246,7 @@ ComputeClipRegion(GeckoContentController* aController,
     
     LayoutDeviceToParentLayerScale parentCumulativeResolution =
           aLayer.Metrics().GetCumulativeResolution()
-        / ParentLayerToLayerScale(aLayer.Metrics().GetPresShellResolution());
+        / ParentLayerToLayerScale(aLayer.Metrics().mPresShellResolution);
     
     
     
@@ -956,13 +956,13 @@ void
 APZCTreeManager::UpdateZoomConstraints(const ScrollableLayerGuid& aGuid,
                                        const ZoomConstraints& aConstraints)
 {
+  MonitorAutoLock lock(mTreeLock);
   nsRefPtr<HitTestingTreeNode> node = GetTargetNode(aGuid, nullptr);
   MOZ_ASSERT(!node || node->GetApzc()); 
 
   
   
   if (node && node->GetApzc()->IsRootForLayersId()) {
-    MonitorAutoLock lock(mTreeLock);
     UpdateZoomConstraintsRecursively(node.get(), aConstraints);
   }
 }
@@ -1171,6 +1171,7 @@ already_AddRefed<AsyncPanZoomController>
 APZCTreeManager::GetTargetAPZC(const ScrollableLayerGuid& aGuid,
                                GuidComparator aComparator)
 {
+  MonitorAutoLock lock(mTreeLock);
   nsRefPtr<HitTestingTreeNode> node = GetTargetNode(aGuid, aComparator);
   MOZ_ASSERT(!node || node->GetApzc()); 
   nsRefPtr<AsyncPanZoomController> apzc = node ? node->GetApzc() : nullptr;
@@ -1181,7 +1182,7 @@ already_AddRefed<HitTestingTreeNode>
 APZCTreeManager::GetTargetNode(const ScrollableLayerGuid& aGuid,
                                GuidComparator aComparator)
 {
-  MonitorAutoLock lock(mTreeLock);
+  mTreeLock.AssertCurrentThreadOwns();
   nsRefPtr<HitTestingTreeNode> target = FindTargetNode(mRootNode, aGuid, aComparator);
   return target.forget();
 }
