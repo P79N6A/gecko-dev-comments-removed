@@ -42,8 +42,7 @@ public:
 
 
     gfxQuartzNativeDrawing(gfxContext *ctx,
-                           const gfxRect& aNativeRect,
-                           gfxFloat aBackingScale = 1.0f);
+                           const gfxRect& aNativeRect);
 
     
 
@@ -62,8 +61,7 @@ private:
     nsRefPtr<gfxContext> mContext;
     mozilla::RefPtr<mozilla::gfx::DrawTarget> mDrawTarget;
     mozilla::gfx::BorrowedCGContext mBorrowedContext;
-    gfxRect mNativeRect;
-    gfxFloat mBackingScale;
+    mozilla::gfx::Rect mNativeRect;
 
     
     CGContextRef mCGContext;
