@@ -1128,6 +1128,7 @@ HTMLInputElement::HTMLInputElement(already_AddRefed<mozilla::dom::NodeInfo>& aNo
   , mNumberControlSpinnerIsSpinning(false)
   , mNumberControlSpinnerSpinsUp(false)
   , mPickerRunning(false)
+  , mSelectionCached(true)
 {
   
   mInputData.mState = new nsTextEditorState(this);
