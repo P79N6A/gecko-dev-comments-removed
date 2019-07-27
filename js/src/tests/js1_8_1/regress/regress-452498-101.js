@@ -22,7 +22,7 @@ function test()
 
 
 
-  uneval(function(){with({functional: []}){x5, y = this;const y }});
+  uneval(function(){with({functional: []}){x5, y = this;const y = undefined }});
 
 
   reportCompare(expect, actual, summary);

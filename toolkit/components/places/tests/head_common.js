@@ -3,8 +3,7 @@
 
 
 
-const CURRENT_SCHEMA_VERSION = 25;
-const FIRST_UPGRADABLE_SCHEMA_VERSION = 11;
+const CURRENT_SCHEMA_VERSION = 24;
 
 const NS_APP_USER_PROFILE_50_DIR = "ProfD";
 const NS_APP_PROFILE_DIR_STARTUP = "ProfDS";
@@ -44,8 +43,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "PlacesTransactions",
                                   "resource://gre/modules/PlacesTransactions.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "OS",
                                   "resource://gre/modules/osfile.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Sqlite",
-                                  "resource://gre/modules/Sqlite.jsm");
 
 
 Cu.import("resource://gre/modules/PlacesUtils.jsm");
@@ -413,9 +410,8 @@ function shutdownPlaces(aKeepAliveConnection)
 }
 
 const FILENAME_BOOKMARKS_HTML = "bookmarks.html";
-let (backup_date = new Date().toLocaleFormat("%Y-%m-%d")) {
-  const FILENAME_BOOKMARKS_JSON = "bookmarks-" + backup_date + ".json";
-}
+const FILENAME_BOOKMARKS_JSON = "bookmarks-" +
+  (new Date().toLocaleFormat("%Y-%m-%d")) + ".json";
 
 
 

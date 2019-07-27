@@ -19,15 +19,17 @@
 
 
 
+
+
+
+const Cu = typeof Components != "undefined" ? Components.utils : undefined;
+const Ci = typeof Components != "undefined" ? Components.interfaces : undefined;
+const Cc = typeof Components != "undefined" ? Components.classes : undefined;
 if (typeof Components != "undefined") {
   
   
   
   this.exports = {};
-
-  const Cu = Components.utils;
-  const Ci = Components.interfaces;
-  const Cc = Components.classes;
 
   Cu.import("resource://gre/modules/Services.jsm", this);
 }
