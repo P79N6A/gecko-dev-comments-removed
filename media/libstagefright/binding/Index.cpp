@@ -146,6 +146,10 @@ MP4Sample* SampleIterator::GetNext()
         sample->crypto.plain_sizes.AppendElement(reader.ReadU16());
         sample->crypto.encrypted_sizes.AppendElement(reader.ReadU32());
       }
+    } else {
+      
+      sample->crypto.plain_sizes.AppendElement(0);
+      sample->crypto.encrypted_sizes.AppendElement(sample->size);
     }
   }
 
