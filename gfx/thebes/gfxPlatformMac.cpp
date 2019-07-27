@@ -482,7 +482,7 @@ public:
       
       
       if (CVDisplayLinkCreateWithActiveCGDisplays(&mDisplayLink) != kCVReturnSuccess) {
-        NS_WARNING("Could not create a display link with all active displays. Retrying\n");
+        NS_WARNING("Could not create a display link with all active displays. Retrying");
         CVDisplayLinkRelease(mDisplayLink);
         mDisplayLink = nullptr;
 
@@ -586,7 +586,7 @@ gfxPlatformMac::CreateHardwareVsyncSource()
   VsyncSource::Display& primaryDisplay = osxVsyncSource->GetGlobalDisplay();
   primaryDisplay.EnableVsync();
   if (!primaryDisplay.IsVsyncEnabled()) {
-    NS_WARNING("OS X Vsync source not enabled. Falling back to software vsync.\n");
+    NS_WARNING("OS X Vsync source not enabled. Falling back to software vsync.");
     return gfxPlatform::CreateHardwareVsyncSource();
   }
 
