@@ -139,6 +139,13 @@ public class GeckoAppShell
     private static final Queue<GeckoEvent> PENDING_EVENTS = new ConcurrentLinkedQueue<GeckoEvent>();
     private static final Map<String, String> ALERT_COOKIES = new ConcurrentHashMap<String, String>();
 
+    @SuppressWarnings("serial")
+    private static final List<String> UNKNOWN_MIME_TYPES = new ArrayList<String>(3) {{
+        add("application/octet-stream"); 
+        add("application/unknown");
+        add("application/octet-stream"); 
+    }};
+
     private static volatile boolean locationHighAccuracyEnabled;
 
     
@@ -1795,24 +1802,41 @@ public class GeckoAppShell
 
     @WrapElementForJNI
     public static void scanMedia(final String aFile, String aMimeType) {
+        String mimeType = aMimeType;
+        if (UNKNOWN_MIME_TYPES.contains(mimeType)) {
+            
+            
+            mimeType = "";
+        }
+
         
-        if (TextUtils.isEmpty(aMimeType)) {
+        if (TextUtils.isEmpty(mimeType)) {
             int extPosition = aFile.lastIndexOf(".");
             if (extPosition > 0 && extPosition < aFile.length() - 1) {
-                aMimeType = getMimeTypeFromExtension(aFile.substring(extPosition+1));
+                mimeType = getMimeTypeFromExtension(aFile.substring(extPosition+1));
             }
         }
 
-        final File f = new File(aFile);
+        
+        
+        if (TextUtils.isEmpty(mimeType)) {
+            if (TextUtils.isEmpty(aMimeType)) {
+                mimeType = UNKNOWN_MIME_TYPES.get(0);
+            } else {
+                mimeType = aMimeType;
+            }
+        }
+
         if (AppConstants.ANDROID_DOWNLOADS_INTEGRATION) {
+            final File f = new File(aFile);
             final DownloadManager dm = (DownloadManager) getContext().getSystemService(Context.DOWNLOAD_SERVICE);
             dm.addCompletedDownload(f.getName(),
                                     f.getName(),
-                                    !TextUtils.isEmpty(aMimeType),
+                                    true, 
                                     aMimeType,
                                     f.getAbsolutePath(),
-                                    f.length(),
-                                    false);
+                                    Math.max(0, f.length()),
+                                    false); 
         } else {
             Context context = getContext();
             GeckoMediaScannerClient.startScan(context, aFile, aMimeType);
