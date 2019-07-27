@@ -906,7 +906,14 @@ RestyleManager::RestyleElement(Element*        aElement,
     ComputeStyleChangeFor(aPrimaryFrame, &changeList, aMinHint,
                           aRestyleTracker, aRestyleHint);
     ProcessRestyledFrames(changeList);
-  } else {
+  } else if (aRestyleHint & ~eRestyle_LaterSiblings) {
+    
+    
+    
+    
+    
+    
+    
     
     FrameConstructor()->MaybeRecreateFramesForElement(aElement);
   }
