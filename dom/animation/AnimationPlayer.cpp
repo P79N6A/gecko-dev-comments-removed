@@ -85,6 +85,15 @@ void
 AnimationPlayer::PlayFromJS()
 {
   
+  
+  
+  
+  
+  
+  
+  
+  
+  FlushStyle();
 
   Play(eUpdateStyle);
 }
