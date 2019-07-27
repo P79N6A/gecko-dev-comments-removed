@@ -83,7 +83,6 @@ def read_from_gyp(config, path, output, vars, non_unified_sources = set()):
     """
 
     time_start = time.time()
-    all_sources = set()
 
     
     
@@ -164,7 +163,6 @@ def read_from_gyp(config, path, output, vars, non_unified_sources = set()):
 
             unified_sources = sources - non_unified_sources - asm_sources
             sources -= unified_sources
-            all_sources |= sources
             
             context['SOURCES'] = alphabetical_sorted(sources)
             context['UNIFIED_SOURCES'] = alphabetical_sorted(unified_sources)
@@ -235,7 +233,3 @@ def read_from_gyp(config, path, output, vars, non_unified_sources = set()):
         context.execution_time = time.time() - time_start
         yield context
         time_start = time.time()
-
-
-
-
