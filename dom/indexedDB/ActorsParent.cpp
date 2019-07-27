@@ -2198,7 +2198,13 @@ SetDefaultPragmas(mozIStorageConnection* aConnection)
     
     
     
-    "PRAGMA recursive_triggers = ON;";
+    "PRAGMA recursive_triggers = ON;"
+    
+    
+    
+    "PRAGMA read_uncommitted = TRUE;"
+    
+    ;
 
   nsresult rv = aConnection->ExecuteSimpleSQL(NS_LITERAL_CSTRING(query));
   if (NS_WARN_IF(NS_FAILED(rv))) {
