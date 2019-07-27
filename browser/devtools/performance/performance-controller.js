@@ -127,8 +127,6 @@ const EVENTS = {
 
   
   OVERVIEW_RANGE_SELECTED: "Performance:UI:OverviewRangeSelected",
-  
-  OVERVIEW_RANGE_CLEARED: "Performance:UI:OverviewRangeCleared",
 
   
   DETAILS_VIEW_SELECTED: "Performance:UI:DetailsViewSelected",

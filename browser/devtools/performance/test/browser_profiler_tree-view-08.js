@@ -26,7 +26,7 @@ function test() {
 
 
 
-  let threadNode = new ThreadNode(gThread, { contentOnly: true });
+  let threadNode = new ThreadNode(gThread, { startTime: 0, endTime: 30, contentOnly: true });
   
   threadNode.calls = threadNode.calls[0].calls;
   let treeRoot = new CallView({ frame: threadNode, autoExpandDepth: 10 });

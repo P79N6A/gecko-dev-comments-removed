@@ -166,7 +166,9 @@ let OverviewView = {
     let selection = this.graphs.getMappedSelection({ mapStart, mapEnd });
     
     
-    if (!selection) {
+    
+    
+    if (!selection || (selection.max - selection.min) < 1) {
       return { startTime: 0, endTime: recording.getDuration() };
     }
     return { startTime: selection.min, endTime: selection.max };
@@ -300,14 +302,8 @@ let OverviewView = {
     if (this._stopSelectionChangeEventPropagation) {
       return;
     }
-    
-    
-    let interval = this.getTimeInterval();
-    if (interval.endTime - interval.startTime < 1) {
-      this.emit(EVENTS.OVERVIEW_RANGE_CLEARED);
-    } else {
-      this.emit(EVENTS.OVERVIEW_RANGE_SELECTED, interval);
-    }
+
+    this.emit(EVENTS.OVERVIEW_RANGE_SELECTED, this.getTimeInterval());
   },
 
   _onGraphRendered: function (_, graphName) {

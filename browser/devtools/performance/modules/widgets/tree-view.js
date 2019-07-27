@@ -28,7 +28,7 @@ const DEFAULT_SORTING_PREDICATE = (frameA, frameB) => {
     }
     return dataA.selfPercentage < dataB.selfPercentage ? 1 : - 1;
   }
-  return dataA.samples < dataB.samples ? 1 : -1;
+  return dataA.totalPercentage < dataB.totalPercentage ? 1 : -1;
 };
 
 const DEFAULT_AUTO_EXPAND_DEPTH = 3; 
@@ -358,54 +358,28 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
 
     
     let isLeaf = this._level === 0;
+    let totalSamples = this.root.frame.samples;
+    let totalDuration = this.root.frame.duration;
 
-    if (this.inverted && !isLeaf && this.parent != null) {
-      let calleeData = this.parent.getDisplayedData();
-      
-      
-      let callerPercentage = this.frame.samples / calleeData.samples;
+    
+    if (this.visibleCells.selfDuration) {
+      data.selfDuration = this.frame.youngestFrameSamples / totalSamples * totalDuration;
+    }
+    if (this.visibleCells.selfPercentage) {
+      data.selfPercentage = this.frame.youngestFrameSamples / totalSamples * 100;
+    }
 
-      
-      if (this.visibleCells.duration) {
-        data.totalDuration = calleeData.totalDuration * callerPercentage;
-      }
-      if (this.visibleCells.selfDuration) {
-        data.selfDuration = 0;
-      }
+    
+    if (this.visibleCells.duration) {
+      data.totalDuration = this.frame.samples / totalSamples * totalDuration;
+    }
+    if (this.visibleCells.percentage) {
+      data.totalPercentage = this.frame.samples / totalSamples * 100;
+    }
 
-      
-      if (this.visibleCells.percentage) {
-        data.totalPercentage = calleeData.totalPercentage * callerPercentage;
-      }
-      if (this.visibleCells.selfPercentage) {
-        data.selfPercentage = 0;
-      }
-
-      
-      if (this.visibleCells.samples) {
-        data.samples = this.frame.samples;
-      }
-    } else {
-      
-      if (this.visibleCells.duration) {
-        data.totalDuration = this.frame.duration;
-      }
-      if (this.visibleCells.selfDuration) {
-        data.selfDuration = this.root.frame.selfDuration[this.frame.key];
-      }
-
-      
-      if (this.visibleCells.percentage) {
-        data.totalPercentage = this.frame.samples / this.root.frame.samples * 100;
-      }
-      if (this.visibleCells.selfPercentage) {
-        data.selfPercentage = this.root.frame.selfCount[this.frame.key] / this.root.frame.samples * 100;
-      }
-
-      
-      if (this.visibleCells.samples) {
-        data.samples = this.frame.samples;
-      }
+    
+    if (this.visibleCells.samples) {
+      data.samples = this.frame.youngestFrameSamples;
     }
 
     

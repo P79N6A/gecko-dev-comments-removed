@@ -17,7 +17,7 @@ add_task(function test() {
 
   
 
-  let root = getFrameNodePath(new ThreadNode(gThread, { contentOnly: true }), "(root)");
+  let root = getFrameNodePath(new ThreadNode(gThread, { startTime: 5, endTime: 30, contentOnly: true }), "(root)");
 
   
 

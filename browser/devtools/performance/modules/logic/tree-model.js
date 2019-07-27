@@ -31,13 +31,13 @@ loader.lazyRequireGetter(this, "FrameUtils",
 
 
 function ThreadNode(thread, options = {}) {
+  if (options.endTime == void 0 || options.startTime == void 0) {
+    throw new Error("ThreadNode requires both `startTime` and `endTime`.");
+  }
   this.samples = 0;
-  this.duration = 0;
+  this.youngestFrameSamples = 0;
   this.calls = [];
-
-  
-  this.selfCount = Object.create(null);
-  this.selfDuration = Object.create(null);
+  this.duration = options.endTime - options.startTime;
 
   let { samples, stackTable, frameTable, stringTable, allocationsTable } = thread;
 
@@ -120,9 +120,6 @@ ThreadNode.prototype = {
     const InflatedFrame = FrameUtils.InflatedFrame;
     const getOrAddInflatedFrame = FrameUtils.getOrAddInflatedFrame;
 
-    let selfCount = this.selfCount;
-    let selfDuration = this.selfDuration;
-
     let samplesData = samples.data;
     let stacksData = stackTable.data;
 
@@ -130,8 +127,8 @@ ThreadNode.prototype = {
     let inflatedFrameCache = FrameUtils.getInflatedFrameCache(frameTable);
     let leafTable = Object.create(null);
 
-    let startTime = options.startTime || 0
-    let endTime = options.endTime || Infinity;
+    let startTime = options.startTime;
+    let endTime = options.endTime;
     let flattenRecursion = options.flattenRecursion;
 
     
@@ -163,7 +160,6 @@ ThreadNode.prototype = {
         continue;
       }
 
-      let sampleDuration = sampleTime - prevSampleTime;
       let stackIndex = sample[SAMPLE_STACK_SLOT];
       let calls = this.calls;
       let prevCalls = this.calls;
@@ -224,21 +220,8 @@ ThreadNode.prototype = {
         let frameKey = inflatedFrame.getFrameKey(mutableFrameKeyOptions);
 
         
-        
-        if (isLeaf) {
-          
-          
-          if (selfCount[frameKey] === undefined) {
-            selfCount[frameKey] = 0;
-            selfDuration[frameKey] = 0;
-          }
-          selfCount[frameKey]++;
-          selfDuration[frameKey] += sampleDuration;
-        } else {
-          
-          if (frameKey === "") {
-            continue;
-          }
+        if (frameKey === "") {
+          continue;
         }
 
         
@@ -250,18 +233,18 @@ ThreadNode.prototype = {
         let frameNode = getOrAddFrameNode(calls, isLeaf, frameKey, inflatedFrame,
                                           mutableFrameKeyOptions.isMetaCategoryOut,
                                           leafTable);
-
-        frameNode._countSample(prevSampleTime, sampleTime, inflatedFrame.optimizations,
-                               stringTable);
+        if (isLeaf) {
+          frameNode.youngestFrameSamples++;
+        }
+        frameNode.samples++;
+        frameNode._addOptimizations(inflatedFrame.optimizations, stringTable);
 
         prevFrameKey = frameKey;
         prevCalls = frameNode.calls;
         isLeaf = mutableFrameKeyOptions.isLeaf = false;
       }
 
-      this.duration += sampleDuration;
       this.samples++;
-      prevSampleTime = sampleTime;
     }
   },
 
@@ -367,13 +350,25 @@ ThreadNode.prototype = {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 function FrameNode(frameKey, { location, line, category, allocations, isContent }, isMetaCategory) {
   this.key = frameKey;
   this.location = location;
   this.line = line;
   this.allocations = allocations;
+  this.youngestFrameSamples = 0;
   this.samples = 0;
-  this.duration = 0;
   this.calls = [];
   this.isContent = !!isContent;
   this._optimizations = null;
@@ -392,14 +387,7 @@ FrameNode.prototype = {
 
 
 
-
-
-
-
-  _countSample: function (prevSampleTime, sampleTime, optimizationSite, stringTable) {
-    this.samples++;
-    this.duration += sampleTime - prevSampleTime;
-
+  _addOptimizations: function (optimizationSite, stringTable) {
     
     
     if (optimizationSite) {
@@ -424,7 +412,7 @@ FrameNode.prototype = {
     }
 
     this.samples += otherNode.samples;
-    this.duration += otherNode.duration;
+    this.youngestFrameSamples += otherNode.youngestFrameSamples;
 
     if (otherNode._optimizations) {
       let opts = this._optimizations;
