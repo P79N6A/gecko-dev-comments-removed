@@ -141,7 +141,8 @@ function add_tests(certDB, otherTestCA) {
   
   
   add_ocsp_test("keysize-ocsp-delegated.example.com",
-                getXPCOMStatusFromNSS(SEC_ERROR_INVALID_KEY), true);
+                getXPCOMStatusFromNSS(MOZILLA_PKIX_ERROR_INADEQUATE_KEY_SIZE),
+                true);
 }
 
 function check_ocsp_stapling_telemetry() {
