@@ -132,7 +132,9 @@ protected:
   void Append(nsIFile* aDirectory);
 
   nsCOMPtr<nsIDirectoryServiceProvider> mAppProvider;
+  
   nsCOMPtr<nsIFile>      mGREDir;
+  
   nsCOMPtr<nsIFile>      mXULAppDir;
   nsCOMPtr<nsIFile>      mProfileDir;
   nsCOMPtr<nsIFile>      mProfileLocalDir;
