@@ -657,10 +657,31 @@ CreateConfig(EGLConfig* aConfig, int32_t depth)
         return false;
     }
 
+#ifdef MOZ_WIDGET_GONK
+    
+    
+    
+    
+    
+    
+    
+    
+    for (int j = 0; j < ncfg; ++j) {
+        EGLConfig config = configs[j];
+        EGLint format;
+        if (sEGLLibrary.fGetConfigAttrib(EGL_DISPLAY(), config,
+                                         LOCAL_EGL_NATIVE_VISUAL_ID, &format) &&
+            format == GetGonkDisplay()->surfaceformat)
+        {
+            *aConfig = config;
+            return true;
+        }
+    }
+#endif
+
     for (int j = 0; j < ncfg; ++j) {
         EGLConfig config = configs[j];
         EGLint r, g, b, a;
-
         if (sEGLLibrary.fGetConfigAttrib(EGL_DISPLAY(), config,
                                          LOCAL_EGL_RED_SIZE, &r) &&
             sEGLLibrary.fGetConfigAttrib(EGL_DISPLAY(), config,
