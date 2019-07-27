@@ -332,6 +332,12 @@ public:
 
 
 
+  bool IsMovingFast() const;
+
+  
+
+
+
 
   int32_t GetLastTouchIdentifier() const;
 

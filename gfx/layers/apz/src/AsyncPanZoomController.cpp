@@ -1028,7 +1028,7 @@ nsEventStatus AsyncPanZoomController::ReceiveInputEvent(const InputData& aEvent)
     
     
     if (block == CurrentTouchBlock()) {
-      if (GetVelocityVector().Length() > gfxPrefs::APZFlingStopOnTapThreshold()) {
+      if (block->GetOverscrollHandoffChain()->HasFastMovingApzc()) {
         
         
         block->DisallowSingleTap();
@@ -2328,6 +2328,11 @@ bool AsyncPanZoomController::SnapBackIfOverscrolled() {
     return true;
   }
   return false;
+}
+
+bool AsyncPanZoomController::IsMovingFast() const {
+  ReentrantMonitorAutoEnter lock(mMonitor);
+  return (GetVelocityVector().Length() > gfxPrefs::APZFlingStopOnTapThreshold());
 }
 
 bool AsyncPanZoomController::IsPannable() const {

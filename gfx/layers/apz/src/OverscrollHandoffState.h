@@ -108,6 +108,10 @@ public:
 
   
   bool HasOverscrolledApzc() const;
+
+  
+  bool HasFastMovingApzc() const;
+
 private:
   std::vector<nsRefPtr<AsyncPanZoomController>> mChain;
 
