@@ -139,11 +139,13 @@ AudioSink::AudioLoop()
   }
 
   while (1) {
-    WaitForAudioToPlay();
-    if (!IsPlaybackContinuing()) {
-      break;
+    {
+      ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
+      WaitForAudioToPlay();
+      if (!IsPlaybackContinuing()) {
+        break;
+      }
     }
-
     
     
     
@@ -176,7 +178,8 @@ AudioSink::AudioLoop()
     }
   }
   ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
-  if (!mStopAudioThread && AudioQueue().AtEndOfStream()) {
+  MOZ_ASSERT(mStopAudioThread || AudioQueue().AtEndOfStream());
+  if (!mStopAudioThread && mPlaying) {
     Drain();
   }
   SINK_LOG("AudioLoop complete");
@@ -238,19 +241,19 @@ AudioSink::WaitForAudioToPlay()
 {
   
   
-  ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
+  AssertCurrentThreadInMonitor();
   while (!mStopAudioThread && (!mPlaying || ExpectMoreAudioData())) {
     if (!mPlaying && !mAudioStream->IsPaused()) {
       mAudioStream->Pause();
     }
-    mon.Wait();
+    GetReentrantMonitor().Wait();
   }
 }
 
 bool
 AudioSink::IsPlaybackContinuing()
 {
-  ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
+  AssertCurrentThreadInMonitor();
   if (mPlaying && mAudioStream->IsPaused()) {
     mAudioStream->Resume();
   }
