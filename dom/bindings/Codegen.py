@@ -1216,6 +1216,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
             def addHeadersForType(f):
                 if f.nullable():
                     headers.add("mozilla/dom/Nullable.h")
+                isSequence = f.isSequence()
                 f = f.unroll()
                 if f.isInterface():
                     if f.isSpiderMonkeyInterface():
@@ -1227,7 +1228,11 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
                                 typeDesc = p.getDescriptor(f.inner.identifier.name)
                             except NoSuchDescriptorError:
                                 continue
-                            if typeDesc.interface.isCallback():
+                            if typeDesc.interface.isCallback() or isSequence:
+                                
+                                
+                                
+                                
                                 
                                 
                                 
@@ -4651,7 +4656,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
     if type.isSpiderMonkeyInterface():
         assert not isEnforceRange and not isClamp
-        name = type.name
+        name = type.unroll().name 
         arrayType = CGGeneric(name)
         declType = arrayType
         if type.nullable():
@@ -6202,8 +6207,6 @@ def getUnionMemberName(type):
         return type.inner.identifier.name
     if type.isEnum():
         return type.inner.identifier.name
-    if type.isArray() or type.isSequence() or type.isMozMap():
-        return str(type)
     return type.name
 
 
@@ -12448,7 +12451,8 @@ class CGNativeMember(ClassMethod):
             if not self.typedArraysAreStructs:
                 return "JS::Handle<JSObject*>", False, False
 
-            return type.name, True, True
+            
+            return type.unroll().name, True, True
 
         if type.isDOMString() or type.isScalarValueString():
             if isMember:
