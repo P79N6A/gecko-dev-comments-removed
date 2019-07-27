@@ -4229,17 +4229,13 @@ FrameLayerBuilder::DrawThebesLayer(ThebesLayer* aLayer,
   
   gfxContextMatrixAutoSaveRestore saveMatrix(aContext);
   nsIntPoint offset = GetTranslationForThebesLayer(aLayer);
-  nsPresContext* presContext = entry->mContainerLayerFrame->PresContext();
 
-  if (!layerBuilder->GetContainingThebesLayerData()) {
-    
-    
-    
-    int32_t appUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();
-    RecomputeVisibilityForItems(entry->mItems, builder, aRegionToDraw,
-                                offset, appUnitsPerDevPixel,
-                                userData->mXScale, userData->mYScale);
-  }
+  nsPresContext* presContext = entry->mContainerLayerFrame->PresContext();
+  int32_t appUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();
+
+  RecomputeVisibilityForItems(entry->mItems, builder, aRegionToDraw,
+                              offset, appUnitsPerDevPixel,
+                              userData->mXScale, userData->mYScale);
 
   nsRefPtr<nsRenderingContext> rc = new nsRenderingContext();
   rc->Init(presContext->DeviceContext(), aContext);
