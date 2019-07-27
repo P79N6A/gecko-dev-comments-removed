@@ -1777,17 +1777,7 @@ class LazyScript : public gc::BarrieredCell<LazyScript>
 
     void initScript(JSScript *script);
     void resetScript();
-    void markScript(JSTracer *trc);
     JSScript *maybeScript() {
-        
-        
-        
-        if (script_) {
-            if (gc::IsAboutToBeFinalized(&script_))
-                script_ = nullptr;
-            else
-                JSScript::readBarrier(script_);
-        }
         return script_;
     }
 

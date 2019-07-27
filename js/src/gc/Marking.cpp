@@ -489,11 +489,20 @@ IsAboutToBeFinalized(T **thingp)
 #endif  
 
     Zone *zone = thing->tenuredZone();
-    if (zone->isGCSweeping())
-        return !(thing->isMarked() || thing->arenaHeader()->allocatedDuringIncremental);
+    if (zone->isGCSweeping()) {
+        
 
+
+
+
+
+
+        JS_ASSERT_IF(!rt->isHeapMinorCollecting(), !thing->arenaHeader()->allocatedDuringIncremental);
+
+        return !thing->isMarked();
+    }
 #ifdef JSGC_COMPACTING
-    if (zone->isGCCompacting() && IsForwarded(thing)) {
+    else if (zone->isGCCompacting() && IsForwarded(thing)) {
         *thingp = Forwarded(thing);
         return false;
     }
