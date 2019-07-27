@@ -13,6 +13,24 @@
 
 #include <string>
 
+#if defined(XP_WIN) && defined(MOZ_SANDBOX)
+#include "mozilla/sandboxTarget.h"
+#endif
+
+#if defined(HASH_NODE_ID_WITH_DEVICE_ID)
+
+
+
+
+
+
+
+
+#include "rlz/lib/machine_id.h"
+#include "rlz/lib/string_utils.h"
+#include "sha256.h"
+#endif
+
 namespace mozilla {
 namespace gmp {
 
@@ -58,9 +76,41 @@ GMPLoaderImpl::Load(const char* aLibPath,
                     uint32_t aOriginSaltLen,
                     const GMPPlatformAPI* aPlatformAPI)
 {
-  std::string nodeId(aOriginSalt, aOriginSalt + aOriginSaltLen);
+  std::string nodeId;
+#ifdef HASH_NODE_ID_WITH_DEVICE_ID
+  if (aOriginSaltLen > 0) {
+    string16 deviceId;
+    int volumeId;
+    if (!rlz_lib::GetRawMachineId(&deviceId, &volumeId)) {
+      return false;
+    }
 
-  
+    SHA256Context ctx;
+    SHA256_Begin(&ctx);
+    SHA256_Update(&ctx, (const uint8_t*)aOriginSalt, aOriginSaltLen);
+    SHA256_Update(&ctx, (const uint8_t*)deviceId.c_str(), deviceId.size() * sizeof(string16::value_type));
+    SHA256_Update(&ctx, (const uint8_t*)&volumeId, sizeof(int));
+    uint8_t digest[SHA256_LENGTH] = {0};
+    unsigned int digestLen = 0;
+    SHA256_End(&ctx, digest, &digestLen, SHA256_LENGTH);
+
+    
+    
+    
+    memset(&ctx, 0, sizeof(ctx));
+    memset(aOriginSalt, 0, aOriginSaltLen);
+    volumeId = 0;
+    memset(&deviceId[0], '*', sizeof(string16::value_type) * deviceId.size());
+    deviceId = L"";
+
+    if (!rlz_lib::BytesToString(digest, SHA256_LENGTH, &nodeId)) {
+      return false;
+    }
+  } else
+#endif
+  {
+    nodeId = std::string(aOriginSalt, aOriginSalt + aOriginSaltLen);
+  }
 
 #if defined(MOZ_GMP_SANDBOX)
   
@@ -87,6 +137,11 @@ GMPLoaderImpl::Load(const char* aLibPath,
 
   if (initFunc(aPlatformAPI) != GMPNoErr) {
     return false;
+  }
+
+  GMPSetNodeIdFunc setNodeIdFunc = reinterpret_cast<GMPSetNodeIdFunc>(PR_FindFunctionSymbol(mLib, "GMPSetNodeId"));
+  if (setNodeIdFunc) {
+    setNodeIdFunc(nodeId.c_str(), nodeId.size());
   }
 
   mGetAPIFunc = reinterpret_cast<GMPGetAPIFunc>(PR_FindFunctionSymbol(mLib, "GMPGetAPI"));

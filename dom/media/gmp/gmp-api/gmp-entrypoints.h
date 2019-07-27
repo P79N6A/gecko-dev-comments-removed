@@ -63,4 +63,10 @@ typedef GMPErr (*GMPGetAPIFunc)(const char* aAPIName, void* aHostAPI, void** aPl
 
 typedef void   (*GMPShutdownFunc)(void);
 
+
+
+
+
+typedef void   (*GMPSetNodeIdFunc)(const char* aNodeId, uint32_t aLength);
+
 #endif 
