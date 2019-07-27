@@ -448,7 +448,8 @@ SwitchToUpdatedApp(nsIFile *greDir, nsIFile *updateDir,
   
   
   
-
+  
+#ifndef XP_WIN
   nsCOMPtr<nsIFile> mozUpdaterDir;
   rv = updateDir->Clone(getter_AddRefs(mozUpdaterDir));
   if (NS_FAILED(rv)) {
@@ -471,6 +472,7 @@ SwitchToUpdatedApp(nsIFile *greDir, nsIFile *updateDir,
     LOG(("failed copying updater\n"));
     return;
   }
+#endif
 
   
   
@@ -490,15 +492,28 @@ SwitchToUpdatedApp(nsIFile *greDir, nsIFile *updateDir,
 #ifdef XP_WIN
   nsAutoString appFilePathW;
   rv = appFile->GetPath(appFilePathW);
-  if (NS_FAILED(rv))
+  if (NS_FAILED(rv)) {
     return;
+  }
   NS_ConvertUTF16toUTF8 appFilePath(appFilePathW);
+
+  nsCOMPtr<nsIFile> updater;
+  rv = greDir->Clone(getter_AddRefs(updater));
+  if (NS_FAILED(rv)) {
+    return;
+  }
+
+  nsDependentCString leaf(kUpdaterBin);
+  rv = updater->AppendNative(leaf);
+  if (NS_FAILED(rv)) {
+    return;
+  }
 
   nsAutoString updaterPathW;
   rv = updater->GetPath(updaterPathW);
-  if (NS_FAILED(rv))
+  if (NS_FAILED(rv)) {
     return;
-
+  }
   NS_ConvertUTF16toUTF8 updaterPath(updaterPathW);
 #else
 
@@ -720,12 +735,13 @@ ApplyUpdate(nsIFile *greDir, nsIFile *updateDir, nsIFile *statusFile,
   
   
   
-
+#ifndef XP_WIN
   nsCOMPtr<nsIFile> updater;
   if (!CopyUpdaterIntoUpdateDir(greDir, appDir, updateDir, updater)) {
     LOG(("failed copying updater\n"));
     return;
   }
+#endif
 
   
   
@@ -745,17 +761,29 @@ ApplyUpdate(nsIFile *greDir, nsIFile *updateDir, nsIFile *statusFile,
 #ifdef XP_WIN
   nsAutoString appFilePathW;
   rv = appFile->GetPath(appFilePathW);
-  if (NS_FAILED(rv))
+  if (NS_FAILED(rv)) {
     return;
+  }
   NS_ConvertUTF16toUTF8 appFilePath(appFilePathW);
+
+  nsCOMPtr<nsIFile> updater;
+  rv = greDir->Clone(getter_AddRefs(updater));
+  if (NS_FAILED(rv)) {
+    return;
+  }
+
+  nsDependentCString leaf(kUpdaterBin);
+  rv = updater->AppendNative(leaf);
+  if (NS_FAILED(rv)) {
+    return;
+  }
 
   nsAutoString updaterPathW;
   rv = updater->GetPath(updaterPathW);
-  if (NS_FAILED(rv))
+  if (NS_FAILED(rv)) {
     return;
-
+  }
   NS_ConvertUTF16toUTF8 updaterPath(updaterPathW);
-
 #else
   nsAutoCString appFilePath;
   rv = appFile->GetNativePath(appFilePath);
