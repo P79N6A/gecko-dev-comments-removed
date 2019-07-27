@@ -4445,18 +4445,11 @@ FoldMaskedArrayIndex(FunctionCompiler &f, ParseNode **indexExpr, int32_t *mask,
     if (IsLiteralOrConstInt(f, maskNode, &mask2)) {
         
         
-        if (mask2 == 0) {
+        
+        
+        
+        if (int32_t(mask2) >= 0 && mask2 < f.m().minHeapLength())
             *needsBoundsCheck = NO_BOUNDS_CHECK;
-        } else {
-            uint32_t minHeap = f.m().minHeapLength();
-            uint32_t minHeapZeroes = CountLeadingZeroes32(minHeap - 1);
-            uint32_t maskZeroes = CountLeadingZeroes32(mask2);
-            if ((minHeapZeroes < maskZeroes) ||
-                (IsPowerOfTwo(minHeap) && minHeapZeroes == maskZeroes))
-            {
-                *needsBoundsCheck = NO_BOUNDS_CHECK;
-            }
-        }
         *mask &= mask2;
         *indexExpr = indexNode;
         return true;
