@@ -486,6 +486,7 @@ let AboutReaderListener = {
   init: function() {
     addEventListener("AboutReaderContentLoaded", this, false, true);
     addEventListener("DOMContentLoaded", this, false);
+    addEventListener("pageshow", this, false);
     addEventListener("pagehide", this, false);
     addMessageListener("Reader:ParseDocument", this);
   },
@@ -525,6 +526,13 @@ let AboutReaderListener = {
         sendAsyncMessage("Reader:UpdateReaderButton", { isArticle: false });
         break;
 
+      case "pageshow":
+        
+        
+        if (!aEvent.persisted) {
+          break;
+        }
+        
       case "DOMContentLoaded":
         if (!ReaderMode.isEnabledForParseOnLoad || this.isAboutReader) {
           return;
