@@ -495,9 +495,10 @@ public:
   {
   }
 
-  struct ReadSegmentsState
+  struct MOZ_STACK_CLASS ReadSegmentsState
   {
-    nsIOutputStream* mSink;
+    
+    nsIOutputStream* MOZ_NON_OWNING_REF mSink;
     nsresult         mSinkCondition;
   };
 
@@ -544,9 +545,10 @@ public:
   {
   }
 
-  struct WriteSegmentsState
+  struct MOZ_STACK_CLASS WriteSegmentsState
   {
-    nsIInputStream* mSource;
+    
+    nsIInputStream* MOZ_NON_OWNING_REF mSource;
     nsresult        mSourceCondition;
   };
 
