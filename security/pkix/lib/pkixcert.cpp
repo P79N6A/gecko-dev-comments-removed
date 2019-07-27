@@ -86,8 +86,9 @@ BackCert::Init()
   
   
   
-  SECAlgorithmID signature;
-  if (der::AlgorithmIdentifier(tbsCertificate, signature) != der::Success) {
+  SignatureAlgorithm signature;
+  if (der::SignatureAlgorithmIdentifier(tbsCertificate, signature)
+        != der::Success) {
     return MapSECStatus(SECFailure);
   }
   if (der::ExpectTagAndGetTLV(tbsCertificate, der::SEQUENCE, issuer)

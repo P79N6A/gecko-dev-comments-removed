@@ -39,7 +39,7 @@
 
 #include "pkix/enumclass.h"
 #include "pkix/nullptr.h"
-
+#include "pkix/pkixtypes.h"
 #include "prerror.h"
 #include "prtime.h"
 #include "secerr.h"
@@ -600,29 +600,6 @@ OID(Input& input, const uint8_t (&expectedOid)[Len])
 
 
 
-
-
-
-inline Result
-AlgorithmIdentifier(Input& input, SECAlgorithmID& algorithmID)
-{
-  Input value;
-  if (ExpectTagAndGetValue(input, der::SEQUENCE, value) != Success) {
-    return Failure;
-  }
-  if (ExpectTagAndGetValue(value, OIDTag, algorithmID.algorithm) != Success) {
-    return Failure;
-  }
-  algorithmID.parameters.data = nullptr;
-  algorithmID.parameters.len = 0;
-  if (!value.AtEnd()) {
-    if (Null(value) != Success) {
-      return Failure;
-    }
-  }
-  return End(value);
-}
-
 inline Result
 CertificateSerialNumber(Input& input,  SECItem& value)
 {
@@ -766,6 +743,11 @@ OptionalExtensions(Input& input, uint8_t tag, ExtensionHandler extensionHandler)
   return Success;
 }
 
+Result DigestAlgorithmIdentifier(Input& input,
+                                  DigestAlgorithm& algorithm);
+
+Result SignatureAlgorithmIdentifier(Input& input,
+                                     SignatureAlgorithm& algorithm);
 
 
 
@@ -782,8 +764,9 @@ OptionalExtensions(Input& input, uint8_t tag, ExtensionHandler extensionHandler)
 
 
 
-Result
-SignedData(Input& input,  Input& tbs,  CERTSignedData& signedData);
+
+Result SignedData(Input& input,  Input& tbs,
+                   SignedDataWithSignature& signedDataWithSignature);
 
 } } } 
 

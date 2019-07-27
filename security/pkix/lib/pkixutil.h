@@ -103,7 +103,7 @@ public:
 
   const SECItem& GetDER() const { return der; }
   const der::Version GetVersion() const { return version; }
-  const CERTSignedData& GetSignedData() const { return signedData; }
+  const SignedDataWithSignature& GetSignedData() const { return signedData; }
   const SECItem& GetIssuer() const { return issuer; }
   
   
@@ -169,11 +169,8 @@ private:
       len = 0;
     }
   };
-  struct NonOwningCERTSignedData : public CERTSignedDataStr {
-    NonOwningCERTSignedData() { memset(this, 0, sizeof(*this)); }
-  };
 
-  NonOwningCERTSignedData signedData;
+  SignedDataWithSignature signedData;
   NonOwningSECItem issuer;
   
   

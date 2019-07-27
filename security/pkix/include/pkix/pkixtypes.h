@@ -25,13 +25,73 @@
 #ifndef mozilla_pkix__pkixtypes_h
 #define mozilla_pkix__pkixtypes_h
 
-#include "cert.h"
 #include "pkix/enumclass.h"
+#include "pkix/nullptr.h"
+#include "prtime.h"
 #include "seccomon.h"
-#include "secport.h"
 #include "stdint.h"
 
 namespace mozilla { namespace pkix {
+
+MOZILLA_PKIX_ENUM_CLASS DigestAlgorithm
+{
+  sha512 = 1,
+  sha384 = 2,
+  sha256 = 3,
+  sha1 = 4,
+};
+
+
+
+
+
+MOZILLA_PKIX_ENUM_CLASS SignatureAlgorithm
+{
+  
+  ecdsa_with_sha512 = 1,
+
+  
+  ecdsa_with_sha384 = 4,
+
+  
+  ecdsa_with_sha256 = 7,
+
+  
+  ecdsa_with_sha1 = 10,
+
+  
+  rsa_pkcs1_with_sha512 = 13,
+
+  
+  rsa_pkcs1_with_sha384 = 14,
+
+  
+  rsa_pkcs1_with_sha256 = 15,
+
+  
+  rsa_pkcs1_with_sha1 = 16,
+
+  
+  dsa_with_sha256 = 17,
+
+  
+  dsa_with_sha1 = 18,
+};
+
+struct SignedDataWithSignature
+{
+public:
+  SignedDataWithSignature()
+  {
+    data.data = nullptr;
+    data.len = 0;
+    signature.data = nullptr;
+    signature.len = 0;
+  }
+  SECItem data; 
+  SignatureAlgorithm algorithm;
+  SECItem signature; 
+};
 
 MOZILLA_PKIX_ENUM_CLASS EndEntityOrCA { MustBeEndEntity = 0, MustBeCA = 1 };
 
@@ -212,13 +272,6 @@ public:
   
   
   
-  virtual SECStatus VerifySignedData(const CERTSignedData& signedData,
-                                     const SECItem& subjectPublicKeyInfo) = 0;
-
-  
-  
-  
-  
   
   
   
@@ -245,6 +298,12 @@ public:
                         const SECItem* stapledOCSPresponse,
                         const SECItem* aiaExtension) = 0;
 
+  
+  
+  
+  
+  virtual SECStatus VerifySignedData(const SignedDataWithSignature& signedData,
+                                     const SECItem& subjectPublicKeyInfo) = 0;
 protected:
   TrustDomain() { }
 

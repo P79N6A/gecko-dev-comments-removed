@@ -92,8 +92,193 @@ ExpectTagAndGetLength(Input& input, uint8_t expectedTag, uint16_t& length)
 
 } 
 
+static Result
+OptionalNull(Input& input)
+{
+  if (input.Peek(NULLTag)) {
+    return Null(input);
+  }
+  return Success;
+}
+
+namespace {
+
 Result
-SignedData(Input& input,  Input& tbs,  CERTSignedData& signedData)
+DigestAlgorithmOIDValue(Input& algorithmID,  DigestAlgorithm& algorithm)
+{
+  
+  
+  static const uint8_t id_sha1[] = {
+    0x2b, 0x0e, 0x03, 0x02, 0x1a
+  };
+  
+  static const uint8_t id_sha256[] = {
+    0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01
+  };
+  
+  static const uint8_t id_sha384[] = {
+    0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x02
+  };
+  
+  static const uint8_t id_sha512[] = {
+    0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x03
+  };
+
+  
+  
+  if (algorithmID.MatchRest(id_sha1)) {
+    algorithm = DigestAlgorithm::sha1;
+  } else if (algorithmID.MatchRest(id_sha256)) {
+    algorithm = DigestAlgorithm::sha256;
+  } else if (algorithmID.MatchRest(id_sha384)) {
+    algorithm = DigestAlgorithm::sha384;
+  } else if (algorithmID.MatchRest(id_sha512)) {
+    algorithm = DigestAlgorithm::sha512;
+  } else {
+    return Fail(SEC_ERROR_INVALID_ALGORITHM);
+  }
+
+  return Success;
+}
+
+Result
+SignatureAlgorithmOIDValue(Input& algorithmID,
+                            SignatureAlgorithm& algorithm)
+{
+  
+  
+  static const uint8_t id_dsa_with_sha256[] = {
+    0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x03, 0x02
+  };
+
+  
+  
+  static const uint8_t ecdsa_with_SHA256[] = {
+    0x2a, 0x86, 0x48, 0xce, 0x3d, 0x04, 0x03, 0x02
+  };
+  
+  static const uint8_t ecdsa_with_SHA384[] = {
+    0x2a, 0x86, 0x48, 0xce, 0x3d, 0x04, 0x03, 0x03
+  };
+  
+  static const uint8_t ecdsa_with_SHA512[] = {
+    0x2a, 0x86, 0x48, 0xce, 0x3d, 0x04, 0x03, 0x04
+  };
+
+  
+  
+  static const uint8_t sha256WithRSAEncryption[] = {
+    0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x0b
+  };
+  
+  static const uint8_t sha384WithRSAEncryption[] = {
+    0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x0c
+  };
+  
+  static const uint8_t sha512WithRSAEncryption[] = {
+    0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x0d
+  };
+
+  
+  
+  static const uint8_t sha_1WithRSAEncryption[] = {
+    0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x05
+  };
+
+  
+  
+  static const uint8_t id_dsa_with_sha1[] = {
+    0x2a, 0x86, 0x48, 0xce, 0x38, 0x04, 0x03
+  };
+
+  
+  
+  static const uint8_t ecdsa_with_SHA1[] = {
+    0x2a, 0x86, 0x48, 0xce, 0x3d, 0x04, 0x01
+  };
+
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  if (algorithmID.MatchRest(sha256WithRSAEncryption)) {
+    algorithm = SignatureAlgorithm::rsa_pkcs1_with_sha256;
+  } else if (algorithmID.MatchRest(ecdsa_with_SHA256)) {
+    algorithm = SignatureAlgorithm::ecdsa_with_sha256;
+  } else if (algorithmID.MatchRest(sha_1WithRSAEncryption)) {
+    algorithm = SignatureAlgorithm::rsa_pkcs1_with_sha1;
+  } else if (algorithmID.MatchRest(ecdsa_with_SHA1)) {
+    algorithm = SignatureAlgorithm::ecdsa_with_sha1;
+  } else if (algorithmID.MatchRest(ecdsa_with_SHA384)) {
+    algorithm = SignatureAlgorithm::ecdsa_with_sha384;
+  } else if (algorithmID.MatchRest(ecdsa_with_SHA512)) {
+    algorithm = SignatureAlgorithm::ecdsa_with_sha512;
+  } else if (algorithmID.MatchRest(sha384WithRSAEncryption)) {
+    algorithm = SignatureAlgorithm::rsa_pkcs1_with_sha384;
+  } else if (algorithmID.MatchRest(sha512WithRSAEncryption)) {
+    algorithm = SignatureAlgorithm::rsa_pkcs1_with_sha512;
+  } else if (algorithmID.MatchRest(id_dsa_with_sha1)) {
+    algorithm = SignatureAlgorithm::dsa_with_sha1;
+  } else if (algorithmID.MatchRest(id_dsa_with_sha256)) {
+    algorithm = SignatureAlgorithm::dsa_with_sha256;
+  } else {
+    
+    return Fail(SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED);
+  }
+
+  return Success;
+}
+
+template <typename OidValueParser, typename Algorithm>
+Result
+AlgorithmIdentifier(OidValueParser oidValueParser, Input& input,
+                     Algorithm& algorithm)
+{
+  Input value;
+  if (ExpectTagAndGetValue(input, SEQUENCE, value) != Success) {
+    return Failure;
+  }
+
+  Input algorithmID;
+  if (ExpectTagAndGetValue(value, der::OIDTag, algorithmID) != Success) {
+    return Failure;
+  }
+  if (oidValueParser(algorithmID, algorithm) != Success) {
+    return Failure;
+  }
+
+  if (OptionalNull(value) != Success) {
+    return Failure;
+  }
+
+  return End(value);
+}
+
+} 
+
+Result
+SignatureAlgorithmIdentifier(Input& input,
+                              SignatureAlgorithm& algorithm)
+{
+  return AlgorithmIdentifier(SignatureAlgorithmOIDValue, input, algorithm);
+}
+
+Result
+DigestAlgorithmIdentifier(Input& input,  DigestAlgorithm& algorithm)
+{
+  return AlgorithmIdentifier(DigestAlgorithmOIDValue, input, algorithm);
+}
+
+Result
+SignedData(Input& input,  Input& tbs,
+            SignedDataWithSignature& signedData)
 {
   Input::Mark mark(input.GetMark());
 
@@ -105,7 +290,7 @@ SignedData(Input& input,  Input& tbs,  CERTSignedData& signedData)
     return Failure;
   }
 
-  if (AlgorithmIdentifier(input, signedData.signatureAlgorithm) != Success) {
+  if (SignatureAlgorithmIdentifier(input, signedData.algorithm) != Success) {
     return Failure;
   }
 
@@ -128,7 +313,6 @@ SignedData(Input& input,  Input& tbs,  CERTSignedData& signedData)
   }
   ++signedData.signature.data;
   --signedData.signature.len;
-  signedData.signature.len = (signedData.signature.len << 3); 
 
   return Success;
 }
