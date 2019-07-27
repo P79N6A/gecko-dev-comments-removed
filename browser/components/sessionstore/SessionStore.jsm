@@ -75,6 +75,16 @@ const FMM_MESSAGES = [
 ];
 
 
+
+const FMM_NOTAB_MESSAGES = new Set([
+  
+  "SessionStore:setupSyncHandler",
+
+  
+  "SessionStore:update",
+]);
+
+
 const PPMM_MESSAGES = [
   
   
@@ -605,9 +615,12 @@ let SessionStoreInternal = {
     var browser = aMessage.target;
     var win = browser.ownerDocument.defaultView;
     let tab = win.gBrowser.getTabForBrowser(browser);
-    if (!tab) {
-      
-      return;
+
+    
+    
+    if (!tab && !FMM_NOTAB_MESSAGES.has(aMessage.name)) {
+      throw new Error(`received unexpected message '${aMessage.name}' ` +
+                      `from a browser that has no tab`);
     }
 
     switch (aMessage.name) {
@@ -691,7 +704,7 @@ let SessionStoreInternal = {
         }
         break;
       default:
-        debug(`received unknown message '${aMessage.name}'`);
+        throw new Error(`received unknown message '${aMessage.name}'`);
         break;
     }
   },
