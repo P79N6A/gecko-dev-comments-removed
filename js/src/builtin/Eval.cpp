@@ -76,13 +76,6 @@ EvalCacheHashPolicy::match(const EvalCacheEntry &cacheEntry, const EvalCacheLook
 }
 
 
-
-
-
-
-
-
-
 class EvalScriptGuard
 {
     JSContext *cx_;

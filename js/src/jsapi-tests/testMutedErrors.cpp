@@ -3,7 +3,6 @@
 
 
 #include "jsfriendapi.h"
-#include "js/OldDebugAPI.h"
 #include "jsapi-tests/tests.h"
 
 static bool sErrorReportMuted = false;

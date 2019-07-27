@@ -5,7 +5,8 @@
 
 
 
-#include "js/OldDebugAPI.h"
+#include "jsapi.h"
+
 #include "jsapi-tests/tests.h"
 
 const char code[] =

@@ -4593,6 +4593,36 @@ JS_GetGlobalFromScript(JSScript *script)
     return &script->global();
 }
 
+JS_PUBLIC_API(const char *)
+JS_GetScriptFilename(JSScript *script)
+{
+    
+    
+    
+    return script->maybeForwardedFilename();
+}
+
+JS_PUBLIC_API(unsigned)
+JS_GetScriptBaseLineNumber(JSContext *cx, JSScript *script)
+{
+    return script->lineno();
+}
+
+JS_PUBLIC_API(JSScript *)
+JS_GetFunctionScript(JSContext *cx, HandleFunction fun)
+{
+    if (fun->isNative())
+        return nullptr;
+    if (fun->isInterpretedLazy()) {
+        AutoCompartment funCompartment(cx, fun);
+        JSScript *script = fun->getOrCreateScript(cx);
+        if (!script)
+            MOZ_CRASH();
+        return script;
+    }
+    return fun->nonLazyScript();
+}
+
 JS_PUBLIC_API(bool)
 JS::CompileFunction(JSContext *cx, HandleObject obj, const ReadOnlyCompileOptions &options,
                     const char *name, unsigned nargs, const char *const *argnames,

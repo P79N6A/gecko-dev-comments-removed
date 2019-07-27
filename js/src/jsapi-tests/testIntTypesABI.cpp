@@ -25,7 +25,6 @@
 #include "js/Id.h"
 
 #include "js/MemoryMetrics.h"
-#include "js/OldDebugAPI.h"
 #include "js/ProfilingStack.h"
 #include "js/PropertyKey.h"
 #include "js/RequiredDefines.h"
