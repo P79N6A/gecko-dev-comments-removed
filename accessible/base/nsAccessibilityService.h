@@ -90,8 +90,7 @@ public:
   
 
 
-  void ContentRemoved(nsIPresShell* aPresShell, nsIContent* aContainer,
-                      nsIContent* aChild);
+  void ContentRemoved(nsIPresShell* aPresShell, nsIContent* aChild);
 
   virtual void UpdateText(nsIPresShell* aPresShell, nsIContent* aContent);
 
