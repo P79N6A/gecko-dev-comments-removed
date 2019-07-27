@@ -234,7 +234,7 @@ class nsCSSScanner {
   
   
   
-  bool NextURL(nsCSSToken& aTokenResult);
+  void NextURL(nsCSSToken& aTokenResult);
 
   
   

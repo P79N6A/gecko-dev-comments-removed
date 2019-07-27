@@ -1149,25 +1149,21 @@ nsCSSScanner::AppendImpliedEOFCharacters(EOFCharacters aEOFCharacters,
 
 
 
-bool
+void
 nsCSSScanner::NextURL(nsCSSToken& aToken)
 {
   SkipWhitespace();
 
-  int32_t ch = Peek();
-  if (ch < 0) {
-    return false;
-  }
-
   
   aToken.mIdent.Truncate();
 
+  int32_t ch = Peek();
   
   if (ch == '"' || ch == '\'') {
     ScanString(aToken);
     if (MOZ_UNLIKELY(aToken.mType == eCSSToken_Bad_String)) {
       aToken.mType = eCSSToken_Bad_URL;
-      return true;
+      return;
     }
     MOZ_ASSERT(aToken.mType == eCSSToken_String, "unexpected token type");
 
@@ -1180,6 +1176,7 @@ nsCSSScanner::NextURL(nsCSSToken& aToken)
   
   SkipWhitespace();
   ch = Peek();
+  
   if (MOZ_LIKELY(ch < 0 || ch == ')')) {
     Advance();
     aToken.mType = eCSSToken_URL;
@@ -1190,7 +1187,6 @@ nsCSSScanner::NextURL(nsCSSToken& aToken)
     mSeenBadToken = true;
     aToken.mType = eCSSToken_Bad_URL;
   }
-  return true;
 }
 
 
