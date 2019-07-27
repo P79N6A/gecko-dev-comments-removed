@@ -496,11 +496,20 @@ CanvasFrameAnonymousContentHelper.prototype = {
 
 
 
+
+
+
+
+
 function AutoRefreshHighlighter(tabActor) {
   this.tabActor = tabActor;
   this.browser = tabActor.browser;
   this.win = tabActor.window;
+
   this.currentNode = null;
+  this.currentQuads = {};
+
+  this.layoutHelpers = new LayoutHelpers(this.win);
 
   this.update = this.update.bind(this);
 }
@@ -513,15 +522,19 @@ AutoRefreshHighlighter.prototype = {
 
 
   show: function(node, options={}) {
-    if (!isNodeValid(node) || node === this.currentNode) {
+    let isSameNode = node === this.currentNode;
+    let isSameOptions = this._isSameOptions(options);
+
+    if (!isNodeValid(node) || (isSameNode && isSameOptions)) {
       return;
     }
 
     this.options = options;
 
-    this._detachPageListeners();
+    this._stopRefreshLoop();
     this.currentNode = node;
-    this._attachPageListeners();
+    this._updateAdjustedQuads();
+    this._startRefreshLoop();
     this._show();
   },
 
@@ -534,18 +547,66 @@ AutoRefreshHighlighter.prototype = {
     }
 
     this._hide();
-    this._detachPageListeners();
+    this._stopRefreshLoop();
     this.currentNode = null;
+    this.currentQuads = {};
     this.options = null;
   },
 
   
 
 
+
+  _isSameOptions: function(options) {
+    if (!this.options) {
+      return false;
+    }
+
+    let keys = Object.keys(options);
+
+    if (keys.length !== Object.keys(this.options).length) {
+      return false;
+    }
+
+    for (let key of keys) {
+      if (this.options[key] !== options[key]) {
+        return false;
+      }
+    }
+
+    return true;
+  },
+
+  
+
+
+  _updateAdjustedQuads: function() {
+    for (let region of BOX_MODEL_REGIONS) {
+      this.currentQuads[region] = this.layoutHelpers.getAdjustedQuads(
+        this.currentNode, region);
+    }
+  },
+
+  
+
+
+
+
+  _hasMoved: function() {
+    let oldQuads = JSON.stringify(this.currentQuads);
+    this._updateAdjustedQuads();
+    let newQuads = JSON.stringify(this.currentQuads);
+    return oldQuads !== newQuads;
+  },
+
+  
+
+
   update: function(e) {
-    if (!isNodeValid(this.currentNode)) {
+    if (!isNodeValid(this.currentNode) || !this._hasMoved()) {
       return;
     }
+
     this._update();
   },
 
@@ -567,27 +628,19 @@ AutoRefreshHighlighter.prototype = {
     
   },
 
-  
-
-
-  _attachPageListeners: function() {
-    if (isNodeValid(this.currentNode)) {
-      
-      
-      
-      let target = this.browser || this.win;
-      target.addEventListener("MozAfterPaint", this.update);
-    }
+  _startRefreshLoop: function() {
+    let win = this.currentNode.ownerDocument.defaultView;
+    this.rafID = win.requestAnimationFrame(this._startRefreshLoop.bind(this));
+    this.update();
   },
 
-  
-
-
-  _detachPageListeners: function() {
-    if (isNodeValid(this.currentNode)) {
-      let target = this.browser || this.win;
-      target.removeEventListener("MozAfterPaint", this.update);
+  _stopRefreshLoop: function() {
+    if (!this.rafID) {
+      return;
     }
+    let win = this.currentNode.ownerDocument.defaultView;
+    win.cancelAnimationFrame(this.rafID);
+    this.rafID = null;
   },
 
   destroy: function() {
@@ -597,6 +650,7 @@ AutoRefreshHighlighter.prototype = {
     this.win = null;
     this.browser = null;
     this.currentNode = null;
+    this.layoutHelpers = null;
   }
 };
 
@@ -655,7 +709,6 @@ AutoRefreshHighlighter.prototype = {
 
 function BoxModelHighlighter(tabActor) {
   AutoRefreshHighlighter.call(this, tabActor);
-  this.layoutHelpers = new LayoutHelpers(this.win);
   EventEmitter.decorate(this);
 
   this.markup = new CanvasFrameAnonymousContentHelper(this.tabActor,
@@ -668,9 +721,6 @@ function BoxModelHighlighter(tabActor) {
   this.regionFill = {};
 
   this._currentNode = null;
-
-  
-  this._currentQuads = {};
 }
 
 BoxModelHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.prototype, {
@@ -806,33 +856,11 @@ BoxModelHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.prototype
   
 
 
-
-
-
-
-
-
-  show: function(node, options={}) {
-    if (!isNodeValid(node)) {
-      return;
-    }
-
-    this.options = options;
-
+  _show: function() {
     if (BOX_MODEL_REGIONS.indexOf(this.options.region) == -1)  {
       this.options.region = "content";
     }
 
-    this._detachPageListeners();
-    this.currentNode = node;
-    this._attachPageListeners();
-    this._show();
-  },
-
-  
-
-
-  _show: function() {
     this._update();
     this._trackMutations();
     this.emit("ready");
@@ -927,13 +955,7 @@ BoxModelHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.prototype
 
     if (this._nodeNeedsHighlighting()) {
       for (let boxType of BOX_MODEL_REGIONS) {
-
-        this._currentQuads[boxType] = this.layoutHelpers.getAdjustedQuads(
-          this.currentNode, boxType);
-        if (!this._currentQuads[boxType]) {
-          continue;
-        }
-        let {p1, p2, p3, p4} = this._currentQuads[boxType];
+        let {p1, p2, p3, p4} = this.currentQuads[boxType];
 
         if (this.regionFill[boxType]) {
           this.markup.setAttributeForElement(this.ID_CLASS_PREFIX + boxType,
@@ -985,7 +1007,7 @@ BoxModelHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.prototype
 
   _getOuterBounds: function() {
     for (let region of ["margin", "border", "padding", "content"]) {
-      let quads = this._currentQuads[region];
+      let quads = this.currentQuads[region];
 
       if (!quads) {
         
@@ -1196,8 +1218,6 @@ BoxModelHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.prototype
 function CssTransformHighlighter(tabActor) {
   AutoRefreshHighlighter.call(this, tabActor);
 
-  this.layoutHelpers = new LayoutHelpers(tabActor.window);
-
   this.markup = new CanvasFrameAnonymousContentHelper(this.tabActor,
     this._buildMarkup.bind(this));
 }
@@ -1341,7 +1361,7 @@ CssTransformHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.proto
 
   _update: function() {
     
-    let quad = this.layoutHelpers.getAdjustedQuads(this.currentNode, "border");
+    let quad = this.currentQuads.border;
     if (!quad || quad.bounds.width <= 0 || quad.bounds.height <= 0) {
       this._hideShapes();
       return null;
