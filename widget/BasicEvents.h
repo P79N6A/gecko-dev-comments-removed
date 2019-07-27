@@ -48,7 +48,7 @@ enum EventClassID MOZ_ENUM_TYPE(EventClassIDType)
 
   
   eGestureNotifyEventClass,          
-  NS_SIMPLE_GESTURE_EVENT,           
+  eSimpleGestureEventClass,          
   NS_TOUCH_EVENT,                    
 
   
