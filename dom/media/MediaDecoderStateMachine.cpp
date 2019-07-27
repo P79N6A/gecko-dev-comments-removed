@@ -2487,7 +2487,8 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
       {
         
         ReentrantMonitorAutoExit exitMon(mDecoder->GetReentrantMonitor());
-        mDecodeTaskQueue->Shutdown();
+        mDecodeTaskQueue->BeginShutdown();
+        mDecodeTaskQueue->AwaitShutdownAndIdle();
         mDecodeTaskQueue = nullptr;
       }
 

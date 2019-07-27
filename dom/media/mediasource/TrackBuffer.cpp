@@ -103,7 +103,8 @@ TrackBuffer::Shutdown()
   
   
   mParentDecoder->GetReentrantMonitor().AssertNotCurrentThreadIn();
-  mTaskQueue->Shutdown();
+  mTaskQueue->BeginShutdown();
+  mTaskQueue->AwaitShutdownAndIdle();
   mTaskQueue = nullptr;
 
   ReentrantMonitorAutoEnter mon(mParentDecoder->GetReentrantMonitor());

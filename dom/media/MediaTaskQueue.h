@@ -10,6 +10,7 @@
 #include <queue>
 #include "mozilla/RefPtr.h"
 #include "mozilla/Monitor.h"
+#include "SharedThreadPool.h"
 #include "nsThreadUtils.h"
 
 class nsIRunnable;
@@ -43,10 +44,16 @@ public:
 
   
   
-  void Shutdown();
+  
+  
+  void BeginShutdown();
 
   
   void AwaitIdle();
+
+  
+  
+  void AwaitShutdownAndIdle();
 
   bool IsEmpty();
 
