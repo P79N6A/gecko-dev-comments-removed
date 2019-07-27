@@ -8,12 +8,14 @@
 
 #include "nsAutoPtr.h"
 #include "nsCycleCollectionParticipant.h"
+#include "nsCSSPseudoElements.h"
 #include "nsIDocument.h"
 #include "nsWrapperCache.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/StickyTimeDuration.h"
 #include "mozilla/StyleAnimationValue.h"
 #include "mozilla/TimeStamp.h"
+#include "mozilla/dom/Element.h"
 #include "mozilla/dom/Nullable.h"
 #include "nsSMILKeySpline.h"
 #include "nsStyleStruct.h" 
@@ -128,14 +130,19 @@ class Animation : public nsWrapperCache
 {
 public:
   Animation(nsIDocument* aDocument,
+            Element* aTarget,
+            nsCSSPseudoElements::Type aPseudoType,
             const AnimationTiming &aTiming,
             const nsSubstring& aName)
     : mDocument(aDocument)
+    , mTarget(aTarget)
     , mTiming(aTiming)
     , mName(aName)
     , mIsFinishedTransition(false)
     , mLastNotification(LAST_NOTIFICATION_NONE)
+    , mPseudoType(aPseudoType)
   {
+    MOZ_ASSERT(aTarget, "null animation target is not yet supported");
     SetIsDOMBinding();
   }
 
@@ -157,6 +164,15 @@ public:
   
   
   already_AddRefed<AnimationEffect> GetEffect();
+  Element* GetTarget() const {
+    
+    
+    
+    MOZ_ASSERT(mPseudoType == nsCSSPseudoElements::ePseudo_NotPseudoElement,
+               "Requesting the target of an Animation that targets a"
+               " pseudo-element is not yet supported.");
+    return mTarget;
+  }
 
   void SetParentTime(Nullable<TimeDuration> aParentTime);
 
@@ -249,7 +265,8 @@ protected:
 
   
   
-  nsRefPtr<nsIDocument> mDocument;
+  nsCOMPtr<nsIDocument> mDocument;
+  nsCOMPtr<Element> mTarget;
   Nullable<TimeDuration> mParentTime;
 
   AnimationTiming mTiming;
@@ -260,6 +277,7 @@ protected:
   
   
   uint64_t mLastNotification;
+  nsCSSPseudoElements::Type mPseudoType;
 
   InfallibleTArray<AnimationProperty> mProperties;
 };
