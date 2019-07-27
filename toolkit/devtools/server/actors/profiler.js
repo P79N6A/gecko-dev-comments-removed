@@ -10,6 +10,7 @@ const DevToolsUtils = require("devtools/toolkit/DevToolsUtils.js");
 let DEFAULT_PROFILER_ENTRIES = 1000000;
 let DEFAULT_PROFILER_INTERVAL = 1;
 let DEFAULT_PROFILER_FEATURES = ["js"];
+let DEFAULT_PROFILER_THREADFILTERS = ["GeckoMain"];
 
 
 
@@ -51,6 +52,16 @@ ProfilerActor.prototype = {
 
 
 
+  onGetFeatures: function() {
+    return { features: nsIProfilerModule.GetFeatures([]) };
+  },
+
+  
+
+
+
+
+
 
 
 
@@ -59,7 +70,9 @@ ProfilerActor.prototype = {
       (request.entries || DEFAULT_PROFILER_ENTRIES),
       (request.interval || DEFAULT_PROFILER_INTERVAL),
       (request.features || DEFAULT_PROFILER_FEATURES),
-      (request.features || DEFAULT_PROFILER_FEATURES).length);
+      (request.features || DEFAULT_PROFILER_FEATURES).length,
+      (request.threadFilters || DEFAULT_PROFILER_THREADFILTERS),
+      (request.threadFilters || DEFAULT_PROFILER_THREADFILTERS).length);
 
     return { started: true };
   },
@@ -86,6 +99,15 @@ ProfilerActor.prototype = {
     let isActive = nsIProfilerModule.IsActive();
     let elapsedTime = isActive ? getElapsedTime() : undefined;
     return { isActive: isActive, currentTime: elapsedTime };
+  },
+
+  
+
+
+
+
+  onGetSharedLibraryInformation: function() {
+    return { sharedLibraryInformation: nsIProfilerModule.getSharedLibraryInformation() };
   },
 
   
@@ -298,10 +320,15 @@ function checkProfilerConsumers() {
 
 
 
+
+
+
 ProfilerActor.prototype.requestTypes = {
+  "getFeatures": ProfilerActor.prototype.onGetFeatures,
   "startProfiler": ProfilerActor.prototype.onStartProfiler,
   "stopProfiler": ProfilerActor.prototype.onStopProfiler,
   "isActive": ProfilerActor.prototype.onIsActive,
+  "getSharedLibraryInformation": ProfilerActor.prototype.onGetSharedLibraryInformation,
   "getProfile": ProfilerActor.prototype.onGetProfile,
   "registerEventNotifications": ProfilerActor.prototype.onRegisterEventNotifications,
   "unregisterEventNotifications": ProfilerActor.prototype.onUnregisterEventNotifications
