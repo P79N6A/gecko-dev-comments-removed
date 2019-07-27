@@ -1764,7 +1764,7 @@ public:
     
     
 
-    if (!mTarget->IsInDoc()) {
+    if (!mTarget->IsInComposedDoc()) {
       return NS_OK;
     }
 
