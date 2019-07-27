@@ -28,6 +28,8 @@ private:
     ~nsChannelClassifier() {}
     void MarkEntryClassified(nsresult status);
     bool HasBeenClassified(nsIChannel *aChannel);
+    
+    bool ShouldEnableTrackingProtection(nsIChannel* aChannel);
 };
 
 #endif
