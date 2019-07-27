@@ -379,7 +379,6 @@ NS_INTERFACE_MAP_END
 
 ServiceWorkerManager::ServiceWorkerManager()
   : mActor(nullptr)
-  , mShuttingDown(false)
 {
   
   MOZ_ALWAYS_TRUE(BackgroundChild::GetOrCreateForCurrentThread(this));
@@ -389,7 +388,14 @@ ServiceWorkerManager::~ServiceWorkerManager()
 {
   
   mRegistrationInfos.Clear();
-  MOZ_ASSERT(!mActor);
+
+  if (mActor) {
+    mActor->ManagerShuttingDown();
+
+    nsRefPtr<TeardownRunnable> runnable = new TeardownRunnable(mActor);
+    nsresult rv = NS_DispatchToMainThread(runnable);
+    unused << NS_WARN_IF(NS_FAILED(rv));
+  }
 }
 
 void
@@ -1547,11 +1553,9 @@ ServiceWorkerManager::AppendPendingOperation(ServiceWorkerJobQueue* aQueue,
   MOZ_ASSERT(aQueue);
   MOZ_ASSERT(aJob);
 
-  if (!mShuttingDown) {
-    PendingOperation* opt = mPendingOperations.AppendElement();
-    opt->mQueue = aQueue;
-    opt->mJob = aJob;
-  }
+  PendingOperation* opt = mPendingOperations.AppendElement();
+  opt->mQueue = aQueue;
+  opt->mJob = aJob;
 }
 
 void
@@ -1560,10 +1564,8 @@ ServiceWorkerManager::AppendPendingOperation(nsIRunnable* aRunnable)
   MOZ_ASSERT(!mActor);
   MOZ_ASSERT(aRunnable);
 
-  if (!mShuttingDown) {
-    PendingOperation* opt = mPendingOperations.AppendElement();
-    opt->mRunnable = aRunnable;
-  }
+  PendingOperation* opt = mPendingOperations.AppendElement();
+  opt->mRunnable = aRunnable;
 }
 
 
@@ -2381,10 +2383,8 @@ private:
 
     nsRefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
 
-    
-    if (swm->mActor) {
-      swm->mActor->SendUnregister(principalInfo, NS_ConvertUTF8toUTF16(mScope));
-    }
+    MOZ_ASSERT(swm->mActor);
+    swm->mActor->SendUnregister(principalInfo, NS_ConvertUTF8toUTF16(mScope));
 
     nsAutoCString scopeKey;
     nsresult rv = swm->PrincipalToScopeKey(mPrincipal, scopeKey);
@@ -2735,14 +2735,9 @@ ServiceWorkerManager::StoreRegistration(
                                    nsIPrincipal* aPrincipal,
                                    ServiceWorkerRegistrationInfo* aRegistration)
 {
+  MOZ_ASSERT(mActor);
   MOZ_ASSERT(aPrincipal);
   MOZ_ASSERT(aRegistration);
-
-  if (mShuttingDown) {
-    return;
-  }
-
-  MOZ_ASSERT(mActor);
 
   ServiceWorkerRegistrationData data;
   nsresult rv = PopulateRegistrationData(aPrincipal, aRegistration, data);
@@ -4069,10 +4064,6 @@ ServiceWorkerManager::RemoveRegistrationInternal(ServiceWorkerRegistrationInfo* 
   MOZ_ASSERT(aRegistration);
   MOZ_ASSERT(!aRegistration->IsControllingDocuments());
 
-  if (mShuttingDown) {
-    return;
-  }
-
   
   
   
@@ -4551,23 +4542,12 @@ ServiceWorkerManager::Observe(nsISupports* aSubject,
 
     RemoveAllRegistrations(principal);
   } else if (strcmp(aTopic, NS_XPCOM_SHUTDOWN_OBSERVER_ID) == 0) {
-    mShuttingDown = true;
-
     nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
     if (obs) {
       obs->RemoveObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID);
       obs->RemoveObserver(this, PURGE_SESSION_HISTORY);
       obs->RemoveObserver(this, PURGE_DOMAIN_DATA);
       obs->RemoveObserver(this, WEBAPPS_CLEAR_DATA);
-    }
-
-    if (mActor) {
-      mActor->ManagerShuttingDown();
-
-      nsRefPtr<TeardownRunnable> runnable = new TeardownRunnable(mActor);
-      nsresult rv = NS_DispatchToMainThread(runnable);
-      unused << NS_WARN_IF(NS_FAILED(rv));
-      mActor = nullptr;
     }
   } else {
     MOZ_CRASH("Received message we aren't supposed to be registered for!");
