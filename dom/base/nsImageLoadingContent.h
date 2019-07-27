@@ -193,10 +193,6 @@ protected:
   void ClearBrokenState() { mBroken = false; }
 
   
-  
-  void SetBlockingOnload(bool aBlocking);
-
-  
 
 
 
