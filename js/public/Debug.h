@@ -280,6 +280,17 @@ void SetDebuggerMallocSizeOf(JSRuntime *runtime, mozilla::MallocSizeOf mallocSiz
 JS_PUBLIC_API(void)
 onNewPromise(JSContext *cx, HandleObject promise);
 
+
+
+
+
+
+
+
+
+
+void onPromiseSettled(JSContext *cx, HandleObject promise);
+
 } 
 } 
 
