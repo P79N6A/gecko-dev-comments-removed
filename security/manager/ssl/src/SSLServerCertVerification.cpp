@@ -96,7 +96,7 @@
 
 #include <cstring>
 
-#include "pkix/pkixtypes.h"
+#include "pkix/pkix.h"
 #include "pkix/pkixnss.h"
 #include "pkix/ScopedPtr.h"
 #include "CertVerifier.h"
@@ -373,14 +373,25 @@ DetermineCertOverrideErrors(CERTCertificate* cert, const char* hostName,
   }
 
   if (defaultErrorCodeToReport != SSL_ERROR_BAD_CERT_DOMAIN) {
-    if (CERT_VerifyCertName(cert, hostName) != SECSuccess) {
-      if (PR_GetError() != SSL_ERROR_BAD_CERT_DOMAIN) {
-        PR_SetError(defaultErrorCodeToReport, 0);
-        return SECFailure;
-      }
-
+    Input certInput;
+    if (certInput.Init(cert->derCert.data, cert->derCert.len) != Success) {
+      PR_SetError(SEC_ERROR_BAD_DER, 0);
+      return SECFailure;
+    }
+    Input hostnameInput;
+    Result result = hostnameInput.Init(uint8_t_ptr_cast(hostName),
+                                       strlen(hostName));
+    if (result != Success) {
+      PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
+      return SECFailure;
+    }
+    result = CheckCertHostname(certInput, hostnameInput);
+    if (result == Result::ERROR_BAD_CERT_DOMAIN) {
       collectedErrors |= nsICertOverrideService::ERROR_MISMATCH;
       errorCodeMismatch = SSL_ERROR_BAD_CERT_DOMAIN;
+    } else if (result != Success) {
+      PR_SetError(defaultErrorCodeToReport, 0);
+      return SECFailure;
     }
   }
 
