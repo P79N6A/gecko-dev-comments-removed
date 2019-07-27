@@ -75,6 +75,8 @@ public:
 
   media::TimeIntervals GetBuffered() override;
 
+  virtual bool ForceZeroStartTime() const override;
+
   
   void SetIdle() override;
   bool IsDormantNeeded() override;
