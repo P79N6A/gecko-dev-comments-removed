@@ -6065,9 +6065,23 @@ DummyPreserveWrapperCallback(JSContext* cx, JSObject* obj)
     return true;
 }
 
+static void
+PreInit()
+{
+#ifdef XP_WIN
+    
+    
+    UINT prevMode = SetErrorMode(0);
+    UINT newMode = SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX;
+    SetErrorMode(prevMode | newMode);
+#endif
+}
+
 int
 main(int argc, char** argv, char** envp)
 {
+    PreInit();
+
     sArgc = argc;
     sArgv = argv;
 
