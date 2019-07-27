@@ -105,6 +105,12 @@ user_pref("extensions.getAddons.search.url", "http://%(server)s/extensions-dummy
 
 user_pref("plugins.update.url", "http://%(server)s/plugins-dummy/updateCheckURL");
 
+user_pref("network.sntp.pools", "%(server)s");
+
+
+
+user_pref("network.sntp.maxRetryCount", 1);
+
 
 user_pref("security.notification_enable_delay", 0);
 
