@@ -220,9 +220,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "SitePermissions",
 XPCOMUtils.defineLazyModuleGetter(this, "SessionStore",
   "resource:///modules/sessionstore/SessionStore.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "TabState",
-  "resource:///modules/sessionstore/TabState.jsm");
-
 XPCOMUtils.defineLazyModuleGetter(this, "fxAccounts",
   "resource://gre/modules/FxAccounts.jsm");
 
@@ -921,22 +918,7 @@ function _loadURIWithFlags(browser, uri, params) {
 
 function LoadInOtherProcess(browser, loadOptions, historyIndex = -1) {
   let tab = gBrowser.getTabForBrowser(browser);
-  
-  TabState.flush(browser);
-  let tabState = JSON.parse(SessionStore.getTabState(tab));
-
-  if (historyIndex < 0) {
-    tabState.userTypedValue = null;
-    
-    SessionStore._restoreTabAndLoad(tab, JSON.stringify(tabState), loadOptions);
-  }
-  else {
-    
-    tabState.index = historyIndex + 1;
-    
-    
-    SessionStore.setTabState(tab, JSON.stringify(tabState));
-  }
+  SessionStore.navigateAndRestore(tab, loadOptions, historyIndex);
 }
 
 
