@@ -318,6 +318,20 @@ function deflateMarkers(markers, uniqueStacks) {
 
 
 function deflateThread(thread, uniqueStacks) {
+  
+  
+  
+  
+  if (typeof thread === "string") {
+    thread = JSON.parse(thread);
+  }
+  if (!thread.samples) {
+    thread.samples = [];
+  }
+  if (!thread.markers) {
+    thread.markers = [];
+  }
+
   return {
     name: thread.name,
     tid: thread.tid,
