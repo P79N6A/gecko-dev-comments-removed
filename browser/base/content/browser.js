@@ -6575,6 +6575,7 @@ var gIdentityHandler = {
   IDENTITY_MODE_IDENTIFIED                             : "verifiedIdentity", 
   IDENTITY_MODE_DOMAIN_VERIFIED                        : "verifiedDomain",   
   IDENTITY_MODE_UNKNOWN                                : "unknownIdentity",  
+  IDENTITY_MODE_USES_WEAK_CIPHER                       : "unknownIdentity weakCipher",  
   IDENTITY_MODE_MIXED_DISPLAY_LOADED                   : "unknownIdentity mixedContent mixedDisplayContent",  
   IDENTITY_MODE_MIXED_ACTIVE_LOADED                    : "unknownIdentity mixedContent mixedActiveContent",  
   IDENTITY_MODE_MIXED_DISPLAY_LOADED_ACTIVE_BLOCKED    : "unknownIdentity mixedContent mixedDisplayContentLoadedActiveBlocked",  
@@ -6769,8 +6770,10 @@ var gIdentityHandler = {
         this.setMode(this.IDENTITY_MODE_MIXED_ACTIVE_LOADED);
       } else if (state & nsIWebProgressListener.STATE_BLOCKED_MIXED_ACTIVE_CONTENT) {
         this.setMode(this.IDENTITY_MODE_MIXED_DISPLAY_LOADED_ACTIVE_BLOCKED);
-      } else {
+      } else if (state & nsIWebProgressListener.STATE_LOADED_MIXED_DISPLAY_CONTENT) {
         this.setMode(this.IDENTITY_MODE_MIXED_DISPLAY_LOADED);
+      } else {
+        this.setMode(this.IDENTITY_MODE_USES_WEAK_CIPHER);
       }
     } else {
       this.setMode(this.IDENTITY_MODE_UNKNOWN);
@@ -7002,9 +7005,12 @@ var gIdentityHandler = {
     case this.IDENTITY_MODE_UNKNOWN:
       supplemental = gNavigatorBundle.getString("identity.not_secure");
       break;
+    case this.IDENTITY_MODE_USES_WEAK_CIPHER:
+      supplemental = gNavigatorBundle.getString("identity.uses_weak_cipher");
+      break;
     case this.IDENTITY_MODE_MIXED_DISPLAY_LOADED:
     case this.IDENTITY_MODE_MIXED_DISPLAY_LOADED_ACTIVE_BLOCKED:
-      supplemental = gNavigatorBundle.getString("identity.broken_loaded");
+      supplemental = gNavigatorBundle.getString("identity.mixed_display_loaded");
       break;
     case this.IDENTITY_MODE_MIXED_ACTIVE_LOADED:
       supplemental = gNavigatorBundle.getString("identity.mixed_active_loaded2");
@@ -7059,6 +7065,28 @@ var gIdentityHandler = {
 
     
     this._identityPopup.openPopup(this._identityIcon, "bottomcenter topleft");
+  },
+
+  onPopupShown(event) {
+    if (event.target == this._identityPopup) {
+      window.addEventListener("focus", this, true);
+    }
+  },
+
+  onPopupHidden(event) {
+    if (event.target == this._identityPopup) {
+      window.removeEventListener("focus", this, true);
+    }
+  },
+
+  handleEvent(event) {
+    let elem = document.activeElement;
+    let position = elem.compareDocumentPosition(this._identityPopup);
+
+    if (!(position & Node.DOCUMENT_POSITION_CONTAINS)) {
+      
+      this._identityPopup.hidePopup();
+    }
   },
 
   onDragStart: function (event) {
