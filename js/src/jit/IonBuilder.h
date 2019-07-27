@@ -713,7 +713,10 @@ class IonBuilder
                                BoolVector &choiceSet, uint32_t *numInlineable);
 
     
+    
+    
     types::TemporaryTypeSet *getInlineReturnTypeSet();
+    
     MIRType getInlineReturnType();
 
     
@@ -773,7 +776,8 @@ class IonBuilder
 
     
     InliningStatus inlineUnsafeSetReservedSlot(CallInfo &callInfo);
-    InliningStatus inlineUnsafeGetReservedSlot(CallInfo &callInfo);
+    InliningStatus inlineUnsafeGetReservedSlot(CallInfo &callInfo,
+                                               MIRType knownValueType);
 
     
     InliningStatus inlineForkJoinGetSlice(CallInfo &callInfo);
