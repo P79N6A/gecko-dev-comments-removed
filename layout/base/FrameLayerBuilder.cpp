@@ -42,6 +42,8 @@ using namespace mozilla::gfx;
 
 namespace mozilla {
 
+class PaintedDisplayItemLayerUserData;
+
 FrameLayerBuilder::DisplayItemData::DisplayItemData(LayerManagerData* aParent, uint32_t aKey,
                                                     nsIFrame* aFrame)
 
@@ -703,8 +705,27 @@ protected:
 
 
   already_AddRefed<PaintedLayer> CreateOrRecyclePaintedLayer(const nsIFrame* aAnimatedGeometryRoot,
-                                                           const nsIFrame *aReferenceFrame,
-                                                           const nsPoint& aTopLeft);
+                                                             const nsIFrame *aReferenceFrame,
+                                                             const nsPoint& aTopLeft);
+
+  
+
+
+  PaintedDisplayItemLayerUserData* RecyclePaintedLayer(PaintedLayer* aLayer,
+                                                       const nsIFrame* aAnimatedGeometryRoot,
+                                                       bool& didResetScrollPositionForLayerPixelAlignment);
+
+  
+
+
+
+
+  void PreparePaintedLayerForUse(PaintedLayer* aLayer,
+                                 PaintedDisplayItemLayerUserData* aData,
+                                 const nsIFrame* aAnimatedGeometryRoot,
+                                 const nsIFrame* aReferenceFrame,
+                                 const nsPoint& aTopLeft,
+                                 bool aDidResetScrollPositionForLayerPixelAlignment);
   
 
 
@@ -1662,8 +1683,8 @@ InvalidateEntirePaintedLayer(PaintedLayer* aLayer, const nsIFrame* aAnimatedGeom
 
 already_AddRefed<PaintedLayer>
 ContainerState::CreateOrRecyclePaintedLayer(const nsIFrame* aAnimatedGeometryRoot,
-                                           const nsIFrame* aReferenceFrame,
-                                           const nsPoint& aTopLeft)
+                                            const nsIFrame* aReferenceFrame,
+                                            const nsPoint& aTopLeft)
 {
   
   nsRefPtr<PaintedLayer> layer;
@@ -1690,53 +1711,10 @@ ContainerState::CreateOrRecyclePaintedLayer(const nsIFrame* aAnimatedGeometryRoo
 
     
     
-    if (mManager->IsOptimizedFor(layer->AsPaintedLayer(), creationHint)) {
+    if (mManager->IsOptimizedFor(layer, creationHint)) {
       layerRecycled = true;
-
-      
-      
-      layer->SetMaskLayer(nullptr);
-      layer->ClearExtraDumpInfo();
-
-      data = static_cast<PaintedDisplayItemLayerUserData*>
-          (layer->GetUserData(&gPaintedDisplayItemLayerUserData));
-      NS_ASSERTION(data, "Recycled PaintedLayers must have user data");
-
-      
-      
-      
-      
-      
-      
-      
-      
-      if (!FuzzyEqual(data->mXScale, mParameters.mXScale, 0.00001f) ||
-          !FuzzyEqual(data->mYScale, mParameters.mYScale, 0.00001f) ||
-          data->mAppUnitsPerDevPixel != mAppUnitsPerDevPixel) {
-#ifdef MOZ_DUMP_PAINTING
-      if (nsLayoutUtils::InvalidationDebuggingIsEnabled()) {
-        printf_stderr("Recycled layer %p changed scale\n", layer.get());
-      }
-#endif
-        InvalidateEntirePaintedLayer(layer, aAnimatedGeometryRoot, "recycled layer changed state");
-        didResetScrollPositionForLayerPixelAlignment = true;
-      }
-      if (!data->mRegionToInvalidate.IsEmpty()) {
-#ifdef MOZ_DUMP_PAINTING
-        if (nsLayoutUtils::InvalidationDebuggingIsEnabled()) {
-          printf_stderr("Invalidating deleted frame content from layer %p\n", layer.get());
-        }
-#endif
-        layer->InvalidateRegion(data->mRegionToInvalidate);
-#ifdef MOZ_DUMP_PAINTING
-        if (nsLayoutUtils::InvalidationDebuggingIsEnabled()) {
-          nsAutoCString str;
-          AppendToString(str, data->mRegionToInvalidate);
-          printf_stderr("Invalidating layer %p: %s\n", layer.get(), str.get());
-        }
-#endif
-        data->mRegionToInvalidate.SetEmpty();
-      }
+      data = RecyclePaintedLayer(layer, aAnimatedGeometryRoot,
+                                 didResetScrollPositionForLayerPixelAlignment);
 
       
       
@@ -1755,6 +1733,78 @@ ContainerState::CreateOrRecyclePaintedLayer(const nsIFrame* aAnimatedGeometryRoo
     ResetScrollPositionForLayerPixelAlignment(aAnimatedGeometryRoot);
     didResetScrollPositionForLayerPixelAlignment = true;
   }
+
+  PreparePaintedLayerForUse(layer, data, aAnimatedGeometryRoot,
+                            aReferenceFrame, aTopLeft,
+                            didResetScrollPositionForLayerPixelAlignment);
+
+  return layer.forget();
+}
+
+PaintedDisplayItemLayerUserData*
+ContainerState::RecyclePaintedLayer(PaintedLayer* aLayer,
+                                    const nsIFrame* aAnimatedGeometryRoot,
+                                    bool& didResetScrollPositionForLayerPixelAlignment)
+{
+  
+  
+  aLayer->SetMaskLayer(nullptr);
+  aLayer->ClearExtraDumpInfo();
+
+  PaintedDisplayItemLayerUserData* data =
+    static_cast<PaintedDisplayItemLayerUserData*>(
+      aLayer->GetUserData(&gPaintedDisplayItemLayerUserData));
+  NS_ASSERTION(data, "Recycled PaintedLayers must have user data");
+
+  
+  
+  
+  
+  
+  
+  
+  
+  if (!FuzzyEqual(data->mXScale, mParameters.mXScale, 0.00001f) ||
+      !FuzzyEqual(data->mYScale, mParameters.mYScale, 0.00001f) ||
+      data->mAppUnitsPerDevPixel != mAppUnitsPerDevPixel) {
+#ifdef MOZ_DUMP_PAINTING
+  if (nsLayoutUtils::InvalidationDebuggingIsEnabled()) {
+    printf_stderr("Recycled layer %p changed scale\n", aLayer);
+  }
+#endif
+    InvalidateEntirePaintedLayer(aLayer, aAnimatedGeometryRoot, "recycled layer changed state");
+    didResetScrollPositionForLayerPixelAlignment = true;
+  }
+  if (!data->mRegionToInvalidate.IsEmpty()) {
+#ifdef MOZ_DUMP_PAINTING
+    if (nsLayoutUtils::InvalidationDebuggingIsEnabled()) {
+      printf_stderr("Invalidating deleted frame content from layer %p\n", aLayer);
+    }
+#endif
+    aLayer->InvalidateRegion(data->mRegionToInvalidate);
+#ifdef MOZ_DUMP_PAINTING
+    if (nsLayoutUtils::InvalidationDebuggingIsEnabled()) {
+      nsAutoCString str;
+      AppendToString(str, data->mRegionToInvalidate);
+      printf_stderr("Invalidating layer %p: %s\n", aLayer, str.get());
+    }
+#endif
+    data->mRegionToInvalidate.SetEmpty();
+  }
+  return data;
+}
+
+void
+ContainerState::PreparePaintedLayerForUse(PaintedLayer* aLayer,
+                                          PaintedDisplayItemLayerUserData* aData,
+                                          const nsIFrame* aAnimatedGeometryRoot,
+                                          const nsIFrame* aReferenceFrame,
+                                          const nsPoint& aTopLeft,
+                                          bool didResetScrollPositionForLayerPixelAlignment)
+{
+  PaintedLayer* layer = aLayer;
+  PaintedDisplayItemLayerUserData* data = aData;
+
   data->mXScale = mParameters.mXScale;
   data->mYScale = mParameters.mYScale;
   data->mLastAnimatedGeometryRootOrigin = data->mAnimatedGeometryRootOrigin;
@@ -1797,8 +1847,6 @@ ContainerState::CreateOrRecyclePaintedLayer(const nsIFrame* aAnimatedGeometryRoo
 #else
   unused << didResetScrollPositionForLayerPixelAlignment;
 #endif
-
-  return layer.forget();
 }
 
 #if defined(DEBUG) || defined(MOZ_DUMP_PAINTING)
