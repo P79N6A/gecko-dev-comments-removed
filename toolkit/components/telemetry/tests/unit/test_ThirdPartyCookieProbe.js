@@ -1,10 +1,6 @@
 
 
 
-let Cu = Components.utils;
-let Cc = Components.classes;
-let Ci = Components.interfaces;
-
 Cu.import("resource://gre/modules/Services.jsm", this);
 Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
 Cu.import("resource://gre/modules/ThirdPartyCookieProbe.jsm", this);

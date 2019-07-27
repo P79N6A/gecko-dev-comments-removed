@@ -1,9 +1,6 @@
 
 
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
 const INT_MAX = 0x7FFFFFFF;
 
 const Telemetry = Cc["@mozilla.org/base/telemetry;1"].getService(Ci.nsITelemetry);

@@ -3,8 +3,6 @@
 
 
 
-const { utils: Cu, interfaces: Ci, classes: Cc } = Components;
-
 Cu.import("resource://testing-common/httpd.js", this);
 Cu.import("resource://gre/modules/PromiseUtils.jsm", this);
 Cu.import("resource://gre/modules/Services.jsm", this);

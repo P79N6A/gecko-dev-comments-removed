@@ -8,11 +8,6 @@
 
 
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
-const Cr = Components.results;
-
 Cu.import("resource://testing-common/httpd.js", this);
 Cu.import("resource://gre/modules/ClientID.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
@@ -33,6 +28,7 @@ const APP_NAME = "XPCShell";
 
 const PREF_BRANCH = "toolkit.telemetry.";
 const PREF_ENABLED = PREF_BRANCH + "enabled";
+const PREF_ARCHIVE_ENABLED = PREF_BRANCH + "archive.enabled";
 const PREF_FHR_UPLOAD_ENABLED = "datareporting.healthreport.uploadEnabled";
 const PREF_FHR_SERVICE_ENABLED = "datareporting.healthreport.service.enabled";
 
@@ -42,6 +38,11 @@ let gHttpServer = new HttpServer();
 let gServerStarted = false;
 let gRequestIterator = null;
 let gClientID = null;
+
+function getArchiveFilename(uuid, date, type) {
+  let ping = Cu.import("resource://gre/modules/TelemetryPing.jsm");
+  return ping.getArchivedPingPath(uuid, date, type);
+}
 
 function sendPing(aSendClientId, aSendEnvironment) {
   if (gServerStarted) {
@@ -222,6 +223,51 @@ add_task(function* test_pingHasEnvironmentAndClientId() {
     Assert.equal(ping.clientId, gClientID,
                  "The correct clientId must be reported.");
   }
+});
+
+add_task(function* test_archivePings() {
+  const ARCHIVE_PATH =
+    OS.Path.join(OS.Constants.Path.profileDir, "datareporting", "archived");
+
+  let now = new Date(2009, 10, 18, 12, 0, 0);
+  fakeNow(now);
+
+  
+  Preferences.set(PREF_FHR_UPLOAD_ENABLED, false);
+
+  
+  registerPingHandler(() => Assert.ok(false, "Telemetry must not send pings if not allowed to."));
+  let pingId = yield sendPing(true, true);
+
+  
+  let pingPath = getArchiveFilename(pingId, now, TEST_PING_TYPE);
+  Assert.ok((yield OS.File.exists(pingPath)),
+            "TelemetryPing must archive pings if FHR is enabled.");
+
+  
+  now = new Date(2010, 10, 18, 12, 0, 0);
+  fakeNow(now);
+  Preferences.set(PREF_ARCHIVE_ENABLED, false);
+  pingId = yield sendPing(true, true);
+  pingPath = getArchiveFilename(pingId, now, TEST_PING_TYPE);
+  Assert.ok(!(yield OS.File.exists(pingPath)),
+            "TelemetryPing must not archive pings if the archive pref is disabled.");
+
+  
+  Preferences.set(PREF_FHR_UPLOAD_ENABLED, true);
+  Preferences.set(PREF_ARCHIVE_ENABLED, true);
+
+  now = new Date(2014, 06, 18, 22, 0, 0);
+  fakeNow(now);
+  
+  gRequestIterator = Iterator(new Request());
+  pingId = yield sendPing(true, true);
+
+  
+  yield gRequestIterator.next();
+  pingPath = getArchiveFilename(pingId, now, TEST_PING_TYPE);
+  Assert.ok((yield OS.File.exists(pingPath)),
+            "TelemetryPing must archive pings if FHR is enabled.");
 });
 
 add_task(function* stopServer(){
