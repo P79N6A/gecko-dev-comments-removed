@@ -150,13 +150,6 @@ public:
     SetLayer(aLayer);
     mAttached = true;
     mKeepAttached = aFlags & KEEP_ATTACHED;
-
-    
-    gfx::IntRect pictureRect;
-    RefPtr<TextureHost> frontBuffer = GetAsTextureHost(&pictureRect);
-    if (frontBuffer) {
-      UseTextureHost(frontBuffer, pictureRect);
-    }
   }
   
   
@@ -187,8 +180,12 @@ public:
 
   virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix) = 0;
 
-  virtual void UseTextureHost(TextureHost* aTexture,
-                              const gfx::IntRect& aPictureRect);
+  struct TimedTexture {
+    RefPtr<TextureHost> mTexture;
+    TimeStamp mTimeStamp;
+    gfx::IntRect mPictureRect;
+  };
+  virtual void UseTextureHost(const nsTArray<TimedTexture>& aTextures);
   virtual void UseComponentAlphaTextures(TextureHost* aTextureOnBlack,
                                          TextureHost* aTextureOnWhite);
   virtual void UseOverlaySource(OverlaySource aOverlay,
