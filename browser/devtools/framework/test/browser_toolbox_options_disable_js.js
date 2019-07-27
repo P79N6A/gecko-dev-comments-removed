@@ -3,8 +3,7 @@
 
 
 
-const TEST_URI = "http://example.com/browser/browser/devtools/framework/" +
-                 "test/browser_toolbox_options_disable_js.html";
+const TEST_URI = URL_ROOT + "browser_toolbox_options_disable_js.html";
 
 let doc;
 let toolbox;
