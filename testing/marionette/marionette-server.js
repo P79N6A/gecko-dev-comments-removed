@@ -701,6 +701,14 @@ MarionetteServerConnection.prototype = {
   
 
 
+  getContext: function MDA_getContext() {
+    this.command_id = this.getCommandId();
+    this.sendResponse(this.context, this.command_id);
+  },
+
+  
+
+
 
 
 
@@ -2735,6 +2743,7 @@ MarionetteServerConnection.prototype.requestTypes = {
   "log": MarionetteServerConnection.prototype.log,
   "getLogs": MarionetteServerConnection.prototype.getLogs,
   "setContext": MarionetteServerConnection.prototype.setContext,
+  "getContext": MarionetteServerConnection.prototype.getContext,
   "executeScript": MarionetteServerConnection.prototype.execute,
   "setScriptTimeout": MarionetteServerConnection.prototype.setScriptTimeout,
   "timeouts": MarionetteServerConnection.prototype.timeouts,
