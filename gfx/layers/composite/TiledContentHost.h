@@ -106,6 +106,10 @@ public:
     }
   }
 
+  void Dump(std::stringstream& aStream) {
+    aStream << "TileHost(...)"; 
+  }
+
   void DumpTexture(std::stringstream& aStream) {
     
     CompositableHost::DumpTextureHost(aStream, mTextureHost);

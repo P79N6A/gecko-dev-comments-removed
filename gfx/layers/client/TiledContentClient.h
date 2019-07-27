@@ -216,6 +216,11 @@ struct TileClient
   
 
 
+  void Dump(std::stringstream& aStream);
+
+  
+
+
   void Flip();
 
   void DumpTexture(std::stringstream& aStream) {

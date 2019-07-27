@@ -9,9 +9,11 @@
 
 
 
+
 #include <stdint.h>                     
 #include <sys/types.h>                  
 #include "gfxPlatform.h"                
+#include "LayersLogging.h"              
 #include "mozilla/gfx/Logging.h"        
 #include "nsDebug.h"                    
 #include "nsPoint.h"                    
@@ -327,6 +329,22 @@ TiledLayerBuffer<Derived, Tile>::Update(const nsIntRegion& newValidRegion,
   const nsIntRegion& oldValidRegion = mValidRegion;
   const int oldRetainedHeight = mRetainedHeight;
 
+#ifdef GFX_TILEDLAYER_RETAINING_LOG
+  { 
+    std::stringstream ss;
+    ss << "TiledLayerBuffer " << this << " starting update"
+       << " on bounds ";
+    AppendToString(ss, newBound);
+    ss << " with mResolution=" << mResolution << "\n";
+    for (size_t i = 0; i < mRetainedTiles.Length(); i++) {
+      ss << "mRetainedTiles[" << i << "] = ";
+      mRetainedTiles[i].Dump(ss);
+      ss << "\n";
+    }
+    print_stderr(ss);
+  }
+#endif
+
   
   
   
@@ -396,6 +414,21 @@ TiledLayerBuffer<Derived, Tile>::Update(const nsIntRegion& newValidRegion,
   mRetainedWidth = tileX;
   mRetainedHeight = tileY;
 
+#ifdef GFX_TILEDLAYER_RETAINING_LOG
+  { 
+    std::stringstream ss;
+    ss << "TiledLayerBuffer " << this << " finished pass 1 of update;"
+       << " tilesMissing=" << tilesMissing << "\n";
+    for (size_t i = 0; i < oldRetainedTiles.Length(); i++) {
+      ss << "oldRetainedTiles[" << i << "] = ";
+      oldRetainedTiles[i].Dump(ss);
+      ss << "\n";
+    }
+    print_stderr(ss);
+  }
+#endif
+
+
   
   
   
@@ -435,6 +468,24 @@ TiledLayerBuffer<Derived, Tile>::Update(const nsIntRegion& newValidRegion,
 #endif
 
   nsIntRegion regionToPaint(aPaintRegion);
+
+#ifdef GFX_TILEDLAYER_RETAINING_LOG
+  { 
+    std::stringstream ss;
+    ss << "TiledLayerBuffer " << this << " finished pass 1.5 of update\n";
+    for (size_t i = 0; i < oldRetainedTiles.Length(); i++) {
+      ss << "oldRetainedTiles[" << i << "] = ";
+      oldRetainedTiles[i].Dump(ss);
+      ss << "\n";
+    }
+    for (size_t i = 0; i < newRetainedTiles.Length(); i++) {
+      ss << "newRetainedTiles[" << i << "] = ";
+      newRetainedTiles[i].Dump(ss);
+      ss << "\n";
+    }
+    print_stderr(ss);
+  }
+#endif
 
   
   
@@ -529,6 +580,25 @@ TiledLayerBuffer<Derived, Tile>::Update(const nsIntRegion& newValidRegion,
   for (unsigned int i = 0; i < newRetainedTiles.Length(); ++i) {
     AsDerived().UnlockTile(newRetainedTiles[i]);
   }
+
+#ifdef GFX_TILEDLAYER_RETAINING_LOG
+  { 
+    std::stringstream ss;
+    ss << "TiledLayerBuffer " << this << " finished pass 2 of update;"
+       << " oldTileCount=" << oldTileCount << "\n";
+    for (size_t i = 0; i < oldRetainedTiles.Length(); i++) {
+      ss << "oldRetainedTiles[" << i << "] = ";
+      oldRetainedTiles[i].Dump(ss);
+      ss << "\n";
+    }
+    for (size_t i = 0; i < newRetainedTiles.Length(); i++) {
+      ss << "newRetainedTiles[" << i << "] = ";
+      newRetainedTiles[i].Dump(ss);
+      ss << "\n";
+    }
+    print_stderr(ss);
+  }
+#endif
 
   
   MOZ_ASSERT(oldTileCount == 0, "Failed to release old tiles");
