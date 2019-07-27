@@ -47,6 +47,7 @@ class GlobalHelperThreadState
     typedef Vector<ParseTask*, 0, SystemAllocPolicy> ParseTaskVector;
     typedef Vector<SourceCompressionTask*, 0, SystemAllocPolicy> SourceCompressionTaskVector;
     typedef Vector<GCHelperState *, 0, SystemAllocPolicy> GCHelperStateVector;
+    typedef Vector<GCParallelTask *, 0, SystemAllocPolicy> GCParallelTaskVector;
     typedef mozilla::LinkedList<jit::IonBuilder> IonBuilderList;
 
     
@@ -86,6 +87,9 @@ class GlobalHelperThreadState
 
     
     GCHelperStateVector gcHelperWorklist_;
+
+    
+    GCParallelTaskVector gcParallelWorklist_;
 
   public:
     size_t maxIonCompilationThreads() const {
@@ -178,11 +182,17 @@ class GlobalHelperThreadState
         return gcHelperWorklist_;
     }
 
+    GCParallelTaskVector &gcParallelWorklist() {
+        MOZ_ASSERT(isLocked());
+        return gcParallelWorklist_;
+    }
+
     bool canStartAsmJSCompile();
     bool canStartIonCompile();
     bool canStartParseTask();
     bool canStartCompressionTask();
     bool canStartGCHelperTask();
+    bool canStartGCParallelTask();
 
     
     
@@ -299,8 +309,16 @@ struct HelperThread
     
     GCHelperState *gcHelperState;
 
+    
+    GCParallelTask *gcParallelTask;
+
     bool idle() const {
-        return !ionBuilder && !asmData && !parseTask && !compressionTask && !gcHelperState;
+        return !ionBuilder &&
+               !asmData &&
+               !parseTask &&
+               !compressionTask &&
+               !gcHelperState &&
+               !gcParallelTask;
     }
 
     void destroy();
@@ -310,6 +328,7 @@ struct HelperThread
     void handleParseWorkload();
     void handleCompressionWorkload();
     void handleGCHelperWorkload();
+    void handleGCParallelWorkload();
 
     static void ThreadMain(void *arg);
     void threadLoop();

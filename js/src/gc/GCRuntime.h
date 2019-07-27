@@ -700,6 +700,12 @@ class GCRuntime
     
 
 
+    void startTask(GCParallelTask &task, gcstats::Phase phase);
+    void joinTask(GCParallelTask &task, gcstats::Phase phase);
+
+    
+
+
     js::gc::ArenaHeader   *arenasAllocatedDuringSweep;
 
 #ifdef JS_GC_MARKING_VALIDATION

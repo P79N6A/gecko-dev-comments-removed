@@ -771,11 +771,12 @@ RegExpCompartment::sweep(JSRuntime *rt)
         
         
         
-        bool keep = shared->marked() && !IsStringAboutToBeFinalized(shared->source.unsafeGet());
+        bool keep = shared->marked() &&
+                    !IsStringAboutToBeFinalizedFromAnyThread(shared->source.unsafeGet());
         for (size_t i = 0; i < ArrayLength(shared->compilationArray); i++) {
             RegExpShared::RegExpCompilation &compilation = shared->compilationArray[i];
             if (compilation.jitCode &&
-                IsJitCodeAboutToBeFinalized(compilation.jitCode.unsafeGet()))
+                IsJitCodeAboutToBeFinalizedFromAnyThread(compilation.jitCode.unsafeGet()))
             {
                 keep = false;
             }
@@ -789,7 +790,7 @@ RegExpCompartment::sweep(JSRuntime *rt)
     }
 
     if (matchResultTemplateObject_ &&
-        IsObjectAboutToBeFinalized(matchResultTemplateObject_.unsafeGet()))
+        IsObjectAboutToBeFinalizedFromAnyThread(matchResultTemplateObject_.unsafeGet()))
     {
         matchResultTemplateObject_.set(nullptr);
     }

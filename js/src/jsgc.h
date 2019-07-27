@@ -1070,6 +1070,47 @@ class GCHelperState
     }
 };
 
+
+
+
+class GCParallelTask
+{
+    
+    enum TaskState {
+        NotStarted,
+        Dispatched,
+        Finished,
+    } state;
+
+    
+    uint64_t duration_;
+
+  protected:
+    virtual void run() = 0;
+
+  public:
+    GCParallelTask() : state(NotStarted), duration_(0) {}
+
+    int64_t duration() const { return duration_; }
+
+    
+    bool start();
+    void join();
+
+    
+    
+    bool startWithLockHeld();
+    void joinWithLockHeld();
+
+    
+    void runFromMainThread(JSRuntime *rt);
+
+    
+    
+  public:
+    void runFromHelperThread();
+};
+
 struct GCChunkHasher {
     typedef gc::Chunk *Lookup;
 
