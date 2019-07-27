@@ -152,6 +152,12 @@ struct AlignedArray
     
     
     mStorage = new (std::nothrow) uint8_t[storageByteCount.value()];
+    if (!mStorage) {
+      mStorage = nullptr;
+      mPtr = nullptr;
+      mCount = 0;
+      return;
+    }
     if (uintptr_t(mStorage) % alignment) {
       
       mPtr = (T*)(uintptr_t(mStorage) + alignment - (uintptr_t(mStorage) % alignment));
