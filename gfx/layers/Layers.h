@@ -2148,7 +2148,7 @@ public:
     uint32_t mFrontbufferGLTex;
 
     
-    nsIntSize mSize;
+    gfx::IntSize mSize;
 
     
     bool mHasAlpha;

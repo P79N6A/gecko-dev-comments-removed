@@ -7,7 +7,7 @@
 #define GFX_LAYERSTYPES_H
 
 #include <stdint.h>                     
-#include "nsPoint.h"                    
+#include "mozilla/gfx/Point.h"          
 #include "nsRegion.h"
 
 #include "mozilla/TypedEnumBits.h"
@@ -97,7 +97,7 @@ struct LayerRenderState {
 
 #ifdef MOZ_WIDGET_GONK
   LayerRenderState(android::GraphicBuffer* aSurface,
-                   const nsIntSize& aSize,
+                   const gfx::IntSize& aSize,
                    LayerRenderStateFlags aFlags,
                    TextureHost* aTexture)
     : mFlags(aFlags)
@@ -138,7 +138,7 @@ struct LayerRenderState {
   android::sp<android::GraphicBuffer> mSurface;
   int32_t mOverlayId;
   
-  nsIntSize mSize;
+  gfx::IntSize mSize;
   TextureHost* mTexture;
 #endif
 };
