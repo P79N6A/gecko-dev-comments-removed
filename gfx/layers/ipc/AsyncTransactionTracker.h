@@ -24,6 +24,46 @@ class AsyncTransactionTrackersHolder;
 
 
 
+class AsyncTransactionWaiter
+{
+public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(AsyncTransactionWaiter)
+
+  AsyncTransactionWaiter()
+    : mCompletedMonitor("AsyncTransactionWaiter")
+    , mWaitCount(0)
+  {}
+
+  void IncrementWaitCount()
+  {
+    MonitorAutoLock lock(mCompletedMonitor);
+    ++mWaitCount;
+  }
+  void DecrementWaitCount()
+  {
+    MonitorAutoLock lock(mCompletedMonitor);
+    MOZ_ASSERT(mWaitCount > 0);
+    --mWaitCount;
+    if (mWaitCount == 0) {
+      mCompletedMonitor.Notify();
+    }
+  }
+
+  
+
+
+  void WaitComplete();
+
+private:
+  ~AsyncTransactionWaiter() {}
+
+  Monitor mCompletedMonitor;
+  uint32_t mWaitCount;
+};
+
+
+
+
 
 class AsyncTransactionTracker
 {
@@ -31,17 +71,7 @@ class AsyncTransactionTracker
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(AsyncTransactionTracker)
 
-  AsyncTransactionTracker();
-
-  Monitor& GetReentrantMonitor()
-  {
-    return mCompletedMonitor;
-  }
-
-  
-
-
-  void WaitComplete();
+  explicit AsyncTransactionTracker(AsyncTransactionWaiter* aWaiter = nullptr);
 
   
 
@@ -100,8 +130,8 @@ protected:
   }
 
   uint64_t mSerial;
-  Monitor mCompletedMonitor;
-  bool    mCompleted;
+  RefPtr<AsyncTransactionWaiter> mWaiter;
+  DebugOnly<bool> mCompleted;
 
   
 

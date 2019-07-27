@@ -569,10 +569,12 @@ TileClient::Flip()
   if (mFrontBuffer && mFrontBuffer->GetIPDLActor() &&
       mCompositableClient && mCompositableClient->GetIPDLActor()) {
     
-    RefPtr<AsyncTransactionTracker> tracker = new RemoveTextureFromCompositableTracker();
+    RefPtr<AsyncTransactionWaiter> waiter = new AsyncTransactionWaiter();
+    RefPtr<AsyncTransactionTracker> tracker =
+        new RemoveTextureFromCompositableTracker(waiter);
     
     tracker->SetTextureClient(mFrontBuffer);
-    mFrontBuffer->SetRemoveFromCompositableTracker(tracker);
+    mFrontBuffer->SetRemoveFromCompositableWaiter(waiter);
     
     mManager->AsShadowForwarder()->RemoveTextureFromCompositableAsync(tracker,
                                                                       mCompositableClient,
@@ -667,10 +669,12 @@ TileClient::DiscardFrontBuffer()
     if (mFrontBuffer->GetIPDLActor() &&
         mCompositableClient && mCompositableClient->GetIPDLActor()) {
       
-      RefPtr<AsyncTransactionTracker> tracker = new RemoveTextureFromCompositableTracker();
+      RefPtr<AsyncTransactionWaiter> waiter = new AsyncTransactionWaiter();
+      RefPtr<AsyncTransactionTracker> tracker =
+          new RemoveTextureFromCompositableTracker(waiter);
       
       tracker->SetTextureClient(mFrontBuffer);
-      mFrontBuffer->SetRemoveFromCompositableTracker(tracker);
+      mFrontBuffer->SetRemoveFromCompositableWaiter(waiter);
       
       mManager->AsShadowForwarder()->RemoveTextureFromCompositableAsync(tracker,
                                                                         mCompositableClient,

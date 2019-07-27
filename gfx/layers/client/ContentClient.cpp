@@ -442,20 +442,24 @@ ContentClientDoubleBuffered::Updated(const nsIntRegion& aRegionToDraw,
 #if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
   if (mFrontClient) {
     
-    RefPtr<AsyncTransactionTracker> tracker = new RemoveTextureFromCompositableTracker();
+    RefPtr<AsyncTransactionWaiter> waiter = new AsyncTransactionWaiter();
+    RefPtr<AsyncTransactionTracker> tracker =
+        new RemoveTextureFromCompositableTracker(waiter);
     
     tracker->SetTextureClient(mFrontClient);
-    mFrontClient->SetRemoveFromCompositableTracker(tracker);
+    mFrontClient->SetRemoveFromCompositableWaiter(waiter);
     
     GetForwarder()->RemoveTextureFromCompositableAsync(tracker, this, mFrontClient);
   }
 
   if (mFrontClientOnWhite) {
     
-    RefPtr<AsyncTransactionTracker> tracker = new RemoveTextureFromCompositableTracker();
+    RefPtr<AsyncTransactionWaiter> waiter = new AsyncTransactionWaiter();
+    RefPtr<AsyncTransactionTracker> tracker =
+        new RemoveTextureFromCompositableTracker(waiter);
     
     tracker->SetTextureClient(mFrontClientOnWhite);
-    mFrontClientOnWhite->SetRemoveFromCompositableTracker(tracker);
+    mFrontClientOnWhite->SetRemoveFromCompositableWaiter(waiter);
     
     GetForwarder()->RemoveTextureFromCompositableAsync(tracker, this, mFrontClientOnWhite);
   }
