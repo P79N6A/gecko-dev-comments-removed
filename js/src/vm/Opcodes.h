@@ -873,7 +873,7 @@
 
 
 \
-    macro(JSOP_INITHOMEOBJECT,  92, "inithomeobject",   NULL,         1,  2,  2, JOF_BYTE|JOF_SET|JOF_DETECTING) \
+    macro(JSOP_INITHOMEOBJECT,  92, "inithomeobject",   NULL,         2,  2,  2, JOF_UINT8) \
     \
     
 
