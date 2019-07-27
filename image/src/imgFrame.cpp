@@ -751,6 +751,8 @@ void imgFrame::SetHasNoAlpha()
 {
   if (mFormat == SurfaceFormat::B8G8R8A8) {
     mFormat = SurfaceFormat::B8G8R8X8;
+    MOZ_ASSERT(mImageSurface);
+    mImageSurface = CreateLockedSurface(mVBuf, mSize, mFormat);
   }
 }
 
