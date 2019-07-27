@@ -48,7 +48,7 @@ this.RF_EVENT_STATE_CHANGED = 0x06;
 this.FOCUS_CHANGED = 0x07;
 
 
-this.SYSTEM_APP_ID = -1;
+this.SYSTEM_APP_ID = 0;
 
 
 this.EXPORTED_SYMBOLS = Object.keys(this);
