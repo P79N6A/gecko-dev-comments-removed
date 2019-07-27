@@ -169,6 +169,8 @@ private:
   
 
   static bool ShouldAutoplugFactory(GstElementFactory* aFactory, GstCaps* aCaps);
+  
+  static bool IsFactoryBlacklisted(GstElementFactory* aFactory);
 
   
 
