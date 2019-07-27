@@ -254,10 +254,6 @@ public:
   uint32_t EntryCount() const { return mEntryCount; }
   uint32_t Generation() const { return mGeneration; }
 
-  void Init(const PLDHashTableOps* aOps, uint32_t aEntrySize, uint32_t aLength);
-
-  void Finish();
-
   PLDHashEntryHdr* Search(const void* aKey);
   PLDHashEntryHdr* Add(const void* aKey, const mozilla::fallible_t&);
   PLDHashEntryHdr* Add(const void* aKey);
@@ -322,6 +318,9 @@ private:
 
   PLDHashNumber ComputeKeyHash(const void* aKey);
 
+  void Init(const PLDHashTableOps* aOps, uint32_t aEntrySize, uint32_t aLength);
+  void Finish();
+
   enum SearchReason { ForSearchOrRemove, ForAdd };
 
   template <SearchReason Reason>
@@ -350,6 +349,14 @@ private:
 class PLDHashTable2 : public PLDHashTable
 {
 public:
+  
+  
+  
+  
+  
+  
+  
+  
   PLDHashTable2(const PLDHashTableOps* aOps, uint32_t aEntrySize,
                 uint32_t aLength = PL_DHASH_DEFAULT_INITIAL_LENGTH);
 
@@ -364,13 +371,6 @@ public:
   }
 
   ~PLDHashTable2();
-
-  void Init(const PLDHashTableOps* aOps, uint32_t aEntrySize, uint32_t aLength)
-  {
-    MOZ_CRASH("PLDHashTable2::Init()");
-  }
-
-  void Finish() { MOZ_CRASH("PLDHashTable2::Finish()"); }
 
   
   
@@ -503,46 +503,6 @@ void PL_DHashFreeStringKey(PLDHashTable* aTable, PLDHashEntryHdr* aEntry);
 
 
 const PLDHashTableOps* PL_DHashGetStubOps(void);
-
-
-
-
-
-PLDHashTable* PL_NewDHashTable(
-  const PLDHashTableOps* aOps, uint32_t aEntrySize,
-  uint32_t aLength = PL_DHASH_DEFAULT_INITIAL_LENGTH);
-
-
-
-
-
-
-void PL_DHashTableDestroy(PLDHashTable* aTable);
-
-
-
-
-
-
-
-
-
-
-
-void PL_DHashTableInit(
-  PLDHashTable* aTable, const PLDHashTableOps* aOps,
-  uint32_t aEntrySize, uint32_t aLength = PL_DHASH_DEFAULT_INITIAL_LENGTH);
-void PL_DHashTableInit(
-  PLDHashTable2* aTable, const PLDHashTableOps* aOps,
-  uint32_t aEntrySize, uint32_t aLength = PL_DHASH_DEFAULT_INITIAL_LENGTH);
-
-
-
-
-
-
-void PL_DHashTableFinish(PLDHashTable* aTable);
-void PL_DHashTableFinish(PLDHashTable2* aTable);
 
 
 
