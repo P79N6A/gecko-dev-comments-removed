@@ -22,7 +22,6 @@
 
 using namespace js;
 
-using mozilla::Range;
 using mozilla::RangedPtr;
 
 JSONParserBase::~JSONParserBase()
@@ -277,7 +276,7 @@ JSONParser<CharT>::readNumber()
 
     
     if (current == end || (*current != '.' && *current != 'e' && *current != 'E')) {
-        Range<const CharT> chars(digitStart.get(), current - digitStart);
+        mozilla::Range<const CharT> chars(digitStart.get(), current - digitStart);
         if (chars.length() < strlen("9007199254740992")) {
             
             
