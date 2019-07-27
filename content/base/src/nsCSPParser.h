@@ -126,7 +126,6 @@ class nsCSPParser {
     bool            schemeChar();
     bool            port();
     bool            path(nsCSPHostSrc* aCspHost);
-    bool            fileAndArguments();
 
     bool subHost();                                       
     bool subPath(nsCSPHostSrc* aCspHost);                 
@@ -172,6 +171,9 @@ class nsCSPParser {
     {
       mCurValue.Truncate();
     }
+
+    bool atEndOfPath();
+    bool atValidPathChar();
 
     void resetCurChar(const nsAString& aToken);
 
