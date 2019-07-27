@@ -2332,6 +2332,7 @@ MacroAssembler::alignJitStackBasedOnNArgs(Register nargs)
     Label assert;
     maybeAssert = &assert;
 #endif
+    assertStackAlignment(sizeof(Value), 0);
     branchTestPtr(Assembler::NonZero, nargs, Imm32(1), &odd);
     branchTestPtr(Assembler::NonZero, StackPointer, Imm32(JitStackAlignment - 1), maybeAssert);
     subPtr(Imm32(sizeof(Value)), StackPointer);
@@ -2343,4 +2344,38 @@ MacroAssembler::alignJitStackBasedOnNArgs(Register nargs)
     bind(&odd);
     andPtr(Imm32(~(JitStackAlignment - 1)), StackPointer);
     bind(&end);
+}
+
+void
+MacroAssembler::alignJitStackBasedOnNArgs(uint32_t nargs)
+{
+    const uint32_t alignment = JitStackAlignment / sizeof(Value);
+    if (alignment == 1)
+        return;
+
+    
+    
+    
+    
+    
+    static_assert(sizeof(JitFrameLayout) % JitStackAlignment == 0,
+      "No need to consider the JitFrameLayout for aligning the stack");
+
+    
+    
+    MOZ_ASSERT(alignment == 2);
+
+    
+    
+
+    assertStackAlignment(sizeof(Value), 0);
+    if (nargs % 2 == 0) {
+        Label end;
+        branchTestPtr(Assembler::NonZero, StackPointer, Imm32(JitStackAlignment - 1), &end);
+        subPtr(Imm32(sizeof(Value)), StackPointer);
+        bind(&end);
+        assertStackAlignment(JitStackAlignment, sizeof(Value));
+    } else {
+        andPtr(Imm32(~(JitStackAlignment - 1)), StackPointer);
+    }
 }

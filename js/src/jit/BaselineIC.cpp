@@ -4100,6 +4100,10 @@ ICGetElemNativeCompiler::emitCallScripted(MacroAssembler &masm, Register objReg)
     enterStubFrame(masm, regs.getAny());
 
     
+    
+    masm.alignJitStackBasedOnNArgs(0);
+
+    
     {
         ValueOperand val = regs.takeAnyValue();
         masm.tagValue(JSVAL_TYPE_OBJECT, objReg, val);
@@ -7374,6 +7378,10 @@ ICGetProp_CallScripted::Compiler::generateStubCode(MacroAssembler &masm)
 
     
     
+    masm.alignJitStackBasedOnNArgs(0);
+
+    
+    
     
     masm.Push(R0);
     EmitCreateStubFrameDescriptor(masm, scratch);
@@ -8868,12 +8876,15 @@ ICSetProp_CallScripted::Compiler::generateStubCode(MacroAssembler &masm)
 
     
     
+    masm.alignJitStackBasedOnNArgs(1);
+
+    
+    
     
 
     
     
-    masm.movePtr(BaselineStackReg, scratch);
-    masm.PushValue(Address(scratch, STUB_FRAME_SIZE));
+    masm.PushValue(Address(BaselineFrameReg, STUB_FRAME_SIZE));
     masm.Push(R0);
     EmitCreateStubFrameDescriptor(masm, scratch);
     masm.Push(Imm32(1));  
@@ -10836,24 +10847,33 @@ ICCall_ScriptedFunCall::Compiler::generateStubCode(MacroAssembler &masm)
         regs.add(BaselineTailCallReg);
 
     
-    
-    pushCallArguments(masm, regs, argcReg,  true);
+    Label zeroArgs, done;
+    masm.branchTest32(Assembler::Zero, argcReg, argcReg, &zeroArgs);
 
     
-    masm.addPtr(Imm32(sizeof(Value)), StackPointer);
+    masm.sub32(Imm32(1), argcReg);
+
+    
+    
+    pushCallArguments(masm, regs, argcReg,  true);
 
     
     ValueOperand val = regs.takeAnyValue();
     masm.popValue(val);
 
-    
-    Label zeroArgs, done;
-    masm.branchTest32(Assembler::Zero, argcReg, argcReg, &zeroArgs);
-    masm.sub32(Imm32(1), argcReg);
     masm.jump(&done);
-
     masm.bind(&zeroArgs);
+
+    
+    Address thisSlotFromStubFrame(BaselineFrameReg, STUB_FRAME_SIZE);
+    masm.loadValue(thisSlotFromStubFrame, val);
+
+    
+    masm.alignJitStackBasedOnNArgs(0);
+
+    
     masm.pushValue(UndefinedValue());
+
     masm.bind(&done);
 
     
