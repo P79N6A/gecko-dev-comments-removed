@@ -658,6 +658,12 @@ LIRGenerator::visitTest(MTest *test)
         return;
     }
 
+    if (opd->type() == MIRType_ObjectOrNull) {
+        LDefinition temp0 = test->operandMightEmulateUndefined() ? temp() : LDefinition::BogusTemp();
+        add(new(alloc()) LTestOAndBranch(useRegister(opd), ifTrue, ifFalse, temp0), test);
+        return;
+    }
+
     
     if (opd->type() == MIRType_Object) {
         if (test->operandMightEmulateUndefined())
@@ -2328,9 +2334,17 @@ LIRGenerator::visitTypeBarrier(MTypeBarrier *ins)
     }
 
     
+    
+    bool needsObjectBarrier = false;
+    if (inputType == MIRType_ObjectOrNull)
+        needsObjectBarrier = true;
     if (inputType == MIRType_Object && !types->hasType(TypeSet::AnyObjectType()) &&
         ins->barrierKind() != BarrierKind::TypeTagOnly)
     {
+        needsObjectBarrier = true;
+    }
+
+    if (needsObjectBarrier) {
         LDefinition tmp = needTemp ? temp() : LDefinition::BogusTemp();
         LTypeBarrierO *barrier = new(alloc()) LTypeBarrierO(useRegister(ins->getOperand(0)), tmp);
         assignSnapshot(barrier, Bailout_TypeBarrierO);
