@@ -955,8 +955,16 @@ bool
 js::TryConvertToUnboxedLayout(ExclusiveContext* cx, Shape* templateShape,
                               ObjectGroup* group, PreliminaryObjectArray* objects)
 {
-    if (!templateShape->runtimeFromAnyThread()->options().unboxedObjects())
-        return true;
+    
+    
+#ifdef NIGHTLY_BUILD
+    if (!getenv("JS_OPTION_USE_UNBOXED_OBJECTS")) {
+        if (!templateShape->runtimeFromAnyThread()->options().unboxedObjects())
+            return true;
+    }
+#else
+    return true;
+#endif
 
     if (templateShape->runtimeFromAnyThread()->isSelfHostingGlobal(cx->global()))
         return true;
