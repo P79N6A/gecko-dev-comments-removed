@@ -195,130 +195,153 @@ RestyleTracker::DoProcessRestyles()
   PROFILER_LABEL("RestyleTracker", "ProcessRestyles",
     js::ProfileEntry::Category::CSS);
 
-  mRestyleManager->BeginProcessingRestyles(*this);
-
-  LOG_RESTYLE("Processing %d pending %srestyles with %d restyle roots for %s",
-              mPendingRestyles.Count(),
-              mRestyleManager->IsProcessingAnimationStyleChange()
-                ? (const char*) "animation " : (const char*) "",
-              static_cast<int>(mRestyleRoots.Length()),
-              GetDocumentURI(Document()).get());
-  LOG_RESTYLE_INDENT();
-
   
-  while (mPendingRestyles.Count()) {
-    if (mHaveLaterSiblingRestyles) {
-      
-      nsAutoTArray<nsRefPtr<Element>, RESTYLE_ARRAY_STACKSIZE> laterSiblingArr;
-      LaterSiblingCollector siblingCollector = { this, &laterSiblingArr };
-      mPendingRestyles.Enumerate(CollectLaterSiblings, &siblingCollector);
-      for (uint32_t i = 0; i < laterSiblingArr.Length(); ++i) {
-        Element* element = laterSiblingArr[i];
-        for (nsIContent* sibling = element->GetNextSibling();
-             sibling;
-             sibling = sibling->GetNextSibling()) {
-          if (sibling->IsElement()) {
-            LOG_RESTYLE("adding pending restyle for %s due to "
-                        "eRestyle_LaterSiblings hint on %s",
-                        FrameTagToString(sibling->AsElement()).get(),
-                        FrameTagToString(element->AsElement()).get());
-            if (AddPendingRestyle(sibling->AsElement(), eRestyle_Subtree,
-                                  NS_STYLE_HINT_NONE)) {
-                
-                
-              break;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  {
+    RestyleManager::ReframingStyleContexts
+      reframingStyleContexts(mRestyleManager);
+
+    mRestyleManager->BeginProcessingRestyles(*this);
+
+    LOG_RESTYLE("Processing %d pending %srestyles with %d restyle roots for %s",
+                mPendingRestyles.Count(),
+                mRestyleManager->IsProcessingAnimationStyleChange()
+                  ? (const char*) "animation " : (const char*) "",
+                static_cast<int>(mRestyleRoots.Length()),
+                GetDocumentURI(Document()).get());
+    LOG_RESTYLE_INDENT();
+
+    
+    while (mPendingRestyles.Count()) {
+      if (mHaveLaterSiblingRestyles) {
+        
+        nsAutoTArray<nsRefPtr<Element>, RESTYLE_ARRAY_STACKSIZE> laterSiblingArr;
+        LaterSiblingCollector siblingCollector = { this, &laterSiblingArr };
+        mPendingRestyles.Enumerate(CollectLaterSiblings, &siblingCollector);
+        for (uint32_t i = 0; i < laterSiblingArr.Length(); ++i) {
+          Element* element = laterSiblingArr[i];
+          for (nsIContent* sibling = element->GetNextSibling();
+               sibling;
+               sibling = sibling->GetNextSibling()) {
+            if (sibling->IsElement()) {
+              LOG_RESTYLE("adding pending restyle for %s due to "
+                          "eRestyle_LaterSiblings hint on %s",
+                          FrameTagToString(sibling->AsElement()).get(),
+                          FrameTagToString(element->AsElement()).get());
+              if (AddPendingRestyle(sibling->AsElement(), eRestyle_Subtree,
+                                    NS_STYLE_HINT_NONE)) {
+                  
+                  
+                break;
+              }
             }
           }
         }
-      }
 
-      
-      for (uint32_t i = 0; i < laterSiblingArr.Length(); ++i) {
-        Element* element = laterSiblingArr[i];
-        NS_ASSERTION(element->HasFlag(RestyleBit()), "How did that happen?");
-        RestyleData* data;
+        
+        for (uint32_t i = 0; i < laterSiblingArr.Length(); ++i) {
+          Element* element = laterSiblingArr[i];
+          NS_ASSERTION(element->HasFlag(RestyleBit()), "How did that happen?");
+          RestyleData* data;
 #ifdef DEBUG
-        bool found =
+          bool found =
 #endif
-          mPendingRestyles.Get(element, &data);
-        NS_ASSERTION(found, "Where did our entry go?");
-        data->mRestyleHint =
-          nsRestyleHint(data->mRestyleHint & ~eRestyle_LaterSiblings);
+            mPendingRestyles.Get(element, &data);
+          NS_ASSERTION(found, "Where did our entry go?");
+          data->mRestyleHint =
+            nsRestyleHint(data->mRestyleHint & ~eRestyle_LaterSiblings);
+        }
+
+        LOG_RESTYLE("%d pending restyles after expanding out "
+                    "eRestyle_LaterSiblings", mPendingRestyles.Count());
+
+        mHaveLaterSiblingRestyles = false;
       }
 
-      LOG_RESTYLE("%d pending restyles after expanding out "
-                  "eRestyle_LaterSiblings", mPendingRestyles.Count());
-
-      mHaveLaterSiblingRestyles = false;
-    }
-
-    uint32_t rootCount;
-    while ((rootCount = mRestyleRoots.Length())) {
-      
-      
-      
-      nsRefPtr<Element> element;
-      element.swap(mRestyleRoots[rootCount - 1]);
-      mRestyleRoots.RemoveElementAt(rootCount - 1);
-
-      LOG_RESTYLE("processing style root %s at index %d",
-                  FrameTagToString(element).get(), rootCount - 1);
-      LOG_RESTYLE_INDENT();
-
-      
-      
-      
-      if (element->GetCrossShadowCurrentDoc() != Document()) {
+      uint32_t rootCount;
+      while ((rootCount = mRestyleRoots.Length())) {
         
         
-        LOG_RESTYLE("skipping, no longer in the document");
+        
+        nsRefPtr<Element> element;
+        element.swap(mRestyleRoots[rootCount - 1]);
+        mRestyleRoots.RemoveElementAt(rootCount - 1);
+
+        LOG_RESTYLE("processing style root %s at index %d",
+                    FrameTagToString(element).get(), rootCount - 1);
+        LOG_RESTYLE_INDENT();
+
+        
+        
+        
+        if (element->GetCrossShadowCurrentDoc() != Document()) {
+          
+          
+          LOG_RESTYLE("skipping, no longer in the document");
+          continue;
+        }
+
+        nsAutoPtr<RestyleData> data;
+        if (!GetRestyleData(element, data)) {
+          LOG_RESTYLE("skipping, already restyled");
+          continue;
+        }
+
+        ProcessOneRestyle(element, data->mRestyleHint, data->mChangeHint);
+        AddRestyleRootsIfAwaitingRestyle(data->mDescendants);
+      }
+
+      if (mHaveLaterSiblingRestyles) {
+        
         continue;
       }
 
-      nsAutoPtr<RestyleData> data;
-      if (!GetRestyleData(element, data)) {
-        LOG_RESTYLE("skipping, already restyled");
-        continue;
-      }
-
-      ProcessOneRestyle(element, data->mRestyleHint, data->mChangeHint);
-      AddRestyleRootsIfAwaitingRestyle(data->mDescendants);
-    }
-
-    if (mHaveLaterSiblingRestyles) {
       
-      continue;
-    }
-
-    
-    
-    
-    
-    
-    nsAutoTArray<RestyleEnumerateData, RESTYLE_ARRAY_STACKSIZE> restyleArr;
-    RestyleEnumerateData* restylesToProcess =
-      restyleArr.AppendElements(mPendingRestyles.Count());
-    if (restylesToProcess) {
-      RestyleEnumerateData* lastRestyle = restylesToProcess;
-      RestyleCollector collector = { this, &lastRestyle };
-      mPendingRestyles.Enumerate(CollectRestyles, &collector);
-
       
-      mPendingRestyles.Clear();
+      
+      
+      
+      nsAutoTArray<RestyleEnumerateData, RESTYLE_ARRAY_STACKSIZE> restyleArr;
+      RestyleEnumerateData* restylesToProcess =
+        restyleArr.AppendElements(mPendingRestyles.Count());
+      if (restylesToProcess) {
+        RestyleEnumerateData* lastRestyle = restylesToProcess;
+        RestyleCollector collector = { this, &lastRestyle };
+        mPendingRestyles.Enumerate(CollectRestyles, &collector);
+
+        
+        mPendingRestyles.Clear();
 
 #ifdef RESTYLE_LOGGING
-      uint32_t index = 0;
+        uint32_t index = 0;
 #endif
-      for (RestyleEnumerateData* currentRestyle = restylesToProcess;
-           currentRestyle != lastRestyle;
-           ++currentRestyle) {
-        LOG_RESTYLE("processing pending restyle %s at index %d/%d",
-                    FrameTagToString(currentRestyle->mElement).get(),
-                    index++, collector.count);
-        LOG_RESTYLE_INDENT();
-        ProcessOneRestyle(currentRestyle->mElement,
-                          currentRestyle->mRestyleHint,
-                          currentRestyle->mChangeHint);
+        for (RestyleEnumerateData* currentRestyle = restylesToProcess;
+             currentRestyle != lastRestyle;
+             ++currentRestyle) {
+          LOG_RESTYLE("processing pending restyle %s at index %d/%d",
+                      FrameTagToString(currentRestyle->mElement).get(),
+                      index++, collector.count);
+          LOG_RESTYLE_INDENT();
+          ProcessOneRestyle(currentRestyle->mElement,
+                            currentRestyle->mRestyleHint,
+                            currentRestyle->mChangeHint);
+        }
       }
     }
   }
