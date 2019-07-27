@@ -3693,7 +3693,8 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
       if (item->HadMeasuringReflow()) {
         
         
-        if (item->Frame()->GetSize() == finalFlexedPhysicalSize) {
+        if (finalFlexedPhysicalSize ==
+            item->Frame()->GetContentRectRelativeToSelf().Size()) {
           
           
           itemNeedsReflow = false;
