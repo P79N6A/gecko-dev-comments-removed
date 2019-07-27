@@ -42,7 +42,8 @@ protected:
   bool WalkHandlersInternal(nsIDOMKeyEvent* aKeyEvent,
                             nsIAtom* aEventType,
                             nsXBLPrototypeHandler* aHandler,
-                            bool aExecute);
+                            bool aExecute,
+                            bool* aOutReservedForChrome = nullptr);
 
   
   
@@ -50,13 +51,17 @@ protected:
                               nsXBLPrototypeHandler* aHandler,
                               uint32_t aCharCode,
                               const IgnoreModifierState& aIgnoreModifierState,
-                              bool aExecute);
+                              bool aExecute,
+                              bool* aOutReservedForChrome = nullptr);
 
   
   void HandleEventOnCapture(nsIDOMKeyEvent* aEvent);
 
   
-  bool HasHandlerForEvent(nsIDOMKeyEvent* aEvent);
+  
+  
+  bool HasHandlerForEvent(nsIDOMKeyEvent* aEvent,
+                          bool* aOutReservedForChrome = nullptr);
 
   
   

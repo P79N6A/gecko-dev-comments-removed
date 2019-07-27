@@ -333,19 +333,27 @@ nsXBLWindowKeyHandler::HandleEventOnCapture(nsIDOMKeyEvent* aEvent)
     return;
   }
 
-  if (!HasHandlerForEvent(aEvent)) {
+  bool aReservedForChrome = false;
+  if (!HasHandlerForEvent(aEvent, &aReservedForChrome)) {
     return;
   }
 
-  
-  
-  
-  
+  if (aReservedForChrome) {
+    
+    
+    
+    widgetEvent->mFlags.mNoCrossProcessBoundaryForwarding = true;
+  } else {
+    
+    
+    widgetEvent->mFlags.mWantReplyFromContentProcess = true;
 
-  
-  
-  widgetEvent->mFlags.mWantReplyFromContentProcess = 1;
-  aEvent->StopPropagation();
+    
+    
+    
+    
+    aEvent->StopPropagation();
+  }
 }
 
 
@@ -429,14 +437,16 @@ bool
 nsXBLWindowKeyHandler::WalkHandlersInternal(nsIDOMKeyEvent* aKeyEvent,
                                             nsIAtom* aEventType, 
                                             nsXBLPrototypeHandler* aHandler,
-                                            bool aExecute)
+                                            bool aExecute,
+                                            bool* aOutReservedForChrome)
 {
   nsAutoTArray<nsShortcutCandidate, 10> accessKeys;
   nsContentUtils::GetAccelKeyCandidates(aKeyEvent, accessKeys);
 
   if (accessKeys.IsEmpty()) {
     return WalkHandlersAndExecute(aKeyEvent, aEventType, aHandler,
-                                  0, IgnoreModifierState(), aExecute);
+                                  0, IgnoreModifierState(),
+                                  aExecute, aOutReservedForChrome);
   }
 
   for (uint32_t i = 0; i < accessKeys.Length(); ++i) {
@@ -444,7 +454,8 @@ nsXBLWindowKeyHandler::WalkHandlersInternal(nsIDOMKeyEvent* aKeyEvent,
     IgnoreModifierState ignoreModifierState;
     ignoreModifierState.mShift = key.mIgnoreShift;
     if (WalkHandlersAndExecute(aKeyEvent, aEventType, aHandler,
-                               key.mCharCode, ignoreModifierState, aExecute)) {
+                               key.mCharCode, ignoreModifierState,
+                               aExecute, aOutReservedForChrome)) {
       return true;
     }
   }
@@ -458,7 +469,8 @@ nsXBLWindowKeyHandler::WalkHandlersAndExecute(
                          nsXBLPrototypeHandler* aHandler,
                          uint32_t aCharCode,
                          const IgnoreModifierState& aIgnoreModifierState,
-                         bool aExecute)
+                         bool aExecute,
+                         bool* aOutReservedForChrome)
 {
   nsresult rv;
 
@@ -519,6 +531,12 @@ nsXBLWindowKeyHandler::WalkHandlersAndExecute(
       if (value.IsEmpty()) {
         continue;  
       }
+
+      if (aOutReservedForChrome) {
+        
+        commandElt->GetAttribute(NS_LITERAL_STRING("reserved"), value);
+        *aOutReservedForChrome = value.EqualsLiteral("true");
+      }
     }
 
     nsCOMPtr<EventTarget> piTarget;
@@ -560,7 +578,8 @@ nsXBLWindowKeyHandler::WalkHandlersAndExecute(
 }
 
 bool
-nsXBLWindowKeyHandler::HasHandlerForEvent(nsIDOMKeyEvent* aEvent)
+nsXBLWindowKeyHandler::HasHandlerForEvent(nsIDOMKeyEvent* aEvent,
+                                          bool* aOutReservedForChrome)
 {
   if (!aEvent->InternalDOMEvent()->IsTrusted()) {
     return false;
@@ -580,7 +599,8 @@ nsXBLWindowKeyHandler::HasHandlerForEvent(nsIDOMKeyEvent* aEvent)
   nsCOMPtr<nsIAtom> eventTypeAtom = do_GetAtom(eventType);
   NS_ENSURE_TRUE(eventTypeAtom, false);
 
-  return WalkHandlersInternal(aEvent, eventTypeAtom, mHandler, false);
+  return WalkHandlersInternal(aEvent, eventTypeAtom, mHandler, false,
+                              aOutReservedForChrome);
 }
 
 already_AddRefed<Element>
