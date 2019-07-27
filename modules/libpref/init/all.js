@@ -3001,7 +3001,7 @@ pref("intl.keyboard.per_window_layout", false);
 
 #ifdef NS_ENABLE_TSF
 
-#ifdef NIGHTLY_BUILD
+#ifndef RELEASE_BUILD
 pref("intl.tsf.enable", true);
 #else
 pref("intl.tsf.enable", false);
