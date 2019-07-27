@@ -45,6 +45,7 @@
 #include "nsStringFwd.h"                
 #include "nsStyleUtil.h"                
 #include "nsXULAppAPI.h"                
+#include "nsIPlaintextEditor.h"         
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -603,20 +604,25 @@ nsEditorSpellCheck::SetCurrentDictionary(const nsAString& aDictionary)
     } else {
       langCode.Assign(aDictionary);
     }
-    if (mPreferredLang.IsEmpty() ||
-        !nsStyleUtil::DashMatchCompare(mPreferredLang, langCode, comparator)) {
-      
-      
-      StoreCurrentDictionary(mEditor, aDictionary);
-    } else {
-      
-      
-      ClearCurrentDictionary(mEditor);
-    }
+    uint32_t flags = 0;
+    mEditor->GetFlags(&flags);
+    if (!(flags & nsIPlaintextEditor::eEditorMailMask)) {
+      if (mPreferredLang.IsEmpty() ||
+          !nsStyleUtil::DashMatchCompare(mPreferredLang, langCode, comparator)) {
+        
+        
+        StoreCurrentDictionary(mEditor, aDictionary);
+      } else {
+        
+        
+        ClearCurrentDictionary(mEditor);
+      }
 
-    
-    
-    Preferences::SetString("spellchecker.dictionary", aDictionary);
+      
+      
+      
+      Preferences::SetString("spellchecker.dictionary", aDictionary);
+    }
   }
   return mSpellChecker->SetCurrentDictionary(aDictionary);
 }
@@ -694,6 +700,18 @@ nsEditorSpellCheck::UpdateCurrentDictionary(nsIEditorSpellCheckCallback* aCallba
     NS_ENSURE_SUCCESS(rv, rv);
     rootContent = do_QueryInterface(rootElement);
   }
+
+  
+  uint32_t flags = 0;
+  mEditor->GetFlags(&flags);
+  if (flags & nsIPlaintextEditor::eEditorMailMask) {
+    nsCOMPtr<nsIDocument> ownerDoc = rootContent->OwnerDoc();
+    NS_ENSURE_TRUE(ownerDoc, NS_ERROR_FAILURE);
+    nsIDocument* parentDoc = ownerDoc->GetParentDocument();
+    if (parentDoc) {
+      rootContent = do_QueryInterface(parentDoc->GetDocumentElement());
+    }
+  }
   NS_ENSURE_TRUE(rootContent, NS_ERROR_FAILURE);
 
   nsRefPtr<DictionaryFetcher> fetcher =
@@ -730,13 +748,19 @@ nsEditorSpellCheck::DictionaryFetched(DictionaryFetcher* aFetcher)
 
   
   
-  nsAutoString dictName(aFetcher->mDictionary);
-  if (!dictName.IsEmpty()) {
-    if (NS_FAILED(SetCurrentDictionary(dictName))) {
-      
-      ClearCurrentDictionary(mEditor);
+  
+  nsAutoString dictName;
+  uint32_t flags;
+  mEditor->GetFlags(&flags);
+  if (!(flags & nsIPlaintextEditor::eEditorMailMask)) {
+    dictName.Assign(aFetcher->mDictionary);
+    if (!dictName.IsEmpty()) {
+      if (NS_FAILED(SetCurrentDictionary(dictName))) {
+        
+        ClearCurrentDictionary(mEditor);
+      }
+      return NS_OK;
     }
-    return NS_OK;
   }
 
   if (mPreferredLang.IsEmpty()) {
