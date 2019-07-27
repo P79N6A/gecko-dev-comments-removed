@@ -64,7 +64,7 @@ function finish_failed_download() {
 
   
   AddonManager.installAddonsFromWebpage("application/x-xpinstall",
-                                        gBrowser.contentWindow,
+                                        gBrowser.selectedBrowser,
                                         gBrowser.currentURI, [gInstall]);
 }
 

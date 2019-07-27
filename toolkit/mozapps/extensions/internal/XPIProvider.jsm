@@ -3756,10 +3756,10 @@ this.XPIProvider = {
 
 
   getInstallForURL: function XPI_getInstallForURL(aUrl, aHash, aName, aIcons,
-                                                  aVersion, aLoadGroup, aCallback) {
+                                                  aVersion, aBrowser, aCallback) {
     AddonInstall.createDownload(function getInstallForURL_createDownload(aInstall) {
       aCallback(aInstall.wrapper);
-    }, aUrl, aHash, aName, aIcons, aVersion, aLoadGroup);
+    }, aUrl, aHash, aName, aIcons, aVersion, aBrowser);
   },
 
   
@@ -4761,7 +4761,7 @@ function getHashStringForCrypto(aCrypto) {
 
 
 function AddonInstall(aInstallLocation, aUrl, aHash, aReleaseNotesURI,
-                      aExistingAddon, aLoadGroup) {
+                      aExistingAddon, aBrowser) {
   this.wrapper = new AddonInstallWrapper(this);
   this.installLocation = aInstallLocation;
   this.sourceURI = aUrl;
@@ -4774,16 +4774,12 @@ function AddonInstall(aInstallLocation, aUrl, aHash, aReleaseNotesURI,
     };
   }
   this.hash = this.originalHash;
-  this.loadGroup = aLoadGroup;
+  this.browser = aBrowser;
   this.listeners = [];
   this.icons = {};
   this.existingAddon = aExistingAddon;
   this.error = 0;
-  if (aLoadGroup)
-    this.window = aLoadGroup.notificationCallbacks
-                            .getInterface(Ci.nsIDOMWindow);
-  else
-    this.window = null;
+  this.window = aBrowser ? aBrowser.contentWindow : null;
 
   
   this.logger = logger;
@@ -4796,7 +4792,7 @@ AddonInstall.prototype = {
   crypto: null,
   originalHash: null,
   hash: null,
-  loadGroup: null,
+  browser: null,
   badCertHandler: null,
   listeners: null,
   restartDownload: false,
@@ -5924,11 +5920,11 @@ AddonInstall.createInstall = function AI_createInstall(aCallback, aFile) {
 
 
 AddonInstall.createDownload = function AI_createDownload(aCallback, aUri, aHash, aName, aIcons,
-                                       aVersion, aLoadGroup) {
+                                       aVersion, aBrowser) {
   let location = XPIProvider.installLocationsByName[KEY_APP_PROFILE];
   let url = NetUtil.newURI(aUri);
 
-  let install = new AddonInstall(location, url, aHash, null, null, aLoadGroup);
+  let install = new AddonInstall(location, url, aHash, null, null, aBrowser);
   if (url instanceof Ci.nsIFileURL)
     install.initLocalInstall(aCallback);
   else
