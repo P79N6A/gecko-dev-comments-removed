@@ -20,6 +20,17 @@ function run_test() {
     return;
   }
 
+  if (Services.appinfo.OS === 'Linux' || Services.appinfo.OS === 'Android') {
+    
+    
+    
+    let kernel = Services.sysinfo.kernel_version || Services.sysinfo.version;
+    if (Services.vc.compare(kernel, '2.6.31') < 0) {
+      ok("Hang reporting not supported for old kernel.");
+      return;
+    }
+  }
+
   
   
   
