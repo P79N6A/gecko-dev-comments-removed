@@ -125,6 +125,20 @@ ToJSValue(JSContext* aCx,
 }
 
 
+inline bool
+ToJSValue(JSContext* aCx,
+          CallbackObject& aArgument,
+          JS::MutableHandle<JS::Value> aValue)
+{
+  
+  MOZ_ASSERT(JS::CurrentGlobalOrNull(aCx));
+
+  aValue.setObject(*aArgument.Callback());
+
+  return MaybeWrapValue(aCx, aValue);
+}
+
+
 
 template <class T>
 typename EnableIf<IsBaseOf<nsWrapperCache, T>::value &&
@@ -172,6 +186,7 @@ ISupportsToJSValue(JSContext* aCx,
 
 template <class T>
 typename EnableIf<!IsBaseOf<nsWrapperCache, T>::value &&
+                  !IsBaseOf<CallbackObject, T>::value &&
                   IsBaseOf<nsISupports, T>::value, bool>::Type
 ToJSValue(JSContext* aCx,
           T& aArgument,
@@ -227,6 +242,16 @@ bool
 ToJSValue(JSContext* aCx,
           nsresult aArgument,
           JS::MutableHandle<JS::Value> aValue);
+
+
+template <typename T>
+typename EnableIf<IsPointer<T>::value, bool>::Type
+ToJSValue(JSContext* aCx,
+          T aArgument,
+          JS::MutableHandle<JS::Value> aValue)
+{
+  return ToJSValue(aCx, *aArgument, aValue);
+}
 
 
 template <typename T>
