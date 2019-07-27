@@ -654,6 +654,7 @@ protected:
   
   
   void DispatchDecodeTasksIfNeeded();
+  void AcquireMonitorAndInvokeDispatchDecodeTasksIfNeeded();
 
   
   
