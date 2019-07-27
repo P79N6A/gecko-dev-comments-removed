@@ -662,14 +662,11 @@ ProtoKeyToClass(JSProtoKey key);
 
 
 
-
-
 inline bool
 StandardClassIsDependent(JSProtoKey key)
 {
-    JSProtoKey keyFromClass = JSCLASS_CACHED_PROTO_KEY(ProtoKeyToClass(key));
-    MOZ_ASSERT(keyFromClass);
-    return key != keyFromClass;
+    const Class *clasp = ProtoKeyToClass(key);
+    return clasp->spec.defined() && clasp->spec.dependent();
 }
 
 
@@ -687,9 +684,8 @@ ParentKeyForStandardClass(JSProtoKey key)
         return JSProto_Null;
 
     
-    
     if (StandardClassIsDependent(key))
-        return JSCLASS_CACHED_PROTO_KEY(ProtoKeyToClass(key));
+        return ProtoKeyToClass(key)->spec.parentKey();
 
     
     return JSProto_Object;

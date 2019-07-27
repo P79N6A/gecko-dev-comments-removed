@@ -422,16 +422,11 @@ JSXrayTraits::resolveOwnProperty(JSContext *cx, const Wrapper &jsWrapper,
     }
 
     
-    const js::Class *clasp = js::GetObjectClass(target);
-    MOZ_ASSERT(clasp->spec.defined());
-    JSProtoKey protoKey = getProtoKey(holder);
-
-    
     if (id == GetRTIdByIndex(cx, XPCJSRuntime::IDX_CONSTRUCTOR)) {
         RootedObject constructor(cx);
         {
             JSAutoCompartment ac(cx, target);
-            if (!JS_GetClassObject(cx, protoKey, &constructor))
+            if (!JS_GetClassObject(cx, key, &constructor))
                 return false;
         }
         if (!JS_WrapObject(cx, &constructor))
@@ -454,15 +449,14 @@ JSXrayTraits::resolveOwnProperty(JSContext *cx, const Wrapper &jsWrapper,
 
     
     
-    if (js::StandardClassIsDependent(protoKey))
-        return true;
-
-    
-    
     
     if (!JSID_IS_STRING(id))
         return true;
     Rooted<JSFlatString*> str(cx, JSID_TO_FLAT_STRING(id));
+
+    
+    const js::Class *clasp = js::GetObjectClass(target);
+    MOZ_ASSERT(clasp->spec.defined());
 
     
     const JSFunctionSpec *fsMatch = nullptr;
@@ -695,11 +689,6 @@ JSXrayTraits::enumerateNames(JSContext *cx, HandleObject wrapper, unsigned flags
     }
 
     
-    const js::Class *clasp = js::GetObjectClass(target);
-    MOZ_ASSERT(clasp->spec.defined());
-    JSProtoKey protoKey = getProtoKey(holder);
-
-    
     if (!props.append(GetRTIdByIndex(cx, XPCJSRuntime::IDX_CONSTRUCTOR)))
         return false;
 
@@ -708,9 +697,8 @@ JSXrayTraits::enumerateNames(JSContext *cx, HandleObject wrapper, unsigned flags
         return false;
 
     
-    
-    if (js::StandardClassIsDependent(protoKey))
-        return true;
+    const js::Class *clasp = js::GetObjectClass(target);
+    MOZ_ASSERT(clasp->spec.defined());
 
     
     for (const JSFunctionSpec *fs = clasp->spec.prototypeFunctions; fs && fs->name; ++fs) {
