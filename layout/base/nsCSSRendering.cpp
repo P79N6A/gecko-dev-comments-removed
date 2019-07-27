@@ -1535,56 +1535,57 @@ nsCSSRendering::PaintBoxShadowInner(nsPresContext* aPresContext,
     
     
     gfxContext* renderContext = aRenderingContext.ThebesContext();
+    DrawTarget* drawTarget = renderContext->GetDrawTarget();
     nsContextBoxBlur blurringArea;
     gfxContext* shadowContext =
       blurringArea.Init(shadowPaintRect, 0, blurRadius, twipsPerPixel,
                         renderContext, aDirtyRect, &skipGfxRect);
     if (!shadowContext)
       continue;
+    DrawTarget* shadowDT = shadowContext->GetDrawTarget();
 
     
     MOZ_ASSERT(shadowContext == renderContext ||
                shadowContext == blurringArea.GetContext());
 
     
-    nscolor shadowColor;
-    if (shadowItem->mHasColor)
-      shadowColor = shadowItem->mColor;
-    else
-      shadowColor = aForFrame->StyleColor()->mColor;
-
+    Color shadowColor = Color::FromABGR(shadowItem->mHasColor ?
+                                          shadowItem->mColor :
+                                          aForFrame->StyleColor()->mColor);
     renderContext->Save();
-    renderContext->SetColor(gfxRGBA(shadowColor));
+    renderContext->SetColor(ThebesColor(shadowColor));
 
     
     
     
-    gfxRect shadowGfxRect =
-      nsLayoutUtils::RectToGfxRect(paddingRect, twipsPerPixel);
+    Rect shadowGfxRect = NSRectToRect(paddingRect, twipsPerPixel);
     shadowGfxRect.Round();
-    renderContext->NewPath();
-    if (hasBorderRadius)
-      renderContext->RoundedRectangle(shadowGfxRect, innerRadii, false);
-    else
-      renderContext->Rectangle(shadowGfxRect);
-    renderContext->Clip();
+    if (hasBorderRadius) {
+      RefPtr<Path> roundedRect =
+        MakePathForRoundedRect(*drawTarget, shadowGfxRect, innerRadii);
+      renderContext->Clip(roundedRect);
+    } else {
+      renderContext->Clip(shadowGfxRect);
+    }
 
     
     
-    gfxRect shadowPaintGfxRect =
-      nsLayoutUtils::RectToGfxRect(shadowPaintRect, twipsPerPixel);
+    Rect shadowPaintGfxRect = NSRectToRect(shadowPaintRect, twipsPerPixel);
     shadowPaintGfxRect.RoundOut();
-    gfxRect shadowClipGfxRect =
-      nsLayoutUtils::RectToGfxRect(shadowClipRect, twipsPerPixel);
+    Rect shadowClipGfxRect = NSRectToRect(shadowClipRect, twipsPerPixel);
     shadowClipGfxRect.Round();
-    shadowContext->NewPath();
-    shadowContext->Rectangle(shadowPaintGfxRect);
-    if (hasBorderRadius)
-      shadowContext->RoundedRectangle(shadowClipGfxRect, clipRectRadii, false);
-    else
-      shadowContext->Rectangle(shadowClipGfxRect);
-    shadowContext->SetFillRule(FillRule::FILL_EVEN_ODD);
+    RefPtr<PathBuilder> builder =
+      shadowDT->CreatePathBuilder(FillRule::FILL_EVEN_ODD);
+    AppendRectToPath(builder, shadowPaintGfxRect, true);
+    if (hasBorderRadius) {
+      AppendRoundedRectToPath(builder, shadowClipGfxRect, clipRectRadii, false);
+    } else {
+      AppendRectToPath(builder, shadowClipGfxRect, false);
+    }
+    RefPtr<Path> path = builder->Finish();
+    shadowContext->SetPath(path);
     shadowContext->Fill();
+    shadowContext->NewPath();
 
     blurringArea.DoPaint();
     renderContext->Restore();
@@ -1822,6 +1823,8 @@ SetupBackgroundClip(nsCSSRendering::BackgroundClipState& aClipState,
     return;
   }
 
+  DrawTarget* drawTarget = aCtx->GetDrawTarget();
+
   
   
   
@@ -1842,10 +1845,8 @@ SetupBackgroundClip(nsCSSRendering::BackgroundClipState& aClipState,
   }
 
   if (aClipState.mHasRoundedCorners) {
-    gfxRect bgAreaGfx =
-      nsLayoutUtils::RectToGfxRect(aClipState.mBGClipArea, aAppUnitsPerPixel);
+    Rect bgAreaGfx = NSRectToRect(aClipState.mBGClipArea, aAppUnitsPerPixel);
     bgAreaGfx.Round();
-    bgAreaGfx.Condition();
 
     if (bgAreaGfx.IsEmpty()) {
       
@@ -1857,9 +1858,10 @@ SetupBackgroundClip(nsCSSRendering::BackgroundClipState& aClipState,
     }
 
     aAutoSR->EnsureSaved(aCtx);
-    aCtx->NewPath();
-    aCtx->RoundedRectangle(bgAreaGfx, aClipState.mClippedRadii);
-    aCtx->Clip();
+
+    RefPtr<Path> roundedRect =
+      MakePathForRoundedRect(*drawTarget, bgAreaGfx, aClipState.mClippedRadii);
+    aCtx->Clip(roundedRect);
   }
 }
 
@@ -1873,6 +1875,8 @@ DrawBackgroundColor(nsCSSRendering::BackgroundClipState& aClipState,
     return;
   }
 
+  DrawTarget* drawTarget = aCtx->GetDrawTarget();
+
   
   
   if (!aClipState.mHasRoundedCorners || aClipState.mCustomClip) {
@@ -1882,10 +1886,8 @@ DrawBackgroundColor(nsCSSRendering::BackgroundClipState& aClipState,
     return;
   }
 
-  gfxRect bgAreaGfx =
-    nsLayoutUtils::RectToGfxRect(aClipState.mBGClipArea, aAppUnitsPerPixel);
+  Rect bgAreaGfx = NSRectToRect(aClipState.mBGClipArea, aAppUnitsPerPixel);
   bgAreaGfx.Round();
-  bgAreaGfx.Condition();
 
   if (bgAreaGfx.IsEmpty()) {
     
@@ -1897,7 +1899,7 @@ DrawBackgroundColor(nsCSSRendering::BackgroundClipState& aClipState,
   }
 
   aCtx->Save();
-  gfxRect dirty = bgAreaGfx.Intersect(aClipState.mDirtyRectGfx);
+  gfxRect dirty = ThebesRect(bgAreaGfx).Intersect(aClipState.mDirtyRectGfx);
 
   aCtx->NewPath();
   aCtx->Rectangle(dirty, true);
@@ -1913,9 +1915,9 @@ DrawBackgroundColor(nsCSSRendering::BackgroundClipState& aClipState,
     aCtx->Clip();
   }
 
-  aCtx->NewPath();
-  aCtx->RoundedRectangle(bgAreaGfx, aClipState.mClippedRadii);
-
+  RefPtr<Path> roundedRect =
+    MakePathForRoundedRect(*drawTarget, bgAreaGfx, aClipState.mClippedRadii);
+  aCtx->SetPath(roundedRect);
   aCtx->Fill();
   aCtx->Restore();
 }
