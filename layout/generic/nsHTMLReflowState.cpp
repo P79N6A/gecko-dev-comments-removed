@@ -505,7 +505,7 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameT
       nsLayoutUtils::FontSizeInflationEnabled(aPresContext)) {
     
     
-    bool dirty = nsFontInflationData::UpdateFontInflationDataWidthFor(*this) &&
+    bool dirty = nsFontInflationData::UpdateFontInflationDataISizeFor(*this) &&
                  
                  
                  

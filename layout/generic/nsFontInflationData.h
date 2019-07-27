@@ -21,7 +21,7 @@ public:
   
   
   static bool
-    UpdateFontInflationDataWidthFor(const nsHTMLReflowState& aReflowState);
+    UpdateFontInflationDataISizeFor(const nsHTMLReflowState& aReflowState);
 
   static void MarkFontInflationDataTextDirty(nsIFrame *aFrame);
 
@@ -32,8 +32,8 @@ public:
     return mInflationEnabled;
   }
 
-  nscoord EffectiveWidth() const {
-    return mNCAWidth;
+  nscoord EffectiveISize() const {
+    return mNCAISize;
   }
 
 private:
@@ -43,7 +43,7 @@ private:
   nsFontInflationData(const nsFontInflationData&) = delete;
   void operator=(const nsFontInflationData&) = delete;
 
-  void UpdateWidth(const nsHTMLReflowState &aReflowState);
+  void UpdateISize(const nsHTMLReflowState &aReflowState);
   enum SearchDirection { eFromStart, eFromEnd };
   static nsIFrame* FindEdgeInflatableFrameIn(nsIFrame *aFrame,
                                              SearchDirection aDirection);
@@ -66,7 +66,7 @@ private:
   }
 
   nsIFrame *mBFCFrame;
-  nscoord mNCAWidth;
+  nscoord mNCAISize;
   nscoord mTextAmount, mTextThreshold;
   bool mInflationEnabled; 
   bool mTextDirty;

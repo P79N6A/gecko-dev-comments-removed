@@ -600,7 +600,7 @@ public:
 
 
 
-  float ScreenWidthInchesForFontInflation(bool* aChanged = nullptr);
+  gfxSize ScreenSizeInchesForFontInflation(bool* aChanged = nullptr);
 
   static int32_t AppUnitsPerCSSPixel() { return mozilla::AppUnitsPerCSSPixel(); }
   int32_t AppUnitsPerDevPixel() const;
@@ -1259,7 +1259,7 @@ protected:
   float                 mTextZoom;      
   float                 mFullZoom;      
 
-  float                 mLastFontInflationScreenWidth;
+  gfxSize               mLastFontInflationScreenSize;
 
   int32_t               mCurAppUnitsPerDevPixel;
   int32_t               mAutoQualityMinFontSizePixelsPref;
