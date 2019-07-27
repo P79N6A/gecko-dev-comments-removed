@@ -4423,6 +4423,9 @@ pref("dom.udpsocket.enabled", false);
 pref("dom.beforeAfterKeyboardEvent.enabled", false);
 
 
+pref("dom.presentation.enabled", false);
+
+
 #ifdef XP_MACOSX
 pref("intl.collation.mac.use_icu", true);
 #endif

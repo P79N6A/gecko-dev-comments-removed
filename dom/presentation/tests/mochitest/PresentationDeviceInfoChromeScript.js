@@ -1,0 +1,60 @@
+
+
+
+'use strict';
+
+const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
+
+Cu.import('resource://gre/modules/PresentationDeviceInfoManager.jsm');
+
+const { XPCOMUtils } = Cu.import('resource://gre/modules/XPCOMUtils.jsm');
+
+const manager = Cc['@mozilla.org/presentation-device/manager;1']
+                  .getService(Ci.nsIPresentationDeviceManager);
+
+var testProvider = {
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIPresentationDeviceProvider]),
+  forceDiscovery: function() {
+    sendAsyncMessage('force-discovery');
+  },
+  listener: null,
+};
+
+var testDevice = {
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIPresentationDevice]),
+  establishSessionTransport: function(url, presentationId) {
+    return null;
+  },
+  id: null,
+  name: null,
+  type: null,
+  listener: null,
+};
+
+addMessageListener('setup', function() {
+  manager.addDeviceProvider(testProvider);
+
+  sendAsyncMessage('setup-complete');
+});
+
+addMessageListener('trigger-device-add', function(device) {
+  testDevice.id = device.id;
+  testDevice.name = device.name;
+  testDevice.type = device.type;
+  manager.addDevice(testDevice);
+});
+
+addMessageListener('trigger-device-update', function(device) {
+  testDevice.id = device.id;
+  testDevice.name = device.name;
+  testDevice.type = device.type;
+  manager.updateDevice(testDevice);
+});
+
+addMessageListener('trigger-device-remove', function() {
+  manager.removeDevice(testDevice);
+});
+
+addMessageListener('teardown', function() {
+  manager.removeDeviceProvider(testProvider);
+});
