@@ -308,24 +308,15 @@ WrapperAnswer::RecvGet(const ObjectId &objId, const ObjectVariant &receiverVar,
 }
 
 bool
-WrapperAnswer::RecvSet(const ObjectId &objId, const ObjectVariant &receiverVar,
-                       const JSIDVariant &idVar, const JSVariant &value, ReturnStatus *rs,
-                       JSVariant *resultValue)
+WrapperAnswer::RecvSet(const ObjectId &objId, const JSIDVariant &idVar, const JSVariant &value,
+                       const JSVariant &receiverVar, ReturnStatus *rs)
 {
     
     AutoEntryScript aes(xpc::NativeGlobal(scopeForTargetObjects()));
     JSContext *cx = aes.cx();
 
-    
-    
-    *resultValue = UndefinedVariant();
-
     RootedObject obj(cx, findObjectById(cx, objId));
     if (!obj)
-        return fail(cx, rs);
-
-    RootedObject receiver(cx, fromObjectVariant(cx, receiverVar));
-    if (!receiver)
         return fail(cx, rs);
 
     LOG("set %s[%s] = %s", ReceiverObj(objId), Identifier(idVar), InVariant(value));
@@ -338,12 +329,12 @@ WrapperAnswer::RecvSet(const ObjectId &objId, const ObjectVariant &receiverVar,
     if (!fromVariant(cx, value, &val))
         return fail(cx, rs);
 
-    ObjectOpResult result;
-    RootedValue receiverVal(cx, ObjectValue(*receiver));
-    if (!JS_ForwardSetPropertyTo(cx, obj, id, val, receiverVal, result))
+    RootedValue receiver(cx);
+    if (!fromVariant(cx, receiverVar, &receiver))
         return fail(cx, rs);
 
-    if (!toVariant(cx, val, resultValue))
+    ObjectOpResult result;
+    if (!JS_ForwardSetPropertyTo(cx, obj, id, val, receiver, result))
         return fail(cx, rs);
 
     return ok(rs, result);

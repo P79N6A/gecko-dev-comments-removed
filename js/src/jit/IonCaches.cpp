@@ -2218,11 +2218,11 @@ EmitObjectOpResultCheck(MacroAssembler &masm, Label *failure, bool strict,
 }
 
 static bool
-ProxySetProperty(JSContext *cx, HandleObject proxy, HandleId id, MutableHandleValue vp,
-                 bool strict)
+ProxySetProperty(JSContext *cx, HandleObject proxy, HandleId id, HandleValue v, bool strict)
 {
+    RootedValue receiver(cx, ObjectValue(*proxy));
     ObjectOpResult result;
-    return Proxy::set(cx, proxy, proxy, id, vp, result)
+    return Proxy::set(cx, proxy, id, v, receiver, result)
            && result.checkStrictErrorOrWarning(cx, proxy, id, strict);
 }
 
@@ -2248,7 +2248,7 @@ EmitCallProxySet(JSContext *cx, MacroAssembler &masm, IonCache::StubAttacher &at
     Register argJSContextReg = regSet.takeGeneral();
     Register argProxyReg     = regSet.takeGeneral();
     Register argIdReg        = regSet.takeGeneral();
-    Register argVpReg        = regSet.takeGeneral();
+    Register argValueReg     = regSet.takeGeneral();
     Register argStrictReg    = regSet.takeGeneral();
 
     Register scratch         = regSet.takeGeneral();
@@ -2259,7 +2259,7 @@ EmitCallProxySet(JSContext *cx, MacroAssembler &masm, IonCache::StubAttacher &at
     
     
     masm.Push(value);
-    masm.movePtr(StackPointer, argVpReg);
+    masm.movePtr(StackPointer, argValueReg);
 
     masm.move32(Imm32(strict), argStrictReg);
 
@@ -2283,7 +2283,7 @@ EmitCallProxySet(JSContext *cx, MacroAssembler &masm, IonCache::StubAttacher &at
     masm.passABIArg(argJSContextReg);
     masm.passABIArg(argProxyReg);
     masm.passABIArg(argIdReg);
-    masm.passABIArg(argVpReg);
+    masm.passABIArg(argValueReg);
     masm.passABIArg(argStrictReg);
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ProxySetProperty));
 
@@ -2529,11 +2529,11 @@ GenerateCallSetter(JSContext *cx, IonScript *ion, MacroAssembler &masm,
         
         
         Register argJSContextReg = regSet.takeGeneral();
-        Register argVpReg        = regSet.takeGeneral();
+        Register argValueReg     = regSet.takeGeneral();
         
         Register argObjReg       = object;
         Register argIdReg        = regSet.takeGeneral();
-        masm.movePtr(StackPointer, argVpReg);
+        masm.movePtr(StackPointer, argValueReg);
 
         
         masm.Push(shape->propid(), argIdReg);
@@ -2553,7 +2553,7 @@ GenerateCallSetter(JSContext *cx, IonScript *ion, MacroAssembler &masm,
         masm.passABIArg(argJSContextReg);
         masm.passABIArg(argObjReg);
         masm.passABIArg(argIdReg);
-        masm.passABIArg(argVpReg);
+        masm.passABIArg(argValueReg);
         masm.passABIArg(argResultReg);
         masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, target));
 
@@ -2565,7 +2565,8 @@ GenerateCallSetter(JSContext *cx, IonScript *ion, MacroAssembler &masm,
         EmitObjectOpResultCheck<IonOOLSetterOpExitFrameLayout>(masm, masm.exceptionLabel(),
                                                                strict, scratchReg,
                                                                argJSContextReg, argObjReg,
-                                                               argIdReg, argVpReg, argResultReg);
+                                                               argIdReg, argValueReg,
+                                                               argResultReg);
 
         
         masm.adjustStack(IonOOLSetterOpExitFrameLayout::Size());
