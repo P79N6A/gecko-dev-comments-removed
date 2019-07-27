@@ -34,9 +34,7 @@ namespace webrtc {
 enum { kViEMinKeyRequestIntervalMs = 300 };
 
 
-enum { kViEMaxNumberOfChannels = 32 };
-enum { kViEVersionMaxMessageSize = 1024 };
-enum { kViEMaxModuleVersionSize = 960 };
+enum { kViEMaxNumberOfChannels = 64 };
 
 
 enum { kViEMaxCaptureDevices = 256 };
@@ -102,31 +100,8 @@ inline int ChannelId(const int moduleId) {
 }
 
 
-#if defined(_DEBUG) || defined(DEBUG)
-#define BUILDMODE "d"
-#elif defined(NDEBUG)
-#define BUILDMODE "r"
-#else
-#define BUILDMODE "?"
-#endif
-
-#define BUILDTIME __TIME__
-#define BUILDDATE __DATE__
-
-
-#define BUILDINFO BUILDDATE " " BUILDTIME " " BUILDMODE
-
-
 #if defined(_WIN32)
   #define RENDER_MODULE_TYPE kRenderWindows
-
-  
-  
-  #pragma warning(disable: 4351)
-  
-  #pragma warning(disable: 4355)
-  
-  #pragma warning(disable: 4731)
 
   
   #pragma comment(lib, "winmm.lib")

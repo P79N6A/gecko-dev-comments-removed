@@ -14,13 +14,10 @@
 #include "webrtc/system_wrappers/interface/sleep.h"
 #include "webrtc/system_wrappers/interface/thread_wrapper.h"
 #include "webrtc/system_wrappers/interface/trace.h"
-#include "webrtc/system_wrappers/source/unittest_utilities.h"
 
 namespace webrtc {
 
 namespace {
-
-const bool kLogTrace = false;  
 
 
 
@@ -54,8 +51,7 @@ private:
 
 class CritSectTest : public ::testing::Test {
 public:
-  CritSectTest() : trace_(kLogTrace) {
-  }
+  CritSectTest() {}
 
   
   
@@ -70,9 +66,6 @@ public:
     }
     return (count->Count() >= target);
   }
-
-private:
-  ScopedTracing trace_;
 };
 
 bool LockUnlockThenStopRunFunction(void* obj) {

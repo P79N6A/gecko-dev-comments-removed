@@ -19,8 +19,6 @@
 
 #include <stddef.h>
 
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
-
 namespace webrtc {
 
 
@@ -49,9 +47,11 @@ T* AlignedMalloc(size_t size, size_t alignment) {
 }
 
 
-template<typename T>
-struct Allocator {
-  typedef scoped_ptr_malloc<T, AlignedFree> scoped_ptr_aligned;
+
+struct AlignedFreeDeleter {
+  inline void operator()(void* ptr) const {
+    AlignedFree(ptr);
+  }
 };
 
 }  

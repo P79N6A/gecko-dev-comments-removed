@@ -41,7 +41,7 @@ template <typename T> void ClearList(std::list<T*>* my_list) {
 class RtpFecTest : public ::testing::Test {
  protected:
   RtpFecTest()
-      : fec_(new ForwardErrorCorrection(0)), ssrc_(rand()), fec_seq_num_(0) {}
+      : fec_(new ForwardErrorCorrection()), ssrc_(rand()), fec_seq_num_(0) {}
 
   ForwardErrorCorrection* fec_;
   int ssrc_;
@@ -85,43 +85,6 @@ class RtpFecTest : public ::testing::Test {
   
   void TearDown();
 };
-
-
-
-TEST_F(RtpFecTest, HandleIncorrectInputs) {
-  int kNumImportantPackets = 0;
-  bool kUseUnequalProtection = false;
-  uint8_t kProtectionFactor = 60;
-
-  
-  EXPECT_EQ(-1, fec_->GenerateFEC(media_packet_list_, kProtectionFactor,
-                                  kNumImportantPackets, kUseUnequalProtection,
-                                  webrtc::kFecMaskBursty, &fec_packet_list_));
-
-  int num_media_packets = 10;
-  ConstructMediaPackets(num_media_packets);
-
-  kNumImportantPackets = -1;
-  
-  EXPECT_EQ(-1, fec_->GenerateFEC(media_packet_list_, kProtectionFactor,
-                                  kNumImportantPackets, kUseUnequalProtection,
-                                  webrtc::kFecMaskBursty, &fec_packet_list_));
-
-  kNumImportantPackets = 12;
-  
-  EXPECT_EQ(-1, fec_->GenerateFEC(media_packet_list_, kProtectionFactor,
-                                  kNumImportantPackets, kUseUnequalProtection,
-                                  webrtc::kFecMaskBursty, &fec_packet_list_));
-
-  num_media_packets = kMaxNumberMediaPackets + 1;
-  ConstructMediaPackets(num_media_packets);
-
-  kNumImportantPackets = 0;
-  
-  EXPECT_EQ(-1, fec_->GenerateFEC(media_packet_list_, kProtectionFactor,
-                                  kNumImportantPackets, kUseUnequalProtection,
-                                  webrtc::kFecMaskBursty, &fec_packet_list_));
-}
 
 TEST_F(RtpFecTest, FecRecoveryNoLoss) {
   const int kNumImportantPackets = 0;
@@ -190,6 +153,174 @@ TEST_F(RtpFecTest, FecRecoveryWithLoss) {
 
   
   EXPECT_FALSE(IsRecoveryComplete());
+}
+
+
+TEST_F(RtpFecTest, FecRecoveryWithSeqNumGapTwoFrames) {
+  const int kNumImportantPackets = 0;
+  const bool kUseUnequalProtection = false;
+  uint8_t kProtectionFactor = 20;
+
+  
+  
+  
+  
+  
+  
+
+  
+  fec_seq_num_ = ConstructMediaPacketsSeqNum(2, 0);
+
+  EXPECT_EQ(0, fec_->GenerateFEC(media_packet_list_, kProtectionFactor,
+                                 kNumImportantPackets, kUseUnequalProtection,
+                                 webrtc::kFecMaskBursty, &fec_packet_list_));
+  
+  EXPECT_EQ(1, static_cast<int>(fec_packet_list_.size()));
+  
+  
+  memset(fec_loss_mask_, 0, sizeof(fec_loss_mask_));
+  ReceivedPackets(fec_packet_list_, fec_loss_mask_, true);
+
+  
+  ClearList(&media_packet_list_);
+  fec_seq_num_ = ConstructMediaPacketsSeqNum(3, 65535);
+
+  
+  EXPECT_EQ(3, static_cast<int>(media_packet_list_.size()));
+
+  
+  memset(media_loss_mask_, 0, sizeof(media_loss_mask_));
+  media_loss_mask_[1] = 1;
+  
+  ReceivedPackets(media_packet_list_, media_loss_mask_, false);
+
+  EXPECT_EQ(0,
+            fec_->DecodeFEC(&received_packet_list_, &recovered_packet_list_));
+
+  
+  
+  
+  EXPECT_EQ(2, static_cast<int>(recovered_packet_list_.size()));
+  EXPECT_TRUE(recovered_packet_list_.size() != media_packet_list_.size());
+  FreeRecoveredPacketList();
+}
+
+
+
+TEST_F(RtpFecTest, FecRecoveryWithSeqNumGapOneFrameRecovery) {
+  const int kNumImportantPackets = 0;
+  const bool kUseUnequalProtection = false;
+  uint8_t kProtectionFactor = 20;
+
+  
+  
+  
+  fec_seq_num_ = ConstructMediaPacketsSeqNum(3, 65534);
+
+  EXPECT_EQ(0, fec_->GenerateFEC(media_packet_list_, kProtectionFactor,
+                                 kNumImportantPackets, kUseUnequalProtection,
+                                 webrtc::kFecMaskBursty, &fec_packet_list_));
+
+  
+  EXPECT_EQ(1, static_cast<int>(fec_packet_list_.size()));
+
+  
+  memset(media_loss_mask_, 0, sizeof(media_loss_mask_));
+  memset(fec_loss_mask_, 0, sizeof(fec_loss_mask_));
+  media_loss_mask_[1] = 1;
+  ReceivedPackets(media_packet_list_, media_loss_mask_, false);
+  
+  ReceivedPackets(fec_packet_list_, fec_loss_mask_, true);
+
+  EXPECT_EQ(0,
+            fec_->DecodeFEC(&received_packet_list_, &recovered_packet_list_));
+
+  
+  
+  EXPECT_EQ(3, static_cast<int>(recovered_packet_list_.size()));
+  EXPECT_TRUE(IsRecoveryComplete());
+  FreeRecoveredPacketList();
+}
+
+
+
+
+
+
+
+TEST_F(RtpFecTest, FecRecoveryWithSeqNumGapOneFrameNoRecovery) {
+  const int kNumImportantPackets = 0;
+  const bool kUseUnequalProtection = false;
+  uint8_t kProtectionFactor = 200;
+
+  
+  
+  
+  
+  fec_seq_num_ = ConstructMediaPacketsSeqNum(3, 65532);
+
+  EXPECT_EQ(0, fec_->GenerateFEC(media_packet_list_, kProtectionFactor,
+                                 kNumImportantPackets, kUseUnequalProtection,
+                                 webrtc::kFecMaskBursty, &fec_packet_list_));
+
+  
+  EXPECT_EQ(2, static_cast<int>(fec_packet_list_.size()));
+
+  
+  memset(media_loss_mask_, 0, sizeof(media_loss_mask_));
+  memset(fec_loss_mask_, 0, sizeof(fec_loss_mask_));
+  media_loss_mask_[1] = 1;
+  media_loss_mask_[2] = 1;
+  ReceivedPackets(media_packet_list_, media_loss_mask_, false);
+  ReceivedPackets(fec_packet_list_, fec_loss_mask_, true);
+
+  EXPECT_EQ(0,
+            fec_->DecodeFEC(&received_packet_list_, &recovered_packet_list_));
+
+  
+  
+  
+  
+  EXPECT_EQ(2, static_cast<int>(recovered_packet_list_.size()));
+  EXPECT_TRUE(recovered_packet_list_.size() != media_packet_list_.size());
+  EXPECT_FALSE(IsRecoveryComplete());
+  FreeRecoveredPacketList();
+}
+
+
+TEST_F(RtpFecTest, FecRecoveryWithFecOutOfOrder) {
+  const int kNumImportantPackets = 0;
+  const bool kUseUnequalProtection = false;
+  uint8_t kProtectionFactor = 20;
+
+  
+  
+  
+  fec_seq_num_ = ConstructMediaPacketsSeqNum(3, 0);
+
+  EXPECT_EQ(0, fec_->GenerateFEC(media_packet_list_, kProtectionFactor,
+                                 kNumImportantPackets, kUseUnequalProtection,
+                                 webrtc::kFecMaskBursty, &fec_packet_list_));
+
+  
+  EXPECT_EQ(1, static_cast<int>(fec_packet_list_.size()));
+
+  
+  memset(media_loss_mask_, 0, sizeof(media_loss_mask_));
+  memset(fec_loss_mask_, 0, sizeof(fec_loss_mask_));
+  media_loss_mask_[1] = 1;
+  
+  ReceivedPackets(fec_packet_list_, fec_loss_mask_, true);
+  
+  ReceivedPackets(media_packet_list_, media_loss_mask_, false);
+
+  EXPECT_EQ(0,
+            fec_->DecodeFEC(&received_packet_list_, &recovered_packet_list_));
+
+  
+  EXPECT_EQ(3, static_cast<int>(recovered_packet_list_.size()));
+  EXPECT_TRUE(IsRecoveryComplete());
+  FreeRecoveredPacketList();
 }
 
 
@@ -662,8 +793,6 @@ TEST_F(RtpFecTest, FecRecoveryNonConsecutivePacketsWrap) {
   EXPECT_FALSE(IsRecoveryComplete());
 }
 
-
-
 void RtpFecTest::TearDown() {
   fec_->ResetState(&recovered_packet_list_);
   delete fec_;
@@ -737,7 +866,7 @@ void RtpFecTest::ReceivedPackets(const PacketList& packet_list, int* loss_mask,
         
         
         received_packet->seq_num =
-            webrtc::ModuleRTPUtility::BufferToUWord16(&packet->data[2]);
+            webrtc::RtpUtility::BufferToUWord16(&packet->data[2]);
       } else {
         
         
@@ -792,12 +921,11 @@ int RtpFecTest::ConstructMediaPacketsSeqNum(int num_media_packets,
     
     media_packet->data[1] &= 0x7f;
 
-    webrtc::ModuleRTPUtility::AssignUWord16ToBuffer(&media_packet->data[2],
-                                                    sequence_number);
-    webrtc::ModuleRTPUtility::AssignUWord32ToBuffer(&media_packet->data[4],
-                                                    time_stamp);
-    webrtc::ModuleRTPUtility::AssignUWord32ToBuffer(&media_packet->data[8],
-                                                    ssrc_);
+    webrtc::RtpUtility::AssignUWord16ToBuffer(&media_packet->data[2],
+                                              sequence_number);
+    webrtc::RtpUtility::AssignUWord32ToBuffer(&media_packet->data[4],
+                                              time_stamp);
+    webrtc::RtpUtility::AssignUWord32ToBuffer(&media_packet->data[8], ssrc_);
 
     
     for (int j = 12; j < media_packet->length; ++j) {

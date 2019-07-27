@@ -27,15 +27,12 @@ static const int16_t kACoefQ12[3] = {
   4096, -3072, 1024
 };
 
-
-
-static __inline int32_t Log2Q8( uint32_t x ) {
-
+int32_t WebRtcIsacfix_Log2Q8(uint32_t x) {
   int32_t zeros, lg2;
   int16_t frac;
 
   zeros=WebRtcSpl_NormU32(x);
-  frac=(int16_t)WEBRTC_SPL_RSHIFT_W32(((uint32_t)(WEBRTC_SPL_LSHIFT_W32(x, zeros))&0x7FFFFFFF), 23);
+  frac = (int16_t)(((x << zeros) & 0x7FFFFFFF) >> 23);
   
 
   lg2= (WEBRTC_SPL_LSHIFT_W32((31-zeros), 8)+frac);
@@ -48,11 +45,11 @@ static __inline int16_t Exp2Q10(int16_t x) {
   int16_t tmp16_1, tmp16_2;
 
   tmp16_2=(int16_t)(0x0400|(x&0x03FF));
-  tmp16_1=-(int16_t)WEBRTC_SPL_RSHIFT_W16(x,10);
+  tmp16_1 = -(x >> 10);
   if(tmp16_1>0)
-    return (int16_t) WEBRTC_SPL_RSHIFT_W16(tmp16_2, tmp16_1);
+    return tmp16_2 >> tmp16_1;
   else
-    return (int16_t) WEBRTC_SPL_LSHIFT_W16(tmp16_2, -tmp16_1);
+    return tmp16_2 << -tmp16_1;
 
 }
 
@@ -69,7 +66,7 @@ static __inline void Intrp1DQ8(int32_t *x, int32_t *fx, int32_t *y, int32_t *fy)
     r32=fx[1]-fx[2];
     q32=fx[0]-fx[1];
     nom32=q32+r32;
-    den32=WEBRTC_SPL_MUL_32_16((q32-r32), 2);
+    den32 = (q32 - r32) * 2;
     if (nom32<0)
       sign1=-1;
     if (den32<0)
@@ -77,9 +74,10 @@ static __inline void Intrp1DQ8(int32_t *x, int32_t *fx, int32_t *y, int32_t *fy)
 
     
     
-    t32=WebRtcSpl_DivResultInQ31(WEBRTC_SPL_MUL_32_16(nom32, sign1),WEBRTC_SPL_MUL_32_16(den32, sign2)); 
+    
+    t32 = WebRtcSpl_DivResultInQ31(nom32 * sign1, den32 * sign2);
 
-    t16=(int16_t)WEBRTC_SPL_RSHIFT_W32(t32, 23);  
+    t16 = (int16_t)(t32 >> 23);  
     t16=t16*sign1*sign2;        
 
     *y = x[0]+t16;          
@@ -90,7 +88,7 @@ static __inline void Intrp1DQ8(int32_t *x, int32_t *fx, int32_t *y, int32_t *fy)
 
     
     tmp16_1=(int16_t)WEBRTC_SPL_MUL_16_16(t16,t16); 
-    tmp16_1 = WEBRTC_SPL_RSHIFT_W16(tmp16_1,2);  
+    tmp16_1 >>= 2;  
     t16 = (int16_t)WEBRTC_SPL_MUL_16_16(t16, 64);           
     tmp16 = tmp16_1-t16;
     *fy = WEBRTC_SPL_MUL_16_32_RSFT15(tmp16, fx[0]); 
@@ -153,109 +151,7 @@ static void FindFour32(int32_t *in, int16_t length, int16_t *bestind)
 
 
 
-static void PCorr2Q32(const int16_t *in, int32_t *logcorQ8)
-{
-  int16_t scaling,n,k;
-  int32_t ysum32,csum32, lys, lcs;
-  int32_t oneQ8;
-
-
-  const int16_t *x, *inptr;
-
-  oneQ8 = WEBRTC_SPL_LSHIFT_W32((int32_t)1, 8);  
-
-  x = in + PITCH_MAX_LAG/2 + 2;
-  scaling = WebRtcSpl_GetScalingSquare ((int16_t *) in, PITCH_CORR_LEN2, PITCH_CORR_LEN2);
-  ysum32 = 1;
-  csum32 = 0;
-  x = in + PITCH_MAX_LAG/2 + 2;
-  for (n = 0; n < PITCH_CORR_LEN2; n++) {
-    ysum32 += WEBRTC_SPL_MUL_16_16_RSFT( (int16_t) in[n],(int16_t) in[n], scaling);  
-    csum32 += WEBRTC_SPL_MUL_16_16_RSFT((int16_t) x[n],(int16_t) in[n], scaling); 
-  }
-
-  logcorQ8 += PITCH_LAG_SPAN2 - 1;
-
-  lys=Log2Q8((uint32_t) ysum32); 
-  lys=WEBRTC_SPL_RSHIFT_W32(lys, 1); 
-
-  if (csum32>0) {
-
-    lcs=Log2Q8((uint32_t) csum32);   
-
-    if (lcs>(lys + oneQ8) ){ 
-      *logcorQ8 = lcs - lys;  
-    } else {
-      *logcorQ8 = oneQ8;  
-    }
-
-  } else {
-    *logcorQ8 = 0;
-  }
-
-
-  for (k = 1; k < PITCH_LAG_SPAN2; k++) {
-    inptr = &in[k];
-    ysum32 -= WEBRTC_SPL_MUL_16_16_RSFT( (int16_t) in[k-1],(int16_t) in[k-1], scaling);
-    ysum32 += WEBRTC_SPL_MUL_16_16_RSFT( (int16_t) in[PITCH_CORR_LEN2 + k - 1],(int16_t) in[PITCH_CORR_LEN2 + k - 1], scaling);
-
-#ifdef WEBRTC_ARCH_ARM_NEON
-    {
-      int32_t vbuff[4];
-      int32x4_t int_32x4_sum = vmovq_n_s32(0);
-      
-      int32x4_t int_32x4_scale = vdupq_n_s32(-scaling);
-      
-      COMPILE_ASSERT(PITCH_CORR_LEN2 %4 == 0);
-
-      for (n = 0; n < PITCH_CORR_LEN2; n += 4) {
-        int16x4_t int_16x4_x = vld1_s16(&x[n]);
-        int16x4_t int_16x4_in = vld1_s16(&inptr[n]);
-        int32x4_t int_32x4 = vmull_s16(int_16x4_x, int_16x4_in);
-        int_32x4 = vshlq_s32(int_32x4, int_32x4_scale);
-        int_32x4_sum = vaddq_s32(int_32x4_sum, int_32x4);
-      }
-
-      
-      
-      vst1q_s32(vbuff, int_32x4_sum);
-      csum32 = vbuff[0] + vbuff[1];
-      csum32 += vbuff[2];
-      csum32 += vbuff[3];
-    }
-#else
-    csum32 = 0;
-    if(scaling == 0) {
-      for (n = 0; n < PITCH_CORR_LEN2; n++) {
-        csum32 += x[n] * inptr[n];
-      }
-    } else {
-      for (n = 0; n < PITCH_CORR_LEN2; n++) {
-        csum32 += (x[n] * inptr[n]) >> scaling;
-      }
-    }
-#endif
-
-    logcorQ8--;
-
-    lys=Log2Q8((uint32_t)ysum32); 
-    lys=WEBRTC_SPL_RSHIFT_W32(lys, 1); 
-
-    if (csum32>0) {
-
-      lcs=Log2Q8((uint32_t) csum32);   
-
-      if (lcs>(lys + oneQ8) ){ 
-        *logcorQ8 = lcs - lys;  
-      } else {
-        *logcorQ8 = oneQ8;  
-      }
-
-    } else {
-      *logcorQ8 = 0;
-    }
-  }
-}
+extern void WebRtcIsacfix_PCorr2Q32(const int16_t *in, int32_t *logcorQ8);
 
 
 
@@ -311,12 +207,13 @@ void WebRtcIsacfix_InitialPitch(const int16_t *in,
 
 
   
-  PCorr2Q32(buf_dec16, crrvecQ8_1);
-  PCorr2Q32(buf_dec16 + PITCH_CORR_STEP2, crrvecQ8_2);
+  WebRtcIsacfix_PCorr2Q32(buf_dec16, crrvecQ8_1);
+  WebRtcIsacfix_PCorr2Q32(buf_dec16 + PITCH_CORR_STEP2, crrvecQ8_2);
 
 
   
-  tmp32a = Log2Q8((uint32_t) old_lagQ8) - 2304; 
+  tmp32a = WebRtcIsacfix_Log2Q8((uint32_t) old_lagQ8) - 2304;
+      
   tmp32b = WEBRTC_SPL_MUL_16_16_RSFT(oldgQ12,oldgQ12, 10); 
   gain_bias16 = (int16_t) tmp32b;  
   if (gain_bias16 > 3276) gain_bias16 = 3276; 
@@ -325,7 +222,7 @@ void WebRtcIsacfix_InitialPitch(const int16_t *in,
   for (k = 0; k < PITCH_LAG_SPAN2; k++)
   {
     if (crrvecQ8_1[k]>0) {
-      tmp32b = Log2Q8((uint32_t) (k + (PITCH_MIN_LAG/2-2)));
+      tmp32b = WebRtcIsacfix_Log2Q8((uint32_t) (k + (PITCH_MIN_LAG/2-2)));
       tmp16a = (int16_t) (tmp32b - tmp32a); 
       tmp32c = WEBRTC_SPL_MUL_16_16_RSFT(tmp16a,tmp16a, 6); 
       tmp16b = (int16_t) tmp32c; 
@@ -334,7 +231,8 @@ void WebRtcIsacfix_InitialPitch(const int16_t *in,
       tmp16d = Exp2Q10((int16_t) -tmp16c); 
       tmp32c = WEBRTC_SPL_MUL_16_16_RSFT(gain_bias16,tmp16d,13); 
       bias16 = (int16_t) (1024 + tmp32c); 
-      tmp32b = Log2Q8((uint32_t) bias16) - 2560; 
+      tmp32b = WebRtcIsacfix_Log2Q8((uint32_t)bias16) - 2560;
+          
       crrvecQ8_1[k] += tmp32b ; 
     }
   }
@@ -407,7 +305,7 @@ void WebRtcIsacfix_InitialPitch(const int16_t *in,
       xq[0] = WEBRTC_SPL_LSHIFT_W32(xq[0], 8);
       Intrp1DQ8(xq, fxq, yq, fyq);
 
-      tmp32a= Log2Q8((uint32_t) *yq) - 2048; 
+      tmp32a= WebRtcIsacfix_Log2Q8((uint32_t) *yq) - 2048; 
       
       
       tmp32b= WEBRTC_SPL_MUL_16_16_RSFT((int16_t) tmp32a, -42, 8);
@@ -429,7 +327,7 @@ void WebRtcIsacfix_InitialPitch(const int16_t *in,
 
   
   tmp32a = lagsQ8[0] - PITCH_MIN_LAG_Q8;
-  ratq = WEBRTC_SPL_RSHIFT_W32(tmp32a, 1) + OFFSET_Q8;
+  ratq = (tmp32a >> 1) + OFFSET_Q8;
 
   for (k = 1; k <= PITCH_LAG_SPAN2; k++)
   {
@@ -437,12 +335,15 @@ void WebRtcIsacfix_InitialPitch(const int16_t *in,
     tmp32b = (int32_t) (WEBRTC_SPL_LSHIFT_W32(tmp32a, 1)) - ratq; 
     tmp32c = WEBRTC_SPL_MUL_16_16_RSFT((int16_t) tmp32b, (int16_t) tmp32b, 8); 
 
-    tmp32b = (int32_t) tmp32c + (int32_t)  WEBRTC_SPL_RSHIFT_W32(ratq, 1); 
-    tmp32c = Log2Q8((uint32_t) tmp32a) - 2048; 
-    tmp32d = Log2Q8((uint32_t) tmp32b) - 2048; 
-    tmp32e =  tmp32c -tmp32d;
+    tmp32b = tmp32c + (ratq >> 1);
+        
+    tmp32c = WebRtcIsacfix_Log2Q8((uint32_t)tmp32a) - 2048;
+        
+    tmp32d = WebRtcIsacfix_Log2Q8((uint32_t)tmp32b) - 2048;
+        
+    tmp32e =  tmp32c - tmp32d;
 
-    cv2q[k] += WEBRTC_SPL_RSHIFT_W32(tmp32e, 1);
+    cv2q[k] += tmp32e >> 1;
 
   }
 
@@ -481,7 +382,7 @@ void WebRtcIsacfix_InitialPitch(const int16_t *in,
 
       
       
-      tmp32a= Log2Q8((uint32_t) *yq) - 2048; 
+      tmp32a= WebRtcIsacfix_Log2Q8((uint32_t) *yq) - 2048; 
       tmp32b= WEBRTC_SPL_MUL_16_16_RSFT((int16_t) tmp32a, -82, 8);
       tmp32c= tmp32b + 256;
       *fyq += tmp32c;
@@ -500,12 +401,10 @@ void WebRtcIsacfix_InitialPitch(const int16_t *in,
     lagsQ8[3] = lagsQ8[0];
   }
 
-  lagsQ7[0]=(int16_t) WEBRTC_SPL_RSHIFT_W32(lagsQ8[0], 1);
-  lagsQ7[1]=(int16_t) WEBRTC_SPL_RSHIFT_W32(lagsQ8[1], 1);
-  lagsQ7[2]=(int16_t) WEBRTC_SPL_RSHIFT_W32(lagsQ8[2], 1);
-  lagsQ7[3]=(int16_t) WEBRTC_SPL_RSHIFT_W32(lagsQ8[3], 1);
-
-
+  lagsQ7[0] = (int16_t)(lagsQ8[0] >> 1);
+  lagsQ7[1] = (int16_t)(lagsQ8[1] >> 1);
+  lagsQ7[2] = (int16_t)(lagsQ8[2] >> 1);
+  lagsQ7[3] = (int16_t)(lagsQ8[3] >> 1);
 }
 
 

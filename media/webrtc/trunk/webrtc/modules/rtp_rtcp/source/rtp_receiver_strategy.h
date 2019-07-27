@@ -26,8 +26,7 @@ class TelephoneEventHandler;
 
 class RTPReceiverStrategy {
  public:
-  static RTPReceiverStrategy* CreateVideoStrategy(int32_t id,
-                                                  RtpData* data_callback);
+  static RTPReceiverStrategy* CreateVideoStrategy(RtpData* data_callback);
   static RTPReceiverStrategy* CreateAudioStrategy(
       int32_t id, RtpData* data_callback,
       RtpAudioFeedback* incoming_messages_callback);

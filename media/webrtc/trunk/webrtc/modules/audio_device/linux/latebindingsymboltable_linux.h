@@ -8,23 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef WEBRTC_AUDIO_DEVICE_LATEBINDINGSYMBOLTABLE_LINUX_H
 #define WEBRTC_AUDIO_DEVICE_LATEBINDINGSYMBOLTABLE_LINUX_H
 
@@ -32,7 +15,7 @@
 #include <stddef.h>  
 #include <string.h>
 
-#include "webrtc/system_wrappers/interface/constructor_magic.h"
+#include "webrtc/base/constructormagic.h"
 #include "webrtc/system_wrappers/interface/trace.h"
 
 
@@ -42,7 +25,7 @@
 
 namespace webrtc_adm_linux {
 
-#if defined(WEBRTC_LINUX) || defined(WEBRTC_BSD)
+#ifdef WEBRTC_LINUX
 typedef void *DllHandle;
 
 const DllHandle kInvalidDllHandle = NULL;

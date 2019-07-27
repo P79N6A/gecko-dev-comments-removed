@@ -29,7 +29,6 @@ class VideoSendStreamInput {
   
   
   
-  virtual void PutFrame(const I420VideoFrame& video_frame) = 0;
   virtual void SwapFrame(I420VideoFrame* video_frame) = 0;
 
  protected:
@@ -42,15 +41,13 @@ class VideoSendStream {
     Stats()
         : input_frame_rate(0),
           encode_frame_rate(0),
-          avg_delay_ms(0),
-          max_delay_ms(0) {}
-
+          media_bitrate_bps(0),
+          suspended(false) {}
     int input_frame_rate;
     int encode_frame_rate;
-    int avg_delay_ms;
-    int max_delay_ms;
-    std::string c_name;
-    std::map<uint32_t, StreamStats> substreams;
+    int media_bitrate_bps;
+    bool suspended;
+    std::map<uint32_t, SsrcStats> substreams;
   };
 
   struct Config {
@@ -59,16 +56,27 @@ class VideoSendStream {
           post_encode_callback(NULL),
           local_renderer(NULL),
           render_delay_ms(0),
-          encoder(NULL),
-          internal_source(false),
           target_delay_ms(0),
-          pacing(false),
           suspend_below_min_bitrate(false) {}
-    VideoCodec codec;
+    std::string ToString() const;
+
+    struct EncoderSettings {
+      EncoderSettings() : payload_type(-1), encoder(NULL) {}
+
+      std::string ToString() const;
+
+      std::string payload_name;
+      int payload_type;
+
+      
+      
+      webrtc::VideoEncoder* encoder;
+    } encoder_settings;
 
     static const size_t kDefaultMaxPacketSize = 1500 - 40;  
     struct Rtp {
       Rtp() : max_packet_size(kDefaultMaxPacketSize) {}
+      std::string ToString() const;
 
       std::vector<uint32_t> ssrcs;
 
@@ -87,12 +95,17 @@ class VideoSendStream {
       
       
       struct Rtx {
-        Rtx() : payload_type(0) {}
+        Rtx() : payload_type(-1), pad_with_redundant_payloads(false) {}
+        std::string ToString() const;
         
         std::vector<uint32_t> ssrcs;
 
         
         int payload_type;
+        
+        
+        
+        bool pad_with_redundant_payloads;
       } rtx;
 
       
@@ -118,21 +131,8 @@ class VideoSendStream {
 
     
     
-    
-    
-    VideoEncoder* encoder;
-    bool internal_source;
-
-    
-    
     int target_delay_ms;
 
-    
-    
-    bool pacing;
-
-    
-    
     
     
     
@@ -143,11 +143,13 @@ class VideoSendStream {
   
   virtual VideoSendStreamInput* Input() = 0;
 
-  virtual void StartSending() = 0;
-  virtual void StopSending() = 0;
+  virtual void Start() = 0;
+  virtual void Stop() = 0;
 
-  virtual bool SetCodec(const VideoCodec& codec) = 0;
-  virtual VideoCodec GetCodec() = 0;
+  
+  
+  
+  virtual bool ReconfigureVideoEncoder(const VideoEncoderConfig& config) = 0;
 
   virtual Stats GetStats() const = 0;
 

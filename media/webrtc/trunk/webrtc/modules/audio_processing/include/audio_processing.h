@@ -14,6 +14,7 @@
 #include <stddef.h>  
 #include <stdio.h>  
 
+#include "webrtc/base/platform_file.h"
 #include "webrtc/common.h"
 #include "webrtc/typedefs.h"
 
@@ -55,11 +56,34 @@ struct DelayCorrection {
 
 
 
+
+
+
+
+struct ReportedDelay {
+  ReportedDelay() : enabled(true) {}
+  explicit ReportedDelay(bool enabled) : enabled(enabled) {}
+  bool enabled;
+};
+
+
+
 struct ExperimentalAgc {
   ExperimentalAgc() : enabled(true) {}
   explicit ExperimentalAgc(bool enabled) : enabled(enabled) {}
   bool enabled;
 };
+
+
+
+struct ExperimentalNs {
+  ExperimentalNs() : enabled(false) {}
+  explicit ExperimentalNs(bool enabled) : enabled(enabled) {}
+  bool enabled;
+};
+
+static const int kAudioProcMaxNativeSampleRateHz = 32000;
+
 
 
 
@@ -135,6 +159,16 @@ struct ExperimentalAgc {
 
 class AudioProcessing {
  public:
+  enum ChannelLayout {
+    kMono,
+    
+    kStereo,
+    
+    kMonoAndKeyboard,
+    
+    kStereoAndKeyboard
+  };
+
   
   
   
@@ -153,36 +187,44 @@ class AudioProcessing {
   
   
   
+  
+  
+  
   virtual int Initialize() = 0;
+
+  
+  
+  
+  
+  
+  
+  
+  virtual int Initialize(int input_sample_rate_hz,
+                         int output_sample_rate_hz,
+                         int reverse_sample_rate_hz,
+                         ChannelLayout input_layout,
+                         ChannelLayout output_layout,
+                         ChannelLayout reverse_layout) = 0;
 
   
   
   virtual void SetExtraOptions(const Config& config) = 0;
 
-  virtual int EnableExperimentalNs(bool enable) = 0;
-  virtual bool experimental_ns_enabled() const = 0;
-
-  
-  
   
   
   virtual int set_sample_rate_hz(int rate) = 0;
+  
+  
+  virtual int input_sample_rate_hz() const = 0;
+  
   virtual int sample_rate_hz() const = 0;
 
   
   
-  
-  
-  
-  virtual int set_num_channels(int input_channels, int output_channels) = 0;
+  virtual int proc_sample_rate_hz() const = 0;
+  virtual int proc_split_sample_rate_hz() const = 0;
   virtual int num_input_channels() const = 0;
   virtual int num_output_channels() const = 0;
-
-  
-  
-  
-  
-  virtual int set_num_reverse_channels(int channels) = 0;
   virtual int num_reverse_channels() const = 0;
 
   
@@ -211,6 +253,21 @@ class AudioProcessing {
   
   
   
+  virtual int ProcessStream(const float* const* src,
+                            int samples_per_channel,
+                            int input_sample_rate_hz,
+                            ChannelLayout input_layout,
+                            int output_sample_rate_hz,
+                            ChannelLayout output_layout,
+                            float* const* dest) = 0;
+
+  
+  
+  
+  
+  
+  
+  
   
   
   
@@ -220,6 +277,13 @@ class AudioProcessing {
   
   
   virtual int AnalyzeReverseStream(AudioFrame* frame) = 0;
+
+  
+  
+  virtual int AnalyzeReverseStream(const float* const* data,
+                                   int samples_per_channel,
+                                   int sample_rate_hz,
+                                   ChannelLayout layout) = 0;
 
   
   
@@ -236,6 +300,7 @@ class AudioProcessing {
   
   virtual int set_stream_delay_ms(int delay) = 0;
   virtual int stream_delay_ms() const = 0;
+  virtual bool was_stream_delay_set() const = 0;
 
   
   
@@ -260,6 +325,13 @@ class AudioProcessing {
   
   
   virtual int StartDebugRecording(FILE* handle) = 0;
+
+  
+  
+  
+  virtual int StartDebugRecordingForPlatformFile(rtc::PlatformFile handle) {
+      return -1;
+  }
 
   
   
@@ -304,6 +376,14 @@ class AudioProcessing {
     
     kBadStreamParameterWarning = -13
   };
+
+  enum NativeRate {
+    kSampleRate8kHz = 8000,
+    kSampleRate16kHz = 16000,
+    kSampleRate32kHz = 32000
+  };
+
+  static const int kChunkSizeMs = 10;
 };
 
 
@@ -327,12 +407,6 @@ class EchoCancellation {
   
   virtual int enable_drift_compensation(bool enable) = 0;
   virtual bool is_drift_compensation_enabled() const = 0;
-
-  
-  
-  
-  virtual int set_device_sample_rate_hz(int rate) = 0;
-  virtual int device_sample_rate_hz() const = 0;
 
   
   
@@ -578,7 +652,6 @@ class LevelEstimator {
   
   
   
-  
   virtual int RMS() = 0;
 
  protected:
@@ -666,4 +739,4 @@ class VoiceDetection {
 };
 }  
 
-#endif  
+#endif

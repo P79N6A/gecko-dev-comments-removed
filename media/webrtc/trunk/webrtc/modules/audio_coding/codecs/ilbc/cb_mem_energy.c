@@ -54,7 +54,7 @@ void WebRtcIlbcfix_CbMemEnergy(
   
   energyShifts[0] = (int16_t)WebRtcSpl_NormW32(energy);
   tmp32 = WEBRTC_SPL_LSHIFT_W32(energy, energyShifts[0]);
-  energyW16[0] = (int16_t)WEBRTC_SPL_RSHIFT_W32(tmp32, 16);
+  energyW16[0] = (int16_t)(tmp32 >> 16);
 
   
 
@@ -70,7 +70,7 @@ void WebRtcIlbcfix_CbMemEnergy(
   
   energyShifts[base_size] = (int16_t)WebRtcSpl_NormW32(energy);
   tmp32 = WEBRTC_SPL_LSHIFT_W32(energy, energyShifts[base_size]);
-  energyW16[base_size] = (int16_t)WEBRTC_SPL_RSHIFT_W32(tmp32, 16);
+  energyW16[base_size] = (int16_t)(tmp32 >> 16);
 
   ppi = filteredCB + lMem - 1 - lTarget;
   ppo = filteredCB + lMem - 1;

@@ -67,6 +67,9 @@ class RtpRtcp : public Module {
     RtpAudioFeedback* audio_messages;
     RemoteBitrateEstimator* remote_bitrate_estimator;
     PacedSender* paced_sender;
+    BitrateStatisticsObserver* send_bitrate_observer;
+    FrameCountObserver* send_frame_count_observer;
+    SendSideDelayObserver* send_side_delay_observer;
   };
 
   
@@ -203,6 +206,10 @@ class RtpRtcp : public Module {
 
     virtual int32_t SetSequenceNumber(const uint16_t seq) = 0;
 
+    virtual void SetRtpStateForSsrc(uint32_t ssrc,
+                                    const RtpState& rtp_state) = 0;
+    virtual bool GetRtpStateForSsrc(uint32_t ssrc, RtpState* rtp_state) = 0;
+
     
 
 
@@ -213,7 +220,7 @@ class RtpRtcp : public Module {
 
 
 
-    virtual int32_t SetSSRC(const uint32_t ssrc) = 0;
+    virtual void SetSSRC(const uint32_t ssrc) = 0;
 
     
 
@@ -251,8 +258,12 @@ class RtpRtcp : public Module {
     
 
 
-    virtual int32_t SetRTXSendStatus(int modes, bool set_ssrc,
-                                     uint32_t ssrc) = 0;
+
+    virtual void SetRTXSendStatus(int modes) = 0;
+
+    
+    
+    virtual void SetRtxSsrc(uint32_t ssrc) = 0;
 
     
     
@@ -261,8 +272,8 @@ class RtpRtcp : public Module {
     
 
 
-    virtual int32_t RTXSendStatus(int* modes, uint32_t* ssrc,
-                                  int* payloadType) const = 0;
+    virtual void RTXSendStatus(int* modes, uint32_t* ssrc,
+                               int* payloadType) const = 0;
 
     
 
@@ -303,13 +314,6 @@ class RtpRtcp : public Module {
     
 
 
-    virtual void RegisterVideoBitrateObserver(
-        BitrateStatisticsObserver* observer) = 0;
-    virtual BitrateStatisticsObserver* GetVideoBitrateObserver() const = 0;
-
-    
-
-
 
 
 
@@ -337,10 +341,6 @@ class RtpRtcp : public Module {
                                   bool retransmission) = 0;
 
     virtual int TimeToSendPadding(int bytes) = 0;
-
-    virtual void RegisterSendFrameCountObserver(
-        FrameCountObserver* observer) = 0;
-    virtual FrameCountObserver* GetSendFrameCountObserver() const = 0;
 
     virtual bool GetSendSideDelay(int* avg_send_delay_ms,
                                   int* max_send_delay_ms) const = 0;
@@ -377,13 +377,6 @@ class RtpRtcp : public Module {
 
 
     virtual int32_t SetCNAME(const char cName[RTCP_CNAME_SIZE]) = 0;
-
-    
-
-
-
-
-    virtual int32_t CNAME(char cName[RTCP_CNAME_SIZE]) = 0;
 
     
 
@@ -440,17 +433,6 @@ class RtpRtcp : public Module {
 
     virtual int32_t ResetRTT(const uint32_t remoteSSRC)= 0 ;
 
-    
-
-
-
-
-
-    virtual int32_t GetReportBlockInfo(const uint32_t remote_ssrc,
-                                       uint32_t* ntp_high,
-                                       uint32_t* ntp_low,
-                                       uint32_t* packets_received,
-                                       uint64_t* octets_received) const = 0;
     
 
 
@@ -517,6 +499,13 @@ class RtpRtcp : public Module {
 
 
     virtual int32_t RemoveRTCPReportBlock(const uint32_t SSRC) = 0;
+
+    
+
+
+    virtual void GetRtcpPacketTypeCounters(
+        RtcpPacketTypeCounter* packets_sent,
+        RtcpPacketTypeCounter* packets_received) const = 0;
 
     
 
@@ -673,25 +662,6 @@ class RtpRtcp : public Module {
 
      virtual int32_t SendREDPayloadType(
          int8_t& payloadType) const = 0;
-
-     
-
-
-
-
-
-     virtual int32_t SetRTPAudioLevelIndicationStatus(
-         const bool enable,
-         const uint8_t ID) = 0;
-
-     
-
-
-
-
-     virtual int32_t GetRTPAudioLevelIndicationStatus(
-         bool& enable,
-         uint8_t& ID) const = 0;
 
      
 

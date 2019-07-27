@@ -23,13 +23,14 @@ class RtpHeaderParser {
   virtual ~RtpHeaderParser() {}
 
   
-  static bool IsRtcp(const uint8_t* packet, int length);
+  static bool IsRtcp(const uint8_t* packet, size_t length);
 
   
   
   
   
-  virtual bool Parse(const uint8_t* packet, int length,
+  virtual bool Parse(const uint8_t* packet,
+                     size_t length,
                      RTPHeader* header) const = 0;
 
   

@@ -16,8 +16,7 @@
 #include "webrtc/typedefs.h"
 
 
-
-#ifdef AGC_DEBUG
+#ifdef WEBRTC_AGC_DEBUG_DUMP
 #include <stdio.h>
 #endif
 
@@ -111,6 +110,7 @@ typedef struct
     int32_t             minLevel;           
     int32_t             minOutput;          
     int32_t             zeroCtrlMax;        
+    int32_t             lastInMicLevel;
 
     int16_t             scale;              
 #ifdef MIC_LEVEL_FEEDBACK
@@ -121,10 +121,10 @@ typedef struct
     AgcVad_t            vadMic;
     DigitalAgc_t        digitalAgc;
 
-#ifdef AGC_DEBUG
-    FILE*               fpt;
-    FILE*               agcLog;
-    int32_t             fcount;
+#ifdef WEBRTC_AGC_DEBUG_DUMP
+    FILE* fpt;
+    FILE* agcLog;
+    int32_t fcount;
 #endif
 
     int16_t             lowLevelSignal;

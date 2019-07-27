@@ -53,7 +53,8 @@ void VoiceChannelTransport::IncomingRTPPacket(
     const int32_t packet_length,
     const char* ,
     const uint16_t ) {
-  voe_network_->ReceivedRTPPacket(channel_, incoming_rtp_packet, packet_length);
+  voe_network_->ReceivedRTPPacket(
+      channel_, incoming_rtp_packet, packet_length, PacketTime());
 }
 
 void VoiceChannelTransport::IncomingRTCPPacket(

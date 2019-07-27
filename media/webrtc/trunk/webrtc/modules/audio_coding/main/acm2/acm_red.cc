@@ -41,10 +41,6 @@ int16_t ACMRED::InternalCreateEncoder() {
   return 0;
 }
 
-void ACMRED::InternalDestructEncoderInst(void* ) {
-  
-}
-
 void ACMRED::DestructEncoderSafe() {
   
 }

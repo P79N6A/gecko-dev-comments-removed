@@ -41,8 +41,6 @@ ACMGenericCodec* ACMPCM16B::CreateInstance(void) { return NULL; }
 
 int16_t ACMPCM16B::InternalCreateEncoder() { return -1; }
 
-void ACMPCM16B::InternalDestructEncoderInst(void* ) { return; }
-
 void ACMPCM16B::DestructEncoderSafe() { return; }
 
 #else  
@@ -75,11 +73,6 @@ ACMGenericCodec* ACMPCM16B::CreateInstance(void) { return NULL; }
 int16_t ACMPCM16B::InternalCreateEncoder() {
   
   return 0;
-}
-
-void ACMPCM16B::InternalDestructEncoderInst(void* ) {
-  
-  return;
 }
 
 void ACMPCM16B::DestructEncoderSafe() {

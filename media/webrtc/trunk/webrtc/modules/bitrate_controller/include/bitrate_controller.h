@@ -15,6 +15,7 @@
 #ifndef WEBRTC_MODULES_BITRATE_CONTROLLER_INCLUDE_BITRATE_CONTROLLER_H_
 #define WEBRTC_MODULES_BITRATE_CONTROLLER_INCLUDE_BITRATE_CONTROLLER_H_
 
+#include "webrtc/modules/interface/module.h"
 #include "webrtc/modules/rtp_rtcp/interface/rtp_rtcp_defines.h"
 
 namespace webrtc {
@@ -35,7 +36,7 @@ class BitrateObserver {
   virtual ~BitrateObserver() {}
 };
 
-class BitrateController {
+class BitrateController : public Module {
 
 
 
@@ -48,7 +49,8 @@ class BitrateController {
   
   
   
-  static BitrateController* CreateBitrateController(bool enforce_min_bitrate);
+  static BitrateController* CreateBitrateController(Clock* clock,
+                                                    bool enforce_min_bitrate);
   virtual ~BitrateController() {}
 
   virtual RtcpBandwidthObserver* CreateRtcpBandwidthObserver() = 0;
@@ -73,6 +75,8 @@ class BitrateController {
 
   
   virtual void EnforceMinBitrate(bool enforce_min_bitrate) = 0;
+
+  virtual void SetReservedBitrate(uint32_t reserved_bitrate_bps) = 0;
 };
 }  
 #endif  

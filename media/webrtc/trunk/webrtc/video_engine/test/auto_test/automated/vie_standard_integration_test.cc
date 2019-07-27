@@ -52,12 +52,7 @@ TEST_F(ViEStandardIntegrationTest, RunsRenderTestWithoutErrors)  {
 }
 
 
-#if defined(WEBRTC_MAC)
-#define MAYBE_RunsRtpRtcpTestWithoutErrors DISABLED_RunsRtpRtcpTestWithoutErrors
-#else
-#define MAYBE_RunsRtpRtcpTestWithoutErrors RunsRtpRtcpTestWithoutErrors
-#endif
-TEST_F(ViEStandardIntegrationTest, MAYBE_RunsRtpRtcpTestWithoutErrors)  {
+TEST_F(ViEStandardIntegrationTest, DISABLED_RunsRtpRtcpTestWithoutErrors)  {
   tests_->ViERtpRtcpStandardTest();
 }
 

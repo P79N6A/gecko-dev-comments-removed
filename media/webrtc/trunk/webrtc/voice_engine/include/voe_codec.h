@@ -87,22 +87,6 @@ public:
     
     
     
-    virtual int SetISACInitTargetRate(int channel, int rateBps,
-                                      bool useFixedFrameSize = false) = 0;
-
-    
-    
-    
-    virtual int SetISACMaxRate(int channel, int rateBps) = 0;
-
-    
-    
-    
-    virtual int SetISACMaxPayloadSize(int channel, int sizeBytes) = 0;
-
-    
-    
-    
     
     
     
@@ -118,6 +102,18 @@ public:
     virtual int SetSendCNPayloadType(
         int channel, int type, PayloadFrequencies frequency = kFreq16000Hz) = 0;
 
+    
+    
+    
+    
+    virtual int SetFECStatus(int channel, bool enable) { return -1; }
+
+    
+    
+    
+    
+    
+    virtual int GetFECStatus(int channel, bool& enabled) { return -1; }
 
     
     
@@ -131,16 +127,22 @@ public:
                              bool& disabledDTX) = 0;
 
     
-    virtual int SetAMREncFormat(int channel, AmrMode mode) = 0;
+    
+    
+    
+    virtual int SetOpusMaxPlaybackRate(int channel, int frequency_hz) {
+      return -1;
+    }
 
     
-    virtual int SetAMRDecFormat(int channel, AmrMode mode) = 0;
-
-    
-    virtual int SetAMRWbEncFormat(int channel, AmrMode mode) = 0;
-
-    
-    virtual int SetAMRWbDecFormat(int channel, AmrMode mode) = 0;
+    virtual int SetAMREncFormat(int channel, AmrMode mode) { return -1; }
+    virtual int SetAMRDecFormat(int channel, AmrMode mode) { return -1; }
+    virtual int SetAMRWbEncFormat(int channel, AmrMode mode) { return -1; }
+    virtual int SetAMRWbDecFormat(int channel, AmrMode mode) { return -1; }
+    virtual int SetISACInitTargetRate(int channel, int rateBps,
+            bool useFixedFrameSize = false) { return -1; }
+    virtual int SetISACMaxRate(int channel, int rateBps) { return -1; }
+    virtual int SetISACMaxPayloadSize(int channel, int sizeBytes) { return -1; }
 
 protected:
     VoECodec() {}

@@ -40,10 +40,6 @@ ACMGenericCodec* ACMDTMFPlayout::CreateInstance(void) { return NULL; }
 
 int16_t ACMDTMFPlayout::InternalCreateEncoder() { return -1; }
 
-void ACMDTMFPlayout::InternalDestructEncoderInst(void* ) {
-  return;
-}
-
 void ACMDTMFPlayout::DestructEncoderSafe() {
   return;
 }
@@ -71,11 +67,6 @@ ACMGenericCodec* ACMDTMFPlayout::CreateInstance(void) { return NULL; }
 int16_t ACMDTMFPlayout::InternalCreateEncoder() {
   
   return 0;
-}
-
-void ACMDTMFPlayout::InternalDestructEncoderInst(void* ) {
-  
-  return;
 }
 
 void ACMDTMFPlayout::DestructEncoderSafe() {

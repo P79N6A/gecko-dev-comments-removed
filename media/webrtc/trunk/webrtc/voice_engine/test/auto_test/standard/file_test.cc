@@ -16,6 +16,9 @@
 class FileTest : public AfterStreamingFixture {
  protected:
   
+
+
+#if 0
   std::string CreateTrickyFilenameInUtf8() {
     char filename[16] = { (char)0xc3, (char)0xa5,
                           (char)0xc3, (char)0xa4,
@@ -23,8 +26,12 @@ class FileTest : public AfterStreamingFixture {
                           static_cast<char>(0) };
     return std::string(filename) + ".pcm";
   }
+#endif  
 };
 
+
+
+#if 0
 TEST_F(FileTest, ManualRecordToFileForThreeSecondsAndPlayback) {
   if (!FLAGS_include_timing_dependent_tests) {
     TEST_LOG("Skipping test - running in slow execution environment...\n");
@@ -50,11 +57,8 @@ TEST_F(FileTest, ManualRecordToFileForThreeSecondsAndPlayback) {
   Sleep(250);
   EXPECT_EQ(1, voe_file_->IsPlayingFileLocally(channel_));
   Sleep(1500);
-  TEST_LOG("Decreasing level by 50%%.\n");
-  EXPECT_EQ(0, voe_file_->ScaleLocalFilePlayout(channel_, 0.5f));
-  Sleep(1500);
-  EXPECT_EQ(0, voe_file_->IsPlayingFileLocally(channel_));
 }
+#endif  
 
 TEST_F(FileTest, ManualRecordPlayoutToWavFileForThreeSecondsAndPlayback) {
   webrtc::CodecInst send_codec;
@@ -79,11 +83,4 @@ TEST_F(FileTest, ManualRecordPlayoutToWavFileForThreeSecondsAndPlayback) {
   Sleep(2000);
   
   EXPECT_EQ(1, voe_file_->IsPlayingFileAsMicrophone(channel_));
-
-  
-  TEST_LOG("Decreasing level by 50%%.\n");
-  EXPECT_EQ(0, voe_file_->ScaleFileAsMicrophonePlayout(channel_, 0.5f));
-  Sleep(1000);
-
-  EXPECT_EQ(0, voe_file_->StopPlayingFileAsMicrophone(channel_));
 }

@@ -93,16 +93,31 @@ int WebRtcNs_set_policy(NsHandle* NS_inst, int mode);
 
 
 
+int WebRtcNs_Analyze(NsHandle* NS_inst, float* spframe);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 
 
 int WebRtcNs_Process(NsHandle* NS_inst,
-                     short* spframe,
-                     short* spframe_H,
-                     short* outframe,
-                     short* outframe_H);
+                     float* spframe,
+                     float* spframe_H,
+                     float* outframe,
+                     float* outframe_H);
 
 
 

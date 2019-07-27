@@ -105,6 +105,10 @@ std::string OutputPath();
 
 
 
+std::string TempFilename(const std::string &dir, const std::string &prefix);
+
+
+
 
 
 
@@ -132,7 +136,10 @@ std::string WorkingDir();
 
 
 
-bool CreateDirectory(std::string directory_name);
+bool CreateDir(std::string directory_name);
+
+
+bool FileExists(std::string& file_name);
 
 
 

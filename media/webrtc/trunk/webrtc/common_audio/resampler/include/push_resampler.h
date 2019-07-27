@@ -20,6 +20,7 @@ class PushSincResampler;
 
 
 
+template <typename T>
 class PushResampler {
  public:
   PushResampler();
@@ -32,22 +33,18 @@ class PushResampler {
 
   
   
-  int Resample(const int16_t* src, int src_length, int16_t* dst,
-               int dst_capacity);
+  int Resample(const T* src, int src_length, T* dst, int dst_capacity);
 
  private:
-  int ResampleSinc(const int16_t* src, int src_length, int16_t* dst,
-                   int dst_capacity);
-
   scoped_ptr<PushSincResampler> sinc_resampler_;
   scoped_ptr<PushSincResampler> sinc_resampler_right_;
   int src_sample_rate_hz_;
   int dst_sample_rate_hz_;
   int num_channels_;
-  scoped_array<int16_t> src_left_;
-  scoped_array<int16_t> src_right_;
-  scoped_array<int16_t> dst_left_;
-  scoped_array<int16_t> dst_right_;
+  scoped_ptr<T[]> src_left_;
+  scoped_ptr<T[]> src_right_;
+  scoped_ptr<T[]> dst_left_;
+  scoped_ptr<T[]> dst_right_;
 };
 
 }  

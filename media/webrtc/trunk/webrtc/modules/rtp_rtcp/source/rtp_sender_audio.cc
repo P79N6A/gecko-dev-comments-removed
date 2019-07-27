@@ -17,7 +17,7 @@
 
 namespace webrtc {
 RTPSenderAudio::RTPSenderAudio(const int32_t id, Clock* clock,
-                               RTPSenderInterface* rtpSender) :
+                               RTPSender* rtpSender) :
     _id(id),
     _clock(clock),
     _rtpSender(rtpSender),
@@ -42,8 +42,6 @@ RTPSenderAudio::RTPSenderAudio(const int32_t id, Clock* clock,
     _cngSWBPayloadType(-1),
     _cngFBPayloadType(-1),
     _lastPayloadType(-1),
-    _includeAudioLevelIndication(false),    
-    _audioLevelIndicationID(0),
     _audioLevel_dBov(0) {
 };
 
@@ -91,10 +89,10 @@ int32_t RTPSenderAudio::RegisterAudioPayload(
     const uint32_t frequency,
     const uint8_t channels,
     const uint32_t rate,
-    ModuleRTPUtility::Payload*& payload) {
+    RtpUtility::Payload*& payload) {
   CriticalSectionScoped cs(_sendAudioCritsect);
 
-  if (ModuleRTPUtility::StringCompare(payloadName, "cn", 2))  {
+  if (RtpUtility::StringCompare(payloadName, "cn", 2)) {
     
     if (frequency == 8000) {
       _cngNBPayloadType = payloadType;
@@ -112,14 +110,14 @@ int32_t RTPSenderAudio::RegisterAudioPayload(
       return -1;
     }
   }
-  if (ModuleRTPUtility::StringCompare(payloadName, "telephone-event", 15)) {
+  if (RtpUtility::StringCompare(payloadName, "telephone-event", 15)) {
     
     
     _dtmfPayloadType = payloadType;
     return 0;
     
   }
-  payload = new ModuleRTPUtility::Payload;
+  payload = new RtpUtility::Payload;
   payload->typeSpecific.Audio.frequency = frequency;
   payload->typeSpecific.Audio.channels = channels;
   payload->typeSpecific.Audio.rate = rate;
@@ -320,13 +318,15 @@ int32_t RTPSenderAudio::SendAudio(
               static_cast<uint16_t>(dtmfDurationSamples),
               false);
         } else {
-          
+          if (SendTelephoneEventPacket(
+                  ended,
+                  _dtmfTimestamp,
+                  static_cast<uint16_t>(dtmfDurationSamples),
+                  !_dtmfEventFirstPacketSent) != 0) {
+            return -1;
+          }
           _dtmfEventFirstPacketSent = true;
-          return SendTelephoneEventPacket(
-              ended,
-              _dtmfTimestamp,
-              static_cast<uint16_t>(dtmfDurationSamples),
-              !_dtmfEventFirstPacketSent);
+          return 0;
         }
       }
       return 0;
@@ -365,52 +365,12 @@ int32_t RTPSenderAudio::SendAudio(
   if (rtpHeaderLength <= 0) {
     return -1;
   }
+  if (maxPayloadLength < (rtpHeaderLength + payloadSize)) {
+    
+    return -1;
+  }
   {
     CriticalSectionScoped cs(_sendAudioCritsect);
-
-    
-    if (_includeAudioLevelIndication) {
-      dataBuffer[0] |= 0x10; 
-      
-
-
-
-
-
-
-
-
-      
-      ModuleRTPUtility::AssignUWord16ToBuffer(dataBuffer+rtpHeaderLength,
-                                              RTP_AUDIO_LEVEL_UNIQUE_ID);
-      rtpHeaderLength += 2;
-
-      
-      const uint8_t length = 1;
-      ModuleRTPUtility::AssignUWord16ToBuffer(dataBuffer+rtpHeaderLength,
-                                              length);
-      rtpHeaderLength += 2;
-
-      
-      const uint8_t id = _audioLevelIndicationID;
-      const uint8_t len = 0;
-      dataBuffer[rtpHeaderLength++] = (id << 4) + len;
-
-      
-      const uint8_t V = (frameType == kAudioFrameSpeech);
-      uint8_t level = _audioLevel_dBov;
-      dataBuffer[rtpHeaderLength++] = (V << 7) + level;
-
-      
-      ModuleRTPUtility::AssignUWord16ToBuffer(dataBuffer+rtpHeaderLength, 0);
-      rtpHeaderLength += 2;
-    }
-
-    if(maxPayloadLength < rtpHeaderLength + payloadSize ) {
-      
-      return -1;
-    }
-
     if (_REDPayloadType >= 0 &&  
         fragmentation &&
         fragmentation->fragmentationVectorSize > 1 &&
@@ -430,8 +390,8 @@ int32_t RTPSenderAudio::SendAudio(
           return -1;
         }
         uint32_t REDheader = (timestampOffset << 10) + blockLength;
-        ModuleRTPUtility::AssignUWord24ToBuffer(dataBuffer + rtpHeaderLength,
-                                                REDheader);
+        RtpUtility::AssignUWord24ToBuffer(dataBuffer + rtpHeaderLength,
+                                          REDheader);
         rtpHeaderLength += 3;
 
         dataBuffer[rtpHeaderLength++] = fragmentation->fragmentationPlType[0];
@@ -474,6 +434,17 @@ int32_t RTPSenderAudio::SendAudio(
       }
     }
     _lastPayloadType = payloadType;
+
+    
+    {
+      uint16_t packetSize = payloadSize + rtpHeaderLength;
+      RtpUtility::RtpHeaderParser rtp_parser(dataBuffer, packetSize);
+      RTPHeader rtp_header;
+      rtp_parser.Parse(rtp_header);
+      _rtpSender->UpdateAudioLevel(dataBuffer, packetSize, rtp_header,
+                                   (frameType == kAudioFrameSpeech),
+                                   _audioLevel_dBov);
+    }
   }  
   TRACE_EVENT_ASYNC_END2("webrtc", "Audio", captureTimeStamp,
                          "timestamp", _rtpSender->Timestamp(),
@@ -484,32 +455,6 @@ int32_t RTPSenderAudio::SendAudio(
                                    -1,
                                    kAllowRetransmission,
                                    PacedSender::kHighPriority);
-}
-
-int32_t
-RTPSenderAudio::SetAudioLevelIndicationStatus(const bool enable,
-                                              const uint8_t ID)
-{
-    if(enable && (ID < 1 || ID > 14))
-    {
-        return -1;
-    }
-    CriticalSectionScoped cs(_sendAudioCritsect);
-
-    _includeAudioLevelIndication = enable;
-    _audioLevelIndicationID = ID;
-
-    return 0;
-}
-
-int32_t
-RTPSenderAudio::AudioLevelIndicationStatus(bool& enable,
-                                           uint8_t& ID) const
-{
-    CriticalSectionScoped cs(_sendAudioCritsect);
-    enable = _includeAudioLevelIndication;
-    ID = _audioLevelIndicationID;
-    return 0;
 }
 
     
@@ -615,7 +560,7 @@ RTPSenderAudio::SendTelephoneEventPacket(const bool ended,
         
         dtmfbuffer[12] = _dtmfKey;
         dtmfbuffer[13] = E|R|volume;
-        ModuleRTPUtility::AssignUWord16ToBuffer(dtmfbuffer+14, duration);
+        RtpUtility::AssignUWord16ToBuffer(dtmfbuffer + 14, duration);
 
         _sendAudioCritsect->Leave();
         TRACE_EVENT_INSTANT2("webrtc_rtp",

@@ -23,16 +23,15 @@ class RTPSenderAudio: public DTMFqueue
 {
 public:
     RTPSenderAudio(const int32_t id, Clock* clock,
-                   RTPSenderInterface* rtpSender);
+                   RTPSender* rtpSender);
     virtual ~RTPSenderAudio();
 
-    int32_t RegisterAudioPayload(
-        const char payloadName[RTP_PAYLOAD_NAME_SIZE],
-        const int8_t payloadType,
-        const uint32_t frequency,
-        const uint8_t channels,
-        const uint32_t rate,
-        ModuleRTPUtility::Payload*& payload);
+    int32_t RegisterAudioPayload(const char payloadName[RTP_PAYLOAD_NAME_SIZE],
+                                 const int8_t payloadType,
+                                 const uint32_t frequency,
+                                 const uint8_t channels,
+                                 const uint32_t rate,
+                                 RtpUtility::Payload*& payload);
 
     int32_t SendAudio(const FrameType frameType,
                       const int8_t payloadType,
@@ -43,13 +42,6 @@ public:
 
     
     int32_t SetAudioPacketSize(const uint16_t packetSizeSamples);
-
-    
-    
-    int32_t SetAudioLevelIndicationStatus(const bool enable, const uint8_t ID);
-
-    
-    int32_t AudioLevelIndicationStatus(bool& enable, uint8_t& ID) const;
 
     
     
@@ -86,7 +78,7 @@ protected:
 private:
     int32_t             _id;
     Clock*                    _clock;
-    RTPSenderInterface*       _rtpSender;
+    RTPSender*       _rtpSender;
     CriticalSectionWrapper*   _audioFeedbackCritsect;
     RtpAudioFeedback*         _audioFeedback;
 
@@ -117,8 +109,6 @@ private:
     int8_t      _lastPayloadType;
 
     
-    bool            _includeAudioLevelIndication;
-    uint8_t     _audioLevelIndicationID;
     uint8_t     _audioLevel_dBov;
 };
 }  

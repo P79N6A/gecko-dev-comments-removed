@@ -14,18 +14,11 @@
 #ifndef WEBRTC_COMMON_AUDIO_RESAMPLER_SINC_RESAMPLER_H_
 #define WEBRTC_COMMON_AUDIO_RESAMPLER_SINC_RESAMPLER_H_
 
+#include "webrtc/base/constructormagic.h"
 #include "webrtc/system_wrappers/interface/aligned_malloc.h"
-#include "webrtc/system_wrappers/interface/constructor_magic.h"
 #include "webrtc/system_wrappers/interface/scoped_ptr.h"
 #include "webrtc/test/testsupport/gtest_prod_util.h"
 #include "webrtc/typedefs.h"
-
-#if (defined(WEBRTC_ARCH_X86_FAMILY) && !defined(WEBRTC_IOS) &&  \
-        !defined(__SSE__)) ||  \
-    (defined(WEBRTC_ARCH_ARM_V7) && !defined(WEBRTC_ARCH_ARM_NEON))
-
-#define WEBRTC_RESAMPLER_CPU_DETECTION
-#endif
 
 namespace webrtc {
 
@@ -108,7 +101,6 @@ class SincResampler {
   
   
   
-  
   static float Convolve_C(const float* input_ptr, const float* k1,
                           const float* k2, double kernel_interpolation_factor);
 #if defined(WEBRTC_ARCH_X86_FAMILY)
@@ -146,18 +138,18 @@ class SincResampler {
   
   
   
-  scoped_ptr_malloc<float, AlignedFree> kernel_storage_;
-  scoped_ptr_malloc<float, AlignedFree> kernel_pre_sinc_storage_;
-  scoped_ptr_malloc<float, AlignedFree> kernel_window_storage_;
+  scoped_ptr<float[], AlignedFreeDeleter> kernel_storage_;
+  scoped_ptr<float[], AlignedFreeDeleter> kernel_pre_sinc_storage_;
+  scoped_ptr<float[], AlignedFreeDeleter> kernel_window_storage_;
 
   
-  scoped_ptr_malloc<float, AlignedFree> input_buffer_;
+  scoped_ptr<float[], AlignedFreeDeleter> input_buffer_;
 
   
   
   
   
-#if defined(WEBRTC_RESAMPLER_CPU_DETECTION)
+#if defined(WEBRTC_CPU_DETECTION)
   typedef float (*ConvolveProc)(const float*, const float*, const float*,
                                 double);
   ConvolveProc convolve_proc_;

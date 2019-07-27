@@ -11,7 +11,12 @@
 #ifndef WEBRTC_COMMON_TYPES_H_
 #define WEBRTC_COMMON_TYPES_H_
 
-#include <stddef.h> 
+#include <stddef.h>
+#include <string.h>
+
+#include <string>
+#include <vector>
+
 #include "webrtc/typedefs.h"
 
 #if defined(_MSC_VER)
@@ -34,7 +39,7 @@
 
 #define RTP_PAYLOAD_NAME_SIZE 32
 
-#if defined(WEBRTC_WIN)
+#if defined(WEBRTC_WIN) || defined(WIN32)
 
 #define STR_CASE_CMP(s1, s2) ::_stricmp(s1, s2)
 
@@ -90,7 +95,6 @@ enum TraceModule
     kTraceAudioDevice            = 0x0012,
     kTraceVideoRenderer          = 0x0014,
     kTraceVideoCapture           = 0x0015,
-    kTraceVideoPreocessing       = 0x0016,
     kTraceRemoteBitrateEstimator = 0x0017,
 };
 
@@ -159,71 +163,6 @@ enum FrameType
 };
 
 
-
-
-class Encryption
-{
-public:
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    virtual void encrypt(
-        int channel,
-        unsigned char* in_data,
-        unsigned char* out_data,
-        int bytes_in,
-        int* bytes_out) = 0;
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    virtual void decrypt(
-        int channel,
-        unsigned char* in_data,
-        unsigned char* out_data,
-        int bytes_in,
-        int* bytes_out) = 0;
-
-    
-    
-    virtual void encrypt_rtcp(
-        int channel,
-        unsigned char* in_data,
-        unsigned char* out_data,
-        int bytes_in,
-        int* bytes_out) = 0;
-
-    
-    
-    virtual void decrypt_rtcp(
-        int channel,
-        unsigned char* in_data,
-        unsigned char* out_data,
-        int bytes_in,
-        int* bytes_out) = 0;
-
-protected:
-    virtual ~Encryption() {}
-    Encryption() {}
-};
-
-
 class Transport
 {
 public:
@@ -259,6 +198,38 @@ class RtcpStatisticsCallback {
 };
 
 
+struct RtcpPacketTypeCounter {
+  RtcpPacketTypeCounter()
+    : nack_packets(0),
+      fir_packets(0),
+      pli_packets(0),
+      nack_requests(0),
+      unique_nack_requests(0) {}
+
+  void Add(const RtcpPacketTypeCounter& other) {
+    nack_packets += other.nack_packets;
+    fir_packets += other.fir_packets;
+    pli_packets += other.pli_packets;
+    nack_requests += other.nack_requests;
+    unique_nack_requests += other.unique_nack_requests;
+  }
+
+  int UniqueNackRequestsInPercent() const {
+    if (nack_requests == 0) {
+      return 0;
+    }
+    return static_cast<int>(
+        (unique_nack_requests * 100.0f / nack_requests) + 0.5f);
+  }
+
+  uint32_t nack_packets;          
+  uint32_t fir_packets;           
+  uint32_t pli_packets;           
+  uint32_t nack_requests;         
+  uint32_t unique_nack_requests;  
+};
+
+
 struct StreamDataCounters {
   StreamDataCounters()
    : bytes(0),
@@ -268,6 +239,7 @@ struct StreamDataCounters {
      retransmitted_packets(0),
      fec_packets(0) {}
 
+  
   uint32_t bytes;  
   uint32_t header_bytes;  
   uint32_t padding_bytes;  
@@ -299,7 +271,9 @@ class BitrateStatisticsObserver {
  public:
   virtual ~BitrateStatisticsObserver() {}
 
-  virtual void Notify(const BitrateStatistics& stats, uint32_t ssrc) = 0;
+  virtual void Notify(const BitrateStatistics& total_stats,
+                      const BitrateStatistics& retransmit_stats,
+                      uint32_t ssrc) = 0;
 };
 
 
@@ -312,18 +286,39 @@ class FrameCountObserver {
 };
 
 
+class SendSideDelayObserver {
+ public:
+  virtual ~SendSideDelayObserver() {}
+  virtual void SendSideDelayUpdated(int avg_delay_ms,
+                                    int max_delay_ms,
+                                    uint32_t ssrc) = 0;
+};
 
 
 
 
-struct CodecInst
-{
-    int pltype;
-    char plname[RTP_PAYLOAD_NAME_SIZE];
-    int plfreq;
-    int pacsize;
-    int channels;
-    int rate;  
+
+
+struct CodecInst {
+  int pltype;
+  char plname[RTP_PAYLOAD_NAME_SIZE];
+  int plfreq;
+  int pacsize;
+  int channels;
+  int rate;  
+
+  bool operator==(const CodecInst& other) const {
+    return pltype == other.pltype &&
+           (STR_CASE_CMP(plname, other.plname) == 0) &&
+           plfreq == other.plfreq &&
+           pacsize == other.pacsize &&
+           channels == other.channels &&
+           rate == other.rate;
+  }
+
+  bool operator!=(const CodecInst& other) const {
+    return !(*this == other);
+  }
 };
 
 
@@ -435,7 +430,7 @@ enum NsModes
     kNsLowSuppression,  
     kNsModerateSuppression,
     kNsHighSuppression,
-    kNsVeryHighSuppression     
+    kNsVeryHighSuppression,     
 };
 
 enum AgcModes                  
@@ -460,7 +455,7 @@ enum EcModes
     kEcDefault,                
     kEcConference,             
     kEcAec,                    
-    kEcAecm                    
+    kEcAecm,                   
 };
 
 
@@ -499,6 +494,7 @@ enum AudioLayers
     kAudioLinuxPulse = 4
 };
 
+
 enum NetEqModes             
 {
     
@@ -512,8 +508,9 @@ enum NetEqModes
     kNetEqFax = 2,
     
     
-    kNetEqOff = 3
+    kNetEqOff = 3,
 };
+
 
 enum OnHoldModes            
 {
@@ -522,11 +519,12 @@ enum OnHoldModes
     kHoldPlayOnly            
 };
 
+
 enum AmrMode
 {
     kRfc3267BwEfficient = 0,
     kRfc3267OctetAligned = 1,
-    kRfc3267FileStorage = 2
+    kRfc3267FileStorage = 2,
 };
 
 
@@ -551,16 +549,6 @@ enum RawVideoType
     kVideoNV21     = 12,
     kVideoBGRA     = 13,
     kVideoUnknown  = 99
-};
-
-enum VideoReceiveState
-{
-  kReceiveStateInitial,            
-  kReceiveStateNormal,
-  kReceiveStatePreemptiveNACK,     
-  kReceiveStateWaitingKey,         
-  kReceiveStateDecodingWithErrors, 
-  kReceiveStateNoIncoming,         
 };
 
 
@@ -595,66 +583,102 @@ enum VP8ResilienceMode {
 };
 
 
-struct VideoCodecVP8
-{
-    bool                 pictureLossIndicationOn;
-    bool                 feedbackModeOn;
-    VideoCodecComplexity complexity;
-    VP8ResilienceMode    resilience;
-    unsigned char        numberOfTemporalLayers;
-    bool                 denoisingOn;
-    bool                 errorConcealmentOn;
-    bool                 automaticResizeOn;
-    bool                 frameDroppingOn;
-    int                  keyFrameInterval;
+struct VideoCodecVP8 {
+  bool                 pictureLossIndicationOn;
+  bool                 feedbackModeOn;
+  VideoCodecComplexity complexity;
+  VP8ResilienceMode    resilience;
+  unsigned char        numberOfTemporalLayers;
+  bool                 denoisingOn;
+  bool                 errorConcealmentOn;
+  bool                 automaticResizeOn;
+  bool                 frameDroppingOn;
+  int                  keyFrameInterval;
+
+  bool operator==(const VideoCodecVP8& other) const {
+    return pictureLossIndicationOn == other.pictureLossIndicationOn &&
+           feedbackModeOn == other.feedbackModeOn &&
+           complexity == other.complexity &&
+           resilience == other.resilience &&
+           numberOfTemporalLayers == other.numberOfTemporalLayers &&
+           denoisingOn == other.denoisingOn &&
+           errorConcealmentOn == other.errorConcealmentOn &&
+           automaticResizeOn == other.automaticResizeOn &&
+           frameDroppingOn == other.frameDroppingOn &&
+           keyFrameInterval == other.keyFrameInterval;
+  }
+
+  bool operator!=(const VideoCodecVP8& other) const {
+    return !(*this == other);
+  }
 };
 
 
-struct VideoCodecH264
-{
-    uint8_t        profile;
-    uint8_t        constraints;
-    uint8_t        level;
-    uint8_t        packetizationMode; 
-    bool           frameDroppingOn;
-    int            keyFrameInterval;
-    
-    const uint8_t* spsData;
-    size_t         spsLen;
-    const uint8_t* ppsData;
-    size_t         ppsLen;
+struct VideoCodecVP9 {
+  VideoCodecComplexity complexity;
+  int                  resilience;
+  unsigned char        numberOfTemporalLayers;
+  bool                 denoisingOn;
+  bool                 frameDroppingOn;
+  int                  keyFrameInterval;
+  bool                 adaptiveQpMode;
 };
 
 
-enum VideoCodecType
-{
-    kVideoCodecVP8,
-    kVideoCodecH264,
-    kVideoCodecI420,
-    kVideoCodecRED,
-    kVideoCodecULPFEC,
-    kVideoCodecGeneric,
-    kVideoCodecUnknown
-};
-
-union VideoCodecUnion
-{
-    VideoCodecVP8       VP8;
-    VideoCodecH264      H264;
+struct VideoCodecH264 {
+  VideoCodecProfile profile;
+  bool           frameDroppingOn;
+  int            keyFrameInterval;
+  
+  const uint8_t* spsData;
+  size_t         spsLen;
+  const uint8_t* ppsData;
+  size_t         ppsLen;
 };
 
 
+enum VideoCodecType {
+  kVideoCodecVP8,
+  kVideoCodecVP9,
+  kVideoCodecH264,
+  kVideoCodecI420,
+  kVideoCodecRED,
+  kVideoCodecULPFEC,
+  kVideoCodecGeneric,
+  kVideoCodecUnknown
+};
+
+union VideoCodecUnion {
+  VideoCodecVP8       VP8;
+  VideoCodecVP9       VP9;
+  VideoCodecH264      H264;
+};
 
 
-struct SimulcastStream
-{
-    unsigned short      width;
-    unsigned short      height;
-    unsigned char       numberOfTemporalLayers;
-    unsigned int        maxBitrate;  
-    unsigned int        targetBitrate;  
-    unsigned int        minBitrate;  
-    unsigned int        qpMax; 
+
+
+struct SimulcastStream {
+  unsigned short      width;
+  unsigned short      height;
+  unsigned char       numberOfTemporalLayers;
+  unsigned int        maxBitrate;  
+  unsigned int        targetBitrate;  
+  unsigned int        minBitrate;  
+  unsigned int        qpMax; 
+
+  bool operator==(const SimulcastStream& other) const {
+    return width == other.width &&
+           height == other.height &&
+           numberOfTemporalLayers == other.numberOfTemporalLayers &&
+           maxBitrate == other.maxBitrate &&
+           targetBitrate == other.targetBitrate &&
+           minBitrate == other.minBitrate &&
+           qpMax == other.qpMax;
+  }
+
+  bool operator!=(const SimulcastStream& other) const {
+    return !(*this == other);
+  }
 };
 
 enum VideoCodecMode {
@@ -663,33 +687,60 @@ enum VideoCodecMode {
 };
 
 
-struct VideoCodec
-{
-    VideoCodecType      codecType;
-    char                plName[kPayloadNameSize];
-    unsigned char       plType;
+struct VideoCodec {
+  VideoCodecType      codecType;
+  char                plName[kPayloadNameSize];
+  unsigned char       plType;
 
-    unsigned short      width;
-    unsigned short      height;
-    
-    unsigned char       resolution_divisor;
+  unsigned short      width;
+  unsigned short      height;
 
-    unsigned int        startBitrate;  
-    unsigned int        maxBitrate;  
-    unsigned int        minBitrate;  
-    unsigned char       maxFramerate;
+  unsigned int        startBitrate;  
+  unsigned int        maxBitrate;  
+  unsigned int        minBitrate;  
+  unsigned int        targetBitrate;  
 
-    VideoCodecUnion     codecSpecific;
+  unsigned char       maxFramerate;
 
-    unsigned int        qpMax;
-    unsigned char       numberOfSimulcastStreams;
-    SimulcastStream     simulcastStream[kMaxSimulcastStreams];
+  VideoCodecUnion     codecSpecific;
 
-    VideoCodecMode      mode;
+  unsigned int        qpMax;
+  unsigned char       numberOfSimulcastStreams;
+  SimulcastStream     simulcastStream[kMaxSimulcastStreams];
 
-    
-    
-    Config*  extra_options;
+  VideoCodecMode      mode;
+
+  
+  
+  Config*  extra_options;
+
+  bool operator==(const VideoCodec& other) const {
+    bool ret = codecType == other.codecType &&
+               (STR_CASE_CMP(plName, other.plName) == 0) &&
+               plType == other.plType &&
+               width == other.width &&
+               height == other.height &&
+               startBitrate == other.startBitrate &&
+               maxBitrate == other.maxBitrate &&
+               minBitrate == other.minBitrate &&
+               targetBitrate == other.targetBitrate &&
+               maxFramerate == other.maxFramerate &&
+               qpMax == other.qpMax &&
+               numberOfSimulcastStreams == other.numberOfSimulcastStreams &&
+               mode == other.mode;
+    if (ret && codecType == kVideoCodecVP8) {
+      ret &= (codecSpecific.VP8 == other.codecSpecific.VP8);
+    }
+
+    for (unsigned char i = 0; i < other.numberOfSimulcastStreams && ret; ++i) {
+      ret &= (simulcastStream[i] == other.simulcastStream[i]);
+    }
+    return ret;
+  }
+
+  bool operator!=(const VideoCodec& other) const {
+    return !(*this == other);
+  }
 };
 
 
@@ -719,42 +770,70 @@ struct OverUseDetectorOptions {
   double initial_threshold;
 };
 
-enum CPULoadState {
-  kLoadRelaxed,
-  kLoadNormal,
-  kLoadStressed
-};
-
-class CPULoadStateObserver {
-public:
-  virtual void onLoadStateChanged(CPULoadState aNewState) = 0;
-  virtual ~CPULoadStateObserver() {};
-};
-
-class CPULoadStateCallbackInvoker {
-public:
-    virtual void AddObserver(CPULoadStateObserver* aObserver) = 0;
-    virtual void RemoveObserver(CPULoadStateObserver* aObserver) = 0;
-    virtual ~CPULoadStateCallbackInvoker() {};
-};
-
 
 
 struct PacketTime {
-  PacketTime() : timestamp(-1), max_error_us(-1) {}
-  PacketTime(int64_t timestamp, int64_t max_error_us)
-      : timestamp(timestamp), max_error_us(max_error_us) {
+  PacketTime() : timestamp(-1), not_before(-1) {}
+  PacketTime(int64_t timestamp, int64_t not_before)
+      : timestamp(timestamp), not_before(not_before) {
   }
 
-  int64_t timestamp;    
-  int64_t max_error_us; 
-                        
-                        
-                        
-                        
+  int64_t timestamp;   
+  int64_t not_before;  
+                       
+                       
+                       
+                       
+};
+
+struct RTPHeaderExtension {
+  RTPHeaderExtension()
+      : hasTransmissionTimeOffset(false),
+        transmissionTimeOffset(0),
+        hasAbsoluteSendTime(false),
+        absoluteSendTime(0),
+        hasAudioLevel(false),
+        audioLevel(0) {}
+
+  bool hasTransmissionTimeOffset;
+  int32_t transmissionTimeOffset;
+  bool hasAbsoluteSendTime;
+  uint32_t absoluteSendTime;
+
+  
+  
+  bool hasAudioLevel;
+  uint8_t audioLevel;
+};
+
+struct RTPHeader {
+  RTPHeader()
+      : markerBit(false),
+        payloadType(0),
+        sequenceNumber(0),
+        timestamp(0),
+        ssrc(0),
+        numCSRCs(0),
+        paddingLength(0),
+        headerLength(0),
+        payload_type_frequency(0),
+        extension() {
+    memset(&arrOfCSRCs, 0, sizeof(arrOfCSRCs));
+  }
+
+  bool markerBit;
+  uint8_t payloadType;
+  uint16_t sequenceNumber;
+  uint32_t timestamp;
+  uint32_t ssrc;
+  uint8_t numCSRCs;
+  uint32_t arrOfCSRCs[kRtpCsrcSize];
+  uint8_t paddingLength;
+  uint16_t headerLength;
+  int payload_type_frequency;
+  RTPHeaderExtension extension;
 };
 
 }  
 
 #endif  
-

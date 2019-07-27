@@ -15,11 +15,12 @@
 #include <Windows.h>
 #include <WinSock.h>
 #include <MMSystem.h>
-#elif ((defined WEBRTC_LINUX) || (defined WEBRTC_BSD) || (defined WEBRTC_MAC))
+#elif ((defined WEBRTC_LINUX) || (defined WEBRTC_MAC))
 #include <sys/time.h>
 #include <time.h>
 #endif
 
+#include "webrtc/system_wrappers/interface/rw_lock_wrapper.h"
 #include "webrtc/system_wrappers/interface/tick_util.h"
 
 namespace webrtc {
@@ -128,18 +129,19 @@ void get_time(WindowsHelpTimer* help_timer, FILETIME& current_time) {
 class RealTimeClock : public Clock {
   
   
-  virtual int64_t TimeInMilliseconds() OVERRIDE {
+  virtual int64_t TimeInMilliseconds() const OVERRIDE {
     return TickTime::MillisecondTimestamp();
   }
 
   
   
-  virtual int64_t TimeInMicroseconds() OVERRIDE {
+  virtual int64_t TimeInMicroseconds() const OVERRIDE {
     return TickTime::MicrosecondTimestamp();
   }
 
   
-  virtual void CurrentNtp(uint32_t& seconds, uint32_t& fractions) OVERRIDE {
+  virtual void CurrentNtp(uint32_t& seconds,
+                          uint32_t& fractions) const OVERRIDE {
     timeval tv = CurrentTimeVal();
     double microseconds_in_seconds;
     Adjust(tv, &seconds, &microseconds_in_seconds);
@@ -148,7 +150,7 @@ class RealTimeClock : public Clock {
   }
 
   
-  virtual int64_t CurrentNtpInMilliseconds() OVERRIDE {
+  virtual int64_t CurrentNtpInMilliseconds() const OVERRIDE {
     timeval tv = CurrentTimeVal();
     uint32_t seconds;
     double microseconds_in_seconds;
@@ -209,7 +211,7 @@ class WindowsRealTimeClock : public RealTimeClock {
   WindowsHelpTimer* _helpTimer;
 };
 
-#elif ((defined WEBRTC_LINUX) || (defined WEBRTC_BSD) || (defined WEBRTC_MAC))
+#elif ((defined WEBRTC_LINUX) || (defined WEBRTC_MAC))
 class UnixRealTimeClock : public RealTimeClock {
  public:
   UnixRealTimeClock() {}
@@ -254,7 +256,7 @@ Clock* Clock::GetRealTimeClock() {
 #if defined(_WIN32)
   static WindowsRealTimeClock clock(SyncGlobalHelpTimer());
   return &clock;
-#elif ((defined WEBRTC_LINUX) || (defined WEBRTC_BSD) || (defined WEBRTC_MAC))
+#elif defined(WEBRTC_LINUX) || defined(WEBRTC_MAC)
   static UnixRealTimeClock clock;
   return &clock;
 #else
@@ -263,23 +265,30 @@ Clock* Clock::GetRealTimeClock() {
 }
 
 SimulatedClock::SimulatedClock(int64_t initial_time_us)
-    : time_us_(initial_time_us) {}
+    : time_us_(initial_time_us), lock_(RWLockWrapper::CreateRWLock()) {
+}
 
-int64_t SimulatedClock::TimeInMilliseconds() {
+SimulatedClock::~SimulatedClock() {
+}
+
+int64_t SimulatedClock::TimeInMilliseconds() const {
+  ReadLockScoped synchronize(*lock_);
   return (time_us_ + 500) / 1000;
 }
 
-int64_t SimulatedClock::TimeInMicroseconds() {
+int64_t SimulatedClock::TimeInMicroseconds() const {
+  ReadLockScoped synchronize(*lock_);
   return time_us_;
 }
 
-void SimulatedClock::CurrentNtp(uint32_t& seconds, uint32_t& fractions) {
-  seconds = (TimeInMilliseconds() / 1000) + kNtpJan1970;
-  fractions = (uint32_t)((TimeInMilliseconds() % 1000) *
-      kMagicNtpFractionalUnit / 1000);
+void SimulatedClock::CurrentNtp(uint32_t& seconds, uint32_t& fractions) const {
+  int64_t now_ms = TimeInMilliseconds();
+  seconds = (now_ms / 1000) + kNtpJan1970;
+  fractions =
+      static_cast<uint32_t>((now_ms % 1000) * kMagicNtpFractionalUnit / 1000);
 }
 
-int64_t SimulatedClock::CurrentNtpInMilliseconds() {
+int64_t SimulatedClock::CurrentNtpInMilliseconds() const {
   return TimeInMilliseconds() + 1000 * static_cast<int64_t>(kNtpJan1970);
 }
 
@@ -288,6 +297,7 @@ void SimulatedClock::AdvanceTimeMilliseconds(int64_t milliseconds) {
 }
 
 void SimulatedClock::AdvanceTimeMicroseconds(int64_t microseconds) {
+  WriteLockScoped synchronize(*lock_);
   time_us_ += microseconds;
 }
 

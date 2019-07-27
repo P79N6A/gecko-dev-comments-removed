@@ -104,7 +104,7 @@ protected:
 
 
 
-    int32_t VerifyAndAllocate(const uint32_t minimumSize);
+    void VerifyAndAllocate(const uint32_t minimumSize);
 
     void Reset();
 

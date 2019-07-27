@@ -56,7 +56,7 @@ class FineAudioBuffer {
   int bytes_per_10_ms_;
 
   
-  scoped_array<int8_t> cache_buffer_;
+  scoped_ptr<int8_t[]> cache_buffer_;
   int cached_buffer_start_;  
   int cached_bytes_;  
 };

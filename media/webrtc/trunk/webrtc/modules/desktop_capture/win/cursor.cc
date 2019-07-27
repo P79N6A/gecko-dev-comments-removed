@@ -137,7 +137,7 @@ MouseCursor* CreateMouseCursorFromHCursor(HDC dc, HCURSOR cursor) {
 
   int width = bitmap_info.bmWidth;
   int height = bitmap_info.bmHeight;
-  scoped_array<uint32_t> mask_data(new uint32_t[width * height]);
+  scoped_ptr<uint32_t[]> mask_data(new uint32_t[width * height]);
 
   
   
@@ -197,7 +197,7 @@ MouseCursor* CreateMouseCursorFromHCursor(HDC dc, HCURSOR cursor) {
 
     
     memcpy(
-        image->data(), mask_plane + (width * height), image->stride() * width);
+        image->data(), mask_plane + (width * height), image->stride() * height);
   }
 
   

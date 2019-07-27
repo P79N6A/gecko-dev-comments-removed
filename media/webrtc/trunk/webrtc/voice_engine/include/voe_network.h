@@ -41,19 +41,6 @@ namespace webrtc {
 class VoiceEngine;
 
 
-class WEBRTC_DLLEXPORT VoEConnectionObserver
-{
-public:
-    
-    
-    
-    virtual void OnPeriodicDeadOrAlive(int channel, bool alive) = 0;
-
-protected:
-    virtual ~VoEConnectionObserver() {}
-};
-
-
 class WEBRTC_DLLEXPORT VoENetwork
 {
 public:
@@ -80,8 +67,15 @@ public:
     
     
     
-    virtual int ReceivedRTPPacket(
-        int channel, const void* data, unsigned int length) = 0;
+    virtual int ReceivedRTPPacket(int channel,
+                                  const void* data,
+                                  unsigned int length) = 0;
+    virtual int ReceivedRTPPacket(int channel,
+                                  const void* data,
+                                  unsigned int length,
+                                  const PacketTime& packet_time) {
+      return 0;
+    }
 
     
     

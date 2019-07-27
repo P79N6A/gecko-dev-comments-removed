@@ -14,8 +14,8 @@
 
 
 
+#include "webrtc/base/thread_annotations.h"
 #include "webrtc/common_types.h"
-#include "webrtc/system_wrappers/interface/thread_annotations.h"
 
 namespace webrtc {
 class LOCKABLE CriticalSectionWrapper {

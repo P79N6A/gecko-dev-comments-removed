@@ -8,11 +8,9 @@
 
 
 
-#if defined(_MSC_VER)
-#include <windows.h>
-#endif
-
 #include "webrtc/modules/audio_device/android/single_rw_fifo.h"
+
+#include <assert.h>
 
 static int UpdatePos(int pos, int capacity) {
   return (pos + 1) % capacity;
@@ -22,25 +20,15 @@ namespace webrtc {
 
 namespace subtle {
 
-
-#if defined(__GNUC__) || defined(__clang__)
+#if defined(__aarch64__)
 
 inline void MemoryBarrier() {
-  __sync_synchronize();
-}
-
-#elif defined(_MSC_VER)
-inline void MemoryBarrier() {
-  ::MemoryBarrier();
+  __asm__ __volatile__ ("dmb ish" ::: "memory");
 }
 
 #elif defined(__ARMEL__)
 
-
-
-
 inline void MemoryBarrier() {
-  
   
   typedef void (*KernelMemoryBarrierFunc)();
   ((KernelMemoryBarrierFunc)0xffff0fa0)();

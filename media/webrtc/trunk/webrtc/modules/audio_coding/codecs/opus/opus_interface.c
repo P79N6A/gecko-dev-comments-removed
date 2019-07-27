@@ -9,14 +9,10 @@
 
 
 #include "webrtc/modules/audio_coding/codecs/opus/interface/opus_interface.h"
+#include "webrtc/modules/audio_coding/codecs/opus/opus_inst.h"
 
 #include <stdlib.h>
 #include <string.h>
-
-#include "opus.h"
-
-#include "webrtc/common_audio/signal_processing/resample_by_2_internal.h"
-#include "webrtc/common_audio/signal_processing/include/signal_processing_library.h"
 
 enum {
   
@@ -32,22 +28,7 @@ enum {
   kWebRtcOpusMaxFrameSizePerChannel = 48 * kWebRtcOpusMaxDecodeFrameSizeMs,
 
   
-
-  kWebRtcOpusMaxFrameSize = kWebRtcOpusMaxFrameSizePerChannel * 2,
-
-  
-
-  kWebRtcOpusMaxFrameSizePerChannel32kHz = 32 * kWebRtcOpusMaxDecodeFrameSizeMs,
-
-  
-  kWebRtcOpusStateSize = 7,
-
-  
   kWebRtcOpusDefaultFrameSize = 960,
-};
-
-struct WebRtcOpusEncInst {
-  OpusEncoder* encoder;
 };
 
 int16_t WebRtcOpus_EncoderCreate(OpusEncInst** inst, int32_t channels) {
@@ -82,17 +63,21 @@ int16_t WebRtcOpus_EncoderFree(OpusEncInst* inst) {
   }
 }
 
-int16_t WebRtcOpus_Encode(OpusEncInst* inst, int16_t* audio_in, int16_t samples,
-                          int16_t length_encoded_buffer, uint8_t* encoded) {
-  opus_int16* audio = (opus_int16*) audio_in;
-  unsigned char* coded = encoded;
+int16_t WebRtcOpus_Encode(OpusEncInst* inst,
+                          const int16_t* audio_in,
+                          int16_t samples,
+                          int16_t length_encoded_buffer,
+                          uint8_t* encoded) {
   int res;
 
   if (samples > 48 * kWebRtcOpusMaxEncodeFrameSizeMs) {
     return -1;
   }
 
-  res = opus_encode(inst->encoder, audio, samples, coded,
+  res = opus_encode(inst->encoder,
+                    (const opus_int16*)audio_in,
+                    samples,
+                    encoded,
                     length_encoded_buffer);
 
   if (res > 0) {
@@ -103,23 +88,65 @@ int16_t WebRtcOpus_Encode(OpusEncInst* inst, int16_t* audio_in, int16_t samples,
 
 int16_t WebRtcOpus_SetBitRate(OpusEncInst* inst, int32_t rate) {
   if (inst) {
-#if defined(OPUS_COMPLEXITY) && (OPUS_COMPLEXITY != 0)
-  opus_encoder_ctl(inst->encoder, OPUS_SET_COMPLEXITY(OPUS_COMPLEXITY));
-#endif
-  return opus_encoder_ctl(inst->encoder, OPUS_SET_BITRATE(rate));
+    return opus_encoder_ctl(inst->encoder, OPUS_SET_BITRATE(rate));
   } else {
     return -1;
   }
 }
 
-struct WebRtcOpusDecInst {
-  int16_t state_48_32_left[8];
-  int16_t state_48_32_right[8];
-  OpusDecoder* decoder_left;
-  OpusDecoder* decoder_right;
-  int prev_decoded_samples;
-  int channels;
-};
+int16_t WebRtcOpus_SetPacketLossRate(OpusEncInst* inst, int32_t loss_rate) {
+  if (inst) {
+    return opus_encoder_ctl(inst->encoder,
+                            OPUS_SET_PACKET_LOSS_PERC(loss_rate));
+  } else {
+    return -1;
+  }
+}
+
+int16_t WebRtcOpus_SetMaxPlaybackRate(OpusEncInst* inst, int32_t frequency_hz) {
+  opus_int32 set_bandwidth;
+
+  if (!inst)
+    return -1;
+
+  if (frequency_hz <= 8000) {
+    set_bandwidth = OPUS_BANDWIDTH_NARROWBAND;
+  } else if (frequency_hz <= 12000) {
+    set_bandwidth = OPUS_BANDWIDTH_MEDIUMBAND;
+  } else if (frequency_hz <= 16000) {
+    set_bandwidth = OPUS_BANDWIDTH_WIDEBAND;
+  } else if (frequency_hz <= 24000) {
+    set_bandwidth = OPUS_BANDWIDTH_SUPERWIDEBAND;
+  } else {
+    set_bandwidth = OPUS_BANDWIDTH_FULLBAND;
+  }
+  return opus_encoder_ctl(inst->encoder,
+                          OPUS_SET_MAX_BANDWIDTH(set_bandwidth));
+}
+
+int16_t WebRtcOpus_EnableFec(OpusEncInst* inst) {
+  if (inst) {
+    return opus_encoder_ctl(inst->encoder, OPUS_SET_INBAND_FEC(1));
+  } else {
+    return -1;
+  }
+}
+
+int16_t WebRtcOpus_DisableFec(OpusEncInst* inst) {
+  if (inst) {
+    return opus_encoder_ctl(inst->encoder, OPUS_SET_INBAND_FEC(0));
+  } else {
+    return -1;
+  }
+}
+
+int16_t WebRtcOpus_SetComplexity(OpusEncInst* inst, int32_t complexity) {
+  if (inst) {
+    return opus_encoder_ctl(inst->encoder, OPUS_SET_COMPLEXITY(complexity));
+  } else {
+    return -1;
+  }
+}
 
 int16_t WebRtcOpus_DecoderCreate(OpusDecInst** inst, int channels) {
   int error_l;
@@ -175,8 +202,6 @@ int WebRtcOpus_DecoderChannels(OpusDecInst* inst) {
 int16_t WebRtcOpus_DecoderInitNew(OpusDecInst* inst) {
   int error = opus_decoder_ctl(inst->decoder_left, OPUS_RESET_STATE);
   if (error == OPUS_OK) {
-    memset(inst->state_48_32_left, 0, sizeof(inst->state_48_32_left));
-    memset(inst->state_48_32_right, 0, sizeof(inst->state_48_32_right));
     return 0;
   }
   return -1;
@@ -185,7 +210,6 @@ int16_t WebRtcOpus_DecoderInitNew(OpusDecInst* inst) {
 int16_t WebRtcOpus_DecoderInit(OpusDecInst* inst) {
   int error = opus_decoder_ctl(inst->decoder_left, OPUS_RESET_STATE);
   if (error == OPUS_OK) {
-    memset(inst->state_48_32_left, 0, sizeof(inst->state_48_32_left));
     return 0;
   }
   return -1;
@@ -194,7 +218,6 @@ int16_t WebRtcOpus_DecoderInit(OpusDecInst* inst) {
 int16_t WebRtcOpus_DecoderInitSlave(OpusDecInst* inst) {
   int error = opus_decoder_ctl(inst->decoder_right, OPUS_RESET_STATE);
   if (error == OPUS_OK) {
-    memset(inst->state_48_32_right, 0, sizeof(inst->state_48_32_right));
     return 0;
   }
   return -1;
@@ -203,13 +226,11 @@ int16_t WebRtcOpus_DecoderInitSlave(OpusDecInst* inst) {
 
 
 
-static int DecodeNative(OpusDecoder* inst, const int16_t* encoded,
+static int DecodeNative(OpusDecoder* inst, const uint8_t* encoded,
                         int16_t encoded_bytes, int frame_size,
                         int16_t* decoded, int16_t* audio_type) {
-  unsigned char* coded = (unsigned char*) encoded;
-  opus_int16* audio = (opus_int16*) decoded;
-
-  int res = opus_decode(inst, coded, encoded_bytes, audio, frame_size, 0);
+  int res = opus_decode(
+      inst, encoded, encoded_bytes, (opus_int16*)decoded, frame_size, 0);
 
   
   *audio_type = 0;
@@ -220,124 +241,44 @@ static int DecodeNative(OpusDecoder* inst, const int16_t* encoded,
   return -1;
 }
 
-
-
-
-static int WebRtcOpus_Resample48to32(const int16_t* samples_in, int length,
-                                     int16_t* state, int16_t* samples_out) {
-  int i;
-  int blocks;
-  int16_t output_samples;
-  int32_t buffer32[kWebRtcOpusMaxFrameSizePerChannel + kWebRtcOpusStateSize];
+static int DecodeFec(OpusDecoder* inst, const uint8_t* encoded,
+                     int16_t encoded_bytes, int frame_size,
+                     int16_t* decoded, int16_t* audio_type) {
+  int res = opus_decode(
+      inst, encoded, encoded_bytes, (opus_int16*)decoded, frame_size, 1);
 
   
-  for (i = 0; i < kWebRtcOpusStateSize; i++) {
-    buffer32[i] = state[i];
-    state[i] = samples_in[length - kWebRtcOpusStateSize + i];
+  *audio_type = 0;
+
+  if (res > 0) {
+    return res;
   }
-  for (i = 0; i < length; i++) {
-    buffer32[kWebRtcOpusStateSize + i] = samples_in[i];
-  }
-  
-
-
-
-  blocks = length / 3;
-  WebRtcSpl_Resample48khzTo32khz(buffer32, buffer32, blocks);
-  output_samples = (int16_t) (blocks * 2);
-  WebRtcSpl_VectorBitShiftW32ToW16(samples_out, output_samples, buffer32, 15);
-
-  return output_samples;
-}
-
-static int WebRtcOpus_DeInterleaveResample(OpusDecInst* inst, int16_t* input,
-                                           int sample_pairs, int16_t* output) {
-  int i;
-  int16_t buffer_left[kWebRtcOpusMaxFrameSizePerChannel];
-  int16_t buffer_right[kWebRtcOpusMaxFrameSizePerChannel];
-  int16_t buffer_out[kWebRtcOpusMaxFrameSizePerChannel32kHz];
-  int resampled_samples;
-
-  
-  for (i = 0; i < sample_pairs; i++) {
-    
-    buffer_left[i] = input[i * 2];
-    buffer_right[i] = input[i * 2 + 1];
-  }
-
-  
-  resampled_samples = WebRtcOpus_Resample48to32(
-      buffer_left, sample_pairs, inst->state_48_32_left, buffer_out);
-
-  
-  for (i = 0; i < resampled_samples; i++) {
-    output[i * 2] = buffer_out[i];
-  }
-
-  
-  resampled_samples = WebRtcOpus_Resample48to32(
-      buffer_right, sample_pairs, inst->state_48_32_right, buffer_out);
-
-  
-  for (i = 0; i < resampled_samples; i++) {
-    output[i * 2 + 1] = buffer_out[i];
-  }
-
-  return resampled_samples;
+  return -1;
 }
 
 int16_t WebRtcOpus_DecodeNew(OpusDecInst* inst, const uint8_t* encoded,
                              int16_t encoded_bytes, int16_t* decoded,
                              int16_t* audio_type) {
-  
-
-  int16_t buffer[kWebRtcOpusMaxFrameSize];
-  int16_t* coded = (int16_t*)encoded;
-  int decoded_samples;
-  int resampled_samples;
-
-  
-
-
-
-
-  
-  decoded_samples = DecodeNative(inst->decoder_left, coded, encoded_bytes,
-                                 kWebRtcOpusMaxFrameSizePerChannel,
-                                 buffer, audio_type);
+  int decoded_samples = DecodeNative(inst->decoder_left,
+                                     encoded,
+                                     encoded_bytes,
+                                     kWebRtcOpusMaxFrameSizePerChannel,
+                                     decoded,
+                                     audio_type);
   if (decoded_samples < 0) {
     return -1;
-  }
-
-  if (inst->channels == 2) {
-    
-    resampled_samples = WebRtcOpus_DeInterleaveResample(inst,
-                                                        buffer,
-                                                        decoded_samples,
-                                                        decoded);
-  } else {
-    
-
-    resampled_samples = WebRtcOpus_Resample48to32(buffer,
-                                                  decoded_samples,
-                                                  inst->state_48_32_left,
-                                                  decoded);
   }
 
   
   inst->prev_decoded_samples = decoded_samples;
 
-  return resampled_samples;
+  return decoded_samples;
 }
 
-int16_t WebRtcOpus_Decode(OpusDecInst* inst, const int16_t* encoded,
+int16_t WebRtcOpus_Decode(OpusDecInst* inst, const uint8_t* encoded,
                           int16_t encoded_bytes, int16_t* decoded,
                           int16_t* audio_type) {
-  
-
-  int16_t buffer16[kWebRtcOpusMaxFrameSize];
   int decoded_samples;
-  int16_t output_samples;
   int i;
 
   
@@ -346,9 +287,8 @@ int16_t WebRtcOpus_Decode(OpusDecInst* inst, const int16_t* encoded,
 
 
 
-  
   decoded_samples = DecodeNative(inst->decoder_left, encoded, encoded_bytes,
-                                 kWebRtcOpusMaxFrameSizePerChannel, buffer16,
+                                 kWebRtcOpusMaxFrameSizePerChannel, decoded,
                                  audio_type);
   if (decoded_samples < 0) {
     return -1;
@@ -360,33 +300,24 @@ int16_t WebRtcOpus_Decode(OpusDecInst* inst, const int16_t* encoded,
     for (i = 0; i < decoded_samples; i++) {
       
 
-      buffer16[i] = buffer16[i * 2];
+      decoded[i] = decoded[i * 2];
     }
   }
 
   
-  output_samples = WebRtcOpus_Resample48to32(buffer16, decoded_samples,
-                                             inst->state_48_32_left, decoded);
-
-  
   inst->prev_decoded_samples = decoded_samples;
 
-  return output_samples;
+  return decoded_samples;
 }
 
-int16_t WebRtcOpus_DecodeSlave(OpusDecInst* inst, const int16_t* encoded,
+int16_t WebRtcOpus_DecodeSlave(OpusDecInst* inst, const uint8_t* encoded,
                                int16_t encoded_bytes, int16_t* decoded,
                                int16_t* audio_type) {
-  
-
-  int16_t buffer16[kWebRtcOpusMaxFrameSize];
   int decoded_samples;
-  int16_t output_samples;
   int i;
 
-  
   decoded_samples = DecodeNative(inst->decoder_right, encoded, encoded_bytes,
-                                 kWebRtcOpusMaxFrameSizePerChannel, buffer16,
+                                 kWebRtcOpusMaxFrameSizePerChannel, decoded,
                                  audio_type);
   if (decoded_samples < 0) {
     return -1;
@@ -398,32 +329,21 @@ int16_t WebRtcOpus_DecodeSlave(OpusDecInst* inst, const int16_t* encoded,
     for (i = 0; i < decoded_samples; i++) {
       
 
-      buffer16[i] = buffer16[i * 2 + 1];
+      decoded[i] = decoded[i * 2 + 1];
     }
   } else {
     
     return -1;
   }
-  
-  output_samples = WebRtcOpus_Resample48to32(buffer16, decoded_samples,
-                                             inst->state_48_32_right, decoded);
 
-  return output_samples;
+  return decoded_samples;
 }
 
 int16_t WebRtcOpus_DecodePlc(OpusDecInst* inst, int16_t* decoded,
                              int16_t number_of_lost_frames) {
-  int16_t buffer[kWebRtcOpusMaxFrameSize];
   int16_t audio_type = 0;
   int decoded_samples;
-  int resampled_samples;
   int plc_samples;
-
-  
-
-
-
-
 
   
 
@@ -432,34 +352,17 @@ int16_t WebRtcOpus_DecodePlc(OpusDecInst* inst, int16_t* decoded,
   plc_samples = (plc_samples <= kWebRtcOpusMaxFrameSizePerChannel) ?
       plc_samples : kWebRtcOpusMaxFrameSizePerChannel;
   decoded_samples = DecodeNative(inst->decoder_left, NULL, 0, plc_samples,
-                                 buffer, &audio_type);
+                                 decoded, &audio_type);
   if (decoded_samples < 0) {
     return -1;
   }
 
-  if (inst->channels == 2) {
-     
-     resampled_samples = WebRtcOpus_DeInterleaveResample(inst,
-                                                         buffer,
-                                                         decoded_samples,
-                                                         decoded);
-   } else {
-     
-
-     resampled_samples = WebRtcOpus_Resample48to32(buffer,
-                                                   decoded_samples,
-                                                   inst->state_48_32_left,
-                                                   decoded);
-   }
-
-  return resampled_samples;
+  return decoded_samples;
 }
 
 int16_t WebRtcOpus_DecodePlcMaster(OpusDecInst* inst, int16_t* decoded,
                                    int16_t number_of_lost_frames) {
-  int16_t buffer[kWebRtcOpusMaxFrameSize];
   int decoded_samples;
-  int resampled_samples;
   int16_t audio_type = 0;
   int plc_samples;
   int i;
@@ -477,7 +380,7 @@ int16_t WebRtcOpus_DecodePlcMaster(OpusDecInst* inst, int16_t* decoded,
   plc_samples = (plc_samples <= kWebRtcOpusMaxFrameSizePerChannel) ?
       plc_samples : kWebRtcOpusMaxFrameSizePerChannel;
   decoded_samples = DecodeNative(inst->decoder_left, NULL, 0, plc_samples,
-                                 buffer, &audio_type);
+                                 decoded, &audio_type);
   if (decoded_samples < 0) {
     return -1;
   }
@@ -489,23 +392,16 @@ int16_t WebRtcOpus_DecodePlcMaster(OpusDecInst* inst, int16_t* decoded,
     for (i = 0; i < decoded_samples; i++) {
       
 
-      buffer[i] = buffer[i * 2];
+      decoded[i] = decoded[i * 2];
     }
   }
 
-  
-  resampled_samples = WebRtcOpus_Resample48to32(buffer,
-                                                decoded_samples,
-                                                inst->state_48_32_left,
-                                                decoded);
-  return resampled_samples;
+  return decoded_samples;
 }
 
 int16_t WebRtcOpus_DecodePlcSlave(OpusDecInst* inst, int16_t* decoded,
                                   int16_t number_of_lost_frames) {
-  int16_t buffer[kWebRtcOpusMaxFrameSize];
   int decoded_samples;
-  int resampled_samples;
   int16_t audio_type = 0;
   int plc_samples;
   int i;
@@ -523,7 +419,7 @@ int16_t WebRtcOpus_DecodePlcSlave(OpusDecInst* inst, int16_t* decoded,
   plc_samples = (plc_samples <= kWebRtcOpusMaxFrameSizePerChannel)
       ? plc_samples : kWebRtcOpusMaxFrameSizePerChannel;
   decoded_samples = DecodeNative(inst->decoder_right, NULL, 0, plc_samples,
-                                 buffer, &audio_type);
+                                 decoded, &audio_type);
   if (decoded_samples < 0) {
     return -1;
   }
@@ -534,15 +430,31 @@ int16_t WebRtcOpus_DecodePlcSlave(OpusDecInst* inst, int16_t* decoded,
   for (i = 0; i < decoded_samples; i++) {
     
 
-    buffer[i] = buffer[i * 2 + 1];
+    decoded[i] = decoded[i * 2 + 1];
   }
 
-  
-  resampled_samples = WebRtcOpus_Resample48to32(buffer,
-                                                decoded_samples,
-                                                inst->state_48_32_right,
-                                                decoded);
-  return resampled_samples;
+  return decoded_samples;
+}
+
+int16_t WebRtcOpus_DecodeFec(OpusDecInst* inst, const uint8_t* encoded,
+                             int16_t encoded_bytes, int16_t* decoded,
+                             int16_t* audio_type) {
+  int decoded_samples;
+  int fec_samples;
+
+  if (WebRtcOpus_PacketHasFec(encoded, encoded_bytes) != 1) {
+    return 0;
+  }
+
+  fec_samples = opus_packet_get_samples_per_frame(encoded, 48000);
+
+  decoded_samples = DecodeFec(inst->decoder_left, encoded, encoded_bytes,
+                              fec_samples, decoded, audio_type);
+  if (decoded_samples < 0) {
+    return -1;
+  }
+
+  return decoded_samples;
 }
 
 int WebRtcOpus_DurationEst(OpusDecInst* inst,
@@ -559,9 +471,77 @@ int WebRtcOpus_DurationEst(OpusDecInst* inst,
     
     return 0;
   }
-  
-
-
-  samples = samples * 2 / 3;
   return samples;
+}
+
+int WebRtcOpus_FecDurationEst(const uint8_t* payload,
+                              int payload_length_bytes) {
+  int samples;
+  if (WebRtcOpus_PacketHasFec(payload, payload_length_bytes) != 1) {
+    return 0;
+  }
+
+  samples = opus_packet_get_samples_per_frame(payload, 48000);
+  if (samples < 480 || samples > 5760) {
+    
+    return 0;
+  }
+  return samples;
+}
+
+int WebRtcOpus_PacketHasFec(const uint8_t* payload,
+                            int payload_length_bytes) {
+  int frames, channels, payload_length_ms;
+  int n;
+  opus_int16 frame_sizes[48];
+  const unsigned char *frame_data[48];
+
+  if (payload == NULL || payload_length_bytes <= 0)
+    return 0;
+
+  
+  if (payload[0] & 0x80)
+    return 0;
+
+  payload_length_ms = opus_packet_get_samples_per_frame(payload, 48000) / 48;
+  if (10 > payload_length_ms)
+    payload_length_ms = 10;
+
+  channels = opus_packet_get_nb_channels(payload);
+
+  switch (payload_length_ms) {
+    case 10:
+    case 20: {
+      frames = 1;
+      break;
+    }
+    case 40: {
+      frames = 2;
+      break;
+    }
+    case 60: {
+      frames = 3;
+      break;
+    }
+    default: {
+      return 0; 
+    }
+  }
+
+  
+  if (opus_packet_parse(payload, payload_length_bytes, NULL, frame_data,
+                        frame_sizes, NULL) < 0) {
+    return 0;
+  }
+
+  if (frame_sizes[0] <= 1) {
+    return 0;
+  }
+
+  for (n = 0; n < channels; n++) {
+    if (frame_data[0][0] & (0x80 >> ((n + 1) * (frames + 1) - 1)))
+      return 1;
+  }
+
+  return 0;
 }

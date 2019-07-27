@@ -20,7 +20,7 @@ namespace webrtc {
 class VideoCoder : public VCMPacketizationCallback, public VCMReceiveCallback
 {
 public:
-    VideoCoder(uint32_t instanceID);
+    VideoCoder();
     ~VideoCoder();
 
     int32_t SetEncodeCodec(VideoCodec& videoCodecInst,
@@ -43,11 +43,11 @@ public:
 private:
     
     
-    int32_t FrameToRender(I420VideoFrame& videoFrame);
+    virtual int32_t FrameToRender(I420VideoFrame& videoFrame) OVERRIDE;
 
     
     
-    int32_t SendData(
+    virtual int32_t SendData(
         FrameType ,
         uint8_t ,
         uint32_t ,
@@ -55,7 +55,7 @@ private:
         const uint8_t* payloadData,
         uint32_t payloadSize,
         const RTPFragmentationHeader& ,
-        const RTPVideoHeader* rtpTypeHdr);
+        const RTPVideoHeader* rtpTypeHdr) OVERRIDE;
 
     VideoCodingModule* _vcm;
     I420VideoFrame* _decodedVideo;

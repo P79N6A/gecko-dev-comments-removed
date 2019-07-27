@@ -85,8 +85,8 @@ public:
                         TbExternalTransport::SsrcChannelMap* receive_channels);
     ~TbExternalTransport(void);
 
-    virtual int SendPacket(int channel, const void *data, int len);
-    virtual int SendRTCPPacket(int channel, const void *data, int len);
+    virtual int SendPacket(int channel, const void *data, int len) OVERRIDE;
+    virtual int SendRTCPPacket(int channel, const void *data, int len) OVERRIDE;
 
     
     

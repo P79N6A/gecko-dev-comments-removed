@@ -14,6 +14,7 @@
 #define WEBRTC_MODULES_VIDEO_CODING_CODECS_VP8_IMPL_H_
 
 #include "webrtc/modules/video_coding/codecs/vp8/include/vp8.h"
+#include "webrtc/modules/video_coding/utility/quality_scaler.h"
 
 
 typedef struct vpx_codec_ctx vpx_codec_ctx_t;
@@ -34,73 +35,20 @@ class VP8EncoderImpl : public VP8Encoder {
 
   virtual ~VP8EncoderImpl();
 
-  
-  
-  
   virtual int Release();
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   virtual int InitEncode(const VideoCodec* codec_settings,
                          int number_of_cores,
                          uint32_t max_payload_size);
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
 
   virtual int Encode(const I420VideoFrame& input_image,
                      const CodecSpecificInfo* codec_specific_info,
                      const std::vector<VideoFrameType>* frame_types);
 
-  
-  
-  
-  
-  
-  
   virtual int RegisterEncodeCompleteCallback(EncodedImageCallback* callback);
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
   virtual int SetChannelParameters(uint32_t packet_loss, int rtt);
 
-  
-  
-  
-  
-  
-  
   virtual int SetRates(uint32_t new_bitrate_kbit, uint32_t frame_rate);
 
  private:
@@ -139,6 +87,7 @@ class VP8EncoderImpl : public VP8Encoder {
   vpx_codec_ctx_t* encoder_;
   vpx_codec_enc_cfg_t* config_;
   vpx_image_t* raw_;
+  QualityScaler quality_scaler_;
 };  
 
 
@@ -148,61 +97,20 @@ class VP8DecoderImpl : public VP8Decoder {
 
   virtual ~VP8DecoderImpl();
 
-  
-  
-  
-  
-  
   virtual int InitDecode(const VideoCodec* inst, int number_of_cores);
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   virtual int Decode(const EncodedImage& input_image,
                      bool missing_frames,
                      const RTPFragmentationHeader* fragmentation,
                      const CodecSpecificInfo* codec_specific_info,
                      int64_t );
 
-  
-  
-  
-  
-  
-  
   virtual int RegisterDecodeCompleteCallback(DecodedImageCallback* callback);
 
-  
-  
-  
-  
-  
   virtual int Release();
 
-  
-  
-  
-  
-  
-  
   virtual int Reset();
 
-  
-  
-  
   virtual VideoDecoder* Copy();
 
  private:
@@ -214,7 +122,9 @@ class VP8DecoderImpl : public VP8Decoder {
   int DecodePartitions(const EncodedImage& input_image,
                        const RTPFragmentationHeader* fragmentation);
 
-  int ReturnFrame(const vpx_image_t* img, uint32_t timeStamp);
+  int ReturnFrame(const vpx_image_t* img,
+                  uint32_t timeStamp,
+                  int64_t ntp_time_ms);
 
   I420VideoFrame decoded_image_;
   DecodedImageCallback* decode_complete_callback_;

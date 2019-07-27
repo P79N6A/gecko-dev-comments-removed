@@ -46,20 +46,6 @@ typedef std::vector<PayloadCodecTuple>::const_iterator PayloadTypesIterator;
 
 
 
-class RtpPacketSourceInterface {
- public:
-  virtual ~RtpPacketSourceInterface() {}
-
-  
-  
-  
-  
-  virtual int NextPacket(uint8_t* rtp_data, uint32_t* length,
-                         uint32_t* time_ms) = 0;
-};
-
-
-
 class RtpStreamInterface {
  public:
   virtual ~RtpStreamInterface() {}

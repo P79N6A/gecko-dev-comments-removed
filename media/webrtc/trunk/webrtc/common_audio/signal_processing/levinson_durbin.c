@@ -45,9 +45,8 @@ int16_t WebRtcSpl_LevinsonDurbin(int32_t *R, int16_t *A, int16_t *K,
     {
         temp1W32 = WEBRTC_SPL_LSHIFT_W32(R[i], norm);
         
-        R_hi[i] = (int16_t)WEBRTC_SPL_RSHIFT_W32(temp1W32, 16);
-        R_low[i] = (int16_t)WEBRTC_SPL_RSHIFT_W32((temp1W32
-                - WEBRTC_SPL_LSHIFT_W32((int32_t)R_hi[i], 16)), 1);
+        R_hi[i] = (int16_t)(temp1W32 >> 16);
+        R_low[i] = (int16_t)((temp1W32 - ((int32_t)R_hi[i] << 16)) >> 1);
     }
 
     
@@ -63,19 +62,17 @@ int16_t WebRtcSpl_LevinsonDurbin(int32_t *R, int16_t *A, int16_t *K,
     }
 
     
-    K_hi = (int16_t)WEBRTC_SPL_RSHIFT_W32(temp1W32, 16);
-    K_low = (int16_t)WEBRTC_SPL_RSHIFT_W32((temp1W32
-            - WEBRTC_SPL_LSHIFT_W32((int32_t)K_hi, 16)), 1);
+    K_hi = (int16_t)(temp1W32 >> 16);
+    K_low = (int16_t)((temp1W32 - ((int32_t)K_hi << 16)) >> 1);
 
     
     K[0] = K_hi;
 
-    temp1W32 = WEBRTC_SPL_RSHIFT_W32(temp1W32, 4); 
+    temp1W32 >>= 4;  
 
     
-    A_hi[1] = (int16_t)WEBRTC_SPL_RSHIFT_W32(temp1W32, 16);
-    A_low[1] = (int16_t)WEBRTC_SPL_RSHIFT_W32((temp1W32
-            - WEBRTC_SPL_LSHIFT_W32((int32_t)A_hi[1], 16)), 1);
+    A_hi[1] = (int16_t)(temp1W32 >> 16);
+    A_low[1] = (int16_t)((temp1W32 - ((int32_t)A_hi[1] << 16)) >> 1);
 
     
 
@@ -86,9 +83,8 @@ int16_t WebRtcSpl_LevinsonDurbin(int32_t *R, int16_t *A, int16_t *K,
     temp1W32 = (int32_t)0x7fffffffL - temp1W32; 
 
     
-    tmp_hi = (int16_t)WEBRTC_SPL_RSHIFT_W32(temp1W32, 16);
-    tmp_low = (int16_t)WEBRTC_SPL_RSHIFT_W32((temp1W32
-            - WEBRTC_SPL_LSHIFT_W32((int32_t)tmp_hi, 16)), 1);
+    tmp_hi = (int16_t)(temp1W32 >> 16);
+    tmp_low = (int16_t)((temp1W32 - ((int32_t)tmp_hi << 16)) >> 1);
 
     
     temp1W32 = ((WEBRTC_SPL_MUL_16_16(R_hi[0], tmp_hi)
@@ -99,9 +95,8 @@ int16_t WebRtcSpl_LevinsonDurbin(int32_t *R, int16_t *A, int16_t *K,
 
     Alpha_exp = WebRtcSpl_NormW32(temp1W32);
     temp1W32 = WEBRTC_SPL_LSHIFT_W32(temp1W32, Alpha_exp);
-    Alpha_hi = (int16_t)WEBRTC_SPL_RSHIFT_W32(temp1W32, 16);
-    Alpha_low = (int16_t)WEBRTC_SPL_RSHIFT_W32((temp1W32
-            - WEBRTC_SPL_LSHIFT_W32((int32_t)Alpha_hi, 16)), 1);
+    Alpha_hi = (int16_t)(temp1W32 >> 16);
+    Alpha_low = (int16_t)((temp1W32 - ((int32_t)Alpha_hi << 16)) >> 1);
 
     
 
@@ -155,9 +150,8 @@ int16_t WebRtcSpl_LevinsonDurbin(int32_t *R, int16_t *A, int16_t *K,
         }
 
         
-        K_hi = (int16_t)WEBRTC_SPL_RSHIFT_W32(temp3W32, 16);
-        K_low = (int16_t)WEBRTC_SPL_RSHIFT_W32((temp3W32
-                - WEBRTC_SPL_LSHIFT_W32((int32_t)K_hi, 16)), 1);
+        K_hi = (int16_t)(temp3W32 >> 16);
+        K_low = (int16_t)((temp3W32 - ((int32_t)K_hi << 16)) >> 1);
 
         
         K[i - 1] = K_hi;
@@ -188,18 +182,18 @@ int16_t WebRtcSpl_LevinsonDurbin(int32_t *R, int16_t *A, int16_t *K,
                     + (WEBRTC_SPL_MUL_16_16(K_low, A_hi[i-j]) >> 15)) << 1);
 
             
-            A_upd_hi[j] = (int16_t)WEBRTC_SPL_RSHIFT_W32(temp1W32, 16);
-            A_upd_low[j] = (int16_t)WEBRTC_SPL_RSHIFT_W32((temp1W32
-                    - WEBRTC_SPL_LSHIFT_W32((int32_t)A_upd_hi[j], 16)), 1);
+            A_upd_hi[j] = (int16_t)(temp1W32 >> 16);
+            A_upd_low[j] = (int16_t)(
+                (temp1W32 - ((int32_t)A_upd_hi[j] << 16)) >> 1);
         }
 
         
-        temp3W32 = WEBRTC_SPL_RSHIFT_W32(temp3W32, 4);
+        temp3W32 >>= 4;
 
         
-        A_upd_hi[i] = (int16_t)WEBRTC_SPL_RSHIFT_W32(temp3W32, 16);
-        A_upd_low[i] = (int16_t)WEBRTC_SPL_RSHIFT_W32((temp3W32
-                - WEBRTC_SPL_LSHIFT_W32((int32_t)A_upd_hi[i], 16)), 1);
+        A_upd_hi[i] = (int16_t)(temp3W32 >> 16);
+        A_upd_low[i] = (int16_t)(
+            (temp3W32 - ((int32_t)A_upd_hi[i] << 16)) >> 1);
 
         
 
@@ -210,9 +204,8 @@ int16_t WebRtcSpl_LevinsonDurbin(int32_t *R, int16_t *A, int16_t *K,
         temp1W32 = (int32_t)0x7fffffffL - temp1W32; 
 
         
-        tmp_hi = (int16_t)WEBRTC_SPL_RSHIFT_W32(temp1W32, 16);
-        tmp_low = (int16_t)WEBRTC_SPL_RSHIFT_W32((temp1W32
-                - WEBRTC_SPL_LSHIFT_W32((int32_t)tmp_hi, 16)), 1);
+        tmp_hi = (int16_t)(temp1W32 >> 16);
+        tmp_low = (int16_t)((temp1W32 - ((int32_t)tmp_hi << 16)) >> 1);
 
         
         temp1W32 = ((WEBRTC_SPL_MUL_16_16(Alpha_hi, tmp_hi)
@@ -224,9 +217,8 @@ int16_t WebRtcSpl_LevinsonDurbin(int32_t *R, int16_t *A, int16_t *K,
         norm = WebRtcSpl_NormW32(temp1W32);
         temp1W32 = WEBRTC_SPL_LSHIFT_W32(temp1W32, norm);
 
-        Alpha_hi = (int16_t)WEBRTC_SPL_RSHIFT_W32(temp1W32, 16);
-        Alpha_low = (int16_t)WEBRTC_SPL_RSHIFT_W32((temp1W32
-                - WEBRTC_SPL_LSHIFT_W32((int32_t)Alpha_hi, 16)), 1);
+        Alpha_hi = (int16_t)(temp1W32 >> 16);
+        Alpha_low = (int16_t)((temp1W32 - ((int32_t)Alpha_hi << 16)) >> 1);
 
         
         Alpha_exp = Alpha_exp + norm;
@@ -253,7 +245,7 @@ int16_t WebRtcSpl_LevinsonDurbin(int32_t *R, int16_t *A, int16_t *K,
         temp1W32 = WEBRTC_SPL_LSHIFT_W32((int32_t)A_hi[i], 16)
                 + WEBRTC_SPL_LSHIFT_W32((int32_t)A_low[i], 1);
         
-        A[i] = (int16_t)WEBRTC_SPL_RSHIFT_W32((temp1W32<<1)+(int32_t)32768, 16);
+        A[i] = (int16_t)(((temp1W32 << 1) + 32768) >> 16);
     }
     return 1; 
 }

@@ -54,13 +54,9 @@ public:
     
     int PlayDtmfTone(uint8_t eventCode, int lengthMs, int attenuationDb);
 
-    int StartPlayingDtmfTone(uint8_t eventCode, int attenuationDb);
-
-    int StopPlayingDtmfTone();
-
     int32_t MixActiveChannels();
 
-    int32_t DoOperationsOnCombinedSignal();
+    int32_t DoOperationsOnCombinedSignal(bool feed_data_to_apm);
 
     int32_t SetMixabilityStatus(MixerParticipant& participant,
                                 bool mixable);
@@ -118,11 +114,9 @@ public:
     void PlayFileEnded(int32_t id);
     void RecordFileEnded(int32_t id);
 
-    
-    void APMAnalyzeReverseStream(AudioFrame &audioFrame);
-
 private:
     OutputMixer(uint32_t instanceId);
+    void APMAnalyzeReverseStream();
     int InsertInbandDtmfTone();
 
     
@@ -135,8 +129,10 @@ private:
     CriticalSectionWrapper& _fileCritSect;
     AudioConferenceMixer& _mixerModule;
     AudioFrame _audioFrame;
-    PushResampler resampler_;  
-    PushResampler audioproc_resampler_;  
+    
+    PushResampler<int16_t> resampler_;
+    
+    PushResampler<int16_t> audioproc_resampler_;
     AudioLevel _audioLevel;    
     DtmfInband _dtmfGenerator;
     int _instanceId;

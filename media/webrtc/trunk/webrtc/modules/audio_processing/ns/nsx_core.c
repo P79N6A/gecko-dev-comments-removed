@@ -319,13 +319,13 @@ static void UpdateNoiseEstimate(NsxInst_t* inst, int offset) {
     tmp32no2 = WEBRTC_SPL_MUL_16_16(kExp2Const,
                                     inst->noiseEstLogQuantile[offset + i]);
     tmp32no1 = (0x00200000 | (tmp32no2 & 0x001FFFFF)); 
-    tmp16 = (int16_t) WEBRTC_SPL_RSHIFT_W32(tmp32no2, 21);
+    tmp16 = (int16_t)(tmp32no2 >> 21);
     tmp16 -= 21;
     tmp16 += (int16_t) inst->qNoise; 
     if (tmp16 < 0) {
-      tmp32no1 = WEBRTC_SPL_RSHIFT_W32(tmp32no1, -tmp16);
+      tmp32no1 >>= -tmp16;
     } else {
-      tmp32no1 = WEBRTC_SPL_LSHIFT_W32(tmp32no1, tmp16);
+      tmp32no1 <<= tmp16;
     }
     inst->noiseEstQuantile[i] = WebRtcSpl_SatW32ToW16(tmp32no1);
   }
@@ -407,13 +407,11 @@ static void NoiseEstimationC(NsxInst_t* inst,
         
         
         tmp16 += 2;
-        tmp16no1 = WEBRTC_SPL_RSHIFT_W16(tmp16, 2);
-        inst->noiseEstLogQuantile[offset + i] += tmp16no1;
+        inst->noiseEstLogQuantile[offset + i] += tmp16 / 4;
       } else {
         tmp16 += 1;
-        tmp16no1 = WEBRTC_SPL_RSHIFT_W16(tmp16, 1);
         
-        tmp16no2 = (int16_t)WEBRTC_SPL_MUL_16_16_RSFT(tmp16no1, 3, 1);
+        tmp16no2 = (int16_t)WEBRTC_SPL_MUL_16_16_RSFT(tmp16 / 2, 3, 1);
         inst->noiseEstLogQuantile[offset + i] -= tmp16no2;
         if (inst->noiseEstLogQuantile[offset + i] < logval) {
           
@@ -503,8 +501,8 @@ static void SynthesisUpdateC(NsxInst_t* inst,
     tmp32 = WEBRTC_SPL_MUL_16_16_RSFT_WITH_ROUND(tmp16a, gain_factor, 13); 
     
     tmp16b = WebRtcSpl_SatW32ToW16(tmp32); 
-    inst->synthesisBuffer[i] = WEBRTC_SPL_ADD_SAT_W16(inst->synthesisBuffer[i],
-                                                      tmp16b); 
+    inst->synthesisBuffer[i] = WebRtcSpl_AddSatW16(inst->synthesisBuffer[i],
+                                                   tmp16b); 
   }
 
   
@@ -545,8 +543,9 @@ static void NormalizeRealBufferC(NsxInst_t* inst,
                                  const int16_t* in,
                                  int16_t* out) {
   int i = 0;
+  assert(inst->normData >= 0);
   for (i = 0; i < inst->anaLen; ++i) {
-    out[i] = WEBRTC_SPL_LSHIFT_W16(in[i], inst->normData); 
+    out[i] = in[i] << inst->normData;  
   }
 }
 
@@ -598,29 +597,29 @@ void WebRtcNsx_CalcParametricNoiseEstimate(NsxInst_t* inst,
   assert(freq_index >= 0);
   assert(freq_index < 129);
   tmp32no2 = WEBRTC_SPL_MUL_16_16(pink_noise_exp_avg, kLogIndex[freq_index]); 
-  tmp32no2 = WEBRTC_SPL_RSHIFT_W32(tmp32no2, 15); 
+  tmp32no2 >>= 15;  
   tmp32no1 = pink_noise_num_avg - tmp32no2; 
 
   
   
-  tmp32no1 += WEBRTC_SPL_LSHIFT_W32((int32_t)(inst->minNorm - inst->stages), 11);
+  tmp32no1 += (inst->minNorm - inst->stages) << 11;
   if (tmp32no1 > 0) {
-    int_part = (int16_t)WEBRTC_SPL_RSHIFT_W32(tmp32no1, 11);
+    int_part = (int16_t)(tmp32no1 >> 11);
     frac_part = (int16_t)(tmp32no1 & 0x000007ff); 
     
     
     
-    if (WEBRTC_SPL_RSHIFT_W16(frac_part, 10)) {
+    if (frac_part >> 10) {
       
       tmp32no2 = WEBRTC_SPL_MUL_16_16(2048 - frac_part, 1244); 
-      tmp32no2 = 2048 - WEBRTC_SPL_RSHIFT_W32(tmp32no2, 10);
+      tmp32no2 = 2048 - (tmp32no2 >> 10);
     } else {
       
-      tmp32no2 = WEBRTC_SPL_RSHIFT_W32(WEBRTC_SPL_MUL_16_16(frac_part, 804), 10);
+      tmp32no2 = (frac_part * 804) >> 10;
     }
     
     tmp32no2 = WEBRTC_SPL_SHIFT_W32(tmp32no2, int_part - 11);
-    *noise_estimate_avg = WEBRTC_SPL_LSHIFT_U32(1, int_part) + (uint32_t)tmp32no2;
+    *noise_estimate_avg = (1 << int_part) + (uint32_t)tmp32no2;
     
     *noise_estimate = (*noise_estimate_avg) * (uint32_t)(inst->blockIndex + 1);
   }
@@ -668,7 +667,7 @@ int32_t WebRtcNsx_InitCore(NsxInst_t* inst, uint32_t fs) {
     inst->maxLrt = 0x0080000;
     inst->minLrt = 104858;
   }
-  inst->anaLen2 = WEBRTC_SPL_RSHIFT_W16(inst->anaLen, 1);
+  inst->anaLen2 = inst->anaLen / 2;
   inst->magnLen = inst->anaLen2 + 1;
 
   if (inst->real_fft != NULL) {
@@ -854,7 +853,7 @@ void WebRtcNsx_FeatureParameterExtraction(NsxInst_t* inst, int flag) {
     }
     
     
-    histIndex = WEBRTC_SPL_RSHIFT_U32(inst->featureSpecFlat * 5, 8);
+    histIndex = (inst->featureSpecFlat * 5) >> 8;
     if (histIndex < HIST_PAR_EST) {
       inst->histSpecFlat[histIndex]++;
     }
@@ -864,8 +863,8 @@ void WebRtcNsx_FeatureParameterExtraction(NsxInst_t* inst, int flag) {
       
       
       
-      histIndex = WEBRTC_SPL_UDIV((inst->featureSpecDiff * 5) >> inst->stages,
-                                  inst->timeAvgMagnEnergy);
+      histIndex = ((inst->featureSpecDiff * 5) >> inst->stages) /
+          inst->timeAvgMagnEnergy;
     }
     if (histIndex < HIST_PAR_EST) {
       inst->histSpecDiff[histIndex]++;
@@ -885,17 +884,17 @@ void WebRtcNsx_FeatureParameterExtraction(NsxInst_t* inst, int flag) {
       tmp32 = WEBRTC_SPL_MUL_16_16(inst->histLrt[i], j);
       avgHistLrtFX += tmp32;
       numHistLrt += inst->histLrt[i];
-      avgSquareHistLrtFX += WEBRTC_SPL_MUL_32_16(tmp32, j);
+      avgSquareHistLrtFX += tmp32 * j;
     }
     avgHistLrtComplFX = avgHistLrtFX;
     for (; i < HIST_PAR_EST; i++) {
       j = (2 * i + 1);
       tmp32 = WEBRTC_SPL_MUL_16_16(inst->histLrt[i], j);
       avgHistLrtComplFX += tmp32;
-      avgSquareHistLrtFX += WEBRTC_SPL_MUL_32_16(tmp32, j);
+      avgSquareHistLrtFX += tmp32 * j;
     }
-    fluctLrtFX = WEBRTC_SPL_MUL(avgSquareHistLrtFX, numHistLrt);
-    fluctLrtFX -= WEBRTC_SPL_MUL(avgHistLrtFX, avgHistLrtComplFX);
+    fluctLrtFX = avgSquareHistLrtFX * numHistLrt -
+        avgHistLrtFX * avgHistLrtComplFX;
     thresFluctLrtFX = THRES_FLUCT_LRT * numHistLrt;
     
     tmpU32 = (FACTOR_1_LRT_DIFF * (uint32_t)avgHistLrtFX);
@@ -1057,7 +1056,7 @@ void WebRtcNsx_ComputeSpectralFlatness(NsxInst_t* inst, uint16_t* magn) {
     } else {
       
       tmpU32 = WEBRTC_SPL_UMUL_32_16(inst->featureSpecFlat, SPECT_FLAT_TAVG_Q14); 
-      inst->featureSpecFlat -= WEBRTC_SPL_RSHIFT_U32(tmpU32, 14); 
+      inst->featureSpecFlat -= tmpU32 >> 14;  
       return;
     }
   }
@@ -1070,22 +1069,20 @@ void WebRtcNsx_ComputeSpectralFlatness(NsxInst_t* inst, uint16_t* magn) {
   logCurSpectralFlatness = (int32_t)avgSpectralFlatnessNum;
   logCurSpectralFlatness += ((int32_t)(inst->stages - 1) << (inst->stages + 7)); 
   logCurSpectralFlatness -= (tmp32 << (inst->stages - 1));
-  logCurSpectralFlatness = WEBRTC_SPL_LSHIFT_W32(logCurSpectralFlatness, 10 - inst->stages); 
+  logCurSpectralFlatness <<= (10 - inst->stages);  
   tmp32 = (int32_t)(0x00020000 | (WEBRTC_SPL_ABS_W32(logCurSpectralFlatness)
                                         & 0x0001FFFF)); 
-  intPart = -(int16_t)WEBRTC_SPL_RSHIFT_W32(logCurSpectralFlatness, 17);
-  intPart += 7; 
+  intPart = 7 - (logCurSpectralFlatness >> 17);  
   if (intPart > 0) {
-    currentSpectralFlatness = WEBRTC_SPL_RSHIFT_W32(tmp32, intPart);
+    currentSpectralFlatness = tmp32 >> intPart;
   } else {
-    currentSpectralFlatness = WEBRTC_SPL_LSHIFT_W32(tmp32, -intPart);
+    currentSpectralFlatness = tmp32 << -intPart;
   }
 
   
   tmp32 = currentSpectralFlatness - (int32_t)inst->featureSpecFlat; 
-  tmp32 = WEBRTC_SPL_MUL_32_16(SPECT_FLAT_TAVG_Q14, tmp32); 
-  inst->featureSpecFlat = (uint32_t)((int32_t)inst->featureSpecFlat
-                                           + WEBRTC_SPL_RSHIFT_W32(tmp32, 14)); 
+  tmp32 *= SPECT_FLAT_TAVG_Q14;  
+  inst->featureSpecFlat += tmp32 >> 14;  
   
 }
 
@@ -1120,8 +1117,8 @@ void WebRtcNsx_ComputeSpectralDifference(NsxInst_t* inst, uint16_t* magnIn) {
     minPause = WEBRTC_SPL_MIN(minPause, inst->avgMagnPause[i]);
   }
   
-  avgPauseFX = WEBRTC_SPL_RSHIFT_W32(avgPauseFX, inst->stages - 1);
-  avgMagnFX = (int32_t)WEBRTC_SPL_RSHIFT_U32(inst->sumMagn, inst->stages - 1);
+  avgPauseFX >>= inst->stages - 1;
+  avgMagnFX = inst->sumMagn >> (inst->stages - 1);
   
   tmp32no1 = WEBRTC_SPL_MAX(maxPause - avgPauseFX, avgPauseFX - minPause);
   
@@ -1135,23 +1132,23 @@ void WebRtcNsx_ComputeSpectralDifference(NsxInst_t* inst, uint16_t* magnIn) {
     tmp16no1 = (int16_t)((int32_t)magnIn[i] - avgMagnFX);
     tmp32no2 = inst->avgMagnPause[i] - avgPauseFX;
     varMagnUFX += (uint32_t)WEBRTC_SPL_MUL_16_16(tmp16no1, tmp16no1); 
-    tmp32no1 = WEBRTC_SPL_MUL_32_16(tmp32no2, tmp16no1); 
+    tmp32no1 = tmp32no2 * tmp16no1;  
     covMagnPauseFX += tmp32no1; 
-    tmp32no1 = WEBRTC_SPL_RSHIFT_W32(tmp32no2, nShifts); 
-    varPauseUFX += (uint32_t)WEBRTC_SPL_MUL(tmp32no1, tmp32no1); 
+    tmp32no1 = tmp32no2 >> nShifts;  
+    varPauseUFX += tmp32no1 * tmp32no1;  
   }
   
-  inst->curAvgMagnEnergy += WEBRTC_SPL_RSHIFT_U32(inst->magnEnergy, 2 * inst->normData
-                                                  + inst->stages - 1);
+  inst->curAvgMagnEnergy +=
+      inst->magnEnergy >> (2 * inst->normData + inst->stages - 1);
 
   avgDiffNormMagnUFX = varMagnUFX; 
   if ((varPauseUFX) && (covMagnPauseFX)) {
     tmpU32no1 = (uint32_t)WEBRTC_SPL_ABS_W32(covMagnPauseFX); 
     norm32 = WebRtcSpl_NormU32(tmpU32no1) - 16;
     if (norm32 > 0) {
-      tmpU32no1 = WEBRTC_SPL_LSHIFT_U32(tmpU32no1, norm32); 
+      tmpU32no1 <<= norm32;  
     } else {
-      tmpU32no1 = WEBRTC_SPL_RSHIFT_U32(tmpU32no1, -norm32); 
+      tmpU32no1 >>= -norm32;  
     }
     tmpU32no2 = WEBRTC_SPL_UMUL(tmpU32no1, tmpU32no1); 
 
@@ -1163,8 +1160,8 @@ void WebRtcNsx_ComputeSpectralDifference(NsxInst_t* inst, uint16_t* magnIn) {
     }
     if (varPauseUFX > 0) {
       
-      tmpU32no1 = WEBRTC_SPL_UDIV(tmpU32no2, varPauseUFX);
-      tmpU32no1 = WEBRTC_SPL_RSHIFT_U32(tmpU32no1, nShifts);
+      tmpU32no1 = tmpU32no2 / varPauseUFX;
+      tmpU32no1 >>= nShifts;
 
       
       avgDiffNormMagnUFX -= WEBRTC_SPL_MIN(avgDiffNormMagnUFX, tmpU32no1);
@@ -1173,22 +1170,22 @@ void WebRtcNsx_ComputeSpectralDifference(NsxInst_t* inst, uint16_t* magnIn) {
     }
   }
   
-  tmpU32no1 = WEBRTC_SPL_RSHIFT_U32(avgDiffNormMagnUFX, 2 * inst->normData);
+  tmpU32no1 = avgDiffNormMagnUFX >> (2 * inst->normData);
   if (inst->featureSpecDiff > tmpU32no1) {
     tmpU32no2 = WEBRTC_SPL_UMUL_32_16(inst->featureSpecDiff - tmpU32no1,
                                       SPECT_DIFF_TAVG_Q8); 
-    inst->featureSpecDiff -= WEBRTC_SPL_RSHIFT_U32(tmpU32no2, 8); 
+    inst->featureSpecDiff -= tmpU32no2 >> 8;  
   } else {
     tmpU32no2 = WEBRTC_SPL_UMUL_32_16(tmpU32no1 - inst->featureSpecDiff,
                                       SPECT_DIFF_TAVG_Q8); 
-    inst->featureSpecDiff += WEBRTC_SPL_RSHIFT_U32(tmpU32no2, 8); 
+    inst->featureSpecDiff += tmpU32no2 >> 8;  
   }
 }
 
 
 void WebRtcNsx_DataAnalysis(NsxInst_t* inst, short* speechFrame, uint16_t* magnU16) {
 
-  uint32_t tmpU32no1, tmpU32no2;
+  uint32_t tmpU32no1;
 
   int32_t   tmp_1_w32 = 0;
   int32_t   tmp_2_w32 = 0;
@@ -1281,21 +1278,13 @@ void WebRtcNsx_DataAnalysis(NsxInst_t* inst, short* speechFrame, uint16_t* magnU
     
 
     
-    inst->initMagnEst[0] = WEBRTC_SPL_RSHIFT_U32(inst->initMagnEst[0],
-                                                 right_shifts_in_initMagnEst);
-    inst->initMagnEst[inst->anaLen2] =
-      WEBRTC_SPL_RSHIFT_U32(inst->initMagnEst[inst->anaLen2],
-                            right_shifts_in_initMagnEst); 
+    inst->initMagnEst[0] >>= right_shifts_in_initMagnEst;
+    inst->initMagnEst[inst->anaLen2] >>= right_shifts_in_initMagnEst;
 
     
-    tmpU32no1 = WEBRTC_SPL_RSHIFT_W32((uint32_t)magnU16[0],
-                                      right_shifts_in_magnU16); 
-    tmpU32no2 = WEBRTC_SPL_RSHIFT_W32((uint32_t)magnU16[inst->anaLen2],
-                                      right_shifts_in_magnU16); 
-
-    
-    inst->initMagnEst[0] += tmpU32no1; 
-    inst->initMagnEst[inst->anaLen2] += tmpU32no2; 
+    inst->initMagnEst[0] += magnU16[0] >> right_shifts_in_magnU16;
+    inst->initMagnEst[inst->anaLen2] +=
+        magnU16[inst->anaLen2] >> right_shifts_in_magnU16;
 
     log2 = 0;
     if (magnU16[inst->anaLen2]) {
@@ -1325,14 +1314,10 @@ void WebRtcNsx_DataAnalysis(NsxInst_t* inst, short* speechFrame, uint16_t* magnU
       inst->sumMagn += (uint32_t)magnU16[i]; 
 
       
-      inst->initMagnEst[i] = WEBRTC_SPL_RSHIFT_U32(inst->initMagnEst[i],
-                                                   right_shifts_in_initMagnEst);
+      inst->initMagnEst[i] >>= right_shifts_in_initMagnEst;
 
       
-      tmpU32no1 = WEBRTC_SPL_RSHIFT_W32((uint32_t)magnU16[i],
-                                        right_shifts_in_magnU16);
-      
-      inst->initMagnEst[i] += tmpU32no1; 
+      inst->initMagnEst[i] += magnU16[i] >> right_shifts_in_magnU16;
 
       if (i >= kStartBand) {
         
@@ -1359,16 +1344,15 @@ void WebRtcNsx_DataAnalysis(NsxInst_t* inst, short* speechFrame, uint16_t* magnU
     
 
     
-    inst->whiteNoiseLevel = WEBRTC_SPL_RSHIFT_U32(inst->whiteNoiseLevel,
-                                                  right_shifts_in_initMagnEst);
+    inst->whiteNoiseLevel >>= right_shifts_in_initMagnEst;
 
     
     tmpU32no1 = WEBRTC_SPL_UMUL_32_16(inst->sumMagn, inst->overdrive);
-    tmpU32no1 = WEBRTC_SPL_RSHIFT_U32(tmpU32no1, inst->stages + 8);
+    tmpU32no1 >>= inst->stages + 8;
 
     
     
-    tmpU32no1 = WEBRTC_SPL_RSHIFT_U32(tmpU32no1, right_shifts_in_magnU16);
+    tmpU32no1 >>= right_shifts_in_magnU16;
     
     assert(END_STARTUP_SHORT < 128);
     inst->whiteNoiseLevel += tmpU32no1; 
@@ -1386,7 +1370,7 @@ void WebRtcNsx_DataAnalysis(NsxInst_t* inst, short* speechFrame, uint16_t* magnU
       tmp_1_w32 = (int32_t)matrix_determinant;
       tmp_1_w32 += WEBRTC_SPL_MUL_16_16_RSFT(kSumLogIndex[65], sum_log_i, 9);
       tmp_1_w32 -= WEBRTC_SPL_MUL_16_16_RSFT(kSumLogIndex[65], kSumLogIndex[65], 10);
-      tmp_1_w32 -= WEBRTC_SPL_LSHIFT_W32((int32_t)sum_log_i_square, 4);
+      tmp_1_w32 -= (int32_t)sum_log_i_square << 4;
       tmp_1_w32 -= WEBRTC_SPL_MUL_16_16_RSFT((int16_t)
                        (inst->magnLen - kStartBand), kSumSquareLogIndex[65], 2);
       matrix_determinant = (int16_t)tmp_1_w32;
@@ -1399,24 +1383,24 @@ void WebRtcNsx_DataAnalysis(NsxInst_t* inst, short* speechFrame, uint16_t* magnU
     if (zeros < 0) {
       zeros = 0;
     }
-    tmp_1_w32 = WEBRTC_SPL_LSHIFT_W32(sum_log_magn, 1); 
-    sum_log_magn_u16 = (uint16_t)WEBRTC_SPL_RSHIFT_W32(tmp_1_w32, zeros);
+    tmp_1_w32 = sum_log_magn << 1;  
+    sum_log_magn_u16 = (uint16_t)(tmp_1_w32 >> zeros);  
 
     
     tmp_2_w32 = WEBRTC_SPL_MUL_16_U16(sum_log_i_square, sum_log_magn_u16); 
-    tmpU32no1 = WEBRTC_SPL_RSHIFT_U32((uint32_t)sum_log_i_log_magn, 12); 
+    tmpU32no1 = sum_log_i_log_magn >> 12;  
 
     
-    tmp_u16 = WEBRTC_SPL_LSHIFT_U16((uint16_t)sum_log_i, 1); 
+    tmp_u16 = ((uint16_t)sum_log_i << 1);  
     if ((uint32_t)sum_log_i > tmpU32no1) {
-      tmp_u16 = WEBRTC_SPL_RSHIFT_U16(tmp_u16, zeros);
+      tmp_u16 >>= zeros;
     } else {
-      tmpU32no1 = WEBRTC_SPL_RSHIFT_U32(tmpU32no1, zeros);
+      tmpU32no1 >>= zeros;
     }
     tmp_2_w32 -= (int32_t)WEBRTC_SPL_UMUL_32_16(tmpU32no1, tmp_u16); 
-    matrix_determinant = WEBRTC_SPL_RSHIFT_W16(matrix_determinant, zeros); 
+    matrix_determinant >>= zeros;  
     tmp_2_w32 = WebRtcSpl_DivW32W16(tmp_2_w32, matrix_determinant); 
-    tmp_2_w32 += WEBRTC_SPL_LSHIFT_W32((int32_t)net_norm, 11); 
+    tmp_2_w32 += (int32_t)net_norm << 11;  
     if (tmp_2_w32 < 0) {
       tmp_2_w32 = 0;
     }
@@ -1424,9 +1408,8 @@ void WebRtcNsx_DataAnalysis(NsxInst_t* inst, short* speechFrame, uint16_t* magnU
 
     
     tmp_2_w32 = WEBRTC_SPL_MUL_16_U16(sum_log_i, sum_log_magn_u16); 
-    tmp_1_w32 = WEBRTC_SPL_RSHIFT_W32(sum_log_i_log_magn, 3 + zeros);
-    tmp_1_w32 = WEBRTC_SPL_MUL((int32_t)(inst->magnLen - kStartBand),
-                               tmp_1_w32);
+    tmp_1_w32 = sum_log_i_log_magn >> (3 + zeros);
+    tmp_1_w32 *= inst->magnLen - kStartBand;
     tmp_2_w32 -= tmp_1_w32; 
     if (tmp_2_w32 > 0) {
       
@@ -1488,13 +1471,14 @@ void WebRtcNsx_DataSynthesis(NsxInst_t* inst, short* outFrame) {
       energyOut = WEBRTC_SPL_SHIFT_W32(energyOut, 8 + scaleEnergyOut
                                        - inst->scaleEnergyIn);
     } else {
-      inst->energyIn = WEBRTC_SPL_RSHIFT_W32(inst->energyIn, 8 + scaleEnergyOut
-                                             - inst->scaleEnergyIn); 
+      
+      
+      
+      inst->energyIn >>= 8 + scaleEnergyOut - inst->scaleEnergyIn;
     }
 
     assert(inst->energyIn > 0);
-    energyRatio = (int16_t)WEBRTC_SPL_DIV(energyOut
-        + WEBRTC_SPL_RSHIFT_W32(inst->energyIn, 1), inst->energyIn); 
+    energyRatio = (energyOut + inst->energyIn / 2) / inst->energyIn;  
     
     energyRatio = WEBRTC_SPL_SAT(256, energyRatio, 0);
 
@@ -1616,7 +1600,7 @@ int WebRtcNsx_ProcessCore(NsxInst_t* inst, short* speechFrame, short* speechFram
 
   
   for (i = 0; i < inst->magnLen; i++) {
-    prevNoiseU16[i] = (uint16_t)WEBRTC_SPL_RSHIFT_U32(inst->prevNoiseU32[i], 11); 
+    prevNoiseU16[i] = (uint16_t)(inst->prevNoiseU32[i] >> 11);  
   }
 
   if (inst->blockIndex < END_STARTUP_SHORT) {
@@ -1661,7 +1645,7 @@ int WebRtcNsx_ProcessCore(NsxInst_t* inst, short* speechFrame, short* speechFram
         
         
         tmpU32no1 = WEBRTC_SPL_UMUL_32_16(noise_estimate, inst->overdrive);
-        numerator = WEBRTC_SPL_LSHIFT_U32(inst->initMagnEst[i], 8);
+        numerator = inst->initMagnEst[i] << 8;
         if (numerator > tmpU32no1) {
           
           numerator -= tmpU32no1;
@@ -1672,16 +1656,16 @@ int WebRtcNsx_ProcessCore(NsxInst_t* inst, short* speechFrame, short* speechFram
           nShifts = WEBRTC_SPL_SAT(6, nShifts, 0);
 
           
-          numerator = WEBRTC_SPL_LSHIFT_U32(numerator, nShifts);
+          numerator <<= nShifts;
 
           
-          tmpU32no1 = WEBRTC_SPL_RSHIFT_U32(inst->initMagnEst[i], 6 - nShifts);
+          tmpU32no1 = inst->initMagnEst[i] >> (6 - nShifts);
           if (tmpU32no1 == 0) {
             
             
             tmpU32no1 = 1;
           }
-          tmpU32no2 = WEBRTC_SPL_UDIV(numerator, tmpU32no1); 
+          tmpU32no2 = numerator / tmpU32no1;  
           noiseSupFilterTmp[i] = (uint16_t)WEBRTC_SPL_SAT(16384, tmpU32no2,
               (uint32_t)(inst->denoiseBound)); 
         }
@@ -1694,16 +1678,16 @@ int WebRtcNsx_ProcessCore(NsxInst_t* inst, short* speechFrame, short* speechFram
       
 
       
-      tmpU32no1 = WEBRTC_SPL_RSHIFT_U32(noiseU32[i], (int)qNoise - q_domain_to_use);
+      tmpU32no1 = noiseU32[i] >> (qNoise - q_domain_to_use);
       
-      tmpU32no2 = WEBRTC_SPL_RSHIFT_U32(noise_estimate_avg, inst->minNorm - inst->stages
-                                        - q_domain_to_use);
+      tmpU32no2 = noise_estimate_avg >>
+          (inst->minNorm - inst->stages - q_domain_to_use);
       
       
       nShifts = 0;
       if (tmpU32no1 & 0xfc000000) {
-        tmpU32no1 = WEBRTC_SPL_RSHIFT_U32(tmpU32no1, 6);
-        tmpU32no2 = WEBRTC_SPL_RSHIFT_U32(tmpU32no2, 6);
+        tmpU32no1 >>= 6;
+        tmpU32no2 >>= 6;
         nShifts = 6;
       }
       tmpU32no1 *= inst->blockIndex;
@@ -1711,7 +1695,7 @@ int WebRtcNsx_ProcessCore(NsxInst_t* inst, short* speechFrame, short* speechFram
       
       noiseU32[i] = WebRtcSpl_DivU32U16(tmpU32no1 + tmpU32no2, END_STARTUP_SHORT);
       
-      noiseU32[i] = WEBRTC_SPL_LSHIFT_U32(noiseU32[i], nShifts);
+      noiseU32[i] <<= nShifts;
     }
     
     qNoise = q_domain_to_use;
@@ -1720,9 +1704,8 @@ int WebRtcNsx_ProcessCore(NsxInst_t* inst, short* speechFrame, short* speechFram
   
   if (inst->blockIndex < END_STARTUP_LONG) {
     
-    inst->timeAvgMagnEnergyTmp
-    += WEBRTC_SPL_RSHIFT_U32(inst->magnEnergy,
-                             2 * inst->normData + inst->stages - 1);
+    inst->timeAvgMagnEnergyTmp +=
+        inst->magnEnergy >> (2 * inst->normData + inst->stages - 1);
     inst->timeAvgMagnEnergy = WebRtcSpl_DivU32U16(inst->timeAvgMagnEnergyTmp,
                                                   inst->blockIndex + 1);
   }
@@ -1754,17 +1737,17 @@ int WebRtcNsx_ProcessCore(NsxInst_t* inst, short* speechFrame, short* speechFram
 
     
     postLocSnr[i] = 2048; 
-    tmpU32no1 = WEBRTC_SPL_LSHIFT_U32((uint32_t)magnU16[i], 6); 
+    tmpU32no1 = (uint32_t)magnU16[i] << 6;  
     if (postShifts < 0) {
-      tmpU32no2 = WEBRTC_SPL_RSHIFT_U32(noiseU32[i], -postShifts); 
+      tmpU32no2 = noiseU32[i] >> -postShifts;  
     } else {
-      tmpU32no2 = WEBRTC_SPL_LSHIFT_U32(noiseU32[i], postShifts); 
+      tmpU32no2 = noiseU32[i] << postShifts;  
     }
     if (tmpU32no1 > tmpU32no2) {
       
-      tmpU32no1 = WEBRTC_SPL_LSHIFT_U32(tmpU32no1, 11); 
+      tmpU32no1 <<= 11;  
       if (tmpU32no2 > 0) {
-        tmpU32no1 = WEBRTC_SPL_UDIV(tmpU32no1, tmpU32no2); 
+        tmpU32no1 /= tmpU32no2;  
         postLocSnr[i] = WEBRTC_SPL_MIN(satMax, tmpU32no1); 
       } else {
         postLocSnr[i] = satMax;
@@ -1772,12 +1755,13 @@ int WebRtcNsx_ProcessCore(NsxInst_t* inst, short* speechFrame, short* speechFram
     }
 
     
-    nearMagnEst = WEBRTC_SPL_UMUL_16_16(inst->prevMagnU16[i], inst->noiseSupFilter[i]); 
-    tmpU32no1 = WEBRTC_SPL_LSHIFT_U32(nearMagnEst, 3); 
-    tmpU32no2 = WEBRTC_SPL_RSHIFT_U32(inst->prevNoiseU32[i], nShifts); 
+    
+    nearMagnEst = inst->prevMagnU16[i] * inst->noiseSupFilter[i];
+    tmpU32no1 = nearMagnEst << 3;  
+    tmpU32no2 = inst->prevNoiseU32[i] >> nShifts;  
 
     if (tmpU32no2 > 0) {
-      tmpU32no1 = WEBRTC_SPL_UDIV(tmpU32no1, tmpU32no2); 
+      tmpU32no1 /= tmpU32no2;  
       tmpU32no1 = WEBRTC_SPL_MIN(satMax, tmpU32no1); 
     } else {
       tmpU32no1 = satMax; 
@@ -1789,7 +1773,7 @@ int WebRtcNsx_ProcessCore(NsxInst_t* inst, short* speechFrame, short* speechFram
     tmpU32no2 = WEBRTC_SPL_UMUL_32_16(postLocSnr[i] - 2048, ONE_MINUS_DD_PR_SNR_Q11); 
     priorSnr = tmpU32no1 + tmpU32no2 + 512; 
     
-    priorLocSnr[i] = 2048 + WEBRTC_SPL_RSHIFT_U32(priorSnr, 10); 
+    priorLocSnr[i] = 2048 + (priorSnr >> 10);  
   }  
   
 
@@ -1811,7 +1795,7 @@ int WebRtcNsx_ProcessCore(NsxInst_t* inst, short* speechFrame, short* speechFram
     
 
     
-    inst->curAvgMagnEnergy = WEBRTC_SPL_RSHIFT_U32(inst->curAvgMagnEnergy, STAT_UPDATES);
+    inst->curAvgMagnEnergy >>= STAT_UPDATES;
 
     tmpU32no1 = (inst->curAvgMagnEnergy + inst->timeAvgMagnEnergy + 1) >> 1; 
     
@@ -1829,12 +1813,12 @@ int WebRtcNsx_ProcessCore(NsxInst_t* inst, short* speechFrame, short* speechFram
         norm32no1++;
       }
       tmpU32no3 = WEBRTC_SPL_UMUL(tmpU32no3, tmpU32no2);
-      tmpU32no3 = WEBRTC_SPL_UDIV(tmpU32no3, inst->timeAvgMagnEnergy);
+      tmpU32no3 /= inst->timeAvgMagnEnergy;
       if (WebRtcSpl_NormU32(tmpU32no3) < norm32no1) {
         inst->featureSpecDiff = 0x007FFFFF;
       } else {
         inst->featureSpecDiff = WEBRTC_SPL_MIN(0x007FFFFF,
-            WEBRTC_SPL_LSHIFT_U32(tmpU32no3, norm32no1));
+                                               tmpU32no3 << norm32no1);
       }
     }
 
@@ -1857,9 +1841,9 @@ int WebRtcNsx_ProcessCore(NsxInst_t* inst, short* speechFrame, short* speechFram
     
 
     if (postShifts < 0) {
-      tmpU32no2 = WEBRTC_SPL_RSHIFT_U32(magnU16[i], -postShifts); 
+      tmpU32no2 = magnU16[i] >> -postShifts;  
     } else {
-      tmpU32no2 = WEBRTC_SPL_LSHIFT_U32(magnU16[i], postShifts); 
+      tmpU32no2 = (uint32_t)magnU16[i] << postShifts;  
     }
     if (prevNoiseU16[i] > tmpU32no2) {
       sign = -1;
@@ -1875,12 +1859,10 @@ int WebRtcNsx_ProcessCore(NsxInst_t* inst, short* speechFrame, short* speechFram
       tmpU32no3 = WEBRTC_SPL_UMUL_32_16(tmpU32no1, nonSpeechProbFinal[i]); 
       if (0x7c000000 & tmpU32no3) {
         
-        tmpU32no2
-          = WEBRTC_SPL_UMUL_32_16(WEBRTC_SPL_RSHIFT_U32(tmpU32no3, 5), gammaNoise); 
+        tmpU32no2 = (tmpU32no3 >> 5) * gammaNoise;  
       } else {
         
-        tmpU32no2
-          = WEBRTC_SPL_RSHIFT_U32(WEBRTC_SPL_UMUL_32_16(tmpU32no3, gammaNoise), 5); 
+        tmpU32no2 = (tmpU32no3 * gammaNoise) >> 5;  
       }
       if (sign > 0) {
         noiseUpdateU32 += tmpU32no2; 
@@ -1909,12 +1891,10 @@ int WebRtcNsx_ProcessCore(NsxInst_t* inst, short* speechFrame, short* speechFram
 
       if (0x7c000000 & tmpU32no3) {
         
-        tmpU32no2
-          = WEBRTC_SPL_UMUL_32_16(WEBRTC_SPL_RSHIFT_U32(tmpU32no3, 5), gammaNoise); 
+        tmpU32no2 = (tmpU32no3 >> 5) * gammaNoise;  
       } else {
         
-        tmpU32no2
-          = WEBRTC_SPL_RSHIFT_U32(WEBRTC_SPL_UMUL_32_16(tmpU32no3, gammaNoise), 5); 
+        tmpU32no2 = (tmpU32no3 * gammaNoise) >> 5;  
       }
       if (sign > 0) {
         tmpU32no1 = inst->prevNoiseU32[i] + tmpU32no2; 
@@ -1940,13 +1920,13 @@ int WebRtcNsx_ProcessCore(NsxInst_t* inst, short* speechFrame, short* speechFram
     if (nonSpeechProbFinal[i] > ONE_MINUS_PROB_RANGE_Q8) {
       if (nShifts < 0) {
         tmp32no1 = (int32_t)magnU16[i] - tmp32no2; 
-        tmp32no1 = WEBRTC_SPL_MUL_32_16(tmp32no1, ONE_MINUS_GAMMA_PAUSE_Q8); 
-        tmp32no1 = WEBRTC_SPL_RSHIFT_W32(tmp32no1 + 128, 8); 
+        tmp32no1 *= ONE_MINUS_GAMMA_PAUSE_Q8;  
+        tmp32no1 = (tmp32no1 + 128) >> 8;  
       } else {
-        tmp32no1 = WEBRTC_SPL_LSHIFT_W32((int32_t)magnU16[i], nShifts)
-                   - inst->avgMagnPause[i]; 
-        tmp32no1 = WEBRTC_SPL_MUL_32_16(tmp32no1, ONE_MINUS_GAMMA_PAUSE_Q8); 
-        tmp32no1 = WEBRTC_SPL_RSHIFT_W32(tmp32no1 + (128 << nShifts), 8 + nShifts); 
+        
+        tmp32no1 = ((int32_t)magnU16[i] << nShifts) - inst->avgMagnPause[i];
+        tmp32no1 *= ONE_MINUS_GAMMA_PAUSE_Q8;  
+        tmp32no1 = (tmp32no1 + (128 << nShifts)) >> (8 + nShifts);  
       }
       tmp32no2 += tmp32no1; 
     }
@@ -1980,21 +1960,21 @@ int WebRtcNsx_ProcessCore(NsxInst_t* inst, short* speechFrame, short* speechFram
     if (nShifts < 0) {
       
       tmpMagnU32 = (uint32_t)magnU16[i]; 
-      tmpNoiseU32 = WEBRTC_SPL_LSHIFT_U32(noiseU32[i], -nShifts); 
+      tmpNoiseU32 = noiseU32[i] << -nShifts;  
     } else if (nShifts > 17) {
-      tmpMagnU32 = WEBRTC_SPL_LSHIFT_U32(magnU16[i], 17); 
-      tmpNoiseU32 = WEBRTC_SPL_RSHIFT_U32(noiseU32[i], nShifts - 17); 
+      tmpMagnU32 = (uint32_t)magnU16[i] << 17;  
+      tmpNoiseU32 = noiseU32[i] >> (nShifts - 17);  
     } else {
-      tmpMagnU32 = WEBRTC_SPL_LSHIFT_U32((uint32_t)magnU16[i], nShifts); 
+      tmpMagnU32 = (uint32_t)magnU16[i] << nShifts;  
       tmpNoiseU32 = noiseU32[i]; 
     }
     if (tmpMagnU32 > tmpNoiseU32) {
       tmpU32no1 = tmpMagnU32 - tmpNoiseU32; 
       norm32no2 = WEBRTC_SPL_MIN(11, WebRtcSpl_NormU32(tmpU32no1));
-      tmpU32no1 = WEBRTC_SPL_LSHIFT_U32(tmpU32no1, norm32no2); 
-      tmpU32no2 = WEBRTC_SPL_RSHIFT_U32(tmpNoiseU32, 11 - norm32no2); 
+      tmpU32no1 <<= norm32no2;  
+      tmpU32no2 = tmpNoiseU32 >> (11 - norm32no2);  
       if (tmpU32no2 > 0) {
-        tmpU32no1 = WEBRTC_SPL_UDIV(tmpU32no1, tmpU32no2); 
+        tmpU32no1 /= tmpU32no2;  
       }
       curNearSnr = WEBRTC_SPL_MIN(satMax, tmpU32no1); 
     }
@@ -2008,20 +1988,17 @@ int WebRtcNsx_ProcessCore(NsxInst_t* inst, short* speechFrame, short* speechFram
     priorSnr = tmpU32no1 + tmpU32no2; 
 
     
-    tmpU32no1 = (uint32_t)(inst->overdrive)
-                + WEBRTC_SPL_RSHIFT_U32(priorSnr + 8192, 14); 
+    tmpU32no1 = inst->overdrive + ((priorSnr + 8192) >> 14);  
     assert(inst->overdrive > 0);
-    tmpU16no1 = (uint16_t)WEBRTC_SPL_UDIV(priorSnr + (tmpU32no1 >> 1), tmpU32no1); 
+    tmpU16no1 = (priorSnr + tmpU32no1 / 2) / tmpU32no1;  
     inst->noiseSupFilter[i] = WEBRTC_SPL_SAT(16384, tmpU16no1, inst->denoiseBound); 
 
     
     if (inst->blockIndex < END_STARTUP_SHORT) {
       
-      tmpU32no1 = WEBRTC_SPL_UMUL_16_16(inst->noiseSupFilter[i],
-                                        (uint16_t)inst->blockIndex);
-      tmpU32no2 = WEBRTC_SPL_UMUL_16_16(noiseSupFilterTmp[i],
-                                        (uint16_t)(END_STARTUP_SHORT
-                                                         - inst->blockIndex));
+      tmpU32no1 = inst->noiseSupFilter[i] * inst->blockIndex;
+      tmpU32no2 = noiseSupFilterTmp[i] *
+          (END_STARTUP_SHORT - inst->blockIndex);
       tmpU32no1 += tmpU32no2;
       inst->noiseSupFilter[i] = (uint16_t)WebRtcSpl_DivU32U16(tmpU32no1,
                                                                     END_STARTUP_SHORT);
@@ -2034,12 +2011,12 @@ int WebRtcNsx_ProcessCore(NsxInst_t* inst, short* speechFrame, short* speechFram
   inst->prevQMagn = qMagn;
   if (norm32no1 > 5) {
     for (i = 0; i < inst->magnLen; i++) {
-      inst->prevNoiseU32[i] = WEBRTC_SPL_LSHIFT_U32(noiseU32[i], norm32no1 - 5); 
+      inst->prevNoiseU32[i] = noiseU32[i] << (norm32no1 - 5);  
       inst->prevMagnU16[i] = magnU16[i]; 
     }
   } else {
     for (i = 0; i < inst->magnLen; i++) {
-      inst->prevNoiseU32[i] = WEBRTC_SPL_RSHIFT_U32(noiseU32[i], 5 - norm32no1); 
+      inst->prevNoiseU32[i] = noiseU32[i] >> (5 - norm32no1);  
       inst->prevMagnU16[i] = magnU16[i]; 
     }
   }
@@ -2071,10 +2048,9 @@ int WebRtcNsx_ProcessCore(NsxInst_t* inst, short* speechFrame, short* speechFram
       tmpU16no1 += nonSpeechProbFinal[i]; 
       tmpU32no1 += (uint32_t)(inst->noiseSupFilter[i]); 
     }
-    avgProbSpeechHB = (int16_t)(4096
-        - WEBRTC_SPL_RSHIFT_U16(tmpU16no1, inst->stages - 7)); 
-    avgFilterGainHB = (int16_t)WEBRTC_SPL_RSHIFT_U32(
-        tmpU32no1, inst->stages - 3); 
+    assert(inst->stages >= 7);
+    avgProbSpeechHB = (4096 - (tmpU16no1 >> (inst->stages - 7)));  
+    avgFilterGainHB = (int16_t)(tmpU32no1 >> (inst->stages - 3));  
 
     
     

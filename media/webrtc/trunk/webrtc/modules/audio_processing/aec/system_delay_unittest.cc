@@ -9,12 +9,12 @@
 
 
 #include "testing/gtest/include/gtest/gtest.h"
-
 extern "C" {
 #include "webrtc/modules/audio_processing/aec/aec_core.h"
 }
 #include "webrtc/modules/audio_processing/aec/echo_cancellation_internal.h"
 #include "webrtc/modules/audio_processing/aec/include/echo_cancellation.h"
+#include "webrtc/test/testsupport/gtest_disable.h"
 #include "webrtc/typedefs.h"
 
 namespace {
@@ -46,16 +46,19 @@ class SystemDelayTest : public ::testing::Test {
   aecpc_t* self_;
   int samples_per_frame_;
   
-  int16_t far_[160];
-  int16_t near_[160];
-  int16_t out_[160];
+  static const int kSamplesPerChunk = 160;
+  float far_[kSamplesPerChunk];
+  float near_[kSamplesPerChunk];
+  float out_[kSamplesPerChunk];
 };
 
 SystemDelayTest::SystemDelayTest()
     : handle_(NULL), self_(NULL), samples_per_frame_(0) {
   
-  memset(far_, 1, sizeof(far_));
-  memset(near_, 2, sizeof(near_));
+  for (int i = 0; i < kSamplesPerChunk; i++) {
+    far_[i] = 257.0;
+    near_[i] = 514.0;
+  }
   memset(out_, 0, sizeof(out_));
 }
 
@@ -246,11 +249,15 @@ TEST_F(SystemDelayTest, CorrectDelayAfterUnstableStartup) {
   }
 }
 
-TEST_F(SystemDelayTest, CorrectDelayAfterStableBufferBuildUp) {
+TEST_F(SystemDelayTest,
+       DISABLED_ON_ANDROID(CorrectDelayAfterStableBufferBuildUp)) {
   
   
   
   
+
+  
+  WebRtcAec_enable_reported_delay(WebRtcAec_aec_core(handle_), 1);
   for (size_t i = 0; i < kNumSampleRates; i++) {
     Init(kSampleRateHz[i]);
 
@@ -327,11 +334,14 @@ TEST_F(SystemDelayTest, CorrectDelayWhenBufferUnderrun) {
   }
 }
 
-TEST_F(SystemDelayTest, CorrectDelayDuringDrift) {
+TEST_F(SystemDelayTest, DISABLED_ON_ANDROID(CorrectDelayDuringDrift)) {
   
   
   
   
+
+  
+  WebRtcAec_enable_reported_delay(WebRtcAec_aec_core(handle_), 1);
   for (size_t i = 0; i < kNumSampleRates; i++) {
     Init(kSampleRateHz[i]);
     RunStableStartup();
@@ -358,13 +368,16 @@ TEST_F(SystemDelayTest, CorrectDelayDuringDrift) {
   }
 }
 
-TEST_F(SystemDelayTest, ShouldRecoverAfterGlitch) {
+TEST_F(SystemDelayTest, DISABLED_ON_ANDROID(ShouldRecoverAfterGlitch)) {
   
   
   
   
   
   
+
+  
+  WebRtcAec_enable_reported_delay(WebRtcAec_aec_core(handle_), 1);
   for (size_t i = 0; i < kNumSampleRates; i++) {
     Init(kSampleRateHz[i]);
     RunStableStartup();

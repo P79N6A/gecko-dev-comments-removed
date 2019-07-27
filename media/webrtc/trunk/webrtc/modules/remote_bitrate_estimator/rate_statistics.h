@@ -34,7 +34,7 @@ class RateStatistics {
   
   
   const int num_buckets_;
-  scoped_array<uint32_t> buckets_;
+  scoped_ptr<uint32_t[]> buckets_;
 
   
   uint32_t accumulated_count_;

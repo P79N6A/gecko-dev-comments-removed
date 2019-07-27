@@ -13,7 +13,6 @@
 
 
 
-
 #ifndef WEBRTC_VIDEO_ENGINE_INCLUDE_VIE_IMAGE_PROCESS_H_
 #define WEBRTC_VIDEO_ENGINE_INCLUDE_VIE_IMAGE_PROCESS_H_
 
@@ -33,8 +32,11 @@ class WEBRTC_DLLEXPORT ViEEffectFilter {
  public:
   
   
-  virtual int Transform(int size, unsigned char* frameBuffer,
-                        unsigned int timeStamp90KHz, unsigned int width,
+  virtual int Transform(int size,
+                        unsigned char* frame_buffer,
+                        int64_t ntp_time_ms,
+                        unsigned int timestamp,
+                        unsigned int width,
                         unsigned int height) = 0;
  protected:
   ViEEffectFilter() {}
@@ -83,8 +85,9 @@ class WEBRTC_DLLEXPORT ViEImageProcess {
   virtual int EnableDeflickering(const int capture_id, const bool enable) = 0;
 
   
-  
-  virtual int EnableDenoising(const int capture_id, const bool enable) = 0;
+  virtual int EnableDenoising(const int capture_id, const bool enable) {
+    return -1;
+  }
 
   
   

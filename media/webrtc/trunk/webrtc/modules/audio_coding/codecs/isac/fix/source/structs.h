@@ -19,20 +19,21 @@
 #define WEBRTC_MODULES_AUDIO_CODING_CODECS_ISAC_FIX_SOURCE_STRUCTS_H_
 
 
-#include "common_audio/signal_processing/include/signal_processing_library.h"
-#include "modules/audio_coding/codecs/isac/fix/source/settings.h"
-#include "typedefs.h"
+#include "webrtc/common_audio/signal_processing/include/signal_processing_library.h"
+#include "webrtc/modules/audio_coding/codecs/isac/fix/source/settings.h"
+#include "webrtc/typedefs.h"
 
 
 typedef struct Bitstreamstruct_dec {
 
-  uint16_t  *stream;          
+  uint16_t  stream[INTERNAL_STREAM_SIZE_W16];  
   uint32_t  W_upper;          
   uint32_t  streamval;
   uint16_t  stream_index;     
   int16_t   full;             
   
 
+  int stream_size;  
 } Bitstr_dec;
 
 

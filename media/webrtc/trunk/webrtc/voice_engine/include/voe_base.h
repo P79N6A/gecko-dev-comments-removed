@@ -85,8 +85,9 @@ public:
     
     static int SetTraceCallback(TraceCallback* callback);
 
-    static int SetAndroidObjects(void* javaVM, void* context);
+#if !defined(WEBRTC_CHROMIUM_BUILD)
     static int SetAndroidObjects(void* javaVM, void* env, void* context);
+#endif
 
 protected:
     VoiceEngine() {}
@@ -172,22 +173,14 @@ public:
     virtual int LastError() = 0;
 
     
-    virtual int SetOnHoldStatus(int channel, bool enable,
-                                OnHoldModes mode = kHoldSendAndPlay) = 0;
-
-    
-    virtual int GetOnHoldStatus(int channel, bool& enabled,
-                                OnHoldModes& mode) = 0;
-
-    
-    virtual int SetNetEQPlayoutMode(int channel, NetEqModes mode) = 0;
-
-    
-    virtual int GetNetEQPlayoutMode(int channel, NetEqModes& mode) = 0;
-
-    
     
     virtual AudioTransport* audio_transport() { return NULL; }
+
+    
+    virtual int SetOnHoldStatus(int channel, bool enable,
+        OnHoldModes mode = kHoldSendAndPlay) { return -1; }
+    virtual int GetOnHoldStatus(int channel, bool& enabled,
+        OnHoldModes& mode) { return -1; }
 
 protected:
     VoEBase() {}

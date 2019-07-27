@@ -12,6 +12,7 @@
 
 #include "testing/gmock/include/gmock/gmock.h"
 #include "testing/gtest/include/gtest/gtest.h"
+#include "webrtc/config.h"
 #include "webrtc/modules/audio_processing/test/test_utils.h"
 #include "webrtc/modules/interface/module_common_types.h"
 
@@ -44,23 +45,23 @@ TEST(AudioProcessingImplTest, AudioParameterChangeTriggersInit) {
   SetFrameSampleRate(&frame, 16000);
   EXPECT_CALL(mock, InitializeLocked())
       .Times(0);
-  EXPECT_EQ(kNoErr, mock.ProcessStream(&frame));
-  EXPECT_EQ(kNoErr, mock.AnalyzeReverseStream(&frame));
+  EXPECT_NOERR(mock.ProcessStream(&frame));
+  EXPECT_NOERR(mock.AnalyzeReverseStream(&frame));
 
   
   SetFrameSampleRate(&frame, 32000);
   EXPECT_CALL(mock, InitializeLocked())
       .Times(1);
-  EXPECT_EQ(kNoErr, mock.ProcessStream(&frame));
+  EXPECT_NOERR(mock.ProcessStream(&frame));
 
   
   frame.num_channels_ = 2;
   EXPECT_CALL(mock, InitializeLocked())
       .Times(2);
-  EXPECT_EQ(kNoErr, mock.ProcessStream(&frame));
+  EXPECT_NOERR(mock.ProcessStream(&frame));
   
   frame.num_channels_ = 2;
-  EXPECT_EQ(kNoErr, mock.AnalyzeReverseStream(&frame));
+  EXPECT_NOERR(mock.AnalyzeReverseStream(&frame));
 
   
   

@@ -65,7 +65,7 @@ void WebRtcIlbcfix_HpInput(
     tmpW32b = WEBRTC_SPL_SAT((int32_t)268435455, tmpW32b, (int32_t)-268435456);
 
     
-    signal[i] = (int16_t)WEBRTC_SPL_RSHIFT_W32(tmpW32b, 13);
+    signal[i] = (int16_t)(tmpW32b >> 13);
 
     
     y[2] = y[0];

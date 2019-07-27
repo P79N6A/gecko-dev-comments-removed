@@ -25,11 +25,75 @@ void ExpectVolumeNear(int expected, int actual) {
 }  
 
 class VolumeTest : public AfterStreamingFixture {
+ public:
+  void SetAndVerifyMicVolume(unsigned int volume) {
+    bool success = voe_volume_control_->SetMicVolume(volume) == 0;
+#if !defined(WEBRTC_LINUX)
+    EXPECT_TRUE(success);
+#endif
+    if (!success) {
+      TEST_LOG("Failed to set microphone volume to %u.\n", volume);
+      return;
+    }
+
+    unsigned int test_volume = 1000;
+    success = voe_volume_control_->GetMicVolume(test_volume) == 0;
+#if !defined(WEBRTC_LINUX)
+    EXPECT_TRUE(success);
+#endif
+    if (success) {
+      EXPECT_EQ(volume, test_volume);
+    } else {
+      TEST_LOG("Failed to get the microphone volume.");
+      EXPECT_EQ(1000u, test_volume);
+    }
+  }
+
+  void SetAndVerifyInputMute(bool enable) {
+    bool success = voe_volume_control_->SetInputMute(channel_, enable) == 0;
+#if !defined(WEBRTC_LINUX)
+    EXPECT_TRUE(success);
+#endif
+    if (!success) {
+      TEST_LOG("Failed to %smute input.\n", enable ? "" : "un");
+      return;
+    }
+
+    bool is_muted = !enable;
+    success = voe_volume_control_->GetInputMute(channel_, is_muted) == 0;
+#if !defined(WEBRTC_LINUX)
+    EXPECT_TRUE(success);
+#endif
+    if (success) {
+      EXPECT_EQ(enable, is_muted);
+    } else {
+      TEST_LOG("Failed to mute the input.");
+      EXPECT_NE(enable, is_muted);
+    }
+  }
 };
 
 
 
 
+
+
+TEST_F(VolumeTest, VerifyCorrectErrorReturns) {
+  
+  
+  
+  
+
+  
+  EXPECT_EQ(-1, voe_volume_control_->SetSpeakerVolume(256));
+  EXPECT_EQ(-1, voe_volume_control_->SetMicVolume(256));
+
+  
+  EXPECT_EQ(-1, voe_volume_control_->SetOutputVolumePan(channel_, -0.1f, 0.5f));
+  EXPECT_EQ(-1, voe_volume_control_->SetOutputVolumePan(channel_, 1.1f, 0.5f));
+  EXPECT_EQ(-1, voe_volume_control_->SetOutputVolumePan(channel_, 0.5f, -0.1f));
+  EXPECT_EQ(-1, voe_volume_control_->SetOutputVolumePan(channel_, 0.5f, 1.1f));
+}
 
 TEST_F(VolumeTest, DefaultSpeakerVolumeIsAtMost255) {
   unsigned int volume = 1000;
@@ -95,31 +159,46 @@ TEST_F(VolumeTest, ManualSetVolumeWorks) {
   Sleep(1000);
 }
 
-#if !defined(WEBRTC_IOS)
-
-TEST_F(VolumeTest, DISABLED_ON_LINUX(DefaultMicrophoneVolumeIsAtMost255)) {
+TEST_F(VolumeTest, DefaultMicrophoneVolumeIsAtMost255) {
   unsigned int volume = 1000;
-  EXPECT_EQ(0, voe_volume_control_->GetMicVolume(volume));
-  EXPECT_LE(volume, 255u);
+  bool could_get_mic_volume = voe_volume_control_->GetMicVolume(volume) == 0;
+#if !defined(WEBRTC_LINUX)
+  EXPECT_TRUE(could_get_mic_volume);
+#endif
+  if (could_get_mic_volume) {
+    EXPECT_LE(volume, 255u);
+  } else {
+    TEST_LOG("Failed to get the microphone volume.");
+    EXPECT_EQ(1000u, volume);
+  }
 }
 
-TEST_F(VolumeTest, DISABLED_ON_LINUX(
-          ManualRequiresMicrophoneCanSetMicrophoneVolumeWithAcgOff)) {
+TEST_F(VolumeTest, ManualRequiresMicrophoneCanSetMicrophoneVolumeWithAgcOff) {
   SwitchToManualMicrophone();
   EXPECT_EQ(0, voe_apm_->SetAgcStatus(false));
 
   unsigned int original_volume = 0;
-  EXPECT_EQ(0, voe_volume_control_->GetMicVolume(original_volume));
+  bool could_get_mic_volume =
+      (voe_volume_control_->GetMicVolume(original_volume) == 0);
+#if !defined(WEBRTC_LINUX)
+  EXPECT_TRUE(could_get_mic_volume);
+#endif
+  if (could_get_mic_volume)
+    TEST_LOG("Current microphone volume is %u.\n", original_volume);
+  else
+    TEST_LOG("Failed to fetch current microphone volume.\n");
 
   TEST_LOG("Setting microphone volume to 0.\n");
-  EXPECT_EQ(0, voe_volume_control_->SetMicVolume(channel_));
+  SetAndVerifyMicVolume(0);
   Sleep(1000);
   TEST_LOG("Setting microphone volume to 255.\n");
-  EXPECT_EQ(0, voe_volume_control_->SetMicVolume(255));
+  SetAndVerifyMicVolume(255);
   Sleep(1000);
-  TEST_LOG("Setting microphone volume back to saved value.\n");
-  EXPECT_EQ(0, voe_volume_control_->SetMicVolume(original_volume));
-  Sleep(1000);
+  if (could_get_mic_volume) {
+    TEST_LOG("Setting microphone volume back to %u.\n", original_volume);
+    SetAndVerifyMicVolume(original_volume);
+    Sleep(1000);
+  }
 }
 
 TEST_F(VolumeTest, ChannelScalingIsOneByDefault) {
@@ -144,86 +223,22 @@ TEST_F(VolumeTest, ManualCanSetChannelScaling) {
   Sleep(2000);
 }
 
-#endif  
-
-#if !defined(WEBRTC_ANDROID) && !defined(WEBRTC_IOS)
-
 TEST_F(VolumeTest, InputMutingIsNotEnabledByDefault) {
   bool is_muted = true;
   EXPECT_EQ(0, voe_volume_control_->GetInputMute(channel_, is_muted));
   EXPECT_FALSE(is_muted);
 }
 
-TEST_F(VolumeTest, DISABLED_ON_LINUX(ManualInputMutingMutesMicrophone)) {
+TEST_F(VolumeTest, ManualInputMutingMutesMicrophone) {
   SwitchToManualMicrophone();
-
   
-  EXPECT_EQ(0, voe_volume_control_->SetInputMute(channel_, true));
-  bool is_muted = false;
-  EXPECT_EQ(0, voe_volume_control_->GetInputMute(channel_, is_muted));
-  EXPECT_TRUE(is_muted);
-
+  SetAndVerifyInputMute(true);
   TEST_LOG("Muted: talk into microphone and verify you can't hear yourself.\n");
   Sleep(2000);
 
   
-  EXPECT_EQ(0, voe_volume_control_->SetInputMute(channel_, false));
-  EXPECT_EQ(0, voe_volume_control_->GetInputMute(channel_, is_muted));
-  EXPECT_FALSE(is_muted);
-
+  SetAndVerifyInputMute(false);
   TEST_LOG("Unmuted: talk into microphone and verify you can hear yourself.\n");
-  Sleep(2000);
-}
-
-TEST_F(VolumeTest, DISABLED_ON_LINUX(SystemInputMutingIsNotEnabledByDefault)) {
-  bool is_muted = true;
-  EXPECT_EQ(0, voe_volume_control_->GetSystemInputMute(is_muted));
-  EXPECT_FALSE(is_muted);
-}
-
-TEST_F(VolumeTest, DISABLED_ON_LINUX(ManualSystemInputMutingMutesMicrophone)) {
-  SwitchToManualMicrophone();
-
-  
-  EXPECT_EQ(0, voe_volume_control_->SetSystemInputMute(true));
-  bool is_muted = false;
-  EXPECT_EQ(0, voe_volume_control_->GetSystemInputMute(is_muted));
-  EXPECT_TRUE(is_muted);
-
-  TEST_LOG("Muted: talk into microphone and verify you can't hear yourself.\n");
-  Sleep(2000);
-
-  
-  EXPECT_EQ(0, voe_volume_control_->SetSystemInputMute(false));
-  EXPECT_EQ(0, voe_volume_control_->GetSystemInputMute(is_muted));
-  EXPECT_FALSE(is_muted);
-
-  TEST_LOG("Unmuted: talk into microphone and verify you can hear yourself.\n");
-  Sleep(2000);
-}
-
-TEST_F(VolumeTest, DISABLED_ON_LINUX(SystemOutputMutingIsNotEnabledByDefault)) {
-  bool is_muted = true;
-  EXPECT_EQ(0, voe_volume_control_->GetSystemOutputMute(is_muted));
-  EXPECT_FALSE(is_muted);
-}
-
-TEST_F(VolumeTest, ManualSystemOutputMutingMutesOutput) {
-  
-  EXPECT_EQ(0, voe_volume_control_->SetSystemOutputMute(true));
-  bool is_muted = false;
-  EXPECT_EQ(0, voe_volume_control_->GetSystemOutputMute(is_muted));
-  EXPECT_TRUE(is_muted);
-
-  TEST_LOG("Muted: you should hear no audio.\n");
-  Sleep(2000);
-
-  
-  EXPECT_EQ(0, voe_volume_control_->SetSystemOutputMute(false));
-  EXPECT_EQ(0, voe_volume_control_->GetSystemOutputMute(is_muted));
-  EXPECT_FALSE(is_muted);
-
-  TEST_LOG("Unmuted: you should hear audio.\n");
   Sleep(2000);
 }
 
@@ -284,5 +299,3 @@ TEST_F(VolumeTest, ManualTestChannelPanning) {
   EXPECT_FLOAT_EQ(0.1f, left);
   EXPECT_FLOAT_EQ(0.8f, right);
 }
-
-#endif  

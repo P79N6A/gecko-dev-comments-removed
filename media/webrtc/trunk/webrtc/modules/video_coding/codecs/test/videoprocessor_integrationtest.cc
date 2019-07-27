@@ -16,6 +16,7 @@
 #include "webrtc/modules/video_coding/codecs/test/packet_manipulator.h"
 #include "webrtc/modules/video_coding/codecs/test/videoprocessor.h"
 #include "webrtc/modules/video_coding/codecs/vp8/include/vp8.h"
+#include "webrtc/modules/video_coding/codecs/vp9/include/vp9.h"
 #include "webrtc/modules/video_coding/codecs/vp8/include/vp8_common_types.h"
 #include "webrtc/modules/video_coding/main/interface/video_coding.h"
 #include "webrtc/test/testsupport/fileutils.h"
@@ -37,6 +38,7 @@ const int kBaseKeyFrameInterval = 3000;
 
 
 struct CodecConfigPars {
+  VideoCodecType codec_type;
   float packet_loss;
   int num_temporal_layers;
   int key_frame_interval;
@@ -136,6 +138,7 @@ class VideoProcessorIntegrationTest: public testing::Test {
   float start_bitrate_;
 
   
+  VideoCodecType codec_type_;
   float packet_loss_;
   int num_temporal_layers_;
   int key_frame_interval_;
@@ -149,14 +152,24 @@ class VideoProcessorIntegrationTest: public testing::Test {
   virtual ~VideoProcessorIntegrationTest() {}
 
   void SetUpCodecConfig() {
-    encoder_ = VP8Encoder::Create();
-    decoder_ = VP8Decoder::Create();
+    if (codec_type_ == kVideoCodecVP8) {
+      encoder_ = VP8Encoder::Create();
+      decoder_ = VP8Decoder::Create();
+      VideoCodingModule::Codec(kVideoCodecVP8, &codec_settings_);
+    } else if (codec_type_ == kVideoCodecVP9) {
+      encoder_ = VP9Encoder::Create();
+      decoder_ = VP9Decoder::Create();
+      VideoCodingModule::Codec(kVideoCodecVP9, &codec_settings_);
+    }
 
     
     
     config_.input_filename =
         webrtc::test::ResourcePath("foreman_cif", "yuv");
-    config_.output_filename = tmpnam(NULL);
+
+    
+    config_.output_filename = webrtc::test::TempFilename(
+        webrtc::test::OutputPath(), "videoprocessor_integrationtest");
     config_.frame_length_in_bytes = CalcBufferSize(kI420,
                                                    kCIFWidth, kCIFHeight);
     config_.verbose = false;
@@ -167,25 +180,41 @@ class VideoProcessorIntegrationTest: public testing::Test {
     config_.networking_config.packet_loss_probability = packet_loss_;
 
     
-    VideoCodingModule::Codec(kVideoCodecVP8, &codec_settings_);
     config_.codec_settings = &codec_settings_;
     config_.codec_settings->startBitrate = start_bitrate_;
     config_.codec_settings->width = kCIFWidth;
     config_.codec_settings->height = kCIFHeight;
-    
-    config_.codec_settings->codecSpecific.VP8.errorConcealmentOn =
-        error_concealment_on_;
-    config_.codec_settings->codecSpecific.VP8.denoisingOn =
-        denoising_on_;
-    config_.codec_settings->codecSpecific.VP8.numberOfTemporalLayers =
-        num_temporal_layers_;
-    config_.codec_settings->codecSpecific.VP8.frameDroppingOn =
-        frame_dropper_on_;
-    config_.codec_settings->codecSpecific.VP8.automaticResizeOn =
-        spatial_resize_on_;
-    config_.codec_settings->codecSpecific.VP8.keyFrameInterval =
-        kBaseKeyFrameInterval;
 
+    
+    switch (config_.codec_settings->codecType) {
+     case kVideoCodecVP8:
+       config_.codec_settings->codecSpecific.VP8.errorConcealmentOn =
+           error_concealment_on_;
+       config_.codec_settings->codecSpecific.VP8.denoisingOn =
+           denoising_on_;
+       config_.codec_settings->codecSpecific.VP8.numberOfTemporalLayers =
+           num_temporal_layers_;
+       config_.codec_settings->codecSpecific.VP8.frameDroppingOn =
+           frame_dropper_on_;
+       config_.codec_settings->codecSpecific.VP8.automaticResizeOn =
+           spatial_resize_on_;
+       config_.codec_settings->codecSpecific.VP8.keyFrameInterval =
+           kBaseKeyFrameInterval;
+       break;
+     case kVideoCodecVP9:
+       config_.codec_settings->codecSpecific.VP9.denoisingOn =
+           denoising_on_;
+       config_.codec_settings->codecSpecific.VP9.numberOfTemporalLayers =
+           num_temporal_layers_;
+       config_.codec_settings->codecSpecific.VP9.frameDroppingOn =
+           frame_dropper_on_;
+       config_.codec_settings->codecSpecific.VP9.keyFrameInterval =
+           kBaseKeyFrameInterval;
+       break;
+     default:
+       assert(false);
+       break;
+     }
     frame_reader_ =
         new webrtc::test::FrameReaderImpl(config_.input_filename,
                                           config_.frame_length_in_bytes);
@@ -402,6 +431,7 @@ class VideoProcessorIntegrationTest: public testing::Test {
                               CodecConfigPars process,
                               RateControlMetrics* rc_metrics) {
     
+    codec_type_ = process.codec_type;
     start_bitrate_ = rate_profile.target_bit_rate[0];
     packet_loss_ = process.packet_loss;
     key_frame_interval_ = process.key_frame_interval;
@@ -511,6 +541,7 @@ void SetRateProfilePars(RateProfile* rate_profile,
 }
 
 void SetCodecParameters(CodecConfigPars* process_settings,
+                        VideoCodecType codec_type,
                         float packet_loss,
                         int key_frame_interval,
                         int num_temporal_layers,
@@ -518,6 +549,7 @@ void SetCodecParameters(CodecConfigPars* process_settings,
                         bool denoising_on,
                         bool frame_dropper_on,
                         bool spatial_resize_on) {
+  process_settings->codec_type = codec_type;
   process_settings->packet_loss = packet_loss;
   process_settings->key_frame_interval =  key_frame_interval;
   process_settings->num_temporal_layers = num_temporal_layers,
@@ -560,8 +592,7 @@ void SetRateControlMetrics(RateControlMetrics* rc_metrics,
 
 
 
-TEST_F(VideoProcessorIntegrationTest,
-       DISABLED_ON_ANDROID(ProcessZeroPacketLoss)) {
+TEST_F(VideoProcessorIntegrationTest, Process0PercentPacketLossVP9) {
   
   RateProfile rate_profile;
   SetRateProfilePars(&rate_profile, 0, 500, 30, 0);
@@ -569,10 +600,11 @@ TEST_F(VideoProcessorIntegrationTest,
   rate_profile.num_frames = kNbrFramesShort;
   
   CodecConfigPars process_settings;
-  SetCodecParameters(&process_settings, 0.0f, -1, 1, false, true, true, false);
+  SetCodecParameters(&process_settings, kVideoCodecVP9, 0.0f, -1, 1, false,
+                     false, true, false);
   
   QualityMetrics quality_metrics;
-  SetQualityMetrics(&quality_metrics, 36.95, 33.0, 0.90, 0.90);
+  SetQualityMetrics(&quality_metrics, 37.0, 36.0, 0.93, 0.92);
   
   RateControlMetrics rc_metrics[1];
   SetRateControlMetrics(rc_metrics, 0, 0, 40, 20, 10, 15, 0);
@@ -584,8 +616,7 @@ TEST_F(VideoProcessorIntegrationTest,
 
 
 
-TEST_F(VideoProcessorIntegrationTest,
-       DISABLED_ON_ANDROID(Process5PercentPacketLoss)) {
+TEST_F(VideoProcessorIntegrationTest, Process5PercentPacketLossVP9) {
   
   RateProfile rate_profile;
   SetRateProfilePars(&rate_profile, 0, 500, 30, 0);
@@ -593,7 +624,127 @@ TEST_F(VideoProcessorIntegrationTest,
   rate_profile.num_frames = kNbrFramesShort;
   
   CodecConfigPars process_settings;
-  SetCodecParameters(&process_settings, 0.05f, -1, 1, false, true, true, false);
+  SetCodecParameters(&process_settings, kVideoCodecVP9, 0.05f, -1, 1, false,
+                     false, true, false);
+  
+  QualityMetrics quality_metrics;
+  SetQualityMetrics(&quality_metrics, 17.0, 15.0, 0.45, 0.38);
+  
+  RateControlMetrics rc_metrics[1];
+  SetRateControlMetrics(rc_metrics, 0, 0, 40, 20, 10, 15, 0);
+  ProcessFramesAndVerify(quality_metrics,
+                         rate_profile,
+                         process_settings,
+                         rc_metrics);
+}
+
+
+
+
+
+
+TEST_F(VideoProcessorIntegrationTest, ProcessNoLossChangeBitRateVP9) {
+  
+  RateProfile rate_profile;
+  SetRateProfilePars(&rate_profile, 0, 200, 30, 0);
+  SetRateProfilePars(&rate_profile, 1, 800, 30, 100);
+  SetRateProfilePars(&rate_profile, 2, 500, 30, 200);
+  rate_profile.frame_index_rate_update[3] = kNbrFramesLong + 1;
+  rate_profile.num_frames = kNbrFramesLong;
+  
+  CodecConfigPars process_settings;
+  SetCodecParameters(&process_settings, kVideoCodecVP9, 0.0f, -1, 1, false,
+                     false, true, false);
+  
+  QualityMetrics quality_metrics;
+  SetQualityMetrics(&quality_metrics, 36.0, 31.8, 0.90, 0.85);
+  
+  RateControlMetrics rc_metrics[3];
+  SetRateControlMetrics(rc_metrics, 0, 0, 30, 20, 20, 20, 0);
+  SetRateControlMetrics(rc_metrics, 1, 2, 0, 20, 20, 60, 0);
+  SetRateControlMetrics(rc_metrics, 2, 0, 0, 20, 20, 40, 0);
+  ProcessFramesAndVerify(quality_metrics,
+                         rate_profile,
+                         process_settings,
+                         rc_metrics);
+}
+
+
+
+
+
+
+
+
+TEST_F(VideoProcessorIntegrationTest,
+       ProcessNoLossChangeFrameRateFrameDropVP9) {
+  config_.networking_config.packet_loss_probability = 0;
+  
+  RateProfile rate_profile;
+  SetRateProfilePars(&rate_profile, 0, 50, 24, 0);
+  SetRateProfilePars(&rate_profile, 1, 50, 15, 100);
+  SetRateProfilePars(&rate_profile, 2, 50, 10, 200);
+  rate_profile.frame_index_rate_update[3] = kNbrFramesLong + 1;
+  rate_profile.num_frames = kNbrFramesLong;
+  
+  CodecConfigPars process_settings;
+  SetCodecParameters(&process_settings, kVideoCodecVP9, 0.0f, -1, 1, false,
+                     false, true, false);
+  
+  QualityMetrics quality_metrics;
+  SetQualityMetrics(&quality_metrics, 29.0, 17.0, 0.80, 0.40);
+  
+  RateControlMetrics rc_metrics[3];
+  SetRateControlMetrics(rc_metrics, 0, 50, 60, 100, 15, 45, 0);
+  SetRateControlMetrics(rc_metrics, 1, 30, 0, 65, 10, 35, 0);
+  SetRateControlMetrics(rc_metrics, 2, 5, 0, 38, 10, 30, 0);
+  ProcessFramesAndVerify(quality_metrics,
+                         rate_profile,
+                         process_settings,
+                         rc_metrics);
+}
+
+
+
+
+
+
+
+
+TEST_F(VideoProcessorIntegrationTest, ProcessZeroPacketLoss) {
+  
+  RateProfile rate_profile;
+  SetRateProfilePars(&rate_profile, 0, 500, 30, 0);
+  rate_profile.frame_index_rate_update[1] = kNbrFramesShort + 1;
+  rate_profile.num_frames = kNbrFramesShort;
+  
+  CodecConfigPars process_settings;
+  SetCodecParameters(&process_settings, kVideoCodecVP8, 0.0f, -1, 1, false,
+                     true, true, false);
+  
+  QualityMetrics quality_metrics;
+  SetQualityMetrics(&quality_metrics, 34.95, 33.0, 0.90, 0.89);
+  
+  RateControlMetrics rc_metrics[1];
+  SetRateControlMetrics(rc_metrics, 0, 0, 40, 20, 10, 15, 0);
+  ProcessFramesAndVerify(quality_metrics,
+                         rate_profile,
+                         process_settings,
+                         rc_metrics);
+}
+
+
+
+TEST_F(VideoProcessorIntegrationTest, Process5PercentPacketLoss) {
+  
+  RateProfile rate_profile;
+  SetRateProfilePars(&rate_profile, 0, 500, 30, 0);
+  rate_profile.frame_index_rate_update[1] = kNbrFramesShort + 1;
+  rate_profile.num_frames = kNbrFramesShort;
+  
+  CodecConfigPars process_settings;
+  SetCodecParameters(&process_settings, kVideoCodecVP8, 0.05f, -1, 1, false,
+                     true, true, false);
   
   QualityMetrics quality_metrics;
   SetQualityMetrics(&quality_metrics, 20.0, 16.0, 0.60, 0.40);
@@ -608,8 +759,7 @@ TEST_F(VideoProcessorIntegrationTest,
 
 
 
-TEST_F(VideoProcessorIntegrationTest,
-       DISABLED_ON_ANDROID(Process10PercentPacketLoss)) {
+TEST_F(VideoProcessorIntegrationTest, Process10PercentPacketLoss) {
   
   RateProfile rate_profile;
   SetRateProfilePars(&rate_profile, 0, 500, 30, 0);
@@ -617,7 +767,8 @@ TEST_F(VideoProcessorIntegrationTest,
   rate_profile.num_frames = kNbrFramesShort;
   
   CodecConfigPars process_settings;
-  SetCodecParameters(&process_settings, 0.1f, -1, 1, false, true, true, false);
+  SetCodecParameters(&process_settings, kVideoCodecVP8, 0.1f, -1, 1, false,
+                     true, true, false);
   
   QualityMetrics quality_metrics;
   SetQualityMetrics(&quality_metrics, 19.0, 16.0, 0.50, 0.35);
@@ -634,8 +785,17 @@ TEST_F(VideoProcessorIntegrationTest,
 
 
 
+
+
+
+
+
+
+
+
+
 TEST_F(VideoProcessorIntegrationTest,
-       DISABLED_ON_ANDROID(ProcessNoLossChangeBitRate)) {
+       DISABLED_ON_ANDROID(ProcessNoLossChangeBitRateVP8)) {
   
   RateProfile rate_profile;
   SetRateProfilePars(&rate_profile, 0, 200, 30, 0);
@@ -645,7 +805,8 @@ TEST_F(VideoProcessorIntegrationTest,
   rate_profile.num_frames = kNbrFramesLong;
   
   CodecConfigPars process_settings;
-  SetCodecParameters(&process_settings, 0.0f, -1, 1, false, true, true, false);
+  SetCodecParameters(&process_settings, kVideoCodecVP8, 0.0f, -1, 1, false,
+                     true, true, false);
   
   QualityMetrics quality_metrics;
   SetQualityMetrics(&quality_metrics, 34.0, 32.0, 0.85, 0.80);
@@ -668,7 +829,7 @@ TEST_F(VideoProcessorIntegrationTest,
 
 
 TEST_F(VideoProcessorIntegrationTest,
-       DISABLED_ON_ANDROID(ProcessNoLossChangeFrameRateFrameDrop)) {
+       DISABLED_ON_ANDROID(ProcessNoLossChangeFrameRateFrameDropVP8)) {
   config_.networking_config.packet_loss_probability = 0;
   
   RateProfile rate_profile;
@@ -679,7 +840,8 @@ TEST_F(VideoProcessorIntegrationTest,
   rate_profile.num_frames = kNbrFramesLong;
   
   CodecConfigPars process_settings;
-  SetCodecParameters(&process_settings, 0.0f, -1, 1, false, true, true, false);
+  SetCodecParameters(&process_settings, kVideoCodecVP8, 0.0f, -1, 1, false,
+                     true, true, false);
   
   QualityMetrics quality_metrics;
   SetQualityMetrics(&quality_metrics, 31.0, 22.0, 0.80, 0.65);
@@ -696,32 +858,24 @@ TEST_F(VideoProcessorIntegrationTest,
 
 
 
-
-
-
-
 TEST_F(VideoProcessorIntegrationTest,
-       DISABLED_ON_ANDROID(ProcessNoLossSpatialResizeFrameDrop)) {
+       DISABLED_ON_ANDROID(ProcessNoLossSpatialResizeFrameDropVP8)) {
   config_.networking_config.packet_loss_probability = 0;
   
   RateProfile rate_profile;
-  SetRateProfilePars(&rate_profile, 0, 100, 30, 0);
-  SetRateProfilePars(&rate_profile, 1, 200, 30, 120);
-  SetRateProfilePars(&rate_profile, 2, 200, 30, 240);
-  rate_profile.frame_index_rate_update[3] = kNbrFramesLong + 1;
+  SetRateProfilePars(&rate_profile, 0, 50, 30, 0);
+  rate_profile.frame_index_rate_update[1] = kNbrFramesLong + 1;
   rate_profile.num_frames = kNbrFramesLong;
   
   CodecConfigPars process_settings;
-  SetCodecParameters(&process_settings, 0.0f, 120, 1, false, true, true, true);
-  
+  SetCodecParameters(&process_settings, kVideoCodecVP8, 0.0f, kNbrFramesLong,
+                     1, false, true, true, true);
   
   QualityMetrics quality_metrics;
-  SetQualityMetrics(&quality_metrics, 29.0, 20.0, 0.75, 0.60);
+  SetQualityMetrics(&quality_metrics, 25.0, 15.0, 0.70, 0.40);
   
-  RateControlMetrics rc_metrics[3];
-  SetRateControlMetrics(rc_metrics, 0, 45, 30, 75, 20, 70, 0);
-  SetRateControlMetrics(rc_metrics, 1, 20, 35, 30, 20, 15, 1);
-  SetRateControlMetrics(rc_metrics, 2, 0, 30, 30, 15, 25, 1);
+  RateControlMetrics rc_metrics[1];
+  SetRateControlMetrics(rc_metrics, 0, 160, 60, 120, 20, 70, 1);
   ProcessFramesAndVerify(quality_metrics,
                          rate_profile,
                          process_settings,
@@ -734,7 +888,7 @@ TEST_F(VideoProcessorIntegrationTest,
 
 
 TEST_F(VideoProcessorIntegrationTest,
-       DISABLED_ON_ANDROID(ProcessNoLossTemporalLayers)) {
+       DISABLED_ON_ANDROID(ProcessNoLossTemporalLayersVP8)) {
   config_.networking_config.packet_loss_probability = 0;
   
   RateProfile rate_profile;
@@ -744,7 +898,8 @@ TEST_F(VideoProcessorIntegrationTest,
   rate_profile.num_frames = kNbrFramesLong;
   
   CodecConfigPars process_settings;
-  SetCodecParameters(&process_settings, 0.0f, -1, 3, false, true, true, false);
+  SetCodecParameters(&process_settings, kVideoCodecVP8, 0.0f, -1, 3, false,
+                     true, true, false);
   
   QualityMetrics quality_metrics;
   SetQualityMetrics(&quality_metrics, 32.5, 30.0, 0.85, 0.80);

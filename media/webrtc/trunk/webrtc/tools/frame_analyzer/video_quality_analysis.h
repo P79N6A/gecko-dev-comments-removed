@@ -98,12 +98,13 @@ bool IsThereBarcodeError(std::string line);
 int ExtractDecodedFrameNumber(std::string line);
 
 
-bool GetNextI420Frame(FILE* input_file, int width, int height,
-                      uint8* result_frame);
+bool ExtractFrameFromYuvFile(const char* i420_file_name, int width, int height,
+                             int frame_number, uint8* result_frame);
 
 
-bool ExtractFrameFromI420(const char* i420_file_name, int width, int height,
-                          int frame_number, uint8* result_frame);
+
+bool ExtractFrameFromY4mFile(const char* i420_file_name, int width, int height,
+                             int frame_number, uint8* result_frame);
 
 
 }  

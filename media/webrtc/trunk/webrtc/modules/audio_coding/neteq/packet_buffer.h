@@ -8,247 +8,152 @@
 
 
 
-
-
-
-
-#ifndef PACKET_BUFFER_H
-#define PACKET_BUFFER_H
-
-#include "typedefs.h"
-
-#include "webrtc_neteq.h"
-#include "rtp.h"
-
-
-#define PBUFFER_MIN_MEMORY_SIZE	150
-
-
-
-
-
-typedef struct
-{
-
-    
-    uint16_t packSizeSamples; 
-    int16_t *startPayloadMemory; 
-    int memorySizeW16; 
-    int16_t *currentMemoryPos; 
-    int numPacketsInBuffer; 
-    int insertPosition; 
-    int maxInsertPositions; 
-
-    
-    
-
-    uint32_t *timeStamp; 
-    int16_t **payloadLocation; 
-    uint16_t *seqNumber; 
-    int16_t *payloadType; 
-    int16_t *payloadLengthBytes; 
-    int16_t *rcuPlCntr; 
-
-    int *waitingTime;
-
-    
-    uint16_t discardedPackets; 
-
-} PacketBuf_t;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-int WebRtcNetEQ_PacketBufferInit(PacketBuf_t *bufferInst, int maxNoOfPackets,
-                                 int16_t *pw16_memory, int memorySize);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-int WebRtcNetEQ_PacketBufferFlush(PacketBuf_t *bufferInst);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-int WebRtcNetEQ_PacketBufferInsert(PacketBuf_t *bufferInst, const RTPPacket_t *RTPpacket,
-                                   int16_t *flushed, int av_sync);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-int WebRtcNetEQ_PacketBufferExtract(PacketBuf_t *bufferInst, RTPPacket_t *RTPpacket,
-                                    int bufferPosition, int *waitingTime);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-int WebRtcNetEQ_PacketBufferFindLowestTimestamp(PacketBuf_t* buffer_inst,
-                                                uint32_t current_time_stamp,
-                                                uint32_t* time_stamp,
-                                                int* buffer_position,
-                                                int erase_old_packets,
-                                                int16_t* payload_type);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-int WebRtcNetEQ_PacketBufferGetPacketSize(const PacketBuf_t* buffer_inst,
-                                          int buffer_pos,
-                                          const CodecDbInst_t* codec_database,
-                                          int codec_pos, int last_duration,
-                                          int av_sync);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-int32_t WebRtcNetEQ_PacketBufferGetSize(const PacketBuf_t* buffer_inst,
-                                        const CodecDbInst_t* codec_database,
-                                        int av_sync);
-
-
-
-
-
-
-
-
-
-
-
-
-void WebRtcNetEQ_IncrementWaitingTimes(PacketBuf_t *buffer_inst);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-int WebRtcNetEQ_GetDefaultCodecSettings(const enum WebRtcNetEQDecoder *codecID,
-                                        int noOfCodecs, int *maxBytes,
-                                        int *maxSlots,
-                                        int* per_slot_overhead_bytes);
-
-#endif 
+#ifndef WEBRTC_MODULES_AUDIO_CODING_NETEQ_PACKET_BUFFER_H_
+#define WEBRTC_MODULES_AUDIO_CODING_NETEQ_PACKET_BUFFER_H_
+
+#include "webrtc/base/constructormagic.h"
+#include "webrtc/modules/audio_coding/neteq/packet.h"
+#include "webrtc/typedefs.h"
+
+namespace webrtc {
+
+
+class DecoderDatabase;
+
+
+class PacketBuffer {
+ public:
+  enum BufferReturnCodes {
+    kOK = 0,
+    kFlushed,
+    kNotFound,
+    kBufferEmpty,
+    kInvalidPacket,
+    kInvalidPointer
+  };
+
+  
+  
+  PacketBuffer(size_t max_number_of_packets);
+
+  
+  virtual ~PacketBuffer();
+
+  
+  virtual void Flush();
+
+  
+  virtual bool Empty() const { return buffer_.empty(); }
+
+  
+  
+  
+  
+  virtual int InsertPacket(Packet* packet);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  virtual int InsertPacketList(PacketList* packet_list,
+                               const DecoderDatabase& decoder_database,
+                               uint8_t* current_rtp_payload_type,
+                               uint8_t* current_cng_rtp_payload_type);
+
+  
+  
+  
+  
+  virtual int NextTimestamp(uint32_t* next_timestamp) const;
+
+  
+  
+  
+  
+  
+  virtual int NextHigherTimestamp(uint32_t timestamp,
+                                  uint32_t* next_timestamp) const;
+
+  
+  
+  virtual const RTPHeader* NextRtpHeader() const;
+
+  
+  
+  
+  
+  
+  
+  virtual Packet* GetNextPacket(int* discard_count);
+
+  
+  
+  
+  virtual int DiscardNextPacket();
+
+  
+  
+  
+  
+  
+  
+  virtual int DiscardOldPackets(uint32_t timestamp_limit,
+                                uint32_t horizon_samples);
+
+  
+  virtual int DiscardAllOldPackets(uint32_t timestamp_limit) {
+    return DiscardOldPackets(timestamp_limit, 0);
+  }
+
+  
+  
+  virtual int NumPacketsInBuffer() const {
+    return static_cast<int>(buffer_.size());
+  }
+
+  
+  
+  virtual int NumSamplesInBuffer(DecoderDatabase* decoder_database,
+                                 int last_decoded_length) const;
+
+  
+  
+  virtual void IncrementWaitingTimes(int inc = 1);
+
+  virtual void BufferStat(int* num_packets, int* max_num_packets) const;
+
+  
+  
+  
+  static bool DeleteFirstPacket(PacketList* packet_list);
+
+  
+  
+  static void DeleteAllPackets(PacketList* packet_list);
+
+  
+  
+  
+  
+  
+  
+  static bool IsObsoleteTimestamp(uint32_t timestamp,
+                                  uint32_t timestamp_limit,
+                                  uint32_t horizon_samples) {
+    return IsNewerTimestamp(timestamp_limit, timestamp) &&
+           (horizon_samples == 0 ||
+            IsNewerTimestamp(timestamp, timestamp_limit - horizon_samples));
+  }
+
+ private:
+  size_t max_number_of_packets_;
+  PacketList buffer_;
+  DISALLOW_COPY_AND_ASSIGN(PacketBuffer);
+};
+
+}  
+#endif

@@ -15,11 +15,7 @@
 #include <SLES/OpenSLES_Android.h>
 #include <SLES/OpenSLES_AndroidConfiguration.h>
 
-#if !defined(WEBRTC_GONK)
 #include "webrtc/modules/audio_device/android/audio_manager_jni.h"
-#else
-#include "media/AudioEffect.h"
-#endif
 #include "webrtc/modules/audio_device/android/low_latency_event.h"
 #include "webrtc/modules/audio_device/include/audio_device.h"
 #include "webrtc/modules/audio_device/include/audio_device_defines.h"
@@ -81,7 +77,6 @@ class OpenSlesInput {
   bool AGC() const { return agc_enabled_; }
 
   
-  int32_t MicrophoneIsAvailable(bool& available);  
   int32_t InitMicrophone();
   bool MicrophoneIsInitialized() const { return mic_initialized_; }
 
@@ -109,7 +104,7 @@ class OpenSlesInput {
 
   
   int32_t StereoRecordingIsAvailable(bool& available);  
-  int32_t SetStereoRecording(bool enable);
+  int32_t SetStereoRecording(bool enable) { return -1; }
   int32_t StereoRecording(bool& enabled) const;  
 
   
@@ -129,7 +124,7 @@ class OpenSlesInput {
     
     
     kNumOpenSlBuffers = 2,
-    kNum10MsToBuffer = 8,
+    kNum10MsToBuffer = 3,
   };
 
   int InitSampleRate();
@@ -145,11 +140,6 @@ class OpenSlesInput {
   
   bool CreateAudioRecorder();
   void DestroyAudioRecorder();
-#if defined(WEBRTC_GONK) && defined(WEBRTC_HARDWARE_AEC_NS)
-  void SetupAECAndNS();
-  void SetupVoiceMode();
-  bool CheckPlatformAEC();
-#endif
 
   
   
@@ -180,10 +170,8 @@ class OpenSlesInput {
   
   bool CbThreadImpl();
 
-#if !defined(WEBRTC_GONK)
   
   AudioManagerJni audio_manager_;
-#endif
 
   int id_;
   PlayoutDelayProvider* delay_provider_;
@@ -217,7 +205,7 @@ class OpenSlesInput {
   
   AudioDeviceBuffer* audio_buffer_;
   
-  scoped_array<scoped_array<int8_t> > rec_buf_;
+  scoped_ptr<scoped_ptr<int8_t[]>[]> rec_buf_;
   
   
   
@@ -227,27 +215,8 @@ class OpenSlesInput {
   uint32_t rec_sampling_rate_;
   bool agc_enabled_;
 
-#if defined(WEBRTC_GONK) && defined(WEBRTC_HARDWARE_AEC_NS)
-  android::AudioEffect* aec_;
-  android::AudioEffect* ns_;
-#endif
   
   uint16_t recording_delay_;
-
-  
-  void *opensles_lib_;
-  typedef SLresult (*slCreateEngine_t)(SLObjectItf *,
-                                       SLuint32,
-                                       const SLEngineOption *,
-                                       SLuint32,
-                                       const SLInterfaceID *,
-                                       const SLboolean *);
-  slCreateEngine_t f_slCreateEngine;
-  SLInterfaceID SL_IID_ENGINE_;
-  SLInterfaceID SL_IID_BUFFERQUEUE_;
-  SLInterfaceID SL_IID_ANDROIDCONFIGURATION_;
-  SLInterfaceID SL_IID_ANDROIDSIMPLEBUFFERQUEUE_;
-  SLInterfaceID SL_IID_RECORD_;
 };
 
 }  

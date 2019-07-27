@@ -16,6 +16,8 @@
 
 
 
+#include <string.h>
+
 #include "defines.h"
 #include "constants.h"
 #include "xcorr_coef.h"
@@ -71,9 +73,8 @@ int WebRtcIlbcfix_EnhancerInterface(
   enh_period=iLBCdec_inst->enh_period;
 
   
-
-  WEBRTC_SPL_MEMMOVE_W16(enh_buf, &enh_buf[iLBCdec_inst->blockl],
-                         ENH_BUFL-iLBCdec_inst->blockl);
+  memmove(enh_buf, &enh_buf[iLBCdec_inst->blockl],
+          (ENH_BUFL - iLBCdec_inst->blockl) * sizeof(*enh_buf));
 
   WEBRTC_SPL_MEMCPY_W16(&enh_buf[ENH_BUFL-iLBCdec_inst->blockl], in,
                         iLBCdec_inst->blockl);
@@ -92,14 +93,14 @@ int WebRtcIlbcfix_EnhancerInterface(
   }
 
   
-  WEBRTC_SPL_MEMMOVE_W16(enh_period, &enh_period[new_blocks],
-                         (ENH_NBLOCKS_TOT-new_blocks));
+  memmove(enh_period, &enh_period[new_blocks],
+          (ENH_NBLOCKS_TOT - new_blocks) * sizeof(*enh_period));
 
   k=WebRtcSpl_DownsampleFast(
       enh_buf+ENH_BUFL-inLen,    
       (int16_t)(inLen+ENH_BUFL_FILTEROVERHEAD),
       downsampled,
-      (int16_t)WEBRTC_SPL_RSHIFT_W16(inLen, 1),
+      (int16_t)(inLen / 2),
       (int16_t*)WebRtcIlbcfix_kLpFiltCoefs,  
       FILTERORDER_DS_PLUS1,    
       FACTOR_DS,
@@ -291,7 +292,7 @@ int WebRtcIlbcfix_EnhancerInterface(
 
         
         
-        inc=(2048-WEBRTC_SPL_RSHIFT_W16(SqrtEnChange, 3));
+        inc = 2048 - (SqrtEnChange >> 3);
 
         win=0;
         tmpW16ptr=&plc_pred[plc_blockl-16];

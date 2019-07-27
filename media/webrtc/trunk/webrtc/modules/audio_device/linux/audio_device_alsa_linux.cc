@@ -19,13 +19,6 @@
 #include "webrtc/system_wrappers/interface/thread_wrapper.h"
 #include "webrtc/system_wrappers/interface/trace.h"
 
-#include "Latency.h"
-
-#define LOG_FIRST_CAPTURE(x) LogTime(AsyncLatencyLogger::AudioCaptureBase, \
-                                     reinterpret_cast<uint64_t>(x), 0)
-#define LOG_CAPTURE_FRAMES(x, frames) LogLatency(AsyncLatencyLogger::AudioCapture, \
-                                                 reinterpret_cast<uint64_t>(x), frames)
-
 webrtc_adm_linux_alsa::AlsaSymbolTable AlsaSymbolTable;
 
 
@@ -102,7 +95,6 @@ AudioDeviceLinuxALSA::AudioDeviceLinuxALSA(const int32_t id) :
     _playBufType(AudioDeviceModule::kFixedBufferSize),
     _initialized(false),
     _recording(false),
-    _firstRecord(true),
     _playing(false),
     _recIsInitialized(false),
     _playIsInitialized(false),
@@ -188,8 +180,7 @@ int32_t AudioDeviceLinuxALSA::Init()
     {
         return 0;
     }
-
-#ifdef USE_X11
+#if defined(USE_X11)
     
     _XDisplay = XOpenDisplay(NULL);
     if (!_XDisplay)
@@ -198,7 +189,6 @@ int32_t AudioDeviceLinuxALSA::Init()
           "  failed to open X display, typing detection will not work");
     }
 #endif
-
     _playWarning = 0;
     _playError = 0;
     _recWarning = 0;
@@ -264,15 +254,13 @@ int32_t AudioDeviceLinuxALSA::Terminate()
 
         _critSect.Enter();
     }
-
-#ifdef USE_X11
+#if defined(USE_X11)
     if (_XDisplay)
     {
       XCloseDisplay(_XDisplay);
       _XDisplay = NULL;
     }
 #endif
-
     _initialized = false;
     _outputDeviceIsSpecified = false;
     _inputDeviceIsSpecified = false;
@@ -283,34 +271,6 @@ int32_t AudioDeviceLinuxALSA::Terminate()
 bool AudioDeviceLinuxALSA::Initialized() const
 {
     return (_initialized);
-}
-
-int32_t AudioDeviceLinuxALSA::SpeakerIsAvailable(bool& available)
-{
-
-    bool wasInitialized = _mixerManager.SpeakerIsInitialized();
-
-    
-    
-    
-    if (!wasInitialized && InitSpeaker() == -1)
-    {
-        available = false;
-        return 0;
-    }
-
-    
-    
-    available = true;
-
-    
-    
-    if (!wasInitialized)
-    {
-        _mixerManager.CloseSpeaker();
-    }
-
-    return 0;
 }
 
 int32_t AudioDeviceLinuxALSA::InitSpeaker()
@@ -326,34 +286,6 @@ int32_t AudioDeviceLinuxALSA::InitSpeaker()
     char devName[kAdmMaxDeviceNameSize] = {0};
     GetDevicesInfo(2, true, _outputDeviceIndex, devName, kAdmMaxDeviceNameSize);
     return _mixerManager.OpenSpeaker(devName);
-}
-
-int32_t AudioDeviceLinuxALSA::MicrophoneIsAvailable(bool& available)
-{
-
-    bool wasInitialized = _mixerManager.MicrophoneIsInitialized();
-
-    
-    
-    
-    if (!wasInitialized && InitMicrophone() == -1)
-    {
-        available = false;
-        return 0;
-    }
-
-    
-    
-    available = true;
-
-    
-    
-    if (!wasInitialized)
-    {
-        _mixerManager.CloseMicrophone();
-    }
-
-    return 0;
 }
 
 int32_t AudioDeviceLinuxALSA::InitMicrophone()
@@ -997,8 +929,7 @@ int32_t AudioDeviceLinuxALSA::RecordingDeviceName(
         memset(guid, 0, kAdmMaxGuidSize);
     }
 
-    return GetDevicesInfo(1, false, index, name, kAdmMaxDeviceNameSize,
-                          guid, kAdmMaxGuidSize);
+    return GetDevicesInfo(1, false, index, name, kAdmMaxDeviceNameSize);
 }
 
 int16_t AudioDeviceLinuxALSA::RecordingDevices()
@@ -1460,7 +1391,6 @@ int32_t AudioDeviceLinuxALSA::StartRecording()
     }
     
     const char* threadName = "webrtc_audio_module_capture_thread";
-    _firstRecord = true;
     _ptrThreadRec = ThreadWrapper::CreateThread(RecThreadFunc,
                                                 this,
                                                 kRealtimePriority,
@@ -1647,17 +1577,6 @@ int32_t AudioDeviceLinuxALSA::StartPlayout()
         return -1;
     }
 
-    int errVal = LATE(snd_pcm_prepare)(_handlePlayout);
-    if (errVal < 0)
-    {
-        WEBRTC_TRACE(kTraceCritical, kTraceAudioDevice, _id,
-                     "     playout snd_pcm_prepare failed (%s)\n",
-                     LATE(snd_strerror)(errVal));
-        
-        
-    }
-
-
     unsigned int threadID(0);
     if (!_ptrThreadPlay->Start(threadID))
     {
@@ -1671,6 +1590,16 @@ int32_t AudioDeviceLinuxALSA::StartPlayout()
         return -1;
     }
     _playThreadID = threadID;
+
+    int errVal = LATE(snd_pcm_prepare)(_handlePlayout);
+    if (errVal < 0)
+    {
+        WEBRTC_TRACE(kTraceCritical, kTraceAudioDevice, _id,
+                     "     playout snd_pcm_prepare failed (%s)\n",
+                     LATE(snd_strerror)(errVal));
+        
+        
+    }
 
     return 0;
 }
@@ -1851,9 +1780,7 @@ int32_t AudioDeviceLinuxALSA::GetDevicesInfo(
     const bool playback,
     const int32_t enumDeviceNo,
     char* enumDeviceName,
-    const int32_t ednLen,
-    char* enumDeviceId,
-    const int32_t ediLen) const
+    const int32_t ednLen) const
 {
 
     
@@ -1892,8 +1819,6 @@ int32_t AudioDeviceLinuxALSA::GetDevicesInfo(
             function == FUNC_GET_DEVICE_NAME_FOR_AN_ENUM) && enumDeviceNo == 0)
         {
             strcpy(enumDeviceName, "default");
-            if (enumDeviceId)
-                memset(enumDeviceId, 0, ediLen);
 
             err = LATE(snd_device_name_free_hint)(hints);
             if (err != 0)
@@ -1956,11 +1881,6 @@ int32_t AudioDeviceLinuxALSA::GetDevicesInfo(
                     
                     strncpy(enumDeviceName, desc, ednLen);
                     enumDeviceName[ednLen-1] = '\0';
-                    if (enumDeviceId)
-                    {
-                        strncpy(enumDeviceId, name, ediLen);
-                        enumDeviceId[ediLen-1] = '\0';
-                    }
                     keepSearching = false;
                     
                     char * pret = strchr(enumDeviceName, '\n'); 
@@ -1973,11 +1893,6 @@ int32_t AudioDeviceLinuxALSA::GetDevicesInfo(
                     
                     strncpy(enumDeviceName, name, ednLen);
                     enumDeviceName[ednLen-1] = '\0';
-                    if (enumDeviceId)
-                    {
-                        strncpy(enumDeviceId, name, ediLen);
-                        enumDeviceId[ediLen-1] = '\0';
-                    }
                     keepSearching = false;
                 }
 
@@ -2002,7 +1917,7 @@ int32_t AudioDeviceLinuxALSA::GetDevicesInfo(
                          LATE(snd_strerror)(err));
             
         }
-      }
+    }
 
     if (FUNC_GET_NUM_OF_DEVICE == function)
     {
@@ -2287,11 +2202,6 @@ bool AudioDeviceLinuxALSA::RecThreadProcess()
         { 
             _recordingFramesLeft = _recordingFramesIn10MS;
 
-            if (_firstRecord) {
-              LOG_FIRST_CAPTURE(this);
-              _firstRecord = false;
-            }
-            LOG_CAPTURE_FRAMES(this, _recordingFramesIn10MS);
             
             
             _ptrAudioBuffer->SetRecordedBuffer(_recordingBuffer,
@@ -2376,7 +2286,7 @@ bool AudioDeviceLinuxALSA::RecThreadProcess()
 
 
 bool AudioDeviceLinuxALSA::KeyPressed() const{
-#ifdef USE_X11
+#if defined(USE_X11)
   char szKey[32];
   unsigned int i = 0;
   char state = 0;

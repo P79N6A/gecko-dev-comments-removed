@@ -42,15 +42,15 @@ void WebRtcIlbcfix_Window32W32(
 
   for (i = 0; i < N; i++) {
     
-    x_hi = (int16_t) WEBRTC_SPL_RSHIFT_W32(x[i], 16);
-    y_hi = (int16_t) WEBRTC_SPL_RSHIFT_W32(y[i], 16);
+    x_hi = (int16_t)(x[i] >> 16);
+    y_hi = (int16_t)(y[i] >> 16);
 
     
     temp = WEBRTC_SPL_LSHIFT_W32((int32_t)x_hi, 16);
-    x_low = (int16_t) WEBRTC_SPL_RSHIFT_W32((x[i] - temp), 1);
+    x_low = (int16_t)((x[i] - temp) >> 1);
 
     temp = WEBRTC_SPL_LSHIFT_W32((int32_t)y_hi, 16);
-    y_low = (int16_t) WEBRTC_SPL_RSHIFT_W32((y[i] - temp), 1);
+    y_low = (int16_t)((y[i] - temp) >> 1);
 
     
     temp = WEBRTC_SPL_LSHIFT_W32(WEBRTC_SPL_MUL_16_16(x_hi, y_hi), 1);

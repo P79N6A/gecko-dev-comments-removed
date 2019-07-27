@@ -14,8 +14,7 @@
 
 
 
-#include "typedefs.h"
-
+#include "webrtc/typedefs.h"
 
 typedef struct {
   void *dummy;
@@ -131,7 +130,7 @@ extern "C" {
 
   int16_t WebRtcIsacfix_Encode(ISACFIX_MainStruct *ISAC_main_inst,
                                const int16_t *speechIn,
-                               int16_t *encoded);
+                               uint8_t* encoded);
 
 
 
@@ -202,7 +201,7 @@ extern "C" {
 
 
   int16_t WebRtcIsacfix_UpdateBwEstimate1(ISACFIX_MainStruct *ISAC_main_inst,
-                                          const uint16_t *encoded,
+                                          const uint8_t* encoded,
                                           int32_t  packet_size,
                                           uint16_t rtp_seq_number,
                                           uint32_t arr_ts);
@@ -227,7 +226,7 @@ extern "C" {
 
 
   int16_t WebRtcIsacfix_UpdateBwEstimate(ISACFIX_MainStruct *ISAC_main_inst,
-                                         const uint16_t   *encoded,
+                                         const uint8_t* encoded,
                                          int32_t          packet_size,
                                          uint16_t         rtp_seq_number,
                                          uint32_t         send_ts,
@@ -253,7 +252,7 @@ extern "C" {
 
 
   int16_t WebRtcIsacfix_Decode(ISACFIX_MainStruct *ISAC_main_inst,
-                               const uint16_t *encoded,
+                               const uint8_t* encoded,
                                int16_t len,
                                int16_t *decoded,
                                int16_t *speechType);
@@ -357,7 +356,9 @@ extern "C" {
 
 
 
-  int16_t WebRtcIsacfix_ReadFrameLen(const int16_t* encoded,
+
+  int16_t WebRtcIsacfix_ReadFrameLen(const uint8_t* encoded,
+                                     int encoded_len_bytes,
                                      int16_t* frameLength);
 
   
@@ -556,7 +557,7 @@ extern "C" {
   int16_t WebRtcIsacfix_GetNewBitStream(ISACFIX_MainStruct *ISAC_main_inst,
                                         int16_t          bweIndex,
                                         float              scale,
-                                        int16_t        *encoded);
+                                        uint8_t* encoded);
 
 
   
@@ -606,7 +607,9 @@ extern "C" {
 
 
 
-  int16_t WebRtcIsacfix_ReadBwIndex(const int16_t* encoded,
+
+  int16_t WebRtcIsacfix_ReadBwIndex(const uint8_t* encoded,
+                                    int encoded_len_bytes,
                                     int16_t* rateIndex);
 
 

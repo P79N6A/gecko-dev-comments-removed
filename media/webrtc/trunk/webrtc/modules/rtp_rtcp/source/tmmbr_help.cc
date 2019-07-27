@@ -266,180 +266,177 @@ TMMBRHelp::FindTMMBRBoundingSet(int32_t numCandidates, TMMBRSet& candidateSet)
                 numBoundingSet++;
             }
         }
-        if (numBoundingSet != 1)
+        return (numBoundingSet == 1) ? 1 : -1;
+    }
+
+    
+    for (int i = candidateSet.sizeOfSet() - 1; i >= 0; i--)
+    {
+        for (int j = 1; j <= i; j++)
         {
-            numBoundingSet = -1;
+            if (candidateSet.PacketOH(j-1) > candidateSet.PacketOH(j))
+            {
+                candidateSet.SwapEntries(j-1, j);
+            }
         }
-    } else
+    }
+    
+    for (uint32_t i = 0; i < candidateSet.sizeOfSet(); i++)
+    {
+        if (candidateSet.Tmmbr(i) > 0)
+        {
+            
+            uint32_t currentPacketOH = candidateSet.PacketOH(i);
+            uint32_t currentMinTMMBR = candidateSet.Tmmbr(i);
+            uint32_t currentMinIndexTMMBR = i;
+            for (uint32_t j = i+1; j < candidateSet.sizeOfSet(); j++)
+            {
+                if(candidateSet.PacketOH(j) == currentPacketOH)
+                {
+                    if(candidateSet.Tmmbr(j) < currentMinTMMBR)
+                    {
+                        currentMinTMMBR = candidateSet.Tmmbr(j);
+                        currentMinIndexTMMBR = j;
+                    }
+                }
+            }
+            
+            for (uint32_t j = 0; j < candidateSet.sizeOfSet(); j++)
+            {
+              if(candidateSet.PacketOH(j) == currentPacketOH
+                  && j != currentMinIndexTMMBR)
+                {
+                    candidateSet.ClearEntry(j);
+                }
+            }
+        }
+    }
+    
+    
+    uint32_t minTMMBR = 0;
+    uint32_t minIndexTMMBR = 0;
+    for (uint32_t i = 0; i < candidateSet.sizeOfSet(); i++)
+    {
+        if (candidateSet.Tmmbr(i) > 0)
+        {
+            minTMMBR = candidateSet.Tmmbr(i);
+            minIndexTMMBR = i;
+            break;
+        }
+    }
+
+    for (uint32_t i = 0; i < candidateSet.sizeOfSet(); i++)
+    {
+        if (candidateSet.Tmmbr(i) > 0 && candidateSet.Tmmbr(i) <= minTMMBR)
+        {
+            
+            minTMMBR = candidateSet.Tmmbr(i);
+            minIndexTMMBR = i;
+        }
+    }
+    
+    _boundingSet.SetEntry(numBoundingSet,
+                          candidateSet.Tmmbr(minIndexTMMBR),
+                          candidateSet.PacketOH(minIndexTMMBR),
+                          candidateSet.Ssrc(minIndexTMMBR));
+
+    
+    _ptrIntersectionBoundingSet[numBoundingSet] = 0;
+    
+    _ptrMaxPRBoundingSet[numBoundingSet]
+        = _boundingSet.Tmmbr(numBoundingSet) * 1000
+        / float(8 * _boundingSet.PacketOH(numBoundingSet));
+    numBoundingSet++;
+    
+    candidateSet.ClearEntry(minIndexTMMBR);
+    numCandidates--;
+
+    
+    
+    for (uint32_t i = 0; i < candidateSet.sizeOfSet(); i++)
+    {
+        if(candidateSet.Tmmbr(i) > 0
+            && candidateSet.PacketOH(i) < _boundingSet.PacketOH(0))
+        {
+            candidateSet.ClearEntry(i);
+            numCandidates--;
+        }
+    }
+
+    if (numCandidates == 0)
     {
         
-        for (int i = candidateSet.sizeOfSet() - 1; i >= 0; i--)
-        {
-            for (int j = 1; j <= i; j++)
-            {
-                if (candidateSet.PacketOH(j-1) > candidateSet.PacketOH(j))
-                {
-                    candidateSet.SwapEntries(j-1, j);
-                }
-            }
-        }
-        
-        for (uint32_t i = 0; i < candidateSet.sizeOfSet(); i++)
-        {
-            if (candidateSet.Tmmbr(i) > 0)
-            {
-                
-                uint32_t currentPacketOH = candidateSet.PacketOH(i);
-                uint32_t currentMinTMMBR = candidateSet.Tmmbr(i);
-                uint32_t currentMinIndexTMMBR = i;
-                for (uint32_t j = i+1; j < candidateSet.sizeOfSet(); j++)
-                {
-                    if(candidateSet.PacketOH(j) == currentPacketOH)
-                    {
-                        if(candidateSet.Tmmbr(j) < currentMinTMMBR)
-                        {
-                            currentMinTMMBR = candidateSet.Tmmbr(j);
-                            currentMinIndexTMMBR = j;
-                        }
-                    }
-                }
-                
-                for (uint32_t j = 0; j < candidateSet.sizeOfSet(); j++)
-                {
-                  if(candidateSet.PacketOH(j) == currentPacketOH
-                     && j != currentMinIndexTMMBR)
-                    {
-                        candidateSet.ClearEntry(j);
-                    }
-                }
-            }
-        }
-        
-        
-        uint32_t minTMMBR = 0;
-        uint32_t minIndexTMMBR = 0;
-        for (uint32_t i = 0; i < candidateSet.sizeOfSet(); i++)
-        {
-            if (candidateSet.Tmmbr(i) > 0)
-            {
-                minTMMBR = candidateSet.Tmmbr(i);
-                minIndexTMMBR = i;
-                break;
-            }
-        }
-
-        for (uint32_t i = 0; i < candidateSet.sizeOfSet(); i++)
-        {
-            if (candidateSet.Tmmbr(i) > 0 && candidateSet.Tmmbr(i) <= minTMMBR)
-            {
-                
-                minTMMBR = candidateSet.Tmmbr(i);
-                minIndexTMMBR = i;
-            }
-        }
-        
-        _boundingSet.SetEntry(numBoundingSet,
-                              candidateSet.Tmmbr(minIndexTMMBR),
-                              candidateSet.PacketOH(minIndexTMMBR),
-                              candidateSet.Ssrc(minIndexTMMBR));
-
-        
-        _ptrIntersectionBoundingSet[numBoundingSet] = 0;
-        
-        _ptrMaxPRBoundingSet[numBoundingSet]
-            = _boundingSet.Tmmbr(numBoundingSet) * 1000
-            / float(8 * _boundingSet.PacketOH(numBoundingSet));
-        numBoundingSet++;
-        
-        candidateSet.ClearEntry(minIndexTMMBR);
-        numCandidates--;
-
-        
-        
-        for (uint32_t i = 0; i < candidateSet.sizeOfSet(); i++)
-        {
-            if(candidateSet.Tmmbr(i) > 0
-               && candidateSet.PacketOH(i) < _boundingSet.PacketOH(0))
-            {
-                candidateSet.ClearEntry(i);
-                numCandidates--;
-            }
-        }
-
-        if (numCandidates == 0)
-        {
-            
-            assert(_boundingSet.lengthOfSet() == numBoundingSet);
-            return numBoundingSet;
-        }
-
-        bool getNewCandidate = true;
-        int curCandidateTMMBR = 0;
-        int curCandidateIndex = 0;
-        int curCandidatePacketOH = 0;
-        int curCandidateSSRC = 0;
-        do
-        {
-            if (getNewCandidate)
-            {
-                
-                for (uint32_t i = 0; i < candidateSet.sizeOfSet(); i++)
-                {
-                    if (candidateSet.Tmmbr(i) > 0)
-                    {
-                        curCandidateTMMBR    = candidateSet.Tmmbr(i);
-                        curCandidatePacketOH = candidateSet.PacketOH(i);
-                        curCandidateSSRC     = candidateSet.Ssrc(i);
-                        curCandidateIndex    = i;
-                        candidateSet.ClearEntry(curCandidateIndex);
-                        break;
-                    }
-                }
-            }
-
-            
-            
-            float packetRate
-                = float(curCandidateTMMBR
-                        - _boundingSet.Tmmbr(numBoundingSet-1))*1000
-                / (8*(curCandidatePacketOH
-                      - _boundingSet.PacketOH(numBoundingSet-1)));
-
-            
-            
-            
-            if(packetRate <= _ptrIntersectionBoundingSet[numBoundingSet-1])
-            {
-                
-                numBoundingSet--;
-                _boundingSet.ClearEntry(numBoundingSet);
-                _ptrIntersectionBoundingSet[numBoundingSet] = 0;
-                _ptrMaxPRBoundingSet[numBoundingSet]        = 0;
-                getNewCandidate = false;
-            } else
-            {
-                
-                
-                
-                if (packetRate < _ptrMaxPRBoundingSet[numBoundingSet-1])
-                {
-                    _boundingSet.SetEntry(numBoundingSet,
-                                          curCandidateTMMBR,
-                                          curCandidatePacketOH,
-                                          curCandidateSSRC);
-                    _ptrIntersectionBoundingSet[numBoundingSet] = packetRate;
-                    _ptrMaxPRBoundingSet[numBoundingSet]
-                        = _boundingSet.Tmmbr(numBoundingSet)*1000
-                        / float(8*_boundingSet.PacketOH(numBoundingSet));
-                    numBoundingSet++;
-                }
-                numCandidates--;
-                getNewCandidate = true;
-            }
-
-            
-        } while (numCandidates > 0);
+        assert(_boundingSet.lengthOfSet() == numBoundingSet);
+        return numBoundingSet;
     }
+
+    bool getNewCandidate = true;
+    int curCandidateTMMBR = 0;
+    int curCandidateIndex = 0;
+    int curCandidatePacketOH = 0;
+    int curCandidateSSRC = 0;
+    do
+    {
+        if (getNewCandidate)
+        {
+            
+            for (uint32_t i = 0; i < candidateSet.sizeOfSet(); i++)
+            {
+                if (candidateSet.Tmmbr(i) > 0)
+                {
+                    curCandidateTMMBR    = candidateSet.Tmmbr(i);
+                    curCandidatePacketOH = candidateSet.PacketOH(i);
+                    curCandidateSSRC     = candidateSet.Ssrc(i);
+                    curCandidateIndex    = i;
+                    candidateSet.ClearEntry(curCandidateIndex);
+                    break;
+                }
+            }
+        }
+
+        
+        
+        float packetRate
+            = float(curCandidateTMMBR
+                    - _boundingSet.Tmmbr(numBoundingSet-1))*1000
+            / (8*(curCandidatePacketOH
+                  - _boundingSet.PacketOH(numBoundingSet-1)));
+
+        
+        
+        
+        if(packetRate <= _ptrIntersectionBoundingSet[numBoundingSet-1])
+        {
+            
+            numBoundingSet--;
+            _boundingSet.ClearEntry(numBoundingSet);
+            _ptrIntersectionBoundingSet[numBoundingSet] = 0;
+            _ptrMaxPRBoundingSet[numBoundingSet]        = 0;
+            getNewCandidate = false;
+        } else
+        {
+            
+            
+            
+            if (packetRate < _ptrMaxPRBoundingSet[numBoundingSet-1])
+            {
+                _boundingSet.SetEntry(numBoundingSet,
+                                      curCandidateTMMBR,
+                                      curCandidatePacketOH,
+                                      curCandidateSSRC);
+                _ptrIntersectionBoundingSet[numBoundingSet] = packetRate;
+                _ptrMaxPRBoundingSet[numBoundingSet]
+                    = _boundingSet.Tmmbr(numBoundingSet)*1000
+                    / float(8*_boundingSet.PacketOH(numBoundingSet));
+                numBoundingSet++;
+            }
+            numCandidates--;
+            getNewCandidate = true;
+        }
+
+        
+    } while (numCandidates > 0);
+
     return numBoundingSet;
 }
 

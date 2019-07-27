@@ -23,8 +23,12 @@ enum { kSpectrumSize = 65 };
 
 enum { kMaxDelay = 100 };
 enum { kLookahead = 10 };
+enum { kHistorySize = kMaxDelay + kLookahead };
 
 enum { kSequenceLength = 400 };
+
+const int kDifferentHistorySize = 3;
+const int kDifferentLookahead = 1;
 
 const int kEnable[] = { 0, 1 };
 const size_t kSizeEnable = sizeof(kEnable) / sizeof(*kEnable);
@@ -56,7 +60,7 @@ class DelayEstimatorTest : public ::testing::Test {
   float near_f_[kSpectrumSize];
   uint16_t far_u16_[kSpectrumSize];
   uint16_t near_u16_[kSpectrumSize];
-  uint32_t binary_spectrum_[kSequenceLength + kMaxDelay + kLookahead];
+  uint32_t binary_spectrum_[kSequenceLength + kHistorySize];
 };
 
 DelayEstimatorTest::DelayEstimatorTest()
@@ -76,21 +80,20 @@ DelayEstimatorTest::DelayEstimatorTest()
   
   
   binary_spectrum_[0] = 1;
-  for (int i = 1; i < (kSequenceLength + kMaxDelay + kLookahead); i++) {
+  for (int i = 1; i < (kSequenceLength + kHistorySize); i++) {
     binary_spectrum_[i] = 3 * binary_spectrum_[i - 1];
   }
 }
 
 void DelayEstimatorTest::SetUp() {
   farend_handle_ = WebRtc_CreateDelayEstimatorFarend(kSpectrumSize,
-                                                     kMaxDelay + kLookahead);
+                                                     kHistorySize);
   ASSERT_TRUE(farend_handle_ != NULL);
   farend_self_ = reinterpret_cast<DelayEstimatorFarend*>(farend_handle_);
   handle_ = WebRtc_CreateDelayEstimator(farend_handle_, kLookahead);
   ASSERT_TRUE(handle_ != NULL);
   self_ = reinterpret_cast<DelayEstimator*>(handle_);
-  binary_farend_ = WebRtc_CreateBinaryDelayEstimatorFarend(kMaxDelay +
-                                                           kLookahead);
+  binary_farend_ = WebRtc_CreateBinaryDelayEstimatorFarend(kHistorySize);
   ASSERT_TRUE(binary_farend_ != NULL);
   binary_ = WebRtc_CreateBinaryDelayEstimator(binary_farend_, kLookahead);
   ASSERT_TRUE(binary_ != NULL);
@@ -117,7 +120,7 @@ void DelayEstimatorTest::Init() {
   EXPECT_EQ(0, farend_self_->far_spectrum_initialized);
   EXPECT_EQ(0, self_->near_spectrum_initialized);
   EXPECT_EQ(-2, WebRtc_last_delay(handle_));  
-  EXPECT_EQ(0, WebRtc_last_delay_quality(handle_));  
+  EXPECT_FLOAT_EQ(0, WebRtc_last_delay_quality(handle_));  
 }
 
 void DelayEstimatorTest::InitBinary() {
@@ -190,9 +193,9 @@ void DelayEstimatorTest::RunBinarySpectra(BinaryDelayEstimator* binary1,
   }
   
   EXPECT_NE(-2, WebRtc_binary_last_delay(binary1));
-  EXPECT_NE(0, WebRtc_binary_last_delay_quality(binary1));
+  EXPECT_LT(0, WebRtc_binary_last_delay_quality(binary1));
   EXPECT_NE(-2, WebRtc_binary_last_delay(binary2));
-  EXPECT_NE(0, WebRtc_binary_last_delay_quality(binary2));
+  EXPECT_LT(0, WebRtc_binary_last_delay_quality(binary2));
 }
 
 void DelayEstimatorTest::RunBinarySpectraTest(int near_offset,
@@ -226,16 +229,14 @@ TEST_F(DelayEstimatorTest, CorrectErrorReturnsOfWrapper) {
   
   
   void* handle = farend_handle_;
-  handle = WebRtc_CreateDelayEstimatorFarend(33, kMaxDelay + kLookahead);
+  handle = WebRtc_CreateDelayEstimatorFarend(33, kHistorySize);
   EXPECT_TRUE(handle == NULL);
-  handle = farend_handle_;
   handle = WebRtc_CreateDelayEstimatorFarend(kSpectrumSize, 1);
   EXPECT_TRUE(handle == NULL);
 
   handle = handle_;
   handle = WebRtc_CreateDelayEstimator(NULL, kLookahead);
   EXPECT_TRUE(handle == NULL);
-  handle = handle_;
   handle = WebRtc_CreateDelayEstimator(farend_handle_, -1);
   EXPECT_TRUE(handle == NULL);
 
@@ -271,6 +272,28 @@ TEST_F(DelayEstimatorTest, CorrectErrorReturnsOfWrapper) {
   
   
   
+  EXPECT_EQ(-1, WebRtc_set_history_size(NULL, 1));
+  EXPECT_EQ(-1, WebRtc_set_history_size(handle_, 1));
+  
+  
+  EXPECT_EQ(-1, WebRtc_history_size(NULL));
+  
+  void* tmp_handle = WebRtc_CreateDelayEstimator(farend_handle_, kHistorySize);
+  EXPECT_EQ(0, WebRtc_InitDelayEstimator(tmp_handle));
+  EXPECT_EQ(kDifferentHistorySize,
+            WebRtc_set_history_size(tmp_handle, kDifferentHistorySize));
+  EXPECT_EQ(kDifferentHistorySize, WebRtc_history_size(tmp_handle));
+  EXPECT_EQ(kHistorySize, WebRtc_set_history_size(handle_, kHistorySize));
+  EXPECT_EQ(-1, WebRtc_history_size(tmp_handle));
+
+  
+  
+  EXPECT_EQ(-1, WebRtc_set_lookahead(handle_, kLookahead + 1));
+  EXPECT_EQ(-1, WebRtc_set_lookahead(handle_, -1));
+
+  
+  
+  
   EXPECT_EQ(-1, WebRtc_set_allowed_offset(NULL, 0));
   EXPECT_EQ(-1, WebRtc_set_allowed_offset(handle_, -1));
 
@@ -291,6 +314,8 @@ TEST_F(DelayEstimatorTest, CorrectErrorReturnsOfWrapper) {
   
   
   
+  
+  
   EXPECT_EQ(-1, WebRtc_DelayEstimatorProcessFloat(NULL, near_f_,
                                                   spectrum_size_));
   
@@ -298,7 +323,13 @@ TEST_F(DelayEstimatorTest, CorrectErrorReturnsOfWrapper) {
                                                   spectrum_size_));
   EXPECT_EQ(-1, WebRtc_DelayEstimatorProcessFloat(handle_, near_f_,
                                                   spectrum_size_ + 1));
+  
+  EXPECT_EQ(-1, WebRtc_DelayEstimatorProcessFloat(tmp_handle,
+                                                  near_f_,
+                                                  spectrum_size_));
 
+  
+  
   
   
   
@@ -312,13 +343,15 @@ TEST_F(DelayEstimatorTest, CorrectErrorReturnsOfWrapper) {
                                                 spectrum_size_ + 1, 0));
   EXPECT_EQ(-1, WebRtc_DelayEstimatorProcessFix(handle_, near_u16_,
                                                 spectrum_size_, 16));
+  
+  EXPECT_EQ(-1, WebRtc_DelayEstimatorProcessFix(tmp_handle,
+                                                near_u16_,
+                                                spectrum_size_,
+                                                0));
+  WebRtc_FreeDelayEstimator(tmp_handle);
 
   
   EXPECT_EQ(-1, WebRtc_last_delay(NULL));
-
-  
-  
-  EXPECT_EQ(-1, WebRtc_last_delay_quality(NULL));
 
   
   WebRtc_FreeDelayEstimator(handle);
@@ -351,13 +384,22 @@ TEST_F(DelayEstimatorTest, VerifyEnableRobustValidation) {
 TEST_F(DelayEstimatorTest, InitializedSpectrumAfterProcess) {
   
   
+  
+  const float kZerosFloat[kSpectrumSize] = { 0.0 };
+  const uint16_t kZerosU16[kSpectrumSize] = { 0 };
 
   
   
   Init();
+  EXPECT_EQ(0, WebRtc_AddFarSpectrumFloat(farend_handle_, kZerosFloat,
+                                          spectrum_size_));
+  EXPECT_EQ(0, farend_self_->far_spectrum_initialized);
   EXPECT_EQ(0, WebRtc_AddFarSpectrumFloat(farend_handle_, far_f_,
                                            spectrum_size_));
   EXPECT_EQ(1, farend_self_->far_spectrum_initialized);
+  EXPECT_EQ(-2, WebRtc_DelayEstimatorProcessFloat(handle_, kZerosFloat,
+                                                  spectrum_size_));
+  EXPECT_EQ(0, self_->near_spectrum_initialized);
   EXPECT_EQ(-2, WebRtc_DelayEstimatorProcessFloat(handle_, near_f_,
                                                   spectrum_size_));
   EXPECT_EQ(1, self_->near_spectrum_initialized);
@@ -365,9 +407,15 @@ TEST_F(DelayEstimatorTest, InitializedSpectrumAfterProcess) {
   
   
   Init();
+  EXPECT_EQ(0, WebRtc_AddFarSpectrumFix(farend_handle_, kZerosU16,
+                                        spectrum_size_, 0));
+  EXPECT_EQ(0, farend_self_->far_spectrum_initialized);
   EXPECT_EQ(0, WebRtc_AddFarSpectrumFix(farend_handle_, far_u16_,
                                          spectrum_size_, 0));
   EXPECT_EQ(1, farend_self_->far_spectrum_initialized);
+  EXPECT_EQ(-2, WebRtc_DelayEstimatorProcessFix(handle_, kZerosU16,
+                                                spectrum_size_, 0));
+  EXPECT_EQ(0, self_->near_spectrum_initialized);
   EXPECT_EQ(-2, WebRtc_DelayEstimatorProcessFix(handle_, near_u16_,
                                                 spectrum_size_, 0));
   EXPECT_EQ(1, self_->near_spectrum_initialized);
@@ -379,6 +427,7 @@ TEST_F(DelayEstimatorTest, CorrectLastDelay) {
   
   
 
+  
   int last_delay = 0;
   
   Init();
@@ -389,13 +438,16 @@ TEST_F(DelayEstimatorTest, CorrectLastDelay) {
                                                    spectrum_size_);
     if (last_delay != -2) {
       EXPECT_EQ(last_delay, WebRtc_last_delay(handle_));
-      EXPECT_EQ(7203, WebRtc_last_delay_quality(handle_));
+      if (!WebRtc_is_robust_validation_enabled(handle_)) {
+        EXPECT_FLOAT_EQ(7203.f / kMaxBitCountsQ9,
+                        WebRtc_last_delay_quality(handle_));
+      }
       break;
     }
   }
   
   EXPECT_NE(-2, WebRtc_last_delay(handle_));
-  EXPECT_NE(0, WebRtc_last_delay_quality(handle_));
+  EXPECT_LT(0, WebRtc_last_delay_quality(handle_));
 
   
   Init();
@@ -406,13 +458,16 @@ TEST_F(DelayEstimatorTest, CorrectLastDelay) {
                                                  spectrum_size_, 0);
     if (last_delay != -2) {
       EXPECT_EQ(last_delay, WebRtc_last_delay(handle_));
-      EXPECT_EQ(7203, WebRtc_last_delay_quality(handle_));
+      if (!WebRtc_is_robust_validation_enabled(handle_)) {
+        EXPECT_FLOAT_EQ(7203.f / kMaxBitCountsQ9,
+                        WebRtc_last_delay_quality(handle_));
+      }
       break;
     }
   }
   
   EXPECT_NE(-2, WebRtc_last_delay(handle_));
-  EXPECT_NE(0, WebRtc_last_delay_quality(handle_));
+  EXPECT_LT(0, WebRtc_last_delay_quality(handle_));
 }
 
 TEST_F(DelayEstimatorTest, CorrectErrorReturnsOfBinaryEstimatorFarend) {
@@ -441,7 +496,6 @@ TEST_F(DelayEstimatorTest, CorrectErrorReturnsOfBinaryEstimator) {
   
   binary_handle = WebRtc_CreateBinaryDelayEstimator(NULL, kLookahead);
   EXPECT_TRUE(binary_handle == NULL);
-  binary_handle = binary_;
   binary_handle = WebRtc_CreateBinaryDelayEstimator(binary_farend_, -1);
   EXPECT_TRUE(binary_handle == NULL);
 }
@@ -524,5 +578,44 @@ TEST_F(DelayEstimatorTest, AllowedOffsetNoImpactWhenRobustValidationDisabled) {
   RunBinarySpectraTest(0, 0, 0, 0);
   binary_->allowed_offset = 0;  
 }
+
+TEST_F(DelayEstimatorTest, VerifyLookaheadAtCreate) {
+  void* farend_handle = WebRtc_CreateDelayEstimatorFarend(kSpectrumSize,
+                                                          kMaxDelay);
+  ASSERT_TRUE(farend_handle != NULL);
+  void* handle = WebRtc_CreateDelayEstimator(farend_handle, kLookahead);
+  ASSERT_TRUE(handle != NULL);
+  EXPECT_EQ(kLookahead, WebRtc_lookahead(handle));
+  WebRtc_FreeDelayEstimator(handle);
+  WebRtc_FreeDelayEstimatorFarend(farend_handle);
+}
+
+TEST_F(DelayEstimatorTest, VerifyLookaheadIsSetAndKeptAfterInit) {
+  EXPECT_EQ(kLookahead, WebRtc_lookahead(handle_));
+  EXPECT_EQ(kDifferentLookahead,
+            WebRtc_set_lookahead(handle_, kDifferentLookahead));
+  EXPECT_EQ(kDifferentLookahead, WebRtc_lookahead(handle_));
+  EXPECT_EQ(0, WebRtc_InitDelayEstimatorFarend(farend_handle_));
+  EXPECT_EQ(kDifferentLookahead, WebRtc_lookahead(handle_));
+  EXPECT_EQ(0, WebRtc_InitDelayEstimator(handle_));
+  EXPECT_EQ(kDifferentLookahead, WebRtc_lookahead(handle_));
+}
+
+TEST_F(DelayEstimatorTest, VerifyHistorySizeAtCreate) {
+  EXPECT_EQ(kHistorySize, WebRtc_history_size(handle_));
+}
+
+TEST_F(DelayEstimatorTest, VerifyHistorySizeIsSetAndKeptAfterInit) {
+  EXPECT_EQ(kHistorySize, WebRtc_history_size(handle_));
+  EXPECT_EQ(kDifferentHistorySize,
+            WebRtc_set_history_size(handle_, kDifferentHistorySize));
+  EXPECT_EQ(kDifferentHistorySize, WebRtc_history_size(handle_));
+  EXPECT_EQ(0, WebRtc_InitDelayEstimator(handle_));
+  EXPECT_EQ(kDifferentHistorySize, WebRtc_history_size(handle_));
+  EXPECT_EQ(0, WebRtc_InitDelayEstimatorFarend(farend_handle_));
+  EXPECT_EQ(kDifferentHistorySize, WebRtc_history_size(handle_));
+}
+
+
 
 }  

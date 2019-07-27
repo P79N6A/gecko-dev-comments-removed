@@ -66,7 +66,8 @@ class InitialDelayManager {
   void LatePackets(uint32_t timestamp_now, SyncStream* sync_stream);
 
   
-  uint32_t playout_timestamp() { return playout_timestamp_; }
+  
+  bool GetPlayoutTimestamp(uint32_t* playout_timestamp);
 
   
   

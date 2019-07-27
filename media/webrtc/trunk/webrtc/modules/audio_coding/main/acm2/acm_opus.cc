@@ -27,7 +27,8 @@ ACMOpus::ACMOpus(int16_t )
     : encoder_inst_ptr_(NULL),
       sample_freq_(0),
       bitrate_(0),
-      channels_(1) {
+      channels_(1),
+      packet_loss_rate_(0) {
   return;
 }
 
@@ -56,10 +57,6 @@ void ACMOpus::DestructEncoderSafe() {
   return;
 }
 
-void ACMOpus::InternalDestructEncoderInst(void* ) {
-  return;
-}
-
 int16_t ACMOpus::SetBitRateSafe(const int32_t ) {
   return -1;
 }
@@ -70,15 +67,18 @@ ACMOpus::ACMOpus(int16_t codec_id)
     : encoder_inst_ptr_(NULL),
       sample_freq_(32000),  
       bitrate_(20000),  
-      channels_(1) {  
+      channels_(1),  
+      packet_loss_rate_(0) {  
   codec_id_ = codec_id;
   
   has_internal_dtx_ = false;
 
+  has_internal_fec_ = true;
+
   if (codec_id_ != ACMCodecDB::kOpus) {
     WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceAudioCoding, unique_id_,
                  "Wrong codec id for Opus.");
-    sample_freq_ = -1;
+    sample_freq_ = 0xFFFF;
     bitrate_ = -1;
   }
   return;
@@ -140,6 +140,20 @@ int16_t ACMOpus::InternalInitEncoder(WebRtcACMCodecParams* codec_params) {
   
   bitrate_ = codec_params->codec_inst.rate;
 
+  
+  
+#if defined(WEBRTC_ANDROID) || defined(WEBRTC_IOS) || defined(WEBRTC_ARCH_ARM)
+  
+  
+  const int kOpusComplexity5 = 5;
+  WebRtcOpus_SetComplexity(encoder_inst_ptr_, kOpusComplexity5);
+  if (ret < 0) {
+     WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceAudioCoding, unique_id_,
+                  "Setting complexity failed for Opus");
+     return ret;
+   }
+#endif
+
   return 0;
 }
 
@@ -159,13 +173,6 @@ void ACMOpus::DestructEncoderSafe() {
   }
 }
 
-void ACMOpus::InternalDestructEncoderInst(void* ptr_inst) {
-  if (ptr_inst != NULL) {
-    WebRtcOpus_EncoderFree(static_cast<OpusEncInst*>(ptr_inst));
-  }
-  return;
-}
-
 int16_t ACMOpus::SetBitRateSafe(const int32_t rate) {
   if (rate < 6000 || rate > 510000) {
     WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceAudioCoding, unique_id_,
@@ -182,6 +189,66 @@ int16_t ACMOpus::SetBitRateSafe(const int32_t rate) {
   }
 
   return -1;
+}
+
+int ACMOpus::SetFEC(bool enable_fec) {
+  
+  if (enable_fec) {
+    if (WebRtcOpus_EnableFec(encoder_inst_ptr_) == 0)
+      return 0;
+  } else {
+    if (WebRtcOpus_DisableFec(encoder_inst_ptr_) == 0)
+      return 0;
+  }
+  return -1;
+}
+
+int ACMOpus::SetPacketLossRate(int loss_rate) {
+  
+  
+  
+  
+  
+  
+  const int kPacketLossRate20 = 20;
+  const int kPacketLossRate10 = 10;
+  const int kPacketLossRate5 = 5;
+  const int kPacketLossRate1 = 1;
+  const int kLossRate20Margin = 2;
+  const int kLossRate10Margin = 1;
+  const int kLossRate5Margin = 1;
+  int opt_loss_rate;
+  if (loss_rate >= kPacketLossRate20 + kLossRate20Margin *
+      (kPacketLossRate20 - packet_loss_rate_ > 0 ? 1 : -1)) {
+    opt_loss_rate = kPacketLossRate20;
+  } else if (loss_rate >= kPacketLossRate10 + kLossRate10Margin *
+      (kPacketLossRate10 - packet_loss_rate_ > 0 ? 1 : -1)) {
+    opt_loss_rate = kPacketLossRate10;
+  } else if (loss_rate >= kPacketLossRate5 + kLossRate5Margin *
+      (kPacketLossRate5 - packet_loss_rate_ > 0 ? 1 : -1)) {
+    opt_loss_rate = kPacketLossRate5;
+  } else if (loss_rate >= kPacketLossRate1) {
+    opt_loss_rate = kPacketLossRate1;
+  } else {
+    opt_loss_rate = 0;
+  }
+
+  if (packet_loss_rate_ == opt_loss_rate) {
+    return 0;
+  }
+
+  
+  if (WebRtcOpus_SetPacketLossRate(encoder_inst_ptr_, opt_loss_rate) == 0) {
+    packet_loss_rate_ = opt_loss_rate;
+    return 0;
+  }
+
+  return -1;
+}
+
+int ACMOpus::SetOpusMaxPlaybackRate(int frequency_hz) {
+  
+  return WebRtcOpus_SetMaxPlaybackRate(encoder_inst_ptr_, frequency_hz);
 }
 
 #endif  

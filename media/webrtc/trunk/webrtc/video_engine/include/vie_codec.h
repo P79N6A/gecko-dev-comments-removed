@@ -75,9 +75,6 @@ class WEBRTC_DLLEXPORT ViEDecoderObserver {
   
   virtual void RequestNewKeyFrame(const int video_channel) = 0;
 
-  
-  virtual void ReceiveStateChange(const int video_channel, VideoReceiveState state) = 0;
-
  protected:
   virtual ~ViEDecoderObserver() {}
 };
@@ -133,12 +130,12 @@ class WEBRTC_DLLEXPORT ViECodec {
                                   const bool enable) = 0;
 
   
-  virtual int GetSendCodecStatistics(const int video_channel,
+  virtual int GetSendCodecStastistics(const int video_channel,
                                       unsigned int& key_frames,
                                       unsigned int& delta_frames) const = 0;
 
   
-  virtual int GetReceiveCodecStatistics(const int video_channel,
+  virtual int GetReceiveCodecStastistics(const int video_channel,
                                          unsigned int& key_frames,
                                          unsigned int& delta_frames) const = 0;
 
@@ -153,7 +150,13 @@ class WEBRTC_DLLEXPORT ViECodec {
 
   
   
-  virtual unsigned int GetDiscardedPackets(const int video_channel) const = 0;
+  
+  virtual int GetNumDiscardedPackets(int video_channel) const { return -1; }
+
+  
+  
+  virtual unsigned int GetDiscardedPackets(
+      const int video_channel) const { return 0; }
 
   
   virtual int SetKeyFrameRequestCallbackStatus(const int video_channel,

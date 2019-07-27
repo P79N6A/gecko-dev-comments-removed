@@ -12,8 +12,8 @@
 
 #include <numeric>
 
-#include "gtest/gtest.h"
-#include "webrtc/system_wrappers/interface/constructor_magic.h"
+#include "testing/gtest/include/gtest/gtest.h"
+#include "webrtc/base/constructormagic.h"
 #include "webrtc/test/testsupport/fileutils.h"
 
 using std::vector;
@@ -41,12 +41,12 @@ TEST(BweTestFramework_RandomTest, Gaussian) {
   }
 
   const double kPi = 3.14159265358979323846;
-  const double kScale = kN / (kStddev * std::sqrt(2.0 * kPi));
+  const double kScale = kN / (kStddev * sqrt(2.0 * kPi));
   const double kDiv = -2.0 * kStddev * kStddev;
   double self_corr = 0.0;
   double bucket_corr = 0.0;
   for (int n = 0; n < kBuckets; ++n) {
-    double normal_dist = kScale * std::exp((n - kMean) * (n - kMean) / kDiv);
+    double normal_dist = kScale * exp((n - kMean) * (n - kMean) / kDiv);
     self_corr += normal_dist * normal_dist;
     bucket_corr += normal_dist * buckets[n];
   }
@@ -181,10 +181,10 @@ class BweTestFramework_RateCounterFilterTest : public ::testing::Test {
   void TestRateCounter(int64_t run_for_ms, uint32_t payload_bits,
                        uint32_t expected_pps, uint32_t expected_bps) {
     Packets packets;
-    RTPHeader header = {0};
+    RTPHeader header;
     
     for (int64_t i = 0; i < run_for_ms; i += 10, now_ms_ += 10) {
-      packets.push_back(Packet(now_ms_ * 1000, payload_bits / 8, header));
+      packets.push_back(Packet(0, now_ms_ * 1000, payload_bits / 8, header));
     }
     filter_.RunFor(run_for_ms, &packets);
     ASSERT_TRUE(IsTimeSorted(packets));
@@ -500,7 +500,7 @@ TEST(BweTestFramework_JitterFilterTest, Jitter1031) {
   TestJitterFilter(1031);
 }
 
-static void TestReorderFilter(uint32_t reorder_percent, uint32_t near) {
+static void TestReorderFilter(uint32_t reorder_percent, uint32_t near_value) {
   const uint32_t kPacketCount = 10000;
 
   
@@ -533,7 +533,8 @@ static void TestReorderFilter(uint32_t reorder_percent, uint32_t near) {
 
   
   
-  EXPECT_NEAR(((kPacketCount - 1) * reorder_percent) / 100, distance, near);
+  EXPECT_NEAR(
+    ((kPacketCount - 1) * reorder_percent) / 100, distance, near_value);
 }
 
 TEST(BweTestFramework_ReorderFilterTest, Reorder0) {
@@ -582,12 +583,12 @@ class BweTestFramework_ChokeFilterTest : public ::testing::Test {
                  uint32_t expected_kbit_transmitted) {
     
     Packets packets;
-    RTPHeader header = {0};
+    RTPHeader header;
     for (uint32_t i = 0; i < packets_to_generate; ++i) {
       int64_t send_time_ms = now_ms_ + (i * run_for_ms) / packets_to_generate;
       header.sequenceNumber = sequence_number_++;
       
-      packets.push_back(Packet(send_time_ms * 1000, 125, header));
+      packets.push_back(Packet(0, send_time_ms * 1000, 125, header));
       send_times_us_.push_back(send_time_ms * 1000);
     }
     ASSERT_TRUE(IsTimeSorted(packets));
@@ -709,12 +710,24 @@ TEST_F(BweTestFramework_ChokeFilterTest, ShortTrace) {
   TestChoke(&filter, 100, 100, 6);
 }
 
-TEST_F(BweTestFramework_ChokeFilterTest, ShortTraceWrap) {
+TEST_F(BweTestFramework_ChokeFilterTest, ShortTraceTwoWraps) {
   
   
   TraceBasedDeliveryFilter filter(NULL);
   ASSERT_TRUE(filter.Init(test::ResourcePath("synthetic-trace", "rx")));
-  TestChoke(&filter, 140, 100, 10);
+  TestChoke(&filter, 280, 100, 19);
+}
+
+TEST_F(BweTestFramework_ChokeFilterTest, ShortTraceMaxDelay) {
+  TraceBasedDeliveryFilter filter(NULL);
+  filter.SetMaxDelay(25);
+  ASSERT_TRUE(filter.Init(test::ResourcePath("synthetic-trace", "rx")));
+  
+  TestChoke(&filter, 110, 20, 9);
+  CheckMaxDelay(25);
+  
+  
+  TestChoke(&filter, 25, 1, 1);
 }
 
 void TestVideoSender(VideoSender* sender, int64_t run_for_ms,
@@ -754,46 +767,46 @@ void TestVideoSender(VideoSender* sender, int64_t run_for_ms,
   EXPECT_GE(1u, rtp_timestamp_wraps);
 }
 
-TEST(BweTestFramework_VideoSenderTest, Fps1Kpbs80_1s) {
+TEST(BweTestFramework_VideoSenderTest, Fps1Kbps80_1s) {
   
-  VideoSender sender(NULL, 1.0f, 80, 0x1234, 0);
+  VideoSender sender(0, NULL, 1.0f, 80, 0x1234, 0);
   EXPECT_EQ(10000u, sender.bytes_per_second());
   
   
-  TestVideoSender(&sender, 1, 10, 1000, 10000);
+  TestVideoSender(&sender, 1, 9, 400, 10000);
   
   TestVideoSender(&sender, 998, 0, 0, 0);
   
-  TestVideoSender(&sender, 1000, 10, 1000, 10000);
+  TestVideoSender(&sender, 1000, 9, 400, 10000);
   
-  TestVideoSender(&sender, 1, 10, 1000, 10000);
+  TestVideoSender(&sender, 1, 9, 400, 10000);
   
   TestVideoSender(&sender, 999, 0, 0, 0);
 }
 
-TEST(BweTestFramework_VideoSenderTest, Fps1Kpbs80_1s_Offset) {
+TEST(BweTestFramework_VideoSenderTest, Fps1Kbps80_1s_Offset) {
   
-  VideoSender sender(NULL, 1.0f, 80, 0x1234, 0.5f);
+  VideoSender sender(0, NULL, 1.0f, 80, 0x1234, 0.5f);
   EXPECT_EQ(10000u, sender.bytes_per_second());
   
   TestVideoSender(&sender, 499, 0, 0, 0);
   
-  TestVideoSender(&sender, 1, 10, 1000, 10000);
+  TestVideoSender(&sender, 1, 9, 400, 10000);
   
   TestVideoSender(&sender, 999, 0, 0, 0);
   
-  TestVideoSender(&sender, 500, 10, 1000, 10000);
+  TestVideoSender(&sender, 500, 9, 400, 10000);
   
   TestVideoSender(&sender, 500, 0, 0, 0);
   
-  TestVideoSender(&sender, 1, 10, 1000, 10000);
+  TestVideoSender(&sender, 1, 9, 400, 10000);
   
   TestVideoSender(&sender, 999, 0, 0, 0);
 }
 
 TEST(BweTestFramework_VideoSenderTest, Fps50Kpbs80_11s) {
   
-  VideoSender sender(NULL, 50.0f, 80, 0x1234, 0);
+  VideoSender sender(0, NULL, 50.0f, 80, 0x1234, 0);
   EXPECT_EQ(10000u, sender.bytes_per_second());
   
   TestVideoSender(&sender, 9998, 500, 200, 100000);
@@ -809,7 +822,7 @@ TEST(BweTestFramework_VideoSenderTest, Fps50Kpbs80_11s) {
 
 TEST(BweTestFramework_VideoSenderTest, Fps10Kpbs120_1s) {
   
-  VideoSender sender(NULL, 20.0f, 120, 0x1234, 0);
+  VideoSender sender(0, NULL, 20.0f, 120, 0x1234, 0);
   EXPECT_EQ(15000u, sender.bytes_per_second());
   
   TestVideoSender(&sender, 498, 10, 750, 7500);
@@ -823,86 +836,86 @@ TEST(BweTestFramework_VideoSenderTest, Fps10Kpbs120_1s) {
   TestVideoSender(&sender, 1, 0, 0, 0);
 }
 
-TEST(BweTestFramework_VideoSenderTest, Fps30Kpbs800_20s) {
+TEST(BweTestFramework_VideoSenderTest, Fps30Kbps800_20s) {
   
-  VideoSender sender(NULL, 25.0f, 820, 0x1234, 0);
+  VideoSender sender(0, NULL, 25.0f, 820, 0x1234, 0);
   EXPECT_EQ(102500u, sender.bytes_per_second());
   
   
   
   
-  TestVideoSender(&sender, 9998, 1250, 100, 1025000);
+  TestVideoSender(&sender, 9998, 1000, 500, 1025000);
   
   TestVideoSender(&sender, 1, 0, 0, 0);
   
-  TestVideoSender(&sender, 9999, 1250, 100, 1025000);
+  TestVideoSender(&sender, 9999, 1000, 500, 1025000);
   
   TestVideoSender(&sender, 1, 0, 0, 0);
   
-  TestVideoSender(&sender, 39, 5, 100, 4100);
+  TestVideoSender(&sender, 39, 4, 500, 4100);
   
   TestVideoSender(&sender, 1, 0, 0, 0);
 }
 
 TEST(BweTestFramework_VideoSenderTest, TestAppendInOrder) {
   
-  VideoSender sender1(NULL, 1.0f, 80, 0x1234, 0.25f);
+  VideoSender sender1(0, NULL, 1.0f, 80, 0x1234, 0.25f);
   EXPECT_EQ(10000u, sender1.bytes_per_second());
   Packets packets;
   
   sender1.RunFor(999, &packets);
   ASSERT_TRUE(IsTimeSorted(packets));
   ASSERT_TRUE(IsSequenceNumberSorted(packets));
-  EXPECT_EQ(10u, packets.size());
+  EXPECT_EQ(9u, packets.size());
   
   sender1.RunFor(1000, &packets);
   ASSERT_TRUE(IsTimeSorted(packets));
   ASSERT_TRUE(IsSequenceNumberSorted(packets));
-  EXPECT_EQ(20u, packets.size());
+  EXPECT_EQ(18u, packets.size());
 
   
-  VideoSender sender2(NULL, 2.0f, 160, 0x2234, 0.30f);
+  VideoSender sender2(0, NULL, 2.0f, 160, 0x2234, 0.30f);
   EXPECT_EQ(20000u, sender2.bytes_per_second());
   
   
   sender2.RunFor(999, &packets);
   ASSERT_TRUE(IsTimeSorted(packets));
-  EXPECT_EQ(40u, packets.size());
+  EXPECT_EQ(36u, packets.size());
   
   sender2.RunFor(1000, &packets);
   ASSERT_TRUE(IsTimeSorted(packets));
-  EXPECT_EQ(60u, packets.size());
+  EXPECT_EQ(54u, packets.size());
 }
 
 TEST(BweTestFramework_VideoSenderTest, FeedbackIneffective) {
-  VideoSender sender(NULL, 25.0f, 820, 0x1234, 0);
+  VideoSender sender(0, NULL, 25.0f, 820, 0x1234, 0);
   EXPECT_EQ(102500u, sender.bytes_per_second());
-  TestVideoSender(&sender, 9998, 1250, 100, 1025000);
+  TestVideoSender(&sender, 9998, 1000, 500, 1025000);
 
   
   PacketSender::Feedback feedback = { 512000 };
   sender.GiveFeedback(feedback);
   EXPECT_EQ(102500u, sender.bytes_per_second());
-  TestVideoSender(&sender, 9998, 1250, 100, 1025000);
+  TestVideoSender(&sender, 9998, 1000, 500, 1025000);
 }
 
 TEST(BweTestFramework_AdaptiveVideoSenderTest, FeedbackChangesBitrate) {
-  AdaptiveVideoSender sender(NULL, 25.0f, 820, 0x1234, 0);
+  AdaptiveVideoSender sender(0, NULL, 25.0f, 820, 0x1234, 0);
   EXPECT_EQ(102500u, sender.bytes_per_second());
-  TestVideoSender(&sender, 9998, 1250, 100, 1025000);
+  TestVideoSender(&sender, 9998, 1000, 500, 1025000);
 
   
   PacketSender::Feedback feedback = { 512000 };
   sender.GiveFeedback(feedback);
   EXPECT_EQ(64000u, sender.bytes_per_second());
-  TestVideoSender(&sender, 9998, 750, 560, 640000);
+  TestVideoSender(&sender, 9998, 750, 160, 640000);
 
   
   
   feedback.estimated_bps = 820000;
   sender.GiveFeedback(feedback);
   EXPECT_EQ(102500u, sender.bytes_per_second());
-  TestVideoSender(&sender, 9998, 1250, 100, 1025000);
+  TestVideoSender(&sender, 9998, 1000, 500, 1025000);
 }
 }  
 }  

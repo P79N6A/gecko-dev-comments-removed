@@ -16,6 +16,8 @@
 
 #include "webrtc/typedefs.h"
 
+static const int32_t kMaxBitCountsQ9 = (32 << 9);  
+
 typedef struct {
   
   int* far_bit_counts;
@@ -34,6 +36,7 @@ typedef struct {
   
   uint32_t* binary_near_history;
   int near_history_size;
+  int history_size;
 
   
   int32_t minimum_probability;
@@ -50,6 +53,9 @@ typedef struct {
   int candidate_hits;
   float* histogram;
   float last_delay_histogram;
+
+  
+  int lookahead;
 
   
   BinaryDelayEstimatorFarend* farend;
@@ -89,7 +95,29 @@ BinaryDelayEstimatorFarend* WebRtc_CreateBinaryDelayEstimatorFarend(
 
 
 
+
+int WebRtc_AllocateFarendBufferMemory(BinaryDelayEstimatorFarend* self,
+                                      int history_size);
+
+
+
+
+
+
+
+
+
+
 void WebRtc_InitBinaryDelayEstimatorFarend(BinaryDelayEstimatorFarend* self);
+
+
+
+
+
+
+
+void WebRtc_SoftResetBinaryDelayEstimatorFarend(
+    BinaryDelayEstimatorFarend* self, int delay_shift);
 
 
 
@@ -124,36 +152,22 @@ void WebRtc_FreeBinaryDelayEstimator(BinaryDelayEstimator* self);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 BinaryDelayEstimator* WebRtc_CreateBinaryDelayEstimator(
-    BinaryDelayEstimatorFarend* farend, int lookahead);
+    BinaryDelayEstimatorFarend* farend, int max_lookahead);
+
+
+
+
+
+
+
+
+
+
+
+
+int WebRtc_AllocateHistoryBufferMemory(BinaryDelayEstimator* self,
+                                       int history_size);
 
 
 
@@ -165,6 +179,18 @@ BinaryDelayEstimator* WebRtc_CreateBinaryDelayEstimator(
 
 
 void WebRtc_InitBinaryDelayEstimator(BinaryDelayEstimator* self);
+
+
+
+
+
+
+
+
+
+
+int WebRtc_SoftResetBinaryDelayEstimator(BinaryDelayEstimator* self,
+                                         int delay_shift);
 
 
 
@@ -205,12 +231,7 @@ int WebRtc_binary_last_delay(BinaryDelayEstimator* self);
 
 
 
-
-
-
-
-
-int WebRtc_binary_last_delay_quality(BinaryDelayEstimator* self);
+float WebRtc_binary_last_delay_quality(BinaryDelayEstimator* self);
 
 
 
@@ -226,6 +247,5 @@ int WebRtc_binary_last_delay_quality(BinaryDelayEstimator* self);
 void WebRtc_MeanEstimatorFix(int32_t new_value,
                              int factor,
                              int32_t* mean_value);
-
 
 #endif  

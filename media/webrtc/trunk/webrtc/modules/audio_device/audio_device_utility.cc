@@ -46,7 +46,7 @@ bool AudioDeviceUtility::StringCompare(
 
 }  
 
-#elif defined(WEBRTC_LINUX) || defined(WEBRTC_BSD) || defined(WEBRTC_MAC)
+#elif defined(WEBRTC_LINUX) || defined(WEBRTC_MAC)
 
 
 
@@ -82,9 +82,9 @@ void AudioDeviceUtility::WaitForKey()
 
     
 
-    if (getchar() == '\n')
+    if (getc(stdin) == '\n')
     {
-        getchar();
+        getc(stdin);
     }
 
     tcsetattr( STDIN_FILENO, TCSANOW, &oldt );

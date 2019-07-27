@@ -10,7 +10,7 @@
 
 #include "webrtc/modules/desktop_capture/mouse_cursor_monitor.h"
 
-#include "gtest/gtest.h"
+#include "testing/gtest/include/gtest/gtest.h"
 #include "webrtc/modules/desktop_capture/desktop_capture_options.h"
 #include "webrtc/modules/desktop_capture/desktop_frame.h"
 #include "webrtc/modules/desktop_capture/mouse_cursor.h"
@@ -50,7 +50,12 @@ class MouseCursorMonitorTest : public testing::Test,
 
 
 
-#if !defined(WEBRTC_MAC)
+
+
+
+
+
+#if !defined(WEBRTC_MAC) && !defined(WEBRTC_WIN) && !defined(WEBRTC_LINUX)
 #define MAYBE(x) x
 #else
 #define MAYBE(x) DISABLED_##x

@@ -49,8 +49,6 @@ class ViEChannelManager: private ViEManagerBase {
 
   void SetModuleProcessThread(ProcessThread* module_process_thread);
 
-  void SetLoadManager(CPULoadStateCallbackInvoker* load_manager);
-
   
   int CreateChannel(int* channel_id,
                     const Config* config);
@@ -77,9 +75,21 @@ class ViEChannelManager: private ViEManagerBase {
   
   bool SetRembStatus(int channel_id, bool sender, bool receiver);
 
+  bool SetReservedTransmitBitrate(int channel_id,
+                                  uint32_t reserved_transmit_bitrate_bps);
+
   
   
   void UpdateSsrcs(int channel_id, const std::list<unsigned int>& ssrcs);
+
+  
+  bool SetBandwidthEstimationConfig(int channel_id,
+                                    const webrtc::Config& config);
+
+  bool GetEstimatedSendBandwidth(int channel_id,
+                                 uint32_t* estimated_bandwidth) const;
+  bool GetEstimatedReceiveBandwidth(int channel_id,
+                                    uint32_t* estimated_bandwidth) const;
 
  private:
   
@@ -107,7 +117,7 @@ class ViEChannelManager: private ViEManagerBase {
   void ReturnChannelId(int channel_id);
 
   
-  ChannelGroup* FindGroup(int channel_id);
+  ChannelGroup* FindGroup(int channel_id) const;
 
   
   
@@ -135,7 +145,6 @@ class ViEChannelManager: private ViEManagerBase {
   VoiceEngine* voice_engine_;
   ProcessThread* module_process_thread_;
   const Config& engine_config_;
-  CPULoadStateCallbackInvoker* load_manager_;
 };
 
 class ViEChannelManagerScoped: private ViEManagerScopedBase {

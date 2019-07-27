@@ -26,10 +26,12 @@
 #define WEBRTC_MODULES_RTP_RTCP_SOURCE_RTP_FORMAT_VP8_H_
 
 #include <queue>
+#include <string>
 #include <vector>
 
+#include "webrtc/base/constructormagic.h"
 #include "webrtc/modules/interface/module_common_types.h"
-#include "webrtc/system_wrappers/interface/constructor_magic.h"
+#include "webrtc/modules/rtp_rtcp/source/rtp_format.h"
 #include "webrtc/typedefs.h"
 
 namespace webrtc {
@@ -44,25 +46,24 @@ enum VP8PacketizerMode {
 };
 
 
-class RtpFormatVp8 {
+class RtpPacketizerVp8 : public RtpPacketizer {
  public:
   
   
-  RtpFormatVp8(const uint8_t* payload_data,
-               uint32_t payload_size,
-               const RTPVideoHeaderVP8& hdr_info,
-               int max_payload_len,
-               const RTPFragmentationHeader& fragmentation,
-               VP8PacketizerMode mode);
+  RtpPacketizerVp8(const RTPVideoHeaderVP8& hdr_info,
+                   int max_payload_len,
+                   VP8PacketizerMode mode);
 
   
   
-  RtpFormatVp8(const uint8_t* payload_data,
-               uint32_t payload_size,
-               const RTPVideoHeaderVP8& hdr_info,
-               int max_payload_len);
+  RtpPacketizerVp8(const RTPVideoHeaderVP8& hdr_info, int max_payload_len);
 
-  ~RtpFormatVp8();
+  virtual ~RtpPacketizerVp8();
+
+  virtual void SetPayloadData(
+      const uint8_t* payload_data,
+      size_t payload_size,
+      const RTPFragmentationHeader* fragmentation) OVERRIDE;
 
   
   
@@ -75,9 +76,15 @@ class RtpFormatVp8 {
   
   
   
-  int NextPacket(uint8_t* buffer,
-                 int* bytes_to_send,
-                 bool* last_packet);
+  virtual bool NextPacket(uint8_t* buffer,
+                          size_t* bytes_to_send,
+                          bool* last_packet) OVERRIDE;
+
+  virtual ProtectionType GetProtectionType() OVERRIDE;
+
+  virtual StorageType GetStorageType(uint32_t retransmission_settings) OVERRIDE;
+
+  virtual std::string ToString() OVERRIDE;
 
  private:
   typedef struct {
@@ -96,19 +103,20 @@ class RtpFormatVp8 {
   static const AggregationMode aggr_modes_[kNumModes];
   static const bool balance_modes_[kNumModes];
   static const bool separate_first_modes_[kNumModes];
-  static const int kXBit        = 0x80;
-  static const int kNBit        = 0x20;
-  static const int kSBit        = 0x10;
+  static const int kXBit = 0x80;
+  static const int kNBit = 0x20;
+  static const int kSBit = 0x10;
   static const int kPartIdField = 0x0F;
   static const int kKeyIdxField = 0x1F;
-  static const int kIBit        = 0x80;
-  static const int kLBit        = 0x40;
-  static const int kTBit        = 0x20;
-  static const int kKBit        = 0x10;
-  static const int kYBit        = 0x20;
+  static const int kIBit = 0x80;
+  static const int kLBit = 0x40;
+  static const int kTBit = 0x20;
+  static const int kKBit = 0x10;
+  static const int kYBit = 0x20;
 
   
-  int CalcNextSize(int max_payload_len, int remaining_bytes,
+  int CalcNextSize(int max_payload_len,
+                   int remaining_bytes,
                    bool split_payload) const;
 
   
@@ -144,7 +152,6 @@ class RtpFormatVp8 {
                             uint8_t* buffer,
                             int buffer_length) const;
 
-
   
   
   
@@ -152,19 +159,25 @@ class RtpFormatVp8 {
 
   
   
-  int WritePictureIDFields(uint8_t* x_field, uint8_t* buffer,
-                           int buffer_length, int* extension_length) const;
+  int WritePictureIDFields(uint8_t* x_field,
+                           uint8_t* buffer,
+                           int buffer_length,
+                           int* extension_length) const;
 
   
   
-  int WriteTl0PicIdxFields(uint8_t* x_field, uint8_t* buffer,
-                           int buffer_length, int* extension_length) const;
+  int WriteTl0PicIdxFields(uint8_t* x_field,
+                           uint8_t* buffer,
+                           int buffer_length,
+                           int* extension_length) const;
 
   
   
   
-  int WriteTIDAndKeyIdxFields(uint8_t* x_field, uint8_t* buffer,
-                              int buffer_length, int* extension_length) const;
+  int WriteTIDAndKeyIdxFields(uint8_t* x_field,
+                              uint8_t* buffer,
+                              int buffer_length,
+                              int* extension_length) const;
 
   
   
@@ -187,7 +200,7 @@ class RtpFormatVp8 {
   bool PictureIdPresent() const { return (PictureIdLength() > 0); }
 
   const uint8_t* payload_data_;
-  const int payload_size_;
+  int payload_size_;
   RTPFragmentationHeader part_info_;
   const int vp8_fixed_payload_descriptor_bytes_;  
                                                   
@@ -195,14 +208,22 @@ class RtpFormatVp8 {
   const bool balance_;
   const bool separate_first_;
   const RTPVideoHeaderVP8 hdr_info_;
-  const int num_partitions_;
+  int num_partitions_;
   const int max_payload_len_;
   InfoQueue packets_;
   bool packets_calculated_;
 
-  DISALLOW_COPY_AND_ASSIGN(RtpFormatVp8);
+  DISALLOW_COPY_AND_ASSIGN(RtpPacketizerVp8);
 };
 
-}  
 
+class RtpDepacketizerVp8 : public RtpDepacketizer {
+ public:
+  virtual ~RtpDepacketizerVp8() {}
+
+  virtual bool Parse(ParsedPayload* parsed_payload,
+                     const uint8_t* payload_data,
+                     size_t payload_data_length) OVERRIDE;
+};
+}  
 #endif  

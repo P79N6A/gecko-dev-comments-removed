@@ -20,8 +20,12 @@ namespace {
 
 const int16_t kLimiterHeadroom = 29204;  
 const int16_t kInt16Max = 0x7fff;
-const int kSampleRateHz = 16000;
+const int kPayloadType = 105;
+const int kInSampleRateHz = 16000;  
+const int kRecSampleRateHz = 16000;  
 const int kTestDurationMs = 3000;
+const CodecInst kCodecL16 = {kPayloadType, "L16", 16000, 160, 1, 256000};
+const CodecInst kCodecOpus = {kPayloadType, "opus", 48000, 960, 1, 32000};
 
 }  
 
@@ -54,7 +58,8 @@ class MixingTest : public AfterInitializationFixture {
                      bool real_audio,
                      int16_t input_value,
                      int16_t max_output_value,
-                     int16_t min_output_value) {
+                     int16_t min_output_value,
+                     const CodecInst& codec_inst) {
     ASSERT_LE(num_remote_streams_using_mono, num_remote_streams);
 
     if (real_audio) {
@@ -77,7 +82,8 @@ class MixingTest : public AfterInitializationFixture {
       remote_streams[i] = voe_base_->CreateChannel();
       EXPECT_NE(-1, remote_streams[i]);
     }
-    StartRemoteStreams(remote_streams, num_remote_streams_using_mono);
+    StartRemoteStreams(remote_streams, num_remote_streams_using_mono,
+                       codec_inst);
     TEST_LOG("Playing %d remote streams.\n", num_remote_streams);
 
     
@@ -87,6 +93,9 @@ class MixingTest : public AfterInitializationFixture {
     EXPECT_EQ(0, voe_file_->StartRecordingPlayout(-1 ,
         output_filename_.c_str()));
     SleepMs(kTestDurationMs);
+    while (GetFileDurationMs(output_filename_.c_str()) < kTestDurationMs) {
+      SleepMs(200);
+    }
     EXPECT_EQ(0, voe_file_->StopRecordingPlayout(-1));
 
     StopLocalStreams(local_streams);
@@ -103,7 +112,7 @@ class MixingTest : public AfterInitializationFixture {
   void GenerateInputFile(int16_t input_value) {
     FILE* input_file = fopen(input_filename_.c_str(), "wb");
     ASSERT_TRUE(input_file != NULL);
-    for (int i = 0; i < kSampleRateHz / 1000 * (kTestDurationMs * 2); i++) {
+    for (int i = 0; i < kInSampleRateHz / 1000 * (kTestDurationMs * 2); i++) {
       ASSERT_EQ(1u, fwrite(&input_value, sizeof(input_value), 1, input_file));
     }
     ASSERT_EQ(0, fclose(input_file));
@@ -126,7 +135,7 @@ class MixingTest : public AfterInitializationFixture {
     
     
     
-    ASSERT_GE((samples_read * 1000.0) / kSampleRateHz, 0.5 * kTestDurationMs);
+    ASSERT_GE((samples_read * 1000.0) / kRecSampleRateHz, kTestDurationMs);
     
     ASSERT_NE(0, feof(output_file));
     ASSERT_EQ(0, fclose(output_file));
@@ -150,17 +159,8 @@ class MixingTest : public AfterInitializationFixture {
 
   
   void StartRemoteStreams(const std::vector<int>& streams,
-                          int num_remote_streams_using_mono) {
-    
-    
-    CodecInst codec_inst;
-    strcpy(codec_inst.plname, "L16");
-    codec_inst.channels = 1;
-    codec_inst.plfreq = kSampleRateHz;
-    codec_inst.pltype = 105;
-    codec_inst.pacsize = codec_inst.plfreq / 100;
-    codec_inst.rate = codec_inst.plfreq * sizeof(int16_t) * 8;  
-
+                          int num_remote_streams_using_mono,
+                          const CodecInst& codec_inst) {
     for (int i = 0; i < num_remote_streams_using_mono; ++i) {
       
       
@@ -170,10 +170,11 @@ class MixingTest : public AfterInitializationFixture {
     }
 
     
-    codec_inst.channels = 2;
-    codec_inst.pltype++;
+    CodecInst codec_inst_stereo = codec_inst;
+    codec_inst_stereo.channels = 2;
+    codec_inst_stereo.pltype++;
     for (size_t i = num_remote_streams_using_mono; i < streams.size(); ++i) {
-      StartRemoteStream(streams[i], codec_inst, 1234 + 2 * i);
+      StartRemoteStream(streams[i], codec_inst_stereo, 1234 + 2 * i);
     }
   }
 
@@ -199,6 +200,17 @@ class MixingTest : public AfterInitializationFixture {
     }
   }
 
+  int GetFileDurationMs(const char* file_name) {
+    FILE* fid = fopen(file_name, "rb");
+    EXPECT_FALSE(fid == NULL);
+    fseek(fid, 0, SEEK_END);
+    int size = ftell(fid);
+    EXPECT_NE(-1, size);
+    fclose(fid);
+    
+    return size * 1000 / kRecSampleRateHz / 2;
+  }
+
   std::string input_filename_;
   const std::string output_filename_;
   LoopBackTransport* transport_;
@@ -208,7 +220,11 @@ class MixingTest : public AfterInitializationFixture {
 
 
 TEST_F(MixingTest, MixManyChannelsForStress) {
-  RunMixingTest(10, 0, 10, true, 0, 0, 0);
+  RunMixingTest(10, 0, 10, true, 0, 0, 0, kCodecL16);
+}
+
+TEST_F(MixingTest, MixManyChannelsForStressOpus) {
+  RunMixingTest(10, 0, 10, true, 0, 0, 0, kCodecOpus);
 }
 
 
@@ -218,7 +234,7 @@ TEST_F(MixingTest, FourChannelsWithOnlyThreeMixed) {
   const int16_t kInputValue = 1000;
   const int16_t kExpectedOutput = kInputValue * 3;
   RunMixingTest(4, 0, 4, false, kInputValue, 1.1 * kExpectedOutput,
-                0.9 * kExpectedOutput);
+                0.9 * kExpectedOutput, kCodecL16);
 }
 
 
@@ -231,7 +247,7 @@ TEST_F(MixingTest, VerifySaturationProtection) {
   ASSERT_GT(kInputValue * 3, kInt16Max);
   ASSERT_LT(1.1 * kExpectedOutput, kInt16Max);
   RunMixingTest(3, 0, 3, false, kInputValue, 1.1 * kExpectedOutput,
-               0.9 * kExpectedOutput);
+               0.9 * kExpectedOutput, kCodecL16);
 }
 
 TEST_F(MixingTest, SaturationProtectionHasNoEffectOnOneChannel) {
@@ -241,21 +257,21 @@ TEST_F(MixingTest, SaturationProtectionHasNoEffectOnOneChannel) {
   ASSERT_GT(0.95 * kExpectedOutput, kLimiterHeadroom);
   
   RunMixingTest(1, 0, 1, false, kInputValue, kExpectedOutput,
-                0.95 * kExpectedOutput);
+                0.95 * kExpectedOutput, kCodecL16);
 }
 
 TEST_F(MixingTest, VerifyAnonymousAndNormalParticipantMixing) {
   const int16_t kInputValue = 1000;
   const int16_t kExpectedOutput = kInputValue * 2;
   RunMixingTest(1, 1, 1, false, kInputValue, 1.1 * kExpectedOutput,
-                0.9 * kExpectedOutput);
+                0.9 * kExpectedOutput, kCodecL16);
 }
 
 TEST_F(MixingTest, AnonymousParticipantsAreAlwaysMixed) {
   const int16_t kInputValue = 1000;
   const int16_t kExpectedOutput = kInputValue * 4;
   RunMixingTest(3, 1, 3, false, kInputValue, 1.1 * kExpectedOutput,
-                0.9 * kExpectedOutput);
+                0.9 * kExpectedOutput, kCodecL16);
 }
 
 TEST_F(MixingTest, VerifyStereoAndMonoMixing) {
@@ -263,7 +279,7 @@ TEST_F(MixingTest, VerifyStereoAndMonoMixing) {
   const int16_t kExpectedOutput = kInputValue * 2;
   RunMixingTest(2, 0, 1, false, kInputValue, 1.1 * kExpectedOutput,
                 
-                0.8 * kExpectedOutput);
+                0.8 * kExpectedOutput, kCodecL16);
 }
 
 }  

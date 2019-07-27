@@ -77,8 +77,7 @@ class ViEInputManager : private ViEManagerBase {
   int CreateExternalCaptureDevice(ViEExternalCapture*& external_capture,
                                   int& capture_id);
   int DestroyCaptureDevice(int capture_id);
- protected:
-  VideoCaptureModule::DeviceInfo* GetDeviceInfo();
+
  private:
   
   bool GetFreeCaptureId(int* freecapture_id);

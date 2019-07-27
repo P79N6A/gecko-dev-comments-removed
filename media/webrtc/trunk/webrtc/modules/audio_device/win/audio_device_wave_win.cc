@@ -428,7 +428,7 @@ DWORD AudioDeviceWindowsWave::DoGetCaptureVolumeThread()
             default:            
                 WEBRTC_TRACE(kTraceWarning, kTraceAudioDevice, _id,
                     "  unknown wait termination on get volume thread");
-                return -1;
+                return 1;
         }
 
         if (AGC())
@@ -464,7 +464,7 @@ DWORD AudioDeviceWindowsWave::DoSetCaptureVolumeThread()
             default:                
                 WEBRTC_TRACE(kTraceWarning, kTraceAudioDevice, _id,
                     "  unknown wait termination on set volume thread");
-                return -1;
+                return 1;
         }
 
         _critSect.Enter();
@@ -487,33 +487,6 @@ DWORD AudioDeviceWindowsWave::DoSetCaptureVolumeThread()
 bool AudioDeviceWindowsWave::Initialized() const
 {
     return (_initialized);
-}
-
-
-
-
-
-int32_t AudioDeviceWindowsWave::SpeakerIsAvailable(bool& available)
-{
-
-    
-    
-    
-    if (InitSpeaker() == -1)
-    {
-        available = false;
-        return 0;
-    }
-
-    
-    
-    available = true;
-
-    
-    
-    _mixerManager.CloseSpeaker();
-
-    return 0;
 }
 
 
@@ -550,33 +523,6 @@ int32_t AudioDeviceWindowsWave::InitSpeaker()
             return -1;
         }
     }
-
-    return 0;
-}
-
-
-
-
-
-int32_t AudioDeviceWindowsWave::MicrophoneIsAvailable(bool& available)
-{
-
-    
-    
-    
-    if (InitMicrophone() == -1)
-    {
-        available = false;
-        return 0;
-    }
-
-    
-    
-    available = true;
-
-    
-    
-    _mixerManager.CloseMicrophone();
 
     return 0;
 }
@@ -3364,7 +3310,7 @@ int32_t AudioDeviceWindowsWave::RecProc(LONGLONG& consumedTime)
         _sndCardPlayDelay = msecOnPlaySide;
         _sndCardRecDelay = msecOnRecordSide;
 
-        LARGE_INTEGER t1,t2;
+        LARGE_INTEGER t1={0},t2={0};
 
         if (send)
         {

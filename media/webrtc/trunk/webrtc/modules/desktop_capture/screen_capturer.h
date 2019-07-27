@@ -21,7 +21,6 @@
 namespace webrtc {
 
 class DesktopCaptureOptions;
-struct MouseCursorShape;
 
 
 
@@ -52,17 +51,7 @@ class ScreenCapturer : public DesktopCapturer {
 
   
   
-  
-  
-  
   class MouseShapeObserver {
-   public:
-    
-    
-    virtual void OnCursorShapeChanged(MouseCursorShape* cursor_shape) = 0;
-
-   protected:
-    virtual ~MouseShapeObserver() {}
   };
 
   virtual ~ScreenCapturer() {}
@@ -87,7 +76,7 @@ class ScreenCapturer : public DesktopCapturer {
   
   
   virtual void SetMouseShapeObserver(
-      MouseShapeObserver* mouse_shape_observer) = 0;
+      MouseShapeObserver* mouse_shape_observer) {};
 
   
   

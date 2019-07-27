@@ -43,7 +43,7 @@ class VoiceEngine;
 class WEBRTC_DLLEXPORT VoEDtmf
 {
 public:
-    
+
     
     
     
@@ -60,23 +60,16 @@ public:
                                    bool outOfBand = true, int lengthMs = 160,
                                    int attenuationDb = 10) = 0;
 
-   
+
     
     
     virtual int SetSendTelephoneEventPayloadType(int channel,
                                                  unsigned char type) = 0;
 
-  
+
     
     virtual int GetSendTelephoneEventPayloadType(int channel,
                                                  unsigned char& type) = 0;
-
-    
-    
-    virtual int SetDtmfPlayoutStatus(int channel, bool enable) = 0;
-
-    
-    virtual int GetDtmfPlayoutStatus(int channel, bool& enabled) = 0;
 
     
     
@@ -91,13 +84,9 @@ public:
                              int attenuationDb = 10) = 0;
 
     
-    
-    
     virtual int StartPlayingDtmfTone(int eventCode,
-                                     int attenuationDb = 10) = 0;
-
-    
-    virtual int StopPlayingDtmfTone() = 0;
+        int attenuationDb = 10) { return -1; }
+    virtual int StopPlayingDtmfTone() { return -1; }
 
 protected:
     VoEDtmf() {}

@@ -89,12 +89,12 @@ class VideoProcessingModule : public Module {
   
 
 
-  virtual int32_t TimeUntilNextProcess() { return -1; }
+  virtual int32_t TimeUntilNextProcess() OVERRIDE { return -1; }
 
   
 
 
-  virtual int32_t Process() { return -1; }
+  virtual int32_t Process() OVERRIDE { return -1; }
 
   
 
@@ -185,17 +185,6 @@ class VideoProcessingModule : public Module {
 
 
 
-  virtual int32_t Denoising(I420VideoFrame* frame) = 0;
-
-  
-
-
-
-
-
-
-
-
 
 
 
@@ -234,14 +223,6 @@ class VideoProcessingModule : public Module {
   virtual int32_t SetTargetResolution(uint32_t width,
                                       uint32_t height,
                                       uint32_t frame_rate) = 0;
-
-  
-
-
-
-
-
-  virtual int32_t SetMaxFramerate(uint32_t max_frame_rate) = 0;
 
   
 

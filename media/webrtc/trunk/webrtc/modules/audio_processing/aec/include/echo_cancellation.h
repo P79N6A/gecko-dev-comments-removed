@@ -124,7 +124,7 @@ int32_t WebRtcAec_Init(void* aecInst, int32_t sampFreq, int32_t scSampFreq);
 
 
 int32_t WebRtcAec_BufferFarend(void* aecInst,
-                               const int16_t* farend,
+                               const float* farend,
                                int16_t nrOfSamples);
 
 
@@ -154,10 +154,10 @@ int32_t WebRtcAec_BufferFarend(void* aecInst,
 
 
 int32_t WebRtcAec_Process(void* aecInst,
-                          const int16_t* nearend,
-                          const int16_t* nearendH,
-                          int16_t* out,
-                          int16_t* outH,
+                          const float* nearend,
+                          const float* nearendH,
+                          float* out,
+                          float* outH,
                           int16_t nrOfSamples,
                           int16_t msInSndCardBuf,
                           int32_t skew);

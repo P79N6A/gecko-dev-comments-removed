@@ -28,6 +28,10 @@
 namespace webrtc {
 
 
+
+static const int kMaxMonoDataSizeSamples = 1920;
+
+
 enum { kMinVolumeLevel = 0 };
 enum { kMaxVolumeLevel = 255 };
 
@@ -122,26 +126,6 @@ enum { kVoiceEngineMinRtpExtensionId = 1 };
 enum { kVoiceEngineMaxRtpExtensionId = 14 };
 
 }  
-
-
-
-
-
-#if defined(_DEBUG)
-#define BUILDMODE "d"
-#elif defined(DEBUG)
-#define BUILDMODE "d"
-#elif defined(NDEBUG)
-#define BUILDMODE "r"
-#else
-#define BUILDMODE "?"
-#endif
-
-#define BUILDTIME __TIME__
-#define BUILDDATE __DATE__
-
-
-#define BUILDINFO BUILDDATE " " BUILDTIME " " BUILDMODE
 
 
 
@@ -279,47 +263,14 @@ inline int VoEChannelId(int moduleId)
 
 #define WEBRTC_VOICE_ENGINE_DEFAULT_DEVICE 0
 
-#ifdef ANDROID
-
-
-
-
-
-  
-  #undef WEBRTC_CODEC_ISAC
-  
-  
-  
-  
-
-  
-  
-  
-  #define ANDROID_NOT_SUPPORTED(stat)
-
-
-#else 
-
-
-
-
-
-  #define ANDROID_NOT_SUPPORTED(stat)
-
-#endif 
-
-#else
-#define ANDROID_NOT_SUPPORTED(stat)
 #endif  
 
 
 
 
-#if defined(WEBRTC_BSD) || defined(WEBRTC_MAC)
+#ifdef WEBRTC_MAC
 
-#if !defined(WEBRTC_BSD)
 #include <AudioUnit/AudioUnit.h>
-#endif
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -335,14 +286,13 @@ inline int VoEChannelId(int moduleId)
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
-#if !defined(WEBRTC_BSD) && !defined(WEBRTC_IOS)
+#if !defined(WEBRTC_IOS)
   #include <CoreServices/CoreServices.h>
   #include <CoreAudio/CoreAudio.h>
   #include <AudioToolbox/DefaultAudioOutput.h>
   #include <AudioToolbox/AudioConverter.h>
   #include <CoreAudio/HostTime.h>
 #endif
-
 
 #define DWORD unsigned long int
 #define WINAPI
@@ -369,35 +319,6 @@ inline int VoEChannelId(int moduleId)
 
 
 #define WEBRTC_VOICE_ENGINE_DEFAULT_DEVICE 0
-
-
-#if defined(WEBRTC_IOS)
-
-
-
-
-
-  
-  #undef WEBRTC_CODEC_ISAC
-  #undef WEBRTC_VOE_EXTERNAL_REC_AND_PLAYOUT
-
-  #define IPHONE_NOT_SUPPORTED(stat) NOT_SUPPORTED(stat)
-
-#else 
-
-
-
-
-
-
-
-
-
-  #define IPHONE_NOT_SUPPORTED(stat)
-#endif
-
-#else
-#define IPHONE_NOT_SUPPORTED(stat)
 #endif  
 
 #endif 

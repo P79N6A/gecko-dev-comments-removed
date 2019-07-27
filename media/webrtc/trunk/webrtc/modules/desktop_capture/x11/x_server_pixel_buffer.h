@@ -41,6 +41,9 @@ class XServerPixelBuffer {
   const DesktopSize& window_size() { return window_size_; }
 
   
+  bool IsWindowValid() const;
+
+  
   
   
   

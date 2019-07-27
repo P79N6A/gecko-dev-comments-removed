@@ -11,7 +11,7 @@
 #ifndef WEBRTC_SYSTEM_WRAPPERS_INTERFACE_RW_LOCK_WRAPPER_H_
 #define WEBRTC_SYSTEM_WRAPPERS_INTERFACE_RW_LOCK_WRAPPER_H_
 
-#include "webrtc/system_wrappers/interface/thread_annotations.h"
+#include "webrtc/base/thread_annotations.h"
 
 
 

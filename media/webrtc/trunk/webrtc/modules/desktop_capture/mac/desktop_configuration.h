@@ -60,6 +60,7 @@ struct MacDesktopConfiguration {
       CGDirectDisplayID id);
 
   
+  
   DesktopRect bounds;
 
   

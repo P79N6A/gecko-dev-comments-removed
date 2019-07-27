@@ -27,7 +27,7 @@ public:
     static void DestroyMediaFile(MediaFile* module);
 
     
-    virtual int32_t ChangeUniqueId(const int32_t id) = 0;
+    virtual int32_t ChangeUniqueId(const int32_t id) OVERRIDE = 0;
 
     
     

@@ -16,6 +16,7 @@
 #include <set>
 #include <vector>
 
+#include "webrtc/base/constructormagic.h"
 #include "webrtc/modules/interface/module_common_types.h"
 #include "webrtc/modules/video_coding/main/interface/video_coding.h"
 #include "webrtc/modules/video_coding/main/interface/video_coding_defines.h"
@@ -23,7 +24,6 @@
 #include "webrtc/modules/video_coding/main/source/inter_frame_delay.h"
 #include "webrtc/modules/video_coding/main/source/jitter_buffer_common.h"
 #include "webrtc/modules/video_coding/main/source/jitter_estimator.h"
-#include "webrtc/system_wrappers/interface/constructor_magic.h"
 #include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
 #include "webrtc/typedefs.h"
 
@@ -63,7 +63,7 @@ class FrameList
     : public std::map<uint32_t, VCMFrameBuffer*, TimestampLessThan> {
  public:
   void InsertFrame(VCMFrameBuffer* frame);
-  VCMFrameBuffer* FindFrame(uint16_t seq_num, uint32_t timestamp) const;
+  VCMFrameBuffer* FindFrame(uint32_t timestamp) const;
   VCMFrameBuffer* PopFrame(uint32_t timestamp);
   VCMFrameBuffer* Front() const;
   VCMFrameBuffer* Back() const;
@@ -77,10 +77,7 @@ class FrameList
 class VCMJitterBuffer {
  public:
   VCMJitterBuffer(Clock* clock,
-                  EventFactory* event_factory,
-                  int vcm_id,
-                  int receiver_id,
-                  bool master);
+                  EventFactory* event_factory);
   virtual ~VCMJitterBuffer();
 
   
@@ -105,6 +102,12 @@ class VCMJitterBuffer {
   
   
   int num_not_decodable_packets() const;
+
+  
+  int num_packets() const;
+
+  
+  int num_duplicated_packets() const;
 
   
   int num_discarded_packets() const;
@@ -274,13 +277,12 @@ class VCMJitterBuffer {
 
   uint16_t EstimatedLowSequenceNumber(const VCMFrameBuffer& frame) const;
 
-  int vcm_id_;
-  int receiver_id_;
+  void UpdateHistograms();
+
   Clock* clock_;
   
   bool running_;
   CriticalSectionWrapper* crit_sect_;
-  bool master_;
   
   scoped_ptr<EventWrapper> frame_event_;
   
@@ -309,6 +311,10 @@ class VCMJitterBuffer {
   int num_consecutive_old_frames_;
   
   int num_consecutive_old_packets_;
+  
+  int num_packets_;
+  
+  int num_duplicated_packets_;
   
   int num_discarded_packets_;
 

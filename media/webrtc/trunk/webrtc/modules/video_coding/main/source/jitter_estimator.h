@@ -11,17 +11,22 @@
 #ifndef WEBRTC_MODULES_VIDEO_CODING_JITTER_ESTIMATOR_H_
 #define WEBRTC_MODULES_VIDEO_CODING_JITTER_ESTIMATOR_H_
 
+#include "webrtc/base/rollingaccumulator.h"
 #include "webrtc/modules/video_coding/main/source/rtt_filter.h"
 #include "webrtc/typedefs.h"
 
 namespace webrtc
 {
 
+class Clock;
+
 class VCMJitterEstimator
 {
 public:
-    VCMJitterEstimator(int32_t vcmId = 0, int32_t receiverId = 0);
-
+    VCMJitterEstimator(const Clock* clock,
+                       int32_t vcmId = 0,
+                       int32_t receiverId = 0);
+    virtual ~VCMJitterEstimator();
     VCMJitterEstimator& operator=(const VCMJitterEstimator& rhs);
 
     
@@ -68,6 +73,8 @@ protected:
     double              _theta[2]; 
     double              _varNoise; 
 
+    virtual bool LowRateExperimentEnabled();
+
 private:
     
     
@@ -109,6 +116,8 @@ private:
     double DeviationFromExpectedDelay(int64_t frameDelayMS,
                                       int32_t deltaFSBytes) const;
 
+    double GetFrameRate() const;
+
     
     int32_t         _vcmId;
     int32_t         _receiverId;
@@ -145,8 +154,10 @@ private:
                                                  
     VCMRttFilter          _rttFilter;
 
-    enum { kStartupDelaySamples = 30 };
-    enum { kFsAccuStartupSamples = 5 };
+    rtc::RollingAccumulator<uint64_t> fps_counter_;
+    enum ExperimentFlag { kInit, kEnabled, kDisabled };
+    ExperimentFlag low_rate_experiment_;
+    const Clock* clock_;
 };
 
 }  

@@ -105,7 +105,8 @@ BOOL AudioDeviceUtilityWindows::GetOSDisplayString(LPTSTR pszOS)
 
     
     
-    if (!(bOsVersionInfoEx = GetVersionEx((OSVERSIONINFO *) &osvi)))
+    bOsVersionInfoEx = GetVersionEx((OSVERSIONINFO *) &osvi);
+    if (!bOsVersionInfoEx)
         return FALSE;
 
     

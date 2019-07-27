@@ -8,95 +8,51 @@
 
 
 
+#ifndef WEBRTC_MODULES_AUDIO_CODING_NETEQ_RTCP_H_
+#define WEBRTC_MODULES_AUDIO_CODING_NETEQ_RTCP_H_
 
+#include "webrtc/base/constructormagic.h"
+#include "webrtc/modules/audio_coding/neteq/interface/neteq.h"
+#include "webrtc/typedefs.h"
 
+namespace webrtc {
 
 
-#ifndef RTCP_H
-#define RTCP_H
+struct RTPHeader;
 
-#include "typedefs.h"
+class Rtcp {
+ public:
+  Rtcp() {
+    Init(0);
+  }
 
-typedef struct
-{
-    uint16_t cycles; 
-    uint16_t max_seq; 
+  ~Rtcp() {}
 
-    uint16_t base_seq; 
-    uint32_t received; 
-    uint32_t rec_prior; 
-    uint32_t exp_prior; 
+  
+  void Init(uint16_t start_sequence_number);
 
-    uint32_t jitter; 
-    int32_t transit; 
-} WebRtcNetEQ_RTCP_t;
+  
+  void Update(const RTPHeader& rtp_header, uint32_t receive_timestamp);
 
+  
+  
+  void GetStatistics(bool no_reset, RtcpStatistics* stats);
 
+ private:
+  uint16_t cycles_;  
+  uint16_t max_seq_no_;  
+                         
+  uint16_t base_seq_no_;  
+  uint32_t received_packets_;  
+  uint32_t received_packets_prior_;  
+                                     
+  uint32_t expected_prior_;  
+                             
+  uint32_t jitter_;  
+  int32_t transit_;  
 
+  DISALLOW_COPY_AND_ASSIGN(Rtcp);
+};
 
-
-
-
-
-
-
-
-
-
-
-
-
-int WebRtcNetEQ_RTCPInit(WebRtcNetEQ_RTCP_t *RTCP_inst, uint16_t uw16_seqNo);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-int WebRtcNetEQ_RTCPUpdate(WebRtcNetEQ_RTCP_t *RTCP_inst, uint16_t uw16_seqNo,
-                           uint32_t uw32_timeStamp, uint32_t uw32_recTime);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-int WebRtcNetEQ_RTCPGetStats(WebRtcNetEQ_RTCP_t *RTCP_inst,
-                             uint16_t *puw16_fraction_lost,
-                             uint32_t *puw32_cum_lost, uint32_t *puw32_ext_max,
-                             uint32_t *puw32_jitter, int16_t doNotReset);
-
-#endif
+}  
+#endif  

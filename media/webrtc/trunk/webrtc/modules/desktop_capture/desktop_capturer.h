@@ -13,6 +13,8 @@
 
 #include <stddef.h>
 
+#include "webrtc/modules/desktop_capture/desktop_capture_types.h"
+
 namespace webrtc {
 
 class DesktopFrame;
@@ -52,6 +54,11 @@ class DesktopCapturer {
   
   
   virtual void Capture(const DesktopRegion& region) = 0;
+
+  
+  
+  
+  virtual void SetExcludedWindow(WindowId window) {}
 };
 
 }  

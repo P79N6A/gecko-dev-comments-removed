@@ -38,9 +38,12 @@ class ExternalRenderer {
   virtual int DeliverFrame(unsigned char* buffer,
                            int buffer_size,
                            
-                           uint32_t time_stamp,
+                           uint32_t timestamp,
                            
-                           int64_t render_time,
+                           
+                           int64_t ntp_time_ms,
+                           
+                           int64_t render_time_ms,
                            
                            void* handle) = 0;
 

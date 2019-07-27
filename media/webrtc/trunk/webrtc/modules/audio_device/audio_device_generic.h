@@ -76,10 +76,8 @@ class AudioDeviceGeneric
                                   uint16_t& volumeRight) const = 0;
 
 	
-	virtual int32_t SpeakerIsAvailable(bool& available) = 0;
     virtual int32_t InitSpeaker() = 0;
     virtual bool SpeakerIsInitialized() const = 0;
-	virtual int32_t MicrophoneIsAvailable(bool& available) = 0;
     virtual int32_t InitMicrophone() = 0;
     virtual bool MicrophoneIsInitialized() const = 0;
 
@@ -137,7 +135,7 @@ class AudioDeviceGeneric
 
     
     virtual int32_t CPULoad(uint16_t& load) const = 0;
-    
+
     
 	virtual int32_t SetRecordingSampleRate(
         const uint32_t samplesPerSec);
@@ -147,7 +145,7 @@ class AudioDeviceGeneric
     
     virtual int32_t SetLoudspeakerStatus(bool enable);
     virtual int32_t GetLoudspeakerStatus(bool& enable) const;
-    
+
     
     virtual int32_t ResetAudioDevice();
 

@@ -31,31 +31,39 @@ enum RtcpMode { kRtcpCompound, kRtcpReducedSize };
 
 class VideoDecoder;
 
-
-
-struct ExternalVideoDecoder {
-  ExternalVideoDecoder()
-      : decoder(NULL), payload_type(0), renderer(false), expected_delay_ms(0) {}
-  
-  VideoDecoder* decoder;
-
-  
-  
-  int payload_type;
-
-  
-  bool renderer;
-
-  
-  
-  
-  
-  int expected_delay_ms;
-};
-
 class VideoReceiveStream {
  public:
-  struct Stats : public StreamStats {
+  
+  
+  struct Decoder {
+    Decoder()
+        : decoder(NULL),
+          payload_type(0),
+          renderer(false),
+          expected_delay_ms(0) {}
+
+    
+    VideoDecoder* decoder;
+
+    
+    
+    int payload_type;
+
+    
+    
+    std::string payload_name;
+
+    
+    bool renderer;
+
+    
+    
+    
+    
+    int expected_delay_ms;
+  };
+
+  struct Stats : public SsrcStats {
     Stats()
         : network_frame_rate(0),
           decode_frame_rate(0),
@@ -68,7 +76,7 @@ class VideoReceiveStream {
     int decode_frame_rate;
     int render_frame_rate;
     int avg_delay_ms;
-    uint32_t discarded_packets;
+    int discarded_packets;
     uint32_t ssrc;
     std::string c_name;
   };
@@ -77,12 +85,13 @@ class VideoReceiveStream {
     Config()
         : renderer(NULL),
           render_delay_ms(0),
-          audio_channel_id(0),
+          audio_channel_id(-1),
           pre_decode_callback(NULL),
           pre_render_callback(NULL),
           target_delay_ms(0) {}
+
     
-    std::vector<VideoCodec> codecs;
+    std::vector<Decoder> decoders;
 
     
     struct Rtp {
@@ -90,7 +99,7 @@ class VideoReceiveStream {
           : remote_ssrc(0),
             local_ssrc(0),
             rtcp_mode(newapi::kRtcpReducedSize),
-            remb(false) {}
+            remb(true) {}
 
       
       uint32_t remote_ssrc;
@@ -164,19 +173,14 @@ class VideoReceiveStream {
 
     
     
-    std::vector<ExternalVideoDecoder> external_decoders;
-
-    
-    
     int target_delay_ms;
   };
 
-  virtual void StartReceiving() = 0;
-  virtual void StopReceiving() = 0;
-  virtual Stats GetStats() const = 0;
+  virtual void Start() = 0;
+  virtual void Stop() = 0;
 
   
-  virtual void GetCurrentReceiveCodec(VideoCodec* receive_codec) = 0;
+  virtual Stats GetStats() const = 0;
 
  protected:
   virtual ~VideoReceiveStream() {}

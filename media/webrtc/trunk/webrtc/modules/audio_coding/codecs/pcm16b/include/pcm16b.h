@@ -14,7 +14,7 @@
 
 
 
-#include "typedefs.h"
+#include "webrtc/typedefs.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,9 +35,9 @@ extern "C" {
 
 
 
-int16_t WebRtcPcm16b_EncodeW16(int16_t *speechIn16b,
-                               int16_t len,
-                               int16_t *speechOut16b);
+int16_t WebRtcPcm16b_EncodeW16(const int16_t* speechIn16b,
+                               int16_t length_samples,
+                               int16_t* speechOut16b);
 
 
 
@@ -73,9 +73,8 @@ int16_t WebRtcPcm16b_Encode(int16_t *speech16b,
 
 
 
-int16_t WebRtcPcm16b_DecodeW16(void *inst,
-                               int16_t *speechIn16b,
-                               int16_t len,
+int16_t WebRtcPcm16b_DecodeW16(int16_t *speechIn16b,
+                               int16_t length_bytes,
                                int16_t *speechOut16b,
                                int16_t* speechType);
 

@@ -8,6 +8,8 @@
 
 
 
+#include <assert.h>
+
 #include "webrtc/modules/audio_processing/ns/include/noise_suppression_x.h"
 #include "webrtc/modules/audio_processing/ns/nsx_core.h"
 
@@ -74,6 +76,7 @@ void WebRtcNsx_SpeechNoiseProb(NsxInst_t* inst,
       "sra        %[r7],    %[r7],    19                  \n\t"
       "movz       %[r3],    %[r8],    %[r6]               \n\t"
       "subu       %[r0],    %[r0],    %[r3]               \n\t"
+      "movn       %[r0],    $0,       %[r6]               \n\t"
       "mul        %[r1],    %[r1],    %[const_5412]       \n\t"
       "sra        %[r1],    %[r1],    12                  \n\t"
       "addu       %[r7],    %[r7],    %[r1]               \n\t"
@@ -102,9 +105,9 @@ void WebRtcNsx_SpeechNoiseProb(NsxInst_t* inst,
     logLrtTimeAvgKsumFX += r2;
   }
 
-  inst->featureLogLrt = WEBRTC_SPL_RSHIFT_W32(logLrtTimeAvgKsumFX * 5,
-                                              inst->stages + 10);
-                                                  
+  inst->featureLogLrt = (logLrtTimeAvgKsumFX * BIN_SIZE_LRT) >>
+      (inst->stages + 11);
+
   
 
   
@@ -127,7 +130,7 @@ void WebRtcNsx_SpeechNoiseProb(NsxInst_t* inst,
   }
   tmp32no1 = WEBRTC_SPL_SHIFT_W32(tmp32no1, nShifts); 
   
-  tableIndex = (int16_t)WEBRTC_SPL_RSHIFT_W32(tmp32no1, 14);
+  tableIndex = (int16_t)(tmp32no1 >> 14);
   if ((tableIndex < 16) && (tableIndex >= 0)) {
     tmp16no2 = kIndicatorTable[tableIndex];
     tmp16no1 = kIndicatorTable[tableIndex + 1] - kIndicatorTable[tableIndex];
@@ -154,16 +157,12 @@ void WebRtcNsx_SpeechNoiseProb(NsxInst_t* inst,
       
       nShifts++;
     }
-    tmp32no1 = (int32_t)WebRtcSpl_DivU32U16(WEBRTC_SPL_LSHIFT_U32(tmpU32no2,
-                                                                  nShifts), 25);
-                                                     
-    tmpU32no1 = WebRtcSpl_DivU32U16(WEBRTC_SPL_LSHIFT_U32(tmpU32no2, nShifts),
-                                    25); 
+    tmpU32no1 = WebRtcSpl_DivU32U16(tmpU32no2 << nShifts, 25);  
     
     
     
     
-    tableIndex = (int16_t)WEBRTC_SPL_RSHIFT_U32(tmpU32no1, 14);
+    tableIndex = (int16_t)(tmpU32no1 >> 14);
     if (tableIndex < 16) {
       tmp16no2 = kIndicatorTable[tableIndex];
       tmp16no1 = kIndicatorTable[tableIndex + 1] - kIndicatorTable[tableIndex];
@@ -184,20 +183,17 @@ void WebRtcNsx_SpeechNoiseProb(NsxInst_t* inst,
     if (inst->featureSpecDiff) {
       normTmp = WEBRTC_SPL_MIN(20 - inst->stages,
                                WebRtcSpl_NormU32(inst->featureSpecDiff));
-      tmpU32no1 = WEBRTC_SPL_LSHIFT_U32(inst->featureSpecDiff, normTmp);
-                                                         
-      tmpU32no2 = WEBRTC_SPL_RSHIFT_U32(inst->timeAvgMagnEnergy,
-                                        20 - inst->stages - normTmp);
+      assert(normTmp >= 0);
+      tmpU32no1 = inst->featureSpecDiff << normTmp;  
+      tmpU32no2 = inst->timeAvgMagnEnergy >> (20 - inst->stages - normTmp);
       if (tmpU32no2 > 0) {
         
-        tmpU32no1 = WEBRTC_SPL_UDIV(tmpU32no1, tmpU32no2);
+        tmpU32no1 /= tmpU32no2;
       } else {
         tmpU32no1 = (uint32_t)(0x7fffffff);
       }
     }
-    tmpU32no3 = WEBRTC_SPL_UDIV(WEBRTC_SPL_LSHIFT_U32(inst->thresholdSpecDiff,
-                                                      17),
-                                25);
+    tmpU32no3 = (inst->thresholdSpecDiff << 17) / 25;
     tmpU32no2 = tmpU32no1 - tmpU32no3;
     nShifts = 1;
     tmpIndFX = 16384; 
@@ -208,12 +204,12 @@ void WebRtcNsx_SpeechNoiseProb(NsxInst_t* inst,
       
       nShifts--;
     }
-    tmpU32no1 = WEBRTC_SPL_RSHIFT_U32(tmpU32no2, nShifts);
+    tmpU32no1 = tmpU32no2 >> nShifts;
     
     
 
 
-    tableIndex = (int16_t)WEBRTC_SPL_RSHIFT_U32(tmpU32no1, 14);
+    tableIndex = (int16_t)(tmpU32no1 >> 14);
     if (tableIndex < 16) {
       tmp16no2 = kIndicatorTable[tableIndex];
       tmp16no1 = kIndicatorTable[tableIndex + 1] - kIndicatorTable[tableIndex];

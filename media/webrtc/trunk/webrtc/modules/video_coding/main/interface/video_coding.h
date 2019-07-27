@@ -72,11 +72,9 @@ public:
         kReferenceSelection
     };
 
-    static VideoCodingModule* Create(const int32_t id);
+    static VideoCodingModule* Create();
 
-    static VideoCodingModule* Create(const int32_t id,
-                                     Clock* clock,
-                                     EventFactory* event_factory);
+    static VideoCodingModule* Create(Clock* clock, EventFactory* event_factory);
 
     static void Destroy(VideoCodingModule* module);
 
@@ -419,19 +417,6 @@ public:
     
     
     
-    
-    
-    
-    
-    virtual int32_t RegisterReceiveStateCallback(
-                                  VCMReceiveStateCallback* callback) = 0;
-
-    
-    
-    
-    
-    
-    
     virtual int32_t Decode(uint16_t maxWaitTimeMs = 200) = 0;
 
     
@@ -599,9 +584,6 @@ public:
     
     
     virtual int SetMinReceiverDelay(int desired_delay_ms) = 0;
-
-    
-    virtual void SetCPULoadState(CPULoadState state) = 0;
 
     
     virtual int StartDebugRecording(const char* file_name_utf8) = 0;

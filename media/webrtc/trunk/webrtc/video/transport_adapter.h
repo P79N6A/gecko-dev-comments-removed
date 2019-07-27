@@ -7,8 +7,8 @@
 
 
 
-#ifndef WEBRTC_VIDEO_ENGINE_INTERNAL_TRANSPORT_ADAPTER_H_
-#define WEBRTC_VIDEO_ENGINE_INTERNAL_TRANSPORT_ADAPTER_H_
+#ifndef WEBRTC_VIDEO_TRANSPORT_ADAPTER_H_
+#define WEBRTC_VIDEO_TRANSPORT_ADAPTER_H_
 
 #include "webrtc/common_types.h"
 #include "webrtc/system_wrappers/interface/atomic32.h"
@@ -21,10 +21,12 @@ class TransportAdapter : public webrtc::Transport {
  public:
   explicit TransportAdapter(newapi::Transport* transport);
 
-  virtual int SendPacket(int , const void* packet, int length)
-      OVERRIDE;
-  virtual int SendRTCPPacket(int , const void* packet, int length)
-      OVERRIDE;
+  virtual int SendPacket(int ,
+                         const void* packet,
+                         int length) OVERRIDE;
+  virtual int SendRTCPPacket(int ,
+                             const void* packet,
+                             int length) OVERRIDE;
 
   void Enable();
   void Disable();

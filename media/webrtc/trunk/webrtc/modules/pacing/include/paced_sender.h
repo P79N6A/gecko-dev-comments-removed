@@ -8,23 +8,26 @@
 
 
 
-#ifndef WEBRTC_MODULES_PACED_SENDER_H_
-#define WEBRTC_MODULES_PACED_SENDER_H_
+#ifndef WEBRTC_MODULES_PACING_INCLUDE_PACED_SENDER_H_
+#define WEBRTC_MODULES_PACING_INCLUDE_PACED_SENDER_H_
 
 #include <list>
 #include <set>
 
+#include "webrtc/base/thread_annotations.h"
 #include "webrtc/modules/interface/module.h"
 #include "webrtc/system_wrappers/interface/scoped_ptr.h"
-#include "webrtc/system_wrappers/interface/tick_util.h"
 #include "webrtc/typedefs.h"
 
 namespace webrtc {
+class BitrateProber;
+class Clock;
 class CriticalSectionWrapper;
+
 namespace paced_sender {
 class IntervalBudget;
 struct Packet;
-class PacketList;
+class PacketQueue;
 }  
 
 class PacedSender : public Module {
@@ -48,15 +51,28 @@ class PacedSender : public Module {
                                   int64_t capture_time_ms,
                                   bool retransmission) = 0;
     
+    
     virtual int TimeToSendPadding(int bytes) = 0;
+
    protected:
     virtual ~Callback() {}
   };
 
   static const int kDefaultMaxQueueLengthMs = 2000;
+  
+  static const int kDefaultInitialPaceKbps = 2000;
+  
+  
+  
+  
+  
+  static const float kDefaultPaceMultiplier;
 
-  PacedSender(Callback* callback, int target_bitrate_kbps,
-              float pace_multiplier);
+  PacedSender(Clock* clock,
+              Callback* callback,
+              int bitrate_kbps,
+              int max_bitrate_kbps,
+              int min_bitrate_kbps);
 
   virtual ~PacedSender();
 
@@ -75,9 +91,10 @@ class PacedSender : public Module {
   
   
   
-  void UpdateBitrate(int target_bitrate_kbps,
-                     int max_padding_bitrate_kbps,
-                     int pad_up_to_bitrate_kbps);
+  
+  void UpdateBitrate(int bitrate_kbps,
+                     int max_bitrate_kbps,
+                     int min_bitrate_kbps);
 
   
   
@@ -89,11 +106,13 @@ class PacedSender : public Module {
                           bool retransmission);
 
   
-  
-  virtual void set_max_queue_length_ms(int max_queue_length_ms);
+  virtual int QueueInMs() const;
+
+  virtual size_t QueueSizePackets() const;
 
   
-  virtual int QueueInMs() const;
+  
+  virtual int ExpectedQueueTimeMs() const;
 
   
   
@@ -102,47 +121,40 @@ class PacedSender : public Module {
   
   virtual int32_t Process() OVERRIDE;
 
+ protected:
+  virtual bool ProbingExperimentIsEnabled() const;
+
  private:
   
-  
-  bool ShouldSendNextPacket(paced_sender::PacketList** packet_list);
+  void UpdateBytesPerInterval(uint32_t delta_time_in_ms)
+      EXCLUSIVE_LOCKS_REQUIRED(critsect_);
 
-  
-  paced_sender::Packet GetNextPacketFromList(paced_sender::PacketList* packets);
+  bool SendPacket(const paced_sender::Packet& packet)
+      EXCLUSIVE_LOCKS_REQUIRED(critsect_);
+  void SendPadding(int padding_needed) EXCLUSIVE_LOCKS_REQUIRED(critsect_);
 
-  bool SendPacketFromList(paced_sender::PacketList* packet_list);
+  Clock* const clock_;
+  Callback* const callback_;
 
-  
-  void UpdateBytesPerInterval(uint32_t delta_time_in_ms);
-
-  
-  void UpdateMediaBytesSent(int num_bytes);
-
-  Callback* callback_;
-  const float pace_multiplier_;
-  bool enabled_;
-  bool paused_;
-  int max_queue_length_ms_;
   scoped_ptr<CriticalSectionWrapper> critsect_;
+  bool enabled_ GUARDED_BY(critsect_);
+  bool paused_ GUARDED_BY(critsect_);
   
   
-  scoped_ptr<paced_sender::IntervalBudget> media_budget_;
-  
-  
-  scoped_ptr<paced_sender::IntervalBudget> padding_budget_;
+  scoped_ptr<paced_sender::IntervalBudget> media_budget_ GUARDED_BY(critsect_);
   
   
   
-  scoped_ptr<paced_sender::IntervalBudget> pad_up_to_bitrate_budget_;
+  scoped_ptr<paced_sender::IntervalBudget> padding_budget_
+      GUARDED_BY(critsect_);
 
-  TickTime time_last_update_;
-  TickTime time_last_send_;
-  int64_t capture_time_ms_last_queued_;
-  int64_t capture_time_ms_last_sent_;
+  scoped_ptr<BitrateProber> prober_ GUARDED_BY(critsect_);
+  int bitrate_bps_ GUARDED_BY(critsect_);
 
-  scoped_ptr<paced_sender::PacketList> high_priority_packets_;
-  scoped_ptr<paced_sender::PacketList> normal_priority_packets_;
-  scoped_ptr<paced_sender::PacketList> low_priority_packets_;
+  int64_t time_last_update_us_ GUARDED_BY(critsect_);
+
+  scoped_ptr<paced_sender::PacketQueue> packets_ GUARDED_BY(critsect_);
+  uint64_t packet_counter_ GUARDED_BY(critsect_);
 };
 }  
 #endif

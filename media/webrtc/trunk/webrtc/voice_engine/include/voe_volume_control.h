@@ -63,12 +63,6 @@ public:
     virtual int GetSpeakerVolume(unsigned int& volume) = 0;
 
     
-    virtual int SetSystemOutputMute(bool enable) = 0;
-
-    
-    virtual int GetSystemOutputMute(bool &enabled) = 0;
-
-    
     virtual int SetMicVolume(unsigned int volume) = 0;
 
     
@@ -80,12 +74,6 @@ public:
 
     
     virtual int GetInputMute(int channel, bool& enabled) = 0;
-
-    
-    virtual int SetSystemInputMute(bool enable) = 0;
-
-    
-    virtual int GetSystemInputMute(bool& enabled) = 0;
 
     
     
@@ -117,9 +105,15 @@ public:
     
     virtual int GetOutputVolumePan(int channel, float& left, float& right) = 0;
 
+    
+    virtual int SetSystemOutputMute(bool enable) { return -1; }
+    virtual int GetSystemOutputMute(bool &enabled) { return -1; }
+    virtual int SetSystemInputMute(bool enable) { return -1; }
+    virtual int GetSystemInputMute(bool& enabled) { return -1; }
+
 protected:
-    VoEVolumeControl() {}
-    virtual ~VoEVolumeControl() {}
+    VoEVolumeControl() {};
+    virtual ~VoEVolumeControl() {};
 };
 
 }  

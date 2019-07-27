@@ -14,8 +14,11 @@
 #include <vector>
 
 #include "webrtc/common_types.h"
+#include "webrtc/modules/audio_coding/main/acm2/acm_codec_database.h"
 #include "webrtc/modules/audio_coding/main/interface/audio_coding_module_typedefs.h"
+#include "webrtc/modules/audio_coding/neteq/interface/neteq.h"
 #include "webrtc/modules/interface/module.h"
+#include "webrtc/system_wrappers/interface/clock.h"
 #include "webrtc/typedefs.h"
 
 namespace webrtc {
@@ -25,7 +28,6 @@ struct CodecInst;
 struct WebRtcRTPHeader;
 class AudioFrame;
 class RTPFragmentationHeader;
-class Clock;
 
 #define WEBRTC_10MS_PCM_AUDIO 960  // 16 bits super wideband 48 kHz
 
@@ -73,15 +75,22 @@ class ACMVQMonCallback {
       const uint16_t delayMS) = 0;  
 };
 
-
-extern const char kLegacyAcmVersion[];
-extern const char kExperimentalAcmVersion[];
-
 class AudioCodingModule: public Module {
  protected:
   AudioCodingModule() {}
 
  public:
+  struct Config {
+    Config()
+        : id(0),
+          neteq_config(),
+          clock(Clock::GetRealTimeClock()) {}
+
+    int id;
+    NetEq::Config neteq_config;
+    Clock* clock;
+  };
+
   
   
   
@@ -177,11 +186,6 @@ class AudioCodingModule: public Module {
   
   
   static bool IsCodecValid(const CodecInst& codec);
-
-  
-  
-  
-  virtual const char* Version() const = 0;
 
   
   
@@ -327,6 +331,7 @@ class AudioCodingModule: public Module {
   
   
   
+  
   virtual int32_t SetReceivedEstimatedBandwidth(
       const int32_t bw) = 0;
 
@@ -393,9 +398,7 @@ class AudioCodingModule: public Module {
   
   
   
-  
-  
-  virtual int32_t SetFECStatus(const bool enable_fec) = 0;
+  virtual int32_t SetREDStatus(bool enable_red) = 0;
 
   
   
@@ -405,7 +408,51 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual bool FECStatus() const = 0;
+  virtual bool REDStatus() const = 0;
+
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  virtual int SetCodecFEC(bool enable_codec_fec) = 0;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  virtual bool CodecFEC() const = 0;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  virtual int SetPacketLossRate(int packet_loss_rate) = 0;
 
   
   
@@ -872,6 +919,22 @@ class AudioCodingModule: public Module {
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  virtual int SetOpusMaxPlaybackRate(int frequency_hz) = 0;
+
+  
+  
+  
 
   
   
@@ -936,18 +999,184 @@ class AudioCodingModule: public Module {
       AudioDecodingCallStats* call_stats) const = 0;
 };
 
-struct AudioCodingModuleFactory {
-  AudioCodingModuleFactory() {}
-  virtual ~AudioCodingModuleFactory() {}
+class AudioEncoder;
+class ReceiverInfo;
 
-  virtual AudioCodingModule* Create(int id) const;
-};
+class AudioCoding {
+ public:
+  struct Config {
+    Config()
+        : neteq_config(),
+          clock(Clock::GetRealTimeClock()),
+          transport(NULL),
+          vad_callback(NULL),
+          play_dtmf(true),
+          initial_playout_delay_ms(0),
+          playout_channels(1),
+          playout_frequency_hz(32000) {}
 
-struct NewAudioCodingModuleFactory : AudioCodingModuleFactory {
-  NewAudioCodingModuleFactory() {}
-  virtual ~NewAudioCodingModuleFactory() {}
+    AudioCodingModule::Config ToOldConfig() const {
+      AudioCodingModule::Config old_config;
+      old_config.id = 0;
+      old_config.neteq_config = neteq_config;
+      old_config.clock = clock;
+      return old_config;
+    }
 
-  virtual AudioCodingModule* Create(int id) const;
+    NetEq::Config neteq_config;
+    Clock* clock;
+    AudioPacketizationCallback* transport;
+    ACMVADCallback* vad_callback;
+    bool play_dtmf;
+    int initial_playout_delay_ms;
+    int playout_channels;
+    int playout_frequency_hz;
+  };
+
+  static AudioCoding* Create(const Config& config);
+  virtual ~AudioCoding() {};
+
+  
+  
+  
+  
+  
+  
+  virtual bool RegisterSendCodec(AudioEncoder* send_codec) = 0;
+
+  
+  
+  virtual bool RegisterSendCodec(int encoder_type,
+                                 uint8_t payload_type,
+                                 int frame_size_samples = 0) = 0;
+
+  
+  
+  virtual const AudioEncoder* GetSenderInfo() const = 0;
+
+  
+  virtual const CodecInst* GetSenderCodecInst() = 0;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  virtual int Add10MsAudio(const AudioFrame& audio_frame) = 0;
+
+  
+  virtual const ReceiverInfo* GetReceiverInfo() const = 0;
+
+  
+  
+  
+  
+  virtual bool RegisterReceiveCodec(AudioDecoder* receive_codec) = 0;
+
+  
+  
+  virtual bool RegisterReceiveCodec(int decoder_type, uint8_t payload_type) = 0;
+
+  
+  
+  
+  
+  
+  
+  virtual bool InsertPacket(const uint8_t* incoming_payload,
+                            int32_t payload_len_bytes,
+                            const WebRtcRTPHeader& rtp_info) = 0;
+
+  
+  virtual bool InsertPayload(const uint8_t* incoming_payload,
+                             int32_t payload_len_byte,
+                             uint8_t payload_type,
+                             uint32_t timestamp) = 0;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  virtual bool SetMinimumPlayoutDelay(int time_ms) = 0;
+
+  virtual bool SetMaximumPlayoutDelay(int time_ms) = 0;
+
+  
+  
+  
+  
+  
+  
+  virtual int LeastRequiredDelayMs() const = 0;
+
+  
+  
+  
+  
+  virtual bool PlayoutTimestamp(uint32_t* timestamp) = 0;
+
+  
+  
+  virtual bool Get10MsAudio(AudioFrame* audio_frame) = 0;
+
+  
+  
+  virtual bool NetworkStatistics(ACMNetworkStatistics* network_statistics) = 0;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  virtual bool EnableNack(size_t max_nack_list_size) = 0;
+
+  
+  virtual void DisableNack() = 0;
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  virtual bool SetVad(bool enable_dtx,
+                      bool enable_vad,
+                      ACMVADMode vad_mode) = 0;
+
+  
+  
+  
+  
+  
+  
+  virtual std::vector<uint16_t> GetNackList(int round_trip_time_ms) const = 0;
+
+  
+  virtual void GetDecodingCallStatistics(
+      AudioDecodingCallStats* call_stats) const = 0;
 };
 
 }  

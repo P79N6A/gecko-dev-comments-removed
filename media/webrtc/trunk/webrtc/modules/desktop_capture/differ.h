@@ -76,7 +76,7 @@ class Differ {
   int bytes_per_row_;
 
   
-  scoped_array<DiffInfo> diff_info_;
+  scoped_ptr<DiffInfo[]> diff_info_;
 
   
   int diff_info_width_;

@@ -34,6 +34,7 @@ class DesktopAndCursorComposer : public DesktopCapturer,
   
   virtual void Start(DesktopCapturer::Callback* callback) OVERRIDE;
   virtual void Capture(const DesktopRegion& region) OVERRIDE;
+  virtual void SetExcludedWindow(WindowId window) OVERRIDE;
 
  private:
   

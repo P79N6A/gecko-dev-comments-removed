@@ -34,7 +34,6 @@ class AudioManagerJni {
   
   
   
-  static void SetAndroidAudioDeviceObjects(void* jvm, void* context);
   static void SetAndroidAudioDeviceObjects(void* jvm, void* env,
                                            void* context);
   

@@ -77,8 +77,6 @@ void ACMAMR::DestructEncoderSafe() { return; }
 
 int16_t ACMAMR::SetBitRateSafe(const int32_t ) { return -1; }
 
-void ACMAMR::InternalDestructEncoderInst(void* ) { return; }
-
 int16_t ACMAMR::SetAMREncoderPackingFormat(
     ACMAMRPackingFormat ) {
   return -1;
@@ -266,14 +264,6 @@ int16_t ACMAMR::SetBitRateSafe(const int32_t rate) {
     }
   }
   return 0;
-}
-
-void ACMAMR::InternalDestructEncoderInst(void* ptr_inst) {
-  
-  if (ptr_inst != NULL) {
-    WebRtcAmr_FreeEnc(static_cast<AMR_encinst_t_*>(ptr_inst));
-  }
-  return;
 }
 
 int16_t ACMAMR::SetAMREncoderPackingFormat(ACMAMRPackingFormat packing_format) {

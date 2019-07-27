@@ -63,14 +63,16 @@ public:
                                             const int32_t clockDrift,
                                             const uint32_t currentMicLevel,
                                             const bool keyPressed,
-                                            uint32_t& newMicLevel) = 0;   
+                                            uint32_t& newMicLevel) = 0;
 
     virtual int32_t NeedMorePlayData(const uint32_t nSamples,
                                      const uint8_t nBytesPerSample,
                                      const uint8_t nChannels,
                                      const uint32_t samplesPerSec,
                                      void* audioSamples,
-                                     uint32_t& nSamplesOut) = 0;
+                                     uint32_t& nSamplesOut,
+                                     int64_t* elapsed_time_ms,
+                                     int64_t* ntp_time_ms) = 0;
 
     
     
@@ -107,6 +109,27 @@ public:
                         int bits_per_sample, int sample_rate,
                         int number_of_channels,
                         int number_of_frames) {}
+
+    
+    
+    
+    
+    
+    
+    virtual void PushCaptureData(int voe_channel, const void* audio_data,
+                                 int bits_per_sample, int sample_rate,
+                                 int number_of_channels,
+                                 int number_of_frames) {}
+
+    
+    
+    
+    
+    virtual void PullRenderData(int bits_per_sample, int sample_rate,
+                                int number_of_channels, int number_of_frames,
+                                void* audio_data,
+                                int64_t* elapsed_time_ms,
+                                int64_t* ntp_time_ms) {}
 
 protected:
     virtual ~AudioTransport() {}

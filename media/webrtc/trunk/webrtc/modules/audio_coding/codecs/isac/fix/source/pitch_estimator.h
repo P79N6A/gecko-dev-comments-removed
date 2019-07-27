@@ -58,4 +58,8 @@ void WebRtcIsacfix_DecimateAllpass32(const int16_t *in,
                                      int16_t N,                   
                                      int16_t *out);             
 
+int32_t WebRtcIsacfix_Log2Q8( uint32_t x );
+
+void WebRtcIsacfix_PCorr2Q32(const int16_t* in, int32_t* logcorQ8);
+
 #endif 

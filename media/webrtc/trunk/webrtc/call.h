@@ -25,23 +25,30 @@ const char* Version();
 
 class PacketReceiver {
  public:
-  virtual bool DeliverPacket(const uint8_t* packet, size_t length) = 0;
+  enum DeliveryStatus {
+    DELIVERY_OK,
+    DELIVERY_UNKNOWN_SSRC,
+    DELIVERY_PACKET_ERROR,
+  };
+
+  virtual DeliveryStatus DeliverPacket(const uint8_t* packet,
+                                       size_t length) = 0;
 
  protected:
   virtual ~PacketReceiver() {}
 };
 
 
-
-class OveruseCallback {
+class LoadObserver {
  public:
+  enum Load { kOveruse, kUnderuse };
+
   
-  virtual void OnOveruse() = 0;
   
-  virtual void OnNormalUse() = 0;
+  virtual void OnLoadUpdate(Load load) = 0;
 
  protected:
-  virtual ~OveruseCallback() {}
+  virtual ~LoadObserver() {}
 };
 
 
@@ -49,14 +56,19 @@ class OveruseCallback {
 
 class Call {
  public:
+  enum NetworkState {
+    kNetworkUp,
+    kNetworkDown,
+  };
   struct Config {
     explicit Config(newapi::Transport* send_transport)
         : webrtc_config(NULL),
           send_transport(send_transport),
           voice_engine(NULL),
-          trace_callback(NULL),
-          trace_filter(kTraceDefault),
-          overuse_callback(NULL) {}
+          overuse_callback(NULL),
+          stream_start_bitrate_bps(kDefaultStartBitrateBps) {}
+
+    static const int kDefaultStartBitrateBps;
 
     webrtc::Config* webrtc_config;
 
@@ -65,12 +77,23 @@ class Call {
     
     VoiceEngine* voice_engine;
 
-    TraceCallback* trace_callback;
-    uint32_t trace_filter;
+    
+    
+    LoadObserver* overuse_callback;
 
     
     
-    OveruseCallback* overuse_callback;
+    
+    
+    int stream_start_bitrate_bps;
+  };
+
+  struct Stats {
+    Stats() : send_bandwidth_bps(0), recv_bandwidth_bps(0), pacer_delay_ms(0) {}
+
+    int send_bandwidth_bps;
+    int recv_bandwidth_bps;
+    int pacer_delay_ms;
   };
 
   static Call* Create(const Call::Config& config);
@@ -78,16 +101,11 @@ class Call {
   static Call* Create(const Call::Config& config,
                       const webrtc::Config& webrtc_config);
 
-  virtual std::vector<VideoCodec> GetVideoCodecs() = 0;
-
-  virtual VideoSendStream::Config GetDefaultSendConfig() = 0;
-
   virtual VideoSendStream* CreateVideoSendStream(
-      const VideoSendStream::Config& config) = 0;
+      const VideoSendStream::Config& config,
+      const VideoEncoderConfig& encoder_config) = 0;
 
   virtual void DestroyVideoSendStream(VideoSendStream* send_stream) = 0;
-
-  virtual VideoReceiveStream::Config GetDefaultReceiveConfig() = 0;
 
   virtual VideoReceiveStream* CreateVideoReceiveStream(
       const VideoReceiveStream::Config& config) = 0;
@@ -101,14 +119,12 @@ class Call {
 
   
   
-  virtual uint32_t SendBitrateEstimate() = 0;
+  virtual Stats GetStats() const = 0;
 
-  
-  
-  virtual uint32_t ReceiveBitrateEstimate() = 0;
+  virtual void SignalNetworkState(NetworkState state) = 0;
 
   virtual ~Call() {}
 };
 }  
 
-#endif  
+#endif

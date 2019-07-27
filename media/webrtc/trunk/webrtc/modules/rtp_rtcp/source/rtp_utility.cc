@@ -21,7 +21,7 @@
 #include <WinSock.h>  
 
 #include <MMSystem.h>  
-#elif ((defined WEBRTC_LINUX) || (defined WEBRTC_BSD) || (defined WEBRTC_MAC))
+#elif ((defined WEBRTC_LINUX) || (defined WEBRTC_MAC))
 #include <sys/time.h>  
 #include <time.h>
 #endif
@@ -30,7 +30,7 @@
 #endif
 
 #include "webrtc/system_wrappers/interface/tick_util.h"
-#include "webrtc/system_wrappers/interface/trace.h"
+#include "webrtc/system_wrappers/interface/logging.h"
 
 #if (defined(_DEBUG) && defined(_WIN32) && (_MSC_VER >= 1400))
 #define DEBUG_PRINT(...)           \
@@ -66,7 +66,7 @@ ReceiveStatistics* NullObjectReceiveStatistics() {
   return &null_receive_statistics;
 }
 
-namespace ModuleRTPUtility {
+namespace RtpUtility {
 
 enum {
   kRtcpExpectedVersion = 2,
@@ -96,9 +96,9 @@ uint32_t GetCurrentRTP(Clock* clock, uint32_t freq) {
 }
 
 uint32_t ConvertNTPTimeToRTP(uint32_t NTPsec, uint32_t NTPfrac, uint32_t freq) {
-  float ftemp = (float)NTPfrac / (float)NTP_FRAC; 
+  float ftemp = (float)NTPfrac / (float)NTP_FRAC;
   uint32_t tmp = (uint32_t)(ftemp * freq);
- return NTPsec * freq + tmp;
+  return NTPsec * freq + tmp;
 }
 
 uint32_t ConvertNTPTimeToMS(uint32_t NTPsec, uint32_t NTPfrac) {
@@ -118,7 +118,7 @@ bool StringCompare(const char* str1, const char* str2,
                    const uint32_t length) {
   return (_strnicmp(str1, str2, length) == 0) ? true : false;
 }
-#elif defined(WEBRTC_LINUX) || defined(WEBRTC_BSD) || defined(WEBRTC_MAC)
+#elif defined(WEBRTC_LINUX) || defined(WEBRTC_MAC)
 bool StringCompare(const char* str1, const char* str2,
                    const uint32_t length) {
   return (strncasecmp(str1, str2, length) == 0) ? true : false;
@@ -188,43 +188,16 @@ uint32_t pow2(uint8_t exp) {
   return 1 << exp;
 }
 
-void RTPPayload::SetType(RtpVideoCodecTypes videoType) {
-  type = videoType;
-
-  switch (type) {
-    case kRtpVideoGeneric:
-      break;
-    case kRtpVideoVp8: {
-      info.VP8.nonReferenceFrame = false;
-      info.VP8.beginningOfPartition = false;
-      info.VP8.partitionID = 0;
-      info.VP8.hasPictureID = false;
-      info.VP8.hasTl0PicIdx = false;
-      info.VP8.hasTID = false;
-      info.VP8.hasKeyIdx = false;
-      info.VP8.pictureID = -1;
-      info.VP8.tl0PicIdx = -1;
-      info.VP8.tID = -1;
-      info.VP8.layerSync = false;
-      info.VP8.frameWidth = 0;
-      info.VP8.frameHeight = 0;
-      break;
-    }
-    default:
-      break;
-  }
+RtpHeaderParser::RtpHeaderParser(const uint8_t* rtpData,
+                                 const size_t rtpDataLength)
+    : _ptrRTPDataBegin(rtpData),
+      _ptrRTPDataEnd(rtpData ? (rtpData + rtpDataLength) : NULL) {
 }
 
-RTPHeaderParser::RTPHeaderParser(const uint8_t* rtpData,
-                                 const uint32_t rtpDataLength)
-  : _ptrRTPDataBegin(rtpData),
-    _ptrRTPDataEnd(rtpData ? (rtpData + rtpDataLength) : NULL) {
+RtpHeaderParser::~RtpHeaderParser() {
 }
 
-RTPHeaderParser::~RTPHeaderParser() {
-}
-
-bool RTPHeaderParser::RTCP() const {
+bool RtpHeaderParser::RTCP() const {
   
   
   
@@ -299,7 +272,7 @@ bool RTPHeaderParser::RTCP() const {
   return RTCP;
 }
 
-bool RTPHeaderParser::ParseRtcp(RTPHeader* header) const {
+bool RtpHeaderParser::ParseRtcp(RTPHeader* header) const {
   assert(header != NULL);
 
   const ptrdiff_t length = _ptrRTPDataEnd - _ptrRTPDataBegin;
@@ -328,7 +301,7 @@ bool RTPHeaderParser::ParseRtcp(RTPHeader* header) const {
   return true;
 }
 
-bool RTPHeaderParser::Parse(RTPHeader& header,
+bool RtpHeaderParser::Parse(RTPHeader& header,
                             RtpHeaderExtensionMap* ptrExtensionMap) const {
   const ptrdiff_t length = _ptrRTPDataEnd - _ptrRTPDataBegin;
   if (length < kRtpMinParseLength) {
@@ -398,6 +371,10 @@ bool RTPHeaderParser::Parse(RTPHeader& header,
   header.extension.hasAbsoluteSendTime = false;
   header.extension.absoluteSendTime = 0;
 
+  
+  header.extension.hasAudioLevel = false;
+  header.extension.audioLevel = 0;
+
   if (X) {
     
 
@@ -437,7 +414,7 @@ bool RTPHeaderParser::Parse(RTPHeader& header,
   return true;
 }
 
-void RTPHeaderParser::ParseOneByteExtensionHeader(
+void RtpHeaderParser::ParseOneByteExtensionHeader(
     RTPHeader& header,
     const RtpHeaderExtensionMap* ptrExtensionMap,
     const uint8_t* ptrRTPDataExtensionEnd,
@@ -453,98 +430,104 @@ void RTPHeaderParser::ParseOneByteExtensionHeader(
     
     
 
+    
+    
     const uint8_t id = (*ptr & 0xf0) >> 4;
     const uint8_t len = (*ptr & 0x0f);
     ptr++;
 
     if (id == 15) {
-      WEBRTC_TRACE(kTraceWarning, kTraceRtpRtcp, -1,
-                   "Ext id: 15 encountered, parsing terminated.");
+      LOG(LS_WARNING)
+          << "RTP extension header 15 encountered. Terminate parsing.";
       return;
     }
 
     RTPExtensionType type;
     if (ptrExtensionMap->GetType(id, &type) != 0) {
-      WEBRTC_TRACE(kTraceStream, kTraceRtpRtcp, -1,
-                   "Failed to find extension id: %d", id);
-      return;
-    }
-
-    switch (type) {
-      case kRtpExtensionTransmissionTimeOffset: {
-        if (len != 2) {
-          WEBRTC_TRACE(kTraceWarning, kTraceRtpRtcp, -1,
-                       "Incorrect transmission time offset len: %d", len);
-          return;
-        }
-        
-        
-        
-        
-        
-
-        int32_t transmissionTimeOffset = *ptr++ << 16;
-        transmissionTimeOffset += *ptr++ << 8;
-        transmissionTimeOffset += *ptr++;
-        header.extension.transmissionTimeOffset =
-            transmissionTimeOffset;
-        if (transmissionTimeOffset & 0x800000) {
+      
+      LOG(LS_WARNING) << "Failed to find extension id: "
+                      << static_cast<int>(id);
+    } else {
+      switch (type) {
+        case kRtpExtensionTransmissionTimeOffset: {
+          if (len != 2) {
+            LOG(LS_WARNING) << "Incorrect transmission time offset len: "
+                            << len;
+            return;
+          }
           
-          header.extension.transmissionTimeOffset |= 0xFF000000;
-        }
-        header.extension.hasTransmissionTimeOffset = true;
-        break;
-      }
-      case kRtpExtensionAudioLevel: {
-        
-        
-        
-        
-        
-        
-        
+          
+          
+          
+          
 
-        
-        
-        
-        
-        
-        break;
-      }
-      case kRtpExtensionAbsoluteSendTime: {
-        if (len != 2) {
-          WEBRTC_TRACE(kTraceWarning, kTraceRtpRtcp, -1,
-                       "Incorrect absolute send time len: %d", len);
+          int32_t transmissionTimeOffset = ptr[0] << 16;
+          transmissionTimeOffset += ptr[1] << 8;
+          transmissionTimeOffset += ptr[2];
+          header.extension.transmissionTimeOffset =
+              transmissionTimeOffset;
+          if (transmissionTimeOffset & 0x800000) {
+            
+            header.extension.transmissionTimeOffset |= 0xFF000000;
+          }
+          header.extension.hasTransmissionTimeOffset = true;
+          break;
+        }
+        case kRtpExtensionAudioLevel: {
+          if (len != 0) {
+            LOG(LS_WARNING) << "Incorrect audio level len: " << len;
+            return;
+          }
+          
+          
+          
+          
+          
+          
+
+          
+          
+          
+          
+          
+
+          header.extension.audioLevel = ptr[0];
+          header.extension.hasAudioLevel = true;
+          break;
+        }
+        case kRtpExtensionAbsoluteSendTime: {
+          if (len != 2) {
+            LOG(LS_WARNING) << "Incorrect absolute send time len: " << len;
+            return;
+          }
+          
+          
+          
+          
+          
+
+          uint32_t absoluteSendTime = ptr[0] << 16;
+          absoluteSendTime += ptr[1] << 8;
+          absoluteSendTime += ptr[2];
+          header.extension.absoluteSendTime = absoluteSendTime;
+          header.extension.hasAbsoluteSendTime = true;
+          break;
+        }
+        default: {
+          LOG(LS_WARNING) << "Extension type not implemented: " << type;
           return;
         }
-        
-        
-        
-        
-        
-
-        uint32_t absoluteSendTime = *ptr++ << 16;
-        absoluteSendTime += *ptr++ << 8;
-        absoluteSendTime += *ptr++;
-        header.extension.absoluteSendTime = absoluteSendTime;
-        header.extension.hasAbsoluteSendTime = true;
-        break;
-      }
-      default: {
-        WEBRTC_TRACE(kTraceStream, kTraceRtpRtcp, -1,
-                     "Extension type not implemented.");
-        return;
       }
     }
+    ptr += (len + 1);
     uint8_t num_bytes = ParsePaddingBytes(ptrRTPDataExtensionEnd, ptr);
     ptr += num_bytes;
   }
 }
 
-uint8_t RTPHeaderParser::ParsePaddingBytes(
-  const uint8_t* ptrRTPDataExtensionEnd,
-  const uint8_t* ptr) const {
-
+uint8_t RtpHeaderParser::ParsePaddingBytes(
+    const uint8_t* ptrRTPDataExtensionEnd,
+    const uint8_t* ptr) const {
   uint8_t num_zero_bytes = 0;
   while (ptrRTPDataExtensionEnd - ptr > 0) {
     if (*ptr != 0) {
@@ -555,214 +538,6 @@ uint8_t RTPHeaderParser::ParsePaddingBytes(
   }
   return num_zero_bytes;
 }
-
-
-RTPPayloadParser::RTPPayloadParser(const RtpVideoCodecTypes videoType,
-                                   const uint8_t* payloadData,
-                                   uint16_t payloadDataLength,
-                                   int32_t id)
-  :
-  _id(id),
-  _dataPtr(payloadData),
-  _dataLength(payloadDataLength),
-  _videoType(videoType) {
-}
-
-RTPPayloadParser::~RTPPayloadParser() {
-}
-
-bool RTPPayloadParser::Parse(RTPPayload& parsedPacket) const {
-  parsedPacket.SetType(_videoType);
-
-  switch (_videoType) {
-    case kRtpVideoGeneric:
-      return ParseGeneric(parsedPacket);
-    case kRtpVideoVp8:
-      return ParseVP8(parsedPacket);
-    default:
-      return false;
-  }
-}
-
-bool RTPPayloadParser::ParseGeneric(RTPPayload& ) const {
-  return false;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-bool RTPPayloadParser::ParseVP8(RTPPayload& parsedPacket) const {
-  RTPPayloadVP8* vp8 = &parsedPacket.info.VP8;
-  const uint8_t* dataPtr = _dataPtr;
-  int dataLength = _dataLength;
-
-  
-  bool extension = (*dataPtr & 0x80) ? true : false;            
-  vp8->nonReferenceFrame = (*dataPtr & 0x20) ? true : false;    
-  vp8->beginningOfPartition = (*dataPtr & 0x10) ? true : false; 
-  vp8->partitionID = (*dataPtr & 0x0F);          
-
-  if (vp8->partitionID > 8) {
-    
-    return false;
-  }
-
-  
-  dataPtr++;
-  dataLength--;
-
-  if (extension) {
-    const int parsedBytes = ParseVP8Extension(vp8, dataPtr, dataLength);
-    if (parsedBytes < 0) return false;
-    dataPtr += parsedBytes;
-    dataLength -= parsedBytes;
-  }
-
-  if (dataLength <= 0) {
-    WEBRTC_TRACE(kTraceError, kTraceRtpRtcp, _id,
-                 "Error parsing VP8 payload descriptor; payload too short");
-    return false;
-  }
-
-  
-  if (dataLength > 0 && vp8->beginningOfPartition && vp8->partitionID == 0) {
-    parsedPacket.frameType = (*dataPtr & 0x01) ? kPFrame : kIFrame;
-  } else {
-    parsedPacket.frameType = kPFrame;
-  }
-  if (0 != ParseVP8FrameSize(parsedPacket, dataPtr, dataLength)) {
-    return false;
-  }
-  parsedPacket.info.VP8.data       = dataPtr;
-  parsedPacket.info.VP8.dataLength = dataLength;
-  return true;
-}
-
-int RTPPayloadParser::ParseVP8FrameSize(RTPPayload& parsedPacket,
-                                        const uint8_t* dataPtr,
-                                        int dataLength) const {
-  if (parsedPacket.frameType != kIFrame) {
-    
-    return 0;
-  }
-  if (dataLength < 10) {
-    
-    
-    return -1;
-  }
-  RTPPayloadVP8* vp8 = &parsedPacket.info.VP8;
-  vp8->frameWidth = ((dataPtr[7] << 8) + dataPtr[6]) & 0x3FFF;
-  vp8->frameHeight = ((dataPtr[9] << 8) + dataPtr[8]) & 0x3FFF;
-  return 0;
-}
-
-int RTPPayloadParser::ParseVP8Extension(RTPPayloadVP8* vp8,
-                                        const uint8_t* dataPtr,
-                                        int dataLength) const {
-  int parsedBytes = 0;
-  if (dataLength <= 0) return -1;
-  
-  vp8->hasPictureID = (*dataPtr & 0x80) ? true : false; 
-  vp8->hasTl0PicIdx = (*dataPtr & 0x40) ? true : false; 
-  vp8->hasTID = (*dataPtr & 0x20) ? true : false;       
-  vp8->hasKeyIdx = (*dataPtr & 0x10) ? true : false;    
-
-  
-  dataPtr++;
-  parsedBytes++;
-  dataLength--;
-
-  if (vp8->hasPictureID) {
-    if (ParseVP8PictureID(vp8, &dataPtr, &dataLength, &parsedBytes) != 0) {
-      return -1;
-    }
-  }
-
-  if (vp8->hasTl0PicIdx) {
-    if (ParseVP8Tl0PicIdx(vp8, &dataPtr, &dataLength, &parsedBytes) != 0) {
-      return -1;
-    }
-  }
-
-  if (vp8->hasTID || vp8->hasKeyIdx) {
-    if (ParseVP8TIDAndKeyIdx(vp8, &dataPtr, &dataLength, &parsedBytes) != 0) {
-      return -1;
-    }
-  }
-  return parsedBytes;
-}
-
-int RTPPayloadParser::ParseVP8PictureID(RTPPayloadVP8* vp8,
-                                        const uint8_t** dataPtr,
-                                        int* dataLength,
-                                        int* parsedBytes) const {
-  if (*dataLength <= 0) return -1;
-  vp8->pictureID = (**dataPtr & 0x7F);
-  if (**dataPtr & 0x80) {
-    (*dataPtr)++;
-    (*parsedBytes)++;
-    if (--(*dataLength) <= 0) return -1;
-    
-    vp8->pictureID = (vp8->pictureID << 8) +** dataPtr;
-  }
-  (*dataPtr)++;
-  (*parsedBytes)++;
-  (*dataLength)--;
-  return 0;
-}
-
-int RTPPayloadParser::ParseVP8Tl0PicIdx(RTPPayloadVP8* vp8,
-                                        const uint8_t** dataPtr,
-                                        int* dataLength,
-                                        int* parsedBytes) const {
-  if (*dataLength <= 0) return -1;
-  vp8->tl0PicIdx = **dataPtr;
-  (*dataPtr)++;
-  (*parsedBytes)++;
-  (*dataLength)--;
-  return 0;
-}
-
-int RTPPayloadParser::ParseVP8TIDAndKeyIdx(RTPPayloadVP8* vp8,
-                                           const uint8_t** dataPtr,
-                                           int* dataLength,
-                                           int* parsedBytes) const {
-  if (*dataLength <= 0) return -1;
-  if (vp8->hasTID) {
-    vp8->tID = ((**dataPtr >> 6) & 0x03);
-    vp8->layerSync = (**dataPtr & 0x20) ? true : false;  
-  }
-  if (vp8->hasKeyIdx) {
-    vp8->keyIdx = (**dataPtr & 0x1F);
-  }
-  (*dataPtr)++;
-  (*parsedBytes)++;
-  (*dataLength)--;
-  return 0;
-}
-
 }  
 
 }  
