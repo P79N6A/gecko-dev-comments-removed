@@ -1806,11 +1806,7 @@ RestyleManager::PostRestyleEvent(Element* aElement,
   
   
   
-  
-  
-  
-  if (aRestyleHint & ~(eRestyle_CSSTransitions | eRestyle_CSSAnimations |
-                       eRestyle_SVGAttrAnimations)) {
+  if (aRestyleHint & ~eRestyle_AllHintsWithAnimations) {
     mHavePendingNonAnimationRestyles = true;
   }
 
