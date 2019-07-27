@@ -24,6 +24,9 @@ function getConfigFile(req, res) {
     
     
     "loop.config.marketplaceUrl = 'http://fake-market.herokuapp.com/iframe-install.html'",
+    "loop.config.brandWebsiteUrl = 'https://www.mozilla.org/firefox/';",
+    "loop.config.privacyWebsiteUrl = 'https://www.mozilla.org/privacy';",
+    "loop.config.legalWebsiteUrl = '/legal/terms';",
     "loop.config.fxosApp = loop.config.fxosApp || {};",
     "loop.config.fxosApp.name = 'Loop';",
     "loop.config.fxosApp.manifestUrl = 'http://fake-market.herokuapp.com/apps/packagedApp/manifest.webapp';"
