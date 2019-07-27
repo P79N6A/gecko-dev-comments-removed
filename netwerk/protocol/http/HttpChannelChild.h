@@ -196,6 +196,14 @@ private:
   bool mSuspendSent;
 
   
+  
+  bool mSynthesizedResponse;
+
+  
+  
+  bool mShouldParentIntercept;
+
+  
   bool RemoteChannelExists() { return mIPCOpen && !mKeptAlive; }
 
   void AssociateApplicationCache(const nsCString &groupID,

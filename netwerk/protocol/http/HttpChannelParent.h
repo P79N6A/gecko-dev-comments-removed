@@ -88,7 +88,7 @@ public:
 protected:
   
   
-  bool ConnectChannel(const uint32_t& channelId);
+  bool ConnectChannel(const uint32_t& channelId, const bool& shouldIntercept);
 
   bool DoAsyncOpen(const URIParams&           uri,
                    const OptionalURIParams&   originalUri,
@@ -204,7 +204,15 @@ private:
 
   bool mSuspendedForDiversion;
 
+  
+  bool mShouldIntercept : 1;
+  
+  bool mShouldSuspendIntercept : 1;
+
   dom::TabId mNestedFrameId;
+
+  
+  nsCOMPtr<nsIInterceptedChannel> mInterceptedChannel;
 };
 
 } 

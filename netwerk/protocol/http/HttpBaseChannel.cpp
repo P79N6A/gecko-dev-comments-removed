@@ -2255,6 +2255,14 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
   }
 
   
+  if (mForceNoIntercept) {
+    nsCOMPtr<nsIHttpChannelInternal> httpChan = do_QueryInterface(newChannel);
+    if (httpChan) {
+      httpChan->ForceNoIntercept();
+    }
+  }
+
+  
   newChannel->SetLoadInfo(mLoadInfo);
 
   nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(newChannel);
