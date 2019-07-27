@@ -4,10 +4,11 @@
 
 
 
-
-
 function RejectsStartup() {
   LoadRejects();
+
+  let treecols = document.getElementsByTagName("treecols")[0];
+  treecols.addEventListener("click", HandleTreeColumnClick.bind(null, RejectColumnSort));
 }
 
 var rejectsTreeView = {

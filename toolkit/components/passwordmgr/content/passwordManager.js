@@ -4,8 +4,6 @@
 
 
 
-
-
 var kSignonBundle;
 var showingPasswords = false;
 var dateFormatter = new Intl.DateTimeFormat(undefined,
@@ -19,6 +17,10 @@ function SignonsStartup() {
   document.getElementById("togglePasswords").label = kSignonBundle.getString("showPasswords");
   document.getElementById("togglePasswords").accessKey = kSignonBundle.getString("showPasswordsAccessKey");
   document.getElementById("signonsIntro").textContent = kSignonBundle.getString("loginsSpielAll");
+
+  let treecols = document.getElementsByTagName("treecols")[0];
+  treecols.addEventListener("click", HandleTreeColumnClick.bind(null, SignonColumnSort));
+
   LoadSignons();
 
   

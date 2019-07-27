@@ -4,8 +4,6 @@
 
 
 
-
-
 var kObserverService;
 
 
@@ -158,6 +156,19 @@ function GetTreeSelections(tree) {
     }
   }
   return selections;
+}
+
+function HandleTreeColumnClick(sortFunction, event) {
+  if (event.target.nodeName != "treecol" || event.button != 0) {
+    return;
+  }
+
+  let sortField = event.target.getAttribute("data-field-name");
+  if (!sortField) {
+    return;
+  }
+
+  sortFunction(sortField);
 }
 
 function SortTree(tree, view, table, column, lastSortColumn, lastSortAscending, updateSelection) {
