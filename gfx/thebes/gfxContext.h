@@ -195,18 +195,6 @@ public:
 
 
 
-
-
-
-
-    void RoundedRectangle(const gfxRect& rect,
-                          const RectCornerRadii& corners,
-                          bool draw_clockwise = true);
-
-    
-
-
-
     
 
 
