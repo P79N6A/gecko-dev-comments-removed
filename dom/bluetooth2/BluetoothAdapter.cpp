@@ -853,53 +853,44 @@ BluetoothAdapter::HandleDeviceFound(const BluetoothValue& aValue)
 void
 BluetoothAdapter::HandleDevicePaired(const BluetoothValue& aValue)
 {
-  MOZ_ASSERT(aValue.type() == BluetoothValue::TArrayOfBluetoothNamedValue);
-
-  if (mState != BluetoothAdapterState::Enabled) {
-    BT_WARNING("HandleDevicePaired() is called when adapter isn't enabled.");
+  if (NS_WARN_IF(mState != BluetoothAdapterState::Enabled)) {
     return;
   }
+
+  MOZ_ASSERT(aValue.type() == BluetoothValue::TArrayOfBluetoothNamedValue);
 
   const InfallibleTArray<BluetoothNamedValue>& arr =
     aValue.get_ArrayOfBluetoothNamedValue();
 
   MOZ_ASSERT(arr.Length() == 3 &&
              arr[0].value().type() == BluetoothValue::TnsString && 
-             arr[1].value().type() == BluetoothValue::Tbool &&     
-             arr[2].value().type() == BluetoothValue::TnsString);  
+             arr[1].value().type() == BluetoothValue::TnsString && 
+             arr[2].value().type() == BluetoothValue::Tbool);      
   MOZ_ASSERT(!arr[0].value().get_nsString().IsEmpty() &&
-             arr[1].value().get_bool());
-
-  nsString deviceAddress = arr[0].value().get_nsString();
-
-  nsRefPtr<BluetoothDevice> pairedDevice = nullptr;
+             arr[2].value().get_bool());
 
   
-  size_t index = mDevices.IndexOf(deviceAddress);
+  size_t index = mDevices.IndexOf(arr[0].value().get_nsString());
   if (index == mDevices.NoIndex) {
-    
-    pairedDevice = BluetoothDevice::Create(GetOwner(), aValue);
-    mDevices.AppendElement(pairedDevice);
-  } else {
-    
-    pairedDevice = mDevices[index];
+    index = mDevices.Length(); 
+    mDevices.AppendElement(
+      BluetoothDevice::Create(GetOwner(), aValue));
   }
 
   
   BluetoothDeviceEventInit init;
-  init.mDevice = pairedDevice;
-  DispatchDeviceEvent(NS_LITERAL_STRING("devicepaired"), init);
+  init.mDevice = mDevices[index];
+  DispatchDeviceEvent(NS_LITERAL_STRING(DEVICE_PAIRED_ID), init);
 }
 
 void
 BluetoothAdapter::HandleDeviceUnpaired(const BluetoothValue& aValue)
 {
-  MOZ_ASSERT(aValue.type() == BluetoothValue::TArrayOfBluetoothNamedValue);
-
-  if (mState != BluetoothAdapterState::Enabled) {
-    BT_WARNING("HandleDeviceUnpaired() is called when adapter isn't enabled.");
+  if (NS_WARN_IF(mState != BluetoothAdapterState::Enabled)) {
     return;
   }
+
+  MOZ_ASSERT(aValue.type() == BluetoothValue::TArrayOfBluetoothNamedValue);
 
   const InfallibleTArray<BluetoothNamedValue>& arr =
     aValue.get_ArrayOfBluetoothNamedValue();
@@ -910,15 +901,14 @@ BluetoothAdapter::HandleDeviceUnpaired(const BluetoothValue& aValue)
   MOZ_ASSERT(!arr[0].value().get_nsString().IsEmpty() &&
              !arr[1].value().get_bool());
 
-  nsString deviceAddress = arr[0].value().get_nsString();
-
   
+  nsString deviceAddress = arr[0].value().get_nsString();
   mDevices.RemoveElement(deviceAddress);
 
   
   BluetoothDeviceEventInit init;
   init.mAddress = deviceAddress;
-  DispatchDeviceEvent(NS_LITERAL_STRING("deviceunpaired"), init);
+  DispatchDeviceEvent(NS_LITERAL_STRING(DEVICE_UNPAIRED_ID), init);
 }
 
 void

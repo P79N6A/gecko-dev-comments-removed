@@ -352,6 +352,7 @@ private:
 
 
 
+
   nsTArray<nsRefPtr<BluetoothDevice> > mDevices;
 };
 
