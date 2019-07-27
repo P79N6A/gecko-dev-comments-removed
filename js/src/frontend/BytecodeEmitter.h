@@ -92,7 +92,9 @@ struct BytecodeEmitter
 {
     typedef StmtInfoBCE StmtInfo;
 
-    SharedContext   *const sc;      
+    SharedContext *const sc;      
+
+    ExclusiveContext *const cx;
 
     BytecodeEmitter *const parent;  
 
