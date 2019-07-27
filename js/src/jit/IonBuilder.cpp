@@ -821,7 +821,10 @@ IonBuilder::build()
     
     MCheckOverRecursed *check = MCheckOverRecursed::New(alloc());
     current->add(check);
-    check->setResumePoint(MResumePoint::Copy(alloc(), current->entryResumePoint()));
+    MResumePoint *entryRpCopy = MResumePoint::Copy(alloc(), current->entryResumePoint());
+    if (!entryRpCopy)
+        return false;
+    check->setResumePoint(entryRpCopy);
 
     
     
@@ -851,8 +854,13 @@ IonBuilder::build()
     
     for (uint32_t i = 0; i < info().endArgSlot(); i++) {
         MInstruction *ins = current->getEntrySlot(i)->toInstruction();
-        if (ins->type() == MIRType_Value)
-            ins->setResumePoint(MResumePoint::Copy(alloc(), current->entryResumePoint()));
+        if (ins->type() != MIRType_Value)
+            continue;
+
+        MResumePoint *entryRpCopy = MResumePoint::Copy(alloc(), current->entryResumePoint());
+        if (!entryRpCopy)
+            return false;
+        ins->setResumePoint(entryRpCopy);
     }
 
     
@@ -6798,7 +6806,8 @@ IonBuilder::newOsrPreheader(MBasicBlock *predecessor, jsbytecode *loopEntry)
     
     
     
-    osrBlock->linkOsrValues(start);
+    if (!osrBlock->linkOsrValues(start))
+        return nullptr;
 
     
     

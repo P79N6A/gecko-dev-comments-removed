@@ -166,7 +166,7 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
 
     
     
-    void linkOsrValues(MStart *start);
+    bool linkOsrValues(MStart *start);
 
     
     
