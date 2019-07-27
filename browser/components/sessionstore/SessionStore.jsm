@@ -1814,6 +1814,13 @@ let SessionStoreInternal = {
         return;
       }
 
+      let window = newTab.ownerDocument && newTab.ownerDocument.defaultView;
+
+      
+      if (!window || !window.__SSi) {
+        return;
+      }
+
       
       
       
@@ -2181,7 +2188,14 @@ let SessionStoreInternal = {
     
     TabStateFlusher.flush(browser).then(() => {
       
-      if (tab.closing || !tab.linkedBrowser || !tab.ownerDocument.defaultView) {
+      if (tab.closing || !tab.linkedBrowser) {
+        return;
+      }
+
+      let window = tab.ownerDocument && tab.ownerDocument.defaultView;
+
+      
+      if (!window || !window.__SSi) {
         return;
       }
 
