@@ -441,7 +441,13 @@ exports.defineLazyGetter(this, "NetUtil", () => {
 
 
 
-exports.fetch = function fetch(aURL, aOptions={ loadFromCache: true }) {
+
+
+
+exports.fetch = function fetch(aURL, aOptions={ loadFromCache: true,
+                                                policy: Ci.nsIContentPolicy.TYPE_OTHER,
+                                                window: null,
+                                                charset: null }) {
   let deferred = promise.defer();
   let scheme;
   let url = aURL.split(" -> ").pop();
@@ -483,14 +489,14 @@ exports.fetch = function fetch(aURL, aOptions={ loadFromCache: true }) {
           Services.scriptSecurityManager.getSystemPrincipal(),
           null,      
           Ci.nsILoadInfo.SEC_NORMAL,
-          Ci.nsIContentPolicy.TYPE_OTHER);
+          aOptions.policy);
       } catch (ex) {
         deferred.reject(ex);
       }
       break;
 
     default:
-    let channel;
+      let channel;
       try {
         channel = Services.io.newChannel2(url,
                                           null,
@@ -499,7 +505,7 @@ exports.fetch = function fetch(aURL, aOptions={ loadFromCache: true }) {
                                           Services.scriptSecurityManager.getSystemPrincipal(),
                                           null,      
                                           Ci.nsILoadInfo.SEC_NORMAL,
-                                          Ci.nsIContentPolicy.TYPE_OTHER);
+                                          aOptions.policy);
       } catch (e if e.name == "NS_ERROR_UNKNOWN_PROTOCOL") {
         
         
@@ -511,7 +517,7 @@ exports.fetch = function fetch(aURL, aOptions={ loadFromCache: true }) {
                                           Services.scriptSecurityManager.getSystemPrincipal(),
                                           null,      
                                           Ci.nsILoadInfo.SEC_NORMAL,
-                                          Ci.nsIContentPolicy.TYPE_OTHER);
+                                          aOptions.policy);
       }
       let chunks = [];
       let streamListener = {
@@ -535,12 +541,19 @@ exports.fetch = function fetch(aURL, aOptions={ loadFromCache: true }) {
             return;
           }
 
-          charset = channel.contentCharset;
+          charset = channel.contentCharset || aOptions.charset;
           contentType = channel.contentType;
           deferred.resolve(chunks.join(""));
         }
       };
 
+      if (aOptions.window) {
+        
+        channel.loadGroup = aOptions.window.QueryInterface(Ci.nsIInterfaceRequestor)
+                              .getInterface(Ci.nsIWebNavigation)
+                              .QueryInterface(Ci.nsIDocumentLoader)
+                              .loadGroup;
+      }
       channel.loadFlags = aOptions.loadFromCache
         ? channel.LOAD_FROM_CACHE
         : channel.LOAD_BYPASS_CACHE;
