@@ -208,6 +208,7 @@ private:
   virtual void TraceNativeBlackRoots(JSTracer* aTracer) { };
   void TraceNativeGrayRoots(JSTracer* aTracer);
 
+public:
   enum DeferredFinalizeType {
     FinalizeIncrementally,
     FinalizeNow,
@@ -215,7 +216,6 @@ private:
 
   void FinalizeDeferredThings(DeferredFinalizeType aType);
 
-public:
   
   
   enum class OOMState : uint32_t {
