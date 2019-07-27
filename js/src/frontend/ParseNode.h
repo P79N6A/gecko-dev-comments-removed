@@ -73,6 +73,7 @@ class UpvarCookie
     F(COMMA) \
     F(CONDITIONAL) \
     F(COLON) \
+    F(SHORTHAND) \
     F(POS) \
     F(NEG) \
     F(PREINCREMENT) \
@@ -212,7 +213,6 @@ enum ParseNodeKind
     PNK_ASSIGNMENT_START = PNK_ASSIGN,
     PNK_ASSIGNMENT_LAST = PNK_MODASSIGN
 };
-
 
 
 
@@ -677,12 +677,8 @@ class ParseNode
 #define PNX_GROUPINIT   0x02            /* var [a, b] = [c, d]; unit list */
 #define PNX_FUNCDEFS    0x04            /* contains top-level function statements */
 #define PNX_SETCALL     0x08            /* call expression in lvalue context */
-#define PNX_DESTRUCT    0x10            /* destructuring special cases:
-                                           1. shorthand syntax used, at present
-                                              object destructuring ({x,y}) only;
-                                           2. code evaluating destructuring
-                                              arguments occurs before function
-                                              body */
+#define PNX_DESTRUCT    0x10            /* code evaluating destructuring
+                                           arguments occurs before function body */
 #define PNX_SPECIALARRAYINIT 0x20       /* one or more of
                                            1. array initialiser has holes
                                            2. array initializer has spread node */

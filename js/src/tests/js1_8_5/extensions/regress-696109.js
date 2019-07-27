@@ -7,13 +7,7 @@
 
 
 
-try {
-    Reflect.parse("with({foo})bar");
-    throw new Error("supposed to be a syntax error");
-} catch (e if e instanceof SyntaxError) { }
-try {
-    Reflect.parse("while({foo})bar");
-    throw new Error("supposed to be a syntax error");
-} catch (e if e instanceof SyntaxError) { }
+Reflect.parse("with({foo})bar");
+Reflect.parse("while({foo})bar");
 
 reportCompare(true, true);

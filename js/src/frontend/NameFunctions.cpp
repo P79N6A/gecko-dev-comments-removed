@@ -150,6 +150,7 @@ class NameResolver
                 break;
 
               case PNK_COLON:
+              case PNK_SHORTHAND:
                 
 
 
@@ -221,7 +222,7 @@ class NameResolver
         for (int pos = size - 1; pos >= 0; pos--) {
             ParseNode *node = toName[pos];
 
-            if (node->isKind(PNK_COLON)) {
+            if (node->isKind(PNK_COLON) || node->isKind(PNK_SHORTHAND)) {
                 ParseNode *left = node->pn_left;
                 if (left->isKind(PNK_NAME) || left->isKind(PNK_STRING)) {
                     if (!appendPropertyReference(left->pn_atom))
