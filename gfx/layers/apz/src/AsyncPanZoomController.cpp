@@ -379,8 +379,8 @@ static bool IsCloseToVertical(float aAngle, float aThreshold)
 template <typename Units>
 static bool IsZero(const gfx::PointTyped<Units>& aPoint)
 {
-  return FuzzyEqualsMultiplicative(aPoint.x, 0.0f)
-      && FuzzyEqualsMultiplicative(aPoint.y, 0.0f);
+  return FuzzyEqualsMultiplicative(aPoint.x.value, 0.0f)
+      && FuzzyEqualsMultiplicative(aPoint.y.value, 0.0f);
 }
 
 static inline void LogRendertraceRect(const ScrollableLayerGuid& aGuid, const char* aDesc, const char* aColor, const CSSRect& aRect)
@@ -538,9 +538,9 @@ public:
         
         
         
-        if (FuzzyEqualsAdditive(overscroll.x, 0.0f, COORDINATE_EPSILON)) {
+        if (FuzzyEqualsAdditive(overscroll.x.value, 0.0f, COORDINATE_EPSILON)) {
           velocity.x = 0;
-        } else if (FuzzyEqualsAdditive(overscroll.y, 0.0f, COORDINATE_EPSILON)) {
+        } else if (FuzzyEqualsAdditive(overscroll.y.value, 0.0f, COORDINATE_EPSILON)) {
           velocity.y = 0;
         }
 
@@ -2021,9 +2021,9 @@ const LayerMargin AsyncPanZoomController::CalculatePendingDisplayPort(
   displayPort = displayPort.ForceInside(scrollableRect) - scrollOffset;
 
   APZC_LOG_FM(aFrameMetrics,
-    "Calculated displayport as (%f %f %f %f) from velocity %s paint time %f metrics",
+    "Calculated displayport as (%f %f %f %f) from velocity (%f %f) paint time %f metrics",
     displayPort.x, displayPort.y, displayPort.width, displayPort.height,
-    ToString(aVelocity).c_str(), (float)estimatedPaintDurationMillis);
+    aVelocity.x.value, aVelocity.y.value, (float)estimatedPaintDurationMillis);
 
   CSSMargin cssMargins;
   cssMargins.left = -displayPort.x;
@@ -2397,9 +2397,20 @@ Matrix4x4 AsyncPanZoomController::GetNontransientAsyncTransform() {
 
 Matrix4x4 AsyncPanZoomController::GetTransformToLastDispatchedPaint() {
   ReentrantMonitorAutoEnter lock(mMonitor);
-  LayerPoint scrollChange = (mLastContentPaintMetrics.GetScrollOffset() - mLastDispatchedPaintMetrics.GetScrollOffset())
-                          * mLastContentPaintMetrics.LayersPixelsPerCSSPixel();
+
+  
+  
+  
+  
+  
+  
+  ParentLayerPoint scrollChange =
+    (mLastContentPaintMetrics.GetScrollOffset() - mLastDispatchedPaintMetrics.GetScrollOffset())
+    * mLastContentPaintMetrics.mDevPixelsPerCSSPixel
+    * mLastContentPaintMetrics.GetParentResolution();
+
   float zoomChange = mLastContentPaintMetrics.GetZoom().scale / mLastDispatchedPaintMetrics.GetZoom().scale;
+
   return Matrix4x4().Translate(scrollChange.x, scrollChange.y, 0) *
          Matrix4x4().Scale(zoomChange, zoomChange, 1);
 }
@@ -2491,9 +2502,9 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
     mFrameMetrics.SetHasScrollgrab(aLayerMetrics.GetHasScrollgrab());
 
     if (scrollOffsetUpdated) {
-      APZC_LOG("%p updating scroll offset from %s to %s\n", this,
-        ToString(mFrameMetrics.GetScrollOffset()).c_str(),
-        ToString(aLayerMetrics.GetScrollOffset()).c_str());
+      APZC_LOG("%p updating scroll offset from (%f, %f) to (%f, %f)\n", this,
+        mFrameMetrics.GetScrollOffset().x.value, mFrameMetrics.GetScrollOffset().y.value,
+        aLayerMetrics.GetScrollOffset().x.value, aLayerMetrics.GetScrollOffset().y.value);
 
       mFrameMetrics.CopyScrollInfoFrom(aLayerMetrics);
 
