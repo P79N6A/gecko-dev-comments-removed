@@ -849,6 +849,7 @@ public:
 
 
 
+
   void SetFrameMetrics(const nsTArray<FrameMetrics>& aMetricsArray)
   {
     if (mFrameMetrics != aMetricsArray) {

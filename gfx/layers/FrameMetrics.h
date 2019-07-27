@@ -71,6 +71,7 @@ public:
   static const ViewID NULL_SCROLL_ID;   
   static const ViewID START_SCROLL_ID = 2;  
                                         
+  static const FrameMetrics sNullMetrics;   
 
   FrameMetrics()
     : mCompositionBounds(0, 0, 0, 0)
