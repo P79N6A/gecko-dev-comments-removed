@@ -120,6 +120,12 @@ public:
 
   
 
+
+
+  gfxUserFontEntry* FindUserFontEntryForFontFace(FontFace* aFontFace);
+
+  
+
   IMPL_EVENT_HANDLER(loading)
   IMPL_EVENT_HANDLER(loadingdone)
   IMPL_EVENT_HANDLER(loadingerror)
