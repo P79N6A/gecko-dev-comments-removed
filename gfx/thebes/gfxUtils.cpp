@@ -776,7 +776,7 @@ gfxUtils::ClampToScaleFactor(gfxFloat aVal)
   
   
   
-  if (fabs(power - NS_round(power)) < 1e-6) {
+  if (fabs(power - NS_round(power)) < 1e-5) {
     power = NS_round(power);
   } else if (inverse) {
     power = floor(power);
