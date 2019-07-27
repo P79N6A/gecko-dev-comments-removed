@@ -63,7 +63,6 @@ static StaticRefPtr<SurfaceCacheImpl> sInstance;
 
 
 
-
 typedef size_t Cost;
 
 static Cost ComputeCost(const IntSize& aSize)
@@ -277,8 +276,7 @@ public:
   SurfaceCacheImpl(uint32_t aSurfaceCacheExpirationTimeMS,
                    uint32_t aSurfaceCacheDiscardFactor,
                    uint32_t aSurfaceCacheSize)
-    : mExpirationTracker(MOZ_THIS_IN_INITIALIZER_LIST(),
-                         aSurfaceCacheExpirationTimeMS)
+    : mExpirationTracker(this, aSurfaceCacheExpirationTimeMS)
     , mMemoryPressureObserver(new MemoryPressureObserver)
     , mMutex("SurfaceCache")
     , mDiscardFactor(aSurfaceCacheDiscardFactor)
@@ -703,7 +701,6 @@ private:
   private:
     virtual ~MemoryPressureObserver() { }
   };
-
 
   nsTArray<CostEntry>                                       mCosts;
   nsRefPtrHashtable<nsPtrHashKey<Image>, ImageSurfaceCache> mImageCaches;

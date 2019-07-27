@@ -530,20 +530,6 @@
 #  define MOZ_NO_ADDREF_RELEASE_ON_RETURN
 #endif 
 
-
-
-
-
-#ifdef _MSC_VER
-#  define MOZ_THIS_IN_INITIALIZER_LIST() \
-     __pragma(warning(push)) \
-     __pragma(warning(disable:4355)) \
-     this \
-     __pragma(warning(pop))
-#else
-#  define MOZ_THIS_IN_INITIALIZER_LIST() this
-#endif
-
 #endif 
 
 #endif 
