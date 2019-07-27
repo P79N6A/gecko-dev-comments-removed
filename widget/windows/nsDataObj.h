@@ -102,7 +102,7 @@ protected:
 		STDMETHODIMP_(ULONG) Release       ();
 
     
-    void AddDataFlavor(const char* aDataFlavor, LPFORMATETC aFE);
+    virtual void AddDataFlavor(const char* aDataFlavor, LPFORMATETC aFE);
     void SetTransferable(nsITransferable * aTransferable);
 
 		

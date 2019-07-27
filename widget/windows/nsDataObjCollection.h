@@ -45,9 +45,6 @@ class nsDataObjCollection MOZ_FINAL : public nsIDataObjCollection, public nsData
     STDMETHODIMP_(ULONG) Release       ();
 
   public: 
-    virtual HRESULT AddSetFormat(FORMATETC&  FE);
-    virtual HRESULT AddGetFormat(FORMATETC&  FE);
-
     virtual HRESULT GetFile(LPFORMATETC pFE, LPSTGMEDIUM pSTM);
     virtual HRESULT GetText(LPFORMATETC pFE, LPSTGMEDIUM pSTM);
     virtual HRESULT GetFileDescriptors(LPFORMATETC pFE, LPSTGMEDIUM pSTM);
@@ -84,52 +81,13 @@ class nsDataObjCollection MOZ_FINAL : public nsIDataObjCollection, public nsData
     
     
     
-    STDMETHODIMP GetCanonicalFormatEtc (LPFORMATETC pFE, LPFORMATETC pCanonFE);
-
-    
-    
-    
     
     STDMETHODIMP SetData  (LPFORMATETC pFE, LPSTGMEDIUM pSTM, BOOL release);
 
-    
-    
-    
-    STDMETHODIMP EnumFormatEtc  (DWORD direction, LPENUMFORMATETC* ppEnum);
-
-    
-    
-    
-    STDMETHODIMP DAdvise  (LPFORMATETC pFE, DWORD flags, LPADVISESINK pAdvise,
-                   DWORD* pConn);
-
-    
-    STDMETHODIMP DUnadvise (DWORD pConn);
-
-    
-    
-      
-    STDMETHODIMP EnumDAdvise (LPENUMSTATDATA *ppEnum);
-
-  public:
-    
-    
-
-    
-    
-
   protected:
-    BOOL FormatsMatch(const FORMATETC& source, const FORMATETC& target) const;
-
     ULONG m_cRef;              
 
-    
-    CEnumFormatEtc   * m_enumFE;
-
     nsTArray<nsRefPtr<nsDataObj> > mDataObjects;
-    
-    BOOL mIsAsyncMode;
-    BOOL mIsInOperation;
 };
 
 #endif
