@@ -246,6 +246,8 @@ RegisterErrorTable()
       "An X.509 version 1 certificate that is not a trust anchor was used to "
       "issue the server's certificate. X.509 version 1 certificates are "
       "deprecated and should not be used to sign other certificates." },
+    { "MOZILLA_PKIX_ERROR_NO_RFC822NAME_MATCH",
+      "The certificate is not valid for the given email address." },
   };
   
   

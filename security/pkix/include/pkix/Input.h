@@ -250,7 +250,7 @@ public:
     return Success;
   }
 
-  Result Skip(Input::size_type len, Input& skipped)
+  Result Skip(Input::size_type len,  Input& skipped)
   {
     Result rv = EnsureLength(len);
     if (rv != Success) {
@@ -267,6 +267,11 @@ public:
   void SkipToEnd()
   {
     input = end;
+  }
+
+  void SkipToEnd( Input& skipped)
+  {
+    (void) Skip(static_cast<size_t>(end - input), skipped);
   }
 
   Result EnsureLength(Input::size_type len)
@@ -318,6 +323,21 @@ private:
   Reader(const Reader&) ;
   void operator=(const Reader&) ;
 };
+
+inline bool
+InputContains(const Input& input, uint8_t toFind)
+{
+  Reader reader(input);
+  for (;;) {
+    uint8_t b;
+    if (reader.Read(b) != Success) {
+      return false;
+    }
+    if (b == toFind) {
+      return true;
+    }
+  }
+}
 
 } } 
 
