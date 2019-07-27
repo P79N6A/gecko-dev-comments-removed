@@ -3263,7 +3263,7 @@ this.DOMApplicationRegistry = {
       
       
       this._sendAppliedEvent(aOldApp);
-      throw new Error("PACKAGE_UNCHANGED");
+      throw "PACKAGE_UNCHANGED";
     }
 
     let newManifest = yield this._openAndReadPackage(zipFile, aOldApp, aNewApp,
@@ -3919,6 +3919,13 @@ this.DOMApplicationRegistry = {
     
     if (aOldApp.isCanceling) {
       delete aOldApp.isCanceling;
+      return;
+    }
+
+    
+    
+    
+    if (aError == "PACKAGE_UNCHANGED") {
       return;
     }
 
