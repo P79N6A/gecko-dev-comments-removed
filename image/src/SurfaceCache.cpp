@@ -118,18 +118,18 @@ class CachedSurface
 public:
   NS_INLINE_DECL_REFCOUNTING(CachedSurface)
 
-  CachedSurface(imgFrame*          aSurface,
-                const Cost         aCost,
-                const ImageKey     aImageKey,
-                const SurfaceKey&  aSurfaceKey,
-                const Lifetime     aLifetime)
+  CachedSurface(imgFrame*         aSurface,
+                const IntSize     aTargetSize,
+                const Cost        aCost,
+                const ImageKey    aImageKey,
+                const SurfaceKey& aSurfaceKey)
     : mSurface(aSurface)
+    , mTargetSize(aTargetSize)
     , mCost(aCost)
     , mImageKey(aImageKey)
     , mSurfaceKey(aSurfaceKey)
-    , mLifetime(aLifetime)
   {
-    MOZ_ASSERT(mSurface, "Must have a valid surface");
+    MOZ_ASSERT(mSurface, "Must have a valid SourceSurface");
     MOZ_ASSERT(mImageKey, "Must have a valid image key");
   }
 
@@ -138,38 +138,19 @@ public:
     return mSurface->DrawableRef();
   }
 
-  void SetLocked(bool aLocked)
-  {
-    if (aLocked && mLifetime == Lifetime::Persistent) {
-      
-      
-      
-      mDrawableRef = mSurface->DrawableRef();
-    } else {
-      mDrawableRef.reset();
-    }
-  }
-
-  bool IsLocked() const { return bool(mDrawableRef); }
-
   ImageKey GetImageKey() const { return mImageKey; }
   SurfaceKey GetSurfaceKey() const { return mSurfaceKey; }
   CostEntry GetCostEntry() { return image::CostEntry(this, mCost); }
   nsExpirationState* GetExpirationState() { return &mExpirationState; }
-  Lifetime GetLifetime() const { return mLifetime; }
 
 private:
   nsExpirationState  mExpirationState;
   nsRefPtr<imgFrame> mSurface;
-  DrawableFrameRef   mDrawableRef;
+  const IntSize      mTargetSize;
   const Cost         mCost;
   const ImageKey     mImageKey;
   const SurfaceKey   mSurfaceKey;
-  const Lifetime     mLifetime;
 };
-
-
-
 
 
 
@@ -179,10 +160,8 @@ private:
 
 class ImageSurfaceCache
 {
-  ~ImageSurfaceCache() { }
+  ~ImageSurfaceCache() {}
 public:
-  ImageSurfaceCache() : mLocked(false) { }
-
   NS_INLINE_DECL_REFCOUNTING(ImageSurfaceCache)
 
   typedef nsRefPtrHashtable<nsGenericHashKey<SurfaceKey>, CachedSurface> SurfaceTable;
@@ -192,9 +171,6 @@ public:
   void Insert(const SurfaceKey& aKey, CachedSurface* aSurface)
   {
     MOZ_ASSERT(aSurface, "Should have a surface");
-    MOZ_ASSERT(!mLocked || aSurface->GetLifetime() != Lifetime::Persistent ||
-               aSurface->IsLocked(),
-               "Inserting an unlocked persistent surface for a locked image");
     mSurfaces.Put(aKey, aSurface);
   }
 
@@ -219,12 +195,8 @@ public:
     mSurfaces.EnumerateRead(aFunction, aData);
   }
 
-  void SetLocked(bool aLocked) { mLocked = aLocked; }
-  bool IsLocked() const { return mLocked; }
-
 private:
   SurfaceTable mSurfaces;
-  bool         mLocked;
 };
 
 
@@ -246,7 +218,6 @@ public:
     , mMemoryPressureObserver(new MemoryPressureObserver)
     , mMaxCost(aSurfaceCacheSize)
     , mAvailableCost(aSurfaceCacheSize)
-    , mLockedCost(0)
   {
     nsCOMPtr<nsIObserverService> os = services::GetObserverService();
     if (os)
@@ -268,21 +239,22 @@ public:
     RegisterWeakMemoryReporter(this);
   }
 
-  bool Insert(imgFrame*         aSurface,
+  void Insert(imgFrame*         aSurface,
+              IntSize           aTargetSize,
               const Cost        aCost,
               const ImageKey    aImageKey,
-              const SurfaceKey& aSurfaceKey,
-              Lifetime          aLifetime)
+              const SurfaceKey& aSurfaceKey)
   {
     MOZ_ASSERT(!Lookup(aImageKey, aSurfaceKey),
                "Inserting a duplicate surface into the SurfaceCache");
 
     
-    
-    if (!CanHoldAfterDiscarding(aCost))
-      return false;
+    if (!CanHold(aCost))
+      return;
 
-    
+    nsRefPtr<CachedSurface> surface =
+      new CachedSurface(aSurface, aTargetSize, aCost, aImageKey, aSurfaceKey);
+
     
     while (aCost > mAvailableCost) {
       MOZ_ASSERT(!mCosts.IsEmpty(), "Removed everything and it still won't fit");
@@ -297,24 +269,10 @@ public:
       mImageCaches.Put(aImageKey, cache);
     }
 
-    nsRefPtr<CachedSurface> surface =
-      new CachedSurface(aSurface, aCost, aImageKey, aSurfaceKey, aLifetime);
-
-    
-    
-    if (cache->IsLocked() && aLifetime == Lifetime::Persistent) {
-      surface->SetLocked(true);
-      if (!surface->IsLocked()) {
-        return false;
-      }
-    }
-
     
     MOZ_ASSERT(aCost <= mAvailableCost, "Inserting despite too large a cost");
     cache->Insert(aSurfaceKey, surface);
     StartTracking(surface);
-
-    return true;
   }
 
   void Remove(CachedSurface* aSurface)
@@ -329,8 +287,7 @@ public:
     cache->Remove(aSurface);
 
     
-    
-    if (cache->IsEmpty() && !cache->IsLocked()) {
+    if (cache->IsEmpty()) {
       mImageCaches.Remove(imageKey);
     }
   }
@@ -342,14 +299,8 @@ public:
                "Cost too large and the caller didn't catch it");
 
     mAvailableCost -= costEntry.GetCost();
-
-    if (aSurface->IsLocked()) {
-      mLockedCost += costEntry.GetCost();
-      MOZ_ASSERT(mLockedCost <= mMaxCost, "Locked more than we can hold?");
-    } else {
-      mCosts.InsertElementSorted(costEntry);
-      mExpirationTracker.AddObject(aSurface);
-    }
+    mCosts.InsertElementSorted(costEntry);
+    mExpirationTracker.AddObject(aSurface);
   }
 
   void StopTracking(CachedSurface* aSurface)
@@ -357,21 +308,12 @@ public:
     MOZ_ASSERT(aSurface, "Should have a surface");
     CostEntry costEntry = aSurface->GetCostEntry();
 
-    if (aSurface->IsLocked()) {
-      MOZ_ASSERT(mLockedCost >= costEntry.GetCost(), "Costs don't balance");
-      mLockedCost -= costEntry.GetCost();
-      
-      MOZ_ASSERT(!mCosts.Contains(costEntry),
-                 "Shouldn't have a cost entry for a locked surface");
-    } else {
-      mExpirationTracker.RemoveObject(aSurface);
-      DebugOnly<bool> foundInCosts = mCosts.RemoveElementSorted(costEntry);
-      MOZ_ASSERT(foundInCosts, "Lost track of costs for this surface");
-    }
-
+    mExpirationTracker.RemoveObject(aSurface);
+    DebugOnly<bool> foundInCosts = mCosts.RemoveElementSorted(costEntry);
     mAvailableCost += costEntry.GetCost();
-    MOZ_ASSERT(mAvailableCost <= mMaxCost,
-               "More available cost than we started with");
+
+    MOZ_ASSERT(foundInCosts, "Lost track of costs for this surface");
+    MOZ_ASSERT(mAvailableCost <= mMaxCost, "More available cost than we started with");
   }
 
   DrawableFrameRef Lookup(const ImageKey    aImageKey,
@@ -393,15 +335,12 @@ public:
       return DrawableFrameRef();
     }
 
-    if (!surface->IsLocked()) {
-      mExpirationTracker.MarkUsed(surface);
-    }
-
+    mExpirationTracker.MarkUsed(surface);
     return ref;
   }
 
-  void RemoveSurface(const ImageKey    aImageKey,
-                     const SurfaceKey& aSurfaceKey)
+  void RemoveIfPresent(const ImageKey    aImageKey,
+                       const SurfaceKey& aSurfaceKey)
   {
     nsRefPtr<ImageSurfaceCache> cache = GetImageCache(aImageKey);
     if (!cache)
@@ -419,33 +358,7 @@ public:
     return aCost <= mMaxCost;
   }
 
-  void LockImage(const ImageKey aImageKey)
-  {
-    nsRefPtr<ImageSurfaceCache> cache = GetImageCache(aImageKey);
-    if (!cache) {
-      cache = new ImageSurfaceCache;
-      mImageCaches.Put(aImageKey, cache);
-    }
-
-    cache->SetLocked(true);
-
-    
-    cache->ForEach(DoLockSurface, this);
-  }
-
-  void UnlockImage(const ImageKey aImageKey)
-  {
-    nsRefPtr<ImageSurfaceCache> cache = GetImageCache(aImageKey);
-    if (!cache)
-      return;  
-
-    cache->SetLocked(false);
-
-    
-    cache->ForEach(DoUnlockSurface, this);
-  }
-
-  void RemoveImage(const ImageKey aImageKey)
+  void Discard(const ImageKey aImageKey)
   {
     nsRefPtr<ImageSurfaceCache> cache = GetImageCache(aImageKey);
     if (!cache)
@@ -459,14 +372,11 @@ public:
     cache->ForEach(DoStopTracking, this);
 
     
-    
     mImageCaches.Remove(aImageKey);
   }
 
   void DiscardAll()
   {
-    
-    
     
     
     while (!mCosts.IsEmpty()) {
@@ -482,64 +392,14 @@ public:
     return PL_DHASH_NEXT;
   }
 
-  static PLDHashOperator DoLockSurface(const SurfaceKey&,
-                                       CachedSurface*    aSurface,
-                                       void*             aCache)
-  {
-    if (aSurface->GetLifetime() == Lifetime::Transient ||
-        aSurface->IsLocked()) {
-      return PL_DHASH_NEXT;
-    }
-
-    auto cache = static_cast<SurfaceCacheImpl*>(aCache);
-    cache->StopTracking(aSurface);
-
-    
-    aSurface->SetLocked(true);
-    cache->StartTracking(aSurface);
-
-    return PL_DHASH_NEXT;
-  }
-
-  static PLDHashOperator DoUnlockSurface(const SurfaceKey&,
-                                         CachedSurface*    aSurface,
-                                         void*             aCache)
-  {
-    if (aSurface->GetLifetime() == Lifetime::Transient ||
-        !aSurface->IsLocked()) {
-      return PL_DHASH_NEXT;
-    }
-
-    auto cache = static_cast<SurfaceCacheImpl*>(aCache);
-    cache->StopTracking(aSurface);
-
-    aSurface->SetLocked(false);
-    cache->StartTracking(aSurface);
-
-    return PL_DHASH_NEXT;
-  }
-
   NS_IMETHOD
-  CollectReports(nsIHandleReportCallback* aHandleReport,
-                 nsISupports*             aData,
-                 bool                     aAnonymize)
+  CollectReports(nsIHandleReportCallback* aHandleReport, nsISupports* aData,
+                 bool aAnonymize)
   {
-    nsresult rv;
-
-    rv = MOZ_COLLECT_REPORT("imagelib-surface-cache-total",
-                            KIND_OTHER, UNITS_BYTES,
-                            SizeOfSurfacesEstimate(),
-                            "Total memory used by the imagelib surface cache.");
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = MOZ_COLLECT_REPORT("imagelib-surface-cache-locked",
-                            KIND_OTHER, UNITS_BYTES,
-                            SizeOfLockedSurfacesEstimate(),
-                            "Memory used by locked surfaces in the imagelib "
-                            "surface cache.");
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    return NS_OK;
+    return MOZ_COLLECT_REPORT(
+      "imagelib-surface-cache", KIND_OTHER, UNITS_BYTES,
+      SizeOfSurfacesEstimate(),
+      "Memory used by the imagelib temporary surface cache.");
   }
 
   
@@ -551,27 +411,12 @@ public:
     return mMaxCost - mAvailableCost;
   }
 
-  Cost SizeOfLockedSurfacesEstimate() const
-  {
-    return mLockedCost;
-  }
-
 private:
   already_AddRefed<ImageSurfaceCache> GetImageCache(const ImageKey aImageKey)
   {
     nsRefPtr<ImageSurfaceCache> imageCache;
     mImageCaches.Get(aImageKey, getter_AddRefs(imageCache));
     return imageCache.forget();
-  }
-
-  
-  
-  
-  
-  
-  bool CanHoldAfterDiscarding(const Cost aCost) const
-  {
-    return aCost <= mMaxCost - mLockedCost;
   }
 
   struct SurfaceTracker : public nsExpirationTracker<CachedSurface, 2>
@@ -616,7 +461,6 @@ private:
   nsRefPtr<MemoryPressureObserver>                          mMemoryPressureObserver;
   const Cost                                                mMaxCost;
   Cost                                                      mAvailableCost;
-  Cost                                                      mLockedCost;
 };
 
 NS_IMPL_ISUPPORTS(SurfaceCacheImpl, nsIMemoryReporter)
@@ -635,12 +479,10 @@ SurfaceCache::Initialize()
   
 
   
-  
-  uint32_t surfaceCacheExpirationTimeMS =
-    gfxPrefs::ImageMemSurfaceCacheMinExpirationMS();
+  uint32_t surfaceCacheExpirationTimeMS = gfxPrefs::ImageMemSurfaceCacheMinExpirationMS();
 
   
-  uint64_t surfaceCacheMaxSizeKB = gfxPrefs::ImageMemSurfaceCacheMaxSizeKB();
+  uint32_t surfaceCacheMaxSizeKB = gfxPrefs::ImageMemSurfaceCacheMaxSizeKB();
 
   
   
@@ -655,16 +497,14 @@ SurfaceCache::Initialize()
   surfaceCacheSizeFactor = max(surfaceCacheSizeFactor, 1u);
 
   
-  uint64_t proposedSize = PR_GetPhysicalMemorySize() / surfaceCacheSizeFactor;
-  uint64_t surfaceCacheSizeBytes = min(proposedSize, surfaceCacheMaxSizeKB * 1024);
-  uint32_t finalSurfaceCacheSizeBytes =
-    min(surfaceCacheSizeBytes, uint64_t(UINT32_MAX));
+  uint32_t proposedSize = PR_GetPhysicalMemorySize() / surfaceCacheSizeFactor;
+  uint32_t surfaceCacheSizeBytes = min(proposedSize, surfaceCacheMaxSizeKB * 1024);
 
   
   
   
   sInstance = new SurfaceCacheImpl(surfaceCacheExpirationTimeMS,
-                                   finalSurfaceCacheSizeBytes);
+                                   surfaceCacheSizeBytes);
   sInstance->InitMemoryReporter();
 }
 
@@ -687,19 +527,17 @@ SurfaceCache::Lookup(const ImageKey    aImageKey,
   return sInstance->Lookup(aImageKey, aSurfaceKey);
 }
 
- bool
+ void
 SurfaceCache::Insert(imgFrame*         aSurface,
                      const ImageKey    aImageKey,
-                     const SurfaceKey& aSurfaceKey,
-                     Lifetime          aLifetime)
+                     const SurfaceKey& aSurfaceKey)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  if (!sInstance) {
-    return false;
+  if (sInstance) {
+    Cost cost = ComputeCost(aSurfaceKey.Size());
+    sInstance->Insert(aSurface, aSurfaceKey.Size(), cost, aImageKey,
+                      aSurfaceKey);
   }
-
-  Cost cost = ComputeCost(aSurfaceKey.Size());
-  return sInstance->Insert(aSurface, cost, aImageKey, aSurfaceKey, aLifetime);
 }
 
  bool
@@ -715,39 +553,21 @@ SurfaceCache::CanHold(const IntSize& aSize)
 }
 
  void
-SurfaceCache::LockImage(Image* aImageKey)
+SurfaceCache::RemoveIfPresent(const ImageKey    aImageKey,
+                              const SurfaceKey& aSurfaceKey)
 {
   MOZ_ASSERT(NS_IsMainThread());
   if (sInstance) {
-    return sInstance->LockImage(aImageKey);
+    sInstance->RemoveIfPresent(aImageKey, aSurfaceKey);
   }
 }
 
  void
-SurfaceCache::UnlockImage(Image* aImageKey)
+SurfaceCache::Discard(Image* aImageKey)
 {
   MOZ_ASSERT(NS_IsMainThread());
   if (sInstance) {
-    return sInstance->UnlockImage(aImageKey);
-  }
-}
-
- void
-SurfaceCache::RemoveSurface(const ImageKey    aImageKey,
-                            const SurfaceKey& aSurfaceKey)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  if (sInstance) {
-    sInstance->RemoveSurface(aImageKey, aSurfaceKey);
-  }
-}
-
- void
-SurfaceCache::RemoveImage(Image* aImageKey)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  if (sInstance) {
-    sInstance->RemoveImage(aImageKey);
+    sInstance->Discard(aImageKey);
   }
 }
 
