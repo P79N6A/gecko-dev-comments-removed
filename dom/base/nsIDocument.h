@@ -2101,6 +2101,13 @@ public:
   void TakeFrameRequestCallbacks(FrameRequestCallbackList& aCallbacks);
 
   
+
+
+
+
+  bool ShouldThrottleFrameRequests();
+
+  
   bool InUnlinkOrDeletion() { return mInUnlinkOrDeletion; }
 
   
