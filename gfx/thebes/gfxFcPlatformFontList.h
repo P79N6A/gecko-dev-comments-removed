@@ -28,6 +28,13 @@ public:
     static void Release(FcObjectSet *ptr) { FcObjectSetDestroy(ptr); }
 };
 
+template <>
+class nsAutoRefTraits<FcConfig> : public nsPointerRefTraits<FcConfig>
+{
+public:
+    static void Release(FcConfig *ptr) { FcConfigDestroy(ptr); }
+    static void AddRef(FcConfig *ptr) { FcConfigReference(ptr); }
+};
 
 
 
@@ -187,13 +194,7 @@ protected:
 
 class gfxFcPlatformFontList : public gfxPlatformFontList {
 public:
-    gfxFcPlatformFontList()
-        : mLocalNames(64), mGenericMappings(32)
-    {
-#ifdef MOZ_BUNDLED_FONTS
-        mBundledFontsInitialized = false;
-#endif
-    }
+    gfxFcPlatformFontList();
 
     
     nsresult InitFontList() override;
@@ -223,6 +224,8 @@ public:
     bool GetStandardFamilyName(const nsAString& aFontName,
                                nsAString& aFamilyName) override;
 
+    FcConfig* GetLastConfig() const { return mLastConfig; }
+
     static FT_Library GetFTLibrary();
 
 protected:
@@ -236,6 +239,8 @@ protected:
     gfxFontFamily* FindGenericFamily(const nsAString& aGeneric,
                                      nsIAtom* aLanguage);
 
+    static void CheckFontUpdates(nsITimer *aTimer, void *aThis);
+
 #ifdef MOZ_BUNDLED_FONTS
     void ActivateBundledFonts();
     nsCString mBundledFontsPath;
@@ -248,6 +253,9 @@ protected:
 
     
     nsRefPtrHashtable<nsCStringHashKey, gfxFontFamily> mGenericMappings;
+
+    nsCOMPtr<nsITimer> mCheckFontUpdatesTimer;
+    nsCountedRef<FcConfig> mLastConfig;
 
     static FT_Library sCairoFTLibrary;
 };
