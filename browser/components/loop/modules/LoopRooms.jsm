@@ -8,6 +8,7 @@ const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
+Cu.import("resource://gre/modules/Timer.jsm");
 
 const {MozLoopService, LOOP_SESSION_TYPE} = Cu.import("resource:///modules/loop/MozLoopService.jsm", {});
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
@@ -34,6 +35,13 @@ this.EXPORTED_SYMBOLS = ["LoopRooms", "roomsPushNotification"];
 
 
 const CLIENT_MAX_SIZE = 2;
+
+
+const MIN_TIME_BEFORE_ENCRYPTION = 5 * 1000;
+
+const MAX_TIME_BEFORE_ENCRYPTION = 30 * 60 * 1000;
+
+const TIME_BETWEEN_ENCRYPTIONS = 1000;
 
 const roomsPushNotification = function(version, channelID) {
   return LoopRoomsInternal.onNotification(version, channelID);
@@ -121,6 +129,23 @@ const checkForParticipantsUpdate = function(room, updatedRoom) {
 
 
 
+let timerHandlers = {
+  
+
+
+
+
+
+
+  startTimer(callback, delay) {
+    return setTimeout(callback, delay);
+  }
+};
+
+
+
+
+
 
 
 
@@ -135,6 +160,19 @@ let LoopRoomsInternal = {
       gRoomsCache = new LoopRoomsCache();
     }
     return gRoomsCache;
+  },
+
+  
+
+
+
+  encryptionQueue: {
+    queue: [],
+    timer: null,
+    reset: function() {
+      this.queue = [];
+      this.timer = null;
+    }
   },
 
   
@@ -158,6 +196,64 @@ let LoopRoomsInternal = {
       count += room.participants.length;
     }
     return count;
+  },
+
+  
+
+
+
+
+
+
+  processEncryptionQueue: Task.async(function* () {
+    let roomToken = this.encryptionQueue.queue.shift();
+
+    
+    
+    let roomData = this.rooms.get(roomToken);
+
+    if (roomData) {
+      try {
+        
+        
+        yield LoopRooms.promise("update", roomToken, {});
+      } catch (error) {
+        MozLoopService.log.error("Upgrade encryption of room failed", error);
+        
+      }
+    }
+
+    if (this.encryptionQueue.queue.length) {
+      this.encryptionQueue.timer =
+        timerHandlers.startTimer(this.processEncryptionQueue.bind(this), TIME_BETWEEN_ENCRYPTIONS);
+    } else {
+      this.encryptionQueue.timer = null;
+    }
+  }),
+
+  
+
+
+
+
+
+
+  queueForEncryption: function(roomToken) {
+    if (!this.encryptionQueue.queue.includes(roomToken)) {
+      this.encryptionQueue.queue.push(roomToken);
+    }
+
+    
+    
+    
+    
+    
+    if (!this.encryptionQueue.timer) {
+      let waitTime = (MAX_TIME_BEFORE_ENCRYPTION - MIN_TIME_BEFORE_ENCRYPTION) *
+        Math.random() + MIN_TIME_BEFORE_ENCRYPTION;
+      this.encryptionQueue.timer =
+        timerHandlers.startTimer(this.processEncryptionQueue.bind(this), waitTime);
+    }
   },
 
   
@@ -312,7 +408,9 @@ let LoopRoomsInternal = {
     if (fallback) {
       
       
-      
+      MozLoopService.log.debug("Fell back to saved key, queuing for encryption",
+        roomData.roomToken);
+      this.queueForEncryption(roomData.roomToken);
     } else if (!savedRoomKey || key != savedRoomKey) {
       
       try {
@@ -370,6 +468,10 @@ let LoopRoomsInternal = {
         roomName: room.roomName
       };
       delete room.roomName;
+
+      
+      
+      this.queueForEncryption(room.roomToken);
 
       this.saveAndNotifyUpdate(room, isUpdate);
     } else {
@@ -725,13 +827,16 @@ let LoopRoomsInternal = {
   update: function(roomToken, roomData, callback) {
     let room = this.rooms.get(roomToken);
     let url = "/rooms/" + encodeURIComponent(roomToken);
-
     if (!room.decryptedContext) {
       room.decryptedContext = {
         roomName: roomData.roomName || room.roomName
       };
     } else {
-      room.decryptedContext.roomName = roomData.roomName || room.roomName;
+      
+      
+      room.decryptedContext.roomName = roomData.roomName ||
+                                       room.decryptedContext.roomName ||
+                                       room.roomName;
     }
     if (roomData.urls && roomData.urls.length) {
       
