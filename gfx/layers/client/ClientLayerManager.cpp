@@ -207,11 +207,16 @@ ClientLayerManager::BeginTransactionWithTarget(gfxContext* aTarget)
   
   
   
+  
+  
+  
+#if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_GONK)
   if (mWidget) {
     if (dom::TabChild* window = mWidget->GetOwningTabChild()) {
       mCompositorMightResample = window->IsAsyncPanZoomEnabled();
     }
   }
+#endif
 
   
   
