@@ -4,17 +4,18 @@
 
 
 
-#ifndef vm_NumericConversions_h
-#define vm_NumericConversions_h
 
-#include "mozilla/Assertions.h"
+
+#ifndef js_Conversions_h
+#define js_Conversions_h
+
 #include "mozilla/Casting.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/TypeTraits.h"
 
 #include <math.h>
 
-namespace js {
+namespace JS {
 
 namespace detail {
 
