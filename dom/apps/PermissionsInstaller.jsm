@@ -42,8 +42,8 @@ this.PermissionsInstaller = {
 
 
 
-  installPermissions: function installPermissions(aApp, aIsReinstall, aOnError,
-                                                  aIsSystemUpdate) {
+  installPermissions: function installPermissions(aApp, aIsReinstall,
+                                                  aOnError) {
     try {
       let newManifest =
         new ManifestHelper(aApp.manifest, aApp.origin, aApp.manifestURL);
@@ -153,7 +153,10 @@ this.PermissionsInstaller = {
                 : PermissionsTable[permName][appStatus];
 
           let permValue = PERM_TO_STRING[permission];
-          if (!aIsSystemUpdate && isPromptPermission) {
+          if (isPromptPermission) {
+            
+            
+            
             
             
             permValue =
