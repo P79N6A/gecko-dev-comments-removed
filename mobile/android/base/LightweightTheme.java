@@ -18,6 +18,7 @@ import org.mozilla.gecko.util.ThreadUtils.AssertBehavior;
 import android.app.Application;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Shader;
@@ -25,6 +26,7 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Gravity;
@@ -77,7 +79,8 @@ public class LightweightTheme implements GeckoEventListener {
         try {
             if (event.equals("LightweightTheme:Update")) {
                 JSONObject lightweightTheme = message.getJSONObject("data");
-                final String headerURL = lightweightTheme.getString("headerURL"); 
+                final String headerURL = lightweightTheme.getString("headerURL");
+                final String color = lightweightTheme.optString("accentcolor");
 
                 
                 ThreadUtils.postToBackgroundThread(new Runnable() {
@@ -93,7 +96,7 @@ public class LightweightTheme implements GeckoEventListener {
                         mHandler.post(new Runnable() {
                             @Override
                             public void run() {
-                                setLightweightTheme(bitmap);
+                                setLightweightTheme(bitmap, color);
                             }
                         });
                     }
@@ -118,7 +121,8 @@ public class LightweightTheme implements GeckoEventListener {
 
 
 
-    private void setLightweightTheme(Bitmap bitmap) {
+
+    private void setLightweightTheme(Bitmap bitmap, String color) {
         if (bitmap == null || bitmap.getWidth() == 0 || bitmap.getHeight() == 0) {
             mBitmap = null;
             return;
@@ -127,31 +131,45 @@ public class LightweightTheme implements GeckoEventListener {
         
         DisplayMetrics dm = mApplication.getResources().getDisplayMetrics();
         int maxWidth = Math.max(dm.widthPixels, dm.heightPixels);
-        int height = (int) (bitmap.getHeight() * 0.25);
 
         
-        int bitmapWidth = bitmap.getWidth();
-        int bitmapHeight = bitmap.getHeight();
+        final int bitmapWidth = bitmap.getWidth();
+        final int bitmapHeight = bitmap.getHeight();
+
+        boolean useDominantColor = true;
+        if (!TextUtils.isEmpty(color)) {
+            try {
+                mColor = Color.parseColor(color);
+                useDominantColor = false;
+            } catch (IllegalArgumentException e) {
+                
+            }
+        }
 
         
-        Bitmap cropped = Bitmap.createBitmap(bitmap,
-                                             bitmapWidth > maxWidth ? bitmapWidth - maxWidth : 0,
-                                             bitmapHeight - height, 
-                                             bitmapWidth > maxWidth ? maxWidth : bitmapWidth,
-                                             height);
+        if (useDominantColor) {
+            
+            int cropLength = mApplication.getResources().getDimensionPixelSize(R.dimen.browser_toolbar_height);
+
+            
+            Bitmap cropped = Bitmap.createBitmap(bitmap,
+                                                 0, 0,
+                                                 cropLength > bitmapWidth ? bitmapWidth : cropLength,
+                                                 cropLength > bitmapHeight ? bitmapHeight : cropLength);
+
+            
+            mColor = BitmapUtils.getDominantColor(cropped, false);
+        }
 
         
-        mColor = BitmapUtils.getDominantColor(cropped, false);
-
-        
-        double luminance = (0.2125 * ((mColor & 0x00FF0000) >> 16)) + 
-                           (0.7154 * ((mColor & 0x0000FF00) >> 8)) + 
+        double luminance = (0.2125 * ((mColor & 0x00FF0000) >> 16)) +
+                           (0.7154 * ((mColor & 0x0000FF00) >> 8)) +
                            (0.0721 * (mColor &0x000000FF));
         mIsLight = luminance > 110;
 
         
         
-        if (bitmap.getWidth() >= maxWidth) {
+        if (bitmapWidth >= maxWidth) {
             mBitmap = bitmap;
         } else {
             Paint paint = new Paint();
