@@ -46,11 +46,13 @@ class DeviceManager(object):
 
     _logcatNeedsRoot = True
 
-    def __init__(self, logLevel=mozlog.ERROR):
+    def __init__(self, logLevel=mozlog.ERROR, deviceRoot=None):
         self._logger = mozlog.getLogger("DeviceManager")
         self._logLevel = logLevel
         self._logger.setLevel(logLevel)
         self._remoteIsWin = None
+        self._isDeviceRootSetup = False
+        self._deviceRoot = deviceRoot
 
     @property
     def remoteIsWin(self):
@@ -162,7 +164,7 @@ class DeviceManager(object):
         with open(filename, 'w') as pngfile:
             
             
-            tempScreenshotFile = self.getDeviceRoot() + "/ss-dm.tmp"
+            tempScreenshotFile = self.deviceRoot + "/ss-dm.tmp"
             self.shellCheckOutput(["sh", "-c", "%s > %s" %
                                    (screencap, tempScreenshotFile)],
                                   root=True)
@@ -311,55 +313,34 @@ class DeviceManager(object):
         Recursively changes file permissions in a directory.
         """
 
-    @abstractmethod
-    def getDeviceRoot(self):
+    @property
+    def deviceRoot(self):
         """
-        Gets the device root for the testing area on the device.
-
-        For all devices we will use / type slashes and depend on the device-agent
-        to sort those out.  The agent will return us the device location where we
-        should store things, we will then create our /tests structure relative to
-        that returned path.
-
-        Structure on the device is as follows:
-
-        ::
-
-          /tests
-              /<fennec>|<firefox>  --> approot
-              /profile
-              /xpcshell
-              /reftest
-              /mochitest
-        """
-
-    @abstractmethod
-    def getAppRoot(self, packageName=None):
-        """
-        Returns the app root directory.
-
-        E.g /tests/fennec or /tests/firefox
+        The device root on the device filesystem for putting temporary
+        testing files.
         """
         
+        if not self._deviceRoot or not self._isDeviceRootSetup:
+            self._deviceRoot = self._setupDeviceRoot(self._deviceRoot)
+            self._isDeviceRootSetup = True
 
-    def getTestRoot(self, harnessName):
+        return self._deviceRoot
+
+    @abstractmethod
+    def _setupDeviceRoot(self):
         """
-        Gets the directory location on the device for a specific test type.
-
-        :param harnessName: one of: "xpcshell", "reftest", "mochitest"
+        Sets up and returns a device root location that can be written to by tests.
         """
 
-        devroot = self.getDeviceRoot()
-        if (devroot == None):
-            return None
+    def getDeviceRoot(self):
+        """
+        Get the device root on the device filesystem for putting temporary
+        testing files.
 
-        if (re.search('xpcshell', harnessName, re.I)):
-            self.testRoot = devroot + '/xpcshell'
-        elif (re.search('?(i)reftest', harnessName)):
-            self.testRoot = devroot + '/reftest'
-        elif (re.search('?(i)mochitest', harnessName)):
-            self.testRoot = devroot + '/mochitest'
-        return self.testRoot
+        .. deprecated:: 0.38
+          Use the :py:attr:`deviceRoot` property instead.
+        """
+        return self.deviceRoot
 
     @abstractmethod
     def getTempDir(self):

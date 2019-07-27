@@ -10,9 +10,9 @@ import subprocess
 import runxpcshelltests as xpcshell
 import tempfile
 from automationutils import replaceBackSlashes
-from mozdevice import devicemanagerADB, devicemanagerSUT, devicemanager
 from zipfile import ZipFile
 import shutil
+import mozdevice
 import mozfile
 import mozinfo
 
@@ -133,7 +133,7 @@ class RemoteXPCShellTestThread(xpcshell.XPCShellTestThread):
         with open(outputFile, 'w+') as f:
             try:
                 self.shellReturnCode = self.device.shell(cmd, f, timeout=timeout+10)
-            except devicemanager.DMError as e:
+            except mozdevice.DMError as e:
                 if self.timedout:
                     
                     
@@ -224,7 +224,7 @@ class XPCShellRemote(xpcshell.XPCShellTests, object):
         self.options = options
         self.device = devmgr
         self.pathMapping = []
-        self.remoteTestRoot = self.device.getTestRoot("xpcshell")
+        self.remoteTestRoot = "%s/xpcshell" % self.device.deviceRoot
         
         
         
@@ -343,7 +343,7 @@ class XPCShellRemote(xpcshell.XPCShellTests, object):
             
             try:
                 self.device.shellCheckOutput(["mkdir", self.remoteBinDir]);
-            except devicemanager.DMError:
+            except mozdevice.DMError:
                 
                 self.device.shellCheckOutput(["mkdir", self.remoteBinDir], root=True);
                 self.device.shellCheckOutput(["chmod", "777", self.remoteBinDir], root=True);
@@ -593,16 +593,16 @@ def main():
              or: %s --manifest=test.manifest """ % (sys.argv[0], sys.argv[0])
         sys.exit(1)
 
-    if (options.dm_trans == "adb"):
-        if (options.deviceIP):
-            dm = devicemanagerADB.DeviceManagerADB(options.deviceIP, options.devicePort, packageName=None, deviceRoot=options.remoteTestRoot)
+    if options.dm_trans == "adb":
+        if options.deviceIP:
+            dm = mozdevice.DroidADB(options.deviceIP, options.devicePort, packageName=None, deviceRoot=options.remoteTestRoot)
         else:
-            dm = devicemanagerADB.DeviceManagerADB(packageName=None, deviceRoot=options.remoteTestRoot)
+            dm = mozdevice.DroidADB(packageName=None, deviceRoot=options.remoteTestRoot)
     else:
-        dm = devicemanagerSUT.DeviceManagerSUT(options.deviceIP, options.devicePort, deviceRoot=options.remoteTestRoot)
-        if (options.deviceIP == None):
+        if not options.deviceIP:
             print "Error: you must provide a device IP to connect to via the --device option"
             sys.exit(1)
+        dm = mozdevice.DroidSUT(options.deviceIP, options.devicePort, deviceRoot=options.remoteTestRoot)
 
     if options.interactive and not options.testPath:
         print >>sys.stderr, "Error: You must specify a test filename in interactive mode!"
