@@ -56,6 +56,10 @@ const EVENTS = {
   CALL_TREE_RENDERED: "Performance:UI:CallTreeRendered",
 
   
+  SOURCE_SHOWN_IN_JS_DEBUGGER: "Performance:UI:SourceShownInJsDebugger",
+  SOURCE_NOT_FOUND_IN_JS_DEBUGGER: "Performance:UI:SourceNotFoundInJsDebugger",
+
+  
   WATERFALL_RENDERED: "Performance:UI:WaterfallRendered"
 };
 

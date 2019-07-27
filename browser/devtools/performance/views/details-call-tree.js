@@ -14,6 +14,7 @@ let CallTreeView = {
     this.el = $(".call-tree");
     this._graphEl = $(".call-tree-cells-container");
     this._onRangeChange = this._onRangeChange.bind(this);
+    this._onLink = this._onLink.bind(this);
     this._stop = this._stop.bind(this);
 
     OverviewView.on(EVENTS.OVERVIEW_RANGE_SELECTED, this._onRangeChange);
@@ -58,6 +59,13 @@ let CallTreeView = {
     this.render(this._profilerData, beginAt, endAt);
   },
 
+  _onLink: function (_, treeItem) {
+    let { url, line } = treeItem.frame.getInfo();
+    viewSourceInDebugger(url, line).then(
+      () => this.emit(EVENTS.SOURCE_SHOWN_IN_JS_DEBUGGER),
+      () => this.emit(EVENTS.SOURCE_NOT_FOUND_IN_JS_DEBUGGER));
+  },
+
   
 
 
@@ -86,6 +94,9 @@ let CallTreeView = {
     });
 
     
+    root.on("link", this._onLink);
+
+    
     this._graphEl.innerHTML = "";
     root.attachTo(this._graphEl);
 
@@ -98,3 +109,30 @@ let CallTreeView = {
 
 
 EventEmitter.decorate(CallTreeView);
+
+
+
+
+
+
+
+let viewSourceInDebugger = Task.async(function *(url, line) {
+  
+  
+  
+  let debuggerAlreadyOpen = gToolbox.getPanel("jsdebugger");
+
+  let { panelWin: dbg } = yield gToolbox.selectTool("jsdebugger");
+
+  if (!debuggerAlreadyOpen) {
+    yield new Promise((resolve) => dbg.once(dbg.EVENTS.SOURCES_ADDED, () => resolve(dbg)));
+  }
+
+  let { DebuggerView } = dbg;
+  let item = DebuggerView.Sources.getItemForAttachment(a => a.source.url === url);
+  
+  if (item) {
+    return DebuggerView.setEditorLocation(item.attachment.source.actor, line, { noDebug: true });
+  }
+  return Promise.reject();
+});
