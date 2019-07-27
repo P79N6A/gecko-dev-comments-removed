@@ -2410,7 +2410,20 @@ inline gfx::Point NSPointToPoint(const nsPoint& aPoint,
 
 
 
-gfx::Rect NSRectToRect(const nsRect& aRect, int32_t aAppUnitsPerPixel);
+gfx::Rect NSRectToRect(const nsRect& aRect, double aAppUnitsPerPixel);
+
+
+
+
+
+
+
+
+
+
+
+gfx::Rect NSRectToRect(const nsRect& aRect, double aAppUnitsPerPixel,
+                       const gfx::DrawTarget& aSnapDT);
 
   namespace layout {
 
