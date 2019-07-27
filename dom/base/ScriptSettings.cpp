@@ -348,6 +348,14 @@ AutoEntryScript::AutoEntryScript(nsIGlobalObject* aGlobalObject,
   MOZ_ASSERT_IF(aCx && aIsMainThread, aCx == FindJSContext(aGlobalObject));
 }
 
+AutoEntryScript::~AutoEntryScript()
+{
+  
+  
+  
+  JS_MaybeGC(cx());
+}
+
 AutoIncumbentScript::AutoIncumbentScript(nsIGlobalObject* aGlobalObject)
   : ScriptSettingsStackEntry(aGlobalObject,  false)
   , mCallerOverride(nsContentUtils::GetCurrentJSContextForThread())

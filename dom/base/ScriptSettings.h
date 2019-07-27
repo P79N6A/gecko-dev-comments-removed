@@ -201,6 +201,8 @@ public:
                   
                   JSContext* aCx = nullptr);
 
+  ~AutoEntryScript();
+
   void SetWebIDLCallerPrincipal(nsIPrincipal *aPrincipal) {
     mWebIDLCallerPrincipal = aPrincipal;
   }

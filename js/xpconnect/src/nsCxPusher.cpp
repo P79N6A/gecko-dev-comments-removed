@@ -52,15 +52,6 @@ AutoCxPusher::AutoCxPusher(JSContext* cx, bool allowNull)
 AutoCxPusher::~AutoCxPusher()
 {
   
-  
-  
-  
-  
-  
-  if (mScx && !mAutoCompartment.empty())
-    JS_MaybeGC(nsXPConnect::XPConnect()->GetCurrentJSContext());
-
-  
   mAutoCompartment.destroyIfConstructed();
   mAutoRequest.destroyIfConstructed();
 
