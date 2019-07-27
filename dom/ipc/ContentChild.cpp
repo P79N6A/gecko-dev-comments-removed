@@ -2262,6 +2262,13 @@ ContentChild::RecvFilePathUpdate(const nsString& aStorageType,
                                  const nsString& aPath,
                                  const nsCString& aReason)
 {
+    if (nsDOMDeviceStorage::InstanceCount() == 0) {
+        
+        
+
+        return true;
+    }
+
     nsRefPtr<DeviceStorageFile> dsf = new DeviceStorageFile(aStorageType, aStorageName, aPath);
 
     nsString reason;
