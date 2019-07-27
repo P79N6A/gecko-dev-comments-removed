@@ -369,12 +369,11 @@ let RLSidebar = {
 
 
 
+
   onListMouseMove(event) {
     let itemNode = this.findParentItemNode(event.target);
-    if (!itemNode)
-      return;
-
-    this.selectedItem = itemNode;
+    if (itemNode != this.selectedItem)
+      this.selectedItem = null;
   },
 
   
