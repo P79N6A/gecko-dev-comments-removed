@@ -1145,7 +1145,7 @@ GetCompositorSideCompositionBounds(ContainerLayer* aScrollAncestor,
 
   
   
-  transform = transform * gfx3DMatrix(aAPZTransform);
+  transform = transform * To3DMatrix(aAPZTransform);
 
   
   transform = transform * layerTransform;
