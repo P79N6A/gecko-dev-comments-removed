@@ -344,6 +344,15 @@ HistoryListener.prototype = {
   
   
   OnHistoryNewEntry(newURI) {
+    let currentURI = this.webNavigation.currentURI;
+
+    
+    
+    
+    if (currentURI && (currentURI.spec == newURI.spec)) {
+      return;
+    }
+
     
     
     this.webNavigation.setCurrentURI(Utils.makeURI("about:blank"));

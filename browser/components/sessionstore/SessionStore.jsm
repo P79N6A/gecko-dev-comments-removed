@@ -1281,15 +1281,11 @@ let SessionStoreInternal = {
     if (RunState.isQuitting)
       return;
     LastSession.clear();
+
     let openWindows = {};
-    this._forEachBrowserWindow(function(aWindow) {
-      Array.forEach(aWindow.gBrowser.tabs, function(aTab) {
-        delete aTab.linkedBrowser.__SS_data;
-        if (aTab.linkedBrowser.__SS_restoreState)
-          this._resetTabRestoringState(aTab);
-      }, this);
-      openWindows[aWindow.__SSi] = true;
-    });
+    
+    this._forEachBrowserWindow(({__SSi: id}) => openWindows[id] = true);
+
     
     for (let ix in this._windows) {
       if (ix in openWindows) {
