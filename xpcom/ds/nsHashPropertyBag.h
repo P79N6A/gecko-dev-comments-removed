@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsHashPropertyBag_h___
 #define nsHashPropertyBag_h___
 
@@ -11,14 +12,12 @@
 #include "nsIWritablePropertyBag2.h"
 #include "nsInterfaceHashtable.h"
 
-class nsHashPropertyBag
+class nsHashPropertyBagBase
   : public nsIWritablePropertyBag
   , public nsIWritablePropertyBag2
 {
 public:
-  nsHashPropertyBag() {}
-
-  NS_DECL_THREADSAFE_ISUPPORTS
+  nsHashPropertyBagBase() {}
 
   NS_DECL_NSIPROPERTYBAG
   NS_DECL_NSIPROPERTYBAG2
@@ -29,12 +28,16 @@ public:
 protected:
   
   nsInterfaceHashtable<nsStringHashKey, nsIVariant> mPropertyHash;
-
-  virtual ~nsHashPropertyBag() {}
 };
 
+class nsHashPropertyBag : public nsHashPropertyBagBase
+{
+public:
+  nsHashPropertyBag() {}
+  NS_DECL_THREADSAFE_ISUPPORTS
 
-
-extern "C" nsresult NS_NewHashPropertyBag(nsIWritablePropertyBag** aResult);
+protected:
+  virtual ~nsHashPropertyBag() {}
+};
 
 #endif 
