@@ -22,7 +22,7 @@ function init()
 
 eval("init()");
 
-gcslice(0); 
+gcslice(0);
 selectforgc(objs.root);
 gcslice(1);
 delete objs.root.b;
