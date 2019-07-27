@@ -103,7 +103,7 @@ GetDOMEventTarget(nsWebBrowser* inBrowser, EventTarget** aTarget)
 
 
 nsDocShellTreeOwner::nsDocShellTreeOwner() :
-   mWebBrowser(nullptr), 
+   mWebBrowser(nullptr),
    mTreeOwner(nullptr),
    mPrimaryContentShell(nullptr),
    mWebBrowserChrome(nullptr),
@@ -402,7 +402,7 @@ nsDocShellTreeOwner::SizeShellTo(nsIDocShellTreeItem* aShellItem,
 
    NS_ENSURE_SUCCESS(presShell->ResizeReflow(NS_UNCONSTRAINEDSIZE,
       NS_UNCONSTRAINEDSIZE), NS_ERROR_FAILURE);
-   
+
    nsRect shellArea = presContext->GetVisibleArea();
 
    int32_t browserCX = presContext->AppUnitsToDevPixels(shellArea.width);
@@ -447,7 +447,7 @@ nsDocShellTreeOwner::GetTargetableShellCount(uint32_t* aResult)
 NS_IMETHODIMP
 nsDocShellTreeOwner::InitWindow(nativeWindow aParentNativeWindow,
                                 nsIWidget* aParentWidget, int32_t aX,
-                                int32_t aY, int32_t aCX, int32_t aCY)   
+                                int32_t aY, int32_t aCX, int32_t aCY)
 {
   return NS_ERROR_NULL_POINTER;
 }
@@ -684,7 +684,7 @@ NS_IMETHODIMP
 nsDocShellTreeOwner::OnProgressChange(nsIWebProgress* aProgress,
                                       nsIRequest* aRequest,
                                       int32_t aCurSelfProgress,
-                                      int32_t aMaxSelfProgress, 
+                                      int32_t aMaxSelfProgress,
                                       int32_t aCurTotalProgress,
                                       int32_t aMaxTotalProgress)
 {
@@ -712,7 +712,7 @@ nsDocShellTreeOwner::OnLocationChange(nsIWebProgress* aWebProgress,
     return NS_OK;
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsDocShellTreeOwner::OnStatusChange(nsIWebProgress* aWebProgress,
                                     nsIRequest* aRequest,
                                     nsresult aStatus,
@@ -721,9 +721,9 @@ nsDocShellTreeOwner::OnStatusChange(nsIWebProgress* aWebProgress,
     return NS_OK;
 }
 
-NS_IMETHODIMP 
-nsDocShellTreeOwner::OnSecurityChange(nsIWebProgress *aWebProgress, 
-                                      nsIRequest *aRequest, 
+NS_IMETHODIMP
+nsDocShellTreeOwner::OnSecurityChange(nsIWebProgress *aWebProgress,
+                                      nsIRequest *aRequest,
                                       uint32_t state)
 {
     return NS_OK;
@@ -759,7 +759,7 @@ nsDocShellTreeOwner::WebBrowser()
 
 NS_IMETHODIMP
 nsDocShellTreeOwner::SetTreeOwner(nsIDocShellTreeOwner* aTreeOwner)
-{ 
+{
   if(aTreeOwner) {
     nsCOMPtr<nsIWebBrowserChrome> webBrowserChrome(do_GetInterface(aTreeOwner));
     NS_ENSURE_TRUE(webBrowserChrome, NS_ERROR_INVALID_ARG);
@@ -819,7 +819,7 @@ nsDocShellTreeOwner::AddChromeListeners()
     return NS_ERROR_FAILURE;
 
   
-  if ( !mChromeTooltipListener ) { 
+  if ( !mChromeTooltipListener ) {
     nsCOMPtr<nsITooltipListener>
                            tooltipListener(do_QueryInterface(webBrowserChrome));
     if ( tooltipListener ) {
@@ -833,7 +833,7 @@ nsDocShellTreeOwner::AddChromeListeners()
         rv = NS_ERROR_OUT_OF_MEMORY;
     }
   }
-  
+
   
   if ( !mChromeContextMenuListener ) {
     nsCOMPtr<nsIContextMenuListener2>
@@ -1003,7 +1003,7 @@ DefaultTooltipTextProvider::DefaultTooltipTextProvider()
     
     mTag_dialog       = do_GetAtom("dialog");
     mTag_dialogheader = do_GetAtom("dialogheader");
-    mTag_window       = do_GetAtom("window");   
+    mTag_window       = do_GetAtom("window");
 }
 
 
@@ -1131,7 +1131,7 @@ NS_IMPL_ISUPPORTS(ChromeTooltipListener, nsIDOMEventListener)
 
 
 ChromeTooltipListener::ChromeTooltipListener(nsWebBrowser* inBrowser,
-                                             nsIWebBrowserChrome* inChrome) 
+                                             nsIWebBrowserChrome* inChrome)
   : mWebBrowser(inBrowser), mWebBrowserChrome(inChrome),
      mTooltipListenerInstalled(false),
      mMouseClientX(0), mMouseClientY(0),
@@ -1224,12 +1224,12 @@ ChromeTooltipListener::RemoveChromeListeners ( )
 
   if ( mTooltipListenerInstalled )
     RemoveTooltipListener();
-  
+
   mEventTarget = nullptr;
-  
+
   
   return NS_OK;
-  
+
 } 
 
 
@@ -1239,7 +1239,7 @@ ChromeTooltipListener::RemoveChromeListeners ( )
 
 
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 ChromeTooltipListener::RemoveTooltipListener()
 {
   if (mEventTarget) {
@@ -1361,17 +1361,17 @@ ChromeTooltipListener::ShowTooltip(int32_t inXCoords, int32_t inYCoords,
                                    const nsAString & inTipText)
 {
   nsresult rv = NS_OK;
-  
+
   
   nsCOMPtr<nsITooltipListener> tooltipListener ( do_QueryInterface(mWebBrowserChrome) );
   if ( tooltipListener ) {
-    rv = tooltipListener->OnShowTooltip ( inXCoords, inYCoords, PromiseFlatString(inTipText).get() ); 
+    rv = tooltipListener->OnShowTooltip ( inXCoords, inYCoords, PromiseFlatString(inTipText).get() );
     if ( NS_SUCCEEDED(rv) )
       mShowingTooltip = true;
   }
 
   return rv;
-  
+
 } 
 
 
@@ -1385,7 +1385,7 @@ NS_IMETHODIMP
 ChromeTooltipListener::HideTooltip()
 {
   nsresult rv = NS_OK;
-  
+
   
   if ( mTooltipTimer ) {
     mTooltipTimer->Cancel();
@@ -1405,7 +1405,7 @@ ChromeTooltipListener::HideTooltip()
   }
 
   return rv;
-  
+
 } 
 
 
@@ -1468,7 +1468,7 @@ ChromeTooltipListener::sTooltipCallback(nsITimer *aTimer,
 
       self->mTooltipTextProvider->GetNodeText(
           self->mPossibleTooltipNode, getter_Copies(tooltipText), &textFound);
-      
+
       if (textFound) {
         nsString tipText(tooltipText);
         nsIntPoint screenDot = widget->WidgetToScreenOffset();
@@ -1477,11 +1477,11 @@ ChromeTooltipListener::sTooltipCallback(nsITimer *aTimer,
                            tipText);
       }
     }
-    
+
     
     self->mPossibleTooltipNode = nullptr;
   } 
-  
+
 } 
 
 
@@ -1491,7 +1491,7 @@ NS_IMPL_ISUPPORTS(ChromeContextMenuListener, nsIDOMEventListener)
 
 
 
-ChromeContextMenuListener::ChromeContextMenuListener(nsWebBrowser* inBrowser, nsIWebBrowserChrome* inChrome ) 
+ChromeContextMenuListener::ChromeContextMenuListener(nsWebBrowser* inBrowser, nsIWebBrowserChrome* inChrome )
   : mContextMenuListenerInstalled(false),
     mWebBrowser(inBrowser),
     mWebBrowserChrome(inChrome)
@@ -1534,7 +1534,7 @@ ChromeContextMenuListener::AddContextMenuListener()
 
 
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 ChromeContextMenuListener::RemoveContextMenuListener()
 {
   if (mEventTarget) {
@@ -1586,12 +1586,12 @@ ChromeContextMenuListener::RemoveChromeListeners()
 {
   if ( mContextMenuListenerInstalled )
     RemoveContextMenuListener();
-  
+
   mEventTarget = nullptr;
-  
+
   
   return NS_OK;
-  
+
 } 
 
 
@@ -1633,7 +1633,7 @@ ChromeContextMenuListener::HandleEvent(nsIDOMEvent* aMouseEvent)
   nsCOMPtr<nsIContextMenuInfo> menuInfo;
   if (menuListener2) {
     menuInfoImpl = new nsContextMenuInfo;
-    menuInfo = menuInfoImpl; 
+    menuInfo = menuInfoImpl;
   }
 
   uint32_t flags = nsIContextMenuListener::CONTEXT_NONE;

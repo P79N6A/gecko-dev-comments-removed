@@ -84,7 +84,7 @@ protected:
     virtual ~nsDocShellTreeOwner();
 
     void WebBrowser(nsWebBrowser* aWebBrowser);
-    
+
     nsWebBrowser* WebBrowser();
     NS_IMETHOD SetTreeOwner(nsIDocShellTreeOwner* aTreeOwner);
     NS_IMETHOD SetWebBrowserChrome(nsIWebBrowserChrome* aWebBrowserChrome);
@@ -117,7 +117,7 @@ protected:
    
    nsWebBrowser*           mWebBrowser;
    nsIDocShellTreeOwner*   mTreeOwner;
-   nsIDocShellTreeItem*    mPrimaryContentShell; 
+   nsIDocShellTreeItem*    mPrimaryContentShell;
 
    nsIWebBrowserChrome*    mWebBrowserChrome;
    nsIEmbeddingSiteWindow* mOwnerWin;
@@ -151,7 +151,7 @@ protected:
 
 public:
   NS_DECL_ISUPPORTS
-  
+
   ChromeTooltipListener ( nsWebBrowser* inBrowser, nsIWebBrowserChrome* inChrome ) ;
 
   NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent);
@@ -222,7 +222,7 @@ protected:
 
 public:
   NS_DECL_ISUPPORTS
-  
+
   ChromeContextMenuListener ( nsWebBrowser* inBrowser, nsIWebBrowserChrome* inChrome ) ;
 
   
@@ -249,15 +249,3 @@ private:
 
 
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
