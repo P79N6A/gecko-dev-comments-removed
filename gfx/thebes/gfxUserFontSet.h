@@ -173,14 +173,26 @@ public:
     
     
     
-    gfxFontEntry *AddFontFace(const nsAString& aFamilyName,
+    already_AddRefed<gfxProxyFontEntry> CreateFontFace(
                               const nsTArray<gfxFontFaceSrc>& aFontFaceSrcList,
                               uint32_t aWeight,
                               int32_t aStretch,
                               uint32_t aItalicStyle,
                               const nsTArray<gfxFontFeature>& aFeatureSettings,
                               uint32_t aLanguageOverride,
-                              gfxSparseBitSet *aUnicodeRanges = nullptr);
+                              gfxSparseBitSet* aUnicodeRanges);
+
+    
+    
+    already_AddRefed<gfxProxyFontEntry> FindOrCreateFontFace(
+                               const nsAString& aFamilyName,
+                               const nsTArray<gfxFontFaceSrc>& aFontFaceSrcList,
+                               uint32_t aWeight,
+                               int32_t aStretch,
+                               uint32_t aItalicStyle,
+                               const nsTArray<gfxFontFeature>& aFeatureSettings,
+                               uint32_t aLanguageOverride,
+                               gfxSparseBitSet* aUnicodeRanges);
 
     
     void AddFontFace(const nsAString& aFamilyName, gfxFontEntry* aFontEntry);
@@ -431,6 +443,17 @@ protected:
 
     
     virtual void DoRebuildUserFontSet() = 0;
+
+    
+    gfxProxyFontEntry* FindExistingProxyEntry(
+                                   gfxMixedFontFamily* aFamily,
+                                   const nsTArray<gfxFontFaceSrc>& aFontFaceSrcList,
+                                   uint32_t aWeight,
+                                   int32_t aStretch,
+                                   uint32_t aItalicStyle,
+                                   const nsTArray<gfxFontFeature>& aFeatureSettings,
+                                   uint32_t aLanguageOverride,
+                                   gfxSparseBitSet* aUnicodeRanges);
 
     
     

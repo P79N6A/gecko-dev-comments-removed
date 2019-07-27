@@ -722,10 +722,17 @@ nsUserFontSet::InsertRule(nsCSSFontFaceRule* aRule, uint8_t aSheetType,
     FontFaceRuleRecord ruleRec;
     ruleRec.mContainer.mRule = aRule;
     ruleRec.mContainer.mSheetType = aSheetType;
-    ruleRec.mFontEntry = AddFontFace(fontfamily, srcArray,
-                                     weight, stretch, italicStyle,
-                                     featureSettings, languageOverride);
+    ruleRec.mFontEntry = FindOrCreateFontFace(fontfamily, srcArray,
+                                              weight, stretch, italicStyle,
+                                              featureSettings, languageOverride,
+                                              nullptr );
     if (ruleRec.mFontEntry) {
+      
+      
+      
+      
+      AddFontFace(fontfamily, ruleRec.mFontEntry);
+
       mRules.AppendElement(ruleRec);
     }
     
