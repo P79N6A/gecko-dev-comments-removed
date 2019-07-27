@@ -5546,7 +5546,7 @@ GCRuntime::compactPhase(bool lastGC, JS::gcreason::Reason reason)
 }
 
 void
-GCRuntime::finishCollection()
+GCRuntime::finishCollection(JS::gcreason::Reason reason)
 {
     MOZ_ASSERT(marker.isDrained());
     marker.stop();
@@ -5566,6 +5566,13 @@ GCRuntime::finishCollection()
     }
 
     lastGCTime = currentTime;
+
+    
+    
+    if (reason == JS::gcreason::LAST_DITCH || reason == JS::gcreason::MEM_PRESSURE) {
+        gcstats::AutoPhase ap(stats, gcstats::PHASE_WAIT_BACKGROUND_THREAD);
+        rt->gc.waitBackgroundSweepOrAllocEnd();
+    }
 }
 
 
@@ -5933,7 +5940,7 @@ GCRuntime::incrementalCollectSlice(SliceBudget &budget, JS::gcreason::Reason rea
         if (isCompacting && compactPhase(lastGC, reason) == NotFinished)
             break;
 
-        finishCollection();
+        finishCollection(reason);
 
         incrementalState = NO_INCREMENTAL;
         break;
