@@ -926,40 +926,8 @@ GlobalHelperThreadState::finishParseTask(JSContext* maybecx, JSRuntime* rt, void
         return nullptr;
     }
 
-    LeaveParseTaskZone(rt, parseTask);
+    mergeParseTaskCompartment(rt, parseTask, global, cx->compartment());
 
-    
-    
-    
-    
-    
-    
-    gc::AutoFinishGC finishGC(rt);
-    for (gc::ZoneCellIter iter(parseTask->cx->zone(), gc::AllocKind::OBJECT_GROUP);
-         !iter.done();
-         iter.next())
-    {
-        JS::AutoAssertNoAlloc noAlloc(rt);
-        ObjectGroup* group = iter.get<ObjectGroup>();
-        TaggedProto proto(group->proto());
-        if (!proto.isObject())
-            continue;
-
-        JSProtoKey key = JS::IdentifyStandardPrototype(proto.toObject());
-        if (key == JSProto_Null)
-            continue;
-        MOZ_ASSERT(key == JSProto_Object || key == JSProto_Array ||
-                   key == JSProto_Function || key == JSProto_RegExp ||
-                   key == JSProto_Iterator);
-
-        JSObject* newProto = GetBuiltinPrototypePure(global, key);
-        MOZ_ASSERT(newProto);
-
-        group->setProtoUnchecked(TaggedProto(newProto));
-    }
-
-    
-    gc::MergeCompartments(parseTask->cx->compartment(), cx->compartment());
     if (!parseTask->finish(cx))
         return nullptr;
 
@@ -986,6 +954,50 @@ GlobalHelperThreadState::finishParseTask(JSContext* maybecx, JSRuntime* rt, void
     }
 
     return script;
+}
+
+void
+GlobalHelperThreadState::mergeParseTaskCompartment(JSRuntime* rt, ParseTask* parseTask,
+                                                   Handle<GlobalObject*> global,
+                                                   JSCompartment* dest)
+{
+    
+    
+    
+    
+    gc::AutoFinishGC finishGC(rt);
+    JS::AutoAssertNoAlloc noAlloc(rt);
+
+    LeaveParseTaskZone(rt, parseTask);
+
+    
+    
+    
+    
+    for (gc::ZoneCellIter iter(parseTask->cx->zone(), gc::AllocKind::OBJECT_GROUP);
+         !iter.done();
+         iter.next())
+    {
+        ObjectGroup* group = iter.get<ObjectGroup>();
+        TaggedProto proto(group->proto());
+        if (!proto.isObject())
+            continue;
+
+        JSProtoKey key = JS::IdentifyStandardPrototype(proto.toObject());
+        if (key == JSProto_Null)
+            continue;
+        MOZ_ASSERT(key == JSProto_Object || key == JSProto_Array ||
+                   key == JSProto_Function || key == JSProto_RegExp ||
+                   key == JSProto_Iterator);
+
+        JSObject* newProto = GetBuiltinPrototypePure(global, key);
+        MOZ_ASSERT(newProto);
+
+        group->setProtoUnchecked(TaggedProto(newProto));
+    }
+
+    
+    gc::MergeCompartments(parseTask->cx->compartment(), dest);
 }
 
 void
