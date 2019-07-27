@@ -290,7 +290,7 @@ nsNumberControlFrame::MakeAnonymousElement(Element** aResult,
                                            nsStyleContext* aParentContext)
 {
   
-  nsCOMPtr<nsIDocument> doc = mContent->GetDocument();
+  nsCOMPtr<nsIDocument> doc = mContent->GetComposedDoc();
   nsRefPtr<Element> resultElement = doc->CreateHTMLElement(aTagName);
 
   

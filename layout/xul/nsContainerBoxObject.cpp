@@ -65,8 +65,7 @@ NS_IMETHODIMP nsContainerBoxObject::GetDocShell(nsIDocShell** aResult)
   
   
 
-  
-  nsIDocument *doc = mContent->GetDocument();
+  nsIDocument *doc = mContent->GetComposedDoc();
 
   if (!doc) {
     return NS_OK;

@@ -60,7 +60,7 @@ nsresult
 nsMeterFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
 {
   
-  nsCOMPtr<nsIDocument> doc = mContent->GetDocument();
+  nsCOMPtr<nsIDocument> doc = mContent->GetComposedDoc();
 
   
   mBarDiv = doc->CreateHTMLElement(nsGkAtoms::div);
