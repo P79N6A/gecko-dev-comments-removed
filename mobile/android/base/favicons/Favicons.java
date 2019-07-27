@@ -8,6 +8,7 @@ package org.mozilla.gecko.favicons;
 import org.mozilla.gecko.AboutPages;
 import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.GeckoAppShell;
+import org.mozilla.gecko.NewTabletUI;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.Tab;
 import org.mozilla.gecko.Tabs;
@@ -393,15 +394,23 @@ public class Favicons {
             return;
         }
 
+        final boolean isNewTabletEnabled = NewTabletUI.isEnabled(context);
         final Resources res = context.getResources();
 
         
-        defaultFavicon = BitmapFactory.decodeResource(res, R.drawable.favicon);
+        
+        
+        final int defaultFaviconDrawableID =
+                isNewTabletEnabled ? R.drawable.new_tablet_default_favicon : R.drawable.favicon;
+        defaultFavicon = BitmapFactory.decodeResource(res, defaultFaviconDrawableID);
         if (defaultFavicon == null) {
             throw new IllegalStateException("Null default favicon was returned from the resources system!");
         }
 
-        defaultFaviconSize = res.getDimensionPixelSize(R.dimen.favicon_bg);
+        
+        final int defaultFaviconSizeDimenID =
+                isNewTabletEnabled ? R.dimen.tab_strip_favicon_size : R.dimen.favicon_bg;
+        defaultFaviconSize = res.getDimensionPixelSize(defaultFaviconSizeDimenID);
 
         
         
