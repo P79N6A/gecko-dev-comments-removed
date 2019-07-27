@@ -520,6 +520,9 @@ class PerThreadData : public PerThreadDataFriendFields
 #ifdef DEBUG
     
     bool ionCompiling;
+
+    
+    bool gcSweeping;
 #endif
 
     

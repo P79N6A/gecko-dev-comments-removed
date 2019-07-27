@@ -1026,7 +1026,7 @@ class GCParallelTask
     
     
   public:
-    void runFromHelperThread();
+    virtual void runFromHelperThread();
 };
 
 struct GCChunkHasher {
