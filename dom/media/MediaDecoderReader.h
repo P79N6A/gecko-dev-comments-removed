@@ -149,6 +149,11 @@ public:
 
   
   
+  
+  virtual uint32_t GetBufferingWait() { return 30; }
+
+  
+  
   size_t SizeOfVideoQueueInBytes() const;
 
   

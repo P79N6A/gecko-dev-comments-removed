@@ -71,6 +71,12 @@ public:
   
   virtual int64_t ComputeStartTime(const VideoData* aVideo, const AudioData* aAudio) MOZ_OVERRIDE { return 0; }
 
+  
+  
+  
+  
+  virtual uint32_t GetBufferingWait() { return 0; }
+
   bool IsMediaSeekable() { return true; }
 
   nsresult ReadMetadata(MediaInfo* aInfo, MetadataTags** aTags) MOZ_OVERRIDE;
