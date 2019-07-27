@@ -51,8 +51,20 @@ function checkInContentPreferences(win) {
 
 function test() {
   waitForExplicitFinish();
-  gBrowser.selectedBrowser.addEventListener("load", function onload() {
-    gBrowser.selectedBrowser.removeEventListener("load", onload, true);
+
+  Services.prefs.setBoolPref("offline-apps.allow_by_default", false);
+
+  
+  gBrowser.selectedTab = gBrowser.addTab(URL);
+  registerCleanupFunction(() => gBrowser.removeCurrentTab());
+
+
+  Promise.all([
+    
+    promiseNotification(),
+    
+    BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser)
+  ]).then(() => {
     gBrowser.selectedBrowser.contentWindow.applicationCache.oncached = function() {
       executeSoon(function() {
         
@@ -87,8 +99,14 @@ function test() {
     
     
     PopupNotifications.panel.firstElementChild.button.click();
-  }, true);
+  });
+}
 
-  Services.prefs.setBoolPref("offline-apps.allow_by_default", false);
-  gBrowser.contentWindow.location = URL;
+function promiseNotification() {
+  return new Promise(resolve => {
+    PopupNotifications.panel.addEventListener("popupshown", function onShown() {
+      PopupNotifications.panel.removeEventListener("popupshown", onShown);
+      resolve();
+    });
+  });
 }
