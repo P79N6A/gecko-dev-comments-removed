@@ -637,6 +637,13 @@ var LoginManagerContent = {
         return;
       }
 
+      var isAutocompleteOff = false;
+      if (this._isAutocompleteDisabled(form) ||
+          this._isAutocompleteDisabled(usernameField) ||
+          this._isAutocompleteDisabled(passwordField)) {
+        isAutocompleteOff = true;
+      }
+
       
       
       
@@ -676,20 +683,6 @@ var LoginManagerContent = {
         log("form not filled, the password field was already filled");
         recordAutofillResult(AUTOFILL_RESULT.EXISTING_PASSWORD);
         return;
-      }
-
-      
-      
-      
-      
-      var isFormDisabled = false;
-      if (!ignoreAutocomplete &&
-          (this._isAutocompleteDisabled(form) ||
-           this._isAutocompleteDisabled(usernameField) ||
-           this._isAutocompleteDisabled(passwordField))) {
-
-        isFormDisabled = true;
-        log("form not filled, has autocomplete=off");
       }
 
       
@@ -742,13 +735,13 @@ var LoginManagerContent = {
       
 
       if (!autofillForm) {
-        log("autofillForms=false but form can be filled; notified observers");
+        log("autofillForms=false but form can be filled");
         recordAutofillResult(AUTOFILL_RESULT.NO_AUTOFILL_FORMS);
         return;
       }
 
-      if (isFormDisabled) {
-        log("autocomplete=off but form can be filled; notified observers");
+      if (isAutocompleteOff && !ignoreAutocomplete) {
+        log("Not filling the login because we're respecting autocomplete=off");
         recordAutofillResult(AUTOFILL_RESULT.AUTOCOMPLETE_OFF);
         return;
       }
