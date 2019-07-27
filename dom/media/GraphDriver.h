@@ -119,6 +119,11 @@ public:
     return mNextDriver || mPreviousDriver;
   }
 
+  GraphDriver* NextDriver()
+  {
+    return mNextDriver;
+  }
+
   
 
 

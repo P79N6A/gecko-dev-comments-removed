@@ -3425,10 +3425,16 @@ MediaStreamGraphImpl::ApplyAudioContextOperationImpl(AudioNodeStream* aStream,
   
   if (aOperation == AudioContextOperation::Resume) {
     if (!CurrentDriver()->AsAudioCallbackDriver()) {
-      AudioCallbackDriver* driver = new AudioCallbackDriver(this);
+      AudioCallbackDriver* driver;
+      if (CurrentDriver()->Switching()) {
+        MOZ_ASSERT(CurrentDriver()->NextDriver()->AsAudioCallbackDriver());
+        driver = CurrentDriver()->NextDriver()->AsAudioCallbackDriver();
+      } else {
+        driver = new AudioCallbackDriver(this);
+        mMixer.AddCallback(driver);
+        CurrentDriver()->SwitchAtNextIteration(driver);
+      }
       driver->EnqueueStreamAndPromiseForOperation(aStream, aPromise, aOperation);
-      mMixer.AddCallback(driver);
-      CurrentDriver()->SwitchAtNextIteration(driver);
     } else {
       
       
@@ -3456,9 +3462,14 @@ MediaStreamGraphImpl::ApplyAudioContextOperationImpl(AudioNodeStream* aStream,
       CurrentDriver()->AsAudioCallbackDriver()->
         EnqueueStreamAndPromiseForOperation(aStream, aPromise, aOperation);
 
-      SystemClockDriver* driver = new SystemClockDriver(this);
-      mMixer.RemoveCallback(CurrentDriver()->AsAudioCallbackDriver());
-      CurrentDriver()->SwitchAtNextIteration(driver);
+      SystemClockDriver* driver;
+      if (CurrentDriver()->NextDriver()) {
+        MOZ_ASSERT(!CurrentDriver()->NextDriver()->AsAudioCallbackDriver());
+      } else {
+        driver = new SystemClockDriver(this);
+        mMixer.RemoveCallback(CurrentDriver()->AsAudioCallbackDriver());
+        CurrentDriver()->SwitchAtNextIteration(driver);
+      }
     } else {
       
       
