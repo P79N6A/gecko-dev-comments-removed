@@ -209,6 +209,7 @@ function promiseCleanDirectoryLinksProvider() {
     yield promiseDirectoryDownloadOnPrefChange(kLocalePref, "en-US");
     yield promiseDirectoryDownloadOnPrefChange(kSourceUrlPref, kTestURL);
     yield DirectoryLinksProvider._clearFrequencyCap();
+    yield DirectoryLinksProvider._loadInadjacentSites();
     DirectoryLinksProvider._lastDownloadMS  = 0;
     DirectoryLinksProvider.reset();
   });
@@ -1744,4 +1745,182 @@ add_task(function test_sanitizeExplanation() {
   let suggestedLink = [...DirectoryLinksProvider._suggestedLinks.get(suggestedSites[0]).values()][0];
   do_check_eq(suggestedLink.explanation, "This is an evil tile X muhahaha");
   do_check_eq(suggestedLink.targetedName, "WE ARE EVIL ");
+});
+
+add_task(function test_inadjecentSites() {
+  let suggestedTile = Object.assign({
+    check_inadjacency: true
+  }, suggestedTile1);
+
+  
+  let topSites = ["1040.com", "site2.com", "hrblock.com", "site4.com", "freetaxusa.com", "site6.com"];
+  let data = {"suggested": [suggestedTile], "directory": [someOtherSite]};
+  let dataURI = 'data:application/json,' + JSON.stringify(data);
+
+  let testObserver = new TestFirstRun();
+  DirectoryLinksProvider.addObserver(testObserver);
+
+  let origGetFrecentSitesName = DirectoryLinksProvider.getFrecentSitesName;
+  DirectoryLinksProvider.getFrecentSitesName = () => "";
+
+  yield promiseSetupDirectoryLinksProvider({linksURL: dataURI});
+  let links = yield fetchData();
+
+  let origIsTopPlacesSite = NewTabUtils.isTopPlacesSite;
+  NewTabUtils.isTopPlacesSite = function(site) {
+    return topSites.indexOf(site) >= 0;
+  }
+
+  let origGetProviderLinks = NewTabUtils.getProviderLinks;
+  NewTabUtils.getProviderLinks = function(provider) {
+    return links;
+  }
+
+  let origCurrentTopSiteCount = DirectoryLinksProvider._getCurrentTopSiteCount;
+  DirectoryLinksProvider._getCurrentTopSiteCount = () => {
+    origCurrentTopSiteCount.apply(DirectoryLinksProvider);
+    return 8;
+  };
+
+  
+  let origInadjacentSitesUrl = DirectoryLinksProvider._inadjacentSitesUrl;
+
+  
+  function setInadjacentSites(sites) {
+    let badSiteB64 = [];
+    sites.forEach(site => {
+      badSiteB64.push(DirectoryLinksProvider._generateHash(site));
+    });
+    let theList = {"domains": badSiteB64};
+    let dataURI = 'data:application/json,' + JSON.stringify(theList);
+    DirectoryLinksProvider._inadjacentSitesUrl = dataURI;
+    return DirectoryLinksProvider._loadInadjacentSites();
+  };
+
+  
+  let gLinks = NewTabUtils.links;
+  gLinks.addProvider(DirectoryLinksProvider);
+
+  function updateNewTabCache() {
+    gLinks.populateCache();
+    return new Promise(resolve => {
+      NewTabUtils.allPages.register({
+        observe: _ => _,
+        update() {
+          NewTabUtils.allPages.unregister(this);
+          resolve();
+        }
+      });
+  });
+  }
+
+  
+  do_check_eq(DirectoryLinksProvider._updateSuggestedTile(), undefined);
+  
+  do_check_true(DirectoryLinksProvider._avoidInadjacentSites);
+  
+  do_check_true(DirectoryLinksProvider._isInadjacentLink({baseDomain: "example.com"}));
+
+  function TestFirstRun() {
+    this.promise = new Promise(resolve => {
+      this.onLinkChanged = (directoryLinksProvider, link) => {
+        do_check_eq(link.url, suggestedTile.url);
+        do_check_eq(link.type, "affiliate");
+        resolve();
+      };
+    });
+  }
+
+  
+  yield testObserver.promise;
+  DirectoryLinksProvider.removeObserver(testObserver);
+
+  
+  yield updateNewTabCache();
+  
+  do_check_true(DirectoryLinksProvider._avoidInadjacentSites);
+
+  
+  let link = DirectoryLinksProvider._updateSuggestedTile();
+  do_check_eq(link.url, "http://turbotax.com");
+  
+  do_check_true(link.check_inadjacency);
+
+  
+  yield setInadjacentSites(["someothersite.com"]);
+
+  
+  link = DirectoryLinksProvider._updateSuggestedTile();
+  do_check_false(link);
+  do_check_true(DirectoryLinksProvider._newTabHasInadjacentSite);
+
+  
+  do_check_true(DirectoryLinksProvider._handleLinkChanged({
+    url: "http://someothersite.com",
+    type: "history",
+  }));
+  
+  do_check_false(DirectoryLinksProvider._handleLinkChanged({
+    url: "http://foobar.com",
+    type: "history",
+  }));
+
+  
+  yield setInadjacentSites(["foo.com", "bar.com"]);
+
+  link = DirectoryLinksProvider._updateSuggestedTile();
+  
+  do_check_true(link);
+  do_check_eq(link.url, "http://turbotax.com");
+
+  
+  yield setInadjacentSites(["someothersite.com", "foo.com"]);
+  
+  link = DirectoryLinksProvider._updateSuggestedTile();
+  do_check_false(link);
+  do_check_true(DirectoryLinksProvider._newTabHasInadjacentSite);
+
+  
+  delete suggestedTile.check_inadjacency;
+  data = {"suggested": [suggestedTile], "directory": [someOtherSite]};
+  dataURI = 'data:application/json,' + JSON.stringify(data);
+  yield promiseDirectoryDownloadOnPrefChange(kSourceUrlPref, dataURI);
+  yield fetchData();
+
+  
+  do_check_false(DirectoryLinksProvider._avoidInadjacentSites);
+  link = DirectoryLinksProvider._updateSuggestedTile();
+  do_check_true(link);
+  do_check_eq(link.url, "http://turbotax.com");
+  do_check_false(DirectoryLinksProvider._newTabHasInadjacentSite);
+
+  
+  do_check_false(DirectoryLinksProvider._handleLinkChanged({
+    url: "http://someothersite.com",
+    type: "history",
+  }));
+
+  
+  do_check_true(DirectoryLinksProvider._isInadjacentLink({baseDomain: "someothersite.com"}));
+  do_check_false(DirectoryLinksProvider._isInadjacentLink({baseDomain: "bar.com"}));
+  do_check_true(DirectoryLinksProvider._isInadjacentLink({url: "http://www.someothersite.com"}));
+  do_check_false(DirectoryLinksProvider._isInadjacentLink({url: "http://www.bar.com"}));
+  
+  do_check_false(DirectoryLinksProvider._isInadjacentLink({baseDomain: ""}));
+  do_check_false(DirectoryLinksProvider._isInadjacentLink({url: ""}));
+  do_check_false(DirectoryLinksProvider._isInadjacentLink({url: "http://localhost:8081/"}));
+  do_check_false(DirectoryLinksProvider._isInadjacentLink({url: "abracodabra"}));
+  do_check_false(DirectoryLinksProvider._isInadjacentLink({}));
+
+  
+  do_check_true(DirectoryLinksProvider._checkForInadjacentSites());
+
+  
+  gLinks.removeProvider(DirectoryLinksProvider);
+  DirectoryLinksProvider._inadjacentSitesUrl = origInadjacentSitesUrl;
+  DirectoryLinksProvider.getFrecentSitesName = origGetFrecentSitesName;
+  NewTabUtils.isTopPlacesSite = origIsTopPlacesSite;
+  NewTabUtils.getProviderLinks = origGetProviderLinks;
+  DirectoryLinksProvider._getCurrentTopSiteCount = origCurrentTopSiteCount;
+  yield promiseCleanDirectoryLinksProvider();
 });

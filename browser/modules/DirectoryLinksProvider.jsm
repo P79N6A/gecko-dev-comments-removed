@@ -28,9 +28,22 @@ XPCOMUtils.defineLazyModuleGetter(this, "Promise",
   "resource://gre/modules/Promise.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "UpdateChannel",
   "resource://gre/modules/UpdateChannel.jsm");
+XPCOMUtils.defineLazyServiceGetter(this, "eTLD",
+  "@mozilla.org/network/effective-tld-service;1",
+  "nsIEffectiveTLDService");
 XPCOMUtils.defineLazyGetter(this, "gTextDecoder", () => {
   return new TextDecoder();
 });
+XPCOMUtils.defineLazyGetter(this, "gCryptoHash", function () {
+  return Cc["@mozilla.org/security/hash;1"].createInstance(Ci.nsICryptoHash);
+});
+XPCOMUtils.defineLazyGetter(this, "gUnicodeConverter", function () {
+  let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
+                    .createInstance(Ci.nsIScriptableUnicodeConverter);
+  converter.charset = 'utf8';
+  return converter;
+});
+
 
 
 const DIRECTORY_LINKS_FILE = "directoryLinks.json";
@@ -109,10 +122,16 @@ const DEFAULT_PRUNE_TIME_DELTA = 10*24*60*60*1000;
 const MIN_VISIBLE_HISTORY_TILES = 8;
 
 
+const MAX_VISIBLE_HISTORY_TILES = 15;
+
+
 const PING_SCORE_DIVISOR = 10000;
 
 
 const PING_ACTIONS = ["block", "click", "pin", "sponsored", "sponsored_link", "unpin", "view"];
+
+
+const INADJACENCY_SOURCE = "chrome://browser/content/newtab/newTab.inadjacent.json";
 
 
 
@@ -150,6 +169,23 @@ let DirectoryLinksProvider = {
 
 
   _topSitesWithSuggestedLinks: new Set(),
+
+  
+
+
+  _inadjacentSites: new Set(),
+
+  
+
+
+
+  _avoidInadjacentSites: false,
+
+  
+
+
+
+  _newTabHasInadjacentSite: false,
 
   get _observedPrefs() Object.freeze({
     enhanced: PREF_NEWTAB_ENHANCED,
@@ -274,22 +310,26 @@ let DirectoryLinksProvider = {
     uri = uri.replace("%LOCALE%", this.locale);
     uri = uri.replace("%CHANNEL%", UpdateChannel.get());
 
+    return this._downloadJsonData(uri).then(json => {
+      return OS.File.writeAtomic(this._directoryFilePath, json, {tmpPath: this._directoryFilePath + ".tmp"});
+    });
+  },
+
+  
+
+
+
+
+  _downloadJsonData: function DirectoryLinksProvider__downloadJsonData(uri) {
     let deferred = Promise.defer();
     let xmlHttp = this._newXHR();
 
-    let self = this;
     xmlHttp.onload = function(aResponse) {
       let json = this.responseText;
       if (this.status && this.status != 200) {
         json = "{}";
       }
-      OS.File.writeAtomic(self._directoryFilePath, json, {tmpPath: self._directoryFilePath + ".tmp"})
-        .then(() => {
-          deferred.resolve();
-        },
-        () => {
-          deferred.reject("Error writing uri data in profD.");
-        });
+      deferred.resolve(json);
     };
 
     xmlHttp.onerror = function(e) {
@@ -616,6 +656,7 @@ let DirectoryLinksProvider = {
       this._enhancedLinks.clear();
       this._suggestedLinks.clear();
       this._clearCampaignTimeout();
+      this._avoidInadjacentSites = false;
 
       
       let checkBase = !this.__linksURLModified;
@@ -640,6 +681,10 @@ let DirectoryLinksProvider = {
         link.explanation = link.explanation ? ParserUtils.convertToPlainText(link.explanation, sanitizeFlags, 0) : "";
         link.targetedName = ParserUtils.convertToPlainText(link.adgroup_name, sanitizeFlags, 0) || name;
         link.lastVisitDate = rawLinks.suggested.length - position;
+        
+        if (link.check_inadjacency) {
+          this._avoidInadjacentSites = true;
+        }
 
         
         
@@ -689,6 +734,8 @@ let DirectoryLinksProvider = {
 
     
     this._frequencyCapFilePath = OS.Path.join(OS.Constants.Path.localProfileDir, FREQUENCY_CAP_FILE);
+    
+    this._inadjacentSitesUrl = INADJACENCY_SOURCE;
 
     NewTabUtils.placesProvider.addObserver(this);
     NewTabUtils.links.addObserver(this);
@@ -704,6 +751,8 @@ let DirectoryLinksProvider = {
       yield this._readFrequencyCapFile();
       
       yield this._fetchAndCacheLinksIfNecessary();
+      
+      yield this._loadInadjacentSites();
     }.bind(this));
   },
 
@@ -736,6 +785,13 @@ let DirectoryLinksProvider = {
       this._topSitesWithSuggestedLinks.add(changedLinkSite);
       return true;
     }
+
+    
+    
+    if (this._avoidInadjacentSites && this._isInadjacentLink(aLink)) {
+      return true;
+    }
+
     return false;
   },
 
@@ -779,11 +835,17 @@ let DirectoryLinksProvider = {
 
   _getCurrentTopSiteCount: function() {
     let visibleTopSiteCount = 0;
-    for (let link of NewTabUtils.links.getLinks().slice(0, MIN_VISIBLE_HISTORY_TILES)) {
+    let newTabLinks = NewTabUtils.links.getLinks();
+    for (let link of newTabLinks.slice(0, MIN_VISIBLE_HISTORY_TILES)) {
+      
       if (link && (link.type == "history" || link.type == "enhanced")) {
         visibleTopSiteCount++;
       }
     }
+    
+    
+    this._newTabHasInadjacentSite = this._avoidInadjacentSites && this._checkForInadjacentSites(newTabLinks);
+
     return visibleTopSiteCount;
   },
 
@@ -872,6 +934,11 @@ let DirectoryLinksProvider = {
           return;
         }
 
+        
+        if (suggestedLink.check_inadjacency && this._newTabHasInadjacentSite) {
+          return;
+        }
+
         possibleLinks.set(url, suggestedLink);
 
         
@@ -912,6 +979,66 @@ let DirectoryLinksProvider = {
     }, chosenSuggestedLink));
     return chosenSuggestedLink;
    },
+
+  
+
+
+
+  _loadInadjacentSites: function DirectoryLinksProvider_loadInadjacentSites() {
+    return this._downloadJsonData(this._inadjacentSitesUrl).then(jsonString => {
+      let jsonObject = {};
+      try {
+        jsonObject = JSON.parse(jsonString);
+      }
+      catch (e) {
+        Cu.reportError(e);
+      }
+
+      this._inadjacentSites = new Set(jsonObject.domains);
+    });
+  },
+
+  
+
+
+
+
+  _generateHash: function DirectoryLinksProvider_generateHash(value) {
+    let byteArr = gUnicodeConverter.convertToByteArray(value);
+    gCryptoHash.init(gCryptoHash.MD5);
+    gCryptoHash.update(byteArr, byteArr.length);
+    return gCryptoHash.finish(true);
+  },
+
+  
+
+
+
+
+  _isInadjacentLink: function DirectoryLinksProvider_isInadjacentLink(link) {
+    let baseDomain = link.baseDomain || NewTabUtils.extractSite(link.url || "");
+    if (!baseDomain) {
+        return false;
+    }
+    
+    return this._inadjacentSites.has(this._generateHash(baseDomain));
+  },
+
+  
+
+
+
+
+  _checkForInadjacentSites: function DirectoryLinksProvider_checkForInadjacentSites(newTabLink) {
+    let links = newTabLink || NewTabUtils.links.getLinks();
+    for (let link of links.slice(0, MAX_VISIBLE_HISTORY_TILES)) {
+      
+      if (this._isInadjacentLink(link)) {
+        return true;
+      }
+    }
+    return false;
+  },
 
   
 
