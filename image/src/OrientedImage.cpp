@@ -250,5 +250,32 @@ OrientedImage::Draw(gfxContext* aContext,
                             aWhichFrame, aFlags);
 }
 
+NS_IMETHODIMP_(nsIntRect)
+OrientedImage::GetImageSpaceInvalidationRect(const nsIntRect& aRect)
+{
+  nsIntRect rect(InnerImage()->GetImageSpaceInvalidationRect(aRect));
+
+  if (mOrientation.IsIdentity()) {
+    return rect;
+  }
+
+  int32_t width, height;
+  nsresult rv = InnerImage()->GetWidth(&width);
+  rv = NS_FAILED(rv) ? rv : InnerImage()->GetHeight(&height);
+  if (NS_FAILED(rv)) {
+    
+    return rect;
+  }
+
+  
+  gfxMatrix matrix(OrientationMatrix(nsIntSize(width, height)).Invert());
+  gfxRect invalidRect(matrix.TransformBounds(gfxRect(rect.x, rect.y,
+                                                     rect.width, rect.height)));
+  invalidRect.RoundOut();
+
+  return nsIntRect(invalidRect.x, invalidRect.y,
+                   invalidRect.width, invalidRect.height);
+}
+
 } 
 } 
