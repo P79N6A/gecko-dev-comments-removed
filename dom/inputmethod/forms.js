@@ -585,11 +585,8 @@ let FormAssistant = {
       case "Forms:ReplaceSurroundingText": {
         CompositionManager.endComposition('');
 
-        let selectionRange = getSelectionRange(target);
         if (!replaceSurroundingText(target,
                                     json.text,
-                                    selectionRange[0],
-                                    selectionRange[1],
                                     json.offset,
                                     json.length)) {
           if (json.requestId) {
@@ -1139,31 +1136,50 @@ function getPlaintextEditor(element) {
   return editor;
 }
 
-function replaceSurroundingText(element, text, selectionStart, selectionEnd,
-                                offset, length) {
+function replaceSurroundingText(element, text, offset, length) {
   let editor = FormAssistant.editor;
   if (!editor) {
     return false;
   }
 
   
-  let start = selectionStart + offset;
-  if (start < 0) {
-    start = 0;
-  }
   if (length < 0) {
     length = 0;
   }
-  let end = start + length;
 
-  if (selectionStart != start || selectionEnd != end) {
-    
-    if (!setSelectionRange(element, start, end)) {
-      return false;
+  
+  
+  
+  let fastPathHit = false;
+  if (!isPlainTextField(element)) {
+    let sel = element.ownerDocument.defaultView.getSelection();
+    let node = sel.anchorNode;
+    if (sel.isCollapsed && node && node.nodeType == 3 ) {
+      let start = sel.anchorOffset + offset;
+      let end = start + length;
+      
+      if (start >= 0 && end <= node.textContent.length) {
+        fastPathHit = true;
+        sel.collapse(node, start);
+        sel.extend(node, end);
+      }
+    }
+  }
+  if (!fastPathHit) {
+    let range = getSelectionRange(element);
+    let start = range[0] + offset;
+    if (start < 0) {
+      start = 0;
+    }
+    let end = start + length;
+    if (start != range[0] || end != range[1]) {
+      if (!setSelectionRange(element, start, end)) {
+        return false;
+      }
     }
   }
 
-  if (start != end) {
+  if (length) {
     
     editor.deleteSelection(Ci.nsIEditor.ePrevious, Ci.nsIEditor.eStrip);
   }
