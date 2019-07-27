@@ -165,6 +165,8 @@ private:
 
 
 
+
+
 public:
   static nsresult ReadNewBinding(nsIObjectInputStream* aStream,
                                  nsXBLDocumentInfo* aDocInfo,
