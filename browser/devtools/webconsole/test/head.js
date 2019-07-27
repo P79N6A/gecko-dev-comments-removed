@@ -17,7 +17,6 @@ const asyncStorage = require("devtools/toolkit/shared/async-storage");
 
 
 
-
 let gPendingOutputTest = 0;
 
 
