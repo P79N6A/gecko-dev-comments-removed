@@ -828,6 +828,9 @@ nsEventStatus AsyncPanZoomController::ReceiveInputEvent(const InputData& aEvent)
       
       
       ScheduleContentResponseTimeout();
+      
+      
+      CancelAnimation();
     } else {
       
       
