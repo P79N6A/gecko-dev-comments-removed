@@ -815,6 +815,12 @@ Animation::UpdateTiming(SeekFlag aSeekFlag)
   
   
   if (mTimeline) {
+    
+    
+    
+    
+    
+    
     if (IsRelevant()) {
       mTimeline->AddAnimation(*this);
     } else {
