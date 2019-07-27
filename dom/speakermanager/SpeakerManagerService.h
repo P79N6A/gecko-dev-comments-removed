@@ -58,7 +58,7 @@ protected:
   
   virtual void Notify();
 
-  void TuruOnSpeaker(bool aEnable);
+  void TurnOnSpeaker(bool aEnable);
 
   nsTArray<nsRefPtr<SpeakerManager> > mRegisteredSpeakerManagers;
   
