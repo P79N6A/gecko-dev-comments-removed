@@ -12,6 +12,7 @@ import android.text.TextUtils;
 import android.view.View;
 import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.ExpandableListAdapter;
+import android.widget.ListAdapter;
 
 
 
@@ -63,6 +64,13 @@ public class HomeContextMenuInfo extends AdapterContextMenuInfo {
 
     public interface Factory {
         public HomeContextMenuInfo makeInfoForCursor(View view, int position, long id, Cursor cursor);
+    }
+
+    
+
+
+    public interface ListFactory extends Factory {
+        public HomeContextMenuInfo makeInfoForAdapter(View view, int position, long id, ListAdapter adapter);
     }
 
     
