@@ -1327,7 +1327,8 @@ nsFrameSelection::GetFrameFromLevel(nsIFrame    *aFrameIn,
                                    eLeaf,
                                    false, 
                                    false, 
-                                   false     
+                                   false, 
+                                   false  
                                    );
   if (NS_FAILED(result))
     return result;

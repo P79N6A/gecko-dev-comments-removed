@@ -36,7 +36,7 @@ enum nsIteratorType {
 
 
 #define NS_IFRAMETRAVERSAL_IID \
-{ 0x9d469828, 0x9bf2, 0x4151, { 0xa3, 0x85, 0x05, 0xf3, 0x02, 0x19, 0x22, 0x1b } }
+{ 0xd33fe76c, 0x207c, 0x4359, { 0xa3, 0x15, 0x8e, 0xb1, 0xee, 0xcf, 0x80, 0xe5 } }
 
 class nsIFrameTraversal : public nsISupports
 {
@@ -58,13 +58,16 @@ public:
 
 
 
+
+
   NS_IMETHOD NewFrameTraversal(nsIFrameEnumerator **aEnumerator,
                                nsPresContext* aPresContext,
                                nsIFrame *aStart,
                                int32_t aType,
                                bool aVisual,
                                bool aLockInScrollView,
-                               bool aFollowOOFs) = 0;
+                               bool aFollowOOFs,
+                               bool aSkipPopupChecks) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIFrameTraversal, NS_IFRAMETRAVERSAL_IID)

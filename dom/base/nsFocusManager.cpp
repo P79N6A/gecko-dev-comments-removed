@@ -2361,7 +2361,8 @@ nsFocusManager::GetSelectionLocation(nsIDocument* aDocument,
                                              eLeaf,
                                              false, 
                                              false, 
-                                             true      
+                                             true,  
+                                             false  
                                              );
           NS_ENSURE_SUCCESS(rv, rv);
 
@@ -2791,7 +2792,8 @@ nsFocusManager::GetNextTabbableContent(nsIPresShell* aPresShell,
                                        ePreOrder,
                                        false, 
                                        false, 
-                                       true      
+                                       true,  
+                                       false  
                                        );
     NS_ENSURE_SUCCESS(rv, rv);
 

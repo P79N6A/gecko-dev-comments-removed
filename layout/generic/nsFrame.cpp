@@ -6220,7 +6220,8 @@ nsFrame::GetNextPrevLineFromeBlockFrame(nsPresContext* aPresContext,
                                     ePostOrder,
                                     false, 
                                     aPos->mScrollViewStop,
-                                    false     
+                                    false, 
+                                    false  
                                     );
       if (NS_FAILED(result))
         return result;
@@ -6320,7 +6321,8 @@ nsFrame::GetNextPrevLineFromeBlockFrame(nsPresContext* aPresContext,
                                       eLeaf,
                                       false, 
                                       aPos->mScrollViewStop,
-                                      false     
+                                      false, 
+                                      false  
                                       );
       }
       while ( !found ){
@@ -7108,7 +7110,8 @@ nsIFrame::GetFrameFromDirection(nsDirection aDirection, bool aVisual,
                                   eLeaf,
                                   aVisual && presContext->BidiEnabled(),
                                   aScrollViewStop,
-                                  true     
+                                  true,  
+                                  false  
                                   );
     if (NS_FAILED(result))
       return result;
