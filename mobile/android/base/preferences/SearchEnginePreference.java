@@ -123,7 +123,7 @@ public class SearchEnginePreference extends CustomListPreference {
 
 
     public String getIdentifier() {
-        return (mIdentifier == null) ? "other" : mIdentifier;
+        return mIdentifier;
     }
 
     
@@ -133,6 +133,11 @@ public class SearchEnginePreference extends CustomListPreference {
 
     public void setSearchEngineFromJSON(JSONObject geckoEngineJSON) throws JSONException {
         mIdentifier = geckoEngineJSON.getString("identifier");
+
+        
+        if (mIdentifier.equals("null")) {
+            mIdentifier = "other";
+        }
 
         final String engineName = geckoEngineJSON.getString("name");
         final SpannableString titleSpannable = new SpannableString(engineName);
