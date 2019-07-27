@@ -129,6 +129,9 @@ pref("dom.workers.maxPerDomain", 20);
 pref("dom.workers.sharedWorkers.enabled", true);
 
 
+pref("dom.workers.websocket.enabled", true);
+
+
 pref("dom.serviceWorkers.enabled", false);
 
 
@@ -1286,9 +1289,6 @@ pref("network.ftp.data.qos", 0);
 pref("network.ftp.control.qos", 0);
 
 
-
-
-pref("network.websocket.enabled", true);
 
 
 pref("network.websocket.max-message-size", 2147483647);
