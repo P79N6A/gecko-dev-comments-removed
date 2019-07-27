@@ -160,10 +160,10 @@ ReplaceAllUsesWith(MDefinition *from, MDefinition *to)
 
 
 static bool
-HasSuccessor(const MControlInstruction *newControl, const MBasicBlock *succ)
+HasSuccessor(const MControlInstruction *block, const MBasicBlock *succ)
 {
-    for (size_t i = 0, e = newControl->numSuccessors(); i != e; ++i) {
-        if (newControl->getSuccessor(i) == succ)
+    for (size_t i = 0, e = block->numSuccessors(); i != e; ++i) {
+        if (block->getSuccessor(i) == succ)
             return true;
     }
     return false;
@@ -176,7 +176,7 @@ static MBasicBlock *
 ComputeNewDominator(MBasicBlock *block, MBasicBlock *old)
 {
     MBasicBlock *now = block->getPredecessor(0);
-    for (size_t i = 1, e = block->numPredecessors(); i != e; ++i) {
+    for (size_t i = 1, e = block->numPredecessors(); i < e; ++i) {
         MBasicBlock *pred = block->getPredecessor(i);
         
         
@@ -216,10 +216,11 @@ IsDominatorRefined(MBasicBlock *block)
 }
 
 
-
 bool
 ValueNumberer::discardDefsRecursively(MDefinition *def)
 {
+    MOZ_ASSERT(deadDefs_.empty(), "deadDefs_ not cleared");
+
     return discardDef(def) && processDeadDefs();
 }
 
@@ -250,7 +251,7 @@ bool
 ValueNumberer::releaseInsOperands(MInstruction *ins,
                                   UseRemovedOption useRemovedOption)
 {
-    for (size_t o = 0, e = ins->numOperands(); o != e; ++o) {
+    for (size_t o = 0, e = ins->numOperands(); o < e; ++o) {
         MDefinition *op = ins->getOperand(o);
         ins->releaseOperand(o);
         if (IsDead(op)) {
@@ -263,6 +264,7 @@ ValueNumberer::releaseInsOperands(MInstruction *ins,
     }
     return true;
 }
+
 
 bool
 ValueNumberer::discardDef(MDefinition *def,
@@ -311,10 +313,12 @@ ValueNumberer::removePredecessor(MBasicBlock *block, MBasicBlock *pred)
         if (block->loopPredecessor() == pred) {
             
             isUnreachableLoop = true;
-            JitSpew(JitSpew_GVN, "    Loop with header block%u is no longer reachable", block->id());
+            JitSpew(JitSpew_GVN, "    Loop with header block%u is no longer reachable",
+                    block->id());
 #ifdef DEBUG
         } else if (block->hasUniqueBackedge() && block->backedge() == pred) {
-            JitSpew(JitSpew_GVN, "    Loop with header block%u is no longer a loop", block->id());
+            JitSpew(JitSpew_GVN, "    Loop with header block%u is no longer a loop",
+                    block->id());
 #endif
         }
     }
@@ -349,16 +353,16 @@ ValueNumberer::removeBlocksRecursively(MBasicBlock *start, const MBasicBlock *do
             continue;
 
         
-        for (size_t i = 0, e = block->numSuccessors(); i != e; ++i) {
+        for (size_t i = 0, e = block->numSuccessors(); i < e; ++i) {
             MBasicBlock *succ = block->getSuccessor(i);
-            if (!succ->isDead()) {
-                if (removePredecessor(succ, block)) {
-                    if (!unreachableBlocks_.append(succ))
-                        return false;
-                } else if (!rerun_) {
-                    if (!remainingBlocks_.append(succ))
-                        return false;
-                }
+            if (succ->isDead())
+                continue;
+            if (removePredecessor(succ, block)) {
+                if (!unreachableBlocks_.append(succ))
+                    return false;
+            } else if (!rerun_) {
+                if (!remainingBlocks_.append(succ))
+                    return false;
             }
         }
 
@@ -367,7 +371,7 @@ ValueNumberer::removeBlocksRecursively(MBasicBlock *start, const MBasicBlock *do
                 block->isLoopHeader() ? " (loop header)" : "",
                 block->isSplitEdge() ? " (split edge)" : "",
                 block->immediateDominator() == block ? " (dominator root)" : "");
-        for (MDefinitionIterator iter(block); iter; iter++) {
+        for (MDefinitionIterator iter(block); iter; ++iter) {
             MDefinition *def = *iter;
             JitSpew(JitSpew_GVN, "      Discarding %s%u", def->opName(), def->id());
         }
@@ -559,14 +563,14 @@ ValueNumberer::visitControlInstruction(MBasicBlock *block, const MBasicBlock *do
         MOZ_ASSERT(newNumSuccs < oldNumSuccs, "New control instruction has too many successors");
         for (size_t i = 0; i != oldNumSuccs; ++i) {
             MBasicBlock *succ = control->getSuccessor(i);
-            if (!HasSuccessor(newControl, succ)) {
-                if (removePredecessor(succ, block)) {
-                    if (!removeBlocksRecursively(succ, dominatorRoot))
-                        return false;
-                } else if (!rerun_) {
-                    if (!remainingBlocks_.append(succ))
-                        return false;
-                }
+            if (HasSuccessor(newControl, succ))
+                continue;
+            if (removePredecessor(succ, block)) {
+                if (!removeBlocksRecursively(succ, dominatorRoot))
+                    return false;
+            } else if (!rerun_) {
+                if (!remainingBlocks_.append(succ))
+                    return false;
             }
         }
     }
@@ -619,6 +623,7 @@ ValueNumberer::visitDominatorTree(MBasicBlock *dominatorRoot, size_t *totalNumVi
     
     
     
+    
     size_t numVisited = 0;
     for (ReversePostorderIterator iter(graph_.rpoBegin(dominatorRoot)); ; ++iter) {
         MOZ_ASSERT(iter != graph_.rpoEnd(), "Inconsistent dominator information");
@@ -632,7 +637,7 @@ ValueNumberer::visitDominatorTree(MBasicBlock *dominatorRoot, size_t *totalNumVi
         
         if (!rerun_ && block->isLoopBackedge() && loopHasOptimizablePhi(block)) {
             JitSpew(JitSpew_GVN, "    Loop phi in block%u can now be optimized; will re-run GVN!",
-                    block->id());
+                    block->loopHeaderOfBackedge()->id());
             rerun_ = true;
             remainingBlocks_.clear();
         }

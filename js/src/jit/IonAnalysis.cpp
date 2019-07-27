@@ -1871,7 +1871,8 @@ static void
 AssertReversePostorder(MIRGraph &graph)
 {
     
-    for (ReversePostorderIterator block(graph.rpoBegin()); block != graph.rpoEnd(); block++) {
+    for (ReversePostorderIterator iter(graph.rpoBegin()); iter != graph.rpoEnd(); ++iter) {
+        MBasicBlock *block = *iter;
         JS_ASSERT(!block->isMarked());
 
         for (size_t i = 0; i < block->numPredecessors(); i++) {

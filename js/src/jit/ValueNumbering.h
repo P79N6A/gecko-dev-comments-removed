@@ -105,7 +105,7 @@ class ValueNumberer
 
     enum UpdateAliasAnalysisFlag {
         DontUpdateAliasAnalysis,
-        UpdateAliasAnalysis,
+        UpdateAliasAnalysis
     };
 
     
