@@ -670,10 +670,6 @@ ShadowLayerForwarder::EndTransaction(InfallibleTArray<EditReply>* aReplies,
     }
   }
 
-  
-  
-  mPluginWindowData.Clear();
-
   *aSent = true;
   mIsFirstPaint = false;
   MOZ_LAYERS_LOG(("[LayersForwarder] ... done"));
