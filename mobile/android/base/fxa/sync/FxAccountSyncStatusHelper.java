@@ -23,7 +23,7 @@ public class FxAccountSyncStatusHelper implements SyncStatusObserver {
   @SuppressWarnings("unused")
   private static final String LOG_TAG = FxAccountSyncStatusHelper.class.getSimpleName();
 
-  protected static FxAccountSyncStatusHelper sInstance;
+  protected static FxAccountSyncStatusHelper sInstance = null;
 
   public synchronized static FxAccountSyncStatusHelper getInstance() {
     if (sInstance == null) {
@@ -33,7 +33,7 @@ public class FxAccountSyncStatusHelper implements SyncStatusObserver {
   }
 
   
-  protected Object handle;
+  protected Object handle = null;
 
   
   
