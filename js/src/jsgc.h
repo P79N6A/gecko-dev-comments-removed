@@ -267,20 +267,6 @@ GetBackgroundAllocKind(AllocKind kind)
 }
 
 
-
-
-
-static inline bool
-TryIncrementAllocKind(AllocKind *kindp)
-{
-    size_t next = size_t(*kindp) + 2;
-    if (next >= size_t(FINALIZE_OBJECT_LIMIT))
-        return false;
-    *kindp = AllocKind(next);
-    return true;
-}
-
-
 static inline size_t
 GetGCKindSlots(AllocKind thingKind)
 {

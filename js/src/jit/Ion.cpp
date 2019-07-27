@@ -1964,8 +1964,20 @@ IonCompile(JSContext *cx, JSScript *script,
     bool succeeded = builder->build();
     builder->clearForBackEnd();
 
-    if (!succeeded)
-        return builder->abortReason();
+    if (!succeeded) {
+        AbortReason reason = builder->abortReason();
+        if (reason == AbortReason_NewScriptProperties) {
+            
+            
+            
+            const MIRGenerator::TypeObjectVector &types = builder->abortedNewScriptPropertiesTypes();
+            for (size_t i = 0; i < types.length(); i++) {
+                if (!types[i]->newScript()->maybeAnalyze(cx, types[i], nullptr,  true))
+                    return AbortReason_Alloc;
+            }
+        }
+        return reason;
+    }
 
     
     if (OffThreadCompilationAvailable(cx)) {

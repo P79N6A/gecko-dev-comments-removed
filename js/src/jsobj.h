@@ -226,7 +226,10 @@ class JSObject : public js::ObjectImpl
                                 JS::HandleObject obj, js::HandleShape shape);
 
     
-    inline void setLastPropertyInfallible(js::Shape *shape);
+    
+    
+    
+    void setLastPropertyShrinkFixedSlots(js::Shape *shape);
 
     
 

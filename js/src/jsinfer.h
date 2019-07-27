@@ -847,29 +847,37 @@ struct Property
 
 
 
-struct TypeNewScript
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class TypeNewScript
 {
-    HeapPtrFunction fun;
-
-    
-
-
-
-
-
-
-
-    HeapPtrObject templateObject;
-
-    
-
-
-
-
-
-
-
-
+  public:
     struct Initializer {
         enum Kind {
             SETPROP,
@@ -881,10 +889,92 @@ struct TypeNewScript
           : kind(kind), offset(offset)
         {}
     };
+
+  private:
+    
+    
+    
+    HeapPtrFunction fun;
+
+    
+    
+    
+    
+    
+    static const uint32_t PRELIMINARY_OBJECT_COUNT = 20;
+    JSObject **preliminaryObjects;
+
+    
+    
+    
+    
+    HeapPtrObject templateObject_;
+
+    
+    
+    
+    
+    
+    
+    
+    
     Initializer *initializerList;
+
+    
+    
+    
+    
+    
+    HeapPtrShape initializedShape_;
+
+    
+    
+    HeapPtrTypeObject initializedType_;
+
+  public:
+    TypeNewScript() { mozilla::PodZero(this); }
+    ~TypeNewScript() {
+        js_free(preliminaryObjects);
+        js_free(initializerList);
+    }
 
     static inline void writeBarrierPre(TypeNewScript *newScript);
     static void writeBarrierPost(TypeNewScript *newScript, void *addr) {}
+
+    bool analyzed() const {
+        if (preliminaryObjects) {
+            JS_ASSERT(!templateObject());
+            JS_ASSERT(!initializerList);
+            JS_ASSERT(!initializedShape());
+            JS_ASSERT(!initializedType());
+            return false;
+        }
+        JS_ASSERT(templateObject());
+        return true;
+    }
+
+    JSObject *templateObject() const {
+        return templateObject_;
+    }
+
+    Shape *initializedShape() const {
+        return initializedShape_;
+    }
+
+    TypeObject *initializedType() const {
+        return initializedType_;
+    }
+
+    void trace(JSTracer *trc);
+    void sweep(FreeOp *fop);
+
+    void registerNewObject(JSObject *res);
+    void unregisterNewObject(JSObject *res);
+    bool maybeAnalyze(JSContext *cx, TypeObject *type, bool *regenerate, bool force = false);
+
+    void rollbackPartiallyInitializedObjects(JSContext *cx, TypeObject *type);
+
+    static void make(JSContext *cx, TypeObject *type, JSFunction *fun);
 };
 
 
@@ -1095,7 +1185,7 @@ struct TypeObject : gc::BarrieredCell<TypeObject>
     
 
     void updateNewPropertyTypes(ExclusiveContext *cx, jsid id, HeapTypeSet *types);
-    bool addDefiniteProperties(ExclusiveContext *cx, JSObject *obj);
+    bool addDefiniteProperties(ExclusiveContext *cx, Shape *shape);
     bool matchDefiniteProperties(HandleObject obj);
     void addPrototype(JSContext *cx, TypeObject *proto);
     void addPropertyType(ExclusiveContext *cx, jsid id, Type type);
@@ -1371,7 +1461,6 @@ struct TypeObjectKey
     bool unknownProperties();
     bool hasFlags(CompilerConstraintList *constraints, TypeObjectFlags flags);
     void watchStateChangeForInlinedCall(CompilerConstraintList *constraints);
-    void watchStateChangeForNewScriptTemplate(CompilerConstraintList *constraints);
     void watchStateChangeForTypedArrayData(CompilerConstraintList *constraints);
     HeapTypeSetKey property(jsid id);
     void ensureTrackedProperty(JSContext *cx, jsid id);
