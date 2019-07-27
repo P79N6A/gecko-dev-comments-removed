@@ -240,16 +240,11 @@ SearchSuggestionUIController.prototype = {
 
     
     
-    try {
-      let imeEditor = this.input.editor.QueryInterface(Components.interfaces.nsIEditorIMESupport);
-      if (imeEditor.composing) {
-        
-        
-        this._ignoreInputEvent = true;
-        imeEditor.forceCompositionEnd();
-        this._ignoreInputEvent = false;
-      }
-    } catch(e) { }
+    
+    this._ignoreInputEvent = true;
+    this.input.blur();
+    this.input.focus();
+    this._ignoreInputEvent = false;
 
     this.input.value = suggestion;
     this.input.setAttribute("selection-index", idx);
