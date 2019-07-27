@@ -62,3 +62,14 @@ function waitForTwoAnimationFrames() {
    });
 }
 
+
+
+
+
+
+
+function flushComputedStyle(elem) {
+  var cs = window.getComputedStyle(elem);
+  cs.marginLeft;
+}
+
