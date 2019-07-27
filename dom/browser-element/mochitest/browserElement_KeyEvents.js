@@ -76,6 +76,11 @@ function eventHandler(e) {
 
   nbEvents--;
 
+  
+  if (e.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_F5) {
+    e.preventDefault();
+  }
+
   if (nbEvents == 0) {
     SimpleTest.finish();
     return;
