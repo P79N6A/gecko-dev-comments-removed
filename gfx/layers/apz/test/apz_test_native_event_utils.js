@@ -31,6 +31,19 @@ function nativeHorizontalWheelEventMsg() {
   throw "Native wheel events not supported on platform " + getPlatform();
 }
 
+
+function nativeScrollUnits(aElement, aDimen) {
+  switch (getPlatform()) {
+    case "linux": {
+      
+      var targetWindow = aElement.ownerDocument.defaultView;
+      var lineHeight = targetWindow.getComputedStyle(aElement)["font-size"];
+      return aDimen / (parseInt(lineHeight) * 3);
+    }
+  }
+  return aDimen;
+}
+
 function nativeMouseMoveEventMsg() {
   switch (getPlatform()) {
     case "windows": return 1; 
@@ -53,6 +66,8 @@ function synthesizeNativeWheel(aElement, aX, aY, aDeltaX, aDeltaY, aObserver) {
   if (aDeltaX && aDeltaY) {
     throw "Simultaneous wheeling of horizontal and vertical is not supported on all platforms.";
   }
+  aDeltaX = nativeScrollUnits(aElement, aDeltaX);
+  aDeltaY = nativeScrollUnits(aElement, aDeltaY);
   var msg = aDeltaX ? nativeHorizontalWheelEventMsg() : nativeVerticalWheelEventMsg();
   _getDOMWindowUtils().sendNativeMouseScrollEvent(aX, aY, msg, aDeltaX, aDeltaY, 0, 0, 0, aElement, aObserver);
   return true;
