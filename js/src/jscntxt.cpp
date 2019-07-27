@@ -1113,7 +1113,7 @@ JSContext::mark(JSTracer *trc)
 
     
     if (isExceptionPending())
-        TraceRoot(trc, &unwrappedException_, "unwrapped exception");
+        MarkValueRoot(trc, &unwrappedException_, "unwrapped exception");
 
     TraceCycleDetectionSet(trc, cycleDetectorSet);
 

@@ -633,15 +633,15 @@ ProxyObject::trace(JSTracer *trc, JSObject *obj)
 
     
     
-    TraceCrossCompartmentEdge(trc, obj, proxy->slotOfPrivate(), "private");
-    TraceEdge(trc, proxy->slotOfExtra(0), "extra0");
+    MarkCrossCompartmentSlot(trc, obj, proxy->slotOfPrivate(), "private");
+    MarkValue(trc, proxy->slotOfExtra(0), "extra0");
 
     
 
 
 
     if (!proxy->is<CrossCompartmentWrapperObject>())
-        TraceEdge(trc, proxy->slotOfExtra(1), "extra1");
+        MarkValue(trc, proxy->slotOfExtra(1), "extra1");
 
     Proxy::trace(trc, obj);
 }
