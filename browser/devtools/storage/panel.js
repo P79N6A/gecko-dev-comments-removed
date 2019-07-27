@@ -64,6 +64,8 @@ StoragePanel.prototype = {
   destroy: function() {
     if (!this._destroyed) {
       this.UI.destroy();
+      
+      this._front.destroy();
       this._destroyed = true;
 
       this._target.off("close", this.destroy);
