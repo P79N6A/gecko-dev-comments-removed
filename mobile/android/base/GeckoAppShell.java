@@ -1207,11 +1207,6 @@ public class GeckoAppShell
             intent.setComponent(null);
             nullIntentSelector(intent);
 
-            
-            if (intent.getPackage() == null) {
-                return null;
-            }
-
             return intent;
         }
 
