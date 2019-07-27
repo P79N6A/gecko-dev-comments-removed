@@ -324,9 +324,15 @@ var NodeActor = exports.NodeActor = protocol.ActorClass({
 
 
   get isDisplayed() {
+    
+    if (this.rawNode.nodeType !== Ci.nsIDOMNode.ELEMENT_NODE ||
+        this.isAfterPseudoElement ||
+        this.isBeforePseudoElement) {
+      return true;
+    }
+
     let style = this.computedStyle;
     if (!style) {
-      
       return true;
     } else {
       return style.display !== "none";
