@@ -6,24 +6,21 @@
         <meta name="viewport" content="width=device-width">
         <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
         <script src="/resources/testharness.js"></script>
-        
+        <script src="/resources/testharnessreport.js"></script>
         <script src="pointerevent_support.js"></script>
-        <script src="mochitest_support_internal.js"></script>
     </head>
     <body onload="run()">
         <h1>Pointer Events capture test - lostpointercapture order</h1>
-        
-
-
-
-
-
-
-
-
-
-
-
+        <h4>
+            Test Description:
+            This test checks if lostpointercapture is handled asynchronously and prior to all subsequent events.
+            Complete the following actions:
+            <ol>
+                <li>Press and hold left mouse button over "Set Capture" button. "gotpointercapture" should be logged inside of the black rectangle
+                <li>"lostpointercapture" should be logged inside of the black rectangle after a short delay
+            </ol>
+        </h4>
+        Test passes if lostpointercapture is dispatched after releasing the mouse button and before any additional pointer events.
         <div id="target0" style="background:black; color:white"></div>
         <br>
         <input type="button" id="btnCapture" value="Set Capture">

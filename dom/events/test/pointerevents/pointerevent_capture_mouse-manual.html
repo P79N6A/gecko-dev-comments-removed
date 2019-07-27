@@ -5,28 +5,25 @@
         <meta name="viewport" content="width=device-width">
         <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
         <script src="/resources/testharness.js"></script>
-        
+        <script src="/resources/testharnessreport.js"></script>
         
         <script type="text/javascript" src="pointerevent_support.js"></script>
-        <script type="text/javascript" src="mochitest_support_internal.js"></script>
     </head>
     <body>
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        <h1>Pointer Events capture test</h1>
+        <h4>
+            Test Description: This test checks if setCapture/releaseCapture functions works properly. Complete the following actions:
+            <ol>
+                <li> Move your mouse over the black rectangle. pointermove event should be logged in the black rectangle</li>
+                <li> Move your mouse over the purple rectangle. pointerover event should be logged in the purple rectangle</li>
+                <li> Press and hold left mouse button over "Set Capture" button. "gotpointercapture" should be logged in the black rectangle</li>
+                <li> Move your mouse anywhere. pointermove should be logged in the black rectangle</li>
+                <li> Move your mouse over the purple rectangle. Nothig should happen</li>
+                <li> Move your mouse over the black rectangle. pointermove should be logged in the black rectangle</li>
+                <li> Release left mouse button. "lostpointercapture" should be logged in the black rectangle</li>
+            </ol>
+        </h4>
+        Test passes if the proper behaviour of the events is observed.
         <div id="target0"></div>
         <br>
         <div id="target1"></div>
