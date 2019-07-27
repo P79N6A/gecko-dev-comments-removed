@@ -11644,6 +11644,35 @@ nsDocument::RequestFullScreen(Element* aElement,
     return;
   }
 
+  ApplyFullscreen(aElement, aOptions);
+
+#ifdef DEBUG
+  
+  
+  NS_ASSERTION(GetFullScreenElement() == aElement,
+               "Full-screen element should be the requested element!");
+  NS_ASSERTION(IsFullScreenDoc(), "Should be full-screen doc");
+  nsCOMPtr<nsIDOMElement> fse;
+  GetMozFullScreenElement(getter_AddRefs(fse));
+  nsCOMPtr<nsIContent> c(do_QueryInterface(fse));
+  NS_ASSERTION(c->AsElement() == aElement,
+    "GetMozFullScreenElement should match GetFullScreenElement()");
+#endif
+
+  
+  
+  
+  
+  
+  
+  
+  SetWindowFullScreen(this, true, aOptions.mVRHMDDevice);
+}
+
+void
+nsDocument::ApplyFullscreen(Element* aElement,
+                            const FullScreenOptions& aOptions)
+{
   
   
   nsCOMPtr<nsIDocument> previousFullscreenDoc = GetFullscreenLeaf(this);
@@ -11754,28 +11783,6 @@ nsDocument::RequestFullScreen(Element* aElement,
          true,  true);
     asyncDispatcher->PostDOMEvent();
   }
-
-#ifdef DEBUG
-  
-  
-  NS_ASSERTION(GetFullScreenElement() == aElement,
-               "Full-screen element should be the requested element!");
-  NS_ASSERTION(IsFullScreenDoc(), "Should be full-screen doc");
-  nsCOMPtr<nsIDOMElement> fse;
-  GetMozFullScreenElement(getter_AddRefs(fse));
-  nsCOMPtr<nsIContent> c(do_QueryInterface(fse));
-  NS_ASSERTION(c->AsElement() == aElement,
-    "GetMozFullScreenElement should match GetFullScreenElement()");
-#endif
-
-  
-  
-  
-  
-  
-  
-  
-  SetWindowFullScreen(this, true, aOptions.mVRHMDDevice);
 }
 
 NS_IMETHODIMP

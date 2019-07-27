@@ -1512,6 +1512,10 @@ protected:
 
   void NotifyStyleSheetApplicableStateChanged();
 
+  
+  void ApplyFullscreen(Element* aElement,
+                       const mozilla::dom::FullScreenOptions& aOptions);
+
   nsTArray<nsIObserver*> mCharSetObservers;
 
   PLDHashTable *mSubDocuments;
