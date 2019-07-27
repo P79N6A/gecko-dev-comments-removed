@@ -20,7 +20,9 @@
 
 
 
+
 class CoreLocationObjects;
+class MLSFallback;
 
 class CoreLocationLocationProvider
   : public nsIGeolocationProvider
@@ -36,11 +38,11 @@ public:
   void CancelMLSFallbackProvider();
 
 private:
-  virtual ~CoreLocationLocationProvider() {};
+  virtual ~CoreLocationLocationProvider();
 
   CoreLocationObjects* mCLObjects;
   nsCOMPtr<nsIGeolocationUpdate> mCallback;
-  nsCOMPtr<nsIGeolocationProvider> mMLSFallbackProvider;
+  nsRefPtr<MLSFallback> mMLSFallbackProvider;
 
   class MLSUpdate : public nsIGeolocationUpdate
   {
@@ -52,6 +54,6 @@ private:
 
   private:
     CoreLocationLocationProvider& mParentLocationProvider;
-    virtual ~MLSUpdate() {}
+    virtual ~MLSUpdate();
   };
 };
