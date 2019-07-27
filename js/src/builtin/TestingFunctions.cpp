@@ -1724,7 +1724,7 @@ struct FindPathHandler {
 
         
         
-        EdgeName edgeName(js_strdup(traversal.cx, edge.name));
+        EdgeName edgeName = DuplicateString(traversal.cx, edge.name);
         if (!edgeName)
             return false;
         *backEdge = mozilla::Move(BackEdge(origin, Move(edgeName)));
