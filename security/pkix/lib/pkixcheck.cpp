@@ -796,6 +796,16 @@ CheckIssuerIndependentProperties(TrustDomain& trustDomain,
     return rv;
   }
 
+  if (trustLevel == TrustLevel::TrustAnchor &&
+      endEntityOrCA == EndEntityOrCA::MustBeEndEntity &&
+      requiredEKUIfPresent == KeyPurposeId::id_kp_OCSPSigning) {
+    
+    
+    
+    
+    trustLevel = TrustLevel::InheritsTrust;
+  }
+
   switch (trustLevel) {
     case TrustLevel::InheritsTrust:
       rv = CheckSignatureAlgorithm(cert.GetSignedData().algorithm,
