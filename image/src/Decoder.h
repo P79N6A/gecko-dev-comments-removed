@@ -251,6 +251,12 @@ public:
     PostSize(aSize.width, aSize.height, aOrientation);
   }
 
+  nsIntSize GetSize() const
+  {
+    MOZ_ASSERT(HasSize());
+    return mImageMetadata.GetSize();
+  }
+
   
   virtual Telemetry::ID SpeedHistogram() { return Telemetry::HistogramCount; }
 
