@@ -990,6 +990,10 @@ var WalkerActor = protocol.ActorClass({
     
     let changes = [];
     for (let [node, actor] of this._refMap) {
+      if (Cu.isDeadWrapper(node)) {
+        continue;
+      }
+
       let isDisplayed = actor.isDisplayed;
       if (isDisplayed !== actor.wasDisplayed) {
         changes.push(actor);
