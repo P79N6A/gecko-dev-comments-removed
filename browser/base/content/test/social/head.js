@@ -106,14 +106,14 @@ function runSocialTestWithProvider(manifest, callback, finishcallback) {
       
       let callback = cleanup ? function () {} : finishIfDone;
       
-      let removeProvider = SocialService.removeProvider.bind(SocialService);
+      let removeProvider = SocialService.disableProvider.bind(SocialService);
       if (cleanup) {
         removeProvider = function (origin, cb) {
           try {
-            SocialService.removeProvider(origin, cb);
+            SocialService.disableProvider(origin, cb);
           } catch (ex) {
             
-            if (ex.message.indexOf("SocialService.removeProvider: no provider with origin") == 0)
+            if (ex.message.indexOf("SocialService.disableProvider: no provider with origin") == 0)
               return;
             info("Failed to clean up provider " + origin + ": " + ex);
           }

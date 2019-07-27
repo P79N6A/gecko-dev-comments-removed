@@ -180,7 +180,7 @@ this.Social = {
   activateFromOrigin: function (origin, callback) {
     
     
-    SocialService.addBuiltinProvider(origin, callback);
+    SocialService.enableProvider(origin, callback);
   },
 
   

@@ -4064,8 +4064,7 @@ pref("memory.blob_report.stack_frames", 0);
 
 
 
-
-pref("social.whitelist", "https://mozsocial.cliqz.com,https://now.msn.com,https://mixi.jp");
+pref("social.whitelist", "https://mozsocial.cliqz.com");
 
 
 pref("social.directories", "https://activations.cdn.mozilla.net");

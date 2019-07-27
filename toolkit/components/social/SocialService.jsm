@@ -152,22 +152,10 @@ XPCOMUtils.defineLazyGetter(SocialServiceInternal, "providers", function () {
 
 function getOriginActivationType(origin) {
   
-  try {
-    var prefname = SocialServiceInternal.getManifestPrefname(origin);
-  } catch(e) {
-    
-    let originUri = Services.io.newURI(origin, null, null);
-    if (originUri.scheme == "moz-safe-about") {
-      return "internal";
-    }
-    throw e;
+  let originUri = Services.io.newURI(origin, null, null);
+  if (originUri.scheme == "moz-safe-about") {
+    return "internal";
   }
-  if (Services.prefs.getDefaultBranch("social.manifest.").getPrefType(prefname) == Services.prefs.PREF_STRING)
-    return 'builtin';
-
-  let whitelist = Services.prefs.getCharPref("social.whitelist").split(',');
-  if (whitelist.indexOf(origin) >= 0)
-    return 'whitelist';
 
   let directories = Services.prefs.getCharPref("social.directories").split(',');
   if (directories.indexOf(origin) >= 0)
@@ -383,7 +371,8 @@ this.SocialService = {
   
   
   
-  addBuiltinProvider: function addBuiltinProvider(origin, onDone) {
+  
+  enableProvider: function enableProvider(origin, onDone) {
     if (SocialServiceInternal.providers[origin]) {
       schedule(function() {
         onDone(SocialServiceInternal.providers[origin]);
@@ -425,9 +414,9 @@ this.SocialService = {
 
   
   
-  removeProvider: function removeProvider(origin, onDone) {
+  disableProvider: function disableProvider(origin, onDone) {
     if (!(origin in SocialServiceInternal.providers))
-      throw new Error("SocialService.removeProvider: no provider with origin " + origin + " exists!");
+      throw new Error("SocialService.disableProvider: no provider with origin " + origin + " exists!");
 
     let provider = SocialServiceInternal.providers[origin];
     let manifest = SocialService.getManifestByOrigin(origin);
@@ -526,8 +515,6 @@ this.SocialService = {
     
     data.origin = principal.origin;
 
-    
-    
     
     let providerHasFeatures = [url for (url of featureURLs) if (data[url])].length > 0;
     if (!providerHasFeatures) {
@@ -650,23 +637,6 @@ this.SocialService = {
         installer = new AddonInstaller(sourceURI, manifest, installCallback);
         this._showInstallNotification(aDOMDocument, installer);
         break;
-      case "builtin":
-        
-        
-        
-        
-        
-        
-        
-        if (!manifest) {
-          let prefname = getPrefnameFromOrigin(installOrigin);
-          manifest = Services.prefs.getDefaultBranch(null)
-                          .getComplexValue(prefname, Ci.nsISupportsString).data;
-          manifest = JSON.parse(manifest);
-          
-          if (manifest.builtin)
-            delete manifest.builtin;
-        }
       case "internal":
         
         aBypassUserEnable = installType == "internal" && manifest.oneclick;
@@ -678,8 +648,6 @@ this.SocialService = {
           installer.install();
           return;
         }
-        
-      case "whitelist":
         
         if (!manifest)
           throw new Error("Cannot install provider without manifest data");
@@ -774,9 +742,10 @@ function SocialProvider(input) {
   this.errorState = null;
   this.frecency = 0;
 
-  let activationType = getOriginActivationType(input.origin);
-  this.blessed = activationType == "builtin" ||
-                 activationType == "whitelist";
+  
+  
+  let whitelist = Services.prefs.getCharPref("social.whitelist").split(',');
+  this.blessed = whitelist.indexOf(this.origin) >= 0;
 
   try {
     this.domain = etld.getBaseDomainFromHost(originUri.host);
@@ -1055,7 +1024,7 @@ var SocialAddonProvider = {
         if (ActiveProviders.has(manifest.origin)) {
           let addon = new AddonWrapper(manifest);
           if (addon.blocklistState != Ci.nsIBlocklistService.STATE_NOT_BLOCKED) {
-            SocialService.removeProvider(manifest.origin);
+            SocialService.disableProvider(manifest.origin);
           }
         }
       } catch(e) {
@@ -1252,9 +1221,9 @@ AddonWrapper.prototype = {
     if (val == this.userDisabled)
       return val;
     if (val) {
-      SocialService.removeProvider(this.manifest.origin);
+      SocialService.disableProvider(this.manifest.origin);
     } else if (!this.appDisabled) {
-      SocialService.addBuiltinProvider(this.manifest.origin);
+      SocialService.enableProvider(this.manifest.origin);
     }
     return val;
   },
@@ -1263,7 +1232,7 @@ AddonWrapper.prototype = {
     let prefName = getPrefnameFromOrigin(this.manifest.origin);
     if (Services.prefs.prefHasUserValue(prefName)) {
       if (ActiveProviders.has(this.manifest.origin)) {
-        SocialService.removeProvider(this.manifest.origin, function() {
+        SocialService.disableProvider(this.manifest.origin, function() {
           SocialAddonProvider.removeAddon(this, aCallback);
         }.bind(this));
       } else {
