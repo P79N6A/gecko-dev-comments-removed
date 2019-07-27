@@ -294,7 +294,7 @@ public:
         
         struct Key {
             nsCOMPtr<nsIURI>        mURI;
-            nsCOMPtr<nsIPrincipal>  mPrincipal;
+            nsCOMPtr<nsIPrincipal>  mPrincipal; 
             gfxFontEntry           *mFontEntry;
             bool                    mPrivate;
 
@@ -333,8 +333,10 @@ public:
             static KeyTypePointer KeyToPointer(KeyType aKey) { return &aKey; }
 
             static PLDHashNumber HashKey(const KeyTypePointer aKey) {
-                uint32_t principalHash;
-                aKey->mPrincipal->GetHashValue(&principalHash);
+                uint32_t principalHash = 0;
+                if (aKey->mPrincipal) {
+                    aKey->mPrincipal->GetHashValue(&principalHash);
+                }
                 return mozilla::HashGeneric(principalHash + int(aKey->mPrivate),
                                             nsURIHashKey::HashKey(aKey->mURI),
                                             HashFeatures(aKey->mFontEntry->mFeatureSettings),
@@ -365,7 +367,7 @@ public:
             }
 
             nsCOMPtr<nsIURI>       mURI;
-            nsCOMPtr<nsIPrincipal> mPrincipal;
+            nsCOMPtr<nsIPrincipal> mPrincipal; 
 
             
             
