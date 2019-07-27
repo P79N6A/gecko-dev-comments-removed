@@ -42,17 +42,8 @@ typedef Image* ImageKey;
 class SurfaceKey
 {
   typedef gfx::IntSize IntSize;
-public:
-  SurfaceKey(const IntSize& aSize,
-             const Maybe<SVGImageContext>& aSVGContext,
-             const float aAnimationTime,
-             const uint32_t aFlags)
-    : mSize(aSize)
-    , mSVGContext(aSVGContext)
-    , mAnimationTime(aAnimationTime)
-    , mFlags(aFlags)
-  { }
 
+public:
   bool operator==(const SurfaceKey& aOther) const
   {
     return aOther.mSize == mSize &&
@@ -72,15 +63,51 @@ public:
   IntSize Size() const { return mSize; }
 
 private:
+  SurfaceKey(const IntSize& aSize,
+             const Maybe<SVGImageContext>& aSVGContext,
+             const float aAnimationTime,
+             const uint32_t aFlags)
+    : mSize(aSize)
+    , mSVGContext(aSVGContext)
+    , mAnimationTime(aAnimationTime)
+    , mFlags(aFlags)
+  { }
+
   static uint32_t HashSIC(const SVGImageContext& aSIC) {
     return aSIC.Hash();
   }
+
+  friend SurfaceKey RasterSurfaceKey(const IntSize&, const uint32_t);
+  friend SurfaceKey VectorSurfaceKey(const IntSize&,
+                                     const Maybe<SVGImageContext>&,
+                                     const float);
 
   IntSize                mSize;
   Maybe<SVGImageContext> mSVGContext;
   float                  mAnimationTime;
   uint32_t               mFlags;
 };
+
+inline SurfaceKey
+RasterSurfaceKey(const gfx::IntSize& aSize,
+                 const uint32_t aFlags)
+{
+  
+  
+  
+  return SurfaceKey(aSize, Nothing(), 0.0f, aFlags);
+}
+
+inline SurfaceKey
+VectorSurfaceKey(const gfx::IntSize& aSize,
+                 const Maybe<SVGImageContext>& aSVGContext,
+                 const float aAnimationTime)
+{
+  
+  
+  
+  return SurfaceKey(aSize, aSVGContext, aAnimationTime, 0);
+}
 
 
 
