@@ -2,7 +2,10 @@
 
 
 
-const TEST_URI = "data:text/html;charset=utf-8,<p>bug 660806 - history navigation must not show the autocomplete popup";
+"use strict";
+
+const TEST_URI = "data:text/html;charset=utf-8,<p>bug 660806 - history " +
+                 "navigation must not show the autocomplete popup";
 
 let test = asyncTest(function* () {
   yield loadTab(TEST_URI);
@@ -12,8 +15,7 @@ let test = asyncTest(function* () {
   yield consoleOpened(hud);
 });
 
-function consoleOpened(HUD)
-{
+function consoleOpened(HUD) {
   let deferred = promise.defer();
 
   let jsterm = HUD.jsterm;

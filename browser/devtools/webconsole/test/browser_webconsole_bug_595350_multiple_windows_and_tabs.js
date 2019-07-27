@@ -12,6 +12,8 @@
 
 
 
+"use strict";
+
 const TEST_URI = "data:text/html;charset=utf-8,Web Console test for bug 595350";
 
 let win1 = window, win2;
@@ -98,4 +100,3 @@ function closeConsoles() {
 
   openTabs = win1 = win2 = null;
 }
-

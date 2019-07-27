@@ -3,15 +3,18 @@
 
 
 
-const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test/browser/test-console.html";
+"use strict";
+
+const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/" +
+                 "test/browser/test-console.html";
 
 let test = asyncTest(function* () {
   yield loadTab(TEST_URI);
 
   let hud = yield openConsole();
 
-  var jsterm = hud.jsterm;
-  var input = jsterm.inputNode;
+  let jsterm = hud.jsterm;
+  let input = jsterm.inputNode;
 
   is(input.getAttribute("focused"), "true", "input has focus");
   EventUtils.synthesizeKey("VK_TAB", {});

@@ -6,6 +6,8 @@
 
 
 
+"use strict";
+
 const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/" +
                  "test/test-console.html";
 
@@ -45,4 +47,3 @@ function testClosingAfterCompletion(hud, browser) {
 
   return deferred.promise;
 }
-

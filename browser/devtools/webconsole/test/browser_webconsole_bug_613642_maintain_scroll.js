@@ -7,7 +7,10 @@
 
 
 
-let TEST_URI = "data:text/html;charset=utf-8,Web Console test for bug 613642: remember scroll location";
+"use strict";
+
+let TEST_URI = "data:text/html;charset=utf-8,Web Console test for " +
+               "bug 613642: remember scroll location";
 
 let test = asyncTest(function* () {
   yield loadTab(TEST_URI);
@@ -51,7 +54,6 @@ let test = asyncTest(function* () {
   EventUtils.synthesizeKey("VK_HOME", {}, hud.iframeWindow);
 
   yield scrolled.promise;
-
 
   
   content.console.log("test message 150");
@@ -109,7 +111,8 @@ let test = asyncTest(function* () {
       return;
     }
     scrollBox.onscroll = null;
-    isnot(scrollBox.scrollTop, oldScrollTop, "scroll location updated (moved to bottom again)");
+    isnot(scrollBox.scrollTop, oldScrollTop,
+          "scroll location updated (moved to bottom again)");
     scrolled.resolve();
   };
   yield scrolled.promise;

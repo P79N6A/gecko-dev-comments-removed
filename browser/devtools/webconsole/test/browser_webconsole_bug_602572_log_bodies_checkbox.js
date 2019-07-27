@@ -8,15 +8,32 @@
 
 
 
-let menuitems = [], menupopups = [], huds = [], tabs = [], runCount = 0;
+"use strict";
 
-const TEST_URI1 = "data:text/html;charset=utf-8,Web Console test for bug 602572: log bodies checkbox. tab 1";
-const TEST_URI2 = "data:text/html;charset=utf-8,Web Console test for bug 602572: log bodies checkbox. tab 2";
+let menuitems = [];
+let menupopups = [];
+let huds = [];
+let tabs = [];
+let runCount = 0;
 
-function test()
-{
+const TEST_URI1 = "data:text/html;charset=utf-8,Web Console test for " +
+                  "bug 602572: log bodies checkbox. tab 1";
+const TEST_URI2 = "data:text/html;charset=utf-8,Web Console test for " +
+                  "bug 602572: log bodies checkbox. tab 2";
+
+function test() {
   if (runCount == 0) {
     requestLongerTimeout(2);
+  }
+
+  
+  function openTab() {
+    loadTab(TEST_URI2).then((tab) => {
+      tabs.push(tab.tab);
+      openConsole().then((hud) => {
+        hud.iframeWindow.mozRequestAnimationFrame(startTest);
+      });
+    });
   }
 
   
@@ -26,28 +43,23 @@ function test()
       hud.iframeWindow.mozRequestAnimationFrame(() => {
         info("iframe1 root height " + hud.ui.rootElement.clientHeight);
 
-        
-        loadTab(TEST_URI2).then((tab) => {
-          tabs.push(tab.tab);
-          openConsole().then((hud) => hud.iframeWindow.mozRequestAnimationFrame(startTest));
-        });
+        openTab();
       });
     });
   });
 }
 
-function startTest()
-{
+function startTest() {
   
-  let win2 = tabs[runCount*2 + 1].linkedBrowser.contentWindow;
+  let win2 = tabs[runCount * 2 + 1].linkedBrowser.contentWindow;
   huds[1] = HUDService.getHudByWindow(win2);
   info("startTest: iframe2 root height " + huds[1].ui.rootElement.clientHeight);
 
   if (runCount == 0) {
     menuitems[1] = huds[1].ui.rootElement.querySelector("#saveBodies");
-  }
-  else {
-    menuitems[1] = huds[1].ui.rootElement.querySelector("#saveBodiesContextMenu");
+  } else {
+    menuitems[1] = huds[1].ui.rootElement
+                             .querySelector("#saveBodiesContextMenu");
   }
   menupopups[1] = menuitems[1].parentNode;
 
@@ -58,9 +70,8 @@ function startTest()
   });
 }
 
-function onpopupshown2(aEvent)
-{
-  menupopups[1].removeEventListener(aEvent.type, onpopupshown2, false);
+function onpopupshown2(evt) {
+  menupopups[1].removeEventListener(evt.type, onpopupshown2, false);
 
   
   isnot(menuitems[1].getAttribute("checked"), "true",
@@ -73,30 +84,30 @@ function onpopupshown2(aEvent)
     menupopups[1].hidePopup();
   });
 
-  menupopups[1].addEventListener("popuphidden", function _onhidden(aEvent) {
-    menupopups[1].removeEventListener(aEvent.type, _onhidden, false);
+  menupopups[1].addEventListener("popuphidden", function _onhidden(evtPopup) {
+    menupopups[1].removeEventListener(evtPopup.type, _onhidden, false);
 
     info("menupopups[1] hidden");
 
     
-    huds[1].ui.once("save-bodies-ui-toggled", () => testpopup2b(aEvent));
+    huds[1].ui.once("save-bodies-ui-toggled", () => testpopup2b(evtPopup));
     menupopups[1].openPopup();
   }, false);
 }
 
-function testpopup2b(aEvent) {
+function testpopup2b() {
   is(menuitems[1].getAttribute("checked"), "true", "menuitems[1] is checked");
 
-  menupopups[1].addEventListener("popuphidden", function _onhidden(aEvent) {
-    menupopups[1].removeEventListener(aEvent.type, _onhidden, false);
+  menupopups[1].addEventListener("popuphidden", function _onhidden(evtPopup) {
+    menupopups[1].removeEventListener(evtPopup.type, _onhidden, false);
 
     info("menupopups[1] hidden");
 
     
-    gBrowser.selectedTab = tabs[runCount*2];
+    gBrowser.selectedTab = tabs[runCount * 2];
     waitForFocus(function() {
       
-      let win1 = tabs[runCount*2].linkedBrowser.contentWindow;
+      let win1 = tabs[runCount * 2].linkedBrowser.contentWindow;
       huds[0] = HUDService.getHudByWindow(win1);
 
       info("iframe1 root height " + huds[0].ui.rootElement.clientHeight);
@@ -106,7 +117,7 @@ function testpopup2b(aEvent) {
 
       menupopups[0].addEventListener("popupshown", onpopupshown1, false);
       executeSoon(() => menupopups[0].openPopup());
-    }, tabs[runCount*2].linkedBrowser.contentWindow);
+    }, tabs[runCount * 2].linkedBrowser.contentWindow);
   }, false);
 
   executeSoon(function() {
@@ -114,9 +125,8 @@ function testpopup2b(aEvent) {
   });
 }
 
-function onpopupshown1(aEvent)
-{
-  menupopups[0].removeEventListener(aEvent.type, onpopupshown1, false);
+function onpopupshown1(evt) {
+  menupopups[0].removeEventListener(evt.type, onpopupshown1, false);
 
   
   isnot(menuitems[0].getAttribute("checked"), "true",
@@ -128,25 +138,25 @@ function onpopupshown1(aEvent)
   });
 
   
-  menupopups[0].addEventListener("popuphidden", function _onhidden(aEvent) {
-    menupopups[0].removeEventListener(aEvent.type, _onhidden, false);
+  menupopups[0].addEventListener("popuphidden", function _onhidden(evtPopup) {
+    menupopups[0].removeEventListener(evtPopup.type, _onhidden, false);
 
     info("menupopups[0] hidden");
 
-    gBrowser.selectedTab = tabs[runCount*2 + 1];
+    gBrowser.selectedTab = tabs[runCount * 2 + 1];
     waitForFocus(function() {
       
-      huds[1].ui.once("save-bodies-ui-toggled", () => testpopup2c(aEvent));
+      huds[1].ui.once("save-bodies-ui-toggled", () => testpopup2c(evtPopup));
       menupopups[1].openPopup();
-    }, tabs[runCount*2 + 1].linkedBrowser.contentWindow);
+    }, tabs[runCount * 2 + 1].linkedBrowser.contentWindow);
   }, false);
 }
 
-function testpopup2c(aEvent) {
+function testpopup2c() {
   is(menuitems[1].getAttribute("checked"), "true", "menuitems[1] is checked");
 
-  menupopups[1].addEventListener("popuphidden", function _onhidden(aEvent) {
-    menupopups[1].removeEventListener(aEvent.type, _onhidden, false);
+  menupopups[1].addEventListener("popuphidden", function _onhidden(evtPopup) {
+    menupopups[1].removeEventListener(evtPopup.type, _onhidden, false);
 
     info("menupopups[1] hidden");
 
@@ -156,8 +166,7 @@ function testpopup2c(aEvent) {
         runCount++;
         info("start second run");
         executeSoon(test);
-      }
-      else {
+      } else {
         gBrowser.removeCurrentTab();
         gBrowser.selectedTab = tabs[2];
         gBrowser.removeCurrentTab();

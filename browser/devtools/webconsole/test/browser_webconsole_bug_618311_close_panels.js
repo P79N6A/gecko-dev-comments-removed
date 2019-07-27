@@ -3,7 +3,10 @@
 
 
 
-const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test/test-console.html";
+"use strict";
+
+const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/" +
+                 "test/test-console.html";
 
 let test = asyncTest(function* () {
   yield loadTab(TEST_URI);
@@ -19,11 +22,10 @@ let test = asyncTest(function* () {
       category: CATEGORY_NETWORK,
       severity: SEVERITY_LOG,
     }],
-  })
+  });
 
   yield performTest(hud, results);
 });
-
 
 function performTest(HUD, results) {
   let deferred = promise.defer();
@@ -82,7 +84,8 @@ function performTest(HUD, results) {
     }
   });
 
-  EventUtils.sendMouseEvent({ type: "mousedown" }, networkLink, HUD.iframeWindow);
+  EventUtils.sendMouseEvent({ type: "mousedown" }, networkLink,
+                              HUD.iframeWindow);
   EventUtils.sendMouseEvent({ type: "mouseup" }, networkLink, HUD.iframeWindow);
   EventUtils.sendMouseEvent({ type: "click" }, networkLink, HUD.iframeWindow);
 
