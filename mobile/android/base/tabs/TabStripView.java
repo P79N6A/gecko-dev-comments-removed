@@ -102,7 +102,7 @@ public class TabStripView extends TwoWayView {
             updateSelectedStyle(selected);
 
             if (ensureVisible) {
-                ensurePositionIsVisible(selected, true);
+                ensurePositionIsVisible(selected);
             }
         }
     }
@@ -239,14 +239,10 @@ public class TabStripView extends TwoWayView {
         });
     }
 
-    
-
-
-
-    private void ensurePositionIsVisible(final int position, final boolean shouldAnimate) {
+    private void ensurePositionIsVisible(final int position) {
         
         
-        if (isRestoringTabs || !shouldAnimate) {
+        if (isRestoringTabs) {
             setSelection(position);
             return;
         }
@@ -416,13 +412,6 @@ public class TabStripView extends TwoWayView {
         super.draw(canvas);
         drawDividers(canvas);
         drawFadingEdge(canvas);
-    }
-
-    public void refresh() {
-        final int selectedPosition = getPositionForSelectedTab();
-        if (selectedPosition != -1) {
-            ensurePositionIsVisible(selectedPosition, false);
-        }
     }
 
     private class TabAnimatorListener implements AnimatorListener {
