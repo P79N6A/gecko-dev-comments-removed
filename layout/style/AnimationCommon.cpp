@@ -781,6 +781,12 @@ AnimationPlayerCollection::EnsureStyleRuleFor(TimeStamp aRefreshTime,
     return;
   }
 
+  if (!mStyleRuleRefreshTime.IsNull() &&
+      mStyleRuleRefreshTime == aRefreshTime) {
+    
+    return;
+  }
+
   
   
   
@@ -800,34 +806,28 @@ AnimationPlayerCollection::EnsureStyleRuleFor(TimeStamp aRefreshTime,
     return;
   }
 
-  
-  if (mStyleRuleRefreshTime.IsNull() ||
-      mStyleRuleRefreshTime != aRefreshTime) {
-    if (mManager->IsAnimationManager()) {
-      
-      
-      static_cast<nsAnimationManager*>(mManager)->
-        MaybeUpdateCascadeResults(this);
-    }
-
-    mStyleRuleRefreshTime = aRefreshTime;
-    mStyleRule = nullptr;
-    
-    mNeedsRefreshes = false;
-
+  if (mManager->IsAnimationManager()) {
     
     
-    
-    
-    nsCSSPropertySet properties;
-
-    for (size_t playerIdx = mPlayers.Length(); playerIdx-- != 0; ) {
-      mPlayers[playerIdx]->ComposeStyle(mStyleRule, properties,
-                                        mNeedsRefreshes);
-    }
-
-    mManager->CheckNeedsRefresh();
+    static_cast<nsAnimationManager*>(mManager)->MaybeUpdateCascadeResults(this);
   }
+
+  mStyleRuleRefreshTime = aRefreshTime;
+  mStyleRule = nullptr;
+  
+  mNeedsRefreshes = false;
+
+  
+  
+  
+  
+  nsCSSPropertySet properties;
+
+  for (size_t playerIdx = mPlayers.Length(); playerIdx-- != 0; ) {
+    mPlayers[playerIdx]->ComposeStyle(mStyleRule, properties, mNeedsRefreshes);
+  }
+
+  mManager->CheckNeedsRefresh();
 }
 
 bool
