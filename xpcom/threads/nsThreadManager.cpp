@@ -48,14 +48,6 @@ ReleaseObject(void* aData)
   static_cast<nsISupports*>(aData)->Release();
 }
 
-static PLDHashOperator
-AppendAndRemoveThread(PRThread* aKey, nsRefPtr<nsThread>& aThread, void* aArg)
-{
-  nsThreadArray* threads = static_cast<nsThreadArray*>(aArg);
-  threads->AppendElement(aThread);
-  return PL_DHASH_REMOVE;
-}
-
 
 NS_IMETHODIMP_(MozExternalRefCountType)
 nsThreadManager::AddRef()
@@ -139,7 +131,11 @@ nsThreadManager::Shutdown()
   nsThreadArray threads;
   {
     OffTheBooksMutexAutoLock lock(mLock);
-    mThreadsByPRThread.Enumerate(AppendAndRemoveThread, &threads);
+    for (auto iter = mThreadsByPRThread.Iter(); !iter.Done(); iter.Next()) {
+      nsRefPtr<nsThread>& thread = iter.GetData();
+      threads.AppendElement(thread);
+      iter.Remove();
+    }
   }
 
   
