@@ -344,6 +344,15 @@ this.UITour = {
   onPageEvent: function(aMessage, aEvent) {
     let browser = aMessage.target;
     let window = browser.ownerDocument.defaultView;
+
+    
+    
+    if (!window.gBrowser) {
+      
+      
+      window = Services.wm.getMostRecentWindow("navigator:browser");
+    }
+
     let tab = window.gBrowser.getTabForBrowser(browser);
     let messageManager = browser.messageManager;
 
