@@ -5,16 +5,8 @@
 
 .notice-container {
   margin-top: -50vh;
-}
-
-.theme-dark .notice-container {
-  background-color: #343c45; 
-  color: #f5f7fa; 
-}
-
-.theme-light .notice-container {
-  background-color: #f0f1f2; 
-  color: #585959; 
+  background-color: var(--theme-toolbar-background);
+  color: var(--theme-body-color-alt);
 }
 
 #reload-notice {
@@ -75,7 +67,7 @@ g.edgePath.param-connection {
   fill: #fcfcfc; 
 }
 .theme-dark g.edgeLabel tspan {
-  fill: #b6babf; 
+  fill: var(--theme-body-color-alt);
 }
 .theme-light g.edgeLabel tspan {
   fill: #585959; 
@@ -87,22 +79,13 @@ g.edgePath.param-connection {
   cursor: pointer;
 }
 
-.theme-dark .nodes rect {
-  stroke: #252c33; 
-  fill: #343c45; 
+.nodes rect {
+  stroke: var(--theme-tab-toolbar-background);
+  fill: var(--theme-toolbar-background);
 }
 
-.theme-light .nodes rect {
-  stroke: #ebeced; 
-  fill: #f0f1f2; 
-}
-
-.theme-dark .nodes g.selected rect {
-  fill: #1d4f73; 
-}
-
-.theme-light .nodes g.selected rect {
-  fill: #4c9ed9; 
+.nodes g.selected rect {
+  fill: var(--theme-selection-background);
 }
 
 
@@ -113,14 +96,12 @@ text {
   font-size: 14px;
 }
 
-.theme-dark text {
-  fill: #b6babf; 
+text {
+  fill: var(--theme-body-color-alt);
 }
-.theme-light text {
-  fill: #585959; 
-}
+
 .theme-light g.selected text {
-  fill: #f0f1f2; 
+  fill: var(--theme-toolbar-background);
 }
 
 .nodes text {

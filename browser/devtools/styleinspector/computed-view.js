@@ -574,7 +574,10 @@ CssHtmlTree.prototype = {
     let mozProps = [];
     for (let i = 0, numStyles = styles.length; i < numStyles; i++) {
       let prop = styles.item(i);
-      if (prop.charAt(0) == "-") {
+      if (prop.startsWith("--")) {
+        
+        continue;
+      } else if (prop.startsWith("-")) {
         mozProps.push(prop);
       } else {
         CssHtmlTree.propertyNames.push(prop);
