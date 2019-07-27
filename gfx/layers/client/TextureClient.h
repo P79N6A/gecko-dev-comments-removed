@@ -118,16 +118,6 @@ public:
   virtual ~TextureClient();
 
   
-  
-  
-  
-  static TemporaryRef<BufferTextureClient>
-  CreateBufferTextureClient(ISurfaceAllocator* aAllocator,
-                            gfx::SurfaceFormat aFormat,
-                            TextureFlags aTextureFlags,
-                            gfx::BackendType aMoz2dBackend);
-
-  
   static TemporaryRef<TextureClient>
   CreateForDrawing(ISurfaceAllocator* aAllocator,
                    gfx::SurfaceFormat aFormat,
@@ -153,6 +143,15 @@ public:
                            gfx::BackendType aMoz2dBackend,
                            TextureFlags aTextureFlags,
                            TextureAllocationFlags flags = ALLOC_DEFAULT);
+
+  
+  
+  
+  static TemporaryRef<BufferTextureClient>
+  CreateWithBufferSize(ISurfaceAllocator* aAllocator,
+                       gfx::SurfaceFormat aFormat,
+                       size_t aSize,
+                       TextureFlags aTextureFlags);
 
   virtual TextureClientYCbCr* AsTextureClientYCbCr() { return nullptr; }
 
@@ -201,21 +200,6 @@ public:
   virtual gfx::SurfaceFormat GetFormat() const
   {
     return gfx::SurfaceFormat::UNKNOWN;
-  }
-
-  
-
-
-
-
-
-
-
-
-  virtual bool AllocateForSurface(gfx::IntSize aSize,
-                                  TextureAllocationFlags flags = ALLOC_DEFAULT)
-  {
-    return false;
   }
 
   
@@ -368,6 +352,22 @@ protected:
 
 
   void MarkInvalid() { mValid = false; }
+
+  
+
+
+
+
+
+
+
+
+  virtual bool AllocateForSurface(gfx::IntSize aSize,
+                                  TextureAllocationFlags flags = ALLOC_DEFAULT)
+  {
+    return false;
+  }
+
 
   
 
