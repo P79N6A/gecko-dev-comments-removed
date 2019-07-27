@@ -1651,7 +1651,7 @@ RestyleManager::ProcessPendingRestyles()
     
     
     
-    RebuildAllStyleData(nsChangeHint(0), nsRestyleHint(0));
+    ProcessPendingRestyles();
   }
 }
 
