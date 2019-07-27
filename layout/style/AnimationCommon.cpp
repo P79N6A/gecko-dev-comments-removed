@@ -12,6 +12,7 @@
 #include "nsRuleData.h"
 #include "nsCSSPropertySet.h"
 #include "nsCSSValue.h"
+#include "nsCycleCollectionParticipant.h"
 #include "nsStyleContext.h"
 #include "nsIFrame.h"
 #include "nsLayoutUtils.h"
@@ -405,6 +406,10 @@ ComputedTimingFunction::GetValue(double aPortion) const
 
 const double ComputedTiming::kNullTimeFraction =
   mozilla::PositiveInfinity<double>();
+
+NS_IMPL_CYCLE_COLLECTION(ElementAnimation, mTimeline)
+NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(ElementAnimation, AddRef)
+NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(ElementAnimation, Release)
 
 bool
 ElementAnimation::IsRunningAt(TimeStamp aTime) const
