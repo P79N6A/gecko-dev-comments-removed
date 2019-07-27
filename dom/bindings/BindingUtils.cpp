@@ -2622,6 +2622,9 @@ ConvertExceptionToPromise(JSContext* cx,
 
   JS::Rooted<JS::Value> exn(cx);
   if (!JS_GetPendingException(cx, &exn)) {
+    
+    
+    
     return false;
   }
 

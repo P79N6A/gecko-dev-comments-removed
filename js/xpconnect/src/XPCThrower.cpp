@@ -103,6 +103,9 @@ XPCThrower::ThrowBadResult(nsresult rv, nsresult result, XPCCallContext& ccx)
 
 
 
+
+
+
     if (CheckForPendingException(result, ccx))
         return;
 

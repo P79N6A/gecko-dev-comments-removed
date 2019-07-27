@@ -88,6 +88,12 @@ ThrowExceptionObject(JSContext* aCx, Exception* aException)
 bool
 Throw(JSContext* aCx, nsresult aRv, const char* aMessage)
 {
+  if (aRv == NS_ERROR_UNCATCHABLE_EXCEPTION) {
+    
+    JS_ClearPendingException(aCx);
+    return false;
+  }
+
   if (JS_IsExceptionPending(aCx)) {
     
     return false;
@@ -128,6 +134,8 @@ Throw(JSContext* aCx, nsresult aRv, const char* aMessage)
 void
 ThrowAndReport(nsPIDOMWindow* aWindow, nsresult aRv, const char* aMessage)
 {
+  MOZ_ASSERT(aRv != NS_ERROR_UNCATCHABLE_EXCEPTION,
+             "Doesn't make sense to report uncatchable exceptions!");
   AutoJSAPI jsapi;
   if (NS_WARN_IF(!jsapi.InitWithLegacyErrorReporting(aWindow))) {
     return;

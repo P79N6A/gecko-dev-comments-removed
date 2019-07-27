@@ -98,6 +98,14 @@ public:
   bool IsNotEnoughArgsError() const { return ErrorCode() == NS_ERROR_XPC_NOT_ENOUGH_ARGS; }
 
   
+  void ThrowUncatchableException() {
+    Throw(NS_ERROR_UNCATCHABLE_EXCEPTION);
+  }
+  bool IsUncatchableException() const {
+    return ErrorCode() == NS_ERROR_UNCATCHABLE_EXCEPTION;
+  }
+
+  
   
   
   

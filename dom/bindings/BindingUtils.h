@@ -103,6 +103,13 @@ ThrowMethodFailedWithDetails(JSContext* cx, ErrorResult& rv,
                              const char* memberName,
                              bool reportJSContentExceptions = false)
 {
+  if (rv.IsUncatchableException()) {
+    
+    JS_ClearPendingException(cx);
+    
+    
+    return false;
+  }
   if (rv.IsErrorWithMessage()) {
     rv.ReportErrorWithMessage(cx);
     return false;
