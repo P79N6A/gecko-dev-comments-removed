@@ -96,36 +96,32 @@ var SpecialInflateUtils = {
   },
 
   createWrappedSpecialInflate: function (sandbox) {
-    function genPropDesc(value) {
-      return {
-        enumerable: true, configurable: true, writable: true, value: value
-      };
-    }
-
     var wrapped = new SpecialInflate();
+    var wrapperOnData;
     wrapped.onData = function(data) {
-      if (wrapper.onData) {
-        wrapper.onData.call(wrapper, Components.utils.cloneInto(data, sandbox));
+      if (wrapperOnData) {
+        wrapperOnData(Components.utils.cloneInto(data, sandbox));
       }
     };
 
-    
-    
-    
-    var wrapper = Components.utils.createObjectIn(sandbox);
-    Object.defineProperties(wrapper, {
-      onData: genPropDesc(null),
 
-      push: genPropDesc(function (data) {
+    
+    
+    
+    var wrapper = Components.utils.cloneInto({
+      setDataCallback: function (callback) {
+        wrapperOnData = callback;
+      },
+
+      push: function (data) {
         
         
         return wrapped.push(data);
-      }),
-      close: genPropDesc(function () {
+      },
+      close: function () {
         return wrapped.close();
-      })
-    });
-    Components.utils.makeObjectPropsNormal(wrapper);
+      }
+    }, sandbox, {cloneFunctions:true});
     return wrapper;
   }
 };
