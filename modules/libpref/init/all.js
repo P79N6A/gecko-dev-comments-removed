@@ -446,7 +446,7 @@ pref("media.track.enabled", false);
 
 
 
-#if defined(XP_WIN) || !defined(RELEASE_BUILD)
+#if defined(XP_WIN) || defined(XP_MACOSX) || !defined(RELEASE_BUILD)
 pref("media.mediasource.enabled", true);
 #else
 pref("media.mediasource.enabled", false);
