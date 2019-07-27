@@ -498,34 +498,6 @@ class JSObject : public js::gc::Cell
         return !lastProperty()->hasObjectFlag(js::BaseShape::NOT_EXTENSIBLE);
     }
 
-  private:
-    enum ImmutabilityType { SEAL, FREEZE };
-
-    
-
-
-
-
-
-    static bool sealOrFreeze(JSContext *cx, js::HandleObject obj, ImmutabilityType it);
-
-    static bool isSealedOrFrozen(JSContext *cx, js::HandleObject obj, ImmutabilityType it, bool *resultp);
-
-    static inline unsigned getSealedOrFrozenAttributes(unsigned attrs, ImmutabilityType it);
-
-  public:
-    
-    static inline bool seal(JSContext *cx, js::HandleObject obj) { return sealOrFreeze(cx, obj, SEAL); }
-    
-    static inline bool freeze(JSContext *cx, js::HandleObject obj) { return sealOrFreeze(cx, obj, FREEZE); }
-
-    static inline bool isSealed(JSContext *cx, js::HandleObject obj, bool *resultp) {
-        return isSealedOrFrozen(cx, obj, SEAL, resultp);
-    }
-    static inline bool isFrozen(JSContext *cx, js::HandleObject obj, bool *resultp) {
-        return isSealedOrFrozen(cx, obj, FREEZE, resultp);
-    }
-
     
     static const char *className(JSContext *cx, js::HandleObject obj);
 
@@ -1266,6 +1238,33 @@ NativeWatch(JSContext *cx, JS::HandleObject obj, JS::HandleId id, JS::HandleObje
 extern bool
 NativeUnwatch(JSContext *cx, JS::HandleObject obj, JS::HandleId id);
 
+enum class IntegrityLevel {
+    Sealed,
+    Frozen
+};
+
+
+
+
+
+
+
+extern bool
+SetIntegrityLevel(JSContext *cx, HandleObject obj, IntegrityLevel level);
+
+inline bool
+FreezeObject(JSContext *cx, HandleObject obj)
+{
+    return SetIntegrityLevel(cx, obj, IntegrityLevel::Frozen);
+}
+
+
+
+
+
+extern bool
+TestIntegrityLevel(JSContext *cx, HandleObject obj, IntegrityLevel level, bool *resultp);
+
 }  
 
-#endif 
+#endif

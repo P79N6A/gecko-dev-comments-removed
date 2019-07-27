@@ -1007,46 +1007,51 @@ JSObject::uninlinedSetType(js::types::TypeObject *newType)
     setType(newType);
 }
 
- inline unsigned
-JSObject::getSealedOrFrozenAttributes(unsigned attrs, ImmutabilityType it)
+
+
+
+static unsigned
+GetSealedOrFrozenAttributes(unsigned attrs, IntegrityLevel level)
 {
     
-    if (it == FREEZE && !(attrs & (JSPROP_GETTER | JSPROP_SETTER)))
+    if (level == IntegrityLevel::Frozen && !(attrs & (JSPROP_GETTER | JSPROP_SETTER)))
         return JSPROP_PERMANENT | JSPROP_READONLY;
     return JSPROP_PERMANENT;
 }
 
- bool
-JSObject::sealOrFreeze(JSContext *cx, HandleObject obj, ImmutabilityType it)
+
+bool
+js::SetIntegrityLevel(JSContext *cx, HandleObject obj, IntegrityLevel level)
 {
     assertSameCompartment(cx, obj);
-    MOZ_ASSERT(it == SEAL || it == FREEZE);
 
-    bool succeeded;
-    if (!PreventExtensions(cx, obj, &succeeded))
+    
+    bool status;
+    if (!PreventExtensions(cx, obj, &status))
         return false;
-    if (!succeeded) {
+    if (!status) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_CANT_CHANGE_EXTENSIBILITY);
         return false;
     }
 
-    AutoIdVector props(cx);
-    if (!GetPropertyKeys(cx, obj, JSITER_HIDDEN | JSITER_OWNONLY | JSITER_SYMBOLS, &props))
+    
+    AutoIdVector keys(cx);
+    if (!GetPropertyKeys(cx, obj, JSITER_HIDDEN | JSITER_OWNONLY | JSITER_SYMBOLS, &keys))
         return false;
 
     
+    
     MOZ_ASSERT_IF(obj->isNative(), obj->as<NativeObject>().getDenseCapacity() == 0);
 
+    
     if (obj->isNative() && !obj->as<NativeObject>().inDictionaryMode() && !IsAnyTypedArray(obj)) {
         HandleNativeObject nobj = obj.as<NativeObject>();
 
         
-
-
-
-
-
-
+        
+        
+        
+        
         RootedShape last(cx, EmptyShape::getInitialShape(cx, nobj->getClass(),
                                                          nobj->getTaggedProto(),
                                                          nobj->getParent(),
@@ -1067,9 +1072,9 @@ JSObject::sealOrFreeze(JSContext *cx, HandleObject obj, ImmutabilityType it)
         for (size_t i = 0; i < shapes.length(); i++) {
             StackShape unrootedChild(shapes[i]);
             RootedGeneric<StackShape*> child(cx, &unrootedChild);
-            child->attrs |= getSealedOrFrozenAttributes(child->attrs, it);
+            child->attrs |= GetSealedOrFrozenAttributes(child->attrs, level);
 
-            if (!JSID_IS_EMPTY(child->propid) && it == FREEZE)
+            if (!JSID_IS_EMPTY(child->propid) && level == IntegrityLevel::Frozen)
                 MarkTypePropertyNonWritable(cx, nobj, child->propid);
 
             last = cx->compartment()->propertyTree.getChild(cx, last, *child);
@@ -1081,21 +1086,21 @@ JSObject::sealOrFreeze(JSContext *cx, HandleObject obj, ImmutabilityType it)
         JS_ALWAYS_TRUE(NativeObject::setLastProperty(cx, nobj, last));
     } else {
         RootedId id(cx);
-        for (size_t i = 0; i < props.length(); i++) {
-            id = props[i];
+        for (size_t i = 0; i < keys.length(); i++) {
+            id = keys[i];
 
             unsigned attrs;
-            if (!getGenericAttributes(cx, obj, id, &attrs))
+            if (!JSObject::getGenericAttributes(cx, obj, id, &attrs))
                 return false;
 
-            unsigned new_attrs = getSealedOrFrozenAttributes(attrs, it);
+            unsigned new_attrs = GetSealedOrFrozenAttributes(attrs, level);
 
             
             if ((attrs | new_attrs) == attrs)
                 continue;
 
             attrs |= new_attrs;
-            if (!setGenericAttributes(cx, obj, id, &attrs))
+            if (!JSObject::setGenericAttributes(cx, obj, id, &attrs))
                 return false;
         }
     }
@@ -1109,7 +1114,7 @@ JSObject::sealOrFreeze(JSContext *cx, HandleObject obj, ImmutabilityType it)
     
     
     
-    if (it == FREEZE && obj->is<ArrayObject>()) {
+    if (level == IntegrityLevel::Frozen && obj->is<ArrayObject>()) {
         if (!obj->as<ArrayObject>().maybeCopyElementsForWrite(cx))
             return false;
         obj->as<ArrayObject>().getElementsHeader()->setNonwritableArrayLength();
@@ -1118,58 +1123,63 @@ JSObject::sealOrFreeze(JSContext *cx, HandleObject obj, ImmutabilityType it)
     return true;
 }
 
- bool
-JSObject::isSealedOrFrozen(JSContext *cx, HandleObject obj, ImmutabilityType it, bool *resultp)
+
+bool
+js::TestIntegrityLevel(JSContext *cx, HandleObject obj, IntegrityLevel level, bool *result)
 {
-    bool extensible;
-    if (!IsExtensible(cx, obj, &extensible))
+    
+    bool status;
+    if (!IsExtensible(cx, obj, &status))
         return false;
-    if (extensible) {
-        *resultp = false;
+    if (status) {
+        *result = false;
         return true;
     }
 
     if (IsAnyTypedArray(obj)) {
-        if (it == SEAL) {
+        if (level == IntegrityLevel::Sealed) {
             
-            *resultp = true;
+            *result = true;
         } else {
             
             
-            *resultp = (AnyTypedArrayLength(obj) == 0);
+            *result = (AnyTypedArrayLength(obj) == 0);
         }
         return true;
     }
 
+    
     AutoIdVector props(cx);
     if (!GetPropertyKeys(cx, obj, JSITER_HIDDEN | JSITER_OWNONLY | JSITER_SYMBOLS, &props))
         return false;
 
+    
+    
     RootedId id(cx);
     for (size_t i = 0, len = props.length(); i < len; i++) {
         id = props[i];
 
         unsigned attrs;
-        if (!getGenericAttributes(cx, obj, id, &attrs))
+        if (!JSObject::getGenericAttributes(cx, obj, id, &attrs))
             return false;
 
         
-
-
-
-
+        
+        
         if (!(attrs & JSPROP_PERMANENT) ||
-            (it == FREEZE && !(attrs & (JSPROP_READONLY | JSPROP_GETTER | JSPROP_SETTER))))
+            (level == IntegrityLevel::Frozen &&
+             !(attrs & (JSPROP_READONLY | JSPROP_GETTER | JSPROP_SETTER))))
         {
-            *resultp = false;
+            *result = false;
             return true;
         }
     }
 
     
-    *resultp = true;
+    *result = true;
     return true;
 }
+
 
 
 const char *
@@ -2080,7 +2090,7 @@ js::XDRObjectLiteral(XDRState<mode> *xdr, MutableHandleNativeObject obj)
         if (!xdr->codeUint32(&frozen))
             return false;
         if (mode == XDR_DECODE && frozen == 1) {
-            if (!JSObject::freeze(cx, obj))
+            if (!FreezeObject(cx, obj))
                 return false;
         }
     }
