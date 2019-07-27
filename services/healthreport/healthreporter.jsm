@@ -245,21 +245,6 @@ HealthReporterState.prototype = Object.freeze({
     return this.removeRemoteIDs(ids);
   },
 
-  
-
-
-
-  resetClientID: Task.async(function* () {
-    let drs = Cc["@mozilla.org/datareporting/service;1"]
-                .getService(Ci.nsISupports)
-                .wrappedJSObject;
-    yield drs.resetClientID();
-    this._s.clientID = yield drs.getClientID();
-    this._log.info("Reset client id to " + this._s.clientID + ".");
-
-    yield this.save();
-  }),
-
   _migratePrefs: function () {
     let prefs = this._reporter._prefs;
 
@@ -1533,13 +1518,6 @@ this.HealthReporter.prototype = Object.freeze({
       } catch (ex) {
         this._log.error("Error processing request to delete data: " +
                         CommonUtils.exceptionStr(error));
-      } finally {
-        
-        
-        
-        if (!this.haveRemoteData()) {
-          yield this._state.resetClientID();
-        }
       }
     }.bind(this));
   },

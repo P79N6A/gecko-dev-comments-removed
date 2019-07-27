@@ -286,15 +286,6 @@ DataReportingService.prototype = Object.freeze({
   getClientID: function() {
     return ClientID.getClientID();
   },
-
-  
-
-
-
-
-  resetClientID: Task.async(function* () {
-    return ClientID.resetClientID();
-  }),
 });
 
 this.NSGetFactory = XPCOMUtils.generateNSGetFactory([DataReportingService]);

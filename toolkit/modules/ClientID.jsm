@@ -39,14 +39,6 @@ this.ClientID = Object.freeze({
 
 
 
-  resetClientID: function() {
-    return ClientIDImpl.resetClientID();
-  },
-
-  
-
-
-
   _reset: function() {
     return ClientIDImpl._reset();
   },
@@ -137,22 +129,6 @@ let ClientIDImpl = {
 
     return Promise.resolve(this._clientID);
   },
-
-  
-
-
-
-
-  resetClientID: Task.async(function* () {
-    yield this._loadClientIdTask;
-    yield this._saveClientIdTask;
-
-    this._clientID = CommonUtils.generateUUID();
-    this._saveClientIdTask = this._saveClientID();
-    yield this._saveClientIdTask;
-
-    return this._clientID;
-  }),
 
   
 
