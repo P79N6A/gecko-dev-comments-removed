@@ -2,8 +2,11 @@
 
 
 
-from __future__ import with_statement
-import os, subprocess, sys, threading, time
+import expandlibs_exec
+import sys
+import threading
+import time
+
 from win32 import procmem
 
 def measure_vsize_threadfunc(proc, output_file):
@@ -33,14 +36,17 @@ def measure_link_vsize(output_file, args):
     Execute |args|, and measure the maximum virtual memory usage of the process,
     printing it to stdout when finished.
     """
-    proc = subprocess.Popen(args)
-    t = threading.Thread(target=measure_vsize_threadfunc,
-                         args=(proc, output_file))
-    t.start()
+
     
-    exitcode = proc.wait()
     
-    t.join()
+    t = [None]
+    def callback(proc):
+        t[0] = threading.Thread(target=measure_vsize_threadfunc,
+                             args=(proc, output_file))
+        t[0].start()
+    exitcode = expandlibs_exec.main(args, proc_callback=callback)
+    
+    t[0].join()
     return exitcode
 
 if __name__ == "__main__":
@@ -50,4 +56,5 @@ if __name__ == "__main__":
     if len(sys.argv) < 3:
         print >>sys.stderr, "Usage: link.py <output filename> <commandline>"
         sys.exit(1)
-    sys.exit(measure_link_vsize(sys.argv[1], sys.argv[2:]))
+    output_file = sys.argv.pop(1)
+    sys.exit(measure_link_vsize(output_file, sys.argv[1:]))
