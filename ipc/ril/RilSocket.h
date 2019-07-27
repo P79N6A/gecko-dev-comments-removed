@@ -9,7 +9,18 @@
 
 #include "mozilla/ipc/ConnectionOrientedSocket.h"
 
+class JSContext;
 class MessageLoop;
+
+namespace mozilla {
+namespace dom {
+namespace workers {
+
+class WorkerCrossThreadDispatcher;
+
+} 
+} 
+} 
 
 namespace mozilla {
 namespace ipc {
@@ -27,14 +38,17 @@ public:
 
 
 
-  RilSocket(RilSocketConsumer* aConsumer, int aIndex);
+
+  RilSocket(mozilla::dom::workers::WorkerCrossThreadDispatcher* aDispatcher,
+            RilSocketConsumer* aConsumer, int aIndex);
 
   
 
 
 
 
-  void ReceiveSocketData(nsAutoPtr<UnixSocketBuffer>& aBuffer);
+
+  void ReceiveSocketData(JSContext* aCx, nsAutoPtr<UnixSocketBuffer>& aBuffer);
 
   
 
@@ -85,6 +99,7 @@ protected:
 
 private:
   RilSocketIO* mIO;
+  nsRefPtr<mozilla::dom::workers::WorkerCrossThreadDispatcher> mDispatcher;
   RilSocketConsumer* mConsumer;
   int mIndex;
 };
