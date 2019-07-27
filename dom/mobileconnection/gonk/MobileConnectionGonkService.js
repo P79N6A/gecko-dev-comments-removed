@@ -14,10 +14,10 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 var RIL = {};
 Cu.import("resource://gre/modules/ril_consts.js", RIL);
 
-const GONK_MOBILECONNECTIONSERVICE_CONTRACTID =
-  "@mozilla.org/mobileconnection/gonkmobileconnectionservice;1";
+const MOBILECONNECTIONGONKSERVICE_CONTRACTID =
+  "@mozilla.org/mobileconnection/mobileconnectiongonkservice;1";
 
-const GONK_MOBILECONNECTIONSERVICE_CID =
+const MOBILECONNECTIONGONKSERVICE_CID =
   Components.ID("{05e20430-fe65-4984-8df9-a6a504b24a91}");
 const MOBILENETWORKINFO_CID =
   Components.ID("{a6c8416c-09b4-46d1-bf29-6520d677d085}");
@@ -44,7 +44,7 @@ XPCOMUtils.defineLazyServiceGetter(this, "gRadioInterfaceLayer",
 
 let DEBUG = RIL.DEBUG_RIL;
 function debug(s) {
-  dump("MobileConnectionService: " + s + "\n");
+  dump("MobileConnectionGonkService: " + s + "\n");
 }
 
 function MobileNetworkInfo() {
@@ -950,7 +950,7 @@ MobileConnectionProvider.prototype = {
   },
 };
 
-function MobileConnectionService() {
+function MobileConnectionGonkService() {
   this._providers = [];
 
   let numClients = gRadioInterfaceLayer.numRadioInterfaces;
@@ -966,15 +966,15 @@ function MobileConnectionService() {
 
   debug("init complete");
 }
-MobileConnectionService.prototype = {
-  classID: GONK_MOBILECONNECTIONSERVICE_CID,
-  classInfo: XPCOMUtils.generateCI({classID: GONK_MOBILECONNECTIONSERVICE_CID,
-                                    contractID: GONK_MOBILECONNECTIONSERVICE_CONTRACTID,
-                                    classDescription: "MobileConnectionService",
-                                    interfaces: [Ci.nsIGonkMobileConnectionService,
+MobileConnectionGonkService.prototype = {
+  classID: MOBILECONNECTIONGONKSERVICE_CID,
+  classInfo: XPCOMUtils.generateCI({classID: MOBILECONNECTIONGONKSERVICE_CID,
+                                    contractID: MOBILECONNECTIONGONKSERVICE_CONTRACTID,
+                                    classDescription: "MobileConnectionGonkService",
+                                    interfaces: [Ci.nsIMobileConnectionGonkService,
                                                  Ci.nsIMobileConnectionService],
                                     flags: Ci.nsIClassInfo.SINGLETON}),
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIGonkMobileConnectionService,
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIMobileConnectionGonkService,
                                          Ci.nsIMobileConnectionService,
                                          Ci.nsIObserver]),
 
@@ -1560,4 +1560,4 @@ MobileConnectionService.prototype = {
   }
 };
 
-this.NSGetFactory = XPCOMUtils.generateNSGetFactory([MobileConnectionService]);
+this.NSGetFactory = XPCOMUtils.generateNSGetFactory([MobileConnectionGonkService]);

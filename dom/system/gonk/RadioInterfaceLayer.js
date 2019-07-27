@@ -201,7 +201,7 @@ XPCOMUtils.defineLazyServiceGetter(this, "gTelephonyService",
 
 XPCOMUtils.defineLazyServiceGetter(this, "gMobileConnectionService",
                                    "@mozilla.org/mobileconnection/mobileconnectionservice;1",
-                                   "nsIGonkMobileConnectionService");
+                                   "nsIMobileConnectionGonkService");
 
 XPCOMUtils.defineLazyGetter(this, "WAP", function() {
   let wap = {};
