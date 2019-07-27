@@ -129,7 +129,7 @@ bool TextureD3D::subImage(GLint xoffset, GLint yoffset, GLint zoffset, GLsizei w
     if (unpack.pixelBuffer.id() != 0)
     {
         gl::Buffer *pixelBuffer = unpack.pixelBuffer.get();
-        unsigned int offset = reinterpret_cast<unsigned int>(pixels);
+        uintptr_t offset = reinterpret_cast<uintptr_t>(pixels);
         
         
         const void *bufferData = pixelBuffer->getImplementation()->getData();
@@ -183,7 +183,7 @@ bool TextureD3D::fastUnpackPixels(const gl::PixelUnpackState &unpack, const void
     
     ASSERT(mRenderer->supportsFastCopyBufferToTexture(sizedInternalFormat));
 
-    unsigned int offset = reinterpret_cast<unsigned int>(pixels);
+    uintptr_t offset = reinterpret_cast<uintptr_t>(pixels);
 
     return mRenderer->fastCopyBufferToTexture(unpack, offset, destRenderTarget, sizedInternalFormat, type, destArea);
 }

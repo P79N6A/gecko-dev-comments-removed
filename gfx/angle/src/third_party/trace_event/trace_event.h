@@ -587,7 +587,7 @@ const unsigned long long noEventId = 0;
 class TraceID {
 public:
     explicit TraceID(const void* id, unsigned char* flags) :
-        m_data(static_cast<unsigned long long>(reinterpret_cast<unsigned long>(id)))
+        m_data(static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(id)))
     {
         *flags |= TRACE_EVENT_FLAG_MANGLE_ID;
     }
@@ -786,37 +786,6 @@ private:
     };
     Data* m_pdata;
     Data m_data;
-};
-
-
-
-
-template<size_t BucketNumber>
-class SamplingStateScope {
-public:
-    SamplingStateScope(const char* categoryAndName)
-    {
-        m_previousState = SamplingStateScope<BucketNumber>::current();
-        SamplingStateScope<BucketNumber>::set(categoryAndName);
-    }
-
-    ~SamplingStateScope()
-    {
-        SamplingStateScope<BucketNumber>::set(m_previousState);
-    }
-
-    
-    static inline const char* current()
-    {
-        return reinterpret_cast<const char*>(*gl::traceSamplingState[BucketNumber]);
-    }
-    static inline void set(const char* categoryAndName)
-    {
-        *gl::traceSamplingState[BucketNumber] = reinterpret_cast<long>(const_cast<char*>(categoryAndName));
-    }
-
-private:
-    const char* m_previousState;
 };
 
 } 

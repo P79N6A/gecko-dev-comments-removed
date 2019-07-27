@@ -33,6 +33,7 @@
 #include "libEGL/Surface.h"
 
 #include <sstream>
+#include <iterator>
 
 namespace gl
 {
@@ -341,7 +342,7 @@ void Context::deleteFenceSync(GLsync fenceSync)
     
     
     
-    mResourceManager->deleteFenceSync(reinterpret_cast<GLuint>(fenceSync));
+    mResourceManager->deleteFenceSync(reinterpret_cast<uintptr_t>(fenceSync));
 }
 
 void Context::deleteVertexArray(GLuint vertexArray)
@@ -447,7 +448,7 @@ Renderbuffer *Context::getRenderbuffer(GLuint handle)
 
 FenceSync *Context::getFenceSync(GLsync handle) const
 {
-    return mResourceManager->getFenceSync(reinterpret_cast<GLuint>(handle));
+    return mResourceManager->getFenceSync(reinterpret_cast<uintptr_t>(handle));
 }
 
 VertexArray *Context::getVertexArray(GLuint handle) const

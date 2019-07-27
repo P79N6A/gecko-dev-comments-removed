@@ -1646,7 +1646,7 @@ bool ValidateDrawElements(Context *context, GLenum mode, GLsizei count, GLenum t
     
     if (elementArrayBuffer)
     {
-        unsigned int offset = reinterpret_cast<unsigned int>(indices);
+        uintptr_t offset = reinterpret_cast<uintptr_t>(indices);
         if (!elementArrayBuffer->getIndexRangeCache()->findRange(type, offset, count, indexRangeOut, NULL))
         {
             const void *dataPointer = elementArrayBuffer->getImplementation()->getData();

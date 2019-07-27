@@ -6,7 +6,7 @@
 
 
 
-#include "libGLESv2/renderer/copyImage.h"
+#include "libGLESv2/renderer/copyimage.h"
 
 namespace rx
 {
