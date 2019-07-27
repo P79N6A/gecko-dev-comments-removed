@@ -156,6 +156,9 @@ RootActor.prototype = {
     memoryActorAllocations: true,
     
     
+    noNeedToFakeResumptionOnNavigation: true,
+    
+    
     
     
     
