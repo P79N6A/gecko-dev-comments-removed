@@ -232,6 +232,13 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
         Observing = 1
     };
 
+    
+    
+    bool isDebuggee(const JSCompartment *compartment) const {
+        MOZ_ASSERT(compartment);
+        return compartment->isDebuggee() && debuggees.has(compartment->maybeGlobal());
+    }
+
   private:
     HeapPtrNativeObject object;         
     GlobalObjectSet debuggees;          
