@@ -284,7 +284,7 @@ public:
 
 
 
-    void NudgeToIntegers(void);
+    gfxMatrix& NudgeToIntegers(void);
 
     
 
