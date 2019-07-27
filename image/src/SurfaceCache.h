@@ -27,6 +27,7 @@ namespace image {
 class DrawableFrameRef;
 class Image;
 class imgFrame;
+struct SurfaceMemoryCounter;
 
 
 
@@ -402,11 +403,9 @@ struct SurfaceCache
 
 
 
-
-
-  static size_t SizeOfSurfaces(const ImageKey    aImageKey,
-                               gfxMemoryLocation aLocation,
-                               MallocSizeOf      aMallocSizeOf);
+  static void CollectSizeOfSurfaces(const ImageKey    aImageKey,
+                                    nsTArray<SurfaceMemoryCounter>& aCounters,
+                                    MallocSizeOf      aMallocSizeOf);
 
 private:
   virtual ~SurfaceCache() = 0;  

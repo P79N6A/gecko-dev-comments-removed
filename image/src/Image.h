@@ -10,15 +10,121 @@
 #include "mozilla/TimeStamp.h"
 #include "gfx2DGlue.h"                
 #include "imgIContainer.h"
-#include "ProgressTracker.h"
 #include "ImageURL.h"
 #include "nsStringFwd.h"
+#include "ProgressTracker.h"
+#include "SurfaceCache.h"
 
 class nsIRequest;
 class nsIInputStream;
 
 namespace mozilla {
 namespace image {
+
+class Image;
+
+
+
+
+
+struct MemoryCounter
+{
+  MemoryCounter()
+    : mSource(0)
+    , mDecodedHeap(0)
+    , mDecodedNonHeap(0)
+  { }
+
+  void SetSource(size_t aCount) { mSource = aCount; }
+  size_t Source() const { return mSource; }
+  void SetDecodedHeap(size_t aCount) { mDecodedHeap = aCount; }
+  size_t DecodedHeap() const { return mDecodedHeap; }
+  void SetDecodedNonHeap(size_t aCount) { mDecodedNonHeap = aCount; }
+  size_t DecodedNonHeap() const { return mDecodedNonHeap; }
+
+  MemoryCounter& operator+=(const MemoryCounter& aOther)
+  {
+    mSource += aOther.mSource;
+    mDecodedHeap += aOther.mDecodedHeap;
+    mDecodedNonHeap += aOther.mDecodedNonHeap;
+    return *this;
+  }
+
+private:
+  size_t mSource;
+  size_t mDecodedHeap;
+  size_t mDecodedNonHeap;
+};
+
+enum class SurfaceMemoryCounterType
+{
+  NORMAL,
+  COMPOSITING,
+  COMPOSITING_PREV
+};
+
+struct SurfaceMemoryCounter
+{
+  SurfaceMemoryCounter(const SurfaceKey& aKey,
+                       bool aIsLocked,
+                       SurfaceMemoryCounterType aType =
+                         SurfaceMemoryCounterType::NORMAL)
+    : mKey(aKey)
+    , mType(aType)
+    , mIsLocked(aIsLocked)
+  { }
+
+  const SurfaceKey& Key() const { return mKey; }
+  Maybe<gfx::IntSize>& SubframeSize() { return mSubframeSize; }
+  const Maybe<gfx::IntSize>& SubframeSize() const { return mSubframeSize; }
+  MemoryCounter& Values() { return mValues; }
+  const MemoryCounter& Values() const { return mValues; }
+  SurfaceMemoryCounterType Type() const { return mType; }
+  bool IsLocked() const { return mIsLocked; }
+
+private:
+  const SurfaceKey mKey;
+  Maybe<gfx::IntSize> mSubframeSize;
+  MemoryCounter mValues;
+  const SurfaceMemoryCounterType mType;
+  const bool mIsLocked;
+};
+
+struct ImageMemoryCounter
+{
+  ImageMemoryCounter(Image* aImage,
+                     MallocSizeOf aMallocSizeOf,
+                     bool aIsUsed);
+
+  nsCString& URI() { return mURI; }
+  const nsCString& URI() const { return mURI; }
+  const nsTArray<SurfaceMemoryCounter>& Surfaces() const { return mSurfaces; }
+  const gfx::IntSize IntrinsicSize() const { return mIntrinsicSize; }
+  const MemoryCounter& Values() const { return mValues; }
+  uint16_t Type() const { return mType; }
+  bool IsUsed() const { return mIsUsed; }
+
+  bool IsNotable() const
+  {
+    const size_t NotableThreshold = 16 * 1024;
+    size_t total = mValues.Source() + mValues.DecodedHeap()
+                                    + mValues.DecodedNonHeap();
+    return total >= NotableThreshold;
+  }
+
+private:
+  nsCString mURI;
+  nsTArray<SurfaceMemoryCounter> mSurfaces;
+  gfx::IntSize mIntrinsicSize;
+  MemoryCounter mValues;
+  uint16_t mType;
+  const bool mIsUsed;
+};
+
+
+
+
+
 
 class Image : public imgIContainer
 {
@@ -84,14 +190,16 @@ public:
 
 
 
-  virtual size_t SizeOfSourceWithComputedFallback(
-    MallocSizeOf aMallocSizeOf) const = 0;
+  virtual size_t
+    SizeOfSourceWithComputedFallback(MallocSizeOf aMallocSizeOf) const = 0;
 
   
 
 
-  virtual size_t SizeOfDecoded(gfxMemoryLocation aLocation,
-                               MallocSizeOf aMallocSizeOf) const = 0;
+
+
+  virtual void CollectSizeOfSurfaces(nsTArray<SurfaceMemoryCounter>& aCounters,
+                                     MallocSizeOf aMallocSizeOf) const = 0;
 
   virtual void IncrementAnimationConsumers() = 0;
   virtual void DecrementAnimationConsumers() = 0;

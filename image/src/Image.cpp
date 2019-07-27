@@ -13,6 +13,46 @@ namespace mozilla {
 namespace image {
 
 
+
+
+
+ImageMemoryCounter::ImageMemoryCounter(Image* aImage,
+                                       MallocSizeOf aMallocSizeOf,
+                                       bool aIsUsed)
+  : mIsUsed(aIsUsed)
+{
+  MOZ_ASSERT(aImage);
+
+  
+  nsRefPtr<ImageURL> imageURL(aImage->GetURI());
+  if (imageURL) {
+    imageURL->GetSpec(mURI);
+  }
+
+  int32_t width = 0;
+  int32_t height = 0;
+  aImage->GetWidth(&width);
+  aImage->GetHeight(&height);
+  mIntrinsicSize.SizeTo(width, height);
+
+  mType = aImage->GetType();
+
+  
+  mValues.SetSource(aImage->SizeOfSourceWithComputedFallback(aMallocSizeOf));
+  aImage->CollectSizeOfSurfaces(mSurfaces, aMallocSizeOf);
+
+  
+  for (const SurfaceMemoryCounter& surfaceCounter : mSurfaces) {
+    mValues += surfaceCounter.Values();
+  }
+}
+
+
+
+
+
+
+
 ImageResource::ImageResource(ImageURL* aURI) :
   mURI(aURI),
   mInnerWindowId(0),

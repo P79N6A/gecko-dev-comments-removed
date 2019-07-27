@@ -148,8 +148,14 @@ public:
   void SetLoopCount(int32_t aLoopCount) { mLoopCount = aLoopCount; }
   int32_t LoopCount() const { return mLoopCount; }
 
-  size_t SizeOfCompositingFrames(gfxMemoryLocation aLocation,
-                                 MallocSizeOf aMallocSizeOf) const;
+  
+
+
+
+
+  void CollectSizeOfCompositingSurfaces(nsTArray<SurfaceMemoryCounter>& aCounters,
+                                        MallocSizeOf aMallocSizeOf) const;
+
 private: 
   
 

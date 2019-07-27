@@ -42,12 +42,12 @@ DynamicImage::SizeOfSourceWithComputedFallback(MallocSizeOf aMallocSizeOf) const
   return 0;
 }
 
-size_t
-DynamicImage::SizeOfDecoded(gfxMemoryLocation aLocation,
-                            MallocSizeOf aMallocSizeOf) const
+void
+DynamicImage::CollectSizeOfSurfaces(nsTArray<SurfaceMemoryCounter>& aCounters,
+                                    MallocSizeOf aMallocSizeOf) const
 {
   
-  return 0;
+  
 }
 
 void
