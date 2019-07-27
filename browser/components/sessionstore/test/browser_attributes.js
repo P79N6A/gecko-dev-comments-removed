@@ -36,8 +36,7 @@ add_task(function* test() {
   
   let state = {
     entries: [{url: "about:mozilla"}],
-    attributes: {custom: "foobaz"},
-    image: gBrowser.getIcon(tab)
+    attributes: {custom: "foobaz", image: gBrowser.getIcon(tab)}
   };
 
   
@@ -46,8 +45,7 @@ add_task(function* test() {
   yield promise;
 
   ok(tab.hasAttribute("pending"), "tab is pending");
-  is(gBrowser.getIcon(tab), state.image, "tab has correct icon");
-  ok(!state.attributes.image, "'image' attribute not saved");
+  is(gBrowser.getIcon(tab), state.attributes.image, "tab has correct icon");
 
   
   gBrowser.selectedTab = tab;
