@@ -4971,14 +4971,14 @@ IonBuilder::inlineCalls(CallInfo &callInfo, ObjectVector &targets,
     MOZ_ASSERT(targets.length() == originals.length());
     for (uint32_t i = 0; i < targets.length(); i++) {
         
+        if (!choiceSet[i])
+            continue;
+
+        
         
         
         JSFunction *original = &originals[i]->as<JSFunction>();
         JSFunction *target = &targets[i]->as<JSFunction>();
-
-        
-        if (!choiceSet[i])
-            continue;
 
         
         if (maybeCache && !maybeCache->propTable()->hasFunction(original)) {
