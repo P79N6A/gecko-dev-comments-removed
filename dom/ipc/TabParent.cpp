@@ -142,21 +142,27 @@ private:
         MOZ_ASSERT(NS_IsMainThread());
         MOZ_ASSERT(mTabParent);
         MOZ_ASSERT(mEventTarget);
-        MOZ_ASSERT(mFD);
 
         nsRefPtr<TabParent> tabParent;
         mTabParent.swap(tabParent);
 
         using mozilla::ipc::FileDescriptor;
 
-        FileDescriptor::PlatformHandleType handle =
-            FileDescriptor::PlatformHandleType(PR_FileDesc2NativeHandle(mFD));
+        FileDescriptor fd;
+        if (mFD) {
+            FileDescriptor::PlatformHandleType handle =
+                FileDescriptor::PlatformHandleType(PR_FileDesc2NativeHandle(mFD));
+            fd = FileDescriptor(handle);
+        }
 
         
         
         if (!tabParent->IsDestroyed()) {
-          mozilla::unused << tabParent->SendCacheFileDescriptor(mPath,
-                                                                FileDescriptor(handle));
+            mozilla::unused << tabParent->SendCacheFileDescriptor(mPath, fd);
+        }
+
+        if (!mFD) {
+            return;
         }
 
         nsCOMPtr<nsIEventTarget> eventTarget;
@@ -171,7 +177,8 @@ private:
         }
     }
 
-    void OpenFile()
+    
+    void OpenFileImpl()
     {
         MOZ_ASSERT(!NS_IsMainThread());
         MOZ_ASSERT(!mFD);
@@ -185,10 +192,21 @@ private:
         NS_ENSURE_SUCCESS_VOID(rv);
 
         mFD = fd;
+    }
+
+    void OpenFile()
+    {
+        MOZ_ASSERT(!NS_IsMainThread());
+
+        OpenFileImpl();
 
         if (NS_FAILED(NS_DispatchToMainThread(this))) {
             NS_WARNING("Failed to dispatch to main thread!");
 
+            
+            
+            
+            mTabParent.forget();
             CloseFile();
         }
     }
