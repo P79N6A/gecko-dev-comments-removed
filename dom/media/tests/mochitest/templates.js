@@ -405,6 +405,13 @@ var commandsPeerConnection = [
     return test.pcRemote.checkMediaFlowPresent();
   },
 
+
+
+
+
+
+
+
   function PC_LOCAL_CHECK_STATS(test) {
     return test.pcLocal.getStats(null).then(stats => {
       test.pcLocal.checkStats(stats, test.steeplechase);
@@ -448,11 +455,11 @@ var commandsPeerConnection = [
   },
 
   function PC_LOCAL_CHECK_MSID(test) {
-    return test.pcLocal.checkMSids();
+    return test.pcLocal.checkMsids();
   },
   function PC_REMOTE_CHECK_MSID(test) {
-    return test.pcRemote.checkMSids();
-  }
+    return test.pcRemote.checkMsids();
+  },
 
   function PC_LOCAL_CHECK_STATS(test) {
     return checkAllTrackStats(test.pcLocal);
