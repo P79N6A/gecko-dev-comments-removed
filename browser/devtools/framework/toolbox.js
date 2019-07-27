@@ -1386,10 +1386,22 @@ Toolbox.prototype = {
       return target.destroy();
     }).then(() => {
       this.emit("destroyed");
+
+      
+      let win = this.frame.ownerGlobal;
+
       
       
       this._host = null;
       this._toolPanels.clear();
+
+      
+      
+      if (gDevTools.testing) {
+        win.QueryInterface(Ci.nsIInterfaceRequestor)
+           .getInterface(Ci.nsIDOMWindowUtils)
+           .garbageCollect();
+      }
     }).then(null, console.error);
   },
 

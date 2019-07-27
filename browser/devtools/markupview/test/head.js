@@ -14,6 +14,10 @@ waitForExplicitFinish();
 
 
 
+SimpleTest.requestCompleteLog();
+
+
+
 
 
 gDevTools.testing = true;
