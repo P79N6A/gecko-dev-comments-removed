@@ -580,9 +580,11 @@ let SettingsRequestManager = {
     while (currentTask) {
       if (DEBUG) debug("Running Operation " + currentTask.operation);
       if (lock.finalizing) {
+        
+        
         Cu.reportError("Settings lock trying to run more tasks after finalizing. Ignoring tasks, but this is bad. Lock: " + aLockID);
-        continue;
-      }
+        currentTask.defer.reject("Cannot call new task after finalizing");
+      } else {
       let p;
       switch (currentTask.operation) {
         case "get":
@@ -607,6 +609,7 @@ let SettingsRequestManager = {
         ret.task.defer.reject(ret.error);
       });
       promises.push(p);
+      }
       currentTask = lock.tasks.shift();
     }
   },
