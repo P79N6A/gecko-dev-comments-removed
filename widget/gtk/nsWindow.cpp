@@ -136,6 +136,9 @@ const gint kEvents = GDK_EXPOSURE_MASK | GDK_STRUCTURE_MASK |
                      GDK_VISIBILITY_NOTIFY_MASK |
                      GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK |
                      GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK |
+#if GTK_CHECK_VERSION(3,4,0)
+                     GDK_SMOOTH_SCROLL_MASK |
+#endif
                      GDK_SCROLL_MASK |
                      GDK_POINTER_MOTION_MASK;
 
@@ -381,6 +384,10 @@ nsWindow::nsWindow()
 
     mTransparencyBitmapWidth  = 0;
     mTransparencyBitmapHeight = 0;
+
+#if GTK_CHECK_VERSION(3,4,0)
+    mLastScrollEventTime = GDK_CURRENT_TIME;
+#endif
 }
 
 nsWindow::~nsWindow()
@@ -3086,10 +3093,37 @@ nsWindow::OnScrollEvent(GdkEventScroll *aEvent)
     
     if (CheckForRollup(aEvent->x_root, aEvent->y_root, true, false))
         return;
-
+#if GTK_CHECK_VERSION(3,4,0)
+    
+    if (mLastScrollEventTime == aEvent->time)
+        return; 
+#endif
     WidgetWheelEvent wheelEvent(true, NS_WHEEL_WHEEL, this);
     wheelEvent.deltaMode = nsIDOMWheelEvent::DOM_DELTA_LINE;
     switch (aEvent->direction) {
+#if GTK_CHECK_VERSION(3,4,0)
+    case GDK_SCROLL_SMOOTH:
+    {
+        
+        
+        mLastScrollEventTime = aEvent->time;
+        
+        
+        wheelEvent.deltaX = aEvent->delta_x * 3;
+        wheelEvent.deltaY = aEvent->delta_y * 3;
+        wheelEvent.mIsNoLineOrPageDelta = true;
+        
+        
+        
+        GdkDevice *device = gdk_event_get_source_device((GdkEvent*)aEvent);
+        GdkInputSource source = gdk_device_get_source(device);
+        if (source == GDK_SOURCE_TOUCHSCREEN ||
+            source == GDK_SOURCE_TOUCHPAD) {
+            wheelEvent.scrollType = WidgetWheelEvent::SCROLL_ASYNCHRONOUSELY;
+        }
+        break;
+    }
+#endif
     case GDK_SCROLL_UP:
         wheelEvent.deltaY = wheelEvent.lineOrPageDeltaY = -3;
         break;

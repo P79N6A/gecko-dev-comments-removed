@@ -363,6 +363,11 @@ private:
     int32_t             mTransparencyBitmapWidth;
     int32_t             mTransparencyBitmapHeight;
 
+#if GTK_CHECK_VERSION(3,4,0)
+    
+    guint32             mLastScrollEventTime;
+#endif
+
 #ifdef MOZ_HAVE_SHMIMAGE
     
     nsRefPtr<nsShmImage>  mShmImage;
