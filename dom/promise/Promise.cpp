@@ -201,6 +201,8 @@ protected:
     ThreadsafeAutoJSContext cx;
     JS::Rooted<JSObject*> wrapper(cx, mPromise->GetWrapper());
     MOZ_ASSERT(wrapper); 
+    
+    
     JSAutoCompartment ac(cx, wrapper);
 
     JS::Rooted<JSObject*> resolveFunc(cx,
@@ -1198,6 +1200,35 @@ Promise::ResolveInternal(JSContext* aCx,
     if (then.isObject() && JS::IsCallable(&then.toObject())) {
       
       JS::Rooted<JSObject*> thenObj(aCx, &then.toObject());
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      Promise* nextPromise;
+      if (PromiseBinding::IsThenMethod(thenObj) &&
+          NS_SUCCEEDED(UNWRAP_OBJECT(Promise, valueObj, nextPromise))) {
+        
+        
+        
+        
+        
+        
+        
+        
+        JS::Rooted<JSObject*> glob(aCx, GlobalJSObject());
+        nsRefPtr<PromiseCallback> resolveCb = new ResolvePromiseCallback(this, glob);
+        nsRefPtr<PromiseCallback> rejectCb = new RejectPromiseCallback(this, glob);
+        nextPromise->AppendCallbacks(resolveCb, rejectCb);
+        return;
+      }
+
       nsRefPtr<PromiseInit> thenCallback =
         new PromiseInit(thenObj, mozilla::dom::GetIncumbentGlobal());
       nsRefPtr<ThenableResolverTask> task =
