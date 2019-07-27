@@ -853,7 +853,8 @@ AsyncPanZoomController::AsyncPanZoomController(uint64_t aLayersId,
      mTouchBlockBalance(0),
      mTreeManager(aTreeManager),
      mAPZCId(sAsyncPanZoomControllerCount++),
-     mSharedLock(nullptr)
+     mSharedLock(nullptr),
+     mAsyncTransformAppliedToContent(false)
 {
   MOZ_COUNT_CTOR(AsyncPanZoomController);
 
@@ -2434,6 +2435,7 @@ bool AsyncPanZoomController::AdvanceAnimations(const TimeStamp& aSampleTime)
   
   
   
+  mAsyncTransformAppliedToContent = false;
   bool requestAnimationFrame = false;
   Vector<Task*> deferredTasks;
 

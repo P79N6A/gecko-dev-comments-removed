@@ -1110,9 +1110,22 @@ public:
     mTestAsyncScrollOffset = aPoint;
   }
 
+  void MarkAsyncTransformAppliedToContent()
+  {
+    mAsyncTransformAppliedToContent = true;
+  }
+
+  bool GetAsyncTransformAppliedToContent() const
+  {
+    return mAsyncTransformAppliedToContent;
+  }
+
 private:
   
   CSSPoint mTestAsyncScrollOffset;
+  
+  
+  bool mAsyncTransformAppliedToContent;
 };
 
 class AsyncPanZoomAnimation {

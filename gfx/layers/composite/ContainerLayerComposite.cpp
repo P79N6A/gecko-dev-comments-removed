@@ -35,8 +35,6 @@
 #include "nsTArray.h"                   
 #include "TextRenderer.h"               
 #include <vector>
-#include "GeckoProfiler.h"              
-#include "ProfilerMarkers.h"            
 
 #define CULLING_LOG(...)
 
@@ -117,9 +115,7 @@ static void DrawLayerInfo(const RenderTargetIntRect& aClipRect,
 
 static void PrintUniformityInfo(Layer* aLayer)
 {
-  if (!profiler_is_active()) {
-    return;
-  }
+  static TimeStamp t0 = TimeStamp::Now();
 
   
   if (aLayer->GetEffectiveVisibleRegion().GetBounds().width < 300 ||
@@ -131,10 +127,10 @@ static void PrintUniformityInfo(Layer* aLayer)
   if (!transform.Is2D()) {
     return;
   }
-
   Point translation = transform.As2D().GetTranslation();
-  LayerTranslationPayload* payload = new LayerTranslationPayload(aLayer, translation);
-  PROFILER_MARKER_PAYLOAD("LayerTranslation", payload);
+  printf_stderr("UniformityInfo Layer_Move %llu %p %s\n",
+      (unsigned long long)(TimeStamp::Now() - t0).ToMilliseconds(), aLayer,
+      ToString(translation).c_str());
 }
 
 
@@ -439,7 +435,8 @@ ContainerRender(ContainerT* aContainer,
     
     for (LayerMetricsWrapper i(aContainer); i; i = i.GetFirstChild()) {
       if (AsyncPanZoomController* apzc = i.GetApzc()) {
-        if (!Matrix4x4(apzc->GetCurrentAsyncTransform()).IsIdentity()) {
+        if (!apzc->GetAsyncTransformAppliedToContent()
+            && !Matrix4x4(apzc->GetCurrentAsyncTransform()).IsIdentity()) {
           aManager->UnusedApzTransformWarning();
           break;
         }
