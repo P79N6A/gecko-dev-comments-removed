@@ -1327,8 +1327,14 @@ class SignalingAgent {
     }
   }
 
+  
+  
+  
+  
+  
+  
   mozilla::RefPtr<mozilla::MediaPipeline> GetMediaPipeline(
-    bool local, size_t stream, int track) {
+    bool local, size_t stream, bool video) {
     SourceStreamInfo* streamInfo;
     if (local) {
       mozilla::SyncRunnable::DispatchToThread(
@@ -1348,11 +1354,16 @@ class SignalingAgent {
 
     const auto &pipelines = streamInfo->GetPipelines();
 
-    auto it = pipelines.find(track);
-    return (it == pipelines.end())? nullptr : it->second;
+    for (auto i = pipelines.begin(); i != pipelines.end(); ++i) {
+      if (i->second->IsVideo() == video) {
+        std::cout << "Got MediaPipeline " << i->second->trackid();
+        return i->second;
+      }
+    }
+    return nullptr;
   }
 
-  void CheckMediaPipeline(int stream, int track, uint32_t flags,
+  void CheckMediaPipeline(int stream, bool video, uint32_t flags,
     VideoSessionConduit::FrameRequestType frameRequestMethod =
       VideoSessionConduit::FrameRequestNone) {
 
@@ -1361,13 +1372,13 @@ class SignalingAgent {
               << ((flags & PIPELINE_SEND) ? "sending " : "receiving ")
               << ((flags & PIPELINE_VIDEO) ? "video" : "audio")
               << " pipeline (stream " << stream
-              << ", track " << track << "); expect "
+              << ", track " << video << "); expect "
               << ((flags & PIPELINE_RTCP_MUX) ? "MUX, " : "no MUX, ")
               << ((flags & PIPELINE_RTCP_NACK) ? "NACK." : "no NACK.")
               << std::endl;
 
     mozilla::RefPtr<mozilla::MediaPipeline> pipeline =
-      GetMediaPipeline((flags & PIPELINE_LOCAL), stream, track);
+      GetMediaPipeline((flags & PIPELINE_LOCAL), stream, video);
     ASSERT_TRUE(pipeline);
     ASSERT_EQ(pipeline->IsDoingRtcpMux(), !!(flags & PIPELINE_RTCP_MUX));
     
@@ -1938,12 +1949,12 @@ public:
     a2_->CloseReceiveStreams();
 
     
-    a1_->CheckMediaPipeline(0, 1, (fRtcpMux ? PIPELINE_RTCP_MUX : 0) |
+    a1_->CheckMediaPipeline(0, true, (fRtcpMux ? PIPELINE_RTCP_MUX : 0) |
       PIPELINE_VIDEO | rtcpFbFlags, frameRequestMethod);
 
     
     
-    a2_->CheckMediaPipeline(0, 1,
+    a2_->CheckMediaPipeline(0, true,
                             (fRtcpMux ? PIPELINE_RTCP_MUX : 0) |
                             PIPELINE_VIDEO |
                             PIPELINE_SEND |
@@ -1978,12 +1989,12 @@ public:
     a2_->CloseReceiveStreams();
 
     
-    a2_->CheckMediaPipeline(0, 1, (fRtcpMux ? PIPELINE_RTCP_MUX : 0) |
+    a2_->CheckMediaPipeline(0, true, (fRtcpMux ? PIPELINE_RTCP_MUX : 0) |
       PIPELINE_VIDEO | rtcpFbFlags, frameRequestMethod);
 
     
     
-    a1_->CheckMediaPipeline(0, 1,
+    a1_->CheckMediaPipeline(0, true,
                             (fRtcpMux ? PIPELINE_RTCP_MUX : 0) |
                             PIPELINE_VIDEO |
                             PIPELINE_SEND |
@@ -2559,12 +2570,12 @@ TEST_P(SignalingTest, FullCall)
   
   
   
-  a1_->CheckMediaPipeline(0, 0, fRtcpMux ?
+  a1_->CheckMediaPipeline(0, false, fRtcpMux ?
     PIPELINE_LOCAL | PIPELINE_RTCP_MUX | PIPELINE_SEND :
     PIPELINE_LOCAL | PIPELINE_SEND);
 
   
-  a2_->CheckMediaPipeline(0, 0, (fRtcpMux ?  PIPELINE_RTCP_MUX : 0));
+  a2_->CheckMediaPipeline(0, false, (fRtcpMux ?  PIPELINE_RTCP_MUX : 0));
 }
 
 TEST_P(SignalingTest, FullCallAudioOnly)
@@ -3397,10 +3408,8 @@ TEST_P(SignalingTest, AudioOnlyCalleeNoRtcpMux)
   
   
   
-  a1_->CheckMediaPipeline(0, 0, PIPELINE_LOCAL | PIPELINE_SEND);
-
-  
-  a2_->CheckMediaPipeline(0, 0, 0);
+  a1_->CheckMediaPipeline(0, false, PIPELINE_LOCAL | PIPELINE_SEND);
+  a2_->CheckMediaPipeline(0, false, 0);
 }
 
 
@@ -3537,18 +3546,18 @@ TEST_P(SignalingTest, FullCallAudioNoMuxVideoMux)
   
   
   
-  a1_->CheckMediaPipeline(0, 0, PIPELINE_LOCAL | PIPELINE_SEND);
+  a1_->CheckMediaPipeline(0, false, PIPELINE_LOCAL | PIPELINE_SEND);
 
   
-  a1_->CheckMediaPipeline(0, 1,
+  a1_->CheckMediaPipeline(0, true,
     PIPELINE_LOCAL | (fRtcpMux ? PIPELINE_RTCP_MUX : 0) | PIPELINE_SEND |
     PIPELINE_VIDEO);
 
   
-  a2_->CheckMediaPipeline(0, 0, 0);
+  a2_->CheckMediaPipeline(0, false, 0);
 
   
-  a2_->CheckMediaPipeline(0, 1, (fRtcpMux ?  PIPELINE_RTCP_MUX : 0) |
+  a2_->CheckMediaPipeline(0, true, (fRtcpMux ?  PIPELINE_RTCP_MUX : 0) |
     PIPELINE_VIDEO | PIPELINE_RTCP_NACK, VideoSessionConduit::FrameRequestPli);
 }
 
