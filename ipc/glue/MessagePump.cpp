@@ -318,8 +318,21 @@ MessagePumpForNonMainThreads::Run(base::MessagePump::Delegate* aDelegate)
     MOZ_CRASH("Failed to set timer target!");
   }
 
-  base::ScopedNSAutoreleasePool autoReleasePool;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  while (aDelegate->DoWork()) {
+  }
 
+  base::ScopedNSAutoreleasePool autoReleasePool;
   for (;;) {
     autoReleasePool.Recycle();
 
@@ -359,3 +372,92 @@ MessagePumpForNonMainThreads::Run(base::MessagePump::Delegate* aDelegate)
 
   keep_running_ = true;
 }
+
+#if defined(XP_WIN)
+
+NS_IMPL_QUERY_INTERFACE(MessagePumpForNonMainUIThreads, nsIThreadObserver)
+
+#define CHECK_QUIT_STATE { if (state_->should_quit) { break; } }
+
+void MessagePumpForNonMainUIThreads::DoRunLoop()
+{
+  
+  
+  mThread = NS_GetCurrentThread();
+  MOZ_ASSERT(mThread);
+
+  
+  
+  nsCOMPtr<nsIThreadInternal> ti(do_QueryInterface(mThread));
+  MOZ_ASSERT(ti);
+  ti->SetObserver(this);
+
+  base::ScopedNSAutoreleasePool autoReleasePool;
+  for (;;) {
+    autoReleasePool.Recycle();
+
+    bool didWork = NS_ProcessNextEvent(mThread, false);
+
+    didWork |= ProcessNextWindowsMessage();
+    CHECK_QUIT_STATE
+
+    didWork |= state_->delegate->DoWork();
+    CHECK_QUIT_STATE
+
+    didWork |= state_->delegate->DoDelayedWork(&delayed_work_time_);
+    if (didWork && delayed_work_time_.is_null()) {
+      KillTimer(message_hwnd_, reinterpret_cast<UINT_PTR>(this));
+    }
+    CHECK_QUIT_STATE
+
+    if (didWork) {
+      continue;
+    }
+
+    didWork = state_->delegate->DoIdleWork();
+    CHECK_QUIT_STATE
+
+    SetInWait();
+    bool hasWork = NS_HasPendingEvents(mThread);
+    if (didWork || hasWork) {
+      ClearInWait();
+      continue;
+    }
+    WaitForWork(); 
+    ClearInWait();
+  }
+
+  ClearInWait();
+
+  ti->SetObserver(nullptr);
+}
+
+NS_IMETHODIMP
+MessagePumpForNonMainUIThreads::OnDispatchedEvent(nsIThreadInternal *thread)
+{
+  
+  
+  
+  if (GetInWait()) {
+    ScheduleWork();
+  }
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+MessagePumpForNonMainUIThreads::OnProcessNextEvent(nsIThreadInternal *thread,
+                                                   bool mayWait,
+                                                   uint32_t recursionDepth)
+{
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+MessagePumpForNonMainUIThreads::AfterProcessNextEvent(nsIThreadInternal *thread,
+                                                      uint32_t recursionDepth,
+                                                      bool eventWasProcessed)
+{
+  return NS_OK;
+}
+
+#endif 
