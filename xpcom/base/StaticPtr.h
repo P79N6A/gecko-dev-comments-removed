@@ -8,6 +8,7 @@
 #define mozilla_StaticPtr_h
 
 #include "mozilla/Assertions.h"
+#include "mozilla/Attributes.h"
 #include "mozilla/NullPtr.h"
 
 namespace mozilla {
@@ -33,9 +34,8 @@ namespace mozilla {
 
 
 
-
 template<class T>
-class StaticAutoPtr
+class MOZ_ONLY_USED_TO_AVOID_STATIC_CONSTRUCTORS StaticAutoPtr
 {
 public:
   
@@ -87,7 +87,7 @@ private:
 };
 
 template<class T>
-class StaticRefPtr
+class MOZ_ONLY_USED_TO_AVOID_STATIC_CONSTRUCTORS StaticRefPtr
 {
 public:
   
