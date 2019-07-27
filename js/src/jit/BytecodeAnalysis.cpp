@@ -45,6 +45,9 @@ BytecodeAnalysis::init(TempAllocator& alloc, GSNCache& gsn)
     if (!infos_.growByUninitialized(script_->length()))
         return false;
 
+    
+    usesScopeChain_ = script_->hasAnyAliasedBindings();
+
     jsbytecode* end = script_->codeEnd();
 
     
