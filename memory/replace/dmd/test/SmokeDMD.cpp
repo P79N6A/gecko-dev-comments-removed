@@ -121,7 +121,7 @@ RunTests()
   
 
   
-  AnalyzeReports(Move(f1));
+  Analyze(Move(f1));
 
   
 
@@ -247,7 +247,7 @@ RunTests()
 
 
   
-  AnalyzeReports(Move(f2));
+  Analyze(Move(f2));
 
   
 
@@ -263,7 +263,7 @@ RunTests()
 
 
   
-  AnalyzeReports(Move(f3));
+  Analyze(Move(f3));
 
   
 
@@ -322,7 +322,7 @@ RunTests()
   
 
   
-  AnalyzeReports(Move(f4));
+  Analyze(Move(f4));
 }
 
 int main()

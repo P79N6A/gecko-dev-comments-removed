@@ -1549,7 +1549,7 @@ private:
 };
 
 static void
-AnalyzeReportsImpl(UniquePtr<JSONWriteFunc> aWriter)
+AnalyzeImpl(UniquePtr<JSONWriteFunc> aWriter)
 {
   AutoBlockIntercepts block(Thread::Fetch());
   AutoLockState lock;
@@ -1724,9 +1724,9 @@ AnalyzeReportsImpl(UniquePtr<JSONWriteFunc> aWriter)
 }
 
 void
-DMDFuncs::AnalyzeReports(UniquePtr<JSONWriteFunc> aWriter)
+DMDFuncs::Analyze(UniquePtr<JSONWriteFunc> aWriter)
 {
-  AnalyzeReportsImpl(Move(aWriter));
+  AnalyzeImpl(Move(aWriter));
   ClearReports();
 }
 

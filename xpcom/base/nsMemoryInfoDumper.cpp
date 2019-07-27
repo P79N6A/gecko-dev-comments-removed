@@ -814,7 +814,7 @@ nsMemoryInfoDumper::DumpDMDToFile(FILE* aFile)
   }
 
   
-  dmd::AnalyzeReports(MakeUnique<GZWriterWrapper>(gzWriter));
+  dmd::Analyze(MakeUnique<GZWriterWrapper>(gzWriter));
 
   rv = gzWriter->Finish();
   NS_WARN_IF(NS_FAILED(rv));

@@ -45,7 +45,7 @@ struct DMDFuncs
 
   virtual void ClearReports();
 
-  virtual void AnalyzeReports(UniquePtr<JSONWriteFunc>);
+  virtual void Analyze(UniquePtr<JSONWriteFunc>);
 
   virtual void SizeOf(Sizes*);
 
@@ -228,11 +228,11 @@ ClearReports()
 
 template <typename JSONWriteFunc>
 inline void
-AnalyzeReports(UniquePtr<JSONWriteFunc> aWriteFunc)
+Analyze(UniquePtr<JSONWriteFunc> aWriteFunc)
 {
   DMDFuncs* funcs = DMDFuncs::Get();
   if (funcs) {
-    funcs->AnalyzeReports(Move(aWriteFunc));
+    funcs->Analyze(Move(aWriteFunc));
   }
 }
 
