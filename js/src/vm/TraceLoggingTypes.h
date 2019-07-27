@@ -57,6 +57,8 @@
 
 #define TRACELOGGER_LOG_ITEMS(_)                      \
     _(Bailout)                                        \
+    _(Disable)                                        \
+    _(Enable)                                         \
     _(Stop)
 
 
