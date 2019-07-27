@@ -310,11 +310,15 @@ GMPDecryptorChild::RecvDecrypt(const uint32_t& aId,
     return false;
   }
 
-  GMPEncryptedBufferDataImpl metadata(aMetadata);
+  
+  
+  GMPBufferImpl* buffer = new GMPBufferImpl(aId, aBuffer);
 
   
-  
-  mSession->Decrypt(new GMPBufferImpl(aId, aBuffer), &metadata);
+  GMPEncryptedBufferDataImpl* metadata = new GMPEncryptedBufferDataImpl(aMetadata);
+  buffer->SetMetadata(metadata);
+
+  mSession->Decrypt(buffer, metadata);
   return true;
 }
 

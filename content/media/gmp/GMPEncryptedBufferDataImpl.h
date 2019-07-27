@@ -59,8 +59,14 @@ public:
     mData.SetLength(aSize);
   }
 
+  
+  void SetMetadata(GMPEncryptedBufferDataImpl* aMetadata) {
+    mMetadata = aMetadata;
+  }
+
   uint32_t mId;
   nsTArray<uint8_t> mData;
+  nsAutoPtr<GMPEncryptedBufferDataImpl> mMetadata;
 };
 
 } 
