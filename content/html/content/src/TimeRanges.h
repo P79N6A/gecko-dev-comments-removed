@@ -44,6 +44,12 @@ public:
   
   void Normalize();
 
+  
+  void Union(const TimeRanges* aOtherRanges);
+
+  
+  void Intersection(const TimeRanges* aOtherRanges);
+
   JSObject* WrapObject(JSContext* aCx);
 
   uint32_t Length() const

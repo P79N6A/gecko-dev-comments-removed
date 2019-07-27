@@ -111,9 +111,8 @@ public:
   
   bool ContainsTime(double aTime);
 
-    
-  
-  void GetBufferedStartEndTime(double* aStart, double* aEnd);
+  double GetBufferedStart();
+  double GetBufferedEnd();
 
 private:
   ~SourceBuffer();
@@ -146,6 +145,7 @@ private:
   nsAutoPtr<ContainerParser> mParser;
 
   nsRefPtr<SubBufferDecoder> mDecoder;
+  nsTArray<nsRefPtr<SubBufferDecoder>> mDecoders;
 
   double mAppendWindowStart;
   double mAppendWindowEnd;

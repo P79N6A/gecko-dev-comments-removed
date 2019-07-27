@@ -3654,10 +3654,14 @@ already_AddRefed<TimeRanges>
 HTMLMediaElement::Buffered() const
 {
   nsRefPtr<TimeRanges> ranges = new TimeRanges();
-  if (mDecoder && mReadyState > nsIDOMHTMLMediaElement::HAVE_NOTHING) {
-    
-    
-    mDecoder->GetBuffered(ranges);
+  if (mReadyState > nsIDOMHTMLMediaElement::HAVE_NOTHING) {
+    if (mMediaSource) {
+      mMediaSource->GetBuffered(ranges);
+    } else if (mDecoder) {
+      
+      
+      mDecoder->GetBuffered(ranges);
+    }
   }
   ranges->Normalize();
   return ranges.forget();
