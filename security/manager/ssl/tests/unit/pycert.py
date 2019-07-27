@@ -381,12 +381,8 @@ class Certificate:
 
 
 
-
-
-
-
 def main(output, inputPath, buildIDPath):
-    with open('%s/buildid' % buildIDPath) as buildidFile:
+    with open(buildIDPath) as buildidFile:
         buildid = buildidFile.read().strip()
     now = datetime.datetime.strptime(buildid, '%Y%m%d%H%M%S')
     with open(inputPath) as configStream:
