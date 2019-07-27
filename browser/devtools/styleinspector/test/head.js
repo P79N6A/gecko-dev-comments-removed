@@ -590,6 +590,17 @@ let getFontFamilyDataURL = Task.async(function*(font, nodeFront) {
 
 
 
+function synthesizeKeys(input, win) {
+  for (let key of input.split("")) {
+     EventUtils.synthesizeKey(key, {}, win);
+  }
+}
+
+
+
+
+
+
 
 
 
