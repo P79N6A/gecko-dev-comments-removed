@@ -732,15 +732,23 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
     
     
     
-    Matrix4x4 transientUntransform = transientTransform.Inverse();
-    transform = transform * transientUntransform;
+    
+    
+    
+    
+    Matrix4x4 asyncUntransform = (asyncTransform * apzc->GetOverscrollTransform()).Inverse();
+    Matrix4x4 contentTransform = aContent.GetTransform();
+    Matrix4x4 contentUntransform = contentTransform.Inverse();
+
+    Matrix4x4 compensation = contentTransform * asyncUntransform * contentUntransform;
+    transform = transform * compensation;
 
     
     
     
     
     for (Layer* ancestor = aScrollbar; ancestor != aContent.GetLayer(); ancestor = ancestor->GetParent()) {
-      TransformClipRect(ancestor, transientUntransform);
+      TransformClipRect(ancestor, compensation);
     }
   }
 
