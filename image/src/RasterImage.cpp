@@ -2330,6 +2330,31 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
     }
   }
 
+  
+  if (mDecodeRequest &&
+      mDecodeRequest->mRequestStatus == DecodeRequest::REQUEST_WORK_DONE &&
+      aDecodeType == SYNCHRONOUS_NOTIFY) {
+    ReentrantMonitorAutoEnter lock(mDecodingMonitor);
+    nsresult rv = FinishedSomeDecoding();
+    CONTAINER_ENSURE_SUCCESS(rv);
+  }
+
+  
+  
+  
+  
+  if (mDecoded) {
+    return NS_OK;
+  }
+
+  
+  
+  
+  if (mDecoder && !mDecoder->IsSizeDecode() && mBytesDecoded &&
+      aDecodeType != SYNCHRONOUS_NOTIFY_AND_SOME_DECODE) {
+    return NS_OK;
+  }
+
   ReentrantMonitorAutoEnter lock(mDecodingMonitor);
 
   
@@ -2337,6 +2362,9 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
   
   if (mBytesDecoded > mSourceData.Length())
     return NS_OK;
+
+  
+  
 
   
   if (mDecodeRequest &&
