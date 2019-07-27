@@ -267,6 +267,11 @@ private:
   
   static int32_t sSelectionCaretsInflateSize;
   static bool sSelectionCaretDetectsLongTap;
+  static bool sCaretManagesAndroidActionbar;
+  static bool sSelectionCaretObservesCompositions;
+
+  
+  uint32_t mActionBarViewID;
 };
 } 
 

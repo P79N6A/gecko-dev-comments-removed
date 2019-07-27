@@ -4565,6 +4565,10 @@ pref("selectioncaret.visibility.affectscaret", false);
 
 
 
+pref("selectioncaret.observes.compositions", false);
+
+
+
 
 pref("touchcaret.extendedvisibility", false);
 

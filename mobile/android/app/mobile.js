@@ -878,10 +878,17 @@ pref("browser.readinglist.enabled", true);
 pref("toolkit.telemetry.unified", false);
 
 
+pref("selectioncaret.enabled", false);
+
+
 pref("selectioncaret.detects.longtap", false);
 
 
 pref("selectioncaret.visibility.affectscaret", true);
+
+
+
+pref("selectioncaret.observes.compositions", true);
 
 
 pref("touchcaret.enabled", false);
