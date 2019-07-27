@@ -255,32 +255,75 @@ UnwindAllScopesInFrame(JSContext* cx, ScopeIter& si);
 extern jsbytecode*
 UnwindScopeToTryPc(JSScript* script, JSTryNote* tn);
 
-
-
-
-
-extern void
-UnwindForUncatchableException(JSContext* cx, const InterpreterRegs& regs);
-
 extern bool
 OnUnknownMethod(JSContext* cx, HandleObject obj, Value idval, MutableHandleValue vp);
 
-class TryNoteIter
+template <class StackDepthOp>
+class MOZ_STACK_CLASS TryNoteIter
 {
-    const InterpreterRegs& regs;
-    RootedScript script; 
-    uint32_t pcOffset;
-    JSTryNote* tn;
-    JSTryNote* tnEnd;
+    RootedScript script_;
+    uint32_t pcOffset_;
+    JSTryNote* tn_;
+    JSTryNote* tnEnd_;
+    StackDepthOp getStackDepth_;
 
-    void settle();
+    void settle() {
+        for (; tn_ != tnEnd_; ++tn_) {
+            
+            if (pcOffset_ - tn_->start >= tn_->length)
+                continue;
+
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            if (tn_->stackDepth <= getStackDepth_())
+                break;
+        }
+    }
 
   public:
-    explicit TryNoteIter(JSContext* cx, const InterpreterRegs& regs);
-    bool done() const;
-    void operator++();
-    JSTryNote* operator*() const { return tn; }
+    TryNoteIter(JSContext* cx, JSScript* script, jsbytecode* pc,
+                StackDepthOp getStackDepth)
+      : script_(cx, script),
+        pcOffset_(pc - script->main()),
+        getStackDepth_(getStackDepth)
+    {
+        if (script->hasTrynotes()) {
+            tn_ = script->trynotes()->vector;
+            tnEnd_ = tn_ + script->trynotes()->length;
+        } else {
+            tn_ = tnEnd_ = nullptr;
+        }
+        settle();
+    }
+
+    void operator++() {
+        ++tn_;
+        settle();
+    }
+
+    bool done() const { return tn_ == tnEnd_; }
+    JSTryNote* operator*() const { return tn_; }
 };
+
+bool
+HandleClosingGeneratorReturn(JSContext *cx, AbstractFramePtr frame, bool ok);
 
 
 

@@ -431,10 +431,8 @@ js::MarkInterpreterActivations(JSRuntime* rt, JSTracer* trc)
 void
 InterpreterRegs::setToEndOfScript()
 {
-    JSScript* script = fp()->script();
     sp = fp()->base();
-    pc = script->codeEnd() - JSOP_RETRVAL_LENGTH;
-    MOZ_ASSERT(*pc == JSOP_RETRVAL);
+    pc = fp()->script()->lastPC();
 }
 
 
