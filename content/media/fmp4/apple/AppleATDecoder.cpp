@@ -313,9 +313,14 @@ void
 AppleATDecoder::SetupDecoder()
 {
   AudioStreamBasicDescription inputFormat;
-  
-  AppleUtils::GetProperty(mStream,
-      kAudioFileStreamProperty_DataFormat, &inputFormat);
+
+  mHaveOutput = false;
+
+  nsresult rv = AppleUtils::GetRichestDecodableFormat(mStream, inputFormat);
+  if (NS_FAILED(rv)) {
+    mCallback->Error();
+    return;
+  }
 
   
   PodZero(&mOutputFormat);
@@ -335,13 +340,13 @@ AppleATDecoder::SetupDecoder()
   mOutputFormat.mBytesPerPacket = mOutputFormat.mBytesPerFrame
         = mOutputFormat.mChannelsPerFrame * mOutputFormat.mBitsPerChannel / 8;
 
-  OSStatus rv = AudioConverterNew(&inputFormat, &mOutputFormat, &mConverter);
-  if (rv) {
+  OSStatus status =
+    AudioConverterNew(&inputFormat, &mOutputFormat, &mConverter);
+  if (status) {
     LOG("Error %d constructing AudioConverter", rv);
     mConverter = nullptr;
     mCallback->Error();
   }
-  mHaveOutput = false;
 }
 
 void

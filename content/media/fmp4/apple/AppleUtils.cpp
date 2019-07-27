@@ -4,9 +4,9 @@
 
 
 
-#include <AudioToolbox/AudioToolbox.h>
 #include "AppleUtils.h"
 #include "prlog.h"
+#include "nsAutoPtr.h"
 
 #ifdef PR_LOGGING
 PRLogModuleInfo* GetDemuxerLog();
@@ -80,5 +80,52 @@ AppleUtils::SetCFDict(CFMutableDictionaryRef dict,
   CFDictionarySetValue(dict, keyRef, value ? kCFBooleanTrue : kCFBooleanFalse);
 }
 
+nsresult
+AppleUtils::GetRichestDecodableFormat(AudioFileStreamID aAudioFileStream,
+                                      AudioStreamBasicDescription& aFormat)
+{
+  
+  nsresult rv = GetProperty(aAudioFileStream,
+                            kAudioFileStreamProperty_DataFormat, &aFormat);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  UInt32 propertySize;
+  OSStatus status = AudioFileStreamGetPropertyInfo(
+    aAudioFileStream, kAudioFileStreamProperty_FormatList, &propertySize, NULL);
+  if (NS_WARN_IF(status)) {
+    
+    return NS_OK;
+  }
+
+  MOZ_ASSERT(propertySize % sizeof(AudioFormatListItem) == 0);
+  uint32_t sizeList = propertySize / sizeof(AudioFormatListItem);
+  nsAutoArrayPtr<AudioFormatListItem> formatListPtr(
+    new AudioFormatListItem[sizeList]);
+
+  rv = GetProperty(aAudioFileStream, kAudioFileStreamProperty_FormatList,
+                   formatListPtr);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    
+    return NS_OK;
+  }
+
+  
+  
+  
+  UInt32 itemIndex;
+  UInt32 indexSize = sizeof(itemIndex);
+  status =
+    AudioFormatGetProperty(kAudioFormatProperty_FirstPlayableFormatFromList,
+                           propertySize, formatListPtr, &indexSize, &itemIndex);
+  if (NS_WARN_IF(status)) {
+    
+    return NS_OK;
+  }
+  aFormat = formatListPtr[itemIndex].mASBD;
+
+  return NS_OK;
+}
 
 } 

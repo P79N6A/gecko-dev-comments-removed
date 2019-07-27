@@ -30,6 +30,12 @@ struct AppleUtils {
   static void SetCFDict(CFMutableDictionaryRef dict,
                         const char* key,
                         bool value);
+
+  
+  
+  
+  static nsresult GetRichestDecodableFormat(
+    AudioFileStreamID aAudioFileStream, AudioStreamBasicDescription& aFormat);
 };
 
 
