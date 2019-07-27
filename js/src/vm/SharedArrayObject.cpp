@@ -216,12 +216,11 @@ SharedArrayBufferObject::class_constructor(JSContext* cx, unsigned argc, Value* 
         return false;
     }
 
+    
     uint32_t length;
-    bool overflow;
-    if (!ToLengthClamped(cx, args.get(0), &length, &overflow)) {
-        
-        if (overflow || length > INT32_MAX)
-            JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_SHARED_ARRAY_BAD_LENGTH);
+    bool overflow_unused;
+    if (!ToLengthClamped(cx, args.get(0), &length, &overflow_unused) || length > INT32_MAX) {
+        JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_SHARED_ARRAY_BAD_LENGTH);
         return false;
     }
 
