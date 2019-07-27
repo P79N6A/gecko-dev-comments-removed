@@ -171,6 +171,12 @@ SandboxBroker::SetSecurityLevelForGMPlugin()
     mPolicy->SetDelayedIntegrityLevel(sandbox::INTEGRITY_LEVEL_UNTRUSTED);
   ret = ret && (sandbox::SBOX_ALL_OK == result);
 
+  sandbox::MitigationFlags mitigations =
+    sandbox::MITIGATION_DEP;
+
+  result = mPolicy->SetProcessMitigations(mitigations);
+  ret = ret && (sandbox::SBOX_ALL_OK == result);
+
   
   
   
