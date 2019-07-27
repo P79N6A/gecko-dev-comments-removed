@@ -162,6 +162,8 @@ struct BytecodeEmitter
 
     bool            hasSingletons:1;    
 
+    bool            hasTryFinally:1;    
+
     bool            emittingForInit:1;  
 
     bool            emittingRunOnceLambda:1; 
