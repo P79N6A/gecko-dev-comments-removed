@@ -9,7 +9,6 @@
 #include "arm.h"
 
 #if defined(MOZILLA_ARM_HAVE_CPUID_DETECTION)
-namespace {
 
 
 
@@ -218,8 +217,6 @@ check_neon(void)
 #    endif
 
 #  endif 
-
-}
 
 namespace mozilla {
   namespace arm_private {
