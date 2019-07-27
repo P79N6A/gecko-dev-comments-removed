@@ -48,12 +48,10 @@ protected:
 
   nsCOMArray<nsIWeakReference> m_listeners;
 
-#ifdef PR_LOGGING
   
 
 
   static PRLogModuleInfo* mLog;
-#endif
   
   friend class nsDocumentOpenInfo;
 };

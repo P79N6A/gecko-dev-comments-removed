@@ -70,7 +70,6 @@ typedef mozilla::docshell::OfflineCacheUpdateParent OfflineCacheUpdateParent;
 typedef mozilla::docshell::OfflineCacheUpdateChild OfflineCacheUpdateChild;
 typedef mozilla::docshell::OfflineCacheUpdateGlue OfflineCacheUpdateGlue;
 
-#if defined(PR_LOGGING)
 
 
 
@@ -81,7 +80,6 @@ typedef mozilla::docshell::OfflineCacheUpdateGlue OfflineCacheUpdateGlue;
 
 
 PRLogModuleInfo *gOfflineCacheUpdateLog;
-#endif
 
 #undef LOG
 #define LOG(args) PR_LOG(gOfflineCacheUpdateLog, 4, args)
@@ -295,10 +293,8 @@ nsOfflineCacheUpdateService::~nsOfflineCacheUpdateService()
 nsresult
 nsOfflineCacheUpdateService::Init()
 {
-#if defined(PR_LOGGING)
     if (!gOfflineCacheUpdateLog)
         gOfflineCacheUpdateLog = PR_NewLogModule("nsOfflineCacheUpdate");
-#endif
 
     
     nsCOMPtr<nsIObserverService> observerService =

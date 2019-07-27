@@ -141,7 +141,6 @@ protected:
   bool GetTypeFromExtras(const nsACString& aExtension,
                                        nsACString& aMIMEType);
 
-#ifdef PR_LOGGING
   
 
 
@@ -149,7 +148,6 @@ protected:
 
   static PRLogModuleInfo* mLog;
 
-#endif
   
   friend class nsExternalAppHandler;
 
