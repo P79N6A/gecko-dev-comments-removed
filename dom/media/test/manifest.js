@@ -4,6 +4,26 @@
 
 
 
+
+
+
+
+var gManifestNavigatorSource = document.documentElement.appendChild(document.createElement("iframe"));
+gManifestNavigatorSource.style.display = "none";
+function manifestNavigator() {
+  return gManifestNavigatorSource.contentWindow.navigator;
+}
+
+
+
+
+
+function manifestVideo() {
+  return gManifestNavigatorSource.contentDocument.createElement('video');
+}
+
+
+
 var gSmallTests = [
   { name:"small-shot.ogg", type:"audio/ogg", duration:0.276 },
   { name:"small-shot.m4a", type:"audio/mp4", duration:0.29 },
@@ -334,7 +354,7 @@ var gOggTrackInfoResults = {
 
 function fileUriToSrc(path, mustExist) {
   
-  if (navigator.appVersion.indexOf("Android") != -1 || SpecialPowers.Services.appinfo.name == "B2G")
+  if (manifestNavigator().appVersion.indexOf("Android") != -1 || SpecialPowers.Services.appinfo.name == "B2G")
     return path;
 
   const Ci = SpecialPowers.Ci;
@@ -458,7 +478,7 @@ var gFastSeekTests = [
 
 function IsWindows8OrLater() {
   var re = /Windows NT (\d.\d)/;
-  var winver = navigator.userAgent.match(re);
+  var winver = manifestNavigator().userAgent.match(re);
   return winver && winver.length == 2 && parseFloat(winver[1]) >= 6.2;
 }
 
@@ -473,7 +493,7 @@ var androidVersion = SpecialPowers.Cc['@mozilla.org/system-info;1']
                                   .getService(SpecialPowers.Ci.nsIPropertyBag2)
                                   .getProperty('version');
 
-if (navigator.userAgent.indexOf("Mobile") != -1 && androidVersion >= 18) {
+if (manifestNavigator().userAgent.indexOf("Mobile") != -1 && androidVersion >= 18) {
   gUnseekableTests = gUnseekableTests.concat([
     { name:"street.mp4", type:"video/mp4" }
   ]);
