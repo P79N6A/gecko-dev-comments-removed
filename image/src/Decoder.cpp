@@ -30,8 +30,7 @@ Decoder::Decoder(RasterImage &aImage)
   , mSizeDecode(false)
   , mInFrame(false)
   , mIsAnimated(false)
-{
-}
+{ }
 
 Decoder::~Decoder()
 {
@@ -47,11 +46,11 @@ Decoder::Init()
 {
   
   NS_ABORT_IF_FALSE(!mInitialized, "Can't re-initialize a decoder!");
-  NS_ABORT_IF_FALSE(mObserver, "Need an observer!");
 
   
-  if (!IsSizeDecode())
-      mObserver->OnStartDecode();
+  if (!IsSizeDecode()) {
+      mDiff.diffState |= FLAG_DECODE_STARTED | FLAG_ONLOAD_BLOCKED;
+  }
 
   
   InitInternal();
@@ -68,7 +67,6 @@ Decoder::InitSharedDecoder(uint8_t* imageData, uint32_t imageDataLength,
 {
   
   NS_ABORT_IF_FALSE(!mInitialized, "Can't re-initialize a decoder!");
-  NS_ABORT_IF_FALSE(mObserver, "Need an observer!");
 
   mImageData = imageData;
   mImageDataLength = imageDataLength;
@@ -177,9 +175,8 @@ Decoder::Finish(RasterImage::eShutdownIntent aShutdownIntent)
       }
       PostDecodeDone();
     } else {
-      if (mObserver) {
-        mObserver->OnStopDecode(NS_ERROR_FAILURE);
-      }
+      mDiff.diffState |= FLAG_DECODE_STOPPED | FLAG_ONLOAD_UNBLOCKED |
+                         FLAG_HAS_ERROR;
     }
   }
 
@@ -281,8 +278,7 @@ Decoder::PostSize(int32_t aWidth,
   mImageMetadata.SetSize(aWidth, aHeight, aOrientation);
 
   
-  if (mObserver)
-    mObserver->OnStartContainer();
+  mDiff.diffState |= FLAG_HAS_SIZE;
 }
 
 void
@@ -294,6 +290,12 @@ Decoder::PostFrameStart()
   
   mFrameCount++;
   mInFrame = true;
+
+  
+  if (mFrameCount > 1) {
+    mIsAnimated = true;
+    mDiff.diffState |= FLAG_IS_ANIMATED;
+  }
 
   
   
@@ -324,14 +326,7 @@ Decoder::PostFrameStop(FrameBlender::FrameAlpha aFrameAlpha ,
   mCurrentFrame->SetBlendMethod(aBlendMethod);
   mCurrentFrame->ImageUpdated(mCurrentFrame->GetRect());
 
-  
-  if (mObserver) {
-    mObserver->OnStopFrame();
-    if (mFrameCount > 1 && !mIsAnimated) {
-      mIsAnimated = true;
-      mObserver->OnImageIsAnimated();
-    }
-  }
+  mDiff.diffState |= FLAG_FRAME_STOPPED | FLAG_ONLOAD_UNBLOCKED;
 }
 
 void
@@ -357,9 +352,7 @@ Decoder::PostDecodeDone(int32_t aLoopCount )
   mImageMetadata.SetLoopCount(aLoopCount);
   mImageMetadata.SetIsNonPremultiplied(GetDecodeFlags() & DECODER_NO_PREMULTIPLY_ALPHA);
 
-  if (mObserver) {
-    mObserver->OnStopDecode(NS_OK);
-  }
+  mDiff.diffState |= FLAG_DECODE_STOPPED;
 }
 
 void

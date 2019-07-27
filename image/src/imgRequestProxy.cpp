@@ -721,8 +721,6 @@ NS_IMETHODIMP imgRequestProxy::GetHasTransferredData(bool* hasData)
   return NS_OK;
 }
 
-
-
 void imgRequestProxy::OnStartDecode()
 {
   

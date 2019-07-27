@@ -145,7 +145,6 @@ protected:
   
   
 
-  
   void OnStartDecode     ();
   void OnStartContainer  ();
   void OnFrameUpdate     (const nsIntRect * aRect);

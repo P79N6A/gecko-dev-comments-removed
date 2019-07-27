@@ -7,7 +7,6 @@
 #ifndef imgStatusTracker_h__
 #define imgStatusTracker_h__
 
-class imgDecoderObserver;
 class imgIContainer;
 class imgStatusNotifyRunnable;
 class imgRequestNotifyRunnable;
@@ -52,6 +51,21 @@ struct ImageStatusDiff
   static ImageStatusDiff NoChange() { return ImageStatusDiff(); }
   bool IsNoChange() const { return *this == NoChange(); }
 
+  static ImageStatusDiff ForOnStopRequest(bool aLastPart,
+                                          bool aError,
+                                          nsresult aStatus)
+  {
+    ImageStatusDiff diff;
+    diff.diffState |= FLAG_REQUEST_STOPPED;
+    if (aLastPart) {
+      diff.diffState |= FLAG_MULTIPART_STOPPED;
+    }
+    if (NS_FAILED(aStatus) || aError) {
+      diff.diffState |= FLAG_HAS_ERROR;
+    }
+    return diff;
+  }
+
   bool operator!=(const ImageStatusDiff& aOther) const { return !(*this == aOther); }
   bool operator==(const ImageStatusDiff& aOther) const {
     return aOther.diffState == diffState;
@@ -81,7 +95,7 @@ struct ImageStatusDiff
 
 class imgStatusTracker : public mozilla::SupportsWeakPtr<imgStatusTracker>
 {
-  virtual ~imgStatusTracker();
+  virtual ~imgStatusTracker() { }
 
 public:
   MOZ_DECLARE_REFCOUNTED_TYPENAME(imgStatusTracker)
@@ -90,7 +104,10 @@ public:
   
   
   
-  explicit imgStatusTracker(mozilla::image::Image* aImage);
+  explicit imgStatusTracker(mozilla::image::Image* aImage)
+    : mImage(aImage)
+    , mState(0)
+  { }
 
   
   
@@ -165,42 +182,18 @@ public:
 
   
   
-  
-
-  
-  void RecordCancel();
-
-  
-  
-  void RecordLoaded();
-
-  
-  
-  void RecordDecoded();
-
-  
-  
-  
-  void RecordStartDecode();
   void SendStartDecode(imgRequestProxy* aProxy);
-  void RecordStartContainer(imgIContainer* aContainer);
   void SendStartContainer(imgRequestProxy* aProxy);
-  void RecordStopFrame();
   void SendStopFrame(imgRequestProxy* aProxy);
-  void RecordStopDecode(nsresult statusg);
   void SendStopDecode(imgRequestProxy* aProxy, nsresult aStatus);
   void SendDiscard(imgRequestProxy* aProxy);
-  void RecordUnlockedDraw();
   void SendUnlockedDraw(imgRequestProxy* aProxy);
-  void RecordImageIsAnimated();
   void SendImageIsAnimated(imgRequestProxy *aProxy);
 
   
   
   
-  void RecordStartRequest();
   void SendStartRequest(imgRequestProxy* aProxy);
-  void RecordStopRequest(bool aLastPart, nsresult aStatus);
   void SendStopRequest(imgRequestProxy* aProxy, bool aLastPart, nsresult aStatus);
 
   
@@ -209,20 +202,14 @@ public:
   
   
   void OnDataAvailable();
-  void OnStopRequest(bool aLastPart, nsresult aStatus);
   void OnDiscard();
   void OnUnlockedDraw();
-  
-  
-  void OnStopFrame();
 
   
   
   
   
-  void RecordBlockOnload();
   void SendBlockOnload(imgRequestProxy* aProxy);
-  void RecordUnblockOnload();
   void SendUnblockOnload(imgRequestProxy* aProxy);
 
   
@@ -239,16 +226,8 @@ public:
   }
   inline bool HasImage() { return mImage; }
 
-  inline imgDecoderObserver* GetDecoderObserver() { return mTrackerObserver.get(); }
-
-  already_AddRefed<imgStatusTracker> CloneForRecording();
-
   
-  mozilla::image::ImageStatusDiff Difference(imgStatusTracker* aOther) const;
-
-  
-  
-  mozilla::image::ImageStatusDiff DecodeStateAsDifference() const;
+  mozilla::image::ImageStatusDiff Difference(const mozilla::image::ImageStatusDiff& aOther) const;
 
   
   void ApplyDifference(const mozilla::image::ImageStatusDiff& aDiff);
@@ -265,7 +244,8 @@ private:
   friend class imgRequestNotifyRunnable;
   friend class imgStatusTrackerObserver;
   friend class imgStatusTrackerInit;
-  imgStatusTracker(const imgStatusTracker& aOther);
+
+  imgStatusTracker(const imgStatusTracker& aOther) MOZ_DELETE;
 
   
   void FireFailureNotification();
@@ -285,8 +265,6 @@ private:
   
   
   ProxyArray mConsumers;
-
-  mozilla::RefPtr<imgDecoderObserver> mTrackerObserver;
 
   uint32_t mState;
 };
