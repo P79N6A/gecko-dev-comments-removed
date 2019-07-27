@@ -7,6 +7,7 @@
 #define DOM_CAMERA_CAMERAPREFERENCES_H
 
 #include "nsString.h"
+#include "nsIObserver.h"
 
 #if defined(MOZ_HAVE_CXX11_STRONG_ENUMS) || defined(MOZ_HAVE_CXX11_ENUM_TYPE)
 
@@ -20,8 +21,16 @@ namespace mozilla {
 template<class T> class StaticAutoPtr;
 
 class CameraPreferences
+#ifdef MOZ_WIDGET_GONK
+  : public nsIObserver
+#endif
 {
 public:
+#ifdef MOZ_WIDGET_GONK
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIOBSERVER
+#endif
+
   static bool Initialize();
   static void Shutdown();
 
@@ -79,10 +88,21 @@ protected:
 
   static bool sPrefCameraParametersIsLowMemory;
 
+#ifdef MOZ_WIDGET_GONK
+  static StaticRefPtr<CameraPreferences> sObserver;
+
+  nsresult PreinitCameraHardware();
+
+protected:
+  
+  CameraPreferences() { }
+  ~CameraPreferences() { }
+#else
 private:
   
   CameraPreferences();
   ~CameraPreferences();
+#endif
 };
 
 } 
