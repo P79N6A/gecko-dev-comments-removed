@@ -1471,6 +1471,12 @@ public:
 
   void ClearInvalidRect() { mInvalidRegion.SetEmpty(); }
 
+  
+  
+  
+  void SetAsyncPanZoomController(AsyncPanZoomController *controller);
+  AsyncPanZoomController* GetAsyncPanZoomController() const;
+
   void ApplyPendingUpdatesForThisTransaction();
 
 #ifdef DEBUG
@@ -1573,6 +1579,7 @@ protected:
   nsIntRect mClipRect;
   nsIntRect mTileSourceRect;
   nsIntRegion mInvalidRegion;
+  nsRefPtr<AsyncPanZoomController> mAPZC;
   uint32_t mContentFlags;
   bool mUseClipRect;
   bool mUseTileSourceRect;
@@ -1746,12 +1753,6 @@ public:
 
   virtual bool RepositionChild(Layer* aChild, Layer* aAfter);
 
-  
-  
-  
-  void SetAsyncPanZoomController(AsyncPanZoomController *controller);
-  AsyncPanZoomController* GetAsyncPanZoomController() const;
-
   void SetPreScale(float aXScale, float aYScale)
   {
     if (mPreXScale == aXScale && mPreYScale == aYScale) {
@@ -1870,7 +1871,6 @@ protected:
 
   Layer* mFirstChild;
   Layer* mLastChild;
-  nsRefPtr<AsyncPanZoomController> mAPZC;
   float mPreXScale;
   float mPreYScale;
   
