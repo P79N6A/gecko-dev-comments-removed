@@ -44,6 +44,8 @@ Cu.importGlobalProperties(["URL"]);
 
 
 
+
+
 this.FxAccountsOAuthClient = function(options) {
   this._validateOptions(options);
   this.parameters = options.parameters;
@@ -66,7 +68,10 @@ this.FxAccountsOAuthClient = function(options) {
   if (this.parameters.keys) {
     params.append("keys", "true");
   }
-
+  
+  if (this.parameters.email) {
+    params.append("email", this.parameters.email);
+  }
 };
 
 this.FxAccountsOAuthClient.prototype = {
@@ -256,5 +261,9 @@ this.FxAccountsOAuthClient.prototype = {
         throw new Error("Missing 'parameters." + option + "' parameter");
       }
     });
+
+    if (options.parameters.action == "force_auth" && !options.parameters.email) {
+      throw new Error("parameters.email is required for action 'force_auth'");
+    }
   },
 };
