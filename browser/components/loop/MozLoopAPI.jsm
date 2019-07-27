@@ -163,6 +163,27 @@ function injectLoopAPI(targetWindow) {
     
 
 
+
+
+
+
+
+
+
+
+
+
+    getLoopBoolPref: {
+      enumerable: true,
+      writable: true,
+      value: function(prefName) {
+        return MozLoopService.getLoopBoolPref(prefName);
+      }
+    },
+
+    
+
+
     startAlerting: {
       enumerable: true,
       writable: true,

@@ -626,6 +626,29 @@ this.MozLoopService = {
 
 
 
+  getLoopBoolPref: function(prefName) {
+    try {
+      return Services.prefs.getBoolPref("loop." + prefName);
+    } catch (ex) {
+      console.log("getLoopBoolPref had trouble getting " + prefName +
+        "; exception: " + ex);
+      return null;
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
   hawkRequest: function(path, method, payloadObj) {
     return MozLoopServiceInternal.hawkRequest(path, method, payloadObj);
   },
