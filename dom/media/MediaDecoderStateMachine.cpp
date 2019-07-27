@@ -2589,9 +2589,11 @@ MediaDecoderStateMachine::GetAudioClock() const
   
   
   AssertCurrentThreadInMonitor();
-  MOZ_ASSERT(HasAudio() && !mAudioCompleted);
-  return mAudioStartTime +
-         (mAudioSink ? mAudioSink->GetPosition() : 0);
+  MOZ_ASSERT(HasAudio() && !mAudioCompleted && IsPlaying());
+  
+  
+  MOZ_ASSERT(mAudioSink);
+  return mAudioStartTime + mAudioSink->GetPosition();
 }
 
 int64_t MediaDecoderStateMachine::GetStreamClock() const
