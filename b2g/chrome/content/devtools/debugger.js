@@ -23,6 +23,11 @@ XPCOMUtils.defineLazyGetter(this, "B2GTabList", function() {
   return B2GTabList;
 });
 
+
+
+
+devtools.require("devtools/toolkit/discovery/discovery");
+
 let RemoteDebugger = {
   _listening: false,
 
