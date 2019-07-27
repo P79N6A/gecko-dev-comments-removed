@@ -5,9 +5,10 @@
 
 
 #include "jit/JitOptions.h"
+#include "mozilla/TypeTraits.h"
 
 #include "jsfun.h"
-
+#include <cstdlib>
 using namespace js;
 using namespace js::jit;
 
@@ -16,58 +17,87 @@ namespace jit {
 
 JitOptions js_JitOptions;
 
+template<typename T> struct IsBool : mozilla::FalseType {};
+template<> struct IsBool<bool> : mozilla::TrueType {};
+
+template<typename T>
+T overrideDefault(const char *param, T dflt) {
+    char *str = getenv(param);
+    if (!str)
+        return dflt;
+    if (IsBool<T>::value) {
+        if (strcmp(str, "true") == 0 ||
+            strcmp(str, "yes")) {
+            return true;
+        }
+        if (strcmp(str, "false") == 0 ||
+            strcmp(str, "no")) {
+            return false;
+        }
+        fprintf(stderr, "Warning: I didn't understand %s=\"%s\"", param, str);
+    } else {
+        char *endp;
+        int retval = strtol(str, &endp, 0);
+        if (*endp == '\0')
+            return retval;
+
+        fprintf(stderr, "Warning: I didn't understand %s=\"%s\"", param, str);
+    }
+    return dflt;
+}
+#define SET_DEFAULT(var, dflt) var = overrideDefault("JIT_OPTION_" #var, dflt)
 JitOptions::JitOptions()
 {
     
     
     
-    checkGraphConsistency = true;
+    SET_DEFAULT(checkGraphConsistency, true);
 
 #ifdef CHECK_OSIPOINT_REGISTERS
     
     
-    checkOsiPointRegisters = false;
+    SET_DEFAULT(checkOsiPointRegisters, false);
 #endif
 
     
     
-    checkRangeAnalysis = false;
+    SET_DEFAULT(checkRangeAnalysis, false);
 
     
-    compileTryCatch = true;
+    SET_DEFAULT(compileTryCatch, true);
 
     
-    disableScalarReplacement = true; 
+    SET_DEFAULT(disableScalarReplacement, true); 
 
     
-    disableGvn = false;
+    SET_DEFAULT(disableGvn, false);
 
     
-    disableLicm = false;
+    SET_DEFAULT(disableLicm, false);
 
     
-    disableInlining = false;
+    SET_DEFAULT(disableInlining, false);
 
     
-    disableEdgeCaseAnalysis = false;
+    SET_DEFAULT(disableEdgeCaseAnalysis, false);
 
     
-    disableRangeAnalysis = false;
+    SET_DEFAULT(disableRangeAnalysis, false);
 
     
-    disableLoopUnrolling = true;
+    SET_DEFAULT(disableLoopUnrolling, true);
 
     
-    disableEaa = false;
+    SET_DEFAULT(disableEaa, false);
 
     
-    eagerCompilation = false;
+    SET_DEFAULT(eagerCompilation, false);
 
     
     
     
-    forceDefaultIonWarmUpThreshold = false;
-    forcedDefaultIonWarmUpThreshold = 1000;
+    SET_DEFAULT(forceDefaultIonWarmUpThreshold, false);
+    SET_DEFAULT(forcedDefaultIonWarmUpThreshold, 1000);
 
     
     
@@ -75,39 +105,39 @@ JitOptions::JitOptions()
     forcedRegisterAllocator = RegisterAllocator_LSRA;
 
     
-    limitScriptSize = true;
+    SET_DEFAULT(limitScriptSize, true);
 
     
-    osr = true;
-
-    
-    
-    baselineWarmUpThreshold = 10;
+    SET_DEFAULT(osr, true);
 
     
     
-    exceptionBailoutThreshold = 10;
+    SET_DEFAULT(baselineWarmUpThreshold, 10);
 
     
     
-    frequentBailoutThreshold = 10;
-
-    
-    maxStackArgs = 4096;
+    SET_DEFAULT(exceptionBailoutThreshold, 10);
 
     
     
-    osrPcMismatchesBeforeRecompile = 6000;
+    SET_DEFAULT(frequentBailoutThreshold, 10);
+
+    
+    SET_DEFAULT(maxStackArgs, 4096);
+
+    
+    
+    SET_DEFAULT(osrPcMismatchesBeforeRecompile, 6000);
 
     
     
     
     
     
-    smallFunctionMaxBytecodeLength_ = 100;
+    SET_DEFAULT(smallFunctionMaxBytecodeLength_, 100);
 
     
-    compilerWarmUpThresholdPar = 1;
+    SET_DEFAULT(compilerWarmUpThresholdPar, 1);
 }
 
 bool
