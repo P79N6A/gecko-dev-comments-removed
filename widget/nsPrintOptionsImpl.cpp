@@ -223,6 +223,8 @@ nsPrintOptions::SerializeToPrintData(nsIPrintSettings* aSettings,
   aSettings->GetIsInitializedFromPrefs(&data->isInitializedFromPrefs());
   aSettings->GetPersistMarginBoxSettings(&data->persistMarginBoxSettings());
 
+  aSettings->GetPrintOptionsBits(&data->optionFlags());
+
   
   
   
@@ -323,6 +325,8 @@ nsPrintOptions::DeserializeToPrintSettings(const PrintData& data,
   settings->SetIsInitializedFromPrinter(data.isInitializedFromPrinter());
   settings->SetIsInitializedFromPrefs(data.isInitializedFromPrefs());
   settings->SetPersistMarginBoxSettings(data.persistMarginBoxSettings());
+
+  settings->SetPrintOptionsBits(data.optionFlags());
 
   return NS_OK;
 }
