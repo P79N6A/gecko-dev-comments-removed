@@ -613,6 +613,61 @@ class HandleValueArray
     }
 };
 
+
+
+
+
+
+
+
+
+
+
+class PerRuntimeFutexAPI
+{
+  public:
+    virtual ~PerRuntimeFutexAPI() {}
+
+    
+    virtual void lock() = 0;
+
+    
+    virtual void unlock() = 0;
+
+    
+    
+    virtual bool isOnWorkerThread() = 0;
+
+    enum WakeResult {
+        Woken,                  
+        Timedout,               
+        InterruptForTerminate,  
+        ErrorTooLong            
+    };
+
+    
+    
+    
+    virtual WakeResult wait(double timeout_ns) = 0;
+
+    
+    
+    
+    
+    
+    
+    virtual void wake() = 0;
+};
+
+JS_PUBLIC_API(JS::PerRuntimeFutexAPI *)
+GetRuntimeFutexAPI(JSRuntime *rt);
+
+
+
+
+JS_PUBLIC_API(void)
+SetRuntimeFutexAPI(JSRuntime *rt, JS::PerRuntimeFutexAPI *fx);
+
 }  
 
 

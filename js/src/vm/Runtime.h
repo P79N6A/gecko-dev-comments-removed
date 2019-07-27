@@ -799,6 +799,9 @@ struct JSRuntime : public JS::shadow::Runtime,
     
     JSVersion defaultVersion_;
 
+    
+    JS::PerRuntimeFutexAPI *futexAPI_;
+
   private:
     
     void *ownerThread_;
