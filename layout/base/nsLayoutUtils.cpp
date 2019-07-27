@@ -93,6 +93,7 @@
 #include "nsFrameSelection.h"
 #include "FrameLayerBuilder.h"
 #include "mozilla/layers/APZCTreeManager.h"
+#include "mozilla/Telemetry.h"
 
 #ifdef MOZ_XUL
 #include "nsXULPopupManager.h"
@@ -2892,6 +2893,7 @@ nsLayoutUtils::PaintFrame(nsRenderingContext* aRenderingContext, nsIFrame* aFram
     return NS_OK;
   }
 
+  TimeStamp startBuildDisplayList = TimeStamp::Now();
   nsDisplayListBuilder builder(aFrame, nsDisplayListBuilder::PAINTING,
                            !(aFlags & PAINT_HIDE_CARET));
 
@@ -3066,6 +3068,8 @@ nsLayoutUtils::PaintFrame(nsRenderingContext* aRenderingContext, nsIFrame* aFram
   }
 
   builder.LeavePresShell(aFrame);
+  Telemetry::AccumulateTimeDelta(Telemetry::PAINT_BUILD_DISPLAYLIST_TIME,
+                                 startBuildDisplayList);
 
   if (builder.GetHadToIgnorePaintSuppression()) {
     willFlushRetainedLayers = true;
@@ -3132,8 +3136,11 @@ nsLayoutUtils::PaintFrame(nsRenderingContext* aRenderingContext, nsIFrame* aFram
     flags |= nsDisplayList::PAINT_COMPRESSED;
   }
 
+  TimeStamp paintStart = TimeStamp::Now();
   nsRefPtr<LayerManager> layerManager =
     list.PaintRoot(&builder, aRenderingContext, flags);
+  Telemetry::AccumulateTimeDelta(Telemetry::PAINT_RASTERIZE_TIME,
+                                 paintStart);
 
 #ifdef MOZ_DUMP_PAINTING
   if (gfxUtils::DumpPaintList() || gfxUtils::sDumpPainting) {
