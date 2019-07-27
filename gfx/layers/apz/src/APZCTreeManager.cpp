@@ -934,31 +934,10 @@ APZCTreeManager::DispatchFling(AsyncPanZoomController* aPrev,
                                nsRefPtr<const OverscrollHandoffChain> aOverscrollHandoffChain,
                                bool aHandoff)
 {
-  nsRefPtr<AsyncPanZoomController> next;
-
+  nsRefPtr<AsyncPanZoomController> current;
+  uint32_t aOverscrollHandoffChainLength = aOverscrollHandoffChain->Length();
+  uint32_t startIndex;
   
-  
-  if (aHandoff) {
-    
-    uint32_t i = aOverscrollHandoffChain->IndexOf(aPrev);
-
-    
-    if (i + 1 < aOverscrollHandoffChain->Length()) {
-      next = aOverscrollHandoffChain->GetApzcAtIndex(i + 1);
-    }
-  
-  
-  } else {
-    if (aOverscrollHandoffChain->Length() != 0) {
-      next = aOverscrollHandoffChain->GetApzcAtIndex(0);
-    }
-  }
-
-  
-  if (next == nullptr || next->IsDestroyed()) {
-    return false;
-  }
-
   
   
   
@@ -967,14 +946,51 @@ APZCTreeManager::DispatchFling(AsyncPanZoomController* aPrev,
   
   
   ScreenPoint startPoint;  
-  ScreenPoint endPoint = startPoint + aVelocity;
-  if (aPrev != next) {
-    TransformDisplacement(this, aPrev, next, startPoint, endPoint);
-  }
-  ScreenPoint transformedVelocity = endPoint - startPoint;
-
+  ScreenPoint endPoint;
+  ScreenPoint transformedVelocity = aVelocity;
   
-  return next->AttemptFling(transformedVelocity, aOverscrollHandoffChain, aHandoff);
+  if (aHandoff) {
+    startIndex = aOverscrollHandoffChain->IndexOf(aPrev) + 1;
+    
+    
+    
+    if (startIndex >= aOverscrollHandoffChainLength) {
+      return false;
+    }
+  } else {
+    startIndex = 0;
+  }
+  
+  for (; startIndex < aOverscrollHandoffChainLength; startIndex++) {
+    current = aOverscrollHandoffChain->GetApzcAtIndex(startIndex);
+    
+    
+    if (current == nullptr || current->IsDestroyed()) {
+      return false;
+    }
+    
+    endPoint = startPoint + transformedVelocity;
+    
+    
+    if (startIndex > 0) {
+      TransformDisplacement(this,
+                            aOverscrollHandoffChain->GetApzcAtIndex(startIndex - 1),
+                            current,
+                            startPoint,
+                            endPoint);
+    }
+    
+    transformedVelocity = endPoint - startPoint;
+    
+    bool handoff = (startIndex < 1) ? aHandoff : true;
+    if (current->AttemptFling(transformedVelocity,
+                              aOverscrollHandoffChain,
+                              handoff)) {
+      return true;
+    }
+  }
+  
+  return false;
 }
 
 bool

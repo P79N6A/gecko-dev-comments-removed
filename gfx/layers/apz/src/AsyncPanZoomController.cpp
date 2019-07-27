@@ -1964,18 +1964,8 @@ bool AsyncPanZoomController::AttemptFling(ScreenPoint aVelocity,
                 false );
     return true;
   }
-
   
-  
-  
-  
-  
-  APZCTreeManager* treeManagerLocal = mTreeManager;
-  return treeManagerLocal
-      && treeManagerLocal->DispatchFling(this,
-                                         aVelocity,
-                                         aOverscrollHandoffChain,
-                                         true );
+  return false;
 }
 
 void AsyncPanZoomController::HandleFlingOverscroll(const ScreenPoint& aVelocity,
