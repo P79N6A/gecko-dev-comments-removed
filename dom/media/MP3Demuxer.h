@@ -2,13 +2,39 @@
 
 
 
-#ifndef MP3_TRACK_DEMUXER_H_
-#define MP3_TRACK_DEMUXER_H_
+#ifndef MP3_DEMUXER_H_
+#define MP3_DEMUXER_H_
 
 #include "mozilla/Attributes.h"
-#include "demuxer/TrackDemuxer.h"
+#include "MediaDataDemuxer.h"
+#include "MediaResource.h"
 
-namespace mp4_demuxer {
+namespace mozilla {
+namespace mp3 {
+
+class MP3TrackDemuxer;
+
+class MP3Demuxer : public MediaDataDemuxer {
+public:
+  
+  explicit MP3Demuxer(MediaResource* aSource);
+  nsRefPtr<InitPromise> Init() override;
+  already_AddRefed<MediaDataDemuxer> Clone() const override;
+  bool HasTrackType(TrackInfo::TrackType aType) const override;
+  uint32_t GetNumberTracks(TrackInfo::TrackType aType) const override;
+  already_AddRefed<MediaTrackDemuxer> GetTrackDemuxer(
+      TrackInfo::TrackType aType, uint32_t aTrackNumber) override;
+  bool IsSeekable() const override;
+  void NotifyDataArrived(uint32_t aLength, int64_t aOffset) override;
+  void NotifyDataRemoved() override;
+
+private:
+  
+  bool InitInternal();
+
+  nsRefPtr<MediaResource> mSource;
+  nsRefPtr<MP3TrackDemuxer> mTrackDemuxer;
+};
 
 
 
@@ -282,14 +308,11 @@ private:
 
 
 
-class MP3Demuxer : public mozilla::TrackDemuxer {
+class MP3TrackDemuxer : public MediaTrackDemuxer {
 public:
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MP3Demuxer);
-
   
-  explicit MP3Demuxer(Stream* aSource);
+  explicit MP3TrackDemuxer(MediaResource* aSource);
 
-  
   
   
   bool Init();
@@ -298,72 +321,80 @@ public:
   int64_t StreamLength() const;
 
   
-  
-  int64_t Duration() const;
+  media::TimeUnit Duration() const;
 
   
   
-  int64_t Duration(int64_t aNumFrames) const;
+  media::TimeUnit Duration(int64_t aNumFrames) const;
 
 #ifdef ENABLE_TESTS
   const FrameParser::Frame& LastFrame() const;
+  nsRefPtr<MediaRawData> DemuxSample();
 #endif
+
   const ID3Parser::ID3Header& ID3Header() const;
   const FrameParser::VBRHeader& VBRInfo() const;
 
   
-  virtual void Seek(Microseconds aTime) override;
-  virtual already_AddRefed<mozilla::MediaRawData> DemuxSample() override;
-  virtual Microseconds GetNextKeyframeTime() override;
-
-  void UpdateConfig(mozilla::AudioInfo& aConfig) {
-    aConfig.mRate = mSamplesPerSecond;
-    aConfig.mChannels = mChannels;
-    aConfig.mBitDepth = 16;
-    aConfig.mMimeType = "audio/mpeg";
-  }
+  UniquePtr<TrackInfo> GetInfo() const override;
+  nsRefPtr<SeekPromise> Seek(media::TimeUnit aTime) override;
+  nsRefPtr<SamplesPromise> GetSamples(int32_t aNumSamples = 1) override;
+  void Reset() override;
+  nsRefPtr<SkipAccessPointPromise> SkipToNextRandomAccessPoint(
+    media::TimeUnit aTimeThreshold) override;
+  int64_t GetResourceOffset() const override;
+  media::TimeIntervals GetBuffered() override;
+  int64_t GetEvictionOffset(media::TimeUnit aTime) override;
 
 private:
   
-  ~MP3Demuxer() {}
+  ~MP3TrackDemuxer() {}
 
   
-  void FastSeek(Microseconds aTime);
+  media::TimeUnit FastSeek(media::TimeUnit aTime);
 
   
-  void SlowSeek(Microseconds aTime);
+  media::TimeUnit ScanUntil(media::TimeUnit aTime);
 
   
-  already_AddRefed<mozilla::MediaRawData> GetNext();
+  MediaByteRange FindNextFrame();
+
+  
+  bool SkipNextFrame(const MediaByteRange& aRange);
+
+  
+  already_AddRefed<MediaRawData> GetNextFrame(const MediaByteRange& aRange);
+
+  
+  void UpdateState(const MediaByteRange& aRange);
 
   
   
-  uint32_t Read(uint8_t* aBuffer, uint32_t aOffset, uint32_t aSize);
+  int32_t Read(uint8_t* aBuffer, int64_t aOffset, int32_t aSize);
 
   
   double AverageFrameLength() const;
 
   
-  nsRefPtr<Stream> mSource;
+  nsRefPtr<MediaResource> mSource;
 
   
   FrameParser mParser;
 
   
-  uint64_t mOffset;
+  int64_t mOffset;
 
   
-  uint64_t mFirstFrameOffset;
+  int64_t mFirstFrameOffset;
 
   
-  int64_t mStreamLength;
+  uint64_t mNumParsedFrames;
 
   
-  int64_t mNumParsedFrames;
   int64_t mFrameIndex;
 
   
-  int64_t mTotalFrameLen;
+  uint64_t mTotalFrameLen;
 
   
   int32_t mSamplesPerFrame;
@@ -373,8 +404,12 @@ private:
 
   
   int32_t mChannels;
+
+  
+  UniquePtr<AudioInfo> mInfo;
 };
 
-}
+}  
+}  
 
 #endif
