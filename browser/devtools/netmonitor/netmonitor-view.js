@@ -2287,7 +2287,7 @@ NetworkDetailsView.prototype = {
       
       let cookieProps = Object.keys(cookie);
       if (cookieProps.length == 2) {
-        return;
+        continue;
       }
 
       
