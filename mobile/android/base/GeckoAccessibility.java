@@ -34,9 +34,11 @@ import com.googlecode.eyesfree.braille.selfbraille.WriteData;
 
 public class GeckoAccessibility {
     private static final String LOGTAG = "GeckoAccessibility";
-    private static final int VIRTUAL_CURSOR_PREVIOUS = 1;
-    private static final int VIRTUAL_CURSOR_POSITION = 2;
-    private static final int VIRTUAL_CURSOR_NEXT = 3;
+    private static final int VIRTUAL_ENTRY_POINT_BEFORE = 1;
+    private static final int VIRTUAL_CURSOR_PREVIOUS = 2;
+    private static final int VIRTUAL_CURSOR_POSITION = 3;
+    private static final int VIRTUAL_CURSOR_NEXT = 4;
+    private static final int VIRTUAL_ENTRY_POINT_AFTER = 5;
 
     private static boolean sEnabled;
     
@@ -301,6 +303,8 @@ public class GeckoAccessibility {
                 
                 
                 
+                
+                
                 mAccessibilityNodeProvider = new AccessibilityNodeProvider() {
                         @Override
                         public AccessibilityNodeInfo createAccessibilityNodeInfo(int virtualDescendantId) {
@@ -312,9 +316,11 @@ public class GeckoAccessibility {
                             case View.NO_ID:
                                 
                                 onInitializeAccessibilityNodeInfo(host, info);
+                                info.addChild(host, VIRTUAL_ENTRY_POINT_BEFORE);
                                 info.addChild(host, VIRTUAL_CURSOR_PREVIOUS);
                                 info.addChild(host, VIRTUAL_CURSOR_POSITION);
                                 info.addChild(host, VIRTUAL_CURSOR_NEXT);
+                                info.addChild(host, VIRTUAL_ENTRY_POINT_AFTER);
                                 break;
                             default:
                                 info.setParent(host);
@@ -342,6 +348,7 @@ public class GeckoAccessibility {
                                 
                                 
                                 
+                                
 
                                 switch (virtualViewId) {
                                 case VIRTUAL_CURSOR_PREVIOUS:
@@ -352,6 +359,10 @@ public class GeckoAccessibility {
                                     GeckoAppShell.
                                         sendEventToGecko(GeckoEvent.createBroadcastEvent("Accessibility:NextObject", null));
                                     return true;
+                                case VIRTUAL_ENTRY_POINT_BEFORE:
+                                case VIRTUAL_ENTRY_POINT_AFTER:
+                                    GeckoAppShell.
+                                        sendEventToGecko(GeckoEvent.createBroadcastEvent("Accessibility:Focus", "true"));
                                 default:
                                     break;
                                 }
