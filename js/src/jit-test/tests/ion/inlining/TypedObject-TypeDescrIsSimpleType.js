@@ -1,21 +1,21 @@
-/* -*- tab-width: 8; indent-tabs-mode: nil; js-indent-level: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* Testing TypeDescrIsSimpleType() is tricky because it's not exposed.
- * However, the implementation of <typed-object>.build() must use it.
- *
- * This basically asserts that build() works, and thus that the code is
- * at least not broken.
- *
- * To verify that inlining happens:
- *
- * Run this with IONFLAGS=logs, generate pdfs with iongraph, and then
- * try running "pdfgrep TypeDescrIsSimpleType func*pass00*.pdf", this
- * might net a couple of functions that are likely candidates for
- * manual inspection.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 if (!this.TypedObject) {
     print("No TypedObject, skipping");
@@ -23,10 +23,10 @@ if (!this.TypedObject) {
 }
 
 var T = TypedObject;
-var AT = new T.ArrayType(T.uint32);
+var AT = new T.ArrayType(T.uint32, 100);
 
 function check() {
-    return AT.build(100, x => x+1);
+    return AT.build(x => x+1);
 }
 
 function test() {

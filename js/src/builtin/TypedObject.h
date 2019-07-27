@@ -119,25 +119,19 @@ enum Kind {
     Reference = JS_TYPEREPR_REFERENCE_KIND,
     Simd = JS_TYPEREPR_SIMD_KIND,
     Struct = JS_TYPEREPR_STRUCT_KIND,
-    SizedArray = JS_TYPEREPR_SIZED_ARRAY_KIND,
-    UnsizedArray = JS_TYPEREPR_UNSIZED_ARRAY_KIND,
+    Array = JS_TYPEREPR_ARRAY_KIND
 };
 
-static inline bool isSized(type::Kind kind) {
-    return kind > JS_TYPEREPR_MAX_UNSIZED_KIND;
-}
-
 }
 
 
 
 
-class SizedTypeDescr;
 class SimpleTypeDescr;
 class ComplexTypeDescr;
 class SimdTypeDescr;
 class StructTypeDescr;
-class SizedTypedProto;
+class TypedProto;
 
 
 
@@ -174,10 +168,6 @@ class TypeDescr : public NativeObject
     static const Class class_;
 
   public:
-    static bool isSized(type::Kind kind) {
-        return kind > JS_TYPEREPR_MAX_UNSIZED_KIND;
-    }
-
     TypedProto &typedProto() const {
         return getReservedSlot(JS_DESCR_SLOT_TYPROTO).toObject().as<TypedProto>();
     }
@@ -201,13 +191,7 @@ class TypeDescr : public NativeObject
     int32_t alignment() const {
         return getReservedSlot(JS_DESCR_SLOT_ALIGNMENT).toInt32();
     }
-};
 
-typedef Handle<TypeDescr*> HandleTypeDescr;
-
-class SizedTypeDescr : public TypeDescr
-{
-  public:
     int32_t size() const {
         return getReservedSlot(JS_DESCR_SLOT_SIZE).toInt32();
     }
@@ -216,9 +200,9 @@ class SizedTypeDescr : public TypeDescr
     void traceInstances(JSTracer *trace, uint8_t *mem, size_t length);
 };
 
-typedef Handle<SizedTypeDescr*> HandleSizedTypeDescr;
+typedef Handle<TypeDescr*> HandleTypeDescr;
 
-class SimpleTypeDescr : public SizedTypeDescr
+class SimpleTypeDescr : public TypeDescr
 {
 };
 
@@ -328,7 +312,7 @@ class ReferenceTypeDescr : public SimpleTypeDescr
 
 
 
-class ComplexTypeDescr : public SizedTypeDescr
+class ComplexTypeDescr : public TypeDescr
 {
   public:
     
@@ -372,6 +356,8 @@ bool IsTypedObjectArray(JSObject& obj);
 
 bool CreateUserSizeAndAlignmentProperties(JSContext *cx, HandleTypeDescr obj);
 
+class ArrayTypeDescr;
+
 
 
 
@@ -380,25 +366,18 @@ bool CreateUserSizeAndAlignmentProperties(JSContext *cx, HandleTypeDescr obj);
 class ArrayMetaTypeDescr : public JSObject
 {
   private:
-    friend class UnsizedArrayTypeDescr;
-
     
     
     
     
     
     
-    
-    
-    
-    
-    
-    template<class T>
-    static T *create(JSContext *cx,
-                     HandleObject arrayTypePrototype,
-                     HandleSizedTypeDescr elementType,
-                     HandleAtom stringRepr,
-                     int32_t size);
+    static ArrayTypeDescr *create(JSContext *cx,
+                                  HandleObject arrayTypePrototype,
+                                  HandleTypeDescr elementType,
+                                  HandleAtom stringRepr,
+                                  int32_t size,
+                                  int32_t length);
 
   public:
     
@@ -419,52 +398,23 @@ class ArrayMetaTypeDescr : public JSObject
 
 
 
-
-
-
-
-
-class UnsizedArrayTypeDescr : public TypeDescr
+class ArrayTypeDescr : public ComplexTypeDescr
 {
   public:
     static const Class class_;
-    static const type::Kind Kind = type::UnsizedArray;
+    static const type::Kind Kind = type::Array;
 
-    
-    
-    static bool dimension(JSContext *cx, unsigned int argc, jsval *vp);
-
-    SizedTypeDescr &elementType() const {
-        return getReservedSlot(JS_DESCR_SLOT_ARRAY_ELEM_TYPE).toObject().as<SizedTypeDescr>();
+    TypeDescr &elementType() const {
+        return getReservedSlot(JS_DESCR_SLOT_ARRAY_ELEM_TYPE).toObject().as<TypeDescr>();
     }
 
-    SizedTypeDescr &maybeForwardedElementType() const {
-        JSObject *elemType =
-            MaybeForwarded(&getReservedSlot(JS_DESCR_SLOT_ARRAY_ELEM_TYPE).toObject());
-        return elemType->as<SizedTypeDescr>();
-    }
-};
-
-
-
-
-class SizedArrayTypeDescr : public ComplexTypeDescr
-{
-  public:
-    static const Class class_;
-    static const type::Kind Kind = type::SizedArray;
-
-    SizedTypeDescr &elementType() const {
-        return getReservedSlot(JS_DESCR_SLOT_ARRAY_ELEM_TYPE).toObject().as<SizedTypeDescr>();
-    }
-
-    SizedTypeDescr &maybeForwardedElementType() const {
+    TypeDescr &maybeForwardedElementType() const {
         JSObject *elemType = &getReservedSlot(JS_DESCR_SLOT_ARRAY_ELEM_TYPE).toObject();
-        return MaybeForwarded(elemType)->as<SizedTypeDescr>();
+        return MaybeForwarded(elemType)->as<TypeDescr>();
     }
 
     int32_t length() const {
-        return getReservedSlot(JS_DESCR_SLOT_SIZED_ARRAY_LENGTH).toInt32();
+        return getReservedSlot(JS_DESCR_SLOT_ARRAY_LENGTH).toInt32();
     }
 };
 
@@ -512,8 +462,8 @@ class StructTypeDescr : public ComplexTypeDescr
     JSAtom &fieldName(size_t index) const;
 
     
-    SizedTypeDescr &fieldDescr(size_t index) const;
-    SizedTypeDescr &maybeForwardedFieldDescr(size_t index) const;
+    TypeDescr &fieldDescr(size_t index) const;
+    TypeDescr &maybeForwardedFieldDescr(size_t index) const;
 
     
     size_t fieldOffset(size_t index) const;
@@ -553,14 +503,12 @@ class TypedObject : public JSObject
   private:
     static const bool IsTypedObjectClass = true;
 
-    template<class T>
     static bool obj_getArrayElement(JSContext *cx,
                                     Handle<TypedObject*> typedObj,
                                     Handle<TypeDescr*> typeDescr,
                                     uint32_t index,
                                     MutableHandleValue vp);
 
-    template<class T>
     static bool obj_setArrayElement(JSContext *cx,
                                     Handle<TypedObject*> typedObj,
                                     Handle<TypeDescr*> typeDescr,
@@ -599,9 +547,6 @@ class TypedObject : public JSObject
 
     static bool obj_getElement(JSContext *cx, HandleObject obj, HandleObject receiver,
                                uint32_t index, MutableHandleValue vp);
-
-    static bool obj_getUnsizedArrayElement(JSContext *cx, HandleObject obj, HandleObject receiver,
-                                         uint32_t index, MutableHandleValue vp);
 
     static bool obj_setGeneric(JSContext *cx, HandleObject obj, HandleId id,
                                MutableHandleValue vp, bool strict);
@@ -645,20 +590,7 @@ class TypedObject : public JSObject
     bool maybeForwardedIsAttached() const;
 
     int32_t size() const {
-        switch (typeDescr().kind()) {
-          case type::Scalar:
-          case type::Simd:
-          case type::Reference:
-          case type::Struct:
-          case type::SizedArray:
-            return typeDescr().as<SizedTypeDescr>().size();
-
-          case type::UnsizedArray: {
-            SizedTypeDescr &elementType = typeDescr().as<UnsizedArrayTypeDescr>().elementType();
-            return elementType.size() * length();
-          }
-        }
-        MOZ_CRASH("unhandled typerepresentation kind");
+        return typeDescr().size();
     }
 
     uint8_t *typedMem(size_t offset) const {
@@ -681,10 +613,7 @@ class TypedObject : public JSObject
 
     
     
-    static bool constructSized(JSContext *cx, unsigned argc, Value *vp);
-
-    
-    static bool constructUnsized(JSContext *cx, unsigned argc, Value *vp);
+    static bool construct(JSContext *cx, unsigned argc, Value *vp);
 
     
     static bool GetBuffer(JSContext *cx, unsigned argc, Value *vp);
@@ -703,30 +632,12 @@ class OutlineTypedObject : public TypedObject
     
     uint8_t *data_;
 
-    
-    
-    uint32_t unsizedLength_;
-
     void setOwnerAndData(JSObject *owner, uint8_t *data);
 
-    void setUnsizedLength(uint32_t length) {
-        MOZ_ASSERT(typeDescr().is<UnsizedArrayTypeDescr>());
-        unsizedLength_ = length;
-    }
-
   public:
-    static gc::AllocKind allocKindForTypeDescriptor(TypeDescr *descr) {
-        
-        
-        if (descr->is<UnsizedArrayTypeDescr>())
-            return gc::FINALIZE_OBJECT2;
-        return gc::FINALIZE_OBJECT0;
-    }
-
     
     static size_t offsetOfData() { return offsetof(OutlineTypedObject, data_); }
     static size_t offsetOfOwner() { return offsetof(OutlineTypedObject, owner_); }
-    static size_t offsetOfUnsizedLength() { return offsetof(OutlineTypedObject, unsizedLength_); }
 
     JSObject &owner() const {
         MOZ_ASSERT(owner_);
@@ -739,11 +650,6 @@ class OutlineTypedObject : public TypedObject
 
     uint8_t *outOfLineTypedMem() const {
         return data_;
-    }
-
-    int32_t unsizedLength() const {
-        MOZ_ASSERT(typeDescr().is<UnsizedArrayTypeDescr>());
-        return unsizedLength_;
     }
 
     void setData(uint8_t *data) {
@@ -772,7 +678,7 @@ class OutlineTypedObject : public TypedObject
     
     
     static OutlineTypedObject *createDerived(JSContext *cx,
-                                             HandleSizedTypeDescr type,
+                                             HandleTypeDescr type,
                                              Handle<TypedObject*> typedContents,
                                              int32_t offset);
 
@@ -816,7 +722,7 @@ class InlineTypedObject : public TypedObject
         sizeof(NativeObject) - sizeof(TypedObject) + NativeObject::MAX_FIXED_SLOTS * sizeof(Value);
 
     static gc::AllocKind allocKindForTypeDescriptor(TypeDescr *descr) {
-        size_t nbytes = descr->as<SizedTypeDescr>().size();
+        size_t nbytes = descr->size();
         MOZ_ASSERT(nbytes <= MaximumSize);
 
         size_t dataSlots = AlignBytes(nbytes, sizeof(Value) / sizeof(Value));
@@ -931,12 +837,6 @@ extern const JSJitInfo TypeDescrIsSimpleTypeJitInfo;
 
 bool TypeDescrIsArrayType(ThreadSafeContext *, unsigned argc, Value *vp);
 extern const JSJitInfo TypeDescrIsArrayTypeJitInfo;
-
-bool TypeDescrIsSizedArrayType(ThreadSafeContext *, unsigned argc, Value *vp);
-extern const JSJitInfo TypeDescrIsSizedArrayTypeJitInfo;
-
-bool TypeDescrIsUnsizedArrayType(ThreadSafeContext *, unsigned argc, Value *vp);
-extern const JSJitInfo TypeDescrIsUnsizedArrayTypeJitInfo;
 
 
 
@@ -1101,22 +1001,15 @@ inline bool
 IsComplexTypeDescrClass(const Class* clasp)
 {
     return clasp == &StructTypeDescr::class_ ||
-           clasp == &SizedArrayTypeDescr::class_ ||
+           clasp == &ArrayTypeDescr::class_ ||
            clasp == &SimdTypeDescr::class_;
-}
-
-inline bool
-IsSizedTypeDescrClass(const Class* clasp)
-{
-    return IsSimpleTypeDescrClass(clasp) ||
-           IsComplexTypeDescrClass(clasp);
 }
 
 inline bool
 IsTypeDescrClass(const Class* clasp)
 {
-    return IsSizedTypeDescrClass(clasp) ||
-           clasp == &UnsizedArrayTypeDescr::class_;
+    return IsSimpleTypeDescrClass(clasp) ||
+           IsComplexTypeDescrClass(clasp);
 }
 
 inline bool
@@ -1159,13 +1052,6 @@ inline bool
 JSObject::is<js::SimpleTypeDescr>() const
 {
     return IsSimpleTypeDescrClass(getClass());
-}
-
-template <>
-inline bool
-JSObject::is<js::SizedTypeDescr>() const
-{
-    return IsSizedTypeDescrClass(getClass());
 }
 
 template <>

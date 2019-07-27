@@ -8,11 +8,11 @@ if (!this.hasOwnProperty("TypedObject"))
 
 
 
-var A = TypedObject.uint8.array();
-var a = new A(0);
+var A = TypedObject.uint8.array(0);
+var a = new A();
 a.forEach(function(val, i) {});
 
 
 
-var AA = TypedObject.uint8.array(2147483647).array();
-var aa = new AA(0);
+var AA = TypedObject.uint8.array(2147483647).array(0);
+var aa = new AA();
