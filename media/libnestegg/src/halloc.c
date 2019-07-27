@@ -40,10 +40,8 @@ typedef struct hblock
 
 
 realloc_t halloc_allocator = NULL;
-realloc_t halloc_wrapped_allocator = NULL;
 
 #define allocator halloc_allocator
-#define wrapped_allocator halloc_wrapped_allocator
 
 
 
@@ -64,7 +62,10 @@ void * halloc(void * ptr, size_t len)
 	
 	if (! allocator)
 	{
-		halloc_set_allocator(realloc);
+		if (halloc_set_allocator(realloc) == 0)
+		{
+			halloc_set_allocator(_realloc);
+		}
 		assert(allocator);
 	}
 
@@ -189,7 +190,6 @@ int halloc_set_allocator(realloc_t realloc_func)
 
 
 
-	allocator = realloc_func;
 	if (! (p = malloc(1)))
 		
 		return -1;
@@ -197,11 +197,10 @@ int halloc_set_allocator(realloc_t realloc_func)
 	if ((p = realloc_func(p, 0)))
 	{
 		
-		allocator = _realloc;
-		wrapped_allocator = realloc_func;
 		free(p);
 		return 0;
 	}
+	allocator = realloc_func;
 	return 1;
 }
 
@@ -211,7 +210,7 @@ static void * _realloc(void * ptr, size_t n)
 
 
 	if (n)
-		return wrapped_allocator(ptr, n);
+		return realloc(ptr, n);
 	free(ptr);
 	return NULL;
 }
