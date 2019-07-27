@@ -38,7 +38,8 @@ public:
 
 
   static already_AddRefed<Image> Clip(Image* aImage, nsIntRect aClip);
-  static already_AddRefed<imgIContainer> Clip(imgIContainer* aImage, nsIntRect aClip);
+  static already_AddRefed<imgIContainer> Clip(imgIContainer* aImage,
+                                              nsIntRect aClip);
 
   
 
@@ -47,15 +48,18 @@ public:
 
 
 
-  static already_AddRefed<Image> Orient(Image* aImage, Orientation aOrientation);
-  static already_AddRefed<imgIContainer> Orient(imgIContainer* aImage, Orientation aOrientation);
+  static already_AddRefed<Image> Orient(Image* aImage,
+                                        Orientation aOrientation);
+  static already_AddRefed<imgIContainer> Orient(imgIContainer* aImage,
+                                                Orientation aOrientation);
 
   
 
 
 
 
-  static already_AddRefed<imgIContainer> CreateFromDrawable(gfxDrawable* aDrawable);
+  static already_AddRefed<imgIContainer>
+  CreateFromDrawable(gfxDrawable* aDrawable);
 
 private:
   
