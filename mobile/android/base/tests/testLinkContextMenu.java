@@ -14,8 +14,8 @@ public class testLinkContextMenu extends ContentContextMenuTest {
 
         LINK_PAGE_URL=getAbsoluteUrl(StringHelper.ROBOCOP_BIG_LINK_URL);
         BLANK_PAGE_URL=getAbsoluteUrl(StringHelper.ROBOCOP_BLANK_PAGE_01_URL);
-        inputAndLoadUrl(LINK_PAGE_URL);
-        waitForText(LINK_PAGE_TITLE);
+        loadAndPaint(LINK_PAGE_URL);
+        verifyPageTitle(LINK_PAGE_TITLE);
 
         verifyContextMenuItems(linkMenuItems); 
         openTabFromContextMenu(linkMenuItems[0],2); 
