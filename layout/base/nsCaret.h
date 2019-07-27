@@ -212,9 +212,19 @@ protected:
 
     nsCOMPtr<nsITimer>    mBlinkTimer;
 
-    bool                  mIsBlinking;
+    
 
-    bool                  mVisible;           
+
+
+    bool                  mIsBlinking;
+    
+
+
+    bool                  mIsBlinkOn;
+    
+
+
+    bool                  mVisible;
 
     bool                  mDrawn;             
     bool                  mPendingDraw;       

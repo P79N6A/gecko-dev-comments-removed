@@ -119,6 +119,7 @@ IsBidiUI()
 nsCaret::nsCaret()
 : mPresShell(nullptr)
 , mIsBlinking(true)
+, mIsBlinkOn(false)
 , mVisible(false)
 , mDrawn(false)
 , mPendingDraw(false)
@@ -496,24 +497,36 @@ nsIFrame*
 nsCaret::GetPaintGeometry(nsRect* aRect)
 {
   
-  if (!mDrawn)
+  if (!IsVisible() || (mIsBlinking && !mIsBlinkOn)) {
     return nullptr;
+  }
 
   
   
   CheckSelectionLanguageChange();
 
   nsFrameSelection* frameSelection = GetFrameSelection();
-  if (!frameSelection)
+  if (!frameSelection) {
     return nullptr;
+  }
   int32_t contentOffset;
   nsIFrame *frame = nullptr;
   nsresult rv = GetCaretFrameForNodeOffset(frameSelection,
                                            mLastContent, mLastContentOffset,
                                            mLastHint, mLastBidiLevel, &frame,
                                            &contentOffset);
-  if (NS_FAILED(rv))
+  if (NS_FAILED(rv)) {
     return nullptr;
+  }
+
+  
+  const nsStyleUserInterface* userinterface = frame->StyleUserInterface();
+  if ((!mIgnoreUserModify &&
+       userinterface->mUserModify == NS_STYLE_USER_MODIFY_READ_ONLY) ||
+      userinterface->mUserInput == NS_STYLE_USER_INPUT_NONE ||
+      userinterface->mUserInput == NS_STYLE_USER_INPUT_DISABLED) {
+    return nullptr;
+  }
 
   
   int32_t startOffset, endOffset;
@@ -648,6 +661,8 @@ nsresult nsCaret::PrimeTimer()
 
 void nsCaret::StartBlinking()
 {
+  mIsBlinkOn = true;
+
   if (mReadOnly) {
     
     
@@ -701,16 +716,6 @@ nsCaret::DrawAtPositionWithHint(nsIDOMNode*          aNode,
                                aBidiLevel, &theFrame, &theFrameOffset);
   if (NS_FAILED(rv) || !theFrame)
     return false;
-
-  
-  const nsStyleUserInterface* userinterface = theFrame->StyleUserInterface();
-  if ((!mIgnoreUserModify &&
-       userinterface->mUserModify == NS_STYLE_USER_MODIFY_READ_ONLY) ||
-      (userinterface->mUserInput == NS_STYLE_USER_INPUT_NONE) ||
-      (userinterface->mUserInput == NS_STYLE_USER_INPUT_DISABLED))
-  {
-    return false;
-  }
 
   if (!mDrawn)
   {
@@ -1111,6 +1116,7 @@ void nsCaret::CaretBlinkCallback(nsITimer *aTimer, void *aClosure)
 {
   nsCaret   *theCaret = reinterpret_cast<nsCaret*>(aClosure);
   if (!theCaret) return;
+  theCaret->mIsBlinkOn = !theCaret->mIsBlinkOn;
   
   theCaret->DrawCaret(true);
 }
