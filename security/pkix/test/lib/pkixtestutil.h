@@ -130,6 +130,12 @@ typedef ScopedPtr<TestKeyPair, DeleteTestKeyPair> ScopedTestKeyPair;
 
 ByteString SHA1(const ByteString& toHash);
 
+Result TestCheckPublicKey(Input subjectPublicKeyInfo);
+Result TestVerifySignedData(const SignedDataWithSignature& signedData,
+                            Input subjectPublicKeyInfo);
+Result TestDigestBuf(Input item,  uint8_t* digestBuf,
+                     size_t digestBufLen);
+
 
 
 
