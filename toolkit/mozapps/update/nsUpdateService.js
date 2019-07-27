@@ -1,6 +1,3 @@
-#filter substitution
-
-
 
 
 
@@ -15,6 +12,7 @@ Cu.import("resource://gre/modules/AddonManager.jsm", this);
 Cu.import("resource://gre/modules/Services.jsm", this);
 Cu.import("resource://gre/modules/ctypes.jsm", this);
 Cu.import("resource://gre/modules/UpdateTelemetry.jsm", this);
+Cu.import("resource://gre/modules/AppConstants.jsm", this);
 
 const UPDATESERVICE_CID = Components.ID("{B3C290A6-3943-4B89-8BBE-C01EB7B3B311}");
 const UPDATESERVICE_CONTRACTID = "@mozilla.org/updates/update-service;1";
@@ -70,35 +68,15 @@ const KEY_GRED            = "GreD";
 const KEY_UPDROOT         = "UpdRootD";
 const KEY_EXECUTABLE      = "XREExeF";
 
-#ifdef MOZ_WIDGET_GONK
-#define USE_UPDATE_ARCHIVE_DIR
-#endif
+const KEY_UPDATE_ARCHIVE_DIR = "UpdArchD";
 
-#ifdef USE_UPDATE_ARCHIVE_DIR
-const KEY_UPDATE_ARCHIVE_DIR = "UpdArchD"
-#endif
-
-#ifdef XP_WIN
-#define CHECK_CAN_USE_SERVICE
-#elifdef MOZ_WIDGET_GONK
-
-
-#define CHECK_CAN_USE_SERVICE
-#endif
-
+const DIR_UPDATED         = "updated";
+const DIR_UPDATED_APP     = "Updated.app";
 const DIR_UPDATES         = "updates";
-#ifdef XP_MACOSX
-const UPDATED_DIR         = "Updated.app";
-#else
-const UPDATED_DIR         = "updated";
-#endif
+
 const FILE_UPDATE_STATUS  = "update.status";
 const FILE_UPDATE_VERSION = "update.version";
-#ifdef MOZ_WIDGET_ANDROID
-const FILE_UPDATE_ARCHIVE = "update.apk";
-#else
 const FILE_UPDATE_ARCHIVE = "update.mar";
-#endif
 const FILE_UPDATE_LINK    = "update.link";
 const FILE_UPDATE_LOG     = "update.log";
 const FILE_UPDATES_DB     = "updates.xml";
@@ -216,13 +194,16 @@ const DEFAULT_UPDATE_RETRY_TIMEOUT = 2000;
 var gLocale = null;
 var gUpdateMutexHandle = null;
 
-#ifdef MOZ_WIDGET_GONK
+
 var gSDCardMountLock = null;
 
+
 XPCOMUtils.defineLazyGetter(this, "gExtStorage", function aus_gExtStorage() {
-    return Services.env.get("EXTERNAL_STORAGE");
+  if (AppConstants.platform != "gonk") {
+    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+  }
+  return Services.env.get("EXTERNAL_STORAGE");
 });
-#endif
 
 XPCOMUtils.defineLazyModuleGetter(this, "UpdateChannel",
                                   "resource://gre/modules/UpdateChannel.jsm");
@@ -250,154 +231,140 @@ XPCOMUtils.defineLazyGetter(this, "gABI", function aus_gABI() {
   catch (e) {
     LOG("gABI - XPCOM ABI unknown: updates are not possible.");
   }
-#ifdef XP_MACOSX
-  
-  
-  let macutils = Cc["@mozilla.org/xpcom/mac-utils;1"].
-                 getService(Ci.nsIMacUtils);
 
-  if (macutils.isUniversalBinary)
-    abi += "-u-" + macutils.architecturesInBinary;
-#ifdef MOZ_SHARK
-  
-  abi += "-shark"
-#endif
-#endif
+  if (AppConstants.platform == "macosx") {
+    
+    
+    let macutils = Cc["@mozilla.org/xpcom/mac-utils;1"].
+                   getService(Ci.nsIMacUtils);
+
+    if (macutils.isUniversalBinary) {
+      abi += "-u-" + macutils.architecturesInBinary;
+    }
+  }
   return abi;
 });
 
-#ifdef MOZ_WIDGET_GONK
-XPCOMUtils.defineLazyGetter(this, "gProductModel", function aus_gProductModel() {
-  Cu.import("resource://gre/modules/systemlibs.js");
-  return libcutils.property_get("ro.product.model");
-});
-XPCOMUtils.defineLazyGetter(this, "gProductDevice", function aus_gProductDevice() {
-  Cu.import("resource://gre/modules/systemlibs.js");
-  return libcutils.property_get("ro.product.device");
-});
-#endif
-
 XPCOMUtils.defineLazyGetter(this, "gOSVersion", function aus_gOSVersion() {
   let osVersion;
-  let sysInfo = Cc["@mozilla.org/system-info;1"].
-                getService(Ci.nsIPropertyBag2);
   try {
-    osVersion = sysInfo.getProperty("name") + " " + sysInfo.getProperty("version");
+    osVersion = Services.sysinfo.getProperty("name") + " " +
+                Services.sysinfo.getProperty("version");
   }
   catch (e) {
     LOG("gOSVersion - OS Version unknown: updates are not possible.");
   }
 
   if (osVersion) {
-#ifdef XP_WIN
-    const BYTE = ctypes.uint8_t;
-    const WORD = ctypes.uint16_t;
-    const DWORD = ctypes.uint32_t;
-    const WCHAR = ctypes.char16_t;
-    const BOOL = ctypes.int;
+    if (AppConstants.platform == "win") {
+      const BYTE = ctypes.uint8_t;
+      const WORD = ctypes.uint16_t;
+      const DWORD = ctypes.uint32_t;
+      const WCHAR = ctypes.char16_t;
+      const BOOL = ctypes.int;
 
-    
-    
-    const SZCSDVERSIONLENGTH = 128;
-    const OSVERSIONINFOEXW = new ctypes.StructType('OSVERSIONINFOEXW',
-        [
-        {dwOSVersionInfoSize: DWORD},
-        {dwMajorVersion: DWORD},
-        {dwMinorVersion: DWORD},
-        {dwBuildNumber: DWORD},
-        {dwPlatformId: DWORD},
-        {szCSDVersion: ctypes.ArrayType(WCHAR, SZCSDVERSIONLENGTH)},
-        {wServicePackMajor: WORD},
-        {wServicePackMinor: WORD},
-        {wSuiteMask: WORD},
-        {wProductType: BYTE},
-        {wReserved: BYTE}
-        ]);
+      
+      
+      const SZCSDVERSIONLENGTH = 128;
+      const OSVERSIONINFOEXW = new ctypes.StructType('OSVERSIONINFOEXW',
+          [
+          {dwOSVersionInfoSize: DWORD},
+          {dwMajorVersion: DWORD},
+          {dwMinorVersion: DWORD},
+          {dwBuildNumber: DWORD},
+          {dwPlatformId: DWORD},
+          {szCSDVersion: ctypes.ArrayType(WCHAR, SZCSDVERSIONLENGTH)},
+          {wServicePackMajor: WORD},
+          {wServicePackMinor: WORD},
+          {wSuiteMask: WORD},
+          {wProductType: BYTE},
+          {wReserved: BYTE}
+          ]);
 
-    
-    
-    const SYSTEM_INFO = new ctypes.StructType('SYSTEM_INFO',
-        [
-        {wProcessorArchitecture: WORD},
-        {wReserved: WORD},
-        {dwPageSize: DWORD},
-        {lpMinimumApplicationAddress: ctypes.voidptr_t},
-        {lpMaximumApplicationAddress: ctypes.voidptr_t},
-        {dwActiveProcessorMask: DWORD.ptr},
-        {dwNumberOfProcessors: DWORD},
-        {dwProcessorType: DWORD},
-        {dwAllocationGranularity: DWORD},
-        {wProcessorLevel: WORD},
-        {wProcessorRevision: WORD}
-        ]);
+      
+      
+      const SYSTEM_INFO = new ctypes.StructType('SYSTEM_INFO',
+          [
+          {wProcessorArchitecture: WORD},
+          {wReserved: WORD},
+          {dwPageSize: DWORD},
+          {lpMinimumApplicationAddress: ctypes.voidptr_t},
+          {lpMaximumApplicationAddress: ctypes.voidptr_t},
+          {dwActiveProcessorMask: DWORD.ptr},
+          {dwNumberOfProcessors: DWORD},
+          {dwProcessorType: DWORD},
+          {dwAllocationGranularity: DWORD},
+          {wProcessorLevel: WORD},
+          {wProcessorRevision: WORD}
+          ]);
 
-    let kernel32 = false;
-    try {
-      kernel32 = ctypes.open("Kernel32");
-    } catch (e) {
-      LOG("gOSVersion - Unable to open kernel32! " + e);
-      osVersion += ".unknown (unknown)";
-    }
-
-    if(kernel32) {
+      let kernel32 = false;
       try {
-        
-        try {
-          let GetVersionEx = kernel32.declare("GetVersionExW",
-                                              ctypes.default_abi,
-                                              BOOL,
-                                              OSVERSIONINFOEXW.ptr);
-          let winVer = OSVERSIONINFOEXW();
-          winVer.dwOSVersionInfoSize = OSVERSIONINFOEXW.size;
+        kernel32 = ctypes.open("Kernel32");
+      } catch (e) {
+        LOG("gOSVersion - Unable to open kernel32! " + e);
+        osVersion += ".unknown (unknown)";
+      }
 
-          if(0 !== GetVersionEx(winVer.address())) {
-            osVersion += "." + winVer.wServicePackMajor
-                      +  "." + winVer.wServicePackMinor;
-          } else {
-            LOG("gOSVersion - Unknown failure in GetVersionEX (returned 0)");
+      if(kernel32) {
+        try {
+          
+          try {
+            let GetVersionEx = kernel32.declare("GetVersionExW",
+                                                ctypes.default_abi,
+                                                BOOL,
+                                                OSVERSIONINFOEXW.ptr);
+            let winVer = OSVERSIONINFOEXW();
+            winVer.dwOSVersionInfoSize = OSVERSIONINFOEXW.size;
+
+            if(0 !== GetVersionEx(winVer.address())) {
+              osVersion += "." + winVer.wServicePackMajor
+                        +  "." + winVer.wServicePackMinor;
+            } else {
+              LOG("gOSVersion - Unknown failure in GetVersionEX (returned 0)");
+              osVersion += ".unknown";
+            }
+          } catch (e) {
+            LOG("gOSVersion - error getting service pack information. Exception: " + e);
             osVersion += ".unknown";
           }
-        } catch (e) {
-          LOG("gOSVersion - error getting service pack information. Exception: " + e);
-          osVersion += ".unknown";
-        }
 
-        
-        let arch = "unknown";
-        try {
-          let GetNativeSystemInfo = kernel32.declare("GetNativeSystemInfo",
-                                                     ctypes.default_abi,
-                                                     ctypes.void_t,
-                                                     SYSTEM_INFO.ptr);
-          let sysInfo = SYSTEM_INFO();
           
-          sysInfo.wProcessorArchitecture = 0xffff;
+          let arch = "unknown";
+          try {
+            let GetNativeSystemInfo = kernel32.declare("GetNativeSystemInfo",
+                                                       ctypes.default_abi,
+                                                       ctypes.void_t,
+                                                       SYSTEM_INFO.ptr);
+            let winSystemInfo = SYSTEM_INFO();
+            
+            winSystemInfo.wProcessorArchitecture = 0xffff;
 
-          GetNativeSystemInfo(sysInfo.address());
-          switch(sysInfo.wProcessorArchitecture) {
-            case 9:
-              arch = "x64";
-              break;
-            case 6:
-              arch = "IA64";
-              break;
-            case 0:
-              arch = "x86";
-              break;
+            GetNativeSystemInfo(winSystemInfo.address());
+            switch(winSystemInfo.wProcessorArchitecture) {
+              case 9:
+                arch = "x64";
+                break;
+              case 6:
+                arch = "IA64";
+                break;
+              case 0:
+                arch = "x86";
+                break;
+            }
+          } catch (e) {
+            LOG("gOSVersion - error getting processor architecture.  Exception: " + e);
+          } finally {
+            osVersion += " (" + arch + ")";
           }
-        } catch (e) {
-          LOG("gOSVersion - error getting processor architecture.  Exception: " + e);
         } finally {
-          osVersion += " (" + arch + ")";
+          kernel32.close();
         }
-      } finally {
-        kernel32.close();
       }
     }
-#endif
 
     try {
-      osVersion += " (" + sysInfo.getProperty("secondaryLibrary") + ")";
+      osVersion += " (" + Services.sysinfo.getProperty("secondaryLibrary") + ")";
     }
     catch (e) {
       
@@ -424,16 +391,14 @@ function testWriteAccess(updateTestFile, createDirectory) {
   updateTestFile.remove(false);
 }
 
-#ifdef XP_WIN
-
 
 
 
 
 
 function closeHandle(handle) {
-  var lib = ctypes.open("kernel32.dll");
-  var CloseHandle = lib.declare("CloseHandle",
+  let lib = ctypes.open("kernel32.dll");
+  let CloseHandle = lib.declare("CloseHandle",
                                 ctypes.winapi_abi,
                                 ctypes.int32_t, 
                                 ctypes.void_t.ptr); 
@@ -450,31 +415,32 @@ function closeHandle(handle) {
 
 
 
-function createMutex(aName, aAllowExisting) {
-  if (aAllowExisting === undefined) {
-    aAllowExisting = true;
+function createMutex(aName, aAllowExisting = true) {
+  if (AppConstants.platform != "win") {
+    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
   }
 
   const INITIAL_OWN = 1;
   const ERROR_ALREADY_EXISTS = 0xB7;
-  var lib = ctypes.open("kernel32.dll");
-  var CreateMutexW = lib.declare("CreateMutexW",
+  let lib = ctypes.open("kernel32.dll");
+  let CreateMutexW = lib.declare("CreateMutexW",
                                  ctypes.winapi_abi,
                                  ctypes.void_t.ptr, 
                                  ctypes.void_t.ptr, 
                                  ctypes.int32_t, 
                                  ctypes.char16_t.ptr); 
 
-  var handle = CreateMutexW(null, INITIAL_OWN, aName);
-  var alreadyExists = ctypes.winLastError == ERROR_ALREADY_EXISTS;
+  let handle = CreateMutexW(null, INITIAL_OWN, aName);
+  let alreadyExists = ctypes.winLastError == ERROR_ALREADY_EXISTS;
   if (handle && !handle.isNull() && !aAllowExisting && alreadyExists) {
     closeHandle(handle);
     handle = null;
   }
   lib.close();
 
-  if (handle && handle.isNull())
+  if (handle && handle.isNull()) {
     handle = null;
+  }
 
   return handle;
 }
@@ -486,15 +452,17 @@ function createMutex(aName, aAllowExisting) {
 
 
 
-function getPerInstallationMutexName(aGlobal) {
-  if (aGlobal === undefined) {
-    aGobal = true;
+
+function getPerInstallationMutexName(aGlobal = true) {
+  if (AppConstants.platform != "win") {
+    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
   }
+
   let hasher = Cc["@mozilla.org/security/hash;1"].
                createInstance(Ci.nsICryptoHash);
   hasher.init(hasher.SHA1);
 
-  var exeFile = Services.dirsvc.get(KEY_EXECUTABLE, Ci.nsILocalFile);
+  let exeFile = Services.dirsvc.get(KEY_EXECUTABLE, Ci.nsILocalFile);
 
   let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"].
                   createInstance(Ci.nsIScriptableUnicodeConverter);
@@ -504,7 +472,6 @@ function getPerInstallationMutexName(aGlobal) {
   hasher.update(data, data.length);
   return (aGlobal ? "Global\\" : "") + "MozillaUpdateMutex-" + hasher.finish(true);
 }
-#endif 
 
 
 
@@ -515,15 +482,13 @@ function getPerInstallationMutexName(aGlobal) {
 
 
 function hasUpdateMutex() {
-#ifdef XP_WIN
+  if (AppConstants.platform != "win") {
+    return true;
+  }
   if (!gUpdateMutexHandle) {
     gUpdateMutexHandle = createMutex(getPerInstallationMutexName(true), false);
   }
-
   return !!gUpdateMutexHandle;
-#else
-  return true;
-#endif 
 }
 
 XPCOMUtils.defineLazyGetter(this, "gCanApplyUpdates", function aus_gCanApplyUpdates() {
@@ -537,93 +502,87 @@ XPCOMUtils.defineLazyGetter(this, "gCanApplyUpdates", function aus_gCanApplyUpda
 
   if (!useService) {
     try {
-      var updateTestFile = getUpdateFile([FILE_PERMS_TEST]);
+      let updateTestFile = getUpdateFile([FILE_PERMS_TEST]);
       LOG("gCanApplyUpdates - testing write access " + updateTestFile.path);
       testWriteAccess(updateTestFile, false);
-#ifdef XP_MACOSX
-      
-      var appDirTestFile = getAppBaseDir();
-      appDirTestFile.append(FILE_PERMS_TEST);
-      LOG("gCanApplyUpdates - testing write access " + appDirTestFile.path);
-      if (appDirTestFile.exists()) {
-        appDirTestFile.remove(false)
-      }
-      appDirTestFile.create(Ci.nsILocalFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
-      appDirTestFile.remove(false);
-#elifdef XP_WIN
-      var sysInfo = Cc["@mozilla.org/system-info;1"].
-                    getService(Ci.nsIPropertyBag2);
-
-      
-      var windowsVersion = sysInfo.getProperty("version");
-      LOG("gCanApplyUpdates - windowsVersion = " + windowsVersion);
-
-    
-
-
-
-
-
-
-
-
-
-
-      var userCanElevate = false;
-
-      if (parseFloat(windowsVersion) >= 6) {
-        try {
-          var fileLocator = Cc["@mozilla.org/file/directory_service;1"].
-                            getService(Ci.nsIProperties);
-          
-          
-          var dir = fileLocator.get(KEY_UPDROOT, Ci.nsIFile);
-          
-          userCanElevate = Services.appinfo.QueryInterface(Ci.nsIWinAppHelper).
-                           userCanElevate;
-          LOG("gCanApplyUpdates - on Vista, userCanElevate: " + userCanElevate);
-        }
-        catch (ex) {
-          
-          
-          
-          LOG("gCanApplyUpdates - on Vista, appDir is not under Program Files");
-        }
-      }
-
-      
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-      if (!userCanElevate) {
+      if (AppConstants.platform == "macosx") {
         
-        var appDirTestFile = getAppBaseDir();
+        let appDirTestFile = getAppBaseDir();
         appDirTestFile.append(FILE_PERMS_TEST);
         LOG("gCanApplyUpdates - testing write access " + appDirTestFile.path);
-        if (appDirTestFile.exists())
+        if (appDirTestFile.exists()) {
           appDirTestFile.remove(false)
+        }
         appDirTestFile.create(Ci.nsILocalFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
         appDirTestFile.remove(false);
+      } else if (AppConstants.platform == "win") {
+        
+        let windowsVersion = Services.sysinfo.getProperty("version");
+        LOG("gCanApplyUpdates - windowsVersion = " + windowsVersion);
+
+      
+
+
+
+
+
+
+
+
+
+
+        let userCanElevate = false;
+
+        if (parseFloat(windowsVersion) >= 6) {
+          try {
+            
+            
+            let dir = Services.dirsvc.get(KEY_UPDROOT, Ci.nsIFile);
+            
+            userCanElevate = Services.appinfo.QueryInterface(Ci.nsIWinAppHelper).
+                             userCanElevate;
+            LOG("gCanApplyUpdates - on Vista, userCanElevate: " + userCanElevate);
+          }
+          catch (ex) {
+            
+            
+            
+            LOG("gCanApplyUpdates - on Vista, appDir is not under Program Files");
+          }
+        }
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        if (!userCanElevate) {
+          
+          let appDirTestFile = getAppBaseDir();
+          appDirTestFile.append(FILE_PERMS_TEST);
+          LOG("gCanApplyUpdates - testing write access " + appDirTestFile.path);
+          if (appDirTestFile.exists())
+            appDirTestFile.remove(false)
+          appDirTestFile.create(Ci.nsILocalFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
+          appDirTestFile.remove(false);
+        }
       }
-#endif 
-    }
-    catch (e) {
+    } catch (e) {
        LOG("gCanApplyUpdates - unable to apply updates. Exception: " + e);
       
       return false;
@@ -647,14 +606,17 @@ function getCanStageUpdates() {
     return false;
   }
 
-#ifdef CHECK_CAN_USE_SERVICE
-  if (getPref("getBoolPref", PREF_APP_UPDATE_SERVICE_ENABLED, false)) {
-    
-    
-    LOG("getCanStageUpdates - able to stage updates because we'll use the service");
-    return true;
+  
+  
+  
+  if (AppConstants.platform == "win" || AppConstants.platform == "gonk") {
+    if (getPref("getBoolPref", PREF_APP_UPDATE_SERVICE_ENABLED, false)) {
+      
+      
+      LOG("getCanStageUpdates - able to stage updates because we'll use the service");
+      return true;
+    }
   }
-#endif
 
   if (!hasUpdateMutex()) {
     LOG("getCanStageUpdates - unable to apply updates because another " +
@@ -676,20 +638,19 @@ function getCanStageUpdates() {
       LOG("canStageUpdatesSession - testing write access " +
           updateTestFile.path);
       testWriteAccess(updateTestFile, true);
-#ifndef XP_MACOSX
-      
-      
-      
-      updateTestFile = getInstallDirRoot().parent;
-      updateTestFile.append(FILE_PERMS_TEST);
-      LOG("canStageUpdatesSession - testing write access " +
-          updateTestFile.path);
-      updateTestFile.createUnique(Ci.nsILocalFile.DIRECTORY_TYPE,
-                                  FileUtils.PERMS_DIRECTORY);
-      updateTestFile.remove(false);
-#endif
-    }
-    catch (e) {
+      if (AppConstants.platform != "macosx") {
+        
+        
+        
+        updateTestFile = getInstallDirRoot().parent;
+        updateTestFile.append(FILE_PERMS_TEST);
+        LOG("canStageUpdatesSession - testing write access " +
+            updateTestFile.path);
+        updateTestFile.createUnique(Ci.nsILocalFile.DIRECTORY_TYPE,
+                                    FileUtils.PERMS_DIRECTORY);
+        updateTestFile.remove(false);
+      }
+    } catch (e) {
        LOG("canStageUpdatesSession - unable to stage updates. Exception: " +
            e);
       
@@ -819,11 +780,11 @@ function getAppBaseDir() {
 
 
 function getInstallDirRoot() {
-  var dir = getAppBaseDir();
-#ifdef XP_MACOSX
-  
-  dir = dir.parent.parent;
-#endif
+  let dir = getAppBaseDir();
+  if (AppConstants.platform == "macosx") {
+    
+    dir = dir.parent.parent;
+  }
   return dir;
 }
 
@@ -838,7 +799,7 @@ function getInstallDirRoot() {
 
 
 function getUpdateFile(pathArray) {
-  var file = getUpdateDirCreate(pathArray.slice(0, -1));
+  let file = getUpdateDirCreate(pathArray.slice(0, -1));
   file.append(pathArray[pathArray.length - 1]);
   return file;
 }
@@ -854,7 +815,7 @@ function getUpdateFile(pathArray) {
 
 
 function getStatusTextFromCode(code, defaultCode) {
-  var reason;
+  let reason;
   try {
     reason = gUpdateBundle.GetStringFromName("check_error-" + code);
     LOG("getStatusTextFromCode - transfer error: " + reason + ", code: " +
@@ -886,15 +847,15 @@ function getUpdatesDir() {
 
 
 function getUpdatesDirInApplyToDir() {
-  var dir = getAppBaseDir();
-#ifdef XP_MACOSX
-  dir = dir.parent.parent; 
-#endif
-  dir.append(UPDATED_DIR);
-#ifdef XP_MACOSX
-  dir.append("Contents");
-  dir.append("MacOS");
-#endif
+  let dir = getAppBaseDir();
+  if (AppConstants.platform == "macosx") {
+    dir = dir.parent.parent; 
+    dir.append(DIR_UPDATED_APP);
+    dir.append("Contents");
+    dir.append("MacOS");
+  } else {
+    dir.append(DIR_UPDATED);
+  }
   dir.append(DIR_UPDATES);
   if (!dir.exists()) {
     dir.create(Ci.nsILocalFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
@@ -910,9 +871,9 @@ function getUpdatesDirInApplyToDir() {
 
 
 function readStatusFile(dir) {
-  var statusFile = dir.clone();
+  let statusFile = dir.clone();
   statusFile.append(FILE_UPDATE_STATUS);
-  var status = readStringFromFile(statusFile) || STATE_NONE;
+  let status = readStringFromFile(statusFile) || STATE_NONE;
   LOG("readStatusFile - status: " + status + ", path: " + statusFile.path);
   return status;
 }
@@ -928,12 +889,32 @@ function readStatusFile(dir) {
 
 
 function writeStatusFile(dir, state) {
-  var statusFile = dir.clone();
+  let statusFile = dir.clone();
   statusFile.append(FILE_UPDATE_STATUS);
   writeStringToFile(statusFile, state);
 }
 
-#ifdef MOZ_WIDGET_GONK
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function writeVersionFile(dir, version) {
+  let versionFile = dir.clone();
+  versionFile.append(FILE_UPDATE_VERSION);
+  writeStringToFile(versionFile, version);
+}
+
 
 
 
@@ -945,9 +926,12 @@ function writeStatusFile(dir, state) {
 
 
 function getFileFromUpdateLink(dir) {
-  var linkFile = dir.clone();
+  if (AppConstants.platform != "gonk") {
+    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+  }
+  let linkFile = dir.clone();
   linkFile.append(FILE_UPDATE_LINK);
-  var link = readStringFromFile(linkFile);
+  let link = readStringFromFile(linkFile);
   LOG("getFileFromUpdateLink linkFile.path: " + linkFile.path + ", link: " + link);
   if (!link) {
     return null;
@@ -967,7 +951,10 @@ function getFileFromUpdateLink(dir) {
 
 
 function writeLinkFile(dir, patchFile) {
-  var linkFile = dir.clone();
+  if (AppConstants.platform != "gonk") {
+    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+  }
+  let linkFile = dir.clone();
   linkFile.append(FILE_UPDATE_LINK);
   writeStringToFile(linkFile, patchFile.path);
   if (patchFile.path.indexOf(gExtStorage) == 0) {
@@ -985,6 +972,9 @@ function writeLinkFile(dir, patchFile) {
 
 
 function acquireSDCardMountLock() {
+  if (AppConstants.platform != "gonk") {
+    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+  }
   let volsvc = Cc["@mozilla.org/telephony/volume-service;1"].
                     getService(Ci.nsIVolumeService);
   if (volsvc) {
@@ -1001,14 +991,13 @@ function acquireSDCardMountLock() {
 
 
 function isInterruptedUpdate(status) {
+  if (AppConstants.platform != "gonk") {
+    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+  }
   return (status == STATE_DOWNLOADING) ||
          (status == STATE_PENDING) ||
          (status == STATE_APPLYING);
 }
-#endif 
-
-
-
 
 
 
@@ -1016,12 +1005,13 @@ function isInterruptedUpdate(status) {
 
 
 function releaseSDCardMountLock() {
-#ifdef MOZ_WIDGET_GONK
+  if (AppConstants.platform != "gonk") {
+    throw Cr.NS_ERROR_UNEXPECTED;
+  }
   if (gSDCardMountLock) {
     gSDCardMountLock.unlock();
     gSDCardMountLock = null;
   }
-#endif
 }
 
 
@@ -1032,12 +1022,11 @@ function releaseSDCardMountLock() {
 
 
 function shouldUseService() {
-#ifdef MOZ_MAINTENANCE_SERVICE
-  return getPref("getBoolPref",
-                 PREF_APP_UPDATE_SERVICE_ENABLED, false);
-#else
+  if (AppConstants.MOZ_MAINTENANCE_SERVICE) {
+    return getPref("getBoolPref",
+                   PREF_APP_UPDATE_SERVICE_ENABLED, false);
+  }
   return false;
-#endif
 }
 
 
@@ -1047,45 +1036,23 @@ function shouldUseService() {
 
 
 function isServiceInstalled() {
-#ifdef XP_WIN
-  let installed = 0;
-  try {
-    let wrk = Cc["@mozilla.org/windows-registry-key;1"].
-              createInstance(Ci.nsIWindowsRegKey);
-    wrk.open(wrk.ROOT_KEY_LOCAL_MACHINE,
-             "SOFTWARE\\Mozilla\\MaintenanceService",
-             wrk.ACCESS_READ | wrk.WOW64_64);
-    installed = wrk.readIntValue("Installed");
-    wrk.close();
-  } catch(e) {
+  if (AppConstants.MOZ_MAINTENANCE_SERVICE && AppConstants.platform == "win") {
+    let installed = 0;
+    try {
+      let wrk = Cc["@mozilla.org/windows-registry-key;1"].
+                createInstance(Ci.nsIWindowsRegKey);
+      wrk.open(wrk.ROOT_KEY_LOCAL_MACHINE,
+               "SOFTWARE\\Mozilla\\MaintenanceService",
+               wrk.ACCESS_READ | wrk.WOW64_64);
+      installed = wrk.readIntValue("Installed");
+      wrk.close();
+    } catch(e) {
+    }
+    installed = installed == 1;  
+    LOG("isServiceInstalled = " + installed);
+    return installed;
   }
-  installed = installed == 1;  
-  LOG("isServiceInstalled = " + installed);
-  return installed;
-#else
   return false;
-#endif
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function writeVersionFile(dir, version) {
-  var versionFile = dir.clone();
-  versionFile.append(FILE_UPDATE_VERSION);
-  writeStringToFile(versionFile, version);
 }
 
 
@@ -1106,9 +1073,7 @@ function cleanUpMozUpdaterDirs() {
   }
 
   try {
-    var tmpDir = Cc["@mozilla.org/file/directory_service;1"].
-                 getService(Ci.nsIProperties).
-                 get("TmpD", Ci.nsIFile);
+    var tmpDir = Services.dirsvc.get("TmpD", Ci.nsIFile);
 
     
     
@@ -1189,14 +1154,14 @@ function cleanUpUpdatesDir(aBackgroundUpdate) {
     let e = updateDir.directoryEntries;
     while (e.hasMoreElements()) {
       let f = e.getNext().QueryInterface(Ci.nsIFile);
-#ifdef MOZ_WIDGET_GONK
-      if (f.leafName == FILE_UPDATE_LINK) {
-        let linkedFile = getFileFromUpdateLink(updateDir);
-        if (linkedFile && linkedFile.exists()) {
-          linkedFile.remove(false);
+      if (AppConstants.platform == "gonk") {
+        if (f.leafName == FILE_UPDATE_LINK) {
+          let linkedFile = getFileFromUpdateLink(updateDir);
+          if (linkedFile && linkedFile.exists()) {
+            linkedFile.remove(false);
+          }
         }
       }
-#endif
 
       
       
@@ -1208,7 +1173,9 @@ function cleanUpUpdatesDir(aBackgroundUpdate) {
       }
     }
   }
-  releaseSDCardMountLock();
+  if (AppConstants.platform == "gonk") {
+    releaseSDCardMountLock();
+  }
 }
 
 
@@ -1977,12 +1944,12 @@ function UpdateService() {
   LOG("Creating UpdateService");
   Services.obs.addObserver(this, "xpcom-shutdown", false);
   Services.prefs.addObserver(PREF_APP_UPDATE_LOG, this, false);
-#ifdef MOZ_WIDGET_GONK
-  
-  
-  
-  Services.obs.addObserver(this, "profile-change-net-teardown", false);
-#endif
+  if (AppConstants.platform == "gonk") {
+    
+    
+    
+    Services.obs.addObserver(this, "profile-change-net-teardown", false);
+  }
 }
 
 UpdateService.prototype = {
@@ -2041,21 +2008,17 @@ UpdateService.prototype = {
           gLogEnabled = getPref("getBoolPref", PREF_APP_UPDATE_LOG, false);
         }
         break;
-#ifdef MOZ_WIDGET_GONK
       case "profile-change-net-teardown": 
-#endif
       case "xpcom-shutdown":
         Services.obs.removeObserver(this, topic);
         Services.prefs.removeObserver(PREF_APP_UPDATE_LOG, this);
 
-#ifdef XP_WIN
-        
-        
-        
-        if (gUpdateMutexHandle) {
+        if (AppConstants.platform == "win" && gUpdateMutexHandle) {
+          
+          
+          
           closeHandle(gUpdateMutexHandle);
         }
-#endif
         if (this._retryTimer) {
           this._retryTimer.cancel();
         }
@@ -2111,22 +2074,22 @@ UpdateService.prototype = {
       return;
     }
 
-#ifdef MOZ_WIDGET_GONK
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    if (isInterruptedUpdate(status)) {
-      LOG("UpdateService:_postUpdateProcessing - interrupted update detected - wait for user consent");
-      return;
+    if (AppConstants.platform == "gonk") {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      if (isInterruptedUpdate(status)) {
+        LOG("UpdateService:_postUpdateProcessing - interrupted update detected - wait for user consent");
+        return;
+      }
     }
-#endif
 
     if (status == STATE_DOWNLOADING) {
       LOG("UpdateService:_postUpdateProcessing - patch found in downloading " +
@@ -2168,34 +2131,33 @@ UpdateService.prototype = {
       return;
     }
 
-#ifdef MOZ_WIDGET_GONK
-    
-    if (status == STATE_APPLIED && update && update.isOSUpdate) {
-      LOG("UpdateService:_postUpdateProcessing - update staged as applied found");
-      return;
-    }
-
-    if (status == STATE_APPLIED_OS && update && update.isOSUpdate) {
+    if (AppConstants.platform == "gonk") {
       
-      
-      var recoveryService = Cc["@mozilla.org/recovery-service;1"].
-                            getService(Ci.nsIRecoveryService);
+      if (status == STATE_APPLIED && update && update.isOSUpdate) {
+        LOG("UpdateService:_postUpdateProcessing - update staged as applied found");
+        return;
+      }
 
-      var fotaStatus = recoveryService.getFotaUpdateStatus();
-      switch (fotaStatus) {
-        case Ci.nsIRecoveryService.FOTA_UPDATE_SUCCESS:
-          status = STATE_SUCCEEDED;
-          break;
-        case Ci.nsIRecoveryService.FOTA_UPDATE_FAIL:
-          status = STATE_FAILED + ": " + FOTA_GENERAL_ERROR;
-          break;
-        case Ci.nsIRecoveryService.FOTA_UPDATE_UNKNOWN:
-        default:
-          status = STATE_FAILED + ": " + FOTA_UNKNOWN_ERROR;
-          break;
+      if (status == STATE_APPLIED_OS && update && update.isOSUpdate) {
+        
+        
+        let recoveryService = Cc["@mozilla.org/recovery-service;1"].
+                              getService(Ci.nsIRecoveryService);
+        let fotaStatus = recoveryService.getFotaUpdateStatus();
+        switch (fotaStatus) {
+          case Ci.nsIRecoveryService.FOTA_UPDATE_SUCCESS:
+            status = STATE_SUCCEEDED;
+            break;
+          case Ci.nsIRecoveryService.FOTA_UPDATE_FAIL:
+            status = STATE_FAILED + ": " + FOTA_GENERAL_ERROR;
+            break;
+          case Ci.nsIRecoveryService.FOTA_UPDATE_UNKNOWN:
+          default:
+            status = STATE_FAILED + ": " + FOTA_UNKNOWN_ERROR;
+            break;
+        }
       }
     }
-#endif
 
     if (!update) {
       if (status != STATE_SUCCEEDED) {
@@ -2440,32 +2402,35 @@ UpdateService.prototype = {
     AUSTLMY.pingBoolPref("UPDATE_NOT_PREF_UPDATE_STAGING_ENABLED_" +
                          this._pingSuffix,
                          PREF_APP_UPDATE_STAGING_ENABLED, true, true);
-#ifdef XP_WIN
-    
-    
-    
-    AUSTLMY.pingIntPref("UPDATE_PREF_UPDATE_CANCELATIONS_" + this._pingSuffix,
-                        PREF_APP_UPDATE_CANCELATIONS, 0, 0);
-#ifdef MOZ_MAINTENANCE_SERVICE
-    
-    
-    
-    AUSTLMY.pingBoolPref("UPDATE_NOT_PREF_UPDATE_SERVICE_ENABLED_" +
-                         this._pingSuffix,
-                         PREF_APP_UPDATE_SERVICE_ENABLED, true);
-    
-    
-    
-    AUSTLMY.pingIntPref("UPDATE_PREF_SERVICE_ERRORS_" + this._pingSuffix,
-                        PREF_APP_UPDATE_SERVICE_ERRORS, 0, 0);
-    
-    
-    
-    
-    
-    AUSTLMY.pingServiceInstallStatus(this._pingSuffix, isServiceInstalled());
-#endif 
-#endif 
+    if (AppConstants.platform == "win") {
+      
+      
+      
+      AUSTLMY.pingIntPref("UPDATE_PREF_UPDATE_CANCELATIONS_" + this._pingSuffix,
+                          PREF_APP_UPDATE_CANCELATIONS, 0, 0);
+    }
+    if (AppConstants.MOZ_MAINTENANCE_SERVICE) {
+      
+      
+      
+      AUSTLMY.pingBoolPref("UPDATE_NOT_PREF_UPDATE_SERVICE_ENABLED_" +
+                           this._pingSuffix,
+                           PREF_APP_UPDATE_SERVICE_ENABLED, true);
+      
+      
+      
+      AUSTLMY.pingIntPref("UPDATE_PREF_SERVICE_ERRORS_" + this._pingSuffix,
+                          PREF_APP_UPDATE_SERVICE_ERRORS, 0, 0);
+      if (AppConstants.platform == "win") {
+        
+        
+        
+        
+        
+        AUSTLMY.pingServiceInstallStatus(this._pingSuffix, isServiceInstalled());
+      }
+    }
+
     let prefType = Services.prefs.getPrefType(PREF_APP_UPDATE_URL_OVERRIDE);
     let overridePrefHasValue = prefType != Ci.nsIPrefBranch.PREF_INVALID;
     
@@ -2625,11 +2590,11 @@ UpdateService.prototype = {
     var um = Cc["@mozilla.org/updates/update-manager;1"].
              getService(Ci.nsIUpdateManager);
     if (um.activeUpdate) {
-#ifdef MOZ_WIDGET_GONK
-      
-      
-      this._showPrompt(um.activeUpdate);
-#endif
+      if (AppConstants.platform == "gonk") {
+        
+        
+        this._showPrompt(um.activeUpdate);
+      }
       AUSTLMY.pingCheckCode(this._pingSuffix, AUSTLMY.CHK_HAS_ACTIVEUPDATE);
       return;
     }
@@ -2847,26 +2812,26 @@ UpdateService.prototype = {
   },
 
   onUpdateAvailable: function(addon, install) {
-    if (getPref("getIntPref", PREF_APP_UPDATE_INCOMPATIBLE_MODE, 0) == 1)
+    if (getPref("getIntPref", PREF_APP_UPDATE_INCOMPATIBLE_MODE, 0) == 1) {
       return;
+    }
 
     
     
     
-    let bs = Cc["@mozilla.org/extensions/blocklist;1"].
-             getService(Ci.nsIBlocklistService);
-    if (bs.isAddonBlocklisted(addon,
-                              this._update.appVersion,
-                              this._update.platformVersion))
+    if (Services.blocklist.isAddonBlocklisted(addon, this._update.appVersion,
+                                              this._update.platformVersion)) {
       return;
+    }
 
     
     this.onCompatibilityUpdateAvailable(addon);
   },
 
   onUpdateFinished: function(addon) {
-    if (--this._updateCheckCount > 0)
+    if (--this._updateCheckCount > 0) {
       return;
+    }
 
     if (this._incompatibleAddons.length > 0 || !gCanApplyUpdates) {
       LOG("UpdateService:onUpdateEnded - prompting because there are " +
@@ -2878,8 +2843,7 @@ UpdateService.prototype = {
         AUSTLMY.pingCheckCode(this._pingSuffix, AUSTLMY.CHK_UNABLE_TO_APPLY);
       }
       this._showPrompt(this._update);
-    }
-    else {
+    } else {
       LOG("UpdateService:_selectAndInstallUpdate - updates for all " +
           "incompatible add-ons found, just download the update");
       var status = this.downloadUpdate(this._update, true);
@@ -2991,21 +2955,21 @@ UpdateService.prototype = {
       }
       this._downloader.cancel();
     }
-#ifdef MOZ_WIDGET_GONK
-    var um = Cc["@mozilla.org/updates/update-manager;1"].
-             getService(Ci.nsIUpdateManager);
-    var activeUpdate = um.activeUpdate;
-    if (activeUpdate &&
-        (activeUpdate.appVersion != update.appVersion ||
-         activeUpdate.buildID != update.buildID)) {
-      
-      
-      
-      
-      LOG("UpdateService:downloadUpdate - removing stale active update.");
-      cleanupActiveUpdate();
+    if (AppConstants.platform == "gonk") {
+      let um = Cc["@mozilla.org/updates/update-manager;1"].
+               getService(Ci.nsIUpdateManager);
+      let activeUpdate = um.activeUpdate;
+      if (activeUpdate &&
+          (activeUpdate.appVersion != update.appVersion ||
+           activeUpdate.buildID != update.buildID)) {
+        
+        
+        
+        
+        LOG("UpdateService:downloadUpdate - removing stale active update.");
+        cleanupActiveUpdate();
+      }
     }
-#endif
     
     update.previousAppVersion = Services.appinfo.version;
     this._downloader = new Downloader(background, this);
@@ -3410,18 +3374,19 @@ UpdateManager.prototype = {
 
     
     
-#ifdef MOZ_WIDGET_GONK
-    if (update.state == STATE_APPLIED) {
-      
-      
-      
-      var prompter = Cc["@mozilla.org/updates/update-prompt;1"].
-                     createInstance(Ci.nsIUpdatePrompt);
-      prompter.showUpdateDownloaded(update, true);
-    } else {
-      releaseSDCardMountLock();
+    if (AppConstants.platform == "gonk") {
+      if (update.state == STATE_APPLIED) {
+        
+        
+        
+        let prompter = Cc["@mozilla.org/updates/update-prompt;1"].
+                       createInstance(Ci.nsIUpdatePrompt);
+        prompter.showUpdateDownloaded(update, true);
+      } else {
+        releaseSDCardMountLock();
+      }
+      return;
     }
-#else
     
     let windowType = getPref("getCharPref", PREF_APP_UPDATE_ALTWINDOWTYPE, null);
     if (Services.wm.getMostRecentWindow(UPDATE_WINDOW_NAME) ||
@@ -3431,13 +3396,12 @@ UpdateManager.prototype = {
 
     if (update.state == STATE_APPLIED || update.state == STATE_APPLIED_SVC ||
         update.state == STATE_PENDING || update.state == STATE_PENDING_SVC) {
-      
-      
-      var prompter = Cc["@mozilla.org/updates/update-prompt;1"].
+        
+        
+      let prompter = Cc["@mozilla.org/updates/update-prompt;1"].
                      createInstance(Ci.nsIUpdatePrompt);
       prompter.showUpdateDownloaded(update, true);
     }
-#endif
   },
 
   classID: Components.ID("{093C2356-4843-4C65-8709-D7DBCBBE7DFB}"),
@@ -3470,7 +3434,7 @@ Checker.prototype = {
     this._forced = force;
 
     
-    var url = getPref("getCharPref", PREF_APP_UPDATE_URL_OVERRIDE, null);
+    let url = getPref("getCharPref", PREF_APP_UPDATE_URL_OVERRIDE, null);
 
     
     if (!url) {
@@ -3491,8 +3455,9 @@ Checker.prototype = {
     url = url.replace(/%BUILD_ID%/g, Services.appinfo.appBuildID);
     url = url.replace(/%BUILD_TARGET%/g, Services.appinfo.OS + "_" + gABI);
     url = url.replace(/%OS_VERSION%/g, gOSVersion);
-    if (/%LOCALE%/.test(url))
+    if (/%LOCALE%/.test(url)) {
       url = url.replace(/%LOCALE%/g, getLocale());
+    }
     url = url.replace(/%CHANNEL%/g, UpdateChannel.get());
     url = url.replace(/%PLATFORM_VERSION%/g, Services.appinfo.platformVersion);
     url = url.replace(/%DISTRIBUTION%/g,
@@ -3502,14 +3467,20 @@ Checker.prototype = {
     url = url.replace(/%CUSTOM%/g, getPref("getCharPref", PREF_APP_UPDATE_CUSTOM, ""));
     url = url.replace(/\+/g, "%2B");
 
-#ifdef MOZ_WIDGET_GONK
-    url = url.replace(/%PRODUCT_MODEL%/g, gProductModel);
-    url = url.replace(/%PRODUCT_DEVICE%/g, gProductDevice);
-    url = url.replace(/%B2G_VERSION%/g, getPref("getCharPref", PREF_APP_B2G_VERSION, null));
-#endif
+    if (AppConstants.platform == "gonk") {
+      let sysLibs = {};
+      Cu.import("resource://gre/modules/systemlibs.js", sysLibs);
+      url = url.replace(/%PRODUCT_MODEL%/g,
+                        sysLibs.libcutils.property_get("ro.product.model"));
+      url = url.replace(/%PRODUCT_DEVICE%/g,
+                        sysLibs.libcutils.property_get("ro.product.device"));
+      url = url.replace(/%B2G_VERSION%/g,
+                        getPref("getCharPref", PREF_APP_B2G_VERSION, null));
+    }
 
-    if (force)
+    if (force) {
       url += (url.indexOf("?") != -1 ? "&" : "?") + "force=1";
+    }
 
     LOG("Checker:getUpdateURL - update URL: " + url);
     return url;
@@ -3790,7 +3761,9 @@ Downloader.prototype = {
     if (this._request && this._request instanceof Ci.nsIRequest) {
       this._request.cancel(cancelError);
     }
-    releaseSDCardMountLock();
+    if (AppConstants.platform == "gonk") {
+      releaseSDCardMountLock();
+    }
   },
 
   
@@ -3907,38 +3880,36 @@ Downloader.prototype = {
     if (selectedPatch) {
       LOG("Downloader:_selectPatch - found existing patch with state: " +
           state);
-      switch (state) {
-        case STATE_DOWNLOADING:
-          LOG("Downloader:_selectPatch - resuming download");
-          return selectedPatch;
-#ifdef MOZ_WIDGET_GONK
-        case STATE_PENDING:
-        case STATE_APPLYING:
-          LOG("Downloader:_selectPatch - resuming interrupted apply");
-          return selectedPatch;
-        case STATE_APPLIED:
-          LOG("Downloader:_selectPatch - already downloaded and staged");
-          return null;
-#else
-        case STATE_PENDING_SVC:
-        case STATE_PENDING:
-          LOG("Downloader:_selectPatch - already downloaded and staged");
-          return null;
-#endif
-        default:
-          
-          
-          if (update && selectedPatch.type == "partial") {
-            useComplete = true;
-          } else {
-            
-            LOG("Downloader:_selectPatch - failed to apply complete patch!");
-            writeStatusFile(updateDir, STATE_NONE);
-            writeVersionFile(getUpdatesDir(), null);
-            return null;
-          }
+      if (state == STATE_DOWNLOADING) {
+        LOG("Downloader:_selectPatch - resuming download");
+        return selectedPatch;
       }
 
+      if (AppConstants.platform == "gonk") {
+        if (state == STATE_PENDING || state == STATE_APPLYING) {
+          LOG("Downloader:_selectPatch - resuming interrupted apply");
+          return selectedPatch;
+        }
+        if (state == STATE_APPLIED) {
+          LOG("Downloader:_selectPatch - already downloaded and staged");
+          return null;
+        }
+      } else if (state == STATE_PENDING || state == STATE_PENDING_SVC) {
+        LOG("Downloader:_selectPatch - already downloaded and staged");
+        return null;
+      }
+
+      if (update && selectedPatch.type == "complete") {
+        
+        LOG("Downloader:_selectPatch - failed to apply complete patch!");
+        writeStatusFile(updateDir, STATE_NONE);
+        writeVersionFile(getUpdatesDir(), null);
+        return null;
+      }
+
+      
+      
+      useComplete = true;
       selectedPatch = null;
     }
 
@@ -3985,15 +3956,15 @@ Downloader.prototype = {
 
   _getUpdateArchiveFile: function Downloader__getUpdateArchiveFile() {
     var updateArchive;
-#ifdef USE_UPDATE_ARCHIVE_DIR
-    try {
-      updateArchive = FileUtils.getDir(KEY_UPDATE_ARCHIVE_DIR, [], true);
-    } catch (e) {
-      return null;
+    if (AppConstants.platform == "gonk") {
+      try {
+        updateArchive = FileUtils.getDir(KEY_UPDATE_ARCHIVE_DIR, [], true);
+      } catch (e) {
+        return null;
+      }
+    } else {
+      updateArchive = getUpdatesDir().clone();
     }
-#else
-    updateArchive = getUpdatesDir().clone();
-#endif
 
     updateArchive.append(FILE_UPDATE_ARCHIVE);
     return updateArchive;
@@ -4025,62 +3996,65 @@ Downloader.prototype = {
     }
     this.isCompleteUpdate = this._patch.type == "complete";
 
-    var patchFile = null;
+    let patchFile = null;
 
-#ifdef MOZ_WIDGET_GONK
-    let status = readStatusFile(updateDir);
-    if (isInterruptedUpdate(status)) {
-      LOG("Downloader:downloadUpdate - interruptted update");
-      
-      
-      
-      patchFile = getFileFromUpdateLink(updateDir);
-      if (!patchFile) {
+    
+    let status = STATE_NONE;
+    if (AppConstants.platform == "gonk") {
+      status = readStatusFile(updateDir);
+      if (isInterruptedUpdate(status)) {
+        LOG("Downloader:downloadUpdate - interruptted update");
         
         
-        patchFile = updateDir.clone();
-        patchFile.append(FILE_UPDATE_ARCHIVE);
-      }
-      if (patchFile.exists()) {
-        LOG("Downloader:downloadUpdate - resuming with patchFile " + patchFile.path);
-        if (patchFile.fileSize == this._patch.size) {
-          LOG("Downloader:downloadUpdate - patchFile appears to be fully downloaded");
+        
+        patchFile = getFileFromUpdateLink(updateDir);
+        if (!patchFile) {
           
-          status = STATE_PENDING;
+          
+          patchFile = updateDir.clone();
+          patchFile.append(FILE_UPDATE_ARCHIVE);
         }
-      } else {
-        LOG("Downloader:downloadUpdate - patchFile " + patchFile.path +
-            " doesn't exist - performing full download");
-        
-        
-        patchFile = null;
-      }
-      if (patchFile && (status != STATE_DOWNLOADING)) {
-        
-        
-
-        writeStatusFile(updateDir, STATE_PENDING);
-
-        
-        
-        
-
-        this._downloadTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-        this._downloadTimer.initWithCallback(function() {
-          this._downloadTimer = null;
+        if (patchFile.exists()) {
+          LOG("Downloader:downloadUpdate - resuming with patchFile " + patchFile.path);
+          if (patchFile.fileSize == this._patch.size) {
+            LOG("Downloader:downloadUpdate - patchFile appears to be fully downloaded");
+            
+            status = STATE_PENDING;
+          }
+        } else {
+          LOG("Downloader:downloadUpdate - patchFile " + patchFile.path +
+              " doesn't exist - performing full download");
           
           
-          this._request = {destination: patchFile};
-          this.onStopRequest(this._request, null, Cr.NS_OK);
-        }.bind(this), 0, Ci.nsITimer.TYPE_ONE_SHOT);
+          patchFile = null;
+        }
+        if (patchFile && status != STATE_DOWNLOADING) {
+          
+          
 
-        
-        
-        
-        return STATE_DOWNLOADING;
+          writeStatusFile(updateDir, STATE_PENDING);
+
+          
+          
+          
+
+          this._downloadTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+          this._downloadTimer.initWithCallback(function() {
+            this._downloadTimer = null;
+            
+            
+            this._request = {destination: patchFile};
+            this.onStopRequest(this._request, null, Cr.NS_OK);
+          }.bind(this), 0, Ci.nsITimer.TYPE_ONE_SHOT);
+
+          
+          
+          
+          return STATE_DOWNLOADING;
+        }
       }
     }
-#endif
+
     if (!patchFile) {
       
       patchFile = this._getUpdateArchiveFile();
@@ -4091,18 +4065,18 @@ Downloader.prototype = {
       return STATE_NONE;
     }
 
-#ifdef MOZ_WIDGET_GONK
-    if (patchFile.path.indexOf(updateDir.path) != 0) {
-      
-      
-      writeLinkFile(updateDir, patchFile);
-
-      if (!isInterruptedUpdate(status) && patchFile.exists()) {
+    if (AppConstants.platform == "gonk") {
+      if (patchFile.path.indexOf(updateDir.path) != 0) {
         
-        patchFile.remove(false);
+        
+        writeLinkFile(updateDir, patchFile);
+
+        if (!isInterruptedUpdate(status) && patchFile.exists()) {
+          
+          patchFile.remove(false);
+        }
       }
     }
-#endif
 
     var uri = Services.io.newURI(this._patch.URL, null, null);
 
@@ -4365,12 +4339,12 @@ Downloader.prototype = {
         this._update.statusText = getStatusTextFromCode(status,
                                                         Cr.NS_BINDING_FAILED);
 
-#ifdef MOZ_WIDGET_GONK
-        
-        
-        
-        this._update.selectedPatch.selected = false;
-#endif
+        if (AppConstants.platform == "gonk") {
+          
+          
+          
+          this._update.selectedPatch.selected = false;
+        }
 
         
         cleanUpUpdatesDir();
@@ -4436,12 +4410,12 @@ Downloader.prototype = {
           }
         }
 
-#ifdef MOZ_WIDGET_GONK
-        
-        var prompter = Cc["@mozilla.org/updates/update-prompt;1"].
-                       createInstance(Ci.nsIUpdatePrompt);
-        prompter.showUpdateError(this._update);
-#endif
+        if (AppConstants.platform == "gonk") {
+          
+          let prompter = Cc["@mozilla.org/updates/update-prompt;1"].
+                         createInstance(Ci.nsIUpdatePrompt);
+          prompter.showUpdateError(this._update);
+        }
 
         
         this._update = null;
@@ -4478,7 +4452,7 @@ Downloader.prototype = {
       
       
       
-      var prompter = Cc["@mozilla.org/updates/update-prompt;1"].
+      let prompter = Cc["@mozilla.org/updates/update-prompt;1"].
                      createInstance(Ci.nsIUpdatePrompt);
       prompter.showUpdateDownloaded(this._update, true);
     }
@@ -4855,57 +4829,3 @@ UpdatePrompt.prototype = {
 
 var components = [UpdateService, Checker, UpdatePrompt, UpdateManager];
 this.NSGetFactory = XPCOMUtils.generateNSGetFactory(components);
-
-#if 0
-
-
-
-
-
-function STACK(string) {
-  dump("*** " + string + "\n");
-  stackTrace(arguments.callee.caller.arguments, -1);
-}
-
-function stackTraceFunctionFormat(aFunctionName) {
-  var classDelimiter = aFunctionName.indexOf("_");
-  var className = aFunctionName.substr(0, classDelimiter);
-  if (!className)
-    className = "<global>";
-  var functionName = aFunctionName.substr(classDelimiter + 1, aFunctionName.length);
-  if (!functionName)
-    functionName = "<anonymous>";
-  return className + "::" + functionName;
-}
-
-function stackTraceArgumentsFormat(aArguments) {
-  arglist = "";
-  for (var i = 0; i < aArguments.length; i++) {
-    arglist += aArguments[i];
-    if (i < aArguments.length - 1)
-      arglist += ", ";
-  }
-  return arglist;
-}
-
-function stackTrace(aArguments, aMaxCount) {
-  dump("=[STACKTRACE]=====================================================\n");
-  dump("*** at: " + stackTraceFunctionFormat(aArguments.callee.name) + "(" +
-       stackTraceArgumentsFormat(aArguments) + ")\n");
-  var temp = aArguments.callee.caller;
-  var count = 0;
-  while (temp) {
-    dump("***     " + stackTraceFunctionFormat(temp.name) + "(" +
-         stackTraceArgumentsFormat(temp.arguments) + ")\n");
-
-    temp = temp.arguments.callee.caller;
-    if (aMaxCount > 0 && ++count == aMaxCount)
-      break;
-  }
-  dump("==================================================================\n");
-}
-
-function dumpFile(file) {
-  dump("*** file = " + file.path + ", exists = " + file.exists() + "\n");
-}
-#endif

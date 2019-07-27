@@ -23,7 +23,7 @@ function run_test() {
     let handle = createMutex(getPerInstallationMutexName());
 
     debugDump("testing that the mutex was successfully created");
-    do_check_neq(handle, null);
+    do_check_true(!!handle);
 
     
     

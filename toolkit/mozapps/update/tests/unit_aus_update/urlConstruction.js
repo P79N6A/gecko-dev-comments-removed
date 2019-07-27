@@ -111,11 +111,6 @@ function check_test_pt4() {
     if (macutils.isUniversalBinary) {
       abi += "-u-" + macutils.architecturesInBinary;
     }
-    if (IS_SHARK) {
-      
-      abi += "-shark"
-    }
-
   }
 
   do_check_eq(getResult(gRequestURL), gAppInfo.OS + "_" + abi);
