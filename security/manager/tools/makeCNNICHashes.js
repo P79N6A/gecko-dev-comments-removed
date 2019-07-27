@@ -19,6 +19,7 @@ let gCertDB = Cc["@mozilla.org/security/x509certdb;1"]
                 .getService(Ci.nsIX509CertDB);
 
 let { NetUtil } = Cu.import("resource://gre/modules/NetUtil.jsm", {});
+let { Services } = Cu.import("resource://gre/modules/Services.jsm", {});
 
 const HEADER = "// This Source Code Form is subject to the terms of the Mozilla Public\n" +
 "// License, v. 2.0. If a copy of the MPL was not distributed with this\n" +
@@ -105,8 +106,11 @@ const sixYearsInMilliseconds = 6 * 366 * 24 * 60 * 60 * 1000;
 
 function loadCertificates(certFile) {
   let nowInMilliseconds = (new Date()).getTime();
+  
+  let april1InMilliseconds = (new Date(2015, 3, 1)).getTime();
   let latestNotAfter = nowInMilliseconds;
   let certs = [];
+  let certMap = {};
   let invalidCerts = [];
   let paths = readFileContents(certFile).split("\n");
   for (let path of paths) {
@@ -121,13 +125,33 @@ function loadCertificates(certFile) {
     if (!cert) {
       cert = gCertDB.constructX509(certData, certData.length);
     }
+    
+    if (cert.sha256Fingerprint in certMap) {
+      continue;
+    }
+    certMap[cert.sha256Fingerprint] = true;
+    
+    
+    
+    
+    
+    
+    
+    let errorCode = gCertDB.verifyCertNow(cert, 2 ,
+                                          Ci.nsIX509CertDB.LOCAL_ONLY, {}, {});
+    if (errorCode != 0 &&
+        errorCode != -8180 ) {
+      continue;
+    }
     let durationMilliseconds = (cert.validity.notAfter - cert.validity.notBefore) / 1000;
+    let notBeforeMilliseconds = cert.validity.notBefore / 1000;
     let notAfterMilliseconds = cert.validity.notAfter / 1000;
     
     
     
     
-    if (notAfterMilliseconds > nowInMilliseconds &&
+    if (notBeforeMilliseconds < april1InMilliseconds &&
+        notAfterMilliseconds > nowInMilliseconds &&
         durationMilliseconds < sixYearsInMilliseconds) {
       certs.push(cert);
       if (notAfterMilliseconds > latestNotAfter) {
@@ -183,15 +207,37 @@ function certToPEM(cert) {
   return output;
 }
 
-
-
-
-
-if (arguments.length != 1) {
-  throw "Usage: makeCNNICHashes.js <path to list of certificates>";
+function loadIntermediates(intermediatesFile) {
+  let pem = readFileContents(intermediatesFile);
+  let intermediates = [];
+  let currentPEM = "";
+  for (let line of pem.split("\r\n")) {
+    if (line == "-----END CERTIFICATE-----") {
+      if (currentPEM) {
+        intermediates.push(gCertDB.constructX509FromBase64(currentPEM));
+      }
+      currentPEM = "";
+      continue;
+    }
+    if (line != "-----BEGIN CERTIFICATE-----") {
+      currentPEM += line;
+    }
+  }
+  return intermediates;
 }
 
-let certFile = pathToFile(arguments[0]);
+
+
+
+
+if (arguments.length != 2) {
+  throw "Usage: makeCNNICHashes.js <intermediates file> <path to list of certificates>";
+}
+
+Services.prefs.setIntPref("security.OCSP.enabled", 0);
+let intermediatesFile = pathToFile(arguments[0]);
+let intermediates = loadIntermediates(intermediatesFile);
+let certFile = pathToFile(arguments[1]);
 let { certs, lastValidTime, invalidCerts } = loadCertificates(certFile);
 
 dump("The following certificates were not included due to overlong validity periods:\n");
