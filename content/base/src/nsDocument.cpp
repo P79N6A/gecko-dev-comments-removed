@@ -2752,33 +2752,6 @@ AppendCSPFromHeader(nsIContentSecurityPolicy* csp,
   return NS_OK;
 }
 
-bool
-nsDocument::IsLoopDocument(nsIChannel *aChannel)
-{
-  nsCOMPtr<nsIURI> chanURI;
-  nsresult rv = aChannel->GetOriginalURI(getter_AddRefs(chanURI));
-  NS_ENSURE_SUCCESS(rv, false);
-
-  bool isAbout = false;
-  bool isLoop = false;
-  rv = chanURI->SchemeIs("about", &isAbout);
-  NS_ENSURE_SUCCESS(rv, false);
-  if (isAbout) {
-    nsCOMPtr<nsIURI> loopURI;
-    rv = NS_NewURI(getter_AddRefs(loopURI), "about:loopconversation");
-    NS_ENSURE_SUCCESS(rv, false);
-    rv = chanURI->EqualsExceptRef(loopURI, &isLoop);
-    NS_ENSURE_SUCCESS(rv, false);
-    if (!isLoop) {
-      rv = NS_NewURI(getter_AddRefs(loopURI), "about:looppanel");
-      NS_ENSURE_SUCCESS(rv, false);
-      rv = chanURI->EqualsExceptRef(loopURI, &isLoop);
-      NS_ENSURE_SUCCESS(rv, false);
-    }
-  }
-  return isLoop;
-}
-
 nsresult
 nsDocument::InitCSP(nsIChannel* aChannel)
 {
@@ -2832,13 +2805,9 @@ nsDocument::InitCSP(nsIChannel* aChannel)
     }
   }
 
- 
- bool applyLoopCSP = IsLoopDocument(aChannel);
-
   
   if (!applyAppDefaultCSP &&
       !applyAppManifestCSP &&
-      !applyLoopCSP &&
       cspHeaderValue.IsEmpty() &&
       cspROHeaderValue.IsEmpty()) {
 #ifdef PR_LOGGING
@@ -2909,17 +2878,6 @@ nsDocument::InitCSP(nsIChannel* aChannel)
   
   if (applyAppManifestCSP) {
     csp->AppendPolicy(appManifestCSP, false);
-  }
-
-  
-  if (applyLoopCSP) {
-    nsAdoptingString loopCSP;
-    loopCSP = Preferences::GetString("loop.CSP");
-    NS_ASSERTION(loopCSP, "Missing loop.CSP preference");
-    
-    if (loopCSP) {
-      csp->AppendPolicy(loopCSP, false);
-    }
   }
 
   
