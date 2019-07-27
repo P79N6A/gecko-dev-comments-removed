@@ -33,6 +33,10 @@
 
 namespace mozilla {
 
+namespace dom {
+class WakeLock;
+}
+
 
 
 
@@ -193,6 +197,10 @@ private:
   
   nsCOMPtr<nsITimer> mResetTimer;
 
+  
+  
+  nsRefPtr<mozilla::dom::WakeLock> mWakeLock;
+
   int64_t GetMediaTimeUs();
 
   
@@ -239,6 +247,9 @@ private:
   
   nsresult StartTimeUpdate();
   nsresult StopTimeUpdate();
+
+  void WakeLockCreate();
+  void WakeLockRelease();
 
   
   
