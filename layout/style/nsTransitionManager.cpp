@@ -105,13 +105,6 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
   NS_PRECONDITION(aOldStyleContext->GetPseudo() ==
                       aNewStyleContext->GetPseudo(),
                   "pseudo type mismatch");
-  
-  
-  
-  
-  NS_PRECONDITION(aOldStyleContext->HasPseudoElementData() ==
-                      aNewStyleContext->HasPseudoElementData(),
-                  "pseudo type mismatch");
 
   if (mInAnimationOnlyStyleUpdate) {
     
@@ -123,6 +116,26 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
   }
 
   if (!mPresContext->IsDynamic()) {
+    
+    return nullptr;
+  }
+
+  if (aOldStyleContext->HasPseudoElementData() !=
+      aNewStyleContext->HasPseudoElementData()) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     return nullptr;
   }
