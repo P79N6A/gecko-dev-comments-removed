@@ -1891,7 +1891,7 @@ gfxWindowsPlatform::InitD3D11Devices()
       if (status != nsIGfxInfo::FEATURE_STATUS_OK) {
 
         
-        if (gfxPrefs::LayersD3D11DisableWARP() || GetModuleHandleA("nvdxgiwrapper.dll")) {
+        if (gfxPrefs::LayersD3D11DisableWARP() || GetModuleHandleA("nvdxgiwrap.dll")) {
           return;
         }
 
