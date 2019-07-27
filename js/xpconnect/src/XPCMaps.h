@@ -645,26 +645,6 @@ public:
         }
     }
 
-    void Reparent(JSContext *aCx, JSObject *aNewInnerArg) {
-        JS::RootedObject aNewInner(aCx, aNewInnerArg);
-        for (Map::Enum e(mTable); !e.empty(); e.popFront()) {
-            
-
-
-
-            JS::RootedObject wrapper(aCx, e.front().value());
-            JS::RootedObject parent(aCx, JS_GetParent(wrapper));
-            JS::RootedObject outer(aCx, JS_ObjectToOuterObject(aCx, parent));
-            if (outer) {
-                JSObject *inner = JS_ObjectToInnerObject(aCx, outer);
-                if (inner == aNewInner && inner != parent)
-                    JS_SetParent(aCx, wrapper, aNewInner);
-            } else {
-                JS_ClearPendingException(aCx);
-            }
-        }
-    }
-
 private:
     JSObject2JSObjectMap() {}
 
