@@ -233,7 +233,7 @@ def bootstrap(topsrcdir, mozilla_dir=None):
         
 
         
-        if handler.name in ('bootstrap', 'doctor', 'mercurial-setup'):
+        if handler.name in ('bootstrap', 'doctor', 'mach-commands', 'mercurial-setup'):
             return
 
         
