@@ -2388,50 +2388,13 @@ MacroAssembler::branchIfNotInterpretedConstructor(Register fun, Register scratch
     MOZ_ASSERT(JSFunction::offsetOfFlags() == JSFunction::offsetOfNargs() + 2);
 
     
-    
-    
-    
-    
-    
-
-    
     load32(Address(fun, JSFunction::offsetOfNargs()), scratch);
     int32_t bits = IMM32_16ADJ(JSFunction::INTERPRETED);
     branchTest32(Assembler::Zero, scratch, Imm32(bits), label);
 
     
-    
-    Label done, moreChecks;
-
-    
-    bits = IMM32_16ADJ( (JSFunction::IS_FUN_PROTO | JSFunction::SELF_HOSTED) );
-    branchTest32(Assembler::NonZero, scratch, Imm32(bits), &moreChecks);
-
-    
-    bits = IMM32_16ADJ(JSFunction::FUNCTION_KIND_MASK);
-    and32(Imm32(bits), scratch);
-
-    bits = IMM32_16ADJ(JSFunction::ARROW_KIND);
-    branch32(Assembler::NotEqual, scratch, Imm32(bits), &done);
-
-    
-    load32(Address(fun, JSFunction::offsetOfNargs()), scratch);
-
-    {
-        bind(&moreChecks);
-        
-        
-        
-        bits = IMM32_16ADJ(JSFunction::SELF_HOSTED_CTOR);
-        branchTest32(Assembler::Zero, scratch, Imm32(bits), label);
-
-#ifdef DEBUG
-        bits = IMM32_16ADJ(JSFunction::IS_FUN_PROTO);
-        branchTest32(Assembler::Zero, scratch, Imm32(bits), &done);
-        assumeUnreachable("Function.prototype should not have the SELF_HOSTED_CTOR flag");
-#endif
-    }
-    bind(&done);
+    bits = IMM32_16ADJ(JSFunction::CONSTRUCTOR);
+    branchTest32(Assembler::Zero, scratch, Imm32(bits), label);
 }
 
 void

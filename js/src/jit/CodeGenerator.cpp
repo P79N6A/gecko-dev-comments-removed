@@ -3044,7 +3044,7 @@ CodeGenerator::visitCallKnown(LCallKnown* call)
     
     MOZ_ASSERT(target->nargs() <= call->mir()->numStackArgs() - 1);
 
-    MOZ_ASSERT_IF(call->mir()->isConstructing(), target->isInterpretedConstructor());
+    MOZ_ASSERT_IF(call->mir()->isConstructing(), target->isConstructor());
 
     masm.checkStackAlignment();
 

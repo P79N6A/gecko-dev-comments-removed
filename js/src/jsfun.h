@@ -40,7 +40,7 @@ class JSFunction : public js::NativeObject
 
     enum Flags {
         INTERPRETED      = 0x0001,  
-        NATIVE_CTOR      = 0x0002,  
+        CONSTRUCTOR      = 0x0002,  
         EXTENDED         = 0x0004,  
         IS_FUN_PROTO     = 0x0008,  
         EXPR_BODY        = 0x0010,  
@@ -52,8 +52,7 @@ class JSFunction : public js::NativeObject
 
         SELF_HOSTED      = 0x0080,  
 
-        SELF_HOSTED_CTOR = 0x0100,  
-
+        
         HAS_REST         = 0x0200,  
         INTERPRETED_LAZY = 0x0400,  
         RESOLVED_LENGTH  = 0x0800,  
@@ -70,17 +69,19 @@ class JSFunction : public js::NativeObject
 
         
         NATIVE_FUN = 0,
+        NATIVE_CTOR = NATIVE_FUN | CONSTRUCTOR,
         ASMJS_CTOR = ASMJS_KIND | NATIVE_CTOR,
         ASMJS_LAMBDA_CTOR = ASMJS_KIND | NATIVE_CTOR | LAMBDA,
         INTERPRETED_METHOD = INTERPRETED | METHOD_KIND,
-        INTERPRETED_CLASS_CONSTRUCTOR = INTERPRETED | METHOD_KIND,
+        INTERPRETED_CLASS_CONSTRUCTOR = INTERPRETED | METHOD_KIND | CONSTRUCTOR,
         INTERPRETED_GETTER = INTERPRETED | GETTER_KIND,
         INTERPRETED_SETTER = INTERPRETED | SETTER_KIND,
-        INTERPRETED_LAMBDA = INTERPRETED | LAMBDA,
+        INTERPRETED_LAMBDA = INTERPRETED | LAMBDA | CONSTRUCTOR,
         INTERPRETED_LAMBDA_ARROW = INTERPRETED | LAMBDA | ARROW_KIND,
-        STABLE_ACROSS_CLONES = NATIVE_CTOR | IS_FUN_PROTO | EXPR_BODY | HAS_GUESSED_ATOM |
-                               LAMBDA | SELF_HOSTED | SELF_HOSTED_CTOR | HAS_REST |
-                               FUNCTION_KIND_MASK
+        INTERPRETED_NORMAL = INTERPRETED | CONSTRUCTOR,
+
+        STABLE_ACROSS_CLONES = IS_FUN_PROTO | CONSTRUCTOR | EXPR_BODY | HAS_GUESSED_ATOM |
+                               LAMBDA | SELF_HOSTED |  HAS_REST | FUNCTION_KIND_MASK
     };
 
     static_assert((INTERPRETED | INTERPRETED_LAZY) == js::JS_FUNCTION_INTERPRETED_BITS,
@@ -146,8 +147,9 @@ class JSFunction : public js::NativeObject
     bool isInterpreted()            const { return flags() & (INTERPRETED | INTERPRETED_LAZY); }
     bool isNative()                 const { return !isInterpreted(); }
 
+    bool isConstructor()            const { return flags() & CONSTRUCTOR; }
+
     
-    bool isNativeConstructor()      const { return flags() & NATIVE_CTOR; }
     bool isAsmJSNative()            const { return kind() == AsmJS; }
 
     
@@ -156,7 +158,6 @@ class JSFunction : public js::NativeObject
     bool hasGuessedAtom()           const { return flags() & HAS_GUESSED_ATOM; }
     bool isLambda()                 const { return flags() & LAMBDA; }
     bool isSelfHostedBuiltin()      const { return flags() & SELF_HOSTED; }
-    bool isSelfHostedConstructor()  const { return flags() & SELF_HOSTED_CTOR; }
     bool hasRest()                  const { return flags() & HAS_REST; }
     bool isInterpretedLazy()        const { return flags() & INTERPRETED_LAZY; }
     bool hasScript()                const { return flags() & INTERPRETED; }
@@ -170,7 +171,7 @@ class JSFunction : public js::NativeObject
     bool isSetter()                 const { return kind() == Setter; }
 
     bool isClassConstructor() const {
-        return kind() == Method && isInterpretedConstructor();
+        return kind() == Method && isConstructor();
     }
 
     bool hasResolvedLength()        const { return flags() & RESOLVED_LENGTH; }
@@ -187,12 +188,7 @@ class JSFunction : public js::NativeObject
     bool isBuiltin() const {
         return (isNative() && !isAsmJSNative()) || isSelfHostedBuiltin();
     }
-    bool isInterpretedConstructor() const {
-        
-        
-        return isInterpreted() && !isFunctionPrototype() && !isArrow() &&
-               (!isSelfHostedBuiltin() || isSelfHostedConstructor());
-    }
+
     bool isNamedLambda() const {
         return isLambda() && displayAtom() && !hasGuessedAtom();
     }
@@ -214,6 +210,13 @@ class JSFunction : public js::NativeObject
     }
 
     
+    void setIsConstructor() {
+        MOZ_ASSERT(!isConstructor());
+        MOZ_ASSERT(isSelfHostedBuiltin());
+        flags_ |= CONSTRUCTOR;
+    }
+
+    
     void setArgCount(uint16_t nargs) {
         this->nargs_ = nargs;
     }
@@ -226,11 +229,8 @@ class JSFunction : public js::NativeObject
     void setIsSelfHostedBuiltin() {
         MOZ_ASSERT(!isSelfHostedBuiltin());
         flags_ |= SELF_HOSTED;
-    }
-
-    void setIsSelfHostedConstructor() {
-        MOZ_ASSERT(!isSelfHostedConstructor());
-        flags_ |= SELF_HOSTED_CTOR;
+        
+        flags_ &= ~CONSTRUCTOR;
     }
 
     void setIsFunctionPrototype() {

@@ -10129,7 +10129,7 @@ TryAttachCallStub(JSContext* cx, ICCall_Fallback* stub, HandleScript script, jsb
             return true;
 
         
-        if (constructing && !fun->isInterpretedConstructor())
+        if (constructing && !fun->isConstructor())
             return true;
 
         if (!fun->hasJITCode()) {
@@ -10227,7 +10227,7 @@ TryAttachCallStub(JSContext* cx, ICCall_Fallback* stub, HandleScript script, jsb
         return true;
     }
 
-    if (fun->isNative() && (!constructing || (constructing && fun->isNativeConstructor()))) {
+    if (fun->isNative() && (!constructing || (constructing && fun->isConstructor()))) {
         
         MOZ_ASSERT(!stub->nativeStubsAreGeneralized());
 

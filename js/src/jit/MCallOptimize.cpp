@@ -2745,9 +2745,7 @@ IonBuilder::inlineBoundFunction(CallInfo& nativeCallInfo, JSFunction* target)
     
     
     
-    if (nativeCallInfo.constructing() && !scriptedTarget->isInterpretedConstructor() &&
-        !scriptedTarget->isNativeConstructor())
-    {
+    if (nativeCallInfo.constructing() && !scriptedTarget->isConstructor()) {
         return InliningStatus_NotInlined;
     }
 

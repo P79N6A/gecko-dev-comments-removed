@@ -61,8 +61,12 @@ for (var constructor of constructors) {
     });
 
     
-    constructor.of.call({method() {}}.method);
-    constructor.of.call(Object.getOwnPropertyDescriptor({get getter() {}}, "getter").get);
+    assertThrowsInstanceOf(() => {
+        constructor.of.call({method() {}}.method);
+    }, TypeError);
+    assertThrowsInstanceOf(() => {
+        constructor.of.call(Object.getOwnPropertyDescriptor({get getter() {}}, "getter").get);
+    }, TypeError);
 
     
     assertEq(constructor.of.call(function*(len) {
