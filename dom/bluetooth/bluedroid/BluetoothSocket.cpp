@@ -483,26 +483,6 @@ BluetoothSocket::BluetoothSocket(BluetoothSocketObserver* aObserver,
   mDeviceAddress.AssignLiteral(BLUETOOTH_ADDRESS_NONE);
 }
 
-void
-BluetoothSocket::CloseDroidSocket()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  if (!mImpl) {
-    return;
-  }
-
-  
-  
-  
-  mImpl->ShutdownOnMainThread();
-  XRE_GetIOMessageLoop()->PostTask(
-    FROM_HERE, new SocketIOShutdownTask<DroidSocketImpl>(mImpl));
-
-  mImpl = nullptr;
-
-  NotifyDisconnect();
-}
-
 class ConnectSocketResultHandler MOZ_FINAL : public BluetoothSocketResultHandler
 {
 public:
@@ -535,7 +515,7 @@ private:
 };
 
 bool
-BluetoothSocket::Connect(const nsAString& aDeviceAddress, int aChannel)
+BluetoothSocket::ConnectSocket(const nsAString& aDeviceAddress, int aChannel)
 {
   MOZ_ASSERT(NS_IsMainThread());
   NS_ENSURE_FALSE(mImpl, false);
@@ -584,7 +564,7 @@ private:
 };
 
 bool
-BluetoothSocket::Listen(int aChannel)
+BluetoothSocket::ListenSocket(int aChannel)
 {
   MOZ_ASSERT(NS_IsMainThread());
   NS_ENSURE_FALSE(mImpl, false);
@@ -603,8 +583,28 @@ BluetoothSocket::Listen(int aChannel)
   return true;
 }
 
+void
+BluetoothSocket::CloseSocket()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  if (!mImpl) {
+    return;
+  }
+
+  
+  
+  
+  mImpl->ShutdownOnMainThread();
+  XRE_GetIOMessageLoop()->PostTask(
+    FROM_HERE, new SocketIOShutdownTask<DroidSocketImpl>(mImpl));
+
+  mImpl = nullptr;
+
+  NotifyDisconnect();
+}
+
 bool
-BluetoothSocket::SendDroidSocketData(UnixSocketRawData* aData)
+BluetoothSocket::SendSocketData(UnixSocketRawData* aData)
 {
   MOZ_ASSERT(NS_IsMainThread());
   NS_ENSURE_TRUE(mImpl, false);
