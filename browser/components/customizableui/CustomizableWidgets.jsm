@@ -1103,11 +1103,18 @@ let openRemote = !Services.appinfo.browserTabsRemoteAutostart;
 let buttonLabel = openRemote ? "New e10s Window"
                               : "New Non-e10s Window";
 
+let e10sDisabled = Services.appinfo.inSafeMode;
+#ifdef XP_MACOSX
+
+
+e10sDisabled |= Services.prefs.getBoolPref("layers.acceleration.disabled");
+#endif
+
 CustomizableWidgets.push({
   id: "e10s-button",
   label: buttonLabel,
   tooltiptext: buttonLabel,
-  disabled: Services.appinfo.inSafeMode,
+  disabled: e10sDisabled,
   defaultArea: CustomizableUI.AREA_PANEL,
   onCommand: getCommandFunction(openRemote),
 });
