@@ -266,8 +266,8 @@ private:
   int64_t                      mRequestBodyLenRemaining;
 
   uint32_t                     mPriority; 
+  uint32_t                     mPriorityDependency; 
   uint8_t                      mPriorityWeight; 
-  uint8_t                      mPriorityDependency; 
 
   
   
