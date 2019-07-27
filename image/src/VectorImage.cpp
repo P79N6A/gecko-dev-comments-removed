@@ -383,30 +383,25 @@ VectorImage::HeapSizeOfDecodedWithComputedFallback(MallocSizeOf aMallocSizeOf) c
   
   
   
-  
-  
-  
-  
-  
-  return SurfaceCache::SizeOfSurfaces(ImageKey(this),
-                                      gfxMemoryLocation::IN_PROCESS_HEAP,
-                                      aMallocSizeOf);
+  return 0;
 }
 
 size_t
 VectorImage::NonHeapSizeOfDecoded() const
 {
-  return SurfaceCache::SizeOfSurfaces(ImageKey(this),
-                                      gfxMemoryLocation::IN_PROCESS_NONHEAP,
-                                      nullptr);
+  
+  
+  
+  return 0;
 }
 
 size_t
 VectorImage::OutOfProcessSizeOfDecoded() const
 {
-  return SurfaceCache::SizeOfSurfaces(ImageKey(this),
-                                      gfxMemoryLocation::OUT_OF_PROCESS,
-                                      nullptr);
+  
+  
+  
+  return 0;
 }
 
 MOZ_DEFINE_MALLOC_SIZE_OF(WindowsMallocSizeOf);
