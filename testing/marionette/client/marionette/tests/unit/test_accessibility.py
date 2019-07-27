@@ -3,8 +3,8 @@
 
 
 from marionette_test import MarionetteTestCase
-from errors import ElementNotAccessibleException
-from errors import ElementNotVisibleException
+from marionette_driver.errors import (ElementNotAccessibleException,
+                                     ElementNotVisibleException)
 
 
 class TestAccessibility(MarionetteTestCase):
