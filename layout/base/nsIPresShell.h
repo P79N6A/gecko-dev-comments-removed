@@ -141,8 +141,8 @@ typedef struct CapturingContentInfo {
 
 
 #define NS_IPRESSHELL_IID \
-{ 0xa7ef8bb3, 0xd628, 0x4965, \
-  { 0x80, 0xf3, 0xa3, 0x26, 0xe0, 0x89, 0xfb, 0x7f } }
+{ 0x1033a12a, 0x51a2, 0x461c, \
+  { 0x9c, 0x83, 0xd5, 0x3d, 0x0b, 0x2a, 0xc0, 0xb7 } }
 
 
 #define VERIFY_REFLOW_ON                    0x01
@@ -1545,7 +1545,8 @@ public:
   
   
   virtual void RebuildImageVisibilityDisplayList(const nsDisplayList& aList) = 0;
-  virtual void RebuildImageVisibility(nsRect* aRect = nullptr) = 0;
+  virtual void RebuildImageVisibility(nsRect* aRect = nullptr,
+                                      bool aRemoveOnly = false) = 0;
 
   
   virtual void EnsureImageInVisibleList(nsIImageLoadingContent* aImage) = 0;
