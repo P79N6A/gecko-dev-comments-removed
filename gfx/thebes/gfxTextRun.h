@@ -43,7 +43,6 @@ struct gfxTextRunDrawCallbacks {
 
 
 
-
     explicit gfxTextRunDrawCallbacks(bool aShouldPaintSVGGlyphs = false)
       : mShouldPaintSVGGlyphs(aShouldPaintSVGGlyphs)
     {
@@ -55,16 +54,6 @@ struct gfxTextRunDrawCallbacks {
 
 
     virtual void NotifyGlyphPathEmitted() = 0;
-
-    
-
-
-    virtual void NotifyBeforeSVGGlyphPainted() { }
-
-    
-
-
-    virtual void NotifyAfterSVGGlyphPainted() { }
 
     bool mShouldPaintSVGGlyphs;
 };
