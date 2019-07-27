@@ -172,7 +172,12 @@ private:
 
   BluetoothHfpManager();
   bool Init();
+
+#ifdef MOZ_B2G_BT_API_V2
+  
+#else
   void Cleanup();
+#endif
 
   void HandleShutdown();
   void HandleVolumeChanged(nsISupports* aSubject);
