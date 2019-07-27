@@ -179,7 +179,7 @@ var PermissionsHelper = {
       
       Services.logins.setLoginSavingEnabled(aURI.prePath, true);
     } else {
-      Services.perms.remove(aURI.host, aType);
+      Services.perms.remove(aURI, aType);
       
       Cc["@mozilla.org/content-pref/service;1"]
         .getService(Ci.nsIContentPrefService2)
