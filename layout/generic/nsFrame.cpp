@@ -2105,7 +2105,7 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
     clipState.Restore();
     
     
-    buildingDisplayList.SetDirtyRect(aDirtyRect + offsetToReferenceFrame);
+    buildingDisplayList.SetDirtyRect(aDirtyRect);
 
     if (Preserves3DChildren()) {
       WrapPreserve3DList(this, aBuilder, &resultList);
