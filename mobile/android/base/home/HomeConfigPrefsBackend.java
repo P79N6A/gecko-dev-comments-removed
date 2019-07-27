@@ -35,7 +35,7 @@ class HomeConfigPrefsBackend implements HomeConfigBackend {
     private static final String LOGTAG = "GeckoHomeConfigBackend";
 
     
-    private static final int VERSION = 1;
+    private static final int VERSION = 2;
 
     
     private static final String PREFS_CONFIG_KEY_OLD = "home_panels";
@@ -114,6 +114,53 @@ class HomeConfigPrefsBackend implements HomeConfigBackend {
         return true;
     }
 
+    protected enum Position {
+        NONE, 
+        FRONT, 
+        BACK, 
+    }
+
+    
+
+
+
+
+
+
+
+
+
+    protected static void addBuiltinPanelConfig(Context context, JSONArray jsonPanels,
+            PanelType panelType, Position positionOnPhones, Position positionOnTablets) throws JSONException {
+        
+        final JSONObject jsonPanelConfig =
+                createBuiltinPanelConfig(context, panelType).toJSON();
+
+        
+        jsonPanelConfig.put(PanelConfig.JSON_KEY_DISABLED,
+                                 allPanelsAreDisabled(jsonPanels));
+
+        final boolean isTablet = HardwareUtils.isTablet();
+        final boolean isPhone = !isTablet;
+
+        
+        if ((isPhone && positionOnPhones == Position.FRONT) ||
+            (isTablet && positionOnTablets == Position.FRONT)) {
+            
+            for (int i = jsonPanels.length(); i >= 1; i--) {
+                jsonPanels.put(i, jsonPanels.get(i - 1));
+            }
+            
+            jsonPanels.put(0, jsonPanelConfig);
+        }
+
+        
+        if ((isPhone && positionOnPhones == Position.BACK) ||
+            (isTablet && positionOnTablets == Position.BACK)) {
+            jsonPanels.put(jsonPanelConfig);
+        }
+    }
+
     
 
 
@@ -132,27 +179,26 @@ class HomeConfigPrefsBackend implements HomeConfigBackend {
         
         sMigrationDone = true;
 
-        final JSONArray originalJsonPanels;
+        final JSONArray jsonPanels;
         final int version;
 
         final SharedPreferences prefs = GeckoSharedPrefs.forProfile(context);
         if (prefs.contains(PREFS_CONFIG_KEY_OLD)) {
             
-            originalJsonPanels = new JSONArray(jsonString);
+            jsonPanels = new JSONArray(jsonString);
             version = 0;
         } else {
             final JSONObject json = new JSONObject(jsonString);
-            originalJsonPanels = json.getJSONArray(JSON_KEY_PANELS);
+            jsonPanels = json.getJSONArray(JSON_KEY_PANELS);
             version = json.getInt(JSON_KEY_VERSION);
         }
 
         if (version == VERSION) {
-            return originalJsonPanels;
+            return jsonPanels;
         }
 
         Log.d(LOGTAG, "Performing migration");
 
-        final JSONArray newJsonPanels = new JSONArray();
         final SharedPreferences.Editor prefsEditor = prefs.edit();
 
         for (int v = version + 1; v <= VERSION; v++) {
@@ -161,46 +207,30 @@ class HomeConfigPrefsBackend implements HomeConfigBackend {
             switch (v) {
                 case 1:
                     
-                    final JSONObject jsonRecentTabsConfig =
-                            createBuiltinPanelConfig(context, PanelType.RECENT_TABS).toJSON();
-
-                    
-                    
-                    jsonRecentTabsConfig.put(PanelConfig.JSON_KEY_DISABLED,
-                                             allPanelsAreDisabled(originalJsonPanels));
-
-                    
-                    if (!HardwareUtils.isTablet()) {
-                        newJsonPanels.put(jsonRecentTabsConfig);
-                    }
-
-                    
-                    final int count = originalJsonPanels.length();
-                    for (int i = 0; i < count; i++) {
-                        final JSONObject jsonPanelConfig = originalJsonPanels.getJSONObject(i);
-                        newJsonPanels.put(jsonPanelConfig);
-                    }
-
-                    
-                    if (HardwareUtils.isTablet()) {
-                        newJsonPanels.put(jsonRecentTabsConfig);
-                    }
+                    addBuiltinPanelConfig(context, jsonPanels,
+                            PanelType.RECENT_TABS, Position.FRONT, Position.BACK);
 
                     
                     prefsEditor.remove(PREFS_CONFIG_KEY_OLD);
+                    break;
+
+                case 2:
+                    
+                    addBuiltinPanelConfig(context, jsonPanels,
+                            PanelType.REMOTE_TABS, Position.FRONT, Position.BACK);
                     break;
             }
         }
 
         
         final JSONObject newJson = new JSONObject();
-        newJson.put(JSON_KEY_PANELS, newJsonPanels);
+        newJson.put(JSON_KEY_PANELS, jsonPanels);
         newJson.put(JSON_KEY_VERSION, VERSION);
 
         prefsEditor.putString(PREFS_CONFIG_KEY, newJson.toString());
         prefsEditor.apply();
 
-        return newJsonPanels;
+        return jsonPanels;
     }
 
     private State loadConfigFromString(String jsonString) {
