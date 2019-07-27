@@ -392,7 +392,7 @@ let Printing = {
     let data = message.data;
     switch(message.name) {
       case "Printing:Preview:Enter": {
-        this.enterPrintPreview(Services.wm.getOuterWindowWithId(data.windowID));
+        this.enterPrintPreview(objects.contentWindow);
         break;
       }
 
@@ -412,7 +412,7 @@ let Printing = {
       }
 
       case "Printing:Print": {
-        this.print(Services.wm.getOuterWindowWithId(data.windowID));
+        this.print(objects.contentWindow);
         break;
       }
     }
@@ -691,3 +691,29 @@ addMessageListener("WebChannelMessageToContent", function (e) {
     Cu.reportError("WebChannel message failed. No message data.");
   }
 });
+
+let MediaPlaybackListener = {
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver]),
+
+  init() {
+    Services.obs.addObserver(this, "media-playback", false);
+    addEventListener("unload", () => {
+      MediaPlaybackListener.uninit();
+    });
+  },
+
+  uninit() {
+    Services.obs.removeObserver(this, "media-playback");
+  },
+
+  observe(subject, topic, data) {
+    if (topic === "media-playback") {
+      if (subject && subject.top == global.content) {
+        let name = "MediaPlayback:";
+        name += (data === "active") ? "Start" : "Stop";
+        sendAsyncMessage(name);
+      }
+    }
+  },
+};
+MediaPlaybackListener.init();
