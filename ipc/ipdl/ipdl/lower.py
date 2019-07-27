@@ -3983,7 +3983,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
 
     def makeShmemIface(self):
         p = self.protocol
-        idvar = ExprVar('aId')
+        idvar = ExprVar('id')
         sizevar = ExprVar('aSize')
         typevar = ExprVar('aType')
         memvar = ExprVar('aMem')
@@ -4002,7 +4002,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
                 name,
                 params=[ Decl(Type.SIZE, sizevar.name),
                          Decl(_shmemTypeType(), typevar.name),
-                         Decl(_shmemType(ptr=1), memvar.name) ],
+                         Decl(_shmemType(ptr=1), outmemvar.name) ],
                 ret=Type.BOOL))
 
             ifallocfails = StmtIf(ExprNot(rawvar))
@@ -4014,7 +4014,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
                 unsafe = ExprLiteral.FALSE
             method.addstmts([
                 StmtDecl(Decl(_shmemIdType(), idvar.name)),
-                StmtDecl(Decl(_autoptr(_rawShmemType()), rawvar.name),
+                StmtDecl(Decl(_rawShmemType(ptr=1), rawvar.name),
                          initargs=[ ExprCall(p.createSharedMemory(),
                                          args=[ sizevar,
                                                 typevar,
@@ -4023,7 +4023,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
                 ifallocfails,
                 Whitespace.NL,
                 StmtExpr(ExprAssn(
-                    ExprDeref(memvar), _shmemCtor(_autoptrForget(rawvar), idvar))),
+                    ExprDeref(outmemvar), _shmemCtor(rawvar, idvar))),
                 StmtReturn.TRUE
             ])
             return method
