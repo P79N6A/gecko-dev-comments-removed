@@ -33,6 +33,7 @@
 #include "mozilla/Mutex.h"
 #include "mozilla/ReentrantMonitor.h"
 #include "mozilla/TimeStamp.h"
+#include "mozilla/TypedEnum.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/WeakPtr.h"
 #include "mozilla/UniquePtr.h"
@@ -135,6 +136,14 @@ namespace image {
 class Decoder;
 class FrameAnimator;
 class ScaleRunner;
+
+MOZ_BEGIN_ENUM_CLASS(DecodeStatus, uint8_t)
+  INACTIVE,
+  PENDING,
+  ACTIVE,
+  WORK_DONE,
+  STOPPED
+MOZ_END_ENUM_CLASS(DecodeStatus)
 
 class RasterImage MOZ_FINAL : public ImageResource
                             , public nsIProperties
@@ -306,39 +315,7 @@ public:
     eShutdownIntent_AllCount    = 3
   };
 
-  
-
 private:
-  nsresult OnImageDataCompleteCore(nsIRequest* aRequest, nsISupports*, nsresult aStatus);
-
-  
-
-
-
-  struct DecodeRequest
-  {
-    explicit DecodeRequest(RasterImage* aImage)
-      : mImage(aImage)
-      , mRequestStatus(REQUEST_INACTIVE)
-    { }
-
-    NS_INLINE_DECL_THREADSAFE_REFCOUNTING(DecodeRequest)
-
-    RasterImage* mImage;
-
-    enum DecodeRequestStatus
-    {
-      REQUEST_INACTIVE,
-      REQUEST_PENDING,
-      REQUEST_ACTIVE,
-      REQUEST_WORK_DONE,
-      REQUEST_STOPPED
-    } mRequestStatus;
-
-  private:
-    ~DecodeRequest() {}
-  };
-
   
 
 
@@ -426,18 +403,14 @@ private:
     class DecodeJob : public nsRunnable
     {
     public:
-      DecodeJob(DecodeRequest* aRequest, RasterImage* aImg)
-        : mRequest(aRequest)
-        , mImage(aImg)
-      {}
+      DecodeJob(RasterImage* aImage) : mImage(aImage) { }
 
-      NS_IMETHOD Run();
+      NS_IMETHOD Run() MOZ_OVERRIDE;
 
     protected:
       virtual ~DecodeJob();
 
     private:
-      nsRefPtr<DecodeRequest> mRequest;
       nsRefPtr<RasterImage> mImage;
     };
 
@@ -460,17 +433,14 @@ private:
 
 
 
-    static void NotifyFinishedSomeDecoding(RasterImage* image, DecodeRequest* request);
+    static void NotifyFinishedSomeDecoding(RasterImage* aImage);
 
     NS_IMETHOD Run();
 
-  private: 
-    DecodeDoneWorker(RasterImage* image, DecodeRequest* request);
-
-  private: 
+  private:
+    DecodeDoneWorker(RasterImage* aImage);
 
     nsRefPtr<RasterImage> mImage;
-    nsRefPtr<DecodeRequest> mRequest;
   };
 
   class FrameNeededWorker : public nsRunnable
@@ -496,7 +466,6 @@ private:
   };
 
   nsresult FinishedSomeDecoding(eShutdownIntent intent = eShutdownIntent_Done,
-                                DecodeRequest* request = nullptr,
                                 Progress aProgress = NoProgress);
 
   void DrawWithPreDownscaleIfNeeded(DrawableFrameRef&& aFrameRef,
@@ -621,7 +590,7 @@ private:
 
   
   nsRefPtr<Decoder>          mDecoder;
-  nsRefPtr<DecodeRequest>    mDecodeRequest;
+  DecodeStatus               mDecodeStatus;
   
 
   
