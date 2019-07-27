@@ -1123,6 +1123,7 @@ function CssRuleView(aInspector, aDoc, aStore, aPageStyle) {
   this._onSelectAll = this._onSelectAll.bind(this);
   this._onCopy = this._onCopy.bind(this);
   this._onCopyColor = this._onCopyColor.bind(this);
+  this._onCopyImageDataUrl = this._onCopyImageDataUrl.bind(this);
   this._onToggleOrigSources = this._onToggleOrigSources.bind(this);
   this._onShowMdnDocs = this._onShowMdnDocs.bind(this);
   this._onFilterStyles = this._onFilterStyles.bind(this);
@@ -1213,6 +1214,11 @@ CssRuleView.prototype = {
       label: "ruleView.contextmenu.copyColor",
       accesskey: "ruleView.contextmenu.copyColor.accessKey",
       command: this._onCopyColor
+    });
+    this.menuitemCopyImageDataUrl = createMenuItem(this._contextmenu, {
+      label: "styleinspector.contextmenu.copyImageDataUrl",
+      accesskey: "styleinspector.contextmenu.copyImageDataUrl.accessKey",
+      command: this._onCopyImageDataUrl
     });
     this.menuitemSources = createMenuItem(this._contextmenu, {
       label: "ruleView.contextmenu.showOrigSources",
@@ -1348,6 +1354,7 @@ CssRuleView.prototype = {
     }
 
     this.menuitemCopyColor.hidden = !this._isColorPopup();
+    this.menuitemCopyImageDataUrl.hidden = !this._isImageUrlPopup();
     this.menuitemCopy.disabled = !copy;
 
     var showOrig = Services.prefs.getBoolPref(PREF_ORIG_SOURCES);
@@ -1398,7 +1405,7 @@ CssRuleView.prototype = {
         pseudoElement: prop.rule.pseudoElement,
         sheetHref: prop.rule.domRule.href
       };
-    } else if (classes.contains("theme-link") && prop) {
+    } else if (classes.contains("theme-link") && !classes.contains("ruleview-rule-source") && prop) {
       type = overlays.VIEW_NODE_IMAGE_URL_TYPE;
       value = {
         property: getPropertyNameAndValue(node).name,
@@ -1430,13 +1437,10 @@ CssRuleView.prototype = {
   _isColorPopup: function () {
     this._colorToCopy = "";
 
-    let trigger = this.doc.popupNode;
-    if (!trigger) {
+    let container = this._getPopupNodeContainer();
+    if (!container) {
       return false;
     }
-
-    let container = (trigger.nodeType == trigger.TEXT_NODE) ?
-                     trigger.parentElement : trigger;
 
     let isColorNode = el => el.dataset && "color" in el.dataset;
 
@@ -1449,6 +1453,52 @@ CssRuleView.prototype = {
 
     this._colorToCopy = container.dataset["color"];
     return true;
+  },
+
+  
+
+
+
+  _isImageUrlPopup: function () {
+    this._imageUrlToCopy = "";
+
+    let container = this._getPopupNodeContainer();
+    let isImageUrlNode = this._isImageUrlNode(container);
+    if (isImageUrlNode) {
+      this._imageUrlToCopy = container.href;
+    }
+
+    return isImageUrlNode;
+  },
+
+  
+
+
+
+
+  _isImageUrlNode: function (node) {
+    let nodeInfo = this.getNodeInfo(node);
+    if (!nodeInfo) {
+      return false
+    }
+    return nodeInfo.type == overlays.VIEW_NODE_IMAGE_URL_TYPE;
+  },
+
+  
+
+
+
+
+  _getPopupNodeContainer: function () {
+    let container = null;
+    let node = this.doc.popupNode;
+
+    if (node) {
+      let isTextNode = node.nodeType == node.TEXT_NODE;
+      container = isTextNode ? node.parentElement : node;
+    }
+
+    return container;
   },
 
   
@@ -1524,6 +1574,22 @@ CssRuleView.prototype = {
   _onCopyColor: function() {
     clipboardHelper.copyString(this._colorToCopy);
   },
+
+  
+
+
+  _onCopyImageDataUrl: Task.async(function*() {
+    let message;
+    try {
+      let inspectorFront = this.inspector.inspector;
+      let data = yield inspectorFront.getImageDataFromURL(this._imageUrlToCopy);
+      message = yield data.data.string();
+    } catch (e) {
+      message = _strings.GetStringFromName("styleinspector.copyImageDataUrlError");
+    }
+
+    clipboardHelper.copyString(message);
+  }),
 
   
 
@@ -1728,6 +1794,10 @@ CssRuleView.prototype = {
       
       this.menuitemCopyColor.removeEventListener("command", this._onCopyColor);
       this.menuitemCopyColor = null;
+
+      
+      this.menuitemCopyImageDataUrl.removeEventListener("command", this._onCopyImageDataUrl);
+      this.menuitemCopyImageDataUrl = null;
 
       this.menuitemSources.removeEventListener("command", this._onToggleOrigSources);
       this.menuitemSources = null;
