@@ -120,9 +120,9 @@ JS::WeakMapPtr<K, V>::put(JSContext *cx, const K &key, const V &value)
 
 
 
-template class JS::WeakMapPtr<JSObject*, JSObject*>;
+template class JS_PUBLIC_API(JS::WeakMapPtr)<JSObject*, JSObject*>;
 
 #ifdef DEBUG
 
-template class JS::WeakMapPtr<JSObject*, JS::Value>;
+template class JS_PUBLIC_API(JS::WeakMapPtr)<JSObject*, JS::Value>;
 #endif
