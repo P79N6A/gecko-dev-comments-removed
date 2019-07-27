@@ -121,6 +121,12 @@ public class testBookmarksPanel extends AboutHomeTest {
         }
 
         
+        
+        mAsserter.ok(!mSolo.searchText("Share"),
+                "Checking that the Share option is not present",
+                "Share option is not present");
+
+        
         mActions.sendSpecialKey(Actions.SpecialKey.BACK);
     }
 
