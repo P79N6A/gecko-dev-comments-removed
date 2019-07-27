@@ -229,7 +229,7 @@ nsIntRect nsView::CalcWidgetBounds(nsWindowType aType)
   
   nsIntRect newBounds = viewBounds.ToNearestPixels(p2a);
 
-#ifdef XP_MACOSX
+#if defined(XP_MACOSX) || (MOZ_WIDGET_GTK == 3)
   
   
   
