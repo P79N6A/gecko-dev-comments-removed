@@ -107,7 +107,6 @@ loop.Client = (function($) {
 
 
 
-
     _requestCallUrlInternal: function(nickname, cb) {
       this.mozLoop.hawkRequest("/call-url/", "POST", {callerId: nickname},
                                function (error, responseText) {
