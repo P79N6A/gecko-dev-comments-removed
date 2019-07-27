@@ -2019,6 +2019,9 @@ pref("layout.css.masking.enabled", true);
 pref("layout.css.mix-blend-mode.enabled", true);
 
 
+pref("layout.css.isolation.enabled", false);
+
+
 pref("layout.css.filters.enabled", true);
 
 
