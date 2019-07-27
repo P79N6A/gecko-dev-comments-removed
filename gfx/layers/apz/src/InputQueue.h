@@ -14,11 +14,13 @@
 namespace mozilla {
 
 class InputData;
+class MultiTouchInput;
 
 namespace layers {
 
 class AsyncPanZoomController;
 class OverscrollHandoffChain;
+class CancelableBlockState;
 class TouchBlockState;
 
 
@@ -78,6 +80,11 @@ public:
   
 
 
+  CancelableBlockState* CurrentBlock() const;
+  
+
+
+
   TouchBlockState* CurrentTouchBlock() const;
   
 
@@ -87,17 +94,48 @@ public:
 
 private:
   ~InputQueue();
+
   TouchBlockState* StartNewTouchBlock(const nsRefPtr<AsyncPanZoomController>& aTarget,
                                       bool aTargetConfirmed,
                                       bool aCopyAllowedTouchBehaviorFromCurrent);
+
+  
+
+
+
+  void CancelAnimationsForNewBlock(CancelableBlockState* aBlock);
+
+  
+
+
+  void MaybeRequestContentResponse(const nsRefPtr<AsyncPanZoomController>& aTarget,
+                                   CancelableBlockState* aBlock);
+
+  nsEventStatus ReceiveTouchInput(const nsRefPtr<AsyncPanZoomController>& aTarget,
+                                  bool aTargetConfirmed,
+                                  const MultiTouchInput& aEvent,
+                                  uint64_t* aOutInputBlockId);
+
+  
+
+
+  void SweepDepletedBlocks();
+
+  
+
+
+  bool MaybeHandleCurrentBlock(const nsRefPtr<AsyncPanZoomController>& aTarget,
+                                      CancelableBlockState* block,
+                                      const InputData& aEvent);
+
   void ScheduleMainThreadTimeout(const nsRefPtr<AsyncPanZoomController>& aTarget, uint64_t aInputBlockId);
   void MainThreadTimeout(const uint64_t& aInputBlockId);
-  void ProcessPendingInputBlocks();
+  void ProcessInputBlocks();
 
 private:
   
   
-  nsTArray<UniquePtr<TouchBlockState>> mTouchBlockQueue;
+  nsTArray<UniquePtr<CancelableBlockState>> mInputBlockQueue;
 };
 
 }

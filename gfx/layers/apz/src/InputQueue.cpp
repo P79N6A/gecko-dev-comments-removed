@@ -23,7 +23,7 @@ InputQueue::InputQueue()
 }
 
 InputQueue::~InputQueue() {
-  mTouchBlockQueue.Clear();
+  mInputBlockQueue.Clear();
 }
 
 nsEventStatus
@@ -33,70 +33,62 @@ InputQueue::ReceiveInputEvent(const nsRefPtr<AsyncPanZoomController>& aTarget,
                               uint64_t* aOutInputBlockId) {
   AsyncPanZoomController::AssertOnControllerThread();
 
-  if (aEvent.mInputType != MULTITOUCH_INPUT) {
-    
-    
-    
-    
-    return aTarget->HandleInputEvent(aEvent);
-  }
+  switch (aEvent.mInputType) {
+    case MULTITOUCH_INPUT: {
+      const MultiTouchInput& event = aEvent.AsMultiTouchInput();
+      return ReceiveTouchInput(aTarget, aTargetConfirmed, event, aOutInputBlockId);
+    }
 
+    default:
+      
+      
+      
+      
+      return aTarget->HandleInputEvent(aEvent);
+  }
+}
+
+bool
+InputQueue::MaybeHandleCurrentBlock(const nsRefPtr<AsyncPanZoomController>& aTarget,
+                                           CancelableBlockState *block,
+                                           const InputData& aEvent) {
+  if (block == CurrentBlock() && block->IsReadyForHandling()) {
+    INPQ_LOG("current block is ready with target %p preventdefault %d\n",
+        aTarget.get(), block->IsDefaultPrevented());
+    if (!aTarget || block->IsDefaultPrevented()) {
+      return true;
+    }
+    aTarget->HandleInputEvent(aEvent);
+    return true;
+  }
+  return false;
+}
+
+nsEventStatus
+InputQueue::ReceiveTouchInput(const nsRefPtr<AsyncPanZoomController>& aTarget,
+                              bool aTargetConfirmed,
+                              const MultiTouchInput& aEvent,
+                              uint64_t* aOutInputBlockId) {
   TouchBlockState* block = nullptr;
-  if (aEvent.AsMultiTouchInput().mType == MultiTouchInput::MULTITOUCH_START) {
+  if (aEvent.mType == MultiTouchInput::MULTITOUCH_START) {
     block = StartNewTouchBlock(aTarget, aTargetConfirmed, false);
     INPQ_LOG("started new touch block %p for target %p\n", block, aTarget.get());
 
-    
-    
-    
-    
-    
-    
-    if (block == CurrentTouchBlock()) {
-      
-      
-      
-      if (block->GetOverscrollHandoffChain()->HasFastMovingApzc()) {
-        
-        
-        block->SetDuringFastMotion();
-        INPQ_LOG("block %p tagged as fast-motion\n", block);
-      }
-      block->GetOverscrollHandoffChain()->CancelAnimations();
+    CancelAnimationsForNewBlock(block);
+    MaybeRequestContentResponse(aTarget, block);
+  } else {
+    if (!mInputBlockQueue.IsEmpty()) {
+      block = mInputBlockQueue.LastElement().get()->AsTouchBlock();
     }
 
-    bool waitForMainThread = !aTargetConfirmed;
-    if (!gfxPrefs::LayoutEventRegionsEnabled()) {
-      waitForMainThread |= aTarget->NeedToWaitForContent();
+    if (!block) {
+      NS_WARNING("Received a non-start touch event while no touch blocks active!");
+      return nsEventStatus_eIgnore;
     }
-    if (block->IsDuringFastMotion()) {
-      block->SetConfirmedTargetApzc(aTarget);
-      waitForMainThread = false;
-    }
-    if (waitForMainThread) {
-      
-      
-      
-      
-      ScheduleMainThreadTimeout(aTarget, block->GetBlockId());
-    } else {
-      
-      
-      
-      INPQ_LOG("not waiting for content response on block %p\n", block);
-      block->TimeoutContentResponse();
-    }
-  } else if (mTouchBlockQueue.IsEmpty()) {
-    NS_WARNING("Received a non-start touch event while no touch blocks active!");
-  } else {
-    
-    block = mTouchBlockQueue.LastElement().get();
+
     INPQ_LOG("received new event in block %p\n", block);
   }
 
-  if (!block) {
-    return nsEventStatus_eIgnore;
-  }
   if (aOutInputBlockId) {
     *aOutInputBlockId = block->GetBlockId();
   }
@@ -108,6 +100,7 @@ InputQueue::ReceiveInputEvent(const nsRefPtr<AsyncPanZoomController>& aTarget,
   nsRefPtr<AsyncPanZoomController> target = block->GetTargetApzc();
 
   nsEventStatus result = nsEventStatus_eIgnore;
+
   
   
   
@@ -116,20 +109,58 @@ InputQueue::ReceiveInputEvent(const nsRefPtr<AsyncPanZoomController>& aTarget,
   } else if (target && target->ArePointerEventsConsumable(block, aEvent.AsMultiTouchInput().mTouches.Length())) {
     result = nsEventStatus_eConsumeDoDefault;
   }
+  if (!MaybeHandleCurrentBlock(target, block, aEvent)) {
+    block->AddEvent(aEvent.AsMultiTouchInput());
+  }
+  return result;
+}
 
-  if (block == CurrentTouchBlock() && block->IsReadyForHandling()) {
-    INPQ_LOG("current touch block is ready with target %p preventdefault %d\n",
-        target.get(), block->IsDefaultPrevented());
-    if (!target || block->IsDefaultPrevented()) {
-      return result;
+void
+InputQueue::CancelAnimationsForNewBlock(CancelableBlockState* aBlock)
+{
+  
+  
+  
+  
+  
+  
+  if (aBlock == CurrentBlock()) {
+    
+    
+    
+    if (aBlock->GetOverscrollHandoffChain()->HasFastMovingApzc()) {
+      
+      
+      if (TouchBlockState* touch = aBlock->AsTouchBlock()) {
+        touch->SetDuringFastMotion();
+      }
     }
-    target->HandleInputEvent(aEvent);
-    return result;
+    aBlock->GetOverscrollHandoffChain()->CancelAnimations();
+  }
+}
+
+void
+InputQueue::MaybeRequestContentResponse(const nsRefPtr<AsyncPanZoomController>& aTarget,
+                                        CancelableBlockState* aBlock)
+{
+  bool waitForMainThread = !aBlock->IsTargetConfirmed();
+  if (!gfxPrefs::LayoutEventRegionsEnabled()) {
+    waitForMainThread |= aTarget->NeedToWaitForContent();
   }
 
-  
-  block->AddEvent(aEvent.AsMultiTouchInput());
-  return result;
+  if (waitForMainThread) {
+    
+    
+    
+    
+    ScheduleMainThreadTimeout(aTarget, aBlock->GetBlockId());
+  } else {
+    
+    
+    
+    INPQ_LOG("not waiting for content response on block %p\n", block);
+    aBlock->TimeoutContentResponse();
+  }
 }
 
 uint64_t
@@ -144,6 +175,22 @@ InputQueue::InjectNewTouchBlock(AsyncPanZoomController* aTarget)
   return block->GetBlockId();
 }
 
+void
+InputQueue::SweepDepletedBlocks()
+{
+  
+  
+  while (!mInputBlockQueue.IsEmpty()) {
+    CancelableBlockState* block = mInputBlockQueue[0].get();
+    if (!block->IsReadyForHandling() || block->HasEvents()) {
+      break;
+    }
+
+    INPQ_LOG("discarding depleted %s block %p\n", block->Type(), block);
+    mInputBlockQueue.RemoveElementAt(0);
+  }
+}
+
 TouchBlockState*
 InputQueue::StartNewTouchBlock(const nsRefPtr<AsyncPanZoomController>& aTarget,
                                bool aTargetConfirmed,
@@ -154,35 +201,36 @@ InputQueue::StartNewTouchBlock(const nsRefPtr<AsyncPanZoomController>& aTarget,
     newBlock->CopyAllowedTouchBehaviorsFrom(*CurrentTouchBlock());
   }
 
-  
-  
-  while (!mTouchBlockQueue.IsEmpty()) {
-    if (mTouchBlockQueue[0]->IsReadyForHandling() && !mTouchBlockQueue[0]->HasEvents()) {
-      INPQ_LOG("discarding depleted touch block %p\n", mTouchBlockQueue[0].get());
-      mTouchBlockQueue.RemoveElementAt(0);
-    } else {
-      break;
-    }
-  }
+  SweepDepletedBlocks();
 
   
-  mTouchBlockQueue.AppendElement(newBlock);
+  mInputBlockQueue.AppendElement(newBlock);
   return newBlock;
+}
+
+CancelableBlockState*
+InputQueue::CurrentBlock() const
+{
+  AsyncPanZoomController::AssertOnControllerThread();
+
+  MOZ_ASSERT(!mInputBlockQueue.IsEmpty());
+  return mInputBlockQueue[0].get();
 }
 
 TouchBlockState*
 InputQueue::CurrentTouchBlock() const
 {
-  AsyncPanZoomController::AssertOnControllerThread();
-
-  MOZ_ASSERT(!mTouchBlockQueue.IsEmpty());
-  return mTouchBlockQueue[0].get();
+  TouchBlockState *block = CurrentBlock()->AsTouchBlock();
+  MOZ_ASSERT(block);
+  return block;
 }
 
 bool
 InputQueue::HasReadyTouchBlock() const
 {
-  return !mTouchBlockQueue.IsEmpty() && mTouchBlockQueue[0]->IsReadyForHandling();
+  return !mInputBlockQueue.IsEmpty() &&
+         mInputBlockQueue[0]->AsTouchBlock() &&
+         mInputBlockQueue[0]->IsReadyForHandling();
 }
 
 void
@@ -199,18 +247,18 @@ InputQueue::MainThreadTimeout(const uint64_t& aInputBlockId) {
 
   INPQ_LOG("got a main thread timeout; block=%" PRIu64 "\n", aInputBlockId);
   bool success = false;
-  for (size_t i = 0; i < mTouchBlockQueue.Length(); i++) {
-    if (mTouchBlockQueue[i]->GetBlockId() == aInputBlockId) {
+  for (size_t i = 0; i < mInputBlockQueue.Length(); i++) {
+    if (mInputBlockQueue[i]->GetBlockId() == aInputBlockId) {
       
       
       
-      success = mTouchBlockQueue[i]->TimeoutContentResponse();
-      success |= mTouchBlockQueue[i]->SetConfirmedTargetApzc(mTouchBlockQueue[i]->GetTargetApzc());
+      success = mInputBlockQueue[i]->TimeoutContentResponse();
+      success |= mInputBlockQueue[i]->SetConfirmedTargetApzc(mInputBlockQueue[i]->GetTargetApzc());
       break;
     }
   }
   if (success) {
-    ProcessPendingInputBlocks();
+    ProcessInputBlocks();
   }
 }
 
@@ -220,14 +268,15 @@ InputQueue::ContentReceivedTouch(uint64_t aInputBlockId, bool aPreventDefault) {
 
   INPQ_LOG("got a content response; block=%" PRIu64 "\n", aInputBlockId);
   bool success = false;
-  for (size_t i = 0; i < mTouchBlockQueue.Length(); i++) {
-    if (mTouchBlockQueue[i]->GetBlockId() == aInputBlockId) {
-      success = mTouchBlockQueue[i]->SetContentResponse(aPreventDefault);
+  for (size_t i = 0; i < mInputBlockQueue.Length(); i++) {
+    if (mInputBlockQueue[i]->GetBlockId() == aInputBlockId) {
+      CancelableBlockState* block = mInputBlockQueue[i].get();
+      success = block->SetContentResponse(aPreventDefault);
       break;
     }
   }
   if (success) {
-    ProcessPendingInputBlocks();
+    ProcessInputBlocks();
   }
 }
 
@@ -238,14 +287,14 @@ InputQueue::SetConfirmedTargetApzc(uint64_t aInputBlockId, const nsRefPtr<AsyncP
   INPQ_LOG("got a target apzc; block=%" PRIu64 " guid=%s\n",
     aInputBlockId, aTargetApzc ? Stringify(aTargetApzc->GetGuid()).c_str() : "");
   bool success = false;
-  for (size_t i = 0; i < mTouchBlockQueue.Length(); i++) {
-    if (mTouchBlockQueue[i]->GetBlockId() == aInputBlockId) {
-      success = mTouchBlockQueue[i]->SetConfirmedTargetApzc(aTargetApzc);
+  for (size_t i = 0; i < mInputBlockQueue.Length(); i++) {
+    if (mInputBlockQueue[i]->GetBlockId() == aInputBlockId) {
+      success = mInputBlockQueue[i]->SetConfirmedTargetApzc(aTargetApzc);
       break;
     }
   }
   if (success) {
-    ProcessPendingInputBlocks();
+    ProcessInputBlocks();
   } else {
     NS_WARNING("INPQ received useless SetConfirmedTargetApzc");
   }
@@ -257,25 +306,30 @@ InputQueue::SetAllowedTouchBehavior(uint64_t aInputBlockId, const nsTArray<Touch
 
   INPQ_LOG("got allowed touch behaviours; block=%" PRIu64 "\n", aInputBlockId);
   bool success = false;
-  for (size_t i = 0; i < mTouchBlockQueue.Length(); i++) {
-    if (mTouchBlockQueue[i]->GetBlockId() == aInputBlockId) {
-      success = mTouchBlockQueue[i]->SetAllowedTouchBehaviors(aBehaviors);
+  for (size_t i = 0; i < mInputBlockQueue.Length(); i++) {
+    if (mInputBlockQueue[i]->GetBlockId() == aInputBlockId) {
+      TouchBlockState *block = mInputBlockQueue[i]->AsTouchBlock();
+      if (block) {
+        success = block->SetAllowedTouchBehaviors(aBehaviors);
+      } else {
+        NS_WARNING("input block is not a touch block");
+      }
       break;
     }
   }
   if (success) {
-    ProcessPendingInputBlocks();
+    ProcessInputBlocks();
   } else {
     NS_WARNING("INPQ received useless SetAllowedTouchBehavior");
   }
 }
 
 void
-InputQueue::ProcessPendingInputBlocks() {
+InputQueue::ProcessInputBlocks() {
   AsyncPanZoomController::AssertOnControllerThread();
 
-  while (true) {
-    TouchBlockState* curBlock = CurrentTouchBlock();
+  do {
+    CancelableBlockState* curBlock = CurrentBlock();
     if (!curBlock->IsReadyForHandling()) {
       break;
     }
@@ -292,13 +346,11 @@ InputQueue::ProcessPendingInputBlocks() {
       curBlock->DropEvents();
       target->ResetInputState();
     } else {
-      while (curBlock->HasEvents()) {
-        target->HandleInputEvent(curBlock->RemoveFirstEvent());
-      }
+      curBlock->HandleEvents(target);
     }
     MOZ_ASSERT(!curBlock->HasEvents());
 
-    if (mTouchBlockQueue.Length() == 1) {
+    if (mInputBlockQueue.Length() == 1 && curBlock->MustStayActive()) {
       
       
       
@@ -309,8 +361,8 @@ InputQueue::ProcessPendingInputBlocks() {
     
     
     INPQ_LOG("discarding depleted touch block %p\n", curBlock);
-    mTouchBlockQueue.RemoveElementAt(0);
-  }
+    mInputBlockQueue.RemoveElementAt(0);
+  } while (!mInputBlockQueue.IsEmpty());
 }
 
 } 

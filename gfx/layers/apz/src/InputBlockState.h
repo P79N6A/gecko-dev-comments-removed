@@ -16,6 +16,9 @@ namespace layers {
 
 class AsyncPanZoomController;
 class OverscrollHandoffChain;
+class CancelableBlockState;
+class TouchBlockState;
+class WheelBlockState;
 
 
 
@@ -28,14 +31,16 @@ public:
 
   explicit InputBlockState(const nsRefPtr<AsyncPanZoomController>& aTargetApzc,
                            bool aTargetConfirmed);
+  virtual ~InputBlockState()
+  {}
 
   bool SetConfirmedTargetApzc(const nsRefPtr<AsyncPanZoomController>& aTargetApzc);
   const nsRefPtr<AsyncPanZoomController>& GetTargetApzc() const;
   const nsRefPtr<const OverscrollHandoffChain>& GetOverscrollHandoffChain() const;
   uint64_t GetBlockId() const;
 
-protected:
   bool IsTargetConfirmed() const;
+
 private:
   nsRefPtr<AsyncPanZoomController> mTargetApzc;
   nsRefPtr<const OverscrollHandoffChain> mOverscrollHandoffChain;
@@ -61,6 +66,10 @@ public:
   CancelableBlockState(const nsRefPtr<AsyncPanZoomController>& aTargetApzc,
                        bool aTargetConfirmed);
 
+  virtual TouchBlockState *AsTouchBlock() {
+    return nullptr;
+  }
+
   
 
 
@@ -83,7 +92,34 @@ public:
   
 
 
+
   virtual bool IsReadyForHandling() const;
+
+  
+
+
+  virtual bool HasEvents() const = 0;
+
+  
+
+
+  virtual void DropEvents() = 0;
+
+  
+
+
+  virtual void HandleEvents(const nsRefPtr<AsyncPanZoomController>& aTarget) = 0;
+
+  
+
+
+
+  virtual bool MustStayActive() = 0;
+
+  
+
+
+  virtual const char* Type() = 0;
 
 private:
   bool mPreventDefault;
@@ -121,6 +157,10 @@ public:
 
   explicit TouchBlockState(const nsRefPtr<AsyncPanZoomController>& aTargetApzc,
                            bool aTargetConfirmed);
+
+  TouchBlockState *AsTouchBlock() MOZ_OVERRIDE {
+    return this;
+  }
 
   
 
@@ -164,20 +204,7 @@ public:
   
 
 
-  bool HasEvents() const;
-  
-
-
   void AddEvent(const MultiTouchInput& aEvent);
-  
-
-
-  void DropEvents();
-  
-
-
-
-  MultiTouchInput RemoveFirstEvent();
 
   
 
@@ -196,6 +223,19 @@ public:
   bool TouchActionAllowsPanningX() const;
   bool TouchActionAllowsPanningY() const;
   bool TouchActionAllowsPanningXY() const;
+
+  bool HasEvents() const MOZ_OVERRIDE;
+  void DropEvents() MOZ_OVERRIDE;
+  void HandleEvents(const nsRefPtr<AsyncPanZoomController>& aTarget) MOZ_OVERRIDE;
+  bool MustStayActive() MOZ_OVERRIDE;
+  const char* Type() MOZ_OVERRIDE;
+
+private:
+  
+
+
+
+  MultiTouchInput RemoveFirstEvent();
 
 private:
   nsTArray<TouchBehaviorFlags> mAllowedTouchBehaviors;
