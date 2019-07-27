@@ -58,6 +58,26 @@ const CB_DCS_LANG_GROUP_2 = [
   null, null, null, null, null, null
 ];
 
+const CB_MAX_CONTENT_PER_PAGE_7BIT = Math.floor((CB_MESSAGE_SIZE_GSM - 6) * 8 / 7);
+const CB_MAX_CONTENT_PER_PAGE_UCS2 = Math.floor((CB_MESSAGE_SIZE_GSM - 6) / 2);
+
+const DUMMY_BODY_7BITS = "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
+                       + "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
+                       + "@@@@@@@@@@@@@"; 
+const DUMMY_BODY_7BITS_IND = DUMMY_BODY_7BITS.substr(3);
+const DUMMY_BODY_UCS2 = "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+                      + "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+                      + "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+                      + "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+                      + "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+                      + "\u0000"; 
+const DUMMY_BODY_UCS2_IND = DUMMY_BODY_UCS2.substr(1);
+
+is(DUMMY_BODY_7BITS.length,     CB_MAX_CONTENT_PER_PAGE_7BIT,     "DUMMY_BODY_7BITS.length");
+is(DUMMY_BODY_7BITS_IND.length, CB_MAX_CONTENT_PER_PAGE_7BIT - 3, "DUMMY_BODY_7BITS_IND.length");
+is(DUMMY_BODY_UCS2.length,      CB_MAX_CONTENT_PER_PAGE_UCS2,     "DUMMY_BODY_UCS2.length");
+is(DUMMY_BODY_UCS2_IND.length,  CB_MAX_CONTENT_PER_PAGE_UCS2 - 1, "DUMMY_BODY_UCS2_IND.length");
+
 
 
 
