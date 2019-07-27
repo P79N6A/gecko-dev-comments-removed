@@ -17,6 +17,7 @@
 #include "nsIChannelEventSink.h"
 #include "nsCategoryCache.h"
 #include "nsISpeculativeConnect.h"
+#include "nsDataHashtable.h"
 #include "mozilla/Attributes.h"
 
 #define NS_N(x) (sizeof(x)/sizeof(*x))
@@ -36,6 +37,12 @@ class nsIProtocolProxyService2;
 class nsIProxyInfo;
 class nsPIDNSService;
 class nsPISocketTransportService;
+
+namespace mozilla {
+namespace net {
+    class NeckoChild;
+} 
+} 
 
 class nsIOService MOZ_FINAL : public nsIIOService2
                             , public nsIObserver
@@ -74,6 +81,9 @@ public:
       return mOffline && mSettingOffline && !mSetOfflineValue;
     }
 
+    
+    void SetAppOfflineInternal(uint32_t appId, int32_t status);
+
 private:
     
     
@@ -102,6 +112,11 @@ private:
     void LookupProxyInfo(nsIURI *aURI, nsIURI *aProxyURI, uint32_t aProxyFlags,
                          nsCString *aScheme, nsIProxyInfo **outPI);
 
+    
+    
+    void NotifyAppOfflineStatus(uint32_t appId, int32_t status);
+    static PLDHashOperator EnumerateWifiAppsChangingState(const unsigned int &, int32_t, void*);
+
 private:
     bool                                 mOffline;
     bool                                 mOfflineForProfileChange;
@@ -129,10 +144,48 @@ private:
     nsTArray<int32_t>                    mRestrictedPortList;
 
     bool                                 mAutoDialEnabled;
+
+    int32_t                              mPreviousWifiState;
+    
+    
+    nsDataHashtable<nsUint32HashKey, int32_t> mAppsOfflineStatus;
 public:
     
     static uint32_t   gDefaultSegmentSize;
     static uint32_t   gDefaultSegmentCount;
+};
+
+
+
+
+
+
+class nsAppOfflineInfo : public nsIAppOfflineInfo
+{
+    NS_DECL_THREADSAFE_ISUPPORTS
+public:
+    nsAppOfflineInfo(uint32_t aAppId, int32_t aMode)
+        : mAppId(aAppId), mMode(aMode)
+    {
+    }
+
+    NS_IMETHODIMP GetMode(int32_t *aMode)
+    {
+        *aMode = mMode;
+        return NS_OK;
+    }
+
+    NS_IMETHODIMP GetAppId(uint32_t *aAppId)
+    {
+        *aAppId = mAppId;
+        return NS_OK;
+    }
+
+private:
+    virtual ~nsAppOfflineInfo() {}
+
+    uint32_t mAppId;
+    int32_t mMode;
 };
 
 

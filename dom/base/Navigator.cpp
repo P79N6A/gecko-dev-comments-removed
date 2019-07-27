@@ -593,6 +593,10 @@ Navigator::CookieEnabled()
 bool
 Navigator::OnLine()
 {
+  if (mWindow && mWindow->GetDoc()) {
+    return !NS_IsAppOffline(mWindow->GetDoc()->NodePrincipal());
+  }
+
   return !NS_IsOffline();
 }
 
@@ -2311,7 +2315,12 @@ Navigator::HasNFCSupport(JSContext* , JSObject* aGlobal)
 
   
   nsCOMPtr<nsISupports> contentHelper = do_GetService("@mozilla.org/nfc/content-helper;1");
-  return !!contentHelper;
+  if (!contentHelper) {
+    return false;
+  }
+
+  return win && (CheckPermission(win, "nfc-read") ||
+                 CheckPermission(win, "nfc-write"));
 }
 #endif 
 

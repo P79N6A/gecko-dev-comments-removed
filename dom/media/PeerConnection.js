@@ -150,6 +150,15 @@ GlobalPCList.prototype = {
       } else if (data == "online") {
         this._networkdown = false;
       }
+    } else if (topic == "network:app-offline-status-changed") {
+      
+      
+      if (!this._networkdown && !this._win.navigator.onLine) {
+        for (let winId in this._list) {
+          cleanupWinId(this._list, winId);
+        }
+      }
+      this._networkdown = !this._win.navigator.onLine;
     } else if (topic == "gmp-plugin-crash") {
       
       
@@ -331,7 +340,7 @@ RTCPeerConnection.prototype = {
     }
     this._mustValidateRTCConfiguration(rtcConfig,
         "RTCPeerConnection constructor passed invalid RTCConfiguration");
-    if (_globalPCList._networkdown) {
+    if (_globalPCList._networkdown || !this._win.navigator.onLine) {
       throw new this._win.DOMError("",
           "Can't create RTCPeerConnections when the network is down");
     }
