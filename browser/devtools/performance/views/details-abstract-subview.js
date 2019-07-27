@@ -49,6 +49,15 @@ let DetailsSubview = {
 
 
 
+
+
+  requiresUpdateOnRangeChange: true,
+
+  
+
+
+
+
   shouldUpdateWhenShown: false,
 
   
@@ -93,6 +102,9 @@ let DetailsSubview = {
 
 
   _onOverviewRangeChange: function (_, interval) {
+    if (!this.requiresUpdateOnRangeChange) {
+      return;
+    }
     if (DetailsView.isViewSelected(this)) {
       let debounced = () => {
         if (!this.shouldUpdateWhileMouseIsActive && OverviewView.isMouseActive) {

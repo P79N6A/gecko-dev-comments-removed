@@ -86,7 +86,13 @@ let JsFlameGraphView = Heritage.extend(DetailsSubview, {
 
   _onRangeChangeInGraph: function () {
     let interval = this.graph.getViewRange();
-    OverviewView.setTimeInterval(interval, { stopPropagation: true });
+
+    
+    
+    
+    this.requiresUpdateOnRangeChange = false;
+    OverviewView.setTimeInterval(interval);
+    this.requiresUpdateOnRangeChange = true;
   },
 
   
