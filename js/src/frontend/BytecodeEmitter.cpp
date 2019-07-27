@@ -4956,6 +4956,9 @@ BytecodeEmitter::emitForOf(StmtType type, ParseNode *pn, ptrdiff_t top)
     
     popStatement();
 
+    if (!tryNoteList.append(JSTRY_FOR_OF, stackDepth, top, offset()))
+        return false;
+
     if (letDecl) {
         if (!LeaveNestedScope(cx, this, &letStmt))
             return false;
