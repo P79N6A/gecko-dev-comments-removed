@@ -161,6 +161,14 @@ protected:
     return false;
   }
 
+  
+  
+  
+  
+  
+  
+  
+  
   static AnimationCollection*
   GetAnimationsForCompositor(nsIContent* aContent,
                              nsIAtom* aElementProperty,
@@ -283,13 +291,19 @@ struct AnimationCollection : public PRCList
     CanAnimate_AllowPartial = 2
   };
 
+private:
   static bool
   CanAnimatePropertyOnCompositor(const dom::Element *aElement,
                                  nsCSSProperty aProperty,
                                  CanAnimateFlags aFlags);
 
+public:
   static bool IsCompositorAnimationDisabledForFrame(nsIFrame* aFrame);
 
+  
+  
+  
+  
   
   
   
