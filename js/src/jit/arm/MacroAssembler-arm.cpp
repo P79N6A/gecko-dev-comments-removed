@@ -1005,6 +1005,11 @@ MacroAssemblerARM::ma_udiv(Register num, Register div, Register dest, Condition 
     as_udiv(dest, num, div, cond);
 }
 
+void
+MacroAssemblerARM::ma_clz(Register src, Register dest, Condition cond)
+{
+    as_clz(dest, src, cond);
+}
 
 
 void

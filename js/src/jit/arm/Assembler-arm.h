@@ -1193,9 +1193,9 @@ class Assembler : public AssemblerShared
     
     
     
+  public:
     static Assembler *Dummy;
 
-  public:
     
     
     Assembler()
@@ -1370,6 +1370,7 @@ class Assembler : public AssemblerShared
 
     BufferOffset as_sdiv(Register dest, Register num, Register div, Condition c = Always);
     BufferOffset as_udiv(Register dest, Register num, Register div, Condition c = Always);
+    BufferOffset as_clz(Register dest, Register src, Condition c = Always, Instruction *instdest = nullptr);
 
     
     
