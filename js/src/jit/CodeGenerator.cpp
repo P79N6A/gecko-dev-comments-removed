@@ -2155,6 +2155,19 @@ CodeGenerator::visitPointer(LPointer *lir)
 }
 
 void
+CodeGenerator::visitNurseryObject(LNurseryObject *lir)
+{
+    Register output = ToRegister(lir->output());
+    uint32_t index = lir->mir()->index();
+
+    
+    
+    
+    JSObject *ptr = reinterpret_cast<JSObject*>((uintptr_t(index) << 1) | 1);
+    masm.movePtr(ImmGCPtr(IonNurseryPtr(ptr)), output);
+}
+
+void
 CodeGenerator::visitSlots(LSlots *lir)
 {
     Address slots(ToRegister(lir->object()), NativeObject::offsetOfSlots());
@@ -7382,6 +7395,9 @@ CodeGenerator::link(JSContext *cx, types::CompilerConstraintList *constraints)
         }
     }
 #endif
+
+    
+    code->fixupNurseryObjects(cx, gen->nurseryObjects());
 
     
     

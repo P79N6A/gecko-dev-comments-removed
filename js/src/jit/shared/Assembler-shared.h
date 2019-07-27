@@ -234,6 +234,22 @@ class ImmMaybeNurseryPtr
 };
 
 
+
+class IonNurseryPtr
+{
+    const gc::Cell *ptr;
+
+  public:
+    friend class ImmGCPtr;
+
+    explicit IonNurseryPtr(const gc::Cell *ptr) : ptr(ptr)
+    {
+        MOZ_ASSERT(ptr);
+        MOZ_ASSERT(uintptr_t(ptr) & 0x1);
+    }
+};
+
+
 class ImmGCPtr
 {
   public:
@@ -243,6 +259,15 @@ class ImmGCPtr
     {
         MOZ_ASSERT(!IsPoisonedPtr(ptr));
         MOZ_ASSERT_IF(ptr, ptr->isTenured());
+
+        
+        MOZ_ASSERT(!IsCompilingAsmJS());
+    }
+
+    explicit ImmGCPtr(IonNurseryPtr ptr) : value(ptr.ptr)
+    {
+        MOZ_ASSERT(!IsPoisonedPtr(value));
+        MOZ_ASSERT(value);
 
         
         MOZ_ASSERT(!IsCompilingAsmJS());

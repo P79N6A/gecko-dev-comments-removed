@@ -3334,14 +3334,6 @@ IsCacheableGetPropCall(JSContext *cx, JSObject *obj, JSObject *holder, Shape *sh
         return false;
 
     JSFunction *func = &shape->getterObject()->as<JSFunction>();
-
-    
-    
-    if (IsInsideNursery(holder) || IsInsideNursery(func)) {
-        *isTemporarilyUnoptimizable = true;
-        return false;
-    }
-
     if (func->isNative()) {
         *isScripted = false;
         return true;
@@ -3456,13 +3448,6 @@ IsCacheableSetPropCall(JSContext *cx, JSObject *obj, JSObject *holder, Shape *sh
         return false;
 
     JSFunction *func = &shape->setterObject()->as<JSFunction>();
-
-    
-    
-    if (IsInsideNursery(holder) || IsInsideNursery(func)) {
-        *isTemporarilyUnoptimizable = true;
-        return false;
-    }
 
     if (func->isNative()) {
         *isScripted = false;

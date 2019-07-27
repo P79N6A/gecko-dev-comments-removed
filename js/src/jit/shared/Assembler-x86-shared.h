@@ -327,6 +327,9 @@ class AssemblerX86Shared : public AssemblerShared
 
     static void TraceDataRelocations(JSTracer *trc, JitCode *code, CompactBufferReader &reader);
 
+    static void FixupNurseryObjects(JSContext *cx, JitCode *code, CompactBufferReader &reader,
+                                    const ObjectVector &nurseryObjects);
+
     
     void trace(JSTracer *trc);
 

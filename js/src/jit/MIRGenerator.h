@@ -193,6 +193,12 @@ class MIRGenerator
     bool instrumentedProfiling_;
     bool instrumentedProfilingIsCached_;
 
+    
+    
+    
+    
+    ObjectVector nurseryObjects_;
+
     void addAbortedNewScriptPropertiesType(types::TypeObject *type);
     void setForceAbort() {
         shouldForceAbort_ = true;
@@ -210,6 +216,12 @@ class MIRGenerator
 
   public:
     const JitCompileOptions options;
+
+    void traceNurseryObjects(JSTracer *trc);
+
+    const ObjectVector &nurseryObjects() const {
+        return nurseryObjects_;
+    }
 };
 
 } 
