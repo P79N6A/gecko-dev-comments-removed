@@ -802,12 +802,6 @@ ContentParent::GetNewOrUsedBrowserProcess(bool aForBrowserElement,
         p->TransformPreallocatedIntoBrowser();
     } else {
       
-#ifdef MOZ_NUWA_PROCESS
-        if (Preferences::GetBool("dom.ipc.processPrelaunch.enabled", false)) {
-            
-            return nullptr;
-        }
-#endif
         p = new ContentParent( nullptr,
                               aOpener,
                               aForBrowserElement,
