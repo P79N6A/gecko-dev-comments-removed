@@ -194,11 +194,6 @@ struct IonScript
     uint32_t numBailouts_;
 
     
-    
-    
-    mozilla::Atomic<bool, mozilla::Relaxed> hasUncompiledCallTarget_;
-
-    
     bool hasSPSInstrumentation_;
 
     
@@ -416,15 +411,6 @@ struct IonScript
     }
     bool bailoutExpected() const {
         return numBailouts_ > 0;
-    }
-    void setHasUncompiledCallTarget() {
-        hasUncompiledCallTarget_ = true;
-    }
-    void clearHasUncompiledCallTarget() {
-        hasUncompiledCallTarget_ = false;
-    }
-    bool hasUncompiledCallTarget() const {
-        return hasUncompiledCallTarget_;
     }
     void setHasSPSInstrumentation() {
         hasSPSInstrumentation_ = true;

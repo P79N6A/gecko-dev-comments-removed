@@ -1230,7 +1230,6 @@ js::testingFunc_inParallelSection(JSContext *cx, unsigned argc, jsval *vp)
 
     
     
-    MOZ_ASSERT(!InParallelSection());
     args.rval().setBoolean(false);
     return true;
 }

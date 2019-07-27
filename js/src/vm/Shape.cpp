@@ -59,7 +59,6 @@ ShapeTable::init(ExclusiveContext *cx, Shape *lastProp)
 
     for (Shape::Range<NoGC> r(lastProp); !r.empty(); r.popFront()) {
         Shape &shape = r.front();
-        MOZ_ASSERT(cx->isThreadLocal(&shape));
         Entry &entry = search(shape.propid(), true);
 
         
@@ -115,7 +114,6 @@ bool
 Shape::makeOwnBaseShape(ExclusiveContext *cx)
 {
     MOZ_ASSERT(!base()->isOwned());
-    MOZ_ASSERT(cx->isThreadLocal(this));
     assertSameCompartmentDebugOnly(cx, compartment());
 
     BaseShape *nbase = js_NewGCBaseShape<NoGC>(cx);
@@ -299,7 +297,6 @@ ShapeTable::change(int log2Delta, ExclusiveContext *cx)
     
     for (Entry *oldEntry = oldTable; oldSize != 0; oldEntry++) {
         if (Shape *shape = oldEntry->shape()) {
-            MOZ_ASSERT(cx->isThreadLocal(shape));
             Entry &entry = search(shape->propid(), true);
             MOZ_ASSERT(entry.isFree());
             entry.setShape(shape);
@@ -441,13 +438,6 @@ js::NativeObject::toDictionaryMode(ExclusiveContext *cx)
     
     MOZ_ASSERT(cx->isInsideCurrentCompartment(this));
 
-    
-
-
-
-
-    MOZ_ASSERT(cx->isThreadLocal(this));
-
     uint32_t span = slotSpan();
 
     Rooted<NativeObject*> self(cx, this);
@@ -542,7 +532,6 @@ NativeObject::addPropertyInternal(ExclusiveContext *cx,
                                   unsigned flags, ShapeTable::Entry *entry,
                                   bool allowDictionary)
 {
-    MOZ_ASSERT(cx->isThreadLocal(obj));
     MOZ_ASSERT_IF(!allowDictionary, !obj->inDictionaryMode());
     MOZ_ASSERT(getter != JS_PropertyStub);
     MOZ_ASSERT(setter != JS_StrictPropertyStub);
@@ -712,7 +701,6 @@ NativeObject::putProperty(ExclusiveContext *cx, HandleNativeObject obj, HandleId
                           PropertyOp getter, StrictPropertyOp setter,
                           uint32_t slot, unsigned attrs, unsigned flags)
 {
-    MOZ_ASSERT(cx->isThreadLocal(obj));
     MOZ_ASSERT(!JSID_IS_VOID(id));
     MOZ_ASSERT(getter != JS_PropertyStub);
     MOZ_ASSERT(setter != JS_StrictPropertyStub);
@@ -903,7 +891,6 @@ NativeObject::changeProperty(ExclusiveContext *cx, HandleNativeObject obj,
                              HandleShape shape, unsigned attrs,
                              unsigned mask, PropertyOp getter, StrictPropertyOp setter)
 {
-    MOZ_ASSERT(cx->isThreadLocal(obj));
     MOZ_ASSERT(obj->containsPure(shape));
     MOZ_ASSERT(getter != JS_PropertyStub);
     MOZ_ASSERT(setter != JS_StrictPropertyStub);
@@ -1106,8 +1093,6 @@ Shape *
 NativeObject::replaceWithNewEquivalentShape(ExclusiveContext *cx, Shape *oldShape, Shape *newShape,
                                             bool accessorShape)
 {
-    MOZ_ASSERT(cx->isThreadLocal(this));
-    MOZ_ASSERT(cx->isThreadLocal(oldShape));
     MOZ_ASSERT(cx->isInsideCurrentCompartment(oldShape));
     MOZ_ASSERT_IF(oldShape != lastProperty(),
                   inDictionaryMode() && lookup(cx, oldShape->propidRef()) == oldShape);

@@ -32,13 +32,13 @@
 
 #include "vm/Interpreter-inl.h"
 
+#if 0
+
 using namespace js;
 using namespace js::parallel;
 using namespace js::jit;
 
 using mozilla::ThreadLocal;
-
-#if 0
 
 
 
@@ -86,8 +86,6 @@ ExecuteSequentially(JSContext *cx, HandleValue funVal, uint16_t *sliceStart,
     return true;
 }
 
-#endif 
-
 ThreadLocal<ForkJoinContext*> ForkJoinContext::tlsForkJoinContext;
 
  bool
@@ -99,8 +97,6 @@ ForkJoinContext::initializeTls()
     }
     return true;
 }
-
-#if 0
 
 
 

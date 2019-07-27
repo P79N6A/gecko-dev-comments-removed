@@ -112,7 +112,6 @@ TraceCycleDetectionSet(JSTracer *trc, ObjectSet &set);
 
 struct AutoResolving;
 class DtoaCache;
-class ForkJoinContext;
 class RegExpStatics;
 
 namespace frontend { struct CompileError; }
@@ -137,26 +136,26 @@ namespace frontend { struct CompileError; }
 
 
 
+struct HelperThread;
 
-
-
-
-
-
-
-
-
-struct ThreadSafeContext : ContextFriendFields,
-                           public MallocProvider<ThreadSafeContext>
+class ExclusiveContext : public ContextFriendFields,
+                         public MallocProvider<ExclusiveContext>
 {
+    friend class gc::ArenaLists;
+    friend class AutoCompartment;
+    friend class AutoLockForExclusiveAccess;
     friend struct StackBaseShape;
+    friend void JSScript::initCompartment(ExclusiveContext *cx);
+    friend class jit::JitContext;
     friend class Activation;
+
+    
+    HelperThread *helperThread_;
 
   public:
     enum ContextKind {
         Context_JS,
-        Context_Exclusive,
-        Context_ForkJoin
+        Context_Exclusive
     };
 
   private:
@@ -165,7 +164,7 @@ struct ThreadSafeContext : ContextFriendFields,
   public:
     PerThreadData *perThreadData;
 
-    ThreadSafeContext(JSRuntime *rt, PerThreadData *pt, ContextKind kind);
+    ExclusiveContext(JSRuntime *rt, PerThreadData *pt, ContextKind kind);
 
     bool isJSContext() const {
         return contextKind_ == Context_JS;
@@ -198,45 +197,11 @@ struct ThreadSafeContext : ContextFriendFields,
         return isJSContext();
     }
 
-    bool isExclusiveContext() const {
-        return contextKind_ == Context_JS || contextKind_ == Context_Exclusive;
-    }
-
-    ExclusiveContext *maybeExclusiveContext() const {
-        if (isExclusiveContext())
-            return (ExclusiveContext *) this;
-        return nullptr;
-    }
-
-    ExclusiveContext *asExclusiveContext() const {
-        MOZ_ASSERT(isExclusiveContext());
-        return maybeExclusiveContext();
-    }
-
-    bool isForkJoinContext() const;
-    ForkJoinContext *asForkJoinContext();
-
-    
-
-
-
-
-
-
-
-
-
-
   protected:
     Allocator *allocator_;
 
   public:
-    static size_t offsetOfAllocator() { return offsetof(ThreadSafeContext, allocator_); }
-
     inline Allocator *allocator() const { return allocator_; }
-
-    
-    inline AllowGC allowGC() const { return isJSContext() ? CanGC : NoGC; }
 
     template <typename T>
     bool isInsideCurrentZone(T thing) const {
@@ -247,9 +212,6 @@ struct ThreadSafeContext : ContextFriendFields,
     inline bool isInsideCurrentCompartment(T thing) const {
         return thing->compartment() == compartment_;
     }
-
-    template <typename T>
-    inline bool isThreadLocal(T thing) const { return true; }  
 
     void *onOutOfMemory(void *p, size_t nbytes) {
         return runtime_->onOutOfMemory(p, nbytes, maybeJSContext());
@@ -264,7 +226,7 @@ struct ThreadSafeContext : ContextFriendFields,
     }
 
     void reportAllocationOverflow() {
-        js_ReportAllocationOverflow(asExclusiveContext());
+        js_ReportAllocationOverflow(this);
     }
 
     
@@ -288,29 +250,6 @@ struct ThreadSafeContext : ContextFriendFields,
     DtoaState *dtoaState() {
         return perThreadData->dtoaState;
     }
-};
-
-struct HelperThread;
-
-class ExclusiveContext : public ThreadSafeContext
-{
-    friend class gc::ArenaLists;
-    friend class AutoCompartment;
-    friend class AutoLockForExclusiveAccess;
-    friend struct StackBaseShape;
-    friend void JSScript::initCompartment(ExclusiveContext *cx);
-    friend class jit::JitContext;
-
-    
-    HelperThread *helperThread_;
-
-  public:
-
-    ExclusiveContext(JSRuntime *rt, PerThreadData *pt, ContextKind kind)
-      : ThreadSafeContext(rt, pt, kind),
-        helperThread_(nullptr),
-        enterCompartmentDepth_(0)
-    {}
 
     
 

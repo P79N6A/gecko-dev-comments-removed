@@ -555,12 +555,6 @@ FrameIter::settleOnActivation()
             return;
         }
 
-        
-        if (activation->isForkJoin()) {
-            ++data_.activations_;
-            continue;
-        }
-
         MOZ_ASSERT(activation->isInterpreter());
 
         InterpreterActivation *interpAct = activation->asInterpreter();
