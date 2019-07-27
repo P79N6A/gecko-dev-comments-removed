@@ -1196,6 +1196,11 @@ SelectionCarets::ScrollPositionChanged()
     if (!mUseAsyncPanZoom) {
       SetVisibility(false);
       
+      
+      
+      
+      DispatchScrollViewChangeEvent(mPresShell, dom::ScrollState::Started,
+                                    mozilla::CSSIntPoint(0, 0));
 
       SELECTIONCARETS_LOG("Launch scroll end detector");
       LaunchScrollEndDetector();
