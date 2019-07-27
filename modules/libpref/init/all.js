@@ -4620,6 +4620,14 @@ pref("ui.touch_activation.duration_ms", 10);
 
 pref("memory_info_dumper.watch_fifo.enabled", false);
 
+
+
+pref("network.captive-portal-service.minInterval", 60000); 
+pref("network.captive-portal-service.maxInterval", 1500000); 
+
+pref("network.captive-portal-service.backoffFactor", "5.0");
+pref("network.captive-portal-service.enabled", false);
+
 pref("captivedetect.canonicalURL", "http://detectportal.firefox.com/success.txt");
 pref("captivedetect.canonicalContent", "success\n");
 pref("captivedetect.maxWaitingTime", 5000);
