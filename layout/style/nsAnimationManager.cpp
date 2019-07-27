@@ -267,16 +267,9 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
       
       
       if (!collection->mAnimations.IsEmpty()) {
-        for (uint32_t newIdx = 0, newEnd = newAnimations.Length();
-             newIdx != newEnd; ++newIdx) {
+        for (size_t newIdx = newAnimations.Length(); newIdx-- != 0;) {
           ElementAnimation* newAnim = newAnimations[newIdx];
 
-          
-          
-          
-          
-          
-          
           
           
           
