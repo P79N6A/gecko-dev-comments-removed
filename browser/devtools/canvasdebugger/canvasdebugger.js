@@ -190,8 +190,8 @@ EventEmitter.decorate(this);
 
 
 
-function $(selector, target = document) target.querySelector(selector);
-function $all(selector, target = document) target.querySelectorAll(selector);
+let $ = (selector, target = document) => target.querySelector(selector);
+let $all = (selector, target = document) => target.querySelectorAll(selector);
 
 
 

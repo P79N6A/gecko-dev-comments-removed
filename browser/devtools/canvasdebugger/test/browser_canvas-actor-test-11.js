@@ -6,7 +6,7 @@
 
 
 
-function ifTestingSupported() {
+function* ifTestingSupported() {
   let { target, front } = yield initCanvasDebuggerBackend(SET_TIMEOUT_URL);
 
   let navigated = once(target, "navigate");

@@ -6,7 +6,7 @@
 
 
 
-function ifTestingSupported() {
+function* ifTestingSupported() {
   let { target, front } = yield initCallWatcherBackend(SIMPLE_CANVAS_URL);
 
   let navigated = once(target, "navigate");
