@@ -67,6 +67,9 @@ void ProxyDestroyed(ProxyAccessible*);
 
 
 void ProxyEvent(ProxyAccessible* aTarget, uint32_t aEventType);
+void ProxyStateChangeEvent(ProxyAccessible* aTarget, uint64_t aState,
+                           bool aEnabled);
+void ProxyCaretMoveEvent(ProxyAccessible* aTarget, int32_t aOffset);
 } 
 } 
 
