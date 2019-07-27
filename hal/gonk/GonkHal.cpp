@@ -24,6 +24,7 @@
 #include <sched.h>
 #include <stdio.h>
 #include <sys/klog.h>
+#include <sys/stat.h>
 #include <sys/syscall.h>
 #include <sys/resource.h>
 #include <time.h>
@@ -47,6 +48,7 @@
 #include "HalImpl.h"
 #include "HalLog.h"
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/ClearOnShutdown.h"
 #include "mozilla/dom/battery/Constants.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/FileUtils.h"
@@ -1292,6 +1294,261 @@ OomVictimLogger::Observe(
   return NS_OK;
 }
 
+
+
+
+
+
+
+class PriorityClass
+{
+public:
+  
+
+
+
+
+  PriorityClass(ProcessPriority aPriority);
+
+  
+
+
+
+  ~PriorityClass();
+
+  PriorityClass(const PriorityClass& aOther);
+  PriorityClass& operator=(const PriorityClass& aOther);
+
+  ProcessPriority Priority()
+  {
+    return mPriority;
+  }
+
+  int32_t OomScoreAdj()
+  {
+    return clamped<int32_t>(mOomScoreAdj, OOM_SCORE_ADJ_MIN, OOM_SCORE_ADJ_MAX);
+  }
+
+  int32_t KillUnderKB()
+  {
+    return mKillUnderKB;
+  }
+
+  nsCString CGroup()
+  {
+    return mGroup;
+  }
+
+  
+
+
+
+
+
+  void AddProcess(int aPid);
+
+private:
+  ProcessPriority mPriority;
+  int32_t mOomScoreAdj;
+  int32_t mKillUnderKB;
+  int mCGroupProcsFd;
+  nsCString mGroup;
+
+  
+
+
+
+
+  nsCString PriorityPrefName(const char* aPref)
+  {
+    return nsPrintfCString("hal.processPriorityManager.gonk.%s.%s",
+                           ProcessPriorityToString(mPriority), aPref);
+  }
+
+  
+
+
+  nsCString CGroupProcsFilename()
+  {
+    nsCString cgroupName = mGroup;
+
+    
+
+
+
+    if (!mGroup.IsEmpty()) {
+      cgroupName.AppendLiteral("/");
+    }
+
+    return NS_LITERAL_CSTRING("/dev/cpuctl/") + cgroupName +
+           NS_LITERAL_CSTRING("cgroup.procs");
+  }
+
+  int OpenCGroupProcs()
+  {
+    return open(CGroupProcsFilename().get(), O_WRONLY);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+static bool
+EnsureCGroupExists(const nsACString &aGroup)
+{
+  NS_NAMED_LITERAL_CSTRING(kDevCpuCtl, "/dev/cpuctl/");
+  NS_NAMED_LITERAL_CSTRING(kSlash, "/");
+
+  nsAutoCString prefPrefix("hal.processPriorityManager.gonk.cgroups.");
+
+  
+
+  if (!aGroup.IsEmpty()) {
+    prefPrefix += aGroup + NS_LITERAL_CSTRING(".");
+  }
+
+  nsAutoCString cpuSharesPref(prefPrefix + NS_LITERAL_CSTRING("cpu_shares"));
+  int cpuShares = Preferences::GetInt(cpuSharesPref.get());
+
+  nsAutoCString cpuNotifyOnMigratePref(prefPrefix
+    + NS_LITERAL_CSTRING("cpu_notify_on_migrate"));
+  int cpuNotifyOnMigrate = Preferences::GetInt(cpuNotifyOnMigratePref.get());
+
+  
+  nsCString cgroupIter = aGroup + kSlash;
+
+  int32_t offset = 0;
+  while ((offset = cgroupIter.FindChar('/', offset)) != -1) {
+    nsAutoCString path = kDevCpuCtl + Substring(cgroupIter, 0, offset);
+    int rv = mkdir(path.get(), 0744);
+
+    if (rv == -1 && errno != EEXIST) {
+      HAL_LOG("Could not create the %s control group.", path.get());
+      return false;
+    }
+
+    offset++;
+  }
+
+  nsAutoCString pathPrefix(kDevCpuCtl + aGroup + kSlash);
+  nsAutoCString cpuSharesPath(pathPrefix + NS_LITERAL_CSTRING("cpu.shares"));
+  if (cpuShares && !WriteToFile(cpuSharesPath.get(),
+                                nsPrintfCString("%d", cpuShares).get())) {
+    HAL_LOG("Could not set the cpu share for group %s", cpuSharesPath.get());
+    return false;
+  }
+
+  nsAutoCString notifyOnMigratePath(pathPrefix
+    + NS_LITERAL_CSTRING("cpu.notify_on_migrate"));
+  if (!WriteToFile(notifyOnMigratePath.get(),
+                   nsPrintfCString("%d", cpuNotifyOnMigrate).get())) {
+    HAL_LOG("Could not set the cpu migration notification flag for group %s",
+            notifyOnMigratePath.get());
+    return false;
+  }
+
+  return true;
+}
+
+PriorityClass::PriorityClass(ProcessPriority aPriority)
+  : mPriority(aPriority)
+  , mOomScoreAdj(0)
+  , mKillUnderKB(0)
+  , mCGroupProcsFd(-1)
+{
+  DebugOnly<nsresult> rv;
+
+  rv = Preferences::GetInt(PriorityPrefName("OomScoreAdjust").get(),
+                           &mOomScoreAdj);
+  MOZ_ASSERT(NS_SUCCEEDED(rv), "Missing oom_score_adj preference");
+
+  rv = Preferences::GetInt(PriorityPrefName("KillUnderKB").get(),
+                           &mKillUnderKB);
+
+  rv = Preferences::GetCString(PriorityPrefName("cgroup").get(), &mGroup);
+  MOZ_ASSERT(NS_SUCCEEDED(rv), "Missing control group preference");
+
+  if (EnsureCGroupExists(mGroup)) {
+    mCGroupProcsFd = OpenCGroupProcs();
+  }
+}
+
+PriorityClass::~PriorityClass()
+{
+  close(mCGroupProcsFd);
+}
+
+PriorityClass::PriorityClass(const PriorityClass& aOther)
+  : mPriority(aOther.mPriority)
+  , mOomScoreAdj(aOther.mOomScoreAdj)
+  , mKillUnderKB(aOther.mKillUnderKB)
+  , mGroup(aOther.mGroup)
+{
+  mCGroupProcsFd = OpenCGroupProcs();
+}
+
+PriorityClass& PriorityClass::operator=(const PriorityClass& aOther)
+{
+  mPriority = aOther.mPriority;
+  mOomScoreAdj = aOther.mOomScoreAdj;
+  mKillUnderKB = aOther.mKillUnderKB;
+  mGroup = aOther.mGroup;
+  mCGroupProcsFd = OpenCGroupProcs();
+  return *this;
+}
+
+void PriorityClass::AddProcess(int aPid)
+{
+  if (mCGroupProcsFd < 0) {
+    return;
+  }
+
+  nsPrintfCString str("%d", aPid);
+
+  if (write(mCGroupProcsFd, str.get(), strlen(str.get())) < 0) {
+    HAL_ERR("Couldn't add PID %d to the %s control group", aPid, mGroup.get());
+  }
+}
+
+
+
+
+
+
+
+
+
+PriorityClass*
+GetPriorityClass(ProcessPriority aPriority)
+{
+  static StaticAutoPtr<nsTArray<PriorityClass>> priorityClasses;
+
+  
+  
+  if (!priorityClasses) {
+    priorityClasses = new nsTArray<PriorityClass>();
+    ClearOnShutdown(&priorityClasses);
+
+    for (int32_t i = 0; i < NUM_PROCESS_PRIORITY; i++) {
+      priorityClasses->AppendElement(PriorityClass(ProcessPriority(i)));
+    }
+  }
+
+  if (aPriority < 0 ||
+      static_cast<uint32_t>(aPriority) >= priorityClasses->Length()) {
+    return nullptr;
+  }
+
+  return &(*priorityClasses)[aPriority];
+}
+
 static void
 EnsureKernelLowMemKillerParamsSet()
 {
@@ -1332,21 +1589,12 @@ EnsureKernelLowMemKillerParamsSet()
     
     
 
-    ProcessPriority priority = static_cast<ProcessPriority>(i);
+    PriorityClass* pc = GetPriorityClass(static_cast<ProcessPriority>(i));
 
-    int32_t oomScoreAdj;
-    if (!NS_SUCCEEDED(Preferences::GetInt(
-          nsPrintfCString("hal.processPriorityManager.gonk.%s.OomScoreAdjust",
-                          ProcessPriorityToString(priority)).get(),
-          &oomScoreAdj))) {
-      MOZ_CRASH();
-    }
+    int32_t oomScoreAdj = pc->OomScoreAdj();
+    int32_t killUnderKB = pc->KillUnderKB();
 
-    int32_t killUnderKB;
-    if (!NS_SUCCEEDED(Preferences::GetInt(
-          nsPrintfCString("hal.processPriorityManager.gonk.%s.KillUnderKB",
-                          ProcessPriorityToString(priority)).get(),
-          &killUnderKB))) {
+    if (killUnderKB == 0) {
       
       
       
@@ -1377,7 +1625,8 @@ EnsureKernelLowMemKillerParamsSet()
   minfreeParams.Cut(minfreeParams.Length() - 1, 1);
   if (!adjParams.IsEmpty() && !minfreeParams.IsEmpty()) {
     WriteToFile("/sys/module/lowmemorykiller/parameters/adj", adjParams.get());
-    WriteToFile("/sys/module/lowmemorykiller/parameters/minfree", minfreeParams.get());
+    WriteToFile("/sys/module/lowmemorykiller/parameters/minfree",
+                minfreeParams.get());
   }
 
   
@@ -1399,148 +1648,6 @@ EnsureKernelLowMemKillerParamsSet()
   }
 }
 
-static void
-SetNiceForPid(int aPid, int aNice)
-{
-  errno = 0;
-  int origProcPriority = getpriority(PRIO_PROCESS, aPid);
-  if (errno) {
-    HAL_LOG("Unable to get nice for pid=%d; error %d.  SetNiceForPid bailing.",
-            aPid, errno);
-    return;
-  }
-
-  int rv = setpriority(PRIO_PROCESS, aPid, aNice);
-  if (rv) {
-    HAL_LOG("Unable to set nice for pid=%d; error %d.  SetNiceForPid bailing.",
-            aPid, errno);
-    return;
-  }
-
-  
-  
-  
-  
-  
-  
-  
-
-  DIR* tasksDir = opendir(nsPrintfCString("/proc/%d/task/", aPid).get());
-  if (!tasksDir) {
-    HAL_LOG("Unable to open /proc/%d/task.  SetNiceForPid bailing.", aPid);
-    return;
-  }
-
-  
-
-  while (struct dirent* de = readdir(tasksDir)) {
-    char* endptr = nullptr;
-    long tidlong = strtol(de->d_name, &endptr,  10);
-    if (*endptr || tidlong < 0 || tidlong > INT32_MAX || tidlong == aPid) {
-      
-      
-      
-      
-      
-      
-      continue;
-    }
-
-    int tid = static_cast<int>(tidlong);
-
-    
-    
-    
-    int schedPolicy = sched_getscheduler(tid);
-    if (schedPolicy == SCHED_FIFO || schedPolicy == SCHED_RR) {
-      continue;
-    }
-
-    errno = 0;
-    
-    int origtaskpriority = getpriority(PRIO_PROCESS, tid);
-    if (errno) {
-      HAL_LOG("Unable to get nice for tid=%d (pid=%d); error %d.  This isn't "
-              "necessarily a problem; it could be a benign race condition.",
-              tid, aPid, errno);
-      continue;
-    }
-
-    int newtaskpriority =
-      std::max(origtaskpriority - origProcPriority + aNice, aNice);
-
-    
-    
-    
-    if (newtaskpriority > origtaskpriority &&
-        origtaskpriority < ANDROID_PRIORITY_NORMAL) {
-      continue;
-    }
-
-    rv = setpriority(PRIO_PROCESS, tid, newtaskpriority);
-
-    if (rv) {
-      HAL_LOG("Unable to set nice for tid=%d (pid=%d); error %d.  This isn't "
-              "necessarily a problem; it could be a benign race condition.",
-              tid, aPid, errno);
-      continue;
-    }
-  }
-
-  HAL_LOG("Changed nice for pid %d from %d to %d.",
-          aPid, origProcPriority, aNice);
-
-  closedir(tasksDir);
-}
-
-
-
-
-
-struct ProcessPriorityPrefs {
-  bool initialized;
-  int lowPriorityNice;
-  struct {
-    int nice;
-    int oomScoreAdj;
-  } priorities[NUM_PROCESS_PRIORITY];
-};
-
-
-
-
-
-
-void
-EnsureProcessPriorityPrefs(ProcessPriorityPrefs* prefs)
-{
-  if (prefs->initialized) {
-    return;
-  }
-
-  
-  for (int i = PROCESS_PRIORITY_BACKGROUND; i < NUM_PROCESS_PRIORITY; i++) {
-    ProcessPriority priority = static_cast<ProcessPriority>(i);
-
-    
-    const char* processPriorityStr = ProcessPriorityToString(priority);
-    nsPrintfCString niceStr("hal.processPriorityManager.gonk.%s.Nice",
-                            processPriorityStr);
-    Preferences::AddIntVarCache(&prefs->priorities[i].nice, niceStr.get());
-
-    
-    nsPrintfCString oomStr("hal.processPriorityManager.gonk.%s.OomScoreAdjust",
-                           processPriorityStr);
-    Preferences::AddIntVarCache(&prefs->priorities[i].oomScoreAdj,
-                                oomStr.get());
-  }
-
-  Preferences::AddIntVarCache(&prefs->lowPriorityNice,
-                              "hal.processPriorityManager.gonk.LowCPUNice");
-
-  prefs->initialized = true;
-}
-
 void
 SetProcessPriority(int aPid,
                    ProcessPriority aPriority,
@@ -1559,49 +1666,23 @@ SetProcessPriority(int aPid,
   
   EnsureKernelLowMemKillerParamsSet();
 
-  static ProcessPriorityPrefs prefs = { 0 };
-  EnsureProcessPriorityPrefs(&prefs);
+  PriorityClass* pc = GetPriorityClass(aPriority);
 
-  int oomScoreAdj = prefs.priorities[aPriority].oomScoreAdj;
+  int oomScoreAdj = pc->OomScoreAdj();
 
   RoundOomScoreAdjUpWithBackroundLRU(oomScoreAdj, aBackgroundLRU);
 
-  int clampedOomScoreAdj = clamped<int>(oomScoreAdj, OOM_SCORE_ADJ_MIN,
-                                                     OOM_SCORE_ADJ_MAX);
-  if (clampedOomScoreAdj != oomScoreAdj) {
-    HAL_LOG("Clamping OOM adjustment for pid %d to %d", aPid,
-            clampedOomScoreAdj);
-  } else {
-    HAL_LOG("Setting OOM adjustment for pid %d to %d", aPid,
-            clampedOomScoreAdj);
-  }
-
   
   
-
   if (!WriteToFile(nsPrintfCString("/proc/%d/oom_score_adj", aPid).get(),
-                   nsPrintfCString("%d", clampedOomScoreAdj).get()))
+                   nsPrintfCString("%d", oomScoreAdj).get()))
   {
-    int oomAdj = OomAdjOfOomScoreAdj(clampedOomScoreAdj);
-
     WriteToFile(nsPrintfCString("/proc/%d/oom_adj", aPid).get(),
-                nsPrintfCString("%d", oomAdj).get());
+                nsPrintfCString("%d", OomAdjOfOomScoreAdj(oomScoreAdj)).get());
   }
 
-  int nice = 0;
-
-  if (aCPUPriority == PROCESS_CPU_PRIORITY_NORMAL) {
-    nice = prefs.priorities[aPriority].nice;
-  } else if (aCPUPriority == PROCESS_CPU_PRIORITY_LOW) {
-    nice = prefs.lowPriorityNice;
-  } else {
-    HAL_ERR("Unknown aCPUPriority value %d", aCPUPriority);
-    MOZ_ASSERT(false);
-    return;
-  }
-
-  HAL_LOG("Setting nice for pid %d to %d", aPid, nice);
-  SetNiceForPid(aPid, nice);
+  HAL_LOG("Assigning pid %d to cgroup %s", aPid, pc->CGroup().get());
+  pc->AddProcess(aPid);
 }
 
 static bool
