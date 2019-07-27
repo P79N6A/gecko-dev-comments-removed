@@ -16,6 +16,7 @@
 #include "RestyleTracker.h"
 #include "nsPresContext.h"
 #include "nsRefreshDriver.h"
+#include "nsRefPtrHashtable.h"
 
 class nsIFrame;
 class nsStyleChangeList;
@@ -130,6 +131,24 @@ public:
   
   
   nsresult ProcessRestyledFrames(nsStyleChangeList& aRestyleArray);
+
+  
+
+
+
+
+
+
+
+
+  typedef nsRefPtrHashtable<nsRefPtrHashKey<nsIContent>, nsStyleContext>
+            ReframingStyleContextTable;
+  class ReframingStyleContexts {
+  private:
+    ReframingStyleContextTable mElementContexts;
+    ReframingStyleContextTable mBeforePseudoContexts;
+    ReframingStyleContextTable mAfterPseudoContexts;
+  };
 
 private:
   void RestyleForEmptyChange(Element* aContainer);
