@@ -277,14 +277,11 @@ user_pref("browser.uitour.pinnedTabUrl", "http://%(server)s/uitour-dummy/pinnedT
 user_pref("browser.uitour.url", "http://%(server)s/uitour-dummy/tour");
 
 
-user_pref("browser.search.highlightCount", 0);
-
 
 user_pref("browser.search.isUS", true);
 user_pref("browser.search.countryCode", "US");
 
 user_pref("media.eme.enabled", true);
-user_pref("media.eme.apiVisible", true);
 
 #if defined(XP_WIN)
 user_pref("media.decoder.heuristic.dormant.timeout", 0);
