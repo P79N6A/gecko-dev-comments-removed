@@ -471,6 +471,13 @@ public:
     return gPropertyIndexInStruct[aProperty];
   }
 
+private:
+  
+  
+  static const nsCSSProperty* const
+    kLogicalGroupTable[eCSSPropertyLogicalGroup_COUNT];
+
+public:
   
 
 
@@ -482,7 +489,14 @@ public:
 
 
 
-  static nsCSSProperty BoxShorthandFor(nsCSSProperty aProperty);
+
+
+
+
+
+
+
+  static const nsCSSProperty* LogicalGroup(nsCSSProperty aProperty);
 
 private:
   static bool gPropertyEnabled[eCSSProperty_COUNT_with_aliases];
