@@ -134,6 +134,10 @@ XPCOMUtils.defineLazyServiceGetter(this, "gpps",
                                    "@mozilla.org/network/protocol-proxy-service;1",
                                    "nsIProtocolProxyService");
 
+XPCOMUtils.defineLazyServiceGetter(this, "gIccService",
+                                   "@mozilla.org/icc/iccservice;1",
+                                   "nsIIccService");
+
 XPCOMUtils.defineLazyServiceGetter(this, "gUUIDGenerator",
                                    "@mozilla.org/uuid-generator;1",
                                    "nsIUUIDGenerator");
@@ -347,7 +351,7 @@ MmsConnection.prototype = {
     
     try {
       let iccInfo = null;
-      let baseIccInfo = this.radioInterface.rilContext.iccInfo;
+      let baseIccInfo = this.getIccInfo();
       if (baseIccInfo.iccType === 'ruim' || baseIccInfo.iccType === 'csim') {
         iccInfo = baseIccInfo.QueryInterface(Ci.nsICdmaIccInfo);
         number = iccInfo.mdn;
@@ -368,8 +372,24 @@ MmsConnection.prototype = {
   
 
 
+  getIccInfo: function() {
+    let icc = gIccService.getIccByServiceId(this.serviceId);
+    return icc ? icc.iccInfo : null;
+  },
+
+  
+
+
+  getCardState: function() {
+    let icc = gIccService.getIccByServiceId(this.serviceId);
+    return icc ? icc.cardState : Ci.nsIIcc.CARD_STATE_UNKNOWN;
+  },
+
+  
+
+
   getIccId: function() {
-    let iccInfo = this.radioInterface.rilContext.iccInfo;
+    let iccInfo = this.getIccInfo();
 
     if (!iccInfo) {
       return null;
@@ -404,8 +424,7 @@ MmsConnection.prototype = {
       if (getRadioDisabledState()) {
         if (DEBUG) debug("Error! Radio is disabled when sending MMS.");
         errorStatus = _HTTP_STATUS_RADIO_DISABLED;
-      } else if (this.radioInterface.rilContext.cardState !=
-                 Ci.nsIIcc.CARD_STATE_READY) {
+      } else if (this.getCardState() != Ci.nsIIcc.CARD_STATE_READY) {
         if (DEBUG) debug("Error! SIM card is not ready when sending MMS.");
         errorStatus = _HTTP_STATUS_NO_SIM_CARD;
       }
