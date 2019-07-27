@@ -1256,11 +1256,9 @@ nsLineLayout::SyncAnnotationBounds(PerFrameData* aRubyFrame)
       nscoord rtcWidth = rtcBounds.Width(lineWM);
       for (PerFrameData* rt = rtc->mSpan->mFirstFrame; rt; rt = rt->mNext) {
         LogicalRect rtBounds = rt->mFrame->GetLogicalRect(lineWM, rtcWidth);
-        MOZ_ASSERT(rt->mBounds.IStart(lineWM) == rtBounds.IStart(lineWM) &&
-                   rt->mBounds.ISize(lineWM) == rtBounds.ISize(lineWM) &&
-                   rt->mBounds.BSize(lineWM) == rtBounds.BSize(lineWM),
-                   "Metrics other than bstart should not have been changed");
-        rt->mBounds.BStart(lineWM) = rtBounds.BStart(lineWM);
+        MOZ_ASSERT(rt->mBounds.Size(lineWM) == rtBounds.Size(lineWM),
+                   "Size of the annotation should not have been changed");
+        rt->mBounds.SetOrigin(lineWM, rtBounds.Origin(lineWM));
       }
     }
   }

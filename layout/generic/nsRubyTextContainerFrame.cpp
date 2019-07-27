@@ -149,22 +149,19 @@ nsRubyTextContainerFrame::Reflow(nsPresContext* aPresContext,
   LogicalSize size(lineWM, mISize, 0);
   if (!mFrames.IsEmpty()) {
     size.BSize(lineWM) = maxBCoord - minBCoord;
-    nscoord deltaBCoord = -minBCoord;
-    if (lineWM.IsVerticalRL()) {
-      deltaBCoord -= size.BSize(lineWM);
-    }
-
-    if (deltaBCoord != 0) {
-      nscoord containerWidth = size.Width(lineWM);
-      for (nsFrameList::Enumerator e(mFrames); !e.AtEnd(); e.Next()) {
-        nsIFrame* child = e.get();
-        LogicalPoint pos = child->GetLogicalPosition(lineWM, containerWidth);
-        pos.B(lineWM) += deltaBCoord;
-        
-        
-        child->SetPosition(lineWM, pos, containerWidth);
-        nsContainerFrame::PlaceFrameView(child);
-      }
+    nscoord containerWidth = size.Width(lineWM);
+    for (nsFrameList::Enumerator e(mFrames); !e.AtEnd(); e.Next()) {
+      nsIFrame* child = e.get();
+      
+      
+      LogicalPoint pos = child->GetLogicalPosition(lineWM, 0);
+      
+      
+      pos.B(lineWM) -= minBCoord;
+      
+      
+      child->SetPosition(lineWM, pos, containerWidth);
+      nsContainerFrame::PlaceFrameView(child);
     }
   }
 
