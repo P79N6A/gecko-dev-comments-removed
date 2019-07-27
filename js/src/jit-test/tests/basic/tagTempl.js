@@ -2,44 +2,33 @@
 
 
 
-function testCaseFn() {
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+function check(actual, expected) {
+    assertEq(actual.length, expected.length);
+    for (var i = 0; i < expected.length; i++)
+       assertEq(actual[i], expected[i]);
 }
 
-var str = testCaseFn.toString().replace("/*","").replace("*/","");
-str = str.replace("function testCaseFn() {\n", "").replace("/*End func*/}","");
-var hasTemplateStrings = false;
-try { eval("``"); hasTemplateStrings = true; } catch (exc) { }
-if (hasTemplateStrings)
-    eval(str);
+function func(a) { return a; }
+
+function csoLoop() {
+    var cso = [];
+    for (var index = 0; index < 2000; index++) {
+        cso[index] = func`hey${4}there`;
+        if (index > 0)
+            assertEq(cso[index - 1], cso[index]);
+    }
+}
+
+
+csoLoop();
+
+
+if (helperThreadCount() !== 0) {
+    offThreadCompileScript("(x=>x)`abc`");
+    a = runOffThreadScript();
+    check(a, ["abc"]);
+    check(a.raw, ["abc"]);
+    assertEq(a === a.raw, false);
+    assertEq(Object.isFrozen(a), true);
+    assertEq(Object.isFrozen(a.raw), true);
+}
