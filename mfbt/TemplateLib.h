@@ -20,6 +20,8 @@
 #include <limits.h>
 #include <stddef.h>
 
+#include "mozilla/TypeTraits.h"
+
 namespace mozilla {
 
 namespace tl {
@@ -104,6 +106,25 @@ struct MulOverflowMask
 };
 template<> struct MulOverflowMask<0> {  };
 template<> struct MulOverflowMask<1> { static const size_t value = 0; };
+
+
+
+
+
+
+
+
+
+
+template<bool...>
+struct And;
+
+template<>
+struct And<> : public TrueType { };
+
+template<bool C1, bool... Cn>
+struct And<C1, Cn...>
+  : public Conditional<C1, And<Cn...>, FalseType>::Type { };
 
 } 
 
