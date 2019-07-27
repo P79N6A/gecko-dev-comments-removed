@@ -554,11 +554,6 @@ js::XDRInterpretedFunction(XDRState<mode>* xdr, HandleObject enclosingScope, Han
 
         if (fun->isInterpretedLazy()) {
             
-            
-            
-            MOZ_ASSERT(!fun->lazyScript()->maybeScriptUnbarriered());
-
-            
             firstword |= IsLazy;
             lazy = fun->lazyScript();
         } else {

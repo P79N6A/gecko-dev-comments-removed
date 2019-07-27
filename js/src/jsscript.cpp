@@ -1141,7 +1141,10 @@ js::XDRLazyScript(XDRState<mode>* xdr, HandleObject enclosingScope, HandleScript
         uint64_t packedFields;
 
         if (mode == XDR_ENCODE) {
-            MOZ_ASSERT(!lazy->maybeScriptUnbarriered());
+            
+            
+            
+
             MOZ_ASSERT(fun == lazy->functionNonDelazifying());
 
             begin = lazy->begin();
