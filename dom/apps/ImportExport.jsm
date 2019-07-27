@@ -377,6 +377,9 @@ this.ImportExport = {
           if (meta.id in DOMApplicationRegistry.webapps) {
             throw "DuplicateOrigin";
           }
+          
+          appDir.moveTo(appDir.parent, meta.id);
+
           meta.origin = uri.prePath;
         }
       } else {
