@@ -38,6 +38,53 @@ public:
     return sDisableAcceleration;
   }
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  enum class TelemetryState {
+    
+    
+    
+    Okay = 0,
+
+    
+    
+    
+    
+    
+    EnvironmentChanged = 1,
+
+    
+    
+    
+    
+    RecoveredFromCrash = 2,
+
+    
+    
+    
+    
+    DriverUseDisabled = 3
+  };
+
 private:
   bool InitLockFilePath();
   bool UpdateEnvironment();
@@ -47,6 +94,8 @@ private:
   void AllowDriverInitAttempt();
   bool RecoverFromDriverInitCrash();
   void FlushPreferences();
+
+  void RecordTelemetry(TelemetryState aState);
 
 private:
   static bool sDisableAcceleration;
