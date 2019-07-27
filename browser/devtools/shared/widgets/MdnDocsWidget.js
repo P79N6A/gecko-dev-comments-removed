@@ -27,6 +27,8 @@
 const {Cc, Cu, Ci} = require("chrome");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
+const DOMUtils = Cc["@mozilla.org/inspector/dom-utils;1"]
+                 .getService(Ci.inIDOMUtils);
 
 
 
@@ -38,10 +40,110 @@ var XHR_CSS_URL = "https://developer.mozilla.org/en-US/docs/Web/CSS/";
 
 const PAGE_LINK_PARAMS = "?utm_source=mozilla&utm_medium=firefox-inspector&utm_campaign=default"
 
-
 var PAGE_LINK_URL = "https://developer.mozilla.org/docs/Web/CSS/";
 
 const BROWSER_WINDOW = 'navigator:browser';
+
+const PROPERTY_NAME_COLOR = "theme-fg-color5";
+const PROPERTY_VALUE_COLOR = "theme-fg-color1";
+const COMMENT_COLOR = "theme-comment";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function appendSyntaxHighlightedCSS(cssText, parentElement) {
+  let doc = parentElement.ownerDocument;
+  let identClass = PROPERTY_NAME_COLOR;
+  let lexer = DOMUtils.getCSSLexer(cssText);
+
+  
+
+
+  function createStyledNode(textContent, className) {
+    let newNode = doc.createElement("span");
+    newNode.classList.add(className);
+    newNode.textContent = textContent;
+    return newNode;
+  }
+
+  
+
+
+
+
+
+
+  function updateIdentClass(tokenText) {
+    if (tokenText === ":") {
+      identClass = PROPERTY_VALUE_COLOR;
+    }
+    else {
+      if (tokenText === ";") {
+        identClass = PROPERTY_NAME_COLOR;
+      }
+    }
+  }
+
+  
+
+
+
+
+
+  function tokenToNode(token, tokenText) {
+    switch (token.tokenType) {
+      case "ident":
+        return createStyledNode(tokenText, identClass);
+      case "symbol":
+        updateIdentClass(tokenText);
+        return doc.createTextNode(tokenText);
+      case "whitespace":
+        return doc.createTextNode(tokenText);
+      case "comment":
+        return createStyledNode(tokenText, COMMENT_COLOR);
+      default:
+        return createStyledNode(tokenText, PROPERTY_VALUE_COLOR);
+    }
+  }
+
+  let token = lexer.nextToken();
+  while (token) {
+    let tokenText = cssText.slice(token.startOffset, token.endOffset);
+    let newNode = tokenToNode(token, tokenText);
+    parentElement.appendChild(newNode);
+    token = lexer.nextToken();
+  }
+}
+
+exports.appendSyntaxHighlightedCSS = appendSyntaxHighlightedCSS;
 
 
 
@@ -154,6 +256,8 @@ function MdnDocsWidget(tooltipDocument) {
     linkToMdn: tooltipDocument.getElementById("visit-mdn-page")
   };
 
+  this.doc = tooltipDocument;
+
   
   this.elements.linkToMdn.textContent =
     l10n.strings.GetStringFromName("docsTooltip.visitMDN");
@@ -209,7 +313,9 @@ MdnDocsWidget.prototype = {
 
       
       elements.summary.textContent = "";
-      elements.syntax.textContent = "";
+      while (elements.syntax.firstChild) {
+        elements.syntax.firstChild.remove();
+      }
 
       
       elements.info.scrollTop = 0;
@@ -226,7 +332,7 @@ MdnDocsWidget.prototype = {
     function finalizeDocument({summary, syntax}) {
       
       elements.summary.textContent = summary;
-      elements.syntax.textContent = syntax;
+      appendSyntaxHighlightedCSS(syntax, elements.syntax);
 
       
       elements.info.classList.remove("devtools-throbber");
@@ -252,11 +358,17 @@ MdnDocsWidget.prototype = {
 
     let deferred = Promise.defer();
     let elements = this.elements;
+    let doc = this.doc;
 
     initializeDocument(propertyName);
     getCssDocs(propertyName).then(finalizeDocument, gotError);
 
     return deferred.promise;
+  },
+
+  destroy: function() {
+    this.elements = null;
+    this.doc = null;
   }
 }
 

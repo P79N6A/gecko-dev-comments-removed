@@ -319,3 +319,104 @@ let showFilterPopupPresetsAndCreatePreset = Task.async(function*(widget, name, v
 
   yield onRender;
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function checkCssSyntaxHighlighterOutput(expectedNodes, parent) {
+  
+
+
+
+  const PROPERTY_NAME_COLOR = "theme-fg-color5";
+  const PROPERTY_VALUE_COLOR = "theme-fg-color1";
+  const COMMENT_COLOR = "theme-comment";
+
+  
+
+
+  function checkNode(expected, actual) {
+    ok(actual.textContent == expected.text, "Check that node has the expected textContent");
+    info("Expected text content: [" + expected.text + "]");
+    info("Actual text content: [" + actual.textContent + "]");
+
+    info("Check that node has the expected type");
+    if (expected.type == "text") {
+      ok(actual.nodeType == 3, "Check that node is a text node");
+    } else {
+      ok(actual.tagName.toUpperCase() == "SPAN", "Check that node is a SPAN");
+    }
+
+    info("Check that node has the expected className");
+
+    let expectedClassName = null;
+    let actualClassName = null;
+
+    switch (expected.type) {
+      case "property-name":
+        expectedClassName = PROPERTY_NAME_COLOR;
+        break;
+      case "property-value":
+        expectedClassName = PROPERTY_VALUE_COLOR;
+        break;
+      case "comment":
+        expectedClassName = COMMENT_COLOR;
+        break;
+      default:
+        ok(!actual.classList, "No className expected");
+        return;
+    }
+
+    ok(actual.classList.length == 1, "One className expected");
+    actualClassName = actual.classList[0];
+
+    ok(expectedClassName == actualClassName, "Check className value");
+    info("Expected className: " + expectedClassName);
+    info("Actual className: " + actualClassName);
+  }
+
+  info("Logging the actual nodes we have:");
+  for (var j = 0; j < parent.childNodes.length; j++) {
+    var n = parent.childNodes[j];
+    info(j + " / " +
+         "nodeType: "+ n.nodeType + " / " +
+         "textContent: " + n.textContent);
+  }
+
+  ok(parent.childNodes.length == parent.childNodes.length,
+    "Check we have the expected number of nodes");
+  info("Expected node count " + expectedNodes.length);
+  info("Actual node count " + expectedNodes.length);
+
+  for (let i = 0; i < expectedNodes.length; i++) {
+    info("Check node " + i);
+    checkNode(expectedNodes[i], parent.childNodes[i]);
+  }
+}
