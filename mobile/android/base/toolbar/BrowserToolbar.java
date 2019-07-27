@@ -139,7 +139,7 @@ public class BrowserToolbar extends ThemedRelativeLayout
 
     private final ThemedImageView editCancel;
 
-    private final View[] tabletDisplayModeViews;
+    private List<View> tabletDisplayModeViews;
     private boolean hidForwardButtonOnStartEditing;
 
     private boolean shouldShrinkURLBar;
@@ -281,8 +281,15 @@ public class BrowserToolbar extends ThemedRelativeLayout
                 updateTabCountAndAnimate(Tabs.getInstance().getDisplayCount());
             }
         };
+    }
 
-        tabletDisplayModeViews = new View[] {
+    public ArrayList<View> populateTabletViews() {
+        if (!HardwareUtils.isTablet()) {
+            
+            return null;
+        }
+
+        final View[] allTabletDisplayModeViews = new View[] {
             actionItemBar,
             backButton,
             menuButton,
@@ -290,6 +297,18 @@ public class BrowserToolbar extends ThemedRelativeLayout
             tabsButton,
             tabsCounter,
         };
+        final ArrayList<View> listToPopulate = new ArrayList<View>(allTabletDisplayModeViews.length);
+
+        
+        
+        for (final View v : allTabletDisplayModeViews) {
+            
+            
+            if (v.getVisibility() == View.VISIBLE) {
+                listToPopulate.add(v);
+            }
+        };
+        return listToPopulate;
     }
 
     @Override
@@ -1031,6 +1050,10 @@ public class BrowserToolbar extends ThemedRelativeLayout
     }
 
     private void showEditingOnTablet() {
+        if (tabletDisplayModeViews == null) {
+            tabletDisplayModeViews = populateTabletViews();
+        }
+
         urlBarEntry.setLayoutParams(urlBarEntryShrunkenLayoutParams);
 
         
@@ -1167,6 +1190,12 @@ public class BrowserToolbar extends ThemedRelativeLayout
     }
 
     private void stopEditingOnTablet() {
+        if (tabletDisplayModeViews == null) {
+            throw new IllegalStateException("We initialize tabletDisplayModeViews in the " +
+                    "transition to show editing mode and don't expect stop editing to be called " +
+                    "first.");
+        }
+
         urlBarEntry.setLayoutParams(urlBarEntryDefaultLayoutParams);
 
         
