@@ -396,7 +396,7 @@ RenderLayers(ContainerT* aContainer,
       if (layer->GetFrameMetrics(i - 1).IsScrollable()) {
         
         
-        ParentLayerRect compositionBounds = layer->GetFrameMetrics(i - 1).mCompositionBounds;
+        ParentLayerRect compositionBounds = layer->GetFrameMetrics(i - 1).GetCompositionBounds();
         aManager->GetCompositor()->DrawDiagnostics(DiagnosticFlags::CONTAINER,
                                                    compositionBounds.ToUnknownRect(),
                                                    gfx::Rect(aClipRect.ToUnknownRect()),

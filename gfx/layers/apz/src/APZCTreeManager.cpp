@@ -209,7 +209,7 @@ ComputeClipRegion(GeckoContentController* aController,
     
     
     
-    clipRegion = RoundedToInt(aLayer.Metrics().mCompositionBounds);
+    clipRegion = RoundedToInt(aLayer.Metrics().GetCompositionBounds());
   }
 
   
@@ -244,7 +244,8 @@ APZCTreeManager::PrintAPZCInfo(const LayerMetricsWrapper& aLayer,
                                const AsyncPanZoomController* apzc)
 {
   const FrameMetrics& metrics = aLayer.Metrics();
-  mApzcTreeLog << "APZC " << apzc->GetGuid() << "\tcb=" << metrics.mCompositionBounds
+  mApzcTreeLog << "APZC " << apzc->GetGuid()
+               << "\tcb=" << metrics.GetCompositionBounds()
                << "\tsr=" << metrics.GetScrollableRect()
                << (aLayer.IsScrollInfoLayer() ? "\tscrollinfo" : "")
                << (apzc->HasScrollgrab() ? "\tscrollgrab" : "") << "\t"
@@ -272,7 +273,7 @@ GetEventRegions(const LayerMetricsWrapper& aLayer)
 {
   if (aLayer.IsScrollInfoLayer()) {
     return EventRegions(nsIntRegion(ParentLayerIntRect::ToUntyped(
-      RoundedToInt(aLayer.Metrics().mCompositionBounds))));
+      RoundedToInt(aLayer.Metrics().GetCompositionBounds()))));
   }
   return aLayer.GetEventRegions();
 }

@@ -39,8 +39,8 @@ public:
   static const FrameMetrics sNullMetrics;   
 
   FrameMetrics()
-    : mCompositionBounds(0, 0, 0, 0)
-    , mPresShellResolution(1)
+    : mPresShellResolution(1)
+    , mCompositionBounds(0, 0, 0, 0)
     , mDisplayPort(0, 0, 0, 0)
     , mCriticalDisplayPort(0, 0, 0, 0)
     , mScrollableRect(0, 0, 0, 0)
@@ -239,27 +239,6 @@ public:
     return copy;
   }
 
-  
-  
-  
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  ParentLayerRect mCompositionBounds;
-
 public:
   void SetPresShellResolution(float aPresShellResolution)
   {
@@ -269,6 +248,16 @@ public:
   float GetPresShellResolution() const
   {
     return mPresShellResolution;
+  }
+
+  void SetCompositionBounds(const ParentLayerRect& aCompositionBounds)
+  {
+    mCompositionBounds = aCompositionBounds;
+  }
+
+  const ParentLayerRect& GetCompositionBounds() const
+  {
+    return mCompositionBounds;
   }
 
   void SetDisplayPort(const CSSRect& aDisplayPort)
@@ -538,6 +527,23 @@ private:
   
   
   float mPresShellResolution;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  ParentLayerRect mCompositionBounds;
 
   
   
