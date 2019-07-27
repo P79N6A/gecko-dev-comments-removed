@@ -4,12 +4,12 @@
 
 
 
-x = ArrayBuffer();
+x = new ArrayBuffer();
 neuter(x, "same-data");
-Uint32Array(x);
+new Uint32Array(x);
 gc();
 
-x = ArrayBuffer();
+x = new ArrayBuffer();
 neuter(x, "change-data");
-Uint32Array(x);
+new Uint32Array(x);
 gc();

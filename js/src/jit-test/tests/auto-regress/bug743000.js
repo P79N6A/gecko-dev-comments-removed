@@ -1,4 +1,4 @@
 
 
 
-Int32Array(wrap(new Uint8ClampedArray))
+new Int32Array(wrap(new Uint8ClampedArray))
