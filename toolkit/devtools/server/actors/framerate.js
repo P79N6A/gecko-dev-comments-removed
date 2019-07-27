@@ -20,10 +20,13 @@ let FramerateActor = exports.FramerateActor = protocol.ActorClass({
   initialize: function(conn, tabActor) {
     protocol.Actor.prototype.initialize.call(this, conn);
     this.tabActor = tabActor;
-    this._chromeWin = getChromeWin(tabActor.window);
+    this._contentWin = tabActor.window;
     this._onRefreshDriverTick = this._onRefreshDriverTick.bind(this);
+    this._onGlobalCreated = this._onGlobalCreated.bind(this);
+    on(this.tabActor, "window-ready", this._onGlobalCreated);
   },
   destroy: function(conn) {
+    off(this.tabActor, "window-ready", this._onGlobalCreated);
     protocol.Actor.prototype.destroy.call(this, conn);
     this.stopRecording();
   },
@@ -38,8 +41,8 @@ let FramerateActor = exports.FramerateActor = protocol.ActorClass({
     this._recording = true;
     this._ticks = [];
 
-    this._startTime = this._chromeWin.performance.now();
-    this._rafID = this._chromeWin.requestAnimationFrame(this._onRefreshDriverTick);
+    this._startTime = this._contentWin.performance.now();
+    this._rafID = this._contentWin.requestAnimationFrame(this._onRefreshDriverTick);
   }, {
   }),
 
@@ -65,7 +68,7 @@ let FramerateActor = exports.FramerateActor = protocol.ActorClass({
 
 
   cancelRecording: method(function() {
-    this._chromeWin.cancelAnimationFrame(this._rafID);
+    this._contentWin.cancelAnimationFrame(this._rafID);
     this._recording = false;
     this._ticks = null;
     this._rafID = -1;
@@ -104,12 +107,27 @@ let FramerateActor = exports.FramerateActor = protocol.ActorClass({
     if (!this._recording) {
       return;
     }
-    this._rafID = this._chromeWin.requestAnimationFrame(this._onRefreshDriverTick);
+    this._rafID = this._contentWin.requestAnimationFrame(this._onRefreshDriverTick);
 
     
-    let currentTime = this._chromeWin.performance.now();
-    let elapsedTime = currentTime - this._startTime;
-    this._ticks.push(elapsedTime);
+    let currentTime = this._contentWin.performance.now();
+
+    
+    
+    this._elapsedTime = currentTime - this._startTime;
+    this._ticks.push(this._elapsedTime);
+  },
+
+  
+
+
+  _onGlobalCreated: function (win) {
+    if (this._recording) {
+      
+      
+      this._startTime = -this._elapsedTime;
+      this._rafID = this._contentWin.requestAnimationFrame(this._onRefreshDriverTick);
+    }
   }
 });
 
@@ -171,18 +189,3 @@ FramerateFront.plotFPS = function(ticks, interval = 100, clamp = 60) {
 
   return timeline;
 };
-
-
-
-
-
-
-
-
-
-function getChromeWin(innerWin) {
-  return innerWin
-    .QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIWebNavigation)
-    .QueryInterface(Ci.nsIDocShellTreeItem).rootTreeItem
-    .QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindow);
-}
