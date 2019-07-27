@@ -64,9 +64,9 @@ public:
   bool IsReady();
 
   
-  void LastTimestamp(double& aStart, double& aEnd);
-  void SetLastStartTimestamp(double aStart);
-  void SetLastEndTimestamp(double aEnd);
+  void LastTimestamp(int64_t& aStart, int64_t& aEnd);
+  void SetLastStartTimestamp(int64_t aStart);
+  void SetLastEndTimestamp(int64_t aEnd);
 
   
   
@@ -122,8 +122,8 @@ private:
 
   
   
-  double mLastStartTimestamp;
-  double mLastEndTimestamp;
+  int64_t mLastStartTimestamp;
+  int64_t mLastEndTimestamp;
 
   
   
