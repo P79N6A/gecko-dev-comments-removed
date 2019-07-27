@@ -655,7 +655,7 @@ class MochitestOptions(optparse.OptionParser):
 
         options.leakThresholds = {
             "default": options.defaultLeakThreshold,
-            "tab": 2000000, 
+            "tab": 20000, 
             "geckomediaplugin": 20000, 
         }
 
