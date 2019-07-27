@@ -149,7 +149,7 @@ let _getTransport = Task.async(function*(settings) {
 let _attemptTransport = Task.async(function*({ host, port, encryption }) {
   
   
-  let { s, input, output } = _attemptConnect({ host, port, encryption });
+  let { s, input, output } = yield _attemptConnect({ host, port, encryption });
 
   
   
@@ -182,7 +182,7 @@ let _attemptTransport = Task.async(function*({ host, port, encryption }) {
 
 
 
-function _attemptConnect({ host, port, encryption }) {
+let _attemptConnect = Task.async(function*({ host, port, encryption }) {
   let s;
   if (encryption) {
     s = socketTransportService.createTransport(["ssl"], 1, host, port, null);
@@ -196,19 +196,61 @@ function _attemptConnect({ host, port, encryption }) {
 
   
   
-  
-  let input;
-  let output;
-  try {
-    input = s.openInputStream(0, 0, 0);
-    output = s.openOutputStream(0, 0, 0);
-  } catch(e) {
-    DevToolsUtils.reportException("_attemptConnect", e);
-    throw e;
+  let clientCert;
+  if (encryption) {
+    clientCert = yield cert.local.getOrCreate();
   }
 
-  return { s, input, output };
-}
+  let deferred = promise.defer();
+  let input;
+  let output;
+  
+  
+  
+  
+  
+  
+  
+  s.setEventSink({
+    onTransportStatus(transport, status) {
+      if (status != Ci.nsISocketTransport.STATUS_CONNECTING_TO) {
+        return;
+      }
+      if (encryption) {
+        let sslSocketControl =
+          transport.securityInfo.QueryInterface(Ci.nsISSLSocketControl);
+        sslSocketControl.clientCert = clientCert;
+      }
+      try {
+        input = s.openInputStream(0, 0, 0);
+      } catch(e) {
+        deferred.reject(e);
+      }
+      deferred.resolve({ s, input, output });
+    }
+  }, Services.tm.currentThread);
+
+  
+  
+  
+  try {
+    output = s.openOutputStream(0, 0, 0);
+  } catch(e) {
+    deferred.reject(e);
+  }
+
+  deferred.promise.catch(e => {
+    if (input) {
+      input.close();
+    }
+    if (output) {
+      output.close();
+    }
+    DevToolsUtils.reportException("_attemptConnect", e);
+  });
+
+  return deferred.promise;
+});
 
 
 
@@ -550,6 +592,9 @@ ServerSocketConnection.prototype = {
 
 
   _setSecurityObserver(observer) {
+    if (!this._socketTransport || !this._socketTransport.securityInfo) {
+      return;
+    }
     let connectionInfo = this._socketTransport.securityInfo
                          .QueryInterface(Ci.nsITLSServerConnectionInfo);
     connectionInfo.setSecurityObserver(observer);
