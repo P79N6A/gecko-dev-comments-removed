@@ -1120,6 +1120,15 @@ CompositorD3D11::EndFrame()
 
   nsIntSize oldSize = mSize;
   EnsureSize();
+  UINT presentInterval = 0;
+
+  if (gfxWindowsPlatform::GetPlatform()->IsWARP()) {
+    
+    
+    
+    presentInterval = 1;
+  }
+
   if (oldSize == mSize) {
     RefPtr<IDXGISwapChain1> chain;
     HRESULT hr = mSwapChain->QueryInterface((IDXGISwapChain1**)byRef(chain));
@@ -1144,9 +1153,9 @@ CompositorD3D11::EndFrame()
       }
 
       params.pDirtyRects = &rects.front();
-      chain->Present1(0, mDisableSequenceForNextFrame ? DXGI_PRESENT_DO_NOT_SEQUENCE : 0, &params);
+      chain->Present1(presentInterval, mDisableSequenceForNextFrame ? DXGI_PRESENT_DO_NOT_SEQUENCE : 0, &params);
     } else {
-      mSwapChain->Present(0, mDisableSequenceForNextFrame ? DXGI_PRESENT_DO_NOT_SEQUENCE : 0);
+      mSwapChain->Present(presentInterval, mDisableSequenceForNextFrame ? DXGI_PRESENT_DO_NOT_SEQUENCE : 0);
     }
     mDisableSequenceForNextFrame = false;
     if (mTarget) {
