@@ -100,6 +100,10 @@ public:
 
 
   WheelBlockState* GetCurrentWheelTransaction() const;
+  
+
+
+  void Clear();
 
 private:
   ~InputQueue();

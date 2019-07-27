@@ -1060,6 +1060,12 @@ APZCTreeManager::CancelAnimation(const ScrollableLayerGuid &aGuid)
 void
 APZCTreeManager::ClearTree()
 {
+  
+  
+  
+  APZThreadUtils::RunOnControllerThread(NewRunnableMethod(
+    mInputQueue.get(), &InputQueue::Clear));
+
   MonitorAutoLock lock(mTreeLock);
 
   
