@@ -98,9 +98,9 @@ public:
 
 
   uint32_t LengthNoFlush() const {
-    NS_ABORT_IF_FALSE(mItems.Length() == 0 ||
-                      mItems.Length() == InternalList().CountItems(),
-                      "DOM wrapper's list length is out of sync");
+    MOZ_ASSERT(mItems.Length() == 0 ||
+               mItems.Length() == InternalList().CountItems(),
+               "DOM wrapper's list length is out of sync");
     return mItems.Length();
   }
 

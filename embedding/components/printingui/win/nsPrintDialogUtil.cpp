@@ -494,8 +494,8 @@ static HWND CreateGroupBox(HINSTANCE        aHInst,
 
 static void InitializeExtendedDialog(HWND hdlg, int16_t aHowToEnableFrameUI) 
 {
-  NS_ABORT_IF_FALSE(aHowToEnableFrameUI != nsIPrintSettings::kFrameEnableNone,
-                    "should not be called");
+  MOZ_ASSERT(aHowToEnableFrameUI != nsIPrintSettings::kFrameEnableNone,
+             "should not be called");
 
   
   nsCOMPtr<nsIStringBundle> strBundle;

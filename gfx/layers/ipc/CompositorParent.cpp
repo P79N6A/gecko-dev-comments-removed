@@ -471,8 +471,8 @@ CompositorParent::~CompositorParent()
 void
 CompositorParent::Destroy()
 {
-  NS_ABORT_IF_FALSE(ManagedPLayerTransactionParent().Length() == 0,
-                    "CompositorParent destroyed before managed PLayerTransactionParent");
+  MOZ_ASSERT(ManagedPLayerTransactionParent().Length() == 0,
+             "CompositorParent destroyed before managed PLayerTransactionParent");
 
   MOZ_ASSERT(mPaused); 
   

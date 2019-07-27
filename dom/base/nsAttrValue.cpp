@@ -1032,8 +1032,7 @@ nsAttrValue::Equals(const nsAttrValue& aOther) const
         
         
         
-        NS_ABORT_IF_FALSE(false, "Comparing nsAttrValues that point to SVG "
-          "data");
+        MOZ_ASSERT(false, "Comparing nsAttrValues that point to SVG data");
         return false;
       }
       NS_NOTREACHED("unknown type stored in MiscContainer");
@@ -1754,7 +1753,7 @@ nsAttrValue::ResetMiscAtomOrString()
 void
 nsAttrValue::SetSVGType(ValueType aType, const void* aValue,
                         const nsAString* aSerialized) {
-  NS_ABORT_IF_FALSE(IsSVGType(aType), "Not an SVG type");
+  MOZ_ASSERT(IsSVGType(aType), "Not an SVG type");
 
   MiscContainer* cont = EnsureEmptyMiscContainer();
   

@@ -34,7 +34,7 @@ public:
     MOZ_GUARD_OBJECT_NOTIFIER_INIT;
     
     
-    NS_ABORT_IF_FALSE(!mFrame->mLoopFlag, "Undetected reference loop!");
+    MOZ_ASSERT(!mFrame->mLoopFlag, "Undetected reference loop!");
     mFrame->mLoopFlag = true;
   }
   ~AutoGradientReferencer() {
@@ -450,7 +450,7 @@ nsSVGLinearGradientFrame::GetLengthValue(uint32_t aIndex)
       static_cast<dom::SVGLinearGradientElement*>(mContent));
   
   
-  NS_ABORT_IF_FALSE(lengthElement,
+  MOZ_ASSERT(lengthElement,
     "Got unexpected null element from GetLinearGradientWithLength");
   const nsSVGLength2 &length = lengthElement->mLengthAttributes[aIndex];
 
@@ -560,7 +560,7 @@ nsSVGRadialGradientFrame::GetLengthValue(uint32_t aIndex)
       static_cast<dom::SVGRadialGradientElement*>(mContent));
   
   
-  NS_ABORT_IF_FALSE(lengthElement,
+  MOZ_ASSERT(lengthElement,
     "Got unexpected null element from GetRadialGradientWithLength");
   return GetLengthValueFromElement(aIndex, *lengthElement);
 }

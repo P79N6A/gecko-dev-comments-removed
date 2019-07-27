@@ -96,10 +96,10 @@ public:
 
   virtual nsContainerFrame* GetContentInsertionFrame() MOZ_OVERRIDE {
     
-    NS_ABORT_IF_FALSE(GetFirstPrincipalChild() &&
-                      GetFirstPrincipalChild()->GetType() ==
-                        nsGkAtoms::svgOuterSVGAnonChildFrame,
-                      "Where is our anonymous child?");
+    MOZ_ASSERT(GetFirstPrincipalChild() &&
+               GetFirstPrincipalChild()->GetType() ==
+                 nsGkAtoms::svgOuterSVGAnonChildFrame,
+               "Where is our anonymous child?");
     return GetFirstPrincipalChild()->GetContentInsertionFrame();
   }
 

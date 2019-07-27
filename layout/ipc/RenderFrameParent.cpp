@@ -352,12 +352,12 @@ RenderFrameParent::BuildLayer(nsDisplayListBuilder* aBuilder,
                               nsDisplayItem* aItem,
                               const ContainerLayerParameters& aContainerParameters)
 {
-  NS_ABORT_IF_FALSE(aFrame,
-                    "makes no sense to have a shadow tree without a frame");
-  NS_ABORT_IF_FALSE(!mContainer ||
-                    IsTempLayerManager(aManager) ||
-                    mContainer->Manager() == aManager,
-                    "retaining manager changed out from under us ... HELP!");
+  MOZ_ASSERT(aFrame,
+             "makes no sense to have a shadow tree without a frame");
+  MOZ_ASSERT(!mContainer ||
+             IsTempLayerManager(aManager) ||
+             mContainer->Manager() == aManager,
+             "retaining manager changed out from under us ... HELP!");
 
   if (IsTempLayerManager(aManager) ||
       (mContainer && mContainer->Manager() != aManager)) {
@@ -404,8 +404,8 @@ RenderFrameParent::BuildLayer(nsDisplayListBuilder* aBuilder,
 void
 RenderFrameParent::OwnerContentChanged(nsIContent* aContent)
 {
-  NS_ABORT_IF_FALSE(mFrameLoader->GetOwnerContent() == aContent,
-                    "Don't build new map if owner is same!");
+  MOZ_ASSERT(mFrameLoader->GetOwnerContent() == aContent,
+             "Don't build new map if owner is same!");
 
   nsRefPtr<LayerManager> lm = GetFrom(mFrameLoader);
   

@@ -10868,9 +10868,8 @@ void PresShell::QueryIsActive()
       
       
       
-      NS_ABORT_IF_FALSE(!container,
-                        "external resource doc shouldn't have "
-                        "its own container");
+      MOZ_ASSERT(!container,
+                 "external resource doc shouldn't have its own container");
 
       nsIPresShell* displayPresShell = displayDoc->GetShell();
       if (displayPresShell) {

@@ -1846,8 +1846,8 @@ Loader::DoSheetComplete(SheetLoadData* aLoadData, nsresult aStatus,
       
       
       
-      NS_ABORT_IF_FALSE(!data->mSheet->IsModified(),
-                        "should not get marked modified during parsing");
+      MOZ_ASSERT(!data->mSheet->IsModified(),
+                 "should not get marked modified during parsing");
       data->mSheet->SetComplete();
       data->ScheduleLoadEventIfNeeded(aStatus);
     }
@@ -2098,8 +2098,8 @@ HaveAncestorDataWithURI(SheetLoadData *aData, nsIURI *aURI)
 {
   if (!aData->mURI) {
     
-    NS_ABORT_IF_FALSE(!aData->mParentData,
-                      "How does inline style have a parent?");
+    MOZ_ASSERT(!aData->mParentData,
+               "How does inline style have a parent?");
     return false;
   }
 

@@ -315,7 +315,7 @@ nsPNGDecoder::InitInternal()
 void
 nsPNGDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
 {
-  NS_ABORT_IF_FALSE(!HasError(), "Shouldn't call WriteInternal after error!");
+  MOZ_ASSERT(!HasError(), "Shouldn't call WriteInternal after error!");
 
   
   if (IsSizeDecode()) {
@@ -872,7 +872,7 @@ nsPNGDecoder::end_callback(png_structp png_ptr, png_infop info_ptr)
                static_cast<nsPNGDecoder*>(png_get_progressive_ptr(png_ptr));
 
   
-  NS_ABORT_IF_FALSE(!decoder->HasError(), "Finishing up PNG but hit error!");
+  MOZ_ASSERT(!decoder->HasError(), "Finishing up PNG but hit error!");
 
   int32_t loop_count = 0;
 #ifdef PNG_APNG_SUPPORTED
