@@ -52,6 +52,7 @@ class NestedScopeObject;
 
 namespace frontend {
     struct BytecodeEmitter;
+    class UpvarCookie;
 }
 
 }
@@ -285,7 +286,7 @@ class Bindings
     uint32_t numUnaliasedBodyLevelLocals() const { return numUnaliasedVars_ + numUnaliasedBodyLevelLexicals_; }
     uint32_t numAliasedBodyLevelLocals() const { return numBodyLevelLocals() - numUnaliasedBodyLevelLocals(); }
     uint32_t numLocals() const { return numVars() + numBodyLevelLexicals() + numBlockScoped(); }
-    uint32_t numUnaliasedLocals() const { return numUnaliasedVars() + numUnaliasedBodyLevelLexicals() + numBlockScoped(); }
+    uint32_t numFixedLocals() const { return numUnaliasedVars() + numUnaliasedBodyLevelLexicals() + numBlockScoped(); }
     uint32_t lexicalBegin() const { return numArgs() + numVars(); }
     uint32_t aliasedBodyLevelLexicalBegin() const { return aliasedBodyLevelLexicalBegin_; }
 
@@ -299,8 +300,7 @@ class Bindings
     Shape *callObjShape() const { return callObjShape_; }
 
     
-    static uint32_t argumentsVarIndex(ExclusiveContext *cx, InternalBindingsHandle,
-                                      uint32_t *unaliasedSlot = nullptr);
+    static BindingIter argumentsBinding(ExclusiveContext *cx, InternalBindingsHandle);
 
     
     bool bindingIsAliased(uint32_t bindingIndex);
@@ -1090,7 +1090,7 @@ class JSScript : public js::gc::TenuredCell
     
     
     size_t nfixed() const {
-        return function_ ? bindings.numUnaliasedLocals() : bindings.numBlockScoped();
+        return function_ ? bindings.numFixedLocals() : bindings.numBlockScoped();
     }
 
     
@@ -1660,10 +1660,12 @@ class JSScript : public js::gc::TenuredCell
         return JSOp(*pc) == JSOP_RETRVAL;
     }
 
-    bool varIsAliased(uint32_t varSlot);
-    bool bodyLevelLocalIsAliased(uint32_t localSlot);
+    bool bindingIsAliased(const js::BindingIter &bi);
     bool formalIsAliased(unsigned argSlot);
     bool formalLivesInArgumentsObject(unsigned argSlot);
+
+    
+    bool cookieIsAliased(const js::frontend::UpvarCookie &cookie);
 
   private:
     
@@ -1734,6 +1736,7 @@ class BindingIter
     uint32_t i_;
     uint32_t unaliasedLocal_;
 
+    friend class ::JSScript;
     friend class Bindings;
 
   public:

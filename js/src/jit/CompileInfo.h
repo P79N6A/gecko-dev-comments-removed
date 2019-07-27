@@ -380,8 +380,14 @@ class CompileInfo
         uint32_t local = index - firstLocalSlot();
         if (local < nlocals()) {
             
+            
+            
+            
+            
+            
+            
             if (local < nbodyfixed())
-                return script()->bodyLevelLocalIsAliased(local);
+                return false;
 
             
             for (; staticScope; staticScope = staticScope->enclosingNestedScope()) {
