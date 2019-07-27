@@ -270,7 +270,8 @@ loop.StandaloneMozLoop = (function(mozL10n) {
 
     
     
-    addConversationContext: function() {}
+    addConversationContext: function() {},
+    setScreenShareState: function() {}
   };
 
   return StandaloneMozLoop;

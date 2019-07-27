@@ -1046,6 +1046,7 @@ let gInitializeTimerFunc = (deferredInitialization) => {
 
 this.MozLoopService = {
   _DNSService: gDNSService,
+  _activeScreenShares: [],
 
   get channelIDs() {
     
@@ -1654,5 +1655,33 @@ this.MozLoopService = {
 
   addConversationContext: function(windowId, context) {
     MozLoopServiceInternal.conversationContexts.set(windowId, context);
+  },
+
+  
+
+
+
+
+
+
+
+  setScreenShareState: function(windowId, active) {
+    if (active) {
+      this._activeScreenShares.push(windowId);
+    } else {
+      var index = this._activeScreenShares.indexOf(windowId);
+      if (index != -1) {
+        this._activeScreenShares.splice(index, 1);
+      }
+    }
+
+    MozLoopServiceInternal.notifyStatusChanged();
+  },
+
+  
+
+
+  get screenShareActive() {
+    return this._activeScreenShares.length > 0;
   }
 };

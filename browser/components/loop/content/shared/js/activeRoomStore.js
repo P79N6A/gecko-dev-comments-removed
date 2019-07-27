@@ -380,6 +380,10 @@ loop.store.ActiveRoomStore = (function() {
 
     screenSharingState: function(actionData) {
       this.setStoreState({screenSharingState: actionData.state});
+
+      this._mozLoop.setScreenShareState(
+        this.getStoreState().windowId,
+        actionData.state === SCREEN_SHARE_STATES.ACTIVE);
     },
 
     
@@ -416,6 +420,13 @@ loop.store.ActiveRoomStore = (function() {
 
     windowUnload: function() {
       this._leaveRoom(ROOM_STATES.CLOSING);
+
+      
+      
+      
+      this._mozLoop.setScreenShareState(
+        this.getStoreState().windowId,
+        false);
 
       if (!this._onUpdateListener) {
         return;

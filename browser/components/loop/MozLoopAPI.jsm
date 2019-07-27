@@ -747,6 +747,22 @@ function injectLoopAPI(targetWindow) {
         UITour.notify(subject);
       }
     },
+
+    
+
+
+
+
+
+
+
+    setScreenShareState: {
+      enumerable: true,
+      writable: true,
+      value: function(windowId, active) {
+        MozLoopService.setScreenShareState(windowId, active);
+      }
+    }
   };
 
   function onStatusChanged(aSubject, aTopic, aData) {
