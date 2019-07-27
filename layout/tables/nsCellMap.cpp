@@ -28,7 +28,7 @@ SetDamageArea(int32_t aXOrigin,
   aDamageArea.width  = aWidth;
   aDamageArea.height = aHeight;
 }
- 
+
 
 static nsCellMap::CellDataArray * sEmptyRow;
 

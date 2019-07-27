@@ -47,7 +47,7 @@ static inline bool FrameHasBorderOrBackground(nsIFrame* f) {
 class nsDisplayTableItem : public nsDisplayItem
 {
 public:
-  nsDisplayTableItem(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame) : 
+  nsDisplayTableItem(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame) :
       nsDisplayItem(aBuilder, aFrame),
       mPartHasFixedBackground(false) {}
 
@@ -72,7 +72,7 @@ class nsAutoPushCurrentTableItem
 {
 public:
   nsAutoPushCurrentTableItem() : mBuilder(nullptr) {}
-  
+
   void Push(nsDisplayListBuilder* aBuilder, nsDisplayTableItem* aPushItem)
   {
     mBuilder = aBuilder;
@@ -157,7 +157,7 @@ public:
 
   static bool PageBreakAfter(nsIFrame* aSourceFrame,
                                nsIFrame* aNextFrame);
-  
+
   
   
   
@@ -172,12 +172,12 @@ public:
 
 
   void AttributeChangedFor(nsIFrame*       aFrame,
-                           nsIContent*     aContent, 
-                           nsIAtom*        aAttribute); 
+                           nsIContent*     aContent,
+                           nsIAtom*        aAttribute);
 
   
   virtual void DestroyFrom(nsIFrame* aDestructRoot) override;
-  
+
   
   virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext) override;
 
@@ -200,7 +200,7 @@ public:
 
   
   static nsTableFrame* GetTableFrame(nsIFrame* aSourceFrame);
-                                 
+
   
 
 
@@ -237,7 +237,7 @@ public:
                                       nsIFrame*       aPriorChildFrame,
                                       nsIAtom*        aChildType);
   bool IsAutoHeight();
-  
+
   
 
 
@@ -290,7 +290,7 @@ public:
   void SetContinuousLeftBCBorderWidth(nscoord aValue);
 
   friend class nsDelayedCalcBCBorders;
-  
+
   void AddBCDamageArea(const nsIntRect& aValue);
   bool BCRecalcNeeded(nsStyleContext* aOldStyleContext,
                         nsStyleContext* aNewStyleContext);
@@ -600,7 +600,7 @@ public:
   void   SetRowInserted(bool aValue);
 
 protected:
-    
+
   
   
   
@@ -624,7 +624,7 @@ protected:
 
   nscoord GetCollapsedWidth(nsMargin aBorderPadding);
 
-  
+
   
 
 
@@ -675,7 +675,7 @@ protected:
   void CalcDesiredHeight(const nsHTMLReflowState& aReflowState, nsHTMLReflowMetrics& aDesiredSize);
 
   
- 
+
   void DistributeHeightToRows(const nsHTMLReflowState& aReflowState,
                               nscoord                  aAmount);
 
@@ -825,10 +825,10 @@ public:
   bool IsAutoLayout();
 
 public:
- 
+
 #ifdef DEBUG
   void Dump(bool            aDumpRows,
-            bool            aDumpCols, 
+            bool            aDumpCols,
             bool            aDumpCellMap);
 #endif
 
@@ -957,7 +957,7 @@ inline bool nsTableFrame::IsBorderCollapse() const
   return (bool)mBits.mIsBorderCollapse;
 }
 
-inline void nsTableFrame::SetBorderCollapse(bool aValue) 
+inline void nsTableFrame::SetBorderCollapse(bool aValue)
 {
   mBits.mIsBorderCollapse = aValue;
 }
@@ -1009,6 +1009,6 @@ return;}
 
 #define ABORT1(aReturn) \
 {NS_ASSERTION(false, "CellIterator program error"); \
-return aReturn;} 
+return aReturn;}
 
 #endif

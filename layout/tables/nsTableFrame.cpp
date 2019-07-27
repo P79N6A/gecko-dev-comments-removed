@@ -1325,7 +1325,7 @@ nsTableFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
         DisplayBackgroundUnconditional(aBuilder, aLists, false);
       }
     }
-    
+
     
     
     
@@ -2855,7 +2855,7 @@ nsTableFrame::SetupHeaderFooterChild(const nsTableReflowState& aReflowState,
   return NS_OK;
 }
 
-void 
+void
 nsTableFrame::PlaceRepeatedFooter(nsTableReflowState& aReflowState,
                                   nsTableRowGroupFrame *aTfoot,
                                   nscoord aFooterHeight)
@@ -2874,7 +2874,7 @@ nsTableFrame::PlaceRepeatedFooter(nsTableReflowState& aReflowState,
 
   nsRect origTfootRect = aTfoot->GetRect();
   nsRect origTfootVisualOverflow = aTfoot->GetVisualOverflowRect();
-          
+
   nsReflowStatus footerStatus;
   nsHTMLReflowMetrics desiredSize(aReflowState.reflowState);
   desiredSize.ClearSize();
@@ -2886,7 +2886,7 @@ nsTableFrame::PlaceRepeatedFooter(nsTableReflowState& aReflowState,
   PlaceChild(aReflowState, aTfoot, kidPosition, desiredSize, origTfootRect,
              origTfootVisualOverflow);
 }
-                    
+
 
 
 void

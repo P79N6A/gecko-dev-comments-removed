@@ -327,7 +327,7 @@ TableBackgroundPainter::PaintTable(nsTableFrame*   aTableFrame,
         cgFrame->GetContinuousBCBorderWidth(border);
         cgData.SetBCBorder(border);
       }
-      
+
       
       for (nsTableColFrame* col = cgFrame->GetFirstColumn(); col;
            col = static_cast<nsTableColFrame*>(col->GetNextSibling())) {
@@ -426,7 +426,7 @@ TableBackgroundPainter::PaintRowGroup(nsTableRowGroupFrame* aFrame,
   }
 
   
-  nsTableRowFrame* row = static_cast<nsTableRowFrame*>(cursor);  
+  nsTableRowFrame* row = static_cast<nsTableRowFrame*>(cursor);
   if (!row) {
     
     
@@ -434,9 +434,9 @@ TableBackgroundPainter::PaintRowGroup(nsTableRowGroupFrame* aFrame,
     
     row = firstRow;
   }
-  
+
   DrawResult result = DrawResult::SUCCESS;
-  
+
   
   for (; row; row = row->GetNextRow()) {
     TableBackgroundData rowBackgroundData(row);
@@ -451,7 +451,7 @@ TableBackgroundPainter::PaintRowGroup(nsTableRowGroupFrame* aFrame,
       
       break;
     }
-    
+
     DrawResult rowResult =
       PaintRow(row, aRowGroupBGData, rowBackgroundData,
                aPassThrough || row->IsPseudoStackingContextFromStyle());
@@ -511,7 +511,7 @@ TableBackgroundPainter::PaintRow(nsTableRowFrame* aFrame,
   
 
   DrawResult result = DrawResult::SUCCESS;
-  
+
   for (nsTableCellFrame* cell = aFrame->GetFirstCell(); cell; cell = cell->GetNextCell()) {
     nsRect cellBGRect, rowBGRect, rowGroupBGRect, colBGRect;
     ComputeCellBackgrounds(cell, aRowGroupBGData, aRowBGData,

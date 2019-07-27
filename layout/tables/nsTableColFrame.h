@@ -41,9 +41,9 @@ public:
                                               nsStyleContext*  aContext);
   
   virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext) override;
-  
+
   int32_t GetColIndex() const;
-  
+
   void SetColIndex (int32_t aColIndex);
 
   nsTableColFrame* GetNextCol() const;
@@ -66,7 +66,7 @@ public:
 
 
   virtual nsIAtom* GetType() const override;
-  
+
 #ifdef DEBUG_FRAME_DUMP
   virtual nsresult GetFrameName(nsAString& aResult) const override;
 #endif
@@ -268,7 +268,7 @@ public:
   {
     return nsSplittableFrame::IsFrameOfType(aFlags & ~(nsIFrame::eTablePart));
   }
-  
+
   virtual void InvalidateFrame(uint32_t aDisplayItemKey = 0) override;
   virtual void InvalidateFrameWithRect(const nsRect& aRect, uint32_t aDisplayItemKey = 0) override;
   virtual void InvalidateFrameForRemoval() override { InvalidateFrameSubtree(); }
@@ -294,7 +294,7 @@ protected:
   
   
   uint32_t mColIndex;
-  
+
   
   BCPixelSize mLeftBorderWidth;
   BCPixelSize mRightBorderWidth;
@@ -307,12 +307,12 @@ protected:
 
 inline int32_t nsTableColFrame::GetColIndex() const
 {
-  return mColIndex; 
+  return mColIndex;
 }
 
 inline void nsTableColFrame::SetColIndex (int32_t aColIndex)
-{ 
-  mColIndex = aColIndex; 
+{
+  mColIndex = aColIndex;
 }
 
 inline nscoord nsTableColFrame::GetLeftBorderWidth()

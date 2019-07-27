@@ -33,8 +33,8 @@ public:
 private:
     
     
-    enum BtlsWidthType { BTLS_MIN_WIDTH, 
-                         BTLS_PREF_WIDTH, 
+    enum BtlsWidthType { BTLS_MIN_WIDTH,
+                         BTLS_PREF_WIDTH,
                          BTLS_FINAL_WIDTH };
 
     
@@ -60,12 +60,12 @@ private:
     
     
     
-    void DistributeWidthToColumns(nscoord aWidth, 
-                                  int32_t aFirstCol, 
+    void DistributeWidthToColumns(nscoord aWidth,
+                                  int32_t aFirstCol,
                                   int32_t aColCount,
                                   BtlsWidthType aWidthType,
                                   bool aSpanHasSpecifiedWidth);
- 
+
 
     
     

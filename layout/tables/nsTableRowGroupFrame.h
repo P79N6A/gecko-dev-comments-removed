@@ -34,7 +34,7 @@ struct nsRowGroupReflowState {
   {
     availSize.width  = reflowState.AvailableWidth();
     availSize.height = reflowState.AvailableHeight();
-    y = 0;  
+    y = 0;
   }
 
   ~nsRowGroupReflowState() {}
@@ -73,7 +73,7 @@ public:
 
   
   virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext) override;
-  
+
   virtual void AppendFrames(ChildListID     aListID,
                             nsFrameList&    aFrameList) override;
   virtual void InsertFrames(ChildListID     aListID,
@@ -146,12 +146,12 @@ public:
   nsresult  InitRepeatedFrame(nsPresContext*        aPresContext,
                               nsTableRowGroupFrame* aHeaderFooterFrame);
 
-  
+
   
 
 
   nscoord GetHeightBasis(const nsHTMLReflowState& aReflowState);
-  
+
   nsMargin* GetBCBorderWidth(nsMargin& aBorder);
 
   
@@ -189,7 +189,7 @@ public:
   
   
   
-   
+
   
 
 
@@ -199,7 +199,7 @@ public:
 
 
   virtual bool GetDirection() override;
-  
+
   
 
 
@@ -215,7 +215,7 @@ public:
                      nsIFrame** aFirstFrameOnLine,
                      int32_t* aNumFramesOnLine,
                      nsRect& aLineBounds) override;
-  
+
   
 
 
@@ -259,7 +259,7 @@ public:
 
 
 
-  
+
   NS_IMETHOD GetNextSiblingOnLine(nsIFrame*& aFrame, int32_t aLineNumber) override;
 
   
@@ -277,13 +277,13 @@ public:
     uint32_t            mCursorIndex;
     nscoord             mOverflowAbove;
     nscoord             mOverflowBelow;
-    
+
     FrameCursorData()
       : mFrames(MIN_ROWS_NEEDING_CURSOR), mCursorIndex(0), mOverflowAbove(0),
         mOverflowBelow(0) {}
 
     bool AppendFrame(nsIFrame* aFrame);
-    
+
     void FinishBuildingCursor() {
       mFrames.Compact();
     }
@@ -328,10 +328,10 @@ public:
 protected:
   explicit nsTableRowGroupFrame(nsStyleContext* aContext);
 
-  void InitChildReflowState(nsPresContext&     aPresContext, 
+  void InitChildReflowState(nsPresContext&     aPresContext,
                             bool               aBorderCollapse,
                             nsHTMLReflowState& aReflowState);
-  
+
   virtual LogicalSides GetLogicalSkipSides(const nsHTMLReflowState* aReflowState = nullptr) const override;
 
   void PlaceChild(nsPresContext*         aPresContext,
@@ -342,7 +342,7 @@ protected:
                   const nsRect&          aOriginalKidRect,
                   const nsRect&          aOriginalKidVisualOverflow);
 
-  void CalculateRowHeights(nsPresContext*           aPresContext, 
+  void CalculateRowHeights(nsPresContext*           aPresContext,
                            nsHTMLReflowMetrics&     aDesiredSize,
                            const nsHTMLReflowState& aReflowState);
 
@@ -350,7 +350,7 @@ protected:
 
   void SlideChild(nsRowGroupReflowState& aReflowState,
                   nsIFrame*              aKidFrame);
-  
+
   
 
 
@@ -373,8 +373,8 @@ protected:
   void SplitSpanningCells(nsPresContext&           aPresContext,
                           const nsHTMLReflowState& aReflowState,
                           nsTableFrame&            aTableFrame,
-                          nsTableRowFrame&         aFirstRow, 
-                          nsTableRowFrame&         aLastRow,  
+                          nsTableRowFrame&         aFirstRow,
+                          nsTableRowFrame&         aLastRow,
                           bool                     aFirstRowIsTopOfPage,
                           nscoord                  aSpanningRowBottom,
                           nsTableRowFrame*&        aContRowFrame,
@@ -385,14 +385,14 @@ protected:
                                 nsIFrame&      aRowFrame,
                                 nsIFrame**     aContRowFrame);
 
-  bool IsSimpleRowFrame(nsTableFrame* aTableFrame, 
+  bool IsSimpleRowFrame(nsTableFrame* aTableFrame,
                           nsIFrame*     aFrame);
 
   void GetNextRowSibling(nsIFrame** aRowFrame);
 
   void UndoContinuedRow(nsPresContext*   aPresContext,
                         nsTableRowFrame* aRow);
-                        
+
 private:
   
   BCPixelSize mRightContBorderWidth;
