@@ -1309,6 +1309,16 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
                 return false;
             return DefineTypedArrayElement(cx->asJSContext(), obj, index, desc_, result);
         }
+    } else if (obj->is<ArgumentsObject>()) {
+        if (id == NameToId(cx->names().length)) {
+            
+            
+            
+            
+            
+            if (obj->containsPure(id))
+                obj->as<ArgumentsObject>().markLengthOverridden();
+        }
     }
 
     Rooted<PropertyDescriptor> desc(cx, desc_);
