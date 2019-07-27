@@ -254,8 +254,7 @@ nsProgressFrame::GetMinISize(nsRenderingContext *aRenderingContext)
 
   nscoord minWidth = fontMet->Font().size; 
 
-  if (StyleDisplay()->mOrient == NS_STYLE_ORIENT_AUTO ||
-      StyleDisplay()->mOrient == NS_STYLE_ORIENT_HORIZONTAL) {
+  if (StyleDisplay()->mOrient == NS_STYLE_ORIENT_HORIZONTAL) {
     
     minWidth *= 10; 
   }
