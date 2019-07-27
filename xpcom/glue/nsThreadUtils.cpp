@@ -356,7 +356,9 @@ nsThreadPoolNaming::SetThreadPoolName(const nsACString& aPoolName,
     NS_SetThreadName(aThread, name);
   } else {
     
+#ifndef XPCOM_GLUE_AVOID_NSPR
     PR_SetCurrentThreadName(name.BeginReading());
+#endif
   }
 }
 
