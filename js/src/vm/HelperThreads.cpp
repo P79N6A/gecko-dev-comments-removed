@@ -746,8 +746,10 @@ js::GCParallelTask::~GCParallelTask()
     
     
     
+#ifdef DEBUG
     AutoLockHelperThreadState helperLock;
     MOZ_ASSERT(state == NotStarted);
+#endif
 }
 
 bool
