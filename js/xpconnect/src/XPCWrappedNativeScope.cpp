@@ -28,9 +28,7 @@ XPCWrappedNativeScope* XPCWrappedNativeScope::gDyingScopes = nullptr;
 static bool
 RemoteXULForbidsXBLScope(nsIPrincipal *aPrincipal, HandleObject aGlobal)
 {
-  
-  if (!aPrincipal)
-      return false;
+  MOZ_ASSERT(aPrincipal);
 
   
   
