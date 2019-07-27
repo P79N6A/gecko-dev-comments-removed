@@ -62,6 +62,12 @@ IsValidDtmf(const char aChar) {
          (aChar >= 'A' && aChar <= 'D');
 }
 
+static bool
+IsSupportedChld(const int aChld) {
+  
+  return (aChld >= 0 && aChld <= 3);
+}
+
 class BluetoothHfpManager::GetVolumeTask MOZ_FINAL : public nsISettingsServiceCallback
 {
 public:
@@ -1410,6 +1416,13 @@ void
 BluetoothHfpManager::CallHoldNotification(BluetoothHandsfreeCallHoldType aChld)
 {
   MOZ_ASSERT(NS_IsMainThread());
+
+  if (!IsSupportedChld((int)aChld)) {
+    
+    
+    SendResponse(HFP_AT_RESPONSE_ERROR);
+    return;
+  }
 
   SendResponse(HFP_AT_RESPONSE_OK);
 
