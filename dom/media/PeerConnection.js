@@ -555,7 +555,46 @@ RTCPeerConnection.prototype = {
   },
 
   createOffer: function(onSuccess, onError, options) {
-    options = options || {};
+
+    
+    function convertLegacyOptions(o) {
+      if (!(o.mandatory || o.optional) ||
+          Object.keys(o).length != ((o.mandatory && o.optional)? 2 : 1)) {
+        return false;
+      }
+      let old = o.mandatory || {};
+      if (o.mandatory) {
+        delete o.mandatory;
+      }
+      if (o.optional) {
+        o.optional.forEach(one => {
+          
+          
+          let key = Object.keys(one)[0];
+          if (key && old[key] === undefined) {
+            old[key] = one[key];
+          }
+        });
+        delete o.optional;
+      }
+      o.offerToReceiveAudio = old.OfferToReceiveAudio;
+      o.offerToReceiveVideo = old.OfferToReceiveVideo;
+      o.mozDontOfferDataChannel = old.MozDontOfferDataChannel;
+      o.mozBundleOnly = old.MozBundleOnly;
+      Object.keys(o).forEach(k => {
+        if (o[k] === undefined) {
+          delete o[k];
+        }
+      });
+      return true;
+    }
+
+    if (options && convertLegacyOptions(options)) {
+      this.logWarning(
+          "Mandatory/optional in createOffer options is deprecated! Use " +
+          JSON.stringify(options) + " instead (note the case difference)!",
+          null, 0);
+    }
     this._queueOrRun({
       func: this._createOffer,
       args: [onSuccess, onError, options],
