@@ -503,7 +503,6 @@ nsSVGPathGeometryFrame::GetBBoxContribution(const Matrix &aToBBoxUserspace,
       
       
       
-      nsSVGUtils::SetupCairoStrokeBBoxGeometry(this, tmpCtx);
       pathExtents.MoveTo(tmpCtx->GetUserStrokeExtent().Center());
       pathExtents.SizeTo(0, 0);
     }

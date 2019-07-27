@@ -506,25 +506,15 @@ public:
   static nscolor GetFallbackOrPaintColor(nsStyleContext *aStyleContext,
                                          nsStyleSVGPaint nsStyleSVG::*aFillOrStroke);
 
-  
-
-
-  static bool SetupContextPaint(gfxContext *aContext,
-                                gfxTextContextPaint *aContextPaint,
-                                const nsStyleSVGPaint& aPaint,
-                                float aOpacity);
-
   static already_AddRefed<gfxPattern>
   MakeFillPatternFor(nsIFrame *aFrame,
                      gfxContext* aContext,
                      gfxTextContextPaint *aContextPaint = nullptr);
 
-  
-
-
-
-  static bool SetupCairoStrokePaint(nsIFrame* aFrame, gfxContext* aContext,
-                                    gfxTextContextPaint *aContextPaint = nullptr);
+  static already_AddRefed<gfxPattern>
+  MakeStrokePatternFor(nsIFrame* aFrame,
+                       gfxContext* aContext,
+                       gfxTextContextPaint *aContextPaint = nullptr);
 
   static float GetOpacity(nsStyleSVGOpacitySource aOpacityType,
                           const float& aOpacity,
@@ -538,13 +528,6 @@ public:
 
   static float GetStrokeWidth(nsIFrame* aFrame,
                               gfxTextContextPaint *aContextPaint = nullptr);
-
-  
-
-
-  static void SetupCairoStrokeBBoxGeometry(nsIFrame* aFrame,
-                                           gfxContext *aContext,
-                                           gfxTextContextPaint *aContextPaint = nullptr);
 
   
 
