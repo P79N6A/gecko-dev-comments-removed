@@ -87,7 +87,7 @@ ChildDNSRecord::GetNextAddr(uint16_t port, NetAddr *addr)
   memcpy(addr, &mAddresses[mCurrent++], sizeof(NetAddr));
 
   
-  addr->inet.port = port;
+  addr->inet.port = htons(port);
 
   return NS_OK;
 }
