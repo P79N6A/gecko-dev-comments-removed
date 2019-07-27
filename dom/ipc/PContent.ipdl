@@ -14,6 +14,7 @@ include protocol PCompositor;
 include protocol PContentBridge;
 include protocol PCycleCollectWithLogs;
 include protocol PCrashReporter;
+include protocol PDocAccessible;
 include protocol PExternalHelperApp;
 include protocol PDeviceStorageRequest;
 include protocol PFileDescriptorSet;
@@ -332,6 +333,7 @@ intr protocol PContent
     manages PCellBroadcast;
     manages PCrashReporter;
     manages PCycleCollectWithLogs;
+    manages PDocAccessible;
     manages PDeviceStorageRequest;
     manages PFileSystemRequest;
     manages PExternalHelperApp;
@@ -488,6 +490,14 @@ child:
     OnAppThemeChanged();
 
 parent:
+    /**
+     * Tell the parent process a new accessible document has been created.
+     * aParentDoc is the accessible document it was created in if any, and
+     * aParentAcc is the id of the accessible in that document the new document
+     * is a child of.
+     */
+    PDocAccessible(nullable PDocAccessible aParentDoc, uint64_t aParentAcc);
+
     /**
      * Tell the content process some attributes of itself.  This is
      * among the first information queried by content processes after
@@ -670,7 +680,9 @@ parent:
     async SetFakeVolumeState(nsString fsName, int32_t fsState);
 
     sync KeywordToURI(nsCString keyword)
-        returns (OptionalInputStreamParams postData, OptionalURIParams uri);
+        returns (nsString providerName, OptionalInputStreamParams postData, OptionalURIParams uri);
+
+    sync NotifyKeywordSearchLoading(nsString providerName, nsString keyword);
 
     // Tell the compositor to allocate a layer tree id for nested remote mozbrowsers.
     sync AllocateLayerTreeId()
