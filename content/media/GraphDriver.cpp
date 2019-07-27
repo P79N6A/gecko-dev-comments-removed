@@ -575,7 +575,13 @@ AudioCallbackDriver::Init()
                         DataCallback_s, StateCallback_s, this) == CUBEB_OK) {
     mAudioStream.own(stream);
   } else {
-    NS_WARNING("Could not create a cubeb stream for MediaStreamGraph.");
+    NS_WARNING("Could not create a cubeb stream for MediaStreamGraph, falling back to a SystemClockDriver");
+    
+    mNextDriver = new SystemClockDriver(GraphImpl());
+    mNextDriver->SetGraphTime(this, mIterationStart, mIterationEnd,
+                               mStateComputedTime, mNextStateComputedTime);
+    mGraphImpl->SetCurrentDriver(mNextDriver);
+    mNextDriver->Start();
     return;
   }
 
