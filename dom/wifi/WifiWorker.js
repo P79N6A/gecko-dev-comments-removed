@@ -1215,6 +1215,12 @@ var WifiManager = (function() {
         if (value !== null) {
           if (fieldType === "integer") {
             config[fieldName] = parseInt(value, 10);
+          } else if ( fieldName == "ssid" && value[0] != '"' ) {
+            
+            
+            
+            
+            config[fieldName] = quote(decodeURIComponent(value.replace(/[0-9a-f]{2}/g, '%$&')));
           } else {
             
             config[fieldName] = value;
