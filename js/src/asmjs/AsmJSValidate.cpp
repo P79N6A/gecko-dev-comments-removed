@@ -1329,6 +1329,7 @@ class MOZ_STACK_CLASS ModuleCompiler
     NonAssertingLabel              stackOverflowLabel_;
     NonAssertingLabel              asyncInterruptLabel_;
     NonAssertingLabel              syncInterruptLabel_;
+    NonAssertingLabel              onDetachedLabel_;
 
     UniquePtr<char[], JS::FreePolicy> errorString_;
     uint32_t                       errorOffset_;
@@ -1522,6 +1523,7 @@ class MOZ_STACK_CLASS ModuleCompiler
     Label &stackOverflowLabel() { return stackOverflowLabel_; }
     Label &asyncInterruptLabel() { return asyncInterruptLabel_; }
     Label &syncInterruptLabel() { return syncInterruptLabel_; }
+    Label &onDetachedLabel() { return onDetachedLabel_; }
     bool hasError() const { return errorString_ != nullptr; }
     const AsmJSModule &module() const { return *module_.get(); }
     bool usesSignalHandlersForInterrupt() const { return module_->usesSignalHandlersForInterrupt(); }
@@ -7638,6 +7640,27 @@ FillArgumentArray(ModuleCompiler &m, const VarTypeVector &argTypes,
     }
 }
 
+
+
+
+
+static void
+GenerateCheckForHeapDetachment(ModuleCompiler &m, Register scratch)
+{
+    if (!m.module().hasArrayView())
+        return;
+
+    MacroAssembler &masm = m.masm();
+    AssertStackAlignment(masm, ABIStackAlignment);
+#if defined(JS_CODEGEN_X86)
+    CodeOffsetLabel label = masm.movlWithPatch(PatchedAbsoluteAddress(), scratch);
+    masm.append(AsmJSGlobalAccess(label, AsmJSHeapGlobalDataOffset));
+    masm.branchTestPtr(Assembler::Zero, scratch, scratch, &m.onDetachedLabel());
+#else
+    masm.branchTestPtr(Assembler::Zero, HeapReg, HeapReg, &m.onDetachedLabel());
+#endif
+}
+
 static bool
 GenerateFFIInterpExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit,
                       unsigned exitIndex, Label *throwLabel)
@@ -7722,7 +7745,9 @@ GenerateFFIInterpExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &e
     }
 
     
+    
     masm.loadAsmJSHeapRegisterFromGlobalData();
+    GenerateCheckForHeapDetachment(m, ABIArgGenerator::NonReturn_VolatileReg0);
 
     Label profilingReturn;
     GenerateAsmJSExitEpilogue(masm, framePushed, AsmJSExit::SlowFFI, &profilingReturn);
@@ -7938,7 +7963,11 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
 #else
     JS_STATIC_ASSERT(MaybeSavedGlobalReg == 0);
 #endif
+
+    
+    
     masm.loadAsmJSHeapRegisterFromGlobalData();
+    GenerateCheckForHeapDetachment(m, ABIArgGenerator::NonReturn_VolatileReg0);
 
     Label profilingReturn;
     GenerateAsmJSExitEpilogue(masm, framePushed, AsmJSExit::IonFFI, &profilingReturn);
@@ -8099,6 +8128,20 @@ GenerateStackOverflowExit(ModuleCompiler &m, Label *throwLabel)
     return m.finishGeneratingInlineStub(&m.stackOverflowLabel()) && !masm.oom();
 }
 
+static bool
+GenerateOnDetachedLabelExit(ModuleCompiler &m, Label *throwLabel)
+{
+    MacroAssembler &masm = m.masm();
+    masm.bind(&m.onDetachedLabel());
+    masm.assertStackAlignment(ABIStackAlignment);
+
+    
+    masm.call(AsmJSImmPtr(AsmJSImm_OnDetached));
+    masm.jump(throwLabel);
+
+    return m.finishGeneratingInlineStub(&m.onDetachedLabel()) && !masm.oom();
+}
+
 static const RegisterSet AllRegsExceptSP =
     RegisterSet(GeneralRegisterSet(Registers::AllMask &
                                    ~(uint32_t(1) << Registers::StackPointer)),
@@ -8152,7 +8195,6 @@ GenerateAsyncInterruptExit(ModuleCompiler &m, Label *throwLabel)
 
     
     masm.PopRegsInMask(AllRegsExceptSP, AllRegsExceptSP.fpus()); 
-    masm.loadAsmJSHeapRegisterFromGlobalData();  
     masm.popFlags();              
     masm.ret();                   
 #elif defined(JS_CODEGEN_MIPS)
@@ -8194,7 +8236,6 @@ GenerateAsyncInterruptExit(ModuleCompiler &m, Label *throwLabel)
     
     masm.pop(HeapReg);
     masm.as_jr(HeapReg);
-    masm.loadAsmJSHeapRegisterFromGlobalData();  
 #elif defined(JS_CODEGEN_ARM)
     masm.setFramePushed(0);         
     masm.PushRegsInMask(RegisterSet(GeneralRegisterSet(Registers::AllMask & ~(1<<Registers::sp)), FloatRegisterSet(uint32_t(0))));   
@@ -8244,7 +8285,6 @@ GenerateAsyncInterruptExit(ModuleCompiler &m, Label *throwLabel)
     masm.transferReg(r12);
     masm.transferReg(lr);
     masm.finishDataTransfer();
-    masm.loadAsmJSHeapRegisterFromGlobalData();  
     masm.ret();
 
 #elif defined (JS_CODEGEN_NONE)
@@ -8269,9 +8309,6 @@ GenerateSyncInterruptExit(ModuleCompiler &m, Label *throwLabel)
     AssertStackAlignment(masm, ABIStackAlignment);
     masm.call(AsmJSImmPtr(AsmJSImm_HandleExecutionInterrupt));
     masm.branchIfFalseBool(ReturnReg, throwLabel);
-
-    
-    masm.loadAsmJSHeapRegisterFromGlobalData();
 
     Label profilingReturn;
     GenerateAsmJSExitEpilogue(masm, framePushed, AsmJSExit::Interrupt, &profilingReturn);
@@ -8327,6 +8364,9 @@ GenerateStubs(ModuleCompiler &m)
     }
 
     if (m.stackOverflowLabel().used() && !GenerateStackOverflowExit(m, &throwLabel))
+        return false;
+
+    if (m.onDetachedLabel().used() && !GenerateOnDetachedLabelExit(m, &throwLabel))
         return false;
 
     if (!GenerateAsyncInterruptExit(m, &throwLabel))
