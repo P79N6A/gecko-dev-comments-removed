@@ -28,79 +28,6 @@ const signalingStateTransitions = {
   "closed": []
 }
 
-var wait = (time) => new Promise(r => setTimeout(r, time));
-
-
-
-
-
-
-
-
-
-
-function MediaElementChecker(element) {
-  this.element = element;
-  this.canPlayThroughFired = false;
-  this.timeUpdateFired = false;
-  this.timePassed = false;
-
-  var elementId = this.element.getAttribute('id');
-
-  
-  
-  var canPlayThroughCallback = () => {
-    info('canplaythrough fired for media element ' + elementId);
-    this.canPlayThroughFired = true;
-    this.element.removeEventListener('canplaythrough', canPlayThroughCallback,
-                                     false);
-  };
-
-  
-  
-  var timeUpdateCallback = () => {
-    this.timeUpdateFired = true;
-    info('timeupdate fired for media element ' + elementId);
-
-    
-    
-    if (element.mozSrcObject && element.mozSrcObject.currentTime > 0 &&
-        element.currentTime > 0) {
-      info('time passed for media element ' + elementId);
-      this.timePassed = true;
-      this.element.removeEventListener('timeupdate', timeUpdateCallback,
-                                       false);
-    }
-  };
-
-  element.addEventListener('canplaythrough', canPlayThroughCallback, false);
-  element.addEventListener('timeupdate', timeUpdateCallback, false);
-}
-
-MediaElementChecker.prototype = {
-
-  
-
-
-
-  waitForMediaFlow: function() {
-    var elementId = this.element.getAttribute('id');
-    info('Analyzing element: ' + elementId);
-
-    return waitUntil(() => this.canPlayThroughFired && this.timeUpdateFired && this.timePassed)
-      .then(() => ok(true, 'Media flowing for ' + elementId));
-  },
-
-  
-
-
-
-  checkForNoMediaFlow: function() {
-    ok(this.element.readyState === HTMLMediaElement.HAVE_METADATA,
-       'Media element has a ready state of HAVE_METADATA');
-  }
-};
-
 
 
 
@@ -768,7 +695,7 @@ function PeerConnectionWrapper(label, configuration, h264) {
   this.constraints = [ ];
   this.offerOptions = {};
   this.streams = [ ];
-  this.mediaCheckers = [ ];
+  this.mediaElements = [ ];
 
   this.dataChannels = [ ];
 
@@ -918,7 +845,7 @@ PeerConnectionWrapper.prototype = {
     }
 
     var element = createMediaElement(type, this.label + '_' + side + this.streams.length);
-    this.mediaCheckers.push(new MediaElementChecker(element));
+    this.mediaElements.push(element);
     element.mozSrcObject = stream;
     element.play();
 
@@ -1531,8 +1458,90 @@ PeerConnectionWrapper.prototype = {
 
 
 
-  checkMediaFlowPresent : function() {
-    return Promise.all(this.mediaCheckers.map(checker => checker.waitForMediaFlow()));
+
+
+
+
+
+
+
+
+
+  waitForMediaElementFlow : function(element) {
+    return new Promise(resolve => {
+      info("Checking data flow to element: " + element.id);
+      var haveEnoughData = false;
+      var oncanplay = () => {
+        info("Element " + element.id + " saw 'canplay', " +
+             "meaning HAVE_ENOUGH_DATA was just reached.");
+        haveEnoughData = true;
+        element.removeEventListener("canplay", oncanplay);
+      };
+      var ontimeupdate = () => {
+        info("Element " + element.id + " saw 'timeupdate'" +
+             ", currentTime=" + element.currentTime +
+             "s, readyState=" + element.readyState);
+        if (haveEnoughData || element.readyState == element.HAVE_ENOUGH_DATA) {
+          element.removeEventListener("timeupdate", ontimeupdate);
+          ok(true, "Media flowing for element: " + element.id);
+          resolve();
+        }
+      };
+      element.addEventListener("canplay", oncanplay);
+      element.addEventListener("timeupdate", ontimeupdate);
+    });
+  },
+
+  
+
+
+
+
+
+
+
+  waitForRtpFlow(track) {
+    var hasFlow = stats => {
+      var rtpStatsKey = Object.keys(stats)
+        .find(key => !stats[key].isRemote && stats[key].type.endsWith("boundrtp"));
+      ok(rtpStatsKey, "Should have RTP stats for track " + track.id);
+      var rtp = stats[rtpStatsKey];
+      var nrPackets = rtp[rtp.type == "outboundrtp" ? "packetsSent"
+                                                    : "packetsReceived"];
+      info("Track " + track.id + " has " + nrPackets + " " +
+           rtp.type + " RTP packets.");
+      return nrPackets > 0;
+    };
+
+    return new Promise(resolve => {
+      info("Checking RTP packet flow for track " + track.id);
+
+      var waitForFlow = () => {
+        this._pc.getStats(track).then(stats => {
+          if (hasFlow(stats)) {
+            ok(true, "RTP flowing for track " + track.id);
+            resolve();
+          } else {
+            wait(200).then(waitForFlow);
+          }
+        });
+      };
+      waitForFlow();
+    });
+  },
+
+  
+
+
+
+
+
+
+  waitForMediaFlow : function() {
+    return Promise.all([].concat(
+      this.mediaElements.map(element => this.waitForMediaElementFlow(element)),
+      this._pc.getSenders().map(sender => this.waitForRtpFlow(sender.track)),
+      this._pc.getReceivers().map(receiver => this.waitForRtpFlow(receiver.track))));
   },
 
   
