@@ -2086,7 +2086,7 @@ TabParent::RecvNotifyIMEPositionChange(const ContentCache& aContentCache)
 }
 
 bool
-TabParent::RecvOnEventNeedingAckReceived()
+TabParent::RecvOnEventNeedingAckReceived(const uint32_t& aMessage)
 {
   
   
@@ -2098,7 +2098,7 @@ TabParent::RecvOnEventNeedingAckReceived()
   
   
   nsRefPtr<TabParent> kungFuDeathGrip(this);
-  mContentCache.OnEventNeedingAckReceived(widget);
+  mContentCache.OnEventNeedingAckReceived(widget, aMessage);
   return true;
 }
 
