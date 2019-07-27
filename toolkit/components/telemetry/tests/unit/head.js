@@ -134,6 +134,8 @@ function fakeSchedulerTimer(set, clear) {
 
 
 function fakeNow(date) {
+  let ping = Cu.import("resource://gre/modules/TelemetryPing.jsm");
+  ping.Policy.now = () => date;
   let session = Cu.import("resource://gre/modules/TelemetrySession.jsm");
   session.Policy.now = () => date;
   let environment = Cu.import("resource://gre/modules/TelemetryEnvironment.jsm");
@@ -151,7 +153,6 @@ function truncateToDays(aMsec) {
 
 
 Services.prefs.setCharPref("toolkit.telemetry.log.level", "Trace");
-Services.prefs.setBoolPref("toolkit.telemetry.log.dump", true);
 TelemetryPing.initLogging();
 
 
