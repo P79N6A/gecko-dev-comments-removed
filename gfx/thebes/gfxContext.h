@@ -244,14 +244,6 @@ public:
 
 
 
-
-    void Rotate(gfxFloat angle);
-
-    
-
-
-
-
     void Multiply(const gfxMatrix& other);
     
 
