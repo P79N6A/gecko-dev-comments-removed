@@ -22,7 +22,8 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 
 
-const SCHEMA_VERSION = 2;
+
+const SCHEMA_VERSION = 3;
 
 
 const MAX_SAVE_COUNT = 100;
@@ -54,6 +55,8 @@ const SQL = {
       "title TEXT," +
       "description TEXT," +
       "image_url TEXT," +
+      "background_color TEXT," +
+      "background_url TEXT," +
       "filter TEXT," +
       "created INTEGER" +
     ")",
@@ -62,11 +65,17 @@ const SQL = {
     "DROP TABLE items",
 
   insertItem:
-    "INSERT INTO items (dataset_id, url, title, description, image_url, filter, created) " +
-      "VALUES (:dataset_id, :url, :title, :description, :image_url, :filter, :created)",
+    "INSERT INTO items (dataset_id, url, title, description, image_url, background_color, background_url, filter, created) " +
+      "VALUES (:dataset_id, :url, :title, :description, :image_url, :background_color, :background_url, :filter, :created)",
 
   deleteFromDataset:
-    "DELETE FROM items WHERE dataset_id = :dataset_id"
+    "DELETE FROM items WHERE dataset_id = :dataset_id",
+
+  addColumnBackgroundColor:
+    "ALTER TABLE items ADD COLUMN background_color TEXT",
+
+  addColumnBackgroundUrl:
+    "ALTER TABLE items ADD COLUMN background_url TEXT",
 }
 
 
@@ -214,15 +223,21 @@ function createDatabase(db) {
 
 function upgradeDatabase(db, oldVersion, newVersion) {
   return Task.spawn(function upgrade_database_task() {
-    for (let v = oldVersion + 1; v <= newVersion; v++) {
-      switch(v) {
-        case 2:
-          
-          
-          yield db.execute(SQL.dropItemsTable);
-          yield db.execute(SQL.createItemsTable);
-          break;
-      }
+    switch (oldVersion) {
+      case 1:
+        
+        
+        
+        yield db.execute(SQL.dropItemsTable);
+        yield db.execute(SQL.createItemsTable);
+        break;
+
+      case 2:
+        
+        
+        yield db.execute(SQL.addColumnBackgroundColor);
+        yield db.execute(SQL.addColumnBackgroundUrl);
+        break;
     }
   });
 }
@@ -354,6 +369,8 @@ HomeStorage.prototype = {
               title: item.title,
               description: item.description,
               image_url: item.image_url,
+              background_color: item.background_color,
+              background_url: item.background_url,
               filter: item.filter,
               created: Date.now()
             };

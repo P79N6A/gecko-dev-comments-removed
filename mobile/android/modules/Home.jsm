@@ -301,7 +301,8 @@ let HomePanels = (function () {
   
   let Item = Object.freeze({
     ARTICLE: "article",
-    IMAGE: "image"
+    IMAGE: "image",
+    ICON: "icon"
   });
 
   
