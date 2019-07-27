@@ -881,14 +881,15 @@ FindScrolledLayerForScrollbar(Layer* aScrollbar, bool* aOutIsAncestor)
 {
   
   LayerMetricsWrapper root(aScrollbar->Manager()->GetRoot());
-  LayerMetricsWrapper scrollbar(aScrollbar);
+  LayerMetricsWrapper prevAncestor(aScrollbar);
   for (LayerMetricsWrapper ancestor(aScrollbar); ancestor; ancestor = ancestor.GetParent()) {
     
     
     if (ancestor.AsRefLayer()) {
-      root = ancestor;
+      root = prevAncestor;
       break;
     }
+    prevAncestor = ancestor;
 
     if (LayerIsScrollbarTarget(ancestor, aScrollbar)) {
       *aOutIsAncestor = true;
