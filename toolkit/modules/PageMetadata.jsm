@@ -50,6 +50,21 @@ this.PageMetadata = {
       previews: [],
     };
 
+    
+    
+    
+    
+    if (document.defaultView) {
+      let docshell = document.defaultView.QueryInterface(Ci.nsIInterfaceRequestor)
+                                         .getInterface(Ci.nsIWebNavigation)
+                                         .QueryInterface(Ci.nsIDocShell);
+      let shentry = {};
+      if (docshell.getCurrentSHEntry(shentry) &&
+          shentry.value && shentry.value.URIWasModified) {
+        return result;
+      }
+    }
+
     this._getMetaData(document, result);
     this._getLinkData(document, result);
     this._getPageData(document, result);
