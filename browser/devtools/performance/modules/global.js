@@ -122,56 +122,84 @@ const CATEGORY_MAPPINGS = {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const TIMELINE_BLUEPRINT = {
   
   "Styles": {
     group: 0,
     colorName: "graphs-purple",
+    collapseFunc: collapseConsecutiveIdentical,
     label: L10N.getStr("timeline.label.styles2"),
     fields: getStylesFields,
   },
   "Reflow": {
     group: 0,
     colorName: "graphs-purple",
-    label: L10N.getStr("timeline.label.reflow2")
+    collapseFunc: collapseConsecutiveIdentical,
+    label: L10N.getStr("timeline.label.reflow2"),
   },
   "Paint": {
     group: 0,
     colorName: "graphs-green",
-    label: L10N.getStr("timeline.label.paint")
+    collapseFunc: collapseConsecutiveIdentical,
+    label: L10N.getStr("timeline.label.paint"),
   },
 
   
   "DOMEvent": {
     group: 1,
     colorName: "graphs-yellow",
+    collapseFunc: collapseDOMIntoDOMJS,
     label: L10N.getStr("timeline.label.domevent"),
     fields: getDOMEventFields,
   },
   "Javascript": {
     group: 1,
     colorName: "graphs-yellow",
+    collapseFunc: either(collapseJSIntoDOMJS, collapseConsecutiveIdentical),
     label: getJSLabel,
     fields: getJSFields,
+  },
+  "meta::DOMEvent+JS": {
+    colorName: "graphs-yellow",
+    label: getDOMJSLabel,
+    fields: getDOMEventFields,
   },
   "Parse HTML": {
     group: 1,
     colorName: "graphs-yellow",
-    label: L10N.getStr("timeline.label.parseHTML")
+    collapseFunc: collapseConsecutiveIdentical,
+    label: L10N.getStr("timeline.label.parseHTML"),
   },
   "Parse XML": {
     group: 1,
     colorName: "graphs-yellow",
-    label: L10N.getStr("timeline.label.parseXML")
+    collapseFunc: collapseConsecutiveIdentical,
+    label: L10N.getStr("timeline.label.parseXML"),
   },
   "GarbageCollection": {
     group: 1,
     colorName: "graphs-red",
+    collapseFunc: collapseAdjacentGC,
     label: getGCLabel,
     fields: [
       { property: "causeName", label: "Reason:" },
       { property: "nonincrementalReason", label: "Non-incremental Reason:" }
-    ]
+    ],
   },
 
   
@@ -182,7 +210,7 @@ const TIMELINE_BLUEPRINT = {
     fields: [{
       property: "causeName",
       label: L10N.getStr("timeline.markerDetail.consoleTimerName")
-    }]
+    }],
   },
   "TimeStamp": {
     group: 2,
@@ -191,9 +219,82 @@ const TIMELINE_BLUEPRINT = {
     fields: [{
       property: "causeName",
       label: "Label:"
-    }]
+    }],
   },
 };
+
+
+
+
+
+
+
+function either(...fun) {
+  return function() {
+    for (let f of fun) {
+      let result = f.apply(null, arguments);
+      if (result !== undefined) return result;
+    }
+  }
+}
+
+
+
+
+
+
+function collapseConsecutiveIdentical(parent, curr, peek) {
+  
+  
+  if (parent && parent.name == curr.name) {
+    return { toParent: parent.name };
+  }
+  
+  
+  let next = peek(1);
+  if (next && curr.name == next.name) {
+    return { toParent: curr.name };
+  }
+}
+
+function collapseAdjacentGC(parent, curr, peek) {
+  let next = peek(1);
+  if (next && (next.start < curr.end || next.start - curr.end <= 10 )) {
+    return collapseConsecutiveIdentical(parent, curr, peek);
+  }
+}
+
+function collapseDOMIntoDOMJS(parent, curr, peek) {
+  
+  
+  let next = peek(1);
+  if (next && next.name == "Javascript") {
+    return {
+      forceNew: true,
+      toParent: "meta::DOMEvent+JS",
+      withData: {
+        type: curr.type,
+        eventPhase: curr.eventPhase
+      },
+    };
+  }
+}
+
+function collapseJSIntoDOMJS(parent, curr, peek) {
+  
+  
+  
+  if (parent && parent.name == "meta::DOMEvent+JS") {
+    return {
+      forceEnd: true,
+      toParent: "meta::DOMEvent+JS",
+      withData: {
+        stack: curr.stack,
+        endStack: curr.endStack
+      },
+    };
+  }
+}
 
 
 
@@ -234,6 +335,10 @@ function getJSLabel (marker={}) {
     return JS_MARKER_MAP[marker.causeName] || generic;
   }
   return generic;
+}
+
+function getDOMJSLabel (marker={}) {
+  return `Event (${marker.type})`;
 }
 
 
