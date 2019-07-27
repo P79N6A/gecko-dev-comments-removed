@@ -11,7 +11,7 @@
 static unsigned errorCount = 0;
 
 static void
-ErrorCounter(JSContext* cx, const char* message, JSErrorReport* report)
+ErrorCounter(JSContext *cx, const char *message, JSErrorReport *report)
 {
     ++errorCount;
 }
@@ -60,7 +60,7 @@ virtual JSRuntime * createRuntime() override {
     
     
     
-    JSRuntime* rt = JS_NewRuntime(768 * 1024, 128 * 1024);
+    JSRuntime *rt = JS_NewRuntime(768 * 1024, 128 * 1024);
     if (!rt)
         return nullptr;
     setNativeStackQuota(rt);

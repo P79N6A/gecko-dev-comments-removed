@@ -9,7 +9,7 @@
 using namespace js;
 using namespace js::jit;
 
-MoveEmitterMIPS::MoveEmitterMIPS(MacroAssembler& masm)
+MoveEmitterMIPS::MoveEmitterMIPS(MacroAssembler &masm)
   : inCycle_(0),
     masm(masm),
     pushedAtCycle_(-1),
@@ -21,7 +21,7 @@ MoveEmitterMIPS::MoveEmitterMIPS(MacroAssembler& masm)
 }
 
 void
-MoveEmitterMIPS::emit(const MoveResolver& moves)
+MoveEmitterMIPS::emit(const MoveResolver &moves)
 {
     if (moves.numCycles()) {
         
@@ -47,7 +47,7 @@ MoveEmitterMIPS::cycleSlot(uint32_t slot, uint32_t subslot) const
 }
 
 int32_t
-MoveEmitterMIPS::getAdjustedOffset(const MoveOperand& operand)
+MoveEmitterMIPS::getAdjustedOffset(const MoveOperand &operand)
 {
     MOZ_ASSERT(operand.isMemoryOrEffectiveAddress());
     if (operand.base() != StackPointer)
@@ -58,7 +58,7 @@ MoveEmitterMIPS::getAdjustedOffset(const MoveOperand& operand)
 }
 
 Address
-MoveEmitterMIPS::getAdjustedAddress(const MoveOperand& operand)
+MoveEmitterMIPS::getAdjustedAddress(const MoveOperand &operand)
 {
     return Address(operand.base(), getAdjustedOffset(operand));
 }
@@ -72,7 +72,7 @@ MoveEmitterMIPS::tempReg()
 }
 
 void
-MoveEmitterMIPS::breakCycle(const MoveOperand& from, const MoveOperand& to,
+MoveEmitterMIPS::breakCycle(const MoveOperand &from, const MoveOperand &to,
                             MoveOp::Type type, uint32_t slotId)
 {
     
@@ -123,7 +123,7 @@ MoveEmitterMIPS::breakCycle(const MoveOperand& from, const MoveOperand& to,
 }
 
 void
-MoveEmitterMIPS::completeCycle(const MoveOperand& from, const MoveOperand& to,
+MoveEmitterMIPS::completeCycle(const MoveOperand &from, const MoveOperand &to,
                                MoveOp::Type type, uint32_t slotId)
 {
     
@@ -174,7 +174,7 @@ MoveEmitterMIPS::completeCycle(const MoveOperand& from, const MoveOperand& to,
 }
 
 void
-MoveEmitterMIPS::emitMove(const MoveOperand& from, const MoveOperand& to)
+MoveEmitterMIPS::emitMove(const MoveOperand &from, const MoveOperand &to)
 {
     if (from.isGeneralReg()) {
         
@@ -210,7 +210,7 @@ MoveEmitterMIPS::emitMove(const MoveOperand& from, const MoveOperand& to)
 }
 
 void
-MoveEmitterMIPS::emitFloat32Move(const MoveOperand& from, const MoveOperand& to)
+MoveEmitterMIPS::emitFloat32Move(const MoveOperand &from, const MoveOperand &to)
 {
     
     MOZ_ASSERT_IF(from.isFloatReg(), from.floatReg() != ScratchFloat32Reg);
@@ -244,7 +244,7 @@ MoveEmitterMIPS::emitFloat32Move(const MoveOperand& from, const MoveOperand& to)
 }
 
 void
-MoveEmitterMIPS::emitDoubleMove(const MoveOperand& from, const MoveOperand& to)
+MoveEmitterMIPS::emitDoubleMove(const MoveOperand &from, const MoveOperand &to)
 {
     
     MOZ_ASSERT_IF(from.isFloatReg(), from.floatReg() != ScratchDoubleReg);
@@ -297,10 +297,10 @@ MoveEmitterMIPS::emitDoubleMove(const MoveOperand& from, const MoveOperand& to)
 }
 
 void
-MoveEmitterMIPS::emit(const MoveOp& move)
+MoveEmitterMIPS::emit(const MoveOp &move)
 {
-    const MoveOperand& from = move.from();
-    const MoveOperand& to = move.to();
+    const MoveOperand &from = move.from();
+    const MoveOperand &to = move.to();
 
     if (move.isCycleEnd() && move.isCycleBegin()) {
         

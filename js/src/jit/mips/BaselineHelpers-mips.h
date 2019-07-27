@@ -20,19 +20,19 @@ namespace jit {
 static const size_t ICStackValueOffset = 0;
 
 inline void
-EmitRestoreTailCallReg(MacroAssembler& masm)
+EmitRestoreTailCallReg(MacroAssembler &masm)
 {
     
 }
 
 inline void
-EmitRepushTailCallReg(MacroAssembler& masm)
+EmitRepushTailCallReg(MacroAssembler &masm)
 {
     
 }
 
 inline void
-EmitCallIC(CodeOffsetLabel* patchOffset, MacroAssembler& masm)
+EmitCallIC(CodeOffsetLabel *patchOffset, MacroAssembler &masm)
 {
     
     CodeOffsetLabel offset = masm.movWithPatch(ImmWord(-1), BaselineStubReg);
@@ -50,7 +50,7 @@ EmitCallIC(CodeOffsetLabel* patchOffset, MacroAssembler& masm)
 }
 
 inline void
-EmitEnterTypeMonitorIC(MacroAssembler& masm,
+EmitEnterTypeMonitorIC(MacroAssembler &masm,
                        size_t monitorStubOffset = ICMonitoredStub::offsetOfFirstMonitorStub())
 {
     
@@ -66,19 +66,19 @@ EmitEnterTypeMonitorIC(MacroAssembler& masm,
 }
 
 inline void
-EmitReturnFromIC(MacroAssembler& masm)
+EmitReturnFromIC(MacroAssembler &masm)
 {
     masm.branch(ra);
 }
 
 inline void
-EmitChangeICReturnAddress(MacroAssembler& masm, Register reg)
+EmitChangeICReturnAddress(MacroAssembler &masm, Register reg)
 {
     masm.movePtr(reg, ra);
 }
 
 inline void
-EmitTailCallVM(JitCode* target, MacroAssembler& masm, uint32_t argSize)
+EmitTailCallVM(JitCode *target, MacroAssembler &masm, uint32_t argSize)
 {
     
     
@@ -107,7 +107,7 @@ EmitTailCallVM(JitCode* target, MacroAssembler& masm, uint32_t argSize)
 }
 
 inline void
-EmitCreateStubFrameDescriptor(MacroAssembler& masm, Register reg)
+EmitCreateStubFrameDescriptor(MacroAssembler &masm, Register reg)
 {
     
     
@@ -119,7 +119,7 @@ EmitCreateStubFrameDescriptor(MacroAssembler& masm, Register reg)
 }
 
 inline void
-EmitCallVM(JitCode* target, MacroAssembler& masm)
+EmitCallVM(JitCode *target, MacroAssembler &masm)
 {
     EmitCreateStubFrameDescriptor(masm, t6);
     masm.push(t6);
@@ -137,7 +137,7 @@ static const uint32_t STUB_FRAME_SIZE = sizeof(BaselineStubFrame);
 static const uint32_t STUB_FRAME_SAVED_STUB_OFFSET = offsetof(BaselineStubFrame, savedStub);
 
 inline void
-EmitEnterStubFrame(MacroAssembler& masm, Register scratch)
+EmitEnterStubFrame(MacroAssembler &masm, Register scratch)
 {
     MOZ_ASSERT(scratch != BaselineTailCallReg);
 
@@ -170,7 +170,7 @@ EmitEnterStubFrame(MacroAssembler& masm, Register scratch)
 }
 
 inline void
-EmitLeaveStubFrame(MacroAssembler& masm, bool calledIntoIon = false)
+EmitLeaveStubFrame(MacroAssembler &masm, bool calledIntoIon = false)
 {
     
     
@@ -199,7 +199,7 @@ EmitLeaveStubFrame(MacroAssembler& masm, bool calledIntoIon = false)
 }
 
 inline void
-EmitStowICValues(MacroAssembler& masm, int values)
+EmitStowICValues(MacroAssembler &masm, int values)
 {
     MOZ_ASSERT(values >= 0 && values <= 2);
     switch(values) {
@@ -216,7 +216,7 @@ EmitStowICValues(MacroAssembler& masm, int values)
 }
 
 inline void
-EmitUnstowICValues(MacroAssembler& masm, int values, bool discard = false)
+EmitUnstowICValues(MacroAssembler &masm, int values, bool discard = false)
 {
     MOZ_ASSERT(values >= 0 && values <= 2);
     switch(values) {
@@ -240,7 +240,7 @@ EmitUnstowICValues(MacroAssembler& masm, int values, bool discard = false)
 }
 
 inline void
-EmitCallTypeUpdateIC(MacroAssembler& masm, JitCode* code, uint32_t objectOffset)
+EmitCallTypeUpdateIC(MacroAssembler &masm, JitCode *code, uint32_t objectOffset)
 {
     
     
@@ -295,7 +295,7 @@ EmitCallTypeUpdateIC(MacroAssembler& masm, JitCode* code, uint32_t objectOffset)
 
 template <typename AddrType>
 inline void
-EmitPreBarrier(MacroAssembler& masm, const AddrType& addr, MIRType type)
+EmitPreBarrier(MacroAssembler &masm, const AddrType &addr, MIRType type)
 {
     
     masm.push(ra);
@@ -304,7 +304,7 @@ EmitPreBarrier(MacroAssembler& masm, const AddrType& addr, MIRType type)
 }
 
 inline void
-EmitStubGuardFailure(MacroAssembler& masm)
+EmitStubGuardFailure(MacroAssembler &masm)
 {
     
     

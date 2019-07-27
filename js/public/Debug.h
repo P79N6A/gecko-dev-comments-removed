@@ -124,15 +124,15 @@ class Builder {
     PersistentRootedObject debuggerObject;
 
     
-    js::Debugger* debugger;
+    js::Debugger *debugger;
 
     
     
     
 #if DEBUG
-    void assertBuilt(JSObject* obj);
+    void assertBuilt(JSObject *obj);
 #else
-    void assertBuilt(JSObject* obj) { }
+    void assertBuilt(JSObject *obj) { }
 #endif
 
   protected:
@@ -144,24 +144,24 @@ class Builder {
 
       protected:
         
-        Builder& owner;
+        Builder &owner;
 
         
         PersistentRooted<T> value;
 
-        BuiltThing(JSContext* cx, Builder& owner_, T value_ = js::GCMethods<T>::initial())
+        BuiltThing(JSContext *cx, Builder &owner_, T value_ = js::GCMethods<T>::initial())
           : owner(owner_), value(cx, value_)
         {
             owner.assertBuilt(value_);
         }
 
         
-        js::Debugger* debugger() const { return owner.debugger; }
-        JSObject* debuggerObject() const { return owner.debuggerObject; }
+        js::Debugger *debugger() const { return owner.debugger; }
+        JSObject *debuggerObject() const { return owner.debuggerObject; }
 
       public:
-        BuiltThing(const BuiltThing& rhs) : owner(rhs.owner), value(rhs.value) { }
-        BuiltThing& operator=(const BuiltThing& rhs) {
+        BuiltThing(const BuiltThing &rhs) : owner(rhs.owner), value(rhs.value) { }
+        BuiltThing &operator=(const BuiltThing &rhs) {
             MOZ_ASSERT(&owner == &rhs.owner);
             owner.assertBuilt(rhs.value);
             value = rhs.value;
@@ -181,22 +181,22 @@ class Builder {
     
     
     
-    class Object: private BuiltThing<JSObject*> {
+    class Object: private BuiltThing<JSObject *> {
         friend class Builder;           
         friend class BuilderOrigin;     
 
-        typedef BuiltThing<JSObject*> Base;
+        typedef BuiltThing<JSObject *> Base;
 
         
         
-        Object(JSContext* cx, Builder& owner_, HandleObject obj) : Base(cx, owner_, obj.get()) { }
+        Object(JSContext *cx, Builder &owner_, HandleObject obj) : Base(cx, owner_, obj.get()) { }
 
-        bool definePropertyToTrusted(JSContext* cx, const char* name,
+        bool definePropertyToTrusted(JSContext *cx, const char *name,
                                      JS::MutableHandleValue value);
 
       public:
-        Object(JSContext* cx, Builder& owner_) : Base(cx, owner_, nullptr) { }
-        Object(const Object& rhs) : Base(rhs) { }
+        Object(JSContext *cx, Builder &owner_) : Base(cx, owner_, nullptr) { }
+        Object(const Object &rhs) : Base(rhs) { }
 
         
         
@@ -214,36 +214,36 @@ class Builder {
         
         
         
-        bool defineProperty(JSContext* cx, const char* name, JS::HandleValue value);
-        bool defineProperty(JSContext* cx, const char* name, JS::HandleObject value);
-        bool defineProperty(JSContext* cx, const char* name, Object& value);
+        bool defineProperty(JSContext *cx, const char *name, JS::HandleValue value);
+        bool defineProperty(JSContext *cx, const char *name, JS::HandleObject value);
+        bool defineProperty(JSContext *cx, const char *name, Object &value);
 
         using Base::operator bool;
     };
 
     
     
-    Object newObject(JSContext* cx);
+    Object newObject(JSContext *cx);
 
   protected:
-    Builder(JSContext* cx, js::Debugger* debugger);
+    Builder(JSContext *cx, js::Debugger *debugger);
 };
 
 
 
 class BuilderOrigin : public Builder {
     template<typename T>
-    T unwrapAny(const BuiltThing<T>& thing) {
+    T unwrapAny(const BuiltThing<T> &thing) {
         MOZ_ASSERT(&thing.owner == this);
         return thing.value.get();
     }
 
   public:
-    BuilderOrigin(JSContext* cx, js::Debugger* debugger_)
+    BuilderOrigin(JSContext *cx, js::Debugger *debugger_)
       : Builder(cx, debugger_)
     { }
 
-    JSObject* unwrap(Object& object) { return unwrapAny(object); }
+    JSObject *unwrap(Object &object) { return unwrapAny(object); }
 };
 
 
@@ -258,7 +258,7 @@ class BuilderOrigin : public Builder {
 
 
 
-void SetDebuggerMallocSizeOf(JSRuntime* runtime, mozilla::MallocSizeOf mallocSizeOf);
+void SetDebuggerMallocSizeOf(JSRuntime *runtime, mozilla::MallocSizeOf mallocSizeOf);
 
 
 
@@ -276,7 +276,7 @@ void SetDebuggerMallocSizeOf(JSRuntime* runtime, mozilla::MallocSizeOf mallocSiz
 
 
 JS_PUBLIC_API(void)
-onNewPromise(JSContext* cx, HandleObject promise);
+onNewPromise(JSContext *cx, HandleObject promise);
 
 
 
@@ -288,7 +288,7 @@ onNewPromise(JSContext* cx, HandleObject promise);
 
 
 JS_PUBLIC_API(void)
-onPromiseSettled(JSContext* cx, HandleObject promise);
+onPromiseSettled(JSContext *cx, HandleObject promise);
 
 
 

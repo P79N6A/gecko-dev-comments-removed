@@ -18,11 +18,11 @@ struct DtoaState;
 
 namespace js {
 
-extern DtoaState*
+extern DtoaState *
 NewDtoaState();
 
 extern void
-DestroyDtoaState(DtoaState* state);
+DestroyDtoaState(DtoaState *state);
 
 } 
 
@@ -41,7 +41,7 @@ DestroyDtoaState(DtoaState* state);
 
 #define JS_DTOA_ENOMEM 2
 double
-js_strtod_harder(DtoaState* state, const char* s00, char** se, int* err);
+js_strtod_harder(DtoaState *state, const char *s00, char **se, int *err);
 
 
 
@@ -88,8 +88,8 @@ typedef enum JSDToStrMode {
 
 
 
-char*
-js_dtostr(DtoaState* state, char* buffer, size_t bufferSize, JSDToStrMode mode, int precision,
+char *
+js_dtostr(DtoaState *state, char *buffer, size_t bufferSize, JSDToStrMode mode, int precision,
           double dval);
 
 
@@ -110,7 +110,7 @@ js_dtostr(DtoaState* state, char* buffer, size_t bufferSize, JSDToStrMode mode, 
 
 
 
-char*
-js_dtobasestr(DtoaState* state, int base, double d);
+char *
+js_dtobasestr(DtoaState *state, int base, double d);
 
 #endif 

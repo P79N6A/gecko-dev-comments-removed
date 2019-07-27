@@ -41,7 +41,7 @@ namespace irregexp {
 class MOZ_STACK_CLASS RegExpMacroAssembler
 {
   public:
-    RegExpMacroAssembler(LifoAlloc& alloc, RegExpShared* shared, size_t numSavedRegisters)
+    RegExpMacroAssembler(LifoAlloc &alloc, RegExpShared *shared, size_t numSavedRegisters)
       : slow_safe_compiler_(false),
         global_mode_(NOT_GLOBAL),
         alloc_(alloc),
@@ -78,9 +78,9 @@ class MOZ_STACK_CLASS RegExpMacroAssembler
         return global_mode_ == GLOBAL;
     }
 
-    LifoAlloc& alloc() { return alloc_; }
+    LifoAlloc &alloc() { return alloc_; }
 
-    virtual RegExpCode GenerateCode(JSContext* cx, bool match_only) = 0;
+    virtual RegExpCode GenerateCode(JSContext *cx, bool match_only) = 0;
 
     
     
@@ -136,7 +136,7 @@ class MOZ_STACK_CLASS RegExpMacroAssembler
 
     
     
-    virtual void CheckBitInTable(uint8_t* table, jit::Label* on_bit_set) = 0;
+    virtual void CheckBitInTable(uint8_t *table, jit::Label* on_bit_set) = 0;
 
     
     
@@ -145,7 +145,7 @@ class MOZ_STACK_CLASS RegExpMacroAssembler
     }
 
     
-    virtual void JumpOrBacktrack(jit::Label* to) = 0;
+    virtual void JumpOrBacktrack(jit::Label *to) = 0;
 
     
     
@@ -159,18 +159,18 @@ class MOZ_STACK_CLASS RegExpMacroAssembler
 
     
     
-    virtual void IfRegisterGE(int reg, int comparand, jit::Label* if_ge) = 0;
+    virtual void IfRegisterGE(int reg, int comparand, jit::Label *if_ge) = 0;
 
     
     
-    virtual void IfRegisterLT(int reg, int comparand, jit::Label* if_lt) = 0;
+    virtual void IfRegisterLT(int reg, int comparand, jit::Label *if_lt) = 0;
 
     
     
-    virtual void IfRegisterEqPos(int reg, jit::Label* if_eq) = 0;
+    virtual void IfRegisterEqPos(int reg, jit::Label *if_eq) = 0;
 
     virtual void LoadCurrentCharacter(int cp_offset,
-                                      jit::Label* on_end_of_input,
+                                      jit::Label *on_end_of_input,
                                       bool check_bounds = true,
                                       int characters = 1) = 0;
     virtual void PopCurrentPosition() = 0;
@@ -192,15 +192,15 @@ class MOZ_STACK_CLASS RegExpMacroAssembler
 
     
     
-    virtual void PushBacktrack(jit::Label* label) = 0;
+    virtual void PushBacktrack(jit::Label *label) = 0;
 
     
-    virtual void BindBacktrack(jit::Label* label) = 0;
+    virtual void BindBacktrack(jit::Label *label) = 0;
 
   private:
     bool slow_safe_compiler_;
     GlobalMode global_mode_;
-    LifoAlloc& alloc_;
+    LifoAlloc &alloc_;
 
   protected:
     int num_registers_;
@@ -214,21 +214,21 @@ class MOZ_STACK_CLASS RegExpMacroAssembler
     }
 
   public:
-    RegExpShared* shared;
+    RegExpShared *shared;
 };
 
 template <typename CharT>
 int
-CaseInsensitiveCompareStrings(const CharT* substring1, const CharT* substring2, size_t byteLength);
+CaseInsensitiveCompareStrings(const CharT *substring1, const CharT *substring2, size_t byteLength);
 
 class MOZ_STACK_CLASS InterpretedRegExpMacroAssembler : public RegExpMacroAssembler
 {
   public:
-    InterpretedRegExpMacroAssembler(LifoAlloc* alloc, RegExpShared* shared, size_t numSavedRegisters);
+    InterpretedRegExpMacroAssembler(LifoAlloc *alloc, RegExpShared *shared, size_t numSavedRegisters);
     ~InterpretedRegExpMacroAssembler();
 
     
-    RegExpCode GenerateCode(JSContext* cx, bool match_only);
+    RegExpCode GenerateCode(JSContext *cx, bool match_only);
     void AdvanceCurrentPosition(int by);
     void AdvanceRegister(int reg, int by);
     void Backtrack();
@@ -250,8 +250,8 @@ class MOZ_STACK_CLASS InterpretedRegExpMacroAssembler : public RegExpMacroAssemb
                                jit::Label* on_in_range);
     void CheckCharacterNotInRange(char16_t from, char16_t to,
                                   jit::Label* on_not_in_range);
-    void CheckBitInTable(uint8_t* table, jit::Label* on_bit_set);
-    void JumpOrBacktrack(jit::Label* to);
+    void CheckBitInTable(uint8_t *table, jit::Label* on_bit_set);
+    void JumpOrBacktrack(jit::Label *to);
     void Fail();
     void IfRegisterGE(int reg, int comparand, jit::Label* if_ge);
     void IfRegisterLT(int reg, int comparand, jit::Label* if_lt);
@@ -270,8 +270,8 @@ class MOZ_STACK_CLASS InterpretedRegExpMacroAssembler : public RegExpMacroAssemb
     void WriteCurrentPositionToRegister(int reg, int cp_offset);
     void ClearRegisters(int reg_from, int reg_to);
     void WriteBacktrackStackPointerToRegister(int reg);
-    void PushBacktrack(jit::Label* label);
-    void BindBacktrack(jit::Label* label);
+    void PushBacktrack(jit::Label *label);
+    void BindBacktrack(jit::Label *label);
 
     
     int stack_limit_slack() { return 1; }
@@ -297,7 +297,7 @@ class MOZ_STACK_CLASS InterpretedRegExpMacroAssembler : public RegExpMacroAssemb
 
     static const int kInvalidPC = -1;
 
-    uint8_t* buffer_;
+    uint8_t *buffer_;
     int length_;
 };
 

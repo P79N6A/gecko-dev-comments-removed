@@ -16,7 +16,7 @@ using namespace js::jit;
 
 
 static RValueAllocation
-Read(const RValueAllocation& slot)
+Read(const RValueAllocation &slot)
 {
     CompactBufferWriter writer;
     slot.write(writer);

@@ -20,8 +20,8 @@ using namespace mozilla::scache;
 
 
 nsresult
-ReadCachedScript(StartupCache* cache, nsACString& uri, JSContext* cx,
-                 nsIPrincipal* systemPrincipal, MutableHandleScript scriptp)
+ReadCachedScript(StartupCache* cache, nsACString &uri, JSContext *cx,
+                 nsIPrincipal *systemPrincipal, MutableHandleScript scriptp)
 {
     nsAutoArrayPtr<char> buf;
     uint32_t len;
@@ -37,8 +37,8 @@ ReadCachedScript(StartupCache* cache, nsACString& uri, JSContext* cx,
 }
 
 nsresult
-ReadCachedFunction(StartupCache* cache, nsACString& uri, JSContext* cx,
-                   nsIPrincipal* systemPrincipal, JSFunction** functionp)
+ReadCachedFunction(StartupCache* cache, nsACString &uri, JSContext *cx,
+                   nsIPrincipal *systemPrincipal, JSFunction **functionp)
 {
     return NS_ERROR_FAILURE;
 
@@ -58,25 +58,25 @@ ReadCachedFunction(StartupCache* cache, nsACString& uri, JSContext* cx,
 }
 
 nsresult
-WriteCachedScript(StartupCache* cache, nsACString& uri, JSContext* cx,
-                  nsIPrincipal* systemPrincipal, HandleScript script)
+WriteCachedScript(StartupCache* cache, nsACString &uri, JSContext *cx,
+                  nsIPrincipal *systemPrincipal, HandleScript script)
 {
     MOZ_ASSERT(JS_GetScriptPrincipals(script) == nsJSPrincipals::get(systemPrincipal));
 
     uint32_t size;
-    void* data = JS_EncodeScript(cx, script, &size);
+    void *data = JS_EncodeScript(cx, script, &size);
     if (!data)
         return NS_ERROR_OUT_OF_MEMORY;
 
     MOZ_ASSERT(size);
-    nsresult rv = cache->PutBuffer(PromiseFlatCString(uri).get(), static_cast<char*>(data), size);
+    nsresult rv = cache->PutBuffer(PromiseFlatCString(uri).get(), static_cast<char *>(data), size);
     js_free(data);
     return rv;
 }
 
 nsresult
-WriteCachedFunction(StartupCache* cache, nsACString& uri, JSContext* cx,
-                    nsIPrincipal* systemPrincipal, JSFunction* function)
+WriteCachedFunction(StartupCache* cache, nsACString &uri, JSContext *cx,
+                    nsIPrincipal *systemPrincipal, JSFunction *function)
 {
     return NS_ERROR_FAILURE;
 

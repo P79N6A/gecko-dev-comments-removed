@@ -37,21 +37,21 @@ class PICStub
     typedef typename Category::Chain CatChain;
 
   protected:
-    CatStub* next_;
+    CatStub *next_;
 
     PICStub() : next_(nullptr) {}
-    explicit PICStub(const CatStub* next) : next_(next) {
+    explicit PICStub(const CatStub *next) : next_(next) {
         MOZ_ASSERT(next_);
     }
-    explicit PICStub(const CatStub& other) : next_(other.next_) {}
+    explicit PICStub(const CatStub &other) : next_(other.next_) {}
 
   public:
-    CatStub* next() const {
+    CatStub *next() const {
         return next_;
     }
 
   protected:
-    void append(CatStub* stub) {
+    void append(CatStub *stub) {
         MOZ_ASSERT(!next_);
         MOZ_ASSERT(!stub->next_);
         next_ = stub;
@@ -69,18 +69,18 @@ class PICChain
     typedef typename Category::Chain CatChain;
 
   protected:
-    CatStub* stubs_;
+    CatStub *stubs_;
 
     PICChain() : stubs_(nullptr) {}
     
-    PICChain(const PICChain<Category>& other) = delete;
+    PICChain(const PICChain<Category> &other) = delete;
 
   public:
-    CatStub* stubs() const {
+    CatStub *stubs() const {
         return stubs_;
     }
 
-    void addStub(CatStub* stub) {
+    void addStub(CatStub *stub) {
         MOZ_ASSERT(stub);
         MOZ_ASSERT(!stub->next());
         if (!stubs_) {
@@ -88,7 +88,7 @@ class PICChain
             return;
         }
 
-        CatStub* cur = stubs_;
+        CatStub *cur = stubs_;
         while (cur->next())
             cur = cur->next();
         cur->append(stub);
@@ -96,12 +96,12 @@ class PICChain
 
     unsigned numStubs() const {
         unsigned count = 0;
-        for (CatStub* stub = stubs_; stub; stub = stub->next())
+        for (CatStub *stub = stubs_; stub; stub = stub->next())
             count++;
         return count;
     }
 
-    void removeStub(CatStub* stub, CatStub* previous) {
+    void removeStub(CatStub *stub, CatStub *previous) {
         if (previous) {
             MOZ_ASSERT(previous->next() == stub);
             previous->next_ = stub->next();
@@ -123,7 +123,7 @@ struct ForOfPIC
     class Chain;
 
     ForOfPIC() = delete;
-    ForOfPIC(const ForOfPIC& other) = delete;
+    ForOfPIC(const ForOfPIC &other) = delete;
 
     typedef PICStub<ForOfPIC> BaseStub;
     typedef PICChain<ForOfPIC> BaseChain;
@@ -136,17 +136,17 @@ struct ForOfPIC
     {
       private:
         
-        Shape* shape_;
+        Shape *shape_;
 
       public:
-        explicit Stub(Shape* shape)
+        explicit Stub(Shape *shape)
           : BaseStub(),
             shape_(shape)
         {
             MOZ_ASSERT(shape_);
         }
 
-        Shape* shape() {
+        Shape *shape() {
             return shape_;
         }
     };
@@ -217,13 +217,13 @@ struct ForOfPIC
         {}
 
         
-        bool initialize(JSContext* cx);
+        bool initialize(JSContext *cx);
 
         
-        Stub* isArrayOptimized(ArrayObject* obj);
+        Stub *isArrayOptimized(ArrayObject *obj);
 
         
-        bool tryOptimizeArray(JSContext* cx, HandleArrayObject array, bool* optimized);
+        bool tryOptimizeArray(JSContext *cx, HandleArrayObject array, bool *optimized);
 
         
         
@@ -235,18 +235,18 @@ struct ForOfPIC
                 (arrayIteratorProto_->getSlot(arrayIteratorProtoNextSlot_) == canonicalNextFunc_);
         }
 
-        void mark(JSTracer* trc);
-        void sweep(FreeOp* fop);
+        void mark(JSTracer *trc);
+        void sweep(FreeOp *fop);
 
       private:
         
-        Stub* getMatchingStub(JSObject* obj);
+        Stub *getMatchingStub(JSObject *obj);
 
         
-        bool isOptimizableArray(JSObject* obj);
+        bool isOptimizableArray(JSObject *obj);
 
         
-        void reset(JSContext* cx);
+        void reset(JSContext *cx);
 
         
         void eraseChain();
@@ -255,19 +255,19 @@ struct ForOfPIC
     
     static const Class jsclass;
 
-    static NativeObject* createForOfPICObject(JSContext* cx, Handle<GlobalObject*> global);
+    static NativeObject *createForOfPICObject(JSContext *cx, Handle<GlobalObject *> global);
 
-    static inline Chain* fromJSObject(NativeObject* obj) {
+    static inline Chain *fromJSObject(NativeObject *obj) {
         MOZ_ASSERT(js::GetObjectClass(obj) == &ForOfPIC::jsclass);
-        return (ForOfPIC::Chain*) obj->getPrivate();
+        return (ForOfPIC::Chain *) obj->getPrivate();
     }
-    static inline Chain* getOrCreate(JSContext* cx) {
-        NativeObject* obj = cx->global()->getForOfPICObject();
+    static inline Chain *getOrCreate(JSContext *cx) {
+        NativeObject *obj = cx->global()->getForOfPICObject();
         if (obj)
             return fromJSObject(obj);
         return create(cx);
     }
-    static Chain* create(JSContext* cx);
+    static Chain *create(JSContext *cx);
 };
 
 

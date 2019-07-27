@@ -18,29 +18,29 @@ namespace js {
 
 
 extern bool
-IndirectEval(JSContext* cx, unsigned argc, Value* vp);
+IndirectEval(JSContext *cx, unsigned argc, Value *vp);
 
 
 
 
 extern bool
-DirectEval(JSContext* cx, const CallArgs& args);
+DirectEval(JSContext *cx, const CallArgs &args);
 
 
 extern bool
-DirectEvalStringFromIon(JSContext* cx,
+DirectEvalStringFromIon(JSContext *cx,
                         HandleObject scopeObj, HandleScript callerScript,
                         HandleValue thisValue, HandleString str,
                         jsbytecode * pc, MutableHandleValue vp);
 extern bool
-DirectEvalValueFromIon(JSContext* cx,
+DirectEvalValueFromIon(JSContext *cx,
                        HandleObject scopeObj, HandleScript callerScript,
                        HandleValue thisValue, HandleValue evalArg,
                        jsbytecode * pc, MutableHandleValue vp);
 
 
 extern bool
-IsAnyBuiltinEval(JSFunction* fun);
+IsAnyBuiltinEval(JSFunction *fun);
 
 }  
 #endif 

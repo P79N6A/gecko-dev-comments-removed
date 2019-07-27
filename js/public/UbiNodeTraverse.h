@@ -83,7 +83,7 @@ struct BreadthFirst {
     
     
     
-    BreadthFirst(JSContext* cx, Handler& handler, const JS::AutoCheckCannotGC& noGC)
+    BreadthFirst(JSContext *cx, Handler &handler, const JS::AutoCheckCannotGC &noGC)
       : wantNames(true), cx(cx), visited(cx), handler(handler), pending(cx),
         traversalBegun(false), stopRequested(false), abandonRequested(false)
     { }
@@ -134,7 +134,7 @@ struct BreadthFirst {
             for (; !range->empty(); range->popFront()) {
                 MOZ_ASSERT(!stopRequested);
 
-                const Edge& edge = range->front();
+                const Edge &edge = range->front();
                 typename NodeMap::AddPtr a = visited.lookupForAdd(edge.referent);
                 bool first = !a;
 
@@ -182,7 +182,7 @@ struct BreadthFirst {
     void abandonReferent() { abandonRequested = true; }
 
     
-    JSContext* cx;
+    JSContext *cx;
 
     
     
@@ -192,7 +192,7 @@ struct BreadthFirst {
 
   private:
     
-    Handler& handler;
+    Handler &handler;
 
     
     
@@ -202,9 +202,9 @@ struct BreadthFirst {
         js::Vector<T, 0> head, tail;
         size_t frontIndex;
       public:
-        explicit Queue(JSContext* cx) : head(cx), tail(cx), frontIndex(0) { }
+        explicit Queue(JSContext *cx) : head(cx), tail(cx), frontIndex(0) { }
         bool empty() { return frontIndex >= head.length(); }
-        T& front() {
+        T &front() {
             MOZ_ASSERT(!empty());
             return head[frontIndex];
         }
@@ -217,7 +217,7 @@ struct BreadthFirst {
                 frontIndex = 0;
             }
         }
-        bool append(const T& elt) {
+        bool append(const T &elt) {
             return frontIndex == 0 ? head.append(elt) : tail.append(elt);
         }
     };

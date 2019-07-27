@@ -19,7 +19,7 @@ namespace jit {
 
 JitOptions js_JitOptions;
 
-static void Warn(const char* env, const char* value)
+static void Warn(const char *env, const char *value)
 {
     fprintf(stderr, "Warning: I didn't understand %s=\"%s\"\n", env, value);
 }
@@ -28,9 +28,9 @@ template<typename T> struct IsBool : mozilla::FalseType {};
 template<> struct IsBool<bool> : mozilla::TrueType {};
 
 static Maybe<int>
-ParseInt(const char* str)
+ParseInt(const char *str)
 {
-    char* endp;
+    char *endp;
     int retval = strtol(str, &endp, 0);
     if (*endp == '\0')
         return mozilla::Some(retval);
@@ -38,8 +38,8 @@ ParseInt(const char* str)
 }
 
 template<typename T>
-T overrideDefault(const char* param, T dflt) {
-    char* str = getenv(param);
+T overrideDefault(const char *param, T dflt) {
+    char *str = getenv(param);
     if (!str)
         return dflt;
     if (IsBool<T>::value) {
@@ -116,8 +116,8 @@ JitOptions::JitOptions()
     
     
     
-    const char* forcedDefaultIonWarmUpThresholdEnv = "JIT_OPTION_forcedDefaultIonWarmUpThreshold";
-    if (const char* env = getenv(forcedDefaultIonWarmUpThresholdEnv)) {
+    const char *forcedDefaultIonWarmUpThresholdEnv = "JIT_OPTION_forcedDefaultIonWarmUpThreshold";
+    if (const char *env = getenv(forcedDefaultIonWarmUpThresholdEnv)) {
         Maybe<int> value = ParseInt(env);
         if (value.isSome())
             forcedDefaultIonWarmUpThreshold.emplace(value.ref());
@@ -127,8 +127,8 @@ JitOptions::JitOptions()
 
     
     
-    const char* forcedRegisterAllocatorEnv = "JIT_OPTION_forcedRegisterAllocator";
-    if (const char* env = getenv(forcedRegisterAllocatorEnv)) {
+    const char *forcedRegisterAllocatorEnv = "JIT_OPTION_forcedRegisterAllocator";
+    if (const char *env = getenv(forcedRegisterAllocatorEnv)) {
         forcedRegisterAllocator = LookupRegisterAllocator(env);
         if (!forcedRegisterAllocator.isSome())
             Warn(forcedRegisterAllocatorEnv, env);
@@ -164,7 +164,7 @@ JitOptions::JitOptions()
 }
 
 bool
-JitOptions::isSmallFunction(JSScript* script) const
+JitOptions::isSmallFunction(JSScript *script) const
 {
     return script->length() <= smallFunctionMaxBytecodeLength_;
 }

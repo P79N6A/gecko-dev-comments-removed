@@ -51,7 +51,7 @@ class RegExpStackScope
     
 
     
-    explicit RegExpStackScope(JSRuntime* rt);
+    explicit RegExpStackScope(JSRuntime *rt);
 
     
     ~RegExpStackScope();
@@ -79,11 +79,11 @@ class RegExpStack
     bool grow();
 
     
-    const void* addressOfBase() { return &base_; }
-    const void* addressOfLimit() { return &limit_; }
+    const void *addressOfBase() { return &base_; }
+    const void *addressOfLimit() { return &limit_; }
 
-    void* base() { return base_; }
-    void* limit() { return limit_; }
+    void *base() { return base_; }
+    void *limit() { return limit_; }
 
   private:
     
@@ -96,7 +96,7 @@ class RegExpStack
     static const size_t kMaximumStackSize = 64 * 1024 * 1024;
 
     
-    void* base_;
+    void *base_;
 
     
     size_t size;
@@ -106,16 +106,16 @@ class RegExpStack
     
     
     
-    void* limit_;
+    void *limit_;
 
     void updateLimit() {
-        MOZ_ASSERT(size >= kStackLimitSlack * sizeof(void*));
-        limit_ = static_cast<uint8_t*>(base()) + size - (kStackLimitSlack * sizeof(void*));
+        MOZ_ASSERT(size >= kStackLimitSlack * sizeof(void *));
+        limit_ = static_cast<uint8_t *>(base()) + size - (kStackLimitSlack * sizeof(void *));
     }
 };
 
 int
-GrowBacktrackStack(JSRuntime* rt);
+GrowBacktrackStack(JSRuntime *rt);
 
 }}  
 

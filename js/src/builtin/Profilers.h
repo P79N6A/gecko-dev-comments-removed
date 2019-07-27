@@ -31,21 +31,21 @@ typedef int pid_t;
 
 
 extern JS_PUBLIC_API(bool)
-JS_StartProfiling(const char* profileName, pid_t pid);
+JS_StartProfiling(const char *profileName, pid_t pid);
 
 
 
 
 
 extern JS_PUBLIC_API(bool)
-JS_StopProfiling(const char* profileName);
+JS_StopProfiling(const char *profileName);
 
 
 
 
 
 extern JS_PUBLIC_API(bool)
-JS_DumpProfile(const char* outfile, const char* profileName);
+JS_DumpProfile(const char *outfile, const char *profileName);
 
 
 
@@ -53,20 +53,20 @@ JS_DumpProfile(const char* outfile, const char* profileName);
 
 
 extern JS_PUBLIC_API(bool)
-JS_PauseProfilers(const char* profileName);
+JS_PauseProfilers(const char *profileName);
 
 
 
 
 extern JS_PUBLIC_API(bool)
-JS_ResumeProfilers(const char* profileName);
+JS_ResumeProfilers(const char *profileName);
 
 
 
 
 
 
-JS_PUBLIC_API(const char*)
+JS_PUBLIC_API(const char *)
 JS_UnsafeGetLastProfilingError();
 
 #ifdef MOZ_CALLGRIND
@@ -78,7 +78,7 @@ extern JS_FRIEND_API(bool)
 js_StartCallgrind();
 
 extern JS_FRIEND_API(bool)
-js_DumpCallgrind(const char* outfile);
+js_DumpCallgrind(const char *outfile);
 
 #endif 
 

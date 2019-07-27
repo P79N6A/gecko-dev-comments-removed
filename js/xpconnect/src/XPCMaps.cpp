@@ -21,22 +21,22 @@ using namespace mozilla;
 
 
 static PLDHashNumber
-HashIIDPtrKey(PLDHashTable* table, const void* key)
+HashIIDPtrKey(PLDHashTable *table, const void *key)
 {
     return *((js::HashNumber*)key);
 }
 
 static bool
-MatchIIDPtrKey(PLDHashTable* table,
-               const PLDHashEntryHdr* entry,
-               const void* key)
+MatchIIDPtrKey(PLDHashTable *table,
+               const PLDHashEntryHdr *entry,
+               const void *key)
 {
     return ((const nsID*)key)->
                 Equals(*((const nsID*)((PLDHashEntryStub*)entry)->key));
 }
 
 static PLDHashNumber
-HashNativeKey(PLDHashTable* table, const void* key)
+HashNativeKey(PLDHashTable *table, const void *key)
 {
     XPCNativeSetKey* Key = (XPCNativeSetKey*) key;
 
@@ -85,7 +85,7 @@ HashNativeKey(PLDHashTable* table, const void* key)
 
 
 void
-JSObject2WrappedJSMap::UpdateWeakPointersAfterGC(XPCJSRuntime* runtime)
+JSObject2WrappedJSMap::UpdateWeakPointersAfterGC(XPCJSRuntime *runtime)
 {
     
     
@@ -94,7 +94,7 @@ JSObject2WrappedJSMap::UpdateWeakPointersAfterGC(XPCJSRuntime* runtime)
     
     
 
-    nsTArray<nsXPCWrappedJS*>& dying = runtime->WrappedJSToReleaseArray();
+    nsTArray<nsXPCWrappedJS*> &dying = runtime->WrappedJSToReleaseArray();
     MOZ_ASSERT(dying.IsEmpty());
 
     for (Map::Enum e(mTable); !e.empty(); e.popFront()) {
@@ -109,8 +109,8 @@ JSObject2WrappedJSMap::UpdateWeakPointersAfterGC(XPCJSRuntime* runtime)
                 
                 
                 
-                JSObject* obj = wrapper->GetJSObjectPreserveColor();
-                JSObject* prior = obj;
+                JSObject *obj = wrapper->GetJSObjectPreserveColor();
+                JSObject *prior = obj;
                 JS_UpdateWeakPointerAfterGCUnbarriered(&obj);
                 MOZ_ASSERT(obj == prior);
             }
@@ -124,8 +124,8 @@ JSObject2WrappedJSMap::UpdateWeakPointersAfterGC(XPCJSRuntime* runtime)
         }
 
         
-        JSObject* obj = e.front().key();
-        JSObject* prior = obj;
+        JSObject *obj = e.front().key();
+        JSObject *prior = obj;
         JS_UpdateWeakPointerAfterGCUnbarriered(&obj);
         if (!obj)
             e.removeFront();
@@ -201,8 +201,8 @@ Native2WrappedNativeMap::SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf)
 }
 
  size_t
-Native2WrappedNativeMap::SizeOfEntryExcludingThis(PLDHashEntryHdr* hdr,
-                                                  mozilla::MallocSizeOf mallocSizeOf, void*)
+Native2WrappedNativeMap::SizeOfEntryExcludingThis(PLDHashEntryHdr *hdr,
+                                                  mozilla::MallocSizeOf mallocSizeOf, void *)
 {
     return mallocSizeOf(((Native2WrappedNativeMap::Entry*)hdr)->value);
 }
@@ -284,10 +284,10 @@ IID2NativeInterfaceMap::SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf)
 }
 
  size_t
-IID2NativeInterfaceMap::SizeOfEntryExcludingThis(PLDHashEntryHdr* hdr,
-                                                 mozilla::MallocSizeOf mallocSizeOf, void*)
+IID2NativeInterfaceMap::SizeOfEntryExcludingThis(PLDHashEntryHdr *hdr,
+                                                 mozilla::MallocSizeOf mallocSizeOf, void *)
 {
-    XPCNativeInterface* iface = ((IID2NativeInterfaceMap::Entry*)hdr)->value;
+    XPCNativeInterface *iface = ((IID2NativeInterfaceMap::Entry*)hdr)->value;
     return iface->SizeOfIncludingThis(mallocSizeOf);
 }
 
@@ -365,8 +365,8 @@ ClassInfo2WrappedNativeProtoMap::SizeOfIncludingThis(mozilla::MallocSizeOf mallo
 }
 
  size_t
-ClassInfo2WrappedNativeProtoMap::SizeOfEntryExcludingThis(PLDHashEntryHdr* hdr,
-                                                          mozilla::MallocSizeOf mallocSizeOf, void*)
+ClassInfo2WrappedNativeProtoMap::SizeOfEntryExcludingThis(PLDHashEntryHdr *hdr,
+                                                          mozilla::MallocSizeOf mallocSizeOf, void *)
 {
     return mallocSizeOf(((ClassInfo2WrappedNativeProtoMap::Entry*)hdr)->value);
 }
@@ -375,9 +375,9 @@ ClassInfo2WrappedNativeProtoMap::SizeOfEntryExcludingThis(PLDHashEntryHdr* hdr,
 
 
 bool
-NativeSetMap::Entry::Match(PLDHashTable* table,
-                           const PLDHashEntryHdr* entry,
-                           const void* key)
+NativeSetMap::Entry::Match(PLDHashTable *table,
+                           const PLDHashEntryHdr *entry,
+                           const void *key)
 {
     XPCNativeSetKey* Key = (XPCNativeSetKey*) key;
 
@@ -486,9 +486,9 @@ NativeSetMap::SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf)
 }
 
  size_t
-NativeSetMap::SizeOfEntryExcludingThis(PLDHashEntryHdr* hdr, mozilla::MallocSizeOf mallocSizeOf, void*)
+NativeSetMap::SizeOfEntryExcludingThis(PLDHashEntryHdr *hdr, mozilla::MallocSizeOf mallocSizeOf, void *)
 {
-    XPCNativeSet* set = ((NativeSetMap::Entry*)hdr)->key_value;
+    XPCNativeSet *set = ((NativeSetMap::Entry*)hdr)->key_value;
     return set->SizeOfIncludingThis(mallocSizeOf);
 }
 
@@ -496,15 +496,15 @@ NativeSetMap::SizeOfEntryExcludingThis(PLDHashEntryHdr* hdr, mozilla::MallocSize
 
 
 bool
-IID2ThisTranslatorMap::Entry::Match(PLDHashTable* table,
-                                    const PLDHashEntryHdr* entry,
-                                    const void* key)
+IID2ThisTranslatorMap::Entry::Match(PLDHashTable *table,
+                                    const PLDHashEntryHdr *entry,
+                                    const void *key)
 {
     return ((const nsID*)key)->Equals(((Entry*)entry)->key);
 }
 
 void
-IID2ThisTranslatorMap::Entry::Clear(PLDHashTable* table, PLDHashEntryHdr* entry)
+IID2ThisTranslatorMap::Entry::Clear(PLDHashTable *table, PLDHashEntryHdr *entry)
 {
     static_cast<Entry*>(entry)->value = nullptr;
     memset(entry, 0, table->EntrySize());
@@ -543,10 +543,10 @@ IID2ThisTranslatorMap::~IID2ThisTranslatorMap()
 
 
 PLDHashNumber
-XPCNativeScriptableSharedMap::Entry::Hash(PLDHashTable* table, const void* key)
+XPCNativeScriptableSharedMap::Entry::Hash(PLDHashTable *table, const void *key)
 {
     PLDHashNumber h;
-    const unsigned char* s;
+    const unsigned char *s;
 
     XPCNativeScriptableShared* obj =
         (XPCNativeScriptableShared*) key;
@@ -562,9 +562,9 @@ XPCNativeScriptableSharedMap::Entry::Hash(PLDHashTable* table, const void* key)
 }
 
 bool
-XPCNativeScriptableSharedMap::Entry::Match(PLDHashTable* table,
-                                           const PLDHashEntryHdr* entry,
-                                           const void* key)
+XPCNativeScriptableSharedMap::Entry::Match(PLDHashTable *table,
+                                           const PLDHashEntryHdr *entry,
+                                           const void *key)
 {
     XPCNativeScriptableShared* obj1 =
         ((XPCNativeScriptableSharedMap::Entry*) entry)->key;

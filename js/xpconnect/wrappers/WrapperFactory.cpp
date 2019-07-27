@@ -44,19 +44,19 @@ const Wrapper XrayWaiver(WrapperFactory::WAIVE_XRAY_WRAPPER_FLAG);
 const WaiveXrayWrapper WaiveXrayWrapper::singleton(0);
 
 bool
-WrapperFactory::IsCOW(JSObject* obj)
+WrapperFactory::IsCOW(JSObject *obj)
 {
     return IsWrapper(obj) &&
            Wrapper::wrapperHandler(obj) == &ChromeObjectWrapper::singleton;
 }
 
-JSObject*
+JSObject *
 WrapperFactory::GetXrayWaiver(HandleObject obj)
 {
     
     MOZ_ASSERT(obj == UncheckedUnwrap(obj));
     MOZ_ASSERT(!js::GetObjectClass(obj)->ext.outerObject);
-    XPCWrappedNativeScope* scope = ObjectScope(obj);
+    XPCWrappedNativeScope *scope = ObjectScope(obj);
     MOZ_ASSERT(scope);
 
     if (!scope->mWaiverWrapperMap)
@@ -69,16 +69,16 @@ WrapperFactory::GetXrayWaiver(HandleObject obj)
     return xrayWaiver;
 }
 
-JSObject*
-WrapperFactory::CreateXrayWaiver(JSContext* cx, HandleObject obj)
+JSObject *
+WrapperFactory::CreateXrayWaiver(JSContext *cx, HandleObject obj)
 {
     
     
     MOZ_ASSERT(!GetXrayWaiver(obj));
-    XPCWrappedNativeScope* scope = ObjectScope(obj);
+    XPCWrappedNativeScope *scope = ObjectScope(obj);
 
     JSAutoCompartment ac(cx, obj);
-    JSObject* waiver = Wrapper::New(cx, obj, &XrayWaiver);
+    JSObject *waiver = Wrapper::New(cx, obj, &XrayWaiver);
     if (!waiver)
         return nullptr;
 
@@ -94,21 +94,21 @@ WrapperFactory::CreateXrayWaiver(JSContext* cx, HandleObject obj)
     return waiver;
 }
 
-JSObject*
-WrapperFactory::WaiveXray(JSContext* cx, JSObject* objArg)
+JSObject *
+WrapperFactory::WaiveXray(JSContext *cx, JSObject *objArg)
 {
     RootedObject obj(cx, objArg);
     obj = UncheckedUnwrap(obj);
     MOZ_ASSERT(!js::IsInnerObject(obj));
 
-    JSObject* waiver = GetXrayWaiver(obj);
+    JSObject *waiver = GetXrayWaiver(obj);
     if (waiver)
         return waiver;
     return CreateXrayWaiver(cx, obj);
 }
 
 inline bool
-ShouldWaiveXray(JSContext* cx, JSObject* originalObj)
+ShouldWaiveXray(JSContext *cx, JSObject *originalObj)
 {
     unsigned flags;
     (void) js::UncheckedUnwrap(originalObj,  true, &flags);
@@ -126,16 +126,16 @@ ShouldWaiveXray(JSContext* cx, JSObject* originalObj)
     
     
     
-    JSCompartment* oldCompartment = js::GetObjectCompartment(originalObj);
-    JSCompartment* newCompartment = js::GetContextCompartment(cx);
+    JSCompartment *oldCompartment = js::GetObjectCompartment(originalObj);
+    JSCompartment *newCompartment = js::GetContextCompartment(cx);
     bool sameOrigin =
         AccessCheck::subsumesConsideringDomain(oldCompartment, newCompartment) &&
         AccessCheck::subsumesConsideringDomain(newCompartment, oldCompartment);
     return sameOrigin;
 }
 
-JSObject*
-WrapperFactory::PrepareForWrapping(JSContext* cx, HandleObject scope,
+JSObject *
+WrapperFactory::PrepareForWrapping(JSContext *cx, HandleObject scope,
                                    HandleObject objArg, HandleObject objectPassedToWrap)
 {
     bool waive = ShouldWaiveXray(cx, objectPassedToWrap);
@@ -170,7 +170,7 @@ WrapperFactory::PrepareForWrapping(JSContext* cx, HandleObject scope,
     if (!IS_WN_REFLECTOR(obj) || JS_IsGlobalObject(obj))
         return waive ? WaiveXray(cx, obj) : obj;
 
-    XPCWrappedNative* wn = XPCWrappedNative::Get(obj);
+    XPCWrappedNative *wn = XPCWrappedNative::Get(obj);
 
     JSAutoCompartment ac(cx, obj);
     XPCCallContext ccx(JS_CALLER, cx, obj);
@@ -272,8 +272,8 @@ WrapperFactory::PrepareForWrapping(JSContext* cx, HandleObject scope,
     
     
     
-    XPCWrappedNative* newwn = XPCWrappedNative::Get(obj);
-    XPCNativeSet* unionSet = XPCNativeSet::GetNewOrUsed(newwn->GetSet(),
+    XPCWrappedNative *newwn = XPCWrappedNative::Get(obj);
+    XPCNativeSet *unionSet = XPCNativeSet::GetNewOrUsed(newwn->GetSet(),
                                                         wn->GetSet(), false);
     if (!unionSet)
         return nullptr;
@@ -284,8 +284,8 @@ WrapperFactory::PrepareForWrapping(JSContext* cx, HandleObject scope,
 
 #ifdef DEBUG
 static void
-DEBUG_CheckUnwrapSafety(HandleObject obj, const js::Wrapper* handler,
-                        JSCompartment* origin, JSCompartment* target)
+DEBUG_CheckUnwrapSafety(HandleObject obj, const js::Wrapper *handler,
+                        JSCompartment *origin, JSCompartment *target)
 {
     if (AccessCheck::isChrome(target) || xpc::IsUniversalXPConnectEnabled(target)) {
         
@@ -304,9 +304,9 @@ DEBUG_CheckUnwrapSafety(HandleObject obj, const js::Wrapper* handler,
 #define DEBUG_CheckUnwrapSafety(obj, handler, origin, target) {}
 #endif
 
-static const Wrapper*
+static const Wrapper *
 SelectWrapper(bool securityWrapper, bool wantXrays, XrayType xrayType,
-              bool waiveXrays, bool originIsXBLScope, JSObject* obj)
+              bool waiveXrays, bool originIsXBLScope, JSObject *obj)
 {
     
     
@@ -354,11 +354,11 @@ SelectWrapper(bool securityWrapper, bool wantXrays, XrayType xrayType,
     return &FilteringWrapper<CrossCompartmentSecurityWrapper, Opaque>::singleton;
 }
 
-static const Wrapper*
-SelectAddonWrapper(JSContext* cx, HandleObject obj, const Wrapper* wrapper)
+static const Wrapper *
+SelectAddonWrapper(JSContext *cx, HandleObject obj, const Wrapper *wrapper)
 {
-    JSAddonId* originAddon = JS::AddonIdOfObject(obj);
-    JSAddonId* targetAddon = JS::AddonIdOfObject(JS::CurrentGlobalOrNull(cx));
+    JSAddonId *originAddon = JS::AddonIdOfObject(obj);
+    JSAddonId *targetAddon = JS::AddonIdOfObject(JS::CurrentGlobalOrNull(cx));
 
     MOZ_ASSERT(AccessCheck::isChrome(JS::CurrentGlobalOrNull(cx)));
     MOZ_ASSERT(targetAddon);
@@ -379,8 +379,8 @@ SelectAddonWrapper(JSContext* cx, HandleObject obj, const Wrapper* wrapper)
     return wrapper;
 }
 
-JSObject*
-WrapperFactory::Rewrap(JSContext* cx, HandleObject existing, HandleObject obj)
+JSObject *
+WrapperFactory::Rewrap(JSContext *cx, HandleObject existing, HandleObject obj)
 {
     MOZ_ASSERT(!IsWrapper(obj) ||
                GetProxyHandler(obj) == &XrayWaiver ||
@@ -393,8 +393,8 @@ WrapperFactory::Rewrap(JSContext* cx, HandleObject existing, HandleObject obj)
     MOZ_ASSERT(XPCJSRuntime::Get()->GetJSContextStack()->Peek() == cx);
 
     
-    JSCompartment* origin = js::GetObjectCompartment(obj);
-    JSCompartment* target = js::GetContextCompartment(cx);
+    JSCompartment *origin = js::GetObjectCompartment(obj);
+    JSCompartment *target = js::GetContextCompartment(cx);
     bool originIsChrome = AccessCheck::isChrome(origin);
     bool targetIsChrome = AccessCheck::isChrome(target);
     bool originSubsumesTarget = AccessCheck::subsumesConsideringDomain(origin, target);
@@ -402,7 +402,7 @@ WrapperFactory::Rewrap(JSContext* cx, HandleObject existing, HandleObject obj)
     bool sameOrigin = targetSubsumesOrigin && originSubsumesTarget;
     XrayType xrayType = GetXrayType(obj);
 
-    const Wrapper* wrapper;
+    const Wrapper *wrapper;
 
     
     
@@ -488,7 +488,7 @@ WrapperFactory::Rewrap(JSContext* cx, HandleObject existing, HandleObject obj)
     if (!targetSubsumesOrigin) {
         
         
-        if (JSFunction* fun = JS_GetObjectFunction(obj)) {
+        if (JSFunction *fun = JS_GetObjectFunction(obj)) {
             if (JS_IsBuiltinEvalFunction(fun) || JS_IsBuiltinFunctionConstructor(fun)) {
                 NS_WARNING("Trying to expose eval or Function to non-subsuming content!");
                 wrapper = &FilteringWrapper<CrossCompartmentSecurityWrapper, Opaque>::singleton;
@@ -509,7 +509,7 @@ WrapperFactory::Rewrap(JSContext* cx, HandleObject existing, HandleObject obj)
 
 
 bool
-WrapperFactory::WaiveXrayAndWrap(JSContext* cx, MutableHandleValue vp)
+WrapperFactory::WaiveXrayAndWrap(JSContext *cx, MutableHandleValue vp)
 {
     if (vp.isPrimitive())
         return JS_WrapValue(cx, vp);
@@ -523,7 +523,7 @@ WrapperFactory::WaiveXrayAndWrap(JSContext* cx, MutableHandleValue vp)
 }
 
 bool
-WrapperFactory::WaiveXrayAndWrap(JSContext* cx, MutableHandleObject argObj)
+WrapperFactory::WaiveXrayAndWrap(JSContext *cx, MutableHandleObject argObj)
 {
     MOZ_ASSERT(argObj);
     RootedObject obj(cx, js::UncheckedUnwrap(argObj));
@@ -541,8 +541,8 @@ WrapperFactory::WaiveXrayAndWrap(JSContext* cx, MutableHandleObject argObj)
     
     
     
-    JSCompartment* target = js::GetContextCompartment(cx);
-    JSCompartment* origin = js::GetObjectCompartment(obj);
+    JSCompartment *target = js::GetContextCompartment(cx);
+    JSCompartment *origin = js::GetObjectCompartment(obj);
     obj = AccessCheck::subsumes(target, origin) ? WaiveXray(cx, obj) : obj;
     if (!obj)
         return false;
@@ -559,7 +559,7 @@ WrapperFactory::WaiveXrayAndWrap(JSContext* cx, MutableHandleObject argObj)
 
 
 static bool
-FixWaiverAfterTransplant(JSContext* cx, HandleObject oldWaiver, HandleObject newobj)
+FixWaiverAfterTransplant(JSContext *cx, HandleObject oldWaiver, HandleObject newobj)
 {
     MOZ_ASSERT(Wrapper::wrapperHandler(oldWaiver) == &XrayWaiver);
     MOZ_ASSERT(!js::IsCrossCompartmentWrapper(newobj));
@@ -568,7 +568,7 @@ FixWaiverAfterTransplant(JSContext* cx, HandleObject oldWaiver, HandleObject new
     
     
     
-    JSObject* newWaiver = WrapperFactory::CreateXrayWaiver(cx, newobj);
+    JSObject *newWaiver = WrapperFactory::CreateXrayWaiver(cx, newobj);
     if (!newWaiver)
         return false;
 
@@ -580,15 +580,15 @@ FixWaiverAfterTransplant(JSContext* cx, HandleObject oldWaiver, HandleObject new
     
     
     
-    XPCWrappedNativeScope* scope = ObjectScope(oldWaiver);
-    JSObject* key = Wrapper::wrappedObject(oldWaiver);
+    XPCWrappedNativeScope *scope = ObjectScope(oldWaiver);
+    JSObject *key = Wrapper::wrappedObject(oldWaiver);
     MOZ_ASSERT(scope->mWaiverWrapperMap->Find(key));
     scope->mWaiverWrapperMap->Remove(key);
     return true;
 }
 
-JSObject*
-TransplantObject(JSContext* cx, JS::HandleObject origobj, JS::HandleObject target)
+JSObject *
+TransplantObject(JSContext *cx, JS::HandleObject origobj, JS::HandleObject target)
 {
     RootedObject oldWaiver(cx, WrapperFactory::GetXrayWaiver(origobj));
     RootedObject newIdentity(cx, JS_TransplantObject(cx, origobj, target));
@@ -600,8 +600,8 @@ TransplantObject(JSContext* cx, JS::HandleObject origobj, JS::HandleObject targe
     return newIdentity;
 }
 
-nsIGlobalObject*
-NativeGlobal(JSObject* obj)
+nsIGlobalObject *
+NativeGlobal(JSObject *obj)
 {
     obj = js::GetGlobalForObjectCrossCompartment(obj);
 
@@ -611,9 +611,9 @@ NativeGlobal(JSObject* obj)
                                              JSCLASS_HAS_PRIVATE)) ||
                dom::UnwrapDOMObjectToISupports(obj));
 
-    nsISupports* native = dom::UnwrapDOMObjectToISupports(obj);
+    nsISupports *native = dom::UnwrapDOMObjectToISupports(obj);
     if (!native) {
-        native = static_cast<nsISupports*>(js::GetObjectPrivate(obj));
+        native = static_cast<nsISupports *>(js::GetObjectPrivate(obj));
         MOZ_ASSERT(native);
 
         

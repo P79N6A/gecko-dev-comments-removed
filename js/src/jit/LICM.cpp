@@ -16,16 +16,16 @@ using namespace js::jit;
 
 
 static bool
-LoopContainsPossibleCall(MIRGraph& graph, MBasicBlock* header, MBasicBlock* backedge)
+LoopContainsPossibleCall(MIRGraph &graph, MBasicBlock *header, MBasicBlock *backedge)
 {
     for (auto i(graph.rpoBegin(header)); ; ++i) {
         MOZ_ASSERT(i != graph.rpoEnd(), "Reached end of graph searching for blocks in loop");
-        MBasicBlock* block = *i;
+        MBasicBlock *block = *i;
         if (!block->isMarked())
             continue;
 
         for (auto insIter(block->begin()), insEnd(block->end()); insIter != insEnd; ++insIter) {
-            MInstruction* ins = *insIter;
+            MInstruction *ins = *insIter;
             if (ins->possiblyCalls()) {
 #ifdef DEBUG
                 JitSpew(JitSpew_LICM, "    Possile call found at %s%u", ins->opName(), ins->id());
@@ -48,7 +48,7 @@ LoopContainsPossibleCall(MIRGraph& graph, MBasicBlock* header, MBasicBlock* back
 
 
 static bool
-IsBeforeLoop(MDefinition* ins, MBasicBlock* header)
+IsBeforeLoop(MDefinition *ins, MBasicBlock *header)
 {
     return ins->block()->id() < header->id();
 }
@@ -56,7 +56,7 @@ IsBeforeLoop(MDefinition* ins, MBasicBlock* header)
 
 
 static bool
-IsInLoop(MDefinition* ins)
+IsInLoop(MDefinition *ins)
 {
     return ins->block()->isMarked();
 }
@@ -64,7 +64,7 @@ IsInLoop(MDefinition* ins)
 
 
 static bool
-RequiresHoistedUse(const MDefinition* ins, bool hasCalls)
+RequiresHoistedUse(const MDefinition *ins, bool hasCalls)
 {
     if (ins->isConstantElements())
         return true;
@@ -86,12 +86,12 @@ RequiresHoistedUse(const MDefinition* ins, bool hasCalls)
 
 
 static bool
-HasOperandInLoop(MInstruction* ins, bool hasCalls)
+HasOperandInLoop(MInstruction *ins, bool hasCalls)
 {
     
     
     for (size_t i = 0, e = ins->numOperands(); i != e; ++i) {
-        MDefinition* op = ins->getOperand(i);
+        MDefinition *op = ins->getOperand(i);
 
         if (!IsInLoop(op))
             continue;
@@ -112,7 +112,7 @@ HasOperandInLoop(MInstruction* ins, bool hasCalls)
 
 
 static bool
-IsHoistableIgnoringDependency(MInstruction* ins, bool hasCalls)
+IsHoistableIgnoringDependency(MInstruction *ins, bool hasCalls)
 {
     return ins->isMovable() && !ins->isEffectful() && !ins->neverHoist() &&
            !HasOperandInLoop(ins, hasCalls);
@@ -120,17 +120,17 @@ IsHoistableIgnoringDependency(MInstruction* ins, bool hasCalls)
 
 
 static bool
-HasDependencyInLoop(MInstruction* ins, MBasicBlock* header)
+HasDependencyInLoop(MInstruction *ins, MBasicBlock *header)
 {
     
-    if (MInstruction* dep = ins->dependency())
+    if (MInstruction *dep = ins->dependency())
         return !IsBeforeLoop(dep, header);
     return false;
 }
 
 
 static bool
-IsHoistable(MInstruction* ins, MBasicBlock* header, bool hasCalls)
+IsHoistable(MInstruction *ins, MBasicBlock *header, bool hasCalls)
 {
     return IsHoistableIgnoringDependency(ins, hasCalls) && !HasDependencyInLoop(ins, header);
 }
@@ -138,17 +138,17 @@ IsHoistable(MInstruction* ins, MBasicBlock* header, bool hasCalls)
 
 
 static void
-MoveDeferredOperands(MInstruction* ins, MInstruction* hoistPoint, bool hasCalls)
+MoveDeferredOperands(MInstruction *ins, MInstruction *hoistPoint, bool hasCalls)
 {
     
     
     for (size_t i = 0, e = ins->numOperands(); i != e; ++i) {
-        MDefinition* op = ins->getOperand(i);
+        MDefinition *op = ins->getOperand(i);
         if (!IsInLoop(op))
             continue;
         MOZ_ASSERT(RequiresHoistedUse(op, hasCalls),
                    "Deferred loop-invariant operand is not cheap");
-        MInstruction* opIns = op->toInstruction();
+        MInstruction *opIns = op->toInstruction();
 
         
         
@@ -164,10 +164,10 @@ MoveDeferredOperands(MInstruction* ins, MInstruction* hoistPoint, bool hasCalls)
 }
 
 static void
-VisitLoopBlock(MBasicBlock* block, MBasicBlock* header, MInstruction* hoistPoint, bool hasCalls)
+VisitLoopBlock(MBasicBlock *block, MBasicBlock *header, MInstruction *hoistPoint, bool hasCalls)
 {
     for (auto insIter(block->begin()), insEnd(block->end()); insIter != insEnd; ) {
-        MInstruction* ins = *insIter++;
+        MInstruction *ins = *insIter++;
 
         if (!IsHoistable(ins, header, hasCalls)) {
 #ifdef DEBUG
@@ -204,16 +204,16 @@ VisitLoopBlock(MBasicBlock* block, MBasicBlock* header, MInstruction* hoistPoint
 }
 
 static void
-VisitLoop(MIRGraph& graph, MBasicBlock* header)
+VisitLoop(MIRGraph &graph, MBasicBlock *header)
 {
-    MInstruction* hoistPoint = header->loopPredecessor()->lastIns();
+    MInstruction *hoistPoint = header->loopPredecessor()->lastIns();
 
 #ifdef DEBUG
     JitSpew(JitSpew_LICM, "  Visiting loop with header block%u, hoisting to %s%u",
             header->id(), hoistPoint->opName(), hoistPoint->id());
 #endif
 
-    MBasicBlock* backedge = header->backedge();
+    MBasicBlock *backedge = header->backedge();
 
     
     
@@ -223,7 +223,7 @@ VisitLoop(MIRGraph& graph, MBasicBlock* header)
 
     for (auto i(graph.rpoBegin(header)); ; ++i) {
         MOZ_ASSERT(i != graph.rpoEnd(), "Reached end of graph searching for blocks in loop");
-        MBasicBlock* block = *i;
+        MBasicBlock *block = *i;
         if (!block->isMarked())
             continue;
 
@@ -235,14 +235,14 @@ VisitLoop(MIRGraph& graph, MBasicBlock* header)
 }
 
 bool
-jit::LICM(MIRGenerator* mir, MIRGraph& graph)
+jit::LICM(MIRGenerator *mir, MIRGraph &graph)
 {
     JitSpew(JitSpew_LICM, "Beginning LICM pass");
 
     
     
     for (auto i(graph.rpoBegin()), e(graph.rpoEnd()); i != e; ++i) {
-        MBasicBlock* header = *i;
+        MBasicBlock *header = *i;
         if (!header->isLoopHeader())
             continue;
 

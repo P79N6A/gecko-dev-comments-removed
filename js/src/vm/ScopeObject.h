@@ -52,7 +52,7 @@ class StaticScopeIter
     bool onNamedLambda;
 
   public:
-    StaticScopeIter(ExclusiveContext* cx, JSObject* obj)
+    StaticScopeIter(ExclusiveContext *cx, JSObject *obj)
       : obj(cx, obj), onNamedLambda(false)
     {
         static_assert(allowGC == CanGC,
@@ -65,14 +65,14 @@ class StaticScopeIter
                       obj->is<JSFunction>());
     }
 
-    StaticScopeIter(ExclusiveContext* cx, const StaticScopeIter<CanGC>& ssi)
+    StaticScopeIter(ExclusiveContext *cx, const StaticScopeIter<CanGC> &ssi)
       : obj(cx, ssi.obj), onNamedLambda(ssi.onNamedLambda)
     {
         JS_STATIC_ASSERT(allowGC == CanGC);
     }
 
-    explicit StaticScopeIter(JSObject* obj)
-      : obj((ExclusiveContext*) nullptr, obj), onNamedLambda(false)
+    explicit StaticScopeIter(JSObject *obj)
+      : obj((ExclusiveContext *) nullptr, obj), onNamedLambda(false)
     {
         static_assert(allowGC == NoGC,
                       "the constructor not taking a context should only be "
@@ -84,8 +84,8 @@ class StaticScopeIter
                       obj->is<JSFunction>());
     }
 
-    explicit StaticScopeIter(const StaticScopeIter<NoGC>& ssi)
-      : obj((ExclusiveContext*) nullptr, ssi.obj), onNamedLambda(ssi.onNamedLambda)
+    explicit StaticScopeIter(const StaticScopeIter<NoGC> &ssi)
+      : obj((ExclusiveContext *) nullptr, ssi.obj), onNamedLambda(ssi.onNamedLambda)
     {
         static_assert(allowGC == NoGC,
                       "the constructor not taking a context should only be "
@@ -97,16 +97,16 @@ class StaticScopeIter
 
     
     bool hasDynamicScopeObject() const;
-    Shape* scopeShape() const;
+    Shape *scopeShape() const;
 
     enum Type { Function, Block, With, NamedLambda, Eval };
     Type type() const;
 
-    StaticBlockObject& block() const;
-    StaticWithObject& staticWith() const;
-    StaticEvalObject& eval() const;
-    JSScript* funScript() const;
-    JSFunction& fun() const;
+    StaticBlockObject &block() const;
+    StaticWithObject &staticWith() const;
+    StaticEvalObject &eval() const;
+    JSScript *funScript() const;
+    JSFunction &fun() const;
 };
 
 
@@ -131,7 +131,7 @@ class ScopeCoordinate
     static_assert(SCOPECOORD_SLOT_BITS <= 32, "We have enough bits below");
 
   public:
-    explicit inline ScopeCoordinate(jsbytecode* pc)
+    explicit inline ScopeCoordinate(jsbytecode *pc)
       : hops_(GET_SCOPECOORD_HOPS(pc)), slot_(GET_SCOPECOORD_SLOT(pc + SCOPECOORD_HOPS_LEN))
     {
         MOZ_ASSERT(JOF_OPTYPE(JSOp(*pc)) == JOF_SCOPECOORD);
@@ -145,7 +145,7 @@ class ScopeCoordinate
     uint32_t hops() const { MOZ_ASSERT(hops_ < SCOPECOORD_HOPS_LIMIT); return hops_; }
     uint32_t slot() const { MOZ_ASSERT(slot_ < SCOPECOORD_SLOT_LIMIT); return slot_; }
 
-    bool operator==(const ScopeCoordinate& rhs) const {
+    bool operator==(const ScopeCoordinate &rhs) const {
         return hops() == rhs.hops() && slot() == rhs.slot();
     }
 };
@@ -154,16 +154,16 @@ class ScopeCoordinate
 
 
 
-extern Shape*
-ScopeCoordinateToStaticScopeShape(JSScript* script, jsbytecode* pc);
+extern Shape *
+ScopeCoordinateToStaticScopeShape(JSScript *script, jsbytecode *pc);
 
 
-extern PropertyName*
-ScopeCoordinateName(ScopeCoordinateNameCache& cache, JSScript* script, jsbytecode* pc);
+extern PropertyName *
+ScopeCoordinateName(ScopeCoordinateNameCache &cache, JSScript *script, jsbytecode *pc);
 
 
-extern JSScript*
-ScopeCoordinateFunctionScript(JSScript* script, jsbytecode* pc);
+extern JSScript *
+ScopeCoordinateFunctionScript(JSScript *script, jsbytecode *pc);
 
 
 
@@ -220,7 +220,7 @@ class ScopeObject : public NativeObject
 
 
 
-    inline JSObject& enclosingScope() const {
+    inline JSObject &enclosingScope() const {
         return getFixedSlot(SCOPE_CHAIN_SLOT).toObject();
     }
 
@@ -232,9 +232,9 @@ class ScopeObject : public NativeObject
 
 
 
-    inline const Value& aliasedVar(ScopeCoordinate sc);
+    inline const Value &aliasedVar(ScopeCoordinate sc);
 
-    inline void setAliasedVar(JSContext* cx, ScopeCoordinate sc, PropertyName* name, const Value& v);
+    inline void setAliasedVar(JSContext *cx, ScopeCoordinate sc, PropertyName *name, const Value &v);
 
     
     static size_t offsetOfEnclosingScope() {
@@ -250,11 +250,11 @@ class CallObject : public ScopeObject
 {
     static const uint32_t CALLEE_SLOT = 1;
 
-    static CallObject*
-    create(JSContext* cx, HandleScript script, HandleObject enclosing, HandleFunction callee);
+    static CallObject *
+    create(JSContext *cx, HandleScript script, HandleObject enclosing, HandleFunction callee);
 
     inline void initRemainingSlotsToUninitializedLexicals(uint32_t begin);
-    inline void initAliasedLexicalsToThrowOnTouch(JSScript* script);
+    inline void initAliasedLexicalsToThrowOnTouch(JSScript *script);
 
   public:
     static const Class class_;
@@ -265,26 +265,26 @@ class CallObject : public ScopeObject
 
 
 
-    static CallObject*
-    create(JSContext* cx, HandleShape shape, HandleObjectGroup group, uint32_t lexicalBegin);
+    static CallObject *
+    create(JSContext *cx, HandleShape shape, HandleObjectGroup group, uint32_t lexicalBegin);
 
     
 
 
 
-    static CallObject*
-    createSingleton(JSContext* cx, HandleShape shape, uint32_t lexicalBegin);
+    static CallObject *
+    createSingleton(JSContext *cx, HandleShape shape, uint32_t lexicalBegin);
 
-    static CallObject*
-    createTemplateObject(JSContext* cx, HandleScript script, gc::InitialHeap heap);
+    static CallObject *
+    createTemplateObject(JSContext *cx, HandleScript script, gc::InitialHeap heap);
 
     static const uint32_t RESERVED_SLOTS = 2;
 
-    static CallObject* createForFunction(JSContext* cx, HandleObject enclosing, HandleFunction callee);
+    static CallObject *createForFunction(JSContext *cx, HandleObject enclosing, HandleFunction callee);
 
-    static CallObject* createForFunction(JSContext* cx, AbstractFramePtr frame);
-    static CallObject* createForStrictEval(JSContext* cx, AbstractFramePtr frame);
-    static CallObject* createHollowForDebug(JSContext* cx, HandleFunction callee);
+    static CallObject *createForFunction(JSContext *cx, AbstractFramePtr frame);
+    static CallObject *createForStrictEval(JSContext *cx, AbstractFramePtr frame);
+    static CallObject *createHollowForDebug(JSContext *cx, HandleFunction callee);
 
     
     bool isForEval() const {
@@ -298,16 +298,16 @@ class CallObject : public ScopeObject
 
 
 
-    JSFunction& callee() const {
+    JSFunction &callee() const {
         return getFixedSlot(CALLEE_SLOT).toObject().as<JSFunction>();
     }
 
     
-    const Value& aliasedVar(AliasedFormalIter fi) {
+    const Value &aliasedVar(AliasedFormalIter fi) {
         return getSlot(fi.scopeSlot());
     }
-    inline void setAliasedVar(JSContext* cx, AliasedFormalIter fi, PropertyName* name,
-                              const Value& v);
+    inline void setAliasedVar(JSContext *cx, AliasedFormalIter fi, PropertyName *name,
+                              const Value &v);
 
     
 
@@ -317,11 +317,11 @@ class CallObject : public ScopeObject
 
 
 
-    const Value& aliasedVarFromArguments(const Value& argsValue) {
+    const Value &aliasedVarFromArguments(const Value &argsValue) {
         return getSlot(ArgumentsObject::SlotFromMagicScopeSlotValue(argsValue));
     }
-    inline void setAliasedVarFromArguments(JSContext* cx, const Value& argsValue, jsid id,
-                                           const Value& v);
+    inline void setAliasedVarFromArguments(JSContext *cx, const Value &argsValue, jsid id,
+                                           const Value &v);
 
     
     static size_t offsetOfCallee() {
@@ -344,10 +344,10 @@ class DeclEnvObject : public ScopeObject
 
     static const Class class_;
 
-    static DeclEnvObject*
-    createTemplateObject(JSContext* cx, HandleFunction fun, gc::InitialHeap heap);
+    static DeclEnvObject *
+    createTemplateObject(JSContext *cx, HandleFunction fun, gc::InitialHeap heap);
 
-    static DeclEnvObject* create(JSContext* cx, HandleObject enclosing, HandleFunction callee);
+    static DeclEnvObject *create(JSContext *cx, HandleObject enclosing, HandleFunction callee);
 
     static inline size_t lambdaSlot() {
         return LAMBDA_SLOT;
@@ -366,9 +366,9 @@ class StaticEvalObject : public ScopeObject
 
     static const Class class_;
 
-    static StaticEvalObject* create(JSContext* cx, HandleObject enclosing);
+    static StaticEvalObject *create(JSContext *cx, HandleObject enclosing);
 
-    JSObject* enclosingScopeForStaticScopeIter() {
+    JSObject *enclosingScopeForStaticScopeIter() {
         return getReservedSlot(SCOPE_CHAIN_SLOT).toObjectOrNull();
     }
 
@@ -394,7 +394,7 @@ class NestedScopeObject : public ScopeObject
 
 
 
-    inline NestedScopeObject* enclosingNestedScope() const;
+    inline NestedScopeObject *enclosingNestedScope() const;
 
     
     inline bool isStatic() { return !getProto(); }
@@ -406,11 +406,11 @@ class NestedScopeObject : public ScopeObject
     }
 
     
-    JSObject* enclosingScopeForStaticScopeIter() {
+    JSObject *enclosingScopeForStaticScopeIter() {
         return getReservedSlot(SCOPE_CHAIN_SLOT).toObjectOrNull();
     }
 
-    void initEnclosingNestedScope(JSObject* obj) {
+    void initEnclosingNestedScope(JSObject *obj) {
         MOZ_ASSERT(getReservedSlot(SCOPE_CHAIN_SLOT).isUndefined());
         setReservedSlot(SCOPE_CHAIN_SLOT, ObjectOrNullValue(obj));
     }
@@ -422,7 +422,7 @@ class NestedScopeObject : public ScopeObject
 
 
 
-    void initEnclosingNestedScopeFromParser(NestedScopeObject* prev) {
+    void initEnclosingNestedScopeFromParser(NestedScopeObject *prev) {
         setReservedSlot(SCOPE_CHAIN_SLOT, ObjectOrNullValue(prev));
     }
 
@@ -440,7 +440,7 @@ class StaticWithObject : public NestedScopeObject
 
     static const Class class_;
 
-    static StaticWithObject* create(ExclusiveContext* cx);
+    static StaticWithObject *create(ExclusiveContext *cx);
 };
 
 
@@ -461,8 +461,8 @@ class DynamicWithObject : public NestedScopeObject
         NonSyntacticWith
     };
 
-    static DynamicWithObject*
-    create(JSContext* cx, HandleObject object, HandleObject enclosing, HandleObject staticWith,
+    static DynamicWithObject *
+    create(JSContext *cx, HandleObject object, HandleObject enclosing, HandleObject staticWith,
            WithKind kind = SyntacticWith);
 
     StaticWithObject& staticWith() const {
@@ -470,12 +470,12 @@ class DynamicWithObject : public NestedScopeObject
     }
 
     
-    JSObject& object() const {
+    JSObject &object() const {
         return getReservedSlot(OBJECT_SLOT).toObject();
     }
 
     
-    JSObject& withThis() const {
+    JSObject &withThis() const {
         return getReservedSlot(THIS_SLOT).toObject();
     }
 
@@ -522,11 +522,11 @@ class BlockObject : public NestedScopeObject
 
   protected:
     
-    const Value& slotValue(unsigned i) {
+    const Value &slotValue(unsigned i) {
         return getSlotRef(RESERVED_SLOTS + i);
     }
 
-    void setSlotValue(unsigned i, const Value& v) {
+    void setSlotValue(unsigned i, const Value &v) {
         setSlot(RESERVED_SLOTS + i, v);
     }
 };
@@ -536,10 +536,10 @@ class StaticBlockObject : public BlockObject
     static const unsigned LOCAL_OFFSET_SLOT = 1;
 
   public:
-    static StaticBlockObject* create(ExclusiveContext* cx);
+    static StaticBlockObject *create(ExclusiveContext *cx);
 
     
-    JSObject* enclosingStaticScope() const {
+    JSObject *enclosingStaticScope() const {
         return getFixedSlot(SCOPE_CHAIN_SLOT).toObjectOrNull();
     }
 
@@ -547,7 +547,7 @@ class StaticBlockObject : public BlockObject
 
 
 
-    uint32_t shapeToIndex(const Shape& shape) {
+    uint32_t shapeToIndex(const Shape &shape) {
         uint32_t slot = shape.slot();
         MOZ_ASSERT(slot - RESERVED_SLOTS < numVariables());
         return slot - RESERVED_SLOTS;
@@ -557,7 +557,7 @@ class StaticBlockObject : public BlockObject
 
 
 
-    inline StaticBlockObject* enclosingBlock() const;
+    inline StaticBlockObject *enclosingBlock() const;
 
     uint32_t localOffset() {
         return getReservedSlot(LOCAL_OFFSET_SLOT).toPrivateUint32();
@@ -617,14 +617,14 @@ class StaticBlockObject : public BlockObject
 
 
 
-    void setDefinitionParseNode(unsigned i, frontend::Definition* def) {
+    void setDefinitionParseNode(unsigned i, frontend::Definition *def) {
         MOZ_ASSERT(slotValue(i).isUndefined());
         setSlotValue(i, PrivateValue(def));
     }
 
-    frontend::Definition* definitionParseNode(unsigned i) {
+    frontend::Definition *definitionParseNode(unsigned i) {
         Value v = slotValue(i);
-        return reinterpret_cast<frontend::Definition*>(v.toPrivate());
+        return reinterpret_cast<frontend::Definition *>(v.toPrivate());
     }
 
     
@@ -635,34 +635,34 @@ class StaticBlockObject : public BlockObject
 
     static const unsigned LOCAL_INDEX_LIMIT = JS_BIT(16);
 
-    static Shape* addVar(ExclusiveContext* cx, Handle<StaticBlockObject*> block, HandleId id,
-                         bool constant, unsigned index, bool* redeclared);
+    static Shape *addVar(ExclusiveContext *cx, Handle<StaticBlockObject*> block, HandleId id,
+                         bool constant, unsigned index, bool *redeclared);
 };
 
 class ClonedBlockObject : public BlockObject
 {
-    static ClonedBlockObject* create(JSContext* cx, Handle<StaticBlockObject*> block,
+    static ClonedBlockObject *create(JSContext *cx, Handle<StaticBlockObject *> block,
                                      HandleObject enclosing);
 
   public:
-    static ClonedBlockObject* create(JSContext* cx, Handle<StaticBlockObject*> block,
+    static ClonedBlockObject *create(JSContext *cx, Handle<StaticBlockObject *> block,
                                      AbstractFramePtr frame);
 
-    static ClonedBlockObject* createHollowForDebug(JSContext* cx,
-                                                   Handle<StaticBlockObject*> block);
+    static ClonedBlockObject *createHollowForDebug(JSContext *cx,
+                                                   Handle<StaticBlockObject *> block);
 
     
-    StaticBlockObject& staticBlock() const {
+    StaticBlockObject &staticBlock() const {
         return getProto()->as<StaticBlockObject>();
     }
 
     
-    const Value& var(unsigned i, MaybeCheckAliasing checkAliasing = CHECK_ALIASING) {
+    const Value &var(unsigned i, MaybeCheckAliasing checkAliasing = CHECK_ALIASING) {
         MOZ_ASSERT_IF(checkAliasing, staticBlock().isAliased(i));
         return slotValue(i);
     }
 
-    void setVar(unsigned i, const Value& v, MaybeCheckAliasing checkAliasing = CHECK_ALIASING) {
+    void setVar(unsigned i, const Value &v, MaybeCheckAliasing checkAliasing = CHECK_ALIASING) {
         MOZ_ASSERT_IF(checkAliasing, staticBlock().isAliased(i));
         setSlotValue(i, v);
     }
@@ -674,7 +674,7 @@ class ClonedBlockObject : public BlockObject
 
 
 
-    static ClonedBlockObject* clone(ExclusiveContext* cx, Handle<ClonedBlockObject*> block);
+    static ClonedBlockObject *clone(ExclusiveContext *cx, Handle<ClonedBlockObject*> block);
 };
 
 
@@ -701,21 +701,21 @@ class UninitializedLexicalObject : public ScopeObject
 
     static const Class class_;
 
-    static UninitializedLexicalObject* create(JSContext* cx, HandleObject enclosing);
+    static UninitializedLexicalObject *create(JSContext *cx, HandleObject enclosing);
 };
 
 template<XDRMode mode>
 bool
-XDRStaticBlockObject(XDRState<mode>* xdr, HandleObject enclosingScope,
+XDRStaticBlockObject(XDRState<mode> *xdr, HandleObject enclosingScope,
                      MutableHandle<StaticBlockObject*> objp);
 
 template<XDRMode mode>
 bool
-XDRStaticWithObject(XDRState<mode>* xdr, HandleObject enclosingScope,
+XDRStaticWithObject(XDRState<mode> *xdr, HandleObject enclosingScope,
                     MutableHandle<StaticWithObject*> objp);
 
-extern JSObject*
-CloneNestedScopeObject(JSContext* cx, HandleObject enclosingScope, Handle<NestedScopeObject*> src);
+extern JSObject *
+CloneNestedScopeObject(JSContext *cx, HandleObject enclosingScope, Handle<NestedScopeObject*> src);
 
 
 
@@ -735,28 +735,28 @@ class ScopeIter
     void settle();
 
     
-    ScopeIter(const ScopeIter& si) = delete;
+    ScopeIter(const ScopeIter &si) = delete;
 
   public:
     
-    ScopeIter(JSContext* cx, const ScopeIter& si
+    ScopeIter(JSContext *cx, const ScopeIter &si
               MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
 
     
     
-    ScopeIter(JSContext* cx, JSObject* scope, JSObject* staticScope
+    ScopeIter(JSContext *cx, JSObject *scope, JSObject *staticScope
               MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
 
     
     
-    ScopeIter(JSContext* cx, AbstractFramePtr frame, jsbytecode* pc
+    ScopeIter(JSContext *cx, AbstractFramePtr frame, jsbytecode *pc
               MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
 
     inline bool done() const;
-    ScopeIter& operator++();
+    ScopeIter &operator++();
 
     
-    inline JSObject& enclosingScope() const;
+    inline JSObject &enclosingScope() const;
 
     
     enum Type { Call, Block, With, Eval };
@@ -764,13 +764,13 @@ class ScopeIter
 
     inline bool hasScopeObject() const;
     inline bool canHaveScopeObject() const;
-    ScopeObject& scope() const;
+    ScopeObject &scope() const;
 
-    JSObject* maybeStaticScope() const;
-    StaticBlockObject& staticBlock() const { return ssi_.block(); }
-    StaticWithObject& staticWith() const { return ssi_.staticWith(); }
-    StaticEvalObject& staticEval() const { return ssi_.eval(); }
-    JSFunction& fun() const { return ssi_.fun(); }
+    JSObject *maybeStaticScope() const;
+    StaticBlockObject &staticBlock() const { return ssi_.block(); }
+    StaticWithObject &staticWith() const { return ssi_.staticWith(); }
+    StaticEvalObject &staticEval() const { return ssi_.eval(); }
+    JSFunction &fun() const { return ssi_.fun(); }
 
     bool withinInitialFrame() const { return !!frame_; }
     AbstractFramePtr initialFrame() const { MOZ_ASSERT(withinInitialFrame()); return frame_; }
@@ -796,28 +796,28 @@ class MissingScopeKey
     friend class LiveScopeVal;
 
     AbstractFramePtr frame_;
-    JSObject* staticScope_;
+    JSObject *staticScope_;
 
   public:
-    explicit MissingScopeKey(const ScopeIter& si)
+    explicit MissingScopeKey(const ScopeIter &si)
       : frame_(si.maybeInitialFrame()),
         staticScope_(si.maybeStaticScope())
     { }
 
     AbstractFramePtr frame() const { return frame_; }
-    JSObject* staticScope() const { return staticScope_; }
+    JSObject *staticScope() const { return staticScope_; }
 
-    void updateStaticScope(JSObject* obj) { staticScope_ = obj; }
+    void updateStaticScope(JSObject *obj) { staticScope_ = obj; }
     void updateFrame(AbstractFramePtr frame) { frame_ = frame; }
 
     
     typedef MissingScopeKey Lookup;
     static HashNumber hash(MissingScopeKey sk);
     static bool match(MissingScopeKey sk1, MissingScopeKey sk2);
-    bool operator!=(const MissingScopeKey& other) const {
+    bool operator!=(const MissingScopeKey &other) const {
         return frame_ != other.frame_ || staticScope_ != other.staticScope_;
     }
-    static void rekey(MissingScopeKey& k, const MissingScopeKey& newKey) {
+    static void rekey(MissingScopeKey &k, const MissingScopeKey &newKey) {
         k = newKey;
     }
 };
@@ -835,13 +835,13 @@ class LiveScopeVal
     static void staticAsserts();
 
   public:
-    explicit LiveScopeVal(const ScopeIter& si)
+    explicit LiveScopeVal(const ScopeIter &si)
       : frame_(si.initialFrame()),
         staticScope_(si.maybeStaticScope())
     { }
 
     AbstractFramePtr frame() const { return frame_; }
-    JSObject* staticScope() const { return staticScope_; }
+    JSObject *staticScope() const { return staticScope_; }
 
     void updateFrame(AbstractFramePtr frame) { frame_ = frame; }
 };
@@ -873,11 +873,11 @@ class LiveScopeVal
 
 
 
-extern JSObject*
-GetDebugScopeForFunction(JSContext* cx, HandleFunction fun);
+extern JSObject *
+GetDebugScopeForFunction(JSContext *cx, HandleFunction fun);
 
-extern JSObject*
-GetDebugScopeForFrame(JSContext* cx, AbstractFramePtr frame, jsbytecode* pc);
+extern JSObject *
+GetDebugScopeForFrame(JSContext *cx, AbstractFramePtr frame, jsbytecode *pc);
 
 
 class DebugScopeObject : public ProxyObject
@@ -895,21 +895,21 @@ class DebugScopeObject : public ProxyObject
     static const unsigned SNAPSHOT_EXTRA = 1;
 
   public:
-    static DebugScopeObject* create(JSContext* cx, ScopeObject& scope, HandleObject enclosing);
+    static DebugScopeObject *create(JSContext *cx, ScopeObject &scope, HandleObject enclosing);
 
-    ScopeObject& scope() const;
-    JSObject& enclosingScope() const;
+    ScopeObject &scope() const;
+    JSObject &enclosingScope() const;
 
     
-    ArrayObject* maybeSnapshot() const;
-    void initSnapshot(ArrayObject& snapshot);
+    ArrayObject *maybeSnapshot() const;
+    void initSnapshot(ArrayObject &snapshot);
 
     
     bool isForDeclarative() const;
 
     
     
-    bool getMaybeSentinelValue(JSContext* cx, HandleId id, MutableHandleValue vp);
+    bool getMaybeSentinelValue(JSContext *cx, HandleId id, MutableHandleValue vp);
 
     
     
@@ -939,57 +939,57 @@ class DebugScopes
 
 
 
-    typedef HashMap<ScopeObject*,
+    typedef HashMap<ScopeObject *,
                     LiveScopeVal,
-                    DefaultHasher<ScopeObject*>,
+                    DefaultHasher<ScopeObject *>,
                     RuntimeAllocPolicy> LiveScopeMap;
     LiveScopeMap liveScopes;
-    static MOZ_ALWAYS_INLINE void liveScopesPostWriteBarrier(JSRuntime* rt, LiveScopeMap* map,
-                                                             ScopeObject* key);
+    static MOZ_ALWAYS_INLINE void liveScopesPostWriteBarrier(JSRuntime *rt, LiveScopeMap *map,
+                                                             ScopeObject *key);
 
   public:
-    explicit DebugScopes(JSContext* c);
+    explicit DebugScopes(JSContext *c);
     ~DebugScopes();
 
   private:
     bool init();
 
-    static DebugScopes* ensureCompartmentData(JSContext* cx);
+    static DebugScopes *ensureCompartmentData(JSContext *cx);
 
   public:
-    void mark(JSTracer* trc);
-    void sweep(JSRuntime* rt);
+    void mark(JSTracer *trc);
+    void sweep(JSRuntime *rt);
 #ifdef JS_GC_ZEAL
-    void checkHashTablesAfterMovingGC(JSRuntime* rt);
+    void checkHashTablesAfterMovingGC(JSRuntime *rt);
 #endif
 
-    static DebugScopeObject* hasDebugScope(JSContext* cx, ScopeObject& scope);
-    static bool addDebugScope(JSContext* cx, ScopeObject& scope, DebugScopeObject& debugScope);
+    static DebugScopeObject *hasDebugScope(JSContext *cx, ScopeObject &scope);
+    static bool addDebugScope(JSContext *cx, ScopeObject &scope, DebugScopeObject &debugScope);
 
-    static DebugScopeObject* hasDebugScope(JSContext* cx, const ScopeIter& si);
-    static bool addDebugScope(JSContext* cx, const ScopeIter& si, DebugScopeObject& debugScope);
+    static DebugScopeObject *hasDebugScope(JSContext *cx, const ScopeIter &si);
+    static bool addDebugScope(JSContext *cx, const ScopeIter &si, DebugScopeObject &debugScope);
 
-    static bool updateLiveScopes(JSContext* cx);
-    static LiveScopeVal* hasLiveScope(ScopeObject& scope);
-    static void unsetPrevUpToDateUntil(JSContext* cx, AbstractFramePtr frame);
-
-    
-    
-    
-    static void forwardLiveFrame(JSContext* cx, AbstractFramePtr from, AbstractFramePtr to);
+    static bool updateLiveScopes(JSContext *cx);
+    static LiveScopeVal *hasLiveScope(ScopeObject &scope);
+    static void unsetPrevUpToDateUntil(JSContext *cx, AbstractFramePtr frame);
 
     
     
-    static void onPopCall(AbstractFramePtr frame, JSContext* cx);
-    static void onPopBlock(JSContext* cx, const ScopeIter& si);
-    static void onPopBlock(JSContext* cx, AbstractFramePtr frame, jsbytecode* pc);
+    
+    static void forwardLiveFrame(JSContext *cx, AbstractFramePtr from, AbstractFramePtr to);
+
+    
+    
+    static void onPopCall(AbstractFramePtr frame, JSContext *cx);
+    static void onPopBlock(JSContext *cx, const ScopeIter &si);
+    static void onPopBlock(JSContext *cx, AbstractFramePtr frame, jsbytecode *pc);
     static void onPopWith(AbstractFramePtr frame);
     static void onPopStrictEvalScope(AbstractFramePtr frame);
-    static void onCompartmentUnsetIsDebuggee(JSCompartment* c);
+    static void onCompartmentUnsetIsDebuggee(JSCompartment *c);
 };
 
 extern bool
-IsDebugScopeSlow(ProxyObject* proxy);
+IsDebugScopeSlow(ProxyObject *proxy);
 
 }  
 
@@ -1045,17 +1045,17 @@ IsSyntacticScope(JSObject* scope)
             scope->as<DynamicWithObject>().isSyntactic());
 }
 
-inline const Value&
+inline const Value &
 ScopeObject::aliasedVar(ScopeCoordinate sc)
 {
     MOZ_ASSERT(is<CallObject>() || is<ClonedBlockObject>());
     return getSlot(sc.slot());
 }
 
-inline NestedScopeObject*
+inline NestedScopeObject *
 NestedScopeObject::enclosingNestedScope() const
 {
-    JSObject* obj = getReservedSlot(SCOPE_CHAIN_SLOT).toObjectOrNull();
+    JSObject *obj = getReservedSlot(SCOPE_CHAIN_SLOT).toObjectOrNull();
     return obj && obj->is<NestedScopeObject>() ? &obj->as<NestedScopeObject>() : nullptr;
 }
 
@@ -1078,7 +1078,7 @@ ScopeIter::canHaveScopeObject() const
     return !ssi_.done() && (type() != Eval || staticEval().isStrict());
 }
 
-inline JSObject&
+inline JSObject &
 ScopeIter::enclosingScope() const
 {
     
@@ -1091,14 +1091,14 @@ ScopeIter::enclosingScope() const
 }
 
 extern bool
-CreateScopeObjectsForScopeChain(JSContext* cx, AutoObjectVector& scopeChain,
+CreateScopeObjectsForScopeChain(JSContext *cx, AutoObjectVector &scopeChain,
                                 HandleObject dynamicTerminatingScope,
                                 MutableHandleObject dynamicScopeObj,
                                 MutableHandleObject staticScopeObj);
 
 #ifdef DEBUG
 bool
-AnalyzeEntrainedVariables(JSContext* cx, HandleScript script);
+AnalyzeEntrainedVariables(JSContext *cx, HandleScript script);
 #endif
 
 } 

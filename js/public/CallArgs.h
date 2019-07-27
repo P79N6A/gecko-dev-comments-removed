@@ -40,7 +40,7 @@
 
 
 typedef bool
-(* JSNative)(JSContext* cx, unsigned argc, JS::Value* vp);
+(* JSNative)(JSContext *cx, unsigned argc, JS::Value *vp);
 
 
 
@@ -52,7 +52,7 @@ typedef bool
 
 
 extern JS_PUBLIC_API(JS::Value)
-JS_ComputeThis(JSContext* cx, JS::Value* vp);
+JS_ComputeThis(JSContext *cx, JS::Value *vp);
 
 namespace JS {
 
@@ -132,14 +132,14 @@ class MOZ_STACK_CLASS CallReceiverBase : public UsedRvalBase<
     >
 {
   protected:
-    Value* argv_;
+    Value *argv_;
 
   public:
     
 
 
 
-    JSObject& callee() const {
+    JSObject &callee() const {
         MOZ_ASSERT(!this->usedRval_);
         return argv_[-2].toObject();
     }
@@ -166,7 +166,7 @@ class MOZ_STACK_CLASS CallReceiverBase : public UsedRvalBase<
         return HandleValue::fromMarkedLocation(&argv_[-1]);
     }
 
-    Value computeThis(JSContext* cx) const {
+    Value computeThis(JSContext *cx) const {
         if (thisv().isObject())
             return thisv();
 
@@ -201,9 +201,9 @@ class MOZ_STACK_CLASS CallReceiverBase : public UsedRvalBase<
     
     
 
-    Value* base() const { return argv_ - 2; }
+    Value *base() const { return argv_ - 2; }
 
-    Value* spAfterCall() const {
+    Value *spAfterCall() const {
         this->setUsedRval();
         return argv_ - 1;
     }
@@ -232,12 +232,12 @@ class MOZ_STACK_CLASS CallReceiverBase : public UsedRvalBase<
 class MOZ_STACK_CLASS CallReceiver : public detail::CallReceiverBase<detail::IncludeUsedRval>
 {
   private:
-    friend CallReceiver CallReceiverFromVp(Value* vp);
-    friend CallReceiver CallReceiverFromArgv(Value* argv);
+    friend CallReceiver CallReceiverFromVp(Value *vp);
+    friend CallReceiver CallReceiverFromArgv(Value *argv);
 };
 
 MOZ_ALWAYS_INLINE CallReceiver
-CallReceiverFromArgv(Value* argv)
+CallReceiverFromArgv(Value *argv)
 {
     CallReceiver receiver;
     receiver.clearUsedRval();
@@ -246,7 +246,7 @@ CallReceiverFromArgv(Value* argv)
 }
 
 MOZ_ALWAYS_INLINE CallReceiver
-CallReceiverFromVp(Value* vp)
+CallReceiverFromVp(Value *vp)
 {
     return CallReceiverFromArgv(vp + 2);
 }
@@ -319,8 +319,8 @@ class MOZ_STACK_CLASS CallArgsBase :
     
     
 
-    Value* array() const { return this->argv_; }
-    Value* end() const { return this->argv_ + argc_; }
+    Value *array() const { return this->argv_; }
+    Value *end() const { return this->argv_ + argc_; }
 };
 
 } 
@@ -328,10 +328,10 @@ class MOZ_STACK_CLASS CallArgsBase :
 class MOZ_STACK_CLASS CallArgs : public detail::CallArgsBase<detail::IncludeUsedRval>
 {
   private:
-    friend CallArgs CallArgsFromVp(unsigned argc, Value* vp);
-    friend CallArgs CallArgsFromSp(unsigned argc, Value* sp);
+    friend CallArgs CallArgsFromVp(unsigned argc, Value *vp);
+    friend CallArgs CallArgsFromSp(unsigned argc, Value *sp);
 
-    static CallArgs create(unsigned argc, Value* argv) {
+    static CallArgs create(unsigned argc, Value *argv) {
         CallArgs args;
         args.clearUsedRval();
         args.argv_ = argv;
@@ -344,12 +344,12 @@ class MOZ_STACK_CLASS CallArgs : public detail::CallArgsBase<detail::IncludeUsed
 
 
 
-    bool requireAtLeast(JSContext* cx, const char* fnname, unsigned required);
+    bool requireAtLeast(JSContext *cx, const char *fnname, unsigned required);
 
 };
 
 MOZ_ALWAYS_INLINE CallArgs
-CallArgsFromVp(unsigned argc, Value* vp)
+CallArgsFromVp(unsigned argc, Value *vp)
 {
     return CallArgs::create(argc, vp + 2);
 }
@@ -358,7 +358,7 @@ CallArgsFromVp(unsigned argc, Value* vp)
 
 
 MOZ_ALWAYS_INLINE CallArgs
-CallArgsFromSp(unsigned argc, Value* sp)
+CallArgsFromSp(unsigned argc, Value *sp)
 {
     return CallArgs::create(argc, sp - argc);
 }
@@ -379,7 +379,7 @@ CallArgsFromSp(unsigned argc, Value* sp)
 
 
 MOZ_ALWAYS_INLINE JS::Value
-JS_THIS(JSContext* cx, JS::Value* vp)
+JS_THIS(JSContext *cx, JS::Value *vp)
 {
     return vp[1].isPrimitive() ? JS_ComputeThis(cx, vp) : vp[1];
 }

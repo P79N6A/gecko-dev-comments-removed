@@ -48,8 +48,8 @@ typedef frontend::ParseContext<frontend::FullParseHandler> AsmJSParseContext;
 
 
 extern bool
-ValidateAsmJS(ExclusiveContext* cx, AsmJSParser& parser, frontend::ParseNode* stmtList,
-             bool* validated);
+ValidateAsmJS(ExclusiveContext *cx, AsmJSParser &parser, frontend::ParseNode *stmtList,
+             bool *validated);
 
 
 const size_t AsmJSPageSize = 4096;
@@ -120,7 +120,7 @@ IsDeprecatedAsmJSHeapLength(uint32_t length)
 
 
 extern bool
-IsAsmJSCompilationAvailable(JSContext* cx, unsigned argc, JS::Value* vp);
+IsAsmJSCompilationAvailable(JSContext *cx, unsigned argc, JS::Value *vp);
 
 } 
 

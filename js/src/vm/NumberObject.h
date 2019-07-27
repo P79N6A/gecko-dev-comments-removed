@@ -25,7 +25,7 @@ class NumberObject : public NativeObject
 
 
 
-    static inline NumberObject* create(JSContext* cx, double d);
+    static inline NumberObject *create(JSContext *cx, double d);
 
     double unbox() const {
         return getFixedSlot(PRIMITIVE_VALUE_SLOT).toNumber();
@@ -37,8 +37,8 @@ class NumberObject : public NativeObject
     }
 
     
-    friend JSObject*
-    js::InitNumberClass(JSContext* cx, HandleObject global);
+    friend JSObject *
+    js::InitNumberClass(JSContext *cx, HandleObject global);
 };
 
 } 

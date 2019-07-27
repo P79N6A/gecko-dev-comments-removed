@@ -34,19 +34,19 @@
 
 
 
-extern JS_PUBLIC_API(uint32_t) JS_snprintf(char* out, uint32_t outlen, const char* fmt, ...);
+extern JS_PUBLIC_API(uint32_t) JS_snprintf(char *out, uint32_t outlen, const char *fmt, ...);
 
 
 
 
 
 
-extern JS_PUBLIC_API(char*) JS_smprintf(const char* fmt, ...);
+extern JS_PUBLIC_API(char*) JS_smprintf(const char *fmt, ...);
 
 
 
 
-extern JS_PUBLIC_API(void) JS_smprintf_free(char* mem);
+extern JS_PUBLIC_API(void) JS_smprintf_free(char *mem);
 
 
 
@@ -55,13 +55,13 @@ extern JS_PUBLIC_API(void) JS_smprintf_free(char* mem);
 
 
 
-extern JS_PUBLIC_API(char*) JS_sprintf_append(char* last, const char* fmt, ...);
+extern JS_PUBLIC_API(char*) JS_sprintf_append(char *last, const char *fmt, ...);
 
 
 
 
-extern JS_PUBLIC_API(uint32_t) JS_vsnprintf(char* out, uint32_t outlen, const char* fmt, va_list ap);
-extern JS_PUBLIC_API(char*) JS_vsmprintf(const char* fmt, va_list ap);
-extern JS_PUBLIC_API(char*) JS_vsprintf_append(char* last, const char* fmt, va_list ap);
+extern JS_PUBLIC_API(uint32_t) JS_vsnprintf(char *out, uint32_t outlen, const char *fmt, va_list ap);
+extern JS_PUBLIC_API(char*) JS_vsmprintf(const char *fmt, va_list ap);
+extern JS_PUBLIC_API(char*) JS_vsprintf_append(char *last, const char *fmt, va_list ap);
 
 #endif 
