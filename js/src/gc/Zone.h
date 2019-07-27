@@ -245,8 +245,7 @@ struct Zone : public JS::shadow::Zone,
     mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> gcMallocGCTriggered;
 
     
-    
-    mozilla::Atomic<size_t, mozilla::ReleaseAcquire> gcBytes;
+    js::gc::HeapUsage usage;
 
     
     size_t gcTriggerBytes;
