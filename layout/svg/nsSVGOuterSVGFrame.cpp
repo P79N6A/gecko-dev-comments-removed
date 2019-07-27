@@ -73,6 +73,21 @@ nsSVGOuterSVGFrame::nsSVGOuterSVGFrame(nsStyleContext* aContext)
   RemoveStateBits(NS_FRAME_SVG_LAYOUT);
 }
 
+
+static inline bool
+DependsOnIntrinsicSize(const nsIFrame* aEmbeddingFrame)
+{
+  const nsStylePosition *pos = aEmbeddingFrame->StylePosition();
+  const nsStyleCoord &width = pos->mWidth;
+  const nsStyleCoord &height = pos->mHeight;
+
+  
+  
+  
+  return !width.ConvertsToLength() ||
+         !height.ConvertsToLength();
+}
+
 void
 nsSVGOuterSVGFrame::Init(nsIContent*       aContent,
                          nsContainerFrame* aParent,
@@ -105,6 +120,19 @@ nsSVGOuterSVGFrame::Init(nsIContent*       aContent,
     
     if (doc->GetRootElement() == mContent) {
       mIsRootContent = true;
+
+      nsIFrame* embeddingFrame;
+      if (IsRootOfReplacedElementSubDoc(&embeddingFrame) && embeddingFrame) {
+        if (MOZ_UNLIKELY(!embeddingFrame->HasAllStateBits(NS_FRAME_IS_DIRTY)) &&
+            DependsOnIntrinsicSize(embeddingFrame)) {
+          
+          
+          
+          
+          embeddingFrame->PresContext()->PresShell()->
+            FrameNeedsReflow(embeddingFrame, nsIPresShell::eStyleChange, NS_FRAME_IS_DIRTY);
+        }
+      }
     }
   }
 }
@@ -629,21 +657,6 @@ nsDisplayOuterSVG::ComputeInvalidationRegion(nsDisplayListBuilder* aBuilder,
 
   nsDisplayItem::ComputeInvalidationRegion(aBuilder, aGeometry, aInvalidRegion);
   aInvalidRegion->Or(*aInvalidRegion, result);
-}
-
-
-static inline bool
-DependsOnIntrinsicSize(const nsIFrame* aEmbeddingFrame)
-{
-  const nsStylePosition *pos = aEmbeddingFrame->StylePosition();
-  const nsStyleCoord &width = pos->mWidth;
-  const nsStyleCoord &height = pos->mHeight;
-
-  
-  
-  
-  return !width.ConvertsToLength() ||
-         !height.ConvertsToLength();
 }
 
 nsresult
