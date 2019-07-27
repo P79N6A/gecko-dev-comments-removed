@@ -682,11 +682,16 @@ public:
       aError.Throw(NS_ERROR_DOM_INVALID_POINTER_ERR);
       return;
     }
-
-    
-    
-    if (nsIPresShell::GetPointerCapturingContent(aPointerId) == this) {
-      nsIPresShell::ReleasePointerCapturingContent(aPointerId, this);
+    nsIPresShell::PointerCaptureInfo* pointerCaptureInfo = nullptr;
+    if (nsIPresShell::gPointerCaptureList->Get(aPointerId, &pointerCaptureInfo) && pointerCaptureInfo) {
+      
+      
+      
+      if (pointerCaptureInfo->mOverrideContent == this) {
+        nsIPresShell::ReleasePointerCapturingContent(aPointerId, this);
+      } else if (pointerCaptureInfo->mPendingContent == this) {
+        nsIPresShell::ReleasePointerCapturingContent(aPointerId, this);
+      }
     }
   }
   void SetCapture(bool aRetargetToElement)
