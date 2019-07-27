@@ -57,6 +57,33 @@ inline bool NS_warn_if_impl(bool aCondition, const char* aExpr,
 
 
 
+
+
+
+
+
+
+
+
+#ifdef DEBUG
+#define NS_ABORT_IF_FALSE(_expr, _msg)                        \
+  do {                                                        \
+    if (!(_expr)) {                                           \
+      NS_DebugBreak(NS_DEBUG_ABORT, _msg, #_expr, __FILE__, __LINE__); \
+    }                                                         \
+  } while(0)
+#else
+#define NS_ABORT_IF_FALSE(_expr, _msg) do { /* nothing */ } while(0)
+#endif
+
+
+
+
+
+
+
+
+
 #ifdef DEBUG
 #define NS_WARN_IF_FALSE(_expr,_msg)                          \
   do {                                                        \
