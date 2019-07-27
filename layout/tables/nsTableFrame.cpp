@@ -184,7 +184,8 @@ nsTableFrame::Init(nsIContent*       aContent,
   } else {
     
     
-    mRect.width = aPrevInFlow->GetSize().width;
+    WritingMode wm = GetWritingMode();
+    SetSize(LogicalSize(wm, aPrevInFlow->ISize(wm), BSize(wm)));
   }
 }
 
