@@ -31,6 +31,13 @@ WebGL1Context::WrapObject(JSContext* cx, JS::Handle<JSObject*> aGivenProto)
     return dom::WebGLRenderingContextBinding::Wrap(cx, this, aGivenProto);
 }
 
+bool
+WebGL1Context::ValidateQueryTarget(GLenum target, const char* info)
+{
+    
+    return false;
+}
+
 } 
 
 nsresult
