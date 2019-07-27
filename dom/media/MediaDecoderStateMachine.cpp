@@ -1651,21 +1651,13 @@ void MediaDecoderStateMachine::NotifyDataArrived(const char* aBuffer,
   
   
   
-  
-  
-  
-  if (!mDecoder->IsInfinite() || !HaveStartTime())
-  {
-    return;
-  }
-
   media::TimeIntervals buffered{mDecoder->GetBuffered()};
   if (!buffered.IsInvalid()) {
     bool exists;
     media::TimeUnit end{buffered.GetEnd(&exists)};
     if (exists) {
       ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-      mDuration = Some(std::max<TimeUnit>(Duration(), end));
+      mObservedDuration = std::max(mObservedDuration.Ref(), end);
     }
   }
 }
