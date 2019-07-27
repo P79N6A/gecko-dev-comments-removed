@@ -195,11 +195,13 @@ function Tooltip(doc, options) {
   
   let win = this.doc.querySelector("window");
   this._onKeyPress = event => {
+    if (this.panel.hidden) {
+      return;
+    }
+
     this.emit("keypress", event.keyCode);
     if (this.options.get("closeOnKeys").indexOf(event.keyCode) !== -1) {
-      if (!this.panel.hidden) {
-        event.stopPropagation();
-      }
+      event.stopPropagation();
       this.hide();
     }
   };
