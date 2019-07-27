@@ -119,6 +119,14 @@ public class GeckoView extends LayerView
     }
 
     private void init(Context context, String url, boolean doInit) {
+
+        
+        
+        if (context instanceof Activity && getGeckoInterface() == null) {
+            setGeckoInterface(new BaseGeckoInterface(context));
+            GeckoAppShell.setContextGetter(this);
+        }
+
         
         GeckoAppShell.setLayerView(this);
 
@@ -141,18 +149,10 @@ public class GeckoView extends LayerView
         } catch (NoClassDefFoundError ex) {}
 
         if (!isGeckoActivity) {
-            
-            
-            if (context instanceof Activity && getGeckoInterface() == null) {
-                setGeckoInterface(new BaseGeckoInterface(context));
-            }
-
             Clipboard.init(context);
             HardwareUtils.init(context);
 
             
-
-            GeckoLoader.loadMozGlue(context);
 
             final GeckoProfile profile = GeckoProfile.get(context);
          }
@@ -164,7 +164,6 @@ public class GeckoView extends LayerView
             GeckoThread.ensureInit(null, null, null);
         }
 
-        GeckoAppShell.setContextGetter(this);
         if (context instanceof Activity) {
             Tabs tabs = Tabs.getInstance();
             tabs.attachToContext(context);
