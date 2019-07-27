@@ -57,7 +57,13 @@ enum FrameType
     
     
     
-    JitFrame_Exit
+    JitFrame_Exit,
+
+    
+    
+    
+    
+    JitFrame_Bailout
 };
 
 enum ReadFrameArgsBehavior {
@@ -127,10 +133,9 @@ class JitFrameIterator
 
     inline uint8_t *returnAddress() const;
 
-    IonJSFrameLayout *jsFrame() const {
-        MOZ_ASSERT(isScripted());
-        return (IonJSFrameLayout *) fp();
-    }
+    
+    
+    IonJSFrameLayout *jsFrame() const;
 
     
     inline bool isFakeExitFrame() const;
@@ -143,13 +148,19 @@ class JitFrameIterator
     bool checkInvalidation() const;
 
     bool isScripted() const {
-        return type_ == JitFrame_BaselineJS || type_ == JitFrame_IonJS;
+        return type_ == JitFrame_BaselineJS || type_ == JitFrame_IonJS || type_ == JitFrame_Bailout;
     }
     bool isBaselineJS() const {
         return type_ == JitFrame_BaselineJS;
     }
+    bool isIonScripted() const {
+        return type_ == JitFrame_IonJS || type_ == JitFrame_Bailout;
+    }
     bool isIonJS() const {
         return type_ == JitFrame_IonJS;
+    }
+    bool isBailoutJS() const {
+        return type_ == JitFrame_Bailout;
     }
     bool isBaselineStub() const {
         return type_ == JitFrame_BaselineStub;
@@ -215,6 +226,10 @@ class JitFrameIterator
     
     
     const OsiIndex *osiIndex() const;
+
+    
+    
+    SnapshotOffset snapshotOffset() const;
 
     uintptr_t *spillBase() const;
     MachineState machineState() const;

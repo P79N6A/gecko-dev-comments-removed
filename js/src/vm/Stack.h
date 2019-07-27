@@ -1429,6 +1429,9 @@ class JitActivation : public Activation
         RegisterBailoutIterator(JitActivation &activation, IonBailoutIterator *iter);
         ~RegisterBailoutIterator();
     };
+
+    
+    const IonBailoutIterator *bailoutData() const { return ionBailoutIterator_; }
 };
 
 
