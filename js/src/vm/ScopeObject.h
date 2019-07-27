@@ -399,15 +399,22 @@ class DynamicWithObject : public NestedScopeObject
 {
     static const unsigned OBJECT_SLOT = 1;
     static const unsigned THIS_SLOT = 2;
+    static const unsigned KIND_SLOT = 3;
 
   public:
-    static const unsigned RESERVED_SLOTS = 3;
+    static const unsigned RESERVED_SLOTS = 4;
     static const gc::AllocKind FINALIZE_KIND = gc::FINALIZE_OBJECT4_BACKGROUND;
 
     static const Class class_;
 
+    enum WithKind {
+        SyntacticWith,
+        NonSyntacticWith
+    };
+
     static DynamicWithObject *
-    create(JSContext *cx, HandleObject object, HandleObject enclosing, HandleObject staticWith);
+    create(JSContext *cx, HandleObject object, HandleObject enclosing, HandleObject staticWith,
+           WithKind kind = SyntacticWith);
 
     StaticWithObject& staticWith() const {
         return getProto()->as<StaticWithObject>();
@@ -421,6 +428,16 @@ class DynamicWithObject : public NestedScopeObject
     
     JSObject &withThis() const {
         return getReservedSlot(THIS_SLOT).toObject();
+    }
+
+    
+
+
+
+
+
+    bool isSyntactic() const {
+        return getReservedSlot(KIND_SLOT).toInt32() == SyntacticWith;
     }
 
     static inline size_t objectSlot() {
