@@ -9,7 +9,8 @@
 
 import os
 import sys
-import xpidl, xpt
+import xpidl
+import xpt
 
 
 TypeMap = {
