@@ -362,12 +362,19 @@ IDBRequest::SetResultCallback(ResultCallback* aCallback)
   JS::Rooted<JS::Value> result(cx);
   nsresult rv = aCallback->GetResult(cx, &result);
   if (NS_WARN_IF(NS_FAILED(rv))) {
-    SetError(rv);
-    mResultVal.setUndefined();
-  } else {
-    mError = nullptr;
-    mResultVal = result;
+    
+    
+    
+    
+    MOZ_ASSERT(rv == NS_ERROR_DOM_DATA_CLONE_ERR);
+
+    
+    
+    return;
   }
+
+  mError = nullptr;
+  mResultVal = result;
 
   mHaveResultOrErrorCode = true;
 }
