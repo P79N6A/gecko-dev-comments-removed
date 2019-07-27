@@ -1612,6 +1612,55 @@ protected:
   }
 };
 
+
+
+static void
+ApzctmPan(APZCTreeManager* aTreeManager,
+          int& aTime,
+          int aTouchStartY,
+          int aTouchEndY,
+          bool aKeepFingerDown = false)
+{
+  
+
+  
+  
+  
+  
+  
+  SCOPED_GFX_PREF(APZTouchStartTolerance, float, 1.0f / 1000.0f);
+  const int OVERCOME_TOUCH_TOLERANCE = 1;
+
+  const int TIME_BETWEEN_TOUCH_EVENT = 100;
+
+  
+  MultiTouchInput mti = MultiTouchInput(MultiTouchInput::MULTITOUCH_START, aTime, TimeStamp(), 0);
+  mti.mTouches.AppendElement(SingleTouchData(0, ScreenIntPoint(10, aTouchStartY), ScreenSize(0, 0), 0, 0));
+  aTreeManager->ReceiveInputEvent(mti, nullptr);
+
+  aTime += TIME_BETWEEN_TOUCH_EVENT;
+
+  mti = MultiTouchInput(MultiTouchInput::MULTITOUCH_MOVE, aTime, TimeStamp(), 0);
+  mti.mTouches.AppendElement(SingleTouchData(0, ScreenIntPoint(10, aTouchStartY + OVERCOME_TOUCH_TOLERANCE), ScreenSize(0, 0), 0, 0));
+  aTreeManager->ReceiveInputEvent(mti, nullptr);
+
+  aTime += TIME_BETWEEN_TOUCH_EVENT;
+
+  mti = MultiTouchInput(MultiTouchInput::MULTITOUCH_MOVE, aTime, TimeStamp(), 0);
+  mti.mTouches.AppendElement(SingleTouchData(0, ScreenIntPoint(10, aTouchEndY), ScreenSize(0, 0), 0, 0));
+  aTreeManager->ReceiveInputEvent(mti, nullptr);
+
+  aTime += TIME_BETWEEN_TOUCH_EVENT;
+
+  if (!aKeepFingerDown) {
+    mti = MultiTouchInput(MultiTouchInput::MULTITOUCH_END, aTime, TimeStamp(), 0);
+    mti.mTouches.AppendElement(SingleTouchData(0, ScreenIntPoint(10, aTouchEndY), ScreenSize(0, 0), 0, 0));
+    aTreeManager->ReceiveInputEvent(mti, nullptr);
+  }
+
+  aTime += TIME_BETWEEN_TOUCH_EVENT;
+}
+
 class APZHitTestingTester : public APZCTreeManagerTester {
 protected:
   Matrix4x4 transformToApzc;
@@ -2187,6 +2236,43 @@ TEST_F(APZOverscrollHandoffTester, LayerStructureChangesWhileEventsArePending) {
   EXPECT_EQ(0, childApzc->GetFrameMetrics().GetScrollOffset().y);
   EXPECT_EQ(10, rootApzc->GetFrameMetrics().GetScrollOffset().y);
   EXPECT_EQ(-10, middleApzc->GetFrameMetrics().GetScrollOffset().y);
+}
+
+
+
+TEST_F(APZOverscrollHandoffTester, StuckInOverscroll_Bug1073250) {
+  
+  SCOPED_GFX_PREF(APZOverscrollEnabled, bool, true);
+
+  CreateOverscrollHandoffLayerTree1();
+
+  TestAsyncPanZoomController* child = ApzcOf(layers[1]);
+
+  
+  int time = 0;
+  ApzctmPan(manager, time, 10, 40, true );
+  EXPECT_FALSE(child->IsOverscrolled());
+  EXPECT_TRUE(rootApzc->IsOverscrolled());
+
+  
+  MultiTouchInput secondFingerDown(MultiTouchInput::MULTITOUCH_START, 0, TimeStamp(), 0);
+  
+  secondFingerDown.mTouches.AppendElement(SingleTouchData(0, ScreenIntPoint(10, 40), ScreenSize(0, 0), 0, 0));
+  secondFingerDown.mTouches.AppendElement(SingleTouchData(1, ScreenIntPoint(30, 20), ScreenSize(0, 0), 0, 0));
+  manager->ReceiveInputEvent(secondFingerDown, nullptr);
+
+  
+  MultiTouchInput fingersUp = secondFingerDown;
+  fingersUp.mType = MultiTouchInput::MULTITOUCH_END;
+  manager->ReceiveInputEvent(fingersUp, nullptr);
+
+  
+  child->AdvanceAnimationsUntilEnd(testStartTime);
+  rootApzc->AdvanceAnimationsUntilEnd(testStartTime);
+
+  
+  EXPECT_FALSE(child->IsOverscrolled());
+  EXPECT_FALSE(rootApzc->IsOverscrolled());
 }
 
 
