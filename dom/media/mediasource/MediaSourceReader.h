@@ -162,8 +162,9 @@ private:
     READER_EXISTING = 0,
     READER_NEW = 1,
   };
-  SwitchReaderResult SwitchAudioReader(int64_t aTarget, int64_t aError = 0);
-  SwitchReaderResult SwitchVideoReader(int64_t aTarget, int64_t aError = 0);
+
+  SwitchReaderResult SwitchAudioReader(int64_t aTarget, int64_t aTolerance = 0);
+  SwitchReaderResult SwitchVideoReader(int64_t aTarget, int64_t aTolerance = 0);
 
   void DoAudioRequest();
   void DoVideoRequest();
@@ -199,7 +200,7 @@ private:
   
   
   already_AddRefed<MediaDecoderReader> SelectReader(int64_t aTarget,
-                                                    int64_t aError,
+                                                    int64_t aTolerance,
                                                     const nsTArray<nsRefPtr<SourceBufferDecoder>>& aTrackDecoders);
   bool HaveData(int64_t aTarget, MediaData::Type aType);
 
