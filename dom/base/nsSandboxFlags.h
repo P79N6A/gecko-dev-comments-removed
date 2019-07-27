@@ -14,6 +14,11 @@
 
 
 
+const unsigned long SANDBOXED_NONE  = 0x0;
+
+
+
+
 
 
 

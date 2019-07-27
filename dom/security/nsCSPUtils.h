@@ -74,7 +74,8 @@ static const char* CSPStrDirectives[] = {
   "reflected-xss",   
   "base-uri",        
   "form-action",     
-  "referrer"         
+  "referrer",        
+  "sandbox",         
 };
 
 inline const char* CSP_CSPDirectiveToString(CSPDirective aDir)
@@ -270,6 +271,19 @@ class nsCSPReportURI : public nsCSPBaseSrc {
 
 
 
+class nsCSPSandboxFlags : public nsCSPBaseSrc {
+  public:
+    explicit nsCSPSandboxFlags(const nsAString& aFlags);
+    virtual ~nsCSPSandboxFlags();
+
+    void toString(nsAString& outStr) const;
+
+  private:
+    nsString mFlags;
+};
+
+
+
 class nsCSPDirective {
   public:
     nsCSPDirective();
@@ -348,6 +362,8 @@ class nsCSPPolicy {
 
     inline uint32_t getNumDirectives() const
       { return mDirectives.Length(); }
+
+    uint32_t getSandboxFlags() const;
 
   private:
     nsTArray<nsCSPDirective*> mDirectives;

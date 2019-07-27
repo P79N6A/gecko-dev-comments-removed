@@ -1241,6 +1241,24 @@ nsContentUtils::GetParserService()
   return sParserService;
 }
 
+static nsIAtom** sSandboxFlagAttrs[] = {
+  &nsGkAtoms::allowsameorigin,     
+  &nsGkAtoms::allowforms,          
+  &nsGkAtoms::allowscripts,        
+  &nsGkAtoms::allowtopnavigation,  
+  &nsGkAtoms::allowpointerlock,    
+  &nsGkAtoms::allowpopups          
+};
+
+static const uint32_t sSandboxFlagValues[] = {
+  SANDBOXED_ORIGIN,                                 
+  SANDBOXED_FORMS,                                  
+  SANDBOXED_SCRIPTS | SANDBOXED_AUTOMATIC_FEATURES, 
+  SANDBOXED_TOPLEVEL_NAVIGATION,                    
+  SANDBOXED_POINTER_LOCK,                           
+  SANDBOXED_AUXILIARY_NAVIGATION                    
+};
+
 
 
 
@@ -1249,10 +1267,10 @@ nsContentUtils::GetParserService()
 
 
 uint32_t
-nsContentUtils::ParseSandboxAttributeToFlags(const nsAttrValue* sandboxAttr)
+nsContentUtils::ParseSandboxAttributeToFlags(const nsAttrValue* aSandboxAttr)
 {
   
-  if (!sandboxAttr) { return 0; }
+  if (!aSandboxAttr) { return SANDBOXED_NONE; }
 
   
   uint32_t out = SANDBOXED_NAVIGATION
@@ -1266,19 +1284,35 @@ nsContentUtils::ParseSandboxAttributeToFlags(const nsAttrValue* sandboxAttr)
                | SANDBOXED_POINTER_LOCK
                | SANDBOXED_DOMAIN;
 
+  MOZ_ASSERT(ArrayLength(sSandboxFlagAttrs) == ArrayLength(sSandboxFlagValues),
+             "Lengths of SandboxFlagAttrs and SandboxFlagvalues do not match");
 
-#define IF_KEYWORD(atom, flags) \
-  if (sandboxAttr->Contains(nsGkAtoms::atom, eIgnoreCase)) { out &= ~(flags); }
-
-  IF_KEYWORD(allowsameorigin, SANDBOXED_ORIGIN)
-  IF_KEYWORD(allowforms,  SANDBOXED_FORMS)
-  IF_KEYWORD(allowscripts, SANDBOXED_SCRIPTS | SANDBOXED_AUTOMATIC_FEATURES)
-  IF_KEYWORD(allowtopnavigation, SANDBOXED_TOPLEVEL_NAVIGATION)
-  IF_KEYWORD(allowpointerlock, SANDBOXED_POINTER_LOCK)
-  IF_KEYWORD(allowpopups, SANDBOXED_AUXILIARY_NAVIGATION)
+  
+  for (uint32_t i = 0; i <  ArrayLength(sSandboxFlagAttrs); i++) {
+    if (aSandboxAttr->Contains(*sSandboxFlagAttrs[i], eIgnoreCase)) {
+        out &= ~(sSandboxFlagValues[i]);
+    }
+  }
 
   return out;
-#undef IF_KEYWORD
+}
+
+
+
+
+
+
+
+
+bool
+nsContentUtils::IsValidSandboxFlag(const nsAString& aFlag)
+{
+  for (uint32_t i = 0; i < ArrayLength(sSandboxFlagAttrs); i++) {
+    if (EqualsIgnoreASCIICase(nsDependentAtomString(*sSandboxFlagAttrs[i]), aFlag)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 nsIBidiKeyboard*

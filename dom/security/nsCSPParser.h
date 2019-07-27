@@ -128,14 +128,15 @@ class nsCSPParser {
     bool            port();
     bool            path(nsCSPHostSrc* aCspHost);
 
-    bool subHost();                                       
-    bool atValidUnreservedChar();                         
-    bool atValidSubDelimChar();                           
-    bool atValidPctEncodedChar();                         
-    bool subPath(nsCSPHostSrc* aCspHost);                 
-    void reportURIList(nsTArray<nsCSPBaseSrc*>& outSrcs); 
-    void percentDecodeStr(const nsAString& aEncStr,       
+    bool subHost();                                         
+    bool atValidUnreservedChar();                           
+    bool atValidSubDelimChar();                             
+    bool atValidPctEncodedChar();                           
+    bool subPath(nsCSPHostSrc* aCspHost);                   
+    void reportURIList(nsTArray<nsCSPBaseSrc*>& outSrcs);   
+    void percentDecodeStr(const nsAString& aEncStr,         
                           nsAString& outDecStr);
+    void sandboxFlagList(nsTArray<nsCSPBaseSrc*>& outSrcs); 
 
     inline bool atEnd()
     {

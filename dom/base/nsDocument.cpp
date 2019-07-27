@@ -2864,7 +2864,7 @@ nsDocument::InitCSP(nsIChannel* aChannel)
   NS_ConvertASCIItoUTF16 cspROHeaderValue(tCspROHeaderValue);
 
   
-  nsIPrincipal* principal = NodePrincipal();
+  nsCOMPtr<nsIPrincipal> principal = NodePrincipal();
 
   uint16_t appStatus = principal->GetAppStatus();
   bool applyAppDefaultCSP = false;
@@ -3036,11 +3036,30 @@ nsDocument::InitCSP(nsIChannel* aChannel)
     
   }
 
+  
+  
+  
+  
+  
+  uint32_t cspSandboxFlags = SANDBOXED_NONE;
+  rv = csp->GetCSPSandboxFlags(&cspSandboxFlags);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  mSandboxFlags |= cspSandboxFlags;
+
+  if (cspSandboxFlags & SANDBOXED_ORIGIN) {
+    
+    
+    principal = do_CreateInstance("@mozilla.org/nullprincipal;1");
+    SetPrincipal(principal);
+  }
+
+
   rv = principal->SetCsp(csp);
   NS_ENSURE_SUCCESS(rv, rv);
 #ifdef PR_LOGGING
   PR_LOG(gCspPRLog, PR_LOG_DEBUG,
-         ("Inserted CSP into principal %p", principal));
+         ("Inserted CSP into principal %p", principal.get()));
 #endif
 
   return NS_OK;
