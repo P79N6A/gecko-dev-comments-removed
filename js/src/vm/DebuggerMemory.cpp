@@ -484,10 +484,10 @@ class ByObjectClass {
 
     
     struct HashPolicy {
-        typedef const js::Class *Lookup;
-        static js::HashNumber hash(Lookup l) { return mozilla::HashString(l->name); }
-        static bool match(const js::Class *key, Lookup lookup) {
-            return strcmp(key->name, lookup->name) == 0;
+        typedef const char *Lookup;
+        static js::HashNumber hash(Lookup l) { return mozilla::HashString(l); }
+        static bool match(const char *key, Lookup lookup) {
+            return strcmp(key, lookup) == 0;
         }
     };
 
@@ -496,7 +496,7 @@ class ByObjectClass {
     
     
     
-    typedef HashMap<const js::Class *, EachClass, HashPolicy, SystemAllocPolicy> Table;
+    typedef HashMap<const char *, EachClass, HashPolicy, SystemAllocPolicy> Table;
     typedef typename Table::Entry Entry;
     Table table;
     EachOther other;
@@ -531,13 +531,14 @@ class ByObjectClass {
 
     bool count(Census &census, const Node &node) {
         total_++;
-        if (!node.is<JSObject>())
+        const char *className = node.jsObjectClassName();
+
+        if (!className)
             return other.count(census, node);
 
-        const js::Class *key = node.as<JSObject>()->getClass();
-        typename Table::AddPtr p = table.lookupForAdd(key);
+        typename Table::AddPtr p = table.lookupForAdd(className);
         if (!p) {
-            if (!table.add(p, key, EachClass(census)))
+            if (!table.add(p, className, EachClass(census)))
                 return false;
             if (!p->value().init(census))
                 return false;
@@ -571,7 +572,7 @@ class ByObjectClass {
             if (!assorter.report(census, &assorterReport))
                 return false;
 
-            const char *name = entry.key()->name;
+            const char *name = entry.key();
             MOZ_ASSERT(name);
             JSAtom *atom = Atomize(census.cx, name, strlen(name));
             if (!atom)
