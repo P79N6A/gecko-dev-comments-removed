@@ -857,14 +857,14 @@ nsContextMenu.prototype = {
     
     
     
-    var persistDisableMCBInChildTab = false;
+    var persistAllowMixedContentInChildTab = false;
 
     if (this.browser.docShell && this.browser.docShell.mixedContentChannel) {
       const sm = Services.scriptSecurityManager;
       try {
         var targetURI = this.linkURI;
         sm.checkSameOriginURI(referrerURI, targetURI, false);
-        persistDisableMCBInChildTab = true;
+        persistAllowMixedContentInChildTab = true;
       }
       catch (e) { }
     }
@@ -872,7 +872,7 @@ nsContextMenu.prototype = {
     openLinkIn(this.linkURL, "tab",
                { charset: doc.characterSet,
                  referrerURI: referrerURI,
-                 disableMCB:  persistDisableMCBInChildTab});
+                 allowMixedContent: persistAllowMixedContentInChildTab });
   },
 
   
