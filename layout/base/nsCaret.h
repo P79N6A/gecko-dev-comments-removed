@@ -31,30 +31,62 @@ class nsCaret : public nsISelectionListener
   public:
     NS_DECL_ISUPPORTS
 
-    nsresult    Init(nsIPresShell *inPresShell);
-    void    Terminate();
+    nsresult Init(nsIPresShell *inPresShell);
+    void Terminate();
 
-    nsISelection*    GetCaretDOMSelection();
-    nsresult    SetCaretDOMSelection(nsISelection *inDOMSel);
-
+    nsresult SetCaretDOMSelection(nsISelection *inDOMSel);
+    nsISelection* GetCaretDOMSelection();
     
 
 
 
 
 
-    virtual nsresult    GetCaretVisible(bool *outMakeVisible);
+
+
+    void SetIgnoreUserModify(bool aIgnoreUserModify);
+    void CheckCaretDrawingState();
+    
+
+
+    void SetCaretVisible(bool intMakeVisible);
+    
+
+
+
+
+
+    virtual nsresult GetCaretVisible(bool *outMakeVisible);
+    
+
+
+
+    void SetCaretReadOnly(bool inMakeReadonly);
+    
+
+
+
+    void SetVisibilityDuringSelection(bool aVisibility);
 
     
 
 
-    void    SetCaretVisible(bool intMakeVisible);
-
+    void EraseCaret();
     
 
 
 
-    void    SetCaretReadOnly(bool inMakeReadonly);
+
+    void UpdateCaretPosition();
+    
+
+
+
+
+
+
+
+    nsresult DrawAtPosition(nsIDOMNode* aNode, int32_t aOffset);
 
     
 
@@ -67,14 +99,6 @@ class nsCaret : public nsISelectionListener
     virtual nsIFrame* GetGeometry(nsISelection* aSelection,
                                   nsRect* aRect,
                                   nscoord* aBidiIndicatorSize = nullptr);
-
-    
-
-
-    void    EraseCaret();
-
-    void    SetVisibilityDuringSelection(bool aVisibility);
-
     
 
 
@@ -82,23 +106,12 @@ class nsCaret : public nsISelectionListener
 
 
 
-
-    nsresult    DrawAtPosition(nsIDOMNode* aNode, int32_t aOffset);
-
+    nsIFrame* GetCaretFrame(int32_t *aOffset = nullptr);
     
 
 
 
-
-
-
-    nsIFrame*     GetCaretFrame(int32_t *aOffset = nullptr);
-
-    
-
-
-
-    nsRect        GetCaretRect()
+    nsRect GetCaretRect()
     {
       nsRect r;
       r.UnionRect(mCaretRect, GetHookRect());
@@ -108,32 +121,13 @@ class nsCaret : public nsISelectionListener
     
 
 
-
-
-    void      UpdateCaretPosition();
-
-    
-
-
-    void      PaintCaret(nsDisplayListBuilder *aBuilder,
-                         nsRenderingContext *aCtx,
-                         nsIFrame *aForFrame,
-                         const nsPoint &aOffset);
-    
-
-
-
-
-
-
-
-
-    void SetIgnoreUserModify(bool aIgnoreUserModify);
+    void PaintCaret(nsDisplayListBuilder *aBuilder,
+                    nsRenderingContext *aCtx,
+                    nsIFrame *aForFrame,
+                    const nsPoint &aOffset);
 
     
     NS_DECL_NSISELECTIONLISTENER
-
-    static void   CaretBlinkCallback(nsITimer *aTimer, void *aClosure);
 
     static nsresult GetCaretFrameForNodeOffset(nsFrameSelection* aFrameSelection,
                                                nsIContent* aContentNode,
@@ -143,11 +137,10 @@ class nsCaret : public nsISelectionListener
                                                nsIFrame** aReturnFrame,
                                                int32_t* aReturnOffset);
 
-    void CheckCaretDrawingState();
-
     size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
 protected:
+    static void   CaretBlinkCallback(nsITimer *aTimer, void *aClosure);
 
     void          KillTimer();
     nsresult      PrimeTimer();
