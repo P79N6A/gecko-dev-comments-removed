@@ -10,6 +10,7 @@
 
 #include "vm/Interpreter-inl.h"
 
+#include "mozilla/ArrayUtils.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/PodOperations.h"
@@ -51,6 +52,13 @@
 #include "vm/Probes-inl.h"
 #include "vm/ScopeObject-inl.h"
 #include "vm/Stack-inl.h"
+
+#if defined(XP_UNIX)
+#include <sys/resource.h>
+#elif defined(XP_WIN)
+#include <Processthreadsapi.h>
+#include <Windows.h>
+#endif 
 
 using namespace js;
 using namespace js::gc;
@@ -382,11 +390,233 @@ ExecuteState::pushInterpreterFrame(JSContext* cx)
     return cx->runtime()->interpreterStack().pushExecuteFrame(cx, script_, thisv_, scopeChain_,
                                                               type_, evalInFrame_);
 }
+namespace js {
+
+
+
+
+
+
+
+struct AutoStopwatch final
+{
+    
+    
+    
+    
+    
+    explicit inline AutoStopwatch(JSContext *cx MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+      : compartment_(nullptr)
+      , runtime_(nullptr)
+      , iteration_(0)
+      , isActive_(false)
+      , isTop_(false)
+      , userTimeStart_(0)
+      , systemTimeStart_(0)
+      , CPOWTimeStart_(0)
+    {
+        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+        runtime_ = cx->runtime();
+        if (!runtime_->stopwatch.isActive())
+            return;
+        compartment_ = cx->compartment();
+        MOZ_ASSERT(compartment_);
+        if (compartment_->scheduledForDestruction)
+            return;
+        iteration_ = runtime_->stopwatch.iteration;
+
+        PerformanceGroup *group = compartment_->performanceMonitoring.getGroup();
+        MOZ_ASSERT(group);
+
+        if (group->hasStopwatch(iteration_)) {
+            
+            
+            return;
+        }
+
+        
+        if (!this->getTimes(&userTimeStart_, &systemTimeStart_))
+            return;
+        isActive_ = true;
+        CPOWTimeStart_ = runtime_->stopwatch.performance.totalCPOWTime;
+
+        
+        
+        
+        group->acquireStopwatch(iteration_, this);
+
+        if (runtime_->stopwatch.isEmpty) {
+            
+            
+            
+            runtime_->stopwatch.isEmpty = false;
+            runtime_->stopwatch.performance.ticks++;
+            isTop_ = true;
+        }
+    }
+    inline ~AutoStopwatch() {
+        if (!isActive_) {
+            
+            return;
+        }
+
+        MOZ_ASSERT(!compartment_->scheduledForDestruction);
+
+        if (!runtime_->stopwatch.isActive()) {
+            
+            
+            return;
+        }
+
+        if (iteration_ != runtime_->stopwatch.iteration) {
+            
+            
+            return;
+        }
+
+        PerformanceGroup *group = compartment_->performanceMonitoring.getGroup();
+        MOZ_ASSERT(group);
+
+        
+        group->releaseStopwatch(iteration_, this);
+        uint64_t userTimeEnd, systemTimeEnd;
+        if (!this->getTimes(&userTimeEnd, &systemTimeEnd))
+            return;
+
+        uint64_t userTimeDelta = userTimeEnd - userTimeStart_;
+        uint64_t systemTimeDelta = systemTimeEnd - systemTimeStart_;
+        uint64_t CPOWTimeDelta = runtime_->stopwatch.performance.totalCPOWTime - CPOWTimeStart_;
+        group->data.totalUserTime += userTimeDelta;
+        group->data.totalSystemTime += systemTimeDelta;
+        group->data.totalCPOWTime += CPOWTimeDelta;
+
+        uint64_t totalTimeDelta = userTimeDelta + systemTimeDelta;
+        updateDurations(totalTimeDelta, group->data.durations);
+        group->data.ticks++;
+
+        if (isTop_) {
+            
+            
+            runtime_->stopwatch.performance.totalUserTime = userTimeEnd;
+            runtime_->stopwatch.performance.totalSystemTime = systemTimeEnd;
+            updateDurations(totalTimeDelta, runtime_->stopwatch.performance.durations);
+            runtime_->stopwatch.isEmpty = true;
+        }
+    }
+
+ private:
+
+    
+    
+    
+    template<int N>
+    void updateDurations(uint64_t totalTimeDelta, uint64_t (&array)[N]) const {
+        
+        size_t i = 0;
+        uint64_t duration = 1000;
+        for (i = 0, duration = 1000;
+             i < N && duration < totalTimeDelta;
+             ++i, duration *= 2) {
+            array[i]++;
+        }
+    }
+
+    
+    
+    bool getTimes(uint64_t *userTime, uint64_t *systemTime) const {
+        MOZ_ASSERT(userTime);
+        MOZ_ASSERT(systemTime);
+
+#if defined(XP_UNIX)
+
+        struct rusage rusage;
+#if defined(RUSAGE_THREAD)
+        
+        int err = getrusage(RUSAGE_THREAD, &rusage);
+#else
+        
+        
+        int err = getrusage(RUSAGE_SELF, &rusage);
+#endif 
+        MOZ_ASSERT(!err);
+        if (err)
+            return false;
+
+        *userTime = rusage.ru_utime.tv_usec
+            + rusage.ru_utime.tv_sec * 1000000;
+        *systemTime = rusage.ru_stime.tv_usec
+            + rusage.ru_stime.tv_sec * 1000000;
+
+#elif defined(XP_WIN)
+        
+        
+        
+        FILETIME creationFileTime; 
+        FILETIME exitFileTime; 
+        FILETIME kernelFileTime;
+        FILETIME userFileTime;
+        BOOL success = GetThreadTimes(GetCurrentThread(),
+                                      &creationFileTime, &exitFileTime,
+                                      &kernelFileTime, &userFileTime);
+        MOZ_ASSERT(success);
+        if (!success)
+            return false;
+
+        ULARGE_INTEGER kernelTimeInt;
+        ULARGE_INTEGER userTimeInt;
+        kernelTimeInt.LowPart = kernelFileTime.dwLowDateTime;
+        kernelTimeInt.HighPart = kernelFileTime.dwHighDateTime;
+        *systemTime = kernelTimeInt.QuadPart / 10; 
+
+        userTimeInt.LowPart = userFileTime.dwLowDateTime;
+        userTimeInt.HighPart = userFileTime.dwHighDateTime;
+        *userTime = userTimeInt.QuadPart / 10; 
+#endif 
+
+        return true;
+    }
+
+  private:
+    
+    
+    JSCompartment *compartment_;
+
+    
+    
+    JSRuntime *runtime_;
+
+    
+    
+    uint64_t iteration_;
+
+    
+    
+    
+    
+    bool isActive_;
+
+    
+    
+    bool isTop_;
+
+    
+    uint64_t userTimeStart_;
+    uint64_t systemTimeStart_;
+    uint64_t CPOWTimeStart_;
+
+    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
+
+}
 
 bool
 js::RunScript(JSContext* cx, RunState& state)
 {
     JS_CHECK_RECURSION(cx, return false);
+
+#if defined(NIGHTLY_BUILD)
+    js::AutoStopwatch stopwatch(cx);
+#endif 
 
     SPSEntryMarker marker(cx->runtime(), state.script());
 

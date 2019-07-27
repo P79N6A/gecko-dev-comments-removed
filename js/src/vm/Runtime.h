@@ -567,6 +567,7 @@ class PerThreadData : public PerThreadDataFriendFields
 
 class AutoLockForExclusiveAccess;
 
+struct AutoStopwatch;
 } 
 
 struct JSRuntime : public JS::shadow::Runtime,
@@ -1453,6 +1454,113 @@ struct JSRuntime : public JS::shadow::Runtime,
 
     
     int64_t lastAnimationTime;
+
+  public:
+
+    
+
+
+    struct Stopwatch {
+        
+
+
+
+
+
+
+
+
+        uint64_t iteration;
+
+        
+
+
+
+        bool isEmpty;
+
+        
+
+
+        js::PerformanceData performance;
+
+        Stopwatch()
+          : iteration(0)
+          , isEmpty(true)
+          , isActive_(false)
+        { }
+
+        
+
+
+
+
+
+
+        void reset() {
+            ++iteration;
+            isEmpty = true;
+        }
+
+        
+
+
+
+
+
+
+
+
+
+
+        bool setIsActive(bool value) {
+            if (isActive_ != value)
+                reset();
+
+            if (value && !groups_.initialized()) {
+                if (!groups_.init(128))
+                    return false;
+            }
+
+            isActive_ = value;
+            return true;
+        }
+
+        
+
+
+        bool isActive() const {
+            return isActive_;
+        }
+
+    private:
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        typedef js::HashMap<void*, js::PerformanceGroup*,
+                            js::DefaultHasher<void*>,
+                            js::SystemAllocPolicy> Groups;
+
+        Groups groups_;
+        friend struct js::PerformanceGroupHolder;
+
+        
+
+
+        bool isActive_;
+    };
+    Stopwatch stopwatch;
 };
 
 namespace js {

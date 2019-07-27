@@ -144,8 +144,50 @@ struct JSCompartment
     JSRuntime*                   runtime_;
 
   public:
-    JSPrincipals*                principals;
-    bool                         isSystem;
+    
+
+
+
+
+
+    inline JSPrincipals* principals() {
+        return principals_;
+    }
+    inline void setPrincipals(JSPrincipals* principals) {
+        if (principals_ == principals)
+            return;
+
+        
+        
+        
+        
+        
+        
+        
+        performanceMonitoring.unlink();
+        principals_ = principals;
+    }
+    inline bool isSystem() const {
+        return isSystem_;
+    }
+    inline void setIsSystem(bool isSystem) {
+        if (isSystem_ == isSystem)
+            return;
+
+        
+        
+        
+        
+        
+        
+        
+        performanceMonitoring.unlink();
+        isSystem_ = isSystem;
+    }
+  private:
+    JSPrincipals*                principals_;
+    bool                         isSystem_;
+  public:
     bool                         isSelfHosting;
     bool                         marked;
     bool                         warnedAboutNoSuchMethod;
@@ -153,7 +195,7 @@ struct JSCompartment
 
     
     
-    JSAddonId*                   addonId;
+    JSAddonId*                   const addonId;
 
 #ifdef DEBUG
     bool                         firedOnNewGlobalObject;
@@ -171,18 +213,13 @@ struct JSCompartment
     int64_t                      startInterval;
 
   public:
-    int64_t                      totalTime;
+    js::PerformanceGroupHolder performanceMonitoring;
+
     void enter() {
-        if (addonId && !enterCompartmentDepth) {
-            startInterval = PRMJ_Now();
-        }
         enterCompartmentDepth++;
     }
     void leave() {
         enterCompartmentDepth--;
-        if (addonId && !enterCompartmentDepth) {
-            totalTime += (PRMJ_Now() - startInterval);
-        }
     }
     bool hasBeenEntered() { return !!enterCompartmentDepth; }
 

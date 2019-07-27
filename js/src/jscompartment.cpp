@@ -41,8 +41,8 @@ JSCompartment::JSCompartment(Zone* zone, const JS::CompartmentOptions& options =
   : options_(options),
     zone_(zone),
     runtime_(zone->runtimeFromMainThread()),
-    principals(nullptr),
-    isSystem(false),
+    principals_(nullptr),
+    isSystem_(false),
     isSelfHosting(false),
     marked(true),
     warnedAboutNoSuchMethod(false),
@@ -53,7 +53,7 @@ JSCompartment::JSCompartment(Zone* zone, const JS::CompartmentOptions& options =
 #endif
     global_(nullptr),
     enterCompartmentDepth(0),
-    totalTime(0),
+    performanceMonitoring(runtime_, this),
     data(nullptr),
     objectMetadataCallback(nullptr),
     lastAnimationTime(0),
@@ -871,7 +871,7 @@ void
 JSCompartment::reportTelemetry()
 {
     
-    if (addonId || isSystem)
+    if (addonId || isSystem_)
         return;
 
     
@@ -888,7 +888,7 @@ void
 JSCompartment::addTelemetry(const char* filename, DeprecatedLanguageExtension e)
 {
     
-    if (addonId || isSystem || !filename || strncmp(filename, "http", 4) != 0)
+    if (addonId || isSystem_ || !filename || strncmp(filename, "http", 4) != 0)
         return;
 
     sawDeprecatedLanguageExtension[e] = true;

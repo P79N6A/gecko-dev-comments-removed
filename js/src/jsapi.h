@@ -972,19 +972,6 @@ JS_GetEmptyStringValue(JSContext* cx);
 extern JS_PUBLIC_API(JSString*)
 JS_GetEmptyString(JSRuntime* rt);
 
-struct CompartmentTimeStats {
-    char compartmentName[1024];
-    JSAddonId* addonId;
-    JSCompartment* compartment;
-    uint64_t time;  
-    uint64_t cpowTime; 
-};
-
-typedef js::Vector<CompartmentTimeStats, 0, js::SystemAllocPolicy> CompartmentStatsVector;
-
-extern JS_PUBLIC_API(bool)
-JS_GetCompartmentStats(JSRuntime* rt, CompartmentStatsVector& stats);
-
 extern JS_PUBLIC_API(bool)
 JS_ValueToObject(JSContext* cx, JS::HandleValue v, JS::MutableHandleObject objp);
 
@@ -998,7 +985,7 @@ extern JS_PUBLIC_API(JSString*)
 JS_ValueToSource(JSContext* cx, JS::Handle<JS::Value> v);
 
 extern JS_PUBLIC_API(bool)
-JS_DoubleIsInt32(double d, int32_t* ip);
+JS_DoubleIsInt32(double d, int32_t *ip);
 
 extern JS_PUBLIC_API(JSType)
 JS_TypeOfValue(JSContext* cx, JS::Handle<JS::Value> v);
@@ -5272,5 +5259,259 @@ extern JS_PUBLIC_API(bool)
 BuildStackString(JSContext* cx, HandleObject stack, MutableHandleString stringp);
 
 } 
+
+
+
+
+namespace js {
+
+struct AutoStopwatch;
+
+
+
+struct PerformanceData {
+    
+    
+    
+    
+    
+    
+    
+    uint64_t durations[10];
+
+    
+    
+    uint64_t totalUserTime;
+    uint64_t totalSystemTime;
+    uint64_t totalCPOWTime;
+
+    
+    
+    
+    uint64_t ticks;
+
+    PerformanceData()
+      : totalUserTime(0)
+      , totalSystemTime(0)
+      , totalCPOWTime(0)
+      , ticks(0)
+    {
+        mozilla::PodArrayZero(durations);
+    }
+    PerformanceData(const PerformanceData& from)
+      : totalUserTime(from.totalUserTime)
+      , totalSystemTime(from.totalSystemTime)
+      , totalCPOWTime(from.totalCPOWTime)
+      , ticks(from.ticks)
+    {
+        mozilla::PodArrayCopy(durations, from.durations);
+    }
+    PerformanceData& operator=(const PerformanceData& from)
+    {
+        mozilla::PodArrayCopy(durations, from.durations);
+        totalUserTime = from.totalUserTime;
+        totalSystemTime = from.totalSystemTime;
+        totalCPOWTime = from.totalCPOWTime;
+        ticks = from.ticks;
+        return *this;
+    }
+};
+
+
+
+
+
+
+
+
+
+
+
+struct PerformanceGroup {
+
+    
+    PerformanceData data;
+
+    
+    
+    
+    bool hasStopwatch(uint64_t iteration) const {
+        return stopwatch_ != nullptr && iteration_ == iteration;
+    }
+
+    
+    
+    void acquireStopwatch(uint64_t iteration, const AutoStopwatch *stopwatch) {
+        iteration_ = iteration;
+        stopwatch_ = stopwatch;
+    }
+
+    
+    
+    void releaseStopwatch(uint64_t iteration, const AutoStopwatch *stopwatch) {
+        if (iteration_ != iteration)
+            return;
+
+        MOZ_ASSERT(stopwatch == stopwatch_ || stopwatch_ == nullptr);
+        stopwatch_ = nullptr;
+    }
+
+    PerformanceGroup()
+      : stopwatch_(nullptr)
+      , iteration_(0)
+      , refCount_(0)
+    { }
+    ~PerformanceGroup()
+    {
+        MOZ_ASSERT(refCount_ == 0);
+    }
+  private:
+    PerformanceGroup& operator=(const PerformanceGroup&) = delete;
+    PerformanceGroup(const PerformanceGroup&) = delete;
+
+    
+    
+    const AutoStopwatch *stopwatch_;
+
+    
+    
+    uint64_t iteration_;
+
+    
+    uint64_t incRefCount() {
+        MOZ_ASSERT(refCount_ + 1 > 0);
+        return ++refCount_;
+    }
+    uint64_t decRefCount() {
+        MOZ_ASSERT(refCount_ > 0);
+        return --refCount_;
+    }
+    friend struct PerformanceGroupHolder;
+
+  private:
+    
+    uint64_t refCount_;
+};
+
+
+
+
+
+struct PerformanceGroupHolder {
+    
+    
+    
+    js::PerformanceGroup *getGroup();
+
+    
+    
+    
+    
+    inline bool isLinked() const {
+        return group_ != nullptr;
+    }
+
+    
+    
+    
+    void unlink();
+
+    PerformanceGroupHolder(JSRuntime *runtime, JSCompartment *compartment)
+      : runtime_(runtime)
+      , compartment_(compartment)
+      , group_(nullptr)
+    {   }
+    ~PerformanceGroupHolder();
+private:
+    
+    
+    
+    void* getHashKey();
+
+    JSRuntime *runtime_;
+    JSCompartment *compartment_;
+
+    
+    
+    
+    js::PerformanceGroup *group_;
+};
+
+
+
+
+
+
+extern JS_PUBLIC_API(void)
+ResetStopwatches(JSRuntime*);
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(bool)
+SetStopwatchActive(JSRuntime*, bool);
+extern JS_PUBLIC_API(bool)
+IsStopwatchActive(JSRuntime*);
+
+
+
+
+extern JS_PUBLIC_API(PerformanceData*)
+GetPerformanceData(JSRuntime*);
+
+
+
+
+
+struct PerformanceStats {
+    
+
+
+
+    JSAddonId *addonId;
+
+    
+
+
+
+    char name[1024];
+
+    
+
+
+
+
+    bool isSystem;
+
+    
+
+
+    js::PerformanceData performance;
+
+    PerformanceStats()
+      : addonId(nullptr)
+      , isSystem(false)
+    {
+        name[0] = '\0';
+    }
+};
+
+typedef js::Vector<PerformanceStats, 0, js::SystemAllocPolicy> PerformanceStatsVector;
+
+    
+
+
+
+
+
+
+extern JS_PUBLIC_API(bool)
+GetPerformanceStats(JSRuntime *rt, js::PerformanceStatsVector &stats, js::PerformanceStats &global);
+
+} 
+
 
 #endif

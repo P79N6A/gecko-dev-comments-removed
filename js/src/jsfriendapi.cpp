@@ -156,14 +156,14 @@ JS_NewObjectWithoutMetadata(JSContext* cx, const JSClass* clasp, JS::Handle<JSOb
 JS_FRIEND_API(JSPrincipals*)
 JS_GetCompartmentPrincipals(JSCompartment* compartment)
 {
-    return compartment->principals;
+    return compartment->principals();
 }
 
 JS_FRIEND_API(void)
 JS_SetCompartmentPrincipals(JSCompartment* compartment, JSPrincipals* principals)
 {
     
-    if (principals == compartment->principals)
+    if (principals == compartment->principals())
         return;
 
     
@@ -172,24 +172,24 @@ JS_SetCompartmentPrincipals(JSCompartment* compartment, JSPrincipals* principals
     bool isSystem = principals && principals == trusted;
 
     
-    if (compartment->principals) {
-        JS_DropPrincipals(compartment->runtimeFromMainThread(), compartment->principals);
-        compartment->principals = nullptr;
+    if (compartment->principals()) {
+        JS_DropPrincipals(compartment->runtimeFromMainThread(), compartment->principals());
+        compartment->setPrincipals(nullptr);
         
         
         
         
-        MOZ_ASSERT(compartment->isSystem == isSystem);
+        MOZ_ASSERT(compartment->isSystem() == isSystem);
     }
 
     
     if (principals) {
         JS_HoldPrincipals(principals);
-        compartment->principals = principals;
+        compartment->setPrincipals(principals);
     }
 
     
-    compartment->isSystem = isSystem;
+    compartment->setIsSystem(isSystem);
 }
 
 JS_FRIEND_API(JSPrincipals*)
@@ -280,7 +280,7 @@ js::GetCompartmentZone(JSCompartment* comp)
 JS_FRIEND_API(bool)
 js::IsSystemCompartment(JSCompartment* comp)
 {
-    return comp->isSystem;
+    return comp->isSystem();
 }
 
 JS_FRIEND_API(bool)

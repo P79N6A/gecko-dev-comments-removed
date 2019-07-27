@@ -15,6 +15,10 @@
 
 #include "jspubtd.h"
 
+namespace js {
+    struct PerformanceGroup;
+}
+
 struct JSPrincipals {
     
     mozilla::Atomic<int32_t> refcount;
