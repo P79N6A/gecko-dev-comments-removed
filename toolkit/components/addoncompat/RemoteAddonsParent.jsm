@@ -172,6 +172,80 @@ CategoryManagerInterposition.methods.deleteCategoryEntry =
     target.deleteCategoryEntry(category, entry, persist);
   };
 
+
+
+
+
+
+
+
+
+
+let ObserverParent = {
+  init: function() {
+    let ppmm = Cc["@mozilla.org/parentprocessmessagemanager;1"]
+               .getService(Ci.nsIMessageBroadcaster);
+    ppmm.addMessageListener("Addons:Observer:Run", this);
+  },
+
+  addObserver: function(observer, topic, ownsWeak) {
+    Services.obs.addObserver(observer, "e10s-" + topic, ownsWeak);
+    NotificationTracker.add(["observer", topic]);
+  },
+
+  removeObserver: function(observer, topic) {
+    Services.obs.removeObserver(observer, "e10s-" + topic);
+    NotificationTracker.remove(["observer", topic]);
+  },
+
+  receiveMessage: function(msg) {
+    switch (msg.name) {
+      case "Addons:Observer:Run":
+        this.notify(msg.objects.subject, msg.objects.topic, msg.objects.data);
+        break;
+    }
+  },
+
+  notify: function(subject, topic, data) {
+    let e = Services.obs.enumerateObservers("e10s-" + topic);
+    while (e.hasMoreElements()) {
+      let obs = e.getNext().QueryInterface(Ci.nsIObserver);
+      try {
+        obs.observe(subject, topic, data);
+      } catch (e) {
+        Cu.reportError(e);
+      }
+    }
+  }
+};
+ObserverParent.init();
+
+
+let TOPIC_WHITELIST = ["content-document-global-created",
+                       "document-element-inserted",];
+
+
+
+let ObserverInterposition = new Interposition();
+
+ObserverInterposition.methods.addObserver =
+  function(addon, target, observer, topic, ownsWeak) {
+    if (TOPIC_WHITELIST.indexOf(topic) >= 0) {
+      ObserverParent.addObserver(observer, topic);
+    }
+
+    target.addObserver(observer, topic, ownsWeak);
+  };
+
+ObserverInterposition.methods.removeObserver =
+  function(addon, target, observer, topic) {
+    if (TOPIC_WHITELIST.indexOf(topic) >= 0) {
+      ObserverParent.removeObserver(observer, topic);
+    }
+
+    target.removeObserver(observer, topic);
+  };
+
 let RemoteAddonsParent = {
   init: function() {
   },
@@ -184,6 +258,7 @@ let RemoteAddonsParent = {
     }
 
     register(Ci.nsICategoryManager, CategoryManagerInterposition);
+    register(Ci.nsIObserverService, ObserverInterposition);
 
     return result;
   },
