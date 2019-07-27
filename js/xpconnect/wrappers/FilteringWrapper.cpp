@@ -113,17 +113,6 @@ FilteringWrapper<Base, Policy>::getOwnEnumerablePropertyKeys(JSContext *cx,
 
 template <typename Base, typename Policy>
 bool
-FilteringWrapper<Base, Policy>::getEnumerablePropertyKeys(JSContext *cx,
-                                                          HandleObject wrapper,
-                                                          AutoIdVector &props) const
-{
-    assertEnteredPolicy(cx, wrapper, JSID_VOID, BaseProxyHandler::ENUMERATE);
-    return Base::getEnumerablePropertyKeys(cx, wrapper, props) &&
-           Filter<Policy>(cx, wrapper, props);
-}
-
-template <typename Base, typename Policy>
-bool
 FilteringWrapper<Base, Policy>::enumerate(JSContext *cx, HandleObject wrapper,
                                           MutableHandleObject objp) const
 {
@@ -257,14 +246,6 @@ CrossOriginXrayWrapper::delete_(JSContext *cx, JS::Handle<JSObject*> wrapper,
 {
     JS_ReportError(cx, "Permission denied to delete property on cross-origin object");
     return false;
-}
-
-bool
-CrossOriginXrayWrapper::getEnumerablePropertyKeys(JSContext *cx, JS::Handle<JSObject*> wrapper,
-                                                  JS::AutoIdVector &props) const
-{
-    
-    return true;
 }
 
 #define XOW FilteringWrapper<CrossOriginXrayWrapper, CrossOriginAccessiblePropertiesOnly>

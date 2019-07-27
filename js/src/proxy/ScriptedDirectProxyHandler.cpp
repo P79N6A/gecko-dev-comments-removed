@@ -802,33 +802,6 @@ ScriptedDirectProxyHandler::enumerate(JSContext *cx, HandleObject proxy,
 
 
 bool
-ScriptedDirectProxyHandler::getEnumerablePropertyKeys(JSContext *cx, HandleObject proxy, AutoIdVector &props) const
-{
-    RootedObject iterator(cx);
-    if (!enumerate(cx, proxy, &iterator))
-        return false;
-
-    do {
-        RootedValue rval(cx);
-        if (!IteratorMore(cx, iterator, &rval))
-            return false;
-
-        if (rval.isMagic(JS_NO_ITER_VALUE))
-            break;
-
-        RootedId id(cx);
-        if (!ValueToId<CanGC>(cx, rval, &id))
-            return false;
-
-        if (!props.append(id))
-            return false;
-    } while (true);
-
-    return true;
-}
-
-
-bool
 ScriptedDirectProxyHandler::has(JSContext *cx, HandleObject proxy, HandleId id, bool *bp) const
 {
     

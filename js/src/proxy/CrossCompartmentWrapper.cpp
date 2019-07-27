@@ -188,16 +188,6 @@ CrossCompartmentWrapper::getOwnEnumerablePropertyKeys(JSContext *cx, HandleObjec
            NOTHING);
 }
 
-bool
-CrossCompartmentWrapper::getEnumerablePropertyKeys(JSContext *cx, HandleObject wrapper,
-                                                   AutoIdVector &props) const
-{
-    PIERCE(cx, wrapper,
-           NOTHING,
-           Wrapper::getEnumerablePropertyKeys(cx, wrapper, props),
-           NOTHING);
-}
-
 
 
 

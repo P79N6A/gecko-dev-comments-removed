@@ -243,16 +243,6 @@ DirectProxyHandler::getOwnEnumerablePropertyKeys(JSContext *cx, HandleObject pro
 }
 
 bool
-DirectProxyHandler::getEnumerablePropertyKeys(JSContext *cx, HandleObject proxy,
-                                              AutoIdVector &props) const
-{
-    assertEnteredPolicy(cx, proxy, JSID_VOID, ENUMERATE);
-    MOZ_ASSERT(!hasPrototype()); 
-    RootedObject target(cx, proxy->as<ProxyObject>().target());
-    return GetPropertyKeys(cx, target, 0, &props);
-}
-
-bool
 DirectProxyHandler::isCallable(JSObject *obj) const
 {
     JSObject * target = obj->as<ProxyObject>().target();
