@@ -27,6 +27,18 @@ public:
 
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+
+
+  
+  
   bool SetCandidatesFromSourceSet(const nsAString & aSrcSet);
 
   
@@ -42,8 +54,17 @@ public:
   nsIContent *Content() { return mContent; }
 
   
+  
   already_AddRefed<nsIURI> GetSelectedImageURL();
   double GetSelectedImageDensity();
+
+  
+  
+  
+  
+  
+  
+  bool SelectImage(bool aReselect = false);
 
 protected:
   virtual ~ResponsiveImageSelector();
