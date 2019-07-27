@@ -2182,7 +2182,7 @@ nsPresContext::UserFontSetUpdated()
   
   
 
-  PostRebuildAllStyleDataEvent(NS_STYLE_HINT_REFLOW, eRestyle_Subtree);
+  PostRebuildAllStyleDataEvent(NS_STYLE_HINT_REFLOW, eRestyle_ForceDescendants);
 }
 
 FontFaceSet*
