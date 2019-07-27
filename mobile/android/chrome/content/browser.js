@@ -305,8 +305,10 @@ XPCOMUtils.defineLazyModuleGetter(
       
       
       
-      return DOMApplicationRegistry.receiveMessage.apply(
-          DOMApplicationRegistry, arguments);
+      DOMApplicationRegistry.registryReady.then(() => {
+        DOMApplicationRegistry.receiveMessage.apply(
+            DOMApplicationRegistry, arguments);
+      });
     }
   }
 );

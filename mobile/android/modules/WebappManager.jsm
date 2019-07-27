@@ -266,16 +266,6 @@ this.WebappManager = {
   autoInstall: function(aData) {
     debug("autoInstall " + aData.manifestURL);
 
-    
-    
-    
-    
-    for (let [ , app] in Iterator(DOMApplicationRegistry.webapps)) {
-      if (app.manifestURL == aData.manifestURL) {
-        return this._autoUpdate(aData, app);
-      }
-    }
-
     let mm = {
       sendAsyncMessage: function (aMessageName, aData) {
         
@@ -310,6 +300,16 @@ this.WebappManager = {
     message.apkInstall = true;
 
     DOMApplicationRegistry.registryReady.then(() => {
+      
+      
+      
+      
+      for (let [ , app] in Iterator(DOMApplicationRegistry.webapps)) {
+        if (app.manifestURL == aData.manifestURL) {
+          return this._autoUpdate(aData, app);
+        }
+      }
+
       switch (aData.type) { 
         case "hosted":
           DOMApplicationRegistry.doInstall(message, mm);
