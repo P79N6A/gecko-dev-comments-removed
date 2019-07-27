@@ -3845,7 +3845,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
               // getting the value can trigger GC but our name is a dependent
               // string.
               curId = ids[i];
-              binding_detail::FakeDependentString propName;
+              binding_detail::FakeString propName;
               if (!JS_GetPropertyById(cx, mozMapObj, curId, &temp) ||
                   !JS_IdToValue(cx, curId, &propNameValue) ||
                   !ConvertJSValueToString(cx, propNameValue, &propNameValue,
@@ -4443,36 +4443,20 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
         if isMember:
             
-            
             declType = CGGeneric("nsString")
-            if isMember == "Variadic":
-                
-                
-                assignString = "${declName}.Rebind(str.Data(), str.Length());\n"
-            else:
-                assignString = "${declName} = str;\n"
             return JSToNativeConversionInfo(
-                fill(
-                    """
-                    {
-                      binding_detail::FakeDependentString str;
-                      $*{convert}
-                      $*{assign}
-                    }
-                    """,
-                    convert=getConversionCode("str"),
-                    assign=assignString),
+                getConversionCode("${declName}"),
                 declType=declType,
                 dealWithOptional=isOptional)
 
         if isOptional:
             declType = "Optional<nsAString>"
-            holderType = CGGeneric("binding_detail::FakeDependentString")
+            holderType = CGGeneric("binding_detail::FakeString")
             conversionCode = ("%s"
                               "${declName} = &${holderName};\n" %
                               getConversionCode("${holderName}"))
         else:
-            declType = "binding_detail::FakeDependentString"
+            declType = "binding_detail::FakeString"
             holderType = None
             conversionCode = getConversionCode("${declName}")
 
@@ -9374,10 +9358,10 @@ class CGProxyNamedOperation(CGProxySpecialOperation):
             
             unwrapString = fill(
                 """
-                if (MOZ_LIKELY(JSID_IS_ATOM(${idName}))) {
-                  JS::AutoCheckCannotGC nogc;
-                  JSAtom* atom = JSID_TO_ATOM(${idName});
-                  ${argName}.Rebind(js::GetTwoByteAtomChars(nogc, atom), js::GetAtomLength(atom));
+                if (MOZ_LIKELY(JSID_IS_STRING(${idName}))) {
+                  if (!AssignJSString(cx, ${argName}, JSID_TO_STRING(${idName}))) {
+                    return false;
+                  }
                 } else {
                   nameVal = js::IdToValue(${idName});
                   $*{unwrapString}
@@ -9397,7 +9381,7 @@ class CGProxyNamedOperation(CGProxySpecialOperation):
             """
             JS::Rooted<JS::Value> nameVal(cx);
             $*{idDecl}
-            binding_detail::FakeDependentString ${argName};
+            binding_detail::FakeString ${argName};
             $*{unwrapString}
 
             ${nativeType}* self = UnwrapProxy(proxy);

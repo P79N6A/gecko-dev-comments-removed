@@ -1723,82 +1723,151 @@ namespace binding_detail {
 
 
 
-struct FakeDependentString {
-  FakeDependentString() :
-    mFlags(nsDependentString::F_TERMINATED)
+
+struct FakeString {
+  FakeString() :
+    mFlags(nsString::F_TERMINATED)
   {
   }
 
-  void Rebind(const nsDependentString::char_type* aData,
-              nsDependentString::size_type aLength) {
-    MOZ_ASSERT(mFlags == nsDependentString::F_TERMINATED);
-    mData = aData;
+  ~FakeString() {
+    if (mFlags & nsString::F_SHARED) {
+      nsStringBuffer::FromData(mData)->Release();
+    }
+  }
+
+  void Rebind(const nsString::char_type* aData, nsString::size_type aLength) {
+    MOZ_ASSERT(mFlags == nsString::F_TERMINATED);
+    mData = const_cast<nsString::char_type*>(aData);
     mLength = aLength;
   }
 
   void Truncate() {
-    mData = nsDependentString::char_traits::sEmptyBuffer;
+    MOZ_ASSERT(mFlags == nsString::F_TERMINATED);
+    mData = nsString::char_traits::sEmptyBuffer;
     mLength = 0;
   }
 
   void SetIsVoid(bool aValue) {
     MOZ_ASSERT(aValue,
-               "We don't support SetIsVoid(false) on FakeDependentString!");
+               "We don't support SetIsVoid(false) on FakeString!");
     Truncate();
-    mFlags |= nsDependentString::F_VOIDED;
+    mFlags |= nsString::F_VOIDED;
   }
 
-  const nsDependentString::char_type* Data() const
+  const nsString::char_type* Data() const
   {
     return mData;
   }
 
-  nsDependentString::size_type Length() const
+  nsString::char_type* BeginWriting()
+  {
+    return mData;
+  }
+
+  nsString::size_type Length() const
   {
     return mLength;
   }
 
   
   
+  
+  bool SetCapacity(nsString::size_type aCapacity, mozilla::fallible_t const&) {
+    MOZ_ASSERT(aCapacity > 0, "Capacity must include null-terminator");
+
+    
+    if (aCapacity <= sInlineCapacity) {
+      SetData(mInlineStorage);
+      return true;
+    }
+
+    nsRefPtr<nsStringBuffer> buf = nsStringBuffer::Alloc(aCapacity * sizeof(nsString::char_type));
+    if (MOZ_UNLIKELY(!buf)) {
+      return false;
+    }
+
+    SetData(static_cast<nsString::char_type*>(buf.forget().take()->Data()));
+    mFlags = nsString::F_SHARED | nsString::F_TERMINATED;
+    return true;
+  }
+
+  void SetLength(nsString::size_type aLength) {
+    mLength = aLength;
+  }
+
+  
+  
   const nsAString* ToAStringPtr() const {
-    return reinterpret_cast<const nsDependentString*>(this);
+    return reinterpret_cast<const nsString*>(this);
   }
 
   nsAString* ToAStringPtr() {
-    return reinterpret_cast<nsDependentString*>(this);
+    return reinterpret_cast<nsString*>(this);
   }
 
   operator const nsAString& () const {
-    return *reinterpret_cast<const nsDependentString*>(this);
+    return *reinterpret_cast<const nsString*>(this);
   }
 
 private:
-  const nsDependentString::char_type* mData;
-  nsDependentString::size_type mLength;
+  nsString::char_type* mData;
+  nsString::size_type mLength;
   uint32_t mFlags;
 
-  
-  
-  class DependentStringAsserter;
-  friend class DependentStringAsserter;
+  static const size_t sInlineCapacity = 64;
+  nsString::char_type mInlineStorage[sInlineCapacity];
 
-  class DepedentStringAsserter : public nsDependentString {
+  FakeString(const FakeString& other) MOZ_DELETE;
+  void operator=(const FakeString& other) MOZ_DELETE;
+
+  void SetData(nsString::char_type* aData) {
+    MOZ_ASSERT(mFlags == nsString::F_TERMINATED);
+    mData = const_cast<nsString::char_type*>(aData);
+  }
+
+  
+  
+  class StringAsserter;
+  friend class StringAsserter;
+
+  class StringAsserter : public nsString {
   public:
     static void StaticAsserts() {
-      static_assert(sizeof(FakeDependentString) == sizeof(nsDependentString),
-                    "Must have right object size");
-      static_assert(offsetof(FakeDependentString, mData) ==
-                      offsetof(DepedentStringAsserter, mData),
+      static_assert(offsetof(FakeString, mInlineStorage) ==
+                      sizeof(nsString),
+                    "FakeString should include all nsString members");
+      static_assert(offsetof(FakeString, mData) ==
+                      offsetof(StringAsserter, mData),
                     "Offset of mData should match");
-      static_assert(offsetof(FakeDependentString, mLength) ==
-                      offsetof(DepedentStringAsserter, mLength),
+      static_assert(offsetof(FakeString, mLength) ==
+                      offsetof(StringAsserter, mLength),
                     "Offset of mLength should match");
-      static_assert(offsetof(FakeDependentString, mFlags) ==
-                      offsetof(DepedentStringAsserter, mFlags),
+      static_assert(offsetof(FakeString, mFlags) ==
+                      offsetof(StringAsserter, mFlags),
                     "Offset of mFlags should match");
     }
   };
 };
+
+template<typename T>
+inline bool
+AssignJSString(JSContext *cx, T &dest, JSString *s)
+{
+  size_t len = js::GetStringLength(s);
+  static_assert(js::MaxStringLength < (1 << 28),
+                "Shouldn't overflow here or in FakeString::SetCapacity");
+  if (MOZ_UNLIKELY(!dest.SetCapacity(len + 1, mozilla::fallible_t()))) {
+    JS_ReportOutOfMemory(cx);
+    return false;
+  }
+  if (MOZ_UNLIKELY(!js::CopyStringChars(cx, dest.BeginWriting(), s, len))) {
+    return false;
+  }
+  dest.BeginWriting()[len] = '\0';
+  dest.SetLength(len);
+  return true;
+}
 
 } 
 
@@ -1846,14 +1915,7 @@ ConvertJSValueToString(JSContext* cx, JS::Handle<JS::Value> v,
     pval.set(JS::StringValue(s));  
   }
 
-  size_t len;
-  const jschar *chars = JS_GetStringCharsZAndLength(cx, s, &len);
-  if (!chars) {
-    return false;
-  }
-
-  result.Rebind(chars, len);
-  return true;
+  return binding_detail::AssignJSString(cx, result, s);
 }
 
 bool
@@ -2406,7 +2468,7 @@ const T& NonNullHelper(const OwningNonNull<T>& aArg)
 }
 
 inline
-void NonNullHelper(NonNull<binding_detail::FakeDependentString>& aArg)
+void NonNullHelper(NonNull<binding_detail::FakeString>& aArg)
 {
   
   
@@ -2415,7 +2477,7 @@ void NonNullHelper(NonNull<binding_detail::FakeDependentString>& aArg)
 }
 
 inline
-void NonNullHelper(const NonNull<binding_detail::FakeDependentString>& aArg)
+void NonNullHelper(const NonNull<binding_detail::FakeString>& aArg)
 {
   
   
@@ -2424,7 +2486,7 @@ void NonNullHelper(const NonNull<binding_detail::FakeDependentString>& aArg)
 }
 
 inline
-void NonNullHelper(binding_detail::FakeDependentString& aArg)
+void NonNullHelper(binding_detail::FakeString& aArg)
 {
   
   
@@ -2433,7 +2495,7 @@ void NonNullHelper(binding_detail::FakeDependentString& aArg)
 }
 
 MOZ_ALWAYS_INLINE
-const nsAString& NonNullHelper(const binding_detail::FakeDependentString& aArg)
+const nsAString& NonNullHelper(const binding_detail::FakeString& aArg)
 {
   return aArg;
 }
