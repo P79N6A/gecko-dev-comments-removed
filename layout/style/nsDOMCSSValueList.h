@@ -23,7 +23,6 @@ public:
 
   
   nsDOMCSSValueList(bool aCommaDelimited, bool aReadonly);
-  ~nsDOMCSSValueList();
 
   
 
@@ -60,6 +59,8 @@ public:
   virtual JSObject *WrapObject(JSContext *cx) MOZ_OVERRIDE;
 
 private:
+  ~nsDOMCSSValueList();
+
   bool                        mCommaDelimited;  
                                                 
                                                 
@@ -68,13 +69,5 @@ private:
 
   InfallibleTArray<nsRefPtr<CSSValue> > mCSSValues;
 };
-
-namespace mozilla {
-template<>
-struct HasDangerousPublicDestructor<nsDOMCSSValueList>
-{
-  static const bool value = true;
-};
-}
 
 #endif 
