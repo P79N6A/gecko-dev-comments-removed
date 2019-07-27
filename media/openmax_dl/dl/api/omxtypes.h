@@ -35,6 +35,21 @@
 
 #include <limits.h> 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+
+
+
+
+#ifdef BIG_FFT_TABLE
+#define TWIDDLE_TABLE_ORDER 15
+#else
+#define TWIDDLE_TABLE_ORDER 12
+#endif
+
 #define OMX_IN
 #define OMX_OUT
 #define OMX_INOUT
@@ -194,9 +209,23 @@ typedef struct
 typedef float OMX_F32; 
 
 
-
 typedef double OMX_F64; 
 
+
+typedef struct
+{
+  OMX_F32 Re; 
+  OMX_F32 Im; 	
+
+} OMX_FC32; 
+
+
+typedef struct
+{
+  OMX_F64 Re; 
+  OMX_F64 Im; 	
+
+} OMX_FC64; 
 
 
 typedef int OMX_INT; 
@@ -251,4 +280,7 @@ typedef struct
 	
 } OMXSize;
 
-#endif 
+#ifdef __cplusplus
+}
+#endif
+#endif
