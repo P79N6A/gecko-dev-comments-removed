@@ -21,6 +21,16 @@ enum class KeySizeStatus {
   AlreadyBad = 3,
 };
 
+
+enum class SignatureDigestStatus {
+  NeverChecked = 0,
+  GoodAlgorithmsOnly = 1,
+  WeakEECert = 2,
+  WeakCACert = 3,
+  WeakCAAndEE = 4,
+  AlreadyBad = 5,
+};
+
 class CertVerifier
 {
 public:
@@ -51,7 +61,8 @@ public:
        ScopedCERTCertList* builtChain = nullptr,
        SECOidTag* evOidPolicy = nullptr,
        OCSPStaplingStatus* ocspStaplingStatus = nullptr,
-       KeySizeStatus* keySizeStatus = nullptr);
+       KeySizeStatus* keySizeStatus = nullptr,
+       SignatureDigestStatus* sigDigestStatus = nullptr);
 
   SECStatus VerifySSLServerCert(
                     CERTCertificate* peerCert,
@@ -64,7 +75,8 @@ public:
     ScopedCERTCertList* builtChain = nullptr,
     SECOidTag* evOidPolicy = nullptr,
     OCSPStaplingStatus* ocspStaplingStatus = nullptr,
-    KeySizeStatus* keySizeStatus = nullptr);
+    KeySizeStatus* keySizeStatus = nullptr,
+    SignatureDigestStatus* sigDigestStatus = nullptr);
 
   enum PinningMode {
     pinningDisabled = 0,

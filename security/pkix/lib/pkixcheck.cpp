@@ -91,7 +91,7 @@ CheckSignatureAlgorithm(TrustDomain& trustDomain,
   
   
 
-  rv = trustDomain.CheckSignatureDigestAlgorithm(digestAlg);
+  rv = trustDomain.CheckSignatureDigestAlgorithm(digestAlg, endEntityOrCA);
   if (rv != Success) {
     return rv;
   }

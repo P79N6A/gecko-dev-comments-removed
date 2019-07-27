@@ -277,7 +277,8 @@ public:
   
   
   
-  virtual Result CheckSignatureDigestAlgorithm(DigestAlgorithm digestAlg) = 0;
+  virtual Result CheckSignatureDigestAlgorithm(DigestAlgorithm digestAlg,
+                                               EndEntityOrCA endEntityOrCA) = 0;
 
   
   

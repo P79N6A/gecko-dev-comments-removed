@@ -255,7 +255,7 @@ AppTrustDomain::IsChainValid(const DERArray& certChain, Time time)
 }
 
 Result
-AppTrustDomain::CheckSignatureDigestAlgorithm(DigestAlgorithm)
+AppTrustDomain::CheckSignatureDigestAlgorithm(DigestAlgorithm, EndEntityOrCA)
 {
   
   return Success;
