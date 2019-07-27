@@ -75,6 +75,13 @@ function test() {
   is(url, "https://www.google.com/complete/search?client=firefox&q=foo", "Check search suggestion URL for 'foo'");
 
   
+  let alternateBase = base.replace("www.google.com", "www.google.fr");
+  is(Services.search.parseSubmissionURL(base).terms, "foo",
+     "Check result parsing");
+  is(Services.search.parseSubmissionURL(alternateBase).terms, "foo",
+     "Check alternate domain");
+
+  
   const EXPECTED_ENGINE = {
     name: "Google",
     alias: null,

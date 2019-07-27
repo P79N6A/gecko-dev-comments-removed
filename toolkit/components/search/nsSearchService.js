@@ -23,6 +23,12 @@ XPCOMUtils.defineLazyModuleGetter(this, "TelemetryStopwatch",
   "resource://gre/modules/TelemetryStopwatch.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Deprecated",
   "resource://gre/modules/Deprecated.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "SearchStaticData",
+  "resource://gre/modules/SearchStaticData.jsm");
+
+XPCOMUtils.defineLazyServiceGetter(this, "gTextToSubURI",
+                                   "@mozilla.org/intl/texttosuburi;1",
+                                   "nsITextToSubURI");
 
 
 
@@ -902,6 +908,11 @@ EngineURL.prototype = {
     }
 
     return new Submission(makeURI(url), postData);
+  },
+
+  _getTermsParameterName: function SRCH_EURL__getTermsParameterName() {
+    let queryParam = this.params.find(p => p.value == USER_DEFINED);
+    return queryParam ? queryParam.name : "";
   },
 
   _hasRelation: function SRC_EURL__hasRelation(aRel)
@@ -2459,7 +2470,7 @@ Engine.prototype = {
     }
     return null;
   },
-    
+
   
   
   __id: null,
@@ -2641,14 +2652,12 @@ Engine.prototype = {
     }
 
     LOG("getSubmission: In data: \"" + aData + "\"; Purpose: \"" + aPurpose + "\"");
-    var textToSubURI = Cc["@mozilla.org/intl/texttosuburi;1"].
-                       getService(Ci.nsITextToSubURI);
     var data = "";
     try {
-      data = textToSubURI.ConvertAndEscape(this.queryCharset, aData);
+      data = gTextToSubURI.ConvertAndEscape(this.queryCharset, aData);
     } catch (ex) {
       LOG("getSubmission: Falling back to default queryCharset!");
-      data = textToSubURI.ConvertAndEscape(DEFAULT_QUERY_CHARSET, aData);
+      data = gTextToSubURI.ConvertAndEscape(DEFAULT_QUERY_CHARSET, aData);
     }
     LOG("getSubmission: Out data: \"" + data + "\"");
     return url.getSubmission(data, this, aPurpose);
@@ -2676,6 +2685,36 @@ Engine.prototype = {
     if (url)
       return url.resultDomain;
     return "";
+  },
+
+  
+
+
+  getURLParsingInfo: function () {
+#ifdef ANDROID
+    let responseType = this._defaultMobileResponseType;
+#else
+    let responseType = URLTYPE_SEARCH_HTML;
+#endif
+
+    LOG("getURLParsingInfo: responseType: \"" + responseType + "\"");
+
+    let url = this._getURLOfType(responseType);
+    if (!url || url.method != "GET") {
+      return null;
+    }
+
+    let termsParameterName = url._getTermsParameterName();
+    if (!termsParameterName) {
+      return null;
+    }
+
+    let templateUrl = NetUtil.newURI(url.template).QueryInterface(Ci.nsIURL);
+    return {
+      mainDomain: templateUrl.host,
+      path: templateUrl.filePath.toLowerCase(),
+      termsParameterName: termsParameterName,
+    };
   },
 
   
@@ -2788,6 +2827,24 @@ Submission.prototype = {
     throw Cr.NS_ERROR_NO_INTERFACE;
   }
 }
+
+
+function ParseSubmissionResult(aEngine, aTerms) {
+  this._engine = aEngine;
+  this._terms = aTerms;
+}
+ParseSubmissionResult.prototype = {
+  get engine() {
+    return this._engine;
+  },
+  get terms() {
+    return this._terms;
+  },
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsISearchParseSubmissionResult]),
+}
+
+const gEmptyParseSubmissionResult =
+      Object.freeze(new ParseSubmissionResult(null, ""));
 
 function executeSoon(func) {
   Services.tm.mainThread.dispatch(func, Ci.nsIThread.DISPATCH_NORMAL);
@@ -3313,7 +3370,7 @@ SearchService.prototype = {
       
       if (!engineMetadataService.getAttr(aEngine, "updateexpir"))
         engineUpdateService.scheduleNextUpdate(aEngine);
-  
+
       
       
       
@@ -3533,7 +3590,7 @@ SearchService.prototype = {
 
       names.forEach(function (n) uris.push(root + n + ".xml"));
     });
-    
+
     return [chromeFiles, uris];
   },
 
@@ -3700,7 +3757,7 @@ SearchService.prototype = {
         engine = this._engines[engineName];
         if (!engine || engine.name in addedEngines)
           continue;
-        
+
         this.__sortedEngines.push(engine);
         addedEngines[engine.name] = engine;
       }
@@ -3889,8 +3946,6 @@ SearchService.prototype = {
     engine._initFromMetadata(aName, aIconURL, aAlias, aDescription,
                              aMethod, aTemplate);
     this._addEngineToStore(engine);
-    this.batchTask.disarm();
-    this.batchTask.arm();
   },
 
   addEngine: function SRCH_SVC_addEngine(aEngineURL, aDataType, aIconURL,
@@ -4142,6 +4197,151 @@ SearchService.prototype = {
   },
 
   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _parseSubmissionMap: null,
+
+  _buildParseSubmissionMap: function SRCH_SVC__buildParseSubmissionMap() {
+    LOG("_buildParseSubmissionMap");
+    this._parseSubmissionMap = new Map();
+
+    
+    
+    
+    let keysOfAlternates = new Set();
+
+    for (let engine of this._sortedEngines) {
+      LOG("Processing engine: " + engine.name);
+
+      if (engine.hidden) {
+        LOG("Engine is hidden.");
+        continue;
+      }
+
+      let urlParsingInfo = engine.getURLParsingInfo();
+      if (!urlParsingInfo) {
+        LOG("Engine does not support URL parsing.");
+        continue;
+      }
+
+      
+      let mapValueForEngine = {
+        engine: engine,
+        termsParameterName: urlParsingInfo.termsParameterName,
+      };
+
+      let processDomain = (domain, isAlternate) => {
+        let key = domain + urlParsingInfo.path;
+
+        
+        
+        let existingEntry = this._parseSubmissionMap.get(key);
+        if (!existingEntry) {
+          LOG("Adding new entry: " + key);
+          if (isAlternate) {
+            keysOfAlternates.add(key);
+          }
+        } else if (!isAlternate && keysOfAlternates.has(key)) {
+          LOG("Overriding alternate entry: " + key +
+              " (" + existingEntry.engine.name + ")");
+          keysOfAlternates.delete(key);
+        } else {
+          LOG("Keeping existing entry: " + key +
+              " (" + existingEntry.engine.name + ")");
+          return;
+        }
+
+        this._parseSubmissionMap.set(key, mapValueForEngine);
+      };
+
+      processDomain(urlParsingInfo.mainDomain, false);
+      SearchStaticData.getAlternateDomains(urlParsingInfo.mainDomain)
+                      .forEach(d => processDomain(d, true));
+    }
+  },
+
+  parseSubmissionURL: function SRCH_SVC_parseSubmissionURL(aURL) {
+    this._ensureInitialized();
+    LOG("parseSubmissionURL: Parsing \"" + aURL + "\".");
+
+    if (!this._parseSubmissionMap) {
+      this._buildParseSubmissionMap();
+    }
+
+    
+    let soughtKey, soughtQuery;
+    try {
+      let soughtUrl = NetUtil.newURI(aURL).QueryInterface(Ci.nsIURL);
+
+      
+      if (soughtUrl.scheme != "http" && soughtUrl.scheme != "https") {
+        LOG("The URL scheme is not HTTP or HTTPS.");
+        return gEmptyParseSubmissionResult;
+      }
+
+      
+      soughtKey = soughtUrl.host + soughtUrl.filePath.toLowerCase();
+      soughtQuery = soughtUrl.query;
+    } catch (ex) {
+      
+      LOG("The value does not look like a structured URL.");
+      return gEmptyParseSubmissionResult;
+    }
+
+    
+    let mapEntry = this._parseSubmissionMap.get(soughtKey);
+    if (!mapEntry) {
+      LOG("No engine associated with domain and path: " + soughtKey);
+      return gEmptyParseSubmissionResult;
+    }
+
+    
+    
+    let encodedTerms = null;
+    for (let param of soughtQuery.split("&")) {
+      let equalPos = param.indexOf("=");
+      if (equalPos != -1 &&
+          param.substr(0, equalPos) == mapEntry.termsParameterName) {
+        
+        encodedTerms = param.substr(equalPos + 1);
+        break;
+      }
+    }
+    if (encodedTerms === null) {
+      LOG("Missing terms parameter: " + mapEntry.termsParameterName);
+      return gEmptyParseSubmissionResult;
+    }
+
+    
+    let terms;
+    try {
+      terms = gTextToSubURI.UnEscapeAndConvert(
+                                       mapEntry.engine.queryCharset,
+                                       encodedTerms.replace("+", " "));
+    } catch (ex) {
+      
+      LOG("Parameter decoding failed. Charset: " +
+          mapEntry.engine.queryCharset);
+      return gEmptyParseSubmissionResult;
+    }
+
+    LOG("Match found. Terms: " + terms);
+    return new ParseSubmissionResult(mapEntry.engine, terms);
+  },
+
+  
   observe: function SRCH_SVC_observe(aEngine, aTopic, aVerb) {
     switch (aTopic) {
       case SEARCH_ENGINE_TOPIC:
@@ -4155,13 +4355,16 @@ SearchService.prototype = {
               LOG("nsSearchService::observe: setting current");
               this.currentEngine = aEngine;
             }
-            this.batchTask.disarm();
-            this.batchTask.arm();
+            
+            
             break;
+          case SEARCH_ENGINE_ADDED:
           case SEARCH_ENGINE_CHANGED:
           case SEARCH_ENGINE_REMOVED:
             this.batchTask.disarm();
             this.batchTask.arm();
+            
+            this._parseSubmissionMap = null;
             break;
         }
         break;
@@ -4591,7 +4794,7 @@ var engineUpdateService = {
 
     let testEngine = null;
     let updateURL = engine._getURLOfType(URLTYPE_OPENSEARCH);
-    let updateURI = (updateURL && updateURL._hasRelation("self")) ? 
+    let updateURI = (updateURL && updateURL._hasRelation("self")) ?
                      updateURL.getSubmission("", engine).uri :
                      makeURI(engine._updateURL);
     if (updateURI) {
