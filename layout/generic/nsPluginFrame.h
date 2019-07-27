@@ -138,6 +138,11 @@ public:
       configuration->mClipRegion = mNextConfigurationClipRegion;
     }
   }
+
+  nsIntRect GetWidgetlessClipRect() {
+    return RegionFromArray(mNextConfigurationClipRegion).GetBounds();
+  }
+
   
 
 
@@ -257,6 +262,15 @@ private:
   
   
   void UnregisterPluginForGeometryUpdates();
+
+  static const nsIntRegion RegionFromArray(const nsTArray<nsIntRect>& aRects)
+  {
+    nsIntRegion region;
+    for (uint32_t i = 0; i < aRects.Length(); ++i) {
+      region.Or(region, aRects[i]);
+    }
+    return region;
+  }
 
   class PluginEventNotifier : public nsRunnable {
   public:

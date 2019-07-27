@@ -15,7 +15,6 @@
 #include "nsString.h"
 #include "nsCOMPtr.h"
 #include "nsITimer.h"
-#include "npapi.h"
 #include "nsTArray.h"
 #include "mozilla/EventForwards.h"
 
@@ -315,7 +314,6 @@ protected:
 
   bool mOverrideKeyboard;
 };
-
 
 
 
@@ -682,161 +680,16 @@ private:
 
 
 
-class PluginTextInputHandler : public TextInputHandlerBase
-{
-public:
 
-  
 
 
 
 
-  nsresult StartComplexTextInputForCurrentEvent()
-  {
-    mPluginComplexTextInputRequested = true;
-    return NS_OK;
-  }
 
-  
 
 
 
-
-  void HandleKeyDownEventForPlugin(NSEvent* aNativeKeyEvent);
-
-  
-
-
-
-
-  void HandleKeyUpEventForPlugin(NSEvent* aNativeKeyEvent);
-
-  
-
-
-
-
-
-  static void ConvertCocoaKeyEventToNPCocoaEvent(NSEvent* aCocoaEvent,
-                                                 NPCocoaEvent& aPluginEvent);
-
-#ifndef __LP64__
-
-  
-
-
-
-
-
-  static void InstallPluginKeyEventsHandler();
-  static void RemovePluginKeyEventsHandler();
-
-  
-
-
-
-  static void SwizzleMethods();
-
-  
-
-
-  void SetPluginTSMInComposition(bool aInComposition)
-  {
-    mPluginTSMInComposition = aInComposition;
-  }
-
-#endif 
-
-protected:
-  bool mIgnoreNextKeyUpEvent;
-
-  PluginTextInputHandler(nsChildView* aWidget, NSView<mozView> *aNativeView);
-  ~PluginTextInputHandler();
-
-private:
-
-#ifndef __LP64__
-  TSMDocumentID mPluginTSMDoc;
-
-  bool mPluginTSMInComposition;
-#endif 
-
-  bool mPluginComplexTextInputRequested;
-
-  
-
-
-
-
-
-
-  bool DispatchCocoaNPAPITextEvent(NSString* aString);
-
-  
-
-
-
-
-
-
-
-  bool IsInPluginComposition();
-
-#ifndef __LP64__
-
-  
-
-
-
-
-
-
-
-
-
-
-  void ActivatePluginTSMDocument();
-
-  
-
-
-
-
-
-  void HandleCarbonPluginKeyEvent(EventRef aKeyEvent);
-
-  
-
-
-
-
-
-
-
-
-  static OSStatus PluginKeyEventsHandler(EventHandlerCallRef aHandlerRef,
-                                         EventRef aEvent,
-                                         void *aUserData);
-
-  static EventHandlerRef sPluginKeyEventsHandler;
-
-#endif 
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class IMEInputHandler : public PluginTextInputHandler
+class IMEInputHandler : public TextInputHandlerBase
 {
 public:
   virtual bool OnDestroyWidget(nsChildView* aDestroyingWidget);

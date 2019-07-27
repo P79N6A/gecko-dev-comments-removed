@@ -28,23 +28,19 @@
 #ifndef ComplexTextInputPanel_h_
 #define ComplexTextInputPanel_h_
 
-#import <Cocoa/Cocoa.h>
+#include "nsString.h"
+#include "npapi.h"
 
-@interface ComplexTextInputPanel : NSPanel {
-  NSTextView *mInputTextView;
-}
+class ComplexTextInputPanel
+{
+public:
+  static ComplexTextInputPanel* GetSharedComplexTextInputPanel();
+  virtual void PlacePanel(int32_t x, int32_t y) = 0; 
+  virtual void InterpretKeyEvent(NPCocoaEvent* aEvent, nsAString& aOutText) = 0;
+  virtual bool IsInComposition() = 0;
 
-+ (ComplexTextInputPanel*)sharedComplexTextInputPanel;
-
-- (NSTextInputContext*)inputContext;
-- (BOOL)interpretKeyEvent:(NSEvent*)event string:(NSString**)string;
-- (void)cancelComposition;
-- (BOOL)inComposition;
-
-
-
-- (void)adjustTo:(NSView*)view;
-
-@end
+protected:
+  virtual ~ComplexTextInputPanel() {};
+};
 
 #endif 

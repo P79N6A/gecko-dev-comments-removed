@@ -323,11 +323,6 @@ public:
   
 
 
-  static void InitPluginEvent(mozilla::WidgetPluginEvent &aPluginEvent,
-                              NPCocoaEvent &aCocoaEvent);
-  
-
-
   static void InitInputEvent(mozilla::WidgetInputEvent &aInputEvent,
                              NSEvent* aNativeEvent);
   static void InitInputEvent(mozilla::WidgetInputEvent &aInputEvent,

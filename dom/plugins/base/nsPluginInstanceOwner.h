@@ -33,7 +33,12 @@ namespace mozilla {
 namespace dom {
 struct MozPluginParameter;
 }
+namespace widget {
+class PuppetWidget;
 }
+}
+
+using mozilla::widget::PuppetWidget;
 
 #ifdef MOZ_X11
 class gfxXlibSurface;
@@ -61,6 +66,7 @@ public:
                     void *aHeadersData, uint32_t aHeadersDataLen) MOZ_OVERRIDE;
   
   NS_IMETHOD ShowStatus(const char16_t *aStatusMsg) MOZ_OVERRIDE;
+  
   
   NPError    ShowNativeContextMenu(NPMenu* menu, void* event) MOZ_OVERRIDE;
   
@@ -108,14 +114,19 @@ public:
   
   nsresult Init(nsIContent* aContent);
   
-  void* GetPluginPortFromWidget();
+  void* GetPluginPort();
   void ReleasePluginPort(void* pluginPort);
 
   nsEventStatus ProcessEvent(const mozilla::WidgetGUIEvent& anEvent);
   
 #ifdef XP_MACOSX
   enum { ePluginPaintEnable, ePluginPaintDisable };
-  
+
+  void WindowFocusMayHaveChanged();
+  void ResolutionMayHaveChanged();
+
+  bool WindowIsActive();
+  void SendWindowFocusChanged(bool aIsActive);
   NPDrawingModel GetDrawingModel();
   bool IsRemoteDrawingCoreAnimation();
   nsresult ContentsScaleFactorChanged(double aContentsScaleFactor);
@@ -124,19 +135,14 @@ public:
   void AddToCARefreshTimer();
   void RemoveFromCARefreshTimer();
   
-  void* FixUpPluginWindow(int32_t inPaintState);
+  void FixUpPluginWindow(int32_t inPaintState);
   void HidePluginWindow();
-  
-  
-  void SetPluginPortChanged(bool aState) { mPluginPortChanged = aState; }
   
   
   void* GetPluginPortCopy();
   
   
-  
-  
-  void* SetPluginPortAndDetectChange();
+  void SetPluginPort();
   
   
   
@@ -288,6 +294,11 @@ private:
   static nsCOMPtr<nsITimer>                *sCATimer;
   static nsTArray<nsPluginInstanceOwner*>  *sCARefreshListeners;
   bool                                      mSentInitialTopLevelWindowEvent;
+  bool                                      mLastWindowIsActive;
+  bool                                      mLastContentFocused;
+  double                                    mLastScaleFactor;
+  
+  bool                                      mShouldBlurOnActivate;
 #endif
 
   
@@ -296,9 +307,6 @@ private:
   uint32_t                    mLastEventloopNestingLevel;
   bool                        mContentFocused;
   bool                        mWidgetVisible;    
-#ifdef XP_MACOSX
-  bool                        mPluginPortChanged;
-#endif
 #ifdef MOZ_X11
   
   bool                        mFlash10Quirks;
@@ -322,6 +330,16 @@ private:
   nsresult DispatchMouseToPlugin(nsIDOMEvent* aMouseEvent,
                                  bool aAllowPropagate = false);
   nsresult DispatchFocusToPlugin(nsIDOMEvent* aFocusEvent);
+
+#ifdef XP_MACOSX
+  static NPBool ConvertPointPuppet(PuppetWidget *widget, nsPluginFrame* pluginFrame,
+                            double sourceX, double sourceY, NPCoordinateSpace sourceSpace,
+                            double *destX, double *destY, NPCoordinateSpace destSpace);
+  static NPBool ConvertPointNoPuppet(nsIWidget *widget, nsPluginFrame* pluginFrame,
+                            double sourceX, double sourceY, NPCoordinateSpace sourceSpace,
+                            double *destX, double *destY, NPCoordinateSpace destSpace);
+  void PerformDelayedBlurs();
+#endif    
 
   int mLastMouseDownButtonType;
 

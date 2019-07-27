@@ -193,6 +193,14 @@ public:
     mDefaultScale = -1;
   }
 
+  nsIntSize GetScreenDimensions();
+
+  
+  nsIntPoint GetChromeDimensions();
+
+  
+  nsIntPoint GetWindowPosition();
+
 protected:
   bool mEnabled;
   bool mVisible;
