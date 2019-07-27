@@ -17,6 +17,7 @@
 #include "nsPresContext.h"
 #include "nsRenderingContext.h"
 #include "nsStyleContext.h"
+#include "nsStyleUtil.h"
 #include "prlog.h"
 #include <algorithm>
 #include "mozilla/LinkedList.h"
@@ -569,6 +570,7 @@ protected:
   const nsMargin mBorderPadding;
   nsMargin mMargin; 
 
+  
   
   
   
@@ -1167,9 +1169,9 @@ PartiallyResolveAutoMinSize(const FlexItem& aFlexItem,
 
   
   
-  
-  if (eStyleUnit_Auto ==
-      aItemReflowState.mStylePosition->mFlexBasis.GetUnit() &&
+  const nsStyleCoord& flexBasis = aItemReflowState.mStylePosition->mFlexBasis;
+  const bool isHorizontal = IsAxisHorizontal(aAxisTracker.GetMainAxis());
+  if (nsStyleUtil::IsFlexBasisMainSize(flexBasis, isHorizontal) &&
       aFlexItem.GetFlexBaseSize() != NS_AUTOHEIGHT) {
     
     

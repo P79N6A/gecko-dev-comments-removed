@@ -430,7 +430,7 @@ body {
 #font-type-buttons > li,
 .segmented-button > li {
   width: 50px; 
-  flex: 1 0 auto;
+  flex: 1 0 main-size;
   text-align: center;
   line-height: 20px;
 }

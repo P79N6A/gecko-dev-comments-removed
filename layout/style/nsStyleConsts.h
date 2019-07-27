@@ -599,6 +599,12 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 #define NS_STYLE_WIDTH_AVAILABLE                3
 
 
+
+
+
+#define NS_STYLE_FLEX_BASIS_MAIN_SIZE           4
+
+
 #define NS_STYLE_POSITION_STATIC                0
 #define NS_STYLE_POSITION_RELATIVE              1
 #define NS_STYLE_POSITION_ABSOLUTE              2

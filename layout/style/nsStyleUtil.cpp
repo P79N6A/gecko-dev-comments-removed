@@ -542,6 +542,29 @@ nsStyleUtil::IsSignificantChild(nsIContent* aChild, bool aTextIsSignificant,
 }
 
  bool
+nsStyleUtil::IsFlexBasisMainSize(const nsStyleCoord& aFlexBasis,
+                                 bool aIsMainAxisHorizontal)
+{
+  
+  
+  if (aFlexBasis.GetUnit() != eStyleUnit_Enumerated) {
+    return false;
+  }
+
+  if (!aIsMainAxisHorizontal) {
+    
+    
+    
+    
+    
+    
+    return true;
+  }
+
+  return aFlexBasis.GetIntValue() == NS_STYLE_FLEX_BASIS_MAIN_SIZE;
+}
+
+ bool
 nsStyleUtil::CSPAllowsInlineStyle(nsIContent* aContent,
                                   nsIPrincipal* aPrincipal,
                                   nsIURI* aSourceURI,

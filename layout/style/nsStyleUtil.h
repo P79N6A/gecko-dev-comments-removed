@@ -110,6 +110,23 @@ public:
   static bool IsSignificantChild(nsIContent* aChild,
                                    bool aTextIsSignificant,
                                    bool aWhitespaceIsSignificant);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  static bool IsFlexBasisMainSize(const nsStyleCoord& aFlexBasis,
+                                  bool aIsMainAxisHorizontal);
+
   
 
 
