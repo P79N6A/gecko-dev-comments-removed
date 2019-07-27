@@ -195,5 +195,44 @@ InternalRequest::MapContentPolicyTypeToRequestContext(nsContentPolicyType aConte
   return context;
 }
 
+bool
+InternalRequest::IsNavigationRequest() const
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  return mContentPolicyType == nsIContentPolicy::TYPE_DOCUMENT ||
+         mContentPolicyType == nsIContentPolicy::TYPE_SUBDOCUMENT ||
+         mContentPolicyType == nsIContentPolicy::TYPE_INTERNAL_FRAME ||
+         mContentPolicyType == nsIContentPolicy::TYPE_INTERNAL_IFRAME ||
+         mContentPolicyType == nsIContentPolicy::TYPE_REFRESH;
+}
+
+bool
+InternalRequest::IsWorkerRequest() const
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  return mContentPolicyType == nsIContentPolicy::TYPE_INTERNAL_WORKER ||
+         mContentPolicyType == nsIContentPolicy::TYPE_INTERNAL_SHARED_WORKER;
+}
+
+bool
+InternalRequest::IsClientRequest() const
+{
+  return IsNavigationRequest() || IsWorkerRequest();
+}
+
 } 
 } 
