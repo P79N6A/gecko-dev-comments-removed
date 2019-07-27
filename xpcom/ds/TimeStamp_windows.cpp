@@ -339,10 +339,6 @@ TimeStampValue::CheckQPC(const TimeStampValue& aOther) const
     return deltaQPC;
   }
 
-  if (!sUseQPC) { 
-    return deltaGTC;
-  }
-
   
   int64_t diff = DeprecatedAbs(int64_t(deltaQPC) - int64_t(deltaGTC));
   if (diff <= sGTCResulutionThreshold) {
@@ -357,10 +353,15 @@ TimeStampValue::CheckQPC(const TimeStampValue& aOther) const
        mt2ms(duration), mt2ms_f(overflow)));
 
   if (overflow <= sFailureThreshold) {  
-    return deltaQPC;  
+    return deltaQPC;
   }
 
   
+
+  if (!sUseQPC) { 
+    return deltaGTC;
+  }
+
   LOG(("TimeStamp: QPC jittered over failure threshold"));
 
   if (duration < sHardFailureLimit) {
