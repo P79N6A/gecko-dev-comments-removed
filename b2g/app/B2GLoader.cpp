@@ -216,13 +216,6 @@ RunProcesses(int argc, const char *argv[])
   }
 
   
-  struct sigaction sa;
-  sa.sa_handler = SIG_IGN;
-  sigemptyset(&sa.sa_mask);
-  sa.sa_flags = 0;
-  sigaction(SIGCHLD, &sa, nullptr);
-
-  
   int childPid = pid;
   XRE_ProcLoaderClientInit(childPid, parentSock);
   return b2g_main(argc, argv);
