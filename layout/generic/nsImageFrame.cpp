@@ -1035,7 +1035,8 @@ nsImageFrame::MeasureString(const char16_t*     aString,
   
     
     nscoord width =
-      nsLayoutUtils::GetStringWidth(this, &aContext, aFontMetrics, aString, len);
+      nsLayoutUtils::AppUnitWidthOfStringBidi(aString, len, this, aFontMetrics,
+                                              aContext);
     bool    fits = (totalWidth + width) <= aMaxWidth;
 
     
