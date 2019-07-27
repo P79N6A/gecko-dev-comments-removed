@@ -73,10 +73,12 @@ public:
   
   virtual nsRefPtr<ShutdownPromise> Shutdown();
 
+protected:
   
   
   
-  virtual void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset);
+  virtual void NotifyDataArrivedInternal(uint32_t aLength, int64_t aOffset) override;
+public:
 
   
   virtual nsresult ResetDecode() override;

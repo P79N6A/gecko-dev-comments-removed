@@ -117,7 +117,7 @@ public:
 
   
   
-  virtual void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset) = 0;
+  virtual void NotifyDataArrived(uint32_t aLength, int64_t aOffset) = 0;
 
   
   virtual void SetPlatformCanOffloadAudio(bool aCanOffloadAudio) {}

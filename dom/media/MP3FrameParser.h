@@ -112,7 +112,7 @@ public:
     return mIsMP3 != NOT_MP3;
   }
 
-  void Parse(const char* aBuffer, uint32_t aLength, uint64_t aStreamOffset);
+  void Parse(const uint8_t* aBuffer, uint32_t aLength, uint64_t aStreamOffset);
 
   
   
