@@ -141,6 +141,15 @@ class APZCTreeManager;
 
 - (void)_tileTitlebarAndRedisplay:(BOOL)redisplay;
 
+
+
+
+- (NSView *)titlebarView; 
+- (NSView *)titlebarContainerView; 
+- (BOOL)transparent; 
+- (void)setTransparent:(BOOL)transparent; 
+                                          
+
 @end
 
 #if !defined(MAC_OS_X_VERSION_10_6) || \
