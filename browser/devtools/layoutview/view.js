@@ -192,15 +192,11 @@ LayoutView.prototype = {
       paddingBottom: {selector: ".padding.bottom > span",
                   property: "padding-bottom",
                   value: undefined},
-      
       paddingLeft: {selector: ".padding.left > span",
                   property: "padding-left",
-                  realProperty: "padding-left-value",
                   value: undefined},
-      
       paddingRight: {selector: ".padding.right > span",
                   property: "padding-right",
-                  realProperty: "padding-right-value",
                   value: undefined},
       borderTop: {selector: ".border.top > span",
                   property: "border-top-width",
