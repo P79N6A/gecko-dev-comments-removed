@@ -30,12 +30,6 @@
 #include "nsDebug.h"                    
 #include "nsISupportsImpl.h"            
 #include "OGLShaderProgram.h"           
-#ifdef MOZ_WIDGET_GONK
-#include <ui/GraphicBuffer.h>
-#if ANDROID_VERSION >= 17
-#include <ui/Fence.h>
-#endif
-#endif
 
 class nsIntRegion;
 
@@ -134,40 +128,30 @@ private:
 class TextureHostOGL
 {
 public:
-#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
-
   
 
 
 
-  virtual bool SetReleaseFence(const android::sp<android::Fence>& aReleaseFence);
+  virtual bool SetReleaseFence(const FenceHandle& aReleaseFence);
 
   
 
 
-  virtual android::sp<android::Fence> GetAndResetReleaseFence();
+  virtual FenceHandle GetAndResetReleaseFence();
 
-  virtual void SetAcquireFence(const android::sp<android::Fence>& aAcquireFence);
+  virtual void SetAcquireFence(const FenceHandle& aAcquireFence);
 
   
 
 
-  virtual android::sp<android::Fence> GetAndResetAcquireFence();
+  virtual FenceHandle GetAndResetAcquireFence();
 
   virtual void WaitAcquireFenceSyncComplete();
 
 protected:
-  android::sp<android::Fence> mReleaseFence;
+  FenceHandle mReleaseFence;
 
-  android::sp<android::Fence> mAcquireFence;
-
-  
-
-
-
-
-  android::sp<android::Fence> mPrevReleaseFence;
-#endif
+  FenceHandle mAcquireFence;
 };
 
 
