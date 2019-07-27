@@ -110,4 +110,31 @@ class GMPRecordClient {
   virtual ~GMPRecordClient() {}
 };
 
+
+
+
+
+
+class GMPRecordIterator {
+public:
+  
+  
+  
+  virtual GMPErr GetName(const char ** aOutName, uint32_t * aOutNameLength) = 0;
+
+  
+  
+  
+  virtual GMPErr NextRecord() = 0;
+
+  
+  
+  
+  
+  
+  virtual void Close() = 0;
+
+  virtual ~GMPRecordIterator() {}
+};
+
 #endif 

@@ -37,7 +37,7 @@ struct GMPAudioCodec
   
   
   const uint8_t* mExtraData;
-  size_t         mExtraDataLen;
+  uint32_t       mExtraDataLen;
 };
 
 #endif 
