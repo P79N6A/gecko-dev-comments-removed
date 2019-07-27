@@ -284,6 +284,8 @@ loop.conversation = (function(OT, mozL10n) {
         this._handleSessionError();
         return;
       }.bind(this));
+
+      this._websocket.on("progress", this._handleWebSocketProgress, this);
     },
 
     
@@ -296,6 +298,40 @@ loop.conversation = (function(OT, mozL10n) {
       if (this._conversation.streamsConnected()) {
         this._websocket.mediaUp();
       }
+    },
+
+    
+
+
+
+
+
+
+
+    _handleWebSocketProgress: function(progressData, previousState) {
+      
+      if (progressData.state !== "terminated")
+        return;
+
+      if (progressData.reason === "cancel") {
+        this._abortIncomingCall();
+        return;
+      }
+
+      if (progressData.reason === "timeout" &&
+          (previousState === "init" || previousState === "alerting")) {
+        this._abortIncomingCall();
+      }
+    },
+
+    
+
+
+
+    _abortIncomingCall: function() {
+      navigator.mozLoop.stopAlerting();
+      this._websocket.close();
+      window.close();
     },
 
     
