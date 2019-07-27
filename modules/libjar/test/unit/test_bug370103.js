@@ -1,5 +1,7 @@
-var Cc = Components.classes;
-var Ci = Components.interfaces;
+const Cc = Components.classes;
+const Ci = Components.interfaces;
+const Cu = Components.utils;
+Cu.import("resource://gre/modules/Services.jsm");
 
 
 
@@ -12,7 +14,14 @@ function run_test() {
   url = "jar:" + url + "!/test_bug370103";
 
   
-  var channel = ioService.newChannel(url, null, null);
+  var channel = ioService.newChannel2(url,
+                                      null,
+                                      null,
+                                      null,      
+                                      Services.scriptSecurityManager.getSystemPrincipal(),
+                                      null,      
+                                      Ci.nsILoadInfo.SEC_NORMAL,
+                                      Ci.nsIContentPolicy.TYPE_OTHER);
 
   var exception = false;
   try {

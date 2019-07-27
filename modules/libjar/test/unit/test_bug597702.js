@@ -4,6 +4,8 @@
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
+const Cu = Components.utils;
+Cu.import("resource://gre/modules/Services.jsm");
 
 
 
@@ -14,8 +16,22 @@ function run_test() {
   var outerJarBase = "jar:" + ios.newFileURI(file).spec + "!/";
   var goodSpec = "jar:" + outerJarBase + "inner.jar!/hello";
   var badSpec = "jar:" + outerJarBase + "jar_that_isnt_in_the.jar!/hello";
-  var goodChannel = ios.newChannel(goodSpec, null, null);
-  var badChannel = ios.newChannel(badSpec, null, null);
+  var goodChannel = ios.newChannel2(goodSpec,
+                                    null,
+                                    null,
+                                    null,      
+                                    Services.scriptSecurityManager.getSystemPrincipal(),
+                                    null,      
+                                    Ci.nsILoadInfo.SEC_NORMAL,
+                                    Ci.nsIContentPolicy.TYPE_OTHER);
+  var badChannel = ios.newChannel2(badSpec,
+                                   null,
+                                   null,
+                                   null,      
+                                   Services.scriptSecurityManager.getSystemPrincipal(),
+                                   null,      
+                                   Ci.nsILoadInfo.SEC_NORMAL,
+                                   Ci.nsIContentPolicy.TYPE_OTHER);
 
   try {
     instr = goodChannel.open();
