@@ -205,6 +205,22 @@ NS_INTERFACE_MAP_END
 NS_IMPL_CYCLE_COLLECTING_ADDREF(TabChildBase)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(TabChildBase)
 
+
+
+
+
+
+
+
+CSSToScreenScale ConvertScaleForRoot(CSSToParentLayerScale aScale)
+{
+  return ViewTargetAs<ScreenPixel>(aScale, PixelCastJustification::ScreenIsParentLayerForRoot);
+}
+CSSToParentLayerScale ConvertScaleForRoot(CSSToScreenScale aScale)
+{
+  return ViewTargetAs<ParentLayerPixel>(aScale, PixelCastJustification::ScreenIsParentLayerForRoot);
+}
+
 void
 TabChildBase::InitializeRootMetrics()
 {
@@ -265,20 +281,6 @@ TabChildBase::GetPageSize(nsCOMPtr<nsIDocument> aDocument, const CSSSize& aViewp
   }
   return CSSSize(std::max(htmlWidth, bodyWidth),
                  std::max(htmlHeight, bodyHeight));
-}
-
-
-
-
-
-
-
-
-CSSToScreenScale ConvertScaleForRoot(CSSToParentLayerScale aScale) {
-  return ViewTargetAs<ScreenPixel>(aScale, PixelCastJustification::ScreenIsParentLayerForRoot);
-}
-CSSToParentLayerScale ConvertScaleForRoot(CSSToScreenScale aScale) {
-  return ViewTargetAs<ParentLayerPixel>(aScale, PixelCastJustification::ScreenIsParentLayerForRoot);
 }
 
 bool
