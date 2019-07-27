@@ -896,7 +896,11 @@ let gDevToolsBrowser = {
   
 
 
-  _connectToProfiler: function DT_connectToProfiler() {
+
+  _connectToProfiler: function DT_connectToProfiler(event, toolbox) {
+    let SharedProfilerUtils = devtools.require("devtools/profiler/shared");
+    let connection = SharedProfilerUtils.getProfilerConnection(toolbox);
+    connection.open();
   },
 
   

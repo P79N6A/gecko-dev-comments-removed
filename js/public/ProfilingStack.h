@@ -68,6 +68,7 @@ class ProfileEntry
         CATEGORY_MASK = ~IS_CPP_ENTRY & ~FRAME_LABEL_COPY & ~ASMJS
     };
 
+    
     MOZ_BEGIN_NESTED_ENUM_CLASS(Category, uint32_t)
         OTHER    = 0x08,
         CSS      = 0x10,

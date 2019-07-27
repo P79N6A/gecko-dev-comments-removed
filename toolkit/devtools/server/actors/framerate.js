@@ -85,6 +85,15 @@ let FramerateActor = exports.FramerateActor = protocol.ActorClass({
   
 
 
+  isRecording: method(function() {
+    return !!this._recording;
+  }, {
+    response: { recording: RetVal("boolean") }
+  }),
+
+  
+
+
   getPendingTicks: method(function(beginAt = 0, endAt = Number.MAX_SAFE_INTEGER) {
     if (!this._ticks) {
       return [];

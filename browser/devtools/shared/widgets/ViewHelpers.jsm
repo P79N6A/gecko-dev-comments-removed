@@ -798,6 +798,16 @@ this.WidgetMethods = {
   
 
 
+  removeForPredicate: function(aPredicate) {
+    let item;
+    while (item = this.getItemForPredicate(aPredicate)) {
+      this.remove(item);
+    }
+  },
+
+  
+
+
   empty: function() {
     this._preferredValue = this.selectedValue;
     this._widget.selectedItem = null;
@@ -1075,6 +1085,8 @@ this.WidgetMethods = {
       targetElement.focus();
     }
     if (this.maintainSelectionVisible && targetElement) {
+      
+      
       if ("ensureElementIsVisible" in this._widget) {
         this._widget.ensureElementIsVisible(targetElement);
       }
@@ -1109,6 +1121,20 @@ this.WidgetMethods = {
 
   set selectedValue(aValue) {
     this.selectedItem = this._itemsByValue.get(aValue);
+  },
+
+  
+
+
+
+
+
+
+
+
+  forceSelect: function(aItem) {
+    this.selectedItem = null;
+    this.selectedItem = aItem;
   },
 
   
