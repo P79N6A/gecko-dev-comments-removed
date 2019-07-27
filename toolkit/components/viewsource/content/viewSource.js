@@ -7,7 +7,6 @@
 const { utils: Cu, interfaces: Ci, classes: Cc } = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/ViewSourceBrowser.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "Services",
   "resource://gre/modules/Services.jsm");
@@ -34,23 +33,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "Deprecated",
 
 
 
-
-
-
-function ViewSourceChrome() {
-  ViewSourceBrowser.call(this);
-}
-
-ViewSourceChrome.prototype = {
-  __proto__: ViewSourceBrowser.prototype,
-
-  
-
-
-  get browser() {
-    return gBrowser;
-  },
-
+let ViewSourceChrome = {
   
 
 
@@ -72,7 +55,7 @@ ViewSourceChrome.prototype = {
 
 
 
-  messages: ViewSourceBrowser.prototype.messages.concat([
+  messages: [
     "ViewSource:SourceLoaded",
     "ViewSource:SourceUnloaded",
     "ViewSource:Close",
@@ -81,15 +64,22 @@ ViewSourceChrome.prototype = {
     "ViewSource:GoToLine:Failed",
     "ViewSource:UpdateStatus",
     "ViewSource:ContextMenuOpening",
-  ]),
+  ],
 
   
 
 
 
-
   init() {
-    this.mm.loadFrameScript("chrome://global/content/viewSource-content.js", true);
+    
+    
+    
+    
+    let wMM = window.messageManager;
+    wMM.loadFrameScript("chrome://global/content/viewSource-content.js", true);
+    this.messages.forEach((msgName) => {
+      wMM.addMessageListener(msgName, this);
+    });
 
     this.shouldWrap = Services.prefs.getBoolPref("view_source.wrap_long_lines");
     this.shouldHighlight =
@@ -99,8 +89,6 @@ ViewSourceChrome.prototype = {
     addEventListener("unload", this);
     addEventListener("AppCommand", this, true);
     addEventListener("MozSwipeGesture", this, true);
-
-    ViewSourceBrowser.prototype.init.call(this);
   },
 
   
@@ -108,7 +96,10 @@ ViewSourceChrome.prototype = {
 
 
   uninit() {
-    ViewSourceBrowser.prototype.uninit.call(this);
+    let wMM = window.messageManager;
+    this.messages.forEach((msgName) => {
+      wMM.removeMessageListener(msgName, this);
+    });
 
     
     
@@ -117,9 +108,8 @@ ViewSourceChrome.prototype = {
     removeEventListener("MozSwipeGesture", this, true);
     gContextMenu.removeEventListener("popupshowing", this);
     gContextMenu.removeEventListener("popuphidden", this);
-    Services.els.removeSystemEventListener(this.browser, "dragover", this,
-                                           true);
-    Services.els.removeSystemEventListener(this.browser, "drop", this, true);
+    Services.els.removeSystemEventListener(gBrowser, "dragover", this, true);
+    Services.els.removeSystemEventListener(gBrowser, "drop", this, true);
   },
 
   
@@ -153,7 +143,7 @@ ViewSourceChrome.prototype = {
         break;
       case "ViewSource:ContextMenuOpening":
         this.onContextMenuOpening(data.isLink, data.isEmail, data.href);
-        if (this.browser.isRemoteBrowser) {
+        if (gBrowser.isRemoteBrowser) {
           this.openContextMenu(data.screenX, data.screenY);
         }
         break;
@@ -198,42 +188,35 @@ ViewSourceChrome.prototype = {
 
 
   get historyEnabled() {
-    return !this.browser.hasAttribute("disablehistory");
+    return !gBrowser.hasAttribute("disablehistory");
   },
 
   
 
 
-
-
-
-
-
-
-
   get mm() {
-    return window.messageManager;
+    return gBrowser.messageManager;
   },
 
   
 
 
   get webNav() {
-    return this.browser.webNavigation;
+    return gBrowser.webNavigation;
   },
 
   
 
 
   goForward() {
-    this.browser.goForward();
+    gBrowser.goForward();
   },
 
   
 
 
   goBack() {
-    this.browser.goBack();
+    gBrowser.goBack();
   },
 
   
@@ -284,8 +267,8 @@ ViewSourceChrome.prototype = {
     gContextMenu.addEventListener("popupshowing", this);
     gContextMenu.addEventListener("popuphidden", this);
 
-    Services.els.addSystemEventListener(this.browser, "dragover", this, true);
-    Services.els.addSystemEventListener(this.browser, "drop", this, true);
+    Services.els.addSystemEventListener(gBrowser, "dragover", this, true);
+    Services.els.addSystemEventListener(gBrowser, "drop", this, true);
 
     if (!this.historyEnabled) {
       
@@ -297,6 +280,12 @@ ViewSourceChrome.prototype = {
     }
 
     
+    gBrowser.droppedLinkHandler = function (event, url, name) {
+      ViewSourceChrome.loadURL(url);
+      event.preventDefault();
+    };
+
+    
     
     if (!window.arguments[0]) {
       return;
@@ -304,20 +293,39 @@ ViewSourceChrome.prototype = {
 
     if (typeof window.arguments[0] == "string") {
       
-      return this._loadViewSourceDeprecated(window.arguments);
+      return ViewSourceChrome._loadViewSourceDeprecated();
     }
 
     
     
     let args = window.arguments[0];
-    this.loadViewSource(args);
+
+    if (!args.URL) {
+      throw new Error("Must supply a URL when opening view source.");
+    }
+
+    if (args.browser) {
+      
+      
+      this.updateBrowserRemoteness(args.browser.isRemoteBrowser);
+    } else {
+      if (args.outerWindowID) {
+        throw new Error("Must supply the browser if passing the outerWindowID");
+      }
+    }
+
+    this.mm.sendAsyncMessage("ViewSource:LoadSource", {
+      URL: args.URL,
+      outerWindowID: args.outerWindowID,
+      lineNumber: args.lineNumber,
+    });
   },
 
   
 
 
 
-  _loadViewSourceDeprecated(aArguments) {
+  _loadViewSourceDeprecated() {
     Deprecated.warning("The arguments you're passing to viewSource.xul " +
                        "are using an out-of-date API.",
                        "https://developer.mozilla.org/en-US/Add-ons/Code_snippets/View_Source_for_XUL_Applications");
@@ -328,34 +336,34 @@ ViewSourceChrome.prototype = {
     
     
 
-    if (aArguments[3] == "selection" ||
-        aArguments[3] == "mathml") {
+    if (window.arguments[3] == "selection" ||
+        window.arguments[3] == "mathml") {
       
       return;
     }
 
-    if (aArguments[2]) {
-      let pageDescriptor = aArguments[2];
+    if (window.arguments[2]) {
+      let pageDescriptor = window.arguments[2];
       if (Cu.isCrossProcessWrapper(pageDescriptor)) {
         throw new Error("Cannot pass a CPOW as the page descriptor to viewSource.xul.");
       }
     }
 
-    if (this.browser.isRemoteBrowser) {
+    if (gBrowser.isRemoteBrowser) {
       throw new Error("Deprecated view source API should not use a remote browser.");
     }
 
     let forcedCharSet;
-    if (aArguments[4] && aArguments[1].startsWith("charset=")) {
-      forcedCharSet = aArguments[1].split("=")[1];
+    if (window.arguments[4] && window.arguments[1].startsWith("charset=")) {
+      forcedCharSet = window.arguments[1].split("=")[1];
     }
 
-    this.sendAsyncMessage("ViewSource:LoadSourceDeprecated", {
-      URL: aArguments[0],
-      lineNumber: aArguments[3],
+    gBrowser.messageManager.sendAsyncMessage("ViewSource:LoadSourceDeprecated", {
+      URL: window.arguments[0],
+      lineNumber: window.arguments[3],
       forcedCharSet,
     }, {
-      pageDescriptor: aArguments[2],
+      pageDescriptor: window.arguments[2],
     });
   },
 
@@ -412,7 +420,7 @@ ViewSourceChrome.prototype = {
       this.updateCommands();
     }
 
-    this.browser.focus();
+    gBrowser.focus();
   },
 
   
@@ -438,14 +446,13 @@ ViewSourceChrome.prototype = {
 
       
       
-      this.sendAsyncMessage("ViewSource:SetCharacterSet", {
+      this.mm.sendAsyncMessage("ViewSource:SetCharacterSet", {
         charset: charset,
         doPageLoad: this.historyEnabled,
       });
 
       if (this.historyEnabled) {
-        this.browser
-            .reloadWithFlags(Ci.nsIWebNavigation.LOAD_FLAGS_CHARSET_CHANGE);
+        gBrowser.reloadWithFlags(Ci.nsIWebNavigation.LOAD_FLAGS_CHARSET_CHANGE);
       }
     }
   },
@@ -576,7 +583,7 @@ ViewSourceChrome.prototype = {
 
 
   loadURL(URL) {
-    this.sendAsyncMessage("ViewSource:LoadSource", { URL });
+    this.mm.sendAsyncMessage("ViewSource:LoadSource", { URL });
   },
 
   
@@ -649,7 +656,7 @@ ViewSourceChrome.prototype = {
 
 
   goToLine(lineNumber) {
-    this.sendAsyncMessage("ViewSource:GoToLine", { lineNumber });
+    this.mm.sendAsyncMessage("ViewSource:GoToLine", { lineNumber });
   },
 
   
@@ -683,8 +690,8 @@ ViewSourceChrome.prototype = {
 
 
   reload() {
-    this.browser.reloadWithFlags(Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_PROXY |
-                                 Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_CACHE);
+    gBrowser.reloadWithFlags(Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_PROXY |
+                             Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_CACHE);
   },
 
   
@@ -703,7 +710,7 @@ ViewSourceChrome.prototype = {
     this.shouldWrap = !this.shouldWrap;
     Services.prefs.setBoolPref("view_source.wrap_long_lines",
                                this.shouldWrap);
-    this.sendAsyncMessage("ViewSource:ToggleWrapping");
+    this.mm.sendAsyncMessage("ViewSource:ToggleWrapping");
   },
 
   
@@ -718,7 +725,7 @@ ViewSourceChrome.prototype = {
     
     Services.prefs.setBoolPref("view_source.syntax_highlight",
                                this.shouldHighlight);
-    this.sendAsyncMessage("ViewSource:ToggleSyntaxHighlighting");
+    this.mm.sendAsyncMessage("ViewSource:ToggleSyntaxHighlighting");
   },
 
   
@@ -732,22 +739,22 @@ ViewSourceChrome.prototype = {
 
 
   updateBrowserRemoteness(shouldBeRemote) {
-    if (this.browser.isRemoteBrowser == shouldBeRemote) {
+    if (gBrowser.isRemoteBrowser == shouldBeRemote) {
       return;
     }
 
-    let parentNode = this.browser.parentNode;
-    let nextSibling = this.browser.nextSibling;
+    let parentNode = gBrowser.parentNode;
+    let nextSibling = gBrowser.nextSibling;
 
-    this.browser.remove();
+    gBrowser.remove();
     if (shouldBeRemote) {
-      this.browser.setAttribute("remote", "true");
+      gBrowser.setAttribute("remote", "true");
     } else {
-      this.browser.removeAttribute("remote");
+      gBrowser.removeAttribute("remote");
     }
     
     
-    parentNode.insertBefore(this.browser, nextSibling);
+    parentNode.insertBefore(gBrowser, nextSibling);
 
     if (shouldBeRemote) {
       
@@ -759,12 +766,12 @@ ViewSourceChrome.prototype = {
       
       
       
-      this.browser.webProgress;
+      gBrowser.webProgress;
     }
   },
 };
 
-let viewSourceChrome = new ViewSourceChrome();
+ViewSourceChrome.init();
 
 
 
@@ -813,7 +820,7 @@ function getBrowser() {
 }
 
 this.__defineGetter__("gPageLoader", function () {
-  var webnav = viewSourceChrome.webNav;
+  var webnav = ViewSourceChrome.webNav;
   if (!webnav)
     return null;
   delete this.gPageLoader;
@@ -836,48 +843,48 @@ function ViewSourceSavePage()
 
 this.__defineGetter__("gLastLineFound", function () {
   Deprecated.warning("gLastLineFound is deprecated - please use " +
-                     "viewSourceChrome.lastLineFound instead.",
+                     "ViewSourceChrome.lastLineFound instead.",
                      "https://developer.mozilla.org/en-US/Add-ons/Code_snippets/View_Source_for_XUL_Applications");
-  return viewSourceChrome.lastLineFound;
+  return ViewSourceChrome.lastLineFound;
 });
 
 function onLoadViewSource() {
   Deprecated.warning("onLoadViewSource() is deprecated - please use " +
-                     "viewSourceChrome.onXULLoaded() instead.",
+                     "ViewSourceChrome.onXULLoaded() instead.",
                      "https://developer.mozilla.org/en-US/Add-ons/Code_snippets/View_Source_for_XUL_Applications");
-  viewSourceChrome.onXULLoaded();
+  ViewSourceChrome.onXULLoaded();
 }
 
 function isHistoryEnabled() {
   Deprecated.warning("isHistoryEnabled() is deprecated - please use " +
-                     "viewSourceChrome.historyEnabled instead.",
+                     "ViewSourceChrome.historyEnabled instead.",
                      "https://developer.mozilla.org/en-US/Add-ons/Code_snippets/View_Source_for_XUL_Applications");
-  return viewSourceChrome.historyEnabled;
+  return ViewSourceChrome.historyEnabled;
 }
 
 function ViewSourceClose() {
   Deprecated.warning("ViewSourceClose() is deprecated - please use " +
-                     "viewSourceChrome.close() instead.",
+                     "ViewSourceChrome.close() instead.",
                      "https://developer.mozilla.org/en-US/Add-ons/Code_snippets/View_Source_for_XUL_Applications");
-  viewSourceChrome.close();
+  ViewSourceChrome.close();
 }
 
 function ViewSourceReload() {
   Deprecated.warning("ViewSourceReload() is deprecated - please use " +
-                     "viewSourceChrome.reload() instead.",
+                     "ViewSourceChrome.reload() instead.",
                      "https://developer.mozilla.org/en-US/Add-ons/Code_snippets/View_Source_for_XUL_Applications");
-  viewSourceChrome.reload();
+  ViewSourceChrome.reload();
 }
 
 function getWebNavigation()
 {
   Deprecated.warning("getWebNavigation() is deprecated - please use " +
-                     "viewSourceChrome.webNav instead.",
+                     "ViewSourceChrome.webNav instead.",
                      "https://developer.mozilla.org/en-US/Add-ons/Code_snippets/View_Source_for_XUL_Applications");
   
   
   try {
-    return viewSourceChrome.webNav;
+    return ViewSourceChrome.webNav;
   } catch (e) {
     return null;
   }
@@ -885,44 +892,44 @@ function getWebNavigation()
 
 function viewSource(url) {
   Deprecated.warning("viewSource() is deprecated - please use " +
-                     "viewSourceChrome.loadURL() instead.",
+                     "ViewSourceChrome.loadURL() instead.",
                      "https://developer.mozilla.org/en-US/Add-ons/Code_snippets/View_Source_for_XUL_Applications");
-  viewSourceChrome.loadURL(url);
+  ViewSourceChrome.loadURL(url);
 }
 
 function ViewSourceGoToLine()
 {
   Deprecated.warning("ViewSourceGoToLine() is deprecated - please use " +
-                     "viewSourceChrome.promptAndGoToLine() instead.",
+                     "ViewSourceChrome.promptAndGoToLine() instead.",
                      "https://developer.mozilla.org/en-US/Add-ons/Code_snippets/View_Source_for_XUL_Applications");
-  viewSourceChrome.promptAndGoToLine();
+  ViewSourceChrome.promptAndGoToLine();
 }
 
 function goToLine(line)
 {
   Deprecated.warning("goToLine() is deprecated - please use " +
-                     "viewSourceChrome.goToLine() instead.",
+                     "ViewSourceChrome.goToLine() instead.",
                      "https://developer.mozilla.org/en-US/Add-ons/Code_snippets/View_Source_for_XUL_Applications");
-  viewSourceChrome.goToLine(line);
+  ViewSourceChrome.goToLine(line);
 }
 
 function BrowserForward(aEvent) {
   Deprecated.warning("BrowserForward() is deprecated - please use " +
-                     "viewSourceChrome.goForward() instead.",
+                     "ViewSourceChrome.goForward() instead.",
                      "https://developer.mozilla.org/en-US/Add-ons/Code_snippets/View_Source_for_XUL_Applications");
-  viewSourceChrome.goForward();
+  ViewSourceChrome.goForward();
 }
 
 function BrowserBack(aEvent) {
   Deprecated.warning("BrowserBack() is deprecated - please use " +
-                     "viewSourceChrome.goBack() instead.",
+                     "ViewSourceChrome.goBack() instead.",
                      "https://developer.mozilla.org/en-US/Add-ons/Code_snippets/View_Source_for_XUL_Applications");
-  viewSourceChrome.goBack();
+  ViewSourceChrome.goBack();
 }
 
 function UpdateBackForwardCommands() {
   Deprecated.warning("UpdateBackForwardCommands() is deprecated - please use " +
-                     "viewSourceChrome.updateCommands() instead.",
+                     "ViewSourceChrome.updateCommands() instead.",
                      "https://developer.mozilla.org/en-US/Add-ons/Code_snippets/View_Source_for_XUL_Applications");
-  viewSourceChrome.updateCommands();
+  ViewSourceChrome.updateCommands();
 }

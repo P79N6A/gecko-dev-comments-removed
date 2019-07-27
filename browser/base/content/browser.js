@@ -986,7 +986,6 @@ var gBrowserInit = {
     mm.loadFrameScript("chrome://browser/content/content.js", true);
     mm.loadFrameScript("chrome://browser/content/content-UITour.js", true);
     mm.loadFrameScript("chrome://global/content/manifestMessages.js", true);
-    mm.loadFrameScript("chrome://global/content/viewSource-content.js", true);
 
     window.messageManager.addMessageListener("Browser:LoadURI", RedirectLoad);
 
@@ -2360,18 +2359,7 @@ function BrowserViewSourceOfDocument(aArgsOrDocument) {
     args = aArgsOrDocument;
   }
 
-  let inTab = Services.prefs.getBoolPref("view_source.tab");
-  if (inTab) {
-    let viewSourceURL = `view-source:${args.URL}`;
-    let tab = gBrowser.loadOneTab(viewSourceURL, {
-      relatedToCurrent: true,
-      inBackground: false
-    });
-    args.viewSourceBrowser = gBrowser.getBrowserForTab(tab);
-    top.gViewSourceUtils.viewSourceInBrowser(args);
-  } else {
-    top.gViewSourceUtils.viewSource(args);
-  }
+  top.gViewSourceUtils.viewSource(args);
 }
 
 
