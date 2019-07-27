@@ -437,6 +437,37 @@ function CanonicalizeLanguageTag(locale) {
 }
 
 
+function localeContainsNoUnicodeExtensions(locale) {
+    
+    if (callFunction(std_String_indexOf, locale, "-u-") === -1)
+        return true;
+
+    
+    if (callFunction(std_String_indexOf, locale, "-u-") > callFunction(std_String_indexOf, locale, "-x-"))
+        return true;
+
+    
+    if (callFunction(std_String_startsWith, locale, "x-"))
+        return true;
+
+    
+    return false;
+}
+
+
+
+
+
+
+
+function lastDitchLocale() {
+    
+    
+    return "en-GB";
+}
+
+
+
 
 
 var oldStyleLanguageTagMappings = {
@@ -444,7 +475,19 @@ var oldStyleLanguageTagMappings = {
     "zh-CN": "zh-Hans-CN",
     "zh-HK": "zh-Hant-HK",
     "zh-SG": "zh-Hans-SG",
-    "zh-TW": "zh-Hant-TW"
+    "zh-TW": "zh-Hant-TW",
+};
+
+
+var localeCandidateCache = {
+    runtimeDefaultLocale: undefined,
+    candidateDefaultLocale: undefined,
+};
+
+
+var localeCache = {
+    runtimeDefaultLocale: undefined,
+    defaultLocale: undefined,
 };
 
 
@@ -453,28 +496,79 @@ var oldStyleLanguageTagMappings = {
 
 
 
-function DefaultLocale() {
-    
-    
-    
-    
-    
-    var localeOfLastResort = "en-GB";
 
-    var locale = RuntimeDefaultLocale();
-    if (!IsStructurallyValidLanguageTag(locale))
-        return localeOfLastResort;
+function DefaultLocaleIgnoringAvailableLocales() {
+    const runtimeDefaultLocale = RuntimeDefaultLocale();
+    if (runtimeDefaultLocale === localeCandidateCache.runtimeDefaultLocale)
+        return localeCandidateCache.candidateDefaultLocale;
 
-    locale = CanonicalizeLanguageTag(locale);
-    if (callFunction(std_Object_hasOwnProperty, oldStyleLanguageTagMappings, locale))
-        locale = oldStyleLanguageTagMappings[locale];
+    
+    
+    var candidate;
+    if (!IsStructurallyValidLanguageTag(runtimeDefaultLocale)) {
+        candidate = lastDitchLocale();
+    } else {
+        candidate = CanonicalizeLanguageTag(runtimeDefaultLocale);
 
-    if (!(collatorInternalProperties.availableLocales()[locale] &&
-          numberFormatInternalProperties.availableLocales()[locale] &&
-          dateTimeFormatInternalProperties.availableLocales()[locale]))
-    {
-        locale = localeOfLastResort;
+        
+        
+        
+        candidate = removeUnicodeExtensions(candidate);
+
+        if (callFunction(std_Object_hasOwnProperty, oldStyleLanguageTagMappings, candidate))
+            candidate = oldStyleLanguageTagMappings[candidate];
     }
+
+    
+    localeCandidateCache.runtimeDefaultLocale = runtimeDefaultLocale;
+    localeCandidateCache.candidateDefaultLocale = candidate;
+
+    assert(IsStructurallyValidLanguageTag(candidate),
+           "the candidate must be structurally valid");
+    assert(localeContainsNoUnicodeExtensions(candidate),
+           "the candidate must not contain a Unicode extension sequence");
+
+    return candidate;
+}
+
+
+
+
+
+
+
+function DefaultLocale() {
+    const runtimeDefaultLocale = RuntimeDefaultLocale();
+    if (runtimeDefaultLocale === localeCache.runtimeDefaultLocale)
+        return localeCache.defaultLocale;
+
+    
+    
+    
+    var candidate = DefaultLocaleIgnoringAvailableLocales();
+    var locale;
+    if (BestAvailableLocaleIgnoringDefault(collatorInternalProperties.availableLocales(),
+                                           candidate) &&
+        BestAvailableLocaleIgnoringDefault(numberFormatInternalProperties.availableLocales(),
+                                           candidate) &&
+        BestAvailableLocaleIgnoringDefault(dateTimeFormatInternalProperties.availableLocales(),
+                                           candidate))
+    {
+        locale = candidate;
+    } else {
+        locale = lastDitchLocale();
+    }
+
+    assert(IsStructurallyValidLanguageTag(locale),
+           "the computed default locale must be structurally valid");
+    assert(locale === CanonicalizeLanguageTag(locale),
+           "the computed default locale must be canonical");
+    assert(localeContainsNoUnicodeExtensions(locale),
+           "the computed default locale must not contain a Unicode extension sequence");
+
+    localeCache.runtimeDefaultLocale = runtimeDefaultLocale;
+    localeCache.defaultLocale = locale;
+
     return locale;
 }
 
@@ -506,16 +600,22 @@ function IsWellFormedCurrencyCode(currency) {
 
 
 
-
-
-function addOldStyleLanguageTags(availableLocales) {
+function addSpecialMissingLanguageTags(availableLocales) {
+    
+    
     var oldStyleLocales = std_Object_getOwnPropertyNames(oldStyleLanguageTagMappings);
     for (var i = 0; i < oldStyleLocales.length; i++) {
         var oldStyleLocale = oldStyleLocales[i];
         if (availableLocales[oldStyleLanguageTagMappings[oldStyleLocale]])
             availableLocales[oldStyleLocale] = true;
     }
-    return availableLocales;
+
+    
+    var lastDitch = lastDitchLocale();
+    assert(lastDitch === "en-GB" && availableLocales["en"],
+           "shouldn't be a need to add every locale implied by the last-" +
+           "ditch locale, merely just the last-ditch locale");
+    availableLocales[lastDitch] = true;
 }
 
 
@@ -553,6 +653,50 @@ function CanonicalizeLocaleList(locales) {
 }
 
 
+function BestAvailableLocaleHelper(availableLocales, locale, considerDefaultLocale) {
+    assert(IsStructurallyValidLanguageTag(locale), "invalid BestAvailableLocale locale structure");
+    assert(locale === CanonicalizeLanguageTag(locale), "non-canonical BestAvailableLocale locale");
+    assert(localeContainsNoUnicodeExtensions(locale), "locale must contain no Unicode extensions");
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    var defaultLocale;
+    if (considerDefaultLocale)
+        defaultLocale = DefaultLocale();
+
+    var candidate = locale;
+    while (true) {
+        if (availableLocales[candidate])
+            return candidate;
+
+        if (considerDefaultLocale && candidate.length <= defaultLocale.length) {
+            if (candidate === defaultLocale)
+                return candidate;
+            if (callFunction(std_String_startsWith, defaultLocale, candidate + "-"))
+                return candidate;
+        }
+
+        var pos = callFunction(std_String_lastIndexOf, candidate, "-");
+        if (pos === -1)
+            return undefined;
+
+        if (pos >= 2 && candidate[pos - 2] === "-")
+            pos -= 2;
+
+        candidate = callFunction(std_String_substring, candidate, 0, pos);
+    }
+}
+
+
 
 
 
@@ -562,21 +706,16 @@ function CanonicalizeLocaleList(locales) {
 
 
 function BestAvailableLocale(availableLocales, locale) {
-    assert(IsStructurallyValidLanguageTag(locale), "invalid BestAvailableLocale locale structure");
-    assert(locale === CanonicalizeLanguageTag(locale), "non-canonical BestAvailableLocale locale");
-    assert(callFunction(std_String_indexOf, locale, "-u-") === -1, "locale shouldn't contain -u-");
+    return BestAvailableLocaleHelper(availableLocales, locale, true);
+}
 
-    var candidate = locale;
-    while (true) {
-        if (availableLocales[candidate])
-            return candidate;
-        var pos = callFunction(std_String_lastIndexOf, candidate, "-");
-        if (pos === -1)
-            return undefined;
-        if (pos >= 2 && candidate[pos - 2] === "-")
-            pos -= 2;
-        candidate = callFunction(std_String_substring, candidate, 0, pos);
-    }
+
+
+
+
+
+function BestAvailableLocaleIgnoringDefault(availableLocales, locale) {
+    return BestAvailableLocaleHelper(availableLocales, locale, false);
 }
 
 
@@ -1357,8 +1496,10 @@ var collatorInternalProperties = {
         var locales = this._availableLocales;
         if (locales)
             return locales;
-        return (this._availableLocales =
-          addOldStyleLanguageTags(intl_Collator_availableLocales()));
+
+        locales = intl_Collator_availableLocales();
+        addSpecialMissingLanguageTags(locales);
+        return (this._availableLocales = locales);
     },
     relevantExtensionKeys: ["co", "kn"]
 };
@@ -1471,8 +1612,10 @@ var numberFormatInternalProperties = {
         var locales = this._availableLocales;
         if (locales)
             return locales;
-        return (this._availableLocales =
-          addOldStyleLanguageTags(intl_NumberFormat_availableLocales()));
+
+        locales = intl_NumberFormat_availableLocales();
+        addSpecialMissingLanguageTags(locales);
+        return (this._availableLocales = locales);
     },
     relevantExtensionKeys: ["nu"]
 };
@@ -2504,8 +2647,10 @@ var dateTimeFormatInternalProperties = {
         var locales = this._availableLocales;
         if (locales)
             return locales;
-        return (this._availableLocales =
-          addOldStyleLanguageTags(intl_DateTimeFormat_availableLocales()));
+
+        locales = intl_DateTimeFormat_availableLocales();
+        addSpecialMissingLanguageTags(locales);
+        return (this._availableLocales = locales);
     },
     relevantExtensionKeys: ["ca", "nu"]
 };
