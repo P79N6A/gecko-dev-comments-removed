@@ -86,7 +86,7 @@ let restart = Task.async(function*(browser) {
     return browser;
 
   
-  TabState.flush(browser);
+  yield TabStateFlusher.flush(browser);
 
   browser.messageManager.sendAsyncMessage("Test:Crash");
   yield promiseWaitForEvent(browser, "AboutTabCrashedLoad", false, true);
