@@ -7,16 +7,16 @@ function WeakSet_add(value) {
     
     var S = this;
     if (!IsObject(S) || !IsWeakSet(S))
-        ThrowError(JSMSG_INCOMPATIBLE_PROTO, "WeakSet", "add", typeof S);
+        ThrowTypeError(JSMSG_INCOMPATIBLE_PROTO, "WeakSet", "add", typeof S);
 
     
     let entries = UnsafeGetReservedSlot(this, WEAKSET_MAP_SLOT);
     if (!entries)
-        ThrowError(JSMSG_INCOMPATIBLE_PROTO, "WeakSet", "add", typeof S);
+        ThrowTypeError(JSMSG_INCOMPATIBLE_PROTO, "WeakSet", "add", typeof S);
 
     
     if (!IsObject(value))
-        ThrowError(JSMSG_NOT_NONNULL_OBJECT, DecompileArg(0, value));
+        ThrowTypeError(JSMSG_NOT_NONNULL_OBJECT, DecompileArg(0, value));
 
     
     callFunction(std_WeakMap_set, entries, value, true);
@@ -30,12 +30,12 @@ function WeakSet_clear() {
     
     var S = this;
     if (!IsObject(S) || !IsWeakSet(S))
-        ThrowError(JSMSG_INCOMPATIBLE_PROTO, "WeakSet", "clear", typeof S);
+        ThrowTypeError(JSMSG_INCOMPATIBLE_PROTO, "WeakSet", "clear", typeof S);
 
     
     let entries = UnsafeGetReservedSlot(this, WEAKSET_MAP_SLOT);
     if (!entries)
-        ThrowError(JSMSG_INCOMPATIBLE_PROTO, "WeakSet", "clear", typeof S);
+        ThrowTypeError(JSMSG_INCOMPATIBLE_PROTO, "WeakSet", "clear", typeof S);
 
     
     callFunction(std_WeakMap_clear, entries);
@@ -49,12 +49,12 @@ function WeakSet_delete(value) {
     
     var S = this;
     if (!IsObject(S) || !IsWeakSet(S))
-        ThrowError(JSMSG_INCOMPATIBLE_PROTO, "WeakSet", "delete", typeof S);
+        ThrowTypeError(JSMSG_INCOMPATIBLE_PROTO, "WeakSet", "delete", typeof S);
 
     
     let entries = UnsafeGetReservedSlot(this, WEAKSET_MAP_SLOT);
     if (!entries)
-        ThrowError(JSMSG_INCOMPATIBLE_PROTO, "WeakSet", "delete", typeof S);
+        ThrowTypeError(JSMSG_INCOMPATIBLE_PROTO, "WeakSet", "delete", typeof S);
 
     
     if (!IsObject(value))
@@ -69,12 +69,12 @@ function WeakSet_has(value) {
     
     var S = this;
     if (!IsObject(S) || !IsWeakSet(S))
-        ThrowError(JSMSG_INCOMPATIBLE_PROTO, "WeakSet", "has", typeof S);
+        ThrowTypeError(JSMSG_INCOMPATIBLE_PROTO, "WeakSet", "has", typeof S);
 
     
     let entries = UnsafeGetReservedSlot(this, WEAKSET_MAP_SLOT);
     if (!entries)
-        ThrowError(JSMSG_INCOMPATIBLE_PROTO, "WeakSet", "has", typeof S);
+        ThrowTypeError(JSMSG_INCOMPATIBLE_PROTO, "WeakSet", "has", typeof S);
 
     
     if (!IsObject(value))

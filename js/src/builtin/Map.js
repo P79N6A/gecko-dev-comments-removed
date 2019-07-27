@@ -8,19 +8,19 @@ function MapForEach(callbackfn, thisArg = undefined) {
     
     var M = this;
     if (!IsObject(M))
-        ThrowError(JSMSG_INCOMPATIBLE_PROTO, "Map", "forEach", typeof M);
+        ThrowTypeError(JSMSG_INCOMPATIBLE_PROTO, "Map", "forEach", typeof M);
 
     
     try {
         callFunction(std_Map_has, M);
     } catch (e) {
         
-        ThrowError(JSMSG_INCOMPATIBLE_PROTO, "Map", "forEach", typeof M);
+        ThrowTypeError(JSMSG_INCOMPATIBLE_PROTO, "Map", "forEach", typeof M);
     }
 
     
     if (!IsCallable(callbackfn))
-        ThrowError(JSMSG_NOT_FUNCTION, DecompileArg(0, callbackfn));
+        ThrowTypeError(JSMSG_NOT_FUNCTION, DecompileArg(0, callbackfn));
 
     
     var entries = callFunction(std_Map_iterator, M);
