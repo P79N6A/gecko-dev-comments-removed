@@ -2216,7 +2216,7 @@ ConvertToJS(JSContext* cx,
 
 bool CanConvertTypedArrayItemTo(JSObject *baseType, JSObject *valObj, JSContext *cx) {
   TypeCode baseTypeCode = CType::GetTypeCode(baseType);
-  if (baseTypeCode == TYPE_void_t) {
+  if (baseTypeCode == TYPE_void_t || baseTypeCode == TYPE_char) {
     return true;
   }
   TypeCode elementTypeCode;
@@ -2249,6 +2249,7 @@ bool CanConvertTypedArrayItemTo(JSObject *baseType, JSObject *valObj, JSContext 
   default:
     return false;
   }
+
   return elementTypeCode == baseTypeCode;
 }
 
@@ -2454,6 +2455,10 @@ ImplicitConvert(JSContext* cx,
       
       
       
+      
+      if (!isArgument) {
+        return TypeError(cx, "arraybuffer pointer", val);
+      }
       void* ptr;
       {
           JS::AutoCheckCannotGC nogc;
@@ -2464,11 +2469,14 @@ ImplicitConvert(JSContext* cx,
       }
       *static_cast<void**>(buffer) = ptr;
       break;
-    } if (val.isObject() && JS_IsArrayBufferViewObject(valObj)) {
+    } else if (val.isObject() && JS_IsArrayBufferViewObject(valObj)) {
       
       
       if(!CanConvertTypedArrayItemTo(baseType, valObj, cx)) {
         return TypeError(cx, "typed array with the appropriate type", val);
+      }
+      if (!isArgument) {
+        return TypeError(cx, "typed array pointer", val);
       }
       void* ptr;
       {
