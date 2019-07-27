@@ -806,7 +806,15 @@ Layer::ComputeEffectiveTransformForMaskLayer(const Matrix4x4& aTransformToSurfac
     bool maskIs2D = mMaskLayer->GetTransform().CanDraw2D();
     NS_ASSERTION(maskIs2D, "How did we end up with a 3D transform here?!");
 #endif
-    mMaskLayer->mEffectiveTransform = mMaskLayer->GetTransform() * mMaskLayer->mEffectiveTransform;
+    
+    
+    
+    
+    
+    
+    mMaskLayer->mEffectiveTransform = mMaskLayer->GetTransform() *
+      GetTransform().Inverse() * GetLocalTransform() *
+      mMaskLayer->mEffectiveTransform;
   }
 }
 
@@ -830,8 +838,7 @@ ContainerLayer::ContainerLayer(LayerManager* aManager, void* aImplData)
     mInheritedYScale(1.0f),
     mUseIntermediateSurface(false),
     mSupportsComponentAlphaChildren(false),
-    mMayHaveReadbackChild(false),
-    mChildrenChanged(false)
+    mMayHaveReadbackChild(false)
 {
   mContentFlags = 0; 
 }
