@@ -16,5 +16,7 @@ FIREFOX_PREFERENCES = {
     "loop.seenToS": "seen",
 
     
-    "media.navigator.permission.disabled": True
+    "media.navigator.permission.disabled": True,
+    
+    "media.navigator.streams.fake": True
 }
