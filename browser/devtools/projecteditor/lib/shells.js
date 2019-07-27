@@ -10,6 +10,7 @@ const { EventTarget } = require("sdk/event/target");
 const { emit } = require("sdk/event/core");
 const { EditorTypeForResource } = require("projecteditor/editors");
 const NetworkHelper = require("devtools/toolkit/webconsole/network-helper");
+const promise = require("promise");
 
 
 

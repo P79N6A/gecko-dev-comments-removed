@@ -19,6 +19,7 @@ let DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
 let { dumpn, dumpv, dbg_assert } = DevToolsUtils;
 let Services = require("Services");
 let EventEmitter = require("devtools/toolkit/event-emitter");
+let Debugger = require("Debugger");
 
 
 
@@ -842,6 +843,15 @@ if (this.exports) {
 }
 
 this.DebuggerServer = DebuggerServer;
+
+
+
+
+let includes = ["Components", "Ci", "Cu", "require", "Services", "DebuggerServer",
+                "ActorPool", "DevToolsUtils"];
+includes.forEach(name => {
+  DebuggerServer[name] = this[name];
+});
 
 
 if (this.exports) {

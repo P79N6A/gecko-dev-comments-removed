@@ -283,17 +283,31 @@ const load = iced(function load(loader, module) {
     }
   });
 
-  let sandbox = sandboxes[module.uri] = Sandbox({
-    name: module.uri,
-    prototype: create(globals, descriptors),
-    wantXrays: false,
-    wantGlobalProperties: module.id == "sdk/indexed-db" ? ["indexedDB"] : [],
-    invisibleToDebugger: loader.invisibleToDebugger,
-    metadata: {
-      addonID: loader.id,
-      URI: module.uri
-    }
-  });
+  let sandbox;
+  if (loader.sharedGlobalSandbox &&
+      loader.sharedGlobalBlacklist.indexOf(module.id) == -1) {
+    
+    
+    sandbox = new loader.sharedGlobalSandbox.Object();
+    
+    getOwnPropertyNames(globals).forEach(function(name) {
+      descriptors[name] = getOwnPropertyDescriptor(globals, name)
+    });
+    define(sandbox, descriptors);
+  } else {
+    sandbox = Sandbox({
+      name: module.uri,
+      prototype: create(globals, descriptors),
+      wantXrays: false,
+      wantGlobalProperties: module.id == "sdk/indexed-db" ? ["indexedDB"] : [],
+      invisibleToDebugger: loader.invisibleToDebugger,
+      metadata: {
+        addonID: loader.id,
+        URI: module.uri
+      }
+    });
+  }
+  sandboxes[module.uri] = sandbox;
 
   try {
     evaluate(sandbox, module.uri);
@@ -691,8 +705,8 @@ const Loader = iced(function Loader(options) {
   });
 
   let {
-    modules, globals, resolve, paths, rootURI,
-    manifest, requireMap, isNative, metadata
+    modules, globals, resolve, paths, rootURI, manifest, requireMap, isNative,
+    metadata, sharedGlobal, sharedGlobalBlacklist
   } = override({
     paths: {},
     modules: {},
@@ -702,6 +716,7 @@ const Loader = iced(function Loader(options) {
     resolve: options.isNative ?
       exports.nodeResolve :
       exports.resolve,
+    sharedGlobalBlacklist: ["sdk/indexed-db"]
   }, options);
 
   
@@ -738,6 +753,24 @@ const Loader = iced(function Loader(options) {
     return result;
   }, {});
 
+  let sharedGlobalSandbox;
+  if (sharedGlobal) {
+    
+    
+    
+    
+    sharedGlobalSandbox = Sandbox({
+      name: "Addon-SDK",
+      wantXrays: false,
+      wantGlobalProperties: [],
+      invisibleToDebugger: options.invisibleToDebugger || false,
+      metadata: {
+        addonID: options.id,
+        URI: "Addon-SDK"
+      }
+    });
+  }
+
   
   
   
@@ -748,6 +781,8 @@ const Loader = iced(function Loader(options) {
     
     modules: { enumerable: false, value: modules },
     metadata: { enumerable: false, value: metadata },
+    sharedGlobalSandbox: { enumerable: false, value: sharedGlobalSandbox },
+    sharedGlobalBlacklist: { enumerable: false, value: sharedGlobalBlacklist },
     
     sandboxes: { enumerable: false, value: {} },
     resolve: { enumerable: false, value: resolve },

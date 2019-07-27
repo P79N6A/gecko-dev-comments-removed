@@ -6,10 +6,10 @@
 
 
 
-
-
 var { Ci, Cu } = require("chrome");
 var Services = require("Services");
+var promise = require("promise");
+var { setTimeout } = require("Timer");
 
 
 
