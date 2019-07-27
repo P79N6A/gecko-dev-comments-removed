@@ -128,8 +128,8 @@ PRLogModuleInfo* nsExternalHelperAppService::mLog = nullptr;
 
 
 #undef LOG
-#define LOG(args) MOZ_LOG(nsExternalHelperAppService::mLog, PR_LOG_INFO, args)
-#define LOG_ENABLED() MOZ_LOG_TEST(nsExternalHelperAppService::mLog, PR_LOG_INFO)
+#define LOG(args) MOZ_LOG(nsExternalHelperAppService::mLog, mozilla::LogLevel::Info, args)
+#define LOG_ENABLED() MOZ_LOG_TEST(nsExternalHelperAppService::mLog, mozilla::LogLevel::Info)
 
 static const char NEVER_ASK_FOR_SAVE_TO_DISK_PREF[] =
   "browser.helperApps.neverAsk.saveToDisk";
@@ -1816,10 +1816,10 @@ void nsExternalAppHandler::SendStatusChange(ErrorType type, nsresult rv, nsIRequ
         }
         break;
     }
-    MOZ_LOG(nsExternalHelperAppService::mLog, PR_LOG_ERROR,
+    MOZ_LOG(nsExternalHelperAppService::mLog, LogLevel::Error,
         ("Error: %s, type=%i, listener=0x%p, transfer=0x%p, rv=0x%08X\n",
          NS_LossyConvertUTF16toASCII(msgId).get(), type, mDialogProgressListener.get(), mTransfer.get(), rv));
-    MOZ_LOG(nsExternalHelperAppService::mLog, PR_LOG_ERROR,
+    MOZ_LOG(nsExternalHelperAppService::mLog, LogLevel::Error,
         ("       path='%s'\n", NS_ConvertUTF16toUTF8(path).get()));
 
     
@@ -1848,7 +1848,7 @@ void nsExternalAppHandler::SendStatusChange(ErrorType type, nsresult rv, nsIRequ
                                              1,
                                              getter_Copies(title));
 
-                MOZ_LOG(nsExternalHelperAppService::mLog, PR_LOG_DEBUG,
+                MOZ_LOG(nsExternalHelperAppService::mLog, LogLevel::Debug,
                        ("mContentContext=0x%p, prompter=0x%p, qi rv=0x%08X, title='%s', msg='%s'",
                        mContentContext.get(),
                        prompter.get(),
@@ -1866,7 +1866,7 @@ void nsExternalAppHandler::SendStatusChange(ErrorType type, nsresult rv, nsIRequ
 
                   prompter = do_GetInterface(window->GetDocShell(), &qiRv);
 
-                  MOZ_LOG(nsExternalHelperAppService::mLog, PR_LOG_DEBUG,
+                  MOZ_LOG(nsExternalHelperAppService::mLog, LogLevel::Debug,
                          ("No prompter from mContentContext, using DocShell, " \
                           "window=0x%p, docShell=0x%p, " \
                           "prompter=0x%p, qi rv=0x%08X",
@@ -1878,7 +1878,7 @@ void nsExternalAppHandler::SendStatusChange(ErrorType type, nsresult rv, nsIRequ
                   
                   
                   if (!prompter) {
-                    MOZ_LOG(nsExternalHelperAppService::mLog, PR_LOG_ERROR,
+                    MOZ_LOG(nsExternalHelperAppService::mLog, LogLevel::Error,
                            ("No prompter from DocShell, no way to alert user"));
                     return;
                   }

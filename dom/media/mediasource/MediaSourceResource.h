@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef MOZILLA_MEDIASOURCERESOURCE_H_
 #define MOZILLA_MEDIASOURCERESOURCE_H_
@@ -13,7 +13,7 @@
 
 extern PRLogModuleInfo* GetMediaSourceLog();
 
-#define MSE_DEBUG(arg, ...) MOZ_LOG(GetMediaSourceLog(), PR_LOG_DEBUG, ("MediaSourceResource(%p:%s)::%s: " arg, this, mType.get(), __func__, ##__VA_ARGS__))
+#define MSE_DEBUG(arg, ...) MOZ_LOG(GetMediaSourceLog(), mozilla::LogLevel::Debug, ("MediaSourceResource(%p:%s)::%s: " arg, this, mType.get(), __func__, ##__VA_ARGS__))
 
 #define UNIMPLEMENTED() MSE_DEBUG("UNIMPLEMENTED FUNCTION at %s:%d", __FILE__, __LINE__)
 
@@ -94,12 +94,12 @@ private:
   nsRefPtr<nsIPrincipal> mPrincipal;
   const nsCString mType;
   Monitor mMonitor;
-  bool mEnded; 
+  bool mEnded; // protected by mMonitor
 };
 
-} 
+} // namespace mozilla
 
 #undef MSE_DEBUG
 #undef UNIMPLEMENTED
 
-#endif 
+#endif /* MOZILLA_MEDIASOURCERESOURCE_H_ */

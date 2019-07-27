@@ -42,12 +42,12 @@ static const char* kTouchCaretLogModuleName = "TouchCaret";
 
 
 #define TOUCHCARET_LOG(message, ...)                                           \
-  MOZ_LOG(gTouchCaretLog, PR_LOG_DEBUG,                                         \
+  MOZ_LOG(gTouchCaretLog, LogLevel::Debug,                                         \
          ("TouchCaret (%p): %s:%d : " message "\n", this, __FUNCTION__,        \
           __LINE__, ##__VA_ARGS__));
 
 #define TOUCHCARET_LOG_STATIC(message, ...)                                    \
-  MOZ_LOG(gTouchCaretLog, PR_LOG_DEBUG,                                         \
+  MOZ_LOG(gTouchCaretLog, LogLevel::Debug,                                         \
          ("TouchCaret: %s:%d : " message "\n", __FUNCTION__, __LINE__,         \
           ##__VA_ARGS__));
 

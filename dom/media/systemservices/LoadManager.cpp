@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 50; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "LoadManager.h"
 #include "LoadMonitor.h"
@@ -17,16 +17,16 @@
 #include "nsNetUtil.h"
 #include "nsIObserverService.h"
 
-
+// NSPR_LOG_MODULES=LoadManager:5
 PRLogModuleInfo *gLoadManagerLog = nullptr;
 #undef LOG
 #undef LOG_ENABLED
-#define LOG(args) MOZ_LOG(gLoadManagerLog, PR_LOG_DEBUG, args)
-#define LOG_ENABLED() MOZ_LOG_TEST(gLoadManagerLog, PR_LOG_VERBOSE)
+#define LOG(args) MOZ_LOG(gLoadManagerLog, mozilla::LogLevel::Debug, args)
+#define LOG_ENABLED() MOZ_LOG_TEST(gLoadManagerLog, mozilla::LogLevel::Verbose)
 
 namespace mozilla {
 
- StaticRefPtr<LoadManagerSingleton> LoadManagerSingleton::sSingleton;
+/* static */ StaticRefPtr<LoadManagerSingleton> LoadManagerSingleton::sSingleton;
 
 NS_IMPL_ISUPPORTS(LoadManagerSingleton, nsIObserver)
 
@@ -84,7 +84,7 @@ LoadManagerSingleton::Observe(nsISupports* aSubject, const char* aTopic,
     }
 
     LOG(("Releasing LoadManager singleton and thread"));
-    
+    // Note: won't be released immediately as the Observer has a ref to us
     sSingleton = nullptr;
   }
   return NS_OK;
@@ -94,7 +94,7 @@ void
 LoadManagerSingleton::LoadChanged(float aSystemLoad, float aProcesLoad)
 {
   MutexAutoLock lock(mLock);
-  
+  // Update total load, and total amount of measured seconds.
   mLoadSum += aSystemLoad;
   mLoadSumMeasurements++;
 
@@ -177,7 +177,7 @@ LoadManagerSingleton::RemoveObserver(webrtc::CPULoadStateObserver * aObserver)
   }
   if (mObservers.Length() == 0) {
     if (mLoadMonitor) {
-      
+      // Dance to avoid deadlock on mLock!
       nsRefPtr<LoadMonitor> loadMonitor = mLoadMonitor.forget();
       MutexAutoUnlock unlock(mLock);
 

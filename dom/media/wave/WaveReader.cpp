@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "nsError.h"
 #include "AbstractMediaDecoder.h"
 #include "MediaResource.h"
@@ -19,8 +19,8 @@
 
 namespace mozilla {
 
-
-
+// Un-comment to enable logging of seek bisections.
+//#define SEEK_LOGGING
 
 extern PRLogModuleInfo* gMediaDecoderLog;
 #define LOG(type, msg) MOZ_LOG(gMediaDecoderLog, type, msg)
@@ -36,29 +36,29 @@ struct waveIdToName {
 };
 
 
-
+// Magic values that identify RIFF chunks we're interested in.
 static const uint32_t RIFF_CHUNK_MAGIC = 0x52494646;
 static const uint32_t WAVE_CHUNK_MAGIC = 0x57415645;
 static const uint32_t FRMT_CHUNK_MAGIC = 0x666d7420;
 static const uint32_t DATA_CHUNK_MAGIC = 0x64617461;
 static const uint32_t LIST_CHUNK_MAGIC = 0x4c495354;
 
-
+// Size of chunk header.  4 byte chunk header type and 4 byte size field.
 static const uint16_t CHUNK_HEADER_SIZE = 8;
 
-
+// Size of RIFF header.  RIFF chunk and 4 byte RIFF type.
 static const uint16_t RIFF_INITIAL_SIZE = CHUNK_HEADER_SIZE + 4;
 
-
-
+// Size of required part of format chunk.  Actual format chunks may be
+// extended (for non-PCM encodings), but we skip any extended data.
 static const uint16_t WAVE_FORMAT_CHUNK_SIZE = 16;
 
-
-
+// PCM encoding type from format chunk.  Linear PCM is the only encoding
+// supported by AudioStream.
 static const uint16_t WAVE_FORMAT_ENCODING_PCM = 1;
 
-
-
+// We reject files with more than this number of channels if we're decoding for
+// playback.
 static const uint8_t MAX_CHANNELS = 2;
 
 namespace {
@@ -154,7 +154,7 @@ nsresult WaveReader::ReadMetadata(MediaInfo* aInfo,
 bool
 WaveReader::IsMediaSeekable()
 {
-  
+  // not used
   return true;
 }
 
@@ -210,7 +210,7 @@ bool WaveReader::DecodeAudioData()
     return false;
   }
 
-  
+  // convert data to samples
   const char* d = dataBuffer.get();
   AudioDataValue* s = sampleBuffer.get();
   for (int i = 0; i < frames; ++i) {
@@ -254,7 +254,7 @@ nsRefPtr<MediaDecoderReader::SeekPromise>
 WaveReader::Seek(int64_t aTarget, int64_t aEndTime)
 {
   MOZ_ASSERT(OnTaskQueue());
-  LOG(PR_LOG_DEBUG, ("%p About to seek to %lld", mDecoder, aTarget));
+  LOG(LogLevel::Debug, ("%p About to seek to %lld", mDecoder, aTarget));
 
   if (NS_FAILED(ResetDecode())) {
     return SeekPromise::CreateAndReject(NS_ERROR_FAILURE, __func__);
@@ -284,13 +284,13 @@ media::TimeIntervals WaveReader::GetBuffered()
   int64_t startOffset = resource->GetNextCachedData(mWavePCMOffset);
   while (startOffset >= 0) {
     int64_t endOffset = resource->GetCachedDataEnd(startOffset);
-    
+    // Bytes [startOffset..endOffset] are cached.
     NS_ASSERTION(startOffset >= mWavePCMOffset, "Integer underflow in GetBuffered");
     NS_ASSERTION(endOffset >= mWavePCMOffset, "Integer underflow in GetBuffered");
 
-    
-    
-    
+    // We need to round the buffered ranges' times to microseconds so that they
+    // have the same precision as the currentTime and duration attribute on
+    // the media element.
     buffered += media::TimeInterval(
       media::TimeUnit::FromSeconds(BytesToTime(startOffset - mWavePCMOffset)),
       media::TimeUnit::FromSeconds(BytesToTime(endOffset - mWavePCMOffset)));
@@ -343,7 +343,7 @@ WaveReader::LoadRIFFChunk()
     return false;
   }
 
-  
+  // Skip over RIFF size field.
   p += sizeof(uint32_t);
 
   if (ReadUint32BE(&p) != WAVE_CHUNK_MAGIC) {
@@ -361,7 +361,7 @@ WaveReader::LoadFormatChunk(uint32_t aChunkSize)
   char waveFormat[WAVE_FORMAT_CHUNK_SIZE];
   const char* p = waveFormat;
 
-  
+  // RIFF chunks are always word (two byte) aligned.
   MOZ_ASSERT(mDecoder->GetResource()->Tell() % 2 == 0,
              "LoadFormatChunk called with unaligned resource");
 
@@ -384,18 +384,18 @@ WaveReader::LoadFormatChunk(uint32_t aChunkSize)
   channels = ReadUint16LE(&p);
   rate = ReadUint32LE(&p);
 
-  
+  // Skip over average bytes per second field.
   p += 4;
 
   frameSize = ReadUint16LE(&p);
 
   sampleFormat = ReadUint16LE(&p);
 
-  
-  
-  
-  
-  
+  // PCM encoded WAVEs are not expected to have an extended "format" chunk,
+  // but I have found WAVEs that have a extended "format" chunk with an
+  // extension size of 0 bytes.  Be polite and handle this rather than
+  // considering the file invalid.  This code skips any extension of the
+  // "format" chunk.
   if (aChunkSize > WAVE_FORMAT_CHUNK_SIZE) {
     char extLength[2];
     const char* p = extLength;
@@ -423,14 +423,14 @@ WaveReader::LoadFormatChunk(uint32_t aChunkSize)
     }
   }
 
-  
+  // RIFF chunks are always word (two byte) aligned.
   MOZ_ASSERT(mDecoder->GetResource()->Tell() % 2 == 0,
              "LoadFormatChunk left resource unaligned");
 
-  
-  
-  
-  
+  // Make sure metadata is fairly sane.  The rate check is fairly arbitrary,
+  // but the channels check is intentionally limited to mono or stereo
+  // when the media is intended for direct playback because that's what the
+  // audio backend currently supports.
   unsigned int actualFrameSize = (sampleFormat == 8 ? 1 : 2) * channels;
   if (rate < 100 || rate > 96000 ||
       (((channels < 1 || channels > MAX_CHANNELS) ||
@@ -457,7 +457,7 @@ WaveReader::LoadFormatChunk(uint32_t aChunkSize)
 bool
 WaveReader::FindDataOffset(uint32_t aChunkSize)
 {
-  
+  // RIFF chunks are always word (two byte) aligned.
   MOZ_ASSERT(mDecoder->GetResource()->Tell() % 2 == 0,
              "FindDataOffset called with unaligned resource");
 
@@ -498,9 +498,9 @@ int64_t
 WaveReader::GetDataLength()
 {
   int64_t length = mWaveLength;
-  
-  
-  
+  // If the decoder has a valid content length, and it's shorter than the
+  // expected length of the PCM data, calculate the playback duration from
+  // the content length rather than the expected PCM data length.
   int64_t streamLength = mDecoder->GetResource()->GetLength();
   if (streamLength >= 0) {
     int64_t dataLength = std::max<int64_t>(0, streamLength - mWavePCMOffset);
@@ -542,7 +542,7 @@ bool
 WaveReader::LoadListChunk(uint32_t aChunkSize,
                           nsAutoPtr<dom::HTMLMediaElement::MetadataTags> &aTags)
 {
-  
+  // List chunks are always word (two byte) aligned.
   MOZ_ASSERT(mDecoder->GetResource()->Tell() % 2 == 0,
              "LoadListChunk called with unaligned resource");
 
@@ -566,10 +566,10 @@ WaveReader::LoadListChunk(uint32_t aChunkSize,
   }
 
   const waveIdToName ID_TO_NAME[] = {
-    { 0x49415254, NS_LITERAL_CSTRING("artist") },   
-    { 0x49434d54, NS_LITERAL_CSTRING("comments") }, 
-    { 0x49474e52, NS_LITERAL_CSTRING("genre") },    
-    { 0x494e414d, NS_LITERAL_CSTRING("name") },     
+    { 0x49415254, NS_LITERAL_CSTRING("artist") },   // IART
+    { 0x49434d54, NS_LITERAL_CSTRING("comments") }, // ICMT
+    { 0x49474e52, NS_LITERAL_CSTRING("genre") },    // IGNR
+    { 0x494e414d, NS_LITERAL_CSTRING("name") },     // INAM
   };
 
   const char* const end = chunk.get() + aChunkSize;
@@ -578,25 +578,25 @@ WaveReader::LoadListChunk(uint32_t aChunkSize,
 
   while (p + 8 < end) {
     uint32_t id = ReadUint32BE(&p);
-    
+    // Uppercase tag id, inspired by GStreamer's Wave parser.
     id &= 0xDFDFDFDF;
 
     uint32_t length = ReadUint32LE(&p);
 
-    
+    // Subchunk shall not exceed parent chunk.
     if (uint32_t(end - p) < length) {
       break;
     }
 
-    
-    
+    // Wrap the string, adjusting length to account for optional
+    // null termination in the chunk.
     nsCString val(p, length);
     if (length > 0 && val[length - 1] == '\0') {
       val.SetLength(length - 1);
     }
 
-    
-    
+    // Chunks in List::INFO are always word (two byte) aligned. So round up if
+    // necessary.
     length += length % 2;
     p += length;
 
@@ -618,7 +618,7 @@ WaveReader::LoadListChunk(uint32_t aChunkSize,
 bool
 WaveReader::LoadAllChunks(nsAutoPtr<dom::HTMLMediaElement::MetadataTags> &aTags)
 {
-  
+  // Chunks are always word (two byte) aligned.
   MOZ_ASSERT(mDecoder->GetResource()->Tell() % 2 == 0,
              "LoadAllChunks called with unaligned resource");
 
@@ -663,10 +663,10 @@ WaveReader::LoadAllChunks(nsAutoPtr<dom::HTMLMediaElement::MetadataTags> &aTags)
         break;
     }
 
-    
+    // RIFF chunks are two-byte aligned, so round up if necessary.
     chunkSize += chunkSize % 2;
 
-    
+    // Move forward to next chunk
     CheckedInt64 forward = CheckedInt64(chunkStart) + chunkSize - GetPosition();
 
     if (!forward.isValid() || forward.value() < 0) {
@@ -689,4 +689,4 @@ WaveReader::LoadAllChunks(nsAutoPtr<dom::HTMLMediaElement::MetadataTags> &aTags)
   return false;
 }
 
-} 
+} // namespace mozilla

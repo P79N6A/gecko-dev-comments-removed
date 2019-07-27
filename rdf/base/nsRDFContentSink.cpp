@@ -307,7 +307,7 @@ RDFContentSinkImpl::~RDFContentSinkImpl()
     NS_IF_RELEASE(mDocumentURL);
 
     if (mContextStack) {
-        MOZ_LOG(gLog, PR_LOG_WARNING,
+        MOZ_LOG(gLog, LogLevel::Warning,
                ("rdfxml: warning! unclosed tag"));
 
         
@@ -323,10 +323,10 @@ RDFContentSinkImpl::~RDFContentSinkImpl()
             
             
             
-            if (resource && MOZ_LOG_TEST(gLog, PR_LOG_NOTICE)) {
+            if (resource && MOZ_LOG_TEST(gLog, LogLevel::Debug)) {
                 nsXPIDLCString uri;
                 resource->GetValue(getter_Copies(uri));
-                MOZ_LOG(gLog, PR_LOG_NOTICE,
+                MOZ_LOG(gLog, LogLevel::Debug,
                        ("rdfxml:   uri=%s", (const char*) uri));
             }
 
@@ -421,7 +421,7 @@ RDFContentSinkImpl::HandleStartElement(const char16_t *aName,
       break;
 
   case eRDFContentSinkState_InEpilog:
-      MOZ_LOG(gLog, PR_LOG_WARNING,
+      MOZ_LOG(gLog, LogLevel::Warning,
              ("rdfxml: unexpected content in epilog at line %d",
               aLineNumber));
       break;
@@ -438,7 +438,7 @@ RDFContentSinkImpl::HandleEndElement(const char16_t *aName)
   nsIRDFResource* resource;
   if (NS_FAILED(PopContext(resource, mState, mParseMode))) {
       
-      if (MOZ_LOG_TEST(gLog, PR_LOG_WARNING)) {
+      if (MOZ_LOG_TEST(gLog, LogLevel::Warning)) {
           nsAutoString tagStr(aName);
           char* tagCStr = ToNewCString(tagStr);
 
@@ -1213,7 +1213,7 @@ RDFContentSinkImpl::OpenMember(const char16_t* aName,
 
     if (!nameSpaceURI.EqualsLiteral(RDF_NAMESPACE_URI) ||
         localName != kLiAtom) {
-        MOZ_LOG(gLog, PR_LOG_ERROR,
+        MOZ_LOG(gLog, LogLevel::Error,
                ("rdfxml: expected RDF:li at line %d",
                 -1)); 
 

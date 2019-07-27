@@ -53,7 +53,7 @@ GetStorageStreamLog()
 #ifdef LOG
 #undef LOG
 #endif
-#define LOG(args) MOZ_LOG(GetStorageStreamLog(), PR_LOG_DEBUG, args)
+#define LOG(args) MOZ_LOG(GetStorageStreamLog(), mozilla::LogLevel::Debug, args)
 
 nsStorageStream::nsStorageStream()
   : mSegmentedBuffer(0), mSegmentSize(0), mWriteInProgress(false),

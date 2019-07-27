@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "MediaSource.h"
 
@@ -57,10 +57,10 @@ PRLogModuleInfo* GetMediaSourceAPILog()
   return sLogModule;
 }
 
-#define MSE_DEBUG(arg, ...) MOZ_LOG(GetMediaSourceLog(), PR_LOG_DEBUG, ("MediaSource(%p)::%s: " arg, this, __func__, ##__VA_ARGS__))
-#define MSE_API(arg, ...) MOZ_LOG(GetMediaSourceAPILog(), PR_LOG_DEBUG, ("MediaSource(%p)::%s: " arg, this, __func__, ##__VA_ARGS__))
+#define MSE_DEBUG(arg, ...) MOZ_LOG(GetMediaSourceLog(), mozilla::LogLevel::Debug, ("MediaSource(%p)::%s: " arg, this, __func__, ##__VA_ARGS__))
+#define MSE_API(arg, ...) MOZ_LOG(GetMediaSourceAPILog(), mozilla::LogLevel::Debug, ("MediaSource(%p)::%s: " arg, this, __func__, ##__VA_ARGS__))
 
-
+// Arbitrary limit.
 static const unsigned int MAX_SOURCE_BUFFERS = 16;
 
 namespace mozilla {
@@ -92,7 +92,7 @@ IsTypeSupported(const nsAString& aType)
            mimeType.EqualsASCII("audio/mp4")) &&
           (!Preferences::GetBool("media.mediasource.mp4.enabled", false)
 #ifdef MOZ_WIDGET_ANDROID
-          
+          // MP4 won't work unless we have JellyBean+
           || AndroidBridge::Bridge()->GetAPIVersion() < 16
 #endif
           )) {
@@ -110,9 +110,9 @@ IsTypeSupported(const nsAString& aType)
   if (!found) {
     return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
   }
-  
-  
-  
+  // Check aType against HTMLMediaElement list of MIME types.  Since we've
+  // already restricted the container format, this acts as a specific check
+  // of any specified "codecs" parameter of aType.
   if (dom::HTMLMediaElement::GetCanPlay(aType) == CANPLAY_NO) {
     return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
   }
@@ -121,7 +121,7 @@ IsTypeSupported(const nsAString& aType)
 
 namespace dom {
 
- already_AddRefed<MediaSource>
+/* static */ already_AddRefed<MediaSource>
 MediaSource::Constructor(const GlobalObject& aGlobal,
                          ErrorResult& aRv)
 {
@@ -232,7 +232,7 @@ MediaSource::AddSourceBuffer(const nsAString& aType, ErrorResult& aRv)
   }
   nsRefPtr<SourceBuffer> sourceBuffer = new SourceBuffer(this, NS_ConvertUTF16toUTF8(mimeType));
   if (!sourceBuffer) {
-    aRv.Throw(NS_ERROR_FAILURE); 
+    aRv.Throw(NS_ERROR_FAILURE); // XXX need a better error here
     return nullptr;
   }
   mSourceBuffers->Append(sourceBuffer);
@@ -269,21 +269,21 @@ MediaSource::RemoveSourceBuffer(SourceBuffer& aSourceBuffer, ErrorResult& aRv)
   }
 
   sourceBuffer->AbortBufferAppend();
-  
-  
+  // TODO:
+  // abort stream append loop (if running)
 
-  
-  
-  
-  
-  
-  
-  
+  // TODO:
+  // For all sourceBuffer audioTracks, videoTracks, textTracks:
+  //     set sourceBuffer to null
+  //     remove sourceBuffer video, audio, text Tracks from MediaElement tracks
+  //     remove sourceBuffer video, audio, text Tracks and fire "removetrack" at affected lists
+  //     fire "removetrack" at modified MediaElement track lists
+  // If removed enabled/selected, fire "change" at affected MediaElement list.
   if (mActiveSourceBuffers->Contains(sourceBuffer)) {
     mActiveSourceBuffers->Remove(sourceBuffer);
   }
   mSourceBuffers->Remove(sourceBuffer);
-  
+  // TODO: Free all resources associated with sourceBuffer
 }
 
 void
@@ -306,27 +306,27 @@ MediaSource::EndOfStream(const Optional<MediaSourceEndOfStreamError>& aError, Er
     if (aRv.Failed()) {
       return;
     }
-    
+    // Notify reader that all data is now available.
     mDecoder->Ended(true);
     return;
   }
   switch (aError.Value()) {
   case MediaSourceEndOfStreamError::Network:
-    
-    
-    
+    // TODO: If media element has a readyState of:
+    //   HAVE_NOTHING -> run resource fetch algorithm
+    // > HAVE_NOTHING -> run "interrupted" steps of resource fetch
     break;
   case MediaSourceEndOfStreamError::Decode:
-    
-    
-    
+    // TODO: If media element has a readyState of:
+    //   HAVE_NOTHING -> run "unsupported" steps of resource fetch
+    // > HAVE_NOTHING -> run "corrupted" steps of resource fetch
     break;
   default:
     aRv.Throw(NS_ERROR_DOM_INVALID_ACCESS_ERR);
   }
 }
 
- bool
+/* static */ bool
 MediaSource::IsTypeSupported(const GlobalObject&, const nsAString& aType)
 {
   MOZ_ASSERT(NS_IsMainThread());
@@ -338,13 +338,13 @@ MediaSource::IsTypeSupported(const GlobalObject&, const nsAString& aType)
   return NS_SUCCEEDED(rv);
 }
 
- bool
+/* static */ bool
 MediaSource::Enabled(JSContext* cx, JSObject* aGlobal)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  
-  
+  // Don't use aGlobal across Preferences stuff, which the static
+  // analysis thinks can GC.
   JS::Rooted<JSObject*> global(cx, aGlobal);
 
   bool enabled = Preferences::GetBool("media.mediasource.enabled");
@@ -352,15 +352,15 @@ MediaSource::Enabled(JSContext* cx, JSObject* aGlobal)
     return false;
   }
 
-  
+  // Check whether it's enabled everywhere or just whitelisted sites.
   bool restrict = Preferences::GetBool("media.mediasource.whitelist", false);
   if (!restrict) {
     return true;
   }
 
-  
-  
-  
+  // We want to restrict to YouTube only.
+  // We define that as the origin being *.youtube.com.
+  // We also support *.youtube-nocookie.com
   nsIPrincipal* principal = nsContentUtils::ObjectPrincipal(global);
   nsCOMPtr<nsIURI> uri;
   if (NS_FAILED(principal->GetURI(getter_AddRefs(uri))) || !uri) {
@@ -461,7 +461,7 @@ MediaSource::SetReadyState(MediaSourceReadyState aState)
        oldState == MediaSourceReadyState::Ended)) {
     QueueAsyncSimpleEvent("sourceopen");
     if (oldState == MediaSourceReadyState::Ended) {
-      
+      // Notify reader that more data may come.
       mDecoder->Ended(false);
     }
     return;
@@ -506,10 +506,10 @@ MediaSource::DurationChange(double aOldDuration, double aNewDuration)
   MSE_DEBUG("DurationChange(aOldDuration=%f, aNewDuration=%f)", aOldDuration, aNewDuration);
 
   if (aNewDuration < aOldDuration) {
-    
+    // Remove all buffered data from aNewDuration.
     mSourceBuffers->RangeRemoval(aNewDuration, PositiveInfinity<double>());
   }
-  
+  // TODO: If partial audio frames/text cues exist, clamp duration based on mSourceBuffers.
 }
 
 void
@@ -517,8 +517,8 @@ MediaSource::NotifyEvicted(double aStart, double aEnd)
 {
   MOZ_ASSERT(NS_IsMainThread());
   MSE_DEBUG("NotifyEvicted(aStart=%f, aEnd=%f)", aStart, aEnd);
-  
-  
+  // Cycle through all SourceBuffers and tell them to evict data in
+  // the given range.
   mSourceBuffers->Evict(aStart, aEnd);
 }
 
@@ -592,6 +592,6 @@ NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 #undef MSE_DEBUG
 #undef MSE_API
 
-} 
+} // namespace dom
 
-} 
+} // namespace mozilla

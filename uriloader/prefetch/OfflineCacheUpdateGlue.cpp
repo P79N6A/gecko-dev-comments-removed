@@ -26,10 +26,10 @@
 extern PRLogModuleInfo *gOfflineCacheUpdateLog;
 
 #undef LOG
-#define LOG(args) MOZ_LOG(gOfflineCacheUpdateLog, PR_LOG_DEBUG, args)
+#define LOG(args) MOZ_LOG(gOfflineCacheUpdateLog, mozilla::LogLevel::Debug, args)
 
 #undef LOG_ENABLED
-#define LOG_ENABLED() MOZ_LOG_TEST(gOfflineCacheUpdateLog, PR_LOG_DEBUG)
+#define LOG_ENABLED() MOZ_LOG_TEST(gOfflineCacheUpdateLog, mozilla::LogLevel::Debug)
 
 namespace mozilla {
 namespace docshell {

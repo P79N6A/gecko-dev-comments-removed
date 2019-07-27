@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include <dlfcn.h>
 
@@ -13,7 +13,7 @@
 #include "nsDebug.h"
 
 PRLogModuleInfo* GetAppleMediaLog();
-#define LOG(...) MOZ_LOG(GetAppleMediaLog(), PR_LOG_DEBUG, (__VA_ARGS__))
+#define LOG(...) MOZ_LOG(GetAppleMediaLog(), mozilla::LogLevel::Debug, (__VA_ARGS__))
 
 namespace mozilla {
 
@@ -29,12 +29,12 @@ CFStringRef AppleCMLinker::skPropFullRangeVideo = nullptr;
 #include "AppleCMFunctions.h"
 #undef LINK_FUNC
 
- bool
+/* static */ bool
 AppleCMLinker::Link()
 {
-  
-  
-  
+  // Bump our reference count every time we're called.
+  // Add a lock or change the thread assertion if
+  // you need to call this off the main thread.
   MOZ_ASSERT(NS_IsMainThread());
   ++sRefCount;
 
@@ -106,7 +106,7 @@ fail:
   return false;
 }
 
- void
+/* static */ void
 AppleCMLinker::Unlink()
 {
   MOZ_ASSERT(NS_IsMainThread());
@@ -120,7 +120,7 @@ AppleCMLinker::Unlink()
   }
 }
 
- CFStringRef
+/* static */ CFStringRef
 AppleCMLinker::GetIOConst(const char* symbol)
 {
   CFStringRef* address = (CFStringRef*)dlsym(sLink, symbol);
@@ -131,4 +131,4 @@ AppleCMLinker::GetIOConst(const char* symbol)
   return *address;
 }
 
-} 
+} // namespace mozilla

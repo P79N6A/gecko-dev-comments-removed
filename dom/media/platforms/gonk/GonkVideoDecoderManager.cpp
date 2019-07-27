@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "MediaCodecProxy.h"
 #include <OMX_IVCommon.h>
 #include <gui/Surface.h>
@@ -32,7 +32,7 @@
 #define GVDM_LOG(...) __android_log_print(ANDROID_LOG_DEBUG, "GonkVideoDecoderManager", __VA_ARGS__)
 
 PRLogModuleInfo* GetDemuxerLog();
-#define LOG(...) MOZ_LOG(GetDemuxerLog(), PR_LOG_DEBUG, (__VA_ARGS__))
+#define LOG(...) MOZ_LOG(GetDemuxerLog(), mozilla::LogLevel::Debug, (__VA_ARGS__))
 using namespace mozilla::layers;
 using namespace android;
 typedef android::MediaCodecProxy MediaCodecProxy;
@@ -78,8 +78,8 @@ GonkVideoDecoderManager::Init(MediaDataDecoderCallback* aCallback)
 {
   nsIntSize displaySize(mDisplayWidth, mDisplayHeight);
   nsIntRect pictureRect(0, 0, mVideoWidth, mVideoHeight);
-  
-  
+  // Validate the container-reported frame and pictureRect sizes. This ensures
+  // that our video frame creation code doesn't overflow.
   nsIntSize frameSize(mVideoWidth, mVideoHeight);
   if (!IsValidVideoRegion(frameSize, pictureRect, displaySize)) {
     GVDM_LOG("It is not a valid region");
@@ -91,13 +91,13 @@ GonkVideoDecoderManager::Init(MediaDataDecoderCallback* aCallback)
   if (mLooper.get() != nullptr) {
     return nullptr;
   }
-  
+  // Create ALooper
   mLooper = new ALooper;
   mManagerLooper = new ALooper;
   mManagerLooper->setName("GonkVideoDecoderManager");
-  
+  // Register AMessage handler to ALooper.
   mManagerLooper->registerHandler(mHandler);
-  
+  // Start ALooper thread.
   if (mLooper->start() != OK || mManagerLooper->start() != OK ) {
     return nullptr;
   }
@@ -119,7 +119,7 @@ GonkVideoDecoderManager::Input(MediaRawData* aSample)
   nsRefPtr<MediaRawData> sample;
 
   if (!aSample) {
-    
+    // It means EOS with empty sample.
     sample = new MediaRawData();
   } else {
     sample = aSample;
@@ -140,8 +140,8 @@ GonkVideoDecoderManager::Input(MediaRawData* aSample)
     if (rv == OK) {
       mQueueSample.RemoveElementAt(0);
     } else if (rv == -EAGAIN || rv == -ETIMEDOUT) {
-      
-      
+      // In most cases, EAGAIN or ETIMEOUT are safe because OMX can't fill
+      // buffer on time.
       return NS_OK;
     } else {
       return NS_ERROR_UNEXPECTED;
@@ -185,8 +185,8 @@ GonkVideoDecoderManager::CreateVideoData(int64_t aStreamOffset, VideoData **v)
   mLastDecodedTime = timeUs;
 
   if (mVideoBuffer->range_length() == 0) {
-    
-    
+    // Some decoders may return spurious empty buffers that we just want to ignore
+    // quoted from Android's AwesomePlayer.cpp
     ReleaseVideoBuffer();
     return NS_ERROR_NOT_AVAILABLE;
   }
@@ -199,9 +199,9 @@ GonkVideoDecoderManager::CreateVideoData(int64_t aStreamOffset, VideoData **v)
   if (mFrameInfo.mWidth != mInitialFrame.width ||
       mFrameInfo.mHeight != mInitialFrame.height) {
 
-    
-    
-    
+    // Frame size is different from what the container reports. This is legal,
+    // and we will preserve the ratio of the crop rectangle as it
+    // was reported relative to the picture size reported by the container.
     picture.x = (mPicture.x * mFrameInfo.mWidth) / mInitialFrame.width;
     picture.y = (mPicture.y * mFrameInfo.mHeight) / mInitialFrame.height;
     picture.width = (mFrameInfo.mWidth * mPicture.width) / mInitialFrame.width;
@@ -223,8 +223,8 @@ GonkVideoDecoderManager::CreateVideoData(int64_t aStreamOffset, VideoData **v)
                              mImageContainer,
                              aStreamOffset,
                              timeUs,
-                             1, 
-                                
+                             1, // No way to pass sample duration from muxer to
+                                // OMX codec, so we hardcode the duration here.
                              textureClient,
                              keyFrame,
                              -1,
@@ -238,7 +238,7 @@ GonkVideoDecoderManager::CreateVideoData(int64_t aStreamOffset, VideoData **v)
     int32_t stride = mFrameInfo.mStride;
     int32_t slice_height = mFrameInfo.mSliceHeight;
 
-    
+    // Converts to OMX_COLOR_FormatYUV420Planar
     if (mFrameInfo.mColorFormat != OMX_COLOR_FormatYUV420Planar) {
       ARect crop;
       crop.top = 0;
@@ -262,7 +262,7 @@ GonkVideoDecoderManager::CreateVideoData(int64_t aStreamOffset, VideoData **v)
     uint8_t *yuv420p_u = yuv420p_y + yuv420p_y_size;
     uint8_t *yuv420p_v = yuv420p_u + yuv420p_u_size;
 
-    
+    // This is the approximate byte position in the stream.
     int64_t pos = aStreamOffset;
 
     VideoData::YCbCrBuffer b;
@@ -292,7 +292,7 @@ GonkVideoDecoderManager::CreateVideoData(int64_t aStreamOffset, VideoData **v)
         mImageContainer,
         pos,
         timeUs,
-        1, 
+        1, // We don't know the duration.
         b,
         keyFrame,
         -1,
@@ -307,7 +307,7 @@ GonkVideoDecoderManager::CreateVideoData(int64_t aStreamOffset, VideoData **v)
 bool
 GonkVideoDecoderManager::SetVideoFormat()
 {
-  
+  // read video metadata from MediaCodec
   sp<AMessage> codecFormat;
   if (mDecoder->getOutputFormat(&codecFormat) == OK) {
     AString mime;
@@ -364,7 +364,7 @@ GonkVideoDecoderManager::Flush()
   return NS_OK;
 }
 
-
+// Blocks until decoded sample is produced by the deoder.
 nsresult
 GonkVideoDecoderManager::Output(int64_t aStreamOffset,
                                 nsRefPtr<MediaData>& aOutData)
@@ -383,7 +383,7 @@ GonkVideoDecoderManager::Output(int64_t aStreamOffset,
       nsRefPtr<VideoData> data;
       nsresult rv = CreateVideoData(aStreamOffset, getter_AddRefs(data));
       if (rv == NS_ERROR_NOT_AVAILABLE) {
-        
+        // Decoder outputs a empty video buffer, try again
         return NS_ERROR_NOT_AVAILABLE;
       } else if (rv != NS_OK || data == nullptr) {
         GVDM_LOG("Failed to create VideoData");
@@ -394,7 +394,7 @@ GonkVideoDecoderManager::Output(int64_t aStreamOffset,
     }
     case android::INFO_FORMAT_CHANGED:
     {
-      
+      // If the format changed, update our cached info.
       GVDM_LOG("Decoder format changed");
       if (!SetVideoFormat()) {
         return NS_ERROR_UNEXPECTED;
@@ -411,7 +411,7 @@ GonkVideoDecoderManager::Output(int64_t aStreamOffset,
     }
     case -EAGAIN:
     {
-
+//      GVDM_LOG("Need to try again!");
       return NS_ERROR_NOT_AVAILABLE;
     }
     case android::ERROR_END_OF_STREAM:
@@ -420,7 +420,7 @@ GonkVideoDecoderManager::Output(int64_t aStreamOffset,
       nsRefPtr<VideoData> data;
       nsresult rv = CreateVideoData(aStreamOffset, getter_AddRefs(data));
       if (rv == NS_ERROR_NOT_AVAILABLE) {
-        
+        // For EOS, no need to do any thing.
         return NS_ERROR_ABORT;
       }
       if (rv != NS_OK || data == nullptr) {
@@ -459,7 +459,7 @@ GonkVideoDecoderManager::codecReserved()
   sp<AMessage> format = new AMessage;
   sp<Surface> surface;
   status_t rv = OK;
-  
+  // Fixed values
   GVDM_LOG("Configure video mime type: %s, widht:%d, height:%d", mMimeType.get(), mVideoWidth, mVideoHeight);
   format->setString("mime", mMimeType.get());
   format->setInt32("width", mVideoWidth);
@@ -488,7 +488,7 @@ GonkVideoDecoderManager::codecCanceled()
   mDecoder = nullptr;
 }
 
-
+// Called on GonkVideoDecoderManager::mManagerLooper thread.
 void
 GonkVideoDecoderManager::onMessageReceived(const sp<AMessage> &aMessage)
 {
@@ -552,20 +552,20 @@ GonkVideoDecoderManager::VideoResourceListener::codecCanceled()
 uint8_t *
 GonkVideoDecoderManager::GetColorConverterBuffer(int32_t aWidth, int32_t aHeight)
 {
-  
+  // Allocate a temporary YUV420Planer buffer.
   size_t yuv420p_y_size = aWidth * aHeight;
   size_t yuv420p_u_size = ((aWidth + 1) / 2) * ((aHeight + 1) / 2);
   size_t yuv420p_v_size = yuv420p_u_size;
   size_t yuv420p_size = yuv420p_y_size + yuv420p_u_size + yuv420p_v_size;
   if (mColorConverterBufferSize != yuv420p_size) {
-    mColorConverterBuffer = nullptr; 
+    mColorConverterBuffer = nullptr; // release the previous buffer first
     mColorConverterBuffer = new uint8_t[yuv420p_size];
     mColorConverterBufferSize = yuv420p_size;
   }
   return mColorConverterBuffer.get();
 }
 
-
+/* static */
 void
 GonkVideoDecoderManager::RecycleCallback(TextureClient* aClient, void* aClosure)
 {
@@ -601,7 +601,7 @@ void GonkVideoDecoderManager::ReleaseAllPendingVideoBuffers()
     }
     mPendingVideoBuffers.clear();
   }
-  
+  // Free all pending video buffers without holding mPendingVideoBuffersLock.
   int size = releasingVideoBuffers.length();
   for (int i = 0; i < size; i++) {
     android::MediaBuffer *buffer;
@@ -612,4 +612,4 @@ void GonkVideoDecoderManager::ReleaseAllPendingVideoBuffers()
   releasingVideoBuffers.clear();
 }
 
-} 
+} // namespace mozilla

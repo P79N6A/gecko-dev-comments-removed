@@ -199,7 +199,7 @@ NSSCertDBTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
   }
 
   if (isCertRevoked) {
-    MOZ_LOG(gCertVerifierLog, PR_LOG_DEBUG,
+    MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
            ("NSSCertDBTrustDomain: certificate is in blocklist"));
     return Result::ERROR_REVOKED_CERTIFICATE;
   }
@@ -341,7 +341,7 @@ NSSCertDBTrustDomain::CheckRevocation(EndEntityOrCA endEntityOrCA,
   
   
 
-  MOZ_LOG(gCertVerifierLog, PR_LOG_DEBUG,
+  MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
          ("NSSCertDBTrustDomain: Top of CheckRevocation\n"));
 
   
@@ -375,7 +375,7 @@ NSSCertDBTrustDomain::CheckRevocation(EndEntityOrCA endEntityOrCA,
     if (stapledOCSPResponseResult == Success) {
       
       mOCSPStaplingStatus = CertVerifier::OCSP_STAPLING_GOOD;
-      MOZ_LOG(gCertVerifierLog, PR_LOG_DEBUG,
+      MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
              ("NSSCertDBTrustDomain: stapled OCSP response: good"));
       return Success;
     }
@@ -383,19 +383,19 @@ NSSCertDBTrustDomain::CheckRevocation(EndEntityOrCA endEntityOrCA,
         expired) {
       
       mOCSPStaplingStatus = CertVerifier::OCSP_STAPLING_EXPIRED;
-      MOZ_LOG(gCertVerifierLog, PR_LOG_DEBUG,
+      MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
              ("NSSCertDBTrustDomain: expired stapled OCSP response"));
     } else {
       
       mOCSPStaplingStatus = CertVerifier::OCSP_STAPLING_INVALID;
-      MOZ_LOG(gCertVerifierLog, PR_LOG_DEBUG,
+      MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
              ("NSSCertDBTrustDomain: stapled OCSP response: failure"));
       return stapledOCSPResponseResult;
     }
   } else if (endEntityOrCA == EndEntityOrCA::MustBeEndEntity) {
     
     mOCSPStaplingStatus = CertVerifier::OCSP_STAPLING_NONE;
-    MOZ_LOG(gCertVerifierLog, PR_LOG_DEBUG,
+    MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
            ("NSSCertDBTrustDomain: no stapled OCSP response"));
   }
 
@@ -406,20 +406,20 @@ NSSCertDBTrustDomain::CheckRevocation(EndEntityOrCA endEntityOrCA,
                                               cachedResponseValidThrough);
   if (cachedResponsePresent) {
     if (cachedResponseResult == Success && cachedResponseValidThrough >= time) {
-      MOZ_LOG(gCertVerifierLog, PR_LOG_DEBUG,
+      MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
              ("NSSCertDBTrustDomain: cached OCSP response: good"));
       return Success;
     }
     
     if (cachedResponseResult == Result::ERROR_REVOKED_CERTIFICATE) {
-      MOZ_LOG(gCertVerifierLog, PR_LOG_DEBUG,
+      MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
              ("NSSCertDBTrustDomain: cached OCSP response: revoked"));
       return Result::ERROR_REVOKED_CERTIFICATE;
     }
     
     
     
-    MOZ_LOG(gCertVerifierLog, PR_LOG_DEBUG,
+    MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
            ("NSSCertDBTrustDomain: cached OCSP response: error %ld valid "
            "until %lld", cachedResponseResult, cachedResponseValidThrough));
     
@@ -438,7 +438,7 @@ NSSCertDBTrustDomain::CheckRevocation(EndEntityOrCA endEntityOrCA,
       cachedResponsePresent = false;
     }
   } else {
-    MOZ_LOG(gCertVerifierLog, PR_LOG_DEBUG,
+    MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
            ("NSSCertDBTrustDomain: no cached OCSP response"));
   }
   
@@ -571,25 +571,25 @@ NSSCertDBTrustDomain::CheckRevocation(EndEntityOrCA endEntityOrCA,
       }
     }
     if (mOCSPFetching != FetchOCSPForDVSoftFail) {
-      MOZ_LOG(gCertVerifierLog, PR_LOG_DEBUG,
+      MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
              ("NSSCertDBTrustDomain: returning SECFailure after "
               "OCSP request failure"));
       return error;
     }
     if (cachedResponseResult == Result::ERROR_OCSP_UNKNOWN_CERT) {
-      MOZ_LOG(gCertVerifierLog, PR_LOG_DEBUG,
+      MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
              ("NSSCertDBTrustDomain: returning SECFailure from cached "
               "response after OCSP request failure"));
       return cachedResponseResult;
     }
     if (stapledOCSPResponseResult != Success) {
-      MOZ_LOG(gCertVerifierLog, PR_LOG_DEBUG,
+      MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
              ("NSSCertDBTrustDomain: returning SECFailure from expired "
               "stapled response after OCSP request failure"));
       return stapledOCSPResponseResult;
     }
 
-    MOZ_LOG(gCertVerifierLog, PR_LOG_DEBUG,
+    MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
            ("NSSCertDBTrustDomain: returning SECSuccess after "
             "OCSP request failure"));
     return Success; 
@@ -604,7 +604,7 @@ NSSCertDBTrustDomain::CheckRevocation(EndEntityOrCA endEntityOrCA,
                                               response, ResponseIsFromNetwork,
                                               expired);
   if (rv == Success || mOCSPFetching != FetchOCSPForDVSoftFail) {
-    MOZ_LOG(gCertVerifierLog, PR_LOG_DEBUG,
+    MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
       ("NSSCertDBTrustDomain: returning after VerifyEncodedOCSPResponse"));
     return rv;
   }
@@ -614,13 +614,13 @@ NSSCertDBTrustDomain::CheckRevocation(EndEntityOrCA endEntityOrCA,
     return rv;
   }
   if (stapledOCSPResponseResult != Success) {
-    MOZ_LOG(gCertVerifierLog, PR_LOG_DEBUG,
+    MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
            ("NSSCertDBTrustDomain: returning SECFailure from expired stapled "
             "response after OCSP request verification failure"));
     return stapledOCSPResponseResult;
   }
 
-  MOZ_LOG(gCertVerifierLog, PR_LOG_DEBUG,
+  MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
          ("NSSCertDBTrustDomain: end of CheckRevocation"));
 
   return Success; 
@@ -658,7 +658,7 @@ NSSCertDBTrustDomain::VerifyAndMaybeCacheEncodedOCSPResponse(
       rv == Success ||
       rv == Result::ERROR_REVOKED_CERTIFICATE ||
       rv == Result::ERROR_OCSP_UNKNOWN_CERT) {
-    MOZ_LOG(gCertVerifierLog, PR_LOG_DEBUG,
+    MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
            ("NSSCertDBTrustDomain: caching OCSP response"));
     Result putRV = mOCSPCache.Put(certID, rv, thisUpdate, validThrough);
     if (putRV != Success) {
@@ -706,7 +706,7 @@ private:
 Result
 NSSCertDBTrustDomain::IsChainValid(const DERArray& certArray, Time time)
 {
-  MOZ_LOG(gCertVerifierLog, PR_LOG_DEBUG,
+  MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
          ("NSSCertDBTrustDomain: IsChainValid"));
 
   ScopedCERTCertList certList;

@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "nsError.h"
 #include "MediaDecoderStateMachine.h"
 #include "AbstractMediaDecoder.h"
@@ -24,13 +24,13 @@
 
 #include "OggReader.h"
 
-
+// IntelWebMVideoDecoder uses the WMF backend, which is Windows Vista+ only.
 #if defined(MOZ_PDM_VPX)
 #include "IntelWebMVideoDecoder.h"
 #endif
 
-
-
+// Un-comment to enable logging of seek bisections.
+//#define SEEK_LOGGING
 
 #undef LOG
 
@@ -50,9 +50,9 @@ using namespace layers;
 extern PRLogModuleInfo* gMediaDecoderLog;
 PRLogModuleInfo* gNesteggLog;
 
-
-
-
+// Functions for reading and seeking using MediaResource required for
+// nestegg_io. The 'user data' passed to these functions is the
+// decoder from which the media resource is obtained.
 static int webm_read(void *aBuffer, size_t aLength, void *aUserData)
 {
   MOZ_ASSERT(aUserData);
@@ -104,7 +104,7 @@ static void webm_log(nestegg * context,
                      unsigned int severity,
                      char const * format, ...)
 {
-  if (!MOZ_LOG_TEST(gNesteggLog, PR_LOG_DEBUG)) {
+  if (!MOZ_LOG_TEST(gNesteggLog, LogLevel::Debug)) {
     return;
   }
 
@@ -137,7 +137,7 @@ static void webm_log(nestegg * context,
 
   PR_snprintf(msg, sizeof(msg), "%p [Nestegg-%s] ", context, sevStr);
   PR_vsnprintf(msg+strlen(msg), sizeof(msg)-strlen(msg), format, args);
-  MOZ_LOG(gNesteggLog, PR_LOG_DEBUG, (msg));
+  MOZ_LOG(gNesteggLog, LogLevel::Debug, (msg));
 
   va_end(args);
 }
@@ -183,8 +183,8 @@ WebMReader::WebMReader(AbstractMediaDecoder* aDecoder)
   if (!gNesteggLog) {
     gNesteggLog = PR_NewLogModule("Nestegg");
   }
-  
-  
+  // Zero these member vars to avoid crashes in VP8 destroy and Vorbis clear
+  // functions when destructor is called before |Init|.
   memset(&mVorbisBlock, 0, sizeof(vorbis_block));
   memset(&mVorbisDsp, 0, sizeof(vorbis_dsp_state));
   memset(&mVorbisInfo, 0, sizeof(vorbis_info));
@@ -261,12 +261,12 @@ nsresult WebMReader::Init(MediaDecoderReader* aCloneDonor)
 void WebMReader::InitLayersBackendType()
 {
   if (!IsVideoContentType(GetDecoder()->GetResource()->GetContentType())) {
-    
+    // Not playing video, we don't care about the layers backend type.
     return;
   }
-  
-  
-  
+  // Extract the layer manager backend type so that platform decoders
+  // can determine whether it's worthwhile using hardware accelerated
+  // video decoding.
   MediaDecoderOwner* owner = mDecoder->GetOwner();
   if (!owner) {
     NS_WARNING("WebMReader without a decoder owner, can't get HWAccel");
@@ -293,13 +293,13 @@ nsresult WebMReader::ResetDecode()
   }
 
   if (mAudioCodec == NESTEGG_CODEC_VORBIS) {
-    
-    
-    
+    // Ignore failed results from vorbis_synthesis_restart. They
+    // aren't fatal and it fails when ResetDecode is called at a
+    // time when no vorbis data has been read.
     vorbis_synthesis_restart(&mVorbisDsp);
   } else if (mAudioCodec == NESTEGG_CODEC_OPUS) {
     if (mOpusDecoder) {
-      
+      // Reset the decoder.
       opus_multistream_decoder_ctl(mOpusDecoder, OPUS_RESET_STATE);
       mSkip = mOpusParser->mPreSkip;
       mPaddingDiscarded = false;
@@ -323,9 +323,9 @@ void WebMReader::Cleanup()
 nsresult WebMReader::ReadMetadata(MediaInfo* aInfo,
                                   MetadataTags** aTags)
 {
-  
-  
-  
+  // We can't use OnTaskQueue() here because of the wacky initialization task
+  // queue that TrackBuffer uses. We should be able to fix this when we do
+  // bug 1148234.
   MOZ_ASSERT(mDecoder->OnDecodeTaskQueue());
 
   nestegg_io io;
@@ -382,7 +382,7 @@ nsresult WebMReader::ReadMetadata(MediaInfo* aInfo,
       }
 #endif
 
-      
+      // If there's no decoder yet (e.g. HW decoder not available), use the software decoder.
       if (!mVideoDecoder) {
         mVideoDecoder = SoftwareWebMVideoDecoder::Create(this);
         if (mVideoDecoder &&
@@ -396,8 +396,8 @@ nsresult WebMReader::ReadMetadata(MediaInfo* aInfo,
         return NS_ERROR_FAILURE;
       }
 
-      
-      
+      // Picture region, taking into account cropping, before scaling
+      // to the display size.
       unsigned int cropH = params.crop_right + params.crop_left;
       unsigned int cropV = params.crop_bottom + params.crop_top;
       nsIntRect pictureRect(params.crop_left,
@@ -405,7 +405,7 @@ nsresult WebMReader::ReadMetadata(MediaInfo* aInfo,
                             params.width - cropH,
                             params.height - cropV);
 
-      
+      // If the cropping data appears invalid then use the frame data
       if (pictureRect.width <= 0 ||
           pictureRect.height <= 0 ||
           pictureRect.x < 0 ||
@@ -416,12 +416,12 @@ nsresult WebMReader::ReadMetadata(MediaInfo* aInfo,
         pictureRect.height = params.height;
       }
 
-      
-      
+      // Validate the container-reported frame and pictureRect sizes. This
+      // ensures that our video frame creation code doesn't overflow.
       nsIntSize displaySize(params.display_width, params.display_height);
       nsIntSize frameSize(params.width, params.height);
       if (!IsValidVideoRegion(frameSize, pictureRect, displaySize)) {
-        
+        // Video track's frame sizes will overflow. Ignore the video track.
         continue;
       }
 
@@ -463,7 +463,7 @@ nsresult WebMReader::ReadMetadata(MediaInfo* aInfo,
       mCodecDelay = params.codec_delay / NS_PER_USEC;
 
       if (mAudioCodec == NESTEGG_CODEC_VORBIS) {
-        
+        // Get the Vorbis header data
         unsigned int nheaders = 0;
         r = nestegg_track_codec_data_count(mContext, track, &nheaders);
         if (r == -1 || nheaders != 3) {
@@ -528,7 +528,7 @@ nsresult WebMReader::ReadMetadata(MediaInfo* aInfo,
 
         if (int64_t(mCodecDelay) != FramesToUsecs(mOpusParser->mPreSkip,
                                                   mOpusParser->mRate).value()) {
-          LOG(PR_LOG_WARNING,
+          LOG(LogLevel::Warning,
               ("Invalid Opus header: CodecDelay and pre-skip do not match!"));
           Cleanup();
           return NS_ERROR_FAILURE;
@@ -589,14 +589,14 @@ bool WebMReader::DecodeAudioPacket(NesteggPacketHolder* aHolder)
 
   int64_t tstamp = aHolder->Timestamp();
   if (mAudioStartUsec == -1) {
-    
-    
+    // This is the first audio chunk. Assume the start time of our decode
+    // is the start of this chunk.
     mAudioStartUsec = tstamp;
   }
-  
-  
-  
-  
+  // If there's a gap between the start of this audio chunk and the end of
+  // the previous audio chunk, we need to increment the packet count so that
+  // the vorbis decode doesn't use data from before the gap to help decode
+  // from after the gap.
   CheckedInt64 tstamp_frames = UsecsToFrames(tstamp, mInfo.mAudio.mRate);
   CheckedInt64 decoded_frames = UsecsToFrames(mAudioStartUsec,
                                               mInfo.mAudio.mRate);
@@ -613,7 +613,7 @@ bool WebMReader::DecodeAudioPacket(NesteggPacketHolder* aHolder)
 #ifdef DEBUG
     int64_t gap_frames = tstamp_frames.value() - decoded_frames.value();
     CheckedInt64 usecs = FramesToUsecs(gap_frames, mInfo.mAudio.mRate);
-    LOG(PR_LOG_DEBUG, ("WebMReader detected gap of %lld, %lld frames, in audio",
+    LOG(LogLevel::Debug, ("WebMReader detected gap of %lld, %lld frames, in audio",
                        usecs.isValid() ? usecs.value() : -1,
                        gap_frames));
 #endif
@@ -662,11 +662,11 @@ bool WebMReader::DecodeVorbis(const unsigned char* aData, size_t aLength,
 
   VorbisPCMValue** pcm = 0;
   int32_t frames = vorbis_synthesis_pcmout(&mVorbisDsp, &pcm);
-  
-  
-  
-  
-  
+  // If the first packet of audio in the media produces no data, we
+  // still need to produce an AudioData for it so that the correct media
+  // start time is calculated.  Otherwise we'd end up with a media start
+  // time derived from the timecode of the first packet that produced
+  // data.
   if (frames == 0 && mAudioFrames == 0) {
     AudioQueue().Push(new AudioData(aOffset, aTstampUsecs, 0, 0, nullptr,
                                     mInfo.mAudio.mChannels,
@@ -724,36 +724,36 @@ bool WebMReader::DecodeOpus(const unsigned char* aData, size_t aLength,
                             nestegg_packet* aPacket)
 {
   uint32_t channels = mOpusParser->mChannels;
-  
+  // No channel mapping for more than 8 channels.
   if (channels > 8) {
     return false;
   }
 
   if (mPaddingDiscarded) {
-    
-    
-    LOG(PR_LOG_DEBUG, ("Opus error, discard padding on interstitial packet"));
+    // Discard padding should be used only on the final packet, so
+    // decoding after a padding discard is invalid.
+    LOG(LogLevel::Debug, ("Opus error, discard padding on interstitial packet"));
     mHitAudioDecodeError = true;
     return false;
   }
 
-  
+  // Maximum value is 63*2880, so there's no chance of overflow.
   int32_t frames_number = opus_packet_get_nb_frames(aData, aLength);
   if (frames_number <= 0) {
-    return false; 
+    return false; // Invalid packet header.
   }
 
   int32_t samples =
     opus_packet_get_samples_per_frame(aData, opus_int32(mInfo.mAudio.mRate));
 
-  
+  // A valid Opus packet must be between 2.5 and 120 ms long (48kHz).
   int32_t frames = frames_number*samples;
   if (frames < 120 || frames > 5760)
     return false;
 
   nsAutoArrayPtr<AudioDataValue> buffer(new AudioDataValue[frames * channels]);
 
-  
+  // Decode to the appropriate sample type.
 #ifdef MOZ_SAMPLE_TYPE_FLOAT32
   int ret = opus_multistream_decode_float(mOpusDecoder,
                                           aData, aLength,
@@ -768,11 +768,11 @@ bool WebMReader::DecodeOpus(const unsigned char* aData, size_t aLength,
   NS_ASSERTION(ret == frames, "Opus decoded too few audio samples");
   CheckedInt64 startTime = aTstampUsecs;
 
-  
+  // Trim the initial frames while the decoder is settling.
   if (mSkip > 0) {
     int32_t skipFrames = std::min<int32_t>(mSkip, frames);
     int32_t keepFrames = frames - skipFrames;
-    LOG(PR_LOG_DEBUG, ("Opus decoder skipping %d of %d frames",
+    LOG(LogLevel::Debug, ("Opus decoder skipping %d of %d frames",
                        skipFrames, frames));
     PodMove(buffer.get(),
             buffer.get() + skipFrames * channels,
@@ -785,8 +785,8 @@ bool WebMReader::DecodeOpus(const unsigned char* aData, size_t aLength,
   int64_t discardPadding = 0;
   (void) nestegg_packet_discard_padding(aPacket, &discardPadding);
   if (discardPadding < 0) {
-    
-    LOG(PR_LOG_DEBUG, ("Opus error, negative discard padding"));
+    // Negative discard padding is invalid.
+    LOG(LogLevel::Debug, ("Opus error, negative discard padding"));
     mHitAudioDecodeError = true;
   }
   if (discardPadding > 0) {
@@ -797,22 +797,22 @@ bool WebMReader::DecodeOpus(const unsigned char* aData, size_t aLength,
       return false;
     }
     if (discardFrames.value() > frames) {
-      
-      LOG(PR_LOG_DEBUG, ("Opus error, discard padding larger than packet"));
+      // Discarding more than the entire packet is invalid.
+      LOG(LogLevel::Debug, ("Opus error, discard padding larger than packet"));
       mHitAudioDecodeError = true;
       return false;
     }
-    LOG(PR_LOG_DEBUG, ("Opus decoder discarding %d of %d frames",
+    LOG(LogLevel::Debug, ("Opus decoder discarding %d of %d frames",
                        int32_t(discardFrames.value()), frames));
-    
-    
-    
+    // Padding discard is only supposed to happen on the final packet.
+    // Record the discard so we can return an error if another packet is
+    // decoded.
     mPaddingDiscarded = true;
     int32_t keepFrames = frames - discardFrames.value();
     frames = keepFrames;
   }
 
-  
+  // Apply the header gain if one was specified.
 #ifdef MOZ_SAMPLE_TYPE_FLOAT32
   if (mOpusParser->mGain != 1.0f) {
     float gain = mOpusParser->mGain;
@@ -857,27 +857,27 @@ bool WebMReader::DecodeOpus(const unsigned char* aData, size_t aLength,
 
 already_AddRefed<NesteggPacketHolder> WebMReader::NextPacket(TrackType aTrackType)
 {
-  
-  
+  // The packet queue that packets will be pushed on if they
+  // are not the type we are interested in.
   WebMPacketQueue& otherPackets =
     aTrackType == VIDEO ? mAudioPackets : mVideoPackets;
 
-  
+  // The packet queue for the type that we are interested in.
   WebMPacketQueue &packets =
     aTrackType == VIDEO ? mVideoPackets : mAudioPackets;
 
-  
-  
+  // Flag to indicate that we do need to playback these types of
+  // packets.
   bool hasType = aTrackType == VIDEO ? mHasVideo : mHasAudio;
 
-  
-  
+  // Flag to indicate that we do need to playback the other type
+  // of track.
   bool hasOtherType = aTrackType == VIDEO ? mHasAudio : mHasVideo;
 
-  
+  // Track we are interested in
   uint32_t ourTrack = aTrackType == VIDEO ? mVideoTrack : mAudioTrack;
 
-  
+  // Value of other track
   uint32_t otherTrack = aTrackType == VIDEO ? mAudioTrack : mVideoTrack;
 
   if (packets.GetSize() > 0) {
@@ -891,12 +891,12 @@ already_AddRefed<NesteggPacketHolder> WebMReader::NextPacket(TrackType aTrackTyp
     }
 
     if (hasOtherType && otherTrack == holder->Track()) {
-      
+      // Save the packet for when we want these packets
       otherPackets.Push(holder.forget());
       continue;
     }
 
-    
+    // The packet is for the track we want to play
     if (hasType && ourTrack == holder->Track()) {
       return holder.forget();
     }
@@ -918,14 +918,14 @@ WebMReader::DemuxPacket()
     return nullptr;
   }
 
-  
-  
-  
-  
-  
-  
-  
-  
+  // Figure out if this is a keyframe.
+  //
+  // Doing this at packet-granularity is kind of the wrong level of
+  // abstraction, but timestamps are on the packet, so the only time
+  // we have multiple video frames in a packet is when we have "alternate
+  // reference frames", which are a compression detail and never displayed.
+  // So for our purposes, we can just take the union of the is_kf values for
+  // all the frames in the packet.
   bool isKeyframe = false;
   if (track == mAudioTrack) {
     isKeyframe = true;
@@ -978,8 +978,8 @@ bool WebMReader::DecodeAudioData()
 
 bool WebMReader::FilterPacketByTime(int64_t aEndTime, WebMPacketQueue& aOutput)
 {
-  
-  
+  // Push the video frames to the aOutput which's timestamp is less
+  // than aEndTime.
   while (true) {
     nsRefPtr<NesteggPacketHolder> holder(NextPacket(VIDEO));
     if (!holder) {
@@ -1001,7 +1001,7 @@ int64_t WebMReader::GetNextKeyframeTime(int64_t aTimeThreshold)
 {
   WebMPacketQueue skipPacketQueue;
   if (!FilterPacketByTime(aTimeThreshold, skipPacketQueue)) {
-    
+    // Restore the packets before we return -1.
     uint32_t size = skipPacketQueue.GetSize();
     for (uint32_t i = 0; i < size; ++i) {
       PushVideoPacket(skipPacketQueue.PopFront());
@@ -1009,7 +1009,7 @@ int64_t WebMReader::GetNextKeyframeTime(int64_t aTimeThreshold)
     return -1;
   }
 
-  
+  // Find keyframe.
   bool foundKeyframe = false;
   int64_t keyframeTime = -1;
   while (!foundKeyframe) {
@@ -1042,7 +1042,7 @@ bool WebMReader::ShouldSkipVideoFrame(int64_t aTimeThreshold)
 bool WebMReader::DecodeVideoFrame(bool &aKeyframeSkip, int64_t aTimeThreshold)
 {
   if (!(aKeyframeSkip && ShouldSkipVideoFrame(aTimeThreshold))) {
-    LOG(PR_LOG_VERBOSE, ("Reader [%p]: set the aKeyframeSkip to false.",this));
+    LOG(LogLevel::Verbose, ("Reader [%p]: set the aKeyframeSkip to false.",this));
     aKeyframeSkip = false;
   }
   return mVideoDecoder->DecodeVideoFrame(aKeyframeSkip, aTimeThreshold);
@@ -1072,7 +1072,7 @@ nsresult WebMReader::SeekInternal(int64_t aTarget)
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  LOG(PR_LOG_DEBUG, ("Reader [%p] for Decoder [%p]: About to seek to %fs",
+  LOG(LogLevel::Debug, ("Reader [%p] for Decoder [%p]: About to seek to %fs",
                      this, mDecoder, double(aTarget) / USECS_PER_S));
   if (NS_FAILED(ResetDecode())) {
     return NS_ERROR_FAILURE;
@@ -1086,10 +1086,10 @@ nsresult WebMReader::SeekInternal(int64_t aTarget)
   }
   int r = nestegg_track_seek(mContext, trackToSeek, target);
   if (r != 0) {
-    LOG(PR_LOG_DEBUG, ("Reader [%p]: track_seek for track %u failed, r=%d",
+    LOG(LogLevel::Debug, ("Reader [%p]: track_seek for track %u failed, r=%d",
                        this, trackToSeek, r));
 
-    
+    // Try seeking directly based on cluster information in memory.
     int64_t offset = 0;
     bool rv = mBufferedState->GetOffsetForTime(target, &offset);
     if (!rv) {
@@ -1097,7 +1097,7 @@ nsresult WebMReader::SeekInternal(int64_t aTarget)
     }
 
     r = nestegg_offset_seek(mContext, offset);
-    LOG(PR_LOG_DEBUG, ("Reader [%p]: attempted offset_seek to %lld r=%d",
+    LOG(LogLevel::Debug, ("Reader [%p]: attempted offset_seek to %lld r=%d",
                        this, offset, r));
     if (r != 0) {
       return NS_ERROR_FAILURE;
@@ -1112,7 +1112,7 @@ media::TimeIntervals WebMReader::GetBuffered()
   AutoPinned<MediaResource> resource(mDecoder->GetResource());
 
   media::TimeIntervals buffered;
-  
+  // Special case completely cached files.  This also handles local files.
   if (mContext && resource->IsDataCachedToEndOfResource(0)) {
     uint64_t duration = 0;
     if (nestegg_duration(mContext, &duration) == 0) {
@@ -1123,8 +1123,8 @@ media::TimeIntervals WebMReader::GetBuffered()
     }
   }
 
-  
-  
+  // Either we the file is not fully cached, or we couldn't find a duration in
+  // the WebM bitstream.
   nsTArray<MediaByteRange> ranges;
   nsresult res = resource->GetCachedRanges(ranges);
   NS_ENSURE_SUCCESS(res, media::TimeIntervals::Invalid());
@@ -1143,8 +1143,8 @@ media::TimeIntervals WebMReader::GetBuffered()
       }
       double startTime = (start - startOffset) / NS_PER_S;
       double endTime = (end - startOffset) / NS_PER_S;
-      
-      
+      // If this range extends to the end of the file, the true end time
+      // is the file's duration.
       if (mContext &&
           resource->IsDataCachedToEndOfResource(ranges[index].mStart)) {
         uint64_t duration = 0;
@@ -1201,4 +1201,4 @@ void WebMReader::SetLastVideoFrameTime(int64_t aFrameTime)
   mLastVideoFrameTime = aFrameTime;
 }
 
-} 
+} // namespace mozilla
