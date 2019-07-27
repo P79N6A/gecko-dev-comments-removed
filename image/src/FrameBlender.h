@@ -32,7 +32,7 @@ public:
 
 
 
-  FrameBlender(FrameSequence* aSequenceToUse = nullptr);
+  explicit FrameBlender(FrameSequence* aSequenceToUse = nullptr);
   ~FrameBlender();
 
   bool DoBlend(nsIntRect* aDirtyRect, uint32_t aPrevFrameIndex,

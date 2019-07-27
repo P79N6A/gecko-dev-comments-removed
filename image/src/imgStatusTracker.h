@@ -117,7 +117,7 @@ public:
   
   
   
-  imgStatusTracker(mozilla::image::Image* aImage);
+  explicit imgStatusTracker(mozilla::image::Image* aImage);
 
   
   
