@@ -893,16 +893,6 @@ URL::RevokeObjectURL(const GlobalObject& aGlobal, const nsAString& aUrl)
   }
 }
 
-
-nsIPrincipal*
-URL::GetPrincipalFromURL(const GlobalObject& aGlobal, const nsAString& aUrl,
-                         ErrorResult& aRv)
-{
-  
-  aRv.Throw(NS_ERROR_NOT_IMPLEMENTED);
-  return nullptr;
-}
-
 void
 URL::URLSearchParamsUpdated(URLSearchParams* aSearchParams)
 {

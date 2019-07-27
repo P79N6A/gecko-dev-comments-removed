@@ -56,7 +56,7 @@ function* navigate(usage, options) {
 
 function* checkPages(usage) {
   
-  let expectedVisited = [ '', PAGE_2, PAGE_1, PAGE_3 ];
+  let expectedVisited = [ 'null', PAGE_2, PAGE_1, PAGE_3 ];
   let actualVisited = yield usage._testOnly_visitedPages();
   isEqualJson(actualVisited, expectedVisited, 'Visited');
 }

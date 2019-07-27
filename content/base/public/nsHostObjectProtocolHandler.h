@@ -41,7 +41,9 @@ public:
   NS_IMETHOD NewChannel(nsIURI *aURI, nsIChannel * *_retval) MOZ_OVERRIDE;
   NS_IMETHOD AllowPort(int32_t port, const char * scheme, bool *_retval) MOZ_OVERRIDE;
 
+  
   static nsresult GenerateURIString(const nsACString &aScheme,
+                                    nsIPrincipal* aPrincipal,
                                     nsACString &aUri);
 
   
