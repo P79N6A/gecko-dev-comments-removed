@@ -5,8 +5,10 @@
 
 function TypedArrayFind(predicate, thisArg = undefined) {
     
-    if (!IsObject(this) || !IsTypedArray(this))
-        ThrowError(JSMSG_INCOMPATIBLE_PROTO, "%TypedArray%", "find", typeof this);
+    if (!IsObject(this) || !IsTypedArray(this)) {
+        return callFunction(CallTypedArrayMethodIfWrapped, this, predicate, thisArg,
+                            "TypedArrayFind");
+    }
 
     
     var O = this;
@@ -40,8 +42,10 @@ function TypedArrayFind(predicate, thisArg = undefined) {
 
 function TypedArrayFindIndex(predicate, thisArg = undefined) {
     
-    if (!IsObject(this) || !IsTypedArray(this))
-        ThrowError(JSMSG_INCOMPATIBLE_PROTO, "%TypedArray%", "findIndex", typeof this);
+    if (!IsObject(this) || !IsTypedArray(this)) {
+        return callFunction(CallTypedArrayMethodIfWrapped, this, predicate, thisArg,
+                            "TypedArrayFindIndex");
+    }
 
     
     var O = this;
