@@ -295,19 +295,17 @@ void MediaDecoder::DestroyDecodedStream()
     
     if (os.mStream->IsDestroyed()) {
       
-      if (os.mPort) {
-        os.mPort->Destroy();
-      }
+      MOZ_ASSERT(os.mPort, "Double-delete of the ports!");
+      os.mPort->Destroy();
       mOutputStreams.RemoveElementAt(i);
       continue;
     }
     os.mStream->ChangeExplicitBlockerCount(1);
     
     
-    if (os.mPort) {
-      os.mPort->Destroy();
-      os.mPort = nullptr;
-    }
+    MOZ_ASSERT(os.mPort, "Double-delete of the ports!");
+    os.mPort->Destroy();
+    os.mPort = nullptr;
   }
 
   mDecodedStream = nullptr;
@@ -856,9 +854,8 @@ void MediaDecoder::PlaybackEnded()
       OutputStreamData& os = mOutputStreams[i];
       if (os.mStream->IsDestroyed()) {
         
-        if (os.mPort) {
-          os.mPort->Destroy();
-        }
+        MOZ_ASSERT(os.mPort, "Double-delete of the ports!");
+        os.mPort->Destroy();
         mOutputStreams.RemoveElementAt(i);
         continue;
       }
@@ -866,9 +863,8 @@ void MediaDecoder::PlaybackEnded()
         
         
         os.mStream->Finish();
-        if (os.mPort) {
-          os.mPort->Destroy();
-        }
+        MOZ_ASSERT(os.mPort, "Double-delete of the ports!");
+        os.mPort->Destroy();
         
         
         os.mStream->ChangeExplicitBlockerCount(1);
