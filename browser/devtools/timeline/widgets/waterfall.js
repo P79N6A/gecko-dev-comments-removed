@@ -12,8 +12,6 @@ const {Ci, Cu} = require("chrome");
 
 loader.lazyRequireGetter(this, "L10N",
   "devtools/timeline/global", true);
-loader.lazyRequireGetter(this, "TIMELINE_BLUEPRINT",
-  "devtools/timeline/global", true);
 
 loader.lazyImporter(this, "setNamedTimeout",
   "resource:///modules/devtools/ViewHelpers.jsm");
@@ -51,7 +49,9 @@ const WATERFALL_ROWCOUNT_ONPAGEUPDOWN = 10;
 
 
 
-function Waterfall(parent, container) {
+
+
+function Waterfall(parent, container, blueprint) {
   EventEmitter.decorate(this);
 
   this._parent = parent;
@@ -75,7 +75,7 @@ function Waterfall(parent, container) {
 
   
   this._l10n = L10N;
-  this._blueprint = TIMELINE_BLUEPRINT;
+  this._blueprint = blueprint
   this._setNamedTimeout = setNamedTimeout;
   this._clearNamedTimeout = clearNamedTimeout;
 
@@ -118,6 +118,14 @@ Waterfall.prototype = {
     this._buildHeader(this._headerContents, startTime - timeEpoch, dataScale);
     this._buildMarkers(this._listContents, markers, startTime, endTime, dataScale);
     this.selectRow(this._selectedRowIdx);
+  },
+
+  
+
+
+
+  setBlueprint: function(blueprint) {
+    this._blueprint = blueprint;
   },
 
   
@@ -251,6 +259,10 @@ Waterfall.prototype = {
       if (!isMarkerInRange(marker, startTime, endTime)) {
         continue;
       }
+      if (!(marker.name in this._blueprint)) {
+        continue;
+      }
+
       
       
       

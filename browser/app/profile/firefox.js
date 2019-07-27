@@ -1439,6 +1439,7 @@ pref("devtools.timeline.enabled", true);
 #else
 pref("devtools.timeline.enabled", false);
 #endif
+pref("devtools.timeline.hiddenMarkers", "[]");
 
 
 #ifdef MOZ_DEVTOOLS_PERFTOOLS

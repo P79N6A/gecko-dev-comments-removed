@@ -104,4 +104,45 @@ function waitUntil(predicate, interval = 10) {
     waitUntil(predicate).then(() => deferred.resolve(true));
   }, interval);
   return deferred.promise;
+
+}
+
+
+
+
+function nextTick() {
+  let def = promise.defer();
+  executeSoon(() => def.resolve())
+  return def.promise;
+}
+
+
+
+
+
+
+
+
+
+function once(target, eventName, useCapture=false) {
+  info("Waiting for event: '" + eventName + "' on " + target + ".");
+
+  let deferred = promise.defer();
+
+  for (let [add, remove] of [
+    ["addEventListener", "removeEventListener"],
+    ["addListener", "removeListener"],
+    ["on", "off"]
+  ]) {
+    if ((add in target) && (remove in target)) {
+      target[add](eventName, function onEvent(...aArgs) {
+        info("Got event: '" + eventName + "' on " + target + ".");
+        target[remove](eventName, onEvent, useCapture);
+        deferred.resolve.apply(deferred, aArgs);
+      }, useCapture);
+      break;
+    }
+  }
+
+  return deferred.promise;
 }
