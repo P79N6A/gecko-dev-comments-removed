@@ -145,8 +145,7 @@ public:
     MOZ_ASSERT(!NS_IsMainThread());
     MOZ_ASSERT(!mShuttingDownOnIOThread);
 
-    RemoveWatchers(READ_WATCHER | WRITE_WATCHER);
-
+    Close(); 
     mShuttingDownOnIOThread = true;
   }
 
