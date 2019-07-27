@@ -1663,6 +1663,7 @@ GetNonexistentProperty(JSContext *cx, HandleNativeObject obj, HandleId id,
 
     
     
+    
     if (JSPropertyOp getProperty = obj->getClass()->getProperty) {
         if (!CallJSPropertyOp(cx, getProperty, obj, id, vp))
             return false;
@@ -1716,14 +1717,32 @@ GetNonexistentProperty(JSContext *cx, HandleNativeObject obj, HandleId id,
 
     
     RootedValue val(cx, IdToValue(id));
-    if (!js_ReportValueErrorFlags(cx, flags, JSMSG_UNDEFINED_PROP,
-                                  JSDVG_IGNORE_STACK, val, js::NullPtr(),
-                                  nullptr, nullptr))
-    {
-        return false;
-    }
+    return js_ReportValueErrorFlags(cx, flags, JSMSG_UNDEFINED_PROP, JSDVG_IGNORE_STACK, val,
+                                    js::NullPtr(), nullptr, nullptr);
+}
 
-    return true;
+
+bool
+GetNonexistentProperty(JSContext *cx, NativeObject *obj, jsid id, JSObject *receiver,
+                       FakeMutableHandle<Value> vp)
+{
+    return false;
+}
+
+static inline bool
+GeneralizedGetProperty(JSContext *cx, HandleObject obj, HandleId id, HandleObject receiver,
+                       MutableHandleValue vp)
+{
+    JS_CHECK_RECURSION(cx, return false);
+    return GetProperty(cx, obj, receiver, id, vp);
+}
+
+static inline bool
+GeneralizedGetProperty(JSContext *cx, JSObject *obj, jsid id, JSObject *receiver,
+                       FakeMutableHandle<Value> vp)
+{
+    JS_CHECK_RECURSION_DONT_REPORT(cx, return false);
+    return GetPropertyNoGC(cx, obj, receiver, id, vp.address());
 }
 
 template <AllowGC allowGC>
@@ -1734,45 +1753,52 @@ NativeGetPropertyInline(JSContext *cx,
                         typename MaybeRooted<jsid, allowGC>::HandleType id,
                         typename MaybeRooted<Value, allowGC>::MutableHandleType vp)
 {
-    
-    typename MaybeRooted<JSObject*, allowGC>::RootType obj2(cx);
+    typename MaybeRooted<NativeObject*, allowGC>::RootType pobj(cx, obj);
     typename MaybeRooted<Shape*, allowGC>::RootType shape(cx);
-    if (!LookupPropertyInline<allowGC>(cx, obj, id, &obj2, &shape))
-        return false;
-
-    if (!shape) {
-        if (!allowGC)
-            return false;
-
-        return GetNonexistentProperty(cx,
-                                      MaybeRooted<NativeObject*, allowGC>::toHandle(obj),
-                                      MaybeRooted<jsid, allowGC>::toHandle(id),
-                                      MaybeRooted<JSObject*, allowGC>::toHandle(receiver),
-                                      MaybeRooted<Value, allowGC>::toMutableHandle(vp));
-    }
-
-    if (!obj2->isNative()) {
-        if (!allowGC)
-            return false;
-        HandleObject obj2Handle = MaybeRooted<JSObject*, allowGC>::toHandle(obj2);
-        HandleObject receiverHandle = MaybeRooted<JSObject*, allowGC>::toHandle(receiver);
-        HandleId idHandle = MaybeRooted<jsid, allowGC>::toHandle(id);
-        MutableHandleValue vpHandle = MaybeRooted<Value, allowGC>::toMutableHandle(vp);
-        return obj2->template is<ProxyObject>()
-               ? Proxy::get(cx, obj2Handle, receiverHandle, idHandle, vpHandle)
-               : GetProperty(cx, obj2Handle, obj2Handle, idHandle, vpHandle);
-    }
-
-    typename MaybeRooted<NativeObject*, allowGC>::HandleType nobj2 =
-        MaybeRooted<JSObject*, allowGC>::template downcastHandle<NativeObject>(obj2);
-
-    if (IsImplicitDenseOrTypedArrayElement(shape)) {
-        vp.set(nobj2->getDenseOrTypedArrayElement(JSID_TO_INT(id)));
-        return true;
-    }
 
     
-    return GetExistingProperty<allowGC>(cx, receiver, nobj2, shape, vp);
+    
+    for (;;) {
+        
+        bool done;
+        if (!LookupOwnPropertyInline<allowGC>(cx, pobj, id, &shape, &done))
+            return false;
+
+        if (shape) {
+            
+            
+            if (IsImplicitDenseOrTypedArrayElement(shape)) {
+                vp.set(pobj->getDenseOrTypedArrayElement(JSID_TO_INT(id)));
+                return true;
+            }
+            return GetExistingProperty<allowGC>(cx, receiver, pobj, shape, vp);
+        }
+
+        
+        
+        
+        
+        
+        
+        
+        
+        RootedObject proto(cx, done ? nullptr : pobj->getProto());
+
+        
+        
+        if (!proto)
+            return GetNonexistentProperty(cx, obj, id, receiver, vp);
+
+        
+        
+        
+        
+        
+        if (!proto->isNative())
+            return GeneralizedGetProperty(cx, proto, id, receiver, vp);
+
+        pobj = &proto->as<NativeObject>();
+    }
 }
 
 bool
@@ -2085,6 +2111,7 @@ js::NativeSetProperty(JSContext *cx, HandleNativeObject obj, HandleObject receiv
     RootedShape shape(cx);
     RootedNativeObject pobj(cx, obj);
 
+    
     
     
     for (;;) {
