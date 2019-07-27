@@ -35,12 +35,7 @@ const STATUS_REJECTED = 2;
 
 
 const salt = Math.floor(Math.random() * 100);
-const Name = (n) => "{private:" + n + ":" + salt + "}";
-const N_STATUS = Name("status");
-const N_VALUE = Name("value");
-const N_HANDLERS = Name("handlers");
-const N_WITNESS = Name("witness");
-
+const N_INTERNALS = "{private:internals:" + salt + "}";
 
 
 
@@ -310,33 +305,37 @@ this.Promise = function Promise(aExecutor)
   
 
 
-
-  Object.defineProperty(this, N_STATUS, { value: STATUS_PENDING,
-                                          writable: true });
-
-  
+  Object.defineProperty(this, N_INTERNALS, { value: {
+    
 
 
 
+    status: STATUS_PENDING,
 
-
-
-  Object.defineProperty(this, N_VALUE, { writable: true });
-
-  
-
-
-
-  Object.defineProperty(this, N_HANDLERS, { value: [] });
-
-  
+    
 
 
 
 
 
 
-  Object.defineProperty(this, N_WITNESS, { writable: true });
+    value: undefined,
+
+    
+
+
+
+    handlers: [],
+
+    
+
+
+
+
+
+
+    witness: undefined
+  }});
 
   Object.seal(this);
 
@@ -398,16 +397,16 @@ this.Promise = function Promise(aExecutor)
 Promise.prototype.then = function (aOnResolve, aOnReject)
 {
   let handler = new Handler(this, aOnResolve, aOnReject);
-  this[N_HANDLERS].push(handler);
+  this[N_INTERNALS].handlers.push(handler);
 
   
   
-  if (this[N_STATUS] != STATUS_PENDING) {
+  if (this[N_INTERNALS].status != STATUS_PENDING) {
 
     
-    if (this[N_WITNESS] != null) {
-      let [id, witness] = this[N_WITNESS];
-      this[N_WITNESS] = null;
+    if (this[N_INTERNALS].witness != null) {
+      let [id, witness] = this[N_INTERNALS].witness;
+      this[N_INTERNALS].witness = null;
       witness.forget();
       PendingErrors.unregister(id);
     }
@@ -649,7 +648,7 @@ this.PromiseWalker = {
   completePromise: function (aPromise, aStatus, aValue)
   {
     
-    if (aPromise[N_STATUS] != STATUS_PENDING) {
+    if (aPromise[N_INTERNALS].status != STATUS_PENDING) {
       return;
     }
 
@@ -663,9 +662,9 @@ this.PromiseWalker = {
     }
 
     
-    aPromise[N_STATUS] = aStatus;
-    aPromise[N_VALUE] = aValue;
-    if (aPromise[N_HANDLERS].length > 0) {
+    aPromise[N_INTERNALS].status = aStatus;
+    aPromise[N_INTERNALS].value = aValue;
+    if (aPromise[N_INTERNALS].handlers.length > 0) {
       this.schedulePromise(aPromise);
     } else if (aStatus == STATUS_REJECTED) {
       
@@ -673,7 +672,7 @@ this.PromiseWalker = {
       let id = PendingErrors.register(aValue);
       let witness =
           FinalizationWitnessService.make("promise-finalization-witness", id);
-      aPromise[N_WITNESS] = [id, witness];
+      aPromise[N_INTERNALS].witness = [id, witness];
     }
   },
 
@@ -698,10 +697,10 @@ this.PromiseWalker = {
   schedulePromise: function (aPromise)
   {
     
-    for (let handler of aPromise[N_HANDLERS]) {
+    for (let handler of aPromise[N_INTERNALS].handlers) {
       this.handlers.push(handler);
     }
-    aPromise[N_HANDLERS].length = 0;
+    aPromise[N_INTERNALS].handlers.length = 0;
 
     
     if (!this.walkerLoopScheduled) {
@@ -854,8 +853,8 @@ Handler.prototype = {
   process: function()
   {
     
-    let nextStatus = this.thisPromise[N_STATUS];
-    let nextValue = this.thisPromise[N_VALUE];
+    let nextStatus = this.thisPromise[N_INTERNALS].status;
+    let nextValue = this.thisPromise[N_INTERNALS].value;
 
     try {
       
