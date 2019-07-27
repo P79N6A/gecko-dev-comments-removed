@@ -34,7 +34,7 @@ class PBackgroundParent;
 namespace dom {
 
 class ContentParent;
-class FileImpl;
+class BlobImpl;
 class nsIContentParent;
 class PBlobStreamParent;
 
@@ -56,7 +56,7 @@ class BlobParent final
   static StaticAutoPtr<IDTable> sIDTable;
   static StaticAutoPtr<Mutex> sIDTableMutex;
 
-  FileImpl* mBlobImpl;
+  BlobImpl* mBlobImpl;
   RemoteBlobImpl* mRemoteBlobImpl;
 
   
@@ -86,10 +86,10 @@ public:
 
   
   static BlobParent*
-  GetOrCreate(nsIContentParent* aManager, FileImpl* aBlobImpl);
+  GetOrCreate(nsIContentParent* aManager, BlobImpl* aBlobImpl);
 
   static BlobParent*
-  GetOrCreate(PBackgroundParent* aManager, FileImpl* aBlobImpl);
+  GetOrCreate(PBackgroundParent* aManager, BlobImpl* aBlobImpl);
 
   
   static BlobParent*
@@ -106,7 +106,7 @@ public:
     delete static_cast<BlobParent*>(aActor);
   }
 
-  static already_AddRefed<FileImpl>
+  static already_AddRefed<BlobImpl>
   GetBlobImplForID(const nsID& aID);
 
   bool
@@ -128,7 +128,7 @@ public:
   }
 
   
-  already_AddRefed<FileImpl>
+  already_AddRefed<BlobImpl>
   GetBlobImpl();
 
   void
@@ -147,11 +147,11 @@ private:
 
   
   BlobParent(nsIContentParent* aManager,
-             FileImpl* aBlobImpl,
+             BlobImpl* aBlobImpl,
              IDTableEntry* aIDTableEntry);
 
   BlobParent(PBackgroundParent* aManager,
-             FileImpl* aBlobImpl,
+             BlobImpl* aBlobImpl,
              IDTableEntry* aIDTableEntry);
 
   
@@ -161,12 +161,12 @@ private:
   CommonInit(IDTableEntry* aIDTableEntry);
 
   void
-  CommonInit(FileImpl* aBlobImpl, IDTableEntry* aIDTableEntry);
+  CommonInit(BlobImpl* aBlobImpl, IDTableEntry* aIDTableEntry);
 
   template <class ParentManagerType>
   static BlobParent*
   GetOrCreateFromImpl(ParentManagerType* aManager,
-                      FileImpl* aBlobImpl);
+                      BlobImpl* aBlobImpl);
 
   template <class ParentManagerType>
   static BlobParent*

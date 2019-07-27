@@ -93,10 +93,10 @@ MmsMessage::MmsMessage(const mobilemessage::MmsMessageData& aData)
     
     
     if (element.contentParent()) {
-      nsRefPtr<FileImpl> impl = static_cast<BlobParent*>(element.contentParent())->GetBlobImpl();
+      nsRefPtr<BlobImpl> impl = static_cast<BlobParent*>(element.contentParent())->GetBlobImpl();
       att.mContent = Blob::Create(nullptr, impl);
     } else if (element.contentChild()) {
-      nsRefPtr<FileImpl> impl = static_cast<BlobChild*>(element.contentChild())->GetBlobImpl();
+      nsRefPtr<BlobImpl> impl = static_cast<BlobChild*>(element.contentChild())->GetBlobImpl();
       att.mContent = Blob::Create(nullptr, impl);
     } else {
       NS_WARNING("MmsMessage: Unable to get attachment content.");
@@ -390,7 +390,7 @@ MmsMessage::GetData(ContentParent* aParent,
     
     
     
-    nsRefPtr<FileImpl> impl = element.content->Impl();
+    nsRefPtr<BlobImpl> impl = element.content->Impl();
     if (impl && impl->IsDateUnknown()) {
       ErrorResult rv;
       impl->GetLastModified(rv);
