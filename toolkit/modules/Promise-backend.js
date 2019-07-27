@@ -272,7 +272,7 @@ PendingErrors.addObserver(function(details) {
   }
   error.init(
               generalDescription +
-             "Date: " + details.date + "\nFull Message: " + details.message,
+             "Date: " + details.date + "\nFull Message: " + message,
               details.fileName,
               details.lineNumber?("" + details.lineNumber):0,
               details.lineNumber || 0,
