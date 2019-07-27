@@ -633,14 +633,11 @@ gfxShapedText::SetGlyphs(uint32_t aIndex, CompressedGlyph aGlyph,
 
 #define ZWNJ 0x200C
 #define ZWJ  0x200D
-
-
-#define ALM  0x061C
 static inline bool
 IsDefaultIgnorable(uint32_t aChar)
 {
     return GetIdentifierModification(aChar) == XIDMOD_DEFAULT_IGNORABLE ||
-           aChar == ZWNJ || aChar == ZWJ || aChar == ALM;
+           aChar == ZWNJ || aChar == ZWJ;
 }
 
 void
