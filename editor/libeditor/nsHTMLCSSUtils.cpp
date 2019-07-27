@@ -326,9 +326,6 @@ nsHTMLCSSUtils::IsCSSEditableProperty(nsIContent* aNode,
     NS_ENSURE_TRUE(content, false);
   }
 
-  nsIAtom *tagName = content->Tag();
-  
-
   
   if (nsGkAtoms::b == aProperty ||
       nsGkAtoms::i == aProperty ||
@@ -343,41 +340,43 @@ nsHTMLCSSUtils::IsCSSEditableProperty(nsIContent* aNode,
 
   
   if (aAttribute && (aAttribute->EqualsLiteral("align")) &&
-      (nsGkAtoms::div == tagName ||
-       nsGkAtoms::p   == tagName ||
-       nsGkAtoms::h1  == tagName ||
-       nsGkAtoms::h2  == tagName ||
-       nsGkAtoms::h3  == tagName ||
-       nsGkAtoms::h4  == tagName ||
-       nsGkAtoms::h5  == tagName ||
-       nsGkAtoms::h6  == tagName ||
-       nsGkAtoms::td  == tagName ||
-       nsGkAtoms::th  == tagName ||
-       nsGkAtoms::table  == tagName ||
-       nsGkAtoms::hr  == tagName ||
-       
-       
-       
-       
-       nsGkAtoms::legend  == tagName ||
-       nsGkAtoms::caption == tagName)) {
+      content->IsAnyOfHTMLElements(nsGkAtoms::div,
+                                   nsGkAtoms::p ,
+                                   nsGkAtoms::h1,
+                                   nsGkAtoms::h2,
+                                   nsGkAtoms::h3,
+                                   nsGkAtoms::h4,
+                                   nsGkAtoms::h5,
+                                   nsGkAtoms::h6,
+                                   nsGkAtoms::td,
+                                   nsGkAtoms::th,
+                                   nsGkAtoms::table,
+                                   nsGkAtoms::hr,
+				   
+				   
+				   
+				   
+				   
+				   
+                                   nsGkAtoms::legend,
+                                   nsGkAtoms::caption)) {
     return true;
   }
 
   if (aAttribute && (aAttribute->EqualsLiteral("valign")) &&
-      (nsGkAtoms::col == tagName ||
-       nsGkAtoms::colgroup   == tagName ||
-       nsGkAtoms::tbody  == tagName ||
-       nsGkAtoms::td  == tagName ||
-       nsGkAtoms::th  == tagName ||
-       nsGkAtoms::tfoot  == tagName ||
-       nsGkAtoms::thead  == tagName ||
-       nsGkAtoms::tr  == tagName)) {
+      content->IsAnyOfHTMLElements(nsGkAtoms::col,
+                                   nsGkAtoms::colgroup,
+                                   nsGkAtoms::tbody,
+                                   nsGkAtoms::td,
+                                   nsGkAtoms::th,
+                                   nsGkAtoms::tfoot,
+                                   nsGkAtoms::thead,
+                                   nsGkAtoms::tr)) {
     return true;
   }
 
   
-  if (aAttribute && nsGkAtoms::body == tagName &&
+  if (aAttribute && content->IsHTMLElement(nsGkAtoms::body) &&
       (aAttribute->EqualsLiteral("text")
        || aAttribute->EqualsLiteral("background")
        || aAttribute->EqualsLiteral("bgcolor"))) {
@@ -390,7 +389,8 @@ nsHTMLCSSUtils::IsCSSEditableProperty(nsIContent* aNode,
   }
 
   
-  if (aAttribute && (nsGkAtoms::td == tagName || nsGkAtoms::th == tagName) &&
+  if (aAttribute &&
+      content->IsAnyOfHTMLElements(nsGkAtoms::td, nsGkAtoms::th) &&
       (aAttribute->EqualsLiteral("height")
        || aAttribute->EqualsLiteral("width")
        || aAttribute->EqualsLiteral("nowrap"))) {
@@ -398,14 +398,14 @@ nsHTMLCSSUtils::IsCSSEditableProperty(nsIContent* aNode,
   }
 
   
-  if (aAttribute && nsGkAtoms::table == tagName &&
+  if (aAttribute && content->IsHTMLElement(nsGkAtoms::table) &&
       (aAttribute->EqualsLiteral("height")
        || aAttribute->EqualsLiteral("width"))) {
     return true;
   }
 
   
-  if (aAttribute && nsGkAtoms::hr == tagName &&
+  if (aAttribute && content->IsHTMLElement(nsGkAtoms::hr) &&
       (aAttribute->EqualsLiteral("size")
        || aAttribute->EqualsLiteral("width"))) {
     return true;
@@ -413,12 +413,13 @@ nsHTMLCSSUtils::IsCSSEditableProperty(nsIContent* aNode,
 
   
   if (aAttribute &&
-      (nsGkAtoms::ol == tagName || nsGkAtoms::ul == tagName ||
-       nsGkAtoms::li == tagName) && aAttribute->EqualsLiteral("type")) {
+      content->IsAnyOfHTMLElements(nsGkAtoms::ol, nsGkAtoms::ul,
+                                   nsGkAtoms::li) &&
+      aAttribute->EqualsLiteral("type")) {
     return true;
   }
 
-  if (aAttribute && nsGkAtoms::img == tagName &&
+  if (aAttribute && content->IsHTMLElement(nsGkAtoms::img) &&
       (aAttribute->EqualsLiteral("border")
        || aAttribute->EqualsLiteral("width")
        || aAttribute->EqualsLiteral("height"))) {
@@ -428,15 +429,15 @@ nsHTMLCSSUtils::IsCSSEditableProperty(nsIContent* aNode,
   
   
   if (aAttribute && aAttribute->EqualsLiteral("align") &&
-      (nsGkAtoms::ul == tagName ||
-       nsGkAtoms::ol == tagName ||
-       nsGkAtoms::dl == tagName ||
-       nsGkAtoms::li == tagName ||
-       nsGkAtoms::dd == tagName ||
-       nsGkAtoms::dt == tagName ||
-       nsGkAtoms::address == tagName ||
-       nsGkAtoms::pre == tagName ||
-       nsGkAtoms::ul == tagName)) {
+      content->IsAnyOfHTMLElements(nsGkAtoms::ul,
+                                   nsGkAtoms::ol,
+                                   nsGkAtoms::dl,
+                                   nsGkAtoms::li,
+                                   nsGkAtoms::dd,
+                                   nsGkAtoms::dt,
+                                   nsGkAtoms::address,
+                                   nsGkAtoms::pre,
+                                   nsGkAtoms::ul)) {
     return true;
   }
 
@@ -810,7 +811,6 @@ nsHTMLCSSUtils::GenerateCSSDeclarationsFromHTMLStyle(dom::Element* aElement,
                                                      bool aGetOrRemoveRequest)
 {
   MOZ_ASSERT(aElement);
-  nsIAtom* tagName = aElement->Tag();
   const nsHTMLCSSUtils::CSSEquivTable* equivTable = nullptr;
 
   if (nsGkAtoms::b == aHTMLProperty) {
@@ -839,12 +839,12 @@ nsHTMLCSSUtils::GenerateCSSDeclarationsFromHTMLStyle(dom::Element* aElement,
     } else if (aAttribute->EqualsLiteral("border")) {
       equivTable = borderEquivTable;
     } else if (aAttribute->EqualsLiteral("align")) {
-      if (nsGkAtoms::table  == tagName) {
+      if (aElement->IsHTMLElement(nsGkAtoms::table)) {
         equivTable = tableAlignEquivTable;
-      } else if (nsGkAtoms::hr  == tagName) {
+      } else if (aElement->IsHTMLElement(nsGkAtoms::hr)) {
         equivTable = hrAlignEquivTable;
-      } else if (nsGkAtoms::legend  == tagName ||
-                 nsGkAtoms::caption == tagName) {
+      } else if (aElement->IsAnyOfHTMLElements(nsGkAtoms::legend,
+                                               nsGkAtoms::caption)) {
         equivTable = captionAlignEquivTable;
       } else {
         equivTable = textAlignEquivTable;
@@ -856,13 +856,13 @@ nsHTMLCSSUtils::GenerateCSSDeclarationsFromHTMLStyle(dom::Element* aElement,
     } else if (aAttribute->EqualsLiteral("width")) {
       equivTable = widthEquivTable;
     } else if (aAttribute->EqualsLiteral("height") ||
-               (nsGkAtoms::hr == tagName &&
+               (aElement->IsHTMLElement(nsGkAtoms::hr) &&
                 aAttribute->EqualsLiteral("size"))) {
       equivTable = heightEquivTable;
     } else if (aAttribute->EqualsLiteral("type") &&
-               (nsGkAtoms::ol == tagName ||
-                nsGkAtoms::ul == tagName ||
-                nsGkAtoms::li == tagName)) {
+               aElement->IsAnyOfHTMLElements(nsGkAtoms::ol,
+                                             nsGkAtoms::ul,
+                                             nsGkAtoms::li)) {
       equivTable = listStyleTypeEquivTable;
     }
   }

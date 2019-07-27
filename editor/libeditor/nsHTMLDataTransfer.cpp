@@ -2070,8 +2070,8 @@ nsresult nsHTMLEditor::CreateDOMFragmentFromPaste(const nsAString &aInputString,
   
   nsIAtom* contextAtom;
   if (contextLeafAsContent) {
-    contextAtom = contextLeafAsContent->Tag();
-    if (contextAtom == nsGkAtoms::html) {
+    contextAtom = contextLeafAsContent->NodeInfo()->NameAtom();
+    if (contextLeafAsContent->IsHTMLElement(nsGkAtoms::html)) {
       contextAtom = nsGkAtoms::body;
     }
   } else {

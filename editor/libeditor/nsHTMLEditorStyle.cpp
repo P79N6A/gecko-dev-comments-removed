@@ -498,7 +498,7 @@ nsHTMLEditor::SetInlinePropertyOnNodeImpl(nsIContent* aNode,
   }
 
   
-  if (aNode->Tag() == aProperty) {
+  if (aNode->IsHTMLElement(aProperty)) {
     
     nsCOMPtr<nsIDOMElement> elem = do_QueryInterface(aNode);
     return SetAttribute(elem, *aAttribute, *aValue);
@@ -650,7 +650,7 @@ nsresult nsHTMLEditor::SplitStyleAbovePoint(nsCOMPtr<nsIDOMNode> *aNode,
         aProperty, aAttribute, isSet, firstValue, nsHTMLCSSUtils::eSpecified);
     }
     if (
-        (aProperty && node->Tag() == aProperty) ||
+        (aProperty && node->IsHTMLElement(aProperty)) ||
         
         (aProperty == nsGkAtoms::href && nsHTMLEditUtils::IsLink(node)) ||
         
@@ -1689,13 +1689,13 @@ nsHTMLEditor::RelativeFontChangeOnTextNode( int32_t aSizeChange,
   
   nsIAtom* nodeType = aSizeChange == 1 ? nsGkAtoms::big : nsGkAtoms::small;
   nsCOMPtr<nsIContent> sibling = GetPriorHTMLSibling(node);
-  if (sibling && sibling->Tag() == nodeType) {
+  if (sibling && sibling->IsHTMLElement(nodeType)) {
     
     res = MoveNode(node, sibling, -1);
     return res;
   }
   sibling = GetNextHTMLSibling(node);
-  if (sibling && sibling->Tag() == nodeType) {
+  if (sibling && sibling->IsHTMLElement(nodeType)) {
     
     res = MoveNode(node, sibling, 0);
     return res;
