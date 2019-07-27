@@ -14,7 +14,6 @@ function runTest() {
   
   
   
-  
 
   var seenLoadEnd = false;
   var seenLoadStart = false;
@@ -75,7 +74,6 @@ function runTest2() {
   var seenLoadStart = false;
   var seenLoadEnd = false;
   var seenLocationChange = false;
-  var seenLoadProgressChanged = false;
 
   
   document.addEventListener('mozbrowserloadstart', function(e) {
@@ -103,14 +101,6 @@ function runTest2() {
     ok(seenLoadStart, 'Load end after load start.');
     ok(seenLocationChange, 'Load end after location change.');
     is(e.detail.backgroundColor, 'transparent', 'Expected background color reported')
-  });
-
-  iframe.addEventListener('mozbrowserloadprogresschanged', function(e) {
-    ok(e.isTrusted, 'Event should be trusted.');
-    seenLoadProgressChanged = true;
-    ok(seenLoadStart, 'Load end after load start.');
-    ok(seenLocationChange, 'Load end after location change.');
-    ok(!seenLoadEnd, 'Load end after load progress.');
   });
 
   iframe.src = browserElementTestHelpers.emptyPage2;
