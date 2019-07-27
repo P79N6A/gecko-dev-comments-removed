@@ -845,5 +845,8 @@ function removeBrowserNotification(aBrowser, aNotificationId) {
 }
 
 function removeBrowserSpecificIndicator(aSubject, aTopic, aData) {
-  updateBrowserSpecificIndicator(getBrowserForWindowId(aData));
+  let browser = getBrowserForWindowId(aData);
+  
+  if (browser.contentWindow)
+    updateBrowserSpecificIndicator(browser);
 }
