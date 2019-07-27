@@ -1045,6 +1045,48 @@ nsCSPContext::PermitsAncestry(nsIDocShell* aDocShell, bool* outPermitsAncestry)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsCSPContext::PermitsBaseURI(nsIURI* aURI, bool* outPermitsBaseURI)
+{
+  
+  if (aURI == nullptr) {
+    return NS_ERROR_FAILURE;
+  }
+
+  *outPermitsBaseURI = true;
+
+  for (uint32_t i = 0; i < mPolicies.Length(); i++) {
+    if (!mPolicies[i]->permitsBaseURI(aURI)) {
+      
+      if (!mPolicies[i]->getReportOnlyFlag()) {
+        *outPermitsBaseURI = false;
+      }
+      nsAutoString violatedDirective;
+      mPolicies[i]->getDirectiveStringForBaseURI(violatedDirective);
+      this->AsyncReportViolation(aURI,
+                                 mSelfURI,
+                                 violatedDirective,
+                                 i,             
+                                 EmptyString(), 
+                                 EmptyString(), 
+                                 EmptyString(), 
+                                 0);            
+    }
+  }
+
+#ifdef PR_LOGGING
+  {
+    nsAutoCString spec;
+    aURI->GetSpec(spec);
+    CSPCONTEXTLOG(("nsCSPContext::PermitsBaseURI, aUri: %s, isAllowed: %s",
+                  spec.get(),
+                  *outPermitsBaseURI ? "allow" : "deny"));
+  }
+#endif
+
+  return NS_OK;
+}
+
 
 
 NS_IMPL_ISUPPORTS(CSPViolationReportListener, nsIStreamListener, nsIRequestObserver, nsISupports);
