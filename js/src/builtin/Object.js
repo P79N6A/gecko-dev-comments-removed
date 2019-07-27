@@ -15,7 +15,13 @@ function ObjectStaticAssign(target, firstSource) {
     var i = 1;
     do {
         
+        
+        
+        
         var nextSource = arguments[i];
+        if (nextSource === null || nextSource === undefined)
+            continue;
+
         var from = ToObject(nextSource);
 
         
@@ -58,8 +64,7 @@ function ObjectStaticAssign(target, firstSource) {
         
         if (pendingException !== MISSING)
             throw pendingException;
-        i++;
-    } while (i < arguments.length);
+    } while (++i < arguments.length);
 
     
     return to;

@@ -39,11 +39,26 @@ function basicSymbols() {
 basicSymbols();
 
 
+
 function testToObject() {
     assertThrowsInstanceOf(() => Object.assign(null, null), TypeError);
     assertThrowsInstanceOf(() => Object.assign(), TypeError);
     assertThrowsInstanceOf(() => Object.assign(null, {}), TypeError);
-    assertThrowsInstanceOf(() => Object.assign({}, null), TypeError);
+    assertEq(Object.assign({}, null) instanceof Object, true);
+    assertEq(Object.assign({}, undefined) instanceof Object, true);
+
+    
+    
+    
+    if (typeof objectEmulatingUndefined === "function") {
+        var falsyObject = objectEmulatingUndefined();
+        falsyObject.foo = 7;
+
+        var obj = Object.assign({}, falsyObject);
+        assertEq(obj instanceof Object, true);
+        assertEq(obj.foo, 7);
+    }
+
     assertEq(Object.assign(true, {}) instanceof Boolean, true);
     assertEq(Object.assign(1, {}) instanceof Number, true);
     assertEq(Object.assign("string", {}) instanceof String, true);
