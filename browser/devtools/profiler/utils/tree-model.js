@@ -139,9 +139,12 @@ ThreadNode.prototype = {
 
 
 
-function FrameNode({ location, line, category }) {
+
+
+function FrameNode({ location, line, column, category }) {
   this.location = location;
   this.line = line;
+  this.column = column;
   this.category = category;
   this.sampleTimes = [];
   this.samples = 0;
@@ -201,23 +204,27 @@ FrameNode.prototype = {
     let categoryData = CATEGORY_MAPPINGS[this.category] || {};
 
     
-    let firstParen = this.location.indexOf("(");
-    let lastColon = this.location.lastIndexOf(":");
-    let resource = this.location.substring(firstParen + 1, lastColon);
-    let line = this.location.substring(lastColon + 1).replace(")", "");
+    let lineAndColumn = this.location.match(/((:\d+)*)\)?$/)[1];
+    let [, line, column] = lineAndColumn.split(":");
+    line = line || this.line;
+    column = column || this.column;
+
+    let firstParenIndex = this.location.indexOf("(");
+    let lineAndColumnIndex = this.location.indexOf(lineAndColumn);
+    let resource = this.location.substring(firstParenIndex + 1, lineAndColumnIndex);
+
     let url = resource.split(" -> ").pop();
     let uri = nsIURL(url);
     let functionName, fileName, hostName;
 
     
     if (uri) {
-      functionName = this.location.substring(0, firstParen - 1);
+      functionName = this.location.substring(0, firstParenIndex - 1);
       fileName = (uri.fileName + (uri.ref ? "#" + uri.ref : "")) || "/";
       hostName = uri.host;
     } else {
       functionName = this.location;
       url = null;
-      line = null;
     }
 
     return {
@@ -226,7 +233,8 @@ FrameNode.prototype = {
       fileName: fileName,
       hostName: hostName,
       url: url,
-      line: line || this.line,
+      line: line,
+      column: column,
       categoryData: categoryData,
       isContent: !!isContent(this)
     };
