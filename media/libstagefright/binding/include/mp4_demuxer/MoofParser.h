@@ -175,8 +175,8 @@ private:
 class MoofParser
 {
 public:
-  MoofParser(Stream* aSource, uint32_t aTrackId)
-    : mSource(aSource), mOffset(0), mTrex(aTrackId)
+  MoofParser(Stream* aSource, uint32_t aTrackId, Monitor* aMonitor)
+    : mSource(aSource), mOffset(0), mTrex(aTrackId), mMonitor(aMonitor)
   {
     
     
@@ -202,6 +202,9 @@ public:
   Trex mTrex;
   Tfdt mTfdt;
   Edts mEdts;
+  Monitor* mMonitor;
+  nsTArray<Moof>& Moofs() { mMonitor->AssertCurrentThreadOwns(); return mMoofs; }
+private:
   nsTArray<Moof> mMoofs;
 };
 }

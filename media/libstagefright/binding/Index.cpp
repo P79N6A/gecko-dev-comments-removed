@@ -140,7 +140,7 @@ Sample* SampleIterator::Get()
     return nullptr;
   }
 
-  nsTArray<Moof>& moofs = mIndex->mMoofParser->mMoofs;
+  nsTArray<Moof>& moofs = mIndex->mMoofParser->Moofs();
   while (true) {
     if (mCurrentMoof == moofs.Length()) {
       if (!mIndex->mMoofParser->BlockingReadNextMoof()) {
@@ -187,11 +187,12 @@ void SampleIterator::Seek(Microseconds aTime)
 }
 
 Index::Index(const stagefright::Vector<MediaSource::Indice>& aIndex,
-             Stream* aSource, uint32_t aTrackId)
+             Stream* aSource, uint32_t aTrackId, Monitor* aMonitor)
   : mSource(aSource)
+  , mMonitor(aMonitor)
 {
   if (aIndex.isEmpty()) {
-    mMoofParser = new MoofParser(aSource, aTrackId);
+    mMoofParser = new MoofParser(aSource, aTrackId, aMonitor);
   } else {
     for (size_t i = 0; i < aIndex.size(); i++) {
       const MediaSource::Indice& indice = aIndex[i];
@@ -223,10 +224,10 @@ Index::GetEndCompositionIfBuffered(const nsTArray<MediaByteRange>& aByteRanges)
 {
   nsTArray<Sample>* index;
   if (mMoofParser) {
-    if (!mMoofParser->ReachedEnd() || mMoofParser->mMoofs.IsEmpty()) {
+    if (!mMoofParser->ReachedEnd() || mMoofParser->Moofs().IsEmpty()) {
       return 0;
     }
-    index = &mMoofParser->mMoofs.LastElement().mIndex;
+    index = &mMoofParser->Moofs().LastElement().mIndex;
   } else {
     index = &mIndex;
   }
@@ -259,8 +260,8 @@ Index::ConvertByteRangesToTimeRanges(
     
     
     
-    for (int i = 0; i < mMoofParser->mMoofs.Length(); i++) {
-      Moof& moof = mMoofParser->mMoofs[i];
+    for (int i = 0; i < mMoofParser->Moofs().Length(); i++) {
+      Moof& moof = mMoofParser->Moofs()[i];
 
       
       if (rangeFinder.Contains(moof.mRange)) {
@@ -308,8 +309,8 @@ Index::GetEvictionOffset(Microseconds aTime)
   if (mMoofParser) {
     
     
-    for (int i = 0; i < mMoofParser->mMoofs.Length(); i++) {
-      Moof& moof = mMoofParser->mMoofs[i];
+    for (int i = 0; i < mMoofParser->Moofs().Length(); i++) {
+      Moof& moof = mMoofParser->Moofs()[i];
 
       if (moof.mTimeRange.Length() && moof.mTimeRange.end > aTime) {
         offset = std::min(offset, uint64_t(std::min(moof.mRange.mStart,
