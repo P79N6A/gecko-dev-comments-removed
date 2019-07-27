@@ -142,10 +142,12 @@ LogManager.prototype = {
     this._prefs = null;
   },
 
-  get _logFileDirectory() {
+  get _logFileSubDirectoryEntries() {
     
     
-    return FileUtils.getDir("ProfD", ["weave", "logs"]);
+    
+    
+    return ["weave", "logs"];
   },
 
   
@@ -155,7 +157,8 @@ LogManager.prototype = {
 
 
 
-  _copyStreamToFile: Task.async(function* (inputStream, outputFile) {
+
+  _copyStreamToFile: Task.async(function* (inputStream, outputFileName) {
     
     
     const BUFFER_SIZE = 8192;
@@ -163,7 +166,11 @@ LogManager.prototype = {
     
     let binaryStream = Cc["@mozilla.org/binaryinputstream;1"].createInstance(Ci.nsIBinaryInputStream);
     binaryStream.setInputStream(inputStream);
-    yield OS.File.makeDir(outputFile.parent.path, { ignoreExisting: true });
+    
+    let profd = FileUtils.getDir("ProfD", []);
+    let outputFile = FileUtils.getDir("ProfD", this._logFileSubDirectoryEntries);
+    yield OS.File.makeDir(outputFile.path, { ignoreExisting: true, from: profd.path });
+    outputFile.append(outputFileName);
     let output = yield OS.File.open(outputFile.path, { write: true} );
     try {
       while (true) {
@@ -221,12 +228,10 @@ LogManager.prototype = {
         
         
         let filename = reasonPrefix + "-" + this.logFilePrefix + "-" + Date.now() + ".txt";
-        let file = this._logFileDirectory;
-        file.append(filename);
-        this._log.trace("Beginning stream copy to " + file.leafName + ": " +
+        this._log.trace("Beginning stream copy to " + filename + ": " +
                         Date.now());
         try {
-          yield this._copyStreamToFile(inStream, file);
+          yield this._copyStreamToFile(inStream, filename);
           this._log.trace("onCopyComplete", Date.now());
         } catch (ex) {
           this._log.error("Failed to copy log stream to file", ex);
@@ -256,7 +261,8 @@ LogManager.prototype = {
 
   cleanupLogs: Task.async(function* () {
     this._cleaningUpFileLogs = true;
-    let iterator = new OS.File.DirectoryIterator(this._logFileDirectory.path);
+    let logDir = FileUtils.getDir("ProfD", this._logFileSubDirectoryEntries);
+    let iterator = new OS.File.DirectoryIterator(logDir.path);
     let maxAge = this._prefs.get("log.appender.file.maxErrorAge", DEFAULT_MAX_ERROR_AGE);
     let threshold = Date.now() - 1000 * maxAge;
 

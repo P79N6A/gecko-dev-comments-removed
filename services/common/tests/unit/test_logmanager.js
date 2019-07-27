@@ -6,6 +6,7 @@
 
 Cu.import("resource://services-common/logmanager.js");
 Cu.import("resource://gre/modules/Log.jsm");
+Cu.import("resource://gre/modules/FileUtils.jsm");
 
 function run_test() {
   run_next_test();
@@ -100,4 +101,35 @@ add_task(function* test_SharedLogs() {
 
   lm1.finalize();
   lm2.finalize();
+});
+
+
+
+function checkLogFile(prefix) {
+  let logsdir = FileUtils.getDir("ProfD", ["weave", "logs"], true);
+  let entries = logsdir.directoryEntries;
+  if (!prefix) {
+    
+    ok(!entries.hasMoreElements());
+  } else {
+    
+    ok(entries.hasMoreElements());
+    let logfile = entries.getNext().QueryInterface(Ci.nsILocalFile);
+    equal(logfile.leafName.slice(-4), ".txt");
+    ok(logfile.leafName.startsWith(prefix + "-test-"), logfile.leafName);
+    
+    logfile.remove(false);
+  }
+}
+
+
+add_task(function* test_logFileErrorDefault() {
+  let lm = new LogManager("log-manager.test.", ["TestLog2"], "test");
+
+  let log = Log.repository.getLogger("TestLog2");
+  log.error("an error message");
+  yield lm.resetFileLog(lm.REASON_ERROR);
+  
+  checkLogFile("error");
+  lm.finalize();
 });
