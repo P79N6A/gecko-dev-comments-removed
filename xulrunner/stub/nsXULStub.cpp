@@ -336,47 +336,29 @@ main(int argc, char **argv)
   if (!greFound) {
 #ifdef XP_MACOSX
     
-    CFURLRef fwurl = CFBundleCopyPrivateFrameworksURL(appBundle);
-    CFURLRef absfwurl = nullptr;
-    if (fwurl) {
-      absfwurl = CFURLCopyAbsoluteURL(fwurl);
-      CFRelease(fwurl);
+    CFURLRef exurl = CFBundleCopyExecutableURL(appBundle);
+    CFURLRef absexurl = nullptr;
+    if (exurl) {
+      absexurl = CFURLCopyAbsoluteURL(exurl);
+      CFRelease(exurl);
     }
 
-    if (absfwurl) {
-      CFURLRef xulurl =
-        CFURLCreateCopyAppendingPathComponent(nullptr, absfwurl,
-                                              CFSTR("XUL.framework/Versions/Current"),
-                                              true);
+    if (absexurl) {
+      char tbuffer[MAXPATHLEN];
 
-      if (xulurl) {
-        CFURLRef xpcomurl =
-          CFURLCreateCopyAppendingPathComponent(nullptr, xulurl,
-                                                CFSTR("libmozglue.dylib"),
-                                                false);
-
-        if (xpcomurl) {
-          char tbuffer[MAXPATHLEN];
-
-          if (CFURLGetFileSystemRepresentation(xpcomurl, true,
-                                               (UInt8*) tbuffer,
-                                               sizeof(tbuffer)) &&
-              access(tbuffer, R_OK | X_OK) == 0) {
-            if (realpath(tbuffer, greDir)) {
-              greFound = true;
-            }
-            else {
-              greDir[0] = '\0';
-            }
-          }
-
-          CFRelease(xpcomurl);
+      if (CFURLGetFileSystemRepresentation(absexurl, true,
+                                           (UInt8*) tbuffer,
+                                           sizeof(tbuffer)) &&
+          access(tbuffer, R_OK | X_OK) == 0) {
+        if (realpath(tbuffer, greDir)) {
+          greFound = true;
         }
-
-        CFRelease(xulurl);
+        else {
+          greDir[0] = '\0';
+        }
       }
 
-      CFRelease(absfwurl);
+      CFRelease(absexurl);
     }
 #endif
     if (!greFound) {
