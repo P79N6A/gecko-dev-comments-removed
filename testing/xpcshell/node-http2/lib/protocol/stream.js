@@ -46,7 +46,7 @@ exports.Stream = Stream;
 
 
 
-function Stream(log) {
+function Stream(log, connection) {
   Duplex.call(this);
 
   
@@ -60,6 +60,8 @@ function Stream(log) {
 
   
   this._initializeState();
+
+  this.connection = connection;
 }
 
 Stream.prototype = Object.create(Duplex.prototype, { constructor: { value: Stream } });
@@ -79,7 +81,7 @@ Stream.prototype._initializeManagement = function _initializeManagement() {
 };
 
 Stream.prototype.promise = function promise(headers) {
-  var stream = new Stream(this._log);
+  var stream = new Stream(this._log, this.connection);
   stream._priority = Math.min(this._priority + 1, MAX_PRIORITY);
   this._pushUpstream({
     type: 'PUSH_PROMISE',

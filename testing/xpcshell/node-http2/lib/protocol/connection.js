@@ -230,7 +230,7 @@ Connection.prototype._reprioritize = function _reprioritize(stream, priority) {
 Connection.prototype._createIncomingStream = function _createIncomingStream(id) {
   this._log.debug({ stream_id: id }, 'New incoming stream.');
 
-  var stream = new Stream(this._log);
+  var stream = new Stream(this._log, this);
   this._allocateId(stream, id);
   this._allocatePriority(stream);
   this.emit('stream', stream, id);
@@ -243,7 +243,7 @@ Connection.prototype.createStream = function createStream() {
   this._log.trace('Creating new outbound stream.');
 
   
-  var stream = new Stream(this._log);
+  var stream = new Stream(this._log, this);
   this._allocatePriority(stream);
 
   return stream;
@@ -441,13 +441,14 @@ Connection.prototype._sanityCheckMaxFrameSize = function _sanityCheckMaxFrameSiz
 
 Connection.prototype.set = function set(settings, callback) {
   
-  callback = callback || function noop() {};
   var self = this;
   this._settingsAckCallbacks.push(function() {
     for (var name in settings) {
       self.emit('ACKNOWLEDGED_' + name, settings[name]);
     }
-    callback();
+    if (callback) {
+      callback();
+    }
   });
 
   
