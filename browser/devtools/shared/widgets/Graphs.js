@@ -6,7 +6,6 @@
 const { Cc, Ci, Cu, Cr } = require("chrome");
 
 const { Task } = Cu.import("resource://gre/modules/Task.jsm", {});
-const { ViewHelpers } = require("resource:///modules/devtools/ViewHelpers.jsm");
 const { Heritage, setNamedTimeout, clearNamedTimeout } = require("resource:///modules/devtools/ViewHelpers.jsm");
 
 loader.lazyRequireGetter(this, "promise");
@@ -21,8 +20,6 @@ loader.lazyImporter(this, "LayoutHelpers",
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 const GRAPH_SRC = "chrome://browser/content/devtools/graphs-frame.xhtml";
 const WORKER_URL = "resource:///modules/devtools/GraphsWorker.js";
-
-const L10N = new ViewHelpers.L10N();
 
 
 
@@ -43,30 +40,6 @@ const GRAPH_STRIPE_PATTERN_WIDTH = 16;
 const GRAPH_STRIPE_PATTERN_HEIGHT = 16; 
 const GRAPH_STRIPE_PATTERN_LINE_WIDTH = 2; 
 const GRAPH_STRIPE_PATTERN_LINE_SPACING = 4; 
-
-
-
-const LINE_GRAPH_DAMPEN_VALUES = 0.85;
-const LINE_GRAPH_TOOLTIP_SAFE_BOUNDS = 8; 
-const LINE_GRAPH_MIN_MAX_TOOLTIP_DISTANCE = 14; 
-
-const LINE_GRAPH_BACKGROUND_COLOR = "#0088cc";
-const LINE_GRAPH_STROKE_WIDTH = 1; 
-const LINE_GRAPH_STROKE_COLOR = "rgba(255,255,255,0.9)";
-const LINE_GRAPH_HELPER_LINES_DASH = [5]; 
-const LINE_GRAPH_HELPER_LINES_WIDTH = 1; 
-const LINE_GRAPH_MAXIMUM_LINE_COLOR = "rgba(255,255,255,0.4)";
-const LINE_GRAPH_AVERAGE_LINE_COLOR = "rgba(255,255,255,0.7)";
-const LINE_GRAPH_MINIMUM_LINE_COLOR = "rgba(255,255,255,0.9)";
-const LINE_GRAPH_BACKGROUND_GRADIENT_START = "rgba(255,255,255,0.25)";
-const LINE_GRAPH_BACKGROUND_GRADIENT_END = "rgba(255,255,255,0.0)";
-
-const LINE_GRAPH_CLIPHEAD_LINE_COLOR = "#fff";
-const LINE_GRAPH_SELECTION_LINE_COLOR = "#fff";
-const LINE_GRAPH_SELECTION_BACKGROUND_COLOR = "rgba(44,187,15,0.25)";
-const LINE_GRAPH_SELECTION_STRIPES_COLOR = "rgba(255,255,255,0.1)";
-const LINE_GRAPH_REGION_BACKGROUND_COLOR = "transparent";
-const LINE_GRAPH_REGION_STRIPES_COLOR = "rgba(237,38,85,0.2)";
 
 
 
@@ -1269,357 +1242,6 @@ AbstractCanvasGraph.prototype = {
 
 
 
-this.LineGraphWidget = function(parent, options, ...args) {
-  options = options || {};
-  let metric = options.metric;
-
-  this._showMin = options.min !== false;
-  this._showMax = options.max !== false;
-  this._showAvg = options.avg !== false;
-  AbstractCanvasGraph.apply(this, [parent, "line-graph", ...args]);
-
-  this.once("ready", () => {
-    
-    
-    this._gutter = this._createGutter();
-
-    this._maxGutterLine = this._createGutterLine("maximum");
-    this._maxTooltip = this._createTooltip("maximum", "start", "max", metric);
-    this._minGutterLine = this._createGutterLine("minimum");
-    this._minTooltip = this._createTooltip("minimum", "start", "min", metric);
-    this._avgGutterLine = this._createGutterLine("average");
-    this._avgTooltip = this._createTooltip("average", "end", "avg", metric);
-  });
-};
-
-LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
-  backgroundColor: LINE_GRAPH_BACKGROUND_COLOR,
-  backgroundGradientStart: LINE_GRAPH_BACKGROUND_GRADIENT_START,
-  backgroundGradientEnd: LINE_GRAPH_BACKGROUND_GRADIENT_END,
-  strokeColor: LINE_GRAPH_STROKE_COLOR,
-  strokeWidth: LINE_GRAPH_STROKE_WIDTH,
-  maximumLineColor: LINE_GRAPH_MAXIMUM_LINE_COLOR,
-  averageLineColor: LINE_GRAPH_AVERAGE_LINE_COLOR,
-  minimumLineColor: LINE_GRAPH_MINIMUM_LINE_COLOR,
-  clipheadLineColor: LINE_GRAPH_CLIPHEAD_LINE_COLOR,
-  selectionLineColor: LINE_GRAPH_SELECTION_LINE_COLOR,
-  selectionBackgroundColor: LINE_GRAPH_SELECTION_BACKGROUND_COLOR,
-  selectionStripesColor: LINE_GRAPH_SELECTION_STRIPES_COLOR,
-  regionBackgroundColor: LINE_GRAPH_REGION_BACKGROUND_COLOR,
-  regionStripesColor: LINE_GRAPH_REGION_STRIPES_COLOR,
-
-  
-
-
-  dataOffsetX: 0,
-
-  
-
-
-
-  dataDuration: 0,
-
-  
-
-
-  dampenValuesFactor: LINE_GRAPH_DAMPEN_VALUES,
-
-  
-
-
-  withTooltipArrows: true,
-
-  
-
-
-
-  withFixedTooltipPositions: false,
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  setDataFromTimestamps: Task.async(function*(timestamps, interval, duration) {
-    let {
-      plottedData,
-      plottedMinMaxSum
-    } = yield CanvasGraphUtils._performTaskInWorker("plotTimestampsGraph", {
-      timestamps, interval, duration
-    });
-
-    this._tempMinMaxSum = plottedMinMaxSum;
-    this.setData(plottedData);
-  }),
-
-  
-
-
-
-  buildGraphImage: function() {
-    let { canvas, ctx } = this._getNamedCanvas("line-graph-data");
-    let width = this._width;
-    let height = this._height;
-
-    let totalTicks = this._data.length;
-    let firstTick = totalTicks ? this._data[0].delta : 0;
-    let lastTick = totalTicks ? this._data[totalTicks - 1].delta : 0;
-    let maxValue = Number.MIN_SAFE_INTEGER;
-    let minValue = Number.MAX_SAFE_INTEGER;
-    let avgValue = 0;
-
-    if (this._tempMinMaxSum) {
-      maxValue = this._tempMinMaxSum.maxValue;
-      minValue = this._tempMinMaxSum.minValue;
-      avgValue = this._tempMinMaxSum.avgValue;
-    } else {
-      let sumValues = 0;
-      for (let { delta, value } of this._data) {
-        maxValue = Math.max(value, maxValue);
-        minValue = Math.min(value, minValue);
-        sumValues += value;
-      }
-      avgValue = sumValues / totalTicks;
-    }
-
-    let duration = this.dataDuration || lastTick;
-    let dataScaleX = this.dataScaleX = width / (duration - this.dataOffsetX);
-    let dataScaleY = this.dataScaleY = height / maxValue * this.dampenValuesFactor;
-
-    
-
-    ctx.fillStyle = this.backgroundColor;
-    ctx.fillRect(0, 0, width, height);
-
-    
-
-    let gradient = ctx.createLinearGradient(0, height / 2, 0, height);
-    gradient.addColorStop(0, this.backgroundGradientStart);
-    gradient.addColorStop(1, this.backgroundGradientEnd);
-    ctx.fillStyle = gradient;
-    ctx.strokeStyle = this.strokeColor;
-    ctx.lineWidth = this.strokeWidth * this._pixelRatio;
-    ctx.beginPath();
-
-    for (let { delta, value } of this._data) {
-      let currX = (delta - this.dataOffsetX) * dataScaleX;
-      let currY = height - value * dataScaleY;
-
-      if (delta == firstTick) {
-        ctx.moveTo(-LINE_GRAPH_STROKE_WIDTH, height);
-        ctx.lineTo(-LINE_GRAPH_STROKE_WIDTH, currY);
-      }
-
-      ctx.lineTo(currX, currY);
-
-      if (delta == lastTick) {
-        ctx.lineTo(width + LINE_GRAPH_STROKE_WIDTH, currY);
-        ctx.lineTo(width + LINE_GRAPH_STROKE_WIDTH, height);
-      }
-    }
-
-    ctx.fill();
-    ctx.stroke();
-
-    this._drawOverlays(ctx, minValue, maxValue, avgValue, dataScaleY);
-
-    return canvas;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  _drawOverlays: function(ctx, minValue, maxValue, avgValue, dataScaleY) {
-    let width = this._width;
-    let height = this._height;
-    let totalTicks = this._data.length;
-
-    
-    if (this._showMax) {
-      ctx.strokeStyle = this.maximumLineColor;
-      ctx.lineWidth = LINE_GRAPH_HELPER_LINES_WIDTH;
-      ctx.setLineDash(LINE_GRAPH_HELPER_LINES_DASH);
-      ctx.beginPath();
-      let maximumY = height - maxValue * dataScaleY;
-      ctx.moveTo(0, maximumY);
-      ctx.lineTo(width, maximumY);
-      ctx.stroke();
-    }
-
-    
-    if (this._showAvg) {
-      ctx.strokeStyle = this.averageLineColor;
-      ctx.lineWidth = LINE_GRAPH_HELPER_LINES_WIDTH;
-      ctx.setLineDash(LINE_GRAPH_HELPER_LINES_DASH);
-      ctx.beginPath();
-      let averageY = height - avgValue * dataScaleY;
-      ctx.moveTo(0, averageY);
-      ctx.lineTo(width, averageY);
-      ctx.stroke();
-    }
-
-    
-    if (this._showMin) {
-      ctx.strokeStyle = this.minimumLineColor;
-      ctx.lineWidth = LINE_GRAPH_HELPER_LINES_WIDTH;
-      ctx.setLineDash(LINE_GRAPH_HELPER_LINES_DASH);
-      ctx.beginPath();
-      let minimumY = height - minValue * dataScaleY;
-      ctx.moveTo(0, minimumY);
-      ctx.lineTo(width, minimumY);
-      ctx.stroke();
-    }
-
-    
-
-    this._maxTooltip.querySelector("[text=value]").textContent =
-      L10N.numberWithDecimals(maxValue, 2);
-    this._avgTooltip.querySelector("[text=value]").textContent =
-      L10N.numberWithDecimals(avgValue, 2);
-    this._minTooltip.querySelector("[text=value]").textContent =
-      L10N.numberWithDecimals(minValue, 2);
-
-    let bottom = height / this._pixelRatio;
-    let maxPosY = map(maxValue * this.dampenValuesFactor, 0, maxValue, bottom, 0);
-    let avgPosY = map(avgValue * this.dampenValuesFactor, 0, maxValue, bottom, 0);
-    let minPosY = map(minValue * this.dampenValuesFactor, 0, maxValue, bottom, 0);
-
-    let safeTop = LINE_GRAPH_TOOLTIP_SAFE_BOUNDS;
-    let safeBottom = bottom - LINE_GRAPH_TOOLTIP_SAFE_BOUNDS;
-
-    let maxTooltipTop = (this.withFixedTooltipPositions
-      ? safeTop : clamp(maxPosY, safeTop, safeBottom));
-    let avgTooltipTop = (this.withFixedTooltipPositions
-      ? safeTop : clamp(avgPosY, safeTop, safeBottom));
-    let minTooltipTop = (this.withFixedTooltipPositions
-      ? safeBottom : clamp(minPosY, safeTop, safeBottom));
-
-    this._maxTooltip.style.top = maxTooltipTop + "px";
-    this._avgTooltip.style.top = avgTooltipTop + "px";
-    this._minTooltip.style.top = minTooltipTop + "px";
-
-    this._maxGutterLine.style.top = maxPosY + "px";
-    this._avgGutterLine.style.top = avgPosY + "px";
-    this._minGutterLine.style.top = minPosY + "px";
-
-    this._maxTooltip.setAttribute("with-arrows", this.withTooltipArrows);
-    this._avgTooltip.setAttribute("with-arrows", this.withTooltipArrows);
-    this._minTooltip.setAttribute("with-arrows", this.withTooltipArrows);
-
-    let distanceMinMax = Math.abs(maxTooltipTop - minTooltipTop);
-    this._maxTooltip.hidden = this._showMax === false || !totalTicks || distanceMinMax < LINE_GRAPH_MIN_MAX_TOOLTIP_DISTANCE;
-    this._avgTooltip.hidden = this._showAvg === false || !totalTicks;
-    this._minTooltip.hidden = this._showMin === false || !totalTicks;
-    this._gutter.hidden = (this._showMin === false && this._showAvg === false && this._showMax === false) || !totalTicks;
-
-    this._maxGutterLine.hidden = this._showMax === false;
-    this._avgGutterLine.hidden = this._showAvg === false;
-    this._minGutterLine.hidden = this._showMin === false;
-  },
-
-  
-
-
-
-  _createGutter: function() {
-    let gutter = this._document.createElementNS(HTML_NS, "div");
-    gutter.className = "line-graph-widget-gutter";
-    gutter.setAttribute("hidden", true);
-    this._container.appendChild(gutter);
-
-    return gutter;
-  },
-
-  
-
-
-
-  _createGutterLine: function(type) {
-    let line = this._document.createElementNS(HTML_NS, "div");
-    line.className = "line-graph-widget-gutter-line";
-    line.setAttribute("type", type);
-    this._gutter.appendChild(line);
-
-    return line;
-  },
-
-  
-
-
-
-  _createTooltip: function(type, arrow, info, metric) {
-    let tooltip = this._document.createElementNS(HTML_NS, "div");
-    tooltip.className = "line-graph-widget-tooltip";
-    tooltip.setAttribute("type", type);
-    tooltip.setAttribute("arrow", arrow);
-    tooltip.setAttribute("hidden", true);
-
-    let infoNode = this._document.createElementNS(HTML_NS, "span");
-    infoNode.textContent = info;
-    infoNode.setAttribute("text", "info");
-
-    let valueNode = this._document.createElementNS(HTML_NS, "span");
-    valueNode.textContent = 0;
-    valueNode.setAttribute("text", "value");
-
-    let metricNode = this._document.createElementNS(HTML_NS, "span");
-    metricNode.textContent = metric;
-    metricNode.setAttribute("text", "metric");
-
-    tooltip.appendChild(infoNode);
-    tooltip.appendChild(valueNode);
-    tooltip.appendChild(metricNode);
-    this._container.appendChild(tooltip);
-
-    return tooltip;
-  }
-});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2202,15 +1824,6 @@ function clamp(value, min, max) {
 
 
 
-function distSquared(x0, y0, x1, y1) {
-  let xs = x1 - x0;
-  let ys = y1 - y0;
-  return xs * xs + ys * ys;
-}
-
-
-
-
 
 
 
@@ -2226,9 +1839,10 @@ exports.GraphArea = GraphArea;
 exports.GraphAreaDragger = GraphAreaDragger;
 exports.GraphAreaResizer = GraphAreaResizer;
 exports.AbstractCanvasGraph = AbstractCanvasGraph;
-exports.LineGraphWidget = LineGraphWidget;
 exports.BarGraphWidget = BarGraphWidget;
 exports.CanvasGraphUtils = CanvasGraphUtils;
+exports.CanvasGraphUtils.map = map;
+exports.CanvasGraphUtils.clamp = clamp;
 
 
 
