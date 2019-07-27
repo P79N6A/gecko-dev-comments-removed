@@ -658,14 +658,15 @@ NonLocalExitScope::prepareForNonLocalJump(StmtInfoBCE* toStmt)
         if (stmt->isBlockScope) {
             MOZ_ASSERT(stmt->isNestedScope);
             StaticBlockObject& blockObj = stmt->staticBlock();
-            if (!bce->emit1(JSOP_DEBUGLEAVEBLOCK))
-                return false;
-            if (!popScopeForNonLocalExit(stmt->blockScopeIndex))
-                return false;
             if (blockObj.needsClone()) {
                 if (!bce->emit1(JSOP_POPBLOCKSCOPE))
                     return false;
+            } else {
+                if (!bce->emit1(JSOP_DEBUGLEAVEBLOCK))
+                    return false;
             }
+            if (!popScopeForNonLocalExit(stmt->blockScopeIndex))
+                return false;
         }
     }
 
@@ -892,6 +893,12 @@ BytecodeEmitter::computeLocalOffset(Handle<StaticBlockObject*> blockObj)
 
 
 
+
+
+
+
+
+
 bool
 BytecodeEmitter::enterNestedScope(StmtInfoBCE* stmt, ObjectBox* objbox, StmtType stmtType)
 {
@@ -974,11 +981,16 @@ BytecodeEmitter::leaveNestedScope(StmtInfoBCE* stmt)
 
     popStatement();
 
-    if (!emit1(stmt->isBlockScope ? JSOP_DEBUGLEAVEBLOCK : JSOP_LEAVEWITH))
-        return false;
-
-    if (stmt->isBlockScope && stmt->staticScope->as<StaticBlockObject>().needsClone()) {
-        if (!emit1(JSOP_POPBLOCKSCOPE))
+    if (stmt->isBlockScope) {
+        if (stmt->staticScope->as<StaticBlockObject>().needsClone()) {
+            if (!emit1(JSOP_POPBLOCKSCOPE))
+                return false;
+        } else {
+            if (!emit1(JSOP_DEBUGLEAVEBLOCK))
+                return false;
+        }
+    } else {
+        if (!emit1(JSOP_LEAVEWITH))
             return false;
     }
 
