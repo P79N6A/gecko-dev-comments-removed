@@ -29,7 +29,7 @@ class MOZ_STACK_CLASS InfoObject
 
   private:
   
-  InfoObject(JSContext *aCx);
+  explicit InfoObject(JSContext *aCx);
   InfoObject(InfoObject&);
 
   JSContext *mCx;
