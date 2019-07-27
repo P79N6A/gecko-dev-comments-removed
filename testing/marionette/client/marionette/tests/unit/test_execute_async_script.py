@@ -124,3 +124,12 @@ class TestExecuteAsyncChrome(TestExecuteAsyncContent):
 var c = Components.classes;
 marionetteScriptFinished(5);
 """))
+
+    def test_execute_async_js_exception(self):
+        
+        self.marionette.set_script_timeout(200)
+        self.assertRaises(ScriptTimeoutException,
+            self.marionette.execute_async_script, """
+            var callback = arguments[arguments.length - 1];
+            setTimeout("callback(foo())", 50);
+            """)

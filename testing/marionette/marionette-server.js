@@ -1128,10 +1128,16 @@ MarionetteServerConnection.prototype = {
       }
     }
 
-    curWindow.onerror = function (errorMsg, url, lineNumber) {
-      chromeAsyncReturnFunc(errorMsg + " at: " + url + " line: " + lineNumber, 17);
-      return true;
-    };
+    
+    
+    
+    
+    if (aRequest.parameters.debug_script) {
+      curWindow.onerror = function (errorMsg, url, lineNumber) {
+        chromeAsyncReturnFunc(errorMsg + " at: " + url + " line: " + lineNumber, 17);
+        return true;
+      };
+    }
 
     function chromeAsyncFinish() {
       chromeAsyncReturnFunc(that.sandbox.generate_results(), 0);
