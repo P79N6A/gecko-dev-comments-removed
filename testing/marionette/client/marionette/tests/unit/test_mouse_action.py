@@ -32,18 +32,14 @@ class TestMouseAction(MarionetteTestCase):
         self.action.click(el).perform()
 
     def test_double_click_action(self):
-        test_html = self.marionette.absolute_url("javascriptPage.html")
+        test_html = self.marionette.absolute_url("double_click.html")
         self.marionette.navigate(test_html)
-        el = self.marionette.find_element(By.ID, 'displayed')
-        
-        
-        
-        el.click()
+        el = self.marionette.find_element(By.ID, 'one-word-div')
         self.action.double_click(el).perform()
         el.send_keys(self.mod_key + 'c')
-        rel = self.marionette.find_element("id", "keyReporter")
+        rel = self.marionette.find_element("id", "input-field")
         rel.send_keys(self.mod_key + 'v')
-        self.assertEqual(rel.get_attribute('value'), 'Displayed')
+        self.assertEqual(rel.get_attribute('value'), 'zyxw')
 
     def test_context_click_action(self):
         test_html = self.marionette.absolute_url("javascriptPage.html")
