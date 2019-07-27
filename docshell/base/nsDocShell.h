@@ -262,10 +262,10 @@ public:
 
   
   
-  void NotifyAsyncPanZoomStarted(const mozilla::CSSIntPoint aScrollPos);
+  void NotifyAsyncPanZoomStarted();
   
   
-  void NotifyAsyncPanZoomStopped(const mozilla::CSSIntPoint aScrollPos);
+  void NotifyAsyncPanZoomStopped();
 
   
   
