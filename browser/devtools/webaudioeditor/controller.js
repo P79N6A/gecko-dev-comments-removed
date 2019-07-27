@@ -62,7 +62,14 @@ let WebAudioEditorController = {
     gDevTools.on("pref-changed", this._onThemeChange);
 
     
-    AUDIO_NODE_DEFINITION = yield gFront.getDefinition();
+    
+    
+    let actorHasDefinition = yield gTarget.actorHasMethod("webaudio", "getDefinition");
+    if (actorHasDefinition) {
+      AUDIO_NODE_DEFINITION = yield gFront.getDefinition();
+    } else {
+      AUDIO_NODE_DEFINITION = require("devtools/server/actors/utils/audionodes.json");
+    }
   }),
 
   
