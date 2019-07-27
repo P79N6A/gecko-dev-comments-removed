@@ -520,7 +520,7 @@ public:
 
   
   
-  void DurationChanged();
+  void DurationChanged(media::TimeUnit aNewDuration);
 
   bool OnStateMachineTaskQueue() const override;
 
