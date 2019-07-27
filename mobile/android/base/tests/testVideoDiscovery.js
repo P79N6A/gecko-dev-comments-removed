@@ -28,7 +28,7 @@ function middle(element) {
 }
 
 
-var testTarget = {
+var testDevice = {
   id: "test:dummy",
   target: "test:service",
   factory: function(service) {   },
@@ -42,11 +42,11 @@ add_test(function setup_browser() {
 
   do_register_cleanup(function cleanup() {
     BrowserApp.closeTab(BrowserApp.getTabForBrowser(browser));
-    SimpleServiceDiscovery.unregisterTarget(testTarget);
+    SimpleServiceDiscovery.unregisterDevice(testDevice);
   });
 
   
-  SimpleServiceDiscovery.registerTarget(testTarget);
+  SimpleServiceDiscovery.registerDevice(testDevice);
 
   
   let service = {
