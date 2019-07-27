@@ -1506,6 +1506,14 @@ CssSelector.prototype = {
 
   get specificity()
   {
+    if (this.elementStyle) {
+      
+      
+      
+      
+      return 0x01000000;
+    }
+
     if (this._specificity) {
       return this._specificity;
     }
