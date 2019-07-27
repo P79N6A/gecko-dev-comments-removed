@@ -254,14 +254,6 @@ EqualChars(const Char1 *s1, const Char2 *s2, size_t len)
 
 
 
-JSString *
-SubstringKernel(JSContext *cx, HandleString str, int32_t beginInt, int32_t lengthInt);
-
-
-
-
-
-
 
 extern char16_t *
 InflateString(ThreadSafeContext *cx, const char *bytes, size_t *length);
@@ -318,6 +310,9 @@ str_lastIndexOf(JSContext *cx, unsigned argc, Value *vp);
 
 extern bool
 str_startsWith(JSContext *cx, unsigned argc, Value *vp);
+
+extern bool
+str_substring(JSContext *cx, unsigned argc, Value *vp);
 
 extern bool
 str_toLowerCase(JSContext *cx, unsigned argc, Value *vp);
