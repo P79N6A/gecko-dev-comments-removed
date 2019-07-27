@@ -2981,11 +2981,16 @@ AutoFlushICache::setRange(uintptr_t start, size_t len)
 
 
 
+
+
+
+
 void
 AutoFlushICache::flush(uintptr_t start, size_t len)
 {
 #if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
-    AutoFlushICache *afc = TlsPerThreadData.get()->PerThreadData::autoFlushICache();
+    PerThreadData *pt = TlsPerThreadData.get();
+    AutoFlushICache *afc = pt ? pt->PerThreadData::autoFlushICache() : nullptr;
     if (!afc) {
         IonSpewCont(IonSpew_CacheFlush, "#");
         ExecutableAllocator::cacheFlush((void*)start, len);
