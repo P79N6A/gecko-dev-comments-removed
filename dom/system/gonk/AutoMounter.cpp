@@ -756,21 +756,19 @@ AutoMounter::UpdateState()
       break;
 
     case STATE_MTP_STARTED:
-      if (usbCablePluggedIn) {
-        if (mtpConfigured && mtpEnabled) {
-          
-          break;
-        }
-        DBG("STATE_MTP_STARTED: About to StopMtpServer "
-            "mtpConfigured = %d mtpEnabled = %d usbCablePluggedIn: %d",
-            mtpConfigured, mtpEnabled, usbCablePluggedIn);
-        StopMtpServer();
-        if (umsAvail) {
-          
-          SetUsbFunction(USB_FUNC_UMS);
-          SetState(STATE_UMS_CONFIGURING);
-          break;
-        }
+      if (usbCablePluggedIn && mtpConfigured && mtpEnabled) {
+        
+        break;
+      }
+      DBG("STATE_MTP_STARTED: About to StopMtpServer "
+          "mtpConfigured = %d mtpEnabled = %d usbCablePluggedIn: %d",
+          mtpConfigured, mtpEnabled, usbCablePluggedIn);
+      StopMtpServer();
+      if (umsAvail) {
+        
+        SetUsbFunction(USB_FUNC_UMS);
+        SetState(STATE_UMS_CONFIGURING);
+        break;
       }
       SetState(STATE_IDLE);
       break;
@@ -779,7 +777,17 @@ AutoMounter::UpdateState()
       
       
       
+      
+      
+      
+      
       if (umsConfigured) {
+        if (mtpEnabled) {
+          
+          SetState(STATE_MTP_CONFIGURING);
+          SetUsbFunction(USB_FUNC_MTP);
+          break;
+        }
         SetState(STATE_UMS_CONFIGURED);
       }
       break;
