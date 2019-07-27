@@ -2415,6 +2415,7 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
   
   
   
+  
   JS_CHECK_RECURSION_CONSERVATIVE(cx, return NS_ERROR_FAILURE);
 
   nsCOMPtr<WindowStateHolder> wsh = do_QueryInterface(aState);
