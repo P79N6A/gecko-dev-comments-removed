@@ -4135,28 +4135,48 @@ BytecodeEmitter::emitTemplateString(ParseNode* pn)
 {
     MOZ_ASSERT(pn->isArity(PN_LIST));
 
+    bool pushedString = false;
+
     for (ParseNode* pn2 = pn->pn_head; pn2 != NULL; pn2 = pn2->pn_next) {
-        if (pn2->getKind() != PNK_STRING && pn2->getKind() != PNK_TEMPLATE_STRING) {
+        bool isString = (pn2->getKind() == PNK_STRING || pn2->getKind() == PNK_TEMPLATE_STRING);
+
+        
+        
+        
+        if (isString && pn2->pn_atom->empty())
+            continue;
+
+        if (!isString) {
             
             if (!updateSourceCoordNotes(pn2->pn_pos.begin))
                 return false;
         }
+
         if (!emitTree(pn2))
             return false;
 
-        if (pn2->getKind() != PNK_STRING && pn2->getKind() != PNK_TEMPLATE_STRING) {
+        if (!isString) {
             
             if (!emit1(JSOP_TOSTRING))
                 return false;
         }
 
-        if (pn2 != pn->pn_head) {
+        if (pushedString) {
             
             if (!emit1(JSOP_ADD))
                 return false;
+        } else {
+            pushedString = true;
         }
-
     }
+
+    if (!pushedString) {
+        
+        
+        if (!emitAtomOp(cx->names().empty, JSOP_STRING))
+            return false;
+    }
+
     return true;
 }
 
