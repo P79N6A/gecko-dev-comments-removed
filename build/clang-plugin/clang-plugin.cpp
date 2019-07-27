@@ -69,17 +69,11 @@ private:
     virtual void run(const MatchFinder::MatchResult &Result);
   };
 
-  class NaNExprChecker : public MatchFinder::MatchCallback {
-  public:
-    virtual void run(const MatchFinder::MatchResult &Result);
-  };
-
   ScopeChecker stackClassChecker;
   ScopeChecker globalClassChecker;
   NonHeapClassChecker nonheapClassChecker;
   ArithmeticArgChecker arithmeticArgChecker;
   TrivialCtorDtorChecker trivialCtorDtorChecker;
-  NaNExprChecker nanExprChecker;
   MatchFinder astMatcher;
 };
 
@@ -422,39 +416,6 @@ AST_MATCHER(UnaryOperator, unaryArithmeticOperator) {
          opcode == UO_Minus ||
          opcode == UO_Not;
 }
-
-
-AST_MATCHER(BinaryOperator, binaryEqualityOperator) {
-  BinaryOperatorKind opcode = Node.getOpcode();
-  return opcode == BO_EQ || opcode == BO_NE;
-}
-
-
-AST_MATCHER(QualType, isFloat) {
-  return Node->isRealFloatingType();
-}
-
-
-
-AST_POLYMORPHIC_MATCHER(isInSystemHeader,
-  AST_POLYMORPHIC_SUPPORTED_TYPES_3(Decl, Stmt, TypeLoc)) {
-  auto &SourceManager = Finder->getASTContext().getSourceManager();
-  auto ExpansionLoc = SourceManager.getExpansionLoc(Node.getLocStart());
-  if (ExpansionLoc.isInvalid()) {
-    return false;
-  }
-  return SourceManager.isInSystemHeader(ExpansionLoc);
-}
-
-
-
-AST_MATCHER(BinaryOperator, isInSkScalarDotH) {
-  SourceLocation Loc = Node.getOperatorLoc();
-  auto &SourceManager = Finder->getASTContext().getSourceManager();
-  SmallString<1024> FileName = SourceManager.getFilename(Loc);
-  return llvm::sys::path::rbegin(FileName)->equals("SkScalar.h");
-}
-
 }
 }
 
@@ -538,13 +499,6 @@ DiagnosticsMatcher::DiagnosticsMatcher()
 
   astMatcher.addMatcher(recordDecl(hasTrivialCtorDtor()).bind("node"),
     &trivialCtorDtorChecker);
-
-  astMatcher.addMatcher(binaryOperator(allOf(binaryEqualityOperator(),
-          hasLHS(has(declRefExpr(hasType(qualType((isFloat())))).bind("lhs"))),
-          hasRHS(has(declRefExpr(hasType(qualType((isFloat())))).bind("rhs"))),
-          unless(anyOf(isInSystemHeader(), isInSkScalarDotH()))
-      )).bind("node"),
-    &nanExprChecker);
 }
 
 void DiagnosticsMatcher::ScopeChecker::run(
@@ -692,42 +646,6 @@ void DiagnosticsMatcher::TrivialCtorDtorChecker::run(
   bool badDtor = !node->hasTrivialDestructor();
   if (badCtor || badDtor)
     Diag.Report(node->getLocStart(), errorID) << node;
-}
-
-void DiagnosticsMatcher::NaNExprChecker::run(
-    const MatchFinder::MatchResult &Result) {
-  if (!Result.Context->getLangOpts().CPlusPlus) {
-    
-    return;
-  }
-
-  DiagnosticsEngine &Diag = Result.Context->getDiagnostics();
-  unsigned errorID = Diag.getDiagnosticIDs()->getCustomDiagID(
-      DiagnosticIDs::Error, "comparing a floating point value to itself for NaN checking can lead to incorrect results");
-  unsigned noteID = Diag.getDiagnosticIDs()->getCustomDiagID(
-      DiagnosticIDs::Note, "consider using mozilla::IsNaN instead");
-  const BinaryOperator *expr = Result.Nodes.getNodeAs<BinaryOperator>("node");
-  const DeclRefExpr *lhs = Result.Nodes.getNodeAs<DeclRefExpr>("lhs");
-  const DeclRefExpr *rhs = Result.Nodes.getNodeAs<DeclRefExpr>("rhs");
-  const ImplicitCastExpr *lhsExpr = dyn_cast<ImplicitCastExpr>(expr->getLHS());
-  const ImplicitCastExpr *rhsExpr = dyn_cast<ImplicitCastExpr>(expr->getRHS());
-  
-  
-  
-  
-  
-  
-  
-  
-  if (lhs->getFoundDecl() == rhs->getFoundDecl() &&
-      lhsExpr && rhsExpr &&
-      std::distance(lhsExpr->child_begin(), lhsExpr->child_end()) == 1 &&
-      std::distance(rhsExpr->child_begin(), rhsExpr->child_end()) == 1 &&
-      *lhsExpr->child_begin() == lhs &&
-      *rhsExpr->child_begin() == rhs) {
-    Diag.Report(expr->getLocStart(), errorID);
-    Diag.Report(expr->getLocStart(), noteID);
-  }
 }
 
 class MozCheckAction : public PluginASTAction {
