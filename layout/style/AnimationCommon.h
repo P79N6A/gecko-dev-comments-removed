@@ -10,7 +10,9 @@
 #include "nsIStyleRule.h"
 #include "nsRefreshDriver.h"
 #include "prclist.h"
+#include "nsChangeHint.h"
 #include "nsCSSProperty.h"
+#include "nsDisplayList.h" 
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/StyleAnimationValue.h"
 #include "mozilla/dom/AnimationPlayer.h"
@@ -84,6 +86,20 @@ public:
                   nsCSSProperty aProperty,
                   nsStyleContext* aStyleContext,
                   mozilla::StyleAnimationValue& aComputedValue);
+
+  
+  
+  struct LayerAnimationRecord {
+    nsCSSProperty mProperty;
+    nsDisplayItem::Type mLayerType;
+    nsChangeHint mChangeHint;
+  };
+
+protected:
+  static const size_t kLayerRecords = 2;
+
+public:
+  static const LayerAnimationRecord sLayerAnimationInfo[kLayerRecords];
 
 protected:
   virtual ~CommonAnimationManager();
