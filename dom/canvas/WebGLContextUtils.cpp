@@ -259,6 +259,18 @@ DriverFormatsFromEffectiveInternalFormat(gl::GLContext* gl,
 
         
         
+        if (driverFormat == LOCAL_GL_RED ||
+            driverFormat == LOCAL_GL_RG ||
+            driverFormat == LOCAL_GL_RED_INTEGER ||
+            driverFormat == LOCAL_GL_RG_INTEGER ||
+            driverFormat == LOCAL_GL_RGB_INTEGER ||
+            driverFormat == LOCAL_GL_RGBA_INTEGER)
+        {
+            driverInternalFormat = effectiveinternalformat.get();
+        }
+
+        
+        
         
         
         

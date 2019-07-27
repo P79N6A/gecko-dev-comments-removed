@@ -249,93 +249,6 @@ WebGLProgram::UpdateInfo()
     return true;
 }
 
-
-
-
-
-
-
-TexInternalFormat
-WebGLContext::BaseTexFormat(TexInternalFormat internalFormat) const
-{
-    if (internalFormat == LOCAL_GL_ALPHA ||
-        internalFormat == LOCAL_GL_LUMINANCE ||
-        internalFormat == LOCAL_GL_LUMINANCE_ALPHA ||
-        internalFormat == LOCAL_GL_RGB ||
-        internalFormat == LOCAL_GL_RGBA)
-    {
-        return internalFormat;
-    }
-
-    if (IsExtensionEnabled(WebGLExtensionID::EXT_sRGB)) {
-        if (internalFormat == LOCAL_GL_SRGB)
-            return LOCAL_GL_RGB;
-
-        if (internalFormat == LOCAL_GL_SRGB_ALPHA)
-            return LOCAL_GL_RGBA;
-    }
-
-    if (IsExtensionEnabled(WebGLExtensionID::WEBGL_compressed_texture_atc)) {
-        if (internalFormat == LOCAL_GL_ATC_RGB)
-            return LOCAL_GL_RGB;
-
-        if (internalFormat == LOCAL_GL_ATC_RGBA_EXPLICIT_ALPHA ||
-            internalFormat == LOCAL_GL_ATC_RGBA_INTERPOLATED_ALPHA)
-        {
-            return LOCAL_GL_RGBA;
-        }
-    }
-
-    if (IsExtensionEnabled(WebGLExtensionID::WEBGL_compressed_texture_etc1)) {
-        if (internalFormat == LOCAL_GL_ETC1_RGB8_OES)
-            return LOCAL_GL_RGB;
-    }
-
-    if (IsExtensionEnabled(WebGLExtensionID::WEBGL_compressed_texture_pvrtc)) {
-        if (internalFormat == LOCAL_GL_COMPRESSED_RGB_PVRTC_2BPPV1 ||
-            internalFormat == LOCAL_GL_COMPRESSED_RGB_PVRTC_4BPPV1)
-        {
-            return LOCAL_GL_RGB;
-        }
-
-        if (internalFormat == LOCAL_GL_COMPRESSED_RGBA_PVRTC_2BPPV1 ||
-            internalFormat == LOCAL_GL_COMPRESSED_RGBA_PVRTC_4BPPV1)
-        {
-            return LOCAL_GL_RGBA;
-        }
-    }
-
-    if (IsExtensionEnabled(WebGLExtensionID::WEBGL_compressed_texture_s3tc)) {
-        if (internalFormat == LOCAL_GL_COMPRESSED_RGB_S3TC_DXT1_EXT)
-            return LOCAL_GL_RGB;
-
-        if (internalFormat == LOCAL_GL_COMPRESSED_RGBA_S3TC_DXT1_EXT ||
-            internalFormat == LOCAL_GL_COMPRESSED_RGBA_S3TC_DXT3_EXT ||
-            internalFormat == LOCAL_GL_COMPRESSED_RGBA_S3TC_DXT5_EXT)
-        {
-            return LOCAL_GL_RGBA;
-        }
-    }
-
-    if (IsExtensionEnabled(WebGLExtensionID::WEBGL_depth_texture)) {
-        if (internalFormat == LOCAL_GL_DEPTH_COMPONENT ||
-            internalFormat == LOCAL_GL_DEPTH_COMPONENT16 ||
-            internalFormat == LOCAL_GL_DEPTH_COMPONENT32)
-        {
-            return LOCAL_GL_DEPTH_COMPONENT;
-        }
-
-        if (internalFormat == LOCAL_GL_DEPTH_STENCIL ||
-            internalFormat == LOCAL_GL_DEPTH24_STENCIL8)
-        {
-            return LOCAL_GL_DEPTH_STENCIL;
-        }
-    }
-
-    MOZ_ASSERT(false, "Unhandled internalFormat");
-    return LOCAL_GL_NONE;
-}
-
 bool WebGLContext::ValidateBlendEquationEnum(GLenum mode, const char *info)
 {
     switch (mode) {
@@ -573,6 +486,22 @@ WebGLContext::ValidateTexImageFormat(GLenum format, WebGLTexImageFunc func)
     }
 
     
+    if (format == LOCAL_GL_RED ||
+        format == LOCAL_GL_RG ||
+        format == LOCAL_GL_RED_INTEGER ||
+        format == LOCAL_GL_RG_INTEGER ||
+        format == LOCAL_GL_RGB_INTEGER ||
+        format == LOCAL_GL_RGBA_INTEGER)
+    {
+        bool valid = IsWebGL2();
+        if (!valid) {
+            ErrorInvalidEnum("%s:  invalid format %s: requires WebGL version 2.0 or newer",
+                             InfoFrom(func), EnumName(format));
+        }
+        return valid;
+    }
+
+    
     if (format == LOCAL_GL_DEPTH_COMPONENT ||
         format == LOCAL_GL_DEPTH_STENCIL)
     {
@@ -584,7 +513,8 @@ WebGLContext::ValidateTexImageFormat(GLenum format, WebGLTexImageFunc func)
 
         
         
-        if (func == WebGLTexImageFunc::TexSubImage ||
+        
+        if ((func == WebGLTexImageFunc::TexSubImage && !IsWebGL2()) ||
             func == WebGLTexImageFunc::CopyTexImage ||
             func == WebGLTexImageFunc::CopyTexSubImage)
         {
@@ -661,6 +591,23 @@ WebGLContext::ValidateTexImageType(GLenum type,
         type == LOCAL_GL_UNSIGNED_SHORT_5_5_5_1)
     {
         return true;
+    }
+
+    
+    if (type == LOCAL_GL_BYTE ||
+        type == LOCAL_GL_SHORT ||
+        type == LOCAL_GL_INT ||
+        type == LOCAL_GL_FLOAT_32_UNSIGNED_INT_24_8_REV ||
+        type == LOCAL_GL_UNSIGNED_INT_2_10_10_10_REV ||
+        type == LOCAL_GL_UNSIGNED_INT_10F_11F_11F_REV ||
+        type == LOCAL_GL_UNSIGNED_INT_5_9_9_9_REV)
+    {
+        bool validType = IsWebGL2();
+        if (!validType) {
+            ErrorInvalidEnum("%s: invalid type %s: requires WebGL version 2.0 or newer",
+                             InfoFrom(func), WebGLContext::EnumName(type));
+        }
+        return validType;
     }
 
     
@@ -1044,50 +991,12 @@ WebGLContext::ValidateTexImageFormatAndType(GLenum format,
         return false;
     }
 
-    bool validCombo = false;
-
-    switch (format) {
-    case LOCAL_GL_ALPHA:
-    case LOCAL_GL_LUMINANCE:
-    case LOCAL_GL_LUMINANCE_ALPHA:
-        validCombo = (type == LOCAL_GL_UNSIGNED_BYTE ||
-                      type == LOCAL_GL_HALF_FLOAT ||
-                      type == LOCAL_GL_FLOAT);
-        break;
-
-    case LOCAL_GL_RGB:
-    case LOCAL_GL_SRGB:
-        validCombo = (type == LOCAL_GL_UNSIGNED_BYTE ||
-                      type == LOCAL_GL_UNSIGNED_SHORT_5_6_5 ||
-                      type == LOCAL_GL_HALF_FLOAT ||
-                      type == LOCAL_GL_FLOAT);
-        break;
-
-    case LOCAL_GL_RGBA:
-    case LOCAL_GL_SRGB_ALPHA:
-        validCombo = (type == LOCAL_GL_UNSIGNED_BYTE ||
-                      type == LOCAL_GL_UNSIGNED_SHORT_4_4_4_4 ||
-                      type == LOCAL_GL_UNSIGNED_SHORT_5_5_5_1 ||
-                      type == LOCAL_GL_HALF_FLOAT ||
-                      type == LOCAL_GL_FLOAT);
-        break;
-
-    case LOCAL_GL_DEPTH_COMPONENT:
-        validCombo = (type == LOCAL_GL_UNSIGNED_SHORT ||
-                      type == LOCAL_GL_UNSIGNED_INT);
-        break;
-
-    case LOCAL_GL_DEPTH_STENCIL:
-        validCombo = (type == LOCAL_GL_UNSIGNED_INT_24_8);
-        break;
-
-    default:
-        
-        MOZ_ASSERT(false, "Unexpected format and type combo. How'd this happen?");
-        validCombo = false;
-        
-        
-    }
+    
+    
+    
+    TexInternalFormat effective =
+        EffectiveInternalFormatFromInternalFormatAndType(format, type);
+    bool validCombo = effective != LOCAL_GL_NONE;
 
     if (!validCombo)
         ErrorInvalidOperation("%s: invalid combination of format %s and type %s",
@@ -1198,6 +1107,10 @@ WebGLContext::ValidateTexInputData(GLenum type, int jsArrayType, WebGLTexImageFu
         validInput = (jsArrayType == -1 || jsArrayType == js::Scalar::Uint8);
         break;
 
+    case LOCAL_GL_BYTE:
+        validInput = (jsArrayType == -1 || jsArrayType == js::Scalar::Int8);
+        break;
+
     case LOCAL_GL_HALF_FLOAT:
     case LOCAL_GL_UNSIGNED_SHORT:
     case LOCAL_GL_UNSIGNED_SHORT_4_4_4_4:
@@ -1206,9 +1119,20 @@ WebGLContext::ValidateTexInputData(GLenum type, int jsArrayType, WebGLTexImageFu
         validInput = (jsArrayType == -1 || jsArrayType == js::Scalar::Uint16);
         break;
 
+    case LOCAL_GL_SHORT:
+        validInput = (jsArrayType == -1 || jsArrayType == js::Scalar::Int16);
+        break;
+
     case LOCAL_GL_UNSIGNED_INT:
     case LOCAL_GL_UNSIGNED_INT_24_8:
+    case LOCAL_GL_UNSIGNED_INT_2_10_10_10_REV:
+    case LOCAL_GL_UNSIGNED_INT_10F_11F_11F_REV:
+    case LOCAL_GL_UNSIGNED_INT_5_9_9_9_REV:
         validInput = (jsArrayType == -1 || jsArrayType == js::Scalar::Uint32);
+        break;
+
+    case LOCAL_GL_INT:
+        validInput = (jsArrayType == -1 || jsArrayType == js::Scalar::Int32);
         break;
 
     case LOCAL_GL_FLOAT:
@@ -1314,22 +1238,19 @@ WebGLContext::ValidateTexImage(GLuint dims, TexImageTarget texImageTarget,
             return false;
         }
     } else if (format != internalFormat) {
-        
-
-
-
-
-
-        ErrorInvalidOperation("%s: format does not match internalformat", info);
-        return false;
-    }
-
-    
-    
-    if (BaseTexFormat(internalFormat) == LOCAL_GL_NONE) {
-        MOZ_ASSERT(false);
-        ErrorInvalidValue("%s:", info);
-        return false;
+        if (IsWebGL2()) {
+            
+            
+            
+            if (internalFormat != EffectiveInternalFormatFromInternalFormatAndType(format, type)) {
+                ErrorInvalidOperation("%s: internalformat does not match format and type", info);
+                return false;
+            }
+        } else {
+            
+            ErrorInvalidOperation("%s: internalformat does not match format", info);
+            return false;
+        }
     }
 
     
