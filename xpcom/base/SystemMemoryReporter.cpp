@@ -718,7 +718,7 @@ private:
     
     
     const char* const kFormatString = "%63s %" SCNu32 " %" SCNu64;
-    const size_t kNumFields = 3;
+    const int kNumFields = 3;
     const size_t kStringSize = 64;
     const char* const kIonIommuPath = "/sys/kernel/debug/ion/iommu";
 
