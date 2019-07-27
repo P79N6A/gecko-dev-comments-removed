@@ -81,17 +81,68 @@ BaseProxyHandler::set(JSContext *cx, HandleObject proxy, HandleObject receiver,
     
     
     
-    Rooted<PropertyDescriptor> desc(cx);
-    if (!getOwnPropertyDescriptor(cx, proxy, id, &desc))
+
+    
+    Rooted<PropertyDescriptor> ownDesc(cx);
+    if (!getOwnPropertyDescriptor(cx, proxy, id, &ownDesc))
         return false;
-    bool descIsOwn = desc.object() != nullptr;
-    if (!descIsOwn) {
-        if (!getPropertyDescriptor(cx, proxy, id, &desc))
+
+    
+    if (!ownDesc.object()) {
+        
+        
+        RootedObject proto(cx);
+        if (!JSObject::getProto(cx, proxy, &proto))
             return false;
+        if (proto)
+            return JSObject::setGeneric(cx, proto, receiver, id, vp, strict);
+
+        
+        
+        ownDesc.clear();
+        ownDesc.setAttributes(JSPROP_ENUMERATE);
     }
 
-    return SetPropertyIgnoringNamedGetter(cx, this, proxy, receiver, id, &desc, descIsOwn, strict,
-                                          vp);
+    
+    if (ownDesc.isDataDescriptor()) {
+        
+        
+        if (!ownDesc.isWritable()) {
+            if (strict)
+                return JSObject::reportReadOnly(cx, id, JSREPORT_ERROR);
+            if (cx->compartment()->options().extraWarnings(cx))
+                return JSObject::reportReadOnly(cx, id, JSREPORT_STRICT | JSREPORT_WARNING);
+            return true;
+        }
+
+        
+        StrictPropertyOp setter = ownDesc.setter();
+        if (setter && setter != JS_StrictPropertyStub)
+            return CallSetter(cx, receiver, id, setter, ownDesc.attributes(), strict, vp);
+
+        
+        
+        bool existingDescriptor;
+        if (!HasOwnProperty(cx, receiver, id, &existingDescriptor))
+            return false;
+
+        
+        unsigned attrs =
+            existingDescriptor
+            ? JSPROP_IGNORE_ENUMERATE | JSPROP_IGNORE_READONLY | JSPROP_IGNORE_PERMANENT
+            : JSPROP_ENUMERATE;
+        return JSObject::defineGeneric(cx, receiver, id, vp, nullptr, nullptr, attrs);
+    }
+
+    
+    MOZ_ASSERT(ownDesc.isAccessorDescriptor());
+    RootedObject setter(cx);
+    if (ownDesc.hasSetterObject())
+        setter = ownDesc.setterObject();
+    if (!setter)
+        return js_ReportGetterOnlyAssignment(cx, strict);
+    RootedValue setterValue(cx, ObjectValue(*setter));
+    return InvokeGetterOrSetter(cx, receiver, setterValue, 1, vp.address(), vp);
 }
 
 bool
