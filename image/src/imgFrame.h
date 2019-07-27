@@ -67,7 +67,6 @@ public:
 
 
 
-
   nsresult InitWithDrawable(gfxDrawable* aDrawable,
                             const nsIntSize& aSize,
                             const SurfaceFormat aFormat,
@@ -114,9 +113,6 @@ public:
   bool GetCompositingFailed() const;
   void SetCompositingFailed(bool val);
 
-  nsresult LockImageData();
-  nsresult UnlockImageData();
-
   void SetDiscardable();
   void SetOptimizable();
 
@@ -152,6 +148,8 @@ private:
 
   ~imgFrame();
 
+  nsresult LockImageData();
+  nsresult UnlockImageData();
   nsresult Optimize();
 
   struct SurfaceWithFormat {
