@@ -310,7 +310,7 @@ void
 Bindings::trace(JSTracer* trc)
 {
     if (callObjShape_)
-        MarkShape(trc, &callObjShape_, "callObjShape");
+        TraceEdge(trc, &callObjShape_, "callObjShape");
 
     
 
