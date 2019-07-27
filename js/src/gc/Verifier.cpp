@@ -47,13 +47,6 @@ using namespace js::gc;
 
 
 
-
-
-
-
-
-
-
 struct EdgeValue
 {
     void* thing;
@@ -172,15 +165,6 @@ void
 gc::GCRuntime::startVerifyPreBarriers()
 {
     if (verifyPreData || isIncrementalGCInProgress())
-        return;
-
-    
-
-
-
-
-
-    if (verifyPostData)
         return;
 
     evictNursery();
