@@ -35,14 +35,13 @@ for (var constructor of constructors) {
     }
 
     
-    var invalidReceivers = [undefined, null, 1, false, "", Symbol(), [], {}, /./];
+    var invalidReceivers = [undefined, null, 1, false, "", Symbol(), [], {}, /./,
+                            new Proxy(new constructor(), {})];
     invalidReceivers.forEach(invalidReceiver => {
         assertThrowsInstanceOf(() => {
             constructor.prototype.entries.call(invalidReceiver);
         }, TypeError, "Assert that entries fails if this value is not a TypedArray");
     });
-    
-    constructor.prototype.entries.call(new Proxy(new constructor(), {}));
 }
 
 if (typeof reportCompare === "function")

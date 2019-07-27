@@ -36,14 +36,13 @@ for (var constructor of constructors) {
     }
 
     
-    var invalidReceivers = [undefined, null, 1, false, "", Symbol(), [], {}, /./];
+    var invalidReceivers = [undefined, null, 1, false, "", Symbol(), [], {}, /./,
+                            new Proxy(new constructor(), {})];
     invalidReceivers.forEach(invalidReceiver => {
         assertThrowsInstanceOf(() => {
             constructor.prototype.join.call(invalidReceiver);
         }, TypeError, "Assert that join fails if this value is not a TypedArray");
     });
-    
-    constructor.prototype.join.call(new Proxy(new constructor(), {}));
 
     
     assertEq(Object.defineProperty(new constructor([1, 2, 3]), "length", {

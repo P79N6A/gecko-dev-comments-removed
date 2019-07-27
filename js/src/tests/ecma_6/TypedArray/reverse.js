@@ -30,14 +30,13 @@ for (var constructor of constructors) {
     }
 
     
-    var invalidReceivers = [undefined, null, 1, false, "", Symbol(), [], {}, /./];
+    var invalidReceivers = [undefined, null, 1, false, "", Symbol(), [], {}, /./,
+                            new Proxy(new constructor(), {})];
     invalidReceivers.forEach(invalidReceiver => {
         assertThrowsInstanceOf(() => {
             constructor.prototype.reverse.call(invalidReceiver);
         }, TypeError, "Assert that reverse fails if this value is not a TypedArray");
     });
-    
-    constructor.prototype.reverse.call(new Proxy(new constructor(), {}));
 
     
     Object.defineProperty(new constructor([1, 2, 3]), "length", {

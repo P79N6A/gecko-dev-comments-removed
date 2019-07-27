@@ -84,6 +84,8 @@ const IDB = {
   add: function(project) {
     let deferred = promise.defer();
 
+    project = JSON.parse(JSON.stringify(project));
+
     if (!project.location) {
       
       deferred.reject("Missing location property on project object.");

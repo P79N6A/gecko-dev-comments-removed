@@ -41,14 +41,13 @@ for (var constructor of constructors) {
     assertEq(new constructor([1, 2, 1, 2, 1]).indexOf(1, -2), 4);
 
     
-    var invalidReceivers = [undefined, null, 1, false, "", Symbol(), [], {}, /./];
+    var invalidReceivers = [undefined, null, 1, false, "", Symbol(), [], {}, /./,
+                            new Proxy(new constructor(), {})];
     invalidReceivers.forEach(invalidReceiver => {
         assertThrowsInstanceOf(() => {
             constructor.prototype.indexOf.call(invalidReceiver);
         }, TypeError, "Assert that indexOf fails if this value is not a TypedArray");
     });
-    
-    constructor.prototype.indexOf.call(new Proxy(new constructor(), {}));
 
     
     assertEq(Object.defineProperty(new constructor([0, 1, 2, 3, 5]), "length", {
@@ -94,14 +93,13 @@ for (var constructor of constructors) {
     assertEq(new constructor([1, 2, 1, 2, 1]).lastIndexOf(1, -2), 2);
 
     
-    var invalidReceivers = [undefined, null, 1, false, "", Symbol(), [], {}, /./];
+    var invalidReceivers = [undefined, null, 1, false, "", Symbol(), [], {}, /./,
+                            new Proxy(new constructor(), {})];
     invalidReceivers.forEach(invalidReceiver => {
         assertThrowsInstanceOf(() => {
             constructor.prototype.lastIndexOf.call(invalidReceiver);
         }, TypeError, "Assert that lastIndexOf fails if this value is not a TypedArray");
     });
-    
-    constructor.prototype.lastIndexOf.call(new Proxy(new constructor(), {}));
 
     
     assertEq(Object.defineProperty(new constructor([0, 1, 2, 3, 5]), "length", {

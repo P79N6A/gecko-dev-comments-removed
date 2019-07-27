@@ -111,14 +111,13 @@ for (var constructor of constructors) {
     }
 
     
-    var invalidReceivers = [undefined, null, 1, false, "", Symbol(), [], {}, /./];
+    var invalidReceivers = [undefined, null, 1, false, "", Symbol(), [], {}, /./,
+                            new Proxy(new constructor(), {})];
     invalidReceivers.forEach(invalidReceiver => {
         assertThrowsInstanceOf(() => {
             constructor.prototype.every.call(invalidReceiver, () => true);
         }, TypeError, "Assert that every fails if this value is not a TypedArray");
     });
-    
-    constructor.prototype.every.call(new Proxy(new constructor(), {}), () => true);
 
     
     assertEq(Object.defineProperty(new constructor([1, 2, 3]), "length", {
@@ -237,14 +236,13 @@ for (var constructor of constructors) {
     }
 
     
-    var invalidReceivers = [undefined, null, 1, false, "", Symbol(), [], {}, /./];
+    var invalidReceivers = [undefined, null, 1, false, "", Symbol(), [], {}, /./,
+                            new Proxy(new constructor(), {})];
     invalidReceivers.forEach(invalidReceiver => {
         assertThrowsInstanceOf(() => {
             constructor.prototype.some.call(invalidReceiver, () => true);
         }, TypeError, "Assert that some fails if this value is not a TypedArray");
     });
-    
-    constructor.prototype.some.call(new Proxy(new constructor(), {}), () => false);
 
     
     assertEq(Object.defineProperty(new constructor([1, 2, 3]), "length", {

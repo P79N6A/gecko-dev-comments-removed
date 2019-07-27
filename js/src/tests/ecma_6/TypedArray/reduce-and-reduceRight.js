@@ -87,14 +87,13 @@ for (var constructor of constructors) {
     }
 
     
-    var invalidReceivers = [undefined, null, 1, false, "", Symbol(), [], {}, /./];
+    var invalidReceivers = [undefined, null, 1, false, "", Symbol(), [], {}, /./,
+                            new Proxy(new constructor(3), {})];
     invalidReceivers.forEach(invalidReceiver => {
         assertThrowsInstanceOf(() => {
             constructor.prototype.reduce.call(invalidReceiver, () => {});
         }, TypeError, "Assert that reduce fails if this value is not a TypedArray");
     });
-    
-    constructor.prototype.reduce.call(new Proxy(new constructor(3), {}), () => {});
 
     
     assertEq(Object.defineProperty(arr, "length", {
@@ -181,14 +180,13 @@ for (var constructor of constructors) {
     }
 
     
-    var invalidReceivers = [undefined, null, 1, false, "", Symbol(), [], {}, /./];
+    var invalidReceivers = [undefined, null, 1, false, "", Symbol(), [], {}, /./,
+                            new Proxy(new constructor(3), {})];
     invalidReceivers.forEach(invalidReceiver => {
         assertThrowsInstanceOf(() => {
             constructor.prototype.reduceRight.call(invalidReceiver, () => {});
         }, TypeError, "Assert that reduceRight fails if this value is not a TypedArray");
     });
-    
-    constructor.prototype.reduceRight.call(new Proxy(new constructor(3), {}), () => {});
 
     
     assertEq(Object.defineProperty(arr, "length", {
