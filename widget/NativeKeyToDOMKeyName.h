@@ -862,6 +862,24 @@ KEY_MAP_QT      (F35, Qt::Key_F35)
 
 
 
+
+
+KEY_MAP_GTK     (Close, GDK_Close)
+KEY_MAP_QT      (Close, Qt::Key_Close)
+
+
+KEY_MAP_GTK     (MailForward, GDK_MailForward)
+KEY_MAP_QT      (MailForward, Qt::Key_MailForward)
+
+
+KEY_MAP_GTK     (MailReply, GDK_Reply)
+KEY_MAP_QT      (MailReply, Qt::Key_Reply)
+
+
+KEY_MAP_GTK     (MailSend, GDK_Send)
+KEY_MAP_QT      (MailSend, Qt::Key_Send)
+
+
 KEY_MAP_WIN     (MediaPlayPause, VK_MEDIA_PLAY_PAUSE)
 KEY_MAP_QT      (MediaPlayPause, Qt::Key_MediaTogglePlayPause)
 KEY_MAP_ANDROID (MediaPlayPause, AKEYCODE_MEDIA_PLAY_PAUSE)
@@ -887,6 +905,23 @@ KEY_MAP_WIN     (MediaTrackPrevious, VK_MEDIA_PREV_TRACK)
 KEY_MAP_GTK     (MediaTrackPrevious, GDK_AudioPrev)
 KEY_MAP_QT      (MediaTrackPrevious, Qt::Key_MediaPrevious)
 KEY_MAP_ANDROID (MediaTrackPrevious, AKEYCODE_MEDIA_PREVIOUS)
+
+
+KEY_MAP_GTK     (New, GDK_New)
+
+
+KEY_MAP_GTK     (Open, GDK_Open)
+
+
+KEY_MAP_QT      (Print, Qt::Key_Printer)
+
+
+KEY_MAP_GTK     (Save, GDK_Save)
+KEY_MAP_QT      (Save, Qt::Key_Save)
+
+
+KEY_MAP_GTK     (SpellCheck, GDK_Spell)
+KEY_MAP_QT      (SpellCheck, Qt::Key_Spell)
 
 
 KEY_MAP_WIN     (VolumeDown, VK_VOLUME_DOWN)
