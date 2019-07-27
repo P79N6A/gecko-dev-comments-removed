@@ -669,6 +669,12 @@ CreateOffscreen(GLContext* gl,
     if (!baseCaps.alpha)
         baseCaps.premultAlpha = true;
 
+    if (gl->IsANGLE()) {
+        
+        
+        baseCaps.alpha = true;
+    }
+
     
     
     
@@ -928,18 +934,18 @@ WebGLContext::SetDimensions(int32_t sWidth, int32_t sHeight)
 
     mShouldPresent = true;
 
+    if (gl->WorkAroundDriverBugs()) {
+        if (!mOptions.alpha && gl->Caps().alpha) {
+            mNeedsFakeNoAlpha = true;
+        }
+    }
+
     MOZ_ASSERT(gl->Caps().color);
     MOZ_ASSERT(gl->Caps().alpha == mOptions.alpha);
     MOZ_ASSERT(gl->Caps().depth == mOptions.depth);
     MOZ_ASSERT(gl->Caps().stencil == mOptions.stencil);
     MOZ_ASSERT(gl->Caps().antialias == mOptions.antialias);
     MOZ_ASSERT(gl->Caps().preserve == mOptions.preserveDrawingBuffer);
-
-    if (gl->WorkAroundDriverBugs() && gl->IsANGLE()) {
-        if (!mOptions.alpha) {
-            mNeedsFakeNoAlpha = true;
-        }
-    }
 
     AssertCachedBindings();
     AssertCachedState();
@@ -1842,7 +1848,6 @@ bool WebGLContext::TexImageFromVideoElement(const TexImageTarget texImageTarget,
     container->UnlockCurrentImage();
     return ok;
 }
-
 
 
 
