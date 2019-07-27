@@ -129,6 +129,44 @@ class LMoveGroup : public LInstructionHelper<0, 0, 0>
 };
 
 
+class LSimdExtractElementI : public LInstructionHelper<1, 1, 0>
+{
+    SimdLane lane_;
+
+  public:
+    LIR_HEADER(SimdExtractElementI);
+
+    LSimdExtractElementI(const LAllocation &base, SimdLane lane) : lane_(lane) {
+        setOperand(0, base);
+    }
+    const LAllocation *getBase() {
+        return getOperand(0);
+    }
+    SimdLane lane() const {
+        return lane_;
+    }
+};
+
+
+class LSimdExtractElementF : public LInstructionHelper<1, 1, 0>
+{
+    SimdLane lane_;
+
+  public:
+    LIR_HEADER(SimdExtractElementF);
+
+    LSimdExtractElementF(const LAllocation &base, SimdLane lane) : lane_(lane) {
+        setOperand(0, base);
+    }
+    const LAllocation *getBase() {
+        return getOperand(0);
+    }
+    SimdLane lane() const {
+        return lane_;
+    }
+};
+
+
 class LInteger : public LInstructionHelper<1, 0, 0>
 {
     int32_t i32_;

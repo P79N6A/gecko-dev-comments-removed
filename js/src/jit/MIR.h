@@ -1234,6 +1234,47 @@ class MConstant : public MNullaryInstruction
 };
 
 
+class MSimdExtractElement : public MUnaryInstruction
+{
+  protected:
+    SimdLane lane_;
+
+    MSimdExtractElement(MDefinition *obj, MIRType type, SimdLane lane)
+      : MUnaryInstruction(obj), lane_(lane)
+    {
+        JS_ASSERT(IsSimdType(obj->type()));
+        JS_ASSERT(uint32_t(lane) < SimdTypeToLength(obj->type()));
+        JS_ASSERT(!IsSimdType(type));
+        JS_ASSERT(SimdTypeToScalarType(obj->type()) == type);
+        setResultType(type);
+    }
+
+  public:
+    INSTRUCTION_HEADER(SimdExtractElement);
+    static MSimdExtractElement *NewAsmJS(TempAllocator &alloc, MDefinition *obj, MIRType type,
+                                         SimdLane lane)
+    {
+        return new(alloc) MSimdExtractElement(obj, type, lane);
+    }
+
+    SimdLane lane() const {
+        return lane_;
+    }
+
+    AliasSet getAliasSet() const {
+        return AliasSet::None();
+    }
+    bool congruentTo(const MDefinition *ins) const {
+        if (!ins->isSimdExtractElement())
+            return false;
+        const MSimdExtractElement *other = ins->toSimdExtractElement();
+        if (other->lane_ != lane_)
+            return false;
+        return congruentIfOperandsEqual(other);
+    }
+};
+
+
 class MCloneLiteral
   : public MUnaryInstruction,
     public ObjectPolicy<0>

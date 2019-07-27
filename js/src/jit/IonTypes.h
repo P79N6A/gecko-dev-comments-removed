@@ -451,6 +451,15 @@ SimdTypeToScalarType(MIRType type)
     MOZ_ASSUME_UNREACHABLE("unexpected SIMD kind");
 }
 
+
+
+enum SimdLane {
+    LaneX = 0x0,
+    LaneY = 0x1,
+    LaneZ = 0x2,
+    LaneW = 0x3
+};
+
 #ifdef DEBUG
 
 

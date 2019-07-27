@@ -499,6 +499,35 @@ class MacroAssemblerX86Shared : public Assembler
         movups(src, Operand(dest));
     }
 
+    static uint32_t ComputeShuffleMask(SimdLane x, SimdLane y = LaneX,
+                                       SimdLane z = LaneX, SimdLane w = LaneX)
+    {
+        uint32_t r = (uint32_t(w) << 6) |
+                     (uint32_t(z) << 4) |
+                     (uint32_t(y) << 2) |
+                     uint32_t(x);
+        JS_ASSERT(r < 256);
+        return r;
+    }
+
+    void shuffleInt32(uint32_t mask, FloatRegister src, FloatRegister dest) {
+        pshufd(mask, src, dest);
+    }
+    void moveLowInt32(FloatRegister src, Register dest) {
+        movd(src, dest);
+    }
+
+    void shuffleFloat32(uint32_t mask, FloatRegister src, FloatRegister dest) {
+        
+        
+        
+        
+        
+        if (src != dest)
+            moveAlignedFloat32x4(src, dest);
+        shufps(mask, dest, dest);
+    }
+
     void moveFloatAsDouble(Register src, FloatRegister dest) {
         movd(src, dest);
         cvtss2sd(dest, dest);

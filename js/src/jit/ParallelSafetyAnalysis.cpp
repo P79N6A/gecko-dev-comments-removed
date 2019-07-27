@@ -112,6 +112,7 @@ class ParallelSafetyVisitor : public MDefinitionVisitor
     
 
     SAFE_OP(Constant)
+    SAFE_OP(SimdExtractElement)
     UNSAFE_OP(CloneLiteral)
     SAFE_OP(Parameter)
     SAFE_OP(Callee)

@@ -205,6 +205,10 @@ class CodeGeneratorX86Shared : public CodeGeneratorShared
     bool visitNegF(LNegF *lir);
 
     
+    bool visitSimdExtractElementI(LSimdExtractElementI *lir);
+    bool visitSimdExtractElementF(LSimdExtractElementF *lir);
+
+    
     bool visitOutOfLineBailout(OutOfLineBailout *ool);
     bool visitOutOfLineUndoALUOperation(OutOfLineUndoALUOperation *ool);
     bool visitMulNegativeZeroCheck(MulNegativeZeroCheck *ool);
