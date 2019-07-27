@@ -1085,7 +1085,7 @@ nsTableRowFrame::Reflow(nsPresContext*           aPresContext,
   }
 
   
-  nsTableFrame::CheckRequestSpecialHeightReflow(aReflowState);
+  nsTableFrame::CheckRequestSpecialBSizeReflow(aReflowState);
 
   
   InitHasCellWithStyleBSize(tableFrame);

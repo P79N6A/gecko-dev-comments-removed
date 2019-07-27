@@ -1663,44 +1663,47 @@ nsTableFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
 
 
 bool
-nsTableFrame::AncestorsHaveStyleHeight(const nsHTMLReflowState& aParentReflowState)
+nsTableFrame::AncestorsHaveStyleBSize(const nsHTMLReflowState& aParentReflowState)
 {
+  WritingMode wm = aParentReflowState.GetWritingMode();
   for (const nsHTMLReflowState* rs = &aParentReflowState;
        rs && rs->frame; rs = rs->parentReflowState) {
     nsIAtom* frameType = rs->frame->GetType();
     if (IS_TABLE_CELL(frameType)                     ||
         (nsGkAtoms::tableRowFrame      == frameType) ||
         (nsGkAtoms::tableRowGroupFrame == frameType)) {
-      const nsStyleCoord &height = rs->mStylePosition->mHeight;
+      const nsStyleCoord &bsize = rs->mStylePosition->BSize(wm);
       
-      if (height.GetUnit() != eStyleUnit_Auto &&
-          (!height.IsCalcUnit() || !height.HasPercent())) {
+      if (bsize.GetUnit() != eStyleUnit_Auto &&
+          (!bsize.IsCalcUnit() || !bsize.HasPercent())) {
         return true;
       }
     }
     else if (nsGkAtoms::tableFrame == frameType) {
       
-      return rs->mStylePosition->mHeight.GetUnit() != eStyleUnit_Auto;
+      return rs->mStylePosition->BSize(wm).GetUnit() != eStyleUnit_Auto;
     }
   }
   return false;
 }
 
 
+
 void
-nsTableFrame::CheckRequestSpecialHeightReflow(const nsHTMLReflowState& aReflowState)
+nsTableFrame::CheckRequestSpecialBSizeReflow(const nsHTMLReflowState& aReflowState)
 {
   NS_ASSERTION(IS_TABLE_CELL(aReflowState.frame->GetType()) ||
                aReflowState.frame->GetType() == nsGkAtoms::tableRowFrame ||
                aReflowState.frame->GetType() == nsGkAtoms::tableRowGroupFrame ||
                aReflowState.frame->GetType() == nsGkAtoms::tableFrame,
                "unexpected frame type");
+  WritingMode wm = aReflowState.GetWritingMode();
   if (!aReflowState.frame->GetPrevInFlow() &&  
-      (NS_UNCONSTRAINEDSIZE == aReflowState.ComputedHeight() ||  
-       0                    == aReflowState.ComputedHeight()) &&
-      eStyleUnit_Percent == aReflowState.mStylePosition->mHeight.GetUnit() && 
-      nsTableFrame::AncestorsHaveStyleHeight(*aReflowState.parentReflowState)) {
-    nsTableFrame::RequestSpecialHeightReflow(aReflowState);
+      (NS_UNCONSTRAINEDSIZE == aReflowState.ComputedBSize() ||  
+       0                    == aReflowState.ComputedBSize()) &&
+      eStyleUnit_Percent == aReflowState.mStylePosition->BSize(wm).GetUnit() && 
+      nsTableFrame::AncestorsHaveStyleBSize(*aReflowState.parentReflowState)) {
+    nsTableFrame::RequestSpecialBSizeReflow(aReflowState);
   }
 }
 
@@ -1710,7 +1713,7 @@ nsTableFrame::CheckRequestSpecialHeightReflow(const nsHTMLReflowState& aReflowSt
 
 
 void
-nsTableFrame::RequestSpecialHeightReflow(const nsHTMLReflowState& aReflowState)
+nsTableFrame::RequestSpecialBSizeReflow(const nsHTMLReflowState& aReflowState)
 {
   
   for (const nsHTMLReflowState* rs = &aReflowState; rs && rs->frame; rs = rs->parentReflowState) {
@@ -1814,12 +1817,12 @@ nsTableFrame::Reflow(nsPresContext*           aPresContext,
     CalcBCBorders();
   }
 
-  aDesiredSize.Width() = aReflowState.AvailableWidth();
+  aDesiredSize.ISize(wm) = aReflowState.AvailableISize();
 
   
   MoveOverflowToChildList();
 
-  bool haveDesiredHeight = false;
+  bool haveDesiredBSize = false;
   SetHaveReflowedColGroups(false);
 
   
@@ -1829,14 +1832,14 @@ nsTableFrame::Reflow(nsPresContext*           aPresContext,
   if (NS_SUBTREE_DIRTY(this) ||
       aReflowState.ShouldReflowAllKids() ||
       IsGeometryDirty() ||
-      aReflowState.IsVResize()) {
+      aReflowState.IsBResize()) {
 
-    if (aReflowState.ComputedHeight() != NS_UNCONSTRAINEDSIZE ||
+    if (aReflowState.ComputedBSize() != NS_UNCONSTRAINEDSIZE ||
         
         
         
         
-        aReflowState.IsVResize()) {
+        aReflowState.IsBResize()) {
       
       
       
@@ -1850,10 +1853,11 @@ nsTableFrame::Reflow(nsPresContext*           aPresContext,
     bool needToInitiateSpecialReflow =
       !!(GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_BSIZE);
     
-    if (isPaginated && !GetPrevInFlow() && (NS_UNCONSTRAINEDSIZE != aReflowState.AvailableHeight())) {
-      nscoord tableSpecifiedHeight = CalcBorderBoxHeight(aReflowState);
-      if ((tableSpecifiedHeight > 0) &&
-          (tableSpecifiedHeight != NS_UNCONSTRAINEDSIZE)) {
+    
+    if (isPaginated && !GetPrevInFlow() && (NS_UNCONSTRAINEDSIZE != aReflowState.AvailableBSize())) {
+      nscoord tableSpecifiedBSize = CalcBorderBoxHeight(aReflowState);
+      if ((tableSpecifiedBSize > 0) &&
+          (tableSpecifiedBSize != NS_UNCONSTRAINEDSIZE)) {
         needToInitiateSpecialReflow = true;
       }
     }
@@ -1868,15 +1872,16 @@ nsTableFrame::Reflow(nsPresContext*           aPresContext,
 
     
     
-    nscoord availHeight = needToInitiateSpecialReflow
-                          ? NS_UNCONSTRAINEDSIZE : aReflowState.AvailableHeight();
+    nscoord availBSize = needToInitiateSpecialReflow
+                          ? NS_UNCONSTRAINEDSIZE : aReflowState.AvailableBSize();
 
-    ReflowTable(aDesiredSize, aReflowState, availHeight,
+    ReflowTable(aDesiredSize, aReflowState, availBSize,
                 lastChildReflowed, aStatus);
 
     
-    if (GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_BSIZE)
+    if (GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_BSIZE) {
       needToInitiateSpecialReflow = true;
+    }
 
     
     if (needToInitiateSpecialReflow && NS_FRAME_IS_COMPLETE(aStatus)) {
@@ -1889,16 +1894,18 @@ nsTableFrame::Reflow(nsPresContext*           aPresContext,
       CalcDesiredHeight(aReflowState, aDesiredSize);
       mutable_rs.mFlags.mSpecialHeightReflow = true;
 
-      ReflowTable(aDesiredSize, aReflowState, aReflowState.AvailableHeight(),
+      ReflowTable(aDesiredSize, aReflowState, aReflowState.AvailableBSize(),
                   lastChildReflowed, aStatus);
 
       if (lastChildReflowed && NS_FRAME_IS_NOT_COMPLETE(aStatus)) {
         
+        
         LogicalMargin borderPadding = GetChildAreaOffset(wm, &aReflowState);
-        aDesiredSize.Height() = borderPadding.BEnd(wm) + GetRowSpacing(GetRowCount()) +
-                              lastChildReflowed->GetNormalRect().YMost();
+        aDesiredSize.BSize(wm) =
+          borderPadding.BEnd(wm) + GetRowSpacing(GetRowCount()) +
+          lastChildReflowed->GetNormalRect().YMost(); 
       }
-      haveDesiredHeight = true;
+      haveDesiredBSize = true;
 
       mutable_rs.mFlags.mSpecialHeightReflow = false;
     }
@@ -1910,20 +1917,20 @@ nsTableFrame::Reflow(nsPresContext*           aPresContext,
     }
   }
 
-  aDesiredSize.Width() = aReflowState.ComputedWidth() +
-                       aReflowState.ComputedPhysicalBorderPadding().LeftRight();
-  if (!haveDesiredHeight) {
+  aDesiredSize.ISize(wm) = aReflowState.ComputedISize() +
+    aReflowState.ComputedLogicalBorderPadding().IStartEnd(wm);
+  if (!haveDesiredBSize) {
     CalcDesiredHeight(aReflowState, aDesiredSize);
   }
   if (IsRowInserted()) {
-    ProcessRowInserted(aDesiredSize.Height());
+    ProcessRowInserted(aDesiredSize.BSize(wm));
   }
 
   LogicalMargin borderPadding = GetChildAreaOffset(wm, &aReflowState);
-  SetColumnDimensions(aDesiredSize.Height(), wm, borderPadding,
+  SetColumnDimensions(aDesiredSize.BSize(wm), wm, borderPadding,
                       aDesiredSize.Width());
   if (NeedToCollapse() &&
-      (NS_UNCONSTRAINEDSIZE != aReflowState.AvailableWidth())) {
+      (NS_UNCONSTRAINEDSIZE != aReflowState.AvailableISize())) {
     AdjustForCollapsingRowsCols(aDesiredSize, wm, borderPadding);
   }
 

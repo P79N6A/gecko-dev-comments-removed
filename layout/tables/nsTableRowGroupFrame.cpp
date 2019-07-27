@@ -1331,7 +1331,7 @@ nsTableRowGroupFrame::Reflow(nsPresContext*           aPresContext,
   ClearRowCursor();
 
   
-  nsTableFrame::CheckRequestSpecialHeightReflow(aReflowState);
+  nsTableFrame::CheckRequestSpecialBSizeReflow(aReflowState);
 
   nsTableFrame* tableFrame = GetTableFrame();
   nsRowGroupReflowState state(aReflowState, tableFrame);

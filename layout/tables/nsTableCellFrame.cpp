@@ -108,7 +108,7 @@ nsTableCellFrame::DestroyFrom(nsIFrame* aDestructRoot)
 
 
 void
-nsTableCellFrame::NotifyPercentHeight(const nsHTMLReflowState& aReflowState)
+nsTableCellFrame::NotifyPercentBSize(const nsHTMLReflowState& aReflowState)
 {
   
   
@@ -121,8 +121,8 @@ nsTableCellFrame::NotifyPercentHeight(const nsHTMLReflowState& aReflowState)
   const nsHTMLReflowState *cellRS = aReflowState.mCBReflowState;
 
   if (cellRS && cellRS->frame == this &&
-      (cellRS->ComputedHeight() == NS_UNCONSTRAINEDSIZE ||
-       cellRS->ComputedHeight() == 0)) { 
+      (cellRS->ComputedBSize() == NS_UNCONSTRAINEDSIZE ||
+       cellRS->ComputedBSize() == 0)) { 
     
     
     
@@ -131,7 +131,7 @@ nsTableCellFrame::NotifyPercentHeight(const nsHTMLReflowState& aReflowState)
     
     
 
-    if (nsTableFrame::AncestorsHaveStyleHeight(*cellRS) ||
+    if (nsTableFrame::AncestorsHaveStyleBSize(*cellRS) ||
         (GetTableFrame()->GetEffectiveRowSpan(*this) == 1 &&
          (cellRS->parentReflowState->frame->GetStateBits() &
           NS_ROW_HAS_CELL_WITH_STYLE_HEIGHT))) {
@@ -142,7 +142,7 @@ nsTableCellFrame::NotifyPercentHeight(const nsHTMLReflowState& aReflowState)
         rs->frame->AddStateBits(NS_FRAME_CONTAINS_RELATIVE_BSIZE);
       }
 
-      nsTableFrame::RequestSpecialHeightReflow(*cellRS);
+      nsTableFrame::RequestSpecialBSizeReflow(*cellRS);
     }
   }
 }
@@ -172,6 +172,9 @@ nsTableCellFrame::NeedsToObserve(const nsHTMLReflowState& aReflowState)
     return true;
   }
 
+  
+  
+  
   
   
   
@@ -869,7 +872,7 @@ nsTableCellFrame::Reflow(nsPresContext*           aPresContext,
   }
 
   
-  nsTableFrame::CheckRequestSpecialHeightReflow(aReflowState);
+  nsTableFrame::CheckRequestSpecialBSizeReflow(aReflowState);
 
   aStatus = NS_FRAME_COMPLETE;
   WritingMode wm = aReflowState.GetWritingMode();
@@ -928,7 +931,7 @@ nsTableCellFrame::Reflow(nsPresContext*           aPresContext,
     
     
     
-    kidReflowState.mPercentHeightObserver = this;
+    kidReflowState.mPercentBSizeObserver = this;
   }
   
   kidReflowState.mFlags.mSpecialHeightReflow = false;
@@ -1047,7 +1050,7 @@ nsTableCellFrame::Reflow(nsPresContext*           aPresContext,
 NS_QUERYFRAME_HEAD(nsTableCellFrame)
   NS_QUERYFRAME_ENTRY(nsTableCellFrame)
   NS_QUERYFRAME_ENTRY(nsITableCellLayout)
-  NS_QUERYFRAME_ENTRY(nsIPercentHeightObserver)
+  NS_QUERYFRAME_ENTRY(nsIPercentBSizeObserver)
 NS_QUERYFRAME_TAIL_INHERITING(nsContainerFrame)
 
 #ifdef ACCESSIBILITY

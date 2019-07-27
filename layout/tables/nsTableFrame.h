@@ -159,15 +159,15 @@ public:
 
   
   
-  static bool AncestorsHaveStyleHeight(const nsHTMLReflowState& aParentReflowState);
+  static bool AncestorsHaveStyleBSize(const nsHTMLReflowState& aParentReflowState);
 
   
   
-  static void CheckRequestSpecialHeightReflow(const nsHTMLReflowState& aReflowState);
+  static void CheckRequestSpecialBSizeReflow(const nsHTMLReflowState& aReflowState);
 
   
   
-  static void RequestSpecialHeightReflow(const nsHTMLReflowState& aReflowState);
+  static void RequestSpecialBSizeReflow(const nsHTMLReflowState& aReflowState);
 
   static void RePositionViews(nsIFrame* aFrame);
 

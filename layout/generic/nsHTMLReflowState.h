@@ -18,7 +18,7 @@ class nsPresContext;
 class nsRenderingContext;
 class nsFloatManager;
 class nsLineLayout;
-class nsIPercentHeightObserver;
+class nsIPercentBSizeObserver;
 struct nsHypotheticalBox;
 
 
@@ -515,7 +515,7 @@ public:
 
   
   
-  nsIPercentHeightObserver* mPercentHeightObserver;
+  nsIPercentBSizeObserver* mPercentBSizeObserver;
 
   
   

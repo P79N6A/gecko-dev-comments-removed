@@ -53,7 +53,7 @@
 #include "nsRange.h"
 #include "nsITextControlFrame.h"
 #include "nsNameSpaceManager.h"
-#include "nsIPercentHeightObserver.h"
+#include "nsIPercentBSizeObserver.h"
 #include "nsStyleStructInlines.h"
 #include "FrameLayerBuilder.h"
 
@@ -4453,11 +4453,12 @@ nsFrame::DidReflow(nsPresContext*           aPresContext,
   
   
   
-  if (aReflowState && aReflowState->mPercentHeightObserver &&
+  if (aReflowState && aReflowState->mPercentBSizeObserver &&
       !GetPrevInFlow()) {
-    const nsStyleCoord &height = aReflowState->mStylePosition->mHeight;
-    if (height.HasPercent()) {
-      aReflowState->mPercentHeightObserver->NotifyPercentHeight(*aReflowState);
+    const nsStyleCoord &bsize =
+      aReflowState->mStylePosition->BSize(aReflowState->GetWritingMode());
+    if (bsize.HasPercent()) {
+      aReflowState->mPercentBSizeObserver->NotifyPercentBSize(*aReflowState);
     }
   }
 
