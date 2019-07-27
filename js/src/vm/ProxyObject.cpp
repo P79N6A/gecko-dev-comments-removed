@@ -50,7 +50,8 @@ ProxyObject::New(JSContext *cx, const BaseProxyHandler *handler, HandleValue pri
 
     
     
-    RootedObject obj(cx, NewObjectWithGivenProto(cx, clasp, proto, parent, allocKind, newKind));
+    RootedObject obj(cx, NewObjectWithGivenTaggedProto(cx, clasp, proto, parent, allocKind,
+                                                       newKind));
     if (!obj) {
         js_free(values);
         return nullptr;
