@@ -157,7 +157,10 @@ RootActor.prototype = {
     noPrettyPrinting: false,
     
     
-    getUsedFontFaces: true
+    getUsedFontFaces: true,
+    
+    
+    memoryActorAllocations: true
   },
 
   
