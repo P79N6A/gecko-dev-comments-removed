@@ -1790,6 +1790,7 @@ ScrollFrameHelper::ScrollFrameHelper(nsContainerFrame* aOuter,
   , mResolution(1.0)
   , mScrollPosForLayerPixelAlignment(-1, -1)
   , mLastUpdateImagesPos(-1, -1)
+  , mAncestorClip(nullptr)
   , mNeverHasVerticalScrollbar(false)
   , mNeverHasHorizontalScrollbar(false)
   , mHasVerticalScrollbar(false)
@@ -2756,6 +2757,9 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   }
 
   
+  mAncestorClip = nullptr;
+
+  
   
   
   
@@ -2940,6 +2944,11 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       
       
       
+      mAncestorClip = aBuilder->ClipState().GetCurrentCombinedClip(aBuilder);
+
+      
+      
+      
       
       
       
@@ -3073,6 +3082,10 @@ ScrollFrameHelper::ComputeFrameMetrics(Layer* aLayer,
       double res = mOuter->PresContext()->PresShell()->GetResolution();
       clip.width = NSToCoordRound(clip.width / res);
       clip.height = NSToCoordRound(clip.height / res);
+    }
+
+    if (mAncestorClip && mAncestorClip->HasClip()) {
+      clip = mAncestorClip->GetClipRect().Intersect(clip);
     }
 
     parentLayerClip = Some(clip);

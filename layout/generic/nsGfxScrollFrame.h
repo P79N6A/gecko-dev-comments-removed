@@ -457,6 +457,9 @@ public:
 
   FrameMetrics::ViewID mScrollParentID;
 
+  
+  const DisplayItemClip* mAncestorClip;
+
   bool mNeverHasVerticalScrollbar:1;
   bool mNeverHasHorizontalScrollbar:1;
   bool mHasVerticalScrollbar:1;
