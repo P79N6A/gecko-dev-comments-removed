@@ -18,6 +18,8 @@
 #include "nsID.h"
 #include "nsNetUtil.h"
 #include "nsIClassInfoImpl.h"
+#include "nsIObjectInputStream.h"
+#include "nsIObjectOutputStream.h"
 #include "nsNetCID.h"
 #include "nsError.h"
 #include "nsIScriptSecurityManager.h"
@@ -69,8 +71,12 @@ nsNullPrincipal::~nsNullPrincipal()
 #define NS_NULLPRINCIPAL_PREFIX NS_NULLPRINCIPAL_SCHEME ":"
 
 nsresult
-nsNullPrincipal::Init()
+nsNullPrincipal::Init(uint32_t aAppId, bool aInMozBrowser)
 {
+  MOZ_ASSERT(aAppId != nsIScriptSecurityManager::UNKNOWN_APP_ID);
+  mAppId = aAppId;
+  mInMozBrowser = aInMozBrowser;
+
   
   nsresult rv;
   nsCOMPtr<nsIUUIDGenerator> uuidgen =
@@ -256,21 +262,21 @@ nsNullPrincipal::GetJarPrefix(nsACString& aJarPrefix)
 NS_IMETHODIMP
 nsNullPrincipal::GetAppStatus(uint16_t* aAppStatus)
 {
-  *aAppStatus = nsIPrincipal::APP_STATUS_NOT_INSTALLED;
+  *aAppStatus = nsScriptSecurityManager::AppStatusForPrincipal(this);
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsNullPrincipal::GetAppId(uint32_t* aAppId)
 {
-  *aAppId = nsIScriptSecurityManager::NO_APP_ID;
+  *aAppId = mAppId;
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsNullPrincipal::GetIsInBrowserElement(bool* aIsInBrowserElement)
 {
-  *aIsInBrowserElement = false;
+  *aIsInBrowserElement = mInMozBrowser;
   return NS_OK;
 }
 
@@ -303,14 +309,22 @@ nsNullPrincipal::Read(nsIObjectInputStream* aStream)
 {
   
   
+  
+  
+  nsresult rv = aStream->Read32(&mAppId);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = aStream->ReadBoolean(&mInMozBrowser);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsNullPrincipal::Write(nsIObjectOutputStream* aStream)
 {
-  
-  
+  aStream->Write32(mAppId);
+  aStream->WriteBoolean(mInMozBrowser);
   return NS_OK;
 }
 
