@@ -110,20 +110,6 @@ WrapperFactory::WaiveXray(JSContext *cx, JSObject *objArg)
 
 
 
-
-JSObject *
-WrapperFactory::DoubleWrap(JSContext *cx, HandleObject obj, unsigned flags)
-{
-    if (flags & WrapperFactory::WAIVE_XRAY_WRAPPER_FLAG) {
-        JSAutoCompartment ac(cx, obj);
-        return WaiveXray(cx, obj);
-    }
-    return obj;
-}
-
-
-
-
 static bool
 ForceCOWBehavior(JSObject *obj)
 {
@@ -144,8 +130,9 @@ ForceCOWBehavior(JSObject *obj)
 
 JSObject *
 WrapperFactory::PrepareForWrapping(JSContext *cx, HandleObject scope,
-                                   HandleObject objArg, unsigned flags)
+                                   HandleObject objArg, HandleObject objectPassedToWrap)
 {
+    bool waive = WrapperFactory::HasWaiveXrayFlag(objectPassedToWrap);
     RootedObject obj(cx, objArg);
     
     
@@ -163,7 +150,7 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, HandleObject scope,
     
     
     if (js::IsOuterObject(obj))
-        return DoubleWrap(cx, obj, flags);
+        return waive ? WaiveXray(cx, obj) : obj;
 
     
     
@@ -214,7 +201,7 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, HandleObject scope,
     
     
     if (!IS_WN_REFLECTOR(obj) || !js::GetObjectParent(obj))
-        return DoubleWrap(cx, obj, flags);
+        return waive ? WaiveXray(cx, obj) : obj;
 
     XPCWrappedNative *wn = XPCWrappedNative::Get(obj);
 
@@ -233,14 +220,14 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, HandleObject scope,
             
             nsresult rv = wn->GetScriptableInfo()->GetCallback()->
                 PreCreate(wn->Native(), cx, scope, wrapScope.address());
-            NS_ENSURE_SUCCESS(rv, DoubleWrap(cx, obj, flags));
+            NS_ENSURE_SUCCESS(rv, waive ? WaiveXray(cx, obj) : obj);
 
             
             
             
             
             if (js::GetObjectCompartment(scope) != js::GetObjectCompartment(wrapScope))
-                return DoubleWrap(cx, obj, flags);
+                return waive ? WaiveXray(cx, obj) : obj;
 
             RootedObject currentScope(cx, JS_GetGlobalForObject(cx, obj));
             if (MOZ_UNLIKELY(wrapScope != currentScope)) {
@@ -271,7 +258,7 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, HandleObject scope,
                 
                 if (probe != currentScope) {
                     MOZ_ASSERT(probe == wrapScope);
-                    return DoubleWrap(cx, obj, flags);
+                    return waive ? WaiveXray(cx, obj) : obj;
                 }
 
                 
@@ -293,7 +280,7 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, HandleObject scope,
                  AccessCheck::subsumes(js::GetObjectCompartment(wrapScope),
                                        js::GetObjectCompartment(obj)))
             {
-                return DoubleWrap(cx, obj, flags);
+                return waive ? WaiveXray(cx, obj) : obj;
             }
         }
     }
@@ -325,7 +312,7 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, HandleObject scope,
         return nullptr;
     newwn->SetSet(unionSet);
 
-    return DoubleWrap(cx, obj, flags);
+    return waive ? WaiveXray(cx, obj) : obj;
 }
 
 #ifdef DEBUG
@@ -430,7 +417,7 @@ SelectAddonWrapper(JSContext *cx, HandleObject obj, const Wrapper *wrapper)
 
 JSObject *
 WrapperFactory::Rewrap(JSContext *cx, HandleObject existing, HandleObject obj,
-                       HandleObject parent, unsigned flags)
+                       HandleObject parent)
 {
     MOZ_ASSERT(!IsWrapper(obj) ||
                GetProxyHandler(obj) == &XrayWaiver ||
@@ -451,7 +438,6 @@ WrapperFactory::Rewrap(JSContext *cx, HandleObject existing, HandleObject obj,
     bool targetSubsumesOrigin = AccessCheck::subsumesConsideringDomain(target, origin);
     bool sameOrigin = targetSubsumesOrigin && originSubsumesTarget;
     XrayType xrayType = GetXrayType(obj);
-    bool waiveXrayFlag = flags & WAIVE_XRAY_WRAPPER_FLAG;
 
     const Wrapper *wrapper;
 
@@ -507,7 +493,7 @@ WrapperFactory::Rewrap(JSContext *cx, HandleObject existing, HandleObject obj,
 
         
         
-        bool waiveXrays = wantXrays && !securityWrapper && waiveXrayFlag;
+        bool waiveXrays = wantXrays && !securityWrapper && HasWaiveXrayFlag(obj);
 
         
         

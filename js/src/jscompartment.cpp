@@ -394,8 +394,8 @@ JSCompartment::wrap(JSContext *cx, MutableHandleObject obj, HandleObject existin
               !cx->runtime()->isSelfHostingGlobal(objGlobal));
 
     
-    unsigned flags = 0;
-    obj.set(UncheckedUnwrap(obj,  true, &flags));
+    RootedObject objectPassedToWrap(cx, obj);
+    obj.set(UncheckedUnwrap(obj,  true));
 
     if (obj->compartment() == this) {
         MOZ_ASSERT(obj == GetOuterObject(cx, obj));
@@ -417,7 +417,7 @@ JSCompartment::wrap(JSContext *cx, MutableHandleObject obj, HandleObject existin
     
     JS_CHECK_CHROME_RECURSION(cx, return false);
     if (cb->preWrap) {
-        obj.set(cb->preWrap(cx, global, obj, flags));
+        obj.set(cb->preWrap(cx, global, obj, objectPassedToWrap));
         if (!obj)
             return false;
     }
@@ -449,7 +449,7 @@ JSCompartment::wrap(JSContext *cx, MutableHandleObject obj, HandleObject existin
         }
     }
 
-    obj.set(cb->wrap(cx, existing, obj, global, flags));
+    obj.set(cb->wrap(cx, existing, obj, global));
     if (!obj)
         return false;
 

@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "jswrapper.h"
 
@@ -22,13 +22,13 @@ using namespace js::gc;
 
 const char js::sWrapperFamily = 0;
 
-/*
- * Wrapper forwards this call directly to the wrapped object for efficiency
- * and transparency. In particular, the hint is needed to properly stringify
- * Date objects in certain cases - see bug 646129. Note also the
- * SecurityWrapper overrides this trap to avoid information leaks. See bug
- * 720619.
- */
+
+
+
+
+
+
+
 bool
 Wrapper::defaultValue(JSContext *cx, HandleObject proxy, JSType hint, MutableHandleValue vp) const
 {
@@ -141,13 +141,13 @@ const Wrapper Wrapper::singleton((unsigned)0);
 const Wrapper Wrapper::singletonWithPrototype((unsigned)0, true);
 JSObject *Wrapper::defaultProto = TaggedProto::LazyProto;
 
-/* Compartments. */
+
 
 extern JSObject *
 js::TransparentObjectWrapper(JSContext *cx, HandleObject existing, HandleObject obj,
-                             HandleObject parent, unsigned flags)
+                             HandleObject parent)
 {
-    // Allow wrapping outer window proxies.
+    
     JS_ASSERT(!obj->is<WrapperObject>() || obj->getClass()->ext.innerObject);
     return Wrapper::New(cx, obj, parent, &CrossCompartmentWrapper::singleton);
 }
@@ -168,7 +168,7 @@ ErrorCopier::~ErrorCopier()
     }
 }
 
-/* Cross compartment wrappers. */
+
 
 CrossCompartmentWrapper::CrossCompartmentWrapper(unsigned flags, bool hasPrototype,
                                                  bool hasSecurityPolicy)
@@ -185,13 +185,13 @@ bool Wrapper::finalizeInBackground(Value priv) const
     if (!priv.isObject())
         return true;
 
-    /*
-     * Make the 'background-finalized-ness' of the wrapper the same as the
-     * wrapped object, to allow transplanting between them.
-     *
-     * If the wrapped object is in the nursery then we know it doesn't have a
-     * finalizer, and so background finalization is ok.
-     */
+    
+
+
+
+
+
+
     if (IsInsideNursery(&priv.toObject()))
         return true;
     return IsBackgroundFinalized(priv.toObject().tenuredGetAllocKind());
@@ -341,10 +341,10 @@ CrossCompartmentWrapper::keys(JSContext *cx, HandleObject wrapper, AutoIdVector 
            NOTHING);
 }
 
-/*
- * We can reify non-escaping iterator objects instead of having to wrap them. This
- * allows fast iteration over objects across a compartment boundary.
- */
+
+
+
+
 static bool
 CanReify(HandleValue vp)
 {
@@ -375,16 +375,16 @@ Reify(JSContext *cx, JSCompartment *origin, MutableHandleValue vp)
 
     AutoCloseIterator close(cx, iterObj);
 
-    /* Wrap the iteratee. */
+    
     RootedObject obj(cx, ni->obj);
     if (!origin->wrap(cx, &obj))
         return false;
 
-    /*
-     * Wrap the elements in the iterator's snapshot.
-     * N.B. the order of closing/creating iterators is important due to the
-     * implicit cx->enumerators state.
-     */
+    
+
+
+
+
     size_t length = ni->numKeys();
     bool isKeyIter = ni->isKeyIter();
     AutoIdVector keys(cx);
@@ -496,10 +496,10 @@ CrossCompartmentWrapper::nativeCall(JSContext *cx, IsAcceptableThis test, Native
                 return false;
             *dst = source.get();
 
-            // Handle |this| specially. When we rewrap on the other side of the
-            // membrane, we might apply a same-compartment security wrapper that
-            // will stymie this whole process. If that happens, unwrap the wrapper.
-            // This logic can go away when same-compartment security wrappers go away.
+            
+            
+            
+            
             if ((src == srcArgs.base() + 1) && dst->isObject()) {
                 RootedObject thisObj(cx, &dst->toObject());
                 if (thisObj->is<WrapperObject>() &&
@@ -561,7 +561,7 @@ CrossCompartmentWrapper::regexp_toShared(JSContext *cx, HandleObject wrapper, Re
             return false;
     }
 
-    // Get an equivalent RegExpShared associated with the current compartment.
+    
     RegExpShared *re = wrapperGuard.re();
     return cx->compartment()->regExps.get(cx, re->getSource(), re->getFlags(), g);
 }
@@ -605,11 +605,11 @@ CrossCompartmentWrapper::setPrototypeOf(JSContext *cx, HandleObject wrapper,
 
 const CrossCompartmentWrapper CrossCompartmentWrapper::singleton(0u);
 
-/* Security wrappers. */
+
 
 template <class Base>
 SecurityWrapper<Base>::SecurityWrapper(unsigned flags, bool hasPrototype)
-  : Base(flags, hasPrototype, /* hasSecurityPolicy = */ true)
+  : Base(flags, hasPrototype,  true)
 {
 }
 
@@ -617,9 +617,9 @@ template <class Base>
 bool
 SecurityWrapper<Base>::isExtensible(JSContext *cx, HandleObject wrapper, bool *extensible) const
 {
-    // Just like BaseProxyHandler, SecurityWrappers claim by default to always
-    // be extensible, so as not to leak information about the state of the
-    // underlying wrapped thing.
+    
+    
+    
     *extensible = true;
     return true;
 }
@@ -628,7 +628,7 @@ template <class Base>
 bool
 SecurityWrapper<Base>::preventExtensions(JSContext *cx, HandleObject wrapper) const
 {
-    // See above.
+    
     JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_UNWRAP_DENIED);
     return false;
 }
@@ -661,9 +661,9 @@ SecurityWrapper<Base>::setPrototypeOf(JSContext *cx, HandleObject wrapper,
     return false;
 }
 
-// For security wrappers, we run the DefaultValue algorithm on the wrapper
-// itself, which means that the existing security policy on operations like
-// toString() will take effect and do the right thing here.
+
+
+
 template <class Base>
 bool
 SecurityWrapper<Base>::defaultValue(JSContext *cx, HandleObject wrapper,
@@ -735,8 +735,8 @@ DeadObjectProxy::DeadObjectProxy()
 bool
 DeadObjectProxy::isExtensible(JSContext *cx, HandleObject proxy, bool *extensible) const
 {
-    // This is kind of meaningless, but dead-object semantics aside,
-    // [[Extensible]] always being true is consistent with other proxy types.
+    
+    
     *extensible = true;
     return true;
 }
@@ -887,14 +887,14 @@ js::NukeCrossCompartmentWrapper(JSContext *cx, JSObject *wrapper)
     JS_ASSERT(IsDeadProxyObject(wrapper));
 }
 
-/*
- * NukeChromeCrossCompartmentWrappersForGlobal reaches into chrome and cuts
- * all of the cross-compartment wrappers that point to objects parented to
- * obj's global.  The snag here is that we need to avoid cutting wrappers that
- * point to the window object on page navigation (inner window destruction)
- * and only do that on tab close (outer window destruction).  Thus the
- * option of how to handle the global object.
- */
+
+
+
+
+
+
+
+
 JS_FRIEND_API(bool)
 js::NukeCrossCompartmentWrappers(JSContext* cx,
                                  const CompartmentFilter& sourceFilter,
@@ -904,17 +904,17 @@ js::NukeCrossCompartmentWrappers(JSContext* cx,
     CHECK_REQUEST(cx);
     JSRuntime *rt = cx->runtime();
 
-    // Iterate through scopes looking for system cross compartment wrappers
-    // that point to an object that shares a global with obj.
+    
+    
 
     for (CompartmentsIter c(rt, SkipAtoms); !c.done(); c.next()) {
         if (!sourceFilter.match(c))
             continue;
 
-        // Iterate the wrappers looking for anything interesting.
+        
         for (JSCompartment::WrapperEnum e(c); !e.empty(); e.popFront()) {
-            // Some cross-compartment wrappers are for strings.  We're not
-            // interested in those.
+            
+            
             const CrossCompartmentKey &k = e.front().key();
             if (k.kind != CrossCompartmentKey::ObjectWrapper)
                 continue;
@@ -927,7 +927,7 @@ js::NukeCrossCompartmentWrappers(JSContext* cx,
                 continue;
 
             if (targetFilter.match(wrapped->compartment())) {
-                // We found a wrapper to nuke.
+                
                 e.removeFront();
                 NukeCrossCompartmentWrapper(cx, wobj);
             }
@@ -937,9 +937,9 @@ js::NukeCrossCompartmentWrappers(JSContext* cx,
     return true;
 }
 
-// Given a cross-compartment wrapper |wobj|, update it to point to
-// |newTarget|. This recomputes the wrapper with JS_WrapValue, and thus can be
-// useful even if wrapper already points to newTarget.
+
+
+
 bool
 js::RemapWrapper(JSContext *cx, JSObject *wobjArg, JSObject *newTargetArg)
 {
@@ -954,55 +954,55 @@ js::RemapWrapper(JSContext *cx, JSObject *wobjArg, JSObject *newTargetArg)
 
     AutoDisableProxyCheck adpc(cx->runtime());
 
-    // If we're mapping to a different target (as opposed to just recomputing
-    // for the same target), we must not have an existing wrapper for the new
-    // target, otherwise this will break.
+    
+    
+    
     JS_ASSERT_IF(origTarget != newTarget,
                  !wcompartment->lookupWrapper(ObjectValue(*newTarget)));
 
-    // The old value should still be in the cross-compartment wrapper map, and
-    // the lookup should return wobj.
+    
+    
     WrapperMap::Ptr p = wcompartment->lookupWrapper(origv);
     JS_ASSERT(&p->value().unsafeGet()->toObject() == wobj);
     wcompartment->removeWrapper(p);
 
-    // When we remove origv from the wrapper map, its wrapper, wobj, must
-    // immediately cease to be a cross-compartment wrapper. Neuter it.
+    
+    
     NukeCrossCompartmentWrapper(cx, wobj);
 
-    // First, we wrap it in the new compartment. We try to use the existing
-    // wrapper, |wobj|, since it's been nuked anyway. The wrap() function has
-    // the choice to reuse |wobj| or not.
+    
+    
+    
     RootedObject tobj(cx, newTarget);
     AutoCompartment ac(cx, wobj);
     if (!wcompartment->wrap(cx, &tobj, wobj))
         MOZ_CRASH();
 
-    // If wrap() reused |wobj|, it will have overwritten it and returned with
-    // |tobj == wobj|. Otherwise, |tobj| will point to a new wrapper and |wobj|
-    // will still be nuked. In the latter case, we replace |wobj| with the
-    // contents of the new wrapper in |tobj|.
+    
+    
+    
+    
     if (tobj != wobj) {
-        // Now, because we need to maintain object identity, we do a brain
-        // transplant on the old object so that it contains the contents of the
-        // new one.
+        
+        
+        
         if (!JSObject::swap(cx, wobj, tobj))
             MOZ_CRASH();
     }
 
-    // Before swapping, this wrapper came out of wrap(), which enforces the
-    // invariant that the wrapper in the map points directly to the key.
+    
+    
     JS_ASSERT(Wrapper::wrappedObject(wobj) == newTarget);
 
-    // Update the entry in the compartment's wrapper map to point to the old
-    // wrapper, which has now been updated (via reuse or swap).
+    
+    
     JS_ASSERT(wobj->is<WrapperObject>());
     wcompartment->putWrapper(cx, CrossCompartmentKey(newTarget), ObjectValue(*wobj));
     return true;
 }
 
-// Remap all cross-compartment wrappers pointing to |oldTarget| to point to
-// |newTarget|. All wrappers are recomputed.
+
+
 JS_FRIEND_API(bool)
 js::RemapAllWrappersForObject(JSContext *cx, JSObject *oldTargetArg,
                               JSObject *newTargetArg)
@@ -1016,7 +1016,7 @@ js::RemapAllWrappersForObject(JSContext *cx, JSObject *oldTargetArg,
 
     for (CompartmentsIter c(cx->runtime(), SkipAtoms); !c.done(); c.next()) {
         if (WrapperMap::Ptr wp = c->lookupWrapper(origv)) {
-            // We found a wrapper. Remember and root it.
+            
             toTransplant.infallibleAppend(WrapperValue(wp));
         }
     }
@@ -1040,28 +1040,28 @@ js::RecomputeWrappers(JSContext *cx, const CompartmentFilter &sourceFilter,
     AutoWrapperVector toRecompute(cx);
 
     for (CompartmentsIter c(cx->runtime(), SkipAtoms); !c.done(); c.next()) {
-        // Filter by source compartment.
+        
         if (!sourceFilter.match(c))
             continue;
 
-        // Iterate over the wrappers, filtering appropriately.
+        
         for (JSCompartment::WrapperEnum e(c); !e.empty(); e.popFront()) {
-            // Filter out non-objects.
+            
             const CrossCompartmentKey &k = e.front().key();
             if (k.kind != CrossCompartmentKey::ObjectWrapper)
                 continue;
 
-            // Filter by target compartment.
+            
             if (!targetFilter.match(static_cast<JSObject *>(k.wrapped)->compartment()))
                 continue;
 
-            // Add it to the list.
+            
             if (!toRecompute.append(WrapperValue(e)))
                 return false;
         }
     }
 
-    // Recompute all the wrappers in the list.
+    
     for (WrapperValue *begin = toRecompute.begin(), *end = toRecompute.end(); begin != end; ++begin)
     {
         JSObject *wrapper = &begin->toObject();
