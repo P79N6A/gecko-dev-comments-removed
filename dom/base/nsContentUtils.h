@@ -1657,11 +1657,11 @@ public:
 
 
   static nsresult GetASCIIOrigin(nsIPrincipal* aPrincipal,
-                                 nsCString& aOrigin);
-  static nsresult GetASCIIOrigin(nsIURI* aURI, nsCString& aOrigin);
+                                 nsACString& aOrigin);
+  static nsresult GetASCIIOrigin(nsIURI* aURI, nsACString& aOrigin);
   static nsresult GetUTFOrigin(nsIPrincipal* aPrincipal,
-                               nsString& aOrigin);
-  static nsresult GetUTFOrigin(nsIURI* aURI, nsString& aOrigin);
+                               nsAString& aOrigin);
+  static nsresult GetUTFOrigin(nsIURI* aURI, nsAString& aOrigin);
 
   
 
