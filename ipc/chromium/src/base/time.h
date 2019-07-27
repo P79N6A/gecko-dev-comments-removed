@@ -297,10 +297,10 @@ class Time {
 
   
   Time operator+(TimeDelta delta) const {
-    return Time(us_ + delta.delta_);
+    return us_ + delta.delta_;
   }
   Time operator-(TimeDelta delta) const {
-    return Time(us_ - delta.delta_);
+    return us_ - delta.delta_;
   }
 
   
@@ -334,7 +334,7 @@ class Time {
   
   static Time FromExploded(bool is_local, const Exploded& exploded);
 
-  explicit Time(int64_t us) : us_(us) {
+  Time(int64_t us) : us_(us) {
   }
 
   

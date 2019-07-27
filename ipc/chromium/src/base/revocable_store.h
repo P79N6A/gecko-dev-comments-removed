@@ -17,7 +17,7 @@ class RevocableStore {
   
   class StoreRef : public base::RefCounted<StoreRef> {
    public:
-    explicit StoreRef(RevocableStore* store) : store_(store) { }
+    StoreRef(RevocableStore* store) : store_(store) { }
 
     void set_store(RevocableStore* store) { store_ = store; }
     RevocableStore* store() const { return store_; }
@@ -32,7 +32,7 @@ class RevocableStore {
   
   class Revocable {
    public:
-    explicit Revocable(RevocableStore* store);
+    Revocable(RevocableStore* store);
     ~Revocable();
 
     
