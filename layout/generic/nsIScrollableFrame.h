@@ -213,19 +213,13 @@ public:
 
 
 
-  enum ScrollSnapMode { DISABLE_SNAP, ENABLE_SNAP };
-  
-
-
-
-
-
 
 
 
   virtual void ScrollTo(nsPoint aScrollPosition, ScrollMode aMode,
                         const nsRect* aRange = nullptr,
-                        ScrollSnapMode aSnap = DISABLE_SNAP) = 0;
+                        nsIScrollbarMediator::ScrollSnapMode aSnap
+                          = nsIScrollbarMediator::DISABLE_SNAP) = 0;
   
 
 
@@ -280,7 +274,8 @@ public:
                         nsIntPoint* aOverflow = nullptr,
                         nsIAtom* aOrigin = nullptr,
                         ScrollMomentum aMomentum = NOT_MOMENTUM,
-                        ScrollSnapMode aSnap = DISABLE_SNAP) = 0;
+                        nsIScrollbarMediator::ScrollSnapMode aSnap
+                          = nsIScrollbarMediator::DISABLE_SNAP) = 0;
 
   
 
