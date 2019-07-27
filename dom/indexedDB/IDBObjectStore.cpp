@@ -677,9 +677,7 @@ public:
     MOZ_ASSERT(!aDatabase);
 
     
-    JS::Rooted<JSObject*> obj(aCx,
-      JS_NewObject(aCx, nullptr, JS::NullPtr(), JS::NullPtr()));
-
+    JS::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
     if (NS_WARN_IF(!obj)) {
       return false;
     }
@@ -705,8 +703,7 @@ public:
     
     
 
-    JS::Rooted<JSObject*> obj(aCx,
-      JS_NewObject(aCx, nullptr, JS::NullPtr(), JS::NullPtr()));
+    JS::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
     if (NS_WARN_IF(!obj)) {
       return false;
     }
