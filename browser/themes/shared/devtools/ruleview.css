@@ -2,6 +2,15 @@
 
 
 
+
+.theme-light {
+  --rule-highlight-background-color: #ffee99;
+}
+
+.theme-dark {
+  --rule-highlight-background-color: #594724;
+}
+
 .ruleview {
   height: 100%;
 }
@@ -216,6 +225,10 @@
 
 .ruleview-property[dirty] {
   border-left-color: var(--theme-highlight-green);
+}
+
+.ruleview-highlight {
+  background-color: var(--rule-highlight-background-color);
 }
 
 .ruleview-namecontainer > .ruleview-propertyname,
