@@ -66,6 +66,11 @@ public:
   
 
 
+  void Description(nsString& aDesc) const;
+
+  
+
+
   uintptr_t GetWrapper() const { return mWrapper; }
   void SetWrapper(uintptr_t aWrapper) { mWrapper = aWrapper; }
 
