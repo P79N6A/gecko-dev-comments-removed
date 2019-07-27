@@ -400,7 +400,7 @@ function TypeDescrEquivalent(otherDescr) {
 
 
 
-function TypedArrayRedimension(newArrayType) {
+function TypedObjectArrayRedimension(newArrayType) {
   if (!IsObject(this) || !ObjectIsTypedObject(this))
     ThrowError(JSMSG_TYPEDOBJECT_BAD_ARGS);
 
@@ -631,7 +631,7 @@ function TypedObjectArrayTypeFrom(a, b, c) {
 }
 
 
-function TypedArrayMap(a, b) {
+function TypedObjectArrayMap(a, b) {
   if (!IsObject(this) || !ObjectIsTypedObject(this))
     ThrowError(JSMSG_TYPEDOBJECT_BAD_ARGS);
   var thisType = TypedObjectTypeDescr(this);
@@ -647,26 +647,26 @@ function TypedArrayMap(a, b) {
 }
 
 
-function TypedArrayMapPar(a, b) {
+function TypedObjectArrayMapPar(a, b) {
   
 
   
   
   if (!IsObject(this) || !ObjectIsTypedObject(this))
-    return callFunction(TypedArrayMap, this, a, b);
+    return callFunction(TypedObjectArrayMap, this, a, b);
   var thisType = TypedObjectTypeDescr(this);
   if (!TypeDescrIsArrayType(thisType))
-    return callFunction(TypedArrayMap, this, a, b);
+    return callFunction(TypedObjectArrayMap, this, a, b);
 
   if (typeof a === "number" && IsCallable(b))
     return MapTypedParImpl(this, a, thisType, b);
   else if (IsCallable(a))
     return MapTypedParImpl(this, 1, thisType, a);
-  return callFunction(TypedArrayMap, this, a, b);
+  return callFunction(TypedObjectArrayMap, this, a, b);
 }
 
 
-function TypedArrayReduce(a, b) {
+function TypedObjectArrayReduce(a, b) {
   
   if (!IsObject(this) || !ObjectIsTypedObject(this))
     ThrowError(JSMSG_TYPEDOBJECT_BAD_ARGS);
@@ -682,7 +682,7 @@ function TypedArrayReduce(a, b) {
 }
 
 
-function TypedArrayScatter(a, b, c, d) {
+function TypedObjectArrayScatter(a, b, c, d) {
   
   if (!IsObject(this) || !ObjectIsTypedObject(this))
     ThrowError(JSMSG_TYPEDOBJECT_BAD_ARGS);
@@ -700,7 +700,7 @@ function TypedArrayScatter(a, b, c, d) {
 }
 
 
-function TypedArrayFilter(func) {
+function TypedObjectArrayFilter(func) {
   
   if (!IsObject(this) || !ObjectIsTypedObject(this))
     ThrowError(JSMSG_TYPEDOBJECT_BAD_ARGS);
@@ -741,18 +741,18 @@ function TypedObjectArrayTypeFromPar(a,b,c) {
 }
 
 
-function TypedArrayReducePar(a, b) {
-  return callFunction(TypedArrayReduce, this, a, b);
+function TypedObjectArrayReducePar(a, b) {
+  return callFunction(TypedObjectArrayReduce, this, a, b);
 }
 
 
-function TypedArrayScatterPar(a, b, c, d) {
-  return callFunction(TypedArrayScatter, this, a, b, c, d);
+function TypedObjectArrayScatterPar(a, b, c, d) {
+  return callFunction(TypedObjectArrayScatter, this, a, b, c, d);
 }
 
 
-function TypedArrayFilterPar(func) {
-  return callFunction(TypedArrayFilter, this, func);
+function TypedObjectArrayFilterPar(func) {
+  return callFunction(TypedObjectArrayFilter, this, func);
 }
 
 
