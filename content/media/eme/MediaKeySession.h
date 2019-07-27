@@ -53,6 +53,8 @@ public:
 
   void GetSessionId(nsString& aRetval) const;
 
+  const nsString& GetSessionId() const;
+
   
   
   
@@ -68,7 +70,7 @@ public:
   already_AddRefed<Promise> Remove(ErrorResult& aRv);
 
   void DispatchKeyMessage(const nsTArray<uint8_t>& aMessage,
-                          const nsString& aURL);
+                          const nsAString& aURL);
 
   void DispatchKeyError(uint32_t system_code);
 

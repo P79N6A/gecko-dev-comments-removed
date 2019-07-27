@@ -12,8 +12,13 @@
 #include "mozilla/dom/MediaKeySession.h"
 #include "mozilla/dom/DOMException.h"
 #include "mozilla/CDMProxy.h"
+#include "mozilla/EMELog.h"
 #include "nsContentUtils.h"
-#include "EMELog.h"
+#include "nsIScriptObjectPrincipal.h"
+#include "mozilla/Preferences.h"
+#ifdef XP_WIN
+#include "mozilla/WindowsVersion.h"
+#endif
 
 namespace mozilla {
 
@@ -32,8 +37,9 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(MediaKeys)
 NS_INTERFACE_MAP_END
 
 MediaKeys::MediaKeys(nsPIDOMWindow* aParent, const nsAString& aKeySystem)
-  : mParent(aParent),
-    mKeySystem(aKeySystem)
+  : mParent(aParent)
+  , mKeySystem(aKeySystem)
+  , mCreatePromiseId(0)
 {
   SetIsDOMBinding();
 }
@@ -76,6 +82,18 @@ MediaKeys::SetServerCertificate(const Uint8Array& aCert, ErrorResult& aRv)
   return promise.forget();
 }
 
+static bool
+IsSupportedKeySystem(const nsAString& aKeySystem)
+{
+  return aKeySystem.EqualsASCII("org.w3.clearkey") ||
+#ifdef XP_WIN
+         (aKeySystem.EqualsASCII("com.adobe.access") &&
+          IsVistaOrLater() &&
+          Preferences::GetBool("media.eme.adobe-access.enabled", false)) ||
+#endif
+         false;
+}
+
 
 IsTypeSupportedResult
 MediaKeys::IsTypeSupported(const GlobalObject& aGlobal,
@@ -86,8 +104,8 @@ MediaKeys::IsTypeSupported(const GlobalObject& aGlobal,
 {
   
   
-  
-  return IsTypeSupportedResult::Maybe;
+  return IsSupportedKeySystem(aKeySystem) ? IsTypeSupportedResult::Maybe
+                                          : IsTypeSupportedResult::_empty;
 }
 
 already_AddRefed<Promise>
@@ -115,6 +133,7 @@ MediaKeys::StorePromise(Promise* aPromise)
 already_AddRefed<Promise>
 MediaKeys::RetrievePromise(PromiseId aId)
 {
+  MOZ_ASSERT(mPromises.Contains(aId));
   nsRefPtr<Promise> promise;
   mPromises.Remove(aId, getter_AddRefs(promise));
   return promise.forget();
@@ -138,6 +157,11 @@ MediaKeys::RejectPromise(PromiseId aId, nsresult aExceptionCode)
 
   MOZ_ASSERT(NS_FAILED(aExceptionCode));
   promise->MaybeReject(aExceptionCode);
+
+  if (mCreatePromiseId == aId) {
+    
+    Release();
+  }
 }
 
 void
@@ -148,10 +172,24 @@ MediaKeys::ResolvePromise(PromiseId aId)
     NS_WARNING("MediaKeys tried to resolve a non-existent promise");
     return;
   }
-  
-  
-  MOZ_ASSERT(!mPendingSessions.Contains(aId));
-  promise->MaybeResolve(JS::UndefinedHandleValue);
+  if (mPendingSessions.Contains(aId)) {
+    
+    
+    nsRefPtr<MediaKeySession> session;
+    if (!mPendingSessions.Get(aId, getter_AddRefs(session)) ||
+        !session ||
+        session->GetSessionId().IsEmpty()) {
+      NS_WARNING("Received activation for non-existent session!");
+      promise->MaybeReject(NS_ERROR_DOM_INVALID_ACCESS_ERR);
+      mPendingSessions.Remove(aId);
+      return;
+    }
+    mPendingSessions.Remove(aId);
+    mKeySessions.Put(session->GetSessionId(), session);
+    promise->MaybeResolve(session);
+  } else {
+    promise->MaybeResolve(JS::UndefinedHandleValue);
+  }
 }
 
 
@@ -174,13 +212,25 @@ MediaKeys::Create(const GlobalObject& aGlobal,
     return nullptr;
   }
 
-  if (!aKeySystem.EqualsASCII("org.w3.clearkey")) {
+  if (!IsSupportedKeySystem(aKeySystem)) {
     aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
     return nullptr;
   }
 
   keys->mProxy = new CDMProxy(keys, aKeySystem);
-  keys->mProxy->Init(keys->StorePromise(promise));
+
+  
+  
+  
+  
+  
+  
+  
+  
+  MOZ_ASSERT(!keys->mCreatePromiseId, "Should only be created once!");
+  keys->mCreatePromiseId = keys->StorePromise(promise);
+  keys->AddRef();
+  keys->mProxy->Init(keys->mCreatePromiseId);
 
   return promise.forget();
 }
@@ -195,6 +245,9 @@ MediaKeys::OnCDMCreated(PromiseId aId)
   }
   nsRefPtr<MediaKeys> keys(this);
   promise->MaybeResolve(keys);
+  if (mCreatePromiseId == aId) {
+    Release();
+  }
 }
 
 already_AddRefed<Promise>
@@ -224,9 +277,10 @@ MediaKeys::LoadSession(const nsAString& aSessionId, ErrorResult& aRv)
     return nullptr;
   }
 
-  
-  mProxy->LoadSession(StorePromise(promise),
-                      aSessionId);
+  session->Init(aSessionId);
+  auto pid = StorePromise(promise);
+  mPendingSessions.Put(pid, session);
+  mProxy->LoadSession(pid, aSessionId);
 
   return promise.forget();
 }
@@ -262,7 +316,7 @@ MediaKeys::CreateSession(const nsAString& initDataType,
 }
 
 void
-MediaKeys::OnSessionActivated(PromiseId aId, const nsAString& aSessionId)
+MediaKeys::OnSessionCreated(PromiseId aId, const nsAString& aSessionId)
 {
   nsRefPtr<Promise> promise(RetrievePromise(aId));
   if (!promise) {
@@ -272,16 +326,17 @@ MediaKeys::OnSessionActivated(PromiseId aId, const nsAString& aSessionId)
   MOZ_ASSERT(mPendingSessions.Contains(aId));
 
   nsRefPtr<MediaKeySession> session;
-  if (!mPendingSessions.Get(aId, getter_AddRefs(session)) || !session) {
+  bool gotSession = mPendingSessions.Get(aId, getter_AddRefs(session));
+  
+  
+  
+  mPendingSessions.Remove(aId);
+  if (!gotSession || !session) {
     NS_WARNING("Received activation for non-existent session!");
     promise->MaybeReject(NS_ERROR_DOM_INVALID_ACCESS_ERR);
     return;
   }
 
-  
-  
-  
-  mPendingSessions.Remove(aId);
   session->Init(aSessionId);
   mKeySessions.Put(aSessionId, session);
   promise->MaybeResolve(session);
@@ -301,6 +356,28 @@ MediaKeys::GetSession(const nsAString& aSessionId)
   nsRefPtr<MediaKeySession> session;
   mKeySessions.Get(aSessionId, getter_AddRefs(session));
   return session.forget();
+}
+
+nsresult
+MediaKeys::GetOrigin(nsString& aOutOrigin)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  
+
+  nsIPrincipal* principal = nullptr;
+  nsCOMPtr<nsPIDOMWindow> pWindow = do_QueryInterface(GetParentObject());
+  nsCOMPtr<nsIScriptObjectPrincipal> scriptPrincipal =
+    do_QueryInterface(pWindow);
+  if (scriptPrincipal) {
+    principal = scriptPrincipal->GetPrincipal();
+  }
+  NS_ENSURE_TRUE(principal, NS_ERROR_FAILURE);
+
+  nsresult res = nsContentUtils::GetUTFOrigin(principal, aOutOrigin);
+
+  EME_LOG("EME Origin = '%s'", NS_ConvertUTF16toUTF8(aOutOrigin).get());
+
+  return res;
 }
 
 } 

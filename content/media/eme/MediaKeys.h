@@ -83,7 +83,7 @@ public:
   
   void OnCDMCreated(PromiseId aId);
   
-  void OnSessionActivated(PromiseId aId, const nsAString& aSessionId);
+  void OnSessionCreated(PromiseId aId, const nsAString& aSessionId);
   
   void OnSessionClosed(MediaKeySession* aSession);
 
@@ -101,6 +101,8 @@ public:
   
   void ResolvePromise(PromiseId aId);
 
+  nsresult GetOrigin(nsString& aOutOrigin);
+
 private:
 
   
@@ -115,6 +117,7 @@ private:
   KeySessionHashMap mKeySessions;
   PromiseHashMap mPromises;
   PendingKeySessionsHashMap mPendingSessions;
+  PromiseId mCreatePromiseId;
 };
 
 } 
