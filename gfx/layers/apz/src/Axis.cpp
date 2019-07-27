@@ -182,6 +182,11 @@ ParentLayerCoord Axis::ApplyResistance(ParentLayerCoord aRequestedOverscroll) co
 
 void Axis::OverscrollBy(ParentLayerCoord aOverscroll) {
   MOZ_ASSERT(CanScroll());
+  
+  
+  if (FuzzyEqualsAdditive(aOverscroll.value, 0.0f, COORDINATE_EPSILON)) {
+    return;
+  }
   ClearOverscrollAnimationState();
   aOverscroll = ApplyResistance(aOverscroll);
   if (aOverscroll > 0) {
