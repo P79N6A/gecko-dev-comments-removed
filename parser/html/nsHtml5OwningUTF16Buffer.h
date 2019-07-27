@@ -24,11 +24,13 @@ class nsHtml5OwningUTF16Buffer : public nsHtml5UTF16Buffer
 
     nsHtml5OwningUTF16Buffer(void* aKey);
 
+protected:
     
 
 
     ~nsHtml5OwningUTF16Buffer();
 
+public:
     
 
 

@@ -65,8 +65,11 @@ public:
     mHasCurrentData = true;
     MOZ_COUNT_CTOR(AudioNodeStream);
   }
+
+protected:
   ~AudioNodeStream();
 
+public:
   
   
 

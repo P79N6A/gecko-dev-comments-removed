@@ -57,4 +57,31 @@ MaskLayerImageCache::PutImage(const MaskLayerImageKey* aKey, ImageContainer* aCo
   entry->mContainer = aContainer;
 }
 
+
+
+template<>
+struct HasDangerousPublicDestructor<MaskLayerImageCache::MaskLayerImageKey>
+{
+  static const bool value = true;
+};
+
+MaskLayerImageCache::MaskLayerImageKey::MaskLayerImageKey()
+  : mLayerCount(0)
+  , mRoundedClipRects()
+{
+  MOZ_COUNT_CTOR(MaskLayerImageKey);
+}
+
+MaskLayerImageCache::MaskLayerImageKey::MaskLayerImageKey(const MaskLayerImageKey& aKey)
+  : mLayerCount(aKey.mLayerCount)
+  , mRoundedClipRects(aKey.mRoundedClipRects)
+{
+  MOZ_COUNT_CTOR(MaskLayerImageKey);
+}
+
+MaskLayerImageCache::MaskLayerImageKey::~MaskLayerImageKey()
+{
+  MOZ_COUNT_DTOR(MaskLayerImageKey);
+}
+
 }

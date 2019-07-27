@@ -30,8 +30,10 @@ class CanvasLayerComposite : public CanvasLayer,
 public:
   CanvasLayerComposite(LayerManagerComposite* aManager);
 
+protected:
   virtual ~CanvasLayerComposite();
 
+public:
   
   virtual void Initialize(const Data& aData) MOZ_OVERRIDE
   {

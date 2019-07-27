@@ -89,8 +89,10 @@ public:
               bool aTruthValue);
     Assertion(nsIRDFResource* aSource);     
 
+private:
     ~Assertion();
 
+public:
     void AddRef() {
         if (mRefCnt == UINT16_MAX) {
             NS_WARNING("refcount overflow, leaking Assertion");
@@ -1317,7 +1319,7 @@ InMemoryDataSource::LockedUnassert(nsIRDFResource* aSource,
             else {
                 
                 if (!root->u.hash.mPropertyHash->entryCount) {
-                    delete root;
+                    root->Release();
                     SetForwardArcs(aSource, nullptr);
                 }
             }
@@ -1921,7 +1923,7 @@ InMemoryDataSource::SweepForwardArcsEntries(PLDHashTable* aTable,
 
         
         if (!as->u.hash.mPropertyHash->entryCount) {
-            delete as;
+            as->Release();
             result = PL_DHASH_REMOVE;
         }
 

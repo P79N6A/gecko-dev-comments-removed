@@ -56,8 +56,10 @@ public:
 
   FileBlockCache();
 
+protected:
   ~FileBlockCache();
 
+public:
   
   nsresult Open(PRFileDesc* aFD);
 

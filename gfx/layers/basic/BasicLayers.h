@@ -73,8 +73,11 @@ public:
 
 
   BasicLayerManager(nsIWidget* aWidget);
+
+protected:
   virtual ~BasicLayerManager();
 
+public:
   
 
 

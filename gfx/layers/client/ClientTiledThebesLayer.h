@@ -43,8 +43,11 @@ class ClientTiledThebesLayer : public ThebesLayer,
 public:
   ClientTiledThebesLayer(ClientLayerManager* const aManager,
                          ClientLayerManager::ThebesLayerCreationHint aCreationHint = LayerManager::NONE);
+
+protected:
   ~ClientTiledThebesLayer();
 
+public:
   
   virtual const char* Name() const { return "TiledThebesLayer"; }
 

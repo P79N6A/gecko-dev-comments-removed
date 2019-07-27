@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #if !defined(RawReader_h_)
 #define RawReader_h_
@@ -15,8 +15,11 @@ class RawReader : public MediaDecoderReader
 {
 public:
   RawReader(AbstractMediaDecoder* aDecoder);
+
+protected:
   ~RawReader();
 
+public:
   virtual nsresult Init(MediaDecoderReader* aCloneDonor);
   virtual nsresult ResetDecode();
   virtual bool DecodeAudioData();
@@ -51,6 +54,6 @@ private:
   nsIntRect mPicture;
 };
 
-} // namespace mozilla
+} 
 
 #endif
