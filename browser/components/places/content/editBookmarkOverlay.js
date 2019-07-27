@@ -184,7 +184,10 @@ let gEditItemOverlay = {
       this._namePicker.readOnly = this.readOnly;
     }
 
-    if (showOrCollapse("locationRow", isURI, "location")) {
+    
+    
+    showOrCollapse("locationRow", isURI, "location");
+    if (isURI) {
       this._initLocationField();
       this._locationField.readOnly = !this._paneInfo.isItem;
     }
