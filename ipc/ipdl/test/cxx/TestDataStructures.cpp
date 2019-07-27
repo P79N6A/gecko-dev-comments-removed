@@ -494,7 +494,7 @@ TestDataStructuresChild::RecvStart()
     Test15();
     Test16();
     Test17();
-    if (OtherPid() != ipc::kCurrentProcessId) {
+    if (OtherPid() != base::GetCurrentProcId()) {
         
         
         Test18();

@@ -1957,7 +1957,7 @@ ChildImpl::OpenMainProcessActorRunnable::Run()
   }
 
   
-  parentActor->SetOtherProcessId(kCurrentProcessId);
+  parentActor->SetOtherProcessId(base::GetCurrentProcId());
 
   
   unused << parentActor.forget();

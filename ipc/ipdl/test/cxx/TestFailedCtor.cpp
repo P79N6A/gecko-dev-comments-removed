@@ -110,7 +110,7 @@ TestFailedCtorChild::DeallocPTestFailedCtorSubChild(PTestFailedCtorSubChild* act
 void
 TestFailedCtorChild::ProcessingError(Result aCode, const char* aReason)
 {
-    if (OtherPid() != ipc::kCurrentProcessId) 
+    if (OtherPid() != base::GetCurrentProcId()) 
         _exit(0);
 }
 
