@@ -1,409 +1,182 @@
 
 
 
-MARIONETTE_TIMEOUT = 40000;
+MARIONETTE_TIMEOUT = 90000;
+MARIONETTE_HEAD_JS = 'head.js';
 
-SpecialPowers.addPermission("sms", true, document);
-SpecialPowers.setBoolPref("dom.sms.enabled", true);
 
-let manager = window.navigator.mozMobileMessage;
-ok(manager instanceof MozMobileMessageManager,
-   "manager is instance of " + manager.constructor);
 
-let pendingEmulatorCmdCount = 0;
-function sendSmsToEmulator(from, text, callback) {
-  ++pendingEmulatorCmdCount;
 
-  let cmd = "sms send " + from + " " + text;
-  runEmulatorCmd(cmd, function(result) {
-    --pendingEmulatorCmdCount;
 
-    callback(result[0] == "OK");
+
+
+
+
+
+
+
+function createMessages(aMessages) {
+  let promise = Promise.resolve();
+  aMessages.forEach((aMessage) => {
+    promise = promise.then((aMessage.incoming) ?
+      () => sendTextSmsToEmulatorAndWait(aMessage.address, aMessage.text) :
+      () => sendSmsWithSuccess(aMessage.address, aMessage.text));
   });
+
+  return promise;
 }
 
-let tasks = {
-  
-  
-  _tasks: [],
-  _nextTaskIndex: 0,
+function checkThreads(aMessages, aNotMerged) {
+  return getAllThreads().then((aThreads) => {
+    let threadCount = aThreads.length;
 
-  push: function(func) {
-    this._tasks.push(func);
-  },
-
-  next: function() {
-    let index = this._nextTaskIndex++;
-    let task = this._tasks[index];
-    try {
-      task.apply(null, Array.slice(arguments));
-    } catch (ex) {
-      ok(false, "test task[" + index + "] throws: " + ex);
+    if (aNotMerged) {
       
-      if (index != this._tasks.length - 1) {
-        this.finish();
+      aThreads.reverse();
+      is(threadCount, aMessages.length, "Number of Threads.");
+      for (let i = 0; i < threadCount; i++) {
+        let thread = aThreads[i];
+        let message = aMessages[i];
+        is(thread.unreadCount, message.incoming ? 1 : 0, "Unread Count.");
+        is(thread.participants.length, 1, "Number of Participants.");
+        is(thread.participants[0], message.address, "Participants.");
+        is(thread.body, message.text, "Thread Body.");
       }
-    }
-  },
 
-  finish: function() {
-    this._tasks[this._tasks.length - 1]();
-  },
-
-  run: function() {
-    this.next();
-  }
-};
-
-function getAllMessages(callback, filter, reverse) {
-  let messages = [];
-  let request = manager.getMessages(filter, reverse || false);
-  request.onsuccess = function(event) {
-    if (!request.done) {
-      messages.push(request.result);
-      request.continue();
       return;
     }
 
-    window.setTimeout(callback.bind(null, messages), 0);
-  }
-}
-
-function deleteAllMessages() {
-  getAllMessages(function deleteAll(messages) {
-    let message = messages.shift();
-    if (!message) {
-      ok(true, "all messages deleted");
-      tasks.next();
-      return;
-    }
-
-    let request = manager.delete(message.id);
-    request.onsuccess = deleteAll.bind(null, messages);
-    request.onerror = function(event) {
-      ok(false, "failed to delete all messages");
-      tasks.finish();
-    }
+    let lastBody = aMessages[aMessages.length - 1].text;
+    let unreadCount = 0;
+    let mergedThread = aThreads[0];
+    aMessages.forEach((aMessage) => {
+      if (aMessage.incoming) {
+        unreadCount++;
+      }
+    });
+    is(threadCount, 1, "Number of Threads.");
+    is(mergedThread.unreadCount, unreadCount, "Unread Count.");
+    is(mergedThread.participants.length, 1, "Number of Participants.");
+    is(mergedThread.participants[0], aMessages[0].address, "Participants.");
+    
+    
+    
+    
+    is(mergedThread.body, lastBody, "Thread Body.");
   });
 }
 
-function sendMessage(to, body) {
-  manager.onsent = function() {
-    manager.onsent = null;
-    tasks.next();
-  };
-  let request = manager.send(to, body);
-  request.onerror = tasks.finish.bind(tasks);
+function testGetThreads(aMessages, aNotMerged) {
+  aNotMerged = !!aNotMerged;
+  log("aMessages: " + JSON.stringify(aMessages));
+  log("aNotMerged: " + aNotMerged);
+  return createMessages(aMessages)
+    .then(() => checkThreads(aMessages, aNotMerged))
+    .then(() => deleteAllMessages());
 }
 
-function receiveMessage(from, body) {
-  manager.onreceived = function() {
-    manager.onreceived = null;
-    tasks.next();
-  };
-  sendSmsToEmulator(from, body, function(success) {
-    if (!success) {
-      tasks.finish();
-    }
-  });
-}
-
-function getAllThreads(callback) {
-  let threads = [];
-
-  let cursor = manager.getThreads();
-  ok(cursor instanceof DOMCursor,
-     "cursor is instanceof " + cursor.constructor);
-
-  cursor.onsuccess = function(event) {
-    if (!cursor.done) {
-      threads.push(cursor.result);
-      cursor.continue();
-      return;
-    }
-
-    window.setTimeout(callback.bind(null, threads), 0);
-  };
-}
-
-function checkThread(bodies, lastBody, unreadCount, participants,
-                     thread, callback) {
-  log("Validating MozMobileMessageThread attributes " +
-      JSON.stringify([bodies, lastBody, unreadCount, participants]));
-
-  ok(thread, "current thread should be valid.");
-
-  ok(thread.id, "thread id", "thread.id");
-  log("Got thread " + thread.id);
-
-  if (lastBody != null) {
-    is(thread.body, lastBody, "thread.body");
-  }
-
-  is(thread.unreadCount, unreadCount, "thread.unreadCount");
-
-  ok(Array.isArray(thread.participants), "thread.participants is array");
-  is(thread.participants.length, participants.length,
-     "thread.participants.length");
-  for (let i = 0; i < participants.length; i++) {
-    is(thread.participants[i], participants[i],
-       "thread.participants[" + i + "]");
-  }
-
+startTestCommon(function testCaseMain() {
   
-  let filter = { threadId: thread.id };
-  getAllMessages(function(messages) {
-    is(messages.length, bodies.length, "messages.length and bodies.length");
-
-    for (let message of messages) {
-      let index = bodies.indexOf(message.body);
-      ok(index >= 0, "message.body '" + message.body +
-         "' should be found in bodies array.");
-      bodies.splice(index, 1);
-    }
-
-    is(bodies.length, 0, "bodies array length");
-
-    window.setTimeout(callback, 0);
-  }, filter, false);
-}
-
-tasks.push(deleteAllMessages);
-
-tasks.push(getAllThreads.bind(null, function(threads) {
-  is(threads.length, 0, "Empty thread list at beginning.");
-  tasks.next();
-}));
-
-
-let checkFuncs = [];
-
-
-
-
-
-tasks.push(sendMessage.bind(null, "5555211001", "thread 1"));
-checkFuncs.push(checkThread.bind(null, ["thread 1"],
-                                 "thread 1", 0, ["5555211001"]));
-
-
-
-
-
-tasks.push(sendMessage.bind(null, "5555211002",   "thread 2-1"));
-tasks.push(sendMessage.bind(null, "+15555211002", "thread 2-2"));
-checkFuncs.push(checkThread.bind(null, ["thread 2-1", "thread 2-2"],
-                                 "thread 2-2", 0, ["5555211002"]));
-
-
-
-
-
-tasks.push(sendMessage.bind(null, "+15555211003", "thread 3-1"));
-tasks.push(sendMessage.bind(null, "5555211003",   "thread 3-2"));
-checkFuncs.push(checkThread.bind(null, ["thread 3-1", "thread 3-2"],
-                                 "thread 3-2", 0, ["+15555211003"]));
-
-
-
-
-
-tasks.push(receiveMessage.bind(null, "5555211004", "thread 4"));
-checkFuncs.push(checkThread.bind(null, ["thread 4"],
-                                 "thread 4", 1, ["5555211004"]));
-
-
-
-
-
-
-
-
-
-
-
-tasks.push(receiveMessage.bind(null, "5555211005",   "thread 5-1"));
-tasks.push(receiveMessage.bind(null, "+15555211005", "thread 5-2"));
-checkFuncs.push(checkThread.bind(null, ["thread 5-1", "thread 5-2"],
-                                 null, 2, ["5555211005"]));
-
-
-
-
-
-
-
-
-
-
-
-tasks.push(receiveMessage.bind(null, "+15555211006", "thread 6-1"));
-tasks.push(receiveMessage.bind(null, "5555211006",   "thread 6-2"));
-checkFuncs.push(checkThread.bind(null, ["thread 6-1", "thread 6-2"],
-                                 null, 2, ["+15555211006"]));
-
-
-
-
-
-
-
-
-
-
-
-tasks.push(sendMessage.bind(null,    "5555211007",   "thread 7-1"));
-tasks.push(sendMessage.bind(null,    "+15555211007", "thread 7-2"));
-tasks.push(receiveMessage.bind(null, "5555211007",   "thread 7-3"));
-tasks.push(receiveMessage.bind(null, "+15555211007", "thread 7-4"));
-checkFuncs.push(checkThread.bind(null, ["thread 7-1", "thread 7-2",
-                                        "thread 7-3", "thread 7-4"],
-                                 null, 2, ["5555211007"]));
-
-
-
-
-
-
-
-
-
-
-
-tasks.push(receiveMessage.bind(null, "5555211008",   "thread 8-1"));
-tasks.push(receiveMessage.bind(null, "+15555211008", "thread 8-2"));
-tasks.push(sendMessage.bind(null,    "5555211008",   "thread 8-3"));
-tasks.push(sendMessage.bind(null,    "+15555211008", "thread 8-4"));
-checkFuncs.push(checkThread.bind(null, ["thread 8-1", "thread 8-2",
-                                        "thread 8-3", "thread 8-4"],
-                                 null, 2, ["5555211008"]));
-
-
-
-
-tasks.push(sendMessage.bind(null, "+15555211009",  "thread 9-1"));
-tasks.push(sendMessage.bind(null, "01115555211009", "thread 9-2"));
-tasks.push(sendMessage.bind(null, "5555211009",    "thread 9-3"));
-checkFuncs.push(checkThread.bind(null, ["thread 9-1", "thread 9-2",
-                                        "thread 9-3"],
-                                 "thread 9-3", 0, ["+15555211009"]));
-
-
-
-
-tasks.push(sendMessage.bind(null, "+15555211010",  "thread 10-1"));
-tasks.push(sendMessage.bind(null, "5555211010",    "thread 10-2"));
-tasks.push(sendMessage.bind(null, "01115555211010", "thread 10-3"));
-checkFuncs.push(checkThread.bind(null, ["thread 10-1", "thread 10-2",
-                                        "thread 10-3"],
-                                 "thread 10-3", 0, ["+15555211010"]));
-
-
-
-
-tasks.push(sendMessage.bind(null, "01115555211011", "thread 11-1"));
-tasks.push(sendMessage.bind(null, "5555211011",    "thread 11-2"));
-tasks.push(sendMessage.bind(null, "+15555211011",  "thread 11-3"));
-checkFuncs.push(checkThread.bind(null, ["thread 11-1", "thread 11-2",
-                                        "thread 11-3"],
-                                 "thread 11-3", 0, ["01115555211011"]));
-
-
-
-
-tasks.push(sendMessage.bind(null, "01115555211012", "thread 12-1"));
-tasks.push(sendMessage.bind(null, "+15555211012",  "thread 12-2"));
-tasks.push(sendMessage.bind(null, "5555211012",    "thread 12-3"));
-checkFuncs.push(checkThread.bind(null, ["thread 12-1", "thread 12-2",
-                                        "thread 12-3"],
-                                 "thread 12-3", 0, ["01115555211012"]));
-
-
-
-
-tasks.push(sendMessage.bind(null, "5555211013",    "thread 13-1"));
-tasks.push(sendMessage.bind(null, "+15555211013",  "thread 13-2"));
-tasks.push(sendMessage.bind(null, "01115555211013", "thread 13-3"));
-checkFuncs.push(checkThread.bind(null, ["thread 13-1", "thread 13-2",
-                                        "thread 13-3"],
-                                 "thread 13-3", 0, ["5555211013"]));
-
-
-
-
-tasks.push(sendMessage.bind(null, "5555211014",     "thread 14-1"));
-tasks.push(sendMessage.bind(null, "01115555211014", "thread 14-2"));
-tasks.push(sendMessage.bind(null, "+15555211014",   "thread 14-3"));
-checkFuncs.push(checkThread.bind(null, ["thread 14-1", "thread 14-2",
-                                        "thread 14-3"],
-                                 "thread 14-3", 0, ["5555211014"]));
-
-
-
-
-tasks.push(sendMessage.bind(null, "5555211015", "thread 15-1"));
-checkFuncs.push(checkThread.bind(null, ["thread 15-1"],
-                                 "thread 15-1", 0, ["5555211015"]));
-
-
-
-
-tasks.push(sendMessage.bind(null, "555211015", "thread 16-1"));
-checkFuncs.push(checkThread.bind(null, ["thread 16-1"],
-                                 "thread 16-1", 0, ["555211015"]));
-
-
-
-
-
-tasks.push(sendMessage.bind(null, "+551155211017", "thread 17-1"));
-tasks.push(sendMessage.bind(null, "1155211017",      "thread 17-2"));
-checkFuncs.push(checkThread.bind(null, ["thread 17-1", "thread 17-2"],
-                                 "thread 17-2", 0, ["+551155211017"]));
-
-
-
-
-
-tasks.push(sendMessage.bind(null, "1155211018",      "thread 18-1"));
-tasks.push(sendMessage.bind(null, "+551155211018", "thread 18-2"));
-checkFuncs.push(checkThread.bind(null, ["thread 18-1", "thread 18-2"],
-                                 "thread 18-2", 0, ["1155211018"]));
-
-
-tasks.push(getAllThreads.bind(null, function(threads) {
-  is(threads.length, checkFuncs.length, "number of threads got");
-
   
-  threads.reverse();
-
-  (function callback() {
-    if (!threads.length) {
-      tasks.next();
-      return;
-    }
-
-    checkFuncs.shift()(threads.shift(), callback);
-  })();
-}));
-
-tasks.push(deleteAllMessages);
-
-tasks.push(getAllThreads.bind(null, function(threads) {
-  is(threads.length, 0, "Empty thread list at the end.");
-  tasks.next();
-}));
-
-
-tasks.push(function cleanUp() {
-  if (pendingEmulatorCmdCount) {
-    window.setTimeout(cleanUp, 100);
-    return;
-  }
-
-  SpecialPowers.removePermission("sms", document);
-  SpecialPowers.clearUserPref("dom.sms.enabled");
-  finish();
+  
+  
+  return testGetThreads([{ incoming: false, address: "5555211001", text: "thread 1" }])
+  
+  
+  
+  
+    .then(() => testGetThreads([{ incoming: false, address: "5555211002", text: "thread 2-1" },
+                                { incoming: false, address: "+15555211002", text: "thread 2-2" }]))
+  
+  
+  
+  
+    .then(() => testGetThreads([{ incoming: false, address: "+15555211003", text: "thread 3-1" },
+                                { incoming: false, address: "5555211003", text: "thread 3-2" }]))
+  
+  
+  
+  
+    .then(() => testGetThreads([{ incoming: true, address: "5555211004", text: "thread 4" }]))
+  
+  
+  
+    .then(() => testGetThreads([{ incoming: true, address: "5555211005", text: "thread 5-1" },
+                                { incoming: true, address: "+15555211005", text: "thread 5-2" },]))
+  
+  
+  
+    .then(() => testGetThreads([{ incoming: true, address: "+15555211006", text: "thread 6-1" },
+                                { incoming: true, address: "5555211006", text: "thread 6-2" }]))
+  
+  
+  
+    .then(() => testGetThreads([{ incoming: false, address: "5555211007", text: "thread 7-1" },
+                                { incoming: false, address: "+15555211007", text: "thread 7-2" },
+                                { incoming: true, address: "5555211007", text: "thread 7-3" },
+                                { incoming: true, address: "+15555211007", text: "thread 7-4" }]))
+  
+  
+  
+    .then(() => testGetThreads([{ incoming: true, address: "5555211008", text: "thread 8-1" },
+                                { incoming: true, address: "+15555211008", text: "thread 8-2" },
+                                { incoming: false, address: "5555211008", text: "thread 8-3" },
+                                { incoming: false, address: "+15555211008", text: "thread 8-4" }]))
+  
+  
+  
+    .then(() => testGetThreads([{ incoming: false, address: "+15555211009", text: "thread 9-1" },
+                                { incoming: false, address: "01115555211009", text: "thread 9-2" },
+                                { incoming: false, address: "5555211009", text: "thread 9-3" }]))
+  
+  
+  
+    .then(() => testGetThreads([{ incoming: false, address: "+15555211010", text: "thread 10-1" },
+                                { incoming: false, address: "5555211010", text: "thread 10-2" },
+                                { incoming: false, address: "01115555211010", text: "thread 10-3" }]))
+  
+  
+  
+    .then(() => testGetThreads([{ incoming: false, address: "01115555211011", text: "thread 11-1" },
+                                { incoming: false, address: "5555211011", text: "thread 11-2" },
+                                { incoming: false, address: "+15555211011", text: "thread 11-3" }]))
+  
+  
+  
+    .then(() => testGetThreads([{ incoming: false, address: "01115555211012", text: "thread 12-1" },
+                                { incoming: false, address: "+15555211012", text: "thread 12-2" },
+                                { incoming: false, address: "5555211012", text: "thread 12-3" }]))
+  
+  
+  
+    .then(() => testGetThreads([{ incoming: false, address: "5555211013", text: "thread 13-1" },
+                                { incoming: false, address: "+15555211013", text: "thread 13-2" },
+                                { incoming: false, address: "01115555211013", text: "thread 13-3" }]))
+  
+  
+  
+    .then(() => testGetThreads([{ incoming: false, address: "5555211014", text: "thread 14-1" },
+                                { incoming: false, address: "01115555211014", text: "thread 14-2" },
+                                { incoming: false, address: "+15555211014", text: "thread 14-3" }]))
+  
+  
+  
+  
+  
+  
+    .then(() => testGetThreads([{ incoming: false, address: "5555211015", text: "thread 15-1" },
+                                { incoming: false, address: "555211015", text: "thread 16-1" }],
+                                true))
+  
+  
+  
+  
+    .then(() => testGetThreads([{ incoming: false, address: "+551155211017", text: "thread 17-1" },
+                                { incoming: false, address: "1155211017", text: "thread 17-2" }]))
+  
+  
+  
+  
+    .then(() => testGetThreads([{ incoming: false, address: "1155211018", text: "thread 18-1" },
+                                { incoming: false, address: "+551155211018", text: "thread 18-2" }]));
 });
-
-tasks.run();
