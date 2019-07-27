@@ -196,6 +196,12 @@ public class GeckoSwipeRefreshLayout extends ViewGroup {
         super.onAttachedToWindow();
         removeCallbacks(mCancel);
         removeCallbacks(mReturnToStartPosition);
+
+        
+        
+        if (getChildCount() > 0) {
+            getChildAt(0).forceLayout();
+        }
     }
 
     @Override
