@@ -1082,7 +1082,6 @@ nsImageFrame::DisplayAltText(nsPresContext*      aPresContext,
   nsRefPtr<nsFontMetrics> fm;
   nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fm),
     nsLayoutUtils::FontSizeInflationFor(this));
-  aRenderingContext.SetFont(fm);
 
   
 

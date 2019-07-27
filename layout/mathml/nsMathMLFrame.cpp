@@ -172,12 +172,6 @@ nsMathMLFrame::GetRuleThickness(nsRenderingContext& aRenderingContext,
                                 nsFontMetrics*      aFontMetrics,
                                 nscoord&             aRuleThickness)
 {
-  
-  
-  NS_ASSERTION(aRenderingContext.FontMetrics()->Font().
-               Equals(aFontMetrics->Font()),
-               "unexpected state");
-
   nscoord xHeight = aFontMetrics->XHeight();
   char16_t overBar = 0x00AF;
   nsBoundingMetrics bm =
@@ -202,12 +196,6 @@ nsMathMLFrame::GetAxisHeight(nsRenderingContext& aRenderingContext,
                                 aFontMetrics->AppUnitsPerDevPixel());
     return;
   }
-
-  
-  
-  NS_ASSERTION(aRenderingContext.FontMetrics()->Font().
-               Equals(aFontMetrics->Font()),
-               "unexpected state");
 
   nscoord xHeight = aFontMetrics->XHeight();
   char16_t minus = 0x2212; 
