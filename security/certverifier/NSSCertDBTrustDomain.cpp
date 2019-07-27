@@ -460,12 +460,25 @@ NSSCertDBTrustDomain::CheckRevocation(EndEntityOrCA endEntityOrCA,
 
   Duration shortLifetime(mCertShortLifetimeInDays * Time::ONE_DAY_IN_SECONDS);
 
-  if ((mOCSPFetching == NeverFetchOCSP) ||
-      (validityDuration < shortLifetime) ||
-      (endEntityOrCA == EndEntityOrCA::MustBeCA &&
-       (mOCSPFetching == FetchOCSPForDVHardFail ||
-        mOCSPFetching == FetchOCSPForDVSoftFail ||
-        blocklistIsFresh))) {
+  
+  
+  
+  
+  bool willNotFetch = (mOCSPFetching == NeverFetchOCSP) ||
+                      (validityDuration < shortLifetime) ||
+                      ((endEntityOrCA == EndEntityOrCA::MustBeCA) &&
+                       ((mOCSPFetching == FetchOCSPForDVHardFail) ||
+                        (mOCSPFetching == FetchOCSPForDVSoftFail) ||
+                        blocklistIsFresh));
+#ifdef MOZ_FENNEC
+  
+  
+  willNotFetch = (mOCSPFetching == NeverFetchOCSP) ||
+                 ((mOCSPFetching != LocalOnlyOCSPForEV) &&
+                  (mOCSPFetching != FetchOCSPForEV));
+#endif
+
+  if (willNotFetch) {
     
     
     if (cachedResponseResult == Result::ERROR_OCSP_UNKNOWN_CERT) {
