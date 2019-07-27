@@ -40,6 +40,7 @@ CodeGeneratorARM::CodeGeneratorARM(MIRGenerator *gen, LIRGraph *graph, MacroAsse
 bool
 CodeGeneratorARM::generatePrologue()
 {
+    MOZ_ASSERT(masm.framePushed() == 0);
     MOZ_ASSERT(!gen->compilingAsmJS());
 
     

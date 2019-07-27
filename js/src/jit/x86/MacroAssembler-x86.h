@@ -565,8 +565,20 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
     
     
     void reserveStack(uint32_t amount) {
-        if (amount)
-            subl(Imm32(amount), StackPointer);
+        if (amount) {
+            
+            
+            
+            
+            
+            uint32_t amountLeft = amount;
+            while (amountLeft > 4096) {
+                subl(Imm32(4096), StackPointer);
+                store32(Imm32(0), Address(StackPointer, 0));
+                amountLeft -= 4096;
+            }
+            subl(Imm32(amountLeft), StackPointer);
+        }
         framePushed_ += amount;
     }
     void freeStack(uint32_t amount) {
