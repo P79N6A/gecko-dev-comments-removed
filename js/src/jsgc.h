@@ -26,10 +26,6 @@ namespace js {
 
 class AutoLockGC;
 
-namespace gc {
-class ForkJoinNursery;
-}
-
 unsigned GetCPUCount();
 
 enum HeapState {
@@ -107,44 +103,6 @@ IsNurseryAllocable(AllocKind kind)
     JS_STATIC_ASSERT(JS_ARRAY_LENGTH(map) == FINALIZE_LIMIT);
     return map[kind];
 }
-
-#if defined(JSGC_FJGENERATIONAL)
-
-
-
-static inline bool
-IsFJNurseryAllocable(AllocKind kind)
-{
-    MOZ_ASSERT(kind >= 0 && unsigned(kind) < FINALIZE_LIMIT);
-    static const bool map[] = {
-        false,     
-        true,      
-        false,     
-        true,      
-        false,     
-        true,      
-        false,     
-        true,      
-        false,     
-        true,      
-        false,     
-        true,      
-        false,     
-        false,     
-        false,     
-        false,     
-        false,     
-        false,     
-        false,     
-        false,     
-        false,     
-        false,     
-        false,     
-    };
-    JS_STATIC_ASSERT(JS_ARRAY_LENGTH(map) == FINALIZE_LIMIT);
-    return map[kind];
-}
-#endif
 
 static inline bool
 IsBackgroundFinalized(AllocKind kind)
@@ -1223,7 +1181,6 @@ MergeCompartments(JSCompartment *source, JSCompartment *target);
 class RelocationOverlay
 {
     friend class MinorCollectionTracer;
-    friend class ForkJoinNursery;
 
     
     static const uintptr_t Relocated = uintptr_t(0xbad0bad1);

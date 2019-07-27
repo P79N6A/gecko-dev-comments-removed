@@ -29,10 +29,6 @@ namespace js {
 class Nursery;
 class Shape;
 
-namespace gc {
-class ForkJoinNursery;
-}
-
 
 
 
@@ -190,7 +186,6 @@ class ObjectElements
     friend class NativeObject;
     friend class ArrayObject;
     friend class Nursery;
-    friend class gc::ForkJoinNursery;
 
     template <ExecutionMode mode>
     friend bool
@@ -447,7 +442,6 @@ class NativeObject : public JSObject
 
   private:
     friend class Nursery;
-    friend class gc::ForkJoinNursery;
 
     
 

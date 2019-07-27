@@ -301,15 +301,6 @@ class GCRuntime
     bool isHeapCompacting() { return false; }
 #endif
 
-    
-    
-    
-    
-    
-    bool isFJMinorCollecting() { return fjCollectionCounter > 0; }
-    void incFJMinorCollecting() { fjCollectionCounter++; }
-    void decFJMinorCollecting() { fjCollectionCounter--; }
-
     bool triggerGC(JS::gcreason::Reason reason);
     void maybeAllocTriggerZoneGC(Zone *zone, const AutoLockGC &lock);
     bool triggerZoneGC(Zone *zone, JS::gcreason::Reason reason);
@@ -846,16 +837,6 @@ class GCRuntime
     bool poked;
 
     mozilla::Atomic<js::HeapState> heapState;
-
-    
-
-
-
-
-
-
-
-    mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> fjCollectionCounter;
 
     
 

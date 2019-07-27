@@ -78,10 +78,6 @@ class NormalArgumentsObject;
 class SetObject;
 class StrictArgumentsObject;
 
-namespace gc {
-class ForkJoinNursery;
-}
-
 }  
 
 
@@ -117,7 +113,6 @@ class JSObject : public js::gc::Cell
     friend class js::GCMarker;
     friend class js::NewObjectCache;
     friend class js::Nursery;
-    friend class js::gc::ForkJoinNursery;
 
     
     static js::types::TypeObject *makeLazyType(JSContext *cx, js::HandleObject obj);

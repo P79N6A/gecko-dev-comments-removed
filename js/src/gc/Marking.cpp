@@ -164,16 +164,6 @@ CheckMarkedThing(JSTracer *trc, T **thingp)
     thing = MaybeForwarded(thing);
 #endif
 
-# ifdef JSGC_FJGENERATIONAL
-    
-
-
-
-
-    if (ForkJoinContext::current())
-        return;
-# endif
-
     
     if (IsInsideNursery(thing))
         return;
@@ -276,16 +266,6 @@ MarkInternal(JSTracer *trc, T **thingp)
     T *thing = *thingp;
 
     if (!trc->callback) {
-#ifdef JSGC_FJGENERATIONAL
-        
-
-
-
-
-        MOZ_ASSERT(!ForkJoinContext::current());
-        MOZ_ASSERT(!trc->runtime()->isFJMinorCollecting());
-#endif
-
         
 
 
@@ -447,22 +427,10 @@ IsMarkedFromAnyThread(T **thingp)
     MOZ_ASSERT(thingp);
     MOZ_ASSERT(*thingp);
     JSRuntime* rt = (*thingp)->runtimeFromAnyThread();
-#ifdef JSGC_FJGENERATIONAL
-    
-    
-    if (rt->isFJMinorCollecting()) {
-        ForkJoinContext *ctx = ForkJoinContext::current();
-        ForkJoinNursery &nursery = ctx->nursery();
-        if (nursery.isInsideFromspace(*thingp))
-            return nursery.getForwardedPointer(thingp);
-    }
-    else
-#endif
-    {
-        if (IsInsideNursery(*thingp)) {
-            Nursery &nursery = rt->gc.nursery;
-            return nursery.getForwardedPointer(thingp);
-        }
+
+    if (IsInsideNursery(*thingp)) {
+        Nursery &nursery = rt->gc.nursery;
+        return nursery.getForwardedPointer(thingp);
     }
 
     Zone *zone = (*thingp)->asTenured().zoneFromAnyThread();
@@ -498,23 +466,12 @@ IsAboutToBeFinalizedFromAnyThread(T **thingp)
     if (ThingIsPermanentAtom(thing) && !TlsPerThreadData.get()->associatedWith(rt))
         return false;
 
-#ifdef JSGC_FJGENERATIONAL
-    if (rt->isFJMinorCollecting()) {
-        ForkJoinContext *ctx = ForkJoinContext::current();
-        ForkJoinNursery &nursery = ctx->nursery();
-        if (nursery.isInsideFromspace(thing))
+    Nursery &nursery = rt->gc.nursery;
+    MOZ_ASSERT_IF(!rt->isHeapMinorCollecting(), !IsInsideNursery(thing));
+    if (rt->isHeapMinorCollecting()) {
+        if (IsInsideNursery(thing))
             return !nursery.getForwardedPointer(thingp);
-    }
-    else
-#endif
-    {
-        Nursery &nursery = rt->gc.nursery;
-        MOZ_ASSERT_IF(!rt->isHeapMinorCollecting(), !IsInsideNursery(thing));
-        if (rt->isHeapMinorCollecting()) {
-            if (IsInsideNursery(thing))
-                return !nursery.getForwardedPointer(thingp);
-            return false;
-        }
+        return false;
     }
 
     Zone *zone = thing->asTenured().zoneFromAnyThread();
@@ -540,16 +497,6 @@ UpdateIfRelocated(JSRuntime *rt, T **thingp)
     MOZ_ASSERT(thingp);
     if (!*thingp)
         return nullptr;
-
-#ifdef JSGC_FJGENERATIONAL
-    if (rt->isFJMinorCollecting()) {
-        ForkJoinContext *ctx = ForkJoinContext::current();
-        ForkJoinNursery &nursery = ctx->nursery();
-        if (nursery.isInsideFromspace(*thingp))
-            nursery.getForwardedPointer(thingp);
-        return *thingp;
-    }
-#endif
 
     if (rt->isHeapMinorCollecting() && IsInsideNursery(*thingp)) {
         rt->gc.nursery.getForwardedPointer(thingp);

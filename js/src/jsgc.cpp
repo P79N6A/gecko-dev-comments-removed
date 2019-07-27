@@ -1069,15 +1069,7 @@ GCRuntime::allocateArena(Chunk *chunk, Zone *zone, AllocKind thingKind, const Au
         !isHeapCompacting() &&
         usage.gcBytes() >= tunables.gcMaxBytes())
     {
-#ifdef JSGC_FJGENERATIONAL
-        
-        
-        
-        if (!isFJMinorCollecting())
-            return nullptr;
-#else
         return nullptr;
-#endif
     }
 
     ArenaHeader *aheader = chunk->allocateArena(rt, zone, thingKind, lock);
@@ -3435,10 +3427,6 @@ GCRuntime::decommitArenas(AutoLockGC &lock)
 void
 GCRuntime::expireChunksAndArenas(bool shouldShrink, AutoLockGC &lock)
 {
-#ifdef JSGC_FJGENERATIONAL
-    rt->threadPool.pruneChunkCache();
-#endif
-
     ChunkPool toFree = expireEmptyChunkPool(shouldShrink, lock);
     if (toFree.count()) {
         AutoUnlockGC unlock(lock);

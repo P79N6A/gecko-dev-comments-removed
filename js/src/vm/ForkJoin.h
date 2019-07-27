@@ -13,7 +13,6 @@
 
 #include "jscntxt.h"
 
-#include "gc/ForkJoinNursery.h"
 #include "gc/GCInternals.h"
 
 #include "jit/Ion.h"
@@ -22,23 +21,6 @@
 #ifdef DEBUG
   #define FORKJOIN_SPEW
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -475,21 +457,6 @@ class ForkJoinContext : public ThreadSafeContext
         return offsetof(ForkJoinContext, worker_);
     }
 
-#ifdef JSGC_FJGENERATIONAL
-    
-    gc::ForkJoinNursery &nursery() { return nursery_; }
-
-    
-    
-    void evacuateLiveData() { nursery_.evacuatingGC(); }
-
-    
-    
-    static size_t offsetOfFJNursery() {
-        return offsetof(ForkJoinContext, nursery_);
-    }
-#endif
-
   private:
     friend class AutoSetForkJoinContext;
 
@@ -497,11 +464,6 @@ class ForkJoinContext : public ThreadSafeContext
     static mozilla::ThreadLocal<ForkJoinContext*> tlsForkJoinContext;
 
     ForkJoinShared *const shared_;
-
-#ifdef JSGC_FJGENERATIONAL
-    gc::ForkJoinGCShared gcShared_;
-    gc::ForkJoinNursery nursery_;
-#endif
 
     ThreadPoolWorker *worker_;
 
