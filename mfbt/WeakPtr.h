@@ -80,6 +80,13 @@ namespace mozilla {
 template <typename T> class WeakPtr;
 template <typename T> class SupportsWeakPtr;
 
+#ifdef MOZ_REFCOUNTED_LEAK_CHECKING
+#define MOZ_DECLARE_WEAKREFERENCE_TYPENAME(T) \
+  static const char* weakReferenceTypeName() { return "WeakReference<" #T ">"; }
+#else
+#define MOZ_DECLARE_WEAKREFERENCE_TYPENAME(T)
+#endif
+
 namespace detail {
 
 
@@ -95,23 +102,9 @@ public:
 #ifdef MOZ_REFCOUNTED_LEAK_CHECKING
   const char* typeName() const
   {
-    static char nameBuffer[1024];
-    const char* innerType = mPtr->typeName();
     
     
-    
-    MOZ_ASSERT(strlen(innerType) + sizeof("WeakReference<>") <
-               ArrayLength(nameBuffer),
-               "Exceedingly large type name");
-#if defined(_MSC_VER) && _MSC_VER < 1900
-    _snprintf
-#else
-    ::snprintf
-#endif
-         (nameBuffer, ArrayLength(nameBuffer), "WeakReference<%s>", innerType);
-    
-    
-    return nameBuffer;
+    return T::weakReferenceTypeName();
   }
   size_t typeSize() const { return sizeof(*this); }
 #endif

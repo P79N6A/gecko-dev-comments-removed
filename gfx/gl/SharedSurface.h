@@ -211,7 +211,7 @@ class SurfaceFactory : public SupportsWeakPtr<SurfaceFactory>
 public:
     
     
-    MOZ_DECLARE_REFCOUNTED_TYPENAME(SurfaceFactory)
+    MOZ_DECLARE_WEAKREFERENCE_TYPENAME(SurfaceFactory)
 
     GLContext* const mGL;
     const SurfaceCaps mCaps;
