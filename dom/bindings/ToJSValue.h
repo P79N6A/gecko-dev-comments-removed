@@ -60,14 +60,6 @@ ToJSValue(JSContext* aCx,
   return true;
 }
 
-
-
-
-
-
-
-
-#if 0
 inline bool
 ToJSValue(JSContext* aCx,
           uint32_t aArgument,
@@ -79,7 +71,6 @@ ToJSValue(JSContext* aCx,
   aValue.setNumber(aArgument);
   return true;
 }
-#endif
 
 inline bool
 ToJSValue(JSContext* aCx,
