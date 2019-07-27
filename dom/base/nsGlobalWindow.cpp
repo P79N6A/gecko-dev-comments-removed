@@ -14094,8 +14094,12 @@ void
 nsGlobalWindow::ClearDocumentDependentSlots(JSContext* aCx)
 {
   MOZ_ASSERT(IsInnerWindow());
-  WindowBinding::ClearCachedDocumentValue(aCx, this);
-  WindowBinding::ClearCachedPerformanceValue(aCx, this);
+
+  
+  if (!WindowBinding::ClearCachedDocumentValue(aCx, this) ||
+      !WindowBinding::ClearCachedPerformanceValue(aCx, this)) {
+    MOZ_CRASH("Unhandlable OOM while clearing document dependent slots.");
+  }
 }
 
 
