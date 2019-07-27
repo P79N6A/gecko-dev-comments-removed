@@ -604,6 +604,8 @@ NonLocalExitScope::prepareForNonLocalJump(StmtInfoBCE *toStmt)
             break;
 
           case STMT_FOR_IN_LOOP:
+            
+            npops += 1;
             FLUSH_POPS();
             if (!PopIterator(cx, bce))
                 return false;
@@ -718,10 +720,8 @@ PushLoopStatement(BytecodeEmitter *bce, LoopStmtInfo *stmt, StmtType type, ptrdi
     int loopSlots;
     if (type == STMT_SPREAD)
         loopSlots = 3;
-    else if (type == STMT_FOR_OF_LOOP)
+    else if (type == STMT_FOR_IN_LOOP || type == STMT_FOR_OF_LOOP)
         loopSlots = 2;
-    else if (type == STMT_FOR_IN_LOOP)
-        loopSlots = 1;
     else
         loopSlots = 0;
 
@@ -4885,6 +4885,11 @@ EmitForIn(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t t
 
     
     
+    if (Emit1(cx, bce, JSOP_UNDEFINED) < 0)
+        return false;
+
+    
+    
     
     StmtInfoBCE letStmt(cx);
     if (letDecl) {
@@ -4918,15 +4923,8 @@ EmitForIn(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t t
 #endif
 
     
-
-
-
-    if (Emit1(cx, bce, JSOP_ITERNEXT) < 0)
-        return false;
+    
     if (!EmitAssignment(cx, bce, forHead->pn_kid2, JSOP_NOP, nullptr))
-        return false;
-
-    if (Emit1(cx, bce, JSOP_POP) < 0)
         return false;
 
     
@@ -4948,9 +4946,13 @@ EmitForIn(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t t
     SetJumpOffsetAt(bce, jmp);
     if (!EmitLoopEntry(cx, bce, nullptr))
         return false;
+    if (Emit1(cx, bce, JSOP_POP) < 0)
+        return false;
     if (Emit1(cx, bce, JSOP_MOREITER) < 0)
         return false;
-    ptrdiff_t beq = EmitJump(cx, bce, JSOP_IFNE, top - bce->offset());
+    if (Emit1(cx, bce, JSOP_ISNOITER) < 0)
+        return false;
+    ptrdiff_t beq = EmitJump(cx, bce, JSOP_IFEQ, top - bce->offset());
     if (beq < 0)
         return false;
 
@@ -4960,6 +4962,10 @@ EmitForIn(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t t
 
     
     if (!PopStatementBCE(cx, bce))
+        return false;
+
+    
+    if (Emit1(cx, bce, JSOP_POP) < 0)
         return false;
 
     if (!bce->tryNoteList.append(JSTRY_ITER, bce->stackDepth, top, bce->offset()))

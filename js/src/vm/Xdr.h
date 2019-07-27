@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef vm_Xdr_h
 #define vm_Xdr_h
@@ -14,21 +14,21 @@
 
 namespace js {
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static const uint32_t XDR_BYTECODE_VERSION = uint32_t(0xb973c0de - 183);
+/*
+ * Bytecode version number. Increment the subtrahend whenever JS bytecode
+ * changes incompatibly.
+ *
+ * This version number is XDR'd near the front of xdr bytecode and aborts
+ * deserialization if there is a mismatch between the current and saved
+ * versions.  If deserialization fails, the data should be invalidated if
+ * possible.
+ *
+ * When you change this, run make_opcode_doc.py and copy the new output into
+ * this wiki page:
+ *
+ *  https://developer.mozilla.org/en-US/docs/SpiderMonkey/Internals/Bytecode
+ */
+static const uint32_t XDR_BYTECODE_VERSION = uint32_t(0xb973c0de - 184);
 
 class XDRBuffer {
   public:
@@ -91,9 +91,9 @@ class XDRBuffer {
     uint8_t     *limit;
 };
 
-
-
-
+/*
+ * XDR serialization state.  All data is encoded in little endian.
+ */
 template <XDRMode mode>
 class XDRState {
   public:
@@ -166,11 +166,11 @@ class XDRState {
         return true;
     }
 
-    
-
-
-
-
+    /*
+     * Use SFINAE to refuse any specialization which is not an enum.  Uses of
+     * this function do not have to specialize the type of the enumerated field
+     * as C++ will extract the parameterized from the argument list.
+     */
     template <typename T>
     bool codeEnum32(T *val, typename mozilla::EnableIf<mozilla::IsEnum<T>::value, T>::Type * = NULL)
     {
@@ -210,12 +210,12 @@ class XDRState {
         return true;
     }
 
-    
-
-
-
-
-
+    /*
+     * During encoding the string is written into the buffer together with its
+     * terminating '\0'. During decoding the method returns a pointer into the
+     * decoding buffer and the caller must copy the string if it will outlive
+     * the decoding buffer.
+     */
     bool codeCString(const char **sp) {
         if (mode == XDR_ENCODE) {
             size_t n = strlen(*sp) + 1;
@@ -265,6 +265,6 @@ class XDRDecoder : public XDRState<XDR_DECODE> {
 
 };
 
-} 
+} /* namespace js */
 
-#endif 
+#endif /* vm_Xdr_h */

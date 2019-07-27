@@ -9844,14 +9844,15 @@ DoIteratorMoreFallback(JSContext *cx, BaselineFrame *frame, ICIteratorMore_Fallb
 
     FallbackICSpew(cx, stub, "IteratorMore");
 
-    bool cond;
-    if (!IteratorMore(cx, iterObj, &cond))
+    if (!IteratorMore(cx, iterObj, res))
         return false;
-    res.setBoolean(cond);
 
     
     if (stub.invalid())
         return true;
+
+    if (!res.isMagic(JS_NO_ITER_VALUE) && !res.isString())
+        stub->setHasNonStringResult();
 
     if (iterObj->is<PropertyIteratorObject>() &&
         !stub->hasStub(ICStub::IteratorMore_Native))
@@ -9907,104 +9908,24 @@ ICIteratorMore_Native::Compiler::generateStubCode(MacroAssembler &masm)
                       Imm32(JSITER_FOREACH), &failure);
 
     
-    masm.loadPtr(Address(nativeIterator, offsetof(NativeIterator, props_end)), scratch);
-    Address cursorAddr = Address(nativeIterator, offsetof(NativeIterator, props_cursor));
-    masm.cmpPtrSet(Assembler::LessThan, cursorAddr, scratch, scratch);
-
-    masm.tagValue(JSVAL_TYPE_BOOLEAN, scratch, R0);
-    EmitReturnFromIC(masm);
+    
+    Label iterDone;
+    Address cursorAddr(nativeIterator, offsetof(NativeIterator, props_cursor));
+    Address cursorEndAddr(nativeIterator, offsetof(NativeIterator, props_end));
+    masm.loadPtr(cursorAddr, scratch);
+    masm.branchPtr(Assembler::BelowOrEqual, cursorEndAddr, scratch, &iterDone);
 
     
-    masm.bind(&failure);
-    EmitStubGuardFailure(masm);
-    return true;
-}
-
-
-
-
-
-static bool
-DoIteratorNextFallback(JSContext *cx, BaselineFrame *frame, ICIteratorNext_Fallback *stub_,
-                       HandleValue iterValue, MutableHandleValue res)
-{
-    
-    DebugModeOSRVolatileStub<ICIteratorNext_Fallback *> stub(frame, stub_);
-
-    FallbackICSpew(cx, stub, "IteratorNext");
-
-    RootedObject iteratorObject(cx, &iterValue.toObject());
-    if (!IteratorNext(cx, iteratorObject, res))
-        return false;
-
-    
-    if (stub.invalid())
-        return true;
-
-    if (!res.isString() && !stub->hasNonStringResult())
-        stub->setHasNonStringResult();
-
-    if (iteratorObject->is<PropertyIteratorObject>() &&
-        !stub->hasStub(ICStub::IteratorNext_Native))
-    {
-        ICIteratorNext_Native::Compiler compiler(cx);
-        ICStub *newStub = compiler.getStub(compiler.getStubSpace(frame->script()));
-        if (!newStub)
-            return false;
-        stub->addNewStub(newStub);
-    }
-
-    return true;
-}
-
-typedef bool (*DoIteratorNextFallbackFn)(JSContext *, BaselineFrame *, ICIteratorNext_Fallback *,
-                                         HandleValue, MutableHandleValue);
-static const VMFunction DoIteratorNextFallbackInfo =
-    FunctionInfo<DoIteratorNextFallbackFn>(DoIteratorNextFallback);
-
-bool
-ICIteratorNext_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
-{
-    EmitRestoreTailCallReg(masm);
-
-    masm.pushValue(R0);
-    masm.push(BaselineStubReg);
-    masm.pushBaselineFramePtr(BaselineFrameReg, R0.scratchReg());
-
-    return tailCallVM(DoIteratorNextFallbackInfo, masm);
-}
-
-
-
-
-
-bool
-ICIteratorNext_Native::Compiler::generateStubCode(MacroAssembler &masm)
-{
-    Label failure;
-
-    Register obj = masm.extractObject(R0, ExtractTemp0);
-
-    GeneralRegisterSet regs(availableGeneralRegs(1));
-    Register nativeIterator = regs.takeAny();
-    Register scratch = regs.takeAny();
-
-    masm.branchTestObjClass(Assembler::NotEqual, obj, scratch,
-                            &PropertyIteratorObject::class_, &failure);
-    masm.loadObjPrivate(obj, JSObject::ITER_CLASS_NFIXED_SLOTS, nativeIterator);
-
-    masm.branchTest32(Assembler::NonZero, Address(nativeIterator, offsetof(NativeIterator, flags)),
-                      Imm32(JSITER_FOREACH), &failure);
-
-    
-    masm.loadPtr(Address(nativeIterator, offsetof(NativeIterator, props_cursor)), scratch);
     masm.loadPtr(Address(scratch, 0), scratch);
 
     
-    masm.addPtr(Imm32(sizeof(JSString *)),
-                Address(nativeIterator, offsetof(NativeIterator, props_cursor)));
+    masm.addPtr(Imm32(sizeof(JSString *)), cursorAddr);
 
     masm.tagValue(JSVAL_TYPE_STRING, scratch, R0);
+    EmitReturnFromIC(masm);
+
+    masm.bind(&iterDone);
+    masm.moveValue(MagicValue(JS_NO_ITER_VALUE), R0);
     EmitReturnFromIC(masm);
 
     

@@ -21,8 +21,6 @@ struct BytecodeInfo
     uint16_t stackDepth;
     bool initialized : 1;
     bool jumpTarget : 1;
-    bool jumpFallthrough : 1;
-    bool fallthrough : 1;
 
     
     bool loopEntryInCatchOrFinally : 1;

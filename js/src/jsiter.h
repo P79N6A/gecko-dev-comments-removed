@@ -1,15 +1,15 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef jsiter_h
 #define jsiter_h
 
-
-
-
+/*
+ * JavaScript iterators.
+ */
 
 #include "mozilla/MemoryReporting.h"
 
@@ -18,10 +18,10 @@
 #include "gc/Barrier.h"
 #include "vm/Stack.h"
 
-
-
-
-
+/*
+ * For cacheable native iterators, whether the iterator is currently active.
+ * Not serialized by XDR.
+ */
 #define JSITER_ACTIVE       0x1000
 #define JSITER_UNREUSABLE   0x2000
 
@@ -29,8 +29,8 @@ namespace js {
 
 struct NativeIterator
 {
-    HeapPtrObject obj;                  
-    JSObject *iterObj_;                 
+    HeapPtrObject obj;                  // Object being iterated.
+    JSObject *iterObj_;                 // Internal iterator object.
     HeapPtrFlatString *props_array;
     HeapPtrFlatString *props_cursor;
     HeapPtrFlatString *props_end;
@@ -40,7 +40,7 @@ struct NativeIterator
     uint32_t flags;
 
   private:
-    
+    /* While in compartment->enumerators, these form a doubly linked list. */
     NativeIterator *next_;
     NativeIterator *prev_;
 
@@ -84,7 +84,7 @@ struct NativeIterator
         props_cursor = props_cursor + 1;
     }
     void link(NativeIterator *other) {
-        
+        /* A NativeIterator cannot appear in the enumerator list twice. */
         JS_ASSERT(!next_ && !prev_);
         JS_ASSERT(flags & JSITER_ENUMERATE);
 
@@ -162,20 +162,20 @@ bool
 VectorToValueIterator(JSContext *cx, HandleObject obj, unsigned flags, AutoIdVector &props,
                       MutableHandleValue vp);
 
-
-
-
-
+/*
+ * Creates either a key or value iterator, depending on flags. For a value
+ * iterator, performs value-lookup to convert the given list of jsids.
+ */
 bool
 EnumeratedIdVectorToIterator(JSContext *cx, HandleObject obj, unsigned flags, AutoIdVector &props,
                              MutableHandleValue vp);
 
-
-
-
-
-
-
+/*
+ * Convert the value stored in *vp to its iteration object. The flags should
+ * contain JSITER_ENUMERATE if js::ValueToIterator is called when enumerating
+ * for-in semantics are required, and when the caller can guarantee that the
+ * iterator will never be exposed to scripts.
+ */
 bool
 ValueToIterator(JSContext *cx, unsigned flags, MutableHandleValue vp);
 
@@ -200,39 +200,35 @@ SuppressDeletedElement(JSContext *cx, HandleObject obj, uint32_t index);
 extern bool
 SuppressDeletedElements(JSContext *cx, HandleObject obj, uint32_t begin, uint32_t end);
 
-
-
-
-
-
+/*
+ * IteratorMore() returns the next iteration value. If no value is available,
+ * MagicValue(JS_NO_ITER_VALUE) is returned.
+ */
 extern bool
-IteratorMore(JSContext *cx, HandleObject iterobj, bool *res);
-
-extern bool
-IteratorNext(JSContext *cx, HandleObject iterobj, MutableHandleValue rval);
+IteratorMore(JSContext *cx, HandleObject iterobj, MutableHandleValue rval);
 
 extern bool
 ThrowStopIteration(JSContext *cx);
 
-
-
-
-
+/*
+ * Create an object of the form { value: VALUE, done: DONE }.
+ * ES6 draft from 2013-09-05, section 25.4.3.4.
+ */
 extern JSObject *
 CreateItrResultObject(JSContext *cx, HandleValue value, bool done);
 
-} 
+} /* namespace js */
 
-
-
-
+/*
+ * Generator state codes.
+ */
 enum JSGeneratorState
 {
-    JSGEN_NEWBORN,  
-    JSGEN_OPEN,     
-    JSGEN_RUNNING,  
-    JSGEN_CLOSING,  
-    JSGEN_CLOSED    
+    JSGEN_NEWBORN,  /* not yet started */
+    JSGEN_OPEN,     /* started by a .next() or .send(undefined) call */
+    JSGEN_RUNNING,  /* currently executing via .next(), etc., call */
+    JSGEN_CLOSING,  /* close method is doing asynchronous return */
+    JSGEN_CLOSED    /* closed, cannot be started or closed again */
 };
 
 struct JSGenerator
@@ -259,4 +255,4 @@ js_NewGenerator(JSContext *cx, const js::InterpreterRegs &regs);
 extern JSObject *
 js_InitIteratorClasses(JSContext *cx, js::HandleObject obj);
 
-#endif 
+#endif /* jsiter_h */
