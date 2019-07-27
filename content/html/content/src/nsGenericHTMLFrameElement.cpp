@@ -23,6 +23,7 @@
 #include "nsIScrollable.h"
 #include "nsPresContext.h"
 #include "nsServiceManagerUtils.h"
+#include "nsSubDocumentFrame.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -58,6 +59,14 @@ nsGenericHTMLFrameElement::CreateRemoteFrameLoader(nsITabParent* aTabParent)
   EnsureFrameLoader();
   NS_ENSURE_STATE(mFrameLoader);
   mFrameLoader->SetRemoteBrowser(aTabParent);
+
+  if (nsSubDocumentFrame* subdocFrame = do_QueryFrame(GetPrimaryFrame())) {
+    
+    
+    
+    
+    mFrameLoader->UpdatePositionAndSize(subdocFrame);
+  }
   return NS_OK;
 }
 
