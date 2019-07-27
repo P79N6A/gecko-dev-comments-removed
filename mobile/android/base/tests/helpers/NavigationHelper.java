@@ -44,7 +44,7 @@ final public class NavigationHelper {
     
 
 
-    private static String adjustUrl(final String url) {
+    public static String adjustUrl(final String url) {
         fAssertNotNull("url is not null", url);
 
         if (url.startsWith("about:") || url.startsWith("chrome:")) {
