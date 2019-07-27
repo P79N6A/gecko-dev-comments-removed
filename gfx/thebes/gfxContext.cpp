@@ -1159,13 +1159,6 @@ gfxContext::PointInStroke(const gfxPoint& pt)
                                     Matrix());
 }
 
-bool
-gfxContext::HasError()
-{
-  
-  return false;
-}
-
 void
 gfxContext::RoundedRectangle(const gfxRect& rect,
                              const gfxCornerSizes& corners,

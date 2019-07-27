@@ -87,11 +87,6 @@ public:
     
 
 
-    bool HasError();
-
-    
-
-
     
     void Save();
     void Restore();
