@@ -10,7 +10,7 @@
 #include "mozilla/Types.h"
 
 
-#ifdef MOZ_B2G
+#ifdef MOZ_WIDGET_GONK
 
 
 

@@ -151,7 +151,7 @@
 
 
 
-#ifdef MOZ_B2G
+#ifdef MOZ_WIDGET_GONK
     
 #   define MOZ_MALLOC_OPTIONS "ff"
 #else
