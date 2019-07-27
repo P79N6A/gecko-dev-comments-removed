@@ -139,7 +139,29 @@ Site.prototype = {
   
 
 
+  _checkLinkEndTime: function Site_checkLinkEndTime() {
+    if (this.link.endTime && this.link.endTime < Date.now()) {
+       let oldUrl = this.url;
+       
+       this.link.url = Services.io.newURI(this.url, null, null).resolve("/");
+       
+       delete this.link.imageURI;
+       delete this.link.enhancedImageURI;
+       
+       delete this.link.endTime;
+       
+       this._querySelector(".enhanced-content").style.backgroundImage = "";
+       gPinnedLinks.replace(oldUrl, this.link);
+    }
+  },
+
+  
+
+
   _render: function Site_render() {
+    
+    this._checkLinkEndTime();
+    
     let enhanced = gAllPages.enhanced && DirectoryLinksProvider.getEnhancedLink(this.link);
     let url = this.url;
     let title = enhanced && enhanced.title ? enhanced.title :
@@ -172,6 +194,21 @@ Site.prototype = {
     this.captureIfMissing();
     
     this.refreshThumbnail();
+  },
+
+  
+
+
+
+
+  onFirstVisible: function Site_onFirstVisible() {
+    if (this.link.endTime && this.link.endTime < Date.now()) {
+      
+      this._render();
+    }
+    else {
+      this.captureIfMissing();
+    }
   },
 
   

@@ -41,20 +41,27 @@ function runTests() {
   yield null;
   yield null;
 
+  whenPagesUpdated();
   
   let siteNode = getCell(1).node.querySelector(".newtab-site");
   let pinButton = siteNode.querySelector(".newtab-control-pin");
   expected.action = "pin";
+  
+  expected.type = "history";
   expected.pinned = true;
   EventUtils.synthesizeMouseAtCenter(pinButton, {}, getContentWindow());
 
   
+  yield null;
   yield null;
 
   
   expected.action = "unpin";
   expected.pinned = false;
   whenPagesUpdated();
+  
+  siteNode = getCell(1).node.querySelector(".newtab-site");
+  pinButton = siteNode.querySelector(".newtab-control-pin");
   EventUtils.synthesizeMouseAtCenter(pinButton, {}, getContentWindow());
 
   
@@ -75,7 +82,7 @@ function runTests() {
   yield null;
 
   
-  expected.type = "sponsored";
+  expected.type = "history";
   expected.action = "click";
   EventUtils.synthesizeMouseAtCenter(siteNode, {}, getContentWindow());
 

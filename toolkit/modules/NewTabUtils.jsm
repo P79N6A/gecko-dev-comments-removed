@@ -405,8 +405,14 @@ let PinnedLinks = {
     
     this.unpin(aLink);
 
+    
+    
+    let updatePages = this._makeHistoryLink(aLink);
     this.links[aIndex] = aLink;
     this.save();
+    if (updatePages) {
+      AllPages.update();
+    }
   },
 
   
@@ -464,7 +470,37 @@ let PinnedLinks = {
 
     
     return -1;
-  }
+  },
+
+  
+
+
+
+
+  _makeHistoryLink: function PinnedLinks_makeHistoryLink(aLink) {
+    if (!aLink.type || aLink.type == "history") {
+      return false;
+    }
+    aLink.type = "history";
+    
+    delete aLink.targetedSite;
+    return true;
+  },
+
+  
+
+
+
+
+  replace: function PinnedLinks_replace(aUrl, aLink) {
+    let index = this._indexOfLink({url: aUrl});
+    if (index == -1) {
+      return;
+    }
+    this.links[index] = aLink;
+    this.save();
+  },
+
 };
 
 

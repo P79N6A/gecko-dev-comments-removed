@@ -217,7 +217,10 @@ let gPage = {
 
     for (let site of gGrid.sites) {
       if (site) {
-        site.captureIfMissing();
+        
+        
+        
+        site.onFirstVisible();
       }
     }
 
