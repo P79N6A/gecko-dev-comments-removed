@@ -217,6 +217,9 @@ ClientLayerManager::BeginTransactionWithTarget(gfxContext* aTarget)
   
   if (aTarget && XRE_GetProcessType() == GeckoProcessType_Default) {
     mShadowTarget = aTarget;
+  } else {
+    NS_ASSERTION(!aTarget,
+                 "Content-process ClientLayerManager::BeginTransactionWithTarget not supported");
   }
 
   
