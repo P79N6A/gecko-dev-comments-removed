@@ -1922,6 +1922,9 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   AutoSaveRestoreBlendMode autoRestoreBlendMode(*aBuilder);
   aBuilder->SetContainsBlendModes(BlendModeSet());
  
+  const nsIFrame* outerReferenceFrame = aBuilder->GetCurrentReferenceFrame();
+  nsPoint offsetToOuterReferenceFrame = GetOffsetToCrossDoc(outerReferenceFrame);
+
   if (isTransformed) {
     const nsRect overflow = GetVisualOverflowRectRelativeToSelf();
     if (aBuilder->IsForPainting() &&
@@ -2103,6 +2106,10 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
     
     
     buildingDisplayList.SetDirtyRect(aDirtyRect);
+    
+    
+    buildingDisplayList.SetReferenceFrameAndCurrentOffset(outerReferenceFrame,
+      offsetToOuterReferenceFrame);
 
     if (Preserves3DChildren()) {
       WrapPreserve3DList(this, aBuilder, &resultList);
