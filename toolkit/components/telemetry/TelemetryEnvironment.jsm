@@ -9,6 +9,7 @@ this.EXPORTED_SYMBOLS = [
 ];
 
 const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
+const myScope = this;
 
 Cu.import("resource://gre/modules/AddonManager.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
@@ -28,6 +29,102 @@ XPCOMUtils.defineLazyModuleGetter(this, "ProfileAge",
                                   "resource://gre/modules/ProfileAge.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "UpdateChannel",
                                   "resource://gre/modules/UpdateChannel.jsm");
+
+var gGlobalEnvironment;
+function getGlobal() {
+  if (!gGlobalEnvironment) {
+    gGlobalEnvironment = new EnvironmentCache();
+  }
+  return gGlobalEnvironment;
+}
+
+const TelemetryEnvironment = {
+  get currentEnvironment() {
+    return getGlobal().currentEnvironment;
+  },
+
+  onInitialized: function() {
+    return getGlobal().onInitialized();
+  },
+
+  registerChangeListener: function(name, listener) {
+    return getGlobal().registerChangeListener(name, listener);
+  },
+
+  unregisterChangeListener: function(name) {
+    return getGlobal().unregisterChangeListener(name);
+  },
+
+  
+  RECORD_PREF_STATE: 1, 
+  RECORD_PREF_VALUE: 2, 
+  RECORD_PREF_NOTIFY_ONLY: 3, 
+
+  
+  _watchPreferences: function(prefMap) {
+    return getGlobal()._watchPreferences(prefMap);
+  },
+};
+
+const DEFAULT_ENVIRONMENT_PREFS = new Map([
+  ["app.feedback.baseURL", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["app.support.baseURL", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["accessibility.browsewithcaret", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["accessibility.force_disabled", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["app.update.auto", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["app.update.enabled", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["app.update.interval", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["app.update.service.enabled", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["app.update.silent", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["app.update.url", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["browser.cache.disk.enable", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["browser.cache.disk.capacity", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["browser.cache.memory.enable", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["browser.cache.offline.enable", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["browser.formfill.enable", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["browser.newtab.url", TelemetryEnvironment.RECORD_PREF_STATE],
+  ["browser.newtabpage.enabled", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["browser.newtabpage.enhanced", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["browser.polaris.enabled", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["browser.shell.checkDefaultBrowser", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["browser.startup.homepage", TelemetryEnvironment.RECORD_PREF_STATE],
+  ["browser.startup.page", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["devtools.chrome.enabled", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["devtools.debugger.enabled", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["devtools.debugger.remote-enabled", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["dom.ipc.plugins.asyncInit", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["dom.ipc.plugins.enabled", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["experiments.manifest.uri", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["extensions.blocklist.enabled", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["extensions.blocklist.url", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["extensions.strictCompatibility", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["extensions.update.enabled", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["extensions.update.url", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["extensions.update.background.url", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["general.smoothScroll", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["gfx.direct2d.disabled", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["gfx.direct2d.force-enabled", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["gfx.direct2d.use1_1", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["layers.acceleration.disabled", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["layers.acceleration.force-enabled", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["layers.async-pan-zoom.enabled", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["layers.async-video-oop.enabled", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["layers.async-video.enabled", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["layers.componentalpha.enabled", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["layers.d3d11.disable-warp", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["layers.d3d11.force-warp", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["layers.prefer-d3d9", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["layers.prefer-opengl", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["layout.css.devPixelsPerPx", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["network.proxy.autoconfig_url", TelemetryEnvironment.RECORD_PREF_STATE],
+  ["network.proxy.http", TelemetryEnvironment.RECORD_PREF_STATE],
+  ["network.proxy.ssl", TelemetryEnvironment.RECORD_PREF_STATE],
+  ["pdfjs.disabled", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["places.history.enabled", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["privacy.trackingprotection.enabled", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["privacy.donottrackheader.enabled", TelemetryEnvironment.RECORD_PREF_VALUE],
+  ["services.sync.serverURL", TelemetryEnvironment.RECORD_PREF_STATE],
+]);
 
 const LOGGER_NAME = "Toolkit.Telemetry";
 
@@ -218,82 +315,380 @@ function getServicePack() {
 }
 #endif
 
-this.TelemetryEnvironment = {
-  _shutdown: true,
 
-  
-  _changeListeners: new Map(),
-  
-  _collectTask: null,
 
-  
-  RECORD_PREF_STATE: 1, 
-  RECORD_PREF_VALUE: 2, 
-  RECORD_PREF_NOTIFY_ONLY: 3, 
+
+
+function EnvironmentAddonBuilder(environment) {
+  this._environment = environment;
 
   
   
-  _watchedPrefs: null,
+  this._pendingTask = null;
 
   
-  _addonsListener: null,
-
-  
-  
-  
-  
-  _cachedAddons: null,
-
+  this._loaded = false;
+}
+EnvironmentAddonBuilder.prototype = {
   
 
 
-  init: function () {
-    if (!this._shutdown) {
-      this._log.error("init - Already initialized");
+
+  init: function() {
+    
+    
+    try {
+      AddonManager.shutdown.addBlocker("EnvironmentAddonBuilder",
+        () => this._shutdownBlocker());
+    } catch (err) {
+      return Promise.reject(err);
+    }
+
+    this._pendingTask = this._updateAddons().then(
+      () => { this._pendingTask = null; },
+      (err) => {
+        this._environment._log.error("init - Exception in _updateAddons", err);
+        this._pendingTask = null;
+      }
+    );
+
+    return this._pendingTask;
+  },
+
+  
+
+
+  watchForChanges: function() {
+    this._loaded = true;
+    AddonManager.addAddonListener(this);
+    Services.obs.addObserver(this, EXPERIMENTS_CHANGED_TOPIC, false);
+  },
+
+  
+  onEnabled: function() {
+    this._onChange();
+  },
+  onDisabled: function() {
+    this._onChange();
+  },
+  onInstalled: function() {
+    this._onChange();
+  },
+  onUninstalling: function() {
+    this._onChange();
+  },
+
+  _onChange: function() {
+    if (this._pendingTask) {
+      this._environment._log.trace("_onChange - task already pending");
       return;
     }
 
-    this._configureLog();
-    this._log.trace("init");
-    this._shutdown = false;
-    this._startWatchingPrefs();
-    this._startWatchingAddons();
+    this._environment._log.trace("_onChange");
+    this._pendingTask = this._updateAddons().then(
+      (changed) => {
+        this._pendingTask = null;
+        if (changed) {
+          this._environment._onEnvironmentChange("addons-changed");
+        }
+      },
+      (err) => {
+        this._pendingTask = null;
+        this._environment._log.error("Error collecting addons", err);
+      });
+  },
 
-    AddonManager.shutdown.addBlocker("TelemetryEnvironment: caching addons",
-                                      () => this._blockAddonManagerShutdown(),
-                                      () => this._getState());
+  
+  observe: function (aSubject, aTopic, aData) {
+    this._environment._log.trace("observe - Topic " + aTopic);
+
+    if (aTopic == EXPERIMENTS_CHANGED_TOPIC) {
+      if (this._pendingTask) {
+        return;
+      }
+      this._pendingTask = this._updateAddons().then(
+        (changed) => {
+          this._pendingTask = null;
+          if (changed) {
+            this._environment._onEnvironmentChange("experiment-changed");
+          }
+        },
+        (err) => {
+          this._pendingTask = null;
+          this._environment._log.error("observe: Error collecting addons", err);
+        });
+    }
+  },
+
+  _shutdownBlocker: function() {
+    if (this._loaded) {
+      AddonManager.removeAddonListener(this);
+      Services.obs.removeObserver(this, EXPERIMENTS_CHANGED_TOPIC);
+    }
+    return this._pendingTask;
   },
 
   
 
 
 
-  shutdown: Task.async(function* () {
-    if (this._shutdown) {
-      if (this._log) {
-        this._log.error("shutdown - Already shut down");
-      } else {
-        Cu.reportError("TelemetryEnvironment.shutdown - Already shut down");
-      }
-      return;
+
+
+
+
+  _updateAddons: Task.async(function* () {
+    this._environment._log.trace("_updateAddons");
+    let personaId = null;
+#ifndef MOZ_WIDGET_GONK
+    let theme = LightweightThemeManager.currentTheme;
+    if (theme) {
+      personaId = theme.id;
     }
+#endif
 
-    this._log.trace("shutdown");
-    this._shutdown = true;
-    this._stopWatchingPrefs();
-    this._stopWatchingAddons();
-    this._changeListeners.clear();
-    yield this._collectTask;
+    let addons = {
+      activeAddons: yield this._getActiveAddons(),
+      theme: yield this._getActiveTheme(),
+      activePlugins: this._getActivePlugins(),
+      activeGMPlugins: yield this._getActiveGMPlugins(),
+      activeExperiment: this._getActiveExperiment(),
+      persona: personaId,
+    };
 
-    this._cachedAddons = null;
+    if (JSON.stringify(addons) !=
+        JSON.stringify(this._environment._currentEnvironment.addons)) {
+      this._environment._log.trace("_updateAddons: addons differ");
+      this._environment._currentEnvironment.addons = addons;
+      return true;
+    }
+    this._environment._log.trace("_updateAddons: no changes found");
+    return false;
   }),
 
-  _configureLog: function () {
-    if (this._log) {
-      return;
+  
+
+
+
+  _getActiveAddons: Task.async(function* () {
+    
+    let allAddons = yield promiseGetAddonsByTypes(["extension", "service"]);
+
+    let activeAddons = {};
+    for (let addon of allAddons) {
+      
+      if (!addon.isActive) {
+        continue;
+      }
+
+      
+      let installDate = new Date(Math.max(0, addon.installDate));
+      let updateDate = new Date(Math.max(0, addon.updateDate));
+
+      activeAddons[addon.id] = {
+        blocklisted: (addon.blocklistState !== Ci.nsIBlocklistService.STATE_NOT_BLOCKED),
+        description: addon.description,
+        name: addon.name,
+        userDisabled: addon.userDisabled,
+        appDisabled: addon.appDisabled,
+        version: addon.version,
+        scope: addon.scope,
+        type: addon.type,
+        foreignInstall: addon.foreignInstall,
+        hasBinaryComponents: addon.hasBinaryComponents,
+        installDay: truncateToDays(installDate.getTime()),
+        updateDay: truncateToDays(updateDate.getTime()),
+      };
     }
-    this._log = Log.repository.getLoggerWithMessagePrefix(
-                                 LOGGER_NAME, "TelemetryEnvironment::");
+
+    return activeAddons;
+  }),
+
+  
+
+
+
+  _getActiveTheme: Task.async(function* () {
+    
+    let themes = yield promiseGetAddonsByTypes(["theme"]);
+
+    let activeTheme = {};
+    
+    let theme = themes.find(theme => theme.isActive);
+    if (theme) {
+      
+      let installDate = new Date(Math.max(0, theme.installDate));
+      let updateDate = new Date(Math.max(0, theme.updateDate));
+
+      activeTheme = {
+        id: theme.id,
+        blocklisted: (theme.blocklistState !== Ci.nsIBlocklistService.STATE_NOT_BLOCKED),
+        description: theme.description,
+        name: theme.name,
+        userDisabled: theme.userDisabled,
+        appDisabled: theme.appDisabled,
+        version: theme.version,
+        scope: theme.scope,
+        foreignInstall: theme.foreignInstall,
+        hasBinaryComponents: theme.hasBinaryComponents,
+        installDay: truncateToDays(installDate.getTime()),
+        updateDay: truncateToDays(updateDate.getTime()),
+      };
+    }
+
+    return activeTheme;
+  }),
+
+  
+
+
+
+  _getActivePlugins: function () {
+    let pluginTags =
+      Cc["@mozilla.org/plugin/host;1"].getService(Ci.nsIPluginHost).getPluginTags({});
+
+    let activePlugins = [];
+    for (let tag of pluginTags) {
+      
+      if (tag.disabled) {
+        continue;
+      }
+
+      
+      let updateDate = new Date(Math.max(0, tag.lastModifiedTime));
+
+      activePlugins.push({
+        name: tag.name,
+        version: tag.version,
+        description: tag.description,
+        blocklisted: tag.blocklisted,
+        disabled: tag.disabled,
+        clicktoplay: tag.clicktoplay,
+        mimeTypes: tag.getMimeTypes({}),
+        updateDay: truncateToDays(updateDate.getTime()),
+      });
+    }
+
+    return activePlugins;
+  },
+
+  
+
+
+
+
+
+
+  _getActiveGMPlugins: Task.async(function* () {
+    
+    let allPlugins = yield promiseGetAddonsByTypes(["plugin"]);
+
+    let activeGMPlugins = {};
+    for (let plugin of allPlugins) {
+      
+      if (!plugin.isGMPlugin) {
+        continue;
+      }
+
+      activeGMPlugins[plugin.id] = {
+        version: plugin.version,
+        userDisabled: plugin.userDisabled,
+        applyBackgroundUpdates: plugin.applyBackgroundUpdates,
+      };
+    }
+
+    return activeGMPlugins;
+  }),
+
+  
+
+
+
+  _getActiveExperiment: function () {
+    let experimentInfo = {};
+    try {
+      let scope = {};
+      Cu.import("resource:///modules/experiments/Experiments.jsm", scope);
+      let experiments = scope.Experiments.instance();
+      let activeExperiment = experiments.getActiveExperimentID();
+      if (activeExperiment) {
+        experimentInfo.id = activeExperiment;
+        experimentInfo.branch = experiments.getActiveExperimentBranch();
+      }
+    } catch(e) {
+      
+    }
+
+    return experimentInfo;
+  },
+};
+
+function EnvironmentCache() {
+  this._log = Log.repository.getLoggerWithMessagePrefix(
+    LOGGER_NAME, "TelemetryEnvironment::");
+  this._log.trace("constructor");
+
+  this._shutdown = false;
+
+  
+  this._changeListeners = new Map();
+
+  
+  
+  this._watchedPrefs = DEFAULT_ENVIRONMENT_PREFS;
+
+  this._currentEnvironment = {
+    build: this._getBuild(),
+    partner: this._getPartner(),
+    system: this._getSystem(),
+  };
+
+  this._updateSettings();
+
+#ifndef MOZ_WIDGET_ANDROID
+  this._currentEnvironment.profile = {};
+#endif
+
+  
+  
+
+  this._addonBuilder = new EnvironmentAddonBuilder(this);
+
+  this._initTask = Promise.all([this._addonBuilder.init(), this._updateProfile()])
+    .then(
+      () => {
+        this._initTask = null;
+        this._startWatchingPrefs();
+        this._addonBuilder.watchForChanges();
+        return this.currentEnvironment;
+      },
+      (err) => {
+        
+        this._log.error("error while initializing", err);
+        this._initTask = null;
+        this._startWatchingPrefs();
+        this._addonBuilder.watchForChanges();
+        return this.currentEnvironment;
+      });
+}
+EnvironmentCache.prototype = {
+  
+
+
+
+
+  get currentEnvironment() {
+    return Cu.cloneInto(this._currentEnvironment, myScope);
+  },
+
+  
+
+
+
+  onInitialized: function() {
+    if (this._initTask) {
+      return this._initTask;
+    }
+    return Promise.resolve(this.currentEnvironment);
   },
 
   
@@ -303,10 +698,9 @@ this.TelemetryEnvironment = {
 
 
   registerChangeListener: function (name, listener) {
-    this._configureLog();
     this._log.trace("registerChangeListener for " + name);
     if (this._shutdown) {
-      this._log.warn("registerChangeListener - already shutdown")
+      this._log.warn("registerChangeListener - already shutdown");
       return;
     }
     this._changeListeners.set(name, listener);
@@ -318,10 +712,9 @@ this.TelemetryEnvironment = {
 
 
   unregisterChangeListener: function (name) {
-    this._configureLog();
     this._log.trace("unregisterChangeListener for " + name);
     if (this._shutdown) {
-      this._log.warn("registerChangeListener - already shutdown")
+      this._log.warn("registerChangeListener - already shutdown");
       return;
     }
     this._changeListeners.delete(name);
@@ -332,11 +725,9 @@ this.TelemetryEnvironment = {
 
 
   _watchPreferences: function (aPreferences) {
-    if (this._watchedPrefs) {
-      this._stopWatchingPrefs();
-    }
-
+    this._stopWatchingPrefs();
     this._watchedPrefs = aPreferences;
+    this._updateSettings();
     this._startWatchingPrefs();
   },
 
@@ -347,23 +738,19 @@ this.TelemetryEnvironment = {
 
 
   _getPrefData: function () {
-    if (!this._watchedPrefs) {
-      return {};
-    }
-
     let prefData = {};
     for (let pref in this._watchedPrefs) {
       
       if (!Preferences.isSet(pref) ||
-          this._watchedPrefs[pref] == this.RECORD_PREF_NOTIFY_ONLY) {
+          this._watchedPrefs[pref] == TelemetryEnvironment.RECORD_PREF_NOTIFY_ONLY) {
         continue;
       }
 
       
       
       let prefValue = undefined;
-      if (this._watchedPrefs[pref] == this.RECORD_PREF_STATE) {
-        prefValue = null;
+      if (this._watchedPrefs[pref] == TelemetryEnvironment.RECORD_PREF_STATE) {
+        prefValue = "<user-set>";
       } else {
         prefValue = Preferences.get(pref, null);
       }
@@ -378,13 +765,15 @@ this.TelemetryEnvironment = {
   _startWatchingPrefs: function () {
     this._log.trace("_startWatchingPrefs - " + this._watchedPrefs);
 
-    if (!this._watchedPrefs) {
-      return;
-    }
-
     for (let pref in this._watchedPrefs) {
       Preferences.observe(pref, this._onPrefChanged, this);
     }
+  },
+
+  _onPrefChanged: function() {
+    this._log.trace("_onPrefChanged");
+    this._updateSettings();
+    this._onEnvironmentChange("pref-changed");
   },
 
   
@@ -393,20 +782,9 @@ this.TelemetryEnvironment = {
   _stopWatchingPrefs: function () {
     this._log.trace("_stopWatchingPrefs");
 
-    if (!this._watchedPrefs) {
-      return;
-    }
-
     for (let pref in this._watchedPrefs) {
       Preferences.ignore(pref, this._onPrefChanged, this);
     }
-
-    this._watchedPrefs = null;
-  },
-
-  _onPrefChanged: function () {
-    this._log.trace("_onPrefChanged");
-    this._onEnvironmentChange("pref-changed");
   },
 
   
@@ -472,14 +850,13 @@ this.TelemetryEnvironment = {
   
 
 
-
-  _getSettings: function () {
+  _updateSettings: function () {
     let updateChannel = null;
     try {
       updateChannel = UpdateChannel.get();
     } catch (e) {}
 
-    return {
+    this._currentEnvironment.settings = {
       blocklistEnabled: Preferences.get(PREF_BLOCKLIST_ENABLED, true),
 #ifndef MOZ_WIDGET_ANDROID
       isDefaultBrowser: this._isDefaultBrowser(),
@@ -500,20 +877,17 @@ this.TelemetryEnvironment = {
 
 
 
-  _getProfile: Task.async(function* () {
+  _updateProfile: Task.async(function* () {
     let profileAccessor = new ProfileAge(null, this._log);
 
     let creationDate = yield profileAccessor.created;
     let resetDate = yield profileAccessor.reset;
 
-    let profileData = {
-      creationDate: truncateToDays(creationDate),
-    };
-
+    this._currentEnvironment.profile.creationDate =
+      truncateToDays(creationDate);
     if (resetDate) {
-      profileData.resetDate = truncateToDays(resetDate);
+      this._currentEnvironment.profile.resetDate = truncateToDays(resetDate);
     }
-    return profileData;
   }),
 
   
@@ -531,7 +905,7 @@ this.TelemetryEnvironment = {
 
     
     let partnerBranch = Services.prefs.getBranch(PREF_APP_PARTNER_BRANCH);
-    partnerData.partnerNames = partnerBranch.getChildList("")
+    partnerData.partnerNames = partnerBranch.getChildList("");
 
     return partnerData;
   },
@@ -685,349 +1059,6 @@ this.TelemetryEnvironment = {
     };
   },
 
-  
-
-
-
-
-
-
-
-  _getActiveAddons: Task.async(function* () {
-
-    
-    let allAddons = yield promiseGetAddonsByTypes(["extension", "service"]);
-
-    let activeAddons = {};
-    for (let addon of allAddons) {
-      
-      if (!addon.isActive) {
-        continue;
-      }
-
-      
-      let installDate = new Date(Math.max(0, addon.installDate));
-      let updateDate = new Date(Math.max(0, addon.updateDate));
-
-      activeAddons[addon.id] = {
-        blocklisted: (addon.blocklistState !== Ci.nsIBlocklistService.STATE_NOT_BLOCKED),
-        description: addon.description,
-        name: addon.name,
-        userDisabled: addon.userDisabled,
-        appDisabled: addon.appDisabled,
-        version: addon.version,
-        scope: addon.scope,
-        type: addon.type,
-        foreignInstall: addon.foreignInstall,
-        hasBinaryComponents: addon.hasBinaryComponents,
-        installDay: truncateToDays(installDate.getTime()),
-        updateDay: truncateToDays(updateDate.getTime()),
-      };
-    }
-
-    return activeAddons;
-  }),
-
-  
-
-
-
-
-
-
-
-  _getActiveTheme: Task.async(function* () {
-    
-    let themes = yield promiseGetAddonsByTypes(["theme"]);
-
-    let activeTheme = {};
-    
-    let theme = themes.find(theme => theme.isActive);
-    if (theme) {
-      
-      let installDate = new Date(Math.max(0, theme.installDate));
-      let updateDate = new Date(Math.max(0, theme.updateDate));
-
-      activeTheme = {
-        id: theme.id,
-        blocklisted: (theme.blocklistState !== Ci.nsIBlocklistService.STATE_NOT_BLOCKED),
-        description: theme.description,
-        name: theme.name,
-        userDisabled: theme.userDisabled,
-        appDisabled: theme.appDisabled,
-        version: theme.version,
-        scope: theme.scope,
-        foreignInstall: theme.foreignInstall,
-        hasBinaryComponents: theme.hasBinaryComponents,
-        installDay: truncateToDays(installDate.getTime()),
-        updateDay: truncateToDays(updateDate.getTime()),
-      };
-    }
-
-    return activeTheme;
-  }),
-
-  
-
-
-
-  _getActivePlugins: function () {
-    let pluginTags =
-      Cc["@mozilla.org/plugin/host;1"].getService(Ci.nsIPluginHost).getPluginTags({});
-
-    let activePlugins = [];
-    for (let tag of pluginTags) {
-      
-      if (tag.disabled) {
-        continue;
-      }
-
-      
-      let updateDate = new Date(Math.max(0, tag.lastModifiedTime));
-
-      activePlugins.push({
-        name: tag.name,
-        version: tag.version,
-        description: tag.description,
-        blocklisted: tag.blocklisted,
-        disabled: tag.disabled,
-        clicktoplay: tag.clicktoplay,
-        mimeTypes: tag.getMimeTypes({}),
-        updateDay: truncateToDays(updateDate.getTime()),
-      });
-    }
-
-    return activePlugins;
-  },
-
-  
-
-
-
-
-
-
-
-  _getActiveGMPlugins: Task.async(function* () {
-    
-    let allPlugins = yield promiseGetAddonsByTypes(["plugin"]);
-
-    let activeGMPlugins = {};
-    for (let plugin of allPlugins) {
-      
-      if (!plugin.isGMPlugin) {
-        continue;
-      }
-
-      activeGMPlugins[plugin.id] = {
-        version: plugin.version,
-        userDisabled: plugin.userDisabled,
-        applyBackgroundUpdates: plugin.applyBackgroundUpdates,
-      };
-    }
-
-    return activeGMPlugins;
-  }),
-
-  
-
-
-
-  _getActiveExperiment: function () {
-    let experimentInfo = {};
-    try {
-      let scope = {};
-      Cu.import("resource:///modules/experiments/Experiments.jsm", scope);
-      let experiments = scope.Experiments.instance()
-      let activeExperiment = experiments.getActiveExperimentID();
-      if (activeExperiment) {
-        experimentInfo.id = activeExperiment;
-        experimentInfo.branch = experiments.getActiveExperimentBranch();
-      }
-    } catch(e) {
-      
-      return experimentInfo;
-    }
-
-    return experimentInfo;
-  },
-
-  
-
-
-
-
-
-
-
-  _getAddons: Task.async(function* () {
-    
-    
-    
-    let addons = this._cachedAddons || {};
-    if (!this._cachedAddons) {
-      addons.activeAddons = yield this._getActiveAddons();
-      addons.activeTheme = yield this._getActiveTheme();
-      addons.activeGMPlugins = yield this._getActiveGMPlugins();
-    }
-
-    let personaId = null;
-#ifndef MOZ_WIDGET_GONK
-    let theme = LightweightThemeManager.currentTheme;
-    if (theme) {
-      personaId = theme.id;
-    }
-#endif
-
-    let addonData = {
-      activeAddons: addons.activeAddons,
-      theme: addons.activeTheme,
-      activePlugins: this._getActivePlugins(),
-      activeGMPlugins: addons.activeGMPlugins,
-      activeExperiment: this._getActiveExperiment(),
-      persona: personaId,
-    };
-
-    return addonData;
-  }),
-
-  
-
-
-  _startWatchingAddons: function () {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    this._addonsListener = {
-      onEnabled: addon => {
-        this._log.trace("_addonsListener - onEnabled " + addon.id);
-        this._onActiveAddonsChanged(addon)
-      },
-      onDisabled: addon => {
-        this._log.trace("_addonsListener - onDisabled " + addon.id);
-        this._onActiveAddonsChanged(addon);
-      },
-      onInstalled: addon => {
-        this._log.trace("_addonsListener - onInstalled " + addon.id +
-                        ", isActive: " + addon.isActive);
-        if (addon.isActive) {
-          this._onActiveAddonsChanged(addon);
-        }
-      },
-      onUninstalling: (addon, requiresRestart) => {
-        this._log.trace("_addonsListener - onUninstalling " + addon.id +
-                        ", isActive: " + addon.isActive +
-                        ", requiresRestart: " + requiresRestart);
-        if (!addon.isActive || requiresRestart) {
-          return;
-        }
-        this._onActiveAddonsChanged(addon);
-      },
-    };
-
-    AddonManager.addAddonListener(this._addonsListener);
-
-    
-    Services.obs.addObserver(this, EXPERIMENTS_CHANGED_TOPIC, false);
-  },
-
-  
-
-
-  _stopWatchingAddons: function () {
-    if (this._addonsListener) {
-      AddonManager.removeAddonListener(this._addonsListener);
-      Services.obs.removeObserver(this, EXPERIMENTS_CHANGED_TOPIC);
-    }
-    this._addonsListener = null;
-  },
-
-  
-
-
-
-  _onActiveAddonsChanged: function (aAddon) {
-    const INTERESTING_ADDONS = [ "extension", "plugin", "service", "theme" ];
-
-    this._log.trace("_onActiveAddonsChanged - id " + aAddon.id + ", type " + aAddon.type);
-
-    if (INTERESTING_ADDONS.find(addon => addon == aAddon.type)) {
-      this._onEnvironmentChange("addons-changed");
-    }
-  },
-
-  
-
-
-  observe: function (aSubject, aTopic, aData) {
-    this._log.trace("observe - Topic " + aTopic);
-
-    if (aTopic == EXPERIMENTS_CHANGED_TOPIC) {
-      this._onEnvironmentChange("experiment-changed");
-    }
-  },
-
-  
-
-
-
-  getEnvironmentData: function() {
-    if (this._shutdown) {
-      this._log.error("getEnvironmentData - Already shut down");
-      return Promise.reject("Already shutdown");
-    }
-
-    this._log.trace("getEnvironmentData");
-    if (this._collectTask) {
-      return this._collectTask;
-    }
-
-    this._collectTask = this._doGetEnvironmentData();
-    let clear = () => this._collectTask = null;
-    this._collectTask.then(clear, clear);
-    return this._collectTask;
-  },
-
-  _doGetEnvironmentData: Task.async(function* () {
-    this._log.trace("getEnvironmentData");
-
-    
-    let sections = {
-      "build" : () => this._getBuild(),
-      "settings": () => this._getSettings(),
-#ifndef MOZ_WIDGET_ANDROID
-      "profile": () => this._getProfile(),
-#endif
-      "partner": () => this._getPartner(),
-      "system": () => this._getSystem(),
-      "addons": () => this._getAddons(),
-    };
-
-    let data = {};
-    
-    
-    
-    for (let s in sections) {
-      try {
-        data[s] = yield sections[s]();
-      } catch (e) {
-        this._log.error("_doGetEnvironmentData - There was an exception collecting " + s, e);
-      }
-    }
-
-    return data;
-  }),
-
   _onEnvironmentChange: function (what) {
     this._log.trace("_onEnvironmentChange for " + what);
     if (this._shutdown) {
@@ -1038,40 +1069,10 @@ this.TelemetryEnvironment = {
     for (let [name, listener] of this._changeListeners) {
       try {
         this._log.debug("_onEnvironmentChange - calling " + name);
-        listener();
+        listener(what, this.currentEnvironment);
       } catch (e) {
-        this._log.warning("_onEnvironmentChange - listener " + name + " caught error", e);
+        this._log.error("_onEnvironmentChange - listener " + name + " caught error", e);
       }
     }
-  },
-
-  
-
-
-
-  _blockAddonManagerShutdown: Task.async(function*() {
-    this._log.trace("_blockAddonManagerShutdown");
-
-    this._stopWatchingAddons();
-
-    this._cachedAddons = {
-      activeAddons: yield this._getActiveAddons(),
-      activeTheme: yield this._getActiveTheme(),
-      activeGMPlugins: yield this._getActiveGMPlugins(),
-    };
-
-    yield this._collectTask;
-  }),
-
-  
-
-
-  _getState: function() {
-    return {
-      shutdown: this._shutdown,
-      hasCollectTask: !!this._collectTask,
-      hasAddonsListener: !!this._addonsListener,
-      hasCachedAddons: !!this._cachedAddons,
-    };
   },
 };
