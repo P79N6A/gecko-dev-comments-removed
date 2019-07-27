@@ -198,4 +198,36 @@ TemporaryRef<SharedThreadPool> GetMediaDecodeThreadPool()
                                Preferences::GetUint("media.num-decode-threads", 25));
 }
 
+bool
+ExtractH264CodecDetails(const nsAString& aCodec,
+                        int16_t& aProfile,
+                        int16_t& aLevel)
+{
+  
+  
+  
+  
+  
+  
+  if (aCodec.Length() != strlen("avc1.PPCCLL")) {
+    return false;
+  }
+
+  
+  const nsAString& sample = Substring(aCodec, 0, 5);
+  if (!sample.EqualsASCII("avc1.")) {
+    return false;
+  }
+
+  
+  nsresult rv = NS_OK;
+  aProfile = PromiseFlatString(Substring(aCodec, 5, 2)).ToInteger(&rv, 16);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  aLevel = PromiseFlatString(Substring(aCodec, 9, 2)).ToInteger(&rv, 16);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  return true;
+}
+
 } 

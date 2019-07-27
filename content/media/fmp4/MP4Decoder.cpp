@@ -8,6 +8,7 @@
 #include "MP4Reader.h"
 #include "MediaDecoderStateMachine.h"
 #include "mozilla/Preferences.h"
+#include "nsCharSeparatedTokenizer.h"
 #ifdef MOZ_EME
 #include "mozilla/CDMProxy.h"
 #endif
@@ -50,48 +51,77 @@ MP4Decoder::SetCDMProxy(CDMProxy* aProxy)
 }
 #endif
 
+static bool
+IsSupportedAudioCodec(const nsAString& aCodec)
+{
+  
+  return aCodec.EqualsASCII("mp4a.40.2") ||
+#ifndef MOZ_GONK_MEDIACODEC 
+         aCodec.EqualsASCII("mp3") ||
+#endif
+         aCodec.EqualsASCII("mp4a.40.5");
+}
+
+static bool
+IsSupportedH264Codec(const nsAString& aCodec)
+{
+  int16_t profile = 0, level = 0;
+
+  if (!ExtractH264CodecDetails(aCodec, profile, level)) {
+    return false;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  return level >= H264_LEVEL_1 &&
+         level <= H264_LEVEL_5_1 &&
+         (profile == H264_PROFILE_BASE ||
+          profile == H264_PROFILE_MAIN ||
+          profile == H264_PROFILE_EXTENDED ||
+          profile == H264_PROFILE_HIGH);
+}
+
+
 bool
-MP4Decoder::GetSupportedCodecs(const nsACString& aType,
-                               char const *const ** aCodecList)
+MP4Decoder::CanHandleMediaType(const nsACString& aType,
+                               const nsAString& aCodecs)
 {
   if (!IsEnabled()) {
     return false;
   }
 
-  
-  static char const *const aacAudioCodecs[] = {
-    "mp4a.40.2",    
-    
-    nullptr
-  };
-  if (aType.EqualsASCII("audio/mp4") ||
-      aType.EqualsASCII("audio/x-m4a")) {
-    if (aCodecList) {
-      *aCodecList = aacAudioCodecs;
-    }
-    return true;
+  if (aType.EqualsASCII("audio/mp4") || aType.EqualsASCII("audio/x-m4a")) {
+    return aCodecs.IsEmpty() || IsSupportedAudioCodec(aCodecs);
+  }
+
+  if (!aType.EqualsASCII("video/mp4")) {
+    return false;
   }
 
   
-  static char const *const h264Codecs[] = {
-    "avc1.42E01E",  
-    "avc1.42001E",  
-    "avc1.58A01E",  
-    "avc1.4D401E",  
-    "avc1.64001E",  
-    "avc1.64001F",  
-    "mp4a.40.2",    
-    
-    nullptr
-  };
-  if (aType.EqualsASCII("video/mp4")) {
-    if (aCodecList) {
-      *aCodecList = h264Codecs;
+  
+  nsCharSeparatedTokenizer tokenizer(aCodecs, ',');
+  bool expectMoreTokens = false;
+  while (tokenizer.hasMoreTokens()) {
+    const nsSubstring& token = tokenizer.nextToken();
+    expectMoreTokens = tokenizer.separatorAfterCurrentToken();
+    if (IsSupportedAudioCodec(token) || IsSupportedH264Codec(token)) {
+      continue;
     }
-    return true;
+    return false;
   }
+  if (expectMoreTokens) {
+    
+    return false;
+  }
+  return true;
 
-  return false;
 }
 
 static bool
@@ -151,7 +181,7 @@ HavePlatformMPEGDecoders()
 #endif
          IsFFmpegAvailable() ||
          IsAppleAvailable() ||
-	 IsGonkMP4DecoderAvailable() ||
+         IsGonkMP4DecoderAvailable() ||
          
          false;
 }
@@ -160,8 +190,8 @@ HavePlatformMPEGDecoders()
 bool
 MP4Decoder::IsEnabled()
 {
-  return HavePlatformMPEGDecoders() &&
-         Preferences::GetBool("media.fragmented-mp4.enabled");
+  return Preferences::GetBool("media.fragmented-mp4.enabled") &&
+         HavePlatformMPEGDecoders();
 }
 
 } 

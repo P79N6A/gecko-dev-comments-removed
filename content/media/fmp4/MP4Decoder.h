@@ -31,9 +31,8 @@ public:
   
   
   
-  
-  static bool GetSupportedCodecs(const nsACString& aType,
-                                 char const *const ** aCodecList);
+  static bool CanHandleMediaType(const nsACString& aMIMEType,
+                                 const nsAString& aCodecs = EmptyString());
 
   
   

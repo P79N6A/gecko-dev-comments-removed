@@ -54,38 +54,17 @@ IsSupportedH264Codec(const nsAString& aCodec)
   
   
 
-  
-  
-  
-  
-  
-  
-  if (aCodec.Length() != strlen("avc1.PPCCLL")) {
+  int16_t profile = 0, level = 0;
+  if (!ExtractH264CodecDetails(aCodec, profile, level)) {
     return false;
   }
 
-  
-  const nsAString& sample = Substring(aCodec, 0, 5);
-  if (!sample.EqualsASCII("avc1.")) {
-    return false;
-  }
-
-  
-  
-  
-  nsresult rv = NS_OK;
-  const int32_t profile = PromiseFlatString(Substring(aCodec, 5, 2)).ToInteger(&rv, 16);
-  NS_ENSURE_SUCCESS(rv, false);
-
-  const int32_t level = PromiseFlatString(Substring(aCodec, 9, 2)).ToInteger(&rv, 16);
-  NS_ENSURE_SUCCESS(rv, false);
-
-  return level >= eAVEncH264VLevel1 &&
-         level <= eAVEncH264VLevel5_1 &&
-         (profile == eAVEncH264VProfile_Base ||
-          profile == eAVEncH264VProfile_Main ||
-          profile == eAVEncH264VProfile_Extended ||
-          profile == eAVEncH264VProfile_High);
+  return level >= H264_LEVEL_1 &&
+         level <= H264_LEVEL_5_1 &&
+         (profile == H264_PROFILE_BASE ||
+          profile == H264_PROFILE_MAIN ||
+          profile == H264_PROFILE_EXTENDED ||
+          profile == H264_PROFILE_HIGH);
 }
 
 bool
