@@ -18,7 +18,6 @@
 #include "nsIScriptSecurityManager.h"
 #include "nsIStreamListener.h"
 #include "nsIStringStream.h"
-#include "nsITimer.h"
 #include "nsIUploadChannel2.h"
 #include "nsIURI.h"
 #include "nsIUrlClassifierDBService.h"
@@ -61,7 +60,6 @@ using safe_browsing::ClientDownloadRequest_SignatureInfo;
 #define PREF_SB_MALWARE_ENABLED "browser.safebrowsing.malware.enabled"
 #define PREF_SB_DOWNLOADS_ENABLED "browser.safebrowsing.downloads.enabled"
 #define PREF_SB_DOWNLOADS_REMOTE_ENABLED "browser.safebrowsing.downloads.remote.enabled"
-#define PREF_SB_DOWNLOADS_REMOTE_TIMEOUT "browser.safebrowsing.downloads.remote.timeout_ms"
 #define PREF_GENERAL_LOCALE "general.useragent.locale"
 #define PREF_DOWNLOAD_BLOCK_TABLE "urlclassifier.downloadBlockTable"
 #define PREF_DOWNLOAD_ALLOW_TABLE "urlclassifier.downloadAllowTable"
@@ -77,14 +75,12 @@ class PendingDBLookup;
 
 
 
-class PendingLookup final : public nsIStreamListener,
-                            public nsITimerCallback
+class PendingLookup final : public nsIStreamListener
 {
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIREQUESTOBSERVER
   NS_DECL_NSISTREAMLISTENER
-  NS_DECL_NSITIMERCALLBACK
 
   
   PendingLookup(nsIApplicationReputationQuery* aQuery,
@@ -128,12 +124,6 @@ private:
 
   
   TimeStamp mStartTime;
-
-  
-  nsCOMPtr<nsIChannel> mChannel;
-
-  
-  nsCOMPtr<nsITimer> mTimeoutTimer;
 
   
   
@@ -939,6 +929,7 @@ PendingLookup::SendRemoteQueryInternal()
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  nsCOMPtr<nsIChannel> channel;
   nsCOMPtr<nsIIOService> ios = do_GetService(NS_IOSERVICE_CONTRACTID, &rv);
   rv = ios->NewChannel2(serviceUrl,
                         nullptr,
@@ -948,14 +939,14 @@ PendingLookup::SendRemoteQueryInternal()
                         nullptr, 
                         nsILoadInfo::SEC_NORMAL,
                         nsIContentPolicy::TYPE_OTHER,
-                        getter_AddRefs(mChannel));
+                        getter_AddRefs(channel));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(mChannel, &rv));
+  nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(channel, &rv));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  nsCOMPtr<nsIUploadChannel2> uploadChannel = do_QueryInterface(mChannel, &rv);
+  nsCOMPtr<nsIUploadChannel2> uploadChannel = do_QueryInterface(channel, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = uploadChannel->ExplicitSetUploadStream(sstream,
@@ -967,26 +958,12 @@ PendingLookup::SendRemoteQueryInternal()
   
   nsCOMPtr<nsIInterfaceRequestor> loadContext =
     new mozilla::LoadContext(NECKO_SAFEBROWSING_APP_ID);
-  rv = mChannel->SetNotificationCallbacks(loadContext);
+  rv = channel->SetNotificationCallbacks(loadContext);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  uint32_t timeoutMs = Preferences::GetUint(PREF_SB_DOWNLOADS_REMOTE_TIMEOUT, 10000);
-  mTimeoutTimer = do_CreateInstance(NS_TIMER_CONTRACTID);
-  mTimeoutTimer->InitWithCallback(this, timeoutMs, nsITimer::TYPE_ONE_SHOT);
-
-  rv = mChannel->AsyncOpen(this, nullptr);
+  rv = channel->AsyncOpen(this, nullptr);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-PendingLookup::Notify(nsITimer* aTimer)
-{
-  LOG(("Remote lookup timed out [this = %p]", this));
-  MOZ_ASSERT(aTimer == mTimeoutTimer);
-  mChannel->Cancel(NS_ERROR_NET_TIMEOUT);
-  mTimeoutTimer->Cancel();
   return NS_OK;
 }
 
