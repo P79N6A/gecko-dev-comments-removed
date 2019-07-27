@@ -468,7 +468,22 @@ SystemErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
     if (outer) {
       globalObject = static_cast<nsGlobalWindow*>(outer->GetCurrentInnerWindow());
     }
-  } else {
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (!globalObject && JS::CurrentGlobalOrNull(cx)) {
+    globalObject = xpc::AddonWindowOrNull(JS::CurrentGlobalOrNull(cx));
+  }
+
+  if (!globalObject) {
     globalObject = xpc::GetNativeForGlobal(xpc::PrivilegedJunkScope());
   }
 
