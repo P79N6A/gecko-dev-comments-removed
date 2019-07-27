@@ -1,4 +1,4 @@
-/* -*- indent-tabs-mode: nil; js-indent-level: 4 -*- */
+
 
 "use strict";
 
@@ -27,7 +27,7 @@ function addClassEntry(index, name, other)
     index[name].push(other);
 }
 
-// CSU is "Class/Struct/Union"
+
 function processCSU(csuName, csu)
 {
     if (!("FunctionField" in csu))
@@ -41,7 +41,7 @@ function processCSU(csuName, csu)
             addClassEntry(superclasses, subclass, superclass);
         }
         if ("Variable" in field) {
-            // Note: not dealing with overloading correctly.
+            
             var name = field.Variable.Name[0];
             var key = csuName + ":" + field.Field[0].Name[0];
             if (!(key in classFunctions))
@@ -55,10 +55,10 @@ function findVirtualFunctions(initialCSU, field, suppressed)
 {
     var worklist = [initialCSU];
 
-    // Virtual call targets on subclasses of nsISupports may be incomplete,
-    // if the interface is scriptable. Just treat all indirect calls on
-    // nsISupports objects as potentially GC'ing, except AddRef/Release
-    // which should never enter the JS engine (even when calling dtors).
+    
+    
+    
+    
     while (worklist.length) {
         var csu = worklist.pop();
         if (csu == "nsISupports" && (field == "AddRef" || field == "Release")) {
@@ -111,9 +111,9 @@ function memo(name)
 var seenCallees = null;
 var seenSuppressedCallees = null;
 
-// Return a list of all callees that the given edge might be a call to. Each
-// one is represented by an object with a 'kind' field that is one of
-// ('direct', 'field', 'indirect', 'unknown').
+
+
+
 function getCallees(edge)
 {
     if (edge.Kind != "Call")
@@ -135,19 +135,19 @@ function getCallees(edge)
                 var suppressed = [ false ];
                 functions = findVirtualFunctions(csuName, fieldName, suppressed);
                 if (suppressed[0]) {
-                    // Field call known to not GC; mark it as suppressed so
-                    // direct invocations will be ignored
+                    
+                    
                     callees.push({'kind': "field", 'csu': csuName, 'field': fieldName,
                                   'suppressed': true});
                 }
             }
             if (functions) {
-                // Known set of virtual call targets. Treat them as direct
-                // calls to all possible resolved types, but also record edges
-                // from this field call to each final callee. When the analysis
-                // is checking whether an edge can GC and it sees an unrooted
-                // pointer held live across this field call, it will know
-                // whether any of the direct callees can GC or not.
+                
+                
+                
+                
+                
+                
                 var targets = [];
                 for (var name of functions) {
                     callees.push({'kind': "direct", 'name': name});
@@ -155,15 +155,15 @@ function getCallees(edge)
                 }
                 callees.push({'kind': "resolved-field", 'csu': csuName, 'field': fieldName, 'callees': targets});
             } else {
-                // Unknown set of call targets. Non-virtual field call,
-                // or virtual call on an nsISupports object.
+                
+                
                 callees.push({'kind': "field", 'csu': csuName, 'field': fieldName});
             }
         } else if (callee.Exp[0].Kind == "Var") {
-            // indirect call through a variable.
+            
             callees.push({'kind': "indirect", 'variable': callee.Exp[0].Variable.Name[0]});
         } else {
-            // unknown call target.
+            
             callees.push({'kind': "unknown"});
         }
     }
@@ -207,13 +207,13 @@ function processBody(caller, body)
                 var { csu, field } = callee;
                 printOnce("F " + prologue + "CLASS " + csu + " FIELD " + field);
             } else if (callee.kind == 'resolved-field') {
-                // Fully-resolved field call (usually a virtual method). Record
-                // the callgraph edges. Do not consider suppression, since it
-                // is local to this callsite and we are writing out a global
-                // record here.
-                //
-                // Any field call that does *not* have an R entry must be
-                // assumed to call anything.
+                
+                
+                
+                
+                
+                
+                
                 var { csu, field, callees } = callee;
                 var fullFieldName = csu + "." + field;
                 if (!(fullFieldName in fieldCallSeen)) {
@@ -275,6 +275,22 @@ for (var nameIndex = minStream; nameIndex <= maxStream; nameIndex++) {
     var functionName = name.readString();
     for (var body of functionBodies)
         processBody(functionName, body);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    var markerPos = functionName.indexOf(internalMarker);
+    if (markerPos > 0) {
+        var inChargeXTor = functionName.substr(0, markerPos) + functionName.substr(markerPos + internalMarker.length);
+        print("D " + memo(inChargeXTor) + " " + memo(functionName));
+    }
 
     xdb.free_string(name);
     xdb.free_string(data);
