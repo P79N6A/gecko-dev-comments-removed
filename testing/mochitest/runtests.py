@@ -93,6 +93,9 @@ class MessageLogger(object):
         
         self.buffered_messages = []
 
+        
+        self.errors = []
+
     def valid_message(self, obj):
         """True if the given object is a valid structured message (only does a superficial validation)"""
         return isinstance(obj, dict) and 'action' in obj and obj['action'] in MessageLogger.VALID_ACTIONS
@@ -134,6 +137,11 @@ class MessageLogger(object):
             message.pop('unstructured')
 
         
+        is_error = 'expected' in message or (message['action'] == 'log' and message['message'].startswith('TEST-UNEXPECTED'))
+        if is_error:
+            self.errors.append(message)
+
+        
         if not self.buffering or unstructured or not self.tests_started:
             self.logger.log_raw(message)
             return
@@ -143,7 +151,6 @@ class MessageLogger(object):
             self.buffered_messages = []
 
         
-        is_error = 'expected' in message or (message['action'] == 'log' and message['message'].startswith('TEST-UNEXPECTED'))
         if not is_error and message['action'] not in self.BUFFERED_ACTIONS:
             self.logger.log_raw(message)
             return
