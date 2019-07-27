@@ -306,8 +306,12 @@ WebGLFramebuffer::Attachment::IsComplete() const
         if (mAttachmentPoint == LOCAL_GL_DEPTH_ATTACHMENT)
             return IsValidFBOTextureDepthFormat(webGLFormat);
 
-        if (mAttachmentPoint == LOCAL_GL_DEPTH_STENCIL_ATTACHMENT)
+        if (mAttachmentPoint == LOCAL_GL_STENCIL_ATTACHMENT)
+            return false; 
+
+        if (mAttachmentPoint == LOCAL_GL_DEPTH_STENCIL_ATTACHMENT) {
             return IsValidFBOTextureDepthStencilFormat(webGLFormat);
+        }
 
         if (mAttachmentPoint >= LOCAL_GL_COLOR_ATTACHMENT0 &&
             mAttachmentPoint < GLenum(LOCAL_GL_COLOR_ATTACHMENT0 +
