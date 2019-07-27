@@ -63,6 +63,7 @@ class ClonedMessageData;
 class MemoryReport;
 class TabContext;
 class PFileDescriptorSetParent;
+class ContentBridgeParent;
 
 class ContentParent : public PContentParent
                     , public nsIContentParent
@@ -96,11 +97,17 @@ public:
     static bool PreallocatedProcessReady();
     static void RunAfterPreallocatedProcessReady(nsIRunnable* aRequest);
 
+    
+
+
+
+
+
     static already_AddRefed<ContentParent>
-    GetNewOrUsed(bool aForBrowserElement = false,
-                 hal::ProcessPriority aPriority =
-                   hal::ProcessPriority::PROCESS_PRIORITY_FOREGROUND,
-                 ContentParent* aOpener = nullptr);
+    GetNewOrUsedBrowserProcess(bool aForBrowserElement = false,
+                               hal::ProcessPriority aPriority =
+                               hal::ProcessPriority::PROCESS_PRIORITY_FOREGROUND,
+                               ContentParent* aOpener = nullptr);
 
     
 
@@ -288,10 +295,15 @@ private:
     
     
     static already_AddRefed<ContentParent>
-    MaybeTakePreallocatedAppProcess(const nsAString& aAppManifestURL,
-                                    hal::ProcessPriority aInitialPriority);
+    GetNewOrPreallocatedAppProcess(mozIApplication* aApp,
+                                   hal::ProcessPriority aInitialPriority,
+                                   ContentParent* aOpener,
+                                    bool* aTookPreAllocated = nullptr);
 
     static hal::ProcessPriority GetInitialProcessPriority(Element* aFrameElement);
+
+    static ContentBridgeParent* CreateContentBridgeParent(const TabContext& aContext,
+                                                          const hal::ProcessPriority& aPriority);
 
     
     
