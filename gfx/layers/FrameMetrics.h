@@ -104,6 +104,7 @@ public:
            mPageScrollAmount == aOther.mPageScrollAmount &&
            mAllowVerticalScrollWithWheel == aOther.mAllowVerticalScrollWithWheel &&
            mClipRect == aOther.mClipRect &&
+           mMaskLayerIndex == aOther.mMaskLayerIndex &&
            mIsLayersIdRoot == aOther.mIsLayersIdRoot &&
 		   mUsesContainerScrolling == aOther.mUsesContainerScrolling;
   }
@@ -525,6 +526,13 @@ public:
     return mClipRect.ref();
   }
 
+  void SetMaskLayerIndex(const Maybe<size_t>& aIndex) {
+    mMaskLayerIndex = aIndex;
+  }
+  const Maybe<size_t>& GetMaskLayerIndex() const {
+    return mMaskLayerIndex;
+  }
+
   void SetIsLayersIdRoot(bool aValue) {
     mIsLayersIdRoot = aValue;
   }
@@ -713,6 +721,11 @@ private:
 
   
   Maybe<ParentLayerIntRect> mClipRect;
+
+  
+  
+  
+  Maybe<size_t> mMaskLayerIndex;
 
   
   

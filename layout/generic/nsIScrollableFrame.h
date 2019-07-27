@@ -32,10 +32,18 @@ class nsDisplayListBuilder;
 
 namespace mozilla {
 struct ContainerLayerParameters;
+class DisplayItemClip;
 namespace layers {
 class Layer;
 }
-}
+
+struct FrameMetricsAndClip
+{
+  layers::FrameMetrics metrics;
+  const DisplayItemClip* clip;
+};
+
+} 
 
 
 
@@ -415,10 +423,10 @@ public:
 
 
 
-  virtual void ComputeFrameMetrics(mozilla::layers::Layer* aLayer,
-                                   nsIFrame* aContainerReferenceFrame,
-                                   const ContainerLayerParameters& aParameters,
-                                   nsTArray<FrameMetrics>* aOutput) const = 0;
+  virtual mozilla::Maybe<mozilla::FrameMetricsAndClip> ComputeFrameMetrics(
+    mozilla::layers::Layer* aLayer,
+    nsIFrame* aContainerReferenceFrame,
+    const ContainerLayerParameters& aParameters) const = 0;
 
   
 
