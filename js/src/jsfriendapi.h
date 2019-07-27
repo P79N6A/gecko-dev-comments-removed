@@ -1186,6 +1186,15 @@ NukeCrossCompartmentWrappers(JSContext* cx,
 
 
 
+
+
+
+
+
+
+
+
+
 struct ExpandoAndGeneration {
   ExpandoAndGeneration()
     : expando(JS::UndefinedValue()),
@@ -1216,7 +1225,9 @@ typedef enum DOMProxyShadowsResult {
   ShadowCheckFailed,
   Shadows,
   DoesntShadow,
-  DoesntShadowUnique
+  DoesntShadowUnique,
+  ShadowsViaDirectExpando,
+  ShadowsViaIndirectExpando
 } DOMProxyShadowsResult;
 typedef DOMProxyShadowsResult
 (* DOMProxyShadowsCheck)(JSContext* cx, JS::HandleObject object, JS::HandleId id);
@@ -1227,6 +1238,11 @@ SetDOMProxyInformation(const void *domProxyHandlerFamily, uint32_t domProxyExpan
 const void *GetDOMProxyHandlerFamily();
 uint32_t GetDOMProxyExpandoSlot();
 DOMProxyShadowsCheck GetDOMProxyShadowsCheck();
+inline bool DOMProxyIsShadowing(DOMProxyShadowsResult result) {
+    return result == Shadows ||
+           result == ShadowsViaDirectExpando ||
+           result == ShadowsViaIndirectExpando;
+}
 
 
 
