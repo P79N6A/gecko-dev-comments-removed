@@ -116,6 +116,8 @@ class Test:
         self.tz_pacific = False 
         self.test_also_noasmjs = False 
                                        
+        self.test_also = [] 
+        self.test_join = [] 
         self.expect_error = '' 
         self.expect_status = 0 
 
@@ -129,6 +131,8 @@ class Test:
         t.valgrind = self.valgrind
         t.tz_pacific = self.tz_pacific
         t.test_also_noasmjs = self.test_also_noasmjs
+        t.test_also = self.test_also
+        t.test_join = self.test_join
         t.expect_error = self.expect_error
         t.expect_status = self.expect_status
         return t
@@ -140,11 +144,13 @@ class Test:
 
     def copy_variants(self, variants):
         
+        variants = variants + self.test_also
+
         
         
         
-        if self.test_also_noasmjs:
-            variants = variants + [['--no-asmjs']]
+        for join_opts in self.test_join:
+            variants = variants + [ opts + join_opts for opts in variants ];
 
         
         return [self.copy_and_extend_jitflags(v) for v in variants]
@@ -201,7 +207,12 @@ class Test:
                     elif name == 'tz-pacific':
                         test.tz_pacific = True
                     elif name == 'test-also-noasmjs':
-                        test.test_also_noasmjs = options.can_test_also_noasmjs
+                        if options.can_test_also_noasmjs:
+                            test.test_also.append(['--no-asmjs'])
+                    elif name.startswith('test-also='):
+                        test.test_also.append([name[len('test-also='):]])
+                    elif name.startswith('test-join='):
+                        test.test_join.append([name[len('test-join='):]])
                     elif name == 'ion-eager':
                         test.jitflags.append('--ion-eager')
                     elif name == 'dump-bytecode':
