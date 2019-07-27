@@ -285,7 +285,6 @@ MediaCodecReader::MediaCodecReader(AbstractMediaDecoder* aDecoder)
   , mParseDataFromCache(true)
   , mNextParserPosition(INT64_C(0))
   , mParsedDataLength(INT64_C(0))
-  , mIsWaitingResources(false)
 {
   mHandler = new MessageHandler(this);
   mVideoListener = new VideoResourceListener(this);
@@ -305,14 +304,7 @@ MediaCodecReader::Init(MediaDecoderReader* aCloneDonor)
 bool
 MediaCodecReader::IsWaitingMediaResources()
 {
-  return mIsWaitingResources;
-}
-
-void
-MediaCodecReader::UpdateIsWaitingMediaResources()
-{
-  mIsWaitingResources = (mVideoTrack.mCodec != nullptr) &&
-                        (!mVideoTrack.mCodec->allocated());
+  return mVideoTrack.mCodec != nullptr && !mVideoTrack.mCodec->allocated();
 }
 
 bool
@@ -669,11 +661,6 @@ MediaCodecReader::ReadMetadata(MediaInfo* aInfo,
     return NS_ERROR_FAILURE;
   }
 
-  
-  
-  
-  
-  UpdateIsWaitingMediaResources();
   if (IsWaitingMediaResources()) {
     return NS_OK;
   }
