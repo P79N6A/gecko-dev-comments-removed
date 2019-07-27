@@ -584,6 +584,20 @@ SessionStore.prototype = {
     }
   },
 
+  
+
+
+  isDynamic: function(aEntry) {
+    
+    
+    
+    
+    return aEntry.parent && aEntry.isDynamicallyAdded();
+  },
+
+  
+
+
   _serializeHistoryEntry: function _serializeHistoryEntry(aEntry) {
     let entry = { url: aEntry.URI.spec };
 
@@ -646,7 +660,7 @@ SessionStore.prototype = {
       for (let i = 0; i < aEntry.childCount; i++) {
         let child = aEntry.GetChildAt(i);
 
-        if (child) {
+        if (child && !this.isDynamic(child)) {
           
           if (child.URI.schemeIs("wyciwyg")) {
             children = [];
@@ -654,9 +668,10 @@ SessionStore.prototype = {
           }
           children.push(this._serializeHistoryEntry(child));
         }
+      }
 
-        if (children.length)
-          entry.children = children;
+      if (children.length) {
+        entry.children = children;
       }
     }
 
