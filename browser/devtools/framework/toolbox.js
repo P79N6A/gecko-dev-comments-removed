@@ -380,11 +380,8 @@ Toolbox.prototype = {
         framesPromise
       ]);
 
-      
-      
       let profilerReady = this._connectProfiler();
 
-      
       
       
       
@@ -1869,8 +1866,6 @@ Toolbox.prototype = {
   }),
 
   
-
-
 
 
   _disconnectProfiler: Task.async(function*() {
