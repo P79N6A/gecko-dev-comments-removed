@@ -406,7 +406,6 @@ private:
   bool              mPainting;
   bool              mRecursiveRefreshPending;
   bool              mHasPendingWidgetGeometryChanges;
-  bool              mInScroll;
 
   
 
