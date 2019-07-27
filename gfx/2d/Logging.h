@@ -462,6 +462,18 @@ typedef Log<LOG_CRITICAL, CriticalLogger> CriticalLog;
 
 
 #ifdef __cplusplus
+ 
+inline bool MOZ2D_error_if_impl(bool aCondition, const char* aExpr,
+                                const char* aFile, int32_t aLine)
+{
+  if (MOZ_UNLIKELY(aCondition)) {
+    gfxCriticalError() << aExpr << " at " << aFile << ":" << aLine;
+  }
+  return aCondition;
+}
+#define MOZ2D_ERROR_IF(condition) \
+  MOZ2D_error_if_impl(condition, #condition, __FILE__, __LINE__)
+
 #ifdef DEBUG
 inline bool MOZ2D_warn_if_impl(bool aCondition, const char* aExpr,
                                const char* aFile, int32_t aLine)
