@@ -1845,11 +1845,24 @@ let CustomizableUIInternal = {
     if (gInBatchStack || !gDirty) {
       return;
     }
-    let state = { placements: gPlacements,
+    
+    let state = { placements: new Map(gPlacements),
                   seen: gSeenWidgets,
                   dirtyAreaCache: gDirtyAreaCache,
                   currentVersion: kVersion,
                   newElementCount: gNewElementCount };
+
+    
+    
+    
+    if (gSavedState && gSavedState.placements) {
+      for (let area of Object.keys(gSavedState.placements)) {
+        if (!state.placements.has(area)) {
+          let placements = gSavedState.placements[area];
+          state.placements.set(area, placements);
+        }
+      }
+    }
 
     LOG("Saving state.");
     let serialized = JSON.stringify(state, this.serializerHelper);
