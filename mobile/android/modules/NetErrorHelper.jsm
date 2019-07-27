@@ -135,7 +135,7 @@ handlers.wifi = {
       return;
     }
 
-    UITelemetry.addEvent("neterror.1", "button", "wifitoggle");
+    UITelemetry.addEvent("neterror.1", "button", null, "wifitoggle");
     
     node.disabled = true;
     node.classList.add("inProgress");
@@ -161,7 +161,7 @@ handlers.wifi = {
     let network = Cc["@mozilla.org/network/network-link-service;1"].getService(Ci.nsINetworkLinkService);
     if (network.isLinkUp && network.linkStatusKnown) {
       
-      UITelemetry.addEvent("neterror.1", "button", "wifitoggle.reload");
+      UITelemetry.addEvent("neterror.1", "button", null, "wifitoggle.reload");
       Services.obs.removeObserver(this, "network:link-status-changed");
 
       
