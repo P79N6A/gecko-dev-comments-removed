@@ -21,6 +21,7 @@
 #include "nsPIDOMWindow.h"
 
 #include <algorithm>
+#include "BackgroundChild.h"
 #include "GeckoProfiler.h"
 #include "js/OldDebugAPI.h"
 #include "jsfriendapi.h"
@@ -39,6 +40,7 @@
 #include "nsContentUtils.h"
 #include "nsCycleCollector.h"
 #include "nsDOMJSUtils.h"
+#include "nsIIPCBackgroundChildCreateCallback.h"
 #include "nsISupportsImpl.h"
 #include "nsLayoutStatics.h"
 #include "nsNetUtil.h"
@@ -62,6 +64,12 @@
 #include "SharedWorker.h"
 #include "WorkerPrivate.h"
 #include "WorkerRunnable.h"
+
+#ifdef ENABLE_TESTS
+#include "BackgroundChildImpl.h"
+#include "mozilla/ipc/PBackgroundChild.h"
+#include "prrng.h"
+#endif
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -159,6 +167,10 @@ RuntimeService* gRuntimeService = nullptr;
 
 
 RuntimeService* gRuntimeServiceDuringInit = nullptr;
+
+#ifdef ENABLE_TESTS
+bool gTestPBackground = false;
+#endif 
 
 enum {
   ID_Worker = 0,
@@ -904,6 +916,37 @@ private:
   WorkerPrivate* mWorkerPrivate;
 };
 
+class WorkerBackgroundChildCallback MOZ_FINAL :
+  public nsIIPCBackgroundChildCreateCallback
+{
+  bool* mDone;
+
+public:
+  WorkerBackgroundChildCallback(bool* aDone)
+  : mDone(aDone)
+  {
+    MOZ_ASSERT(mDone);
+  }
+
+  NS_DECL_ISUPPORTS
+
+private:
+  ~WorkerBackgroundChildCallback()
+  { }
+
+  virtual void
+  ActorCreated(PBackgroundChild* aActor) MOZ_OVERRIDE
+  {
+    *mDone = true;
+  }
+
+  virtual void
+  ActorFailed() MOZ_OVERRIDE
+  {
+    *mDone = true;
+  }
+};
+
 class WorkerThreadPrimaryRunnable MOZ_FINAL : public nsRunnable
 {
   WorkerPrivate* mWorkerPrivate;
@@ -945,6 +988,9 @@ public:
 private:
   ~WorkerThreadPrimaryRunnable()
   { }
+
+  nsresult
+  SynchronouslyCreatePBackground();
 
   NS_DECL_NSIRUNNABLE
 };
@@ -1044,6 +1090,28 @@ public:
     mAcceptingNonWorkerRunnables = aAcceptingNonWorkerRunnables;
   }
 #endif
+
+#ifdef ENABLE_TESTS
+  void
+  TestPBackground()
+  {
+    using namespace mozilla::ipc;
+    if (gTestPBackground) {
+      
+      uint32_t testValue;
+      PRSize randomSize = PR_GetRandomNoise(&testValue, sizeof(testValue));
+      MOZ_RELEASE_ASSERT(randomSize == sizeof(testValue));
+      nsCString testStr;
+      testStr.AppendInt(testValue);
+      testStr.AppendInt(reinterpret_cast<int64_t>(PR_GetCurrentThread()));
+      PBackgroundChild* existingBackgroundChild =
+        BackgroundChild::GetForCurrentThread();
+      MOZ_RELEASE_ASSERT(existingBackgroundChild);
+      bool ok = existingBackgroundChild->SendPBackgroundTestConstructor(testStr);
+      MOZ_RELEASE_ASSERT(ok);
+    }
+  }
+#endif 
 
 private:
   WorkerThread()
@@ -1247,6 +1315,10 @@ RuntimeService::GetOrCreateService()
       service->Cleanup();
       return nullptr;
     }
+
+#ifdef ENABLE_TESTS
+    gTestPBackground = mozilla::Preferences::GetBool("pbackground.testing", false);
+#endif 
 
     
     gRuntimeService = service;
@@ -1536,10 +1608,6 @@ RuntimeService::ScheduleWorker(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
     JS_ReportError(aCx, "Could not dispatch to thread!");
     return false;
   }
-
-#ifdef DEBUG
-  thread->SetAcceptingNonWorkerRunnables(false);
-#endif
 
   return true;
 }
@@ -2492,8 +2560,20 @@ RuntimeService::WorkerThread::Observer::OnProcessNextEvent(
                                                bool aMayWait,
                                                uint32_t aRecursionDepth)
 {
+  using mozilla::ipc::BackgroundChild;
+
   mWorkerPrivate->AssertIsOnWorkerThread();
-  MOZ_ASSERT(!aMayWait);
+
+  
+  
+  
+  
+  
+  if (aMayWait) {
+    MOZ_ASSERT(aRecursionDepth == 2);
+    MOZ_ASSERT(!BackgroundChild::GetForCurrentThread());
+    return NS_OK;
+  }
 
   mWorkerPrivate->OnProcessNextEvent(aRecursionDepth);
   return NS_OK;
@@ -2537,11 +2617,15 @@ LogViolationDetailsRunnable::Run()
   return NS_OK;
 }
 
+NS_IMPL_ISUPPORTS(WorkerBackgroundChildCallback, nsIIPCBackgroundChildCreateCallback)
+
 NS_IMPL_ISUPPORTS_INHERITED0(WorkerThreadPrimaryRunnable, nsRunnable)
 
 NS_IMETHODIMP
 WorkerThreadPrimaryRunnable::Run()
 {
+  using mozilla::ipc::BackgroundChild;
+
 #ifdef MOZ_NUWA_PROCESS
   if (IsNuwaProcess()) {
     NS_ASSERTION(NuwaMarkCurrentThread != nullptr,
@@ -2559,6 +2643,19 @@ WorkerThreadPrimaryRunnable::Run()
   threadName.Append('\'');
 
   profiler_register_thread(threadName.get(), &stackBaseGuess);
+
+  
+  
+  
+  nsresult rv = SynchronouslyCreatePBackground();
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    
+    return rv;
+  }
+
+#ifdef ENABLE_TESTS
+  mThread->TestPBackground();
+#endif
 
   mThread->SetWorker(mWorkerPrivate);
 
@@ -2592,6 +2689,12 @@ WorkerThreadPrimaryRunnable::Run()
 
         JS_ReportPendingException(cx);
       }
+
+#ifdef ENABLE_TESTS
+      mThread->TestPBackground();
+#endif
+
+      BackgroundChild::CloseForCurrentThread();
 
 #ifdef MOZ_ENABLE_PROFILER_SPS
       if (stack) {
@@ -2628,6 +2731,38 @@ WorkerThreadPrimaryRunnable::Run()
                                                     NS_DISPATCH_NORMAL)));
 
   profiler_unregister_thread();
+  return NS_OK;
+}
+
+nsresult
+WorkerThreadPrimaryRunnable::SynchronouslyCreatePBackground()
+{
+  using mozilla::ipc::BackgroundChild;
+
+  MOZ_ASSERT(!BackgroundChild::GetForCurrentThread());
+
+  bool done = false;
+  nsCOMPtr<nsIIPCBackgroundChildCreateCallback> callback =
+    new WorkerBackgroundChildCallback(&done);
+
+  if (NS_WARN_IF(!BackgroundChild::GetOrCreateForCurrentThread(callback))) {
+    return NS_ERROR_FAILURE;
+  }
+
+  while (!done) {
+    if (NS_WARN_IF(!NS_ProcessNextEvent(mThread, true ))) {
+      return NS_ERROR_FAILURE;
+    }
+  }
+
+  if (NS_WARN_IF(!BackgroundChild::GetForCurrentThread())) {
+    return NS_ERROR_FAILURE;
+  }
+
+#ifdef DEBUG
+  mThread->SetAcceptingNonWorkerRunnables(false);
+#endif
+
   return NS_OK;
 }
 
