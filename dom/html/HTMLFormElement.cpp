@@ -1633,7 +1633,12 @@ HTMLFormElement::GetActionURL(nsIURI** aActionURL,
   NS_ENSURE_SUCCESS(rv, rv);
   if (csp) {
     bool permitsFormAction = true;
-    rv = csp->PermitsFormAction(actionURL, &permitsFormAction);
+
+    
+    
+    
+    rv = csp->Permits(actionURL, nsIContentSecurityPolicy::FORM_ACTION_DIRECTIVE,
+                      true, &permitsFormAction);
     NS_ENSURE_SUCCESS(rv, rv);
     if (!permitsFormAction) {
       rv = NS_ERROR_CSP_FORM_ACTION_VIOLATION;

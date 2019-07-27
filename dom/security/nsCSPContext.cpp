@@ -137,6 +137,13 @@ nsCSPContext::ShouldLoad(nsContentPolicyType aContentType,
 
   
   
+  CSPDirective dir = CSP_ContentTypeToDirective(aContentType);
+  if (dir == nsIContentSecurityPolicy::NO_DIRECTIVE) {
+    return NS_OK;
+  }
+
+  
+  
   
   
   
@@ -165,38 +172,23 @@ nsCSPContext::ShouldLoad(nsContentPolicyType aContentType,
     }
   }
 
-  nsAutoString violatedDirective;
-  for (uint32_t p = 0; p < mPolicies.Length(); p++) {
-    if (!mPolicies[p]->permits(aContentType,
-                               aContentLocation,
-                               nonce,
-                               
-                               
-                               (aExtra != nullptr),
-                               violatedDirective)) {
-      
-      
-      if (!mPolicies[p]->getReportOnlyFlag()) {
-        CSPCONTEXTLOG(("nsCSPContext::ShouldLoad, nsIContentPolicy::REJECT_SERVER"));
-        *outDecision = nsIContentPolicy::REJECT_SERVER;
-      }
+  
+  bool wasRedirected = (aExtra != nullptr);
+  nsCOMPtr<nsIURI> originalURI = do_QueryInterface(aExtra);
 
-      
-      
-      
-      if (!isPreload) {
-        nsCOMPtr<nsIURI> originalURI = do_QueryInterface(aExtra);
-        this->AsyncReportViolation(aContentLocation,
-                                   originalURI,   
-                                   violatedDirective,
-                                   p,             
-                                   EmptyString(), 
-                                   EmptyString(), 
-                                   EmptyString(), 
-                                   0);            
-      }
-    }
-  }
+  bool permitted = permitsInternal(dir,
+                                   aContentLocation,
+                                   originalURI,
+                                   nonce,
+                                   wasRedirected,
+                                   isPreload,
+                                   false,     
+                                   true,      
+                                   true);     
+
+  *outDecision = permitted ? nsIContentPolicy::ACCEPT
+                           : nsIContentPolicy::REJECT_SERVER;
+
   
   if (cacheKey.Length() > 0 && !isPreload) {
     mShouldLoadCache.Put(cacheKey, *outDecision);
@@ -211,6 +203,64 @@ nsCSPContext::ShouldLoad(nsContentPolicyType aContentType,
 #endif
   return NS_OK;
 }
+
+bool
+nsCSPContext::permitsInternal(CSPDirective aDir,
+                              nsIURI* aContentLocation,
+                              nsIURI* aOriginalURI,
+                              const nsAString& aNonce,
+                              bool aWasRedirected,
+                              bool aIsPreload,
+                              bool aSpecific,
+                              bool aSendViolationReports,
+                              bool aSendContentLocationInViolationReports)
+{
+  bool permits = true;
+
+  nsAutoString violatedDirective;
+  for (uint32_t p = 0; p < mPolicies.Length(); p++) {
+
+    
+    
+    if (aDir == nsIContentSecurityPolicy::FRAME_ANCESTORS_DIRECTIVE &&
+        mPolicies[p]->getReportOnlyFlag()) {
+      continue;
+    }
+
+    if (!mPolicies[p]->permits(aDir,
+                               aContentLocation,
+                               aNonce,
+                               aWasRedirected,
+                               aSpecific,
+                               violatedDirective)) {
+      
+      
+      if (!mPolicies[p]->getReportOnlyFlag()) {
+        CSPCONTEXTLOG(("nsCSPContext::permitsInternal, false"));
+        permits = false;
+      }
+
+      
+      
+      
+      if (!aIsPreload && aSendViolationReports) {
+        this->AsyncReportViolation((aSendContentLocationInViolationReports ?
+                                    aContentLocation : nullptr),
+                                   aOriginalURI,  
+                                   violatedDirective,
+                                   p,             
+                                   EmptyString(), 
+                                   EmptyString(), 
+                                   EmptyString(), 
+                                   0);            
+      }
+    }
+  }
+
+  return permits;
+}
+
+
 
 
 
@@ -1041,128 +1091,66 @@ nsCSPContext::PermitsAncestry(nsIDocShell* aDocShell, bool* outPermitsAncestry)
 
   
   
-  for (uint32_t i = 0; i < mPolicies.Length(); i++) {
+  
+  
 
-    
-    
-    if (mPolicies[i]->getReportOnlyFlag()) {
-      continue;
-    }
-
-    for (uint32_t a = 0; a < ancestorsArray.Length(); a++) {
-      
-      
-      
+  for (uint32_t a = 0; a < ancestorsArray.Length(); a++) {
 #ifdef PR_LOGGING
-      {
-      nsAutoCString spec;
-      ancestorsArray[a]->GetSpec(spec);
-      CSPCONTEXTLOG(("nsCSPContext::PermitsAncestry, checking ancestor: %s", spec.get()));
-      }
+    {
+    nsAutoCString spec;
+    ancestorsArray[a]->GetSpec(spec);
+    CSPCONTEXTLOG(("nsCSPContext::PermitsAncestry, checking ancestor: %s", spec.get()));
+    }
 #endif
-      if (!mPolicies[i]->permits(nsIContentPolicy::TYPE_DOCUMENT,
-                                 ancestorsArray[a],
-                                 EmptyString(), 
-                                 false, 
-                                 violatedDirective)) {
-        
-        
-        
-        bool okToSendAncestor = NS_SecurityCompareURIs(ancestorsArray[a], mSelfURI, true);
+    
+    
+    bool okToSendAncestor = NS_SecurityCompareURIs(ancestorsArray[a], mSelfURI, true);
 
-        this->AsyncReportViolation((okToSendAncestor ? ancestorsArray[a] : nullptr),
-                                   nullptr,       
-                                   violatedDirective,
-                                   i,             
+
+    bool permits = permitsInternal(nsIContentSecurityPolicy::FRAME_ANCESTORS_DIRECTIVE,
+                                   ancestorsArray[a],
+                                   nullptr, 
                                    EmptyString(), 
-                                   EmptyString(), 
-                                   EmptyString(), 
-                                   0);            
-        *outPermitsAncestry = false;
-      }
+                                   false,   
+                                   false,   
+                                   true,    
+                                   true,    
+                                   okToSendAncestor);
+    if (!permits) {
+      *outPermitsAncestry = false;
     }
   }
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsCSPContext::PermitsBaseURI(nsIURI* aURI, bool* outPermitsBaseURI)
+nsCSPContext::Permits(nsIURI* aURI,
+                      CSPDirective aDir,
+                      bool aSpecific,
+                      bool* outPermits)
 {
   
   if (aURI == nullptr) {
     return NS_ERROR_FAILURE;
   }
 
-  *outPermitsBaseURI = true;
-
-  for (uint32_t i = 0; i < mPolicies.Length(); i++) {
-    if (!mPolicies[i]->permitsBaseURI(aURI)) {
-      
-      if (!mPolicies[i]->getReportOnlyFlag()) {
-        *outPermitsBaseURI = false;
-      }
-      nsAutoString violatedDirective;
-      mPolicies[i]->getDirectiveAsString(CSP_BASE_URI, violatedDirective);
-      this->AsyncReportViolation(aURI,
-                                 nullptr,       
-                                 violatedDirective,
-                                 i,             
-                                 EmptyString(), 
-                                 EmptyString(), 
-                                 EmptyString(), 
-                                 0);            
-    }
-  }
+  *outPermits = permitsInternal(aDir,
+                                aURI,
+                                nullptr,  
+                                EmptyString(),  
+                                false,    
+                                false,    
+                                aSpecific,
+                                true,     
+                                true);    
 
 #ifdef PR_LOGGING
   {
     nsAutoCString spec;
     aURI->GetSpec(spec);
-    CSPCONTEXTLOG(("nsCSPContext::PermitsBaseURI, aUri: %s, isAllowed: %s",
-                  spec.get(),
-                  *outPermitsBaseURI ? "allow" : "deny"));
-  }
-#endif
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsCSPContext::PermitsFormAction(nsIURI* aURI, bool* outPermitsFormAction)
-{
-  
-  if (!aURI) {
-    return NS_ERROR_FAILURE;
-  }
-
-  *outPermitsFormAction = true;
-
-  for (uint32_t i = 0; i < mPolicies.Length(); i++) {
-    if (!mPolicies[i]->permitsFormAction(aURI)) {
-      
-      if (!mPolicies[i]->getReportOnlyFlag()) {
-        *outPermitsFormAction = false;
-      }
-      nsAutoString violatedDirective;
-      mPolicies[i]->getDirectiveAsString(CSP_FORM_ACTION, violatedDirective);
-      this->AsyncReportViolation(aURI,
-                                 mSelfURI,
-                                 violatedDirective,
-                                 i,             
-                                 EmptyString(), 
-                                 EmptyString(), 
-                                 EmptyString(), 
-                                 0);            
-    }
-  }
-
-#ifdef PR_LOGGING
-  {
-    nsAutoCString spec;
-    aURI->GetSpec(spec);
-    CSPCONTEXTLOG(("nsCSPContext::PermitsFormAction, aUri: %s, isAllowed: %s",
-                  spec.get(),
-                  *outPermitsFormAction ? "allow" : "deny"));
+    CSPCONTEXTLOG(("nsCSPContext::Permits, aUri: %s, aDir: %d, isAllowed: %s",
+                  spec.get(), aDir,
+                  *outPermits ? "allow" : "deny"));
   }
 #endif
 

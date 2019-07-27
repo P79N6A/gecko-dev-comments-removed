@@ -896,7 +896,7 @@ nsCSPParser::directiveValue(nsTArray<nsCSPBaseSrc*>& outSrcs)
   
   
   
-  if (CSP_IsDirective(mCurDir[0], CSP_REPORT_URI)) {
+  if (CSP_IsDirective(mCurDir[0], nsIContentSecurityPolicy::REPORT_URI_DIRECTIVE)) {
     reportURIList(outSrcs);
     return;
   }
@@ -924,7 +924,7 @@ nsCSPParser::directiveName()
   
   
   
-  if (CSP_IsDirective(mCurToken, CSP_REFLECTED_XSS)) {
+  if (CSP_IsDirective(mCurToken, nsIContentSecurityPolicy::REFLECTED_XSS_DIRECTIVE)) {
     const char16_t* params[] = { mCurToken.get() };
     logWarningErrorToConsole(nsIScriptError::warningFlag, "notSupportingDirective",
                              params, ArrayLength(params));
@@ -933,13 +933,13 @@ nsCSPParser::directiveName()
 
   
   
-  if (mPolicy->directiveExists(CSP_DirectiveToEnum(mCurToken))) {
+  if (mPolicy->hasDirective(CSP_StringToCSPDirective(mCurToken))) {
     const char16_t* params[] = { mCurToken.get() };
     logWarningErrorToConsole(nsIScriptError::warningFlag, "duplicateDirective",
                              params, ArrayLength(params));
     return nullptr;
   }
-  return new nsCSPDirective(CSP_DirectiveToEnum(mCurToken));
+  return new nsCSPDirective(CSP_StringToCSPDirective(mCurToken));
 }
 
 
@@ -1039,7 +1039,7 @@ nsCSPParser::parseContentSecurityPolicy(const nsAString& aPolicyString,
   
   if (aReportOnly) {
     policy->setReportOnlyFlag(true);
-    if (!policy->directiveExists(CSP_REPORT_URI)) {
+    if (!policy->hasDirective(nsIContentSecurityPolicy::REPORT_URI_DIRECTIVE)) {
       nsAutoCString prePath;
       nsresult rv = aSelfURI->GetPrePath(prePath);
       NS_ENSURE_SUCCESS(rv, policy);
