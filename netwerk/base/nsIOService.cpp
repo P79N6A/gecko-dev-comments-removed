@@ -22,7 +22,6 @@
 #include "nsEscape.h"
 #include "nsNetCID.h"
 #include "nsCRT.h"
-#include "nsSecCheckWrapChannel.h"
 #include "nsSimpleNestedURI.h"
 #include "nsNetUtil.h"
 #include "nsTArray.h"
@@ -664,41 +663,41 @@ nsIOService::NewChannelFromURIWithProxyFlagsInternal(nsIURI* aURI,
     
     
     
-    
-    
-    nsCOMPtr<nsIChannel> channel;
+
+    bool newChannel2Succeeded = true;
+
     nsCOMPtr<nsIProxiedProtocolHandler> pph = do_QueryInterface(handler);
     if (pph) {
         rv = pph->NewProxiedChannel2(aURI, nullptr, aProxyFlags, aProxyURI,
-                                     aLoadInfo, getter_AddRefs(channel));
+                                     aLoadInfo, result);
         
         
         if (NS_FAILED(rv)) {
+            newChannel2Succeeded = false;
             rv = pph->NewProxiedChannel(aURI, nullptr, aProxyFlags, aProxyURI,
-                                        getter_AddRefs(channel));
-            NS_ENSURE_SUCCESS(rv, rv);
-            
-            channel = new nsSecCheckWrapChannel(channel, aLoadInfo);
+                                        result);
         }
     }
     else {
-        rv = handler->NewChannel2(aURI, aLoadInfo, getter_AddRefs(channel));
+        rv = handler->NewChannel2(aURI, aLoadInfo, result);
         
         
         if (NS_FAILED(rv)) {
-            rv = handler->NewChannel(aURI, getter_AddRefs(channel));
-            NS_ENSURE_SUCCESS(rv, rv);
-            
-            channel = new nsSecCheckWrapChannel(channel, aLoadInfo);
+            newChannel2Succeeded = false;
+            rv = handler->NewChannel(aURI, result);
         }
     }
+    NS_ENSURE_SUCCESS(rv, rv);
 
-    
-    if (aLoadInfo) {
+    if (aLoadInfo && newChannel2Succeeded) {
+      
+      
+      
+      
       
       nsCOMPtr<nsILoadInfo> loadInfo;
-      channel->GetLoadInfo(getter_AddRefs(loadInfo));
-
+      (*result)->GetLoadInfo(getter_AddRefs(loadInfo));
+      
       if (aLoadInfo != loadInfo) {
         MOZ_ASSERT(false, "newly created channel must have a loadinfo attached");
         return NS_ERROR_UNEXPECTED;
@@ -707,7 +706,7 @@ nsIOService::NewChannelFromURIWithProxyFlagsInternal(nsIURI* aURI,
       
       
       if (loadInfo->GetLoadingSandboxed()) {
-        channel->SetOwner(nullptr);
+        (*result)->SetOwner(nullptr);
       }
     }
 
@@ -719,7 +718,7 @@ nsIOService::NewChannelFromURIWithProxyFlagsInternal(nsIURI* aURI,
     
     
     if (!gHasWarnedUploadChannel2 && scheme.EqualsLiteral("http")) {
-        nsCOMPtr<nsIUploadChannel2> uploadChannel2 = do_QueryInterface(channel);
+        nsCOMPtr<nsIUploadChannel2> uploadChannel2 = do_QueryInterface(*result);
         if (!uploadChannel2) {
             nsCOMPtr<nsIConsoleService> consoleService =
                 do_GetService(NS_CONSOLESERVICE_CONTRACTID);
@@ -732,7 +731,6 @@ nsIOService::NewChannelFromURIWithProxyFlagsInternal(nsIURI* aURI,
         }
     }
 
-    channel.forget(result);
     return NS_OK;
 }
 
