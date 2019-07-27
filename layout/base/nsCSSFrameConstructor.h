@@ -1425,7 +1425,7 @@ private:
   
   
   
-  nsresult
+  void
   BuildScrollFrame(nsFrameConstructorState& aState,
                    nsIContent*              aContent,
                    nsStyleContext*          aContentStyle,
