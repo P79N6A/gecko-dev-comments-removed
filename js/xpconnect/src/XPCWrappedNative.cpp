@@ -10,7 +10,6 @@
 #include "nsWrapperCacheInlines.h"
 #include "XPCLog.h"
 #include "jsprf.h"
-#include "JavaScriptParent.h"
 #include "AccessCheck.h"
 #include "WrapperFactory.h"
 #include "XrayWrapper.h"
@@ -2172,21 +2171,6 @@ CallMethodHelper::ConvertIndependentParam(uint8_t i)
                                                     &param_iid))) {
         ThrowBadParam(NS_ERROR_XPC_CANT_GET_PARAM_IFACE_INFO, i, mCallContext);
         return false;
-    }
-
-    
-    
-    if (src.isObject() &&
-        jsipc::IsWrappedCPOW(&src.toObject()) &&
-        type_tag == nsXPTType::T_INTERFACE &&
-        !param_iid.Equals(NS_GET_IID(nsISupports)))
-    {
-        
-        nsCOMPtr<nsIXPConnectWrappedJS> wrappedJS(do_QueryInterface(mCallee));
-        if (!wrappedJS) {
-            ThrowBadParam(NS_ERROR_XPC_CANT_PASS_CPOW_TO_NATIVE, i, mCallContext);
-            return false;
-        }
     }
 
     nsresult err;
