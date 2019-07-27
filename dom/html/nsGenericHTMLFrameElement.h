@@ -34,6 +34,7 @@ public:
                             mozilla::dom::FromParser aFromParser)
     : nsGenericHTMLElement(aNodeInfo)
     , nsElementFrameLoaderOwner(aFromParser)
+    , nsBrowserElement()
   {
   }
 
@@ -72,6 +73,19 @@ public:
                                                      nsGenericHTMLElement)
 
   static bool BrowserFramesEnabled();
+
+  
+
+
+
+
+
+
+  using nsElementFrameLoaderOwner::GetFrameLoader;
+  virtual already_AddRefed<nsFrameLoader> GetFrameLoader() MOZ_OVERRIDE
+  {
+    return nsElementFrameLoaderOwner::GetFrameLoader();
+  }
 
   
 
