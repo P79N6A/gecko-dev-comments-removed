@@ -518,6 +518,17 @@ NS_IMETHODIMP imgRequestProxy::GetImageStatus(uint32_t *aStatus)
 }
 
 
+NS_IMETHODIMP imgRequestProxy::GetImageErrorCode(nsresult *aStatus)
+{
+  if (!GetOwner())
+    return NS_ERROR_FAILURE;
+
+  *aStatus = GetOwner()->GetImageErrorCode();
+
+  return NS_OK;
+}
+
+
 NS_IMETHODIMP imgRequestProxy::GetURI(nsIURI **aURI)
 {
   MOZ_ASSERT(NS_IsMainThread(), "Must be on main thread to convert URI");

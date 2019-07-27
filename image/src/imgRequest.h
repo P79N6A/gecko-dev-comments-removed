@@ -136,6 +136,8 @@ public:
   
   nsresult GetURI(ImageURL **aURI);
 
+  nsresult GetImageErrorCode(void);
+
 private:
   friend class imgCacheEntry;
   friend class imgRequestProxy;
@@ -242,6 +244,8 @@ private:
   
   
   int32_t mCORSMode;
+
+  nsresult mImageErrorCode;
 
   
   
