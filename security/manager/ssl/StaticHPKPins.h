@@ -1018,6 +1018,8 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
   { "goto.google.com", true, false, false, -1, &kPinset_google_root_pems },
   { "groups.google.com", true, false, false, -1, &kPinset_google_root_pems },
   { "gstatic.com", true, false, false, -1, &kPinset_google_root_pems },
+  { "gvt2.com", true, false, false, -1, &kPinset_google_root_pems },
+  { "gvt3.com", true, false, false, -1, &kPinset_google_root_pems },
   { "hangouts.google.com", true, false, false, -1, &kPinset_google_root_pems },
   { "history.google.com", true, false, false, -1, &kPinset_google_root_pems },
   { "hostedtalkgadget.google.com", true, false, false, -1, &kPinset_google_root_pems },
@@ -1093,4 +1095,4 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
 
 static const int32_t kUnknownId = -1;
 
-static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1441448291452000);
+static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1442053104631000);
