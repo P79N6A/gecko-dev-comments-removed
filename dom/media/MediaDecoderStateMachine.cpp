@@ -2422,9 +2422,6 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
         return NS_OK;
       }
 
-      StopAudioThread();
-      mDecodedStream->StopPlayback();
-
       if (mPlayState == MediaDecoder::PLAY_STATE_PLAYING &&
           !mSentPlaybackEndedEvent)
       {
@@ -2438,6 +2435,12 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
 
         mSentPlaybackEndedEvent = true;
       }
+
+      
+      
+      StopAudioThread();
+      mDecodedStream->StopPlayback();
+
       return NS_OK;
     }
   }
@@ -3078,6 +3081,9 @@ MediaDecoderStateMachine::AudioEndTime() const
   if (mAudioSink) {
     return mAudioSink->GetEndTime();
   }
+  
+  
+  MOZ_ASSERT(mAudioCaptured || !mAudioCompleted);
   return mAudioEndTime;
 }
 
