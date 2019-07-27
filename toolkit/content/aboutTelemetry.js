@@ -552,8 +552,8 @@ let Histogram = {
 
 
   render: function Histogram_render(aParent, aName, aHgram, aOptions) {
-    let hgram = this.unpack(aHgram);
     let options = aOptions || {};
+    let hgram = this.processHistogram(aHgram, aName);
 
     let outerDiv = document.createElement("div");
     outerDiv.className = "histogram";
@@ -575,8 +575,7 @@ let Histogram = {
     if (isRTL())
       hgram.values.reverse();
 
-    let textData = this.renderValues(outerDiv, hgram.values, hgram.max,
-                                     hgram.sample_count, options);
+    let textData = this.renderValues(outerDiv, hgram, options);
 
     
     let copyButton = document.createElement("button");
@@ -593,45 +592,28 @@ let Histogram = {
     return outerDiv;
   },
 
-  
-
-
-
-
-
-
-  unpack: function Histogram_unpack(aHgram) {
-    let sample_count = aHgram.counts.reduceRight((a, b) => a + b);
-    let buckets = [0, 1];
-    if (aHgram.histogram_type != Telemetry.HISTOGRAM_BOOLEAN) {
-      buckets = aHgram.ranges;
+  processHistogram: function(aHgram, aName) {
+    const values = [for (k of Object.keys(aHgram.values)) aHgram.values[k]];
+    if (!values.length) {
+      
+      
+      return {
+        values: [],
+        pretty_average: 0,
+        max: 0,
+        sample_count: 0,
+        sum: 0
+      };
     }
 
-    let average =  Math.round(aHgram.sum * 10 / sample_count) / 10;
-    let max_value = Math.max.apply(Math, aHgram.counts);
+    const sample_count = values.reduceRight((a, b) => a + b);
+    const average = Math.round(aHgram.sum * 10 / sample_count) / 10;
+    const max_value = Math.max(...values);
 
-    let first = true;
-    let last = 0;
-    let values = [];
-    for (let i = 0; i < buckets.length; i++) {
-      let count = aHgram.counts[i];
-      if (!count)
-        continue;
-      if (first) {
-        first = false;
-        if (i) {
-          values.push([buckets[i - 1], 0]);
-        }
-      }
-      last = i + 1;
-      values.push([buckets[i], count]);
-    }
-    if (last && last < buckets.length) {
-      values.push([buckets[last], 0]);
-    }
+    const labelledValues = [for (k of Object.keys(aHgram.values)) [Number(k), aHgram.values[k]]];
 
     let result = {
-      values: values,
+      values: labelledValues,
       pretty_average: average,
       max: max_value,
       sample_count: sample_count,
@@ -660,15 +642,16 @@ let Histogram = {
 
 
 
-
-
-  renderValues: function Histogram_renderValues(aDiv, aValues, aMaxValue, aSumValues, aOptions) {
+  renderValues: function Histogram_renderValues(aDiv, aHgram, aOptions) {
     let text = "";
     
-    let labelPadTo = String(aValues[aValues.length -1][0]).length;
-    let maxBarValue = aOptions.exponential ? this.getLogValue(aMaxValue) : aMaxValue;
+    let labelPadTo = 0;
+    if (aHgram.values.length) {
+      labelPadTo = String(aHgram.values[aHgram.values.length - 1][0]).length;
+    }
+    let maxBarValue = aOptions.exponential ? this.getLogValue(aHgram.max_value) : aHgram.max;
 
-    for (let [label, value] of aValues) {
+    for (let [label, value] of aHgram.values) {
       let barValue = aOptions.exponential ? this.getLogValue(value) : value;
 
       
@@ -676,7 +659,7 @@ let Histogram = {
               + " ".repeat(Math.max(0, labelPadTo - String(label).length)) + label 
               + " |" + "#".repeat(Math.round(MAX_BAR_CHARS * barValue / maxBarValue)) 
               + "  " + value 
-              + "  " + Math.round(100 * value / aSumValues) + "%"; 
+              + "  " + Math.round(100 * value / aHgram.sum) + "%"; 
 
       
       let belowEm = Math.round(MAX_BAR_HEIGHT * (barValue / maxBarValue) * 10) / 10;
