@@ -480,6 +480,17 @@ static const dom::ConstantSpec gLibcProperties[] =
   INT_CONSTANT(SEEK_END),
   INT_CONSTANT(SEEK_SET),
 
+ 
+#if defined(XP_UNIX)
+  INT_CONSTANT(F_GETLK),
+  INT_CONSTANT(F_SETLK),
+  INT_CONSTANT(F_SETLKW),
+
+ 
+  INT_CONSTANT(F_RDLCK),
+  INT_CONSTANT(F_WRLCK),
+  INT_CONSTANT(F_UNLCK),
+#endif 
   
 #if defined(COPYFILE_DATA)
   INT_CONSTANT(COPYFILE_DATA),
@@ -586,6 +597,15 @@ static const dom::ConstantSpec gLibcProperties[] =
   
   { "OSFILE_SIZEOF_DIRENT", INT_TO_JSVAL(sizeof (dirent)) },
 
+  
+#if defined(XP_UNIX)
+  { "OSFILE_SIZEOF_FLOCK", INT_TO_JSVAL(sizeof (struct flock)) },
+  { "OSFILE_OFFSETOF_FLOCK_L_START", INT_TO_JSVAL(offsetof (struct flock, l_start)) },
+  { "OSFILE_OFFSETOF_FLOCK_L_LEN", INT_TO_JSVAL(offsetof (struct flock, l_len)) },
+  { "OSFILE_OFFSETOF_FLOCK_L_PID", INT_TO_JSVAL(offsetof (struct flock, l_pid)) },
+  { "OSFILE_OFFSETOF_FLOCK_L_TYPE", INT_TO_JSVAL(offsetof (struct flock, l_type)) },
+  { "OSFILE_OFFSETOF_FLOCK_L_WHENCE", INT_TO_JSVAL(offsetof (struct flock, l_whence)) },
+#endif 
   
   { "OSFILE_OFFSETOF_DIRENT_D_NAME", INT_TO_JSVAL(offsetof (struct dirent, d_name)) },
   
