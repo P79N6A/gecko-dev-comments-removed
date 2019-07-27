@@ -152,6 +152,18 @@ loop.CallConnectionWebSocket = (function() {
 
 
 
+    cancel: function() {
+      this._send({
+        messageType: "action",
+        event: "terminate",
+        reason: "cancel"
+      });
+    },
+
+    
+
+
+
 
     _send: function(data) {
       this._log("WS Sending", data);
@@ -206,6 +218,7 @@ loop.CallConnectionWebSocket = (function() {
           this._completeConnection();
           break;
         case "progress":
+          this.trigger("progress:" + msg.state);
           this.trigger("progress", msg);
           break;
       }

@@ -55,22 +55,6 @@ loop.shared.models = (function(l10n) {
 
 
 
-    pendingCallTimeout: undefined,
-
-    
-
-
-
-    _pendingCallTimer: undefined,
-
-    
-
-
-
-
-
-
-
 
 
 
@@ -84,10 +68,6 @@ loop.shared.models = (function(l10n) {
         throw new Error("missing required sdk");
       }
       this.sdk = options.sdk;
-      this.pendingCallTimeout = options.pendingCallTimeout || 20000;
-
-      
-      this.on("session:ended session:error", this._clearPendingCallTimer, this);
     },
 
     
@@ -112,20 +92,6 @@ loop.shared.models = (function(l10n) {
 
 
     outgoing: function(sessionData) {
-      this._clearPendingCallTimer();
-
-      
-      function handleOutgoingCallTimeout() {
-        
-        if (!this.get("ongoing")) {
-          this.trigger("timeout").endSession();
-        }
-      }
-
-      
-      this._pendingCallTimer = setTimeout(
-        handleOutgoingCallTimeout.bind(this), this.pendingCallTimeout);
-
       this.setOutgoingSessionData(sessionData);
       this.trigger("call:outgoing");
     },
@@ -275,15 +241,6 @@ loop.shared.models = (function(l10n) {
         default:
           this.trigger("session:error", err);
           break;
-      }
-    },
-
-    
-
-
-    _clearPendingCallTimer: function() {
-      if (this._pendingCallTimer) {
-        clearTimeout(this._pendingCallTimer);
       }
     },
 
