@@ -11,6 +11,8 @@
 #include "mozilla/dom/workers/bindings/WorkerFeature.h"
 #include "nsProxyRelease.h"
 
+#include "WorkerRunnable.h"
+
 namespace mozilla {
 namespace dom {
 
@@ -19,6 +21,10 @@ class Promise;
 namespace workers {
 class WorkerPrivate;
 }
+
+
+
+
 
 
 
@@ -78,6 +84,17 @@ public:
 
   void CleanUp(JSContext* aCx);
 
+  Mutex& GetCleanUpLock()
+  {
+    return mCleanUpLock;
+  }
+
+  bool IsClean() const
+  {
+    mCleanUpLock.AssertCurrentThreadOwns();
+    return mCleanedUp;
+  }
+
 protected:
   virtual void ResolvedCallback(JSContext* aCx,
                                 JS::Handle<JS::Value> aValue) override;
@@ -117,6 +134,30 @@ private:
 
   
   Mutex mCleanUpLock;
+};
+
+
+
+
+class PromiseWorkerProxyControlRunnable final : public workers::WorkerControlRunnable
+{
+  nsRefPtr<PromiseWorkerProxy> mProxy;
+
+public:
+  PromiseWorkerProxyControlRunnable(workers::WorkerPrivate* aWorkerPrivate,
+                                    PromiseWorkerProxy* aProxy)
+    : WorkerControlRunnable(aWorkerPrivate, WorkerThreadUnchangedBusyCount)
+    , mProxy(aProxy)
+  {
+    MOZ_ASSERT(aProxy);
+  }
+
+  virtual bool
+  WorkerRun(JSContext* aCx, workers::WorkerPrivate* aWorkerPrivate) override;
+
+private:
+  ~PromiseWorkerProxyControlRunnable()
+  {}
 };
 
 } 
