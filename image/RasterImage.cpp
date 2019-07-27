@@ -67,49 +67,6 @@ using std::min;
 
 static int32_t sMaxDecodeCount = 0;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#define LOG_CONTAINER_ERROR                      \
-  PR_BEGIN_MACRO                                 \
-  MOZ_LOG (GetImgLog(), LogLevel::Error,             \
-          ("RasterImage: [this=%p] Error "      \
-           "detected at line %u for image of "   \
-           "type %s\n", this, __LINE__,          \
-           mSourceDataMimeType.get()));          \
-  PR_END_MACRO
-
-#define CONTAINER_ENSURE_SUCCESS(status)      \
-  PR_BEGIN_MACRO                              \
-  nsresult _status = status; /* eval once */  \
-  if (NS_FAILED(_status)) {                   \
-    LOG_CONTAINER_ERROR;                      \
-    DoError();                                \
-    return _status;                           \
-  }                                           \
- PR_END_MACRO
-
-#define CONTAINER_ENSURE_TRUE(arg, rv)  \
-  PR_BEGIN_MACRO                        \
-  if (!(arg)) {                         \
-    LOG_CONTAINER_ERROR;                \
-    DoError();                          \
-    return rv;                          \
-  }                                     \
-  PR_END_MACRO
-
 class ScaleRunner : public nsRunnable
 {
   enum ScaleState
@@ -1990,8 +1947,8 @@ RasterImage::DoError()
   
   NotifyProgress(NoProgress, IntRect(0, 0, mSize.width, mSize.height));
 
-  
-  LOG_CONTAINER_ERROR;
+  MOZ_LOG(GetImgLog(), LogLevel::Error,
+          ("RasterImage: [this=%p] Error detected for image\n", this));
 }
 
  void
