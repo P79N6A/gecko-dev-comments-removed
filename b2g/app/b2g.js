@@ -319,7 +319,7 @@ pref("media.fragmented-mp4.gonk.enabled", true);
 pref("media.video-queue.default-size", 3);
 
 
-pref("image.mem.decodeondraw", false);
+pref("image.mem.decodeondraw", true);
 pref("image.mem.allow_locking_in_content_processes", false); 
 
 
