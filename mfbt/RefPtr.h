@@ -161,11 +161,13 @@ private:
 };
 
 #ifdef MOZ_REFCOUNTED_LEAK_CHECKING
-#define MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(T) \
-  virtual const char* typeName() const { return #T; } \
-  virtual size_t typeSize() const { return sizeof(*this); }
+
+
+#define MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(T, ...) \
+  virtual const char* typeName() const __VA_ARGS__ { return #T; } \
+  virtual size_t typeSize() const __VA_ARGS__ { return sizeof(*this); }
 #else
-#define MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(T)
+#define MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(T, ...)
 #endif
 
 
