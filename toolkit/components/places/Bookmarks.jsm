@@ -377,7 +377,7 @@ let Bookmarks = Object.freeze({
                                            item.index, updatedItem._parentId,
                                            updatedItem.index, updatedItem.type,
                                            updatedItem.guid, item.parentGuid,
-                                           updatedItem.newParentGuid ]);
+                                           updatedItem.parentGuid ]);
       }
 
       
