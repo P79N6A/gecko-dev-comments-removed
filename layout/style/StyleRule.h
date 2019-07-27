@@ -375,7 +375,7 @@ private:
   nsCSSSelectorList*      mSelector; 
   Declaration*            mDeclaration;
   ImportantRule*          mImportantRule; 
-  DOMCSSStyleRule*        mDOMRule;
+  nsRefPtr<DOMCSSStyleRule> mDOMRule;
   
   uint32_t                mLineNumber;
   uint32_t                mColumnNumber : 31;
