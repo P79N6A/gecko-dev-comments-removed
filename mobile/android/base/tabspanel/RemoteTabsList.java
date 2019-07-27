@@ -42,7 +42,7 @@ class RemoteTabsList extends ExpandableListView
     private ArrayList <ArrayList <HashMap <String, String>>> tabsList;
 
     
-    private List<String> expandedClientList = new ArrayList<String>();
+    private List<String> expandedClientList;
 
     
     private String clientScrollPosition;
@@ -147,13 +147,22 @@ class RemoteTabsList extends ExpandableListView
         List<String> newExpandedClientList = new ArrayList<String>();
         for (int i = 0; i < clients.size(); i++) {
             final String clientGuid = clients.get(i).get("guid");
-            if (expandedClientList.contains(clientGuid)) {
+
+            if (expandedClientList == null) {
+                
                 newExpandedClientList.add(clientGuid);
                 expandGroup(i);
-            }
+            } else {
+                
+                if (expandedClientList.contains(clientGuid)) {
+                    newExpandedClientList.add(clientGuid);
+                    expandGroup(i);
+                }
 
-            if (clientGuid.equals(clientScrollPosition)) {
-                setSelectedGroup(i);
+                
+                if (clientGuid.equals(clientScrollPosition)) {
+                    setSelectedGroup(i);
+                }
             }
         }
         expandedClientList = newExpandedClientList;
