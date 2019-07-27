@@ -190,8 +190,7 @@ public:
   static void Shutdown();
 
   void Init(nsDisplayListBuilder* aBuilder, LayerManager* aManager,
-            PaintedLayerData* aLayerData = nullptr,
-            ContainerState* aContainingContainerState = nullptr);
+            PaintedLayerData* aLayerData = nullptr);
 
   
 
@@ -672,11 +671,6 @@ public:
     return !mContainingPaintedLayer && mRetainingManager;
   }
 
-  ContainerState* GetContainingContainerState()
-  {
-    return mContainingContainerState;
-  }
-
   
 
 
@@ -727,8 +721,6 @@ protected:
 
 
   PaintedLayerData*                   mContainingPaintedLayer;
-
-  ContainerState*                     mContainingContainerState;
 
   
 
