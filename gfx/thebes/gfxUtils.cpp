@@ -1199,6 +1199,9 @@ gfxUtils::EncodeSourceSurface(SourceSurface* aSurface,
                                bufSize - imgSize,
                                &numReadThisTime)) == NS_OK && numReadThisTime > 0)
   {
+    
+    imgData.growByUninitialized(numReadThisTime);
+
     imgSize += numReadThisTime;
     if (imgSize == bufSize) {
       
