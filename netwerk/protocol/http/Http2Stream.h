@@ -89,6 +89,9 @@ public:
   void SetSentReset(bool aStatus);
   bool SentReset() { return mSentReset; }
 
+  void SetQueued(bool aStatus) { mQueued = aStatus ? 1 : 0; }
+  bool Queued() { return mQueued; }
+
   void SetCountAsActive(bool aStatus) { mCountAsActive = aStatus ? 1 : 0; }
   bool CountAsActive() { return mCountAsActive; }
 
@@ -179,10 +182,17 @@ protected:
   enum stateType mState;
 
   
-  uint32_t                     mAllHeadersSent       : 1;
+  uint32_t                     mRequestHeadersDone   : 1;
+
+  
+  uint32_t                     mOpenGenerated        : 1;
 
   
   uint32_t                     mAllHeadersReceived   : 1;
+
+  
+  
+  uint32_t                     mQueued               : 1;
 
   void     ChangeState(enum upstreamStateType);
 
@@ -190,6 +200,8 @@ private:
   friend class nsAutoPtr<Http2Stream>;
 
   nsresult ParseHttpRequestHeaders(const char *, uint32_t, uint32_t *);
+  nsresult GenerateOpen();
+
   void     AdjustPushedPriority();
   void     AdjustInitialWindow();
   nsresult TransmitFrame(const char *, uint32_t *, bool forceCommitment);
