@@ -715,7 +715,8 @@ Tester.prototype = {
       var self = this;
       var timeoutExpires = Date.now() + gTimeoutSeconds * 1000;
       var waitUntilAtLeast = timeoutExpires - 1000;
-      this.currentTest.scope.__waitTimer = setTimeout(function timeoutFn() {
+      this.currentTest.scope.__waitTimer =
+        this.SimpleTest._originalSetTimeout.apply(window, [function timeoutFn() {
         
         
         
@@ -754,7 +755,7 @@ Tester.prototype = {
         self.currentTest.timedOut = true;
         self.currentTest.scope.__waitTimer = null;
         self.nextTest();
-      }, gTimeoutSeconds * 1000);
+      }, gTimeoutSeconds * 1000]);
     }
   },
 
