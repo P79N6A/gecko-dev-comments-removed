@@ -224,8 +224,7 @@ let OverviewView = {
 
 
   _onGraphSelecting: function () {
-    let recording = PerformanceController.getCurrentRecording();
-    if (recording == null || this._stopSelectionChangeEventPropagation) {
+    if (this._stopSelectionChangeEventPropagation) {
       return;
     }
     
