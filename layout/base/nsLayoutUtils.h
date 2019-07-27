@@ -2252,6 +2252,11 @@ public:
 
 
 
+
+
+
+
+
   static nsSize
   CalculateCompositionSizeForFrame(nsIFrame* aFrame);
 
