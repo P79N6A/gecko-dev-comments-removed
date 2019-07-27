@@ -318,14 +318,13 @@ TrackBuffersManager::CompleteResetParserState()
   
   
   if (mFirstInitializationSegmentReceived) {
-    nsRefPtr<MediaByteBuffer> initData = mParser->InitData();
-    MOZ_ASSERT(initData->Length(), "we must have an init segment");
+    MOZ_ASSERT(mInitData && mInitData->Length(), "we must have an init segment");
     
     CreateDemuxerforMIMEType();
     
     
     mInputBuffer = new MediaByteBuffer;
-    MOZ_ALWAYS_TRUE(mInputBuffer->AppendElements(*initData, fallible));
+    mInputBuffer->AppendElements(*mInitData);
   }
   RecreateParser();
 
@@ -584,6 +583,11 @@ TrackBuffersManager::SegmentParserLoop()
     if (mAppendState == AppendState::WAITING_FOR_SEGMENT) {
       if (mParser->IsInitSegmentPresent(mInputBuffer)) {
         SetAppendState(AppendState::PARSING_INIT_SEGMENT);
+        if (mFirstInitializationSegmentReceived) {
+          
+          mInitData = nullptr;
+          RecreateParser();
+        }
         continue;
       }
       if (mParser->IsMediaSegmentPresent(mInputBuffer)) {
@@ -700,8 +704,9 @@ void
 TrackBuffersManager::InitializationSegmentReceived()
 {
   MOZ_ASSERT(mParser->HasCompleteInitData());
+  mInitData = mParser->InitData();
   mCurrentInputBuffer = new SourceBufferResource(mType);
-  mCurrentInputBuffer->AppendData(mParser->InitData());
+  mCurrentInputBuffer->AppendData(mInitData);
   uint32_t initLength = mParser->InitSegmentRange().mEnd;
   if (mInputBuffer->Length() == initLength) {
     mInputBuffer = nullptr;
@@ -1392,12 +1397,11 @@ TrackBuffersManager::RecreateParser()
   
   
   
-  nsRefPtr<MediaByteBuffer> initData = mParser->InitData();
   mParser = ContainerParser::CreateForMIMEType(mType);
-  if (initData) {
+  if (mInitData) {
     int64_t start, end;
-    mParser->ParseStartAndEndTimestamps(initData, start, end);
-    mProcessedInput = initData->Length();
+    mParser->ParseStartAndEndTimestamps(mInitData, start, end);
+    mProcessedInput = mInitData->Length();
   } else {
     mProcessedInput = 0;
   }

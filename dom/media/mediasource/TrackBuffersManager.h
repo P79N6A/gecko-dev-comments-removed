@@ -144,6 +144,7 @@ private:
   nsAutoPtr<ContainerParser> mParser;
 
   
+  nsRefPtr<MediaByteBuffer> mInitData;
   nsRefPtr<SourceBufferResource> mCurrentInputBuffer;
   nsRefPtr<MediaDataDemuxer> mInputDemuxer;
   
