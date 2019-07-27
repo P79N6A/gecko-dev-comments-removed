@@ -1679,20 +1679,6 @@ RilObject.prototype = {
       this.exitEmergencyCbMode();
     }
 
-    if (!this._isCdma) {
-      
-      
-      
-      let mmi = this._parseMMI(options.number);
-      if (mmi && this._isTemporaryModeCLIR(mmi)) {
-        options.number = mmi.dialNumber;
-        
-        
-        options.clirMode = mmi.procedure == MMI_PROCEDURE_ACTIVATION ?
-          CLIR_SUPPRESSION : CLIR_INVOCATION;
-      }
-    }
-
     options.request = REQUEST_DIAL;
     this.sendDialRequest(options);
   },
@@ -2388,6 +2374,20 @@ RilObject.prototype = {
   getFailCauseCode: function(callback) {
     this.context.Buf.simpleRequest(REQUEST_LAST_CALL_FAIL_CAUSE,
                                    {callback: callback});
+  },
+
+  
+
+
+
+
+
+  parseMMIFromDialNumber: function(options) {
+    
+    if (!this._isCdma) {
+      options.mmi = this._parseMMI(options.number);
+    }
+    this.sendChromeMessage(options);
   },
 
   
@@ -3402,20 +3402,6 @@ RilObject.prototype = {
 
     Buf.writeInt32(0);
     Buf.sendParcel();
-  },
-
-  
-
-
-
-
-
-  _isTemporaryModeCLIR: function(mmi) {
-    return (mmi &&
-            mmi.serviceCode == MMI_SC_CLIR &&
-            mmi.dialNumber &&
-            (mmi.procedure == MMI_PROCEDURE_ACTIVATION ||
-             mmi.procedure == MMI_PROCEDURE_DEACTIVATION));
   },
 
   
