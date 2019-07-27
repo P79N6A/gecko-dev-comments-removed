@@ -79,6 +79,7 @@ static void speex_free (void *ptr) {free(ptr);}
 
 #include "stack_alloc.h"
 #include <math.h>
+#include <limits.h>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -639,15 +640,20 @@ static int update_filter(SpeexResamplerState *st)
    }
    
    
+   use_direct =
 #ifdef RESAMPLE_HUGEMEM
-   use_direct = st->den_rate <= 16*(st->oversample+8);
+     st->den_rate <= 16*(st->oversample+8)
 #else
-   use_direct = st->filt_len*st->den_rate <= st->filt_len*st->oversample+8;
+     st->filt_len*st->den_rate <= st->filt_len*st->oversample+8
 #endif
+                && INT_MAX/sizeof(spx_word16_t)/st->den_rate >= st->filt_len;
    if (use_direct)
    {
       min_sinc_table_length = st->filt_len*st->den_rate;
    } else {
+      if ((INT_MAX/sizeof(spx_word16_t)-8)/st->oversample < st->filt_len)
+         goto fail;
+
       min_sinc_table_length = st->filt_len*st->oversample+8;
    }
    if (st->sinc_table_length < min_sinc_table_length)
@@ -695,15 +701,19 @@ static int update_filter(SpeexResamplerState *st)
    }
 
    
-   
 
+
+
+   
 
    min_alloc_size = st->filt_len-1 + st->buffer_size;
    if (min_alloc_size > st->mem_alloc_size)
    {
-      spx_word16_t *mem = (spx_word16_t*)speex_realloc(st->mem, st->nb_channels*min_alloc_size * sizeof(spx_word16_t));
-      if (!mem)
-         goto fail;
+      spx_word16_t *mem;
+      if (INT_MAX/sizeof(spx_word16_t)/st->nb_channels < min_alloc_size)
+          goto fail;
+      else if (!(mem = (spx_word16_t*)speex_realloc(st->mem, st->nb_channels*min_alloc_size * sizeof(*mem))))
+          goto fail;
 
       st->mem = mem;
       st->mem_alloc_size = min_alloc_size;
