@@ -64,6 +64,11 @@ public:
     aUuids = mUuids;
   }
 
+  BluetoothDeviceType Type() const
+  {
+    return mType;
+  }
+
   
 
 
@@ -127,6 +132,13 @@ private:
 
 
 
+  BluetoothDeviceType ConvertUint32ToDeviceType(const uint32_t aValue);
+
+  
+
+
+
+
   BluetoothDeviceAttribute
     ConvertStringToDeviceAttribute(const nsAString& aString);
 
@@ -166,6 +178,11 @@ private:
 
 
   nsTArray<nsString> mUuids;
+
+  
+
+
+  BluetoothDeviceType mType;
 };
 
 END_BLUETOOTH_NAMESPACE
