@@ -260,6 +260,11 @@ public class ReadingListSyncAdapter extends AbstractThreadedSyncAdapter {
         }
       }
 
+      if (result == null) {
+        
+        result = Result.Error;
+      }
+
       switch (result) {
       case Success:
         requestPeriodicSync(account, ReadingListSyncAdapter.AFTER_SUCCESS_SYNC_DELAY_SECONDS);
