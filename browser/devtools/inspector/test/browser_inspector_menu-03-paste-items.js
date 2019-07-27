@@ -6,90 +6,7 @@
 
 
 
-
-
-
-
-
-
-thisTestLeaksUncaughtRejectionsAndShouldBeFixed("TypeError: jsterm.focusInput is not a function");
-
-const MENU_SENSITIVITY_TEST_DATA = [
-  {
-    desc: "doctype node",
-    selector: null,
-    disabled: true,
-  },
-  {
-    desc: "element node",
-    selector: "#sensitivity",
-    disabled: false,
-  },
-  {
-    desc: "document element",
-    selector: "html",
-    disabled: {
-      "node-menu-pastebefore": true,
-      "node-menu-pasteafter": true,
-      "node-menu-pastefirstchild": true,
-      "node-menu-pastelastchild": true,
-    }
-  },
-  {
-    desc: "body",
-    selector: "body",
-    disabled: {
-      "node-menu-pastebefore": true,
-      "node-menu-pasteafter": true,
-    }
-  },
-  {
-    desc: "head",
-    selector: "head",
-    disabled: {
-      "node-menu-pastebefore": true,
-      "node-menu-pasteafter": true,
-    }
-  }
-];
-
-const TEST_URL = TEST_URL_ROOT + "doc_inspector_menu-02.html";
-
-const PASTE_HTML_TEST_SENSITIVITY_DATA = [
-  {
-    desc: "some text",
-    clipboardData: "some text",
-    clipboardDataType: undefined,
-    disabled: false
-  },
-  {
-    desc: "base64 encoded image data uri",
-    clipboardData:
-      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABC" +
-      "AAAAAA6fptVAAAACklEQVQYV2P4DwABAQEAWk1v8QAAAABJRU5ErkJggg==",
-    clipboardDataType: undefined,
-    disabled: true
-  },
-  {
-    desc: "html",
-    clipboardData: "<p>some text</p>",
-    clipboardDataType: "html",
-    disabled: false
-  },
-  {
-    desc: "empty string",
-    clipboardData: "",
-    clipboardDataType: undefined,
-    disabled: true
-  },
-  {
-    desc: "whitespace only",
-    clipboardData: " \n\n\t\n\n  \n",
-    clipboardDataType: undefined,
-    disabled: true
-  },
-];
-
+const TEST_URL = TEST_URL_ROOT + "doc_inspector_menu.html";
 const PASTE_ADJACENT_HTML_DATA = [
   {
     desc: "As First Child",
@@ -120,84 +37,11 @@ registerCleanupFunction(() => {
 });
 
 add_task(function* () {
-  let { inspector, toolbox } = yield openInspectorForURL(TEST_URL);
+  let { inspector } = yield openInspectorForURL(TEST_URL);
 
-  yield testMenuItemSensitivity();
-  yield testPasteHTMLMenuItemsSensitivity();
   yield testPasteOuterHTMLMenu();
   yield testPasteInnerHTMLMenu();
   yield testPasteAdjacentHTMLMenu();
-
-  function* testMenuItemSensitivity() {
-    info("Testing sensitivity of menu items for different elements.");
-
-    const MENU_ITEMS = [
-      "node-menu-pasteinnerhtml",
-      "node-menu-pasteouterhtml",
-      "node-menu-pastebefore",
-      "node-menu-pasteafter",
-      "node-menu-pastefirstchild",
-      "node-menu-pastelastchild",
-    ];
-
-    
-    clipboard.set("<p>test</p>", "html");
-
-    for (let {desc, selector, disabled} of MENU_SENSITIVITY_TEST_DATA) {
-      info("Testing context menu entries for " + desc);
-
-      let front;
-      if (selector) {
-        front = yield getNodeFront(selector, inspector);
-      } else {
-        
-        let {nodes} = yield inspector.walker.children(inspector.walker.rootNode);
-        front = nodes[0];
-      }
-      yield selectNode(front, inspector);
-
-      contextMenuClick(getContainerForNodeFront(front, inspector).tagLine);
-
-      for (let name of MENU_ITEMS) {
-        let disabledForMenu = typeof disabled === "object" ?
-          disabled[name] : disabled;
-        info(`${name} should be ${disabledForMenu ? "disabled" : "enabled"}  ` +
-          `for ${desc}`);
-        checkMenuItem(name, disabledForMenu);
-      }
-    }
-  }
-
-  function* testPasteHTMLMenuItemsSensitivity() {
-    let menus = [
-      "node-menu-pasteinnerhtml",
-      "node-menu-pasteouterhtml",
-      "node-menu-pastebefore",
-      "node-menu-pasteafter",
-      "node-menu-pastefirstchild",
-      "node-menu-pastelastchild",
-    ];
-
-    info("Checking Paste menu items sensitivity for different types" +
-         "of data");
-
-    let nodeFront = yield getNodeFront("#paste-area", inspector);
-    let markupTagLine = getContainerForNodeFront(nodeFront, inspector).tagLine;
-
-    for (let menuId of menus) {
-      for (let data of PASTE_HTML_TEST_SENSITIVITY_DATA) {
-        let { desc, clipboardData, clipboardDataType, disabled } = data;
-        let menuLabel = getLabelFor("#" + menuId);
-        info(`Checking ${menuLabel} for ${desc}`);
-        clipboard.set(clipboardData, clipboardDataType);
-
-        yield selectNode(nodeFront, inspector);
-
-        contextMenuClick(markupTagLine);
-        checkMenuItem(menuId, disabled);
-      }
-    }
-  }
 
   function* testPasteOuterHTMLMenu() {
     info("Testing that 'Paste Outer HTML' menu item works.");
@@ -256,7 +100,7 @@ add_task(function* () {
     yield selectNode(nodeFront, inspector);
     let markupTagLine = getContainerForNodeFront(nodeFront, inspector).tagLine;
 
-    for (let { desc, clipboardData, menuId } of PASTE_ADJACENT_HTML_DATA) {
+    for (let { clipboardData, menuId } of PASTE_ADJACENT_HTML_DATA) {
       let menu = inspector.panelDoc.getElementById(menuId);
       info(`Testing ${getLabelFor(menu)} for ${clipboardData}`);
       clipboard.set(clipboardData);
@@ -275,26 +119,6 @@ add_task(function* () {
     yield undoChange(inspector);
     ok(adjacentNode.innerHTML.trim() === "1<span class=\"ref\">234</span>",
       "Undo works for paste adjacent HTML");
-  }
-
-  function checkMenuItem(elementId, disabled) {
-    if (disabled) {
-      checkDisabled(elementId);
-    } else {
-      checkEnabled(elementId);
-    }
-  }
-
-  function checkEnabled(elementId) {
-    let elt = inspector.panelDoc.getElementById(elementId);
-    ok(!elt.hasAttribute("disabled"),
-      '"' + elt.label + '" context menu option is not disabled');
-  }
-
-  function checkDisabled(elementId) {
-    let elt = inspector.panelDoc.getElementById(elementId);
-    ok(elt.hasAttribute("disabled"),
-      '"' + elt.label + '" context menu option is disabled');
   }
 
   function dispatchCommandEvent(node) {
