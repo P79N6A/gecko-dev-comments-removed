@@ -43,6 +43,7 @@ registerCleanupFunction(() => gDevTools.testing = false);
 
 
 registerCleanupFunction(() => {
+  Services.prefs.clearUserPref("devtools.inspector.activeSidebar");
   Services.prefs.clearUserPref("devtools.dump.emit");
   Services.prefs.clearUserPref("devtools.defaultColorUnit");
 });

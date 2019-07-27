@@ -747,6 +747,15 @@ MarkupView.prototype = {
     }).then(() => {
       
       this.layoutHelpers.scrollIntoViewIfNeeded(this.getContainer(aNode).editor.elt, centered);
+    }, e => {
+      
+      
+      if (!this._destroyer) {
+        console.error(e);
+      } else {
+        console.warn("Could not show the node, the markup-view was destroyed " +
+          "while waiting for children");
+      }
     });
   },
 

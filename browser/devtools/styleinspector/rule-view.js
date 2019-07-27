@@ -1461,9 +1461,11 @@ CssRuleView.prototype = {
     }
 
     
-    for (let rule of this._elementStyle.rules) {
-      if (rule.editor) {
-        rule.editor.updateSourceLink();
+    if (this._elementStyle) {
+      for (let rule of this._elementStyle.rules) {
+        if (rule.editor) {
+          rule.editor.updateSourceLink();
+        }
       }
     }
   },

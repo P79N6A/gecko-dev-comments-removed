@@ -128,6 +128,23 @@ var PageStyleActor = protocol.ActorClass({
 
   get conn() this.inspector.conn,
 
+  form: function(detail) {
+    if (detail === "actorid") {
+      return this.actorID;
+    }
+
+    return {
+      actor: this.actorID,
+      traits: {
+        
+        
+        
+        
+        getAppliedCreatesStyleCache: true
+      }
+    };
+  },
+
   
 
 
@@ -416,6 +433,7 @@ var PageStyleActor = protocol.ActorClass({
 
 
   getApplied: method(function(node, options) {
+    this.cssLogic.highlight(node.rawNode);
     let entries = [];
     entries = entries.concat(this._getAllElementRules(node, undefined, options));
     return this.getAppliedProps(node, entries, options);
@@ -803,6 +821,14 @@ var PageStyleFront = protocol.FrontClass(PageStyleActor, {
     this.inspector = this.parent();
   },
 
+  form: function(form, detail) {
+    if (detail === "actorid") {
+      this.actorID = form;
+      return;
+    }
+    this._form = form;
+  },
+
   destroy: function() {
     protocol.Front.prototype.destroy.call(this);
   },
@@ -819,11 +845,17 @@ var PageStyleFront = protocol.FrontClass(PageStyleActor, {
     impl: "_getMatchedSelectors"
   }),
 
-  getApplied: protocol.custom(function(node, options={}) {
-    return this._getApplied(node, options).then(ret => {
-      return ret.entries;
-    });
-  }, {
+  getApplied: protocol.custom(Task.async(function*(node, options={}) {
+    
+    
+    
+    
+    if (!this._form.traits || !this._form.traits.getAppliedCreatesStyleCache) {
+      yield this.getLayout(node);
+    }
+    let ret = yield this._getApplied(node, options);
+    return ret.entries;
+  }), {
     impl: "_getApplied"
   }),
 
