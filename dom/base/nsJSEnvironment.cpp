@@ -2205,7 +2205,10 @@ DOMGCSliceCallback(JSRuntime *aRt, JS::GCProgress aProgress, const JS::GCDescrip
 
         
         
-        nsJSContext::PokeShrinkGCBuffers();
+        
+        if (aDesc.invocationKind_ == GC_NORMAL) {
+          nsJSContext::PokeShrinkGCBuffers();
+        }
       }
 
       if (ShouldTriggerCC(nsCycleCollector_suspectedCount())) {
