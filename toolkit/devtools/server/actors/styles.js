@@ -29,6 +29,12 @@ const PSEUDO_ELEMENTS = [":first-line", ":first-letter", ":before", ":after", ":
 exports.PSEUDO_ELEMENTS = PSEUDO_ELEMENTS;
 
 
+
+const PSEUDO_ELEMENTS_TO_READ = PSEUDO_ELEMENTS.filter(pseudo => {
+  return pseudo !== ":before" && pseudo !== ":after";
+});
+
+
 types.addActorType("domnode");
 
 
@@ -303,7 +309,7 @@ var PageStyleActor = protocol.ActorClass({
 
   getApplied: method(function(node, options) {
     let entries = [];
-    this.addElementRules(node.rawNode, undefined, options, entries);
+    entries = entries.concat(this._getAllElementRules(node, undefined, options));
     return this.getAppliedProps(node, entries, options);
   }, {
     request: {
@@ -325,62 +331,118 @@ var PageStyleActor = protocol.ActorClass({
 
 
 
-  addElementRules: function(element, inherited, options, rules) {
-    if (!element.style) {
-      return;
+
+
+
+
+
+
+
+
+
+
+  _getAllElementRules: function(node, inherited, options) {
+    let {bindingElement, pseudo} = CssLogic.getBindingElementAndPseudo(node.rawNode);
+    let rules = [];
+
+    if (!bindingElement || !bindingElement.style) {
+      return rules;
     }
 
-    let elementStyle = this._styleRef(element);
+    let elementStyle = this._styleRef(bindingElement);
+    let showElementStyles = !inherited && !pseudo;
+    let showInheritedStyles = inherited && this._hasInheritedProps(bindingElement.style);
 
-    if (!inherited || this._hasInheritedProps(element.style)) {
+    
+    if (showElementStyles) {
       rules.push({
         rule: elementStyle,
-        inherited: inherited,
       });
     }
 
-    let pseudoElements = inherited ? [null] : [null, ...PSEUDO_ELEMENTS];
-    for (let pseudo of pseudoElements) {
+    
+    if (showInheritedStyles) {
+      rules.push({
+        rule: elementStyle,
+        inherited: inherited
+      });
+    }
 
+    
+    
+    
+    this._getElementRules(bindingElement, pseudo, inherited, options).forEach((rule) => {
       
-      let domRules = DOMUtils.getCSSStyleRules(element, pseudo);
-
-      if (!domRules) {
-        continue;
-      }
-
       
       
-      for (let i = domRules.Count() - 1; i >= 0; i--) {
-        let domRule = domRules.GetElementAt(i);
+      rule.pseudoElement = null;
+      rules.push(rule);
+    });
 
-        let isSystem = !CssLogic.isContentStylesheet(domRule.parentStyleSheet);
-
-        if (isSystem && options.filter != CssLogic.FILTER.UA) {
-          continue;
-        }
-
-        if (inherited) {
-          
-          
-          let hasInherited = Array.prototype.some.call(domRule.style, prop => {
-            return DOMUtils.isInheritedProperty(prop);
-          });
-          if (!hasInherited) {
-            continue;
-          }
-        }
-
-        let ruleActor = this._styleRef(domRule);
-        rules.push({
-          rule: ruleActor,
-          inherited: inherited,
-          pseudoElement: pseudo,
-          isSystem: isSystem
+    
+    
+    if (showElementStyles) {
+      for (let pseudo of PSEUDO_ELEMENTS_TO_READ) {
+        this._getElementRules(bindingElement, pseudo, inherited, options).forEach((rule) => {
+          rules.push(rule);
         });
       }
     }
+
+    return rules;
   },
+
+  
+
+
+
+
+
+
+
+
+
+  _getElementRules: function (node, pseudo, inherited, options) {
+    let domRules = DOMUtils.getCSSStyleRules(node, pseudo);
+    if (!domRules) {
+      return [];
+    }
+
+    let rules = [];
+
+    
+    
+    for (let i = domRules.Count() - 1; i >= 0; i--) {
+      let domRule = domRules.GetElementAt(i);
+
+      let isSystem = !CssLogic.isContentStylesheet(domRule.parentStyleSheet);
+
+      if (isSystem && options.filter != CssLogic.FILTER.UA) {
+        continue;
+      }
+
+      if (inherited) {
+        
+        
+        let hasInherited = [...domRule.style].some(
+          prop => DOMUtils.isInheritedProperty(prop)
+        );
+        if (!hasInherited) {
+          continue;
+        }
+      }
+
+      let ruleActor = this._styleRef(domRule);
+      rules.push({
+        rule: ruleActor,
+        inherited: inherited,
+        isSystem: isSystem,
+        pseudoElement: pseudo
+      });
+    }
+    return rules;
+  },
+
 
   
 
@@ -407,7 +469,7 @@ var PageStyleActor = protocol.ActorClass({
     if (options.inherited) {
       let parent = this.walker.parentNode(node);
       while (parent && parent.rawNode.nodeType != Ci.nsIDOMNode.DOCUMENT_NODE) {
-        this.addElementRules(parent.rawNode, parent, options, entries);
+        entries = entries.concat(this._getAllElementRules(parent, parent, options));
         parent = this.walker.parentNode(parent);
       }
     }
@@ -421,9 +483,11 @@ var PageStyleActor = protocol.ActorClass({
         let domRule = entry.rule.rawRule;
         let selectors = CssLogic.getSelectors(domRule);
         let element = entry.inherited ? entry.inherited.rawNode : node.rawNode;
+
+        let {bindingElement,pseudo} = CssLogic.getBindingElementAndPseudo(element);
         entry.matchedSelectors = [];
         for (let i = 0; i < selectors.length; i++) {
-          if (DOMUtils.selectorMatchesElement(element, domRule, i)) {
+          if (DOMUtils.selectorMatchesElement(bindingElement, domRule, i, pseudo)) {
             entry.matchedSelectors.push(selectors[i]);
           }
         }
@@ -507,7 +571,7 @@ var PageStyleActor = protocol.ActorClass({
     layout.height = Math.round(clientRect.height);
 
     
-    let style = node.rawNode.ownerDocument.defaultView.getComputedStyle(node.rawNode);
+    let style = CssLogic.getComputedStyle(node.rawNode);
     for (let prop of [
       "position",
       "margin-top",

@@ -22,6 +22,7 @@ const {HTMLEditor} = require("devtools/markupview/html-editor");
 const promise = require("devtools/toolkit/deprecated-sync-thenables");
 const {Tooltip} = require("devtools/shared/widgets/Tooltip");
 const EventEmitter = require("devtools/toolkit/event-emitter");
+const Heritage = require("sdk/core/heritage");
 
 Cu.import("resource://gre/modules/devtools/LayoutHelpers.jsm");
 Cu.import("resource://gre/modules/devtools/Templater.jsm");
@@ -34,6 +35,9 @@ loader.lazyGetter(this, "DOMParser", function() {
 loader.lazyGetter(this, "AutocompletePopup", () => {
   return require("devtools/shared/autocomplete-popup").AutocompletePopup
 });
+
+
+
 
 
 
@@ -186,7 +190,7 @@ MarkupView.prototype = {
       parentNode = parentNode.parentNode;
     }
 
-    if (container) {
+    if (container instanceof MarkupElementContainer) {
       
       
       container._buildEventTooltipContent(event.target, this.tooltip);
@@ -315,10 +319,10 @@ MarkupView.prototype = {
       parent = parent.parentNode;
     }
 
-    if (container) {
+    if (container instanceof MarkupElementContainer) {
       
       
-      return container._isImagePreviewTarget(target, this.tooltip);
+      return container.isImagePreviewTarget(target, this.tooltip);
     }
   },
 
@@ -507,7 +511,8 @@ MarkupView.prototype = {
 
   deleteNode: function(aNode) {
     if (aNode.isDocumentElement ||
-        aNode.nodeType == Ci.nsIDOMNode.DOCUMENT_TYPE_NODE) {
+        aNode.nodeType == Ci.nsIDOMNode.DOCUMENT_TYPE_NODE ||
+        aNode.isAnonymous) {
       return;
     }
 
@@ -583,15 +588,23 @@ MarkupView.prototype = {
       return this.getContainer(aNode);
     }
 
+    let container;
+    let {nodeType, isPseudoElement} = aNode;
     if (aNode === this.walker.rootNode) {
-      var container = new RootContainer(this, aNode);
+      container = new RootContainer(this, aNode);
       this._elt.appendChild(container.elt);
       this._rootNode = aNode;
+    } else if (nodeType == Ci.nsIDOMNode.ELEMENT_NODE && !isPseudoElement) {
+      container = new MarkupElementContainer(this, aNode, this._inspector);
+    } else if (nodeType == Ci.nsIDOMNode.COMMENT_NODE ||
+               nodeType == Ci.nsIDOMNode.TEXT_NODE) {
+      container = new MarkupTextContainer(this, aNode, this._inspector);
     } else {
-      var container = new MarkupContainer(this, aNode, this._inspector);
-      if (aFlashNode) {
-        container.flashMutation();
-      }
+      container = new MarkupReadOnlyContainer(this, aNode, this._inspector);
+    }
+
+    if (aFlashNode) {
+      container.flashMutation();
     }
 
     this._containers.set(aNode, container);
@@ -961,7 +974,7 @@ MarkupView.prototype = {
         let parentContainer = this.getContainer(parent);
         if (parentContainer) {
           parentContainer.childrenDirty = true;
-          this._updateChildren(parentContainer, {expand: node});
+          this._updateChildren(parentContainer, {expand: true});
         }
       }
 
@@ -1317,63 +1330,58 @@ MarkupView.prototype = {
 
 
 
-
-
-
-function MarkupContainer(aMarkupView, aNode, aInspector) {
-  this.markup = aMarkupView;
-  this.doc = this.markup.doc;
-  this.undo = this.markup.undo;
-  this.node = aNode;
-  this._inspector = aInspector;
-
-  if (aNode.nodeType == Ci.nsIDOMNode.TEXT_NODE) {
-    this.editor = new TextEditor(this, aNode, "text");
-  } else if (aNode.nodeType == Ci.nsIDOMNode.COMMENT_NODE) {
-    this.editor = new TextEditor(this, aNode, "comment");
-  } else if (aNode.nodeType == Ci.nsIDOMNode.ELEMENT_NODE) {
-    this.editor = new ElementEditor(this, aNode);
-  } else if (aNode.nodeType == Ci.nsIDOMNode.DOCUMENT_TYPE_NODE) {
-    this.editor = new DoctypeEditor(this, aNode);
-  } else {
-    this.editor = new GenericEditor(this, aNode);
-  }
-
-  
-  this.elt = null;
-  this.expander = null;
-  this.tagState = null;
-  this.tagLine = null;
-  this.children = null;
-  this.markup.template("container", this);
-  this.elt.container = this;
-  this.children.container = this;
-
-  
-  this._onToggle = this._onToggle.bind(this);
-  this.elt.addEventListener("dblclick", this._onToggle, false);
-  this.expander.addEventListener("click", this._onToggle, false);
-
-  
-  this.tagLine.appendChild(this.editor.elt);
-
-  this._onMouseDown = this._onMouseDown.bind(this);
-  this.elt.addEventListener("mousedown", this._onMouseDown, false);
-
-  
-  this._prepareImagePreview();
-
-  
-  this.isDisplayed = this.node.isDisplayed;
-}
+function MarkupContainer() { }
 
 MarkupContainer.prototype = {
+
+  
+
+
+
+
+
+
+
+
+
+
+  initialize: function(markupView, node, templateID) {
+    this.markup = markupView;
+    this.node = node;
+    this.undo = this.markup.undo;
+
+    
+    this.elt = null;
+    this.expander = null;
+    this.tagState = null;
+    this.tagLine = null;
+    this.children = null;
+    this.markup.template(templateID, this);
+    this.elt.container = this;
+
+    
+    this._onMouseDown = this._onMouseDown.bind(this);
+    this.elt.addEventListener("mousedown", this._onMouseDown, false);
+
+    this._onToggle = this._onToggle.bind(this);
+
+    
+    this.elt.addEventListener("dblclick", this._onToggle, false);
+
+    if (this.expander) {
+      this.expander.addEventListener("click", this._onToggle, false);
+    }
+
+    
+    this.isDisplayed = this.node.isDisplayed;
+  },
+
   toString: function() {
     return "[MarkupContainer for " + this.node + "]";
   },
 
   isPreviewable: function() {
-    if (this.node.tagName) {
+    if (this.node.tagName && !this.node.isPseudoElement) {
       let tagName = this.node.tagName.toLowerCase();
       let srcAttr = this.editor.getAttributeElement("src");
       let isImage = tagName === "img" && srcAttr;
@@ -1388,95 +1396,10 @@ MarkupContainer.prototype = {
   
 
 
-
-
-
-
-  _prepareImagePreview: function() {
-    if (this.isPreviewable()) {
-      
-      
-      let def = promise.defer();
-
-      this.tooltipData = {
-        target: this.editor.getAttributeElement("src") || this.editor.tag,
-        data: def.promise
-      };
-
-      let maxDim = Services.prefs.getIntPref("devtools.inspector.imagePreviewTooltipSize");
-      this.node.getImageData(maxDim).then(data => {
-        data.data.string().then(str => {
-          let res = {data: str, size: data.size};
-          
-          
-          def.resolve(res);
-          this.tooltipData.data = promise.resolve(res);
-        });
-      }, () => {
-        this.tooltipData.data = promise.reject();
-      });
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-  _isImagePreviewTarget: function(target, tooltip) {
-    if (!this.tooltipData || this.tooltipData.target !== target) {
-      return promise.reject();
-    }
-
-    return this.tooltipData.data.then(({data, size}) => {
-      tooltip.setImageContent(data, size);
-    }, () => {
-      tooltip.setBrokenImageContent();
-    });
-  },
-
-  
-
-
   set isDisplayed(isDisplayed) {
     this.elt.classList.remove("not-displayed");
     if (!isDisplayed) {
       this.elt.classList.add("not-displayed");
-    }
-  },
-
-  copyImageDataUri: function() {
-    
-    
-    this.node.getImageData().then(data => {
-      data.data.string().then(str => {
-        clipboardHelper.copyString(str, this.markup.doc);
-      });
-    });
-  },
-
-  _buildEventTooltipContent: function(target, tooltip) {
-    if (target.hasAttribute("data-event")) {
-      tooltip.hide(target);
-
-      this.node.getEventListenerInfo().then(listenerInfo => {
-        tooltip.setEventContent({
-          eventListenerInfos: listenerInfo,
-          toolbox: this._inspector.toolbox
-        });
-
-        this.markup._makeTooltipPersistent(true);
-        tooltip.once("hidden", () => {
-          this.markup._makeTooltipPersistent(false);
-        });
-
-        tooltip.show(target);
-      });
-      return true;
     }
   },
 
@@ -1492,15 +1415,15 @@ MarkupContainer.prototype = {
 
   set hasChildren(aValue) {
     this._hasChildren = aValue;
+    if (!this.expander) {
+      return;
+    }
+
     if (aValue) {
       this.expander.style.visibility = "visible";
     } else {
       this.expander.style.visibility = "hidden";
     }
-  },
-
-  parentContainer: function() {
-    return this.elt.parentNode ? this.elt.parentNode.container : null;
   },
 
   
@@ -1511,32 +1434,35 @@ MarkupContainer.prototype = {
   },
 
   set expanded(aValue) {
+    if (!this.expander) {
+      return;
+    }
+
     if (aValue && this.elt.classList.contains("collapsed")) {
       
       
-      if (this.editor instanceof ElementEditor) {
-        let closingTag = this.elt.querySelector(".close");
-        if (closingTag) {
-          if (!this.closeTagLine) {
-            let line = this.markup.doc.createElement("div");
-            line.classList.add("tag-line");
+      let closingTag = this.elt.querySelector(".close");
+      if (closingTag) {
+        if (!this.closeTagLine) {
+          let line = this.markup.doc.createElement("div");
+          line.classList.add("tag-line");
 
-            let tagState = this.markup.doc.createElement("div");
-            tagState.classList.add("tag-state");
-            line.appendChild(tagState);
+          let tagState = this.markup.doc.createElement("div");
+          tagState.classList.add("tag-state");
+          line.appendChild(tagState);
 
-            line.appendChild(closingTag.cloneNode(true));
+          line.appendChild(closingTag.cloneNode(true));
 
-            this.closeTagLine = line;
-          }
-          this.elt.appendChild(this.closeTagLine);
+          this.closeTagLine = line;
         }
+        this.elt.appendChild(this.closeTagLine);
       }
+
       this.elt.classList.remove("collapsed");
       this.expander.setAttribute("open", "");
       this.hovered = false;
     } else if (!aValue) {
-      if (this.editor instanceof ElementEditor && this.closeTagLine) {
+      if (this.closeTagLine) {
         this.elt.removeChild(this.closeTagLine);
       }
       this.elt.classList.add("collapsed");
@@ -1544,12 +1470,8 @@ MarkupContainer.prototype = {
     }
   },
 
-  _onToggle: function(event) {
-    this.markup.navigate(this);
-    if(this.hasChildren) {
-      this.markup.setNodeExpanded(this.node, !this.expanded, event.altKey);
-    }
-    event.stopPropagation();
+  parentContainer: function() {
+    return this.elt.parentNode ? this.elt.parentNode.container : null;
   },
 
   _onMouseDown: function(event) {
@@ -1695,11 +1617,27 @@ MarkupContainer.prototype = {
     }
   },
 
+  _onToggle: function(event) {
+    this.markup.navigate(this);
+    if (this.hasChildren) {
+      this.markup.setNodeExpanded(this.node, !this.expanded, event.altKey);
+    }
+    event.stopPropagation();
+  },
+
   
 
 
 
   destroy: function() {
+    
+    this.elt.removeEventListener("mousedown", this._onMouseDown, false);
+    this.elt.removeEventListener("dblclick", this._onToggle, false);
+
+    if (this.expander) {
+      this.expander.removeEventListener("click", this._onToggle, false);
+    }
+
     
     let firstChild;
     while (firstChild = this.children.firstChild) {
@@ -1711,16 +1649,168 @@ MarkupContainer.prototype = {
       this.children.removeChild(firstChild);
     }
 
-    
-    this.elt.removeEventListener("dblclick", this._onToggle, false);
-    this.elt.removeEventListener("mousedown", this._onMouseDown, false);
-    this.expander.removeEventListener("click", this._onToggle, false);
-
-    
     this.editor.destroy();
   }
 };
 
+
+
+
+
+
+
+
+
+
+
+
+function MarkupReadOnlyContainer(markupView, node) {
+  MarkupContainer.prototype.initialize.call(this, markupView, node, "readonlycontainer");
+
+  this.editor = new GenericEditor(this, node);
+  this.tagLine.appendChild(this.editor.elt);
+}
+
+MarkupReadOnlyContainer.prototype = Heritage.extend(MarkupContainer.prototype, {});
+
+
+
+
+
+
+
+
+
+
+
+
+function MarkupTextContainer(markupView, node) {
+  MarkupContainer.prototype.initialize.call(this, markupView, node, "textcontainer");
+
+  if (node.nodeType == Ci.nsIDOMNode.TEXT_NODE) {
+    this.editor = new TextEditor(this, node, "text");
+  } else if (node.nodeType == Ci.nsIDOMNode.COMMENT_NODE) {
+    this.editor = new TextEditor(this, node, "comment");
+  } else {
+    throw "Invalid node for MarkupTextContainer";
+  }
+
+  this.tagLine.appendChild(this.editor.elt);
+}
+
+MarkupTextContainer.prototype = Heritage.extend(MarkupContainer.prototype, {});
+
+
+
+
+
+
+
+
+
+
+
+function MarkupElementContainer(markupView, node) {
+  MarkupContainer.prototype.initialize.call(this, markupView, node, "elementcontainer");
+
+  if (node.nodeType === Ci.nsIDOMNode.ELEMENT_NODE) {
+    this.editor = new ElementEditor(this, node);
+  } else {
+    throw "Invalid node for MarkupElementContainer";
+  }
+
+  this.tagLine.appendChild(this.editor.elt);
+
+  
+  this._prepareImagePreview();
+}
+
+MarkupElementContainer.prototype = Heritage.extend(MarkupContainer.prototype, {
+
+  _buildEventTooltipContent: function(target, tooltip) {
+    if (target.hasAttribute("data-event")) {
+      tooltip.hide(target);
+
+      this.node.getEventListenerInfo().then(listenerInfo => {
+        tooltip.setEventContent({
+          eventListenerInfos: listenerInfo,
+          toolbox: this.markup._inspector.toolbox
+        });
+
+        this.markup._makeTooltipPersistent(true);
+        tooltip.once("hidden", () => {
+          this.markup._makeTooltipPersistent(false);
+        });
+        tooltip.show(target);
+      });
+      return true;
+    }
+  },
+
+  
+
+
+
+
+
+
+  _prepareImagePreview: function() {
+    if (this.isPreviewable()) {
+      
+      
+      let def = promise.defer();
+
+      this.tooltipData = {
+        target: this.editor.getAttributeElement("src") || this.editor.tag,
+        data: def.promise
+      };
+
+      let maxDim = Services.prefs.getIntPref("devtools.inspector.imagePreviewTooltipSize");
+      this.node.getImageData(maxDim).then(data => {
+        data.data.string().then(str => {
+          let res = {data: str, size: data.size};
+          
+          
+          def.resolve(res);
+          this.tooltipData.data = promise.resolve(res);
+        });
+      }, () => {
+        this.tooltipData.data = promise.reject();
+      });
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+  isImagePreviewTarget: function(target, tooltip) {
+    if (!this.tooltipData || this.tooltipData.target !== target) {
+      return promise.reject();
+    }
+
+    return this.tooltipData.data.then(({data, size}) => {
+      tooltip.setImageContent(data, size);
+    }, () => {
+      tooltip.setBrokenImageContent();
+    });
+  },
+
+  copyImageDataUri: function() {
+    
+    
+    this.node.getImageData().then(data => {
+      data.data.string().then(str => {
+        clipboardHelper.copyString(str, this.markup.doc);
+      });
+    });
+  }
+});
 
 
 
@@ -1745,32 +1835,30 @@ RootContainer.prototype = {
 
 
 function GenericEditor(aContainer, aNode) {
-  this.elt = aContainer.doc.createElement("span");
-  this.elt.className = "editor";
-  this.elt.textContent = aNode.nodeName;
+  this.container = aContainer;
+  this.markup = this.container.markup;
+  this.template = this.markup.template.bind(this.markup);
+  this.elt = null;
+  this.template("generic", this);
+
+  if (aNode.isPseudoElement) {
+    this.tag.classList.add("theme-fg-color5");
+    this.tag.textContent = aNode.isBeforePseudoElement ? "::before" : "::after";
+  } else if (aNode.nodeType == Ci.nsIDOMNode.DOCUMENT_TYPE_NODE) {
+    this.elt.classList.add("comment");
+    this.tag.textContent = '<!DOCTYPE ' + aNode.name +
+       (aNode.publicId ? ' PUBLIC "' +  aNode.publicId + '"': '') +
+       (aNode.systemId ? ' "' + aNode.systemId + '"' : '') +
+       '>';
+  } else {
+    this.tag.textContent = aNode.nodeName;
+  }
 }
 
 GenericEditor.prototype = {
-  destroy: function() {}
-};
-
-
-
-
-
-
-
-function DoctypeEditor(aContainer, aNode) {
-  this.elt = aContainer.doc.createElement("span");
-  this.elt.className = "editor comment";
-  this.elt.textContent = '<!DOCTYPE ' + aNode.name +
-     (aNode.publicId ? ' PUBLIC "' +  aNode.publicId + '"': '') +
-     (aNode.systemId ? ' "' + aNode.systemId + '"' : '') +
-     '>';
-}
-
-DoctypeEditor.prototype = {
-  destroy: function() {}
+  destroy: function() {
+    this.elt.remove();
+  }
 };
 
 
@@ -1782,10 +1870,13 @@ DoctypeEditor.prototype = {
 
 
 function TextEditor(aContainer, aNode, aTemplate) {
+  this.container = aContainer;
+  this.markup = this.container.markup;
   this.node = aNode;
+  this.template = this.markup.template.bind(aTemplate);
   this._selected = false;
 
-  aContainer.markup.template(aTemplate, this);
+  this.markup.template(aTemplate, this);
 
   editableField({
     element: this.value,
@@ -1800,13 +1891,13 @@ function TextEditor(aContainer, aNode, aTemplate) {
         longstr.string().then(oldValue => {
           longstr.release().then(null, console.error);
 
-          aContainer.undo.do(() => {
+          this.container.undo.do(() => {
             this.node.setNodeValue(aVal).then(() => {
-              aContainer.markup.nodeChanged(this.node);
+              this.markup.nodeChanged(this.node);
             });
           }, () => {
             this.node.setNodeValue(oldValue).then(() => {
-              aContainer.markup.nodeChanged(this.node);
+              this.markup.nodeChanged(this.node);
             })
           });
         });
@@ -1859,12 +1950,11 @@ TextEditor.prototype = {
 
 
 function ElementEditor(aContainer, aNode) {
-  this.doc = aContainer.doc;
-  this.undo = aContainer.undo;
-  this.template = aContainer.markup.template.bind(aContainer.markup);
   this.container = aContainer;
-  this.markup = this.container.markup;
   this.node = aNode;
+  this.markup = this.container.markup;
+  this.template = this.markup.template.bind(this.markup);
+  this.doc = this.markup.doc;
 
   this.attrs = {};
 
@@ -1911,7 +2001,7 @@ function ElementEditor(aContainer, aNode) {
         let doMods = this._startModifyingAttributes();
         let undoMods = this._startModifyingAttributes();
         this._applyAttributes(aVal, null, doMods, undoMods);
-        this.undo.do(() => {
+        this.container.undo.do(() => {
           doMods.apply();
         }, function() {
           undoMods.apply();
@@ -2039,7 +2129,7 @@ ElementEditor.prototype = {
           this._saveAttribute(aAttr.name, undoMods);
           doMods.removeAttribute(aAttr.name);
           this._applyAttributes(aVal, attr, doMods, undoMods);
-          this.undo.do(() => {
+          this.container.undo.do(() => {
             doMods.apply();
           }, () => {
             undoMods.apply();
@@ -2154,7 +2244,7 @@ ElementEditor.prototype = {
         aOld.parentNode.removeChild(aOld);
       }
 
-      this.undo.do(() => {
+      this.container.undo.do(() => {
         swapNodes(this.rawNode, newElt);
         this.markup.setNodeExpanded(newFront, this.container.expanded);
         if (this.container.selected) {

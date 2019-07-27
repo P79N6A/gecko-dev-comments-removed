@@ -11,6 +11,7 @@ const {Arg, Option, method} = protocol;
 const events = require("sdk/event/core");
 const Heritage = require("sdk/core/heritage");
 
+const {CssLogic} = require("devtools/styleinspector/css-logic");
 const EventEmitter = require("devtools/toolkit/event-emitter");
 const GUIDE_STROKE_WIDTH = 1;
 
@@ -831,8 +832,7 @@ BoxModelHighlighter.prototype = Heritage.extend(XULBasedHighlighter.prototype, {
     }
 
     if (!this._computedStyle) {
-      this._computedStyle =
-        this.currentNode.ownerDocument.defaultView.getComputedStyle(this.currentNode);
+      this._computedStyle = CssLogic.getComputedStyle(this.currentNode);
     }
 
     return this._computedStyle.getPropertyValue("display") !== "none";
@@ -961,12 +961,13 @@ BoxModelHighlighter.prototype = Heritage.extend(XULBasedHighlighter.prototype, {
       return;
     }
 
-    let node = this.currentNode;
     let info = this.nodeInfo;
 
-    
-    
+    let {bindingElement:node, pseudo} =
+      CssLogic.getBindingElementAndPseudo(this.currentNode);
 
+    
+    
     let tagName = node.tagName;
     if (info.tagNameLabel.textContent !== tagName) {
       info.tagNameLabel.textContent = tagName;
@@ -977,7 +978,7 @@ BoxModelHighlighter.prototype = Heritage.extend(XULBasedHighlighter.prototype, {
       info.idLabel.textContent = id;
     }
 
-    let classList = node.classList.length ? "." + [...node.classList].join(".") : "";
+    let classList = (node.classList || []).length ? "." + [...node.classList].join(".") : "";
     if (info.classesBox.textContent !== classList) {
       info.classesBox.textContent = classList;
     }
@@ -985,6 +986,12 @@ BoxModelHighlighter.prototype = Heritage.extend(XULBasedHighlighter.prototype, {
     let pseudos = PSEUDO_CLASSES.filter(pseudo => {
       return DOMUtils.hasPseudoClassLock(node, pseudo);
     }, this).join("");
+
+    if (pseudo) {
+      
+      pseudos += ":" + pseudo;
+    }
+
     if (info.pseudoClassesBox.textContent !== pseudos) {
       info.pseudoClassesBox.textContent = pseudos;
     }
@@ -1160,8 +1167,8 @@ CssTransformHighlighter.prototype = Heritage.extend(XULBasedHighlighter.prototyp
 
 
   _isTransformed: function(node) {
-    let style = node.ownerDocument.defaultView.getComputedStyle(node);
-    return style.transform !== "none" && style.display !== "inline";
+    let style = CssLogic.getComputedStyle(node);
+    return style && (style.transform !== "none" && style.display !== "inline");
   },
 
   _setPolygonPoints: function(quad, poly) {
@@ -1380,7 +1387,14 @@ function isNodeValid(node) {
 
   
   let doc = node.ownerDocument;
-  if (!doc || !doc.defaultView || !doc.documentElement.contains(node)) {
+  if (!doc || !doc.defaultView) {
+    return false;
+  }
+
+  
+  
+  let bindingParent = LayoutHelpers.getRootBindingParent(node);
+  if (!doc.documentElement.contains(bindingParent)) {
     return false;
   }
 

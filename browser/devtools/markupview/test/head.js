@@ -8,6 +8,7 @@ let TargetFactory = devtools.TargetFactory;
 let {console} = Cu.import("resource://gre/modules/devtools/Console.jsm", {});
 let promise = devtools.require("devtools/toolkit/deprecated-sync-thenables");
 let {getInplaceEditorForSpan: inplaceEditor} = devtools.require("devtools/shared/inplace-editor");
+let clipboard = devtools.require("sdk/clipboard");
 
 
 waitForExplicitFinish();
@@ -30,6 +31,7 @@ registerCleanupFunction(() => {
   Services.prefs.clearUserPref("devtools.inspector.activeSidebar");
   Services.prefs.clearUserPref("devtools.dump.emit");
   Services.prefs.clearUserPref("devtools.markup.pagesize");
+  Services.prefs.clearUserPref("dom.webcomponents.enabled");
 });
 
 
@@ -149,6 +151,9 @@ function getNode(nodeOrSelector) {
 
 
 function getNodeFront(selector, {walker}) {
+  if (selector._form) {
+    return selector;
+  }
   return walker.querySelector(walker.rootNode, selector);
 }
 
@@ -439,6 +444,124 @@ function wait(ms) {
   content.setTimeout(def.resolve, ms);
   return def.promise;
 }
+
+
+
+
+
+
+
+
+
+function once(target, eventName, useCapture=false) {
+  info("Waiting for event: '" + eventName + "' on " + target + ".");
+
+  let deferred = promise.defer();
+
+  for (let [add, remove] of [
+    ["addEventListener", "removeEventListener"],
+    ["addListener", "removeListener"],
+    ["on", "off"]
+  ]) {
+    if ((add in target) && (remove in target)) {
+      target[add](eventName, function onEvent(...aArgs) {
+        info("Got event: '" + eventName + "' on " + target + ".");
+        target[remove](eventName, onEvent, useCapture);
+        deferred.resolve.apply(deferred, aArgs);
+      }, useCapture);
+      break;
+    }
+  }
+
+  return deferred.promise;
+}
+
+
+
+
+
+
+
+
+
+
+let isEditingMenuDisabled = Task.async(function*(nodeFront, inspector, assert=true) {
+  let deleteMenuItem = inspector.panelDoc.getElementById("node-menu-delete");
+  let editHTMLMenuItem = inspector.panelDoc.getElementById("node-menu-edithtml");
+  let pasteHTMLMenuItem = inspector.panelDoc.getElementById("node-menu-pasteouterhtml");
+
+  
+  clipboard.set("<p>test</p>", "html");
+
+  let menu = inspector.nodemenu;
+  yield selectNode(nodeFront, inspector);
+  yield reopenMenu(menu);
+
+  let isDeleteMenuDisabled = deleteMenuItem.hasAttribute("disabled");
+  let isEditHTMLMenuDisabled = editHTMLMenuItem.hasAttribute("disabled");
+  let isPasteHTMLMenuDisabled = pasteHTMLMenuItem.hasAttribute("disabled");
+
+  if (assert) {
+    ok(isDeleteMenuDisabled, "Delete menu item is disabled");
+    ok(isEditHTMLMenuDisabled, "Edit HTML menu item is disabled");
+    ok(isPasteHTMLMenuDisabled, "Paste HTML menu item is disabled");
+  }
+
+  return isDeleteMenuDisabled && isEditHTMLMenuDisabled && isPasteHTMLMenuDisabled;
+});
+
+
+
+
+
+
+
+
+
+
+let isEditingMenuEnabled = Task.async(function*(nodeFront, inspector, assert=true) {
+  let deleteMenuItem = inspector.panelDoc.getElementById("node-menu-delete");
+  let editHTMLMenuItem = inspector.panelDoc.getElementById("node-menu-edithtml");
+  let pasteHTMLMenuItem = inspector.panelDoc.getElementById("node-menu-pasteouterhtml");
+
+  
+  clipboard.set("<p>test</p>", "html");
+
+  let menu = inspector.nodemenu;
+  yield selectNode(nodeFront, inspector);
+  yield reopenMenu(menu);
+
+  let isDeleteMenuDisabled = deleteMenuItem.hasAttribute("disabled");
+  let isEditHTMLMenuDisabled = editHTMLMenuItem.hasAttribute("disabled");
+  let isPasteHTMLMenuDisabled = pasteHTMLMenuItem.hasAttribute("disabled");
+
+  if (assert) {
+    ok(!isDeleteMenuDisabled, "Delete menu item is enabled");
+    ok(!isEditHTMLMenuDisabled, "Edit HTML menu item is enabled");
+    ok(!isPasteHTMLMenuDisabled, "Paste HTML menu item is enabled");
+  }
+
+  return !isDeleteMenuDisabled && !isEditHTMLMenuDisabled && !isPasteHTMLMenuDisabled;
+});
+
+
+
+
+
+
+let reopenMenu = Task.async(function*(menu) {
+  
+  if (menu.state == "closing" || menu.state == "open") {
+    let popuphidden = once(menu, "popuphidden", true);
+    menu.hidePopup();
+    yield popuphidden;
+  }
+
+  
+  let popupshown = once(menu, "popupshown", true);
+  menu.openPopup();
+  yield popupshown;
+});
 
 
 

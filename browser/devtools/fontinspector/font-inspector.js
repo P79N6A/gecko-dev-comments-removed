@@ -93,7 +93,7 @@ FontInspector.prototype = {
 
     
     let rng = contentDocument.createRange();
-    rng.selectNode(node);
+    rng.selectNodeContents(node);
     let fonts = DOMUtils.getUsedFontFaces(rng);
     let fontsArray = [];
     for (let i = 0; i < fonts.length; i++) {

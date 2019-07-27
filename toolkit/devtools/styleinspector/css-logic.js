@@ -54,6 +54,7 @@ const RX_PSEUDO = /\s*:?:([\w-]+)(\(?\)?)\s*/g;
 
 if (Cu) {
   Cu.importGlobalProperties(['CSS']);
+  Cu.import("resource://gre/modules/devtools/LayoutHelpers.jsm");
 }
 
 function CssLogic()
@@ -179,8 +180,7 @@ CssLogic.prototype = {
 
     this._matchedRules = null;
     this._matchedSelectors = null;
-    let win = this.viewedDocument.defaultView;
-    this._computedStyle = win.getComputedStyle(this.viewedElement, "");
+    this._computedStyle = CssLogic.getComputedStyle(this.viewedElement);
   },
 
   
@@ -615,14 +615,19 @@ CssLogic.prototype = {
                    CssLogic.STATUS.MATCHED : CssLogic.STATUS.PARENT_MATCH;
 
       try {
-        domRules = domUtils.getCSSStyleRules(element);
+        
+        
+        let {bindingElement, pseudo} = CssLogic.getBindingElementAndPseudo(element);
+        domRules = domUtils.getCSSStyleRules(bindingElement, pseudo);
       } catch (ex) {
         Services.console.
           logStringMessage("CL__buildMatchedRules error: " + ex);
         continue;
       }
 
-      for (let i = 0, n = domRules.Count(); i < n; i++) {
+      
+      let numDomRules = domRules ? domRules.Count() : 0;
+      for (let i = 0; i < numDomRules; i++) {
         let domRule = domRules.GetElementAt(i);
         if (domRule.type !== Ci.nsIDOMCSSRule.STYLE_RULE) {
           continue;
@@ -759,6 +764,56 @@ CssLogic.getSelectors = function CssLogic_getSelectors(aDOMRule)
 
 
 
+
+
+
+
+
+CssLogic.getBindingElementAndPseudo = function(node)
+{
+  let bindingElement = node;
+  let pseudo = null;
+  if (node.nodeName == "_moz_generated_content_before") {
+    bindingElement = node.parentNode;
+    pseudo = ":before";
+  } else if (node.nodeName == "_moz_generated_content_after") {
+    bindingElement = node.parentNode;
+    pseudo = ":after";
+  }
+  return {
+    bindingElement: bindingElement,
+    pseudo: pseudo
+  };
+};
+
+
+
+
+
+
+
+
+
+
+CssLogic.getComputedStyle = function(node)
+{
+  if (!node ||
+      Cu.isDeadWrapper(node) ||
+      node.nodeType !== Ci.nsIDOMNode.ELEMENT_NODE ||
+      !node.ownerDocument ||
+      !node.ownerDocument.defaultView) {
+    return null;
+  }
+
+  let {bindingElement, pseudo} = CssLogic.getBindingElementAndPseudo(node);
+  return node.ownerDocument.defaultView.getComputedStyle(bindingElement, pseudo);
+};
+
+
+
+
+
+
 CssLogic.l10n = function(aName) CssLogic._strings.GetStringFromName(aName);
 
 DevToolsUtils.defineLazyGetter(CssLogic, "_strings", function() Services.strings
@@ -860,8 +915,9 @@ function positionInNodeList(element, nodeList) {
 
 
 CssLogic.findCssSelector = function CssLogic_findCssSelector(ele) {
+  ele = LayoutHelpers.getRootBindingParent(ele);
   var document = ele.ownerDocument;
-  if (!document.contains(ele)) {
+  if (!document || !document.contains(ele)) {
     throw new Error('findCssSelector received element not inside document');
   }
 

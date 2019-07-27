@@ -109,7 +109,16 @@ function addTab(url) {
   let browser = tab.linkedBrowser;
 
   info("Loading the helper frame script " + FRAME_SCRIPT_URL);
-  browser.messageManager.loadFrameScript(FRAME_SCRIPT_URL, false);
+  
+  
+  
+  
+  
+  
+  let registry = Cc['@mozilla.org/chrome/chrome-registry;1']
+    .getService(Ci.nsIChromeRegistry);
+  let fileURI = registry.convertChromeURL(Services.io.newURI(FRAME_SCRIPT_URL, null, null)).spec;
+  browser.messageManager.loadFrameScript(fileURI, false);
 
   browser.addEventListener("load", function onload() {
     browser.removeEventListener("load", onload, true);
@@ -173,9 +182,15 @@ let selectAndHighlightNode = Task.async(function*(selector, inspector) {
 
 
 
-let selectNode = Task.async(function*(selector, inspector, reason="test") {
-  info("Selecting the node for '" + selector + "'");
-  let nodeFront = yield getNodeFront(selector, inspector);
+
+
+
+let selectNode = Task.async(function*(data, inspector, reason="test") {
+  info("Selecting the node for '" + data + "'");
+  let nodeFront = data;
+  if (!data._form) {
+    nodeFront = yield getNodeFront(data, inspector);
+  }
   let updated = inspector.once("inspector-updated");
   inspector.selection.setNodeFront(nodeFront, reason);
   yield updated;

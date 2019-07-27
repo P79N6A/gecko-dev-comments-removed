@@ -169,7 +169,11 @@ function selectNode(nodeOrSelector, inspector, reason="test") {
 
   let node = getNode(nodeOrSelector);
   let updated = inspector.once("inspector-updated");
-  inspector.selection.setNode(node, reason);
+  if (node._form) {
+    inspector.selection.setNodeFront(node, reason);
+  } else {
+    inspector.selection.setNode(node, reason);
+  }
   return updated;
 }
 

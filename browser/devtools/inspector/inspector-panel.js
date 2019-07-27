@@ -584,7 +584,10 @@ InspectorPanel.prototype = {
 
 
   _setupNodeMenu: function InspectorPanel_setupNodeMenu() {
-    let isSelectionElement = this.selection.isElementNode();
+    let isSelectionElement = this.selection.isElementNode() &&
+                             !this.selection.isPseudoElementNode();
+    let isEditableElement = isSelectionElement &&
+                            !this.selection.isAnonymousNode();
 
     
     for (let name of ["hover", "active", "focus"]) {
@@ -601,10 +604,10 @@ InspectorPanel.prototype = {
 
     
     let deleteNode = this.panelDoc.getElementById("node-menu-delete");
-    if (this.selection.isRoot() || this.selection.isDocumentTypeNode()) {
-      deleteNode.setAttribute("disabled", "true");
-    } else {
+    if (isEditableElement) {
       deleteNode.removeAttribute("disabled");
+    } else {
+      deleteNode.setAttribute("disabled", "true");
     }
 
     
@@ -625,7 +628,7 @@ InspectorPanel.prototype = {
     
     
     let editHTML = this.panelDoc.getElementById("node-menu-edithtml");
-    if (this.isOuterHTMLEditable && isSelectionElement) {
+    if (isEditableElement && this.isOuterHTMLEditable) {
       editHTML.removeAttribute("disabled");
     } else {
       editHTML.setAttribute("disabled", "true");
@@ -635,7 +638,7 @@ InspectorPanel.prototype = {
     
     
     let pasteOuterHTML = this.panelDoc.getElementById("node-menu-pasteouterhtml");
-    if (this.isOuterHTMLEditable && isSelectionElement &&
+    if (isEditableElement && this.isOuterHTMLEditable &&
         this._getClipboardContentForOuterHTML()) {
       pasteOuterHTML.removeAttribute("disabled");
     } else {
@@ -646,7 +649,7 @@ InspectorPanel.prototype = {
     
     let copyImageData = this.panelDoc.getElementById("node-menu-copyimagedatauri");
     let markupContainer = this.markup.getContainer(this.selection.nodeFront);
-    if (markupContainer && markupContainer.isPreviewable()) {
+    if (isSelectionElement && markupContainer && markupContainer.isPreviewable()) {
       copyImageData.removeAttribute("disabled");
     } else {
       copyImageData.setAttribute("disabled", "true");

@@ -498,3 +498,112 @@ LayoutHelpers.prototype = {
     };
   }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+LayoutHelpers.getRootBindingParent = function(node) {
+  let parent;
+  let doc = node.ownerDocument;
+  if (!doc) {
+    return node;
+  }
+  while ((parent = doc.getBindingParent(node))) {
+    node = parent;
+  }
+  return node;
+};
+
+LayoutHelpers.getBindingParent = function(node) {
+  let doc = node.ownerDocument;
+  if (!doc) {
+    return false;
+  }
+
+  
+  let parent = doc.getBindingParent(node);
+  if (!parent) {
+    return false;
+  }
+
+  return parent;
+}
+
+
+
+
+
+
+
+
+LayoutHelpers.isAnonymous = function(node) {
+  return LayoutHelpers.getRootBindingParent(node) !== node;
+};
+
+
+
+
+
+
+
+
+
+
+
+LayoutHelpers.isNativeAnonymous = function(node) {
+  if (!LayoutHelpers.getBindingParent(node)) {
+    return false;
+  }
+  return !LayoutHelpers.isXBLAnonymous(node) &&
+         !LayoutHelpers.isShadowAnonymous(node);
+};
+
+
+
+
+
+
+
+
+
+
+LayoutHelpers.isXBLAnonymous = function(node) {
+  let parent = LayoutHelpers.getBindingParent(node);
+  if (!parent) {
+    return false;
+  }
+
+  
+  if (parent.shadowRoot && parent.shadowRoot.contains(node)) {
+    return false;
+  }
+
+  let anonNodes = [...node.ownerDocument.getAnonymousNodes(parent) || []];
+  return anonNodes.indexOf(node) > -1;
+};
+
+
+
+
+
+
+
+
+LayoutHelpers.isShadowAnonymous = function(node) {
+  let parent = LayoutHelpers.getBindingParent(node);
+  if (!parent) {
+    return false;
+  }
+
+  
+  
+  return parent.shadowRoot && parent.shadowRoot.contains(node);
+};
