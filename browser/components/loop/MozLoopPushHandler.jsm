@@ -109,20 +109,25 @@ let MozLoopPushHandler = {
                       + (onRegistered ? "" : " onRegistered")
                       + (onNotification ? "" : " onNotification"));
     }
-    
-    if (!(channelID in this.channels)) {
-      this.channels[channelID] = {
-        onRegistered: onRegistered,
-        onNotification: onNotification
-      };
 
-      
-      
-      if (this._registrationID) {
-        this._channelsToRegister.push(channelID);
-      } else {
-        this._registerChannels();
-      }
+    
+    
+    if (channelID in this.channels) {
+      onRegistered("error: channel already registered: " + channelID);
+      return;
+    }
+
+    this.channels[channelID] = {
+      onRegistered: onRegistered,
+      onNotification: onNotification
+    };
+
+    
+    
+    if (this._registrationID) {
+      this._channelsToRegister.push(channelID);
+    } else {
+      this._registerChannels();
     }
   },
 
