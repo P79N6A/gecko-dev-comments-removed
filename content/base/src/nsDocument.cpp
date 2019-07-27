@@ -4703,10 +4703,6 @@ nsDocument::GetWindowInternal() const
     if (win) {
       
       win = win->GetOuterWindow();
-    } else if (mMasterDocument) {
-      
-      
-      win = mMasterDocument->GetWindow();
     }
   }
 
