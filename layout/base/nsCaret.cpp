@@ -139,11 +139,6 @@ nsresult nsCaret::Init(nsIPresShell *inPresShell)
   mPresShell = do_GetWeakReference(inPresShell);    
   NS_ASSERTION(mPresShell, "Hey, pres shell should support weak refs");
 
-  
-  
-  mCaretAspectRatio =
-    LookAndFeel::GetFloat(LookAndFeel::eFloatID_CaretAspectRatio, 0.0f);
-
   mBlinkRate = static_cast<uint32_t>(
     LookAndFeel::GetInt(LookAndFeel::eIntID_CaretBlinkTime, mBlinkRate));
   mShowDuringSelection =
@@ -195,7 +190,8 @@ DrawCJKCaret(nsIFrame* aFrame, int32_t aOffset)
 nsCaret::Metrics nsCaret::ComputeMetrics(nsIFrame* aFrame, int32_t aOffset, nscoord aCaretHeight)
 {
   
-  nscoord caretWidth = (aCaretHeight * mCaretAspectRatio) +
+  nscoord caretWidth =
+    (aCaretHeight * LookAndFeel::GetFloat(LookAndFeel::eFloatID_CaretAspectRatio, 0.0f)) +
     nsPresContext::CSSPixelsToAppUnits(
         LookAndFeel::GetInt(LookAndFeel::eIntID_CaretWidth, 1));
 
