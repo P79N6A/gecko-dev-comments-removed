@@ -4,6 +4,8 @@
 
 'use strict';
 
+
+
 const DEVELOPER_HUD_LOG_PREFIX = 'DeveloperHUD';
 
 XPCOMUtils.defineLazyGetter(this, 'devtools', function() {
