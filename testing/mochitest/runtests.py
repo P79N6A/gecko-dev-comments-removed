@@ -2060,6 +2060,9 @@ class Mochitest(MochitestUtilsMixin):
             
             self.message_logger.dump_buffered()
 
+            if result == -1:
+                break
+
         
         if options.browserChrome:
             print "TEST-INFO | checking window state"
