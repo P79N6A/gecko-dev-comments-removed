@@ -632,6 +632,8 @@ TrackBuffersManager::SegmentParserLoop()
     
     
     
+    
+    
 
     
     
@@ -651,8 +653,9 @@ TrackBuffersManager::SegmentParserLoop()
       }
       
       
-      MSE_DEBUG("Found invalid data");
-      RejectAppend(NS_ERROR_FAILURE, __func__);
+      MSE_DEBUG("Found invalid data, ignoring.");
+      mInputBuffer = nullptr;
+      NeedMoreData();
       return;
     }
 
@@ -767,7 +770,11 @@ TrackBuffersManager::InitializationSegmentReceived()
   mCurrentInputBuffer->AppendData(mInitData);
   uint32_t length =
     mParser->InitSegmentRange().mEnd - (mProcessedInput - mInputBuffer->Length());
-  mInputBuffer->RemoveElementsAt(0, length);
+  if (mInputBuffer->Length() == length) {
+    mInputBuffer = nullptr;
+  } else {
+    mInputBuffer->RemoveElementsAt(0, length);
+  }
   CreateDemuxerforMIMEType();
   if (!mInputDemuxer) {
     MOZ_ASSERT(false, "TODO type not supported");
