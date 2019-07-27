@@ -142,6 +142,8 @@ pref("app.update.cert.maxErrors", 5);
 
 
 
+
+
 #ifndef RELEASE_BUILD
 pref("app.update.certs.1.issuerName", "CN=DigiCert Secure Server CA,O=DigiCert Inc,C=US");
 pref("app.update.certs.1.commonName", "aus4.mozilla.org");
@@ -1589,6 +1591,45 @@ pref("ui.key.menuAccessKeyFocuses", true);
 
 
 pref("media.eme.enabled", false);
+
+
+
+
+pref("media.gmp-manager.log", false);
+
+
+
+
+
+pref("media.gmp-manager.url", "https://aus4.mozilla.org/update/3/GMP/%VERSION%/%BUILD_ID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/update.xml");
+
+
+
+
+
+pref("media.gmp-manager.cert.requireBuiltIn", true);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+pref("media.gmp-manager.cert.checkAttributes", true);
+pref("media.gmp-manager.certs.1.issuerName", "CN=DigiCert Secure Server CA,O=DigiCert Inc,C=US");
+pref("media.gmp-manager.certs.1.commonName", "aus4.mozilla.org");
+pref("media.gmp-manager.certs.2.issuerName", "CN=Thawte SSL CA,O=\"Thawte, Inc.\",C=US");
+pref("media.gmp-manager.certs.2.commonName", "aus4.mozilla.org");
 
 
 pref("browser.cache.auto_delete_cache_version", 1);
