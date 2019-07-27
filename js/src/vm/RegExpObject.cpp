@@ -773,7 +773,7 @@ RegExpCompartment::sweep(JSRuntime *rt)
         
         
         bool keep = shared->marked() &&
-                    !IsStringAboutToBeFinalizedFromAnyThread(shared->source.unsafeGet());
+                    IsStringMarkedFromAnyThread(&shared->source);
         for (size_t i = 0; i < ArrayLength(shared->compilationArray); i++) {
             RegExpShared::RegExpCompilation &compilation = shared->compilationArray[i];
             if (compilation.jitCode &&
