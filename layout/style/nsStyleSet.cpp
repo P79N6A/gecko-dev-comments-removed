@@ -1976,7 +1976,7 @@ nsStyleSet::GCRuleTrees()
 
 
 static inline nsRuleNode*
-SkipAnimationRules(nsRuleNode* aRuleNode, Element* aElement, bool isPseudo)
+SkipAnimationRules(nsRuleNode* aRuleNode, Element* aElementOrPseudoElement)
 {
   nsRuleNode* ruleNode = aRuleNode;
   
@@ -1996,12 +1996,13 @@ SkipAnimationRules(nsRuleNode* aRuleNode, Element* aElement, bool isPseudo)
   }
 
   if (ruleNode != aRuleNode) {
-    NS_ASSERTION(aElement, "How can we have transition rules but no element?");
+    NS_ASSERTION(aElementOrPseudoElement,
+                 "How can we have transition rules but no element?");
     
     
     
-    nsRestyleHint hint = isPseudo ? eRestyle_Subtree : eRestyle_Self;
-    aRuleNode->PresContext()->PresShell()->RestyleForAnimation(aElement, hint);
+    aRuleNode->PresContext()->PresShell()->
+      RestyleForAnimation(aElementOrPseudoElement, eRestyle_Self);
   }
   return ruleNode;
 }
@@ -2009,7 +2010,11 @@ SkipAnimationRules(nsRuleNode* aRuleNode, Element* aElement, bool isPseudo)
 already_AddRefed<nsStyleContext>
 nsStyleSet::ReparentStyleContext(nsStyleContext* aStyleContext,
                                  nsStyleContext* aNewParentContext,
-                                 Element* aElement)
+                                 Element* aElement,
+                                 
+                                 
+                                 
+                                 Element* aElementOrPseudoElement)
 {
   MOZ_ASSERT(aStyleContext, "aStyleContext must not be null");
 
@@ -2033,9 +2038,7 @@ nsStyleSet::ReparentStyleContext(nsStyleContext* aStyleContext,
     
     
     ruleNode =
-      SkipAnimationRules(ruleNode, aElement,
-                         pseudoType !=
-                           nsCSSPseudoElements::ePseudo_NotPseudoElement);
+      SkipAnimationRules(ruleNode, aElementOrPseudoElement);
   }
 
   nsRuleNode* visitedRuleNode = nullptr;
@@ -2050,9 +2053,7 @@ nsStyleSet::ReparentStyleContext(nsStyleContext* aStyleContext,
      if (skipAnimationRules) {
       
        visitedRuleNode =
-         SkipAnimationRules(visitedRuleNode, aElement,
-                            pseudoType !=
-                              nsCSSPseudoElements::ePseudo_NotPseudoElement);
+         SkipAnimationRules(visitedRuleNode, aElementOrPseudoElement);
      }
   }
 
