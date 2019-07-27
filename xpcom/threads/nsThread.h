@@ -74,7 +74,6 @@ protected:
   friend class nsNestedEventTarget;
 
   friend class nsThreadShutdownEvent;
-  friend class nsThreadManager;
 
   virtual ~nsThread();
 
@@ -157,7 +156,6 @@ protected:
     }
   };
 
-  
   
   
   

@@ -18,21 +18,6 @@
 
 using namespace mozilla;
 
-#ifdef PR_LOGGING
-static PRLogModuleInfo *
-GetThreadManagerLog()
-{
-  static PRLogModuleInfo *sLog;
-  if (!sLog)
-    sLog = PR_NewLogModule("nsThreadManager");
-  return sLog;
-}
-#endif
-#ifdef LOG
-#undef LOG
-#endif
-#define LOG(args) PR_LOG(GetThreadManagerLog(), PR_LOG_DEBUG, args)
-
 #ifdef XP_WIN
 #include <windows.h>
 DWORD gTLSThreadIDIndex = TlsAlloc();
@@ -178,45 +163,12 @@ nsThreadManager::Shutdown()
   
   
 
-  {
-#ifdef PR_LOGGING
-    
-    char buffer[4096];
-    char *ptr = buffer;
-    uint32_t leaked = 0;
-    for (uint32_t i = 0; i < threads.Length(); ++i) {
-      nsThread *thread = threads[i];
-      if (thread->ShutdownRequired()) {
-        leaked++;
-      }
+  
+  for (uint32_t i = 0; i < threads.Length(); ++i) {
+    nsThread* thread = threads[i];
+    if (thread->ShutdownRequired()) {
+      thread->Shutdown();
     }
-    if (leaked > 0) {
-      PR_snprintf(ptr, sizeof(buffer), "*** %u threads active at %s\n", leaked, __FUNCTION__);
-      ptr += strlen(ptr);
-    }
-#endif
-
-    for (uint32_t i = 0; i < threads.Length(); ++i) {
-      nsThread *thread = threads[i];
-#ifdef PR_LOGGING
-      {
-        
-        MutexAutoLock lock(thread->mLock);
-        if (thread->ShutdownRequired()) {
-          PRThread * prThread = thread->GetPRThread();
-          const char * name = PR_GetThreadName(prThread);
-          PR_snprintf(ptr, sizeof(buffer), "Thread %s (%p) still active\n", name ? name : "<unnamed>", thread);
-          ptr += strlen(ptr);
-        }
-      }
-#endif
-      if (thread->ShutdownRequired()) {
-        thread->Shutdown();
-      }
-    }
-#ifdef PR_LOGGING
-    LOG(("%s", buffer));
-#endif
   }
 
   
