@@ -621,7 +621,7 @@ abstract class BaseTest extends BaseRobocopTest {
 
 
 
-    private final AdapterView<ListAdapter> getTabsList() {
+    private final AdapterView<ListAdapter> getTabsLayout() {
         Element tabs = mDriver.findElement(getActivity(), R.id.tabs);
         tabs.click();
         return (AdapterView<ListAdapter>) getActivity().findViewById(R.id.normal_tabs);
@@ -635,7 +635,7 @@ abstract class BaseTest extends BaseRobocopTest {
     private View getTabViewAt(final int index) {
         final View[] childView = { null };
 
-        final AdapterView<ListAdapter> view = getTabsList();
+        final AdapterView<ListAdapter> view = getTabsLayout();
 
         runOnUiThreadSync(new Runnable() {
             @Override

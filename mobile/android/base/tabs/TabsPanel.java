@@ -83,7 +83,7 @@ public class TabsPanel extends LinearLayout
     private final GeckoApp mActivity;
     private final LightweightTheme mTheme;
     private RelativeLayout mHeader;
-    private PanelViewContainer mPanelsContainer;
+    private TabsLayoutContainer mTabsContainer;
     private PanelView mPanel;
     private PanelView mPanelNormal;
     private PanelView mPanelPrivate;
@@ -152,7 +152,7 @@ public class TabsPanel extends LinearLayout
 
     private void initialize() {
         mHeader = (RelativeLayout) findViewById(R.id.tabs_panel_header);
-        mPanelsContainer = (PanelViewContainer) findViewById(R.id.tabs_container);
+        mTabsContainer = (TabsLayoutContainer) findViewById(R.id.tabs_container);
 
         mPanelNormal = (PanelView) findViewById(R.id.normal_tabs);
         mPanelNormal.setTabsPanel(this);
@@ -279,19 +279,19 @@ public class TabsPanel extends LinearLayout
         return mActivity.onOptionsItemSelected(item);
     }
 
-    private static int getPanelsContainerHeight(PanelViewContainer panelsContainer) {
-        Resources resources = panelsContainer.getContext().getResources();
+    private static int getTabContainerHeight(TabsLayoutContainer tabsContainer) {
+        Resources resources = tabsContainer.getContext().getResources();
 
-        PanelView panelView = panelsContainer.getCurrentPanelView();
+        PanelView panelView = tabsContainer.getCurrentPanelView();
         if (panelView != null && !panelView.shouldExpand()) {
-            return resources.getDimensionPixelSize(R.dimen.tabs_tray_horizontal_height);
+            return resources.getDimensionPixelSize(R.dimen.tabs_layout_horizontal_height);
         }
 
         int actionBarHeight = resources.getDimensionPixelSize(R.dimen.browser_toolbar_height);
         int screenHeight = resources.getDisplayMetrics().heightPixels;
 
         Rect windowRect = new Rect();
-        panelsContainer.getWindowVisibleDisplayFrame(windowRect);
+        tabsContainer.getWindowVisibleDisplayFrame(windowRect);
         int windowHeight = windowRect.bottom - windowRect.top;
 
         
@@ -338,9 +338,8 @@ public class TabsPanel extends LinearLayout
         onLightweightThemeChanged();
     }
 
-    
-    static class PanelViewContainer extends FrameLayout {
-        public PanelViewContainer(Context context, AttributeSet attrs) {
+    static class TabsLayoutContainer extends FrameLayout {
+        public TabsLayoutContainer(Context context, AttributeSet attrs) {
             super(context, attrs);
         }
 
@@ -361,7 +360,7 @@ public class TabsPanel extends LinearLayout
         @Override
         protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
             if (!GeckoAppShell.getGeckoInterface().hasTabsSideBar()) {
-                int heightSpec = MeasureSpec.makeMeasureSpec(getPanelsContainerHeight(PanelViewContainer.this), MeasureSpec.EXACTLY);
+                int heightSpec = MeasureSpec.makeMeasureSpec(getTabContainerHeight(TabsLayoutContainer.this), MeasureSpec.EXACTLY);
                 super.onMeasure(widthMeasureSpec, heightSpec);
             } else {
                 super.onMeasure(widthMeasureSpec, heightMeasureSpec);
@@ -483,7 +482,7 @@ public class TabsPanel extends LinearLayout
                 dispatchLayoutChange(getWidth(), getHeight());
         } else {
             int actionBarHeight = mContext.getResources().getDimensionPixelSize(R.dimen.browser_toolbar_height);
-            int height = actionBarHeight + getPanelsContainerHeight(mPanelsContainer);
+            int height = actionBarHeight + getTabContainerHeight(mTabsContainer);
             dispatchLayoutChange(getWidth(), height);
         }
         mHeaderVisible = true;
@@ -541,13 +540,13 @@ public class TabsPanel extends LinearLayout
             final int tabsPanelWidth = getWidth();
             if (mVisible) {
                 ViewHelper.setTranslationX(mHeader, -tabsPanelWidth);
-                ViewHelper.setTranslationX(mPanelsContainer, -tabsPanelWidth);
+                ViewHelper.setTranslationX(mTabsContainer, -tabsPanelWidth);
 
                 
                 ViewHelper.setTranslationX(mFooter, -tabsPanelWidth);
             }
             final int translationX = (mVisible ? 0 : -tabsPanelWidth);
-            animator.attach(mPanelsContainer, PropertyAnimator.Property.TRANSLATION_X, translationX);
+            animator.attach(mTabsContainer, PropertyAnimator.Property.TRANSLATION_X, translationX);
             animator.attach(mHeader, PropertyAnimator.Property.TRANSLATION_X, translationX);
             animator.attach(mFooter, PropertyAnimator.Property.TRANSLATION_X, translationX);
 
@@ -557,16 +556,16 @@ public class TabsPanel extends LinearLayout
             final int translationY = (mVisible ? 0 : -toolbarHeight);
             if (mVisible) {
                 ViewHelper.setTranslationY(mHeader, -toolbarHeight);
-                ViewHelper.setTranslationY(mPanelsContainer, -toolbarHeight);
-                ViewHelper.setAlpha(mPanelsContainer, 0.0f);
+                ViewHelper.setTranslationY(mTabsContainer, -toolbarHeight);
+                ViewHelper.setAlpha(mTabsContainer, 0.0f);
             }
-            animator.attach(mPanelsContainer, PropertyAnimator.Property.ALPHA, mVisible ? 1.0f : 0.0f);
-            animator.attach(mPanelsContainer, PropertyAnimator.Property.TRANSLATION_Y, translationY);
+            animator.attach(mTabsContainer, PropertyAnimator.Property.ALPHA, mVisible ? 1.0f : 0.0f);
+            animator.attach(mTabsContainer, PropertyAnimator.Property.TRANSLATION_Y, translationY);
             animator.attach(mHeader, PropertyAnimator.Property.TRANSLATION_Y, translationY);
         }
 
         mHeader.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-        mPanelsContainer.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        mTabsContainer.setLayerType(View.LAYER_TYPE_HARDWARE, null);
     }
 
     public void finishTabsAnimation() {
@@ -575,7 +574,7 @@ public class TabsPanel extends LinearLayout
         }
 
         mHeader.setLayerType(View.LAYER_TYPE_NONE, null);
-        mPanelsContainer.setLayerType(View.LAYER_TYPE_NONE, null);
+        mTabsContainer.setLayerType(View.LAYER_TYPE_NONE, null);
 
         
         
