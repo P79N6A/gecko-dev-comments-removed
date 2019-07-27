@@ -596,6 +596,11 @@ CompareNetwork::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
 {
   AssertIsOnMainThread();
 
+  
+  if (!mChannel) {
+    return NS_OK;
+  }
+
 #ifdef DEBUG
   nsCOMPtr<nsIChannel> channel = do_QueryInterface(aRequest);
   MOZ_ASSERT(channel == mChannel);
