@@ -370,8 +370,6 @@ nsUrlClassifierStreamUpdater::UpdateSuccess(uint32_t requestedTimeout)
   nsAutoCString strTimeout;
   strTimeout.AppendInt(requestedTimeout);
   if (successCallback) {
-    LOG(("nsUrlClassifierStreamUpdater::UpdateSuccess callback [this=%p]",
-         this));
     successCallback->HandleEvent(strTimeout);
   }
   
@@ -441,25 +439,24 @@ nsUrlClassifierStreamUpdater::OnStartRequest(nsIRequest *request,
   bool downloadError = false;
   nsAutoCString strStatus;
   nsresult status = NS_OK;
-  LOG(("nsUrlClassifierStreamUpdater::OnStartRequest"));
 
   
   nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(request);
   if (httpChannel) {
     rv = httpChannel->GetStatus(&status);
-    LOG(("nsUrlClassifierStreamUpdater::OnStartRequest (status=%x)", status));
     NS_ENSURE_SUCCESS(rv, rv);
 
-    if (NS_FAILED(status)) {
+    if (NS_ERROR_CONNECTION_REFUSED == status ||
+        NS_ERROR_NET_TIMEOUT == status) {
       
       downloadError = true;
-    } else {
+    }
+
+    if (NS_SUCCEEDED(status)) {
       bool succeeded = false;
       rv = httpChannel->GetRequestSucceeded(&succeeded);
       NS_ENSURE_SUCCESS(rv, rv);
 
-      LOG(("nsUrlClassifierStreamUpdater::OnStartRequest (%s)", succeeded ?
-           "succeeded" : "failed"));
       if (!succeeded) {
         
         LOG(("HTTP request returned failure code."));
@@ -476,7 +473,6 @@ nsUrlClassifierStreamUpdater::OnStartRequest(nsIRequest *request,
   }
 
   if (downloadError) {
-    LOG(("nsUrlClassifierStreamUpdater::Download error"));
     mDownloadErrorCallback->HandleEvent(strStatus);
     mDownloadError = true;
     status = NS_ERROR_ABORT;
@@ -544,12 +540,7 @@ nsUrlClassifierStreamUpdater::OnStopRequest(nsIRequest *request, nsISupports* co
 
   mChannel = nullptr;
 
-  
-  
-  if (NS_SUCCEEDED(aStatus)) {
-    return rv;
-  }
-  return aStatus;
+  return rv;
 }
 
 
