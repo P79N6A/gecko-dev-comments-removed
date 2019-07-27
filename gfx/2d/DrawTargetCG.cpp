@@ -266,9 +266,9 @@ class UnboundnessFixer
 {
     CGRect mClipBounds;
     CGLayerRef mLayer;
-    CGContextRef mCg;
+    CGContextRef mLayerCg;
   public:
-    UnboundnessFixer() : mCg(nullptr) {}
+    UnboundnessFixer() : mLayerCg(nullptr) {}
 
     CGContextRef Check(CGContextRef baseCg, CompositionOp blend, const Rect* maskBounds = nullptr)
     {
@@ -287,14 +287,14 @@ class UnboundnessFixer
         
         
         mLayer = CGLayerCreateWithContext(baseCg, mClipBounds.size, nullptr);
-        mCg = CGLayerGetContext(mLayer);
+        mLayerCg = CGLayerGetContext(mLayer);
         
         
         
-        CGContextTranslateCTM(mCg, -mClipBounds.origin.x, mClipBounds.origin.y + mClipBounds.size.height);
-        CGContextScaleCTM(mCg, 1, -1);
+        CGContextTranslateCTM(mLayerCg, -mClipBounds.origin.x, mClipBounds.origin.y + mClipBounds.size.height);
+        CGContextScaleCTM(mLayerCg, 1, -1);
 
-        return mCg;
+        return mLayerCg;
       } else {
         return baseCg;
       }
@@ -302,12 +302,13 @@ class UnboundnessFixer
 
     void Fix(CGContextRef baseCg)
     {
-        if (mCg) {
+        if (mLayerCg) {
+            
             CGContextTranslateCTM(baseCg, 0, mClipBounds.size.height);
             CGContextScaleCTM(baseCg, 1, -1);
             mClipBounds.origin.y *= -1;
             CGContextDrawLayerAtPoint(baseCg, mClipBounds.origin, mLayer);
-            CGContextRelease(mCg);
+            CGContextRelease(mLayerCg);
         }
     }
 };
