@@ -146,6 +146,9 @@ public:
 
 
 
+
+
+
   bool OffsetsToDOMRange(int32_t aStartOffset, int32_t aEndOffset,
                          nsRange* aRange);
 
@@ -517,6 +520,23 @@ protected:
   void GetSelectionDOMRanges(int16_t aType, nsTArray<nsRange*>* aRanges);
 
   nsresult SetSelectionRange(int32_t aStartPos, int32_t aEndPos);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  DOMPoint ClosestNotGeneratedDOMPoint(const DOMPoint& aDOMPoint,
+                                       nsIContent* aElementContent);
 
   
   nsresult GetDOMPointByFrameOffset(nsIFrame* aFrame, int32_t aOffset,

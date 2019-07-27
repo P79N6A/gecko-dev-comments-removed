@@ -352,6 +352,23 @@ HyperTextAccessible::TransformOffset(Accessible* aDescendant,
   return CharacterCount();
 }
 
+
+
+
+
+
+
+
+
+static nsIContent* GetElementAsContentOf(nsINode* aNode)
+{
+  if (aNode->IsElement()) {
+    return aNode->AsContent();
+  }
+  nsIContent* parent = aNode->GetParent();
+  return parent && parent->IsElement() ? parent : nullptr;
+}
+
 bool
 HyperTextAccessible::OffsetsToDOMRange(int32_t aStartOffset, int32_t aEndOffset,
                                        nsRange* aRange)
@@ -360,9 +377,19 @@ HyperTextAccessible::OffsetsToDOMRange(int32_t aStartOffset, int32_t aEndOffset,
   if (!startPoint.node)
     return false;
 
-  aRange->SetStart(startPoint.node, startPoint.idx);
+  
+  
+  
+  
+
+  nsIContent* container = GetElementAsContentOf(startPoint.node);
+  DOMPoint startPointForDOMRange =
+    ClosestNotGeneratedDOMPoint(startPoint, container);
+  aRange->SetStart(startPointForDOMRange.node, startPointForDOMRange.idx);
+
+  
   if (aStartOffset == aEndOffset) {
-    aRange->SetEnd(startPoint.node, startPoint.idx);
+    aRange->Collapse(true);
     return true;
   }
 
@@ -370,7 +397,13 @@ HyperTextAccessible::OffsetsToDOMRange(int32_t aStartOffset, int32_t aEndOffset,
   if (!endPoint.node)
     return false;
 
-  aRange->SetEnd(endPoint.node, endPoint.idx);
+  if (startPoint.node != endPoint.node) {
+    container = GetElementAsContentOf(endPoint.node);
+  }
+
+  DOMPoint endPointForDOMRange =
+    ClosestNotGeneratedDOMPoint(endPoint, container);
+  aRange->SetEnd(endPointForDOMRange.node, endPointForDOMRange.idx);
   return true;
 }
 
@@ -419,6 +452,36 @@ HyperTextAccessible::OffsetToDOMPoint(int32_t aOffset)
   return parentNode ?
     DOMPoint(parentNode, parentNode->IndexOf(node) + innerOffset) :
     DOMPoint();
+}
+
+DOMPoint
+HyperTextAccessible::ClosestNotGeneratedDOMPoint(const DOMPoint& aDOMPoint,
+                                                 nsIContent* aElementContent)
+{
+  MOZ_ASSERT(aDOMPoint.node, "The node must not be null");
+
+  
+  if (aElementContent &&
+      aElementContent->NodeInfo()->NameAtom() == nsGkAtoms::mozgeneratedcontentbefore) {
+    MOZ_ASSERT(aElementContent->GetParent(),
+               "::before must have parent element");
+    
+    
+    return DOMPoint(aElementContent->GetParent(), 0);
+  }
+
+  
+  if (aElementContent &&
+      aElementContent->NodeInfo()->NameAtom() == nsGkAtoms::mozgeneratedcontentafter) {
+    MOZ_ASSERT(aElementContent->GetParent(),
+               "::after must have parent element");
+    
+    
+    return DOMPoint(aElementContent->GetParent(),
+                    aElementContent->GetParent()->GetChildCount());
+  }
+
+  return aDOMPoint;
 }
 
 uint32_t
