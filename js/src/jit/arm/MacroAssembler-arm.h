@@ -407,6 +407,9 @@ class MacroAssemblerARM : public Assembler
     
     
     void ma_callIonHalfPush(const Register reg);
+    
+    
+    void ma_callIonHalfPush(Label *label);
 
     void ma_call(ImmPtr dest);
 
@@ -1276,6 +1279,7 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     
     bool buildFakeExitFrame(Register scratch, uint32_t *offset);
 
+    void callWithExitFrame(Label *target);
     void callWithExitFrame(JitCode *target);
     void callWithExitFrame(JitCode *target, Register dynStack);
 

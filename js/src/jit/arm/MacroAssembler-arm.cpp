@@ -1805,6 +1805,15 @@ MacroAssemblerARMCompat::buildOOLFakeExitFrame(void *fakeReturnAddr)
 }
 
 void
+MacroAssemblerARMCompat::callWithExitFrame(Label *target)
+{
+    uint32_t descriptor = MakeFrameDescriptor(framePushed(), JitFrame_IonJS);
+    Push(Imm32(descriptor)); 
+
+    ma_callIonHalfPush(target);
+}
+
+void
 MacroAssemblerARMCompat::callWithExitFrame(JitCode *target)
 {
     uint32_t descriptor = MakeFrameDescriptor(framePushed(), JitFrame_IonJS);
@@ -3717,6 +3726,17 @@ MacroAssemblerARM::ma_callIonHalfPush(const Register r)
     AutoForbidPools afp(this, 2);
     ma_push(pc);
     as_blx(r);
+}
+
+void
+MacroAssemblerARM::ma_callIonHalfPush(Label *label)
+{
+    
+    
+    
+    AutoForbidPools afp(this, 2);
+    ma_push(pc);
+    as_bl(label, Always);
 }
 
 void

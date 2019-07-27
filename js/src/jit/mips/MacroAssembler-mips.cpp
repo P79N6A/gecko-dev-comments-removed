@@ -1490,6 +1490,15 @@ MacroAssemblerMIPSCompat::buildOOLFakeExitFrame(void *fakeReturnAddr)
 }
 
 void
+MacroAssemblerMIPSCompat::callWithExitFrame(Label *target)
+{
+    uint32_t descriptor = MakeFrameDescriptor(framePushed(), JitFrame_IonJS);
+    Push(Imm32(descriptor)); 
+
+    ma_callIonHalfPush(target);
+}
+
+void
 MacroAssemblerMIPSCompat::callWithExitFrame(JitCode *target)
 {
     uint32_t descriptor = MakeFrameDescriptor(framePushed(), JitFrame_IonJS);
@@ -3086,6 +3095,17 @@ MacroAssemblerMIPS::ma_callIonHalfPush(const Register r)
     as_addiu(StackPointer, StackPointer, -sizeof(intptr_t));
     as_jalr(r);
     as_sw(ra, StackPointer, 0);
+}
+
+
+
+void
+MacroAssemblerMIPS::ma_callIonHalfPush(Label *label)
+{
+    
+    as_addiu(StackPointer, StackPointer, -sizeof(intptr_t));
+    
+    
 }
 
 void

@@ -1176,6 +1176,7 @@ class MacroAssemblerX86Shared : public Assembler
     
     
     bool buildFakeExitFrame(Register scratch, uint32_t *offset);
+    void callWithExitFrame(Label *target);
     void callWithExitFrame(JitCode *target);
 
     void call(const CallSiteDesc &desc, Label *label) {

@@ -953,6 +953,15 @@ class MacroAssembler : public MacroAssemblerSpecific
     }
 
     
+    uint32_t callWithExitFrame(Label *target) {
+        leaveSPSFrame();
+        MacroAssemblerSpecific::callWithExitFrame(target);
+        uint32_t ret = currentOffset();
+        reenterSPSFrame();
+        return ret;
+    }
+
+    
     uint32_t callWithExitFrame(JitCode *target) {
         leaveSPSFrame();
         MacroAssemblerSpecific::callWithExitFrame(target);

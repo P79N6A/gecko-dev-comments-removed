@@ -1874,9 +1874,6 @@ AttachFinishedCompilations(JSContext *cx)
         if (!builder)
             break;
 
-
-
-#if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
         
         
         if (builder->info().executionMode() == SequentialExecution &&
@@ -1906,7 +1903,6 @@ AttachFinishedCompilations(JSContext *cx)
                 continue;
             }
         }
-#endif
 
         if (CodeGenerator *codegen = builder->backgroundCodegen()) {
             RootedScript script(cx, builder->script());
