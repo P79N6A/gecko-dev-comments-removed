@@ -47,9 +47,7 @@ function test() {
 
   let urls = [
     "data:text/html,<body>hi",
-    
-    
-    
+    "javascript:1;"
   ];
 
   function nextTest() {
