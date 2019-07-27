@@ -291,37 +291,42 @@ class RegisterAllocator
         return mir->alloc();
     }
 
-    CodePosition outputOf(uint32_t pos) const {
-        
-        
-        
-        if (insData[pos]->isPhi()) {
-            while (insData[pos + 1]->isPhi())
-                ++pos;
-        }
-        return CodePosition(pos, CodePosition::OUTPUT);
-    }
     CodePosition outputOf(const LNode *ins) const {
-        return outputOf(ins->id());
+        return ins->isPhi()
+               ? outputOf(ins->toPhi())
+               : outputOf(ins->toInstruction());
     }
-    CodePosition inputOf(uint32_t pos) const {
+    CodePosition outputOf(const LPhi *ins) const {
         
         
         
-        if (insData[pos]->isPhi()) {
-            while (pos > 0 && insData[pos - 1]->isPhi())
-                --pos;
-        }
-        return CodePosition(pos, CodePosition::INPUT);
+        LBlock *block = ins->block();
+        return CodePosition(block->getPhi(block->numPhis() - 1)->id(), CodePosition::OUTPUT);
+    }
+    CodePosition outputOf(const LInstruction *ins) const {
+        return CodePosition(ins->id(), CodePosition::OUTPUT);
     }
     CodePosition inputOf(const LNode *ins) const {
-        return inputOf(ins->id());
+        return ins->isPhi()
+               ? inputOf(ins->toPhi())
+               : inputOf(ins->toInstruction());
+    }
+    CodePosition inputOf(const LPhi *ins) const {
+        
+        
+        
+        return CodePosition(ins->block()->getPhi(0)->id(), CodePosition::INPUT);
+    }
+    CodePosition inputOf(const LInstruction *ins) const {
+        return CodePosition(ins->id(), CodePosition::INPUT);
     }
     CodePosition entryOf(const LBlock *block) {
-        return inputOf(block->firstId());
+        return block->numPhis() != 0
+               ? CodePosition(block->getPhi(0)->id(), CodePosition::INPUT)
+               : inputOf(block->firstInstructionWithId());
     }
     CodePosition exitOf(const LBlock *block) {
-        return outputOf(block->lastId());
+        return outputOf(block->lastInstructionWithId());
     }
 
     LMoveGroup *getInputMoveGroup(uint32_t id);

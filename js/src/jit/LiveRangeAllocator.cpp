@@ -775,7 +775,7 @@ LiveRangeAllocator<VREG, forLSRA>::buildLivenessInfo()
                     LUse *use = inputAlloc->toUse();
 
                     
-                    MOZ_ASSERT_IF(forLSRA, inputOf(*ins) > outputOf(block->firstId()));
+                    MOZ_ASSERT_IF(forLSRA, inputOf(*ins) > outputOf(block->firstElementWithId()));
 
                     
                     
@@ -867,11 +867,9 @@ LiveRangeAllocator<VREG, forLSRA>::buildLivenessInfo()
             } else {
                 
                 
-                if (!vregs[def].getInterval(0)->addRangeAtHead(entryOf(block),
-                                                               outputOf(block->firstId())))
-                {
+                CodePosition entryPos = entryOf(block);
+                if (!vregs[def].getInterval(0)->addRangeAtHead(entryPos, entryPos.next()))
                     return false;
-                }
             }
         }
 
