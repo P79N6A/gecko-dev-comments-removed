@@ -169,8 +169,14 @@ HTMLLabelElement::PostHandleEvent(EventChainPostVisitor& aVisitor)
               
               
               
+              
+              
+              
+              
               nsCOMPtr<nsIDOMElement> elem = do_QueryInterface(content);
-              fm->SetFocus(elem, nsIFocusManager::FLAG_BYMOVEFOCUS);
+              bool byMouse = (mouseEvent->inputSource != nsIDOMMouseEvent::MOZ_SOURCE_KEYBOARD);
+              fm->SetFocus(elem, nsIFocusManager::FLAG_BYMOVEFOCUS |
+                                 (byMouse ? nsIFocusManager::FLAG_BYMOUSE : 0));
             }
           }
           
