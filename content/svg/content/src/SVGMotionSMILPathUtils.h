@@ -33,7 +33,7 @@ public:
   
   class PathGenerator {
   public:
-    PathGenerator(const nsSVGElement* aSVGElement)
+    explicit PathGenerator(const nsSVGElement* aSVGElement)
       : mSVGElement(aSVGElement),
         mHaveReceivedCommands(false)
     {
