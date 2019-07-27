@@ -7,8 +7,9 @@
 #ifndef mozilla_BackgroundHangMonitor_h
 #define mozilla_BackgroundHangMonitor_h
 
-#include "mozilla/RefPtr.h"
+#include "mozilla/HangAnnotations.h"
 #include "mozilla/Monitor.h"
+#include "mozilla/RefPtr.h"
 
 #include <stdint.h>
 
@@ -227,6 +228,21 @@ public:
 
 
   static void Allow();
+
+  
+
+
+
+
+  static bool RegisterAnnotator(HangMonitor::Annotator& aAnnotator);
+
+  
+
+
+
+
+
+  static bool UnregisterAnnotator(HangMonitor::Annotator& aAnnotator);
 };
 
 } 
