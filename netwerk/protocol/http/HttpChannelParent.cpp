@@ -98,7 +98,7 @@ HttpChannelParent::ActorDestroy(ActorDestroyReason why)
   
   
   if (mInterceptedChannel) {
-    mInterceptedChannel->Cancel(NS_ERROR_INTERCEPTION_FAILED);
+    mInterceptedChannel->Cancel();
     mInterceptedChannel = nullptr;
   }
 }
