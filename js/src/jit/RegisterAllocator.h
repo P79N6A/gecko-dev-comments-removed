@@ -261,7 +261,7 @@ class RegisterAllocator
     LIRGraph &graph;
 
     
-    RegisterSet allRegisters_;
+    AllocatableRegisterSet allRegisters_;
 
     
     InstructionDataMap insData;

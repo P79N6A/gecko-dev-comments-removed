@@ -1248,10 +1248,10 @@ class ABIArg
 
 
 
-inline GeneralRegisterSet
-SavedNonVolatileRegisters(GeneralRegisterSet unused)
+inline LiveGeneralRegisterSet
+SavedNonVolatileRegisters(AllocatableGeneralRegisterSet unused)
 {
-    GeneralRegisterSet result;
+    LiveGeneralRegisterSet result;
 
     for (GeneralRegisterIterator iter(GeneralRegisterSet::NonVolatile()); iter.more(); iter++) {
         Register reg = *iter;

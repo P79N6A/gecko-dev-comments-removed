@@ -19,9 +19,9 @@ using namespace js::jit;
 
 
 
-static const RegisterSet AllRegs =
-  RegisterSet(GeneralRegisterSet(Registers::AllMask),
-              FloatRegisterSet(FloatRegisters::AllMask));
+static const LiveRegisterSet AllRegs =
+    LiveRegisterSet(GeneralRegisterSet(Registers::AllMask),
+                         FloatRegisterSet(FloatRegisters::AllMask));
 
 
 
@@ -150,7 +150,7 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     CodeLabel returnLabel;
     if (type == EnterJitBaseline) {
         
-        GeneralRegisterSet regs(GeneralRegisterSet::All());
+        AllocatableGeneralRegisterSet regs(GeneralRegisterSet::All());
         regs.takeUnchecked(OsrFrameReg);
         regs.take(rbp);
         regs.take(reg_code);
@@ -516,12 +516,11 @@ PushBailoutFrame(MacroAssembler &masm, Register spArg)
         
         
         
-        RegisterSet set = AllRegs;
-        for (GeneralRegisterBackwardIterator iter(set.gprs()); iter.more(); iter++)
+        for (GeneralRegisterBackwardIterator iter(AllRegs.gprs()); iter.more(); iter++)
             masm.Push(*iter);
 
         masm.reserveStack(sizeof(RegisterDump::FPUArray));
-        for (FloatRegisterBackwardIterator iter(set.fpus()); iter.more(); iter++) {
+        for (FloatRegisterBackwardIterator iter(AllRegs.fpus()); iter.more(); iter++) {
             FloatRegister reg = *iter;
             Address spillAddress(StackPointer, reg.getRegisterDumpOffsetInBytes());
             masm.storeDouble(reg, spillAddress);
@@ -602,7 +601,7 @@ JitRuntime::generateVMWrapper(JSContext *cx, const VMFunction &f)
 
     
     
-    GeneralRegisterSet regs = GeneralRegisterSet(Register::Codes::WrapperMask);
+    AllocatableGeneralRegisterSet regs(Register::Codes::WrapperMask);
 
     
     JS_STATIC_ASSERT((Register::Codes::VolatileMask & ~Register::Codes::WrapperMask) == 0);
@@ -777,8 +776,9 @@ JitRuntime::generatePreBarrier(JSContext *cx, MIRType type)
 {
     MacroAssembler masm;
 
-    RegisterSet regs = RegisterSet(GeneralRegisterSet(Registers::VolatileMask),
-                                   FloatRegisterSet(FloatRegisters::VolatileMask));
+    LiveRegisterSet regs =
+        LiveRegisterSet(GeneralRegisterSet(Registers::VolatileMask),
+                             FloatRegisterSet(FloatRegisters::VolatileMask));
     masm.PushRegsInMask(regs);
 
     MOZ_ASSERT(PreBarrierReg == rdx);

@@ -8229,19 +8229,19 @@ StackDecrementForCall(MacroAssembler &masm, uint32_t alignment, const VectorT &a
 #if defined(JS_CODEGEN_ARM)
 
 
-static const RegisterSet NonVolatileRegs =
-    RegisterSet(GeneralRegisterSet(Registers::NonVolatileMask &
-                                   ~(uint32_t(1) << Registers::lr)),
-                FloatRegisterSet(FloatRegisters::NonVolatileMask
-                                 | (1ULL << FloatRegisters::d15)
-                                 | (1ULL << FloatRegisters::s31)));
+static const LiveRegisterSet NonVolatileRegs =
+    LiveRegisterSet(GeneralRegisterSet(Registers::NonVolatileMask &
+                                       ~(uint32_t(1) << Registers::lr)),
+                    FloatRegisterSet(FloatRegisters::NonVolatileMask
+                                     | (1ULL << FloatRegisters::d15)
+                                     | (1ULL << FloatRegisters::s31)));
 #else
-static const RegisterSet NonVolatileRegs =
-    RegisterSet(GeneralRegisterSet(Registers::NonVolatileMask),
-                FloatRegisterSet(FloatRegisters::NonVolatileMask));
+static const LiveRegisterSet NonVolatileRegs =
+    LiveRegisterSet(GeneralRegisterSet(Registers::NonVolatileMask),
+                    FloatRegisterSet(FloatRegisters::NonVolatileMask));
 #endif
-static const FloatRegisterSet NonVolatileSimdRegs = SupportsSimd ? NonVolatileRegs.fpus()
-                                                                 : FloatRegisterSet();
+static const LiveFloatRegisterSet NonVolatileSimdRegs(
+    SupportsSimd ? NonVolatileRegs.fpus() : FloatRegisterSet());
 
 #if defined(JS_CODEGEN_MIPS)
 
@@ -9031,10 +9031,10 @@ GenerateOnOutOfBoundsLabelExit(ModuleCompiler &m, Label *throwLabel)
     return m.finishGeneratingInlineStub(&m.onOutOfBoundsLabel()) && !masm.oom();
 }
 
-static const RegisterSet AllRegsExceptSP =
-    RegisterSet(GeneralRegisterSet(Registers::AllMask &
-                                   ~(uint32_t(1) << Registers::StackPointer)),
-                FloatRegisterSet(FloatRegisters::AllDoubleMask));
+static const LiveRegisterSet AllRegsExceptSP(
+    GeneralRegisterSet(Registers::AllMask &
+                       ~(uint32_t(1) << Registers::StackPointer)),
+    FloatRegisterSet(FloatRegisters::AllDoubleMask));
 
 
 
@@ -9058,7 +9058,8 @@ GenerateAsyncInterruptExit(ModuleCompiler &m, Label *throwLabel)
     masm.push(Imm32(0));            
     masm.pushFlags();               
     masm.setFramePushed(0);         
-    masm.PushRegsInMask(AllRegsExceptSP, AllRegsExceptSP.fpus()); 
+    LiveFloatRegisterSet simdSet(AllRegsExceptSP.fpus());
+    masm.PushRegsInMask(AllRegsExceptSP, simdSet); 
 
     Register scratch = ABIArgGenerator::NonArgReturnReg0;
 
@@ -9083,7 +9084,7 @@ GenerateAsyncInterruptExit(ModuleCompiler &m, Label *throwLabel)
     masm.mov(ABIArgGenerator::NonVolatileReg, StackPointer);
 
     
-    masm.PopRegsInMask(AllRegsExceptSP, AllRegsExceptSP.fpus()); 
+    masm.PopRegsInMask(AllRegsExceptSP, simdSet); 
     masm.popFlags();              
     masm.ret();                   
 #elif defined(JS_CODEGEN_MIPS)
@@ -9128,7 +9129,11 @@ GenerateAsyncInterruptExit(ModuleCompiler &m, Label *throwLabel)
     masm.loadAsmJSHeapRegisterFromGlobalData();
 #elif defined(JS_CODEGEN_ARM)
     masm.setFramePushed(0);         
-    masm.PushRegsInMask(RegisterSet(GeneralRegisterSet(Registers::AllMask & ~(1<<Registers::sp)), FloatRegisterSet(uint32_t(0))));   
+
+    
+    masm.PushRegsInMask(LiveRegisterSet(
+                            GeneralRegisterSet(Registers::AllMask & ~(1<<Registers::sp)),
+                            FloatRegisterSet(uint32_t(0))));
 
     
     masm.as_mrs(r4);
@@ -9145,8 +9150,11 @@ GenerateAsyncInterruptExit(ModuleCompiler &m, Label *throwLabel)
 
     
     
+
+    
     JS_STATIC_ASSERT(!SupportsSimd);
-    masm.PushRegsInMask(RegisterSet(GeneralRegisterSet(0), FloatRegisterSet(FloatRegisters::AllDoubleMask)));   
+    masm.PushRegsInMask(LiveRegisterSet(GeneralRegisterSet(0),
+                                             FloatRegisterSet(FloatRegisters::AllDoubleMask)));
 
     masm.assertStackAlignment(ABIStackAlignment);
     masm.call(AsmJSImm_HandleExecutionInterrupt);
@@ -9154,7 +9162,10 @@ GenerateAsyncInterruptExit(ModuleCompiler &m, Label *throwLabel)
     masm.branchIfFalseBool(ReturnReg, throwLabel);
 
     
-    masm.PopRegsInMask(RegisterSet(GeneralRegisterSet(0), FloatRegisterSet(FloatRegisters::AllDoubleMask)));   
+
+    
+    masm.PopRegsInMask(LiveRegisterSet(GeneralRegisterSet(0),
+                                            FloatRegisterSet(FloatRegisters::AllDoubleMask)));
     masm.mov(r6,sp);
     masm.as_vmsr(r5);
     masm.as_msr(r4);

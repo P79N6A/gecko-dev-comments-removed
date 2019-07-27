@@ -181,7 +181,9 @@ class MOZ_STACK_CLASS NativeRegExpMacroAssembler : public RegExpMacroAssembler
     jit::Label stack_overflow_label_;
     jit::Label exit_with_exception_label_;
 
-    jit::GeneralRegisterSet savedNonVolatileRegisters;
+    
+    
+    jit::LiveGeneralRegisterSet savedNonVolatileRegisters;
 
     struct LabelPatch {
         

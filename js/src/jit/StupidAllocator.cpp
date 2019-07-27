@@ -76,12 +76,12 @@ StupidAllocator::init()
     
     {
         registerCount = 0;
-        RegisterSet remainingRegisters(allRegisters_);
-        while (!remainingRegisters.empty( false))
-            registers[registerCount++].reg = AnyRegister(remainingRegisters.takeUnaliasedGeneral());
+        LiveRegisterSet remainingRegisters(allRegisters_.asLiveSet());
+        while (!remainingRegisters.emptyGeneral())
+            registers[registerCount++].reg = AnyRegister(remainingRegisters.takeAnyGeneral());
 
-        while (!remainingRegisters.empty( true))
-            registers[registerCount++].reg = AnyRegister(remainingRegisters.takeUnaliasedFloat());
+        while (!remainingRegisters.emptyFloat())
+            registers[registerCount++].reg = AnyRegister(remainingRegisters.takeAnyFloat());
 
         MOZ_ASSERT(registerCount <= MAX_REGISTERS);
     }

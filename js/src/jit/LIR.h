@@ -1323,15 +1323,15 @@ class LSafepoint : public TempObject
     
     
     
-    RegisterSet liveRegs_;
+    LiveRegisterSet liveRegs_;
 
     
-    GeneralRegisterSet gcRegs_;
+    LiveGeneralRegisterSet gcRegs_;
 
 #ifdef CHECK_OSIPOINT_REGISTERS
     
     
-    RegisterSet clobberedRegs_;
+    LiveRegisterSet clobberedRegs_;
 #endif
 
     
@@ -1352,11 +1352,11 @@ class LSafepoint : public TempObject
     NunboxList nunboxParts_;
 #elif JS_PUNBOX64
     
-    GeneralRegisterSet valueRegs_;
+    LiveGeneralRegisterSet valueRegs_;
 #endif
 
     
-    GeneralRegisterSet slotsOrElementsRegs_;
+    LiveGeneralRegisterSet slotsOrElementsRegs_;
 
     
     SlotList slotsOrElementsSlots_;
@@ -1386,7 +1386,7 @@ class LSafepoint : public TempObject
         liveRegs_.addUnchecked(reg);
         assertInvariants();
     }
-    const RegisterSet &liveRegs() const {
+    const LiveRegisterSet &liveRegs() const {
         return liveRegs_;
     }
 #ifdef CHECK_OSIPOINT_REGISTERS
@@ -1394,7 +1394,7 @@ class LSafepoint : public TempObject
         clobberedRegs_.addUnchecked(reg);
         assertInvariants();
     }
-    const RegisterSet &clobberedRegs() const {
+    const LiveRegisterSet &clobberedRegs() const {
         return clobberedRegs_;
     }
 #endif
@@ -1402,7 +1402,7 @@ class LSafepoint : public TempObject
         gcRegs_.addUnchecked(reg);
         assertInvariants();
     }
-    GeneralRegisterSet gcRegs() const {
+    LiveGeneralRegisterSet gcRegs() const {
         return gcRegs_;
     }
     bool addGcSlot(bool stack, uint32_t slot) {
@@ -1418,7 +1418,7 @@ class LSafepoint : public TempObject
     SlotList &slotsOrElementsSlots() {
         return slotsOrElementsSlots_;
     }
-    GeneralRegisterSet slotsOrElementsRegs() const {
+    LiveGeneralRegisterSet slotsOrElementsRegs() const {
         return slotsOrElementsRegs_;
     }
     void addSlotsOrElementsRegister(Register reg) {
@@ -1567,7 +1567,7 @@ class LSafepoint : public TempObject
         valueRegs_.add(reg);
         assertInvariants();
     }
-    GeneralRegisterSet valueRegs() const {
+    LiveGeneralRegisterSet valueRegs() const {
         return valueRegs_;
     }
 

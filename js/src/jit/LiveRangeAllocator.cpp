@@ -645,18 +645,10 @@ LiveRangeAllocator<VREG, forLSRA>::buildLivenessInfo()
         for (LInstructionReverseIterator ins = block->rbegin(); ins != block->rend(); ins++) {
             
             if (ins->isCall()) {
-                for (AnyRegisterIterator iter(allRegisters_); iter.more(); iter++) {
+                for (AnyRegisterIterator iter(allRegisters_.asLiveSet()); iter.more(); iter++) {
                     if (forLSRA) {
-                        AnyRegister reg(*iter);
-                        
-                        
-                        
-                        
-                        
-                        for (size_t i = 0; i < reg.numAliased(); i++) {
-                            if (!addFixedRangeAtHead(reg.aliased(i), inputOf(*ins), outputOf(*ins)))
-                                return false;
-                        }
+                        if (!addFixedRangeAtHead(*iter, inputOf(*ins), outputOf(*ins)))
+                            return false;
                     } else {
                         bool found = false;
 
