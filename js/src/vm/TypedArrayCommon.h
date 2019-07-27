@@ -163,7 +163,12 @@ class ElementSpecific
         void *data = source->viewData();
         switch (source->type()) {
           case Scalar::Int8: {
+#ifdef __arm__
+            
+            volatile
+#endif
             int8_t *src = static_cast<int8_t*>(data);
+
             for (uint32_t i = 0; i < count; ++i)
                 *dest++ = T(*src++);
             break;
