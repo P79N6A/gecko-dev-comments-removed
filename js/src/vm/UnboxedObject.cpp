@@ -446,7 +446,6 @@ UnboxedLayout::makeNativeGroup(JSContext* cx, ObjectGroup* group)
 
     
     
-    
     if (layout.allocationScript()) {
         MOZ_ASSERT(!layout.isArray());
 
@@ -457,7 +456,8 @@ UnboxedLayout::makeNativeGroup(JSContext* cx, ObjectGroup* group)
         if (!replacementGroup)
             return false;
 
-        replacementGroup->setOriginalUnboxedGroup(group);
+        PlainObject* templateObject = &script->getObject(pc)->as<PlainObject>();
+        replacementGroup->addDefiniteProperties(cx, templateObject->lastProperty());
 
         cx->compartment()->objectGroups.replaceAllocationSiteGroup(script, pc,
                                                                    JSProto_Object,
