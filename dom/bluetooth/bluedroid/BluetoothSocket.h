@@ -25,19 +25,6 @@ public:
 
   bool Connect(const nsAString& aDeviceAddress, int aChannel);
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
   bool Listen(int aChannel);
 
   inline void Disconnect()
