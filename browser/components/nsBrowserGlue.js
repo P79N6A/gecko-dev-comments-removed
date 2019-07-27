@@ -1113,7 +1113,7 @@ BrowserGlue.prototype = {
       }
       catch (ex) {  }
 
-      Services.setBoolPref("browser.shell.isSetAsDefaultBrowser", isDefault);
+      Services.prefs.setBoolPref("browser.shell.isSetAsDefaultBrowser", isDefault);
 
       if (shouldCheck && !isDefault && !willRecoverSession) {
         Services.tm.mainThread.dispatch(function() {
