@@ -92,6 +92,8 @@ private:
   int64_t mLastStreamOffset;
   
   bool mSignaledEOS;
+  
+  bool mDrainComplete;
 };
 
 } 
