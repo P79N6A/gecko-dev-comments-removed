@@ -105,7 +105,7 @@ private:
   
   
   
-  RefPtr<AudioStream> mAudioStream;
+  nsRefPtr<AudioStream> mAudioStream;
 
   
   

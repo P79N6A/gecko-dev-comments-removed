@@ -245,12 +245,13 @@ AudioSink::Drain()
 void
 AudioSink::Cleanup()
 {
-  
-  
   AssertCurrentThreadInMonitor();
-  mAudioStream->Shutdown();
-  mAudioStream = nullptr;
+  nsRefPtr<AudioStream> audioStream;
+  audioStream.swap(mAudioStream);
   mStateMachine->OnAudioSinkComplete();
+
+  ReentrantMonitorAutoExit exit(GetReentrantMonitor());
+  audioStream->Shutdown();
 }
 
 bool
