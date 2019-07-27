@@ -340,6 +340,10 @@ public:
   {
     return (gfxPrefs::LayoutEventRegionsEnabled() && mMode == PAINTING);
   }
+  bool IsInsidePointerEventsNoneDoc()
+  {
+    return CurrentPresShellState()->mInsidePointerEventsNoneDoc;
+  }
 
   bool GetAncestorHasTouchEventHandler() { return mAncestorHasTouchEventHandler; }
   void SetAncestorHasTouchEventHandler(bool aValue)
@@ -392,7 +396,10 @@ public:
 
 
 
-  void EnterPresShell(nsIFrame* aReferenceFrame);
+
+
+  void EnterPresShell(nsIFrame* aReferenceFrame,
+                      bool aPointerEventsNoneDoc = false);
   
 
 
@@ -815,6 +822,10 @@ private:
     nsRect        mCaretRect;
     uint32_t      mFirstFrameMarkedForDisplay;
     bool          mIsBackgroundOnly;
+    
+    
+    
+    bool          mInsidePointerEventsNoneDoc;
   };
 
   PresShellState* CurrentPresShellState() {

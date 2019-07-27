@@ -363,21 +363,23 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     decorations.MoveTo(aLists);
   }
 
-  bool passPointerEventsToChildren = false;
-  if (aBuilder->IsForEventDelivery()) {
-    passPointerEventsToChildren = PassPointerEventsToChildren();
-    
-    
-    if (pointerEventsNone && !passPointerEventsToChildren) {
-      return;
-    }
+  
+  
+  bool passPointerEventsToChildren =
+    (aBuilder->IsForEventDelivery() || aBuilder->IsBuildingLayerEventRegions())
+    ? PassPointerEventsToChildren() : false;
+
+  
+  
+  if (aBuilder->IsForEventDelivery() && pointerEventsNone && !passPointerEventsToChildren) {
+    return;
   }
 
   
   
   
-  if (!mInnerView ||
-      (!aBuilder->GetDescendIntoSubdocuments() && !passPointerEventsToChildren)) {
+  bool needToDescend = aBuilder->GetDescendIntoSubdocuments() || passPointerEventsToChildren;
+  if (!mInnerView || !needToDescend) {
     return;
   }
 
@@ -440,7 +442,8 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       }
     }
 
-    aBuilder->EnterPresShell(subdocRootFrame);
+    aBuilder->EnterPresShell(subdocRootFrame,
+                             pointerEventsNone && !passPointerEventsToChildren);
   } else {
     dirty = aDirtyRect;
   }
