@@ -344,6 +344,22 @@ nsDefaultURIFixup::GetFixupURIInfo(const nsACString& aStringURI, uint32_t aFixup
     
     
     nsCOMPtr<nsIURI> uriWithProtocol;
+    bool inputHadDuffProtocol = false;
+
+    
+    
+    
+    
+    
+    if (StringBeginsWith(uriString, NS_LITERAL_CSTRING("://")))
+    {
+        uriString = StringTail(uriString, uriString.Length() - 3);
+        inputHadDuffProtocol = true;
+    } else if (StringBeginsWith(uriString, NS_LITERAL_CSTRING("//"))) {
+        uriString = StringTail(uriString, uriString.Length() - 2);
+        inputHadDuffProtocol = true;
+    }
+
     
     
     
@@ -354,7 +370,8 @@ nsDefaultURIFixup::GetFixupURIInfo(const nsACString& aStringURI, uint32_t aFixup
 
     
     
-    if (sFixupKeywords && (aFixupFlags & FIXUP_FLAG_ALLOW_KEYWORD_LOOKUP)) {
+    if (sFixupKeywords && (aFixupFlags & FIXUP_FLAG_ALLOW_KEYWORD_LOOKUP) &&
+        !inputHadDuffProtocol) {
         KeywordURIFixup(uriString, info, aPostData);
         if (info->mPreferredURI)
             return NS_OK;
@@ -727,20 +744,6 @@ nsDefaultURIFixup::FixupURIProtocol(const nsACString & aURIString,
 {
     nsAutoCString uriString(aURIString);
     *aURI = nullptr;
-
-    
-    
-    
-    
-    
-    if (StringBeginsWith(uriString, NS_LITERAL_CSTRING("://")))
-    {
-        uriString = StringTail(uriString, uriString.Length() - 3);
-    }
-    else if (StringBeginsWith(uriString, NS_LITERAL_CSTRING("//")))
-    {
-        uriString = StringTail(uriString, uriString.Length() - 2);
-    }
 
     
     
