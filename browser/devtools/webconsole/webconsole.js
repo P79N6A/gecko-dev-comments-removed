@@ -1359,19 +1359,9 @@ WebConsoleFrame.prototype = {
   {
     
     
-    let severity = 'error';
+    let severity = SEVERITY_ERROR;
     if (aScriptError.warning || aScriptError.strict) {
-      severity = 'warning';
-    }
-
-    let category = 'js';
-    switch(aCategory) {
-      case CATEGORY_CSS:
-        category = 'css';
-        break;
-      case CATEGORY_SECURITY:
-        category = 'security';
-        break;
+      severity = SEVERITY_WARNING;
     }
 
     let objectActors = new Set();
@@ -1389,26 +1379,20 @@ WebConsoleFrame.prototype = {
       errorMessage = errorMessage.initial;
     }
 
-    
-    let msg = new Messages.Simple(errorMessage, {
-      location: {
-        url: aScriptError.sourceName,
-        line: aScriptError.lineNumber,
-        column: aScriptError.columnNumber
-      },
-      category: category,
-      severity: severity,
-      timestamp: aScriptError.timeStamp,
-      private: aScriptError.private,
-      filterDuplicates: true
-    });
-
-    let node = msg.init(this.output).render().element;
+    let node = this.createMessageNode(aCategory, severity,
+                                      errorMessage,
+                                      aScriptError.sourceName,
+                                      aScriptError.lineNumber, null, null,
+                                      aScriptError.timeStamp);
 
     
     let msgBody = node.getElementsByClassName("message-body")[0];
     
     this.addMoreInfoLink(msgBody, aScriptError);
+
+    if (aScriptError.private) {
+      node.setAttribute("private", true);
+    }
 
     if (objectActors.size > 0) {
       node._objectActors = objectActors;
@@ -2577,8 +2561,7 @@ WebConsoleFrame.prototype = {
     
     let locationNode;
     if (aSourceURL && IGNORED_SOURCE_URLS.indexOf(aSourceURL) == -1) {
-      locationNode = this.createLocationNode({url: aSourceURL,
-                                              line: aSourceLine});
+      locationNode = this.createLocationNode(aSourceURL, aSourceLine);
     }
 
     node.appendChild(timestampNode);
@@ -2629,11 +2612,14 @@ WebConsoleFrame.prototype = {
 
 
 
+
+
+
   createLocationNode:
-  function WCF_createLocationNode({url, line, column}, aTarget)
+  function WCF_createLocationNode(aSourceURL, aSourceLine, aTarget)
   {
-    if (!url) {
-      url = "";
+    if (!aSourceURL) {
+      aSourceURL = "";
     }
     let locationNode = this.document.createElementNS(XHTML_NS, "a");
     let filenameNode = this.document.createElementNS(XHTML_NS, "span");
@@ -2644,13 +2630,13 @@ WebConsoleFrame.prototype = {
     let fullURL;
     let isScratchpad = false;
 
-    if (/^Scratchpad\/\d+$/.test(url)) {
-      filename = url;
-      fullURL = url;
+    if (/^Scratchpad\/\d+$/.test(aSourceURL)) {
+      filename = aSourceURL;
+      fullURL = aSourceURL;
       isScratchpad = true;
     }
     else {
-      fullURL = url.split(" -> ").pop();
+      fullURL = aSourceURL.split(" -> ").pop();
       filename = WebConsoleUtils.abbreviateSourceURL(fullURL);
     }
 
@@ -2663,27 +2649,27 @@ WebConsoleFrame.prototype = {
     if (aTarget) {
       locationNode.target = aTarget;
     }
-    locationNode.setAttribute("title", url);
+    locationNode.setAttribute("title", aSourceURL);
     locationNode.className = "message-location theme-link devtools-monospace";
 
     
     let onClick = () => {
       let target = locationNode.target;
       if (target == "scratchpad" || isScratchpad) {
-        this.owner.viewSourceInScratchpad(url);
+        this.owner.viewSourceInScratchpad(aSourceURL);
         return;
       }
 
       let category = locationNode.parentNode.category;
       if (target == "styleeditor" || category == CATEGORY_CSS) {
-        this.owner.viewSourceInStyleEditor(fullURL, line);
+        this.owner.viewSourceInStyleEditor(fullURL, aSourceLine);
       }
       else if (target == "jsdebugger" ||
                category == CATEGORY_JS || category == CATEGORY_WEBDEV) {
-        this.owner.viewSourceInDebugger(fullURL, line);
+        this.owner.viewSourceInDebugger(fullURL, aSourceLine);
       }
       else {
-        this.owner.viewSource(fullURL, line);
+        this.owner.viewSource(fullURL, aSourceLine);
       }
     };
 
@@ -2691,12 +2677,12 @@ WebConsoleFrame.prototype = {
       this._addMessageLinkCallback(locationNode, onClick);
     }
 
-    if (line) {
+    if (aSourceLine) {
       let lineNumberNode = this.document.createElementNS(XHTML_NS, "span");
       lineNumberNode.className = "line-number";
-      lineNumberNode.textContent = ":" + line + (column >= 0 ? ":" + column : "");
+      lineNumberNode.textContent = ":" + aSourceLine;
       locationNode.appendChild(lineNumberNode);
-      locationNode.sourceLine = line;
+      locationNode.sourceLine = aSourceLine;
     }
 
     return locationNode;
