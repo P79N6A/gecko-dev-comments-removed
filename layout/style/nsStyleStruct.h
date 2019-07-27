@@ -2356,6 +2356,11 @@ struct nsStyleTableBorder {
            nsChangeHint_ClearAncestorIntrinsics;
   }
 
+  
+  
+  
+  inline uint8_t LogicalCaptionSide(mozilla::WritingMode aWM) const;
+
   nscoord       mBorderSpacingCol;
   nscoord       mBorderSpacingRow;
   uint8_t       mBorderCollapse;

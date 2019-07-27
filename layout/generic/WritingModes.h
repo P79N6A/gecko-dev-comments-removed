@@ -360,6 +360,62 @@ public:
 
 
 
+
+  LogicalSide LogicalSideForPhysicalSide(mozilla::css::Side aSide) const
+  {
+    
+    
+    
+    
+    
+    static const LogicalSide kPhysicalToLogicalSides[][4] = {
+      
+      
+      { eLogicalSideBStart, eLogicalSideIEnd,
+        eLogicalSideBEnd,   eLogicalSideIStart },  
+      { eLogicalSideIStart, eLogicalSideBStart,
+        eLogicalSideIEnd,   eLogicalSideBEnd   },  
+      { eLogicalSideBStart, eLogicalSideIStart,
+        eLogicalSideBEnd,   eLogicalSideIEnd   },  
+      { eLogicalSideIEnd,   eLogicalSideBStart,
+        eLogicalSideIStart, eLogicalSideBEnd   },  
+      { eLogicalSideBEnd,   eLogicalSideIStart,
+        eLogicalSideBStart, eLogicalSideIEnd   },  
+      { eLogicalSideIStart, eLogicalSideBEnd,
+        eLogicalSideIEnd,   eLogicalSideBStart },  
+      { eLogicalSideBEnd,   eLogicalSideIEnd,
+        eLogicalSideBStart, eLogicalSideIStart },  
+      { eLogicalSideIEnd,   eLogicalSideBEnd,
+        eLogicalSideIStart, eLogicalSideBStart },  
+      { eLogicalSideBStart, eLogicalSideIEnd,
+        eLogicalSideBEnd,   eLogicalSideIStart },  
+      { eLogicalSideIStart, eLogicalSideBStart,
+        eLogicalSideIEnd,   eLogicalSideBEnd   },  
+      { eLogicalSideBStart, eLogicalSideIStart,
+        eLogicalSideBEnd,   eLogicalSideIEnd   },  
+      { eLogicalSideIEnd,   eLogicalSideBStart,
+        eLogicalSideIStart, eLogicalSideBEnd   },  
+      { eLogicalSideBEnd,   eLogicalSideIEnd,
+        eLogicalSideBStart, eLogicalSideIStart },  
+      { eLogicalSideIStart, eLogicalSideBEnd,
+        eLogicalSideIEnd,   eLogicalSideBStart },  
+      { eLogicalSideBEnd,   eLogicalSideIStart,
+        eLogicalSideBStart, eLogicalSideIEnd   },  
+      { eLogicalSideIEnd,   eLogicalSideBEnd,
+        eLogicalSideIStart, eLogicalSideBStart },  
+    };
+
+    static_assert(eOrientationMask == 0x01 && eInlineFlowMask == 0x02 &&
+                  eBlockFlowMask == 0x04 && eLineOrientMask == 0x08,
+                  "unexpected mask values");
+    int index = mWritingMode & 0x0F;
+    return kPhysicalToLogicalSides[index][aSide];
+  }
+
+  
+
+
+
   LogicalSide LogicalSideForLineRelativeDir(LineRelativeDir aDir) const
   {
     auto side = static_cast<LogicalSide>(aDir);
@@ -1954,6 +2010,43 @@ nsStylePosition::MaxBSizeDependsOnContainer(mozilla::WritingMode aWM) const
 {
   return aWM.IsVertical() ? MaxWidthDependsOnContainer()
                           : MaxHeightDependsOnContainer();
+}
+
+inline uint8_t
+nsStyleTableBorder::LogicalCaptionSide(mozilla::WritingMode aWM) const
+{
+  
+  static_assert(NS_STYLE_CAPTION_SIDE_BSTART == mozilla::eLogicalSideBStart &&
+                NS_STYLE_CAPTION_SIDE_BEND == mozilla::eLogicalSideBEnd &&
+                NS_STYLE_CAPTION_SIDE_ISTART == mozilla::eLogicalSideIStart &&
+                NS_STYLE_CAPTION_SIDE_IEND == mozilla::eLogicalSideIEnd,
+                "bad logical caption-side values");
+  static_assert((NS_STYLE_CAPTION_SIDE_TOP - NS_SIDE_TOP ==
+                 NS_STYLE_CAPTION_SIDE_BOTTOM - NS_SIDE_BOTTOM) &&
+                (NS_STYLE_CAPTION_SIDE_LEFT - NS_SIDE_LEFT ==
+                 NS_STYLE_CAPTION_SIDE_RIGHT - NS_SIDE_RIGHT) &&
+                (NS_STYLE_CAPTION_SIDE_LEFT - NS_SIDE_LEFT ==
+                 NS_STYLE_CAPTION_SIDE_TOP - NS_SIDE_TOP),
+                "mismatch between caption-side and side values");
+  switch (mCaptionSide) {
+    case NS_STYLE_CAPTION_SIDE_TOP:
+    case NS_STYLE_CAPTION_SIDE_RIGHT:
+    case NS_STYLE_CAPTION_SIDE_BOTTOM:
+    case NS_STYLE_CAPTION_SIDE_LEFT: {
+      uint8_t side = mCaptionSide - (NS_STYLE_CAPTION_SIDE_TOP - NS_SIDE_TOP);
+      return aWM.LogicalSideForPhysicalSide(mozilla::css::Side(side));
+    }
+
+    case NS_STYLE_CAPTION_SIDE_TOP_OUTSIDE:
+      return aWM.IsVertical() ? aWM.LogicalSideForPhysicalSide(NS_SIDE_TOP)
+                              : NS_STYLE_CAPTION_SIDE_BSTART_OUTSIDE;
+
+    case NS_STYLE_CAPTION_SIDE_BOTTOM_OUTSIDE:
+      return aWM.IsVertical() ? aWM.LogicalSideForPhysicalSide(NS_SIDE_BOTTOM)
+                              : NS_STYLE_CAPTION_SIDE_BEND_OUTSIDE;
+  }
+  MOZ_ASSERT(mCaptionSide <= NS_STYLE_CAPTION_SIDE_BEND_OUTSIDE);
+  return mCaptionSide;
 }
 
 #endif 
