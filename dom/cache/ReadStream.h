@@ -12,6 +12,7 @@
 #include "nsID.h"
 #include "nsIInputStream.h"
 #include "nsISupportsImpl.h"
+#include "nsRefPtr.h"
 #include "nsTArrayForwardDeclare.h"
 
 class nsIThread;
@@ -40,9 +41,35 @@ class PCacheStreamControlParent;
 
 
 
-class ReadStream : public nsIInputStream
+
+class ReadStream MOZ_FINAL : public nsIInputStream
 {
 public:
+  
+  
+  class Controllable
+  {
+  public:
+    
+    
+    virtual void
+    CloseStream() = 0;
+
+    
+    
+    virtual void
+    CloseStreamWithoutReporting() = 0;
+
+    virtual bool
+    MatchId(const nsID& aId) const = 0;
+
+    NS_IMETHOD_(MozExternalRefCountType)
+    AddRef(void) = 0;
+
+    NS_IMETHOD_(MozExternalRefCountType)
+    Release(void) = 0;
+  };
+
   static already_AddRefed<ReadStream>
   Create(const PCacheReadStreamOrVoid& aReadStreamOrVoid);
 
@@ -56,39 +83,21 @@ public:
   void Serialize(PCacheReadStreamOrVoid* aReadStreamOut);
   void Serialize(PCacheReadStream* aReadStreamOut);
 
+private:
+  class Inner;
+
+  explicit ReadStream(Inner* aInner);
+  ~ReadStream();
+
   
-  void CloseStream();
-  void CloseStreamWithoutReporting();
-  bool MatchId(const nsID& aId) const;
-
-protected:
-  class NoteClosedRunnable;
-  class ForgetRunnable;
-
-  ReadStream(const nsID& aId, nsIInputStream* aStream);
-  virtual ~ReadStream();
-
-  void NoteClosed();
-  void Forget();
-
-  virtual void NoteClosedOnOwningThread() = 0;
-  virtual void ForgetOnOwningThread() = 0;
-  virtual void SerializeControl(PCacheReadStream* aReadStreamOut) = 0;
-
-  virtual void
-  SerializeFds(PCacheReadStream* aReadStreamOut,
-               const nsTArray<mozilla::ipc::FileDescriptor>& fds) = 0;
-
-  const nsID mId;
-  nsCOMPtr<nsIInputStream> mStream;
-  nsCOMPtr<nsIInputStream> mSnappyStream;
-  nsCOMPtr<nsIThread> mOwningThread;
-  bool mClosed;
+  
+  
+  
+  
+  nsRefPtr<Inner> mInner;
 
 public:
-
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_DOM_CACHE_READSTREAM_IID);
-
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIINPUTSTREAM
 };
