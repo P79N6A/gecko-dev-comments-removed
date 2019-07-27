@@ -192,11 +192,11 @@
 #include "MediaPromise.h"
 #include "MediaResource.h"
 #include "mozilla/dom/AudioChannelBinding.h"
-#include "mozilla/gfx/Rect.h"
 #include "mozilla/ReentrantMonitor.h"
 #include "MediaDecoderOwner.h"
 #include "MediaStreamGraph.h"
 #include "AbstractMediaDecoder.h"
+#include "DecodedStream.h"
 #include "StateMirroring.h"
 #include "StateWatching.h"
 #include "necko-config.h"
@@ -214,9 +214,6 @@ class TimeRanges;
 }
 
 namespace mozilla {
-namespace layers {
-class Image;
-} 
 
 class VideoFrameContainer;
 class MediaDecoderStateMachine;
@@ -284,7 +281,6 @@ public:
   };
 
   typedef MediaPromise<SeekResolveValue, bool ,  true> SeekPromise;
-  class DecodedStreamGraphListener;
 
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIOBSERVER
@@ -403,113 +399,6 @@ public:
   
   
   
-
-  struct DecodedStreamData {
-    typedef gfx::IntSize IntSize;
-
-    DecodedStreamData(MediaDecoder* aDecoder,
-                      int64_t aInitialTime, SourceMediaStream* aStream);
-    ~DecodedStreamData();
-
-    
-    bool IsFinished() const {
-      return mListener->IsFinishedOnMainThread();
-    }
-
-    int64_t GetClock() const {
-      return mInitialTime + mListener->GetLastOutputTime();
-    }
-
-    
-    
-    
-    int64_t mAudioFramesWritten;
-    
-    
-    const int64_t mInitialTime; 
-    
-    
-    
-    int64_t mNextVideoTime; 
-    int64_t mNextAudioTime; 
-    MediaDecoder* mDecoder;
-    
-    
-    nsRefPtr<layers::Image> mLastVideoImage;
-    IntSize mLastVideoImageDisplaySize;
-    
-    
-    bool mStreamInitialized;
-    bool mHaveSentFinish;
-    bool mHaveSentFinishAudio;
-    bool mHaveSentFinishVideo;
-
-    
-    
-    const nsRefPtr<SourceMediaStream> mStream;
-    
-    nsRefPtr<DecodedStreamGraphListener> mListener;
-    
-    
-    bool mHaveBlockedForPlayState;
-    
-    
-    bool mHaveBlockedForStateMachineNotPlaying;
-    
-    
-    bool mEOSVideoCompensation;
-  };
-
-  class DecodedStreamGraphListener : public MediaStreamListener {
-  public:
-    DecodedStreamGraphListener(MediaStream* aStream, DecodedStreamData* aData);
-    virtual void NotifyOutput(MediaStreamGraph* aGraph, GraphTime aCurrentTime) override;
-    virtual void NotifyEvent(MediaStreamGraph* aGraph,
-                             MediaStreamListener::MediaStreamGraphEvent event) override;
-
-    void DoNotifyFinished();
-
-    int64_t GetLastOutputTime() 
-    {
-      MutexAutoLock lock(mMutex);
-      return mLastOutputTime;
-    }
-    void Forget()
-    {
-      NS_ASSERTION(NS_IsMainThread(), "Main thread only");
-      mData = nullptr;
-
-      MutexAutoLock lock(mMutex);
-      mStream = nullptr;
-    }
-    bool IsFinishedOnMainThread()
-    {
-      MutexAutoLock lock(mMutex);
-      return mStreamFinishedOnMainThread;
-    }
-  private:
-    
-    DecodedStreamData* mData;
-
-    Mutex mMutex;
-    
-    nsRefPtr<MediaStream> mStream;
-    
-    int64_t mLastOutputTime; 
-    
-    bool mStreamFinishedOnMainThread;
-  };
-
-  class OutputStreamListener;
-
-  struct OutputStreamData {
-    void Init(MediaDecoder* aDecoder, ProcessedMediaStream* aStream);
-    ~OutputStreamData();
-    nsRefPtr<ProcessedMediaStream> mStream;
-    
-    nsRefPtr<MediaInputPort> mPort;
-    nsRefPtr<OutputStreamListener> mListener;
-  };
 
   
 
