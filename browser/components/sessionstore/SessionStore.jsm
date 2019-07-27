@@ -826,6 +826,7 @@ let SessionStoreInternal = {
       case "XULFrameLoaderCreated":
         if (target.tagName == "browser" && target.frameLoader && target.permanentKey) {
           this._lastKnownFrameLoader.set(target.permanentKey, target.frameLoader);
+          this.resetEpoch(target);
         }
         break;
       default:
@@ -3676,6 +3677,14 @@ let SessionStoreInternal = {
     return this.getCurrentEpoch(browser) == epoch;
   },
 
+  
+
+
+
+
+  resetEpoch(browser) {
+    this._browserEpochs.delete(browser.permanentKey);
+  }
 };
 
 
