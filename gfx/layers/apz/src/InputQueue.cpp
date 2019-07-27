@@ -83,6 +83,11 @@ InputQueue::ReceiveTouchInput(const nsRefPtr<AsyncPanZoomController>& aTarget,
       haveBehaviors = true;
     } else if (!mInputBlockQueue.IsEmpty() && CurrentBlock()->AsTouchBlock()) {
       haveBehaviors = CurrentTouchBlock()->GetAllowedTouchBehaviors(currentBehaviors);
+      
+      
+      
+      
+      haveBehaviors |= CurrentTouchBlock()->IsContentResponseTimerExpired();
     }
 
     block = StartNewTouchBlock(aTarget, aTargetConfirmed, false);
@@ -221,19 +226,26 @@ void
 InputQueue::MaybeRequestContentResponse(const nsRefPtr<AsyncPanZoomController>& aTarget,
                                         CancelableBlockState* aBlock)
 {
-  bool waitForMainThread = !aBlock->IsTargetConfirmed();
+  bool waitForMainThread = false;
+  if (aBlock->IsTargetConfirmed()) {
+    
+    INPQ_LOG("not waiting for content response on block %p\n", aBlock);
+    aBlock->SetContentResponse(false);
+  } else {
+    waitForMainThread = true;
+  }
+  if (aBlock->AsTouchBlock() && gfxPrefs::TouchActionEnabled()) {
+    
+    
+    
+    waitForMainThread = true;
+  }
   if (waitForMainThread) {
     
     
     
     
     ScheduleMainThreadTimeout(aTarget, aBlock->GetBlockId());
-  } else {
-    
-    
-    
-    INPQ_LOG("not waiting for content response on block %p\n", aBlock);
-    aBlock->TimeoutContentResponse();
   }
 }
 

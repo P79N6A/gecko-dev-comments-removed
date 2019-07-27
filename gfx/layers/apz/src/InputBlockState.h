@@ -103,6 +103,11 @@ public:
   
 
 
+  bool IsContentResponseTimerExpired() const;
+
+  
+
+
   bool IsDefaultPrevented() const;
 
   
