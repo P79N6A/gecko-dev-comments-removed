@@ -54,9 +54,20 @@
 #include "nsISimpleEnumerator.h"
 #include "nsJSEnvironment.h"
 #include "mozilla/Telemetry.h"
+#include "gfxPrefs.h"
+#include "BackgroundChild.h"
+#include "mozilla/ipc/PBackgroundChild.h"
+#include "nsIIPCBackgroundChildCreateCallback.h"
+#include "mozilla/layout/VsyncChild.h"
+#include "VsyncSource.h"
+#include "mozilla/VsyncDispatcher.h"
+#include "nsThreadUtils.h"
+#include "mozilla/unused.h"
 
 using namespace mozilla;
 using namespace mozilla::widget;
+using namespace mozilla::ipc;
+using namespace mozilla::layout;
 
 #ifdef PR_LOGGING
 static PRLogModuleInfo *gLog = nullptr;
@@ -121,6 +132,20 @@ public:
   TimeStamp MostRecentRefresh() const { return mLastFireTime; }
   int64_t MostRecentRefreshEpochTime() const { return mLastFireEpoch; }
 
+  void SwapRefreshDrivers(RefreshDriverTimer* aNewTimer)
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    for (size_t i = 0; i < mRefreshDrivers.Length(); i++) {
+      aNewTimer->AddRefreshDriver(mRefreshDrivers[i]);
+      mRefreshDrivers[i]->mActiveTimer = aNewTimer;
+    }
+    mRefreshDrivers.Clear();
+
+    aNewTimer->mLastFireEpoch = mLastFireEpoch;
+    aNewTimer->mLastFireTime = mLastFireTime;
+  }
+
 protected:
   virtual void StartTimer() = 0;
   virtual void StopTimer() = 0;
@@ -134,7 +159,14 @@ protected:
   {
     int64_t jsnow = JS_Now();
     TimeStamp now = TimeStamp::Now();
+    Tick(jsnow, now);
+  }
 
+  
+
+
+  void Tick(int64_t jsnow, TimeStamp now)
+  {
     ScheduleNextTick(now);
 
     mLastFireEpoch = jsnow;
@@ -237,6 +269,153 @@ protected:
   TimeDuration mRateDuration;
   nsRefPtr<nsITimer> mTimer;
 };
+
+
+
+
+
+
+class VsyncRefreshDriverTimer : public RefreshDriverTimer
+{
+public:
+  VsyncRefreshDriverTimer()
+    : mVsyncChild(nullptr)
+  {
+    MOZ_ASSERT(XRE_IsParentProcess());
+    MOZ_ASSERT(NS_IsMainThread());
+    mVsyncObserver = new RefreshDriverVsyncObserver(this);
+    nsRefPtr<mozilla::gfx::VsyncSource> vsyncSource = gfxPlatform::GetPlatform()->GetHardwareVsync();
+    MOZ_ALWAYS_TRUE(mVsyncDispatcher = vsyncSource->GetRefreshTimerVsyncDispatcher());
+    mVsyncDispatcher->SetParentRefreshTimer(mVsyncObserver);
+  }
+
+  explicit VsyncRefreshDriverTimer(VsyncChild* aVsyncChild)
+    : mVsyncChild(aVsyncChild)
+  {
+    MOZ_ASSERT(!XRE_IsParentProcess());
+    MOZ_ASSERT(NS_IsMainThread());
+    MOZ_ASSERT(mVsyncChild);
+    mVsyncObserver = new RefreshDriverVsyncObserver(this);
+    mVsyncChild->SetVsyncObserver(mVsyncObserver);
+  }
+
+private:
+  
+  
+  
+  
+  
+  class RefreshDriverVsyncObserver MOZ_FINAL : public VsyncObserver
+  {
+  public:
+    explicit RefreshDriverVsyncObserver(VsyncRefreshDriverTimer* aVsyncRefreshDriverTimer)
+      : mVsyncRefreshDriverTimer(aVsyncRefreshDriverTimer)
+    {
+      MOZ_ASSERT(NS_IsMainThread());
+    }
+
+    virtual bool NotifyVsync(TimeStamp aVsyncTimestamp) MOZ_OVERRIDE
+    {
+      if (!NS_IsMainThread()) {
+        nsCOMPtr<nsIRunnable> vsyncEvent =
+             NS_NewRunnableMethodWithArg<TimeStamp>(this,
+                                                    &RefreshDriverVsyncObserver::TickRefreshDriver,
+                                                    aVsyncTimestamp);
+        NS_DispatchToMainThread(vsyncEvent);
+      } else {
+        TickRefreshDriver(aVsyncTimestamp);
+      }
+
+      return true;
+    }
+
+    void Shutdown()
+    {
+      MOZ_ASSERT(NS_IsMainThread());
+      mVsyncRefreshDriverTimer = nullptr;
+    }
+
+  private:
+    virtual ~RefreshDriverVsyncObserver() {}
+
+    void TickRefreshDriver(TimeStamp aVsyncTimestamp)
+    {
+      MOZ_ASSERT(NS_IsMainThread());
+
+      
+      
+      
+      if (mVsyncRefreshDriverTimer) {
+        mVsyncRefreshDriverTimer->RunRefreshDrivers(aVsyncTimestamp);
+      }
+    }
+
+    
+    
+    
+    VsyncRefreshDriverTimer* mVsyncRefreshDriverTimer;
+  }; 
+
+  virtual ~VsyncRefreshDriverTimer()
+  {
+    if (XRE_IsParentProcess()) {
+      mVsyncDispatcher->SetParentRefreshTimer(nullptr);
+      mVsyncDispatcher = nullptr;
+    } else {
+      
+      
+      
+      
+      unused << mVsyncChild->SendUnobserve();
+      mVsyncChild->SetVsyncObserver(nullptr);
+      mVsyncChild = nullptr;
+    }
+
+    
+    
+    mVsyncObserver->Shutdown();
+    mVsyncObserver = nullptr;
+  }
+
+  virtual void StartTimer() MOZ_OVERRIDE
+  {
+    mLastFireEpoch = JS_Now();
+    mLastFireTime = TimeStamp::Now();
+
+    if (XRE_IsParentProcess()) {
+      mVsyncDispatcher->SetParentRefreshTimer(mVsyncObserver);
+    } else {
+      unused << mVsyncChild->SendObserve();
+    }
+  }
+
+  virtual void StopTimer() MOZ_OVERRIDE
+  {
+    if (XRE_IsParentProcess()) {
+      mVsyncDispatcher->SetParentRefreshTimer(nullptr);
+    } else {
+      unused << mVsyncChild->SendUnobserve();
+    }
+  }
+
+  virtual void ScheduleNextTick(TimeStamp aNowTime) MOZ_OVERRIDE
+  {
+    
+    
+  }
+
+  void RunRefreshDrivers(TimeStamp aTimeStamp)
+  {
+    int64_t jsnow = JS_Now();
+    TimeDuration diff = TimeStamp::Now() - aTimeStamp;
+    int64_t vsyncJsNow = jsnow - diff.ToMicroseconds();
+    Tick(vsyncJsNow, aTimeStamp);
+  }
+
+  nsRefPtr<RefreshTimerVsyncDispatcher> mVsyncDispatcher;
+  nsRefPtr<RefreshDriverVsyncObserver> mVsyncObserver;
+  VsyncChild* mVsyncChild;
+}; 
 
 
 
@@ -552,6 +731,14 @@ protected:
 
 } 
 
+static RefreshDriverTimer* sRegularRateTimer;
+static InactiveRefreshDriverTimer* sThrottledRateTimer;
+
+#ifdef XP_WIN
+static int32_t sHighPrecisionTimerRequests = 0;
+
+static nsITimer *sDisableHighPrecisionTimersTimer = nullptr;
+#endif
 static uint32_t
 GetFirstFrameDelay(imgIRequest* req)
 {
@@ -567,15 +754,6 @@ GetFirstFrameDelay(imgIRequest* req)
 
   return static_cast<uint32_t>(delay);
 }
-
-static PreciseRefreshDriverTimer *sRegularRateTimer = nullptr;
-static InactiveRefreshDriverTimer *sThrottledRateTimer = nullptr;
-
-#ifdef XP_WIN
-static int32_t sHighPrecisionTimerRequests = 0;
-
-static nsITimer *sDisableHighPrecisionTimersTimer = nullptr;
-#endif
 
  void
 nsRefreshDriver::InitializeStatics()
@@ -1638,6 +1816,23 @@ nsRefreshDriver::SetThrottled(bool aThrottled)
       EnsureTimerStarted(eAdjustingTimer);
     }
   }
+}
+
+ void
+nsRefreshDriver::PVsyncActorCreated(VsyncChild* aVsyncChild)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(!XRE_IsParentProcess());
+  VsyncRefreshDriverTimer* vsyncRefreshDriverTimer =
+                           new VsyncRefreshDriverTimer(aVsyncChild);
+
+  
+  
+  if (sRegularRateTimer) {
+    sRegularRateTimer->SwapRefreshDrivers(vsyncRefreshDriverTimer);
+    delete sRegularRateTimer;
+  }
+  sRegularRateTimer = vsyncRefreshDriverTimer;
 }
 
 void

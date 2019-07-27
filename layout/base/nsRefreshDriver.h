@@ -32,6 +32,9 @@ class nsIRunnable;
 
 namespace mozilla {
 class RefreshDriverTimer;
+namespace layout {
+class VsyncChild;
+}
 }
 
 
@@ -256,6 +259,14 @@ public:
 
   nsPresContext* PresContext() const { return mPresContext; }
 
+  
+
+
+
+
+
+  static void PVsyncActorCreated(mozilla::layout::VsyncChild* aVsyncChild);
+
 #ifdef DEBUG
   
 
@@ -333,7 +344,7 @@ private:
   void FinishedWaitingForTransaction();
 
   mozilla::RefreshDriverTimer* ChooseTimer() const;
-  mozilla::RefreshDriverTimer *mActiveTimer;
+  mozilla::RefreshDriverTimer* mActiveTimer;
 
   ProfilerBacktrace* mReflowCause;
   ProfilerBacktrace* mStyleCause;
