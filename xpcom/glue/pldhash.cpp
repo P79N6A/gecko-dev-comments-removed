@@ -271,40 +271,71 @@ PLDHashTable::operator=(PLDHashTable&& aOther)
   return *this;
 }
 
+PLDHashNumber
+PLDHashTable::Hash1(PLDHashNumber aHash0)
+{
+  return aHash0 >> mHashShift;
+}
+
+
+
+void
+PLDHashTable::Hash2(PLDHashNumber aHash,
+                    uint32_t& aHash2Out, uint32_t& aSizeMaskOut)
+{
+  uint32_t sizeLog2 = kHashBits - mHashShift;
+  aHash2Out = ((aHash << sizeLog2) >> mHashShift) | 1;
+  aSizeMaskOut = (PLDHashNumber(1) << sizeLog2) - 1;
+}
 
 
 
 
-#define HASH1(hash0, shift)         ((hash0) >> (shift))
-#define HASH2(hash0,log2,shift)     ((((hash0) << (log2)) >> (shift)) | 1)
 
 
 
 
 
-
-
-
-
-#define COLLISION_FLAG              ((PLDHashNumber) 1)
-#define MARK_ENTRY_FREE(entry)      ((entry)->mKeyHash = 0)
-#define MARK_ENTRY_REMOVED(entry)   ((entry)->mKeyHash = 1)
-#define ENTRY_IS_REMOVED(entry)     ((entry)->mKeyHash == 1)
-#define ENTRY_IS_LIVE(entry)        ((entry)->mKeyHash >= 2)
-#define ENSURE_LIVE_KEYHASH(hash0)  if (hash0 < 2) hash0 -= 2; else (void)0
-
-
-#define MATCH_ENTRY_KEYHASH(entry,hash0) \
-    (((entry)->mKeyHash & ~COLLISION_FLAG) == (hash0))
-
-
-#define ADDRESS_ENTRY(table, index) \
-    ((PLDHashEntryHdr *)((table)->mEntryStore + (index) * (table)->mEntrySize))
 
  MOZ_ALWAYS_INLINE bool
 PLDHashTable::EntryIsFree(PLDHashEntryHdr* aEntry)
 {
   return aEntry->mKeyHash == 0;
+}
+ MOZ_ALWAYS_INLINE bool
+PLDHashTable::EntryIsRemoved(PLDHashEntryHdr* aEntry)
+{
+  return aEntry->mKeyHash == 1;
+}
+ MOZ_ALWAYS_INLINE bool
+PLDHashTable::EntryIsLive(PLDHashEntryHdr* aEntry)
+{
+  return aEntry->mKeyHash >= 2;
+}
+
+ MOZ_ALWAYS_INLINE void
+PLDHashTable::MarkEntryFree(PLDHashEntryHdr* aEntry)
+{
+  aEntry->mKeyHash = 0;
+}
+ MOZ_ALWAYS_INLINE void
+PLDHashTable::MarkEntryRemoved(PLDHashEntryHdr* aEntry)
+{
+  aEntry->mKeyHash = 1;
+}
+
+
+ bool
+PLDHashTable::MatchEntryKeyhash(PLDHashEntryHdr* aEntry, PLDHashNumber aKeyHash)
+{
+  return (aEntry->mKeyHash & ~kCollisionFlag) == aKeyHash;
+}
+
+
+PLDHashEntryHdr*
+PLDHashTable::AddressEntry(uint32_t aIndex)
+{
+  return reinterpret_cast<PLDHashEntryHdr*>(mEntryStore + aIndex * mEntrySize);
 }
 
 PLDHashTable::~PLDHashTable()
@@ -322,7 +353,7 @@ PLDHashTable::~PLDHashTable()
   char* entryLimit = entryAddr + Capacity() * mEntrySize;
   while (entryAddr < entryLimit) {
     PLDHashEntryHdr* entry = (PLDHashEntryHdr*)entryAddr;
-    if (ENTRY_IS_LIVE(entry)) {
+    if (EntryIsLive(entry)) {
       mOps->clearEntry(this, entry);
     }
     entryAddr += mEntrySize;
@@ -360,12 +391,12 @@ PLDHashEntryHdr* PL_DHASH_FASTCALL
 PLDHashTable::SearchTable(const void* aKey, PLDHashNumber aKeyHash)
 {
   MOZ_ASSERT(mEntryStore);
-  NS_ASSERTION(!(aKeyHash & COLLISION_FLAG),
-               "!(aKeyHash & COLLISION_FLAG)");
+  NS_ASSERTION(!(aKeyHash & kCollisionFlag),
+               "!(aKeyHash & kCollisionFlag)");
 
   
-  PLDHashNumber hash1 = HASH1(aKeyHash, mHashShift);
-  PLDHashEntryHdr* entry = ADDRESS_ENTRY(this, hash1);
+  PLDHashNumber hash1 = Hash1(aKeyHash);
+  PLDHashEntryHdr* entry = AddressEntry(hash1);
 
   
   if (EntryIsFree(entry)) {
@@ -374,15 +405,15 @@ PLDHashTable::SearchTable(const void* aKey, PLDHashNumber aKeyHash)
 
   
   PLDHashMatchEntry matchEntry = mOps->matchEntry;
-  if (MATCH_ENTRY_KEYHASH(entry, aKeyHash) &&
+  if (MatchEntryKeyhash(entry, aKeyHash) &&
       matchEntry(this, entry, aKey)) {
     return entry;
   }
 
   
-  int sizeLog2 = kHashBits - mHashShift;
-  PLDHashNumber hash2 = HASH2(aKeyHash, sizeLog2, mHashShift);
-  uint32_t sizeMask = (1u << sizeLog2) - 1;
+  PLDHashNumber hash2;
+  uint32_t sizeMask;
+  Hash2(aKeyHash, hash2, sizeMask);
 
   
 
@@ -392,25 +423,25 @@ PLDHashTable::SearchTable(const void* aKey, PLDHashNumber aKeyHash)
 
   for (;;) {
     if (Reason == ForAdd) {
-      if (MOZ_UNLIKELY(ENTRY_IS_REMOVED(entry))) {
+      if (MOZ_UNLIKELY(EntryIsRemoved(entry))) {
         if (!firstRemoved) {
           firstRemoved = entry;
         }
       } else {
-        entry->mKeyHash |= COLLISION_FLAG;
+        entry->mKeyHash |= kCollisionFlag;
       }
     }
 
     hash1 -= hash2;
     hash1 &= sizeMask;
 
-    entry = ADDRESS_ENTRY(this, hash1);
+    entry = AddressEntry(hash1);
     if (EntryIsFree(entry)) {
       return (Reason == ForAdd) ? (firstRemoved ? firstRemoved : entry)
                                 : nullptr;
     }
 
-    if (MATCH_ENTRY_KEYHASH(entry, aKeyHash) &&
+    if (MatchEntryKeyhash(entry, aKeyHash) &&
         matchEntry(this, entry, aKey)) {
       return entry;
     }
@@ -434,12 +465,12 @@ PLDHashEntryHdr* PL_DHASH_FASTCALL
 PLDHashTable::FindFreeEntry(PLDHashNumber aKeyHash)
 {
   MOZ_ASSERT(mEntryStore);
-  NS_ASSERTION(!(aKeyHash & COLLISION_FLAG),
-               "!(aKeyHash & COLLISION_FLAG)");
+  NS_ASSERTION(!(aKeyHash & kCollisionFlag),
+               "!(aKeyHash & kCollisionFlag)");
 
   
-  PLDHashNumber hash1 = HASH1(aKeyHash, mHashShift);
-  PLDHashEntryHdr* entry = ADDRESS_ENTRY(this, hash1);
+  PLDHashNumber hash1 = Hash1(aKeyHash);
+  PLDHashEntryHdr* entry = AddressEntry(hash1);
 
   
   if (EntryIsFree(entry)) {
@@ -447,19 +478,19 @@ PLDHashTable::FindFreeEntry(PLDHashNumber aKeyHash)
   }
 
   
-  int sizeLog2 = kHashBits - mHashShift;
-  PLDHashNumber hash2 = HASH2(aKeyHash, sizeLog2, mHashShift);
-  uint32_t sizeMask = (1u << sizeLog2) - 1;
+  PLDHashNumber hash2;
+  uint32_t sizeMask;
+  Hash2(aKeyHash, hash2, sizeMask);
 
   for (;;) {
-    NS_ASSERTION(!ENTRY_IS_REMOVED(entry),
-                 "!ENTRY_IS_REMOVED(entry)");
-    entry->mKeyHash |= COLLISION_FLAG;
+    NS_ASSERTION(!EntryIsRemoved(entry),
+                 "!EntryIsRemoved(entry)");
+    entry->mKeyHash |= kCollisionFlag;
 
     hash1 -= hash2;
     hash1 &= sizeMask;
 
-    entry = ADDRESS_ENTRY(this, hash1);
+    entry = AddressEntry(hash1);
     if (EntryIsFree(entry)) {
       return entry;
     }
@@ -509,8 +540,8 @@ PLDHashTable::ChangeTable(int32_t aDeltaLog2)
   uint32_t oldCapacity = 1u << oldLog2;
   for (uint32_t i = 0; i < oldCapacity; ++i) {
     PLDHashEntryHdr* oldEntry = (PLDHashEntryHdr*)oldEntryAddr;
-    if (ENTRY_IS_LIVE(oldEntry)) {
-      oldEntry->mKeyHash &= ~COLLISION_FLAG;
+    if (EntryIsLive(oldEntry)) {
+      oldEntry->mKeyHash &= ~kCollisionFlag;
       PLDHashEntryHdr* newEntry = FindFreeEntry(oldEntry->mKeyHash);
       NS_ASSERTION(EntryIsFree(newEntry), "EntryIsFree(newEntry)");
       moveEntry(this, oldEntry, newEntry);
@@ -532,8 +563,10 @@ PLDHashTable::ComputeKeyHash(const void* aKey)
   keyHash *= kGoldenRatio;
 
   
-  ENSURE_LIVE_KEYHASH(keyHash);
-  keyHash &= ~COLLISION_FLAG;
+  if (keyHash < 2) {
+    keyHash -= 2;
+  }
+  keyHash &= ~kCollisionFlag;
 
   return keyHash;
 }
@@ -604,11 +637,11 @@ PLDHashTable::Add(const void* aKey, const mozilla::fallible_t&)
 
   PLDHashNumber keyHash = ComputeKeyHash(aKey);
   PLDHashEntryHdr* entry = SearchTable<ForAdd>(aKey, keyHash);
-  if (!ENTRY_IS_LIVE(entry)) {
+  if (!EntryIsLive(entry)) {
     
-    if (ENTRY_IS_REMOVED(entry)) {
+    if (EntryIsRemoved(entry)) {
       mRemovedCount--;
-      keyHash |= COLLISION_FLAG;
+      keyHash |= kCollisionFlag;
     }
     if (mOps->initEntry) {
       mOps->initEntry(entry, aKey);
@@ -699,16 +732,16 @@ PLDHashTable::RawRemove(PLDHashEntryHdr* aEntry)
 
   MOZ_ASSERT(mEntryStore);
 
-  NS_ASSERTION(ENTRY_IS_LIVE(aEntry), "ENTRY_IS_LIVE(aEntry)");
+  NS_ASSERTION(EntryIsLive(aEntry), "EntryIsLive(aEntry)");
 
   
   PLDHashNumber keyHash = aEntry->mKeyHash;
   mOps->clearEntry(this, aEntry);
-  if (keyHash & COLLISION_FLAG) {
-    MARK_ENTRY_REMOVED(aEntry);
+  if (keyHash & kCollisionFlag) {
+    MarkEntryRemoved(aEntry);
     mRemovedCount++;
   } else {
-    MARK_ENTRY_FREE(aEntry);
+    MarkEntryFree(aEntry);
   }
   mEntryCount--;
 }
@@ -860,7 +893,7 @@ MOZ_ALWAYS_INLINE bool
 PLDHashTable::Iterator::IsOnNonLiveEntry() const
 {
   MOZ_ASSERT(!Done());
-  return !ENTRY_IS_LIVE(reinterpret_cast<PLDHashEntryHdr*>(mCurrent));
+  return !EntryIsLive(reinterpret_cast<PLDHashEntryHdr*>(mCurrent));
 }
 
 MOZ_ALWAYS_INLINE void
@@ -878,7 +911,7 @@ PLDHashTable::Iterator::Get() const
   MOZ_ASSERT(!Done());
 
   PLDHashEntryHdr* entry = reinterpret_cast<PLDHashEntryHdr*>(mCurrent);
-  MOZ_ASSERT(ENTRY_IS_LIVE(entry));
+  MOZ_ASSERT(EntryIsLive(entry));
   return entry;
 }
 
