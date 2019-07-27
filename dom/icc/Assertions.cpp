@@ -3,15 +3,15 @@
 
 
 #include "mozilla/dom/MozIccBinding.h"
-#include "nsIIccService.h"
+#include "nsIIccProvider.h"
 
 namespace mozilla {
 namespace dom {
 namespace icc {
 
 #define ASSERT_EQUALITY(webidlType, webidlState, xpidlState) \
-  static_assert(static_cast<uint32_t>(webidlType::webidlState) == nsIIcc::xpidlState, \
-  #webidlType "::" #webidlState " should equal to nsIIccService::" #xpidlState)
+  static_assert(static_cast<uint32_t>(webidlType::webidlState) == nsIIccProvider::xpidlState, \
+  #webidlType "::" #webidlState " should equal to nsIIccProvider::" #xpidlState)
 
 
 

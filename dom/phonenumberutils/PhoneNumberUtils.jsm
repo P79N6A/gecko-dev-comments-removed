@@ -23,9 +23,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "MCC_ISO3166_TABLE",
 XPCOMUtils.defineLazyServiceGetter(this, "mobileConnection",
                                    "@mozilla.org/mobileconnection/mobileconnectionservice;1",
                                    "nsIMobileConnectionService");
-XPCOMUtils.defineLazyServiceGetter(this, "gIccService",
-                                   "@mozilla.org/icc/iccservice;1",
-                                   "nsIIccService");
+XPCOMUtils.defineLazyServiceGetter(this, "icc",
+                                   "@mozilla.org/ril/content-helper;1",
+                                   "nsIIccProvider");
 #endif
 
 this.PhoneNumberUtils = {
@@ -61,8 +61,7 @@ this.PhoneNumberUtils = {
     }
 
     
-    let icc = gIccService.getIccByServiceId(clientId);
-    let iccInfo = icc && icc.iccInfo;
+    let iccInfo = icc.getIccInfo(clientId);
     if (!mcc && iccInfo && iccInfo.mcc) {
       mcc = iccInfo.mcc;
     }

@@ -1002,19 +1002,13 @@ add_test(function() {
     }
   };
 
-  MobileIdentityManager._iccService = {
-    _iccs: [],
+  MobileIdentityManager._iccProvider = {
     _listeners: [],
-    getIccByServiceId: function(aClientId) {
-      let self = this;
-      this_iccs.push({
-        registerListener: function(aIccListener) {
-          self._listeners.push(aIccListener);
-        },
-        unregisterListener: function() {
-          self._listeners.pop();
-        }
-      });
+    registerIccMsg: function(aClientId, aIccListener) {
+      this._listeners.push(aIccListener);
+    },
+    unregisterIccMsg: function() {
+      this._listeners.pop();
     }
   };
 
@@ -1033,17 +1027,17 @@ add_test(function() {
     }
 
     
-    do_check_eq(MobileIdentityManager._iccService._listeners.length, 2);
+    do_check_eq(MobileIdentityManager._iccProvider._listeners.length, 2);
 
     
-    MobileIdentityManager._iccService._listeners[0].notifyIccInfoChanged();
+    MobileIdentityManager._iccProvider._listeners[0].notifyIccInfoChanged();
 
     
     do_check_null(MobileIdentityManager._iccInfo);
     do_check_null(MobileIdentityManager._iccIds);
 
     
-    do_check_eq(MobileIdentityManager._iccService._listeners.length, 0);
+    do_check_eq(MobileIdentityManager._iccProvider._listeners.length, 0);
 
     do_test_finished();
     run_next_test();
@@ -1110,19 +1104,13 @@ add_test(function() {
     }
   };
 
-  MobileIdentityManager._iccService = {
-    _iccs: [],
+  MobileIdentityManager._iccProvider = {
     _listeners: [],
-    getIccByServiceId: function(aClientId) {
-      let self = this;
-      this_iccs.push({
-        registerListener: function(aIccListener) {
-          self._listeners.push(aIccListener);
-        },
-        unregisterListener: function() {
-          self._listeners.pop();
-        }
-      });
+    registerIccMsg: function(aClientId, aIccListener) {
+      this._listeners.push(aIccListener);
+    },
+    unregisterIccMsg: function() {
+      this._listeners.pop();
     }
   };
 
@@ -1133,7 +1121,7 @@ add_test(function() {
     do_check_eq(MobileIdentityManager._iccIds.length, 0);
 
     
-    do_check_eq(MobileIdentityManager._iccService._listeners.length, 0);
+    do_check_eq(MobileIdentityManager._iccProvider._listeners.length, 0);
 
     do_test_finished();
     run_next_test();

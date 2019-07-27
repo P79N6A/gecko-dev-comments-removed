@@ -7,7 +7,6 @@
 
 #include "nsAutoPtr.h"
 #include "nsIIccProvider.h"
-#include "nsIIccService.h"
 
 namespace mozilla {
 namespace dom {
@@ -46,9 +45,6 @@ private:
   
   
   nsCOMPtr<nsIIccProvider> mProvider;
-  
-  
-  nsCOMPtr<nsIIcc> mHandler;
 };
 
 } 

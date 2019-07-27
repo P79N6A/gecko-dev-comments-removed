@@ -21,9 +21,9 @@ Cu.import("resource://gre/modules/Task.jsm");
 let Path = OS.Path;
 
 #ifdef MOZ_B2G_RIL
-XPCOMUtils.defineLazyServiceGetter(this, "gIccService",
-                                   "@mozilla.org/icc/iccservice;1",
-                                   "nsIIccService");
+XPCOMUtils.defineLazyServiceGetter(this, "iccProvider",
+                                   "@mozilla.org/ril/content-helper;1",
+                                   "nsIIccProvider");
 #endif
 
 function debug(aMsg) {
@@ -74,13 +74,12 @@ let iccListener = {
     
     
     let clientId = 0;
-    let icc = gIccService.getIccByServiceId(clientId);
-    let iccInfo = icc && icc.iccInfo;
+    let iccInfo = iccProvider.getIccInfo(clientId);
     if (iccInfo && iccInfo.mcc && iccInfo.mnc) {
       let mcc = iccInfo.mcc;
       let mnc = iccInfo.mnc;
       debug("******* iccListener cardIccInfo MCC-MNC: " + mcc + "-" + mnc);
-      icc.unregisterListener(this);
+      iccProvider.unregisterIccMsg(clientId, this);
       OperatorAppsRegistry._installOperatorApps(mcc, mnc);
 
       debug("Broadcast message first-run-with-sim");
@@ -112,8 +111,7 @@ this.OperatorAppsRegistry = {
           
           
           let clientId = 0;
-          let icc = gIccService.getIccByServiceId(clientId);
-          let iccInfo = icc && icc.iccInfo;
+          let iccInfo = iccProvider.getIccInfo(clientId);
           let mcc = 0;
           let mnc = 0;
           if (iccInfo && iccInfo.mcc) {
@@ -130,7 +128,7 @@ this.OperatorAppsRegistry = {
                                                                mnc: mnc });
 
           } else {
-            icc.registerListener(iccListener);
+            iccProvider.registerIccMsg(clientId, iccListener);
           }
         } catch (e) {
           debug("Error Initializing OperatorApps. " + e);
