@@ -22,7 +22,7 @@ function test() {
 
     ok(testScope,
       "Should have created a scope.");
-    is(duplVar, testVar,
+    is(duplVar, null,
       "Shouldn't be able to duplicate variables in the same scope.");
 
     ok(testVar,

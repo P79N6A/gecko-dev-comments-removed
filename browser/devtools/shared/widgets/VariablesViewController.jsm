@@ -637,10 +637,7 @@ VariablesViewController.prototype = {
 
 
   performSearch: function(aScope, aToken) {
-    this._populateFromObjectWithIterator(aScope, this.objectActor, aToken)
-        .then(() => {
-          this.view.emit("fetched", "search", aScope);
-        });
+    this._populateFromObjectWithIterator(aScope, this.objectActor, aToken);
   },
 
   
