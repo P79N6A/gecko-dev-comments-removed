@@ -143,7 +143,9 @@ RootActor.prototype = {
     selectorEditable: true,
     
     
-    addNewRule: true
+    addNewRule: true,
+    
+    getUniqueSelector: true
   },
 
   

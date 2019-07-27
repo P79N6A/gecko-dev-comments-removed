@@ -565,6 +565,18 @@ var NodeActor = exports.NodeActor = protocol.ActorClass({
   
 
 
+  getUniqueSelector: method(function() {
+    return CssLogic.findCssSelector(this.rawNode);
+  }, {
+    request: {},
+    response: {
+      value: RetVal("string")
+    }
+  }),
+
+  
+
+
 
 
 
