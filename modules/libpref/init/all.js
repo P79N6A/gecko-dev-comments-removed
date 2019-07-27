@@ -4688,11 +4688,9 @@ pref("media.gmp.insecure.allow", false);
 
 
 
-#if defined(XP_MACOSX) || defined(XP_WIN) || defined(XP_LINUX)
 pref("gfx.vsync.hw-vsync.enabled", true);
 pref("gfx.vsync.compositor", true);
 pref("gfx.vsync.refreshdriver", true);
-#endif
 
 
 #ifdef MOZ_SECUREELEMENT

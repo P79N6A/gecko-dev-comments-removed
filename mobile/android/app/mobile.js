@@ -864,11 +864,6 @@ pref("reader.toolbar.vertical", false);
 pref("browser.readinglist.enabled", true);
 
 
-pref("gfx.vsync.hw-vsync.enabled", true);
-pref("gfx.vsync.compositor", true);
-pref("gfx.vsync.refreshdriver", true);
-
-
 pref("selectioncaret.detects.longtap", false);
 
 

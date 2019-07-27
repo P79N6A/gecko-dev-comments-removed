@@ -1125,7 +1125,4 @@ pref("dom.mozSettings.allowForceReadOnly", false);
 pref("dom.requestSync.enabled", true);
 
 
-pref("gfx.vsync.hw-vsync.enabled", true);
-pref("gfx.vsync.compositor", true);
 pref("gfx.touch.resample", true);
-pref("gfx.vsync.refreshdriver", true);
