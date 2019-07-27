@@ -220,6 +220,8 @@ class RefTest(object):
     prefs['browser.newtabpage.directory.source'] = 'data:application/json,{"reftest":1}'
     prefs['browser.newtabpage.directory.ping'] = ''
 
+    
+    prefs['browser.tabs.remote.autostart.1'] = False
     if options.e10s:
       prefs['browser.tabs.remote.autostart'] = True
 
