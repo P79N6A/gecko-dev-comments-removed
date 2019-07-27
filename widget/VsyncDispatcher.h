@@ -21,19 +21,6 @@ namespace layers {
 class CompositorVsyncObserver;
 }
 
-
-class VsyncSource
-{
-public:
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(VsyncSource)
-  virtual void EnableVsync() = 0;
-  virtual void DisableVsync() = 0;
-  virtual bool IsVsyncEnabled() = 0;
-
-protected:
-  virtual ~VsyncSource() {}
-}; 
-
 class VsyncObserver
 {
   
@@ -47,7 +34,7 @@ public:
 protected:
   VsyncObserver() {}
   virtual ~VsyncObserver() {}
-}; 
+};
 
 
 class VsyncDispatcher
@@ -57,13 +44,7 @@ class VsyncDispatcher
 public:
   static VsyncDispatcher* GetInstance();
   
-  
-  
-  
-  
-  
   void NotifyVsync(TimeStamp aVsyncTimestamp);
-  void SetVsyncSource(VsyncSource* aVsyncSource);
 
   
   void AddCompositorVsyncObserver(VsyncObserver* aVsyncObserver);
@@ -80,8 +61,7 @@ private:
   
   Mutex mCompositorObserverLock;
   nsTArray<nsRefPtr<VsyncObserver>> mCompositorObservers;
-  nsRefPtr<VsyncSource> mVsyncSource;
-}; 
+};
 
 } 
 
