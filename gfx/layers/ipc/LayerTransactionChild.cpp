@@ -129,6 +129,7 @@ LayerTransactionChild::SendFenceHandle(AsyncTransactionTracker* aTracker,
 void
 LayerTransactionChild::ActorDestroy(ActorDestroyReason why)
 {
+  mDestroyed = true;
   DestroyAsyncTransactionTrackersHolder();
 #ifdef MOZ_B2G
   
