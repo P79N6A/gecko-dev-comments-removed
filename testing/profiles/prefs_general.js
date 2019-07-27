@@ -60,6 +60,8 @@ user_pref("font.size.inflation.minTwips", 0);
 
 
 user_pref("experiments.supported", true);
+user_pref("experiments.logging.level", "Trace");
+user_pref("experiments.logging.dump", true);
 
 
 user_pref("experiments.manifest.uri", "http://%(server)s/experiments-dummy/manifest");
@@ -325,3 +327,7 @@ user_pref("dom.serviceWorkers.periodic-updates.enabled", false);
 
 
 user_pref("media.webspeech.synth.test", true);
+
+
+
+user_pref("browser.urlbar.suggest.searches", false);
