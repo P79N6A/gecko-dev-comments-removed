@@ -233,6 +233,24 @@ ClassCanHaveFixedData(const Class *clasp)
         || js::IsTypedArrayClass(clasp);
 }
 
+static MOZ_ALWAYS_INLINE void
+SetNewObjectMetadata(ExclusiveContext *cxArg, JSObject *obj)
+{
+    
+    
+    if (JSContext *cx = cxArg->maybeJSContext()) {
+        if (MOZ_UNLIKELY((size_t)cx->compartment()->hasObjectMetadataCallback()) &&
+            !cx->zone()->types.activeAnalysis)
+        {
+            
+            
+            AutoEnterAnalysis enter(cx);
+
+            cx->compartment()->setNewObjectMetadata(cx, obj);
+        }
+    }
+}
+
 } 
 
  inline JSObject *
@@ -283,6 +301,8 @@ JSObject::create(js::ExclusiveContext *cx, js::gc::AllocKind kind, js::gc::Initi
     if (group->clasp()->isJSFunction())
         memset(obj->as<JSFunction>().fixedSlots(), 0, sizeof(js::HeapSlot) * GetGCKindSlots(kind));
 
+    SetNewObjectMetadata(cx, obj);
+
     js::gc::TraceCreateObject(obj);
 
     return obj;
@@ -311,14 +331,6 @@ inline void
 JSObject::setInitialElementsMaybeNonNative(js::HeapSlot *elements)
 {
     static_cast<js::NativeObject *>(this)->elements_ = elements;
-}
-
-inline JSObject *
-JSObject::getMetadata() const
-{
-    if (js::Shape *shape = maybeShape())
-        return shape->getObjectMetadata();
-    return nullptr;
 }
 
 inline js::GlobalObject &
@@ -825,28 +837,6 @@ Unbox(JSContext *cx, HandleObject obj, MutableHandleValue vp)
     else
         vp.setUndefined();
 
-    return true;
-}
-
-static MOZ_ALWAYS_INLINE bool
-NewObjectMetadata(ExclusiveContext *cxArg, JSObject **pmetadata)
-{
-    
-    
-    
-    MOZ_ASSERT(!*pmetadata);
-    if (JSContext *cx = cxArg->maybeJSContext()) {
-        if (MOZ_UNLIKELY((size_t)cx->compartment()->hasObjectMetadataCallback()) &&
-            !cx->zone()->types.activeAnalysis)
-        {
-            
-            
-            AutoEnterAnalysis enter(cx);
-
-            if (!cx->compartment()->callObjectMetadataCallback(cx, pmetadata))
-                return false;
-        }
-    }
     return true;
 }
 

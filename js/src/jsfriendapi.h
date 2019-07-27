@@ -2583,9 +2583,8 @@ class JS_FRIEND_API(AutoCTypesActivityCallback) {
     }
 };
 
-typedef bool
-(* ObjectMetadataCallback)(JSContext *cx, JSObject **pmetadata);
-
+typedef JSObject *
+(* ObjectMetadataCallback)(JSContext *cx);
 
 
 
@@ -2595,10 +2594,6 @@ typedef bool
 JS_FRIEND_API(void)
 SetObjectMetadataCallback(JSContext *cx, ObjectMetadataCallback callback);
 
-
-
-JS_FRIEND_API(bool)
-SetObjectMetadata(JSContext *cx, JS::HandleObject obj, JS::HandleObject metadata);
 
 JS_FRIEND_API(JSObject *)
 GetObjectMetadata(JSObject *obj);
