@@ -2672,8 +2672,6 @@ this.AddonManager = {
   ERROR_CORRUPT_FILE: -3,
   
   ERROR_FILE_ACCESS: -4,
-  
-  ERROR_SIGNEDSTATE_REQUIRED: -5,
 
   
   
@@ -2808,20 +2806,6 @@ this.AddonManager = {
   
   
   STARTUP_CHANGE_ENABLED: "enabled",
-
-  
-  
-  
-  SIGNEDSTATE_BROKEN: -2,
-  
-  
-  SIGNEDSTATE_UNKNOWN: -1,
-  
-  SIGNEDSTATE_MISSING: 0,
-  
-  SIGNEDSTATE_PRELIMINARY: 1,
-  
-  SIGNEDSTATE_SIGNED: 2,
 
   
   

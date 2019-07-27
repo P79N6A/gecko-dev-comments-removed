@@ -24,9 +24,6 @@
 #include "manifest-signing-root.inc"
 #include "manifest-signing-test-root.inc"
 
-#include "addons-public.inc"
-#include "addons-stage.inc"
-
 using namespace mozilla::pkix;
 
 #ifdef PR_LOGGING
@@ -94,16 +91,6 @@ AppTrustDomain::SetTrustedRoot(AppTrustedRoot trustedRoot)
     case nsIX509CertDB::TrustedHostedAppTestRoot:
       trustedDER.data = const_cast<uint8_t*>(trustedAppTestRoot);
       trustedDER.len = mozilla::ArrayLength(trustedAppTestRoot);
-      break;
-
-    case nsIX509CertDB::AddonsPublicRoot:
-      trustedDER.data = const_cast<uint8_t*>(addonsPublicRoot);
-      trustedDER.len = mozilla::ArrayLength(addonsPublicRoot);
-      break;
-
-    case nsIX509CertDB::AddonsStageRoot:
-      trustedDER.data = const_cast<uint8_t*>(addonsStageRoot);
-      trustedDER.len = mozilla::ArrayLength(addonsStageRoot);
       break;
 
     default:

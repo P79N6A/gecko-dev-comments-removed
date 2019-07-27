@@ -70,9 +70,6 @@ pref("extensions.hotfix.certs.1.sha1Fingerprint", "91:53:98:0C:C1:86:DF:47:8F:35
 pref("extensions.autoDisableScopes", 15);
 
 
-pref("xpinstall.signatures.required", false);
-
-
 pref("browser.dictionaries.download.url", "https://addons.mozilla.org/%LOCALE%/firefox/dictionaries/");
 
 

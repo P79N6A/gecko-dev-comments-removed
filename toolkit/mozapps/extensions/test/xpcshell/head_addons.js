@@ -14,7 +14,6 @@ const PREF_EM_MIN_COMPAT_APP_VERSION      = "extensions.minCompatibleAppVersion"
 const PREF_EM_MIN_COMPAT_PLATFORM_VERSION = "extensions.minCompatiblePlatformVersion";
 const PREF_GETADDONS_BYIDS               = "extensions.getAddons.get.url";
 const PREF_GETADDONS_BYIDS_PERFORMANCE   = "extensions.getAddons.getWithPerformance.url";
-const PREF_XPI_SIGNATURES_REQUIRED    = "xpinstall.signatures.required";
 
 
 const TIMEOUT_MS = 900000;
@@ -1455,9 +1454,6 @@ Services.prefs.setCharPref(PREF_EM_MIN_COMPAT_APP_VERSION, "0");
 Services.prefs.setCharPref(PREF_EM_MIN_COMPAT_PLATFORM_VERSION, "0");
 
 
-Services.prefs.setBoolPref(PREF_XPI_SIGNATURES_REQUIRED, false);
-
-
 const gTmpD = gProfD.clone();
 gTmpD.append("temp");
 gTmpD.create(AM_Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
@@ -1532,6 +1528,9 @@ do_register_cleanup(function addon_cleanup() {
   pathShouldntExist(testDir);
 
   testDir.leafName = "staged";
+  pathShouldntExist(testDir);
+
+  testDir.leafName = "staged-xpis";
   pathShouldntExist(testDir);
 
   shutdownManager();
