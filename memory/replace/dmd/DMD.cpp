@@ -38,6 +38,7 @@
 #include "mozilla/JSONWriter.h"
 #include "mozilla/Likely.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/SegmentedVector.h"
 
 
 
@@ -336,7 +337,12 @@ class Options
     
     
     
-    DarkMatter
+    DarkMatter,
+
+    
+    
+    
+    Cumulative
   };
 
   char* mDMDEnvVar;   
@@ -357,6 +363,7 @@ public:
 
   bool IsLiveMode()       const { return mMode == Live; }
   bool IsDarkMatterMode() const { return mMode == DarkMatter; }
+  bool IsCumulativeMode() const { return mMode == Cumulative; }
 
   const char* DMDEnvVar() const { return mDMDEnvVar; }
 
@@ -850,10 +857,10 @@ class LiveBlock
 public:
   LiveBlock(const void* aPtr, size_t aReqSize,
             const StackTrace* aAllocStackTrace, bool aIsSampled)
-    : mPtr(aPtr),
-      mReqSize(aReqSize),
-      mAllocStackTrace_mIsSampled(aAllocStackTrace, aIsSampled),
-      mReportStackTrace_mReportedOnAlloc()     
+    : mPtr(aPtr)
+    , mReqSize(aReqSize)
+    , mAllocStackTrace_mIsSampled(aAllocStackTrace, aIsSampled)
+    , mReportStackTrace_mReportedOnAlloc()     
   {
     MOZ_ASSERT(aAllocStackTrace);
   }
@@ -983,6 +990,60 @@ typedef js::HashSet<LiveBlock, LiveBlock, InfallibleAllocPolicy> LiveBlockTable;
 static LiveBlockTable* gLiveBlockTable = nullptr;
 
 
+class DeadBlock
+{
+  const size_t mReqSize;    
+  const size_t mSlopSize;   
+
+  
+  
+  TaggedPtr<const StackTrace* const>
+    mAllocStackTrace_mIsSampled;
+
+public:
+  DeadBlock()
+    : mReqSize(0)
+    , mSlopSize(0)
+    , mAllocStackTrace_mIsSampled(nullptr, 0)
+  {}
+
+  explicit DeadBlock(const LiveBlock& aLb)
+    : mReqSize(aLb.ReqSize())
+    , mSlopSize(aLb.SlopSize())
+    , mAllocStackTrace_mIsSampled(aLb.AllocStackTrace(), aLb.IsSampled())
+  {
+    MOZ_ASSERT(AllocStackTrace());
+    MOZ_ASSERT_IF(IsSampled(), SlopSize() == 0);
+  }
+
+  ~DeadBlock() {}
+
+  size_t ReqSize()    const { return mReqSize; }
+  size_t SlopSize()   const { return mSlopSize; }
+  size_t UsableSize() const { return mReqSize + mSlopSize; }
+
+  bool IsSampled() const
+  {
+    return mAllocStackTrace_mIsSampled.Tag();
+  }
+
+  const StackTrace* AllocStackTrace() const
+  {
+    return mAllocStackTrace_mIsSampled.Ptr();
+  }
+
+  void AddStackTracesToTable(StackTraceSet& aStackTraces) const
+  {
+    aStackTraces.put(AllocStackTrace());  
+  }
+};
+
+static const size_t kDeadBlockListSegmentSize = 16384;
+typedef SegmentedVector<DeadBlock, kDeadBlockListSegmentSize,
+                        InfallibleAllocPolicy> DeadBlockList;
+static DeadBlockList* gDeadBlockList = nullptr;
+
+
 
 static void
 GatherUsedStackTraces(StackTraceSet& aStackTraces)
@@ -995,6 +1056,10 @@ GatherUsedStackTraces(StackTraceSet& aStackTraces)
 
   for (auto r = gLiveBlockTable->all(); !r.empty(); r.popFront()) {
     r.front().AddStackTracesToTable(aStackTraces);
+  }
+
+  for (auto iter = gDeadBlockList->Iter(); !iter.Done(); iter.Next()) {
+    iter.Get().AddStackTracesToTable(aStackTraces);
   }
 }
 
@@ -1063,7 +1128,7 @@ AllocCallback(void* aPtr, size_t aReqSize, Thread* aT)
 }
 
 static void
-FreeCallback(void* aPtr, Thread* aT)
+FreeCallback(void* aPtr, Thread* aT, DeadBlock* aDeadBlock)
 {
   if (!aPtr) {
     return;
@@ -1072,7 +1137,17 @@ FreeCallback(void* aPtr, Thread* aT)
   AutoLockState lock;
   AutoBlockIntercepts block(aT);
 
-  gLiveBlockTable->remove(aPtr);
+  if (LiveBlockTable::Ptr lb = gLiveBlockTable->lookup(aPtr)) {
+    if (gOptions->IsCumulativeMode()) {
+      
+      new (aDeadBlock) DeadBlock(*lb);
+    }
+    gLiveBlockTable->remove(lb);
+  } else {
+    
+    
+    
+  }
 
   if (gStackTraceTable->count() > gGCStackTraceTableWhenSizeExceeds) {
     GCStackTraces();
@@ -1168,11 +1243,18 @@ replace_realloc(void* aOldPtr, size_t aSize)
   
   
   
-  FreeCallback(aOldPtr, t);
+  DeadBlock db;
+  FreeCallback(aOldPtr, t, &db);
   void* ptr = gMallocTable->realloc(aOldPtr, aSize);
   if (ptr) {
     AllocCallback(ptr, aSize, t);
+    if (gOptions->IsCumulativeMode() && db.AllocStackTrace()) {
+      AutoLockState lock;
+      gDeadBlockList->InfallibleAppend(db);
+    }
   } else {
+    
+    
     
     
     
@@ -1219,7 +1301,12 @@ replace_free(void* aPtr)
   
   
   
-  FreeCallback(aPtr, t);
+  DeadBlock db;
+  FreeCallback(aPtr, t, &db);
+  if (gOptions->IsCumulativeMode() && db.AllocStackTrace()) {
+    AutoLockState lock;
+    gDeadBlockList->InfallibleAppend(db);
+  }
   gMallocTable->free(aPtr);
 }
 
@@ -1323,6 +1410,8 @@ Options::Options(const char* aDMDEnvVar)
         mMode = Options::Live;
       } else if (strcmp(arg, "--mode=dark-matter") == 0) {
         mMode = Options::DarkMatter;
+      } else if (strcmp(arg, "--mode=cumulative") == 0) {
+        mMode = Options::Cumulative;
 
       } else if (GetLong(arg, "--sample-below", 1, mSampleBelowSize.mMax,
                  &myLong)) {
@@ -1359,7 +1448,7 @@ Options::BadArg(const char* aArg)
   StatusMsg("\n");
   StatusMsg("The following options are allowed;  defaults are shown in [].\n");
   StatusMsg("  --mode=<mode>                Profiling mode [dark-matter]\n");
-  StatusMsg("      where <mode> is one of: live, dark-matter\n");
+  StatusMsg("      where <mode> is one of: live, dark-matter, cumulative\n");
   StatusMsg("  --sample-below=<1..%d> Sample blocks smaller than this [%d]\n",
             int(mSampleBelowSize.mMax),
             int(mSampleBelowSize.mDefault));
@@ -1430,6 +1519,12 @@ Init(const malloc_table_t* aMallocTable)
 
     gLiveBlockTable = InfallibleAllocPolicy::new_<LiveBlockTable>();
     gLiveBlockTable->init(8192);
+
+    
+    
+    
+    gDeadBlockList =
+      InfallibleAllocPolicy::new_<DeadBlockList>(kDeadBlockListSegmentSize);
   }
 
   gIsDMDInitialized = true;
@@ -1516,6 +1611,8 @@ SizeOfInternal(Sizes* aSizes)
     gStackTraceTable->sizeOfIncludingThis(MallocSizeOf);
 
   aSizes->mLiveBlockTable = gLiveBlockTable->sizeOfIncludingThis(MallocSizeOf);
+
+  aSizes->mDeadBlockList = gDeadBlockList->SizeOfIncludingThis(MallocSizeOf);
 }
 
 void
@@ -1644,6 +1741,8 @@ AnalyzeImpl(UniquePtr<JSONWriteFunc> aWriter)
         mode = "live";
       } else if (gOptions->IsDarkMatterMode()) {
         mode = "dark-matter";
+      } else if (gOptions->IsCumulativeMode()) {
+        mode = "cumulative";
       } else {
         MOZ_ASSERT(false);
         mode = "(unknown DMD mode)";
@@ -1659,6 +1758,7 @@ AnalyzeImpl(UniquePtr<JSONWriteFunc> aWriter)
 
     writer.StartArrayProperty("blockList");
     {
+      
       for (auto r = gLiveBlockTable->all(); !r.empty(); r.popFront()) {
         const LiveBlock& b = r.front();
         b.AddStackTracesToTable(usedStackTraces);
@@ -1685,6 +1785,24 @@ AnalyzeImpl(UniquePtr<JSONWriteFunc> aWriter)
             }
             writer.EndArray();
           }
+        }
+        writer.EndObject();
+      }
+
+      
+      for (auto iter = gDeadBlockList->Iter(); !iter.Done(); iter.Next()) {
+        const DeadBlock& b = iter.Get();
+        b.AddStackTracesToTable(usedStackTraces);
+
+        writer.StartObjectElement(writer.SingleLineStyle);
+        {
+          if (!b.IsSampled()) {
+            writer.IntProperty("req", b.ReqSize());
+            if (b.SlopSize() > 0) {
+              writer.IntProperty("slop", b.SlopSize());
+            }
+          }
+          writer.StringProperty("alloc", isc.ToIdString(b.AllocStackTrace()));
         }
         writer.EndObject();
       }
@@ -1761,6 +1879,10 @@ AnalyzeImpl(UniquePtr<JSONWriteFunc> aWriter)
       Show(gLiveBlockTable->capacity(), buf2, kBufLen),
       Show(gLiveBlockTable->count(),    buf3, kBufLen));
 
+    StatusMsg("      Dead block list:      %10s bytes (%s entries)\n",
+      Show(sizes.mDeadBlockList,     buf1, kBufLen),
+      Show(gDeadBlockList->Length(), buf2, kBufLen));
+
     StatusMsg("    }\n");
     StatusMsg("    Data structures that are destroyed after Dump() ends {\n");
 
@@ -1819,6 +1941,7 @@ DMDFuncs::ResetEverything(const char* aOptions)
 
   
   gLiveBlockTable->clear();
+  gDeadBlockList->Clear();
   gSmallBlockActualSizeCounter = 0;
 }
 

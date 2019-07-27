@@ -29,6 +29,7 @@ struct Sizes
   size_t mStackTracesUnused;
   size_t mStackTraceTable;
   size_t mLiveBlockTable;
+  size_t mDeadBlockList;
 
   Sizes() { Clear(); }
   void Clear() { memset(this, 0, sizeof(Sizes)); }

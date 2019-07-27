@@ -127,6 +127,9 @@ TestUnsampled(const char* aTestName, int aNum, const char* aMode, int aSeven)
   free(a);
 
   
+  free(nullptr);
+
+  
   
   
   
@@ -141,7 +144,7 @@ TestUnsampled(const char* aTestName, int aNum, const char* aMode, int aSeven)
   
   
   
-  char* b2 = (char*) malloc(1);
+  char* b2 = (char*) malloc(8);
   ReportOnAlloc(b2);
   free(b2);
 
@@ -346,11 +349,13 @@ RunTests()
 
   TestEmpty("empty", "live");
   TestEmpty("empty", "dark-matter");
+  TestEmpty("empty", "cumulative");
 
   TestUnsampled("unsampled", 1, "live",        seven);
   TestUnsampled("unsampled", 1, "dark-matter", seven);
 
   TestUnsampled("unsampled", 2, "dark-matter", seven);
+  TestUnsampled("unsampled", 2, "cumulative",  seven);
 
   TestSampled("sampled", "live", seven);
 }
