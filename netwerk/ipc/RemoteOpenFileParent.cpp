@@ -55,12 +55,7 @@ RemoteOpenFileParent::OpenSendCloseDelete()
   
   unused << Send__delete__(this, fileDescriptor);
 
-  if (fileDescriptor.IsValid()) {
-    
-    
-    close(fileDescriptor.PlatformHandle());
-  }
-
+  
 #endif 
 
   return true;
