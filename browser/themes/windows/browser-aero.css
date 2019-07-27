@@ -2,14 +2,8 @@
 
 
 
-%define WINDOWS_AERO
-%include browser.css
-%undef WINDOWS_AERO
-
 %define glassActiveBorderColor rgb(37, 44, 51)
 %define glassInactiveBorderColor rgb(102, 102, 102)
-
-%include downloads/indicator-aero.css
 
 @media not all and (-moz-windows-classic) {
   #main-window[sizemode="normal"] > #tab-view-deck > #browser-panel > #navigator-toolbox > #toolbar-menubar {
