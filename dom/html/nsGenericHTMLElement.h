@@ -291,6 +291,25 @@ public:
     return rcFrame.height;
   }
 
+  
+  
+  
+  inline bool IsHTMLElement() const
+  {
+    return true;
+  }
+
+  inline bool IsHTMLElement(nsIAtom* aTag) const
+  {
+    return mNodeInfo->Equals(aTag);
+  }
+
+  template<typename First, typename... Args>
+  inline bool IsAnyOfHTMLElements(First aFirst, Args... aArgs) const
+  {
+    return IsNodeInternal(aFirst, aArgs...);
+  }
+
 protected:
   virtual ~nsGenericHTMLElement() {}
 
