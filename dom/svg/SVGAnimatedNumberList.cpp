@@ -5,7 +5,9 @@
 
 
 #include "SVGAnimatedNumberList.h"
+
 #include "DOMSVGAnimatedNumberList.h"
+#include "mozilla/Move.h"
 #include "nsSVGElement.h"
 #include "nsSVGAttrTearoffTable.h"
 #include "nsSMILValue.h"
@@ -138,7 +140,7 @@ SVGAnimatedNumberList::
   nsresult rv = nlai->SetValueFromString(aStr);
   if (NS_SUCCEEDED(rv)) {
     nlai->SetInfo(mElement);
-    aValue.Swap(val);
+    aValue = Move(val);
   }
   aPreventCachingOfSandwich = false;
   return rv;
@@ -157,7 +159,7 @@ SVGAnimatedNumberList::SMILAnimatedNumberList::GetBaseValue() const
   nsresult rv = nlai->CopyFrom(mVal->mBaseVal);
   if (NS_SUCCEEDED(rv)) {
     nlai->SetInfo(mElement);
-    val.Swap(tmp);
+    Swap(val, tmp);
   }
   return val;
 }

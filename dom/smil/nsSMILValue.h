@@ -49,9 +49,6 @@ public:
     return (mType == nsSMILNullType::Singleton());
   }
 
-  
-  void     Swap(nsSMILValue& aOther);
-
   nsresult Add(const nsSMILValue& aValueToAdd, uint32_t aCount = 1);
   nsresult SandwichAdd(const nsSMILValue& aValueToAdd);
   nsresult ComputeDistance(const nsSMILValue& aTo, double& aDistance) const;

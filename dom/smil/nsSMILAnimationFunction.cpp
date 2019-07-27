@@ -4,8 +4,10 @@
 
 
 
-#include "mozilla/dom/SVGAnimationElement.h"
 #include "nsSMILAnimationFunction.h"
+
+#include "mozilla/dom/SVGAnimationElement.h"
+#include "mozilla/Move.h"
 #include "nsISMILAttr.h"
 #include "nsSMILParserUtils.h"
 #include "nsSMILNullType.h"
@@ -267,9 +269,7 @@ nsSMILAnimationFunction::ComposeResult(const nsISMILAttr& aSMILAttr,
 
   
   if (!isAdditive || NS_FAILED(aResult.SandwichAdd(result))) {
-    aResult.Swap(result);
-    
-    
+    aResult = Move(result);
   }
 }
 

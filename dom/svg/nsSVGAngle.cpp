@@ -4,10 +4,11 @@
 
 
 
-#include "mozilla/ArrayUtils.h"
-
 #include "nsSVGAngle.h"
+
+#include "mozilla/ArrayUtils.h"
 #include "mozilla/dom/SVGMarkerElement.h"
+#include "mozilla/Move.h"
 #include "nsContentUtils.h" 
 #include "nsSMILValue.h"
 #include "nsSVGAttrTearoffTable.h"
@@ -383,7 +384,7 @@ nsSVGAngle::SMILOrient::ValueFromString(const nsAString& aStr,
     val.mU.mOrient.mUnit = unitType;
     val.mU.mOrient.mOrientType = SVG_MARKER_ORIENT_ANGLE;
   }
-  aValue.Swap(val);
+  aValue = Move(val);
   aPreventCachingOfSandwich = false;
 
   return NS_OK;

@@ -5,7 +5,9 @@
 
 
 #include "SVGAnimatedLengthList.h"
+
 #include "DOMSVGAnimatedLengthList.h"
+#include "mozilla/Move.h"
 #include "nsSVGElement.h"
 #include "nsSVGAttrTearoffTable.h"
 #include "nsSMILValue.h"
@@ -138,7 +140,7 @@ SVGAnimatedLengthList::
   nsresult rv = llai->SetValueFromString(aStr);
   if (NS_SUCCEEDED(rv)) {
     llai->SetInfo(mElement, mAxis, mCanZeroPadList);
-    aValue.Swap(val);
+    aValue = Move(val);
 
     
     
@@ -181,7 +183,7 @@ SVGAnimatedLengthList::SMILAnimatedLengthList::GetBaseValue() const
   nsresult rv = llai->CopyFrom(mVal->mBaseVal);
   if (NS_SUCCEEDED(rv)) {
     llai->SetInfo(mElement, mAxis, mCanZeroPadList);
-    val.Swap(tmp);
+    val = Move(tmp);
   }
   return val;
 }

@@ -7,11 +7,13 @@
 
 
 #include "nsSMILCSSProperty.h"
+
+#include "mozilla/dom/Element.h"
+#include "mozilla/Move.h"
 #include "nsSMILCSSValueType.h"
 #include "nsSMILValue.h"
 #include "nsComputedDOMStyle.h"
 #include "nsCSSProps.h"
-#include "mozilla/dom/Element.h"
 #include "nsIDOMElement.h"
 #include "nsIDocument.h"
 
@@ -81,7 +83,7 @@ nsSMILCSSProperty::GetBaseValue() const
     
     
     nsSMILValue tmpVal(&nsSMILCSSValueType::sSingleton);
-    baseValue.Swap(tmpVal);
+    Swap(baseValue, tmpVal);
     return baseValue;
   }
 
