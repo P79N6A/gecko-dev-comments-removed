@@ -4,8 +4,8 @@
 
 
 
-#ifndef mozilla_ipc_connectionorientedsocket_h
-#define mozilla_ipc_connectionorientedsocket_h
+#ifndef mozilla_ipc_ConnectionOrientedSocket_h
+#define mozilla_ipc_ConnectionOrientedSocket_h
 
 #include <sys/socket.h>
 #include "DataSocket.h"
@@ -112,10 +112,11 @@ public:
                                  ConnectionOrientedSocketIO*& aIO) = 0;
 
 protected:
+  ConnectionOrientedSocket();
   virtual ~ConnectionOrientedSocket();
 };
 
 }
 }
 
-#endif
+#endif 

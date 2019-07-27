@@ -36,6 +36,9 @@ public:
 
 
   virtual void SendSocketData(UnixSocketIOBuffer* aBuffer) = 0;
+
+protected:
+  DataSocket();
 };
 
 

@@ -5,6 +5,7 @@
 
 
 #include "ConnectionOrientedSocket.h"
+#include "nsISupportsImpl.h" 
 #include "UnixSocketConnector.h"
 
 namespace mozilla {
@@ -25,6 +26,8 @@ ConnectionOrientedSocketIO::ConnectionOrientedSocketIO(
   , mPeerAddressLength(0)
 {
   MOZ_ASSERT(mConnector);
+
+  MOZ_COUNT_CTOR_INHERITED(ConnectionOrientedSocketIO, DataSocketIO);
 }
 
 ConnectionOrientedSocketIO::ConnectionOrientedSocketIO(
@@ -37,10 +40,14 @@ ConnectionOrientedSocketIO::ConnectionOrientedSocketIO(
   , mPeerAddressLength(0)
 {
   MOZ_ASSERT(mConnector);
+
+  MOZ_COUNT_CTOR_INHERITED(ConnectionOrientedSocketIO, DataSocketIO);
 }
 
 ConnectionOrientedSocketIO::~ConnectionOrientedSocketIO()
-{ }
+{
+  MOZ_COUNT_DTOR_INHERITED(ConnectionOrientedSocketIO, DataSocketIO);
+}
 
 nsresult
 ConnectionOrientedSocketIO::Accept(int aFd,
@@ -181,8 +188,15 @@ ConnectionOrientedSocketIO::OnError(const char* aFunction, int aErrno)
 
 
 
+ConnectionOrientedSocket::ConnectionOrientedSocket()
+{
+  MOZ_COUNT_CTOR_INHERITED(ConnectionOrientedSocket, DataSocket);
+}
+
 ConnectionOrientedSocket::~ConnectionOrientedSocket()
-{ }
+{
+  MOZ_COUNT_DTOR_INHERITED(ConnectionOrientedSocket, DataSocket);
+}
 
 }
 }

@@ -4,11 +4,11 @@
 
 
 
-#ifndef mozilla_ipc_listensocket_h
-#define mozilla_ipc_listensocket_h
+#ifndef mozilla_ipc_ListenSocket_h
+#define mozilla_ipc_ListenSocket_h
 
-#include "nsString.h"
 #include "mozilla/ipc/SocketBase.h"
+#include "nsString.h"
 
 class MessageLoop;
 
