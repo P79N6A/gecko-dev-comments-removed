@@ -97,8 +97,12 @@ BRFrame::Reflow(nsPresContext* aPresContext,
 
   
   
+  
+  
+  
+  
   nsLineLayout* ll = aReflowState.mLineLayout;
-  if (ll && !StyleContext()->ShouldSuppressLineBreak()) {
+  if (ll && !GetParent()->StyleContext()->ShouldSuppressLineBreak()) {
     
     
     if ( ll->LineIsEmpty() ||
@@ -165,7 +169,7 @@ BRFrame::Reflow(nsPresContext* aPresContext,
 BRFrame::AddInlineMinISize(nsRenderingContext *aRenderingContext,
                            nsIFrame::InlineMinISizeData *aData)
 {
-  if (!StyleContext()->ShouldSuppressLineBreak()) {
+  if (!GetParent()->StyleContext()->ShouldSuppressLineBreak()) {
     aData->ForceBreak(aRenderingContext);
   }
 }
@@ -174,7 +178,7 @@ BRFrame::AddInlineMinISize(nsRenderingContext *aRenderingContext,
 BRFrame::AddInlinePrefISize(nsRenderingContext *aRenderingContext,
                             nsIFrame::InlinePrefISizeData *aData)
 {
-  if (!StyleContext()->ShouldSuppressLineBreak()) {
+  if (!GetParent()->StyleContext()->ShouldSuppressLineBreak()) {
     aData->ForceBreak(aRenderingContext);
   }
 }

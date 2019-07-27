@@ -548,6 +548,21 @@ ShouldSuppressLineBreak(const nsStyleDisplay* aStyleDisplay,
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   if ((aContainerDisplay->IsRubyDisplayType() &&
        aStyleDisplay->mDisplay != NS_STYLE_DISPLAY_RUBY_BASE_CONTAINER &&
        aStyleDisplay->mDisplay != NS_STYLE_DISPLAY_RUBY_TEXT_CONTAINER) ||
