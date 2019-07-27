@@ -6630,17 +6630,23 @@ HTMLInputElement::HasStepMismatch(bool aUseZeroIfValueNaN) const
 
 
 
+
+
+
+
+
+
 static bool PunycodeEncodeEmailAddress(const nsAString& aEmail,
                                        nsAutoCString& aEncodedEmail,
                                        uint32_t* aIndexOfAt)
 {
   nsAutoCString value = NS_ConvertUTF16toUTF8(aEmail);
-  uint32_t length = value.Length();
+  *aIndexOfAt = (uint32_t)value.FindChar('@');
 
-  uint32_t atPos = (uint32_t)value.FindChar('@');
-  
-  if (atPos == (uint32_t)kNotFound || atPos == 0 || atPos == length - 1) {
-    return false;
+  if (*aIndexOfAt == (uint32_t)kNotFound ||
+      *aIndexOfAt == value.Length() - 1) {
+    aEncodedEmail = value;
+    return true;
   }
 
   nsCOMPtr<nsIIDNService> idnSrv = do_GetService(NS_IDNSERVICE_CONTRACTID);
@@ -6649,18 +6655,19 @@ static bool PunycodeEncodeEmailAddress(const nsAString& aEmail,
     return false;
   }
 
-  const nsDependentCSubstring domain = Substring(value, atPos + 1);
+  uint32_t indexOfDomain = *aIndexOfAt + 1;
+
+  const nsDependentCSubstring domain = Substring(value, indexOfDomain);
   bool ace;
   if (NS_SUCCEEDED(idnSrv->IsACE(domain, &ace)) && !ace) {
     nsAutoCString domainACE;
     if (NS_FAILED(idnSrv->ConvertUTF8toACE(domain, domainACE))) {
       return false;
     }
-    value.Replace(atPos + 1, domain.Length(), domainACE);
+    value.Replace(indexOfDomain, domain.Length(), domainACE);
   }
 
   aEncodedEmail = value;
-  *aIndexOfAt = atPos;
   return true;
 }
 
@@ -7110,8 +7117,10 @@ HTMLInputElement::IsValidEmailAddress(const nsAString& aValue)
 
   uint32_t atPos;
   nsAutoCString value;
-  
-  if (!PunycodeEncodeEmailAddress(aValue, value, &atPos)) {
+  if (!PunycodeEncodeEmailAddress(aValue, value, &atPos) ||
+      atPos == (uint32_t)kNotFound || atPos == 0 || atPos == value.Length() - 1) {
+    
+    
     return false;
   }
 
