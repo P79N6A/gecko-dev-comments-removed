@@ -419,14 +419,32 @@ let Printing = {
     
     
     
-    
-    
-    addEventListener("printPreviewUpdate", function onPrintPreviewReady() {
+    let notifyEntered = (error) => {
       removeEventListener("printPreviewUpdate", onPrintPreviewReady);
-      sendAsyncMessage("Printing:Preview:Entered");
-    });
+      sendAsyncMessage("Printing:Preview:Entered", {
+        failed: !!error,
+      });
+    };
 
-    docShell.printPreview.printPreview(printSettings, contentWindow, this);
+    let onPrintPreviewReady = () => {
+      notifyEntered();
+    };
+
+    
+    
+    
+    
+    
+    addEventListener("printPreviewUpdate", onPrintPreviewReady);
+
+    try {
+      docShell.printPreview.printPreview(printSettings, contentWindow, this);
+    } catch(error) {
+      
+      
+      Components.utils.reportError(error);
+      notifyEntered(error);
+    }
   },
 
   exitPrintPreview() {

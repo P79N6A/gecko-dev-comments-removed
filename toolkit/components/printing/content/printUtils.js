@@ -451,6 +451,15 @@ var PrintUtils = {
 
     let onEntered = (message) => {
       mm.removeMessageListener("Printing:PrintPreview:Entered", onEntered);
+
+      if (message.data.failed) {
+        
+        
+        this._listener.onEnter();
+        this._listener.onExit();
+        return;
+      }
+
       
       
       gFocusedElement = document.commandDispatcher.focusedElement;
@@ -520,7 +529,7 @@ var PrintUtils = {
     if (gFocusedElement)
       fm.setFocus(gFocusedElement, fm.FLAG_NOSCROLL);
     else
-      window.content.focus();
+      this._sourceBrowser.focus();
     gFocusedElement = null;
 
     this._listener.onExit();
