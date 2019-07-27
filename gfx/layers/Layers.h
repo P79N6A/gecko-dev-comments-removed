@@ -45,6 +45,7 @@
 #include "nscore.h"                     
 #include "prlog.h"                      
 #include "gfx2DGlue.h"
+#include "gfxVR.h"
 
 class gfxContext;
 
@@ -1893,6 +1894,12 @@ public:
     mChildrenChanged = aVal;
   }
 
+  
+
+
+  void SetVRHMDInfo(gfx::VRHMDInfo* aHMD) { mHMDInfo = aHMD; }
+  gfx::VRHMDInfo* GetVRHMDInfo() { return mHMDInfo; }
+
 protected:
   friend class ReadbackProcessor;
 
@@ -1938,6 +1945,7 @@ protected:
   
   
   bool mChildrenChanged;
+  nsRefPtr<gfx::VRHMDInfo> mHMDInfo;
 };
 
 

@@ -19,6 +19,7 @@
 #include "nsISupportsImpl.h"            
 #include "nsPoint.h"                    
 #include "nsString.h"                   
+#include "gfxVR.h"
 
 namespace mozilla {
 namespace layers {

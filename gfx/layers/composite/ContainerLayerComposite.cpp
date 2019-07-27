@@ -134,6 +134,105 @@ struct PreparedLayer
 };
 
 
+template<class ContainerT> void
+ContainerRenderVR(ContainerT* aContainer,
+                  LayerManagerComposite* aManager,
+                  const nsIntRect& aClipRect,
+                  gfx::VRHMDInfo* aHMD)
+{
+  RefPtr<CompositingRenderTarget> surface;
+
+  Compositor* compositor = aManager->GetCompositor();
+
+  RefPtr<CompositingRenderTarget> previousTarget = compositor->GetCurrentRenderTarget();
+
+  nsIntRect visibleRect = aContainer->GetEffectiveVisibleRegion().GetBounds();
+
+  float opacity = aContainer->GetEffectiveOpacity();
+
+  gfx::IntRect surfaceRect = gfx::IntRect(visibleRect.x, visibleRect.y,
+                                          visibleRect.width, visibleRect.height);
+  
+  
+  
+  
+  
+  
+  int32_t maxTextureSize = compositor->GetMaxTextureSize();
+  surfaceRect.width = std::min(maxTextureSize, surfaceRect.width);
+  surfaceRect.height = std::min(maxTextureSize, surfaceRect.height);
+
+  
+  surface = compositor->CreateRenderTarget(surfaceRect, INIT_MODE_NONE);
+  if (!surface) {
+    return;
+  }
+
+  compositor->SetRenderTarget(surface);
+
+  nsAutoTArray<Layer*, 12> children;
+  aContainer->SortChildrenBy3DZOrder(children);
+
+  
+
+
+  nsIntRect surfaceClipRect(0, 0, surfaceRect.width, surfaceRect.height);
+  RenderTargetIntRect rtClipRect(0, 0, surfaceRect.width, surfaceRect.height);
+  for (uint32_t i = 0; i < children.Length(); i++) {
+    LayerComposite* layerToRender = static_cast<LayerComposite*>(children.ElementAt(i)->ImplData());
+    Layer* layer = layerToRender->GetLayer();
+
+    if (layer->GetEffectiveVisibleRegion().IsEmpty() &&
+        !layer->AsContainerLayer()) {
+      continue;
+    }
+
+    RenderTargetIntRect clipRect = layer->CalculateScissorRect(rtClipRect);
+    if (clipRect.IsEmpty()) {
+      continue;
+    }
+
+    layerToRender->Prepare(rtClipRect);
+    layerToRender->RenderLayer(surfaceClipRect);
+  }
+
+  
+#ifdef MOZ_DUMP_PAINTING
+  if (gfxUtils::sDumpPainting) {
+    RefPtr<gfx::DataSourceSurface> surf = surface->Dump(aManager->GetCompositor());
+    if (surf) {
+      WriteSnapshotToDumpFile(aContainer, surf);
+    }
+  }
+#endif
+
+  compositor->SetRenderTarget(previousTarget);
+
+  gfx::Rect rect(visibleRect.x, visibleRect.y, visibleRect.width, visibleRect.height);
+  gfx::Rect clipRect(aClipRect.x, aClipRect.y, aClipRect.width, aClipRect.height);
+
+  
+  
+  
+  
+  
+  EffectChain solidEffect(aContainer);
+  solidEffect.mPrimaryEffect = new EffectSolidColor(Color(0.0, 0.0, 0.0, 1.0));
+  aManager->GetCompositor()->DrawQuad(rect, clipRect, solidEffect, opacity,
+                                      aContainer->GetEffectiveTransform());
+
+  
+  EffectChain vrEffect(aContainer);
+  vrEffect.mPrimaryEffect = new EffectVRDistortion(aHMD, surface);
+
+  
+  
+  
+  aManager->GetCompositor()->DrawQuad(rect, clipRect, vrEffect, opacity,
+                                      aContainer->GetEffectiveTransform());
+}
+
+
 struct PreparedData
 {
   RefPtr<CompositingRenderTarget> mTmpTarget;
@@ -149,6 +248,15 @@ ContainerPrepare(ContainerT* aContainer,
 {
   aContainer->mPrepared = MakeUnique<PreparedData>();
   aContainer->mPrepared->mNeedsSurfaceCopy = false;
+
+  gfx::VRHMDInfo *hmdInfo = aContainer->GetVRHMDInfo();
+  if (hmdInfo && hmdInfo->GetConfiguration().IsValid()) {
+    
+    
+    
+    
+    return;
+  }
 
   
 
@@ -366,6 +474,14 @@ ContainerRender(ContainerT* aContainer,
                  const nsIntRect& aClipRect)
 {
   MOZ_ASSERT(aContainer->mPrepared);
+
+  gfx::VRHMDInfo *hmdInfo = aContainer->GetVRHMDInfo();
+  if (hmdInfo && hmdInfo->GetConfiguration().IsValid()) {
+    ContainerRenderVR(aContainer, aManager, aClipRect, hmdInfo);
+    aContainer->mPrepared = nullptr;
+    return;
+  }
+
   if (aContainer->UseIntermediateSurface()) {
     RefPtr<CompositingRenderTarget> surface;
 
