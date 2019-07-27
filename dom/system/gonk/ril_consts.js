@@ -534,6 +534,10 @@ this.ICC_EF_CFIS   = 0x6fcb;
 this.ICC_EF_SPDI   = 0x6fcd;
 
 
+this.ICC_EF_CPHS_INFO = 0x6f16; 
+this.ICC_EF_CPHS_MBN  = 0x6f17; 
+
+
 this.ICC_EF_CSIM_IMSI_M   = 0x6f22;
 this.ICC_EF_CSIM_CDMAHOME = 0x6f28;
 this.ICC_EF_CSIM_CST      = 0x6f32; 
@@ -1309,6 +1313,18 @@ this.GECKO_ICC_SERVICES = {
     ENHANCED_PHONEBOOK: 6,
     SPN: 17,
     SDN: 18
+  },
+  
+  
+  
+  
+  
+  cphs: {
+    CSP: 1,
+    SST: 2,
+    MBN: 3,
+    ONSF: 4,
+    INFO_NUM: 5
   }
 };
 

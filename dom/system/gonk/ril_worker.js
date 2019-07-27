@@ -12150,6 +12150,8 @@ ICCFileHelperObject.prototype = {
       case ICC_EF_OPL:
       case ICC_EF_PNN:
       case ICC_EF_GID1:
+      case ICC_EF_CPHS_INFO:
+      case ICC_EF_CPHS_MBN:
         return EF_PATH_MF_SIM + EF_PATH_DF_GSM;
       default:
         return null;
@@ -12176,6 +12178,12 @@ ICCFileHelperObject.prototype = {
       case ICC_EF_PNN:
       case ICC_EF_SMS:
       case ICC_EF_GID1:
+      
+      
+      
+      
+      case ICC_EF_CPHS_INFO:
+      case ICC_EF_CPHS_MBN:
         return EF_PATH_MF_SIM + EF_PATH_ADF_USIM;
       default:
         
@@ -13101,7 +13109,18 @@ SimRecordHelperObject.prototype = {
   fetchSimRecords: function() {
     this.context.RIL.getIMSI();
     this.readAD();
-    this.readSST();
+    
+    
+    
+    
+    
+    
+    
+    this.readCphsInfo(() => this.readSST(),
+                      (aErrorMsg) => {
+                        this.context.debug("Failed to read CPHS_INFO: " + aErrorMsg);
+                        this.readSST();
+                      });
   },
 
   
@@ -13432,6 +13451,13 @@ SimRecordHelperObject.prototype = {
         this.readMBDN();
       } else {
         if (DEBUG) this.context.debug("MDN: MDN service is not available");
+
+        if (ICCUtilsHelper.isCphsServiceAvailable("MBN")) {
+          
+          this.readCphsMBN();
+        } else {
+          if (DEBUG) this.context.debug("CPHS_MBN: CPHS_MBN service is not available");
+        }
       }
 
       if (ICCUtilsHelper.isICCServiceAvailable("MWIS")) {
@@ -13504,6 +13530,15 @@ SimRecordHelperObject.prototype = {
       let RIL = this.context.RIL;
       let contact =
         this.context.ICCPDUHelper.readAlphaIdDiallingNumber(options.recordSize);
+      if ((!contact ||
+           ((!contact.alphaId || contact.alphaId == "") &&
+            (!contact.number || contact.number == ""))) &&
+          this.context.ICCUtilsHelper.isCphsServiceAvailable("MBN")) {
+        
+        this.readCphsMBN();
+        return;
+      }
+
       if (!contact ||
           (RIL.iccInfoPrivate.mbdn !== undefined &&
            RIL.iccInfoPrivate.mbdn === contact.number)) {
@@ -14081,6 +14116,117 @@ SimRecordHelperObject.prototype = {
       callback: callback.bind(this)
     });
   },
+
+  
+
+
+
+
+
+
+
+  readCphsInfo: function(onsuccess, onerror) {
+    function callback() {
+      try {
+        let Buf = this.context.Buf;
+        let RIL = this.context.RIL;
+
+        let strLen = Buf.readInt32();
+        
+        let octetLen = strLen / 2;
+        let cphsInfo = this.context.GsmPDUHelper.readHexOctetArray(octetLen);
+        Buf.readStringDelimiter(strLen);
+        if (DEBUG) {
+          let str = "";
+          for (let i = 0; i < cphsInfo.length; i++) {
+            str += cphsInfo[i] + ", ";
+          }
+          this.context.debug("CPHS INFO: " + str);
+        }
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        let cphsPhase = cphsInfo[0];
+        if (cphsPhase == 1) {
+          
+          cphsInfo[1] &= 0x3F;
+          
+          
+          if (cphsInfo.length > 2) {
+            cphsInfo[2] = 0x00;
+          }
+        } else if (cphsPhase == 2) {
+          
+          cphsInfo[1] &= 0xF3;
+        } else {
+          throw new Error("Unknown CPHS phase: " + cphsPhase);
+        }
+
+        RIL.iccInfoPrivate.cphsSt = cphsInfo.subarray(1);
+        onsuccess();
+      } catch(e) {
+        onerror(e.toString());
+      }
+    }
+
+    this.context.ICCIOHelper.loadTransparentEF({
+      fileId: ICC_EF_CPHS_INFO,
+      callback: callback.bind(this),
+      onerror: onerror
+    });
+  },
+
+  
+
+
+
+
+  readCphsMBN: function() {
+    function callback(options) {
+      let RIL = this.context.RIL;
+      let contact =
+        this.context.ICCPDUHelper.readAlphaIdDiallingNumber(options.recordSize);
+      if (!contact ||
+          (RIL.iccInfoPrivate.mbdn !== undefined &&
+           RIL.iccInfoPrivate.mbdn === contact.number)) {
+        return;
+      }
+      RIL.iccInfoPrivate.mbdn = contact.number;
+      if (DEBUG) {
+        this.context.debug("CPHS_MDN, alphaId=" + contact.alphaId +
+                           " number=" + contact.number);
+      }
+      contact.rilMessageType = "iccmbdn";
+      RIL.sendChromeMessage(contact);
+    }
+
+    this.context.ICCIOHelper.loadLinearFixedEF({
+      fileId: ICC_EF_CPHS_MBN,
+      callback: callback.bind(this)
+    });
+  }
 };
 
 function RuimRecordHelperObject(aContext) {
@@ -14692,8 +14838,6 @@ ICCUtilsHelperObject.prototype = {
 
 
 
-
-
       let usimService = GECKO_ICC_SERVICES.usim[geckoService];
       if (!usimService) {
         return false;
@@ -14705,6 +14849,49 @@ ICCUtilsHelperObject.prototype = {
 
     return (serviceTable !== null) &&
            (index < serviceTable.length) &&
+           ((serviceTable[index] & bitmask) !== 0);
+  },
+
+  
+
+
+
+
+
+
+
+  isCphsServiceAvailable: function(geckoService) {
+    let RIL = this.context.RIL;
+    let serviceTable = RIL.iccInfoPrivate.cphsSt;
+
+    if (!(serviceTable instanceof Uint8Array)) {
+      return false;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    let cphsService  = GECKO_ICC_SERVICES.cphs[geckoService];
+
+    if (!cphsService) {
+      return false;
+    }
+    cphsService -= 1;
+    let index = Math.floor(cphsService / 4);
+    let bitmask = 2 << ((cphsService % 4) << 1);
+
+    return (index < serviceTable.length) &&
            ((serviceTable[index] & bitmask) !== 0);
   },
 
