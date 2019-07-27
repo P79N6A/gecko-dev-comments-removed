@@ -832,12 +832,13 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
   
   
   if (aScrollFrame) {
-    
-    
-    nsIFrame* backgroundFrame = isRootScrollFrame ? presShell->GetRootFrame() : aScrollFrame;
-    nsStyleContext* backgroundStyle;
-    if (nsCSSRendering::FindBackground(backgroundFrame, &backgroundStyle)) {
-      aRoot->SetBackgroundColor(backgroundStyle->StyleBackground()->mBackgroundColor);
+    if (isRootScrollFrame) {
+      aRoot->SetBackgroundColor(presShell->GetCanvasBackground());
+    } else {
+      nsStyleContext* backgroundStyle;
+      if (nsCSSRendering::FindBackground(aScrollFrame, &backgroundStyle)) {
+        aRoot->SetBackgroundColor(backgroundStyle->StyleBackground()->mBackgroundColor);
+      }
     }
   }
 }
