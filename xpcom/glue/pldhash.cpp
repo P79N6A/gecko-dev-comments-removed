@@ -768,9 +768,6 @@ PLDHashTable::Enumerate(PLDHashEnumerator aEtor, void* aArg)
     
     
     entryAddr += ChaosMode::randomUint32LessThan(capacity) * mEntrySize;
-    if (entryAddr >= entryLimit) {
-      entryAddr -= tableSize;
-    }
   }
 
   for (uint32_t e = 0; e < capacity; ++e) {
@@ -912,17 +909,12 @@ PLDHashTable::Iterator::Iterator(const PLDHashTable* aTable)
   
   
   uint32_t capacity = mTable->Capacity();
-  uint32_t tableSize = capacity * mTable->EntrySize();
-  char* entryLimit = mEntryAddr + tableSize;
 
   if (ChaosMode::isActive(ChaosMode::HashTableIteration)) {
     
     
     
     mEntryAddr += ChaosMode::randomUint32LessThan(capacity) * mTable->mEntrySize;
-    if (mEntryAddr >= entryLimit) {
-      mEntryAddr -= tableSize;
-    }
   }
 }
 
