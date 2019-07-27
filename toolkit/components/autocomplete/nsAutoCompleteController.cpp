@@ -116,6 +116,7 @@ nsAutoCompleteController::SetInput(nsIAutoCompleteInput *aInput)
 
   
   mSearchString = newValue;
+  mPlaceholderCompletionString.Truncate();
   mDefaultIndexCompleted = false;
   mBackspaced = false;
   mSearchStatus = nsIAutoCompleteController::STATUS_NONE;
@@ -230,8 +231,10 @@ nsAutoCompleteController::HandleText()
     
     ClearResults();
     mBackspaced = true;
-  } else
+    mPlaceholderCompletionString.Truncate();
+  } else {
     mBackspaced = false;
+  }
 
   mSearchString = newValue;
 
@@ -1111,6 +1114,46 @@ nsAutoCompleteController::StopSearch()
   return NS_OK;
 }
 
+void
+nsAutoCompleteController::MaybeCompletePlaceholder()
+{
+  MOZ_ASSERT(mInput);
+
+  if (!mInput) { 
+    MOZ_ASSERT_UNREACHABLE("Input should always be valid at this point");
+    return;
+  }
+
+  int32_t selectionStart;
+  mInput->GetSelectionStart(&selectionStart);
+  int32_t selectionEnd;
+  mInput->GetSelectionEnd(&selectionEnd);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  bool usePlaceholderCompletion =
+    !mPlaceholderCompletionString.IsEmpty() &&
+    mPlaceholderCompletionString.Length() > mSearchString.Length() &&
+    selectionEnd == selectionStart &&
+    selectionEnd == (int32_t)mSearchString.Length() &&
+    StringBeginsWith(mPlaceholderCompletionString, mSearchString,
+                    nsCaseInsensitiveStringComparator());
+
+  if (usePlaceholderCompletion) {
+    CompleteValue(mPlaceholderCompletionString);
+  } else {
+    mPlaceholderCompletionString.Truncate();
+  }
+}
+
 nsresult
 nsAutoCompleteController::StartSearches()
 {
@@ -1119,6 +1162,10 @@ nsAutoCompleteController::StartSearches()
   
   if (mTimer || !mInput)
     return NS_OK;
+
+  
+  
+  MaybeCompletePlaceholder();
 
   nsCOMPtr<nsIAutoCompleteInput> input(mInput);
 
@@ -1457,10 +1504,18 @@ nsAutoCompleteController::CompleteDefaultIndex(int32_t aResultIndex)
   int32_t selectionEnd;
   input->GetSelectionEnd(&selectionEnd);
 
+  bool isPlaceholderSelected =
+      selectionEnd == (int32_t)mPlaceholderCompletionString.Length() &&
+      selectionStart == (int32_t)mSearchString.Length() &&
+      StringBeginsWith(mPlaceholderCompletionString,
+        mSearchString, nsCaseInsensitiveStringComparator());
+
   
   
-  if (selectionEnd != selectionStart ||
-      selectionEnd != (int32_t)mSearchString.Length())
+  
+  
+  if (!isPlaceholderSelected && (selectionEnd != selectionStart ||
+        selectionEnd != (int32_t)mSearchString.Length()))
     return NS_OK;
 
   bool shouldComplete;
@@ -1603,6 +1658,7 @@ nsAutoCompleteController::CompleteValue(nsString &aValue)
     
     
     
+    mPlaceholderCompletionString = aValue;
     input->SetTextValue(aValue);
   } else {
     nsresult rv;
@@ -1623,9 +1679,9 @@ nsAutoCompleteController::CompleteValue(nsString &aValue)
         return NS_OK;
       }
 
-      input->SetTextValue(mSearchString +
-                          Substring(aValue, mSearchStringLength + findIndex,
-                                    endSelect));
+      mPlaceholderCompletionString = mSearchString +
+        Substring(aValue, mSearchStringLength + findIndex, endSelect);
+      input->SetTextValue(mPlaceholderCompletionString);
 
       endSelect -= findIndex; 
     } else {
@@ -1635,6 +1691,9 @@ nsAutoCompleteController::CompleteValue(nsString &aValue)
       input->SetTextValue(mSearchString + NS_LITERAL_STRING(" >> ") + aValue);
 
       endSelect = mSearchString.Length() + 4 + aValue.Length();
+
+      
+      mPlaceholderCompletionString.Truncate();
     }
   }
 
