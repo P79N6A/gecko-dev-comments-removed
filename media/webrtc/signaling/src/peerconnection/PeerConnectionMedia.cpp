@@ -236,8 +236,11 @@ OnProxyAvailable(nsICancelable *request, nsIURI *uri, nsIProxyInfo *proxyinfo,
     }
   }
 
-  pcm_->mProxyResolveCompleted = true;
-  pcm_->GatherIfReady();
+  if (result != NS_ERROR_ABORT) {
+    
+    pcm_->mProxyResolveCompleted = true;
+    pcm_->GatherIfReady();
+  }
 
   return NS_OK;
 }
@@ -536,6 +539,8 @@ PeerConnectionMedia::AddIceCandidate_s(const std::string& aCandidate,
 
 void
 PeerConnectionMedia::GatherIfReady() {
+  ASSERT_ON_THREAD(mMainThread);
+
   if (mTransportsUpdated && mProxyResolveCompleted) {
     RUN_ON_THREAD(GetSTSThread(),
         WrapRunnable(
@@ -728,6 +733,10 @@ PeerConnectionMedia::SelfDestruct()
   }
 
   
+  
+  mProxyResolveCompleted = false;
+
+  
   RUN_ON_THREAD(mSTSThread, WrapRunnable(
       this, &PeerConnectionMedia::ShutdownMediaTransport_s),
                 NS_DISPATCH_NORMAL);
@@ -740,12 +749,12 @@ PeerConnectionMedia::SelfDestruct_m()
 {
   CSFLogDebug(logTag, "%s: ", __FUNCTION__);
 
-  nsresult status = NS_OK;
+  ASSERT_ON_THREAD(mMainThread);
+
   if (mProxyRequest) {
-    mProxyRequest->Cancel(status);
+    mProxyRequest->Cancel(NS_ERROR_ABORT);
   }
 
-  ASSERT_ON_THREAD(mMainThread);
   mLocalSourceStreams.Clear();
   mRemoteSourceStreams.Clear();
 
