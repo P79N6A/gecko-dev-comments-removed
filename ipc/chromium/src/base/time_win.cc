@@ -324,7 +324,7 @@ class HighResNowSingleton {
  private:
   
   void InitializeClock() {
-    LARGE_INTEGER ticks_per_sec = {0};
+    LARGE_INTEGER ticks_per_sec = {{0}};
     if (!QueryPerformanceFrequency(&ticks_per_sec))
       return;  
     ticks_per_microsecond_ = static_cast<float>(ticks_per_sec.QuadPart) /
