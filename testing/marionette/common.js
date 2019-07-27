@@ -73,7 +73,7 @@ MarionetteLogObj.prototype = {
       this.logs.push(msgs[i]);
     }
   },
-  
+
   
 
 
