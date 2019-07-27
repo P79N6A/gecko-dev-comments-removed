@@ -16,6 +16,7 @@ class nsIInputStream;
 namespace mozilla {
 namespace dom {
 
+class DOMFileImpl;
 class Promise;
 
 class CreateFileTask MOZ_FINAL
@@ -67,7 +68,10 @@ private:
   nsCOMPtr<nsIInputStream> mBlobStream;
   InfallibleTArray<uint8_t> mArrayData;
   bool mReplace;
-  nsCOMPtr<nsIDOMFile> mTargetFile;
+
+  
+  
+  nsRefPtr<DOMFileImpl> mTargetFileImpl;
 };
 
 } 
