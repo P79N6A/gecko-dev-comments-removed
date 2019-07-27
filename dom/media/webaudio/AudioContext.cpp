@@ -769,18 +769,12 @@ private:
   nsRefPtr<AudioContext> mAudioContext;
 };
 
+
+
 void
 AudioContext::OnStateChanged(void* aPromise, AudioContextState aNewState)
 {
   MOZ_ASSERT(NS_IsMainThread());
-
-  
-  
-  if (mAudioContextState == AudioContextState::Closed &&
-      aNewState == AudioContextState::Running &&
-      !aPromise) {
-    return;
-  }
 
   MOZ_ASSERT((mAudioContextState == AudioContextState::Suspended &&
               aNewState == AudioContextState::Running)   ||
