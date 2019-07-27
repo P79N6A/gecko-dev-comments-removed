@@ -1166,6 +1166,13 @@ this.MozLoopService = {
   
 
 
+  generateUUID: function() {
+    return uuidgen.generateUUID().toString();
+  },
+
+  
+
+
 
 
   get doNotDisturb() {

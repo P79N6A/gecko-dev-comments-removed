@@ -546,6 +546,17 @@ function injectLoopAPI(targetWindow) {
     
 
 
+    generateUUID: {
+      enumerable: true,
+      writable: true,
+      value: function() {
+        return MozLoopService.generateUUID();
+      }
+    },
+
+    
+
+
 
 
 
