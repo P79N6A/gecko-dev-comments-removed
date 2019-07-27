@@ -494,14 +494,6 @@ static_assert(sizeof(JSFunction) == sizeof(js::shadow::Function),
 extern JSString *
 fun_toStringHelper(JSContext *cx, js::HandleObject obj, unsigned indent);
 
-inline JSFunction::Flags
-JSAPIToJSFunctionFlags(unsigned flags)
-{
-    return (flags & JSFUN_CONSTRUCTOR)
-           ? JSFunction::NATIVE_CTOR
-           : JSFunction::NATIVE_FUN;
-}
-
 namespace js {
 
 extern bool
@@ -510,11 +502,25 @@ Function(JSContext *cx, unsigned argc, Value *vp);
 extern bool
 Generator(JSContext *cx, unsigned argc, Value *vp);
 
+
 extern JSFunction *
-NewFunction(ExclusiveContext *cx, JSNative native, unsigned nargs,
-            JSFunction::Flags flags, HandleObject parent, HandleAtom atom,
-            gc::AllocKind allocKind = JSFunction::FinalizeKind,
-            NewObjectKind newKind = GenericObject);
+NewNativeFunction(ExclusiveContext *cx, JSNative native, unsigned nargs, HandleAtom atom,
+                  gc::AllocKind allocKind = JSFunction::FinalizeKind,
+                  NewObjectKind newKind = GenericObject);
+
+
+extern JSFunction *
+NewNativeConstructor(ExclusiveContext *cx, JSNative native, unsigned nargs, HandleAtom atom,
+                     gc::AllocKind allocKind = JSFunction::FinalizeKind,
+                     NewObjectKind newKind = GenericObject,
+                     JSFunction::Flags flags = JSFunction::NATIVE_CTOR);
+
+
+extern JSFunction *
+NewScriptedFunction(ExclusiveContext *cx, unsigned nargs,
+                    JSFunction::Flags flags, HandleObject parent, HandleAtom atom,
+                    gc::AllocKind allocKind = JSFunction::FinalizeKind,
+                    NewObjectKind newKind = GenericObject);
 
 
 extern JSFunction *

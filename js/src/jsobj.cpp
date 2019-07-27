@@ -2504,14 +2504,7 @@ DefineConstructorAndPrototype(JSContext *cx, HandleObject obj, JSProtoKey key, H
 
         ctor = proto;
     } else {
-        
-
-
-
-
-
-        RootedFunction fun(cx, NewFunction(cx, constructor, nargs,
-                                           JSFunction::NATIVE_CTOR, obj, atom, ctorKind));
+        RootedFunction fun(cx, NewNativeConstructor(cx, constructor, nargs, atom, ctorKind));
         if (!fun)
             goto bad;
 
