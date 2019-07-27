@@ -101,6 +101,11 @@ public:
     return mSpec == aOther.mSpec;
   }
 
+  bool HasSameRef(const ImageURL& aOther) const
+  {
+    return mRef == aOther.mRef;
+  }
+
 private:
   
   

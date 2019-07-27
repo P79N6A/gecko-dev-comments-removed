@@ -87,7 +87,9 @@ ImageCacheKey::operator==(const ImageCacheKey& aOther) const
 {
   if (mBlobSerial || aOther.mBlobSerial) {
     
-    return mBlobSerial == aOther.mBlobSerial;
+    
+    return mBlobSerial == aOther.mBlobSerial &&
+           mURI->HasSameRef(*aOther.mURI);
   }
 
   
@@ -110,7 +112,12 @@ ImageCacheKey::ComputeHash(ImageURL* aURI,
   if (aBlobSerial) {
     
     
-    return HashGeneric(*aBlobSerial);
+    
+    
+    
+    nsAutoCString ref;
+    aURI->GetRef(ref);
+    return HashGeneric(*aBlobSerial, HashString(ref));
   }
 
   
