@@ -278,9 +278,9 @@ extern "C" {
 
 
 
-#define SQLITE_VERSION        "3.8.8.1"
+#define SQLITE_VERSION        "3.8.8.2"
 #define SQLITE_VERSION_NUMBER 3008008
-#define SQLITE_SOURCE_ID      "2015-01-20 16:51:25 f73337e3e289915a76ca96e7a05a1a8d4e890d55"
+#define SQLITE_SOURCE_ID      "2015-01-30 14:30:45 7757fc721220e136620a89c9d28247f28bbbc098"
 
 
 
@@ -50197,7 +50197,7 @@ static int walCheckpoint(
   int sync_flags,                 
   u8 *zBuf                        
 ){
-  int rc;                         
+  int rc = SQLITE_OK;             
   int szPage;                     
   WalIterator *pIter = 0;         
   u32 iDbpage = 0;                
@@ -50211,104 +50211,107 @@ static int walCheckpoint(
   testcase( szPage<=32768 );
   testcase( szPage>=65536 );
   pInfo = walCkptInfo(pWal);
-  if( pInfo->nBackfill>=pWal->hdr.mxFrame ) return SQLITE_OK;
-
-  
-  rc = walIteratorInit(pWal, &pIter);
-  if( rc!=SQLITE_OK ){
-    return rc;
-  }
-  assert( pIter );
-
-  
-
-  assert( eMode!=SQLITE_CHECKPOINT_PASSIVE || xBusy==0 );
-
-  
-
-
-
-
-  mxSafeFrame = pWal->hdr.mxFrame;
-  mxPage = pWal->hdr.nPage;
-  for(i=1; i<WAL_NREADER; i++){
-    u32 y = pInfo->aReadMark[i];
-    if( mxSafeFrame>y ){
-      assert( y<=pWal->hdr.mxFrame );
-      rc = walBusyLock(pWal, xBusy, pBusyArg, WAL_READ_LOCK(i), 1);
-      if( rc==SQLITE_OK ){
-        pInfo->aReadMark[i] = (i==1 ? mxSafeFrame : READMARK_NOT_USED);
-        walUnlockExclusive(pWal, WAL_READ_LOCK(i), 1);
-      }else if( rc==SQLITE_BUSY ){
-        mxSafeFrame = y;
-        xBusy = 0;
-      }else{
-        goto walcheckpoint_out;
-      }
-    }
-  }
-
-  if( pInfo->nBackfill<mxSafeFrame
-   && (rc = walBusyLock(pWal, xBusy, pBusyArg, WAL_READ_LOCK(0), 1))==SQLITE_OK
-  ){
-    i64 nSize;                    
-    u32 nBackfill = pInfo->nBackfill;
+  if( pInfo->nBackfill<pWal->hdr.mxFrame ){
 
     
-    if( sync_flags ){
-      rc = sqlite3OsSync(pWal->pWalFd, sync_flags);
+    rc = walIteratorInit(pWal, &pIter);
+    if( rc!=SQLITE_OK ){
+      return rc;
     }
+    assert( pIter );
+
+    
+
+    assert( eMode!=SQLITE_CHECKPOINT_PASSIVE || xBusy==0 );
 
     
 
 
-    if( rc==SQLITE_OK ){
-      i64 nReq = ((i64)mxPage * szPage);
-      rc = sqlite3OsFileSize(pWal->pDbFd, &nSize);
-      if( rc==SQLITE_OK && nSize<nReq ){
-        sqlite3OsFileControlHint(pWal->pDbFd, SQLITE_FCNTL_SIZE_HINT, &nReq);
-      }
-    }
 
 
-    
-    while( rc==SQLITE_OK && 0==walIteratorNext(pIter, &iDbpage, &iFrame) ){
-      i64 iOffset;
-      assert( walFramePgno(pWal, iFrame)==iDbpage );
-      if( iFrame<=nBackfill || iFrame>mxSafeFrame || iDbpage>mxPage ) continue;
-      iOffset = walFrameOffset(iFrame, szPage) + WAL_FRAME_HDRSIZE;
-      
-      rc = sqlite3OsRead(pWal->pWalFd, zBuf, szPage, iOffset);
-      if( rc!=SQLITE_OK ) break;
-      iOffset = (iDbpage-1)*(i64)szPage;
-      testcase( IS_BIG_INT(iOffset) );
-      rc = sqlite3OsWrite(pWal->pDbFd, zBuf, szPage, iOffset);
-      if( rc!=SQLITE_OK ) break;
-    }
-
-    
-    if( rc==SQLITE_OK ){
-      if( mxSafeFrame==walIndexHdr(pWal)->mxFrame ){
-        i64 szDb = pWal->hdr.nPage*(i64)szPage;
-        testcase( IS_BIG_INT(szDb) );
-        rc = sqlite3OsTruncate(pWal->pDbFd, szDb);
-        if( rc==SQLITE_OK && sync_flags ){
-          rc = sqlite3OsSync(pWal->pDbFd, sync_flags);
+    mxSafeFrame = pWal->hdr.mxFrame;
+    mxPage = pWal->hdr.nPage;
+    for(i=1; i<WAL_NREADER; i++){
+      u32 y = pInfo->aReadMark[i];
+      if( mxSafeFrame>y ){
+        assert( y<=pWal->hdr.mxFrame );
+        rc = walBusyLock(pWal, xBusy, pBusyArg, WAL_READ_LOCK(i), 1);
+        if( rc==SQLITE_OK ){
+          pInfo->aReadMark[i] = (i==1 ? mxSafeFrame : READMARK_NOT_USED);
+          walUnlockExclusive(pWal, WAL_READ_LOCK(i), 1);
+        }else if( rc==SQLITE_BUSY ){
+          mxSafeFrame = y;
+          xBusy = 0;
+        }else{
+          goto walcheckpoint_out;
         }
       }
-      if( rc==SQLITE_OK ){
-        pInfo->nBackfill = mxSafeFrame;
-      }
     }
 
-    
-    walUnlockExclusive(pWal, WAL_READ_LOCK(0), 1);
-  }
+    if( pInfo->nBackfill<mxSafeFrame
+     && (rc = walBusyLock(pWal, xBusy, pBusyArg, WAL_READ_LOCK(0),1))==SQLITE_OK
+    ){
+      i64 nSize;                    
+      u32 nBackfill = pInfo->nBackfill;
 
-  if( rc==SQLITE_BUSY ){
-    
+      
+      if( sync_flags ){
+        rc = sqlite3OsSync(pWal->pWalFd, sync_flags);
+      }
 
-    rc = SQLITE_OK;
+      
+
+
+      if( rc==SQLITE_OK ){
+        i64 nReq = ((i64)mxPage * szPage);
+        rc = sqlite3OsFileSize(pWal->pDbFd, &nSize);
+        if( rc==SQLITE_OK && nSize<nReq ){
+          sqlite3OsFileControlHint(pWal->pDbFd, SQLITE_FCNTL_SIZE_HINT, &nReq);
+        }
+      }
+
+
+      
+      while( rc==SQLITE_OK && 0==walIteratorNext(pIter, &iDbpage, &iFrame) ){
+        i64 iOffset;
+        assert( walFramePgno(pWal, iFrame)==iDbpage );
+        if( iFrame<=nBackfill || iFrame>mxSafeFrame || iDbpage>mxPage ){
+          continue;
+        }
+        iOffset = walFrameOffset(iFrame, szPage) + WAL_FRAME_HDRSIZE;
+        
+        rc = sqlite3OsRead(pWal->pWalFd, zBuf, szPage, iOffset);
+        if( rc!=SQLITE_OK ) break;
+        iOffset = (iDbpage-1)*(i64)szPage;
+        testcase( IS_BIG_INT(iOffset) );
+        rc = sqlite3OsWrite(pWal->pDbFd, zBuf, szPage, iOffset);
+        if( rc!=SQLITE_OK ) break;
+      }
+
+      
+      if( rc==SQLITE_OK ){
+        if( mxSafeFrame==walIndexHdr(pWal)->mxFrame ){
+          i64 szDb = pWal->hdr.nPage*(i64)szPage;
+          testcase( IS_BIG_INT(szDb) );
+          rc = sqlite3OsTruncate(pWal->pDbFd, szDb);
+          if( rc==SQLITE_OK && sync_flags ){
+            rc = sqlite3OsSync(pWal->pDbFd, sync_flags);
+          }
+        }
+        if( rc==SQLITE_OK ){
+          pInfo->nBackfill = mxSafeFrame;
+        }
+      }
+
+      
+      walUnlockExclusive(pWal, WAL_READ_LOCK(0), 1);
+    }
+
+    if( rc==SQLITE_BUSY ){
+      
+
+      rc = SQLITE_OK;
+    }
   }
 
   
@@ -50323,7 +50326,7 @@ static int walCheckpoint(
     }else if( eMode>=SQLITE_CHECKPOINT_RESTART ){
       u32 salt1;
       sqlite3_randomness(4, &salt1);
-      assert( mxSafeFrame==pWal->hdr.mxFrame );
+      assert( pInfo->nBackfill==pWal->hdr.mxFrame );
       rc = walBusyLock(pWal, xBusy, pBusyArg, WAL_READ_LOCK(1), WAL_NREADER-1);
       if( rc==SQLITE_OK ){
         if( eMode==SQLITE_CHECKPOINT_TRUNCATE ){
@@ -128369,6 +128372,7 @@ SQLITE_API int sqlite3_wal_checkpoint_v2(
     rc = SQLITE_ERROR;
     sqlite3ErrorWithMsg(db, SQLITE_ERROR, "unknown database: %s", zDb);
   }else{
+    db->busyHandler.nBusy = 0;
     rc = sqlite3Checkpoint(db, iDb, eMode, pnLog, pnCkpt);
     sqlite3Error(db, rc);
   }
