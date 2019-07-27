@@ -2385,6 +2385,31 @@ DebugScopes::hasLiveScope(ScopeObject &scope)
 }
 
  void
+DebugScopes::unsetPrevUpToDateUntil(JSContext *cx, AbstractFramePtr until)
+{
+    
+    
+    
+    
+    
+    
+    
+    for (AllFramesIter i(cx); !i.done(); ++i) {
+        if (!i.hasUsableAbstractFramePtr())
+            continue;
+
+        AbstractFramePtr frame = i.abstractFramePtr();
+        if (frame == until)
+            return;
+
+        if (frame.scopeChain()->compartment() != cx->compartment())
+            continue;
+
+        frame.unsetPrevUpToDate();
+    }
+}
+
+ void
 DebugScopes::forwardLiveFrame(JSContext *cx, AbstractFramePtr from, AbstractFramePtr to)
 {
     DebugScopes *scopes = cx->compartment()->debugScopes;

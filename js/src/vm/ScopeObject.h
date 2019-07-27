@@ -942,6 +942,7 @@ class DebugScopes
 
     static bool updateLiveScopes(JSContext *cx);
     static ScopeIterVal *hasLiveScope(ScopeObject &scope);
+    static void unsetPrevUpToDateUntil(JSContext *cx, AbstractFramePtr frame);
 
     
     

@@ -1477,8 +1477,6 @@ jit::JitActivation::clearRematerializedFrames()
 jit::RematerializedFrame *
 jit::JitActivation::getRematerializedFrame(JSContext *cx, const JitFrameIterator &iter, size_t inlineDepth)
 {
-    
-    MOZ_ASSERT(cx->perThreadData == cx_->perThreadData);
     MOZ_ASSERT(iter.activation() == this);
     MOZ_ASSERT(iter.isIonScripted());
 
@@ -1515,6 +1513,10 @@ jit::JitActivation::getRematerializedFrame(JSContext *cx, const JitFrameIterator
         {
             return nullptr;
         }
+
+        
+        
+        DebugScopes::unsetPrevUpToDateUntil(cx, p->value()[inlineDepth]);
     }
 
     return p->value()[inlineDepth];
