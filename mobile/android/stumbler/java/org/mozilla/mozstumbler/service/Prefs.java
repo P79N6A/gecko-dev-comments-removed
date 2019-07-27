@@ -48,18 +48,15 @@ public  final class Prefs {
         }
     }
 
-    
-
-    public static void createGlobalInstance(Context c) {
-        if (sInstance != null) {
-            return;
+    public static Prefs getInstance(Context c) {
+        if (sInstance == null) {
+            sInstance = new Prefs(c);
         }
-        sInstance = new Prefs(c);
+        return sInstance;
     }
 
     
-    public static Prefs getInstance() {
-        assert(sInstance != null);
+    public static Prefs getInstanceWithoutContext() {
         return sInstance;
     }
 
