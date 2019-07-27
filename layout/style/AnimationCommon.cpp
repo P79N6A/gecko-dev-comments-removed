@@ -492,7 +492,8 @@ AnimationPlayerCollection::EnsureStyleRuleFor(TimeStamp aRefreshTime,
       
       if (!player->mIsRunningOnCompositor ||
           (computedTiming.mPhase == ComputedTiming::AnimationPhase_After &&
-           player->mLastNotification != AnimationPlayer::LAST_NOTIFICATION_END))
+           player->GetSource()->LastNotification()
+             != Animation::LAST_NOTIFICATION_END))
       {
         aFlags = EnsureStyleRule_IsNotThrottled;
         break;

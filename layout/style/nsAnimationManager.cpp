@@ -60,7 +60,7 @@ nsAnimationManager::GetEventsForCurrentTime(AnimationPlayerCollection*
 
       case ComputedTiming::AnimationPhase_Active:
         
-        if (computedTiming.mCurrentIteration != player->mLastNotification) {
+        if (computedTiming.mCurrentIteration != anim->LastNotification()) {
           
           
           
@@ -68,12 +68,10 @@ nsAnimationManager::GetEventsForCurrentTime(AnimationPlayerCollection*
           
           
           uint32_t message =
-            player->mLastNotification ==
-              AnimationPlayer::LAST_NOTIFICATION_NONE
-              ? NS_ANIMATION_START
-              : NS_ANIMATION_ITERATION;
-
-          player->mLastNotification = computedTiming.mCurrentIteration;
+            anim->LastNotification() == Animation::LAST_NOTIFICATION_NONE
+                                        ? NS_ANIMATION_START
+                                        : NS_ANIMATION_ITERATION;
+          anim->SetLastNotification(computedTiming.mCurrentIteration);
           TimeDuration iterationStart =
             anim->Timing().mIterationDuration *
             computedTiming.mCurrentIteration;
@@ -88,12 +86,11 @@ nsAnimationManager::GetEventsForCurrentTime(AnimationPlayerCollection*
       case ComputedTiming::AnimationPhase_After:
         
         
-        if (player->mLastNotification ==
-            AnimationPlayer::LAST_NOTIFICATION_NONE) {
+        if (anim->LastNotification() == Animation::LAST_NOTIFICATION_NONE) {
           
           
           
-          player->mLastNotification = 0;
+          anim->SetLastNotification(0);
           TimeDuration elapsedTime =
             std::min(anim->InitialAdvance(), computedTiming.mActiveDuration);
           AnimationEventInfo ei(aCollection->mElement,
@@ -102,9 +99,8 @@ nsAnimationManager::GetEventsForCurrentTime(AnimationPlayerCollection*
           aEventsToDispatch.AppendElement(ei);
         }
         
-        if (player->mLastNotification !=
-            AnimationPlayer::LAST_NOTIFICATION_END) {
-          player->mLastNotification = AnimationPlayer::LAST_NOTIFICATION_END;
+        if (anim->LastNotification() != Animation::LAST_NOTIFICATION_END) {
+          anim->SetLastNotification(Animation::LAST_NOTIFICATION_END);
           AnimationEventInfo ei(aCollection->mElement,
                                 player->mName, NS_ANIMATION_END,
                                 computedTiming.mActiveDuration,
