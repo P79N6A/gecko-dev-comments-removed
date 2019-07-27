@@ -22,6 +22,12 @@ class DataSourceSurface;
 
 namespace gl {
 
+
+
+bool GetActualReadFormats(GLContext* gl,
+                          GLenum destFormat, GLenum destType,
+                          GLenum* out_readFormat, GLenum* out_readType);
+
 void ReadPixelsIntoDataSurface(GLContext* aGL,
                                gfx::DataSourceSurface* aSurface);
 
