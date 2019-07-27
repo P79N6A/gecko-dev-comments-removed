@@ -5829,21 +5829,3 @@ JS::AutoAssertOnGC::VerifyIsSafeToGC(JSRuntime *rt)
         MOZ_CRASH("[AutoAssertOnGC] possible GC in GC-unsafe region");
 }
 #endif
-
-#ifdef JSGC_HASH_TABLE_CHECKS
-void
-js::gc::CheckHashTablesAfterMovingGC(JSRuntime *rt)
-{
-    
-
-
-
-    for (CompartmentsIter c(rt, SkipAtoms); !c.done(); c.next()) {
-        c->checkNewTypeObjectTablesAfterMovingGC();
-        c->checkInitialShapesTableAfterMovingGC();
-        c->checkWrapperMapAfterMovingGC();
-        if (c->debugScopes)
-            c->debugScopes->checkHashTablesAfterMovingGC(rt);
-    }
-}
-#endif
