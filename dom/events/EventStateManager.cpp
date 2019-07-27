@@ -3848,9 +3848,13 @@ EventStateManager::NotifyMouseOver(WidgetMouseEvent* aMouseEvent,
 {
   NS_ASSERTION(aContent, "Mouse must be over something");
 
+  
+  
+  bool dispatch = !aMouseEvent->retargetedByPointerCapture;
+
   OverOutElementsWrapper* wrapper = GetWrapperByEventID(aMouseEvent);
 
-  if (wrapper->mLastOverElement == aContent)
+  if (wrapper->mLastOverElement == aContent && dispatch)
     return;
 
   
@@ -3861,12 +3865,9 @@ EventStateManager::NotifyMouseOver(WidgetMouseEvent* aMouseEvent,
   
   
   EnsureDocument(mPresContext);
-  nsIDocument *parentDoc = mDocument->GetParentDocument();
-  if (parentDoc) {
-    nsIContent *docContent = parentDoc->FindContentForSubDocument(mDocument);
-    if (docContent) {
-      nsIPresShell *parentShell = parentDoc->GetShell();
-      if (parentShell) {
+  if (nsIDocument *parentDoc = mDocument->GetParentDocument()) {
+    if (nsIContent *docContent = parentDoc->FindContentForSubDocument(mDocument)) {
+      if (nsIPresShell *parentShell = parentDoc->GetShell()) {
         EventStateManager* parentESM =
           parentShell->GetPresContext()->EventStateManager();
         parentESM->NotifyMouseOver(aMouseEvent, docContent);
@@ -3875,7 +3876,7 @@ EventStateManager::NotifyMouseOver(WidgetMouseEvent* aMouseEvent,
   }
   
   
-  if (wrapper->mLastOverElement == aContent)
+  if (wrapper->mLastOverElement == aContent && dispatch)
     return;
 
   
@@ -3883,10 +3884,12 @@ EventStateManager::NotifyMouseOver(WidgetMouseEvent* aMouseEvent,
   nsCOMPtr<nsIContent> lastOverElement = wrapper->mLastOverElement;
 
   bool isPointer = aMouseEvent->eventStructType == NS_POINTER_EVENT;
-  EnterLeaveDispatcher enterDispatcher(this, aContent, lastOverElement,
-                                       aMouseEvent,
-                                       isPointer ? NS_POINTER_ENTER :
-                                                   NS_MOUSEENTER);
+  
+  Maybe<EnterLeaveDispatcher> enterDispatcher;
+  if (dispatch) {
+    enterDispatcher.construct(this, aContent, lastOverElement, aMouseEvent,
+                              isPointer ? NS_POINTER_ENTER : NS_MOUSEENTER);
+  }
 
   NotifyMouseOut(aMouseEvent, aContent);
 
@@ -3898,13 +3901,17 @@ EventStateManager::NotifyMouseOver(WidgetMouseEvent* aMouseEvent,
     SetContentState(aContent, NS_EVENT_STATE_HOVER);
   }
 
-  
-  wrapper->mLastOverFrame =
-    DispatchMouseOrPointerEvent(aMouseEvent,
-                                isPointer ? NS_POINTER_OVER :
-                                            NS_MOUSE_ENTER_SYNTH,
-                                aContent, lastOverElement);
-  wrapper->mLastOverElement = aContent;
+  if (dispatch) {
+    
+    wrapper->mLastOverFrame = 
+      DispatchMouseOrPointerEvent(aMouseEvent,
+                                  isPointer ? NS_POINTER_OVER : NS_MOUSE_ENTER_SYNTH,
+                                  aContent, lastOverElement);
+    wrapper->mLastOverElement = aContent;
+  } else {
+    wrapper->mLastOverFrame = nullptr;
+    wrapper->mLastOverElement = nullptr;
+  }
 
   
   wrapper->mFirstOverEventElement = nullptr;
