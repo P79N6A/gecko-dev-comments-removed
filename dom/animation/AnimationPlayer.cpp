@@ -424,8 +424,6 @@ AnimationPlayer::ComposeStyle(nsRefPtr<css::AnimValuesStyleRule>& aStyleRule,
   }
 
   mSource->ComposeStyle(aStyleRule, aSetProperties);
-
-  
 }
 
 void
