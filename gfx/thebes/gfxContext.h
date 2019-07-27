@@ -173,27 +173,6 @@ public:
     void QuadraticCurveTo(const gfxPoint& pt1, const gfxPoint& pt2);
 
     
-
-
-
-
-
-
-    void Arc(const gfxPoint& center, gfxFloat radius,
-             gfxFloat angle1, gfxFloat angle2);
-
-    
-
-
-
-
-
-
-
-    void NegativeArc(const gfxPoint& center, gfxFloat radius,
-                     gfxFloat angle1, gfxFloat angle2);
-
-    
     
 
 
