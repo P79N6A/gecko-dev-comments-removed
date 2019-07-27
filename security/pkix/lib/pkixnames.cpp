@@ -35,6 +35,61 @@
 
 namespace mozilla { namespace pkix {
 
+namespace {
+
+bool
+ReadIPv4AddressComponent(Reader& input, bool lastComponent,
+                          uint8_t& valueOut)
+{
+  size_t length = 0;
+  unsigned int value = 0; 
+
+  for (;;) {
+    if (input.AtEnd() && lastComponent) {
+      break;
+    }
+
+    uint8_t b;
+    if (input.Read(b) != Success) {
+      return false;
+    }
+
+    if (b >= '0' && b <= '9') {
+      if (value == 0 && length > 0) {
+        return false; 
+      }
+      value = (value * 10) + (b - '0');
+      if (value > 255) {
+        return false; 
+      }
+      ++length;
+    } else if (!lastComponent && b == '.') {
+      break;
+    } else {
+      return false; 
+    }
+  }
+
+  if (length == 0) {
+    return false; 
+  }
+
+  valueOut = static_cast<uint8_t>(value);
+  return true;
+}
+
+} 
+
+bool
+ParseIPv4Address(Input hostname,  uint8_t (&out)[4])
+{
+  Reader input(hostname);
+  return ReadIPv4AddressComponent(input, false, out[0]) &&
+         ReadIPv4AddressComponent(input, false, out[1]) &&
+         ReadIPv4AddressComponent(input, false, out[2]) &&
+         ReadIPv4AddressComponent(input, true, out[3]);
+}
+
 bool
 IsValidDNSName(Input hostname)
 {

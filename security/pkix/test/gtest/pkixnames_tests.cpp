@@ -31,6 +31,7 @@
 namespace mozilla { namespace pkix {
 
 bool IsValidDNSName(Input hostname);
+bool ParseIPv4Address(Input hostname,  uint8_t (&out)[4]);
 
 } } 
 
@@ -237,6 +238,108 @@ static const InputValidity DNSNAMES_VALIDITY_TURKISH_I[] =
   I("xn--\0xC4\0xB1", false), 
 };
 
+template <unsigned int L>
+struct IPAddressParams
+{
+  ByteString input;
+  bool isValid;
+  uint8_t expectedValueIfValid[L];
+};
+
+#define IPV4_VALID(str, a, b, c, d) \
+  { \
+    ByteString(reinterpret_cast<const uint8_t*>(str), sizeof(str) - 1), \
+    true, \
+    { a, b, c, d } \
+  }
+
+
+
+
+#define IPV4_INVALID(str) \
+  { \
+    ByteString(reinterpret_cast<const uint8_t*>(str), sizeof(str) - 1), \
+    false, \
+    { 73, 73, 73, 73 } \
+  }
+
+static const IPAddressParams<4> IPV4_ADDRESSES[] =
+{
+  IPV4_INVALID(""),
+  IPV4_INVALID("1"),
+  IPV4_INVALID("1.2"),
+  IPV4_INVALID("1.2.3"),
+  IPV4_VALID("1.2.3.4", 1, 2, 3, 4),
+  IPV4_INVALID("1.2.3.4.5"),
+
+  IPV4_INVALID("1.2.3.4a"), 
+  IPV4_INVALID("a.2.3.4"), 
+  IPV4_INVALID("1::2"), 
+
+  
+  IPV4_INVALID(" 1.2.3.4"),
+  IPV4_INVALID("1.2.3.4 "),
+  IPV4_INVALID("1 .2.3.4"),
+  IPV4_INVALID("\n1.2.3.4"),
+  IPV4_INVALID("1.2.3.4\n"),
+
+  
+  IPV4_INVALID("\0"),
+  IPV4_INVALID("\0" "1.2.3.4"),
+  IPV4_INVALID("1.2.3.4\0"),
+  IPV4_INVALID("1.2.3.4\0.5"),
+
+  
+  IPV4_VALID("0.0.0.0", 0, 0, 0, 0),
+  IPV4_VALID("255.255.255.255", 255, 255, 255, 255),
+  IPV4_INVALID("256.0.0.0"),
+  IPV4_INVALID("0.256.0.0"),
+  IPV4_INVALID("0.0.256.0"),
+  IPV4_INVALID("0.0.0.256"),
+  IPV4_INVALID("999.0.0.0"),
+  IPV4_INVALID("9999999999999999999.0.0.0"),
+
+  
+  IPV4_VALID("0.1.2.3", 0, 1, 2, 3),
+  IPV4_VALID("4.5.6.7", 4, 5, 6, 7),
+  IPV4_VALID("8.9.0.1", 8, 9, 0, 1),
+
+  
+  IPV4_INVALID("01.2.3.4"),
+  IPV4_INVALID("001.2.3.4"),
+  IPV4_INVALID("00000000001.2.3.4"),
+  IPV4_INVALID("010.2.3.4"),
+  IPV4_INVALID("1.02.3.4"),
+  IPV4_INVALID("1.2.03.4"),
+  IPV4_INVALID("1.2.3.04"),
+
+  
+  IPV4_INVALID(".2.3.4"),
+  IPV4_INVALID("1..3.4"),
+  IPV4_INVALID("1.2..4"),
+  IPV4_INVALID("1.2.3."),
+
+  
+  IPV4_INVALID("1.2.3.4.5"),
+  IPV4_INVALID("1.2.3.4.5.6"),
+  IPV4_INVALID("0.1.2.3.4"),
+  IPV4_INVALID("1.2.3.4.0"),
+
+  
+  IPV4_INVALID(".1.2.3.4"),
+  IPV4_INVALID("1.2.3.4."),
+
+  
+  
+  IPV4_VALID("192.0.2.235", 192, 0, 2, 235), 
+  IPV4_INVALID("0xC0.0x00.0x02.0xEB"), 
+  IPV4_INVALID("0301.0000.0002.0353"), 
+  IPV4_INVALID("0xC00002EB"), 
+  IPV4_INVALID("3221226219"), 
+  IPV4_INVALID("030000001353"), 
+  IPV4_INVALID("192.0.0002.0xEB"), 
+};
+
 class pkixnames_IsValidDNSName
   : public ::testing::Test
   , public ::testing::WithParamInterface<InputValidity>
@@ -259,3 +362,29 @@ INSTANTIATE_TEST_CASE_P(pkixnames_IsValidDNSName,
 INSTANTIATE_TEST_CASE_P(pkixnames_IsValidDNSName_Turkish_I,
                         pkixnames_IsValidDNSName,
                         testing::ValuesIn(DNSNAMES_VALIDITY_TURKISH_I));
+
+class pkixnames_ParseIPv4Address
+  : public ::testing::Test
+  , public ::testing::WithParamInterface<IPAddressParams<4>>
+{
+};
+
+TEST_P(pkixnames_ParseIPv4Address, ParseIPv4Address)
+{
+  const IPAddressParams<4>& param(GetParam());
+  SCOPED_TRACE(param.input.c_str());
+  Input input;
+  ASSERT_EQ(Success, input.Init(param.input.data(),
+                                param.input.length()));
+  uint8_t ipAddress[4];
+  ASSERT_EQ(param.isValid, ParseIPv4Address(input, ipAddress));
+  if (param.isValid) {
+    for (size_t i = 0; i < sizeof(ipAddress); ++i) {
+      ASSERT_EQ(param.expectedValueIfValid[i], ipAddress[i]);
+    }
+  }
+}
+
+INSTANTIATE_TEST_CASE_P(pkixnames_ParseIPv4Address,
+                        pkixnames_ParseIPv4Address,
+                        testing::ValuesIn(IPV4_ADDRESSES));
