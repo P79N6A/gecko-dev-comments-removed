@@ -2,8 +2,8 @@
 
 
 
-const TEST_ORIGIN = "example.org";
-const TEST_ORIGIN_2 = "example.com";
+const TEST_ORIGIN = NetUtil.newURI("http://example.org");
+const TEST_ORIGIN_2 = NetUtil.newURI("http://example.com");
 const TEST_PERMISSION = "test-permission";
 Components.utils.import("resource://gre/modules/Promise.jsm");
 
@@ -35,8 +35,8 @@ add_task(function* do_test() {
 
   conv.writeString("# this is a comment\n");
   conv.writeString("\n"); 
-  conv.writeString("host\t" + TEST_PERMISSION + "\t1\t" + TEST_ORIGIN + "\n");
-  conv.writeString("host\t" + TEST_PERMISSION + "\t1\t" + TEST_ORIGIN_2 + "\n");
+  conv.writeString("host\t" + TEST_PERMISSION + "\t1\t" + TEST_ORIGIN.spec + "\n");
+  conv.writeString("host\t" + TEST_PERMISSION + "\t1\t" + TEST_ORIGIN_2.spec + "\n");
   ostream.close();
 
   
@@ -47,8 +47,7 @@ add_task(function* do_test() {
            getService(Ci.nsIPermissionManager);
 
   
-  let permURI = NetUtil.newURI("http://" + TEST_ORIGIN);
-  let principal = Services.scriptSecurityManager.getNoAppCodebasePrincipal(permURI);
+  let principal = Services.scriptSecurityManager.getNoAppCodebasePrincipal(TEST_ORIGIN);
 
   do_check_eq(Ci.nsIPermissionManager.ALLOW_ACTION,
               pm.testPermissionFromPrincipal(principal, TEST_PERMISSION));
@@ -105,8 +104,7 @@ add_task(function* do_test() {
   
   pm.removeAll(); 
 
-  let permURI2 = NetUtil.newURI("http://" + TEST_ORIGIN_2);
-  let principal2 = Services.scriptSecurityManager.getNoAppCodebasePrincipal(permURI2);
+  let principal2 = Services.scriptSecurityManager.getNoAppCodebasePrincipal(TEST_ORIGIN_2);
 
   
   do_check_eq(Ci.nsIPermissionManager.ALLOW_ACTION,
@@ -149,12 +147,12 @@ add_task(function* do_test() {
 
 
 
-function findCapabilityViaEnum(host = TEST_ORIGIN, type = TEST_PERMISSION) {
+function findCapabilityViaEnum(origin = TEST_ORIGIN, type = TEST_PERMISSION) {
   let result = undefined;
   let e = Services.perms.enumerator;
   while (e.hasMoreElements()) {
     let perm = e.getNext().QueryInterface(Ci.nsIPermission);
-    if (perm.host == host &&
+    if (perm.matchesURI(origin, true) &&
         perm.type == type) {
       if (result !== undefined) {
         
@@ -171,12 +169,12 @@ function findCapabilityViaEnum(host = TEST_ORIGIN, type = TEST_PERMISSION) {
 
 
 
-function checkCapabilityViaDB(expected, host = TEST_ORIGIN, type = TEST_PERMISSION) {
+function checkCapabilityViaDB(expected, origin = TEST_ORIGIN, type = TEST_PERMISSION) {
   let deferred = Promise.defer();
   let count = 0;
   let max = 20;
   let do_check = () => {
-    let got = findCapabilityViaDB(host, type);
+    let got = findCapabilityViaDB(origin.host, type);
     if (got == expected) {
       
       do_check_eq(got, expected, "The database has the expected value");
