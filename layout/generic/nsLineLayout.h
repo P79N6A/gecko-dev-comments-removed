@@ -437,6 +437,9 @@ protected:
     mozilla::LogicalMargin mOffsets;       
 
     
+    
+    
+    
     mozilla::JustificationInfo mJustificationInfo;
     mozilla::JustificationAssignment mJustificationAssignment;
     
