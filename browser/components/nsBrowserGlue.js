@@ -741,6 +741,10 @@ BrowserGlue.prototype = {
 #endif
     webrtcUI.uninit();
     FormValidationHandler.uninit();
+
+    
+    
+    Services.prefs.clearUserPref("loop.hawk-session-token.fxa");
   },
 
   
