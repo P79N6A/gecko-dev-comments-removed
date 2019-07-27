@@ -2155,18 +2155,22 @@ MediaDecoderStateMachine::OnMetadataRead(MetadataHolder* aMetadata)
   mDecoder->SetMediaSeekable(mReader->IsMediaSeekable());
   mInfo = aMetadata->mInfo;
   mMetadataTags = aMetadata->mTags.forget();
-
-  mStartTimeRendezvous = new StartTimeRendezvous(TaskQueue(), HasAudio(), HasVideo(),
-                                                 mReader->ForceZeroStartTime() || IsRealTime());
-
   nsRefPtr<MediaDecoderStateMachine> self = this;
-  mStartTimeRendezvous->AwaitStartTime()->Then(TaskQueue(), __func__,
-    [self] () -> void {
-      ReentrantMonitorAutoEnter mon(self->mDecoder->GetReentrantMonitor());
-      self->mReader->SetStartTime(self->StartTime());
-    },
-    [] () -> void { NS_WARNING("Setting start time on reader failed"); }
-  );
+
+  
+  
+  if (!mStartTimeRendezvous) {
+    mStartTimeRendezvous = new StartTimeRendezvous(TaskQueue(), HasAudio(), HasVideo(),
+                                                   mReader->ForceZeroStartTime() || IsRealTime());
+
+    mStartTimeRendezvous->AwaitStartTime()->Then(TaskQueue(), __func__,
+      [self] () -> void {
+        ReentrantMonitorAutoEnter mon(self->mDecoder->GetReentrantMonitor());
+        self->mReader->SetStartTime(self->StartTime());
+      },
+      [] () -> void { NS_WARNING("Setting start time on reader failed"); }
+    );
+  }
 
   if (mInfo.mMetadataDuration.isSome()) {
     RecomputeDuration();
