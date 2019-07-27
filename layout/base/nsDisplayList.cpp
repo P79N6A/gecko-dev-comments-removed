@@ -424,6 +424,18 @@ AddAnimationsForProperty(nsIFrame* aFrame, nsCSSProperty aProperty,
       continue;
     }
 
+    if (!property->mWinsInCascade) {
+      
+      
+      
+      
+      
+      
+      
+      
+      continue;
+    }
+
     
     
     
