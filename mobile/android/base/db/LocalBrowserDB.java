@@ -1078,7 +1078,7 @@ public class LocalBrowserDB {
 
         
         
-        final Integer id = getIDForFaviconURL(cr, faviconUri);
+        final int id = getIDForFaviconURL(cr, faviconUri);
         if (id == FAVICON_ID_NOT_FOUND) {
             return;
         }
