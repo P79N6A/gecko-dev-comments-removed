@@ -441,6 +441,9 @@ pref("layers.async-pan-zoom.enabled", false);
 pref("layout.async-containerless-scrolling.enabled", true);
 
 
+pref("layout.event-regions.enabled", false);
+
+
 
 pref("apz.allow_checkerboarding", true);
 pref("apz.asyncscroll.throttle", 100);

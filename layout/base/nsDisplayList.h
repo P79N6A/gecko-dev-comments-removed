@@ -323,9 +323,7 @@ public:
   }
   bool IsBuildingLayerEventRegions()
   {
-    
-    return false;
-    
+    return (gfxPrefs::LayoutEventRegionsEnabled() && mMode == PAINTING);
   }
 
   bool GetAncestorHasTouchEventHandler() { return mAncestorHasTouchEventHandler; }
