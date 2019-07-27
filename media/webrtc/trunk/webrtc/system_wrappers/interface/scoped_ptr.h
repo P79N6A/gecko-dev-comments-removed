@@ -115,9 +115,12 @@
 
 
 
-#if defined(__GNUC__) && !defined(__clang__)
+
+#if defined(__GNUC__)
+#if !defined(__clang__) && ((__GNUC__ > 4) || (__GNUC__ == 4 && __GNUC_MINOR__ >= 8))
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-local-typedefs"
+#endif 
 #endif 
 
 namespace webrtc {
@@ -723,8 +726,10 @@ void swap(scoped_ptr_malloc<T,FF>& a, scoped_ptr_malloc<T,FF>& b) {
 }  
 
 
-#if defined(__GNUC__) && !defined(__clang__)
+#if defined(__GNUC__)
+#if !defined(__clang__) && ((__GNUC__ > 4) || (__GNUC__ == 4 && __GNUC_MINOR__ >= 8))
 #pragma GCC diagnostic pop
+#endif 
 #endif 
 
 #endif  
