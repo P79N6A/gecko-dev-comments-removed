@@ -151,7 +151,7 @@ TokenStream::SourceCoords::SourceCoords(ExclusiveContext *cx, uint32_t ln)
     
     
     MOZ_ASSERT(lineStartOffsets_.capacity() >= 2);
-    (void)lineStartOffsets_.reserve(2);
+    MOZ_ALWAYS_TRUE(lineStartOffsets_.reserve(2));
     lineStartOffsets_.infallibleAppend(0);
     lineStartOffsets_.infallibleAppend(maxPtr);
 }
