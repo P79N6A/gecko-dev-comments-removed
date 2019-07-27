@@ -1611,9 +1611,9 @@ PromiseWorkerProxy::RunCallback(JSContext* aCx,
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  MutexAutoLock lock(mCleanUpLock);
+  MutexAutoLock lock(GetCleanUpLock());
   
-  if (mCleanedUp) {
+  if (IsClean()) {
     return;
   }
 
