@@ -3799,14 +3799,13 @@ pref("image.mem.hard_limit_decoded_image_kb", 0);
 pref("image.mem.surfacecache.min_expiration_ms", 60000); 
 
 
-pref("image.mem.surfacecache.max_size_kb", 102400); 
+pref("image.mem.surfacecache.max_size_kb", 1048576); 
 
 
 
 
 
-
-pref("image.mem.surfacecache.size_factor", 64);
+pref("image.mem.surfacecache.size_factor", 4);
 
 
 
