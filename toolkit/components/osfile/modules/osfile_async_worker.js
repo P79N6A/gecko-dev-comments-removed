@@ -1,24 +1,13 @@
+
+
+
+
+
 if (this.Components) {
   throw new Error("This worker can only be loaded from a worker thread");
 }
 
 
-
-
-
-
-
-
-
-const EXCEPTION_NAMES = {
-  EvalError: "EvalError",
-  InternalError: "InternalError",
-  RangeError: "RangeError",
-  ReferenceError: "ReferenceError",
-  SyntaxError: "SyntaxError",
-  TypeError: "TypeError",
-  URIError: "URIError"
-};
 
 (function(exports) {
   "use strict";
@@ -33,108 +22,28 @@ const EXCEPTION_NAMES = {
 
   importScripts("resource://gre/modules/osfile.jsm");
 
+  let PromiseWorker = require("resource://gre/modules/workers/PromiseWorker.js");
   let SharedAll = require("resource://gre/modules/osfile/osfile_shared_allthreads.jsm");
   let LOG = SharedAll.LOG.bind(SharedAll, "Agent");
 
-  
-  
-  function post(message, ...transfers) {
+  let worker = new PromiseWorker.AbstractWorker();
+  worker.dispatch = function(method, args = []) {
+    return Agent[method](...args);
+  },
+  worker.log = LOG;
+  worker.postMessage = function(message, ...transfers) {
     if (timeStamps) {
       message.timeStamps = timeStamps;
       timeStamps = null;
     }
     self.postMessage(message, ...transfers);
-  }
-
- 
-
-
-
-
-
-
-
-
-  self.onmessage = function onmessage(msg) {
-   let data = msg.data;
-   LOG("Received message", data);
-   let id = data.id;
-
-   let start;
-   let options;
-   if (data.args) {
-     options = data.args[data.args.length - 1];
-   }
-   
-   
-   if (options && typeof options === "object" && "outExecutionDuration" in options) {
-     start = Date.now();
-   }
-
-   let result;
-   let exn;
-   let durationMs;
-   try {
-     let method = data.fun;
-     LOG("Calling method", method);
-     result = Agent[method].apply(Agent, data.args);
-     LOG("Method", method, "succeeded");
-   } catch (ex) {
-     exn = ex;
-     LOG("Error while calling agent method", exn, exn.moduleStack || exn.stack || "");
-   }
-
-   if (start) {
-     
-     durationMs = Date.now() - start;
-     LOG("Method took", durationMs, "ms");
-   }
-
-   
-   
-   
-   
-   if (!exn) {
-     LOG("Sending positive reply", result, "id is", id);
-     if (result instanceof Meta) {
-       if ("transfers" in result.meta) {
-         
-         post({ok: result.data, id: id, durationMs: durationMs},
-           result.meta.transfers);
-       } else {
-         post({ok: result.data, id:id, durationMs: durationMs});
-       }
-       if (result.meta.shutdown || false) {
-         
-         self.close();
-       }
-     } else {
-       post({ok: result, id:id, durationMs: durationMs});
-     }
-   } else if (exn == StopIteration) {
-     
-     LOG("Sending back StopIteration");
-     post({StopIteration: true, id: id, durationMs: durationMs});
-   } else if (exn instanceof exports.OS.File.Error) {
-     LOG("Sending back OS.File error", exn, "id is", id);
-     
-     
-     
-     post({fail: exports.OS.File.Error.toMsg(exn), id:id, durationMs: durationMs});
-   } else if (exn.constructor.name in EXCEPTION_NAMES) {
-     LOG("Sending back exception", exn.constructor.name);
-     post({fail: {exn: exn.constructor.name, message: exn.message,
-                  fileName: exn.moduleName || exn.fileName, lineNumber: exn.lineNumber},
-           id: id, durationMs: durationMs});
-   } else {
-     
-     
-     
-     LOG("Sending back regular error", exn, exn.moduleStack || exn.stack, "id is", id);
-
-     throw exn;
-   }
   };
+  worker.close = function() {
+    self.close();
+  };
+  let Meta = PromiseWorker.Meta;
+
+  self.addEventListener("message", msg => worker.handleMessage(msg));
 
  
 
@@ -234,26 +143,6 @@ const EXCEPTION_NAMES = {
   let Type = exports.OS.Shared.Type;
 
   let File = exports.OS.File;
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  let Meta = function Meta(data, meta) {
-    this.data = data;
-    this.meta = meta;
-  };
 
  
 

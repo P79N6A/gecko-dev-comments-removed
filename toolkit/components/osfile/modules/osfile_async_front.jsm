@@ -54,43 +54,12 @@ Cu.import("resource://gre/modules/Promise.jsm", this);
 Cu.import("resource://gre/modules/Task.jsm", this);
 
 
-Cu.import("resource://gre/modules/osfile/_PromiseWorker.jsm", this);
-
+Cu.import("resource://gre/modules/PromiseWorker.jsm", this);
 Cu.import("resource://gre/modules/Services.jsm", this);
 Cu.import("resource://gre/modules/TelemetryStopwatch.jsm", this);
 Cu.import("resource://gre/modules/AsyncShutdown.jsm", this);
 let Native = Cu.import("resource://gre/modules/osfile/osfile_native.jsm", {});
 
-
-
-
-
-const EXCEPTION_CONSTRUCTORS = {
-  EvalError: function(error) {
-    return new EvalError(error.message, error.fileName, error.lineNumber);
-  },
-  InternalError: function(error) {
-    return new InternalError(error.message, error.fileName, error.lineNumber);
-  },
-  RangeError: function(error) {
-    return new RangeError(error.message, error.fileName, error.lineNumber);
-  },
-  ReferenceError: function(error) {
-    return new ReferenceError(error.message, error.fileName, error.lineNumber);
-  },
-  SyntaxError: function(error) {
-    return new SyntaxError(error.message, error.fileName, error.lineNumber);
-  },
-  TypeError: function(error) {
-    return new TypeError(error.message, error.fileName, error.lineNumber);
-  },
-  URIError: function(error) {
-    return new URIError(error.message, error.fileName, error.lineNumber);
-  },
-  OSError: function(error) {
-    return OS.File.Error.fromMsg(error);
-  }
-};
 
 
 
@@ -254,8 +223,10 @@ let Scheduler = {
   get worker() {
     if (!this._worker) {
       
-      this._worker = new PromiseWorker(
-	"resource://gre/modules/osfile/osfile_async_worker.js", LOG);
+      
+      this._worker = new BasePromiseWorker("resource://gre/modules/osfile/osfile_async_worker.js");
+      this._worker.log = LOG;
+      this._worker.ExceptionHandlers["OS.File.Error"] = OSError.fromMsg;
     }
     return this._worker;
   },
@@ -329,12 +300,11 @@ let Scheduler = {
       try {
         Scheduler.latestReceived = [];
         Scheduler.latestSent = [Date.now(), ...message];
-        let promise = this._worker.post(...message);
 
         
         let resources;
         try {
-          resources = (yield promise).ok;
+          resources = yield this._worker.post(...message);
 
           Scheduler.latestReceived = [Date.now(), message];
         } catch (ex) {
@@ -411,7 +381,7 @@ let Scheduler = {
 
 
 
-  post: function post(method, ...args) {
+  post: function post(method, args = undefined, closure = undefined) {
     if (this.shutdown) {
       LOG("OS.File is not available anymore. The following request has been rejected.",
         method, args);
@@ -426,12 +396,6 @@ let Scheduler = {
       Scheduler.Debugging.messagesSent++;
     }
 
-    
-    let options;
-    let methodArgs = args[0];
-    if (methodArgs) {
-      options = methodArgs[methodArgs.length - 1];
-    }
     Scheduler.Debugging.messagesQueued++;
     return this.push(Task.async(function*() {
       if (this.shutdown) {
@@ -443,78 +407,32 @@ let Scheduler = {
       
       
       Scheduler.Debugging.latestReceived = null;
-      Scheduler.Debugging.latestSent = [Date.now(), method, summarizeObject(methodArgs)];
+      Scheduler.Debugging.latestSent = [Date.now(), method, summarizeObject(args)];
 
       
       Scheduler.restartTimer();
 
 
-      let data;
       let reply;
-      let isError = false;
       try {
         try {
           Scheduler.Debugging.messagesSent++;
-          data = yield this.worker.post(method, ...args);
+          Scheduler.Debugging.latestSent = Scheduler.Debugging.latestSent.slice(0, 2);
+          reply = yield this.worker.post(method, args, closure);
+          Scheduler.Debugging.latestReceived = [Date.now(), summarizeObject(reply)];
+          return reply;
         } finally {
           Scheduler.Debugging.messagesReceived++;
         }
-        reply = data;
       } catch (error) {
-        reply = error;
-        isError = true;
-        if (error instanceof PromiseWorker.WorkerError) {
-          throw EXCEPTION_CONSTRUCTORS[error.data.exn || "OSError"](error.data);
-        }
-        if (error instanceof ErrorEvent) {
-          let message = error.message;
-          if (message == "uncaught exception: [object StopIteration]") {
-            isError = false;
-            throw StopIteration;
-          }
-          throw new Error(message, error.filename, error.lineno);
-        }
+        Scheduler.Debugging.latestReceived = [Date.now(), error.message, error.fileName, error.lineNumber];
         throw error;
       } finally {
-        Scheduler.Debugging.latestSent = Scheduler.Debugging.latestSent.slice(0, 2);
-        if (isError) {
-          Scheduler.Debugging.latestReceived = [Date.now(), reply.message, reply.fileName, reply.lineNumber];
-        } else {
-          Scheduler.Debugging.latestReceived = [Date.now(), summarizeObject(reply)];
-        }
         if (firstLaunch) {
           Scheduler._updateTelemetry();
         }
-
         Scheduler.restartTimer();
       }
-
-      
-      if (!options) {
-        return data.ok;
-      }
-      
-      if (typeof options !== "object" ||
-        !("outExecutionDuration" in options)) {
-        return data.ok;
-      }
-      
-      
-      if (!("durationMs" in data)) {
-        return data.ok;
-      }
-      
-      
-      
-      
-      let durationMs = Math.max(0, data.durationMs);
-      
-      if (typeof options.outExecutionDuration == "number") {
-        options.outExecutionDuration += durationMs;
-      } else {
-        options.outExecutionDuration = durationMs;
-      }
-      return data.ok;
     }.bind(this)));
   },
 
