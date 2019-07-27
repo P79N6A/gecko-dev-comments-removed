@@ -754,7 +754,9 @@ JSFunction::trace(JSTracer *trc)
             
             
             
-            if (IS_GC_MARKING_TRACER(trc) && !compartment()->hasBeenEntered() &&
+            JSRuntime *rt = trc->runtime();
+            if (IS_GC_MARKING_TRACER(trc) &&
+                (rt->allowRelazificationForTesting || !compartment()->hasBeenEntered()) &&
                 !compartment()->isDebuggee() && !compartment()->isSelfHosting &&
                 u.i.s.script_->isRelazifiable() && (!isSelfHostedBuiltin() || isExtended()))
             {
@@ -1517,7 +1519,7 @@ JSFunction::relazify(JSTracer *trc)
 {
     JSScript *script = nonLazyScript();
     MOZ_ASSERT(script->isRelazifiable());
-    MOZ_ASSERT(!compartment()->hasBeenEntered());
+    MOZ_ASSERT(trc->runtime()->allowRelazificationForTesting || !compartment()->hasBeenEntered());
     MOZ_ASSERT(!compartment()->isDebuggee());
 
     

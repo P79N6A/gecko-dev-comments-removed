@@ -1052,6 +1052,12 @@ struct JSRuntime : public JS::shadow::Runtime,
     bool                haveCreatedContext;
 
     
+
+
+
+    bool                allowRelazificationForTesting;
+
+    
     mozilla::LinkedList<js::Debugger> debuggerList;
 
     

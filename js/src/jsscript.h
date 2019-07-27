@@ -1014,6 +1014,11 @@ class JSScript : public js::gc::TenuredCell
 
     
     
+    
+    bool doNotRelazify_:1;
+
+    
+    
   protected:
 #if JS_BITS_PER_WORD == 32
     uint32_t padding;
@@ -1316,6 +1321,10 @@ class JSScript : public js::gc::TenuredCell
         typesGeneration_ = (bool) generation;
     }
 
+    void setDoNotRelazify(bool b) {
+        doNotRelazify_ = b;
+    }
+
     bool hasAnyIonScript() const {
         return hasIonScript();
     }
@@ -1395,7 +1404,7 @@ class JSScript : public js::gc::TenuredCell
 
     bool isRelazifiable() const {
         return (selfHosted() || lazyScript) &&
-               !isGenerator() && !hasBaselineScript() && !hasAnyIonScript();
+               !isGenerator() && !hasBaselineScript() && !hasAnyIonScript() && !doNotRelazify_;
     }
     void setLazyScript(js::LazyScript *lazy) {
         lazyScript = lazy;
