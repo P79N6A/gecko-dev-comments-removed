@@ -57,11 +57,6 @@ public:
   
 
 
-  uint64_t State() const;
-
-  
-
-
   uintptr_t GetWrapper() const { return mWrapper; }
   void SetWrapper(uintptr_t aWrapper) { mWrapper = aWrapper; }
 
