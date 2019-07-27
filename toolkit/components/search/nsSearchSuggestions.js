@@ -74,7 +74,8 @@ SuggestAutoComplete.prototype = {
     }
 
     
-    if (!finalResults.length) {
+    if (!finalResults.length &&
+        Services.prefs.getBoolPref("browser.search.showOneOffButtons")) {
       finalResults.push(results.term);
       finalComments.push("");
     }

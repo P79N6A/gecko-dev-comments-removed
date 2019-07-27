@@ -3304,13 +3304,6 @@ const BrowserSearch = {
         return;
     }
 
-    
-    
-    
-    var iconURL = null;
-    if (gBrowser.shouldLoadFavIcon(uri))
-      iconURL = uri.prePath + "/favicon.ico";
-
     var hidden = false;
     
     
@@ -3323,7 +3316,8 @@ const BrowserSearch = {
 
     engines.push({ uri: engine.href,
                    title: engine.title,
-                   icon: iconURL });
+                   get icon() { return browser.mIconURL; }
+                 });
 
     if (hidden)
       browser.hiddenEngines = engines;
@@ -7821,4 +7815,3 @@ let PanicButtonNotifier = {
     popup.hidePopup();
   },
 };
-
