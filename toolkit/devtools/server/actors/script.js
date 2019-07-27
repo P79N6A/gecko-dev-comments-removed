@@ -2298,7 +2298,7 @@ SourceActor.prototype = {
   get breakpointActorMap() { return this.threadActor.breakpointActorMap; },
   get url() {
     if (this.source) {
-      return getSourceURL(this.source);
+      return getSourceURL(this.source, this.threadActor._parent.window);
     }
     return this._originalUrl;
   },
@@ -5403,22 +5403,32 @@ function isEvalSource(source) {
 }
 exports.isEvalSource = isEvalSource;
 
-function getSourceURL(source) {
-  if(isEvalSource(source)) {
+function getSourceURL(source, window) {
+  if (isEvalSource(source)) {
     
     
     
 
-    if(source.displayURL &&
-       source.introductionScript &&
+    if (source.displayURL && source.introductionScript &&
        !isEvalSource(source.introductionScript.source)) {
-      return joinURI(dirname(source.introductionScript.source.url),
-                     source.displayURL);
+
+      if (source.introductionScript.source.url === 'debugger eval code') {
+        if (window) {
+          
+          
+          
+          return joinURI(window.location.href, source.displayURL);
+        }
+      }
+      else {
+        return joinURI(dirname(source.introductionScript.source.url),
+                       source.displayURL);
+      }
     }
 
     return source.displayURL;
   }
-  else if(source.url === 'debugger eval code') {
+  else if (source.url === 'debugger eval code') {
     
     return null;
   }
