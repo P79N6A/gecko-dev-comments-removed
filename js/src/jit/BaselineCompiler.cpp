@@ -424,9 +424,7 @@ BaselineCompiler::emitEpilogue()
     masm.Push(loggerReg);
     masm.movePtr(ImmPtr(logger), loggerReg);
     masm.tracelogStop(loggerReg, TraceLogger::Baseline);
-    
-    
-    masm.tracelogStop(loggerReg);
+    masm.tracelogStop(loggerReg, TraceLogger::Scripts);
     masm.Pop(loggerReg);
 #endif
 

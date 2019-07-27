@@ -1764,8 +1764,7 @@ CASE(JSOP_RETRVAL)
         
         
         TraceLogStopEvent(logger);
-        
-        TraceLogStopEvent(logger);
+        TraceLogStopEvent(logger, TraceLogger::Scripts);
 
         interpReturnOK = Debugger::onLeaveFrame(cx, REGS.fp(), interpReturnOK);
 
