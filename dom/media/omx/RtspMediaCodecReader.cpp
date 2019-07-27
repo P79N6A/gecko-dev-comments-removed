@@ -101,16 +101,4 @@ RtspMediaCodecReader::ReadMetadata(MediaInfo* aInfo,
   return rv;
 }
 
-
-void
-RtspMediaCodecReader::codecReserved(Track& aTrack)
-{
-  
-  
-  MediaCodecReader::codecReserved(aTrack);
-  if (aTrack.mCodec != nullptr) {
-    mRtspResource->SeekTime(0);
-  }
-}
-
 } 

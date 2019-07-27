@@ -921,6 +921,17 @@ protected:
   mozilla::MediaMetadataManager mMetadataManager;
 
   MediaDecoderOwner::NextFrameStatus mLastFrameStatus;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  bool mDecodingFrozenAtStateMetadata;
+  bool mDecodingFrozenAtStateDecoding;
 };
 
 } 
