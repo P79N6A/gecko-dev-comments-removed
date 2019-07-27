@@ -690,18 +690,10 @@ DiagnosticsMatcher::DiagnosticsMatcher()
       )).bind("node"),
     &nanExprChecker);
 
-  
   astMatcher.addMatcher(callExpr(callee(functionDecl(hasNoAddRefReleaseOnReturnAttr()).bind("func")),
                                  hasParent(memberExpr(isAddRefOrRelease(),
                                                       hasParent(callExpr())).bind("member")
       )).bind("node"),
-    &noAddRefReleaseOnReturnChecker);
-  
-  
-  astMatcher.addMatcher(callExpr(callee(functionDecl(hasNoAddRefReleaseOnReturnAttr()).bind("func")),
-                                 hasParent(castExpr(hasParent(memberExpr(isAddRefOrRelease(),
-                                                                         hasParent(callExpr())).bind("member"))))
-      ).bind("node"),
     &noAddRefReleaseOnReturnChecker);
 
   astMatcher.addMatcher(lambdaExpr(
