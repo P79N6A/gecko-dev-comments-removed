@@ -30,7 +30,8 @@ TimerThread::TimerThread() :
   mShutdown(false),
   mWaiting(false),
   mNotified(false),
-  mSleeping(false)
+  mSleeping(false),
+  mLastTimerEventLoopRun(TimeStamp::Now())
 {
 }
 
@@ -242,6 +243,7 @@ TimerThread::Run()
     } else {
       waitFor = PR_INTERVAL_NO_TIMEOUT;
       TimeStamp now = TimeStamp::Now();
+      mLastTimerEventLoopRun = now;
       nsTimerImpl* timer = nullptr;
 
       if (!mTimers.IsEmpty()) {
@@ -435,6 +437,7 @@ TimerThread::RemoveTimer(nsTimerImpl* aTimer)
 int32_t
 TimerThread::AddTimerInternal(nsTimerImpl* aTimer)
 {
+  mMonitor.AssertCurrentThreadOwns();
   if (mShutdown) {
     return -1;
   }
@@ -463,6 +466,7 @@ TimerThread::AddTimerInternal(nsTimerImpl* aTimer)
 bool
 TimerThread::RemoveTimerInternal(nsTimerImpl* aTimer)
 {
+  mMonitor.AssertCurrentThreadOwns();
   if (!mTimers.RemoveElement(aTimer)) {
     return false;
   }
@@ -474,6 +478,10 @@ TimerThread::RemoveTimerInternal(nsTimerImpl* aTimer)
 void
 TimerThread::ReleaseTimerInternal(nsTimerImpl* aTimer)
 {
+  if (!mShutdown) {
+    
+    mMonitor.AssertCurrentThreadOwns();
+  }
   
   aTimer->mArmed = false;
   NS_RELEASE(aTimer);
@@ -482,22 +490,40 @@ TimerThread::ReleaseTimerInternal(nsTimerImpl* aTimer)
 void
 TimerThread::DoBeforeSleep()
 {
+  
+  MonitorAutoLock lock(mMonitor);
+  mLastTimerEventLoopRun = TimeStamp::Now();
   mSleeping = true;
 }
+
 
 void
 TimerThread::DoAfterSleep()
 {
-  mSleeping = true; 
+  
+  TimeStamp now = TimeStamp::Now();
+
+  MonitorAutoLock lock(mMonitor);
+
+  
+  TimeDuration slept = now - mLastTimerEventLoopRun;
+
+  
+  
+  
+  
+  
+  
   for (uint32_t i = 0; i < mTimers.Length(); i ++) {
     nsTimerImpl* timer = mTimers[i];
-    
-    uint32_t delay;
-    timer->GetDelay(&delay);
-    timer->SetDelay(delay);
+    timer->mTimeout += slept;
   }
-
   mSleeping = false;
+  mLastTimerEventLoopRun = now;
+
+  
+  mNotified = true;
+  mMonitor.Notify();
 }
 
 

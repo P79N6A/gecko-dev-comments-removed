@@ -75,6 +75,7 @@ private:
   bool mWaiting;
   bool mNotified;
   bool mSleeping;
+  TimeStamp mLastTimerEventLoopRun;
 
   nsTArray<nsTimerImpl*> mTimers;
 };
