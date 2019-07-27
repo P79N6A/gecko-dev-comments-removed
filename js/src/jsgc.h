@@ -52,37 +52,6 @@ enum State {
 #endif
 };
 
-static inline JSGCTraceKind
-MapAllocToTraceKind(AllocKind kind)
-{
-    static const JSGCTraceKind map[] = {
-        JSTRACE_OBJECT,     
-        JSTRACE_OBJECT,     
-        JSTRACE_OBJECT,     
-        JSTRACE_OBJECT,     
-        JSTRACE_OBJECT,     
-        JSTRACE_OBJECT,     
-        JSTRACE_OBJECT,     
-        JSTRACE_OBJECT,     
-        JSTRACE_OBJECT,     
-        JSTRACE_OBJECT,     
-        JSTRACE_OBJECT,     
-        JSTRACE_OBJECT,     
-        JSTRACE_SCRIPT,     
-        JSTRACE_LAZY_SCRIPT,
-        JSTRACE_SHAPE,      
-        JSTRACE_BASE_SHAPE, 
-        JSTRACE_TYPE_OBJECT,
-        JSTRACE_STRING,     
-        JSTRACE_STRING,     
-        JSTRACE_STRING,     
-        JSTRACE_SYMBOL,     
-        JSTRACE_JITCODE,    
-    };
-    JS_STATIC_ASSERT(JS_ARRAY_LENGTH(map) == FINALIZE_LIMIT);
-    return map[kind];
-}
-
 
 const char *
 TraceKindAsAscii(JSGCTraceKind kind);

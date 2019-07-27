@@ -6760,7 +6760,7 @@ NumFixedSlots(JSObject *object)
     
     
     
-    gc::AllocKind kind = object->tenuredGetAllocKind();
+    gc::AllocKind kind = object->asTenured()->getAllocKind();
     return gc::GetGCKindSlots(kind, object->getClass());
 }
 

@@ -999,7 +999,7 @@ class TypeNewScript
 
 
 
-struct TypeObject : gc::BarrieredCell<TypeObject>
+struct TypeObject : public gc::TenuredCell
 {
   private:
     
