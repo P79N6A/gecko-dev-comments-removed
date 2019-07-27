@@ -255,9 +255,5 @@ function check_no_ocsp_requests(cert_name, expected_error) {
   
   do_check_eq(hasEVPolicy.value, false);
   do_check_eq(expected_error, error);
-  
-  let identityInfo = cert.QueryInterface(Ci.nsIIdentityInfo);
-  do_check_eq(identityInfo.isExtendedValidation, false);
   ocspResponder.stop(run_next_test);
 }
-
