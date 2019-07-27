@@ -96,7 +96,7 @@ class MediaEngineWebRTCVideoSource : public MediaEngineVideoSource
 public:
 #ifdef MOZ_B2G_CAMERA
   MediaEngineWebRTCVideoSource(int aIndex,
-                               dom::MediaSourceEnum aMediaSource = dom::MediaSourceEnum::Camera)
+                               MediaSourceType aMediaSource = MediaSourceType::Camera)
     : mCameraControl(nullptr)
     , mCallbackMonitor("WebRTCCamera.CallbackMonitor")
     , mRotation(0)
@@ -127,7 +127,7 @@ public:
   virtual bool IsTextureSupported() { return false; }
 
   MediaEngineWebRTCVideoSource(webrtc::VideoEngine* aVideoEnginePtr, int aIndex,
-                               dom::MediaSourceEnum aMediaSource = dom::MediaSourceEnum::Camera)
+                               MediaSourceType aMediaSource = MediaSourceType::Camera)
     : mVideoEngine(aVideoEnginePtr)
     , mCaptureIndex(aIndex)
     , mFps(-1)
@@ -169,7 +169,7 @@ public:
     return false;
   }
 
-  virtual const dom::MediaSourceEnum GetMediaSource() {
+  virtual const MediaSourceType GetMediaSource() {
     return mMediaSource;
   }
 
@@ -247,7 +247,7 @@ private:
   int mCaptureIndex;
   int mFps; 
   int mMinFps; 
-  dom::MediaSourceEnum mMediaSource; 
+  MediaSourceType mMediaSource; 
 
   
   
@@ -327,6 +327,10 @@ public:
     return false;
   }
 
+  virtual const MediaSourceType GetMediaSource() {
+    return MediaSourceType::Microphone;
+  }
+
   
   void Process(int channel, webrtc::ProcessingTypes type,
                int16_t audio10ms[], int length,
@@ -390,9 +394,9 @@ public:
   
   void Shutdown();
 
-  virtual void EnumerateVideoDevices(dom::MediaSourceEnum,
+  virtual void EnumerateVideoDevices(MediaSourceType,
                                     nsTArray<nsRefPtr<MediaEngineVideoSource> >*);
-  virtual void EnumerateAudioDevices(dom::MediaSourceEnum,
+  virtual void EnumerateAudioDevices(MediaSourceType,
                                     nsTArray<nsRefPtr<MediaEngineAudioSource> >*);
 private:
   ~MediaEngineWebRTC() {

@@ -46,6 +46,8 @@ public:
     
     mRequired.mMediaSource = mMediaSource;
 
+    
+    
     if (mMediaSource != dom::MediaSourceEnum::Camera && mAdvanced.WasPassed()) {
       
       auto& array = mAdvanced.Value();

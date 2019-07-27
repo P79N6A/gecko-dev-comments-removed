@@ -40,6 +40,16 @@ enum {
   kAudioTrack = 2
 };
 
+
+enum MediaSourceType {
+  Camera = (int) dom::MediaSourceEnum::Camera,
+  Screen = (int) dom::MediaSourceEnum::Screen,
+  Application = (int) dom::MediaSourceEnum::Application,
+  Window, 
+  
+  Microphone
+};
+
 class MediaEngine
 {
 public:
@@ -55,12 +65,12 @@ public:
 
   
 
-  virtual void EnumerateVideoDevices(dom::MediaSourceEnum,
+  virtual void EnumerateVideoDevices(MediaSourceType,
                                      nsTArray<nsRefPtr<MediaEngineVideoSource> >*) = 0;
 
   
 
-  virtual void EnumerateAudioDevices(dom::MediaSourceEnum,
+  virtual void EnumerateAudioDevices(MediaSourceType,
                                      nsTArray<nsRefPtr<MediaEngineAudioSource> >*) = 0;
 
 protected:
@@ -118,6 +128,9 @@ public:
 
 
   virtual bool IsFake() = 0;
+
+  
+  virtual const MediaSourceType GetMediaSource() = 0;
 
   
   bool IsAvailable() {
@@ -185,8 +198,8 @@ class MediaEngineVideoSource : public MediaEngineSource
 public:
   virtual ~MediaEngineVideoSource() {}
 
-  virtual const dom::MediaSourceEnum GetMediaSource() {
-      return dom::MediaSourceEnum::Camera;
+  virtual const MediaSourceType GetMediaSource() {
+      return MediaSourceType::Camera;
   }
   
   virtual nsresult Allocate(const VideoTrackConstraintsN &aConstraints,
