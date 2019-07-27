@@ -6,7 +6,7 @@
 #ifndef mozilla_a11y_DocAccessible_h__
 #define mozilla_a11y_DocAccessible_h__
 
-#include "nsIAccessibleDocument.h"
+#include "xpcAccessibleDocument.h"
 #include "nsIAccessiblePivot.h"
 
 #include "AccEvent.h"
@@ -38,7 +38,7 @@ template<class Class, class Arg>
 class TNotification;
 
 class DocAccessible : public HyperTextAccessibleWrap,
-                      public nsIAccessibleDocument,
+                      public xpcAccessibleDocument,
                       public nsIDocumentObserver,
                       public nsIObserver,
                       public nsIScrollPositionListener,
@@ -47,8 +47,6 @@ class DocAccessible : public HyperTextAccessibleWrap,
 {
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(DocAccessible, Accessible)
-
-  NS_DECL_NSIACCESSIBLEDOCUMENT
 
   NS_DECL_NSIOBSERVER
 
@@ -99,13 +97,38 @@ public:
   
 
 
+  void URL(nsAString& aURL) const;
+
+  
+
+
+  void Title(nsString& aTitle) const { mDocumentNode->GetTitle(aTitle); }
+
+  
+
+
+  void MimeType(nsAString& aType) const { mDocumentNode->GetContentType(aType); }
+
+  
+
+
+  void DocType(nsAString& aType) const;
+
+  
+
+
+  nsIAccessiblePivot* VirtualCursor();
+
+  
+
+
   nsIPresShell* PresShell() const { return mPresShell; }
 
   
 
 
   nsPresContext* PresContext() const { return mPresShell->GetPresContext(); }
-    
+
   
 
 

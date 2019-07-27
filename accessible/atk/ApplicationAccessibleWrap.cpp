@@ -85,7 +85,7 @@ ApplicationAccessibleWrap::Name(nsString& aName)
   
   
   
-  GetAppName(aName);
+  AppName(aName);
   return eNameOK;
 }
 
