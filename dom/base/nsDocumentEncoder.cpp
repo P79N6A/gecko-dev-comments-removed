@@ -331,8 +331,11 @@ IsInvisibleBreak(nsINode *aNode) {
 
   
   
+  
   bool visible = frame->GetNextSibling() ||
-                 (!frame->GetPrevSibling() && frame->GetRect().Height() != 0);
+                 ((!frame->GetPrevSibling() ||
+                   frame->GetPrevSibling()->GetType() == nsGkAtoms::brFrame) &&
+                  frame->GetRect().Height() != 0);
   return !visible;
 }
 
