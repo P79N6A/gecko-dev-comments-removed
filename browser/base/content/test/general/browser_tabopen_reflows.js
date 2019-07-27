@@ -24,9 +24,6 @@ const EXPECTED_REFLOWS = [
     "BrowserOpenTab@chrome://browser/content/browser.js|",
 
   
-  "gPage.onPageFirstVisible/checkSizing/<@chrome://browser/content/newtab/newTab.js|",
-
-  
   "get_scrollPosition@chrome://global/content/bindings/scrollbox.xml|" +
     "_fillTrailingGap@chrome://browser/content/tabbrowser.xml|" +
     "_handleNewTab@chrome://browser/content/tabbrowser.xml|" +
