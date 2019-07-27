@@ -709,17 +709,24 @@ CrashStore.prototype = Object.freeze({
   
 
 
+  reset() {
+    this._data = {
+      v: 1,
+      crashes: new Map(),
+      corruptDate: null,
+    };
+    this._countsByDay = new Map();
+  },
+
+  
+
+
 
 
   load: function () {
     return Task.spawn(function* () {
       
-      this._data = {
-        v: 1,
-        crashes: new Map(),
-        corruptDate: null,
-      };
-      this._countsByDay = new Map();
+      this.reset();
 
       try {
         let decoder = new TextDecoder();
