@@ -21,6 +21,12 @@ let chromeGlobal = this;
 
   if (!DebuggerServer.initialized) {
     DebuggerServer.init();
+
+    
+    DebuggerServer.parentMessageManager = {
+      sendSyncMessage: sendSyncMessage,
+      addMessageListener: addMessageListener
+    };
   }
 
   

@@ -137,7 +137,7 @@ function ModuleAPI() {
       }
       activeGlobalActors = null;
     }
-  }
+  };
 };
 
 
@@ -213,7 +213,7 @@ var DebuggerServer = {
     for (let id of Object.getOwnPropertyNames(gRegisteredModules)) {
       this.unregisterModule(id);
     }
-    gRegisteredModules = {};
+    gRegisteredModules = Object.create(null);
 
     this.closeAllListeners();
     this.globalActorFactories = {};
@@ -717,6 +717,39 @@ var DebuggerServer = {
 
 
 
+  get isInChildProcess() !!this.parentMessageManager,
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  setupInParent: function({ module, setupParent }) {
+    if (!this.isInChildProcess) {
+      return false;
+    }
+
+    let { sendSyncMessage } = DebuggerServer.parentMessageManager;
+
+    return sendSyncMessage("debug:setup-in-parent", {
+      module: module,
+      setupParent: setupParent
+    });
+  },
+
+  
+
+
+
+
+
 
 
 
@@ -735,6 +768,33 @@ var DebuggerServer = {
     let prefix = aConnection.allocID("child");
     let childID = null;
     let netMonitor = null;
+
+    
+    
+    let onSetupInParent = function (msg) {
+      let { module, setupParent } = msg.json;
+      let m, fn;
+
+      try {
+        m = require(module);
+
+        if (!setupParent in m) {
+          dumpn("ERROR: module '" + module + "' does not export '" + setupParent + "'");
+          return false;
+        }
+
+        m[setupParent]({ mm: mm, childID: childID });
+
+        return true;
+      } catch(e) {
+        let error_msg = "exception during actor module setup running in the parent process: ";
+        DevToolsUtils.reportException(error_msg + e);
+        dumpn("ERROR: " + error_msg + " \n\t module: '" + module + "' \n\t setupParent: '" + setupParent + "'\n" +
+              DevToolsUtils.safeErrorString(e));
+        return false;
+      }
+    };
+    mm.addMessageListener("debug:setup-in-parent", onSetupInParent);
 
     let onActorCreated = DevToolsUtils.makeInfallible(function (msg) {
       mm.removeMessageListener("debug:actor", onActorCreated);
@@ -765,6 +825,13 @@ var DebuggerServer = {
     let onMessageManagerDisconnect = DevToolsUtils.makeInfallible(function (subject, topic, data) {
       if (subject == mm) {
         Services.obs.removeObserver(onMessageManagerDisconnect, topic);
+
+        
+        
+        this.emit("disconnected-from-child:" + childID, { mm: mm, childID: childID });
+
+        mm.removeMessageListener("debug:setup-in-parent", onSetupInParent);
+
         if (childTransport) {
           
           
