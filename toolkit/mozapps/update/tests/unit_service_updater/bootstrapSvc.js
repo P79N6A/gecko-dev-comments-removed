@@ -14,7 +14,7 @@ function run_test() {
   
   gTestFiles = gTestFilesCommon;
   gTestDirs = [];
-  setupUpdaterTest(FILE_COMPLETE_MAR, false, false);
+  setupUpdaterTest(FILE_COMPLETE_MAR);
 
   setupAppFilesAsync();
 }
@@ -24,7 +24,7 @@ function setupAppFilesFinished() {
 }
 
 function checkUpdateFinished() {
-  checkFilesAfterUpdateSuccess();
+  checkFilesAfterUpdateSuccess(getApplyDirFile, false, false);
 
   
   

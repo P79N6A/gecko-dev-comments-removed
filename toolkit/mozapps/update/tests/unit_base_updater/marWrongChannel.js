@@ -15,7 +15,7 @@ function run_test() {
   
   gTestFiles = gTestFilesCommon;
   gTestDirs = [];
-  setupUpdaterTest(FILE_WRONG_CHANNEL_MAR, false, false);
+  setupUpdaterTest(FILE_WRONG_CHANNEL_MAR);
 
   createUpdaterINI();
 
@@ -31,11 +31,11 @@ function run_test() {
 
 
 function checkUpdateApplied() {
-  if (IS_MACOSX || IS_WIN) {
+  if (IS_WIN || IS_MACOSX) {
     
     do_check_false(getPostUpdateFile(".running").exists());
   }
 
-  checkFilesAfterUpdateSuccess();
+  checkFilesAfterUpdateSuccess(getApplyDirFile, false, false);
   doTestFinish();
 }

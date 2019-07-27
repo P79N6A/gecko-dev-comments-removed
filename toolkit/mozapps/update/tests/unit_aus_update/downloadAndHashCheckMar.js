@@ -7,9 +7,6 @@ var gNextRunFunc;
 var gExpectedStatusResult;
 
 function run_test() {
-  
-  
-  gUseTestAppDir = false;
   setupTestCommon();
 
   logTestInfo("testing mar download and mar hash verification");

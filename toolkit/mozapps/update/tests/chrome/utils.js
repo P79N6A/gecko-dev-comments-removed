@@ -928,7 +928,13 @@ function resetFiles() {
   
   
   
-  let updatedDir = getUpdatedDir();
+#ifdef XP_MACOSX
+  let updatedDir = getUpdatesDir();
+  updatedDir.append(DIR_PATCH);
+#else
+  let updatedDir = getAppBaseDir();
+#endif
+  updatedDir.append(DIR_UPDATED);
   if (updatedDir.exists()) {
     try {
       removeDirRecursive(updatedDir);

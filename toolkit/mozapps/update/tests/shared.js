@@ -588,22 +588,6 @@ function getGREDir() {
 
 
 
-function getUpdatedDir() {
-  let dir = getAppBaseDir();
-#ifdef XP_MACOSX
-  dir = dir.parent.parent; 
-#endif
-  dir.append(DIR_UPDATED);
-  logTestInfo("updated directory path: " + dir.path);
-  return dir;
-}
-
-
-
-
-
-
-
 
 
 
