@@ -14,6 +14,7 @@
 #include "gfxCore.h"                    
 #include "mozilla/Likely.h"             
 #include "mozilla/gfx/BaseRect.h"       
+#include "mozilla/gfx/NumericTools.h"   
 #include "nsCoord.h"                    
 #include "nsISupportsImpl.h"            
 #include "nsPoint.h"                    
@@ -205,6 +206,20 @@ struct NS_GFX nsIntRect :
   static const nsIntRect& GetMaxSizedIntRect() {
     static const nsIntRect r(0, 0, INT32_MAX, INT32_MAX);
     return r;
+  }
+
+  void InflateToMultiple(const nsIntSize& aTileSize)
+  {
+    int32_t xMost = XMost();
+    int32_t yMost = YMost();
+
+    x = RoundDownToMultiple(x, aTileSize.width);
+    y = RoundDownToMultiple(y, aTileSize.height);
+    xMost = RoundUpToMultiple(xMost, aTileSize.width);
+    yMost = RoundUpToMultiple(yMost, aTileSize.height);
+
+    width = xMost - x;
+    height = yMost - y;
   }
 
   
