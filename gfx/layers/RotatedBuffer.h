@@ -52,9 +52,12 @@ class RotatedBuffer {
 public:
   typedef gfxContentType ContentType;
 
-  RotatedBuffer(const nsIntRect& aBufferRect,
+  RotatedBuffer(gfx::DrawTarget* aDTBuffer, gfx::DrawTarget* aDTBufferOnWhite,
+                const nsIntRect& aBufferRect,
                 const nsIntPoint& aBufferRotation)
-    : mBufferRect(aBufferRect)
+    : mDTBuffer(aDTBuffer)
+    , mDTBufferOnWhite(aDTBufferOnWhite)
+    , mBufferRect(aBufferRect)
     , mBufferRotation(aBufferRotation)
     , mDidSelfCopy(false)
   { }
@@ -86,10 +89,8 @@ public:
   const nsIntRect& BufferRect() const { return mBufferRect; }
   const nsIntPoint& BufferRotation() const { return mBufferRotation; }
 
-  virtual bool HaveBuffer() const = 0;
-  virtual bool HaveBufferOnWhite() const = 0;
-
-  virtual TemporaryRef<gfx::SourceSurface> GetSourceSurface(ContextSource aSource) const = 0;
+  virtual bool HaveBuffer() const { return mDTBuffer; }
+  virtual bool HaveBufferOnWhite() const { return mDTBufferOnWhite; }
 
 protected:
 
@@ -115,6 +116,8 @@ protected:
                           gfx::SourceSurface* aMask,
                           const gfx::Matrix* aMaskTransform) const;
 
+  RefPtr<gfx::DrawTarget> mDTBuffer;
+  RefPtr<gfx::DrawTarget> mDTBufferOnWhite;
   
   nsIntRect             mBufferRect;
   
@@ -131,27 +134,6 @@ protected:
   
   
   bool                  mDidSelfCopy;
-};
-
-class SourceRotatedBuffer : public RotatedBuffer
-{
-public:
-  SourceRotatedBuffer(gfx::SourceSurface* aSource, gfx::SourceSurface* aSourceOnWhite,
-                      const nsIntRect& aBufferRect,
-                      const nsIntPoint& aBufferRotation)
-    : RotatedBuffer(aBufferRect, aBufferRotation)
-    , mSource(aSource)
-    , mSourceOnWhite(aSourceOnWhite)
-  { }
-
-  virtual TemporaryRef<gfx::SourceSurface> GetSourceSurface(ContextSource aSource) const;
-
-  virtual bool HaveBuffer() const { return !!mSource; }
-  virtual bool HaveBufferOnWhite() const { return !!mSourceOnWhite; }
-
-private:
-  RefPtr<gfx::SourceSurface> mSource;
-  RefPtr<gfx::SourceSurface> mSourceOnWhite;
 };
 
 
@@ -326,8 +308,6 @@ public:
   gfx::DrawTarget* GetDTBuffer() { return mDTBuffer; }
   gfx::DrawTarget* GetDTBufferOnWhite() { return mDTBufferOnWhite; }
 
-  virtual TemporaryRef<gfx::SourceSurface> GetSourceSurface(ContextSource aSource) const;
-
   
 
 
@@ -417,9 +397,6 @@ protected:
 
 
   virtual void FinalizeFrame(const nsIntRegion& aRegionToDraw) {}
-
-  RefPtr<gfx::DrawTarget> mDTBuffer;
-  RefPtr<gfx::DrawTarget> mDTBufferOnWhite;
 
   
 

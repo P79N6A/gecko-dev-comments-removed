@@ -486,14 +486,14 @@ ContentClientDoubleBuffered::FinalizeFrame(const nsIntRegion& aRegionToDraw)
     
     
     
-    RefPtr<SourceSurface> surf = mFrontClient->BorrowDrawTarget()->Snapshot();
-    RefPtr<SourceSurface> surfOnWhite = mFrontClientOnWhite
-      ? mFrontClientOnWhite->BorrowDrawTarget()->Snapshot()
+    RefPtr<DrawTarget> dt = mFrontClient->BorrowDrawTarget();
+    RefPtr<DrawTarget> dtOnWhite = mFrontClientOnWhite
+      ? mFrontClientOnWhite->BorrowDrawTarget()
       : nullptr;
-    SourceRotatedBuffer frontBuffer(surf,
-                                    surfOnWhite,
-                                    mFrontBufferRect,
-                                    mFrontBufferRotation);
+    RotatedBuffer frontBuffer(dt,
+                              dtOnWhite,
+                              mFrontBufferRect,
+                              mFrontBufferRotation);
     UpdateDestinationFrom(frontBuffer, updateRegion);
   }
 
