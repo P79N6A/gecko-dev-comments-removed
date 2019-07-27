@@ -52,8 +52,8 @@ public:
   
   
   
-  nsPropertyOwner(const nsINode* aObject) : mObject(aObject) {}
-  nsPropertyOwner(const nsIFrame* aObject) : mObject(aObject) {}
+  MOZ_IMPLICIT nsPropertyOwner(const nsINode* aObject) : mObject(aObject) {}
+  MOZ_IMPLICIT nsPropertyOwner(const nsIFrame* aObject) : mObject(aObject) {}
 
   operator const void*() { return mObject; }
   const void* get() { return mObject; }

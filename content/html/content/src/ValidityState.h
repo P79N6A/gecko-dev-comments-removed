@@ -75,7 +75,7 @@ public:
   }
 
 protected:
-  ValidityState(nsIConstraintValidation* aConstraintValidation);
+  explicit ValidityState(nsIConstraintValidation* aConstraintValidation);
 
   
 

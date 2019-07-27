@@ -44,7 +44,7 @@ public:
   
   
 
-  DOMError(nsPIDOMWindow* aWindow);
+  explicit DOMError(nsPIDOMWindow* aWindow);
 
   DOMError(nsPIDOMWindow* aWindow, nsresult aValue);
 

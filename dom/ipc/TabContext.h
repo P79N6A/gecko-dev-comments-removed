@@ -254,7 +254,7 @@ public:
 
 
 
-  MaybeInvalidTabContext(const IPCTabContext& aContext);
+  explicit MaybeInvalidTabContext(const IPCTabContext& aContext);
 
   
 

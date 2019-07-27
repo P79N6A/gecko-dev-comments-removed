@@ -54,7 +54,7 @@ public:
   
   
 
-  nsIContent(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
+  explicit nsIContent(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
     : nsINode(aNodeInfo)
   {
     MOZ_ASSERT(mNodeInfo);

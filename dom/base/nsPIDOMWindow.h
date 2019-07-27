@@ -729,7 +729,7 @@ protected:
   
   
   
-  nsPIDOMWindow(nsPIDOMWindow *aOuterWindow);
+  explicit nsPIDOMWindow(nsPIDOMWindow *aOuterWindow);
 
   ~nsPIDOMWindow();
 
@@ -842,7 +842,7 @@ class NS_AUTO_POPUP_STATE_PUSHER
 {
 public:
 #ifdef MOZILLA_INTERNAL_API
-  NS_AUTO_POPUP_STATE_PUSHER(PopupControlState aState, bool aForce = false)
+  explicit NS_AUTO_POPUP_STATE_PUSHER(PopupControlState aState, bool aForce = false)
     : mOldState(::PushPopupControlState(aState, aForce))
   {
   }
