@@ -106,7 +106,7 @@ struct BaseRect {
   
   
   
-  Sub Intersect(const Sub& aRect) const
+  MOZ_WARN_UNUSED_RESULT Sub Intersect(const Sub& aRect) const
   {
     Sub result;
     result.x = std::max<T>(x, aRect.x);
@@ -134,7 +134,7 @@ struct BaseRect {
   
   
   
-  Sub Union(const Sub& aRect) const
+  MOZ_WARN_UNUSED_RESULT Sub Union(const Sub& aRect) const
   {
     if (IsEmpty()) {
       return aRect;
@@ -147,7 +147,7 @@ struct BaseRect {
   
   
   
-  Sub UnionEdges(const Sub& aRect) const
+  MOZ_WARN_UNUSED_RESULT Sub UnionEdges(const Sub& aRect) const
   {
     Sub result;
     result.x = std::min(x, aRect.x);
@@ -525,7 +525,7 @@ struct BaseRect {
 
 
 
-  Point ClampPoint(const Point& aPoint) const
+  MOZ_WARN_UNUSED_RESULT Point ClampPoint(const Point& aPoint) const
   {
     return Point(std::max(x, std::min(XMost(), aPoint.x)),
                  std::max(y, std::min(YMost(), aPoint.y)));
@@ -536,7 +536,7 @@ struct BaseRect {
 
 
 
-  Sub ForceInside(const Sub& aRect) const
+  MOZ_WARN_UNUSED_RESULT Sub ForceInside(const Sub& aRect) const
   {
     Sub rect(std::max(aRect.x, x),
              std::max(aRect.y, y),
