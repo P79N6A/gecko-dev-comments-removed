@@ -62,6 +62,17 @@ const ITEM_RECORD_PROPERTIES = `
 
 
 
+const ITEM_DISREGARDED_PROPERTIES = `
+  byline
+  dir
+  content
+  length
+`.trim().split(/\s+/);
+
+
+
+
+
 
 
 
@@ -853,6 +864,9 @@ ReadingListItemIterator.prototype = {
 function normalizeRecord(nonNormalizedRecord) {
   let record = {};
   for (let prop in nonNormalizedRecord) {
+    if (ITEM_DISREGARDED_PROPERTIES.includes(prop)) {
+      continue;
+    }
     if (!ITEM_RECORD_PROPERTIES.includes(prop)) {
       throw new Error("Unrecognized item property: " + prop);
     }
