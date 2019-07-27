@@ -13,6 +13,8 @@ const { Promise: promise } = Cu.import("resource://gre/modules/Promise.jsm", {})
 let {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
 let TargetFactory = devtools.TargetFactory;
 
+const BASE_URI = "http://mochi.test:8888/browser/browser/devtools/fontinspector/test/"
+
 
 waitForExplicitFinish();
 
@@ -96,6 +98,52 @@ let openInspector = Task.async(function*(cb) {
       inspector: inspector
     };
   }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+let openFontInspectorForURL = Task.async(function* (url) {
+  info("Opening tab " + url);
+  yield loadTab(url);
+
+  let { toolbox, inspector } = yield openInspector();
+
+  
+
+
+
+
+
+
+
+
+
+
+  let updated = inspector.once("fontinspector-updated");
+
+  yield selectNode("body", inspector);
+  inspector.sidebar.select("fontinspector");
+
+  info("Waiting for font-inspector to update.");
+  yield updated;
+
+  info("Font Inspector ready.");
+
+  let { fontInspector } = inspector.sidebar.getWindowForTab("fontinspector");
+  return {
+    fontInspector,
+    inspector,
+    toolbox
+  };
 });
 
 
