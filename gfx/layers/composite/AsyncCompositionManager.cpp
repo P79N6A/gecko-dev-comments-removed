@@ -552,9 +552,21 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(Layer *aLayer)
       ApplyAsyncContentTransformToTree(child);
   }
 
-  if (AsyncPanZoomController* controller = aLayer->GetAsyncPanZoomController()) {
-    LayerComposite* layerComposite = aLayer->AsLayerComposite();
-    Matrix4x4 oldTransform = aLayer->GetTransform();
+  LayerComposite* layerComposite = aLayer->AsLayerComposite();
+  Matrix4x4 oldTransform = aLayer->GetTransform();
+
+  Matrix4x4 combinedAsyncTransformWithoutOverscroll;
+  Matrix4x4 combinedAsyncTransform;
+  bool hasAsyncTransform = false;
+  LayerMargin fixedLayerMargins(0, 0, 0, 0);
+
+  for (uint32_t i = 0; i < aLayer->GetFrameMetricsCount(); i++) {
+    AsyncPanZoomController* controller = aLayer->GetAsyncPanZoomController(i);
+    if (!controller) {
+      continue;
+    }
+
+    hasAsyncTransform = true;
 
     ViewTransform asyncTransformWithoutOverscroll, overscrollTransform;
     ScreenPoint scrollOffset;
@@ -562,12 +574,13 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(Layer *aLayer)
                                                scrollOffset,
                                                &overscrollTransform);
 
-    const FrameMetrics& metrics = aLayer->GetFrameMetrics();
+    const FrameMetrics& metrics = aLayer->GetFrameMetrics(i);
     CSSToLayerScale paintScale = metrics.LayersPixelsPerCSSPixel();
     CSSRect displayPort(metrics.mCriticalDisplayPort.IsEmpty() ?
                         metrics.mDisplayPort : metrics.mCriticalDisplayPort);
-    LayerMargin fixedLayerMargins(0, 0, 0, 0);
     ScreenPoint offset(0, 0);
+    
+    
     SyncFrameMetrics(scrollOffset, asyncTransformWithoutOverscroll.mScale.scale,
                      metrics.mScrollableRect, mLayersUpdated, displayPort,
                      paintScale, mIsFirstPaint, fixedLayerMargins, offset);
@@ -578,8 +591,12 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(Layer *aLayer)
     
     mLayerManager->GetCompositor()->SetScreenRenderOffset(offset);
 
-    Matrix4x4 transform = AdjustAndCombineWithCSSTransform(
-        asyncTransformWithoutOverscroll * overscrollTransform, aLayer);
+    combinedAsyncTransformWithoutOverscroll *= asyncTransformWithoutOverscroll;
+    combinedAsyncTransform *= (asyncTransformWithoutOverscroll * overscrollTransform);
+  }
+
+  if (hasAsyncTransform) {
+    Matrix4x4 transform = AdjustAndCombineWithCSSTransform(combinedAsyncTransform, aLayer);
 
     
     
@@ -598,7 +615,10 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(Layer *aLayer)
 
     
     
-    LayoutDeviceToLayerScale resolution = metrics.mCumulativeResolution;
+    
+    
+    LayoutDeviceToLayerScale resolution =
+      LayerMetricsWrapper::BottommostScrollableMetrics(aLayer).mCumulativeResolution;
     oldTransform.Scale(resolution.scale, resolution.scale, 1);
 
     
@@ -606,7 +626,7 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(Layer *aLayer)
     
     
     Matrix4x4 transformWithoutOverscroll = AdjustAndCombineWithCSSTransform(
-        asyncTransformWithoutOverscroll, aLayer);
+        combinedAsyncTransformWithoutOverscroll, aLayer);
     AlignFixedAndStickyLayers(aLayer, aLayer, oldTransform,
                               transformWithoutOverscroll, fixedLayerMargins);
 
@@ -771,7 +791,15 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer)
 {
   LayerComposite* layerComposite = aLayer->AsLayerComposite();
 
-  const FrameMetrics& metrics = aLayer->GetFrameMetrics();
+  FrameMetrics metrics = LayerMetricsWrapper::TopmostScrollableMetrics(aLayer);
+  if (!metrics.IsScrollable()) {
+    
+    
+    
+    
+    metrics = LayerMetricsWrapper::BottommostMetrics(aLayer);
+  }
+
   
   
   Matrix4x4 oldTransform = aLayer->GetTransform();
