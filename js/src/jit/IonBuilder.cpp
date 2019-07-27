@@ -5733,11 +5733,24 @@ bool
 IonBuilder::jsop_newarray(uint32_t count)
 {
     JSObject *templateObject = inspector->getTemplateObject(pc);
-    if (!templateObject)
+    if (!templateObject) {
+        if (info().executionMode() == ArgumentsUsageAnalysis) {
+            MUnknownValue *unknown = MUnknownValue::New(alloc());
+            current->add(unknown);
+            current->push(unknown);
+            return true;
+        }
         return abort("No template object for NEWARRAY");
+    }
 
     JS_ASSERT(templateObject->is<ArrayObject>());
     if (templateObject->type()->unknownProperties()) {
+        if (info().executionMode() == ArgumentsUsageAnalysis) {
+            MUnknownValue *unknown = MUnknownValue::New(alloc());
+            current->add(unknown);
+            current->push(unknown);
+            return true;
+        }
         
         
         return abort("New array has unknown properties");
@@ -5788,8 +5801,15 @@ bool
 IonBuilder::jsop_newobject()
 {
     JSObject *templateObject = inspector->getTemplateObject(pc);
-    if (!templateObject)
+    if (!templateObject) {
+        if (info().executionMode() == ArgumentsUsageAnalysis) {
+            MUnknownValue *unknown = MUnknownValue::New(alloc());
+            current->add(unknown);
+            current->push(unknown);
+            return true;
+        }
         return abort("No template object for NEWOBJECT");
+    }
 
     JS_ASSERT(templateObject->is<JSObject>());
     MConstant *templateConst = MConstant::NewConstraintlessObject(alloc(), templateObject);
@@ -5829,15 +5849,19 @@ IonBuilder::jsop_initelem_array()
     
     
     bool needStub = false;
-    types::TypeObjectKey *initializer = obj->resultTypeSet()->getObject(0);
-    if (value->type() == MIRType_MagicHole) {
-        if (!initializer->hasFlags(constraints(), types::OBJECT_FLAG_NON_PACKED))
-            needStub = true;
-    } else if (!initializer->unknownProperties()) {
-        types::HeapTypeSetKey elemTypes = initializer->property(JSID_VOID);
-        if (!TypeSetIncludes(elemTypes.maybeTypes(), value->type(), value->resultTypeSet())) {
-            elemTypes.freeze(constraints());
-            needStub = true;
+    if (obj->isUnknownValue()) {
+        needStub = true;
+    } else {
+        types::TypeObjectKey *initializer = obj->resultTypeSet()->getObject(0);
+        if (value->type() == MIRType_MagicHole) {
+            if (!initializer->hasFlags(constraints(), types::OBJECT_FLAG_NON_PACKED))
+                needStub = true;
+        } else if (!initializer->unknownProperties()) {
+            types::HeapTypeSetKey elemTypes = initializer->property(JSID_VOID);
+            if (!TypeSetIncludes(elemTypes.maybeTypes(), value->type(), value->resultTypeSet())) {
+                elemTypes.freeze(constraints());
+                needStub = true;
+            }
         }
     }
 
@@ -5898,20 +5922,28 @@ IonBuilder::jsop_initprop(PropertyName *name)
     MDefinition *value = current->pop();
     MDefinition *obj = current->peek(-1);
 
-    JSObject *templateObject = obj->toNewObject()->templateObject();
+    JSObject *templateObject = nullptr;
+    Shape *shape = nullptr;
 
-    Shape *shape = templateObject->lastProperty()->searchLinear(NameToId(name));
+    bool useSlowPath = false;
 
-    if (!shape) {
-        
-        MInitProp *init = MInitProp::New(alloc(), obj, name, value);
-        current->add(init);
-        return resumeAfter(init);
+    if (obj->isUnknownValue()) {
+        useSlowPath = true;
+    } else {
+        templateObject = obj->toNewObject()->templateObject();
+        shape = templateObject->lastProperty()->searchLinear(NameToId(name));
+
+        if (!shape)
+            useSlowPath = true;
     }
 
     if (PropertyWriteNeedsTypeBarrier(alloc(), constraints(), current,
                                       &obj, name, &value,  true))
     {
+        useSlowPath = true;
+    }
+
+    if (useSlowPath) {
         
         MInitProp *init = MInitProp::New(alloc(), obj, name, value);
         current->add(init);
