@@ -624,8 +624,6 @@ nsWSRunObject::GetWSNodes()
   
   
   
-  nsresult res = NS_OK;
-  
   ::DOMPoint start(mNode, mOffset), end(mNode, mOffset);
   nsCOMPtr<nsINode> wsBoundingParent = GetWSBoundingParent();
 
@@ -667,9 +665,7 @@ nsWSRunObject::GetWSNodes()
 
   while (!mStartNode) {
     
-    nsCOMPtr<nsINode> priorNode;
-    res = GetPreviousWSNode(start, wsBoundingParent, address_of(priorNode));
-    NS_ENSURE_SUCCESS(res, res);
+    nsCOMPtr<nsIContent> priorNode = GetPreviousWSNode(start, wsBoundingParent);
     if (priorNode) {
       if (IsBlockNode(priorNode)) {
         mStartNode = start.node;
@@ -775,9 +771,7 @@ nsWSRunObject::GetWSNodes()
 
   while (!mEndNode) {
     
-    nsCOMPtr<nsINode> nextNode;
-    res = GetNextWSNode(end, wsBoundingParent, address_of(nextNode));
-    NS_ENSURE_SUCCESS(res, res);
+    nsCOMPtr<nsIContent> nextNode = GetNextWSNode(end, wsBoundingParent);
     if (nextNode) {
       if (IsBlockNode(nextNode)) {
         
@@ -1011,185 +1005,171 @@ nsWSRunObject::MakeSingleWSRun(WSType aType)
   mEndRun  = mStartRun;
 }
 
-nsresult 
+nsIContent*
 nsWSRunObject::GetPreviousWSNodeInner(nsINode* aStartNode,
-                                      nsINode* aBlockParent,
-                                      nsCOMPtr<nsINode>* aPriorNode)
+                                      nsINode* aBlockParent)
 {
   
   
   
-  NS_ENSURE_TRUE(aStartNode && aBlockParent && aPriorNode, NS_ERROR_NULL_POINTER);
-  
-  *aPriorNode = aStartNode->GetPreviousSibling();
-  nsCOMPtr<nsINode> temp, curNode(aStartNode);
-  while (!*aPriorNode) {
+  MOZ_ASSERT(aStartNode && aBlockParent);
+
+  nsCOMPtr<nsIContent> priorNode = aStartNode->GetPreviousSibling();
+  nsCOMPtr<nsINode> curNode = aStartNode;
+  while (!priorNode) {
     
-    temp = curNode->GetParentNode();
-    NS_ENSURE_TRUE(temp, NS_ERROR_NULL_POINTER);
-    if (temp == aBlockParent) {
+    nsCOMPtr<nsINode> curParent = curNode->GetParentNode();
+    NS_ENSURE_TRUE(curParent, nullptr);
+    if (curParent == aBlockParent) {
       
       
-      *aPriorNode = nullptr;
-      return NS_OK;
+      return nullptr;
     }
     
-    *aPriorNode = temp->GetPreviousSibling();
-    curNode = temp;
+    priorNode = curParent->GetPreviousSibling();
+    curNode = curParent;
   }
   
-  if (IsBlockNode(*aPriorNode)) {
-    return NS_OK;
-  } else if (mHTMLEditor->IsContainer(*aPriorNode)) {
+  if (IsBlockNode(priorNode)) {
+    return priorNode;
+  }
+  if (mHTMLEditor->IsContainer(priorNode)) {
     
-    temp = mHTMLEditor->GetRightmostChild(*aPriorNode);
-    if (temp) {
-      *aPriorNode = temp;
+    nsCOMPtr<nsIContent> child = mHTMLEditor->GetRightmostChild(priorNode);
+    if (child) {
+      return child;
     }
-    return NS_OK;
   }
   
-  return NS_OK;
+  return priorNode;
 }
 
-nsresult 
+nsIContent*
 nsWSRunObject::GetPreviousWSNode(::DOMPoint aPoint,
-                                 nsINode* aBlockParent,
-                                 nsCOMPtr<nsINode>* aPriorNode)
+                                 nsINode* aBlockParent)
 {
   
   
   
-  NS_ENSURE_TRUE(aPoint.node && aBlockParent && aPriorNode,
-                 NS_ERROR_NULL_POINTER);
-  *aPriorNode = nullptr;
+  MOZ_ASSERT(aPoint.node && aBlockParent);
 
   if (aPoint.node->NodeType() == nsIDOMNode::TEXT_NODE) {
-    return GetPreviousWSNodeInner(aPoint.node, aBlockParent, aPriorNode);
+    return GetPreviousWSNodeInner(aPoint.node, aBlockParent);
   }
   if (!mHTMLEditor->IsContainer(aPoint.node)) {
-    return GetPreviousWSNodeInner(aPoint.node, aBlockParent, aPriorNode);
+    return GetPreviousWSNodeInner(aPoint.node, aBlockParent);
   }
-  
+
   if (!aPoint.offset) {
     if (aPoint.node == aBlockParent) {
       
-      return NS_OK;
+      return nullptr;
     }
 
     
-    return GetPreviousWSNodeInner(aPoint.node, aBlockParent, aPriorNode);
+    return GetPreviousWSNodeInner(aPoint.node, aBlockParent);
   }
 
-  nsCOMPtr<nsIContent> startContent(do_QueryInterface(aPoint.node));
-  NS_ENSURE_STATE(startContent);
-  nsIContent* priorContent = startContent->GetChildAt(aPoint.offset - 1);
-  NS_ENSURE_TRUE(priorContent, NS_ERROR_NULL_POINTER);
-  *aPriorNode = priorContent;
+  nsCOMPtr<nsIContent> startContent = do_QueryInterface(aPoint.node);
+  NS_ENSURE_TRUE(startContent, nullptr);
+  nsCOMPtr<nsIContent> priorNode = startContent->GetChildAt(aPoint.offset - 1);
+  NS_ENSURE_TRUE(priorNode, nullptr);
   
-  if (IsBlockNode(*aPriorNode)) {
-    return NS_OK;
-  } else if (mHTMLEditor->IsContainer(*aPriorNode)) {
+  if (IsBlockNode(priorNode)) {
+    return priorNode;
+  }
+  if (mHTMLEditor->IsContainer(priorNode)) {
     
-    nsCOMPtr<nsINode> temp;
-    temp = mHTMLEditor->GetRightmostChild(*aPriorNode);
-    if (temp) {
-      *aPriorNode = temp;
+    nsCOMPtr<nsIContent> child = mHTMLEditor->GetRightmostChild(priorNode);
+    if (child) {
+      return child;
     }
-    return NS_OK;
   }
   
-  return NS_OK;
+  return priorNode;
 }
 
-nsresult 
+nsIContent*
 nsWSRunObject::GetNextWSNodeInner(nsINode* aStartNode,
-                                  nsINode* aBlockParent,
-                                  nsCOMPtr<nsINode>* aNextNode)
+                                  nsINode* aBlockParent)
 {
   
   
   
-  NS_ENSURE_TRUE(aStartNode && aBlockParent && aNextNode,
-                 NS_ERROR_NULL_POINTER);
-  
-  *aNextNode = aStartNode->GetNextSibling();
-  nsCOMPtr<nsINode> temp, curNode(aStartNode);
-  while (!*aNextNode) {
+  MOZ_ASSERT(aStartNode && aBlockParent);
+
+  nsCOMPtr<nsIContent> nextNode = aStartNode->GetNextSibling();
+  nsCOMPtr<nsINode> curNode = aStartNode;
+  while (!nextNode) {
     
-    temp = curNode->GetParentNode();
-    NS_ENSURE_TRUE(temp, NS_ERROR_NULL_POINTER);
-    if (temp == aBlockParent) {
+    nsCOMPtr<nsINode> curParent = curNode->GetParentNode();
+    NS_ENSURE_TRUE(curParent, nullptr);
+    if (curParent == aBlockParent) {
       
       
-      *aNextNode = nullptr;
-      return NS_OK;
+      return nullptr;
     }
     
-    *aNextNode = temp->GetNextSibling();
-    curNode = temp;
+    nextNode = curParent->GetNextSibling();
+    curNode = curParent;
   }
   
-  if (IsBlockNode(*aNextNode)) {
-    return NS_OK;
-  } else if (mHTMLEditor->IsContainer(*aNextNode)) {
+  if (IsBlockNode(nextNode)) {
+    return nextNode;
+  }
+  if (mHTMLEditor->IsContainer(nextNode)) {
     
-    temp = mHTMLEditor->GetLeftmostChild(*aNextNode);
-    if (temp) {
-      *aNextNode = temp;
+    nsCOMPtr<nsIContent> child = mHTMLEditor->GetLeftmostChild(nextNode);
+    if (child) {
+      return child;
     }
-    return NS_OK;
   }
   
-  return NS_OK;
+  return nextNode;
 }
 
-nsresult 
-nsWSRunObject::GetNextWSNode(::DOMPoint aPoint,
-                             nsINode* aBlockParent,
-                             nsCOMPtr<nsINode>* aNextNode)
+nsIContent*
+nsWSRunObject::GetNextWSNode(::DOMPoint aPoint, nsINode* aBlockParent)
 {
   
   
   
-  NS_ENSURE_TRUE(aPoint.node && aBlockParent && aNextNode,
-                 NS_ERROR_NULL_POINTER);
-  *aNextNode = nullptr;
+  MOZ_ASSERT(aPoint.node && aBlockParent);
 
   if (aPoint.node->NodeType() == nsIDOMNode::TEXT_NODE) {
-    return GetNextWSNodeInner(aPoint.node, aBlockParent, aNextNode);
+    return GetNextWSNodeInner(aPoint.node, aBlockParent);
   }
   if (!mHTMLEditor->IsContainer(aPoint.node)) {
-    return GetNextWSNodeInner(aPoint.node, aBlockParent, aNextNode);
+    return GetNextWSNodeInner(aPoint.node, aBlockParent);
   }
-  
-  nsCOMPtr<nsIContent> startContent(do_QueryInterface(aPoint.node));
-  NS_ENSURE_STATE(startContent);
-  nsIContent *nextContent = startContent->GetChildAt(aPoint.offset);
-  if (!nextContent) {
+
+  nsCOMPtr<nsIContent> startContent = do_QueryInterface(aPoint.node);
+  NS_ENSURE_TRUE(startContent, nullptr);
+
+  nsCOMPtr<nsIContent> nextNode = startContent->GetChildAt(aPoint.offset);
+  if (!nextNode) {
     if (aPoint.node == aBlockParent) {
       
-      return NS_OK;
+      return nullptr;
     }
 
     
-    return GetNextWSNodeInner(aPoint.node, aBlockParent, aNextNode);
+    return GetNextWSNodeInner(aPoint.node, aBlockParent);
   }
+
   
-  *aNextNode = nextContent;
-  
-  if (IsBlockNode(*aNextNode)) {
-    return NS_OK;
-  } else if (mHTMLEditor->IsContainer(*aNextNode)) {
+  if (IsBlockNode(nextNode)) {
+    return nextNode;
+  }
+  if (mHTMLEditor->IsContainer(nextNode)) {
     
-    nsCOMPtr<nsINode> temp = mHTMLEditor->GetLeftmostChild(*aNextNode);
-    if (temp) {
-      *aNextNode = temp;
+    nsCOMPtr<nsIContent> child = mHTMLEditor->GetLeftmostChild(nextNode);
+    if (child) {
+      return child;
     }
-    return NS_OK;
   }
   
-  return NS_OK;
+  return nextNode;
 }
 
 nsresult 
