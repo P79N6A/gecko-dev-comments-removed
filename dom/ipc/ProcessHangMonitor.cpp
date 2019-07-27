@@ -25,6 +25,11 @@
 #include "base/task.h"
 #include "base/thread.h"
 
+#ifdef XP_WIN
+
+#include <windows.h>
+#endif
+
 using namespace mozilla;
 using namespace mozilla::dom;
 
@@ -526,6 +531,14 @@ HangMonitorParent::RecvHangEvidence(const HangData& aHangData)
   if (!mReportHangs) {
     return true;
   }
+
+#ifdef XP_WIN
+  
+  
+  if (IsDebuggerPresent()) {
+    return true;
+  }
+#endif
 
   mHangMonitor->InitiateCPOWTimeout();
 

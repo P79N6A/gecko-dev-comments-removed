@@ -1803,7 +1803,14 @@ pref("dom.ipc.cpow.timeout", 500);
 
 
 pref("dom.ipc.processHangMonitor", true);
+
+#ifdef DEBUG
+
+
+pref("dom.ipc.reportProcessHangs", false);
+#else
 pref("dom.ipc.reportProcessHangs", true);
+#endif
 
 
 pref("reader.parse-on-load.enabled", false);
