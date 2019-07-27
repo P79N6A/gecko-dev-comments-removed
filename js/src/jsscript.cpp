@@ -611,6 +611,14 @@ js::XDRScript(XDRState<mode>* xdr, HandleObject enclosingScope, HandleScript enc
     if (mode == XDR_ENCODE) {
         script = scriptp.get();
         MOZ_ASSERT_IF(enclosingScript, enclosingScript->compartment() == script->compartment());
+        MOZ_ASSERT(script->functionNonDelazifying() == fun);
+
+        if (!fun && script->treatAsRunOnce() && script->hasRunOnce()) {
+            JS_ReportError(cx,
+                           "Can't serialize a run-once non-function script "
+                           "that has already run");
+            return false;
+        }
 
         nargs = script->bindings.numArgs();
         nblocklocals = script->bindings.numBlockScoped();
@@ -2962,6 +2970,12 @@ js::CloneScript(JSContext* cx, HandleObject enclosingScope, HandleFunction fun, 
                 PollutedGlobalScopeOption polluted ,
                 NewObjectKind newKind )
 {
+    if (src->treatAsRunOnce() && !src->functionNonDelazifying()) {
+        
+        JS_ReportError(cx, "No cloning toplevel run-once scripts");
+        return nullptr;
+    }
+
     
 
     

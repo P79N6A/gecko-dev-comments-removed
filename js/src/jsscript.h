@@ -956,6 +956,8 @@ class JSScript : public js::gc::TenuredCell
     bool hasSingletons_:1;
 
     
+    
+    
     bool treatAsRunOnce_:1;
 
     
