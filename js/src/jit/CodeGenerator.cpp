@@ -3075,43 +3075,100 @@ CodeGenerator::emitPushArguments(LApplyArgsGeneric *apply, Register extraStackSp
 {
     
     Register argcreg = ToRegister(apply->getArgc());
-
     Register copyreg = ToRegister(apply->getTempObject());
-    size_t argvOffset = frameSize() + JitFrameLayout::offsetOfActualArgs();
-    Label end;
 
     
     masm.movePtr(argcreg, extraStackSpace);
+
+    
+    const uint32_t alignment = JitStackAlignment / sizeof(Value);
+    if (alignment > 1) {
+        MOZ_ASSERT(frameSize() % JitStackAlignment == 0,
+            "Stack padding assumes that the frameSize is correct");
+        MOZ_ASSERT(alignment == 2);
+        Label noPaddingNeeded;
+        
+        masm.branchTestPtr(Assembler::NonZero, argcreg, Imm32(1), &noPaddingNeeded);
+        masm.addPtr(Imm32(1), extraStackSpace);
+        masm.bind(&noPaddingNeeded);
+    }
+
+    
+    NativeObject::elementsSizeMustNotOverflow();
+    masm.lshiftPtr(Imm32(ValueShift), extraStackSpace);
+    masm.subPtr(extraStackSpace, StackPointer);
+
+#ifdef DEBUG
+    
+    
+    
+    if (alignment > 1) {
+        MOZ_ASSERT(alignment == 2);
+        Label noPaddingNeeded;
+        
+        masm.branchTestPtr(Assembler::NonZero, argcreg, Imm32(1), &noPaddingNeeded);
+        BaseValueIndex dstPtr(StackPointer, argcreg);
+        masm.storeValue(MagicValue(JS_ARG_POISON), dstPtr);
+        masm.bind(&noPaddingNeeded);
+    }
+#endif
+
+    
+    Label end;
     masm.branchTestPtr(Assembler::Zero, argcreg, argcreg, &end);
 
     
+    
+    
+    
+
+    
+    size_t argvSrcOffset = frameSize() + JitFrameLayout::offsetOfActualArgs();
+    size_t argvDstOffset = 0;
+
+    
+    masm.push(extraStackSpace);
+    Register argvSrcBase = extraStackSpace;
+    argvSrcOffset += sizeof(void *);
+    argvDstOffset += sizeof(void *);
+
+    
+    masm.push(argcreg);
+    Register argvIndex = argcreg;
+    argvSrcOffset += sizeof(void *);
+    argvDstOffset += sizeof(void *);
+
+    
+    
+    masm.addPtr(StackPointer, argvSrcBase);
+
+    
     {
-        Register count = extraStackSpace; 
         Label loop;
         masm.bind(&loop);
 
         
         
-        BaseValueIndex disp(StackPointer, argcreg, argvOffset - sizeof(void*));
-
         
-        
-        masm.loadPtr(disp, copyreg);
-        masm.push(copyreg);
+        BaseValueIndex srcPtr(argvSrcBase, argvIndex, argvSrcOffset - sizeof(void *));
+        BaseValueIndex dstPtr(StackPointer, argvIndex, argvDstOffset - sizeof(void *));
+        masm.loadPtr(srcPtr, copyreg);
+        masm.storePtr(copyreg, dstPtr);
 
         
         if (sizeof(Value) == 2 * sizeof(void*)) {
-            masm.loadPtr(disp, copyreg);
-            masm.push(copyreg);
+            BaseValueIndex srcPtrLow(argvSrcBase, argvIndex, argvSrcOffset - 2 * sizeof(void *));
+            BaseValueIndex dstPtrLow(StackPointer, argvIndex, argvDstOffset - 2 * sizeof(void *));
+            masm.loadPtr(srcPtrLow, copyreg);
+            masm.storePtr(copyreg, dstPtrLow);
         }
 
-        masm.decBranchPtr(Assembler::NonZero, count, Imm32(1), &loop);
+        masm.decBranchPtr(Assembler::NonZero, argvIndex, Imm32(1), &loop);
     }
 
     
-    masm.movePtr(argcreg, extraStackSpace);
-    NativeObject::elementsSizeMustNotOverflow();
-    masm.lshiftPtr(Imm32(ValueShift), extraStackSpace);
+    masm.pop(argcreg);
+    masm.pop(extraStackSpace);
 
     
     masm.bind(&end);
