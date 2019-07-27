@@ -305,6 +305,36 @@ addMessageListener("Test:HasPseudoClassLock", function(msg) {
 
 
 
+
+
+addMessageListener("Test:ScrollWindow", function(msg) {
+  let {x, y, relative} = msg.data;
+
+  if (isNaN(x) || isNaN(y)) {
+    sendAsyncMessage("Test:ScrollWindow", {});
+    return;
+  }
+
+  content.addEventListener("scroll", function onScroll(event) {
+    this.removeEventListener("scroll", onScroll);
+
+    let data = {x: content.scrollX, y: content.scrollY};
+    sendAsyncMessage("Test:ScrollWindow", data);
+  });
+
+  content[relative ? "scrollBy" : "scrollTo"](x, y);
+});
+
+
+
+
+
+
+
+
+
+
+
 function superQuerySelector(superSelector, root=content.document) {
   let frameIndex = superSelector.indexOf("||");
   if (frameIndex === -1) {
