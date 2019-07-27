@@ -388,7 +388,8 @@ public class Utils {
 
 
 
-    public static String getCImplementationMethodSignature(Class<?>[] aArgumentTypes, Class<?> aReturnType, String aCMethodName, String aCClassName, boolean aNarrowChars) {
+    public static String getCImplementationMethodSignature(Class<?>[] aArgumentTypes, Class<?> aReturnType,
+        String aCMethodName, String aCClassName, boolean aNarrowChars, boolean aCatchException) {
         StringBuilder retBuffer = new StringBuilder();
 
         retBuffer.append(getCReturnType(aReturnType, aNarrowChars));
@@ -410,6 +411,14 @@ public class Utils {
                 retBuffer.append(", ");
             }
         }
+
+        if (aCatchException) {
+            if (aArgumentTypes.length > 0) {
+                retBuffer.append(", ");
+            }
+            retBuffer.append("nsresult* aResult");
+        }
+
         retBuffer.append(')');
         return retBuffer.toString();
     }
@@ -427,7 +436,8 @@ public class Utils {
 
 
 
-    public static String getCHeaderMethodSignature(Class<?>[] aArgumentTypes, Annotation[][] aArgumentAnnotations, Class<?> aReturnType, String aCMethodName, String aCClassName, boolean aIsStaticStub, boolean aNarrowChars) {
+    public static String getCHeaderMethodSignature(Class<?>[] aArgumentTypes, Annotation[][] aArgumentAnnotations, Class<?> aReturnType,
+        String aCMethodName, String aCClassName, boolean aIsStaticStub, boolean aNarrowChars, boolean aCatchException) {
         StringBuilder retBuffer = new StringBuilder();
 
         
@@ -457,6 +467,14 @@ public class Utils {
                 retBuffer.append(", ");
             }
         }
+
+        if (aCatchException) {
+            if (aArgumentTypes.length > 0) {
+                retBuffer.append(", ");
+            }
+            retBuffer.append("nsresult* aResult = nullptr");
+        }
+
         retBuffer.append(')');
         return retBuffer.toString();
     }
