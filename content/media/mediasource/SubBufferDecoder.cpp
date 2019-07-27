@@ -112,11 +112,16 @@ SubBufferDecoder::GetBuffered(dom::TimeRanges* aBuffered)
 int64_t
 SubBufferDecoder::ConvertToByteOffset(double aTime)
 {
+  int64_t readerOffset = mReader->GetEvictionOffset(aTime);
+  if (readerOffset >= 0) {
+    return readerOffset;
+  }
+
   
   
   
   
-  if (mMediaDuration == -1) {
+  if (mMediaDuration <= 0) {
     return -1;
   }
   int64_t length = GetResource()->GetLength();
