@@ -205,11 +205,23 @@ this.ContentSearch = {
       "searchString",
       "whence",
     ]);
-    let browserWin = msg.target.ownerDocument.defaultView;
     let engine = Services.search.getEngineByName(data.engineName);
-    browserWin.BrowserSearch.recordSearchInHealthReport(engine, data.whence, data.selection);
     let submission = engine.getSubmission(data.searchString, "", data.whence);
-    browserWin.loadURI(submission.uri.spec, null, submission.postData);
+    let browser = msg.target;
+    try {
+      browser.loadURIWithFlags(submission.uri.spec,
+                               Ci.nsIWebNavigation.LOAD_FLAGS_NONE, null, null,
+                               submission.postData);
+    }
+    catch (err) {
+      
+      
+      
+      return Promise.resolve();
+    }
+    let win = browser.ownerDocument.defaultView;
+    win.BrowserSearch.recordSearchInHealthReport(engine, data.whence,
+                                                 data.selection || null);
     return Promise.resolve();
   },
 
