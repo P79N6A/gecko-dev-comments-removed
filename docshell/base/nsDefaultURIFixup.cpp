@@ -34,6 +34,7 @@ NS_IMPL_ISUPPORTS(nsDefaultURIFixup, nsIURIFixup)
 
 static bool sInitializedPrefCaches = false;
 static bool sFixTypos = true;
+static bool sDNSFirstForSingleWords = false;
 static bool sFixupKeywords = true;
 
 nsDefaultURIFixup::nsDefaultURIFixup()
@@ -243,6 +244,11 @@ nsDefaultURIFixup::GetFixupURIInfo(const nsACString& aStringURI, uint32_t aFixup
                                         sFixTypos);
       MOZ_ASSERT(NS_SUCCEEDED(rv),
                 "Failed to observe \"browser.fixup.typo.scheme\"");
+
+      rv = Preferences::AddBoolVarCache(&sDNSFirstForSingleWords,
+                                        "browser.fixup.dns_first_for_single_words",
+                                        sDNSFirstForSingleWords);
+      MOZ_ASSERT(NS_SUCCEEDED(rv), "Failed to observe \"browser.fixup.dns_first_for_single_words\"");
 
       rv = Preferences::AddBoolVarCache(&sFixupKeywords, "keyword.enabled",
                                         sFixupKeywords);
@@ -1068,15 +1074,17 @@ nsDefaultURIFixup::KeywordURIFixup(const nsACString & aURIString,
     nsresult rv = NS_OK;
     
     
-    
-    
     if (((firstSpaceLoc < firstDotLoc || firstQuoteLoc < firstDotLoc) &&
          (firstSpaceLoc < firstColonLoc || firstQuoteLoc < firstColonLoc) &&
-         (firstSpaceLoc < firstQMarkLoc || firstQuoteLoc < firstQMarkLoc)) || firstQMarkLoc == 0 ||
-        (isValidAsciiHost && isValidHost && !hasAsciiAlpha &&
-         host.EqualsIgnoreCase(asciiHost.get()))) {
-
+         (firstSpaceLoc < firstQMarkLoc || firstQuoteLoc < firstQMarkLoc)) || firstQMarkLoc == 0) {
         rv = TryKeywordFixupForURIInfo(aFixupInfo->mOriginalInput, aFixupInfo, aPostData);
+    
+    
+    } else if (isValidAsciiHost && isValidHost && !hasAsciiAlpha &&
+               host.EqualsIgnoreCase(asciiHost.get())) {
+        if (!sDNSFirstForSingleWords) {
+            rv = TryKeywordFixupForURIInfo(aFixupInfo->mOriginalInput, aFixupInfo, aPostData);
+        }
     }
     
     
@@ -1098,6 +1106,9 @@ nsDefaultURIFixup::KeywordURIFixup(const nsACString & aURIString,
 bool nsDefaultURIFixup::IsDomainWhitelisted(const nsAutoCString aAsciiHost,
                                             const uint32_t aDotLoc)
 {
+    if (sDNSFirstForSingleWords) {
+        return true;
+    }
     
     
     
