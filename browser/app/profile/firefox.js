@@ -1535,6 +1535,9 @@ pref("devtools.webconsole.filter.info", true);
 pref("devtools.webconsole.filter.log", true);
 pref("devtools.webconsole.filter.secerror", true);
 pref("devtools.webconsole.filter.secwarn", true);
+pref("devtools.webconsole.filter.serviceworkers", false);
+pref("devtools.webconsole.filter.sharedworkers", false);
+pref("devtools.webconsole.filter.windowlessworkers", false);
 
 
 pref("devtools.browserconsole.filter.network", true);
@@ -1553,6 +1556,9 @@ pref("devtools.browserconsole.filter.info", true);
 pref("devtools.browserconsole.filter.log", true);
 pref("devtools.browserconsole.filter.secerror", true);
 pref("devtools.browserconsole.filter.secwarn", true);
+pref("devtools.browserconsole.filter.serviceworkers", true);
+pref("devtools.browserconsole.filter.sharedworkers", true);
+pref("devtools.browserconsole.filter.windowlessworkers", true);
 
 
 pref("devtools.webconsole.fontSize", 0);
