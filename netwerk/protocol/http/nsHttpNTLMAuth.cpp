@@ -24,7 +24,6 @@
 #include "nsISSLStatusProvider.h"
 #endif
 #include "mozilla/Attributes.h"
-#include "nsThreadUtils.h"
 
 namespace mozilla {
 namespace net {
@@ -33,8 +32,6 @@ static const char kAllowProxies[] = "network.automatic-ntlm-auth.allow-proxies";
 static const char kAllowNonFqdn[] = "network.automatic-ntlm-auth.allow-non-fqdn";
 static const char kTrustedURIs[]  = "network.automatic-ntlm-auth.trusted-uris";
 static const char kForceGeneric[] = "network.auth.force-generic-ntlm";
-static const char kAllowGenericHTTP[] = "network.negotiate-auth.allow-insecure-ntlm-v1";
-static const char kAllowGenericHTTPS[] = "network.negotiate-auth.allow-insecure-ntlm-v1-https";
 
 
 
@@ -182,47 +179,6 @@ ForceGenericNTLM()
 
 
 static bool
-AllowGenericNTLM()
-{
-    MOZ_ASSERT(NS_IsMainThread());
-
-    nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
-    if (!prefs)
-        return false;
-
-    bool flag = false;
-    if (NS_FAILED(prefs->GetBoolPref(kAllowGenericHTTP, &flag)))
-        flag = false;
-
-    LOG(("Allow use of generic ntlm auth module: %d\n", flag));
-    return flag;
-}
-
-
-static bool
-AllowGenericNTLMforHTTPS(nsIHttpAuthenticableChannel *channel)
-{
-    bool isSSL = false;
-    channel->GetIsSSL(&isSSL);
-    if (!isSSL)
-        return false;
-
-    MOZ_ASSERT(NS_IsMainThread());
-
-    nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
-    if (!prefs)
-        return false;
-
-    bool flag = false;
-    if (NS_FAILED(prefs->GetBoolPref(kAllowGenericHTTPS, &flag)))
-        flag = false;
-
-    LOG(("Allow use of generic ntlm auth module for only https: %d\n", flag));
-    return flag;
-}
-
-
-static bool
 CanUseDefaultCredentials(nsIHttpAuthenticableChannel *channel,
                          bool isProxyAuth)
 {
@@ -343,14 +299,8 @@ nsHttpNTLMAuth::ChallengeReceived(nsIHttpAuthenticableChannel *channel,
 
             
             
-
-            
-            
-            
-            if (AllowGenericNTLM() || (!isProxyAuth && AllowGenericNTLMforHTTPS(channel))) {
-                LOG(("Trying to fall back on internal ntlm auth.\n"));
-                module = do_CreateInstance(NS_AUTH_MODULE_CONTRACTID_PREFIX "ntlm");
-            }
+            LOG(("Trying to fall back on internal ntlm auth.\n"));
+            module = do_CreateInstance(NS_AUTH_MODULE_CONTRACTID_PREFIX "ntlm");
 	
             mUseNative = false;
 
