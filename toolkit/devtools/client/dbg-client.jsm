@@ -396,6 +396,12 @@ DebuggerClient.prototype = {
 
 
   connect: function (aOnConnected) {
+    this.emit("connect");
+
+    
+    
+    events.emit(DebuggerClient, "connect", this);
+
     this.addOneTimeListener("connected", (aName, aApplicationType, aTraits) => {
       this.traits = aTraits;
       if (aOnConnected) {
