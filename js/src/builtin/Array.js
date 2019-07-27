@@ -708,29 +708,29 @@ function ArrayKeys() {
 }
 
 
-function ArrayFrom(arrayLike, mapfn=undefined, thisArg=undefined) {
+function ArrayFrom(items, mapfn=undefined, thisArg=undefined) {
     
     var C = this;
 
     
-    var items = ToObject(arrayLike);
-
-    
-    var mapping = (mapfn !== undefined);
+    var mapping = mapfn !== undefined;
     if (mapping && !IsCallable(mapfn))
         ThrowError(JSMSG_NOT_FUNCTION, DecompileArg(1, mapfn));
+    var T = thisArg;
 
     
     var attrs = ATTR_CONFIGURABLE | ATTR_ENUMERABLE | ATTR_WRITABLE;
 
     
-    var usingIterator = items[std_iterator];
+    var usingIterator = GetMethod(items, std_iterator);
+
+    
     if (usingIterator !== undefined) {
         
         var A = IsConstructor(C) ? new C() : [];
 
         
-        var iterator = callFunction(usingIterator, items);
+        var iterator = GetIterator(items, usingIterator);
 
         
         var k = 0;
@@ -738,14 +738,19 @@ function ArrayFrom(arrayLike, mapfn=undefined, thisArg=undefined) {
         
         
         
-        var next;
         while (true) {
             
-            next = iterator.next();
+            var next = iterator.next();
             if (!IsObject(next))
                 ThrowError(JSMSG_NEXT_RETURNED_PRIMITIVE);
-            if (next.done)
-                break;  
+
+            
+            if (next.done) {
+                A.length = k;
+                return A;
+            }
+
+            
             var nextValue = next.value;
 
             
@@ -754,31 +759,35 @@ function ArrayFrom(arrayLike, mapfn=undefined, thisArg=undefined) {
             
             _DefineDataProperty(A, k++, mappedValue, attrs);
         }
-    } else {
-        
-        
-
-        
-        
-        var len = ToInteger(items.length);
-
-        
-        var A = IsConstructor(C) ? new C(len) : NewDenseArray(len);
-
-        
-        for (var k = 0; k < len; k++) {
-            
-            var kValue = items[k];
-
-            
-            var mappedValue = mapping ? callFunction(mapfn, thisArg, kValue, k) : kValue;
-
-            
-            _DefineDataProperty(A, k, mappedValue, attrs);
-        }
     }
 
     
-    A.length = k;
+    assert(usingIterator === undefined, "`items` can't be an Iterable after step 6.g.iv");
+
+    
+    var arrayLike = ToObject(items);
+
+    
+    var len = ToLength(arrayLike.length);
+
+    
+    var A = IsConstructor(C) ? new C(len) : NewDenseArray(len);
+
+    
+    for (var k = 0; k < len; k++) {
+        
+        var kValue = items[k];
+
+        
+        var mappedValue = mapping ? callFunction(mapfn, thisArg, kValue, k) : kValue;
+
+        
+        _DefineDataProperty(A, k, mappedValue, attrs);
+    }
+
+    
+    A.length = len;
+
+    
     return A;
 }

@@ -131,6 +131,13 @@ assertEq(log, "lC0");
 assertEq(obj instanceof C, true);
 
 
+for (var primitive of ["foo", 17, Symbol(), true]) {
+    assertThrowsInstanceOf(() => Array.from({[Symbol.iterator] : primitive}), TypeError);
+}
+assertDeepEq(Array.from({[Symbol.iterator]: null}), []);
+assertDeepEq(Array.from({[Symbol.iterator]: undefined}), []);
+
+
 for (var primitive of [undefined, null, 17]) {
     assertThrowsInstanceOf(
         () => Array.from({

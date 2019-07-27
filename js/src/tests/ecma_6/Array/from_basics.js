@@ -44,5 +44,8 @@ assertDeepEq(Array.from([0, , , ,]), [0, undefined, undefined, undefined]);
 
 assertDeepEq(Array.from({length: 4}), [undefined, undefined, undefined, undefined]);
 
+
+assertDeepEq(Array.from({length: -1}), []);
+
 if (typeof reportCompare === 'function')
     reportCompare(0, 0);
