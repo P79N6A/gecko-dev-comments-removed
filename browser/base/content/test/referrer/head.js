@@ -55,13 +55,13 @@ let _referrerTests = [
   {
     fromScheme: "https://",
     toScheme: "https://",
-    policy: "origin-when-crossorigin",
+    policy: "origin-when-cross-origin",
     result: "https://test1.example.com/browser"  
   },
   {
     fromScheme: "http://",
     toScheme: "https://",
-    policy: "origin-when-crossorigin",
+    policy: "origin-when-cross-origin",
     result: "http://test1.example.com"  
   },
 ];
