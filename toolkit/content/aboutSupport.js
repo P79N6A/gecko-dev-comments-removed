@@ -177,10 +177,32 @@ let snapshotFormatters = {
 
     
     if ("failures" in data) {
-      $.append($("graphics-failures-tbody"), data.failures.map(function (val) {
-        return $.new("tr", [$.new("td", val)]);
-      }));
-      delete data.failures;
+      
+      
+      if ("indices" in data && data.failures.length == data.indices.length) {
+        let combined = [];
+        for (let i = 0; i < data.failures.length; i++) {
+          let assembled = assembleFromGraphicsFailure(i, data);
+          combined.push(assembled);
+        }
+        combined.sort(function(a,b) {
+            if (a.index < b.index) return -1;
+            if (a.index > b.index) return 1;
+            return 0;});
+        $.append($("graphics-failures-tbody"),
+                 combined.map(function(val) {
+                   return $.new("tr", [$.new("th", val.header, "column"),
+                                       $.new("td", val.message)]);
+                 }));
+      } else {
+        $.append($("graphics-failures-tbody"),
+          [$.new("tr", [$.new("th", "LogFailure", "column"),
+                        $.new("td", data.failures.map(function (val) {
+                          return $.new("p", val);
+                       }))])]);
+      }
+
+	delete data.failures;
     }
 
     
@@ -355,6 +377,32 @@ $.append = function $_append(parent, children) {
 function stringBundle() {
   return Services.strings.createBundle(
            "chrome://global/locale/aboutSupport.properties");
+}
+
+function assembleFromGraphicsFailure(i, data)
+{
+  
+  
+  let message = data.failures[i];
+  let index = data.indices[i];
+  let what = "";
+  if (message.search(/\[GFX1-\]: \(LF\)/) == 0) {
+    
+    what = "LogFailure";
+    message = message.substring(14);
+  } else if (message.search(/\[GFX1-\]: /) == 0) {
+    
+    what = "Error";
+    message = message.substring(9);
+  } else if (message.search(/\[GFX1\]: /) == 0) {
+    
+    what = "Assert";
+    message = message.substring(8);
+  }
+  let assembled = {"index" : index,
+                   "header" : ("(#" + index + ") " + what),
+                   "message" : message};
+  return assembled;
 }
 
 function sortedArrayFromObject(obj) {

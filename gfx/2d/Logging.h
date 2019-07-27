@@ -9,6 +9,7 @@
 #include <string>
 #include <sstream>
 #include <stdio.h>
+#include <vector>
 
 #ifdef MOZ_LOGGING
 #include <prlog.h>
@@ -206,6 +207,12 @@ class LogForwarder {
 public:
   virtual ~LogForwarder() {}
   virtual void Log(const std::string &aString) = 0;
+
+  
+  
+  
+  
+  virtual std::vector<std::pair<int32_t,std::string> > StringsVectorCopy() = 0;
 };
 
 class NoLog
