@@ -2,6 +2,7 @@
 
 
 
+#include <limits>
 
 #include "gtest/gtest.h"
 
@@ -371,11 +372,9 @@ TestUnion()
 static bool
 TestFiniteGfx()
 {
-  
-  
-  float posInf = 1.0/0.0;
-  float negInf = -1.0/0.0;
-  float justNaN = 0.0/0.0;
+  float posInf = std::numeric_limits<float>::infinity();
+  float negInf = -std::numeric_limits<float>::infinity();
+  float justNaN = std::numeric_limits<float>::quiet_NaN();
 
   gfxFloat values[4] = {5.0, 10.0, 15.0, 20.0};
 
