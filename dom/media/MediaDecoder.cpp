@@ -1564,12 +1564,20 @@ void MediaDecoder::Progress(bool aTimer)
 
   
   
-  if ((mProgressTime.IsNull() ||
-       now - mProgressTime >= TimeDuration::FromMilliseconds(PROGRESS_MS)) &&
-      !mDataTime.IsNull() &&
-      now - mDataTime <= TimeDuration::FromMilliseconds(PROGRESS_MS)) {
+  
+  if (!mDataTime.IsNull() &&
+      (mProgressTime.IsNull() ||
+       (now - mProgressTime >= TimeDuration::FromMilliseconds(PROGRESS_MS) &&
+        mDataTime > mProgressTime))) {
     mOwner->DownloadProgressed();
-    mProgressTime = now;
+    
+    
+    
+    
+    mProgressTime = now - TimeDuration::Resolution();
+    if (mDataTime > mProgressTime) {
+      mDataTime = mProgressTime;
+    }
   }
 
   if (!mDataTime.IsNull() &&
