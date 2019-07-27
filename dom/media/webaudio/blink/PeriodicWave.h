@@ -42,20 +42,19 @@ typedef nsTArray<float> AudioFloatArray;
 
 class PeriodicWave {
 public:
+    NS_INLINE_DECL_THREADSAFE_REFCOUNTING(WebCore::PeriodicWave);
 
-    NS_INLINE_DECL_THREADSAFE_REFCOUNTING(PeriodicWave);
-
-    static PeriodicWave* createSine(float sampleRate);
-    static PeriodicWave* createSquare(float sampleRate);
-    static PeriodicWave* createSawtooth(float sampleRate);
-    static PeriodicWave* createTriangle(float sampleRate);
+    static already_AddRefed<PeriodicWave> createSine(float sampleRate);
+    static already_AddRefed<PeriodicWave> createSquare(float sampleRate);
+    static already_AddRefed<PeriodicWave> createSawtooth(float sampleRate);
+    static already_AddRefed<PeriodicWave> createTriangle(float sampleRate);
 
     
     
-    static PeriodicWave* create(float sampleRate,
-                                const float* real,
-                                const float* imag,
-                                size_t numberOfComponents);
+    static already_AddRefed<PeriodicWave> create(float sampleRate,
+                                                 const float* real,
+                                                 const float* imag,
+                                                 size_t numberOfComponents);
 
     
     
