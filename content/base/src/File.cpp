@@ -631,7 +631,7 @@ File::Constructor(
  already_AddRefed<File>
 File::Constructor(const GlobalObject& aGlobal,
                   File& aData,
-                  const FilePropertyBag& aBag,
+                  const ChromeFilePropertyBag& aBag,
                   ErrorResult& aRv)
 {
   if (!nsContentUtils::IsCallerChrome()) {
@@ -653,7 +653,7 @@ File::Constructor(const GlobalObject& aGlobal,
  already_AddRefed<File>
 File::Constructor(const GlobalObject& aGlobal,
                   nsIFile* aData,
-                  const FilePropertyBag& aBag,
+                  const ChromeFilePropertyBag& aBag,
                   ErrorResult& aRv)
 {
   if (!nsContentUtils::IsCallerChrome()) {
@@ -677,7 +677,7 @@ File::Constructor(const GlobalObject& aGlobal,
  already_AddRefed<File>
 File::Constructor(const GlobalObject& aGlobal,
                   const nsAString& aData,
-                  const FilePropertyBag& aBag,
+                  const ChromeFilePropertyBag& aBag,
                   ErrorResult& aRv)
 {
   if (!nsContentUtils::IsCallerChrome()) {
