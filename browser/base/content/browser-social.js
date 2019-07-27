@@ -552,6 +552,10 @@ SocialShare = {
 
   update: function() {
     let shareButton = this.shareButton;
+    if (!shareButton)
+      return;
+    
+    
     shareButton.hidden = !SocialUI.enabled ||
                          [p for (p of Social.providers) if (p.shareURL)].length == 0;
     let disabled = shareButton.hidden || !this.canSharePage(gBrowser.currentURI);
