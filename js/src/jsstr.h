@@ -236,6 +236,10 @@ EqualChars(JSLinearString *str1, JSLinearString *str2);
 extern bool
 CompareStrings(JSContext *cx, JSString *str1, JSString *str2, int32_t *result);
 
+
+
+
+
 extern int32_t
 CompareAtoms(JSAtom *atom1, JSAtom *atom2);
 
