@@ -270,14 +270,6 @@ public:
     }
   }
 
-  void NotifyFlushComplete() override {
-    MOZ_ASSERT(NS_IsMainThread());
-    if (mRenderFrame) {
-      TabParent* browser = TabParent::GetFrom(mRenderFrame->Manager());
-      browser->NotifyFlushComplete();
-    }
-  }
-
   
 
   void SaveZoomConstraints(const ZoomConstraints& aConstraints)

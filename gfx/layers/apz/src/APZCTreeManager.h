@@ -135,13 +135,6 @@ public:
 
 
 
-  void FlushApzRepaints(uint64_t aLayersId);
-
-  
-
-
-
-
 
 
 
@@ -437,7 +430,6 @@ private:
   void UpdateZoomConstraintsRecursively(HitTestingTreeNode* aNode,
                                         const ZoomConstraints& aConstraints);
   void FlushRepaintsRecursively(HitTestingTreeNode* aNode);
-  void FlushPendingRepaintRecursively(HitTestingTreeNode* aNode, uint64_t aLayersId);
 
   already_AddRefed<HitTestingTreeNode> RecycleOrCreateNode(TreeBuildingState& aState,
                                                            AsyncPanZoomController* aApzc);
