@@ -65,19 +65,20 @@ let TrackingProtection = {
     for (let element of [this.icon, this.content]) {
       if (state & STATE_BLOCKED_TRACKING_CONTENT) {
         element.setAttribute("state", "blocked-tracking-content");
-
-        
-        let introCount = gPrefService.getIntPref("privacy.trackingprotection.introCount");
-        if (introCount < TrackingProtection.MAX_INTROS) {
-          gPrefService.setIntPref("privacy.trackingprotection.introCount", ++introCount);
-          gPrefService.savePrefFile(null);
-          this.showIntroPanel();
-        }
-
       } else if (state & STATE_LOADED_TRACKING_CONTENT) {
         element.setAttribute("state", "loaded-tracking-content");
       } else {
         element.removeAttribute("state");
+      }
+    }
+
+    if (state & STATE_BLOCKED_TRACKING_CONTENT) {
+      
+      let introCount = gPrefService.getIntPref("privacy.trackingprotection.introCount");
+      if (introCount < TrackingProtection.MAX_INTROS) {
+        gPrefService.setIntPref("privacy.trackingprotection.introCount", ++introCount);
+        gPrefService.savePrefFile(null);
+        this.showIntroPanel();
       }
     }
 
