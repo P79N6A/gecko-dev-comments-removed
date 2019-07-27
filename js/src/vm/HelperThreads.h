@@ -21,7 +21,6 @@
 
 #include "frontend/TokenStream.h"
 #include "jit/Ion.h"
-#include "vm/Compression.h"
 
 namespace js {
 
@@ -308,12 +307,6 @@ struct HelperThread
     SourceCompressionTask *compressionTask;
 
     
-
-
-
-    Compressor sourceCompressor;
-
-    
     GCHelperState *gcHelperState;
 
     
@@ -540,7 +533,7 @@ struct SourceCompressionTask
         complete();
     }
 
-    ResultType work(Compressor &comp);
+    ResultType work();
     bool complete();
     void abort() { abort_ = true; }
     bool active() const { return !!ss; }
