@@ -340,11 +340,9 @@ JitRuntime::generateInvalidator(JSContext *cx)
 
     
     
-    
-    
     uint32_t increment = 2;
-    for (uint32_t i = 0; i < FloatRegisters::Total; i += increment)
-        masm.as_sd(FloatRegister::FromCode(i), StackPointer,
+    for (uint32_t i = 0; i < FloatRegisters::TotalDouble; i ++)
+        masm.as_sd(FloatRegister::FromIndex(i, FloatRegister::Double), StackPointer,
                    InvalidationBailoutStack::offsetOfFpRegs() + i * sizeof(double));
 
     
@@ -564,11 +562,8 @@ PushBailoutFrame(MacroAssembler &masm, uint32_t frameClass, Register spArg)
 
     
     
-    
-    
-    uint32_t increment = 2;
-    for (uint32_t i = 0; i < FloatRegisters::Total; i += increment)
-        masm.as_sd(FloatRegister::FromCode(i), StackPointer,
+    for (uint32_t i = 0; i < FloatRegisters::TotalDouble; i++)
+        masm.as_sd(FloatRegister::FromIndex(i, FloatRegister::Double), StackPointer,
                    BailoutStack::offsetOfFpRegs() + i * sizeof(double));
 
     
@@ -812,8 +807,8 @@ JitRuntime::generateVMWrapper(JSContext *cx, const VMFunction &f)
             break;
           case VMFunction::DoubleByRef:
             
-            masm.ma_ld(ScratchFloatReg, Address(argsBase, argDisp));
-            masm.as_sd(ScratchFloatReg, doubleArgs, doubleArgDisp);
+            masm.ma_ld(ScratchDoubleReg, Address(argsBase, argDisp));
+            masm.as_sd(ScratchDoubleReg, doubleArgs, doubleArgDisp);
             masm.passABIArg(MoveOperand(doubleArgs, doubleArgDisp, MoveOperand::EFFECTIVE_ADDRESS),
                             MoveOp::GENERAL);
             doubleArgDisp += sizeof(double);
@@ -873,7 +868,7 @@ JitRuntime::generateVMWrapper(JSContext *cx, const VMFunction &f)
 
       case Type_Double:
         if (cx->runtime()->jitSupportsFloatingPoint) {
-            masm.as_ld(ReturnFloatReg, StackPointer, 0);
+            masm.as_ld(ReturnDoubleReg, StackPointer, 0);
         } else {
             masm.assumeUnreachable("Unable to load into float reg, with no FP support.");
         }
