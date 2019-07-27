@@ -45,6 +45,7 @@ enum FrameType
     
     
     
+    JitFrame_Unwound_BaselineJS,
     JitFrame_Unwound_IonJS,
 
     
