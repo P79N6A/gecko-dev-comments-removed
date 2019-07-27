@@ -98,12 +98,22 @@ typedef uint8_t nsBidiLevel;
 
 
 
-#define NSBIDI_MAX_EXPLICIT_LEVEL 61
+#define NSBIDI_MAX_EXPLICIT_LEVEL 125
 
 
 
 
 #define NSBIDI_LEVEL_OVERRIDE 0x80
+
+
+
+
+
+
+
+
+
+#define NSBIDI_MAP_NOWHERE (-1)
 
 
 
@@ -172,6 +182,10 @@ typedef enum nsBidiDirection nsBidiDirection;
                                      GetMemory((void **)&mRunsMemory, &mRunsSize, \
                                      true, (length)*sizeof(Run))
 
+#define GETINITIALISOLATESMEMORY(length) \
+                                     GetMemory((void **)&mIsolatesMemory, &mIsolatesSize, \
+                                     true, (length)*sizeof(Isolate))
+
 
 
 
@@ -186,29 +200,26 @@ typedef uint8_t DirProp;
 #define DIRPROP_FLAG_MULTI_RUNS (1UL<<31)
 
 
-#define MASK_LTR (DIRPROP_FLAG(L)|DIRPROP_FLAG(EN)|DIRPROP_FLAG(AN)|DIRPROP_FLAG(LRE)|DIRPROP_FLAG(LRO))
-#define MASK_RTL (DIRPROP_FLAG(R)|DIRPROP_FLAG(AL)|DIRPROP_FLAG(RLE)|DIRPROP_FLAG(RLO))
+#define MASK_LTR (DIRPROP_FLAG(L)|DIRPROP_FLAG(EN)|DIRPROP_FLAG(AN)|DIRPROP_FLAG(LRE)|DIRPROP_FLAG(LRO)|DIRPROP_FLAG(LRI))
+#define MASK_RTL (DIRPROP_FLAG(R)|DIRPROP_FLAG(AL)|DIRPROP_FLAG(RLE)|DIRPROP_FLAG(RLO)|DIRPROP_FLAG(RLI))
+#define MASK_R_AL (DIRPROP_FLAG(R)|DIRPROP_FLAG(AL))
 
 
-#define MASK_LRX (DIRPROP_FLAG(LRE)|DIRPROP_FLAG(LRO))
-#define MASK_RLX (DIRPROP_FLAG(RLE)|DIRPROP_FLAG(RLO))
-#define MASK_OVERRIDE (DIRPROP_FLAG(LRO)|DIRPROP_FLAG(RLO))
+#define MASK_EXPLICIT (DIRPROP_FLAG(LRE)|DIRPROP_FLAG(LRO)|DIRPROP_FLAG(RLE)|DIRPROP_FLAG(RLO)|DIRPROP_FLAG(PDF))
 
-#define MASK_EXPLICIT (MASK_LRX|MASK_RLX|DIRPROP_FLAG(PDF))
+
+#define MASK_ISO (DIRPROP_FLAG(LRI)|DIRPROP_FLAG(RLI)|DIRPROP_FLAG(FSI)|DIRPROP_FLAG(PDI))
+
 #define MASK_BN_EXPLICIT (DIRPROP_FLAG(BN)|MASK_EXPLICIT)
 
 
 #define MASK_B_S (DIRPROP_FLAG(B)|DIRPROP_FLAG(S))
 
 
-#define MASK_WS (MASK_B_S|DIRPROP_FLAG(WS)|MASK_BN_EXPLICIT)
-#define MASK_N (DIRPROP_FLAG(O_N)|MASK_WS)
+#define MASK_WS (MASK_B_S|DIRPROP_FLAG(WS)|MASK_BN_EXPLICIT|MASK_ISO)
 
 
-#define MASK_ET_NSM_BN (DIRPROP_FLAG(ET)|DIRPROP_FLAG(NSM)|MASK_BN_EXPLICIT)
-
-
-#define MASK_POSSIBLE_N (DIRPROP_FLAG(CS)|DIRPROP_FLAG(ES)|DIRPROP_FLAG(ET)|MASK_N)
+#define MASK_POSSIBLE_N (DIRPROP_FLAG(O_N)|DIRPROP_FLAG(CS)|DIRPROP_FLAG(ES)|DIRPROP_FLAG(ET)|MASK_WS)
 
 
 
@@ -221,6 +232,24 @@ typedef uint8_t DirProp;
 #define GET_LR_FROM_LEVEL(level) ((DirProp)((level)&1))
 
 #define IS_DEFAULT_LEVEL(level) (((level)&0xfe)==0xfe)
+
+
+
+
+
+
+#define IGNORE_CC 0x40
+
+#define PURE_DIRPROP(prop) ((prop)&~IGNORE_CC)
+
+
+
+
+
+#define ISOLATE 0x0100
+
+
+#define SIMPLE_ISOLATES_SIZE 5
 
 
 
@@ -355,11 +384,17 @@ typedef uint8_t DirProp;
 #define UTF_BACK_N(s, start, i, n)                   UTF_BACK_N_SAFE(s, start, i, n)
 #define UTF_APPEND_CHAR(s, i, length, c)             UTF_APPEND_CHAR_SAFE(s, i, length, c)
 
+struct Isolate {
+  int32_t start1;
+  int16_t stateImp;
+  int16_t state;
+};
+
 
 
 typedef struct Run {
-  int32_t logicalStart,  
-  visualLimit;  
+  int32_t logicalStart;  
+  int32_t visualLimit;   
 } Run;
 
 
@@ -369,12 +404,30 @@ typedef struct Run {
 #define ADD_ODD_BIT_FROM_LEVEL(x, level)  ((x)|=((uint32_t)level<<31))
 #define REMOVE_ODD_BIT(x)          ((x)&=~INDEX_ODD_BIT)
 
-#define GET_INDEX(x)   (x&~INDEX_ODD_BIT)
-#define GET_ODD_BIT(x) ((uint32_t)x>>31)
-#define IS_ODD_RUN(x)  ((x&INDEX_ODD_BIT)!=0)
-#define IS_EVEN_RUN(x) ((x&INDEX_ODD_BIT)==0)
+#define GET_INDEX(x)   ((x)&~INDEX_ODD_BIT)
+#define GET_ODD_BIT(x) ((uint32_t)(x)>>31)
+#define IS_ODD_RUN(x)  (((x)&INDEX_ODD_BIT)!=0)
+#define IS_EVEN_RUN(x) (((x)&INDEX_ODD_BIT)==0)
 
 typedef uint32_t Flags;
+
+enum { DirProp_L=0, DirProp_R=1, DirProp_EN=2, DirProp_AN=3, DirProp_ON=4, DirProp_S=5, DirProp_B=6 }; 
+
+#define IMPTABLEVELS_COLUMNS (DirProp_B + 2)
+typedef const uint8_t ImpTab[][IMPTABLEVELS_COLUMNS];
+typedef const uint8_t (*PImpTab)[IMPTABLEVELS_COLUMNS];
+
+typedef const uint8_t ImpAct[];
+typedef const uint8_t *PImpAct;
+
+struct LevState {
+    PImpTab pImpTab;                    
+    PImpAct pImpAct;                    
+    int32_t startON;                    
+    int32_t state;                      
+    int32_t runStart;                   
+    nsBidiLevel runLevel;               
+};
 
 
 
@@ -394,7 +447,7 @@ typedef uint32_t Flags;
 
 class nsBidi
 {
-public: 
+public:
   
 
 
@@ -529,7 +582,7 @@ public:
 
 
 
-  nsresult SetLine(nsIBidi* aParaBidi, int32_t aStart, int32_t aLimit);  
+  nsresult SetLine(const nsBidi* aParaBidi, int32_t aStart, int32_t aLimit);
 
   
 
@@ -822,16 +875,18 @@ protected:
 
   
   size_t mDirPropsSize, mLevelsSize, mRunsSize;
+  size_t mIsolatesSize;
 
   
   DirProp* mDirPropsMemory;
   nsBidiLevel* mLevelsMemory;
   Run* mRunsMemory;
+  Isolate* mIsolatesMemory;
 
   
   bool mMayAllocateText, mMayAllocateRuns;
 
-  const DirProp* mDirProps;
+  DirProp* mDirProps;
   nsBidiLevel* mLevels;
 
   
@@ -854,6 +909,17 @@ protected:
   
   Run mSimpleRuns[1];
 
+  
+  
+
+
+
+  int32_t mIsolateCount;
+  Isolate* mIsolates;
+
+  
+  Isolate mSimpleIsolates[SIMPLE_ISOLATES_SIZE];
+
 private:
 
   void Init();
@@ -864,11 +930,13 @@ private:
 
   void GetDirProps(const char16_t *aText);
 
-  nsBidiDirection ResolveExplicitLevels();
+  void ResolveExplicitLevels(nsBidiDirection *aDirection);
 
   nsresult CheckExplicitLevels(nsBidiDirection *aDirection);
 
   nsBidiDirection DirectionFromFlags(Flags aFlags);
+
+  void ProcessPropertySeq(LevState *pLevState, uint8_t _prop, int32_t start, int32_t limit);
 
   void ResolveImplicitLevels(int32_t aStart, int32_t aLimit, DirProp aSOR, DirProp aEOR);
 
