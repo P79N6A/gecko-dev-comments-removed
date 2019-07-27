@@ -278,7 +278,7 @@ public:
   
   
   
-  void BeginProcessingRestyles();
+  void BeginProcessingRestyles(RestyleTracker& aRestyleTracker);
   void EndProcessingRestyles();
 
   
