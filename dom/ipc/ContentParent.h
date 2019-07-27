@@ -413,6 +413,11 @@ private:
     
     
     
+    void ForwardKnownInfo();
+
+    
+    
+    
     
     void MaybeTakeCPUWakeLock(Element* aFrameElement);
 
@@ -811,6 +816,10 @@ private:
     
     
     bool mIsAlive;
+
+    
+    
+    bool mMetamorphosed;
 
     bool mSendPermissionUpdates;
     bool mSendDataStoreInfos;
