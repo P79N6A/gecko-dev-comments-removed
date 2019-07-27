@@ -1699,7 +1699,7 @@ let SessionStoreInternal = {
     }
 
     
-    let closedTab = closedTabs.splice(aIndex, 1).shift();
+    let [closedTab] = closedTabs.splice(aIndex, 1);
     let closedTabState = closedTab.state;
 
     
