@@ -32,6 +32,11 @@
 
 
 
+
+
+
+
+
 "use strict";
 
 this.EXPORTED_SYMBOLS = [
@@ -42,6 +47,7 @@ this.EXPORTED_SYMBOLS = [
   "DownloadSaver",
   "DownloadCopySaver",
   "DownloadLegacySaver",
+  "DownloadPDFSaver",
 ];
 
 
@@ -68,6 +74,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "Services",
                                   "resource://gre/modules/Services.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
                                   "resource://gre/modules/Task.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
+                                  "resource://gre/modules/PrivateBrowsingUtils.jsm");
 
 XPCOMUtils.defineLazyServiceGetter(this, "gDownloadHistory",
            "@mozilla.org/browser/download-history;1",
@@ -78,6 +86,9 @@ XPCOMUtils.defineLazyServiceGetter(this, "gExternalAppLauncher",
 XPCOMUtils.defineLazyServiceGetter(this, "gExternalHelperAppService",
            "@mozilla.org/uriloader/external-helper-app-service;1",
            Ci.nsIExternalHelperAppService);
+XPCOMUtils.defineLazyServiceGetter(this, "gPrintSettingsService",
+           "@mozilla.org/gfx/printsettings-service;1",
+           Ci.nsIPrintSettingsService);
 
 const BackgroundFileSaverStreamListener = Components.Constructor(
       "@mozilla.org/network/background-file-saver;1?mode=streamlistener",
@@ -544,7 +555,7 @@ this.Download.prototype = {
 
 
 
-  launch: function() {
+  launch: function () {
     if (!this.succeeded) {
       return Promise.reject(
         new Error("launch can only be called if the download succeeded")
@@ -911,11 +922,16 @@ this.Download.prototype = {
       target: this.target.toSerializable(),
     };
 
-    
-    
-    
-    
     let saver = this.saver.toSerializable();
+    if (!saver) {
+      
+      return null;
+    }
+
+    
+    
+    
+    
     if (saver !== "copy") {
       serializable.saver = saver;
     }
@@ -1126,6 +1142,10 @@ this.DownloadSource.fromSerializable = function (aSerializable) {
     source.url = aSerializable.toString();
   } else if (aSerializable instanceof Ci.nsIURI) {
     source.url = aSerializable.spec;
+  } else if (aSerializable instanceof Ci.nsIDOMWindow) {
+    source.url = aSerializable.location.href;
+    source.isPrivate = PrivateBrowsingUtils.isContentWindowPrivate(aSerializable);
+    source.windowRef = Cu.getWeakReference(aSerializable);
   } else {
     
     source.url = aSerializable.url.toString();
@@ -1525,6 +1545,9 @@ this.DownloadSaver.fromSerializable = function (aSerializable) {
       break;
     case "legacy":
       saver = DownloadLegacySaver.fromSerializable(serializable);
+      break;
+    case "pdf":
+      saver = DownloadPDFSaver.fromSerializable(serializable);
       break;
     default:
       throw new Error("Unrecoginzed download saver type.");
@@ -1949,7 +1972,7 @@ this.DownloadCopySaver.fromSerializable = function (aSerializable) {
 
 
 
-this.DownloadLegacySaver = function()
+this.DownloadLegacySaver = function ()
 {
   this.deferExecuted = Promise.defer();
   this.deferCanceled = Promise.defer();
@@ -2302,3 +2325,159 @@ this.DownloadLegacySaver.prototype = {
 this.DownloadLegacySaver.fromSerializable = function () {
   return new DownloadLegacySaver();
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+this.DownloadPDFSaver = function () {
+}
+
+this.DownloadPDFSaver.prototype = {
+  __proto__: DownloadSaver.prototype,
+
+  
+
+
+
+
+  _webBrowserPrint: null,
+
+  
+
+
+  execute: function (aSetProgressBytesFn, aSetPropertiesFn)
+  {
+    return Task.spawn(function task_DCS_execute() {
+      if (!this.download.source.windowRef) {
+        throw new DownloadError({
+          message: "PDF saver must be passed an open window, and cannot be restarted.",
+          becauseSourceFailed: true,
+        });
+      }
+
+      let win = this.download.source.windowRef.get();
+
+      
+      this.download.source.windowRef = null;
+
+      if (!win) {
+        throw new DownloadError({
+          message: "PDF saver can't save a window that has been closed.",
+          becauseSourceFailed: true,
+        });
+      }
+
+      this.addToHistory();
+
+      let targetPath = this.download.target.path;
+
+      
+      let file = yield OS.File.open(targetPath, { truncate: true });
+      yield file.close();
+
+      let printSettings = gPrintSettingsService.newPrintSettings;
+
+      printSettings.printToFile = true;
+      printSettings.outputFormat = Ci.nsIPrintSettings.kOutputFormatPDF;
+      printSettings.toFileName = targetPath;
+
+      printSettings.printSilent = true;
+      printSettings.showPrintProgress = false;
+
+      printSettings.printBGImages = true;
+      printSettings.printBGColors = true;
+      printSettings.printFrameType = Ci.nsIPrintSettings.kFramesAsIs;
+      printSettings.headerStrCenter = "";
+      printSettings.headerStrLeft = "";
+      printSettings.headerStrRight = "";
+      printSettings.footerStrCenter = "";
+      printSettings.footerStrLeft = "";
+      printSettings.footerStrRight = "";
+
+      this._webBrowserPrint = win.QueryInterface(Ci.nsIInterfaceRequestor)
+                                 .getInterface(Ci.nsIWebBrowserPrint);
+
+      try {
+        yield new Promise((resolve, reject) => {
+          this._webBrowserPrint.print(printSettings, {
+            onStateChange: function (webProgress, request, stateFlags, status) {
+              if (stateFlags & Ci.nsIWebProgressListener.STATE_STOP) {
+                if (!Components.isSuccessCode(status)) {
+                  reject(new DownloadError({ result: status,
+                                             inferCause: true }));
+                } else {
+                  resolve();
+                }
+              }
+            },
+            onProgressChange: function (webProgress, request, curSelfProgress,
+                                        maxSelfProgress, curTotalProgress,
+                                        maxTotalProgress) {
+              aSetProgressBytesFn(curTotalProgress, maxTotalProgress, false);
+            },
+            onLocationChange: function () {},
+            onStatusChange: function () {},
+            onSecurityChange: function () {},
+          });
+        });
+      } finally {
+        
+        this._webBrowserPrint = null;
+      }
+
+      let fileInfo = yield OS.File.stat(targetPath);
+      aSetProgressBytesFn(fileInfo.size, fileInfo.size, false);
+    }.bind(this));
+  },
+
+  
+
+
+  cancel: function DCS_cancel()
+  {
+    if (this._webBrowserPrint) {
+      this._webBrowserPrint.cancel();
+      this._webBrowserPrint = null;
+    }
+  },
+
+  
+
+
+  toSerializable: function ()
+  {
+    if (this.download.succeeded) {
+      return DownloadCopySaver.prototype.toSerializable.call(this);
+    }
+
+    
+    
+    
+    return null;
+  },
+};
+
+
+
+
+
+
+
+
+
+
+this.DownloadPDFSaver.fromSerializable = function (aSerializable) {
+  return new DownloadPDFSaver();
+};
+

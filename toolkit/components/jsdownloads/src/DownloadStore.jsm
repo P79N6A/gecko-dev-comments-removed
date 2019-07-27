@@ -164,7 +164,13 @@ this.DownloadStore.prototype = {
           if (!this.onsaveitem(download)) {
             continue;
           }
-          storeData.list.push(download.toSerializable());
+
+          let serializable = download.toSerializable();
+          if (!serializable) {
+            
+            continue;
+          }
+          storeData.list.push(serializable);
           atLeastOneDownload = true;
         } catch (ex) {
           
