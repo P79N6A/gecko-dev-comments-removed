@@ -1,7 +1,10 @@
 function test() {
   var searchBar = BrowserSearch.searchBar;
   ok(searchBar, "got search bar");
-  
+
+  if (searchBar.getAttribute("oneoffui"))
+    return; 
+
   searchBar.focus();
 
   var pbo = searchBar._popup.popupBoxObject;

@@ -50,9 +50,11 @@ this.SearchSuggestionController.prototype = {
 
 
 
-  maxLocalResults: 7,
+  maxLocalResults: 5,
 
   
+
+
 
 
   maxRemoteResults: 10,
@@ -353,7 +355,8 @@ this.SearchSuggestionController.prototype = {
     }
 
     
-    results.remote = results.remote.slice(0, this.maxRemoteResults);
+    results.remote =
+      results.remote.slice(0, this.maxRemoteResults - results.local.length);
 
     if (this._callback) {
       this._callback(results);

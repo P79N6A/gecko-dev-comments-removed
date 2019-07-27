@@ -422,6 +422,8 @@ pref("browser.search.update.interval", 21600);
 
 pref("browser.search.suggest.enabled", true);
 
+pref("browser.search.showOneOffButtons", false);
+
 #ifdef MOZ_OFFICIAL_BRANDING
 
 pref("browser.search.official", true);
@@ -1742,11 +1744,7 @@ pref("ui.key.menuAccessKeyFocuses", true);
 #endif
 
 
-#ifdef RELEASE_BUILD
 pref("media.eme.enabled", false);
-#else
-pref("media.eme.enabled", true);
-#endif
 
 
 

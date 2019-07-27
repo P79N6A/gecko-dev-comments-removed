@@ -74,6 +74,12 @@ SuggestAutoComplete.prototype = {
     }
 
     
+    if (!finalResults.length) {
+      finalResults.push(results.term);
+      finalComments.push("");
+    }
+
+    
     this.onResultsReady(results.term, finalResults, finalComments, results.formHistoryResult);
   },
 

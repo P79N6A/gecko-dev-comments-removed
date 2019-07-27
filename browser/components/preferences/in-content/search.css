@@ -1,0 +1,15 @@
+
+
+
+
+#oneClickProvidersList richlistitem {
+  -moz-binding: url("chrome://global/content/bindings/checkbox.xml#checkbox");
+}
+
+.checkbox-label-box {
+  -moz-box-align: center;
+}
+
+.checkbox-icon {
+  -moz-margin-end: 8px;
+}
