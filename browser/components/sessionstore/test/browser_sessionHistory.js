@@ -34,36 +34,6 @@ add_task(function test_load_start() {
 
 
 
-add_task(function test_purge() {
-  
-  let tab = gBrowser.addTab("about:mozilla");
-  let browser = tab.linkedBrowser;
-  yield promiseBrowserLoaded(browser);
-
-  
-  browser.loadURI("about:robots");
-  yield promiseBrowserLoaded(browser);
-
-  
-  yield TabStateFlusher.flush(browser);
-  let {entries} = JSON.parse(ss.getTabState(tab));
-  is(entries.length, 2, "there are two shistory entries");
-
-  
-  yield sendMessage(browser, "ss-test:purgeSessionHistory");
-
-  
-  yield TabStateFlusher.flush(browser);
-  ({entries} = JSON.parse(ss.getTabState(tab)));
-  is(entries.length, 1, "there is one shistory entry");
-
-  
-  gBrowser.removeTab(tab);
-});
-
-
-
-
 add_task(function test_hashchange() {
   const URL = "data:text/html;charset=utf-8,<a id=a href=%23>clickme</a>";
 
