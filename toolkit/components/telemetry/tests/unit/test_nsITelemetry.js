@@ -607,19 +607,21 @@ function test_datasets()
 
 function test_subsession() {
   const ID = "TELEMETRY_TEST_COUNT";
+  const FLAG = "TELEMETRY_TEST_FLAG";
   let h = Telemetry.getHistogramById(ID);
+  let flag = Telemetry.getHistogramById(FLAG);
 
   
   h.clear();
   let snapshot = Telemetry.histogramSnapshots;
-  let subsession = Telemetry.subsessionHistogramSnapshots;
+  let subsession = Telemetry.snapshotSubsessionHistograms();
   Assert.ok(!(ID in snapshot));
   Assert.ok(!(ID in subsession));
 
   
   h.add(1);
   snapshot = Telemetry.histogramSnapshots;
-  subsession = Telemetry.subsessionHistogramSnapshots;
+  subsession = Telemetry.snapshotSubsessionHistograms();
   Assert.ok(ID in snapshot);
   Assert.ok(ID in subsession);
   Assert.equal(snapshot[ID].sum, 1);
@@ -628,21 +630,21 @@ function test_subsession() {
   
   h.clear();
   snapshot = Telemetry.histogramSnapshots;
-  subsession = Telemetry.subsessionHistogramSnapshots;
+  subsession = Telemetry.snapshotSubsessionHistograms();
   Assert.ok(!(ID in snapshot));
   Assert.ok(!(ID in subsession));
 
   
   h.add(1);
   snapshot = Telemetry.histogramSnapshots;
-  subsession = Telemetry.subsessionHistogramSnapshots;
+  subsession = Telemetry.snapshotSubsessionHistograms();
   Assert.equal(snapshot[ID].sum, 1);
   Assert.equal(subsession[ID].sum, 1);
 
   
   h.clear(true);
   snapshot = Telemetry.histogramSnapshots;
-  subsession = Telemetry.subsessionHistogramSnapshots;
+  subsession = Telemetry.snapshotSubsessionHistograms();
   Assert.ok(ID in snapshot);
   Assert.ok(ID in subsession);
   Assert.equal(snapshot[ID].sum, 1);
@@ -651,9 +653,39 @@ function test_subsession() {
   
   h.add(1);
   snapshot = Telemetry.histogramSnapshots;
-  subsession = Telemetry.subsessionHistogramSnapshots;
+  subsession = Telemetry.snapshotSubsessionHistograms();
   Assert.equal(snapshot[ID].sum, 2);
   Assert.equal(subsession[ID].sum, 1);
+
+  
+  
+  h.clear();
+  flag.clear();
+  h.add(1);
+  flag.add(1);
+  snapshot = Telemetry.histogramSnapshots;
+  subsession = Telemetry.snapshotSubsessionHistograms(true);
+  Assert.ok(ID in snapshot);
+  Assert.ok(ID in subsession);
+  Assert.ok(FLAG in snapshot);
+  Assert.ok(FLAG in subsession);
+  Assert.equal(snapshot[ID].sum, 1);
+  Assert.equal(subsession[ID].sum, 1);
+  Assert.equal(snapshot[FLAG].sum, 1);
+  Assert.equal(subsession[FLAG].sum, 1);
+
+  
+  
+  snapshot = Telemetry.histogramSnapshots;
+  subsession = Telemetry.snapshotSubsessionHistograms();
+  Assert.ok(ID in snapshot);
+  Assert.ok(ID in subsession);
+  Assert.ok(FLAG in snapshot);
+  Assert.ok(FLAG in subsession);
+  Assert.equal(snapshot[ID].sum, 1);
+  Assert.equal(subsession[ID].sum, 0);
+  Assert.equal(snapshot[FLAG].sum, 1);
+  Assert.equal(subsession[FLAG].sum, 0);
 }
 
 function test_keyed_subsession() {
