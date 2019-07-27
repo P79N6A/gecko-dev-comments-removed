@@ -129,13 +129,13 @@ private:
                                      void *arg);
 
   PLHashTable *mNodeInfoHash;
-  nsIDocument *mDocument; 
+  nsIDocument * MOZ_NON_OWNING_REF mDocument; 
   uint32_t mNonDocumentNodeInfos;
   nsCOMPtr<nsIPrincipal> mPrincipal; 
   nsCOMPtr<nsIPrincipal> mDefaultPrincipal; 
-  mozilla::dom::NodeInfo *mTextNodeInfo; 
-  mozilla::dom::NodeInfo *mCommentNodeInfo; 
-  mozilla::dom::NodeInfo *mDocumentNodeInfo; 
+  mozilla::dom::NodeInfo * MOZ_NON_OWNING_REF mTextNodeInfo; 
+  mozilla::dom::NodeInfo * MOZ_NON_OWNING_REF mCommentNodeInfo; 
+  mozilla::dom::NodeInfo * MOZ_NON_OWNING_REF mDocumentNodeInfo; 
   nsRefPtr<nsBindingManager> mBindingManager;
 };
 
