@@ -128,28 +128,8 @@ function prompt(aContentWindow, aCallID, aAudioRequested, aVideoRequested, aDevi
   let chromeDoc = browser.ownerDocument;
   let chromeWin = chromeDoc.defaultView;
   let stringBundle = chromeWin.gNavigatorBundle;
-#ifdef MOZ_LOOP
-  let host;
-  
-  
-  
-  if (uri.spec.startsWith("about:loop")) {
-    let brandBundle = Services.strings.createBundle("chrome://branding/locale/brand.properties");
-
-    host = brandBundle.GetStringFromName("brandShortName");
-  }
-  else {
-    
-    
-    host = uri.host;
-  }
-
-  let message = stringBundle.getFormattedString("getUserMedia.share" + requestType + ".message",
-                                                [ host ]);
-#else
   let message = stringBundle.getFormattedString("getUserMedia.share" + requestType + ".message",
                                                 [ uri.host ]);
-#endif
 
   let mainAction = {
     label: PluralForm.get(requestType == "CameraAndMicrophone" ? 2 : 1,
