@@ -219,6 +219,24 @@ CrossOriginXrayWrapper::getPrototypeOf(JSContext *cx, JS::HandleObject wrapper,
     return true;
 }
 
+bool
+CrossOriginXrayWrapper::getOwnPropertyNames(JSContext *cx, JS::Handle<JSObject*> wrapper,
+                                            JS::AutoIdVector &props) const
+{
+    
+    
+    
+    return SecurityXrayDOM::enumerate(cx, wrapper, JSITER_HIDDEN, props);
+}
+
+bool
+CrossOriginXrayWrapper::enumerate(JSContext *cx, JS::Handle<JSObject*> wrapper,
+                                  JS::AutoIdVector &props) const
+{
+    
+    return true;
+}
+
 #define XOW FilteringWrapper<CrossOriginXrayWrapper, CrossOriginAccessiblePropertiesOnly>
 #define NNXOW FilteringWrapper<CrossCompartmentSecurityWrapper, Opaque>
 #define NNXOWC FilteringWrapper<CrossCompartmentSecurityWrapper, OpaqueWithCall>
