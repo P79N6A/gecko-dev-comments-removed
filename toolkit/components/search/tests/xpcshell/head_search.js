@@ -306,6 +306,30 @@ let addTestEngines = Task.async(function* (aItems) {
 
 
 
+function installTestEngine() {
+  removeMetadata();
+  removeCacheFile();
+
+  do_check_false(Services.search.isInitialized);
+
+  let engineDummyFile = gProfD.clone();
+  engineDummyFile.append("searchplugins");
+  engineDummyFile.append("test-search-engine.xml");
+  let engineDir = engineDummyFile.parent;
+  engineDir.create(Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
+
+  do_get_file("data/engine.xml").copyTo(engineDir, "engine.xml");
+
+  do_register_cleanup(function() {
+    removeMetadata();
+    removeCacheFile();
+  });
+}
+
+
+
+
+
 
 
 

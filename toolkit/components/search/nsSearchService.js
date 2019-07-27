@@ -424,19 +424,69 @@ function geoSpecificDefaultsEnabled() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+function migrateRegionPrefs() {
+  
+  if (Services.prefs.prefHasUserValue("browser.search.region")) {
+    return;
+  }
+
+  
+  
+  
+  
+  
+  try {
+    if (Services.prefs.getBoolPref("browser.search.isUS") &&
+        !Services.prefs.prefHasUserValue("browser.search.countryCode")) {
+      Services.prefs.setCharPref("browser.search.region", "US");
+    }
+  } catch (ex) {
+    
+  }
+  
+  
+  try {
+    let countryCode = Services.prefs.getCharPref("browser.search.countryCode");
+    if (!Services.prefs.prefHasUserValue("browser.search.region")) {
+      Services.prefs.setCharPref("browser.search.region", countryCode);
+    }
+  } catch (ex) {
+    
+  }
+}
+
+
+
+
+
 function getIsUS() {
   
-  let cachePref = "browser.search.isUS";
-  try {
-    return Services.prefs.getBoolPref(cachePref);
-  } catch(e) {}
-
+  
   if (getLocale() != "en-US") {
-    Services.prefs.setBoolPref(cachePref, false);
     return false;
   }
+
+  
+  try {
+    return Services.prefs.getCharPref("browser.search.region") == "US";
+  } catch(e) {}
+
+  
   let isNA = isUSTimezone();
-  Services.prefs.setBoolPref(cachePref, isNA);
+  LOG("getIsUS() fell back to a timezone check with the result=" + isNA);
   return isNA;
 }
 
@@ -448,6 +498,7 @@ function getGeoSpecificPrefName(basepref) {
     return basepref + ".US";
   return basepref;
 }
+
 
 function isUSTimezone() {
   
@@ -492,10 +543,8 @@ function storeCountryCode(cc) {
   
   Services.prefs.setCharPref("browser.search.countryCode", cc);
   
-  
-  
-  if (getLocale() == "en-US") {
-    Services.prefs.setBoolPref("browser.search.isUS", (cc == "US"));
+  if (!Services.prefs.prefHasUserValue("browser.search.region")) {
+    Services.prefs.setCharPref("browser.search.region", cc);
   }
   
   let isTimezoneUS = isUSTimezone();
@@ -520,6 +569,7 @@ function fetchCountryCode() {
     
   };
   let endpoint = Services.urlFormatter.formatURLPref("browser.search.geoip.url");
+  LOG("_fetchCountryCode starting with endpoint " + endpoint);
   
   if (!endpoint) {
     return Promise.resolve();
@@ -3129,6 +3179,7 @@ SearchService.prototype = {
   _syncInit: function SRCH_SVC__syncInit() {
     LOG("_syncInit start");
     this._initStarted = true;
+    migrateRegionPrefs();
     try {
       this._syncLoadEngines();
     } catch (ex) {
@@ -3154,6 +3205,7 @@ SearchService.prototype = {
 
 
   _asyncInit: function SRCH_SVC__asyncInit() {
+    migrateRegionPrefs();
     return Task.spawn(function() {
       LOG("_asyncInit start");
       try {
