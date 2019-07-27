@@ -282,14 +282,6 @@ js::GetOwnPropertyDescriptor(JSContext *cx, HandleObject obj, HandleId id,
 }
 
 bool
-js::GetOwnPropertyDescriptor(JSContext *cx, HandleObject obj, HandleId id, MutableHandleValue vp)
-{
-    Rooted<PropertyDescriptor> desc(cx);
-    return GetOwnPropertyDescriptor(cx, obj, id, &desc) &&
-           NewPropertyDescriptorObject(cx, desc, vp);
-}
-
-bool
 js::GetFirstArgumentAsObject(JSContext *cx, const CallArgs &args, const char *method,
                              MutableHandleObject objp)
 {
@@ -315,7 +307,8 @@ js::GetFirstArgumentAsObject(JSContext *cx, const CallArgs &args, const char *me
 }
 
 static bool
-HasProperty(JSContext *cx, HandleObject obj, HandleId id, MutableHandleValue vp, bool *foundp)
+GetPropertyIfPresent(JSContext *cx, HandleObject obj, HandleId id, MutableHandleValue vp,
+                     bool *foundp)
 {
     if (!JSObject::hasProperty(cx, obj, id, foundp))
         return false;
@@ -324,13 +317,7 @@ HasProperty(JSContext *cx, HandleObject obj, HandleId id, MutableHandleValue vp,
         return true;
     }
 
-    
-
-
-
-
-
-    return !!JSObject::getGeneric(cx, obj, obj, id, vp);
+    return JSObject::getGeneric(cx, obj, obj, id, vp);
 }
 
 bool
@@ -360,7 +347,7 @@ PropDesc::initialize(JSContext *cx, const Value &origval, bool checkAccessors)
 
     
     id = NameToId(cx->names().enumerable);
-    if (!HasProperty(cx, desc, id, &v, &found))
+    if (!GetPropertyIfPresent(cx, desc, id, &v, &found))
         return false;
     if (found) {
         hasEnumerable_ = true;
@@ -370,7 +357,7 @@ PropDesc::initialize(JSContext *cx, const Value &origval, bool checkAccessors)
 
     
     id = NameToId(cx->names().configurable);
-    if (!HasProperty(cx, desc, id, &v, &found))
+    if (!GetPropertyIfPresent(cx, desc, id, &v, &found))
         return false;
     if (found) {
         hasConfigurable_ = true;
@@ -380,7 +367,7 @@ PropDesc::initialize(JSContext *cx, const Value &origval, bool checkAccessors)
 
     
     id = NameToId(cx->names().value);
-    if (!HasProperty(cx, desc, id, &v, &found))
+    if (!GetPropertyIfPresent(cx, desc, id, &v, &found))
         return false;
     if (found) {
         hasValue_ = true;
@@ -389,7 +376,7 @@ PropDesc::initialize(JSContext *cx, const Value &origval, bool checkAccessors)
 
     
     id = NameToId(cx->names().writable);
-    if (!HasProperty(cx, desc, id, &v, &found))
+    if (!GetPropertyIfPresent(cx, desc, id, &v, &found))
         return false;
     if (found) {
         hasWritable_ = true;
@@ -399,7 +386,7 @@ PropDesc::initialize(JSContext *cx, const Value &origval, bool checkAccessors)
 
     
     id = NameToId(cx->names().get);
-    if (!HasProperty(cx, desc, id, &v, &found))
+    if (!GetPropertyIfPresent(cx, desc, id, &v, &found))
         return false;
     if (found) {
         hasGet_ = true;
@@ -412,7 +399,7 @@ PropDesc::initialize(JSContext *cx, const Value &origval, bool checkAccessors)
 
     
     id = NameToId(cx->names().set);
-    if (!HasProperty(cx, desc, id, &v, &found))
+    if (!GetPropertyIfPresent(cx, desc, id, &v, &found))
         return false;
     if (found) {
         hasSet_ = true;

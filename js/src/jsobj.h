@@ -934,6 +934,17 @@ PreventExtensions(JSContext *cx, HandleObject obj, bool *succeeded);
 
 
 
+extern bool
+GetOwnPropertyDescriptor(JSContext *cx, HandleObject obj, HandleId id,
+                         MutableHandle<PropertyDescriptor> desc);
+
+
+
+
+
+
+
+
 
 
 extern bool
@@ -1138,6 +1149,15 @@ namespace js {
 bool
 LookupPropertyPure(ExclusiveContext *cx, JSObject *obj, jsid id, NativeObject **objp,
                    Shape **propp);
+
+bool
+GetPropertyPure(ExclusiveContext *cx, JSObject *obj, jsid id, Value *vp);
+
+inline bool
+GetPropertyPure(ExclusiveContext *cx, JSObject *obj, PropertyName *name, Value *vp)
+{
+    return GetPropertyPure(cx, obj, NameToId(name), vp);
+}
 
 bool
 GetOwnPropertyDescriptor(JSContext *cx, HandleObject obj, HandleId id,

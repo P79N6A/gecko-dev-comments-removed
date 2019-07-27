@@ -704,7 +704,9 @@ js::obj_getOwnPropertyDescriptor(JSContext *cx, unsigned argc, Value *vp)
         return false;
 
     
-    return GetOwnPropertyDescriptor(cx, obj, id, args.rval());
+    Rooted<PropertyDescriptor> desc(cx);
+    return GetOwnPropertyDescriptor(cx, obj, id, &desc) &&
+           NewPropertyDescriptorObject(cx, desc, args.rval());
 }
 
 
