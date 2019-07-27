@@ -670,6 +670,10 @@ public:
 
   virtual float RequestProperty(const nsAString& property) { return -1; }
 
+  const TimeStamp& GetAnimationReadyTime() const {
+    return mAnimationReadyTime;
+  }
+
 protected:
   nsRefPtr<Layer> mRoot;
   gfx::UserData mUserData;
@@ -693,6 +697,9 @@ protected:
   static PRLogModuleInfo* sLog;
   uint64_t mId;
   bool mInTransaction;
+  
+  
+  TimeStamp mAnimationReadyTime;
 private:
   struct FramesTimingRecording
   {
