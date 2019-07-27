@@ -11,6 +11,7 @@
 #include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/dom/BluetoothGattBinding.h"
 #include "mozilla/dom/bluetooth/BluetoothCommon.h"
+#include "mozilla/dom/bluetooth/BluetoothGattService.h"
 #include "nsCOMPtr.h"
 
 namespace mozilla {
@@ -39,6 +40,11 @@ public:
   BluetoothConnectionState ConnectionState() const
   {
     return mConnectionState;
+  }
+
+  void GetServices(nsTArray<nsRefPtr<BluetoothGattService>>& aServices) const
+  {
+    aServices = mServices;
   }
 
   
@@ -91,6 +97,15 @@ private:
   
 
 
+
+
+
+
+  void HandleServicesDiscovered(const BluetoothValue& aValue);
+
+  
+
+
   
 
 
@@ -111,6 +126,11 @@ private:
 
 
   nsString mDeviceAddr;
+
+  
+
+
+  nsTArray<nsRefPtr<BluetoothGattService>> mServices;
 
   
 
