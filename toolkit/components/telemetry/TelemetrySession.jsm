@@ -1798,9 +1798,6 @@ let Impl = {
         
         Services.obs.notifyObservers(null, "gather-telemetry", null);
       }).bind(this), Ci.nsIThread.DISPATCH_NORMAL);
-      
-      
-      TelemetryController.sendPersistedPings();
       break;
 
 #ifdef MOZ_WIDGET_ANDROID

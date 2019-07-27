@@ -52,15 +52,6 @@ const TELEMETRY_DELAY = 60000;
 
 const TELEMETRY_TEST_DELAY = 100;
 
-const PING_SUBMIT_TIMEOUT_MS = 2 * 60 * 1000;
-
-
-const MIDNIGHT_TOLERANCE_FUZZ_MS = 5 * 60 * 1000;
-
-const MIDNIGHT_FUZZING_INTERVAL_MS = 60 * 60 * 1000;
-
-const MIDNIGHT_FUZZING_DELAY_MS = Math.random() * MIDNIGHT_FUZZING_INTERVAL_MS;
-
 
 const PING_TYPE_MAIN = "main";
 
@@ -89,6 +80,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "TelemetryArchive",
                                   "resource://gre/modules/TelemetryArchive.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "TelemetrySession",
                                   "resource://gre/modules/TelemetrySession.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "TelemetrySend",
+                                  "resource://gre/modules/TelemetrySend.jsm");
 
 
 
@@ -132,25 +125,8 @@ function generateUUID() {
 
 
 
-function isNewPingFormat(aPing) {
-  return ("id" in aPing) && ("application" in aPing) &&
-         ("version" in aPing) && (aPing.version >= 2);
-}
-
-function tomorrow(date) {
-  let d = new Date(date);
-  d.setDate(d.getDate() + 1);
-  return d;
-}
-
-
-
-
 let Policy = {
   now: () => new Date(),
-  midnightPingFuzzingDelay: () => MIDNIGHT_FUZZING_DELAY_MS,
-  setPingSendTimeout: (callback, delayMs) => setTimeout(callback, delayMs),
-  clearPingSendTimeout: (id) => clearTimeout(id),
 }
 
 this.EXPORTED_SYMBOLS = ["TelemetryController"];
@@ -188,13 +164,6 @@ this.TelemetryController = Object.freeze({
 
   observe: function (aSubject, aTopic, aData) {
     return Impl.observe(aSubject, aTopic, aData);
-  },
-
-  
-
-
-  setServer: function(aServer) {
-    return Impl.setServer(aServer);
   },
 
   
@@ -323,15 +292,6 @@ this.TelemetryController = Object.freeze({
 
 
 
-  sendPersistedPings: function() {
-    return Impl.sendPersistedPings();
-  },
-
-  
-
-
-
-
   get clientID() {
     return Impl.clientID;
   },
@@ -374,8 +334,6 @@ let Impl = {
   _delayedInitTask: null,
   
   _delayedInitTaskDeferred: null,
-  
-  _pingSendTimer: null,
 
   
   _sessionRecorder: null,
@@ -387,9 +345,6 @@ let Impl = {
   _connectionsBarrier: new AsyncShutdown.Barrier("TelemetryController: Waiting for pending ping activity"),
   
   _testMode: false,
-
-  
-  _pendingPingRequests: new Map(),
 
   get _log() {
     if (!this._logger) {
@@ -475,69 +430,12 @@ let Impl = {
     return pingData;
   },
 
-  popPayloads: function popPayloads() {
-    this._log.trace("popPayloads");
-    function payloadIter() {
-      let iterator = TelemetryStorage.popPendingPings();
-      for (let data of iterator) {
-        yield data;
-      }
-    }
-
-    let payloadIterWithThis = payloadIter.bind(this);
-    return { __iterator__: payloadIterWithThis };
-  },
-
-  
-
-
-  setServer: function (aServer) {
-    this._server = aServer;
-  },
-
   
 
 
 
   _trackPendingPingTask: function (aPromise) {
     this._connectionsBarrier.client.addBlocker("Waiting for ping task", aPromise);
-  },
-
-  
-
-
-
-
-
-
-
-  _getNextPingSendTime: function(now) {
-    
-    
-    
-    
-    
-    
-    
-    
-
-    const midnight = Utils.getNearestMidnight(now, MIDNIGHT_FUZZING_INTERVAL_MS);
-
-    
-    if (!midnight) {
-      return now.getTime();
-    }
-
-    
-    
-    
-    const midnightRangeStart = midnight.getTime() - MIDNIGHT_TOLERANCE_FUZZ_MS;
-    if (now.getTime() >= midnightRangeStart) {
-      
-      return midnight.getTime() + Policy.midnightPingFuzzingDelay();
-    }
-
-    return now.getTime();
   },
 
   
@@ -557,8 +455,7 @@ let Impl = {
 
 
   submitExternalPing: function send(aType, aPayload, aOptions) {
-    this._log.trace("submitExternalPing - type: " + aType + ", server: " + this._server +
-                    ", aOptions: " + JSON.stringify(aOptions));
+    this._log.trace("submitExternalPing - type: " + aType + ", aOptions: " + JSON.stringify(aOptions));
 
     
     const typeUuid = /^[a-z0-9][a-z0-9-]+[a-z0-9]$/i;
@@ -577,65 +474,11 @@ let Impl = {
       .catch(e => this._log.error("submitExternalPing - Failed to archive ping " + pingData.id, e));
     let p = [ archivePromise ];
 
-    
-    const now = Policy.now();
-    const nextPingSendTime = this._getNextPingSendTime(now);
-    const throttled = (nextPingSendTime > now.getTime());
-
-    
-    if (throttled) {
-      this._log.trace("submitExternalPing - throttled, delaying ping send to " + new Date(nextPingSendTime));
-      this._reschedulePingSendTimer(nextPingSendTime);
-    }
-
-    if (!this._initialized || throttled) {
-      
-      this._log.trace("submitExternalPing - ping is pending, initialized: " + this._initialized +
-                      ", throttled: " + throttled);
-      p.push(TelemetryStorage.addPendingPing(pingData));
-    } else {
-      
-      this._log.trace("submitExternalPing - already initialized, ping will be sent");
-      p.push(this.doPing(pingData, false)
-                 .catch(() => TelemetryStorage.savePing(pingData, true)));
-      p.push(this.sendPersistedPings());
-    }
+    p.push(TelemetrySend.submitPing(pingData));
 
     let promise = Promise.all(p);
     this._trackPendingPingTask(promise);
     return promise.then(() => pingData.id);
-  },
-
-  
-
-
-
-
-  sendPersistedPings: function sendPersistedPings() {
-    this._log.trace("sendPersistedPings - Can send: " + this._canSend());
-    if (!this._canSend()) {
-      this._log.trace("sendPersistedPings - Telemetry is not allowed to send pings.");
-      return Promise.resolve();
-    }
-
-    
-    const now = Policy.now();
-    const nextPingSendTime = this._getNextPingSendTime(now);
-    if (nextPingSendTime > now.getTime()) {
-      this._log.trace("sendPersistedPings - delaying ping send to " + new Date(nextPingSendTime));
-      this._reschedulePingSendTimer(nextPingSendTime);
-      return Promise.resolve();
-    }
-
-    
-    let pingsIterator = Iterator(this.popPayloads());
-    let p = [for (data of pingsIterator) this.doPing(data, true).catch((e) => {
-      this._log.error("sendPersistedPings - doPing rejected", e);
-    })];
-
-    let promise = Promise.all(p);
-    this._trackPendingPingTask(promise);
-    return promise;
   },
 
   
@@ -655,8 +498,7 @@ let Impl = {
 
 
   addPendingPing: function addPendingPing(aType, aPayload, aOptions) {
-    this._log.trace("addPendingPing - Type " + aType + ", Server " + this._server +
-                    ", aOptions " + JSON.stringify(aOptions));
+    this._log.trace("addPendingPing - Type " + aType + ", aOptions " + JSON.stringify(aOptions));
 
     let pingData = this.assemblePing(aType, aPayload, aOptions);
 
@@ -692,8 +534,8 @@ let Impl = {
 
 
   savePing: function savePing(aType, aPayload, aFilePath, aOptions) {
-    this._log.trace("savePing - Type " + aType + ", Server " + this._server +
-                    ", File Path " + aFilePath + ", aOptions " + JSON.stringify(aOptions));
+    this._log.trace("savePing - Type " + aType + ", File Path " + aFilePath +
+                    ", aOptions " + JSON.stringify(aOptions));
     let pingData = this.assemblePing(aType, aPayload, aOptions);
     return TelemetryStorage.savePingToFile(pingData, aFilePath, aOptions.overwrite)
                         .then(() => pingData.id);
@@ -738,182 +580,6 @@ let Impl = {
     return TelemetryStorage.removeAbortedSessionPing();
   },
 
-  onPingRequestFinished: function(success, startTime, ping, isPersisted) {
-    this._log.trace("onPingRequestFinished - success: " + success + ", persisted: " + isPersisted);
-
-    Telemetry.getHistogramById("TELEMETRY_SEND").add(new Date() - startTime);
-    let hping = Telemetry.getHistogramById("TELEMETRY_PING");
-    let hsuccess = Telemetry.getHistogramById("TELEMETRY_SUCCESS");
-
-    hsuccess.add(success);
-    hping.add(new Date() - startTime);
-
-    if (success && isPersisted) {
-      return TelemetryStorage.cleanupPingFile(ping);
-    } else {
-      return Promise.resolve();
-    }
-  },
-
-  submissionPath: function submissionPath(ping) {
-    
-    let pathComponents;
-    if (isNewPingFormat(ping)) {
-      
-      
-      let app = ping.application;
-      pathComponents = [
-        ping.id, ping.type, app.name, app.version, app.channel, app.buildId
-      ];
-    } else {
-      
-      if (!("slug" in ping)) {
-        
-        ping.slug = generateUUID();
-      }
-
-      
-      let payload = ("payload" in ping) ? ping.payload : null;
-      if (payload && ("info" in payload)) {
-        let info = ping.payload.info;
-        pathComponents = [ ping.slug, info.reason, info.appName, info.appVersion,
-                           info.appUpdateChannel, info.appBuildID ];
-      } else {
-        
-        pathComponents = [ ping.slug ];
-      }
-    }
-
-    let slug = pathComponents.join("/");
-    return "/submit/telemetry/" + slug;
-  },
-
-  doPing: function doPing(ping, isPersisted) {
-    if (!this._canSend()) {
-      
-      this._log.trace("doPing - Sending is disabled.");
-      return Promise.resolve();
-    }
-
-    this._log.trace("doPing - Server " + this._server + ", Persisted " + isPersisted);
-    const isNewPing = isNewPingFormat(ping);
-    const version = isNewPing ? PING_FORMAT_VERSION : 1;
-    const url = this._server + this.submissionPath(ping) + "?v=" + version;
-
-    let request = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
-                  .createInstance(Ci.nsIXMLHttpRequest);
-    request.mozBackgroundRequest = true;
-    request.timeout = PING_SUBMIT_TIMEOUT_MS;
-
-    request.open("POST", url, true);
-    request.overrideMimeType("text/plain");
-    request.setRequestHeader("Content-Type", "application/json; charset=UTF-8");
-
-    this._pendingPingRequests.set(url, request);
-
-    let startTime = new Date();
-    let deferred = PromiseUtils.defer();
-
-    let onRequestFinished = (success, event) => {
-      let onCompletion = () => {
-        if (success) {
-          deferred.resolve();
-        } else {
-          deferred.reject(event);
-        }
-      };
-
-      this._pendingPingRequests.delete(url);
-      this.onPingRequestFinished(success, startTime, ping, isPersisted)
-        .then(() => onCompletion(),
-              (error) => {
-                this._log.error("doPing - request success: " + success + ", error" + error);
-                onCompletion();
-              });
-    };
-
-    let errorhandler = (event) => {
-      this._log.error("doPing - error making request to " + url + ": " + event.type);
-      onRequestFinished(false, event);
-    };
-    request.onerror = errorhandler;
-    request.ontimeout = errorhandler;
-    request.onabort = errorhandler;
-
-    request.onload = (event) => {
-      let status = request.status;
-      let statusClass = status - (status % 100);
-      let success = false;
-
-      if (statusClass === 200) {
-        
-        this._log.info("doPing - successfully loaded, status: " + status);
-        success = true;
-      } else if (statusClass === 400) {
-        
-        this._log.error("doPing - error submitting to " + url + ", status: " + status
-                        + " - ping request broken?");
-        
-        
-        success = true;
-      } else if (statusClass === 500) {
-        
-        this._log.error("doPing - error submitting to " + url + ", status: " + status
-                        + " - server error, should retry later");
-      } else {
-        
-        this._log.error("doPing - error submitting to " + url + ", status: " + status
-                        + ", type: " + event.type);
-      }
-
-      onRequestFinished(success, event);
-    };
-
-    
-    let networkPayload = isNewPing ? ping : ping.payload;
-    request.setRequestHeader("Content-Encoding", "gzip");
-    let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
-                    .createInstance(Ci.nsIScriptableUnicodeConverter);
-    converter.charset = "UTF-8";
-    startTime = new Date();
-    let utf8Payload = converter.ConvertFromUnicode(JSON.stringify(networkPayload));
-    utf8Payload += converter.Finish();
-    Telemetry.getHistogramById("TELEMETRY_STRINGIFY").add(new Date() - startTime);
-    let payloadStream = Cc["@mozilla.org/io/string-input-stream;1"]
-                        .createInstance(Ci.nsIStringInputStream);
-    startTime = new Date();
-    payloadStream.data = this.gzipCompressString(utf8Payload);
-    Telemetry.getHistogramById("TELEMETRY_COMPRESS").add(new Date() - startTime);
-    startTime = new Date();
-    request.send(payloadStream);
-
-    return deferred.promise;
-  },
-
-  gzipCompressString: function gzipCompressString(string) {
-    let observer = {
-      buffer: "",
-      onStreamComplete: function(loader, context, status, length, result) {
-        this.buffer = String.fromCharCode.apply(this, result);
-      }
-    };
-
-    let scs = Cc["@mozilla.org/streamConverters;1"]
-              .getService(Ci.nsIStreamConverterService);
-    let listener = Cc["@mozilla.org/network/stream-loader;1"]
-                  .createInstance(Ci.nsIStreamLoader);
-    listener.init(observer);
-    let converter = scs.asyncConvertData("uncompressed", "gzip",
-                                         listener, null);
-    let stringStream = Cc["@mozilla.org/io/string-input-stream;1"]
-                       .createInstance(Ci.nsIStringInputStream);
-    stringStream.data = string;
-    converter.onStartRequest(null, null);
-    converter.onDataAvailable(null, null, stringStream, 0, string.length);
-    converter.onStopRequest(null, null, null);
-    return observer.buffer;
-  },
-
   
 
 
@@ -935,7 +601,6 @@ let Impl = {
     }
 #endif
 
-    this._server = Preferences.get(PREF_SERVER, undefined);
     if (!enabled || !Telemetry.canRecordBase) {
       
       
@@ -947,6 +612,7 @@ let Impl = {
   },
 
   
+
 
 
 
@@ -998,21 +664,10 @@ let Impl = {
     this._delayedInitTaskDeferred = Promise.defer();
     this._delayedInitTask = new DeferredTask(function* () {
       try {
+        
         this._initialized = true;
 
-        
-        
-        yield this.sendPersistedPings();
-
-        
-        yield TelemetryStorage.loadSavedPings();
-        
-        
-        if (TelemetryStorage.pingsOverdue > 0) {
-          this._log.trace("setupChromeProcess - Sending " + TelemetryStorage.pingsOverdue +
-                          " overdue pings now.");
-          yield this.sendPersistedPings();
-        }
+        yield TelemetrySend.setup(this._testMode);
 
         
         this._clientID = yield ClientID.getClientID();
@@ -1048,23 +703,12 @@ let Impl = {
     Preferences.ignore(PREF_BRANCH_LOG, configureLogging);
 
     
-    for (let [url, request] of this._pendingPingRequests) {
-      this._log.trace("_cleanupOnShutdown - aborting ping request for " + url);
-      try {
-        request.abort();
-      } catch (e) {
-        this._log.error("_cleanupOnShutdown - failed to abort request to " + url, e);
-      }
-    }
-    this._pendingPingRequests.clear();
-
-    
     try {
       
       yield this._shutdownBarrier.wait();
 
       
-      this._clearPingSendTimer();
+      yield TelemetrySend.shutdown();
 
       
       yield this._connectionsBarrier.wait();
@@ -1139,29 +783,6 @@ let Impl = {
   
 
 
-
-
-
-
-  _canSend: function() {
-    
-    if (!Telemetry.isOfficialTelemetry && !this._testMode) {
-      return false;
-    }
-
-    
-    
-    if (IS_UNIFIED_TELEMETRY) {
-      return Preferences.get(PREF_FHR_UPLOAD_ENABLED, false);
-    }
-
-    
-    return Preferences.get(PREF_ENABLED, false);
-  },
-
-  
-
-
   _getState: function() {
     return {
       initialized: this._initialized,
@@ -1170,19 +791,6 @@ let Impl = {
       shutdownBarrier: this._shutdownBarrier.state,
       connectionsBarrier: this._connectionsBarrier.state,
     };
-  },
-
-  _reschedulePingSendTimer: function(timestamp) {
-    this._clearPingSendTimer();
-    const interval = timestamp - Policy.now();
-    this._pingSendTimer = Policy.setPingSendTimeout(() => this.sendPersistedPings(), interval);
-  },
-
-  _clearPingSendTimer: function() {
-    if (this._pingSendTimer) {
-      Policy.clearPingSendTimeout(this._pingSendTimer);
-      this._pingSendTimer = null;
-    }
   },
 
   
