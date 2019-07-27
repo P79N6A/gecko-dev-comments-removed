@@ -525,6 +525,12 @@ nsPageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     
     
     
+    nsDisplayListBuilder::AutoBuildingDisplayList
+      building(aBuilder, child, dirtyRect, true);
+
+    
+    
+    
     nsRect backgroundRect =
       nsRect(aBuilder->ToReferenceFrame(child), child->GetSize());
     PresContext()->GetPresShell()->AddCanvasBackgroundColorItem(
