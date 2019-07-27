@@ -16,13 +16,23 @@ public class FxAccountConstants {
   public static final String DEFAULT_AUTH_SERVER_ENDPOINT = "https://api.accounts.firefox.com/v1";
   public static final String DEFAULT_TOKEN_SERVER_ENDPOINT = "https://token.services.mozilla.com/1.0/sync/1.5";
   public static final String DEFAULT_OAUTH_SERVER_ENDPOINT = "https://oauth.accounts.firefox.com/v1";
+  public static final String DEFAULT_PROFILE_SERVER_ENDPOINT = "https://profile.accounts.firefox.com/v1";
 
   public static final String STAGE_AUTH_SERVER_ENDPOINT = "https://stable.dev.lcip.org/auth/v1";
   public static final String STAGE_TOKEN_SERVER_ENDPOINT = "https://stable.dev.lcip.org/syncserver/token/1.0/sync/1.5";
   public static final String STAGE_OAUTH_SERVER_ENDPOINT = "https://oauth-stable.dev.lcip.org/v1";
+  public static final String STAGE_PROFILE_SERVER_ENDPOINT = "https://latest.dev.lcip.org/profile/v1";
+
+  
+  public static final String ACCOUNT_PROFILE_AVATAR_UPDATED_ACTION = "org.mozilla.gecko.fxa.profile.cached";
 
   
   public static final int MINIMUM_AGE_TO_CREATE_AN_ACCOUNT = 13;
+
+  
+  public static final String KEY_PROFILE_JSON_AVATAR = "avatar";
+  
+  public static final String KEY_PROFILE_JSON_USERNAME = "username";
 
   
   public static final long MINIMUM_TIME_TO_WAIT_AFTER_AGE_CHECK_FAILED_IN_MILLISECONDS = 15 * 60 * 1000;
