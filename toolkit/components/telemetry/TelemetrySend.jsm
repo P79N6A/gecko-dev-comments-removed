@@ -525,8 +525,6 @@ let TelemetrySendImpl = {
   _sendingEnabled: false,
   _logger: null,
   
-  _pingSendTimer: null,
-  
   _pendingPingRequests: new Map(),
   
   _pendingPingActivity: new Set(),
