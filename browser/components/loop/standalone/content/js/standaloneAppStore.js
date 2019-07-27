@@ -98,6 +98,18 @@ loop.store.StandaloneAppStore = (function() {
     
 
 
+    _extractCryptoKey: function(windowHash) {
+      if (windowHash && windowHash[0] === "#") {
+        return windowHash.substring(1, windowHash.length);
+      }
+
+      return null;
+    },
+
+    
+
+
+
 
 
 
@@ -135,6 +147,7 @@ loop.store.StandaloneAppStore = (function() {
       
       if (token) {
         this._dispatcher.dispatch(new loop.shared.actions.FetchServerData({
+          cryptoKey: this._extractCryptoKey(actionData.windowHash),
           token: token,
           windowType: windowType
         }));

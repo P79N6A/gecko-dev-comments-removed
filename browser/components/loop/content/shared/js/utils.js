@@ -43,6 +43,17 @@ loop.shared.utils = (function(mozL10n) {
     UNKNOWN: "reason-unknown"
   };
 
+  var ROOM_INFO_FAILURES = {
+    
+    NO_DATA: "no_data",
+    
+    WEB_CRYPTO_UNSUPPORTED: "web_crypto_unsupported",
+    
+    NO_CRYPTO_KEY: "no_crypto_key",
+    
+    DECRYPT_FAILED: "decrypt_failed"
+  };
+
   var STREAM_PROPERTIES = {
     VIDEO_DIMENSIONS: "videoDimensions",
     HAS_AUDIO: "hasAudio",
@@ -397,6 +408,7 @@ loop.shared.utils = (function(mozL10n) {
     WEBSOCKET_REASONS: WEBSOCKET_REASONS,
     STREAM_PROPERTIES: STREAM_PROPERTIES,
     SCREEN_SHARE_STATES: SCREEN_SHARE_STATES,
+    ROOM_INFO_FAILURES: ROOM_INFO_FAILURES,
     composeCallUrlEmail: composeCallUrlEmail,
     formatDate: formatDate,
     getBoolPreference: getBoolPreference,

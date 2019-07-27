@@ -43,7 +43,8 @@ loop.shared.actions = (function() {
 
 
     ExtractTokenInfo: Action.define("extractTokenInfo", {
-      windowPath: String
+      windowPath: String,
+      windowHash: String
     }),
 
     
@@ -65,6 +66,7 @@ loop.shared.actions = (function() {
 
 
     FetchServerData: Action.define("fetchServerData", {
+      
       token: String,
       windowType: String
     }),
@@ -386,6 +388,7 @@ loop.shared.actions = (function() {
 
 
     UpdateRoomInfo: Action.define("updateRoomInfo", {
+      
       
       roomOwner: String,
       roomUrl: String
