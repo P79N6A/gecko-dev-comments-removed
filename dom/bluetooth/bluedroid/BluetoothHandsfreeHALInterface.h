@@ -23,7 +23,6 @@ public:
   friend class BluetoothHALInterface;
 
   void Init(BluetoothHandsfreeNotificationHandler* aNotificationHandler,
-            int aMaxNumClients,
             BluetoothHandsfreeResultHandler* aRes);
   void Cleanup(BluetoothHandsfreeResultHandler* aRes);
 
@@ -40,15 +39,12 @@ public:
 
   
 
-  void StartVoiceRecognition(const nsAString& aBdAddr,
-                             BluetoothHandsfreeResultHandler* aRes);
-  void StopVoiceRecognition(const nsAString& aBdAddr,
-                            BluetoothHandsfreeResultHandler* aRes);
+  void StartVoiceRecognition(BluetoothHandsfreeResultHandler* aRes);
+  void StopVoiceRecognition(BluetoothHandsfreeResultHandler* aRes);
 
   
 
   void VolumeControl(BluetoothHandsfreeVolumeType aType, int aVolume,
-                     const nsAString& aBdAddr,
                      BluetoothHandsfreeResultHandler* aRes);
 
   
@@ -60,16 +56,15 @@ public:
 
   
 
-  void CopsResponse(const char* aCops, const nsAString& aBdAddr,
+  void CopsResponse(const char* aCops,
                     BluetoothHandsfreeResultHandler* aRes);
   void CindResponse(int aSvc, int aNumActive, int aNumHeld,
                     BluetoothHandsfreeCallState aCallSetupState, int aSignal,
-                    int aRoam, int aBattChg, const nsAString& aBdAddr,
+                    int aRoam, int aBattChg,
                     BluetoothHandsfreeResultHandler* aRes);
-  void FormattedAtResponse(const char* aRsp, const nsAString& aBdAddr,
+  void FormattedAtResponse(const char* aRsp,
                            BluetoothHandsfreeResultHandler* aRes);
   void AtResponse(BluetoothHandsfreeAtResponse aResponseCode, int aErrorCode,
-                  const nsAString& aBdAddr,
                   BluetoothHandsfreeResultHandler* aRes);
   void ClccResponse(int aIndex, BluetoothHandsfreeCallDirection aDir,
                     BluetoothHandsfreeCallState aState,
@@ -77,7 +72,6 @@ public:
                     BluetoothHandsfreeCallMptyType aMpty,
                     const nsAString& aNumber,
                     BluetoothHandsfreeCallAddressType aType,
-                    const nsAString& aBdAddr,
                     BluetoothHandsfreeResultHandler* aRes);
 
   
@@ -87,12 +81,6 @@ public:
                         const nsAString& aNumber,
                         BluetoothHandsfreeCallAddressType aType,
                         BluetoothHandsfreeResultHandler* aRes);
-
-  
-
-  void ConfigureWbs(const nsAString& aBdAddr,
-                    BluetoothHandsfreeWbsConfig aConfig,
-                    BluetoothHandsfreeResultHandler* aRes);
 
 protected:
   BluetoothHandsfreeHALInterface(const bthf_interface_t* aInterface);

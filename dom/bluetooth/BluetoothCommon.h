@@ -235,22 +235,6 @@ struct BluetoothProperty {
   BluetoothRemoteInfo mRemoteInfo;
 };
 
-
-enum BluetoothTransport {
-  TRANSPORT_AUTO,   
-  TRANSPORT_BREDR,  
-  TRANSPORT_LE      
-};
-
-struct BluetoothActivityEnergyInfo {
-  uint8_t mStatus;
-  uint8_t mStackState;  
-  uint64_t mTxTime;     
-  uint64_t mRxTime;     
-  uint64_t mIdleTime;   
-  uint64_t mEnergyUsed; 
-};
-
 enum BluetoothSocketType {
   RFCOMM = 1,
   SCO    = 2,
@@ -320,12 +304,6 @@ enum BluetoothHandsfreeConnectionState
 enum BluetoothHandsfreeNetworkState {
   HFP_NETWORK_STATE_NOT_AVAILABLE,
   HFP_NETWORK_STATE_AVAILABLE
-};
-
-enum BluetoothHandsfreeWbsConfig {
-  HFP_WBS_NONE, 
-  HFP_WBS_NO,   
-  HFP_WBS_YES   
 };
 
 enum BluetoothHandsfreeNRECState {
