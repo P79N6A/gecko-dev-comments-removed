@@ -6726,9 +6726,27 @@ bool
 ClusterIterator::IsPunctuation()
 {
   NS_ASSERTION(mCharIndex >= 0, "No cluster selected");
-  nsIUGenCategory::nsUGenCategory c =
-    mozilla::unicode::GetGenCategory(mFrag->CharAt(mCharIndex));
-  return c == nsIUGenCategory::kPunctuation || c == nsIUGenCategory::kSymbol;
+  
+  
+  
+  uint8_t cat = unicode::GetGeneralCategory(mFrag->CharAt(mCharIndex));
+  switch (cat) {
+    case HB_UNICODE_GENERAL_CATEGORY_CONNECT_PUNCTUATION: 
+    case HB_UNICODE_GENERAL_CATEGORY_DASH_PUNCTUATION:    
+    case HB_UNICODE_GENERAL_CATEGORY_CLOSE_PUNCTUATION:   
+    case HB_UNICODE_GENERAL_CATEGORY_FINAL_PUNCTUATION:   
+    case HB_UNICODE_GENERAL_CATEGORY_INITIAL_PUNCTUATION: 
+    case HB_UNICODE_GENERAL_CATEGORY_OTHER_PUNCTUATION:   
+    case HB_UNICODE_GENERAL_CATEGORY_OPEN_PUNCTUATION:    
+    case HB_UNICODE_GENERAL_CATEGORY_CURRENCY_SYMBOL:     
+    
+    
+    case HB_UNICODE_GENERAL_CATEGORY_MATH_SYMBOL:         
+    case HB_UNICODE_GENERAL_CATEGORY_OTHER_SYMBOL:        
+      return true;
+    default:
+      return false;
+  }
 }
 
 int32_t
