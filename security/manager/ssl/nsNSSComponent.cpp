@@ -194,14 +194,9 @@ GetRevocationBehaviorFromPrefs( CertVerifier::OcspDownloadConfig* odc,
   MOZ_ASSERT(certShortLifetimeInDays);
 
   
-  
-  
-  int32_t ocspLevel = Preferences::GetInt("security.OCSP.enabled", 1);
-  switch (ocspLevel) {
-    case 0: *odc = CertVerifier::ocspOff; break;
-    case 2: *odc = CertVerifier::ocspEVOnly; break;
-    default: *odc = CertVerifier::ocspOn; break;
-  }
+  *odc = Preferences::GetInt("security.OCSP.enabled", 1)
+       ? CertVerifier::ocspOn
+       : CertVerifier::ocspOff;
 
   *osc = Preferences::GetBool("security.OCSP.require", false)
        ? CertVerifier::ocspStrict
