@@ -2336,9 +2336,6 @@ let BrowserOnClick = {
 
     let originalTarget = event.originalTarget;
     let ownerDoc = originalTarget.ownerDocument;
-    if (!ownerDoc) {
-      return;
-    }
 
     if (gMultiProcessBrowser &&
         ownerDoc.documentURI.toLowerCase() == "about:newtab") {
@@ -3126,8 +3123,12 @@ const BrowserSearch = {
 
 
 
-  recordSearchInHealthReport: function (engine, source) {
-    BrowserUITelemetry.countSearchEvent(source);
+
+
+
+
+  recordSearchInHealthReport: function (engine, source, selection) {
+    BrowserUITelemetry.countSearchEvent(source, null, selection);
 #ifdef MOZ_SERVICES_HEALTHREPORT
     let reporter = Cc["@mozilla.org/datareporting/service;1"]
                      .getService()
