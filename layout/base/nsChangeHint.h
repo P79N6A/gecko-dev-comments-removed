@@ -267,6 +267,16 @@ inline nsChangeHint NS_HintsNotHandledForDescendantsIn(nsChangeHint aChangeHint)
 
 
 
+
+
+
+
+
+
+
+
+
+
 enum nsRestyleHint {
   
   
@@ -294,6 +304,15 @@ enum nsRestyleHint {
   
   
   eRestyle_CSSAnimations = (1<<4),
+
+  
+  
+  eRestyle_Force = (1<<5),
+
+  
+  
+  
+  eRestyle_ForceDescendants = (1<<6),
 };
 
 
