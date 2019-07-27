@@ -300,6 +300,7 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
                                              currentValue) ||
           currentValue != segment.mToValue) {
         
+        player->Cancel();
         players.RemoveElementAt(i);
         collection->UpdateAnimationGeneration(mPresContext);
       }

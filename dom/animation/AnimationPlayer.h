@@ -92,6 +92,7 @@ public:
   
   
   void ResolveStartTime();
+  void Cancel();
 
   const nsString& Name() const {
     return mSource ? mSource->Name() : EmptyString();
@@ -132,6 +133,10 @@ protected:
 
   void FlushStyle() const;
   void PostUpdate();
+  
+  
+  
+  void CancelPendingPlay();
   StickyTimeDuration SourceContentEnd() const;
 
   nsIDocument* GetRenderedDocument() const;

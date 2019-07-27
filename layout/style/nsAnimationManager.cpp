@@ -331,6 +331,7 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
           
           
           
+          newPlayer->Cancel();
           newPlayer = nullptr;
           newPlayers.ReplaceElementAt(newIdx, oldPlayer);
           collection->mPlayers.RemoveElementAt(oldIdx);
@@ -343,6 +344,11 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
     collection->mPlayers.SwapElements(newPlayers);
     collection->mNeedsRefreshes = true;
     collection->Tick();
+
+    
+    for (size_t newPlayerIdx = newPlayers.Length(); newPlayerIdx-- != 0; ) {
+      newPlayers[newPlayerIdx]->Cancel();
+    }
 
     TimeStamp refreshTime = mPresContext->RefreshDriver()->MostRecentRefresh();
     UpdateStyleAndEvents(collection, refreshTime,
