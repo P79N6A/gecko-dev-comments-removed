@@ -15,6 +15,8 @@
 #include "nsISupportsImpl.h"
 #include "nsContentUtils.h"
 
+#include "prprf.h"
+
 
 #undef compress
 
