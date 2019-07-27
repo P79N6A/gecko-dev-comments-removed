@@ -279,7 +279,7 @@ ImageClient::ImageClient(CompositableForwarder* aFwd, TextureFlags aFlags,
 {}
 
 void
-ImageClient::UpdatePictureRect(nsIntRect aRect)
+ImageClient::UpdatePictureRect(IntRect aRect)
 {
   if (mPictureRect == aRect) {
     return;
@@ -385,5 +385,5 @@ ImageClientOverlay::CreateImage(ImageFormat aFormat)
 }
 
 #endif
-}
-}
+} 
+} 

@@ -59,7 +59,7 @@ public:
 
 
 
-  virtual void UpdatePictureRect(nsIntRect aPictureRect);
+  virtual void UpdatePictureRect(gfx::IntRect aPictureRect);
 
   virtual already_AddRefed<Image> CreateImage(ImageFormat aFormat) = 0;
 
@@ -86,7 +86,7 @@ protected:
 
   CompositableType mType;
   int32_t mLastPaintedImageSerial;
-  nsIntRect mPictureRect;
+  gfx::IntRect mPictureRect;
 };
 
 

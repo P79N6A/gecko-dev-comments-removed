@@ -161,7 +161,7 @@ public:
                                  aMask, aMaskTransform);
   }
 
-  virtual void CreateBuffer(ContentType aType, const nsIntRect& aRect, uint32_t aFlags,
+  virtual void CreateBuffer(ContentType aType, const gfx::IntRect& aRect, uint32_t aFlags,
                             RefPtr<gfx::DrawTarget>* aBlackDT, RefPtr<gfx::DrawTarget>* aWhiteDT) override;
 
   virtual TextureInfo GetTextureInfo() const override
@@ -247,7 +247,7 @@ public:
   virtual void SwapBuffers(const nsIntRegion& aFrontUpdatedRegion) override;
 
   
-  virtual const nsIntRect& BufferRect() const
+  virtual const gfx::IntRect& BufferRect() const
   {
     return RotatedContentBuffer::BufferRect();
   }
@@ -256,7 +256,7 @@ public:
     return RotatedContentBuffer::BufferRotation();
   }
 
-  virtual void CreateBuffer(ContentType aType, const nsIntRect& aRect, uint32_t aFlags,
+  virtual void CreateBuffer(ContentType aType, const gfx::IntRect& aRect, uint32_t aFlags,
                             RefPtr<gfx::DrawTarget>* aBlackDT, RefPtr<gfx::DrawTarget>* aWhiteDT) override;
 
 protected:
@@ -267,10 +267,10 @@ protected:
                                        bool aDidSelfCopy);
 
   void BuildTextureClients(gfx::SurfaceFormat aFormat,
-                           const nsIntRect& aRect,
+                           const gfx::IntRect& aRect,
                            uint32_t aFlags);
 
-  void CreateBackBuffer(const nsIntRect& aBufferRect);
+  void CreateBackBuffer(const gfx::IntRect& aBufferRect);
 
   
   
@@ -365,7 +365,7 @@ private:
   RefPtr<TextureClient> mFrontClient;
   RefPtr<TextureClient> mFrontClientOnWhite;
   nsIntRegion mFrontUpdatedRegion;
-  nsIntRect mFrontBufferRect;
+  gfx::IntRect mFrontBufferRect;
   nsIntPoint mFrontBufferRotation;
 };
 
