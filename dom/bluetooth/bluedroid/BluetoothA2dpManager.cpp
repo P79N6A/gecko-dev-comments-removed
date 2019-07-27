@@ -723,6 +723,19 @@ BluetoothA2dpManager::HandleSinkPropertyChanged(const BluetoothSignal& aSignal)
   }
 }
 
+
+
+
+
+void
+BluetoothA2dpManager::HandleBackendError()
+{
+  if (mSinkState != SinkState::SINK_DISCONNECTED) {
+    ConnectionStateNotification(A2DP_CONNECTION_STATE_DISCONNECTED,
+      mDeviceAddress);
+  }
+}
+
 void
 BluetoothA2dpManager::NotifyConnectionStatusChanged()
 {

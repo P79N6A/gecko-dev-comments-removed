@@ -110,6 +110,9 @@ public:
   void ToggleCalls();
 
   
+  void HandleBackendError();
+
+  
   
   
 

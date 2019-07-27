@@ -1121,6 +1121,26 @@ BluetoothHfpManager::ToggleCalls()
                              nsITelephonyService::CALL_STATE_CONNECTED;
 }
 
+
+
+
+
+
+void
+BluetoothHfpManager::HandleBackendError()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  if (mConnectionState != HFP_CONNECTION_STATE_DISCONNECTED) {
+    ConnectionStateNotification(HFP_CONNECTION_STATE_DISCONNECTED,
+      mDeviceAddress);
+  }
+
+  if (mAudioState != HFP_AUDIO_STATE_DISCONNECTED) {
+    AudioStateNotification(HFP_AUDIO_STATE_DISCONNECTED, mDeviceAddress);
+  }
+}
+
 class BluetoothHfpManager::ConnectAudioResultHandler final
   : public BluetoothHandsfreeResultHandler
 {
