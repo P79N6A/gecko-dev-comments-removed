@@ -3647,7 +3647,7 @@ Parser<ParseHandler>::letBlock(LetContext letContext)
 
 
             needExprStmt = true;
-            letContext = LetExpresion;
+            letContext = LetExpression;
         }
     }
 
@@ -3658,7 +3658,7 @@ Parser<ParseHandler>::letBlock(LetContext letContext)
             return null();
         MUST_MATCH_TOKEN(TOK_RC, JSMSG_CURLY_AFTER_LET);
     } else {
-        MOZ_ASSERT(letContext == LetExpresion);
+        MOZ_ASSERT(letContext == LetExpression);
         expr = assignExpr();
         if (!expr)
             return null();
@@ -4365,7 +4365,6 @@ Parser<SyntaxParseHandler>::exportDeclaration()
     return SyntaxParseHandler::NodeFailure;
 }
 
-
 template <typename ParseHandler>
 typename ParseHandler::Node
 Parser<ParseHandler>::expressionStatement()
@@ -4612,7 +4611,7 @@ Parser<FullParseHandler>::forStatement()
                 if (!tokenStream.peekToken(&tt))
                     return null();
                 if (tt == TOK_LP) {
-                    pn1 = letBlock(LetExpresion);
+                    pn1 = letBlock(LetExpression);
                 } else {
                     isForDecl = true;
                     blockObj = StaticBlockObject::create(context);
@@ -8080,7 +8079,7 @@ Parser<ParseHandler>::primaryExpr(TokenKind tt)
         return objectLiteral();
 
       case TOK_LET:
-        return letBlock(LetExpresion);
+        return letBlock(LetExpression);
 
       case TOK_LP:
         return parenExprOrGeneratorComprehension();
