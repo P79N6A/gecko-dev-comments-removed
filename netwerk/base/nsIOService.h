@@ -127,6 +127,9 @@ private:
     bool                                 mOfflineForProfileChange;
     bool                                 mManageLinkStatus;
     bool                                 mConnectivity;
+    
+    
+    bool                                 mOfflineMirrorsConnectivity;
 
     
     
