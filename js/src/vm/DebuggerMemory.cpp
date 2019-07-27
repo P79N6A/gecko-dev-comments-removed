@@ -7,6 +7,7 @@
 #include "vm/DebuggerMemory.h"
 
 #include "jscompartment.h"
+#include "gc/Marking.h"
 #include "vm/Debugger.h"
 #include "vm/GlobalObject.h"
 #include "vm/SavedStacks.h"
@@ -31,6 +32,13 @@ DebuggerMemory::create(JSContext *cx, Debugger *dbg)
     return &memory->as<DebuggerMemory>();
 }
 
+Debugger *
+DebuggerMemory::getDebugger()
+{
+    const Value &dbgVal = getReservedSlot(JSSLOT_DEBUGGER);
+    return Debugger::fromJSObject(&dbgVal.toObject());
+}
+
  bool
 DebuggerMemory::construct(JSContext *cx, unsigned argc, Value *vp)
 {
@@ -51,12 +59,6 @@ DebuggerMemory::construct(JSContext *cx, unsigned argc, Value *vp)
     JS_EnumerateStub,      
     JS_ResolveStub,        
     JS_ConvertStub,        
-
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr  
 };
 
  DebuggerMemory *
@@ -108,12 +110,6 @@ DebuggerMemory::checkThis(JSContext *cx, CallArgs &args, const char *fnName)
     if (!memory)                                                        \
         return false
 
-Debugger *
-DebuggerMemory::getDebugger()
-{
-    return Debugger::fromJSObject(&getReservedSlot(JSSLOT_DEBUGGER).toObject());
-}
-
  bool
 DebuggerMemory::setTrackingAllocationSites(JSContext *cx, unsigned argc, Value *vp)
 {
@@ -149,6 +145,9 @@ DebuggerMemory::setTrackingAllocationSites(JSContext *cx, unsigned argc, Value *
         }
     }
 
+    if (!enabling)
+        dbg->emptyAllocationsLog();
+
     dbg->trackingAllocationSites = enabling;
     args.rval().setUndefined();
     return true;
@@ -162,11 +161,81 @@ DebuggerMemory::getTrackingAllocationSites(JSContext *cx, unsigned argc, Value *
     return true;
 }
 
+ bool
+DebuggerMemory::drainAllocationsLog(JSContext *cx, unsigned argc, Value *vp)
+{
+    THIS_DEBUGGER_MEMORY(cx, argc, vp, "drainAllocationsLog", args, memory);
+    Debugger* dbg = memory->getDebugger();
+
+    if (!dbg->trackingAllocationSites) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_NOT_TRACKING_ALLOCATIONS,
+                             "drainAllocationsLog");
+        return false;
+    }
+
+    size_t length = dbg->allocationsLogLength;
+
+    RootedObject result(cx, NewDenseAllocatedArray(cx, length));
+    if (!result)
+        return false;
+    result->ensureDenseInitializedLength(cx, 0, length);
+
+    for (size_t i = 0; i < length; i++) {
+        Debugger::AllocationSite *allocSite = dbg->allocationsLog.popFirst();
+        result->setDenseElement(i, ObjectValue(*allocSite->frame));
+        js_delete(allocSite);
+    }
+
+    dbg->allocationsLogLength = 0;
+    args.rval().setObject(*result);
+    return true;
+}
+
+ bool
+DebuggerMemory::getMaxAllocationsLogLength(JSContext *cx, unsigned argc, Value *vp)
+{
+    THIS_DEBUGGER_MEMORY(cx, argc, vp, "(get maxAllocationsLogLength)", args, memory);
+    args.rval().setInt32(memory->getDebugger()->maxAllocationsLogLength);
+    return true;
+}
+
+ bool
+DebuggerMemory::setMaxAllocationsLogLength(JSContext *cx, unsigned argc, Value *vp)
+{
+    THIS_DEBUGGER_MEMORY(cx, argc, vp, "(set maxAllocationsLogLength)", args, memory);
+    if (!args.requireAtLeast(cx, "(set maxAllocationsLogLength)", 1))
+        return false;
+
+    int32_t max;
+    if (!ToInt32(cx, args[0], &max))
+        return false;
+
+    if (max < 1) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_UNEXPECTED_TYPE,
+                             "(set maxAllocationsLogLength)'s parameter",
+                             "not a positive integer");
+        return false;
+    }
+
+    Debugger *dbg = memory->getDebugger();
+    dbg->maxAllocationsLogLength = max;
+
+    while (dbg->allocationsLogLength > dbg->maxAllocationsLogLength) {
+        js_delete(dbg->allocationsLog.getFirst());
+        dbg->allocationsLogLength--;
+    }
+
+    args.rval().setUndefined();
+    return true;
+}
+
  const JSPropertySpec DebuggerMemory::properties[] = {
     JS_PSGS("trackingAllocationSites", getTrackingAllocationSites, setTrackingAllocationSites, 0),
+    JS_PSGS("maxAllocationsLogLength", getMaxAllocationsLogLength, setMaxAllocationsLogLength, 0),
     JS_PS_END
 };
 
  const JSFunctionSpec DebuggerMemory::methods[] = {
+    JS_FN("drainAllocationsLog", DebuggerMemory::drainAllocationsLog, 0, 0),
     JS_FS_END
 };
