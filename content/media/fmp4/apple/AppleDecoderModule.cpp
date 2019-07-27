@@ -13,6 +13,7 @@
 #include "AppleVTLinker.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/DebugOnly.h"
+#include "nsCocoaFeatures.h"
 
 namespace mozilla {
 
@@ -35,6 +36,11 @@ void
 AppleDecoderModule::Init()
 {
   MOZ_ASSERT(NS_IsMainThread(), "Must be on main thread.");
+
+  if (!nsCocoaFeatures::OnLionOrLater()) {
+    
+    return;
+  }
 
   sForceVDA = Preferences::GetBool("media.apple.forcevda", false);
 
