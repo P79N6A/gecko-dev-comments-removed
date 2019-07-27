@@ -619,14 +619,12 @@ class PerRuntimeFutexAPI
     
     virtual void unlock() = 0;
 
-    
-    
-    virtual bool isOnWorkerThread() = 0;
-
     enum WakeResult {
         Woken,                  
         Timedout,               
+        ErrorException,         
         InterruptForTerminate,  
+        WaitingNotAllowed,      
         ErrorTooLong            
     };
 
