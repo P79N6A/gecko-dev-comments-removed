@@ -2831,7 +2831,24 @@ DefinePropertyById(JSContext *cx, HandleObject obj, HandleId id, HandleValue val
     
     
     
-    if (!(attrs & JSPROP_PROPOP_ACCESSORS)) {
+    
+    
+    
+    
+    MOZ_ASSERT_IF(getter == JS_PropertyStub,
+                  setter == JS_StrictPropertyStub || (attrs & JSPROP_PROPOP_ACCESSORS));
+    MOZ_ASSERT_IF(setter == JS_StrictPropertyStub,
+                  getter == JS_PropertyStub || (attrs & JSPROP_PROPOP_ACCESSORS));
+
+
+    
+    
+    
+    
+    
+    if (!(attrs & JSPROP_PROPOP_ACCESSORS) &&
+        getter != JS_PropertyStub && setter != JS_StrictPropertyStub)
+    {
         JSFunction::Flags zeroFlags = JSAPIToJSFunctionFlags(0);
 
         RootedAtom atom(cx, JSID_IS_ATOM(id) ? JSID_TO_ATOM(id) : nullptr);
