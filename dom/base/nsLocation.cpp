@@ -1013,22 +1013,20 @@ nsLocation::ValueOf(nsIDOMLocation** aReturn)
 nsresult
 nsLocation::GetSourceBaseURL(JSContext* cx, nsIURI** sourceURL)
 {
-
   *sourceURL = nullptr;
-  nsCOMPtr<nsIScriptGlobalObject> sgo = nsJSUtils::GetDynamicScriptGlobal(cx);
+  nsIDocument* doc = GetEntryDocument();
   
   
   
   
   
   
-  if (!sgo && GetDocShell()) {
-    sgo = GetDocShell()->GetScriptGlobalObject();
+  if (!doc && GetDocShell()) {
+    nsCOMPtr<nsPIDOMWindow> docShellWin = do_QueryInterface(GetDocShell()->GetScriptGlobalObject());
+    if (docShellWin) {
+      doc = docShellWin->GetDoc();
+    }
   }
-  NS_ENSURE_TRUE(sgo, NS_OK);
-  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(sgo);
-  NS_ENSURE_TRUE(window, NS_ERROR_UNEXPECTED);
-  nsIDocument* doc = window->GetDoc();
   NS_ENSURE_TRUE(doc, NS_OK);
   *sourceURL = doc->GetBaseURI().take();
   return NS_OK;
