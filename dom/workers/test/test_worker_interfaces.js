@@ -94,7 +94,11 @@ var interfaceNamesInGlobalScope =
 
     { name: "DataStoreCursor", b2g: true },
 
+    "DOMError",
+
     "DOMException",
+
+    "DOMStringList",
 
     "Event",
 
@@ -105,6 +109,26 @@ var interfaceNamesInGlobalScope =
     "FileReaderSync",
 
     { name: "Headers", pref: "dom.fetch.enabled" },
+
+    "IDBCursor",
+
+    "IDBDatabase",
+
+    "IDBFactory",
+
+    "IDBIndex",
+
+    "IDBKeyRange",
+
+    "IDBObjectStore",
+
+    "IDBOpenDBRequest",
+
+    "IDBRequest",
+
+    "IDBTransaction",
+
+    "IDBVersionChangeEvent",
 
     "ImageData",
 

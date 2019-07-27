@@ -2,6 +2,9 @@
 
 
 
+
+let disableWorkerTest = "This test uses SpecialPowers";
+
 let testGenerator = testSteps();
 
 function createFileReader() {

@@ -49,6 +49,9 @@ class IDBTransaction MOZ_FINAL
   : public IDBWrapperCache
   , public nsIRunnable
 {
+  class WorkerFeature;
+  friend class WorkerFeature;
+
 public:
   enum Mode
   {
@@ -74,6 +77,7 @@ private:
   nsTArray<nsString> mObjectStoreNames;
   nsTArray<nsRefPtr<IDBObjectStore>> mObjectStores;
   nsTArray<nsRefPtr<IDBObjectStore>> mDeletedObjectStores;
+  nsAutoPtr<WorkerFeature> mWorkerFeature;
 
   
   
@@ -99,6 +103,7 @@ private:
   Mode mMode;
 
   bool mCreating;
+  bool mRegistered;
   bool mAbortedByScript;
 
 #ifdef DEBUG
