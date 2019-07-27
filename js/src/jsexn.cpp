@@ -748,70 +748,33 @@ js_ReportUncaughtException(JSContext *cx)
     if (!cx->getPendingException(&exn))
         return false;
 
-    cx->clearPendingException();
+    
 
-    ErrorReport err(cx);
-    if (!err.init(cx, exn)) {
-        cx->clearPendingException();
-        return false;
+
+
+
+
+    RootedObject exnObject(cx);
+    if (exn.isPrimitive()) {
+        exnObject = nullptr;
+    } else {
+        exnObject = exn.toObjectOrNull();
     }
 
-    cx->setPendingException(exn);
-    CallErrorReporter(cx, err.message(), err.report());
-    cx->clearPendingException();
-    return true;
-}
-
-ErrorReport::ErrorReport(JSContext *cx)
-  : reportp(nullptr),
-    message_(nullptr),
-    ownedMessage(nullptr),
-    str(cx),
-    exnObject(cx)
-{
-}
-
-ErrorReport::~ErrorReport()
-{
-    if (!ownedMessage)
-        return;
-
-    js_free(ownedMessage);
-    if (ownedReport.messageArgs) {
-        
-
-
-
-
-        size_t i = 0;
-        while (ownedReport.messageArgs[i])
-            js_free(const_cast<jschar*>(ownedReport.messageArgs[i++]));
-        js_free(ownedReport.messageArgs);
-    }
-    js_free(const_cast<jschar*>(ownedReport.ucmessage));
-}
-
-bool
-ErrorReport::init(JSContext *cx, HandleValue exn)
-{
-    MOZ_ASSERT(!cx->isExceptionPending());
-
-    
-
-
-
-    if (exn.isObject()) {
-        exnObject = &exn.toObject();
-        reportp = js_ErrorFromException(cx, exnObject);
-    }
+    JS_ClearPendingException(cx);
+    JSErrorReport *reportp = exnObject ? js_ErrorFromException(cx, exnObject)
+                                       : nullptr;
 
     
     
     
+    RootedString str(cx);
     if (reportp)
         str = ErrorReportToString(cx, reportp);
     else
         str = ToString<CanGC>(cx, exn);
+
+    JSErrorReport report;
 
     
     
@@ -822,6 +785,7 @@ ErrorReport::init(JSContext *cx, HandleValue exn)
     
     
     const char *filename_str = "filename";
+    JSAutoByteString filename;
     if (!reportp && exnObject && IsDuckTypedErrorObject(cx, exnObject, &filename_str))
     {
         
@@ -830,14 +794,10 @@ ErrorReport::init(JSContext *cx, HandleValue exn)
         RootedString name(cx);
         if (JS_GetProperty(cx, exnObject, js_name_str, &val) && val.isString())
             name = val.toString();
-        else
-            cx->clearPendingException();
 
         RootedString msg(cx);
         if (JS_GetProperty(cx, exnObject, js_message_str, &val) && val.isString())
             msg = val.toString();
-        else
-            cx->clearPendingException();
 
         
         
@@ -866,17 +826,12 @@ ErrorReport::init(JSContext *cx, HandleValue exn)
             JSString *tmp = ToString<CanGC>(cx, val);
             if (tmp)
                 filename.encodeLatin1(cx, tmp);
-            else
-                cx->clearPendingException();
-        } else {
-            cx->clearPendingException();
         }
 
         uint32_t lineno;
         if (!JS_GetProperty(cx, exnObject, js_lineNumber_str, &val) ||
             !ToUint32(cx, val, &lineno))
         {
-            cx->clearPendingException();
             lineno = 0;
         }
 
@@ -884,16 +839,15 @@ ErrorReport::init(JSContext *cx, HandleValue exn)
         if (!JS_GetProperty(cx, exnObject, js_columnNumber_str, &val) ||
             !ToUint32(cx, val, &column))
         {
-            cx->clearPendingException();
             column = 0;
         }
 
-        reportp = &ownedReport;
-        PodZero(&ownedReport);
-        ownedReport.filename = filename.ptr();
-        ownedReport.lineno = lineno;
-        ownedReport.exnType = int16_t(JSEXN_NONE);
-        ownedReport.column = column;
+        reportp = &report;
+        PodZero(&report);
+        report.filename = filename.ptr();
+        report.lineno = (unsigned) lineno;
+        report.exnType = int16_t(JSEXN_NONE);
+        report.column = (unsigned) column;
         if (str) {
             
             
@@ -903,61 +857,31 @@ ErrorReport::init(JSContext *cx, HandleValue exn)
             
             
             if (JSFlatString *flat = str->ensureFlat(cx))
-                ownedReport.ucmessage = flat->chars();
+                report.ucmessage = flat->chars();
         }
     }
 
+    JSAutoByteString bytesStorage;
+    const char *bytes = nullptr;
     if (str)
-        message_ = bytesStorage.encodeLatin1(cx, str);
-    if (!message_)
-        message_ = "unknown (can't convert to string)";
+        bytes = bytesStorage.encodeLatin1(cx, str);
+    if (!bytes)
+        bytes = "unknown (can't convert to string)";
 
     if (!reportp) {
-        
-        
-        
-        
-        
-        
-        
-        populateUncaughtExceptionReport(cx, message_);
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr,
+                             JSMSG_UNCAUGHT_EXCEPTION, bytes);
     } else {
         
         reportp->flags |= JSREPORT_EXCEPTION;
+
+        
+        JS_SetPendingException(cx, exn);
+        CallErrorReporter(cx, bytes, reportp);
     }
 
+    JS_ClearPendingException(cx);
     return true;
-}
-
-void
-ErrorReport::populateUncaughtExceptionReport(JSContext *cx, ...)
-{
-    va_list ap;
-    va_start(ap, cx);
-    populateUncaughtExceptionReportVA(cx, ap);
-    va_end(ap);
-}
-
-void
-ErrorReport::populateUncaughtExceptionReportVA(JSContext *cx, va_list ap)
-{
-    PodZero(&ownedReport);
-    ownedReport.flags = JSREPORT_ERROR;
-    ownedReport.errorNumber = JSMSG_UNCAUGHT_EXCEPTION;
-    
-    
-    
-    PopulateReportBlame(cx, &ownedReport);
-
-    if (!js_ExpandErrorArguments(cx, js_GetErrorMessage, nullptr,
-                                 JSMSG_UNCAUGHT_EXCEPTION, &ownedMessage,
-                                 &ownedReport, ArgumentsAreASCII, ap)) {
-        return;
-    }
-
-    reportp = &ownedReport;
-    message_ = ownedMessage;
-    ownsMessageAndReport = true;
 }
 
 JSObject *
