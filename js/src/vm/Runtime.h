@@ -568,6 +568,12 @@ class PerThreadData : public PerThreadDataFriendFields
     js::Activation *activation_;
 
     
+
+
+
+    js::Activation * volatile profilingActivation_;
+
+    
     js::AsmJSActivation * volatile asmJSActivationStack_;
 
     
@@ -587,6 +593,10 @@ class PerThreadData : public PerThreadDataFriendFields
     }
     static unsigned offsetOfActivation() {
         return offsetof(PerThreadData, activation_);
+    }
+
+    js::Activation *profilingActivation() const {
+        return profilingActivation_;
     }
 
     js::AsmJSActivation *asmJSActivationStack() const {
