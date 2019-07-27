@@ -279,7 +279,7 @@
   <string name="datareporting_crashreporter_title_short">&datareporting_crashreporter_title_short;</string>
   <string name="datareporting_crashreporter_summary">&datareporting_crashreporter_summary;</string>
   <string name="datareporting_wifi_title">&datareporting_wifi_title2;</string>
-  <string name="datareporting_wifi_geolocation_summary">&datareporting_wifi_geolocation_summary3;</string>
+  <string name="datareporting_wifi_geolocation_summary">&datareporting_wifi_geolocation_summary4;</string>
 
   <string name="go">&go;</string>
   <string name="search">&search;</string>
@@ -474,9 +474,8 @@
   <string name="updater_apply_title">&updater_apply_title2;</string>
   <string name="updater_apply_select">&updater_apply_select2;</string>
 
-  <!-- Awesomescreen screen -->
+  <!-- Search suggestions opt-in -->
   <string name="suggestions_prompt">&suggestions_prompt3;</string>
-  <string name="search_bar_item_desc">&search_bar_item_desc;</string>
 
   <string name="suggestion_for_engine">&suggestion_for_engine;</string>
 
