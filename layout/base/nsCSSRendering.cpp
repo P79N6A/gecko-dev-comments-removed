@@ -4549,12 +4549,12 @@ nsCSSRendering::GetTextDecorationRectInternal(const gfxPoint& aPt,
   }
 
   if (aVertical) {
-    r.y = baseline + floor(aOffset + 0.5); 
-                                           
+    r.y = baseline + floor(offset + 0.5); 
+                                          
     Swap(r.x, r.y);
     Swap(r.width, r.height);
   } else {
-    r.y = baseline - floor(aOffset + 0.5);
+    r.y = baseline - floor(offset + 0.5);
   }
 
   return r;
