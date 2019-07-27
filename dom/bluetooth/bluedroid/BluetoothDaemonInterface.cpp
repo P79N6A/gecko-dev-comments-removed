@@ -24,6 +24,8 @@ using namespace mozilla::ipc;
 
 BEGIN_BLUETOOTH_NAMESPACE
 
+static const int sRetryInterval = 100; 
+
 
 
 
@@ -1749,6 +1751,20 @@ BluetoothDaemonChannel::GetIO()
 #define container(_t, _v, _m) \
   ( (_t*)( ((const unsigned char*)(_v)) - offsetof(_t, _m) ) )
 
+
+static bool
+IsDaemonRunning()
+{
+  char value[PROPERTY_VALUE_MAX];
+  NS_WARN_IF(property_get("init.svc.bluetoothd", value, "") < 0);
+  if (strcmp(value, "running")) {
+    BT_LOGR("[RESTART] Bluetooth daemon state <%s>", value);
+    return false;
+  }
+
+  return true;
+}
+
 BluetoothDaemonInterface*
 BluetoothDaemonInterface::GetInstance()
 {
@@ -1768,6 +1784,42 @@ BluetoothDaemonInterface::BluetoothDaemonInterface()
 
 BluetoothDaemonInterface::~BluetoothDaemonInterface()
 { }
+
+class BluetoothDaemonInterface::StartDaemonTask final : public Task
+{
+public:
+  StartDaemonTask(BluetoothDaemonInterface* aInterface,
+                  const nsACString& aCommand)
+    : mInterface(aInterface)
+    , mCommand(aCommand)
+  {
+    MOZ_ASSERT(mInterface);
+  }
+
+  void Run() override
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    BT_LOGR("Start Daemon Task");
+    
+    if (NS_WARN_IF(property_set("ctl.start", mCommand.get()) < 0)) {
+      mInterface->OnConnectError(CMD_CHANNEL);
+    }
+
+    
+    if (IsDaemonRunning()) {
+      return;
+    }
+
+    
+    MessageLoop::current()->PostDelayedTask(FROM_HERE,
+      new StartDaemonTask(mInterface, mCommand), sRetryInterval);
+  }
+
+private:
+  BluetoothDaemonInterface* mInterface;
+  nsCString mCommand;
+};
 
 class BluetoothDaemonInterface::InitResultHandler final
   : public BluetoothSetupResultHandler
@@ -1831,6 +1883,19 @@ BluetoothDaemonInterface::OnConnectSuccess(enum Channel aChannel)
         if (NS_WARN_IF(property_set("ctl.start", value.get()) < 0)) {
           OnConnectError(CMD_CHANNEL);
         }
+
+        
+
+
+
+
+
+
+
+        if (!IsDaemonRunning()) {
+          MessageLoop::current()->PostDelayedTask(FROM_HERE,
+              new StartDaemonTask(this, value), sRetryInterval);
+        }
       }
       break;
     case CMD_CHANNEL:
@@ -1890,19 +1955,26 @@ BluetoothDaemonInterface::OnConnectError(enum Channel aChannel)
   }
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void
 BluetoothDaemonInterface::OnDisconnect(enum Channel aChannel)
 {
   MOZ_ASSERT(NS_IsMainThread());
-
-  if (mResultHandlerQ.IsEmpty()) {
-    if (sNotificationHandler) {
-      
-      sNotificationHandler->AdapterStateChangedNotification(false);
-      sNotificationHandler = nullptr;
-    }
-    return;
-  }
 
   switch (aChannel) {
     case CMD_CHANNEL:
@@ -1913,16 +1985,30 @@ BluetoothDaemonInterface::OnDisconnect(enum Channel aChannel)
       
       mListenSocket->Close();
       break;
-    case LISTEN_SOCKET: {
+    case LISTEN_SOCKET:
+      if (!mResultHandlerQ.IsEmpty()) {
         nsRefPtr<BluetoothResultHandler> res = mResultHandlerQ.ElementAt(0);
         mResultHandlerQ.RemoveElementAt(0);
-
         
         if (res) {
           res->Cleanup();
         }
       }
       break;
+  }
+
+  
+
+
+  if (sNotificationHandler && mResultHandlerQ.IsEmpty()) {
+    if (mListenSocket->GetConnectionStatus() == SOCKET_DISCONNECTED &&
+        mCmdChannel->GetConnectionStatus() == SOCKET_DISCONNECTED &&
+        mNtfChannel->GetConnectionStatus() == SOCKET_DISCONNECTED) {
+      
+      
+      sNotificationHandler->BackendErrorNotification(true);
+      sNotificationHandler = nullptr;
+    }
   }
 }
 
@@ -2198,16 +2284,18 @@ private:
 void
 BluetoothDaemonInterface::Cleanup(BluetoothResultHandler* aRes)
 {
-  sNotificationHandler = nullptr;
 
-  mResultHandlerQ.AppendElement(aRes);
+  sNotificationHandler = nullptr;
 
   
   nsresult rv = mProtocol->UnregisterModuleCmd(
     0x02, new CleanupResultHandler(this));
   if (NS_FAILED(rv)) {
     DispatchError(aRes, rv);
+    return;
   }
+
+  mResultHandlerQ.AppendElement(aRes);
 }
 
 void
