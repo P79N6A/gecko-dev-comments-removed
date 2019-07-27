@@ -3034,6 +3034,11 @@ void MediaDecoderStateMachine::SetStartTime(int64_t aStartTimeUsecs)
       mEndTime = mStartTime + mEndTime;
     }
   }
+
+  
+  
+  mReader->SetStartTime(mStartTime);
+
   
   
   
@@ -3121,7 +3126,16 @@ void MediaDecoderStateMachine::StartBuffering()
 #endif
 }
 
-nsresult MediaDecoderStateMachine::GetBuffered(dom::TimeRanges* aBuffered) {
+nsresult MediaDecoderStateMachine::GetBuffered(dom::TimeRanges* aBuffered)
+{
+  
+  
+  
+  ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+  if (mStartTime < 0) {
+    return NS_OK;
+  }
+
   MediaResource* resource = mDecoder->GetResource();
   NS_ENSURE_TRUE(resource, NS_ERROR_FAILURE);
   resource->Pin();

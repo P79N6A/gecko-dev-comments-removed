@@ -353,6 +353,15 @@ MediaSourceReader::CreateSubDecoder(const nsACString& aType)
   if (!reader) {
     return nullptr;
   }
+
+  
+  
+  
+  {
+    ReentrantMonitorAutoEnter mon(decoder->GetReentrantMonitor());
+    reader->SetStartTime(0);
+  }
+
   
   
   
