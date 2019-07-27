@@ -306,7 +306,14 @@ public:
   void NotReached() { MOZ_DIAGNOSTIC_ASSERT(false); }
 
   
-  void SetFragmentEndTime(int64_t aEndTime);
+  void DispatchSetFragmentEndTime(int64_t aEndTime)
+  {
+    nsRefPtr<MediaDecoderStateMachine> self = this;
+    nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction([self, aEndTime] () {
+      self->mFragmentEndTime = aEndTime;
+    });
+    TaskQueue()->Dispatch(r.forget());
+  }
 
   
   void BreakCycles() {
