@@ -273,7 +273,7 @@ function edgeCanGC(edge)
     return indirectCallCannotGC(functionName, varName) ? null : "*" + varName;
 }
 
-function variableUseFollowsGC(suppressed, variable, worklist)
+function variableUsePrecedesGC(suppressed, variable, worklist)
 {
     
     
@@ -327,7 +327,7 @@ function variableUseFollowsGC(suppressed, variable, worklist)
 
             if (edgeKillsVariable(edge, variable)) {
                 if (entry.gcInfo)
-                    return {gcInfo:entry.gcInfo, why:entry};
+                    return {gcInfo: entry.gcInfo, why: {body:body, ppoint:source, gcInfo:entry.gcInfo, why:entry } }
                 if (!body.minimumUse || source < body.minimumUse)
                     body.minimumUse = source;
                 continue;
@@ -387,9 +387,11 @@ function variableLiveAcrossGC(suppressed, variable)
             if (usePoint && !edgeKillsVariable(edge, variable)) {
                 
                 var worklist = [{body:body, ppoint:usePoint, gcInfo:null, why:null}];
-                var call = variableUseFollowsGC(suppressed, variable, worklist);
-                if (call)
+                var call = variableUsePrecedesGC(suppressed, variable, worklist);
+                if (call) {
+                    call.afterGCUse = usePoint;
                     return call;
+                }
             }
         }
     }
@@ -470,6 +472,8 @@ function locationLine(text)
 
 function printEntryTrace(functionName, entry)
 {
+    var gcPoint = ('gcInfo' in entry) ? entry.gcInfo.ppoint : 0;
+
     if (!functionBodies[0].lines)
         computePrintedLines(functionName);
 
@@ -477,17 +481,24 @@ function printEntryTrace(functionName, entry)
         var ppoint = entry.ppoint;
         var lineText = findLocation(entry.body, ppoint);
 
-        var edgeText = null;
+        var edgeText = "";
         if (entry.why && entry.why.body == entry.body) {
             
             var next = entry.why.ppoint;
-            for (var line of entry.body.lines) {
-                if (match = /\((\d+),(\d+),/.exec(line)) {
-                    if (match[1] == ppoint && match[2] == next)
-                        edgeText = line; 
+
+            if (!entry.body.edgeTable) {
+                var table = {};
+                entry.body.edgeTable = table;
+                for (var line of entry.body.lines) {
+                    if (match = /\((\d+),(\d+),/.exec(line))
+                        table[match[1] + "," + match[2]] = line; 
                 }
             }
+
+            edgeText = entry.body.edgeTable[ppoint + "," + next];
             assert(edgeText);
+            if (ppoint == gcPoint)
+                edgeText += " [[GC call]]";
         } else {
             
             for (var line of entry.body.lines) {
@@ -498,9 +509,11 @@ function printEntryTrace(functionName, entry)
                     }
                 }
             }
+            if (ppoint == entry.body.Index[1] && entry.body.BlockId.Kind == "Function")
+                edgeText += " [[end of function]]";
         }
 
-        print("    " + lineText + (edgeText ? ": " + edgeText : ""));
+        print("    " + lineText + (edgeText.length ? ": " + edgeText : ""));
         entry = entry.why;
     }
 }
