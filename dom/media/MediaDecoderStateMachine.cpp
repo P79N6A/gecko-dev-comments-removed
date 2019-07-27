@@ -366,8 +366,8 @@ void MediaDecoderStateMachine::SendStreamAudio(AudioData* aAudio,
   
   
   CheckedInt64 audioWrittenOffset = aStream->mAudioFramesWritten +
-      UsecsToFrames(mInfo.mAudio.mRate, mStreamStartTime);
-  CheckedInt64 frameOffset = UsecsToFrames(mInfo.mAudio.mRate, aAudio->mTime);
+      UsecsToFrames(mStreamStartTime, mInfo.mAudio.mRate);
+  CheckedInt64 frameOffset = UsecsToFrames(aAudio->mTime, mInfo.mAudio.mRate);
 
   if (!audioWrittenOffset.isValid() ||
       !frameOffset.isValid() ||
