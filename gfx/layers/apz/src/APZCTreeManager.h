@@ -165,9 +165,6 @@ public:
 
 
 
-
-
-
   nsEventStatus ReceiveInputEvent(InputData& aEvent,
                                   ScrollableLayerGuid* aOutTargetGuid,
                                   uint64_t* aOutInputBlockId);
