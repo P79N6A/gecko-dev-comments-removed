@@ -7192,10 +7192,10 @@ frontend::EmitTree(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
             
             
             RootedValue value(cx);
-            if (bce->emitterMode != BytecodeEmitter::SelfHosting && pn->pn_count != 0) {
-                if (!pn->getConstantValue(cx, ParseNode::DontAllowNestedObjects, &value))
-                    return false;
-
+            if (bce->emitterMode != BytecodeEmitter::SelfHosting &&
+                pn->pn_count != 0 &&
+                pn->getConstantValue(cx, ParseNode::DontAllowNestedObjects, &value))
+            {
                 
                 
                 
