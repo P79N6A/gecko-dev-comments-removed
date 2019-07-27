@@ -87,7 +87,7 @@ MediaSourceReader::OnAudioEOS()
   if (SwitchReaders(SWITCH_FORCED)) {
     
     RequestAudioData();
-  } else {
+  } else if (IsEnded()) {
     
     MSE_DEBUG("MediaSourceReader(%p)::OnAudioEOS reader=%p EOS (readers=%u)",
               this, mAudioReader.get(), mDecoders.Length());
