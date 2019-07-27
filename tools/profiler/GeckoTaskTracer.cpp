@@ -200,7 +200,7 @@ void
 LogDispatch(uint64_t aTaskId, uint64_t aParentTaskId, uint64_t aSourceEventId,
             SourceEventType aSourceEventType)
 {
-  NS_ENSURE_TRUE_VOID(IsInitialized() && aSourceEventId);
+  NS_ENSURE_TRUE_VOID(IsInitialized());
 
   
   
@@ -209,7 +209,7 @@ LogDispatch(uint64_t aTaskId, uint64_t aParentTaskId, uint64_t aSourceEventId,
 void
 LogBegin(uint64_t aTaskId, uint64_t aSourceEventId)
 {
-  NS_ENSURE_TRUE_VOID(IsInitialized() && aSourceEventId);
+  NS_ENSURE_TRUE_VOID(IsInitialized());
 
   
   
@@ -218,7 +218,7 @@ LogBegin(uint64_t aTaskId, uint64_t aSourceEventId)
 void
 LogEnd(uint64_t aTaskId, uint64_t aSourceEventId)
 {
-  NS_ENSURE_TRUE_VOID(IsInitialized() && aSourceEventId);
+  NS_ENSURE_TRUE_VOID(IsInitialized());
 
   
   
@@ -227,7 +227,7 @@ LogEnd(uint64_t aTaskId, uint64_t aSourceEventId)
 void
 LogVirtualTablePtr(uint64_t aTaskId, uint64_t aSourceEventId, int* aVptr)
 {
-  NS_ENSURE_TRUE_VOID(IsInitialized() && aSourceEventId);
+  NS_ENSURE_TRUE_VOID(IsInitialized());
 
   
   
