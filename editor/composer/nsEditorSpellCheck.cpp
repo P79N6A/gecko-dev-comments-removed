@@ -42,6 +42,7 @@
 #include "nsString.h"                   
 #include "nsStringFwd.h"                
 #include "nsStyleUtil.h"                
+#include "nsXULAppAPI.h"                
 
 using namespace mozilla;
 
@@ -705,8 +706,16 @@ nsEditorSpellCheck::UpdateCurrentDictionary(nsIEditorSpellCheckCallback* aCallba
   NS_ENSURE_STATE(doc);
   doc->GetContentLanguage(fetcher->mRootDocContentLang);
 
-  rv = fetcher->Fetch(mEditor);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+    
+    
+    nsCOMPtr<nsIRunnable> runnable =
+      NS_NewRunnableMethodWithArg<uint16_t>(fetcher, &DictionaryFetcher::HandleCompletion, 0);
+    NS_DispatchToMainThread(runnable);
+  } else {
+    rv = fetcher->Fetch(mEditor);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   return NS_OK;
 }

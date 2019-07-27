@@ -59,7 +59,6 @@
 #include "nsIMutable.h"
 #include "nsIObserverService.h"
 #include "nsIScriptSecurityManager.h"
-#include "nsScreenManagerProxy.h"
 #include "nsMemoryInfoDumper.h"
 #include "nsServiceManagerUtils.h"
 #include "nsStyleSheetService.h"
@@ -152,6 +151,7 @@
 #include "mozilla/dom/telephony/PTelephonyChild.h"
 #include "mozilla/dom/time/DateCacheCleaner.h"
 #include "mozilla/net/NeckoMessageUtils.h"
+#include "mozilla/RemoteSpellCheckEngineChild.h"
 
 using namespace base;
 using namespace mozilla;
@@ -170,7 +170,6 @@ using namespace mozilla::jsipc;
 #if defined(MOZ_WIDGET_GONK)
 using namespace mozilla::system;
 #endif
-using namespace mozilla::widget;
 
 #ifdef MOZ_NUWA_PROCESS
 static bool sNuwaForking = false;
@@ -1054,6 +1053,20 @@ ContentChild::AllocPBlobChild(const BlobConstructorParams& aParams)
     return nsIContentChild::AllocPBlobChild(aParams);
 }
 
+mozilla::PRemoteSpellcheckEngineChild *
+ContentChild::AllocPRemoteSpellcheckEngineChild()
+{
+    NS_NOTREACHED("Default Constructor for PRemoteSpellcheckEngineChilf should never be called");
+    return nullptr;
+}
+
+bool
+ContentChild::DeallocPRemoteSpellcheckEngineChild(PRemoteSpellcheckEngineChild *child)
+{
+    delete child;
+    return true;
+}
+
 bool
 ContentChild::DeallocPBlobChild(PBlobChild* aActor)
 {
@@ -1199,28 +1212,6 @@ bool
 ContentChild::DeallocPNeckoChild(PNeckoChild* necko)
 {
     delete necko;
-    return true;
-}
-
-PScreenManagerChild*
-ContentChild::AllocPScreenManagerChild(uint32_t* aNumberOfScreens,
-                                       float* aSystemDefaultScale,
-                                       bool* aSuccess)
-{
-    
-    
-    
-    
-    NS_NOTREACHED("Should never get here!");
-    return nullptr;
-}
-
-bool
-ContentChild::DeallocPScreenManagerChild(PScreenManagerChild* aService)
-{
-    
-    nsScreenManagerProxy *child = static_cast<nsScreenManagerProxy*>(aService);
-    child->Release();
     return true;
 }
 

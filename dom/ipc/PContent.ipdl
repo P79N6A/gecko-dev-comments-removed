@@ -23,7 +23,6 @@ include protocol PImageBridge;
 include protocol PIndexedDB;
 include protocol PMemoryReportRequest;
 include protocol PNecko;
-include protocol PScreenManager;
 include protocol PSharedBufferManager;
 include protocol PSms;
 include protocol PSpeechSynthesis;
@@ -31,6 +30,7 @@ include protocol PStorage;
 include protocol PTelephony;
 include protocol PTestShell;
 include protocol PJavaScript;
+include protocol PRemoteSpellcheckEngine;
 include DOMTypes;
 include JavaScriptTypes;
 include InputStreamParams;
@@ -304,13 +304,13 @@ intr protocol PContent
     manages PIndexedDB;
     manages PMemoryReportRequest;
     manages PNecko;
-    manages PScreenManager;
     manages PSms;
     manages PSpeechSynthesis;
     manages PStorage;
     manages PTelephony;
     manages PTestShell;
     manages PJavaScript;
+    manages PRemoteSpellcheckEngine;
 
 both:
     // Depending on exactly how the new browser is being created, it might be
@@ -464,6 +464,7 @@ parent:
 
     async PJavaScript();
 
+    sync PRemoteSpellcheckEngine();
     PDeviceStorageRequest(DeviceStorageParams params);
 
     PFileSystemRequest(FileSystemParams params);
@@ -480,11 +481,6 @@ parent:
     PIndexedDB();
 
     PNecko();
-
-    sync PScreenManager()
-        returns (uint32_t numberOfScreens,
-                 float systemDefaultScale,
-                 bool success);
 
     PSms();
 
