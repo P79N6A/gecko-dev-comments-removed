@@ -268,7 +268,6 @@ nsIncrementalDownload::ProcessTimeout()
                               nsILoadInfo::SEC_NORMAL,
                               nsIContentPolicy::TYPE_OTHER,
                               nullptr,   
-                              nullptr,   
                               this,      
                               mLoadFlags);
 

@@ -60,7 +60,6 @@
 #include "nsAttrValueInlines.h"
 #include "nsBindingManager.h"
 #include "nsCCUncollectableMarker.h"
-#include "nsChannelPolicy.h"
 #include "nsCharSeparatedTokenizer.h"
 #include "nsCOMPtr.h"
 #include "nsContentCreatorFunctions.h"
@@ -89,7 +88,6 @@
 #include "nsIAsyncVerifyRedirectCallback.h"
 #include "nsICategoryManager.h"
 #include "nsIChannelEventSink.h"
-#include "nsIChannelPolicy.h"
 #include "nsIChromeRegistry.h"
 #include "nsIConsoleService.h"
 #include "nsIContent.h"
@@ -3008,20 +3006,6 @@ nsContentUtils::LoadImage(nsIURI* aURI, nsIDocument* aLoadingDocument,
                "Could not get loadgroup; onload may fire too early");
 
   
-  
-  nsCOMPtr<nsIChannelPolicy> channelPolicy;
-  nsCOMPtr<nsIContentSecurityPolicy> csp;
-  if (aLoadingPrincipal) {
-    nsresult rv = aLoadingPrincipal->GetCsp(getter_AddRefs(csp));
-    NS_ENSURE_SUCCESS(rv, rv);
-    if (csp) {
-      channelPolicy = do_CreateInstance("@mozilla.org/nschannelpolicy;1");
-      channelPolicy->SetContentSecurityPolicy(csp);
-      channelPolicy->SetLoadType(nsIContentPolicy::TYPE_IMAGE);
-    }
-  }
-    
-  
   NS_TryToSetImmutable(aURI);
 
   
@@ -3035,7 +3019,6 @@ nsContentUtils::LoadImage(nsIURI* aURI, nsIDocument* aLoadingDocument,
                               aLoadingDocument,     
                               aLoadFlags,           
                               nullptr,               
-                              channelPolicy,        
                               initiatorType,        
                               aRequest);
 }
