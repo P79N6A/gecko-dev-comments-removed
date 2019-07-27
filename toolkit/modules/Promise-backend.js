@@ -41,6 +41,8 @@
 
 
 let Cu = this.require ? require("chrome").Cu : Components.utils;
+let Cc = this.require ? require("chrome").Cc : Components.classes;
+let Ci = this.require ? require("chrome").Ci : Components.interfaces;
 
 
 if (Cu) {
