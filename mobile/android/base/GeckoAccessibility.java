@@ -55,17 +55,17 @@ public class GeckoAccessibility {
                     "es.codefactory.android.app.ma.MAAccessibilityService" 
                 }));
 
-    public static void updateAccessibilitySettings (final GeckoApp app) {
+    public static void updateAccessibilitySettings (final Context context) {
         new UiAsyncTask<Void, Void, Void>(ThreadUtils.getBackgroundHandler()) {
                 @Override
                 public Void doInBackground(Void... args) {
                     JSONObject ret = new JSONObject();
                     sEnabled = false;
                     AccessibilityManager accessibilityManager =
-                        (AccessibilityManager) app.getSystemService(Context.ACCESSIBILITY_SERVICE);
+                        (AccessibilityManager) context.getSystemService(Context.ACCESSIBILITY_SERVICE);
                     if (accessibilityManager.isEnabled()) {
                         ActivityManager activityManager =
-                            (ActivityManager) app.getSystemService(Context.ACTIVITY_SERVICE);
+                            (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
                         List<RunningServiceInfo> runningServices = activityManager.getRunningServices(Integer.MAX_VALUE);
 
                         for (RunningServiceInfo runningServiceInfo : runningServices) {
@@ -91,9 +91,15 @@ public class GeckoAccessibility {
 
                 @Override
                 public void onPostExecute(Void args) {
-                    
-                    
-                    app.setAccessibilityEnabled(sEnabled);
+                    boolean isGeckoApp = false;
+                    try {
+                        isGeckoApp = context instanceof GeckoApp;
+                    } catch (NoClassDefFoundError ex) {}
+                    if (isGeckoApp) {
+                        
+                        
+                        ((GeckoApp) context).setAccessibilityEnabled(sEnabled);
+                    }
                 }
             }.execute();
     }
