@@ -12,7 +12,6 @@
 #include "nsIURI.h"
 #include "nsNetUtil.h"
 #include "imgINotificationObserver.h"
-#include "gfxContext.h"
 #include "mozilla/dom/SVGImageElementBinding.h"
 #include "nsContentUtils.h"
 
@@ -226,19 +225,6 @@ SVGImageElement::IsAttributeMapped(const nsIAtom* name) const
 
 
 
-
-void
-SVGImageElement::ConstructPath(gfxContext *aCtx)
-{
-  float x, y, width, height;
-
-  GetAnimatedLengthValues(&x, &y, &width, &height, nullptr);
-
-  if (width <= 0 || height <= 0)
-    return;
-
-  aCtx->Rectangle(gfxRect(x, y, width, height));
-}
 
 TemporaryRef<Path>
 SVGImageElement::BuildPath(PathBuilder* aBuilder)

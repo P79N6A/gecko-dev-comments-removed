@@ -5,7 +5,6 @@
 
 #include "mozilla/dom/SVGRectElement.h"
 #include "nsGkAtoms.h"
-#include "gfxContext.h"
 #include "mozilla/dom/SVGRectElementBinding.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/PathHelpers.h"
@@ -108,49 +107,6 @@ SVGRectElement::GetLengthInfo()
 
 
 
-
-void
-SVGRectElement::ConstructPath(gfxContext *aCtx)
-{
-  float x, y, width, height, rx, ry;
-
-  GetAnimatedLengthValues(&x, &y, &width, &height, &rx, &ry, nullptr);
-
-  
-
-  if (width <= 0 || height <= 0)
-    return;
-
-  rx = std::max(rx, 0.0f);
-  ry = std::max(ry, 0.0f);
-
-  
-  if (rx == 0 && ry == 0) {
-    aCtx->Rectangle(gfxRect(x, y, width, height));
-    return;
-  }
-
-  
-
-  bool hasRx = mLengthAttributes[ATTR_RX].IsExplicitlySet();
-  bool hasRy = mLengthAttributes[ATTR_RY].IsExplicitlySet();
-  if (hasRx && !hasRy)
-    ry = rx;
-  else if (hasRy && !hasRx)
-    rx = ry;
-
-  
-  float halfWidth  = width/2;
-  float halfHeight = height/2;
-  if (rx > halfWidth)
-    rx = halfWidth;
-  if (ry > halfHeight)
-    ry = halfHeight;
-
-  gfxSize corner(rx, ry);
-  aCtx->RoundedRectangle(gfxRect(x, y, width, height),
-                         gfxCornerSizes(corner, corner, corner, corner));
-}
 
 TemporaryRef<Path>
 SVGRectElement::BuildPath(PathBuilder* aBuilder)
