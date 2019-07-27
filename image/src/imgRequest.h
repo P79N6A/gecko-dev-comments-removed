@@ -19,6 +19,7 @@
 #include "nsStringGlue.h"
 #include "nsError.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
+#include "mozilla/Atomics.h"
 #include "mozilla/net/ReferrerPolicy.h"
 
 class imgCacheValidator;
@@ -88,9 +89,7 @@ public:
   void ContinueEvict();
 
   
-  
-  nsresult StartDecoding();
-  nsresult RequestDecode();
+  void RequestDecode() { mDecodeRequested = true; }
 
   inline void SetInnerWindowID(uint64_t aInnerWindowId) {
     mInnerWindowId = aInnerWindowId;
@@ -262,9 +261,7 @@ private:
 
   nsresult mImageErrorCode;
 
-  
-  
-  bool mDecodeRequested : 1;
+  mozilla::Atomic<bool> mDecodeRequested;
 
   bool mIsMultiPartChannel : 1;
   bool mGotData : 1;
