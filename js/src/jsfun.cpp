@@ -1006,9 +1006,11 @@ js::FunctionToString(JSContext* cx, HandleFunction fun, bool bodyOnly, bool lamb
             return out.finishString();
         }
     }
+    
+    bool funIsMethodOrNonArrowLambda = (fun->isLambda() && !fun->isArrow()) || fun->isMethod();
     if (!bodyOnly) {
         
-        if (fun->isInterpreted() && !lambdaParen && fun->isLambda() && !fun->isArrow()) {
+        if (fun->isInterpreted() && !lambdaParen && funIsMethodOrNonArrowLambda) {
             if (!out.append("("))
                 return nullptr;
         }
@@ -1129,7 +1131,7 @@ js::FunctionToString(JSContext* cx, HandleFunction fun, bool bodyOnly, bool lamb
             
             if (exprBody && !out.append(";"))
                 return nullptr;
-        } else if (!lambdaParen && fun->isLambda() && !fun->isArrow()) {
+        } else if (!lambdaParen && funIsMethodOrNonArrowLambda) {
             if (!out.append(")"))
                 return nullptr;
         }
