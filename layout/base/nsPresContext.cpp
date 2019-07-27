@@ -1702,6 +1702,12 @@ nsPresContext::ThemeChanged()
   }
 }
 
+static void
+NotifyThemeChanged(TabParent* aTabParent, void* aArg)
+{
+  aTabParent->ThemeChanged();
+}
+
 void
 nsPresContext::ThemeChangedInternal()
 {
@@ -1735,6 +1741,11 @@ nsPresContext::ThemeChangedInternal()
   
   
   MediaFeatureValuesChanged(eRestyle_Subtree, NS_STYLE_HINT_REFLOW);
+
+  
+  
+  nsContentUtils::CallOnAllRemoteChildren(mDocument->GetWindow(),
+                                          NotifyThemeChanged, nullptr);
 }
 
 void
