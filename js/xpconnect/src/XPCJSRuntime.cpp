@@ -20,6 +20,7 @@
 #include "nsIMemoryReporter.h"
 #include "nsIObserverService.h"
 #include "nsIDebug2.h"
+#include "nsIDocShell.h"
 #include "amIAddonManager.h"
 #include "nsPIDOMWindow.h"
 #include "nsPrintfCString.h"
@@ -1451,6 +1452,14 @@ XPCJSRuntime::InterruptCallback(JSContext *cx)
     }
     if (!win)
         return true;
+
+    nsIDocShell* docShell = win->GetDocShell();
+    if (docShell && docShell->GetIsPrerendered()) {
+        
+        
+        mozilla::dom::HandlePrerenderingViolation(win);
+        return false;
+    }
 
     
     nsGlobalWindow::SlowScriptResponse response = win->ShowSlowScriptDialog();
