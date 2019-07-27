@@ -508,17 +508,13 @@ public:
   }
   bool operator==(const TimeStamp& aOther) const
   {
-    
-    MOZ_ASSERT(!IsNull() && "Cannot compute with a null value");
-    MOZ_ASSERT(!aOther.IsNull(), "Cannot compute with aOther null value");
-    return mValue == aOther.mValue;
+    return IsNull()
+           ? aOther.IsNull()
+           : !aOther.IsNull() && mValue == aOther.mValue;
   }
   bool operator!=(const TimeStamp& aOther) const
   {
-    
-    MOZ_ASSERT(!IsNull(), "Cannot compute with a null value");
-    MOZ_ASSERT(!aOther.IsNull(), "Cannot compute with aOther null value");
-    return mValue != aOther.mValue;
+    return !(*this == aOther);
   }
 
   
