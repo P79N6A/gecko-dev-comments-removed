@@ -527,10 +527,11 @@ nsLoadGroup::AddRequest(nsIRequest *request, nsISupports* ctxt)
     
     
     
-    if (mDefaultLoadRequest == request || !mDefaultLoadRequest)
-        rv = request->GetLoadFlags(&flags);
-    else
+    if (mDefaultLoadRequest == request || !mDefaultLoadRequest) {
+        rv = MergeDefaultLoadFlags(request, flags);
+    } else {
         rv = MergeLoadFlags(request, flags);
+    }
     if (NS_FAILED(rv)) return rv;
     
     
@@ -1058,14 +1059,16 @@ nsLoadGroup::TelemetryReportChannel(nsITimedChannel *aTimedChannel,
 #undef HTTP_REQUEST_HISTOGRAMS
 }
 
-nsresult nsLoadGroup::MergeLoadFlags(nsIRequest *aRequest, nsLoadFlags& outFlags)
+nsresult nsLoadGroup::MergeLoadFlags(nsIRequest *aRequest,
+                                     nsLoadFlags& outFlags)
 {
     nsresult rv;
     nsLoadFlags flags, oldFlags;
 
     rv = aRequest->GetLoadFlags(&flags);
-    if (NS_FAILED(rv)) 
+    if (NS_FAILED(rv)) {
         return rv;
+    }
 
     oldFlags = flags;
 
@@ -1080,9 +1083,32 @@ nsresult nsLoadGroup::MergeLoadFlags(nsIRequest *aRequest, nsLoadFlags& outFlags
     
     flags |= mDefaultLoadFlags;
 
-    if (flags != oldFlags)
+    if (flags != oldFlags) {
         rv = aRequest->SetLoadFlags(flags);
+    }
 
+    outFlags = flags;
+    return rv;
+}
+
+nsresult nsLoadGroup::MergeDefaultLoadFlags(nsIRequest *aRequest,
+                                            nsLoadFlags& outFlags)
+{
+    nsresult rv;
+    nsLoadFlags flags, oldFlags;
+
+    rv = aRequest->GetLoadFlags(&flags);
+    if (NS_FAILED(rv)) {
+        return rv;
+    }
+
+    oldFlags = flags;
+    
+    flags |= mDefaultLoadFlags;
+
+    if (flags != oldFlags) {
+        rv = aRequest->SetLoadFlags(flags);
+    }
     outFlags = flags;
     return rv;
 }
