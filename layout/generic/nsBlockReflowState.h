@@ -157,7 +157,8 @@ public:
   
   
   
-  nscoord mFloatManagerX, mFloatManagerY;
+  mozilla::WritingMode mFloatManagerWM;
+  mozilla::LogicalPoint mFloatManagerOrigin;
 
   
   nsReflowStatus mReflowStatus;

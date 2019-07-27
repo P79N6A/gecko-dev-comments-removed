@@ -34,6 +34,8 @@ nsBlockReflowState::nsBlockReflowState(const nsHTMLReflowState& aReflowState,
   : mBlock(aFrame),
     mPresContext(aPresContext),
     mReflowState(aReflowState),
+    mFloatManagerOrigin(aReflowState.GetWritingMode()),
+    mFloatManagerStateBefore(aReflowState.GetWritingMode()),
     mContentArea(aReflowState.GetWritingMode()),
     mPushedFloats(nullptr),
     mOverflowTracker(nullptr),
@@ -74,7 +76,7 @@ nsBlockReflowState::nsBlockReflowState(const nsHTMLReflowState& aReflowState,
                "FloatManager should be set in nsBlockReflowState" );
   if (mFloatManager) {
     
-    mFloatManager->GetTranslation(mFloatManagerX, mFloatManagerY);
+    mFloatManager->GetTranslation(mFloatManagerWM, mFloatManagerOrigin);
     mFloatManager->PushState(&mFloatManagerStateBefore); 
   }
 
@@ -279,21 +281,27 @@ nsBlockReflowState::GetFloatAvailableSpaceWithState(
                       nscoord aBCoord,
                       nsFloatManager::SavedState *aState) const
 {
+  WritingMode wm = mReflowState.GetWritingMode();
 #ifdef DEBUG
   
-  nscoord wx, wy;
-  mFloatManager->GetTranslation(wx, wy);
-  NS_ASSERTION((wx == mFloatManagerX) && (wy == mFloatManagerY),
-               "bad coord system");
+  WritingMode wWM;
+  LogicalPoint wPt(wWM);
+  mFloatManager->GetTranslation(wWM, wPt);
+
+  if (wWM == mFloatManagerWM) {
+    NS_ASSERTION(wPt == mFloatManagerOrigin, "bad coord system");
+  } else {
+    
+    
+  }
 #endif
 
-  nsRect contentArea =
-    mContentArea.GetPhysicalRect(mReflowState.GetWritingMode(), mContainerWidth);
-  nscoord height = (contentArea.height == nscoord_MAX)
-                     ? nscoord_MAX : std::max(contentArea.YMost() - aBCoord, 0);
+  nscoord blockSize = (mContentArea.BSize(wm) == nscoord_MAX)
+    ? nscoord_MAX : std::max(mContentArea.BEnd(wm) - aBCoord, 0);
   nsFlowAreaRect result =
-    mFloatManager->GetFlowArea(aBCoord, nsFloatManager::BAND_FROM_POINT,
-                               height, contentArea, aState);
+    mFloatManager->GetFlowArea(wm, aBCoord, nsFloatManager::BAND_FROM_POINT,
+                               blockSize, mContentArea, aState,
+                               mContainerWidth);
   
   if (result.mRect.width < 0)
     result.mRect.width = 0;
@@ -314,18 +322,22 @@ nsBlockReflowState::GetFloatAvailableSpaceForBSize(
                       nscoord aBCoord, nscoord aBSize,
                       nsFloatManager::SavedState *aState) const
 {
+  WritingMode wm = mReflowState.GetWritingMode();
 #ifdef DEBUG
   
-  nscoord wx, wy;
-  mFloatManager->GetTranslation(wx, wy);
-  NS_ASSERTION((wx == mFloatManagerX) && (wy == mFloatManagerY),
-               "bad coord system");
+  WritingMode wWM;
+  LogicalPoint wPt(wWM);
+  mFloatManager->GetTranslation(wWM, wPt);
+  if (wWM == mFloatManagerWM) {
+    NS_ASSERTION(wPt == mFloatManagerOrigin, "bad coord system");
+  } else {
+    
+    
+  }
 #endif
-  nsRect contentArea =
-    mContentArea.GetPhysicalRect(mReflowState.GetWritingMode(), mContainerWidth);
   nsFlowAreaRect result =
-    mFloatManager->GetFlowArea(aBCoord, nsFloatManager::WIDTH_WITHIN_HEIGHT,
-                               aBSize, contentArea, aState);
+    mFloatManager->GetFlowArea(wm, aBCoord, nsFloatManager::WIDTH_WITHIN_HEIGHT,
+                               aBSize, mContentArea, aState, mContainerWidth);
   
   if (result.mRect.width < 0)
     result.mRect.width = 0;
@@ -419,6 +431,11 @@ void
 nsBlockReflowState::RecoverFloats(nsLineList::iterator aLine,
                                   nscoord aDeltaBCoord)
 {
+  WritingMode wm = mReflowState.GetWritingMode();
+  
+  
+  LogicalPoint oPt(wm);
+  WritingMode oldWM = mFloatManager->Translate(wm, oPt, mContainerWidth);
   if (aLine->HasFloats()) {
     
     
@@ -432,24 +449,33 @@ nsBlockReflowState::RecoverFloats(nsLineList::iterator aLine,
       }
 #ifdef DEBUG
       if (nsBlockFrame::gNoisyReflow || nsBlockFrame::gNoisyFloatManager) {
-        nscoord tx, ty;
-        mFloatManager->GetTranslation(tx, ty);
+        WritingMode tWM;
+        LogicalPoint tPt(tWM);
+        mFloatManager->GetTranslation(tWM, tPt);
         nsFrame::IndentBy(stdout, nsBlockFrame::gNoiseIndent);
         printf("RecoverFloats: txy=%d,%d (%d,%d) ",
-               tx, ty, mFloatManagerX, mFloatManagerY);
+               tPt.I(tWM), tPt.B(tWM),
+               mFloatManagerOrigin.I(mFloatManagerWM),
+               mFloatManagerOrigin.B(mFloatManagerWM));
         nsFrame::ListTag(stdout, floatFrame);
-        nsRect region = nsFloatManager::GetRegionFor(floatFrame);
+        LogicalRect region = nsFloatManager::GetRegionFor(wm, floatFrame,
+                                                          mContainerWidth);
         printf(" aDeltaBCoord=%d region={%d,%d,%d,%d}\n",
-               aDeltaBCoord, region.x, region.y, region.width, region.height);
+               aDeltaBCoord, region.IStart(wm), region.BStart(wm),
+               region.ISize(wm), region.BSize(wm));
       }
 #endif
       mFloatManager->AddFloat(floatFrame,
-                              nsFloatManager::GetRegionFor(floatFrame));
+                              nsFloatManager::GetRegionFor(wm, floatFrame,
+                                                           mContainerWidth),
+                              wm, mContainerWidth);
       fc = fc->Next();
     }
   } else if (aLine->IsBlock()) {
-    nsBlockFrame::RecoverFloatsFor(aLine->mFirstChild, *mFloatManager);
+    nsBlockFrame::RecoverFloatsFor(aLine->mFirstChild, *mFloatManager, wm,
+                                   mContainerWidth);
   }
+  mFloatManager->Untranslate(oldWM, oPt, mContainerWidth);
 }
 
 
@@ -535,11 +561,10 @@ nsBlockReflowState::AddFloat(nsLineLayout*       aLineLayout,
   
   
   
-  nscoord ox, oy;
-  mFloatManager->GetTranslation(ox, oy);
-  nscoord dx = ox - mFloatManagerX;
-  nscoord dy = oy - mFloatManagerY;
-  mFloatManager->Translate(-dx, -dy);
+  WritingMode oldWM;
+  LogicalPoint oPt(oldWM);
+  mFloatManager->GetTranslation(oldWM, oPt);
+  mFloatManager->SetTranslation(mFloatManagerWM, mFloatManagerOrigin);
 
   bool placed;
 
@@ -577,7 +602,7 @@ nsBlockReflowState::AddFloat(nsLineLayout*       aLineLayout,
   }
 
   
-  mFloatManager->Translate(dx, dy);
+  mFloatManager->SetTranslation(oldWM, oPt);
 
   return placed;
 }
@@ -619,6 +644,7 @@ FloatMarginWidth(const nsHTMLReflowState& aCBReflowState,
 bool
 nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
 {
+  WritingMode wm = mReflowState.GetWritingMode();
   
   
   
@@ -632,11 +658,17 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
   const nsStyleDisplay* floatDisplay = aFloat->StyleDisplay();
 
   
-  nsRect oldRegion = nsFloatManager::GetRegionFor(aFloat);
+  LogicalRect oldRegion = nsFloatManager::GetRegionFor(wm, aFloat,
+                                                       mContainerWidth);
 
   
   
-  mBCoord = std::max(mFloatManager->GetLowestFloatTop(), mBCoord);
+  
+  
+  LogicalPoint oPt(wm);
+  WritingMode oldWM = mFloatManager->Translate(wm, oPt, mContainerWidth);
+  mBCoord = std::max(mFloatManager->GetLowestFloatTop(wm, mContainerWidth),
+                     mBCoord);
 
   
   
@@ -864,17 +896,20 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
 
   
   
-  nsRect region = nsFloatManager::CalculateRegionFor(aFloat, floatMargin);
+  LogicalRect region =
+    nsFloatManager::CalculateRegionFor(wm, aFloat,
+                                       LogicalMargin(wm, floatMargin),
+                                       mContainerWidth);
   
   if (NS_FRAME_IS_NOT_COMPLETE(reflowStatus) &&
       (NS_UNCONSTRAINEDSIZE != ContentBSize())) {
-    region.height = std::max(region.height, ContentBSize() - floatY);
+    region.BSize(wm) = std::max(region.BSize(wm), ContentBSize() - floatY);
   }
-  DebugOnly<nsresult> rv =
-    mFloatManager->AddFloat(aFloat, region);
+  DebugOnly<nsresult> rv = mFloatManager->AddFloat(aFloat, region, wm,
+                                                   mContainerWidth);
   NS_ABORT_IF_FALSE(NS_SUCCEEDED(rv), "bad float placement");
   
-  nsFloatManager::StoreRegionFor(aFloat, region);
+  nsFloatManager::StoreRegionFor(wm, aFloat, region, mContainerWidth);
 
   
   
@@ -883,9 +918,9 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
     
     
     
-    nscoord top = std::min(region.y, oldRegion.y);
-    nscoord bottom = std::max(region.YMost(), oldRegion.YMost());
-    mFloatManager->IncludeInDamage(top, bottom);
+    nscoord blockStart = std::min(region.BStart(wm), oldRegion.BStart(wm));
+    nscoord blockEnd = std::max(region.BEnd(wm), oldRegion.BEnd(wm));
+    mFloatManager->IncludeInDamage(wm, blockStart, blockEnd);
   }
 
   if (!NS_FRAME_IS_FULLY_COMPLETE(reflowStatus)) {
@@ -893,12 +928,16 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
   }
 
 #ifdef NOISY_FLOATMANAGER
-  nscoord tx, ty;
-  mFloatManager->GetTranslation(tx, ty);
+  WritingMode tWM;
+  LogicalPoint tPt(wm);
+  mFloatManager->GetTranslation(tWM, tPt);
   nsFrame::ListTag(stdout, mBlock);
   printf(": FlowAndPlaceFloat: AddFloat: txy=%d,%d (%d,%d) {%d,%d,%d,%d}\n",
-         tx, ty, mFloatManagerX, mFloatManagerY,
-         region.x, region.y, region.width, region.height);
+         tPt.I(tWM), tPt.B(tWM),
+         mFloatManagerOrigin.I(mFloatManagerWM),
+         mFloatManagerOrigin.B(mFloatManagerWM),
+         region.IStart(wm), region.BStart(wm),
+         region.ISize(wm), region.BSize(wm));
 #endif
 
 #ifdef DEBUG
@@ -910,6 +949,8 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
     printf(" %d,%d,%d,%d\n", r.x, r.y, r.width, r.height);
   }
 #endif
+
+  mFloatManager->Untranslate(oldWM, oPt, mContainerWidth);
 
   return true;
 }
@@ -995,7 +1036,8 @@ nsBlockReflowState::ClearFloats(nscoord aBCoord, uint8_t aBreakType,
   WritingMode wm = mReflowState.GetWritingMode();
 
   if (aBreakType != NS_STYLE_CLEAR_NONE) {
-    newBCoord = mFloatManager->ClearFloats(newBCoord, aBreakType, aFlags);
+    newBCoord = mFloatManager->ClearFloats(wm, newBCoord, aBreakType,
+                                           mContainerWidth, aFlags);
   }
 
   if (aReplacedBlock) {

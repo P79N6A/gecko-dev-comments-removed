@@ -13,7 +13,7 @@
 
 #include "nsIntervalSet.h"
 #include "nsCoord.h"
-#include "nsRect.h"
+#include "WritingModes.h"
 #include "nsTArray.h"
 #include "nsFrameList.h" 
 
@@ -33,16 +33,17 @@ struct nsFlowAreaRect {
   nsRect mRect;
   bool mHasFloats;
 
-  nsFlowAreaRect(nscoord aX, nscoord aY, nscoord aWidth, nscoord aHeight,
+  nsFlowAreaRect(nscoord aICoord, nscoord aBCoord,
+                 nscoord aISize, nscoord aBSize,
                  bool aHasFloats)
-    : mRect(aX, aY, aWidth, aHeight), mHasFloats(aHasFloats) {}
+    : mRect(aICoord, aBCoord, aISize, aBSize), mHasFloats(aHasFloats) {}
 };
 
 #define NS_FLOAT_MANAGER_CACHE_SIZE 4
 
 class nsFloatManager {
 public:
-  explicit nsFloatManager(nsIPresShell* aPresShell);
+  explicit nsFloatManager(nsIPresShell* aPresShell, mozilla::WritingMode aWM);
   ~nsFloatManager();
 
   void* operator new(size_t aSize) CPP_THROW_NEW;
@@ -55,7 +56,9 @@ public:
 
 
 
-  static nsRect GetRegionFor(nsIFrame* aFloatFrame);
+  static mozilla::LogicalRect GetRegionFor(mozilla::WritingMode aWM,
+                                           nsIFrame* aFloatFrame,
+                                           nscoord aContainerWidth);
   
 
 
@@ -63,23 +66,32 @@ public:
 
 
 
-  static nsRect CalculateRegionFor(nsIFrame* aFloatFrame,
-                                   const nsMargin& aMargin);
+  static mozilla::LogicalRect CalculateRegionFor(
+                                mozilla::WritingMode aWM,
+                                nsIFrame* aFloatFrame,
+                                const mozilla::LogicalMargin& aMargin,
+                                nscoord aContainerWidth);
   
 
 
 
 
-  static void StoreRegionFor(nsIFrame* aFloat, nsRect& aRegion);
+  static void StoreRegionFor(mozilla::WritingMode aWM,
+                             nsIFrame* aFloat,
+                             const mozilla::LogicalRect& aRegion,
+                             nscoord aContainerWidth);
 
   
   
-  struct SavedState;
-  friend struct SavedState;
   struct SavedState {
+    SavedState(mozilla::WritingMode aWM)
+      : mWritingMode(aWM)
+      , mOrigin(aWM)
+    {}
   private:
     uint32_t mFloatInfoCount;
-    nscoord mX, mY;
+    mozilla::WritingMode mWritingMode;
+    mozilla::LogicalPoint mOrigin;
     bool mPushedLeftFloatPastBreak;
     bool mPushedRightFloatPastBreak;
     bool mSplitLeftFloatAcrossBreak;
@@ -93,16 +105,52 @@ public:
 
 
 
-  void Translate(nscoord aDx, nscoord aDy) { mX += aDx; mY += aDy; }
+
+  mozilla::WritingMode Translate(mozilla::WritingMode aWM,
+                                 mozilla::LogicalPoint aDOrigin,
+                                 nscoord aContainerWidth)
+  {
+    mozilla::WritingMode oldWM = mWritingMode;
+    mOrigin = mOrigin.ConvertTo(aWM, oldWM, aContainerWidth);
+    mWritingMode = aWM;
+    mOrigin += aDOrigin;
+    return oldWM;
+  }
+
+  
+
+
+
+  void SetTranslation(mozilla::WritingMode aWM,
+                      mozilla::LogicalPoint aOrigin)
+  {
+    mWritingMode = aWM;
+    mOrigin = aOrigin;
+  }
+
+  void Untranslate(mozilla::WritingMode aWM,
+                   mozilla::LogicalPoint aDOrigin,
+                   nscoord aContainerWidth)
+  {
+    mOrigin -= aDOrigin;
+    mOrigin = mOrigin.ConvertTo(aWM, mWritingMode, aContainerWidth);
+    mWritingMode = aWM;
+  }
 
   
 
 
 
 
-  void GetTranslation(nscoord& aX, nscoord& aY) const { aX = mX; aY = mY; }
+  void GetTranslation(mozilla::WritingMode& aWM,
+                      mozilla::LogicalPoint& aOrigin) const
+  {
+    aWM = mWritingMode;
+    aOrigin = mOrigin;
+  }
 
   
+
 
 
 
@@ -140,9 +188,10 @@ public:
 
 
   enum BandInfoType { BAND_FROM_POINT, WIDTH_WITHIN_HEIGHT };
-  nsFlowAreaRect GetFlowArea(nscoord aY, BandInfoType aInfoType,
-                             nscoord aHeight, nsRect aContentArea,
-                             SavedState* aState) const;
+  nsFlowAreaRect GetFlowArea(mozilla::WritingMode aWM,
+                             nscoord aBCoord, BandInfoType aInfoType,
+                             nscoord aBSize, mozilla::LogicalRect aContentArea,
+                             SavedState* aState, nscoord mContainerWidth) const;
 
   
 
@@ -151,7 +200,10 @@ public:
 
 
 
-  nsresult AddFloat(nsIFrame* aFloatFrame, const nsRect& aMarginRect);
+
+  nsresult AddFloat(nsIFrame* aFloatFrame,
+                    const mozilla::LogicalRect& aMarginRect,
+                    mozilla::WritingMode aWM, nscoord aContainerWidth);
 
   
 
@@ -200,14 +252,18 @@ public:
     return !mFloatDamage.IsEmpty();
   }
 
-  void IncludeInDamage(nscoord aIntervalBegin, nscoord aIntervalEnd)
+  void IncludeInDamage(mozilla::WritingMode aWM,
+                       nscoord aIntervalBegin, nscoord aIntervalEnd)
   {
-    mFloatDamage.IncludeInterval(aIntervalBegin + mY, aIntervalEnd + mY);
+    mFloatDamage.IncludeInterval(aIntervalBegin + mOrigin.B(aWM),
+                                 aIntervalEnd + mOrigin.B(aWM));
   }
 
-  bool IntersectsDamage(nscoord aIntervalBegin, nscoord aIntervalEnd) const
+  bool IntersectsDamage(mozilla::WritingMode aWM,
+                        nscoord aIntervalBegin, nscoord aIntervalEnd) const
   {
-    return mFloatDamage.Intersects(aIntervalBegin + mY, aIntervalEnd + mY);
+    return mFloatDamage.Intersects(aIntervalBegin + mOrigin.B(aWM),
+                                   aIntervalEnd + mOrigin.B(aWM));
   }
 
   
@@ -234,9 +290,11 @@ public:
 
 
 
-  nscoord GetLowestFloatTop() const;
+  nscoord GetLowestFloatTop(mozilla::WritingMode aWM,
+                            nscoord aContainerWidth) const;
 
   
+
 
 
 
@@ -247,7 +305,9 @@ public:
     
     DONT_CLEAR_PUSHED_FLOATS = (1<<0)
   };
-  nscoord ClearFloats(nscoord aY, uint8_t aBreakType, uint32_t aFlags = 0) const;
+  nscoord ClearFloats(mozilla::WritingMode aWM, nscoord aBCoord,
+                      uint8_t aBreakType, nscoord aContainerWidth,
+                      uint32_t aFlags = 0) const;
 
   
 
@@ -257,7 +317,8 @@ public:
 
   void AssertStateMatches(SavedState *aState) const
   {
-    NS_ASSERTION(aState->mX == mX && aState->mY == mY &&
+    NS_ASSERTION(aState->mWritingMode == mWritingMode &&
+                 aState->mOrigin == mOrigin &&
                  aState->mPushedLeftFloatPastBreak ==
                    mPushedLeftFloatPastBreak &&
                  aState->mPushedRightFloatPastBreak ==
@@ -281,18 +342,24 @@ private:
 
   struct FloatInfo {
     nsIFrame *const mFrame;
-    nsRect mRect;
+    mozilla::LogicalRect mRect;
+    mozilla::WritingMode mWritingMode;
     
-    nscoord mLeftYMost, mRightYMost;
+    
+    nscoord mLeftBEnd, mRightBEnd;
 
-    FloatInfo(nsIFrame* aFrame, const nsRect& aRect);
+    FloatInfo(nsIFrame* aFrame, mozilla::WritingMode aWM,
+              const mozilla::LogicalRect& aRect);
 #ifdef NS_BUILD_REFCNT_LOGGING
     FloatInfo(const FloatInfo& aOther);
     ~FloatInfo();
 #endif
   };
 
-  nscoord         mX, mY;     
+  mozilla::WritingMode mWritingMode;
+  mozilla::LogicalPoint mOrigin;  
+                                  
+
   nsTArray<FloatInfo> mFloats;
   nsIntervalSet   mFloatDamage;
 
