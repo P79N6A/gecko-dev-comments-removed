@@ -12,6 +12,7 @@
 #include "SourceSurfaceD2DTarget.h"
 #include "DrawTargetD2D.h"
 #include "DrawTargetD2D1.h"
+#include "ExtendInputEffectD2D1.h"
 
 namespace mozilla {
 namespace gfx {
@@ -521,6 +522,20 @@ static inline REFCLSID GetCLDIDForFilterType(FilterType aType)
   return GUID_NULL;
 }
 
+static bool
+IsTransferFilterType(FilterType aType)
+{
+  switch (aType) {
+    case FilterType::LINEAR_TRANSFER:
+    case FilterType::GAMMA_TRANSFER:
+    case FilterType::TABLE_TRANSFER:
+    case FilterType::DISCRETE_TRANSFER:
+      return true;
+    default:
+      return false;
+  }
+}
+
 
 TemporaryRef<FilterNode>
 FilterNodeD2D1::Create(ID2D1DeviceContext *aDC, FilterType aType)
@@ -539,15 +554,21 @@ FilterNodeD2D1::Create(ID2D1DeviceContext *aDC, FilterType aType)
     return nullptr;
   }
 
-  switch (aType) {
-    case FilterType::LINEAR_TRANSFER:
-    case FilterType::GAMMA_TRANSFER:
-    case FilterType::TABLE_TRANSFER:
-    case FilterType::DISCRETE_TRANSFER:
-      return new FilterNodeComponentTransferD2D1(aDC, effect, aType);
-    default:
-      return new FilterNodeD2D1(effect, aType);
+  RefPtr<FilterNodeD2D1> filter = new FilterNodeD2D1(effect, aType);
+
+  if (IsTransferFilterType(aType) || aType == FilterType::COLOR_MATRIX) {
+    
+    
+    filter = new FilterNodeExtendInputAdapterD2D1(aDC, filter, aType);
   }
+
+  if (IsTransferFilterType(aType)) {
+    
+    
+    filter = new FilterNodePremultiplyAdapterD2D1(aDC, filter, aType);
+  }
+
+  return filter.forget();
 }
 
 void
@@ -833,13 +854,6 @@ FilterNodeConvolveD2D1::FilterNodeConvolveD2D1(ID2D1DeviceContext *aDC)
   
   
   
-  
-  
-  
-  
-  
-  
-  
 
   HRESULT hr;
   
@@ -852,32 +866,12 @@ FilterNodeConvolveD2D1::FilterNodeConvolveD2D1(ID2D1DeviceContext *aDC)
 
   mEffect->SetValue(D2D1_CONVOLVEMATRIX_PROP_BORDER_MODE, D2D1_BORDER_MODE_SOFT);
 
-  hr = aDC->CreateEffect(CLSID_D2D1Flood, byRef(mFloodEffect));
+  hr = aDC->CreateEffect(CLSID_ExtendInputEffect, byRef(mExtendInputEffect));
 
   if (FAILED(hr)) {
     gfxWarning() << "Failed to create ConvolveMatrix filter!";
     return;
   }
-
-  mFloodEffect->SetValue(D2D1_FLOOD_PROP_COLOR, D2D1::Vector4F(0.0f, 0.0f, 0.0f, 0.0f));
-
-  hr = aDC->CreateEffect(CLSID_D2D1Composite, byRef(mCompositeEffect));
-
-  if (FAILED(hr)) {
-    gfxWarning() << "Failed to create ConvolveMatrix filter!";
-    return;
-  }
-
-  mCompositeEffect->SetInputEffect(1, mFloodEffect.get());
-
-  hr = aDC->CreateEffect(CLSID_D2D1Crop, byRef(mCropEffect));
-
-  if (FAILED(hr)) {
-    gfxWarning() << "Failed to create ConvolveMatrix filter!";
-    return;
-  }
-
-  mCropEffect->SetInputEffect(0, mCompositeEffect.get());
 
   hr = aDC->CreateEffect(CLSID_D2D1Border, byRef(mBorderEffect));
 
@@ -886,7 +880,7 @@ FilterNodeConvolveD2D1::FilterNodeConvolveD2D1(ID2D1DeviceContext *aDC)
     return;
   }
 
-  mBorderEffect->SetInputEffect(0, mCropEffect.get());
+  mBorderEffect->SetInputEffect(0, mExtendInputEffect.get());
 
   UpdateChain();
   UpdateSourceRect();
@@ -915,13 +909,12 @@ FilterNodeConvolveD2D1::SetAttribute(uint32_t aIndex, uint32_t aValue)
 ID2D1Effect*
 FilterNodeConvolveD2D1::InputEffect()
 {
-  return mEdgeMode == EDGE_MODE_NONE ? mEffect.get() : mCompositeEffect.get();
+  return mEdgeMode == EDGE_MODE_NONE ? mEffect.get() : mExtendInputEffect.get();
 }
 
 void
 FilterNodeConvolveD2D1::UpdateChain()
 {
-  
   
   
   
@@ -1006,14 +999,36 @@ FilterNodeConvolveD2D1::UpdateOffset()
 void
 FilterNodeConvolveD2D1::UpdateSourceRect()
 {
-  mCropEffect->SetValue(D2D1_CROP_PROP_RECT,
-    D2D1::RectF(Float(mSourceRect.x), Float(mSourceRect.y),
-                Float(mSourceRect.XMost()), Float(mSourceRect.YMost())));
+  mExtendInputEffect->SetValue(EXTENDINPUT_PROP_OUTPUT_RECT,
+    D2D1::Vector4F(Float(mSourceRect.x), Float(mSourceRect.y),
+                   Float(mSourceRect.XMost()), Float(mSourceRect.YMost())));
 }
 
-FilterNodeComponentTransferD2D1::FilterNodeComponentTransferD2D1(ID2D1DeviceContext *aDC,
-                                                                 ID2D1Effect *aEffect, FilterType aType)
- : FilterNodeD2D1(aEffect, aType)
+FilterNodeExtendInputAdapterD2D1::FilterNodeExtendInputAdapterD2D1(ID2D1DeviceContext *aDC,
+                                                                   FilterNodeD2D1 *aFilterNode, FilterType aType)
+ : FilterNodeD2D1(aFilterNode->MainEffect(), aType)
+ , mWrappedFilterNode(aFilterNode)
+{
+  
+  
+  
+  
+
+  HRESULT hr;
+
+  hr = aDC->CreateEffect(CLSID_ExtendInputEffect, byRef(mExtendInputEffect));
+
+  if (FAILED(hr)) {
+    gfxWarning() << "Failed to create extend input effect for filter: " << hexa(hr);
+    return;
+  }
+
+  aFilterNode->InputEffect()->SetInputEffect(0, mExtendInputEffect.get());
+}
+
+FilterNodePremultiplyAdapterD2D1::FilterNodePremultiplyAdapterD2D1(ID2D1DeviceContext *aDC,
+                                                                   FilterNodeD2D1 *aFilterNode, FilterType aType)
+ : FilterNodeD2D1(aFilterNode->MainEffect(), aType)
 {
   
   
@@ -1059,8 +1074,8 @@ FilterNodeComponentTransferD2D1::FilterNodeComponentTransferD2D1(ID2D1DeviceCont
     return;
   }
 
-  mEffect->SetInputEffect(0, mPrePremultiplyEffect.get());
-  mPostUnpremultiplyEffect->SetInputEffect(0, mEffect.get());
+  aFilterNode->InputEffect()->SetInputEffect(0, mPrePremultiplyEffect.get());
+  mPostUnpremultiplyEffect->SetInputEffect(0, aFilterNode->OutputEffect());
 }
 
 }
