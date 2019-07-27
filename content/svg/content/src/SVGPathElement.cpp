@@ -392,7 +392,7 @@ SVGPathElement::BuildPath(PathBuilder* aBuilder)
     
     
     
-    if (style->mStrokeLinecap == NS_STYLE_STROKE_LINECAP_SQUARE) {
+    if (style->mStrokeLinecap != NS_STYLE_STROKE_LINECAP_BUTT) {
       strokeLineCap = style->mStrokeLinecap;
       strokeWidth = SVGContentUtils::GetStrokeWidth(this, styleContext, nullptr);
     }
