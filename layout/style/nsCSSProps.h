@@ -136,6 +136,13 @@
 
 
 
+
+#define CSS_PROPERTY_LOGICAL_AXIS                 (1<<7)
+
+
+
+
+
 #define CSS_PROPERTY_STORES_CALC                  (1<<8)
 
 
