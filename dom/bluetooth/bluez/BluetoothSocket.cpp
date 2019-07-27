@@ -720,7 +720,7 @@ BluetoothSocket::SendSocketData(UnixSocketIOBuffer* aBuffer)
 
 
 void
-BluetoothSocket::Close()
+BluetoothSocket::CloseSocket()
 {
   MOZ_ASSERT(NS_IsMainThread());
   if (!mIO) {

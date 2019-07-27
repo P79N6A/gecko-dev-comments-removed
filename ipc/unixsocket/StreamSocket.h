@@ -58,6 +58,12 @@ public:
   
 
 
+
+  void Close();
+
+  
+
+
   void GetSocketAddr(nsAString& aAddrStr);
 
   
@@ -68,7 +74,7 @@ public:
   
   
 
-  void Close() override;
+  void CloseSocket() override;
 
 protected:
   virtual ~StreamSocket();

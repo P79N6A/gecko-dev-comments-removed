@@ -543,6 +543,29 @@ StreamSocket::SendSocketData(const nsACString& aStr)
 }
 
 void
+StreamSocket::Close()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  if (!mIO) {
+    return;
+  }
+
+  mIO->CancelDelayedConnectTask();
+
+  
+  
+  
+  mIO->ShutdownOnMainThread();
+
+  XRE_GetIOMessageLoop()->PostTask(FROM_HERE, new SocketIOShutdownTask(mIO));
+
+  mIO = nullptr;
+
+  NotifyDisconnect();
+}
+
+void
 StreamSocket::GetSocketAddr(nsAString& aAddrStr)
 {
   aAddrStr.Truncate();
@@ -617,28 +640,10 @@ StreamSocket::SendSocketData(UnixSocketIOBuffer* aBuffer)
 
 
 void
-StreamSocket::Close()
+StreamSocket::CloseSocket()
 {
-  MOZ_ASSERT(NS_IsMainThread());
-
-  if (!mIO) {
-    return;
-  }
-
-  mIO->CancelDelayedConnectTask();
-
-  
-  
-  
-  mIO->ShutdownOnMainThread();
-
-  XRE_GetIOMessageLoop()->PostTask(FROM_HERE, new SocketIOShutdownTask(mIO));
-
-  mIO = nullptr;
-
-  NotifyDisconnect();
+  Close();
 }
-
 
 } 
 } 

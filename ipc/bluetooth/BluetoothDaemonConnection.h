@@ -131,7 +131,7 @@ public:
   
   
 
-  void Close() override;
+  void CloseSocket() override;
 
 protected:
 

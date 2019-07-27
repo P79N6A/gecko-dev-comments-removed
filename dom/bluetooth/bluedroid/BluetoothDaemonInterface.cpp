@@ -1911,7 +1911,7 @@ BluetoothDaemonInterface::OnConnectSuccess(enum Channel aChannel)
       } else if (
         NS_WARN_IF(mNtfChannel->GetConnectionStatus() == SOCKET_CONNECTED)) {
         
-        mNtfChannel->Close();
+        mNtfChannel->CloseSocket();
       }
       if (!mListenSocket->Listen(mNtfChannel)) {
         OnConnectError(NTF_CHANNEL);
@@ -1942,7 +1942,7 @@ BluetoothDaemonInterface::OnConnectError(enum Channel aChannel)
   switch (aChannel) {
     case NTF_CHANNEL:
       
-      mCmdChannel->Close();
+      mCmdChannel->CloseSocket();
     case CMD_CHANNEL:
       
       unused << NS_WARN_IF(property_set("ctl.stop", "bluetoothd"));
@@ -2120,7 +2120,7 @@ BluetoothDaemonInterface::Init(
   } else if (
     NS_WARN_IF(mCmdChannel->GetConnectionStatus() == SOCKET_CONNECTED)) {
     
-    mCmdChannel->Close();
+    mCmdChannel->CloseSocket();
   }
 
   
@@ -2182,7 +2182,7 @@ private:
       mInterface->mProtocol->UnregisterModuleCmd(0x01, this);
     } else {
       
-      mInterface->mCmdChannel->Close();
+      mInterface->mCmdChannel->CloseSocket();
     }
   }
 
