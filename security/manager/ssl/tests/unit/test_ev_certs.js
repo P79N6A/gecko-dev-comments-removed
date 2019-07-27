@@ -5,13 +5,6 @@
 
 "use strict";
 
-
-
-
-
-
-const gEVExpected = isDebugBuild && !("@mozilla.org/b2g-process-global;1" in Cc);
-
 do_get_profile(); 
 const certdb = Cc["@mozilla.org/security/x509certdb;1"]
                  .getService(Ci.nsIX509CertDB);
@@ -33,7 +26,7 @@ let certList = [
   
   'int-non-ev-root',
   'non-ev-root',
-]
+];
 
 function load_ca(ca_name) {
   var ca_filename = ca_name + ".der";

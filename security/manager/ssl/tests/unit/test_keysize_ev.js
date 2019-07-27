@@ -114,12 +114,12 @@ function checkForKeyType(keyType, inadequateKeySize, adequateKeySize) {
   
   let intFullName = intOKName + "-" + rootOKName;
   let eeFullName = eeOKName + "-" + intOKName + "-" + rootOKName;
-  let expectedNamesForOCSP = isDebugBuild
+  let expectedNamesForOCSP = gEVExpected
                            ? [ intFullName,
                                eeFullName ]
                            : [ eeFullName ];
   addKeySizeTestForEV(expectedNamesForOCSP, rootOKCertFileName,
-                      [ intFullName ], eeFullName, isDebugBuild);
+                      [ intFullName ], eeFullName, gEVExpected);
 
   
   
@@ -133,7 +133,7 @@ function checkForKeyType(keyType, inadequateKeySize, adequateKeySize) {
   
   intFullName = intNotOKName + "-" + rootOKName;
   eeFullName = eeOKName + "-" + intNotOKName + "-" + rootOKName;
-  expectedNamesForOCSP = isDebugBuild
+  expectedNamesForOCSP = gEVExpected
                        ? [ intFullName ]
                        : [ eeFullName ];
   addKeySizeTestForEV(expectedNamesForOCSP, rootOKCertFileName,
