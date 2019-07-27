@@ -385,7 +385,7 @@ patched_SetUnhandledExceptionFilter (LPTOP_LEVEL_EXCEPTION_FILTER lpTopLevelExce
 
 
 
-static const SIZE_T kReserveSize = 0x2400000; 
+static const SIZE_T kReserveSize = 0x2800000; 
 static void* gBreakpadReservedVM;
 #endif
 
