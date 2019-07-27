@@ -29,28 +29,43 @@ let gDirectorySource = 'data:application/json,{"test":1}';
 
 
 
-let requiredInnerHeight =
+let requiredSize = {};
+requiredSize.innerHeight =
   40 + 32 + 
   44 + 32 + 
-  (3 * (150 + 32)) + 
+  (3 * (180 + 32)) + 
+  100; 
+requiredSize.innerWidth =
+  (3 * (290 + 20)) + 
   100; 
 
-let oldInnerHeight = null;
-if (gBrowser.contentWindow.innerHeight < requiredInnerHeight) {
-  oldInnerHeight = gBrowser.contentWindow.innerHeight;
-  info("Changing browser inner height from " + oldInnerHeight + " to " +
-       requiredInnerHeight);
-  gBrowser.contentWindow.innerHeight = requiredInnerHeight;
-  let screenHeight = {};
+let oldSize = {};
+Object.keys(requiredSize).forEach(prop => {
+  info([prop, gBrowser.contentWindow[prop], requiredSize[prop]]);
+  if (gBrowser.contentWindow[prop] < requiredSize[prop]) {
+    oldSize[prop] = gBrowser.contentWindow[prop];
+    info("Changing browser " + prop + " from " + oldSize[prop] + " to " +
+         requiredSize[prop]);
+    gBrowser.contentWindow[prop] = requiredSize[prop];
+  }
+});
+let (screenHeight = {}, screenWidth = {}) {
   Cc["@mozilla.org/gfx/screenmanager;1"].
     getService(Ci.nsIScreenManager).
     primaryScreen.
-    GetAvailRectDisplayPix({}, {}, {}, screenHeight);
+    GetAvailRectDisplayPix({}, {}, screenWidth, screenHeight);
   screenHeight = screenHeight.value;
+  screenWidth = screenWidth.value;
   if (screenHeight < gBrowser.contentWindow.outerHeight) {
     info("Warning: Browser outer height is now " +
          gBrowser.contentWindow.outerHeight + ", which is larger than the " +
          "available screen height, " + screenHeight +
+         ". That may cause problems.");
+  }
+  if (screenWidth < gBrowser.contentWindow.outerWidth) {
+    info("Warning: Browser outer width is now " +
+         gBrowser.contentWindow.outerWidth + ", which is larger than the " +
+         "available screen width, " + screenWidth +
          ". That may cause problems.");
   }
 }
@@ -59,8 +74,11 @@ registerCleanupFunction(function () {
   while (gWindow.gBrowser.tabs.length > 1)
     gWindow.gBrowser.removeTab(gWindow.gBrowser.tabs[1]);
 
-  if (oldInnerHeight)
-    gBrowser.contentWindow.innerHeight = oldInnerHeight;
+  Object.keys(oldSize).forEach(prop => {
+    if (oldSize[prop]) {
+      gBrowser.contentWindow[prop] = oldSize[prop];
+    }
+  });
 
   
   let timer = NewTabUtils.allPages._scheduleUpdateTimeout;
@@ -349,8 +367,7 @@ function checkGrid(aSitesPattern, aSites) {
       return "";
 
     let pinned = aSite.isPinned();
-    let pinButton = aSite.node.querySelector(".newtab-control-pin");
-    let hasPinnedAttr = pinButton.hasAttribute("pinned");
+    let hasPinnedAttr = aSite.node.hasAttribute("pinned");
 
     if (pinned != hasPinnedAttr)
       ok(false, "invalid state (site.isPinned() != site[pinned])");
