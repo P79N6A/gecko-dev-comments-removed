@@ -1524,7 +1524,7 @@ var BrowserApp = {
         let url = data.url;
         let flags;
 
-        if (!data.engine && /^[0-9]+$/.test(url)) {
+        if (!data.engine && /^\w+$/.test(url.trim())) {
           
           
           url = URIFixup.keywordToURI(url).spec;
