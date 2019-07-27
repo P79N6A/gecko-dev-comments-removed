@@ -1885,25 +1885,25 @@ bool
 js::TryConvertToUnboxedLayout(ExclusiveContext* cx, Shape* templateShape,
                               ObjectGroup* group, PreliminaryObjectArray* objects)
 {
-    bool isArray = !templateShape;
-
     
     
-    if (isArray) {
 #ifdef NIGHTLY_BUILD
-        if (!getenv("JS_OPTION_USE_UNBOXED_ARRAYS")) {
-            if (!group->runtimeFromAnyThread()->options().unboxedArrays())
+    if (templateShape) {
+        if (!getenv("JS_OPTION_USE_UNBOXED_OBJECTS")) {
+            if (!group->runtimeFromAnyThread()->options().unboxedObjects())
                 return true;
         }
-#else
-        return true;
-#endif
     } else {
-        if (jit::js_JitOptions.disableUnboxedObjects)
+        if (!group->runtimeFromAnyThread()->options().unboxedArrays())
             return true;
     }
+#else
+    return true;
+#endif
 
     MOZ_ASSERT_IF(templateShape, !templateShape->getObjectFlags());
+
+    bool isArray = !templateShape;
 
     if (group->runtimeFromAnyThread()->isSelfHostingGlobal(cx->global()))
         return true;
