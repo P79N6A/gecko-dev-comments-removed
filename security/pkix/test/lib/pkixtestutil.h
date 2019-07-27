@@ -38,6 +38,7 @@
 namespace mozilla { namespace pkix { namespace test {
 
 typedef std::basic_string<uint8_t> ByteString;
+extern const ByteString ENCODING_FAILED;
 
 
 
@@ -99,8 +100,7 @@ mozilla::pkix::Time YMDHMS(int16_t year, int16_t month, int16_t day,
 Result GenerateKeyPair( ScopedSECKEYPublicKey& publicKey,
                         ScopedSECKEYPrivateKey& privateKey);
 
-
-const SECItem* ASCIIToDERName(PLArenaPool* arena, const char* cn);
+ByteString CNToDERName(const char* cn);
 
 
 
@@ -136,9 +136,9 @@ enum Version { v1 = 0, v2 = 1, v3 = 2 };
 SECItem* CreateEncodedCertificate(PLArenaPool* arena, long version,
                                   Input signature,
                                   const SECItem* serialNumber,
-                                  const SECItem* issuerNameDER,
+                                  const ByteString& issuerNameDER,
                                   std::time_t notBefore, std::time_t notAfter,
-                                  const SECItem* subjectNameDER,
+                                  const ByteString& subjectNameDER,
                       SECItem const* const* extensions,
                       SECKEYPrivateKey* issuerPrivateKey,
                                   SignatureAlgorithm signatureAlgorithm,
@@ -194,9 +194,9 @@ public:
   bool skipResponseBytes; 
 
   
-  const SECItem* signerNameDER; 
-                                
-                                
+  ByteString signerNameDER; 
+                            
+                            
 
   std::time_t producedAt;
 
