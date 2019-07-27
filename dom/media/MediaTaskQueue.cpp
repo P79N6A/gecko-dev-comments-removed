@@ -275,19 +275,13 @@ MediaTaskQueue::Runner::Run()
   
   
   
-  {
+  nsresult rv = mQueue->mPool->Dispatch(this, NS_DISPATCH_NORMAL);
+  if (NS_FAILED(rv)) {
+    
     MonitorAutoLock mon(mQueue->mQueueMonitor);
-    
-    
-    
-    
-    nsresult rv = mQueue->mPool->Dispatch(this, NS_DISPATCH_NORMAL);
-    if (NS_FAILED(rv)) {
-      
-      mQueue->mIsRunning = false;
-      mQueue->mIsShutdown = true;
-      mon.NotifyAll();
-    }
+    mQueue->mIsRunning = false;
+    mQueue->mIsShutdown = true;
+    mon.NotifyAll();
   }
 
   return NS_OK;
