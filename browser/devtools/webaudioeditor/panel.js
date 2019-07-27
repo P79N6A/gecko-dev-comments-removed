@@ -1,8 +1,8 @@
-/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
-/* vim: set ft=javascript ts=2 et sw=2 tw=80: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 "use strict";
 
 const { Cc, Ci, Cu, Cr } = require("chrome");
@@ -24,7 +24,7 @@ WebAudioEditorPanel.prototype = {
   open: function() {
     let targetPromise;
 
-    // Local debugging needs to make the target remote.
+    
     if (!this.target.isRemote) {
       targetPromise = this.target.makeRemote();
     } else {
@@ -35,6 +35,7 @@ WebAudioEditorPanel.prototype = {
       .then(() => {
         this.panelWin.gToolbox = this._toolbox;
         this.panelWin.gTarget = this.target;
+
         this.panelWin.gFront = new WebAudioFront(this.target.client, this.target.form);
         return this.panelWin.startupWebAudioEditor();
       })
@@ -49,12 +50,12 @@ WebAudioEditorPanel.prototype = {
       });
   },
 
-  // DevToolPanel API
+  
 
   get target() this._toolbox.target,
 
   destroy: function() {
-    // Make sure this panel is not already destroyed.
+    
     if (this._destroyer) {
       return this._destroyer;
     }
