@@ -4160,8 +4160,7 @@ JSScript::AutoDelazify::dropScript()
 {
     
     
-    if (script_ && !script_->compartment()->isSelfHosting) {
+    if (script_ && !script_->compartment()->isSelfHosting)
         script_->setDoNotRelazify(oldDoNotRelazify_);
-        script_ = nullptr;
-    }
+    script_ = nullptr;
 }
