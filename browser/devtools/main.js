@@ -31,6 +31,7 @@ loader.lazyGetter(this, "ShaderEditorPanel", () => require("devtools/shaderedito
 loader.lazyGetter(this, "CanvasDebuggerPanel", () => require("devtools/canvasdebugger/panel").CanvasDebuggerPanel);
 loader.lazyGetter(this, "WebAudioEditorPanel", () => require("devtools/webaudioeditor/panel").WebAudioEditorPanel);
 loader.lazyGetter(this, "ProfilerPanel", () => require("devtools/profiler/panel").ProfilerPanel);
+loader.lazyGetter(this, "PerformancePanel", () => require("devtools/performance/panel").PerformancePanel);
 loader.lazyGetter(this, "TimelinePanel", () => require("devtools/timeline/panel").TimelinePanel);
 loader.lazyGetter(this, "NetMonitorPanel", () => require("devtools/netmonitor/panel").NetMonitorPanel);
 loader.lazyGetter(this, "StoragePanel", () => require("devtools/storage/panel").StoragePanel);
@@ -274,6 +275,32 @@ Tools.jsprofiler = {
   }
 };
 
+Tools.performance = {
+  id: "performance",
+  ordinal: 19,
+  icon: "chrome://browser/skin/devtools/tool-profiler.svg",
+  invertIconForLightTheme: true,
+  url: "chrome://browser/content/devtools/performance.xul",
+  
+  label: "Performance++", 
+  panelLabel: "Performance++", 
+  tooltip: l10n("profiler.tooltip2", profilerStrings),
+  accesskey: l10n("profiler.accesskey", profilerStrings),
+  key: l10n("profiler.commandkey2", profilerStrings),
+  modifiers: "shift",
+  inMenu: true,
+
+  isTargetSupported: function (target) {
+    
+    
+    return !target.isAddon && (!target.isApp || target.form.profilerActor);
+  },
+
+  build: function (frame, target) {
+    return new PerformancePanel(frame, target);
+  }
+};
+
 Tools.timeline = {
   id: "timeline",
   ordinal: 8,
@@ -403,6 +430,16 @@ let defaultTools = [
   Tools.storage,
   Tools.scratchpad
 ];
+
+
+
+
+
+
+
+if (Services.prefs.getBoolPref("devtools.performance_dev.enabled")) {
+  defaultTools.push(Tools.performance);
+}
 
 exports.defaultTools = defaultTools;
 

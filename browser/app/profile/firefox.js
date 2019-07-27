@@ -1381,6 +1381,13 @@ pref("devtools.profiler.enabled", true);
 pref("devtools.timeline.enabled", false);
 
 
+#ifdef MOZ_DEVTOOLS_PERFTOOLS
+  pref("devtools.performance_dev.enabled", true);
+#else
+  pref("devtools.performance_dev.enabled", false);
+#endif
+
+
 pref("devtools.profiler.ui.show-platform-data", false);
 
 

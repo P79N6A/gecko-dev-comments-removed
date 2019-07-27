@@ -1,0 +1,34 @@
+
+
+
+
+
+
+
+#performance-toolbar {
+  -moz-border-end: 1px solid;
+}
+
+.theme-dark #performance-toolbar > tabs,
+.theme-dark #performance-toolbar {
+  -moz-border-end-color: #000; 
+}
+
+.theme-light #performance-toolbar > tabs,
+.theme-light #performance-toolbar {
+  -moz-border-end-color: #aaa; 
+}
+
+
+
+#record-button {
+  list-style-image: url(profiler-stopwatch.svg);
+}
+
+#record-button[checked] {
+  list-style-image: url(profiler-stopwatch-checked.svg);
+}
+
+#record-button[locked] {
+  pointer-events: none;
+}
