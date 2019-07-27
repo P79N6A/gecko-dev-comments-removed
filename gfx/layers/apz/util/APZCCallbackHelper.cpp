@@ -114,6 +114,7 @@ ScrollFrameTo(nsIScrollableFrame* aFrame, const CSSPoint& aPoint, bool& aSuccess
 
 
 
+
 static void
 ScrollFrame(nsIContent* aContent,
             FrameMetrics& aMetrics)
@@ -121,7 +122,8 @@ ScrollFrame(nsIContent* aContent,
   
   nsIScrollableFrame* sf = nsLayoutUtils::FindScrollableFrameFor(aMetrics.GetScrollId());
   bool scrollUpdated = false;
-  CSSPoint actualScrollOffset = ScrollFrameTo(sf, aMetrics.GetScrollOffset(), scrollUpdated);
+  CSSPoint apzScrollOffset = aMetrics.GetScrollOffset();
+  CSSPoint actualScrollOffset = ScrollFrameTo(sf, apzScrollOffset, scrollUpdated);
 
   if (scrollUpdated) {
     
@@ -138,6 +140,16 @@ ScrollFrame(nsIContent* aContent,
   }
 
   aMetrics.SetScrollOffset(actualScrollOffset);
+
+  
+  
+  
+  
+  if (aContent) {
+    CSSPoint scrollDelta = apzScrollOffset - actualScrollOffset;
+    aContent->SetProperty(nsGkAtoms::apzCallbackTransform, new CSSPoint(scrollDelta),
+                          nsINode::DeleteProperty<CSSPoint>);
+  }
 }
 
 static void
@@ -298,18 +310,6 @@ APZCCallbackHelper::AcknowledgeScrollUpdate(const FrameMetrics::ViewID& aScrollI
     } else {
         r1->Run();
     }
-}
-
-void
-APZCCallbackHelper::UpdateCallbackTransform(const FrameMetrics& aApzcMetrics, const FrameMetrics& aActualMetrics)
-{
-    nsCOMPtr<nsIContent> content = nsLayoutUtils::FindContentFor(aApzcMetrics.GetScrollId());
-    if (!content) {
-        return;
-    }
-    CSSPoint scrollDelta = aApzcMetrics.GetScrollOffset() - aActualMetrics.GetScrollOffset();
-    content->SetProperty(nsGkAtoms::apzCallbackTransform, new CSSPoint(scrollDelta),
-                         nsINode::DeleteProperty<CSSPoint>);
 }
 
 CSSPoint

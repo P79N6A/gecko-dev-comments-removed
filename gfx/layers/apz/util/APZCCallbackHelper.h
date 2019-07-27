@@ -82,19 +82,6 @@ public:
 
 
 
-
-
-
-    static void UpdateCallbackTransform(const FrameMetrics& aApzcMetrics,
-                                        const FrameMetrics& aActualMetrics);
-
-    
-
-
-
-
-
-
     static CSSPoint ApplyCallbackTransform(const CSSPoint& aInput,
                                            const ScrollableLayerGuid& aGuid,
                                            float aPresShellResolution);
