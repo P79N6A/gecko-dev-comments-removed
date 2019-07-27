@@ -4,6 +4,7 @@
 
 
 #include "AccessibleWrap.h"
+#include "ProxyAccessible.h"
 
 #import <Cocoa/Cocoa.h>
 
@@ -29,6 +30,12 @@ GetNativeFromGeckoAccessible(mozilla::a11y::Accessible* aAccessible)
   mozAccessible* native = nil;
   aAccessible->GetNativeInterface((void**)&native);
   return native;
+}
+
+inline mozAccessible*
+GetNativeFromProxy(mozilla::a11y::ProxyAccessible* aProxy)
+{
+  return reinterpret_cast<mozAccessible*>(aProxy->GetWrapper());
 }
 
 
