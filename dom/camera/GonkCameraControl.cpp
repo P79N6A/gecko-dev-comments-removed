@@ -476,6 +476,19 @@ nsGonkCameraControl::Get(uint32_t aKey, int64_t& aRet)
 
 
 nsresult
+nsGonkCameraControl::Set(uint32_t aKey, bool aValue)
+{
+  return SetAndPush(aKey, aValue);
+}
+
+nsresult
+nsGonkCameraControl::Get(uint32_t aKey, bool& aRet)
+{
+  return mParams.Get(aKey, aRet);
+}
+
+
+nsresult
 nsGonkCameraControl::Set(uint32_t aKey, const nsTArray<Region>& aRegions)
 {
   return SetAndPush(aKey, aRegions);
