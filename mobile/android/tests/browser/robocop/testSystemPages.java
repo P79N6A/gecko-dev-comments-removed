@@ -19,8 +19,7 @@ public class testSystemPages extends PixelTest {
                 mStringHelper.ABOUT_HEALTHREPORT_URL, mStringHelper.ABOUT_SCHEME
         };
         
-        String menuItems [][][] = {{{ mStringHelper.APPS_LABEL }, { mStringHelper.ABOUT_APPS_URL }},
-                                  {{ mStringHelper.DOWNLOADS_LABEL }, { mStringHelper.ABOUT_DOWNLOADS_URL}},
+        String menuItems [][][] = {{{ mStringHelper.DOWNLOADS_LABEL }, { mStringHelper.ABOUT_DOWNLOADS_URL}},
                                   {{ mStringHelper.LOGINS_LABEL}, { StringHelper.ABOUT_LOGINS_URL }},
                                   {{ mStringHelper.ADDONS_LABEL }, { mStringHelper.ABOUT_ADDONS_URL }},
                                   {{ mStringHelper.SETTINGS_LABEL, mStringHelper.MOZILLA_SECTION_LABEL, mStringHelper.ABOUT_LABEL }, { mStringHelper.ABOUT_SCHEME }},
