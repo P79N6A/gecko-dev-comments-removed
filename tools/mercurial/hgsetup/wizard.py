@@ -10,6 +10,7 @@ import os
 import shutil
 import sys
 import which
+import subprocess
 
 from distutils.version import LooseVersion
 
@@ -381,12 +382,24 @@ class MercurialSetupWizard(object):
             c.activate_extension(name)
             print('Activated %s extension.\n' % name)
 
+    def can_use_extension(self, c, name, path=None):
+        
+        if not path:
+            path = os.path.join(self.vcs_tools_dir, 'hgext', name)
+        result = subprocess.check_output(['hg',
+             '--config', 'extensions.testmodule=%s' % path,
+             '--config', 'ui.traceback=true'],
+            stderr=subprocess.STDOUT)
+        return "Traceback" not in result
+
     def prompt_external_extension(self, c, name, prompt_text, path=None):
         
         
         
         
         if name not in c.extensions:
+            if not self.can_use_extension(c, name, path):
+                return
             print(name)
             print('=' * len(name))
             print('')
