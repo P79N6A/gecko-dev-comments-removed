@@ -731,8 +731,6 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
     const float yScale = 1.f / asyncZoomY;
 
     
-    
-    
     const CSSToParentLayerScale effectiveZoom(metrics.GetZoom().yScale * asyncZoomY);
 
     
@@ -740,6 +738,9 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
     
     const float ratio = aScrollbar->GetScrollbarThumbRatio() /
         (metrics.GetPresShellResolution() * asyncZoomY);
+    
+    
+    
     ParentLayerCoord yTranslation = -asyncScrollY * ratio;
 
     
