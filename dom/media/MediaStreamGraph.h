@@ -397,7 +397,7 @@ public:
 
 
 
-  void RunAfterPendingUpdates(nsRefPtr<nsIRunnable> aRunnable);
+  void RunAfterPendingUpdates(already_AddRefed<nsIRunnable> aRunnable);
 
   
   virtual void Destroy();
