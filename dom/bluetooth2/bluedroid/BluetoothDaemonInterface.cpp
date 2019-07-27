@@ -7,6 +7,7 @@
 #include "BluetoothDaemonInterface.h"
 #include <cutils/properties.h>
 #include <fcntl.h>
+#include <stdlib.h>
 #include "BluetoothDaemonA2dpInterface.h"
 #include "BluetoothDaemonAvrcpInterface.h"
 #include "BluetoothDaemonHandsfreeInterface.h"
@@ -17,6 +18,7 @@
 #include "mozilla/ipc/ListenSocket.h"
 #include "mozilla/ipc/UnixSocketConnector.h"
 #include "mozilla/unused.h"
+#include "prrng.h"
 
 using namespace mozilla::ipc;
 
@@ -1904,10 +1906,13 @@ BluetoothDaemonInterface::OnConnectSuccess(enum Channel aChannel)
   MOZ_ASSERT(!mResultHandlerQ.IsEmpty());
 
   switch (aChannel) {
-    case LISTEN_SOCKET:
-      
-      if (NS_WARN_IF(property_set("ctl.start", "bluetoothd") < 0)) {
-        OnConnectError(CMD_CHANNEL);
+    case LISTEN_SOCKET: {
+        
+        nsCString value("bluetoothd:-a ");
+        value.Append(mListenSocketName);
+        if (NS_WARN_IF(property_set("ctl.start", value.get()) < 0)) {
+          OnConnectError(CMD_CHANNEL);
+        }
       }
       break;
     case CMD_CHANNEL:
@@ -2067,6 +2072,46 @@ private:
   nsCString mSocketName;
 };
 
+nsresult
+BluetoothDaemonInterface::CreateRandomAddressString(
+  const nsACString& aPrefix, unsigned long aPostfixLength,
+  nsACString& aAddress)
+{
+  static const char sHexChar[16] = {
+    [0x0] = '0', [0x1] = '1', [0x2] = '2', [0x3] = '3',
+    [0x4] = '4', [0x5] = '5', [0x6] = '6', [0x7] = '7',
+    [0x8] = '8', [0x9] = '9', [0xa] = 'a', [0xb] = 'b',
+    [0xc] = 'c', [0xd] = 'd', [0xe] = 'e', [0xf] = 'f'
+  };
+
+  unsigned short seed[3];
+
+  if (NS_WARN_IF(!PR_GetRandomNoise(seed, sizeof(seed)))) {
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
+
+  aAddress = aPrefix;
+  aAddress.Append('-');
+
+  while (aPostfixLength) {
+
+    
+    
+    long value = nrand48(seed);
+
+    size_t bits = sizeof(value) * CHAR_BIT;
+
+    while ((bits > 4) && aPostfixLength) {
+      aAddress.Append(sHexChar[value&0xf]);
+      bits -= 4;
+      value >>= 4;
+      --aPostfixLength;
+    }
+  }
+
+  return NS_OK;
+}
+
 
 
 
@@ -2103,7 +2148,9 @@ BluetoothDaemonInterface::Init(
   BluetoothResultHandler* aRes)
 {
   static const char BASE_SOCKET_NAME[] = "bluetoothd";
+  static unsigned long POSTFIX_LENGTH = 16;
 
+  
   
   
   unused << NS_WARN_IF(property_set("ctl.stop", "bluetoothd"));
@@ -2130,9 +2177,21 @@ BluetoothDaemonInterface::Init(
     mCmdChannel->CloseSocket();
   }
 
+  
+  
+  
+  
+  
+  
+  nsresult rv = CreateRandomAddressString(NS_LITERAL_CSTRING(BASE_SOCKET_NAME),
+                                          POSTFIX_LENGTH,
+                                          mListenSocketName);
+  if (NS_FAILED(rv)) {
+    mListenSocketName = BASE_SOCKET_NAME;
+  }
+
   bool success = mListenSocket->Listen(
-    new BluetoothDaemonSocketConnector(NS_LITERAL_CSTRING(BASE_SOCKET_NAME)),
-    mCmdChannel);
+    new BluetoothDaemonSocketConnector(mListenSocketName), mCmdChannel);
   if (!success) {
     OnConnectError(CMD_CHANNEL);
     return;
