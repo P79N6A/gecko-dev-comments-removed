@@ -7,49 +7,16 @@
 #ifndef mozilla_ipc_UnixSocket_h
 #define mozilla_ipc_UnixSocket_h
 
-
 #include <stdlib.h>
 #include "nsAutoPtr.h"
 #include "nsString.h"
 #include "nsThreadUtils.h"
 #include "mozilla/ipc/UnixSocketWatcher.h"
+#include "mozilla/ipc/SocketBase.h"
 #include "mozilla/RefPtr.h"
 
 namespace mozilla {
 namespace ipc {
-
-class UnixSocketRawData
-{
-public:
-  
-  size_t mSize;
-  size_t mCurrentWriteOffset;
-  nsAutoArrayPtr<uint8_t> mData;
-
-  
-
-
-
-  UnixSocketRawData(size_t aSize) :
-    mSize(aSize),
-    mCurrentWriteOffset(0)
-  {
-    mData = new uint8_t[mSize];
-  }
-
-  
-
-
-
-  UnixSocketRawData(const void* aData, size_t aSize)
-    : mSize(aSize),
-      mCurrentWriteOffset(0)
-  {
-    MOZ_ASSERT(aData || !mSize);
-    mData = new uint8_t[mSize];
-    memcpy(mData, aData, mSize);
-  }
-};
 
 class UnixSocketImpl;
 
@@ -128,42 +95,13 @@ public:
 
 };
 
-enum SocketConnectionStatus {
-  SOCKET_DISCONNECTED = 0,
-  SOCKET_LISTENING = 1,
-  SOCKET_CONNECTING = 2,
-  SOCKET_CONNECTED = 3
-};
-
-class UnixSocketConsumer
+class UnixSocketConsumer : public SocketConsumerBase
 {
 protected:
   virtual ~UnixSocketConsumer();
 
 public:
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(UnixSocketConsumer)
-
   UnixSocketConsumer();
-
-  SocketConnectionStatus GetConnectionStatus() const
-  {
-    MOZ_ASSERT(NS_IsMainThread());
-    return mConnectionStatus;
-  }
-
-  int GetSuggestedConnectDelayMs() const
-  {
-    MOZ_ASSERT(NS_IsMainThread());
-    return mConnectDelayMs;
-  }
-
-  
-
-
-
-
-
-  virtual void ReceiveSocketData(nsAutoPtr<UnixSocketRawData>& aMessage) = 0;
 
   
 
@@ -219,46 +157,10 @@ public:
   
 
 
-
-  virtual void OnConnectSuccess() = 0;
-
-  
-
-
-  virtual void OnConnectError() = 0;
-
-  
-
-
-  virtual void OnDisconnect() = 0;
-
-  
-
-
-  void NotifySuccess();
-
-  
-
-
-  void NotifyError();
-
-  
-
-
-  void NotifyDisconnect();
-
-  
-
-
   void GetSocketAddr(nsAString& aAddrStr);
 
 private:
-  uint32_t CalculateConnectDelayMs() const;
-
   UnixSocketImpl* mImpl;
-  SocketConnectionStatus mConnectionStatus;
-  PRIntervalTime mConnectTimestamp;
-  uint32_t mConnectDelayMs;
 };
 
 } 
