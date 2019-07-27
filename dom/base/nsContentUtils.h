@@ -846,6 +846,14 @@ public:
 
   static bool IsValidSandboxFlag(const nsAString& aFlag);
 
+  
+
+
+
+
+
+
+  static void SandboxFlagsToString(uint32_t aFlags, nsAString& aString);
 
   
 

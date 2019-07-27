@@ -598,6 +598,12 @@ public:
     return mSandboxFlags;
   }
 
+   
+
+
+
+  void GetSandboxFlagsAsString(nsAString& aFlags);
+
   
 
 

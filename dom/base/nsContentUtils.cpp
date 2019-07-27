@@ -1315,6 +1315,41 @@ nsContentUtils::IsValidSandboxFlag(const nsAString& aFlag)
   return false;
 }
 
+
+
+
+
+
+
+
+void
+nsContentUtils::SandboxFlagsToString(uint32_t aFlags, nsAString& aString)
+{
+  if (!aFlags) {
+    SetDOMStringToNull(aString);
+    return;
+  }
+
+  aString.Truncate();
+
+
+#define IF_FLAG(flag, atom)                                 \
+  if (!(aFlags & flag)) {                                   \
+    if (!aString.IsEmpty()) {                               \
+      aString.Append(NS_LITERAL_STRING(" "));               \
+    }                                                       \
+    aString.Append(nsDependentAtomString(nsGkAtoms::atom)); \
+  }
+
+  IF_FLAG(SANDBOXED_ORIGIN, allowsameorigin)
+  IF_FLAG(SANDBOXED_FORMS, allowforms)
+  IF_FLAG(SANDBOXED_SCRIPTS, allowscripts)
+  IF_FLAG(SANDBOXED_TOPLEVEL_NAVIGATION, allowtopnavigation)
+  IF_FLAG(SANDBOXED_POINTER_LOCK, allowpointerlock)
+  IF_FLAG(SANDBOXED_AUXILIARY_NAVIGATION, allowpopups)
+#undef IF_FLAG
+}
+
 nsIBidiKeyboard*
 nsContentUtils::GetBidiKeyboard()
 {
