@@ -27,8 +27,8 @@ Example()
   
   
   
-  WeakPtr<C> weak = ptr->asWeakPtr();
-  WeakPtr<C> other = ptr->asWeakPtr();
+  WeakPtr<C> weak = ptr;
+  WeakPtr<C> other = ptr;
 
   
   if (weak) {
@@ -59,11 +59,11 @@ main()
   A* a2 = new A;
 
   a->mData = 5;
-  WeakPtr<A> ptr = a->asWeakPtr();
+  WeakPtr<A> ptr = a;
   {
-    WeakPtr<A> ptr2 = a->asWeakPtr();
+    WeakPtr<A> ptr2 = a;
     MOZ_RELEASE_ASSERT(ptr->mData == 5);
-    WeakPtr<A> ptr3 = a->asWeakPtr();
+    WeakPtr<A> ptr3 = a;
     MOZ_RELEASE_ASSERT(ptr->mData == 5);
   }
 

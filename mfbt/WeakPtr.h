@@ -130,18 +130,6 @@ private:
 template <typename T>
 class SupportsWeakPtr
 {
-public:
-
-  const T* asWeakPtr() const
-  {
-     return static_cast<const T*>(this);
-  }
-
-  T* asWeakPtr()
-  {
-     return static_cast<T*>(this);
-  }
-
 protected:
   ~SupportsWeakPtr()
   {
