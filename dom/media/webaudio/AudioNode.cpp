@@ -352,12 +352,10 @@ AudioNode::Disconnect(uint32_t aOutput, ErrorResult& aRv)
         
         
         
-        nsRefPtr<AudioNode> output = mOutputNodes[i].forget();
+        nsCOMPtr<nsIRunnable> runnable =
+          new RunnableRelease(mOutputNodes[i].forget());
         mOutputNodes.RemoveElementAt(i);
-        if (mStream) {
-          nsRefPtr<nsIRunnable> runnable = new RunnableRelease(output.forget());
-          mStream->RunAfterPendingUpdates(runnable.forget());
-        }
+        mStream->RunAfterPendingUpdates(runnable.forget());
         break;
       }
     }
