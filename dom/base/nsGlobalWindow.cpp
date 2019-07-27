@@ -7188,8 +7188,9 @@ nsGlobalWindow::ScrollTo(const CSSIntPoint& aScroll,
       scroll.y = maxpx;
     }
 
-    sf->ScrollToCSSPixels(scroll,
-                          aOptions.mBehavior == ScrollBehavior::Smooth
+    bool smoothScroll = sf->GetScrollbarStyles().IsSmoothScroll(aOptions.mBehavior);
+
+    sf->ScrollToCSSPixels(scroll, smoothScroll
                             ? nsIScrollableFrame::SMOOTH_MSD
                             : nsIScrollableFrame::INSTANT);
   }
@@ -7239,8 +7240,10 @@ nsGlobalWindow::ScrollByLines(int32_t numLines,
     
     
     
+    bool smoothScroll = sf->GetScrollbarStyles().IsSmoothScroll(aOptions.mBehavior);
+
     sf->ScrollBy(nsIntPoint(0, numLines), nsIScrollableFrame::LINES,
-                 aOptions.mBehavior == ScrollBehavior::Smooth
+                 smoothScroll
                    ? nsIScrollableFrame::SMOOTH_MSD
                    : nsIScrollableFrame::INSTANT);
   }
@@ -7264,8 +7267,10 @@ nsGlobalWindow::ScrollByPages(int32_t numPages,
     
     
     
+    bool smoothScroll = sf->GetScrollbarStyles().IsSmoothScroll(aOptions.mBehavior);
+
     sf->ScrollBy(nsIntPoint(0, numPages), nsIScrollableFrame::PAGES,
-                 aOptions.mBehavior == ScrollBehavior::Smooth
+                 smoothScroll
                    ? nsIScrollableFrame::SMOOTH_MSD
                    : nsIScrollableFrame::INSTANT);
   }
