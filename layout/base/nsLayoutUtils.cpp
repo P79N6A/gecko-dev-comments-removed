@@ -5877,18 +5877,25 @@ ComputeSnappedImageDrawingParameters(gfxContext*     aCtx,
     fill = devPixelFill;
   }
 
+  
   gfxSize destScale = didSnap ? gfxSize(currentMatrix._11, currentMatrix._22)
                               : currentMatrix.ScaleFactors(true);
   gfxSize appUnitScaledDest(dest.width * destScale.width,
                             dest.height * destScale.height);
   gfxSize scaledDest = appUnitScaledDest / aAppUnitsPerDevPixel;
+  if (scaledDest.IsEmpty()) {
+    return SnappedImageDrawingParameters();
+  }
+
+  
+  
+  
+  
   gfxSize snappedScaledDest =
     gfxSize(NSAppUnitsToIntPixels(appUnitScaledDest.width, aAppUnitsPerDevPixel),
             NSAppUnitsToIntPixels(appUnitScaledDest.height, aAppUnitsPerDevPixel));
-
-  if (scaledDest.IsEmpty() || snappedScaledDest.IsEmpty()) {
-    return SnappedImageDrawingParameters();
-  }
+  snappedScaledDest.width = std::max(snappedScaledDest.width, 1.0);
+  snappedScaledDest.height = std::max(snappedScaledDest.height, 1.0);
 
   nsIntSize intImageSize =
     aImage->OptimalImageSizeForDest(snappedScaledDest,
