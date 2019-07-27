@@ -395,7 +395,9 @@ JavaScriptShared::findObjectById(JSContext *cx, uint32_t objId)
     }
 
     
-    JSAutoCompartment ac(cx, xpc::PrivilegedJunkScope());
+    
+    
+    JSAutoCompartment ac(cx, defaultScope());
     if (!JS_WrapObject(cx, &obj))
         return nullptr;
     return obj;
