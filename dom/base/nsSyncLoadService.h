@@ -11,6 +11,7 @@
 #define nsSyncLoadService_h__
 
 #include "nscore.h"
+#include "mozilla/net/ReferrerPolicy.h"
 
 class nsIInputStream;
 class nsILoadGroup;
@@ -35,8 +36,10 @@ public:
 
 
 
+
     static nsresult LoadDocument(nsIURI *aURI, nsIPrincipal *aLoaderPrincipal,
                                  nsILoadGroup *aLoadGroup, bool aForceToXML,
+                                 mozilla::net::ReferrerPolicy aReferrerPolicy,
                                  nsIDOMDocument** aResult);
 
     
