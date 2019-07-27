@@ -1073,12 +1073,6 @@ protected:
   
   
   
-  
-  int64_t mAudioStartTime;
-
-  
-  
-  
   int64_t mAudioEndTime;
 
   

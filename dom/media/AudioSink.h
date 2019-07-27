@@ -113,7 +113,7 @@ private:
   
   
   
-  int64_t mStartTime;
+  const int64_t mStartTime;
 
   
   int64_t mWritten;
