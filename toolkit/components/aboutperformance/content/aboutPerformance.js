@@ -23,6 +23,57 @@ const MEASURES = [
   {key: "ticks", percentOfDeltaT: false, label: "Activations"},
 ];
 
+
+
+
+let AutoUpdate = {
+
+  
+
+
+  _timerId: null,
+
+  
+
+
+  _intervalDropdown: null,
+
+  
+
+
+  start: function () {
+    if (AutoUpdate._intervalDropdown == null){
+      AutoUpdate._intervalDropdown = document.getElementById("intervalDropdown");
+    }
+
+    if (AutoUpdate._timerId == null) {
+      let dropdownIndex = AutoUpdate._intervalDropdown.selectedIndex;
+      let dropdownValue = AutoUpdate._intervalDropdown.options[dropdownIndex].value;
+      AutoUpdate._timerId = window.setInterval(update, dropdownValue);
+    }
+  },
+
+  
+
+
+  stop: function () {
+    if (AutoUpdate._timerId == null) {
+      return;
+    }
+    clearInterval(AutoUpdate._timerId);
+    AutoUpdate._timerId = null;
+  },
+
+  
+
+
+  updateRefreshRate: function () {
+    AutoUpdate.stop();
+    AutoUpdate.start();
+  }
+
+};
+
 let State = {
   
 
@@ -50,7 +101,7 @@ let State = {
 
 
 
-  update: function() {
+  update: function () {
     let snapshot = PerformanceStats.getSnapshot();
     let newData = new Map();
     let deltas = [];
@@ -237,9 +288,11 @@ function updateLiveData() {
 function go() {
   
   
-  State.update();
+  document.getElementById("playButton").addEventListener("click", () => AutoUpdate.start());
+  document.getElementById("pauseButton").addEventListener("click", () => AutoUpdate.stop());
 
-  window.setTimeout(() => {
-    window.setInterval(update, 10000);
-  }, 1000);
+  document.getElementById("intervalDropdown").addEventListener("change", () => AutoUpdate.updateRefreshRate());
+
+  State.update();
+  setTimeout(update, 1000);
 }
