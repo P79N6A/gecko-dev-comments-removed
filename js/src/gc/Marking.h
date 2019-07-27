@@ -39,25 +39,48 @@ struct VMFunction;
 
 
 
+
+
 template <typename T>
 void
 TraceEdge(JSTracer *trc, BarrieredBase<T> *thingp, const char *name);
+
+
+
 
 template <typename T>
 void
 TraceRoot(JSTracer *trc, T *thingp, const char *name);
 
+
+
+
 template <typename T>
 void
 TraceManuallyBarrieredEdge(JSTracer *trc, T *thingp, const char *name);
+
 
 template <typename T>
 void
 TraceRange(JSTracer *trc, size_t len, BarrieredBase<T> *thingp, const char *name);
 
+
 template <typename T>
 void
 TraceRootRange(JSTracer *trc, size_t len, T *thingp, const char *name);
+
+
+
+template <typename T>
+void
+TraceCrossCompartmentEdge(JSTracer *trc, JSObject *src, BarrieredBase<T> *dst,
+                          const char *name);
+
+
+template <typename T>
+void
+TraceManuallyBarrieredCrossCompartmentEdge(JSTracer *trc, JSObject *src, T *dst,
+                                           const char *name);
 
 namespace gc {
 
@@ -254,22 +277,6 @@ MarkArraySlots(JSTracer *trc, size_t len, HeapSlot *vec, const char *name);
 
 void
 MarkObjectSlots(JSTracer *trc, NativeObject *obj, uint32_t start, uint32_t nslots);
-
-void
-MarkCrossCompartmentObjectUnbarriered(JSTracer *trc, JSObject *src, JSObject **dst_obj,
-                                      const char *name);
-
-void
-MarkCrossCompartmentScriptUnbarriered(JSTracer *trc, JSObject *src, JSScript **dst_script,
-                                      const char *name);
-
-
-
-
-
-void
-MarkCrossCompartmentSlot(JSTracer *trc, JSObject *src, HeapValue *dst_slot, const char *name);
-
 
 
 
