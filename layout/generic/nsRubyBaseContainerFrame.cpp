@@ -371,6 +371,13 @@ nsRubyBaseContainerFrame::Reflow(nsPresContext* aPresContext,
     };
     isize = ReflowColumns(reflowState, aStatus);
   }
+  DebugOnly<nscoord> lineSpanSize = aReflowState.mLineLayout->EndSpan(this);
+  aDesiredSize.ISize(lineWM) = isize;
+  
+  
+  
+  MOZ_ASSERT(NS_INLINE_IS_BREAK_BEFORE(aStatus) ||
+             isize == lineSpanSize || mFrames.IsEmpty());
 
   
   
@@ -384,14 +391,12 @@ nsRubyBaseContainerFrame::Reflow(nsPresContext* aPresContext,
     };
     nscoord spanISize = ReflowSpans(reflowState);
     nscoord deltaISize = spanISize - isize;
-    if (deltaISize <= 0) {
-      RubyUtils::ClearReservedISize(this);
-    } else if (allowLineBreak && ShouldBreakBefore(aReflowState, deltaISize)) {
-      aStatus = NS_INLINE_LINE_BREAK_BEFORE();
-    } else {
-      RubyUtils::SetReservedISize(this, deltaISize);
-      aReflowState.mLineLayout->AdvanceICoord(deltaISize);
-      isize = spanISize;
+    if (deltaISize > 0) {
+      if (allowLineBreak && ShouldBreakBefore(aReflowState, deltaISize)) {
+        aStatus = NS_INLINE_LINE_BREAK_BEFORE();
+      } else {
+        isize = spanISize;
+      }
     }
     
     
@@ -404,12 +409,6 @@ nsRubyBaseContainerFrame::Reflow(nsPresContext* aPresContext,
     }
   }
 
-  DebugOnly<nscoord> lineSpanSize = aReflowState.mLineLayout->EndSpan(this);
-  
-  
-  
-  MOZ_ASSERT(NS_INLINE_IS_BREAK_BEFORE(aStatus) ||
-             isize == lineSpanSize || mFrames.IsEmpty());
   for (uint32_t i = 0; i < rtcCount; i++) {
     
     
@@ -429,12 +428,11 @@ nsRubyBaseContainerFrame::Reflow(nsPresContext* aPresContext,
     }
 
     lineLayout->VerticalAlignLine();
-    LogicalSize lineSize(lineWM, isize, lineLayout->GetFinalLineBSize());
+    LogicalSize lineSize(lineWM, rtcISize, lineLayout->GetFinalLineBSize());
     aReflowState.mRubyReflowState->SetTextContainerInfo(i, textContainer, lineSize);
     lineLayout->EndLineReflow();
   }
 
-  aDesiredSize.ISize(lineWM) = isize;
   nsLayoutUtils::SetBSizeFromFontMetrics(this, aDesiredSize, aReflowState,
                                          borderPadding, lineWM, frameWM);
 }
