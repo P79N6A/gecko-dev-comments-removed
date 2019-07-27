@@ -11,6 +11,7 @@
 #include "base/basictypes.h"
 #include "base/message_loop.h"
 
+#include "mozilla/DebugOnly.h"
 #include "mozilla/Monitor.h"
 #include "mozilla/Vector.h"
 #include "mozilla/WeakPtr.h"
@@ -209,7 +210,7 @@ class MessageChannel : HasResultCodes
     void Clear();
 
     
-    void DispatchOnChannelConnected(int32_t peer_pid);
+    void DispatchOnChannelConnected();
 
     
     
@@ -665,6 +666,13 @@ class MessageChannel : HasResultCodes
 
     
     ChannelFlags mFlags;
+
+    
+    
+    
+    nsRefPtr<RefCountedTask> mOnChannelConnectedTask;
+    DebugOnly<bool> mPeerPidSet;
+    int32_t mPeerPid;
 };
 
 bool
