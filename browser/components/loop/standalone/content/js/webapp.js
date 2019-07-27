@@ -127,30 +127,6 @@ loop.webapp = (function($, _, OT, mozL10n) {
     }
   });
 
-  
-
-
-
-
-
-
-
-  var FxOSHiddenMarketplace = React.createClass({displayName: 'FxOSHiddenMarketplace',
-    render: function() {
-      return React.DOM.iframe({id: "marketplace", src: this.props.marketplaceSrc, hidden: true});
-    },
-
-    componentDidUpdate: function() {
-      
-      if (this.props.onMarketplaceMessage) {
-        
-        
-        
-        window.addEventListener("message", this.props.onMarketplaceMessage);
-      }
-    }
-  });
-
   var FxOSConversationModel = Backbone.Model.extend({
     setupOutgoingCall: function(selectedCallType) {
       if (selectedCallType) {
@@ -568,7 +544,7 @@ loop.webapp = (function($, _, OT, mozL10n) {
                dangerouslySetInnerHTML: {__html: tosHTML}})
           ), 
 
-          FxOSHiddenMarketplace({
+          loop.fxOSMarketplaceViews.FxOSHiddenMarketplaceView({
             marketplaceSrc: this.state.marketplaceSrc, 
             onMarketplaceMessage: this.state.onMarketplaceMessage}), 
 
@@ -962,8 +938,10 @@ loop.webapp = (function($, _, OT, mozL10n) {
       
       standaloneAppStore: React.PropTypes.instanceOf(
         loop.store.StandaloneAppStore).isRequired,
-      activeRoomStore: React.PropTypes.instanceOf(
-        loop.store.ActiveRoomStore).isRequired,
+      activeRoomStore: React.PropTypes.oneOfType([
+        React.PropTypes.instanceOf(loop.store.ActiveRoomStore),
+        React.PropTypes.instanceOf(loop.store.FxOSActiveRoomStore)
+      ]).isRequired,
       dispatcher: React.PropTypes.instanceOf(loop.Dispatcher).isRequired,
       feedbackStore: React.PropTypes.instanceOf(loop.store.FeedbackStore)
     },
@@ -1039,14 +1017,6 @@ loop.webapp = (function($, _, OT, mozL10n) {
 
     
     var notifications = new sharedModels.NotificationCollection();
-    var conversation
-    if (helper.isFirefoxOS(navigator.userAgent)) {
-      conversation = new FxOSConversationModel();
-    } else {
-      conversation = new sharedModels.ConversationModel({}, {
-        sdk: OT
-      });
-    }
 
     var feedbackApiClient = new loop.FeedbackAPIClient(
       loop.config.feedbackApiUrl, {
@@ -1064,6 +1034,29 @@ loop.webapp = (function($, _, OT, mozL10n) {
       dispatcher: dispatcher,
       sdk: OT
     });
+    var conversation;
+    var activeRoomStore;
+    if (helper.isFirefoxOS(navigator.userAgent)) {
+      if (loop.config.fxosApp) {
+        conversation = new FxOSConversationModel();
+        if (loop.config.fxosApp.rooms) {
+          activeRoomStore = new loop.store.FxOSActiveRoomStore(dispatcher, {
+          mozLoop: standaloneMozLoop
+          });
+        }
+      }
+    }
+
+    conversation = conversation ||
+      new sharedModels.ConversationModel({}, {
+        sdk: OT
+    });
+    activeRoomStore = activeRoomStore ||
+      new loop.store.ActiveRoomStore(dispatcher, {
+        mozLoop: standaloneMozLoop,
+        sdkDriver: sdkDriver
+    });
+
     var feedbackClient = new loop.FeedbackAPIClient(
       loop.config.feedbackApiUrl, {
       product: loop.config.feedbackProductName,
@@ -1077,10 +1070,6 @@ loop.webapp = (function($, _, OT, mozL10n) {
       dispatcher: dispatcher,
       helper: helper,
       sdk: OT
-    });
-    var activeRoomStore = new loop.store.ActiveRoomStore(dispatcher, {
-      mozLoop: standaloneMozLoop,
-      sdkDriver: sdkDriver
     });
     var feedbackStore = new loop.store.FeedbackStore(dispatcher, {
       feedbackClient: feedbackClient
