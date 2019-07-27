@@ -1237,6 +1237,8 @@ public:
   
   
   bool mSentFirstFrameLoadedEvent;
+
+  bool mSentPlaybackEndedEvent;
 };
 
 } 
