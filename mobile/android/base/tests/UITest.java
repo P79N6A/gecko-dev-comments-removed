@@ -76,6 +76,7 @@ abstract class UITest extends BaseRobocopTest
         initHelpers();
 
         
+        throwIfHttpGetFails();
         throwIfScreenNotOn();
     }
 

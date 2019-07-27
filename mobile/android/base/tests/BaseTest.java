@@ -123,6 +123,7 @@ abstract class BaseTest extends BaseRobocopTest {
         mDatabaseHelper = new DatabaseHelper(mActivity, mAsserter);
 
         
+        throwIfHttpGetFails();
         throwIfScreenNotOn();
     }
 
