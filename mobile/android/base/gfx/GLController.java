@@ -30,48 +30,6 @@ import javax.microedition.khronos.egl.EGLSurface;
 
 
 
-
-
-
-
-class EGLPreloadingThread extends Thread
-{
-    private static final String LOGTAG = "EGLPreloadingThread";
-    private EGL10 mEGL;
-    private EGLDisplay mEGLDisplay;
-
-    public EGLPreloadingThread()
-    {
-    }
-
-    @Override
-    public void run()
-    {
-        mEGL = (EGL10)EGLContext.getEGL();
-        mEGLDisplay = mEGL.eglGetDisplay(EGL10.EGL_DEFAULT_DISPLAY);
-        if (mEGLDisplay == EGL10.EGL_NO_DISPLAY) {
-            Log.w(LOGTAG, "Can't get EGL display!");
-            return;
-        }
-
-        int[] returnedVersion = new int[2];
-        if (!mEGL.eglInitialize(mEGLDisplay, returnedVersion)) {
-            Log.w(LOGTAG, "eglInitialize failed");
-            return;
-        }
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
 public class GLController {
     private static final int EGL_CONTEXT_CLIENT_VERSION = 0x3098;
     private static final String LOGTAG = "GeckoGLController";
@@ -89,7 +47,6 @@ public class GLController {
     private EGL10 mEGL;
     private EGLDisplay mEGLDisplay;
     private EGLConfig mEGLConfig;
-    private final EGLPreloadingThread mEGLPreloadingThread;
     private EGLSurface mEGLSurfaceForCompositor;
 
     private static final int LOCAL_EGL_OPENGL_ES2_BIT = 4;
@@ -113,12 +70,6 @@ public class GLController {
     };
 
     private GLController() {
-        if (AppConstants.Versions.preICS) {
-            mEGLPreloadingThread = new EGLPreloadingThread();
-            mEGLPreloadingThread.start();
-        } else {
-            mEGLPreloadingThread = null;
-        }
     }
 
     static GLController getInstance(LayerView view) {
@@ -211,19 +162,6 @@ public class GLController {
             return;
         }
 
-        
-        
-        
-        
-        
-        if (mEGLPreloadingThread != null) {
-            try {
-                mEGLPreloadingThread.join();
-            } catch (InterruptedException e) {
-                Log.w(LOGTAG, "EGLPreloadingThread interrupted", e);
-            }
-        }
-
         mEGL = (EGL10)EGLContext.getEGL();
 
         mEGLDisplay = mEGL.eglGetDisplay(EGL10.EGL_DEFAULT_DISPLAY);
@@ -232,20 +170,18 @@ public class GLController {
             return;
         }
 
-        if (AppConstants.Versions.preICS) {
-            
-            
-            
-            
-            
-            
-            
-            
-            int[] returnedVersion = new int[2];
-            if (!mEGL.eglInitialize(mEGLDisplay, returnedVersion)) {
-                Log.w(LOGTAG, "eglInitialize failed");
-                return;
-            }
+        
+        
+        
+        
+        
+        
+        
+        
+        int[] returnedVersion = new int[2];
+        if (!mEGL.eglInitialize(mEGLDisplay, returnedVersion)) {
+            Log.w(LOGTAG, "eglInitialize failed");
+            return;
         }
 
         mEGLConfig = chooseConfig();
