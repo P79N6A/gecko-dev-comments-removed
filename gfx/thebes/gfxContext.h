@@ -518,10 +518,6 @@ public:
 
 
 
-
-
-
-
     void SetOperator(GraphicsOperator op);
     GraphicsOperator CurrentOperator() const;
 
@@ -593,32 +589,12 @@ public:
 
     mozilla::gfx::Point GetDeviceOffset() const;
 
-    
-
-
-
     enum {
-        
-
-
-
-
-
-
-
-
-
-
-        FLAG_SIMPLIFY_OPERATORS = (1 << 0),
-        
+         
 
 
 
         FLAG_DISABLE_SNAPPING = (1 << 1),
-        
-
-
-        FLAG_DISABLE_COPY_BACKGROUND = (1 << 2)
     };
 
     void SetFlag(int32_t aFlag) { mFlags |= aFlag; }
