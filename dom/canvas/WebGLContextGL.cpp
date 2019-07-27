@@ -942,7 +942,7 @@ WebGLContext::GenerateMipmap(GLenum rawTarget)
         
         gl->fTexParameteri(target.get(), LOCAL_GL_TEXTURE_MIN_FILTER, LOCAL_GL_NEAREST_MIPMAP_NEAREST);
         gl->fGenerateMipmap(target.get());
-        gl->fTexParameteri(target.get(), LOCAL_GL_TEXTURE_MIN_FILTER, tex->MinFilter());
+        gl->fTexParameteri(target.get(), LOCAL_GL_TEXTURE_MIN_FILTER, tex->MinFilter().get());
     } else {
         gl->fGenerateMipmap(target.get());
     }
