@@ -305,6 +305,13 @@ nsStyleLinkElement::DoUpdateStyleSheet(nsIDocument* aOldDocument,
   
   NS_ENSURE_TRUE(thisContent, NS_ERROR_FAILURE);
 
+  if (thisContent->IsInAnonymousSubtree() &&
+      thisContent->IsAnonymousContentInSVGUseSubtree()) {
+    
+    
+    return NS_OK;
+  }
+
   
   
   ShadowRoot* containingShadow = thisContent->GetContainingShadow();
