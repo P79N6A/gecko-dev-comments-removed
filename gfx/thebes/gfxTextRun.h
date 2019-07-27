@@ -735,7 +735,7 @@ public:
 
     
     
-    virtual gfxFont* GetFirstValidFont();
+    virtual gfxFont* GetFirstValidFont(uint32_t aCh = 0x20);
 
     
     
@@ -973,11 +973,12 @@ protected:
         }
 
         bool NeedsBold() const { return mNeedsBold; }
-        bool IsUserFont() const {
+        bool IsUserFontContainer() const {
             return FontEntry()->mIsUserFontContainer;
         }
         bool IsLoading() const { return mLoading; }
         bool IsInvalid() const { return mInvalid; }
+        void CheckState(bool& aSkipDrawing);
         void SetLoading(bool aIsLoading) { mLoading = aIsLoading; }
         void SetInvalid() { mInvalid = true; }
 
@@ -992,6 +993,7 @@ protected:
             }
             mFont = aFont;
             mFontCreated = true;
+            mLoading = false;
         }
 
     private:
@@ -1057,7 +1059,11 @@ protected:
     
     
     
-    virtual gfxFont* GetFontAt(int32_t i);
+    virtual gfxFont* GetFontAt(int32_t i, uint32_t aCh = 0x20);
+
+    
+    
+    bool FontLoadingForFamily(gfxFontFamily* aFamily, uint32_t aCh) const;
 
     
     gfxFont* GetDefaultFont();

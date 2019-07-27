@@ -2084,6 +2084,13 @@ pref("layout.css.convertFromNode.enabled", true);
 #endif
 
 
+#ifdef RELEASE_BUILD
+pref("layout.css.unicode-range.enabled", false);
+#else
+pref("layout.css.unicode-range.enabled", true);
+#endif
+
+
 pref("layout.css.text-align-true-value.enabled", false);
 
 

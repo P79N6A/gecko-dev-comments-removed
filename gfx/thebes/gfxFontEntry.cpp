@@ -275,7 +275,9 @@ gfxFontEntry::RealFaceName()
 }
 
 already_AddRefed<gfxFont>
-gfxFontEntry::FindOrMakeFont(const gfxFontStyle *aStyle, bool aNeedsBold)
+gfxFontEntry::FindOrMakeFont(const gfxFontStyle *aStyle,
+                             bool aNeedsBold,
+                             gfxCharacterMap* aUnicodeRangeMap)
 {
     
     nsRefPtr<gfxFont> font = gfxFontCache::GetCache()->Lookup(this, aStyle);
@@ -289,6 +291,7 @@ gfxFontEntry::FindOrMakeFont(const gfxFontStyle *aStyle, bool aNeedsBold)
             return nullptr;
         }
         font = newFont;
+        font->SetUnicodeRangeMap(aUnicodeRangeMap);
         gfxFontCache::GetCache()->AddNew(font);
     }
     return font.forget();
@@ -1124,22 +1127,128 @@ gfxFontEntry*
 gfxFontFamily::FindFontForStyle(const gfxFontStyle& aFontStyle, 
                                 bool& aNeedsSyntheticBold)
 {
-    if (!mHasStyles)
+    nsAutoTArray<gfxFontEntry*,4> matched;
+    FindAllFontsForStyle(aFontStyle, matched, aNeedsSyntheticBold);
+    if (!matched.IsEmpty()) {
+        return matched[0];
+    }
+    return nullptr;
+}
+
+static inline uint32_t
+StyleStretchDistance(gfxFontEntry *aFontEntry, bool aTargetItalic,
+                     int16_t aTargetStretch)
+{
+    
+    
+    
+
+    int32_t distance = 0;
+    if (aTargetStretch != aFontEntry->mStretch) {
+        
+        
+        
+        if (aTargetStretch > 0) {
+            distance = (aFontEntry->mStretch - aTargetStretch) * 2;
+        } else {
+            distance = (aTargetStretch - aFontEntry->mStretch) * 2;
+        }
+        
+        
+        
+        
+        if (distance < 0) {
+            distance = -distance + 10;
+        }
+    }
+    if (aFontEntry->IsItalic() != aTargetItalic) {
+        distance += 1;
+    }
+    return uint32_t(distance);
+}
+
+#define NON_DESIRED_DIRECTION_DISTANCE 1000
+#define MAX_WEIGHT_DISTANCE            2000
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static inline uint32_t
+WeightDistance(uint32_t aTargetWeight, uint32_t aFontWeight)
+{
+    
+    
+
+    int32_t distance = 0, addedDistance = 0;
+    if (aTargetWeight != aFontWeight) {
+        if (aTargetWeight > 500) {
+            distance = aFontWeight - aTargetWeight;
+        } else if (aTargetWeight < 400) {
+            distance = aTargetWeight - aFontWeight;
+        } else {
+            
+
+            
+            if (aFontWeight >= 400 && aFontWeight <= 500) {
+                if (aFontWeight < aTargetWeight) {
+                    distance = 500 - aFontWeight;
+                } else {
+                    distance = aFontWeight - aTargetWeight;
+                }
+            } else {
+                
+                
+                
+                distance = aTargetWeight - aFontWeight;
+                addedDistance = 100;
+            }
+        }
+        if (distance < 0) {
+            distance = -distance + NON_DESIRED_DIRECTION_DISTANCE;
+        }
+        distance += addedDistance;
+    }
+    return uint32_t(distance);
+}
+
+void
+gfxFontFamily::FindAllFontsForStyle(const gfxFontStyle& aFontStyle,
+                                    nsTArray<gfxFontEntry*>& aFontEntryList,
+                                    bool& aNeedsSyntheticBold)
+{
+    if (!mHasStyles) {
         FindStyleVariations(); 
+    }
 
     NS_ASSERTION(mAvailableFonts.Length() > 0, "font family with no faces!");
+    NS_ASSERTION(aFontEntryList.IsEmpty(), "non-empty fontlist passed in");
 
     aNeedsSyntheticBold = false;
 
     int8_t baseWeight = aFontStyle.ComputeWeight();
     bool wantBold = baseWeight >= 6;
+    gfxFontEntry *fe = nullptr;
 
     
-    if (mAvailableFonts.Length() == 1) {
-        gfxFontEntry *fe = mAvailableFonts[0];
+    
+    uint32_t count = mAvailableFonts.Length();
+    if (count == 1) {
+        fe = mAvailableFonts[0];
         aNeedsSyntheticBold =
             wantBold && !fe->IsBold() && aFontStyle.allowSyntheticWeight;
-        return fe;
+        aFontEntryList.AppendElement(fe);
+        return;
     }
 
     bool wantItalic = (aFontStyle.style &
@@ -1160,10 +1269,11 @@ gfxFontFamily::FindFontForStyle(const gfxFontStyle& aFontStyle,
                             (wantBold ? kBoldMask : 0);
 
         
-        gfxFontEntry *fe = mAvailableFonts[faceIndex];
+        fe = mAvailableFonts[faceIndex];
         if (fe) {
             
-            return fe;
+            aFontEntryList.AppendElement(fe);
+            return;
         }
 
         
@@ -1182,67 +1292,59 @@ gfxFontFamily::FindFontForStyle(const gfxFontStyle& aFontStyle,
                 aNeedsSyntheticBold =
                     wantBold && !fe->IsBold() &&
                     aFontStyle.allowSyntheticWeight;
-                return fe;
+                aFontEntryList.AppendElement(fe);
+                return;
             }
         }
 
         
         NS_NOTREACHED("no face found in simple font family!");
-        return nullptr;
     }
 
     
     
     
     
-
-    gfxFontEntry *weightList[10] = { 0 };
-    bool foundWeights = FindWeightsForStyle(weightList, wantItalic, aFontStyle.stretch);
-    if (!foundWeights) {
-        return nullptr;
-    }
-
-    
-    int8_t matchBaseWeight = 0;
-    int8_t i = baseWeight;
-
     
     
-    if (baseWeight == 4 && !weightList[4]) {
-        i = 5; 
-    }
-
     
-    int8_t direction = (baseWeight > 5) ? 1 : -1;
-    for (; ; i += direction) {
-        if (weightList[i]) {
-            matchBaseWeight = i;
-            break;
-        }
+    
+    
+    
 
-        
-        
-        if (i == 1 || i == 9) {
-            i = baseWeight;
-            direction = -direction;
+    uint32_t minDistance = 0xffffffff;
+    gfxFontEntry* matched = nullptr;
+    
+    
+    for (int32_t i = count - 1; i >= 0; i--) {
+        fe = mAvailableFonts[i];
+        uint32_t distance =
+            WeightDistance(aFontStyle.weight, fe->Weight()) +
+            (StyleStretchDistance(fe, wantItalic, aFontStyle.stretch) *
+             MAX_WEIGHT_DISTANCE);
+        if (distance < minDistance) {
+            matched = fe;
+            if (!aFontEntryList.IsEmpty()) {
+                aFontEntryList.Clear();
+            }
+            minDistance = distance;
+        } else if (distance == minDistance) {
+            if (matched) {
+                aFontEntryList.AppendElement(matched);
+            }
+            matched = fe;
         }
     }
 
-    NS_ASSERTION(matchBaseWeight != 0, 
-                 "weight mapping should always find at least one font in a family");
+    NS_ASSERTION(matched, "didn't match a font within a family");
 
-    gfxFontEntry *matchFE = weightList[matchBaseWeight];
-
-    NS_ASSERTION(matchFE,
-                 "weight mapping should always find at least one font in a family");
-
-    if (!matchFE->IsBold() && baseWeight >= 6 &&
-        aFontStyle.allowSyntheticWeight)
-    {
-        aNeedsSyntheticBold = true;
+    if (matched) {
+        aFontEntryList.AppendElement(matched);
+        if (!matched->IsBold() && aFontStyle.weight >= 600 &&
+            aFontStyle.allowSyntheticWeight) {
+            aNeedsSyntheticBold = true;
+        }
     }
-
-    return matchFE;
 }
 
 void
@@ -1312,93 +1414,6 @@ gfxFontFamily::ContainsFace(gfxFontEntry* aFontEntry) {
     return false;
 }
 #endif
-
-static inline uint32_t
-StyleDistance(gfxFontEntry *aFontEntry,
-              bool anItalic, int16_t aStretch)
-{
-    
-    
-    
-
-    int32_t distance = 0;
-    if (aStretch != aFontEntry->mStretch) {
-        
-        
-        
-        if (aStretch > 0) {
-            distance = (aFontEntry->mStretch - aStretch) * 2;
-        } else {
-            distance = (aStretch - aFontEntry->mStretch) * 2;
-        }
-        
-        
-        
-        
-        if (distance < 0) {
-            distance = -distance + 10;
-        }
-    }
-    if (aFontEntry->IsItalic() != anItalic) {
-        distance += 1;
-    }
-    return uint32_t(distance);
-}
-
-bool
-gfxFontFamily::FindWeightsForStyle(gfxFontEntry* aFontsForWeights[],
-                                   bool anItalic, int16_t aStretch)
-{
-    uint32_t foundWeights = 0;
-    uint32_t bestMatchDistance = 0xffffffff;
-
-    uint32_t count = mAvailableFonts.Length();
-    for (uint32_t i = 0; i < count; i++) {
-        
-        
-        gfxFontEntry *fe = mAvailableFonts[i];
-        uint32_t distance = StyleDistance(fe, anItalic, aStretch);
-        if (distance <= bestMatchDistance) {
-            int8_t wt = fe->mWeight / 100;
-            NS_ASSERTION(wt >= 1 && wt < 10, "invalid weight in fontEntry");
-            if (!aFontsForWeights[wt]) {
-                
-                aFontsForWeights[wt] = fe;
-                ++foundWeights;
-            } else {
-                uint32_t prevDistance =
-                    StyleDistance(aFontsForWeights[wt], anItalic, aStretch);
-                if (prevDistance >= distance) {
-                    
-                    
-                    aFontsForWeights[wt] = fe;
-                }
-            }
-            bestMatchDistance = distance;
-        }
-    }
-
-    NS_ASSERTION(foundWeights > 0, "Font family containing no faces?");
-
-    if (foundWeights == 1) {
-        
-        return true;
-    }
-
-    
-    
-    
-    for (uint32_t i = 0; i < 10; ++i) {
-        if (aFontsForWeights[i] &&
-            StyleDistance(aFontsForWeights[i], anItalic, aStretch) > bestMatchDistance)
-        {
-            aFontsForWeights[i] = 0;
-        }
-    }
-
-    return (foundWeights > 0);
-}
-
 
 void gfxFontFamily::LocalizedName(nsAString& aLocalizedName)
 {

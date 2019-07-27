@@ -63,6 +63,11 @@ public:
         mHash(0), mBuildOnTheFly(false), mShared(false)
     { }
 
+    gfxCharacterMap(const gfxSparseBitSet& aOther) :
+        gfxSparseBitSet(aOther),
+        mHash(0), mBuildOnTheFly(false), mShared(false)
+    { }
+
     void CalcHash() { mHash = GetChecksum(); }
 
     size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
@@ -306,8 +311,10 @@ public:
         AutoTable& operator=(const AutoTable&) MOZ_DELETE;
     };
 
-    already_AddRefed<gfxFont> FindOrMakeFont(const gfxFontStyle *aStyle,
-                                             bool aNeedsBold);
+    already_AddRefed<gfxFont>
+    FindOrMakeFont(const gfxFontStyle *aStyle,
+                   bool aNeedsBold,
+                   gfxCharacterMap* aUnicodeRangeMap = nullptr);
 
     
     
@@ -682,6 +689,11 @@ public:
     gfxFontEntry *FindFontForStyle(const gfxFontStyle& aFontStyle, 
                                    bool& aNeedsSyntheticBold);
 
+    void
+    FindAllFontsForStyle(const gfxFontStyle& aFontStyle,
+                         nsTArray<gfxFontEntry*>& aFontEntryList,
+                         bool& aNeedsSyntheticBold);
+
     
     
     void FindFontForChar(GlobalFontMatch *aMatchData);
@@ -771,11 +783,6 @@ protected:
     virtual ~gfxFontFamily()
     {
     }
-
-    
-    
-    virtual bool FindWeightsForStyle(gfxFontEntry* aFontsForWeights[],
-                                       bool anItalic, int16_t aStretch);
 
     bool ReadOtherFamilyNamesForFace(gfxPlatformFontList *aPlatformFontList,
                                      hb_blob_t           *aNameTable,

@@ -238,13 +238,6 @@ public:
     
     
     
-    gfxUserFontEntry* FindUserFontEntry(gfxFontFamily* aFamily,
-                                        const gfxFontStyle& aFontStyle,
-                                        bool& aNeedsBold);
-
-    
-    
-    
     gfxUserFontEntry* FindUserFontEntryAndLoad(gfxFontFamily* aFamily,
                                                const gfxFontStyle& aFontStyle,
                                                bool& aNeedsBold,
@@ -566,6 +559,19 @@ public:
     bool WaitForUserFont() const {
         return mUserFontLoadState == STATUS_LOADING &&
                mFontDataLoadingState < LOADING_SLOWLY;
+    }
+
+    
+    
+    bool CharacterInUnicodeRange(uint32_t ch) const {
+        if (mCharacterMap) {
+            return mCharacterMap->test(ch);
+        }
+        return true;
+    }
+
+    gfxCharacterMap* GetUnicodeRangeMap() const {
+        return mCharacterMap.get();
     }
 
     
