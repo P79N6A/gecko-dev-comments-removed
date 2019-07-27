@@ -44,6 +44,13 @@ nsWebNavigationInfo::IsTypeSupported(const nsACString& aType,
   
   *aIsTypeSupported = nsIWebNavigationInfo::UNSUPPORTED;
 
+  
+  
+  if (aType.LowerCaseEqualsLiteral("application/pdf") &&
+      nsContentUtils::IsPDFJSEnabled()) {
+    return NS_OK;
+  }
+
   const nsCString& flatType = PromiseFlatCString(aType);
   nsresult rv = IsTypeSupportedInternal(flatType, aIsTypeSupported);
   NS_ENSURE_SUCCESS(rv, rv);

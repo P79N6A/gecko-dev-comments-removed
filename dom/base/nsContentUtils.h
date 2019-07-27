@@ -2070,6 +2070,11 @@ public:
 
   static void XPCOMShutdown();
 
+  
+
+
+  static bool IsPDFJSEnabled();
+
   enum ContentViewerType
   {
       TYPE_UNSUPPORTED,
