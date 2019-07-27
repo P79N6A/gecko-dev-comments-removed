@@ -1424,6 +1424,8 @@ public:
     PAINT_LAYERS = 0x01,
     
     PAINT_COMPOSITE = 0x02,
+    
+    PAINT_SYNC_DECODE_IMAGES = 0x04
   };
   virtual void Paint(nsView* aViewToPaint, const nsRegion& aDirtyRegion,
                      uint32_t aFlags) = 0;
