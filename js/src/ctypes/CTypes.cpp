@@ -1297,6 +1297,12 @@ InitTypeClasses(JSContext* cx, HandleObject parent)
     return false;
 
   
+  
+  if (!JS_DefineProperty(cx, parent, "jschar", typeObj_char16_t,
+                         JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT))
+    return false;
+
+  
   RootedObject typeObj(cx,
     CType::DefineBuiltin(cx, parent, "void_t", CTypeProto, CDataProto, "void",
                          TYPE_void_t, JSVAL_VOID, JSVAL_VOID, &ffi_type_void));
