@@ -351,6 +351,15 @@ public:
     StyleBackground();
   }
 
+  
+
+
+
+
+
+
+  void MoveTo(nsStyleContext* aNewParent);
+
 #ifdef DEBUG
   void List(FILE* out, int32_t aIndent);
   static void AssertStyleStructMaxDifferenceValid();
@@ -404,7 +413,7 @@ private:
                                      int32_t aLevels) const;
 #endif
 
-  nsStyleContext* const mParent; 
+  nsStyleContext* mParent; 
 
   
   

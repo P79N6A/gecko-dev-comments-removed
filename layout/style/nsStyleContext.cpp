@@ -242,6 +242,28 @@ void nsStyleContext::RemoveChild(nsStyleContext* aChild)
   aChild->mPrevSibling = aChild;
 }
 
+void
+nsStyleContext::MoveTo(nsStyleContext* aNewParent)
+{
+  MOZ_ASSERT(aNewParent != mParent);
+
+  
+  
+  MOZ_ASSERT(!IsStyleIfVisited());
+  MOZ_ASSERT(!aNewParent->IsStyleIfVisited());
+
+  nsStyleContext* oldParent = mParent;
+
+  aNewParent->AddRef();
+
+  mParent->RemoveChild(this);
+
+  mParent = aNewParent;
+  mParent->AddChild(this);
+
+  oldParent->Release();
+}
+
 already_AddRefed<nsStyleContext>
 nsStyleContext::FindChildWithRules(const nsIAtom* aPseudoTag, 
                                    nsRuleNode* aRuleNode,
