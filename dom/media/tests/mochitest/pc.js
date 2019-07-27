@@ -37,281 +37,27 @@ const signalingStateTransitions = {
 
 
 
-
-
-function CommandChain(framework, commandList) {
-  this._framework = framework;
-
-  this._commands = commandList || [ ];
-  this._current = 0;
-
-  this.onFinished = null;
-}
-
-CommandChain.prototype = {
-
-  
-
-
-
-
-  get current() {
-    return this._current;
-  },
-
-  
-
-
-
-
-  get finished() {
-    return this._current === this._commands.length;
-  },
-
-  
-
-
-
-
-  get commands() {
-    return this._commands;
-  },
-
-  
-
-
-
-
-
-  set commands(commands) {
-    this._commands = commands;
-  },
-
-  
-
-
-  executeNext : function () {
-    var self = this;
-
-    function _executeNext() {
-      if (!self.finished) {
-        var step = self._commands[self._current];
-        self._current++;
-
-        self.currentStepLabel = step[0];
-        info("Run step: " + self.currentStepLabel);
-        step[1](self._framework);      
-      }
-      else if (typeof(self.onFinished) === 'function') {
-        self.onFinished();
-      }
-    }
-
-    
-    
-    window.setTimeout(_executeNext, 0);
-  },
-
-  
-
-
-
-
-
-  append: function (commands) {
-    this._commands = this._commands.concat(commands);
-  },
-
-  
-
-
-
-
-
-
-  indexOf: function (id) {
-    for (var i = 0; i < this._commands.length; i++) {
-      if (this._commands[i][0] === id) {
-        return i;
-      }
-    }
-
-    return -1;
-  },
-
-  
-
-
-
-
-
-
-
-  insertAfter: function (id, commands) {
-    var index = this.indexOf(id);
-
-    if (index > -1) {
-      var tail = this.removeAfter(id);
-
-      this.append(commands);
-      this.append(tail);
-    }
-  },
-
-  
-
-
-
-
-
-
-
-  insertBefore: function (id, commands) {
-    var index = this.indexOf(id);
-
-    if (index > -1) {
-      var tail = this.removeAfter(id);
-      var object = this.remove(id);
-
-      this.append(commands);
-      this.append(object);
-      this.append(tail);
-    }
-  },
-
-  
-
-
-
-
-
-
-  remove : function (id) {
-    return this._commands.splice(this.indexOf(id), 1);
-  },
-
-  
-
-
-
-
-
-
-  removeAfter : function (id) {
-    var index = this.indexOf(id);
-
-    if (index > -1) {
-      return this._commands.splice(index + 1);
-    }
-
-    return null;
-  },
-
-  
-
-
-
-
-
-
-  removeBefore : function (id) {
-    var index = this.indexOf(id);
-
-    if (index > -1) {
-      return this._commands.splice(0, index);
-    }
-
-    return null;
-  },
-
-  
-
-
-
-
-
-
-
-
-  replace : function (id, commands) {
-    this.insertBefore(id, commands);
-    return this.remove(id);
-  },
-
-  
-
-
-
-
-
-
-  replaceAfter : function (id, commands) {
-    var oldCommands = this.removeAfter(id);
-    this.append(commands);
-
-    return oldCommands;
-  },
-
-  
-
-
-
-
-
-
-  replaceBefore : function (id, commands) {
-    var oldCommands = this.removeBefore(id);
-    this.insertBefore(id, commands);
-
-    return oldCommands;
-  },
-
-  
-
-
-
-
-
-  filterOut : function (id_match) {
-    for (var i = this._commands.length - 1; i >= 0; i--) {
-      if (id_match.test(this._commands[i][0])) {
-        this._commands.splice(i, 1);
-      }
-    }
-  }
-};
-
-
-
-
-
-
-
-
-
-
 function MediaElementChecker(element) {
   this.element = element;
   this.canPlayThroughFired = false;
   this.timeUpdateFired = false;
   this.timePassed = false;
 
-  var self = this;
-  var elementId = self.element.getAttribute('id');
+  var elementId = this.element.getAttribute('id');
 
   
   
-  var canPlayThroughCallback = function() {
+  var canPlayThroughCallback = () => {
     info('canplaythrough fired for media element ' + elementId);
-    self.canPlayThroughFired = true;
-    self.element.removeEventListener('canplaythrough', canPlayThroughCallback,
+    this.canPlayThroughFired = true;
+    this.element.removeEventListener('canplaythrough', canPlayThroughCallback,
                                      false);
   };
 
   
   
-  var timeUpdateCallback = function() {
-    self.timeUpdateFired = true;
+  var timeUpdateCallback = () => {
+    this.timeUpdateFired = true;
     info('timeupdate fired for media element ' + elementId);
 
     
@@ -319,8 +65,8 @@ function MediaElementChecker(element) {
     if(element.mozSrcObject && element.mozSrcObject.currentTime > 0 &&
        element.currentTime > 0) {
       info('time passed for media element ' + elementId);
-      self.timePassed = true;
-      self.element.removeEventListener('timeupdate', timeUpdateCallback,
+      this.timePassed = true;
+      this.element.removeEventListener('timeupdate', timeUpdateCallback,
                                        false);
     }
   };
@@ -335,29 +81,19 @@ MediaElementChecker.prototype = {
 
 
 
-
-
-
-  waitForMediaFlow : function MEC_WaitForMediaFlow(onSuccess) {
-    var self = this;
-    var elementId = self.element.getAttribute('id');
+  waitForMediaFlow: function() {
+    var elementId = this.element.getAttribute('id');
     info('Analyzing element: ' + elementId);
 
-    if(self.canPlayThroughFired && self.timeUpdateFired && self.timePassed) {
-      ok(true, 'Media flowing for ' + elementId);
-      onSuccess();
-    } else {
-      setTimeout(function() {
-        self.waitForMediaFlow(onSuccess);
-      }, 100);
-    }
+    return waitUntil(() => this.canPlayThroughFired && this.timeUpdateFired && this.timePassed)
+      .then(() => ok(true, 'Media flowing for ' + elementId));
   },
 
   
 
 
 
-  checkForNoMediaFlow : function MEC_CheckForNoMediaFlow() {
+  checkForNoMediaFlow: function() {
     ok(this.element.readyState === HTMLMediaElement.HAVE_METADATA,
        'Media element has a ready state of HAVE_METADATA');
   }
@@ -367,7 +103,7 @@ MediaElementChecker.prototype = {
 
 
 function safeInfo(message) {
-  if (typeof(info) === "function") {
+  if (typeof info === "function") {
     info(message);
   }
 }
@@ -439,32 +175,35 @@ function getNetworkUtils() {
 
 
 
-    prepareNetwork: function(onSuccess) {
-      script.addMessageListener('network-ready', function (message) {
-        info("Network interface is ready");
-        onSuccess();
+    prepareNetwork: function() {
+      return new Promise(resolve => {
+        script.addMessageListener('network-ready', () =>  {
+          info("Network interface is ready");
+          resolve();
+        });
+        info("Setting up network interface");
+        script.sendAsyncMessage("prepare-network", true);
       });
-      info("Setting up network interface");
-      script.sendAsyncMessage("prepare-network", true);
     },
     
 
 
 
 
-    tearDownNetwork: function(onSuccess, onFailure) {
-      if (isNetworkReady()) {
-        script.addMessageListener('network-disabled', function (message) {
+    tearDownNetwork: function() {
+      if (!isNetworkReady()) {
+        info("No network to tear down");
+        return Promise.resolve();
+      }
+      return new Promise(resolve => {
+        script.addMessageListener('network-disabled', message => {
           info("Network interface torn down");
           script.destroy();
-          onSuccess();
+          resolve();
         });
         info("Tearing down network interface");
         script.sendAsyncMessage("network-cleanup", true);
-      } else {
-        info("No network to tear down");
-        onFailure();
-      }
+      });
     }
   };
 
@@ -475,36 +214,36 @@ function getNetworkUtils() {
 
 
 
-function startNetworkAndTest(onSuccess) {
-  if (!isNetworkReady()) {
-    SimpleTest.waitForExplicitFinish();
-    var utils = getNetworkUtils();
-    
-    utils.prepareNetwork(onSuccess);
-  } else {
-    onSuccess();
+function startNetworkAndTest() {
+  if (isNetworkReady()) {
+    return Promise.resolve();
   }
+  var utils = getNetworkUtils();
+  
+  return utils.prepareNetwork();
 }
 
 
 
 
 function networkTestFinished() {
+  var p;
   if ("nsINetworkInterfaceListService" in SpecialPowers.Ci) {
     var utils = getNetworkUtils();
-    utils.tearDownNetwork(SimpleTest.finish, SimpleTest.finish);
+    p = utils.tearDownNetwork();
   } else {
-    SimpleTest.finish();
+    p = Promise.resolve();
   }
+  return p.then(() => SimpleTest.finish());
 }
 
 
 
 
 function runNetworkTest(testFunction) {
-  startNetworkAndTest(function() {
-    runTest(testFunction);
-  });
+  SimpleTest.waitForExplicitFinish();
+  return startNetworkAndTest()
+    .then(() => runTest(testFunction));
 }
 
 
@@ -571,11 +310,16 @@ function PeerConnectionTest(options) {
   if (!options.is_remote) {
     this.chain.filterOut(/^PC_REMOTE/);
   }
+}
 
-  var self = this;
-  this.chain.onFinished = function () {
-    self.teardown();
-  };
+
+function timerGuard(p, time, message) {
+  return Promise.race([
+    p,
+    wait(time).then(() => {
+      throw new Error('timeout after ' + (time / 1000) + 's: ' + message);
+    })
+  ]);
 }
 
 
@@ -584,75 +328,52 @@ function PeerConnectionTest(options) {
 
 
 
-PeerConnectionTest.prototype.closePC = function PCT_closePC(onSuccess) {
+PeerConnectionTest.prototype.closePC = function() {
   info("Closing peer connections");
 
-  var self = this;
-  var closeTimeout = null;
-  var waitingForLocal = false;
-  var waitingForRemote = false;
-  var everythingClosed = false;
+  var closeIt = pc => {
+    if (!pc || pc.signalingState === "closed") {
+      return Promise.resolve();
+    }
 
-  function verifyClosed() {
-    if ((self.waitingForLocal || self.waitingForRemote) ||
-      (self.pcLocal && (self.pcLocal.signalingState !== "closed")) ||
-      (self.pcRemote && (self.pcRemote.signalingState !== "closed"))) {
-      info("still waiting for closure");
-    }
-    else if (!everythingClosed) {
-      info("No closure pending");
-      if (self.pcLocal) {
-        is(self.pcLocal.signalingState, "closed", "pcLocal is in 'closed' state");
-      }
-      if (self.pcRemote) {
-        is(self.pcRemote.signalingState, "closed", "pcRemote is in 'closed' state");
-      }
-      clearTimeout(closeTimeout);
-      everythingClosed = true;
-      onSuccess();
-    }
+    return new Promise(resolve => {
+      pc.onsignalingstatechange = e => {
+        is(e.target.signalingState, "closed", "signalingState is closed");
+        resolve();
+      };
+      pc.close();
+    });
+  };
+
+  return timerGuard(Promise.all([
+    closeIt(this.pcLocal),
+    closeIt(this.pcRemote)
+  ]), 60000, "failed to close peer connection");
+};
+
+
+
+
+PeerConnectionTest.prototype.close = function() {
+
+  
+  
+  
+  
+  
+  
+  
+
+  var expectOnClose = channel =>
+      (channel.onclose = () => info(channel + " closed"));
+  if (this.pcLocal) {
+    this.pcLocal.dataChannels.forEach(expectOnClose);
+  }
+  if (this.pcRemote) {
+    this.pcRemote.dataChannels.forEach(expectOnClose);
   }
 
-  function signalingstatechangeLocalClose(e) {
-    info("'signalingstatechange' event received");
-    is(e.target.signalingState, "closed", "signalingState is closed");
-    self.waitingForLocal = false;
-    verifyClosed();
-  }
-
-  function signalingstatechangeRemoteClose(e) {
-    info("'signalingstatechange' event received");
-    is(e.target.signalingState, "closed", "signalingState is closed");
-    self.waitingForRemote = false;
-    verifyClosed();
-  }
-
-  function closeEverything() {
-    if ((self.pcLocal) && (self.pcLocal.signalingState !== "closed")) {
-      info("Closing pcLocal");
-      self.pcLocal.onsignalingstatechange = signalingstatechangeLocalClose;
-      self.waitingForLocal = true;
-      self.pcLocal.close();
-    }
-    if ((self.pcRemote) && (self.pcRemote.signalingState !== "closed")) {
-      info("Closing pcRemote");
-      self.pcRemote.onsignalingstatechange = signalingstatechangeRemoteClose;
-      self.waitingForRemote = true;
-      self.pcRemote.close();
-    }
-    
-    setTimeout(verifyClosed, 1000);
-  }
-
-  closeTimeout = setTimeout(function() {
-    var closed = ((self.pcLocal && (self.pcLocal.signalingState === "closed")) &&
-      (self.pcRemote && (self.pcRemote.signalingState === "closed")));
-    ok(closed, "Closing PeerConnections timed out");
-    
-    onSuccess();
-  }, 60000);
-
-  closeEverything();
+  return this.closePC();
 };
 
 
@@ -661,69 +382,7 @@ PeerConnectionTest.prototype.closePC = function PCT_closePC(onSuccess) {
 
 
 
-PeerConnectionTest.prototype.close = function PCT_close(onSuccess) {
-  var self = this;
-  var pendingDcClose = []
-  var closeTimeout = null;
-
-  info("PeerConnectionTest.close() called");
-
-  function _closePeerConnection() {
-    info("Now closing PeerConnection");
-    self.closePC.call(self, onSuccess);
-  }
-
-  function _closePeerConnectionCallback(index) {
-    info("_closePeerConnection called with index " + index);
-    var pos = pendingDcClose.indexOf(index);
-    if (pos != -1) {
-      pendingDcClose.splice(pos, 1);
-    }
-    else {
-      info("_closePeerConnection index " + index + " is missing from pendingDcClose: " + pendingDcClose);
-    }
-    if (pendingDcClose.length === 0) {
-      clearTimeout(closeTimeout);
-      _closePeerConnection();
-    }
-  }
-
-  var myDataChannels = null;
-  if (self.pcLocal) {
-    myDataChannels = self.pcLocal.dataChannels;
-  }
-  else if (self.pcRemote) {
-    myDataChannels = self.pcRemote.dataChannels;
-  }
-  var length = myDataChannels.length;
-  for (var i = 0; i < length; i++) {
-    var dataChannel = myDataChannels[i];
-    if (dataChannel.readyState !== "closed") {
-      pendingDcClose.push(i);
-      self.closeDataChannels(i, _closePeerConnectionCallback);
-    }
-  }
-  if (pendingDcClose.length === 0) {
-    _closePeerConnection();
-  }
-  else {
-    closeTimeout = setTimeout(function() {
-      ok(false, "Failed to properly close data channels: " +
-        pendingDcClose);
-      _closePeerConnection();
-    }, 60000);
-  }
-};
-
-
-
-
-
-
-
-
-
-PeerConnectionTest.prototype.closeDataChannels = function PCT_closeDataChannels(index, onSuccess) {
+PeerConnectionTest.prototype.closeDataChannels = function(index) {
   info("closeDataChannels called with index: " + index);
   var localChannel = null;
   if (this.pcLocal) {
@@ -734,161 +393,34 @@ PeerConnectionTest.prototype.closeDataChannels = function PCT_closeDataChannels(
     remoteChannel = this.pcRemote.dataChannels[index];
   }
 
-  var self = this;
-  var wait = false;
-  var pollingMode = false;
-  var everythingClosed = false;
-  var verifyInterval = null;
-  var remoteCloseTimer = null;
-
-  function _allChannelsAreClosed() {
-    var ret = null;
-    if (localChannel) {
-      ret = (localChannel.readyState === "closed");
+  
+  var setupClosePromise = channel => {
+    if (!channel) {
+      return Promise.resolve();
     }
-    if (remoteChannel) {
-      if (ret !== null) {
-        ret = (ret && (remoteChannel.readyState === "closed"));
-      }
-      else {
-        ret = (remoteChannel.readyState === "closed");
-      }
-    }
-    return ret;
-  }
-
-  function verifyClosedChannels() {
-    if (everythingClosed) {
-      
-      return;
-    }
-    if (_allChannelsAreClosed()) {
-      ok(true, "DataChannel(s) have reached 'closed' state for data channel " + index);
-      if (remoteCloseTimer !== null) {
-        clearTimeout(remoteCloseTimer);
-      }
-      if (verifyInterval !== null) {
-        clearInterval(verifyInterval);
-      }
-      everythingClosed = true;
-      onSuccess(index);
-    }
-    else {
-      info("Still waiting for DataChannel closure");
-    }
-  }
-
-  if ((localChannel) && (localChannel.readyState !== "closed")) {
-    
-    if (remoteChannel) {
-      remoteChannel.onclose = function () {
-        is(remoteChannel.readyState, "closed", "remoteChannel is in state 'closed'");
-        verifyClosedChannels();
+    return new Promise(resolve => {
+      channel.onclose = () => {
+        is(channel.readyState, "closed", name + " channel " + index + " closed");
+        resolve();
       };
-    }
-    else {
-      pollingMode = true;
-      verifyInterval = setInterval(verifyClosedChannels, 1000);
-    }
+    });
+  };
 
+  
+  var allClosed = Promise.all([
+    setupClosePromise(localChannel),
+    setupClosePromise(remoteChannel)
+  ]);
+  var complete = timerGuard(allClosed, 60000, "failed to close data channel pair");
+
+  
+  if (remoteChannel) {
+    remoteChannel.close();
+  } else if (localChannel) {
     localChannel.close();
-    wait = true;
-  }
-  if ((remoteChannel) && (remoteChannel.readyState !== "closed")) {
-    if (localChannel) {
-      localChannel.onclose = function () {
-        is(localChannel.readyState, "closed", "localChannel is in state 'closed'");
-        verifyClosedChannels();
-      };
-
-      
-      
-      
-      
-      remoteCloseTimer = setTimeout(function() {
-        todo(false, "localChannel.close() did not resulted in close signal on remote side");
-        remoteChannel.close();
-        verifyClosedChannels();
-      }, 30000);
-    }
-    else {
-      pollingMode = true;
-      verifyTimer = setInterval(verifyClosedChannels, 1000);
-
-      remoteChannel.close();
-    }
-
-    wait = true;
   }
 
-  if (!wait) {
-    onSuccess(index);
-  }
-};
-
-
-
-
-
-
-
-
-
-
-PeerConnectionTest.prototype.waitForInitialDataChannel =
-        function PCT_waitForInitialDataChannel(peer, onSuccess, onFailure) {
-  var dcConnectionTimeout = null;
-  var dcOpened = false;
-
-  function dataChannelConnected(channel) {
-    
-    
-    if (!dcOpened) {
-      clearTimeout(dcConnectionTimeout);
-      is(channel.readyState, "open", peer + " dataChannels[0] switched to state: 'open'");
-      dcOpened = true;
-      onSuccess();
-    } else {
-      info("dataChannelConnected() called, but data channel was open already");
-    }
-  }
-
-  
-  
-  if (peer == this.pcLocal) {
-    peer.dataChannels[0].onopen = dataChannelConnected;
-  } else {
-    peer.registerDataChannelOpenEvents(dataChannelConnected);
-  }
-
-  if (peer.dataChannels.length >= 1) {
-    
-    const readyState = peer.dataChannels[0].readyState;
-    switch (readyState) {
-      case "open": {
-        is(readyState, "open", peer + " dataChannels[0] is already in state: 'open'");
-        dcOpened = true;
-        onSuccess();
-        break;
-      }
-      case "connecting": {
-        is(readyState, "connecting", peer + " dataChannels[0] is in state: 'connecting'");
-        if (onFailure) {
-          dcConnectionTimeout = setTimeout(function () {
-            is(peer.dataChannels[0].readyState, "open", peer + " timed out while waiting for dataChannels[0] to open");
-            onFailure();
-          }, 60000);
-        }
-        break;
-      }
-      default: {
-        ok(false, "dataChannels[0] is in unexpected state " + readyState);
-        if (onFailure) {
-          onFailure()
-        }
-      }
-    }
-  }
+  return complete;
 };
 
 
@@ -903,21 +435,21 @@ PeerConnectionTest.prototype.waitForInitialDataChannel =
 
 
 
-
-
-PeerConnectionTest.prototype.send = function PCT_send(data, onSuccess, options) {
+PeerConnectionTest.prototype.send = function(data, options) {
   options = options || { };
   var source = options.sourceChannel ||
            this.pcLocal.dataChannels[this.pcLocal.dataChannels.length - 1];
   var target = options.targetChannel ||
            this.pcRemote.dataChannels[this.pcRemote.dataChannels.length - 1];
 
-  
-  target.onmessage = function (recv_data) {
-    onSuccess(target, recv_data);
-  };
+  return new Promise(resolve => {
+    
+    target.onmessage = recv_data => {
+      resolve({ channel: target, data: recv_data });
+    };
 
-  source.send(data);
+    source.send(data);
+  });
 };
 
 
@@ -926,95 +458,28 @@ PeerConnectionTest.prototype.send = function PCT_send(data, onSuccess, options) 
 
 
 
-
-
-PeerConnectionTest.prototype.createDataChannel = function DCT_createDataChannel(options, onSuccess) {
-  var localChannel = null;
-  var remoteChannel = null;
-  var self = this;
-
-  
-  function check_next_test() {
-    if (localChannel && remoteChannel) {
-      onSuccess(localChannel, remoteChannel);
-    }
+PeerConnectionTest.prototype.createDataChannel = function(options) {
+  var remotePromise;
+  if (!options.negotiated) {
+    this.pcRemote.expectDataChannel();
+    remotePromise = this.pcRemote.nextDataChannel;
   }
 
-  if (!options.negotiated) {
-    
-    this.pcRemote.registerDataChannelOpenEvents(function (channel) {
-      remoteChannel = channel;
-      check_next_test();
+  
+  var localChannel = this.pcLocal.createDataChannel(options)
+  var localPromise = localChannel.opened;
+
+  if (options.negotiated) {
+    remotePromise = localPromise.then(localChannel => {
+      
+      options.id = options.id || channel.id;  
+      var remoteChannel = this.pcRemote.createDataChannel(options);
+      return remoteChannel.opened;
     });
   }
 
-  
-  this.pcLocal.createDataChannel(options, function (channel) {
-    localChannel = channel;
-
-    if (options.negotiated) {
-      
-      options.id = options.id || channel.id;  
-      self.pcRemote.createDataChannel(options, function (channel) {
-        remoteChannel = channel;
-        check_next_test();
-      });
-    } else {
-      check_next_test();
-    }
-  });
-};
-
-
-
-
-PeerConnectionTest.prototype.next = function PCT_next() {
-  if (this._stepTimeout) {
-    clearTimeout(this._stepTimeout);
-    this._stepTimeout = null;
-  }
-  this.chain.executeNext();
-};
-
-
-
-
-
-PeerConnectionTest.prototype.setStepTimeout = function(ms) {
-  this._stepTimeout = setTimeout(function() {
-    ok(false, "Step timed out: " + this.chain.currentStepLabel);
-    this.next();
-  }.bind(this), ms);
-};
-
-
-
-
-
-PeerConnectionTest.prototype.setTimeout = function(ms) {
-  this._timeout = setTimeout(function() {
-    ok(false, "PeerConnectionTest timed out");
-    this.teardown();
-  }.bind(this), ms);
-};
-
-
-
-
-
-
-
-
-
-
-PeerConnectionTest.prototype.createAnswer =
-function PCT_createAnswer(peer, onSuccess) {
-  var self = this;
-
-  peer.createAnswer(function (answer) {
-    
-    self.originalAnswer = new mozRTCSessionDescription(JSON.parse(JSON.stringify(answer)));
-    onSuccess(answer);
+  return Promise.all([localPromise, remotePromise]).then(result => {
+    return { local: result[0], remote: result[1] };
   });
 };
 
@@ -1025,16 +490,26 @@ function PCT_createAnswer(peer, onSuccess) {
 
 
 
-
-
-PeerConnectionTest.prototype.createOffer =
-function PCT_createOffer(peer, onSuccess) {
-  var self = this;
-
-  peer.createOffer(function (offer) {
+PeerConnectionTest.prototype.createAnswer = function(peer) {
+  return peer.createAnswer().then(answer => {
     
-    self.originalOffer = new mozRTCSessionDescription(JSON.parse(JSON.stringify(offer)));
-    onSuccess(offer);
+    this.originalAnswer = new mozRTCSessionDescription(JSON.parse(JSON.stringify(answer)));
+    return answer;
+  });
+};
+
+
+
+
+
+
+
+
+PeerConnectionTest.prototype.createOffer = function(peer) {
+  return peer.createOffer().then(offer => {
+    
+    this.originalOffer = new mozRTCSessionDescription(JSON.parse(JSON.stringify(offer)));
+    return offer;
   });
 };
 
@@ -1052,38 +527,28 @@ function(peer, provider, protocol, identity) {
 
 
 
-
-
 PeerConnectionTest.prototype.setLocalDescription =
-function PCT_setLocalDescription(peer, desc, stateExpected, onSuccess) {
-  var eventFired = false;
-  var stateChanged = false;
-
-  function check_next_test() {
-    if (eventFired && stateChanged) {
-      onSuccess();
-    }
-  }
-
-  peer.onsignalingstatechange = function (e) {
-    info(peer + ": 'signalingstatechange' event received");
-    var state = e.target.signalingState;
-    if(stateExpected === state && !eventFired) {
-      eventFired = true;
-      peer.setLocalDescStableEventDate = new Date();
-      check_next_test();
-    } else {
-      ok(false, "This event has either already fired or there has been a " +
-                "mismatch between event received " + state +
-                " and event expected " + stateExpected);
-    }
-  };
-
-  peer.setLocalDescription(desc, function () {
-    stateChanged = true;
-    peer.setLocalDescDate = new Date();
-    check_next_test();
+function(peer, desc, stateExpected) {
+  var eventFired = new Promise(resolve => {
+    peer.onsignalingstatechange = e => {
+      info(peer + ": 'signalingstatechange' event received");
+      var state = e.target.signalingState;
+      if (stateExpected === state) {
+        peer.setLocalDescStableEventDate = new Date();
+        resolve();
+      } else {
+        ok(false, "This event has either already fired or there has been a " +
+           "mismatch between event received " + state +
+           " and event expected " + stateExpected);
+      }
+    };
   });
+
+  var stateChanged = peer.setLocalDescription(desc).then(() => {
+    peer.setLocalDescDate = new Date();
+  });
+
+  return Promise.all([eventFired, stateChanged]);
 };
 
 
@@ -1094,11 +559,13 @@ function PCT_setLocalDescription(peer, desc, stateExpected, onSuccess) {
 
 
 PeerConnectionTest.prototype.setMediaConstraints =
-function PCT_setMediaConstraints(constraintsLocal, constraintsRemote) {
-  if (this.pcLocal)
+function(constraintsLocal, constraintsRemote) {
+  if (this.pcLocal) {
     this.pcLocal.constraints = constraintsLocal;
-  if (this.pcRemote)
+  }
+  if (this.pcRemote) {
     this.pcRemote.constraints = constraintsRemote;
+  }
 };
 
 
@@ -1106,13 +573,11 @@ function PCT_setMediaConstraints(constraintsLocal, constraintsRemote) {
 
 
 
-PeerConnectionTest.prototype.setOfferOptions =
-function PCT_setOfferOptions(options) {
-  if (this.pcLocal)
+PeerConnectionTest.prototype.setOfferOptions = function(options) {
+  if (this.pcLocal) {
     this.pcLocal.offerOptions = options;
+  }
 };
-
-
 
 
 
@@ -1124,74 +589,62 @@ function PCT_setOfferOptions(options) {
 
 
 PeerConnectionTest.prototype.setRemoteDescription =
-function PCT_setRemoteDescription(peer, desc, stateExpected, onSuccess) {
-  var eventFired = false;
-  var stateChanged = false;
+function(peer, desc, stateExpected) {
+  var eventFired = new Promise(resolve => {
+    peer.onsignalingstatechange = e => {
+      info(peer + ": 'signalingstatechange' event received");
+      var state = e.target.signalingState;
+      if (stateExpected === state) {
+        peer.setRemoteDescStableEventDate = new Date();
+        resolve();
+      } else {
+        ok(false, "This event has either already fired or there has been a " +
+           "mismatch between event received " + state +
+           " and event expected " + stateExpected);
+      }
+    };
+  });
 
-  function check_next_test() {
-    if (eventFired && stateChanged) {
-      onSuccess();
-    }
-  }
-
-  peer.onsignalingstatechange = function(e) {
-    info(peer + ": 'signalingstatechange' event received");
-    var state = e.target.signalingState;
-    if(stateExpected === state && !eventFired) {
-      eventFired = true;
-      peer.setRemoteDescStableEventDate = new Date();
-      check_next_test();
-    } else {
-      ok(false, "This event has either already fired or there has been a " +
-                "mismatch between event received " + state +
-                " and event expected " + stateExpected);
-    }
-  };
-
-  peer.setRemoteDescription(desc, function () {
-    stateChanged = true;
+  var stateChanged = peer.setRemoteDescription(desc).then(() => {
     peer.setRemoteDescDate = new Date();
-    check_next_test();
   });
+
+  return Promise.all([eventFired, stateChanged]);
 };
 
 
 
 
-PeerConnectionTest.prototype.run = function PCT_run() {
-  this.next();
+PeerConnectionTest.prototype.run = function() {
+  return this.chain.execute()
+    .then(() => this.close())
+    .then(() => {
+      if (window.SimpleTest) {
+        networkTestFinished();
+      } else {
+        finish();
+      }
+    })
+    .catch(e =>
+           ok(false, 'Error in test execution: ' + e +
+              ((typeof e.stack === 'string') ?
+               (' ' + e.stack.split('\n').join(' ... ')) : '')));
 };
 
 
 
 
-PeerConnectionTest.prototype.teardown = function PCT_teardown() {
-  this.close(function () {
-    info("Test finished");
-    if (window.SimpleTest)
-      networkTestFinished();
-    else
-      finish();
-  });
-};
-
-
-
-
-PeerConnectionTest.prototype.iceCandidateHandler = function
-PCT_iceCandidateHandler(caller, candidate) {
-  var self = this;
-
+PeerConnectionTest.prototype.iceCandidateHandler = function(caller, candidate) {
   info("Received: " + JSON.stringify(candidate) + " from " + caller);
 
   var target = null;
   if (caller.contains("pcLocal")) {
-    if (self.pcRemote) {
-      target = self.pcRemote;
+    if (this.pcRemote) {
+      target = this.pcRemote;
     }
   } else if (caller.contains("pcRemote")) {
-    if (self.pcLocal) {
-      target = self.pcLocal;
+    if (this.pcLocal) {
+      target = this.pcLocal;
     }
   } else {
     ok(false, "received event from unknown caller: " + caller);
@@ -1210,43 +663,38 @@ PCT_iceCandidateHandler(caller, candidate) {
 
 
 
-PeerConnectionTest.prototype.setupSignalingClient = function
-PCT_setupSignalingClient() {
-  var self = this;
+PeerConnectionTest.prototype.setupSignalingClient = function() {
+  this.signalingMessageQueue = [];
+  this.signalingCallbacks = {};
+  this.signalingLoopRun = true;
 
-  self.signalingMessageQueue = [];
-  self.signalingCallbacks = {};
-  self.signalingLoopRun = true;
-
-  function queueMessage(message) {
+  var queueMessage = message => {
     info("Received signaling message: " + JSON.stringify(message));
     var fired = false;
-    Object.keys(self.signalingCallbacks).forEach(function(name) {
+    Object.keys(this.signalingCallbacks).forEach(name => {
       if (name === message.type) {
         info("Invoking callback for message type: " + name);
-        self.signalingCallbacks[name](message);
+        this.signalingCallbacks[name](message);
         fired = true;
       }
     });
     if (!fired) {
-      self.signalingMessageQueue.push(message);
-      info("signalingMessageQueue.length: " + self.signalingMessageQueue.length);
+      this.signalingMessageQueue.push(message);
+      info("signalingMessageQueue.length: " + this.signalingMessageQueue.length);
     }
-    if (self.signalingLoopRun) {
+    if (this.signalingLoopRun) {
       wait_for_message().then(queueMessage);
     } else {
       info("Exiting signaling message event loop");
     }
-  }
-
+  };
   wait_for_message().then(queueMessage);
 }
 
 
 
 
-PeerConnectionTest.prototype.signalingMessagesFinished = function
-PCT_signalingMessagesFinished() {
+PeerConnectionTest.prototype.signalingMessagesFinished = function() {
   this.signalingLoopRun = false;
 }
 
@@ -1257,11 +705,12 @@ PCT_signalingMessagesFinished() {
 
 
 
-PeerConnectionTest.prototype.signalEndOfTrickleIce = function
-PCT_signalEndOfTrickleIce(caller) {
-  if (this.steeplechase) {
-    send_message({"type": "end_of_trickle_ice"});
-  }
+
+
+
+
+PeerConnectionTest.prototype.registerSignalingCallback = function(messageType, onMessage) {
+  this.signalingCallbacks[messageType] = onMessage;
 };
 
 
@@ -1272,38 +721,15 @@ PCT_signalEndOfTrickleIce(caller) {
 
 
 
-
-
-
-PeerConnectionTest.prototype.registerSignalingCallback = function
-PCT_registerSignalingCallback(messageType, onMessage) {
-  this.signalingCallbacks[messageType] = onMessage;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-PeerConnectionTest.prototype.getSignalingMessage = function
-PCT_getSignalingMessage(messageType, onMessage) {
-  for(var i=0; i < this.signalingMessageQueue.length; i++) {
-    if (messageType === this.signalingMessageQueue[i].type) {
-      
-      info("invoking callback on message " + i + " from message queue, for message type:" + messageType);
-      onMessage(this.signalingMessageQueue.splice(i, 1)[0]);
-      return;
-    }
+PeerConnectionTest.prototype.getSignalingMessage = function(messageType) {
+    var i = this.signalingMessageQueue.findIndex(m => m.type === messageType);
+  if (i >= 0) {
+    info("invoking callback on message " + i + " from message queue, for message type:" + messageType);
+    return Promise.resolve(this.signalingMessageQueue.splice(i, 1)[0]);
   }
-  this.registerSignalingCallback(messageType, onMessage);
-}
+  return new Promise(resolve =>
+                     this.registerSignalingCallback(messageType, resolve));
+};
 
 
 
@@ -1322,52 +748,16 @@ function DataChannelWrapper(dataChannel, peerConnectionWrapper) {
   
 
 
+  guardEvent(this, this._channel, 'close');
+  guardEvent(this, this._channel, 'error');
+  guardEvent(this, this._channel, 'message', e => e.data);
 
-  this.onclose = unexpectedEventAndFinish(this, 'onclose');
-  this.onerror = unexpectedEventAndFinish(this, 'onerror');
-  this.onmessage = unexpectedEventAndFinish(this, 'onmessage');
-  this.onopen = unexpectedEventAndFinish(this, 'onopen');
-
-  var self = this;
-
-  
-
-
-
-
-  this._channel.onclose = function () {
-    info(self + ": 'onclose' event fired");
-
-    self.onclose(self);
-    self.onclose = unexpectedEventAndFinish(self, 'onclose');
-  };
-
-  
-
-
-
-
-
-
-
-  this._channel.onmessage = function (event) {
-    info(self + ": 'onmessage' event fired for '" + event.data + "'");
-
-    self.onmessage(event.data);
-    self.onmessage = unexpectedEventAndFinish(self, 'onmessage');
-  };
-
-  
-
-
-
-
-  this._channel.onopen = function () {
-    info(self + ": 'onopen' event fired");
-
-    self.onopen(self);
-    self.onopen = unexpectedEventAndFinish(self, 'onopen');
-  };
+  this.opened = timerGuard(new Promise(resolve => {
+    this._channel.onopen = () => {
+      this._channel.onopen = unexpectedEvent(this, 'onopen');
+      resolve(this);
+    };
+  }), 60000, "channel didn't open in time");
 }
 
 DataChannelWrapper.prototype = {
@@ -1451,7 +841,7 @@ DataChannelWrapper.prototype = {
 
 
 
-  send: function DCW_send(data) {
+  send: function(data) {
     info(this + ": Sending data '" + data + "'");
     this._channel.send(data);
   },
@@ -1461,7 +851,7 @@ DataChannelWrapper.prototype = {
 
 
 
-  toString: function DCW_toString() {
+  toString: function() {
     return "DataChannelWrapper (" + this._pc.label + '_' + this._channel.label + ")";
   }
 };
@@ -1494,11 +884,10 @@ function PeerConnectionWrapper(label, configuration, h264) {
 
   this._local_ice_candidates = [];
   this._remote_ice_candidates = [];
-  this._ice_candidates_to_add = [];
-  this.holdIceCandidates = true;
-  this.endOfTrickleIce = false;
+  this.holdIceCandidates = new Promise(r => this.releaseIceCandidates = r);
   this.localRequiresTrickleIce = false;
-  this.remoteRequiresTrickleIce  = false;
+  this.remoteRequiresTrickleIce = false;
+  this.localMediaElements = [];
 
   this.h264 = typeof h264 !== "undefined" ? true : false;
 
@@ -1508,23 +897,16 @@ function PeerConnectionWrapper(label, configuration, h264) {
   
 
 
-  var self = this;
-  
-  this.next_ice_state = ""; 
   
   this.ice_connection_callbacks = {};
 
-  this._pc.oniceconnectionstatechange = function() {
-    ok(self._pc.iceConnectionState !== undefined, "iceConnectionState should not be undefined");
-    info(self + ": oniceconnectionstatechange fired, new state is: " + self._pc.iceConnectionState);
-    Object.keys(self.ice_connection_callbacks).forEach(function(name) {
-      self.ice_connection_callbacks[name]();
+  this._pc.oniceconnectionstatechange = e => {
+    isnot(typeof this._pc.iceConnectionState, "undefined",
+          "iceConnectionState should not be undefined");
+    info(this + ": oniceconnectionstatechange fired, new state is: " + this._pc.iceConnectionState);
+    Object.keys(this.ice_connection_callbacks).forEach(name => {
+      this.ice_connection_callbacks[name]();
     });
-    if (self.next_ice_state !== "") {
-      is(self._pc.iceConnectionState, self.next_ice_state, "iceConnectionState changed to '" +
-         self.next_ice_state + "'");
-      self.next_ice_state = "";
-    }
   };
 
   
@@ -1533,8 +915,10 @@ function PeerConnectionWrapper(label, configuration, h264) {
 
 
 
-  this._pc.onaddstream = function (event) {
-    info(self + ": 'onaddstream' event fired for " + JSON.stringify(event.stream));
+  this._pc.onaddstream = event => {
+    info(this + ": 'onaddstream' event fired for " + JSON.stringify(event.stream));
+    
+    this.onAddStreamFired = true;
 
     var type = '';
     if (event.stream.getAudioTracks().length > 0) {
@@ -1545,52 +929,27 @@ function PeerConnectionWrapper(label, configuration, h264) {
       type += 'video';
       self.onAddStreamVideoCounter += event.stream.getVideoTracks().length;
     }
-    self.attachMedia(event.stream, type, 'remote');
+    this.attachMedia(event.stream, type, 'remote');
 
-    Object.keys(self.addStreamCallbacks).forEach(function(name) {
-      info(self + " calling addStreamCallback " + name);
-      self.addStreamCallbacks[name]();
+    Object.keys(this.addStreamCallbacks).forEach(name => {
+      info(this + " calling addStreamCallback " + name);
+      this.addStreamCallbacks[name]();
     });
    };
 
-  this.ondatachannel = unexpectedEventAndFinish(this, 'ondatachannel');
+  guardEvent(this, this._pc, 'datachannel', e => {
+    var wrapper = new DataChannelWrapper(e.channel, this);
+    this.dataChannels.push(wrapper);
+    return wrapper;
+  });
 
-  
-
-
-
-
-
-
-
-  this._pc.ondatachannel = function (event) {
-    info(self + ": 'ondatachannel' event fired for " + event.channel.label);
-
-    self.ondatachannel(new DataChannelWrapper(event.channel, self));
-    self.ondatachannel = unexpectedEventAndFinish(self, 'ondatachannel');
-  };
-
-  this.onsignalingstatechange = unexpectedEventAndFinish(this, 'onsignalingstatechange');
   this.signalingStateCallbacks = {};
-
-  
-
-
-
-
-
-
-  this._pc.onsignalingstatechange = function (anEvent) {
-    info(self + ": 'onsignalingstatechange' event fired");
-
-    Object.keys(self.signalingStateCallbacks).forEach(function(name) {
-      self.signalingStateCallbacks[name](anEvent);
+  guardEvent(this, this._pc, 'signalingstatechange', e => {
+    Object.keys(this.signalingStateCallbacks).forEach(name => {
+      this.signalingStateCallbacks[name](e);
     });
-    
-    
-    self.onsignalingstatechange(anEvent);
-    self.onsignalingstatechange = unexpectedEventAndFinish(self, 'onsignalingstatechange');
-  };
+    return e;
+  });
 }
 
 PeerConnectionWrapper.prototype = {
@@ -1665,11 +1024,7 @@ PeerConnectionWrapper.prototype = {
 
 
 
-  attachMedia : function PCW_attachMedia(stream, type, side) {
-    function isSenderOfTrack(sender) {
-      return sender.track == this;
-    }
-
+  attachMedia : function(stream, type, side) {
     info("Got media stream: " + type + " (" + side + ")");
     this.streams.push(stream);
 
@@ -1678,14 +1033,13 @@ PeerConnectionWrapper.prototype = {
       
       if (type == "video") {
         this._pc.addStream(stream);
-        ok(this._pc.getSenders().find(isSenderOfTrack,
-                                      stream.getVideoTracks()[0]),
+        ok(this._pc.getSenders().find(sender => sender.track == stream.getVideoTracks()[0]),
            "addStream adds sender");
       } else {
-        stream.getTracks().forEach(function(track) {
+        stream.getTracks().forEach(track => {
           var sender = this._pc.addTrack(track, stream);
           is(sender.track, track, "addTrack returns sender");
-        }.bind(this));
+        });
       }
     }
 
@@ -1693,6 +1047,12 @@ PeerConnectionWrapper.prototype = {
     this.mediaCheckers.push(new MediaElementChecker(element));
     element.mozSrcObject = stream;
     element.play();
+
+    
+    
+    if (side === 'local') {
+      this.localMediaElements.push(element);
+    }
   },
 
   
@@ -1701,43 +1061,38 @@ PeerConnectionWrapper.prototype = {
 
 
 
-
-
-  getAllUserMedia : function PCW_GetAllUserMedia(constraintsList, onSuccess) {
-    var self = this;
-
-    function _getAllUserMedia(index) {
-      if (index < constraintsList.length) {
-        var constraints = constraintsList[index];
-
-        getUserMedia(constraints, function (stream) {
-          var type = '';
-
-          if (constraints.audio) {
-            type = 'audio';
-          }
-
-          if (constraints.video) {
-            type += 'video';
-          }
-
-          self.attachMedia(stream, type, 'local');
-
-          _getAllUserMedia(index + 1);
-        }, generateErrorCallback());
-      } else {
-        onSuccess();
-      }
-    }
-
+  getAllUserMedia : function(constraintsList) {
     if (constraintsList.length === 0) {
       info("Skipping GUM: no UserMedia requested");
-      onSuccess();
+      return Promise.resolve();
     }
-    else {
-      info("Get " + constraintsList.length + " local streams");
-      _getAllUserMedia(0);
-    }
+
+    info("Get " + constraintsList.length + " local streams");
+    return Promise.all(constraintsList.map(constraints => {
+      return getUserMedia(constraints).then(stream => {
+        var type = '';
+        if (constraints.audio) {
+          type = 'audio';
+        }
+        if (constraints.video) {
+          type += 'video';
+        }
+        this.attachMedia(stream, type, 'local');
+      });
+    }));
+  },
+
+  
+
+
+
+  expectDataChannel: function(message) {
+    this.nextDataChannel = new Promise(resolve => {
+      this.ondatachannel = channel => {
+        ok(channel, message);
+        resolve(channel);
+      };
+    });
   },
 
   
@@ -1747,21 +1102,12 @@ PeerConnectionWrapper.prototype = {
 
 
 
-
-
-  createDataChannel : function PCW_createDataChannel(options, onCreation) {
+  createDataChannel : function(options) {
     var label = 'channel_' + this.dataChannels.length;
     info(this + ": Create data channel '" + label);
 
     var channel = this._pc.createDataChannel(label, options);
     var wrapper = new DataChannelWrapper(channel, this);
-
-    if (onCreation) {
-      wrapper.onopen = function () {
-        onCreation(wrapper);
-      };
-    }
-
     this.dataChannels.push(wrapper);
     return wrapper;
   },
@@ -1772,19 +1118,28 @@ PeerConnectionWrapper.prototype = {
 
 
 
-  createOffer : function PCW_createOffer(onSuccess) {
-    var self = this;
-
-    this._pc.createOffer(function (offer) {
+  createOffer : function() {
+    return this._pc.createOffer(this.offerOptions).then(offer => {
       info("Got offer: " + JSON.stringify(offer));
       
-      self._latest_offer = offer;
-      if (self.h264) {
+      this._latest_offer = offer;
+      if (this.h264) {
         isnot(offer.sdp.search("H264/90000"), -1, "H.264 should be present in the SDP offer");
         offer.sdp = removeVP8(offer.sdp);
       }
-      onSuccess(offer);
-    }, generateErrorCallback(), this.offerOptions);
+      return offer;
+    });
+  },
+
+  
+
+
+  createAnswer : function() {
+    return this._pc.createAnswer().then(answer => {
+      info(this + ": Got answer: " + JSON.stringify(answer));
+      this._last_answer = answer;
+      return answer;
+    });
   },
 
   
@@ -1793,35 +1148,10 @@ PeerConnectionWrapper.prototype = {
 
 
 
-  createAnswer : function PCW_createAnswer(onSuccess) {
-    var self = this;
-
-    this._pc.createAnswer(function (answer) {
-      info(self + ": Got answer: " + JSON.stringify(answer));
-      self._last_answer = answer;
-      onSuccess(answer);
-    }, generateErrorCallback());
-  },
-
-  
-
-
-
-
-
-
-
-  setLocalDescription : function PCW_setLocalDescription(desc, onSuccess) {
-    var self = this;
-
-    if (onSuccess) {
-      this._pc.setLocalDescription(desc, function () {
-        info(self + ": Successfully set the local description");
-        onSuccess();
-      }, generateErrorCallback());
-    } else {
-      this._pc.setLocalDescription(desc);
-    }
+  setLocalDescription : function(desc) {
+    return this._pc.setLocalDescription(desc).then(() => {
+      info(this + ": Successfully set the local description");
+    });
   },
 
   
@@ -1833,13 +1163,25 @@ PeerConnectionWrapper.prototype = {
 
 
 
-  setLocalDescriptionAndFail : function PCW_setLocalDescriptionAndFail(desc, onFailure) {
-    var self = this;
-    this._pc.setLocalDescription(desc,
+  setLocalDescriptionAndFail : function(desc) {
+    return this._pc.setLocalDescription(desc).then(
       generateErrorCallback("setLocalDescription should have failed."),
-      function (err) {
-        info(self + ": As expected, failed to set the local description");
-        onFailure(err);
+      err => {
+        info(this + ": As expected, failed to set the local description");
+        return err;
+      });
+  },
+
+  
+
+
+
+
+
+  setRemoteDescription : function(desc) {
+    return this._pc.setRemoteDescription(desc).then(() => {
+      info(this + ": Successfully set remote description");
+      this.releaseIceCandidates();
     });
   },
 
@@ -1851,37 +1193,13 @@ PeerConnectionWrapper.prototype = {
 
 
 
-  setRemoteDescription : function PCW_setRemoteDescription(desc, onSuccess) {
-    var self = this;
 
-    if (!onSuccess) {
-      this._pc.setRemoteDescription(desc);
-      this.addStoredIceCandidates();
-      return;
-    }
-    this._pc.setRemoteDescription(desc, function () {
-      info(self + ": Successfully set remote description");
-      self.addStoredIceCandidates();
-      onSuccess();
-    }, generateErrorCallback());
-  },
-
-  
-
-
-
-
-
-
-
-
-  setRemoteDescriptionAndFail : function PCW_setRemoteDescriptionAndFail(desc, onFailure) {
-    var self = this;
-    this._pc.setRemoteDescription(desc,
+  setRemoteDescriptionAndFail : function(desc) {
+    return this._pc.setRemoteDescription(desc).then(
       generateErrorCallback("setRemoteDescription should have failed."),
-      function (err) {
-        info(self + ": As expected, failed to set the remote description");
-        onFailure(err);
+      err => {
+        info(this + ": As expected, failed to set the remote description");
+        return err;
     });
   },
 
@@ -1889,22 +1207,18 @@ PeerConnectionWrapper.prototype = {
 
 
 
-  logSignalingState: function PCW_logSignalingState() {
-    var self = this;
-
-    function _logSignalingState(e) {
-      var newstate = self._pc.signalingState;
-      var oldstate = self.signalingStateLog[self.signalingStateLog.length - 1]
+  logSignalingState: function() {
+    this.signalingStateLog = [this._pc.signalingState];
+    this.signalingStateCallbacks.logSignalingStatus = e => {
+      var newstate = this._pc.signalingState;
+      var oldstate = this.signalingStateLog[this.signalingStateLog.length - 1]
       if (Object.keys(signalingStateTransitions).indexOf(oldstate) != -1) {
-        ok(signalingStateTransitions[oldstate].indexOf(newstate) != -1, self + ": legal signaling state transition from " + oldstate + " to " + newstate);
+        ok(signalingStateTransitions[oldstate].indexOf(newstate) != -1, this + ": legal signaling state transition from " + oldstate + " to " + newstate);
       } else {
-        ok(false, self + ": old signaling state " + oldstate + " missing in signaling transition array");
+        ok(false, this + ": old signaling state " + oldstate + " missing in signaling transition array");
       }
-      self.signalingStateLog.push(newstate);
-    }
-
-    self.signalingStateLog = [self._pc.signalingState];
-    self.signalingStateCallbacks.logSignalingStatus = _logSignalingState;
+      this.signalingStateLog.push(newstate);
+    };
   },
 
   
@@ -1914,33 +1228,15 @@ PeerConnectionWrapper.prototype = {
 
 
 
-  storeOrAddIceCandidate : function PCW_storeOrAddIceCandidate(candidate) {
-    var self = this;
-
-    self._remote_ice_candidates.push(candidate);
-    if (self.signalingState === 'closed') {
+  storeOrAddIceCandidate : function(candidate) {
+    this._remote_ice_candidates.push(candidate);
+    if (this.signalingState === 'closed') {
       info("Received ICE candidate for closed PeerConnection - discarding");
       return;
     }
-    if (!self.holdIceCandidates) {
-      self.addIceCandidate(candidate);
-    } else {
-      self._ice_candidates_to_add.push(candidate);
-    }
-  },
-
-  addStoredIceCandidates : function PCW_addStoredIceCandidates() {
-    var self = this;
-
-    self.holdIceCandidates = false;
-    if ((self._ice_candidates_to_add) &&
-        (self._ice_candidates_to_add.length > 0)) {
-      info("adding stored ice candidates");
-      for (var i = 0; i < self._ice_candidates_to_add.length; i++) {
-        self.addIceCandidate(self._ice_candidates_to_add[i]);
-      }
-      self._ice_candidates_to_add = [];
-    }
+    this.holdIceCandidates.then(() => {
+      this.addIceCandidate(candidate);
+    });
   },
 
   
@@ -1949,18 +1245,11 @@ PeerConnectionWrapper.prototype = {
 
 
 
-
-
-  addIceCandidate : function PCW_addIceCandidate(candidate, onSuccess) {
-    var self = this;
-
-    info(self + ": adding ICE candidate " + JSON.stringify(candidate));
-    this._pc.addIceCandidate(candidate, function () {
-      info(self + ": Successfully added an ICE candidate");
-      if (onSuccess) {
-        onSuccess();
-      }
-    }, generateErrorCallback());
+  addIceCandidate : function(candidate) {
+    info(this + ": adding ICE candidate " + JSON.stringify(candidate));
+    return this._pc.addIceCandidate(candidate).then(() => {
+      info(this + ": Successfully added an ICE candidate");
+    });
   },
 
   
@@ -1968,27 +1257,7 @@ PeerConnectionWrapper.prototype = {
 
 
 
-
-
-
-
-  addIceCandidateAndFail : function PCW_addIceCandidateAndFail(candidate, onFailure) {
-    var self = this;
-
-    this._pc.addIceCandidate(candidate,
-      generateErrorCallback("addIceCandidate should have failed."),
-      function (err) {
-        info(self + ": As expected, failed to add an ICE candidate");
-        onFailure(err);
-    }) ;
-  },
-
-  
-
-
-
-
-  isIceConnected : function PCW_isIceConnected() {
+  isIceConnected : function() {
     info(this + ": iceConnectionState = " + this.iceConnectionState);
     return this.iceConnectionState === "connected";
   },
@@ -1998,7 +1267,7 @@ PeerConnectionWrapper.prototype = {
 
 
 
-  isIceChecking : function PCW_isIceChecking() {
+  isIceChecking : function() {
     return this.iceConnectionState === "checking";
   },
 
@@ -2007,7 +1276,7 @@ PeerConnectionWrapper.prototype = {
 
 
 
-  isIceNew : function PCW_isIceNew() {
+  isIceNew : function() {
     return this.iceConnectionState === "new";
   },
 
@@ -2018,7 +1287,7 @@ PeerConnectionWrapper.prototype = {
 
 
 
-  isIceConnectionPending : function PCW_isIceConnectionPending() {
+  isIceConnectionPending : function() {
     return (this.isIceChecking() || this.isIceNew());
   },
 
@@ -2026,22 +1295,18 @@ PeerConnectionWrapper.prototype = {
 
 
 
-  logIceConnectionState: function PCW_logIceConnectionState() {
-    var self = this;
-
-    function logIceConState () {
-      var newstate = self._pc.iceConnectionState;
-      var oldstate = self.iceConnectionLog[self.iceConnectionLog.length - 1]
+  logIceConnectionState: function() {
+    this.iceConnectionLog = [this._pc.iceConnectionState];
+    this.ice_connection_callbacks.logIceStatus = () => {
+      var newstate = this._pc.iceConnectionState;
+      var oldstate = this.iceConnectionLog[this.iceConnectionLog.length - 1]
       if (Object.keys(iceStateTransitions).indexOf(oldstate) != -1) {
-        ok(iceStateTransitions[oldstate].indexOf(newstate) != -1, self + ": legal ICE state transition from " + oldstate + " to " + newstate);
+        ok(iceStateTransitions[oldstate].indexOf(newstate) != -1, this + ": legal ICE state transition from " + oldstate + " to " + newstate);
       } else {
-        ok(false, self + ": old ICE state " + oldstate + " missing in ICE transition array");
+        ok(false, this + ": old ICE state " + oldstate + " missing in ICE transition array");
       }
-      self.iceConnectionLog.push(newstate);
-    }
-
-    self.iceConnectionLog = [self._pc.iceConnectionState];
-    self.ice_connection_callbacks.logIceStatus = logIceConState;
+      this.iceConnectionLog.push(newstate);
+    };
   },
 
   
@@ -2052,62 +1317,20 @@ PeerConnectionWrapper.prototype = {
 
 
 
-
-
-
-  waitForIceConnected : function PCW_waitForIceConnected(onSuccess, onFailure) {
-    var self = this;
-    var mySuccess = onSuccess;
-    var myFailure = onFailure;
-
-    function iceConnectedChanged () {
-      if (self.isIceConnected()) {
-        delete self.ice_connection_callbacks.waitForIceConnected;
-        mySuccess();
-      } else if (! self.isIceConnectionPending()) {
-        delete self.ice_connection_callbacks.waitForIceConnected;
-        myFailure();
-      }
-    }
-
-    self.ice_connection_callbacks.waitForIceConnected = iceConnectedChanged;
-  },
-
-  
-
-
-
-
-
-
-  setupIceCandidateHandler : function
-    PCW_setupIceCandidateHandler(test, candidateHandler, endHandler) {
-    var self = this;
-
-    candidateHandler = candidateHandler || test.iceCandidateHandler.bind(test);
-    endHandler = endHandler || test.signalEndOfTrickleIce.bind(test);
-
-    function iceCandidateCallback (anEvent) {
-      info(self.label + ": received iceCandidateEvent");
-      if (!anEvent.candidate) {
-        info(self.label + ": received end of trickle ICE event");
-        self.endOfTrickleIce = true;
-        endHandler(self.label);
-      } else {
-        if (self.endOfTrickleIce) {
-          ok(false, "received ICE candidate after end of trickle");
+  waitForIceConnected : function() {
+    return new Promise((resolve, reject) => {
+      var iceConnectedChanged = () => {
+        if (this.isIceConnected()) {
+          delete this.ice_connection_callbacks.waitForIceConnected;
+          resolve();
+        } else if (! this.isIceConnectionPending()) {
+          delete this.ice_connection_callbacks.waitForIceConnected;
+          resolve();
         }
-        info(self.label + ": iceCandidate = " + JSON.stringify(anEvent.candidate));
-        ok(anEvent.candidate.candidate.length > 0, "ICE candidate contains candidate");
-        
-        ok(anEvent.candidate.sdpMid.length === 0, "SDP MID has length zero");
-        ok(typeof anEvent.candidate.sdpMLineIndex === 'number', "SDP MLine Index needs to exist");
-        self._local_ice_candidates.push(anEvent.candidate);
-        candidateHandler(self.label, anEvent.candidate);
       }
-    }
 
-    self._pc.onicecandidate = iceCandidateCallback;
+      this.ice_connection_callbacks.waitForIceConnected = iceConnectedChanged;
+    });
   },
 
   
@@ -2116,8 +1339,42 @@ PeerConnectionWrapper.prototype = {
 
 
 
-  countAudioTracksInMediaConstraint : function
-    PCW_countAudioTracksInMediaConstraint(constraints) {
+
+  setupIceCandidateHandler : function(test, candidateHandler) {
+    candidateHandler = candidateHandler || test.iceCandidateHandler.bind(test);
+
+    var resolveEndOfTrickle;
+    this.endOfTrickleIce = new Promise(r => resolveEndOfTrickle = r);
+
+    this.endOfTrickleIce.then(() => {
+      this._pc.onicecandidate = () =>
+        ok(false, this.label + " received ICE candidate after end of trickle");
+    });
+
+    this._pc.onicecandidate = anEvent => {
+      if (!anEvent.candidate) {
+        info(this.label + ": received end of trickle ICE event");
+        resolveEndOfTrickle(this.label);
+        return;
+      }
+
+      info(this.label + ": iceCandidate = " + JSON.stringify(anEvent.candidate));
+      ok(anEvent.candidate.candidate.length > 0, "ICE candidate contains candidate");
+      
+      ok(anEvent.candidate.sdpMid.length === 0, "SDP MID has length zero");
+      ok(typeof anEvent.candidate.sdpMLineIndex === 'number', "SDP MLine Index needs to exist");
+      this._local_ice_candidates.push(anEvent.candidate);
+      candidateHandler(this.label, anEvent.candidate);
+    };
+  },
+
+  
+
+
+
+
+
+  countAudioTracksInMediaConstraint : function(constraints) {
     if ((!constraints) || (constraints.length === 0)) {
       return 0;
     }
@@ -2136,8 +1393,7 @@ PeerConnectionWrapper.prototype = {
 
 
 
-  audioInOfferOptions : function
-    PCW_audioInOfferOptions(options) {
+  audioInOfferOptions : function(options) {
     if (!options) {
       return 0;
     }
@@ -2165,8 +1421,7 @@ PeerConnectionWrapper.prototype = {
 
 
 
-  countVideoTracksInMediaConstraint : function
-    PCW_countVideoTracksInMediaConstraint(constraints) {
+  countVideoTracksInMediaConstraint : function(constraints) {
     if ((!constraints) || (constraints.length === 0)) {
       return 0;
     }
@@ -2185,8 +1440,7 @@ PeerConnectionWrapper.prototype = {
 
 
 
-  videoInOfferOptions : function
-    PCW_videoInOfferOptions(options) {
+  videoInOfferOptions : function(options) {
     if (!options) {
       return 0;
     }
@@ -2215,15 +1469,14 @@ PeerConnectionWrapper.prototype = {
 
 
 
-  countAudioTracksInStreams : function PCW_countAudioTracksInStreams(streams) {
+  countAudioTracksInStreams : function(streams) {
     if (!streams || (streams.length === 0)) {
       return 0;
     }
-    var numAudioTracks = 0;
-    streams.forEach(function(st) {
-      numAudioTracks += st.getAudioTracks().length;
-    });
-    return numAudioTracks;
+
+    return streams.reduce((count, st) => {
+      return count + st.getAudioTracks().length;
+    }, 0);
   },
 
   
@@ -2233,15 +1486,14 @@ PeerConnectionWrapper.prototype = {
 
 
 
-  countVideoTracksInStreams: function PCW_countVideoTracksInStreams(streams) {
+  countVideoTracksInStreams: function(streams) {
     if (!streams || (streams.length === 0)) {
       return 0;
     }
-    var numVideoTracks = 0;
-    streams.forEach(function(st) {
-      numVideoTracks += st.getVideoTracks().length;
-    });
-    return numVideoTracks;
+
+    return streams.reduce((count, st) => {
+      return count + st.getVideoTracks().length;
+    }, 0);
   },
 
   
@@ -2250,81 +1502,70 @@ PeerConnectionWrapper.prototype = {
 
 
 
-  checkMediaTracks : function PCW_checkMediaTracks(constraintsRemote, onSuccess) {
-    var self = this;
-
-    function _checkMediaTracks(constraintsRemote, onSuccess) {
-
+  checkMediaTracks : function(constraintsRemote) {
+    var _checkMediaTracks = constraintsRemote => {
       var localConstraintAudioTracks =
-        self.countAudioTracksInMediaConstraint(self.constraints);
-      var localStreams = self._pc.getLocalStreams();
-      var localAudioTracks = self.countAudioTracksInStreams(localStreams, false);
-      is(localAudioTracks, localConstraintAudioTracks, self + ' has ' +
+        this.countAudioTracksInMediaConstraint(this.constraints);
+      var localStreams = this._pc.getLocalStreams();
+      var localAudioTracks = this.countAudioTracksInStreams(localStreams, false);
+      is(localAudioTracks, localConstraintAudioTracks, this + ' has ' +
         localAudioTracks + ' local audio tracks');
 
       var localConstraintVideoTracks =
-        self.countVideoTracksInMediaConstraint(self.constraints);
-      var localVideoTracks = self.countVideoTracksInStreams(localStreams, false);
-      is(localVideoTracks, localConstraintVideoTracks, self + ' has ' +
+        this.countVideoTracksInMediaConstraint(this.constraints);
+      var localVideoTracks = this.countVideoTracksInStreams(localStreams, false);
+      is(localVideoTracks, localConstraintVideoTracks, this + ' has ' +
         localVideoTracks + ' local video tracks');
 
       var remoteConstraintAudioTracks =
-        self.countAudioTracksInMediaConstraint(constraintsRemote);
-      var remoteStreams = self._pc.getRemoteStreams();
-      var remoteAudioTracks = self.countAudioTracksInStreams(remoteStreams, false);
-      is(remoteAudioTracks, remoteConstraintAudioTracks, self + ' has ' +
+        this.countAudioTracksInMediaConstraint(constraintsRemote);
+      var remoteStreams = this._pc.getRemoteStreams();
+      var remoteAudioTracks = this.countAudioTracksInStreams(remoteStreams, false);
+      is(remoteAudioTracks, remoteConstraintAudioTracks, this + ' has ' +
         remoteAudioTracks + ' remote audio tracks');
 
       var remoteConstraintVideoTracks =
-        self.countVideoTracksInMediaConstraint(constraintsRemote);
-      var remoteVideoTracks = self.countVideoTracksInStreams(remoteStreams, false);
-      is(remoteVideoTracks, remoteConstraintVideoTracks, self + ' has ' +
+        this.countVideoTracksInMediaConstraint(constraintsRemote);
+      var remoteVideoTracks = this.countVideoTracksInStreams(remoteStreams, false);
+      is(remoteVideoTracks, remoteConstraintVideoTracks, this + ' has ' +
         remoteVideoTracks + ' remote video tracks');
-
-      onSuccess();
     }
 
     
     
     var expectedRemoteTracks =
-      self.countAudioTracksInMediaConstraint(constraintsRemote) +
-      self.countVideoTracksInMediaConstraint(constraintsRemote);
+      this.countAudioTracksInMediaConstraint(constraintsRemote) +
+      this.countVideoTracksInMediaConstraint(constraintsRemote);
 
     
-    
-    function _compareReceivedAndExpectedTracks(constraintsRemote, onSuccess) {
-      var receivedRemoteTracks =
-        self.onAddStreamAudioCounter + self.onAddStreamVideoCounter;
+    if (this.onAddStreamFired || (expectedRemoteTracks == 0)) {
+      _checkMediaTracks(constraintsRemote);
+      return Promise.resolve();
+    }
 
-      if (receivedRemoteTracks === expectedRemoteTracks) {
-        _checkMediaTracks(constraintsRemote, onSuccess);
-      } else if (receivedRemoteTracks > expectedRemoteTracks) {
-        ok(false, "Received more streams " + receivedRemoteTracks +
-            " then expected " + expectedRemoteTracks);
-        _checkMediaTracks(constraintsRemote, onSuccess);
-      } else {
-        info("Still waiting for more remote streams to arrive (" +
-            receivedRemoteTracks + " vs " + expectedRemoteTracks + ")");
+    info(this + " checkMediaTracks() got called before onAddStream fired");
+    
+    
+    var happy = new Promise(resolve => {
+      this.addStreamCallbacks.checkMediaTracks = resolve;
+    }).then(() => {
+      _checkMediaTracks(constraintsRemote);
+    });
+    var sad = wait(60000).then(() => {
+      if (!this.onAddStreamFired) {
+        
+        
+        throw new Error(this + " checkMediaTracks() timed out waiting" +
+                        " for onaddstream event to fire");
       }
-    }
-
-    if (expectedRemoteTracks > (self.onAddStreamAudioCounter +
-        self.onAddStreamVideoCounter)) {
-      
-      
-      
-      self.addStreamCallbacks.checkMediaTracks = function() {
-        _compareReceivedAndExpectedTracks(constraintsRemote, onSuccess);
-      };
-    }
-    _compareReceivedAndExpectedTracks(constraintsRemote, onSuccess);
-
+    });
+    return Promise.race([ happy, sad ]);
   },
 
-  checkMsids : function PCW_checkMsids() {
+  checkMsids: function() {
     function _checkMsids(desc, streams, sdpLabel) {
-      streams.forEach(function(stream) {
-        stream.getTracks().forEach(function(track) {
+      streams.forEach(stream => {
+        stream.getTracks().forEach(track => {
           
           
           
@@ -2334,16 +1575,13 @@ PeerConnectionWrapper.prototype = {
       });
     }
 
-    _checkMsids(this.localDescription,
-                this._pc.getLocalStreams(),
+    _checkMsids(this.localDescription, this._pc.getLocalStreams(),
                 "local");
-    _checkMsids(this.remoteDescription,
-                this._pc.getRemoteStreams(),
+    _checkMsids(this.remoteDescription, this._pc.getRemoteStreams(),
                 "remote");
   },
 
-  verifySdp : function PCW_verifySdp(desc, expectedType, offerConstraintsList,
-      offerOptions, trickleIceCallback) {
+  verifySdp: function(desc, expectedType, offerConstraintsList, offerOptions, isLocal) {
     info("Examining this SessionDescription: " + JSON.stringify(desc));
     info("offerConstraintsList: " + JSON.stringify(offerConstraintsList));
     info("offerOptions: " + JSON.stringify(offerOptions));
@@ -2355,13 +1593,18 @@ PeerConnectionWrapper.prototype = {
     ok(desc.sdp.contains("a=fingerprint"), "ICE fingerprint is present in SDP");
     
     ok(!desc.sdp.contains(LOOPBACK_ADDR), "loopback interface is absent from SDP");
-    if (desc.sdp.contains("a=candidate")) {
-      ok(true, "at least one ICE candidate is present in SDP");
-      trickleIceCallback(false);
+    var requiresTrickleIce = !desc.sdp.contains("a=candidate");
+    if (requiresTrickleIce) {
+      info("at least one ICE candidate is present in SDP");
     } else {
       info("No ICE candidate in SDP -> requiring trickle ICE");
-      trickleIceCallback(true);
     }
+    if (isLocal) {
+      this.localRequiresTrickleIce = requiresTrickleIce;
+    } else {
+      this.remoteRequiresTrickleIce = requiresTrickleIce;
+    }
+
     
 
     var audioTracks =
@@ -2377,7 +1620,6 @@ PeerConnectionWrapper.prototype = {
       
       
       ok(desc.sdp.contains("a=rtcp-mux"), "RTCP Mux is offered in SDP");
-
     }
 
     var videoTracks =
@@ -2403,39 +1645,19 @@ PeerConnectionWrapper.prototype = {
 
 
 
-
-
-
-  checkMediaFlowPresent : function PCW_checkMediaFlowPresent(onSuccess) {
-    var self = this;
-
-    function _checkMediaFlowPresent(index, onSuccess) {
-      if(index >= self.mediaCheckers.length) {
-        onSuccess();
-      } else {
-        var mediaChecker = self.mediaCheckers[index];
-        mediaChecker.waitForMediaFlow(function() {
-          _checkMediaFlowPresent(index + 1, onSuccess);
-        });
-      }
-    }
-
-    _checkMediaFlowPresent(0, onSuccess);
+  checkMediaFlowPresent : function() {
+    return Promise.all(this.mediaCheckers.map(checker => checker.waitForMediaFlow()));
   },
 
   
 
 
-
-
-  getStats : function PCW_getStats(selector, onSuccess) {
-    var self = this;
-
-    this._pc.getStats(selector, function(stats) {
-      info(self + ": Got stats: " + JSON.stringify(stats));
-      self._last_stats = stats;
-      onSuccess(stats);
-    }, generateErrorCallback());
+  getStats : function(selector) {
+    return this._pc.getStats(selector).then(stats => {
+      info(this + ": Got stats: " + JSON.stringify(stats));
+      this._last_stats = stats;
+      return stats;
+    });
   },
 
   
@@ -2444,17 +1666,13 @@ PeerConnectionWrapper.prototype = {
 
 
 
-  checkStats : function PCW_checkStats(stats, twoMachines) {
-    function toNum(obj) {
-      return obj? obj : 0;
-    }
-    function numTracks(streams) {
-      var n = 0;
-      streams.forEach(function(stream) {
-          n += stream.getAudioTracks().length + stream.getVideoTracks().length;
-        });
-      return n;
-    }
+  checkStats : function(stats, twoMachines) {
+    var toNum = obj => obj? obj : 0;
+    var numTracks = streams =>
+        streams.reduce((count, stream) => count +
+                       stream.getAudioTracks().length +
+                       stream.getVideoTracks().length,
+                       0);
 
     const isWinXP = navigator.userAgent.indexOf("Windows NT 5.1") != -1;
 
@@ -2539,7 +1757,7 @@ PeerConnectionWrapper.prototype = {
 
     
     var counters2 = {};
-    stats.forEach(function(res) {
+    stats.forEach(res => {
         if (!res.isRemote) {
           counters2[res.type] = toNum(counters2[res.type]) + 1;
         }
@@ -2575,11 +1793,10 @@ PeerConnectionWrapper.prototype = {
 
 
 
-  checkStatsIceConnectionType : function PCW_checkStatsIceConnectionType(stats)
-  {
+  checkStatsIceConnectionType : function(stats) {
     var lId;
     var rId;
-    Object.keys(stats).forEach(function(name) {
+    Object.keys(stats).forEach(name => {
       if ((stats[name].type === "candidatepair") &&
           (stats[name].selected)) {
         lId = stats[name].localCandidateId;
@@ -2622,10 +1839,10 @@ PeerConnectionWrapper.prototype = {
 
 
 
-  checkStatsIceConnections : function PCW_checkStatsIceConnections(stats,
+  checkStatsIceConnections : function(stats,
       offerConstraintsList, offerOptions, answer) {
     var numIceConnections = 0;
-    Object.keys(stats).forEach(function(key) {
+    Object.keys(stats).forEach(key => {
       if ((stats[key].type === "candidatepair") && stats[key].selected) {
         numIceConnections += 1;
       }
@@ -2661,7 +1878,7 @@ PeerConnectionWrapper.prototype = {
 
 
 
-  hasStat : function PCW_hasStat(stats, props) {
+  hasStat : function(stats, props) {
     for (var key in stats) {
       if (stats.hasOwnProperty(key)) {
         var res = stats[key];
@@ -2683,9 +1900,9 @@ PeerConnectionWrapper.prototype = {
   
 
 
-  close : function PCW_close() {
-    this._ice_candidates_to_add = [];
+  close : function() {
     this._pc.close();
+    this.localMediaElements.forEach(e => e.pause());
     info(this + ": Closed connection.");
   },
 
@@ -2694,23 +1911,7 @@ PeerConnectionWrapper.prototype = {
 
 
 
-
-  registerDataChannelOpenEvents : function (onDataChannelOpened) {
-    info(this + ": Register callback for 'ondatachannel'");
-
-    this.ondatachannel = function (targetChannel) {
-      this.dataChannels.push(targetChannel);
-      info(this + ": 'ondatachannel' fired, registering 'onopen' callback");
-      targetChannel.onopen = onDataChannelOpened;
-    };
-  },
-
-  
-
-
-
-
-  toString : function PCW_toString() {
+  toString : function() {
     return "PeerConnectionWrapper (" + this.label + ")";
   }
 };

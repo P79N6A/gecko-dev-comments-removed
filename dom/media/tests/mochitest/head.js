@@ -2,6 +2,8 @@
 
 
 
+"use strict";
+
 var Cc = SpecialPowers.Cc;
 var Ci = SpecialPowers.Ci;
 var Cr = SpecialPowers.Cr;
@@ -102,17 +104,13 @@ function createMediaElement(type, label) {
 
 
 
-
-
-
-
-function getUserMedia(constraints, onSuccess, onError) {
+function getUserMedia(constraints) {
   if (!("fake" in constraints) && FAKE_ENABLED) {
     constraints["fake"] = FAKE_ENABLED;
   }
 
   info("Call getUserMedia for " + JSON.stringify(constraints));
-  navigator.mozGetUserMedia(constraints, onSuccess, onError);
+  return navigator.mediaDevices.getUserMedia(constraints);
 }
 
 
@@ -201,25 +199,43 @@ function checkMediaStreamTracks(constraints, mediaStream) {
 
 
 
-
-
-
-
-
-
-
-
-
-function getBlobContent(blob, onSuccess) {
-  var reader = new FileReader();
-
-  
-  reader.onloadend = function (event) {
-    onSuccess(event.target.result);
-  };
-
-  reader.readAsText(blob);
+function wait(time) {
+  return new Promise(r => setTimeout(r, time));
 }
+
+
+function waitUntil(func, time) {
+  return new Promise(resolve => {
+    var interval = setInterval(() => {
+      if (func())  {
+        clearInterval(interval);
+        resolve();
+      }
+    }, time || 200);
+  });
+}
+
+
+
+
+
+
+
+
+function getBlobContent(blob) {
+  return new Promise(resolve => {
+    var reader = new FileReader();
+
+    
+    reader.onloadend = function (event) {
+      resolve(event.target.result);
+    };
+
+    reader.readAsText(blob);
+  });
+}
+
+
 
 
 
@@ -238,7 +254,7 @@ function generateErrorCallback(message) {
 
 
 
-  return function (aObj) {
+  return aObj => {
     if (aObj) {
       if (aObj.name && aObj.message) {
         ok(false, "Unexpected callback for '" + aObj.name +
@@ -252,10 +268,14 @@ function generateErrorCallback(message) {
       ok(false, "Unexpected callback with message = '" + message +
          "' at: " + JSON.stringify(stack));
     }
-    SimpleTest.finish();
+    throw new Error("Unexpected callback");
   }
 }
 
+var unexpectedEventArrived;
+var unexpectedEventArrivedPromise = new Promise((x, reject) => {
+  unexpectedEventArrived = reject;
+});
 
 
 
@@ -264,16 +284,248 @@ function generateErrorCallback(message) {
 
 
 
-function unexpectedEventAndFinish(message, eventName) {
+
+function unexpectedEvent(message, eventName) {
   var stack = new Error().stack.split("\n");
   stack.shift(); 
 
-  return function () {
-    ok(false, "Unexpected event '" + eventName + "' fired with message = '" +
-       message + "' at: " + JSON.stringify(stack));
-    SimpleTest.finish();
+  return e => {
+    var details = "Unexpected event '" + eventName + "' fired with message = '" +
+        message + "' at: " + JSON.stringify(stack);
+    ok(false, details);
+    unexpectedEventArrived(new Error(details));
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function guardEvent(wrapper, obj, event, redirect) {
+  redirect = redirect || (e => wrapper);
+  var onx = 'on' + event;
+  var unexpected = unexpectedEvent(wrapper, event);
+  wrapper[onx] = unexpected;
+  obj[onx] = e => {
+    info(wrapper + ': "on' + event + '" event fired');
+    wrapper[onx](redirect(e));
+    wrapper[onx] = unexpected;
+  };
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+function CommandChain(framework, commandList) {
+  this._framework = framework;
+  this.commands = commandList || [ ];
+}
+
+CommandChain.prototype = {
+  
+
+
+
+  execute: function () {
+    return this.commands.reduce((prev, next, i) => {
+      if (typeof next !== 'function' || !next.name) {
+        throw new Error('registered non-function' + next);
+      }
+
+      return prev.then(() => {
+        info('Run step ' + (i + 1) + ': ' + next.name);
+        return Promise.race([
+          next(this._framework),
+          unexpectedEventArrivedPromise
+        ]);
+      });
+    }, Promise.resolve())
+      .catch(e =>
+             ok(false, 'Error in test execution: ' + e +
+                ((typeof e.stack === 'string') ?
+                 (' ' + e.stack.split('\n').join(' ... ')) : '')));
+  },
+
+  
+
+
+
+
+
+  append: function(commands) {
+    this.commands = this.commands.concat(commands);
+  },
+
+  
+
+
+
+
+
+
+  indexOf: function (id) {
+    if (typeof id === 'string') {
+      return this.commands.findIndex(f => f.name === id);
+    }
+    return this.commands.indexOf(id);
+  },
+
+  
+
+
+
+
+
+
+
+  insertAfter: function (id, commands) {
+    this._insertHelper(id, commands, 1);
+  },
+
+  
+
+
+
+
+
+
+
+  insertBefore: function (id, commands) {
+    this._insertHelper(id, commands);
+  },
+
+  _insertHelper: function(id, commands, delta) {
+    delta = delta || 0;
+    var index = this.indexOf(id);
+
+    if (index >= 0) {
+      this.commands = [].concat(
+        this.commands.slice(0, index + delta),
+        commands,
+        this.commands.slice(index + delta));
+    }
+  },
+
+  
+
+
+
+
+
+
+  remove: function (id) {
+    var index = this.indexOf(id);
+    if (index >= 0) {
+      return this.commands.splice(index, 1);
+    }
+    return [];
+  },
+
+  
+
+
+
+
+
+
+  removeAfter: function (id) {
+    var index = this.indexOf(id);
+    if (index >= 0) {
+      return this.commands.splice(index + 1);
+    }
+    return [];
+  },
+
+  
+
+
+
+
+
+
+  removeBefore: function (id) {
+    var index = this.indexOf(id);
+    if (index >= 0) {
+      return this.commands.splice(0, index);
+    }
+    return [];
+  },
+
+  
+
+
+
+
+
+
+
+
+  replace: function (id, commands) {
+    this.insertBefore(id, commands);
+    return this.remove(id);
+  },
+
+  
+
+
+
+
+
+
+  replaceAfter: function (id, commands) {
+    var oldCommands = this.removeAfter(id);
+    this.append(commands);
+    return oldCommands;
+  },
+
+  
+
+
+
+
+
+
+  replaceBefore: function (id, commands) {
+    var oldCommands = this.removeBefore(id);
+    this.insertBefore(id, commands);
+    return oldCommands;
+  },
+
+  
+
+
+
+
+
+  filterOut: function (id_match) {
+    this.commands = this.commands.filter(c => !id_match.test(c.name));
+  }
+};
+
 
 function IsMacOSX10_6orOlder() {
     var is106orOlder = false;
@@ -289,4 +541,3 @@ function IsMacOSX10_6orOlder() {
     }
     return is106orOlder;
 }
-
