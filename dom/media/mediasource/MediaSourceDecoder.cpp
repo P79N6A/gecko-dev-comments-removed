@@ -95,11 +95,13 @@ void
 MediaSourceDecoder::Shutdown()
 {
   MSE_DEBUG("MediaSourceDecoder(%p)::Shutdown", this);
-  MediaDecoder::Shutdown();
-
+  
+  
   if (mMediaSource) {
     mMediaSource->Detach();
   }
+
+  MediaDecoder::Shutdown();
   
   ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
   mon.NotifyAll();
