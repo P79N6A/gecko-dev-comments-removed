@@ -2428,6 +2428,23 @@ SourceClient.prototype = {
   
 
 
+
+
+
+  getExecutableLines: function(cb){
+    let packet = {
+      to: this._form.actor,
+      type: "getExecutableLines"
+    };
+
+    this._client.request(packet, res => {
+      cb(res.lines);
+    });
+  },
+
+  
+
+
   source: function (aCallback) {
     let packet = {
       to: this._form.actor,

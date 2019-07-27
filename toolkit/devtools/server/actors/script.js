@@ -2645,6 +2645,66 @@ SourceActor.prototype = {
   
 
 
+
+  getExecutableLines: function () {
+    
+    let packet = {
+      from: this.actorID
+    };
+
+    let lines;
+
+    if (this._sourceMap) {
+      lines = new Set();
+
+      
+      let offsets = this.getExecutableOffsets(this._generatedSource, false);
+      for (let offset of offsets) {
+        let {line, source} = this._sourceMap.originalPositionFor({
+          line: offset.lineNumber,
+          column: offset.columnNumber
+        });
+
+        if (source === this._url) {
+          lines.add(line);
+        }
+      }
+    } else {
+      
+      lines = this.getExecutableOffsets(this._url, true);
+    }
+
+    
+    packet.lines = [line for (line of lines)];
+    packet.lines.sort((a, b) => {
+      return a - b;
+    });
+
+    return packet;
+  },
+
+  
+
+
+
+
+
+  getExecutableOffsets: function (url, onlyLine) {
+    let offsets = new Set();
+    for (let s of this.threadActor.dbg.findScripts(this.threadActor.global)) {
+      if (s.url === url) {
+        for (let offset of s.getAllColumnOffsets()) {
+          offsets.add(onlyLine ? offset.lineNumber : offset);
+        }
+      }
+    }
+
+    return offsets;
+  },
+
+  
+
+
   onSource: function () {
     return resolve(this._init)
       .then(this._getSourceText)
@@ -2858,7 +2918,8 @@ SourceActor.prototype.requestTypes = {
   "blackbox": SourceActor.prototype.onBlackBox,
   "unblackbox": SourceActor.prototype.onUnblackBox,
   "prettyPrint": SourceActor.prototype.onPrettyPrint,
-  "disablePrettyPrint": SourceActor.prototype.onDisablePrettyPrint
+  "disablePrettyPrint": SourceActor.prototype.onDisablePrettyPrint,
+  "getExecutableLines": SourceActor.prototype.getExecutableLines
 };
 
 
