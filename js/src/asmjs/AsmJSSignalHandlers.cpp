@@ -438,7 +438,6 @@ HandleFault(PEXCEPTION_POINTERS exception)
 
     uint8_t **ppc = ContextToPC(context);
     uint8_t *pc = *ppc;
-    MOZ_ASSERT(pc == record->ExceptionAddress);
 
     if (record->NumberParameters < 2)
         return false;
@@ -453,11 +452,9 @@ HandleFault(PEXCEPTION_POINTERS exception)
     if (!activation)
         return false;
 
-    const AsmJSModule &module = activation->module();
-    if (!module.containsFunctionPC(pc))
-        return false;
-
 # if defined(JS_CODEGEN_X64)
+    const AsmJSModule &module = activation->module();
+
     
     
     void *faultingAddress = (void*)record->ExceptionInformation[1];
@@ -465,6 +462,25 @@ HandleFault(PEXCEPTION_POINTERS exception)
         faultingAddress < module.maybeHeap() ||
         faultingAddress >= module.maybeHeap() + AsmJSMappedSize)
     {
+        return false;
+    }
+
+    if (!module.containsFunctionPC(pc)) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        if (pc == module.interruptExit() &&
+            module.containsFunctionPC(activation->resumePC()) &&
+            module.lookupHeapAccess(activation->resumePC()))
+        {
+            return true;
+        }
         return false;
     }
 

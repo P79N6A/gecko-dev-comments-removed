@@ -1494,6 +1494,7 @@ class AsmJSActivation : public Activation
 
     
     void setResumePC(void *pc) { resumePC_ = pc; }
+    void *resumePC() const { return resumePC_; }
 };
 
 
