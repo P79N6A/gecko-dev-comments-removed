@@ -1791,7 +1791,7 @@ public:
 
 
     void Draw(gfxTextRun *aTextRun, uint32_t aStart, uint32_t aEnd,
-              gfxPoint *aPt, TextRunDrawParams& aParams);
+              gfxPoint *aPt, const TextRunDrawParams& aRunParams);
 
     
 
