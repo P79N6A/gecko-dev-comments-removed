@@ -10,6 +10,8 @@
 #include "mozilla/GuardObjects.h"
 #include "mozilla/LinkedList.h"
 #include "mozilla/Range.h"
+#include "mozilla/UniquePtr.h"
+#include "mozilla/Vector.h"
 
 #include "jsclist.h"
 #include "jscntxt.h"
@@ -190,6 +192,8 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     friend JSObject* SavedStacksMetadataCallback(JSContext* cx);
     friend void JS::dbg::onNewPromise(JSContext* cx, HandleObject promise);
     friend void JS::dbg::onPromiseSettled(JSContext* cx, HandleObject promise);
+    friend bool JS::dbg::FireOnGarbageCollectionHook(JSContext* cx,
+                                                     JS::dbg::GarbageCollectionEvent::Ptr&& data);
 
   public:
     enum Hook {
@@ -244,7 +248,15 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
     
     
-    void debuggeeIsBeingCollected() { debuggeeWasCollected = true; }
+    bool observedGC(uint64_t majorGCNumber) const {
+        return observedGCs.has(majorGCNumber);
+    }
+
+    
+    
+    bool debuggeeIsBeingCollected(uint64_t majorGCNumber) {
+        return observedGCs.put(majorGCNumber);
+    }
 
   private:
     HeapPtrNativeObject object;         
@@ -252,6 +264,10 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     js::HeapPtrObject uncaughtExceptionHook; 
     bool enabled;
     JSCList breakpoints;                
+
+    
+    
+    js::HashSet<uint64_t> observedGCs;
 
     struct AllocationSite : public mozilla::LinkedListElement<AllocationSite>
     {
@@ -270,38 +286,6 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     typedef mozilla::LinkedList<AllocationSite> AllocationSiteList;
 
     bool allowUnobservedAsmJS;
-
-    
-    
-    bool debuggeeWasCollected;
-
-    
-    
-    
-    
-    bool inOnGCHook;
-
-    
-    
-    class MOZ_STACK_CLASS AutoOnGCHookReentrancyGuard {
-        MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER;
-        Debugger& dbg;
-
-    public:
-        explicit AutoOnGCHookReentrancyGuard(Debugger& dbg MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-            : dbg(dbg)
-        {
-            MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-            MOZ_ASSERT(!dbg.inOnGCHook);
-            dbg.inOnGCHook = true;
-        }
-
-        ~AutoOnGCHookReentrancyGuard() {
-            MOZ_ASSERT(dbg.inOnGCHook);
-            dbg.inOnGCHook = false;
-        }
-    };
-
     bool trackingAllocationSites;
     double allocationSamplingProbability;
     AllocationSiteList allocationsLog;
@@ -556,7 +540,8 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
 
-    void fireOnGarbageCollectionHook(JSRuntime* rt, const gcstats::Statistics& stats);
+    void fireOnGarbageCollectionHook(JSContext* cx,
+                                     const JS::dbg::GarbageCollectionEvent::Ptr& gcData);
 
     
 
@@ -675,7 +660,6 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     static inline void onNewGlobalObject(JSContext* cx, Handle<GlobalObject*> global);
     static inline bool onLogAllocationSite(JSContext* cx, JSObject* obj, HandleSavedFrame frame,
                                            int64_t when);
-    static inline void onGarbageCollection(JSRuntime* rt, const gcstats::Statistics& stats);
     static JSTrapStatus onTrap(JSContext* cx, MutableHandleValue vp);
     static JSTrapStatus onSingleStep(JSContext* cx, MutableHandleValue vp);
     static bool handleBaselineOsr(JSContext* cx, InterpreterFrame* from, jit::BaselineFrame* to);
@@ -723,13 +707,6 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
     bool wrapDebuggeeValue(JSContext* cx, MutableHandleValue vp);
-
-    
-
-
-
-
-    JSObject* translateGCStatistics(JSContext* cx, const gcstats::Statistics& stats);
 
     
 
@@ -992,18 +969,9 @@ Debugger::onLogAllocationSite(JSContext* cx, JSObject* obj, HandleSavedFrame fra
     return Debugger::slowPathOnLogAllocationSite(cx, hobj, frame, when, *dbgs);
 }
 
- void
-Debugger::onGarbageCollection(JSRuntime* rt, const gcstats::Statistics& stats)
-{
-    for (Debugger* dbg = rt->debuggerList.getFirst(); dbg; dbg = dbg->getNext()) {
-        if (dbg->debuggeeWasCollected && dbg->getHook(OnGarbageCollection)) {
-            dbg->fireOnGarbageCollectionHook(rt, stats);
-        }
-    }
-}
-
 bool ReportObjectRequired(JSContext* cx);
 
 } 
+
 
 #endif 

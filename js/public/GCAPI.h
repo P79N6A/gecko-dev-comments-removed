@@ -7,11 +7,17 @@
 #ifndef js_GCAPI_h
 #define js_GCAPI_h
 
+#include "mozilla/UniquePtr.h"
+#include "mozilla/Vector.h"
+
 #include "js/HeapAPI.h"
 
 namespace js {
 namespace gc {
 class GCRuntime;
+}
+namespace gcstats {
+struct Statistics;
 }
 }
 
@@ -41,6 +47,8 @@ typedef enum JSGCInvocationKind {
 } JSGCInvocationKind;
 
 namespace JS {
+
+using mozilla::UniquePtr;
 
 #define GCREASONS(D)                            \
     /* Reasons internal to the JS engine */     \
@@ -254,6 +262,56 @@ FinishIncrementalGC(JSRuntime* rt, gcreason::Reason reason);
 extern JS_PUBLIC_API(void)
 AbortIncrementalGC(JSRuntime* rt);
 
+namespace dbg {
+
+
+
+
+class GarbageCollectionEvent
+{
+    
+    uint64_t majorGCNumber_;
+
+    
+    
+    const char* reason;
+
+    
+    
+    
+    const char* nonincrementalReason;
+
+    
+    
+    struct Collection {
+        int64_t startTimestamp;
+        int64_t endTimestamp;
+    };
+
+    
+    mozilla::Vector<Collection> collections;
+
+    GarbageCollectionEvent(const GarbageCollectionEvent& rhs) = delete;
+    GarbageCollectionEvent& operator=(const GarbageCollectionEvent& rhs) = delete;
+
+  public:
+    explicit GarbageCollectionEvent(uint64_t majorGCNum)
+        : majorGCNumber_(majorGCNum)
+        , reason(nullptr)
+        , nonincrementalReason(nullptr)
+        , collections()
+    { }
+
+    using Ptr = UniquePtr<GarbageCollectionEvent, DeletePolicy<GarbageCollectionEvent>>;
+    static Ptr Create(JSRuntime* rt, ::js::gcstats::Statistics& stats, uint64_t majorGCNumber);
+
+    JSObject* toJSObject(JSContext* cx) const;
+
+    uint64_t majorGCNumber() const { return majorGCNumber_; }
+};
+
+} 
+
 enum GCProgress {
     
 
@@ -280,6 +338,8 @@ struct JS_PUBLIC_API(GCDescription) {
 
     char16_t* formatMessage(JSRuntime* rt) const;
     char16_t* formatJSON(JSRuntime* rt, uint64_t timestamp) const;
+
+    JS::dbg::GarbageCollectionEvent::Ptr toGCEvent(JSRuntime* rt) const;
 };
 
 typedef void

@@ -974,9 +974,6 @@ Statistics::endGC()
     if (fp)
         printStats();
 
-    if (!aborted)
-        Debugger::onGarbageCollection(runtime, *this);
-
     
     
     PodZero(&phaseStartTimes[PHASE_GC_BEGIN], PHASE_LIMIT - PHASE_GC_BEGIN);

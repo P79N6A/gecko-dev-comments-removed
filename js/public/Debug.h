@@ -12,10 +12,11 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/MemoryReporting.h"
-#include "mozilla/Move.h"
+#include "mozilla/UniquePtr.h"
 
 #include "jspubtd.h"
 
+#include "js/GCAPI.h"
 #include "js/RootingAPI.h"
 #include "js/TypeDecls.h"
 
@@ -24,6 +25,9 @@ class Debugger;
 }
 
 namespace JS {
+
+using mozilla::UniquePtr;
+
 namespace dbg {
 
 
@@ -259,6 +263,24 @@ class BuilderOrigin : public Builder {
 
 
 void SetDebuggerMallocSizeOf(JSRuntime* runtime, mozilla::MallocSizeOf mallocSizeOf);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+JS_PUBLIC_API(bool)
+FireOnGarbageCollectionHook(JSContext* cx, GarbageCollectionEvent::Ptr&& data);
 
 
 
