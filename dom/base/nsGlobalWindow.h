@@ -327,8 +327,7 @@ class nsGlobalWindow : public mozilla::dom::EventTarget,
                        public nsIDOMJSWindow,
                        public nsSupportsWeakReference,
                        public nsIInterfaceRequestor,
-                       public PRCListStr,
-                       public nsIDOMWindowPerformance
+                       public PRCListStr
 #ifdef MOZ_B2G
                      , public nsIDOMWindowB2G
 #endif 
@@ -392,9 +391,6 @@ public:
   
   NS_DECL_NSISPEECHSYNTHESISGETTER
 #endif 
-
-  
-  NS_DECL_NSIDOMWINDOWPERFORMANCE
 
   
   NS_DECL_NSIDOMJSWINDOW
