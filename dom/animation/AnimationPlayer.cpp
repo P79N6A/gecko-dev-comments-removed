@@ -133,6 +133,10 @@ AnimationPlayer::SetSource(Animation* aSource)
 void
 AnimationPlayer::Tick()
 {
+  
+  
+  
+
   UpdateSourceContent();
 }
 
@@ -142,16 +146,32 @@ AnimationPlayer::StartNow()
   
   
   
-  MOZ_ASSERT(mStartTime.IsNull() && !mHoldTime.IsNull(),
-             "Resolving the start time but we don't appear to be waiting"
-             " to begin playback");
+  MOZ_ASSERT(PlayState() == AnimationPlayState::Pending,
+             "Expected to start a pending player");
+  MOZ_ASSERT(!mHoldTime.IsNull(),
+             "A player in the pending state should have a resolved hold time");
 
   Nullable<TimeDuration> readyTime = mTimeline->GetCurrentTime();
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
   
   MOZ_ASSERT(!readyTime.IsNull(), "Missing or inactive timeline");
+
   mStartTime.SetValue(readyTime.Value() - mHoldTime.Value());
   mHoldTime.SetNull();
+  mIsPending = false;
+
+  UpdateSourceContent();
+  PostUpdate();
 
   if (mReady) {
     mReady->MaybeResolve(this);
@@ -246,7 +266,27 @@ AnimationPlayer::DoPlay()
   
   mReady = nullptr;
 
-  StartNow();
+  mIsPending = true;
+
+  nsIDocument* doc = GetRenderedDocument();
+  if (!doc) {
+    
+    
+    
+    
+    
+    
+    
+    StartNow();
+    return;
+  }
+
+  PendingPlayerTracker* tracker = doc->GetOrCreatePendingPlayerTracker();
+  tracker->AddPlayPending(*this);
+
+  
+  
+  UpdateSourceContent();
 }
 
 void
