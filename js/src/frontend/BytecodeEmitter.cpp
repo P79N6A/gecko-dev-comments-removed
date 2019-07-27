@@ -3340,119 +3340,6 @@ EmitDestructuringOps(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, 
 }
 
 static bool
-EmitGroupAssignment(ExclusiveContext *cx, BytecodeEmitter *bce, JSOp prologOp,
-                    ParseNode *lhs, ParseNode *rhs)
-{
-    uint32_t depth, limit, i, nslots;
-    ParseNode *pn;
-
-    depth = limit = (uint32_t) bce->stackDepth;
-    for (pn = rhs->pn_head; pn; pn = pn->pn_next) {
-        if (limit == JS_BIT(16)) {
-            bce->reportError(rhs, JSMSG_ARRAY_INIT_TOO_BIG);
-            return false;
-        }
-
-        
-        JS_ASSERT(!pn->isKind(PNK_ELISION));
-        if (!EmitTree(cx, bce, pn))
-            return false;
-        ++limit;
-    }
-
-    i = depth;
-    for (pn = lhs->pn_head; pn; pn = pn->pn_next, ++i) {
-        
-        JS_ASSERT(i < limit);
-
-        if (!EmitDupAt(cx, bce, i))
-            return false;
-
-        if (pn->isKind(PNK_ELISION)) {
-            if (Emit1(cx, bce, JSOP_POP) < 0)
-                return false;
-        } else {
-            if (!EmitDestructuringLHS(cx, bce, pn, InitializeVars))
-                return false;
-        }
-    }
-
-    nslots = limit - depth;
-    EMIT_UINT16_IMM_OP(JSOP_POPN, nslots);
-    bce->stackDepth = (uint32_t) depth;
-    return true;
-}
-
-enum GroupOption { GroupIsDecl, GroupIsNotDecl };
-
-
-
-
-
-
-static bool
-MaybeEmitGroupAssignment(ExclusiveContext *cx, BytecodeEmitter *bce, JSOp prologOp, ParseNode *pn,
-                         GroupOption groupOption, JSOp *pop)
-{
-    JS_ASSERT(pn->isKind(PNK_ASSIGN));
-    JS_ASSERT(pn->isOp(JSOP_NOP));
-    JS_ASSERT(*pop == JSOP_POP || *pop == JSOP_SETRVAL);
-
-    ParseNode *lhs = pn->pn_left;
-    ParseNode *rhs = pn->pn_right;
-    if (lhs->isKind(PNK_ARRAY) && rhs->isKind(PNK_ARRAY) &&
-        !(rhs->pn_xflags & PNX_SPECIALARRAYINIT) &&
-        lhs->pn_count <= rhs->pn_count)
-    {
-        if (groupOption == GroupIsDecl && !EmitDestructuringDecls(cx, bce, prologOp, lhs))
-            return false;
-        if (!EmitGroupAssignment(cx, bce, prologOp, lhs, rhs))
-            return false;
-        *pop = JSOP_NOP;
-    }
-    return true;
-}
-
-
-
-
-
-
-
-
-
-
-
-static bool
-MaybeEmitLetGroupDecl(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, JSOp *pop)
-{
-    JS_ASSERT(pn->isKind(PNK_ASSIGN));
-    JS_ASSERT(pn->isOp(JSOP_NOP));
-    JS_ASSERT(*pop == JSOP_POP || *pop == JSOP_SETRVAL);
-
-    ParseNode *lhs = pn->pn_left;
-    ParseNode *rhs = pn->pn_right;
-    if (lhs->isKind(PNK_ARRAY) && rhs->isKind(PNK_ARRAY) &&
-        !(rhs->pn_xflags & PNX_SPECIALARRAYINIT) &&
-        !(lhs->pn_xflags & PNX_SPECIALARRAYINIT) &&
-        lhs->pn_count == rhs->pn_count)
-    {
-        for (ParseNode *l = lhs->pn_head; l; l = l->pn_next) {
-            if (l->getOp() != JSOP_SETLOCAL)
-                return true;
-        }
-
-        for (ParseNode *r = rhs->pn_head; r; r = r->pn_next) {
-            if (!EmitTree(cx, bce, r))
-                return false;
-        }
-
-        *pop = JSOP_NOP;
-    }
-    return true;
-}
-
-static bool
 EmitTemplateString(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 {
     JS_ASSERT(pn->isArity(PN_LIST));
@@ -3534,36 +3421,15 @@ EmitVariables(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, VarEmit
                 goto do_name;
             }
 
-            JSOp op = JSOP_POP;
-            if (pn->pn_count == 1) {
-                
+            pn3 = pn2->pn_left;
+            if (!EmitDestructuringDecls(cx, bce, pn->getOp(), pn3))
+                return false;
 
+            if (!EmitTree(cx, bce, pn2->pn_right))
+                return false;
 
-
-
-
-                JS_ASSERT(!pn2->pn_next);
-                if (isLet) {
-                    if (!MaybeEmitLetGroupDecl(cx, bce, pn2, &op))
-                        return false;
-                } else {
-                    if (!MaybeEmitGroupAssignment(cx, bce, pn->getOp(), pn2, GroupIsDecl, &op))
-                        return false;
-                }
-            }
-            if (op == JSOP_NOP) {
-                pn->pn_xflags = (pn->pn_xflags & ~PNX_POPVAR) | PNX_GROUPINIT;
-            } else {
-                pn3 = pn2->pn_left;
-                if (!EmitDestructuringDecls(cx, bce, pn->getOp(), pn3))
-                    return false;
-
-                if (!EmitTree(cx, bce, pn2->pn_right))
-                    return false;
-
-                if (!EmitDestructuringOps(cx, bce, pn3, isLet))
-                    return false;
-            }
+            if (!EmitDestructuringOps(cx, bce, pn3, isLet))
+                return false;
 
             
             if (emitOption != InitializeVars) {
@@ -4832,28 +4698,10 @@ EmitNormalFor(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff
         op = JSOP_NOP;
     } else {
         bce->emittingForInit = true;
-        if (pn3->isKind(PNK_ASSIGN)) {
-            JS_ASSERT(pn3->isOp(JSOP_NOP));
-            if (!MaybeEmitGroupAssignment(cx, bce, op, pn3, GroupIsNotDecl, &op))
-                return false;
-        }
-        if (op == JSOP_POP) {
-            if (!UpdateSourceCoordNotes(cx, bce, pn3->pn_pos.begin))
-                return false;
-            if (!EmitTree(cx, bce, pn3))
-                return false;
-            if (pn3->isKind(PNK_VAR) || pn3->isKind(PNK_CONST) || pn3->isKind(PNK_LET)) {
-                
-
-
-
-
-
-                JS_ASSERT(pn3->isArity(PN_LIST) || pn3->isArity(PN_BINARY));
-                if (pn3->pn_xflags & PNX_GROUPINIT)
-                    op = JSOP_NOP;
-            }
-        }
+        if (!UpdateSourceCoordNotes(cx, bce, pn3->pn_pos.begin))
+            return false;
+        if (!EmitTree(cx, bce, pn3))
+            return false;
         bce->emittingForInit = false;
     }
 
@@ -4906,12 +4754,7 @@ EmitNormalFor(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff
         if (!UpdateSourceCoordNotes(cx, bce, pn3->pn_pos.begin))
             return false;
         op = JSOP_POP;
-        if (pn3->isKind(PNK_ASSIGN)) {
-            JS_ASSERT(pn3->isOp(JSOP_NOP));
-            if (!MaybeEmitGroupAssignment(cx, bce, op, pn3, GroupIsNotDecl, &op))
-                return false;
-        }
-        if (op == JSOP_POP && !EmitTree(cx, bce, pn3))
+        if (!EmitTree(cx, bce, pn3))
             return false;
 
         
@@ -5554,18 +5397,10 @@ EmitStatement(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     if (useful) {
         JSOp op = wantval ? JSOP_SETRVAL : JSOP_POP;
         JS_ASSERT_IF(pn2->isKind(PNK_ASSIGN), pn2->isOp(JSOP_NOP));
-        if (!wantval &&
-            pn2->isKind(PNK_ASSIGN) &&
-            !MaybeEmitGroupAssignment(cx, bce, op, pn2, GroupIsNotDecl, &op))
-        {
+        if (!EmitTree(cx, bce, pn2))
             return false;
-        }
-        if (op != JSOP_NOP) {
-            if (!EmitTree(cx, bce, pn2))
-                return false;
-            if (Emit1(cx, bce, op) < 0)
-                return false;
-        }
+        if (Emit1(cx, bce, op) < 0)
+            return false;
     } else if (pn->isDirectivePrologueMember()) {
         
         
