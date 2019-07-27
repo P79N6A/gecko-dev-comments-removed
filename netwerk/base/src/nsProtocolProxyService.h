@@ -280,6 +280,7 @@ protected:
 private:
     nsresult SetupPACThread();
     nsresult ResetPACThread();
+    nsresult ReloadNetworkPAC();
 
 public:
     
