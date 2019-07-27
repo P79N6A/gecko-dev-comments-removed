@@ -2899,13 +2899,18 @@ nsXMLHttpRequest::Send(nsIVariant* aVariant, const Nullable<RequestBody>& aBody)
   if (method.EqualsLiteral("POST")) {
     AddLoadFlags(mChannel,
         nsIRequest::LOAD_BYPASS_CACHE | nsIRequest::INHIBIT_CACHING);
-  }
-  
-  
-  
-  else if (!(mState & XML_HTTP_REQUEST_ASYNC)) {
+  } else {
+    
+    
+    
+    
+    
+    
+    
+    
+
     AddLoadFlags(mChannel,
-        nsICachingChannel::LOAD_BYPASS_LOCAL_CACHE_IF_BUSY);
+                 nsICachingChannel::LOAD_BYPASS_LOCAL_CACHE_IF_BUSY);
   }
 
   
