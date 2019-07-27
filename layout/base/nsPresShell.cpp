@@ -5817,12 +5817,10 @@ PresShell::MarkImagesInListVisible(const nsDisplayList& aList)
 }
 
 static PLDHashOperator
-RemoveAndStore(nsRefPtrHashKey<nsIImageLoadingContent>* aEntry, void* userArg)
+DecrementVisibleCount(nsRefPtrHashKey<nsIImageLoadingContent>* aEntry, void*)
 {
-  nsTArray< nsRefPtr<nsIImageLoadingContent> >* array =
-    static_cast< nsTArray< nsRefPtr<nsIImageLoadingContent> >* >(userArg);
-  array->AppendElement(aEntry->GetKey());
-  return PL_DHASH_REMOVE;
+  aEntry->GetKey()->DecrementVisibleCount();
+  return PL_DHASH_NEXT;
 }
 
 void
@@ -5832,13 +5830,10 @@ PresShell::RebuildImageVisibilityDisplayList(const nsDisplayList& aList)
   mImageVisibilityVisited = true;
   
   
-  nsTArray< nsRefPtr<nsIImageLoadingContent> > beforeImageList;
-  beforeImageList.SetCapacity(mVisibleImages.Count());
-  mVisibleImages.EnumerateEntries(RemoveAndStore, &beforeImageList);
+  nsTHashtable< nsRefPtrHashKey<nsIImageLoadingContent> > oldVisibleImages;
+  mVisibleImages.SwapElements(oldVisibleImages);
   MarkImagesInListVisible(aList);
-  for (size_t i = 0; i < beforeImageList.Length(); ++i) {
-    beforeImageList[i]->DecrementVisibleCount();
-  }
+  oldVisibleImages.EnumerateEntries(DecrementVisibleCount, nullptr);
 }
 
  void
@@ -5855,13 +5850,6 @@ PresShell::ClearImageVisibilityVisited(nsView* aView, bool aClear)
   for (nsView* v = aView->GetFirstChild(); v; v = v->GetNextSibling()) {
     ClearImageVisibilityVisited(v, v->GetViewManager() != vm);
   }
-}
-
-static PLDHashOperator
-DecrementVisibleCount(nsRefPtrHashKey<nsIImageLoadingContent>* aEntry, void* userArg)
-{
-  aEntry->GetKey()->DecrementVisibleCount();
-  return PL_DHASH_NEXT;
 }
 
 void
@@ -5970,9 +5958,8 @@ PresShell::RebuildImageVisibility(nsRect* aRect)
 
   
   
-  nsTArray< nsRefPtr<nsIImageLoadingContent> > beforeImageList;
-  beforeImageList.SetCapacity(mVisibleImages.Count());
-  mVisibleImages.EnumerateEntries(RemoveAndStore, &beforeImageList);
+  nsTHashtable< nsRefPtrHashKey<nsIImageLoadingContent> > oldVisibleImages;
+  mVisibleImages.SwapElements(oldVisibleImages);
 
   nsRect vis(nsPoint(0, 0), rootFrame->GetSize());
   if (aRect) {
@@ -5980,9 +5967,7 @@ PresShell::RebuildImageVisibility(nsRect* aRect)
   }
   MarkImagesInSubtreeVisible(rootFrame, vis);
 
-  for (size_t i = 0; i < beforeImageList.Length(); ++i) {
-    beforeImageList[i]->DecrementVisibleCount();
-  }
+  oldVisibleImages.EnumerateEntries(DecrementVisibleCount, nullptr);
 }
 
 void
