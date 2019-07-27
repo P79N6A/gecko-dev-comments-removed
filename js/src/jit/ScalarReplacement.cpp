@@ -60,6 +60,7 @@ static bool
 IsObjectEscaped(MInstruction *ins)
 {
     MOZ_ASSERT(ins->type() == MIRType_Object);
+    MOZ_ASSERT(ins->isNewObject() || ins->isGuardShape());
 
     
     
@@ -81,6 +82,32 @@ IsObjectEscaped(MInstruction *ins)
             if (def->indexOf(*i) == 0)
                 break;
             return true;
+
+          case MDefinition::Op_Slots: {
+#ifdef DEBUG
+            
+            MSlots *ins = def->toSlots();
+            MOZ_ASSERT(ins->object() != 0);
+            for (MUseIterator i(ins->usesBegin()); i != ins->usesEnd(); i++) {
+                
+                
+                MDefinition *def = (*i)->consumer()->toDefinition();
+                MOZ_ASSERT(def->op() == MDefinition::Op_StoreSlot ||
+                           def->op() == MDefinition::Op_LoadSlot);
+            }
+#endif
+            break;
+          }
+
+          case MDefinition::Op_GuardShape: {
+            MGuardShape *guard = def->toGuardShape();
+            MOZ_ASSERT(!ins->isGuardShape());
+            if (ins->toNewObject()->templateObject()->lastProperty() != guard->shape())
+                return true;
+            if (IsObjectEscaped(def->toInstruction()))
+                return true;
+            break;
+          }
           default:
             return true;
         }
@@ -172,6 +199,65 @@ ScalarReplacementOfObject(MIRGenerator *mir, MIRGraph &graph, GraphState &states
 
                 
                 ins = block->discardDefAt(ins);
+                continue;
+              }
+
+              case MDefinition::Op_GuardShape: {
+                MGuardShape *def = ins->toGuardShape();
+
+                
+                if (def->obj() != obj)
+                    break;
+
+                
+                ins->replaceAllUsesWith(obj);
+
+                
+                ins = block->discardDefAt(ins);
+                continue;
+              }
+
+              case MDefinition::Op_LoadSlot: {
+                MLoadSlot *def = ins->toLoadSlot();
+
+                
+                MSlots *slots = def->slots()->toSlots();
+                if (slots->object() != obj) {
+                    
+                    MOZ_ASSERT(!slots->object()->isGuardShape() || slots->object()->toGuardShape()->obj() != obj);
+                    break;
+                }
+
+                
+                ins->replaceAllUsesWith(state->getDynamicSlot(def->slot()));
+
+                
+                ins = block->discardDefAt(ins);
+                if (!slots->hasLiveDefUses())
+                    slots->block()->discard(slots);
+                continue;
+              }
+
+              case MDefinition::Op_StoreSlot: {
+                MStoreSlot *def = ins->toStoreSlot();
+
+                
+                MSlots *slots = def->slots()->toSlots();
+                if (slots->object() != obj) {
+                    
+                    MOZ_ASSERT(!slots->object()->isGuardShape() || slots->object()->toGuardShape()->obj() != obj);
+                    break;
+                }
+
+                
+                state = BlockState::Copy(graph.alloc(), state);
+                state->setDynamicSlot(def->slot(), def->value());
+                block->insertBefore(ins->toInstruction(), state);
+
+                
+                ins = block->discardDefAt(ins);
+                if (!slots->hasLiveDefUses())
+                    slots->block()->discard(slots);
                 continue;
               }
 
