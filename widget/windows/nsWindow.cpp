@@ -3132,12 +3132,20 @@ NS_METHOD nsWindow::EnableDragDrop(bool aEnable)
 
 NS_METHOD nsWindow::CaptureMouse(bool aCapture)
 {
+  TRACKMOUSEEVENT mTrack;
+  mTrack.cbSize = sizeof(TRACKMOUSEEVENT);
+  mTrack.dwFlags = TME_LEAVE;
+  mTrack.dwHoverTime = 0;
   if (aCapture) {
+    mTrack.hwndTrack = mWnd;
     ::SetCapture(mWnd);
   } else {
+    mTrack.hwndTrack = nullptr;
     ::ReleaseCapture();
   }
   sIsInMouseCapture = aCapture;
+  
+  TrackMouseEvent(&mTrack);
   return NS_OK;
 }
 
@@ -4857,15 +4865,6 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
 
     case WM_MOUSEMOVE:
     {
-      if (!mMousePresent) {
-        TRACKMOUSEEVENT tme;
-        tme.cbSize = sizeof(TRACKMOUSEEVENT);
-        tme.dwFlags =  TME_LEAVE;
-        tme.hwndTrack = mWnd;
-        
-        TrackMouseEvent(&tme);
-      }
-
       mMousePresent = true;
 
       
@@ -4931,12 +4930,6 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
       DispatchMouseEvent(NS_MOUSE_EXIT, mouseState, pos, false,
                          WidgetMouseEvent::eLeftButton, MOUSE_INPUT_SOURCE());
     }
-    break;
-
-    case WM_NCMOUSELEAVE:
-      
-      
-      SendMessage(mWnd, WM_MOUSELEAVE, 0, 0);
     break;
 
     case WM_CONTEXTMENU:
