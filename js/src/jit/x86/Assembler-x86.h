@@ -115,6 +115,12 @@ static const uint32_t StackAlignment = 4;
 static const bool StackKeptAligned = false;
 static const uint32_t CodeAlignment = 8;
 
+
+
+
+
+static const bool SupportsSimd = true;
+
 struct ImmTag : public Imm32
 {
     ImmTag(JSValueTag mask)

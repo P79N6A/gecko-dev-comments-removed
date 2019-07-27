@@ -143,6 +143,12 @@ static const uint32_t StackAlignment = 8;
 static const uint32_t CodeAlignment = 8;
 static const bool StackKeptAligned = true;
 
+
+
+
+
+static const bool SupportsSimd = false;
+
 static const Scale ScalePointer = TimesFour;
 
 class Instruction;
