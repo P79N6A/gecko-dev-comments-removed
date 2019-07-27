@@ -280,7 +280,6 @@ public class TopSitesPanel extends HomeFragment {
         inflater.inflate(R.menu.home_contextmenu, menu);
 
         
-        menu.findItem(R.id.home_open_in_reader).setVisible(false);
         menu.findItem(R.id.home_edit_bookmark).setVisible(false);
 
         TopSitesGridContextMenuInfo info = (TopSitesGridContextMenuInfo) menuInfo;

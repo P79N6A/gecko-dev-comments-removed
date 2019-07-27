@@ -349,7 +349,7 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                              Combined.URL + ", " +
                              Combined.TITLE + ", " +
                              Combined.VISITS + ", " +
-                             Combined.DISPLAY + ", " +
+                             Obsolete.Combined.DISPLAY + ", " +
                              Combined.DATE_LAST_VISITED + ", " +
                              qualifyColumn(Obsolete.TABLE_IMAGES, Obsolete.Images.FAVICON) + " AS " + Combined.FAVICON + ", " +
                              qualifyColumn(Obsolete.TABLE_IMAGES, Obsolete.Images.THUMBNAIL) + " AS " + Obsolete.Combined.THUMBNAIL +
@@ -359,8 +359,8 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                                  qualifyColumn(TABLE_BOOKMARKS, Bookmarks.URL) + " AS " + Combined.URL + ", " +
                                  qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TITLE) + " AS " + Combined.TITLE + ", " +
                                  "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.PARENT) + " WHEN " +
-                                    Bookmarks.FIXED_READING_LIST_ID + " THEN " + Combined.DISPLAY_READER + " ELSE " +
-                                    Combined.DISPLAY_NORMAL + " END AS " + Combined.DISPLAY + ", " +
+                                    Bookmarks.FIXED_READING_LIST_ID + " THEN " + Obsolete.Combined.DISPLAY_READER + " ELSE " +
+                                    Obsolete.Combined.DISPLAY_NORMAL + " END AS " + Obsolete.Combined.DISPLAY + ", " +
                                  "-1 AS " + Combined.HISTORY_ID + ", " +
                                  "-1 AS " + Combined.VISITS + ", " +
                                  "-1 AS " + Combined.DATE_LAST_VISITED +
@@ -378,8 +378,8 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                                  "COALESCE(" + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TITLE) + ", " +
                                                qualifyColumn(TABLE_HISTORY, History.TITLE) +")" + " AS " + Combined.TITLE + ", " +
                                  "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.PARENT) + " WHEN " +
-                                    Bookmarks.FIXED_READING_LIST_ID + " THEN " + Combined.DISPLAY_READER + " ELSE " +
-                                    Combined.DISPLAY_NORMAL + " END AS " + Combined.DISPLAY + ", " +
+                                    Bookmarks.FIXED_READING_LIST_ID + " THEN " + Obsolete.Combined.DISPLAY_READER + " ELSE " +
+                                    Obsolete.Combined.DISPLAY_NORMAL + " END AS " + Obsolete.Combined.DISPLAY + ", " +
                                  qualifyColumn(TABLE_HISTORY, History._ID) + " AS " + Combined.HISTORY_ID + ", " +
                                  qualifyColumn(TABLE_HISTORY, History.VISITS) + " AS " + Combined.VISITS + ", " +
                                  qualifyColumn(TABLE_HISTORY, History.DATE_LAST_VISITED) + " AS " + Combined.DATE_LAST_VISITED +
@@ -407,7 +407,7 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                              Combined.URL + ", " +
                              Combined.TITLE + ", " +
                              Combined.VISITS + ", " +
-                             Combined.DISPLAY + ", " +
+                             Obsolete.Combined.DISPLAY + ", " +
                              Combined.DATE_LAST_VISITED + ", " +
                              qualifyColumn(Obsolete.TABLE_IMAGES, Obsolete.Images.FAVICON) + " AS " + Combined.FAVICON + ", " +
                              qualifyColumn(Obsolete.TABLE_IMAGES, Obsolete.Images.THUMBNAIL) + " AS " + Obsolete.Combined.THUMBNAIL +
@@ -417,8 +417,8 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                                  qualifyColumn(TABLE_BOOKMARKS, Bookmarks.URL) + " AS " + Combined.URL + ", " +
                                  qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TITLE) + " AS " + Combined.TITLE + ", " +
                                  "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.PARENT) + " WHEN " +
-                                    Bookmarks.FIXED_READING_LIST_ID + " THEN " + Combined.DISPLAY_READER + " ELSE " +
-                                    Combined.DISPLAY_NORMAL + " END AS " + Combined.DISPLAY + ", " +
+                                    Bookmarks.FIXED_READING_LIST_ID + " THEN " + Obsolete.Combined.DISPLAY_READER + " ELSE " +
+                                    Obsolete.Combined.DISPLAY_NORMAL + " END AS " + Obsolete.Combined.DISPLAY + ", " +
                                  "-1 AS " + Combined.HISTORY_ID + ", " +
                                  "-1 AS " + Combined.VISITS + ", " +
                                  "-1 AS " + Combined.DATE_LAST_VISITED +
@@ -437,8 +437,8 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                                  "COALESCE(" + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TITLE) + ", " +
                                                qualifyColumn(TABLE_HISTORY, History.TITLE) +")" + " AS " + Combined.TITLE + ", " +
                                  "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.PARENT) + " WHEN " +
-                                    Bookmarks.FIXED_READING_LIST_ID + " THEN " + Combined.DISPLAY_READER + " ELSE " +
-                                    Combined.DISPLAY_NORMAL + " END AS " + Combined.DISPLAY + ", " +
+                                    Bookmarks.FIXED_READING_LIST_ID + " THEN " + Obsolete.Combined.DISPLAY_READER + " ELSE " +
+                                    Obsolete.Combined.DISPLAY_NORMAL + " END AS " + Obsolete.Combined.DISPLAY + ", " +
                                  qualifyColumn(TABLE_HISTORY, History._ID) + " AS " + Combined.HISTORY_ID + ", " +
                                  qualifyColumn(TABLE_HISTORY, History.VISITS) + " AS " + Combined.VISITS + ", " +
                                  qualifyColumn(TABLE_HISTORY, History.DATE_LAST_VISITED) + " AS " + Combined.DATE_LAST_VISITED +
@@ -466,7 +466,7 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                              Combined.URL + ", " +
                              Combined.TITLE + ", " +
                              Combined.VISITS + ", " +
-                             Combined.DISPLAY + ", " +
+                             Obsolete.Combined.DISPLAY + ", " +
                              Combined.DATE_LAST_VISITED + ", " +
                              qualifyColumn(Obsolete.TABLE_IMAGES, Obsolete.Images.FAVICON) + " AS " + Combined.FAVICON + ", " +
                              qualifyColumn(Obsolete.TABLE_IMAGES, Obsolete.Images.THUMBNAIL) + " AS " + Obsolete.Combined.THUMBNAIL +
@@ -476,8 +476,8 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                                  qualifyColumn(TABLE_BOOKMARKS, Bookmarks.URL) + " AS " + Combined.URL + ", " +
                                  qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TITLE) + " AS " + Combined.TITLE + ", " +
                                  "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.PARENT) + " WHEN " +
-                                    Bookmarks.FIXED_READING_LIST_ID + " THEN " + Combined.DISPLAY_READER + " ELSE " +
-                                    Combined.DISPLAY_NORMAL + " END AS " + Combined.DISPLAY + ", " +
+                                    Bookmarks.FIXED_READING_LIST_ID + " THEN " + Obsolete.Combined.DISPLAY_READER + " ELSE " +
+                                    Obsolete.Combined.DISPLAY_NORMAL + " END AS " + Obsolete.Combined.DISPLAY + ", " +
                                  "-1 AS " + Combined.HISTORY_ID + ", " +
                                  "-1 AS " + Combined.VISITS + ", " +
                                  "-1 AS " + Combined.DATE_LAST_VISITED +
@@ -495,12 +495,6 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                                  
                                  "COALESCE(" + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TITLE) + ", " +
                                                qualifyColumn(TABLE_HISTORY, History.TITLE) +")" + " AS " + Combined.TITLE + ", " +
-                                 
-                                 
-                                 "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.IS_DELETED) + " WHEN 0 THEN CASE " +
-                                    qualifyColumn(TABLE_BOOKMARKS, Bookmarks.PARENT) + " WHEN " + Bookmarks.FIXED_READING_LIST_ID +
-                                    " THEN " + Combined.DISPLAY_READER + " ELSE " + Combined.DISPLAY_NORMAL + " END ELSE " +
-                                    Combined.DISPLAY_NORMAL + " END AS " + Combined.DISPLAY + ", " +
                                  qualifyColumn(TABLE_HISTORY, History._ID) + " AS " + Combined.HISTORY_ID + ", " +
                                  qualifyColumn(TABLE_HISTORY, History.VISITS) + " AS " + Combined.VISITS + ", " +
                                  qualifyColumn(TABLE_HISTORY, History.DATE_LAST_VISITED) + " AS " + Combined.DATE_LAST_VISITED +
@@ -528,7 +522,7 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                              Combined.URL + ", " +
                              Combined.TITLE + ", " +
                              Combined.VISITS + ", " +
-                             Combined.DISPLAY + ", " +
+                             Obsolete.Combined.DISPLAY + ", " +
                              Combined.DATE_LAST_VISITED +
                 " FROM (" +
                     
@@ -536,8 +530,8 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                                  qualifyColumn(TABLE_BOOKMARKS, Bookmarks.URL) + " AS " + Combined.URL + ", " +
                                  qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TITLE) + " AS " + Combined.TITLE + ", " +
                                  "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.PARENT) + " WHEN " +
-                                    Bookmarks.FIXED_READING_LIST_ID + " THEN " + Combined.DISPLAY_READER + " ELSE " +
-                                    Combined.DISPLAY_NORMAL + " END AS " + Combined.DISPLAY + ", " +
+                                    Bookmarks.FIXED_READING_LIST_ID + " THEN " + Obsolete.Combined.DISPLAY_READER + " ELSE " +
+                                    Obsolete.Combined.DISPLAY_NORMAL + " END AS " + Obsolete.Combined.DISPLAY + ", " +
                                  "-1 AS " + Combined.HISTORY_ID + ", " +
                                  "-1 AS " + Combined.VISITS + ", " +
                                  "-1 AS " + Combined.DATE_LAST_VISITED +
@@ -555,12 +549,6 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                                  
                                  "COALESCE(" + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TITLE) + ", " +
                                                qualifyColumn(TABLE_HISTORY, History.TITLE) +")" + " AS " + Combined.TITLE + ", " +
-                                 
-                                 
-                                 "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.IS_DELETED) + " WHEN 0 THEN CASE " +
-                                    qualifyColumn(TABLE_BOOKMARKS, Bookmarks.PARENT) + " WHEN " + Bookmarks.FIXED_READING_LIST_ID +
-                                    " THEN " + Combined.DISPLAY_READER + " ELSE " + Combined.DISPLAY_NORMAL + " END ELSE " +
-                                    Combined.DISPLAY_NORMAL + " END AS " + Combined.DISPLAY + ", " +
                                  qualifyColumn(TABLE_HISTORY, History._ID) + " AS " + Combined.HISTORY_ID + ", " +
                                  qualifyColumn(TABLE_HISTORY, History.VISITS) + " AS " + Combined.VISITS + ", " +
                                  qualifyColumn(TABLE_HISTORY, History.DATE_LAST_VISITED) + " AS " + Combined.DATE_LAST_VISITED +
@@ -596,7 +584,7 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                              Combined.URL + ", " +
                              Combined.TITLE + ", " +
                              Combined.VISITS + ", " +
-                             Combined.DISPLAY + ", " +
+                             Obsolete.Combined.DISPLAY + ", " +
                              Combined.DATE_LAST_VISITED + ", " +
                              Combined.FAVICON_ID +
                 " FROM (" +
@@ -605,8 +593,8 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                                  qualifyColumn(TABLE_BOOKMARKS, Bookmarks.URL) + " AS " + Combined.URL + ", " +
                                  qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TITLE) + " AS " + Combined.TITLE + ", " +
                                  "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.PARENT) + " WHEN " +
-                                    Bookmarks.FIXED_READING_LIST_ID + " THEN " + Combined.DISPLAY_READER + " ELSE " +
-                                    Combined.DISPLAY_NORMAL + " END AS " + Combined.DISPLAY + ", " +
+                                    Bookmarks.FIXED_READING_LIST_ID + " THEN " + Obsolete.Combined.DISPLAY_READER + " ELSE " +
+                                    Obsolete.Combined.DISPLAY_NORMAL + " END AS " + Obsolete.Combined.DISPLAY + ", " +
                                  "-1 AS " + Combined.HISTORY_ID + ", " +
                                  "-1 AS " + Combined.VISITS + ", " +
                                  "-1 AS " + Combined.DATE_LAST_VISITED + ", " +
@@ -629,8 +617,8 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                                  
                                  "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.IS_DELETED) + " WHEN 0 THEN CASE " +
                                     qualifyColumn(TABLE_BOOKMARKS, Bookmarks.PARENT) + " WHEN " + Bookmarks.FIXED_READING_LIST_ID +
-                                    " THEN " + Combined.DISPLAY_READER + " ELSE " + Combined.DISPLAY_NORMAL + " END ELSE " +
-                                    Combined.DISPLAY_NORMAL + " END AS " + Combined.DISPLAY + ", " +
+                                    " THEN " + Obsolete.Combined.DISPLAY_READER + " ELSE " + Obsolete.Combined.DISPLAY_NORMAL + " END ELSE " +
+                                    Obsolete.Combined.DISPLAY_NORMAL + " END AS " + Obsolete.Combined.DISPLAY + ", " +
                                  qualifyColumn(TABLE_HISTORY, History._ID) + " AS " + Combined.HISTORY_ID + ", " +
                                  qualifyColumn(TABLE_HISTORY, History.VISITS) + " AS " + Combined.VISITS + ", " +
                                  qualifyColumn(TABLE_HISTORY, History.DATE_LAST_VISITED) + " AS " + Combined.DATE_LAST_VISITED + ", " +
@@ -686,12 +674,6 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                     qualifyColumn(TABLE_BOOKMARKS, Bookmarks.URL) + " AS " + Combined.URL + ", " +
                     qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TITLE) + " AS " + Combined.TITLE + ", " +
                     "-1 AS " + Combined.VISITS + ", " +
-                    "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.PARENT) +
-                        " WHEN " + Bookmarks.FIXED_READING_LIST_ID + " THEN " +
-                            Combined.DISPLAY_READER +
-                        " ELSE " +
-                            Combined.DISPLAY_NORMAL +
-                    " END AS " + Combined.DISPLAY + "," +
                     "-1 AS " + Combined.DATE_LAST_VISITED + "," +
                     qualifyColumn(TABLE_BOOKMARKS, Bookmarks.FAVICON_ID) + " AS " + Combined.FAVICON_ID +
                 " FROM " + TABLE_BOOKMARKS +
@@ -730,19 +712,6 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                                       qualifyColumn(TABLE_HISTORY, History.TITLE) +
                                 ") AS " + Combined.TITLE + "," +
                         qualifyColumn(TABLE_HISTORY, History.VISITS) + " AS " + Combined.VISITS + "," +
-
-                        
-                        
-                        "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.IS_DELETED) + " " +
-                            "WHEN 0 THEN " +
-                                "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.PARENT) + " " +
-                                    "WHEN " + Bookmarks.FIXED_READING_LIST_ID + " THEN " +
-                                        Combined.DISPLAY_READER + " " +
-                                    "ELSE " + Combined.DISPLAY_NORMAL + " " +
-                                "END " +
-                            "ELSE " +
-                                Combined.DISPLAY_NORMAL + " " +
-                        "END AS " + Combined.DISPLAY + "," +
                         qualifyColumn(TABLE_HISTORY, History.DATE_LAST_VISITED) + " AS " + Combined.DATE_LAST_VISITED + "," +
                         qualifyColumn(TABLE_HISTORY, History.FAVICON_ID) + " AS " + Combined.FAVICON_ID +
 

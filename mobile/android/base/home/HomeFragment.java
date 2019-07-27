@@ -117,9 +117,6 @@ abstract class HomeFragment extends Fragment {
         if (!StringUtils.isShareableUrl(info.url) || GeckoProfile.get(getActivity()).inGuestMode()) {
             menu.findItem(R.id.home_share).setVisible(false);
         }
-
-        final boolean canOpenInReader = (info.display == Combined.DISPLAY_READER);
-        menu.findItem(R.id.home_open_in_reader).setVisible(canOpenInReader);
     }
 
     @Override
@@ -223,12 +220,6 @@ abstract class HomeFragment extends Fragment {
         if (itemId == R.id.home_edit_bookmark) {
             
             new EditBookmarkDialog(context).show(info.url);
-            return true;
-        }
-
-        if (itemId == R.id.home_open_in_reader) {
-            final String url = ReaderModeUtils.getAboutReaderForUrl(info.url);
-            Tabs.getInstance().loadUrl(url, Tabs.LOADURL_NONE);
             return true;
         }
 
