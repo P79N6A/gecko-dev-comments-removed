@@ -40,6 +40,7 @@ public:
 
   typedef MediaPromise<nsRefPtr<AudioData>, NotDecodedReason> AudioDataPromise;
   typedef MediaPromise<nsRefPtr<VideoData>, NotDecodedReason> VideoDataPromise;
+  typedef MediaPromise<bool, nsresult> SeekPromise;
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaDecoderReader)
 
@@ -134,12 +135,9 @@ public:
   
   
   
-  
-  
-  virtual void Seek(int64_t aTime,
-                    int64_t aStartTime,
-                    int64_t aEndTime,
-                    int64_t aCurrentTime) = 0;
+  virtual nsRefPtr<SeekPromise>
+  Seek(int64_t aTime, int64_t aStartTime,
+       int64_t aEndTime, int64_t aCurrentTime) = 0;
 
   
   
@@ -311,8 +309,6 @@ private:
 class RequestSampleCallback {
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(RequestSampleCallback)
-
-  virtual void OnSeekCompleted(nsresult aResult) = 0;
 
   
   virtual void BreakCycles() = 0;

@@ -32,8 +32,9 @@ nsresult RtspOmxReader::InitOmxDecoder()
   return NS_OK;
 }
 
-void RtspOmxReader::Seek(int64_t aTime, int64_t aStartTime,
-                         int64_t aEndTime, int64_t aCurrentTime)
+nsRefPtr<MediaDecoderReader::SeekPromise>
+RtspOmxReader::Seek(int64_t aTime, int64_t aStartTime,
+                    int64_t aEndTime, int64_t aCurrentTime)
 {
   
   
@@ -48,7 +49,7 @@ void RtspOmxReader::Seek(int64_t aTime, int64_t aStartTime,
   
   
   
-  MediaOmxReader::Seek(aTime, aStartTime, aEndTime, aCurrentTime);
+  return MediaOmxReader::Seek(aTime, aStartTime, aEndTime, aCurrentTime);
 }
 
 void RtspOmxReader::SetIdle() {
