@@ -9309,6 +9309,36 @@ public:
   nsString                             mAction;
 };
 
+class ChildCommandDispatcher : public nsRunnable
+{
+public:
+  ChildCommandDispatcher(nsGlobalWindow* aWindow,
+                         nsITabChild* aTabChild,
+                         const nsAString& aAction)
+  : mWindow(aWindow), mTabChild(aTabChild), mAction(aAction) {}
+
+  NS_IMETHOD Run()
+  {
+    nsCOMPtr<nsPIWindowRoot> root = mWindow->GetTopWindowRoot();
+    if (!root) {
+      return NS_OK;
+    }
+
+    nsTArray<nsCString> enabledCommands, disabledCommands;
+    root->GetEnabledDisabledCommands(enabledCommands, disabledCommands);
+    if (enabledCommands.Length() || disabledCommands.Length()) {
+      mTabChild->EnableDisableCommands(mAction, enabledCommands, disabledCommands);
+    }
+
+    return NS_OK;
+  }
+
+private:
+  nsRefPtr<nsGlobalWindow>             mWindow;
+  nsCOMPtr<nsITabChild>                mTabChild;
+  nsString                             mAction;
+};
+
 static bool
 CheckReason(int16_t aReason, SelectionChangeReason aReasonType)
 {
@@ -9367,26 +9397,35 @@ GetSelectionBoundingRect(Selection* aSel, nsIPresShell* aShell)
 NS_IMETHODIMP
 nsGlobalWindow::UpdateCommands(const nsAString& anAction, nsISelection* aSel, int16_t aReason)
 {
-  nsPIDOMWindow *rootWindow = nsGlobalWindow::GetPrivateRoot();
-  if (!rootWindow)
-    return NS_OK;
-
-  nsCOMPtr<nsIDOMXULDocument> xulDoc =
-    do_QueryInterface(rootWindow->GetExtantDoc());
-  
-  
-  
-  if (xulDoc && !anAction.EqualsLiteral("selectionchange")) {
+  if (!anAction.EqualsLiteral("selectionchange")) {
     
-    nsCOMPtr<nsIDOMXULCommandDispatcher> xulCommandDispatcher;
-    xulDoc->GetCommandDispatcher(getter_AddRefs(xulCommandDispatcher));
-    if (xulCommandDispatcher) {
-      nsContentUtils::AddScriptRunner(new CommandDispatcher(xulCommandDispatcher,
-                                                            anAction));
+    if (nsCOMPtr<nsITabChild> child = do_GetInterface(GetDocShell())) {
+      nsContentUtils::AddScriptRunner(new ChildCommandDispatcher(this, child, anAction));
+    } else {
+      nsPIDOMWindow* rootWindow = nsGlobalWindow::GetPrivateRoot();
+      if (!rootWindow) {
+        return NS_OK;
+      }
+
+      nsCOMPtr<nsIDOMXULDocument> xulDoc =
+        do_QueryInterface(rootWindow->GetExtantDoc());
+      
+      if (xulDoc) {
+        
+        nsCOMPtr<nsIDOMXULCommandDispatcher> xulCommandDispatcher;
+        xulDoc->GetCommandDispatcher(getter_AddRefs(xulCommandDispatcher));
+        if (xulCommandDispatcher) {
+          nsContentUtils::AddScriptRunner(new CommandDispatcher(xulCommandDispatcher,
+                                                                anAction));
+        }
+      }
     }
+
+    return NS_OK;
   }
 
-  if (gSelectionCaretPrefEnabled && mDoc && anAction.EqualsLiteral("selectionchange")) {
+  
+  if (gSelectionCaretPrefEnabled && mDoc) {
     SelectionChangeEventInit init;
     init.mBubbles = true;
     if (aSel) {
