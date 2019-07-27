@@ -215,9 +215,13 @@ MediaSourceReader::SwitchVideoReader(MediaDecoderReader* aTargetReader)
 bool
 MediaSourceReader::SwitchReaders(SwitchType aType)
 {
-  ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-
   InitializePendingDecoders();
+
+  
+  
+  
+  
+  ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
 
   bool didSwitch = false;
   double decodeTarget = double(mTimeThreshold) / USECS_PER_S;
