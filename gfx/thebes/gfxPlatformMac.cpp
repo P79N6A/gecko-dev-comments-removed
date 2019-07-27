@@ -576,7 +576,16 @@ static CVReturn VsyncCallback(CVDisplayLinkRef aDisplayLink,
 
   mozilla::TimeStamp previousVsync = display->mPreviousTimestamp;
   display->mPreviousTimestamp = nextVsync;
-  MOZ_ASSERT(TimeStamp::Now() > previousVsync);
+  mozilla::TimeStamp now = TimeStamp::Now();
+  MOZ_ASSERT(nextVsync > previousVsync);
+
+  
+  
+  
+  
+  if (now < previousVsync) {
+    previousVsync = now;
+  }
 
   display->NotifyVsync(previousVsync);
   return kCVReturnSuccess;
