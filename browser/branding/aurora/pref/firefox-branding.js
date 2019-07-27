@@ -28,4 +28,8 @@ pref("app.update.checkInstallTime.days", 2);
 
 
 
+pref("app.update.badgeWaitTime", 345600);
+
+
+
 pref("devtools.selfxss.count", 5);
