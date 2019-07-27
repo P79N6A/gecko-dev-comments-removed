@@ -4046,8 +4046,13 @@ TypeNewScript::maybeAnalyze(JSContext *cx, TypeObject *type, bool *regenerate, b
         
         
         Shape *shape = obj->lastProperty();
-        if (shape->inDictionary() || !OnlyHasDataProperties(shape))
+        if (shape->inDictionary() ||
+            !OnlyHasDataProperties(shape) ||
+            shape->getObjectFlags() != 0 ||
+            shape->getObjectMetadata() != nullptr)
+        {
             return true;
+        }
 
         maxSlotSpan = Max<size_t>(maxSlotSpan, obj->slotSpan());
 
