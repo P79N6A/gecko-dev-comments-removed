@@ -37,33 +37,20 @@ private:
   ~WinWakeLockListener() {}
 
   NS_IMETHOD Callback(const nsAString& aTopic, const nsAString& aState) {
-    bool isLocked = mLockedTopics.Contains(aTopic);
-    bool shouldLock = aState.EqualsLiteral("locked-foreground");
-    if (isLocked == shouldLock) {
+    if (!aTopic.EqualsASCII("screen")) {
       return NS_OK;
     }
-    if (shouldLock) {
-      if (!mLockedTopics.Count()) {
-        
-        
-        SetThreadExecutionState(ES_DISPLAY_REQUIRED|ES_CONTINUOUS);
-      }
-      mLockedTopics.PutEntry(aTopic);
+    
+    
+    if (aState.EqualsASCII("locked-foreground")) {
+      
+      SetThreadExecutionState(ES_DISPLAY_REQUIRED|ES_CONTINUOUS);
     } else {
-      mLockedTopics.RemoveEntry(aTopic);
-      if (!mLockedTopics.Count()) {
-        
-        
-        SetThreadExecutionState(ES_CONTINUOUS);
-      }
-   }
+      
+      SetThreadExecutionState(ES_CONTINUOUS);
+    }
     return NS_OK;
   }
-
-  
-  
-  
-  nsTHashtable<nsStringHashKey> mLockedTopics;
 };
 
 NS_IMPL_ISUPPORTS(WinWakeLockListener, nsIDOMMozWakeLockListener)
