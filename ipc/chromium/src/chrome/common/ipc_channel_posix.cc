@@ -844,6 +844,8 @@ void Channel::ChannelImpl::OnFileCanReadWithoutBlocking(int fd) {
     if (!ProcessIncomingMessages()) {
       Close();
       listener_->OnChannelError();
+      
+      return;
     }
   }
 

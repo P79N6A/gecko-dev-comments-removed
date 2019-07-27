@@ -175,6 +175,23 @@ bool MessagePumpLibevent::WatchFileDescriptor(int fd,
     should_delete_event = false;
     
     evt = mozilla::MakeUnique<event>();
+  } else {
+    
+    
+    if (EVENT_FD(evt.get()) != fd) {
+      NOTREACHED() << "FDs don't match" << EVENT_FD(evt.get()) << "!=" << fd;
+      return false;
+    }
+
+    
+    int old_interest_mask = evt.get()->ev_events &
+      (EV_READ | EV_WRITE | EV_PERSIST);
+
+    
+    event_mask |= old_interest_mask;
+
+    
+    event_del(evt.get());
   }
 
   
