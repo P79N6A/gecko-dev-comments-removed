@@ -594,21 +594,20 @@ let Impl = {
     Telemetry.canRecordBase = enabled || IS_UNIFIED_TELEMETRY;
 
 #ifdef MOZILLA_OFFICIAL
-    if (!Telemetry.isOfficialTelemetry && !this._testMode) {
-      
-      
-      
-      Telemetry.canRecordExtended = false;
-      this._log.config("enableTelemetryRecording - Can't send data, disabling extended Telemetry recording.");
-    }
+    
+    
+    
+    
+    
+    Telemetry.canRecordExtended = enabled && (Telemetry.isOfficialTelemetry || this._testMode);
+#else
+    
+    
+    Telemetry.canRecordExtended = enabled;
 #endif
 
-    if (!enabled || !Telemetry.canRecordBase) {
-      
-      
-      Telemetry.canRecordExtended = false;
-      this._log.config("enableTelemetryRecording - Disabling extended Telemetry recording.");
-    }
+    this._log.config("enableTelemetryRecording - canRecordBase:" + Telemetry.canRecordBase +
+                     ", canRecordExtended: " + Telemetry.canRecordExtended);
 
     return Telemetry.canRecordBase;
   },
