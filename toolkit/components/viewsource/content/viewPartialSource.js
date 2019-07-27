@@ -174,14 +174,14 @@ function viewPartialSourceForSelection(selection)
   
   var loadFlags = Components.interfaces.nsIWebNavigation.LOAD_FLAGS_NONE;
   var referrerPolicy = Components.interfaces.nsIHttpChannel.REFERRER_POLICY_DEFAULT;
-  getWebNavigation().loadURIWithOptions((isHTML ?
-                                         "view-source:data:text/html;charset=utf-8," :
-                                         "view-source:data:application/xml;charset=utf-8,")
-                                        + encodeURIComponent(tmpNode.innerHTML),
-                                        loadFlags,
-                                        null, referrerPolicy,  
-                                        null, null,  
-                                        Services.io.newURI(doc.baseURI, null, null));
+  ViewSourceChrome.webNav.loadURIWithOptions((isHTML ?
+                                              "view-source:data:text/html;charset=utf-8," :
+                                              "view-source:data:application/xml;charset=utf-8,")
+                                             + encodeURIComponent(tmpNode.innerHTML),
+                                             loadFlags,
+                                             null, referrerPolicy,  
+                                             null, null,  
+                                             Services.io.newURI(doc.baseURI, null, null));
 }
 
 

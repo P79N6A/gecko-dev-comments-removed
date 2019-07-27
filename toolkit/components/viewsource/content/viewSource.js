@@ -4,14 +4,16 @@
 
 
 
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/CharsetMenu.jsm");
+const { utils: Cu, interfaces: Ci, classes: Cc } = Components;
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-var gLastLineFound = '';
-var gGoToLine = 0;
+XPCOMUtils.defineLazyModuleGetter(this, "Services",
+  "resource://gre/modules/Services.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "CharsetMenu",
+  "resource://gre/modules/CharsetMenu.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Deprecated",
+  "resource://gre/modules/Deprecated.jsm");
 
 [
   ["gBrowser",          "content"],
@@ -28,334 +30,547 @@ var gGoToLine = 0;
 });
 
 
-function getBrowser() {
-  return gBrowser;
-}
 
-this.__defineGetter__("gPageLoader", function () {
-  var webnav = getWebNavigation();
-  if (!webnav)
-    return null;
-  delete this.gPageLoader;
-  return this.gPageLoader = webnav.QueryInterface(Ci.nsIWebPageDescriptor);
-});
 
-var gSelectionListener = {
-  timeout: 0,
-  attached: false,
-  notifySelectionChanged: function(doc, sel, reason)
-  {
+
+let ViewSourceChrome = {
+  
+
+
+
+
+  lastLineFound: null,
+
+  
+
+
+
+
+
+  contextMenuData: {},
+
+  
+
+
+
+
+
+  messages: [
+    "ViewSource:SourceLoaded",
+    "ViewSource:SourceUnloaded",
+    "ViewSource:Close",
+    "ViewSource:OpenURL",
+    "ViewSource:GoToLine:Success",
+    "ViewSource:GoToLine:Failed",
+    "ViewSource:UpdateStatus",
+    "ViewSource:ContextMenuOpening",
+  ],
+
+  
+
+
+
+  init() {
     
-    if (!this.timeout)
-      this.timeout = setTimeout(updateStatusBar, 100);
-  }
-}
-
-function onLoadViewSource() 
-{
-  viewSource(window.arguments[0]);
-  document.commandDispatcher.focusedWindow = content;
-  gBrowser.droppedLinkHandler = function (event, url, name) {
-    viewSource(url)
-    event.preventDefault();
-  }
-
-  if (!isHistoryEnabled()) {
     
-    var viewSourceNavigation = document.getElementById("viewSourceNavigation");
-    viewSourceNavigation.setAttribute("disabled", "true");
-    viewSourceNavigation.setAttribute("hidden", "true");
-  }
-}
-
-function isHistoryEnabled() {
-  return !gBrowser.hasAttribute("disablehistory");
-}
-
-function getSelectionController() {
-  return gBrowser.docShell
-                 .QueryInterface(Ci.nsIInterfaceRequestor)
-                 .getInterface(Ci.nsISelectionDisplay)
-                 .QueryInterface(Ci.nsISelectionController);
-}
-
-function viewSource(url)
-{
-  if (!url)
-    return; 
     
-  var viewSrcUrl = "view-source:" + url;
+    
+    let wMM = window.messageManager;
+    wMM.loadFrameScript("chrome://global/content/viewSource-content.js", true);
+    this.messages.forEach((msgName) => {
+      wMM.addMessageListener(msgName, this);
+    });
 
-  gBrowser.addEventListener("pagehide", onUnloadContent, true);
-  gBrowser.addEventListener("pageshow", onLoadContent, true);
-  gBrowser.addEventListener("click", onClickContent, false);
+    this.shouldWrap = Services.prefs.getBoolPref("view_source.wrap_long_lines");
+    this.shouldHighlight =
+      Services.prefs.getBoolPref("view_source.syntax_highlight");
 
-  var loadFromURL = true;
+    addEventListener("load", this);
+    addEventListener("unload", this);
+    addEventListener("AppCommand", this, true);
+    addEventListener("MozSwipeGesture", this, true);
+  },
 
   
-  
-  
-  
-  
-  
 
-  if ("arguments" in window) {
-    var arg;
+
+
+  uninit() {
+    let wMM = window.messageManager;
+    this.messages.forEach((msgName) => {
+      wMM.removeMessageListener(msgName, this);
+    });
 
     
-    var charset;
-    if (window.arguments.length >= 2) {
-      arg = window.arguments[1];
+    
+    removeEventListener("unload", this);
+    removeEventListener("AppCommand", this, true);
+    removeEventListener("MozSwipeGesture", this, true);
+    gContextMenu.removeEventListener("popupshowing", this);
+    gContextMenu.removeEventListener("popuphidden", this);
+  },
 
-      try {
-        if (typeof(arg) == "string" && arg.indexOf('charset=') != -1) {
-          var arrayArgComponents = arg.split('=');
-          if (arrayArgComponents) {
-            
-            
-            charset = arrayArgComponents[1];
-          }
+  
+
+
+
+  receiveMessage(message) {
+    let data = message.data;
+
+    switch(message.name) {
+      case "ViewSource:SourceLoaded":
+        this.onSourceLoaded();
+        break;
+      case "ViewSource:SourceUnloaded":
+        this.onSourceUnloaded();
+        break;
+      case "ViewSource:Close":
+        this.close();
+        break;
+      case "ViewSource:OpenURL":
+        this.openURL(data.URL);
+        break;
+      case "ViewSource:GoToLine:Failed":
+        this.onGoToLineFailed();
+        break;
+      case "ViewSource:GoToLine:Success":
+        this.onGoToLineSuccess(data.lineNumber);
+        break;
+      case "ViewSource:UpdateStatus":
+        this.updateStatus(data.label);
+        break;
+      case "ViewSource:ContextMenuOpening":
+        this.onContextMenuOpening(data.isLink, data.isEmail, data.href);
+        if (gBrowser.isRemoteBrowser) {
+          this.openContextMenu(data.screenX, data.screenY);
         }
-      } catch (ex) {
-        
-      }
+        break;
     }
-    
-    if (window.arguments.length >= 5) {
-      arg = window.arguments[4];
-
-      try {
-        if (arg === true) {
-          gBrowser.docShell.charset = charset;
-        }
-      } catch (ex) {
-        
-      }
-    }
-
-    
-    if (window.arguments.length >= 4) {
-      arg = window.arguments[3];
-      gGoToLine = parseInt(arg);
-    }
-
-    
-    
-    if (window.arguments.length >= 3) {
-      arg = window.arguments[2];
-
-      try {
-        if (typeof(arg) == "object" && arg != null) {
-          
-          
-          
-          gPageLoader.loadPage(arg, gPageLoader.DISPLAY_AS_SOURCE);
-
-          
-          loadFromURL = false;
-
-          
-          var shEntrySource = arg.QueryInterface(Ci.nsISHEntry);
-          var shEntry = Cc["@mozilla.org/browser/session-history-entry;1"].createInstance(Ci.nsISHEntry);
-          shEntry.setURI(makeURI(viewSrcUrl, null, null));
-          shEntry.setTitle(viewSrcUrl);
-          shEntry.loadType = Ci.nsIDocShellLoadInfo.loadHistory;
-          shEntry.cacheKey = shEntrySource.cacheKey;
-          gBrowser.sessionHistory
-                  .QueryInterface(Ci.nsISHistoryInternal)
-                  .addEntry(shEntry, true);
-        }
-      } catch(ex) {
-        
-        
-      }
-    }
-  }
-
-  if (loadFromURL) {
-    
-    var loadFlags = Ci.nsIWebNavigation.LOAD_FLAGS_NONE;
-    getWebNavigation().loadURI(viewSrcUrl, loadFlags, null, null, null);
-  }
-
-  
-  
-  var wraplonglinesPrefValue = Services.prefs.getBoolPref("view_source.wrap_long_lines");
-
-  if (wraplonglinesPrefValue)
-    document.getElementById("menu_wrapLongLines").setAttribute("checked", "true");
-
-  document.getElementById("menu_highlightSyntax")
-          .setAttribute("checked",
-                        Services.prefs.getBoolPref("view_source.syntax_highlight"));
-
-  window.addEventListener("AppCommand", HandleAppCommandEvent, true);
-  window.addEventListener("MozSwipeGesture", HandleSwipeGesture, true);
-  window.content.focus();
-}
-
-function onLoadContent()
-{
-  
-  if (gGoToLine > 0) {
-    goToLine(gGoToLine);
-    gGoToLine = 0;
-  }
-  document.getElementById('cmd_goToLine').removeAttribute('disabled');
-
-  
-  window.content.getSelection()
-   .QueryInterface(Ci.nsISelectionPrivate)
-   .addSelectionListener(gSelectionListener);
-  gSelectionListener.attached = true;
-
-  if (isHistoryEnabled())
-    UpdateBackForwardCommands();
-}
-
-function onUnloadContent()
-{
-  
-  
-  document.getElementById('cmd_goToLine').setAttribute('disabled', 'true');
-
-  
-  
-  
-  if (gSelectionListener.attached) {
-    window.content.getSelection().QueryInterface(Ci.nsISelectionPrivate)
-          .removeSelectionListener(gSelectionListener);
-    gSelectionListener.attached = false;
-  }
-}
-
-
-
-
-function onClickContent(event) {
-  
-  if (!event.isTrusted || event.target.localName != "button")
-    return;
-
-  var target = event.originalTarget;
-  var errorDoc = target.ownerDocument;
-
-  if (/^about:blocked/.test(errorDoc.documentURI)) {
-    
-
-    if (target == errorDoc.getElementById('getMeOutButton')) {
-      
-      window.close();
-    } else if (target == errorDoc.getElementById('reportButton')) {
-      
-      
-      let url = Services.urlFormatter.formatURLPref("app.support.baseURL");
-      openURL(url + "phishing-malware");
-    } else if (target == errorDoc.getElementById('ignoreWarningButton')) {
-      
-      gBrowser.loadURIWithFlags(content.location.href,
-                                Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_CLASSIFIER,
-                                null, null, null);
-    }
-  }
-}
-
-function HandleAppCommandEvent(evt)
-{
-  evt.stopPropagation();
-  switch (evt.command) {
-    case "Back":
-      BrowserBack();
-      break;
-    case "Forward":
-      BrowserForward();
-      break;
-  }
-}
-
-function HandleSwipeGesture(evt) {
-  evt.stopPropagation();
-  switch (evt.direction) {
-    case SimpleGestureEvent.DIRECTION_LEFT:
-      BrowserBack();
-      break;
-    case SimpleGestureEvent.DIRECTION_RIGHT:
-      BrowserForward();
-      break;
-    case SimpleGestureEvent.DIRECTION_UP:
-      goDoCommand("cmd_scrollTop");
-      break;
-    case SimpleGestureEvent.DIRECTION_DOWN:
-      goDoCommand("cmd_scrollBottom");
-      break;
-  }
-}
-
-function ViewSourceClose()
-{
-  window.close();
-}
-
-function ViewSourceReload()
-{
-  gBrowser.reloadWithFlags(Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_PROXY |
-                           Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_CACHE);
-}
-
-
-function ViewSourceSavePage()
-{
-  internalSave(window.content.location.href.replace(/^view-source:/i, ""),
-               null, null, null, null, null, "SaveLinkTitle",
-               null, null, window.content.document, null, gPageLoader);
-}
-
-var PrintPreviewListener = {
-  getPrintPreviewBrowser: function () {
-    var browser = document.getElementById("ppBrowser");
-    if (!browser) {
-      browser = document.createElement("browser");
-      browser.setAttribute("id", "ppBrowser");
-      browser.setAttribute("flex", "1");
-      browser.setAttribute("type", "content");
-      document.getElementById("appcontent").
-        insertBefore(browser, document.getElementById("FindToolbar"));
-    }
-
-    return browser;
   },
-  getSourceBrowser: function () {
-    return gBrowser;
-  },
-  getNavToolbox: function () {
-    return document.getElementById("appcontent");
-  },
-  onEnter: function () {
-    var toolbox = document.getElementById("viewSource-toolbox");
-    toolbox.hidden = true;
-    gBrowser.collapsed = true;
-  },
-  onExit: function () {
-    document.getElementById("ppBrowser").collapsed = true;
-    gBrowser.collapsed = false;
-    document.getElementById("viewSource-toolbox").hidden = false;
-  }
-}
 
-function getWebNavigation()
-{
-  try {
+  
+
+
+
+  handleEvent(event) {
+    switch(event.type) {
+      case "unload":
+        this.uninit();
+        break;
+      case "load":
+        this.onXULLoaded();
+        break;
+      case "AppCommand":
+        this.onAppCommand(event);
+        break;
+      case "MozSwipeGesture":
+        this.onSwipeGesture(event);
+        break;
+      case "popupshowing":
+        this.onContextMenuShowing(event);
+        break;
+      case "popuphidden":
+        this.onContextMenuHidden(event);
+        break;
+    }
+  },
+
+  
+
+
+
+  get historyEnabled() {
+    return !gBrowser.hasAttribute("disablehistory");
+  },
+
+  
+
+
+  get mm() {
+    return gBrowser.messageManager;
+  },
+
+  
+
+
+  get webNav() {
     return gBrowser.webNavigation;
-  } catch (e) {
-    return null;
-  }
-}
+  },
 
-function ViewSourceGoToLine()
-{
-  var input = {value:gLastLineFound};
-  for (;;) {
-    var ok = Services.prompt.prompt(
+  
+
+
+  goForward() {
+    gBrowser.goForward();
+  },
+
+  
+
+
+  goBack() {
+    gBrowser.goBack();
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  onXULLoaded() {
+    
+    removeEventListener("load", this);
+
+    let wrapMenuItem = document.getElementById("menu_wrapLongLines");
+    if (this.shouldWrap) {
+      wrapMenuItem.setAttribute("checked", "true");
+    }
+
+    let highlightMenuItem = document.getElementById("menu_highlightSyntax");
+    if (this.shouldHighlight) {
+      highlightMenuItem.setAttribute("checked", "true");
+    }
+
+    gContextMenu.addEventListener("popupshowing", this);
+    gContextMenu.addEventListener("popuphidden", this);
+
+    if (!this.historyEnabled) {
+      
+      let viewSourceNavigation = document.getElementById("viewSourceNavigation");
+      if (viewSourceNavigation) {
+        viewSourceNavigation.setAttribute("disabled", "true");
+        viewSourceNavigation.setAttribute("hidden", "true");
+      }
+    }
+
+    
+    gBrowser.droppedLinkHandler = function (event, url, name) {
+      ViewSourceChrome.loadURL(url);
+      event.preventDefault();
+    };
+
+    
+    
+    if (!window.arguments[0]) {
+      return;
+    }
+
+    if (typeof window.arguments[0] == "string") {
+      
+      return ViewSourceChrome._loadViewSourceDeprecated();
+    }
+
+    
+    
+    let args = window.arguments[0];
+
+    if (!args.URL) {
+      throw new Error("Must supply a URL when opening view source.");
+    }
+
+    if (args.browser) {
+      
+      
+      this.updateBrowserRemoteness(args.browser.isRemoteBrowser);
+    } else {
+      if (args.outerWindowID) {
+        throw new Error("Must supply the browser if passing the outerWindowID");
+      }
+    }
+
+    this.mm.sendAsyncMessage("ViewSource:LoadSource", {
+      URL: args.URL,
+      outerWindowID: args.outerWindowID,
+      lineNumber: args.lineNumber,
+    });
+  },
+
+  
+
+
+
+  _loadViewSourceDeprecated() {
+    Deprecated.warning("The arguments you're passing to viewSource.xul " +
+                       "are using an out-of-date API.",
+                       "https://developer.mozilla.org/en-US/Add-ons/Code_snippets/ViewSource");
+    
+    
+    
+    
+    
+    
+
+    if (window.arguments[3] == "selection" ||
+        window.arguments[3] == "mathml") {
+      
+      return;
+    }
+
+    if (window.arguments[2]) {
+      let pageDescriptor = window.arguments[2];
+      if (Cu.isCrossProcessWrapper(pageDescriptor)) {
+        throw new Error("Cannot pass a CPOW as the page descriptor to viewSource.xul.");
+      }
+    }
+
+    if (gBrowser.isRemoteBrowser) {
+      throw new Error("Deprecated view source API should not use a remote browser.");
+    }
+
+    let forcedCharSet;
+    if (window.arguments[4] && window.arguments[1].startsWith("charset=")) {
+      forcedCharSet = window.arguments[1].split("=")[1];
+    }
+
+    gBrowser.messageManager.sendAsyncMessage("ViewSource:LoadSourceDeprecated", {
+      URL: window.arguments[0],
+      lineNumber: window.arguments[3],
+      forcedCharSet,
+    }, {
+      pageDescriptor: window.arguments[2],
+    });
+  },
+
+  
+
+
+
+
+
+  onAppCommand(event) {
+    event.stopPropagation();
+    switch (event.command) {
+      case "Back":
+        this.goBack();
+        break;
+      case "Forward":
+        this.goForward();
+        break;
+    }
+  },
+
+  
+
+
+
+
+
+  onSwipeGesture(event) {
+    event.stopPropagation();
+    switch (event.direction) {
+      case SimpleGestureEvent.DIRECTION_LEFT:
+        this.goBack();
+        break;
+      case SimpleGestureEvent.DIRECTION_RIGHT:
+        this.goForward();
+        break;
+      case SimpleGestureEvent.DIRECTION_UP:
+        goDoCommand("cmd_scrollTop");
+        break;
+      case SimpleGestureEvent.DIRECTION_DOWN:
+        goDoCommand("cmd_scrollBottom");
+        break;
+    }
+  },
+
+  
+
+
+
+  onSourceLoaded() {
+    document.getElementById("cmd_goToLine").removeAttribute("disabled");
+
+    if (this.historyEnabled) {
+      this.updateCommands();
+    }
+
+    gBrowser.focus();
+  },
+
+  
+
+
+
+  onSourceUnloaded() {
+    
+    
+    document.getElementById("cmd_goToLine").setAttribute("disabled", "true");
+  },
+
+  
+
+
+
+
+
+
+  onSetCharacterSet(event) {
+    if (event.target.hasAttribute("charset")) {
+      let charset = event.target.getAttribute("charset");
+
+      
+      
+      this.mm.sendAsyncMessage("ViewSource:SetCharacterSet", {
+        charset: charset,
+        doPageLoad: this.historyEnabled,
+      });
+
+      if (this.historyEnabled) {
+        gBrowser.reloadWithFlags(Ci.nsIWebNavigation.LOAD_FLAGS_CHARSET_CHANGE);
+      }
+    }
+  },
+
+  
+
+
+
+
+
+  onContextMenuOpening(isLink, isEmail, href) {
+    this.contextMenuData = { isLink, isEmail, href, isOpen: true };
+  },
+
+  
+
+
+
+
+
+
+
+
+  onContextMenuShowing(event) {
+    let copyLinkMenuItem = document.getElementById("context-copyLink");
+    copyLinkMenuItem.hidden = !this.contextMenuData.isLink;
+
+    let copyEmailMenuItem = document.getElementById("context-copyEmail");
+    copyEmailMenuItem.hidden = !this.contextMenuData.isEmail;
+  },
+
+  
+
+
+
+
+  onContextMenuCopyLinkOrEmail() {
+    
+    
+    if (!this.contextMenuData.isOpen) {
+      return;
+    }
+
+    let clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"]
+                      .getService(Ci.nsIClipboardHelper);
+    clipboard.copyString(this.contextMenuData.href, document);
+  },
+
+  
+
+
+
+
+  onContextMenuHidden(event) {
+    this.contextMenuData = {
+      isOpen: false,
+    };
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  openContextMenu(screenX, screenY) {
+    gContextMenu.openPopupAtScreen(screenX, screenY, true);
+  },
+
+  
+
+
+
+
+
+
+  loadURL(URL) {
+    this.mm.sendAsyncMessage("ViewSource:LoadSource", { URL });
+  },
+
+  
+
+
+  updateCommands() {
+    let backBroadcaster = document.getElementById("Browser:Back");
+    let forwardBroadcaster = document.getElementById("Browser:Forward");
+
+    if (this.webNav.canGoBack) {
+      backBroadcaster.removeAttribute("disabled");
+    } else {
+      backBroadcaster.setAttribute("disabled", "true");
+    }
+    if (this.webNav.canGoForward) {
+      forwardBroadcaster.removeAttribute("disabled");
+    } else {
+      forwardBroadcaster.setAttribute("disabled", "true");
+    }
+  },
+
+  
+
+
+
+
+
+  updateStatus(label) {
+    let statusBarField = document.getElementById("statusbar-line-col");
+    if (statusBarField) {
+      statusBarField.label = label;
+    }
+  },
+
+  
+
+
+
+
+  promptAndGoToLine() {
+    let input = { value: this.lastLineFound };
+
+    let ok = Services.prompt.prompt(
         window,
         gViewSourceBundle.getString("goToLineTitle"),
         gViewSourceBundle.getString("goToLineText"),
@@ -366,338 +581,299 @@ function ViewSourceGoToLine()
     if (!ok)
       return;
 
-    var line = parseInt(input.value, 10);
+    let line = parseInt(input.value, 10);
 
     if (!(line > 0)) {
       Services.prompt.alert(window,
                             gViewSourceBundle.getString("invalidInputTitle"),
                             gViewSourceBundle.getString("invalidInputText"));
-
-      continue;
+      this.promptAndGoToLine();
+    } else {
+      this.goToLine(line);
     }
+  },
 
-    var found = goToLine(line);
+  
 
-    if (found)
-      break;
 
+
+
+
+  goToLine(lineNumber) {
+    this.mm.sendAsyncMessage("ViewSource:GoToLine", { lineNumber });
+  },
+
+  
+
+
+
+
+
+
+  onGoToLineSuccess(lineNumber) {
+    
+    
+    this.lastLineFound = lineNumber;
+    document.getElementById("statusbar-line-col").label =
+      gViewSourceBundle.getFormattedString("statusBarLineCol", [lineNumber, 1]);
+  },
+
+  
+
+
+
+
+  onGoToLineFailed() {
     Services.prompt.alert(window,
                           gViewSourceBundle.getString("outOfRangeTitle"),
                           gViewSourceBundle.getString("outOfRangeText"));
+    this.promptAndGoToLine();
+  },
+
+  
+
+
+  reload() {
+    gBrowser.reloadWithFlags(Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_PROXY |
+                             Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_CACHE);
+  },
+
+  
+
+
+  close() {
+    window.close();
+  },
+
+  
+
+
+
+
+  toggleWrapping() {
+    this.shouldWrap = !this.shouldWrap;
+    Services.prefs.setBoolPref("view_source.wrap_long_lines",
+                               this.shouldWrap);
+    this.mm.sendAsyncMessage("ViewSource:ToggleWrapping");
+  },
+
+  
+
+
+
+
+  toggleSyntaxHighlighting() {
+    this.shouldHighlight = !this.shouldHighlight;
+    
+    
+    
+    Services.prefs.setBoolPref("view_source.syntax_highlight",
+                               this.shouldHighlight);
+    this.mm.sendAsyncMessage("ViewSource:ToggleSyntaxHighlighting");
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  updateBrowserRemoteness(shouldBeRemote) {
+    if (gBrowser.isRemoteBrowser == shouldBeRemote) {
+      return;
+    }
+
+    let parentNode = gBrowser.parentNode;
+    let nextSibling = gBrowser.nextSibling;
+
+    gBrowser.remove();
+    if (shouldBeRemote) {
+      gBrowser.setAttribute("remote", "true");
+    } else {
+      gBrowser.removeAttribute("remote");
+    }
+    
+    
+    parentNode.insertBefore(gBrowser, nextSibling);
+
+    if (shouldBeRemote) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      gBrowser.webProgress;
+    }
+  },
+};
+
+ViewSourceChrome.init();
+
+
+
+
+let PrintPreviewListener = {
+  getPrintPreviewBrowser() {
+    let browser = document.getElementById("ppBrowser");
+    if (!browser) {
+      browser = document.createElement("browser");
+      browser.setAttribute("id", "ppBrowser");
+      browser.setAttribute("flex", "1");
+      browser.setAttribute("type", "content");
+
+      let findBar = document.getElementById("FindToolbar");
+      document.getElementById("appcontent")
+              .insertBefore(browser, findBar);
+    }
+
+    return browser;
+  },
+
+  getSourceBrowser() {
+    return gBrowser;
+  },
+
+  getNavToolbox() {
+    return document.getElementById("appcontent");
+  },
+
+  onEnter() {
+    let toolbox = document.getElementById("viewSource-toolbox");
+    toolbox.hidden = true;
+    gBrowser.collapsed = true;
+  },
+
+  onExit() {
+    document.getElementById("ppBrowser").collapsed = true;
+    gBrowser.collapsed = false;
+    document.getElementById("viewSource-toolbox").hidden = false;
+  },
+};
+
+
+function getBrowser() {
+  return gBrowser;
+}
+
+this.__defineGetter__("gPageLoader", function () {
+  var webnav = ViewSourceChrome.webNav;
+  if (!webnav)
+    return null;
+  delete this.gPageLoader;
+  this.gPageLoader = (webnav instanceof Ci.nsIWebPageDescriptor) ? webnav
+                                                                 : null;
+  return this.gPageLoader;
+});
+
+
+function ViewSourceSavePage()
+{
+  internalSave(gBrowser.currentURI.spec.replace(/^view-source:/i, ""),
+               null, null, null, null, null, "SaveLinkTitle",
+               null, null, gBrowser.contentDocumentAsCPOW, null,
+               gPageLoader);
+}
+
+
+
+
+this.__defineGetter__("gLastLineFound", function () {
+  Deprecated.warning("gLastLineFound is deprecated - please use " +
+                     "ViewSourceChrome.lastLineFound instead.",
+                     "https://developer.mozilla.org/en-US/Add-ons/Code_snippets/ViewSource");
+  return ViewSourceChrome.lastLineFound;
+});
+
+function onLoadViewSource() {
+  Deprecated.warning("onLoadViewSource() is deprecated - please use " +
+                     "ViewSourceChrome.onXULLoaded() instead.",
+                     "https://developer.mozilla.org/en-US/Add-ons/Code_snippets/ViewSource");
+  ViewSourceChrome.onXULLoaded();
+}
+
+function isHistoryEnabled() {
+  Deprecated.warning("isHistoryEnabled() is deprecated - please use " +
+                     "ViewSourceChrome.historyEnabled instead.",
+                     "https://developer.mozilla.org/en-US/Add-ons/Code_snippets/ViewSource");
+  return ViewSourceChrome.historyEnabled;
+}
+
+function ViewSourceClose() {
+  Deprecated.warning("ViewSourceClose() is deprecated - please use " +
+                     "ViewSourceChrome.close() instead.",
+                     "https://developer.mozilla.org/en-US/Add-ons/Code_snippets/ViewSource");
+  ViewSourceChrome.close();
+}
+
+function ViewSourceReload() {
+  Deprecated.warning("ViewSourceReload() is deprecated - please use " +
+                     "ViewSourceChrome.reload() instead.",
+                     "https://developer.mozilla.org/en-US/Add-ons/Code_snippets/ViewSource");
+  ViewSourceChrome.reload();
+}
+
+function getWebNavigation()
+{
+  Deprecated.warning("getWebNavigation() is deprecated - please use " +
+                     "ViewSourceChrome.webNav instead.",
+                     "https://developer.mozilla.org/en-US/Add-ons/Code_snippets/ViewSource");
+  
+  
+  try {
+    return ViewSourceChrome.webNav;
+  } catch (e) {
+    return null;
   }
+}
+
+function viewSource(url) {
+  Deprecated.warning("viewSource() is deprecated - please use " +
+                     "ViewSourceChrome.loadURL() instead.",
+                     "https://developer.mozilla.org/en-US/Add-ons/Code_snippets/ViewSource");
+  ViewSourceChrome.loadURL(url);
+}
+
+function ViewSourceGoToLine()
+{
+  Deprecated.warning("ViewSourceGoToLine() is deprecated - please use " +
+                     "ViewSourceChrome.promptAndGoToLine() instead.",
+                     "https://developer.mozilla.org/en-US/Add-ons/Code_snippets/ViewSource");
+  ViewSourceChrome.promptAndGoToLine();
 }
 
 function goToLine(line)
 {
-  var viewsource = window.content.document.body;
-
-  
-  
-  
-  
-  
-  
-
-  var pre;
-  for (var lbound = 0, ubound = viewsource.childNodes.length; ; ) {
-    var middle = (lbound + ubound) >> 1;
-    pre = viewsource.childNodes[middle];
-
-    var firstLine = pre.id ? parseInt(pre.id.substring(4)) : 1;
-
-    if (lbound == ubound - 1) {
-      break;
-    }
-
-    if (line >= firstLine) {
-      lbound = middle;
-    } else {
-      ubound = middle;
-    }
-  }
-
-  var result = {};
-  var found = findLocation(pre, line, null, -1, false, result);
-
-  if (!found) {
-    return false;
-  }
-
-  var selection = window.content.getSelection();
-  selection.removeAllRanges();
-
-  
-  
-  
-
-  selection.QueryInterface(Ci.nsISelectionPrivate)
-    .interlinePosition = true;
-
-  selection.addRange(result.range);
-
-  if (!selection.isCollapsed) {
-    selection.collapseToEnd();
-
-    var offset = result.range.startOffset;
-    var node = result.range.startContainer;
-    if (offset < node.data.length) {
-      
-      selection.extend(node, offset);
-    }
-    else {
-      
-      
-      
-      
-      node = node.nextSibling ? node.nextSibling : node.parentNode.nextSibling;
-      selection.extend(node, 0);
-    }
-  }
-
-  var selCon = getSelectionController();
-  selCon.setDisplaySelection(Ci.nsISelectionController.SELECTION_ON);
-  selCon.setCaretVisibilityDuringSelection(true);
-
-  
-  selCon.scrollSelectionIntoView(
-    Ci.nsISelectionController.SELECTION_NORMAL,
-    Ci.nsISelectionController.SELECTION_FOCUS_REGION,
-    true);
-
-  gLastLineFound = line;
-
-  document.getElementById("statusbar-line-col").label =
-    gViewSourceBundle.getFormattedString("statusBarLineCol", [line, 1]);
-
-  return true;
-}
-
-function updateStatusBar()
-{
-  
-  gSelectionListener.timeout = 0;
-
-  var statusBarField = document.getElementById("statusbar-line-col");
-
-  var selection = window.content.getSelection();
-  if (!selection.focusNode) {
-    statusBarField.label = '';
-    return;
-  }
-  if (selection.focusNode.nodeType != Node.TEXT_NODE) {
-    return;
-  }
-
-  var selCon = getSelectionController();
-  selCon.setDisplaySelection(Ci.nsISelectionController.SELECTION_ON);
-  selCon.setCaretVisibilityDuringSelection(true);
-
-  var interlinePosition = selection.QueryInterface(Ci.nsISelectionPrivate)
-                                   .interlinePosition;
-
-  var result = {};
-  findLocation(null, -1, 
-      selection.focusNode, selection.focusOffset, interlinePosition, result);
-
-  statusBarField.label = gViewSourceBundle.getFormattedString(
-                           "statusBarLineCol", [result.line, result.col]);
-}
-
-
-
-
-
-
-
-
-function findLocation(pre, line, node, offset, interlinePosition, result)
-{
-  if (node && !pre) {
-    
-    for (pre = node;
-         pre.nodeName != "PRE";
-         pre = pre.parentNode);
-  }
-
-  
-  
-  
-  
-  
-  var curLine = pre.id ? parseInt(pre.id.substring(4)) : 1;
-
-  
-  var treewalker = window.content.document
-      .createTreeWalker(pre, NodeFilter.SHOW_TEXT, null);
-
-  
-  var firstCol = 1;
-
-  var found = false;
-  for (var textNode = treewalker.firstChild();
-       textNode && !found;
-       textNode = treewalker.nextNode()) {
-
-    
-    var lineArray = textNode.data.split(/\n/);
-    var lastLineInNode = curLine + lineArray.length - 1;
-
-    
-    if (node ? (textNode != node) : (lastLineInNode < line)) {
-      if (lineArray.length > 1) {
-        firstCol = 1;
-      }
-      firstCol += lineArray[lineArray.length - 1].length;
-      curLine = lastLineInNode;
-      continue;
-    }
-
-    
-    
-    for (var i = 0, curPos = 0;
-         i < lineArray.length;
-         curPos += lineArray[i++].length + 1) {
-
-      if (i > 0) {
-        curLine++;
-      }
-
-      if (node) {
-        if (offset >= curPos && offset <= curPos + lineArray[i].length) {
-          
-          
-          
-
-          if (i > 0 && offset == curPos && !interlinePosition) {
-            result.line = curLine - 1;
-            var prevPos = curPos - lineArray[i - 1].length;
-            result.col = (i == 1 ? firstCol : 1) + offset - prevPos;
-          } else {
-            result.line = curLine;
-            result.col = (i == 0 ? firstCol : 1) + offset - curPos;
-          }
-          found = true;
-
-          break;
-        }
-
-      } else {
-        if (curLine == line && !("range" in result)) {
-          result.range = document.createRange();
-          result.range.setStart(textNode, curPos);
-
-          
-          
-          
-          result.range.setEndAfter(pre.lastChild);
-
-        } else if (curLine == line + 1) {
-          result.range.setEnd(textNode, curPos - 1);
-          found = true;
-          break;
-        }
-      }
-    }
-  }
-
-  return found || ("range" in result);
-}
-
-
-
-function wrapLongLines()
-{
-  var myWrap = window.content.document.body;
-  myWrap.classList.toggle("wrap");
-
-  
-  
-  
-  Services.prefs.setBoolPref("view_source.wrap_long_lines", myWrap.classList.contains("wrap"));
-}
-
-
-
-function highlightSyntax()
-{
-  var highlightSyntaxMenu = document.getElementById("menu_highlightSyntax");
-  var highlightSyntax = (highlightSyntaxMenu.getAttribute("checked") == "true");
-  Services.prefs.setBoolPref("view_source.syntax_highlight", highlightSyntax);
-
-  gPageLoader.loadPage(gPageLoader.currentDescriptor, gPageLoader.DISPLAY_NORMAL);
-}
-
-
-
-
-
-function BrowserCharsetReload()
-{
-  if (isHistoryEnabled()) {
-    gPageLoader.loadPage(gPageLoader.currentDescriptor,
-                         gPageLoader.DISPLAY_NORMAL);
-  } else {
-    gBrowser.reloadWithFlags(Ci.nsIWebNavigation.LOAD_FLAGS_CHARSET_CHANGE);
-  }
-}
-
-function BrowserSetCharacterSet(aEvent)
-{
-  if (aEvent.target.hasAttribute("charset"))
-    gBrowser.docShell.charset = aEvent.target.getAttribute("charset");
-  BrowserCharsetReload();
+  Deprecated.warning("goToLine() is deprecated - please use " +
+                     "ViewSourceChrome.goToLine() instead.",
+                     "https://developer.mozilla.org/en-US/Add-ons/Code_snippets/ViewSource");
+  ViewSourceChrome.goToLine(line);
 }
 
 function BrowserForward(aEvent) {
-  try {
-    gBrowser.goForward();
-  }
-  catch(ex) {
-  }
+  Deprecated.warning("BrowserForward() is deprecated - please use " +
+                     "ViewSourceChrome.goForward() instead.",
+                     "https://developer.mozilla.org/en-US/Add-ons/Code_snippets/ViewSource");
+  ViewSourceChrome.goForward();
 }
 
 function BrowserBack(aEvent) {
-  try {
-    gBrowser.goBack();
-  }
-  catch(ex) {
-  }
+  Deprecated.warning("BrowserBack() is deprecated - please use " +
+                     "ViewSourceChrome.goBack() instead.",
+                     "https://developer.mozilla.org/en-US/Add-ons/Code_snippets/ViewSource");
+  ViewSourceChrome.goBack();
 }
 
 function UpdateBackForwardCommands() {
-  var backBroadcaster = document.getElementById("Browser:Back");
-  var forwardBroadcaster = document.getElementById("Browser:Forward");
-
-  if (getWebNavigation().canGoBack)
-    backBroadcaster.removeAttribute("disabled");
-  else
-    backBroadcaster.setAttribute("disabled", "true");
-
-  if (getWebNavigation().canGoForward)
-    forwardBroadcaster.removeAttribute("disabled");
-  else
-    forwardBroadcaster.setAttribute("disabled", "true");
-}
-
-function contextMenuShowing() {
-  var isLink = false;
-  var isEmail = false;
-  if (gContextMenu.triggerNode && gContextMenu.triggerNode.localName == 'a') {
-    if (gContextMenu.triggerNode.href.indexOf('view-source:') == 0)
-      isLink = true;
-    if (gContextMenu.triggerNode.href.indexOf('mailto:') == 0)
-      isEmail = true;
-  }
-  document.getElementById('context-copyLink').hidden = !isLink;
-  document.getElementById('context-copyEmail').hidden = !isEmail;
-}
-
-function contextMenuCopyLinkOrEmail() {
-  if (!gContextMenu.triggerNode)
-    return;
-
-  var href = gContextMenu.triggerNode.href;
-  var clipboard = Cc['@mozilla.org/widget/clipboardhelper;1'].
-                  getService(Ci.nsIClipboardHelper);
-  clipboard.copyString(href.substring(href.indexOf(':') + 1), document);
+  Deprecated.warning("UpdateBackForwardCommands() is deprecated - please use " +
+                     "ViewSourceChrome.updateCommands() instead.",
+                     "https://developer.mozilla.org/en-US/Add-ons/Code_snippets/ViewSource");
+  ViewSourceChrome.updateCommands();
 }

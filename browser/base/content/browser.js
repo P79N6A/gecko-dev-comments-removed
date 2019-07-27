@@ -2282,62 +2282,71 @@ function readFromClipboard()
   return url;
 }
 
-function BrowserViewSourceOfDocument(aDocument)
-{
-  var pageCookie;
-  var webNav;
 
-  
-  var docCharset = "charset=" + aDocument.characterSet;
 
-  
-  try {
-      var win;
-      var ifRequestor;
 
-      
-      
-      
-      
-      win = aDocument.defaultView;
-      if (win == window) {
-        win = content;
-      }
-      ifRequestor = win.QueryInterface(Components.interfaces.nsIInterfaceRequestor);
 
-      webNav = ifRequestor.getInterface(nsIWebNavigation);
-  } catch(err) {
-      
-      
-      webNav = gBrowser.webNavigation;
-  }
-  
-  
-  
-  
-  
-  try {
 
-#ifdef E10S_TESTING_ONLY
-    
-    
-    
-    
-    
-    
-    if (!Cu.isCrossProcessWrapper(aDocument)) {
-#endif
-      var PageLoader = webNav.QueryInterface(Components.interfaces.nsIWebPageDescriptor);
 
-      pageCookie = PageLoader.currentDescriptor;
-#ifdef E10S_TESTING_ONLY
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function BrowserViewSourceOfDocument(aArgsOrDocument) {
+  let args;
+
+  if (aArgsOrDocument instanceof Document) {
+    let doc = aArgsOrDocument;
+    
+    if (Cu.isCrossProcessWrapper(doc)) {
+      throw new Error("BrowserViewSourceOfDocument cannot accept a CPOW " +
+                      "as a document.");
     }
-#endif
-  } catch(err) {
-    
+
+    let requestor = doc.defaultView
+                       .QueryInterface(Ci.nsIInterfaceRequestor);
+    let browser = requestor.getInterface(Ci.nsIWebNavigation)
+                           .QueryInterface(Ci.nsIDocShell)
+                           .chromeEventHandler;
+    let outerWindowID = requestor.getInterface(Ci.nsIDOMWindowUtils)
+                                 .outerWindowID;
+    let URL = browser.currentURI.spec;
+    args = { browser, outerWindowID, URL };
+  } else {
+    args = aArgsOrDocument;
   }
 
-  top.gViewSourceUtils.viewSource(webNav.currentURI.spec, pageCookie, aDocument);
+  top.gViewSourceUtils.viewSource(args);
+}
+
+
+
+
+
+
+
+
+
+function BrowserViewSource(browser) {
+  BrowserViewSourceOfDocument({
+    browser: browser,
+    outerWindowID: browser.outerWindowID,
+    URL: browser.currentURI.spec,
+  });
 }
 
 
