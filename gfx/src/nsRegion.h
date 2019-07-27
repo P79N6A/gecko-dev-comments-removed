@@ -10,6 +10,7 @@
 #include <stdint.h>                     
 #include <sys/types.h>                  
 #include "gfxCore.h"                    
+#include "mozilla/ToString.h"           
 #include "nsCoord.h"                    
 #include "nsError.h"                    
 #include "nsPoint.h"                    
@@ -67,6 +68,8 @@ public:
   {
     return IsEqual(aRgn);
   }
+
+  friend std::ostream& operator<<(std::ostream& stream, const nsRegion& m);
 
   void Swap(nsRegion* aOther)
   {
@@ -460,6 +463,10 @@ public:
   bool operator==(const nsIntRegion& aRgn) const
   {
     return IsEqual(aRgn);
+  }
+
+  friend std::ostream& operator<<(std::ostream& stream, const nsIntRegion& m) {
+    return stream << m.mImpl;
   }
 
   void Swap(nsIntRegion* aOther)
