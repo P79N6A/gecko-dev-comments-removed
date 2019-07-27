@@ -856,6 +856,8 @@ const COLOR_PALLETTE = Array.from(Array(PALLETTE_SIZE)).map((_, i) => "hsla" +
 
 
 let FlameGraphUtils = {
+  _cache: new WeakMap(),
+
   
 
 
@@ -875,7 +877,16 @@ let FlameGraphUtils = {
 
 
 
+
+
+
+
   createFlameGraphDataFromSamples: function(samples, options = {}, out = []) {
+    let cached = this._cache.get(samples);
+    if (cached) {
+      return cached;
+    }
+
     
     
 
@@ -952,7 +963,16 @@ let FlameGraphUtils = {
       out.push({ color, blocks });
     }
 
+    this._cache.set(samples, out);
     return out;
+  },
+
+  
+
+
+
+  removeFromCache: function(source) {
+    this._cache.delete(source);
   },
 
   
