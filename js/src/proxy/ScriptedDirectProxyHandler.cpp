@@ -550,7 +550,7 @@ ScriptedDirectProxyHandler::getOwnPropertyDescriptor(JSContext *cx, HandleObject
 
 bool
 ScriptedDirectProxyHandler::defineProperty(JSContext *cx, HandleObject proxy, HandleId id,
-                                           MutableHandle<PropertyDescriptor> desc,
+                                           Handle<PropertyDescriptor> desc,
                                            ObjectOpResult &result) const
 {
     

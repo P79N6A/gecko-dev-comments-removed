@@ -88,15 +88,17 @@ BaseProxyHandler::set(JSContext *cx, HandleObject proxy, HandleObject receiver,
 
     
     
-    return SetPropertyIgnoringNamedGetter(cx, proxy, id, vp, receiver, &ownDesc, result);
+    return SetPropertyIgnoringNamedGetter(cx, proxy, id, vp, receiver, ownDesc, result);
 }
 
 bool
 js::SetPropertyIgnoringNamedGetter(JSContext *cx, HandleObject obj, HandleId id,
                                    MutableHandleValue vp, HandleObject receiver,
-                                   MutableHandle<PropertyDescriptor> ownDesc,
+                                   Handle<PropertyDescriptor> ownDesc_,
                                    ObjectOpResult &result)
 {
+    Rooted<PropertyDescriptor> ownDesc(cx, ownDesc_);
+
     
     if (!ownDesc.object()) {
         
