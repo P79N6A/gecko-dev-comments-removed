@@ -1320,7 +1320,7 @@ IsCTypesGlobal(HandleValue v)
 }
 
 
-const JSCTypesCallbacks*
+JSCTypesCallbacks*
 GetCallbacks(JSObject* obj)
 {
   MOZ_ASSERT(IsCTypesGlobal(obj));
@@ -1329,7 +1329,7 @@ GetCallbacks(JSObject* obj)
   if (result.isUndefined())
     return nullptr;
 
-  return static_cast<const JSCTypesCallbacks*>(result.toPrivate());
+  return static_cast<JSCTypesCallbacks*>(result.toPrivate());
 }
 
 
@@ -1406,14 +1406,13 @@ JS_InitCTypesClass(JSContext* cx, HandleObject global)
 }
 
 JS_PUBLIC_API(void)
-JS_SetCTypesCallbacks(JSObject *ctypesObj, const JSCTypesCallbacks* callbacks)
+JS_SetCTypesCallbacks(JSObject *ctypesObj, JSCTypesCallbacks* callbacks)
 {
   MOZ_ASSERT(callbacks);
   MOZ_ASSERT(IsCTypesGlobal(ctypesObj));
 
   
-  JS_SetReservedSlot(ctypesObj, SLOT_CALLBACKS,
-                     PRIVATE_TO_JSVAL(const_cast<JSCTypesCallbacks*>(callbacks)));
+  JS_SetReservedSlot(ctypesObj, SLOT_CALLBACKS, PRIVATE_TO_JSVAL(callbacks));
 }
 
 namespace js {

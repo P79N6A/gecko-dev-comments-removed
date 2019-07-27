@@ -67,7 +67,7 @@ class PromiseWorkerProxy : public PromiseNativeHandler,
 public:
   PromiseWorkerProxy(workers::WorkerPrivate* aWorkerPrivate,
                      Promise* aWorkerPromise,
-                     const JSStructuredCloneCallbacks* aCallbacks = nullptr);
+                     JSStructuredCloneCallbacks* aCallbacks = nullptr);
 
   workers::WorkerPrivate* GetWorkerPrivate() const;
 
@@ -104,7 +104,7 @@ private:
 
   bool mCleanedUp; 
 
-  const JSStructuredCloneCallbacks* mCallbacks;
+  JSStructuredCloneCallbacks* mCallbacks;
 
   
   

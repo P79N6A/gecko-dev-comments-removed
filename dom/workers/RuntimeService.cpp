@@ -775,13 +775,13 @@ CreateJSContextForWorker(WorkerPrivate* aWorkerPrivate, JSRuntime* aRuntime)
   JS_SetNativeStackQuota(aRuntime, WORKER_CONTEXT_NATIVE_STACK_LIMIT);
 
   
-  static const JSSecurityCallbacks securityCallbacks = {
+  static JSSecurityCallbacks securityCallbacks = {
     ContentSecurityPolicyAllows
   };
   JS_SetSecurityCallbacks(aRuntime, &securityCallbacks);
 
   
-  static const JS::AsmJSCacheOps asmJSCacheOps = {
+  static JS::AsmJSCacheOps asmJSCacheOps = {
     AsmJSCacheOpenEntryForRead,
     asmjscache::CloseEntryForRead,
     AsmJSCacheOpenEntryForWrite,
