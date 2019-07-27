@@ -228,7 +228,6 @@ loop.conversationViews = (function(mozL10n) {
     },
 
     render: function() {
-      
       var dropdownMenuClassesDecline = React.addons.classSet({
         "native-dropdown-menu": true,
         "conversation-window-dropdown": true,
@@ -276,7 +275,6 @@ loop.conversationViews = (function(mozL10n) {
           )
         )
       );
-      
     }
   });
 
@@ -293,7 +291,6 @@ loop.conversationViews = (function(mozL10n) {
     render: function() {
       var mode = this.props.mode;
       return (
-        
         React.createElement("div", {className: "btn-chevron-menu-group"}, 
           React.createElement("div", {className: "btn-group"}, 
             React.createElement("button", {className: "btn btn-accept", 
@@ -310,7 +307,6 @@ loop.conversationViews = (function(mozL10n) {
             )
           )
         )
-        
       );
     }
   });
