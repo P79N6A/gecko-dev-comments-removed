@@ -18,11 +18,10 @@ class TimeRanges;
 
 
 
-
 struct WebMTimeDataOffset
 {
   WebMTimeDataOffset(int64_t aOffset, uint64_t aTimecode, int64_t aSyncOffset)
-    : mOffset(aOffset), mTimecode(aTimecode), mSyncOffset(aSyncOffset)
+    : mOffset(aOffset), mSyncOffset(aSyncOffset), mTimecode(aTimecode)
   {}
 
   bool operator==(int64_t aOffset) const {
@@ -34,8 +33,8 @@ struct WebMTimeDataOffset
   }
 
   int64_t mOffset;
-  uint64_t mTimecode;
   int64_t mSyncOffset;
+  uint64_t mTimecode;
 };
 
 
@@ -46,9 +45,22 @@ struct WebMTimeDataOffset
 
 struct WebMBufferedParser
 {
-  WebMBufferedParser(int64_t aOffset)
-    : mStartOffset(aOffset), mCurrentOffset(aOffset), mState(CLUSTER_SYNC), mClusterIDPos(0)
+  explicit WebMBufferedParser(int64_t aOffset)
+    : mStartOffset(aOffset), mCurrentOffset(aOffset), mState(READ_ELEMENT_ID),
+      mVIntRaw(false), mTimecodeScale(1000000), mGotTimecodeScale(false)
   {}
+
+  uint32_t GetTimecodeScale() {
+    MOZ_ASSERT(mGotTimecodeScale);
+    return mTimecodeScale;
+  }
+
+  
+  
+  void SetTimecodeScale(uint32_t aTimecodeScale) {
+    mTimecodeScale = aTimecodeScale;
+    mGotTimecodeScale = true;
+  }
 
   
   
@@ -78,16 +90,16 @@ private:
   enum State {
     
     
+    READ_ELEMENT_ID,
+
+    
+    
+    READ_ELEMENT_SIZE,
+
     
     
     
-    CLUSTER_SYNC,
-
-    
-
-
-
-
+    PARSE_ELEMENT,
 
     
     
@@ -101,10 +113,8 @@ private:
 
     
     
-    
-    TIMECODE_SYNC,
+    READ_TIMECODESCALE,
 
-    
     
     
     READ_CLUSTER_TIMECODE,
@@ -115,26 +125,10 @@ private:
     
     
     
-    
-    ANY_BLOCK_SYNC,
-
-    
-    
-    
-    
-    READ_BLOCK,
-
-    
-    
-    
-    
     READ_BLOCK_TIMECODE,
 
     
     SKIP_DATA,
-
-    
-    SKIP_ELEMENT
   };
 
   
@@ -144,16 +138,23 @@ private:
   
   State mNextState;
 
-  
-  
-  uint32_t mClusterIDPos;
+  struct VInt {
+    VInt() : mValue(0), mLength(0) {}
+    uint64_t mValue;
+    uint64_t mLength;
+  };
 
-  
-  uint64_t mVInt;
+  struct EBMLElement {
+    uint64_t Length() { return mID.mLength + mSize.mLength; }
+    VInt mID;
+    VInt mSize;
+  };
 
-  
-  
-  uint32_t mVIntLength;
+  EBMLElement mElement;
+
+  VInt mVInt;
+
+  bool mVIntRaw;
 
   
   
@@ -186,6 +187,14 @@ private:
   
   
   uint32_t mSkipBytes;
+
+  
+  
+  uint32_t mTimecodeScale;
+
+  
+  
+  bool mGotTimecodeScale;
 };
 
 class WebMBufferedState MOZ_FINAL
