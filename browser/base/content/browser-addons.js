@@ -49,7 +49,7 @@ const gXPInstallObserver = {
     };
 
     try {
-      options.originHost = installInfo.originatingURI.host;
+      options.displayOrigin = installInfo.originatingURI.host;
     } catch (e) {
       
     }
@@ -78,7 +78,7 @@ const gXPInstallObserver = {
                               action, null, options);
       break; }
     case "addon-install-blocked": {
-      if (!options.originHost) {
+      if (!options.displayOrigin) {
         
         
         return;
@@ -138,7 +138,7 @@ const gXPInstallObserver = {
     case "addon-install-failed": {
       
       for (let install of installInfo.installs) {
-        let host = options.originHost;
+        let host = options.displayOrigin;
         if (!host)
           host = (install.sourceURI instanceof Ci.nsIStandardURL) &&
                  install.sourceURI.host;

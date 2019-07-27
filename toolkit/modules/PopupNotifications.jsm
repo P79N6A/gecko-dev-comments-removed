@@ -274,6 +274,7 @@ PopupNotifications.prototype = {
 
 
 
+
   show: function PopupNotifications_show(browser, id, message, anchorID,
                                          mainAction, secondaryActions, options) {
     function isInvalidAction(a) {
@@ -567,10 +568,10 @@ PopupNotifications.prototype = {
       else
         popupnotification.removeAttribute("learnmoreurl");
 
-      if (n.options.originHost)
-        popupnotification.setAttribute("originhost", n.options.originHost);
+      if (n.options.displayOrigin)
+        popupnotification.setAttribute("origin", n.options.displayOrigin);
       else
-        popupnotification.removeAttribute("originhost");
+        popupnotification.removeAttribute("origin");
 
       popupnotification.notification = n;
 
