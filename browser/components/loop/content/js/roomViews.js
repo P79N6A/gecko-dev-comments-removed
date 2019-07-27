@@ -81,6 +81,16 @@ loop.roomViews = (function(mozL10n) {
       this.stopListening(this.props.roomStore);
     },
 
+    handleTextareaKeyDown: function(event) {
+      
+      
+      
+      
+      if (event.which === 13) {
+        this.handleFormSubmit(event);
+      }
+    },
+
     handleFormSubmit: function(event) {
       event.preventDefault();
 
@@ -129,9 +139,10 @@ loop.roomViews = (function(mozL10n) {
             mozL10n.get("rooms_name_change_failed_label")
           ), 
           React.DOM.form({onSubmit: this.handleFormSubmit}, 
-            React.DOM.input({type: "text", className: "input-room-name", 
+            React.DOM.textarea({rows: "2", type: "text", className: "input-room-name", 
               valueLink: this.linkState("newRoomName"), 
               onBlur: this.handleFormSubmit, 
+              onKeyDown: this.handleTextareaKeyDown, 
               placeholder: mozL10n.get("rooms_name_this_room_label")})
           ), 
           React.DOM.p(null, mozL10n.get("invite_header_text")), 
