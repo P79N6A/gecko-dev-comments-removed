@@ -43,10 +43,10 @@ nsAnimationManager::GetEventsForCurrentTime(AnimationPlayerCollection*
                                               aCollection,
                                             EventArray& aEventsToDispatch)
 {
-  for (uint32_t animIdx = aCollection->mAnimations.Length(); animIdx-- != 0; ) {
-    AnimationPlayer* anim = aCollection->mAnimations[animIdx];
+  for (size_t playerIdx = aCollection->mPlayers.Length(); playerIdx-- != 0; ) {
+    AnimationPlayer* player = aCollection->mPlayers[playerIdx];
 
-    ComputedTiming computedTiming = anim->GetComputedTiming(anim->mTiming);
+    ComputedTiming computedTiming = player->GetComputedTiming(player->mTiming);
 
     switch (computedTiming.mPhase) {
       case ComputedTiming::AnimationPhase_Null:
@@ -56,7 +56,7 @@ nsAnimationManager::GetEventsForCurrentTime(AnimationPlayerCollection*
 
       case ComputedTiming::AnimationPhase_Active:
         
-        if (computedTiming.mCurrentIteration != anim->mLastNotification) {
+        if (computedTiming.mCurrentIteration != player->mLastNotification) {
           
           
           
@@ -64,16 +64,18 @@ nsAnimationManager::GetEventsForCurrentTime(AnimationPlayerCollection*
           
           
           uint32_t message =
-            anim->mLastNotification == AnimationPlayer::LAST_NOTIFICATION_NONE
-              ? NS_ANIMATION_START : NS_ANIMATION_ITERATION;
+            player->mLastNotification ==
+              AnimationPlayer::LAST_NOTIFICATION_NONE
+              ? NS_ANIMATION_START
+              : NS_ANIMATION_ITERATION;
 
-          anim->mLastNotification = computedTiming.mCurrentIteration;
+          player->mLastNotification = computedTiming.mCurrentIteration;
           TimeDuration iterationStart =
-            anim->mTiming.mIterationDuration *
+            player->mTiming.mIterationDuration *
             computedTiming.mCurrentIteration;
           TimeDuration elapsedTime =
-            std::max(iterationStart, anim->InitialAdvance());
-          AnimationEventInfo ei(aCollection->mElement, anim->mName, message,
+            std::max(iterationStart, player->InitialAdvance());
+          AnimationEventInfo ei(aCollection->mElement, player->mName, message,
                                 elapsedTime, aCollection->PseudoElement());
           aEventsToDispatch.AppendElement(ei);
         }
@@ -82,25 +84,25 @@ nsAnimationManager::GetEventsForCurrentTime(AnimationPlayerCollection*
       case ComputedTiming::AnimationPhase_After:
         
         
-        if (anim->mLastNotification ==
+        if (player->mLastNotification ==
             AnimationPlayer::LAST_NOTIFICATION_NONE) {
           
           
           
-          anim->mLastNotification = 0;
+          player->mLastNotification = 0;
           TimeDuration elapsedTime =
-            std::min(anim->InitialAdvance(), computedTiming.mActiveDuration);
+            std::min(player->InitialAdvance(), computedTiming.mActiveDuration);
           AnimationEventInfo ei(aCollection->mElement,
-                                anim->mName, NS_ANIMATION_START,
+                                player->mName, NS_ANIMATION_START,
                                 elapsedTime, aCollection->PseudoElement());
           aEventsToDispatch.AppendElement(ei);
         }
         
-        if (anim->mLastNotification !=
+        if (player->mLastNotification !=
             AnimationPlayer::LAST_NOTIFICATION_END) {
-          anim->mLastNotification = AnimationPlayer::LAST_NOTIFICATION_END;
+          player->mLastNotification = AnimationPlayer::LAST_NOTIFICATION_END;
           AnimationEventInfo ei(aCollection->mElement,
-                                anim->mName, NS_ANIMATION_END,
+                                player->mName, NS_ANIMATION_END,
                                 computedTiming.mActiveDuration,
                                 aCollection->PseudoElement());
           aEventsToDispatch.AppendElement(ei);
@@ -244,10 +246,10 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
 
     
     dom::AnimationTimeline* timeline = aElement->OwnerDoc()->Timeline();
-    AnimationPlayerPtrArray newAnimations;
-    BuildAnimations(aStyleContext, timeline, newAnimations);
+    AnimationPlayerPtrArray newPlayers;
+    BuildAnimations(aStyleContext, timeline, newPlayers);
 
-    if (newAnimations.IsEmpty()) {
+    if (newPlayers.IsEmpty()) {
       if (collection) {
         collection->Destroy();
       }
@@ -269,9 +271,9 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
       
       
       
-      if (!collection->mAnimations.IsEmpty()) {
-        for (size_t newIdx = newAnimations.Length(); newIdx-- != 0;) {
-          AnimationPlayer* newAnim = newAnimations[newIdx];
+      if (!collection->mPlayers.IsEmpty()) {
+        for (size_t newIdx = newPlayers.Length(); newIdx-- != 0;) {
+          AnimationPlayer* newPlayer = newPlayers[newIdx];
 
           
           
@@ -279,32 +281,32 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
           
           
           
-          nsRefPtr<AnimationPlayer> oldAnim;
-          size_t oldIdx = collection->mAnimations.Length();
+          nsRefPtr<AnimationPlayer> oldPlayer;
+          size_t oldIdx = collection->mPlayers.Length();
           while (oldIdx-- != 0) {
-            AnimationPlayer* a = collection->mAnimations[oldIdx];
-            if (a->mName == newAnim->mName) {
-              oldAnim = a;
+            AnimationPlayer* a = collection->mPlayers[oldIdx];
+            if (a->mName == newPlayer->mName) {
+              oldPlayer = a;
               break;
             }
           }
-          if (!oldAnim) {
+          if (!oldPlayer) {
             continue;
           }
 
           
           
-          oldAnim->mTiming = newAnim->mTiming;
-          oldAnim->mProperties = newAnim->mProperties;
+          oldPlayer->mTiming = newPlayer->mTiming;
+          oldPlayer->mProperties = newPlayer->mProperties;
 
           
-          oldAnim->mIsRunningOnCompositor = false;
+          oldPlayer->mIsRunningOnCompositor = false;
 
           
-          if (!oldAnim->IsPaused() && newAnim->IsPaused()) {
+          if (!oldPlayer->IsPaused() && newPlayer->IsPaused()) {
             
-            oldAnim->mPauseStart = timeline->GetCurrentTimeStamp();
-          } else if (oldAnim->IsPaused() && !newAnim->IsPaused()) {
+            oldPlayer->mPauseStart = timeline->GetCurrentTimeStamp();
+          } else if (oldPlayer->IsPaused() && !newPlayer->IsPaused()) {
             const TimeStamp& now = timeline->GetCurrentTimeStamp();
             if (!now.IsNull()) {
               
@@ -312,11 +314,11 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
               
               
               
-              oldAnim->mStartTime += now - oldAnim->mPauseStart;
+              oldPlayer->mStartTime += now - oldPlayer->mPauseStart;
             }
-            oldAnim->mPauseStart = TimeStamp();
+            oldPlayer->mPauseStart = TimeStamp();
           }
-          oldAnim->mPlayState = newAnim->mPlayState;
+          oldPlayer->mPlayState = newPlayer->mPlayState;
 
           
           
@@ -324,16 +326,16 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
           
           
           
-          newAnim = nullptr;
-          newAnimations.ReplaceElementAt(newIdx, oldAnim);
-          collection->mAnimations.RemoveElementAt(oldIdx);
+          newPlayer = nullptr;
+          newPlayers.ReplaceElementAt(newIdx, oldPlayer);
+          collection->mPlayers.RemoveElementAt(oldIdx);
         }
       }
     } else {
       collection =
         GetAnimationPlayers(aElement, aStyleContext->GetPseudoType(), true);
     }
-    collection->mAnimations.SwapElements(newAnimations);
+    collection->mPlayers.SwapElements(newPlayers);
     collection->mNeedsRefreshes = true;
     collection->Tick();
 
@@ -406,16 +408,16 @@ ResolvedStyleCache::Get(nsPresContext *aPresContext,
 void
 nsAnimationManager::BuildAnimations(nsStyleContext* aStyleContext,
                                     dom::AnimationTimeline* aTimeline,
-                                    AnimationPlayerPtrArray& aAnimations)
+                                    AnimationPlayerPtrArray& aPlayers)
 {
-  NS_ABORT_IF_FALSE(aAnimations.IsEmpty(), "expect empty array");
+  NS_ABORT_IF_FALSE(aPlayers.IsEmpty(), "expect empty array");
 
   ResolvedStyleCache resolvedStyles;
 
   const nsStyleDisplay *disp = aStyleContext->StyleDisplay();
   TimeStamp now = aTimeline->GetCurrentTimeStamp();
 
-  for (uint32_t animIdx = 0, animEnd = disp->mAnimationNameCount;
+  for (size_t animIdx = 0, animEnd = disp->mAnimationNameCount;
        animIdx != animEnd; ++animIdx) {
     const StyleAnimation& src = disp->mAnimations[animIdx];
 
@@ -434,7 +436,7 @@ nsAnimationManager::BuildAnimations(nsStyleContext* aStyleContext,
     }
 
     nsRefPtr<AnimationPlayer> dest =
-      *aAnimations.AppendElement(new AnimationPlayer(aTimeline));
+      *aPlayers.AppendElement(new AnimationPlayer(aTimeline));
 
     dest->mName = src.GetName();
 

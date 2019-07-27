@@ -270,7 +270,7 @@ struct AnimationPlayerCollection : public PRCList
 
   mozilla::css::CommonAnimationManager *mManager;
 
-  mozilla::AnimationPlayerPtrArray mAnimations;
+  mozilla::AnimationPlayerPtrArray mPlayers;
 
   
   
