@@ -369,6 +369,8 @@ public:
   
   bool CanScroll(double aDeltaX, double aDeltaY) const;
 
+  void NotifyMozMouseScrollEvent(const nsString& aString) const;
+
 protected:
   
   ~AsyncPanZoomController();

@@ -181,6 +181,9 @@ public:
                                                          const WidgetTouchEvent& aEvent,
                                                          uint64_t aInputBlockId,
                                                          const nsRefPtr<SetAllowedTouchBehaviorCallback>& aCallback);
+
+    
+    static void NotifyMozMouseScrollEvent(const FrameMetrics::ViewID& aScrollId, const nsString& aEvent);
 };
 
 }

@@ -141,7 +141,6 @@ public:
     EndTouch,
     APZStateChangeSentinel
   };
-
   
 
 
@@ -152,6 +151,12 @@ public:
   virtual void NotifyAPZStateChange(const ScrollableLayerGuid& aGuid,
                                     APZStateChange aChange,
                                     int aArg = 0) {}
+
+  
+
+
+  virtual void NotifyMozMouseScrollEvent(const FrameMetrics::ViewID& aScrollId, const nsString& aEvent)
+  {}
 
   GeckoContentController() {}
   virtual void Destroy() {}
