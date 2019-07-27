@@ -3,6 +3,7 @@
 
 
 #include "mozilla/plugins/PluginWidgetChild.h"
+#include "mozilla/plugins/PluginWidgetParent.h"
 #include "PluginWidgetProxy.h"
 #include "mozilla/DebugOnly.h"
 #include "nsDebug.h"
@@ -11,6 +12,9 @@
 #include "mozilla/plugins/PluginInstanceParent.h"
 using mozilla::plugins::PluginInstanceParent;
 #endif
+
+#define PWLOG(...)
+
 
 namespace mozilla {
 namespace plugins {
@@ -28,33 +32,41 @@ PluginWidgetChild::~PluginWidgetChild()
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+void
+PluginWidgetChild::ProxyShutdown()
+{
+  PWLOG("PluginWidgetChild::ProxyShutdown()\n");
+  if (mWidget) {
+    SendDestroy();
+    mWidget = nullptr;
+  }
+}
 
 void
-PluginWidgetChild::ActorDestroy(ActorDestroyReason aWhy)
+PluginWidgetChild::KillWidget()
 {
+  PWLOG("PluginWidgetChild::KillWidget()\n");
   if (mWidget) {
     mWidget->ChannelDestroyed();
   }
   mWidget = nullptr;
 }
 
-bool
-PluginWidgetChild::RecvParentShutdown()
+void
+PluginWidgetChild::ActorDestroy(ActorDestroyReason aWhy)
 {
-  Send__delete__(this);
+  PWLOG("PluginWidgetChild::ActorDestroy()\n");
+  KillWidget();
+}
+
+bool
+PluginWidgetChild::RecvParentShutdown(const uint16_t& aType)
+{
+  PWLOG("PluginWidgetChild::RecvParentShutdown()\n");
+  KillWidget();
+  if (aType == PluginWidgetParent::CONTENT) {
+    Send__delete__(this);
+  }
   return true;
 }
 

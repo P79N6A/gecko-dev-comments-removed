@@ -41,8 +41,23 @@ static NS_DEFINE_CID(kWidgetCID, NS_CHILD_CID);
   }                                                           \
 }
 
-PluginWidgetParent::PluginWidgetParent() :
-  mActorDestroyed(false)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PluginWidgetParent::PluginWidgetParent()
 {
   PWLOG("PluginWidgetParent::PluginWidgetParent()\n");
   MOZ_COUNT_CTOR(PluginWidgetParent);
@@ -177,12 +192,22 @@ PluginWidgetParent::RecvCreate(nsresult* aResult)
 }
 
 void
-PluginWidgetParent::ActorDestroy(ActorDestroyReason aWhy)
+PluginWidgetParent::Shutdown(ShutdownType aType)
 {
-  mActorDestroyed = true;
-  PWLOG("PluginWidgetParent::ActorDestroy()\n");
+  if (mWidget) {
+    mWidget->UnregisterPluginWindowForRemoteUpdates();
+    DebugOnly<nsresult> rv = mWidget->Destroy();
+    NS_ASSERTION(NS_SUCCEEDED(rv), "widget destroy failure");
+    mWidget = nullptr;
+    unused << SendParentShutdown(aType);
+  }
 }
 
+void
+PluginWidgetParent::ActorDestroy(ActorDestroyReason aWhy)
+{
+  PWLOG("PluginWidgetParent::ActorDestroy()\n");
+}
 
 
 
@@ -190,16 +215,8 @@ PluginWidgetParent::ActorDestroy(ActorDestroyReason aWhy)
 void
 PluginWidgetParent::ParentDestroy()
 {
-  if (mActorDestroyed || !mWidget) {
-    return;
-  }
   PWLOG("PluginWidgetParent::ParentDestroy()\n");
-  mWidget->UnregisterPluginWindowForRemoteUpdates();
-  DebugOnly<nsresult> rv = mWidget->Destroy();
-  NS_ASSERTION(NS_SUCCEEDED(rv), "widget destroy failure");
-  mWidget = nullptr;
-  mActorDestroyed = true;
-  return;
+  Shutdown(TAB_CLOSURE);
 }
 
 
@@ -207,11 +224,8 @@ PluginWidgetParent::ParentDestroy()
 bool
 PluginWidgetParent::RecvDestroy()
 {
-  bool destroyed = mActorDestroyed;
-  ParentDestroy();
-  if (!destroyed) {
-    unused << SendParentShutdown();
-  }
+  PWLOG("PluginWidgetParent::RecvDestroy()\n");
+  Shutdown(CONTENT);
   return true;
 }
 

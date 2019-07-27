@@ -38,7 +38,7 @@ PluginWidgetProxy::PluginWidgetProxy(dom::TabChild* aTabChild,
   mActor(aActor)
 {
   
-  mActor->mWidget = this;
+  mActor->SetWidget(this);
 }
 
 PluginWidgetProxy::~PluginWidgetProxy()
@@ -99,22 +99,9 @@ PluginWidgetProxy::Destroy()
   PWLOG("PluginWidgetProxy::Destroy()\n");
 
   if (mActor) {
-   
-
-
-
-
-
-
-
-
-
-
-
-
-
-    mActor->SendDestroy();
-    mActor->mWidget = nullptr;
+    
+    
+    mActor->ProxyShutdown();
     mActor = nullptr;
   }
 
