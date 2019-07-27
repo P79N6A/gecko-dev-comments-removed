@@ -2349,11 +2349,7 @@ ThebesLayerData::Accumulate(ContainerState* aState,
   bool clipMatches = mItemClip == aClip;
   mItemClip = aClip;
 
-  nscolor uniformColor;
-  bool isUniform = aItem->IsUniform(aState->mBuilder, &uniformColor);
-
-  if (!mIsSolidColorInVisibleRegion && !isUniform &&
-      mOpaqueRegion.Contains(aDrawRect) &&
+  if (!mIsSolidColorInVisibleRegion && mOpaqueRegion.Contains(aDrawRect) &&
       mVisibleRegion.Contains(aVisibleRect)) {
     
     
@@ -2366,6 +2362,9 @@ ThebesLayerData::Accumulate(ContainerState* aState,
     NS_ASSERTION(mDrawRegion.Contains(aDrawRect), "Draw region not covered");
     return;
   }
+
+  nscolor uniformColor;
+  bool isUniform = aItem->IsUniform(aState->mBuilder, &uniformColor);
 
   
   
@@ -2384,11 +2383,6 @@ ThebesLayerData::Accumulate(ContainerState* aState,
     }
     if (isUniform) {
       if (mVisibleRegion.IsEmpty()) {
-        
-        mSolidColor = uniformColor;
-        mIsSolidColorInVisibleRegion = true;
-      } else if (NS_GET_A(uniformColor) == 255 &&
-                 aVisibleRect.Contains(mVisibleRegion.GetBounds())) {
         
         mSolidColor = uniformColor;
         mIsSolidColorInVisibleRegion = true;
