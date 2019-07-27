@@ -189,12 +189,12 @@ function run_test() {
   
   
   let file = "tlsserver/test-int-ee.der";
-  verify_cert(file, Cr.NS_OK);
+  verify_cert(file, PRErrorCodeSuccess);
 
   
   
   file = "tlsserver/default-ee.der";
-  verify_cert(file, Cr.NS_OK);
+  verify_cert(file, PRErrorCodeSuccess);
 
   
   add_test(function() {
@@ -264,7 +264,7 @@ function run_test() {
 
     
     file = "tlsserver/default-ee.der";
-    verify_cert(file, Cr.NS_OK);
+    verify_cert(file, PRErrorCodeSuccess);
 
     
     file = "tlsserver/unknown-issuer.der";

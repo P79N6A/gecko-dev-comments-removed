@@ -42,7 +42,7 @@ function run_test() {
     clearOCSPCache();
     Services.prefs.setBoolPref("security.OCSP.GET.enabled", false);
     let ocspResponder = start_ocsp_responder(["a"], [], ["POST"]);
-    check_cert_err("a", 0);
+    check_cert_err("a", PRErrorCodeSuccess);
     ocspResponder.stop(run_next_test);
   });
 
@@ -50,7 +50,7 @@ function run_test() {
     clearOCSPCache();
     Services.prefs.setBoolPref("security.OCSP.GET.enabled", true);
     let ocspResponder = start_ocsp_responder(["a"], [], ["GET"]);
-    check_cert_err("a", 0);
+    check_cert_err("a", PRErrorCodeSuccess);
     ocspResponder.stop(run_next_test);
   });
 

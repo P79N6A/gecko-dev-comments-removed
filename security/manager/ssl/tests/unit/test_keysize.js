@@ -68,7 +68,7 @@ function checkRSAChains(inadequateKeySize, adequateKeySize) {
   checkChain("rsa", adequateKeySize,
              "rsa", adequateKeySize,
              "rsa", adequateKeySize,
-             0);
+             PRErrorCodeSuccess);
 
   
   checkChain("rsa", inadequateKeySize,
@@ -93,7 +93,7 @@ function checkECCChains() {
   checkChain("prime256v1", 256,
              "secp384r1", 384,
              "secp521r1", 521,
-             0);
+             PRErrorCodeSuccess);
   checkChain("prime256v1", 256,
              "secp224r1", 224,
              "prime256v1", 256,
@@ -120,7 +120,7 @@ function checkCombinationChains() {
   checkChain("rsa", 2048,
              "prime256v1", 256,
              "secp384r1", 384,
-             0);
+             PRErrorCodeSuccess);
   checkChain("rsa", 2048,
              "prime256v1", 256,
              "secp224r1", 224,

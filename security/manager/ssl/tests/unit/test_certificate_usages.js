@@ -105,7 +105,8 @@ function run_test() {
     cert.getUsagesString(true, verified, usages);
     do_check_eq(ca_usages[i], usages.value);
     if (ca_usages[i].indexOf('SSL CA') != -1) {
-      checkCertErrorGeneric(certdb, cert, 0, certificateUsageVerifyCA);
+      checkCertErrorGeneric(certdb, cert, PRErrorCodeSuccess,
+                            certificateUsageVerifyCA);
     }
     
     for (var j = 0; j < ee_usages[i].length; j++) {
