@@ -177,7 +177,8 @@ public:
   static void Shutdown();
 
   void Init(nsDisplayListBuilder* aBuilder, LayerManager* aManager,
-            PaintedLayerData* aLayerData = nullptr);
+            PaintedLayerData* aLayerData = nullptr,
+            ContainerState* aContainingContainerState = nullptr);
 
   
 
@@ -306,7 +307,7 @@ public:
                             nsDisplayItem* aItem,
                             const DisplayItemClip& aClip,
                             const nsIntRect& aItemVisibleRect,
-                            const ContainerState& aContainerState,
+                            ContainerState& aContainerState,
                             LayerState aLayerState,
                             const nsPoint& aTopLeft);
 
@@ -636,6 +637,11 @@ public:
     return !mContainingPaintedLayer && mRetainingManager;
   }
 
+  ContainerState* GetContainingContainerState()
+  {
+    return mContainingContainerState;
+  }
+
   
 
 
@@ -689,7 +695,9 @@ protected:
 
 
 
-  PaintedLayerData*                    mContainingPaintedLayer;
+  PaintedLayerData*                   mContainingPaintedLayer;
+
+  ContainerState*                     mContainingContainerState;
 
   
 

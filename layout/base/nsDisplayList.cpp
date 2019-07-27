@@ -4602,6 +4602,7 @@ nsDisplayScrollInfoLayer::nsDisplayScrollInfoLayer(
   nsIFrame* aScrolledFrame,
   nsIFrame* aScrollFrame)
   : nsDisplayScrollLayer(aBuilder, aScrollFrame, aScrolledFrame, aScrollFrame)
+  , mHoisted(false)
 {
 #ifdef NS_BUILD_REFCNT_LOGGING
   MOZ_COUNT_CTOR(nsDisplayScrollInfoLayer);
@@ -4628,7 +4629,10 @@ nsDisplayScrollInfoLayer::BuildLayer(nsDisplayListBuilder* aBuilder,
   
   
   
-  if (gfxPrefs::LayoutEventRegionsEnabled()) {
+  
+  
+  
+  if (gfxPrefs::LayoutEventRegionsEnabled() && !mHoisted) {
     return nullptr;
   }
   return nsDisplayScrollLayer::BuildLayer(aBuilder, aManager, aContainerParameters);
@@ -4640,7 +4644,7 @@ nsDisplayScrollInfoLayer::GetLayerState(nsDisplayListBuilder* aBuilder,
                                         const ContainerLayerParameters& aParameters)
 {
   
-  if (gfxPrefs::LayoutEventRegionsEnabled()) {
+  if (gfxPrefs::LayoutEventRegionsEnabled() && !mHoisted) {
     return LAYER_NONE;
   }
   return LAYER_ACTIVE_EMPTY;
