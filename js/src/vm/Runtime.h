@@ -1036,9 +1036,7 @@ struct JSRuntime : public JS::shadow::Runtime,
 
     mozilla::UniquePtr<js::SourceHook> sourceHook;
 
-#ifdef NIGHTLY_BUILD
     js::AssertOnScriptEntryHook assertOnScriptEntryHook_;
-#endif
 
     
     JSDebugHooks        debugHooks;
@@ -1087,6 +1085,9 @@ struct JSRuntime : public JS::shadow::Runtime,
     }
     bool canUseSignalHandlers() const {
         return canUseSignalHandlers_;
+    }
+    void setCanUseSignalHandlers(bool enable) {
+        canUseSignalHandlers_ = signalHandlersInstalled_ && enable;
     }
 
   private:
