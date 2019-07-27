@@ -93,7 +93,7 @@ ValueNumberer::VisibleValues::findLeaderForAdd(MDefinition *def)
 
 
 bool
-ValueNumberer::VisibleValues::insert(AddPtr p, MDefinition *def)
+ValueNumberer::VisibleValues::add(AddPtr p, MDefinition *def)
 {
     return set_.add(p, def);
 }
@@ -421,7 +421,7 @@ ValueNumberer::leader(MDefinition *def)
             values_.overwrite(p, def);
         } else {
             
-            if (!values_.insert(p, def))
+            if (!values_.add(p, def))
                 return nullptr;
         }
     }
