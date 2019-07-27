@@ -21,6 +21,7 @@ const { getTabForContentWindow } = require('../tabs/utils');
 const { getInnerId } = require('../window/utils');
 const { PlainTextConsole } = require('../console/plain-text');
 const { data } = require('../self');
+const { isChildLoader } = require('../remote/core');
 
 const sandboxes = new WeakMap();
 
@@ -46,6 +47,19 @@ const secMan = Cc["@mozilla.org/scriptsecuritymanager;1"].
   getService(Ci.nsIScriptSecurityManager);
 
 const JS_VERSION = '1.8';
+
+
+function isWindowInTab(window) {
+  if (isChildLoader) {
+    let { frames } = require('../remote/child');
+    let frame = frames.getFrameForWindow(window.top);
+    return frame.isTab;
+  }
+  else {
+    
+    return getTabForContentWindow(window);
+  }
+}
 
 const WorkerSandbox = Class({
   implements: [ EventTarget ],
@@ -202,7 +216,7 @@ const WorkerSandbox = Class({
     
     
     
-    if (!getTabForContentWindow(window)) {
+    if (!isWindowInTab(window)) {
       let win = getUnsafeWindow(window);
 
       
