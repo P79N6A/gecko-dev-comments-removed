@@ -6,6 +6,7 @@
 #define mozalloc_VolatileBuffer_h
 
 #include "mozilla/mozalloc.h"
+#include "mozilla/Mutex.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/MemoryReporting.h"
 
@@ -39,16 +40,16 @@
 
 
 
-
 namespace mozilla {
 
-class VolatileBuffer : public RefCounted<VolatileBuffer>
+class VolatileBuffer
 {
   friend class VolatileBufferPtr_base;
 public:
   MOZ_DECLARE_REFCOUNTED_TYPENAME(VolatileBuffer)
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(VolatileBuffer)
+
   VolatileBuffer();
-  ~VolatileBuffer();
 
   
   bool Init(size_t aSize, size_t aAlignment = sizeof(void*));
@@ -62,6 +63,15 @@ protected:
   void Unlock();
 
 private:
+  ~VolatileBuffer();
+
+  
+
+
+
+
+  Mutex mMutex;
+
   void* mBuf;
   size_t mSize;
   int mLockCount;
