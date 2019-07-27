@@ -2419,6 +2419,91 @@ static const NameConstraintParams NAME_CONSTRAINT_PARAMS[] =
     GeneralSubtree(RFC822Name("a@example.com")),
     Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
   },
+
+  
+  
+
+  { 
+    RDN(OU("Example Organization")) + RDN(CN("example.com")), NO_SAN,
+    GeneralSubtree(DirectoryName(Name(RDN(OU("Example Organization")) +
+                                      RDN(CN("example.com"))))),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { 
+    RDN(OU("Example Organization") + CN("example.com")), NO_SAN,
+    GeneralSubtree(DirectoryName(Name(RDN(OU("Example Organization") +
+                                          CN("example.com"))))),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { 
+    RDN(OU("Example Organization")) + RDN(CN("example.com")), NO_SAN,
+    GeneralSubtree(DirectoryName(Name(RDN(OU("Example Organization"))))),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { 
+    
+    
+    RDN(OU("Other Example Organization")) + RDN(CN("example.com")), NO_SAN,
+    GeneralSubtree(DirectoryName(Name(RDN(OU("Example Organization")) +
+                                      RDN(CN("example.com"))))),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { 
+    RDN(OU("Other Example Organization") + CN("example.com")), NO_SAN,
+    GeneralSubtree(DirectoryName(Name(RDN(OU("Example Organization") +
+                                          CN("example.com"))))),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { 
+    
+    RDN(OU("Example Organization") + CN("example.com")), NO_SAN,
+    GeneralSubtree(DirectoryName(Name(RDN(OU("Example Organization"))))),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { 
+    
+    RDN(OU("Example Organization") + CN("example.com")), NO_SAN,
+    GeneralSubtree(DirectoryName(Name(RDN(OU("Example Organization")) +
+                                      RDN(CN("example.com"))))),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { 
+    
+    RDN(OU("Example Organization")) + RDN(CN("example.com")), NO_SAN,
+    GeneralSubtree(DirectoryName(Name(RDN(OU("Example Organization") +
+                                          CN("example.com"))))),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { 
+    
+    
+    RDN(OU("Example Organization", der::UTF8String)) + RDN(CN("example.com")),
+    NO_SAN, GeneralSubtree(DirectoryName(Name(RDN(OU("Example Organization",
+                                                     der::PrintableString)) +
+                                              RDN(CN("example.com"))))),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { 
+    RDN(OU("Example Organization", der::PrintableString)) + RDN(CN("example.com")),
+    NO_SAN, GeneralSubtree(DirectoryName(Name(RDN(OU("Example Organization",
+                                                     der::UTF8String)) +
+                                              RDN(CN("example.com"))))),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { 
+    RDN(OU("Other Example Organization", der::UTF8String)) + RDN(CN("example.com")),
+    NO_SAN, GeneralSubtree(DirectoryName(Name(RDN(OU("Example Organization",
+                                                     der::PrintableString)) +
+                                              RDN(CN("example.com"))))),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { 
+    RDN(OU("Example Organization", der::PrintableString)) + RDN(CN("example.com")),
+    NO_SAN, GeneralSubtree(DirectoryName(Name(RDN(OU("Example Organization",
+                                                     der::TeletexString)) +
+                                              RDN(CN("example.com"))))),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
 };
 
 class pkixnames_CheckNameConstraints
@@ -2428,7 +2513,7 @@ class pkixnames_CheckNameConstraints
 };
 
 TEST_P(pkixnames_CheckNameConstraints,
-       NameConstraintsEnforcedforDirectlyIssuedEndEntity)
+       NameConstraintsEnforcedForDirectlyIssuedEndEntity)
 {
   
   

@@ -134,12 +134,18 @@ Result SearchWithinRDN(Reader& rdn,
                        FallBackToSearchWithinSubject fallBackToEmailAddress,
                        FallBackToSearchWithinSubject fallBackToCommonName,
                         MatchResult& match);
-Result SearchWithinAVA(Reader& rdn,
-                       GeneralNameType referenceIDType,
-                       Input referenceID,
-                       FallBackToSearchWithinSubject fallBackToEmailAddress,
-                       FallBackToSearchWithinSubject fallBackToCommonName,
-                        MatchResult& match);
+Result MatchAVA(Input type,
+                uint8_t valueEncodingTag,
+                Input presentedID,
+                GeneralNameType referenceIDType,
+                Input referenceID,
+                FallBackToSearchWithinSubject fallBackToEmailAddress,
+                FallBackToSearchWithinSubject fallBackToCommonName,
+                 MatchResult& match);
+Result ReadAVA(Reader& rdn,
+                Input& type,
+                uint8_t& valueTag,
+                Input& value);
 void MatchSubjectPresentedIDWithReferenceID(GeneralNameType presentedIDType,
                                             Input presentedID,
                                             GeneralNameType referenceIDType,
@@ -488,11 +494,15 @@ SearchWithinRDN(Reader& rdn,
                  MatchResult& match)
 {
   do {
-    Result rv = der::Nested(rdn, der::SEQUENCE, [&](Reader& r) {
-      return SearchWithinAVA(r, referenceIDType, referenceID,
-                             fallBackToEmailAddress, fallBackToCommonName,
-                             match);
-    });
+    Input type;
+    uint8_t valueTag;
+    Input value;
+    Result rv = ReadAVA(rdn, type, valueTag, value);
+    if (rv != Success) {
+      return rv;
+    }
+    rv = MatchAVA(type, valueTag, value, referenceIDType, referenceID,
+                  fallBackToEmailAddress, fallBackToCommonName, match);
     if (rv != Success) {
       return rv;
     }
@@ -516,26 +526,13 @@ SearchWithinRDN(Reader& rdn,
 
 
 Result
-SearchWithinAVA(Reader& rdn,
-                GeneralNameType referenceIDType,
-                Input referenceID,
-                FallBackToSearchWithinSubject fallBackToEmailAddress,
-                FallBackToSearchWithinSubject fallBackToCommonName,
-                 MatchResult& match)
+MatchAVA(Input type, uint8_t valueEncodingTag, Input presentedID,
+         GeneralNameType referenceIDType,
+         Input referenceID,
+         FallBackToSearchWithinSubject fallBackToEmailAddress,
+         FallBackToSearchWithinSubject fallBackToCommonName,
+          MatchResult& match)
 {
-  
-  
-  
-  
-  
-  
-  
-  Reader type;
-  Result rv = der::ExpectTagAndGetValue(rdn, der::OIDTag, type);
-  if (rv != Success) {
-    return rv;
-  }
-
   
   
   
@@ -556,18 +553,11 @@ SearchWithinAVA(Reader& rdn,
     0x55, 0x04, 0x03
   };
   if (fallBackToCommonName == FallBackToSearchWithinSubject::Yes &&
-      type.MatchRest(id_at_commonName)) {
+      InputsAreEqual(type, Input(id_at_commonName))) {
     
     
     
     match = MatchResult::NoNamesOfGivenType;
-
-    uint8_t valueEncodingTag;
-    Input presentedID;
-    rv = der::ReadTagAndGetValue(rdn, valueEncodingTag, presentedID);
-    if (rv != Success) {
-      return rv;
-    }
 
     
     
@@ -633,23 +623,20 @@ SearchWithinAVA(Reader& rdn,
     0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x09, 0x01
   };
   if (fallBackToEmailAddress == FallBackToSearchWithinSubject::Yes &&
-      type.MatchRest(id_emailAddress)) {
+      InputsAreEqual(type, Input(id_emailAddress))) {
     if (referenceIDType == GeneralNameType::rfc822Name &&
         match == MatchResult::Match) {
       
       return Success;
     }
-    Input presentedID;
-    rv = der::ExpectTagAndGetValue(rdn, der::IA5String, presentedID);
-    if (rv != Success) {
-      return rv;
+    if (valueEncodingTag != der::IA5String) {
+      return Result::ERROR_BAD_DER;
     }
     return MatchPresentedIDWithReferenceID(GeneralNameType::rfc822Name,
                                            presentedID, referenceIDType,
                                            referenceID, match);
   }
 
-  rdn.SkipToEnd();
   return Success;
 }
 
@@ -1287,6 +1274,37 @@ MatchPresentedIPAddressWithConstraint(Input presentedID,
 
 
 
+Result
+ReadAVA(Reader& rdn,
+         Input& type,
+         uint8_t& valueTag,
+         Input& value)
+{
+  return der::Nested(rdn, der::SEQUENCE, [&](Reader& ava) -> Result {
+    Result rv = der::ExpectTagAndGetValue(ava, der::OIDTag, type);
+    if (rv != Success) {
+      return rv;
+    }
+    rv = der::ReadTagAndGetValue(ava, valueTag, value);
+    if (rv != Success) {
+      return rv;
+    }
+    return Success;
+  });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1356,17 +1374,49 @@ MatchPresentedDirectoryNameWithConstraint(NameConstraintsSubtrees subtreesType,
       matches = false;
       return Success;
     }
-    Input constraintRDN;
+    Reader constraintRDN;
     rv = der::ExpectTagAndGetValue(constraintRDNs, der::SET, constraintRDN);
     if (rv != Success) {
       return rv;
     }
-    Input presentedRDN;
+    Reader presentedRDN;
     rv = der::ExpectTagAndGetValue(presentedRDNs, der::SET, presentedRDN);
     if (rv != Success) {
       return rv;
     }
-    if (!InputsAreEqual(constraintRDN, presentedRDN)) {
+    while (!constraintRDN.AtEnd() && !presentedRDN.AtEnd()) {
+      Input constraintType;
+      uint8_t constraintValueTag;
+      Input constraintValue;
+      rv = ReadAVA(constraintRDN, constraintType, constraintValueTag,
+                   constraintValue);
+      if (rv != Success) {
+        return rv;
+      }
+      Input presentedType;
+      uint8_t presentedValueTag;
+      Input presentedValue;
+      rv = ReadAVA(presentedRDN, presentedType, presentedValueTag,
+                   presentedValue);
+      if (rv != Success) {
+        return rv;
+      }
+      
+      
+      bool avasMatch =
+        InputsAreEqual(constraintType, presentedType) &&
+        InputsAreEqual(constraintValue, presentedValue) &&
+        (constraintValueTag == presentedValueTag ||
+         (constraintValueTag == der::Tag::UTF8String &&
+          presentedValueTag == der::Tag::PrintableString) ||
+         (constraintValueTag == der::Tag::PrintableString &&
+          presentedValueTag == der::Tag::UTF8String));
+      if (!avasMatch) {
+        matches = false;
+        return Success;
+      }
+    }
+    if (!constraintRDN.AtEnd() || !presentedRDN.AtEnd()) {
       matches = false;
       return Success;
     }

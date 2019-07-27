@@ -675,7 +675,7 @@ CN(const ByteString& value, uint8_t encodingTag)
 }
 
 ByteString
-OU(const ByteString& value)
+OU(const ByteString& value, uint8_t encodingTag)
 {
   
   
@@ -684,7 +684,7 @@ OU(const ByteString& value)
     0x06, 0x03, 0x55, 0x04, 0x0b
   };
 
-  return AVA(tlv_id_at_organizationalUnitName, der::UTF8String, value);
+  return AVA(tlv_id_at_organizationalUnitName, encodingTag, value);
 }
 
 ByteString

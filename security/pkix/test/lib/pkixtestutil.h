@@ -160,13 +160,13 @@ CN(const char* value, uint8_t encodingTag = 0x0c )
                        std::strlen(value)), encodingTag);
 }
 
-ByteString OU(const ByteString&);
+ByteString OU(const ByteString&, uint8_t encodingTag = 0x0c );
 
 inline ByteString
-OU(const char* value)
+OU(const char* value, uint8_t encodingTag = 0x0c )
 {
   return OU(ByteString(reinterpret_cast<const uint8_t*>(value),
-                       std::strlen(value)));
+                       std::strlen(value)), encodingTag);
 }
 
 ByteString emailAddress(const ByteString&);
@@ -241,6 +241,14 @@ DNSName(const char (&bytes)[L])
 {
   return DNSName(ByteString(reinterpret_cast<const uint8_t*>(&bytes),
                             L - 1));
+}
+
+inline ByteString
+DirectoryName(const ByteString& name)
+{
+  
+  
+  return TLV((2 << 6) | (1 << 5) | 4, name);
 }
 
 inline ByteString
