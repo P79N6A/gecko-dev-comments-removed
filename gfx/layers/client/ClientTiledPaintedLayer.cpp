@@ -159,7 +159,7 @@ ClientTiledPaintedLayer::BeginPaint()
   
   
   mPaintData.mResolution = displayportMetrics.GetZoom();
-  TILING_LOG("TILING %p: Resolution %f\n", this, mPaintData.mPresShellResolution.scale);
+  TILING_LOG("TILING %p: Resolution %f\n", this, mPaintData.mResolution.scale);
 
   
   mPaintData.mTransformToCompBounds =
