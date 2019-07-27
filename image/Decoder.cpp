@@ -83,9 +83,8 @@ Decoder::Init()
   
   MOZ_ASSERT(!mInitialized, "Can't re-initialize a decoder!");
 
-  
   if (!IsSizeDecode()) {
-      mProgress |= FLAG_DECODE_STARTED | FLAG_ONLOAD_BLOCKED;
+      mProgress |= FLAG_DECODE_STARTED;
   }
 
   
@@ -273,7 +272,7 @@ Decoder::CompleteDecode()
     } else {
       
       if (!IsSizeDecode()) {
-        mProgress |= FLAG_DECODE_COMPLETE | FLAG_ONLOAD_UNBLOCKED;
+        mProgress |= FLAG_DECODE_COMPLETE;
       }
       mProgress |= FLAG_HAS_ERROR;
     }
@@ -624,7 +623,7 @@ Decoder::PostFrameStop(Opacity aFrameOpacity    ,
 
   mCurrentFrame->Finish(aFrameOpacity, aDisposalMethod, aTimeout, aBlendMethod);
 
-  mProgress |= FLAG_FRAME_COMPLETE | FLAG_ONLOAD_UNBLOCKED;
+  mProgress |= FLAG_FRAME_COMPLETE;
 
   
   

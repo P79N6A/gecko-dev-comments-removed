@@ -41,6 +41,23 @@ function forceDecodeImg() {
   ctx.drawImage(img, 0, 0);
 }
 
+function runAfterAsyncEvents(aCallback) {
+  function handlePostMessage(aEvent) {
+    if (aEvent.data == 'next') {
+      window.removeEventListener('message', handlePostMessage, false);
+      aCallback();
+    }
+  }
+
+  window.addEventListener('message', handlePostMessage, false);
+
+  
+  
+  
+  
+  window.postMessage('next', '*');
+}
+
 function test() {
   
   oldDiscardingPref = prefBranch.getBoolPref('discardable');
@@ -72,6 +89,13 @@ function step2() {
 
   
   forceDecodeImg();
+
+  
+  
+  runAfterAsyncEvents(() => step3(result, scriptedObserver, clonedRequest));
+}
+
+function step3(result, scriptedObserver, clonedRequest) {
   ok(isImgDecoded(), 'Image should initially be decoded.');
 
   
@@ -83,16 +107,10 @@ function step2() {
 
   
   
-  window.addEventListener('message', function (event) {
-    if (event.data == 'step3') {
-      step3(result, scriptedObserver, clonedRequest);
-    }
-  }, false);
-
-  window.postMessage('step3', '*');
+  runAfterAsyncEvents(() => step4(result, scriptedObserver, clonedRequest));
 }
 
-function step3(result, scriptedObserver, clonedRequest) {
+function step4(result, scriptedObserver, clonedRequest) {
   ok(result.wasDiscarded, 'Image should be discarded.');
 
   
