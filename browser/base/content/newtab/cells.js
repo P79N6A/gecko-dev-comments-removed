@@ -29,7 +29,7 @@ Cell.prototype = {
   
 
 
-  get node() this._node,
+  get node() { return this._node; },
 
   
 

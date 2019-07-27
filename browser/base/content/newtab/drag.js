@@ -18,15 +18,15 @@ let gDrag = {
 
 
   _draggedSite: null,
-  get draggedSite() this._draggedSite,
+  get draggedSite() { return this._draggedSite; },
 
   
 
 
   _cellWidth: null,
   _cellHeight: null,
-  get cellWidth() this._cellWidth,
-  get cellHeight() this._cellHeight,
+  get cellWidth() { return this._cellWidth; },
+  get cellHeight() { return this._cellHeight; },
 
   
 
@@ -146,6 +146,6 @@ let gDrag = {
 
     
     
-    setTimeout(function () scrollbox.removeChild(dragElement), 0);
+    setTimeout(() => scrollbox.removeChild(dragElement), 0);
   }
 };

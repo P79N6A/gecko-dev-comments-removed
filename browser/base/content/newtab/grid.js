@@ -18,7 +18,7 @@ let gGrid = {
 
 
   _node: null,
-  get node() this._node,
+  get node() { return this._node; },
 
   
 
@@ -29,18 +29,18 @@ let gGrid = {
 
 
   _cells: [],
-  get cells() this._cells,
+  get cells() { return this._cells; },
 
   
 
 
-  get sites() [for (cell of this.cells) cell.site],
+  get sites() { return [for (cell of this.cells) cell.site]; },
 
   
-  get ready() !!this._ready,
+  get ready() { return !!this._ready; },
 
   
-  get isDocumentLoaded() document.readyState == "complete",
+  get isDocumentLoaded() { return document.readyState == "complete"; },
 
   
 

@@ -73,7 +73,7 @@ let gDrop = {
     });
 
     
-    pinnedSites.forEach(function (aSite) aSite.pin(sites.indexOf(aSite)), this);
+    pinnedSites.forEach(aSite => aSite.pin(sites.indexOf(aSite)));
   },
 
   

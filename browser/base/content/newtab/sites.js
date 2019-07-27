@@ -22,22 +22,22 @@ Site.prototype = {
   
 
 
-  get node() this._node,
+  get node() { return this._node; },
 
   
 
 
-  get link() this._link,
+  get link() { return this._link; },
 
   
 
 
-  get url() this.link.url,
+  get url() { return this.link.url; },
 
   
 
 
-  get title() this.link.title,
+  get title() { return this.link.title; },
 
   
 
