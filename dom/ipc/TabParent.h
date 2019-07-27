@@ -452,12 +452,8 @@ private:
     
     
     
-    
-    
-    
-    nsEventStatus MaybeForwardEventToRenderFrame(WidgetInputEvent& aEvent,
-                                                 ScrollableLayerGuid* aOutTargetGuid,
-                                                 uint64_t* aOutInputBlockId);
+    void ApzAwareEventRoutingToChild(ScrollableLayerGuid* aOutTargetGuid,
+                                     uint64_t* aOutInputBlockId);
     
     
     

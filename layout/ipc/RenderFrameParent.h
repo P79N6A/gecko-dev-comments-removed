@@ -80,22 +80,6 @@ public:
 
   void SetBackgroundColor(nscolor aColor) { mBackgroundColor = gfxRGBA(aColor); };
 
-  
-
-
-
-
-
-
-
-
-
-
-
-  nsEventStatus NotifyInputEvent(WidgetInputEvent& aEvent,
-                                 ScrollableLayerGuid* aOutTargetGuid,
-                                 uint64_t* aOutInputBlockId);
-
   void ZoomToRect(uint32_t aPresShellId, ViewID aViewId, const CSSRect& aRect);
 
   void ContentReceivedInputBlock(const ScrollableLayerGuid& aGuid,
