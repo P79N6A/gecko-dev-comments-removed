@@ -368,7 +368,12 @@ public:
     return this;
   }
 
+  
+
+
   bool InCallback();
+
+  
 
   bool IsStarted();
 
