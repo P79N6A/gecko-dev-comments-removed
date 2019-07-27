@@ -527,16 +527,24 @@ js::RemapWrapper(JSContext *cx, JSObject *wobjArg, JSObject *newTargetArg)
     NukeCrossCompartmentWrapper(cx, wobj);
 
     
+    
+    
     RootedObject tobj(cx, newTarget);
     AutoCompartment ac(cx, wobj);
-    if (!wcompartment->wrap(cx, &tobj))
+    if (!wcompartment->wrap(cx, &tobj, wobj))
         MOZ_CRASH();
 
     
     
     
-    if (!JSObject::swap(cx, wobj, tobj))
-        MOZ_CRASH();
+    
+    if (tobj != wobj) {
+        
+        
+        
+        if (!JSObject::swap(cx, wobj, tobj))
+            MOZ_CRASH();
+    }
 
     
     
