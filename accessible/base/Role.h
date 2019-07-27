@@ -981,7 +981,13 @@ enum Role {
 
   RADIO_GROUP = 168,
 
-  LAST_ROLE = RADIO_GROUP
+  
+
+
+
+  TEXT = 169,
+
+  LAST_ROLE = TEXT
 };
 
 } 
