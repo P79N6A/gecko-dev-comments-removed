@@ -4573,6 +4573,7 @@ pref("dom.beforeAfterKeyboardEvent.enabled", false);
 
 
 pref("dom.presentation.enabled", false);
+pref("dom.presentation.tcp_server.debug", false);
 
 
 #ifdef XP_MACOSX
