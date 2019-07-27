@@ -17,52 +17,14 @@ let gPythonName = gEnv.get("PYTHON");
 
 
 
-function getExecutable(aFilename) {
-  let file = FileUtils.getFile("CurProcD", [aFilename]);
-  if (!file.exists()) {
-    file = FileUtils.getFile("CurWorkD", []);
-    while (file.path.contains("xpcshell")) {
-      file = file.parent;
-    }
-    file.append("bin");
-    file.append(aFilename);
+let gDmdScriptFile = FileUtils.getFile("CurProcD", ["dmd.py"]);
+if (!gDmdScriptFile.exists()) {
+  gDmdScriptFile = FileUtils.getFile("CurWorkD", []);
+  while (gDmdScriptFile.path.contains("xpcshell")) {
+    gDmdScriptFile = gDmdScriptFile.parent;
   }
-  return file;
-}
-
-let gIsWindows = Cc["@mozilla.org/xre/app-info;1"]
-                 .getService(Ci.nsIXULRuntime).OS === "WINNT";
-let gDmdTestFile = getExecutable("SmokeDMD" + (gIsWindows ? ".exe" : ""));
-
-let gDmdScriptFile = getExecutable("dmd.py");
-
-function readFile(aFile) {
-  var fstream = Cc["@mozilla.org/network/file-input-stream;1"]
-                  .createInstance(Ci.nsIFileInputStream);
-  var cstream = Cc["@mozilla.org/intl/converter-input-stream;1"]
-                  .createInstance(Ci.nsIConverterInputStream);
-  fstream.init(aFile, -1, 0, 0);
-  cstream.init(fstream, "UTF-8", 0, 0);
-
-  var data = "";
-  let (str = {}) {
-    let read = 0;
-    do {
-      
-      read = cstream.readString(0xffffffff, str);
-      data += str.value;
-    } while (read != 0);
-  }
-  cstream.close();                
-  return data.replace(/\r/g, ""); 
-}
-
-function runProcess(aExeFile, aArgs) {
-  let process = Cc["@mozilla.org/process/util;1"]
-                  .createInstance(Components.interfaces.nsIProcess);
-  process.init(aExeFile);
-  process.run(true, aArgs, aArgs.length);
-  return process.exitValue;
+  gDmdScriptFile.append("bin");
+  gDmdScriptFile.append("dmd.py");
 }
 
 function test(aJsonFile, aPrefix, aOptions) {
@@ -73,6 +35,11 @@ function test(aJsonFile, aPrefix, aOptions) {
 
   
 
+  let pythonFile = new FileUtils.File(gPythonName);
+  let pythonProcess = Cc["@mozilla.org/process/util;1"]
+                        .createInstance(Components.interfaces.nsIProcess);
+  pythonProcess.init(pythonFile);
+
   let args = [
     gDmdScriptFile.path,
     "--filter-stacks-for-testing",
@@ -81,35 +48,20 @@ function test(aJsonFile, aPrefix, aOptions) {
   args = args.concat(aOptions);
   args.push(aJsonFile.path);
 
-  runProcess(new FileUtils.File(gPythonName), args);
+  pythonProcess.run(true, args, args.length);
 
   
   
+
+  let diffFile = new FileUtils.File("/usr/bin/diff");
+  let diffProcess = Cc["@mozilla.org/process/util;1"]
+                      .createInstance(Components.interfaces.nsIProcess);
   
-  
+  diffProcess.init(diffFile);
 
-  let success;
-  try {
-    let rv = runProcess(new FileUtils.File("/usr/bin/diff"),
-                        ["-u", expectedFile.path, actualFile.path]);
-    success = rv == 0;
-
-  } catch (e) {
-    let expectedData = readFile(expectedFile);
-    let actualData   = readFile(actualFile);
-    success = expectedData === actualData;
-    if (!success) {
-      expectedData = expectedData.split("\n");
-      actualData = actualData.split("\n");
-      for (let i = 0; i < expectedData.length; i++) {
-        print("EXPECTED:" + expectedData[i]);
-      }
-      for (let i = 0; i < actualData.length; i++) {
-        print("  ACTUAL:" + actualData[i]);
-      }
-    }
-  }
-
+  args = ["-u", expectedFile.path, actualFile.path];
+  diffProcess.run(true, args, args.length);
+  let success = diffProcess.exitValue == 0;
   ok(success, aPrefix);
 
   actualFile.remove(true);
@@ -124,12 +76,8 @@ function run_test() {
   
   
   
-
-  gEnv.set("DMD", "1");
-  gEnv.set(gEnv.get("DMD_PRELOAD_VAR"), gEnv.get("DMD_PRELOAD_VALUE"));
-
-  runProcess(gDmdTestFile, []);
-
+  
+  
   let fullTestNames = ["empty", "unsampled1", "unsampled2", "sampled"];
   for (let i = 0; i < fullTestNames.length; i++) {
       let name = fullTestNames[i];

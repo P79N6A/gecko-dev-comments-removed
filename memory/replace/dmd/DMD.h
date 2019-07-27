@@ -147,14 +147,6 @@ StatusMsg(const char* aFmt, ...);
 MOZ_EXPORT bool
 IsRunning();
 
-
-MOZ_EXPORT void
-SetSampleBelowSize(size_t aSize);
-
-
-MOZ_EXPORT void
-ClearBlocks();
-
 } 
 } 
 

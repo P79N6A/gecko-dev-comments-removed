@@ -350,11 +350,9 @@ def main():
             
             
             
-            
-            
             for frameKey in frameKeys:
                 frameDesc = frameTable[frameKey]
-                if 'DMD.cpp' in frameDesc or 'dmd.cpp' in frameDesc:
+                if 'DMD.cpp' in frameDesc or 'replace_malloc.c' in frameDesc:
                     out(fmt.format(1, ': ... DMD.cpp ...'))
                     return
 

@@ -227,6 +227,18 @@ InfallibleAllocPolicy::ExitOnFailure(const void* aP)
   }
 }
 
+class FpWriteFunc : public JSONWriteFunc
+{
+public:
+  explicit FpWriteFunc(FILE* aFp) : mFp(aFp) {}
+  ~FpWriteFunc() { fclose(mFp); }
+
+  void Write(const char* aStr) { fputs(aStr, mFp); }
+
+private:
+  FILE* mFp;
+};
+
 static double
 Percent(size_t part, size_t whole)
 {
@@ -277,11 +289,17 @@ class Options
     {}
   };
 
+  enum Mode {
+    Normal,   
+    Test      
+  };
+
   char* mDMDEnvVar;   
 
   NumOption<size_t>   mSampleBelowSize;
   NumOption<uint32_t> mMaxFrames;
   bool mShowDumpStats;
+  Mode mMode;
 
   void BadArg(const char* aArg);
   static const char* ValueIfMatch(const char* aArg, const char* aOptionName);
@@ -298,7 +316,9 @@ public:
   size_t MaxFrames()       const { return mMaxFrames.mActual; }
   size_t ShowDumpStats()   const { return mShowDumpStats; }
 
-  void SetSampleBelowSize(size_t aSize) { mSampleBelowSize.mActual = aSize; }
+  void SetSampleBelowSize(size_t aN) { mSampleBelowSize.mActual = aN; }
+
+  bool IsTestMode()   const { return mMode == Test; }
 };
 
 static Options *gOptions;
@@ -1258,7 +1278,8 @@ Options::Options(const char* aDMDEnvVar)
   : mDMDEnvVar(InfallibleAllocPolicy::strdup_(aDMDEnvVar)),
     mSampleBelowSize(4093, 100 * 100 * 1000),
     mMaxFrames(StackTrace::MaxFrames, StackTrace::MaxFrames),
-    mShowDumpStats(false)
+    mShowDumpStats(false),
+    mMode(Normal)
 {
   char* e = mDMDEnvVar;
   if (strcmp(e, "1") != 0) {
@@ -1292,6 +1313,11 @@ Options::Options(const char* aDMDEnvVar)
 
       } else if (GetBool(arg, "--show-dump-stats", &myBool)) {
         mShowDumpStats = myBool;
+
+      } else if (strcmp(arg, "--mode=normal") == 0) {
+        mMode = Options::Normal;
+      } else if (strcmp(arg, "--mode=test")   == 0) {
+        mMode = Options::Test;
 
       } else if (strcmp(arg, "") == 0) {
         
@@ -1328,6 +1354,7 @@ Options::BadArg(const char* aArg)
             int(mMaxFrames.mMax),
             int(mMaxFrames.mDefault));
   StatusMsg("  --show-dump-stats=<yes|no>   Show stats about dumps? [no]\n");
+  StatusMsg("  --mode=<normal|test>         Mode of operation [normal]\n");
   StatusMsg("\n");
   exit(1);
 }
@@ -1343,6 +1370,21 @@ NopStackWalkCallback(uint32_t aFrameNumber, void* aPc, void* aSp,
 {
 }
 #endif
+
+
+static FILE*
+OpenOutputFile(const char* aFilename)
+{
+  FILE* fp = fopen(aFilename, "w");
+  if (!fp) {
+    StatusMsg("can't create %s file: %s\n", aFilename, strerror(errno));
+    exit(1);
+  }
+  return fp;
+}
+
+static void RunTestMode(UniquePtr<FpWriteFunc> aF1, UniquePtr<FpWriteFunc> aF2,
+                        UniquePtr<FpWriteFunc> aF3, UniquePtr<FpWriteFunc> aF4);
 
 
 
@@ -1397,7 +1439,31 @@ Init(const malloc_table_t* aMallocTable)
     gBlockTable->init(8192);
   }
 
-  gIsDMDRunning = true;
+  if (gOptions->IsTestMode()) {
+    
+    
+    
+    
+    
+    
+    
+    auto f1 = MakeUnique<FpWriteFunc>(OpenOutputFile("full-empty.json"));
+    auto f2 = MakeUnique<FpWriteFunc>(OpenOutputFile("full-unsampled1.json"));
+    auto f3 = MakeUnique<FpWriteFunc>(OpenOutputFile("full-unsampled2.json"));
+    auto f4 = MakeUnique<FpWriteFunc>(OpenOutputFile("full-sampled.json"));
+    gIsDMDRunning = true;
+
+    StatusMsg("running test mode...\n");
+    RunTestMode(Move(f1), Move(f2), Move(f3), Move(f4));
+    StatusMsg("finished test mode; DMD is now disabled again\n");
+
+    
+    
+    gIsDMDRunning = false;
+
+  } else {
+    gIsDMDRunning = true;
+  }
 }
 
 
@@ -1773,17 +1839,260 @@ AnalyzeReports(JSONWriter& aWriter)
 
 
 
-MOZ_EXPORT void
-SetSampleBelowSize(size_t aSize)
+
+
+void Foo(int aSeven)
 {
-  gOptions->SetSampleBelowSize(aSize);
+  char* a[6];
+  for (int i = 0; i < aSeven - 1; i++) {
+    a[i] = (char*) replace_malloc(128 - 16*i);
+  }
+
+  for (int i = 0; i < aSeven - 5; i++) {
+    Report(a[i]);                   
+  }
+  Report(a[2]);                     
+  Report(a[3]);                     
+  
 }
 
-MOZ_EXPORT void
-ClearBlocks()
+
+static void
+UseItOrLoseIt(void* aPtr, int aSeven)
 {
+  char buf[64];
+  int n = sprintf(buf, "%p\n", aPtr);
+  if (n == 20 + aSeven) {
+    fprintf(stderr, "well, that is surprising");
+  }
+}
+
+
+static void
+RunTestMode(UniquePtr<FpWriteFunc> aF1, UniquePtr<FpWriteFunc> aF2,
+            UniquePtr<FpWriteFunc> aF3, UniquePtr<FpWriteFunc> aF4)
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  char* env = getenv("DMD");
+  char* p1 = strstr(env, "--mode=t");
+  char* p2 = strstr(p1, "test");
+  int seven = p2 - p1;
+
+  
+  gOptions->SetSampleBelowSize(1);
+
+  
+
+  
+  JSONWriter writer1(Move(aF1));
+  AnalyzeReports(writer1);
+
+  
+
+  
+  
+  int i;
+  char* a = nullptr;
+  for (i = 0; i < seven + 3; i++) {
+      a = (char*) replace_malloc(100);
+      UseItOrLoseIt(a, seven);
+  }
+  replace_free(a);
+
+  
+  
+  
+  
+  char* a2 = (char*) replace_malloc(8);
+  Report(a2);
+
+  
+  
+  char* b = (char*) replace_malloc(10);
+  ReportOnAlloc(b);
+
+  
+  
+  
+  char* b2 = (char*) replace_malloc(1);
+  ReportOnAlloc(b2);
+  replace_free(b2);
+
+  
+  
+  char* c = (char*) replace_calloc(10, 3);
+  Report(c);
+  for (int i = 0; i < seven - 4; i++) {
+    Report(c);
+  }
+
+  
+  
+  Report((void*)(intptr_t)i);
+
+  
+  
+  
+  char* e = (char*) replace_malloc(4096);
+  e = (char*) replace_realloc(e, 4097);
+  Report(e);
+
+  
+  
+  
+  char* e2 = (char*) replace_realloc(nullptr, 1024);
+  e2 = (char*) replace_realloc(e2, 512);
+  Report(e2);
+
+  
+  
+  
+  
+  char* e3 = (char*) replace_realloc(nullptr, 1023);
+
+  MOZ_ASSERT(e3);
+  Report(e3);
+
+  
+  
+  char* f = (char*) replace_malloc(64);
+  replace_free(f);
+
+  
+  
+  Report((void*)(intptr_t)0x0);
+
+  
+  
+  Foo(seven);
+  Foo(seven);
+
+  
+  
+  char* g1 = (char*) replace_malloc(77);
+  ReportOnAlloc(g1);
+  ReportOnAlloc(g1);
+
+  
+  
+  char* g2 = (char*) replace_malloc(78);
+  Report(g2);
+  ReportOnAlloc(g2);
+
+  
+  
+  char* g3 = (char*) replace_malloc(79);
+  ReportOnAlloc(g3);
+  Report(g3);
+
+  
+  
+  
+  
+
+
+  
+
+
+
+  
+
+
+
+
+  
+  JSONWriter writer2(Move(aF2));
+  AnalyzeReports(writer2);
+
+  
+
+  Report(a2);
+  Report(a2);
+  replace_free(c);
+  replace_free(e);
+  Report(e2);
+  replace_free(e3);
+
+
+
+
+  
+  JSONWriter writer3(Move(aF3));
+  AnalyzeReports(writer3);
+
+  
+
+  
   gBlockTable->clear();
-  gSmallBlockActualSizeCounter = 0;
+
+  gOptions->SetSampleBelowSize(128);
+
+  char* s;
+
+  
+  
+  s = (char*) replace_malloc(128);
+  UseItOrLoseIt(s, seven);
+
+  
+  s = (char*) replace_malloc(144);
+  UseItOrLoseIt(s, seven);
+
+  
+  for (int i = 0; i < seven + 9; i++) {
+    s = (char*) replace_malloc(8);
+    UseItOrLoseIt(s, seven);
+  }
+  MOZ_ASSERT(gSmallBlockActualSizeCounter == 0);
+
+  
+  for (int i = 0; i < seven + 8; i++) {
+    s = (char*) replace_malloc(8);
+    UseItOrLoseIt(s, seven);
+  }
+  MOZ_ASSERT(gSmallBlockActualSizeCounter == 120);
+
+  
+  s = (char*) replace_malloc(256);
+  UseItOrLoseIt(s, seven);
+  MOZ_ASSERT(gSmallBlockActualSizeCounter == 120);
+
+  
+  s = (char*) replace_malloc(96);
+  UseItOrLoseIt(s, seven);
+  MOZ_ASSERT(gSmallBlockActualSizeCounter == 88);
+
+  
+  for (int i = 0; i < seven - 2; i++) {
+    s = (char*) replace_malloc(8);
+    UseItOrLoseIt(s, seven);
+  }
+  MOZ_ASSERT(gSmallBlockActualSizeCounter == 0);
+
+  
+  
+  
+  for (int i = 1; i <= seven + 1; i++) {
+    s = (char*) replace_malloc(i * 16);
+    UseItOrLoseIt(s, seven);
+  }
+  MOZ_ASSERT(gSmallBlockActualSizeCounter == 64);
+
+  
+  
+
+  
+  JSONWriter writer4(Move(aF4));
+  AnalyzeReports(writer4);
 }
 
 }   
