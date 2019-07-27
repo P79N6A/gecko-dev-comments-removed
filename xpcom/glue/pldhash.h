@@ -161,6 +161,15 @@ typedef size_t (*PLDHashSizeOfEntryExcludingThisFun)(
 
 
 
+
+
+
+
+
+
+
+
+
 class PLDHashTable
 {
 private:
@@ -169,7 +178,8 @@ private:
   uint32_t            mEntrySize;     
   uint32_t            mEntryCount;    
   uint32_t            mRemovedCount;  
-  uint32_t            mGeneration;    
+  uint32_t            mGeneration:31; 
+  uint32_t            mAutoFinish:1;  
   char*               mEntryStore;    
 #ifdef PL_DHASHMETER
   struct PLDHashStats
@@ -214,6 +224,7 @@ public:
     , mEntryCount(0)
     , mRemovedCount(0)
     , mGeneration(0)
+    , mAutoFinish(0)
     , mEntryStore(nullptr)
 #ifdef PL_DHASHMETER
     , mStats()
@@ -223,8 +234,21 @@ public:
 #endif
   {}
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  PLDHashTable(const PLDHashTableOps* aOps, uint32_t aEntrySize,
+               uint32_t aLength = PL_DHASH_DEFAULT_INITIAL_LENGTH);
+
   PLDHashTable(PLDHashTable&& aOther)
     : mOps(nullptr)
+    , mAutoFinish(0)
     , mEntryStore(nullptr)
 #ifdef DEBUG
     , mRecursionLevel(0)
@@ -234,6 +258,8 @@ public:
   }
 
   PLDHashTable& operator=(PLDHashTable&& aOther);
+
+  ~PLDHashTable();
 
   bool IsInitialized() const { return !!mOps; }
 
@@ -473,12 +499,9 @@ void PL_DHashTableDestroy(PLDHashTable* aTable);
 
 
 
-
-
 void PL_DHashTableInit(
   PLDHashTable* aTable, const PLDHashTableOps* aOps,
   uint32_t aEntrySize, uint32_t aLength = PL_DHASH_DEFAULT_INITIAL_LENGTH);
-
 
 
 
