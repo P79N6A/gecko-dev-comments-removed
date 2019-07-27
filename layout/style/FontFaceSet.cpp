@@ -1058,13 +1058,13 @@ FontFaceSet::LogMessage(gfxUserFontEntry* aUserFontEntry,
   if (rule) {
     rv = rule->GetCssText(text);
     NS_ENSURE_SUCCESS(rv, rv);
-    nsCOMPtr<nsIDOMCSSStyleSheet> sheet;
-    rv = rule->GetParentStyleSheet(getter_AddRefs(sheet));
-    NS_ENSURE_SUCCESS(rv, rv);
+    CSSStyleSheet* sheet = rule->GetStyleSheet();
     
     if (sheet) {
-      rv = sheet->GetHref(href);
+      nsAutoCString spec;
+      rv = sheet->GetSheetURI()->GetSpec(spec);
       NS_ENSURE_SUCCESS(rv, rv);
+      CopyUTF8toUTF16(spec, href);
     } else {
       NS_WARNING("null parent stylesheet for @font-face rule");
       href.AssignLiteral("unknown");
@@ -1079,7 +1079,8 @@ FontFaceSet::LogMessage(gfxUserFontEntry* aUserFontEntry,
   rv = scriptError->InitWithWindowID(NS_ConvertUTF8toUTF16(message),
                                      href,         
                                      text,         
-                                     0, 0,         
+                                     rule->GetLineNumber(),
+                                     rule->GetColumnNumber(),
                                      aFlags,       
                                      "CSS Loader", 
                                      innerWindowID);
