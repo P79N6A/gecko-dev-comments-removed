@@ -2,11 +2,12 @@
 
 
 
+var callback = arguments[arguments.length - 1];
+
 function test(x) {
-  log("classList: " + root.classList);
   if (!root.classList.contains("reftest-wait")) {
     observer.disconnect();
-    marionetteScriptFinished();
+    callback()
   }
 }
 
@@ -16,7 +17,7 @@ var observer = new MutationObserver(test);
 observer.observe(root, {attributes: true});
 
 if (document.readyState != "complete") {
-  onload = test
+    onload = test;
 } else {
-  test();
+    test();
 }
