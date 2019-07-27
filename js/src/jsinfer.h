@@ -513,13 +513,13 @@ enum MOZ_ENUM_TYPE(uint32_t) {
       | OBJECT_FLAG_SETS_MARKED_UNKNOWN,
 
     
-    OBJECT_FLAG_ADDENDUM_MASK         = 0x04000000,
+    OBJECT_FLAG_ADDENDUM_MASK         = 0x0c000000,
     OBJECT_FLAG_ADDENDUM_SHIFT        = 26,
 
     
     
-    OBJECT_FLAG_GENERATION_MASK       = 0x08000000,
-    OBJECT_FLAG_GENERATION_SHIFT      = 27,
+    OBJECT_FLAG_GENERATION_MASK       = 0x10000000,
+    OBJECT_FLAG_GENERATION_SHIFT      = 28,
 };
 typedef uint32_t TypeObjectFlags;
 
@@ -1107,8 +1107,19 @@ struct TypeObject : public gc::TenuredCell
     
     TypeObjectFlags flags_;
 
+    
     enum AddendumKind {
+        Addendum_None,
+
+        
+        
+        Addendum_InterpretedFunction,
+
+        
+        
         Addendum_NewScript,
+
+        
         Addendum_TypeDescr
     };
 
@@ -1172,6 +1183,18 @@ struct TypeObject : public gc::TenuredCell
         setAddendum(Addendum_TypeDescr, descr);
     }
 
+    JSFunction *maybeInterpretedFunction() {
+        
+        
+        if (addendumKind() == Addendum_InterpretedFunction)
+            return reinterpret_cast<JSFunction *>(addendum_);
+        return nullptr;
+    }
+
+    void setInterpretedFunction(JSFunction *fun) {
+        setAddendum(Addendum_InterpretedFunction, fun);
+    }
+
   private:
     
 
@@ -1216,13 +1239,6 @@ struct TypeObject : public gc::TenuredCell
 
     Property **propertySet;
   public:
-
-    
-    HeapPtrFunction interpretedFunction;
-
-#if JS_BITS_PER_WORD == 32
-    uint32_t padding;
-#endif
 
     inline TypeObject(const Class *clasp, TaggedProto proto, TypeObjectFlags initialFlags);
 
