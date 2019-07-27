@@ -345,9 +345,7 @@ public class BrowserSearch extends HomeFragment
         
         
         
-        mSearchEngineBar.setSearchEngines(
-                mSearchEngines.subList(getPrimaryEngineCount(), mSearchEngines.size())
-        );
+        updateSearchEngineBar();
         mSearchEngineBar.setOnSearchBarClickListener(this);
     }
 
@@ -586,9 +584,7 @@ public class BrowserSearch extends HomeFragment
                 mAdapter.notifyDataSetChanged();
             }
 
-            mSearchEngineBar.setSearchEngines(
-                    mSearchEngines.subList(getPrimaryEngineCount(), mSearchEngines.size())
-            );
+            updateSearchEngineBar();
 
             
             
@@ -600,6 +596,19 @@ public class BrowserSearch extends HomeFragment
         }
 
         filterSuggestions();
+    }
+
+    private void updateSearchEngineBar() {
+        final int primaryEngineCount = getPrimaryEngineCount();
+
+        if (primaryEngineCount < mSearchEngines.size()) {
+            mSearchEngineBar.setSearchEngines(
+                    mSearchEngines.subList(primaryEngineCount, mSearchEngines.size())
+            );
+            mSearchEngineBar.setVisibility(View.VISIBLE);
+        } else {
+            mSearchEngineBar.setVisibility(View.GONE);
+        }
     }
 
     @Override
