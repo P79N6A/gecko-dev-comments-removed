@@ -1146,6 +1146,7 @@ var WalkerActor = protocol.ActorClass({
     this._refMap = new Map();
     this._pendingMutations = [];
     this._activePseudoClassLocks = new Set();
+    this.showAllAnonymousContent = options.showAllAnonymousContent;
 
     this.layoutHelpers = new LayoutHelpers(this.rootWin);
 
@@ -1185,6 +1186,12 @@ var WalkerActor = protocol.ActorClass({
 
   toString: function() {
     return "[WalkerActor " + this.actorID + "]";
+  },
+
+  getDocumentWalker: function(node, whatToShow) {
+    
+    let nodeFilter = this.showAllAnonymousContent ? allAnonymousContentTreeWalkerFilter : standardTreeWalkerFilter;
+    return new DocumentWalker(node, this.rootWin, whatToShow, nodeFilter);
   },
 
   destroy: function() {
@@ -1376,7 +1383,7 @@ var WalkerActor = protocol.ActorClass({
 
 
   parents: method(function(node, options={}) {
-    let walker = DocumentWalker(node.rawNode, this.rootWin);
+    let walker = this.getDocumentWalker(node.rawNode);
     let parents = [];
     let cur;
     while((cur = walker.parentNode())) {
@@ -1397,7 +1404,7 @@ var WalkerActor = protocol.ActorClass({
   }),
 
   parentNode: function(node) {
-    let walker = DocumentWalker(node.rawNode, this.rootWin);
+    let walker = this.getDocumentWalker(node.rawNode);
     let parent = walker.parentNode();
     if (parent) {
       return this._ref(parent);
@@ -1458,7 +1465,7 @@ var WalkerActor = protocol.ActorClass({
       this._retainedOrphans.delete(node);
     }
 
-    let walker = DocumentWalker(node.rawNode, this.rootWin);
+    let walker = this.getDocumentWalker(node.rawNode);
 
     let child = walker.firstChild();
     while (child) {
@@ -1485,7 +1492,7 @@ var WalkerActor = protocol.ActorClass({
     if (!node) {
       return newParents;
     }
-    let walker = DocumentWalker(node.rawNode, this.rootWin);
+    let walker = this.getDocumentWalker(node.rawNode);
     let cur;
     while ((cur = walker.parentNode())) {
       let parent = this._refMap.get(cur);
@@ -1536,7 +1543,7 @@ var WalkerActor = protocol.ActorClass({
     
     
     let getFilteredWalker = (node) => {
-      return new DocumentWalker(node, this.rootWin, options.whatToShow);
+      return this.getDocumentWalker(node, options.whatToShow);
     }
 
     
@@ -1619,7 +1626,7 @@ var WalkerActor = protocol.ActorClass({
 
 
   siblings: method(function(node, options={}) {
-    let parentNode = DocumentWalker(node.rawNode, this.rootWin).parentNode();
+    let parentNode = this.getDocumentWalker(node.rawNode, options.whatToShow).parentNode();
     if (!parentNode) {
       return {
         hasFirst: true,
@@ -1645,7 +1652,7 @@ var WalkerActor = protocol.ActorClass({
 
 
   nextSibling: method(function(node, options={}) {
-    let walker = DocumentWalker(node.rawNode, this.rootWin, options.whatToShow || Ci.nsIDOMNodeFilter.SHOW_ALL);
+    let walker = this.getDocumentWalker(node.rawNode, options.whatToShow);
     let sibling = walker.nextSibling();
     return sibling ? this._ref(sibling) : null;
   }, traversalMethod),
@@ -1660,7 +1667,7 @@ var WalkerActor = protocol.ActorClass({
 
 
   previousSibling: method(function(node, options={}) {
-    let walker = DocumentWalker(node.rawNode, this.rootWin, options.whatToShow || Ci.nsIDOMNodeFilter.SHOW_ALL);
+    let walker = this.getDocumentWalker(node.rawNode, options.whatToShow);
     let sibling = walker.previousSibling();
     return sibling ? this._ref(sibling) : null;
   }, traversalMethod),
@@ -1917,7 +1924,7 @@ var WalkerActor = protocol.ActorClass({
       return;
     }
 
-    let walker = DocumentWalker(node.rawNode, this.rootWin);
+    let walker = this.getDocumentWalker(node.rawNode);
     let cur;
     while ((cur = walker.parentNode())) {
       let curNode = this._ref(cur);
@@ -1998,7 +2005,7 @@ var WalkerActor = protocol.ActorClass({
       return;
     }
 
-    let walker = DocumentWalker(node.rawNode, this.rootWin);
+    let walker = this.getDocumentWalker(node.rawNode);
     let cur;
     while ((cur = walker.parentNode())) {
       let curNode = this._ref(cur);
@@ -2567,7 +2574,7 @@ var WalkerActor = protocol.ActorClass({
       target: documentActor.actorID
     });
 
-    let walker = DocumentWalker(doc, this.rootWin);
+    let walker = this.getDocumentWalker(doc);
     let parentNode = walker.parentNode();
     if (parentNode) {
       
@@ -2592,7 +2599,7 @@ var WalkerActor = protocol.ActorClass({
 
 
   _isInDOMTree: function(rawNode) {
-    let walker = DocumentWalker(rawNode, this.rootWin);
+    let walker = this.getDocumentWalker(rawNode);
     let current = walker.currentNode;
 
     
@@ -3107,7 +3114,9 @@ var InspectorActor = exports.InspectorActor = protocol.ActorClass({
 
     return this._walkerPromise;
   }, {
-    request: {},
+    request: {
+      options: Arg(0, "nullable:json")
+    },
     response: {
       walker: RetVal("domwalker")
     }
@@ -3256,8 +3265,8 @@ var InspectorFront = exports.InspectorFront = protocol.FrontClass(InspectorActor
     protocol.Front.prototype.destroy.call(this);
   },
 
-  getWalker: protocol.custom(function() {
-    return this._getWalker().then(walker => {
+  getWalker: protocol.custom(function(options = {}) {
+    return this._getWalker(options).then(walker => {
       this.walker = walker;
       return walker;
     });
@@ -3298,13 +3307,8 @@ function nodeDocument(node) {
 
 
 
-function DocumentWalker(aNode, aRootWin, aShow=Ci.nsIDOMNodeFilter.SHOW_ALL,
-                        aFilter=nodeFilter) {
-  if (!(this instanceof DocumentWalker)) {
-    return new DocumentWalker(aNode, aRootWin, aShow, aFilter);
-  }
-
-  if (!aRootWin.location) {
+function DocumentWalker(node, rootWin, whatToShow=Ci.nsIDOMNodeFilter.SHOW_ALL, filter=standardTreeWalkerFilter) {
+  if (!rootWin.location) {
     throw new Error("Got an invalid root window in DocumentWalker");
   }
 
@@ -3312,9 +3316,9 @@ function DocumentWalker(aNode, aRootWin, aShow=Ci.nsIDOMNodeFilter.SHOW_ALL,
   this.walker.showAnonymousContent = true;
   this.walker.showSubDocuments = true;
   this.walker.showDocumentsAsNodes = true;
-  this.walker.init(aRootWin.document, aShow);
-  this.walker.currentNode = aNode;
-  this.filter = aFilter;
+  this.walker.init(rootWin.document, whatToShow);
+  this.walker.currentNode = node;
+  this.filter = filter;
 }
 
 DocumentWalker.prototype = {
@@ -3378,7 +3382,9 @@ function isXULElement(el) {
 
 
 
-function nodeFilter(aNode) {
+
+
+function standardTreeWalkerFilter(aNode) {
   
   if (aNode.nodeType == Ci.nsIDOMNode.TEXT_NODE &&
       !/[^\s]/.exec(aNode.nodeValue)) {
@@ -3401,6 +3407,19 @@ function nodeFilter(aNode) {
   }
 
   return Ci.nsIDOMNodeFilter.FILTER_ACCEPT;
+}
+
+
+
+
+
+function allAnonymousContentTreeWalkerFilter(aNode) {
+  
+  if (aNode.nodeType == Ci.nsIDOMNode.TEXT_NODE &&
+      !/[^\s]/.exec(aNode.nodeValue)) {
+    return Ci.nsIDOMNodeFilter.FILTER_SKIP;
+  }
+  return Ci.nsIDOMNodeFilter.FILTER_ACCEPT
 }
 
 

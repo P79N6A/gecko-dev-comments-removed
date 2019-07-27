@@ -1378,6 +1378,8 @@ pref("devtools.inspector.imagePreviewTooltipSize", 300);
 
 pref("devtools.inspector.showUserAgentStyles", false);
 
+pref("devtools.inspector.showAllAnonymousContent", false);
+
 
 pref("devtools.defaultColorUnit", "hex");
 
