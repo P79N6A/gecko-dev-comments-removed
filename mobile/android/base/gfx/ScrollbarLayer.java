@@ -20,7 +20,7 @@ public class ScrollbarLayer extends Layer {
     private static final String LOGTAG = "GeckoScrollbarLayer";
 
     public static final long FADE_DELAY = 500; 
-    private static final float FADE_AMOUNT = 0.03f; 
+    private static final float FADE_MILLIS = 250; 
 
     private final boolean mVertical;
     private float mOpacity;
@@ -145,12 +145,13 @@ public class ScrollbarLayer extends Layer {
 
 
 
-    public boolean fade() {
+
+    public boolean fade(final long startMillis, final long currentMillis) {
         if (FloatUtils.fuzzyEquals(mOpacity, 0.0f)) {
             return false;
         }
         beginTransaction(); 
-        mOpacity = Math.max(mOpacity - FADE_AMOUNT, 0.0f);
+        mOpacity = Math.max(1 - (currentMillis - startMillis) / FADE_MILLIS, 0.0f);
         endTransaction();
         return true;
     }
