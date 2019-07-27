@@ -177,6 +177,21 @@ Readability.prototype = {
 
 
 
+  _concatNodeLists: function() {
+    var slice = Array.prototype.slice;
+    var args = slice.call(arguments);
+    var nodeLists = args.map(function(list) {
+      return slice.call(list);
+    });
+    return Array.prototype.concat.apply([], nodeLists);
+  },
+
+  
+
+
+
+
+
   _fixRelativeUris: function(articleContent) {
     var scheme = this._uri.scheme;
     var prePath = this._uri.prePath;
@@ -252,10 +267,24 @@ Readability.prototype = {
       if (curTitle.split(' ').length < 3)
         curTitle = origTitle.replace(/[^\|\-]*[\|\-](.*)/gi,'$1');
     } else if (curTitle.indexOf(': ') !== -1) {
-      curTitle = origTitle.replace(/.*:(.*)/gi, '$1');
+      
+      
+      var headings = this._concatNodeLists(
+        doc.getElementsByTagName('h1'),
+        doc.getElementsByTagName('h2')
+      );
+      var match = this._someNode(headings, function(heading) {
+        return heading.textContent === curTitle;
+      });
 
-      if (curTitle.split(' ').length < 3)
-        curTitle = origTitle.replace(/[^:]*[:](.*)/gi,'$1');
+      
+      if (!match) {
+        curTitle = origTitle.substring(origTitle.lastIndexOf(':') + 1);
+
+        
+        if (curTitle.split(' ').length < 3)
+          curTitle = origTitle.substring(origTitle.indexOf(':') + 1);
+      }
     } else if (curTitle.length > 150 || curTitle.length < 15) {
       var hOnes = doc.getElementsByTagName('h1');
 
@@ -396,6 +425,7 @@ Readability.prototype = {
     this._clean(articleContent, "object");
     this._clean(articleContent, "embed");
     this._clean(articleContent, "h1");
+    this._clean(articleContent, "footer");
 
     
     
@@ -913,10 +943,10 @@ Readability.prototype = {
 
     
     
-    var namePattern = /^\s*((twitter)\s*:\s*)?description\s*$/gi;
+    var namePattern = /^\s*((twitter)\s*:\s*)?(description|title)\s*$/gi;
 
     
-    var propertyPattern = /^\s*og\s*:\s*description\s*$/gi;
+    var propertyPattern = /^\s*og\s*:\s*(description|title)\s*$/gi;
 
     
     this._forEachNode(metaElements, function(element) {
@@ -954,6 +984,14 @@ Readability.prototype = {
     } else if ("twitter:description" in values) {
       
       metadata.excerpt = values["twitter:description"];
+    }
+
+    if ("og:title" in values) {
+      
+      metadata.title = values["og:title"];
+    } else if ("twitter:title" in values) {
+      
+      metadata.title = values["twitter:title"];
     }
 
     return metadata;
@@ -1715,8 +1753,8 @@ Readability.prototype = {
 
     this._prepDocument();
 
-    var articleTitle = this._getArticleTitle();
     var metadata = this._getArticleMetadata();
+    var articleTitle = metadata.title || this._getArticleTitle();
 
     var articleContent = this._grabArticle();
     if (!articleContent)
