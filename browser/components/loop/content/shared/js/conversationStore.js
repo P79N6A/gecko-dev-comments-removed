@@ -118,18 +118,12 @@ loop.store.ConversationStore = (function() {
       this.dispatcher = options.dispatcher;
       this.sdkDriver = options.sdkDriver;
 
+      
+      
+      
+      
       this.dispatcher.register(this, [
-        "connectionFailure",
-        "connectionProgress",
-        "setupWindowData",
-        "connectCall",
-        "hangupCall",
-        "peerHungupCall",
-        "cancelCall",
-        "retryCall",
-        "mediaConnected",
-        "setMute",
-        "fetchEmailLink"
+        "setupWindowData"
       ]);
     },
 
@@ -196,6 +190,19 @@ loop.store.ConversationStore = (function() {
         return;
       }
 
+      this.dispatcher.register(this, [
+        "connectionFailure",
+        "connectionProgress",
+        "connectCall",
+        "hangupCall",
+        "remotePeerDisconnected",
+        "cancelCall",
+        "retryCall",
+        "mediaConnected",
+        "setMute",
+        "fetchEmailLink"
+      ]);
+
       this.set({
         contact: actionData.contact,
         outgoing: windowType === "outgoing",
@@ -238,9 +245,21 @@ loop.store.ConversationStore = (function() {
     
 
 
-    peerHungupCall: function() {
+
+
+    remotePeerDisconnected: function(actionData) {
       this._endSession();
-      this.set({callState: CALL_STATES.FINISHED});
+
+      
+      
+      if (actionData.peerHungup) {
+        this.set({callState: CALL_STATES.FINISHED});
+      } else {
+        this.set({
+          callState: CALL_STATES.TERMINATED,
+          callStateReason: "peerNetworkDisconnected"
+        });
+      }
     },
 
     

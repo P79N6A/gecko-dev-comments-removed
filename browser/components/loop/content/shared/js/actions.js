@@ -111,7 +111,10 @@ loop.shared.actions = (function() {
     
 
 
-    PeerHungupCall: Action.define("peerHungupCall", {
+
+
+    RemotePeerDisconnected: Action.define("remotePeerDisconnected", {
+      peerHungup: Boolean
     }),
 
     

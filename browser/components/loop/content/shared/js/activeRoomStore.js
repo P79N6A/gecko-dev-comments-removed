@@ -51,15 +51,13 @@ loop.store.ActiveRoomStore = (function() {
     }
     this._mozLoop = options.mozLoop;
 
+    
+    
+    
+    
     this._dispatcher.register(this, [
-      "roomFailure",
       "setupWindowData",
-      "fetchServerData",
-      "updateRoomInfo",
-      "joinRoom",
-      "joinedRoom",
-      "windowUnload",
-      "leaveRoom"
+      "fetchServerData"
     ]);
 
     
@@ -117,6 +115,21 @@ loop.store.ActiveRoomStore = (function() {
 
 
 
+    _registerActions: function() {
+      this._dispatcher.register(this, [
+        "roomFailure",
+        "updateRoomInfo",
+        "joinRoom",
+        "joinedRoom",
+        "windowUnload",
+        "leaveRoom"
+      ]);
+    },
+
+    
+
+
+
 
 
 
@@ -126,6 +139,8 @@ loop.store.ActiveRoomStore = (function() {
         
         return;
       }
+
+      this._registerActions();
 
       this.setStoreState({
         roomState: ROOM_STATES.GATHER
@@ -168,6 +183,8 @@ loop.store.ActiveRoomStore = (function() {
         
         return;
       }
+
+      this._registerActions();
 
       this.setStoreState({
         roomToken: actionData.token,

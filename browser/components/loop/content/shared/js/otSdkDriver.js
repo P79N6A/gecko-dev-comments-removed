@@ -141,18 +141,9 @@ loop.OTSdkDriver = (function() {
 
 
     _onConnectionDestroyed: function(event) {
-      var action;
-      if (event.reason === "clientDisconnected") {
-        action = new sharedActions.PeerHungupCall();
-      } else {
-        
-        
-        
-        action = new sharedActions.ConnectionFailure({
-          reason: "peerNetworkDisconnected"
-        });
-      }
-      this.dispatcher.dispatch(action);
+      this.dispatcher.dispatch(new sharedActions.RemotePeerDisconnected({
+        peerHungup: event.reason === "clientDisconnected"
+      }));
     },
 
     
