@@ -41,20 +41,73 @@ public class GlobalConstants {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
   public static final String[] DEFAULT_CIPHER_SUITES;
   public static final String[] DEFAULT_PROTOCOLS;
 
   static {
-    DEFAULT_CIPHER_SUITES = new String[]
-        {
-          "TLS_DHE_RSA_WITH_AES_256_CBC_SHA",
-          "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
-          "SSL_RSA_WITH_RC4_128_SHA", 
-        };
-    DEFAULT_PROTOCOLS = new String[]
-        {
-          "SSLv3",
-          "TLSv1",
-        };
+    
+    
+    if (Versions.feature20Plus) {
+      DEFAULT_CIPHER_SUITES = new String[]
+          {
+           "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",   
+           "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",     
+           "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",     
+           "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",        
+           "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",     
+           "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384",     
+           "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",        
+          };
+    } else if (Versions.feature11Plus) {
+      DEFAULT_CIPHER_SUITES = new String[]
+          {
+           "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",        
+           "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",      
+           "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",        
+           "TLS_RSA_WITH_AES_256_CBC_SHA",              
+          };
+    } else {       
+      
+      
+      
+      
+      DEFAULT_CIPHER_SUITES = new String[]
+          {
+           
+           "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
+           "TLS_DHE_DSS_WITH_AES_128_CBC_SHA",
+
+           
+           "TLS_DHE_RSA_WITH_AES_256_CBC_SHA",          
+           "TLS_RSA_WITH_AES_256_CBC_SHA",              
+          };
+    }
+
+    if (Versions.feature16Plus) {
+      DEFAULT_PROTOCOLS = new String[]
+          {
+           "TLSv1.2",
+           "TLSv1.1",
+          };
+    } else {
+      
+      DEFAULT_PROTOCOLS = new String[]
+          {
+           "TLSv1",
+          };
+    }
   }
 }
