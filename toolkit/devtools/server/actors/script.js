@@ -3440,6 +3440,11 @@ ObjectActor.prototype = {
           continue;
         }
 
+        
+        if (!obj.proto && name == "__proto__") {
+          continue;
+        }
+
         let desc = null, getter = null;
         try {
           desc = obj.getOwnPropertyDescriptor(name);
