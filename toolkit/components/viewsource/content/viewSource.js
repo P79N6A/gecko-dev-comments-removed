@@ -131,6 +131,12 @@ ViewSourceChrome.prototype = {
       case "ViewSource:GoToLine:Failed":
         this.onGoToLineFailed();
         break;
+      case "ViewSource:StoreWrapping":
+        this.storeWrapping(data.state);
+        break;
+      case "ViewSource:StoreSyntaxHighlighting":
+        this.storeSyntaxHighlighting(data.state);
+        break;
       
       case "ViewSource:SourceLoaded":
         this.onSourceLoaded();
@@ -631,26 +637,16 @@ ViewSourceChrome.prototype = {
   
 
 
-
-
   toggleWrapping() {
     this.shouldWrap = !this.shouldWrap;
-    Services.prefs.setBoolPref("view_source.wrap_long_lines",
-                               this.shouldWrap);
     this.sendAsyncMessage("ViewSource:ToggleWrapping");
   },
 
   
 
 
-
-
   toggleSyntaxHighlighting() {
     this.shouldHighlight = !this.shouldHighlight;
-    
-    
-    Services.prefs.setBoolPref("view_source.syntax_highlight",
-                               this.shouldHighlight);
     this.sendAsyncMessage("ViewSource:ToggleSyntaxHighlighting");
   },
 

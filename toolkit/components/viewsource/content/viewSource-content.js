@@ -676,16 +676,19 @@ let ViewSourceContent = {
 
   toggleWrapping() {
     let body = content.document.body;
-    body.classList.toggle("wrap");
+    let state = body.classList.toggle("wrap");
+    sendAsyncMessage("ViewSource:StoreWrapping", { state });
   },
 
   
 
 
 
+
   toggleSyntaxHighlighting() {
     let body = content.document.body;
-    body.classList.toggle("highlight");
+    let state = body.classList.toggle("highlight");
+    sendAsyncMessage("ViewSource:StoreSyntaxHighlighting", { state });
   },
 
   
