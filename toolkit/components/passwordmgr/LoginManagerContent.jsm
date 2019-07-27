@@ -567,10 +567,39 @@ var LoginManagerContent = {
 
 
 
-
   _fillForm : function (form, autofillForm, clobberPassword,
                         userTriggered, foundLogins) {
     let ignoreAutocomplete = true;
+    const AUTOFILL_RESULT = {
+      FILLED: 0,
+      NO_PASSWORD_FIELD: 1,
+      PASSWORD_DISABLED_READONLY: 2,
+      NO_LOGINS_FIT: 3,
+      NO_SAVED_LOGINS: 4,
+      EXISTING_PASSWORD: 5,
+      EXISTING_USERNAME: 6,
+      MULTIPLE_LOGINS: 7,
+      NO_AUTOFILL_FORMS: 8,
+      AUTOCOMPLETE_OFF: 9,
+      UNKNOWN_FAILURE: 10,
+    };
+
+    function recordAutofillResult(result) {
+      if (userTriggered) {
+        
+        return;
+      }
+      const autofillResultHist = Services.telemetry.getHistogramById("PWMGR_FORM_AUTOFILL_RESULT");
+      autofillResultHist.add(result);
+    }
+
+    
+    if (foundLogins.length == 0) {
+      
+      recordAutofillResult(AUTOFILL_RESULT.NO_SAVED_LOGINS);
+      return [false, foundLogins];
+    }
+
     
     
     
@@ -579,12 +608,16 @@ var LoginManagerContent = {
         this._getFormFields(form, false);
 
     
-    if (passwordField == null)
+    if (passwordField == null) {
+      log("not filling form, no password field found");
+      recordAutofillResult(AUTOFILL_RESULT.NO_PASSWORD_FIELD);
       return [false, foundLogins];
+    }
 
     
     if (passwordField.disabled || passwordField.readOnly) {
       log("not filling form, password field disabled or read-only");
+      recordAutofillResult(AUTOFILL_RESULT.PASSWORD_DISABLED_READONLY);
       return [false, foundLogins];
     }
 
@@ -619,11 +652,11 @@ var LoginManagerContent = {
       return fit;
     }, this);
 
-
-    
-    if (logins.length == 0)
+    if (logins.length == 0) {
+      log("form not filled, none of the logins fit in the field");
+      recordAutofillResult(AUTOFILL_RESULT.NO_LOGINS_FIT);
       return [false, foundLogins];
-
+    }
 
     
     
@@ -641,6 +674,8 @@ var LoginManagerContent = {
       didntFillReason = "existingPassword";
       this._notifyFoundLogins(didntFillReason, usernameField,
                               passwordField, foundLogins, null);
+      log("form not filled, the password field was already filled");
+      recordAutofillResult(AUTOFILL_RESULT.EXISTING_PASSWORD);
       return [false, foundLogins];
     }
 
@@ -743,6 +778,28 @@ var LoginManagerContent = {
 
     this._notifyFoundLogins(didntFillReason, usernameField, passwordField,
                             foundLogins, selectedLogin);
+
+    if (didFillForm) {
+      recordAutofillResult(AUTOFILL_RESULT.FILLED);
+    } else {
+      let autofillResult = AUTOFILL_RESULT.UNKNOWN_FAILURE;
+      switch (didntFillReason) {
+        
+        case "existingUsername":
+          autofillResult = AUTOFILL_RESULT.EXISTING_USERNAME;
+          break;
+        case "multipleLogins":
+          autofillResult = AUTOFILL_RESULT.MULTIPLE_LOGINS;
+          break;
+        case "noAutofillForms":
+          autofillResult = AUTOFILL_RESULT.NO_AUTOFILL_FORMS;
+          break;
+        case "autocompleteOff":
+          autofillResult = AUTOFILL_RESULT.AUTOCOMPLETE_OFF;
+          break;
+      }
+      recordAutofillResult(autofillResult);
+    }
 
     return [didFillForm, foundLogins];
   },
