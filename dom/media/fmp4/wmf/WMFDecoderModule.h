@@ -38,6 +38,13 @@ public:
   bool SupportsAudioMimeType(const char* aMimeType) MOZ_OVERRIDE;
 
   
+  
+  
+  
+  static bool HasAAC();
+  static bool HasH264();
+
+  
   static void Init();
 private:
   static bool sIsWMFEnabled;
