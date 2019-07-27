@@ -482,9 +482,7 @@ protected:
   nsBorderStyle     mBorderStyle;
   bool              mUseLayersAcceleration;
   bool              mForceLayersAcceleration;
-  
-  
-  bool              mRequireOffMainThreadCompositing;
+  bool              mMultiProcessWindow;
   bool              mUseAttachedEvents;
   nsIntRect         mBounds;
   nsIntRect*        mOriginalBounds;
