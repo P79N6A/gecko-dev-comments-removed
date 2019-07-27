@@ -79,16 +79,31 @@ SetElemICInspector::sawTypedArrayWrite() const
     return false;
 }
 
+template <typename S, typename T>
+static bool
+VectorAppendNoDuplicate(S &list, T value)
+{
+    for (size_t i = 0; i < list.length(); i++) {
+        if (list[i] == value)
+            return true;
+    }
+    return list.append(value);
+}
+
 bool
 BaselineInspector::maybeInfoForPropertyOp(jsbytecode *pc,
                                           ShapeVector &nativeShapes,
-                                          ObjectGroupVector &unboxedGroups)
+                                          ObjectGroupVector &unboxedGroups,
+                                          ObjectGroupVector &convertUnboxedGroups)
 {
+    
+    
     
     
     
     MOZ_ASSERT(nativeShapes.empty());
     MOZ_ASSERT(unboxedGroups.empty());
+    MOZ_ASSERT(convertUnboxedGroups.empty());
 
     if (!hasBaselineScript())
         return true;
@@ -114,27 +129,18 @@ BaselineInspector::maybeInfoForPropertyOp(jsbytecode *pc,
             return true;
         }
 
-        
-        
+        if (group && group->unboxedLayout().nativeGroup()) {
+            if (!VectorAppendNoDuplicate(convertUnboxedGroups, group))
+                return false;
+            shape = group->unboxedLayout().nativeShape();
+            group = nullptr;
+        }
+
         if (shape) {
-            bool found = false;
-            for (size_t i = 0; i < nativeShapes.length(); i++) {
-                if (nativeShapes[i] == shape) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found && !nativeShapes.append(shape))
+            if (!VectorAppendNoDuplicate(nativeShapes, shape))
                 return false;
         } else {
-            bool found = false;
-            for (size_t i = 0; i < unboxedGroups.length(); i++) {
-                if (unboxedGroups[i] == group) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found && !unboxedGroups.append(group))
+            if (!VectorAppendNoDuplicate(unboxedGroups, group))
                 return false;
         }
 

@@ -4830,6 +4830,17 @@ jit::PropertyWriteNeedsTypeBarrier(TempAllocator &alloc, CompilerConstraintList 
 
     MOZ_ASSERT(excluded);
 
+    
+    
+    
+    if (excluded->isGroup()) {
+        if (UnboxedLayout *layout = excluded->group()->maybeUnboxedLayout()) {
+            if (layout->nativeGroup())
+                return true;
+            excluded->watchStateChangeForUnboxedConvertedToNative(constraints);
+        }
+    }
+
     *pobj = AddGroupGuard(alloc, current, *pobj, excluded,  true);
     return false;
 }

@@ -27,6 +27,7 @@
 #include "vm/ArrayObject.h"
 #include "vm/ScopeObject.h"
 #include "vm/TypedArrayCommon.h"
+#include "vm/UnboxedObject.h"
 
 
 #undef MemoryBarrier
@@ -8423,6 +8424,60 @@ class MStoreUnboxedString
 };
 
 
+
+class MConvertUnboxedObjectToNative
+  : public MUnaryInstruction,
+    public SingleObjectPolicy::Data
+{
+    AlwaysTenured<ObjectGroup *> group_;
+
+    explicit MConvertUnboxedObjectToNative(MDefinition *obj, ObjectGroup *group)
+      : MUnaryInstruction(obj),
+        group_(group)
+    {
+        setGuard();
+        setMovable();
+        setResultType(MIRType_Object);
+    }
+
+  public:
+    INSTRUCTION_HEADER(ConvertUnboxedObjectToNative)
+
+    static MConvertUnboxedObjectToNative *New(TempAllocator &alloc, MDefinition *obj,
+                                              ObjectGroup *group) {
+        return new(alloc) MConvertUnboxedObjectToNative(obj, group);
+    }
+
+    MDefinition *object() const {
+        return getOperand(0);
+    }
+    ObjectGroup *group() const {
+        return group_;
+    }
+    bool congruentTo(const MDefinition *ins) const MOZ_OVERRIDE {
+        if (!congruentIfOperandsEqual(ins))
+            return false;
+        return ins->toConvertUnboxedObjectToNative()->group() == group();
+    }
+    AliasSet getAliasSet() const MOZ_OVERRIDE {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        return AliasSet::None();
+    }
+};
+
+
 class MArrayPopShift
   : public MUnaryInstruction,
     public SingleObjectPolicy::Data
@@ -9773,6 +9828,11 @@ class MGuardShape
         setGuard();
         setMovable();
         setResultType(MIRType_Object);
+
+        
+        
+        
+        MOZ_ASSERT(shape->getObjectClass() != &UnboxedPlainObject::class_);
     }
 
   public:
@@ -9869,6 +9929,10 @@ class MGuardObjectGroup
         setGuard();
         setMovable();
         setResultType(MIRType_Object);
+
+        
+        
+        MOZ_ASSERT_IF(group->maybeUnboxedLayout(), !group->unboxedLayout().nativeGroup());
     }
 
   public:

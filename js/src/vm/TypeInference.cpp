@@ -1709,6 +1709,31 @@ class ConstraintDataFreezeObjectForTypedArrayData
     }
 };
 
+
+
+class ConstraintDataFreezeObjectForUnboxedConvertedToNative
+{
+  public:
+    ConstraintDataFreezeObjectForUnboxedConvertedToNative()
+    {}
+
+    const char *kind() { return "freezeObjectForUnboxedConvertedToNative"; }
+
+    bool invalidateOnNewType(TypeSet::Type type) { return false; }
+    bool invalidateOnNewPropertyState(TypeSet *property) { return false; }
+    bool invalidateOnNewObjectState(ObjectGroup *group) {
+        return group->unboxedLayout().nativeGroup() != nullptr;
+    }
+
+    bool constraintHolds(JSContext *cx,
+                         const HeapTypeSetKey &property, TemporaryTypeSet *expected)
+    {
+        return !invalidateOnNewObjectState(property.object()->maybeGroup());
+    }
+
+    bool shouldSweep() { return false; }
+};
+
 } 
 
 void
@@ -1731,6 +1756,17 @@ TypeSet::ObjectKey::watchStateChangeForTypedArrayData(CompilerConstraintList *co
     typedef CompilerConstraintInstance<ConstraintDataFreezeObjectForTypedArrayData> T;
     constraints->add(alloc->new_<T>(alloc, objectProperty,
                                     ConstraintDataFreezeObjectForTypedArrayData(tarray)));
+}
+
+void
+TypeSet::ObjectKey::watchStateChangeForUnboxedConvertedToNative(CompilerConstraintList *constraints)
+{
+    HeapTypeSetKey objectProperty = property(JSID_EMPTY);
+    LifoAlloc *alloc = constraints->alloc();
+
+    typedef CompilerConstraintInstance<ConstraintDataFreezeObjectForUnboxedConvertedToNative> T;
+    constraints->add(alloc->new_<T>(alloc, objectProperty,
+                                    ConstraintDataFreezeObjectForUnboxedConvertedToNative()));
 }
 
 static void
@@ -2564,13 +2600,25 @@ js::AddTypePropertyId(ExclusiveContext *cx, ObjectGroup *group, jsid id, TypeSet
     
     
     
+    if (type.isObjectUnchecked() && types->unknownObject())
+        type = TypeSet::AnyObjectType();
+
     
     
-    if (group->newScript() && group->newScript()->initializedGroup()) {
-        if (type.isObjectUnchecked() && types->unknownObject())
-            type = TypeSet::AnyObjectType();
+    
+    
+    
+    if (group->newScript() && group->newScript()->initializedGroup())
         AddTypePropertyId(cx, group->newScript()->initializedGroup(), id, type);
-    }
+
+    
+    
+    
+    
+    if (group->maybeUnboxedLayout() && group->maybeUnboxedLayout()->nativeGroup())
+        AddTypePropertyId(cx, group->maybeUnboxedLayout()->nativeGroup(), id, type);
+    if (ObjectGroup *unboxedGroup = group->maybeOriginalUnboxedGroup())
+        AddTypePropertyId(cx, unboxedGroup, id, type);
 }
 
 void
@@ -2666,6 +2714,12 @@ ObjectGroup::setFlags(ExclusiveContext *cx, ObjectGroupFlags flags)
     
     if (newScript() && newScript()->initializedGroup())
         newScript()->initializedGroup()->setFlags(cx, flags);
+
+    
+    if (maybeUnboxedLayout() && maybeUnboxedLayout()->nativeGroup())
+        maybeUnboxedLayout()->nativeGroup()->setFlags(cx, flags);
+    if (ObjectGroup *unboxedGroup = maybeOriginalUnboxedGroup())
+        unboxedGroup->setFlags(cx, flags);
 }
 
 void
@@ -3566,7 +3620,7 @@ TypeNewScript::rollbackPartiallyInitializedObjects(JSContext *cx, ObjectGroup *g
         }
 
         if (thisv.toObject().is<UnboxedPlainObject>() &&
-            !thisv.toObject().as<UnboxedPlainObject>().convertToNative(cx))
+            !UnboxedPlainObject::convertToNative(cx, &thisv.toObject()))
         {
             CrashAtUnhandlableOOM("rollbackPartiallyInitializedObjects");
         }
@@ -3698,6 +3752,12 @@ ConstraintTypeSet::sweep(Zone *zone, AutoClearTypeInferenceStateOnOOM &oom)
                     break;
                 }
             } else if (key->isGroup() && key->group()->unknownPropertiesDontCheckGeneration()) {
+                
+                
+                
+                
+                
+                
                 
                 
                 

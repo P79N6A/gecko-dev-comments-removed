@@ -220,6 +220,11 @@ class ObjectGroup : public gc::TenuredCell
         Addendum_UnboxedLayout,
 
         
+        
+        
+        Addendum_OriginalUnboxedGroup,
+
+        
         Addendum_TypeDescr
     };
 
@@ -291,6 +296,16 @@ class ObjectGroup : public gc::TenuredCell
 
     void setUnboxedLayout(UnboxedLayout *layout) {
         setAddendum(Addendum_UnboxedLayout, layout);
+    }
+
+    ObjectGroup *maybeOriginalUnboxedGroup() const {
+        if (addendumKind() == Addendum_OriginalUnboxedGroup)
+            return reinterpret_cast<ObjectGroup *>(addendum_);
+        return nullptr;
+    }
+
+    void setOriginalUnboxedGroup(ObjectGroup *group) {
+        setAddendum(Addendum_OriginalUnboxedGroup, group);
     }
 
     TypeDescr *maybeTypeDescr() {

@@ -212,6 +212,14 @@ class TemporaryTypeSet;
 
 
 
+
+
+
+
+
+
+
+
 class TypeSet
 {
   public:
@@ -247,6 +255,7 @@ class TypeSet
         bool hasStableClassAndProto(CompilerConstraintList *constraints);
         void watchStateChangeForInlinedCall(CompilerConstraintList *constraints);
         void watchStateChangeForTypedArrayData(CompilerConstraintList *constraints);
+        void watchStateChangeForUnboxedConvertedToNative(CompilerConstraintList *constraints);
         HeapTypeSetKey property(jsid id);
         void ensureTrackedProperty(JSContext *cx, jsid id);
 

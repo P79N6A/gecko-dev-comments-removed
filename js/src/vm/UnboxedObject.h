@@ -65,9 +65,16 @@ class UnboxedLayout : public mozilla::LinkedListElement<UnboxedLayout>
     
     int32_t *traceList_;
 
+    
+    
+    
+    HeapPtrObjectGroup nativeGroup_;
+    HeapPtrShape nativeShape_;
+
   public:
     UnboxedLayout(const PropertyVector &properties, size_t size)
-      : size_(size), newScript_(nullptr), traceList_(nullptr)
+      : size_(size), newScript_(nullptr), traceList_(nullptr),
+        nativeGroup_(nullptr), nativeShape_(nullptr)
     {
         properties_.appendAll(properties);
     }
@@ -113,11 +120,21 @@ class UnboxedLayout : public mozilla::LinkedListElement<UnboxedLayout>
         return size_;
     }
 
+    ObjectGroup *nativeGroup() const {
+        return nativeGroup_;
+    }
+
+    Shape *nativeShape() const {
+        return nativeShape_;
+    }
+
     inline gc::AllocKind getAllocKind() const;
 
     void trace(JSTracer *trc);
 
     size_t sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf);
+
+    static bool makeNativeGroup(JSContext *cx, ObjectGroup *group);
 };
 
 
@@ -166,8 +183,7 @@ class UnboxedPlainObject : public JSObject
     bool setValue(JSContext *cx, const UnboxedLayout::Property &property, const Value &v);
     Value getValue(const UnboxedLayout::Property &property);
 
-    bool convertToNative(JSContext *cx);
-
+    static bool convertToNative(JSContext *cx, JSObject *obj);
     static UnboxedPlainObject *create(JSContext *cx, HandleObjectGroup group, NewObjectKind newKind);
 
     static void trace(JSTracer *trc, JSObject *object);
