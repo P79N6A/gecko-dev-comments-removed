@@ -933,8 +933,6 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
 
   
   
-  
-  aFrame->WillReflow(mPresContext);
 
   
   nsHTMLReflowMetrics metrics(lineWM);

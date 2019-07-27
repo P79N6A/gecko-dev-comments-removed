@@ -302,7 +302,6 @@ public:
   nscoord ShrinkWidthToFit(nsRenderingContext *aRenderingContext,
                            nscoord aWidthInCB);
 
-  virtual void WillReflow(nsPresContext* aPresContext) override;
   
 
 

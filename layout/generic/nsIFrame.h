@@ -1775,17 +1775,6 @@ public:
 
 
 
-  virtual void WillReflow(nsPresContext* aPresContext) = 0;
-
-  
-
-
-
-
-
-
-
-
 
 
 
@@ -3021,6 +3010,14 @@ private:
   }
 
 protected:
+  void MarkInReflow() {
+#ifdef DEBUG_dbaron_off
+    
+    NS_ASSERTION(!(mState & NS_FRAME_IN_REFLOW), "frame is already in reflow");
+#endif
+    mState |= NS_FRAME_IN_REFLOW;
+  }
+
   nsFrameState     mState;
 
   

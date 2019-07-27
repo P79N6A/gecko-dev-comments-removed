@@ -629,6 +629,7 @@ nsBoxFrame::Reflow(nsPresContext*          aPresContext,
                    const nsHTMLReflowState& aReflowState,
                    nsReflowStatus&          aStatus)
 {
+  MarkInReflow();
   
   
 

@@ -364,6 +364,7 @@ nsListControlFrame::Reflow(nsPresContext*           aPresContext,
     return;
   }
 
+  MarkInReflow();
   
 
 
@@ -456,8 +457,6 @@ nsListControlFrame::Reflow(nsPresContext*           aPresContext,
   nscoord computedHeight = CalcIntrinsicBSize(HeightOfARow(), length); 
   computedHeight = state.ApplyMinMaxHeight(computedHeight);
   state.SetComputedHeight(computedHeight);
-
-  nsHTMLScrollFrame::WillReflow(aPresContext);
 
   
   
@@ -577,7 +576,6 @@ nsListControlFrame::ReflowAsDropdown(nsPresContext*           aPresContext,
 
   mLastDropdownComputedHeight = state.ComputedHeight();
 
-  nsHTMLScrollFrame::WillReflow(aPresContext);
   nsHTMLScrollFrame::Reflow(aPresContext, aDesiredSize, state, aStatus);
 }
 

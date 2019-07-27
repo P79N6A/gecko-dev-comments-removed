@@ -398,9 +398,6 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
                                    aContainingBlock.height);
 
   
-  aKidFrame->WillReflow(aPresContext);
-
-  
   const nsMargin& border = aReflowState.mStyleBorder->GetComputedBorder();
 
   bool constrainHeight = (aReflowState.AvailableHeight() != NS_UNCONSTRAINEDSIZE)

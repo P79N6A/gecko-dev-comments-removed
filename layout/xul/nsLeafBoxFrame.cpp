@@ -201,6 +201,7 @@ nsLeafBoxFrame::Reflow(nsPresContext*   aPresContext,
   
   
 
+  MarkInReflow();
   DO_GLOBAL_REFLOW_COUNT("nsLeafBoxFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowState, aDesiredSize, aStatus);
 

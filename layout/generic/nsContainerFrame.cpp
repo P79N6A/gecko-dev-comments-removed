@@ -934,11 +934,6 @@ nsContainerFrame::ComputeAutoSize(nsRenderingContext* aRenderingContext,
   return result;
 }
 
-
-
-
-
-
 void
 nsContainerFrame::ReflowChild(nsIFrame*                aKidFrame,
                               nsPresContext*           aPresContext,
@@ -958,9 +953,6 @@ nsContainerFrame::ReflowChild(nsIFrame*                aKidFrame,
   }
 
   
-  
-  aKidFrame->WillReflow(aPresContext);
-
   if (NS_FRAME_NO_MOVE_FRAME != (aFlags & NS_FRAME_NO_MOVE_FRAME)) {
     aKidFrame->SetPosition(aWM, aPos, aContainerWidth);
   }
@@ -1003,9 +995,6 @@ nsContainerFrame::ReflowChild(nsIFrame*                aKidFrame,
   NS_PRECONDITION(aReflowState.frame == aKidFrame, "bad reflow state");
 
   
-  
-  aKidFrame->WillReflow(aPresContext);
-
   if (NS_FRAME_NO_MOVE_FRAME != (aFlags & NS_FRAME_NO_MOVE_FRAME)) {
     aKidFrame->SetPosition(nsPoint(aX, aY));
   }

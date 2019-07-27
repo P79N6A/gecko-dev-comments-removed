@@ -241,7 +241,7 @@ public:
 
 
 
-  void ReflowChild(nsIFrame*                      aKidFrame,
+  void ReflowChild(nsIFrame*                      aChildFrame,
                    nsPresContext*                 aPresContext,
                    nsHTMLReflowMetrics&           aDesiredSize,
                    const nsHTMLReflowState&       aReflowState,

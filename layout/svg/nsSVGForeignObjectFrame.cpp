@@ -519,6 +519,7 @@ void nsSVGForeignObjectFrame::RequestReflow(nsIPresShell::IntrinsicDirty aType)
 void
 nsSVGForeignObjectFrame::DoReflow()
 {
+  MarkInReflow();
   
   if (IsDisabled() &&
       !(GetStateBits() & NS_FRAME_FIRST_REFLOW))

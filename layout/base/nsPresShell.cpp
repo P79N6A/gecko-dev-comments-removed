@@ -9088,8 +9088,6 @@ PresShell::DoReflow(nsIFrame* target, bool aInterruptible)
   mCurrentReflowRoot = target;
 #endif
 
-  target->WillReflow(mPresContext);
-
   
   
   
