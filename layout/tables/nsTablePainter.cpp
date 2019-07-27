@@ -97,10 +97,6 @@
 
 
 
-
-
-
-
 TableBackgroundPainter::TableBackgroundData::TableBackgroundData()
   : mFrame(nullptr),
     mVisible(false),
@@ -422,7 +418,15 @@ TableBackgroundPainter::PaintTable(nsTableFrame*   aTableFrame,
     
     
     mRowGroup.mRect.MoveTo(rg->GetOffsetTo(aTableFrame));
-    if (mRowGroup.mRect.Intersects(mDirtyRect - mRenderPt)) {
+
+    
+    
+    
+    nsRect rgVisualOverflow = rg->GetVisualOverflowRectRelativeToSelf();
+    nsRect rgOverflowRect = rgVisualOverflow + rg->GetPosition();
+    nsRect rgNormalRect = rgVisualOverflow + rg->GetNormalPosition();
+
+    if (rgOverflowRect.Union(rgNormalRect).Intersects(mDirtyRect - mRenderPt)) {
       nsresult rv = PaintRowGroup(rg, rg->IsPseudoStackingContextFromStyle());
       if (NS_FAILED(rv)) return rv;
     }
@@ -470,16 +474,12 @@ TableBackgroundPainter::PaintRowGroup(nsTableRowGroupFrame* aFrame,
   mRowGroup.mRect.MoveTo(0, 0);
 
   
-  nscoord ignored; 
-                   
-                   
-                   
-                   
 
   
   
   
-  nsIFrame* cursor = aFrame->GetFirstRowContaining(mDirtyRect.y - mRenderPt.y, &ignored);
+  nscoord overflowAbove;
+  nsIFrame* cursor = aFrame->GetFirstRowContaining(mDirtyRect.y - mRenderPt.y, &overflowAbove);
 
   
   
@@ -500,9 +500,12 @@ TableBackgroundPainter::PaintRowGroup(nsTableRowGroupFrame* aFrame,
   
   for (; row; row = row->GetNextRow()) {
     mRow.SetFrame(row);
-    if (mDirtyRect.YMost() - mRenderPt.y < mRow.mRect.y) { 
-                                             
+    
+    
+    nscoord rowY = std::min(mRow.mRect.y, row->GetNormalPosition().y);
 
+    
+    if ((mDirtyRect.YMost() - mRenderPt.y) <= (rowY - overflowAbove)) {
       
       break;
     }
@@ -564,10 +567,20 @@ TableBackgroundPainter::PaintRow(nsTableRowFrame* aFrame,
   
 
   for (nsTableCellFrame* cell = aFrame->GetFirstCell(); cell; cell = cell->GetNextCell()) {
+    nsRect cellBGRect, rowBGRect, rowGroupBGRect, colBGRect;
+    ComputeCellBackgrounds(cell, cellBGRect, rowBGRect,
+                           rowGroupBGRect, colBGRect);
+
     
-    mCellRect = cell->GetRect() + mRow.mRect.TopLeft() + mRenderPt;
-    if (mCellRect.Intersects(mDirtyRect)) {
-      nsresult rv = PaintCell(cell, aPassThrough || cell->IsPseudoStackingContextFromStyle());
+    nsRect combinedRect(cellBGRect);
+    combinedRect.UnionRect(combinedRect, rowBGRect);
+    combinedRect.UnionRect(combinedRect, rowGroupBGRect);
+    combinedRect.UnionRect(combinedRect, colBGRect);
+
+    if (combinedRect.Intersects(mDirtyRect)) {
+      bool passCell = aPassThrough || cell->IsPseudoStackingContextFromStyle();
+      nsresult rv = PaintCell(cell, cellBGRect, rowBGRect, rowGroupBGRect,
+                              colBGRect, passCell);
       if (NS_FAILED(rv)) return rv;
     }
   }
@@ -579,7 +592,11 @@ TableBackgroundPainter::PaintRow(nsTableRowFrame* aFrame,
 
 nsresult
 TableBackgroundPainter::PaintCell(nsTableCellFrame* aCell,
-                                  bool aPassSelf)
+                                  nsRect&           aCellBGRect,
+                                  nsRect&           aRowBGRect,
+                                  nsRect&           aRowGroupBGRect,
+                                  nsRect&           aColBGRect,
+                                  bool              aPassSelf)
 {
   NS_PRECONDITION(aCell, "null frame");
 
@@ -604,7 +621,7 @@ TableBackgroundPainter::PaintCell(nsTableCellFrame* aCell,
                                           mCols[colIndex].mColGroup->mRect + mRenderPt,
                                           mCols[colIndex].mColGroup->mFrame->StyleContext(),
                                           *mCols[colIndex].mColGroup->mBorder,
-                                          mBGPaintFlags, &mCellRect);
+                                          mBGPaintFlags, &aColBGRect);
   }
 
   
@@ -614,7 +631,7 @@ TableBackgroundPainter::PaintCell(nsTableCellFrame* aCell,
                                           mCols[colIndex].mCol.mRect + mRenderPt,
                                           mCols[colIndex].mCol.mFrame->StyleContext(),
                                           *mCols[colIndex].mCol.mBorder,
-                                          mBGPaintFlags, &mCellRect);
+                                          mBGPaintFlags, &aColBGRect);
   }
 
   
@@ -624,7 +641,7 @@ TableBackgroundPainter::PaintCell(nsTableCellFrame* aCell,
                                           mRowGroup.mRect + mRenderPt,
                                           mRowGroup.mFrame->StyleContext(),
                                           *mRowGroup.mBorder,
-                                          mBGPaintFlags, &mCellRect);
+                                          mBGPaintFlags, &aRowGroupBGRect);
   }
 
   
@@ -634,14 +651,69 @@ TableBackgroundPainter::PaintCell(nsTableCellFrame* aCell,
                                           mRow.mRect + mRenderPt,
                                           mRow.mFrame->StyleContext(),
                                           *mRow.mBorder,
-                                          mBGPaintFlags, &mCellRect);
+                                          mBGPaintFlags, &aRowBGRect);
   }
 
   
   if (mIsBorderCollapse && !aPassSelf) {
     aCell->PaintCellBackground(mRenderingContext, mDirtyRect,
-                               mCellRect.TopLeft(), mBGPaintFlags);
+                               aCellBGRect.TopLeft(), mBGPaintFlags);
   }
 
   return NS_OK;
+}
+
+void
+TableBackgroundPainter::ComputeCellBackgrounds(nsTableCellFrame* aCell,
+                                               nsRect&           aCellBGRect,
+                                               nsRect&           aRowBGRect,
+                                               nsRect&           aRowGroupBGRect,
+                                               nsRect&           aColBGRect)
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  nsIFrame* rowGroupFrame =
+    mRowGroup.mFrame ? mRowGroup.mFrame : mRow.mFrame->GetParent();
+
+  
+  
+  aCellBGRect = aCell->GetRect() + mRow.mRect.TopLeft() + mRenderPt;
+
+  
+  
+  aRowBGRect = aCellBGRect + (aCell->GetNormalPosition() - aCell->GetPosition());
+
+  
+  
+  aRowGroupBGRect = aRowBGRect +
+                    (mRow.mFrame->GetNormalPosition() - mRow.mFrame->GetPosition());
+
+  
+  
+  
+  
+  aColBGRect = aRowGroupBGRect +
+             (rowGroupFrame->GetNormalPosition() - rowGroupFrame->GetPosition());
+
 }

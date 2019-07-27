@@ -2,6 +2,9 @@
 
 
 
+
+#include "mozilla/Maybe.h"
+
 #include "nsTableRowFrame.h"
 #include "nsTableRowGroupFrame.h"
 #include "nsIPresShell.h"
@@ -395,7 +398,7 @@ nscoord nsTableRowFrame::GetRowBaseline(WritingMode aWritingMode)
    while (childFrame) {
     if (IS_TABLE_CELL(childFrame->GetType())) {
       nsIFrame* firstKid = childFrame->GetFirstPrincipalChild();
-      ascent = std::max(ascent, firstKid->GetRect().YMost());
+      ascent = std::max(ascent, firstKid->GetNormalRect().YMost());
     }
     
     childFrame = iter.Next();
@@ -861,7 +864,10 @@ nsTableRowFrame::ReflowChildren(nsPresContext*          aPresContext,
 
     
     nsRect kidRect = kidFrame->GetRect();
+    nsPoint origKidNormalPosition = kidFrame->GetNormalPosition();
+    MOZ_ASSERT(origKidNormalPosition.y == 0);
     nsRect kidVisualOverflow = kidFrame->GetVisualOverflowRect();
+    nsPoint kidPosition(x, 0);
     bool firstReflow =
       (kidFrame->GetStateBits() & NS_FRAME_FIRST_REFLOW) != 0;
 
@@ -870,6 +876,7 @@ nsTableRowFrame::ReflowChildren(nsPresContext*          aPresContext,
       nscoord availCellWidth =
         CalcAvailWidth(aTableFrame, *cellFrame);
 
+      Maybe<nsTableCellReflowState> kidReflowState;
       nsHTMLReflowMetrics desiredSize(aReflowState);
 
       
@@ -890,19 +897,18 @@ nsTableRowFrame::ReflowChildren(nsPresContext*          aPresContext,
           HasPctHeight()) {
         
         
-        nsSize  kidAvailSize(availCellWidth, aReflowState.AvailableHeight());
+        nsSize kidAvailSize(availCellWidth, aReflowState.AvailableHeight());
 
         
-        nsTableCellReflowState
-          kidReflowState(aPresContext, aReflowState, kidFrame,
-                         LogicalSize(kidFrame->GetWritingMode(),
-                                     kidAvailSize),
-                         nsHTMLReflowState::CALLER_WILL_INIT);
+        kidReflowState.emplace(aPresContext, aReflowState, kidFrame,
+                               LogicalSize(kidFrame->GetWritingMode(),
+                                           kidAvailSize),
+                               nsHTMLReflowState::CALLER_WILL_INIT);
         InitChildReflowState(*aPresContext, kidAvailSize, borderCollapse,
-                             kidReflowState);
+                             *kidReflowState);
 
         nsReflowStatus status;
-        ReflowChild(kidFrame, aPresContext, desiredSize, kidReflowState,
+        ReflowChild(kidFrame, aPresContext, desiredSize, *kidReflowState,
                     x, 0, 0, status);
 
         
@@ -912,7 +918,7 @@ nsTableRowFrame::ReflowChildren(nsPresContext*          aPresContext,
         }
       }
       else {
-        if (x != kidRect.x) {
+        if (x != origKidNormalPosition.x) {
           kidFrame->InvalidateFrameSubtree();
         }
         
@@ -957,7 +963,18 @@ nsTableRowFrame::ReflowChildren(nsPresContext*          aPresContext,
       
       desiredSize.ISize(rowWM) = availCellWidth;
 
-      FinishReflowChild(kidFrame, aPresContext, desiredSize, nullptr, x, 0, 0);
+      if (kidReflowState) {
+        
+        kidReflowState->ApplyRelativePositioning(&kidPosition);
+      } else {
+        
+        
+        
+        
+        kidPosition += kidRect.TopLeft() - origKidNormalPosition;
+      }
+      FinishReflowChild(kidFrame, aPresContext, desiredSize, nullptr,
+                        kidPosition.x, kidPosition.y, 0);
 
       nsTableFrame::InvalidateTableFrame(kidFrame, kidRect, kidVisualOverflow,
                                          firstReflow);
@@ -965,11 +982,12 @@ nsTableRowFrame::ReflowChildren(nsPresContext*          aPresContext,
       x += desiredSize.Width();  
     }
     else {
-      if (kidRect.x != x) {
+      if (x != origKidNormalPosition.x) {
         
         kidFrame->InvalidateFrameSubtree();
         
-        kidFrame->SetPosition(nsPoint(x, kidRect.y));
+        
+        kidFrame->MovePositionBy(nsPoint(x - origKidNormalPosition.x, 0));
         nsTableFrame::RePositionViews(kidFrame);
         
         kidFrame->InvalidateFrameSubtree();
@@ -1259,14 +1277,16 @@ nsTableRowFrame::CollapseRowIfNecessary(nscoord aRowOffset,
         }
 
         nsRect oldCellRect = cellFrame->GetRect();
+        nsPoint oldCellNormalPos = cellFrame->GetNormalPosition();
         nsRect oldCellVisualOverflow = cellFrame->GetVisualOverflowRect();
 
-        if (aRowOffset == 0 && cRect.TopLeft() != oldCellRect.TopLeft()) {
+        if (aRowOffset == 0 && cRect.TopLeft() != oldCellNormalPos) {
           
           cellFrame->InvalidateFrameSubtree();
         }
         
-        cellFrame->SetRect(cRect);
+        cellFrame->MovePositionBy(cRect.TopLeft() - oldCellNormalPos);
+        cellFrame->SetSize(cRect.Size());
 
         
         
