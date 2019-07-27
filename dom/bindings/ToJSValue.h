@@ -151,7 +151,7 @@ ToJSValue(JSContext* aCx,
   
   MOZ_ASSERT(aArgument.IsDOMBinding());
 
-  return WrapNewBindingObject(aCx, aArgument, aValue);
+  return GetOrCreateDOMReflector(aCx, aArgument, aValue);
 }
 
 
