@@ -337,11 +337,19 @@ def create_partial_patch(from_dir_path, to_dir_path, patch_filename, shas, patch
     from_dir_hash,from_file_set,from_dir_set = patch_info.build_marfile_entry_hash(from_dir_path)
     to_dir_hash,to_file_set,to_dir_set = patch_info.build_marfile_entry_hash(to_dir_path)
     
-    if "precomplete" not in to_file_set:
-        raise Exception, "missing precomplete file in: "+to_dir_path
-    
     forced_list = forced_updates.strip().split('|')
-    forced_list.append("precomplete")
+    
+    if "precomplete" not in to_file_set:
+        
+        if "Contents/Resources/precomplete" not in to_file_set and "Contents\Resources\precomplete" not in to_file_set:
+            raise Exception, "missing precomplete file in: "+to_dir_path
+        else:
+            if "Contents/Resources/precomplete" in to_file_set:
+                forced_list.append("Contents/Resources/precomplete")
+            else:
+                forced_list.append("Contents\Resources\precomplete")
+    else:
+        forced_list.append("precomplete")
 
     
     patch_filenames = list(from_file_set.intersection(to_file_set))
