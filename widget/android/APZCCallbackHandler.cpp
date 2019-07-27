@@ -4,28 +4,16 @@
 
 
 #include "APZCCallbackHandler.h"
-#include "mozilla/layers/APZCCallbackHelper.h"
 #include "mozilla/layers/APZCTreeManager.h"
-#include "nsAppShell.h"
-#include "nsLayoutUtils.h"
-#include "nsPrintfCString.h"
-#include "nsThreadUtils.h"
 #include "base/message_loop.h"
 #include "nsWindow.h"
-#include "nsIInterfaceRequestorUtils.h"
 #include "AndroidBridge.h"
-#include "nsIContent.h"
 
-using mozilla::layers::APZCCallbackHelper;
 using mozilla::layers::APZCTreeManager;
-using mozilla::layers::FrameMetrics;
-using mozilla::layers::ScrollableLayerGuid;
 
 namespace mozilla {
 namespace widget {
 namespace android {
-
-StaticRefPtr<APZCCallbackHandler>         APZCCallbackHandler::sInstance;
 
 NativePanZoomController::GlobalRef APZCCallbackHandler::sNativePanZoomController = nullptr;
 
@@ -45,8 +33,8 @@ APZCCallbackHandler::NotifyDefaultPrevented(uint64_t aInputBlockId,
         
         
         
-        AndroidBridge::Bridge()->PostTaskToUiThread(NewRunnableMethod(
-            this, &APZCCallbackHandler::NotifyDefaultPrevented,
+        AndroidBridge::Bridge()->PostTaskToUiThread(NewRunnableFunction(
+            &APZCCallbackHandler::NotifyDefaultPrevented,
             aInputBlockId, aDefaultPrevented), 0);
         return;
     }
