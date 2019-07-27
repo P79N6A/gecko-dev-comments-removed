@@ -223,8 +223,6 @@ var pktApi = (function() {
                     }
                     return;
                 }
-
-                
                 if (options.error) {
                     
                     
@@ -233,14 +231,9 @@ var pktApi = (function() {
                     }
 
                     
-                    var errorMessage = request.getResponseHeader("X-Error");
-                    if (typeof errorMessage !== "undefined") {
-                        options.error(new Error(errorMessage), request);
-                        return;
-                    }
-
-                    
-                    options.error(new Error(request.statusText), request);
+                    var errorMessage = request.getResponseHeader("X-Error") || request.statusText;
+                    var error = {message: errorMessage};
+                    options.error(error, request);
                 }
 			}
 		};
