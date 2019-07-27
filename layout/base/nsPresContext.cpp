@@ -138,7 +138,8 @@ nsPresContext::IsDOMPaintEventPending()
   if (mFireAfterPaintEvents) {
     return true;
   }
-  if (GetDisplayRootPresContext()->GetRootPresContext()->mRefreshDriver->ViewManagerFlushIsPending()) {
+  nsRootPresContext* drpc = GetDisplayRootPresContext();
+  if (drpc && drpc->mRefreshDriver->ViewManagerFlushIsPending()) {
     
     
     
