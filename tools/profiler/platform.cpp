@@ -491,8 +491,8 @@ bool is_main_thread_name(const char* aName) {
 #define VARARGS_ASSIGN(foo, bar)     (foo) = (bar)
 #endif
 
-static void
-profiler_log(const char *fmt, va_list args)
+void
+mozilla_sampler_log(const char *fmt, va_list args)
 {
   if (profiler_is_active()) {
     
@@ -561,7 +561,7 @@ void mozilla_sampler_init(void* stackTop)
   
   OS::Startup();
 
-  set_stderr_callback(profiler_log);
+  set_stderr_callback(mozilla_sampler_log);
 
   
   
