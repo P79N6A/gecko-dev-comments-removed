@@ -333,7 +333,6 @@ this.UITour = {
   },
 
   onPageEvent: function(aMessage, aEvent) {
-    let contentDocument = null;
     let browser = aMessage.target;
     let window = browser.ownerDocument.defaultView;
     let tab = window.gBrowser.getTabForBrowser(browser);
@@ -367,10 +366,6 @@ this.UITour = {
 
     
     window.gBrowser.tabContainer.addEventListener("TabSelect", this);
-
-    if (!window.gMultiProcessBrowser) { 
-      contentDocument = browser.contentWindow.document;
-    }
 
     switch (action) {
       case "registerPageID": {
@@ -511,6 +506,7 @@ this.UITour = {
         }
 
         let secman = Services.scriptSecurityManager;
+        let contentDocument = browser.contentWindow.document;
         let principal = contentDocument.nodePrincipal;
         let flags = secman.DISALLOW_INHERIT_PRINCIPAL;
         try {
@@ -553,7 +549,7 @@ this.UITour = {
         
         
         
-        contentDocument.location.href = "about:accounts?action=signup&entrypoint=uitour";
+        browser.loadURI("about:accounts?action=signup&entrypoint=uitour");
         break;
       }
 
