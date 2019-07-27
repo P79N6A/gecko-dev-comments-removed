@@ -51,21 +51,6 @@ var FullScreen = {
     }
 
     
-    
-    
-    
-    if (enterFS && this.useLionFullScreen) {
-      if (document.mozFullScreen) {
-        this.showXULChrome("toolbar", false);
-      }
-      else {
-        gNavToolbox.setAttribute("inFullscreen", true);
-        document.documentElement.setAttribute("inFullscreen", true);
-      }
-      return;
-    }
-
-    
     this.showXULChrome("toolbar", !enterFS);
 
     if (enterFS) {
@@ -238,9 +223,14 @@ var FullScreen = {
     if (!gPrefService.getBoolPref("browser.fullscreen.autohide"))
       return false;
 
-    
-    if (!forceHide && this._isPopupOpen)
-      return false;
+    if (!forceHide) {
+      
+      if (this._isPopupOpen)
+        return false;
+      
+      if (this.useLionFullScreen)
+        return false;
+    }
 
     
     if (document.commandDispatcher.focusedElement &&
@@ -448,7 +438,7 @@ var FullScreen = {
 
     
     this._isChromeCollapsed = false;
-    if (trackMouse) {
+    if (trackMouse && !this.useLionFullScreen) {
       let rect = gBrowser.mPanelContainer.getBoundingClientRect();
       this._mouseTargetRect = {
         top: rect.top + 50,
