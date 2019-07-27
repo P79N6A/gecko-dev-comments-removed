@@ -314,6 +314,16 @@ let gSyncPane = {
                           sb.GetStringFromName("needUserLong");
 
         
+        if (!email) {
+          let learnMoreLink = document.createElement("label");
+          learnMoreLink.className = "text-link";
+          let { text, href } = fxaMigrator.learnMoreLink;
+          learnMoreLink.setAttribute("value", text);
+          learnMoreLink.href = href;
+          elt.appendChild(learnMoreLink);
+        }
+
+        
         let button = document.getElementById("sync-migrate-upgrade");
         button.setAttribute("label",
                             sb.GetStringFromName(email
