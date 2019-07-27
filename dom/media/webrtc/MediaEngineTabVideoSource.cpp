@@ -200,7 +200,7 @@ MediaEngineTabVideoSource::NotifyPull(MediaStreamGraph*,
 
   
   nsRefPtr<layers::CairoImage> image = mImage;
-  StreamTime delta = aDesiredTime - aLastEndTime;
+  StreamTime delta = aDesiredTime - aSource->GetEndOfAppendedData(aID);
   if (delta > 0) {
     
     gfx::IntSize size = image ? image->GetSize() : IntSize(0, 0);
