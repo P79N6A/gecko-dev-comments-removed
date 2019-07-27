@@ -32,6 +32,9 @@ private:
                                const nsAFlatCString &aURI, 
                                bool aIRI, 
                                nsAString &_retval);
+
+  
+  nsXPIDLString mUnsafeChars;
 };
 
 #endif 
