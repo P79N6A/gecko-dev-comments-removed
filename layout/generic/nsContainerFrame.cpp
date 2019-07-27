@@ -687,7 +687,8 @@ void nsContainerFrame::SetSizeConstraints(nsPresContext* aPresContext,
   
   
   
-  nsIntSize windowSize = aWidget->ClientToWindowSize(nsIntSize(200, 200));
+  LayoutDeviceIntSize windowSize =
+    aWidget->ClientToWindowSize(LayoutDeviceIntSize(200, 200));
   if (constraints.mMinSize.width)
     constraints.mMinSize.width += windowSize.width - 200;
   if (constraints.mMinSize.height)
