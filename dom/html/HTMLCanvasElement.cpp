@@ -726,7 +726,7 @@ HTMLCanvasElement::GetContext(const nsAString& aContextId,
 }
 
 static bool
-IsContextIdWebGL(const nsAString& str)
+IsContextIdWebGL1(const nsAString& str)
 {
   return str.EqualsLiteral("webgl") ||
          str.EqualsLiteral("experimental-webgl");
@@ -762,21 +762,17 @@ HTMLCanvasElement::GetContext(JSContext* aCx,
     mCurrentContextId.Assign(aContextId);
   }
 
-  if (!mCurrentContextId.Equals(aContextId)) {
-    if (IsContextIdWebGL(aContextId) &&
-        IsContextIdWebGL(mCurrentContextId))
-    {
+  if (mCurrentContextId.Equals(aContextId)) {
       
+  } else if (IsContextIdWebGL1(aContextId) &&
+             IsContextIdWebGL1(mCurrentContextId))
+  {
       
-      nsCString creationId = NS_LossyConvertUTF16toASCII(mCurrentContextId);
-      nsCString requestId = NS_LossyConvertUTF16toASCII(aContextId);
-      JS_ReportWarning(aCx, "WebGL: Retrieving a WebGL context from a canvas "
-                            "via a request id ('%s') different from the id used "
-                            "to create the context ('%s') is not allowed.",
-                            requestId.get(),
-                            creationId.get());
-    }
-    
+
+
+
+
+  } else {
     
     return nullptr;
   }
