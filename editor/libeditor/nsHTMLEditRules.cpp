@@ -447,8 +447,7 @@ nsHTMLEditRules::AfterEditInner(EditAction action,
     nsAutoTxnsConserveSelection dontSpazMySelection(mHTMLEditor);
    
     
-    res = PromoteRange(mDocChangeRange, action);
-    NS_ENSURE_SUCCESS(res, res);
+    PromoteRange(*mDocChangeRange, action);
 
     
     
@@ -5768,8 +5767,7 @@ nsHTMLEditRules::GetPromotedRanges(Selection* inSelection,
     
     
     
-    res = PromoteRange(opRange, inOperationType);
-    NS_ENSURE_SUCCESS(res, res);
+    PromoteRange(*opRange, inOperationType);
       
     
     outArrayOfRanges.AppendElement(opRange);
@@ -5782,59 +5780,41 @@ nsHTMLEditRules::GetPromotedRanges(Selection* inSelection,
 
 
 
-nsresult 
-nsHTMLEditRules::PromoteRange(nsRange* inRange, EditAction inOperationType)
+void
+nsHTMLEditRules::PromoteRange(nsRange& aRange, EditAction aOperationType)
 {
-  NS_ENSURE_TRUE(inRange, NS_ERROR_NULL_POINTER);
-  nsresult res;
-  nsCOMPtr<nsIDOMNode> startNode, endNode;
-  int32_t startOffset, endOffset;
-  
-  res = inRange->GetStartContainer(getter_AddRefs(startNode));
-  NS_ENSURE_SUCCESS(res, res);
-  res = inRange->GetStartOffset(&startOffset);
-  NS_ENSURE_SUCCESS(res, res);
-  res = inRange->GetEndContainer(getter_AddRefs(endNode));
-  NS_ENSURE_SUCCESS(res, res);
-  res = inRange->GetEndOffset(&endOffset);
-  NS_ENSURE_SUCCESS(res, res);
+  NS_ENSURE_TRUE(mHTMLEditor, );
+  nsCOMPtr<nsIEditor> kungFuDeathGrip(mHTMLEditor);
+
+  nsCOMPtr<nsINode> startNode = aRange.GetStartParent();
+  nsCOMPtr<nsINode> endNode = aRange.GetEndParent();
+  int32_t startOffset = aRange.StartOffset();
+  int32_t endOffset = aRange.EndOffset();
+
   
   
   
   
-  
-  if ( (startNode == endNode) && (startOffset == endOffset))
-  {
-    nsCOMPtr<nsIDOMNode> block;
-    if (IsBlockNode(startNode)) {
-      block = startNode;
+  if (startNode == endNode && startOffset == endOffset) {
+    nsCOMPtr<Element> block;
+    if (IsBlockNode(GetAsDOMNode(startNode))) {
+      block = startNode->AsElement();
     } else {
-      NS_ENSURE_STATE(mHTMLEditor);
       block = mHTMLEditor->GetBlockNodeParent(startNode);
     }
-    if (block)
-    {
+    if (block) {
       bool bIsEmptyNode = false;
+      nsCOMPtr<nsIContent> root = mHTMLEditor->GetActiveEditingHost();
       
-      NS_ENSURE_STATE(mHTMLEditor);
-      nsIContent *rootContent = mHTMLEditor->GetActiveEditingHost();
-      nsCOMPtr<nsINode> rootNode = do_QueryInterface(rootContent);
-      nsCOMPtr<nsINode> blockNode = do_QueryInterface(block);
-      NS_ENSURE_TRUE(rootNode && blockNode, NS_ERROR_UNEXPECTED);
-      
-      if (!nsContentUtils::ContentIsDescendantOf(rootNode, blockNode))
-      {
-        NS_ENSURE_STATE(mHTMLEditor);
-        res = mHTMLEditor->IsEmptyNode(block, &bIsEmptyNode, true, false);
+      NS_ENSURE_TRUE(root, );
+      if (!nsContentUtils::ContentIsDescendantOf(root, block)) {
+        mHTMLEditor->IsEmptyNode(block, &bIsEmptyNode, true, false);
       }
-      if (bIsEmptyNode)
-      {
-        uint32_t numChildren;
-        nsEditor::GetLengthOfDOMNode(block, numChildren); 
+      if (bIsEmptyNode) {
         startNode = block;
         endNode = block;
         startOffset = 0;
-        endOffset = numChildren;
+        endOffset = block->Length();
       }
     }
   }
@@ -5842,31 +5822,30 @@ nsHTMLEditRules::PromoteRange(nsRange* inRange, EditAction inOperationType)
   
   
   
-  
+
   nsCOMPtr<nsIDOMNode> opStartNode;
   nsCOMPtr<nsIDOMNode> opEndNode;
   int32_t opStartOffset, opEndOffset;
   nsRefPtr<nsRange> opRange;
-  
-  GetPromotedPoint(kStart, startNode, startOffset, inOperationType,
-                   address_of(opStartNode), &opStartOffset);
-  GetPromotedPoint(kEnd, endNode, endOffset, inOperationType,
+
+  GetPromotedPoint(kStart, GetAsDOMNode(startNode), startOffset,
+                   aOperationType, address_of(opStartNode), &opStartOffset);
+  GetPromotedPoint(kEnd, GetAsDOMNode(endNode), endOffset, aOperationType,
                    address_of(opEndNode), &opEndOffset);
 
   
-  NS_ENSURE_STATE(mHTMLEditor);
-  if (!mHTMLEditor->IsDescendantOfEditorRoot(nsEditor::GetNodeAtRangeOffsetPoint(opStartNode, opStartOffset)) ||
-      !mHTMLEditor || 
-      !mHTMLEditor->IsDescendantOfEditorRoot(nsEditor::GetNodeAtRangeOffsetPoint(opEndNode, opEndOffset - 1))) {
-    NS_ENSURE_STATE(mHTMLEditor);
-    return NS_OK;
+  if (!mHTMLEditor->IsDescendantOfEditorRoot(
+        nsEditor::GetNodeAtRangeOffsetPoint(opStartNode, opStartOffset)) ||
+      !mHTMLEditor->IsDescendantOfEditorRoot(
+        nsEditor::GetNodeAtRangeOffsetPoint(opEndNode, opEndOffset - 1))) {
+    return;
   }
 
-  res = inRange->SetStart(opStartNode, opStartOffset);
-  NS_ENSURE_SUCCESS(res, res);
-  res = inRange->SetEnd(opEndNode, opEndOffset);
-  return res;
-} 
+  DebugOnly<nsresult> res = aRange.SetStart(opStartNode, opStartOffset);
+  MOZ_ASSERT(NS_SUCCEEDED(res));
+  res = aRange.SetEnd(opEndNode, opEndOffset);
+  MOZ_ASSERT(NS_SUCCEEDED(res));
+}
 
 class NodeComparator
 {
@@ -6042,23 +6021,20 @@ nsHTMLEditRules::GetChildNodesForOperation(nsIDOMNode *inNode,
 
 
 
-
-
-
-nsresult 
-nsHTMLEditRules::GetListActionNodes(nsCOMArray<nsIDOMNode> &outArrayOfNodes, 
+nsresult
+nsHTMLEditRules::GetListActionNodes(nsCOMArray<nsIDOMNode> &outArrayOfNodes,
                                     bool aEntireList,
                                     bool aDontTouchContent)
 {
   nsresult res = NS_OK;
-  
+
   NS_ENSURE_STATE(mHTMLEditor);
   nsRefPtr<Selection> selection = mHTMLEditor->GetSelection();
   NS_ENSURE_TRUE(selection, NS_ERROR_FAILURE);
   
   
   if (aEntireList)
-  {       
+  {
     uint32_t rangeCount = selection->RangeCount();
     for (uint32_t rangeIdx = 0; rangeIdx < rangeCount; ++rangeIdx) {
       nsRefPtr<nsRange> range = selection->GetRangeAt(rangeIdx);
@@ -6094,7 +6070,7 @@ nsHTMLEditRules::GetListActionNodes(nsCOMArray<nsIDOMNode> &outArrayOfNodes,
                                 outArrayOfNodes, aDontTouchContent);
     NS_ENSURE_SUCCESS(res, res);
   }
-               
+
   
   int32_t listCount = outArrayOfNodes.Count();
   int32_t i;
@@ -6108,7 +6084,7 @@ nsHTMLEditRules::GetListActionNodes(nsCOMArray<nsIDOMNode> &outArrayOfNodes,
     {
       outArrayOfNodes.RemoveObjectAt(i);
     }
-    
+
     
     
     if (nsHTMLEditUtils::IsTableElementButNotTable(testNode))
@@ -6402,8 +6378,7 @@ nsHTMLEditRules::GetNodesFromPoint(::DOMPoint point,
   NS_ENSURE_SUCCESS(res, res);
   
   
-  res = PromoteRange(range, operation);
-  NS_ENSURE_SUCCESS(res, res);
+  PromoteRange(*range, operation);
       
   
   nsTArray<nsRefPtr<nsRange>> arrayOfRanges;
