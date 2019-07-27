@@ -285,6 +285,12 @@ function testCaseFn() {
 
 
 
+
+
+
+
+
+
 }
 
 var str = testCaseFn.toString().replace("/*","").replace("*/","");

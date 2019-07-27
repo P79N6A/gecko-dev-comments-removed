@@ -186,6 +186,59 @@ function String_static_fromCodePoint() {
 }
 
 
+function String_static_raw(callSite, ...substitutions) {
+    
+    
+    var numberOfSubstitutions = substitutions.length;
+
+    
+    var cooked = ToObject(callSite);
+
+    
+    var raw = ToObject(cooked.raw);
+
+    
+    var literalSegments = ToLength(raw.length);
+
+    
+    if (literalSegments <= 0)
+        return "";
+
+    
+    var resultString = "";
+
+    
+    var nextIndex = 0;
+
+    
+    while (true) {
+        
+        var nextSeg = ToString(raw[nextIndex]);
+
+        
+        resultString = resultString + nextSeg;
+
+        
+        if (nextIndex + 1 === literalSegments)
+            
+            return resultString;
+
+        
+        var nextSub;
+        if (nextIndex < numberOfSubstitutions)
+            nextSub = ToString(substitutions[nextIndex]);
+        else
+            nextSub = "";
+
+        
+        resultString = resultString + nextSub;
+
+        
+        nextIndex++;
+    }
+}
+
+
 
 
 
