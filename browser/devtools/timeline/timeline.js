@@ -12,10 +12,15 @@ devtools.lazyRequireGetter(this, "promise");
 devtools.lazyRequireGetter(this, "EventEmitter",
   "devtools/toolkit/event-emitter");
 
-devtools.lazyRequireGetter(this, "Overview",
-  "devtools/timeline/overview", true);
+devtools.lazyRequireGetter(this, "MarkersOverview",
+  "devtools/timeline/markers-overview", true);
+devtools.lazyRequireGetter(this, "MemoryOverview",
+  "devtools/timeline/memory-overview", true);
 devtools.lazyRequireGetter(this, "Waterfall",
   "devtools/timeline/waterfall", true);
+
+devtools.lazyImporter(this, "CanvasGraphUtils",
+  "resource:///modules/devtools/Graphs.jsm");
 
 devtools.lazyImporter(this, "PluralForm",
   "resource://gre/modules/PluralForm.jsm");
@@ -65,7 +70,11 @@ let TimelineController = {
   
 
 
+
+  _starTime: 0,
+  _endTime: 0,
   _markers: [],
+  _memory: [],
 
   
 
@@ -73,7 +82,9 @@ let TimelineController = {
   initialize: function() {
     this._onRecordingTick = this._onRecordingTick.bind(this);
     this._onMarkers = this._onMarkers.bind(this);
+    this._onMemory = this._onMemory.bind(this);
     gFront.on("markers", this._onMarkers);
+    gFront.on("memory", this._onMemory);
   },
 
   
@@ -81,6 +92,15 @@ let TimelineController = {
 
   destroy: function() {
     gFront.off("markers", this._onMarkers);
+    gFront.off("memory", this._onMemory);
+  },
+
+  
+
+
+
+  getInterval: function() {
+    return { startTime: this._startTime, endTime: this._endTime };
   },
 
   
@@ -90,6 +110,25 @@ let TimelineController = {
   getMarkers: function() {
     return this._markers;
   },
+
+  
+
+
+
+  getMemory: function() {
+    return this._memory;
+  },
+
+  
+
+
+  updateMemoryRecording: Task.async(function*() {
+    if ($("#memory-checkbox").checked) {
+      yield TimelineView.showMemoryOverview();
+    } else {
+      yield TimelineView.hideMemoryOverview();
+    }
+  }),
 
   
 
@@ -108,17 +147,20 @@ let TimelineController = {
 
   _startRecording: function*() {
     TimelineView.handleRecordingStarted();
-    let startTime = yield gFront.start();
+
+    let withMemory = $("#memory-checkbox").checked;
+    let startTime = yield gFront.start({ withMemory });
+
     
     
     
     
     
     this._localStartTime = performance.now();
-
+    this._startTime = startTime;
+    this._endTime = startTime;
     this._markers = [];
-    this._markers.startTime = startTime;
-    this._markers.endTime = startTime;
+    this._memory = [];
     this._updateId = setInterval(this._onRecordingTick, OVERVIEW_UPDATE_INTERVAL);
   },
 
@@ -131,7 +173,7 @@ let TimelineController = {
     
     this._markers = this._markers.sort((a,b) => (a.start > b.start));
 
-    TimelineView.handleMarkersUpdate(this._markers);
+    TimelineView.handleRecordingUpdate();
     TimelineView.handleRecordingEnded();
     yield gFront.stop();
   },
@@ -143,6 +185,7 @@ let TimelineController = {
   _stopRecordingAndDiscardData: function*() {
     yield this._stopRecording();
     this._markers.length = 0;
+    this._memory.length = 0;
   },
 
   
@@ -156,7 +199,19 @@ let TimelineController = {
 
   _onMarkers: function(markers, endTime) {
     Array.prototype.push.apply(this._markers, markers);
-    this._markers.endTime = endTime;
+    this._endTime = endTime;
+  },
+
+  
+
+
+
+
+
+
+
+  _onMemory: function(delta, measurement) {
+    this._memory.push({ delta, value: measurement.total / 1024 / 1024 });
   },
 
   
@@ -167,11 +222,11 @@ let TimelineController = {
     
     
     
-    let fakeTime = this._markers.startTime + (performance.now() - this._localStartTime);
-    if (fakeTime > this._markers.endTime) {
-      this._markers.endTime = fakeTime;
+    let fakeTime = this._startTime + (performance.now() - this._localStartTime);
+    if (fakeTime > this._endTime) {
+      this._endTime = fakeTime;
     }
-    TimelineView.handleMarkersUpdate(this._markers);
+    TimelineView.handleRecordingUpdate();
   }
 };
 
@@ -183,15 +238,15 @@ let TimelineView = {
 
 
   initialize: Task.async(function*() {
-    this.overview = new Overview($("#timeline-overview"));
+    this.markersOverview = new MarkersOverview($("#markers-overview"));
     this.waterfall = new Waterfall($("#timeline-waterfall"));
 
     this._onSelecting = this._onSelecting.bind(this);
     this._onRefresh = this._onRefresh.bind(this);
-    this.overview.on("selecting", this._onSelecting);
-    this.overview.on("refresh", this._onRefresh);
+    this.markersOverview.on("selecting", this._onSelecting);
+    this.markersOverview.on("refresh", this._onRefresh);
 
-    yield this.overview.ready();
+    yield this.markersOverview.ready();
     yield this.waterfall.recalculateBounds();
   }),
 
@@ -199,9 +254,40 @@ let TimelineView = {
 
 
   destroy: function() {
-    this.overview.off("selecting", this._onSelecting);
-    this.overview.off("refresh", this._onRefresh);
-    this.overview.destroy();
+    this.markersOverview.off("selecting", this._onSelecting);
+    this.markersOverview.off("refresh", this._onRefresh);
+    this.markersOverview.destroy();
+
+    
+    if (this.memoryOverview) {
+      this.memoryOverview.destroy();
+    }
+  },
+
+  
+
+
+  showMemoryOverview: Task.async(function*() {
+    this.memoryOverview = new MemoryOverview($("#memory-overview"));
+    yield this.memoryOverview.ready();
+
+    let interval = TimelineController.getInterval();
+    let memory = TimelineController.getMemory();
+    this.memoryOverview.setData({ interval, memory });
+
+    CanvasGraphUtils.linkAnimation(this.markersOverview, this.memoryOverview);
+    CanvasGraphUtils.linkSelection(this.markersOverview, this.memoryOverview);
+  }),
+
+  
+
+
+  hideMemoryOverview: function() {
+    if (!this.memoryOverview) {
+      return;
+    }
+    this.memoryOverview.destroy();
+    this.memoryOverview = null;
   },
 
   
@@ -210,11 +296,16 @@ let TimelineView = {
 
   handleRecordingStarted: function() {
     $("#record-button").setAttribute("checked", "true");
+    $("#memory-checkbox").setAttribute("disabled", "true");
     $("#timeline-pane").selectedPanel = $("#recording-notice");
 
-    this.overview.selectionEnabled = false;
-    this.overview.dropSelection();
-    this.overview.setData([]);
+    this.markersOverview.clearView();
+
+    
+    if (this.memoryOverview) {
+      this.memoryOverview.clearView();
+    }
+
     this.waterfall.clearView();
 
     window.emit(EVENTS.RECORDING_STARTED);
@@ -226,18 +317,28 @@ let TimelineView = {
 
   handleRecordingEnded: function() {
     $("#record-button").removeAttribute("checked");
+    $("#memory-checkbox").removeAttribute("disabled");
     $("#timeline-pane").selectedPanel = $("#timeline-waterfall");
 
-    this.overview.selectionEnabled = true;
+    this.markersOverview.selectionEnabled = true;
 
+    
+    if (this.memoryOverview) {
+      this.memoryOverview.selectionEnabled = true;
+    }
+
+    let interval = TimelineController.getInterval();
     let markers = TimelineController.getMarkers();
+    let memory = TimelineController.getMemory();
+
     if (markers.length) {
-      let start = (markers[0].start - markers.startTime) * this.overview.dataScaleX;
-      let end = start + this.overview.width * OVERVIEW_INITIAL_SELECTION_RATIO;
-      this.overview.setSelection({ start, end });
+      let start = (markers[0].start - interval.startTime) * this.markersOverview.dataScaleX;
+      let end = start + this.markersOverview.width * OVERVIEW_INITIAL_SELECTION_RATIO;
+      this.markersOverview.setSelection({ start, end });
     } else {
-      let duration = markers.endTime - markers.startTime;
-      this.waterfall.setData(markers, markers.startTime, markers.endTime);
+      let timeStart = interval.startTime;
+      let timeEnd = interval.endTime;
+      this.waterfall.setData(markers, timeStart, timeStart, timeEnd);
     }
 
     window.emit(EVENTS.RECORDING_ENDED);
@@ -247,11 +348,18 @@ let TimelineView = {
 
 
 
+  handleRecordingUpdate: function() {
+    let interval = TimelineController.getInterval();
+    let markers = TimelineController.getMarkers();
+    let memory = TimelineController.getMemory();
 
+    this.markersOverview.setData({ interval, markers });
 
+    
+    if (this.memoryOverview) {
+      this.memoryOverview.setData({ interval, memory });
+    }
 
-  handleMarkersUpdate: function(markers) {
-    this.overview.setData(markers);
     window.emit(EVENTS.OVERVIEW_UPDATED);
   },
 
@@ -259,19 +367,21 @@ let TimelineView = {
 
 
   _onSelecting: function() {
-    if (!this.overview.hasSelection() &&
-        !this.overview.hasSelectionInProgress()) {
+    if (!this.markersOverview.hasSelection() &&
+        !this.markersOverview.hasSelectionInProgress()) {
       this.waterfall.clearView();
       return;
     }
-    let selection = this.overview.getSelection();
-    let start = selection.start / this.overview.dataScaleX;
-    let end = selection.end / this.overview.dataScaleX;
+    let selection = this.markersOverview.getSelection();
+    let start = selection.start / this.markersOverview.dataScaleX;
+    let end = selection.end / this.markersOverview.dataScaleX;
 
     let markers = TimelineController.getMarkers();
-    let timeStart = markers.startTime + Math.min(start, end);
-    let timeEnd = markers.startTime + Math.max(start, end);
-    this.waterfall.setData(markers, timeStart, timeEnd);
+    let interval = TimelineController.getInterval();
+
+    let timeStart = interval.startTime + Math.min(start, end);
+    let timeEnd = interval.startTime + Math.max(start, end);
+    this.waterfall.setData(markers, interval.startTime, timeStart, timeEnd);
   },
 
   
