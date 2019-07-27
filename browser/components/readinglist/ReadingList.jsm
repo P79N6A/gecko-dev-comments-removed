@@ -136,38 +136,6 @@ ReadingListImpl.prototype = {
 
 
 
-  containsURL: Task.async(function* (url) {
-    url = normalizeURI(url).spec;
-
-    
-    
-
-    
-    if (this._itemsByURL.has(url)) {
-      return true;
-    }
-
-    
-    
-    for (let itemWeakRef of this._itemsByURL.values()) {
-      let item = itemWeakRef.get();
-      if (item && item.resolvedURL == url) {
-        return true;
-      }
-    }
-
-    
-    let count = yield this.count({url: url}, {resolvedURL: url});
-    return (count > 0);
-  }),
-
-  
-
-
-
-
-
-
 
 
 
@@ -222,7 +190,6 @@ ReadingListImpl.prototype = {
 
   addItem: Task.async(function* (obj) {
     obj = stripNonItemProperties(obj);
-    normalizeReadingListProperties(obj);
     yield this._store.addItem(obj);
     this._invalidateIterators();
     let item = this._itemFromObject(obj);
@@ -281,35 +248,8 @@ ReadingListImpl.prototype = {
 
 
   getItemForURL: Task.async(function* (uri) {
-    let url = normalizeURI(uri).spec;
+    let url = this._normalizeURI(uri).spec;
     let [item] = yield this.iterator({url: url}, {resolvedURL: url}).items(1);
-    return item;
-  }),
-
-   
-
-
-
-
-
-  addItemFromBrowser: Task.async(function* (browser) {
-    let metadata = yield getMetadataFromBrowser(browser);
-    let itemData = {
-      url: browser.currentURI,
-      title: metadata.title,
-      resolvedURL: metadata.url,
-      excerpt: metadata.description,
-    };
-
-    if (metadata.description) {
-      itemData.exerpt = metadata.description;
-    }
-
-    if (metadata.previews.length > 0) {
-      itemData.image = metadata.previews[0];
-    }
-
-    let item = yield ReadingList.addItem(itemData);
     return item;
   }),
 
@@ -371,6 +311,22 @@ ReadingListImpl.prototype = {
 
 
 
+  _normalizeURI(uri) {
+    if (typeof uri == "string") {
+      uri = Services.io.newURI(uri, "", null);
+    }
+    uri = uri.cloneIgnoringRef();
+    uri.userPass = "";
+    return uri;
+  },
+
+  
+
+
+
+
+
+
   _itemFromObject(obj) {
     let itemWeakRef = this._itemsByURL.get(obj.url);
     let item = itemWeakRef ? itemWeakRef.get() : null;
@@ -419,25 +375,11 @@ ReadingListImpl.prototype = {
   },
 
   _ensureItemBelongsToList(item) {
-    if (!item || !item._ensureBelongsToList) {
-      throw new Error("The item is not a ReadingListItem");
+    if (item.list != this) {
+      throw new Error("The item does not belong to this list");
     }
-    item._ensureBelongsToList();
   },
 };
-
-
-
-
-function normalizeReadingListProperties(obj) {
-  if (obj.url) {
-    obj.url = normalizeURI(obj.url).spec;
-  }
-  if (obj.resolvedURL) {
-    obj.resolvedURL = normalizeURI(obj.resolvedURL).spec;
-  }
-}
-
 
 let _unserializable = () => {}; 
 
@@ -489,6 +431,9 @@ ReadingListItem.prototype = {
   },
   set guid(val) {
     this._properties.guid = val;
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
@@ -502,6 +447,9 @@ ReadingListItem.prototype = {
   },
   set lastModified(val) {
     this._properties.lastModified = val.valueOf();
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
@@ -512,7 +460,10 @@ ReadingListItem.prototype = {
     return this._properties.url;
   },
   set url(val) {
-    this._properties.url = normalizeURI(val).spec;
+    this._properties.url = val;
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
@@ -525,7 +476,10 @@ ReadingListItem.prototype = {
            undefined;
   },
   set uri(val) {
-    this.url = normalizeURI(val).spec;
+    this.url = val.spec;
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
@@ -548,7 +502,10 @@ ReadingListItem.prototype = {
     return this._properties.resolvedURL;
   },
   set resolvedURL(val) {
-    this._properties.resolvedURL = normalizeURI(val).spec;
+    this._properties.resolvedURL = val;
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
@@ -562,6 +519,9 @@ ReadingListItem.prototype = {
   },
   set resolvedURI(val) {
     this.resolvedURL = val.spec;
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
@@ -573,6 +533,9 @@ ReadingListItem.prototype = {
   },
   set title(val) {
     this._properties.title = val;
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
@@ -584,6 +547,9 @@ ReadingListItem.prototype = {
   },
   set resolvedTitle(val) {
     this._properties.resolvedTitle = val;
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
@@ -595,6 +561,9 @@ ReadingListItem.prototype = {
   },
   set excerpt(val) {
     this._properties.excerpt = val;
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
@@ -606,6 +575,9 @@ ReadingListItem.prototype = {
   },
   set status(val) {
     this._properties.status = val;
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
@@ -617,6 +589,9 @@ ReadingListItem.prototype = {
   },
   set favorite(val) {
     this._properties.favorite = !!val;
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
@@ -628,6 +603,9 @@ ReadingListItem.prototype = {
   },
   set isArticle(val) {
     this._properties.isArticle = !!val;
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
@@ -639,6 +617,9 @@ ReadingListItem.prototype = {
   },
   set wordCount(val) {
     this._properties.wordCount = val;
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
@@ -650,6 +631,9 @@ ReadingListItem.prototype = {
   },
   set unread(val) {
     this._properties.unread = !!val;
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
@@ -663,6 +647,9 @@ ReadingListItem.prototype = {
   },
   set addedOn(val) {
     this._properties.addedOn = val.valueOf();
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
@@ -676,6 +663,9 @@ ReadingListItem.prototype = {
   },
   set storedOn(val) {
     this._properties.storedOn = val.valueOf();
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
@@ -687,6 +677,9 @@ ReadingListItem.prototype = {
   },
   set markedReadBy(val) {
     this._properties.markedReadBy = val;
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
@@ -700,6 +693,9 @@ ReadingListItem.prototype = {
   },
   set markedReadOn(val) {
     this._properties.markedReadOn = val.valueOf();
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
@@ -711,6 +707,9 @@ ReadingListItem.prototype = {
   },
   set readPosition(val) {
     this._properties.readPosition = val;
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
@@ -721,14 +720,12 @@ ReadingListItem.prototype = {
 
 
 
-  setProperties: Task.async(function* (props, update=true) {
+  setProperties: Task.async(function* (props, commit=true) {
     for (let name in props) {
       this._properties[name] = props[name];
     }
-    
-    normalizeReadingListProperties(this._properties);
-    if (update) {
-      yield this.list.updateItem(this);
+    if (commit) {
+      yield this.commit();
     }
   }),
 
@@ -741,6 +738,17 @@ ReadingListItem.prototype = {
     this._ensureBelongsToList();
     yield this.list.deleteItem(this);
     this.delete = () => Promise.reject("The item has already been deleted");
+  }),
+
+  
+
+
+
+
+
+  commit: Task.async(function* () {
+    this._ensureBelongsToList();
+    yield this.list.updateItem(this);
   }),
 
   toJSON() {
@@ -848,23 +856,6 @@ ReadingListItemIterator.prototype = {
 };
 
 
-
-
-
-
-
-
-function normalizeURI(uri) {
-  if (typeof uri == "string") {
-    uri = Services.io.newURI(uri, "", null);
-  }
-  uri = uri.cloneIgnoringRef();
-  try {
-    uri.userPass = "";
-  } catch (ex) {} 
-  return uri;
-};
-
 function stripNonItemProperties(item) {
   let obj = {};
   for (let name of ITEM_BASIC_PROPERTY_NAMES) {
@@ -894,24 +885,6 @@ function clone(obj) {
   return Cu.cloneInto(obj, {}, { cloneFunctions: false });
 }
 
-
-
-
-
-
-
-
-function getMetadataFromBrowser(browser) {
-  let mm = browser.messageManager;
-  return new Promise(resolve => {
-    function handleResult(msg) {
-      mm.removeMessageListener("PageMetadata:PageDataResult", handleResult);
-      resolve(msg.json);
-    }
-    mm.addMessageListener("PageMetadata:PageDataResult", handleResult);
-    mm.sendAsyncMessage("PageMetadata:GetPageData");
-  });
-}
 
 Object.defineProperty(this, "ReadingList", {
   get() {

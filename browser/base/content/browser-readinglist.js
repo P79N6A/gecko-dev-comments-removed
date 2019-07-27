@@ -10,10 +10,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "ReadingList",
 const READINGLIST_COMMAND_ID = "readingListSidebar";
 
 let ReadingListUI = {
-  
-
-
-
   MESSAGES: [
     "ReadingList:GetVisibility",
     "ReadingList:ToggleVisibility",
@@ -22,22 +18,7 @@ let ReadingListUI = {
   
 
 
-
-  toolbarButton: null,
-
-  
-
-
-
-
-  listenerRegistered: false,
-
-  
-
-
   init() {
-    this.toolbarButton = document.getElementById("readinglist-addremove-button");
-
     Preferences.observe("browser.readinglist.enabled", this.updateUI, this);
 
     const mm = window.messageManager;
@@ -82,18 +63,7 @@ let ReadingListUI = {
 
   updateUI() {
     let enabled = this.enabled;
-    if (enabled) {
-      
-      ReadingList.addListener(this);
-      this.listenerRegistered = true;
-    } else {
-      if (this.listenerRegistered) {
-        
-        
-        ReadingList.removeListener(this);
-        this.listenerRegistered = true;
-      }
-
+    if (!enabled) {
       this.hideSidebar();
     }
 
@@ -118,11 +88,6 @@ let ReadingListUI = {
       SidebarUI.hide();
     }
   },
-
-  
-
-
-
 
   onReadingListPopupShowing: Task.async(function* (target) {
     if (target.id == "BMB_readingListPopup") {
@@ -217,94 +182,6 @@ let ReadingListUI = {
         this.toggleSidebar();
         break;
       }
-    }
-  },
-
-  
-
-
-
-
-
-
-  onPageProxyStateChanged: Task.async(function* (state) {
-    if (!this.enabled || state == "invalid") {
-      this.toolbarButton.setAttribute("hidden", true);
-      return;
-    }
-
-    let isInList = yield ReadingList.containsURL(gBrowser.currentURI);
-    this.setToolbarButtonState(isInList);
-  }),
-
-  
-
-
-
-
-
-
-
-
-  setToolbarButtonState(active) {
-    this.toolbarButton.setAttribute("already-added", active);
-
-    let type = (active ? "remove" : "add");
-    let tooltip = gNavigatorBundle.getString(`readingList.urlbar.${type}`);
-    this.toolbarButton.setAttribute("tooltiptext", tooltip);
-
-    this.toolbarButton.removeAttribute("hidden");
-  },
-
-  
-
-
-
-
-
-
-  togglePageByBrowser: Task.async(function* (browser) {
-    let item = yield ReadingList.getItemForURL(browser.currentURI);
-    if (item) {
-      yield item.delete();
-    } else {
-      yield ReadingList.addItemFromBrowser(browser);
-    }
-  }),
-
-  
-
-
-
-
-
-  isItemForCurrentBrowser(item) {
-    let currentURL = gBrowser.currentURI.spec;
-    if (item.url == currentURL || item.resolvedURL == currentURL) {
-      return true;
-    }
-    return false;
-  },
-
-  
-
-
-
-
-  onItemAdded(item) {
-    if (this.isItemForCurrentBrowser(item)) {
-      this.setToolbarButtonState(true);
-    }
-  },
-
-  
-
-
-
-
-  onItemDeleted(item) {
-    if (this.isItemForCurrentBrowser(item)) {
-      this.setToolbarButtonState(false);
     }
   },
 };
