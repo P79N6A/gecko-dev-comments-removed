@@ -1515,14 +1515,27 @@ nsCSSRendering::PaintBoxShadowInner(nsPresContext* aPresContext,
     nsRect shadowPaintRect = paddingRect;
     shadowPaintRect.Inflate(blurMargin);
 
+    Rect shadowPaintGfxRect = NSRectToRect(shadowPaintRect, twipsPerPixel);
+    shadowPaintGfxRect.RoundOut();
+
+    
+    
+    
+    
+    
+    int32_t spreadDistance = shadowItem->mSpread / twipsPerPixel;
+    nscoord spreadDistanceAppUnits = aPresContext->DevPixelsToAppUnits(spreadDistance);
+
     nsRect shadowClipRect = paddingRect;
     shadowClipRect.MoveBy(shadowItem->mXOffset, shadowItem->mYOffset);
-    shadowClipRect.Deflate(shadowItem->mSpread, shadowItem->mSpread);
+    shadowClipRect.Deflate(spreadDistanceAppUnits, spreadDistanceAppUnits);
+
+    Rect shadowClipGfxRect = NSRectToRect(shadowClipRect, twipsPerPixel);
+    shadowClipGfxRect.Round();
 
     RectCornerRadii clipRectRadii;
     if (hasBorderRadius) {
       
-      Float spreadDistance = shadowItem->mSpread / twipsPerPixel;
       Float borderSizes[4] = {0, 0, 0, 0};
 
       
@@ -1597,10 +1610,6 @@ nsCSSRendering::PaintBoxShadowInner(nsPresContext* aPresContext,
 
     
     
-    Rect shadowPaintGfxRect = NSRectToRect(shadowPaintRect, twipsPerPixel);
-    shadowPaintGfxRect.RoundOut();
-    Rect shadowClipGfxRect = NSRectToRect(shadowClipRect, twipsPerPixel);
-    shadowClipGfxRect.Round();
     RefPtr<PathBuilder> builder =
       shadowDT->CreatePathBuilder(FillRule::FILL_EVEN_ODD);
     AppendRectToPath(builder, shadowPaintGfxRect, true);
