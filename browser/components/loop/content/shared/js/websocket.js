@@ -130,6 +130,16 @@ loop.CallConnectionWebSocket = (function() {
     
 
 
+    accept: function() {
+      this._send({
+        messageType: "action",
+        event: "accept"
+      });
+    },
+
+    
+
+
 
 
     _send: function(data) {
