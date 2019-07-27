@@ -14,6 +14,7 @@
 
 namespace mozilla {
 template <class T> class LinkedList;
+class LogicalPoint;
 }
 
 nsContainerFrame* NS_NewFlexContainerFrame(nsIPresShell* aPresShell,
@@ -169,6 +170,26 @@ protected:
                            const FlexboxAxisTracker& aAxisTracker,
                            nsHTMLReflowState& aChildReflowState,
                            FlexItem& aItem);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  void ReflowFlexItem(nsPresContext* aPresContext,
+                      const FlexboxAxisTracker& aAxisTracker,
+                      const nsHTMLReflowState& aReflowState,
+                      const FlexItem* aItem,
+                      mozilla::LogicalPoint& aFramePos,
+                      nscoord aContainerWidth);
 
   bool mChildrenHaveBeenReordered; 
                                    

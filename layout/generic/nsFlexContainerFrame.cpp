@@ -3683,6 +3683,93 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
       
       const nscoord itemNormalBPos = framePos.B(outerWM);
 
+      ReflowFlexItem(aPresContext, aAxisTracker, aReflowState,
+                     item, framePos, containerWidth);
+
+      
+      
+      
+      if (item->Frame() == mFrames.FirstChild() &&
+          flexContainerAscent == nscoord_MIN) {
+        flexContainerAscent = itemNormalBPos + item->ResolvedAscent();
+      }
+    }
+  }
+
+  nsSize desiredContentBoxSize =
+    aAxisTracker.PhysicalSizeFromLogicalSizes(aContentBoxMainSize,
+                                              contentBoxCrossSize);
+
+  aDesiredSize.Width() = desiredContentBoxSize.width +
+    containerBorderPadding.LeftRight();
+  
+  aDesiredSize.Height() = desiredContentBoxSize.height +
+    containerBorderPadding.top;
+
+  if (flexContainerAscent == nscoord_MIN) {
+    
+    
+    
+    
+    NS_WARN_IF_FALSE(lines.getFirst()->IsEmpty(),
+                     "Have flex items but didn't get an ascent - that's odd "
+                     "(or there are just gigantic sizes involved)");
+    
+    flexContainerAscent = aDesiredSize.Height();
+  }
+  aDesiredSize.SetBlockStartAscent(flexContainerAscent);
+
+  
+  
+  
+  
+  
+  
+  
+  if (NS_FRAME_IS_COMPLETE(aStatus)) {
+    
+    
+    
+    
+    nscoord desiredHeightWithBottomBP =
+      aDesiredSize.Height() + aReflowState.ComputedPhysicalBorderPadding().bottom;
+
+    if (aReflowState.AvailableHeight() == NS_UNCONSTRAINEDSIZE ||
+        aDesiredSize.Height() == 0 ||
+        desiredHeightWithBottomBP <= aReflowState.AvailableHeight() ||
+        aReflowState.ComputedHeight() == NS_INTRINSICSIZE) {
+      
+      aDesiredSize.Height() = desiredHeightWithBottomBP;
+    } else {
+      
+      NS_FRAME_SET_INCOMPLETE(aStatus);
+    }
+  }
+
+  
+  aDesiredSize.SetOverflowAreasToDesiredBounds();
+  for (nsFrameList::Enumerator e(mFrames); !e.AtEnd(); e.Next()) {
+    ConsiderChildOverflow(aDesiredSize.mOverflowAreas, e.get());
+  }
+
+  FinishReflowWithAbsoluteFrames(aPresContext, aDesiredSize,
+                                 aReflowState, aStatus);
+
+  NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize)
+}
+
+void
+nsFlexContainerFrame::ReflowFlexItem(nsPresContext* aPresContext,
+                                     const FlexboxAxisTracker& aAxisTracker,
+                                     const nsHTMLReflowState& aReflowState,
+                                     
+                                     
+                                     const FlexItem* item,
+                                     LogicalPoint& framePos,
+                                     nscoord containerWidth)
+{
+      
+      WritingMode outerWM = aReflowState.GetWritingMode();
       WritingMode wm = item->Frame()->GetWritingMode();
       LogicalSize availSize = aReflowState.ComputedSize(wm);
       availSize.BSize(wm) = NS_UNCONSTRAINEDSIZE;
@@ -3774,77 +3861,6 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
         
         item->SetAscent(childDesiredSize.BlockStartAscent());
       }
-
-      
-      
-      
-      if (item->Frame() == mFrames.FirstChild() &&
-          flexContainerAscent == nscoord_MIN) {
-        flexContainerAscent = itemNormalBPos + item->ResolvedAscent();
-      }
-    }
-  }
-
-  nsSize desiredContentBoxSize =
-    aAxisTracker.PhysicalSizeFromLogicalSizes(aContentBoxMainSize,
-                                              contentBoxCrossSize);
-
-  aDesiredSize.Width() = desiredContentBoxSize.width +
-    containerBorderPadding.LeftRight();
-  
-  aDesiredSize.Height() = desiredContentBoxSize.height +
-    containerBorderPadding.top;
-
-  if (flexContainerAscent == nscoord_MIN) {
-    
-    
-    
-    
-    NS_WARN_IF_FALSE(lines.getFirst()->IsEmpty(),
-                     "Have flex items but didn't get an ascent - that's odd "
-                     "(or there are just gigantic sizes involved)");
-    
-    flexContainerAscent = aDesiredSize.Height();
-  }
-  aDesiredSize.SetBlockStartAscent(flexContainerAscent);
-
-  
-  
-  
-  
-  
-  
-  
-  if (NS_FRAME_IS_COMPLETE(aStatus)) {
-    
-    
-    
-    
-    nscoord desiredHeightWithBottomBP =
-      aDesiredSize.Height() + aReflowState.ComputedPhysicalBorderPadding().bottom;
-
-    if (aReflowState.AvailableHeight() == NS_UNCONSTRAINEDSIZE ||
-        aDesiredSize.Height() == 0 ||
-        desiredHeightWithBottomBP <= aReflowState.AvailableHeight() ||
-        aReflowState.ComputedHeight() == NS_INTRINSICSIZE) {
-      
-      aDesiredSize.Height() = desiredHeightWithBottomBP;
-    } else {
-      
-      NS_FRAME_SET_INCOMPLETE(aStatus);
-    }
-  }
-
-  
-  aDesiredSize.SetOverflowAreasToDesiredBounds();
-  for (nsFrameList::Enumerator e(mFrames); !e.AtEnd(); e.Next()) {
-    ConsiderChildOverflow(aDesiredSize.mOverflowAreas, e.get());
-  }
-
-  FinishReflowWithAbsoluteFrames(aPresContext, aDesiredSize,
-                                 aReflowState, aStatus);
-
-  NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize)
 }
 
  nscoord
