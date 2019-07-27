@@ -206,7 +206,7 @@ var gDisableNoUpdateAddon = false;
 
 
 
-var DEBUG_AUS_TEST = true;
+var DEBUG_AUS_TEST = false;
 
 const DATA_URI_SPEC = "chrome://mochitests/content/chrome/toolkit/mozapps/update/tests/data/";
 Services.scriptloader.loadSubScript(DATA_URI_SPEC + "shared.js", this);
