@@ -166,22 +166,22 @@ NS_IMETHODIMP nsCommandParams::GetISupportsValue(const char * name, nsISupports 
 
 NS_IMETHODIMP nsCommandParams::SetBooleanValue(const char * name, bool value)
 {
-  HashEntry*  foundEntry;
-  GetOrMakeEntry(name, eBooleanType, foundEntry);
-  if (!foundEntry) return NS_ERROR_OUT_OF_MEMORY;
-  
+  HashEntry* foundEntry = GetOrMakeEntry(name, eBooleanType);
+  if (!foundEntry) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
   foundEntry->mData.mBoolean = value;
-  
+
   return NS_OK;
 }
 
 
 NS_IMETHODIMP nsCommandParams::SetLongValue(const char * name, int32_t value)
 {
-  HashEntry*  foundEntry;
-  GetOrMakeEntry(name, eLongType, foundEntry);
-  if (!foundEntry) return NS_ERROR_OUT_OF_MEMORY;
-  
+  HashEntry* foundEntry = GetOrMakeEntry(name, eLongType);
+  if (!foundEntry) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
   foundEntry->mData.mLong = value;
   return NS_OK;
 }
@@ -189,10 +189,10 @@ NS_IMETHODIMP nsCommandParams::SetLongValue(const char * name, int32_t value)
 
 NS_IMETHODIMP nsCommandParams::SetDoubleValue(const char * name, double value)
 {
-  HashEntry*  foundEntry;
-  GetOrMakeEntry(name, eDoubleType, foundEntry);
-  if (!foundEntry) return NS_ERROR_OUT_OF_MEMORY;
-  
+  HashEntry* foundEntry = GetOrMakeEntry(name, eDoubleType);
+  if (!foundEntry) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
   foundEntry->mData.mDouble = value;
   return NS_OK;
 }
@@ -200,10 +200,10 @@ NS_IMETHODIMP nsCommandParams::SetDoubleValue(const char * name, double value)
 
 NS_IMETHODIMP nsCommandParams::SetStringValue(const char * name, const nsAString & value)
 {
-  HashEntry*  foundEntry;
-  GetOrMakeEntry(name, eWStringType, foundEntry);
-  if (!foundEntry) return NS_ERROR_OUT_OF_MEMORY;
-  
+  HashEntry* foundEntry = GetOrMakeEntry(name, eWStringType);
+  if (!foundEntry) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
   foundEntry->mData.mString = new nsString(value);
   return NS_OK;
 }
@@ -211,10 +211,10 @@ NS_IMETHODIMP nsCommandParams::SetStringValue(const char * name, const nsAString
 
 NS_IMETHODIMP nsCommandParams::SetCStringValue(const char * name, const char * value)
 {
-  HashEntry*  foundEntry;
-  GetOrMakeEntry(name, eStringType, foundEntry);
-  if (!foundEntry)
+  HashEntry* foundEntry = GetOrMakeEntry(name, eStringType);
+  if (!foundEntry) {
     return NS_ERROR_OUT_OF_MEMORY;
+  }
   foundEntry->mData.mCString = new nsCString(value);
   return NS_OK;
 }
@@ -222,10 +222,10 @@ NS_IMETHODIMP nsCommandParams::SetCStringValue(const char * name, const char * v
 
 NS_IMETHODIMP nsCommandParams::SetISupportsValue(const char * name, nsISupports *value)
 {
-  HashEntry*  foundEntry;
-  GetOrMakeEntry(name, eISupportsType, foundEntry);
-  if (!foundEntry) return NS_ERROR_OUT_OF_MEMORY;
-  
+  HashEntry* foundEntry = GetOrMakeEntry(name, eISupportsType);
+  if (!foundEntry) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
   foundEntry->mISupports = value;   
   return NS_OK;
 }
@@ -295,25 +295,23 @@ nsCommandParams::GetNumEntries()
   return entryCount;
 }
 
-nsresult
-nsCommandParams::GetOrMakeEntry(const char * name, uint8_t entryType, HashEntry*& outEntry)
+nsCommandParams::HashEntry*
+nsCommandParams::GetOrMakeEntry(const char * name, uint8_t entryType)
 {
-
   HashEntry *foundEntry = (HashEntry *)PL_DHashTableOperate(&mValuesHash, (void *)name, PL_DHASH_LOOKUP);
-  if (PL_DHASH_ENTRY_IS_BUSY(foundEntry))   
-  {
+  if (PL_DHASH_ENTRY_IS_BUSY(foundEntry)) { 
     foundEntry->Reset(entryType);
-    foundEntry->mEntryName.Assign(name);
-    outEntry = foundEntry;
-    return NS_OK;
+    return foundEntry;
   }
 
   foundEntry = (HashEntry *)PL_DHashTableOperate(&mValuesHash, (void *)name, PL_DHASH_ADD);
-  if (!foundEntry) return NS_ERROR_OUT_OF_MEMORY;
+  if (!foundEntry) {
+    return nullptr;
+  }
+
   
-  
-  outEntry = new (foundEntry) HashEntry(entryType, name);  
-  return NS_OK;
+  new (foundEntry) HashEntry(entryType, name);
+  return foundEntry;
 }
 
 #if 0
@@ -338,13 +336,14 @@ nsCommandParams::HashMatchEntry(PLDHashTable *table,
 
 void
 nsCommandParams::HashMoveEntry(PLDHashTable *table, const PLDHashEntryHdr *from,
-                                PLDHashEntryHdr *to)
+                               PLDHashEntryHdr *to)
 {
   const HashEntry*   fromEntry  = static_cast<const HashEntry*>(from);
   HashEntry*         toEntry    = static_cast<HashEntry*>(to);
-  
-  *toEntry = *fromEntry;
-  
+
+  new (toEntry) HashEntry(*fromEntry);
+
+  fromEntry->~HashEntry();      
 }
 
 void
@@ -352,7 +351,6 @@ nsCommandParams::HashClearEntry(PLDHashTable *table, PLDHashEntryHdr *entry)
 {
   HashEntry*    thisEntry = static_cast<HashEntry*>(entry);
   thisEntry->~HashEntry();      
-  memset(thisEntry, 0, sizeof(HashEntry));    
 }
 
 #if 0
