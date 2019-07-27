@@ -109,6 +109,23 @@ GetLoadContext(nsIEditor* aEditor)
 
 
 
+
+
+static nsString
+GetDictNameWithDash(const nsAString& aDictName)
+{
+  nsString dictNameWithDash(aDictName);
+  int32_t underScore = dictNameWithDash.FindChar('_');
+  if (underScore != -1) {
+    dictNameWithDash.Replace(underScore, 1, '-');
+  }
+  return dictNameWithDash;
+}
+
+
+
+
+
 class DictionaryFetcher MOZ_FINAL : public nsIContentPrefCallback2
 {
 public:
@@ -603,8 +620,8 @@ nsEditorSpellCheck::SetCurrentDictionary(const nsAString& aDictionary)
     } else {
       langCode.Assign(aDictionary);
     }
-
-    if (mPreferredLang.IsEmpty() || !nsStyleUtil::DashMatchCompare(mPreferredLang, langCode, comparator)) {
+    if (mPreferredLang.IsEmpty() ||
+        !nsStyleUtil::DashMatchCompare(GetDictNameWithDash(mPreferredLang), langCode, comparator)) {
       
       
       StoreCurrentDictionary(mEditor, aDictionary);
@@ -750,12 +767,6 @@ nsEditorSpellCheck::DictionaryFetched(DictionaryFetcher* aFetcher)
 
   
   nsAutoString preferedDict(Preferences::GetLocalizedString("spellchecker.dictionary"));
-  
-  
-  int32_t underScore = preferedDict.FindChar('_');
-  if (underScore != -1) {
-    preferedDict.Replace(underScore, 1, '-');
-  }
   if (dictName.IsEmpty()) {
     dictName.Assign(preferedDict);
   }
@@ -794,8 +805,8 @@ nsEditorSpellCheck::DictionaryFetched(DictionaryFetcher* aFetcher)
 
       
       
-      if (!preferedDict.IsEmpty() && !dictName.Equals(preferedDict) && 
-          nsStyleUtil::DashMatchCompare(preferedDict, langCode, comparator)) {
+      if (!preferedDict.IsEmpty() && !dictName.Equals(preferedDict) &&
+          nsStyleUtil::DashMatchCompare(GetDictNameWithDash(preferedDict), langCode, comparator)) {
         rv = SetCurrentDictionary(preferedDict);
       }
 
@@ -823,8 +834,7 @@ nsEditorSpellCheck::DictionaryFetched(DictionaryFetcher* aFetcher)
             
             continue;
           }
-
-          if (nsStyleUtil::DashMatchCompare(dictStr, langCode, comparator) &&
+          if (nsStyleUtil::DashMatchCompare(GetDictNameWithDash(dictStr), langCode, comparator) &&
               NS_SUCCEEDED(SetCurrentDictionary(dictStr))) {
               break;
           }
