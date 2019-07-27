@@ -89,7 +89,7 @@ public:
   virtual void GetName(nsAString&) = 0;
 
   
-  virtual void GetUUID(nsAString&) = 0;
+  virtual void GetUUID(nsACString&) = 0;
 
   
   virtual nsresult Deallocate() = 0;
