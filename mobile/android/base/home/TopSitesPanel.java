@@ -307,8 +307,9 @@ public class TopSitesPanel extends HomeFragment {
         
         
         mList.setOnItemClickListener(null);
-        mList = null;
+        mGrid.setOnItemClickListener(null);
 
+        mList = null;
         mGrid = null;
         mListAdapter = null;
         mGridAdapter = null;
