@@ -17,7 +17,7 @@ namespace rx
 {
 
 
-RenderTarget9::RenderTarget9(Renderer *renderer, IDirect3DSurface9 *surface)
+RenderTarget9::RenderTarget9(Renderer *renderer, IDirect3DSurface9 *surface, GLenum internalFormatOverride)
 {
     mRenderer = Renderer9::makeRenderer9(renderer);
     mRenderTarget = surface;
@@ -35,6 +35,10 @@ RenderTarget9::RenderTarget9(Renderer *renderer, IDirect3DSurface9 *surface)
         mInternalFormat = d3dFormatInfo.internalFormat;
         mActualFormat = d3dFormatInfo.internalFormat;
         mSamples = d3d9_gl::GetSamplesCount(description.MultiSampleType);
+
+        if (internalFormatOverride) {
+            mInternalFormat = internalFormatOverride;
+        }
     }
 }
 

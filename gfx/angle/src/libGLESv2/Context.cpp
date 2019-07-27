@@ -190,10 +190,8 @@ void Context::makeCurrent(egl::Surface *surface)
     }
 
     
-    rx::SwapChain *swapchain = surface->getSwapChain();
-
-    Colorbuffer *colorbufferZero = new Colorbuffer(mRenderer, swapchain);
-    DepthStencilbuffer *depthStencilbufferZero = new DepthStencilbuffer(mRenderer, swapchain);
+    Colorbuffer *colorbufferZero = new Colorbuffer(mRenderer, surface);
+    DepthStencilbuffer *depthStencilbufferZero = new DepthStencilbuffer(mRenderer, surface);
     Framebuffer *framebufferZero = new DefaultFramebuffer(mRenderer, colorbufferZero, depthStencilbufferZero);
 
     setFramebufferZero(framebufferZero);
