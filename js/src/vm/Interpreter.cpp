@@ -567,11 +567,14 @@ struct AutoStopwatch final
         ULARGE_INTEGER userTimeInt;
         kernelTimeInt.LowPart = kernelFileTime.dwLowDateTime;
         kernelTimeInt.HighPart = kernelFileTime.dwHighDateTime;
-        *systemTime = kernelTimeInt.QuadPart / 10; 
+        
+        *systemTime = runtime_-> stopwatch.systemTimeFix.monotonize(kernelTimeInt.QuadPart / 10);
 
         userTimeInt.LowPart = userFileTime.dwLowDateTime;
         userTimeInt.HighPart = userFileTime.dwHighDateTime;
-        *userTime = userTimeInt.QuadPart / 10; 
+        
+        *userTime = runtime_-> stopwatch.userTimeFix.monotonize(userTimeInt.QuadPart / 10);
+
 #endif 
 
         return true;
@@ -854,15 +857,6 @@ js::ExecuteKernel(JSContext* cx, HandleScript script, JSObject& scopeChainArg, c
                script->hasPollutedGlobalScope());
 #endif
 
-    if (script->treatAsRunOnce()) {
-        if (script->hasRunOnce()) {
-            JS_ReportError(cx, "Trying to execute a run-once script multiple times");
-            return false;
-        }
-
-        script->setHasRunOnce();
-    }
-
     if (script->isEmpty()) {
         if (result)
             result->setUndefined();
@@ -887,6 +881,9 @@ js::Execute(JSContext* cx, HandleScript script, JSObject& scopeChainArg, Value* 
     RootedObject scopeChain(cx, &scopeChainArg);
     MOZ_ASSERT(scopeChain == GetInnerObject(scopeChain));
 
+    MOZ_RELEASE_ASSERT(scopeChain->is<GlobalObject>() || !script->compileAndGo(),
+                       "Only non-compile-and-go scripts can be executed with "
+                       "interesting scopechains");
     MOZ_RELEASE_ASSERT(scopeChain->is<GlobalObject>() || script->hasPollutedGlobalScope(),
                        "Only scripts with polluted scopes can be executed with "
                        "interesting scopechains");
@@ -1207,73 +1204,92 @@ js::UnwindAllScopesInFrame(JSContext* cx, ScopeIter& si)
 jsbytecode*
 js::UnwindScopeToTryPc(JSScript* script, JSTryNote* tn)
 {
-    jsbytecode* pc = script->main() + tn->start;
-    if (tn->kind == JSTRY_CATCH || tn->kind == JSTRY_FINALLY) {
-        pc -= JSOP_TRY_LENGTH;
-        MOZ_ASSERT(*pc == JSOP_TRY);
-    }
-    return pc;
+    return script->main() + tn->start - js_CodeSpec[JSOP_TRY].length;
 }
 
-static bool
-ForcedReturn(JSContext* cx, ScopeIter& si, InterpreterRegs& regs, bool frameOk = true)
+static void
+ForcedReturn(JSContext* cx, ScopeIter& si, InterpreterRegs& regs)
 {
-    bool ok = Debugger::onLeaveFrame(cx, regs.fp(), frameOk);
     UnwindAllScopesInFrame(cx, si);
-    
-    
     regs.setToEndOfScript();
-    return ok;
 }
 
-static bool
+static void
 ForcedReturn(JSContext* cx, InterpreterRegs& regs)
 {
     ScopeIter si(cx, regs.fp(), regs.pc);
-    return ForcedReturn(cx, si, regs);
+    ForcedReturn(cx, si, regs);
 }
 
-static void
-SettleOnTryNote(JSContext* cx, JSTryNote* tn, ScopeIter& si, InterpreterRegs& regs)
+void
+js::UnwindForUncatchableException(JSContext* cx, const InterpreterRegs& regs)
 {
     
-    UnwindScope(cx, si, UnwindScopeToTryPc(regs.fp()->script(), tn));
-
-    
-    
-    regs.pc = regs.fp()->script()->main() + tn->start + tn->length;
-    regs.sp = regs.spForStackDepth(tn->stackDepth);
-}
-
-class InterpreterFrameStackDepthOp
-{
-    const InterpreterRegs& regs_;
-  public:
-    explicit InterpreterFrameStackDepthOp(const InterpreterRegs& regs)
-      : regs_(regs)
-    { }
-    uint32_t operator()() { return regs_.stackDepth(); }
-};
-
-class TryNoteIterInterpreter : public TryNoteIter<InterpreterFrameStackDepthOp>
-{
-  public:
-    TryNoteIterInterpreter(JSContext* cx, const InterpreterRegs& regs)
-      : TryNoteIter(cx, regs.fp()->script(), regs.pc, InterpreterFrameStackDepthOp(regs))
-    { }
-};
-
-static void
-UnwindIteratorsForUncatchableException(JSContext* cx, const InterpreterRegs& regs)
-{
-    
-    
-    for (TryNoteIterInterpreter tni(cx, regs); !tni.done(); ++tni) {
+    for (TryNoteIter tni(cx, regs); !tni.done(); ++tni) {
         JSTryNote* tn = *tni;
         if (tn->kind == JSTRY_FOR_IN) {
             Value* sp = regs.spForStackDepth(tn->stackDepth);
             UnwindIteratorForUncatchableException(cx, &sp[-1].toObject());
         }
+    }
+}
+
+TryNoteIter::TryNoteIter(JSContext* cx, const InterpreterRegs& regs)
+  : regs(regs),
+    script(cx, regs.fp()->script()),
+    pcOffset(regs.pc - script->main())
+{
+    if (script->hasTrynotes()) {
+        tn = script->trynotes()->vector;
+        tnEnd = tn + script->trynotes()->length;
+    } else {
+        tn = tnEnd = nullptr;
+    }
+    settle();
+}
+
+void
+TryNoteIter::operator++()
+{
+    ++tn;
+    settle();
+}
+
+bool
+TryNoteIter::done() const
+{
+    return tn == tnEnd;
+}
+
+void
+TryNoteIter::settle()
+{
+    for (; tn != tnEnd; ++tn) {
+        
+        if (pcOffset - tn->start >= tn->length)
+            continue;
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        if (tn->stackDepth <= regs.stackDepth())
+            break;
     }
 }
 
@@ -1286,69 +1302,6 @@ enum HandleErrorContinuation
 };
 
 static HandleErrorContinuation
-ProcessTryNotes(JSContext* cx, ScopeIter& si, InterpreterRegs& regs)
-{
-    for (TryNoteIterInterpreter tni(cx, regs); !tni.done(); ++tni) {
-        JSTryNote* tn = *tni;
-
-        switch (tn->kind) {
-          case JSTRY_CATCH:
-            
-            if (cx->isClosingGenerator())
-                break;
-            SettleOnTryNote(cx, tn, si, regs);
-            return CatchContinuation;
-
-          case JSTRY_FINALLY:
-            SettleOnTryNote(cx, tn, si, regs);
-            return FinallyContinuation;
-
-          case JSTRY_FOR_IN: {
-            
-            DebugOnly<jsbytecode*> pc = regs.fp()->script()->main() + tn->start + tn->length;
-            MOZ_ASSERT(JSOp(*pc) == JSOP_ENDITER);
-            Value* sp = regs.spForStackDepth(tn->stackDepth);
-            RootedObject obj(cx, &sp[-1].toObject());
-            if (!UnwindIteratorForException(cx, obj)) {
-                
-                
-                
-                
-                
-                SettleOnTryNote(cx, tn, si, regs);
-                return ErrorReturnContinuation;
-            }
-            break;
-          }
-
-          case JSTRY_FOR_OF:
-          case JSTRY_LOOP:
-            break;
-
-          default:
-            MOZ_CRASH("Invalid try note");
-        }
-    }
-
-    return SuccessfulReturnContinuation;
-}
-
-bool
-js::HandleClosingGeneratorReturn(JSContext* cx, AbstractFramePtr frame, bool ok)
-{
-    
-
-
-
-    if (cx->isClosingGenerator()) {
-        cx->clearPendingException();
-        ok = true;
-        SetReturnValueForClosingGenerator(cx, frame);
-    }
-    return ok;
-}
-
-static HandleErrorContinuation
 HandleError(JSContext* cx, InterpreterRegs& regs)
 {
     MOZ_ASSERT(regs.fp()->script()->containsPC(regs.pc));
@@ -1359,7 +1312,11 @@ HandleError(JSContext* cx, InterpreterRegs& regs)
   again:
     if (cx->isExceptionPending()) {
         
-        if (!cx->isClosingGenerator()) {
+        RootedValue exception(cx);
+        if (!cx->getPendingException(&exception))
+            goto again;
+
+        if (!exception.isMagic(JS_GENERATOR_CLOSING)) {
             JSTrapStatus status = Debugger::onExceptionUnwind(cx, regs.fp());
             switch (status) {
               case JSTRAP_ERROR:
@@ -1370,9 +1327,7 @@ HandleError(JSContext* cx, InterpreterRegs& regs)
                 break;
 
               case JSTRAP_RETURN:
-                UnwindIteratorsForUncatchableException(cx, regs);
-                if (!ForcedReturn(cx, si, regs))
-                    return ErrorReturnContinuation;
+                ForcedReturn(cx, si, regs);
                 return SuccessfulReturnContinuation;
 
               default:
@@ -1380,37 +1335,77 @@ HandleError(JSContext* cx, InterpreterRegs& regs)
             }
         }
 
-        switch (ProcessTryNotes(cx, si, regs)) {
-          case SuccessfulReturnContinuation:
-            break;
-          case ErrorReturnContinuation:
-            goto again;
-          case CatchContinuation:
-            return CatchContinuation;
-          case FinallyContinuation:
-            return FinallyContinuation;
+        for (TryNoteIter tni(cx, regs); !tni.done(); ++tni) {
+            JSTryNote* tn = *tni;
+
+            
+            UnwindScope(cx, si, UnwindScopeToTryPc(regs.fp()->script(), tn));
+
+            
+
+
+
+
+            regs.pc = regs.fp()->script()->main() + tn->start + tn->length;
+            regs.sp = regs.spForStackDepth(tn->stackDepth);
+
+            switch (tn->kind) {
+              case JSTRY_CATCH:
+                
+                if (!cx->getPendingException(&exception))
+                    return ErrorReturnContinuation;
+                if (exception.isMagic(JS_GENERATOR_CLOSING))
+                    break;
+                return CatchContinuation;
+
+              case JSTRY_FINALLY:
+                return FinallyContinuation;
+
+              case JSTRY_FOR_IN: {
+                
+                MOZ_ASSERT(JSOp(*regs.pc) == JSOP_ENDITER);
+                RootedObject obj(cx, &regs.sp[-1].toObject());
+                bool ok = UnwindIteratorForException(cx, obj);
+                regs.sp -= 1;
+                if (!ok)
+                    goto again;
+                break;
+              }
+
+              case JSTRY_FOR_OF:
+              case JSTRY_LOOP:
+                break;
+            }
         }
 
-        ok = HandleClosingGeneratorReturn(cx, regs.fp(), ok);
-        ok = Debugger::onLeaveFrame(cx, regs.fp(), ok);
+        
+
+
+
+        if (cx->isExceptionPending()) {
+            RootedValue exception(cx);
+            if (!cx->getPendingException(&exception))
+                return ErrorReturnContinuation;
+
+            if (exception.isMagic(JS_GENERATOR_CLOSING)) {
+                cx->clearPendingException();
+                ok = true;
+                SetReturnValueForClosingGenerator(cx, regs.fp());
+            }
+        }
     } else {
         
         
         if (MOZ_UNLIKELY(cx->isPropagatingForcedReturn())) {
             cx->clearPropagatingForcedReturn();
-            if (!ForcedReturn(cx, si, regs))
-                return ErrorReturnContinuation;
+            ForcedReturn(cx, si, regs);
             return SuccessfulReturnContinuation;
         }
 
-        UnwindIteratorsForUncatchableException(cx, regs);
+        UnwindForUncatchableException(cx, regs);
     }
 
-    
-    
-    UnwindAllScopesInFrame(cx, si);
-    regs.setToEndOfScript();
-
+    ForcedReturn(cx, si, regs);
     return ok ? SuccessfulReturnContinuation : ErrorReturnContinuation;
 }
 
@@ -1788,8 +1783,7 @@ Interpret(JSContext* cx, RunState& state)
       case JSTRAP_CONTINUE:
         break;
       case JSTRAP_RETURN:
-        if (!ForcedReturn(cx, REGS))
-            goto error;
+        ForcedReturn(cx, REGS);
         goto successful_return_continuation;
       case JSTRAP_THROW:
       case JSTRAP_ERROR:
@@ -1835,8 +1829,7 @@ CASE(EnableInterruptsPseudoOpcode)
                 break;
               case JSTRAP_RETURN:
                 REGS.fp()->setReturnValue(rval);
-                if (!ForcedReturn(cx, REGS))
-                    goto error;
+                ForcedReturn(cx, REGS);
                 goto successful_return_continuation;
               case JSTRAP_THROW:
                 cx->setPendingException(rval);
@@ -1857,8 +1850,7 @@ CASE(EnableInterruptsPseudoOpcode)
                 goto error;
               case JSTRAP_RETURN:
                 REGS.fp()->setReturnValue(rval);
-                if (!ForcedReturn(cx, REGS))
-                    goto error;
+                ForcedReturn(cx, REGS);
                 goto successful_return_continuation;
               case JSTRAP_THROW:
                 cx->setPendingException(rval);
@@ -2072,6 +2064,8 @@ CASE(JSOP_RETRVAL)
             ADVANCE_AND_DISPATCH(JSOP_CALL_LENGTH);
         }
 
+        
+        REGS.pc += JSOP_CALL_LENGTH;
         goto error;
     } else {
         MOZ_ASSERT(REGS.stackDepth() == 0);
@@ -2909,8 +2903,7 @@ CASE(JSOP_FUNCALL)
       case JSTRAP_CONTINUE:
         break;
       case JSTRAP_RETURN:
-        if (!ForcedReturn(cx, REGS))
-            goto error;
+        ForcedReturn(cx, REGS);
         goto successful_return_continuation;
       case JSTRAP_THROW:
       case JSTRAP_ERROR:
@@ -2923,12 +2916,12 @@ CASE(JSOP_FUNCALL)
     ADVANCE_AND_DISPATCH(0);
 }
 
-CASE(JSOP_THROWMSG)
+CASE(JSOP_SETCALL)
 {
-    JS_ALWAYS_FALSE(ThrowMsgOperation(cx, GET_UINT16(REGS.pc)));
+    JS_ALWAYS_FALSE(SetCallOperation(cx));
     goto error;
 }
-END_CASE(JSOP_THROWMSG)
+END_CASE(JSOP_SETCALL)
 
 CASE(JSOP_IMPLICITTHIS)
 CASE(JSOP_GIMPLICITTHIS)
@@ -3638,8 +3631,7 @@ CASE(JSOP_DEBUGGER)
       case JSTRAP_CONTINUE:
         break;
       case JSTRAP_RETURN:
-        if (!ForcedReturn(cx, REGS))
-            goto error;
+        ForcedReturn(cx, REGS);
         goto successful_return_continuation;
       case JSTRAP_THROW:
         goto error;
@@ -4060,7 +4052,7 @@ js::DefFunOperation(JSContext* cx, HandleScript script, HandleObject scopeChain,
         if (!fun)
             return false;
     } else {
-        MOZ_ASSERT(script->treatAsRunOnce());
+        MOZ_ASSERT(script->compileAndGo());
         MOZ_ASSERT(!script->functionNonDelazifying());
     }
 
@@ -4133,9 +4125,9 @@ js::DefFunOperation(JSContext* cx, HandleScript script, HandleObject scopeChain,
 }
 
 bool
-js::ThrowMsgOperation(JSContext* cx, const unsigned errorNum)
+js::SetCallOperation(JSContext* cx)
 {
-    JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, errorNum);
+    JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_BAD_LEFTSIDE_OF_ASS);
     return false;
 }
 
