@@ -115,6 +115,7 @@ Result CreateEncodedOCSPRequest(TrustDomain& trustDomain,
 
 
 
+
 Result VerifyEncodedOCSPResponse(TrustDomain& trustDomain,
                                  const CertID& certID, Time time,
                                  uint16_t maxLifetimeInDays,

@@ -385,6 +385,65 @@ TEST_F(pkixocsp_VerifyEncodedResponse_successful,
 
 
 
+
+TEST_F(pkixocsp_VerifyEncodedResponse_successful, check_validThrough)
+{
+  ByteString responseString(
+               CreateEncodedOCSPSuccessfulResponse(
+                         OCSPResponseContext::good, *endEntityCertID, byKey,
+                         *rootKeyPair, oneDayBeforeNow,
+                         oneDayBeforeNow, &oneDayAfterNow,
+                         sha256WithRSAEncryption));
+  Time validThrough(Time::uninitialized);
+  {
+    Input response;
+    ASSERT_EQ(Success,
+              response.Init(responseString.data(), responseString.length()));
+    bool expired;
+    ASSERT_EQ(Success,
+              VerifyEncodedOCSPResponse(trustDomain, *endEntityCertID,
+                                        Now(), END_ENTITY_MAX_LIFETIME_IN_DAYS,
+                                        response, expired, nullptr,
+                                        &validThrough));
+    ASSERT_FALSE(expired);
+    
+    
+    Time oneDayAfterNowAsPKIXTime(TimeFromEpochInSeconds(oneDayAfterNow));
+    ASSERT_TRUE(validThrough > oneDayAfterNowAsPKIXTime);
+  }
+  {
+    Input response;
+    ASSERT_EQ(Success,
+              response.Init(responseString.data(), responseString.length()));
+    bool expired;
+    
+    
+    ASSERT_EQ(Success,
+              VerifyEncodedOCSPResponse(trustDomain, *endEntityCertID,
+                                        validThrough, END_ENTITY_MAX_LIFETIME_IN_DAYS,
+                                        response, expired));
+    ASSERT_FALSE(expired);
+  }
+  {
+    Time noLongerValid(validThrough);
+    ASSERT_EQ(Success, noLongerValid.AddSeconds(1));
+    Input response;
+    ASSERT_EQ(Success,
+              response.Init(responseString.data(), responseString.length()));
+    bool expired;
+    
+    
+    ASSERT_EQ(Result::ERROR_OCSP_OLD_RESPONSE,
+              VerifyEncodedOCSPResponse(trustDomain, *endEntityCertID,
+                                        noLongerValid, END_ENTITY_MAX_LIFETIME_IN_DAYS,
+                                        response, expired));
+    ASSERT_TRUE(expired);
+  }
+}
+
+
+
+
 class pkixocsp_VerifyEncodedResponse_DelegatedResponder
   : public pkixocsp_VerifyEncodedResponse_successful
 {
