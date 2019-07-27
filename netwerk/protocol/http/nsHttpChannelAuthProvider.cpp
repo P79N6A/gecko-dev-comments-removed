@@ -7,6 +7,7 @@
 
 #include "HttpLog.h"
 
+#include "mozilla/Preferences.h"
 #include "nsHttpChannelAuthProvider.h"
 #include "nsNetUtil.h"
 #include "nsHttpHandler.h"
@@ -22,9 +23,14 @@
 #include "netCore.h"
 #include "nsIHttpAuthenticableChannel.h"
 #include "nsIURI.h"
+#include "nsContentUtils.h"
 
 namespace mozilla {
 namespace net {
+
+#define SUBRESOURCE_AUTH_DIALOG_DISALLOW_ALL 0
+#define SUBRESOURCE_AUTH_DIALOG_DISALLOW_CROSS_ORIGIN 1
+#define SUBRESOURCE_AUTH_DIALOG_ALLOW_ALL 2
 
 static void
 GetAppIdAndBrowserStatus(nsIChannel* aChan, uint32_t* aAppId, bool* aInBrowserElem)
@@ -58,6 +64,18 @@ nsHttpChannelAuthProvider::nsHttpChannelAuthProvider()
 nsHttpChannelAuthProvider::~nsHttpChannelAuthProvider()
 {
     MOZ_ASSERT(!mAuthChannel, "Disconnect wasn't called");
+}
+
+uint32_t nsHttpChannelAuthProvider::sAuthAllowPref =
+    SUBRESOURCE_AUTH_DIALOG_DISALLOW_CROSS_ORIGIN;
+
+void
+nsHttpChannelAuthProvider::InitializePrefs()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  mozilla::Preferences::AddUintVarCache(&sAuthAllowPref,
+                                        "network.auth.allow-subresource-auth",
+                                        SUBRESOURCE_AUTH_DIALOG_DISALLOW_CROSS_ORIGIN);
 }
 
 NS_IMETHODIMP
@@ -738,6 +756,14 @@ nsHttpChannelAuthProvider::GetCredentialsForChallenge(const char *challenge,
 
             
             
+            
+            
+            if (BlockPrompt()) {
+              return NS_ERROR_ABORT;
+            }
+
+            
+            
             rv = PromptForIdentity(level, proxyAuth, realm.get(),
                                    authType, authFlags, *ident);
             if (NS_FAILED(rv)) return rv;
@@ -777,6 +803,53 @@ nsHttpChannelAuthProvider::GetCredentialsForChallenge(const char *challenge,
     if (NS_SUCCEEDED(rv))
         creds = result;
     return rv;
+}
+
+bool
+nsHttpChannelAuthProvider::BlockPrompt()
+{
+    nsCOMPtr<nsIChannel> chan = do_QueryInterface(mAuthChannel);
+    nsCOMPtr<nsILoadInfo> loadInfo;
+    chan->GetLoadInfo(getter_AddRefs(loadInfo));
+    if (!loadInfo) {
+        return false;
+    }
+
+    
+    if ((loadInfo->GetContentPolicyType() == nsIContentPolicy::TYPE_DOCUMENT) ||
+        (loadInfo->GetContentPolicyType() == nsIContentPolicy::TYPE_XMLHTTPREQUEST)) {
+        return false;
+    }
+
+    switch (sAuthAllowPref) {
+    case SUBRESOURCE_AUTH_DIALOG_DISALLOW_ALL:
+        
+        
+        return true;
+        break;
+    case SUBRESOURCE_AUTH_DIALOG_DISALLOW_CROSS_ORIGIN:
+        
+        
+        {
+            nsCOMPtr<nsIPrincipal> loadingPrincipal =
+                loadInfo->LoadingPrincipal();
+            if (!loadingPrincipal) {
+                return false;
+            }
+
+            if (NS_FAILED(loadingPrincipal->CheckMayLoad(mURI, false, false))) {
+                return true;
+            }
+        }
+        break;
+    case SUBRESOURCE_AUTH_DIALOG_ALLOW_ALL:
+        
+        return false;
+    default:
+        
+        MOZ_ASSERT(false, "A non valid value!");
+    }
+    return false;
 }
 
 inline void

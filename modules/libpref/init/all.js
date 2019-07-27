@@ -1682,6 +1682,14 @@ pref("network.automatic-ntlm-auth.allow-proxies", true);
 pref("network.automatic-ntlm-auth.allow-non-fqdn", false);
 pref("network.automatic-ntlm-auth.trusted-uris", "");
 
+
+
+
+
+
+
+pref("network.auth.allow-subresource-auth", 1);
+
 pref("permissions.default.image",           1); 
 
 pref("network.proxy.type",                  5);

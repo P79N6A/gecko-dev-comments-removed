@@ -244,6 +244,9 @@ function run_test() {
   prefs.setCharPref("network.proxy.no_proxies_on", "");
   prefs.setIntPref("network.proxy.type", 1);
 
+  
+  prefs.setIntPref("network.auth.allow-subresource-auth", 2);
+
   tests[current_test]();
 }
 

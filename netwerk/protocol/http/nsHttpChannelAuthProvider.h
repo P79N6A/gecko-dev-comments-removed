@@ -33,7 +33,7 @@ public:
     NS_DECL_NSIAUTHPROMPTCALLBACK
 
     nsHttpChannelAuthProvider();
-
+    static void InitializePrefs();
 private:
     virtual ~nsHttpChannelAuthProvider();
 
@@ -111,6 +111,12 @@ private:
 
     nsresult ProcessSTSHeader();
 
+    
+    
+    
+    
+    bool BlockPrompt();
+
 private:
     nsIHttpAuthenticableChannel      *mAuthChannel;  
 
@@ -149,6 +155,11 @@ private:
     uint32_t                          mSuppressDefensiveAuth    : 1;
 
     nsRefPtr<nsHttpHandler>           mHttpHandler;  
+
+    
+    
+    
+    static uint32_t                   sAuthAllowPref;
 };
 
 }} 
