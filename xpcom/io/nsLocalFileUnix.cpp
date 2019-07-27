@@ -827,10 +827,6 @@ nsLocalFile::CopyToNative(nsIFile* aNewParent, const nsACString& aNewName)
 
     
     nsLocalFile* newFile = new nsLocalFile();
-    if (!newFile) {
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
-
     nsCOMPtr<nsIFile> fileRef(newFile); 
 
     rv = newFile->InitWithNativePath(newPathName);
