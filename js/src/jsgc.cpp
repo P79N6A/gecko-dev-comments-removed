@@ -2593,7 +2593,7 @@ GCRuntime::updatePointersToRelocatedCells(Zone* zone)
         comp->sweepCrossCompartmentWrappers();
 
         
-        comp->markCrossCompartmentWrappers(&trc);
+        comp->traceCrossCompartmentWrappers(&trc);
     }
 
     

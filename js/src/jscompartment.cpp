@@ -490,7 +490,7 @@ JSCompartment::wrap(JSContext* cx, MutableHandle<PropertyDescriptor> desc)
 
 
 void
-JSCompartment::markCrossCompartmentWrappers(JSTracer* trc)
+JSCompartment::traceCrossCompartmentWrappers(JSTracer* trc)
 {
     MOZ_ASSERT(trc->runtime()->isHeapMajorCollecting());
     MOZ_ASSERT(!zone()->isCollecting() || trc->runtime()->gc.isHeapCompacting());
@@ -516,7 +516,7 @@ JSCompartment::trace(JSTracer* trc)
 }
 
 void
-JSCompartment::markRoots(JSTracer* trc)
+JSCompartment::traceRoots(JSTracer* trc)
 {
     
     
