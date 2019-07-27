@@ -33,6 +33,7 @@
 #include "nsAutoPtr.h"                  
 #include "nsISupportsImpl.h"
 #include "nsSize.h"                     
+#include "ThreadSafeRefcountingWithMainThreadDestruction.h"
 
 class CancelableTask;
 class MessageLoop;
@@ -68,7 +69,7 @@ class CompositorThreadHolder;
 class CompositorParent : public PCompositorParent,
                          public ShadowLayersManager
 {
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CompositorParent)
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING_WITH_MAIN_THREAD_DESTRUCTION(CompositorParent)
 
 public:
   CompositorParent(nsIWidget* aWidget,
@@ -244,6 +245,8 @@ protected:
   
   virtual ~CompositorParent();
 
+  void DeferredDestroy();
+
   virtual PLayerTransactionParent*
     AllocPLayerTransactionParent(const nsTArray<LayersBackend>& aBackendHints,
                                  const uint64_t& aId,
@@ -314,8 +317,6 @@ protected:
   nsRefPtr<CompositorThreadHolder> mCompositorThreadHolder;
 
   DISALLOW_EVIL_CONSTRUCTORS(CompositorParent);
-
-  friend void DeferredDeleteCompositorParentOnMainThread(CompositorParent* aNowReadyToDie);
 };
 
 } 
