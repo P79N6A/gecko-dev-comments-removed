@@ -32,7 +32,7 @@ public:
     gfxPattern(gfxFloat cx0, gfxFloat cy0, gfxFloat radius0,
                gfxFloat cx1, gfxFloat cy1, gfxFloat radius1); 
     gfxPattern(mozilla::gfx::SourceSurface *aSurface,
-               const mozilla::gfx::Matrix &aTransform); 
+               const mozilla::gfx::Matrix &aPatternToUserSpace);
 
     void AddColorStop(gfxFloat offset, const gfxRGBA& c);
     void SetColorStops(mozilla::gfx::GradientStops* aStops);
@@ -52,7 +52,7 @@ public:
 
 
     mozilla::gfx::Pattern *GetPattern(mozilla::gfx::DrawTarget *aTarget,
-                                      mozilla::gfx::Matrix *aPatternTransform = nullptr);
+                                      mozilla::gfx::Matrix *aOriginalUserToDevice = nullptr);
     bool IsOpaque();
 
     enum GraphicsExtend {
@@ -97,21 +97,6 @@ private:
     
     ~gfxPattern();
 
-    
-
-
-
-
-
-
-
-
-
-
-    void AdjustTransformForPattern(mozilla::gfx::Matrix &aPatternTransform,
-                                   const mozilla::gfx::Matrix &aCurrentTransform,
-                                   const mozilla::gfx::Matrix *aOriginalTransform);
-
     union {
       mozilla::AlignedStorage2<mozilla::gfx::ColorPattern> mColorPattern;
       mozilla::AlignedStorage2<mozilla::gfx::LinearGradientPattern> mLinearGradientPattern;
@@ -122,7 +107,7 @@ private:
     mozilla::gfx::Pattern *mGfxPattern;
 
     mozilla::RefPtr<mozilla::gfx::SourceSurface> mSourceSurface;
-    mozilla::gfx::Matrix mTransform;
+    mozilla::gfx::Matrix mPatternToUserSpace;
     mozilla::RefPtr<mozilla::gfx::GradientStops> mStops;
     nsTArray<mozilla::gfx::GradientStop> mStopsList;
     GraphicsExtend mExtend;
