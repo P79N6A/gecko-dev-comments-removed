@@ -1595,55 +1595,71 @@ IsRunning()
   return gIsDMDRunning;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-char* Base32(uint32_t aN, char* aBuf, size_t aBufLen)
+class ToIdStringConverter MOZ_FINAL
 {
-  static const char digits[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef";
+public:
+  ToIdStringConverter() : mNextId(0) { mIdMap.init(512); }
 
-  char* b = aBuf + aBufLen - 1;
-  *b = '\0';
-  do {
-    b--;
-    if (b == aBuf) {
-      MOZ_CRASH("Base32 buffer too small");
+  
+  
+  const char* ToIdString(const void* aPtr)
+  {
+    uint32_t id;
+    PointerIdMap::AddPtr p = mIdMap.lookupForAdd(aPtr);
+    if (!p) {
+      id = mNextId++;
+      (void)mIdMap.add(p, aPtr, id);
+    } else {
+      id = p->value();
     }
-    *b = digits[aN % 32];
-    aN /= 32;
-  } while (aN);
-
-  return b;
-}
-
-
-
-static const char* Id(PointerIdMap& aIdMap, uint32_t& aNextId,
-                      const void* aPtr, char* aBuf, size_t aBufLen)
-{
-  uint32_t id;
-  PointerIdMap::AddPtr p = aIdMap.lookupForAdd(aPtr);
-  if (!p) {
-    id = aNextId++;
-    (void)aIdMap.add(p, aPtr, id);
-  } else {
-    id = p->value();
+    return Base32(id);
   }
-  return Base32(id, aBuf, aBufLen);
-}
+
+  size_t sizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
+  {
+    return mIdMap.sizeOfExcludingThis(aMallocSizeOf);
+  }
+
+private:
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  char* Base32(uint32_t aN)
+  {
+    static const char digits[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef";
+
+    char* b = mIdBuf + kIdBufLen - 1;
+    *b = '\0';
+    do {
+      b--;
+      if (b == mIdBuf) {
+        MOZ_CRASH("Base32 buffer too small");
+      }
+      *b = digits[aN % 32];
+      aN /= 32;
+    } while (aN);
+
+    return b;
+  }
+
+  PointerIdMap mIdMap;
+  uint32_t mNextId;
+  static const size_t kIdBufLen = 16;
+  char mIdBuf[kIdBufLen];
+};
 
 static void
 AnalyzeReportsImpl(JSONWriter& aWriter)
@@ -1664,16 +1680,13 @@ AnalyzeReportsImpl(JSONWriter& aWriter)
   PointerSet usedPcs;
   usedPcs.init(512);
 
-  PointerIdMap idMap;
-  idMap.init(512);
+  size_t iscSize;
 
   static int analysisCount = 1;
   StatusMsg("Dump %d {\n", analysisCount++);
 
   aWriter.Start();
   {
-    #define ID(p) Id(idMap, id, p, idBuf, idBufLen)
-
     aWriter.IntProperty("version", kOutputVersionNumber);
 
     aWriter.StartObjectProperty("invocation");
@@ -1685,9 +1698,7 @@ AnalyzeReportsImpl(JSONWriter& aWriter)
 
     StatusMsg("  Constructing the heap block list...\n");
 
-    static const size_t idBufLen = 16;
-    char idBuf[idBufLen];
-    uint32_t id = 0;
+    ToIdStringConverter isc;
 
     aWriter.StartArrayProperty("blockList");
     {
@@ -1703,15 +1714,15 @@ AnalyzeReportsImpl(JSONWriter& aWriter)
               aWriter.IntProperty("slop", b.SlopSize());
             }
           }
-          aWriter.StringProperty("alloc", ID(b.AllocStackTrace()));
+          aWriter.StringProperty("alloc", isc.ToIdString(b.AllocStackTrace()));
           if (b.NumReports() > 0) {
             aWriter.StartArrayProperty("reps");
             {
               if (b.ReportStackTrace1()) {
-                aWriter.StringElement(ID(b.ReportStackTrace1()));
+                aWriter.StringElement(isc.ToIdString(b.ReportStackTrace1()));
               }
               if (b.ReportStackTrace2()) {
-                aWriter.StringElement(ID(b.ReportStackTrace2()));
+                aWriter.StringElement(isc.ToIdString(b.ReportStackTrace2()));
               }
             }
             aWriter.EndArray();
@@ -1728,11 +1739,11 @@ AnalyzeReportsImpl(JSONWriter& aWriter)
     {
       for (StackTraceSet::Enum e(usedStackTraces); !e.empty(); e.popFront()) {
         const StackTrace* const st = e.front();
-        aWriter.StartArrayProperty(ID(st), aWriter.SingleLineStyle);
+        aWriter.StartArrayProperty(isc.ToIdString(st), aWriter.SingleLineStyle);
         {
           for (uint32_t i = 0; i < st->Length(); i++) {
             const void* pc = st->Pc(i);
-            aWriter.StringElement(ID(pc));
+            aWriter.StringElement(isc.ToIdString(pc));
             usedPcs.put(pc);
           }
         }
@@ -1754,12 +1765,12 @@ AnalyzeReportsImpl(JSONWriter& aWriter)
         
         
         locService->GetLocation(0, pc, locBuf, locBufLen);
-        aWriter.StringProperty(ID(pc), locBuf);
+        aWriter.StringProperty(isc.ToIdString(pc), locBuf);
       }
     }
     aWriter.EndObject();
 
-    #undef ID
+    iscSize = isc.sizeOfExcludingThis(MallocSizeOf);
   }
   aWriter.End();
 
@@ -1802,7 +1813,7 @@ AnalyzeReportsImpl(JSONWriter& aWriter)
     StatusMsg("      Used PCs set:          %10s bytes\n",
       Show(usedPcs.sizeOfExcludingThis(MallocSizeOf), buf1, kBufLen));
     StatusMsg("      Pointer ID map:        %10s bytes\n",
-      Show(idMap.sizeOfExcludingThis(MallocSizeOf), buf1, kBufLen));
+      Show(iscSize, buf1, kBufLen));
 
     StatusMsg("    }\n");
     StatusMsg("    Counts {\n");
