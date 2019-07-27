@@ -277,7 +277,6 @@ public:
   typedef MediaPromise<SeekResolveValue, bool ,  true> SeekPromise;
 
   NS_DECL_THREADSAFE_ISUPPORTS
-  NS_DECL_NSIOBSERVER
 
   
   enum PlayState {
