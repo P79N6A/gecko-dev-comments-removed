@@ -1488,7 +1488,7 @@ protected:
     testStartTime = TimeStamp::Now();
     AsyncPanZoomController::SetFrameTime(testStartTime);
 
-    mcc = new NiceMock<MockContentController>();
+    mcc = new NiceMock<MockContentControllerDelayed>();
     manager = new TestAPZCTreeManager();
   }
 
@@ -1497,7 +1497,7 @@ protected:
   }
 
   TimeStamp testStartTime;
-  nsRefPtr<MockContentController> mcc;
+  nsRefPtr<MockContentControllerDelayed> mcc;
 
   nsTArray<nsRefPtr<Layer> > layers;
   nsRefPtr<LayerManager> lm;
@@ -1523,6 +1523,15 @@ protected:
   static TestAsyncPanZoomController* ApzcOf(Layer* aLayer) {
     EXPECT_EQ(1u, aLayer->GetFrameMetricsCount());
     return (TestAsyncPanZoomController*)aLayer->GetAsyncPanZoomController(0);
+  }
+
+  void CreateSimpleScrollingLayer() {
+    const char* layerTreeSyntax = "t";
+    nsIntRegion layerVisibleRegion[] = {
+      nsIntRegion(nsIntRect(0,0,200,200)),
+    };
+    root = CreateLayerTree(layerTreeSyntax, layerVisibleRegion, nullptr, lm, layers);
+    SetScrollableFrameMetrics(root, FrameMetrics::START_SCROLL_ID, CSSRect(0, 0, 500, 500));
   }
 
   void CreateSimpleMultiLayerTree() {
@@ -1751,9 +1760,6 @@ TEST_F(APZHitTestingTester, HitTesting2) {
   
   
   int time = 0;
-  
-  EXPECT_CALL(*mcc, PostDelayedTask(_,_)).Times(AtLeast(1));
-  EXPECT_CALL(*mcc, SendAsyncScrollDOMEvent(_,_,_)).Times(AtLeast(1));
   EXPECT_CALL(*mcc, RequestContentRepaint(_)).Times(1);
 
   
@@ -1900,6 +1906,76 @@ TEST_F(APZHitTestingTester, ComplexMultiLayerTree) {
   EXPECT_EQ(ApzcOf(layers[9]), hit.get());
   hit = GetTargetAPZC(ScreenPoint(250, 100));
   EXPECT_EQ(ApzcOf(layers[7]), hit.get());
+}
+
+TEST_F(APZHitTestingTester, TestRepaintFlushOnNewInputBlock) {
+  
+  
+  
+  
+
+  CreateSimpleScrollingLayer();
+  ScopedLayerTreeRegistration registration(0, root, mcc);
+  manager->UpdatePanZoomControllerTree(nullptr, root, false, 0, 0);
+  AsyncPanZoomController* apzcroot = ApzcOf(root);
+
+  
+  
+
+  MockFunction<void(std::string checkPointName)> check;
+
+  {
+    InSequence s;
+
+    EXPECT_CALL(*mcc, RequestContentRepaint(_)).Times(AtLeast(1));
+    EXPECT_CALL(check, Call("post-first-touch-start"));
+    EXPECT_CALL(*mcc, RequestContentRepaint(_)).Times(AtLeast(1));
+    EXPECT_CALL(check, Call("post-second-fling"));
+    EXPECT_CALL(*mcc, RequestContentRepaint(_)).Times(AtLeast(1));
+    EXPECT_CALL(check, Call("post-second-touch-start"));
+  }
+
+  int time = 0;
+  
+  ApzcPanNoFling(apzcroot, time, 100, 50);
+
+  
+  ScreenIntPoint touchPoint(50, 50);
+  MultiTouchInput mti = MultiTouchInput(MultiTouchInput::MULTITOUCH_START, time, TimeStamp(), 0);
+  mti.mTouches.AppendElement(SingleTouchData(0, touchPoint, ScreenSize(0, 0), 0, 0));
+
+  EXPECT_EQ(nsEventStatus_eConsumeDoDefault, manager->ReceiveInputEvent(mti, nullptr));
+  EXPECT_EQ(touchPoint, mti.mTouches[0].mScreenPoint);
+  check.Call("post-first-touch-start");
+
+  
+  mti.mType = MultiTouchInput::MULTITOUCH_END;
+  manager->ReceiveInputEvent(mti, nullptr);
+
+  AsyncPanZoomController::SetFrameTime(testStartTime + TimeDuration::FromMilliseconds(1000));
+
+  
+  
+  
+  
+  
+  
+  ApzcPanNoFling(apzcroot, time, 100, 50);
+  check.Call("post-second-fling");
+  ApzcPanNoFling(apzcroot, time, 100, 50);
+
+  
+  
+  mti.mType = MultiTouchInput::MULTITOUCH_START;
+  EXPECT_EQ(nsEventStatus_eConsumeDoDefault, manager->ReceiveInputEvent(mti, nullptr));
+  EXPECT_EQ(touchPoint, mti.mTouches[0].mScreenPoint);
+  check.Call("post-second-touch-start");
+
+  mti.mType = MultiTouchInput::MULTITOUCH_END;
+  EXPECT_EQ(nsEventStatus_eConsumeDoDefault, manager->ReceiveInputEvent(mti, nullptr));
+  EXPECT_EQ(touchPoint, mti.mTouches[0].mScreenPoint);
+
+  mcc->RunThroughDelayedTasks();
 }
 
 class APZOverscrollHandoffTester : public APZCTreeManagerTester {
