@@ -15,15 +15,6 @@ const DOWNLOAD_INTERVAL  = 0;
 
 const DEFAULT_SECONDS_BETWEEN_CHECKS = 60 * 60 * 24;
 
-
-const EME_ENABLED = "media.eme.enabled";
-
-
-
-const OPEN_H264_ID = "gmp-gmpopenh264";
-const EME_ADOBE_ID = "gmp-eme-adobe";
-const GMP_ADDONS = [ OPEN_H264_ID, EME_ADOBE_ID ];
-
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/FileUtils.jsm");
@@ -33,9 +24,10 @@ Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://gre/modules/osfile.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/ctypes.jsm");
+Cu.import("resource://gre/modules/GMPUtils.jsm");
 
 this.EXPORTED_SYMBOLS = ["GMPInstallManager", "GMPExtractor", "GMPDownloader",
-                         "GMPAddon", "GMPPrefs", "OPEN_H264_ID"];
+                         "GMPAddon"];
 
 var gLocale = null;
 
@@ -64,68 +56,6 @@ function getScopedLogger(prefix) {
   
   return Log.repository.getLoggerWithMessagePrefix("Toolkit.GMP", prefix + " ");
 }
-
-
-
-
-let GMPPrefs = {
-  
-
-
-
-
-
-
-  get: function(key, defaultValue, addon) {
-    if (key === GMPPrefs.KEY_APP_DISTRIBUTION ||
-        key === GMPPrefs.KEY_APP_DISTRIBUTION_VERSION) {
-      let prefValue = "default";
-      try {
-        prefValue = Services.prefs.getDefaultBranch(null).getCharPref(key);
-      } catch (e) {
-        
-      }
-      return prefValue;
-    }
-
-    return Preferences.get(this._getPrefKey(key, addon), defaultValue);
-  },
-  
-
-
-
-
-
-  set: function(key, val, addon) {
-    let log = getScopedLogger("GMPInstallManager.jsm GMPPrefs.set");
-    log.info("Setting pref: " + this._getPrefKey(key, addon) +
-             " to value: " + val);
-    return Preferences.set(this._getPrefKey(key, addon), val);
-  },
-  _getPrefKey: function(key, addon) {
-    return  key.replace("{0}", addon || "");
-  },
-
-  
-
-
-  KEY_ADDON_ENABLED: "media.{0}.enabled",
-  KEY_ADDON_LAST_UPDATE: "media.{0}.lastUpdate",
-  KEY_ADDON_VERSION: "media.{0}.version",
-  KEY_ADDON_AUTOUPDATE: "media.{0}.autoupdate",
-  KEY_ADDON_HIDDEN: "media.{0}.hidden",
-  KEY_URL: "media.gmp-manager.url",
-  KEY_URL_OVERRIDE: "media.gmp-manager.url.override",
-  KEY_CERT_CHECKATTRS: "media.gmp-manager.cert.checkAttributes",
-  KEY_CERT_REQUIREBUILTIN: "media.gmp-manager.cert.requireBuiltIn",
-  KEY_UPDATE_LAST_CHECK: "media.gmp-manager.lastCheck",
-  KEY_UPDATE_SECONDS_BETWEEN_CHECKS: "media.gmp-manager.secondsBetweenChecks",
-  KEY_APP_DISTRIBUTION: "distribution.id",
-  KEY_APP_DISTRIBUTION_VERSION: "distribution.version",
-  KEY_BUILDID: "media.gmp-manager.buildID",
-
-  CERTS_BRANCH: "media.gmp-manager.certs."
-};
 
 
 
@@ -417,11 +347,11 @@ GMPInstallManager.prototype = {
     return now - lastCheck;
   },
   get _isEMEEnabled() {
-    return Preferences.get(EME_ENABLED, true);
+    return GMPPrefs.get(GMPPrefs.KEY_EME_ENABLED, true);
   },
   _isAddonUpdateEnabled: function(aAddon) {
-    return GMPPrefs.get(GMPPrefs.KEY_ADDON_ENABLED, true, aAddon) &&
-           GMPPrefs.get(GMPPrefs.KEY_ADDON_AUTOUPDATE, true, aAddon);
+    return GMPPrefs.get(GMPPrefs.KEY_PLUGIN_ENABLED, true, aAddon) &&
+           GMPPrefs.get(GMPPrefs.KEY_PLUGIN_AUTOUPDATE, true, aAddon);
   },
   _updateLastCheck: function() {
     let now = Math.round(Date.now() / 1000);
@@ -452,7 +382,7 @@ GMPInstallManager.prototype = {
                "new or updated GMPs.");
     } else {
       let secondsBetweenChecks =
-        GMPPrefs.get(GMPPrefs.KEY_UPDATE_SECONDS_BETWEEN_CHECKS,
+        GMPPrefs.get(GMPPrefs.KEY_SECONDS_BETWEEN_CHECKS,
                      DEFAULT_SECONDS_BETWEEN_CHECKS)
       let secondsSinceLast = this._getTimeSinceLastCheck();
       log.info("Last check was: " + secondsSinceLast +
@@ -470,19 +400,14 @@ GMPInstallManager.prototype = {
       let addonsToInstall = gmpAddons.filter(function(gmpAddon) {
         log.info("Found addon: " + gmpAddon.toString());
 
-        if (gmpAddon.isHidden || !gmpAddon.isValid || gmpAddon.isInstalled) {
-          log.info("Addon hidden, invalid or already installed.");
-          return false;
-        }
-
-        
-        if (gmpAddon.id.indexOf("gmp-eme-") == 0 && !this._isEMEEnabled) {
-          log.info("Auto-update is off for all EME plugins, skipping check.");
+        if (!gmpAddon.isValid || GMPUtils.isPluginHidden(gmpAddon) ||
+            gmpAddon.isInstalled) {
+          log.info("Addon invalid, hidden or already installed.");
           return false;
         }
 
         let addonUpdateEnabled = false;
-        if (GMP_ADDONS.indexOf(gmpAddon.id) >= 0) {
+        if (GMP_PLUGIN_IDS.indexOf(gmpAddon.id) >= 0) {
           addonUpdateEnabled = this._isAddonUpdateEnabled(gmpAddon.id);
           if (!addonUpdateEnabled) {
             log.info("Auto-update is off for " + gmpAddon.id +
@@ -564,7 +489,7 @@ GMPInstallManager.prototype = {
       let certs = null;
       if (!Services.prefs.prefHasUserValue(GMPPrefs.KEY_URL_OVERRIDE) &&
           GMPPrefs.get(GMPPrefs.KEY_CERT_CHECKATTRS, true)) {
-        certs = gCertUtils.readCertPrefs(GMPPrefs.CERTS_BRANCH);
+        certs = gCertUtils.readCertPrefs(GMPPrefs.KEY_CERTS_BRANCH);
       }
 
       let allowNonBuiltIn = !GMPPrefs.get(GMPPrefs.KEY_CERT_REQUIREBUILTIN,
@@ -751,11 +676,11 @@ GMPAddon.prototype = {
   },
   get isInstalled() {
     return this.version &&
-      GMPPrefs.get(GMPPrefs.KEY_ADDON_VERSION, "", this.id) === this.version;
+      GMPPrefs.get(GMPPrefs.KEY_PLUGIN_VERSION, "", this.id) === this.version;
   },
-  get isHidden() {
-    return GMPPrefs.get(GMPPrefs.KEY_ADDON_HIDDEN, false, this.id);
-  }
+  get isEME() {
+    return this.id.indexOf("gmp-eme-") == 0;
+  },
 };
 
 
@@ -959,10 +884,10 @@ GMPDownloader.prototype = {
       installPromise.then(extractedPaths => {
         
         let now = Math.round(Date.now() / 1000);
-        GMPPrefs.set(GMPPrefs.KEY_ADDON_LAST_UPDATE, now, gmpAddon.id);
+        GMPPrefs.set(GMPPrefs.KEY_PLUGIN_LAST_UPDATE, now, gmpAddon.id);
         
         
-        GMPPrefs.set(GMPPrefs.KEY_ADDON_VERSION, gmpAddon.version,
+        GMPPrefs.set(GMPPrefs.KEY_PLUGIN_VERSION, gmpAddon.version,
                      gmpAddon.id);
         this._deferred.resolve(extractedPaths);
       }, err => {
