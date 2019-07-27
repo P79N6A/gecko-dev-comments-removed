@@ -836,7 +836,7 @@ class GCRuntime
 
     bool poked;
 
-    volatile js::HeapState heapState;
+    mozilla::Atomic<js::HeapState> heapState;
 
     
 
