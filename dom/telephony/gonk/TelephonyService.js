@@ -869,6 +869,11 @@ TelephonyService.prototype = {
         break;
 
       
+      case RIL.MMI_KS_SC_IMEI:
+        this._getImeiMMI(aClientId, aMmi, aCallback);
+        break;
+
+      
       default:
         this._sendMMI(aClientId, aMmi, aCallback);
         break;
@@ -887,15 +892,6 @@ TelephonyService.prototype = {
         } else {
           aCallback.notifyDialMMIError(response.errorMsg);
         }
-        return;
-      }
-
-      
-      
-      
-      if (mmiServiceCode === RIL.MMI_KS_SC_IMEI &&
-          !response.statusMessage) {
-        aCallback.notifyDialMMIError(RIL.GECKO_ERROR_GENERIC_FAILURE);
         return;
       }
 
@@ -1061,6 +1057,35 @@ TelephonyService.prototype = {
         aCallback.notifyDialMMIErrorWithInfo(RIL.MMI_ERROR_KS_BAD_PUK,
                                              aRetryCount);
       },
+    });
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _getImeiMMI: function(aClientId, aMmi, aCallback) {
+    this._sendToRilWorker(aClientId, "getIMEI", {}, aResponse => {
+      if (aResponse.errorMsg) {
+        aCallback.notifyDialMMIError(aResponse.errorMsg);
+        return;
+      }
+
+      
+      
+       
+      if (!aResponse.imei) {
+        aCallback.notifyDialMMIError(RIL.GECKO_ERROR_GENERIC_FAILURE);
+        return;
+      }
+
+      aCallback.notifyDialMMISuccess(aResponse.imei);
     });
   },
 

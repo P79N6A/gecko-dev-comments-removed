@@ -1239,6 +1239,15 @@ RilObject.prototype = {
   },
 
   getIMEI: function(options) {
+    
+    if (this.IMEI) {
+      if (options && options.rilMessageType) {
+        options.imei = this.IMEI;
+        this.sendChromeMessage(options);
+      }
+      return;
+    }
+
     this.context.Buf.simpleRequest(REQUEST_GET_IMEI, options);
   },
 
@@ -1949,18 +1958,6 @@ RilObject.prototype = {
     
     let sc = mmi.serviceCode;
     switch (sc) {
-      
-      case MMI_SC_IMEI:
-        
-        if (this.IMEI == null) {
-          this.getIMEI(options);
-          return;
-        }
-        
-        options.statusMessage = this.IMEI;
-        this.sendChromeMessage(options);
-        return;
-
       
       case MMI_SC_CLIP:
         options.procedure = mmi.procedure;
@@ -4785,17 +4782,18 @@ RilObject.prototype[REQUEST_SET_CALL_WAITING] = function REQUEST_SET_CALL_WAITIN
 RilObject.prototype[REQUEST_SMS_ACKNOWLEDGE] = null;
 RilObject.prototype[REQUEST_GET_IMEI] = function REQUEST_GET_IMEI(length, options) {
   this.IMEI = this.context.Buf.readString();
-  let rilMessageType = options.rilMessageType;
-  
-  if (rilMessageType !== "sendMMI") {
-    return;
-  }
 
-  if (!options.errorMsg && this.IMEI == null) {
-    options.errorMsg = GECKO_ERROR_GENERIC_FAILURE;
+  
+  
+  if (options.rilMessageType) {
+    if (options.errorMsg) {
+      this.sendChromeMessage(options);
+      return;
+    }
+
+    options.imei = this.IMEI;
+    this.sendChromeMessage(options);
   }
-  options.statusMessage = this.IMEI;
-  this.sendChromeMessage(options);
 };
 RilObject.prototype[REQUEST_GET_IMEISV] = function REQUEST_GET_IMEISV(length, options) {
   if (options.errorMsg) {
