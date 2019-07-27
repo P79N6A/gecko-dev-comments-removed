@@ -127,11 +127,6 @@ class CommandAction(argparse.Action):
         
         
 
-        
-        
-        
-        
-
         parser_args = {
             'add_help': False,
             'usage': '%(prog)s [global arguments] ' + command +
