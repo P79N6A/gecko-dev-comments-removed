@@ -187,7 +187,7 @@ public class BrowserApp extends GeckoApp
     private ViewGroup mHomePagerContainer;
     protected Telemetry.Timer mAboutHomeStartupTimer;
     private ActionModeCompat mActionMode;
-    private boolean mShowActionModeEndAnimation;
+    private boolean mHideDynamicToolbarOnActionModeEnd;
     private TabHistoryController tabHistoryController;
 
     private static final int GECKO_TOOLS_MENU = -1;
@@ -294,6 +294,8 @@ public class BrowserApp extends GeckoApp
                 if (Tabs.getInstance().isSelectedTab(tab)) {
                     updateHomePagerForTab(tab);
                 }
+
+                mHideDynamicToolbarOnActionModeEnd = false;
                 break;
             case START:
                 if (Tabs.getInstance().isSelectedTab(tab)) {
@@ -3322,10 +3324,11 @@ public class BrowserApp extends GeckoApp
             if (mDynamicToolbar.isEnabled() && !margins.areMarginsShown()) {
                 margins.setMaxMargins(0, mBrowserChrome.getHeight(), 0, 0);
                 mDynamicToolbar.setVisible(true, VisibilityTransition.ANIMATE);
-                mShowActionModeEndAnimation = true;
+                mHideDynamicToolbarOnActionModeEnd = true;
             } else {
                 
                 mActionBar.animateIn();
+                mHideDynamicToolbarOnActionModeEnd = false;
             }
 
             mDynamicToolbar.setPinned(true, PinReason.ACTION_MODE);
@@ -3355,9 +3358,8 @@ public class BrowserApp extends GeckoApp
 
         
         
-        if (mShowActionModeEndAnimation) {
+        if (mHideDynamicToolbarOnActionModeEnd) {
             mDynamicToolbar.setVisible(false, VisibilityTransition.IMMEDIATE);
-            mShowActionModeEndAnimation = false;
         }
     }
 
