@@ -10,6 +10,7 @@
 #include <vector>
 #include "nsAutoPtr.h"
 #include "nsISupportsImpl.h"  
+#include "Units.h"            
 
 namespace mozilla {
 namespace layers {
