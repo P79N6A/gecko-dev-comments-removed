@@ -1333,6 +1333,11 @@ struct nsStylePosition {
     return nsChangeHint(0);
   }
 
+  
+  
+  typedef nsStyleBackground::Position Position;
+
+  Position      mObjectPosition;        
   nsStyleSides  mOffset;                
   nsStyleCoord  mWidth;                 
   nsStyleCoord  mMinWidth;              
