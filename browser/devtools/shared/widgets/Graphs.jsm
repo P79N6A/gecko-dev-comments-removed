@@ -19,7 +19,6 @@ this.EXPORTED_SYMBOLS = [
 
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 const GRAPH_SRC = "chrome://browser/content/devtools/graphs-frame.xhtml";
-const L10N = new ViewHelpers.L10N();
 
 
 
@@ -45,9 +44,8 @@ const GRAPH_STRIPE_PATTERN_LINE_SPACING = 4;
 
 const LINE_GRAPH_DAMPEN_VALUES = 0.85;
 const LINE_GRAPH_MIN_SQUARED_DISTANCE_BETWEEN_POINTS = 400; 
-const LINE_GRAPH_TOOLTIP_SAFE_BOUNDS = 8; 
+const LINE_GRAPH_TOOLTIP_SAFE_BOUNDS = 10; 
 
-const LINE_GRAPH_BACKGROUND_COLOR = "#0088cc";
 const LINE_GRAPH_STROKE_WIDTH = 1; 
 const LINE_GRAPH_STROKE_COLOR = "rgba(255,255,255,0.9)";
 const LINE_GRAPH_HELPER_LINES_DASH = [5]; 
@@ -489,8 +487,7 @@ AbstractCanvasGraph.prototype = {
 
 
   hasSelection: function() {
-    return this._selection &&
-      this._selection.start != null && this._selection.end != null;
+    return this._selection.start != null && this._selection.end != null;
   },
 
   
@@ -499,8 +496,7 @@ AbstractCanvasGraph.prototype = {
 
 
   hasSelectionInProgress: function() {
-    return this._selection &&
-      this._selection.start != null && this._selection.end == null;
+    return this._selection.start != null && this._selection.end == null;
   },
 
   
@@ -556,7 +552,7 @@ AbstractCanvasGraph.prototype = {
 
 
   hasCursor: function() {
-    return this._cursor && this._cursor.x != null;
+    return this._cursor.x != null;
   },
 
   
@@ -1180,14 +1176,6 @@ this.LineGraphWidget = function(parent, metric, ...args) {
 }
 
 LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
-  backgroundColor: LINE_GRAPH_BACKGROUND_COLOR,
-  backgroundGradientStart: LINE_GRAPH_BACKGROUND_GRADIENT_START,
-  backgroundGradientEnd: LINE_GRAPH_BACKGROUND_GRADIENT_END,
-  strokeColor: LINE_GRAPH_STROKE_COLOR,
-  strokeWidth: LINE_GRAPH_STROKE_WIDTH,
-  maximumLineColor: LINE_GRAPH_MAXIMUM_LINE_COLOR,
-  averageLineColor: LINE_GRAPH_AVERAGE_LINE_COLOR,
-  minimumLineColor: LINE_GRAPH_MINIMUM_LINE_COLOR,
   clipheadLineColor: LINE_GRAPH_CLIPHEAD_LINE_COLOR,
   selectionLineColor: LINE_GRAPH_SELECTION_LINE_COLOR,
   selectionBackgroundColor: LINE_GRAPH_SELECTION_BACKGROUND_COLOR,
@@ -1204,24 +1192,7 @@ LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
 
 
 
-  dampenValuesFactor: LINE_GRAPH_DAMPEN_VALUES,
-
-  
-
-
-
   minDistanceBetweenPoints: LINE_GRAPH_MIN_SQUARED_DISTANCE_BETWEEN_POINTS,
-
-  
-
-
-  withTooltipArrows: true,
-
-  
-
-
-
-  withFixedTooltipPositions: false,
 
   
 
@@ -1233,8 +1204,8 @@ LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
     let height = this._height;
 
     let totalTicks = this._data.length;
-    let firstTick = totalTicks ? this._data[0].delta : 0;
-    let lastTick = totalTicks ? this._data[totalTicks - 1].delta : 0;
+    let firstTick = this._data[0].delta;
+    let lastTick = this._data[totalTicks - 1].delta;
     let maxValue = Number.MIN_SAFE_INTEGER;
     let minValue = Number.MAX_SAFE_INTEGER;
     let sumValues = 0;
@@ -1246,7 +1217,7 @@ LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
     }
 
     let dataScaleX = this.dataScaleX = width / (lastTick - this.dataOffsetX);
-    let dataScaleY = this.dataScaleY = height / maxValue * this.dampenValuesFactor;
+    let dataScaleY = this.dataScaleY = height / maxValue * LINE_GRAPH_DAMPEN_VALUES;
 
     
 
@@ -1259,15 +1230,12 @@ LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
 
     
 
-    ctx.fillStyle = this.backgroundColor;
-    ctx.fillRect(0, 0, width, height);
-
     let gradient = ctx.createLinearGradient(0, height / 2, 0, height);
-    gradient.addColorStop(0, this.backgroundGradientStart);
-    gradient.addColorStop(1, this.backgroundGradientEnd);
+    gradient.addColorStop(0, LINE_GRAPH_BACKGROUND_GRADIENT_START);
+    gradient.addColorStop(1, LINE_GRAPH_BACKGROUND_GRADIENT_END);
     ctx.fillStyle = gradient;
-    ctx.strokeStyle = this.strokeColor;
-    ctx.lineWidth = this.strokeWidth * this._pixelRatio;
+    ctx.strokeStyle = LINE_GRAPH_STROKE_COLOR;
+    ctx.lineWidth = LINE_GRAPH_STROKE_WIDTH * this._pixelRatio;
     ctx.beginPath();
 
     let prevX = 0;
@@ -1300,46 +1268,43 @@ LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
 
     
 
-    ctx.strokeStyle = this.maximumLineColor;
+    ctx.strokeStyle = LINE_GRAPH_MAXIMUM_LINE_COLOR;
     ctx.lineWidth = LINE_GRAPH_HELPER_LINES_WIDTH;
     ctx.setLineDash(LINE_GRAPH_HELPER_LINES_DASH);
     ctx.beginPath();
-    let maximumY = height - maxValue * dataScaleY;
+    let maximumY = height - maxValue * dataScaleY - ctx.lineWidth;
     ctx.moveTo(0, maximumY);
     ctx.lineTo(width, maximumY);
     ctx.stroke();
 
     
 
-    ctx.strokeStyle = this.averageLineColor;
+    ctx.strokeStyle = LINE_GRAPH_AVERAGE_LINE_COLOR;
     ctx.lineWidth = LINE_GRAPH_HELPER_LINES_WIDTH;
     ctx.setLineDash(LINE_GRAPH_HELPER_LINES_DASH);
     ctx.beginPath();
-    let avgValue = totalTicks ? sumValues / totalTicks : 0;
-    let averageY = height - avgValue * dataScaleY;
+    let avgValue = sumValues / totalTicks;
+    let averageY = height - avgValue * dataScaleY - ctx.lineWidth;
     ctx.moveTo(0, averageY);
     ctx.lineTo(width, averageY);
     ctx.stroke();
 
     
 
-    ctx.strokeStyle = this.minimumLineColor;
+    ctx.strokeStyle = LINE_GRAPH_MINIMUM_LINE_COLOR;
     ctx.lineWidth = LINE_GRAPH_HELPER_LINES_WIDTH;
     ctx.setLineDash(LINE_GRAPH_HELPER_LINES_DASH);
     ctx.beginPath();
-    let minimumY = height - minValue * dataScaleY;
+    let minimumY = height - minValue * dataScaleY - ctx.lineWidth;
     ctx.moveTo(0, minimumY);
     ctx.lineTo(width, minimumY);
     ctx.stroke();
 
     
 
-    this._maxTooltip.querySelector("[text=value]").textContent =
-      L10N.numberWithDecimals(maxValue, 2);
-    this._avgTooltip.querySelector("[text=value]").textContent =
-      L10N.numberWithDecimals(avgValue, 2);
-    this._minTooltip.querySelector("[text=value]").textContent =
-      L10N.numberWithDecimals(minValue, 2);
+    this._maxTooltip.querySelector("[text=value]").textContent = maxValue|0;
+    this._avgTooltip.querySelector("[text=value]").textContent = avgValue|0;
+    this._minTooltip.querySelector("[text=value]").textContent = minValue|0;
 
     
 
@@ -1351,32 +1316,19 @@ LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
     }
 
     let bottom = height / this._pixelRatio;
-    let maxPosY = map(maxValue * this.dampenValuesFactor, 0, maxValue, bottom, 0);
-    let avgPosY = map(avgValue * this.dampenValuesFactor, 0, maxValue, bottom, 0);
-    let minPosY = map(minValue * this.dampenValuesFactor, 0, maxValue, bottom, 0);
+    let maxPosY = map(maxValue * LINE_GRAPH_DAMPEN_VALUES, 0, maxValue, bottom, 0);
+    let avgPosY = map(avgValue * LINE_GRAPH_DAMPEN_VALUES, 0, maxValue, bottom, 0);
+    let minPosY = map(minValue * LINE_GRAPH_DAMPEN_VALUES, 0, maxValue, bottom, 0);
 
     let safeTop = LINE_GRAPH_TOOLTIP_SAFE_BOUNDS;
     let safeBottom = bottom - LINE_GRAPH_TOOLTIP_SAFE_BOUNDS;
 
-    this._maxTooltip.style.top = (this.withFixedTooltipPositions
-      ? safeTop : clamp(maxPosY, safeTop, safeBottom)) + "px";
-    this._avgTooltip.style.top = (this.withFixedTooltipPositions
-      ? safeTop : clamp(avgPosY, safeTop, safeBottom)) + "px";
-    this._minTooltip.style.top = (this.withFixedTooltipPositions
-      ? safeBottom : clamp(minPosY, safeTop, safeBottom)) + "px";
-
-    this._maxGutterLine.style.top = maxPosY + "px";
-    this._avgGutterLine.style.top = avgPosY + "px";
-    this._minGutterLine.style.top = minPosY + "px";
-
-    this._maxTooltip.setAttribute("with-arrows", this.withTooltipArrows);
-    this._avgTooltip.setAttribute("with-arrows", this.withTooltipArrows);
-    this._minTooltip.setAttribute("with-arrows", this.withTooltipArrows);
-
-    this._gutter.hidden = !this.withTooltipArrows;
-    this._maxTooltip.hidden = !totalTicks;
-    this._avgTooltip.hidden = !totalTicks;
-    this._minTooltip.hidden = !totalTicks;
+    this._maxTooltip.style.top = clamp(maxPosY, safeTop, safeBottom) + "px";
+    this._avgTooltip.style.top = clamp(avgPosY, safeTop, safeBottom) + "px";
+    this._minTooltip.style.top = clamp(minPosY, safeTop, safeBottom) + "px";
+    this._maxGutterLine.style.top = clamp(maxPosY, safeTop, safeBottom) + "px";
+    this._avgGutterLine.style.top = clamp(avgPosY, safeTop, safeBottom) + "px";
+    this._minGutterLine.style.top = clamp(minPosY, safeTop, safeBottom) + "px";
 
     return canvas;
   },
@@ -1518,12 +1470,6 @@ BarGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
 
 
 
-  dampenValuesFactor: BAR_GRAPH_DAMPEN_VALUES,
-
-  
-
-
-
   minBarsWidth: BAR_GRAPH_MIN_BARS_WIDTH,
 
   
@@ -1574,7 +1520,7 @@ BarGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
       data: this._data,
       dataScaleX: dataScaleX,
       minBarsWidth: minBarsWidth
-    }) * this.dampenValuesFactor;
+    }) * BAR_GRAPH_DAMPEN_VALUES;
 
     
 
@@ -1977,13 +1923,6 @@ this.CanvasGraphUtils = {
     if (!graph1 || !graph2) {
       return;
     }
-
-    if (graph1.hasSelection()) {
-      graph2.setSelection(graph1.getSelection());
-    } else {
-      graph2.dropSelection();
-    }
-
     graph1.on("selecting", () => {
       graph2.setSelection(graph1.getSelection());
     });
