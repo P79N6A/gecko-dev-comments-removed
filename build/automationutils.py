@@ -212,7 +212,9 @@ def processSingleLeakFile(leakLogFileName, processType, leakThreshold):
   totalBytesLeaked = None
   logAsWarning = False
   leakAnalysis = []
+  leakedObjectAnalysis = []
   leakedObjectNames = []
+  recordLeakedObjects = False
   with open(leakLogFileName, "r") as leaks:
     for line in leaks:
       if line.find("purposefully crash") > -1:
@@ -232,16 +234,33 @@ def processSingleLeakFile(leakLogFileName, processType, leakThreshold):
         log.info(line.rstrip())
       
       if name == "TOTAL":
-        totalBytesLeaked = bytesLeaked
+        
+        
+        
+        if totalBytesLeaked != None:
+          leakAnalysis.append("WARNING | leakcheck |%s multiple BloatView byte totals found"
+                              % processString)
+        else:
+          totalBytesLeaked = 0
+        if bytesLeaked > totalBytesLeaked:
+          totalBytesLeaked = bytesLeaked
+          
+          leakedObjectNames = []
+          leakedObjectAnalysis = []
+          recordLeakedObjects = True
+        else:
+          recordLeakedObjects = False
       if size < 0 or bytesLeaked < 0 or numLeaked < 0:
         leakAnalysis.append("TEST-UNEXPECTED-FAIL | leakcheck |%s negative leaks caught!"
                             % processString)
         logAsWarning = True
         continue
-      if name != "TOTAL" and numLeaked != 0:
+      if name != "TOTAL" and numLeaked != 0 and recordLeakedObjects:
         leakedObjectNames.append(name)
-        leakAnalysis.append("TEST-INFO | leakcheck |%s leaked %d %s (%s bytes)"
-                            % (processString, numLeaked, name, bytesLeaked))
+        leakedObjectAnalysis.append("TEST-INFO | leakcheck |%s leaked %d %s (%s bytes)"
+                                    % (processString, numLeaked, name, bytesLeaked))
+
+  leakAnalysis.extend(leakedObjectAnalysis)
   if logAsWarning:
     log.warning('\n'.join(leakAnalysis))
   else:
