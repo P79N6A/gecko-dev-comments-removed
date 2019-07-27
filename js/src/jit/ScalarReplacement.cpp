@@ -139,6 +139,12 @@ IsObjectEscaped(MInstruction *ins)
     MOZ_ASSERT(ins->type() == MIRType_Object);
     MOZ_ASSERT(ins->isNewObject() || ins->isGuardShape() || ins->isCreateThisWithTemplate());
 
+    JSObject *obj = nullptr;
+    if (ins->isNewObject())
+        obj = ins->toNewObject()->templateObject();
+    else if (ins->isCreateThisWithTemplate())
+        obj = ins->toCreateThisWithTemplate()->templateObject();
+
     
     
     
@@ -184,7 +190,7 @@ IsObjectEscaped(MInstruction *ins)
           case MDefinition::Op_GuardShape: {
             MGuardShape *guard = def->toGuardShape();
             MOZ_ASSERT(!ins->isGuardShape());
-            if (ins->toNewObject()->templateObject()->lastProperty() != guard->shape()) {
+            if (obj->lastProperty() != guard->shape()) {
                 JitSpewDef(JitSpew_Escape, "Object ", ins);
                 JitSpewDef(JitSpew_Escape, "  has a non-matching guard shape\n", guard);
                 return true;
