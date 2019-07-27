@@ -13,24 +13,14 @@ XPCOMUtils.defineLazyModuleGetter(this, "Services", "resource://gre/modules/Serv
 
 
 
-
-
 function webideCli() { }
 
 webideCli.prototype = {
   handle: function(cmdLine) {
     let param;
 
-    try {
-      
-      
-      param = cmdLine.handleFlagWithParam("webide", false);
-      if (!param) {
-        return;
-      }
-    } catch(e) {
-      
-      cmdLine.handleFlag("webide", false);
+    if (!cmdLine.handleFlag("webide", false)) {
+      return;
     }
 
     
@@ -43,24 +33,12 @@ webideCli.prototype = {
     let win = Services.wm.getMostRecentWindow("devtools:webide");
     if (win) {
       win.focus();
-      if (param) {
-        win.handleCommandline(param);
-      }
-      return;
-    }
-
-    win = Services.ww.openWindow(null,
-                                 "chrome://webide/content/",
-                                 "webide",
-                                 "chrome,centerscreen,resizable,dialog=no",
-                                 null);
-
-    if (param) {
-      win.addEventListener("load", function onLoad() {
-        win.removeEventListener("load", onLoad, true);
-        
-        win.setTimeout(() => win.handleCommandline(param), 0);
-      }, true);
+    } else {
+      win = Services.ww.openWindow(null,
+                                   "chrome://webide/content/",
+                                   "webide",
+                                   "chrome,centerscreen,resizable,dialog=no",
+                                   null);
     }
 
     if (cmdLine.state == Ci.nsICommandLine.STATE_INITIAL_LAUNCH) {
