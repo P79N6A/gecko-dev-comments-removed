@@ -413,6 +413,39 @@ this.CrashManager.prototype = Object.freeze({
 
 
 
+
+
+
+
+  addSubmissionAttempt: Task.async(function* (crashID, submissionID, date) {
+    let store = yield this._getStore();
+    if (store.addSubmissionAttempt(crashID, submissionID, date)) {
+      yield store.save();
+    }
+  }),
+
+  
+
+
+
+
+
+
+
+
+
+  addSubmissionResult: Task.async(function* (crashID, submissionID, date, result) {
+    let store = yield this._getStore();
+    if (store.addSubmissionResult(crashID, submissionID, date, result)) {
+      yield store.save();
+    }
+  }),
+
+  
+
+
+
+
   _getUnprocessedEventsFiles: function () {
     return Task.spawn(function* () {
       let entries = [];
@@ -697,7 +730,22 @@ CrashStore.prototype = Object.freeze({
         
         let actualCounts = new Map();
 
+        
+        
+        
+        
+        
+        
+        
+        
+        let hasSubmissionsStoredAsCrashes = false;
+
         for (let id in data.crashes) {
+          if (id.endsWith("-submission")) {
+            hasSubmissionsStoredAsCrashes = true;
+            continue;
+          }
+
           let crash = data.crashes[id];
           let denormalized = this._denormalize(crash);
 
@@ -714,6 +762,32 @@ CrashStore.prototype = Object.freeze({
 
           let key = dateToDays(denormalized.crashDate) + "-" + denormalized.type;
           actualCounts.set(key, (actualCounts.get(key) || 0) + 1);
+        }
+
+        if (hasSubmissionsStoredAsCrashes) {
+          for (let id in data.crashes) {
+            if (!id.endsWith("-submission")) {
+              continue;
+            }
+
+            
+            
+            
+            
+            
+            
+            let submissionData = this._denormalize(data.crashes[id]);
+
+            let crashID = id.replace(/-submission$/, "");
+            let result = submissionData.type.endsWith("-succeeded") ?
+              CrashManager.prototype.SUBMISSION_RESULT_OK :
+              CrashManager.prototype.SUBMISSION_RESULT_FAILED;
+
+            this.addSubmissionAttempt(crashID, "converted",
+                                      submissionData.crashDate);
+            this.addSubmissionResult(crashID, "converted",
+                                     submissionData.crashDate, result);
+          }
         }
 
         
