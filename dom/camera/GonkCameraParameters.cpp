@@ -51,7 +51,25 @@ GonkCameraParameters::IsLowMemoryPlatform()
   return false;
 }
 
- const char*
+const char*
+GonkCameraParameters::Parameters::FindVendorSpecificKey(const char* aPotentialKeys[],
+                                                        size_t aPotentialKeyCount)
+{
+  const char* val;
+
+  for (size_t i = 0; i < aPotentialKeyCount; ++i) {
+    get(aPotentialKeys[i], val);
+    if (val) {
+      
+      
+      return aPotentialKeys[i];
+    }
+  }
+
+  return nullptr;
+}
+
+const char*
 GonkCameraParameters::Parameters::GetTextKey(uint32_t aKey)
 {
   switch (aKey) {
@@ -105,9 +123,15 @@ GonkCameraParameters::Parameters::GetTextKey(uint32_t aKey)
     case CAMERA_PARAM_VIDEOSIZE:
       return KEY_VIDEO_SIZE;
     case CAMERA_PARAM_ISOMODE:
-      
-      
-      return "iso";
+      if (!mVendorSpecificKeyIsoMode) {
+        const char* isoModeKeys[] = {
+          "iso",
+          "sony-iso"
+        };
+        mVendorSpecificKeyIsoMode =
+          FindVendorSpecificKey(isoModeKeys, MOZ_ARRAY_LENGTH(isoModeKeys));
+      }
+      return mVendorSpecificKeyIsoMode;
     case CAMERA_PARAM_LUMINANCE:
       return "luminance-condition";
     case CAMERA_PARAM_SCENEMODE_HDR_RETURNNORMALPICTURE:
@@ -161,9 +185,16 @@ GonkCameraParameters::Parameters::GetTextKey(uint32_t aKey)
     case CAMERA_PARAM_SUPPORTED_JPEG_THUMBNAIL_SIZES:
       return KEY_SUPPORTED_JPEG_THUMBNAIL_SIZES;
     case CAMERA_PARAM_SUPPORTED_ISOMODES:
-      
-      
-      return "iso-values";
+      if (!mVendorSpecificKeySupportedIsoModes) {
+        const char* supportedIsoModesKeys[] = {
+          "iso-values",
+          "sony-iso-values"
+        };
+        mVendorSpecificKeySupportedIsoModes =
+          FindVendorSpecificKey(supportedIsoModesKeys,
+                                MOZ_ARRAY_LENGTH(supportedIsoModesKeys));
+      }
+      return mVendorSpecificKeySupportedIsoModes;
     case CAMERA_PARAM_SUPPORTED_METERINGMODES:
       
       return "auto-exposure-values";
