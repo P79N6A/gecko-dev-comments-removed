@@ -249,6 +249,10 @@
   color: #f5f7fa; 
 }
 
+.theme-dark .trace-item.black-boxed {
+  color: rgba(128,128,128,0.4);
+}
+
 .theme-dark .trace-item.selected-matching {
   background-color: rgba(29,79,115,.4); 
 }
@@ -282,6 +286,10 @@
 
 .theme-light .trace-item {
   color: #292e33; 
+}
+
+.theme-light .trace-item.black-boxed {
+  color: rgba(128,128,128,0.4);
 }
 
 .theme-light .trace-item.selected-matching {
