@@ -4710,3 +4710,10 @@ pref("gfx.vsync.refreshdriver", true);
 #ifdef MOZ_SECUREELEMENT
 pref("dom.secureelement.enabled", false);
 #endif
+
+
+
+
+
+
+pref("dom.compositionevent.allow_control_characters", false);
