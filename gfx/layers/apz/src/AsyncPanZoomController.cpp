@@ -2811,6 +2811,15 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
       
       
       mLastDispatchedPaintMetrics = aLayerMetrics;
+
+      
+      
+      
+      
+      
+      
+      
+      needContentRepaint = true;
     }
   }
 
