@@ -57,7 +57,7 @@
 #define JS_TYPEREPR_REFERENCE_KIND      2
 #define JS_TYPEREPR_STRUCT_KIND         3
 #define JS_TYPEREPR_SIZED_ARRAY_KIND    4
-#define JS_TYPEREPR_X4_KIND             5
+#define JS_TYPEREPR_SIMD_KIND           5
 
 
 
@@ -84,8 +84,8 @@
 
 
 
-#define JS_X4TYPEREPR_INT32         0
-#define JS_X4TYPEREPR_FLOAT32       1
+#define JS_SIMDTYPEREPR_INT32         0
+#define JS_SIMDTYPEREPR_FLOAT32       1
 
 
 
