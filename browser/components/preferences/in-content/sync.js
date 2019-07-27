@@ -187,15 +187,15 @@ let gSyncPane = {
     setEventListener("syncComputerName", "change", function (e) {
       gSyncUtils.changeName(e.target);
     });
-    setEventListener("fxaChangeDeviceName", "click", function () {
+    setEventListener("fxaChangeDeviceName", "command", function () {
       this._toggleComputerNameControls(true);
       this._focusComputerNameTextbox();
     });
-    setEventListener("fxaCancelChangeDeviceName", "click", function () {
+    setEventListener("fxaCancelChangeDeviceName", "command", function () {
       this._toggleComputerNameControls(false);
       this._updateComputerNameValue(false);
     });
-    setEventListener("fxaSaveChangeDeviceName", "click", function () {
+    setEventListener("fxaSaveChangeDeviceName", "command", function () {
       this._toggleComputerNameControls(false);
       this._updateComputerNameValue(true);
     });
@@ -319,11 +319,11 @@ let gSyncPane = {
         
         
         let fxaLoginStatus = document.getElementById("fxaLoginStatus");
-        let enginesListDisabled;
+        let syncReady;
         
         if (!data.verified) {
           fxaLoginStatus.selectedIndex = FXA_LOGIN_UNVERIFIED;
-          enginesListDisabled = true;
+          syncReady = false;
         
         
         
@@ -332,12 +332,12 @@ let gSyncPane = {
         
         } else if (Weave.Status.login == Weave.LOGIN_FAILED_LOGIN_REJECTED) {
           fxaLoginStatus.selectedIndex = FXA_LOGIN_FAILED;
-          enginesListDisabled = true;
+          syncReady = false;
         
         
         } else {
           fxaLoginStatus.selectedIndex = FXA_LOGIN_VERIFIED;
-          enginesListDisabled = false;
+          syncReady = true;
         }
         fxaEmailAddress1Label.textContent = data.email;
         document.getElementById("fxaEmailAddress2").textContent = data.email;
@@ -345,8 +345,9 @@ let gSyncPane = {
         document.getElementById("fxaSyncComputerName").value = Weave.Service.clientsEngine.localName;
         let engines = document.getElementById("fxaSyncEngines")
         for (let checkbox of engines.querySelectorAll("checkbox")) {
-          checkbox.disabled = enginesListDisabled;
+          checkbox.disabled = !syncReady;
         }
+        document.getElementById("fxaChangeDeviceName").disabled = !syncReady;
 
         
         document.getElementById("fxaProfileImage").style.removeProperty("background-image");
