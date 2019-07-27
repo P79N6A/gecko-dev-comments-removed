@@ -147,6 +147,11 @@ static inline void profiler_free_backtrace(ProfilerBacktrace* aBacktrace) {}
 static inline bool profiler_is_active() { return false; }
 
 
+
+
+static inline bool profiler_feature_active(const char*) { return false; }
+
+
 static inline void profiler_responsiveness(const mozilla::TimeStamp& aTime) {}
 
 
