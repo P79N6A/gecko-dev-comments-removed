@@ -228,8 +228,10 @@ class nsHtml5Highlighter
 
 
 
+
     nsIContent** CreateElement(nsIAtom* aName,
-                               nsHtml5HtmlAttributes* aAttributes);
+                               nsHtml5HtmlAttributes* aAttributes,
+                               nsIContent** aIntendedParent);
 
     
 
