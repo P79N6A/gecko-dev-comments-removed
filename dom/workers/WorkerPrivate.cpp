@@ -4583,6 +4583,7 @@ WorkerPrivate::WorkerPrivate(JSContext* aCx,
                                        aSharedWorkerName, aLoadInfo)
   , mJSContext(nullptr)
   , mPRThread(nullptr)
+  , mDebuggerEventLoopLevel(0)
   , mErrorHandlerRecursionCount(0)
   , mNextTimeoutId(1)
   , mStatus(Pending)
@@ -6184,6 +6185,76 @@ WorkerPrivate::PostMessageToParentMessagePort(
 
   PostMessageToParentInternal(aCx, aMessage, aTransferable, true,
                               aMessagePortSerial, aRv);
+}
+
+void
+WorkerPrivate::EnterDebuggerEventLoop()
+{
+  AssertIsOnWorkerThread();
+
+  JSContext* cx = GetJSContext();
+  MOZ_ASSERT(cx);
+
+  uint32_t currentEventLoopLevel = ++mDebuggerEventLoopLevel;
+
+  while (currentEventLoopLevel <= mDebuggerEventLoopLevel) {
+    bool debuggerRunnablesPending = false;
+
+    {
+      MutexAutoLock lock(mMutex);
+
+      debuggerRunnablesPending = !mDebuggerQueue.IsEmpty();
+    }
+
+    
+    if (!debuggerRunnablesPending) {
+      SetGCTimerMode(IdleTimer);
+    }
+
+    
+    {
+      MutexAutoLock lock(mMutex);
+
+      while (mControlQueue.IsEmpty() &&
+             !(debuggerRunnablesPending = !mDebuggerQueue.IsEmpty())) {
+        WaitForWorkerEvents();
+      }
+
+      ProcessAllControlRunnablesLocked();
+    }
+
+    if (debuggerRunnablesPending) {
+      
+      SetGCTimerMode(PeriodicTimer);
+
+      WorkerRunnable* runnable;
+
+      {
+        MutexAutoLock lock(mMutex);
+
+        mDebuggerQueue.Pop(runnable);
+      }
+
+      MOZ_ASSERT(runnable);
+      static_cast<nsIRunnable*>(runnable)->Run();
+      runnable->Release();
+
+      
+      JS_MaybeGC(cx);
+    }
+  }
+}
+
+void
+WorkerPrivate::LeaveDebuggerEventLoop()
+{
+  AssertIsOnWorkerThread();
+
+  MutexAutoLock lock(mMutex);
+
+  if (mDebuggerEventLoopLevel > 0) {
+    --mDebuggerEventLoopLevel;
+  }
 }
 
 void
