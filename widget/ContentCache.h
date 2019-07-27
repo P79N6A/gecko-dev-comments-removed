@@ -41,6 +41,20 @@ public:
 
 
 
+  void AssignContent(const ContentCache& aOther)
+  {
+    mText = aOther.mText;
+    mSelection = aOther.mSelection;
+    mCaret = aOther.mCaret;
+    mTextRectArray = aOther.mTextRectArray;
+    mEditorRect = aOther.mEditorRect;
+  }
+
+  
+
+
+
+
 
 
 
@@ -232,6 +246,8 @@ private:
 
   bool mIsComposing;
   bool mRequestedToCommitOrCancelComposition;
+
+  friend struct IPC::ParamTraits<ContentCache>;
 };
 
 } 
