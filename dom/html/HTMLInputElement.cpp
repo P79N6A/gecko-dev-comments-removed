@@ -7383,6 +7383,29 @@ HTMLInputElement::SetFilePickerFiltersFromAccept(nsIFilePicker* filePicker)
   }
 
   
+  
+  nsTArray<nsFilePickerFilter> filtersCopy;
+  filtersCopy = filters;
+  for (uint32_t i = 0; i < filtersCopy.Length(); ++i) {
+    const nsFilePickerFilter& filterToCheck = filtersCopy[i];
+    if (filterToCheck.mFilterMask) {
+      continue;
+    }
+    for (uint32_t j = 0; j < filtersCopy.Length(); ++j) {
+      if (i == j) {
+        continue;
+      }
+      if (FindInReadable(filterToCheck.mFilter, filtersCopy[j].mFilter)) {
+        
+        
+        
+        filters.RemoveElement(filterToCheck);
+      }
+    }
+  }
+
+
+  
   if (filters.Length() > 1) {
     nsXPIDLString title;
     nsContentUtils::GetLocalizedString(nsContentUtils::eFORMS_PROPERTIES,
