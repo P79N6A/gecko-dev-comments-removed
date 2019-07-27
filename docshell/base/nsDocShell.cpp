@@ -10994,6 +10994,18 @@ nsDocShell::DoChannelLoad(nsIChannel* aChannel,
 
   (void)aChannel->SetLoadFlags(loadFlags);
 
+  
+  
+  if (mLoadType == LOAD_RELOAD_BYPASS_CACHE ||
+      mLoadType == LOAD_RELOAD_BYPASS_PROXY ||
+      mLoadType == LOAD_RELOAD_BYPASS_PROXY_AND_CACHE ||
+      mLoadType == LOAD_RELOAD_ALLOW_MIXED_CONTENT) {
+    nsCOMPtr<nsIHttpChannelInternal> internal = do_QueryInterface(aChannel);
+    if (internal) {
+      internal->ForceNoIntercept();
+    }
+  }
+
   uint32_t openFlags = 0;
   if (mLoadType == LOAD_LINK) {
     openFlags |= nsIURILoader::IS_CONTENT_PREFERRED;
