@@ -11,18 +11,28 @@ const {Services} = Cu.import("resource://gre/modules/Services.jsm", {});
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 
 const MAX_ITERATIONS = 100;
+const REGEX_QUOTES = /^".*?"|^".*|^'.*?'|^'.*/;
+const REGEX_WHITESPACE = /^\s+/;
+const REGEX_FIRST_WORD_OR_CHAR = /^\w+|^./;
+const REGEX_CUBIC_BEZIER = /^linear|^ease-in-out|^ease-in|^ease-out|^ease|^cubic-bezier\(([0-9.\- ]+,){3}[0-9.\- ]+\)/;
 
-const BEZIER_KEYWORDS = ["linear", "ease-in-out", "ease-in", "ease-out", "ease"];
 
 
-const COLOR_TAKING_FUNCTIONS = ["linear-gradient",
-                                "-moz-linear-gradient",
-                                "repeating-linear-gradient",
-                                "-moz-repeating-linear-gradient",
-                                "radial-gradient",
-                                "-moz-radial-gradient",
-                                "repeating-radial-gradient",
-                                "-moz-repeating-radial-gradient"];
+
+
+const REGEX_CSS_VAR = /^\bvar\(\s*--[-_a-zA-Z0-9\u00A0-\u10FFFF]+\s*\)/;
+
+
+
+
+
+
+
+
+
+
+
+const REGEX_ALL_COLORS = /^#[0-9a-fA-F]{3}\b|^#[0-9a-fA-F]{6}\b|^hsl\(.*?\)|^hsla\(.*?\)|^rgba?\(.*?\)|^[a-zA-Z-]+/;
 
 loader.lazyGetter(this, "DOMUtils", function () {
   return Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils);
@@ -89,39 +99,24 @@ OutputParser.prototype = {
 
 
 
-
-
-
-
-
-
-
-
-
-  _collectFunctionText: function(initialToken, text, tokenStream) {
-    let result = text.substring(initialToken.startOffset,
-                                initialToken.endOffset);
-    let depth = 1;
-    while (depth > 0) {
-      let token = tokenStream.nextToken();
-      if (!token) {
-        break;
-      }
-      if (token.tokenType === "comment") {
-        continue;
-      }
-      result += text.substring(token.startOffset, token.endOffset);
-      if (token.tokenType === "symbol") {
-        if (token.text === "(") {
-          ++depth;
-        } else if (token.text === ")") {
-          --depth;
-        }
-      } else if (token.tokenType === "function") {
-        ++depth;
-      }
+  _matchBackgroundUrl: function(text) {
+    let startToken = "url(";
+    if (text.indexOf(startToken) !== 0) {
+      return null;
     }
-    return result;
+
+    let uri = text.substring(startToken.length).trim();
+    let quote = uri.substring(0, 1);
+    if (quote === "'" || quote === '"') {
+      uri = uri.substring(1, uri.search(new RegExp(quote + "\\s*\\)")));
+    } else {
+      uri = uri.substring(0, uri.indexOf(")"));
+      quote = "";
+    }
+    let end = startToken + quote + uri;
+    text = text.substring(0, text.indexOf(")", end.length) + 1);
+
+    return [text, uri.trim()];
   },
 
   
@@ -138,94 +133,140 @@ OutputParser.prototype = {
   _parse: function(text, options={}) {
     text = text.trim();
     this.parsed.length = 0;
+    let i = 0;
 
-    if (options.expectFilter) {
-      this._appendFilter(text, options);
-    } else {
-      let tokenStream = DOMUtils.getCSSLexer(text);
-      let i = 0;
-      while (true) {
-        let token = tokenStream.nextToken();
-        if (!token)
-          break;
-        if (token.tokenType === "comment") {
+    while (text.length > 0) {
+      let matched = null;
+
+      
+      
+      
+      i++;
+      if (i > MAX_ITERATIONS) {
+        this._appendTextNode(text);
+        text = "";
+        break;
+      }
+
+      if (options.expectFilter) {
+        this._appendFilter(text, options);
+        break;
+      }
+
+      matched = text.match(REGEX_QUOTES);
+      if (matched) {
+        let match = matched[0];
+
+        text = this._trimMatchFromStart(text, match);
+        this._appendTextNode(match);
+        continue;
+      }
+
+      matched = text.match(REGEX_CSS_VAR);
+      if (matched) {
+        let match = matched[0];
+
+        text = this._trimMatchFromStart(text, match);
+        this._appendTextNode(match);
+        continue;
+      }
+
+      matched = text.match(REGEX_WHITESPACE);
+      if (matched) {
+        let match = matched[0];
+
+        text = this._trimMatchFromStart(text, match);
+        this._appendTextNode(match);
+        continue;
+      }
+
+      matched = this._matchBackgroundUrl(text);
+      if (matched) {
+        let [match, url] = matched;
+        text = this._trimMatchFromStart(text, match);
+
+        this._appendURL(match, url, options);
+        continue;
+      }
+
+      if (options.expectCubicBezier) {
+        matched = text.match(REGEX_CUBIC_BEZIER);
+        if (matched) {
+          let match = matched[0];
+          text = this._trimMatchFromStart(text, match);
+
+          this._appendCubicBezier(match, options);
           continue;
         }
+      }
 
-        
-        
-        
-        i++;
-        if (i > MAX_ITERATIONS) {
-          this._appendTextNode(text.substring(token.startOffset,
-                                              token.endOffset));
+      if (options.supportsColor) {
+        let dirty;
+
+        [text, dirty] = this._appendColorOnMatch(text, options);
+
+        if (dirty) {
           continue;
         }
+      }
 
-        switch (token.tokenType) {
-          case "function": {
-            if (COLOR_TAKING_FUNCTIONS.indexOf(token.text) >= 0) {
-              
-              
-              
-              
-              this._appendTextNode(text.substring(token.startOffset,
-                                                  token.endOffset));
-            } else {
-              let functionText = this._collectFunctionText(token, text,
-                                                           tokenStream);
+      
+      
+      matched = text.match(REGEX_FIRST_WORD_OR_CHAR);
+      if (matched) {
+        let match = matched[0];
 
-              if (options.expectCubicBezier && token.text === "cubic-bezier") {
-                this._appendCubicBezier(functionText, options);
-              } else if (options.supportsColor &&
-                         DOMUtils.isValidCSSColor(functionText)) {
-                this._appendColor(functionText, options);
-              } else {
-                this._appendTextNode(functionText);
-              }
-            }
-            break;
-          }
-
-          case "ident":
-            if (options.expectCubicBezier &&
-                BEZIER_KEYWORDS.indexOf(token.text) >= 0) {
-              this._appendCubicBezier(token.text, options);
-            } else if (options.supportsColor &&
-                       DOMUtils.isValidCSSColor(token.text)) {
-              this._appendColor(token.text, options);
-            } else {
-              this._appendTextNode(text.substring(token.startOffset,
-                                                  token.endOffset));
-            }
-            break;
-
-          case "id":
-          case "hash": {
-            let original = text.substring(token.startOffset, token.endOffset);
-            if (options.supportsColor && DOMUtils.isValidCSSColor(original)) {
-              this._appendColor(original, options);
-            } else {
-              this._appendTextNode(original);
-            }
-            break;
-          }
-
-          case "url":
-          case "bad_url":
-            this._appendURL(text.substring(token.startOffset, token.endOffset),
-                            token.text, options);
-            break;
-
-          default:
-            this._appendTextNode(text.substring(token.startOffset,
-                                                token.endOffset));
-            break;
-        }
+        text = this._trimMatchFromStart(text, match);
+        this._appendTextNode(match);
       }
     }
 
     return this._toDOM();
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  _trimMatchFromStart: function(text, match) {
+    return text.substr(match.length);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  _appendColorOnMatch: function(text, options) {
+    let dirty;
+    let matched = text.match(REGEX_ALL_COLORS);
+
+    if (matched) {
+      let match = matched[0];
+      if (this._appendColor(match, options)) {
+        text = this._trimMatchFromStart(text, match);
+        dirty = true;
+      }
+    } else {
+      dirty = false;
+    }
+
+    return [text, dirty];
   },
 
   

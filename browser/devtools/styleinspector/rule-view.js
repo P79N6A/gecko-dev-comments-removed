@@ -30,7 +30,18 @@ const PROPERTY_NAME_CLASS = "ruleview-propertyname";
 const FILTER_CHANGED_TIMEOUT = 150;
 
 
-const FILTER_PROP_RE = /\s*([^:\s]*)\s*:\s*(.*?)\s*;?$/;
+
+
+
+
+
+const CSS_LINE_RE = /(?:[^;\(]*(?:\([^\)]*?\))?[^;\(]*)*;?/g;
+
+
+const CSS_PROP_RE = /\s*([^:\s]*)\s*:\s*(.*?)\s*(?:! (important))?;?$/;
+
+
+const CSS_RESOURCE_RE = /url\([\'\"]?(.*?)[\'\"]?\)/;
 
 const IOService = Cc["@mozilla.org/network/io-service;1"]
                   .getService(Ci.nsIIOService);
@@ -2092,7 +2103,7 @@ CssRuleView.prototype = {
     
     
     
-    let propertyMatch = FILTER_PROP_RE.exec(aValue);
+    let propertyMatch = CSS_PROP_RE.exec(aValue);
     let name = propertyMatch ? propertyMatch[1] : aValue;
     let value = propertyMatch ? propertyMatch[2] : aValue;
 
@@ -2835,6 +2846,22 @@ TextPropertyEditor.prototype = {
       relativePath = this.sheetURI.resolve(relativePath);
     }
     return relativePath;
+  },
+
+  
+
+
+
+  getResourceURI: function() {
+    let val = this.prop.value;
+    let uriMatch = CSS_RESOURCE_RE.exec(val);
+    let uri = null;
+
+    if (uriMatch && uriMatch[1]) {
+      uri = uriMatch[1];
+    }
+
+    return uri;
   },
 
   

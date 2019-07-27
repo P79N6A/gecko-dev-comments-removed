@@ -42,6 +42,14 @@ const { Cc, Ci, Cu } = require("chrome");
 const Services = require("Services");
 const DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
 
+const RX_UNIVERSAL_SELECTOR = /\s*\*\s*/g;
+const RX_NOT = /:not\((.*?)\)/g;
+const RX_PSEUDO_CLASS_OR_ELT = /(:[\w-]+\().*?\)/g;
+const RX_CONNECTORS = /\s*[\s>+~]\s*/g;
+const RX_ID = /\s*#\w+\s*/g;
+const RX_CLASS_OR_ATTRIBUTE = /\s*(?:\.\w+|\[.+?\])\s*/g;
+const RX_PSEUDO = /\s*:?:([\w-]+)(\(?\)?)\s*/g;
+
 
 
 if (Cu) {
@@ -995,172 +1003,50 @@ CssLogic.prettifyCSS = function(text, ruleCount) {
     return text;
   }
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+  let parts = [];    
+  let partStart = 0; 
   let indent = "";
   let indentLevel = 0;
-  let tokens = domUtils.getCSSLexer(text);
-  let result = "";
-  let pushbackToken = undefined;
 
-  
-  
-  
-  
-  
-  let readUntilSignificantToken = () => {
-    while (true) {
-      let token = tokens.nextToken();
-      if (!token || token.tokenType !== "whitespace") {
-        pushbackToken = token;
-        return token;
-      }
-      
-      
-      let nextToken = tokens.nextToken();
-      if (!nextToken || nextToken.tokenType !== "comment") {
-        pushbackToken = nextToken;
-        return token;
-      }
-      
-      result = result + text.substring(token.startOffset, nextToken.endOffset);
+  for (let i = 0; i < text.length; i++) {
+    let c = text[i];
+    let shouldIndent = false;
+
+    switch (c) {
+      case "}":
+        if (i - partStart > 1) {
+          
+          parts.push(indent + text.substring(partStart, i));
+          partStart = i;
+        }
+        indent = TAB_CHARS.repeat(--indentLevel);
+        
+      case ";":
+      case "{":
+        shouldIndent = true;
+        break;
     }
-  };
 
-  
-  
-  
-  let startIndex;
-  
-  let endIndex;
-  
-  let anyNonWS;
-  
-  let isCloseBrace;
-  
-  
-  let lastWasWS;
-
-  
-  
-  
-  
-  
-  
-  let readUntilNewlineNeeded = () => {
-    let token;
-    while (true) {
-      if (pushbackToken) {
-        token = pushbackToken;
-        pushbackToken = undefined;
-      } else {
-        token = tokens.nextToken();
-      }
-      if (!token) {
-        endIndex = text.length;
-        break;
-      }
-
-      
-      
-      if (token.tokenType === "symbol" && token.text === "}") {
-        isCloseBrace = true;
-        break;
-      } else if (token.tokenType === "symbol" && token.text === "{") {
-        break;
-      }
-
-      if (token.tokenType !== "whitespace") {
-        anyNonWS = true;
-      }
-
-      if (startIndex === undefined) {
-        startIndex = token.startOffset;
-      }
-      endIndex = token.endOffset;
-
-      if (token.tokenType === "symbol" && token.text === ';') {
-        break;
-      }
-
-      lastWasWS = token.tokenType === "whitespace";
-    }
-    return token;
-  };
-
-  while (true) {
-    
-    startIndex = undefined;
-    endIndex = undefined;
-    anyNonWS = false;
-    isCloseBrace = false;
-    lastWasWS = false;
-
-    
-    let token = readUntilNewlineNeeded();
-
-    
-    if (startIndex !== undefined) {
-      if (isCloseBrace && !anyNonWS) {
+    if (shouldIndent) {
+      let la = text[i+1]; 
+      if (!/\n/.test(la) || /^\s+$/.test(text.substring(i+1, text.length))) {
         
         
+        parts.push(indent + text.substring(partStart, i + 1));
+        if (c == "}") {
+          parts.push(""); 
+        }
+        partStart = i + 1;
       } else {
-        result = result + indent + text.substring(startIndex, endIndex);
-        if (isCloseBrace)
-          result += CssLogic.LINE_SEPARATOR;
+        return text; 
       }
     }
 
-    if (isCloseBrace) {
-      indent = TAB_CHARS.repeat(--indentLevel);
-      result = result + indent + '}';
-    }
-
-    if (!token) {
-      break;
-    }
-
-    if (token.tokenType === "symbol" && token.text === '{') {
-      if (!lastWasWS) {
-        result += ' ';
-      }
-      result += '{';
+    if (c == "{") {
       indent = TAB_CHARS.repeat(++indentLevel);
     }
-
-    
-    
-    token = readUntilSignificantToken();
-
-    
-    
-    
-    if (pushbackToken && token && token.tokenType === "whitespace" &&
-        /\n/g.test(text.substring(token.startOffset, token.endOffset))) {
-      return text;
-    }
-
-    
-    result = result + CssLogic.LINE_SEPARATOR;
-
-    
-    if (!pushbackToken) {
-      break;
-    }
   }
-
-  return result;
+  return parts.join(CssLogic.LINE_SEPARATOR);
 };
 
 

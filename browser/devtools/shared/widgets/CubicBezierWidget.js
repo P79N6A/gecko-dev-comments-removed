@@ -28,10 +28,6 @@
 const EventEmitter = require("devtools/toolkit/event-emitter");
 const {setTimeout, clearTimeout} = require("sdk/timers");
 const {PREDEFINED, PRESETS, DEFAULT_PRESET_CATEGORY} = require("devtools/shared/widgets/CubicBezierPresets");
-const {Cc, Ci} = require('chrome');
-loader.lazyGetter(this, "DOMUtils", () => {
-  return Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils);
-});
 
 
 
@@ -443,7 +439,12 @@ CubicBezierWidget.prototype = {
     value = value.trim();
 
     
-    let coordinates = parseTimingFunction(value);
+    let coordinates = PREDEFINED[value];
+
+    
+    if (!coordinates && value.startsWith("cubic-bezier")) {
+      coordinates = value.replace(/cubic-bezier|\(|\)/g, "").split(",").map(parseFloat);
+    }
 
     this.presets.refreshMenu(coordinates);
     this.coordinates = coordinates;
@@ -759,7 +760,7 @@ TimingFunctionPreviewWidget.prototype = {
 
     clearTimeout(this.autoRestartAnimation);
 
-    if (parseTimingFunction(value)) {
+    if (isValidTimingFunction(value)) {
       this.dot.style.animationTimingFunction = value;
       this.restartAnimation();
     }
@@ -814,49 +815,19 @@ function distance(x1, y1, x2, y2) {
 
 
 
-
-
-function parseTimingFunction(value) {
+function isValidTimingFunction(value) {
+  
   if (value in PREDEFINED) {
-    return PREDEFINED[value];
+    return true;
   }
 
-  let tokenStream = DOMUtils.getCSSLexer(value);
-  let getNextToken = () => {
-    while (true) {
-      let token = tokenStream.nextToken();
-      if (!token || (token.tokenType !== "whitespace" &&
-                     token.tokenType !== "comment")) {
-        return token;
-      }
-    }
-  };
-
-  let token = getNextToken();
-  if (token.tokenType !== "function" || token.text !== "cubic-bezier") {
-    return undefined;
+  
+  if (value.match(/^cubic-bezier\(([0-9.\- ]+,){3}[0-9.\- ]+\)/)) {
+    return true;
   }
 
-  let result = [];
-  for (let i = 0; i < 4; ++i) {
-    token = getNextToken();
-    if (!token || token.tokenType !== "number") {
-      return undefined;
-    }
-    result.push(token.number);
-
-    token = getNextToken();
-    if (!token || token.tokenType !== "symbol" ||
-        token.text !== (i == 3 ? ")" : ",")) {
-      return undefined;
-    }
-  }
-
-  return result;
+  return false;
 }
-
-
-exports._parseTimingFunction = parseTimingFunction;
 
 
 
