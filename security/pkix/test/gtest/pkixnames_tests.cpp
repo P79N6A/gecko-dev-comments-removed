@@ -330,9 +330,9 @@ static const InputValidity DNSNAMES_VALIDITY[] =
   I("xn--a", true, true),
   I("a.xn--a", true, true),
   I("a.xn--a.a", true, true),
-  I("\0xc4\0x95.com", false, false), 
+  I("\xc4\x95.com", false, false), 
   I("xn--jea.com", true, true), 
-  I("xn--\0xc4\0x95.com", false, false), 
+  I("xn--\xc4\x95.com", false, false), 
 
   
   I("xn--google.com", true, true), 
@@ -498,12 +498,12 @@ static const InputValidity DNSNAMES_VALIDITY_TURKISH_I[] =
   
   I("I", true, true), 
   I("i", true, true), 
-  I("\0xC4\0xB0", false, false), 
-  I("\0xC4\0xB1", false, false), 
+  I("\xC4\xB0", false, false), 
+  I("\xC4\xB1", false, false), 
   I("xn--i-9bb", true, true), 
   I("xn--cfa", true, true), 
-  I("xn--\0xC4\0xB0", false, false), 
-  I("xn--\0xC4\0xB1", false, false), 
+  I("xn--\xC4\xB0", false, false), 
+  I("xn--\xC4\xB1", false, false), 
 };
 
 static const uint8_t LOWERCASE_I_VALUE[1] = { 'i' };
@@ -1024,8 +1024,11 @@ static const uint8_t example_com[] = {
 static const uint8_t ipv4_addr_bytes[] = {
   1, 2, 3, 4
 };
-static const uint8_t ipv4_addr_bytes_as_str[] = "\0x01\x02\0x03\0x04";
+static const uint8_t ipv4_addr_bytes_as_str[] = "\x01\x02\x03\x04";
 static const uint8_t ipv4_addr_str[] = "1.2.3.4";
+static const uint8_t ipv4_addr_bytes_FFFFFFFF[8] = {
+  1, 2, 3, 4, 0xff, 0xff, 0xff, 0xff
+};
 
 static const uint8_t ipv4_compatible_ipv6_addr_bytes[] = {
   0, 0, 0, 0,
@@ -1050,10 +1053,10 @@ static const uint8_t ipv6_addr_bytes[] = {
   0xdd, 0xee, 0xff, 0x11
 };
 static const uint8_t ipv6_addr_bytes_as_str[] =
-  "\0x11\0x22\0x33\0x44"
-  "\0x55\0x66\0x77\0x88"
-  "\0x99\0xaa\0xbb\0xcc"
-  "\0xdd\0xee\0xff\0x11";
+  "\x11\x22\x33\x44"
+  "\x55\x66\x77\x88"
+  "\x99\xaa\xbb\xcc"
+  "\xdd\xee\xff\x11";
 
 static const uint8_t ipv6_addr_str[] =
   "1122:3344:5566:7788:99aa:bbcc:ddee:ff11";
