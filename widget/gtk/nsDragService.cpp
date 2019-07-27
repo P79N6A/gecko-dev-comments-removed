@@ -102,7 +102,12 @@ nsDragService::nsDragService()
     obsServ->AddObserver(this, "quit-application", false);
 
     
+#if (MOZ_WIDGET_GTK == 2)
     mHiddenWidget = gtk_window_new(GTK_WINDOW_POPUP);
+#else
+    
+    mHiddenWidget = gtk_offscreen_window_new();
+#endif
     
     
     gtk_widget_realize(mHiddenWidget);
