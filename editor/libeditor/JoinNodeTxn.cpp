@@ -3,8 +3,6 @@
 
 
 
-#include <stdio.h>                      
-
 #include "JoinNodeTxn.h"
 #include "nsAString.h"
 #include "nsDebug.h"                    

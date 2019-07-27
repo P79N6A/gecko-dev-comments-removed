@@ -3,8 +3,6 @@
 
 
 
-#include <stdio.h>                      
-
 #include "mozilla/dom/Selection.h"
 #include "SplitNodeTxn.h"
 #include "nsAString.h"
