@@ -463,6 +463,8 @@ js::gc::GCRuntime::markRuntime(JSTracer* trc,
 
     
     for (CompartmentsIter c(rt, SkipAtoms); !c.done(); c.next()) {
+        c->markRoots(trc);
+
         if (rt->isHeapMinorCollecting())
             c->globalWriteBarriered = false;
 
@@ -492,14 +494,6 @@ js::gc::GCRuntime::markRuntime(JSTracer* trc,
 
     if (!rt->isHeapMinorCollecting()) {
         gcstats::AutoPhase ap(stats, gcstats::PHASE_MARK_EMBEDDING);
-
-        
-
-
-
-
-        for (CompartmentsIter c(rt, SkipAtoms); !c.done(); c.next())
-            c->markRoots(trc);
 
         
 

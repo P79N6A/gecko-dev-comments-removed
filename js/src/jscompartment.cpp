@@ -518,22 +518,25 @@ JSCompartment::trace(JSTracer* trc)
 void
 JSCompartment::markRoots(JSTracer* trc)
 {
-    MOZ_ASSERT(!trc->runtime()->isHeapMinorCollecting());
-
-    if (jitCompartment_)
-        jitCompartment_->mark(trc, this);
-
-    if (objectMetadataState.is<PendingMetadata>())
+    
+    
+    if (objectMetadataState.is<PendingMetadata>()) {
         TraceRoot(trc,
                   objectMetadataState.as<PendingMetadata>().unsafeGet(),
-                  "object pending metadata");
+                  "on-stack object pending metadata");
+    }
 
-    
+    if (!trc->runtime()->isHeapMinorCollecting()) {
+        if (jitCompartment_)
+            jitCompartment_->mark(trc, this);
+
+        
 
 
 
-    if (enterCompartmentDepth && global_.unbarrieredGet())
-        TraceRoot(trc, global_.unsafeGet(), "on-stack compartment global");
+        if (enterCompartmentDepth && global_.unbarrieredGet())
+            TraceRoot(trc, global_.unsafeGet(), "on-stack compartment global");
+    }
 }
 
 void
