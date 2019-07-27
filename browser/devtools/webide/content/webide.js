@@ -134,7 +134,7 @@ let UI = {
         AppManager.selectedProject.type != "mainProcess" &&
         AppManager.selectedProject.type != "runtimeApp" &&
         AppManager.selectedProject.type != "tab") {
-      AppManager.validateProject(AppManager.selectedProject);
+      AppManager.validateAndUpdateProject(AppManager.selectedProject);
     }
 
     
@@ -567,7 +567,7 @@ let UI = {
       menuindex: 1
     });
     this.projecteditor.on("onEditorSave", (editor, resource) => {
-      AppManager.validateProject(AppManager.selectedProject);
+      AppManager.validateAndUpdateProject(AppManager.selectedProject);
     });
     return this.projecteditor.loaded;
   },
@@ -666,9 +666,6 @@ let UI = {
         throw e;
       }
     }
-
-    
-    yield AppManager.validateProject(project);
 
     
     AppManager.selectedProject = project;
@@ -1046,9 +1043,6 @@ let Cmds = {
       let project = AppProjects.get(ret.location);
 
       
-      yield AppManager.validateProject(project);
-
-      
       AppManager.selectedProject = project;
 
     }), "creating new app");
@@ -1106,7 +1100,7 @@ let Cmds = {
           
           
           
-          AppManager.validateProject(project).then(() => {
+          AppManager.validateAndUpdateProject(project).then(() => {
             panelItemNode.setAttribute("label", project.name);
             panelItemNode.setAttribute("image", project.icon);
           });
