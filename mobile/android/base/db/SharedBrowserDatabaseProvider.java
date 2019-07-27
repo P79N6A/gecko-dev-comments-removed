@@ -102,9 +102,7 @@ public abstract class SharedBrowserDatabaseProvider extends AbstractPerProfileDa
         
         
         final long now = System.currentTimeMillis();
-        final String selection = SyncColumns.IS_DELETED + " = 1 AND " +
-                                 SyncColumns.DATE_MODIFIED + " <= " +
-                                 (now - MAX_AGE_OF_DELETED_RECORDS);
+        final String selection = getDeletedItemSelection(now - MAX_AGE_OF_DELETED_RECORDS);
 
         final String profile = fromUri.getQueryParameter(BrowserContract.PARAM_PROFILE);
         final SQLiteDatabase db = getWritableDatabaseForProfile(profile, isTest(fromUri));
@@ -118,5 +116,13 @@ public abstract class SharedBrowserDatabaseProvider extends AbstractPerProfileDa
         }
 
         db.delete(tableName, inClause, null);
+    }
+
+    
+    protected String getDeletedItemSelection(long earlierThan) {
+        if (earlierThan == -1L) {
+            return SyncColumns.IS_DELETED + " = 1";
+        }
+        return SyncColumns.IS_DELETED + " = 1 AND " + SyncColumns.DATE_MODIFIED + " <= " + earlierThan;
     }
 }

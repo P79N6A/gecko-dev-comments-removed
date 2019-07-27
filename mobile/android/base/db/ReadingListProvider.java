@@ -4,9 +4,6 @@
 
 package org.mozilla.gecko.db;
 
-import org.mozilla.gecko.db.BrowserContract.ReadingListItems;
-import org.mozilla.gecko.sync.Utils;
-
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.UriMatcher;
@@ -16,12 +13,16 @@ import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.text.TextUtils;
 
+import static org.mozilla.gecko.db.BrowserContract.ReadingListItems.*;
+
 public class ReadingListProvider extends SharedBrowserDatabaseProvider {
-    static final String TABLE_READING_LIST = ReadingListItems.TABLE_NAME;
+    static final String TABLE_READING_LIST = TABLE_NAME;
 
     static final int ITEMS = 101;
     static final int ITEMS_ID = 102;
     static final UriMatcher URI_MATCHER = new UriMatcher(UriMatcher.NO_MATCH);
+
+    public static final String PLACEHOLDER_THIS_DEVICE = "$local";
 
     static {
         URI_MATCHER.addURI(BrowserContract.READING_LIST_AUTHORITY, "items", ITEMS);
@@ -34,9 +35,30 @@ public class ReadingListProvider extends SharedBrowserDatabaseProvider {
 
 
 
+
+
+
     public int updateOrInsertItem(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
-        int updated = updateItems(uri, values, selection, selectionArgs);
+        if (!values.containsKey(CLIENT_LAST_MODIFIED)) {
+            values.put(CLIENT_LAST_MODIFIED, System.currentTimeMillis());
+        }
+
+        if (isCallerSync(uri)) {
+            int updated = updateItemsWithFlags(uri, values, null, selection, selectionArgs);
+            if (updated > 0) {
+                return updated;
+            }
+            return insertItem(uri, values) != -1 ? 1 : 0;
+        }
+
+        
+        final ContentValues flags = processChangeValues(values);
+
+        int updated = updateItemsWithFlags(uri, values, flags, selection, selectionArgs);
         if (updated <= 0) {
+            
+            values.put(SYNC_STATUS, SYNC_STATUS_NEW);
+            values.put(SYNC_CHANGE_FLAGS, SYNC_CHANGE_NONE);
             updated = insertItem(uri, values) != -1 ? 1 : 0;
         }
         return updated;
@@ -47,13 +69,66 @@ public class ReadingListProvider extends SharedBrowserDatabaseProvider {
 
 
 
-    public int updateItems(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
+
+
+
+
+    private ContentValues processChangeValues(ContentValues values) {
+        if (values == null || values.size() == 0) {
+            return null;
+        }
+
+        
+        values.put(SYNC_STATUS, SYNC_STATUS_MODIFIED);
+
+        final ContentValues out = new ContentValues();
+        int flag = 0;
+        if (values.containsKey(MARKED_READ_BY) ||
+            values.containsKey(MARKED_READ_ON) ||
+            values.containsKey(IS_UNREAD)) {
+            flag |= SYNC_CHANGE_UNREAD_CHANGED;
+        }
+
+        if (values.containsKey(IS_FAVORITE)) {
+            flag |= SYNC_CHANGE_FAVORITE_CHANGED;
+        }
+
+        if (values.containsKey(RESOLVED_URL) ||
+            values.containsKey(RESOLVED_TITLE) ||
+            values.containsKey(EXCERPT)) {
+            flag |= SYNC_CHANGE_RESOLVED;
+        }
+
+        if (flag == 0) {
+            return null;
+        }
+
+        out.put(SYNC_CHANGE_FLAGS, flag);
+        return out;
+    }
+
+    
+
+
+
+
+    public int updateItemsWithFlags(Uri uri, ContentValues values, ContentValues flags, String selection, String[] selectionArgs) {
         trace("Updating ReadingListItems on URI: " + uri);
         final SQLiteDatabase db = getWritableDatabase(uri);
-        if (!values.containsKey(ReadingListItems.DATE_MODIFIED)) {
-            values.put(ReadingListItems.DATE_MODIFIED, System.currentTimeMillis());
+        if (!values.containsKey(CLIENT_LAST_MODIFIED)) {
+            values.put(CLIENT_LAST_MODIFIED, System.currentTimeMillis());
         }
-        return db.update(TABLE_READING_LIST, values, selection, selectionArgs);
+
+        if (flags == null) {
+            
+            return db.update(TABLE_READING_LIST, values, selection, selectionArgs);
+        }
+
+        
+        final ContentValues[] valuesAndFlags = {values, flags};
+        final DBUtils.UpdateOperation[] ops = {DBUtils.UpdateOperation.ASSIGN, DBUtils.UpdateOperation.BITWISE_OR};
+
+        return DBUtils.updateArrays(db, TABLE_READING_LIST, valuesAndFlags, ops, selection, selectionArgs);
     }
 
     
@@ -62,24 +137,46 @@ public class ReadingListProvider extends SharedBrowserDatabaseProvider {
 
 
 
-    long insertItem(Uri uri, ContentValues values) {
-        long now = System.currentTimeMillis();
-        if (!values.containsKey(ReadingListItems.DATE_CREATED)) {
-            values.put(ReadingListItems.DATE_CREATED, now);
+
+
+    private long insertItem(Uri uri, ContentValues values) {
+        if (!values.containsKey(CLIENT_LAST_MODIFIED)) {
+            values.put(CLIENT_LAST_MODIFIED, System.currentTimeMillis());
         }
 
-        if (!values.containsKey(ReadingListItems.DATE_MODIFIED)) {
-            values.put(ReadingListItems.DATE_MODIFIED, now);
+        
+        if (!isCallerSync(uri)) {
+            values.put(SYNC_STATUS, SYNC_STATUS_NEW);
+            if (!values.containsKey(ADDED_ON)) {
+                values.put(ADDED_ON, System.currentTimeMillis());
+            }
+            if (!values.containsKey(ADDED_BY)) {
+                values.put(ADDED_BY, PLACEHOLDER_THIS_DEVICE);
+            }
         }
 
-        if (!values.containsKey(ReadingListItems.GUID)) {
-            values.put(ReadingListItems.GUID, Utils.generateGuid());
-        }
-
-        String url = values.getAsString(ReadingListItems.URL);
+        final String url = values.getAsString(URL);
         debug("Inserting item in database with URL: " + url);
-        return getWritableDatabase(uri)
-                .insertOrThrow(TABLE_READING_LIST, null, values);
+        return getWritableDatabase(uri).insertOrThrow(TABLE_READING_LIST, null, values);
+    }
+
+    private static final ContentValues DELETED_VALUES;
+    static {
+        final ContentValues values = new ContentValues();
+        values.put(IS_DELETED, 1);
+
+        values.put(URL, "");             
+        values.putNull(RESOLVED_URL);
+        values.putNull(RESOLVED_TITLE);
+        values.putNull(TITLE);
+        values.putNull(EXCERPT);
+        values.putNull(ADDED_BY);
+        values.putNull(MARKED_READ_BY);
+
+        
+        values.put(SYNC_STATUS, SYNC_STATUS_DELETED);
+        values.put(SYNC_CHANGE_FLAGS, SYNC_CHANGE_NONE);
+        DELETED_VALUES = values;
     }
 
     
@@ -88,25 +185,61 @@ public class ReadingListProvider extends SharedBrowserDatabaseProvider {
 
 
 
-    int deleteItems(Uri uri, String selection, String[] selectionArgs) {
+
+    int deleteItems(final Uri uri, String selection, String[] selectionArgs) {
         debug("Deleting item entry for URI: " + uri);
         final SQLiteDatabase db = getWritableDatabase(uri);
 
+        
         if (isCallerSync(uri)) {
+            debug("Directly deleting from reading list.");
             return db.delete(TABLE_READING_LIST, selection, selectionArgs);
         }
 
-        debug("Marking item entry as deleted for URI: " + uri);
-        ContentValues values = new ContentValues();
-        values.put(ReadingListItems.IS_DELETED, 1);
+        
+        
+        
+        int total = 0;
+        final String whereNullGUID = DBUtils.concatenateWhere(selection, GUID + " IS NULL");
+        final String whereNotNullGUID = DBUtils.concatenateWhere(selection, GUID + " IS NOT NULL");
 
-        cleanUpSomeDeletedRecords(uri, TABLE_READING_LIST);
-        return updateItems(uri, values, selection, selectionArgs);
+        total += db.delete(TABLE_READING_LIST, whereNullGUID, selectionArgs);
+        total += updateItemsWithFlags(uri, DELETED_VALUES, null, whereNotNullGUID, selectionArgs);
+
+        return total;
+    }
+
+    int deleteItemByID(final Uri uri, long id) {
+        debug("Deleting item entry for ID: " + id);
+        final SQLiteDatabase db = getWritableDatabase(uri);
+
+        
+        if (isCallerSync(uri)) {
+            debug("Directly deleting from reading list.");
+            final String selection = _ID + " = " + id;
+            return db.delete(TABLE_READING_LIST, selection, null);
+        }
+
+        
+        
+        final String whereNullGUID = _ID + " = " + id + " AND " + GUID + " IS NULL";
+        final int raw = db.delete(TABLE_READING_LIST, whereNullGUID, null);
+        if (raw > 0) {
+            
+            
+            return raw;
+        }
+
+        
+        final String whereNotNullGUID = _ID + " = " + id + " AND " + GUID + " IS NOT NULL";
+        final ContentValues values = new ContentValues(DELETED_VALUES);
+        values.put(CLIENT_LAST_MODIFIED, System.currentTimeMillis());
+        return updateItemsWithFlags(uri, values, null, whereNotNullGUID, null);
     }
 
     @Override
     @SuppressWarnings("fallthrough")
-    public int updateInTransaction(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
+    public int updateInTransaction(final Uri uri, ContentValues values, String selection, String[] selectionArgs) {
         trace("Calling update in transaction on URI: " + uri);
 
         int updated = 0;
@@ -121,9 +254,14 @@ public class ReadingListProvider extends SharedBrowserDatabaseProvider {
 
             case ITEMS: {
                 debug("Updating ITEMS: " + uri);
-                updated = shouldUpdateOrInsert(uri) ?
-                          updateOrInsertItem(uri, values, selection, selectionArgs) :
-                          updateItems(uri, values, selection, selectionArgs);
+                if (shouldUpdateOrInsert(uri)) {
+                    
+                    updated = updateOrInsertItem(uri, values, selection, selectionArgs);
+                } else {
+                    
+                    ContentValues flags = isCallerSync(uri) ? null : processChangeValues(values);
+                    updated = updateItemsWithFlags(uri, values, flags, selection, selectionArgs);
+                }
                 break;
             }
 
@@ -141,15 +279,18 @@ public class ReadingListProvider extends SharedBrowserDatabaseProvider {
     public int deleteInTransaction(Uri uri, String selection, String[] selectionArgs) {
         trace("Calling delete in transaction on URI: " + uri);
 
+        
+        
+        cleanUpSomeDeletedRecords(uri, TABLE_READING_LIST);
+
         int numDeleted = 0;
         int match = URI_MATCHER.match(uri);
 
         switch (match) {
             case ITEMS_ID:
                 debug("Deleting on ITEMS_ID: " + uri);
-                selection = DBUtils.concatenateWhere(selection, TABLE_READING_LIST + "._id = ?");
-                selectionArgs = DBUtils.appendSelectionArgs(selectionArgs,
-                        new String[] { Long.toString(ContentUris.parseId(uri)) });
+                numDeleted = deleteItemByID(uri, ContentUris.parseId(uri));
+                break;
 
             case ITEMS:
                 debug("Deleting ITEMS: " + uri);
@@ -200,14 +341,15 @@ public class ReadingListProvider extends SharedBrowserDatabaseProvider {
         switch (match) {
             case ITEMS_ID:
                 trace("Query on ITEMS_ID: " + uri);
-                selection = DBUtils.concatenateWhere(selection, ReadingListItems._ID + " = ?");
+                selection = DBUtils.concatenateWhere(selection, _ID + " = ?");
                 selectionArgs = DBUtils.appendSelectionArgs(selectionArgs,
                         new String[] { Long.toString(ContentUris.parseId(uri)) });
 
             case ITEMS:
                 trace("Query on ITEMS: " + uri);
-                if (!shouldShowDeleted(uri))
-                    selection = DBUtils.concatenateWhere(ReadingListItems.IS_DELETED + " = 0", selection);
+                if (!shouldShowDeleted(uri)) {
+                    selection = DBUtils.concatenateWhere(IS_DELETED + " = 0", selection);
+                }
                 break;
 
             default:
@@ -215,7 +357,7 @@ public class ReadingListProvider extends SharedBrowserDatabaseProvider {
         }
 
         if (TextUtils.isEmpty(sortOrder)) {
-            sortOrder = ReadingListItems.DEFAULT_SORT_ORDER;
+            sortOrder = DEFAULT_SORT_ORDER;
         }
 
         trace("Running built query.");
@@ -234,14 +376,22 @@ public class ReadingListProvider extends SharedBrowserDatabaseProvider {
         switch (match) {
             case ITEMS:
                 trace("URI is ITEMS: " + uri);
-                return ReadingListItems.CONTENT_TYPE;
+                return CONTENT_TYPE;
 
             case ITEMS_ID:
                 trace("URI is ITEMS_ID: " + uri);
-                return ReadingListItems.CONTENT_ITEM_TYPE;
+                return CONTENT_ITEM_TYPE;
         }
 
         debug("URI has unrecognized type: " + uri);
         return null;
+    }
+
+    @Override
+    protected String getDeletedItemSelection(long earlierThan) {
+        if (earlierThan == -1L) {
+            return IS_DELETED + " = 1";
+        }
+        return IS_DELETED + " = 1 AND " + CLIENT_LAST_MODIFIED + " <= " + earlierThan;
     }
 }

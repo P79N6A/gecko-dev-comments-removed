@@ -342,18 +342,35 @@ public class BrowserContract {
     }
 
     @RobocopTarget
-    public static final class ReadingListItems implements CommonColumns, URLColumns, SyncColumns {
+    public static final class ReadingListItems implements CommonColumns, URLColumns {
+        public static final String EXCERPT = "excerpt";
+        public static final String CLIENT_LAST_MODIFIED = "client_last_modified";
+        public static final String GUID = "guid";
+        public static final String SERVER_LAST_MODIFIED = "last_modified";
+        public static final String SERVER_STORED_ON = "stored_on";
+        public static final String ADDED_ON = "added_on";
+        public static final String MARKED_READ_ON = "marked_read_on";
+        public static final String IS_DELETED = "is_deleted";
+        public static final String IS_ARCHIVED = "is_archived";
+        public static final String IS_UNREAD = "is_unread";
+        public static final String IS_ARTICLE = "is_article";
+        public static final String IS_FAVORITE = "is_favorite";
+        public static final String RESOLVED_URL = "resolved_url";
+        public static final String RESOLVED_TITLE = "resolved_title";
+        public static final String ADDED_BY = "added_by";
+        public static final String MARKED_READ_BY = "marked_read_by";
+        public static final String WORD_COUNT = "word_count";
+        public static final String READ_POSITION = "read_position";
+        public static final String CONTENT_STATUS = "content_status";
+
+        public static final String SYNC_STATUS = "sync_status";
+        public static final String SYNC_CHANGE_FLAGS = "sync_change_flags";
+
         private ReadingListItems() {}
         public static final Uri CONTENT_URI = Uri.withAppendedPath(READING_LIST_AUTHORITY_URI, "items");
 
         public static final String CONTENT_TYPE = "vnd.android.cursor.dir/readinglistitem";
         public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/readinglistitem";
-
-        public static final String EXCERPT = "excerpt";
-        public static final String READ = "read";
-        public static final String LENGTH = "length";
-
-        public static final String CONTENT_STATUS = "content_status";
 
         
         public static final int STATUS_UNFETCHED = 0;
@@ -362,8 +379,40 @@ public class BrowserContract {
         public static final int STATUS_FETCH_FAILED_UNSUPPORTED_FORMAT = 3;
         public static final int STATUS_FETCHED_ARTICLE = 4;
 
-        public static final String DEFAULT_SORT_ORDER = DATE_MODIFIED + " DESC";
-        public static final String[] DEFAULT_PROJECTION = new String[] { _ID, URL, TITLE, EXCERPT, LENGTH };
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+        public static final int SYNC_STATUS_SYNCED = 0;
+        public static final int SYNC_STATUS_NEW = 1;                      
+        public static final int SYNC_STATUS_DELETED = 2;                  
+        public static final int SYNC_STATUS_MODIFIED = 3;                 
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        public static final int SYNC_CHANGE_NONE = 0;
+        public static final int SYNC_CHANGE_UNREAD_CHANGED   = 1 << 0;    
+        public static final int SYNC_CHANGE_FAVORITE_CHANGED = 1 << 1;    
+        public static final int SYNC_CHANGE_RESOLVED = 1 << 2;            
+
+
+        public static final String DEFAULT_SORT_ORDER = CLIENT_LAST_MODIFIED + " DESC";
+        public static final String[] DEFAULT_PROJECTION = new String[] { _ID, URL, TITLE, EXCERPT, WORD_COUNT };
 
         
         public static final String[] REQUIRED_FIELDS = { Bookmarks.URL, Bookmarks.TITLE };

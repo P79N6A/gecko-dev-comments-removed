@@ -32,9 +32,9 @@ import android.util.Log;
 
 
 final class BrowserDatabaseHelper extends SQLiteOpenHelper {
-
     private static final String LOGTAG = "GeckoBrowserDBHelper";
-    public static final int DATABASE_VERSION = 22;
+
+    public static final int DATABASE_VERSION = 23;
     public static final String DATABASE_NAME = "browser.db";
 
     final protected Context mContext;
@@ -295,8 +295,10 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
             R.string.bookmarks_folder_places, 0);
 
         createOrUpdateAllSpecialFolders(db);
-        createReadingListTable(db);
         createSearchHistoryTable(db);
+        createReadingListTable(db, TABLE_READING_LIST);
+        didCreateCurrentReadingListTable = true;      
+        createReadingListIndices(db, TABLE_READING_LIST);
     }
 
     private void createSearchHistoryTable(SQLiteDatabase db) {
@@ -312,28 +314,54 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                 SearchHistory.TABLE_NAME + "(" + SearchHistory.DATE_LAST_VISITED + ")");
     }
 
-    private void createReadingListTable(SQLiteDatabase db) {
+    private boolean didCreateCurrentReadingListTable = false;
+    private void createReadingListTable(final SQLiteDatabase db, final String tableName) {
         debug("Creating " + TABLE_READING_LIST + " table");
 
-        db.execSQL("CREATE TABLE " + TABLE_READING_LIST + "(" +
-                    ReadingListItems._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    ReadingListItems.URL + " TEXT NOT NULL, " +
-                    ReadingListItems.TITLE + " TEXT, " +
-                    ReadingListItems.EXCERPT + " TEXT, " +
-                    ReadingListItems.READ + " TINYINT DEFAULT 0, " +
-                    ReadingListItems.IS_DELETED + " TINYINT DEFAULT 0, " +
-                    ReadingListItems.GUID + " TEXT UNIQUE NOT NULL, " +
-                    ReadingListItems.DATE_MODIFIED + " INTEGER NOT NULL, " +
-                    ReadingListItems.DATE_CREATED + " INTEGER NOT NULL, " +
-                    ReadingListItems.LENGTH + " INTEGER DEFAULT 0, " +
-                    ReadingListItems.CONTENT_STATUS + " TINYINT DEFAULT " + ReadingListItems.STATUS_UNFETCHED + "); ");
+        db.execSQL("CREATE TABLE " + tableName + "(" +
+                   ReadingListItems._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                   ReadingListItems.GUID + " TEXT UNIQUE, " +                          
 
-        db.execSQL("CREATE INDEX reading_list_url ON " + TABLE_READING_LIST + "("
-                + ReadingListItems.URL + ")");
-        db.execSQL("CREATE UNIQUE INDEX reading_list_guid ON " + TABLE_READING_LIST + "("
-                + ReadingListItems.GUID + ")");
-        db.execSQL("CREATE INDEX reading_list_content_status ON " + TABLE_READING_LIST + "("
-                + ReadingListItems.CONTENT_STATUS + ")");
+                   ReadingListItems.CONTENT_STATUS + " TINYINT NOT NULL DEFAULT " + ReadingListItems.STATUS_UNFETCHED + ", " +
+                   ReadingListItems.SYNC_STATUS + " TINYINT NOT NULL DEFAULT " + ReadingListItems.SYNC_STATUS_NEW + ", " +
+                   ReadingListItems.SYNC_CHANGE_FLAGS + " TINYINT NOT NULL DEFAULT " + ReadingListItems.SYNC_CHANGE_NONE + ", " +
+
+                   ReadingListItems.CLIENT_LAST_MODIFIED + " INTEGER NOT NULL, " +     
+                   ReadingListItems.SERVER_LAST_MODIFIED + " INTEGER, " +              
+
+                   
+                   ReadingListItems.SERVER_STORED_ON + " INTEGER, " +
+                   ReadingListItems.ADDED_ON + " INTEGER, " +                   
+                   ReadingListItems.MARKED_READ_ON + " INTEGER, " +
+
+                   
+                   ReadingListItems.IS_DELETED + " TINYINT NOT NULL DEFAULT 0, " +
+                   ReadingListItems.IS_ARCHIVED + " TINYINT NOT NULL DEFAULT 0, " +
+                   ReadingListItems.IS_UNREAD + " TINYINT NOT NULL DEFAULT 1, " +
+                   ReadingListItems.IS_ARTICLE + " TINYINT NOT NULL DEFAULT 0, " +
+                   ReadingListItems.IS_FAVORITE + " TINYINT NOT NULL DEFAULT 0, " +
+
+                   ReadingListItems.URL + " TEXT NOT NULL, " +
+                   ReadingListItems.TITLE + " TEXT, " +
+                   ReadingListItems.RESOLVED_URL + " TEXT, " +
+                   ReadingListItems.RESOLVED_TITLE + " TEXT, " +
+
+                   ReadingListItems.EXCERPT + " TEXT, " +
+
+                   ReadingListItems.ADDED_BY + " TEXT, " +
+                   ReadingListItems.MARKED_READ_BY + " TEXT, " +
+
+                   ReadingListItems.WORD_COUNT + " INTEGER DEFAULT 0, " +
+                   ReadingListItems.READ_POSITION + " INTEGER DEFAULT 0 " +
+                "); ");
+    }
+
+    private void createReadingListIndices(final SQLiteDatabase db, final String tableName) {
+        
+        db.execSQL("CREATE INDEX reading_list_url ON " + tableName + "("
+                           + ReadingListItems.URL + ")");
+        db.execSQL("CREATE INDEX reading_list_content_status ON " + tableName + "("
+                           + ReadingListItems.CONTENT_STATUS + ")");
     }
 
     private void createOrUpdateAllSpecialFolders(SQLiteDatabase db) {
@@ -689,7 +717,6 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
     
 
 
-
     private void upgradeDatabaseFrom17to18(SQLiteDatabase db) {
         debug("Moving reading list items from 'bookmarks' table to 'reading_list' table");
 
@@ -701,29 +728,38 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                                         Bookmarks.DATE_MODIFIED,
                                         Bookmarks.DATE_CREATED,
                                         Bookmarks.TITLE };
-        Cursor cursor = null;
+
         try {
-            
             db.beginTransaction();
 
             
-            createReadingListTable(db);
+            createReadingListTable(db, TABLE_READING_LIST);
 
             
-            cursor = db.query(TABLE_BOOKMARKS, projection, selection, selectionArgs,
-                         null, null, null);
+            final Cursor cursor = db.query(TABLE_BOOKMARKS, projection, selection, selectionArgs, null, null, null);
 
-            
-            while (cursor.moveToNext()) {
-                debug(DatabaseUtils.dumpCurrentRowToString(cursor));
-                ContentValues values = new ContentValues();
-                DatabaseUtils.cursorStringToContentValues(cursor, Bookmarks.URL, values, ReadingListItems.URL);
-                DatabaseUtils.cursorStringToContentValues(cursor, Bookmarks.GUID, values, ReadingListItems.GUID);
-                DatabaseUtils.cursorStringToContentValues(cursor, Bookmarks.TITLE, values, ReadingListItems.TITLE);
-                DatabaseUtils.cursorLongToContentValues(cursor, Bookmarks.DATE_CREATED, values, ReadingListItems.DATE_CREATED);
-                DatabaseUtils.cursorLongToContentValues(cursor, Bookmarks.DATE_MODIFIED, values, ReadingListItems.DATE_MODIFIED);
+            if (cursor == null) {
+                
+                db.setTransactionSuccessful();
+                return;
+            }
 
-                db.insertOrThrow(TABLE_READING_LIST, null, values);
+            try {
+                
+                while (cursor.moveToNext()) {
+                    debug(DatabaseUtils.dumpCurrentRowToString(cursor));
+                    final ContentValues values = new ContentValues();
+
+                    
+                    DatabaseUtils.cursorStringToContentValues(cursor, Bookmarks.URL, values, ReadingListItems.URL);
+                    DatabaseUtils.cursorStringToContentValues(cursor, Bookmarks.TITLE, values, ReadingListItems.TITLE);
+                    DatabaseUtils.cursorLongToContentValues(cursor, Bookmarks.DATE_CREATED, values, ReadingListItems.ADDED_ON);
+                    DatabaseUtils.cursorLongToContentValues(cursor, Bookmarks.DATE_MODIFIED, values, ReadingListItems.CLIENT_LAST_MODIFIED);
+
+                    db.insertOrThrow(TABLE_READING_LIST, null, values);
+                }
+            } finally {
+                cursor.close();
             }
 
             
@@ -735,15 +771,17 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
             db.delete(TABLE_BOOKMARKS,
                       Bookmarks._ID + " = ? ",
                       new String[] { String.valueOf(Bookmarks.FIXED_READING_LIST_ID) });
+
+            
+            createReadingListIndices(db, TABLE_READING_LIST);
+
             
             db.setTransactionSuccessful();
+            didCreateCurrentReadingListTable = true;
 
         } catch (SQLException e) {
             Log.e(LOGTAG, "Error migrating reading list items", e);
         } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
             db.endTransaction();
         }
     }
@@ -766,6 +804,11 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
     }
 
     private void upgradeDatabaseFrom21to22(SQLiteDatabase db) {
+        if (didCreateCurrentReadingListTable) {
+            debug("No need to add CONTENT_STATUS to reading list; we just created with the current schema.");
+            return;
+        }
+
         debug("Adding CONTENT_STATUS column to reading list table.");
 
         try {
@@ -781,6 +824,60 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
             Log.e(LOGTAG, "Error upgrading database from 21 to 22", e);
         }
     }
+
+    private void upgradeDatabaseFrom22to23(SQLiteDatabase db) {
+        if (didCreateCurrentReadingListTable) {
+            debug("No need to rev reading list schema; we just created with the current schema.");
+            return;
+        }
+
+        debug("Rewriting reading list table.");
+        createReadingListTable(db, "tmp_rl");
+
+        
+        db.execSQL("DROP INDEX IF EXISTS reading_list_url");
+        db.execSQL("DROP INDEX IF EXISTS reading_list_guid");
+        db.execSQL("DROP INDEX IF EXISTS reading_list_content_status");
+
+        final String thisDevice = ReadingListProvider.PLACEHOLDER_THIS_DEVICE;
+        db.execSQL("INSERT INTO tmp_rl (" +
+                   
+                   ReadingListItems._ID + ", " +
+                   ReadingListItems.URL + ", " +
+                   ReadingListItems.TITLE + ", " +
+                   ReadingListItems.RESOLVED_TITLE + ", " +       
+                   ReadingListItems.RESOLVED_URL + ", " +         
+                   ReadingListItems.EXCERPT + ", " +
+                   ReadingListItems.IS_UNREAD + ", " +            
+                   ReadingListItems.IS_DELETED + ", " +           
+                   ReadingListItems.GUID + ", " +                 
+                   ReadingListItems.CLIENT_LAST_MODIFIED + ", " + 
+                   ReadingListItems.ADDED_ON + ", " +             
+                   ReadingListItems.CONTENT_STATUS + ", " +
+                   ReadingListItems.MARKED_READ_BY + ", " +       
+                   ReadingListItems.ADDED_BY +                    
+                   ") " +
+                   "SELECT " +
+                   "_id, url, title, " +
+                   "CASE content_status WHEN " + ReadingListItems.STATUS_FETCHED_ARTICLE + " THEN title ELSE NULL END, " +   
+                   "CASE content_status WHEN " + ReadingListItems.STATUS_FETCHED_ARTICLE + " THEN url ELSE NULL END, " +     
+                   "excerpt, " +
+                   "CASE read WHEN 1 THEN 0 ELSE 1 END, " +            
+                   "0, " +                                             
+                   "NULL, modified, created, content_status, " +
+                   "CASE read WHEN 1 THEN ? ELSE NULL END, " +         
+                   "?" +                                               
+                   " FROM " + TABLE_READING_LIST +
+                   " WHERE deleted = 0",
+                   new String[] {thisDevice, thisDevice});
+
+        
+        db.execSQL("DROP TABLE " + TABLE_READING_LIST);
+        db.execSQL("ALTER TABLE tmp_rl RENAME TO " + TABLE_READING_LIST);
+
+        createReadingListIndices(db, TABLE_READING_LIST);
+    }
+
 
     private void createV19CombinedView(SQLiteDatabase db) {
         db.execSQL("DROP VIEW IF EXISTS " + VIEW_COMBINED);
@@ -847,11 +944,11 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                     break;
 
                 case 22:
-                    if (oldVersion <= 17) {
-                         
-                    } else {
-                         upgradeDatabaseFrom21to22(db);
-                    }
+                    upgradeDatabaseFrom21to22(db);
+                    break;
+
+                case 23:
+                    upgradeDatabaseFrom22to23(db);
                     break;
             }
         }
