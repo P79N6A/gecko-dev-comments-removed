@@ -408,7 +408,6 @@ class Assembler : public AssemblerX86Shared
     
     
     void retarget(Label *label, ImmPtr target, Relocation::Kind reloc) {
-        JSC::MacroAssembler::Label jsclabel;
         if (label->used()) {
             bool more;
             JSC::X86Assembler::JmpSrc jmp(label->offset());

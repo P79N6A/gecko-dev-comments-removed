@@ -484,7 +484,7 @@ def do_file(filename, inclname, file_kind, f, all_inclnames, included_h_inclname
 
     
     
-    skip_order_checking = inclname.startswith(('assembler/', 'yarr/'))
+    skip_order_checking = inclname.startswith('assembler/')
 
     
     
