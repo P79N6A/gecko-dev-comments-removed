@@ -21,6 +21,53 @@ XPCOMUtils.defineLazyGetter(this, "gPingsArchivePath", function() {
 const PREF_TELEMETRY_ENABLED = "toolkit.telemetry.enabled";
 const Telemetry = Cc["@mozilla.org/base/telemetry;1"].getService(Ci.nsITelemetry);
 
+
+
+
+
+function fakeStorageQuota(aArchiveQuota) {
+  let storage = Cu.import("resource://gre/modules/TelemetryStorage.jsm");
+  storage.Policy.getArchiveQuota = () => aArchiveQuota;
+}
+
+
+
+
+
+
+
+
+
+
+
+let getArchivedPingsInfo = Task.async(function*() {
+  let dirIterator = new OS.File.DirectoryIterator(gPingsArchivePath);
+  let subdirs = (yield dirIterator.nextBatch()).filter(e => e.isDir);
+  let archivedPings = [];
+
+  
+  for (let dir of subdirs) {
+    let fileIterator = new OS.File.DirectoryIterator(dir.path);
+    let files = (yield fileIterator.nextBatch()).filter(e => !e.isDir);
+
+    
+    for (let f of files) {
+      let pingInfo = TelemetryStorage._testGetArchivedPingDataFromFileName(f.name);
+      if (!pingInfo) {
+        
+        continue;
+      }
+      
+      pingInfo.size = (yield OS.File.stat(f.path)).size;
+      archivedPings.push(pingInfo);
+    }
+  }
+
+  
+  archivedPings.sort((a, b) => b.timestamp - a.timestamp);
+  return archivedPings;
+});
+
 function run_test() {
   do_get_profile(true);
   Services.prefs.setBoolPref(PREF_TELEMETRY_ENABLED, true);
@@ -148,14 +195,47 @@ add_task(function* test_archiveCleanup() {
   const PING_TYPE = "foo";
 
   
-  fakeNow(2010, 1, 1, 1, 0, 0);
-  const PING_ID1 = yield TelemetryController.submitExternalPing(PING_TYPE, {}, {});
+  yield OS.File.removeDir(gPingsArchivePath);
+
+  let expectedPrunedInfo = [];
+  let expectedNotPrunedInfo = [];
+
+  let checkArchive = Task.async(function*() {
+    
+    for (let prunedInfo of expectedPrunedInfo) {
+      yield Assert.rejects(TelemetryArchive.promiseArchivedPingById(prunedInfo.id),
+                           "Ping " + prunedInfo.id + " should have been pruned.");
+      const pingPath =
+        TelemetryStorage._testGetArchivedPingPath(prunedInfo.id, prunedInfo.creationDate, PING_TYPE);
+      Assert.ok(!(yield OS.File.exists(pingPath)), "The ping should not be on the disk anymore.");
+    }
+
+    
+    for (let expectedInfo of expectedNotPrunedInfo) {
+      Assert.ok((yield TelemetryArchive.promiseArchivedPingById(expectedInfo.id)),
+                "Ping" + expectedInfo.id + " should be in the archive.");
+    }
+  });
+
   
-  fakeNow(2010, 2, 1, 1, 0, 0);
-  const PING_ID2 = yield TelemetryController.submitExternalPing(PING_TYPE, {}, {});
+  let date = fakeNow(2010, 1, 1, 1, 0, 0);
+  let pingId = yield TelemetryController.submitExternalPing(PING_TYPE, {}, {});
+  expectedPrunedInfo.push({ id: pingId, creationDate: date });
+
   
-  fakeNow(2010, 3, 1, 1, 0, 0);
-  const PING_ID3 = yield TelemetryController.submitExternalPing(PING_TYPE, {}, {});
+  date = fakeNow(2010, 2, 1, 1, 0, 0);
+  pingId = yield TelemetryController.submitExternalPing(PING_TYPE, {}, {});
+  expectedNotPrunedInfo.push({ id: pingId, creationDate: date });
+
+  
+  
+  for (let month of [3, 4]) {
+    for (let minute = 0; minute < 10; minute++) {
+      date = fakeNow(2010, month, 1, 1, minute, 0);
+      pingId = yield TelemetryController.submitExternalPing(PING_TYPE, {}, {});
+      expectedNotPrunedInfo.push({ id: pingId, creationDate: date });
+    }
+  }
 
   
   fakeNow(2010, 7, 1, 1, 0, 0);
@@ -164,31 +244,65 @@ add_task(function* test_archiveCleanup() {
   
   yield TelemetryStorage.testCleanupTaskPromise();
   
-  let pingList = yield TelemetryArchive.promiseArchivedPingList();
+  yield TelemetryArchive.promiseArchivedPingList();
 
   
-  Assert.ok((yield promiseRejects(TelemetryArchive.promiseArchivedPingById(PING_ID1))),
-            "Old pings should be removed from the archive");
-  Assert.ok((yield TelemetryArchive.promiseArchivedPingById(PING_ID2)),
-            "Recent pings should be kept in the archive");
-  Assert.ok((yield TelemetryArchive.promiseArchivedPingById(PING_ID3)),
-            "Recent pings should be kept in the archive");
+  yield checkArchive();
 
   
   fakeNow(2010, 8, 1, 1, 0, 0);
-  
   
   yield TelemetryController.reset();
   
   yield TelemetryStorage.testCleanupTaskPromise();
   
-  pingList = yield TelemetryArchive.promiseArchivedPingList();
+  yield TelemetryArchive.promiseArchivedPingList();
 
   
-  Assert.ok((yield promiseRejects(TelemetryArchive.promiseArchivedPingById(PING_ID2))),
-            "Old pings should be removed from the archive");
-  Assert.ok((yield TelemetryArchive.promiseArchivedPingById(PING_ID3)),
-            "Recent pings should be kept in the archive");
+  expectedPrunedInfo.push(expectedNotPrunedInfo.shift());
+  
+  yield checkArchive();
+
+  
+  const archivedPings = yield getArchivedPingsInfo();
+  let archiveSizeInBytes =
+    archivedPings.reduce((lastResult, element) => lastResult + element.size, 0);
+  
+  const testQuotaInBytes = archiveSizeInBytes * 0.8;
+  fakeStorageQuota(testQuotaInBytes);
+
+  
+  
+  const safeQuotaSize = testQuotaInBytes * 0.9;
+  const archivedPingsInfo = yield getArchivedPingsInfo();
+  let sizeInBytes = 0;
+  let pingsWithinQuota = [];
+  let pingsOutsideQuota = [];
+
+  for (let pingInfo of archivedPingsInfo) {
+    sizeInBytes += pingInfo.size;
+    if (sizeInBytes >= safeQuotaSize) {
+      pingsOutsideQuota.push({ id: pingInfo.id, creationDate: new Date(pingInfo.timestamp) });
+      continue;
+    }
+    pingsWithinQuota.push({ id: pingInfo.id, creationDate: new Date(pingInfo.timestamp) });
+  }
+
+  expectedNotPrunedInfo = pingsWithinQuota;
+  expectedPrunedInfo = expectedPrunedInfo.concat(pingsOutsideQuota);
+
+  
+  yield TelemetryController.reset();
+  yield TelemetryStorage.testCleanupTaskPromise();
+  yield TelemetryArchive.promiseArchivedPingList();
+  
+  yield checkArchive();
+
+  
+  yield TelemetryController.reset();
+  yield TelemetryStorage.testCleanupTaskPromise();
+  yield TelemetryArchive.promiseArchivedPingList();
+  yield checkArchive();
 });
 
 add_task(function* test_clientId() {
