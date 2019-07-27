@@ -95,7 +95,24 @@ public class RepoUtils {
     }
   }
 
-  public static String getStringFromCursor(Cursor cur, String colId) {
+  
+
+
+
+
+  public static String optStringFromCursor(final Cursor cur, final String colId) {
+    final int col = cur.getColumnIndex(colId);
+    if (cur.isNull(col)) {
+      return null;
+    }
+    return cur.getString(col);
+  }
+
+  
+
+
+
+  public static String getStringFromCursor(final Cursor cur, final String colId) {
     
     
     return cur.getString(cur.getColumnIndex(colId));
