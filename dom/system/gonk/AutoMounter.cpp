@@ -80,10 +80,13 @@ USING_MTP_NAMESPACE
 #define USE_DEBUG 0
 
 #undef LOG
+#undef LOGW
+#undef ERR
 #define LOG(args...)  __android_log_print(ANDROID_LOG_INFO,  "AutoMounter", ## args)
 #define LOGW(args...) __android_log_print(ANDROID_LOG_WARN,  "AutoMounter", ## args)
 #define ERR(args...)  __android_log_print(ANDROID_LOG_ERROR, "AutoMounter", ## args)
 
+#undef DBG
 #if USE_DEBUG
 #define DBG(args...)  __android_log_print(ANDROID_LOG_DEBUG, "AutoMounter" , ## args)
 #else
@@ -270,7 +273,7 @@ public:
 
   void ConfigureUsbFunction(const char* aUsbFunc);
 
-  void StartMtpServer();
+  bool StartMtpServer();
   void StopMtpServer();
 
   void StartUmsSharing();
@@ -582,16 +585,33 @@ SetUsbFunction(const char* aUsbFunc)
   property_set(SYS_USB_CONFIG, newSysUsbConfig);
 }
 
-void
+bool
 AutoMounter::StartMtpServer()
 {
   if (sMozMtpServer) {
     
-    return;
+    return true;
   }
   LOG("Starting MtpServer");
+
+  
+  
+  
+#if 0
+  LOG("Sleeping");
+  PRTime now = PR_Now();
+  PRTime stopTime = now + 5000000;
+  while (PR_Now() < stopTime) {
+    LOG("Sleeping...");
+    sleep(1);
+  }
+  LOG("Sleep done");
+#endif
+
   sMozMtpServer = new MozMtpServer();
-  sMozMtpServer->Run();
+  if (!sMozMtpServer->Init()) {
+    return false;
+  }
 
   VolumeArray::index_type volIndex;
   VolumeArray::size_type  numVolumes = VolumeManager::NumVolumes();
@@ -600,6 +620,9 @@ AutoMounter::StartMtpServer()
     nsRefPtr<MozMtpStorage> storage = new MozMtpStorage(vol, sMozMtpServer);
     mMozMtpStorage.AppendElement(storage);
   }
+
+  sMozMtpServer->Run();
+  return true;
 }
 
 void
@@ -736,8 +759,13 @@ AutoMounter::UpdateState()
           
           
           
-          StartMtpServer();
-          SetState(STATE_MTP_STARTED);
+          if (StartMtpServer()) {
+            SetState(STATE_MTP_STARTED);
+          } else {
+            
+            SetUsbFunction(USB_FUNC_UMS);
+            SetState(STATE_UMS_CONFIGURING);
+          }
         } else {
           
           
@@ -763,8 +791,13 @@ AutoMounter::UpdateState()
       if (mtpEnabled && mtpConfigured) {
         
         
-        StartMtpServer();
-        SetState(STATE_MTP_STARTED);
+        if (StartMtpServer()) {
+          SetState(STATE_MTP_STARTED);
+        } else {
+          
+          SetUsbFunction(USB_FUNC_UMS);
+          SetState(STATE_UMS_CONFIGURING);
+        }
         break;
       }
       if (rndisConfigured) {
