@@ -2,8 +2,8 @@
 
 
 
-from marionette_test import MarionetteTestCase
-from marionette import MultiActions, Actions
+from marionette import MarionetteTestCase
+from marionette.marionette import MultiActions, Actions
 
 class testMultiFinger(MarionetteTestCase):
     def test_move_element(self):

@@ -1,8 +1,7 @@
 
 
 
-from marionette_test import MarionetteTestCase
-import unittest
+from marionette import MarionetteTestCase
 
 class TestRunJSTest(MarionetteTestCase):
     def test_basic(self):

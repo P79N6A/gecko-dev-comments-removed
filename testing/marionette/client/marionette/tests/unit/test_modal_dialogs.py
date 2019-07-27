@@ -2,7 +2,7 @@
 
 
 
-from marionette_test import MarionetteTestCase, skip_if_e10s
+from marionette.marionette_test import MarionetteTestCase, skip_if_e10s
 from marionette_driver.errors import NoAlertPresentException, ElementNotVisibleException
 from marionette_driver.marionette import Alert
 from marionette_driver.wait import Wait

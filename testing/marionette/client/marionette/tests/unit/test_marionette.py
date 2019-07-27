@@ -3,7 +3,7 @@
 
 
 from marionette_driver import errors
-import marionette_test
+from marionette import marionette_test
 
 
 class TestHandleError(marionette_test.MarionetteTestCase):

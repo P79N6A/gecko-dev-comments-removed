@@ -1,5 +1,13 @@
-from marionette_test import parameterized, with_parameters, MetaParameterized, \
-                            MarionetteTestCase
+
+
+
+
+from marionette.marionette_test import (
+    parameterized,
+    with_parameters,
+    MetaParameterized,
+    MarionetteTestCase
+)
 
 class Parameterizable(object):
     __metaclass__ = MetaParameterized

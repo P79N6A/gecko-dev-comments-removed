@@ -2,7 +2,7 @@
 
 
 
-from marionette_test import MarionetteTestCase
+from marionette import MarionetteTestCase
 
 
 ''' Disabled in bug 896043 and when working on Chrome code re-enable for bug 896046

@@ -2,7 +2,7 @@
 
 
 
-from marionette_test import MarionetteTestCase
+from marionette import MarionetteTestCase
 from datetime import datetime
 from marionette_driver.date_time_value import DateTimeValue
 

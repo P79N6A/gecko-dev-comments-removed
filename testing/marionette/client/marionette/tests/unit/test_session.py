@@ -2,9 +2,9 @@
 
 
 
-import marionette_test
+from marionette import MarionetteTestCase
 
-class TestSession(marionette_test.MarionetteTestCase):
+class TestSession(MarionetteTestCase):
     def setUp(self):
         super(TestSession, self).setUp()
         self.marionette.delete_session()

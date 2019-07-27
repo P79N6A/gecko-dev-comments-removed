@@ -3,7 +3,7 @@
 
 
 import time
-from marionette_test import MarionetteTestCase
+from marionette import MarionetteTestCase
 
 class TestSwitchWindow(MarionetteTestCase):
     def open_new_window(self):

@@ -2,7 +2,7 @@
 
 
 
-from marionette_test import MarionetteTestCase
+from marionette import MarionetteTestCase
 from marionette_driver.errors import MarionetteException
 
 

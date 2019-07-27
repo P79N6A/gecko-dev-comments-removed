@@ -2,10 +2,7 @@
 
 
 
-from marionette_test import MarionetteTestCase
-from marionette_driver.errors import (JavascriptException,
-                                      MarionetteException,
-                                      ScriptTimeoutException)
+from marionette import MarionetteTestCase
 
 class SimpletestSanityTest(MarionetteTestCase):
 

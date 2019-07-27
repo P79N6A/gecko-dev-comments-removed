@@ -2,7 +2,7 @@
 
 
 
-from marionette_test import MarionetteTestCase
+from marionette import MarionetteTestCase
 
 class TestFail(MarionetteTestCase):
     def test_fails(self):

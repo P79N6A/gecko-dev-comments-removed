@@ -14,7 +14,7 @@
 
 
 from marionette_driver.application_cache import ApplicationCache
-from marionette_test import MarionetteTestCase
+from marionette import MarionetteTestCase
 
 
 class AppCacheTests(MarionetteTestCase):

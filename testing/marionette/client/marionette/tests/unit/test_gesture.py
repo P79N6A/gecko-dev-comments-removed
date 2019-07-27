@@ -2,8 +2,8 @@
 
 
 
-from marionette_test import MarionetteTestCase
-from gestures import smooth_scroll, pinch
+from marionette import MarionetteTestCase
+from marionette.gestures import smooth_scroll
 
 class testGestures(MarionetteTestCase):
     check_in_viewport = """

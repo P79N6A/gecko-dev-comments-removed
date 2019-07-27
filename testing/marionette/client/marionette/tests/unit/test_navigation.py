@@ -2,7 +2,11 @@
 
 
 
-from marionette_test import MarionetteTestCase, skip_if_b2g, skip_if_e10s
+from marionette.marionette_test import (
+    MarionetteTestCase,
+    skip_if_b2g,
+    skip_if_e10s
+)
 from marionette_driver.errors import MarionetteException, TimeoutException
 
 class TestNavigate(MarionetteTestCase):

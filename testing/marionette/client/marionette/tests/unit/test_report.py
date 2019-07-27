@@ -2,8 +2,7 @@
 
 
 
-import unittest
-from marionette_test import MarionetteTestCase, expectedFailure, skip
+from marionette import MarionetteTestCase, expectedFailure, skip
 
 
 class TestReport(MarionetteTestCase):

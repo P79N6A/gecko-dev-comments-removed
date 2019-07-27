@@ -2,7 +2,7 @@
 
 
 
-from marionette_test import MarionetteTestCase, skip_if_b2g
+from marionette.marionette_test import MarionetteTestCase, skip_if_b2g
 from marionette_driver.keys import Keys
 from marionette_driver.errors import ElementNotVisibleException
 

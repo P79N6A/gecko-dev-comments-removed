@@ -2,8 +2,8 @@
 
 
 
-import os
-from marionette_test import MarionetteTestCase
+from marionette import MarionetteTestCase
+
 
 class TestLog(MarionetteTestCase):
     def test_log_basic(self):

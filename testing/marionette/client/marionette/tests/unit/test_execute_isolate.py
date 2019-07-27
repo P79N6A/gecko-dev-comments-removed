@@ -2,9 +2,8 @@
 
 
 
-from marionette_test import MarionetteTestCase, skip_if_b2g
-from marionette_driver.errors import (JavascriptException,
-                                      MarionetteException,
+from marionette import MarionetteTestCase
+from marionette_driver.errors import (MarionetteException,
                                       ScriptTimeoutException)
 
 class TestExecuteIsolationContent(MarionetteTestCase):

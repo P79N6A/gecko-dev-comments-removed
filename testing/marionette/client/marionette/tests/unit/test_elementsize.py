@@ -2,7 +2,7 @@
 
 
 
-from marionette_test import MarionetteTestCase
+from marionette import MarionetteTestCase
 
 class TestElementSize(MarionetteTestCase):
     def testShouldReturnTheSizeOfALink(self):

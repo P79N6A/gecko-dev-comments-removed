@@ -2,9 +2,9 @@
 
 
 
-from marionette_test import MarionetteTestCase
+from marionette import MarionetteTestCase
 from marionette_driver.errors import JavascriptException
-from marionette_driver.by import By
+
 
 class TestSwitchFrameChrome(MarionetteTestCase):
     def setUp(self):

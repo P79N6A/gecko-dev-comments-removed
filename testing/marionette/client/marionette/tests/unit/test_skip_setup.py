@@ -2,7 +2,7 @@
 
 
 
-from marionette_test import MarionetteTestCase, SkipTest
+from marionette import MarionetteTestCase, SkipTest
 
 class TestSetUpSkipped(MarionetteTestCase):
 

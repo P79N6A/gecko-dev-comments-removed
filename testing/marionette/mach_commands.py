@@ -38,20 +38,7 @@ commandline.add_logging_group(_parser)
 def run_marionette(tests, b2g_path=None, emulator=None, testtype=None,
     address=None, binary=None, topsrcdir=None, **kwargs):
 
-    
-    
-    
-    
-    
-    clientdir = os.path.join(topsrcdir, 'testing/marionette/client')
-    if clientdir in sys.path:
-        sys.path.remove(clientdir)
-    path = os.path.join(topsrcdir, 'testing/marionette/client/marionette/runtests.py')
-    with open(path, 'r') as fh:
-        imp.load_module('marionetteharness', fh, path,
-                        ('.py', 'r', imp.PY_SOURCE))
-
-    from marionetteharness import (
+    from marionette.runtests import (
         MarionetteTestRunner,
         BaseMarionetteOptions,
         startTestRunner
