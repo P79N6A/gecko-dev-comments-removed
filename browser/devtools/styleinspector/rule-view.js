@@ -1245,6 +1245,11 @@ CssRuleView.prototype = {
   _filterChangedTimeout: null,
 
   
+  get searchValue() {
+    return this.searchField.value.toLowerCase();
+  },
+
+  
 
 
 
@@ -1562,9 +1567,9 @@ CssRuleView.prototype = {
       clearTimeout(this._filterChangedTimeout);
     }
 
-    let filterTimeout = (this.searchField.value.length > 0)
-      ? FILTER_CHANGED_TIMEOUT : 0;
-    this.searchClearButton.hidden = this.searchField.value.length === 0;
+    let filterTimeout = (this.searchValue.length > 0) ?
+                        FILTER_CHANGED_TIMEOUT : 0;
+    this.searchClearButton.hidden = this.searchValue.length === 0;
 
     this._filterChangedTimeout = setTimeout(() => {
       if (this.searchField.value.length > 0) {
@@ -1572,6 +1577,15 @@ CssRuleView.prototype = {
       } else {
         this.searchField.removeAttribute("filled");
       }
+
+      
+      
+      
+      this.searchPropertyMatch = FILTER_PROP_RE.exec(this.searchValue);
+      this.searchPropertyName = this.searchPropertyMatch ?
+                                this.searchPropertyMatch[1] : this.searchValue;
+      this.searchPropertyValue = this.searchPropertyMatch ?
+                                 this.searchPropertyMatch[2] : this.searchValue;
 
       this._clearHighlights();
       this._clearRules();
@@ -1959,8 +1973,6 @@ CssRuleView.prototype = {
     let seenNormalElement = false;
     let seenSearchTerm = false;
     let container = null;
-    let searchTerm = this.searchField.value.toLowerCase();
-    let isValidSearchTerm = searchTerm.trim().length > 0;
 
     if (!this._elementStyle.rules) {
       return;
@@ -1977,8 +1989,8 @@ CssRuleView.prototype = {
       }
 
       
-      if (isValidSearchTerm) {
-        if (this.highlightRules(rule, searchTerm)) {
+      if (this.searchValue) {
+        if (this.highlightRule(rule)) {
           seenSearchTerm = true;
         } else if (rule.domRule.type !== ELEMENT_STYLE) {
           continue;
@@ -2022,7 +2034,7 @@ CssRuleView.prototype = {
       }
     }
 
-    if (searchTerm && !seenSearchTerm) {
+    if (this.searchValue && !seenSearchTerm) {
       this.searchField.classList.add("devtools-style-searchbox-no-match");
     } else {
       this.searchField.classList.remove("devtools-style-searchbox-no-match");
@@ -2038,79 +2050,18 @@ CssRuleView.prototype = {
 
 
 
-
-  highlightRules: function(aRule, aValue) {
-    let isHighlighted = false;
-
-    let selectorNodes = [...aRule.editor.selectorText.childNodes];
-    if (aRule.domRule.type === Ci.nsIDOMCSSRule.KEYFRAME_RULE) {
-      selectorNodes = [aRule.editor.selectorText];
-    } else if (aRule.domRule.type === ELEMENT_STYLE) {
-      selectorNodes = [];
-    }
-
-    aValue = aValue.trim();
+  highlightRule: function(rule) {
+    let isRuleSelectorHighlighted = this._highlightRuleSelector(rule);
+    let isStyleSheetHighlighted = this._highlightStyleSheet(rule);
+    let isHighlighted = isRuleSelectorHighlighted || isStyleSheetHighlighted;
 
     
-    for (let selectorNode of selectorNodes) {
-      if (selectorNode.textContent.toLowerCase().includes(aValue)) {
-        selectorNode.classList.add("ruleview-highlight");
-        isHighlighted = true;
-      }
-    }
-
-    
-    
-    
-    let propertyMatch = FILTER_PROP_RE.exec(aValue);
-    let name = propertyMatch ? propertyMatch[1] : aValue;
-    let value = propertyMatch ? propertyMatch[2] : aValue;
-
-    
-    for (let textProp of aRule.textProps) {
-      
-      let propertyValue = textProp.editor.valueSpan.textContent.toLowerCase();
-      let propertyName = textProp.name.toLowerCase();
-      let styleSheetSource = textProp.rule.title.toLowerCase();
-
+    for (let textProp of rule.textProps) {
       let editor = textProp.editor;
-      let source = editor.ruleEditor.source;
+      let isPropertyHighlighted = this._highlightRuleProperty(editor);
+      let isComputedHighlighted = this._highlightComputedProperty(editor);
 
-      let isPropertyHighlighted = this._highlightMatches(editor.container, {
-        searchName: name,
-        searchValue: value,
-        propertyName: propertyName,
-        propertyValue: propertyValue,
-        propertyMatch: propertyMatch
-      });
-
-      let isComputedHighlighted = false;
-
-      
-      for (let computed of textProp.computed) {
-        if (computed.element) {
-          
-          let computedValue = computed.parsedValue.toLowerCase();
-          let computedName = computed.name.toLowerCase();
-
-          isComputedHighlighted = this._highlightMatches(computed.element, {
-            searchName: name,
-            searchValue: value,
-            propertyName: computedName,
-            propertyValue: computedValue,
-            propertyMatch: propertyMatch
-          }) ? true : isComputedHighlighted;
-        }
-      }
-
-      
-      let isStyleSheetHighlighted = styleSheetSource.includes(aValue);
-      if (isStyleSheetHighlighted) {
-        source.classList.add("ruleview-highlight");
-      }
-
-      if (isPropertyHighlighted || isComputedHighlighted ||
-          isStyleSheetHighlighted) {
+      if (isPropertyHighlighted || isComputedHighlighted) {
         isHighlighted = true;
       }
 
@@ -2118,12 +2069,129 @@ CssRuleView.prototype = {
       
       if (!isPropertyHighlighted && isComputedHighlighted &&
           !editor.computed.hasAttribute("user-open")) {
-        editor.expandForFilter();
-        this._editorsExpandedForFilter.push(editor);
+        this._expandComputedListForFilter(editor);
       }
     }
 
     return isHighlighted;
+  },
+
+  
+
+
+
+
+
+
+
+  _highlightRuleSelector: function(rule) {
+    let isSelectorHighlighted = false;
+
+    let selectorNodes = [...rule.editor.selectorText.childNodes];
+    if (rule.domRule.type === Ci.nsIDOMCSSRule.KEYFRAME_RULE) {
+      selectorNodes = [rule.editor.selectorText];
+    } else if (rule.domRule.type === ELEMENT_STYLE) {
+      selectorNodes = [];
+    }
+
+    
+    for (let selectorNode of selectorNodes) {
+      if (selectorNode.textContent.toLowerCase().includes(this.searchValue)) {
+        selectorNode.classList.add("ruleview-highlight");
+        isSelectorHighlighted = true;
+      }
+    }
+
+    return isSelectorHighlighted;
+  },
+
+  
+
+
+
+
+
+
+
+  _highlightStyleSheet: function(rule) {
+    let styleSheetSource = rule.title.toLowerCase();
+    let isStyleSheetHighlighted = styleSheetSource.includes(this.searchValue);
+
+    if (isStyleSheetHighlighted) {
+      rule.editor.source.classList.add("ruleview-highlight");
+    }
+
+    return isStyleSheetHighlighted;
+  },
+
+  
+
+
+
+
+
+
+
+
+  _highlightRuleProperty: function(editor) {
+    
+    let propertyName = editor.prop.name.toLowerCase();
+    let propertyValue = editor.valueSpan.textContent.toLowerCase();
+
+    let isPropertyHighlighted = this._highlightMatches(editor.container, {
+      searchName: this.searchPropertyName,
+      searchValue: this.searchPropertyValue,
+      propertyName: propertyName,
+      propertyValue: propertyValue,
+      propertyMatch: this.searchPropertyMatch
+    });
+
+    return isPropertyHighlighted;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _highlightComputedProperty: function(editor) {
+    let isComputedHighlighted = false;
+
+    
+    for (let computed of editor.prop.computed) {
+      if (computed.element) {
+        
+        let computedName = computed.name.toLowerCase();
+        let computedValue = computed.parsedValue.toLowerCase();
+
+        isComputedHighlighted = this._highlightMatches(computed.element, {
+          searchName: this.searchPropertyName,
+          searchValue: this.searchPropertyValue,
+          propertyName: computedName,
+          propertyValue: computedValue,
+          propertyMatch: this.searchPropertyMatch
+        }) ? true : isComputedHighlighted;
+      }
+    }
+
+    return isComputedHighlighted;
+  },
+
+  
+
+
+
+
+
+
+  _expandComputedListForFilter: function(editor) {
+    editor.expandForFilter();
+    this._editorsExpandedForFilter.push(editor);
   },
 
   
@@ -2145,7 +2213,9 @@ CssRuleView.prototype = {
 
 
 
-  _highlightMatches: function(aElement, { searchName, searchValue, propertyName,
+
+
+  _highlightMatches: function(element, { searchName, searchValue, propertyName,
       propertyValue, propertyMatch }) {
     let matches = false;
 
@@ -2162,7 +2232,7 @@ CssRuleView.prototype = {
     }
 
     if (matches) {
-      aElement.classList.add("ruleview-highlight");
+      element.classList.add("ruleview-highlight");
     }
 
     return matches;
