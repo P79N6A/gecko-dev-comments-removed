@@ -697,11 +697,9 @@ nsresult nsView::AttachToTopLevelWidget(nsIWidget* aWidget)
     }
   }
 
-  nsRefPtr<nsDeviceContext> dx = mViewManager->GetDeviceContext();
-
   
   
-  nsresult rv = aWidget->AttachViewToTopLevel(!nsIWidget::UsePuppetWidgets(), dx);
+  nsresult rv = aWidget->AttachViewToTopLevel(!nsIWidget::UsePuppetWidgets());
   if (NS_FAILED(rv))
     return rv;
 

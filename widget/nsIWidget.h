@@ -839,9 +839,7 @@ class nsIWidget : public nsISupports {
 
 
 
-
-    NS_IMETHOD AttachViewToTopLevel(bool aUseAttachedEvents,
-                                    nsDeviceContext *aContext) = 0;
+    NS_IMETHOD AttachViewToTopLevel(bool aUseAttachedEvents) = 0;
 
     
 
