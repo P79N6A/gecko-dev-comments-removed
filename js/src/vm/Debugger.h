@@ -35,6 +35,10 @@ namespace js {
 class Breakpoint;
 class DebuggerMemory;
 
+typedef HashSet<ReadBarrieredGlobalObject,
+                DefaultHasher<ReadBarrieredGlobalObject>,
+                SystemAllocPolicy> WeakGlobalObjectSet;
+
 
 
 
@@ -238,7 +242,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
   private:
     HeapPtrNativeObject object;         
-    GlobalObjectSet debuggees;          
+    WeakGlobalObjectSet debuggees;      
     js::HeapPtrObject uncaughtExceptionHook; 
     bool enabled;
     JSCList breakpoints;                
@@ -325,7 +329,8 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     class ObjectQuery;
 
     bool addDebuggeeGlobal(JSContext *cx, Handle<GlobalObject*> obj);
-    void removeDebuggeeGlobal(FreeOp *fop, GlobalObject *global, GlobalObjectSet::Enum *debugEnum);
+    void removeDebuggeeGlobal(FreeOp *fop, GlobalObject *global,
+                              WeakGlobalObjectSet::Enum *debugEnum);
 
     
 
@@ -529,7 +534,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     bool hasMemory() const;
     DebuggerMemory &memory() const;
 
-    GlobalObjectSet::Range allDebuggees() const { return debuggees.all(); }
+    WeakGlobalObjectSet::Range allDebuggees() const { return debuggees.all(); }
 
     
 
@@ -889,7 +894,8 @@ Debugger::observesNewGlobalObject() const
 bool
 Debugger::observesGlobal(GlobalObject *global) const
 {
-    return debuggees.has(global);
+    ReadBarriered<GlobalObject*> debuggee(global);
+    return debuggees.has(debuggee);
 }
 
  void

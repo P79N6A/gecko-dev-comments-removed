@@ -682,7 +682,7 @@ struct HeapPtrHasher
 
 
 template <class T>
-struct DefaultHasher< HeapPtr<T> > : HeapPtrHasher<T> { };
+struct DefaultHasher<HeapPtr<T>> : HeapPtrHasher<T> { };
 
 template <class T>
 struct PreBarrieredHasher
@@ -696,7 +696,7 @@ struct PreBarrieredHasher
 };
 
 template <class T>
-struct DefaultHasher< PreBarriered<T> > : PreBarrieredHasher<T> { };
+struct DefaultHasher<PreBarriered<T>> : PreBarrieredHasher<T> { };
 
 
 
@@ -739,6 +739,22 @@ class ReadBarriered
 
     void set(T v) { value = v; }
 };
+
+
+template <class T>
+struct ReadBarrieredHasher
+{
+    typedef ReadBarriered<T> Key;
+    typedef T Lookup;
+
+    static HashNumber hash(Lookup obj) { return DefaultHasher<T>::hash(obj); }
+    static bool match(const Key &k, Lookup l) { return k.get() == l; }
+    static void rekey(Key &k, const Key& newKey) { k.set(newKey); }
+};
+
+
+template <class T>
+struct DefaultHasher<ReadBarriered<T>> : ReadBarrieredHasher<T> { };
 
 class ArrayObject;
 class ArrayBufferObject;
