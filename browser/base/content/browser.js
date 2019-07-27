@@ -2105,6 +2105,12 @@ function getShortcutOrURIAndPostData(aURL, aCallback) {
   let keyword = aURL;
   let param = "";
 
+  
+  
+  
+  let originalCallback = aCallback;
+  aCallback = data => setTimeout(() => originalCallback(data));
+
   let offset = aURL.indexOf(" ");
   if (offset > 0) {
     keyword = aURL.substr(0, offset);
