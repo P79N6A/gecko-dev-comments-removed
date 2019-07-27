@@ -426,10 +426,6 @@ private:
       return aStatus;
     }
 
-    if (!aStringLen) {
-      return NS_OK;
-    }
-
     NS_ASSERTION(aString, "This should never be null!");
 
     
