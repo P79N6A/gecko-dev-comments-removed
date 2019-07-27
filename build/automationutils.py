@@ -78,6 +78,18 @@ DEBUGGER_INFO = {
   },
 
   
+  "devenv.exe": {
+    "interactive": True,
+    "args": "-debugexe"
+  },
+
+  
+  "wdexpress.exe": {
+    "interactive": True,
+    "args": "-debugexe"
+  },
+
+  
   
   
   

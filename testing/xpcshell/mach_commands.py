@@ -141,10 +141,16 @@ class XPCShellRunner(MozbuildObject):
         
         
         verbose_output = test_path is not None or (manifest and len(manifest.test_paths())==1)
+        
+        
+        
+        xpcsExecutable = 'xpcshell'
+        if os.name == 'nt':
+          xpcsExecutable += '.exe'
 
         args = {
             'manifest': manifest,
-            'xpcshell': os.path.join(self.bindir, 'xpcshell'),
+            'xpcshell': os.path.join(self.bindir, xpcsExecutable),
             'mozInfo': os.path.join(self.topobjdir, 'mozinfo.json'),
             'symbolsPath': os.path.join(self.distdir, 'crashreporter-symbols'),
             'interactive': interactive,
