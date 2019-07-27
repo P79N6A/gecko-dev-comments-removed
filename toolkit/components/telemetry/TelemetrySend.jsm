@@ -54,6 +54,8 @@ const IS_UNIFIED_TELEMETRY = Preferences.get(PREF_UNIFIED, false);
 
 const PING_FORMAT_VERSION = 4;
 
+const PING_TYPE_DELETION = "deletion";
+
 
 const MIDNIGHT_FUZZING_INTERVAL_MS = 60 * 60 * 1000;
 
@@ -91,6 +93,15 @@ let Policy = {
 function isV4PingFormat(aPing) {
   return ("id" in aPing) && ("application" in aPing) &&
          ("version" in aPing) && (aPing.version >= 2);
+}
+
+
+
+
+
+
+function isDeletionPing(aPing) {
+  return isV4PingFormat(aPing) && (aPing.type == PING_TYPE_DELETION);
 }
 
 function tomorrow(date) {
@@ -386,7 +397,7 @@ let TelemetrySendImpl = {
   },
 
   submitPing: function(ping) {
-    if (!this._canSend()) {
+    if (!this._canSend(ping)) {
       this._log.trace("submitPing - Telemetry is not allowed to send pings.");
       return Promise.resolve();
     }
@@ -566,7 +577,7 @@ let TelemetrySendImpl = {
   },
 
   _doPing: function(ping, id, isPersisted) {
-    if (!this._canSend()) {
+    if (!this._canSend(ping)) {
       
       this._log.trace("_doPing - Sending is disabled.");
       return Promise.resolve();
@@ -675,7 +686,9 @@ let TelemetrySendImpl = {
 
 
 
-  _canSend: function() {
+
+
+  _canSend: function(ping = null) {
     
     if (!Telemetry.isOfficialTelemetry && !this._testMode) {
       return false;
@@ -684,6 +697,10 @@ let TelemetrySendImpl = {
     
     
     if (IS_UNIFIED_TELEMETRY) {
+      
+      if (ping && isDeletionPing(ping)) {
+        return true;
+      }
       return Preferences.get(PREF_FHR_UPLOAD_ENABLED, false);
     }
 

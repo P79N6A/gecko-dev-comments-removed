@@ -54,6 +54,7 @@ const TELEMETRY_TEST_DELAY = 100;
 
 
 const PING_TYPE_MAIN = "main";
+const PING_TYPE_DELETION = "deletion";
 
 
 const REASON_GATHER_PAYLOAD = "gather-payload";
@@ -143,6 +144,7 @@ this.TelemetryController = Object.freeze({
 
   reset: function() {
     Impl._clientID = null;
+    Impl._detachObservers();
     TelemetryStorage.reset();
     TelemetrySend.reset();
 
@@ -653,6 +655,8 @@ let Impl = {
       return Promise.resolve();
     }
 
+    this._attachObservers();
+
     
     
     
@@ -717,6 +721,7 @@ let Impl = {
     }
 
     Preferences.ignore(PREF_BRANCH_LOG, configureLogging);
+    this._detachObservers();
 
     
     try {
@@ -802,6 +807,37 @@ let Impl = {
       shutdownBarrier: this._shutdownBarrier.state,
       connectionsBarrier: this._connectionsBarrier.state,
     };
+  },
+
+  
+
+
+
+  _onUploadPrefChange: function() {
+    const uploadEnabled = Preferences.get(PREF_FHR_UPLOAD_ENABLED, false);
+    if (uploadEnabled) {
+      
+      return;
+    }
+    
+    this._log.trace("_onUploadPrefChange - Sending deletion ping.");
+    this.submitExternalPing(PING_TYPE_DELETION, {}, { addClientId: true });
+  },
+
+  _attachObservers: function() {
+    if (IS_UNIFIED_TELEMETRY) {
+      
+      Preferences.observe(PREF_FHR_UPLOAD_ENABLED, this._onUploadPrefChange, this);
+    }
+  },
+
+  
+
+
+  _detachObservers: function() {
+    if (IS_UNIFIED_TELEMETRY) {
+      Preferences.ignore(PREF_FHR_UPLOAD_ENABLED, this._onUploadPrefChange, this);
+    }
   },
 
   
