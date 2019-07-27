@@ -871,7 +871,7 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer)
   
   
   
-  CSSToParentLayerScale userZoom(metrics.mDevPixelsPerCSSPixel * metrics.mCumulativeResolution * LayerToParentLayerScale(1));
+  CSSToParentLayerScale userZoom(metrics.GetDevPixelsPerCSSPixel() * metrics.mCumulativeResolution * LayerToParentLayerScale(1));
   ParentLayerPoint userScroll = metrics.GetScrollOffset() * userZoom;
   SyncViewportInfo(displayPort, geckoZoom, mLayersUpdated,
                    userScroll, userZoom, fixedLayerMargins,

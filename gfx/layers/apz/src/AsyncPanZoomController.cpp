@@ -1451,7 +1451,7 @@ AsyncPanZoomController::ConvertToGecko(const ParentLayerPoint& aPoint, CSSPoint*
     LayoutDevicePoint layoutPoint = TransformTo<LayoutDevicePixel>(transformToGecko, aPoint);
     { 
       ReentrantMonitorAutoEnter lock(mMonitor);
-      *aOut = layoutPoint / mFrameMetrics.mDevPixelsPerCSSPixel;
+      *aOut = layoutPoint / mFrameMetrics.GetDevPixelsPerCSSPixel();
     }
     return true;
   }
@@ -1487,7 +1487,7 @@ nsEventStatus AsyncPanZoomController::OnScrollWheel(const ScrollWheelInput& aEve
       
       
       LayoutDevicePoint devicePixelDelta(-deltaX, -deltaY);
-      ParentLayerPoint delta = (devicePixelDelta / mFrameMetrics.mDevPixelsPerCSSPixel) *
+      ParentLayerPoint delta = (devicePixelDelta / mFrameMetrics.GetDevPixelsPerCSSPixel()) *
                                mFrameMetrics.GetZoom();
 
       PanGestureInput move(PanGestureInput::PANGESTURE_PAN, aEvent.mTime, aEvent.mTimeStamp,
@@ -1506,7 +1506,7 @@ nsEventStatus AsyncPanZoomController::OnScrollWheel(const ScrollWheelInput& aEve
     }
 
     case ScrollWheelInput::SCROLLMODE_SMOOTH: {
-      CSSPoint delta = LayoutDevicePoint(deltaX, deltaY) / mFrameMetrics.mDevPixelsPerCSSPixel;
+      CSSPoint delta = LayoutDevicePoint(deltaX, deltaY) / mFrameMetrics.GetDevPixelsPerCSSPixel();
 
       
       
@@ -2655,7 +2655,7 @@ Matrix4x4 AsyncPanZoomController::GetTransformToLastDispatchedPaint() const {
 
   LayerPoint scrollChange =
     (mLastContentPaintMetrics.GetScrollOffset() - mLastDispatchedPaintMetrics.GetScrollOffset())
-    * mLastContentPaintMetrics.mDevPixelsPerCSSPixel
+    * mLastContentPaintMetrics.GetDevPixelsPerCSSPixel()
     * mLastContentPaintMetrics.mCumulativeResolution
       
       
@@ -2757,7 +2757,7 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
     
 
     if (FuzzyEqualsAdditive(mFrameMetrics.mCompositionBounds.width, aLayerMetrics.mCompositionBounds.width) &&
-        mFrameMetrics.mDevPixelsPerCSSPixel == aLayerMetrics.mDevPixelsPerCSSPixel) {
+        mFrameMetrics.GetDevPixelsPerCSSPixel() == aLayerMetrics.GetDevPixelsPerCSSPixel()) {
       
       
       
@@ -2774,7 +2774,7 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
       
       
       mFrameMetrics.SetZoom(aLayerMetrics.GetZoom());
-      mFrameMetrics.mDevPixelsPerCSSPixel.scale = aLayerMetrics.mDevPixelsPerCSSPixel.scale;
+      mFrameMetrics.SetDevPixelsPerCSSPixel(aLayerMetrics.GetDevPixelsPerCSSPixel());
     }
     if (!mFrameMetrics.mScrollableRect.IsEqualEdges(aLayerMetrics.mScrollableRect)) {
       mFrameMetrics.mScrollableRect = aLayerMetrics.mScrollableRect;

@@ -309,13 +309,17 @@ public:
   
   LayoutDeviceToLayerScale mCumulativeResolution;
 
-  
-  
-  
-  
-  CSSToLayoutDeviceScale mDevPixelsPerCSSPixel;
-
 public:
+  void SetDevPixelsPerCSSPixel(const CSSToLayoutDeviceScale& aDevPixelsPerCSSPixel)
+  {
+    mDevPixelsPerCSSPixel = aDevPixelsPerCSSPixel;
+  }
+
+  CSSToLayoutDeviceScale GetDevPixelsPerCSSPixel() const
+  {
+    return mDevPixelsPerCSSPixel;
+  }
+
   void SetIsRoot(bool aIsRoot)
   {
     mIsRoot = aIsRoot;
@@ -526,6 +530,12 @@ public:
 private:
   
   
+
+  
+  
+  
+  
+  CSSToLayoutDeviceScale mDevPixelsPerCSSPixel;
 
   
   bool mMayHaveTouchListeners;

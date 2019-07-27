@@ -245,11 +245,11 @@ TabChildBase::InitializeRootMetrics()
       ParentLayerPoint(),
       ParentLayerSize(ViewAs<ParentLayerPixel>(mInnerSize, PixelCastJustification::ScreenIsParentLayerForRoot)));
   mLastRootMetrics.SetZoom(mLastRootMetrics.CalculateIntrinsicScale());
-  mLastRootMetrics.mDevPixelsPerCSSPixel = WebWidget()->GetDefaultScale();
+  mLastRootMetrics.SetDevPixelsPerCSSPixel(WebWidget()->GetDefaultScale());
   
   
   mLastRootMetrics.mCumulativeResolution =
-    mLastRootMetrics.GetZoom() / mLastRootMetrics.mDevPixelsPerCSSPixel * ParentLayerToLayerScale(1);
+    mLastRootMetrics.GetZoom() / mLastRootMetrics.GetDevPixelsPerCSSPixel() * ParentLayerToLayerScale(1);
   
   
   mLastRootMetrics.mPresShellResolution = mLastRootMetrics.mCumulativeResolution.scale;
@@ -384,7 +384,7 @@ TabChildBase::HandlePossibleViewportChange(const ScreenIntSize& aOldScreenSize)
       ParentLayerPoint(),
       ParentLayerSize(ViewAs<ParentLayerPixel>(mInnerSize, PixelCastJustification::ScreenIsParentLayerForRoot)));
   metrics.SetRootCompositionSize(
-      ScreenSize(mInnerSize) * ScreenToLayoutDeviceScale(1.0f) / metrics.mDevPixelsPerCSSPixel);
+      ScreenSize(mInnerSize) * ScreenToLayoutDeviceScale(1.0f) / metrics.GetDevPixelsPerCSSPixel());
 
   
   
@@ -425,13 +425,13 @@ TabChildBase::HandlePossibleViewportChange(const ScreenIntSize& aOldScreenSize)
 
   if (nsIPresShell* shell = document->GetShell()) {
     if (nsPresContext* context = shell->GetPresContext()) {
-      metrics.mDevPixelsPerCSSPixel = CSSToLayoutDeviceScale(
-        (float)nsPresContext::AppUnitsPerCSSPixel() / context->AppUnitsPerDevPixel());
+      metrics.SetDevPixelsPerCSSPixel(CSSToLayoutDeviceScale(
+        (float)nsPresContext::AppUnitsPerCSSPixel() / context->AppUnitsPerDevPixel()));
     }
   }
 
   metrics.mCumulativeResolution = metrics.GetZoom()
-                                / metrics.mDevPixelsPerCSSPixel
+                                / metrics.GetDevPixelsPerCSSPixel()
                                 * ParentLayerToLayerScale(1);
   
   
@@ -468,7 +468,7 @@ TabChildBase::HandlePossibleViewportChange(const ScreenIntSize& aOldScreenSize)
   if (viewportInfo.IsZoomAllowed() && scrollIdentifiersValid) {
     
     
-    bool allowDoubleTapZoom = (viewport.width > screenW / metrics.mDevPixelsPerCSSPixel.scale);
+    bool allowDoubleTapZoom = (viewport.width > screenW / metrics.GetDevPixelsPerCSSPixel().scale);
     if (allowDoubleTapZoom != viewportInfo.IsDoubleTapZoomAllowed()) {
       viewportInfo.SetAllowDoubleTapZoom(allowDoubleTapZoom);
 
@@ -3411,8 +3411,6 @@ TabChild::RecvRequestNotifyAfterRemotePaint()
 bool
 TabChild::RecvUIResolutionChanged()
 {
-  mDPI = 0;
-  mDefaultScale = 0;
   static_cast<PuppetWidget*>(mWidget.get())->ClearBackingScaleCache();
   nsCOMPtr<nsIDocument> document(GetDocument());
   nsCOMPtr<nsIPresShell> presShell = document->GetShell();
