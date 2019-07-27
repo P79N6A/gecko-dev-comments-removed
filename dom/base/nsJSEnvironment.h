@@ -146,11 +146,6 @@ protected:
 
   nsresult AddSupportsPrimitiveTojsvals(nsISupports *aArg, JS::Value *aArgv);
 
-  
-  
-  
-  void ReportPendingException();
-
 private:
   void DestroyJSContext();
 
