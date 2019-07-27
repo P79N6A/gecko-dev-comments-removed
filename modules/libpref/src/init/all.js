@@ -346,6 +346,9 @@ pref("media.webvtt.enabled", true);
 pref("media.webvtt.regions.enabled", false);
 
 
+pref("media.track.enabled", false);
+
+
 pref("media.mediasource.enabled", false);
 
 #ifdef MOZ_WEBSPEECH
