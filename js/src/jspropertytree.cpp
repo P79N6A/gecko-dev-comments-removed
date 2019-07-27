@@ -277,6 +277,14 @@ Shape::fixupDictionaryShapeAfterMovingGC()
     if (!listp)
         return;
 
+    
+    
+    
+    if (IsInsideNursery(reinterpret_cast<Cell *>(listp))) {
+        JS_POISON(reinterpret_cast<void *>(this), JS_SWEPT_TENURED_PATTERN, sizeof(Shape));
+        return;
+    }
+
     JS_ASSERT(!IsInsideNursery(reinterpret_cast<Cell *>(listp)));
     AllocKind kind = reinterpret_cast<Cell *>(listp)->tenuredGetAllocKind();
     JS_ASSERT(kind == FINALIZE_SHAPE || kind <= FINALIZE_OBJECT_LAST);

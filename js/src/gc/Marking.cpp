@@ -182,6 +182,10 @@ CheckMarkedThing(JSTracer *trc, T **thingp)
     if (IsInsideNursery(thing))
         return;
 
+#ifdef JSGC_COMPACTING
+    JS_ASSERT_IF(!MovingTracer::IsMovingTracer(trc), !IsForwarded(*thingp));
+#endif
+
     
 
 
