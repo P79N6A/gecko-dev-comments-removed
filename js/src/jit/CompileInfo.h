@@ -444,6 +444,16 @@ class CompileInfo
     
     
     bool isObservableSlot(uint32_t slot) const {
+        if (isObservableFrameSlot(slot))
+            return true;
+
+        if (isObservableArgumentSlot(slot))
+            return true;
+
+        return false;
+    }
+
+    bool isObservableFrameSlot(uint32_t slot) const {
         if (!funMaybeLazy())
             return false;
 
@@ -458,6 +468,13 @@ class CompileInfo
         if (hasArguments() && (slot == scopeChainSlot() || slot == argsObjSlot()))
             return true;
 
+        return false;
+    }
+
+    bool isObservableArgumentSlot(uint32_t slot) const {
+        if (!funMaybeLazy())
+            return false;
+
         
         
         if ((hasArguments() || !script()->strict()) &&
@@ -467,6 +484,19 @@ class CompileInfo
         }
 
         return false;
+    }
+
+    
+    
+    
+    bool isRecoverableOperand(uint32_t slot) const {
+        if (isObservableFrameSlot(slot))
+            return false;
+
+        if (needsArgsObj() && isObservableArgumentSlot(slot))
+            return false;
+
+        return true;
     }
 
   private:

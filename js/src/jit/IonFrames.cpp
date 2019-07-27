@@ -1774,6 +1774,49 @@ SnapshotIterator::skipInstruction()
 }
 
 bool
+SnapshotIterator::initInstructionResults(MaybeReadFallback &fallback)
+{
+    MOZ_ASSERT(fallback.canRecoverResults());
+    JSContext *cx = fallback.maybeCx;
+
+    
+    
+    if (recover_.numInstructions() == 1)
+        return true;
+
+    IonJSFrameLayout *fp = fallback.frame->jsFrame();
+    RInstructionResults *results = fallback.activation->maybeIonFrameRecovery(fp);
+    if (!results) {
+        
+        
+        
+        
+        
+        if (!ionScript_->invalidate(cx,  false, "Observe recovered instruction."))
+            return false;
+
+        
+        
+        
+        SnapshotIterator s(*fallback.frame);
+        RInstructionResults tmp;
+        if (!s.initInstructionResults(cx, &tmp))
+            return false;
+
+        
+        if (!fallback.activation->registerIonFrameRecovery(fallback.frame->jsFrame(),
+                                                           mozilla::Move(tmp)))
+            return false;
+
+        results = fallback.activation->maybeIonFrameRecovery(fp);
+    }
+
+    MOZ_ASSERT(results->isInitialized());
+    instructionResults_ = results;
+    return true;
+}
+
+bool
 SnapshotIterator::initInstructionResults(JSContext *cx, RInstructionResults *results)
 {
     MOZ_ASSERT(recover_.numInstructionsRead() == 1);

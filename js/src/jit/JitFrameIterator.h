@@ -426,6 +426,7 @@ class SnapshotIterator
     
     
     
+    bool initInstructionResults(MaybeReadFallback &fallback);
     bool initInstructionResults(JSContext *cx, RInstructionResults *results);
 
     void storeInstructionResult(Value v);
@@ -460,8 +461,16 @@ class SnapshotIterator
         if (allocationReadable(a))
             return allocationValue(a);
 
-        if (fallback.canRecoverResults())
-            warnUnreadableAllocation();
+        if (fallback.canRecoverResults()) {
+            if (!initInstructionResults(fallback))
+                return fallback.unreadablePlaceholder;
+
+            if (allocationReadable(a))
+                return allocationValue(a);
+
+            MOZ_ASSERT_UNREACHABLE("All allocations should be readable.");
+        }
+
         return fallback.unreadablePlaceholder;
     }
 
