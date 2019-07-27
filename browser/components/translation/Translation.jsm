@@ -298,6 +298,20 @@ let TranslationHealthReport = {
     this._withProvider(provider => provider.recordMissedTranslationOpportunity(language));
   },
 
+  
+
+
+
+
+
+
+
+
+
+  recordAutoRejectedTranslationOffer: function () {
+    this._withProvider(provider => provider.recordAutoRejectedTranslationOffer());
+  },
+
    
 
 
@@ -413,6 +427,7 @@ TranslationMeasurement1.prototype = Object.freeze({
     showOriginalContent: DAILY_COUNTER_FIELD,
     detectLanguageEnabled: DAILY_LAST_NUMERIC_FIELD,
     showTranslationUI: DAILY_LAST_NUMERIC_FIELD,
+    autoRejectedTranslationOffer: DAILY_COUNTER_FIELD,
   },
 
   shouldIncludeField: function (field) {
@@ -508,6 +523,15 @@ TranslationProvider.prototype = Object.freeze({
       yield m.setDailyLastText("missedTranslationOpportunityCountsByLanguage",
                                langCounts, date);
 
+    }.bind(this));
+  },
+
+  recordAutoRejectedTranslationOffer: function (date=new Date()) {
+    let m = this.getMeasurement(TranslationMeasurement1.prototype.name,
+                                TranslationMeasurement1.prototype.version);
+
+    return this._enqueueTelemetryStorageTask(function* recordTask() {
+      yield m.incrementDailyCounter("autoRejectedTranslationOffer", date);
     }.bind(this));
   },
 
