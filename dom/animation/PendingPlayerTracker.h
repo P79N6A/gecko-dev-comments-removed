@@ -32,6 +32,7 @@ public:
   
   
   void StartPendingPlayers(const TimeStamp& aReadyTime);
+  bool HasPendingPlayers() const { return mPlayPendingSet.Count() > 0; }
 
 private:
   ~PendingPlayerTracker() { }

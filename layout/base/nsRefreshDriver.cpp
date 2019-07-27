@@ -38,6 +38,7 @@
 #include "nsIDocument.h"
 #include "jsapi.h"
 #include "nsContentUtils.h"
+#include "mozilla/PendingPlayerTracker.h"
 #include "mozilla/Preferences.h"
 #include "nsViewManager.h"
 #include "GeckoProfiler.h"
@@ -1069,6 +1070,18 @@ static nsDocShell* GetDocShell(nsPresContext* aPresContext)
   return static_cast<nsDocShell*>(aPresContext->GetDocShell());
 }
 
+static bool
+HasPendingAnimations(nsIPresShell* aShell)
+{
+  nsIDocument* doc = aShell->GetDocument();
+  if (!doc) {
+    return false;
+  }
+
+  PendingPlayerTracker* tracker = doc->GetPendingPlayerTracker();
+  return tracker && tracker->HasPendingPlayers();
+}
+
 
 
 
@@ -1304,8 +1317,10 @@ nsRefreshDriver::Tick(int64_t aNowEpoch, TimeStamp aNowTime)
           mLayoutFlushObservers.RemoveElement(shell);
           shell->mReflowScheduled = false;
           shell->mSuppressInterruptibleReflows = false;
-          shell->FlushPendingNotifications(ChangesToFlush(Flush_InterruptibleLayout,
-                                                          false));
+          mozFlushType flushType = HasPendingAnimations(shell)
+                                 ? Flush_Layout
+                                 : Flush_InterruptibleLayout;
+          shell->FlushPendingNotifications(ChangesToFlush(flushType, false));
           
           
           nsPresContext* presContext = shell->GetPresContext();
