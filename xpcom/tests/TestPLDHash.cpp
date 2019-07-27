@@ -99,7 +99,7 @@ static bool test_pldhash_grow_to_max_capacity()
   
   size_t numInserted = 0;
   while (true) {
-    if (!PL_DHashTableOperate(&t, (const void*)numInserted, PL_DHASH_ADD)) {
+    if (!PL_DHashTableAdd(&t, (const void*)numInserted)) {
       break;
     }
     numInserted++;

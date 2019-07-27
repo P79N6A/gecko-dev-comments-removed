@@ -528,6 +528,18 @@ PL_DHashTableOperate(PLDHashTable* aTable, const void* aKey,
                      PLDHashOperator aOp);
 
 
+PLDHashEntryHdr* PL_DHASH_FASTCALL
+PL_DHashTableLookup(PLDHashTable* aTable, const void* aKey);
+
+
+PLDHashEntryHdr* PL_DHASH_FASTCALL
+PL_DHashTableAdd(PLDHashTable* aTable, const void* aKey);
+
+
+void PL_DHASH_FASTCALL
+PL_DHashTableRemove(PLDHashTable* aTable, const void* aKey);
+
+
 
 
 
