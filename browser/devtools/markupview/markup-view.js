@@ -781,11 +781,16 @@ MarkupView.prototype = {
     let addedOrEditedContainers = new Set();
     let removedContainers = new Set();
 
-    for (let {type, target, added, removed} of aMutations) {
+    for (let {type, target, added, removed, newValue} of aMutations) {
       let container = this.getContainer(target);
 
       if (container) {
-        if (type === "attributes" || type === "characterData") {
+        if (type === "characterData") {
+          addedOrEditedContainers.add(container);
+        } else if (type === "attributes" && newValue === null) {
+          
+          
+          
           addedOrEditedContainers.add(container);
         } else if (type === "childList") {
           
@@ -1884,44 +1889,14 @@ MarkupContainer.prototype = {
   flashMutation: function() {
     if (!this.selected) {
       let contentWin = this.win;
-      this.flashed = true;
+      flashElementOn(this.tagState, this.editor.elt);
       if (this._flashMutationTimer) {
         clearTimeout(this._flashMutationTimer);
         this._flashMutationTimer = null;
       }
       this._flashMutationTimer = setTimeout(() => {
-        this.flashed = false;
+        flashElementOff(this.tagState, this.editor.elt);
       }, this.markup.CONTAINER_FLASHING_DURATION);
-    }
-  },
-
-  set flashed(aValue) {
-    if (aValue) {
-      
-      this.tagState.classList.remove("flash-out");
-
-      
-      this.tagState.classList.add("theme-bg-contrast");
-
-      
-      this.editor.elt.classList.add("theme-fg-contrast");
-      [].forEach.call(
-        this.editor.elt.querySelectorAll("[class*=theme-fg-color]"),
-        span => span.classList.add("theme-fg-contrast")
-      );
-    } else {
-      
-      this.tagState.classList.add("flash-out");
-
-      
-      this.tagState.classList.remove("theme-bg-contrast");
-
-      
-      this.editor.elt.classList.remove("theme-fg-contrast");
-      [].forEach.call(
-        this.editor.elt.querySelectorAll("[class*=theme-fg-color]"),
-        span => span.classList.remove("theme-fg-contrast")
-      );
     }
   },
 
@@ -2351,6 +2326,7 @@ function ElementEditor(aContainer, aNode) {
   this.doc = this.markup.doc;
 
   this.attrs = {};
+  this.animationTimers = {};
 
   
   this.elt = null;
@@ -2408,9 +2384,23 @@ function ElementEditor(aContainer, aNode) {
   this.eventNode.style.display = this.node.hasEventListeners ? "inline-block" : "none";
 
   this.update();
+  this.initialized = true;
 }
 
 ElementEditor.prototype = {
+
+  flashAttribute: function(attrName) {
+    if (this.animationTimers[attrName]) {
+      clearTimeout(this.animationTimers[attrName]);
+    }
+
+    flashElementOn(this.getAttributeElement(attrName));
+
+    this.animationTimers[attrName] = setTimeout(() => {
+      flashElementOff(this.getAttributeElement(attrName));
+    }, this.markup.CONTAINER_FLASHING_DURATION);
+  },
+
   
 
 
@@ -2425,9 +2415,9 @@ ElementEditor.prototype = {
       let el = this.attrs[attr.name];
       let valueChanged = el && el.querySelector(".attr-value").innerHTML !== attr.value;
       let isEditing = el && el.querySelector(".editable").inplaceEditor;
-      let needToCreateAttributeEditor = el && (!valueChanged || isEditing);
+      let canSimplyShowEditor = el && (!valueChanged || isEditing);
 
-      if (needToCreateAttributeEditor) {
+      if (canSimplyShowEditor) {
         
         
         attrsToRemove.delete(el);
@@ -2437,6 +2427,13 @@ ElementEditor.prototype = {
         
         let attribute = this._createAttribute(attr);
         attribute.style.removeProperty("display");
+
+        
+        
+        
+        if (this.initialized) {
+          this.flashAttribute(attr.name);
+        }
       }
     }
 
@@ -2709,7 +2706,12 @@ ElementEditor.prototype = {
     });
   },
 
-  destroy: function() {}
+  destroy: function() {
+    for (let key in this.animationTimers) {
+      clearTimeout(this.animationTimers[key]);
+    }
+    this.animationTimers = null;
+  }
 };
 
 function nodeDocument(node) {
@@ -2761,6 +2763,62 @@ function parseAttributeValues(attr, doc) {
 
   
   return attributes.reverse();
+}
+
+
+
+
+
+
+
+
+
+
+
+function flashElementOn(backgroundElt, foregroundElt=backgroundElt) {
+  if (!backgroundElt || !foregroundElt) {
+    return;
+  }
+
+  
+  backgroundElt.classList.remove("flash-out");
+
+  
+  backgroundElt.classList.add("theme-bg-contrast");
+
+  foregroundElt.classList.add("theme-fg-contrast");
+  [].forEach.call(
+    foregroundElt.querySelectorAll("[class*=theme-fg-color]"),
+    span => span.classList.add("theme-fg-contrast")
+  );
+}
+
+
+
+
+
+
+
+
+
+
+
+function flashElementOff(backgroundElt, foregroundElt=backgroundElt) {
+  if (!backgroundElt || !foregroundElt) {
+    return;
+  }
+
+  
+  backgroundElt.classList.add("flash-out");
+
+  
+  backgroundElt.classList.remove("theme-bg-contrast");
+
+  foregroundElt.classList.remove("theme-fg-contrast");
+  [].forEach.call(
+    foregroundElt.querySelectorAll("[class*=theme-fg-color]"),
+    span => span.classList.remove("theme-fg-contrast")
+  );
 }
 
 

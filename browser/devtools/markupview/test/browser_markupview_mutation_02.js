@@ -16,6 +16,8 @@ const TEST_URL = TEST_URL_ROOT + "doc_markup_flashing.html";
 
 
 
+
+
 const TEST_DATA = [{
   desc: "Adding a new node should flash the new node",
   mutate: (doc, rootNode) => {
@@ -36,13 +38,26 @@ const TEST_DATA = [{
   },
   flashedNode: ".list .item:last-child"
 }, {
-  desc: "Adding an attribute should flash the node",
+  desc: "Adding an attribute should flash the attribute",
+  attribute: "test-name",
   mutate: (doc, rootNode) => {
-    rootNode.setAttribute("name-" + Date.now(), "value-" + Date.now());
+    rootNode.setAttribute("test-name", "value-" + Date.now());
   }
 }, {
-  desc: "Editing an attribute should flash the node",
+  desc: "Editing an attribute should flash the attribute",
+  attribute: "class",
   mutate: (doc, rootNode) => {
+    rootNode.setAttribute("class", "list value-" + Date.now());
+  }
+}, {
+  desc: "Multiple changes to an attribute should flash the attribute",
+  attribute: "class",
+  mutate: (doc, rootNode) => {
+    rootNode.removeAttribute("class");
+    rootNode.setAttribute("class", "list value-" + Date.now());
+    rootNode.setAttribute("class", "list value-" + Date.now());
+    rootNode.removeAttribute("class");
+    rootNode.setAttribute("class", "list value-" + Date.now());
     rootNode.setAttribute("class", "list value-" + Date.now());
   }
 }, {
@@ -66,7 +81,7 @@ add_task(function*() {
   info("Selecting the last element of the root node before starting");
   yield selectNode(".list .item:nth-child(2)", inspector);
 
-  for (let {mutate, flashedNode, desc} of TEST_DATA) {
+  for (let {mutate, flashedNode, desc, attribute} of TEST_DATA) {
     info("Starting test: " + desc);
 
     info("Mutating the DOM and listening for markupmutation event");
@@ -80,7 +95,12 @@ add_task(function*() {
     if (flashedNode) {
       flashingNodeFront = yield getNodeFront(flashedNode, inspector);
     }
-    yield assertNodeFlashing(flashingNodeFront, inspector);
+
+    if (attribute) {
+      yield assertAttributeFlashing(flashingNodeFront, attribute, inspector);
+    } else {
+      yield assertNodeFlashing(flashingNodeFront, inspector);
+    }
 
     
     yield updated;
@@ -97,4 +117,18 @@ function* assertNodeFlashing(nodeFront, inspector) {
   let markup = inspector.markup;
   clearTimeout(container._flashMutationTimer);
   container._flashMutationTimer = null;
+  container.tagState.classList.remove("theme-bg-contrast");
+}
+
+function* assertAttributeFlashing(nodeFront, attribute, inspector) {
+  let container = getContainerForNodeFront(nodeFront, inspector);
+  ok(container, "Markup container for node found");
+  ok(container.editor.attrs[attribute], "Attribute exists on editor");
+
+  let attributeElement = container.editor.getAttributeElement(attribute);
+
+  ok(attributeElement.classList.contains("theme-bg-contrast"),
+    "Element for " + attribute + " attribute is flashing");
+
+  attributeElement.classList.remove("theme-bg-contrast");
 }
