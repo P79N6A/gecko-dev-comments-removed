@@ -457,6 +457,15 @@ public:
                            double h, const nsAString& bgColor, uint32_t flags,
                            mozilla::ErrorResult& error);
 
+  enum RenderingMode {
+    SoftwareBackendMode,
+    OpenGLBackendMode,
+    DefaultBackendMode
+  };
+
+  bool SwitchRenderingMode(RenderingMode aRenderingMode);
+
+  
   void Demote();
 
   nsresult Redraw();
@@ -645,7 +654,9 @@ protected:
 
 
 
-  void EnsureTarget();
+
+
+  RenderingMode EnsureTarget(RenderingMode aRenderMode = RenderingMode::DefaultBackendMode);
 
   
 
@@ -688,8 +699,7 @@ protected:
   static void AddDemotableContext(CanvasRenderingContext2D* context);
   static void RemoveDemotableContext(CanvasRenderingContext2D* context);
 
-  
-  bool mForceSoftware;
+  RenderingMode mRenderingMode;
 
   
   int32_t mWidth, mHeight;
