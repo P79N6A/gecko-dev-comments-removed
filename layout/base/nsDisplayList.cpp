@@ -4725,11 +4725,16 @@ nsDisplayTransform::GetResultingTransformMatrixInternal(const FrameTransformProp
     FrameTransformProperties props(frame->GetParent(),
                                    aAppUnitsPerPixel,
                                    nullptr);
+
+    
+    
+    
+    
     gfx3DMatrix parent =
       GetResultingTransformMatrixInternal(props,
                                           aOrigin - frame->GetPosition(),
                                           aAppUnitsPerPixel, nullptr,
-                                          aOutAncestor, false);
+                                          aOutAncestor, !frame->IsTransformed());
 
     result.ChangeBasis(offsetBetweenOrigins);
     result = result * parent;
@@ -4868,7 +4873,7 @@ nsDisplayTransform::GetTransform()
 
       mTransform = ToMatrix4x4(
         GetResultingTransformMatrix(mFrame, ToReferenceFrame(), scale,
-                                    nullptr, nullptr, true));
+                                    nullptr, nullptr, mFrame->IsTransformed()));
     }
   }
   return mTransform;
