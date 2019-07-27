@@ -1,3 +1,4 @@
+
 if (!this.SharedArrayBuffer || !this.SharedInt32Array || !this.Atomics)
     quit();
 

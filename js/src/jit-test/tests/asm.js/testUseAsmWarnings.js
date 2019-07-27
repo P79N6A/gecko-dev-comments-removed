@@ -1,3 +1,4 @@
+
 load(libdir + "asm.js");
 
 assertAsmDirectiveFail("'use asm'");

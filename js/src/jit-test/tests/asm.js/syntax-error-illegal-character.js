@@ -1,3 +1,4 @@
+
 var JSMSG_ILLEGAL_CHARACTER = "illegal character";
 
 function test_reflect(code) {
