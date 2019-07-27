@@ -120,8 +120,11 @@ def get_ip():
             ips = socket.gethostbyname_ex(hostname)[2]
         if len(ips) == 1:
             ip = ips[0]
-        else:
+        elif len(ips) > 1:
             logger.debug('Multiple addresses found: %s' % ips)
+            
+            ip = ips[0] if mozinfo.isWin else None
+        else:
             ip = None
     except socket.gaierror:
         
