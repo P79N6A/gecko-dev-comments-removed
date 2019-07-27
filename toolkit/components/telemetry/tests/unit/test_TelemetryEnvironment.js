@@ -289,7 +289,12 @@ function checkSettingsSection(data) {
   }
 
   
-  Assert.ok(checkNullOrBool(data.settings.isDefaultBrowser));
+  
+  if (gIsAndroid) {
+    Assert.ok(!("isDefaultBrowser" in data.settings), "Must not be available on Android.");
+  } else {
+    Assert.ok(checkNullOrBool(data.settings.isDefaultBrowser));
+  }
 
   
   let update = data.settings.update;
