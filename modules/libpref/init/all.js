@@ -3922,6 +3922,7 @@ pref("layers.dump", false);
 #ifdef MOZ_DUMP_PAINTING
 
 pref("layers.dump-texture", false);
+pref("layers.dump-decision", false);
 #endif
 pref("layers.draw-borders", false);
 pref("layers.draw-tile-borders", false);
