@@ -509,15 +509,7 @@ imgStatusTracker::OnStartRequest()
 
   
   
-  
-  mState &= ~FLAG_REQUEST_STARTED;
-  mState &= ~FLAG_DECODE_STARTED;
-  mState &= ~FLAG_DECODE_STOPPED;
-  mState &= ~FLAG_REQUEST_STOPPED;
-  mState &= ~FLAG_ONLOAD_BLOCKED;
-  mState &= ~FLAG_ONLOAD_UNBLOCKED;
-  mState &= ~FLAG_IS_ANIMATED;
-
+  mState &= FLAG_IS_MULTIPART | FLAG_HAS_ERROR;
   mState |= FLAG_REQUEST_STARTED;
 
   ProxyArray::ForwardIterator iter(mConsumers);
