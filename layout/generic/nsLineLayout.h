@@ -308,6 +308,11 @@ public:
     return mLastOptionalBreakFrame;
   }
   
+  bool HasOptionalBreakPosition() const
+  {
+    return mLastOptionalBreakFrame != nullptr;
+  }
+  
   
 
 

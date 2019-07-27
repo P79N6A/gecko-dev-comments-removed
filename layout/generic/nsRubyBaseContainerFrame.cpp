@@ -318,18 +318,6 @@ struct nsRubyBaseContainerFrame::ReflowState
   const nsTArray<UniquePtr<nsHTMLReflowState>>& mTextReflowStates;
 };
 
-
-static bool
-ShouldBreakBefore(const nsHTMLReflowState& aReflowState, nscoord aExtraISize)
-{
-  nsLineLayout* lineLayout = aReflowState.mLineLayout;
-  int32_t offset;
-  gfxBreakPriority priority;
-  nscoord icoord = lineLayout->GetCurrentICoord();
-  return icoord + aExtraISize > aReflowState.AvailableISize() &&
-         lineLayout->GetLastOptionalBreakPosition(&offset, &priority);
-}
-
  void
 nsRubyBaseContainerFrame::Reflow(nsPresContext* aPresContext,
                                  nsHTMLReflowMetrics& aDesiredSize,
@@ -436,7 +424,7 @@ nsRubyBaseContainerFrame::Reflow(nsPresContext* aPresContext,
   
   
   
-  MOZ_ASSERT(NS_INLINE_IS_BREAK_BEFORE(aStatus) ||
+  MOZ_ASSERT(NS_INLINE_IS_BREAK(aStatus) ||
              isize == lineSpanSize || mFrames.IsEmpty());
 
   
@@ -450,13 +438,10 @@ nsRubyBaseContainerFrame::Reflow(nsPresContext* aPresContext,
       false, false, textContainers, aReflowState, reflowStates
     };
     nscoord spanISize = ReflowSpans(reflowState);
-    nscoord deltaISize = spanISize - isize;
-    if (deltaISize > 0) {
-      if (allowLineBreak && ShouldBreakBefore(aReflowState, deltaISize)) {
-        aStatus = NS_INLINE_LINE_BREAK_BEFORE();
-      } else {
-        isize = spanISize;
-      }
+    isize = std::max(isize, spanISize);
+    if (isize > aReflowState.AvailableISize() &&
+        aReflowState.mLineLayout->HasOptionalBreakPosition()) {
+      aStatus = NS_INLINE_LINE_BREAK_BEFORE();
     }
   }
 
@@ -721,14 +706,6 @@ nsRubyBaseContainerFrame::ReflowOneColumn(const ReflowState& aReflowState,
       columnISize = std::max(columnISize, textISize);
     }
   }
-  if (aReflowState.mAllowLineBreak &&
-      ShouldBreakBefore(baseReflowState, columnISize)) {
-    
-    
-    
-    aStatus = NS_INLINE_LINE_BREAK_BEFORE();
-    return 0;
-  }
 
   
   if (aColumn.mBaseFrame) {
@@ -769,8 +746,15 @@ nsRubyBaseContainerFrame::ReflowOneColumn(const ReflowState& aReflowState,
     }
   }
 
-  
   nscoord icoord = istart + columnISize;
+  
+  if (icoord > baseReflowState.AvailableISize() &&
+      baseReflowState.mLineLayout->HasOptionalBreakPosition()) {
+    aStatus = NS_INLINE_LINE_BREAK_BEFORE();
+    return 0;
+  }
+
+  
   nscoord deltaISize = icoord - baseReflowState.mLineLayout->GetCurrentICoord();
   if (deltaISize > 0) {
     baseReflowState.mLineLayout->AdvanceICoord(deltaISize);
