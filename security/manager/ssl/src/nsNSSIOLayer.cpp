@@ -1044,6 +1044,33 @@ class SSLErrorRunnable : public SyncRunnableBase
 
 namespace {
 
+uint32_t tlsIntoleranceTelemetryBucket(PRErrorCode err)
+{
+  
+  
+  
+  switch (err) {
+    case SSL_ERROR_BAD_MAC_ALERT: return 1;
+    case SSL_ERROR_BAD_MAC_READ: return 2;
+    case SSL_ERROR_HANDSHAKE_FAILURE_ALERT: return 3;
+    case SSL_ERROR_HANDSHAKE_UNEXPECTED_ALERT: return 4;
+    case SSL_ERROR_CLIENT_KEY_EXCHANGE_FAILURE: return 5;
+    case SSL_ERROR_ILLEGAL_PARAMETER_ALERT: return 6;
+    case SSL_ERROR_NO_CYPHER_OVERLAP: return 7;
+    case SSL_ERROR_BAD_SERVER: return 8;
+    case SSL_ERROR_BAD_BLOCK_PADDING: return 9;
+    case SSL_ERROR_UNSUPPORTED_VERSION: return 10;
+    case SSL_ERROR_PROTOCOL_VERSION_ALERT: return 11;
+    case SSL_ERROR_RX_MALFORMED_FINISHED: return 12;
+    case SSL_ERROR_BAD_HANDSHAKE_HASH_VALUE: return 13;
+    case SSL_ERROR_DECODE_ERROR_ALERT: return 14;
+    case SSL_ERROR_RX_UNKNOWN_ALERT: return 15;
+    case PR_CONNECT_RESET_ERROR: return 16;
+    case PR_END_OF_FILE_ERROR: return 17;
+    default: return 0;
+  }
+}
+
 bool
 retryDueToTLSIntolerance(PRErrorCode err, nsNSSSocketInfo* socketInfo)
 {
@@ -1053,60 +1080,52 @@ retryDueToTLSIntolerance(PRErrorCode err, nsNSSSocketInfo* socketInfo)
 
   SSLVersionRange range = socketInfo->GetTLSVersionRange();
 
-  uint32_t reason;
-  switch (err) {
-    case SSL_ERROR_INAPPROPRIATE_FALLBACK_ALERT:
-      
-      
-      
-      
-      socketInfo->SharedState().IOLayerHelpers()
-        .rememberTolerantAtVersion(socketInfo->GetHostName(),
-                                   socketInfo->GetPort(),
-                                   range.max + 1);
-      return false;
+  if (err == SSL_ERROR_INAPPROPRIATE_FALLBACK_ALERT) {
+    
+    
+    
+    
 
-    case SSL_ERROR_BAD_MAC_ALERT: reason = 1; break;
-    case SSL_ERROR_BAD_MAC_READ: reason = 2; break;
-    case SSL_ERROR_HANDSHAKE_FAILURE_ALERT: reason = 3; break;
-    case SSL_ERROR_HANDSHAKE_UNEXPECTED_ALERT: reason = 4; break;
-    case SSL_ERROR_CLIENT_KEY_EXCHANGE_FAILURE: reason = 5; break;
-    case SSL_ERROR_ILLEGAL_PARAMETER_ALERT: reason = 6; break;
-    case SSL_ERROR_NO_CYPHER_OVERLAP: reason = 7; break;
-    case SSL_ERROR_BAD_SERVER: reason = 8; break;
-    case SSL_ERROR_BAD_BLOCK_PADDING: reason = 9; break;
-    case SSL_ERROR_UNSUPPORTED_VERSION: reason = 10; break;
-    case SSL_ERROR_PROTOCOL_VERSION_ALERT: reason = 11; break;
-    case SSL_ERROR_RX_MALFORMED_FINISHED: reason = 12; break;
-    case SSL_ERROR_BAD_HANDSHAKE_HASH_VALUE: reason = 13; break;
-    case SSL_ERROR_DECODE_ERROR_ALERT: reason = 14; break;
-    case SSL_ERROR_RX_UNKNOWN_ALERT: reason = 15; break;
+    
+    
+    
+    PRErrorCode originalReason = socketInfo->SharedState().IOLayerHelpers()
+      .getIntoleranceReason(socketInfo->GetHostName(), socketInfo->GetPort());
+    Telemetry::Accumulate(Telemetry::SSL_VERSION_FALLBACK_INAPPROPRIATE,
+                          tlsIntoleranceTelemetryBucket(originalReason));
 
-    case PR_CONNECT_RESET_ERROR: reason = 16; goto conditional;
-    case PR_END_OF_FILE_ERROR: reason = 17; goto conditional;
+    socketInfo->SharedState().IOLayerHelpers()
+      .rememberTolerantAtVersion(socketInfo->GetHostName(),
+                                 socketInfo->GetPort(),
+                                 range.max + 1);
 
-      
-      
-      
-      
+    return false;
+  }
 
-      
-      
-      
-      
-      
-      
-      
-    conditional:
-      if ((err == PR_CONNECT_RESET_ERROR &&
-           range.max <= SSL_LIBRARY_VERSION_TLS_1_0) ||
-          socketInfo->GetForSTARTTLS()) {
-        return false;
-      }
-      break;
+  
+  
+  
+  
 
-    default:
-      return false;
+  
+  
+  
+  
+  
+  
+  
+  if (err == PR_CONNECT_RESET_ERROR &&
+      range.max <= SSL_LIBRARY_VERSION_TLS_1_0) {
+    return false;
+  }
+  if ((err == PR_CONNECT_RESET_ERROR || err == PR_END_OF_FILE_ERROR)
+      && socketInfo->GetForSTARTTLS()) {
+    return false;
+  }
+
+  uint32_t reason = tlsIntoleranceTelemetryBucket(err);
+  if (reason == 0) {
+    return false;
   }
 
   Telemetry::ID pre;
