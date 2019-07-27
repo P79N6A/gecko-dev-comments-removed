@@ -1864,7 +1864,8 @@ nsPresContext::RebuildAllStyleData(nsChangeHint aExtraHint)
   RebuildUserFontSet();
   RebuildCounterStyles();
 
-  RestyleManager()->RebuildAllStyleData(aExtraHint);
+  
+  RestyleManager()->RebuildAllStyleData(aExtraHint, eRestyle_Subtree);
 }
 
 void

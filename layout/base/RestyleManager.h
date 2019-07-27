@@ -305,7 +305,17 @@ public:
   
   
   
-  void RebuildAllStyleData(nsChangeHint aExtraHint);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  void RebuildAllStyleData(nsChangeHint aExtraHint,
+                           nsRestyleHint aRestyleHint);
 
   
   
@@ -462,6 +472,7 @@ private:
 
   uint32_t mHoverGeneration;
   nsChangeHint mRebuildAllExtraHint;
+  nsRestyleHint mRebuildAllRestyleHint;
 
   mozilla::TimeStamp mLastUpdateForThrottledAnimations;
 
