@@ -1456,7 +1456,26 @@ nsDisplayImage::GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
   bool animated;
   if (mImage && mImage->GetAnimated(&animated) == NS_OK && !animated &&
       mImage->FrameIsOpaque(imgIContainer::FRAME_CURRENT)) {
-    return nsRegion(GetBounds(aSnap));
+    
+    
+    
+    
+    const nsRect frameContentBox = GetBounds(aSnap);
+
+    
+    
+    nsImageFrame* imageFrame = static_cast<nsImageFrame*>(mFrame);
+    nsRect constraintRect(frameContentBox.TopLeft(),
+                          imageFrame->mComputedSize);
+    constraintRect.y -= imageFrame->GetContinuationOffset();
+
+    const nsRect destRect =
+      nsLayoutUtils::ComputeObjectDestRect(constraintRect,
+                                           imageFrame->mIntrinsicSize,
+                                           imageFrame->mIntrinsicRatio,
+                                           imageFrame->StylePosition());
+
+    return nsRegion(destRect.Intersect(frameContentBox));
   }
   return nsRegion();
 }
