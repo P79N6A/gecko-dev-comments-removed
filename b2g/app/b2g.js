@@ -1008,7 +1008,7 @@ pref("dom.wakelock.enabled", true);
 pref("touchcaret.enabled", true);
 
 
-pref("selectioncaret.enabled", true);
+pref("selectioncaret.enabled", false);
 
 
 pref("services.sync.fxaccounts.enabled", true);
