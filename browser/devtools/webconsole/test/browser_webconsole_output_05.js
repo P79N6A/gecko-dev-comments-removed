@@ -62,6 +62,15 @@ let inputTests = [
 
   
   {
+    input: "Date.prototype",
+    output: "Date",
+    printOutput: "Invalid Date",
+    inspectable: true,
+    variablesViewLabel: "Date",
+  },
+
+  
+  {
     input: "new Number(43)",
     output: "43",
     inspectable: true,
