@@ -295,30 +295,54 @@ loop.standaloneRoomViews = (function(mozL10n) {
 
 
     updateLocalCameraPosition: function(ratio) {
+      
+      var LOCAL_STREAM_SIZE = 0.25;
+      
+      var LOCAL_STREAM_OVERLAP = 0.25;
+      
+      var SDK_MIN_SIZE = 48;
+
       var node = this._getElement(".local");
-      var parent = node.offsetParent || this._getElement(".media");
-      
-      
-      var parentWidth = parent.offsetWidth;
-      var targetWidth = parentWidth / 6;
+      var targetWidth;
 
       node.style.right = "auto";
       if (window.matchMedia && window.matchMedia("screen and (max-width:640px)").matches) {
+        
         targetWidth = 180;
+        node.style.width = (targetWidth * ratio.width) + "px";
+        node.style.height = (targetWidth * ratio.height) + "px";
         node.style.left = "auto";
       } else {
         
         
+
+        
+        
         var remoteVideoDimensions = this.getRemoteVideoDimensions();
+        targetWidth = remoteVideoDimensions.streamWidth * LOCAL_STREAM_SIZE;
+
+        var realWidth = targetWidth * ratio.width;
+        var realHeight = targetWidth * ratio.height;
+
+        
+        if (realWidth < SDK_MIN_SIZE) {
+          realWidth = SDK_MIN_SIZE;
+          realHeight = realWidth / ratio.width * ratio.height;
+        }
+        if (realHeight < SDK_MIN_SIZE) {
+          realHeight = SDK_MIN_SIZE;
+          realWidth = realHeight / ratio.height * ratio.width;
+        }
+
         var offsetX = (remoteVideoDimensions.streamWidth + remoteVideoDimensions.offsetX);
         
         
         
         
-        node.style.left = (offsetX - ((targetWidth * ratio.height) / 4)) + "px";
+        node.style.left = (offsetX - (realWidth * LOCAL_STREAM_OVERLAP)) + "px";
+        node.style.width = realWidth + "px";
+        node.style.height = realHeight + "px";
       }
-      node.style.width = (targetWidth * ratio.width) + "px";
-      node.style.height = (targetWidth * ratio.height) + "px";
     },
 
     
