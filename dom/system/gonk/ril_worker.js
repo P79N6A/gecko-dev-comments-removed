@@ -52,6 +52,9 @@ if (!this.debug) {
   };
 }
 
+let RIL_EMERGENCY_NUMBERS;
+const DEFAULT_EMERGENCY_NUMBERS = ["112", "911"];
+
 
 const EMERGENCY_CB_MODE_TIMEOUT_MS = 300000;  
 
@@ -1561,13 +1564,34 @@ RilObject.prototype = {
 
 
 
-  dialNonEmergencyNumber: function(options) {
+  dial: function(options) {
     let onerror = (function onerror(options, errorMsg) {
       options.success = false;
       options.errorMsg = errorMsg;
       this.sendChromeMessage(options);
     }).bind(this, options);
 
+    if (this._isEmergencyNumber(options.number)) {
+      this.dialEmergencyNumber(options, onerror);
+    } else {
+      if (!this._isCdma) {
+        
+        
+        
+        let mmi = this._parseMMI(options.number);
+        if (mmi && this._isTemporaryModeCLIR(mmi)) {
+          options.number = mmi.dialNumber;
+          
+          
+          options.clirMode = mmi.procedure == MMI_PROCEDURE_ACTIVATION ?
+                             CLIR_SUPPRESSION : CLIR_INVOCATION;
+        }
+      }
+      this.dialNonEmergencyNumber(options, onerror);
+    }
+  },
+
+  dialNonEmergencyNumber: function(options, onerror) {
     if (this.radioState == GECKO_RADIOSTATE_OFF) {
       
       onerror(GECKO_ERROR_RADIO_NOT_AVAILABLE);
@@ -1585,41 +1609,17 @@ RilObject.prototype = {
       this.exitEmergencyCbMode();
     }
 
-    if (!this._isCdma) {
+    if (this._isCdma && Object.keys(this.currentCalls).length == 1) {
       
-      
-      
-      let mmi = this._parseMMI(options.number);
-      if (mmi && this._isTemporaryModeCLIR(mmi)) {
-        options.number = mmi.dialNumber;
-        
-        
-        options.clirMode = mmi.procedure == MMI_PROCEDURE_ACTIVATION ?
-          CLIR_SUPPRESSION : CLIR_INVOCATION;
-      }
+      options.featureStr = options.number;
+      this.sendCdmaFlashCommand(options);
+    } else {
+      options.request = REQUEST_DIAL;
+      this.sendDialRequest(options);
     }
-
-    options.request = REQUEST_DIAL;
-    this.sendDialRequest(options);
   },
 
-  
-
-
-
-
-
-
-
-
-
-  dialEmergencyNumber: function(options) {
-    let onerror = (function onerror(options, errorMsg) {
-      options.success = false;
-      options.errorMsg = errorMsg;
-      this.sendChromeMessage(options);
-    }).bind(this, options);
-
+  dialEmergencyNumber: function(options, onerror) {
     options.request = RILQUIRKS_REQUEST_USE_DIAL_EMERGENCY_CALL ?
                       REQUEST_DIAL_EMERGENCY_CALL : REQUEST_DIAL;
     if (this.radioState == GECKO_RADIOSTATE_OFF) {
@@ -1636,18 +1636,18 @@ RilObject.prototype = {
       return;
     }
 
-    this.sendDialRequest(options);
-  },
-
-  sendDialRequest: function(options) {
     if (this._isCdma && Object.keys(this.currentCalls).length == 1) {
       
       options.featureStr = options.number;
       this.sendCdmaFlashCommand(options);
     } else {
-      this.telephonyRequestQueue.push(options.request, this.sendRilRequestDial,
-                                      options);
+      this.sendDialRequest(options);
     }
+  },
+
+  sendDialRequest: function(options) {
+    this.telephonyRequestQueue.push(options.request, this.sendRilRequestDial,
+                                    options);
   },
 
   sendRilRequestDial: function(options) {
@@ -2417,8 +2417,9 @@ RilObject.prototype = {
       return false;
     }
 
-    
-    
+    if (this._isEmergencyNumber(mmiString)) {
+      return false;
+    }
 
     
     if (Object.getOwnPropertyNames(this.currentCalls).length > 0) {
@@ -3313,13 +3314,33 @@ RilObject.prototype = {
 
 
 
-  _isTemporaryModeCLIR: function(mmi) {
-    return (mmi &&
-            mmi.serviceCode == MMI_SC_CLIR &&
-            mmi.dialNumber &&
-            (mmi.procedure == MMI_PROCEDURE_ACTIVATION ||
-             mmi.procedure == MMI_PROCEDURE_DEACTIVATION));
-  },
+   _isEmergencyNumber: function(number) {
+     
+     let numbers = RIL_EMERGENCY_NUMBERS;
+
+     if (numbers) {
+       numbers = numbers.split(",");
+     } else {
+       
+       numbers = DEFAULT_EMERGENCY_NUMBERS;
+     }
+
+     return numbers.indexOf(number) != -1;
+   },
+
+   
+
+
+
+
+
+   _isTemporaryModeCLIR: function(mmi) {
+     return (mmi &&
+             mmi.serviceCode == MMI_SC_CLIR &&
+             mmi.dialNumber &&
+             (mmi.procedure == MMI_PROCEDURE_ACTIVATION ||
+              mmi.procedure == MMI_PROCEDURE_DEACTIVATION));
+   },
 
   
 
@@ -4034,7 +4055,6 @@ RilObject.prototype = {
       for (let i in newCalls) {
         if (newCalls[i].state !== CALL_STATE_INCOMING) {
           callIndex = newCalls[i].callIndex;
-          newCalls[i].isEmergency = options.isEmergency;
           break;
         }
       }
@@ -4085,9 +4105,9 @@ RilObject.prototype = {
       newCall.isOutgoing = true;
     }
 
-    if (newCall.isEmergency === undefined) {
-      newCall.isEmergency = false;
-    }
+    
+    newCall.isEmergency = newCall.isOutgoing &&
+      this._isEmergencyNumber(newCall.number);
 
     
     newCall.isConference = newCall.isMpty ? true : false;
