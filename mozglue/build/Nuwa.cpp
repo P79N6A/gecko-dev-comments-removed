@@ -199,9 +199,47 @@ static TLSKeySet sTLSKeys;
 static pthread_mutex_t sThreadFreezeLock = PTHREAD_MUTEX_INITIALIZER;
 
 static thread_info_t sMainThread;
-static LinkedList<thread_info_t> sAllThreads;
 static int sThreadCount = 0;
 static int sThreadFreezeCount = 0;
+
+
+
+
+
+
+
+
+
+struct AllThreadsListType : public LinkedList<thread_info_t>
+{
+  ~AllThreadsListType()
+  {
+    if (!isEmpty()) {
+      __android_log_print(ANDROID_LOG_WARN, "Nuwa",
+                          "Threads remaining at exit:\n");
+      int n = 0;
+      for (const thread_info_t* t = getFirst(); t; t = t->getNext()) {
+        __android_log_print(ANDROID_LOG_WARN, "Nuwa",
+                            "  %.*s (origNativeThreadID=%d recreatedNativeThreadID=%d)\n",
+                            NATIVE_THREAD_NAME_LENGTH,
+                            t->nativeThreadName,
+                            t->origNativeThreadID,
+                            t->recreatedNativeThreadID);
+        n++;
+      }
+      __android_log_print(ANDROID_LOG_WARN, "Nuwa",
+                          "total: %d outstanding threads. "
+                          "Please fix them so they're destroyed before this point!\n", n);
+      __android_log_print(ANDROID_LOG_WARN, "Nuwa",
+                          "note: sThreadCount=%d, sThreadFreezeCount=%d\n",
+                          sThreadCount,
+                          sThreadFreezeCount);
+    }
+    clear();
+  }
+};
+static AllThreadsListType sAllThreads;
+
 
 
 
