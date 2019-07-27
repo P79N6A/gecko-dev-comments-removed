@@ -62,6 +62,18 @@ protected:
 
 
 
+    void ResolveAutoPosition(uint32_t aStart)
+    {
+      MOZ_ASSERT(IsAuto(), "Why call me?");
+      MOZ_ASSERT(aStart > 0, "expected a 1-based line number");
+      MOZ_ASSERT(Extent() == mEnd, "'auto' representation changed?");
+      mStart = aStart;
+      mEnd += aStart;
+    }
+    
+
+
+
     uint32_t HypotheticalEnd() const { return IsAuto() ? mEnd + 1 : mEnd; }
 
     uint32_t mStart;  
@@ -166,6 +178,61 @@ protected:
   GridArea PlaceDefinite(nsIFrame* aChild, const nsStylePosition* aStyle);
 
   
+
+
+
+
+
+
+  void PlaceAutoCol(uint32_t aStartCol, GridArea* aArea) const;
+
+  
+
+
+
+
+  uint32_t FindAutoCol(uint32_t aStartCol, uint32_t aLockedRow,
+                       const GridArea* aArea) const;
+
+  
+
+
+
+
+
+
+  void PlaceAutoRow(uint32_t aStartRow, GridArea* aArea) const;
+
+  
+
+
+
+
+  uint32_t FindAutoRow(uint32_t aLockedCol, uint32_t aStartRow,
+                       const GridArea* aArea) const;
+
+  
+
+
+
+
+
+
+  void PlaceAutoAutoInRowOrder(uint32_t aStartCol, uint32_t aStartRow,
+                               GridArea* aArea) const;
+
+  
+
+
+
+
+
+
+  void PlaceAutoAutoInColOrder(uint32_t aStartCol, uint32_t aStartRow,
+                               GridArea* aArea) const;
+
+  
+
 
 
 
