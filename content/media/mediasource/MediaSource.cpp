@@ -63,14 +63,19 @@ static const unsigned int MAX_SOURCE_BUFFERS = 16;
 namespace mozilla {
 
 static const char* const gMediaSourceTypes[6] = {
-  "video/webm",
-  "audio/webm",
 
 
 
-#if 0
+
+
+#ifdef MOZ_GONK_MEDIACODEC
   "video/mp4",
   "audio/mp4",
+#else
+  "video/webm",
+  "audio/webm",
+#endif
+#if 0
   "audio/mpeg",
 #endif
   nullptr
