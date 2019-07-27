@@ -3604,7 +3604,6 @@ TEST_F(SignalingAgentTest, CreateOffer) {
               TestStunServer::GetInstance()->port());
   OfferOptions options;
   agent(0)->CreateOffer(options, OFFER_AUDIO, SHOULD_SENDRECV_AUDIO);
-  PR_Sleep(20000);
 }
 
 TEST_F(SignalingAgentTest, CreateOfferSetLocalTrickleTestServer) {
@@ -3626,7 +3625,6 @@ TEST_F(SignalingAgentTest, CreateOfferSetLocalTrickleTestServer) {
   TestStunServer::GetInstance()->SetActive(true);
 
   agent(0)->SetLocal(TestObserver::OFFER, agent(0)->offer());
-  PR_Sleep(1000); 
   agent(0)->WaitForGather();
 
   
@@ -4207,7 +4205,7 @@ TEST_P(SignalingTest, AudioCallMismatchDtlsRoles)
   WaitForCompleted();
 
   
-  PR_Sleep(kDefaultTimeout * 2); 
+  PR_Sleep(500); 
 
   CloseStreams();
 
