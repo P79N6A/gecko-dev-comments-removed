@@ -160,7 +160,7 @@ protected:
 
    
    nsIWidget*                            mParentWidget;
-   nsTArray<nsWebBrowserListenerState*>* mListenerArray;
+   nsAutoPtr<nsTArray<nsWebBrowserListenerState*>> mListenerArray;
 };
 
 #endif 
