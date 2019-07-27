@@ -39,6 +39,7 @@ namespace mozilla {
 
 
 
+#ifdef PR_LOGGING
 static const char*
 TrackTypeToStr(TrackType aTrack)
 {
@@ -52,6 +53,7 @@ TrackTypeToStr(TrackType aTrack)
     return "Unknown";
   }
 }
+#endif
 
 class MP4Stream : public Stream {
 public:
