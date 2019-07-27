@@ -34,6 +34,10 @@ public:
 
   nsresult Dispatch(TemporaryRef<nsIRunnable> aRunnable);
 
+  
+  
+  nsresult ForceDispatch(TemporaryRef<nsIRunnable> aRunnable);
+
   nsresult SyncDispatch(TemporaryRef<nsIRunnable> aRunnable);
 
   nsresult FlushAndDispatch(TemporaryRef<nsIRunnable> aRunnable);
@@ -68,18 +72,27 @@ private:
   
   void AwaitIdleLocked();
 
-  enum DispatchMode { AbortIfFlushing, IgnoreFlushing };
+  enum DispatchMode { AbortIfFlushing, IgnoreFlushing, Forced };
 
   nsresult DispatchLocked(TemporaryRef<nsIRunnable> aRunnable,
                           DispatchMode aMode);
+  void FlushLocked();
 
   RefPtr<SharedThreadPool> mPool;
 
   
   Monitor mQueueMonitor;
 
+  struct TaskQueueEntry {
+    RefPtr<nsIRunnable> mRunnable;
+    bool mForceDispatch;
+
+    TaskQueueEntry(TemporaryRef<nsIRunnable> aRunnable, bool aForceDispatch = false)
+      : mRunnable(aRunnable), mForceDispatch(aForceDispatch) {}
+  };
+
   
-  std::queue<RefPtr<nsIRunnable>> mTasks;
+  std::queue<TaskQueueEntry> mTasks;
 
   
   
