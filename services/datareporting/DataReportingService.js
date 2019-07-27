@@ -71,6 +71,10 @@ this.DataReportingService = function () {
 
   this._stateDir = null;
   this._stateFilePath = null;
+
+  
+  
+  this._simulateNoSessionRecorder = false;
 }
 
 DataReportingService.prototype = Object.freeze({
@@ -397,7 +401,17 @@ DataReportingService.prototype = Object.freeze({
 
 
   getSessionRecorder: function() {
-    return this.sessionRecorder;
+    return this._simulateNoSessionRecorder ? undefined : this.sessionRecorder;
+  },
+
+  
+  
+  simulateNoSessionRecorder() {
+    this._simulateNoSessionRecorder = true;
+  },
+
+  simulateRestoreSessionRecorder() {
+    this._simulateNoSessionRecorder = false;
   },
 
   
