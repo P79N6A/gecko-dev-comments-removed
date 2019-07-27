@@ -10,6 +10,8 @@
 
 
 #include <stdio.h>
+#include <string>
+#include <vector>
 
 #include "mozilla/ArrayUtils.h"
 
@@ -290,16 +292,33 @@ InitializeNSS(const char* nssCertDBDir)
     PrintPRError("PR_OpenDir failed");
     return SECFailure;
   }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  std::vector<std::string> certificates;
+  std::vector<std::string> keys;
   for (PRDirEntry* dirEntry = PR_ReadDir(fdDir, PR_SKIP_BOTH); dirEntry;
        dirEntry = PR_ReadDir(fdDir, PR_SKIP_BOTH)) {
     size_t nameLength = strlen(dirEntry->name);
     if (nameLength > 4) {
       if (strncmp(dirEntry->name + nameLength - 4, ".pem", 4) == 0) {
-        AddCertificateFromFile(basePath, dirEntry->name);
+        certificates.push_back(dirEntry->name);
       } else if (strncmp(dirEntry->name + nameLength - 4, ".key", 4) == 0) {
-        AddKeyFromFile(basePath, dirEntry->name);
+        keys.push_back(dirEntry->name);
       }
     }
+  }
+  for (std::string& certificate : certificates) {
+    AddCertificateFromFile(basePath, certificate.c_str());
+  }
+  for (std::string& key : keys) {
+    AddKeyFromFile(basePath, key.c_str());
   }
   return SECSuccess;
 }
