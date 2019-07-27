@@ -120,8 +120,6 @@ loop.Client = (function($) {
           var urlData = JSON.parse(responseText);
 
           cb(null, this._validate(urlData, expectedCallUrlProperties));
-
-          this.mozLoop.noteCallUrlExpiry(urlData.expiresAt);
         } catch (err) {
           console.log("Error requesting call info", err);
           cb(err);
@@ -159,8 +157,6 @@ loop.Client = (function($) {
 
         try {
           cb(null);
-
-          this.mozLoop.noteCallUrlExpiry((new Date()).getTime() / 1000);
         } catch (err) {
           console.log("Error deleting call info", err);
           cb(err);
