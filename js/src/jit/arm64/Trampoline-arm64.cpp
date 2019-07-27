@@ -86,13 +86,11 @@ JitRuntime::generateEnterJIT(JSContext* cx, EnterJitType type)
     masm.moveStackPtrTo(r19);
 
     
-    
-    
     {
         Label noNewTarget;
         Imm32 constructingToken(CalleeToken_FunctionConstructing);
         masm.branchTest32(Assembler::Zero, reg_callee, constructingToken, &noNewTarget);
-        masm.breakpoint(); 
+        masm.add32(Imm32(1), reg_argc);
         masm.bind(&noNewTarget);
     }
 
@@ -330,21 +328,41 @@ JitRuntime::generateArgumentsRectifier(JSContext* cx, void** returnAddrOut)
 
     
     masm.And(x6, x1, Operand(CalleeTokenMask));
+    
 
     
     masm.Ldrh(x6, MemOperand(x6, JSFunction::offsetOfNargs()));
-    masm.Mov(x7, x6);
+
+    static_assert(CalleeToken_FunctionConstructing == 0x1, "Constructing must be low-order bit");
+    masm.And(x4, x1, Operand(CalleeToken_FunctionConstructing));
+    masm.Add(x7, x6, x4);
 
     
+    MOZ_ASSERT(ArgumentsRectifierReg == r8, "x8 used for argc in Arguments Rectifier");
     masm.Add(x3, masm.GetStackPointer64(), Operand(x8, vixl::LSL, 3));
     masm.Add(x3, x3, Operand(sizeof(RectifierFrameLayout)));
 
     
+    
+    
     Label noPadding;
-    masm.Tbnz(x6, 0, &noPadding);
+    masm.Tbnz(x7, 0, &noPadding);
     masm.asVIXL().Push(xzr);
     masm.Add(x7, x7, Operand(1));
     masm.bind(&noPadding);
+
+    {
+        Label notConstructing;
+        masm.Cbz(x4, &notConstructing);
+
+        
+        
+        
+        masm.loadPtr(Address(r3, sizeof(Value)), r4);
+        masm.Push(r4);
+
+        masm.bind(&notConstructing);
+    }
 
     
     masm.Sub(w2, w6, w8);
