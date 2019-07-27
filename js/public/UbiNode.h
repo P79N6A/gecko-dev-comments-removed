@@ -302,7 +302,7 @@ class Node {
     
     
     MOZ_IMPLICIT Node(JS::HandleValue value);
-    Node(JSGCTraceKind kind, void* ptr);
+    Node(JS::TraceKind kind, void* ptr);
 
     
     

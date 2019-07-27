@@ -335,9 +335,9 @@ private:
 void TraceScriptHolder(nsISupports* aHolder, JSTracer* aTracer);
 
 
-inline bool AddToCCKind(JSGCTraceKind aKind)
+inline bool AddToCCKind(JS::TraceKind aKind)
 {
-  return aKind == JSTRACE_OBJECT || aKind == JSTRACE_SCRIPT;
+  return aKind == JS::TraceKind::Object || aKind == JS::TraceKind::Script;
 }
 
 } 

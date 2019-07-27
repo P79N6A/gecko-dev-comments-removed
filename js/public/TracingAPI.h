@@ -18,7 +18,6 @@ namespace JS {
 class JS_PUBLIC_API(CallbackTracer);
 template <typename T> class Heap;
 template <typename T> class TenuredHeap;
-}
 
 
 
@@ -29,41 +28,40 @@ template <typename T> class TenuredHeap;
 
 
 
-enum JSGCTraceKind
+enum class TraceKind
 {
     
     
     
-    JSTRACE_OBJECT = 0x00,
-    JSTRACE_STRING = 0x01,
-    JSTRACE_SYMBOL = 0x02,
-    JSTRACE_SCRIPT = 0x03,
+    Object = 0x00,
+    String = 0x01,
+    Symbol = 0x02,
+    Script = 0x03,
 
     
-    JSTRACE_SHAPE = 0x04,
+    Shape = 0x04,
 
     
-    JSTRACE_OBJECT_GROUP = 0x05,
+    ObjectGroup = 0x05,
 
     
-    JSTRACE_NULL = 0x06,
+    Null = 0x06,
 
     
-    JSTRACE_OUTOFLINE = 0x07,
-
-    
-    JSTRACE_BASE_SHAPE = 0x0F,
-    JSTRACE_JITCODE = 0x1F,
-    JSTRACE_LAZY_SCRIPT = 0x2F,
-
-    JSTRACE_LAST = JSTRACE_OBJECT_GROUP
+    BaseShape = 0x0F,
+    JitCode = 0x1F,
+    LazyScript = 0x2F
 };
+const static uintptr_t OutOfLineTraceKindMask = 0x07;
+static_assert(uintptr_t(JS::TraceKind::BaseShape) & OutOfLineTraceKindMask, "mask bits are set");
+static_assert(uintptr_t(JS::TraceKind::JitCode) & OutOfLineTraceKindMask, "mask bits are set");
+static_assert(uintptr_t(JS::TraceKind::LazyScript) & OutOfLineTraceKindMask, "mask bits are set");
 
-namespace JS {
 
 JS_FRIEND_API(const char*)
-GCTraceKindToAscii(JSGCTraceKind kind);
-}
+GCTraceKindToAscii(JS::TraceKind kind);
+
+} 
 
 
 
@@ -80,7 +78,7 @@ GCTraceKindToAscii(JSGCTraceKind kind);
 
 
 typedef void
-(* JSTraceCallback)(JS::CallbackTracer* trc, void** thingp, JSGCTraceKind kind);
+(* JSTraceCallback)(JS::CallbackTracer* trc, void** thingp, JS::TraceKind kind);
 
 enum WeakMapTraceKind {
     DoNotTraceWeakMaps = 0,
@@ -146,7 +144,7 @@ class JS_PUBLIC_API(CallbackTracer) : public JSTracer
     }
 
     
-    void invoke(void** thing, JSGCTraceKind kind) {
+    void invoke(void** thing, JS::TraceKind kind) {
         callback(this, thing, kind);
     }
 
@@ -350,7 +348,7 @@ extern JS_PUBLIC_API(void)
 JS_CallTenuredObjectTracer(JSTracer* trc, JS::TenuredHeap<JSObject*>* objp, const char* name);
 
 extern JS_PUBLIC_API(void)
-JS_TraceChildren(JSTracer* trc, void* thing, JSGCTraceKind kind);
+JS_TraceChildren(JSTracer* trc, void* thing, JS::TraceKind kind);
 
 extern JS_PUBLIC_API(void)
 JS_TraceRuntime(JSTracer* trc);
@@ -366,6 +364,6 @@ JS_TraceIncomingCCWs(JSTracer* trc, const JS::ZoneSet& zones);
 
 extern JS_PUBLIC_API(void)
 JS_GetTraceThingInfo(char* buf, size_t bufsize, JSTracer* trc,
-                     void* thing, JSGCTraceKind kind, bool includeDetails);
+                     void* thing, JS::TraceKind kind, bool includeDetails);
 
 #endif

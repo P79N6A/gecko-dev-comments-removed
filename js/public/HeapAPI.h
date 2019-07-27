@@ -81,10 +81,10 @@ const uintptr_t ChunkLocationAnyNursery = ChunkLocationBitNursery;
 #ifdef JS_DEBUG
 
 extern JS_FRIEND_API(void)
-AssertGCThingHasType(js::gc::Cell* cell, JSGCTraceKind kind);
+AssertGCThingHasType(js::gc::Cell* cell, JS::TraceKind kind);
 #else
 inline void
-AssertGCThingHasType(js::gc::Cell* cell, JSGCTraceKind kind) {}
+AssertGCThingHasType(js::gc::Cell* cell, JS::TraceKind kind) {}
 #endif
 
 MOZ_ALWAYS_INLINE bool IsInsideNursery(const js::gc::Cell* cell);
@@ -155,60 +155,60 @@ class JS_FRIEND_API(GCCellPtr)
 {
   public:
     
-    GCCellPtr(void* gcthing, JSGCTraceKind traceKind) : ptr(checkedCast(gcthing, traceKind)) {}
+    GCCellPtr(void* gcthing, JS::TraceKind traceKind) : ptr(checkedCast(gcthing, traceKind)) {}
 
     
-    MOZ_IMPLICIT GCCellPtr(decltype(nullptr)) : ptr(checkedCast(nullptr, JSTRACE_NULL)) {}
+    MOZ_IMPLICIT GCCellPtr(decltype(nullptr)) : ptr(checkedCast(nullptr, JS::TraceKind::Null)) {}
 
     
-    explicit GCCellPtr(JSObject* obj) : ptr(checkedCast(obj, JSTRACE_OBJECT)) { }
-    explicit GCCellPtr(JSFunction* fun) : ptr(checkedCast(fun, JSTRACE_OBJECT)) { }
-    explicit GCCellPtr(JSString* str) : ptr(checkedCast(str, JSTRACE_STRING)) { }
-    explicit GCCellPtr(JSFlatString* str) : ptr(checkedCast(str, JSTRACE_STRING)) { }
-    explicit GCCellPtr(JSScript* script) : ptr(checkedCast(script, JSTRACE_SCRIPT)) { }
+    explicit GCCellPtr(JSObject* obj) : ptr(checkedCast(obj, JS::TraceKind::Object)) { }
+    explicit GCCellPtr(JSFunction* fun) : ptr(checkedCast(fun, JS::TraceKind::Object)) { }
+    explicit GCCellPtr(JSString* str) : ptr(checkedCast(str, JS::TraceKind::String)) { }
+    explicit GCCellPtr(JSFlatString* str) : ptr(checkedCast(str, JS::TraceKind::String)) { }
+    explicit GCCellPtr(JSScript* script) : ptr(checkedCast(script, JS::TraceKind::Script)) { }
     explicit GCCellPtr(const Value& v);
 
-    JSGCTraceKind kind() const {
-        JSGCTraceKind traceKind = JSGCTraceKind(ptr & JSTRACE_OUTOFLINE);
-        if (traceKind != JSTRACE_OUTOFLINE)
+    JS::TraceKind kind() const {
+        JS::TraceKind traceKind = JS::TraceKind(ptr & OutOfLineTraceKindMask);
+        if (uintptr_t(traceKind) != OutOfLineTraceKindMask)
             return traceKind;
         return outOfLineKind();
     }
 
     
     explicit operator bool() const {
-        MOZ_ASSERT(bool(asCell()) == (kind() != JSTRACE_NULL));
+        MOZ_ASSERT(bool(asCell()) == (kind() != JS::TraceKind::Null));
         return asCell();
     }
 
     
-    bool isObject() const { return kind() == JSTRACE_OBJECT; }
-    bool isScript() const { return kind() == JSTRACE_SCRIPT; }
-    bool isString() const { return kind() == JSTRACE_STRING; }
-    bool isSymbol() const { return kind() == JSTRACE_SYMBOL; }
-    bool isShape() const { return kind() == JSTRACE_SHAPE; }
-    bool isObjectGroup() const { return kind() == JSTRACE_OBJECT_GROUP; }
+    bool isObject() const { return kind() == JS::TraceKind::Object; }
+    bool isScript() const { return kind() == JS::TraceKind::Script; }
+    bool isString() const { return kind() == JS::TraceKind::String; }
+    bool isSymbol() const { return kind() == JS::TraceKind::Symbol; }
+    bool isShape() const { return kind() == JS::TraceKind::Shape; }
+    bool isObjectGroup() const { return kind() == JS::TraceKind::ObjectGroup; }
 
     
     
     JSObject* toObject() const {
-        MOZ_ASSERT(kind() == JSTRACE_OBJECT);
+        MOZ_ASSERT(kind() == JS::TraceKind::Object);
         return reinterpret_cast<JSObject*>(asCell());
     }
     JSString* toString() const {
-        MOZ_ASSERT(kind() == JSTRACE_STRING);
+        MOZ_ASSERT(kind() == JS::TraceKind::String);
         return reinterpret_cast<JSString*>(asCell());
     }
     JSScript* toScript() const {
-        MOZ_ASSERT(kind() == JSTRACE_SCRIPT);
+        MOZ_ASSERT(kind() == JS::TraceKind::Script);
         return reinterpret_cast<JSScript*>(asCell());
     }
     Symbol* toSymbol() const {
-        MOZ_ASSERT(kind() == JSTRACE_SYMBOL);
+        MOZ_ASSERT(kind() == JS::TraceKind::Symbol);
         return reinterpret_cast<Symbol*>(asCell());
     }
     js::gc::Cell* asCell() const {
-        return reinterpret_cast<js::gc::Cell*>(ptr & ~JSTRACE_OUTOFLINE);
+        return reinterpret_cast<js::gc::Cell*>(ptr & ~OutOfLineTraceKindMask);
     }
 
     
@@ -225,18 +225,18 @@ class JS_FRIEND_API(GCCellPtr)
     bool mayBeOwnedByOtherRuntime() const;
 
   private:
-    uintptr_t checkedCast(void* p, JSGCTraceKind traceKind) {
+    static uintptr_t checkedCast(void* p, JS::TraceKind traceKind) {
         js::gc::Cell* cell = static_cast<js::gc::Cell*>(p);
-        MOZ_ASSERT((uintptr_t(p) & JSTRACE_OUTOFLINE) == 0);
+        MOZ_ASSERT((uintptr_t(p) & OutOfLineTraceKindMask) == 0);
         AssertGCThingHasType(cell, traceKind);
         
         
-        MOZ_ASSERT_IF(traceKind >= JSTRACE_OUTOFLINE,
-                      (traceKind & JSTRACE_OUTOFLINE) == JSTRACE_OUTOFLINE);
-        return uintptr_t(p) | (traceKind & JSTRACE_OUTOFLINE);
+        MOZ_ASSERT_IF(uintptr_t(traceKind) >= OutOfLineTraceKindMask,
+                      (uintptr_t(traceKind) & OutOfLineTraceKindMask) == OutOfLineTraceKindMask);
+        return uintptr_t(p) | (uintptr_t(traceKind) & OutOfLineTraceKindMask);
     }
 
-    JSGCTraceKind outOfLineKind() const;
+    JS::TraceKind outOfLineKind() const;
 
     uintptr_t ptr;
 };

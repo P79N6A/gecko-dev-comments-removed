@@ -51,7 +51,7 @@ CurrentThreadIsIonCompiling();
 #endif
 
 extern bool
-UnmarkGrayCellRecursively(gc::Cell* cell, JSGCTraceKind kind);
+UnmarkGrayCellRecursively(gc::Cell* cell, JS::TraceKind kind);
 
 extern void
 TraceManuallyBarrieredGenericPointerEdge(JSTracer* trc, gc::Cell** thingp, const char* name);
@@ -169,35 +169,35 @@ template<typename ValueType> using AllAllocKindArray =
 template<typename ValueType> using ObjectAllocKindArray =
     mozilla::EnumeratedArray<AllocKind, AllocKind::OBJECT_LIMIT, ValueType>;
 
-static inline JSGCTraceKind
+static inline JS::TraceKind
 MapAllocToTraceKind(AllocKind kind)
 {
-    static const JSGCTraceKind map[] = {
-        JSTRACE_OBJECT,       
-        JSTRACE_OBJECT,       
-        JSTRACE_OBJECT,       
-        JSTRACE_OBJECT,       
-        JSTRACE_OBJECT,       
-        JSTRACE_OBJECT,       
-        JSTRACE_OBJECT,       
-        JSTRACE_OBJECT,       
-        JSTRACE_OBJECT,       
-        JSTRACE_OBJECT,       
-        JSTRACE_OBJECT,       
-        JSTRACE_OBJECT,       
-        JSTRACE_OBJECT,       
-        JSTRACE_OBJECT,       
-        JSTRACE_SCRIPT,       
-        JSTRACE_LAZY_SCRIPT,  
-        JSTRACE_SHAPE,        
-        JSTRACE_SHAPE,        
-        JSTRACE_BASE_SHAPE,   
-        JSTRACE_OBJECT_GROUP, 
-        JSTRACE_STRING,       
-        JSTRACE_STRING,       
-        JSTRACE_STRING,       
-        JSTRACE_SYMBOL,       
-        JSTRACE_JITCODE,      
+    static const JS::TraceKind map[] = {
+        JS::TraceKind::Object,       
+        JS::TraceKind::Object,       
+        JS::TraceKind::Object,       
+        JS::TraceKind::Object,       
+        JS::TraceKind::Object,       
+        JS::TraceKind::Object,       
+        JS::TraceKind::Object,       
+        JS::TraceKind::Object,       
+        JS::TraceKind::Object,       
+        JS::TraceKind::Object,       
+        JS::TraceKind::Object,       
+        JS::TraceKind::Object,       
+        JS::TraceKind::Object,       
+        JS::TraceKind::Object,       
+        JS::TraceKind::Script,       
+        JS::TraceKind::LazyScript,   
+        JS::TraceKind::Shape,        
+        JS::TraceKind::Shape,        
+        JS::TraceKind::BaseShape,    
+        JS::TraceKind::ObjectGroup,  
+        JS::TraceKind::String,       
+        JS::TraceKind::String,       
+        JS::TraceKind::String,       
+        JS::TraceKind::Symbol,       
+        JS::TraceKind::JitCode,      
     };
 
     static_assert(MOZ_ARRAY_LENGTH(map) == size_t(AllocKind::LIMIT),
@@ -235,7 +235,7 @@ struct Cell
 
     inline StoreBuffer* storeBuffer() const;
 
-    inline JSGCTraceKind getTraceKind() const;
+    inline JS::TraceKind getTraceKind() const;
 
     static MOZ_ALWAYS_INLINE bool needWriteBarrierPre(JS::Zone* zone);
 
@@ -270,7 +270,7 @@ class TenuredCell : public Cell
     
     inline ArenaHeader* arenaHeader() const;
     inline AllocKind getAllocKind() const;
-    inline JSGCTraceKind getTraceKind() const;
+    inline JS::TraceKind getTraceKind() const;
     inline JS::Zone* zone() const;
     inline JS::Zone* zoneFromAnyThread() const;
     inline bool isInsideZone(JS::Zone* zone) const;
@@ -1316,10 +1316,10 @@ Cell::storeBuffer() const
     return chunk()->info.trailer.storeBuffer;
 }
 
-inline JSGCTraceKind
+inline JS::TraceKind
 Cell::getTraceKind() const
 {
-    return isTenured() ? asTenured().getTraceKind() : JSTRACE_OBJECT;
+    return isTenured() ? asTenured().getTraceKind() : JS::TraceKind::Object;
 }
 
 inline bool
@@ -1401,7 +1401,7 @@ TenuredCell::getAllocKind() const
     return arenaHeader()->getAllocKind();
 }
 
-JSGCTraceKind
+JS::TraceKind
 TenuredCell::getTraceKind() const
 {
     return MapAllocToTraceKind(getAllocKind());
@@ -1463,7 +1463,7 @@ static MOZ_ALWAYS_INLINE void
 AssertValidToSkipBarrier(TenuredCell* thing)
 {
     MOZ_ASSERT(!IsInsideNursery(thing));
-    MOZ_ASSERT_IF(thing, MapAllocToTraceKind(thing->getAllocKind()) != JSTRACE_OBJECT);
+    MOZ_ASSERT_IF(thing, MapAllocToTraceKind(thing->getAllocKind()) != JS::TraceKind::Object);
 }
 
  MOZ_ALWAYS_INLINE void
