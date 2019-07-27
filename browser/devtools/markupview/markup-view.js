@@ -2197,52 +2197,20 @@ function truncateString(str, maxLength) {
 
 
 
+
 function parseAttributeValues(attr, doc) {
   attr = attr.trim();
 
   
   
-  let stringsToParse = [
-    "<div " + attr + "></div>",
-    "<div " + attr + "\"></div>",
-    "<div " + attr + "'></div>"
-  ];
-
   
-  
-  let parsedAttributes = [];
-  for (let str of stringsToParse) {
-    let parsed = DOMParser.parseFromString(str, "text/xml");
-    
-    
-    
-    if (parsed.childNodes[0].localName === "div") {
-      for (let {name, value} of parsed.childNodes[0].attributes) {
-        parsedAttributes.push({ name, value });
-      }
-      break;
-    }
-  }
-
-  
-  if (parsedAttributes.length === 0) {
-    for (let str of stringsToParse) {
-      let parsed = DOMParser.parseFromString(str, "text/html");
-      
-      
-      if (parsed.body.childNodes[0]) {
-        for (let {name, value} of parsed.body.childNodes[0].attributes) {
-          parsedAttributes.push({ name, value });
-        }
-        break;
-      }
-    }
-  }
+  let el = DOMParser.parseFromString("<svg " + attr + "></svg>", "text/html").body.childNodes[0] ||
+           DOMParser.parseFromString("<svg " + attr + "\"></svg>", "text/html").body.childNodes[0] ||
+           DOMParser.parseFromString("<svg " + attr + "'></svg>", "text/html").body.childNodes[0];
 
   let div = doc.createElement("div");
-
   let attributes = [];
-  for (let {name, value} of parsedAttributes) {
+  for (let {name, value} of el.attributes) {
     
     
     try {
