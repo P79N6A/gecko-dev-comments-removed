@@ -166,7 +166,7 @@ CameraControlImpl::OnFacesDetected(const nsTArray<Face>& aFaces)
 }
 
 void
-CameraControlImpl::OnTakePictureComplete(uint8_t* aData, uint32_t aLength, const nsAString& aMimeType)
+CameraControlImpl::OnTakePictureComplete(const uint8_t* aData, uint32_t aLength, const nsAString& aMimeType)
 {
   
   
