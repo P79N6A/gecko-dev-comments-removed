@@ -79,6 +79,14 @@ using namespace mozilla::dom;
 
 
 
+static void
+  ComputePositionValue(nsStyleContext* aStyleContext,
+                       const nsCSSValue& aValue,
+                       nsStyleBackground::Position& aComputedValue,
+                       bool& aCanStoreInRuleTree);
+
+
+
 
 
 struct ChildrenHashEntry : public PLDHashEntryHdr {
@@ -5252,7 +5260,142 @@ nsRuleNode::ComputeDisplayData(void* aStartStruct,
               parentDisplay->mScrollBehavior, NS_STYLE_SCROLL_BEHAVIOR_AUTO,
               0, 0, 0, 0);
 
-    
+  
+  SetDiscrete(*aRuleData->ValueForScrollSnapTypeX(), display->mScrollSnapTypeX,
+              canStoreInRuleTree,
+              SETDSC_ENUMERATED | SETDSC_UNSET_INITIAL,
+              parentDisplay->mScrollSnapTypeX, NS_STYLE_SCROLL_SNAP_TYPE_NONE,
+              0, 0, 0, 0);
+
+  
+  SetDiscrete(*aRuleData->ValueForScrollSnapTypeY(), display->mScrollSnapTypeY,
+              canStoreInRuleTree,
+              SETDSC_ENUMERATED | SETDSC_UNSET_INITIAL,
+              parentDisplay->mScrollSnapTypeY, NS_STYLE_SCROLL_SNAP_TYPE_NONE,
+              0, 0, 0, 0);
+
+  
+  const nsCSSValue& scrollSnapPointsX = *aRuleData->ValueForScrollSnapPointsX();
+  switch (scrollSnapPointsX.GetUnit()) {
+    case eCSSUnit_Initial:
+    case eCSSUnit_Unset:
+    case eCSSUnit_None:
+    case eCSSUnit_Null:
+      display->mScrollSnapPointsX.SetNoneValue();
+      break;
+    case eCSSUnit_Inherit:
+      display->mScrollSnapPointsX = parentDisplay->mScrollSnapPointsX;
+      canStoreInRuleTree = false;
+      break;
+    case eCSSUnit_Function: {
+      nsCSSValue::Array* func = scrollSnapPointsX.GetArrayValue();
+      NS_ASSERTION(func->Item(0).GetKeywordValue() == eCSSKeyword_repeat,
+                   "Expected repeat(), got another function name");
+      nsStyleCoord coord;
+      if (SetCoord(func->Item(1), coord, nsStyleCoord(),
+                   SETCOORD_LP | SETCOORD_STORE_CALC |
+                   SETCOORD_CALC_CLAMP_NONNEGATIVE,
+                   aContext, mPresContext, canStoreInRuleTree)) {
+        NS_ASSERTION(coord.GetUnit() == eStyleUnit_Coord ||
+                     coord.GetUnit() == eStyleUnit_Percent ||
+                     coord.GetUnit() == eStyleUnit_Calc,
+                     "unexpected unit");
+        display->mScrollSnapPointsX = coord;
+      }
+      break;
+    }
+    default:
+      NS_NOTREACHED("unexpected unit");
+  }
+
+  
+  const nsCSSValue& scrollSnapPointsY = *aRuleData->ValueForScrollSnapPointsY();
+  switch (scrollSnapPointsY.GetUnit()) {
+    case eCSSUnit_Initial:
+    case eCSSUnit_Unset:
+    case eCSSUnit_None:
+    case eCSSUnit_Null:
+      display->mScrollSnapPointsY.SetNoneValue();
+      break;
+    case eCSSUnit_Inherit:
+      display->mScrollSnapPointsY = parentDisplay->mScrollSnapPointsY;
+      canStoreInRuleTree = false;
+      break;
+    case eCSSUnit_Function: {
+      nsCSSValue::Array* func = scrollSnapPointsY.GetArrayValue();
+      NS_ASSERTION(func->Item(0).GetKeywordValue() == eCSSKeyword_repeat,
+                   "Expected repeat(), got another function name");
+      nsStyleCoord coord;
+      if (SetCoord(func->Item(1), coord, nsStyleCoord(),
+                   SETCOORD_LP | SETCOORD_STORE_CALC |
+                   SETCOORD_CALC_CLAMP_NONNEGATIVE,
+                   aContext, mPresContext, canStoreInRuleTree)) {
+        NS_ASSERTION(coord.GetUnit() == eStyleUnit_Coord ||
+                     coord.GetUnit() == eStyleUnit_Percent ||
+                     coord.GetUnit() == eStyleUnit_Calc,
+                     "unexpected unit");
+        display->mScrollSnapPointsY = coord;
+      }
+      break;
+    }
+    default:
+      NS_NOTREACHED("unexpected unit");
+  }
+
+  
+  const nsCSSValue& snapDestination = *aRuleData->ValueForScrollSnapDestination();
+  switch (snapDestination.GetUnit()) {
+    case eCSSUnit_Initial:
+    case eCSSUnit_Unset:
+    case eCSSUnit_Null:
+      display->mScrollSnapDestination.SetInitialZeroValues();
+      break;
+    case eCSSUnit_Inherit:
+      display->mScrollSnapDestination = parentDisplay->mScrollSnapDestination;
+      canStoreInRuleTree = false;
+      break;
+    default: {
+        ComputePositionValue(aContext, snapDestination,
+                             display->mScrollSnapDestination, canStoreInRuleTree);
+      }
+  }
+
+  
+  typedef nsStyleBackground::Position Position;
+
+  const nsCSSValue& snapCoordinate = *aRuleData->ValueForScrollSnapCoordinate();
+  switch (snapCoordinate.GetUnit()) {
+    case eCSSUnit_Initial:
+    case eCSSUnit_Unset:
+    case eCSSUnit_None:
+    case eCSSUnit_Null:
+      
+      display->mScrollSnapCoordinate.Clear();
+      break;
+    case eCSSUnit_Inherit:
+      display->mScrollSnapCoordinate = parentDisplay->mScrollSnapCoordinate;
+      canStoreInRuleTree = false;
+      break;
+    case eCSSUnit_List: {
+      display->mScrollSnapCoordinate.Clear();
+      const nsCSSValueList* item = snapCoordinate.GetListValue();
+      do {
+        NS_ASSERTION(item->mValue.GetUnit() != eCSSUnit_Null &&
+                     item->mValue.GetUnit() != eCSSUnit_Inherit &&
+                     item->mValue.GetUnit() != eCSSUnit_Initial &&
+                     item->mValue.GetUnit() != eCSSUnit_Unset,
+                     "unexpected unit");
+        Position* pos = display->mScrollSnapCoordinate.AppendElement();
+        ComputePositionValue(aContext, item->mValue, *pos, canStoreInRuleTree);
+        item = item->mNext;
+      } while(item);
+      break;
+    }
+    default:
+      NS_NOTREACHED("unexpected unit");
+  }
+
+  
   SetDiscrete(*aRuleData->ValueForIsolation(), display->mIsolation,
               canStoreInRuleTree,
               SETDSC_ENUMERATED | SETDSC_UNSET_INITIAL,

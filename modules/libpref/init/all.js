@@ -2095,6 +2095,9 @@ pref("layout.css.isolation.enabled", true);
 pref("layout.css.filters.enabled", true);
 
 
+pref("layout.css.scroll-snap.enabled", false);
+
+
 pref("layout.css.clip-path-shapes.enabled", false);
 
 

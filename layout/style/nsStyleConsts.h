@@ -1075,6 +1075,11 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 #define NS_STYLE_SCROLL_BEHAVIOR_SMOOTH     1
 
 
+#define NS_STYLE_SCROLL_SNAP_TYPE_NONE              0
+#define NS_STYLE_SCROLL_SNAP_TYPE_MANDATORY         1
+#define NS_STYLE_SCROLL_SNAP_TYPE_PROXIMITY         2
+
+
 
 
 

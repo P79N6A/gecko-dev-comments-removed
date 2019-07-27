@@ -392,6 +392,10 @@ struct nsStyleBackground {
 
     
     
+    void SetInitialZeroValues();
+
+    
+    
     bool DependsOnPositioningAreaSize() const {
       return mXPosition.mPercent != 0.0f || mYPosition.mPercent != 0.0f;
     }
@@ -2013,6 +2017,11 @@ struct nsStyleDisplay {
 
   
   
+  
+  typedef nsStyleBackground::Position Position;
+
+  
+  
   nsRefPtr<mozilla::css::URLValue> mBinding;    
   nsRect  mClip;                
   float   mOpacity;             
@@ -2047,6 +2056,12 @@ struct nsStyleDisplay {
 
   uint8_t mTouchAction;         
   uint8_t mScrollBehavior;      
+  uint8_t mScrollSnapTypeX;     
+  uint8_t mScrollSnapTypeY;     
+  nsStyleCoord mScrollSnapPointsX; 
+  nsStyleCoord mScrollSnapPointsY; 
+  Position mScrollSnapDestination; 
+  nsTArray<Position> mScrollSnapCoordinate; 
 
   
   
