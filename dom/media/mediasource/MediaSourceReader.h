@@ -61,10 +61,6 @@ public:
   void OnSeekCompleted();
   void OnSeekFailed(nsresult aResult);
 
-  virtual bool IsWaitForDataSupported() MOZ_OVERRIDE { return true; }
-  virtual nsRefPtr<WaitForDataPromise> WaitForData(MediaData::Type aType) MOZ_OVERRIDE;
-  void MaybeNotifyHaveData();
-
   bool HasVideo() MOZ_OVERRIDE
   {
     return mInfo.HasVideo();
@@ -86,7 +82,7 @@ public:
   
   
   
-  bool UseBufferingHeuristics() MOZ_OVERRIDE { return false; }
+  virtual uint32_t GetBufferingWait() { return 0; }
 
   bool IsMediaSeekable() { return true; }
 
@@ -136,7 +132,6 @@ private:
   
   already_AddRefed<MediaDecoderReader> SelectReader(int64_t aTarget,
                                                     const nsTArray<nsRefPtr<SourceBufferDecoder>>& aTrackDecoders);
-  bool HaveData(int64_t aTarget, MediaData::Type aType);
 
   void AttemptSeek();
   void FinalizeSeek();
@@ -152,13 +147,6 @@ private:
 
   MediaPromiseHolder<AudioDataPromise> mAudioPromise;
   MediaPromiseHolder<VideoDataPromise> mVideoPromise;
-
-  MediaPromiseHolder<WaitForDataPromise> mAudioWaitPromise;
-  MediaPromiseHolder<WaitForDataPromise> mVideoWaitPromise;
-  MediaPromiseHolder<WaitForDataPromise>& WaitPromise(MediaData::Type aType)
-  {
-    return aType == MediaData::AUDIO_DATA ? mAudioWaitPromise : mVideoWaitPromise;
-  }
 
 #ifdef MOZ_EME
   nsRefPtr<CDMProxy> mCDMProxy;

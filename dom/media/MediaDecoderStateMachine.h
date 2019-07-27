@@ -389,23 +389,6 @@ public:
   void OnSeekCompleted();
   void OnSeekFailed(nsresult aResult);
 
-  void OnWaitForDataResolved(MediaData::Type aType)
-  {
-    ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-    if (RequestStatusRef(aType) == RequestStatus::Waiting) {
-      RequestStatusRef(aType) = RequestStatus::Idle;
-      DispatchDecodeTasksIfNeeded();
-    }
-  }
-
-  void OnWaitForDataRejected(WaitForDataRejectValue aRejection)
-  {
-    MOZ_ASSERT(aRejection.mReason == WaitForDataRejectValue::SHUTDOWN);
-    if (RequestStatusRef(aRejection.mType) == RequestStatus::Waiting) {
-      RequestStatusRef(aRejection.mType) = RequestStatus::Idle;
-    }
-  }
-
 private:
   void AcquireMonitorAndInvokeDecodeError();
 
@@ -479,22 +462,7 @@ protected:
 
   
   
-  
-  
   bool HasLowDecodedData(int64_t aAudioUsecs);
-
-  bool OutOfDecodedAudio()
-  {
-    return IsAudioDecoding() && !AudioQueue().IsFinished() && AudioQueue().GetSize() == 0;
-  }
-
-  bool OutOfDecodedVideo()
-  {
-    
-    int emptyVideoSize = mState == DECODER_STATE_BUFFERING ? 1 : 0;
-    return IsVideoDecoding() && !VideoQueue().IsFinished() && VideoQueue().GetSize() <= emptyVideoSize;
-  }
-
 
   
   
@@ -943,22 +911,11 @@ protected:
   bool mIsAudioPrerolling;
   bool mIsVideoPrerolling;
 
-  MOZ_BEGIN_NESTED_ENUM_CLASS(RequestStatus)
-    Idle,
-    Pending,
-    Waiting
-  MOZ_END_NESTED_ENUM_CLASS(RequestStatus)
-
   
   
   
-  RequestStatus mAudioRequestStatus;
-  RequestStatus mVideoRequestStatus;
-
-  RequestStatus& RequestStatusRef(MediaData::Type aType)
-  {
-    return aType == MediaData::AUDIO_DATA ? mAudioRequestStatus : mVideoRequestStatus;
-  }
+  bool mAudioRequestPending;
+  bool mVideoRequestPending;
 
   
   

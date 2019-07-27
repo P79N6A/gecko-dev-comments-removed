@@ -13,8 +13,6 @@
 #include "MediaQueue.h"
 #include "AudioCompactor.h"
 
-#include "mozilla/TypedEnum.h"
-
 namespace mozilla {
 
 namespace dom {
@@ -23,17 +21,6 @@ class TimeRanges;
 
 class MediaDecoderReader;
 class SharedDecoderManager;
-
-struct WaitForDataRejectValue {
-  enum Reason {
-    SHUTDOWN
-  };
-
-  WaitForDataRejectValue(MediaData::Type aType, Reason aReason)
-    :mType(aType), mReason(aReason) {}
-  MediaData::Type mType;
-  Reason mReason;
-};
 
 
 
@@ -53,7 +40,6 @@ public:
   typedef MediaPromise<nsRefPtr<AudioData>, NotDecodedReason> AudioDataPromise;
   typedef MediaPromise<nsRefPtr<VideoData>, NotDecodedReason> VideoDataPromise;
   typedef MediaPromise<bool, nsresult> SeekPromise;
-  typedef MediaPromise<MediaData::Type, WaitForDataRejectValue> WaitForDataPromise;
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaDecoderReader)
 
@@ -127,12 +113,6 @@ public:
   virtual nsRefPtr<VideoDataPromise>
   RequestVideoData(bool aSkipToNextKeyframe, int64_t aTimeThreshold);
 
-  
-  
-  
-  virtual bool IsWaitForDataSupported() { return false; }
-  virtual nsRefPtr<WaitForDataPromise> WaitForData(MediaData::Type aType) { MOZ_CRASH(); }
-
   virtual bool HasAudio() = 0;
   virtual bool HasVideo() = 0;
 
@@ -198,8 +178,7 @@ public:
   
   
   
-  
-  virtual bool UseBufferingHeuristics() { return true; }
+  virtual uint32_t GetBufferingWait() { return 30; }
 
   
   
