@@ -713,7 +713,16 @@ var gMainPane = {
     if (!shellSvc)
       return;
     try {
-      shellSvc.setDefaultBrowser(true, false);
+      let claimAllTypes = true;
+      if (AppConstants.platform == "win") {
+        
+        
+        
+        
+        let version = Services.sysinfo.getProperty("version");
+        claimAllTypes = (parseFloat(version) < 6.2);
+      }
+      shellSvc.setDefaultBrowser(claimAllTypes, false);
     } catch (ex) {
       Cu.reportError(ex);
       return;
