@@ -201,7 +201,8 @@ nsSimplePageSequenceFrame::Reflow(nsPresContext*          aPresContext,
 
   
   nsHTMLReflowMetrics kidSize(aReflowState);
-  for (nsIFrame* kidFrame = mFrames.FirstChild(); nullptr != kidFrame; ) {
+  for (nsFrameList::Enumerator e(mFrames); !e.AtEnd(); e.Next()) {
+    nsIFrame* kidFrame = e.get();
     
     nsPageFrame * pf = static_cast<nsPageFrame*>(kidFrame);
     pf->SetSharedPageData(mPageData);
@@ -244,22 +245,17 @@ nsSimplePageSequenceFrame::Reflow(nsPresContext*          aPresContext,
       
       mFrames.InsertFrame(nullptr, kidFrame, continuingPage);
     }
-
-    
-    kidFrame = kidFrame->GetNextSibling();
   }
 
   
-  nsIFrame* page;
-  int32_t pageTot = 0;
-  for (page = mFrames.FirstChild(); page; page = page->GetNextSibling()) {
-    pageTot++;
-  }
+  
+  
+  int32_t pageTot = mFrames.GetLength();
 
   
   int32_t pageNum = 1;
-  for (page = mFrames.FirstChild(); page; page = page->GetNextSibling()) {
-    nsPageFrame * pf = static_cast<nsPageFrame*>(page);
+  for (nsFrameList::Enumerator e(mFrames); !e.AtEnd(); e.Next()) {
+    nsPageFrame * pf = static_cast<nsPageFrame*>(e.get());
     if (pf != nullptr) {
       pf->SetPageNumInfo(pageNum, pageTot);
     }
@@ -421,8 +417,8 @@ nsSimplePageSequenceFrame::StartPrint(nsPresContext*    aPresContext,
     int32_t pageNum = 1;
     nscoord y = 0;
 
-    for (nsIFrame* page = mFrames.FirstChild(); page;
-         page = page->GetNextSibling()) {
+    for (nsFrameList::Enumerator e(mFrames); !e.AtEnd(); e.Next()) {
+      nsIFrame* page = e.get();
       if (pageNum >= mFromPageNum && pageNum <= mToPageNum) {
         nsRect rect = page->GetRect();
         rect.y = y;
