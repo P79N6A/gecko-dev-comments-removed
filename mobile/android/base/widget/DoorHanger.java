@@ -121,10 +121,10 @@ public class DoorHanger extends LinearLayout {
         if (theme == Theme.LIGHT) {
             
             
-            mDividerColor = mResources.getColor(R.color.doorhanger_divider_light);
+            mDividerColor = mResources.getColor(R.color.divider_light);
 
         } else if (theme == Theme.DARK) {
-            mDividerColor = mResources.getColor(R.color.doorhanger_divider_dark);
+            mDividerColor = mResources.getColor(R.color.divider_dark);
 
             
             setBackgroundColor(mResources.getColor(R.color.doorhanger_background_dark));
