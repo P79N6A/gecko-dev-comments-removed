@@ -389,6 +389,15 @@ this.CrashManager.prototype = Object.freeze({
   
 
 
+  generateSubmissionID() {
+    return "sub-" + Cc["@mozilla.org/uuid-generator;1"]
+                      .getService(Ci.nsIUUIDGenerator)
+                      .generateUUID().toString().slice(1, -1);
+  },
+
+  
+
+
 
 
 
@@ -521,12 +530,8 @@ this.CrashManager.prototype = Object.freeze({
             store.addCrash(this.PROCESS_TYPE_MAIN, this.CRASH_TYPE_CRASH,
                            crashID, date);
 
-            let submissionID = "sub-" + Cc["@mozilla.org/uuid-generator;1"]
-                                          .getService(Ci.nsIUUIDGenerator)
-                                          .generateUUID().toString()
-                                          .slice(1, -1);
+            let submissionID = this.generateSubmissionID();
             let succeeded = result === "true";
-
             store.addSubmissionAttempt(crashID, submissionID, date);
             store.addSubmissionResult(crashID, submissionID, date,
                                       succeeded ? this.SUBMISSION_RESULT_OK :
