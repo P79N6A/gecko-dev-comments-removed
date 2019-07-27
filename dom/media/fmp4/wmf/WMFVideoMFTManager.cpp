@@ -147,7 +147,7 @@ public:
 };
 
 bool
-WMFVideoMFTManager::InitializeDXVA()
+WMFVideoMFTManager::InitializeDXVA(bool aForceD3D9)
 {
   MOZ_ASSERT(!mDXVA2Manager);
 
@@ -162,7 +162,8 @@ WMFVideoMFTManager::InitializeDXVA()
   }
 
   
-  nsRefPtr<CreateDXVAManagerEvent> event(new CreateDXVAManagerEvent(mLayersBackend));
+  nsRefPtr<CreateDXVAManagerEvent> event = 
+    new CreateDXVAManagerEvent(aForceD3D9 ? LayersBackend::LAYERS_D3D9 : mLayersBackend);
 
   if (NS_IsMainThread()) {
     event->Run();
@@ -177,8 +178,23 @@ WMFVideoMFTManager::InitializeDXVA()
 TemporaryRef<MFTDecoder>
 WMFVideoMFTManager::Init()
 {
+  RefPtr<MFTDecoder> decoder = InitInternal( false);
+
+  
+  
+  if (!decoder && mDXVA2Manager && mDXVA2Manager->IsD3D11()) {
+    mDXVA2Manager = nullptr;
+    decoder = InitInternal(true);
+  }
+
+  return decoder.forget();
+}
+
+TemporaryRef<MFTDecoder>
+WMFVideoMFTManager::InitInternal(bool aForceD3D9)
+{
   mUseHwAccel = false; 
-  bool useDxva = InitializeDXVA();
+  bool useDxva = InitializeDXVA(aForceD3D9);
 
   RefPtr<MFTDecoder> decoder(new MFTDecoder());
 
