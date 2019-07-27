@@ -277,6 +277,11 @@ public:
   
   static unsigned long gProfileTimelineRecordingsCount;
 
+  
+  static void CopyFavicon(nsIURI* aOldURI,
+                          nsIURI* aNewURI,
+                          bool aInPrivateBrowsing);
+
 protected:
   
   virtual ~nsDocShell();
