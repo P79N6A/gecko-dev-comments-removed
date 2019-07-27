@@ -197,7 +197,7 @@ class LIRGeneratorShared : public MDefinitionVisitor
     
     
     
-    bool assignSnapshot(LInstruction *ins, BailoutKind kind);
+    void assignSnapshot(LInstruction *ins, BailoutKind kind);
 
     
     
