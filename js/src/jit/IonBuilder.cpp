@@ -3308,6 +3308,9 @@ IonBuilder::replaceTypeSet(MDefinition *subject, TemporaryTypeSet *type, MTest *
     if (type->unknown())
         return true;
 
+    if (type->equals(subject->resultTypeSet()))
+        return true;
+
     MInstruction *replace = nullptr;
     MDefinition *ins;
 
@@ -3456,12 +3459,6 @@ IonBuilder::improveTypesAtCompare(MCompare *ins, bool trueBranch, MTest *test)
     if (!subject->resultTypeSet() || subject->resultTypeSet()->unknown())
         return true;
 
-    if (!subject->mightBeType(MIRType_Undefined) &&
-        !subject->mightBeType(MIRType_Null))
-    {
-        return true;
-    }
-
     if (!altersUndefined && !altersNull)
         return true;
 
@@ -3470,28 +3467,26 @@ IonBuilder::improveTypesAtCompare(MCompare *ins, bool trueBranch, MTest *test)
     
     if ((op == JSOP_STRICTEQ || op == JSOP_EQ) ^ trueBranch) {
         
-        uint32_t flags = 0;
+        TemporaryTypeSet remove;
         if (altersUndefined)
-            flags |= types::TYPE_FLAG_UNDEFINED;
+            remove.addType(TypeSet::UndefinedType(), alloc_->lifoAlloc());
         if (altersNull)
-            flags |= types::TYPE_FLAG_NULL;
+            remove.addType(TypeSet::NullType(), alloc_->lifoAlloc());
 
-        types::TemporaryTypeSet remove(flags, static_cast<types::TypeSetObjectKey**>(nullptr));
-        type = types::TypeSet::removeSet(subject->resultTypeSet(), &remove, alloc_->lifoAlloc());
+        type = TypeSet::removeSet(subject->resultTypeSet(), &remove, alloc_->lifoAlloc());
     } else {
         
-        uint32_t flags = 0;
+        TemporaryTypeSet base;
         if (altersUndefined) {
-            flags |= TYPE_FLAG_UNDEFINED;
+            base.addType(TypeSet::UndefinedType(), alloc_->lifoAlloc());
             
             if (subject->resultTypeSet()->maybeEmulatesUndefined(constraints()))
-                flags |= TYPE_FLAG_ANYOBJECT;
+                base.addType(TypeSet::AnyObjectType(), alloc_->lifoAlloc());
         }
 
         if (altersNull)
-            flags |= TYPE_FLAG_NULL;
+            base.addType(TypeSet::NullType(), alloc_->lifoAlloc());
 
-        TemporaryTypeSet base(flags, static_cast<TypeSet::ObjectKey**>(nullptr));
         type = TypeSet::intersectSets(&base, subject->resultTypeSet(), alloc_->lifoAlloc());
     }
 
@@ -3540,6 +3535,7 @@ IonBuilder::improveTypesAtTest(MDefinition *ins, bool trueBranch, MTest *test)
             break;
         }
 
+        
         
         if (branchIsAnd) {
             if (trueBranch) {
@@ -3594,35 +3590,24 @@ IonBuilder::improveTypesAtTest(MDefinition *ins, bool trueBranch, MTest *test)
 
     
     if (trueBranch) {
-        
-        if (!ins->mightBeType(MIRType_Undefined) &&
-            !ins->mightBeType(MIRType_Null))
-        {
-            return true;
-        }
-        uint32_t flags = types::TYPE_FLAG_UNDEFINED | types::TYPE_FLAG_NULL;
-        types::TemporaryTypeSet remove(flags, static_cast<types::TypeSetObjectKey**>(nullptr));
-        type = types::TypeSet::removeSet(oldType, &remove, alloc_->lifoAlloc());
+        TemporaryTypeSet remove;
+        remove.addType(TypeSet::UndefinedType(), alloc_->lifoAlloc());
+        remove.addType(TypeSet::NullType(), alloc_->lifoAlloc());
+        type = TypeSet::removeSet(oldType, &remove, alloc_->lifoAlloc());
     } else {
-        
-        
-        uint32_t flags = TYPE_FLAG_PRIMITIVE;
+        TemporaryTypeSet base;
+        base.addType(TypeSet::UndefinedType(), alloc_->lifoAlloc()); 
+        base.addType(TypeSet::NullType(), alloc_->lifoAlloc()); 
+        base.addType(TypeSet::BooleanType(), alloc_->lifoAlloc()); 
+        base.addType(TypeSet::Int32Type(), alloc_->lifoAlloc()); 
+        base.addType(TypeSet::DoubleType(), alloc_->lifoAlloc()); 
+        base.addType(TypeSet::StringType(), alloc_->lifoAlloc()); 
 
         
         
         if (oldType->maybeEmulatesUndefined(constraints()))
-            flags |= TYPE_FLAG_ANYOBJECT;
+            base.addType(TypeSet::AnyObjectType(), alloc_->lifoAlloc());
 
-        
-        
-        
-        if (!oldType->hasAnyFlag(~flags & TYPE_FLAG_BASE_MASK) &&
-            (oldType->maybeEmulatesUndefined(constraints()) || !oldType->maybeObject()))
-        {
-            return true;
-        }
-
-        TemporaryTypeSet base(flags, static_cast<TypeSet::ObjectKey**>(nullptr));
         type = TypeSet::intersectSets(&base, oldType, alloc_->lifoAlloc());
     }
 
