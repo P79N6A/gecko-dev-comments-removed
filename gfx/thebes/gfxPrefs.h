@@ -342,6 +342,10 @@ private:
 
   
   DECL_GFX_PREF(Once, "layout.scroll.root-frame-containers",   LayoutUseContainersForRootFrames, bool, true);
+
+  
+  DECL_GFX_PREF(Once, "mousewheel.system_scroll_override_on_root_content.enabled",
+                                                               MouseWheelHasScrollDeltaOverride, bool, false);
 public:
   
   static gfxPrefs& GetSingleton()
