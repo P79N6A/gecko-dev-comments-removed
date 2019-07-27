@@ -819,15 +819,21 @@ pref("toolkit.asyncshutdown.log", false);
 pref("devtools.errorconsole.deprecation_warnings", true);
 
 
-pref("devtools.chrome.enabled", false);
+#ifdef MOZ_DEV_EDITION
+sticky_pref("devtools.chrome.enabled", true);
+#else
+sticky_pref("devtools.chrome.enabled", false);
+#endif
 
 
 pref("devtools.debugger.log", false);
 pref("devtools.debugger.log.verbose", false);
 
-
-pref("devtools.debugger.remote-enabled", false);
-
+#ifdef MOZ_DEV_EDITION
+sticky_pref("devtools.debugger.remote-enabled", true);
+#else
+sticky_pref("devtools.debugger.remote-enabled", false);
+#endif
 pref("devtools.debugger.remote-port", 6000);
 
 pref("devtools.debugger.force-local", true);
@@ -4814,9 +4820,13 @@ pref("dom.beforeAfterKeyboardEvent.enabled", false);
 pref("dom.presentation.enabled", false);
 pref("dom.presentation.tcp_server.debug", false);
 
-
 #ifdef XP_MACOSX
+
 pref("intl.collation.mac.use_icu", true);
+
+
+
+pref("intl.ime.nstextinput.enable", false);
 #endif
 
 
