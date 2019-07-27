@@ -2666,6 +2666,34 @@ extern JS_FRIEND_API(bool)
 ExecuteInGlobalAndReturnScope(JSContext *cx, JS::HandleObject obj, JS::HandleScript script,
                               JS::MutableHandleObject scope);
 
+#if defined(XP_WIN) && defined(_WIN64)
+
+
+typedef long
+(*JitExceptionHandler)(void *exceptionRecord,  
+                       void *context);         
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern JS_FRIEND_API(void)
+SetJitExceptionHandler(JitExceptionHandler handler);
+#endif
+
 } 
 
 extern JS_FRIEND_API(bool)

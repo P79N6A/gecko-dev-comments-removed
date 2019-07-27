@@ -190,14 +190,19 @@ public:
         if (!pageSize) {
             pageSize = determinePageSize();
             
-
-
-
-
-
-
-
+            
+            
+            
+            
+            
+            
+            
+            
+#if defined(JS_CPU_X64) && defined(XP_WIN)
+            largeAllocSize = pageSize * 15;
+#else
             largeAllocSize = pageSize * 16;
+#endif
         }
 
         MOZ_ASSERT(m_smallPools.empty());
