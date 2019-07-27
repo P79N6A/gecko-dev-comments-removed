@@ -120,8 +120,13 @@ let ProgramActor = protocol.ActorClass({
     this.linkedProxy = proxy;
   },
 
-  get ownerWindow() this.linkedCache.ownerWindow,
-  get ownerContext() this.linkedCache.ownerContext,
+  get ownerWindow() {
+    return this.linkedCache.ownerWindow;
+  },
+
+  get ownerContext() {
+    return this.linkedCache.ownerContext;
+  },
 
   
 
@@ -904,8 +909,13 @@ WebGLCache.prototype = {
   _currentAttributesMap: null,
   _currentUniformsMap: null,
 
-  get ownerWindow() this._id,
-  get ownerContext() this._gl,
+  get ownerWindow() {
+    return this._id;
+  },
+
+  get ownerContext() {
+    return this._gl;
+  },
 
   
 
@@ -1140,8 +1150,12 @@ WebGLProxy.prototype = {
   _cache: null,
   _observer: null,
 
-  get ownerWindow() this._id,
-  get ownerContext() this._gl,
+  get ownerWindow() {
+    return this._id;
+  },
+  get ownerContext() {
+    return this._gl;
+  },
 
   
 

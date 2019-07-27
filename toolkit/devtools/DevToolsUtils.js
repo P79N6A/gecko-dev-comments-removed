@@ -502,18 +502,22 @@ exports.fetch = function fetch(aURL, aOptions={ loadFromCache: true,
                                           null,      
                                           Ci.nsILoadInfo.SEC_NORMAL,
                                           aOptions.policy);
-      } catch (e if e.name == "NS_ERROR_UNKNOWN_PROTOCOL") {
-        
-        
-        url = "file:///" + url;
-        channel = Services.io.newChannel2(url,
-                                          null,
-                                          null,
-                                          null,      
-                                          Services.scriptSecurityManager.getSystemPrincipal(),
-                                          null,      
-                                          Ci.nsILoadInfo.SEC_NORMAL,
-                                          aOptions.policy);
+      } catch (e) {
+        if (e.name == "NS_ERROR_UNKNOWN_PROTOCOL") {
+          
+          
+          url = "file:///" + url;
+          channel = Services.io.newChannel2(url,
+                                            null,
+                                            null,
+                                            null,      
+                                            Services.scriptSecurityManager.getSystemPrincipal(),
+                                            null,      
+                                            Ci.nsILoadInfo.SEC_NORMAL,
+                                            aOptions.policy);
+        } else {
+          throw e;
+        }
       }
       let chunks = [];
       let streamListener = {

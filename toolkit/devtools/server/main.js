@@ -47,7 +47,9 @@ this.dbg_assert = dbg_assert;
 
 
 Object.defineProperty(this, "Components", {
-  get: function () require("chrome").components
+  get: function() {
+    return require("chrome").components;
+  }
 });
 
 if (isWorker) {
@@ -185,9 +187,13 @@ var DebuggerServer = {
     this._initialized = true;
   },
 
-  get protocol() require("devtools/server/protocol"),
+  get protocol() {
+    return require("devtools/server/protocol");
+  },
 
-  get initialized() this._initialized,
+  get initialized() {
+    return this._initialized;
+  },
 
   
 
@@ -750,7 +756,9 @@ var DebuggerServer = {
 
 
 
-  get isInChildProcess() !!this.parentMessageManager,
+  get isInChildProcess() {
+    return !!this.parentMessageManager;
+  },
 
   
 
@@ -1569,7 +1577,7 @@ DebuggerServerConnection.prototype = {
       dumpn("--------------------- actorPool actors: " +
             uneval(Object.keys(this._actorPool._actors)));
     }
-    for each (let pool in this._extraPools) {
+    for (let pool of this._extraPools) {
       if (pool !== this._actorPool) {
         dumpn("--------------------- extraPool actors: " +
               uneval(Object.keys(pool._actors)));

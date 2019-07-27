@@ -196,8 +196,8 @@ types.addArrayType = function(subtype) {
   }
   return types.addType(name, {
     category: "array",
-    read: (v, ctx) => [subtype.read(i, ctx) for (i of v)],
-    write: (v, ctx) => [subtype.write(i, ctx) for (i of v)]
+    read: (v, ctx) => v.map(i => subtype.read(i, ctx)),
+    write: (v, ctx) => v.map(i => subtype.write(i, ctx))
   });
 };
 
@@ -568,7 +568,7 @@ function findPlaceholders(template, constructor, path=[], placeholders=[]) {
   }
 
   if (template instanceof constructor) {
-    placeholders.push({ placeholder: template, path: [p for (p of path)] });
+    placeholders.push({ placeholder: template, path: [...path] });
     return placeholders;
   }
 
@@ -776,17 +776,25 @@ let Pool = Class({
   },
 
   
-  has: function(actorID) this.__poolMap && this._poolMap.has(actorID),
+  has: function(actorID) {
+    return this.__poolMap && this._poolMap.has(actorID);
+  },
 
   
-  actor: function(actorID) this.__poolMap ? this._poolMap.get(actorID) : null,
+  actor: function(actorID) {
+    return this.__poolMap ? this._poolMap.get(actorID) : null;
+  },
 
   
   
-  get: function(actorID) this.__poolMap ? this._poolMap.get(actorID) : null,
+  get: function(actorID) {
+    return this.__poolMap ? this._poolMap.get(actorID) : null;
+  },
 
   
-  isEmpty: function() !this.__poolMap || this._poolMap.size == 0,
+  isEmpty: function() {
+    return !this.__poolMap || this._poolMap.size == 0;
+  },
 
   
 

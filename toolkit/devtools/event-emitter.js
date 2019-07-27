@@ -142,7 +142,7 @@ EventEmitter.prototype = {
       
       
       if (originalListeners === this._eventEmitterListeners.get(aEvent) ||
-          this._eventEmitterListeners.get(aEvent).some(function(l) l === listener)) {
+          this._eventEmitterListeners.get(aEvent).some(l => l === listener)) {
         try {
           listener.apply(null, arguments);
         }

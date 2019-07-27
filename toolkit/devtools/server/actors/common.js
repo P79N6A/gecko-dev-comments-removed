@@ -280,8 +280,8 @@ ActorPool.prototype = {
 
 
   cleanup: function AP_cleanup() {
-    for each (let actor in this._cleanups) {
-      actor.disconnect();
+    for (let id in this._cleanups) {
+      this._cleanups[id].disconnect();
     }
     this._cleanups = {};
   },
