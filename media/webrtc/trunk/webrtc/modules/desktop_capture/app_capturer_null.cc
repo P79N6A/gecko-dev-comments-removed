@@ -50,12 +50,12 @@ bool AppCapturerNull::GetAppList(AppList* apps) {
   return false;
 }
 
-bool SelectApp(ProcessId id) {
+bool AppCapturerNull::SelectApp(ProcessId id) {
   
   return false;
 }
 
-bool BringAppToFront() {
+bool AppCapturerNull::BringAppToFront() {
   
   return false;
 }
