@@ -54,13 +54,6 @@
 #include "MediaPermissionGonk.h"
 #endif
 
-#if defined(XP_MACOSX)
-#include "nsCocoaFeatures.h"
-#endif
-#if defined (XP_WIN)
-#include "mozilla/WindowsVersion.h"
-#endif
-
 
 
 #ifdef GetCurrentTime
@@ -1555,17 +1548,12 @@ MediaManager::GetUserMedia(bool aPrivileged,
     auto& tc = c.mVideo.GetAsMediaTrackConstraints();
     
     if (tc.mMediaSource != dom::MediaSourceEnum::Camera) {
-      if (!Preferences::GetBool("media.getusermedia.screensharing.enabled", false) ||
-          
-#if defined(XP_MACOSX)
-          !nsCocoaFeatures::OnLionOrLater() ||
-#endif
-#if defined (XP_WIN)
-          !IsVistaOrLater() ||
-#endif
-          
+      if (!Preferences::GetBool("media.getusermedia.screensharing.enabled", false)) {
+        return runnable->Denied(NS_LITERAL_STRING("PERMISSION_DENIED"));
+      }
+      
 
-          !HostHasPermission(*docURI)) {
+      if (!HostHasPermission(*docURI)) {
         return runnable->Denied(NS_LITERAL_STRING("PERMISSION_DENIED"));
       }
     }
