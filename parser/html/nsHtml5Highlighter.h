@@ -141,6 +141,13 @@ class nsHtml5Highlighter
 
 
     void AddErrorToCurrentSlash(const char* aMsgId);
+    
+    
+
+
+
+
+    void AddBase(const nsString& aValue);
 
   private:
 
@@ -264,7 +271,7 @@ class nsHtml5Highlighter
 
 
     void AddViewSourceHref(const nsString& aValue);
-
+    
     
 
 
@@ -399,6 +406,11 @@ class nsHtml5Highlighter
 
 
     static char16_t sPi[];
+    
+    
+
+
+     bool mSeenBase;
 };
 
 #endif 
