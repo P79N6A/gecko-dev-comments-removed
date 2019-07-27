@@ -630,6 +630,39 @@ File.prototype = {
 
 
 
+  readTo: function readTo(buffer, options = {}) {
+    
+    
+    
+    
+    
+    if (isTypedArray(buffer) && !(options && "bytes" in options)) {
+      
+      options = clone(options, ["outExecutionDuration"]);
+      options.bytes = buffer.byteLength;
+    }
+    
+    
+    
+    
+    return Scheduler.post("File_prototype_readTo",
+      [this._fdmsg,
+       Type.void_t.out_ptr.toMsg(buffer),
+       options],
+       buffer);
+  },
+  
+
+
+
+
+
+
+
+
+
+
+
 
 
 

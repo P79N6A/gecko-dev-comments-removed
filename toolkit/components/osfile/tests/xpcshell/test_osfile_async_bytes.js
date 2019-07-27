@@ -24,6 +24,11 @@ add_task(function* test_bytes() {
       do_check_eq((yield file.stat()).size, 1024);
 
       
+      yield file.setPosition(0, OS.File.POS_START);
+      let read = yield file.readTo(new Uint8Array(1024), {bytes: 512});
+      do_check_eq(read, 512);
+
+      
       yield file.setPosition(0, OS.File.POS_END);
       yield file.write(new Uint8Array(1024), null);
       yield file.write(new Uint8Array(1024), undefined);
