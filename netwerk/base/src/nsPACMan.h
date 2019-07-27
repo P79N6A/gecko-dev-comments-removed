@@ -24,6 +24,7 @@
 class nsPACMan;
 class nsISystemProxySettings;
 class nsIThread;
+class WaitForThreadShutdown;
 
 
 
@@ -164,6 +165,7 @@ private:
   friend class PendingPACQuery;
   friend class PACLoadComplete;
   friend class ExecutePACThreadAction;
+  friend class WaitForThreadShutdown;
 
   ~nsPACMan();
 

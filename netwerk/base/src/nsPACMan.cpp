@@ -115,6 +115,30 @@ private:
 
 
 
+class WaitForThreadShutdown MOZ_FINAL : public nsRunnable
+{
+public:
+  explicit WaitForThreadShutdown(nsPACMan *aPACMan)
+    : mPACMan(aPACMan)
+  {
+  }
+
+  NS_IMETHODIMP Run()
+  {
+    NS_ABORT_IF_FALSE(NS_IsMainThread(), "wrong thread");
+    if (mPACMan->mPACThread) {
+      mPACMan->mPACThread->Shutdown();
+      mPACMan->mPACThread = nullptr;
+    }
+    return NS_OK;
+  }
+
+private:
+  nsRefPtr<nsPACMan> mPACMan;
+};
+
+
+
 
 
 
@@ -292,9 +316,15 @@ void
 nsPACMan::Shutdown()
 {
   NS_ABORT_IF_FALSE(NS_IsMainThread(), "pacman must be shutdown on main thread");
-  CancelExistingLoad();
+  if (mShutdown) {
+    return;
+  }
   mShutdown = true;
+  CancelExistingLoad();
   PostCancelPendingQ(NS_ERROR_ABORT);
+
+  nsRefPtr<WaitForThreadShutdown> runnable = new WaitForThreadShutdown(this);
+  NS_DispatchToMainThread(runnable);
 }
 
 nsresult
@@ -502,11 +532,12 @@ nsPACMan::ProcessPendingQ()
   NS_ABORT_IF_FALSE(!NS_IsMainThread(), "wrong thread");
   while (ProcessPending());
 
-  
-  mPAC.GC();
-
-  if (mShutdown)
+  if (mShutdown) {
     mPAC.Shutdown();
+  } else {
+    
+    mPAC.GC();
+  }
 }
 
 
