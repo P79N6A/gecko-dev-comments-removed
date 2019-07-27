@@ -903,6 +903,7 @@ PresShell::Init(nsIDocument* aDocument,
   if (SelectionCaretPrefEnabled()) {
     
     mSelectionCarets = new SelectionCarets(this);
+    mSelectionCarets->Init();
   }
 
 
