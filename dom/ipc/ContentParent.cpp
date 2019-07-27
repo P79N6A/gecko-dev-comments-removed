@@ -2426,6 +2426,18 @@ ContentParent::InitInternal(ProcessPriority aInitialPriority,
     
     ProcessPriorityManager::SetProcessPriority(this, aInitialPriority);
 
+    if (gAppData) {
+        nsCString version(gAppData->version);
+        nsCString buildID(gAppData->buildID);
+        nsCString name(gAppData->name);
+        nsCString UAName(gAppData->UAName);
+        nsCString ID(gAppData->ID);
+        nsCString vendor(gAppData->vendor);
+
+        
+        unused << SendAppInfo(version, buildID, name, UAName, ID, vendor);
+    }
+
     if (aSetupOffMainThreadCompositing) {
         
         
@@ -2457,15 +2469,8 @@ ContentParent::InitInternal(ProcessPriority aInitialPriority,
     }
 
     if (gAppData) {
-        nsCString version(gAppData->version);
-        nsCString buildID(gAppData->buildID);
-        nsCString name(gAppData->name);
-        nsCString UAName(gAppData->UAName);
-        nsCString ID(gAppData->ID);
-        nsCString vendor(gAppData->vendor);
-
         
-        unused << SendAppInfo(version, buildID, name, UAName, ID, vendor);
+        unused << SendAppInit();
     }
 
     nsStyleSheetService *sheetService = nsStyleSheetService::GetInstance();
