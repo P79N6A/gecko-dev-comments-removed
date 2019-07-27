@@ -929,7 +929,7 @@ Animation::IsPossiblyOrphanedPendingAnimation() const
   
   nsIDocument* doc = GetRenderedDocument();
   if (!doc) {
-    return false;
+    return true;
   }
 
   PendingAnimationTracker* tracker = doc->GetPendingAnimationTracker();
