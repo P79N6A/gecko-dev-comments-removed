@@ -1772,7 +1772,9 @@ public:
         {
             mFont->AddGlyphChangeObserver(this);
         }
-        gfxFont* mFont;
+        
+        
+        gfxFont* MOZ_NON_OWNING_REF mFont;
     };
     friend class GlyphChangeObserver;
 
