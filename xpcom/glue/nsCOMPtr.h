@@ -1482,29 +1482,6 @@ operator!=(NSCAP_Zero* aLhs, const nsCOMPtr<T>& aRhs)
 }
 
 
-#ifdef HAVE_CPP_TROUBLE_COMPARING_TO_ZERO
-
-
-
-
-
-template<class T>
-inline bool
-operator==(const nsCOMPtr<T>& lhs, int rhs)
-{
-  return static_cast<const void*>(lhs.get()) == reinterpret_cast<const void*>(rhs);
-}
-
-
-template<class T>
-inline bool
-operator==(int lhs, const nsCOMPtr<T>& rhs)
-{
-  return reinterpret_cast<const void*>(lhs) == static_cast<const void*>(rhs.get());
-}
-
-#endif 
-
 
 
 inline bool
