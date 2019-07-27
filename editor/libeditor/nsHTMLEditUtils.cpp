@@ -28,15 +28,6 @@ using namespace mozilla;
 
 
 
-bool 
-nsHTMLEditUtils::IsBig(nsIDOMNode* aNode)
-{
-  return nsEditor::NodeIsType(aNode, nsGkAtoms::big);
-}
-
-
-
-
 
 bool 
 nsHTMLEditUtils::IsInlineStyle(nsIDOMNode* aNode)
@@ -105,15 +96,6 @@ nsHTMLEditUtils::IsNodeThatCanOutdent(nsIDOMNode* aNode)
       || (nodeAtom == nsGkAtoms::dt)
       || (nodeAtom == nsGkAtoms::blockquote);
 }
-
-
-
-bool 
-nsHTMLEditUtils::IsSmall(nsIDOMNode* aNode)
-{
-  return nsEditor::NodeIsType(aNode, nsGkAtoms::small);
-}
-
 
 
 

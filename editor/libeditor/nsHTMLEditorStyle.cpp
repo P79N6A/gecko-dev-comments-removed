@@ -483,7 +483,7 @@ nsHTMLEditor::SetInlinePropertyOnNode(nsIContent& aNode,
   NS_ENSURE_STATE(aNode.GetParentNode());
   OwningNonNull<nsINode> parent = *aNode.GetParentNode();
 
-  nsresult res = RemoveStyleInside(aNode.AsDOMNode(), &aProperty, aAttribute);
+  nsresult res = RemoveStyleInside(aNode, &aProperty, aAttribute);
   NS_ENSURE_SUCCESS(res, res);
 
   if (aNode.GetParentNode()) {
@@ -722,68 +722,79 @@ nsresult nsHTMLEditor::RemoveStyleInside(nsIDOMNode *aNode,
                                          const bool aChildrenOnly)
 {
   NS_ENSURE_TRUE(aNode, NS_ERROR_NULL_POINTER);
-  if (IsTextNode(aNode)) {
-    return NS_OK;
-  }
-  nsresult res;
   nsCOMPtr<nsIContent> content = do_QueryInterface(aNode);
   NS_ENSURE_STATE(content);
 
+  return RemoveStyleInside(*content, aProperty, aAttribute, aChildrenOnly);
+}
+
+nsresult
+nsHTMLEditor::RemoveStyleInside(nsIContent& aNode,
+                                nsIAtom* aProperty,
+                                const nsAString* aAttribute,
+                                const bool aChildrenOnly )
+{
+  if (aNode.NodeType() == nsIDOMNode::TEXT_NODE) {
+    return NS_OK;
+  }
+
   
-  nsCOMPtr<nsIDOMNode> child, tmp;
-  aNode->GetFirstChild(getter_AddRefs(child));
+  nsRefPtr<nsIContent> child = aNode.GetFirstChild();
   while (child) {
     
-    child->GetNextSibling(getter_AddRefs(tmp));
-    res = RemoveStyleInside(child, aProperty, aAttribute);
+    nsCOMPtr<nsIContent> next = child->GetNextSibling();
+    nsresult res = RemoveStyleInside(*child, aProperty, aAttribute);
     NS_ENSURE_SUCCESS(res, res);
-    child = tmp;
+    child = next.forget();
   }
 
   
   if (!aChildrenOnly &&
     (
       
-      (aProperty && NodeIsType(aNode, aProperty)) ||
+      (aProperty && aNode.NodeInfo()->NameAtom() == aProperty) ||
       
-      (aProperty == nsGkAtoms::href && nsHTMLEditUtils::IsLink(aNode)) ||
+      (aProperty == nsGkAtoms::href && nsHTMLEditUtils::IsLink(&aNode)) ||
       
-      (aProperty == nsGkAtoms::name && nsHTMLEditUtils::IsNamedAnchor(aNode)) ||
+      (aProperty == nsGkAtoms::name && nsHTMLEditUtils::IsNamedAnchor(&aNode)) ||
       
-      (!aProperty && NodeIsProperty(aNode))
+      (!aProperty && NodeIsProperty(aNode.AsDOMNode()))
     )
   ) {
+    nsresult res;
     
     
     if (!aAttribute || aAttribute->IsEmpty()) {
       NS_NAMED_LITERAL_STRING(styleAttr, "style");
       NS_NAMED_LITERAL_STRING(classAttr, "class");
-      bool hasStyleAttr = HasAttr(aNode, &styleAttr);
-      bool hasClassAttr = HasAttr(aNode, &classAttr);
+
+      bool hasStyleAttr = aNode.HasAttr(kNameSpaceID_None, nsGkAtoms::style);
+      bool hasClassAttr = aNode.HasAttr(kNameSpaceID_None, nsGkAtoms::_class);
       if (aProperty && (hasStyleAttr || hasClassAttr)) {
         
         
         
         
         nsCOMPtr<Element> spanNode =
-          InsertContainerAbove(content, nsGkAtoms::span);
+          InsertContainerAbove(&aNode, nsGkAtoms::span);
         NS_ENSURE_STATE(spanNode);
-        res = CloneAttribute(styleAttr, spanNode->AsDOMNode(), aNode);
+        res = CloneAttribute(styleAttr, spanNode->AsDOMNode(), aNode.AsDOMNode());
         NS_ENSURE_SUCCESS(res, res);
-        res = CloneAttribute(classAttr, spanNode->AsDOMNode(), aNode);
+        res = CloneAttribute(classAttr, spanNode->AsDOMNode(), aNode.AsDOMNode());
         NS_ENSURE_SUCCESS(res, res);
       }
-      res = RemoveContainer(content);
+      res = RemoveContainer(&aNode);
       NS_ENSURE_SUCCESS(res, res);
     } else {
       
-      if (HasAttr(aNode, aAttribute)) {
+      nsCOMPtr<nsIAtom> attribute = do_GetAtom(*aAttribute);
+      if (aNode.HasAttr(kNameSpaceID_None, attribute)) {
         
         
-        if (IsOnlyAttribute(aNode, aAttribute)) {
-          res = RemoveContainer(content);
+        if (IsOnlyAttribute(&aNode, *aAttribute)) {
+          res = RemoveContainer(&aNode);
         } else {
-          nsCOMPtr<nsIDOMElement> elem = do_QueryInterface(aNode);
+          nsCOMPtr<nsIDOMElement> elem = do_QueryInterface(&aNode);
           NS_ENSURE_TRUE(elem, NS_ERROR_NULL_POINTER);
           res = RemoveAttribute(elem, *aAttribute);
         }
@@ -793,25 +804,24 @@ nsresult nsHTMLEditor::RemoveStyleInside(nsIDOMNode *aNode,
   }
 
   if (!aChildrenOnly &&
-      mHTMLCSSUtils->IsCSSEditableProperty(content, aProperty, aAttribute)) {
+      mHTMLCSSUtils->IsCSSEditableProperty(&aNode, aProperty, aAttribute)) {
     
     
     
     nsAutoString propertyValue;
-    bool isSet;
-    mHTMLCSSUtils->IsCSSEquivalentToHTMLInlineStyleSet(aNode, aProperty,
-      aAttribute, isSet, propertyValue, nsHTMLCSSUtils::eSpecified);
-    if (isSet && content->IsElement()) {
+    bool isSet = mHTMLCSSUtils->IsCSSEquivalentToHTMLInlineStyleSet(&aNode,
+      aProperty, aAttribute, propertyValue, nsHTMLCSSUtils::eSpecified);
+    if (isSet && aNode.IsElement()) {
       
       
-      mHTMLCSSUtils->RemoveCSSEquivalentToHTMLStyle(aNode,
+      mHTMLCSSUtils->RemoveCSSEquivalentToHTMLStyle(aNode.AsElement(),
                                                     aProperty,
                                                     aAttribute,
                                                     &propertyValue,
                                                     false);
       
       
-      RemoveElementIfNoStyleOrIdOrClass(*content->AsElement());
+      RemoveElementIfNoStyleOrIdOrClass(*aNode.AsElement());
     }
   }
 
@@ -819,12 +829,12 @@ nsresult nsHTMLEditor::RemoveStyleInside(nsIDOMNode *aNode,
     (
       
       aProperty == nsGkAtoms::font &&
-      (nsHTMLEditUtils::IsBig(aNode) || nsHTMLEditUtils::IsSmall(aNode)) &&
+      (aNode.IsHTMLElement(nsGkAtoms::big) || aNode.IsHTMLElement(nsGkAtoms::small)) &&
       (aAttribute && aAttribute->LowerCaseEqualsLiteral("size"))
     )
   ) {
     
-    return RemoveContainer(content);
+    return RemoveContainer(&aNode);
   }
   return NS_OK;
 }
