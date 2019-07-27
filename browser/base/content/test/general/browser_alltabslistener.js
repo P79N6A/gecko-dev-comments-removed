@@ -87,8 +87,8 @@ var gNextTest;
 function test() {
   waitForExplicitFinish();
 
-  gBackgroundTab = gBrowser.addTab(kBasePage);
-  gForegroundTab = gBrowser.addTab(kBasePage);
+  gBackgroundTab = gBrowser.addTab();
+  gForegroundTab = gBrowser.addTab();
   gBackgroundBrowser = gBrowser.getBrowserForTab(gBackgroundTab);
   gForegroundBrowser = gBrowser.getBrowserForTab(gForegroundTab);
   gBrowser.selectedTab = gForegroundTab;
@@ -99,6 +99,8 @@ function test() {
     waitForDocLoadComplete(gBackgroundBrowser),
     waitForDocLoadComplete(gForegroundBrowser)
   ];
+  gBackgroundBrowser.loadURI(kBasePage);
+  gForegroundBrowser.loadURI(kBasePage);
   Promise.all(promises).then(startTest1);
 }
 
