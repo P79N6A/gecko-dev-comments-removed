@@ -110,7 +110,7 @@ public class testBookmarksPanel extends AboutHomeTest {
         }
 
         
-        mActions.sendSpecialKey(Actions.SpecialKey.BACK);
+        mSolo.goBack();
 
         openBookmarkContextMenu(nonShareableURL);
         for (String contextMenuOption : mStringHelper.BOOKMARK_CONTEXT_MENU_ITEMS) {
@@ -131,7 +131,7 @@ public class testBookmarksPanel extends AboutHomeTest {
                 "Share option is not present");
 
         
-        mActions.sendSpecialKey(Actions.SpecialKey.BACK);
+        mSolo.goBack();
     }
 
    

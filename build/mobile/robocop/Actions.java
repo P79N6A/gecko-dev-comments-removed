@@ -9,7 +9,17 @@ public interface Actions {
 
     
     public enum SpecialKey {
-        DOWN, UP, LEFT, RIGHT, ENTER, MENU, BACK
+        DOWN,
+        UP,
+        LEFT,
+        RIGHT,
+        ENTER,
+        MENU,
+        
+
+
+        @Deprecated
+        BACK
     }
 
     public interface EventExpecter {

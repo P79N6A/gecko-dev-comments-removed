@@ -98,7 +98,7 @@ abstract class ContentContextMenuTest extends PixelTest {
         mAsserter.ok(waitForText(shareOption), "Checking that the share pop-up is displayed", "The pop-up has been displayed");
 
         
-        mActions.sendSpecialKey(Actions.SpecialKey.BACK);
+        mSolo.goBack();
         waitForText(pageTitle);
     }
 

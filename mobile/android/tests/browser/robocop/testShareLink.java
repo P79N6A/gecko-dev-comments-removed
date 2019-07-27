@@ -56,7 +56,7 @@ public class testShareLink extends AboutHomeTest {
         }
 
         
-        mActions.sendSpecialKey(Actions.SpecialKey.BACK); 
+        mSolo.goBack(); 
         mSolo.clickLongOnText(urlTitle);
         verifySharePopup(shareOptions,"urlbar");
 
@@ -145,7 +145,7 @@ public class testShareLink extends AboutHomeTest {
              
              mAsserter.ok(optionDisplayed(option, displayedOptions), "Share option for " + openedFrom + (openedFrom.equals("urlbar") ? "" : " item") + " found", option);
         }
-        mActions.sendSpecialKey(Actions.SpecialKey.BACK);
+        mSolo.goBack();
         
 
 

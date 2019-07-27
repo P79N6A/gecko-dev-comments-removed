@@ -35,7 +35,7 @@ public class testSystemPages extends PixelTest {
         loadAndPaint(mStringHelper.ABOUT_ABOUT_URL);
 
         
-        mActions.sendSpecialKey(Actions.SpecialKey.BACK);
+        mSolo.goBack();
         
         mSolo.sleep(AFTER_BACK_SLEEP_MS);
 

@@ -6,7 +6,6 @@ package org.mozilla.gecko.tests;
 
 import java.util.ArrayList;
 
-import org.mozilla.gecko.Actions;
 import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.GeckoProfile;
 
@@ -157,10 +156,10 @@ public class testImportFromAndroid extends AboutHomeTest {
         if ("phone".equals(mDevice.type)) {
             
             waitForText(mStringHelper.IMPORT_FROM_ANDROID_LABEL);
-            mActions.sendSpecialKey(Actions.SpecialKey.BACK);
+            mSolo.goBack();
         }
         waitForText(mStringHelper.PRIVACY_SECTION_LABEL); 
-        mActions.sendSpecialKey(Actions.SpecialKey.BACK); 
+        mSolo.goBack(); 
         
         mAsserter.ok(mSolo.waitForText(mStringHelper.TITLE_PLACE_HOLDER), "Waiting for search bar", "Search bar found");
 
