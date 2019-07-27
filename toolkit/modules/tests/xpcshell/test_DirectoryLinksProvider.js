@@ -233,7 +233,7 @@ add_task(function test_fetchAndCacheLinks_malformedURI() {
 add_task(function test_fetchAndCacheLinks_unknownHost() {
   yield DirectoryLinksProvider.init();
   yield cleanJsonFile();
-  let nonExistentServer = "http://nosuchhost.localhost";
+  let nonExistentServer = "http://localhost:56789/";
   try {
     yield DirectoryLinksProvider._fetchAndCacheLinks(nonExistentServer);
     do_throw("BAD URIs should fail");
@@ -314,7 +314,7 @@ add_task(function test_DirectoryLinksProvider__prefObserver_url() {
   
   
   
-  let exampleUrl = 'http://nosuchhost.localhost/bad';
+  let exampleUrl = 'http://localhost:56789/bad';
   yield promiseDirectoryDownloadOnPrefChange(kSourceUrlPref, exampleUrl);
   do_check_eq(DirectoryLinksProvider._linksURL, exampleUrl);
 
@@ -503,6 +503,8 @@ add_task(function test_DirectoryLinksProvider_getEnhancedLink() {
 
   
   checkEnhanced("http://example.org", undefined);
+  checkEnhanced("http://localhost", undefined);
+  checkEnhanced("http://127.0.0.1", undefined);
 
   
   data = {"en-US": [
