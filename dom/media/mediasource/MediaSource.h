@@ -128,6 +128,9 @@ private:
   nsRefPtr<SourceBufferList> mActiveSourceBuffers;
 
   nsRefPtr<MediaSourceDecoder> mDecoder;
+  
+  
+  nsRefPtr<HTMLMediaElement> mMediaElement;
 
   nsRefPtr<nsIPrincipal> mPrincipal;
 
