@@ -294,6 +294,8 @@ MapResultToName(Result result)
 void
 RegisterErrorTable()
 {
+  
+  
   static const struct PRErrorMessage ErrorTableText[] = {
     { "MOZILLA_PKIX_ERROR_KEY_PINNING_FAILURE",
       "The server uses key pinning (HPKP) but no trusted certificate chain "
@@ -307,6 +309,8 @@ RegisterErrorTable()
       "The server presented a certificate with a key size that is too small "
       "to establish a secure connection." }
   };
+  
+  
 
   static const struct PRErrorTable ErrorTable = {
     ErrorTableText,
