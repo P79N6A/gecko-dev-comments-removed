@@ -385,9 +385,26 @@ function executeInContent(name, data={}, objects={}, expectResponse=true) {
 
 function* getComputedStyleProperty(selector, pseudo, propName) {
  return yield executeInContent("Test:GetComputedStylePropertyValue",
-                               {selector: selector,
-                                pseudo: pseudo,
+                               {selector,
+                                pseudo,
                                 name: propName});
+}
+
+
+
+
+
+
+
+
+
+
+function* waitForComputedStyleProperty(selector, pseudo, name, expected) {
+ return yield executeInContent("Test:WaitForComputedStylePropertyValue",
+                               {selector,
+                                pseudo,
+                                expected,
+                                name});
 }
 
 
@@ -508,10 +525,8 @@ function fireCopyEvent(element) {
 
 
 
-
 function waitForSuccess(validatorFn, name="untitled") {
   let def = promise.defer();
-  let start = Date.now();
 
   function wait(validatorFn) {
     if (validatorFn()) {
