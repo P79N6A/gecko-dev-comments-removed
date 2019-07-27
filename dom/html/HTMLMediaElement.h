@@ -557,13 +557,11 @@ public:
 
   mozilla::dom::EventHandlerNonNull* GetOnencrypted();
   void SetOnencrypted(mozilla::dom::EventHandlerNonNull* listener);
-#endif 
 
   void DispatchEncrypted(const nsTArray<uint8_t>& aInitData,
                          const nsAString& aInitDataType) override;
 
 
-#ifdef MOZ_EME
   bool IsEventAttributeName(nsIAtom* aName) override;
 
   
@@ -1320,9 +1318,6 @@ protected:
 
   
   bool mIsEncrypted;
-
-  
-  EncryptionInfo mPendingEncryptedInitData;
 
   
   bool mDownloadSuspendedByCache;
