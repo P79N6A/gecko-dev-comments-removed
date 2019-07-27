@@ -345,7 +345,7 @@
     "expires_in_version": "never",
     "kind": "enumerated",
     "n_values": 10,
-    "description": "Use of SpiderMonkey's deprecated language extensions in web content: ForEach=0, DestructuringForIn=1, LegacyGenerator=2, ExpressionClosure=3, LetBlock=4, LetExpression=5, NoSuchMethod=6"
+    "description": "Use of SpiderMonkey's deprecated language extensions in web content: ForEach=0, DestructuringForIn=1, LegacyGenerator=2, ExpressionClosure=3, LetBlock=4, LetExpression=5, NoSuchMethod=6, FlagsArgument=7"
   },
   "TELEMETRY_PING": {
     "expires_in_version": "default",
@@ -6571,16 +6571,16 @@
     "n_buckets": 100,
     "description": "The peak number of open tabs in all windows for a session for devtools users."
   },
-  "DEVTOOLS_TABS_OPEN_AVERAGE_LINEAR": {
+  "DEVTOOLS_TABS_OPEN_AVERAGE_EXPONENTIAL": {
     "expires_in_version": "never",
-    "kind": "linear",
+    "kind": "exponential",
     "high": "101",
     "n_buckets": "100",
     "description": "The mean number of open tabs in all windows for a session for devtools users."
   },
-  "DEVTOOLS_TABS_PINNED_PEAK_LINEAR": {
+  "DEVTOOLS_TABS_PINNED_PEAK_EXPONENTIAL": {
     "expires_in_version": "never",
-    "kind": "linear",
+    "kind": "exponential",
     "high": "101",
     "n_buckets": "100",
     "description": "The peak number of pinned tabs (app tabs) in all windows for a session for devtools users."
@@ -7286,14 +7286,6 @@
     "keyed": true,
     "releaseChannelCollection": "opt-out",
     "description": "Connection length for bi-directionally connected media"
-  },
-  "LOOP_SHARING_STATE_CHANGE": {
-    "alert_emails": ["firefox-dev@mozilla.org", "mdeboer@mozilla.com"],
-    "expires_in_version": "43",
-    "kind": "count",
-    "keyed": true,
-    "releaseChannelCollection": "opt-in",
-    "description": "Number of times the sharing feature has been enabled and disabled"
   },
   "E10S_AUTOSTART": {
     "expires_in_version": "never",
