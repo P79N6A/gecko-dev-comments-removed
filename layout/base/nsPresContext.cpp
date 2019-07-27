@@ -2110,10 +2110,14 @@ nsPresContext::FlushUserFontSet()
         return;
       }
 
-      if (!mFontFaceSet) {
+      bool changed = false;
+
+      if (!mFontFaceSet && !rules.IsEmpty()) {
         mFontFaceSet = new FontFaceSet(mDocument->GetInnerWindow(), this);
       }
-      bool changed = mFontFaceSet->UpdateRules(rules);
+      if (mFontFaceSet) {
+        changed = mFontFaceSet->UpdateRules(rules);
+      }
 
       
       
