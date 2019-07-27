@@ -578,6 +578,7 @@ private:
     nsACString::const_iterator end(aEnd);
     const char* beginning = aStart.get();
     if (FindInReadable(aBoundaryString, aStart, end)) {
+      MOZ_ASSERT(aStart.size_forward() >= aBoundaryString.Length());
       
       
       if ((aStart.get() - beginning) == 0) {
