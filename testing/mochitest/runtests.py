@@ -981,21 +981,24 @@ class Mochitest(MochitestUtilsMixin):
   vmwareHelper = None
   DEFAULT_TIMEOUT = 60.0
   mediaDevices = None
+  structured_logger = None
 
   
   
   test_name = 'automation.py'
 
   def __init__(self):
+    
+    if self.structured_logger is None:
+        self.structured_logger = StructuredLogger('mochitest')
+        stream_handler = StreamHandler(stream=sys.stdout, formatter=MochitestFormatter())
+        self.structured_logger.add_handler(stream_handler)
+        Mochitest.structured_logger = self.structured_logger
+
     super(Mochitest, self).__init__()
 
     
-    structured_log = StructuredLogger('mochitest')
-    stream_handler = StreamHandler(stream=sys.stdout, formatter=MochitestFormatter())
-    structured_log.add_handler(stream_handler)
-
-    
-    self.message_logger = MessageLogger(logger=structured_log)
+    self.message_logger = MessageLogger(logger=self.structured_logger)
 
     
     self.environment = environment
