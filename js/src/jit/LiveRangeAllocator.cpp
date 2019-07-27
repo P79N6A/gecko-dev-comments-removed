@@ -525,10 +525,10 @@ LiveRangeAllocator<VREG, forLSRA>::init()
         for (LInstructionIterator ins = block->begin(); ins != block->end(); ins++) {
             for (size_t j = 0; j < ins->numDefs(); j++) {
                 LDefinition *def = ins->getDef(j);
-                if (def->policy() != LDefinition::PASSTHROUGH) {
-                    if (!vregs[def].init(alloc(), block, *ins, def,  false))
-                        return false;
-                }
+                if (def->isBogusTemp())
+                    continue;
+                if (!vregs[def].init(alloc(), block, *ins, def,  false))
+                    return false;
             }
 
             for (size_t j = 0; j < ins->numTemps(); j++) {
@@ -665,50 +665,50 @@ LiveRangeAllocator<VREG, forLSRA>::buildLivenessInfo()
             }
 
             for (size_t i = 0; i < ins->numDefs(); i++) {
-                if (ins->getDef(i)->policy() != LDefinition::PASSTHROUGH) {
-                    LDefinition *def = ins->getDef(i);
+                LDefinition *def = ins->getDef(i);
+                if (def->isBogusTemp())
+                    continue;
 
-                    CodePosition from;
-                    if (def->policy() == LDefinition::FIXED && def->output()->isRegister() && forLSRA) {
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        JS_ASSERT(!NextInstructionHasFixedUses(block, *ins));
-                        AnyRegister reg = def->output()->toRegister();
-                        if (!addFixedRangeAtHead(reg, inputOf(*ins), outputOf(*ins).next()))
-                            return false;
-                        from = outputOf(*ins).next();
-                    } else {
-                        from = forLSRA ? inputOf(*ins) : outputOf(*ins);
-                    }
-
-                    if (def->policy() == LDefinition::MUST_REUSE_INPUT) {
-                        
-                        
-                        
-                        
-                        
-                        LUse *inputUse = ins->getOperand(def->getReusedInput())->toUse();
-                        JS_ASSERT(inputUse->policy() == LUse::REGISTER);
-                        JS_ASSERT(inputUse->usedAtStart());
-                        *inputUse = LUse(inputUse->virtualRegister(), LUse::ANY,  true);
-                    }
-
-                    LiveInterval *interval = vregs[def].getInterval(0);
-                    interval->setFrom(from);
-
+                CodePosition from;
+                if (def->policy() == LDefinition::FIXED && def->output()->isRegister() && forLSRA) {
                     
                     
-                    if (interval->numRanges() == 0) {
-                        if (!interval->addRangeAtHead(from, from.next()))
-                            return false;
-                    }
-                    live->remove(def->virtualRegister());
+                    
+                    
+                    
+                    
+                    
+                    JS_ASSERT(!NextInstructionHasFixedUses(block, *ins));
+                    AnyRegister reg = def->output()->toRegister();
+                    if (!addFixedRangeAtHead(reg, inputOf(*ins), outputOf(*ins).next()))
+                        return false;
+                    from = outputOf(*ins).next();
+                } else {
+                    from = forLSRA ? inputOf(*ins) : outputOf(*ins);
                 }
+
+                if (def->policy() == LDefinition::MUST_REUSE_INPUT) {
+                    
+                    
+                    
+                    
+                    
+                    LUse *inputUse = ins->getOperand(def->getReusedInput())->toUse();
+                    JS_ASSERT(inputUse->policy() == LUse::REGISTER);
+                    JS_ASSERT(inputUse->usedAtStart());
+                    *inputUse = LUse(inputUse->virtualRegister(), LUse::ANY,  true);
+                }
+
+                LiveInterval *interval = vregs[def].getInterval(0);
+                interval->setFrom(from);
+
+                
+                
+                if (interval->numRanges() == 0) {
+                    if (!interval->addRangeAtHead(from, from.next()))
+                        return false;
+                }
+                live->remove(def->virtualRegister());
             }
 
             for (size_t i = 0; i < ins->numTemps(); i++) {

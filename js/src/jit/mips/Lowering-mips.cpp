@@ -116,8 +116,7 @@ LIRGeneratorMIPS::visitBox(MBox *box)
     
     
     lir->setDef(0, LDefinition(vreg, LDefinition::GENERAL));
-    lir->setDef(1, LDefinition(inner->virtualRegister(), LDefinition::TypeFrom(inner->type()),
-                               LDefinition::PASSTHROUGH));
+    lir->setDef(1, LDefinition::BogusTemp());
     box->setVirtualRegister(vreg);
     return add(lir);
 }
@@ -151,7 +150,6 @@ LIRGeneratorMIPS::visitUnbox(MUnbox *unbox)
     if (unbox->fallible() && !assignSnapshot(lir, unbox->bailoutKind()))
         return false;
 
-    
     
     
     

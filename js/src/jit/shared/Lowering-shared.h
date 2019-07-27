@@ -153,10 +153,6 @@ class LIRGeneratorShared : public MDefinitionVisitorDefaultNYI
     
     inline bool redefine(MDefinition *ins, MDefinition *as);
 
-    
-    
-    inline bool defineAs(LInstruction *outLir, MDefinition *outMir, MDefinition *inMir);
-
     TempAllocator &alloc() const {
         return graph.alloc();
     }
