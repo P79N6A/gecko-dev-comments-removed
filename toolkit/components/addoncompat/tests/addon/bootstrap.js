@@ -81,7 +81,7 @@ function testListeners()
       
       
       let loadWithRemoveCount = 0;
-      addLoadListener(browser, function handler1() {
+      addLoadListener(browser, function handler1(event) {
         loadWithRemoveCount++;
         is(event.target.documentURI, url1, "only fire for first url");
       });
@@ -215,6 +215,16 @@ function testSandbox()
 
       is(browser.contentDocument.getElementById("output").innerHTML, "hello",
          "sandbox code ran successfully");
+
+      
+      sandbox = Cu.Sandbox([browser.contentWindow],
+                           {sandboxPrototype: browser.contentWindow,
+                            wantXrays: false});
+      Cu.evalInSandbox("const unsafeWindow = window;", sandbox);
+      Cu.evalInSandbox("document.getElementById('output').innerHTML = 'hello2';", sandbox);
+
+      is(browser.contentDocument.getElementById("output").innerHTML, "hello2",
+         "EP sandbox code ran successfully");
 
       gBrowser.removeTab(tab);
       resolve();
