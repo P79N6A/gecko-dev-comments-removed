@@ -142,7 +142,7 @@ struct DCheckAsserter : public AsserterBase {
 class ThreadCollisionWarner {
  public:
   
-  ThreadCollisionWarner(AsserterBase* asserter = new DCheckAsserter())
+  explicit ThreadCollisionWarner(AsserterBase* asserter = new DCheckAsserter())
       : valid_thread_id_(0),
         counter_(0),
         asserter_(asserter) {}

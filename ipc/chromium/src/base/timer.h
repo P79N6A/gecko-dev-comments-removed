@@ -85,7 +85,7 @@ class BaseTimer_Helper {
   
   class TimerTask : public Task {
    public:
-    TimerTask(TimeDelta delay) : delay_(delay) {
+    explicit TimerTask(TimeDelta delay) : delay_(delay) {
       
     }
     virtual ~TimerTask() {}
