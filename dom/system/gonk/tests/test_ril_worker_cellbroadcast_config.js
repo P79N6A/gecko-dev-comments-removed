@@ -74,7 +74,7 @@ add_test(function test_ril_worker_cellbroadcast_config() {
 
     let found = false;
     worker.postRILMessage = function(id, parcel) {
-      u32Parcel = U32ArrayFromParcelArray(Array.slice(parcel));
+      let u32Parcel = U32ArrayFromParcelArray(Array.slice(parcel));
       if (u32Parcel[1] != parcelType) {
         return;
       }
@@ -95,7 +95,7 @@ add_test(function test_ril_worker_cellbroadcast_config() {
   
   test(false,
        [1, 2, 4, 7]  ,
-       ["2", "1,2,0,255,1", "4,7,0,255,1"].join());
+       ["2", "1,1,0,255,1", "4,6,0,255,1"].join());
 
   
   
