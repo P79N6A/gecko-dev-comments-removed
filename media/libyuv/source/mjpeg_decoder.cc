@@ -19,7 +19,6 @@
 #include <setjmp.h>
 #define HAVE_SETJMP
 #endif
-struct FILE;  
 
 
 #ifdef __cplusplus
