@@ -678,6 +678,19 @@ CacheFile::OpenInputStream(nsIInputStream **_retval)
     return NS_ERROR_NOT_AVAILABLE;
   }
 
+  if (NS_FAILED(mStatus)) {
+    LOG(("CacheFile::OpenInputStream() - CacheFile is in a failure state "
+         "[this=%p, status=0x%08x]", this, mStatus));
+
+    
+    
+    
+    
+    
+    
+    return mStatus;
+  }
+
   
   
   
@@ -1565,6 +1578,13 @@ CacheFile::RemoveOutput(CacheFileOutputStream *aOutput, nsresult aStatus)
 
   if (!mMemoryOnly)
     WriteMetadataIfNeededLocked();
+
+  
+  
+  
+  if (NS_SUCCEEDED(mStatus) && NS_FAILED(aStatus) && aStatus != NS_BASE_STREAM_CLOSED) {
+    mStatus = aStatus;
+  }
 
   
   aOutput->NotifyCloseListener();

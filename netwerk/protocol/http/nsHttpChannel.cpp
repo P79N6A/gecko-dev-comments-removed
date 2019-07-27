@@ -899,10 +899,10 @@ nsHttpChannel::CallOnStartRequest()
         
         
         rv = mCacheEntry->SetPredictedDataSize(
-            mResponseHead->ContentLength());
+            mResponseHead->TotalEntitySize());
         if (NS_ERROR_FILE_TOO_BIG == rv) {
-          mCacheEntry = nullptr;
-          LOG(("  entry too big, throwing away"));
+          
+          LOG(("  entry too big"));
         } else {
           NS_ENSURE_SUCCESS(rv, rv);
         }
@@ -2063,12 +2063,13 @@ nsHttpChannel::IsResumable(int64_t partialLen, int64_t contentLength,
 }
 
 nsresult
-nsHttpChannel::MaybeSetupByteRangeRequest(int64_t partialLen, int64_t contentLength)
+nsHttpChannel::MaybeSetupByteRangeRequest(int64_t partialLen, int64_t contentLength,
+                                          bool ignoreMissingPartialLen)
 {
     
     mIsPartialRequest = false;
 
-    if (!IsResumable(partialLen, contentLength))
+    if (!IsResumable(partialLen, contentLength, ignoreMissingPartialLen))
       return NS_ERROR_NOT_RESUMABLE;
 
     
@@ -5149,7 +5150,9 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
             else if (contentLength != int64_t(-1) && contentLength != size) {
                 LOG(("  concurrent cache entry write has been interrupted"));
                 mCachedResponseHead = Move(mResponseHead);
-                rv = MaybeSetupByteRangeRequest(size, contentLength);
+                
+                
+                rv = MaybeSetupByteRangeRequest(size, contentLength, true);
                 if (NS_SUCCEEDED(rv) && mIsPartialRequest) {
                     
                     mCachedContentIsValid = 0;
