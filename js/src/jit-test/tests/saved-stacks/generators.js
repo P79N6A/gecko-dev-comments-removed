@@ -8,9 +8,12 @@ const { value: frame } = (function iife1() {
   }()).next();
 }());
 
-assertEq(frame.functionDisplayName, "iife2");
-assertEq(frame.parent.functionDisplayName, "generator");
-assertEq(frame.parent.parent.functionDisplayName, "next");
-assertEq(frame.parent.parent.parent.functionDisplayName, "iife1");
-assertEq(frame.parent.parent.parent.parent.functionDisplayName, null);
-assertEq(frame.parent.parent.parent.parent.parent, null);
+
+
+
+
+var lines = frame.toString().split("\n");
+assertEq(lines[0].startsWith("iife2@"), true);
+assertEq(lines[1].startsWith("generator@"), true);
+assertEq(lines[2].startsWith("iife1@"), true);
+assertEq(lines[3].startsWith("@"), true);
