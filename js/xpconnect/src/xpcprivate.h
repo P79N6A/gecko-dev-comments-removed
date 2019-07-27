@@ -3507,10 +3507,15 @@ CreateSandboxObject(JSContext *cx, JS::MutableHandleValue vp, nsISupports *prinO
 
 
 
+
+
+
+
 nsresult
 EvalInSandbox(JSContext *cx, JS::HandleObject sandbox, const nsAString& source,
               const nsACString& filename, int32_t lineNo,
-              JSVersion jsVersion, JS::MutableHandleValue rval);
+              JSVersion jsVersion, bool returnStringOnly,
+              JS::MutableHandleValue rval);
 
 nsresult
 GetSandboxAddonId(JSContext *cx, JS::HandleObject sandboxArg,
