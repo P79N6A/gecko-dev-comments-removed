@@ -4543,11 +4543,20 @@ pref("reader.font_size", 3);
 pref("reader.color_scheme", "light");
 
 
+pref("reader.color_scheme.values", "[\"light\",\"dark\",\"sepia\"]");
+
+
 pref("reader.font_type", "sans-serif");
+
+
+pref("reader.font_type.values", "[\"serif\",\"sans-serif\"]");
 
 
 
 pref("reader.has_used_toolbar", false);
+
+
+pref("reader.toolbar.vertical", true);
 
 #if defined(XP_LINUX) && defined(MOZ_GMP_SANDBOX)
 

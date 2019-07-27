@@ -854,3 +854,15 @@ pref("media.gmp-gmpopenh264.provider.enabled", true);
 
 
 pref("reader.color_scheme", "auto");
+
+
+pref("reader.color_scheme.values", "[\"light\",\"dark\",\"auto\"]");
+
+
+pref("reader.font_type", "clear-sans");
+
+
+pref("reader.font_type.values", "[\"charis-sil\",\"clear-sans\"]");
+
+
+pref("reader.toolbar.vertical", false);
