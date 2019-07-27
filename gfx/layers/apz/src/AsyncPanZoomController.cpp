@@ -2728,6 +2728,9 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
   bool scrollOffsetUpdated = aLayerMetrics.GetScrollOffsetUpdated()
         && (aLayerMetrics.GetScrollGeneration() != mFrameMetrics.GetScrollGeneration());
 
+  bool smoothScrollRequested = aLayerMetrics.GetDoSmoothScroll()
+       && (aLayerMetrics.GetScrollGeneration() != mFrameMetrics.GetScrollGeneration());
+
   if (aIsFirstPaint || isDefault) {
     
     
@@ -2749,9 +2752,6 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
       needContentRepaint = true;
     }
   } else {
-    bool smoothScrollRequested = aLayerMetrics.GetDoSmoothScroll()
-         && (aLayerMetrics.GetScrollGeneration() != mFrameMetrics.GetScrollGeneration());
-
     
     
     
@@ -2805,23 +2805,23 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
       
       mLastDispatchedPaintMetrics = aLayerMetrics;
     }
+  }
 
-    if (smoothScrollRequested) {
-      
-      
-      
+  if (smoothScrollRequested) {
+    
+    
+    
 
-      APZC_LOG("%p smooth scrolling from %s to %s\n", this,
-        Stringify(mFrameMetrics.GetScrollOffset()).c_str(),
-        Stringify(aLayerMetrics.GetSmoothScrollOffset()).c_str());
+    APZC_LOG("%p smooth scrolling from %s to %s\n", this,
+      Stringify(mFrameMetrics.GetScrollOffset()).c_str(),
+      Stringify(aLayerMetrics.GetSmoothScrollOffset()).c_str());
 
-      mFrameMetrics.CopySmoothScrollInfoFrom(aLayerMetrics);
-      CancelAnimation();
-      mLastDispatchedPaintMetrics = aLayerMetrics;
-      StartSmoothScroll();
+    mFrameMetrics.CopySmoothScrollInfoFrom(aLayerMetrics);
+    CancelAnimation();
+    mLastDispatchedPaintMetrics = aLayerMetrics;
+    StartSmoothScroll();
 
-      scrollOffsetUpdated = true; 
-    }
+    scrollOffsetUpdated = true; 
   }
 
   if (scrollOffsetUpdated) {
