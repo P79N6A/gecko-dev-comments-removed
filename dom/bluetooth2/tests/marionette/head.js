@@ -601,6 +601,33 @@ function waitForDevicesFound(aDiscoveryHandle, aExpectedNumberOfDevices) {
 
 
 
+
+
+
+
+
+
+
+function isUuidsEqual(aUuidArray1, aUuidArray2) {
+  if (!Array.isArray(aUuidArray1) || !Array.isArray(aUuidArray2)) {
+    return false;
+  }
+
+  if (aUuidArray1.length != aUuidArray2.length) {
+    return false;
+  }
+
+  for (let i = 0, l = aUuidArray1.length; i < l; i++) {
+    if (aUuidArray1[i] != aUuidArray2[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+
+
+
 function cleanUp() {
   waitFor(function() {
     SpecialPowers.flushPermissions(function() {
