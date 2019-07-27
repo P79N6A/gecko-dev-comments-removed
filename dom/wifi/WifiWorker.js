@@ -670,7 +670,7 @@ var WifiManager = (function() {
         
         
         if ((!ssid && network.status === "CURRENT") ||
-            (ssid && ssid === dequote(network.ssid))) {
+            (ssid && network.ssid && ssid === dequote(network.ssid))) {
           return callback(net);
         }
       }
@@ -2029,8 +2029,8 @@ function WifiWorker() {
     WifiManager.getNetworkId(connectionInfo.ssid, function(netId) {
       
       if (!netId &&
-          self.currentNetwork &&
-          self.currentNetwork.ssid == dequote(connectionInfo.ssid) &&
+          self.currentNetwork && self.currentNetwork.ssid &&
+          dequote(self.currentNetwork.ssid) == connectionInfo.ssid &&
           typeof self.currentNetwork.netId !== "undefined") {
         netId = self.currentNetwork.netId;
       }
