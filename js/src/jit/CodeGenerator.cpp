@@ -3076,24 +3076,16 @@ CodeGenerator::visitApplyArgsGeneric(LApplyArgsGeneric *apply)
     masm.checkStackAlignment();
 
     
-    if (apply->hasSingleTarget()) {
-        JSFunction *target = apply->getSingleTarget();
-        if (target->isNative()) {
-            emitCallInvokeFunction(apply, copyreg);
-            emitPopArguments(apply, copyreg);
-            return;
-        }
+    if (apply->hasSingleTarget() && apply->getSingleTarget()->isNative()) {
+        emitCallInvokeFunction(apply, copyreg);
+        emitPopArguments(apply, copyreg);
+        return;
     }
 
     Label end, invoke;
 
     
-    if (!apply->hasSingleTarget()) {
-        masm.branchIfFunctionHasNoScript(calleereg, &invoke);
-    } else {
-        
-        MOZ_ASSERT(!apply->getSingleTarget()->isNative());
-    }
+    masm.branchIfFunctionHasNoScript(calleereg, &invoke);
 
     
     masm.loadPtr(Address(calleereg, JSFunction::offsetOfNativeOrScript()), objreg);
