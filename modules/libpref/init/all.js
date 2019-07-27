@@ -1596,9 +1596,7 @@ pref("network.predictor.preserve", 80);
 
 
 
-pref("network.negotiate-auth.allow-insecure-ntlm-v1", false);
-
-pref("network.negotiate-auth.allow-insecure-ntlm-v1-https", true);
+pref("network.auth.force-generic-ntlm-v1", false);
 
 
 
@@ -1641,14 +1639,6 @@ pref("network.auth.force-generic-ntlm", false);
 pref("network.automatic-ntlm-auth.allow-proxies", true);
 pref("network.automatic-ntlm-auth.allow-non-fqdn", false);
 pref("network.automatic-ntlm-auth.trusted-uris", "");
-
-
-
-
-
-
-
-pref("network.ntlm.send-lm-response", false);
 
 pref("permissions.default.image",           1); 
 
@@ -2164,11 +2154,7 @@ pref("layout.css.grid.enabled", false);
 pref("layout.css.ruby.enabled", false);
 
 
-#ifdef RELEASE_BUILD
-pref("layout.css.display-contents.enabled", false);
-#else
 pref("layout.css.display-contents.enabled", true);
-#endif
 
 
 pref("layout.css.box-decoration-break.enabled", true);
