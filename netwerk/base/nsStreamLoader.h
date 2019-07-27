@@ -42,6 +42,7 @@ protected:
   nsCOMPtr<nsIStreamLoaderObserver> mObserver;
   nsCOMPtr<nsISupports>             mContext;  
   nsCOMPtr<nsIRequest>              mRequest;
+  nsCOMPtr<nsIRequestObserver>      mRequestObserver;
 
   
   

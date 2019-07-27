@@ -439,7 +439,7 @@ nsPACMan::StartLoading()
     return;
   }
 
-  if (NS_SUCCEEDED(mLoader->Init(this))) {
+  if (NS_SUCCEEDED(mLoader->Init(this, nullptr))) {
     
     nsCOMPtr<nsIIOService> ios = do_GetIOService();
     if (ios) {
