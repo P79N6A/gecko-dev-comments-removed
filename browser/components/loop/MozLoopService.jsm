@@ -965,6 +965,10 @@ this.MozLoopService = {
     gInitializeTimerFunc = value;
   },
 
+  get roomsParticipantsCount() {
+    return LoopRooms.participantsCount;
+  },
+
   
 
 
@@ -994,6 +998,14 @@ this.MozLoopService = {
         yield this.logOutFromFxA();
       }
     }
+
+    
+    
+    const onRoomsChange = () => {
+      MozLoopServiceInternal.notifyStatusChanged();
+    };
+    LoopRooms.on("add", onRoomsChange);
+    LoopRooms.on("update", onRoomsChange);
 
     
     

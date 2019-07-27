@@ -107,11 +107,32 @@ const checkForParticipantsUpdate = function(room, updatedRoom) {
 
 
 let LoopRoomsInternal = {
+  
+
+
   rooms: new Map(),
+
+  
+
 
   get sessionType() {
     return MozLoopService.userProfile ? LOOP_SESSION_TYPE.FXA :
                                         LOOP_SESSION_TYPE.GUEST;
+  },
+
+  
+
+
+
+  get participantsCount() {
+    let count = 0;
+    for (let room of this.rooms.values()) {
+      if (!("participants" in room)) {
+        continue;
+      }
+      count += room.participants.length;
+    }
+    return count;
   },
 
   
@@ -382,6 +403,10 @@ Object.freeze(LoopRoomsInternal);
 
 
 this.LoopRooms = {
+  get participantsCount() {
+    return LoopRoomsInternal.participantsCount;
+  },
+
   getAll: function(version, callback) {
     return LoopRoomsInternal.getAll(version, callback);
   },
