@@ -129,9 +129,6 @@ private:
         HRTFDatabaseLoader* mLoader;
     };
 
-    static PLDHashOperator shutdownEnumFunc(LoaderByRateEntry *entry,
-                                            void* unused);
-
     
     static nsTHashtable<LoaderByRateEntry> *s_loaderMap; 
 
