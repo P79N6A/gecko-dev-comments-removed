@@ -179,4 +179,17 @@ SERVER_ERRNO_TO_ERROR[ERRNO_SERVICE_TEMP_UNAVAILABLE]       = ERROR_SERVICE_TEMP
 SERVER_ERRNO_TO_ERROR[ERRNO_UNKNOWN_ERROR]                  = ERROR_UNKNOWN;
 
 
+
+
+
+
+
+this.FXA_PWDMGR_PLAINTEXT_FIELDS = ["email", "verified", "authAt",
+                                    "sessionToken", "uid"];
+
+this.FXA_PWDMGR_HOST = "chrome://FirefoxAccounts";
+
+this.FXA_PWDMGR_REALM = "Firefox Accounts credentials";
+
+
 this.EXPORTED_SYMBOLS = Object.keys(this);
