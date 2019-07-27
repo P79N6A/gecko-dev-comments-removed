@@ -6018,13 +6018,10 @@ nsBlockFrame::ReflowPushedFloats(nsBlockReflowState& aState,
 {
   
   
-  for (nsIFrame* f = mFloats.FirstChild(), *next;
-       f && (f->GetStateBits() & NS_FRAME_IS_PUSHED_FLOAT);
-       f = next) {
-    
-    
-    next = f->GetNextSibling();
-
+  nsIFrame* f = mFloats.FirstChild();
+  nsIFrame* prev = nullptr;
+  while (f && (f->GetStateBits() & NS_FRAME_IS_PUSHED_FLOAT)) {
+    MOZ_ASSERT(prev == f->GetPrevSibling());
     
     
     
@@ -6061,14 +6058,22 @@ nsBlockFrame::ReflowPushedFloats(nsBlockReflowState& aState,
     if (prevContinuation && prevContinuation->GetParent() == f->GetParent()) {
       mFloats.RemoveFrame(f);
       aState.AppendPushedFloat(f);
+      f = !prev ? mFloats.FirstChild() : prev->GetNextSibling();
       continue;
     }
 
     
     
     aState.FlowAndPlaceFloat(f);
-
     ConsiderChildOverflow(aOverflowAreas, f);
+
+    nsIFrame* next = !prev ? mFloats.FirstChild() : prev->GetNextSibling();
+    if (next == f) {
+      
+      next = f->GetNextSibling();
+      prev = f;
+    } 
+    f = next;
   }
 
   
