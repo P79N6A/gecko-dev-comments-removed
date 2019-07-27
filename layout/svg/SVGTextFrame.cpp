@@ -3704,10 +3704,22 @@ SVGTextFrame::GetFrameForPoint(const nsPoint& aPoint)
     NS_ASSERTION(!NS_SUBTREE_DIRTY(this), "reflow should have happened");
   }
 
+  
+  
+  
+  if (!nsSVGUtils::HitTestClip(this, aPoint)) {
+    return nullptr;
+  }
+
   nsPresContext* presContext = PresContext();
 
   gfxPoint pointInOuterSVGUserUnits =
     gfxPoint(aPoint.x, aPoint.y) / PresContext()->AppUnitsPerCSSPixel();
+
+  
+  
+  
+  
 
   TextRenderedRunIterator it(this);
   nsIFrame* hit = nullptr;
@@ -3728,8 +3740,7 @@ SVGTextFrame::GetFrameForPoint(const nsPoint& aPoint)
       run.GetRunUserSpaceRect(presContext, TextRenderedRun::eIncludeFill |
                                            TextRenderedRun::eIncludeStroke).ToThebesRect();
 
-    if (Inside(frameRect, pointInRunUserSpace) &&
-        nsSVGUtils::HitTestClip(this, aPoint)) {
+    if (Inside(frameRect, pointInRunUserSpace)) {
       hit = run.mFrame;
     }
   }
