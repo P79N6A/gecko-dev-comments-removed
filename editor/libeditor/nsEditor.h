@@ -807,6 +807,19 @@ public:
 
   virtual already_AddRefed<nsIDOMNode> FindUserSelectAllNode(nsIDOMNode* aNode) { return nullptr; }
 
+  
+
+
+
+  int32_t GetIMESelectionStartOffsetIn(nsINode* aTextNode);
+
+  
+
+
+
+  void FindBetterInsertionPoint(nsCOMPtr<nsINode>& aNode,
+                                int32_t& aOffset);
+
 protected:
   enum Tristate {
     eTriUnset,
