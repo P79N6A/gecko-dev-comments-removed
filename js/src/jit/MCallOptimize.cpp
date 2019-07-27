@@ -229,11 +229,12 @@ IonBuilder::inlineNativeGetter(CallInfo &callInfo, JSFunction *target)
     
     
     
+    
     if (thisTypes) {
         Scalar::Type type;
 
         type = thisTypes->getTypedArrayType();
-        if (type != Scalar::TypeMax && TypedArrayObject::isOriginalLengthGetter(type, native)) {
+        if (type != Scalar::TypeMax && TypedArrayObject::isOriginalLengthGetter(native)) {
             MInstruction *length = addTypedArrayLength(callInfo.thisArg());
             current->push(length);
             return InliningStatus_Inlined;

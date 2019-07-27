@@ -439,7 +439,13 @@ function test()
     checkThrows(function() new Float32Array(null));
 
     a = new Uint8Array(0x100);
-    checkThrows(function() Uint32Array.prototype.subarray.apply(a, [0, 0x100]));
+    b = Uint32Array.prototype.subarray.apply(a, [0, 0x100]);
+    check(() => Object.prototype.toString.call(b) === "[object Uint8Array]");
+    check(() => b.buffer === a.buffer);
+    check(() => b.length === a.length);
+    check(() => b.byteLength === a.byteLength);
+    check(() => b.byteOffset === a.byteOffset);
+    check(() => b.BYTES_PER_ELEMENT === a.BYTES_PER_ELEMENT);
 
     
     
@@ -568,8 +574,13 @@ function test()
     check(function () Object.getPrototypeOf(view) == Int8Array.prototype);
 
     
-    check(function () !Object.getOwnPropertyDescriptor(simple, 'byteLength'));
-    check(function () Object.getOwnPropertyDescriptor(Int8Array.prototype, 'byteLength'));
+    check(() => !simple.hasOwnProperty('byteLength'));
+    check(() => !Int8Array.prototype.hasOwnProperty('byteLength'));
+    check(() => Object.getPrototypeOf(Int8Array.prototype).hasOwnProperty('byteLength'));
+
+    check(() => !simple.hasOwnProperty("BYTES_PER_ELEMENT"));
+    check(() => Int8Array.prototype.hasOwnProperty("BYTES_PER_ELEMENT"));
+    check(() => !Object.getPrototypeOf(Int8Array.prototype).hasOwnProperty("BYTES_PER_ELEMENT"));
 
     
     
