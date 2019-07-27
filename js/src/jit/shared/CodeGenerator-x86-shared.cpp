@@ -2331,6 +2331,14 @@ CodeGeneratorX86Shared::visitSimdBinaryArithIx4(LSimdBinaryArithIx4 *ins)
       case MSimdBinaryArith::Div:
         
         break;
+      case MSimdBinaryArith::Max:
+        
+        
+        break;
+      case MSimdBinaryArith::Min:
+        
+        
+        break;
     }
     MOZ_CRASH("unexpected SIMD op");
 }
@@ -2355,6 +2363,19 @@ CodeGeneratorX86Shared::visitSimdBinaryArithFx4(LSimdBinaryArithFx4 *ins)
         return true;
       case MSimdBinaryArith::Div:
         masm.packedDivFloat32(rhs, lhs);
+        return true;
+      case MSimdBinaryArith::Max:
+        
+        
+        
+        
+        
+        
+        masm.maxps(rhs, lhs);
+        return true;
+      case MSimdBinaryArith::Min:
+        
+        masm.minps(rhs, lhs);
         return true;
     }
     MOZ_CRASH("unexpected SIMD op");
