@@ -67,7 +67,6 @@ class TableTicker: public Sampler {
     mJankOnly = hasFeature(aFeatures, aFeatureCount, "jank");
     mProfileJS = hasFeature(aFeatures, aFeatureCount, "js");
     mProfileJava = hasFeature(aFeatures, aFeatureCount, "java");
-    mProfileGPU = hasFeature(aFeatures, aFeatureCount, "gpu");
     mProfilePower = hasFeature(aFeatures, aFeatureCount, "power");
     
     
@@ -201,7 +200,6 @@ class TableTicker: public Sampler {
   bool HasUnwinderThread() const { return mUnwinderThread; }
   bool ProfileJS() const { return mProfileJS; }
   bool ProfileJava() const { return mProfileJava; }
-  bool ProfileGPU() const { return mProfileGPU; }
   bool ProfilePower() const { return mProfilePower; }
   bool ProfileThreads() const { return mProfileThreads; }
   bool InPrivacyMode() const { return mPrivacyMode; }
@@ -228,7 +226,6 @@ protected:
   bool mUseStackWalk;
   bool mJankOnly;
   bool mProfileJS;
-  bool mProfileGPU;
   bool mProfileThreads;
   bool mUnwinderThread;
   bool mProfileJava;
