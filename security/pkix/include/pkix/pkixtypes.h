@@ -276,6 +276,13 @@ public:
   
   
   
+  virtual Result CheckSignatureDigestAlgorithm(DigestAlgorithm digestAlg) = 0;
+
+  
+  
+  
+  
+  
   virtual Result CheckRSAPublicKeyModulusSizeInBits(
                    EndEntityOrCA endEntityOrCA,
                    unsigned int modulusSizeInBits) = 0;

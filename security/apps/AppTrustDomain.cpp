@@ -244,6 +244,13 @@ AppTrustDomain::IsChainValid(const DERArray& certChain, Time time)
 }
 
 Result
+AppTrustDomain::CheckSignatureDigestAlgorithm(DigestAlgorithm)
+{
+  
+  return Success;
+}
+
+Result
 AppTrustDomain::CheckRSAPublicKeyModulusSizeInBits(
   EndEntityOrCA , unsigned int modulusSizeInBits)
 {
@@ -257,6 +264,7 @@ Result
 AppTrustDomain::VerifyRSAPKCS1SignedDigest(const SignedDigest& signedDigest,
                                            Input subjectPublicKeyInfo)
 {
+  
   return VerifyRSAPKCS1SignedDigestNSS(signedDigest, subjectPublicKeyInfo,
                                        mPinArg);
 }

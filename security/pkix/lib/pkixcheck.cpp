@@ -33,12 +33,15 @@ namespace mozilla { namespace pkix {
 
 
 Result
-CheckSignatureAlgorithm(Input signatureAlgorithmValue, Input signatureValue)
+CheckSignatureAlgorithm(TrustDomain& trustDomain,
+                        EndEntityOrCA endEntityOrCA,
+                        const der::SignedDataWithSignature& signedData,
+                        Input signatureValue)
 {
   
   der::PublicKeyAlgorithm publicKeyAlg;
   DigestAlgorithm digestAlg;
-  Reader signatureAlgorithmReader(signatureAlgorithmValue);
+  Reader signatureAlgorithmReader(signedData.algorithm);
   Result rv = der::SignatureAlgorithmIdentifierValue(signatureAlgorithmReader,
                                                      publicKeyAlg, digestAlg);
   if (rv != Success) {
@@ -76,6 +79,44 @@ CheckSignatureAlgorithm(Input signatureAlgorithmValue, Input signatureValue)
   
   if (publicKeyAlg != signedPublicKeyAlg || digestAlg != signedDigestAlg) {
     return Result::ERROR_SIGNATURE_ALGORITHM_MISMATCH;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  rv = trustDomain.CheckSignatureDigestAlgorithm(digestAlg);
+  if (rv != Success) {
+    return rv;
+  }
+
+  switch (publicKeyAlg) {
+    case der::PublicKeyAlgorithm::RSA_PKCS1:
+    {
+      
+      
+      
+      
+      
+      unsigned int signatureSizeInBits = signedData.signature.GetLength() * 8u;
+      return trustDomain.CheckRSAPublicKeyModulusSizeInBits(
+               endEntityOrCA, signatureSizeInBits);
+    }
+
+    case der::PublicKeyAlgorithm::ECDSA:
+      
+      
+      
+      
+      break;
+
+    MOZILLA_PKIX_UNREACHABLE_DEFAULT_ENUM
   }
 
   return Success;
@@ -808,8 +849,8 @@ CheckIssuerIndependentProperties(TrustDomain& trustDomain,
 
   switch (trustLevel) {
     case TrustLevel::InheritsTrust:
-      rv = CheckSignatureAlgorithm(cert.GetSignedData().algorithm,
-                                   cert.GetSignature());
+      rv = CheckSignatureAlgorithm(trustDomain, endEntityOrCA,
+                                   cert.GetSignedData(), cert.GetSignature());
       if (rv != Success) {
         return rv;
       }

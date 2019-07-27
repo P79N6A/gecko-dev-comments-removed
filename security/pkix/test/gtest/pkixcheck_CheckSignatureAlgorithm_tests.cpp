@@ -30,8 +30,10 @@ using namespace mozilla::pkix::test;
 
 namespace mozilla { namespace pkix {
 
-extern Result CheckSignatureAlgorithm(Input signatureAlgorithmValue,
-                                      Input signatureValue);
+extern Result CheckSignatureAlgorithm(
+                TrustDomain& trustDomain, EndEntityOrCA endEntityOrCA,
+                const der::SignedDataWithSignature& signedData,
+                Input signatureValue);
 
 } } 
 
@@ -39,6 +41,7 @@ struct CheckSignatureAlgorithmTestParams
 {
   ByteString signatureAlgorithmValue;
   ByteString signatureValue;
+  unsigned int signatureLengthInBytes;
   Result expectedResult;
 };
 
@@ -76,85 +79,109 @@ static const CheckSignatureAlgorithmTestParams
   { 
     ByteString(),
     ByteString(),
+    2048 / 8,
     Result::ERROR_BAD_DER,
   },
   { 
     ByteString(),
     BS(tlv_sha256WithRSAEncryption),
+    2048 / 8,
     Result::ERROR_BAD_DER,
   },
   { 
     BS(tlv_sha256WithRSAEncryption),
     ByteString(),
+    2048 / 8,
     Result::ERROR_BAD_DER,
   },
   { 
     BS(tlv_sha256WithRSAEncryption),
     BS(tlv_sha256WithRSAEncryption),
+    2048 / 8,
     Success
   },
   { 
     BS(tlv_sha256WithRSAEncryption_truncated),
     BS(tlv_sha256WithRSAEncryption),
+    2048 / 8,
     Result::ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED
   },
   { 
     BS(tlv_sha256WithRSAEncryption),
     BS(tlv_sha256WithRSAEncryption_truncated),
+    2048 / 8,
     Result::ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED
   },
   { 
     BS(tlv_sha_1WithRSAEncryption),
     BS(tlv_sha256WithRSAEncryption),
+    2048 / 8,
     Result::ERROR_SIGNATURE_ALGORITHM_MISMATCH,
   },
   { 
     BS(tlv_sha256WithRSAEncryption),
     BS(tlv_sha_1WithRSAEncryption),
+    2048 / 8,
     Result::ERROR_SIGNATURE_ALGORITHM_MISMATCH,
   },
   { 
     BS(tlv_md5WithRSAEncryption),
     BS(tlv_md5WithRSAEncryption),
+    2048 / 8,
     Result::ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED
   },
   { 
     BS(tlv_md5WithRSAEncryption),
     BS(tlv_sha256WithRSAEncryption),
+    2048 / 8,
     Result::ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED
   },
   { 
     BS(tlv_sha256WithRSAEncryption),
     BS(tlv_md5WithRSAEncryption),
+    2048 / 8,
     Result::ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED
   },
   { 
     BS(tlv_sha256WithRSAEncryption) + TLV(der::NULLTag, ByteString()),
     BS(tlv_sha256WithRSAEncryption) + TLV(der::NULLTag, ByteString()),
+    2048 / 8,
     Success
   },
   { 
     BS(tlv_sha256WithRSAEncryption) + TLV(der::NULLTag, ByteString()),
     BS(tlv_sha256WithRSAEncryption),
+    2048 / 8,
     Success
   },
   { 
     
     BS(tlv_sha256WithRSAEncryption),
     BS(tlv_sha256WithRSAEncryption) + TLV(der::NULLTag, ByteString()),
+    2048 / 8,
     Success
   },
   { 
     
     BS(tlv_sha1WithRSASignature),
     BS(tlv_sha_1WithRSAEncryption),
+    2048 / 8,
     Success,
   },
   { 
     
     BS(tlv_sha_1WithRSAEncryption),
     BS(tlv_sha1WithRSASignature),
+    2048 / 8,
     Success,
+  },
+  { 
+    
+    
+    BS(tlv_sha256WithRSAEncryption),
+    BS(tlv_sha256WithRSAEncryption),
+    (2048 / 8) - 1,
+    Success
   },
 };
 
@@ -162,6 +189,39 @@ class pkixcheck_CheckSignatureAlgorithm
   : public ::testing::Test
   , public ::testing::WithParamInterface<CheckSignatureAlgorithmTestParams>
 {
+};
+
+class pkixcheck_CheckSignatureAlgorithm_TrustDomain final
+  : public EverythingFailsByDefaultTrustDomain
+{
+public:
+  explicit pkixcheck_CheckSignatureAlgorithm_TrustDomain(
+             unsigned int publicKeySizeInBits)
+    : publicKeySizeInBits(publicKeySizeInBits)
+    , checkedDigestAlgorithm(false)
+    , checkedModulusSizeInBits(false)
+  {
+  }
+
+  Result CheckSignatureDigestAlgorithm(DigestAlgorithm) override
+  {
+    checkedDigestAlgorithm = true;
+    return Success;
+  }
+
+  Result CheckRSAPublicKeyModulusSizeInBits(EndEntityOrCA endEntityOrCA,
+                                            unsigned int modulusSizeInBits)
+    override
+  {
+    EXPECT_EQ(EndEntityOrCA::MustBeEndEntity, endEntityOrCA);
+    EXPECT_EQ(publicKeySizeInBits, modulusSizeInBits);
+    checkedModulusSizeInBits = true;
+    return Success;
+  }
+
+  const unsigned int publicKeySizeInBits;
+  bool checkedDigestAlgorithm;
+  bool checkedModulusSizeInBits;
 };
 
 TEST_P(pkixcheck_CheckSignatureAlgorithm, CheckSignatureAlgorithm)
@@ -173,26 +233,37 @@ TEST_P(pkixcheck_CheckSignatureAlgorithm, CheckSignatureAlgorithm)
             signatureValueInput.Init(params.signatureValue.data(),
                                      params.signatureValue.length()));
 
-  Input signatureAlgorithmValueInput;
+  pkixcheck_CheckSignatureAlgorithm_TrustDomain
+    trustDomain(params.signatureLengthInBytes * 8);
+
+  der::SignedDataWithSignature signedData;
   ASSERT_EQ(Success,
-            signatureAlgorithmValueInput.Init(
-              params.signatureAlgorithmValue.data(),
-              params.signatureAlgorithmValue.length()));
+            signedData.algorithm.Init(params.signatureAlgorithmValue.data(),
+                                      params.signatureAlgorithmValue.length()));
+
+  ByteString dummySignature(params.signatureLengthInBytes, 0xDE);
+  ASSERT_EQ(Success,
+            signedData.signature.Init(dummySignature.data(),
+                                      dummySignature.length()));
 
   ASSERT_EQ(params.expectedResult,
-            CheckSignatureAlgorithm(signatureAlgorithmValueInput,
-                                    signatureValueInput));
+            CheckSignatureAlgorithm(trustDomain, EndEntityOrCA::MustBeEndEntity,
+                                    signedData, signatureValueInput));
+  ASSERT_EQ(params.expectedResult == Success,
+            trustDomain.checkedDigestAlgorithm);
+  ASSERT_EQ(params.expectedResult == Success,
+            trustDomain.checkedModulusSizeInBits);
 }
 
 INSTANTIATE_TEST_CASE_P(
   pkixcheck_CheckSignatureAlgorithm, pkixcheck_CheckSignatureAlgorithm,
   testing::ValuesIn(CHECKSIGNATUREALGORITHM_TEST_PARAMS));
 
-class pkixcheck_CheckSignatureAlgorithmTrustDomain
+class pkixcheck_CheckSignatureAlgorithm_BuildCertChain_TrustDomain
   : public DefaultCryptoTrustDomain
 {
 public:
-  explicit pkixcheck_CheckSignatureAlgorithmTrustDomain(
+  explicit pkixcheck_CheckSignatureAlgorithm_BuildCertChain_TrustDomain(
              const ByteString& issuer)
     : issuer(issuer)
   {
@@ -275,7 +346,8 @@ TEST_F(pkixcheck_CheckSignatureAlgorithm, BuildCertChain)
 
   Input subjectInput;
   ASSERT_EQ(Success, subjectInput.Init(subject.data(), subject.length()));
-  pkixcheck_CheckSignatureAlgorithmTrustDomain trustDomain(issuer);
+  pkixcheck_CheckSignatureAlgorithm_BuildCertChain_TrustDomain
+    trustDomain(issuer);
   Result rv = BuildCertChain(trustDomain, subjectInput, Now(),
                              EndEntityOrCA::MustBeEndEntity,
                              KeyUsage::noParticularKeyUsageRequired,
