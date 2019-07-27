@@ -1557,6 +1557,10 @@ nsPluginHost::ClearSiteData(nsIPluginTag* plugin, const nsACString& domain,
 
   nsPluginTag* tag = static_cast<nsPluginTag*>(plugin);
 
+  if (!tag->IsEnabled()) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
   
   
   
