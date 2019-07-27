@@ -194,6 +194,101 @@ enum BluetoothStatus {
   STATUS_RMT_DEV_DOWN
 };
 
+enum BluetoothBondState {
+  BOND_STATE_NONE,
+  BOND_STATE_BONDING,
+  BOND_STATE_BONDED
+};
+
+enum BluetoothDeviceType {
+  DEVICE_TYPE_BREDR,
+  DEVICE_TYPE_BLE,
+  DEVICE_TYPE_DUAL
+};
+
+enum BluetoothPropertyType {
+  PROPERTY_BDNAME,
+  PROPERTY_BDADDR,
+  PROPERTY_UUIDS,
+  PROPERTY_CLASS_OF_DEVICE,
+  PROPERTY_TYPE_OF_DEVICE,
+  PROPERTY_SERVICE_RECORD,
+  PROPERTY_ADAPTER_SCAN_MODE,
+  PROPERTY_ADAPTER_BONDED_DEVICES,
+  PROPERTY_ADAPTER_DISCOVERY_TIMEOUT,
+  PROPERTY_REMOTE_FRIENDLY_NAME,
+  PROPERTY_REMOTE_RSSI,
+  PROPERTY_REMOTE_VERSION_INFO,
+  PROPERTY_REMOTE_DEVICE_TIMESTAMP
+};
+
+enum BluetoothScanMode {
+  SCAN_MODE_NONE,
+  SCAN_MODE_CONNECTABLE,
+  SCAN_MODE_CONNECTABLE_DISCOVERABLE
+};
+
+enum BluetoothSspVariant {
+  SSP_VARIANT_PASSKEY_CONFIRMATION,
+  SSP_VARIANT_PASSKEY_ENTRY,
+  SSP_VARIANT_CONSENT,
+  SSP_VARIANT_PASSKEY_NOTIFICATION
+};
+
+struct BluetoothUuid {
+  uint8_t mUuid[16];
+};
+
+struct BluetoothServiceRecord {
+  BluetoothUuid mUuid;
+  uint16_t mChannel;
+  char mName[256];
+};
+
+struct BluetoothRemoteInfo {
+  int mVerMajor;
+  int mVerMinor;
+  int mManufacturer;
+};
+
+struct BluetoothProperty {
+  
+  BluetoothPropertyType mType;
+
+  
+
+
+  
+
+
+  nsString mString;
+
+  
+  nsTArray<BluetoothUuid> mUuidArray;
+
+  
+  nsTArray<nsString> mStringArray;
+
+  
+
+  uint32_t mUint32;
+
+  
+  int32_t mInt32;
+
+  
+  BluetoothDeviceType mDeviceType;
+
+  
+  BluetoothServiceRecord mServiceRecord;
+
+  
+  BluetoothScanMode mScanMode;
+
+  
+  BluetoothRemoteInfo mRemoteInfo;
+};
+
 enum BluetoothSocketType {
   RFCOMM = 1,
   SCO    = 2,
