@@ -835,6 +835,10 @@ loop.conversationViews = (function(mozL10n) {
   });
 
   var OngoingConversationView = React.createClass({displayName: "OngoingConversationView",
+    mixins: [
+      sharedMixins.MediaSetupMixin
+    ],
+
     propTypes: {
       dispatcher: React.PropTypes.instanceOf(loop.Dispatcher).isRequired,
       video: React.PropTypes.object,
@@ -850,72 +854,15 @@ loop.conversationViews = (function(mozL10n) {
 
     componentDidMount: function() {
       
-
-
-
-
-
-      window.addEventListener('orientationchange', this.updateVideoContainer);
-      window.addEventListener('resize', this.updateVideoContainer);
-
-      
       
       
       this.props.dispatcher.dispatch(new sharedActions.SetupStreamElements({
-        publisherConfig: this._getPublisherConfig(),
+        publisherConfig: this.getDefaultPublisherConfig({
+          publishVideo: this.props.video.enabled
+        }),
         getLocalElementFunc: this._getElement.bind(this, ".local"),
         getRemoteElementFunc: this._getElement.bind(this, ".remote")
       }));
-    },
-
-    componentWillUnmount: function() {
-      window.removeEventListener('orientationchange', this.updateVideoContainer);
-      window.removeEventListener('resize', this.updateVideoContainer);
-    },
-
-    
-
-
-
-
-    _getElement: function(className) {
-      return this.getDOMNode().querySelector(className);
-    },
-
-    
-
-
-    _getPublisherConfig: function() {
-      
-      
-      return {
-        insertMode: "append",
-        width: "100%",
-        height: "100%",
-        publishVideo: this.props.video.enabled,
-        style: {
-          audioLevelDisplayMode: "off",
-          bugDisplayMode: "off",
-          buttonDisplayMode: "off",
-          nameDisplayMode: "off",
-          videoDisabledDisplayMode: "off"
-        }
-      };
-    },
-
-    
-
-
-
-    updateVideoContainer: function() {
-      var localStreamParent = this._getElement('.local .OT_publisher');
-      var remoteStreamParent = this._getElement('.remote .OT_subscriber');
-      if (localStreamParent) {
-        localStreamParent.style.width = "100%";
-      }
-      if (remoteStreamParent) {
-        remoteStreamParent.style.height = "100%";
-      }
     },
 
     

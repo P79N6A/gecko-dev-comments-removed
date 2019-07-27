@@ -164,6 +164,7 @@ loop.roomViews = (function(mozL10n) {
     mixins: [
       ActiveRoomStoreMixin,
       sharedMixins.DocumentTitleMixin,
+      sharedMixins.MediaSetupMixin,
       sharedMixins.RoomsAudioMixin
     ],
 
@@ -183,17 +184,6 @@ loop.roomViews = (function(mozL10n) {
       return null;
     },
 
-    componentDidMount: function() {
-      
-
-
-
-
-
-      window.addEventListener('orientationchange', this.updateVideoContainer);
-      window.addEventListener('resize', this.updateVideoContainer);
-    },
-
     componentWillUpdate: function(nextProps, nextState) {
       
       
@@ -201,53 +191,13 @@ loop.roomViews = (function(mozL10n) {
       if (this.state.roomState !== ROOM_STATES.MEDIA_WAIT &&
           nextState.roomState === ROOM_STATES.MEDIA_WAIT) {
         this.props.dispatcher.dispatch(new sharedActions.SetupStreamElements({
-          publisherConfig: this._getPublisherConfig(),
+          publisherConfig: this.getDefaultPublisherConfig({
+            publishVideo: !this.state.videoMuted
+          }),
           getLocalElementFunc: this._getElement.bind(this, ".local"),
           getRemoteElementFunc: this._getElement.bind(this, ".remote")
         }));
       }
-    },
-
-    _getPublisherConfig: function() {
-      
-      
-      return {
-        insertMode: "append",
-        width: "100%",
-        height: "100%",
-        publishVideo: !this.state.videoMuted,
-        style: {
-          audioLevelDisplayMode: "off",
-          bugDisplayMode: "off",
-          buttonDisplayMode: "off",
-          nameDisplayMode: "off",
-          videoDisabledDisplayMode: "off"
-        }
-      };
-    },
-
-    
-
-
-
-    updateVideoContainer: function() {
-      var localStreamParent = this._getElement('.local .OT_publisher');
-      var remoteStreamParent = this._getElement('.remote .OT_subscriber');
-      if (localStreamParent) {
-        localStreamParent.style.width = "100%";
-      }
-      if (remoteStreamParent) {
-        remoteStreamParent.style.height = "100%";
-      }
-    },
-
-    
-
-
-
-
-    _getElement: function(className) {
-      return this.getDOMNode().querySelector(className);
     },
 
     

@@ -156,6 +156,75 @@ loop.shared.mixins = (function() {
 
 
 
+  var MediaSetupMixin = {
+    componentDidMount: function() {
+      rootObject.addEventListener('orientationchange', this.updateVideoContainer);
+      rootObject.addEventListener('resize', this.updateVideoContainer);
+    },
+
+    componentWillUnmount: function() {
+      rootObject.removeEventListener('orientationchange', this.updateVideoContainer);
+      rootObject.removeEventListener('resize', this.updateVideoContainer);
+    },
+
+    
+
+
+
+    updateVideoContainer: function() {
+      var localStreamParent = this._getElement('.local .OT_publisher');
+      var remoteStreamParent = this._getElement('.remote .OT_subscriber');
+      if (localStreamParent) {
+        localStreamParent.style.width = "100%";
+      }
+      if (remoteStreamParent) {
+        remoteStreamParent.style.height = "100%";
+      }
+    },
+
+    
+
+
+
+
+
+    getDefaultPublisherConfig: function(options) {
+      options = options || {};
+      if (!"publishVideo" in options) {
+        throw new Error("missing option publishVideo");
+      }
+
+      
+      
+      return {
+        insertMode: "append",
+        width: "100%",
+        height: "100%",
+        publishVideo: options.publishVideo,
+        style: {
+          audioLevelDisplayMode: "off",
+          bugDisplayMode: "off",
+          buttonDisplayMode: "off",
+          nameDisplayMode: "off",
+          videoDisabledDisplayMode: "off"
+        }
+      };
+    },
+
+    
+
+
+
+
+    _getElement: function(className) {
+      return this.getDOMNode().querySelector(className);
+    }
+  };
+
+  
+
+
+
   var AudioMixin = {
     audio: null,
     _audioRequest: null,
@@ -308,6 +377,7 @@ loop.shared.mixins = (function() {
     DocumentVisibilityMixin: DocumentVisibilityMixin,
     DocumentLocationMixin: DocumentLocationMixin,
     DocumentTitleMixin: DocumentTitleMixin,
+    MediaSetupMixin: MediaSetupMixin,
     UrlHashChangeMixin: UrlHashChangeMixin,
     WindowCloseMixin: WindowCloseMixin
   };

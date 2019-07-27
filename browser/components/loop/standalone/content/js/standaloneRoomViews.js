@@ -194,6 +194,7 @@ loop.standaloneRoomViews = (function(mozL10n) {
   var StandaloneRoomView = React.createClass({displayName: "StandaloneRoomView",
     mixins: [
       Backbone.Events,
+      sharedMixins.MediaSetupMixin,
       sharedMixins.RoomsAudioMixin
     ],
 
@@ -231,61 +232,7 @@ loop.standaloneRoomViews = (function(mozL10n) {
       this.setState(this.props.activeRoomStore.getStoreState());
     },
 
-    
-
-
-
-
-    _getElement: function(className) {
-      return this.getDOMNode().querySelector(className);
-    },
-
-     
-
-
-    _getPublisherConfig: function() {
-      
-      
-      return {
-        insertMode: "append",
-        width: "100%",
-        height: "100%",
-        publishVideo: true,
-        style: {
-          audioLevelDisplayMode: "off",
-          bugDisplayMode: "off",
-          buttonDisplayMode: "off",
-          nameDisplayMode: "off",
-          videoDisabledDisplayMode: "off"
-        }
-      };
-    },
-
-    
-
-
-
-    updateVideoContainer: function() {
-      var localStreamParent = this._getElement('.local .OT_publisher');
-      var remoteStreamParent = this._getElement('.remote .OT_subscriber');
-      if (localStreamParent) {
-        localStreamParent.style.width = "100%";
-      }
-      if (remoteStreamParent) {
-        remoteStreamParent.style.height = "100%";
-      }
-    },
-
     componentDidMount: function() {
-      
-
-
-
-
-
-      window.addEventListener('orientationchange', this.updateVideoContainer);
-      window.addEventListener('resize', this.updateVideoContainer);
-
       
       document.body.classList.add("is-standalone-room");
     },
@@ -305,7 +252,7 @@ loop.standaloneRoomViews = (function(mozL10n) {
       if (this.state.roomState !== ROOM_STATES.MEDIA_WAIT &&
           nextState.roomState === ROOM_STATES.MEDIA_WAIT) {
         this.props.dispatcher.dispatch(new sharedActions.SetupStreamElements({
-          publisherConfig: this._getPublisherConfig(),
+          publisherConfig: this.getDefaultPublisherConfig({publishVideo: true}),
           getLocalElementFunc: this._getElement.bind(this, ".local"),
           getRemoteElementFunc: this._getElement.bind(this, ".remote")
         }));
