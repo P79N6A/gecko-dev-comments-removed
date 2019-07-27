@@ -1232,13 +1232,17 @@ TrackBuffersManager::ProcessFrame(MediaRawData* aSample,
   TimeUnit frameEndTimestamp = presentationTimestamp + frameDuration;
 
   
-  if (presentationTimestamp.ToSeconds() < mParent->mAppendWindowStart) {
-    trackBuffer.mNeedRandomAccessPoint = true;
-    return false;
-  }
+  
 
   
-  if (frameEndTimestamp.ToSeconds() > mParent->mAppendWindowEnd) {
+  
+  TimeInterval targetWindow{
+    TimeInterval(TimeUnit::FromSeconds(mParent->mAppendWindowStart),
+                 TimeUnit::FromSeconds(mParent->mAppendWindowEnd),
+                 trackBuffer.mLongestFrameDuration.valueOr(frameDuration))};
+  TimeInterval frameInterval{presentationTimestamp, frameEndTimestamp};
+
+  if (!targetWindow.Contains(frameInterval)) {
     trackBuffer.mNeedRandomAccessPoint = true;
     return false;
   }
