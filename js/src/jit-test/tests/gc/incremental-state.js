@@ -17,6 +17,7 @@ if ("gcstate" in this) {
 
 
 
+    gczeal(0);
     gcslice(1);
     assertEq(gcstate(), "mark");
     gcslice(1000000);
