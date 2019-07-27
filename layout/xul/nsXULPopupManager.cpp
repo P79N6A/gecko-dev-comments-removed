@@ -206,6 +206,24 @@ nsXULPopupManager::Rollup(uint32_t aCount, const nsIntPoint* pos, nsIContent** a
     
     if (!consume && pos) {
       nsCOMPtr<nsIContent> anchor = item->Frame()->GetAnchor();
+
+      
+      
+      
+      
+      if (anchor) {
+        nsAutoString consumeAnchor;
+        anchor->GetAttr(kNameSpaceID_None, nsGkAtoms::consumeanchor,
+                        consumeAnchor);
+        if (!consumeAnchor.IsEmpty()) {
+          nsIDocument* doc = anchor->GetOwnerDocument();
+          nsIContent* newAnchor = doc->GetElementById(consumeAnchor);
+          if (newAnchor) {
+            anchor = newAnchor;
+          }
+        }
+      }
+
       if (anchor && anchor->GetPrimaryFrame()) {
         
         
