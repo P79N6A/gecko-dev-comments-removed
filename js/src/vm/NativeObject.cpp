@@ -1707,67 +1707,6 @@ js::NativeGet(JSContext *cx, HandleObject obj, HandleNativeObject pobj, HandleSh
     return NativeGetInline<CanGC>(cx, obj, obj, pobj, shape, vp);
 }
 
-template <ExecutionMode mode>
-static bool
-NativeSet(typename ExecutionModeTraits<mode>::ContextType cxArg, HandleNativeObject obj,
-          HandleObject receiver, HandleShape shape, bool strict, MutableHandleValue vp)
-{
-    MOZ_ASSERT(cxArg->isThreadLocal(obj));
-    MOZ_ASSERT(obj->isNative());
-
-    if (shape->hasSlot()) {
-        
-        if (shape->hasDefaultSetter()) {
-            if (mode == ParallelExecution) {
-                if (!obj->setSlotIfHasType(shape, vp))
-                    return false;
-            } else {
-                
-                
-                
-                bool overwriting = !obj->is<GlobalObject>() || !obj->getSlot(shape->slot()).isUndefined();
-                obj->setSlotWithType(cxArg->asExclusiveContext(), shape, vp, overwriting);
-            }
-
-            return true;
-        }
-    }
-
-    if (mode == ParallelExecution)
-        return false;
-    JSContext *cx = cxArg->asJSContext();
-
-    if (!shape->hasSlot()) {
-        
-
-
-
-
-
-        if (!shape->hasGetterValue() && shape->hasDefaultSetter())
-            return js_ReportGetterOnlyAssignment(cx, strict);
-    }
-
-    RootedValue ovp(cx, vp);
-
-    uint32_t sample = cx->runtime()->propertyRemovals;
-    if (!shape->set(cx, obj, receiver, strict, vp))
-        return false;
-
-    
-
-
-
-    if (shape->hasSlot() &&
-        (MOZ_LIKELY(cx->runtime()->propertyRemovals == sample) ||
-         obj->contains(cx, shape)))
-    {
-        obj->setSlot(shape->slot(), vp);
-    }
-
-    return true;
-}
-
 
 
 
@@ -1988,6 +1927,9 @@ MaybeReportUndeclaredVarAssignment(JSContext *cx, JSString *propname)
 
 
 
+
+
+
 template <ExecutionMode mode>
 static bool
 SetPropertyByDefining(typename ExecutionModeTraits<mode>::ContextType cxArg,
@@ -2156,6 +2098,71 @@ SetDenseOrTypedArrayElement(typename ExecutionModeTraits<mode>::ContextType cxAr
         return obj->setDenseElementIfHasType(index, vp);
 
     obj->setDenseElementWithType(cxArg->asJSContext(), index, vp);
+    return true;
+}
+
+
+
+
+
+template <ExecutionMode mode>
+static bool
+NativeSet(typename ExecutionModeTraits<mode>::ContextType cxArg, HandleNativeObject obj,
+          HandleObject receiver, HandleShape shape, bool strict, MutableHandleValue vp)
+{
+    MOZ_ASSERT(cxArg->isThreadLocal(obj));
+    MOZ_ASSERT(obj->isNative());
+
+    if (shape->hasSlot()) {
+        
+        if (shape->hasDefaultSetter()) {
+            if (mode == ParallelExecution) {
+                if (!obj->setSlotIfHasType(shape, vp))
+                    return false;
+            } else {
+                
+                
+                
+                bool overwriting = !obj->is<GlobalObject>() || !obj->getSlot(shape->slot()).isUndefined();
+                obj->setSlotWithType(cxArg->asExclusiveContext(), shape, vp, overwriting);
+            }
+
+            return true;
+        }
+    }
+
+    if (mode == ParallelExecution)
+        return false;
+    JSContext *cx = cxArg->asJSContext();
+
+    if (!shape->hasSlot()) {
+        
+
+
+
+
+
+        if (!shape->hasGetterValue() && shape->hasDefaultSetter())
+            return js_ReportGetterOnlyAssignment(cx, strict);
+    }
+
+    RootedValue ovp(cx, vp);
+
+    uint32_t sample = cx->runtime()->propertyRemovals;
+    if (!shape->set(cx, obj, receiver, strict, vp))
+        return false;
+
+    
+
+
+
+    if (shape->hasSlot() &&
+        (MOZ_LIKELY(cx->runtime()->propertyRemovals == sample) ||
+         obj->contains(cx, shape)))
+    {
+        obj->setSlot(shape->slot(), vp);
+    }
+
     return true;
 }
 
