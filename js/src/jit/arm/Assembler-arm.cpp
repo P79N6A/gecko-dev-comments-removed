@@ -808,8 +808,14 @@ TraceOneDataRelocation(JSTracer *trc, Iter *iter, MacroAssemblerARM *masm)
     
     gc::MarkGCThingUnbarriered(trc, &ptr, "ion-masm-ptr");
 
-    if (ptr != prior)
+    if (ptr != prior) {
         masm->ma_movPatchable(Imm32(int32_t(ptr)), dest, Assembler::Always, rs, ins);
+        
+        if (rs != Assembler::L_LDR) {
+            AutoFlushICache::flush(uintptr_t(ins), 4);
+            AutoFlushICache::flush(uintptr_t(ins->next()), 4);
+        }
+    }
 }
 
 static void
