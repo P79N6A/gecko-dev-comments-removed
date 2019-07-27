@@ -1349,3 +1349,36 @@ bool gfxUtils::sDumpPainting = getenv("MOZ_DUMP_PAINT") != 0;
 bool gfxUtils::sDumpPaintingToFile = getenv("MOZ_DUMP_PAINT_TO_FILE") != 0;
 FILE *gfxUtils::sDumpPaintFile = nullptr;
 #endif
+
+namespace mozilla {
+namespace gfx {
+
+Color ToDeviceColor(Color aColor)
+{
+  
+  
+  
+  
+  if (gfxPlatform::GetCMSMode() == eCMSMode_All) {
+    qcms_transform *transform = gfxPlatform::GetCMSRGBTransform();
+    if (transform) {
+      gfxPlatform::TransformPixel(aColor, aColor, transform);
+      
+      
+    }
+  }
+  return aColor;
+}
+
+Color ToDeviceColor(nscolor aColor)
+{
+  return ToDeviceColor(Color::FromABGR(aColor));
+}
+
+Color ToDeviceColor(const gfxRGBA& aColor)
+{
+  return ToDeviceColor(ToColor(aColor));
+}
+
+} 
+} 

@@ -12,6 +12,7 @@
 #include "imgIContainer.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/RefPtr.h"
+#include "nsColor.h"
 #include "nsPrintfCString.h"
 
 class gfxASurface;
@@ -309,6 +310,16 @@ public:
 namespace mozilla {
 namespace gfx {
 
+
+
+
+
+
+
+
+Color ToDeviceColor(Color aColor);
+Color ToDeviceColor(nscolor aColor);
+Color ToDeviceColor(const gfxRGBA& aColor);
 
 
 

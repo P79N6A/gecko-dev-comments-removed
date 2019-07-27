@@ -493,13 +493,7 @@ public:
 
 
 
-    static void TransformPixel(const gfxRGBA& in, gfxRGBA& out, qcms_transform *transform);
-
-    
-
-
-
-    static Color MaybeTransformColor(const gfxRGBA& aColor);
+    static void TransformPixel(const Color& in, Color& out, qcms_transform *transform);
 
     
 
