@@ -11,8 +11,15 @@ const Ci = Components.interfaces;
 const Cr = Components.results;
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://gre/modules/AddonManager.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
+
+try {
+  
+  
+  
+  Components.utils.import("resource://gre/modules/AddonManager.jsm");
+} catch (e) {
+}
 
 XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
                                   "resource://gre/modules/FileUtils.jsm");
