@@ -273,8 +273,9 @@ class JS_FRIEND_API(BaseProxyHandler)
 
 
 
-    virtual bool getPrototypeOf(JSContext *cx, HandleObject proxy, MutableHandleObject protop) const;
-    virtual bool setPrototypeOf(JSContext *cx, HandleObject proxy, HandleObject proto, bool *bp) const;
+    virtual bool getPrototype(JSContext *cx, HandleObject proxy, MutableHandleObject protop) const;
+    virtual bool setPrototype(JSContext *cx, HandleObject proxy, HandleObject proto,
+                              ObjectOpResult &result) const;
 
     
     virtual bool setImmutablePrototype(JSContext *cx, HandleObject proxy, bool *succeeded) const;
@@ -380,10 +381,10 @@ class JS_FRIEND_API(DirectProxyHandler) : public BaseProxyHandler
                          ObjectOpResult &result) const MOZ_OVERRIDE;
     virtual bool enumerate(JSContext *cx, HandleObject proxy,
                            MutableHandleObject objp) const MOZ_OVERRIDE;
-    virtual bool getPrototypeOf(JSContext *cx, HandleObject proxy,
-                                MutableHandleObject protop) const MOZ_OVERRIDE;
-    virtual bool setPrototypeOf(JSContext *cx, HandleObject proxy, HandleObject proto,
-                                bool *bp) const MOZ_OVERRIDE;
+    virtual bool getPrototype(JSContext *cx, HandleObject proxy,
+                              MutableHandleObject protop) const MOZ_OVERRIDE;
+    virtual bool setPrototype(JSContext *cx, HandleObject proxy, HandleObject proto,
+                              ObjectOpResult &result) const MOZ_OVERRIDE;
     virtual bool setImmutablePrototype(JSContext *cx, HandleObject proxy,
                                        bool *succeeded) const MOZ_OVERRIDE;
     virtual bool preventExtensions(JSContext *cx, HandleObject proxy,

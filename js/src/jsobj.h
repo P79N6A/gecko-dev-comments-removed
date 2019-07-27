@@ -713,7 +713,12 @@ GetPrototype(JSContext *cx, HandleObject obj, MutableHandleObject protop);
 
 
 extern bool
-SetPrototype(JSContext *cx, HandleObject obj, HandleObject proto, bool *succeeded);
+SetPrototype(JSContext *cx, HandleObject obj, HandleObject proto,
+             ObjectOpResult &result);
+
+
+extern bool
+SetPrototype(JSContext *cx, HandleObject obj, HandleObject proto);
 
 
 

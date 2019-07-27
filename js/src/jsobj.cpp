@@ -3087,7 +3087,7 @@ JSObject::reportNotExtensible(JSContext *cx, unsigned report)
 
 
 bool
-js::SetPrototype(JSContext *cx, HandleObject obj, HandleObject proto, bool *succeeded)
+js::SetPrototype(JSContext *cx, HandleObject obj, HandleObject proto, JS::ObjectOpResult &result)
 {
     
 
@@ -3097,13 +3097,12 @@ js::SetPrototype(JSContext *cx, HandleObject obj, HandleObject proto, bool *succ
 
     if (obj->hasLazyPrototype()) {
         MOZ_ASSERT(obj->is<ProxyObject>());
-        return Proxy::setPrototypeOf(cx, obj, proto, succeeded);
+        return Proxy::setPrototype(cx, obj, proto, result);
     }
 
     
     if (obj->nonLazyPrototypeIsImmutable()) {
-        *succeeded = false;
-        return true;
+        return result.fail(JSMSG_CANT_SET_PROTO);
     }
 
     
@@ -3112,7 +3111,7 @@ js::SetPrototype(JSContext *cx, HandleObject obj, HandleObject proto, bool *succ
 
 
     if (obj->is<ArrayBufferObject>()) {
-        JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_SETPROTOTYPEOF_FAIL,
+        JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_CANT_SET_PROTO_OF,
                              "incompatible ArrayBuffer");
         return false;
     }
@@ -3121,7 +3120,7 @@ js::SetPrototype(JSContext *cx, HandleObject obj, HandleObject proto, bool *succ
 
 
     if (obj->is<TypedObject>()) {
-        JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_SETPROTOTYPEOF_FAIL,
+        JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_CANT_SET_PROTO_OF,
                              "incompatible TypedObject");
         return false;
     }
@@ -3131,7 +3130,7 @@ js::SetPrototype(JSContext *cx, HandleObject obj, HandleObject proto, bool *succ
 
 
     if (!strcmp(obj->getClass()->name, "Location")) {
-        JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_SETPROTOTYPEOF_FAIL,
+        JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_CANT_SET_PROTO_OF,
                              "incompatible Location object");
         return false;
     }
@@ -3140,18 +3139,14 @@ js::SetPrototype(JSContext *cx, HandleObject obj, HandleObject proto, bool *succ
     bool extensible;
     if (!IsExtensible(cx, obj, &extensible))
         return false;
-    if (!extensible) {
-        *succeeded = false;
-        return true;
-    }
+    if (!extensible)
+        return result.fail(JSMSG_CANT_SET_PROTO);
 
     
     RootedObject obj2(cx);
     for (obj2 = proto; obj2; ) {
-        if (obj2 == obj) {
-            *succeeded = false;
-            return true;
-        }
+        if (obj2 == obj)
+            return result.fail(JSMSG_CANT_SET_PROTO_CYCLE);
 
         if (!GetPrototype(cx, obj2, &obj2))
             return false;
@@ -3163,8 +3158,17 @@ js::SetPrototype(JSContext *cx, HandleObject obj, HandleObject proto, bool *succ
         return false;
 
     Rooted<TaggedProto> taggedProto(cx, TaggedProto(proto));
-    *succeeded = SetClassAndProto(cx, obj, obj->getClass(), taggedProto);
-    return *succeeded;
+    if (!SetClassAndProto(cx, obj, obj->getClass(), taggedProto))
+        return false;
+
+    return result.succeed();
+}
+
+bool
+js::SetPrototype(JSContext *cx, HandleObject obj, HandleObject proto)
+{
+    ObjectOpResult result;
+    return SetPrototype(cx, obj, proto, result) && result.checkStrict(cx, obj);
 }
 
 bool

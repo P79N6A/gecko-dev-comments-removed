@@ -266,8 +266,8 @@ ArrayToIdVector(JSContext *cx, HandleObject proxy, HandleObject target, HandleVa
 
 
 bool
-ScriptedDirectProxyHandler::getPrototypeOf(JSContext *cx, HandleObject proxy,
-                                           MutableHandleObject protop) const
+ScriptedDirectProxyHandler::getPrototype(JSContext *cx, HandleObject proxy,
+                                         MutableHandleObject protop) const
 {
     RootedObject target(cx, proxy->as<ProxyObject>().target());
     
@@ -276,12 +276,12 @@ ScriptedDirectProxyHandler::getPrototypeOf(JSContext *cx, HandleObject proxy,
         return false;
     }
 
-    return DirectProxyHandler::getPrototypeOf(cx, proxy, protop);
+    return DirectProxyHandler::getPrototype(cx, proxy, protop);
 }
 
 bool
-ScriptedDirectProxyHandler::setPrototypeOf(JSContext *cx, HandleObject proxy,
-                                           HandleObject proto, bool *bp) const
+ScriptedDirectProxyHandler::setPrototype(JSContext *cx, HandleObject proxy, HandleObject proto,
+                                         ObjectOpResult &result) const
 {
     RootedObject target(cx, proxy->as<ProxyObject>().target());
     if (!target) {
@@ -289,7 +289,7 @@ ScriptedDirectProxyHandler::setPrototypeOf(JSContext *cx, HandleObject proxy,
         return false;
     }
 
-    return DirectProxyHandler::setPrototypeOf(cx, proxy, proto, bp);
+    return DirectProxyHandler::setPrototype(cx, proxy, proto, result);
 }
 
 

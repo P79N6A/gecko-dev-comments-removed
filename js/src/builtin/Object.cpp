@@ -447,21 +447,8 @@ obj_setPrototypeOf(JSContext *cx, unsigned argc, Value *vp)
     
     RootedObject obj(cx, &args[0].toObject());
     RootedObject newProto(cx, args[1].toObjectOrNull());
-
-    bool success;
-    if (!SetPrototype(cx, obj, newProto, &success))
+    if (!SetPrototype(cx, obj, newProto))
         return false;
-
-    
-    if (!success) {
-        UniquePtr<char[], JS::FreePolicy> bytes(DecompileValueGenerator(cx, JSDVG_SEARCH_STACK,
-                                                                        args[0], NullPtr()));
-        if (!bytes)
-            return false;
-        JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_SETPROTOTYPEOF_FAIL,
-                             bytes.get());
-        return false;
-    }
 
     
     args.rval().set(args[0]);
@@ -1031,15 +1018,8 @@ ProtoSetter(JSContext *cx, unsigned argc, Value *vp)
     }
 
     Rooted<JSObject*> newProto(cx, args[0].toObjectOrNull());
-
-    bool success;
-    if (!SetPrototype(cx, obj, newProto, &success))
+    if (!SetPrototype(cx, obj, newProto))
         return false;
-
-    if (!success) {
-        ReportValueError(cx, JSMSG_SETPROTOTYPEOF_FAIL, JSDVG_IGNORE_STACK, thisv, js::NullPtr());
-        return false;
-    }
 
     args.rval().setUndefined();
     return true;
