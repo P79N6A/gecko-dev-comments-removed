@@ -238,17 +238,14 @@ DOMParser::ParseFromStream(nsIInputStream *stream,
 
   
   nsCOMPtr<nsIChannel> parserChannel;
-  NS_NewInputStreamChannel(getter_AddRefs(parserChannel), mDocumentURI, nullptr,
-                           nsDependentCString(contentType), nullptr);
+  NS_NewInputStreamChannel(getter_AddRefs(parserChannel),
+                           mDocumentURI,
+                           nullptr, 
+                           mOriginalPrincipal,
+                           nsILoadInfo::SEC_FORCE_INHERIT_PRINCIPAL,
+                           nsIContentPolicy::TYPE_OTHER,
+                           nsDependentCString(contentType));
   NS_ENSURE_STATE(parserChannel);
-
-  
-  nsCOMPtr<nsILoadInfo> loadInfo =
-    new LoadInfo(mOriginalPrincipal,
-                 nullptr,
-                 nsILoadInfo::SEC_FORCE_INHERIT_PRINCIPAL,
-                 nsIContentPolicy::TYPE_OTHER);
-  parserChannel->SetLoadInfo(loadInfo);
 
   if (charset) {
     parserChannel->SetContentCharset(nsDependentCString(charset));
