@@ -227,15 +227,10 @@ static const DOMIfaceAndProtoJSClass WindowNamedPropertiesClass = {
 };
 
 
-void
-WindowNamedPropertiesHandler::Install(JSContext* aCx,
-                                      JS::Handle<JSObject*> aProto)
+JSObject*
+WindowNamedPropertiesHandler::Create(JSContext* aCx,
+                                     JS::Handle<JSObject*> aProto)
 {
-  JS::Rooted<JSObject*> protoProto(aCx);
-  if (!::JS_GetPrototype(aCx, aProto, &protoProto)) {
-    return;
-  }
-
   
   
   
@@ -243,17 +238,10 @@ WindowNamedPropertiesHandler::Install(JSContext* aCx,
   js::ProxyOptions options;
   options.setSingleton(true);
   options.setClass(&WindowNamedPropertiesClass.mBase);
-  gsp = js::NewProxyObject(aCx, WindowNamedPropertiesHandler::getInstance(),
-                           JS::NullHandleValue, protoProto,
-                           js::GetGlobalForObjectCrossCompartment(aProto),
-                           options);
-  if (!gsp) {
-    return;
-  }
-
-  
-  
-  ::JS_SplicePrototype(aCx, aProto, gsp);
+  return js::NewProxyObject(aCx, WindowNamedPropertiesHandler::getInstance(),
+                            JS::NullHandleValue, aProto,
+                            js::GetGlobalForObjectCrossCompartment(aProto),
+                            options);
 }
 
 } 

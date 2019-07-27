@@ -64,8 +64,9 @@ public:
   }
 
   
-  static void
-  Install(JSContext *aCx, JS::Handle<JSObject*> aProto);
+  
+  static JSObject*
+  Create(JSContext *aCx, JS::Handle<JSObject*> aProto);
 };
 
 } 
