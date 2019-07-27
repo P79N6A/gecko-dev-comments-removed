@@ -283,7 +283,12 @@ LayerManagerComposite::EndTransaction(const TimeStamp& aTimeStamp,
     mInvalidRegion.Or(mInvalidRegion, mRenderBounds);
   }
 
-  if (mRoot && !(aFlags & END_NO_IMMEDIATE_REDRAW)) {
+  if (mInvalidRegion.IsEmpty() && !mTarget) {
+    
+    return;
+  }
+
+ if (mRoot && !(aFlags & END_NO_IMMEDIATE_REDRAW)) {
     MOZ_ASSERT(!aTimeStamp.IsNull());
     
     
