@@ -524,7 +524,7 @@ CodeGeneratorX86::visitAsmJSCompareExchangeHeap(LAsmJSCompareExchangeHeap *ins)
     
     
     uint32_t before = masm.size();
-    masm.addl_wide(Imm32(0), ptrReg);
+    masm.addlWithPatch(Imm32(0), ptrReg);
     uint32_t after = masm.size();
     masm.append(AsmJSHeapAccess(before, after, mir->viewType(), maybeCmpOffset));
 
@@ -570,7 +570,7 @@ CodeGeneratorX86::visitAsmJSAtomicBinopHeap(LAsmJSAtomicBinopHeap *ins)
     
     
     uint32_t before = masm.size();
-    masm.addl_wide(Imm32(0), ptrReg);
+    masm.addlWithPatch(Imm32(0), ptrReg);
     uint32_t after = masm.size();
     masm.append(AsmJSHeapAccess(before, after, mir->viewType(), maybeCmpOffset));
 
