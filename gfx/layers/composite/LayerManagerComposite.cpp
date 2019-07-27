@@ -212,7 +212,6 @@ LayerManagerComposite::ApplyOcclusionCulling(Layer* aLayer, nsIntRegion& aOpaque
     }
   }
 
-
   
   
   LayerComposite *composite = aLayer->AsLayerComposite();
@@ -234,7 +233,7 @@ LayerManagerComposite::ApplyOcclusionCulling(Layer* aLayer, nsIntRegion& aOpaque
       !aLayer->GetMaskLayer() &&
       aLayer->GetLocalOpacity() == 1.0f) {
     if (aLayer->GetContentFlags() & Layer::CONTENT_OPAQUE) {
-      localOpaque.Or(localOpaque, composite->GetRenderedVisibleRegion());
+      localOpaque.Or(localOpaque, composite->GetShadowVisibleRegion());
     }
     localOpaque.MoveBy(transform2d._31, transform2d._32);
     const nsIntRect* clip = aLayer->GetEffectiveClipRect();
@@ -305,8 +304,11 @@ LayerManagerComposite::EndTransaction(DrawPaintedLayerCallback aCallback,
     
     mRoot->ComputeEffectiveTransforms(gfx::Matrix4x4());
 
-    nsIntRegion opaque;
-    ApplyOcclusionCulling(mRoot, opaque);
+    
+    
+    
+    
+    
 
     Render();
     mGeometryChanged = false;
@@ -1150,14 +1152,6 @@ LayerComposite::SetLayerManager(LayerManagerComposite* aManager)
 {
   mCompositeManager = aManager;
   mCompositor = aManager->GetCompositor();
-}
-
-const nsIntRegion&
-LayerComposite::GetRenderedVisibleRegion() {
-  if (TiledLayerComposer* tiled = GetTiledLayerComposer()) {
-    return tiled->GetValidRegion();
-  }
-  return GetShadowVisibleRegion();
 }
 
 #ifndef MOZ_HAVE_PLATFORM_SPECIFIC_LAYER_BUFFERS
