@@ -81,7 +81,7 @@ GetPrefsFor(EventClassID aEventClassID)
   if (aEventClassID == NS_TOUCH_EVENT) {
     prefBranch = "touch";
     prefs = &sTouchEventRadiusPrefs;
-  } else if (aEventClassID == NS_MOUSE_EVENT) {
+  } else if (aEventClassID == eMouseEventClass) {
     
     prefBranch = "mouse";
     prefs = &sMouseEventRadiusPrefs;
@@ -105,7 +105,7 @@ GetPrefsFor(EventClassID aEventClassID)
       Preferences::AddUintVarCache(&prefs->mSideRadii[i], radiusPref.get(), 0);
     }
 
-    if (aEventClassID == NS_MOUSE_EVENT) {
+    if (aEventClassID == eMouseEventClass) {
       Preferences::AddBoolVarCache(&prefs->mTouchOnly,
           "ui.mouse.radius.inputSource.touchOnly", true);
     } else {
@@ -370,7 +370,7 @@ FindFrameTargetedByInputEvent(const WidgetGUIEvent* aEvent,
 
   
   
-  if (aEvent->mClass == NS_MOUSE_EVENT &&
+  if (aEvent->mClass == eMouseEventClass &&
       prefs->mTouchOnly &&
       aEvent->AsMouseEvent()->inputSource !=
         nsIDOMMouseEvent::MOZ_SOURCE_TOUCH) {

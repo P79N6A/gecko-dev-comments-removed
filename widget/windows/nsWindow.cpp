@@ -1538,7 +1538,7 @@ nsWindow::BeginResizeDrag(WidgetGUIEvent* aEvent,
 {
   NS_ENSURE_ARG_POINTER(aEvent);
 
-  if (aEvent->mClass != NS_MOUSE_EVENT) {
+  if (aEvent->mClass != eMouseEventClass) {
     
     return NS_ERROR_INVALID_ARG;
   }

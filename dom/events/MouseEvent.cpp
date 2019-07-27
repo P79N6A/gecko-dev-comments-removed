@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "mozilla/dom/MouseEvent.h"
 #include "mozilla/MouseEvents.h"
@@ -19,9 +19,9 @@ MouseEvent::MouseEvent(EventTarget* aOwner,
             aEvent ? aEvent : new WidgetMouseEvent(false, 0, nullptr,
                                                    WidgetMouseEvent::eReal))
 {
-  // There's no way to make this class' ctor allocate an WidgetMouseScrollEvent.
-  // It's not that important, though, since a scroll event is not a real
-  // DOM event.
+  
+  
+  
 
   WidgetMouseEvent* mouseEvent = mEvent->AsMouseEvent();
   if (aEvent) {
@@ -70,7 +70,7 @@ MouseEvent::InitMouseEvent(const nsAString& aType,
   NS_ENSURE_SUCCESS(rv, rv);
 
   switch(mEvent->mClass) {
-    case NS_MOUSE_EVENT:
+    case eMouseEventClass:
     case NS_MOUSE_SCROLL_EVENT:
     case NS_WHEEL_EVENT:
     case NS_DRAG_EVENT:
@@ -124,7 +124,7 @@ MouseEvent::InitMouseEvent(const nsAString& aType,
   NS_ENSURE_SUCCESS(rv, rv);
 
   switch(mEvent->mClass) {
-    case NS_MOUSE_EVENT:
+    case eMouseEventClass:
     case NS_MOUSE_SCROLL_EVENT:
     case NS_WHEEL_EVENT:
     case NS_DRAG_EVENT:
@@ -155,7 +155,7 @@ MouseEvent::Constructor(const GlobalObject& aGlobal,
   e->SetTrusted(trusted);
 
   switch (e->mEvent->mClass) {
-    case NS_MOUSE_EVENT:
+    case eMouseEventClass:
     case NS_MOUSE_SCROLL_EVENT:
     case NS_WHEEL_EVENT:
     case NS_DRAG_EVENT:
@@ -214,7 +214,7 @@ int16_t
 MouseEvent::Button()
 {
   switch(mEvent->mClass) {
-    case NS_MOUSE_EVENT:
+    case eMouseEventClass:
     case NS_MOUSE_SCROLL_EVENT:
     case NS_WHEEL_EVENT:
     case NS_DRAG_EVENT:
@@ -239,7 +239,7 @@ uint16_t
 MouseEvent::Buttons()
 {
   switch(mEvent->mClass) {
-    case NS_MOUSE_EVENT:
+    case eMouseEventClass:
     case NS_MOUSE_SCROLL_EVENT:
     case NS_WHEEL_EVENT:
     case NS_DRAG_EVENT:
@@ -264,7 +264,7 @@ MouseEvent::GetRelatedTarget()
 {
   nsCOMPtr<EventTarget> relatedTarget;
   switch(mEvent->mClass) {
-    case NS_MOUSE_EVENT:
+    case eMouseEventClass:
     case NS_MOUSE_SCROLL_EVENT:
     case NS_WHEEL_EVENT:
     case NS_DRAG_EVENT:
@@ -473,8 +473,8 @@ MouseEvent::GetMozInputSource(uint16_t* aInputSource)
   return NS_OK;
 }
 
-} // namespace dom
-} // namespace mozilla
+} 
+} 
 
 using namespace mozilla;
 using namespace mozilla::dom;
