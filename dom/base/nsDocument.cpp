@@ -11586,49 +11586,47 @@ ReleaseHMDInfoRef(void *, nsIAtom*, void *aPropertyValue, void *)
   }
 }
 
-void
-nsDocument::RequestFullScreen(Element* aElement,
-                              FullScreenOptions& aOptions,
-                              bool aWasCallerChrome,
-                              bool aNotifyOnOriginChange)
+bool
+nsDocument::FullscreenElementReadyCheck(Element* aElement,
+                                        bool aWasCallerChrome)
 {
   NS_ASSERTION(aElement,
     "Must pass non-null element to nsDocument::RequestFullScreen");
   if (!aElement || aElement == GetFullScreenElement()) {
-    return;
+    return false;
   }
   if (!aElement->IsInDoc()) {
     LogFullScreenDenied(true, "FullScreenDeniedNotInDocument", this);
-    return;
+    return false;
   }
   if (aElement->OwnerDoc() != this) {
     LogFullScreenDenied(true, "FullScreenDeniedMovedDocument", this);
-    return;
+    return false;
   }
   if (!GetWindow()) {
     LogFullScreenDenied(true, "FullScreenDeniedLostWindow", this);
-    return;
+    return false;
   }
   if (!IsFullScreenEnabled(aWasCallerChrome, true)) {
     
-    return;
+    return false;
   }
   if (GetFullScreenElement() &&
       !nsContentUtils::ContentIsDescendantOf(aElement, GetFullScreenElement())) {
     
     
     LogFullScreenDenied(true, "FullScreenDeniedNotDescendant", this);
-    return;
+    return false;
   }
   if (!nsContentUtils::IsChromeDoc(this) && !IsInActiveTab(this)) {
     LogFullScreenDenied(true, "FullScreenDeniedNotFocusedTab", this);
-    return;
+    return false;
   }
   
   nsIFocusManager* fm = nsFocusManager::GetFocusManager();
   if (!fm) {
     NS_WARNING("Failed to retrieve focus manager in full-screen request.");
-    return;
+    return false;
   }
   nsCOMPtr<nsIDOMElement> focusedElement;
   fm->GetFocusedElement(getter_AddRefs(focusedElement));
@@ -11636,8 +11634,20 @@ nsDocument::RequestFullScreen(Element* aElement,
     nsCOMPtr<nsIContent> content = do_QueryInterface(focusedElement);
     if (nsContentUtils::HasPluginWithUncontrolledEventDispatch(content)) {
       LogFullScreenDenied(true, "FullScreenDeniedFocusedPlugin", this);
-      return;
+      return false;
     }
+  }
+  return true;
+}
+
+void
+nsDocument::RequestFullScreen(Element* aElement,
+                              FullScreenOptions& aOptions,
+                              bool aWasCallerChrome,
+                              bool aNotifyOnOriginChange)
+{
+  if (!FullscreenElementReadyCheck(aElement, aWasCallerChrome)) {
+    return;
   }
 
   

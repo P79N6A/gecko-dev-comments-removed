@@ -1218,6 +1218,10 @@ public:
 
   
   
+  bool FullscreenElementReadyCheck(Element* aElement, bool aWasCallerChrome);
+
+  
+  
   
   
   
