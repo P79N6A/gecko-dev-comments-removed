@@ -127,19 +127,20 @@ bool isInIgnoredNamespaceForImplicitCtor(const Decl *decl) {
     return false;
   }
 
-  return name == "std" ||              
-         name == "__gnu_cxx" ||        
-         name == "boost" ||            
-         name == "webrtc" ||           
-         name == "icu_52" ||           
-         name == "google" ||           
-         name == "google_breakpad" ||  
-         name == "soundtouch" ||       
-         name == "stagefright" ||      
-         name == "MacFileUtilities" || 
-         name == "dwarf2reader" ||     
-         name == "arm_ex_to_module" || 
-         name == "testing";            
+
+  return name == "std" ||               
+         name == "__gnu_cxx" ||         
+         name == "boost" ||             
+         name == "webrtc" ||            
+         name.substr(0, 4) == "icu_" || 
+         name == "google" ||            
+         name == "google_breakpad" ||   
+         name == "soundtouch" ||        
+         name == "stagefright" ||       
+         name == "MacFileUtilities" ||  
+         name == "dwarf2reader" ||      
+         name == "arm_ex_to_module" ||  
+         name == "testing";             
 }
 
 bool isInIgnoredNamespaceForImplicitConversion(const Decl *decl) {
