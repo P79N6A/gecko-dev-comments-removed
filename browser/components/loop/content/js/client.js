@@ -4,7 +4,6 @@
 
 
 
-
 var loop = loop || {};
 loop.Client = (function($) {
   "use strict";

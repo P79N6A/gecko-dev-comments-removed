@@ -4,7 +4,6 @@
 
 
 
-
 var loop = loop || {};
 loop.conversation = (function(OT, mozL10n) {
   "use strict";

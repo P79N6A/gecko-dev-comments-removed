@@ -4,7 +4,6 @@
 
 
 
-
 var loop = loop || {};
 loop.desktopRouter = (function() {
   "use strict";
