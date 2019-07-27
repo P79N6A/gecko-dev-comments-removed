@@ -8,6 +8,9 @@
 
 const OVERVIEW_UPDATE_INTERVAL = 200; 
 
+const FRAMERATE_GRAPH_LOW_RES_INTERVAL = 100; 
+const FRAMERATE_GRAPH_HIGH_RES_INTERVAL = 16; 
+
 const FRAMERATE_GRAPH_HEIGHT = 60; 
 const GRAPH_SCROLL_EVENTS_DRAIN = 50; 
 
@@ -56,13 +59,23 @@ let OverviewView = {
 
 
 
-  _onRecordingTick: Task.async(function *() {
+
+  render: Task.async(function *(interval) {
     
     
     let [, timestamps] = this._ticksData;
-    yield this.framerateGraph.setDataFromTimestamps(timestamps);
+    yield this.framerateGraph.setDataFromTimestamps(timestamps, interval);
 
     this.emit(EVENTS.OVERVIEW_RENDERED);
+  }),
+
+  
+
+
+
+
+  _onRecordingTick: Task.async(function *() {
+    yield this.render(FRAMERATE_GRAPH_LOW_RES_INTERVAL);
     this._prepareNextTick();
   }),
 
@@ -131,6 +144,9 @@ let OverviewView = {
 
   _stop: function () {
     clearTimeout(this._timeoutId);
+    this._timeoutId = null;
+
+    this.render(FRAMERATE_GRAPH_HIGH_RES_INTERVAL);
     this.framerateGraph.selectionEnabled = true;
   },
 
