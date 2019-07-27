@@ -730,9 +730,7 @@ protected:
 
 
 
-
-
-  already_AddRefed<PaintedLayer> CreateOrRecyclePaintedLayer(PaintedLayerData* aData);
+  already_AddRefed<PaintedLayer> CreatePaintedLayer(PaintedLayerData* aData);
 
   
 
@@ -1762,21 +1760,8 @@ ContainerState::AttemptToRecyclePaintedLayer(const nsIFrame* aAnimatedGeometryRo
 }
 
 already_AddRefed<PaintedLayer>
-ContainerState::CreateOrRecyclePaintedLayer(PaintedLayerData* aData)
+ContainerState::CreatePaintedLayer(PaintedLayerData* aData)
 {
-  
-  
-  for (auto& item : aData->mAssignedDisplayItems) {
-    MOZ_ASSERT(item.mItem->GetType() != nsDisplayItem::TYPE_LAYER_EVENT_REGIONS);
-
-    nsRefPtr<PaintedLayer> layer =
-      AttemptToRecyclePaintedLayer(aData->mAnimatedGeometryRoot, item.mItem,
-                                   aData->mAnimatedGeometryRootOffset);
-    if (layer) {
-      return layer.forget();
-    }
-  }
-
   LayerManager::PaintedLayerCreationHint creationHint =
     GetLayerCreationHint(aData->mAnimatedGeometryRoot);
 
@@ -2189,12 +2174,15 @@ ContainerState::PopPaintedLayerData()
   int32_t lastIndex = mPaintedLayerDataStack.Length() - 1;
   PaintedLayerData* data = mPaintedLayerDataStack[lastIndex];
 
-  nsRefPtr<PaintedLayer> paintedLayer = CreateOrRecyclePaintedLayer(data);
-  data->mLayer = paintedLayer.get();
+  if (!data->mLayer) {
+    
+    nsRefPtr<PaintedLayer> paintedLayer = CreatePaintedLayer(data);
+    data->mLayer = paintedLayer;
 
-  NS_ASSERTION(FindIndexOfLayerIn(mNewChildLayers, data->mLayer) < 0,
-               "Layer already in list???");
-  mNewChildLayers[data->mNewChildLayersIndex].mLayer = data->mLayer;
+    NS_ASSERTION(FindIndexOfLayerIn(mNewChildLayers, paintedLayer) < 0,
+                 "Layer already in list???");
+    mNewChildLayers[data->mNewChildLayersIndex].mLayer = paintedLayer.forget();
+  }
 
   for (auto& item : data->mAssignedDisplayItems) {
     MOZ_ASSERT(item.mItem->GetType() != nsDisplayItem::TYPE_LAYER_EVENT_REGIONS);
@@ -3256,6 +3244,19 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList)
         opaquePixels.AndWith(itemVisibleRect);
         paintedLayerData->Accumulate(this, item, opaquePixels,
             itemVisibleRect, itemClip, layerState);
+
+        if (!paintedLayerData->mLayer) {
+          
+          nsRefPtr<PaintedLayer> layer =
+            AttemptToRecyclePaintedLayer(animatedGeometryRoot, item, topLeft);
+          if (layer) {
+            paintedLayerData->mLayer = layer;
+
+            NS_ASSERTION(FindIndexOfLayerIn(mNewChildLayers, layer) < 0,
+                         "Layer already in list???");
+            mNewChildLayers[paintedLayerData->mNewChildLayersIndex].mLayer = layer.forget();
+          }
+        }
       }
     }
 
