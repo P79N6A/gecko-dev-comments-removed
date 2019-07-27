@@ -15,72 +15,7 @@
 #include "nsClassHashtable.h"
 #include "nsTArray.h"
 
-#ifdef NS_TRACE_MALLOC
-#  include "nsTraceMalloc.h"
-#endif  
-
 namespace mozilla {
-
-
-
-
-class NS_COM_GLUE CallStack
-{
-private:
-#ifdef NS_TRACE_MALLOC
-  typedef nsTMStackTraceID callstack_id;
-  
-#   define NS_GET_BACKTRACE() NS_TraceMallocGetStackTrace()
-#   define NS_DEADLOCK_DETECTOR_CONSTEXPR
-#else
-  typedef void* callstack_id;
-#   define NS_GET_BACKTRACE() 0
-#   define NS_DEADLOCK_DETECTOR_CONSTEXPR MOZ_CONSTEXPR
-#endif  
-
-  callstack_id mCallStack;
-
-public:
-  
-
-
-
-
-
-
-
-
-
-
-
-  NS_DEADLOCK_DETECTOR_CONSTEXPR
-  explicit CallStack(const callstack_id aCallStack = NS_GET_BACKTRACE())
-    : mCallStack(aCallStack)
-  {
-  }
-  NS_DEADLOCK_DETECTOR_CONSTEXPR
-  CallStack(const CallStack& aFrom)
-    : mCallStack(aFrom.mCallStack)
-  {
-  }
-  CallStack& operator=(const CallStack& aFrom)
-  {
-    mCallStack = aFrom.mCallStack;
-    return *this;
-  }
-  bool operator==(const CallStack& aOther) const
-  {
-    return mCallStack == aOther.mCallStack;
-  }
-  bool operator!=(const CallStack& aOther) const
-  {
-    return mCallStack != aOther.mCallStack;
-  }
-
-  
-  static const CallStack kNone;
-};
-
 
 
 
