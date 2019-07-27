@@ -34,6 +34,34 @@ AnimationPlayer::GetCurrentTime() const
 }
 
 void
+AnimationPlayer::Play()
+{
+  
+}
+
+void
+AnimationPlayer::Pause()
+{
+  
+}
+
+void
+AnimationPlayer::PlayFromJS()
+{
+  
+
+  Play();
+}
+
+void
+AnimationPlayer::PauseFromJS()
+{
+  Play();
+
+  
+}
+
+void
 AnimationPlayer::SetSource(Animation* aSource)
 {
   if (mSource) {
