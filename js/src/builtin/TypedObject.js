@@ -788,7 +788,7 @@ function ComputeIterationSpace(arrayType, depth, len) {
       grainType = grainType.elementType;
     } else {
       
-      ThrowError(JSMSG_TYPEDOBJECT_ARRAYTYPE_BAD_ARGS);
+      ThrowTypeError(JSMSG_TYPEDOBJECT_BAD_ARGS);
     }
   }
   return { iterationSpace: iterationSpace,
@@ -894,7 +894,7 @@ function MapTypedSeqImpl(inArray, depth, outputType, func) {
   for (var i = 0; i < depth; i++)
     if (inIterationSpace[i] !== iterationSpace[i])
       
-      ThrowError(JSMSG_TYPEDOBJECT_ARRAYTYPE_BAD_ARGS);
+      ThrowTypeError(JSMSG_TYPEDOBJECT_BAD_ARGS);
 
   
   var result = new outputType();
@@ -987,7 +987,7 @@ function ReduceTypedSeqImpl(array, outputType, func, initial) {
 
   if (initial === undefined && array.length < 1)
     
-    ThrowError(JSMSG_TYPEDOBJECT_ARRAYTYPE_BAD_ARGS);
+    ThrowTypeError(JSMSG_TYPEDOBJECT_BAD_ARGS);
 
   
   
