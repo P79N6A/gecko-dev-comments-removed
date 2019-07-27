@@ -164,6 +164,7 @@ class RemoteOptions(ReftestOptions):
 
         
         options.leakThresholds = {}
+        options.ignoreMissingLeaks = []
 
         
         

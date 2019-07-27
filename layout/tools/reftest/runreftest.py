@@ -344,7 +344,7 @@ class RefTest(object):
                                  
                                  
                                  timeout=options.timeout + 30.0)
-      processLeakLog(self.leakLogFile, options.leakThresholds)
+      processLeakLog(self.leakLogFile, options.leakThresholds, options.ignoreMissingLeaks)
       self.automation.log.info("\nREFTEST INFO | runreftest.py | Running tests: end.")
     finally:
       self.cleanup(profileDir)
@@ -512,6 +512,8 @@ class ReftestOptions(OptionParser):
         self.error("cannot specify a debugger with parallel tests")
 
       options.leakThresholds = {"default": options.defaultLeakThreshold}
+
+      options.ignoreMissingLeaks = []
 
     return options
 
