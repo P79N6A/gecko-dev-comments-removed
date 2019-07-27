@@ -874,12 +874,7 @@ RStringSplit::recover(JSContext *cx, SnapshotIterator &iter) const
     RootedString str(cx, iter.read().toString());
     RootedString sep(cx, iter.read().toString());
     RootedTypeObject typeObj(cx, iter.read().toObject().type());
-
     RootedValue result(cx);
-
-    
-    
-    types::AutoEnterAnalysis enter(cx);
 
     JSObject *res = str_split_string(cx, typeObj, str, sep);
     if (!res)
@@ -1009,10 +1004,6 @@ RNewObject::recover(JSContext *cx, SnapshotIterator &iter) const
     JSObject *resultObject = nullptr;
 
     
-    
-    types::AutoEnterAnalysis enter(cx);
-
-    
     if (templateObjectIsClassPrototype_)
         resultObject = NewInitObjectWithClassPrototype(cx, templateObject);
     else
@@ -1050,10 +1041,6 @@ RNewArray::recover(JSContext *cx, SnapshotIterator &iter) const
     RootedTypeObject type(cx);
 
     
-    
-    types::AutoEnterAnalysis enter(cx);
-
-    
     if (!templateObject->hasSingletonType())
         type = templateObject->type();
 
@@ -1084,10 +1071,6 @@ RNewDerivedTypedObject::recover(JSContext *cx, SnapshotIterator &iter) const
     Rooted<TypedObject *> owner(cx, &iter.read().toObject().as<TypedObject>());
     int32_t offset = iter.read().toInt32();
 
-    
-    
-    types::AutoEnterAnalysis enter(cx);
-
     JSObject *obj = OutlineTypedObject::createDerived(cx, descr, owner, offset);
     if (!obj)
         return false;
@@ -1115,10 +1098,6 @@ bool
 RCreateThisWithTemplate::recover(JSContext *cx, SnapshotIterator &iter) const
 {
     RootedNativeObject templateObject(cx, &iter.read().toObject().as<NativeObject>());
-
-    
-    
-    types::AutoEnterAnalysis enter(cx);
 
     
     gc::AllocKind allocKind = templateObject->asTenured().getAllocKind();
