@@ -81,6 +81,26 @@ struct MaiAtkObject
 
 
   void FireStateChangeEvent(uint64_t aState, bool aEnabled);
+
+  
+
+
+  void FireTextChangeEvent(const nsString& aStr, int32_t aStart, uint32_t aLen,
+                           bool aIsInsert, bool aIsFromUser);
+
+private:
+  
+
+
+
+
+  enum EAvailableAtkSignals {
+    eUnknown,
+    eHaveNewAtkTextSignals,
+    eNoNewAtkSignals
+  };
+
+  static EAvailableAtkSignals gAvailableAtkSignals;
 };
 
 #endif 
