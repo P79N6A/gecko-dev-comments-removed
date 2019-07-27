@@ -162,7 +162,9 @@ let SnapshotsListView = Heritage.extend(WidgetMethods, {
 
 
   _onSelect: function({ detail: snapshotItem }) {
-    if (!snapshotItem) {
+    
+    
+    if (!snapshotItem || !snapshotItem.attachment.actor) {
       return;
     }
     let { calls, thumbnails, screenshot } = snapshotItem.attachment;
