@@ -12,6 +12,7 @@
 #include "gfxPoint.h"
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
+#include "ImageContainer.h"
 
 namespace mozilla {
 
@@ -77,6 +78,9 @@ protected:
   
   
   gfxIntSize mIntrinsicSize;
+  
+  
+  ImageContainer::FrameID mFrameID;
   
   
   

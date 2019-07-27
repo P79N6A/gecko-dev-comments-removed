@@ -303,12 +303,19 @@ public:
   B2G_ACL_EXPORT already_AddRefed<Image> CreateImage(ImageFormat aFormat);
 
   struct NonOwningImage {
-    NonOwningImage(Image* aImage, TimeStamp aTimeStamp)
-      : mImage(aImage), mTimeStamp(aTimeStamp) {}
+    explicit NonOwningImage(Image* aImage = nullptr,
+                            TimeStamp aTimeStamp = TimeStamp(),
+                            FrameID aFrameID = 0)
+      : mImage(aImage), mTimeStamp(aTimeStamp), mFrameID(aFrameID) {}
     Image* mImage;
     TimeStamp mTimeStamp;
+    FrameID mFrameID;
   };
   
+
+
+
+
 
 
 
@@ -343,7 +350,6 @@ public:
   void ClearImagesFromImageBridge();
 
   
-
 
 
 
@@ -475,7 +481,8 @@ private:
   
   B2G_ACL_EXPORT ~ImageContainer();
 
-  void SetCurrentImageInternal(Image* aImage, const TimeStamp& aTimeStamp);
+  void SetCurrentImageInternal(Image* aImage, const TimeStamp& aTimeStamp,
+                               FrameID aFrameID);
 
   
   
@@ -506,6 +513,7 @@ private:
   
   uint32_t mDroppedImageCount;
 
+  FrameID mCurrentImageFrameID;
   bool mCurrentImageComposited;
 
   
