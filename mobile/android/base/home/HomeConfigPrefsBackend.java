@@ -36,7 +36,7 @@ class HomeConfigPrefsBackend implements HomeConfigBackend {
     private static final String LOGTAG = "GeckoHomeConfigBackend";
 
     
-    private static final int VERSION = 2;
+    private static final int VERSION = 3;
 
     
     private static final String PREFS_CONFIG_KEY_OLD = "home_panels";
@@ -73,12 +73,7 @@ class HomeConfigPrefsBackend implements HomeConfigBackend {
                                                   EnumSet.of(PanelConfig.Flags.DEFAULT_PANEL)));
 
         panelConfigs.add(createBuiltinPanelConfig(mContext, PanelType.BOOKMARKS));
-
-        
-        
-        if (!HardwareUtils.isLowMemoryPlatform()) {
-            panelConfigs.add(createBuiltinPanelConfig(mContext, PanelType.READING_LIST));
-        }
+        panelConfigs.add(createBuiltinPanelConfig(mContext, PanelType.READING_LIST));
 
         final PanelConfig historyEntry = createBuiltinPanelConfig(mContext, PanelType.HISTORY);
         final PanelConfig recentTabsEntry = createBuiltinPanelConfig(mContext, PanelType.RECENT_TABS);
@@ -180,6 +175,31 @@ class HomeConfigPrefsBackend implements HomeConfigBackend {
 
 
 
+    private static boolean readingListPanelExists(JSONArray jsonPanels) {
+        final int count = jsonPanels.length();
+        for (int i = 0; i < count; i++) {
+            try {
+                final JSONObject jsonPanelConfig = jsonPanels.getJSONObject(i);
+                final PanelConfig panelConfig = new PanelConfig(jsonPanelConfig);
+                if (panelConfig.getType() == PanelType.READING_LIST) {
+                    return true;
+                }
+            } catch (Exception e) {
+                
+                
+                Log.e(LOGTAG, "Exception loading PanelConfig from JSON", e);
+            }
+        }
+        return false;
+    }
+
+    
+
+
+
+
+
+
 
     private static synchronized JSONArray maybePerformMigration(Context context, String jsonString) throws JSONException {
         
@@ -230,6 +250,19 @@ class HomeConfigPrefsBackend implements HomeConfigBackend {
                     
                     addBuiltinPanelConfig(context, jsonPanels,
                             PanelType.REMOTE_TABS, Position.FRONT, Position.BACK);
+                    break;
+
+                case 3:
+                    
+                    
+                    
+                    
+                    
+                    
+                    if (!readingListPanelExists(jsonPanels)) {
+                        addBuiltinPanelConfig(context, jsonPanels,
+                                PanelType.READING_LIST, Position.BACK, Position.BACK);
+                    }
                     break;
             }
         }

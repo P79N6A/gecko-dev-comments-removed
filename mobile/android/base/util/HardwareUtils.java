@@ -17,14 +17,6 @@ import android.view.ViewConfiguration;
 public final class HardwareUtils {
     private static final String LOGTAG = "GeckoHardwareUtils";
 
-    
-    
-    
-    
-    
-    
-    private static final int LOW_MEMORY_THRESHOLD_MB = 384;
-
     private static final boolean IS_AMAZON_DEVICE = Build.MANUFACTURER.equalsIgnoreCase("Amazon");
     public static final boolean IS_KINDLE_DEVICE = IS_AMAZON_DEVICE &&
                                                    (Build.MODEL.equals("Kindle Fire") ||
@@ -95,18 +87,5 @@ public final class HardwareUtils {
 
     public static int getMemSize() {
         return SysInfo.getMemSize();
-    }
-
-    public static boolean isLowMemoryPlatform() {
-        final int memSize = getMemSize();
-
-        
-        
-        if (memSize == 0) {
-            Log.w(LOGTAG, "Could not compute system memory. Falling back to isLowMemoryPlatform = false.");
-            return false;
-        }
-
-        return memSize < LOW_MEMORY_THRESHOLD_MB;
     }
 }
