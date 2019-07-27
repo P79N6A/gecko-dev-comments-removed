@@ -342,6 +342,9 @@ Convert(const bt_property_t& aIn, BluetoothProperty& aOut)
   
 
   switch (aOut.mType) {
+    case PROPERTY_UNKNOWN:
+      
+      break;
     case PROPERTY_BDNAME:
       
     case PROPERTY_REMOTE_FRIENDLY_NAME:
