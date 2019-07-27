@@ -23,13 +23,15 @@
 #ifdef XP_WIN
 #include <windef.h>
 #include <winbase.h>
-#include <mmsystem.h> 
 
 #if _MSC_VER >= 1400
 #define NS_HAVE_INVALID_PARAMETER_HANDLER 1
 #endif
 #ifdef NS_HAVE_INVALID_PARAMETER_HANDLER
 #include <crtdbg.h>   
+#endif
+#include <mmsystem.h> 
+#ifdef NS_HAVE_INVALID_PARAMETER_HANDLER
 #include <stdlib.h>   
 #endif
 
