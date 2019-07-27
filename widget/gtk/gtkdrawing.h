@@ -301,30 +301,7 @@ moz_gtk_radio_get_metrics(gint* indicator_size, gint* indicator_spacing);
 
 
 gint
-moz_gtk_button_get_inner_border(GtkWidget* widget, GtkBorder* inner_border);
-
-
-
-
-
-
-
-
-gint
 moz_gtk_get_focus_outline_size(gint* focus_h_width, gint* focus_v_width);
-
-
-
-
-
-
-
-
-
-
-gint
-moz_gtk_widget_get_focus(GtkWidget* widget, gboolean* interior_focus,
-                         gint* focus_width, gint* focus_pad);
 
 
 
