@@ -14,14 +14,16 @@ using namespace js;
 
  ProxyObject *
 ProxyObject::New(JSContext *cx, const BaseProxyHandler *handler, HandleValue priv, TaggedProto proto_,
-                 const ProxyOptions &options)
+                 JSObject *parent_, const ProxyOptions &options)
 {
     Rooted<TaggedProto> proto(cx, proto_);
+    RootedObject parent(cx, parent_);
 
     const Class *clasp = options.clasp();
 
     MOZ_ASSERT(isValidProxyClass(clasp));
     MOZ_ASSERT_IF(proto.isObject(), cx->compartment() == proto.toObject()->compartment());
+    MOZ_ASSERT_IF(parent, cx->compartment() == parent->compartment());
 
     
 
@@ -48,7 +50,7 @@ ProxyObject::New(JSContext *cx, const BaseProxyHandler *handler, HandleValue pri
 
     
     
-    RootedObject obj(cx, NewObjectWithGivenTaggedProto(cx, clasp, proto, NullPtr(), allocKind,
+    RootedObject obj(cx, NewObjectWithGivenTaggedProto(cx, clasp, proto, parent, allocKind,
                                                        newKind));
     if (!obj) {
         js_free(values);
