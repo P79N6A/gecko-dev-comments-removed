@@ -343,8 +343,8 @@ WyciwygChannelParent::GetInterface(const nsIID& uuid, void** result)
 {
   
   if (uuid.Equals(NS_GET_IID(nsILoadContext)) && mLoadContext) {
-    NS_ADDREF(mLoadContext);
-    *result = static_cast<nsILoadContext*>(mLoadContext);
+    nsCOMPtr<nsILoadContext> copy = mLoadContext;
+    copy.forget(result);
     return NS_OK;
   }
 

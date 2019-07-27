@@ -6,10 +6,18 @@ struct Test {
   void foo();
 };
 
+struct TestD : Test {};
+
 struct S {
   Test* f() MOZ_NO_ADDREF_RELEASE_ON_RETURN;
   Test& g() MOZ_NO_ADDREF_RELEASE_ON_RETURN;
   Test  h() MOZ_NO_ADDREF_RELEASE_ON_RETURN;
+};
+
+struct SD {
+  TestD* f() MOZ_NO_ADDREF_RELEASE_ON_RETURN;
+  TestD& g() MOZ_NO_ADDREF_RELEASE_ON_RETURN;
+  TestD  h() MOZ_NO_ADDREF_RELEASE_ON_RETURN;
 };
 
 template<class T>
@@ -28,6 +36,10 @@ Test* f() MOZ_NO_ADDREF_RELEASE_ON_RETURN;
 Test& g() MOZ_NO_ADDREF_RELEASE_ON_RETURN;
 Test  h() MOZ_NO_ADDREF_RELEASE_ON_RETURN;
 
+TestD* fd() MOZ_NO_ADDREF_RELEASE_ON_RETURN;
+TestD& gd() MOZ_NO_ADDREF_RELEASE_ON_RETURN;
+TestD  hd() MOZ_NO_ADDREF_RELEASE_ON_RETURN;
+
 void test() {
   S s;
   s.f()->AddRef(); 
@@ -39,6 +51,16 @@ void test() {
   s.h().AddRef(); 
   s.h().Release(); 
   s.h().foo();
+  SD sd;
+  sd.f()->AddRef(); 
+  sd.f()->Release(); 
+  sd.f()->foo();
+  sd.g().AddRef(); 
+  sd.g().Release(); 
+  sd.g().foo();
+  sd.h().AddRef(); 
+  sd.h().Release(); 
+  sd.h().foo();
   X<Test> x;
   x.f()->AddRef(); 
   x.f()->Release(); 
@@ -49,10 +71,24 @@ void test() {
   x.h().AddRef(); 
   x.h().Release(); 
   x.h().foo();
+  X<TestD> xd;
+  xd.f()->AddRef(); 
+  xd.f()->Release(); 
+  xd.f()->foo();
+  xd.g().AddRef(); 
+  xd.g().Release(); 
+  xd.g().foo();
+  xd.h().AddRef(); 
+  xd.h().Release(); 
+  xd.h().foo();
   SP<Test> sp;
   sp->AddRef(); 
   sp->Release(); 
   sp->foo();
+  SP<TestD> spd;
+  spd->AddRef(); 
+  spd->Release(); 
+  spd->foo();
   f()->AddRef(); 
   f()->Release(); 
   f()->foo();
@@ -62,4 +98,13 @@ void test() {
   h().AddRef(); 
   h().Release(); 
   h().foo();
+  fd()->AddRef(); 
+  fd()->Release(); 
+  fd()->foo();
+  gd().AddRef(); 
+  gd().Release(); 
+  gd().foo();
+  hd().AddRef(); 
+  hd().Release(); 
+  hd().foo();
 }
