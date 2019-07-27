@@ -186,7 +186,7 @@ EnsureMinCDMVersion(mozIGeckoMediaPluginService* aGMPService,
       aOutMessage = NS_LITERAL_CSTRING("Adobe plugin voucher was expected to be on disk but was not");
       somethingMissing = true;
     }
-    if (somethingMissing) {    
+    if (somethingMissing) {
       NS_WARNING("Adobe EME plugin or voucher disappeared from disk!");
       
       
