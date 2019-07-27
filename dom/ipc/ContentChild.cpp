@@ -615,10 +615,6 @@ ContentChild::Init(MessageLoop* aIOLoop,
     
     GetIPCChannel()->BlockScripts();
 
-    
-    
-    GetIPCChannel()->SetAbortOnError(true);
-
 #ifdef MOZ_X11
     
     
@@ -2574,8 +2570,6 @@ ContentChild::RecvShutdown()
     if (os) {
         os->NotifyObservers(this, "content-child-shutdown", nullptr);
     }
-
-    GetIPCChannel()->SetAbortOnError(false);
 
     
     
