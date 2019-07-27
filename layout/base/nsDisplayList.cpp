@@ -833,8 +833,7 @@ nsDisplayScrollLayer::ComputeFrameMetrics(nsIFrame* aForFrame,
   
   
   
-  metrics.SetCumulativeResolution(LayoutDeviceToLayerScale2D(aContainerParameters.mXScale,
-                                                             aContainerParameters.mYScale));
+  metrics.SetCumulativeResolution(aContainerParameters.Scale());
 
   LayoutDeviceToScreenScale2D resolutionToScreen(
       presShell->GetCumulativeResolution()

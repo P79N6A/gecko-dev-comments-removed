@@ -86,16 +86,27 @@ struct ContainerLayerParameters {
     , mDisableSubpixelAntialiasingInDescendants(aParent.mDisableSubpixelAntialiasingInDescendants)
     , mInLowPrecisionDisplayPort(aParent.mInLowPrecisionDisplayPort)
   {}
+
   float mXScale, mYScale;
+
+  LayoutDeviceToLayerScale2D Scale() const {
+    return LayoutDeviceToLayerScale2D(mXScale, mYScale);
+  }
+
   
 
 
 
   nsIntRect* mLayerContentsVisibleRect;
+
   
 
 
   nsIntPoint mOffset;
+
+  LayerIntPoint Offset() const {
+    return LayerIntPoint::FromUntyped(mOffset);
+  }
 
   nscolor mBackgroundColor;
   bool mInTransformedSubtree;
