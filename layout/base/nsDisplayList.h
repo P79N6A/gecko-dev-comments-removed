@@ -831,11 +831,15 @@ public:
 
 
 
+  bool AddToWillChangeBudget(nsIFrame* aFrame, const nsSize& aSize);
+
+  
 
 
-  void AddToWillChangeBudget(nsIFrame* aFrame, const nsSize& aSize);
 
-  bool IsInWillChangeBudget(nsIFrame* aFrame) const;
+
+
+  bool IsInWillChangeBudget(nsIFrame* aFrame, const nsSize& aSize);
 
   
 
@@ -944,8 +948,10 @@ private:
   
   nsDataHashtable<nsPtrHashKey<nsPresContext>, DocumentWillChangeBudget>
                                  mWillChangeBudget;
+
   
-  mutable mozilla::DebugOnly<bool> mWillChangeBudgetCalculated;
+  
+  nsTHashtable<nsPtrHashKey<nsIFrame> > mBudgetSet;
 
   
   nsDataHashtable<nsPtrHashKey<nsIFrame>, nsRect> mDirtyRectForScrolledContents;
