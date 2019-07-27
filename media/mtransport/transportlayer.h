@@ -29,7 +29,7 @@ enum {
 };
 
 #define TRANSPORT_LAYER_ID(name) \
-  virtual const std::string id() const { return name; } \
+  virtual const std::string id() { return name; } \
   static std::string ID() { return name; }
 
 
@@ -81,10 +81,10 @@ class TransportLayer : public sigslot::has_slots<> {
                          SignalPacketReceived;
 
   
-  virtual const std::string id() const = 0;
+  virtual const std::string id() = 0;
 
   
-  const std::string& flow_id() const {
+  const std::string& flow_id() {
     return flow_id_;
   }
 
@@ -92,7 +92,7 @@ class TransportLayer : public sigslot::has_slots<> {
   virtual void WasInserted() {}
   virtual void SetState(State state, const char *file, unsigned line);
   
-  void CheckThread() const {
+  void CheckThread() {
     NS_ABORT_IF_FALSE(CheckThreadInt(), "Wrong thread");
   }
 
@@ -105,7 +105,7 @@ class TransportLayer : public sigslot::has_slots<> {
  private:
   DISALLOW_COPY_ASSIGN(TransportLayer);
 
-  bool CheckThreadInt() const {
+  bool CheckThreadInt() {
     bool on;
 
     if (!target_)  
