@@ -145,7 +145,7 @@ let MessageListener = {
         };
 
         
-        let didStartLoad = gContentRestore.restoreTabContent(finishCallback);
+        let didStartLoad = gContentRestore.restoreTabContent(data.loadArguments, finishCallback);
 
         sendAsyncMessage("SessionStore:restoreTabContentStarted", {epoch: epoch});
 
