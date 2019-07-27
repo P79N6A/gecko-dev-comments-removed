@@ -49,6 +49,9 @@ class Selection;
 
 
 
+
+
+
 class SelectionCarets MOZ_FINAL : public nsIReflowObserver,
                                   public nsISelectionListener,
                                   public nsIScrollObserver,
@@ -155,20 +158,22 @@ private:
 
 
 
-  bool IsOnStartFrame(const nsPoint& aPosition);
-  bool IsOnEndFrame(const nsPoint& aPosition);
+  bool IsOnStartFrameInner(const nsPoint& aPosition);
+  bool IsOnEndFrameInner(const nsPoint& aPosition);
 
   
 
 
 
   nsRect GetStartFrameRect();
+  nsRect GetEndFrameRect();
 
   
 
 
 
-  nsRect GetEndFrameRect();
+  nsRect GetStartFrameRectInner();
+  nsRect GetEndFrameRectInner();
 
   
 
