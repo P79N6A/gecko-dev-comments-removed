@@ -116,6 +116,8 @@ static const unsigned long kKeyMapping[] = {
     0, 
     0, 
     0, 
+    NS_VK_PAGE_UP,
+    NS_VK_PAGE_DOWN,
     0, 
     0, 
     0, 
@@ -133,9 +135,7 @@ static const unsigned long kKeyMapping[] = {
     0, 
     0, 
     0, 
-    0, 
-    0, 
-    0, 
+    NS_VK_ESCAPE,
     NS_VK_DELETE,
     0, 
     0, 
@@ -186,6 +186,9 @@ static const unsigned long kKeyMapping[] = {
     NS_VK_COMMA,
     NS_VK_RETURN,
     NS_VK_EQUALS,
+    0, 
+    0, 
+    NS_VK_VOLUME_MUTE,
     
 };
 
