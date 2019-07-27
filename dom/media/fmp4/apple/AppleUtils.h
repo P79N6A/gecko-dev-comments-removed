@@ -13,21 +13,6 @@
 
 namespace mozilla {
 
-struct AppleUtils {
-  
-  static void SetCFDict(CFMutableDictionaryRef dict,
-                        const char* key,
-                        const char* value);
-  
-  static void SetCFDict(CFMutableDictionaryRef dict,
-                        const char* key,
-                        int32_t value);
-  
-  static void SetCFDict(CFMutableDictionaryRef dict,
-                        const char* key,
-                        bool value);
-};
-
 
 
 template <class T>
