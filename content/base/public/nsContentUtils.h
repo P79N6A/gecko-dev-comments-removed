@@ -693,6 +693,11 @@ public:
   
 
 
+  static bool IsInPrivateBrowsing(nsIDocument* aDoc);
+
+  
+
+
 
 
 
