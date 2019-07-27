@@ -200,6 +200,8 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
   mDurationSet(false),
   mNetworkDuration(mTaskQueue, NullableTimeUnit(),
                    "MediaDecoderStateMachine::mNetworkDuration (Mirror)"),
+  mExplicitDuration(mTaskQueue, Maybe<double>(),
+                    "MediaDecoderStateMachine::mExplicitDuration (Mirror)"),
   mPlayState(mTaskQueue, MediaDecoder::PLAY_STATE_LOADING,
              "MediaDecoderStateMachine::mPlayState (Mirror)"),
   mNextPlayState(mTaskQueue, MediaDecoder::PLAY_STATE_PAUSED,
@@ -298,6 +300,7 @@ MediaDecoderStateMachine::InitializationTask()
 
   
   mNetworkDuration.Connect(mDecoder->CanonicalNetworkDuration());
+  mExplicitDuration.Connect(mDecoder->CanonicalExplicitDuration());
   mPlayState.Connect(mDecoder->CanonicalPlayState());
   mNextPlayState.Connect(mDecoder->CanonicalNextPlayState());
   mLogicallySeeking.Connect(mDecoder->CanonicalLogicallySeeking());
@@ -312,6 +315,7 @@ MediaDecoderStateMachine::InitializationTask()
   mWatchManager.Watch(mLogicalPlaybackRate, &MediaDecoderStateMachine::LogicalPlaybackRateChanged);
   mWatchManager.Watch(mPreservesPitch, &MediaDecoderStateMachine::PreservesPitchChanged);
   mWatchManager.Watch(mNetworkDuration, &MediaDecoderStateMachine::RecomputeDuration);
+  mWatchManager.Watch(mExplicitDuration, &MediaDecoderStateMachine::RecomputeDuration);
   mWatchManager.Watch(mPlayState, &MediaDecoderStateMachine::PlayStateChanged);
   mWatchManager.Watch(mLogicallySeeking, &MediaDecoderStateMachine::LogicallySeekingChanged);
   mWatchManager.Watch(mPlayState, &MediaDecoderStateMachine::UpdateStreamBlockingForPlayState);
@@ -1461,7 +1465,16 @@ void MediaDecoderStateMachine::RecomputeDuration()
   MOZ_ASSERT(OnTaskQueue());
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
 
-  if (mInfo.mMetadataDuration.isSome()) {
+  if (mExplicitDuration.Ref().isSome()) {
+    double d = mExplicitDuration.Ref().ref();
+    if (IsNaN(d)) {
+      
+      
+      return;
+    }
+    TimeUnit duration = TimeUnit::FromSeconds(d);
+    SetDuration(duration.ToMicroseconds());
+  } else if (mInfo.mMetadataDuration.isSome()) {
     SetDuration(mInfo.mMetadataDuration.ref().ToMicroseconds());
   } else if (mInfo.mMetadataEndTime.isSome() && mStartTime >= 0) {
     SetDuration((mInfo.mMetadataEndTime.ref() - TimeUnit::FromMicroseconds(mStartTime)).ToMicroseconds());
@@ -2573,6 +2586,7 @@ MediaDecoderStateMachine::FinishShutdown()
 
   
   mNetworkDuration.DisconnectIfConnected();
+  mExplicitDuration.DisconnectIfConnected();
   mPlayState.DisconnectIfConnected();
   mNextPlayState.DisconnectIfConnected();
   mLogicallySeeking.DisconnectIfConnected();

@@ -997,6 +997,15 @@ protected:
 
   
   
+  Canonical<Maybe<double>> mExplicitDuration;
+  double ExplicitDuration() { return mExplicitDuration.Ref().ref(); }
+  void SetExplicitDuration(double aValue) { mExplicitDuration.Set(Some(aValue)); }
+public:
+  AbstractCanonical<Maybe<double>>* CanonicalExplicitDuration() { return &mExplicitDuration; }
+protected:
+
+  
+  
   
   
   

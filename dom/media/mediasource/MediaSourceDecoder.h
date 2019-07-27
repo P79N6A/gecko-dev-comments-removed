@@ -99,9 +99,6 @@ private:
   
   dom::MediaSource* mMediaSource;
   nsRefPtr<MediaSourceReader> mReader;
-
-  
-  double mMediaSourceDuration;
 };
 
 } 

@@ -907,6 +907,9 @@ public:
   Mirror<media::NullableTimeUnit> mNetworkDuration;
 
   
+  Mirror<Maybe<double>> mExplicitDuration;
+
+  
   Mirror<MediaDecoder::PlayState> mPlayState;
   Mirror<MediaDecoder::PlayState> mNextPlayState;
   Mirror<bool> mLogicallySeeking;
