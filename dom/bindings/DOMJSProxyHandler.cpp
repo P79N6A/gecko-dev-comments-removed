@@ -210,25 +210,12 @@ DOMProxyHandler::set(JSContext *cx, Handle<JSObject*> proxy, Handle<jsid> id,
 
   
   
-  JS::Rooted<JSPropertyDescriptor> desc(cx);
+  JS::Rooted<JSPropertyDescriptor> ownDesc(cx);
   if (!getOwnPropDescriptor(cx, proxy, id,  true,
-                            &desc)) {
+                            &ownDesc)) {
     return false;
   }
-  if (!desc.object()) {
-    
-    
-    
-    JS::Rooted<JSObject*> proto(cx);
-    if (!js::GetObjectProto(cx, proxy, &proto)) {
-      return false;
-    }
-    if (proto && !JS_GetPropertyDescriptorById(cx, proto, id, &desc)) {
-      return false;
-    }
-  }
-
-  return js::SetPropertyIgnoringNamedGetter(cx, proxy, id, v, receiver, desc, result);
+  return js::SetPropertyIgnoringNamedGetter(cx, proxy, id, v, receiver, ownDesc, result);
 }
 
 bool
