@@ -345,6 +345,14 @@ public:
   
 
 
+
+  virtual void
+  DiscoverGattServicesInternal(const nsAString& aAppUuid,
+                               BluetoothReplyRunnable* aRunnable) = 0;
+
+  
+
+
   virtual void
   UnregisterGattClientInternal(int aClientIf,
                                BluetoothReplyRunnable* aRunnable) = 0;

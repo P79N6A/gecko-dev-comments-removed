@@ -51,6 +51,7 @@ public:
 
   already_AddRefed<Promise> Connect(ErrorResult& aRv);
   already_AddRefed<Promise> Disconnect(ErrorResult& aRv);
+  already_AddRefed<Promise> DiscoverServices(ErrorResult& aRv);
   already_AddRefed<Promise> ReadRemoteRssi(ErrorResult& aRv);
 
   
@@ -110,6 +111,11 @@ private:
 
 
   nsString mDeviceAddr;
+
+  
+
+
+  bool mDiscoveringServices;
 };
 
 END_BLUETOOTH_NAMESPACE

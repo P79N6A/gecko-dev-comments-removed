@@ -25,6 +25,7 @@ class BluetoothValue;
 
 
 
+
 void
 UuidToString(const BluetoothUuid& aUuid, nsAString& aString);
 
@@ -33,8 +34,48 @@ UuidToString(const BluetoothUuid& aUuid, nsAString& aString);
 
 
 
+
+
+
+
+
+void
+ReversedUuidToString(const BluetoothUuid& aUuid, nsAString& aString);
+
+
+
+
+
+
+
 void
 StringToUuid(const char* aString, BluetoothUuid& aUuid);
+
+
+
+
+
+
+
+
+
+
+
+
+void
+GeneratePathFromGattId(const BluetoothGattId& aId,
+                       nsAString& aPath,
+                       nsAString& aUuidStr);
+
+
+
+
+
+
+
+void
+GeneratePathFromGattId(const BluetoothGattId& aId,
+                       nsAString& aPath);
 
 
 
