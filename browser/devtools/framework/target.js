@@ -60,6 +60,15 @@ exports.TargetFactory = {
     return targetPromise;
   },
 
+  forWorker: function TF_forWorker(workerClient) {
+    let target = targets.get(workerClient);
+    if (target == null) {
+      target = new WorkerTarget(workerClient);
+      targets.set(workerClient, target);
+    }
+    return target;
+  },
+
   
 
 
@@ -798,4 +807,65 @@ WindowTarget.prototype = {
   toString: function() {
     return 'WindowTarget:' + this.window;
   },
+};
+
+function WorkerTarget(workerClient) {
+  EventEmitter.decorate(this);
+  this._workerClient = workerClient;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+WorkerTarget.prototype = {
+  get isRemote() {
+    return true;
+  },
+
+  get isTabActor() {
+    return true;
+  },
+
+  get form() {
+    return {
+      from: this._workerClient.actor,
+      type: "attached",
+      isFrozen: this._workerClient.isFrozen,
+      url: this._workerClient.url
+    };
+  },
+
+  get activeTab() {
+    return this._workerClient;
+  },
+
+  get client() {
+    return this._workerClient.client;
+  },
+
+  destroy: function () {},
+
+  hasActor: function (name) {
+    return false;
+  },
+
+  getTrait: function (name) {
+    return undefined;
+  },
+
+  makeRemote: function () {}
 };
