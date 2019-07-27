@@ -338,7 +338,7 @@ IterPerformanceStats(JSContext* cx,
             continue;
         }
 
-        if (!(*walker)(cx, group->data, group->uid, closure)) {
+        if (!(*walker)(cx, group->data, closure)) {
             
             return false;
         }
@@ -661,22 +661,6 @@ JS_SetICUMemoryFunctions(JS_ICUAllocFn allocFn, JS_ICUReallocFn reallocFn, JS_IC
 #else
     return true;
 #endif
-}
-
-static JS_CurrentEmbedderTimeFunction currentEmbedderTimeFunction;
-
-JS_PUBLIC_API(void)
-JS_SetCurrentEmbedderTimeFunction(JS_CurrentEmbedderTimeFunction timeFn)
-{
-    currentEmbedderTimeFunction = timeFn;
-}
-
-JS_PUBLIC_API(double)
-JS_GetCurrentEmbedderTime()
-{
-    if (currentEmbedderTimeFunction)
-        return currentEmbedderTimeFunction();
-    return PRMJ_Now() / static_cast<double>(PRMJ_USEC_PER_MSEC);
 }
 
 JS_PUBLIC_API(void*)
@@ -4458,6 +4442,37 @@ JS::Construct(JSContext* cx, HandleValue fval, const JS::HandleValueArray& args,
     AutoLastFrameCheck lfc(cx);
 
     return InvokeConstructor(cx, fval, args.length(), args.begin(), false, rval);
+}
+
+JS_PUBLIC_API(bool)
+JS::Construct(JSContext* cx, HandleValue fval, HandleObject newTarget, const JS::HandleValueArray& args,
+              MutableHandleValue rval)
+{
+    AssertHeapIsIdle(cx);
+    CHECK_REQUEST(cx);
+    assertSameCompartment(cx, fval, newTarget, args);
+    AutoLastFrameCheck lfc(cx);
+
+    
+    
+    if (!newTarget->isConstructor()) {
+        RootedValue val(cx, ObjectValue(*newTarget));
+        ReportValueError(cx, JSMSG_NOT_CONSTRUCTOR, JSDVG_IGNORE_STACK, val, nullptr);
+        return false;
+    }
+
+    
+    
+    AutoValueVector argv(cx);
+    unsigned argc = args.length();
+    if (!argv.reserve(argc + 1))
+        return false;
+    for (unsigned i = 0; i < argc; i++) {
+        argv.infallibleAppend(args[i]);
+    }
+    argv.infallibleAppend(ObjectValue(*newTarget));
+
+    return InvokeConstructor(cx, fval, argc, argv.begin(), true, rval);
 }
 
 static JSObject*

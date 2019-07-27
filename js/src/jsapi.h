@@ -1053,25 +1053,6 @@ typedef void (*JS_ICUFreeFn)(const void*, void* p);
 extern JS_PUBLIC_API(bool)
 JS_SetICUMemoryFunctions(JS_ICUAllocFn allocFn, JS_ICUReallocFn reallocFn, JS_ICUFreeFn freeFn);
 
-typedef double (*JS_CurrentEmbedderTimeFunction)();
-
-
-
-
-
-
-
-
-JS_PUBLIC_API(void)
-JS_SetCurrentEmbedderTimeFunction(JS_CurrentEmbedderTimeFunction timeFn);
-
-
-
-
-
-JS_PUBLIC_API(double)
-JS_GetCurrentEmbedderTime();
-
 JS_PUBLIC_API(void*)
 JS_GetRuntimePrivate(JSRuntime* rt);
 
@@ -3975,6 +3956,12 @@ extern JS_PUBLIC_API(bool)
 Construct(JSContext* cx, JS::HandleValue fun,
           const JS::HandleValueArray& args,
           MutableHandleValue rval);
+
+extern JS_PUBLIC_API(bool)
+Construct(JSContext* cx, JS::HandleValue fun,
+          HandleObject newTarget, const JS::HandleValueArray &args,
+          MutableHandleValue rval);
+
 } 
 
 extern JS_PUBLIC_API(bool)
@@ -5468,9 +5455,6 @@ struct PerformanceGroup {
     PerformanceData data;
 
     
-    const uint64_t uid;
-
-    
     
     
     bool hasStopwatch(uint64_t iteration) const {
@@ -5494,7 +5478,12 @@ struct PerformanceGroup {
         stopwatch_ = nullptr;
     }
 
-    explicit PerformanceGroup(JSContext* cx, void* key);
+    explicit PerformanceGroup(void* key)
+      : stopwatch_(nullptr)
+      , iteration_(0)
+      , key_(key)
+      , refCount_(0)
+    { }
     ~PerformanceGroup()
     {
         MOZ_ASSERT(refCount_ == 0);
@@ -5606,7 +5595,7 @@ extern JS_PUBLIC_API(PerformanceData*)
 GetPerformanceData(JSRuntime*);
 
 typedef bool
-(PerformanceStatsWalker)(JSContext* cx, const PerformanceData& stats, uint64_t uid, void* closure);
+(PerformanceStatsWalker)(JSContext* cx, const PerformanceData& stats, void* closure);
 
 
 
