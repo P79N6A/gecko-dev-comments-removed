@@ -268,8 +268,12 @@ public:
 
 
 
+
+
+
     gfxFloat GetAdvanceWidth(uint32_t aStart, uint32_t aLength,
-                             PropertyProvider *aProvider);
+                             PropertyProvider *aProvider,
+                             PropertyProvider::Spacing* aSpacing = nullptr);
 
     
 
