@@ -10,6 +10,11 @@ let gFxAccounts = {
 
   _initialized: false,
   _inCustomizationMode: false,
+  
+  
+  
+  
+  _expectingNotifyClose: false,
 
   get weave() {
     delete this.weave;
@@ -28,7 +33,8 @@ let gFxAccounts = {
       "weave:service:setup-complete",
       "fxa-migration:state-changed",
       this.FxAccountsCommon.ONVERIFIED_NOTIFICATION,
-      this.FxAccountsCommon.ONLOGOUT_NOTIFICATION
+      this.FxAccountsCommon.ONLOGOUT_NOTIFICATION,
+      "weave:notification:removed",
     ];
   },
 
@@ -109,6 +115,16 @@ let gFxAccounts = {
         break;
       case "fxa-migration:state-changed":
         this.onMigrationStateChanged(data, subject);
+        break;
+      case "weave:notification:removed":
+        
+        
+        let notif = subject.wrappedJSObject.object;
+        if (notif.title == this.SYNC_MIGRATION_NOTIFICATION_TITLE &&
+            !this._expectingNotifyClose) {
+          
+          this.fxaMigrator.recordTelemetry(this.fxaMigrator.TELEMETRY_DECLINED);
+        }
         break;
       default:
         this.updateUI();
@@ -263,7 +279,13 @@ let gFxAccounts = {
 
   updateMigrationNotification: Task.async(function* () {
     if (!this._migrationInfo) {
+      this._expectingNotifyClose = true;
       Weave.Notifications.removeAll(this.SYNC_MIGRATION_NOTIFICATION_TITLE);
+      
+      
+      
+      
+      this._expectingNotifyClose = false;
       return;
     }
     let note = null;
@@ -288,6 +310,7 @@ let gFxAccounts = {
         note = new Weave.Notification(
           undefined, msg, undefined, Weave.Notifications.PRIORITY_WARNING, [
             new Weave.NotificationButton(upgradeLabel, upgradeAccessKey, () => {
+              this._expectingNotifyClose = true;
               this.fxaMigrator.createFxAccount(window);
             }),
           ]
@@ -305,6 +328,7 @@ let gFxAccounts = {
         note = new Weave.Notification(
           undefined, msg, undefined, Weave.Notifications.PRIORITY_INFO, [
             new Weave.NotificationButton(resendLabel, resendAccessKey, () => {
+              this._expectingNotifyClose = true;
               this.fxaMigrator.resendVerificationMail();
             }),
           ]

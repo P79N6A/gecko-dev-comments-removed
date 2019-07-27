@@ -34,6 +34,14 @@ const OBSERVER_STATE_CHANGE_TOPIC = "fxa-migration:state-changed";
 
 const OBSERVER_STATE_REQUEST_TOPIC = "fxa-migration:state-request";
 
+
+
+const OBSERVER_INTERNAL_STATE_CHANGE_TOPIC = "fxa-migration:internal-state-changed";
+
+
+
+const OBSERVER_INTERNAL_TELEMETRY_TOPIC = "fxa-migration:internal-telemetry";
+
 const OBSERVER_TOPICS = [
   "xpcom-shutdown",
   "weave:service:sync:start",
@@ -85,6 +93,19 @@ Migrator.prototype = {
   
   STATE_USER_FXA: "waiting for user to be signed in to FxA",
   STATE_USER_FXA_VERIFIED: "waiting for a verified FxA user",
+
+  
+  
+  STATE_INTERNAL_WAITING_SYNC_COMPLETE: "waiting for sync to complete",
+  STATE_INTERNAL_WAITING_WRITE_SENTINEL: "waiting for sentinel to be written",
+  STATE_INTERNAL_WAITING_START_OVER: "waiting for sync to reset itself",
+  STATE_INTERNAL_COMPLETE: "migration complete",
+
+  
+  
+  TELEMETRY_ACCEPTED: "accepted",
+  TELEMETRY_DECLINED: "declined",
+  TELEMETRY_UNLINKED: "unlinked",
 
   finalize() {
     for (let topic of OBSERVER_TOPICS) {
@@ -199,10 +220,14 @@ Migrator.prototype = {
     if (Weave.Service._locked) {
       
       this.log.info("waiting for sync to complete")
+      Services.obs.notifyObservers(null, OBSERVER_INTERNAL_STATE_CHANGE_TOPIC,
+                                   this.STATE_INTERNAL_WAITING_SYNC_COMPLETE);
       return null;
     }
 
     
+    Services.obs.notifyObservers(null, OBSERVER_INTERNAL_STATE_CHANGE_TOPIC,
+                                 this.STATE_INTERNAL_WAITING_WRITE_SENTINEL);
     yield this._setMigrationSentinelIfNecessary();
 
     
@@ -249,6 +274,8 @@ Migrator.prototype = {
 
     Weave.Service.startOver();
     
+    Services.obs.notifyObservers(null, OBSERVER_INTERNAL_STATE_CHANGE_TOPIC,
+                                 this.STATE_INTERNAL_WAITING_START_OVER);
     yield startOverComplete;
     
     this.log.info("scheduling initial FxA sync.");
@@ -263,6 +290,8 @@ Migrator.prototype = {
     this.log.info("Migration complete");
     update(null);
 
+    Services.obs.notifyObservers(null, OBSERVER_INTERNAL_STATE_CHANGE_TOPIC,
+                                 this.STATE_INTERNAL_COMPLETE);
     return null;
   }),
 
@@ -425,6 +454,9 @@ Migrator.prototype = {
     let customize = !this._allEnginesEnabled();
     tail += "&customizeSync=" + customize;
 
+    
+    
+    this.recordTelemetry(this.TELEMETRY_ACCEPTED);
     return {
       url: "about:accounts?action=" + action + tail,
       options: {ignoreFragment: true, replaceQueryString: true}
@@ -448,6 +480,7 @@ Migrator.prototype = {
       this.log.error("Failed to resend verification mail: ${}", ex);
       ok = false;
     }
+    this.recordTelemetry(this.TELEMETRY_ACCEPTED);
     let fxauser = yield fxAccounts.getSignedInUser();
     let sb = Services.strings.createBundle("chrome://browser/locale/accounts.properties");
 
@@ -479,6 +512,19 @@ Migrator.prototype = {
     return fxAccounts.signOut();
   }),
 
+  recordTelemetry(flag) {
+    
+    
+    switch (flag) {
+      case this.TELEMETRY_ACCEPTED:
+      case this.TELEMETRY_UNLINKED:
+      case this.TELEMETRY_DECLINED:
+        Services.obs.notifyObservers(null, OBSERVER_INTERNAL_TELEMETRY_TOPIC, flag);
+        break;
+      default:
+        throw new Error("Unexpected telemetry flag: " + flag);
+    }
+  }
 }
 
 
