@@ -477,7 +477,9 @@ BacktrackingAllocator::tryAllocateNonFixed(LiveInterval *interval, bool *success
     }
 
     
-    if (interval->requirement()->kind() == Requirement::NONE) {
+    if (interval->requirement()->kind() == Requirement::NONE &&
+        interval->hint()->kind() != Requirement::REGISTER)
+    {
         spill(interval);
         *success = true;
         return true;
@@ -492,6 +494,14 @@ BacktrackingAllocator::tryAllocateNonFixed(LiveInterval *interval, bool *success
             if (*success)
                 return true;
         }
+    }
+
+    
+    
+    if (interval->requirement()->kind() == Requirement::NONE) {
+        spill(interval);
+        *success = true;
+        return true;
     }
 
     
@@ -688,6 +698,9 @@ BacktrackingAllocator::setIntervalRequirement(LiveInterval *interval)
         } else if (policy == LUse::REGISTER) {
             if (!interval->addRequirement(Requirement(Requirement::REGISTER)))
                 return false;
+        } else if (policy == LUse::ANY) {
+            
+            interval->addHint(Requirement(Requirement::REGISTER));
         }
     }
 
