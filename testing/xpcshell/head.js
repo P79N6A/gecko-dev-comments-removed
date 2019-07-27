@@ -336,7 +336,9 @@ function _register_modules_protocol_handler() {
   protocolHandler.setSubstitution("testing-common", modulesURI);
 }
 
-function _initDebugging(port) {
+
+
+function _setupDebuggerServer(breakpointFiles, callback) {
   let prefs = Components.classes["@mozilla.org/preferences-service;1"]
               .getService(Components.interfaces.nsIPrefBranch);
 
@@ -362,7 +364,6 @@ function _initDebugging(port) {
   
   let obsSvc = Components.classes["@mozilla.org/observer-service;1"].
                getService(Components.interfaces.nsIObserverService);
-  let initialized = false;
 
   const TOPICS = ["devtools-thread-resumed", "xpcshell-test-devtools-shutdown"];
   let observe = function(subject, topic, data) {
@@ -374,9 +375,9 @@ function _initDebugging(port) {
           
           let threadActor = subject.wrappedJSObject;
           let location = { line: 1 };
-          for (let file of _TEST_FILE) {
+          for (let file of breakpointFiles) {
             let sourceActor = threadActor.sources.source({originalUrl: file});
-            sourceActor.createAndStoreBreakpoint(location);
+            sourceActor.setBreakpoint(location);
           }
         } catch (ex) {
           do_print("Failed to initialize breakpoints: " + ex + "\n" + ex.stack);
@@ -387,15 +388,21 @@ function _initDebugging(port) {
         
         break;
     }
-    initialized = true;
     for (let topicToRemove of TOPICS) {
       obsSvc.removeObserver(observe, topicToRemove);
     }
+    callback();
   };
 
   for (let topic of TOPICS) {
     obsSvc.addObserver(observe, topic, false);
   }
+  return DebuggerServer;
+}
+
+function _initDebugging(port) {
+  let initialized = false;
+  let DebuggerServer = _setupDebuggerServer(_TEST_FILE, () => {initialized = true;});
 
   do_print("");
   do_print("*******************************************************************");
