@@ -242,12 +242,13 @@ function setupDisplayport(contentRootElement) {
     }
 }
 
+
 function setupAsyncScrollOffsets(options) {
     var currentDoc = content.document;
     var contentRootElement = currentDoc ? currentDoc.documentElement : null;
 
     if (!contentRootElement) {
-        return;
+        return false;
     }
 
     function setupAsyncScrollOffsetsForElement(element, winUtils) {
@@ -258,30 +259,38 @@ function setupAsyncScrollOffsets(options) {
                 
                 
                 winUtils.setAsyncScrollOffset(element, sx, sy);
+                return true;
             } catch (e) {
                 if (!options.allowFailure) {
                     throw e;
                 }
             }
         }
+        return false;
     }
 
     function setupAsyncScrollOffsetsForElementSubtree(element, winUtils) {
-        setupAsyncScrollOffsetsForElement(element, winUtils);
+        var updatedAny = setupAsyncScrollOffsetsForElement(element, winUtils);
         for (var c = element.firstElementChild; c; c = c.nextElementSibling) {
-            setupAsyncScrollOffsetsForElementSubtree(c, winUtils);
+            if (setupAsyncScrollOffsetsForElementSubtree(c, winUtils)) {
+                updatedAny = true;
+            }
         }
         if (element.contentDocument) {
             LogInfo("Descending into subdocument (async offsets)");
-            setupAsyncScrollOffsetsForElementSubtree(element.contentDocument.documentElement,
-                                                     windowUtilsForWindow(element.contentWindow));
+            if (setupAsyncScrollOffsetsForElementSubtree(element.contentDocument.documentElement,
+                                                         windowUtilsForWindow(element.contentWindow))) {
+                updatedAny = true;
+            }
         }
+        return updatedAny;
     }
 
     var asyncScroll = contentRootElement.hasAttribute("reftest-async-scroll");
     if (asyncScroll) {
-        setupAsyncScrollOffsetsForElementSubtree(contentRootElement, windowUtils());
+        return setupAsyncScrollOffsetsForElementSubtree(contentRootElement, windowUtils());
     }
+    return false;
 }
 
 function resetDisplayportAndViewport() {
@@ -795,7 +804,12 @@ function RecordResult()
 
     
     
-    setupAsyncScrollOffsets({allowFailure:true});
+    
+    var changedAsyncScrollOffsets = setupAsyncScrollOffsets({allowFailure:true}) ;
+    if (changedAsyncScrollOffsets && !gBrowserIsRemote) {
+        sendAsyncMessage("reftest:UpdateWholeCanvasForInvalidation");
+    }
+
     SendTestDone(currentTestRunTime);
     FinishTestItem();
 }
