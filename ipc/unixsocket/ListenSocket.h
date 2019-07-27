@@ -34,8 +34,9 @@ public:
 
 
 
-  nsresult Listen(UnixSocketConnector* aConnector,
-                  ConnectionOrientedSocket* aCOSocket);
+
+  bool Listen(UnixSocketConnector* aConnector,
+              ConnectionOrientedSocket* aCOSocket);
 
   
 
@@ -46,7 +47,13 @@ public:
 
 
 
-  nsresult Listen(ConnectionOrientedSocket* aCOSocket);
+
+  bool Listen(ConnectionOrientedSocket* aCOSocket);
+
+  
+
+
+  void GetSocketAddr(nsAString& aAddrStr);
 
   
   
