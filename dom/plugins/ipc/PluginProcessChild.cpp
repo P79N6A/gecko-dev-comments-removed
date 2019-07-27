@@ -12,6 +12,7 @@
 #include "base/command_line.h"
 #include "base/string_util.h"
 #include "chrome/common/chrome_switches.h"
+#include "nsDebugImpl.h"
 
 #if defined(XP_MACOSX)
 #include "nsCocoaFeatures.h"
@@ -23,6 +24,10 @@ extern "C" CGError CGSSetDebugOptions(int options);
 #ifdef XP_WIN
 #include <objbase.h>
 bool ShouldProtectPluginCurrentDirectory(char16ptr_t pluginFilePath);
+#if defined(MOZ_SANDBOX)
+#define TARGET_SANDBOX_EXPORTS
+#include "mozilla/sandboxTarget.h"
+#endif
 #endif
 
 using mozilla::ipc::IOThreadChild;
@@ -49,6 +54,8 @@ namespace plugins {
 bool
 PluginProcessChild::Init()
 {
+    nsDebugImpl::SetMultiprocessMode("NPAPI");
+
 #if defined(XP_MACOSX)
     
     
@@ -117,6 +124,13 @@ PluginProcessChild::Init()
     }
 
     pluginFilename = WideToUTF8(values[0]);
+
+#if defined(MOZ_SANDBOX)
+    
+    
+    
+    mozilla::SandboxTarget::Instance()->StartSandbox();
+#endif
 #else
 #  error Sorry
 #endif

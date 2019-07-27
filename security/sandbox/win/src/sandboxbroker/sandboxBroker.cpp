@@ -123,11 +123,25 @@ SandboxBroker::SetSecurityLevelForPluginProcess()
     return false;
   }
 
-  auto result = mPolicy->SetJobLevel(sandbox::JOB_NONE, 0);
+  auto result = mPolicy->SetJobLevel(sandbox::JOB_NONE,
+                                     0 );
   bool ret = (sandbox::SBOX_ALL_OK == result);
-  result = mPolicy->SetTokenLevel(sandbox::USER_UNPROTECTED,
-                                  sandbox::USER_UNPROTECTED);
+
+  result = mPolicy->SetTokenLevel(sandbox::USER_RESTRICTED_SAME_ACCESS,
+                                  sandbox::USER_RESTRICTED_SAME_ACCESS);
   ret = ret && (sandbox::SBOX_ALL_OK == result);
+
+  result = mPolicy->SetDelayedIntegrityLevel(sandbox::INTEGRITY_LEVEL_MEDIUM);
+  ret = ret && (sandbox::SBOX_ALL_OK == result);
+
+  
+  
+  
+  result = mPolicy->AddRule(sandbox::TargetPolicy::SUBSYS_FILES,
+                            sandbox::TargetPolicy::FILES_ALLOW_ANY,
+                            L"\\??\\pipe\\chrome.*");
+  ret = ret && (sandbox::SBOX_ALL_OK == result);
+
   return ret;
 }
 
