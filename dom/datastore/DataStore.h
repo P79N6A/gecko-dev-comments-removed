@@ -27,7 +27,6 @@ public:
                                            DOMEventTargetHelper)
 
   explicit DataStore(nsPIDOMWindow* aWindow);
-  ~DataStore();
 
   
 
@@ -84,6 +83,8 @@ public:
   void SetDataStoreImpl(DataStoreImpl& aStore, ErrorResult& aRv);
 
 private:
+  ~DataStore();
+
   nsRefPtr<DataStoreImpl> mStore;
 };
 

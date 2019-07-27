@@ -49,6 +49,8 @@ public:
   IMPL_EVENT_HANDLER(typechange)
 
 private:
+  ~Connection() {}
+
   
 
 

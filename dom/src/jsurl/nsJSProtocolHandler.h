@@ -91,6 +91,8 @@ public:
     
 
 protected:
+    virtual ~nsJSURI() {}
+
     virtual nsresult EqualsInternal(nsIURI* other,
                                     RefHandlingEnum refHandlingMode,
                                     bool* result) MOZ_OVERRIDE;

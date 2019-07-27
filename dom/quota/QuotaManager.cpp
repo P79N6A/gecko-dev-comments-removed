@@ -228,6 +228,8 @@ public:
               PersistenceType aPersistenceType);
 
 private:
+  ~OriginClearRunnable() {}
+
   OriginOrPatternString mOriginOrPattern;
   Nullable<PersistenceType> mPersistenceType;
   CallbackState mCallbackState;
@@ -298,6 +300,8 @@ public:
   TakeShortcut();
 
 private:
+  ~AsyncUsageRunnable() {}
+
   
   
   inline nsresult
@@ -375,6 +379,8 @@ public:
               PersistenceType aPersistenceType);
 
 private:
+  ~ResetOrClearRunnable() {}
+
   CallbackState mCallbackState;
   bool mClear;
 };
