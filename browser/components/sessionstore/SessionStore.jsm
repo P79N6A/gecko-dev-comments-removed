@@ -766,7 +766,7 @@ let SessionStoreInternal = {
         this.saveStateDelayed(win);
         break;
       case "oop-browser-crashed":
-        this._crashedBrowsers.add(aEvent.originalTarget.permanentKey);
+        this.onBrowserCrashed(win, aEvent.originalTarget);
         break;
     }
     this._clearRestoringWindows();
@@ -1459,6 +1459,29 @@ let SessionStoreInternal = {
     
     
     this.saveStateDelayed(aWindow);
+  },
+
+  
+
+
+
+
+
+
+
+  onBrowserCrashed: function(aWindow, aBrowser) {
+    this._crashedBrowsers.add(aBrowser.permanentKey);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    let tab = aWindow.gBrowser.getTabForBrowser(aBrowser);
+    this._resetLocalTabRestoringState(tab);
   },
 
   onGatherTelemetry: function() {
