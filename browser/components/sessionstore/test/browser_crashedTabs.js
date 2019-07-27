@@ -16,6 +16,9 @@ registerCleanupFunction(() => {
 Services.prefs.clearUserPref("browser.sessionstore.restore_on_demand");
 
 
+requestLongerTimeout(2);
+
+
 
 
 
