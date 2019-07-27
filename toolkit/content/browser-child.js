@@ -373,6 +373,10 @@ if (Services.appinfo.browserTabsRemoteAutostart) {
   
   
   AddonsChild = RemoteAddonsChild.init(this);
+
+  addEventListener("unload", () => {
+    RemoteAddonsChild.uninit(AddonsChild);
+  });
 }
 
 addMessageListener("NetworkPrioritizer:AdjustPriority", (msg) => {
