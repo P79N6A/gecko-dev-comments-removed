@@ -41,7 +41,7 @@ public:
   
   static bool sError;
 
-  UnownedCallback(mozIStorageConnection* aDBConn)
+  explicit UnownedCallback(mozIStorageConnection* aDBConn)
   : mDBConn(aDBConn)
   , mCompleted(false)
   {
