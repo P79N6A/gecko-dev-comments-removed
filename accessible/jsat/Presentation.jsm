@@ -78,6 +78,12 @@ Presenter.prototype = {
 
 
 
+  nameChanged: function nameChanged(aAccessible) {}, 
+
+  
+
+
+
   valueChanged: function valueChanged(aAccessible) {}, 
 
   
@@ -514,6 +520,17 @@ B2GPresenter.prototype.pivotChanged =
     };
   };
 
+B2GPresenter.prototype.nameChanged =
+  function B2GPresenter_nameChanged(aAccessible) {
+    return {
+      type: this.type,
+      details: {
+        eventType: 'name-change',
+        data: aAccessible.name
+      }
+    };
+  };
+
 B2GPresenter.prototype.valueChanged =
   function B2GPresenter_valueChanged(aAccessible) {
 
@@ -687,6 +704,10 @@ this.Presentation = {
                                                       aIsFromUserInput) {
     return [p.textSelectionChanged(aText, aStart, aEnd, aOldStart, aOldEnd, 
       aIsFromUserInput) for each (p in this.presenters)]; 
+  },
+
+  nameChanged: function nameChanged(aAccessible) {
+    return [ p.nameChanged(aAccessible) for (p of this.presenters) ]; 
   },
 
   valueChanged: function valueChanged(aAccessible) {
