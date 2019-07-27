@@ -103,55 +103,6 @@ function checkAllSearches(aQuery, aExpectedCount)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-function checkAllSearchesTwoSets(aQuery, expectedQuery, aExpectedCount)
-{
-  do_print("Testing all search functions for " + JSON.stringify(aQuery) +
-           " and " + JSON.stringify(expectedQuery));
-
-  let expectedLogins = buildExpectedLogins(expectedQuery);
-
-  
-  
-  
-  let hostname = ("hostname" in aQuery) ? aQuery.hostname : "";
-  let formSubmitURL = ("formSubmitURL" in aQuery) ? aQuery.formSubmitURL : "";
-  let httpRealm = ("httpRealm" in aQuery) ? aQuery.httpRealm : "";
-
-  
-  let outCount = {};
-  let logins = Services.logins.findLogins(outCount, hostname, formSubmitURL,
-                                          httpRealm);
-  do_check_eq(outCount.value, expectedLogins.length);
-  LoginTestUtils.assertLoginListsMatches(logins, expectedLogins, true);
-
-  
-  let count = Services.logins.countLogins(hostname, formSubmitURL, httpRealm)
-  do_check_eq(count, expectedLogins.length);
-
-  
-  outCount = {};
-  logins = Services.logins.searchLogins(outCount, newPropertyBag(expectedQuery));
-  do_check_eq(outCount.value, expectedLogins.length);
-  LoginTestUtils.assertLoginListsMatches(logins, expectedLogins, true);
-}
-
-
-
-
-
-
-
 add_task(function test_initialize()
 {
   for (let login of TestData.loginList()) {
@@ -165,10 +116,10 @@ add_task(function test_initialize()
 add_task(function test_search_all_basic()
 {
   
-  checkAllSearches({}, 22);
+  checkAllSearches({}, 23);
 
   
-  checkAllSearches({ httpRealm: null }, 13);
+  checkAllSearches({ httpRealm: null }, 14);
   checkAllSearches({ formSubmitURL: null }, 9);
 
   
@@ -181,16 +132,18 @@ add_task(function test_search_all_basic()
   checkAllSearches({ hostname: "http://www.example.com" }, 1);
   checkAllSearches({ hostname: "https://www.example.com" }, 1);
   checkAllSearches({ hostname: "https://example.com" }, 1);
-  checkAllSearches({ hostname: "http://www3.example.com" }, 2);
+  checkAllSearches({ hostname: "http://www3.example.com" }, 3);
 
   
   checkAllSearches({ formSubmitURL: "http://www.example.com" }, 2);
-  checkAllSearches({ formSubmitURL: "https://www.example.com" }, 1);
+  checkAllSearches({ formSubmitURL: "https://www.example.com" }, 2);
   checkAllSearches({ formSubmitURL: "http://example.com" }, 1);
 
   
   checkAllSearches({ hostname: "http://www3.example.com",
                      formSubmitURL: "http://www.example.com" }, 1);
+  checkAllSearches({ hostname: "http://www3.example.com",
+                     formSubmitURL: "https://www.example.com" }, 1);
   checkAllSearches({ hostname: "http://www3.example.com",
                      formSubmitURL: "http://example.com" }, 1);
 
@@ -213,8 +166,8 @@ add_task(function test_search_all_basic()
 
 add_task(function test_searchLogins()
 {
-  checkSearchLogins({ usernameField: "form_field_username" }, 11);
-  checkSearchLogins({ passwordField: "form_field_password" }, 12);
+  checkSearchLogins({ usernameField: "form_field_username" }, 12);
+  checkSearchLogins({ passwordField: "form_field_password" }, 13);
 
   
   checkSearchLogins({ usernameField: "" }, 11);
@@ -250,6 +203,7 @@ add_task(function test_search_all_full_case_sensitive()
   checkAllSearches({ hostname: "example.com" }, 0);
 
   checkAllSearches({ formSubmitURL: "http://www.example.com" }, 2);
+  checkAllSearches({ formSubmitURL: "http://www.example.com/" }, 0);
   checkAllSearches({ formSubmitURL: "http://" }, 0);
   checkAllSearches({ formSubmitURL: "example.com" }, 0);
 
@@ -271,20 +225,4 @@ add_task(function test_search_all_empty()
 
   checkSearchLogins({ hostname: "" }, 0);
   checkSearchLogins({ id: "1000" }, 0);
-});
-
-
-add_task(function test_search_different_formSubmitURL_scheme()
-{
-  let aQuery = {
-    formSubmitURL: "https://www.example.com",
-    hostname: "http://www.example.com",
-  };
-
-  let buildQuery = {
-    formSubmitURL: "http://www.example.com",
-    hostname: "http://www.example.com",
-  }
-
-  checkAllSearchesTwoSets(aQuery, buildQuery, 1);
 });
