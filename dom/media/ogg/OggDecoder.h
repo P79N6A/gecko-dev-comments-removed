@@ -18,13 +18,13 @@ public:
     , mShutdownBit(false)
   {}
 
-  virtual MediaDecoder* Clone() {
+  virtual MediaDecoder* Clone() override {
     if (!IsOggEnabled()) {
       return nullptr;
     }
     return new OggDecoder();
   }
-  virtual MediaDecoderStateMachine* CreateStateMachine();
+  virtual MediaDecoderStateMachine* CreateStateMachine() override;
 
   
   
