@@ -15,9 +15,43 @@ import android.os.Looper;
 
 
 
-public abstract class UiAsyncTask<Params, Progress, Result> {
-    private volatile boolean mCancelled;
+
+
+
+
+
+
+
+
+
+
+
+
+
+public abstract class UIAsyncTask<Param, Result> {
+    
+
+
+
+    public static abstract class WithoutParams<InnerResult> extends UIAsyncTask<Void, InnerResult> {
+        public WithoutParams(Handler backgroundThreadHandler) {
+            super(backgroundThreadHandler);
+        }
+
+        public void execute() {
+            execute(null);
+        }
+
+        @Override
+        protected InnerResult doInBackground(Void unused) {
+            return doInBackground();
+        }
+
+        protected abstract InnerResult doInBackground();
+    }
+
      final Handler mBackgroundThreadHandler;
+    private volatile boolean mCancelled;
     private static Handler sHandler;
 
     
@@ -25,7 +59,7 @@ public abstract class UiAsyncTask<Params, Progress, Result> {
 
 
 
-    public UiAsyncTask(Handler backgroundThreadHandler) {
+    public UIAsyncTask(Handler backgroundThreadHandler) {
         mBackgroundThreadHandler = backgroundThreadHandler;
     }
 
@@ -33,44 +67,45 @@ public abstract class UiAsyncTask<Params, Progress, Result> {
         if (sHandler == null) {
             sHandler = new Handler(Looper.getMainLooper());
         }
+
         return sHandler;
     }
 
     private final class BackgroundTaskRunnable implements Runnable {
-        private Params[] mParams;
+        private Param mParam;
 
-        public BackgroundTaskRunnable(Params... params) {
-            mParams = params;
+        public BackgroundTaskRunnable(Param param) {
+            mParam = param;
         }
 
         @Override
         public void run() {
-            final Result result = doInBackground(mParams);
+            final Result result = doInBackground(mParam);
 
             getUiHandler().post(new Runnable() {
                 @Override
                 public void run() {
-                    if (mCancelled)
+                    if (mCancelled) {
                         onCancelled();
-                    else
+                    } else {
                         onPostExecute(result);
+                    }
                 }
             });
         }
     }
 
-    public final void execute(final Params... params) {
+    protected void execute(final Param param) {
         getUiHandler().post(new Runnable() {
             @Override
             public void run() {
                 onPreExecute();
-                mBackgroundThreadHandler.post(new BackgroundTaskRunnable(params));
+                mBackgroundThreadHandler.post(new BackgroundTaskRunnable(param));
             }
         });
     }
 
-    @SuppressWarnings({"UnusedParameters"})
-    public final boolean cancel(boolean mayInterruptIfRunning) {
+    public final boolean cancel() {
         mCancelled = true;
         return mCancelled;
     }
@@ -82,5 +117,5 @@ public abstract class UiAsyncTask<Params, Progress, Result> {
     protected void onPreExecute() { }
     protected void onPostExecute(Result result) { }
     protected void onCancelled() { }
-    protected abstract Result doInBackground(Params... params);
+    protected abstract Result doInBackground(Param param);
 }
