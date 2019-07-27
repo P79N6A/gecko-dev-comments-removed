@@ -465,6 +465,9 @@ private:
     
     void ShutDownMessageManager();
 
+    
+    void StartForceKillTimer();
+
     static void ForceKillTimerCallback(nsITimer* aTimer, void* aClosure);
 
     PCompositorParent*

@@ -1506,6 +1506,8 @@ ContentParent::ShutDownProcess(ShutDownMethod aMethod)
     if (aMethod == SEND_SHUTDOWN_MESSAGE) {
         if (mIPCOpen && !mShutdownPending && SendShutdown()) {
             mShutdownPending = true;
+            
+            StartForceKillTimer();
         }
 
         
@@ -1923,8 +1925,16 @@ ContentParent::NotifyTabDestroying(PBrowserParent* aTab)
     
     
     MarkAsDead();
+    StartForceKillTimer();
+}
 
-    MOZ_ASSERT(!mForceKillTimer);
+void
+ContentParent::StartForceKillTimer()
+{
+    if (mForceKillTimer || !mIPCOpen) {
+        return;
+    }
+
     int32_t timeoutSecs =
         Preferences::GetInt("dom.ipc.tabs.shutdownTimeoutSecs", 5);
     if (timeoutSecs > 0) {
