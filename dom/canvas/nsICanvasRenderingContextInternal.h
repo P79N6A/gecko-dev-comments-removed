@@ -42,10 +42,10 @@ public:
 
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ICANVASRENDERINGCONTEXTINTERNAL_IID)
 
-  void SetCanvasElement(mozilla::dom::HTMLCanvasElement* aParentCanvas)
+  void SetCanvasElement(mozilla::dom::HTMLCanvasElement* parentCanvas)
   {
     RemovePostRefreshObserver();
-    mCanvasElement = aParentCanvas;
+    mCanvasElement = parentCanvas;
     AddPostRefreshObserverIfNecessary();
   }
 
@@ -93,7 +93,7 @@ public:
   NS_IMETHOD InitializeWithSurface(nsIDocShell *docShell, gfxASurface *surface, int32_t width, int32_t height) = 0;
 
   
-  virtual void GetImageBuffer(uint8_t** aImageBuffer, int32_t* aFormat) = 0;
+  virtual void GetImageBuffer(uint8_t** imageBuffer, int32_t* format) = 0;
 
   
   
@@ -101,16 +101,16 @@ public:
   
   
   
-  NS_IMETHOD GetInputStream(const char *aMimeType,
-                            const char16_t *aEncoderOptions,
-                            nsIInputStream **aStream) = 0;
+  NS_IMETHOD GetInputStream(const char *mimeType,
+                            const char16_t *encoderOptions,
+                            nsIInputStream **stream) = 0;
+
   
   
   
   
   
-  
-  virtual already_AddRefed<mozilla::gfx::SourceSurface> GetSurfaceSnapshot(bool* aPremultAlpha = nullptr) = 0;
+  virtual already_AddRefed<mozilla::gfx::SourceSurface> GetSurfaceSnapshot(bool* premultAlpha = nullptr) = 0;
 
   
   
@@ -125,27 +125,27 @@ public:
 
   
   
-  virtual already_AddRefed<CanvasLayer> GetCanvasLayer(nsDisplayListBuilder* aBuilder,
-                                                       CanvasLayer *aOldLayer,
-                                                       LayerManager *aManager) = 0;
+  virtual already_AddRefed<CanvasLayer> GetCanvasLayer(nsDisplayListBuilder* builder,
+                                                       CanvasLayer *oldLayer,
+                                                       LayerManager *manager) = 0;
 
   
   
   
-  virtual bool ShouldForceInactiveLayer(LayerManager *aManager) { return false; }
+  virtual bool ShouldForceInactiveLayer(LayerManager *manager) { return false; }
 
   virtual void MarkContextClean() = 0;
 
   
   NS_IMETHOD Redraw(const gfxRect &dirty) = 0;
 
-  NS_IMETHOD SetContextOptions(JSContext* aCx, JS::Handle<JS::Value> aOptions) { return NS_OK; }
+  NS_IMETHOD SetContextOptions(JSContext* cx, JS::Handle<JS::Value> options) { return NS_OK; }
 
   
-  virtual bool GetHitRegionRect(mozilla::dom::Element* aElement, nsRect& aRect) { return false; }
+  virtual bool GetHitRegionRect(mozilla::dom::Element* element, nsRect& rect) { return false; }
 
   
-  virtual nsString GetHitRegion(const mozilla::gfx::Point& aPoint) { return nsString(); }
+  virtual nsString GetHitRegion(const mozilla::gfx::Point& point) { return nsString(); }
 
   
   

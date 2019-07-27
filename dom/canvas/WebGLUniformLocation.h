@@ -11,6 +11,7 @@
 #include "nsCycleCollectionParticipant.h" 
 #include "nsISupportsImpl.h" 
 #include "nsWrapperCache.h"
+
 #include "WebGLObjectModel.h"
 
 struct JSContext;
@@ -32,12 +33,11 @@ public:
     NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(WebGLUniformLocation)
     NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(WebGLUniformLocation)
 
-    virtual JSObject* WrapObject(JSContext* js, JS::Handle<JSObject*> aGivenProto) override;
+    virtual JSObject* WrapObject(JSContext* js, JS::Handle<JSObject*> givenProto) override;
 
     WebGLContext* GetParentObject() const {
         return mContext;
     }
-
 
     const WeakPtr<const webgl::LinkedProgramInfo> mLinkInfo;
     const GLuint mLoc;

@@ -4,10 +4,8 @@
 
 
 #include "WebGL2Context.h"
-#include "GLContext.h"
 
-using namespace mozilla;
-using namespace mozilla::dom;
+namespace mozilla {
 
 
 
@@ -17,3 +15,5 @@ WebGL2Context::DrawRangeElements(GLenum mode, GLuint start, GLuint end, GLsizei 
 {
     MOZ_CRASH("Not Implemented.");
 }
+
+} 

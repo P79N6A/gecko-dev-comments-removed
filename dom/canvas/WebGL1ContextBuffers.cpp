@@ -4,11 +4,8 @@
 
 
 #include "WebGL1Context.h"
-#include "WebGLBuffer.h"
-#include "GLContext.h"
 
-using namespace mozilla;
-using namespace mozilla::dom;
+namespace mozilla {
 
 
 
@@ -50,3 +47,5 @@ WebGL1Context::ValidateBufferUsageEnum(GLenum usage, const char* info)
     ErrorInvalidEnumInfo(info, usage);
     return false;
 }
+
+} 
