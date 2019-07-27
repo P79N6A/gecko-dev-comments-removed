@@ -1050,7 +1050,7 @@ public:
 
 
 
-  virtual bool ShouldFixToViewport(nsDisplayListBuilder* aBuilder)
+  virtual bool ShouldFixToViewport(LayerManager* aManager)
   { return false; }
 
   
@@ -2153,11 +2153,12 @@ public:
   static nsRegion GetInsideClipRegion(nsDisplayItem* aItem, nsPresContext* aPresContext, uint8_t aClip,
                                       const nsRect& aRect, bool* aSnap);
 
-  virtual bool ShouldFixToViewport(nsDisplayListBuilder* aBuilder) MOZ_OVERRIDE
+  virtual bool ShouldFixToViewport(LayerManager* aManager) MOZ_OVERRIDE
   {
     
     
-    if (nsLayoutUtils::UsesAsyncScrolling()) {
+    if (nsLayoutUtils::UsesAsyncScrolling() ||
+        (aManager && aManager->ShouldAvoidComponentAlphaLayers())) {
       return false;
     }
 
