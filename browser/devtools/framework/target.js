@@ -222,6 +222,14 @@ TabTarget.prototype = {
   get window() {
     
     
+    
+    
+    if (Services.appinfo.processType != Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT) {
+      Cu.reportError("The .window getter on devtools' |target| object isn't e10s friendly!\n"
+                     + Error().stack);
+    }
+    
+    
     if (this._tab && this._tab.linkedBrowser) {
       return this._tab.linkedBrowser.contentWindow;
     }
@@ -542,7 +550,7 @@ TabWebProgressListener.prototype = {
     }
 
     
-    if (this.target && this.target.window == progress.DOMWindow) {
+    if (progress.isTopLevel) {
       
       
       if (this.target._client) {
