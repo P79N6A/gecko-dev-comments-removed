@@ -117,7 +117,7 @@ public:
   bool HasOverscrolledApzc() const;
 
   
-  bool HasFastMovingApzc() const;
+  bool HasFastFlungApzc() const;
 
   nsRefPtr<AsyncPanZoomController> FindFirstScrollable(const ScrollWheelInput& aInput) const;
 

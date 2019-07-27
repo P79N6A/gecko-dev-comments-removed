@@ -301,11 +301,11 @@ public:
 
 
 
-  void SetDuringFastMotion();
+  void SetDuringFastFling();
   
 
 
-  bool IsDuringFastMotion() const;
+  bool IsDuringFastFling() const;
   
 
 
@@ -350,7 +350,7 @@ public:
 private:
   nsTArray<TouchBehaviorFlags> mAllowedTouchBehaviors;
   bool mAllowedTouchBehaviorSet;
-  bool mDuringFastMotion;
+  bool mDuringFastFling;
   bool mSingleTapOccurred;
   nsTArray<MultiTouchInput> mEvents;
 };

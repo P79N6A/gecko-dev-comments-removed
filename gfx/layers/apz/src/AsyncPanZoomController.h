@@ -324,7 +324,7 @@ public:
 
 
 
-  bool IsMovingFast() const;
+  bool IsFlingingFast() const;
 
   
 

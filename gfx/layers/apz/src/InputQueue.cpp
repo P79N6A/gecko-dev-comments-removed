@@ -98,14 +98,14 @@ InputQueue::ReceiveTouchInput(const nsRefPtr<AsyncPanZoomController>& aTarget,
     
     if (block == CurrentBlock() &&
         aEvent.mTouches.Length() == 1 &&
-        block->GetOverscrollHandoffChain()->HasFastMovingApzc() &&
+        block->GetOverscrollHandoffChain()->HasFastFlungApzc() &&
         haveBehaviors) {
       
       
       
       
       
-      block->SetDuringFastMotion();
+      block->SetDuringFastFling();
       block->SetConfirmedTargetApzc(aTarget);
       if (gfxPrefs::TouchActionEnabled()) {
         block->SetAllowedTouchBehaviors(currentBehaviors);
@@ -144,7 +144,7 @@ InputQueue::ReceiveTouchInput(const nsRefPtr<AsyncPanZoomController>& aTarget,
   
   
   
-  if (block->IsDuringFastMotion()) {
+  if (block->IsDuringFastFling()) {
     INPQ_LOG("dropping event due to block %p being in fast motion\n", block);
     result = nsEventStatus_eConsumeNoDefault;
   } else if (target && target->ArePointerEventsConsumable(block, aEvent.AsMultiTouchInput().mTouches.Length())) {
