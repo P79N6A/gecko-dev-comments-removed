@@ -6504,6 +6504,12 @@ gc::MergeCompartments(JSCompartment *source, JSCompartment *target)
 
     
     
+    
+    if (source->needsDelazificationForDebugger())
+        target->scheduleDelazificationForDebugger();
+
+    
+    
     rt->gc.releaseHeldRelocatedArenas();
 
     
