@@ -313,7 +313,7 @@ let gFxAccounts = {
     fxAccounts.getSignedInUser().then(userData => {
       
       updateWithUserData(userData);
-      return fxAccounts.getSignedInUserProfile();
+      return userData ? fxAccounts.getSignedInUserProfile() : null;
     }).then(profile => {
       if (!profile) {
         return;
