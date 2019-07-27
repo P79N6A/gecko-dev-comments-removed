@@ -57,10 +57,7 @@ function checkEVStatus(cert, usage, isEVExpected) {
 
 
 
-
-
-
-function addKeySizeTestForEV(expectedNamesForOCSP, certNamePrefix,
+function addKeySizeTestForEV(expectedNamesForOCSP,
                              rootCACertFileName, subCACertFileNames,
                              endEntityCertFileName, expectedResult)
 {
@@ -68,16 +65,11 @@ function addKeySizeTestForEV(expectedNamesForOCSP, certNamePrefix,
     clearOCSPCache();
     let ocspResponder = getOCSPResponder(expectedNamesForOCSP);
 
-    
-    
-    let rootCertNamePrefix = rootCACertFileName.startsWith("..")
-                           ? ""
-                           : certNamePrefix;
-    loadCert(rootCertNamePrefix + rootCACertFileName, "CTu,CTu,CTu");
+    loadCert(rootCACertFileName, "CTu,CTu,CTu");
     for (let subCACertFileName of subCACertFileNames) {
-      loadCert(certNamePrefix + subCACertFileName, ",,");
+      loadCert(subCACertFileName, ",,");
     }
-    checkEVStatus(certFromFile(certNamePrefix + endEntityCertFileName + ".der"),
+    checkEVStatus(certFromFile(endEntityCertFileName + ".der"),
                   certificateUsageSSLServer, expectedResult);
 
     ocspResponder.stop(run_next_test);
@@ -98,61 +90,69 @@ function addKeySizeTestForEV(expectedNamesForOCSP, certNamePrefix,
 
 
 
-function checkForKeyType(keyType) {
-  let certNamePrefix = "ev-" + keyType;
+
+
+
+
+function checkForKeyType(keyType, inadequateKeySize, adequateKeySize) {
+  
+  let rootOKCertFileName = keyType == "rsa"
+                         ? "../test_ev_certs/evroot"
+                         : "ev_root_" + keyType + "_" + adequateKeySize;
+  let rootOKName = keyType == "rsa"
+                 ? "evroot"
+                 : "ev_root_" + keyType + "_" + adequateKeySize;
+  let rootNotOKName = "ev_root_" + keyType + "_" + inadequateKeySize;
+  let intOKName = "ev_int_" + keyType + "_" + adequateKeySize;
+  let intNotOKName = "ev_int_" + keyType + "_" + inadequateKeySize;
+  let eeOKName = "ev_ee_" + keyType + "_" + adequateKeySize;
+  let eeNotOKName = "ev_ee_" + keyType + "_" + inadequateKeySize;
 
   
-  let rootCAOKCertFileName = keyType == "rsa" ? "../test_ev_certs/evroot"
-                                              : "-caOK";
-
   
   
   
+  let intFullName = intOKName + "-" + rootOKName;
+  let eeFullName = eeOKName + "-" + intOKName + "-" + rootOKName;
   let expectedNamesForOCSP = isDebugBuild
-                           ? [ certNamePrefix + "-intOK-caOK",
-                               certNamePrefix + "-eeOK-intOK-caOK" ]
-                           : [ certNamePrefix + "-eeOK-intOK-caOK" ];
-  addKeySizeTestForEV(expectedNamesForOCSP, certNamePrefix,
-                      rootCAOKCertFileName,
-                      ["-intOK-caOK"],
-                      "-eeOK-intOK-caOK",
-                      isDebugBuild);
+                           ? [ intFullName,
+                               eeFullName ]
+                           : [ eeFullName ];
+  addKeySizeTestForEV(expectedNamesForOCSP, rootOKCertFileName,
+                      [ intFullName ], eeFullName, isDebugBuild);
 
   
   
-  expectedNamesForOCSP = [ certNamePrefix + "-eeOK-intOK-caBad" ];
-  addKeySizeTestForEV(expectedNamesForOCSP, certNamePrefix,
-                      "-caBad",
-                      ["-intOK-caBad"],
-                      "-eeOK-intOK-caBad",
-                      false);
+  intFullName = intOKName + "-" + rootNotOKName;
+  eeFullName = eeOKName + "-" + intOKName + "-" + rootNotOKName;
+  expectedNamesForOCSP = [ eeFullName ];
+  addKeySizeTestForEV(expectedNamesForOCSP, rootNotOKName,
+                      [ intFullName ], eeFullName, false);
 
   
   
+  intFullName = intNotOKName + "-" + rootOKName;
+  eeFullName = eeOKName + "-" + intNotOKName + "-" + rootOKName;
   expectedNamesForOCSP = isDebugBuild
-                       ? [ certNamePrefix + "-intBad-caOK" ]
-                       : [ certNamePrefix + "-eeOK-intBad-caOK" ];
-  addKeySizeTestForEV(expectedNamesForOCSP, certNamePrefix,
-                      rootCAOKCertFileName,
-                      ["-intBad-caOK"],
-                      "-eeOK-intBad-caOK",
-                      false);
+                       ? [ intFullName ]
+                       : [ eeFullName ];
+  addKeySizeTestForEV(expectedNamesForOCSP, rootOKCertFileName,
+                      [ intFullName ], eeFullName, false);
 
   
   
-  expectedNamesForOCSP = [ certNamePrefix + "-eeBad-intOK-caOK" ];
-  addKeySizeTestForEV(expectedNamesForOCSP, certNamePrefix,
-                      rootCAOKCertFileName,
-                      ["-intOK-caOK"],
-                      "-eeBad-intOK-caOK",
-                      false);
+  intFullName = intOKName + "-" + rootOKName;
+  eeFullName = eeNotOKName + "-" + intOKName + "-" + rootOKName;
+  expectedNamesForOCSP = [ eeFullName ];
+  addKeySizeTestForEV(expectedNamesForOCSP, rootOKCertFileName,
+                      [ intFullName ], eeFullName, false);
 }
 
 function run_test() {
   
   Services.prefs.setCharPref("network.dns.localDomains", "www.example.com");
 
-  checkForKeyType("rsa");
+  checkForKeyType("rsa", 2040, 2048);
 
   run_next_test();
 }
