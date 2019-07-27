@@ -104,6 +104,13 @@ public:
   
   void AbortAppendData();
 
+  
+  int64_t GetSize();
+
+  
+  
+  bool HasOnlyIncompleteMedia();
+
 #ifdef MOZ_EME
   nsresult SetCDMProxy(CDMProxy* aProxy);
 #endif

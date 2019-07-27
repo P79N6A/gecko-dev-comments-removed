@@ -559,6 +559,15 @@ SourceBuffer::PrepareAppend(const uint8_t* aData, uint32_t aLength, ErrorResult&
     mMediaSource->NotifyEvicted(0.0, newBufferStartTime);
   }
 
+  
+  
+  
+  if ((mTrackBuffer->GetSize() > mEvictionThreshold - aLength) &&
+      !mTrackBuffer->HasOnlyIncompleteMedia()) {
+    aRv.Throw(NS_ERROR_DOM_QUOTA_EXCEEDED_ERR);
+    return nullptr;
+  }
+
   nsRefPtr<LargeDataBuffer> data = new LargeDataBuffer();
   if (!data->AppendElements(aData, aLength)) {
     aRv.Throw(NS_ERROR_DOM_QUOTA_EXCEEDED_ERR);
