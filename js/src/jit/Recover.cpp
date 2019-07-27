@@ -874,6 +874,10 @@ RStringSplit::recover(JSContext *cx, SnapshotIterator &iter) const
 
     RootedValue result(cx);
 
+    
+    
+    types::AutoEnterAnalysis enter(cx);
+
     JSObject *res = str_split_string(cx, typeObj, str, sep);
     if (!res)
         return false;
