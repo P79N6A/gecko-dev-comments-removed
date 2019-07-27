@@ -184,9 +184,11 @@ MediaOmxReader::Shutdown()
 
   nsRefPtr<ShutdownPromise> p = MediaDecoderReader::Shutdown();
 
-  nsCOMPtr<nsIRunnable> event =
-    NS_NewRunnableMethod(this, &MediaOmxReader::ReleaseDecoder);
-  NS_DispatchToMainThread(event);
+  
+  
+  nsCOMPtr<nsIThread> mt;
+  NS_GetMainThread(getter_AddRefs(mt));
+  p->Then(mt.get(), __func__, this, &MediaOmxReader::ReleaseDecoder, &MediaOmxReader::ReleaseDecoder);
 
   return p;
 }
