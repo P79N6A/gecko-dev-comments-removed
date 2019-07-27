@@ -17,7 +17,7 @@ import java.util.Hashtable;
 
 import org.mozilla.gecko.GeckoProfileDirectories.NoMozillaDirectoryException;
 import org.mozilla.gecko.GeckoProfileDirectories.NoSuchProfileException;
-import org.mozilla.gecko.db.BrowserDB;
+import org.mozilla.gecko.db.LocalBrowserDB;
 import org.mozilla.gecko.distribution.Distribution;
 import org.mozilla.gecko.mozglue.RobocopTarget;
 import org.mozilla.gecko.util.INIParser;
@@ -209,7 +209,7 @@ public final class GeckoProfile {
 
 
 
-            profile.enqueueInitialization();
+            profile.enqueueInitialization(profile.getDir());
 
             return profile;
         } catch (Exception ex) {
@@ -650,7 +650,7 @@ public final class GeckoProfile {
 
         
         if (!mIsWebAppProfile) {
-            enqueueInitialization();
+            enqueueInitialization(profileDir);
         }
 
         
@@ -684,7 +684,7 @@ public final class GeckoProfile {
 
 
     @RobocopTarget
-    public void enqueueInitialization() {
+    public void enqueueInitialization(final File profileDir) {
         Log.i(LOGTAG, "Enqueuing profile init.");
         final Context context = mApplicationContext;
 
@@ -700,10 +700,21 @@ public final class GeckoProfile {
                 
                 
                 
-                
-                
-                final int offset = BrowserDB.addDistributionBookmarks(cr, distribution, 0);
-                BrowserDB.addDefaultBookmarks(context, cr, offset);
+                synchronized (GeckoProfile.this) {
+                    
+                    if (!profileDir.exists()) {
+                        return;
+                    }
+
+                    
+                    
+                    
+                    
+                    
+                    final LocalBrowserDB db = new LocalBrowserDB(getName());
+                    final int offset = db.addDistributionBookmarks(cr, distribution, 0);
+                    db.addDefaultBookmarks(context, cr, offset);
+                }
             }
         });
     }
