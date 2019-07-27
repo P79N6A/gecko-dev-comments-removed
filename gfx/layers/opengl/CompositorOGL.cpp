@@ -1398,48 +1398,32 @@ CompositorOGL::SetFBAcquireFence(Layer* aLayer)
     return;
   }
 
-  const nsIntRegion& visibleRegion = aLayer->GetEffectiveVisibleRegion();
-  if (visibleRegion.IsEmpty()) {
-      return;
+  android::sp<android::Fence> fence = new android::Fence(GetGonkDisplay()->GetPrevFBAcquireFd());
+  if (fence.get() && fence->isValid()) {
+    FenceHandle handle = FenceHandle(fence);
+    mReleaseFenceHandle.Merge(handle);
   }
-
-  
-  ContainerLayer* container = aLayer->AsContainerLayer();
-  if (container) {
-    for (Layer* child = container->GetFirstChild(); child; child = child->GetNextSibling()) {
-      SetFBAcquireFence(child);
-    }
-    return;
-  }
-
-  
-  TiledLayerComposer* composer = nullptr;
-  LayerComposite* shadow = aLayer->AsLayerComposite();
-  
-  
-  if (shadow && shadow->GetCompositableHost()) {
-    composer = shadow->GetTiledLayerComposer();
-    if (composer) {
-      composer->SetReleaseFence(new android::Fence(GetGonkDisplay()->GetPrevFBAcquireFd()));
-      return;
-    }
-  }
-
-  
-  LayerRenderState state = aLayer->GetRenderState();
-  if (!state.mTexture) {
-    return;
-  }
-  TextureHostOGL* texture = state.mTexture->AsHostOGL();
-  if (!texture) {
-    return;
-  }
-  texture->SetReleaseFence(new android::Fence(GetGonkDisplay()->GetPrevFBAcquireFd()));
 }
+
+FenceHandle
+CompositorOGL::GetReleaseFence()
+{
+  if (!mReleaseFenceHandle.IsValid()) {
+    return FenceHandle();
+  }
+  return FenceHandle(new android::Fence(mReleaseFenceHandle.mFence->dup()));
+}
+
 #else
 void
 CompositorOGL::SetFBAcquireFence(Layer* aLayer)
 {
+}
+
+FenceHandle
+CompositorOGL::GetReleaseFence()
+{
+  return FenceHandle();
 }
 #endif
 
