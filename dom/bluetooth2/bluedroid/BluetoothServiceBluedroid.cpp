@@ -1617,8 +1617,13 @@ BluetoothServiceBluedroid::BondStateChangedNotification(
   }
 
   
-  if (bonded && STATUS_SUCCESS) {
+  if (bonded && aStatus == STATUS_SUCCESS) {
     MOZ_ASSERT(nameExists);
+
+    
+    
+    
+    
     BT_APPEND_NAMED_VALUE(propertiesArray, "Name", deviceName);
   }
 
