@@ -500,7 +500,8 @@ StyleEditorUI.prototype = {
           this._selectEditor(editor);
         }
 
-        if (this._isEditorToSelect(editor)) {
+        if (this._styleSheetToSelect
+            && this._styleSheetToSelect.stylesheet == editor.styleSheet.href) {
           this.switchToSelectedSheet();
         }
 
@@ -565,40 +566,23 @@ StyleEditorUI.prototype = {
 
 
   switchToSelectedSheet: function() {
-    let toSelect = this._styleSheetToSelect;
+    let sheet = this._styleSheetToSelect;
+    let isHref = sheet.stylesheet === null || typeof sheet.stylesheet == "string";
 
     for (let editor of this.editors) {
-      if (this._isEditorToSelect(editor)) {
+      if ((isHref && editor.styleSheet.href == sheet.stylesheet) ||
+          sheet.stylesheet == editor.styleSheet) {
         
         
         
         
         this._styleSheetBoundToSelect = this._styleSheetToSelect;
         this._styleSheetToSelect = null;
-        return this._selectEditor(editor, toSelect.line, toSelect.col);
+        return this._selectEditor(editor, sheet.line, sheet.col);
       }
     }
 
     return promise.resolve();
-  },
-
-  
-
-
-
-
-
-
-  _isEditorToSelect: function(editor) {
-    let toSelect = this._styleSheetToSelect;
-    if (!toSelect) {
-      return false;
-    }
-    let isHref = toSelect.stylesheet === null ||
-                 typeof toSelect.stylesheet == "string";
-
-    return (isHref && editor.styleSheet.href == toSelect.stylesheet) ||
-           (toSelect.stylesheet == editor.styleSheet);
   },
 
   

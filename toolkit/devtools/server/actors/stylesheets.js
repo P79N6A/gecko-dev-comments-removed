@@ -74,6 +74,17 @@ let StyleSheetsActor = protocol.ActorClass({
     protocol.Actor.prototype.initialize.call(this, null);
 
     this.parentActor = tabActor;
+
+    
+    this._sheets = new Map();
+  },
+
+  
+
+
+  destroy: function()
+  {
+    this._sheets.clear();
   },
 
   
@@ -145,7 +156,7 @@ let StyleSheetsActor = protocol.ActorClass({
     return Task.spawn(function() {
       let actors = [];
       for (let i = 0; i < styleSheets.length; i++) {
-        let actor = this.parentActor.createStyleSheetActor(styleSheets[i]);
+        let actor = this._createStyleSheetActor(styleSheets[i]);
         actors.push(actor);
 
         
@@ -177,7 +188,7 @@ let StyleSheetsActor = protocol.ActorClass({
           if (!rule.styleSheet) {
             continue;
           }
-          let actor = this.parentActor.createStyleSheetActor(rule.styleSheet);
+          let actor = this._createStyleSheetActor(rule.styleSheet);
           imported.push(actor);
 
           
@@ -194,6 +205,36 @@ let StyleSheetsActor = protocol.ActorClass({
     }.bind(this));
   },
 
+  
+
+
+
+
+
+
+
+  _createStyleSheetActor: function(styleSheet)
+  {
+    if (this._sheets.has(styleSheet)) {
+      return this._sheets.get(styleSheet);
+    }
+    let actor = new StyleSheetActor(styleSheet, this);
+
+    this.manage(actor);
+    this._sheets.set(styleSheet, actor);
+
+    return actor;
+  },
+
+  
+
+
+  _clearStyleSheetActors: function() {
+    for (let actor in this._sheets) {
+      this.unmanage(this._sheets[actor]);
+    }
+    this._sheets.clear();
+  },
 
   
 
@@ -214,7 +255,7 @@ let StyleSheetsActor = protocol.ActorClass({
     }
     parent.appendChild(style);
 
-    let actor = this.parentActor.createStyleSheetActor(style.sheet);
+    let actor = this._createStyleSheetActor(style.sheet);
     return actor;
   }, {
     request: { text: Arg(0, "string") },
@@ -282,8 +323,6 @@ let MediaRuleActor = protocol.ActorClass({
     if (this.mql) {
       this.mql.removeListener(this._matchesChange);
     }
-
-    protocol.Actor.prototype.destroy.call(this);
   },
 
   form: function(detail) {
@@ -380,6 +419,16 @@ let StyleSheetActor = protocol.ActorClass({
 
 
   get document() this.window.document,
+
+  
+
+
+  get browser() {
+    if (this.parentActor.parentActor) {
+      return this.parentActor.parentActor.browser;
+    }
+    return null;
+  },
 
   get ownerNode() this.rawSheet.ownerNode,
 
@@ -719,7 +768,6 @@ let StyleSheetActor = protocol.ActorClass({
         return sourceMap.originalPositionFor({ line: line, column: column });
       }
       return {
-        fromSourceMap: false,
         source: this.href,
         line: line,
         column: column
@@ -950,6 +998,7 @@ var StyleSheetFront = protocol.FrontClass(StyleSheetActor, {
 
   destroy: function() {
     events.off(this, "property-change", this._onPropertyChange);
+
     protocol.Front.prototype.destroy.call(this);
   },
 

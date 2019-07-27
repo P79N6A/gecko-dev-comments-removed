@@ -29,10 +29,6 @@ XPCOMUtils.defineLazyGetter(this, "events", () => {
   return require("sdk/event/core");
 });
 
-XPCOMUtils.defineLazyGetter(this, "StyleSheetActor", () => {
-  return require("devtools/server/actors/stylesheets").StyleSheetActor;
-});
-
 
 
 
@@ -549,9 +545,6 @@ function TabActor(aConnection)
   this._extraActors = {};
   this._exited = false;
 
-  
-  this._styleSheetActors = new Map();
-
   this._shouldAddNewGlobalAsDebuggee = this._shouldAddNewGlobalAsDebuggee.bind(this);
 
   this.makeDebugger = makeDebugger.bind(null, {
@@ -729,7 +722,6 @@ TabActor.prototype = {
   disconnect: function BTA_disconnect() {
     this._detach();
     this._extraActors = null;
-    this._styleSheetActors.clear();
     this._exited = true;
   },
 
@@ -1067,12 +1059,6 @@ TabActor.prototype = {
       }
     }
 
-    for (let sheetActor of this._styleSheetActors.values()) {
-      this._tabPool.removeActor(sheetActor);
-    }
-    this._styleSheetActors.clear();
-
-
     
     
     if (threadActor.attached) {
@@ -1189,28 +1175,6 @@ TabActor.prototype = {
     }
     catch (ex) { }
     return isNative;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  createStyleSheetActor: function BTA_createStyleSheetActor(styleSheet) {
-    if (this._styleSheetActors.has(styleSheet)) {
-      return this._styleSheetActors.get(styleSheet);
-    }
-    let actor = new StyleSheetActor(styleSheet, this);
-    this._styleSheetActors.set(styleSheet, actor);
-
-    this._tabPool.addActor(actor);
-
-    return actor;
   }
 };
 
