@@ -943,15 +943,7 @@ AsyncCompositionManager::TransformShadowTree(TimeStamp aCurrentFrame)
   if (!ApplyAsyncContentTransformToTree(root)) {
     nsAutoTArray<Layer*,1> scrollableLayers;
 #ifdef MOZ_WIDGET_ANDROID
-    const LayerMetricsWrapper& primaryScrollable = mLayerManager->GetPrimaryScrollableLayer();
-    if (primaryScrollable) {
-      
-      
-      
-      
-      
-      scrollableLayers.AppendElement((Layer*)primaryScrollable.GetLayer());
-    }
+    mLayerManager->GetRootScrollableLayers(scrollableLayers);
 #else
     mLayerManager->GetScrollableLayers(scrollableLayers);
 #endif

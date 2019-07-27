@@ -1426,16 +1426,18 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
   
   ViewTransform viewTransform;
 #if defined(MOZ_WIDGET_ANDROID) && !defined(MOZ_ANDROID_APZ)
-  FrameMetrics compositorMetrics = scrollAncestor.Metrics();
+  FrameMetrics contentMetrics = scrollAncestor.Metrics();
   bool abortPaint = false;
   
   
   
-  if (scrollAncestor == mManager->GetPrimaryScrollableLayer()) {
+  if (contentMetrics.GetScrollId() == mManager->GetRootScrollableLayerId()) {
+    FrameMetrics compositorMetrics = contentMetrics;
+    
     abortPaint = mManager->ProgressiveUpdateCallback(!staleRegion.Contains(aInvalidRegion),
                                                      compositorMetrics,
                                                      !drawingLowPrecision);
-    viewTransform = ComputeViewTransform(scrollAncestor.Metrics(), compositorMetrics);
+    viewTransform = ComputeViewTransform(contentMetrics, compositorMetrics);
   }
 #else
   MOZ_ASSERT(mSharedFrameMetricsHelper);

@@ -810,12 +810,14 @@ LayerManagerComposite::ComputeRenderIntegrity()
 #ifdef MOZ_WIDGET_ANDROID
   
   
-  const LayerMetricsWrapper& primaryScrollable = GetPrimaryScrollableLayer();
-  if (primaryScrollable) {
+  nsTArray<Layer*> rootScrollableLayers;
+  GetRootScrollableLayers(rootScrollableLayers);
+  if (rootScrollableLayers.Length() > 0) {
     
     
-    const FrameMetrics& metrics = primaryScrollable.Metrics();
-    Matrix4x4 transform = primaryScrollable.GetEffectiveTransform();
+    Layer* rootScrollable = rootScrollableLayers[0];
+    const FrameMetrics& metrics = LayerMetricsWrapper::TopmostScrollableMetrics(rootScrollable);
+    Matrix4x4 transform = rootScrollable->GetEffectiveTransform();
     transform.ScalePost(metrics.mResolution.scale, metrics.mResolution.scale, 1);
 
     

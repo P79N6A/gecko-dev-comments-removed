@@ -340,7 +340,17 @@ public:
 
 
 
-  LayerMetricsWrapper GetPrimaryScrollableLayer();
+
+  FrameMetrics::ViewID GetRootScrollableLayerId();
+
+  
+
+
+
+
+
+
+  void GetRootScrollableLayers(nsTArray<Layer*>& aArray);
 
   
 
