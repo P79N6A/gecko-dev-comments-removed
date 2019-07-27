@@ -1173,8 +1173,10 @@ MediaCache::Update()
       actions.AppendElement(NONE);
 
       MediaCacheStream* stream = mStreams[i];
-      if (stream->mClosed)
+      if (stream->mClosed) {
+        CACHE_LOG(PR_LOG_DEBUG, ("Stream %p closed", stream));
         continue;
+      }
 
       
       
@@ -1280,7 +1282,7 @@ MediaCache::Update()
         for (uint32_t j = 0; j < i; ++j) {
           MediaCacheStream* other = mStreams[j];
           if (other->mResourceID == stream->mResourceID &&
-              !other->mClient->IsSuspended() &&
+              !other->mClosed && !other->mClient->IsSuspended() &&
               other->mChannelOffset/BLOCK_SIZE == desiredOffset/BLOCK_SIZE) {
             
             
