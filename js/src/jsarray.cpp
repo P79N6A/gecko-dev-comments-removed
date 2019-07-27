@@ -463,19 +463,8 @@ static bool
 array_length_setter(JSContext *cx, HandleObject obj, HandleId id, bool strict, MutableHandleValue vp)
 {
     if (!obj->is<ArrayObject>()) {
-        
-        
-        
-        const Class *clasp = obj->getClass();
-        JSPropertyOp getter = clasp->getProperty;
-        if (getter == JS_PropertyStub)
-            getter = nullptr;
-        JSStrictPropertyOp setter = clasp->setProperty;
-        if (setter == JS_StrictPropertyStub)
-            setter = nullptr;
-
         return JSObject::defineProperty(cx, obj, cx->names().length, vp,
-                                        getter, setter, JSPROP_ENUMERATE);
+                                        nullptr, nullptr, JSPROP_ENUMERATE);
     }
 
     Rooted<ArrayObject*> arr(cx, &obj->as<ArrayObject>());

@@ -419,7 +419,8 @@ ResolveInterpretedFunctionPrototype(JSContext *cx, HandleObject obj)
     
     
     RootedValue protoVal(cx, ObjectValue(*proto));
-    if (!JSObject::defineProperty(cx, obj, cx->names().prototype, protoVal, nullptr, nullptr,
+    if (!JSObject::defineProperty(cx, obj, cx->names().prototype,
+                                  protoVal, JS_PropertyStub, JS_StrictPropertyStub,
                                   JSPROP_PERMANENT))
     {
         return nullptr;
@@ -431,8 +432,8 @@ ResolveInterpretedFunctionPrototype(JSContext *cx, HandleObject obj)
     
     if (!isStarGenerator) {
         RootedValue objVal(cx, ObjectValue(*obj));
-        if (!JSObject::defineProperty(cx, proto, cx->names().constructor, objVal, nullptr, nullptr,
-                                      0))
+        if (!JSObject::defineProperty(cx, proto, cx->names().constructor,
+                                      objVal, JS_PropertyStub, JS_StrictPropertyStub, 0))
         {
             return nullptr;
         }
@@ -2119,15 +2120,11 @@ js::DefineFunction(JSContext *cx, HandleObject obj, HandleId id, Native native,
 
 
         flags &= ~JSFUN_STUB_GSOPS;
+        gop = JS_PropertyStub;
+        sop = JS_StrictPropertyStub;
+    } else {
         gop = nullptr;
         sop = nullptr;
-    } else {
-        gop = obj->getClass()->getProperty;
-        sop = obj->getClass()->setProperty;
-        if (gop == JS_PropertyStub)
-            gop = nullptr;
-        if (sop == JS_StrictPropertyStub)
-            sop = nullptr;
     }
 
     JSFunction::Flags funFlags;

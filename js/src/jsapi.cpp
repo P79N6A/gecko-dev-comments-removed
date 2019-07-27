@@ -1252,7 +1252,8 @@ JS_ResolveStandardClass(JSContext *cx, HandleObject obj, HandleId id, bool *reso
     if (idstr == undefinedAtom) {
         *resolved = true;
         return JSObject::defineProperty(cx, obj, undefinedAtom->asPropertyName(),
-                                        UndefinedHandleValue, nullptr, nullptr,
+                                        UndefinedHandleValue,
+                                        JS_PropertyStub, JS_StrictPropertyStub,
                                         JSPROP_PERMANENT | JSPROP_READONLY);
     }
 
@@ -2851,19 +2852,6 @@ DefinePropertyById(JSContext *cx, HandleObject obj, HandleId id, HandleValue val
                           ? JS_FUNC_TO_DATA_PTR(JSObject *, setter)
                           : nullptr);
 
-    
-    
-    
-    
-    
-    if (!getter)
-        getter = obj->getClass()->getProperty;
-    if (!setter)
-        setter = obj->getClass()->setProperty;
-    if (getter == JS_PropertyStub)
-        getter = nullptr;
-    if (setter == JS_StrictPropertyStub)
-        setter = nullptr;
     return JSObject::defineGeneric(cx, obj, id, value, getter, setter, attrs);
 }
 
