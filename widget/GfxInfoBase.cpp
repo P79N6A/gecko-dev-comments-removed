@@ -362,6 +362,7 @@ BlacklistFeatureStatusToGfxFeatureStatus(const nsAString& aStatus)
     return nsIGfxInfo::FEATURE_BLOCKED_OS_VERSION;
 
   
+  
 
   return nsIGfxInfo::FEATURE_STATUS_OK;
 }
@@ -986,6 +987,7 @@ GfxInfoBase::EvaluateDownloadedBlacklist(nsTArray<GfxDriverInfo>& aDriverInfo)
           }
           
 
+        case nsIGfxInfo::FEATURE_BLOCKED_MISMATCHED_VERSION:
         case nsIGfxInfo::FEATURE_BLOCKED_DEVICE:
         case nsIGfxInfo::FEATURE_DISCOURAGED:
         case nsIGfxInfo::FEATURE_BLOCKED_OS_VERSION:
