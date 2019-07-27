@@ -258,11 +258,10 @@ class nsFlexContainerFrame::FlexItem : public LinkedListElement<FlexItem>
 {
 public:
   
-  FlexItem(nsIFrame* aChildFrame,
+  FlexItem(nsHTMLReflowState& aFlexItemReflowState,
            float aFlexGrow, float aFlexShrink, nscoord aMainBaseSize,
            nscoord aMainMinSize, nscoord aMainMaxSize,
            nscoord aCrossMinSize, nscoord aCrossMaxSize,
-           nsMargin aMargin, nsMargin aBorderPadding,
            const FlexboxAxisTracker& aAxisTracker);
 
   
@@ -1018,12 +1017,10 @@ nsFlexContainerFrame::GenerateFlexItemForChild(
   }
 
   
-  FlexItem* item = new FlexItem(aChildFrame,
+  FlexItem* item = new FlexItem(childRS,
                                 flexGrow, flexShrink, flexBaseSize,
                                 mainMinSize, mainMaxSize,
                                 crossMinSize, crossMaxSize,
-                                childRS.ComputedPhysicalMargin(),
-                                childRS.ComputedPhysicalBorderPadding(),
                                 aAxisTracker);
 
   
@@ -1147,17 +1144,16 @@ nsFlexContainerFrame::
   aFlexItem.SetHadMeasuringReflow();
 }
 
-FlexItem::FlexItem(nsIFrame* aChildFrame,
+FlexItem::FlexItem(nsHTMLReflowState& aFlexItemReflowState,
                    float aFlexGrow, float aFlexShrink, nscoord aFlexBaseSize,
                    nscoord aMainMinSize,  nscoord aMainMaxSize,
                    nscoord aCrossMinSize, nscoord aCrossMaxSize,
-                   nsMargin aMargin, nsMargin aBorderPadding,
                    const FlexboxAxisTracker& aAxisTracker)
-  : mFrame(aChildFrame),
+  : mFrame(aFlexItemReflowState.frame),
     mFlexGrow(aFlexGrow),
     mFlexShrink(aFlexShrink),
-    mBorderPadding(aBorderPadding),
-    mMargin(aMargin),
+    mBorderPadding(aFlexItemReflowState.ComputedPhysicalBorderPadding()),
+    mMargin(aFlexItemReflowState.ComputedPhysicalMargin()),
     mMainMinSize(aMainMinSize),
     mMainMaxSize(aMainMaxSize),
     mCrossMinSize(aCrossMinSize),
@@ -1173,7 +1169,7 @@ FlexItem::FlexItem(nsIFrame* aChildFrame,
     mHadMeasuringReflow(false),
     mIsStretched(false),
     mIsStrut(false),
-    mAlignSelf(aChildFrame->StylePosition()->mAlignSelf)
+    mAlignSelf(aFlexItemReflowState.mStylePosition->mAlignSelf)
 {
   MOZ_ASSERT(mFrame, "expecting a non-null child frame");
   MOZ_ASSERT(mFrame->GetType() != nsGkAtoms::placeholderFrame,
@@ -1187,7 +1183,8 @@ FlexItem::FlexItem(nsIFrame* aChildFrame,
   
 #ifdef DEBUG
   {
-    const nsStyleSides& styleMargin = mFrame->StyleMargin()->mMargin;
+    const nsStyleSides& styleMargin =
+      aFlexItemReflowState.mStyleMargin->mMargin;
     NS_FOR_CSS_SIDES(side) {
       if (styleMargin.GetUnit(side) == eStyleUnit_Auto) {
         MOZ_ASSERT(GetMarginComponentForSide(side) == 0,
