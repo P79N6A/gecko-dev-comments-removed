@@ -233,7 +233,7 @@ LIRGeneratorX64::visitAsmJSAtomicBinopHeap(MAsmJSAtomicBinopHeap *ins)
     if (!ins->hasUses()) {
         LAsmJSAtomicBinopHeapForEffect *lir =
             new(alloc()) LAsmJSAtomicBinopHeapForEffect(useRegister(ptr),
-                                                        useRegister(ins->value()));
+                                                        useRegisterOrConstant(ins->value()));
         add(lir, ins);
         return;
     }
@@ -262,13 +262,27 @@ LIRGeneratorX64::visitAsmJSAtomicBinopHeap(MAsmJSAtomicBinopHeap *ins)
     
 
     bool bitOp = !(ins->operation() == AtomicFetchAddOp || ins->operation() == AtomicFetchSubOp);
-    LAllocation value = useRegister(ins->value());
-    LDefinition tempDef = bitOp ? temp() : LDefinition::BogusTemp();
+    bool reuseInput = false;
+    LAllocation value;
+
+    if (bitOp || ins->value()->isConstant()) {
+        value = useRegisterOrConstant(ins->value());
+    } else {
+        reuseInput = true;
+        value = useRegisterAtStart(ins->value());
+    }
 
     LAsmJSAtomicBinopHeap *lir =
-        new(alloc()) LAsmJSAtomicBinopHeap(useRegister(ptr), value, tempDef);
+        new(alloc()) LAsmJSAtomicBinopHeap(useRegister(ptr),
+                                           value,
+                                           bitOp ? temp() : LDefinition::BogusTemp());
 
-    defineFixed(lir, ins, LAllocation(AnyRegister(eax)));
+    if (reuseInput)
+        defineReuseInput(lir, ins, LAsmJSAtomicBinopHeap::valueOp);
+    else if (bitOp)
+        defineFixed(lir, ins, LAllocation(AnyRegister(rax)));
+    else
+        define(lir, ins);
 }
 
 void

@@ -434,16 +434,13 @@ LIRGeneratorX86Shared::lowerAtomicTypedArrayElementBinop(MAtomicTypedArrayElemen
     
     
     
-    
-    
-    
 
     if (!ins->hasUses()) {
         LAllocation value;
-        if (useI386ByteRegisters && ins->isByteArray())
+        if (useI386ByteRegisters && ins->isByteArray() && !ins->value()->isConstant())
             value = useFixed(ins->value(), ebx);
         else
-            value = useRegister(ins->value());
+            value = useRegisterOrConstant(ins->value());
 
         LAtomicTypedArrayElementBinopForEffect *lir =
             new(alloc()) LAtomicTypedArrayElementBinopForEffect(elements, index, value);
@@ -485,22 +482,16 @@ LIRGeneratorX86Shared::lowerAtomicTypedArrayElementBinop(MAtomicTypedArrayElemen
     
     
     
-    
-    
-    
-    
-    
-    
-    
 
     bool bitOp = !(ins->operation() == AtomicFetchAddOp || ins->operation() == AtomicFetchSubOp);
     bool fixedOutput = true;
+    bool reuseInput = false;
     LDefinition tempDef1 = LDefinition::BogusTemp();
     LDefinition tempDef2 = LDefinition::BogusTemp();
     LAllocation value;
 
     if (ins->arrayType() == Scalar::Uint32 && IsFloatingPointType(ins->type())) {
-        value = useRegister(ins->value());
+        value = useRegisterOrConstant(ins->value());
         fixedOutput = false;
         if (bitOp) {
             tempDef1 = tempFixed(eax);
@@ -509,13 +500,22 @@ LIRGeneratorX86Shared::lowerAtomicTypedArrayElementBinop(MAtomicTypedArrayElemen
             tempDef1 = temp();
         }
     } else if (useI386ByteRegisters && ins->isByteArray()) {
-        value = useFixed(ins->value(), ebx);
+        if (ins->value()->isConstant())
+            value = useRegisterOrConstant(ins->value());
+        else
+            value = useFixed(ins->value(), ebx);
         if (bitOp)
             tempDef1 = tempFixed(ecx);
+    } else if (bitOp) {
+        value = useRegisterOrConstant(ins->value());
+        tempDef1 = temp();
+    } else if (ins->value()->isConstant()) {
+        fixedOutput = false;
+        value = useRegisterOrConstant(ins->value());
     } else {
-        value = useRegister(ins->value());
-        if (bitOp)
-            tempDef1 = temp();
+        fixedOutput = false;
+        reuseInput = true;
+        value = useRegisterAtStart(ins->value());
     }
 
     LAtomicTypedArrayElementBinop *lir =
@@ -523,6 +523,8 @@ LIRGeneratorX86Shared::lowerAtomicTypedArrayElementBinop(MAtomicTypedArrayElemen
 
     if (fixedOutput)
         defineFixed(lir, ins, LAllocation(AnyRegister(eax)));
+    else if (reuseInput)
+        defineReuseInput(lir, ins, LAtomicTypedArrayElementBinop::valueOp);
     else
         define(lir, ins);
 }

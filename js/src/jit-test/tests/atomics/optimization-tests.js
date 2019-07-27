@@ -38,6 +38,18 @@ function f2(ia, k) {
     Atomics.sub(ia, 2, 1);
 }
 
+function f4(ia, k) {
+    
+    
+    
+    
+    Atomics.or(ia, 6, k);
+
+    
+    
+    Atomics.or(ia, 6, 1);
+}
+
 function g(ia, k) {
     
     
@@ -59,6 +71,16 @@ function g2(ia, k) {
     
     
     sum += Atomics.sub(ia, 3, 1);
+}
+
+function g4(ia, k) {
+    
+    
+    sum += Atomics.or(ia, 7, k);
+
+    
+    
+    sum += Atomics.or(ia, 7, 1);
 }
 
 function mod(stdlib, ffi, heap) {
@@ -92,6 +114,8 @@ for ( var i=0 ; i < 10000 ; i++ ) {
     g2(i8a, i % 10);
     f3(i % 10);
     g3(i % 10);
+    f4(i8a, i % 10);
+    g4(i8a, i % 10);
 }
 
 assertEq(i8a[0], ((10000 + 10000*4.5) << 24) >> 24);
@@ -100,3 +124,5 @@ assertEq(i8a[2], ((-10000 + -10000*4.5) << 24) >> 24);
 assertEq(i8a[3], ((-10000 + -10000*4.5) << 24) >> 24);
 assertEq(i8a[4], ((10000 + 10000*4.5) << 24) >> 24);
 assertEq(i8a[5], ((10000 + 10000*4.5) << 24) >> 24);
+assertEq(i8a[6], 15);
+assertEq(i8a[7], 15);
