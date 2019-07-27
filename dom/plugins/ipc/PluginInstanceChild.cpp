@@ -483,7 +483,11 @@ PluginInstanceChild::NPN_GetValue(NPNVariable aVar,
 #endif 
 
     case NPNVcontentsScaleFactor: {
-        *static_cast<double*>(aValue) = mContentsScaleFactor;
+        double scaleFactor = mContentsScaleFactor;
+        if (GetQuirks() & PluginModuleChild::QUIRK_FLASH_HIDE_HIDPI_SUPPORT) {
+          scaleFactor = 1.0;
+        }
+        *static_cast<double*>(aValue) = scaleFactor;
         return NPERR_NO_ERROR;
     }
 #endif 
