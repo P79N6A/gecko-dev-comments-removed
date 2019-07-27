@@ -113,7 +113,7 @@ protected:
 class BluetoothDaemonConnection : public ConnectionOrientedSocket
 {
 public:
-  BluetoothDaemonConnection();
+  BluetoothDaemonConnection(BluetoothDaemonPDUConsumer* aConsumer);
   virtual ~BluetoothDaemonConnection();
 
   
@@ -136,10 +136,10 @@ protected:
   
   
   
-  ConnectionOrientedSocketIO*
-    PrepareAccept(BluetoothDaemonPDUConsumer* aConsumer);
+  ConnectionOrientedSocketIO* PrepareAccept();
 
 private:
+  BluetoothDaemonPDUConsumer* mConsumer;
   BluetoothDaemonConnectionIO* mIO;
 };
 
