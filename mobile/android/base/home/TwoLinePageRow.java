@@ -220,7 +220,7 @@ public class TwoLinePageRow extends LinearLayout
 
         
         mFavicon.clearImage();
-        mLoadFaviconJobId = Favicons.getSizedFaviconForPageFromLocal(url, mFaviconListener);
+        mLoadFaviconJobId = Favicons.getSizedFaviconForPageFromLocal(getContext(), url, mFaviconListener);
 
         updateDisplayedUrl(url);
     }

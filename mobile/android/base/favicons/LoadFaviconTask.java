@@ -21,8 +21,6 @@ import org.mozilla.gecko.favicons.decoders.LoadFaviconResult;
 import org.mozilla.gecko.util.GeckoJarReader;
 import org.mozilla.gecko.util.ThreadUtils;
 
-import static org.mozilla.gecko.favicons.Favicons.context;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -44,7 +42,7 @@ public class LoadFaviconTask {
 
     
     
-    private static final HashMap<String, LoadFaviconTask> loadsInFlight = new HashMap<String, LoadFaviconTask>();
+    private static final HashMap<String, LoadFaviconTask> loadsInFlight = new HashMap<>();
 
     public static final int FLAG_PERSIST = 1;
     public static final int FLAG_SCALE = 2;
@@ -53,12 +51,13 @@ public class LoadFaviconTask {
     
     private static final int DEFAULT_FAVICON_BUFFER_SIZE = 25000;
 
-    private static AtomicInteger nextFaviconLoadId = new AtomicInteger(0);
-    private int id;
-    private String pageUrl;
+    private static final AtomicInteger nextFaviconLoadId = new AtomicInteger(0);
+    private final Context context;
+    private final int id;
+    private final String pageUrl;
     private String faviconURL;
-    private OnFaviconLoadedListener listener;
-    private int flags;
+    private final OnFaviconLoadedListener listener;
+    private final int flags;
 
     private final boolean onlyFromLocal;
      volatile boolean mCancelled;
@@ -70,14 +69,15 @@ public class LoadFaviconTask {
 
     static AndroidHttpClient httpClient = AndroidHttpClient.newInstance(GeckoAppShell.getGeckoInterface().getDefaultUAString());
 
-    public LoadFaviconTask(String pageURL, String faviconURL, int flags, OnFaviconLoadedListener listener) {
-        this(pageURL, faviconURL, flags, listener, -1, false);
+    public LoadFaviconTask(Context context, String pageURL, String faviconURL, int flags, OnFaviconLoadedListener listener) {
+        this(context, pageURL, faviconURL, flags, listener, -1, false);
     }
 
-    public LoadFaviconTask(String pageURL, String faviconURL, int flags, OnFaviconLoadedListener listener,
+    public LoadFaviconTask(Context context, String pageURL, String faviconURL, int flags, OnFaviconLoadedListener listener,
                            int targetWidth, boolean onlyFromLocal) {
         id = nextFaviconLoadId.incrementAndGet();
 
+        this.context = context;
         this.pageUrl = pageURL;
         this.faviconURL = faviconURL;
         this.listener = listener;
@@ -112,7 +112,7 @@ public class LoadFaviconTask {
 
 
     private HttpResponse tryDownload(URI faviconURI) throws URISyntaxException, IOException {
-        HashSet<String> visitedLinkSet = new HashSet<String>();
+        HashSet<String> visitedLinkSet = new HashSet<>();
         visitedLinkSet.add(faviconURI.toString());
         return tryDownloadRecurse(faviconURI, visitedLinkSet);
     }
@@ -183,7 +183,7 @@ public class LoadFaviconTask {
 
 
 
-    private static Bitmap fetchJARFavicon(String uri) {
+    private Bitmap fetchJARFavicon(String uri) {
         if (uri == null) {
             return null;
         }
@@ -370,7 +370,7 @@ public class LoadFaviconTask {
 
             
             if (storedFaviconUrl == null) {
-                storedFaviconUrl = Favicons.getFaviconURLForPageURL(pageUrl);
+                storedFaviconUrl = Favicons.getFaviconURLForPageURL(context, pageUrl);
                 if (storedFaviconUrl != null) {
                     
                     Favicons.putFaviconURLForPageURLInCache(pageUrl, storedFaviconUrl);
@@ -597,7 +597,7 @@ public class LoadFaviconTask {
 
     private void chainTasks(LoadFaviconTask aChainee) {
         if (chainees == null) {
-            chainees = new LinkedList<LoadFaviconTask>();
+            chainees = new LinkedList<>();
         }
 
         chainees.add(aChainee);

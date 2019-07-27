@@ -544,7 +544,7 @@ public class TopSitesPanel extends HomeFragment {
 
             
             LoadIDAwareFaviconLoadedListener listener = new LoadIDAwareFaviconLoadedListener(view);
-            final int loadId = Favicons.getSizedFaviconForPageFromLocal(url, listener);
+            final int loadId = Favicons.getSizedFaviconForPageFromLocal(context, url, listener);
             if (loadId == Favicons.LOADED) {
                 
                 return;

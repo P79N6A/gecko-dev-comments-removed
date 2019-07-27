@@ -29,10 +29,12 @@ import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Favicons {
     private static final String LOGTAG = "GeckoFavicons";
@@ -54,8 +56,6 @@ public class Favicons {
     public static final int FLAG_PERSIST = 2;
     public static final int FLAG_SCALE   = 4;
 
-    protected static Context context;
-
     
     public static Bitmap defaultFavicon;
 
@@ -66,13 +66,16 @@ public class Favicons {
     public static int largestFaviconSize;
 
     
+    public static final AtomicBoolean isInitialized = new AtomicBoolean(false);
+
+    
     public static final ExecutorService longRunningExecutor = Executors.newSingleThreadExecutor();
 
-    private static final SparseArray<LoadFaviconTask> loadTasks = new SparseArray<LoadFaviconTask>();
+    private static final SparseArray<LoadFaviconTask> loadTasks = new SparseArray<>();
 
     
     
-    private static final NonEvictingLruCache<String, String> pageURLMappings = new NonEvictingLruCache<String, String>(NUM_PAGE_URL_MAPPINGS_TO_STORE);
+    private static final NonEvictingLruCache<String, String> pageURLMappings = new NonEvictingLruCache<>(NUM_PAGE_URL_MAPPINGS_TO_STORE);
 
     public static String getFaviconURLForPageURLFromCache(String pageURL) {
         return pageURLMappings.get(pageURL);
@@ -143,7 +146,7 @@ public class Favicons {
 
 
 
-    public static int getSizedFavicon(String pageURL, String faviconURL, int targetSize, int flags, OnFaviconLoadedListener listener) {
+    public static int getSizedFavicon(Context context, String pageURL, String faviconURL, int targetSize, int flags, OnFaviconLoadedListener listener) {
         
         String cacheURL = faviconURL;
         if (cacheURL == null) {
@@ -171,7 +174,7 @@ public class Favicons {
         }
 
         
-        return loadUncachedFavicon(pageURL, faviconURL, flags, targetSize, listener);
+        return loadUncachedFavicon(context, pageURL, faviconURL, flags, targetSize, listener);
     }
 
     
@@ -202,7 +205,7 @@ public class Favicons {
 
 
 
-    public static int getSizedFaviconForPageFromLocal(final String pageURL, final int targetSize,
+    public static int getSizedFaviconForPageFromLocal(Context context, final String pageURL, final int targetSize,
                                                       final OnFaviconLoadedListener callback) {
         
         
@@ -223,7 +226,7 @@ public class Favicons {
 
         
         final LoadFaviconTask task =
-            new LoadFaviconTask(pageURL, targetURL, 0, callback, targetSize, true);
+            new LoadFaviconTask(context, pageURL, targetURL, 0, callback, targetSize, true);
         final int taskId = task.getId();
         synchronized(loadTasks) {
             loadTasks.put(taskId, task);
@@ -233,8 +236,8 @@ public class Favicons {
         return taskId;
     }
 
-    public static int getSizedFaviconForPageFromLocal(final String pageURL, final OnFaviconLoadedListener callback) {
-        return getSizedFaviconForPageFromLocal(pageURL, defaultFaviconSize, callback);
+    public static int getSizedFaviconForPageFromLocal(Context context, final String pageURL, final OnFaviconLoadedListener callback) {
+        return getSizedFaviconForPageFromLocal(context, pageURL, defaultFaviconSize, callback);
     }
 
     
@@ -245,7 +248,7 @@ public class Favicons {
 
 
 
-    public static String getFaviconURLForPageURL(String pageURL) {
+    public static String getFaviconURLForPageURL(Context context, String pageURL) {
         
         
         String targetURL;
@@ -283,7 +286,7 @@ public class Favicons {
 
 
 
-    private static int loadUncachedFavicon(String pageURL, String faviconURL, int flags,
+    private static int loadUncachedFavicon(Context context, String pageURL, String faviconURL, int flags,
                                            int targetSize, OnFaviconLoadedListener listener) {
         
         if (TextUtils.isEmpty(pageURL)) {
@@ -292,7 +295,7 @@ public class Favicons {
         }
 
         final LoadFaviconTask task =
-            new LoadFaviconTask(pageURL, faviconURL, flags, listener, targetSize, false);
+            new LoadFaviconTask(context, pageURL, faviconURL, flags, listener, targetSize, false);
         final int taskId = task.getId();
         synchronized(loadTasks) {
             loadTasks.put(taskId, task);
@@ -382,14 +385,18 @@ public class Favicons {
 
 
 
-    public static void attachToContext(Context context) throws Exception {
+    public static void initializeWithContext(Context context) throws IllegalStateException {
+        
+        if (!isInitialized.compareAndSet(false, true)) {
+            return;
+        }
+
         final Resources res = context.getResources();
-        Favicons.context = context;
 
         
         defaultFavicon = BitmapFactory.decodeResource(res, R.drawable.favicon);
         if (defaultFavicon == null) {
-            throw new Exception("Null default favicon was returned from the resources system!");
+            throw new IllegalStateException("Null default favicon was returned from the resources system!");
         }
 
         defaultFaviconSize = res.getDimensionPixelSize(R.dimen.favicon_bg);
@@ -412,7 +419,7 @@ public class Favicons {
         putFaviconsInMemCache(BUILT_IN_FAVICON_URL, toInsert.iterator(), true);
 
         pageURLMappings.putWithoutEviction(AboutPages.HOME, BUILT_IN_SEARCH_URL);
-        List<Bitmap> searchIcons = Arrays.asList(BitmapFactory.decodeResource(res, R.drawable.favicon_search));
+        List<Bitmap> searchIcons = Collections.singletonList(BitmapFactory.decodeResource(res, R.drawable.favicon_search));
         putFaviconsInMemCache(BUILT_IN_SEARCH_URL, searchIcons.iterator(), true);
     }
 
@@ -491,8 +498,8 @@ public class Favicons {
 
 
 
-    public static void getPreferredSizeFaviconForPage(String url, OnFaviconLoadedListener onFaviconLoadedListener) {
+    public static void getPreferredSizeFaviconForPage(Context context, String url, OnFaviconLoadedListener onFaviconLoadedListener) {
         int preferredSize = GeckoAppShell.getPreferredIconSize();
-        loadUncachedFavicon(url, null, 0, preferredSize, onFaviconLoadedListener);
+        loadUncachedFavicon(context, url, null, 0, preferredSize, onFaviconLoadedListener);
     }
 }
