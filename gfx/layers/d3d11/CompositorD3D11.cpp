@@ -1050,6 +1050,7 @@ CompositorD3D11::BeginFrame(const nsIntRegion& aInvalidRegion,
     return;
   }
 
+  nsIntSize oldSize = mSize;
   UpdateRenderTarget();
 
   
@@ -1069,7 +1070,13 @@ CompositorD3D11::BeginFrame(const nsIntRegion& aInvalidRegion,
   nsIntRect intRect = nsIntRect(nsIntPoint(0, 0), mSize);
   
   nsIntRegion invalidRegionSafe;
-  invalidRegionSafe.And(aInvalidRegion, intRect);
+
+  if (mSize != oldSize) {
+    invalidRegionSafe = intRect;
+  } else {
+    invalidRegionSafe.And(aInvalidRegion, intRect);
+  }
+
   nsIntRect invalidRect = invalidRegionSafe.GetBounds();
   mInvalidRect = IntRect(invalidRect.x, invalidRect.y, invalidRect.width, invalidRect.height);
   mInvalidRegion = invalidRegionSafe;
