@@ -104,6 +104,8 @@ public class Distribution {
     
     private static final long MAX_DOWNLOAD_TIME_MSEC = 40000;    
 
+    
+    private static final long DELAY_WAIT_FOR_REFERRER_MSEC = 400;
 
 
     
@@ -385,7 +387,16 @@ public class Distribution {
 
     private boolean checkIntentDistribution() {
         if (referrer == null) {
-            return false;
+            
+            
+            try {
+                Thread.sleep(DELAY_WAIT_FOR_REFERRER_MSEC);
+            } catch (InterruptedException e) {
+                
+            }
+            if (referrer == null) {
+                return false;
+            }
         }
 
         URI uri = getReferredDistribution(referrer);
