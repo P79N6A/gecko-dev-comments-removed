@@ -1,0 +1,30 @@
+
+
+
+
+%include ../../shared/readinglist/sidebar.inc.css
+
+.item {
+  -moz-padding-end: 0;
+}
+
+.item-title {
+  margin: 1px 0 0;
+}
+
+.item-title, .item-domain {
+  -moz-margin-end: 6px;
+}
+
+.remove-button {
+  -moz-margin-end: 2px;
+  background-image: -moz-image-rect(url("chrome://global/skin/icons/close.png"), 0, 16, 16, 0);
+}
+
+.remove-button:hover {
+  background-image: -moz-image-rect(url("chrome://global/skin/icons/close.png"), 0, 32, 16, 16);
+}
+
+.remove-button:hover:active {
+  background-image: -moz-image-rect(url("chrome://global/skin/icons/close.png"), 0, 48, 16, 32);
+}
