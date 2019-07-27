@@ -22,7 +22,6 @@ self.onmessage = function onmessage_start(msg) {
   };
   try {
     test_init();
-    test_offsetby();
     test_open_existing_file();
     test_open_non_existing_file();
     test_flush_open_file();
@@ -47,58 +46,6 @@ function test_init() {
   info("Starting test_init");
   importScripts("resource://gre/modules/osfile.jsm");
 }
-
-function test_offsetby() {
-  info("Starting test_offsetby");
-
-  
-  let LENGTH = 1024;
-  let buf = new ArrayBuffer(LENGTH);
-  let view = new Uint8Array(buf);
-  let i;
-  for (i = 0; i < LENGTH; ++i) {
-    view[i] = i;
-  }
-
-  
-  let uint8 = SharedAll.Type.uint8_t.in_ptr.implementation(buf);
-  for (i = 0; i < LENGTH; ++i) {
-    let value = SharedAll.offsetBy(uint8, i).contents;
-    if (value != i%256) {
-      is(value, i % 256, "test_offsetby: Walking through array with offsetBy (8 bits)");
-      break;
-    }
-  }
-
-  
-  let uint16 = SharedAll.Type.uint16_t.in_ptr.implementation(buf);
-  let view2 = new Uint16Array(buf);
-  for (i = 0; i < LENGTH/2; ++i) {
-    let value = SharedAll.offsetBy(uint16, i).contents;
-    if (value != view2[i]) {
-      is(value, view2[i], "test_offsetby: Walking through array with offsetBy (16 bits)");
-      break;
-    }
-  }
-
-  
-  let startptr = SharedAll.offsetBy(uint8, 0);
-  let startptr2 = SharedAll.offsetBy(startptr, 0);
-  is(startptr.toString(), startptr2.toString(), "test_offsetby: offsetBy(..., 0) is idmpotent");
-
-  
-  let ptr = ctypes.voidptr_t(0);
-  let exn;
-  try {
-    SharedAll.offsetBy(ptr, 1);
-  } catch (x) {
-    exn = x;
-  }
-  ok(!!exn, "test_offsetby: rejected offsetBy with void*");
-
-  info("test_offsetby: complete");
-}
-
 
 
 

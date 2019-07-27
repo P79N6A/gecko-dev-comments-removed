@@ -41,9 +41,10 @@ add_test_pair(function* read_write_all() {
       let pathSource = OS.Path.join(currentDir, EXISTING_FILE);
       let contents = yield OS.File.read(pathSource);
       do_check_true(!!contents); 
+      let bytesRead = contents.byteLength;
 
       let bytesWritten = yield OS.File.writeAtomic(DEST_PATH, contents, options);
-      do_check_eq(contents.byteLength, bytesWritten); 
+      do_check_eq(bytesRead, bytesWritten); 
 
       
       do_check_eq(JSON.stringify(options), JSON.stringify(optionsBackup));
@@ -54,6 +55,7 @@ add_test_pair(function* read_write_all() {
 
       
       
+      contents = new Uint8Array(300);
       let view = new Uint8Array(contents.buffer, 10, 200);
       try {
         let opt = JSON.parse(JSON.stringify(options));
@@ -71,16 +73,17 @@ add_test_pair(function* read_write_all() {
       
       let START = 10;
       let LENGTH = 100;
+      contents = new Uint8Array(300);
+      for (var i = 0; i < contents.byteLength; i++)
+        contents[i] = i % 256;
       view = new Uint8Array(contents.buffer, START, LENGTH);
       bytesWritten = yield OS.File.writeAtomic(DEST_PATH, view, options);
       do_check_eq(bytesWritten, LENGTH);
 
       let array2 = yield OS.File.read(DEST_PATH);
-      let view1 = new Uint8Array(contents.buffer, START, LENGTH);
-      do_check_eq(view1.length, array2.length);
-      let decoder = new TextDecoder();
-      do_check_eq(decoder.decode(view1), decoder.decode(array2));
-
+      do_check_eq(LENGTH, array2.length);
+      for (var i = 0; i < LENGTH; i++)
+        do_check_eq(array2[i], (i + START) % 256);
 
       
       yield OS.File.remove(DEST_PATH);

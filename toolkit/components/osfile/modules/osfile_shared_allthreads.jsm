@@ -25,6 +25,15 @@
 const Cu = typeof Components != "undefined" ? Components.utils : undefined;
 const Ci = typeof Components != "undefined" ? Components.interfaces : undefined;
 const Cc = typeof Components != "undefined" ? Components.classes : undefined;
+
+
+
+
+
+
+
+
+let Meta;
 if (typeof Components != "undefined") {
   
   
@@ -32,6 +41,10 @@ if (typeof Components != "undefined") {
   this.exports = {};
 
   Cu.import("resource://gre/modules/Services.jsm", this);
+  Meta = Cu.import("resource://gre/modules/PromiseWorker.jsm", {}).BasePromiseWorker.Meta;
+} else {
+  importScripts("resource://gre/modules/workers/require.js");
+  Meta = require("resource://gre/modules/workers/PromiseWorker.js").Meta;
 }
 
 let EXPORTED_SYMBOLS = [
@@ -46,11 +59,11 @@ let EXPORTED_SYMBOLS = [
   "declareFFI",
   "declareLazy",
   "declareLazyFFI",
-  "normalizeToPointer",
+  "normalizeBufferArgs",
   "projectValue",
+  "isArrayBuffer",
   "isTypedArray",
   "defineLazyGetter",
-  "offsetBy",
   "OS" 
 ];
 
@@ -141,7 +154,15 @@ let stringifyArg = function stringifyArg(arg) {
 
 
     if (argToString === "[object Object]") {
-      return JSON.stringify(arg);
+      return JSON.stringify(arg, function(key, value) {
+        if (isTypedArray(value)) {
+          return "["+ value.constructor.name + " " + value.byteOffset + " " + value.byteLength + "]";
+        }
+        if (isArrayBuffer(arg)) {
+          return "[" + value.constructor.name + " " + value.byteLength + "]";
+        }
+        return value;
+      });
     } else {
       return argToString;
     }
@@ -387,10 +408,19 @@ Type.prototype = {
 
 
 let isTypedArray = function isTypedArray(obj) {
-  return typeof obj == "object"
+  return obj != null && typeof obj == "object"
     && "byteOffset" in obj;
 };
 exports.isTypedArray = isTypedArray;
+
+
+
+
+let isArrayBuffer = function(obj) {
+  return obj != null && typeof obj == "object" &&
+    obj.constructor.name == "ArrayBuffer";
+};
+exports.isArrayBuffer = isArrayBuffer;
 
 
 
@@ -430,13 +460,16 @@ PtrType.prototype.toMsg = function ptr_toMsg(value) {
   if (typeof value == "string") {
     return { string: value };
   }
+  if (isTypedArray(value)) {
+    
+    return new Meta({data: value}, {transfers: [value.buffer]});
+  }
+  if (isArrayBuffer(value)) {
+    
+    return new Meta({data: value}, {transfers: [value]});
+  }
   let normalized;
-  if (isTypedArray(value)) { 
-    normalized = Type.uint8_t.in_ptr.implementation(value.buffer);
-    if (value.byteOffset != 0) {
-      normalized = offsetBy(normalized, value.byteOffset);
-    }
-  } else if ("addressOfElement" in value) { 
+  if ("addressOfElement" in value) { 
     normalized = value.addressOfElement(0);
   } else if ("isNull" in value) { 
     normalized = value;
@@ -457,6 +490,9 @@ PtrType.prototype.fromMsg = function ptr_fromMsg(msg) {
   }
   if ("string" in msg) {
     return msg.string;
+  }
+  if ("data" in msg) {
+    return msg.data;
   }
   if ("ptr" in msg) {
     let address = ctypes.uintptr_t(msg.ptr);
@@ -1145,7 +1181,6 @@ function declareLazy(object, field, lib, ...declareArgs) {
 exports.declareLazy = declareLazy;
 
 
-let gOffsetByType;
 
 
 
@@ -1154,86 +1189,25 @@ let gOffsetByType;
 
 
 
-
-
-
-
-
-
-
-
-
-let offsetBy =
-  function offsetBy(pointer, length) {
-    if (length === undefined || length < 0) {
-      throw new TypeError("offsetBy expects a positive number");
-    }
-   if (!("isNull" in pointer)) {
-      throw new TypeError("offsetBy expects a pointer");
-    }
-    if (length == 0) {
-      return pointer;
-    }
-    let type = pointer.constructor;
-    let size = type.targetType.size;
-    if (size == 0 || size == null) {
-      throw new TypeError("offsetBy cannot be applied to a pointer without size");
-    }
-    let bytes = length * size;
-    if (!gOffsetByType || gOffsetByType.size <= bytes) {
-      gOffsetByType = ctypes.uint8_t.array(bytes * 2);
-    }
-    let addr = ctypes.cast(pointer, gOffsetByType.ptr).
-      contents.addressOfElement(bytes);
-    return ctypes.cast(addr, type);
-};
-exports.offsetBy = offsetBy;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function normalizeToPointer(candidate, bytes) {
+function normalizeBufferArgs(candidate, bytes) {
   if (!candidate) {
-    throw new TypeError("Expecting  a Typed Array or a C pointer");
+    throw new TypeError("Expecting a Typed Array");
   }
-  let ptr;
-  if ("isNull" in candidate) {
-    if (candidate.isNull()) {
-      throw new TypeError("Expecting a non-null pointer");
-    }
-    ptr = Type.uint8_t.out_ptr.cast(candidate);
-    if (bytes == null) {
-      throw new TypeError("C pointer missing bytes indication.");
-    }
-  } else if (isTypedArray(candidate)) {
-    
-    ptr = Type.uint8_t.out_ptr.implementation(candidate.buffer);
-    if (bytes == null) {
-      bytes = candidate.byteLength;
-    } else if (candidate.byteLength < bytes) {
-      throw new TypeError("Buffer is too short. I need at least " +
-                         bytes +
-                         " bytes but I have only " +
-                         candidate.byteLength +
-                          "bytes");
-    }
-  } else {
-    throw new TypeError("Expecting  a Typed Array or a C pointer");
+  if (!isTypedArray(candidate)) {
+    throw new TypeError("Expecting a Typed Array");
   }
-  return {ptr: ptr, bytes: bytes};
+  if (bytes == null) {
+    bytes = candidate.byteLength;
+  } else if (candidate.byteLength < bytes) {
+    throw new TypeError("Buffer is too short. I need at least " +
+                       bytes +
+                       " bytes but I have only " +
+                       candidate.byteLength +
+                        "bytes");
+  }
+  return bytes;
 };
-exports.normalizeToPointer = normalizeToPointer;
+exports.normalizeBufferArgs = normalizeBufferArgs;
 
 
 
@@ -1274,8 +1248,7 @@ exports.OS = {
     declareFFI: declareFFI,
     projectValue: projectValue,
     isTypedArray: isTypedArray,
-    defineLazyGetter: defineLazyGetter,
-    offsetBy: offsetBy
+    defineLazyGetter: defineLazyGetter
   }
 };
 
