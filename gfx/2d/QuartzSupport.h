@@ -20,7 +20,6 @@
 CGColorSpaceRef CreateSystemColorSpace();
 
 
-struct _CGLPBufferObject;
 struct _CGLContextObject;
 
 enum AllowOfflineRendererEnum { ALLOW_OFFLINE_RENDERER, DISALLOW_OFFLINE_RENDERER };

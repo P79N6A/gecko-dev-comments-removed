@@ -13,7 +13,6 @@
 
 class nsAString;
 class nsString;
-class nsCString;
 
 
 

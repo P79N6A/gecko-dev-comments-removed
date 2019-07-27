@@ -11,8 +11,6 @@
 #include "nscore.h"
 #include "xpt_struct.h"
 
-class nsIInterfaceInfoManager;
-
 
 
 

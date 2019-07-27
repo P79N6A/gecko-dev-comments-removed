@@ -20,8 +20,6 @@
 class nsIDragService;
 class nsIWidget;
 
-struct IDataObject;
-
 
 
 

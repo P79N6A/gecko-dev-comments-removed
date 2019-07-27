@@ -16,13 +16,9 @@
 #include "prio.h"                       
 
 namespace mozilla {
-namespace gl {
-class GLContext;
-}
 namespace layers {
 
 class DataTextureSource;
-class ShaderProgramOGL;
 class Compositor;
 
 

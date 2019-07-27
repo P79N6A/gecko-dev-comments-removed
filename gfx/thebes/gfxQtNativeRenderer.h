@@ -11,8 +11,6 @@
 #include "gfxXlibSurface.h"
 #include "mozilla/gfx/Rect.h"
 
-class QRect;
-
 
 
 

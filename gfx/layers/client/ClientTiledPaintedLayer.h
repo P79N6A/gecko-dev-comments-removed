@@ -12,8 +12,6 @@
 #include "nsDebug.h"                    
 #include "nsRegion.h"                   
 
-class gfxContext;
-
 namespace mozilla {
 namespace layers {
 

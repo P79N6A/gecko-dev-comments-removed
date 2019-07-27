@@ -15,7 +15,6 @@ namespace mozilla {
 namespace layers {
 
 class ReadbackProcessor;
-class SurfaceDescriptor;
 
 
 

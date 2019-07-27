@@ -22,7 +22,6 @@ namespace mozilla {
 namespace layers {
 
 class APZEventState;
-class CompositorParent;
 
 
 

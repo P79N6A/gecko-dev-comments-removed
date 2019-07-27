@@ -21,9 +21,12 @@
 #include "nsISupportsImpl.h"            
 
 namespace mozilla {
-namespace layers {
 
-class CanvasClientWebGL;
+namespace gl {
+class SharedSurface;
+}
+
+namespace layers {
 
 
 

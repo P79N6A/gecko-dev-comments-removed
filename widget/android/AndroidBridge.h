@@ -36,8 +36,6 @@
 
 
 
-class nsWindow;
-class nsIDOMMozSmsMessage;
 class nsIObserver;
 class Task;
 
@@ -60,10 +58,6 @@ namespace dom {
 namespace mobilemessage {
 struct SmsFilterData;
 } 
-} 
-
-namespace layers {
-class CompositorParent;
 } 
 
 

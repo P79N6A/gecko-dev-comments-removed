@@ -20,18 +20,15 @@
 #include "nsRegion.h"                   
 #include "nscore.h"                     
 
-class gfxPattern;
 class nsIWidget;
 
 namespace mozilla {
 namespace layers {
 
-class BasicShadowableLayer;
 class ImageFactory;
 class ImageLayer;
 class PaintLayerContext;
 class ReadbackLayer;
-class ReadbackProcessor;
 
 
 

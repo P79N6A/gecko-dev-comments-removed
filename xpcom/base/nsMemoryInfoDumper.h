@@ -10,8 +10,6 @@
 #include "nsIMemoryInfoDumper.h"
 #include <stdio.h>
 
-class nsACString;
-
 
 
 

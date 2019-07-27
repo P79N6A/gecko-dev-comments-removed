@@ -57,8 +57,6 @@ struct IDirect3DDevice9;
 struct ID3D11Device;
 struct IDXGIAdapter1;
 
-class nsIMemoryReporter;
-
 
 
 

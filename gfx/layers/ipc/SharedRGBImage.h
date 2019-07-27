@@ -16,17 +16,11 @@
 #include "nsCOMPtr.h"                   
 
 namespace mozilla {
-namespace ipc {
-class Shmem;
-}
-
 namespace layers {
 
 class BufferTextureClient;
 class ImageClient;
-class ISurfaceAllocator;
 class TextureClient;
-class SurfaceDescriptor;
 
 already_AddRefed<Image> CreateSharedRGBImage(ImageContainer* aImageContainer,
                                              nsIntSize aSize,

@@ -88,7 +88,6 @@ class nsIURIFixup;
 class nsIURILoader;
 class nsIWebBrowserFind;
 class nsIWidget;
-class ProfilerMarkerTracing;
 
 
 
