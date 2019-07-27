@@ -369,7 +369,6 @@ public:
 
   
   
-  
   void NotifyWaitingForResourcesStatusChanged();
 
   
@@ -725,10 +724,6 @@ protected:
 
   
   void OnAudioSinkError();
-
-  
-  
-  void DoNotifyWaitingForResourcesStatusChanged();
 
   
   
