@@ -2138,6 +2138,12 @@ ComputeRadialGradientLine(nsPresContext* aPresContext,
 }
 
 
+static float Interpolate(float aF1, float aF2, float aFrac)
+{
+  return aF1 + aFrac * (aF2 - aF1);
+}
+
+
 
 
 static gfxRGBA
@@ -2218,6 +2224,77 @@ RectIsBeyondLinearGradientEdge(const gfxRect& aRect,
   }
 
   return false;
+}
+
+static gfxRGBA
+Premultiply(const gfxRGBA& aColor)
+{
+  gfxFloat a = aColor.a;
+  return gfxRGBA(aColor.r * a, aColor.g * a, aColor.b * a, a);
+}
+
+static gfxRGBA
+Unpremultiply(const gfxRGBA& aColor)
+{
+  gfxFloat a = aColor.a;
+  return (a > 0.0) ? gfxRGBA(aColor.r / a, aColor.g / a, aColor.b / a, a) : aColor;
+}
+
+static gfxRGBA
+TransparentColor(gfxRGBA aColor) {
+  aColor.a = 0;
+  return aColor;
+}
+
+
+
+
+static const float kAlphaIncrementPerGradientStep = 0.1f;
+static void
+ResolvePremultipliedAlpha(nsTArray<ColorStop>& aStops)
+{
+  for (size_t x = 1; x < aStops.Length(); x++) {
+    const ColorStop leftStop = aStops[x - 1];
+    const ColorStop rightStop = aStops[x];
+
+    
+    
+    if (leftStop.mColor.a == rightStop.mColor.a) {
+      continue;
+    }
+
+    
+    
+    if (leftStop.mColor.a == 0) {
+      aStops[x - 1].mColor = TransparentColor(rightStop.mColor);
+      continue;
+    }
+
+    
+    
+    if (rightStop.mColor.a == 0) {
+      ColorStop newStop = rightStop;
+      newStop.mColor = TransparentColor(leftStop.mColor);
+      aStops.InsertElementAt(x, newStop);
+      x++;
+      continue;
+    }
+
+    
+    if (leftStop.mColor.a != 1.0f || rightStop.mColor.a != 1.0f) {
+      gfxRGBA premulLeftColor = Premultiply(leftStop.mColor);
+      gfxRGBA premulRightColor = Premultiply(rightStop.mColor);
+      
+      size_t stepCount = NSToIntFloor(fabs(leftStop.mColor.a - rightStop.mColor.a) / kAlphaIncrementPerGradientStep);
+      for (size_t y = 1; y < stepCount; y++) {
+        float frac = static_cast<float>(y) / stepCount;
+        ColorStop newStop(Interpolate(leftStop.mPosition, rightStop.mPosition, frac),
+                          Unpremultiply(InterpolateColor(premulLeftColor, premulRightColor, frac)));
+        aStops.InsertElementAt(x, newStop);
+        x++;
+      }
+    }
+  }
 }
 
 void
@@ -2513,6 +2590,8 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
     }
     stops.AppendElement(ColorStop(firstStop, lastColor));
   }
+
+  ResolvePremultipliedAlpha(stops);
 
   bool isRepeat = aGradient->mRepeating || forceRepeatToCoverTiles;
 
