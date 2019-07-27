@@ -45,6 +45,11 @@ typedef CallbackObjectHolder<PositionErrorCallback, nsIDOMGeoPositionErrorCallba
 }
 }
 
+struct CachedPositionAndAccuracy {
+  nsCOMPtr<nsIDOMGeoPosition> position;
+  bool isHighAccuracy;
+};
+
 
 
 
@@ -73,7 +78,7 @@ public:
   void RemoveLocator(mozilla::dom::Geolocation* locator);
 
   void SetCachedPosition(nsIDOMGeoPosition* aPosition);
-  nsIDOMGeoPosition* GetCachedPosition();
+  CachedPositionAndAccuracy GetCachedPosition();
 
   
   nsresult StartDevice(nsIPrincipal* aPrincipal);
@@ -106,7 +111,7 @@ private:
   nsTArray<mozilla::dom::Geolocation*> mGeolocators;
 
   
-  nsCOMPtr<nsIDOMGeoPosition> mLastPosition;
+  CachedPositionAndAccuracy mLastPosition;
 
   
   bool mHigherAccuracy;

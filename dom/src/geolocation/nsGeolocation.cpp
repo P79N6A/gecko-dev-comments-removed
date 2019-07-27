@@ -431,32 +431,28 @@ nsGeolocationRequest::Allow(JS::HandleValue aChoices)
     return NS_OK;
   }
 
-  nsCOMPtr<nsIDOMGeoPosition> lastPosition = gs->GetCachedPosition();
-  DOMTimeStamp cachedPositionTime;
-  if (lastPosition) {
-    lastPosition->GetTimestamp(&cachedPositionTime);
-  }
-
-  
-  
-
-  uint32_t maximumAge = 0;
-  if (mOptions) {
-    if (mOptions->mMaximumAge > 0) {
-      maximumAge = mOptions->mMaximumAge;
+  bool canUseCache = false;
+  CachedPositionAndAccuracy lastPosition = gs->GetCachedPosition();
+  if (lastPosition.position) {
+    DOMTimeStamp cachedPositionTime_ms;
+    lastPosition.position->GetTimestamp(&cachedPositionTime_ms);
+    
+    
+    if (mOptions && mOptions->mMaximumAge > 0) {
+      uint32_t maximumAge_ms = mOptions->mMaximumAge;
+      bool isCachedWithinRequestedAccuracy = WantsHighAccuracy() <= lastPosition.isHighAccuracy;
+      bool isCachedWithinRequestedTime =
+        DOMTimeStamp(PR_Now() / PR_USEC_PER_MSEC - maximumAge_ms) <= cachedPositionTime_ms;
+      canUseCache = isCachedWithinRequestedAccuracy && isCachedWithinRequestedTime;
     }
   }
+
   gs->UpdateAccuracy(WantsHighAccuracy());
-
-  bool canUseCache = lastPosition && maximumAge > 0 &&
-    (PRTime(PR_Now() / PR_USEC_PER_MSEC) - maximumAge <=
-    PRTime(cachedPositionTime));
-
   if (canUseCache) {
     
     
     
-    Update(lastPosition);
+    Update(lastPosition.position);
   }
 
   if (mIsWatchPositionRequest || !canUseCache) {
@@ -764,7 +760,7 @@ nsGeolocationService::HandleMozsettingValue(const bool aValue)
       
       StopDevice();
       Update(nullptr);
-      mLastPosition = nullptr;
+      mLastPosition.position = nullptr;
       sGeoEnabled = false;
     } else {
       sGeoEnabled = true;
@@ -854,10 +850,11 @@ nsGeolocationService::NotifyError(uint16_t aErrorCode)
 void
 nsGeolocationService::SetCachedPosition(nsIDOMGeoPosition* aPosition)
 {
-  mLastPosition = aPosition;
+  mLastPosition.position = aPosition;
+  mLastPosition.isHighAccuracy = mHigherAccuracy;
 }
 
-nsIDOMGeoPosition*
+CachedPositionAndAccuracy
 nsGeolocationService::GetCachedPosition()
 {
   return mLastPosition;
