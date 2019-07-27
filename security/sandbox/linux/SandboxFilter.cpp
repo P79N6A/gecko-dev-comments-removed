@@ -191,6 +191,11 @@ SandboxFilterImplContent::Build() {
   Allow(SYSCALL(fsync));
   Allow(SYSCALL(msync));
 
+#if defined(ANDROID) && !defined(MOZ_MEMORY)
+  
+  Allow(SYSCALL(mremap));
+#endif
+
   
   Allow(SYSCALL(getpriority));
   Allow(SYSCALL(sched_get_priority_min));
