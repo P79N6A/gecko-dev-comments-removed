@@ -550,19 +550,6 @@ public class BrowserApp extends GeckoApp
 
         Distribution.init(this);
 
-        
-        
-        if (AppConstants.MOZ_MEDIA_PLAYER) {
-            try {
-                Class<?> mediaManagerClass = Class.forName("org.mozilla.gecko.MediaPlayerManager");
-                Method init = mediaManagerClass.getMethod("init", Context.class);
-                init.invoke(null, this);
-            } catch(Exception ex) {
-                
-                Log.i(LOGTAG, "No native casting support", ex);
-            }
-        }
-
         JavaAddonManager.getInstance().init(getApplicationContext());
         mSharedPreferencesHelper = new SharedPreferencesHelper(getApplicationContext());
         mOrderedBroadcastHelper = new OrderedBroadcastHelper(getApplicationContext());
