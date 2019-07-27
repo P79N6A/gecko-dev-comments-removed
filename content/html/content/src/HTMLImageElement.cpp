@@ -151,11 +151,6 @@ HTMLImageElement::SetItemValueText(const nsAString& aValue)
   SetSrc(aValue);
 }
 
-
-
-
-NS_IMPL_STRING_ATTR(HTMLImageElement, CrossOrigin, crossorigin)
-
 bool
 HTMLImageElement::Draggable() const
 {

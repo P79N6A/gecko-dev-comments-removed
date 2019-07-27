@@ -142,9 +142,16 @@ public:
   {
     SetHTMLAttr(nsGkAtoms::srcset, aSrcset, aError);
   }
+  void GetCrossOrigin(nsAString& aResult)
+  {
+    
+    
+    
+    GetEnumAttr(nsGkAtoms::crossorigin, nullptr, aResult);
+  }
   void SetCrossOrigin(const nsAString& aCrossOrigin, ErrorResult& aError)
   {
-    SetHTMLAttr(nsGkAtoms::crossorigin, aCrossOrigin, aError);
+    SetOrRemoveNullableStringAttr(nsGkAtoms::crossorigin, aCrossOrigin, aError);
   }
   void SetUseMap(const nsAString& aUseMap, ErrorResult& aError)
   {

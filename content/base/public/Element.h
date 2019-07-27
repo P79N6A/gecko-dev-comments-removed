@@ -1007,10 +1007,37 @@ public:
 
 
 
+
+
+
   void GetEnumAttr(nsIAtom* aAttr,
                    const char* aDefaultMissing,
                    const char* aDefaultInvalid,
                    nsAString& aResult) const;
+
+  
+
+
+  void UnsetAttr(nsIAtom* aAttr, ErrorResult& aError)
+  {
+    aError = UnsetAttr(kNameSpaceID_None, aAttr, true);
+  }
+
+  
+
+
+  void SetAttr(nsIAtom* aAttr, const nsAString& aValue, ErrorResult& aError)
+  {
+    aError = SetAttr(kNameSpaceID_None, aAttr, aValue, true);
+  }
+
+  
+
+
+
+
+  void SetOrRemoveNullableStringAttr(nsIAtom* aName, const nsAString& aValue,
+                                     ErrorResult& aError);
 
   
 
