@@ -1222,8 +1222,30 @@ MPhi::foldsTernary()
     if (!pred || !pred->lastIns()->isTest())
         return nullptr;
 
-    
     MTest *test = pred->lastIns()->toTest();
+
+    
+    if (test->ifTrue()->dominates(block()->getPredecessor(0)) &&
+        test->ifTrue()->dominates(block()->getPredecessor(1)))
+    {
+        return nullptr;
+    }
+
+    
+    if (test->ifFalse()->dominates(block()->getPredecessor(0)) &&
+        test->ifFalse()->dominates(block()->getPredecessor(1)))
+    {
+        return nullptr;
+    }
+
+    
+    if (test->ifTrue()->dominates(block()->getPredecessor(0)) ==
+        test->ifFalse()->dominates(block()->getPredecessor(0)))
+    {
+        return nullptr;
+    }
+
+    
     bool firstIsTrueBranch = test->ifTrue()->dominates(block()->getPredecessor(0));
     MDefinition *trueDef = firstIsTrueBranch ? getOperand(0) : getOperand(1);
     MDefinition *falseDef = firstIsTrueBranch ? getOperand(1) : getOperand(0);
