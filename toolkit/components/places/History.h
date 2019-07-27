@@ -28,6 +28,7 @@ namespace mozilla {
 namespace places {
 
 struct VisitData;
+class ConcurrentStatementsHolder;
 
 #define NS_HISTORYSERVICE_CID \
   {0x0937a705, 0x91a6, 0x417a, {0x82, 0x92, 0xb2, 0x2e, 0xb1, 0x0d, 0xa8, 0x6c}}
@@ -54,7 +55,7 @@ public:
   
 
 
-  mozIStorageAsyncStatement* GetIsVisitedStatement();
+  nsresult GetIsVisitedStatement(mozIStorageCompletionCallback* aCallback);
 
   
 
@@ -146,19 +147,7 @@ private:
 
   nsRefPtr<mozilla::places::Database> mDB;
 
-  
-
-
-
-
-  nsCOMPtr<mozIStorageConnection> mReadOnlyDBConn;
-
-  
-
-
-
-
-  nsCOMPtr<mozIStorageAsyncStatement> mIsVisitedStatement;
+  nsRefPtr<ConcurrentStatementsHolder> mConcurrentStatementsHolder;
 
   
 
