@@ -4,7 +4,7 @@
 
 
 
-#include "vm/ObjectImpl-inl.h"
+#include "vm/NativeObject-inl.h"
 
 #include "mozilla/CheckedInt.h"
 

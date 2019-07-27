@@ -4,10 +4,10 @@
 
 
 
-#ifndef vm_ObjectImpl_inl_h
-#define vm_ObjectImpl_inl_h
+#ifndef vm_NativeObject_inl_h
+#define vm_NativeObject_inl_h
 
-#include "vm/ObjectImpl.h"
+#include "vm/NativeObject.h"
 
 #include "jscntxt.h"
 

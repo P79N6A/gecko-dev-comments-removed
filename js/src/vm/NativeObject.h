@@ -4,8 +4,8 @@
 
 
 
-#ifndef vm_ObjectImpl_h
-#define vm_ObjectImpl_h
+#ifndef vm_NativeObject_h
+#define vm_NativeObject_h
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
