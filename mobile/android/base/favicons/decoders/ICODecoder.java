@@ -293,10 +293,10 @@ public class ICODecoder implements Iterable<Bitmap> {
         System.arraycopy(decodand, offset + iconDirEntry.payloadOffset, decodeTarget, singlePayloadOffset, iconDirEntry.payloadSize);
 
         
-        decodeTarget[ICO_HEADER_LENGTH_BYTES + 12] = (byte) singlePayloadOffset;
-        decodeTarget[ICO_HEADER_LENGTH_BYTES + 13] = (byte) (singlePayloadOffset >>> 8);
-        decodeTarget[ICO_HEADER_LENGTH_BYTES + 14] = (byte) (singlePayloadOffset >>> 16);
-        decodeTarget[ICO_HEADER_LENGTH_BYTES + 15] = (byte) (singlePayloadOffset >>> 24);
+        decodeTarget[ICO_HEADER_LENGTH_BYTES + 12] = singlePayloadOffset;
+        decodeTarget[ICO_HEADER_LENGTH_BYTES + 13] = (singlePayloadOffset >>> 8);
+        decodeTarget[ICO_HEADER_LENGTH_BYTES + 14] = (singlePayloadOffset >>> 16);
+        decodeTarget[ICO_HEADER_LENGTH_BYTES + 15] = (singlePayloadOffset >>> 24);
 
         
         return BitmapUtils.decodeByteArray(decodeTarget);
