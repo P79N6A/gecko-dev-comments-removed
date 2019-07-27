@@ -318,6 +318,48 @@ onPromiseSettled(JSContext* cx, HandleObject promise);
 JS_PUBLIC_API(bool)
 IsDebugger(JS::Value val);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class MOZ_STACK_CLASS AutoEntryMonitor {
+    JSRuntime* runtime_;
+    AutoEntryMonitor* savedMonitor_;
+
+  public:
+    explicit AutoEntryMonitor(JSContext* cx);
+    ~AutoEntryMonitor();
+
+    
+    
+    
+
+    
+    
+    
+    virtual void Entry(JSContext* cx, JSFunction* function) = 0;
+
+    
+    
+    
+    virtual void Entry(JSContext* cx, JSScript* script) = 0;
+
+    
+    virtual void Exit(JSContext* cx) { }
+};
+
+
+
 } 
 } 
 

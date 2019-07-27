@@ -744,8 +744,12 @@ CallAsmJS(JSContext* cx, unsigned argc, Value* vp)
         
         
         
+        
+        
+        
+        
         AsmJSActivation activation(cx, module);
-        JitActivation jitActivation(cx,  false);
+        JitActivation jitActivation(cx,  nullptr,  false);
 
         
         AsmJSModule::CodePtr enter = module.entryTrampoline(func);

@@ -21,6 +21,12 @@
 
 struct JSCompartment;
 
+namespace JS {
+namespace dbg {
+class AutoEntryMonitor;
+}
+}
+
 namespace js {
 
 class ArgumentsObject;
@@ -1091,6 +1097,11 @@ class Activation
     
     RootedString asyncCause_;
 
+    
+    
+    
+    JS::dbg::AutoEntryMonitor* entryMonitor_;
+
     enum Kind { Interpreter, Jit, AsmJS };
     Kind kind_;
 
@@ -1340,7 +1351,11 @@ class JitActivation : public Activation
 #endif
 
   public:
-    explicit JitActivation(JSContext* cx, bool active = true);
+    
+    
+    
+    
+    explicit JitActivation(JSContext* cx, CalleeToken entryPoint, bool active = true);
     ~JitActivation();
 
     bool isActive() const {

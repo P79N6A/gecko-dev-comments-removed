@@ -23,6 +23,8 @@ namespace js {
 namespace js {
 namespace jit {
 
+typedef void * CalleeToken;
+
 enum FrameType
 {
     
