@@ -389,6 +389,11 @@ this.ImportExport = {
       meta.installerIsBrowser = false;
       meta.role = manifest.role;
 
+      let devMode = false;
+      try {
+        devMode = Services.prefs.getBoolPref("dom.apps.developer_mode");
+      } catch(e) {}
+
       
       if (isPackage) {
         meta.origin = "app://" + meta.id;
@@ -398,12 +403,10 @@ this.ImportExport = {
           yield DOMApplicationRegistry._openPackage(appFile, meta, false);
         let maxStatus = isSigned ? Ci.nsIPrincipal.APP_STATUS_PRIVILEGED
                                  : Ci.nsIPrincipal.APP_STATUS_INSTALLED;
-        try {
-          
-          if (Services.prefs.getBoolPref("dom.apps.developer_mode")) {
-            maxStatus = Ci.nsIPrincipal.APP_STATUS_CERTIFIED;
-          }
-        } catch(e) {};
+        
+        if (devMode) {
+          maxStatus = Ci.nsIPrincipal.APP_STATUS_CERTIFIED;
+        }
         meta.appStatus = AppsUtils.getAppManifestStatus(manifest);
         debug("Signed app? " + isSigned);
         if (meta.appStatus > maxStatus) {
@@ -412,12 +415,12 @@ this.ImportExport = {
 
         
         
-        if (isSigned &&
-            meta.appStatus == Ci.nsIPrincipal.APP_STATUS_PRIVILEGED &&
+        if ((isSigned || devMode) &&
+            meta.appStatus >= Ci.nsIPrincipal.APP_STATUS_PRIVILEGED &&
             manifest.origin) {
           let uri;
           try {
-            uri = Services.io.newURI(aManifest.origin, null, null);
+            uri = Services.io.newURI(manifest.origin, null, null);
           } catch(e) {
             throw "InvalidOrigin";
           }
