@@ -470,6 +470,65 @@ function TypedArrayReverse() {
 }
 
 
+function TypedArraySlice(start, end) {
+
+    
+    var O = this;
+
+    
+    if (!IsObject(O) || !IsTypedArray(O)) {
+        return callFunction(CallTypedArrayMethodIfWrapped, O, start, end, "TypedArraySlice");
+    }
+
+    
+    var len = TypedArrayLength(O);
+
+    
+    var relativeStart = ToInteger(start);
+
+    
+    var k = relativeStart < 0
+            ? std_Math_max(len + relativeStart, 0)
+            : std_Math_min(relativeStart, len);
+
+    
+    var relativeEnd = end === undefined ? len : ToInteger(end);
+
+    
+    var final = relativeEnd < 0
+                ? std_Math_max(len + relativeEnd, 0)
+                : std_Math_min(relativeEnd, len);
+
+    
+    var count = std_Math_max(final - k, 0);
+
+    
+    var defaultConstructor = _ConstructorForTypedArray(O);
+
+    
+    var C = SpeciesConstructor(O, defaultConstructor);
+
+    
+    var A = new C(count);
+
+    
+    var n = 0;
+
+    
+    while (k < final) {
+        
+        A[n] = O[k];
+        
+        k++;
+        
+        n++;
+    }
+
+    
+    return A;
+}
+
+
 function TypedArraySome(callbackfn, thisArg = undefined) {
     
     if (!IsObject(this) || !IsTypedArray(this)) {
