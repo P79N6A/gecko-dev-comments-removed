@@ -222,10 +222,9 @@ const TELEPHONY_REQUESTS = [
   REQUEST_UDUB
 ];
 
-function TelephonyRequestEntry(request, action, options) {
+function TelephonyRequestEntry(request, callback) {
   this.request = request;
-  this.action = action;
-  this.options = options;
+  this.callback = callback;
 }
 
 function TelephonyRequestQueue(ril) {
@@ -274,7 +273,7 @@ TelephonyRequestQueue.prototype = {
 
   _executeEntry: function(entry) {
     if (DEBUG) this.debug("execute " + this._getRequestName(entry.request));
-    entry.action.call(this.ril, entry.options);
+    entry.callback();
   },
 
   _getRequestName: function(request) {
@@ -290,7 +289,7 @@ TelephonyRequestQueue.prototype = {
     return TELEPHONY_REQUESTS.indexOf(request) !== -1;
   },
 
-  push: function(request, action, options) {
+  push: function(request, callback) {
     if (!this.isValidRequest(request)) {
       if (DEBUG) {
         this.debug("Error: " + this._getRequestName(request) +
@@ -300,7 +299,7 @@ TelephonyRequestQueue.prototype = {
     }
 
     if (DEBUG) this.debug("push " + this._getRequestName(request));
-    let entry = new TelephonyRequestEntry(request, action, options);
+    let entry = new TelephonyRequestEntry(request, callback);
     let queue = this._getQueue(request);
     queue.push(entry);
 
@@ -1548,18 +1547,6 @@ RilObject.prototype = {
   
 
 
-  getCurrentCalls: function() {
-    this.telephonyRequestQueue.push(REQUEST_GET_CURRENT_CALLS,
-                                    this.sendRilRequestGetCurrentCalls, null);
-  },
-
-  sendRilRequestGetCurrentCalls: function() {
-    this.context.Buf.simpleRequest(REQUEST_GET_CURRENT_CALLS);
-  },
-
-  
-
-
   getSignalStrength: function() {
     this.context.Buf.simpleRequest(REQUEST_SIGNAL_STRENGTH);
   },
@@ -1631,20 +1618,24 @@ RilObject.prototype = {
     let isRadioOff = (this.radioState === GECKO_RADIOSTATE_DISABLED);
 
     if (options.isEmergency) {
+      options.request = RILQUIRKS_REQUEST_USE_DIAL_EMERGENCY_CALL ?
+                        REQUEST_DIAL_EMERGENCY_CALL : REQUEST_DIAL;
+
       if (isRadioOff) {
         if (DEBUG) {
           this.context.debug("Automatically enable radio for an emergency call.");
         }
 
         this.cachedDialRequest = {
-          callback: this.dialEmergencyNumber.bind(this, options),
+          callback: this.dialInternal.bind(this, options),
           onerror: onerror
         };
+
         this.setRadioEnabled({enabled: true});
         return;
       }
 
-      this.dialEmergencyNumber(options);
+      this.dialInternal(options);
     } else {
       
       if (isRadioOff) {
@@ -1658,70 +1649,39 @@ RilObject.prototype = {
         return;
       }
 
-      this.dialNonEmergencyNumber(options);
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  dialNonEmergencyNumber: function(options) {
-    
-    if (this._isInEmergencyCbMode) {
-      this.exitEmergencyCbMode();
-    }
-
-    options.request = REQUEST_DIAL;
-    this.sendDialRequest(options);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  dialEmergencyNumber: function(options) {
-    options.request = RILQUIRKS_REQUEST_USE_DIAL_EMERGENCY_CALL ?
-                      REQUEST_DIAL_EMERGENCY_CALL : REQUEST_DIAL;
-    this.sendDialRequest(options);
-  },
-
-  sendDialRequest: function(options) {
-    if (this._isCdma && Object.keys(this.currentCalls).length == 1) {
       
-      options.featureStr = options.number;
-      this.sendCdmaFlashCommand(options);
-    } else {
-      this.telephonyRequestQueue.push(options.request, this.sendRilRequestDial,
-                                      options);
+      if (this._isInEmergencyCbMode) {
+        this.exitEmergencyCbMode();
+      }
+
+      options.request = REQUEST_DIAL;
+
+      this.dialInternal(options);
     }
   },
 
-  sendRilRequestDial: function(options) {
-    let Buf = this.context.Buf;
-    Buf.newParcel(options.request, options);
-    Buf.writeString(options.number);
-    Buf.writeInt32(options.clirMode || 0);
-    Buf.writeInt32(options.uusInfo || 0);
+  dialInternal: function(options) {
     
-    
-    Buf.writeInt32(0);
-    Buf.sendParcel();
+    if (this._isCdma && Object.keys(this.currentCalls).length == 1) {
+      options.featureStr = options.number;
+      this.cdmaFlash(options);
+      return;
+    }
+
+    this.telephonyRequestQueue.push(options.request, () => {
+      let Buf = this.context.Buf;
+      Buf.newParcel(options.request, options);
+      Buf.writeString(options.number);
+      Buf.writeInt32(options.clirMode || 0);
+      Buf.writeInt32(options.uusInfo || 0);
+      
+      
+      Buf.writeInt32(0);
+      Buf.sendParcel();
+    });
   },
 
-  sendCdmaFlashCommand: function(options) {
+  cdmaFlash: function(options) {
     let Buf = this.context.Buf;
     options.isCdma = true;
     options.request = REQUEST_CDMA_FLASH;
@@ -1753,58 +1713,43 @@ RilObject.prototype = {
 
     call.hangUpLocal = true;
     if (call.state === CALL_STATE_HOLDING) {
-      this.sendHangUpBackgroundRequest();
+      this.hangUpBackground(options);
     } else {
-      this.sendHangUpRequest(options);
+      this.telephonyRequestQueue.push(REQUEST_HANGUP, () => {
+        let Buf = this.context.Buf;
+        Buf.newParcel(REQUEST_HANGUP, options);
+        Buf.writeInt32(1);
+        Buf.writeInt32(options.callIndex);
+        Buf.sendParcel();
+      });
     }
   },
 
-  sendHangUpRequest: function(options) {
-    this.telephonyRequestQueue.push(REQUEST_HANGUP, this.sendRilRequestHangUp,
-                                    options);
+  hangUpForeground: function(options) {
+    this.telephonyRequestQueue.push(REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND, () => {
+      this.context.Buf.simpleRequest(REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND,
+                                     options);
+    });
   },
 
-  sendRilRequestHangUp: function(options) {
-    let Buf = this.context.Buf;
-    Buf.newParcel(REQUEST_HANGUP, options);
-    Buf.writeInt32(1);
-    Buf.writeInt32(options.callIndex);
-    Buf.sendParcel();
+  hangUpBackground: function(options) {
+    this.telephonyRequestQueue.push(REQUEST_HANGUP_WAITING_OR_BACKGROUND, () => {
+      this.context.Buf.simpleRequest(REQUEST_HANGUP_WAITING_OR_BACKGROUND,
+                                     options);
+    });
   },
 
-  sendHangUpForegroundRequest: function(options) {
-    this.telephonyRequestQueue.push(REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND,
-                                    this.sendRilRequestHangUpForeground,
-                                    options);
+  switchActiveCall: function(options) {
+    this.telephonyRequestQueue.push(REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE, () => {
+      this.context.Buf.simpleRequest(REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE,
+                                     options);
+    });
   },
 
-  sendRilRequestHangUpForeground: function(options) {
-    this.context.Buf.simpleRequest(REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND,
-                                   options);
-  },
-
-  sendHangUpBackgroundRequest: function(options) {
-    this.telephonyRequestQueue.push(REQUEST_HANGUP_WAITING_OR_BACKGROUND,
-                                    this.sendRilRequestHangUpWaiting, options);
-  },
-
-  sendRilRequestHangUpWaiting: function(options) {
-    this.context.Buf.simpleRequest(REQUEST_HANGUP_WAITING_OR_BACKGROUND,
-                                   options);
-  },
-
-  
-
-
-
-
-
-  setMute: function(options) {
-    let Buf = this.context.Buf;
-    Buf.newParcel(REQUEST_SET_MUTE);
-    Buf.writeInt32(1);
-    Buf.writeInt32(options.muted ? 1 : 0);
-    Buf.sendParcel();
+  udub: function(options) {
+    this.telephonyRequestQueue.push(REQUEST_UDUB, () => {
+      this.context.Buf.simpleRequest(REQUEST_UDUB, options);
+    });
   },
 
   
@@ -1814,38 +1759,26 @@ RilObject.prototype = {
 
 
   answerCall: function(options) {
-    
-    
-    
-    
     let call = this.currentCalls[options.callIndex];
     if (!call) {
       return;
     }
 
+    
+    
+    
+    
     switch (call.state) {
       case CALL_STATE_INCOMING:
-        this.telephonyRequestQueue.push(REQUEST_ANSWER, this.sendRilRequestAnswer,
-                                        null);
+        this.telephonyRequestQueue.push(REQUEST_ANSWER, () => {
+          this.context.Buf.simpleRequest(REQUEST_ANSWER);
+        });
         break;
       case CALL_STATE_WAITING:
         
-        this.sendSwitchWaitingRequest();
+        this.switchActiveCall(options);
         break;
     }
-  },
-
-  sendRilRequestAnswer: function() {
-    this.context.Buf.simpleRequest(REQUEST_ANSWER);
-  },
-
-  sendSwitchWaitingRequest: function() {
-    this.telephonyRequestQueue.push(REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE,
-                                    this.sendRilRequestSwitch, null);
-  },
-
-  sendRilRequestSwitch: function() {
-    this.context.Buf.simpleRequest(REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE);
   },
 
   
@@ -1868,24 +1801,19 @@ RilObject.prototype = {
 
     if (this._isCdma) {
       
-      this.sendHangUpBackgroundRequest();
+      this.hangUpBackground(options);
       return;
     }
 
     switch (call.state) {
       case CALL_STATE_INCOMING:
-        this.telephonyRequestQueue.push(REQUEST_UDUB, this.sendRilRequestUdub,
-                                        null);
+        this.udub(options);
         break;
       case CALL_STATE_WAITING:
         
-        this.sendHangUpBackgroundRequest();
+        this.hangUpBackground(options);
         break;
     }
-  },
-
-  sendRilRequestUdub: function() {
-    this.context.Buf.simpleRequest(REQUEST_UDUB);
   },
 
   holdCall: function(options) {
@@ -1900,9 +1828,9 @@ RilObject.prototype = {
     let Buf = this.context.Buf;
     if (this._isCdma) {
       options.featureStr = "";
-      this.sendCdmaFlashCommand(options);
+      this.cdmaFlash(options);
     } else if (call.state == CALL_STATE_ACTIVE) {
-      this.sendSwitchWaitingRequest();
+      this.switchActiveCall(options);
     }
   },
 
@@ -1918,24 +1846,22 @@ RilObject.prototype = {
     let Buf = this.context.Buf;
     if (this._isCdma) {
       options.featureStr = "";
-      this.sendCdmaFlashCommand(options);
+      this.cdmaFlash(options);
     } else if (call.state == CALL_STATE_HOLDING) {
-      this.sendSwitchWaitingRequest();
+      this.switchActiveCall(options);
     }
   },
 
   conferenceCall: function(options) {
     if (this._isCdma) {
       options.featureStr = "";
-      this.sendCdmaFlashCommand(options);
-    } else {
-      this.telephonyRequestQueue.push(REQUEST_CONFERENCE,
-                                      this.sendRilRequestConference, options);
+      this.cdmaFlash(options);
+      return;
     }
-  },
 
-  sendRilRequestConference: function(options) {
-    this.context.Buf.simpleRequest(REQUEST_CONFERENCE, options);
+    this.telephonyRequestQueue.push(REQUEST_CONFERENCE, () => {
+      this.context.Buf.simpleRequest(REQUEST_CONFERENCE, options);
+    });
   },
 
   separateCall: function(options) {
@@ -1950,20 +1876,17 @@ RilObject.prototype = {
 
     if (this._isCdma) {
       options.featureStr = "";
-      this.sendCdmaFlashCommand(options);
-    } else {
-      this.telephonyRequestQueue.push(REQUEST_SEPARATE_CONNECTION,
-                                     this.sendRilRequestSeparateConnection,
-                                     options);
+      this.cdmaFlash(options);
+      return;
     }
- },
 
-  sendRilRequestSeparateConnection: function(options) {
-    let Buf = this.context.Buf;
-    Buf.newParcel(REQUEST_SEPARATE_CONNECTION, options);
-    Buf.writeInt32(1);
-    Buf.writeInt32(options.callIndex);
-    Buf.sendParcel();
+    this.telephonyRequestQueue.push(REQUEST_SEPARATE_CONNECTION, () => {
+      let Buf = this.context.Buf;
+      Buf.newParcel(REQUEST_SEPARATE_CONNECTION, options);
+      Buf.writeInt32(1);
+      Buf.writeInt32(options.callIndex);
+      Buf.sendParcel();
+    });
   },
 
   hangUpConference: function(options) {
@@ -1976,31 +1899,56 @@ RilObject.prototype = {
         this.sendChromeMessage(options);
         return;
       }
-      call.hangUpLocal = true;
-      this.sendHangUpRequest(1);
+
+      options.callIndex = 1;
+      this.hangUp(options);
+      return;
+    }
+
+    if (this.currentConferenceState === CALL_STATE_ACTIVE) {
+      this.hangUpForeground(options);
     } else {
-      if (this.currentConferenceState === CALL_STATE_ACTIVE) {
-        this.sendHangUpForegroundRequest(options);
-      } else {
-        this.sendHangUpBackgroundRequest(options);
-      }
+      this.hangUpBackground(options);
     }
   },
 
-  holdConference: function() {
+  holdConference: function(options) {
     if (this._isCdma) {
       return;
     }
 
-    this.sendSwitchWaitingRequest();
+    this.switchActiveCall(options);
   },
 
-  resumeConference: function() {
+  resumeConference: function(options) {
     if (this._isCdma) {
       return;
     }
 
-    this.sendSwitchWaitingRequest();
+    this.switchActiveCall(options);
+  },
+
+  
+
+
+  getCurrentCalls: function() {
+    this.telephonyRequestQueue.push(REQUEST_GET_CURRENT_CALLS, () => {
+      this.context.Buf.simpleRequest(REQUEST_GET_CURRENT_CALLS);
+    });
+  },
+
+  
+
+
+
+
+
+  setMute: function(options) {
+    let Buf = this.context.Buf;
+    Buf.newParcel(REQUEST_SET_MUTE);
+    Buf.writeInt32(1);
+    Buf.writeInt32(options.muted ? 1 : 0);
+    Buf.sendParcel();
   },
 
   
@@ -2687,10 +2635,6 @@ RilObject.prototype = {
       return;
     }
 
-    this.sendRilRequestSendUSSD(options);
-  },
-
-  sendRilRequestSendUSSD: function(options) {
     let Buf = this.context.Buf;
     Buf.newParcel(REQUEST_SEND_USSD, options);
     Buf.writeString(options.ussd);
@@ -3936,6 +3880,8 @@ RilObject.prototype = {
 
 
   _processCalls: function(newCalls, failCause) {
+    if (DEBUG) this.context.debug("_processCalls: " + JSON.stringify(newCalls));
+
     
     
     
@@ -5464,7 +5410,7 @@ RilObject.prototype[REQUEST_GET_IMSI] = function REQUEST_GET_IMSI(length, option
   this.sendChromeMessage(options);
 };
 RilObject.prototype[REQUEST_HANGUP] = function REQUEST_HANGUP(length, options) {
-  options.success = options.rilRequestError === 0;
+  options.success = (options.rilRequestError === 0);
   options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
   this.sendChromeMessage(options);
 };
@@ -5475,6 +5421,9 @@ RilObject.prototype[REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND] = function REQU
   RilObject.prototype[REQUEST_HANGUP].call(this, length, options);
 };
 RilObject.prototype[REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE] = function REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE(length, options) {
+  options.success = (options.rilRequestError === 0);
+  options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
+  this.sendChromeMessage(options);
 };
 RilObject.prototype[REQUEST_CONFERENCE] = function REQUEST_CONFERENCE(length, options) {
   options.success = (options.rilRequestError === 0);
