@@ -2874,7 +2874,7 @@ Debugger::findAllGlobals(JSContext *cx, unsigned argc, Value *vp)
 
 
 
-            JS::ExposeObjectToActiveJS(global);
+            JS::ExposeGCThingToActiveJS(global, JSTRACE_OBJECT);
 
             RootedValue globalValue(cx, ObjectValue(*global));
             if (!dbg->wrapDebuggeeValue(cx, &globalValue))
