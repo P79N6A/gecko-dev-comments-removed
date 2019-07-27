@@ -37,6 +37,15 @@ public:
                                gfxContext *aContextForTightBoundingBox,
                                Spacing *aSpacing, uint16_t aOrientation);
 
+    
+    
+    
+    virtual bool ProvidesGlyphWidths() const {
+        return mFontEntry->HasFontTable(TRUETYPE_TAG('s','b','i','x'));
+    }
+
+    virtual int32_t GetGlyphWidth(DrawTarget& aDrawTarget, uint16_t aGID);
+
     virtual mozilla::TemporaryRef<mozilla::gfx::ScaledFont> GetScaledFont(mozilla::gfx::DrawTarget *aTarget);
 
     virtual mozilla::TemporaryRef<mozilla::gfx::GlyphRenderingOptions>
@@ -74,6 +83,10 @@ protected:
     
     
     CGFontRef             mCGFont;
+
+    
+    
+    CTFontRef             mCTFont;
 
     cairo_font_face_t    *mFontFace;
 
