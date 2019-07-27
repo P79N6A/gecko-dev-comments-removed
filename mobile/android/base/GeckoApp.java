@@ -1563,6 +1563,12 @@ public abstract class GeckoApp
             }
         });
 
+        PrefsHelper.getPref("app.geo.reportdata", new PrefsHelper.PrefHandlerBase() {
+            @Override public void prefValue(String pref, int value) {
+                
+            }
+        });
+
         
         
         mJavaUiStartupTimer.stop();

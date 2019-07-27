@@ -402,6 +402,7 @@ pref("privacy.item.syncAccount", true);
 
 
 pref("geo.enabled", true);
+pref("app.geo.reportdata", 0);
 
 
 
