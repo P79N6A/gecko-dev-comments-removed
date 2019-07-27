@@ -774,9 +774,7 @@ InspectorPanel.prototype = {
     }
 
     let type = popupNode.dataset.type;
-    
-    
-    if (type === "uri" || type === "resource") {
+    if (type === "uri" || type === "cssresource" || type === "jsresource") {
       
       this.target.actorHasMethod("inspector", "resolveRelativeURL").then(canResolve => {
         if (!canResolve) {
@@ -786,11 +784,20 @@ InspectorPanel.prototype = {
         linkSeparator.removeAttribute("hidden");
 
         
-        if (!this.target.chrome) {
+        if (type === "uri" && !this.target.chrome) {
           linkFollow.removeAttribute("hidden");
           linkFollow.setAttribute("label", this.strings.GetStringFromName(
             "inspector.menu.openUrlInNewTab.label"));
+        } else if (type === "cssresource") {
+          linkFollow.removeAttribute("hidden");
+          linkFollow.setAttribute("label", this.toolboxStrings.GetStringFromName(
+            "toolbox.viewCssSourceInStyleEditor.label"));
+        } else if (type === "jsresource") {
+          linkFollow.removeAttribute("hidden");
+          linkFollow.setAttribute("label", this.toolboxStrings.GetStringFromName(
+            "toolbox.viewJsSourceInDebugger.label"));
         }
+
         linkCopy.removeAttribute("hidden");
         linkCopy.setAttribute("label", this.strings.GetStringFromName(
           "inspector.menu.copyUrlToClipboard.label"));
@@ -1099,26 +1106,31 @@ InspectorPanel.prototype = {
     let type = this.panelDoc.popupNode.dataset.type;
     let link = this.panelDoc.popupNode.dataset.link;
 
-    
-    if (type === "uri" || type === "resource") {
+    if (type === "uri" || type === "cssresource" || type === "jsresource") {
       
       
       
       this.inspector.resolveRelativeURL(link, this.selection.nodeFront).then(url => {
-        let browserWin = this.target.tab.ownerDocument.defaultView;
-        browserWin.openUILinkIn(url, "tab");
-      }, console.error);
+        if (type === "uri") {
+          let browserWin = this.target.tab.ownerDocument.defaultView;
+          browserWin.openUILinkIn(url, "tab");
+        } else if (type === "cssresource") {
+          return this.toolbox.viewSourceInStyleEditor(url);
+        } else if (type === "jsresource") {
+          return this.toolbox.viewSourceInDebugger(url);
+        }
+      }).catch(e => console.error(e));
     } else if (type == "idref") {
       
       this.walker.document(this.selection.nodeFront).then(doc => {
-        this.walker.querySelector(doc, "#" + CSS.escape(link)).then(node => {
+        return this.walker.querySelector(doc, "#" + CSS.escape(link)).then(node => {
           if (!node) {
             this.emit("idref-attribute-link-failed");
             return;
           }
           this.selection.setNodeFront(node);
-        }, console.error);
-      }, console.error);
+        });
+      }).catch(e => console.error(e));
     }
   },
 
@@ -1179,17 +1191,20 @@ InspectorPanel.prototype = {
 
 
 
-loader.lazyGetter(InspectorPanel.prototype, "strings",
-  function () {
-    return Services.strings.createBundle(
-            "chrome://browser/locale/devtools/inspector.properties");
-  });
+loader.lazyGetter(InspectorPanel.prototype, "strings", function () {
+  return Services.strings.createBundle(
+    "chrome://browser/locale/devtools/inspector.properties");
+});
+
+loader.lazyGetter(InspectorPanel.prototype, "toolboxStrings", function () {
+  return Services.strings.createBundle(
+    "chrome://browser/locale/devtools/toolbox.properties");
+});
 
 loader.lazyGetter(this, "clipboardHelper", function() {
   return Cc["@mozilla.org/widget/clipboardhelper;1"].
     getService(Ci.nsIClipboardHelper);
 });
-
 
 loader.lazyGetter(this, "DOMUtils", function () {
   return Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils);
