@@ -22,6 +22,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "ServerClient",
   "resource:///modules/readinglist/ServerClient.jsm");
 
 
+
+const BATCH_REQUEST_LIMIT = 25;
+
+
 const SERVER_LAST_MODIFIED_HEADER_PREF = "readinglist.sync.serverLastModified";
 
 
@@ -180,8 +184,6 @@ SyncImpl.prototype = {
 
     
     let request = {
-      method: "POST",
-      path: "/batch",
       body: {
         defaults: {
           method: "PATCH",
@@ -189,7 +191,7 @@ SyncImpl.prototype = {
         requests: requests,
       },
     };
-    let batchResponse = yield this._sendRequest(request);
+    let batchResponse = yield this._postBatch(request);
     if (batchResponse.status != 200) {
       this._handleUnexpectedResponse("uploading changes", batchResponse);
       return;
@@ -244,8 +246,6 @@ SyncImpl.prototype = {
 
     
     let request = {
-      method: "POST",
-      path: "/batch",
       body: {
         defaults: {
           method: "POST",
@@ -254,7 +254,7 @@ SyncImpl.prototype = {
         requests: requests,
       },
     };
-    let batchResponse = yield this._sendRequest(request);
+    let batchResponse = yield this._postBatch(request);
     if (batchResponse.status != 200) {
       this._handleUnexpectedResponse("uploading new items", batchResponse);
       return;
@@ -308,8 +308,6 @@ SyncImpl.prototype = {
 
     
     let request = {
-      method: "POST",
-      path: "/batch",
       body: {
         defaults: {
           method: "DELETE",
@@ -317,7 +315,7 @@ SyncImpl.prototype = {
         requests: requests,
       },
     };
-    let batchResponse = yield this._sendRequest(request);
+    let batchResponse = yield this._postBatch(request);
     if (batchResponse.status != 200) {
       this._handleUnexpectedResponse("uploading deleted items", batchResponse);
       return;
@@ -502,6 +500,50 @@ SyncImpl.prototype = {
     let response = yield this._client.request(req);
     log.debug("Received response", response);
     return response;
+  }),
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _postBatch: Task.async(function* (bigRequest) {
+    log.debug("Sending batch requests");
+    let allSubResponses = [];
+    let remainingSubRequests = bigRequest.body.requests;
+    while (remainingSubRequests.length) {
+      let request = Object.assign({}, bigRequest);
+      request.method = "POST";
+      request.path = "/batch";
+      request.body.requests =
+        remainingSubRequests.splice(0, BATCH_REQUEST_LIMIT);
+      let response = yield this._sendRequest(request);
+      if (response.status != 200) {
+        return response;
+      }
+      allSubResponses = allSubResponses.concat(response.body.responses);
+    }
+    let bigResponse = {
+      status: 200,
+      body: {
+        responses: allSubResponses,
+      },
+    };
+    log.debug("All batch requests successfully sent");
+    return bigResponse;
   }),
 
   _handleUnexpectedResponse(contextMsgFragment, response) {
