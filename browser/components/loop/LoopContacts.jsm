@@ -797,9 +797,78 @@ let LoopContactsInternal = Object.freeze({
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   search: function(query, callback) {
-    
-    callback(new Error("Not implemented yet!"));
+    if (!("q" in query) || !query.q) {
+      callback(new Error("Nothing to search for. 'q' is required."));
+      return;
+    }
+    if (!("field" in query)) {
+      query.field = "email";
+    }
+    let queryValue = query.q;
+    if (query.field == "tel") {
+      queryValue = queryValue.replace(/[\D]+/g, "");
+    }
+
+    const checkForMatch = function(fieldValue) {
+      if (typeof fieldValue == "string") {
+        if (query.field == "tel") {
+          return fieldValue.replace(/[\D]+/g, "").endsWith(queryValue);
+        }
+        return fieldValue == queryValue;
+      }
+      if (typeof fieldValue == "number" || typeof fieldValue == "boolean") {
+        return fieldValue == queryValue;
+      }
+      if ("value" in fieldValue) {
+        return checkForMatch(fieldValue.value);
+      }
+      return false;
+    };
+
+    let foundContacts = [];
+    this.getAll((err, contacts) => {
+      if (err) {
+        callback(err);
+        return;
+      }
+
+      for (let contact of contacts) {
+        let matchWith = contact[query.field];
+        if (!matchWith) {
+          continue;
+        }
+
+        
+        if (Array.isArray(matchWith)) {
+          for (let fieldValue of matchWith) {
+            if (checkForMatch(fieldValue)) {
+              foundContacts.push(contact);
+              break;
+            }
+          }
+        } else if (checkForMatch(matchWith)) {
+          foundContacts.push(contact);
+        }
+      }
+
+      callback(null, foundContacts);
+    });
   }
 });
 
