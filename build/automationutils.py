@@ -15,28 +15,7 @@ import sys
 import tempfile
 from urlparse import urlparse
 import zipfile
-
-try:
-  import mozinfo
-except ImportError:
-  
-  
-  
-  mozinfo = type('mozinfo', (), dict(info={}))()
-  mozinfo.isWin = mozinfo.isLinux = mozinfo.isUnix = mozinfo.isMac = False
-
-  
-  
-  mapping = {'isMac': ['mac', 'darwin'],
-             'isLinux': ['linux', 'linux2'],
-             'isWin': ['win32', 'win64'],
-             }
-  mapping = dict(sum([[(value, key) for value in values] for key, values in mapping.items()], []))
-  attr = mapping.get(sys.platform)
-  if attr:
-    setattr(mozinfo, attr, True)
-  if mozinfo.isLinux:
-    mozinfo.isUnix = True
+import mozinfo
 
 __all__ = [
   "ZipFileReader",
