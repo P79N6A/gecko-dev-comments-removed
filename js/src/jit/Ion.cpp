@@ -495,6 +495,13 @@ JitRuntime::Mark(JSTracer *trc)
         JitCode *code = i.get<JitCode>();
         MarkJitCodeRoot(trc, &code, "wrapper");
     }
+
+    
+    if (trc->runtime()->hasJitRuntime() &&
+        trc->runtime()->jitRuntime()->hasJitcodeGlobalTable())
+    {
+        trc->runtime()->jitRuntime()->getJitcodeGlobalTable()->mark(trc);
+    }
 }
 
 void
@@ -660,7 +667,7 @@ JitCode::finalize(FreeOp *fop)
     
     if (hasBytecodeMap_) {
         MOZ_ASSERT(rt->jitRuntime()->hasJitcodeGlobalTable());
-        rt->jitRuntime()->getJitcodeGlobalTable()->removeEntry(raw(), rt);
+        rt->jitRuntime()->getJitcodeGlobalTable()->releaseEntry(raw(), rt);
     }
 
     
