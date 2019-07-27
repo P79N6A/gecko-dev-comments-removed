@@ -3190,7 +3190,7 @@ GCRuntime::maybeAllocTriggerZoneGC(Zone *zone, const AutoLockGC &lock)
         
         
         triggerZoneGC(zone, JS::gcreason::ALLOC_TRIGGER);
-    } else if (usedBytes >= igcThresholdBytes && interFrameGC) {
+    } else if (usedBytes >= igcThresholdBytes) {
         
         if (zone->gcDelayBytes < ArenaSize)
             zone->gcDelayBytes = 0;
