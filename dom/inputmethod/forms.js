@@ -193,7 +193,9 @@ let FormAssistant = {
     addEventListener("focus", this, true, false);
     addEventListener("blur", this, true, false);
     addEventListener("resize", this, true, false);
-    addEventListener("submit", this, true, false);
+    
+    
+    addEventListener("submit", this, false, false);
     addEventListener("pagehide", this, true, false);
     addEventListener("beforeunload", this, true, false);
     addEventListener("input", this, true, false);
@@ -399,7 +401,7 @@ let FormAssistant = {
         }
         
       case "submit":
-        if (this.focusedElement) {
+        if (this.focusedElement && !evt.defaultPrevented) {
           this.focusedElement.blur();
         }
         break;
