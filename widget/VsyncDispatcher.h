@@ -6,20 +6,36 @@
 #ifndef mozilla_widget_VsyncDispatcher_h
 #define mozilla_widget_VsyncDispatcher_h
 
+#include "base/message_loop.h"
+#include "mozilla/Mutex.h"
 #include "nsISupportsImpl.h"
+#include "nsTArray.h"
+#include "ThreadSafeRefcountingWithMainThreadDestruction.h"
+
+typedef int64_t nsecs_t; 
+
+class MessageLoop;
 
 namespace mozilla {
 class TimeStamp;
 
+namespace layers {
+class CompositorVsyncObserver;
+}
+
 class VsyncObserver
 {
+  
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING_WITH_MAIN_THREAD_DESTRUCTION(VsyncObserver)
+
 public:
   
   
   virtual bool NotifyVsync(TimeStamp aVsyncTimestamp) = 0;
 
 protected:
-  virtual ~VsyncObserver() { }
+  VsyncObserver() {}
+  virtual ~VsyncObserver() {}
 };
 
 
@@ -29,6 +45,8 @@ class VsyncDispatcher
 
 public:
   static VsyncDispatcher* GetInstance();
+  
+  void NotifyVsync(TimeStamp aVsyncTimestamp, nsecs_t aAndroidVsyncTime);
 
   
   void AddCompositorVsyncObserver(VsyncObserver* aVsyncObserver);
@@ -37,6 +55,14 @@ public:
 private:
   VsyncDispatcher();
   virtual ~VsyncDispatcher();
+  void DispatchTouchEvents(bool aNotifiedCompositors, nsecs_t aAndroidVSyncTime);
+
+  
+  bool NotifyVsyncObservers(TimeStamp aVsyncTimestamp, nsTArray<nsRefPtr<VsyncObserver>>& aObservers);
+
+  
+  Mutex mCompositorObserverLock;
+  nsTArray<nsRefPtr<VsyncObserver>> mCompositorObservers;
 };
 
 } 
