@@ -47,7 +47,7 @@ void CSFLogV(CSFLogLevel priority, const char* sourceFile, int sourceLine, const
   GetSignalingLogInfo();
 
   
-  if (!PR_LOG_TEST(gLogModuleInfo,level)) {
+  if (!MOZ_LOG_TEST(gLogModuleInfo,level)) {
     return;
   }
 

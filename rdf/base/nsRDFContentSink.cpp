@@ -323,7 +323,7 @@ RDFContentSinkImpl::~RDFContentSinkImpl()
             
             
             
-            if (resource && PR_LOG_TEST(gLog, PR_LOG_NOTICE)) {
+            if (resource && MOZ_LOG_TEST(gLog, PR_LOG_NOTICE)) {
                 nsXPIDLCString uri;
                 resource->GetValue(getter_Copies(uri));
                 MOZ_LOG(gLog, PR_LOG_NOTICE,
@@ -438,7 +438,7 @@ RDFContentSinkImpl::HandleEndElement(const char16_t *aName)
   nsIRDFResource* resource;
   if (NS_FAILED(PopContext(resource, mState, mParseMode))) {
       
-      if (PR_LOG_TEST(gLog, PR_LOG_WARNING)) {
+      if (MOZ_LOG_TEST(gLog, PR_LOG_WARNING)) {
           nsAutoString tagStr(aName);
           char* tagCStr = ToNewCString(tagStr);
 
