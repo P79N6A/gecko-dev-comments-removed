@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<script>
+
+function boom()
+{
+    textNode = document.createTextNode(" ");
+    x.appendChild(textNode);
+    x.setAttribute('contenteditable', "true");
+    textNode.remove();
+    window.getSelection().selectAllChildren(textNode);
+    document.execCommand("increasefontsize", false, null);
+}
+
+</script>
+</head>
+<body onload="boom();">
+<div id="x" contenteditable="true"></div>
+
+
+</body></html>
