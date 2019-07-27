@@ -1373,10 +1373,9 @@ nsDOMCameraControl::OnFacesDetected(const nsTArray<ICameraControl::Face>& aFaces
   uint32_t len = aFaces.Length();
 
   if (faces.SetCapacity(len)) {
-    nsRefPtr<DOMCameraDetectedFace> f;
     for (uint32_t i = 0; i < len; ++i) {
-      f = new DOMCameraDetectedFace(static_cast<DOMMediaStream*>(this), aFaces[i]);
-      *faces.AppendElement() = f.forget().take();
+      *faces.AppendElement() =
+        new DOMCameraDetectedFace(static_cast<DOMMediaStream*>(this), aFaces[i]);
     }
   }
 
@@ -1427,6 +1426,10 @@ nsDOMCameraControl::OnUserError(CameraControlListener::UserContext aContext, nsr
   switch (aContext) {
     case CameraControlListener::kInStartCamera:
       promise = mGetCameraPromise.forget();
+      
+      
+      
+      mCameraControl = nullptr;
       break;
 
     case CameraControlListener::kInStopCamera:
