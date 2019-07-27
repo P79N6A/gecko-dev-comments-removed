@@ -119,3 +119,38 @@ nsSVGPolyElement::GetMarkPoints(nsTArray<nsSVGMark> *aMarks)
   aMarks->LastElement().angle = prevAngle;
   aMarks->LastElement().type = nsSVGMark::eEnd;
 }
+
+bool
+nsSVGPolyElement::GetGeometryBounds(Rect* aBounds, Float aStrokeWidth,
+                                    const Matrix& aTransform)
+{
+  const SVGPointList &points = mPoints.GetAnimValue();
+
+  if (!points.Length()) {
+    
+    aBounds->SetEmpty();
+    return true;
+  }
+
+  if (aStrokeWidth > 0) {
+    
+    return false;
+  }
+
+  if (aTransform.IsRectilinear()) {
+    
+    
+    Rect bounds(points[0], Size());
+    for (uint32_t i = 1; i < points.Length(); ++i) {
+      bounds.ExpandToEnclose(points[i]);
+    }
+    *aBounds = aTransform.TransformBounds(bounds);
+  } else {
+    *aBounds = Rect(aTransform * points[0], Size());
+    for (uint32_t i = 1; i < points.Length(); ++i) {
+      aBounds->ExpandToEnclose(aTransform * points[i]);
+    }
+  }
+  return true;
+}
+
