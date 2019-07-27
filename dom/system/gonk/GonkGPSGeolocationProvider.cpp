@@ -523,14 +523,10 @@ GonkGPSGeolocationProvider::SetReferenceLocation()
       return;
     }
 
-    nsCOMPtr<nsIMobileConnection> connection;
-    
-    
-    service->GetItemByServiceId(0 , getter_AddRefs(connection));
-    NS_ENSURE_TRUE_VOID(connection);
-
     nsCOMPtr<nsIMobileConnectionInfo> voice;
-    connection->GetVoice(getter_AddRefs(voice));
+    
+    
+    service->GetVoiceConnectionInfo(0 , getter_AddRefs(voice));
     if (voice) {
       nsCOMPtr<nsIMobileCellInfo> cell;
       voice->GetCell(getter_AddRefs(cell));
@@ -951,28 +947,16 @@ GonkGPSGeolocationProvider::Observe(nsISupports* aSubject,
       bool roaming = false;
       int gpsNetworkType = ConvertToGpsNetworkType(type);
       if (gpsNetworkType >= 0) {
-        if (rilface) {
-          do {
-            nsCOMPtr<nsIMobileConnectionService> service =
-              do_GetService(NS_MOBILE_CONNECTION_SERVICE_CONTRACTID);
-            if (!service) {
-              break;
-            }
-
-            nsCOMPtr<nsIMobileConnection> connection;
-            
-            
-            service->GetItemByServiceId(0 , getter_AddRefs(connection));
-            if (!connection) {
-              break;
-            }
-
-            nsCOMPtr<nsIMobileConnectionInfo> voice;
-            connection->GetVoice(getter_AddRefs(voice));
-            if (voice) {
-              voice->GetRoaming(&roaming);
-            }
-          } while (0);
+        nsCOMPtr<nsIMobileConnectionService> service =
+          do_GetService(NS_MOBILE_CONNECTION_SERVICE_CONTRACTID);
+        if (rilface && service) {
+          nsCOMPtr<nsIMobileConnectionInfo> voice;
+          
+          
+          service->GetVoiceConnectionInfo(0 , getter_AddRefs(voice));
+          if (voice) {
+            voice->GetRoaming(&roaming);
+          }
         }
         mAGpsRilInterface->update_network_state(
           connected,
