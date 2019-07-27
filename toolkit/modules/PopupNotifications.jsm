@@ -314,29 +314,26 @@ PopupNotifications.prototype = {
     let notifications = this._getNotificationsForBrowser(browser);
     notifications.push(notification);
 
-    let isActive = this._isActiveBrowser(browser);
+    let isActiveBrowser = this._isActiveBrowser(browser);
     let fm = Cc["@mozilla.org/focus-manager;1"].getService(Ci.nsIFocusManager);
-    if (isActive && fm.activeWindow == this.window) {
-      
-      this._update(notifications, notification.anchorElement, true);
-    } else {
-      
-      
+    let isActiveWindow = fm.activeWindow == this.window;
 
-      
-      
-      
-      
-      
-      
-      
-      if (!notification.dismissed && isActive) {
-        this.window.getAttention();
+    if (isActiveBrowser) {
+      if (isActiveWindow) {
+        
+        this._update(notifications, notification.anchorElement, true);
+      } else {
+        
+        if (!notification.dismissed) {
+          this.window.getAttention();
+        }
         if (notification.anchorElement.parentNode != this.iconBox) {
           this._updateAnchorIcon(notifications, notification.anchorElement);
         }
+        this._notify("backgroundShow");
       }
 
+    } else {
       
       this._notify("backgroundShow");
     }
