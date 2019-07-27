@@ -301,6 +301,12 @@ public:
     int GetTileWidth();
     int GetTileHeight();
     void SetTileSize(int aWidth, int aHeight);
+    
+
+
+
+
+    void ComputeTileSize();
 
     
 

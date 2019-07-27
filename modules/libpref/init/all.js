@@ -3911,6 +3911,12 @@ pref("layers.tile-height", 256);
 pref("layers.max-active", -1);
 
 
+
+
+
+pref("layers.tiles.adjust", true);
+
+
 pref("layers.offmainthreadcomposition.enabled", false);
 
 
