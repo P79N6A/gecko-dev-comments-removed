@@ -927,6 +927,11 @@ private:
       
       
       
+      inline bool SkipItemsNotWantingParentType(ParentType aParentType);
+
+      
+      
+      
       inline bool SkipItemsThatNeedAnonFlexOrGridItem(
         const nsFrameConstructorState& aState);
 
@@ -935,6 +940,11 @@ private:
       
       inline bool SkipItemsThatDontNeedAnonFlexOrGridItem(
         const nsFrameConstructorState& aState);
+
+      
+      
+      
+      inline bool SkipItemsNotWantingRubyParent();
 
       
       
@@ -1165,6 +1175,59 @@ private:
   void CreateNeededAnonFlexOrGridItems(nsFrameConstructorState& aState,
                                        FrameConstructionItemList& aItems,
                                        nsIFrame* aParentFrame);
+
+  enum RubyWhitespaceType
+  {
+    eRubyNotWhitespace,
+    eRubyInterLevelWhitespace,
+    
+    eRubyInterLeafWhitespace,
+    eRubyInterSegmentWhitespace
+  };
+
+  
+
+
+
+  static inline RubyWhitespaceType ComputeRubyWhitespaceType(
+    uint_fast8_t aPrevDisplay, uint_fast8_t aNextDisplay);
+
+  
+
+
+
+  static inline RubyWhitespaceType InterpretRubyWhitespace(
+    nsFrameConstructorState& aState,
+    const FCItemIterator& aStartIter, const FCItemIterator& aEndIter);
+
+  
+
+
+
+  void WrapItemsInPseudoRubyLeafBox(FCItemIterator& aIter,
+                                    nsStyleContext* aParentStyle,
+                                    nsIContent* aParentContent);
+
+  
+
+
+
+  inline void WrapItemsInPseudoRubyLevelContainer(
+    nsFrameConstructorState& aState, FCItemIterator& aIter,
+    nsStyleContext* aParentStyle, nsIContent* aParentContent);
+
+  
+
+
+  inline void TrimLeadingAndTrailingWhitespaces(
+    nsFrameConstructorState& aState, FrameConstructionItemList& aItems);
+
+  
+
+
+  inline void CreateNeededPseudoInternalRubyBoxes(
+    nsFrameConstructorState& aState,
+    FrameConstructionItemList& aItems, nsIFrame* aParentFrame);
 
   
 

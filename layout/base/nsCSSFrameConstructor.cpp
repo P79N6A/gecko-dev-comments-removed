@@ -9611,6 +9611,248 @@ nsCSSFrameConstructor::CreateNeededAnonFlexOrGridItems(
   } while (!iter.IsDone());
 }
 
+ nsCSSFrameConstructor::RubyWhitespaceType
+nsCSSFrameConstructor::ComputeRubyWhitespaceType(uint_fast8_t aPrevDisplay,
+                                                 uint_fast8_t aNextDisplay)
+{
+  MOZ_ASSERT(nsStyleDisplay::IsRubyDisplayType(aPrevDisplay) &&
+             nsStyleDisplay::IsRubyDisplayType(aNextDisplay));
+  if (aPrevDisplay == aNextDisplay &&
+      (aPrevDisplay == NS_STYLE_DISPLAY_RUBY_BASE ||
+       aPrevDisplay == NS_STYLE_DISPLAY_RUBY_TEXT)) {
+    return eRubyInterLeafWhitespace;
+  }
+  if (aNextDisplay == NS_STYLE_DISPLAY_RUBY_TEXT ||
+      aNextDisplay == NS_STYLE_DISPLAY_RUBY_TEXT_CONTAINER) {
+    return eRubyInterLevelWhitespace;
+  }
+  return eRubyInterSegmentWhitespace;
+}
+
+
+
+
+
+
+
+ nsCSSFrameConstructor::RubyWhitespaceType
+nsCSSFrameConstructor::InterpretRubyWhitespace(nsFrameConstructorState& aState,
+                                               const FCItemIterator& aStartIter,
+                                               const FCItemIterator& aEndIter)
+{
+  if (!aStartIter.item().IsWhitespace(aState)) {
+    return eRubyNotWhitespace;
+  }
+
+  FCItemIterator spaceEndIter(aStartIter);
+  spaceEndIter.SkipWhitespace(aState);
+  if (spaceEndIter != aEndIter) {
+    return eRubyNotWhitespace;
+  }
+
+  
+  
+  
+  MOZ_ASSERT(!aStartIter.AtStart() && !aEndIter.IsDone());
+  FCItemIterator prevIter(aStartIter);
+  prevIter.Prev();
+  return ComputeRubyWhitespaceType(
+      prevIter.item().mStyleContext->StyleDisplay()->mDisplay,
+      aEndIter.item().mStyleContext->StyleDisplay()->mDisplay);
+}
+
+
+
+
+
+
+
+void
+nsCSSFrameConstructor::WrapItemsInPseudoRubyLeafBox(
+  FCItemIterator& aIter,
+  nsStyleContext* aParentStyle, nsIContent* aParentContent)
+{
+  uint_fast8_t parentDisplay = aParentStyle->StyleDisplay()->mDisplay;
+  ParentType parentType, wrapperType;
+  if (parentDisplay == NS_STYLE_DISPLAY_RUBY_TEXT_CONTAINER) {
+    parentType = eTypeRubyTextContainer;
+    wrapperType = eTypeRubyText;
+  } else {
+    MOZ_ASSERT(parentDisplay == NS_STYLE_DISPLAY_RUBY_BASE_CONTAINER);
+    parentType = eTypeRubyBaseContainer;
+    wrapperType = eTypeRubyBase;
+  }
+
+  MOZ_ASSERT(aIter.item().DesiredParentType() != parentType,
+             "Should point to something needs to be wrapped.");
+
+  FCItemIterator endIter(aIter);
+  endIter.SkipItemsNotWantingParentType(parentType);
+
+  WrapItemsInPseudoParent(aParentContent, aParentStyle,
+                          wrapperType, aIter, endIter);
+}
+
+
+
+
+
+
+void
+nsCSSFrameConstructor::WrapItemsInPseudoRubyLevelContainer(
+  nsFrameConstructorState& aState, FCItemIterator& aIter,
+  nsStyleContext* aParentStyle, nsIContent* aParentContent)
+{
+  MOZ_ASSERT(aIter.item().DesiredParentType() != eTypeRuby,
+             "Pointing to a level container?");
+
+  FrameConstructionItem& firstItem = aIter.item();
+  ParentType wrapperType = firstItem.DesiredParentType();
+  if (wrapperType != eTypeRubyTextContainer) {
+    
+    
+    wrapperType = eTypeRubyBaseContainer;
+  }
+
+  FCItemIterator endIter(aIter);
+  do {
+    if (endIter.SkipItemsWantingParentType(wrapperType) ||
+        
+        
+        IsRubyParentType(endIter.item().DesiredParentType())) {
+      
+      break;
+    }
+
+    FCItemIterator contentEndIter(endIter);
+    contentEndIter.SkipItemsNotWantingRubyParent();
+    
+    MOZ_ASSERT(contentEndIter != endIter);
+
+    
+    
+    
+    
+    RubyWhitespaceType whitespaceType =
+      InterpretRubyWhitespace(aState, endIter, contentEndIter);
+    if (whitespaceType == eRubyInterLevelWhitespace) {
+      
+      bool atStart = (aIter == endIter);
+      endIter.DeleteItemsTo(contentEndIter);
+      if (atStart) {
+        aIter = endIter;
+      }
+    } else if (whitespaceType == eRubyInterSegmentWhitespace) {
+      
+      
+      
+      if (aIter == endIter) {
+        MOZ_ASSERT(wrapperType == eTypeRubyBaseContainer,
+                   "Inter-segment whitespace should be wrapped in rbc");
+        endIter = contentEndIter;
+      }
+      break;
+    } else if (wrapperType == eTypeRubyTextContainer &&
+               whitespaceType != eRubyInterLeafWhitespace) {
+      
+      
+      
+      break;
+    } else {
+      endIter = contentEndIter;
+    }
+  } while (!endIter.IsDone());
+
+  
+  
+  
+  
+  if (aIter != endIter) {
+    WrapItemsInPseudoParent(aParentContent, aParentStyle,
+                            wrapperType, aIter, endIter);
+  }
+}
+
+
+
+
+
+void
+nsCSSFrameConstructor::TrimLeadingAndTrailingWhitespaces(
+    nsFrameConstructorState& aState,
+    FrameConstructionItemList& aItems)
+{
+  FCItemIterator iter(aItems);
+  if (!iter.IsDone() &&
+      iter.item().IsWhitespace(aState)) {
+    FCItemIterator spaceEndIter(iter);
+    spaceEndIter.SkipWhitespace(aState);
+    iter.DeleteItemsTo(spaceEndIter);
+  }
+
+  iter.SetToEnd();
+  if (!iter.AtStart()) {
+    FCItemIterator spaceEndIter(iter);
+    do {
+      iter.Prev();
+      if (iter.AtStart()) {
+        
+        
+        break;
+      }
+    } while (iter.item().IsWhitespace(aState));
+    iter.Next();
+    if (iter != spaceEndIter) {
+      iter.DeleteItemsTo(spaceEndIter);
+    }
+  }
+}
+
+
+
+
+
+void
+nsCSSFrameConstructor::CreateNeededPseudoInternalRubyBoxes(
+  nsFrameConstructorState& aState,
+  FrameConstructionItemList& aItems,
+  nsIFrame* aParentFrame)
+{
+  const ParentType ourParentType = GetParentType(aParentFrame);
+  if (!IsRubyParentType(ourParentType) ||
+      aItems.AllWantParentType(ourParentType)) {
+    return;
+  }
+
+  nsStyleContext* parentStyle = aParentFrame->StyleContext();
+  if (!parentStyle->GetPseudo()) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    TrimLeadingAndTrailingWhitespaces(aState, aItems);
+  }
+
+  FCItemIterator iter(aItems);
+  nsIContent* parentContent = aParentFrame->GetContent();
+  while (!iter.IsDone()) {
+    if (!iter.SkipItemsWantingParentType(ourParentType)) {
+      if (ourParentType == eTypeRuby) {
+        WrapItemsInPseudoRubyLevelContainer(aState, iter, parentStyle,
+                                            parentContent);
+      } else {
+        WrapItemsInPseudoRubyLeafBox(iter, parentStyle, parentContent);
+      }
+    }
+  }
+}
+
 
 
 
@@ -9629,7 +9871,8 @@ nsCSSFrameConstructor::CreateNeededPseudoContainers(
     nsIFrame* aParentFrame)
 {
   ParentType ourParentType = GetParentType(aParentFrame);
-  if (aItems.AllWantParentType(ourParentType)) {
+  if (IsRubyParentType(ourParentType) ||
+      aItems.AllWantParentType(ourParentType)) {
     
     return;
   }
@@ -9678,37 +9921,6 @@ nsCSSFrameConstructor::CreateNeededPseudoContainers(
             !aParentFrame->IsGeneratedContentFrame() &&
             spaceEndIter.item().IsWhitespace(aState)) {
           bool trailingSpaces = spaceEndIter.SkipWhitespace(aState);
-          int nextDisplay = -1;
-          int prevDisplay = -1;
-
-          if (!endIter.AtStart() &&
-              (IsRubyParentType(ourParentType) ||
-               IsRubyParentType(groupingParentType))) {
-            FCItemIterator prevItemIter(endIter);
-            prevItemIter.Prev();
-            prevDisplay =
-              prevItemIter.item().mStyleContext->StyleDisplay()->mDisplay;
-          }
-
-          
-          
-          if (!spaceEndIter.IsDone() &&
-              (IsRubyParentType(ourParentType) ||
-               IsRubyParentType(groupingParentType))) {
-            nextDisplay =
-              spaceEndIter.item().mStyleContext->StyleDisplay()->mDisplay;
-          }
-
-          if (ourParentType == eTypeRubyBaseContainer &&
-              prevDisplay == -1 && nextDisplay == -1) {
-            if (aParentFrame->StyleContext()->GetPseudo()) {
-              
-              
-              
-              endIter = spaceEndIter;
-              break;
-            }
-          }
 
           
           
@@ -9718,30 +9930,9 @@ nsCSSFrameConstructor::CreateNeededPseudoContainers(
           
           
           
-          
-          
-          
-          
-          bool isRubyLeadingTrailingParentType =
-            ourParentType == eTypeRuby ||
-            ourParentType == eTypeRubyBaseContainer ||
-            ourParentType == eTypeRubyTextContainer;
-          bool isRubyLeading =
-            prevDisplay == -1 && isRubyLeadingTrailingParentType;
-          bool isRubyTrailing =
-            nextDisplay == -1 && isRubyLeadingTrailingParentType;
-          
-          
-          
-          bool isRubyInterLevel =
-            (nextDisplay == NS_STYLE_DISPLAY_RUBY_TEXT_CONTAINER) ||
-            (nextDisplay == NS_STYLE_DISPLAY_RUBY_TEXT &&
-             prevDisplay != NS_STYLE_DISPLAY_RUBY_TEXT);
-
           if ((!trailingSpaces &&
                IsTableParentType(spaceEndIter.item().DesiredParentType())) ||
-              (trailingSpaces && IsTableParentType(ourParentType)) ||
-              isRubyLeading || isRubyTrailing || isRubyInterLevel) {
+              (trailingSpaces && ourParentType != eTypeBlock)) {
             bool updateStart = (iter == endIter);
             endIter.DeleteItemsTo(spaceEndIter);
             NS_ASSERTION(trailingSpaces == endIter.IsDone(),
@@ -9773,20 +9964,13 @@ nsCSSFrameConstructor::CreateNeededPseudoContainers(
         
         
         prevParentType = endIter.item().DesiredParentType();
-        if (prevParentType == ourParentType) {
-          if (endIter == spaceEndIter ||
-              
-              !IsRubyParentType(groupingParentType) ||
-              spaceEndIter.IsDone()) {
-            
-            break;
-          }
-          ParentType nextParentType = spaceEndIter.item().DesiredParentType();
-          if (nextParentType == ourParentType ||
-              !IsRubyParentType(nextParentType)) {
-            
-            break;
-          }
+        if (prevParentType == ourParentType &&
+            (endIter == spaceEndIter ||
+             spaceEndIter.IsDone() ||
+             !IsRubyParentType(groupingParentType) ||
+             !IsRubyParentType(spaceEndIter.item().DesiredParentType()))) {
+          
+          break;
         }
 
         if (ourParentType == eTypeTable &&
@@ -9795,31 +9979,6 @@ nsCSSFrameConstructor::CreateNeededPseudoContainers(
           
           
           break;
-        }
-
-        
-        
-        
-        if (ourParentType == eTypeRuby) {
-          if ((prevParentType == eTypeRubyBaseContainer &&
-               groupingParentType == eTypeRubyTextContainer) ||
-              (prevParentType == eTypeRubyTextContainer &&
-               groupingParentType == eTypeRubyBaseContainer)) {
-            
-            
-            break;
-          } else if (groupingParentType == eTypeBlock &&
-                     endIter != spaceEndIter) {
-            
-            
-            endIter = spaceEndIter;
-            break;
-          }
-          
-          
-          
-          MOZ_ASSERT(groupingParentType == prevParentType ||
-                     prevParentType == eTypeBlock);
         }
 
         
@@ -9865,23 +10024,6 @@ nsCSSFrameConstructor::CreateNeededPseudoContainers(
         break;
       case eTypeColGroup:
         MOZ_CRASH("Colgroups should be suppresing non-col child items");
-      case eTypeRuby:
-        if (groupingParentType == eTypeRubyTextContainer) {
-          wrapperType = eTypeRubyTextContainer;
-        } else {
-          NS_ASSERTION(groupingParentType == eTypeRubyBaseContainer ||
-                       groupingParentType == eTypeBlock,
-                       "It should be either a ruby base container, "
-                       "or an inter-segment whitespace");
-          wrapperType = eTypeRubyBaseContainer;
-        } 
-        break;
-      case eTypeRubyBaseContainer:
-        wrapperType = eTypeRubyBase;
-        break;
-      case eTypeRubyTextContainer:
-        wrapperType = eTypeRubyText;
-        break;
       default: 
         NS_ASSERTION(ourParentType == eTypeBlock, "Unrecognized parent type");
         if (IsRubyParentType(groupingParentType)) {
@@ -10015,6 +10157,7 @@ nsCSSFrameConstructor::ConstructFramesFromItemList(nsFrameConstructorState& aSta
 {
   CreateNeededPseudoContainers(aState, aItems, aParentFrame);
   CreateNeededAnonFlexOrGridItems(aState, aItems, aParentFrame);
+  CreateNeededPseudoInternalRubyBoxes(aState, aItems, aParentFrame);
   CreateNeededPseudoSiblings(aState, aItems, aParentFrame);
 
   aItems.SetTriedConstructingFrames();
@@ -12058,6 +12201,20 @@ Iterator::SkipItemsWantingParentType(ParentType aParentType)
   return false;
 }
 
+inline bool
+nsCSSFrameConstructor::FrameConstructionItemList::
+Iterator::SkipItemsNotWantingParentType(ParentType aParentType)
+{
+  NS_PRECONDITION(!IsDone(), "Shouldn't be done yet");
+  while (item().DesiredParentType() != aParentType) {
+    Next();
+    if (IsDone()) {
+      return true;
+    }
+  }
+  return false;
+}
+
 bool
 nsCSSFrameConstructor::FrameConstructionItem::
   NeedsAnonFlexOrGridItem(const nsFrameConstructorState& aState)
@@ -12101,6 +12258,20 @@ Iterator::SkipItemsThatDontNeedAnonFlexOrGridItem(
 {
   NS_PRECONDITION(!IsDone(), "Shouldn't be done yet");
   while (!(item().NeedsAnonFlexOrGridItem(aState))) {
+    Next();
+    if (IsDone()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+inline bool
+nsCSSFrameConstructor::FrameConstructionItemList::
+Iterator::SkipItemsNotWantingRubyParent()
+{
+  NS_PRECONDITION(!IsDone(), "Shouldn't be done yet");
+  while (!IsRubyParentType(item().DesiredParentType())) {
     Next();
     if (IsDone()) {
       return true;
