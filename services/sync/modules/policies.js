@@ -602,7 +602,8 @@ ErrorHandler.prototype = {
         this._log.debug(engine_name + " failed: " + Utils.exceptionStr(exception));
         break;
       case "weave:service:login:error":
-        this.resetFileLog(this._logManager.REASON_ERROR);
+        this._log.error("Sync encountered a login error");
+        this.resetFileLog();
 
         if (this.shouldReportError()) {
           this.notifyOnNextTick("weave:ui:login:error");
@@ -617,7 +618,8 @@ ErrorHandler.prototype = {
           this.service.logout();
         }
 
-        this.resetFileLog(this._logManager.REASON_ERROR);
+        this._log.error("Sync encountered an error");
+        this.resetFileLog();
 
         if (this.shouldReportError()) {
           this.notifyOnNextTick("weave:ui:sync:error");
@@ -642,8 +644,8 @@ ErrorHandler.prototype = {
         }
 
         if (Status.service == SYNC_FAILED_PARTIAL) {
-          this._log.debug("Some engines did not sync correctly.");
-          this.resetFileLog(this._logManager.REASON_ERROR);
+          this._log.error("Some engines did not sync correctly.");
+          this.resetFileLog();
 
           if (this.shouldReportError()) {
             this.dontIgnoreErrors = false;
@@ -651,7 +653,7 @@ ErrorHandler.prototype = {
             break;
           }
         } else {
-          this.resetFileLog(this._logManager.REASON_SUCCESS);
+          this.resetFileLog();
         }
         this.dontIgnoreErrors = false;
         this.notifyOnNextTick("weave:ui:sync:finish");
@@ -682,18 +684,14 @@ ErrorHandler.prototype = {
 
 
 
-
-
-
-
-  resetFileLog: function resetFileLog(reason) {
+  resetFileLog: function resetFileLog() {
     let onComplete = () => {
       Svc.Obs.notify("weave:service:reset-file-log");
       this._log.trace("Notified: " + Date.now());
     };
     
     
-    this._logManager.resetFileLog(reason).then(onComplete, onComplete);
+    this._logManager.resetFileLog().then(onComplete, onComplete);
   },
 
   

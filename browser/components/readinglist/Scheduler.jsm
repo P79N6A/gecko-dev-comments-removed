@@ -293,7 +293,7 @@ InternalScheduler.prototype = {
       
       prefs.set("lastSync", new Date().toString());
       this.state = this.STATE_OK;
-      this._logManager.resetFileLog(this._logManager.REASON_SUCCESS);
+      this._logManager.resetFileLog();
       Services.obs.notifyObservers(null, "readinglist:sync:finish", null);
       this._currentErrorBackoff = 0; 
       return intervals.schedule;
@@ -307,7 +307,7 @@ InternalScheduler.prototype = {
         this._currentErrorBackoff = 0; 
         this.log.info("Can't sync due to FxA account state " + err.message);
         this.state = this.STATE_OK;
-        this._logManager.resetFileLog(this._logManager.REASON_SUCCESS);
+        this._logManager.resetFileLog();
         Services.obs.notifyObservers(null, "readinglist:sync:finish", null);
         
         
@@ -317,7 +317,7 @@ InternalScheduler.prototype = {
                    this.STATE_ERROR_AUTHENTICATION : this.STATE_ERROR_OTHER;
       this.log.error("Sync failed, now in state '${state}': ${err}",
                      {state: this.state, err});
-      this._logManager.resetFileLog(this._logManager.REASON_ERROR);
+      this._logManager.resetFileLog();
       Services.obs.notifyObservers(null, "readinglist:sync:error", null);
       
       this._currentErrorBackoff = this._currentErrorBackoff == 0 ? intervals.retry :

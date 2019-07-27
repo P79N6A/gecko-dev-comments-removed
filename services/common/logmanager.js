@@ -46,14 +46,96 @@ let consoleAppender;
 let allBranches = new Set();
 
 
+
+
+
+function FlushableStorageAppender(formatter) {
+  Log.StorageStreamAppender.call(this, formatter);
+  this.sawError = false;
+}
+
+FlushableStorageAppender.prototype = {
+  __proto__: Log.StorageStreamAppender.prototype,
+
+  append(message) {
+    if (message.level >= Log.Level.Error) {
+      this.sawError = true;
+    }
+    Log.StorageStreamAppender.prototype.append.call(this, message);
+  },
+
+  reset() {
+    Log.StorageStreamAppender.prototype.reset.call(this);
+    this.sawError = false;
+  },
+
+  
+  
+  flushToFile: Task.async(function* (subdirArray, filename, log) {
+    let inStream = this.getInputStream();
+    this.reset();
+    if (!inStream) {
+      log.debug("Failed to flush log to a file - no input stream");
+      return;
+    }
+    log.debug("Flushing file log");
+    log.trace("Beginning stream copy to " + filename + ": " + Date.now());
+    try {
+      yield this._copyStreamToFile(inStream, subdirArray, filename, log);
+      log.trace("onCopyComplete", Date.now());
+    } catch (ex) {
+      log.error("Failed to copy log stream to file", ex);
+    }
+  }),
+
+  
+
+
+
+
+
+
+
+  _copyStreamToFile: Task.async(function* (inputStream, subdirArray, outputFileName, log) {
+    
+    
+    const BUFFER_SIZE = 8192;
+
+    
+    let binaryStream = Cc["@mozilla.org/binaryinputstream;1"].createInstance(Ci.nsIBinaryInputStream);
+    binaryStream.setInputStream(inputStream);
+
+    let outputDirectory = OS.Path.join(OS.Constants.Path.profileDir, ...subdirArray);
+    yield OS.File.makeDir(outputDirectory, { ignoreExisting: true, from: OS.Constants.Path.profileDir });
+    let fullOutputFileName = OS.Path.join(outputDirectory, outputFileName);
+    let output = yield OS.File.open(fullOutputFileName, { write: true} );
+    try {
+      while (true) {
+        let available = binaryStream.available();
+        if (!available) {
+          break;
+        }
+        let chunk = binaryStream.readByteArray(Math.min(available, BUFFER_SIZE));
+        yield output.write(new Uint8Array(chunk));
+      }
+    } finally {
+      try {
+        binaryStream.close(); 
+        yield output.close();
+      } catch (ex) {
+        log.error("Failed to close the input stream", ex);
+      }
+    }
+    log.trace("finished copy to", fullOutputFileName);
+  }),
+}
+
+
 function LogManager(prefRoot, logNames, logFilePrefix) {
   this.init(prefRoot, logNames, logFilePrefix);
 }
 
 LogManager.prototype = {
-  REASON_SUCCESS: "success",
-  REASON_ERROR: "error",
-
   _cleaningUpFileLogs: false,
 
   _prefObservers: [],
@@ -106,7 +188,7 @@ LogManager.prototype = {
     this._observeDumpPref = setupAppender(dumpAppender, "log.appender.dump", Log.Level.Error, true);
 
     
-    let fapp = this._fileAppender = new Log.StorageStreamAppender(formatter);
+    let fapp = this._fileAppender = new FlushableStorageAppender(formatter);
     
     
     this._observeStreamPref = setupAppender(fapp, "log.appender.file.level", Log.Level.Debug);
@@ -151,46 +233,8 @@ LogManager.prototype = {
   },
 
   
-
-
-
-
-
-
-
-  _copyStreamToFile: Task.async(function* (inputStream, outputFileName) {
-    
-    
-    const BUFFER_SIZE = 8192;
-
-    
-    let binaryStream = Cc["@mozilla.org/binaryinputstream;1"].createInstance(Ci.nsIBinaryInputStream);
-    binaryStream.setInputStream(inputStream);
-    
-    let profd = FileUtils.getDir("ProfD", []);
-    let outputFile = FileUtils.getDir("ProfD", this._logFileSubDirectoryEntries);
-    yield OS.File.makeDir(outputFile.path, { ignoreExisting: true, from: profd.path });
-    outputFile.append(outputFileName);
-    let output = yield OS.File.open(outputFile.path, { write: true} );
-    try {
-      while (true) {
-        let available = binaryStream.available();
-        if (!available) {
-          break;
-        }
-        let chunk = binaryStream.readByteArray(Math.min(available, BUFFER_SIZE));
-        yield output.write(new Uint8Array(chunk));
-      }
-    } finally {
-      try {
-        binaryStream.close(); 
-        yield output.close();
-      } catch (ex) {
-        this._log.error("Failed to close the input stream", ex);
-      }
-    }
-    this._log.trace("finished copy to", outputFile.path);
-  }),
+  SUCCESS_LOG_WRITTEN: "success-log-written",
+  ERROR_LOG_WRITTEN: "error-log-written",
 
   
 
@@ -198,61 +242,52 @@ LogManager.prototype = {
 
 
 
-  resetFileLog: Task.async(function* (reason) {
+
+
+
+  resetFileLog: Task.async(function* () {
     try {
       let flushToFile;
       let reasonPrefix;
-      switch (reason) {
-        case this.REASON_SUCCESS:
-          flushToFile = this._prefs.get("log.appender.file.logOnSuccess", false);
-          reasonPrefix = "success";
-          break;
-        case this.REASON_ERROR:
-          flushToFile = this._prefs.get("log.appender.file.logOnError", true);
-          reasonPrefix = "error";
-          break;
-        default:
-          throw new Error("Invalid reason");
+      let reason;
+      if (this._fileAppender.sawError) {
+        reason = this.ERROR_LOG_WRITTEN;
+        flushToFile = this._prefs.get("log.appender.file.logOnError", true);
+        reasonPrefix = "error";
+      } else {
+        reason = this.SUCCESS_LOG_WRITTEN;
+        flushToFile = this._prefs.get("log.appender.file.logOnSuccess", false);
+        reasonPrefix = "success";
       }
 
       
       if (!flushToFile) {
         this._fileAppender.reset();
-        return;
+        return null;
       }
 
-      let inStream = this._fileAppender.getInputStream();
-      this._fileAppender.reset();
-      if (inStream) {
-        this._log.debug("Flushing file log");
+      
+      
+      let filename = reasonPrefix + "-" + this.logFilePrefix + "-" + Date.now() + ".txt";
+      yield this._fileAppender.flushToFile(this._logFileSubDirectoryEntries, filename, this._log);
+
+      
+      
+      
+      
+      
+      if (reason == this.ERROR_LOG_WRITTEN && !this._cleaningUpFileLogs) {
+        this._log.trace("Scheduling cleanup.");
         
         
-        let filename = reasonPrefix + "-" + this.logFilePrefix + "-" + Date.now() + ".txt";
-        this._log.trace("Beginning stream copy to " + filename + ": " +
-                        Date.now());
-        try {
-          yield this._copyStreamToFile(inStream, filename);
-          this._log.trace("onCopyComplete", Date.now());
-        } catch (ex) {
-          this._log.error("Failed to copy log stream to file", ex);
-          return;
-        }
-        
-        
-        
-        
-        
-        if (reason == this.REASON_ERROR && !this._cleaningUpFileLogs) {
-          this._log.trace("Scheduling cleanup.");
-          
-          
-          this.cleanupLogs().catch(err => {
-            this._log.error("Failed to cleanup logs", err);
-          });
-        }
+        this.cleanupLogs().catch(err => {
+          this._log.error("Failed to cleanup logs", err);
+        });
       }
+      return reason;
     } catch (ex) {
-      this._log.error("Failed to resetFileLog", ex)
+      this._log.error("Failed to resetFileLog", ex);
+      return null;
     }
   }),
 

@@ -131,5 +131,99 @@ add_task(function* test_logFileErrorDefault() {
   yield lm.resetFileLog(lm.REASON_ERROR);
   
   checkLogFile("error");
+
+  lm.finalize();
+});
+
+
+add_task(function* test_logFileSuccess() {
+  Services.prefs.setBoolPref("log-manager.test.log.appender.file.logOnError", false);
+  Services.prefs.setBoolPref("log-manager.test.log.appender.file.logOnSuccess", false);
+
+  let lm = new LogManager("log-manager.test.", ["TestLog2"], "test");
+
+  let log = Log.repository.getLogger("TestLog2");
+  log.info("an info message");
+  yield lm.resetFileLog();
+  
+  checkLogFile(null);
+
+  
+  Services.prefs.setBoolPref("log-manager.test.log.appender.file.logOnSuccess", true);
+  log.info("an info message");
+  yield lm.resetFileLog();
+
+  checkLogFile("success");
+
+  
+  log.info("an info message");
+  yield lm.resetFileLog();
+  
+  checkLogFile("success");
+
+  
+  log.error("an error message");
+  yield lm.resetFileLog();
+  
+  checkLogFile(null);
+
+  
+  
+  log.info("an info message");
+  yield lm.resetFileLog();
+  checkLogFile("success");
+
+  lm.finalize();
+});
+
+
+add_task(function* test_logFileError() {
+  Services.prefs.setBoolPref("log-manager.test.log.appender.file.logOnError", false);
+  Services.prefs.setBoolPref("log-manager.test.log.appender.file.logOnSuccess", false);
+
+  let lm = new LogManager("log-manager.test.", ["TestLog2"], "test");
+
+  let log = Log.repository.getLogger("TestLog2");
+  log.info("an info message");
+  let reason = yield lm.resetFileLog();
+  Assert.equal(reason, null, "null returned when no file created.");
+  
+  checkLogFile(null);
+
+  
+  Services.prefs.setBoolPref("log-manager.test.log.appender.file.logOnSuccess", true);
+  log.info("an info message");
+  reason = yield lm.resetFileLog();
+  Assert.equal(reason, lm.SUCCESS_LOG_WRITTEN);
+  checkLogFile("success");
+
+  
+  Services.prefs.setBoolPref("log-manager.test.log.appender.file.logOnSuccess", false);
+  Services.prefs.setBoolPref("log-manager.test.log.appender.file.logOnError", true);
+  log.error("an error message");
+  reason = yield lm.resetFileLog();
+  Assert.equal(reason, lm.ERROR_LOG_WRITTEN);
+  checkLogFile("error");
+
+  
+  log.info("an info message");
+  reason = yield lm.resetFileLog();
+  
+  Assert.equal(reason, null);
+  checkLogFile(null);
+
+  
+  log.error("an error message");
+  reason = yield lm.resetFileLog();
+  
+  Assert.equal(reason, lm.ERROR_LOG_WRITTEN);
+  checkLogFile("error");
+
+  
+  
+  log.info("an info message");
+  yield lm.resetFileLog();
+  checkLogFile(null);
+
   lm.finalize();
 });
