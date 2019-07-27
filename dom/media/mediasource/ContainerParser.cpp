@@ -32,8 +32,7 @@ extern PRLogModuleInfo* GetMediaSourceAPILog();
 namespace mozilla {
 
 ContainerParser::ContainerParser()
-  : mInitData(new LargeDataBuffer())
-  , mHasInitData(false)
+  : mHasInitData(false)
 {
 }
 
@@ -81,10 +80,15 @@ ContainerParser::GetRoundingError()
   return 0;
 }
 
+bool
+ContainerParser::HasCompleteInitData()
+{
+  return mHasInitData && !!mInitData->Length();
+}
+
 LargeDataBuffer*
 ContainerParser::InitData()
 {
-  MOZ_ASSERT(mHasInitData);
   return mInitData;
 }
 
@@ -147,6 +151,7 @@ public:
       mOffset = 0;
       mParser = WebMBufferedParser(0);
       mOverlappedMapping.Clear();
+      mInitData = new LargeDataBuffer();
     }
 
     
@@ -273,6 +278,7 @@ public:
       
       
       mParser = new mp4_demuxer::MoofParser(mStream, 0, 0, &mMonitor);
+      mInitData = new LargeDataBuffer();
     } else if (!mStream || !mParser) {
       return false;
     }
@@ -284,16 +290,20 @@ public:
     byteRanges.AppendElement(mbr);
     mParser->RebuildFragmentedIndex(byteRanges);
 
-    if (initSegment) {
+    if (initSegment || !HasCompleteInitData()) {
       const MediaByteRange& range = mParser->mInitRange;
-      MSE_DEBUG("MP4ContainerParser(%p)::ParseStartAndEndTimestamps: Stashed init of %u bytes.",
-                this, range.mEnd - range.mStart);
-
-      if (!mInitData->ReplaceElementsAt(0, mInitData->Length(),
-                                        aData->Elements() + range.mStart,
-                                        range.mEnd - range.mStart)) {
-        
-        return false;
+      uint32_t length = range.mEnd - range.mStart;
+      if (length) {
+        if (!mInitData->SetLength(length)) {
+          
+          return false;
+        }
+        char* buffer = reinterpret_cast<char*>(mInitData->Elements());
+        mResource->ReadFromCache(buffer, range.mStart, length);
+        MSE_DEBUG("MP4ContainerParser(%p)::ParseStartAndEndTimestamps: Stashed init of %u bytes.",
+                  this, length);
+      } else {
+        MSE_DEBUG("MP4ContainerParser(%p)::ParseStartAndEndTimestamps: Incomplete init found.");
       }
       mHasInitData = true;
     }

@@ -114,6 +114,11 @@ public:
   
   void AppendData(LargeDataBuffer* aData);
   void Ended();
+  bool IsEnded()
+  {
+    ReentrantMonitorAutoEnter mon(mMonitor);
+    return mEnded;
+  }
   
   
   uint32_t EvictData(uint64_t aPlaybackOffset, uint32_t aThreshold);
