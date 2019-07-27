@@ -1644,12 +1644,9 @@ class FrameIter
     bool isGeneratorFrame() const;
     bool hasArgs() const { return isNonEvalFunctionFrame(); }
 
-    
-
-
-
     ScriptSource *scriptSource() const;
     const char *scriptFilename() const;
+    const char16_t *scriptDisplayURL() const;
     unsigned computeLine(uint32_t *column = nullptr) const;
     JSAtom *functionDisplayAtom() const;
     bool mutedErrors() const;
