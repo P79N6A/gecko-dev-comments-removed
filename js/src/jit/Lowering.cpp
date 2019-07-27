@@ -1778,14 +1778,18 @@ LIRGenerator::visitToDouble(MToDouble *convert)
 
       case MIRType_Float32:
       {
-        
-        
-        
-        
+        LFloat32ToDouble *lir;
 #if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
-        LFloat32ToDouble *lir = new(alloc()) LFloat32ToDouble(useRegister(opd));
+        
+        
+        
+        
+        if (gen->optimizationInfo().registerAllocator() == RegisterAllocator_LSRA)
+            lir = new (alloc()) LFloat32ToDouble(useRegister(opd));
+        else
+            lir = new (alloc()) LFloat32ToDouble(useRegisterAtStart(opd));
 #else
-        LFloat32ToDouble *lir = new(alloc()) LFloat32ToDouble(useRegisterAtStart(opd));
+        lir = new (alloc()) LFloat32ToDouble(useRegisterAtStart(opd));
 #endif
         return define(lir, convert);
       }
