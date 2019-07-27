@@ -1298,16 +1298,33 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
         }
     }
 
-    Rooted<PropertyDescriptor> desc(cx, desc_);
-
+    
     RootedShape shape(cx);
+    if (desc_.hasValue()) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        NativeLookupOwnPropertyNoResolve(cx, obj, id, &shape);
+    } else {
+        if (!NativeLookupOwnProperty<CanGC>(cx, obj, id, &shape))
+            return false;
+    }
+
+    Rooted<PropertyDescriptor> desc(cx, desc_);
 
     
     
     
     if (desc.isAccessorDescriptor()) {
-        if (!NativeLookupOwnProperty<CanGC>(cx, obj, id, &shape))
-            return false;
         if (shape) {
             
             
@@ -1351,20 +1368,6 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
         
         desc.attributesRef() |= JSPROP_GETTER | JSPROP_SETTER;
     } else if (desc.hasValue()) {
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        NativeLookupOwnPropertyNoResolve(cx, obj, id, &shape);
-
         if (shape) {
             
             
@@ -1383,9 +1386,6 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
         }
     } else {
         
-        if (!NativeLookupOwnProperty<CanGC>(cx, obj, id, &shape))
-            return false;
-
         if (shape) {
             
             if (IsImplicitDenseOrTypedArrayElement(shape)) {
