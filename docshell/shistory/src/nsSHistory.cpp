@@ -1082,8 +1082,9 @@ nsSHistory::GloballyEvictContentViewers()
 
   nsTArray<TransactionAndDistance> transactions;
 
-  nsSHistory *shist = static_cast<nsSHistory*>(PR_LIST_HEAD(&gSHistoryList));
-  while (shist != &gSHistoryList) {
+  PRCList* listEntry = PR_LIST_HEAD(&gSHistoryList);
+  while (listEntry != &gSHistoryList) {
+    nsSHistory* shist = static_cast<nsSHistory*>(listEntry);
 
     
     
@@ -1142,7 +1143,7 @@ nsSHistory::GloballyEvictContentViewers()
     
     
     transactions.AppendElements(shTransactions);
-    shist = static_cast<nsSHistory*>(PR_NEXT_LINK(shist));
+    listEntry = PR_NEXT_LINK(shist);
   }
 
   
