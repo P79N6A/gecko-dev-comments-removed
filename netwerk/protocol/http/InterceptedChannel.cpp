@@ -18,9 +18,6 @@
 namespace mozilla {
 namespace net {
 
-extern bool
-WillRedirect(const nsHttpResponseHead * response);
-
 extern nsresult
 DoAddCacheEntryHeaders(nsHttpChannel *self,
                        nsICacheEntry *entry,
@@ -186,13 +183,6 @@ InterceptedChannelChrome::FinishSynthesizedResponse()
   }
 
   EnsureSynthesizedResponse();
-
-  
-  
-  if (WillRedirect(mSynthesizedResponseHead.ref())) {
-    nsresult rv = mChannel->SetApplyConversion(mOldApplyConversion);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
 
   mChannel->MarkIntercepted();
 

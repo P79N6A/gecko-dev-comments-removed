@@ -157,8 +157,6 @@ bool IsRedirectStatus(uint32_t status)
            status == 307 || status == 308;
 }
 
-} 
-
 
 
 bool
@@ -167,6 +165,8 @@ WillRedirect(const nsHttpResponseHead * response)
     return IsRedirectStatus(response->Status()) &&
            response->PeekHeader(nsHttp::Location);
 }
+
+} 
 
 nsresult
 StoreAuthorizationMetaData(nsICacheEntry *entry, nsHttpRequestHead *requestHead);
