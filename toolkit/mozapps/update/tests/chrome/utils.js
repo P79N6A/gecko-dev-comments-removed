@@ -216,6 +216,7 @@ var gPrefToCheck;
 var gDisableNoUpdateAddon = false;
 var gDisableUpdateCompatibilityAddon = false;
 var gDisableUpdateVersionAddon = false;
+var gUseTestUpdater = false;
 
 
 
@@ -330,9 +331,10 @@ function runTestDefaultWaitForWindowClosed() {
 
     setupFiles();
     setupPrefs();
+    gEnv.set("MOZ_TEST_SKIP_UPDATE_STAGE", "1");
     removeUpdateDirsAndFiles();
     reloadUpdateManagerData();
-    setupAddons(runTest);
+    setupAddons(setupTestUpdater);
   }
 }
 
@@ -358,6 +360,7 @@ function finishTestDefault() {
   verifyTestsRan();
 
   resetPrefs();
+  gEnv.set("MOZ_TEST_SKIP_UPDATE_STAGE", "");
   resetFiles();
   removeUpdateDirsAndFiles();
   reloadUpdateManagerData();
@@ -367,7 +370,7 @@ function finishTestDefault() {
     gDocElem.removeEventListener("pageshow", onPageShowDefault, false);
   }
 
-  finishTestDefaultWaitForWindowClosed();
+  finishTestRestoreUpdaterBackup();
 }
 
 
@@ -395,11 +398,34 @@ function finishTestTimeout(aTimer) {
 
 
 
+function finishTestRestoreUpdaterBackup() {
+  if (gUseTestUpdater) {
+    try {
+      
+      
+      restoreUpdaterBackup();
+    } catch (e) {
+      logTestInfo("Attempt to restore the backed up updater failed... " +
+                  "will try again, Exception: " + e);
+      SimpleTest.executeSoon(finishTestRestoreUpdaterBackup);
+      return;
+    }
+  }
+
+  finishTestDefaultWaitForWindowClosed();
+}
+
+
+
+
+
+
 
 
 function finishTestDefaultWaitForWindowClosed() {
   gCloseWindowTimeoutCounter++;
   if (gCloseWindowTimeoutCounter > CLOSE_WINDOW_TIMEOUT_MAXCOUNT) {
+    SimpleTest.requestCompleteLog();
     SimpleTest.finish();
     return;
   }
@@ -752,7 +778,7 @@ function checkIncompatbleList() {
   for (let i = 0; i < gIncompatibleListbox.itemCount; i++) {
     let label = gIncompatibleListbox.getItemAtIndex(i).label;
     
-    ok(label.indexOf("noupdate") != -1, "Checking that only incompatible " + 
+    ok(label.indexOf("noupdate") != -1, "Checking that only incompatible " +
        "add-ons that don't have an update are listed in the incompatible list");
   }
 }
@@ -879,26 +905,6 @@ function verifyTestsRan() {
 
 
 
-
-
-function resetUpdaterBackup() {
-  let baseAppDir = getAppBaseDir();
-  let updater = baseAppDir.clone();
-  let updaterBackup = baseAppDir.clone();
-  updater.append(FILE_UPDATER_BIN);
-  updaterBackup.append(FILE_UPDATER_BIN_BAK);
-  if (updaterBackup.exists()) {
-    if (updater.exists()) {
-      updater.remove(true);
-    }
-    updaterBackup.moveTo(baseAppDir, FILE_UPDATER_BIN);
-  }
-}
-
-
-
-
-
 function setupFiles() {
   
   let baseAppDir = getAppBaseDir();
@@ -910,30 +916,101 @@ function setupFiles() {
   updateSettingsIni = baseAppDir.clone();
   updateSettingsIni.append(FILE_UPDATE_SETTINGS_INI);
   writeFile(updateSettingsIni, UPDATE_SETTINGS_CONTENTS);
+}
 
-  
-  resetUpdaterBackup();
 
-  
-  let updater = baseAppDir.clone();
-  updater.append(FILE_UPDATER_BIN);
-  updater.moveTo(baseAppDir, FILE_UPDATER_BIN_BAK);
 
-  
-  let testUpdaterDir = Cc["@mozilla.org/file/directory_service;1"].
-    getService(Ci.nsIProperties).
-    get("CurWorkD", Ci.nsILocalFile);
 
-  let relPath = REL_PATH_DATA;
-  let pathParts = relPath.split("/");
-  for (let i = 0; i < pathParts.length; ++i) {
-    testUpdaterDir.append(pathParts[i]);
+
+
+
+
+function setupTestUpdater() {
+  if (!gUseTestUpdater) {
+    runTest();
+    return;
   }
 
-  let testUpdater = testUpdaterDir.clone();
-  testUpdater.append(FILE_UPDATER_BIN);
-  if (testUpdater.exists()) {
+  try {
+    restoreUpdaterBackup();
+  } catch (e) {
+    logTestInfo("Attempt to restore the backed up updater failed... " +
+                "will try again, Exception: " + e);
+    SimpleTest.executeSoon(setupTestUpdater);
+    return;
+  }
+  moveRealUpdater();
+}
+
+
+
+
+
+
+function moveRealUpdater() {
+  try {
+    
+    let baseAppDir = getAppBaseDir();
+    let updater = baseAppDir.clone();
+    updater.append(FILE_UPDATER_BIN);
+    updater.moveTo(baseAppDir, FILE_UPDATER_BIN_BAK);
+  } catch (e) {
+    logTestInfo("Attempt to move the real updater out of the way failed... " +
+                "will try again, Exception: " + e);
+    SimpleTest.executeSoon(moveRealUpdater);
+    return;
+  }
+
+  copyTestUpdater();
+}
+
+
+
+
+
+
+function copyTestUpdater() {
+  try {
+    
+    let baseAppDir = getAppBaseDir();
+    let testUpdaterDir = Services.dirsvc.get("CurWorkD", Ci.nsILocalFile);
+    let relPath = REL_PATH_DATA;
+    let pathParts = relPath.split("/");
+    for (let i = 0; i < pathParts.length; ++i) {
+      testUpdaterDir.append(pathParts[i]);
+    }
+
+    let testUpdater = testUpdaterDir.clone();
+    testUpdater.append(FILE_UPDATER_BIN);
     testUpdater.copyToFollowingLinks(baseAppDir, FILE_UPDATER_BIN);
+  } catch (e) {
+    logTestInfo("Attempt to copy the test updater failed... " +
+                "will try again, Exception: " + e);
+    SimpleTest.executeSoon(copyTestUpdater);
+    return;
+  }
+
+  runTest();
+}
+
+
+
+
+
+
+
+
+function restoreUpdaterBackup() {
+  let baseAppDir = getAppBaseDir();
+  let updater = baseAppDir.clone();
+  let updaterBackup = baseAppDir.clone();
+  updater.append(FILE_UPDATER_BIN);
+  updaterBackup.append(FILE_UPDATER_BIN_BAK);
+  if (updaterBackup.exists()) {
+    if (updater.exists()) {
+      updater.remove(true);
+    }
+    updaterBackup.moveTo(baseAppDir, FILE_UPDATER_BIN);
   }
 }
 
@@ -1022,7 +1099,6 @@ function resetFiles() {
                   ", Exception: " + e);
     }
   }
-  resetUpdaterBackup();
 }
 
 

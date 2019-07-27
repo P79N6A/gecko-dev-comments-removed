@@ -2262,7 +2262,18 @@ UpdateThreadFunc(void *param)
 #endif
 
     if (rv == OK && sStagedUpdate && !sIsOSUpdate) {
+#ifdef TEST_UPDATER
+      
+      
+      
+      if (getenv("MOZ_TEST_SKIP_UPDATE_STAGE")) {
+        rv = OK;
+      } else {
+        rv = CopyInstallDirToDestDir();
+      }
+#else
       rv = CopyInstallDirToDestDir();
+#endif
     }
 
     if (rv == OK) {
