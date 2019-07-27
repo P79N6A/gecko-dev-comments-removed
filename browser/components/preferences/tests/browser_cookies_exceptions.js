@@ -134,6 +134,8 @@ function windowLoad(event, win, dialog) {
 
       if (tests[currentTest].observances.length == 0) {
         
+        
+        return;
       }
 
       let permission = aSubject.QueryInterface(Ci.nsIPermission);
