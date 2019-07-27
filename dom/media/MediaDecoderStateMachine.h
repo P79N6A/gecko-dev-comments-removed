@@ -269,7 +269,17 @@ public:
     return mState == DECODER_STATE_SEEKING;
   }
 
-  nsresult GetBuffered(dom::TimeRanges* aBuffered);
+  nsresult GetBuffered(dom::TimeRanges* aBuffered) {
+    
+    
+    
+    ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+    if (mStartTime < 0) {
+      return NS_OK;
+    }
+
+    return mReader->GetBuffered(aBuffered);
+  }
 
   void SetPlaybackRate(double aPlaybackRate);
   void SetPreservesPitch(bool aPreservesPitch);

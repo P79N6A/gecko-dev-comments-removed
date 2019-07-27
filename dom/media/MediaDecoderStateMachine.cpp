@@ -1496,8 +1496,11 @@ void MediaDecoderStateMachine::NotifyDataArrived(const char* aBuffer,
   
   
   
+  
+  
+  
   nsRefPtr<dom::TimeRanges> buffered = new dom::TimeRanges();
-  if (mDecoder->IsInfinite() &&
+  if (mDecoder->IsInfinite() && (mStartTime != -1) &&
       NS_SUCCEEDED(mDecoder->GetBuffered(buffered)))
   {
     uint32_t length = 0;
@@ -3124,24 +3127,6 @@ void MediaDecoderStateMachine::StartBuffering()
               stats.mPlaybackRate/1024, stats.mPlaybackRateReliable ? "" : " (unreliable)",
               stats.mDownloadRate/1024, stats.mDownloadRateReliable ? "" : " (unreliable)");
 #endif
-}
-
-nsresult MediaDecoderStateMachine::GetBuffered(dom::TimeRanges* aBuffered)
-{
-  
-  
-  
-  ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-  if (mStartTime < 0) {
-    return NS_OK;
-  }
-
-  MediaResource* resource = mDecoder->GetResource();
-  NS_ENSURE_TRUE(resource, NS_ERROR_FAILURE);
-  resource->Pin();
-  nsresult res = mReader->GetBuffered(aBuffered, mStartTime);
-  resource->Unpin();
-  return res;
 }
 
 void MediaDecoderStateMachine::SetPlayStartTime(const TimeStamp& aTimeStamp)

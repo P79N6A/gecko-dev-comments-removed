@@ -718,6 +718,33 @@ protected:
   bool mIsTransportSeekable;
 };
 
+
+
+
+
+
+
+template<class T>
+class MOZ_STACK_CLASS AutoPinned {
+ public:
+  explicit AutoPinned(T* aResource MOZ_GUARD_OBJECT_NOTIFIER_PARAM) : mResource(aResource) {
+    MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+    MOZ_ASSERT(mResource);
+    mResource->Pin();
+  }
+
+  ~AutoPinned() {
+    mResource->Unpin();
+  }
+
+  operator T*() const { return mResource; }
+  T* operator->() const { return mResource; }
+
+private:
+  T* mResource;
+  MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
+
 } 
 
 #endif
