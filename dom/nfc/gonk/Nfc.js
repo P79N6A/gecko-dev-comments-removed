@@ -453,6 +453,9 @@ Nfc.prototype = {
         this._currentSessionId = null;
 
         break;
+     case "HCIEventTransactionNotification":
+        this.notifyHCIEventTransaction(message);
+        break;
      case "ConfigResponse":
         if (message.status === NFC.NFC_SUCCESS) {
           this.powerLevel = message.powerLevel;
@@ -471,6 +474,26 @@ Nfc.prototype = {
       default:
         throw new Error("Don't know about this message type: " + message.type);
     }
+  },
+
+  
+  notifyHCIEventTransaction: function notifyHCIEventTransaction(message) {
+    delete message.type;
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    gSystemMessenger.broadcastMessage("nfc-hci-event-transaction", message);
   },
 
   nfcService: null,
