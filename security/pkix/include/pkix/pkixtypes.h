@@ -286,8 +286,6 @@ public:
   
   virtual Result IsChainValid(const DERArray& certChain, Time time) = 0;
 
-  
-  
   virtual Result CheckRevocation(EndEntityOrCA endEntityOrCA,
                                  const CertID& certID, Time time,
                      const Input* stapledOCSPresponse,
