@@ -31,14 +31,6 @@ public abstract class BaseTable implements Table {
     }
 
     
-    @Override
-    public abstract void onCreate(SQLiteDatabase db);
-
-    
-    @Override
-    public abstract void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion);
-
-    
     protected abstract String getTable();
 
     
