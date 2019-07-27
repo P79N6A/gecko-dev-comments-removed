@@ -3266,7 +3266,9 @@ nsHttpChannel::OnCacheEntryAvailable(nsICacheEntry *entry,
     nsresult rv;
 
     LOG(("nsHttpChannel::OnCacheEntryAvailable [this=%p entry=%p "
-         "new=%d appcache=%p status=%x]\n", this, entry, aNew, aAppCache, status));
+         "new=%d appcache=%p status=%x mAppCache=%p mAppCacheForWrite=%p]\n",
+         this, entry, aNew, aAppCache, status,
+         mApplicationCache.get(), mApplicationCacheForWrite.get()));
 
     
     
@@ -3376,10 +3378,11 @@ nsHttpChannel::OnOfflineCacheEntryAvailable(nsICacheEntry *aEntry,
 
     nsresult rv;
 
-    if (!mApplicationCache)
-        mApplicationCache = aAppCache;
-
     if (NS_SUCCEEDED(aEntryStatus)) {
+        if (!mApplicationCache) {
+            mApplicationCache = aAppCache;
+        }
+
         
         
         mLoadedFromApplicationCache = true;
@@ -3396,6 +3399,10 @@ nsHttpChannel::OnOfflineCacheEntryAvailable(nsICacheEntry *aEntry,
     }
 
     if (!mApplicationCacheForWrite && !mFallbackChannel) {
+        if (!mApplicationCache) {
+            mApplicationCache = aAppCache;
+        }
+
         
         nsCOMPtr<nsIApplicationCacheNamespace> namespaceEntry;
         rv = mApplicationCache->GetMatchingNamespace(mSpec,
