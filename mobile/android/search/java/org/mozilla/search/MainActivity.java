@@ -179,8 +179,9 @@ public class MainActivity extends FragmentActivity implements AcceptsSearchQuery
         setSearchState(SearchState.PRESEARCH);
 
         
-        editText.setText("");
+        
         setEditState(EditState.EDITING);
+        editText.setText("");
     }
 
     @Override
