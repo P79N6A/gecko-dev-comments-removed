@@ -9358,7 +9358,7 @@ nsDocument::OnPageHide(bool aPersisted,
     
     
     
-    nsIDocument::ExitFullscreen(this,  false);
+    nsIDocument::ExitFullscreenInDocTree(this);
 
     
     
@@ -11122,31 +11122,43 @@ SetWindowFullScreen(nsIDocument* aDoc, bool aValue, gfx::VRHMDInfo *aVRHMD = nul
   nsContentUtils::AddScriptRunner(new nsSetWindowFullScreen(aDoc, aValue, aVRHMD));
 }
 
-class nsCallExitFullscreen : public nsRunnable {
+static void
+AskWindowToExitFullscreen(nsIDocument* aDoc)
+{
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+    nsContentUtils::DispatchEventOnlyToChrome(
+      aDoc, ToSupports(aDoc), NS_LITERAL_STRING("MozDOMFullscreen:Exit"),
+       true,  false,
+       nullptr);
+  } else {
+    SetWindowFullScreen(aDoc, false);
+  }
+}
+
+class nsCallExitFullscreen : public nsRunnable
+{
 public:
   explicit nsCallExitFullscreen(nsIDocument* aDoc)
     : mDoc(aDoc) {}
-  NS_IMETHOD Run()
+
+  NS_IMETHOD Run() override final
   {
-    nsDocument::ExitFullscreen(mDoc);
+    if (!mDoc) {
+      FullscreenRoots::ForEach(&AskWindowToExitFullscreen);
+    } else {
+      AskWindowToExitFullscreen(mDoc);
+    }
     return NS_OK;
   }
+
 private:
   nsCOMPtr<nsIDocument> mDoc;
 };
 
-
-void
-nsIDocument::ExitFullscreen(nsIDocument* aDoc, bool aRunAsync)
+ void
+nsIDocument::AsyncExitFullscreen(nsIDocument* aDoc)
 {
-  if (aDoc && !aDoc->IsFullScreenDoc()) {
-    return;
-  }
-  if (aRunAsync) {
-    NS_DispatchToCurrentThread(new nsCallExitFullscreen(aDoc));
-    return;
-  }
-  nsDocument::ExitFullscreen(aDoc);
+  NS_DispatchToCurrentThread(new nsCallExitFullscreen(aDoc));
 }
 
 static bool
@@ -11193,16 +11205,16 @@ ResetFullScreen(nsIDocument* aDocument, void* aData)
   return true;
 }
 
-static void
-ExitFullscreenInDocTree(nsIDocument* aMaybeNotARootDoc)
+ void
+nsIDocument::ExitFullscreenInDocTree(nsIDocument* aMaybeNotARootDoc)
 {
   MOZ_ASSERT(aMaybeNotARootDoc);
+
+  
+  UnlockPointer();
+
   nsCOMPtr<nsIDocument> root = aMaybeNotARootDoc->GetFullscreenRoot();
-  NS_ASSERTION(root, "Should have root when in fullscreen!");
-  if (!root) {
-    return;
-  }
-  if (!root->IsFullScreenDoc()) {
+  if (!root || !root->IsFullScreenDoc()) {
     
     
     
@@ -11244,24 +11256,6 @@ ExitFullscreenInDocTree(nsIDocument* aMaybeNotARootDoc)
   
   FullscreenRoots::Remove(root);
   SetWindowFullScreen(root, false);
-}
-
-
-void
-nsDocument::ExitFullscreen(nsIDocument* aDoc)
-{
-  
-  UnlockPointer();
-
-  if (aDoc)  {
-    ExitFullscreenInDocTree(aDoc);
-    return;
-  }
-
-  
-  FullscreenRoots::ForEach(&ExitFullscreenInDocTree);
-  NS_ASSERTION(FullscreenRoots::IsEmpty(),
-      "Should have exited all fullscreen roots from fullscreen");
 }
 
 bool
@@ -11318,14 +11312,7 @@ nsDocument::RestorePreviousFullScreenState()
   if (exitingFullscreen) {
     
     
-    if (XRE_GetProcessType() == GeckoProcessType_Content) {
-      nsContentUtils::DispatchEventOnlyToChrome(
-        this, ToSupports(this), NS_LITERAL_STRING("MozDOMFullscreen:Exit"),
-         true,  false,
-         nullptr);
-    } else {
-      SetWindowFullScreen(this, false);
-    }
+    AskWindowToExitFullscreen(this);
     return;
   }
 

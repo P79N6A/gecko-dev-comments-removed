@@ -6310,9 +6310,7 @@ FinishDOMFullscreenChange(nsIDocument* aDoc, bool aInDOMFullscreen)
   } else {
     
     
-    
-    
-    nsIDocument::ExitFullscreen(aDoc,  false);
+    nsIDocument::ExitFullscreenInDocTree(aDoc);
   }
 }
 

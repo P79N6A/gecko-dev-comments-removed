@@ -1176,13 +1176,18 @@ public:
 
 
 
+  static void ExitFullscreenInDocTree(nsIDocument* aDocument);
+
+  
 
 
 
 
 
 
-  static void ExitFullscreen(nsIDocument* aDocument, bool aRunAsync);
+
+
+  static void AsyncExitFullscreen(nsIDocument* aDocument);
 
   
 

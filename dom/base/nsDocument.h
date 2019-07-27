@@ -1242,8 +1242,6 @@ public:
   
   already_AddRefed<nsSimpleContentList> BlockedTrackingNodes() const;
 
-  static void ExitFullscreen(nsIDocument* aDoc);
-
   
   
   bool FullscreenElementReadyCheck(Element* aElement, bool aWasCallerChrome);

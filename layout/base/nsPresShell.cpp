@@ -7809,7 +7809,7 @@ PresShell::HandleEventInternal(WidgetEvent* aEvent, nsEventStatus* aStatus)
               
               
               
-              nsIDocument::ExitFullscreen(nullptr,  true);
+              nsIDocument::AsyncExitFullscreen(nullptr);
             }
           }
           nsCOMPtr<nsIDocument> pointerLockedDoc =
