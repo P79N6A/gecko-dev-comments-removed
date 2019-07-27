@@ -371,6 +371,8 @@ Navigator::GetAcceptLanguages(nsTArray<nsString>& aLanguages)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
+  aLanguages.Clear();
+
   
   const nsAdoptingString& acceptLang =
     Preferences::GetLocalizedString("intl.accept_languages");
