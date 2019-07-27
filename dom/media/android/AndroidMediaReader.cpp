@@ -106,6 +106,8 @@ void AndroidMediaReader::Shutdown()
     GetAndroidMediaPluginHost()->DestroyDecoder(mPlugin);
     mPlugin = nullptr;
   }
+
+  MediaDecoderReader::Shutdown();
 }
 
 

@@ -266,6 +266,7 @@ private:
   
   bool mAudioDiscontinuity;
   bool mVideoDiscontinuity;
+  bool mShutdown;
 };
 
 
