@@ -4118,8 +4118,18 @@ LIRGenerator::visitInstruction(MInstruction *ins)
 #endif
 
     
+    
+    
+    
+    
+    bool needsMop = !current->instructions().empty() && current->rbegin()->isNop();
+
+    
     if (LOsiPoint *osiPoint = popOsiPoint())
         add(osiPoint);
+
+    if (needsMop)
+        add(new(alloc()) LMop);
 
     return !gen->errored();
 }

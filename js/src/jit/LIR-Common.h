@@ -43,6 +43,12 @@ class LNop : public LInstructionHelper<0, 0, 0>
     LIR_HEADER(Nop)
 };
 
+class LMop : public LInstructionHelper<0, 0, 0>
+{
+  public:
+    LIR_HEADER(Mop)
+};
+
 
 
 

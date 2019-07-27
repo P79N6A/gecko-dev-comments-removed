@@ -1792,6 +1792,11 @@ CodeGenerator::visitNop(LNop *lir)
 }
 
 void
+CodeGenerator::visitMop(LMop *lir)
+{
+}
+
+void
 CodeGenerator::visitOsiPoint(LOsiPoint *lir)
 {
     
