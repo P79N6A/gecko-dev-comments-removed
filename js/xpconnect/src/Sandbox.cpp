@@ -619,38 +619,25 @@ WrapCallable(JSContext *cx, HandleObject callable, HandleObject sandboxProtoProx
 }
 
 template<typename Op>
-bool BindPropertyOp(JSContext *cx, Op &op, JSPropertyDescriptor *desc, HandleId id,
-                    unsigned attrFlag, HandleObject sandboxProtoProxy)
+bool WrapAccessorFunction(JSContext *cx, Op &op, JSPropertyDescriptor *desc,
+                          unsigned attrFlag, HandleObject sandboxProtoProxy)
 {
     if (!op) {
         return true;
     }
 
-    RootedObject func(cx);
-    if (desc->attrs & attrFlag) {
-        
-        func = JS_FUNC_TO_DATA_PTR(JSObject *, op);
-    } else {
-        
-        
-        uint32_t args = (attrFlag == JSPROP_GETTER) ? 0 : 1;
-        RootedObject obj(cx, desc->obj);
-        func = GeneratePropertyOp(cx, obj, id, args, op);
-        if (!func)
-            return false;
+    if (!(desc->attrs & attrFlag)) {
+        XPCThrower::Throw(NS_ERROR_UNEXPECTED, cx);
+        return false;
     }
+
+    RootedObject func(cx, JS_FUNC_TO_DATA_PTR(JSObject *, op));
     func = WrapCallable(cx, func, sandboxProtoProxy);
     if (!func)
         return false;
     op = JS_DATA_TO_FUNC_PTR(Op, func.get());
-    desc->attrs |= attrFlag;
     return true;
 }
-
-extern bool
-XPC_WN_Helper_GetProperty(JSContext *cx, HandleObject obj, HandleId id, MutableHandleValue vp);
-extern bool
-XPC_WN_Helper_SetProperty(JSContext *cx, HandleObject obj, HandleId id, bool strict, MutableHandleValue vp);
 
 bool
 xpc::SandboxProxyHandler::getPropertyDescriptor(JSContext *cx,
@@ -668,14 +655,11 @@ xpc::SandboxProxyHandler::getPropertyDescriptor(JSContext *cx,
         return true; 
 
     
-    
-    
-    
-    if (desc.getter() != XPC_WN_Helper_GetProperty &&
-        !BindPropertyOp(cx, desc.getter(), desc.address(), id, JSPROP_GETTER, proxy))
+    if (!WrapAccessorFunction(cx, desc.getter(), desc.address(),
+                              JSPROP_GETTER, proxy))
         return false;
-    if (desc.setter() != XPC_WN_Helper_SetProperty &&
-        !BindPropertyOp(cx, desc.setter(), desc.address(), id, JSPROP_SETTER, proxy))
+    if (!WrapAccessorFunction(cx, desc.setter(), desc.address(),
+                              JSPROP_SETTER, proxy))
         return false;
     if (desc.value().isObject()) {
         RootedObject val (cx, &desc.value().toObject());
