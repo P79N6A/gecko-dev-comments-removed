@@ -80,9 +80,20 @@ HasUserNamespaceSupport()
   
   
   
-  if (access("/proc/self/ns/user", F_OK) == -1) {
-    MOZ_ASSERT(errno == ENOENT);
-    return false;
+  
+  
+  
+  static const char* const paths[] = {
+    "/proc/self/ns/user",
+    "/proc/self/ns/pid",
+    "/proc/self/ns/net",
+    "/proc/self/ns/ipc",
+  };
+  for (size_t i = 0; i < ArrayLength(paths); ++i) {
+    if (access(paths[i], F_OK) == -1) {
+      MOZ_ASSERT(errno == ENOENT);
+      return false;
+    }
   }
   return true;
 }
@@ -106,6 +117,21 @@ CanCreateUserNamespace()
   const char* cached = getenv(kCacheEnvName);
   if (cached) {
     return cached[0] > '0';
+  }
+
+  
+  
+  
+  
+  if (syscall(__NR_unshare, 0) != 0) {
+#ifdef MOZ_VALGRIND
+    MOZ_ASSERT(errno == ENOSYS);
+#else
+    
+    
+    MOZ_ASSERT(false);
+#endif
+    return false;
   }
 
   pid_t pid = syscall(__NR_clone, SIGCHLD | CLONE_NEWUSER,
