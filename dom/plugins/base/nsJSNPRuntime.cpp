@@ -274,7 +274,7 @@ OnWrapperDestroyed()
     }
 
     if (sNPObjWrappers.ops) {
-      MOZ_ASSERT(sNPObjWrappers.entryCount == 0);
+      MOZ_ASSERT(sNPObjWrappers.EntryCount() == 0);
 
       
       
@@ -1763,14 +1763,14 @@ nsNPObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, NPObject *npobj)
   entry->mNPObj = npobj;
   entry->mNpp = npp;
 
-  uint32_t generation = sNPObjWrappers.generation;
+  uint32_t generation = sNPObjWrappers.Generation();
 
   
 
   JS::Rooted<JSObject*> obj(cx, ::JS_NewObject(cx, &sNPObjectJSWrapperClass, JS::NullPtr(),
                                                JS::NullPtr()));
 
-  if (generation != sNPObjWrappers.generation) {
+  if (generation != sNPObjWrappers.Generation()) {
       
       
 

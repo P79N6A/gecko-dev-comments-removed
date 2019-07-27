@@ -80,11 +80,6 @@ typedef struct PLDHashTableOps  PLDHashTableOps;
 
 
 
-
-
-
-
-
 struct PLDHashEntryHdr
 {
   PLDHashNumber keyHash;  
@@ -102,11 +97,66 @@ PL_DHASH_ENTRY_IS_BUSY(PLDHashEntryHdr* aEntry)
   return !PL_DHASH_ENTRY_IS_FREE(aEntry);
 }
 
-MOZ_ALWAYS_INLINE bool
-PL_DHASH_ENTRY_IS_LIVE(PLDHashEntryHdr* aEntry)
+
+
+
+
+
+
+typedef enum PLDHashOperator
 {
-  return aEntry->keyHash >= 2;
-}
+  PL_DHASH_LOOKUP = 0,        
+  PL_DHASH_ADD = 1,           
+  PL_DHASH_REMOVE = 2,        
+  PL_DHASH_NEXT = 0,          
+  PL_DHASH_STOP = 1           
+} PLDHashOperator;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef PLDHashOperator (*PLDHashEnumerator)(PLDHashTable* aTable,
+                                             PLDHashEntryHdr* aHdr,
+                                             uint32_t aNumber, void* aArg);
+
+typedef size_t (*PLDHashSizeOfEntryExcludingThisFun)(
+  PLDHashEntryHdr* aHdr, mozilla::MallocSizeOf aMallocSizeOf, void* aArg);
 
 
 
@@ -182,8 +232,15 @@ PL_DHASH_ENTRY_IS_LIVE(PLDHashEntryHdr* aEntry)
 
 struct PLDHashTable
 {
-  const PLDHashTableOps* ops;         
+  
+
+
+
+  const PLDHashTableOps* ops;
+
   void*               data;           
+
+private:
   int16_t             hashShift;      
   
 
@@ -197,6 +254,7 @@ struct PLDHashTable
   uint32_t            removedCount;   
   uint32_t            generation;     
   char*               entryStore;     
+
 #ifdef PL_DHASHMETER
   struct PLDHashStats
   {
@@ -219,15 +277,63 @@ struct PLDHashTable
     uint32_t        enumShrinks;    
   } stats;
 #endif
+
+public:
+  
+
+
+
+
+  uint32_t Capacity() const
+  {
+    return ((uint32_t)1 << (PL_DHASH_BITS - hashShift));
+  }
+
+  uint32_t EntrySize()  const { return entrySize; }
+  uint32_t EntryCount() const { return entryCount; }
+  uint32_t Generation() const { return generation; }
+
+  bool Init(const PLDHashTableOps* aOps, void* aData, uint32_t aEntrySize,
+            const mozilla::fallible_t&, uint32_t aLength);
+
+  void Finish();
+
+  PLDHashEntryHdr* Operate(const void* aKey, PLDHashOperator aOp);
+
+  void RawRemove(PLDHashEntryHdr* aEntry);
+
+  uint32_t Enumerate(PLDHashEnumerator aEtor, void* aArg);
+
+  size_t SizeOfIncludingThis(
+    PLDHashSizeOfEntryExcludingThisFun aSizeOfEntryExcludingThis,
+    mozilla::MallocSizeOf aMallocSizeOf, void* aArg = nullptr) const;
+
+  size_t SizeOfExcludingThis(
+    PLDHashSizeOfEntryExcludingThisFun aSizeOfEntryExcludingThis,
+    mozilla::MallocSizeOf aMallocSizeOf, void* aArg = nullptr) const;
+
+#ifdef DEBUG
+  void MarkImmutable();
+#endif
+
+  void MoveEntryStub(const PLDHashEntryHdr* aFrom, PLDHashEntryHdr* aTo);
+
+  void ClearEntryStub(PLDHashEntryHdr* aEntry);
+
+  void FreeStringKey(PLDHashEntryHdr* aEntry);
+
+#ifdef PL_DHASHMETER
+  void DumpMeter(PLDHashEnumerator aDump, FILE* aFp);
+#endif
+
+private:
+  PLDHashEntryHdr* PL_DHASH_FASTCALL
+    SearchTable(const void* aKey, PLDHashNumber aKeyHash, PLDHashOperator aOp);
+
+  PLDHashEntryHdr* PL_DHASH_FASTCALL FindFreeEntry(PLDHashNumber aKeyHash);
+
+  bool ChangeTable(int aDeltaLog2);
 };
-
-
-
-
-
-
-#define PL_DHASH_TABLE_CAPACITY(table) \
-    ((uint32_t)1 << (PL_DHASH_BITS - (table)->hashShift))
 
 
 
@@ -430,21 +536,6 @@ NS_COM_GLUE void PL_DHashTableFinish(PLDHashTable* aTable);
 
 
 
-typedef enum PLDHashOperator
-{
-  PL_DHASH_LOOKUP = 0,        
-  PL_DHASH_ADD = 1,           
-  PL_DHASH_REMOVE = 2,        
-  PL_DHASH_NEXT = 0,          
-  PL_DHASH_STOP = 1           
-} PLDHashOperator;
-
-
-
-
-
-
-
 
 
 
@@ -485,55 +576,9 @@ PL_DHashTableOperate(PLDHashTable* aTable, const void* aKey,
 NS_COM_GLUE void PL_DHashTableRawRemove(PLDHashTable* aTable,
                                         PLDHashEntryHdr* aEntry);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-typedef PLDHashOperator (*PLDHashEnumerator)(PLDHashTable* aTable,
-                                             PLDHashEntryHdr* aHdr,
-                                             uint32_t aNumber, void* aArg);
-
 NS_COM_GLUE uint32_t
 PL_DHashTableEnumerate(PLDHashTable* aTable, PLDHashEnumerator aEtor,
                        void* aArg);
-
-typedef size_t (*PLDHashSizeOfEntryExcludingThisFun)(
-  PLDHashEntryHdr* aHdr, mozilla::MallocSizeOf aMallocSizeOf, void* aArg);
 
 
 

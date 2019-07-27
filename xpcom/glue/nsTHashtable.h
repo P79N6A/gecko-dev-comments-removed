@@ -99,7 +99,7 @@ public:
 
 
 
-  uint32_t GetGeneration() const { return mTable.generation; }
+  uint32_t GetGeneration() const { return mTable.Generation(); }
 
   
 
@@ -115,7 +115,7 @@ public:
 
 
 
-  uint32_t Count() const { return mTable.entryCount; }
+  uint32_t Count() const { return mTable.EntryCount(); }
 
   
 
@@ -150,7 +150,7 @@ public:
   {
     EntryType* e = PutEntry(aKey, fallible_t());
     if (!e) {
-      NS_ABORT_OOM(mTable.entrySize * mTable.entryCount);
+      NS_ABORT_OOM(mTable.EntrySize() * mTable.EntryCount());
     }
     return e;
   }

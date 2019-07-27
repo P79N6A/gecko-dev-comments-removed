@@ -1316,7 +1316,7 @@ InMemoryDataSource::LockedUnassert(nsIRDFResource* aSource,
             }
             else {
                 
-                if (!root->u.hash.mPropertyHash->entryCount) {
+                if (!root->u.hash.mPropertyHash->EntryCount()) {
                     root->Release();
                     SetForwardArcs(aSource, nullptr);
                 }
@@ -1661,7 +1661,7 @@ NS_IMETHODIMP
 InMemoryDataSource::GetAllResources(nsISimpleEnumerator** aResult)
 {
     nsCOMArray<nsIRDFNode> nodes;
-    nodes.SetCapacity(mForwardArcs.entryCount);
+    nodes.SetCapacity(mForwardArcs.EntryCount());
 
     
     PL_DHashTableEnumerate(&mForwardArcs, ResourceEnumerator, &nodes);
@@ -1920,7 +1920,7 @@ InMemoryDataSource::SweepForwardArcsEntries(PLDHashTable* aTable,
                                SweepForwardArcsEntries, info);
 
         
-        if (!as->u.hash.mPropertyHash->entryCount) {
+        if (!as->u.hash.mPropertyHash->EntryCount()) {
             as->Release();
             result = PL_DHASH_REMOVE;
         }

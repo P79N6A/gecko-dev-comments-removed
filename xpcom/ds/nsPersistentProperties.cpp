@@ -607,11 +607,11 @@ nsPersistentProperties::Enumerate(nsISimpleEnumerator** aResult)
   nsCOMArray<nsIPropertyElement> props;
 
   
-  props.SetCapacity(mTable.entryCount);
+  props.SetCapacity(mTable.EntryCount());
 
   
   uint32_t n = PL_DHashTableEnumerate(&mTable, AddElemToArray, (void*)&props);
-  if (n < mTable.entryCount) {
+  if (n < mTable.EntryCount()) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
