@@ -1092,6 +1092,14 @@ GfxInfo::GetGfxDriverInfo()
       (nsAString&)GfxDriverInfo::GetDeviceVendor(VendorATI), GfxDriverInfo::allDevices,
       nsIGfxInfo::FEATURE_DXVA, nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION,
       DRIVER_EQUAL, V(15,200,1006,0));
+
+    
+
+    APPEND_TO_DRIVER_BLOCKLIST_RANGE_GPU2(DRIVER_OS_WINDOWS7,
+        (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorNVIDIA), (GfxDeviceFamily*)GfxDriverInfo::GetDeviceFamily(Bug1137716),
+      GfxDriverInfo::allFeatures, nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION,
+      DRIVER_BETWEEN_INCLUSIVE, V(8,7,12,5730), V(8,17,12,6901), "Nvidia driver > 8.17.12.6901");
+
   }
   return *mDriverInfo;
 }
