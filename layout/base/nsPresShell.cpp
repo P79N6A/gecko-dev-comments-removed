@@ -8800,17 +8800,21 @@ PresShell::ShouldIgnoreInvalidation()
 void
 PresShell::WillPaint()
 {
+  
+  
+  
+  
+  
+  
+  if (!mIsActive || mPaintingSuppressed || !IsVisible()) {
+    return;
+  }
+
   nsRootPresContext* rootPresContext = mPresContext->GetRootPresContext();
   if (!rootPresContext) {
     
     
     
-    return;
-  }
-
-  
-  
-  if (mPaintingSuppressed || !mIsActive || !IsVisible()) {
     return;
   }
 
