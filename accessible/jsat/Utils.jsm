@@ -464,9 +464,10 @@ this.Utils = {
         typeof aDetails === 'string' ? { eventType : aDetails } : aDetails)
     };
     let window = this.win;
-    if (window.shell) {
+    let shell = window.shell || window.content.shell;
+    if (shell) {
       
-      window.shell.sendChromeEvent(details);
+      shell.sendChromeEvent(details);
     } else {
       
       
