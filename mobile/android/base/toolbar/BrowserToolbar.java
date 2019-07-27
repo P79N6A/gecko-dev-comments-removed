@@ -345,6 +345,8 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
             menuButton.setOnClickListener(new Button.OnClickListener() {
                 @Override
                 public void onClick(View view) {
+                    
+                    urlEditLayout.clearFocus();
                     activity.openOptionsMenu();
                 }
             });
