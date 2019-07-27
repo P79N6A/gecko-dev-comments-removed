@@ -511,6 +511,8 @@ add_task(function* test_noServerPing() {
 
 
 add_task(function* test_simplePing() {
+  yield clearPendingPings();
+  yield TelemetrySend.reset();
   PingServer.start();
   Preferences.set(PREF_SERVER, "http://localhost:" + PingServer.port);
 
@@ -838,6 +840,7 @@ add_task(function* test_dailyCollection() {
   fakeSchedulerTimer(callback => schedulerTickCallback = callback, () => {});
 
   
+  yield clearPendingPings();
   yield TelemetrySession.setup();
   TelemetrySend.setServer("http://localhost:" + PingServer.port);
 
@@ -1118,7 +1121,7 @@ add_task(function* test_pruneOldPingFile() {
 add_task(function* test_savedPingsOnShutdown() {
   
   
-  const expectedPings = (gIsAndroid) ? 1 : 2;
+  const expectedPingCount = (gIsAndroid) ? 1 : 2;
   
   
   const dir = TelemetryStorage.pingDirectoryPath;
@@ -1129,7 +1132,7 @@ add_task(function* test_savedPingsOnShutdown() {
   PingServer.clearRequests();
   yield TelemetryController.reset();
 
-  const pings = yield PingServer.promiseNextPings(2);
+  const pings = yield PingServer.promiseNextPings(expectedPingCount);
 
   for (let ping of pings) {
     Assert.ok("type" in ping);

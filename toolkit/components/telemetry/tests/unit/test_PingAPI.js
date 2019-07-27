@@ -123,7 +123,7 @@ add_task(function* test_archivedPings() {
   yield checkLoadingPings();
 
   
-  TelemetryController.reset();
+  yield TelemetryController.reset();
 
   let pingList = yield TelemetryArchive.promiseArchivedPingList();
   Assert.deepEqual(expectedPingList, pingList,
@@ -368,14 +368,14 @@ add_task(function* test_archiveCleanup() {
 add_task(function* test_clientId() {
   
   
-  yield TelemetryController.setup();
+  yield TelemetryController.reset();
   const clientId = TelemetryController.clientID;
 
   let id = yield TelemetryController.submitExternalPing("test-type", {}, {addClientId: true});
   let ping = yield TelemetryArchive.promiseArchivedPingById(id);
 
   Assert.ok(!!ping, "Should have loaded the ping.");
-  Assert.ok("clientId" in ping, "Ping should have a client id.")
+  Assert.ok("clientId" in ping, "Ping should have a client id.");
   Assert.ok(UUID_REGEX.test(ping.clientId), "Client id is in UUID format.");
   Assert.equal(ping.clientId, clientId, "Ping client id should match the global client id.");
 
