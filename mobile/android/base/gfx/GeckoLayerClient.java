@@ -681,12 +681,14 @@ class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
         mCurrentViewTransform.offsetX = offset.x;
         mCurrentViewTransform.offsetY = offset.y;
 
-        mRootLayer.setPositionAndResolution(
-            Math.round(x + mCurrentViewTransform.offsetX),
-            Math.round(y + mCurrentViewTransform.offsetY),
-            Math.round(x + width + mCurrentViewTransform.offsetX),
-            Math.round(y + height + mCurrentViewTransform.offsetY),
-            resolution);
+        if (mRootLayer != null) {
+            mRootLayer.setPositionAndResolution(
+                Math.round(x + mCurrentViewTransform.offsetX),
+                Math.round(y + mCurrentViewTransform.offsetY),
+                Math.round(x + width + mCurrentViewTransform.offsetX),
+                Math.round(y + height + mCurrentViewTransform.offsetY),
+                resolution);
+        }
 
         if (layersUpdated && mRecordDrawTimes) {
             
@@ -728,6 +730,9 @@ class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
     public LayerRenderer.Frame createFrame() {
         
         if (!mLayerRendererInitialized) {
+            if (mLayerRenderer == null) {
+                return null;
+            }
             mLayerRenderer.checkMonitoringEnabled();
             mLayerRenderer.createDefaultProgram();
             mLayerRendererInitialized = true;
