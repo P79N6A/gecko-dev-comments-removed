@@ -736,6 +736,8 @@ bool
 StoreTypedArrayPolicy::adjustValueInput(TempAllocator &alloc, MInstruction *ins, int arrayType,
                                         MDefinition *value, int valueOperand)
 {
+    SingleObjectPolicy::staticAdjustInputs(alloc, ins);
+
     MDefinition *curValue = value;
     
     
@@ -818,7 +820,7 @@ bool
 StoreTypedArrayPolicy::adjustInputs(TempAllocator &alloc, MInstruction *ins)
 {
     MStoreTypedArrayElement *store = ins->toStoreTypedArrayElement();
-    MOZ_ASSERT(store->elements()->type() == MIRType_Elements);
+    MOZ_ASSERT(IsValidElementsType(store->elements(), store->offsetAdjustment()));
     MOZ_ASSERT(store->index()->type() == MIRType_Int32);
 
     return adjustValueInput(alloc, ins, store->arrayType(), store->value(), 2);
@@ -847,6 +849,8 @@ StoreTypedArrayElementStaticPolicy::adjustInputs(TempAllocator &alloc, MInstruct
 bool
 StoreUnboxedObjectOrNullPolicy::adjustInputs(TempAllocator &alloc, MInstruction *ins)
 {
+    SingleObjectPolicy::staticAdjustInputs(alloc, ins);
+
     
     
     
@@ -1001,6 +1005,7 @@ FilterTypeSetPolicy::adjustInputs(TempAllocator &alloc, MInstruction *ins)
     _(MixPolicy<ObjectPolicy<0>, NoFloatPolicy<3> >)                    \
     _(MixPolicy<ObjectPolicy<0>, ObjectPolicy<1> >)                     \
     _(MixPolicy<ObjectPolicy<0>, StringPolicy<1> >)                     \
+    _(MixPolicy<ObjectPolicy<0>, ConvertToStringPolicy<2> >)            \
     _(MixPolicy<ObjectPolicy<1>, ConvertToStringPolicy<0> >)            \
     _(MixPolicy<StringPolicy<0>, IntPolicy<1> >)                        \
     _(MixPolicy<StringPolicy<0>, StringPolicy<1> >)                     \

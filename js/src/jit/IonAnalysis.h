@@ -131,10 +131,17 @@ class LinearSum
         terms_.appendAll(other.terms_);
     }
 
+    
+    
     bool multiply(int32_t scale);
     bool add(const LinearSum &other, int32_t scale = 1);
+    bool add(SimpleLinearSum other, int32_t scale = 1);
     bool add(MDefinition *term, int32_t scale);
     bool add(int32_t constant);
+
+    
+    
+    bool divide(int32_t scale);
 
     int32_t constant() const { return constant_; }
     size_t numTerms() const { return terms_.length(); }
@@ -153,7 +160,8 @@ class LinearSum
 
 
 MDefinition *
-ConvertLinearSum(TempAllocator &alloc, MBasicBlock *block, const LinearSum &sum);
+ConvertLinearSum(TempAllocator &alloc, MBasicBlock *block, const LinearSum &sum,
+                 bool convertConstant = false);
 
 
 
