@@ -14,7 +14,6 @@
 #include "nsIIOService.h"
 #include "nsIProtocolHandler.h"
 #include "nsIScriptSecurityManager.h"
-#include "nsISerializable.h"
 #include "nsIStreamLoader.h"
 #include "nsIStreamListenerTee.h"
 #include "nsIThreadRetargetableRequest.h"
@@ -422,7 +421,7 @@ private:
   bool mFailed;
   nsCOMPtr<nsIInputStreamPump> mPump;
   nsCOMPtr<nsIURI> mBaseURI;
-  nsCString mSecurityInfo;
+  ChannelInfo mChannelInfo;
 };
 
 NS_IMPL_ISUPPORTS(CacheScriptLoader, nsIStreamLoaderObserver)
@@ -591,17 +590,7 @@ private:
 
     
     
-    nsCOMPtr<nsISupports> infoObj;
-    channel->GetSecurityInfo(getter_AddRefs(infoObj));
-    if (infoObj) {
-      nsCOMPtr<nsISerializable> serializable = do_QueryInterface(infoObj);
-      if (serializable) {
-        ir->SetSecurityInfo(serializable);
-        MOZ_ASSERT(!ir->GetSecurityInfo().IsEmpty());
-      } else {
-        NS_WARNING("A non-serializable object was obtained from nsIChannel::GetSecurityInfo()!");
-      }
-    }
+    ir->InitChannelInfo(channel);
 
     nsRefPtr<Response> response = new Response(mCacheCreator->Global(), ir);
 
@@ -967,16 +956,7 @@ private:
 
       
       if (mWorkerPrivate->IsServiceWorker()) {
-        nsCOMPtr<nsISupports> infoObj;
-        channel->GetSecurityInfo(getter_AddRefs(infoObj));
-        if (infoObj) {
-          nsCOMPtr<nsISerializable> serializable = do_QueryInterface(infoObj);
-          if (serializable) {
-            mWorkerPrivate->SetSecurityInfo(serializable);
-          } else {
-            NS_WARNING("A non-serializable object was obtained from nsIChannel::GetSecurityInfo()!");
-          }
-        }
+        mWorkerPrivate->InitChannelInfo(channel);
       }
 
       
@@ -1047,7 +1027,8 @@ private:
 
   void
   DataReceivedFromCache(uint32_t aIndex, const uint8_t* aString,
-                        uint32_t aStringLen, const nsCString& aSecurityInfo)
+                        uint32_t aStringLen,
+                        const ChannelInfo& aChannelInfo)
   {
     AssertIsOnMainThread();
     MOZ_ASSERT(aIndex < mLoadInfos.Length());
@@ -1075,7 +1056,7 @@ private:
       MOZ_ASSERT(principal);
       nsILoadGroup* loadGroup = mWorkerPrivate->GetLoadGroup();
       MOZ_ASSERT(loadGroup);
-      mWorkerPrivate->SetSecurityInfo(aSecurityInfo);
+      mWorkerPrivate->InitChannelInfo(aChannelInfo);
       
       
       mWorkerPrivate->SetPrincipal(principal, loadGroup);
@@ -1429,11 +1410,11 @@ CacheScriptLoader::ResolvedCallback(JSContext* aCx,
 
   nsCOMPtr<nsIInputStream> inputStream;
   response->GetBody(getter_AddRefs(inputStream));
-  mSecurityInfo = response->GetSecurityInfo();
+  mChannelInfo = response->GetChannelInfo();
 
   if (!inputStream) {
     mLoadInfo.mCacheStatus = ScriptLoadInfo::Cached;
-    mRunnable->DataReceivedFromCache(mIndex, (uint8_t*)"", 0, mSecurityInfo);
+    mRunnable->DataReceivedFromCache(mIndex, (uint8_t*)"", 0, mChannelInfo);
     return;
   }
 
@@ -1489,7 +1470,7 @@ CacheScriptLoader::OnStreamComplete(nsIStreamLoader* aLoader, nsISupports* aCont
 
   mLoadInfo.mCacheStatus = ScriptLoadInfo::Cached;
 
-  mRunnable->DataReceivedFromCache(mIndex, aString, aStringLen, mSecurityInfo);
+  mRunnable->DataReceivedFromCache(mIndex, aString, aStringLen, mChannelInfo);
   return NS_OK;
 }
 
