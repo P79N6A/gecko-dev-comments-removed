@@ -89,7 +89,8 @@ class SharedTypedArrayObjectTemplate : public SharedTypedArrayObject
 
     
     
-    static const uint32_t MAX_LENGTH = 0xFFFFFFFEU;
+    
+    static const uint32_t MAX_LENGTH = INT32_MAX;
 
     
     static const uint32_t MAX_BYTEOFFSET = MAX_LENGTH - 1;
@@ -275,7 +276,8 @@ class SharedTypedArrayObjectTemplate : public SharedTypedArrayObject
             uint32_t length;
             bool overflow;
             if (!ToLengthClamped(cx, args[0], &length, &overflow)) {
-                if (overflow)
+                
+                if (overflow || length > INT32_MAX)
                     JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_BAD_ARRAY_LENGTH);
                 return nullptr;
             }
@@ -307,7 +309,8 @@ class SharedTypedArrayObjectTemplate : public SharedTypedArrayObject
             if (args.length() > 2) {
                 bool overflow;
                 if (!ToLengthClamped(cx, args[2], &length, &overflow)) {
-                    if (overflow)
+                    
+                    if (overflow || length > INT32_MAX)
                         JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr,
                                              JSMSG_SHARED_TYPED_ARRAY_ARG_RANGE, "'length'");
                     return nullptr;
@@ -323,7 +326,7 @@ class SharedTypedArrayObjectTemplate : public SharedTypedArrayObject
     {
         if (nelements > MAX_LENGTH / sizeof(NativeType)) {
             JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr,
-                                 JSMSG_NEED_DIET, "size and count");
+                                 JSMSG_NEED_DIET, "shared typed array");
             return false;
         }
         buffer.set(SharedArrayBufferObject::New(cx, nelements * sizeof(NativeType)));
