@@ -341,8 +341,6 @@ GMPChild::PreLoadLibraries(const std::string& aPluginPath)
   
   static const char* whitelist[] =
     {
-       "bcrypt.dll", 
-       "crypt32.dll", 
        "d3d9.dll", 
        "dxva2.dll", 
        "msauddecmft.dll", 
