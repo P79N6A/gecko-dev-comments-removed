@@ -8,6 +8,7 @@
 #include "gfxPlatform.h"
 #include "mozilla/gfx/2D.h"
 #include "nsComputedDOMStyle.h"
+#include "nsSVGUtils.h"
 #include "nsSVGLength2.h"
 #include "SVGContentUtils.h"
 
@@ -20,6 +21,19 @@ using namespace mozilla::gfx;
 nsSVGPathGeometryElement::nsSVGPathGeometryElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
   : nsSVGPathGeometryElementBase(aNodeInfo)
 {
+}
+
+nsresult
+nsSVGPathGeometryElement::AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
+                                       const nsAttrValue* aValue, bool aNotify)
+{
+  if (mCachedPath &&
+      aNamespaceID == kNameSpaceID_None &&
+      AttributeDefinesGeometry(aName)) {
+    mCachedPath = nullptr;
+  }
+  return nsSVGPathGeometryElementBase::AfterSetAttr(aNamespaceID, aName,
+                                                    aValue, aNotify);
 }
 
 bool
@@ -61,7 +75,30 @@ nsSVGPathGeometryElement::GetMarkPoints(nsTArray<nsSVGMark> *aMarks)
 }
 
 TemporaryRef<Path>
-nsSVGPathGeometryElement::GetPathForLengthOrPositionMeasuring()
+nsSVGPathGeometryElement::GetOrBuildPath(const DrawTarget& aDrawTarget,
+                                         FillRule aFillRule)
+{
+  
+  bool cacheable  = aDrawTarget.GetBackendType() ==
+                      gfxPlatform::GetPlatform()->GetContentBackend();
+
+  
+  
+  
+  
+  if (cacheable && mCachedPath) {
+    return mCachedPath;
+  }
+  RefPtr<PathBuilder> builder = aDrawTarget.CreatePathBuilder(aFillRule);
+  RefPtr<Path> path = BuildPath(builder);
+  if (cacheable && NS_SVGPathCachingEnabled()) {
+    mCachedPath = path;
+  }
+  return path.forget();
+}
+
+TemporaryRef<Path>
+nsSVGPathGeometryElement::GetOrBuildPathForMeasuring()
 {
   return nullptr;
 }

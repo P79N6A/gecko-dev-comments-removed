@@ -2292,6 +2292,9 @@ pref("dom.ipc.plugins.unloadTimeoutSecs", 30);
 pref("dom.ipc.processCount", 1);
 
 
+pref("svg.path-caching.enabled", true);
+
+
 pref("svg.display-lists.hit-testing.enabled", true);
 pref("svg.display-lists.painting.enabled", true);
 

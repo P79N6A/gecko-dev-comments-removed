@@ -57,8 +57,7 @@ public:
 
 
 
-  virtual TemporaryRef<Path>
-    GetPathForLengthOrPositionMeasuring() MOZ_OVERRIDE;
+  virtual TemporaryRef<Path> GetOrBuildPathForMeasuring() MOZ_OVERRIDE;
 
   
   virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const MOZ_OVERRIDE;

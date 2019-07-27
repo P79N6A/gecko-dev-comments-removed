@@ -158,6 +158,25 @@ nsSVGPathGeometryFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
       
       InvalidateFrame();
     }
+
+    nsSVGPathGeometryElement* element =
+      static_cast<nsSVGPathGeometryElement*>(mContent);
+
+    if (aOldStyleContext->PeekStyleSVG()) {
+      if ((StyleSVG()->mStrokeLinecap !=
+             aOldStyleContext->PeekStyleSVG()->mStrokeLinecap) &&
+          element->Tag() == nsGkAtoms::path) {
+        
+        
+        
+        
+        element->ClearAnyCachedPath();
+      } else if (StyleSVG()->mFillRule !=
+                   aOldStyleContext->PeekStyleSVG()->mFillRule) {
+        
+        element->ClearAnyCachedPath();
+      }
+    }
   }
 }
 
@@ -288,9 +307,7 @@ nsSVGPathGeometryFrame::GetFrameForPoint(const gfxPoint& aPoint)
   
   RefPtr<DrawTarget> drawTarget =
     gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget();
-  RefPtr<PathBuilder> builder =
-    drawTarget->CreatePathBuilder(fillRule);
-  RefPtr<Path> path = content->BuildPath(builder);
+  RefPtr<Path> path = content->GetOrBuildPath(*drawTarget, fillRule);
   if (!path) {
     return nullptr; 
   }
@@ -410,6 +427,7 @@ nsSVGPathGeometryFrame::NotifySVGChanged(uint32_t aFlags)
     
     if (static_cast<nsSVGPathGeometryElement*>(mContent)->GeometryDependsOnCoordCtx() ||
         StyleSVG()->mStrokeWidth.HasPercent()) {
+      static_cast<nsSVGPathGeometryElement*>(mContent)->ClearAnyCachedPath();
       nsSVGUtils::ScheduleReflowSVG(this);
     }
   }
@@ -454,8 +472,7 @@ nsSVGPathGeometryFrame::GetBBoxContribution(const Matrix &aToBBoxUserspace,
 
   FillRule fillRule = StyleSVG()->mFillRule == NS_STYLE_FILL_RULE_NONZERO
                         ? FillRule::FILL_WINDING : FillRule::FILL_EVEN_ODD;
-  RefPtr<PathBuilder> builder = tmpDT->CreatePathBuilder(fillRule);
-  RefPtr<Path> pathInUserSpace = element->BuildPath(builder);
+  RefPtr<Path> pathInUserSpace = element->GetOrBuildPath(*tmpDT, fillRule);
   if (!pathInUserSpace) {
     return bbox;
   }
@@ -463,7 +480,7 @@ nsSVGPathGeometryFrame::GetBBoxContribution(const Matrix &aToBBoxUserspace,
   if (aToBBoxUserspace.IsIdentity()) {
     pathInBBoxSpace = pathInUserSpace;
   } else {
-    builder =
+    RefPtr<PathBuilder> builder =
       pathInUserSpace->TransformedCopyToBuilder(aToBBoxUserspace, fillRule);
     pathInBBoxSpace = builder->Finish();
     if (!pathInBBoxSpace) {
@@ -663,13 +680,10 @@ nsSVGPathGeometryFrame::Render(gfxContext* aContext,
     nsSVGUtils::ToFillRule(renderMode == SVGAutoRenderState::NORMAL ?
                              StyleSVG()->mFillRule : StyleSVG()->mClipRule);
 
-  RefPtr<PathBuilder> builder = drawTarget->CreatePathBuilder(fillRule);
-  if (!builder) {
-    return;
-  }
+  nsSVGPathGeometryElement* element =
+    static_cast<nsSVGPathGeometryElement*>(mContent);
 
-  RefPtr<Path> path =
-    static_cast<nsSVGPathGeometryElement*>(mContent)->BuildPath(builder);
+  RefPtr<Path> path = element->GetOrBuildPath(*drawTarget, fillRule);
   if (!path) {
     return;
   }
@@ -715,7 +729,8 @@ nsSVGPathGeometryFrame::Render(gfxContext* aContext,
       gfxMatrix outerSVGToUser = userToOuterSVG;
       outerSVGToUser.Invert();
       aContext->Multiply(outerSVGToUser);
-      builder = path->TransformedCopyToBuilder(ToMatrix(userToOuterSVG), fillRule);
+      RefPtr<PathBuilder> builder =
+        path->TransformedCopyToBuilder(ToMatrix(userToOuterSVG), fillRule);
       path = builder->Finish();
     }
     GeneralPattern strokePattern;
