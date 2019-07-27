@@ -44,6 +44,7 @@ private:
   
   nsresult CreateDecoder();
   nsresult CreateDecoderAndInit(mp4_demuxer::MP4Sample* aSample);
+  nsresult CheckForSPSChange(mp4_demuxer::MP4Sample* aSample);
 
   nsRefPtr<PlatformDecoderModule> mPDM;
   mp4_demuxer::VideoDecoderConfig mCurrentConfig;
@@ -92,18 +93,21 @@ AVCCMediaDataDecoder::Input(mp4_demuxer::MP4Sample* aSample)
   if (!mp4_demuxer::AnnexB::ConvertSampleToAVCC(aSample)) {
     return NS_ERROR_FAILURE;
   }
+  nsresult rv;
   if (!mDecoder) {
     
     
     
-    nsresult rv = CreateDecoderAndInit(aSample);
+    rv = CreateDecoderAndInit(aSample);
     if (rv == NS_ERROR_NOT_INITIALIZED) {
       
       
       return NS_OK;
     }
-    NS_ENSURE_SUCCESS(rv, rv);
+  } else {
+    rv = CheckForSPSChange(aSample);
   }
+  NS_ENSURE_SUCCESS(rv, rv);
 
   aSample->extra_data = mCurrentConfig.extra_data;
 
@@ -228,6 +232,23 @@ AVCCMediaDataDecoder::IsHardwareAccelerated() const
     return mDecoder->IsHardwareAccelerated();
   }
   return MediaDataDecoder::IsHardwareAccelerated();
+}
+
+nsresult
+AVCCMediaDataDecoder::CheckForSPSChange(mp4_demuxer::MP4Sample* aSample)
+{
+  nsRefPtr<mp4_demuxer::ByteBuffer> extra_data =
+    mp4_demuxer::AnnexB::ExtractExtraData(aSample);
+  if (!mp4_demuxer::AnnexB::HasSPS(extra_data) ||
+      mp4_demuxer::AnnexB::CompareExtraData(extra_data,
+                                            mCurrentConfig.extra_data)) {
+    return NS_OK;
+  }
+  
+  
+  mDecoder->Flush();
+  mDecoder->Shutdown();
+  return CreateDecoderAndInit(aSample);
 }
 
 
