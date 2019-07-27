@@ -26,8 +26,13 @@ let ToolbarView = {
     
     if (PerformanceController.getOption("retro-mode")) {
       let RETRO_ELEMENTS = [
-        "#option-flatten-tree-recursion", "#option-enable-memory", "#option-invert-flame-graph",
-        "#option-show-jit-optimizations", "#filter-button"
+        "#option-flatten-tree-recursion",
+        "#option-invert-flame-graph",
+        "#filter-button",
+        
+        
+        
+        
       ];
       for (let selector of RETRO_ELEMENTS) {
         $(selector).hidden = true;
