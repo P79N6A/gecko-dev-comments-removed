@@ -115,31 +115,9 @@ AnimationPlayer::GetCurrentTimeAsDouble() const
   return AnimationUtils::TimeDurationToDouble(GetCurrentTime());
 }
 
-AnimationPlayState
-AnimationPlayer::PlayStateFromJS() const
-{
-  
-  
-  
-  FlushStyle();
-
-  return PlayState();
-}
-
 void
 AnimationPlayer::PlayFromJS()
 {
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  FlushStyle();
-
   Play(eUpdateStyle);
 }
 

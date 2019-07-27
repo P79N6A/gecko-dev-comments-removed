@@ -78,8 +78,8 @@ public:
   
   
   Nullable<double> GetCurrentTimeAsDouble() const;
-  AnimationPlayState PlayStateFromJS() const;
-  void PlayFromJS();
+  virtual AnimationPlayState PlayStateFromJS() const { return PlayState(); }
+  virtual void PlayFromJS();
   void PauseFromJS();
 
   void SetSource(Animation* aSource);

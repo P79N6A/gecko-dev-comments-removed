@@ -74,6 +74,24 @@ ElementPropertyTransition::CurrentValuePortion() const
 
 
 
+mozilla::dom::AnimationPlayState
+CSSTransitionPlayer::PlayStateFromJS() const
+{
+  FlushStyle();
+  return AnimationPlayer::PlayStateFromJS();
+}
+
+void
+CSSTransitionPlayer::PlayFromJS()
+{
+  FlushStyle();
+  AnimationPlayer::PlayFromJS();
+}
+
+
+
+
+
 already_AddRefed<nsIStyleRule>
 nsTransitionManager::StyleContextChanged(dom::Element *aElement,
                                          nsStyleContext *aOldStyleContext,

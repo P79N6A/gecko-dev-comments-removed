@@ -41,6 +41,24 @@ CSSAnimationPlayer::Pause(UpdateFlags aUpdateFlags)
   AnimationPlayer::Pause(aUpdateFlags);
 }
 
+mozilla::dom::AnimationPlayState
+CSSAnimationPlayer::PlayStateFromJS() const
+{
+  
+  
+  FlushStyle();
+  return AnimationPlayer::PlayStateFromJS();
+}
+
+void
+CSSAnimationPlayer::PlayFromJS()
+{
+  
+  
+  FlushStyle();
+  AnimationPlayer::PlayFromJS();
+}
+
 void
 CSSAnimationPlayer::PlayFromStyle()
 {
