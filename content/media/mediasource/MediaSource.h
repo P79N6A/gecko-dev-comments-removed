@@ -105,10 +105,6 @@ public:
 #endif
 
 private:
-  
-  
-  friend class mozilla::MediaSourceDecoder;
-
   ~MediaSource();
 
   explicit MediaSource(nsPIDOMWindow* aWindow);
