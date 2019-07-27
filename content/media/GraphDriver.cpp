@@ -88,7 +88,9 @@ void GraphDriver::UpdateStateComputedTime(GraphTime aStateComputedTime)
   
   
   
-  MOZ_ASSERT(aStateComputedTime >= mStateComputedTime, "State time can't go backward.");
+  if (aStateComputedTime < mStateComputedTime) {
+    printf("State time can't go backward %ld < mStateComputedTime.\n", aStateComputedTime, mStateComputedTime);
+  }
 
   mStateComputedTime = aStateComputedTime;
 }
