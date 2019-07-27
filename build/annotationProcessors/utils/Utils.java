@@ -303,7 +303,7 @@ public class Utils {
 
 
 
-    protected static String getTypeSignatureStringForConstructor(Constructor aConstructor) {
+    protected static String getTypeSignatureStringForConstructor(Constructor<?> aConstructor) {
         Class<?>[] arguments = aConstructor.getParameterTypes();
         return getTypeSignatureInternal(arguments, Void.class);
     }
@@ -314,11 +314,11 @@ public class Utils {
         } else if (aMember instanceof Field) {
             return getTypeSignatureStringForField((Field) aMember);
         } else {
-            return getTypeSignatureStringForConstructor((Constructor) aMember);
+            return getTypeSignatureStringForConstructor((Constructor<?>) aMember);
         }
     }
 
-    public static String getTypeSignatureString(Constructor aConstructor) {
+    public static String getTypeSignatureString(Constructor<?> aConstructor) {
         Class<?>[] arguments = aConstructor.getParameterTypes();
         StringBuilder sb = new StringBuilder();
         sb.append('(');
