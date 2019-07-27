@@ -71,6 +71,9 @@ public class ShareDialog extends Locales.LocaleAwareActivity implements SendTabT
     private OverlayDialogButton readingListButton;
     private OverlayDialogButton bookmarkButton;
 
+    
+    private Drawable readingListButtonDrawable;
+
     private String url;
     private String title;
 
@@ -184,6 +187,8 @@ public class ShareDialog extends Locales.LocaleAwareActivity implements SendTabT
         bookmarkButton = (OverlayDialogButton) findViewById(R.id.overlay_share_bookmark_btn);
         readingListButton = (OverlayDialogButton) findViewById(R.id.overlay_share_reading_list_btn);
 
+        readingListButtonDrawable = readingListButton.getBackground();
+
         final Resources resources = getResources();
         final String bookmarkEnabledLabel = resources.getString(R.string.overlay_share_bookmark_btn_label);
         final Drawable bookmarkEnabledIcon = resources.getDrawable(R.drawable.overlay_bookmark_icon);
@@ -228,6 +233,7 @@ public class ShareDialog extends Locales.LocaleAwareActivity implements SendTabT
         
         
         sendTabList.switchState(SendTabList.State.LOADING);
+        readingListButton.setBackgroundDrawable(readingListButtonDrawable);
 
         
         final String extraText = ContextUtils.getStringExtra(intent, Intent.EXTRA_TEXT);
