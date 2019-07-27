@@ -1963,11 +1963,7 @@ pref("layout.css.dpi", -1);
 pref("layout.css.devPixelsPerPx", "-1.0");
 
 
-#ifdef RELEASE_BUILD
-pref("layout.css.masking.enabled", false);
-#else
 pref("layout.css.masking.enabled", true);
-#endif
 
 
 pref("layout.css.mix-blend-mode.enabled", true);
