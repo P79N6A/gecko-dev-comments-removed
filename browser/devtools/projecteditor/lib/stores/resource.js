@@ -60,6 +60,13 @@ var Resource = Class({
   
 
 
+  get isRoot() {
+    return !this.parent
+  },
+
+  
+
+
   get childrenSorted() {
     if (!this.hasChildren) {
       return [];
