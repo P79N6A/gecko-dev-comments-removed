@@ -354,11 +354,9 @@ public:
   ScriptErrorEvent(JSRuntime* aRuntime,
                    xpc::ErrorReport* aReport,
                    nsIPrincipal* aScriptOriginPrincipal,
-                   JS::Handle<JS::Value> aError,
-                   bool aDispatchEvent)
+                   JS::Handle<JS::Value> aError)
     : mReport(aReport)
     , mOriginPrincipal(aScriptOriginPrincipal)
-    , mDispatchEvent(aDispatchEvent)
     , mError(aRuntime, aError)
   {}
 
@@ -369,10 +367,7 @@ public:
     MOZ_ASSERT(win);
     
     
-    if (mDispatchEvent && win->IsCurrentInnerWindow() &&
-        win->GetDocShell() && !JSREPORT_IS_WARNING(mReport->mFlags) &&
-        !sHandlingScriptError)
-    {
+    if (win->IsCurrentInnerWindow() && win->GetDocShell() && !sHandlingScriptError) {
       AutoRestore<bool> recursionGuard(sHandlingScriptError);
       sHandlingScriptError = true;
 
@@ -429,7 +424,6 @@ public:
 private:
   nsRefPtr<xpc::ErrorReport>      mReport;
   nsCOMPtr<nsIPrincipal>          mOriginPrincipal;
-  bool                            mDispatchEvent;
   JS::PersistentRootedValue       mError;
 
   static bool sHandlingScriptError;
@@ -493,7 +487,10 @@ SystemErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 
     
     
-    if (!xpcReport->mWindow) {
+    
+    if (!xpcReport->mWindow || JSREPORT_IS_WARNING(xpcReport->mFlags) ||
+        report->errorNumber == JSMSG_OUT_OF_MEMORY)
+    {
       xpcReport->LogToConsole();
       return;
     }
@@ -504,15 +501,7 @@ SystemErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
       new ScriptErrorEvent(JS_GetRuntime(cx),
                            xpcReport,
                            nsJSPrincipals::get(report->originPrincipals),
-                           exception,
-                           
-
-
-
-
-
-
-                           report->errorNumber != JSMSG_OUT_OF_MEMORY));
+                           exception));
   }
 }
 
