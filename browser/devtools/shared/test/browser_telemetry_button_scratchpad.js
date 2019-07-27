@@ -1,6 +1,13 @@
 
 
 
+
+
+
+
+
+thisTestLeaksUncaughtRejectionsAndShouldBeFixed("Protocol error (unknownError): Error: Got an invalid root window in DocumentWalker");
+
 const TEST_URI = "data:text/html;charset=utf-8,<p>browser_telemetry_button_scratchpad.js</p>";
 
 
