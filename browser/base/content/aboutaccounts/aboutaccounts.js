@@ -12,6 +12,9 @@ Cu.import("resource://gre/modules/FxAccounts.jsm");
 let fxAccountsCommon = {};
 Cu.import("resource://gre/modules/FxAccountsCommon.js", fxAccountsCommon);
 
+
+Cu.import("resource://services-sync/util.js");
+
 const PREF_LAST_FXA_USER = "identity.fxaccounts.lastSignedInUserHash";
 const PREF_SYNC_SHOW_CUSTOMIZATION = "services.sync.ui.showCustomizationDialog";
 
@@ -103,6 +106,12 @@ let wrapper = {
       document.body.remove();
       return;
     }
+
+    
+    
+    
+    
+    Utils.ensureMPUnlocked();
 
     let iframe = document.getElementById("remote");
     this.iframe = iframe;
