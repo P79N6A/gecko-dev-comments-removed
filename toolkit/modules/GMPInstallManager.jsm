@@ -63,9 +63,10 @@ function getScopedLogger(prefix) {
 
 XPCOMUtils.defineLazyGetter(this, "gOSVersion", function aus_gOSVersion() {
   let osVersion;
+  let sysInfo = Cc["@mozilla.org/system-info;1"].
+                getService(Ci.nsIPropertyBag2);
   try {
-    osVersion = Services.sysinfo.getProperty("name") + " " +
-                Services.sysinfo.getProperty("version");
+    osVersion = sysInfo.getProperty("name") + " " + sysInfo.getProperty("version");
   }
   catch (e) {
     LOG("gOSVersion - OS Version unknown: updates are not possible.");
@@ -209,6 +210,10 @@ XPCOMUtils.defineLazyGetter(this, "gABI", function aus_gABI() {
 
     if (macutils.isUniversalBinary)
       abi += "-u-" + macutils.architecturesInBinary;
+    if (AppConstants.MOZ_SHARK) {
+      
+      abi += "-shark"
+    }
   }
   return abi;
 });
@@ -885,6 +890,10 @@ GMPDownloader.prototype = {
         
         GMPPrefs.set(GMPPrefs.KEY_PLUGIN_VERSION, gmpAddon.version,
                      gmpAddon.id);
+        
+        
+        GMPPrefs.reset(GMPPrefs.KEY_PLUGIN_TRIAL_CREATE, gmpAddon.version,
+                       gmpAddon.id);
         this._deferred.resolve(extractedPaths);
       }, err => {
         this._deferred.reject(err);
