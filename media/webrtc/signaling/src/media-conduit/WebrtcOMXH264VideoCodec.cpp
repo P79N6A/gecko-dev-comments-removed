@@ -283,7 +283,11 @@ public:
     if (mNativeWindow.get()) {
       
       mNativeWindow->setNewFrameCallback(this);
-      surface = new Surface(mNativeWindow->getBufferQueue());
+      
+      sp<GonkBufferQueue> bq = mNativeWindow->getBufferQueue();
+      
+      bq->setMaxAcquiredBufferCount(WEBRTC_OMX_H264_MIN_DECODE_BUFFERS);
+      surface = new Surface(bq);
     }
     status_t result = mCodec->configure(config, surface, nullptr, 0);
     if (result == OK) {
