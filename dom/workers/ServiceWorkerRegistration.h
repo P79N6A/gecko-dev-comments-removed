@@ -75,22 +75,12 @@ public:
   virtual void
   InvalidateWorkerReference(WhichServiceWorker aWhichOnes) = 0;
 
-  
-  virtual void DisconnectFromOwner() override;
-
 protected:
-  virtual ~ServiceWorkerRegistrationBase();
+  virtual ~ServiceWorkerRegistrationBase()
+  { }
 
   const nsString mScope;
 private:
-  void
-  StartListeningForEvents();
-
-  void
-  StopListeningForEvents();
-
-  bool mListeningForEvents;
-
   nsCOMPtr<nsISupports> mCCDummy;
 };
 
@@ -128,11 +118,26 @@ public:
   void
   InvalidateWorkerReference(WhichServiceWorker aWhichOnes) override;
 
+  
+  void DisconnectFromOwner() override
+  {
+    StopListeningForEvents();
+    ServiceWorkerRegistrationBase::DisconnectFromOwner();
+  }
+
 private:
   ~ServiceWorkerRegistrationMainThread();
 
   already_AddRefed<workers::ServiceWorker>
   GetWorkerReference(WhichServiceWorker aWhichOne);
+
+  void
+  StartListeningForEvents();
+
+  void
+  StopListeningForEvents();
+
+  bool mListeningForEvents;
 
   
   
