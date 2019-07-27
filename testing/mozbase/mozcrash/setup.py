@@ -9,7 +9,7 @@ PACKAGE_VERSION = '0.14'
 
 
 deps = ['mozfile >= 1.0',
-        'mozlog']
+        'mozlog >= 3.0']
 
 setup(name=PACKAGE_NAME,
       version=PACKAGE_VERSION,

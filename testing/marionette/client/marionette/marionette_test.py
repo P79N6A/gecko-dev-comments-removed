@@ -24,9 +24,9 @@ from marionette_driver.errors import (
         MoveTargetOutOfBoundsException, FrameSendNotInitializedError, FrameSendFailureError
         )
 from marionette_driver.marionette import Marionette
-from mozlog.structured.structuredlog import get_default_logger
 from marionette_driver.wait import Wait
 from marionette_driver.expected import element_present, element_not_present
+from mozlog import get_default_logger
 
 
 class SkipTest(Exception):

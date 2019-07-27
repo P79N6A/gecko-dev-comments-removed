@@ -32,7 +32,6 @@ this.StructuredLogger = function (name, dumpFun=dump, mutators=[]) {
 
 
 
-
 StructuredLogger.prototype.testStart = function (test) {
   this._runningTests.add(test);
   let data = {test: test};

@@ -5,7 +5,9 @@
 
 
 import os, unittest, subprocess, tempfile, shutil, urlparse, zipfile, StringIO
-import mozcrash, mozlog, mozhttpd
+import mozcrash
+import mozhttpd
+import mozlog.unstructured as mozlog
 
 
 log = mozlog.getLogger("mozcrash", handler=mozlog.FileHandler(os.devnull))

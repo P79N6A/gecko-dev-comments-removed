@@ -2,10 +2,9 @@
 
 
 
+import logging
 import types
 import unittest
-
-import mozlog
 
 from mozdevice import devicemanager
 from mozdevice import devicemanagerSUT
@@ -13,7 +12,7 @@ from mozdevice import devicemanagerSUT
 ip = ''
 port = 0
 heartbeat_port = 0
-log_level = mozlog.ERROR
+log_level = logging.ERROR
 
 class DeviceManagerTestCase(unittest.TestCase):
     """DeviceManager tests should subclass this.
