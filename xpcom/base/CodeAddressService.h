@@ -13,7 +13,7 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Types.h"
 
-#include "nsStackWalk.h"
+#include "mozilla/StackWalk.h"
 
 namespace mozilla {
 
@@ -142,10 +142,10 @@ public:
       
       
       
-      nsCodeAddressDetails details;
+      MozCodeAddressDetails details;
       {
         DescribeCodeAddressLock::Unlock();
-        (void)NS_DescribeCodeAddress(const_cast<void*>(aPc), &details);
+        (void)MozDescribeCodeAddress(const_cast<void*>(aPc), &details);
         DescribeCodeAddressLock::Lock();
       }
 
@@ -159,7 +159,7 @@ public:
 
     MOZ_ASSERT(entry.mPc == aPc);
 
-    NS_FormatCodeAddress(aBuf, aBufLen, aFrameNumber, entry.mPc,
+    MozFormatCodeAddress(aBuf, aBufLen, aFrameNumber, entry.mPc,
                          entry.mFunction, entry.mLibrary, entry.mLOffset,
                          entry.mFileName, entry.mLineNo);
   }

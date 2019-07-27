@@ -18,8 +18,7 @@
 #include "nsCRT.h"
 #include <math.h>
 #include "nsHashKeys.h"
-#include "nsStackWalkPrivate.h"
-#include "nsStackWalk.h"
+#include "mozilla/StackWalk.h"
 #include "nsString.h"
 #include "nsThreadUtils.h"
 #include "CodeAddressService.h"
@@ -837,11 +836,11 @@ static void
 PrintStackFrame(uint32_t aFrameNumber, void* aPC, void* aSP, void* aClosure)
 {
   FILE* stream = (FILE*)aClosure;
-  nsCodeAddressDetails details;
+  MozCodeAddressDetails details;
   char buf[1024];
 
-  NS_DescribeCodeAddress(aPC, &details);
-  NS_FormatCodeAddressDetails(buf, sizeof(buf), aFrameNumber, aPC, &details);
+  MozDescribeCodeAddress(aPC, &details);
+  MozFormatCodeAddressDetails(buf, sizeof(buf), aFrameNumber, aPC, &details);
   fprintf(stream, "%s\n", buf);
   fflush(stream);
 }
@@ -865,7 +864,7 @@ void
 nsTraceRefcnt::WalkTheStack(FILE* aStream)
 {
 #ifdef MOZ_STACKWALKING
-  NS_StackWalk(PrintStackFrame,  2,  0, aStream,
+  MozStackWalk(PrintStackFrame,  2,  0, aStream,
                0, nullptr);
 #endif
 }
@@ -877,7 +876,7 @@ nsTraceRefcnt::WalkTheStackCached(FILE* aStream)
   if (!gCodeAddressService) {
     gCodeAddressService = new WalkTheStackCodeAddressService();
   }
-  NS_StackWalk(PrintStackFrameCached,  2,  0,
+  MozStackWalk(PrintStackFrameCached,  2,  0,
                aStream, 0, nullptr);
 #endif
 }

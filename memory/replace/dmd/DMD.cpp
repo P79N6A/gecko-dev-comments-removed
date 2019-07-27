@@ -27,7 +27,7 @@
 #endif
 
 #include "nscore.h"
-#include "nsStackWalk.h"
+#include "mozilla/StackWalk.h"
 
 #include "js/HashTable.h"
 #include "js/Vector.h"
@@ -742,33 +742,16 @@ StackTrace::Get(Thread* aT)
   
   
   
-  nsresult rv;
   StackTrace tmp;
   {
     AutoUnlockState unlock;
     uint32_t skipFrames = 2;
-    rv = NS_StackWalk(StackWalkCallback, skipFrames,
-                      gOptions->MaxFrames(), &tmp, 0, nullptr);
-  }
-
-  if (rv == NS_OK) {
-    
-  } else if (rv == NS_ERROR_NOT_IMPLEMENTED || rv == NS_ERROR_FAILURE) {
-    tmp.mLength = 0;
-  } else if (rv == NS_ERROR_UNEXPECTED) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    MOZ_CRASH("unexpected case in StackTrace::Get()");
-  } else {
-    MOZ_CRASH("impossible case in StackTrace::Get()");
+    if (MozStackWalk(StackWalkCallback, skipFrames,
+                      gOptions->MaxFrames(), &tmp, 0, nullptr)) {
+      
+    } else {
+      tmp.mLength = 0;
+    }
   }
 
   StackTraceTable::AddPtr p = gStackTraceTable->lookupForAdd(&tmp);
@@ -1557,7 +1540,7 @@ Init(const malloc_table_t* aMallocTable)
   
   
   
-  (void)NS_StackWalk(NopStackWalkCallback,  0,
+  (void)MozStackWalk(NopStackWalkCallback,  0,
                       1, nullptr, 0, nullptr);
 #endif
 

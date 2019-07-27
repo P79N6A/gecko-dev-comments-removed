@@ -14,7 +14,7 @@
 #ifndef MOZ_CALLSTACK_DISABLED
 #include "CodeAddressService.h"
 #include "nsHashKeys.h"
-#include "nsStackWalk.h"
+#include "mozilla/StackWalk.h"
 #include "nsTHashtable.h"
 #endif
 
@@ -68,7 +68,7 @@ BlockingResourceBase::GetStackTrace(AcquisitionState& aState)
 
   
   
-  NS_StackWalk(StackWalkCallback, kSkipFrames, 24, &aState, 0, nullptr);
+  MozStackWalk(StackWalkCallback, kSkipFrames, 24, &aState, 0, nullptr);
 #endif
 }
 

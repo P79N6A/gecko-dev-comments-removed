@@ -16,7 +16,7 @@
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsDirectoryServiceUtils.h"
 #include "nsPrintfCString.h"
-#include "nsStackWalk.h"
+#include "mozilla/StackWalk.h"
 #include "plstr.h"
 #include "prio.h"
 
@@ -129,7 +129,7 @@ LateWriteObserver::Observe(IOInterposeObserver::Observation& aOb)
   
   std::vector<uintptr_t> rawStack;
 
-  NS_StackWalk(RecordStackWalker,  0,  0,
+  MozStackWalk(RecordStackWalker,  0,  0,
                reinterpret_cast<void*>(&rawStack), 0, nullptr);
   Telemetry::ProcessedStack stack = Telemetry::GetStackAndModules(rawStack);
 
