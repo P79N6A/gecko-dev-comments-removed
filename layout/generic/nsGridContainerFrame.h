@@ -83,7 +83,7 @@ protected:
 
 
   struct LineRange {
-   LineRange(uint32_t aStart, uint32_t aEnd)
+   LineRange(int32_t aStart, int32_t aEnd)
       : mStart(aStart), mEnd(aEnd) {}
     bool IsAuto() const { return mStart == 0; }
     bool IsDefinite() const { return mStart != 0; }
@@ -92,11 +92,11 @@ protected:
 
 
 
-    void ResolveAutoPosition(uint32_t aStart)
+    void ResolveAutoPosition(int32_t aStart)
     {
       MOZ_ASSERT(IsAuto(), "Why call me?");
       MOZ_ASSERT(aStart > 0, "expected a 1-based line number");
-      MOZ_ASSERT(Extent() == mEnd, "'auto' representation changed?");
+      MOZ_ASSERT(int32_t(Extent()) == mEnd, "'auto' representation changed?");
       mStart = aStart;
       mEnd += aStart;
     }
@@ -121,8 +121,8 @@ protected:
                                       nscoord aGridOrigin,
                                       nscoord* aPos, nscoord* aLength) const;
 
-    uint32_t mStart;  
-    uint32_t mEnd;    
+    int32_t mStart;  
+    int32_t mEnd;    
   };
 
   
@@ -181,15 +181,15 @@ protected:
 
 
 
-  uint32_t ResolveLine(const nsStyleGridLine& aLine,
-                       int32_t aNth,
-                       uint32_t aFromIndex,
-                       const nsTArray<nsTArray<nsString>>& aLineNameList,
-                       uint32_t GridNamedArea::* aAreaStart,
-                       uint32_t GridNamedArea::* aAreaEnd,
-                       uint32_t aExplicitGridEnd,
-                       LineRangeSide aEdge,
-                       const nsStylePosition* aStyle);
+  int32_t ResolveLine(const nsStyleGridLine& aLine,
+                      int32_t aNth,
+                      uint32_t aFromIndex,
+                      const nsTArray<nsTArray<nsString>>& aLineNameList,
+                      uint32_t GridNamedArea::* aAreaStart,
+                      uint32_t GridNamedArea::* aAreaEnd,
+                      uint32_t aExplicitGridEnd,
+                      LineRangeSide aEdge,
+                      const nsStylePosition* aStyle);
   
 
 
@@ -342,7 +342,7 @@ protected:
 
 
 
-  typedef std::pair<uint32_t, uint32_t> LinePair;
+  typedef std::pair<int32_t, int32_t> LinePair;
   LinePair ResolveLineRangeHelper(const nsStyleGridLine& aStart,
                                   const nsStyleGridLine& aEnd,
                                   const nsTArray<nsTArray<nsString>>& aLineNameList,
