@@ -801,6 +801,7 @@ PresShell::PresShell()
 
   mPaintingIsFrozen = false;
   mHasCSSBackgroundColor = true;
+  mIsLastChromeOnlyEscapeKeyConsumed = false;
 }
 
 NS_IMPL_ISUPPORTS(PresShell, nsIPresShell, nsIDocumentObserver,
@@ -8005,7 +8006,10 @@ PresShell::HandleEventInternal(WidgetEvent* aEvent, nsEventStatus* aStatus)
             aEvent->mFlags.mDefaultPrevented = true;
             aEvent->mFlags.mOnlyChromeDispatch = true;
 
-            if (aEvent->message == NS_KEY_UP) {
+            
+            
+            if (!mIsLastChromeOnlyEscapeKeyConsumed &&
+                aEvent->message == NS_KEY_UP) {
               
               
               
@@ -8021,7 +8025,7 @@ PresShell::HandleEventInternal(WidgetEvent* aEvent, nsEventStatus* aStatus)
           }
           nsCOMPtr<nsIDocument> pointerLockedDoc =
             do_QueryReferent(EventStateManager::sPointerLockedDoc);
-          if (pointerLockedDoc) {
+          if (!mIsLastChromeOnlyEscapeKeyConsumed && pointerLockedDoc) {
             aEvent->mFlags.mDefaultPrevented = true;
             aEvent->mFlags.mOnlyChromeDispatch = true;
             if (aEvent->message == NS_KEY_UP) {
@@ -8256,11 +8260,30 @@ PresShell::HandleEventInternal(WidgetEvent* aEvent, nsEventStatus* aStatus)
       }
     }
 
-    if (aEvent->message == NS_MOUSE_BUTTON_UP) {
+    switch (aEvent->message) {
+    case NS_KEY_PRESS:
+    case NS_KEY_DOWN:
+    case NS_KEY_UP: {
+      if (aEvent->AsKeyboardEvent()->keyCode == NS_VK_ESCAPE) {
+        if (aEvent->message == NS_KEY_UP) {
+          
+          mIsLastChromeOnlyEscapeKeyConsumed = false;
+        } else {
+          if (aEvent->mFlags.mOnlyChromeDispatch &&
+              aEvent->mFlags.mDefaultPreventedByChrome) {
+            mIsLastChromeOnlyEscapeKeyConsumed = true;
+          }
+        }
+      }
+      break;
+    }
+    case NS_MOUSE_BUTTON_UP:
       
       SetCapturingContent(nullptr, 0);
-    } else if (aEvent->message == NS_MOUSE_MOVE) {
+      break;
+    case NS_MOUSE_MOVE:
       nsIPresShell::AllowMouseCapture(false);
+      break;
     }
   }
   return rv;
