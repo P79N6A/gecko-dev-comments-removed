@@ -701,25 +701,16 @@ EmitLoadSlot(MacroAssembler &masm, NativeObject *holder, Shape *shape, Register 
     }
 }
 
+
+
 static void
-GenerateDOMProxyChecks(JSContext *cx, MacroAssembler &masm, JSObject *obj,
-                       PropertyName *name, Register object, Label *stubFailure,
-                       bool skipExpandoCheck = false)
+CheckDOMProxyExpandoDoesNotShadow(JSContext *cx, MacroAssembler &masm, JSObject *obj,
+                                  PropertyName *name, Register object, Label *stubFailure)
 {
     MOZ_ASSERT(IsCacheableDOMProxy(obj));
 
     
     
-    
-    
-    Address handlerAddr(object, ProxyObject::offsetOfHandler());
-
-    
-    masm.branchPtr(Assembler::NotEqual, handlerAddr,
-                   ImmPtr(obj->as<ProxyObject>().handler()), stubFailure);
-
-    if (skipExpandoCheck)
-        return;
 
     
     
@@ -1551,8 +1542,8 @@ GetPropertyIC::tryAttachDOMProxyShadowed(JSContext *cx, HandleScript outerScript
                                    &failures);
 
     
-    GenerateDOMProxyChecks(cx, masm, obj, name(), object(), &failures,
-                           true);
+    
+    
 
     if (!EmitCallProxyGet(cx, masm, attacher, name(), liveRegs_, object(), output(),
                           pc(), returnAddr))
@@ -1620,7 +1611,7 @@ GetPropertyIC::tryAttachDOMProxyUnshadowed(JSContext *cx, HandleScript outerScri
                                    &failures);
 
     
-    GenerateDOMProxyChecks(cx, masm, obj, name, object(), &failures);
+    CheckDOMProxyExpandoDoesNotShadow(cx, masm, obj, name, object(), &failures);
 
     if (holder) {
         
@@ -2239,8 +2230,8 @@ SetPropertyIC::attachDOMProxyShadowed(JSContext *cx, HandleScript outerScript, I
                    ImmGCPtr(obj->lastProperty()), &failures);
 
     
-    GenerateDOMProxyChecks(cx, masm, obj, name(), object(), &failures,
-                           true);
+    
+    
 
     RootedId propId(cx, AtomToId(name()));
     if (!EmitCallProxySet(cx, masm, attacher, propId, liveRegs_, object(),
@@ -2513,7 +2504,7 @@ SetPropertyIC::attachDOMProxyUnshadowed(JSContext *cx, HandleScript outerScript,
                    ImmGCPtr(obj->lastProperty()), &failures);
 
     
-    GenerateDOMProxyChecks(cx, masm, obj, name(), object(), &failures);
+    CheckDOMProxyExpandoDoesNotShadow(cx, masm, obj, name(), object(), &failures);
 
     RootedPropertyName propName(cx, name());
     RootedObject holder(cx);

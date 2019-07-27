@@ -3119,29 +3119,19 @@ GetDOMProxyProto(JSObject *obj)
     return obj->getTaggedProto().toObjectOrNull();
 }
 
+
+
 static void
-GenerateDOMProxyChecks(JSContext *cx, MacroAssembler &masm, Register object,
-                       Address checkProxyHandlerAddr,
-                       Address *checkExpandoShapeAddr,
-                       Address *expandoAndGenerationAddr,
-                       Address *generationAddr,
-                       Register scratch,
-                       GeneralRegisterSet &domProxyRegSet,
-                       Label *checkFailed)
+CheckDOMProxyExpandoDoesNotShadow(JSContext *cx, MacroAssembler &masm, Register object,
+                                  const Address &checkExpandoShapeAddr,
+                                  Address *expandoAndGenerationAddr,
+                                  Address *generationAddr,
+                                  Register scratch,
+                                  GeneralRegisterSet &domProxyRegSet,
+                                  Label *checkFailed)
 {
     
     
-    
-    
-    Address handlerAddr(object, ProxyObject::offsetOfHandler());
-
-    
-    masm.loadPtr(checkProxyHandlerAddr, scratch);
-    masm.branchPtr(Assembler::NotEqual, handlerAddr, scratch, checkFailed);
-
-    
-    if (!checkExpandoShapeAddr)
-        return;
 
     
     
@@ -3178,7 +3168,7 @@ GenerateDOMProxyChecks(JSContext *cx, MacroAssembler &masm, Register object,
     
     
     
-    masm.loadPtr(*checkExpandoShapeAddr, scratch);
+    masm.loadPtr(checkExpandoShapeAddr, scratch);
     masm.branchPtr(Assembler::Equal, scratch, ImmPtr(nullptr), &failDOMProxyCheck);
 
     
@@ -7575,10 +7565,9 @@ ICGetPropCallDOMProxyNativeCompiler::generateStubCode(MacroAssembler &masm,
         domProxyRegSet.take(objReg);
         domProxyRegSet.take(scratch);
         Address expandoShapeAddr(BaselineStubReg, ICGetProp_CallDOMProxyNative::offsetOfExpandoShape());
-        GenerateDOMProxyChecks(
+        CheckDOMProxyExpandoDoesNotShadow(
                 cx, masm, objReg,
-                Address(BaselineStubReg, ICGetProp_CallDOMProxyNative::offsetOfProxyHandler()),
-                &expandoShapeAddr, expandoAndGenerationAddr, generationAddr,
+                expandoShapeAddr, expandoAndGenerationAddr, generationAddr,
                 scratch,
                 domProxyRegSet,
                 &failure);
@@ -7660,12 +7649,12 @@ ICGetPropCallDOMProxyNativeCompiler::getStub(ICStubSpace *space)
 
     if (kind == ICStub::GetProp_CallDOMProxyNative) {
         return ICStub::New<ICGetProp_CallDOMProxyNative>(
-            space, getStubCode(), firstMonitorStub_, shape, proxy_->handler(),
+            space, getStubCode(), firstMonitorStub_, shape,
             expandoShape, holder_, holderShape, getter_, pcOffset_);
     }
 
     return ICStub::New<ICGetProp_CallDOMProxyWithGenerationNative>(
-        space, getStubCode(), firstMonitorStub_, shape, proxy_->handler(),
+        space, getStubCode(), firstMonitorStub_, shape,
         expandoAndGeneration, generation, expandoShape, holder_, holderShape, getter_,
         pcOffset_);
 }
@@ -7711,21 +7700,7 @@ ICGetProp_DOMProxyShadowed::Compiler::generateStubCode(MacroAssembler &masm)
     masm.branchTestObjShape(Assembler::NotEqual, objReg, scratch, &failure);
 
     
-    {
-        GeneralRegisterSet domProxyRegSet(GeneralRegisterSet::All());
-        domProxyRegSet.take(BaselineStubReg);
-        domProxyRegSet.take(objReg);
-        domProxyRegSet.take(scratch);
-        GenerateDOMProxyChecks(
-                cx, masm, objReg,
-                Address(BaselineStubReg, ICGetProp_DOMProxyShadowed::offsetOfProxyHandler()),
-                nullptr,
-                nullptr,
-                nullptr,
-                scratch,
-                domProxyRegSet,
-                &failure);
-    }
+    
 
     
 
@@ -12118,7 +12093,6 @@ ICCall_ScriptedFunCall::Clone(ICStubSpace *space, ICStub *firstMonitorStub,
 ICGetPropCallDOMProxyNativeStub::ICGetPropCallDOMProxyNativeStub(Kind kind, JitCode *stubCode,
                                                                  ICStub *firstMonitorStub,
                                                                  Shape *shape,
-                                                                 const BaseProxyHandler *proxyHandler,
                                                                  Shape *expandoShape,
                                                                  JSObject *holder,
                                                                  Shape *holderShape,
@@ -12127,7 +12101,6 @@ ICGetPropCallDOMProxyNativeStub::ICGetPropCallDOMProxyNativeStub(Kind kind, JitC
 : ICGetPropCallGetter(kind, stubCode, firstMonitorStub, holder, holderShape,
                       getter, pcOffset),
     shape_(shape),
-    proxyHandler_(proxyHandler),
     expandoShape_(expandoShape)
 { }
 
@@ -12155,7 +12128,7 @@ ICGetProp_CallDOMProxyNative::Clone(ICStubSpace *space, ICStub *firstMonitorStub
                                     ICGetProp_CallDOMProxyNative &other)
 {
     return New<ICGetProp_CallDOMProxyNative>(space, other.jitCode(), firstMonitorStub,
-                                             other.shape_, other.proxyHandler_, other.expandoShape_,
+                                             other.shape_, other.expandoShape_,
                                              other.holder_, other.holderShape_, other.getter_,
                                              other.pcOffset_);
 }
@@ -12166,7 +12139,7 @@ ICGetProp_CallDOMProxyWithGenerationNative::Clone(ICStubSpace *space,
                                                   ICGetProp_CallDOMProxyWithGenerationNative &other)
 {
     return New<ICGetProp_CallDOMProxyWithGenerationNative>(space, other.jitCode(), firstMonitorStub,
-                                                           other.shape_, other.proxyHandler_,
+                                                           other.shape_,
                                                            other.expandoAndGeneration_,
                                                            other.generation_,
                                                            other.expandoShape_, other.holder_,
