@@ -141,8 +141,8 @@ typedef struct CapturingContentInfo {
 
 
 #define NS_IPRESSHELL_IID \
-{ 0x4f512d0b, 0xc58c, 0x4fc9, \
-  { 0xae, 0x42, 0x8a, 0xa6, 0xd9, 0x92, 0xe7, 0xae } }
+{ 0x7f0ae6b1, 0x5fa1, 0x4ba7, \
+  { 0x88, 0x5e, 0xa9, 0x3e, 0x17, 0xd7, 0x2c, 0xd2 } }
 
 
 #define VERIFY_REFLOW_ON                    0x01
@@ -410,11 +410,6 @@ public:
 
 
   virtual nsresult ResizeReflowOverride(nscoord aWidth, nscoord aHeight) = 0;
-  
-
-
-
-  virtual nsresult ResizeReflowIgnoreOverride(nscoord aWidth, nscoord aHeight) = 0;
 
   
 

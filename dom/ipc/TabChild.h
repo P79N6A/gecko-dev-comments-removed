@@ -21,6 +21,7 @@
 #include "nsIDocShell.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsFrameMessageManager.h"
+#include "nsIWebProgressListener.h"
 #include "nsIPresShell.h"
 #include "nsIScriptObjectPrincipal.h"
 #include "nsWeakReference.h"
@@ -182,6 +183,12 @@ public:
     virtual nsIWebNavigation* WebNavigation() const = 0;
     virtual PuppetWidget* WebWidget() = 0;
     nsIPrincipal* GetPrincipal() { return mPrincipal; }
+    
+    
+    
+    
+    
+    bool HandlePossibleViewportChange(const ScreenIntSize& aOldScreenSize);
     virtual bool DoUpdateZoomConstraints(const uint32_t& aPresShellId,
                                          const mozilla::layers::FrameMetrics::ViewID& aViewId,
                                          const Maybe<mozilla::layers::ZoomConstraints>& aConstraints) = 0;
@@ -190,11 +197,18 @@ public:
 
 protected:
     virtual ~TabChildBase();
+    CSSSize GetPageSize(nsCOMPtr<nsIDocument> aDocument, const CSSSize& aViewport);
 
+    
+    already_AddRefed<nsIDOMWindowUtils> GetDOMWindowUtils();
     
     already_AddRefed<nsIDocument> GetDocument() const;
     
     already_AddRefed<nsIPresShell> GetPresShell() const;
+
+    
+    
+    void SetCSSViewport(const CSSSize& aSize);
 
     
     
@@ -204,12 +218,17 @@ protected:
     void DispatchMessageManagerMessage(const nsAString& aMessageName,
                                        const nsAString& aJSONData);
 
-    void ProcessUpdateFrame(const mozilla::layers::FrameMetrics& aFrameMetrics);
+    void InitializeRootMetrics();
+
+    mozilla::layers::FrameMetrics ProcessUpdateFrame(const mozilla::layers::FrameMetrics& aFrameMetrics);
 
     bool UpdateFrameHandler(const mozilla::layers::FrameMetrics& aFrameMetrics);
 
 protected:
+    CSSSize mOldViewportSize;
+    bool mContentDocumentIsDisplayed;
     nsRefPtr<TabChildGlobal> mTabChildGlobal;
+    mozilla::layers::FrameMetrics mLastRootMetrics;
     nsCOMPtr<nsIWebBrowserChrome3> mWebBrowserChrome;
 };
 
@@ -220,6 +239,8 @@ class TabChild final : public TabChildBase,
                        public nsIWebBrowserChromeFocus,
                        public nsIInterfaceRequestor,
                        public nsIWindowProvider,
+                       public nsIDOMEventListener,
+                       public nsIWebProgressListener,
                        public nsSupportsWeakReference,
                        public nsITabChild,
                        public nsIObserver,
@@ -267,6 +288,8 @@ public:
     NS_DECL_NSIWEBBROWSERCHROMEFOCUS
     NS_DECL_NSIINTERFACEREQUESTOR
     NS_DECL_NSIWINDOWPROVIDER
+    NS_DECL_NSIDOMEVENTLISTENER
+    NS_DECL_NSIWEBPROGRESSLISTENER
     NS_DECL_NSITABCHILD
     NS_DECL_NSIOBSERVER
     NS_DECL_NSITOOLTIPLISTENER

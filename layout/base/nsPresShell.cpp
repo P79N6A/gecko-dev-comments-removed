@@ -984,9 +984,6 @@ PresShell::Init(nsIDocument* aDocument,
   if (mPresContext->IsRootContentDocument()) {
     mZoomConstraintsClient = new ZoomConstraintsClient();
     mZoomConstraintsClient->Init(this, mDocument);
-    if (gfxPrefs::MetaViewportEnabled()) {
-      mMobileViewportManager = new MobileViewportManager(this, mDocument);
-    }
   }
 }
 
@@ -1104,10 +1101,6 @@ PresShell::Destroy()
   if (mZoomConstraintsClient) {
     mZoomConstraintsClient->Destroy();
     mZoomConstraintsClient = nullptr;
-  }
-  if (mMobileViewportManager) {
-    mMobileViewportManager->Destroy();
-    mMobileViewportManager = nullptr;
   }
 
 #ifdef ACCESSIBILITY
@@ -1759,19 +1752,6 @@ nsresult
 PresShell::ResizeReflowOverride(nscoord aWidth, nscoord aHeight)
 {
   mViewportOverridden = true;
-
-  if (mMobileViewportManager) {
-    
-    
-    
-    
-    
-    
-    
-    mMobileViewportManager->Destroy();
-    mMobileViewportManager = nullptr;
-  }
-
   return ResizeReflowIgnoreOverride(aWidth, aHeight);
 }
 
@@ -1783,15 +1763,6 @@ PresShell::ResizeReflow(nscoord aWidth, nscoord aHeight)
     
     return NS_OK;
   }
-
-  if (mMobileViewportManager) {
-    
-    
-    
-    mMobileViewportManager->RequestReflow();
-    return NS_OK;
-  }
-
   return ResizeReflowIgnoreOverride(aWidth, aHeight);
 }
 
