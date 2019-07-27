@@ -51,7 +51,8 @@ class Promise;
 class PromiseReportRejectFeature : public workers::WorkerFeature
 {
   
-  Promise* mPromise;
+  
+  Promise* MOZ_NON_OWNING_REF mPromise;
 
 public:
   explicit PromiseReportRejectFeature(Promise* aPromise)
