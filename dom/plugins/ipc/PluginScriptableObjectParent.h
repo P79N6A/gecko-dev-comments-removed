@@ -22,12 +22,17 @@ class PluginScriptableObjectParent;
 struct ParentNPObject : NPObject
 {
   ParentNPObject()
-    : NPObject(), parent(nullptr), invalidated(false) { }
+    : NPObject()
+    , parent(nullptr)
+    , invalidated(false)
+    , asyncWrapperCount(0)
+  {}
 
   
   
   PluginScriptableObjectParent* parent;
   bool invalidated;
+  int32_t asyncWrapperCount;
 };
 
 class PluginScriptableObjectParent : public PPluginScriptableObjectParent
