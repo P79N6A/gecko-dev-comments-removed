@@ -1104,17 +1104,8 @@ nsMemoryReporterManager::StartGettingReports()
   GetReportsState* s = mGetReportsState;
 
   
-  FILE *parentDMDFile = nullptr;
-#ifdef MOZ_DMD
-  nsresult rv = nsMemoryInfoDumper::OpenDMDFile(s->mDMDDumpIdent, getpid(),
-                                                &parentDMDFile);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    
-    parentDMDFile = nullptr;
-  }
-#endif
   GetReportsForThisProcessExtended(s->mHandleReport, s->mHandleReportData,
-                                   s->mAnonymize, parentDMDFile);
+                                   s->mAnonymize, s->mDMDDumpIdent);
   s->mParentDone = true;
 
   
@@ -1147,13 +1138,13 @@ nsMemoryReporterManager::GetReportsForThisProcess(
   nsISupports* aHandleReportData, bool aAnonymize)
 {
   return GetReportsForThisProcessExtended(aHandleReport, aHandleReportData,
-                                          aAnonymize, nullptr);
+                                          aAnonymize, nsString());
 }
 
 NS_IMETHODIMP
 nsMemoryReporterManager::GetReportsForThisProcessExtended(
   nsIHandleReportCallback* aHandleReport, nsISupports* aHandleReportData,
-  bool aAnonymize, FILE* aDMDFile)
+  bool aAnonymize, const nsAString& aDMDDumpIdent)
 {
   
   
@@ -1162,13 +1153,11 @@ nsMemoryReporterManager::GetReportsForThisProcessExtended(
   }
 
 #ifdef MOZ_DMD
-  if (aDMDFile) {
+  if (!aDMDDumpIdent.IsEmpty()) {
     
     
     dmd::ClearReports();
   }
-#else
-  MOZ_ASSERT(!aDMDFile);
 #endif
 
   MemoryReporterArray allReporters;
@@ -1183,8 +1172,8 @@ nsMemoryReporterManager::GetReportsForThisProcessExtended(
   }
 
 #ifdef MOZ_DMD
-  if (aDMDFile) {
-    return nsMemoryInfoDumper::DumpDMDToFile(aDMDFile);
+  if (!aDMDDumpIdent.IsEmpty()) {
+    return nsMemoryInfoDumper::DumpDMD(aDMDDumpIdent);
   }
 #endif
 

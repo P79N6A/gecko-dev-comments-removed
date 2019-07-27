@@ -508,12 +508,12 @@ NS_IMPL_ISUPPORTS(DumpReportCallback, nsIHandleReportCallback)
 
 static void
 MakeFilename(const char* aPrefix, const nsAString& aIdentifier,
-             int aPid, const char* aSuffix, nsACString& aResult)
+             const char* aSuffix, nsACString& aResult)
 {
   aResult = nsPrintfCString("%s-%s-%d.%s",
                             aPrefix,
                             NS_ConvertUTF16toUTF8(aIdentifier).get(),
-                            aPid, aSuffix);
+                            getpid(), aSuffix);
 }
 
 #ifdef MOZ_DMD
@@ -633,8 +633,7 @@ nsMemoryInfoDumper::DumpMemoryInfoToTempDir(const nsAString& aIdentifier,
   
   
   
-  MakeFilename("unified-memory-report", identifier, getpid(), "json.gz",
-               mrFilename);
+  MakeFilename("unified-memory-report", identifier, "json.gz", mrFilename);
 
   nsCOMPtr<nsIFile> mrTmpFile;
   nsresult rv;
@@ -677,25 +676,24 @@ nsMemoryInfoDumper::DumpMemoryInfoToTempDir(const nsAString& aIdentifier,
 
 #ifdef MOZ_DMD
 nsresult
-nsMemoryInfoDumper::OpenDMDFile(const nsAString& aIdentifier, int aPid,
-                                FILE** aOutFile)
+nsMemoryInfoDumper::DumpDMD(const nsAString& aIdentifier)
 {
   if (!dmd::IsRunning()) {
-    *aOutFile = nullptr;
     return NS_OK;
   }
+
+  nsresult rv;
 
   
   
   nsCString dmdFilename;
-  MakeFilename("dmd", aIdentifier, aPid, "txt.gz", dmdFilename);
+  MakeFilename("dmd", aIdentifier, "txt.gz", dmdFilename);
 
   
   
   
   
 
-  nsresult rv;
   nsCOMPtr<nsIFile> dmdFile;
   rv = nsDumpUtils::OpenTempFile(dmdFilename,
                                  getter_AddRefs(dmdFile),
@@ -703,21 +701,15 @@ nsMemoryInfoDumper::OpenDMDFile(const nsAString& aIdentifier, int aPid,
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
-  rv = dmdFile->OpenANSIFileDesc("wb", aOutFile);
-  NS_WARN_IF(NS_FAILED(rv));
-  return rv;
-}
 
-nsresult
-nsMemoryInfoDumper::DumpDMDToFile(FILE* aFile)
-{
   nsRefPtr<nsGZFileWriter> dmdWriter = new nsGZFileWriter();
-  nsresult rv = dmdWriter->InitANSIFileDesc(aFile);
+  rv = dmdWriter->Init(dmdFile);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
 
   
+
   DMDWriteState state(dmdWriter);
   dmd::Writer w(DMDWrite, &state);
   dmd::Dump(w);
@@ -725,21 +717,6 @@ nsMemoryInfoDumper::DumpDMDToFile(FILE* aFile)
   rv = dmdWriter->Finish();
   NS_WARN_IF(NS_FAILED(rv));
   return rv;
-}
-
-nsresult
-nsMemoryInfoDumper::DumpDMD(const nsAString& aIdentifier)
-{
-  nsresult rv;
-  FILE* dmdFile;
-  rv = OpenDMDFile(aIdentifier, getpid(), &dmdFile);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-  if (!dmdFile) {
-    return NS_OK;
-  }
-  return DumpDMDToFile(dmdFile);
 }
 #endif  
 

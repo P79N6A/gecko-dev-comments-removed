@@ -91,13 +91,11 @@ FILE*
 FileDescriptorToFILE(const FileDescriptor& aDesc,
                      const char* aOpenMode)
 {
-  
-  
-  FileDescriptor::PlatformHandleType handle = aDesc.PlatformHandle();
   if (!aDesc.IsValid()) {
     errno = EBADF;
     return nullptr;
   }
+  FileDescriptor::PlatformHandleType handle = aDesc.PlatformHandle();
 #ifdef XP_WIN
   int fd = _open_osfhandle(reinterpret_cast<intptr_t>(handle), 0);
   if (fd == -1) {

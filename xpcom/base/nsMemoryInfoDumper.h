@@ -8,7 +8,6 @@
 #define mozilla_nsMemoryInfoDumper_h
 
 #include "nsIMemoryInfoDumper.h"
-#include <stdio.h>
 
 class nsACString;
 
@@ -32,14 +31,7 @@ public:
   static void Initialize();
 
 #ifdef MOZ_DMD
-  
   static nsresult DumpDMD(const nsAString& aIdentifier);
-  
-  
-  static nsresult OpenDMDFile(const nsAString& aIdentifier, int aPid,
-                              FILE** aOutFile);
-  
-  static nsresult DumpDMDToFile(FILE* aFile);
 #endif
 };
 
