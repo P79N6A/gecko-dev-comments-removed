@@ -158,9 +158,6 @@ public interface TelemetryContract {
         NONE(null),
 
         
-        NOTIFICATION("notification"),
-
-        
         
         PAGEACTION("pageaction"),
 
