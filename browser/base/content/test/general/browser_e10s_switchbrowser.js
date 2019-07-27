@@ -52,8 +52,7 @@ let check_history = Task.async(function*() {
 
 let waitForLoad = Task.async(function*(uri) {
   info("Loading " + uri);
-  
-  gBrowser.selectedBrowser.webNavigation.loadURI(uri, Ci.nsIWebNavigation.LOAD_FLAGS_NONE, null, null, null);
+  gBrowser.loadURI(uri);
 
   yield waitForDocLoadComplete();
   gExpectedHistory.index++;
@@ -79,7 +78,7 @@ let forward = Task.async(function*() {
 
 
 
-add_task(function* test_navigation() {
+add_task(function*() {
   SimpleTest.requestCompleteLog();
 
   let remoting = Services.prefs.getBoolPref("browser.tabs.remote.autostart");
@@ -139,59 +138,5 @@ add_task(function* test_navigation() {
   yield check_history();
 
   info("9");
-  yield back();
-  is(gBrowser.selectedTab.getAttribute("remote"), "", "Remote attribute should be correct");
-  is(gBrowser.selectedBrowser.permanentKey, permanentKey, "browser.permanentKey is still the same");
-  yield check_history();
-
-  info("10");
-  
-  gExpectedHistory.entries.splice(gExpectedHistory.entries.length - 1, 1);
-  yield waitForLoad("http://example.com/" + DUMMY_PATH);
-  is(gBrowser.selectedTab.getAttribute("remote"), expectedRemote, "Remote attribute should be correct");
-  is(gBrowser.selectedBrowser.permanentKey, permanentKey, "browser.permanentKey is still the same");
-  yield check_history();
-
-  info("11");
-  gBrowser.removeCurrentTab();
-});
-
-
-
-add_task(function* test_synchronous() {
-  let remoting = Services.prefs.getBoolPref("browser.tabs.remote.autostart");
-  let expectedRemote = remoting ? "true" : "";
-
-  info("1");
-  
-  gBrowser.selectedTab = gBrowser.addTab("about:blank", {skipAnimation: true});
-  let {permanentKey} = gBrowser.selectedBrowser;
-  yield waitForLoad("http://example.org/" + DUMMY_PATH);
-  is(gBrowser.selectedTab.getAttribute("remote"), expectedRemote, "Remote attribute should be correct");
-  is(gBrowser.selectedBrowser.permanentKey, permanentKey, "browser.permanentKey is still the same");
-
-  info("2");
-  
-  info("Loading about:robots");
-  gBrowser.selectedBrowser.loadURI("about:robots");
-  is(gBrowser.selectedTab.getAttribute("remote"), "", "Remote attribute should be correct");
-  is(gBrowser.selectedBrowser.permanentKey, permanentKey, "browser.permanentKey is still the same");
-
-  yield waitForDocLoadComplete();
-  is(gBrowser.selectedTab.getAttribute("remote"), "", "Remote attribute should be correct");
-  is(gBrowser.selectedBrowser.permanentKey, permanentKey, "browser.permanentKey is still the same");
-
-  info("3");
-  
-  info("Loading http://example.org/" + DUMMY_PATH);
-  gBrowser.loadURI("http://example.org/" + DUMMY_PATH);
-  is(gBrowser.selectedTab.getAttribute("remote"), expectedRemote, "Remote attribute should be correct");
-  is(gBrowser.selectedBrowser.permanentKey, permanentKey, "browser.permanentKey is still the same");
-
-  yield waitForDocLoadComplete();
-  is(gBrowser.selectedTab.getAttribute("remote"), expectedRemote, "Remote attribute should be correct");
-  is(gBrowser.selectedBrowser.permanentKey, permanentKey, "browser.permanentKey is still the same");
-
-  info("4");
   gBrowser.removeCurrentTab();
 });

@@ -159,7 +159,7 @@ ContentRestoreInternal.prototype = {
 
 
 
-  restoreTabContent: function (loadArguments, finishCallback) {
+  restoreTabContent: function (finishCallback) {
     let tabData = this._tabData;
     this._tabData = null;
 
@@ -188,19 +188,7 @@ ContentRestoreInternal.prototype = {
     webNavigation.setCurrentURI(Utils.makeURI("about:blank"));
 
     try {
-      if (loadArguments) {
-        
-        
-        let activeIndex = tabData.index - 1;
-        if (activeIndex > 0) {
-          
-          history.getEntryAtIndex(activeIndex, true);
-        }
-        let referrer = loadArguments.referrer ?
-                       Utils.makeURI(loadArguments.referrer) : null;
-        webNavigation.loadURI(loadArguments.uri, loadArguments.loadFlags,
-                              referrer, null, null);
-      } else if (tabData.userTypedValue && tabData.userTypedClear) {
+      if (tabData.userTypedValue && tabData.userTypedClear) {
         
         
         

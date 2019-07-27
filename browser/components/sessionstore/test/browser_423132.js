@@ -25,51 +25,48 @@ function test() {
   newWin.addEventListener("load", function (aEvent) {
     newWin.removeEventListener("load", arguments.callee, false);
 
-    
-    executeSoon(function() {
-      newWin.gBrowser.loadURI(testURL, null, null);
+    newWin.gBrowser.loadURI(testURL, null, null);
 
-      whenBrowserLoaded(newWin.gBrowser.selectedBrowser, function() {
-        
-        TabState.flush(newWin.gBrowser.selectedBrowser);
-        let state = ss.getWindowState(newWin);
+    whenBrowserLoaded(newWin.gBrowser.selectedBrowser, function() {
+      
+      TabState.flush(newWin.gBrowser.selectedBrowser);
+      let state = ss.getWindowState(newWin);
 
-        
-        let e = cs.enumerator;
-        let cookie;
-        let i = 0;
-        while (e.hasMoreElements()) {
-          cookie = e.getNext().QueryInterface(Ci.nsICookie);
-          i++;
-        }
-        is(i, 1, "expected one cookie");
+      
+      let e = cs.enumerator;
+      let cookie;
+      let i = 0;
+      while (e.hasMoreElements()) {
+        cookie = e.getNext().QueryInterface(Ci.nsICookie);
+        i++;
+      }
+      is(i, 1, "expected one cookie");
 
-        
-        cs.removeAll();
+      
+      cs.removeAll();
 
-        
-        ss.setWindowState(newWin, state, true);
+      
+      ss.setWindowState(newWin, state, true);
 
-        
-        e = cs.enumerator;
-        let cookie2;
-        while (e.hasMoreElements()) {
-          cookie2 = e.getNext().QueryInterface(Ci.nsICookie);
-          if (cookie.name == cookie2.name)
-            break;
-        }
-        is(cookie.name, cookie2.name, "cookie name successfully restored");
-        is(cookie.value, cookie2.value, "cookie value successfully restored");
-        is(cookie.path, cookie2.path, "cookie path successfully restored");
+      
+      e = cs.enumerator;
+      let cookie2;
+      while (e.hasMoreElements()) {
+        cookie2 = e.getNext().QueryInterface(Ci.nsICookie);
+        if (cookie.name == cookie2.name)
+          break;
+      }
+      is(cookie.name, cookie2.name, "cookie name successfully restored");
+      is(cookie.value, cookie2.value, "cookie value successfully restored");
+      is(cookie.path, cookie2.path, "cookie path successfully restored");
 
-        
-        if (gPrefService.prefHasUserValue("browser.sessionstore.interval"))
-          gPrefService.clearUserPref("browser.sessionstore.interval");
-        cs.removeAll();
-        newWin.close();
-        finish();
-      }, true, testURL);
-    });
+      
+      if (gPrefService.prefHasUserValue("browser.sessionstore.interval"))
+        gPrefService.clearUserPref("browser.sessionstore.interval");
+      cs.removeAll();
+      newWin.close();
+      finish();
+    }, true, testURL);
   }, false);
 }
 

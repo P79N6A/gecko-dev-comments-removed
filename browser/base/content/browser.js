@@ -801,60 +801,32 @@ function gKeywordURIFixup({ target: browser, data: fixupInfo }) {
 
 
 
-function _loadURIWithFlags(browser, uri, flags, referrer, charset, postdata) {
-  if (!uri) {
-    uri = "about:blank";
-  }
-
-  if (!(flags & browser.webNavigation.LOAD_FLAGS_FROM_EXTERNAL)) {
-    browser.userTypedClear++;
-  }
-
-  try {
-    let shouldBeRemote = gMultiProcessBrowser &&
-                         E10SUtils.shouldBrowserBeRemote(uri);
-    if (browser.isRemoteBrowser == shouldBeRemote) {
-      browser.webNavigation.loadURI(uri, flags, referrer, postdata, null);
-    } else {
-      LoadInOtherProcess(browser, {
-        uri: uri,
-        flags: flags,
-        referrer: referrer ? referrer.spec : null,
-      });
-    }
-  } finally {
-    if (browser.userTypedClear) {
-      browser.userTypedClear--;
-    }
-  }
-}
-
-
-
-function LoadInOtherProcess(browser, loadOptions, historyIndex = -1) {
+function RedirectLoad({ target: browser, data }) {
   let tab = gBrowser.getTabForBrowser(browser);
   
   TabState.flush(browser);
   let tabState = JSON.parse(SessionStore.getTabState(tab));
 
-  if (historyIndex < 0) {
-    tabState.userTypedValue = null;
+  if (data.historyIndex < 0) {
     
-    SessionStore._restoreTabAndLoad(tab, JSON.stringify(tabState), loadOptions);
+    let newEntry = {
+      url: data.uri,
+      referrer: data.referrer,
+    };
+
+    tabState.entries = tabState.entries.slice(0, tabState.index);
+    tabState.entries.push(newEntry);
+    tabState.index++;
+    tabState.userTypedValue = null;
   }
   else {
     
-    tabState.index = historyIndex + 1;
-    
-    
-    SessionStore.setTabState(tab, JSON.stringify(tabState));
+    tabState.index = data.historyIndex + 1;
   }
-}
 
-
-
-function RedirectLoad({ target: browser, data }) {
-  LoadInOtherProcess(browser, data.loadOptions, data.historyIndex);
+  
+  
+  SessionStore.setTabState(tab, JSON.stringify(tabState));
 }
 
 var gBrowserInit = {

@@ -192,16 +192,6 @@ this.SessionStore = {
     SessionStoreInternal.setTabState(aTab, aState);
   },
 
-  
-  
-  
-  _restoreTabAndLoad: function ss_restoreTabAndLoad(aTab, aState, aLoadArguments) {
-    SessionStoreInternal.setTabState(aTab, aState, {
-      restoreImmediately: true,
-      loadArguments: aLoadArguments
-    });
-  },
-
   duplicateTab: function ss_duplicateTab(aWindow, aTab, aDelta = 0) {
     return SessionStoreInternal.duplicateTab(aWindow, aTab, aDelta);
   },
@@ -1582,7 +1572,7 @@ let SessionStoreInternal = {
     return this._toJSONString(tabState);
   },
 
-  setTabState: function ssi_setTabState(aTab, aState, aOptions) {
+  setTabState: function ssi_setTabState(aTab, aState) {
     
     
     
@@ -1607,7 +1597,7 @@ let SessionStoreInternal = {
       this._resetTabRestoringState(aTab);
     }
 
-    this.restoreTab(aTab, tabState, aOptions);
+    this.restoreTab(aTab, tabState);
   },
 
   duplicateTab: function ssi_duplicateTab(aWindow, aTab, aDelta = 0) {
@@ -1633,9 +1623,7 @@ let SessionStoreInternal = {
       aWindow.gBrowser.addTab(null, {relatedToCurrent: true, ownerTab: aTab}) :
       aWindow.gBrowser.addTab();
 
-    this.restoreTab(newTab, tabState, {
-      restoreImmediately: true 
-    });
+    this.restoreTab(newTab, tabState, true );
     return newTab;
   },
 
@@ -2539,9 +2527,7 @@ let SessionStoreInternal = {
   },
 
   
-  restoreTab(tab, tabData, options = {}) {
-    let restoreImmediately = options.restoreImmediately;
-    let loadArguments = options.loadArguments;
+  restoreTab(tab, tabData, restoreImmediately = false) {
     let browser = tab.linkedBrowser;
     let window = tab.ownerDocument.defaultView;
     let tabbrowser = window.gBrowser;
@@ -2609,9 +2595,6 @@ let SessionStoreInternal = {
     
     let activePageData = tabData.entries[activeIndex] || null;
     let uri = activePageData ? activePageData.url || null : null;
-    if (loadArguments) {
-      uri = loadArguments.uri;
-    }
     tabbrowser.updateBrowserRemotenessByURL(browser, uri);
 
     
@@ -2647,8 +2630,8 @@ let SessionStoreInternal = {
 
     
     
-    if (restoreImmediately || tabbrowser.selectedBrowser == browser || loadArguments) {
-      this.restoreTabContent(tab, loadArguments);
+    if (restoreImmediately || tabbrowser.selectedBrowser == browser) {
+      this.restoreTabContent(tab);
     } else {
       TabRestoreQueue.add(tab);
       this.restoreNextTab();
@@ -2675,7 +2658,7 @@ let SessionStoreInternal = {
 
 
 
-  restoreTabContent: function (aTab, aLoadArguments = null) {
+  restoreTabContent: function (aTab) {
     let window = aTab.ownerDocument.defaultView;
     let browser = aTab.linkedBrowser;
     let tabData = browser.__SS_data;
@@ -2704,8 +2687,7 @@ let SessionStoreInternal = {
 
     browser.__SS_restore_tab = aTab;
 
-    browser.messageManager.sendAsyncMessage("SessionStore:restoreTabContent",
-      {loadArguments: aLoadArguments});
+    browser.messageManager.sendAsyncMessage("SessionStore:restoreTabContent");
   },
 
   
