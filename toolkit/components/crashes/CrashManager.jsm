@@ -131,10 +131,19 @@ this.CrashManager.prototype = Object.freeze({
   PROCESS_TYPE_PLUGIN: "plugin",
 
   
+  PROCESS_TYPE_SUBMISSION: "submission",
+
+  
   CRASH_TYPE_CRASH: "crash",
 
   
   CRASH_TYPE_HANG: "hang",
+
+  
+  SUBMISSION_TYPE_SUCCEEDED: "succeeded",
+
+  
+  SUBMISSION_TYPE_FAILED: "failed",
 
   DUMP_REGEX: /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.dmp$/i,
   SUBMITTED_REGEX: /^bp-(?:hr-)?([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.txt$/i,
@@ -365,6 +374,38 @@ this.CrashManager.prototype = Object.freeze({
 
 
 
+
+
+
+
+
+
+  addSubmission: function (processType, crashType, succeeded, id, date) {
+    return Task.spawn(function* () {
+      let store = yield this._getStore();
+      if (this._addSubmissionAsCrash(store, processType, crashType, succeeded,
+                                     id, date)) {
+        yield store.save();
+      }
+    }.bind(this));
+  },
+
+  _addSubmissionAsCrash: function (store, processType, crashType, succeeded,
+                                   id, date) {
+    let id = id + "-" + this.PROCESS_TYPE_SUBMISSION;
+    let process = processType + "-" + crashType + "-" +
+                  this.PROCESS_TYPE_SUBMISSION;
+    let submission_type = (
+      succeeded ? this.SUBMISSION_TYPE_SUCCEEDED : this.SUBMISSION_TYPE_FAILED);
+
+    return store.addCrash(process, submission_type, id, date);
+  },
+
+  
+
+
+
+
   _getUnprocessedEventsFiles: function () {
     return Task.spawn(function* () {
       let entries = [];
@@ -425,27 +466,35 @@ this.CrashManager.prototype = Object.freeze({
       
       
       
-
       
-      let eventMap = {
-        "crash.main.1": ["main", "crash"],
-      };
+      let lines = payload.split("\n");
 
-      if (type in eventMap) {
-        let lines = payload.split("\n");
-        if (lines.length > 1) {
-          this._log.warn("Multiple lines unexpected in payload for " +
-                         entry.path);
-          return this.EVENT_FILE_ERROR_MALFORMED;
-        }
+      switch (type) {
+        case "crash.main.1":
+          if (lines.length > 1) {
+            this._log.warn("Multiple lines unexpected in payload for " +
+                           entry.path);
+            return this.EVENT_FILE_ERROR_MALFORMED;
+          }
+          store.addCrash(this.PROCESS_TYPE_MAIN, this.CRASH_TYPE_CRASH,
+                         payload, date);
+          break;
 
-        store.addCrash(...eventMap[type], payload, date);
-        return this.EVENT_FILE_SUCCESS;
+        case "crash.submission.1":
+          if (lines.length == 3) {
+            this._addSubmissionAsCrash(store, this.PROCESS_TYPE_MAIN,
+                                       this.CRASH_TYPE_CRASH,
+                                       lines[1] === "true", lines[0], date);
+          } else {
+            return this.EVENT_FILE_ERROR_MALFORMED;
+          }
+          break;
+
+        default:
+          return this.EVENT_FILE_ERROR_UNKNOWN_EVENT;
       }
 
-      
-
-      return this.EVENT_FILE_ERROR_UNKNOWN_EVENT;
+      return this.EVENT_FILE_SUCCESS;
   },
 
   
