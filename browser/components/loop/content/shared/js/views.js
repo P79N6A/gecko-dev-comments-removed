@@ -251,12 +251,14 @@ loop.shared.views = (function(_, l10n) {
       sdk: React.PropTypes.object.isRequired,
       video: React.PropTypes.object,
       audio: React.PropTypes.object,
-      initiate: React.PropTypes.bool
+      initiate: React.PropTypes.bool,
+      isDesktop: React.PropTypes.bool
     },
 
     getDefaultProps: function() {
       return {
         initiate: true,
+        isDesktop: false,
         video: {enabled: true, visible: true},
         audio: {enabled: true, visible: true}
       };
@@ -271,6 +273,23 @@ loop.shared.views = (function(_, l10n) {
 
     componentDidMount: function() {
       if (this.props.initiate) {
+        
+
+
+
+
+        if (this.props.isDesktop &&
+            !window.MediaStreamTrack.getSources) {
+          
+          
+          
+          window.MediaStreamTrack.getSources = function(callback) {
+            callback([{kind: "audio"}, {kind: "video"}]);
+          };
+        }
+
+        this.listenTo(this.props.sdk, "exception", this._handleSdkException.bind(this));
+
         this.listenTo(this.props.model, "session:connected",
                                         this._onSessionConnected);
         this.listenTo(this.props.model, "session:stream-created",
@@ -315,6 +334,35 @@ loop.shared.views = (function(_, l10n) {
         this.getDefaultPublisherConfig({
           publishVideo: this.props.video.enabled
         }));
+    },
+
+    
+
+
+
+
+
+
+    _handleSdkException: function(event) {
+      
+
+
+
+
+      if (this.publisher &&
+          event.code === OT.ExceptionCodes.UNABLE_TO_PUBLISH &&
+          event.message === "GetUserMedia" &&
+          this.state.video.enabled) {
+        this.state.video.enabled = false;
+
+        window.MediaStreamTrack.getSources = function(callback) {
+          callback([{kind: "audio"}]);
+        };
+
+        this.stopListening(this.publisher);
+        this.publisher.destroy();
+        this.startPublishing();
+      }
     },
 
     
