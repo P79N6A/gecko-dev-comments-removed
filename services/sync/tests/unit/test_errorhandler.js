@@ -472,6 +472,22 @@ add_identity_test(this, function test_shouldReportError_master_password() {
 
 
 
+add_identity_test(this, function test_shouldReportLoginErrorWithNoCluster() {
+  
+  Service.serverURL  = "";
+  Service.clusterURL = "";
+
+  
+  Status.resetSync();
+  Status.login = LOGIN_FAILED_LOGIN_REJECTED;
+  
+  do_check_false(errorHandler.shouldReportError());
+  
+  do_check_true(errorHandler.shouldReportError("weave:service:login:error"));
+});
+
+
+
 add_task(function test_login_syncAndReportErrors_non_network_error() {
   
   

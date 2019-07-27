@@ -628,7 +628,7 @@ ErrorHandler.prototype = {
         this.resetFileLog(Svc.Prefs.get("log.appender.file.logOnError"),
                           LOG_PREFIX_ERROR);
 
-        if (this.shouldReportError()) {
+        if (this.shouldReportError(topic)) {
           this.notifyOnNextTick("weave:ui:login:error");
         } else {
           this.notifyOnNextTick("weave:ui:clear-error");
@@ -644,7 +644,7 @@ ErrorHandler.prototype = {
         this.resetFileLog(Svc.Prefs.get("log.appender.file.logOnError"),
                           LOG_PREFIX_ERROR);
 
-        if (this.shouldReportError()) {
+        if (this.shouldReportError(topic)) {
           this.notifyOnNextTick("weave:ui:sync:error");
         } else {
           this.notifyOnNextTick("weave:ui:sync:finish");
@@ -671,7 +671,7 @@ ErrorHandler.prototype = {
           this.resetFileLog(Svc.Prefs.get("log.appender.file.logOnError"),
                             LOG_PREFIX_ERROR);
 
-          if (this.shouldReportError()) {
+          if (this.shouldReportError(topic)) {
             this.dontIgnoreErrors = false;
             this.notifyOnNextTick("weave:ui:sync:error");
             break;
@@ -827,7 +827,7 @@ ErrorHandler.prototype = {
     }
   },
 
-  shouldReportError: function shouldReportError() {
+  shouldReportError: function shouldReportError(topic = "") {
     if (Status.login == MASTER_PASSWORD_LOCKED) {
       this._log.trace("shouldReportError: false (master password locked).");
       return false;
@@ -854,7 +854,8 @@ ErrorHandler.prototype = {
     
     
     
-    if (!this.service.clusterURL) {
+    
+    if (topic != "weave:service:login:error" && !this.service.clusterURL) {
       this._log.trace("shouldReportError: false (no cluster URL; " +
                       "possible node reassignment).");
       return false;
