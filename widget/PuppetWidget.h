@@ -313,7 +313,7 @@ private:
   mozilla::RefPtr<DrawTarget> mDrawTarget;
   
   nsIMEUpdatePreference mIMEPreferenceOfParent;
-  ContentCache mContentCache;
+  ContentCacheInChild mContentCache;
   bool mNeedIMEStateInit;
 
   

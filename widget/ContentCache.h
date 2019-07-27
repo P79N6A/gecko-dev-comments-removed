@@ -26,6 +26,7 @@ namespace widget {
 struct IMENotification;
 }
 
+class ContentCacheInParent;
 
 
 
@@ -33,10 +34,7 @@ struct IMENotification;
 
 
 
-
-
-
-class ContentCache final
+class ContentCache
 {
 public:
   typedef InfallibleTArray<LayoutDeviceIntRect> RectArray;
@@ -44,119 +42,9 @@ public:
 
   ContentCache();
 
-  
-
-
-
-
-  void Clear();
-
-  
-
-
-
-
-
-  void AssignContent(const ContentCache& aOther,
-                     const IMENotification* aNotification = nullptr);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  bool HandleQueryContentEvent(WidgetQueryContentEvent& aEvent,
-                               nsIWidget* aWidget) const;
-
-  
-
-
-
-
-
-  bool CacheEditorRect(nsIWidget* aWidget,
-                       const IMENotification* aNotification = nullptr);
-  bool CacheSelection(nsIWidget* aWidget,
-                      const IMENotification* aNotification = nullptr);
-  bool CacheText(nsIWidget* aWidget,
-                 const IMENotification* aNotification = nullptr);
-
-  bool CacheAll(nsIWidget* aWidget,
-                const IMENotification* aNotification = nullptr);
-
-  
-
-
-
-
-  bool OnCompositionEvent(const WidgetCompositionEvent& aCompositionEvent);
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  uint32_t RequestToCommitComposition(nsIWidget* aWidget,
-                                      bool aCancel,
-                                      nsAString& aLastString);
-
-  
-
-
-
-
-  void InitNotification(IMENotification& aNotification) const;
-
-  
-
-
-
-
-  void SetSelection(nsIWidget* aWidget,
-                    uint32_t aStartOffset,
-                    uint32_t aLength,
-                    bool aReversed,
-                    const WritingMode& aWritingMode);
-
-private:
+protected:
   
   nsString mText;
-  
-  
-  nsString mCommitStringByRequest;
-  
-  
-  uint32_t mCompositionStart;
-  
-  
-  
-  uint32_t mCompositionEventsDuringRequest;
 
   struct Selection final
   {
@@ -333,12 +221,47 @@ private:
 
   LayoutDeviceIntRect mEditorRect;
 
-  
-  bool mIsComposing;
-  
-  bool mRequestedToCommitOrCancelComposition;
-  bool mIsChrome;
+  friend class ContentCacheInParent;
+  friend struct IPC::ParamTraits<ContentCache>;
+};
 
+class ContentCacheInChild final : public ContentCache
+{
+public:
+  ContentCacheInChild();
+
+  
+
+
+
+  void Clear();
+
+  
+
+
+
+
+  bool CacheEditorRect(nsIWidget* aWidget,
+                       const IMENotification* aNotification = nullptr);
+  bool CacheSelection(nsIWidget* aWidget,
+                      const IMENotification* aNotification = nullptr);
+  bool CacheText(nsIWidget* aWidget,
+                 const IMENotification* aNotification = nullptr);
+
+  bool CacheAll(nsIWidget* aWidget,
+                const IMENotification* aNotification = nullptr);
+
+  
+
+
+
+  void SetSelection(nsIWidget* aWidget,
+                    uint32_t aStartOffset,
+                    uint32_t aLength,
+                    bool aReversed,
+                    const WritingMode& aWritingMode);
+
+private:
   bool QueryCharRect(nsIWidget* aWidget,
                      uint32_t aOffset,
                      LayoutDeviceIntRect& aCharRect) const;
@@ -346,6 +269,87 @@ private:
                   const IMENotification* aNotification = nullptr);
   bool CacheTextRects(nsIWidget* aWidget,
                       const IMENotification* aNotification = nullptr);
+};
+
+class ContentCacheInParent final : public ContentCache
+{
+public:
+  ContentCacheInParent();
+
+  
+
+
+
+
+  void AssignContent(const ContentCache& aOther,
+                     const IMENotification* aNotification = nullptr);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  bool HandleQueryContentEvent(WidgetQueryContentEvent& aEvent,
+                               nsIWidget* aWidget) const;
+
+  
+
+
+
+  bool OnCompositionEvent(const WidgetCompositionEvent& aCompositionEvent);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  uint32_t RequestToCommitComposition(nsIWidget* aWidget,
+                                      bool aCancel,
+                                      nsAString& aLastString);
+
+  
+
+
+
+
+  void InitNotification(IMENotification& aNotification) const;
+
+private:
+  
+  nsString mCommitStringByRequest;
+  
+  uint32_t mCompositionStart;
+  
+  
+  uint32_t mCompositionEventsDuringRequest;
+
+  bool mIsComposing;
+  bool mRequestedToCommitOrCancelComposition;
 
   bool GetCaretRect(uint32_t aOffset, LayoutDeviceIntRect& aCaretRect) const;
   bool GetTextRect(uint32_t aOffset,
@@ -354,7 +358,6 @@ private:
                          uint32_t aLength,
                          LayoutDeviceIntRect& aUnionTextRect) const;
 
-  friend struct IPC::ParamTraits<ContentCache>;
 };
 
 } 
