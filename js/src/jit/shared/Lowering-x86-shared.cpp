@@ -489,6 +489,129 @@ LIRGeneratorX86Shared::visitAtomicTypedArrayElementBinop(MAtomicTypedArrayElemen
 }
 
 bool
+LIRGeneratorX86Shared::visitAsmJSCompareExchangeHeap(MAsmJSCompareExchangeHeap *ins)
+{
+    MDefinition *ptr = ins->ptr();
+    MOZ_ASSERT(ptr->type() == MIRType_Int32);
+
+    bool byteArray = false;
+    switch (ins->viewType()) {
+      case Scalar::Int8:
+      case Scalar::Uint8:
+        byteArray = true;
+        break;
+      case Scalar::Int16:
+      case Scalar::Uint16:
+      case Scalar::Int32:
+      case Scalar::Uint32:
+        break;
+      default:
+        MOZ_CRASH("Unexpected array type");
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    const LAllocation newval = byteArray ? useFixed(ins->newValue(), ebx) : useRegister(ins->newValue());
+    const LAllocation oldval = useRegister(ins->oldValue());
+
+    LAsmJSCompareExchangeHeap *lir =
+        new(alloc()) LAsmJSCompareExchangeHeap(useRegister(ptr), oldval, newval);
+
+    return defineFixed(lir, ins, LAllocation(AnyRegister(eax)));
+}
+
+bool
+LIRGeneratorX86Shared::visitAsmJSAtomicBinopHeap(MAsmJSAtomicBinopHeap *ins)
+{
+    MDefinition *ptr = ins->ptr();
+    MOZ_ASSERT(ptr->type() == MIRType_Int32);
+
+    bool byteArray = false;
+    switch (ins->viewType()) {
+      case Scalar::Int8:
+      case Scalar::Uint8:
+        byteArray = true;
+        break;
+      case Scalar::Int16:
+      case Scalar::Uint16:
+      case Scalar::Int32:
+      case Scalar::Uint32:
+        break;
+      default:
+        MOZ_CRASH("Unexpected array type");
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    bool bitOp = !(ins->operation() == AtomicFetchAddOp || ins->operation() == AtomicFetchSubOp);
+    LDefinition tempDef = LDefinition::BogusTemp();
+    LAllocation value;
+
+    
+    
+    
+
+    if (byteArray) {
+        value = useFixed(ins->value(), ebx);
+        if (bitOp)
+            tempDef = tempFixed(ecx);
+    } else {
+        value = useRegister(ins->value());
+        if (bitOp)
+            tempDef = temp();
+    }
+
+    LAsmJSAtomicBinopHeap *lir =
+        new(alloc()) LAsmJSAtomicBinopHeap(useRegister(ptr), value, tempDef);
+
+    return defineFixed(lir, ins, LAllocation(AnyRegister(eax)));
+}
+
+bool
 LIRGeneratorX86Shared::visitSimdTernaryBitwise(MSimdTernaryBitwise *ins)
 {
     MOZ_ASSERT(IsSimdType(ins->type()));

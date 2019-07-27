@@ -778,8 +778,9 @@ AsmJSModule::initHeap(Handle<ArrayBufferObjectMaybeShared *> heap, JSContext *cx
         X86Assembler::setPointer(addr, (void *)(heapOffset + disp));
     }
 #elif defined(JS_CODEGEN_X64)
-    if (usesSignalHandlersForOOB())
-        return;
+    
+    
+    
     
     
     
