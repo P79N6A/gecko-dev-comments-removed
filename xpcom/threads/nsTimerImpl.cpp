@@ -650,11 +650,9 @@ nsTimerImpl::Fire()
   mFiring = false;
   mTimerCallbackWhileFiring = nullptr;
 
-  if (PR_LOG_TEST(GetTimerLog(), PR_LOG_DEBUG)) {
-    PR_LOG(GetTimerLog(), PR_LOG_DEBUG,
-           ("[this=%p] Took %fms to fire timer callback\n",
-            this, (TimeStamp::Now() - now).ToMilliseconds()));
-  }
+  PR_LOG(GetTimerLog(), PR_LOG_DEBUG,
+         ("[this=%p] Took %fms to fire timer callback\n",
+          this, (TimeStamp::Now() - now).ToMilliseconds()));
 
   
   
