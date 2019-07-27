@@ -17,6 +17,7 @@ function nativeVerticalWheelEventMsg() {
   switch (getPlatform()) {
     case "windows": return 0x020A; 
     case "mac": return 0; 
+    case "linux": return 4; 
   }
   throw "Native wheel events not supported on platform " + getPlatform();
 }
@@ -25,6 +26,7 @@ function nativeHorizontalWheelEventMsg() {
   switch (getPlatform()) {
     case "windows": return 0x020E; 
     case "mac": return 0; 
+    case "linux": return 4; 
   }
   throw "Native wheel events not supported on platform " + getPlatform();
 }
