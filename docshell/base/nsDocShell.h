@@ -930,6 +930,11 @@ protected:
     nsRefPtr<nsDOMNavigationTiming> mTiming;
 
     
+    
+    
+    bool                            mBlankTiming;
+
+    
     FrameType mFrameType;
 
     

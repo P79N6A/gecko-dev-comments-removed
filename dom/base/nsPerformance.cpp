@@ -185,11 +185,11 @@ DOMTimeMilliSec
 nsPerformanceTiming::RedirectStart()
 {
   if (!IsInitialized()) {
-    return mZeroTime;
+    return 0;
   }
   
   
-  if (mAllRedirectsSameOrigin) {
+  if (mAllRedirectsSameOrigin && mRedirectCount) {
     return static_cast<int64_t>(RedirectStartHighRes());
   }
   return 0;
@@ -218,11 +218,11 @@ DOMTimeMilliSec
 nsPerformanceTiming::RedirectEnd()
 {
   if (!IsInitialized()) {
-    return mZeroTime;
+    return 0;
   }
   
   
-  if (mAllRedirectsSameOrigin) {
+  if (mAllRedirectsSameOrigin && mRedirectCount) {
     return static_cast<int64_t>(RedirectEndHighRes());
   }
   return 0;
