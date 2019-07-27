@@ -210,8 +210,11 @@ let FunctionCallActor = protocol.ActorClass({
     
     
     let serializeArgs = () => args.map((arg, i) => {
-      if (typeof arg == "undefined") {
+      if (arg === undefined) {
         return "undefined";
+      }
+      if (arg === null) {
+        return "null";
       }
       if (typeof arg == "function") {
         return "Function";
@@ -643,7 +646,7 @@ CallWatcherFront.ENUM_METHODS[CallWatcherFront.CANVAS_WEBGL_CONTEXT] = {
 
 
 
-var gEnumRegex = /^[A-Z_]+$/;
+var gEnumRegex = /^[A-Z][A-Z0-9_]+$/;
 var gEnumsLookupTable = {};
 
 
