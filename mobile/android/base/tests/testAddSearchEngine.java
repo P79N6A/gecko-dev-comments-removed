@@ -18,6 +18,8 @@ import android.widget.ImageView;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 
+import com.jayway.android.robotium.solo.Condition;
+
 
 
 
@@ -140,9 +142,9 @@ public class testAddSearchEngine extends AboutHomeTest {
     public void verifyDisplayedSearchEnginesCount(final int expectedCount) {
         mSolo.clearEditText(0);
         mActions.sendKeys(SEARCH_TEXT);
-        boolean correctNumSearchEnginesDisplayed = waitForTest(new BooleanTest() {
+        boolean correctNumSearchEnginesDisplayed = waitForCondition(new Condition() {
             @Override
-            public boolean test() {
+            public boolean isSatisfied() {
                 ListView list = findListViewWithTag(HomePager.LIST_TAG_BROWSER_SEARCH);
                 if (list == null) {
                     return false;

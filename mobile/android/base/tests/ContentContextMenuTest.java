@@ -9,6 +9,7 @@ import org.mozilla.gecko.util.Clipboard;
 
 import android.util.DisplayMetrics;
 
+import com.jayway.android.robotium.solo.Condition;
 
 
 
@@ -75,9 +76,9 @@ abstract class ContentContextMenuTest extends PixelTest {
             openWebContentContextMenu(copyOption); 
         }
         mSolo.clickOnText(copyOption);
-        boolean correctText = waitForTest(new BooleanTest() {
+        boolean correctText = waitForCondition(new Condition() {
             @Override
-            public boolean test() {
+            public boolean isSatisfied() {
                 final String clipboardText = Clipboard.getText();
                 mAsserter.dumpLog("Clipboard text = " + clipboardText + " , expected text = " + copiedText);
                 return clipboardText.contains(copiedText);

@@ -8,6 +8,8 @@ import android.support.v4.app.Fragment;
 import android.view.KeyEvent;
 import android.view.View;
 
+import com.jayway.android.robotium.solo.Condition;
+
 
 
 
@@ -44,9 +46,9 @@ public class testBrowserSearchVisibility extends BaseTest {
     }
 
     private void assertBrowserSearchVisibility(final boolean isVisible) {
-        waitForTest(new BooleanTest() {
+        waitForCondition(new Condition() {
             @Override
-            public boolean test() {
+            public boolean isSatisfied() {
                 final Fragment browserSearch = getBrowserSearch();
 
                 

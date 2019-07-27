@@ -70,9 +70,9 @@ abstract class AboutHomeTest extends PixelTest {
 
     
     protected void isBookmarkDisplayed(final String url) {
-        boolean isCorrect = waitForTest(new BooleanTest() {
+        boolean isCorrect = waitForCondition(new Condition() {
             @Override
-            public boolean test() {
+            public boolean isSatisfied() {
                 View bookmark = getDisplayedBookmark(url);
                 return bookmark != null;
             }

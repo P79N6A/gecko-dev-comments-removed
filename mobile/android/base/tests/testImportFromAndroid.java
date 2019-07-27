@@ -16,6 +16,8 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.provider.Browser;
 
+import com.jayway.android.robotium.solo.Condition;
+
 
 
 
@@ -56,9 +58,9 @@ public class testImportFromAndroid extends AboutHomeTest {
 
 
 
-        boolean success = waitForTest(new BooleanTest() {
+        boolean success = waitForCondition(new Condition() {
             @Override
-            public boolean test() {
+            public boolean isSatisfied() {
                 if (androidData.size() <= firefoxHistory.size()) {
                     return true;
                 } else {
@@ -142,9 +144,9 @@ public class testImportFromAndroid extends AboutHomeTest {
         mSolo.clickOnButton("Import");
 
         
-        boolean importComplete = waitForTest(new BooleanTest() {
+        boolean importComplete = waitForCondition(new Condition() {
             @Override
-            public boolean test() {
+            public boolean isSatisfied() {
                 return !mSolo.searchText("Please wait...");
             }
         }, MAX_WAIT_TIMEOUT);
