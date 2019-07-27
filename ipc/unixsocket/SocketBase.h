@@ -9,8 +9,6 @@
 #ifndef mozilla_ipc_SocketBase_h
 #define mozilla_ipc_SocketBase_h
 
-#include <errno.h>
-#include <unistd.h>
 #include "base/message_loop.h"
 #include "nsAutoPtr.h"
 #include "nsTArray.h"
@@ -47,6 +45,61 @@ public:
 
 
   UnixSocketRawData(const void* aData, size_t aSize);
+
+  
+
+
+
+
+  ssize_t Receive(int aFd);
+
+  
+
+
+
+  ssize_t Send(int aFd);
+
+  const uint8_t* GetData() const
+  {
+    return mData + mCurrentWriteOffset;
+  }
+
+  size_t GetSize() const
+  {
+    return mSize;
+  }
+
+  void Consume(size_t aSize)
+  {
+    MOZ_ASSERT(aSize <= mSize);
+
+    mSize -= aSize;
+    mCurrentWriteOffset += aSize;
+  }
+
+protected:
+  size_t GetLeadingSpace() const
+  {
+    return mCurrentWriteOffset;
+  }
+
+  size_t GetTrailingSpace() const
+  {
+    return mAvailableSpace - (mCurrentWriteOffset + mSize);
+  }
+
+  size_t GetAvailableSpace() const
+  {
+    return mAvailableSpace;
+  }
+
+  void* GetTrailingBytes()
+  {
+    return mData + mCurrentWriteOffset + mSize;
+  }
+
+private:
+  size_t mAvailableSpace;
 };
 
 enum SocketConnectionStatus {
@@ -331,9 +384,7 @@ public:
     nsAutoPtr<UnixSocketRawData> incoming(
       new UnixSocketRawData(mMaxReadSize));
 
-    ssize_t res =
-      TEMP_FAILURE_RETRY(read(aFd, incoming->mData, incoming->mSize));
-
+    ssize_t res = incoming->Receive(aFd);
     if (res < 0) {
       
       nsRefPtr<nsRunnable> r = new SocketIORequestClosingRunnable<T>(aIO);
@@ -345,8 +396,6 @@ public:
       NS_DispatchToMainThread(r);
       return 0;
     }
-
-    incoming->mSize = res;
 
 #ifdef MOZ_TASK_TRACER
     
@@ -367,38 +416,24 @@ public:
     MOZ_ASSERT(aFd >= 0);
     MOZ_ASSERT(aIO);
 
-    do {
-      if (!HasPendingData()) {
-        return NS_OK;
-      }
-
+    while (HasPendingData()) {
       UnixSocketRawData* outgoing = mOutgoingQ.ElementAt(0);
-      MOZ_ASSERT(outgoing->mSize);
 
-      const uint8_t* data = outgoing->mData + outgoing->mCurrentWriteOffset;
-      size_t size = outgoing->mSize - outgoing->mCurrentWriteOffset;
-
-      ssize_t res = TEMP_FAILURE_RETRY(write(aFd, data, size));
-
+      ssize_t res = outgoing->Send(aFd);
       if (res < 0) {
-        if (errno == EAGAIN || errno == EWOULDBLOCK) {
-          return NS_OK; 
-        }
         
         nsRefPtr<nsRunnable> r = new SocketIORequestClosingRunnable<T>(aIO);
         NS_DispatchToMainThread(r);
         return NS_ERROR_FAILURE;
-      } else if (!res) {
-        return NS_OK; 
+      } else if (!res && outgoing->GetSize()) {
+        
+        return NS_OK;
       }
-
-      outgoing->mCurrentWriteOffset += res;
-
-      if (outgoing->mCurrentWriteOffset == outgoing->mSize) {
+      if (!outgoing->GetSize()) {
         mOutgoingQ.RemoveElementAt(0);
         delete outgoing;
       }
-    } while (true);
+    }
 
     return NS_OK;
   }
