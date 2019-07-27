@@ -48,6 +48,28 @@ ExecutablePool::~ExecutablePool()
     m_allocator->releasePoolPages(this);
 }
 
+ void
+ExecutableAllocator::initStatic()
+{
+    if (!pageSize) {
+        pageSize = determinePageSize();
+        
+        
+        
+        
+        
+        
+        
+        
+        
+#if defined(JS_CPU_X64) && defined(XP_WIN)
+        largeAllocSize = pageSize * 15;
+#else
+        largeAllocSize = pageSize * 16;
+#endif
+    }
+}
+
 void
 ExecutableAllocator::addSizeOfCode(JS::CodeSizes* sizes) const
 {
