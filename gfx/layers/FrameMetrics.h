@@ -61,10 +61,6 @@ namespace layers {
 
 
 
-
-
-
-
 struct FrameMetrics {
   friend struct IPC::ParamTraits<mozilla::layers::FrameMetrics>;
 public:
@@ -101,7 +97,6 @@ public:
     , mViewport(0, 0, 0, 0)
     , mBackgroundColor(0, 0, 0, 0)
   {
-    mContentDescription[0] = '\0';
   }
 
   
@@ -128,8 +123,7 @@ public:
            mScrollOffset == aOther.mScrollOffset &&
            mHasScrollgrab == aOther.mHasScrollgrab &&
            mUpdateScrollOffset == aOther.mUpdateScrollOffset &&
-           mBackgroundColor == aOther.mBackgroundColor &&
-           !strcmp(mContentDescription, aOther.mContentDescription);
+           mBackgroundColor == aOther.mBackgroundColor;
   }
   bool operator!=(const FrameMetrics& aOther) const
   {
@@ -245,6 +239,16 @@ public:
   {
     mScrollOffset = aOther.mScrollOffset;
     mScrollGeneration = aOther.mScrollGeneration;
+  }
+
+  
+  
+  
+  FrameMetrics MakePODObject() const
+  {
+    FrameMetrics copy = *this;
+    copy.mContentDescription.Truncate();
+    return copy;
   }
 
   
@@ -484,16 +488,14 @@ public:
     mBackgroundColor = aBackgroundColor;
   }
 
-  nsCString GetContentDescription() const
+  const nsCString& GetContentDescription() const
   {
-    return nsCString(mContentDescription);
+    return mContentDescription;
   }
 
   void SetContentDescription(const nsCString& aContentDescription)
   {
-    strncpy(mContentDescription, aContentDescription.get(),
-            sizeof(mContentDescription));
-    mContentDescription[sizeof(mContentDescription) - 1] = 0;
+    mContentDescription = aContentDescription;
   }
 
 private:
@@ -571,7 +573,7 @@ private:
   
   
   
-  char mContentDescription[20];
+  nsCString mContentDescription;
 };
 
 
