@@ -113,13 +113,6 @@ static const uint32_t StackAlignment = 4;
 static const bool StackKeptAligned = false;
 static const uint32_t CodeAlignment = 8;
 
-
-
-
-
-
-static const uint32_t AsmJSFrameSize = sizeof(void*);
-
 struct ImmTag : public Imm32
 {
     ImmTag(JSValueTag mask)
@@ -381,13 +374,6 @@ class Assembler : public AssemblerX86Shared
     void call(ImmPtr target) {
         JmpSrc src = masm.call();
         addPendingJump(src, target, Relocation::HARDCODED);
-    }
-    void call(AsmJSImmPtr target) {
-        
-        
-        
-        mov(target, eax);
-        call(eax);
     }
 
     

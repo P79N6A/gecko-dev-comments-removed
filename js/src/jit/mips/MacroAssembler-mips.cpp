@@ -1523,6 +1523,16 @@ MacroAssemblerMIPSCompat::callIon(Register callee)
         ma_callIon(callee);
     }
 }
+void
+MacroAssemblerMIPSCompat::callIonFromAsmJS(Register callee)
+{
+    ma_callIonNoPush(reg);
+
+    
+    
+    
+    subPtr(Imm32(sizeof(void*)), StackPointer);
+}
 
 void
 MacroAssemblerMIPSCompat::reserveStack(uint32_t amount)

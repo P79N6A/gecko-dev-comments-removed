@@ -564,33 +564,13 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
         ma_movPatchable(ImmPtr(c->raw()), ScratchRegister, Always, rs);
         ma_callIonHalfPush(ScratchRegister);
     }
-
-    void appendCallSite(const CallSiteDesc &desc) {
-        
-        
-        enoughMemory_ &= append(CallSite(desc, currentOffset(), framePushed_ + AsmJSFrameSize));
-    }
-
     void call(const CallSiteDesc &desc, const Register reg) {
         call(reg);
-        appendCallSite(desc);
+        enoughMemory_ &= append(desc, currentOffset(), framePushed_);
     }
     void call(const CallSiteDesc &desc, Label *label) {
         call(label);
-        appendCallSite(desc);
-    }
-    void call(const CallSiteDesc &desc, AsmJSImmPtr imm) {
-        call(imm);
-        appendCallSite(desc);
-    }
-    void callIonFromAsmJS(const Register reg) {
-        ma_callIonNoPush(reg);
-        appendCallSite(CallSiteDesc::Exit());
-
-        
-        
-        
-        subPtr(Imm32(sizeof(void*)), sp);
+        enoughMemory_ &= append(desc, currentOffset(), framePushed_);
     }
 
     void branch(JitCode *c) {
@@ -1272,6 +1252,7 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     
     
     void callIon(Register callee);
+    void callIonFromAsmJS(Register callee);
 
     void reserveStack(uint32_t amount);
     void freeStack(uint32_t amount);

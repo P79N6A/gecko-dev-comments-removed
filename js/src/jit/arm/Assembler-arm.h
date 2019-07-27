@@ -140,12 +140,6 @@ static const uint32_t StackAlignment = 8;
 static const uint32_t CodeAlignment = 8;
 static const bool StackKeptAligned = true;
 
-
-
-
-
-static const uint32_t AsmJSFrameSize = sizeof(void*);
-
 static const Scale ScalePointer = TimesFour;
 
 class Instruction;
