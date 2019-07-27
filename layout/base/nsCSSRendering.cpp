@@ -3614,7 +3614,7 @@ DrawSolidBorderSegment(nsRenderingContext& aContext,
   else {
     
     Point poly[4];
-    SetPoly(NSRectToRect(aRect, aAppUnitsPerDevPixel), poly);
+    SetPoly(NSRectToRect(aRect, aAppUnitsPerDevPixel, *drawTarget), poly);
 
     Float startBevelOffset =
       NSAppUnitsToFloatPixels(aStartBevelOffset, aAppUnitsPerDevPixel);
