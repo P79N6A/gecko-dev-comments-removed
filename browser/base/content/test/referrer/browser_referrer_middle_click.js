@@ -14,6 +14,6 @@ function startMiddleClickTestCase(aTestNumber) {
 }
 
 function test() {
-  requestLongerTimeout(5);  
+  requestLongerTimeout(10);  
   startReferrerTest(startMiddleClickTestCase);
 }
