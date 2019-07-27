@@ -711,7 +711,7 @@ HttpChannelChild::FailedAsyncOpen(const nsresult& status)
   LOG(("HttpChannelChild::FailedAsyncOpen [this=%p status=%x]\n", this, status));
 
   mStatus = status;
-  mIsPending = false;
+
   
   HandleAsyncAbort();
 }

@@ -169,6 +169,7 @@ public:
   NS_IMETHOD GetResponseTimeoutEnabled(bool *aEnable);
   NS_IMETHOD SetResponseTimeoutEnabled(bool aEnable);
   NS_IMETHOD AddRedirect(nsIPrincipal *aRedirect);
+  NS_IMETHOD ForcePending(bool aForcePending);
 
   inline void CleanRedirectCacheChainIfNecessary()
   {
@@ -369,7 +370,9 @@ protected:
   
   TimingStruct                      mTransactionTimings;
 
-  nsCOMPtr<nsIPrincipal> mPrincipal;
+  nsCOMPtr<nsIPrincipal>            mPrincipal;
+
+  bool                              mForcePending;
 };
 
 
@@ -412,7 +415,6 @@ nsresult HttpAsyncAborter<T>::AsyncAbort(nsresult status)
          ("HttpAsyncAborter::AsyncAbort [this=%p status=%x]\n", mThis, status));
 
   mThis->mStatus = status;
-  mThis->mIsPending = false;
 
   
   return AsyncCall(&T::HandleAsyncAbort);
