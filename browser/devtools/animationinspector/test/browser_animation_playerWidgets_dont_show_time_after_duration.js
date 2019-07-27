@@ -1,0 +1,40 @@
+
+
+
+
+"use strict";
+
+
+
+
+
+add_task(function*() {
+  yield addTab(TEST_URL_ROOT + "doc_simple_animation.html");
+  let {inspector, panel} = yield openAnimationInspector();
+
+  info("Start an animation on the test node");
+  getNode(".still").classList.add("short");
+
+  info("Select the node");
+  yield selectNode(".still", inspector);
+
+  info("Wait until the animation ends");
+  let widget = panel.playerWidgets[0];
+  let front = widget.player;
+
+  let def = promise.defer();
+  let onStateChanged = () => {
+    if (front.state.playState === "finished") {
+      front.off(front.AUTO_REFRESH_EVENT, onStateChanged);
+      def.resolve();
+    }
+  };
+  front.on(front.AUTO_REFRESH_EVENT, onStateChanged);
+  yield def.promise;
+
+  is(widget.currentTimeEl.value, front.state.duration,
+    "The timeline slider has the right value");
+  is(widget.timeDisplayEl.textContent,
+    widget.getFormattedTime(front.state.duration) + "s",
+    "The timeline slider has the right value");
+});
