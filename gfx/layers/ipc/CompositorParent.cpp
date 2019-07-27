@@ -270,6 +270,7 @@ CompositorVsyncObserver::SetNeedsComposite(bool aNeedsComposite)
     mSetNeedsCompositeTask = NewRunnableMethod(this,
                                               &CompositorVsyncObserver::SetNeedsComposite,
                                               aNeedsComposite);
+    MOZ_ASSERT(CompositorParent::CompositorLoop());
     CompositorParent::CompositorLoop()->PostTask(FROM_HERE, mSetNeedsCompositeTask);
     return;
   } else {
@@ -295,6 +296,7 @@ CompositorVsyncObserver::NotifyVsync(TimeStamp aVsyncTimestamp)
     mCurrentCompositeTask = NewRunnableMethod(this,
                                               &CompositorVsyncObserver::Composite,
                                               aVsyncTimestamp);
+    MOZ_ASSERT(CompositorParent::CompositorLoop());
     CompositorParent::CompositorLoop()->PostTask(FROM_HERE, mCurrentCompositeTask);
   }
   return true;
@@ -415,6 +417,7 @@ CompositorParent::CompositorParent(nsIWidget* aWidget,
   
   
   
+  MOZ_ASSERT(CompositorLoop());
   CompositorLoop()->PostTask(FROM_HERE, NewRunnableFunction(&AddCompositor,
                                                           this, &mCompositorID));
 
@@ -646,6 +649,7 @@ void
 CompositorParent::ScheduleRenderOnCompositorThread()
 {
   CancelableTask *renderTask = NewRunnableMethod(this, &CompositorParent::ScheduleComposition);
+  MOZ_ASSERT(CompositorLoop());
   CompositorLoop()->PostTask(FROM_HERE, renderTask);
 }
 
@@ -742,6 +746,7 @@ CompositorParent::SchedulePauseOnCompositorThread()
 
   CancelableTask *pauseTask = NewRunnableMethod(this,
                                                 &CompositorParent::PauseComposition);
+  MOZ_ASSERT(CompositorLoop());
   CompositorLoop()->PostTask(FROM_HERE, pauseTask);
 
   
@@ -755,6 +760,7 @@ CompositorParent::ScheduleResumeOnCompositorThread(int width, int height)
 
   CancelableTask *resumeTask =
     NewRunnableMethod(this, &CompositorParent::ResumeCompositionAndResize, width, height);
+  MOZ_ASSERT(CompositorLoop());
   CompositorLoop()->PostTask(FROM_HERE, resumeTask);
 
   
@@ -1329,6 +1335,7 @@ CompositorParent::DeallocateLayerTreeId(uint64_t aId)
   
   
   
+  MOZ_ASSERT(CompositorLoop());
   CompositorLoop()->PostTask(FROM_HERE,
                              NewRunnableFunction(&EraseLayerState, aId));
 }

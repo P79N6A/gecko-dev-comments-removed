@@ -22,30 +22,32 @@ namespace layers {
  LayersBackend
 Compositor::GetBackend()
 {
-  AssertOnCompositorThread();
+  if (sBackend != LayersBackend::LAYERS_NONE) {
+    AssertOnCompositorThread();
+  }
   return sBackend;
 }
 
  void
 Compositor::SetBackend(LayersBackend backend)
 {
-  if (!gIsGtest && sBackend != LayersBackend::LAYERS_NONE && sBackend != backend) {
+  if (!gIsGtest && sBackend != backend &&
+      sBackend != LayersBackend::LAYERS_NONE &&
+      backend != LayersBackend::LAYERS_NONE) {
     
-    
-
 #ifdef XP_MACOSX
-    printf("ERROR: Changing compositor from %u to %u.\n",
-           unsigned(sBackend), unsigned(backend));
+    gfxWarning() << "Changing compositor from " << unsigned(sBackend) << " to " << unsigned(backend);
 #endif
   }
+
   sBackend = backend;
 }
 
  void
 Compositor::AssertOnCompositorThread()
 {
-  MOZ_ASSERT(CompositorParent::CompositorLoop() ==
-             MessageLoop::current(),
+  MOZ_ASSERT(!CompositorParent::CompositorLoop() ||
+             CompositorParent::CompositorLoop() == MessageLoop::current(),
              "Can only call this from the compositor thread!");
 }
 
