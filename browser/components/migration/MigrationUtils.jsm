@@ -45,13 +45,10 @@ function getMigrationBundle() {
 
 
 function getMigratorKeyForDefaultBrowser() {
-  
-  
-  
-  
   const APP_DESC_TO_KEY = {
     "Internet Explorer": "ie",
     "Safari":            "safari",
+    "Firefox":           "firefox",
     "Google Chrome":     "chrome",  
     "Chrome":            "chrome",  
   };
@@ -485,11 +482,11 @@ this.MigrationUtils = Object.freeze({
   get migrators() {
     let migratorKeysOrdered = [
 #ifdef XP_WIN
-      "ie", "chrome", "safari"
+      "firefox", "ie", "chrome", "safari"
 #elifdef XP_MACOSX
-      "safari", "chrome"
+      "firefox", "safari", "chrome"
 #elifdef XP_UNIX
-      "chrome"
+      "firefox", "chrome"
 #endif
     ];
 
