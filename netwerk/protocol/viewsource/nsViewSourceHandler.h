@@ -20,7 +20,7 @@ public:
     
     
     nsresult NewSrcdocChannel(nsIURI* uri, const nsAString &srcdoc,
-                              nsIURI* baseURI, nsIChannel** result);
+                              nsIChannel** result);
 
     static nsViewSourceHandler* GetInstance();
 
