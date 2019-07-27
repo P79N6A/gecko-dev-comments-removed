@@ -15,8 +15,6 @@ function* runEventPopupTests() {
     yield checkEventsForNode(selector, expected, inspector);
   }
 
-  gBrowser.removeCurrentTab();
-
   
   
   
