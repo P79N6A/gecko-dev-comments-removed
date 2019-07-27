@@ -143,6 +143,7 @@ SoftwareWebMVideoDecoder::DecodeVideoFrame(bool &aKeyframeSkip,
     if (aKeyframeSkip && (!si.is_kf || tstamp_usecs < aTimeThreshold)) {
       
       a.mParsed++; 
+      a.mDropped++;
       continue;
     }
 
@@ -159,6 +160,7 @@ SoftwareWebMVideoDecoder::DecodeVideoFrame(bool &aKeyframeSkip,
     
     if (tstamp_usecs < aTimeThreshold) {
       a.mParsed++; 
+      a.mDropped++;
       continue;
     }
 

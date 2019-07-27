@@ -63,7 +63,9 @@ public:
 
   
   
-  virtual void NotifyDecodedFrames(uint32_t aParsed, uint32_t aDecoded) = 0;
+  
+  virtual void NotifyDecodedFrames(uint32_t aParsed, uint32_t aDecoded,
+                                   uint32_t aDropped) = 0;
 
   
   virtual int64_t GetMediaDuration() = 0;
@@ -138,14 +140,15 @@ public:
   class AutoNotifyDecoded {
   public:
     explicit AutoNotifyDecoded(AbstractMediaDecoder* aDecoder)
-      : mParsed(0), mDecoded(0), mDecoder(aDecoder) {}
+      : mParsed(0), mDecoded(0), mDropped(0), mDecoder(aDecoder) {}
     ~AutoNotifyDecoded() {
       if (mDecoder) {
-        mDecoder->NotifyDecodedFrames(mParsed, mDecoded);
+        mDecoder->NotifyDecodedFrames(mParsed, mDecoded, mDropped);
       }
     }
     uint32_t mParsed;
     uint32_t mDecoded;
+    uint32_t mDropped;
 
   private:
     AbstractMediaDecoder* mDecoder;

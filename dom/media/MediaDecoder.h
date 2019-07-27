@@ -937,7 +937,8 @@ public:
         mReentrantMonitor("MediaDecoder::FrameStats"),
         mParsedFrames(0),
         mDecodedFrames(0),
-        mPresentedFrames(0) {}
+        mPresentedFrames(0),
+        mDroppedFrames(0) {}
 
     
     
@@ -963,12 +964,20 @@ public:
 
     
     
-    void NotifyDecodedFrames(uint32_t aParsed, uint32_t aDecoded) {
-      if (aParsed == 0 && aDecoded == 0)
+    uint32_t GetDroppedFrames() {
+      return mDroppedFrames;
+    }
+
+    
+    
+    void NotifyDecodedFrames(uint32_t aParsed, uint32_t aDecoded,
+                             uint32_t aDropped) {
+      if (aParsed == 0 && aDecoded == 0 && aDropped == 0)
         return;
       ReentrantMonitorAutoEnter mon(mReentrantMonitor);
       mParsedFrames += aParsed;
       mDecodedFrames += aDecoded;
+      mDroppedFrames += aDropped;
     }
 
     
@@ -994,6 +1003,8 @@ public:
     
     
     uint32_t mPresentedFrames;
+
+    uint32_t mDroppedFrames;
   };
 
   
@@ -1001,9 +1012,10 @@ public:
 
   
   
-  virtual void NotifyDecodedFrames(uint32_t aParsed, uint32_t aDecoded) MOZ_OVERRIDE
+  virtual void NotifyDecodedFrames(uint32_t aParsed, uint32_t aDecoded,
+                                   uint32_t aDropped) MOZ_OVERRIDE
   {
-    GetFrameStatistics().NotifyDecodedFrames(aParsed, aDecoded);
+    GetFrameStatistics().NotifyDecodedFrames(aParsed, aDecoded, aDropped);
   }
 
 protected:
