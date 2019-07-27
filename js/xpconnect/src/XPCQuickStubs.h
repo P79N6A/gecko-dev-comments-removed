@@ -281,7 +281,7 @@ protected:
 
 
 
-class xpc_qsDOMString : public xpc_qsBasicString<nsAString, nsAutoString>
+class xpc_qsDOMString : public xpc_qsBasicString<nsAString, nsDependentString>
 {
 public:
     xpc_qsDOMString(JSContext *cx, JS::HandleValue v,
