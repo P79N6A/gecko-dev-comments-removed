@@ -68,7 +68,7 @@
 #include "nsWeakReference.h"
 #include "nsWindowWatcher.h"
 #include "PermissionMessageUtils.h"
-#include "PCOMContentPermissionRequestChild.h"
+#include "nsContentPermissionHelper.h"
 #include "PuppetWidget.h"
 #include "StructuredCloneUtils.h"
 #include "nsViewportInfo.h"
@@ -81,10 +81,6 @@
 #include "LayersLogging.h"
 
 #include "nsColorPickerProxy.h"
-
-#ifdef DEBUG
-#include "PCOMContentPermissionRequestChild.h"
-#endif 
 
 #define BROWSER_ELEMENT_CHILD_SCRIPT \
     NS_LITERAL_STRING("chrome://global/content/BrowserElementChild.js")
@@ -1407,19 +1403,6 @@ TabChild::SendPendingTouchPreventedResponse(bool aPreventDefault,
   }
 }
 
-#ifdef DEBUG
-PContentPermissionRequestChild*
-TabChild:: SendPContentPermissionRequestConstructor(PContentPermissionRequestChild* aActor,
-                                                    const InfallibleTArray<PermissionRequest>& aRequests,
-                                                    const IPC::Principal& aPrincipal)
-{
-  PCOMContentPermissionRequestChild* child = static_cast<PCOMContentPermissionRequestChild*>(aActor);
-  PContentPermissionRequestChild* request = PBrowserChild::SendPContentPermissionRequestConstructor(aActor, aRequests, aPrincipal);
-  child->mIPCOpen = true;
-  return request;
-}
-#endif 
-
 void
 TabChild::DestroyWindow()
 {
@@ -1743,13 +1726,16 @@ TabChild::RecvShow(const nsIntSize& size)
 }
 
 bool
-TabChild::RecvUpdateDimensions(const nsIntRect& rect, const nsIntSize& size, const ScreenOrientation& orientation)
+TabChild::RecvUpdateDimensions(const nsRect& rect, const nsIntSize& size, const ScreenOrientation& orientation)
 {
     if (!mRemoteFrame) {
         return true;
     }
 
-    mOuterRect = rect;
+    mOuterRect.x = rect.x;
+    mOuterRect.y = rect.y;
+    mOuterRect.width = rect.width;
+    mOuterRect.height = rect.height;
 
     bool initialSizing = !HasValidInnerSize()
                       && (size.width != 0 && size.height != 0);
@@ -2357,13 +2343,9 @@ TabChild::AllocPContentPermissionRequestChild(const InfallibleTArray<PermissionR
 bool
 TabChild::DeallocPContentPermissionRequestChild(PContentPermissionRequestChild* actor)
 {
-    PCOMContentPermissionRequestChild* child =
-        static_cast<PCOMContentPermissionRequestChild*>(actor);
-#ifdef DEBUG
-    child->mIPCOpen = false;
-#endif 
-    child->IPDLRelease();
-    return true;
+  RemotePermissionRequest* child = static_cast<RemotePermissionRequest*>(actor);
+  child->IPDLRelease();
+  return true;
 }
 
 PFilePickerChild*
