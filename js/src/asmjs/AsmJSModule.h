@@ -88,6 +88,69 @@ struct AsmJSFunctionLabels
 
 
 
+class AsmJSNumLit
+{
+  public:
+    enum Which {
+        Fixnum,
+        NegativeInt,
+        BigUnsigned,
+        Double,
+        Float,
+        OutOfRangeInt = -1
+    };
+
+  private:
+    Which which_;
+    Value value_;
+
+  public:
+    static AsmJSNumLit Create(Which w, Value v) {
+        AsmJSNumLit lit;
+        lit.which_ = w;
+        lit.value_ = v;
+        return lit;
+    }
+
+    Which which() const {
+        return which_;
+    }
+
+    int32_t toInt32() const {
+        JS_ASSERT(which_ == Fixnum || which_ == NegativeInt || which_ == BigUnsigned);
+        return value_.toInt32();
+    }
+
+    double toDouble() const {
+        JS_ASSERT(which_ == Double);
+        return value_.toDouble();
+    }
+
+    float toFloat() const {
+        JS_ASSERT(which_ == Float);
+        return float(value_.toDouble());
+    }
+
+    Value value() const {
+        JS_ASSERT(which_ != OutOfRangeInt);
+        return value_;
+    }
+
+    bool hasType() const {
+        return which_ != OutOfRangeInt;
+    }
+};
+
+
+
+
+
+
+
+
+
+
+
 class AsmJSModule
 {
   public:
@@ -1255,4 +1318,4 @@ class AsmJSModuleObject : public JSObject
 
 }  
 
-#endif 
+#endif
