@@ -425,6 +425,12 @@ AnimationPlayer::DoPlay()
   
   
 
+  bool reuseReadyPromise = false;
+  if (mPendingState != PendingState::NotPending) {
+    CancelPendingTasks();
+    reuseReadyPromise = true;
+  }
+
   Nullable<TimeDuration> currentTime = GetCurrentTime();
   if (mPlaybackRate > 0.0 &&
       (currentTime.IsNull())) {
@@ -441,10 +447,12 @@ AnimationPlayer::DoPlay()
   }
 
   
-  mReady = nullptr;
-
-  
   mStartTime.SetNull();
+
+  if (!reuseReadyPromise) {
+    
+    mReady = nullptr;
+  }
 
   mPendingState = PendingState::PlayPending;
 
