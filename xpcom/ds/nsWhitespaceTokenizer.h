@@ -10,11 +10,15 @@
 #include "nsDependentSubstring.h"
 #include "nsCRT.h"
 
-template<bool IsWhitespace(char16_t) = NS_IsAsciiWhitespace>
-class nsWhitespaceTokenizerTemplate
+template<typename SubstringType,
+         typename DependentSubstringType,
+         bool IsWhitespace(char16_t)>
+class nsTWhitespaceTokenizer
 {
+  typedef typename SubstringType::char_type CharType;
+
 public:
-    nsWhitespaceTokenizerTemplate(const nsSubstring& aSource)
+    nsTWhitespaceTokenizer(const SubstringType& aSource)
         : mIter(aSource.Data(), aSource.Length()),
           mEnd(aSource.Data() + aSource.Length(), aSource.Data(),
                aSource.Length()),
@@ -55,13 +59,13 @@ public:
     
 
 
-    const nsDependentSubstring nextToken()
+    const DependentSubstringType nextToken()
     {
-        const mozilla::RangedPtr<const char16_t> tokenStart = mIter;
+        const mozilla::RangedPtr<const CharType> tokenStart = mIter;
         while (mIter < mEnd && !IsWhitespace(*mIter)) {
             ++mIter;
         }
-        const mozilla::RangedPtr<const char16_t> tokenEnd = mIter;
+        const mozilla::RangedPtr<const CharType> tokenEnd = mIter;
         mWhitespaceAfterCurrentToken = false;
         while (mIter < mEnd && IsWhitespace(*mIter)) {
             mWhitespaceAfterCurrentToken = true;
@@ -71,95 +75,56 @@ public:
     }
 
 private:
-    mozilla::RangedPtr<const char16_t> mIter;
-    const mozilla::RangedPtr<const char16_t> mEnd;
+    mozilla::RangedPtr<const CharType> mIter;
+    const mozilla::RangedPtr<const CharType> mEnd;
     bool mWhitespaceBeforeFirstToken;
     bool mWhitespaceAfterCurrentToken;
 };
 
-class nsWhitespaceTokenizer: public nsWhitespaceTokenizerTemplate<>
+template<bool IsWhitespace(char16_t) = NS_IsAsciiWhitespace>
+class nsWhitespaceTokenizerTemplate
+  : public nsTWhitespaceTokenizer<nsSubstring, nsDependentSubstring,
+                                  IsWhitespace>
 {
 public:
-    nsWhitespaceTokenizer(const nsSubstring& aSource)
-      : nsWhitespaceTokenizerTemplate<>(aSource)
-    {
-    }
+  nsWhitespaceTokenizerTemplate(const nsSubstring& aSource)
+    : nsTWhitespaceTokenizer<nsSubstring, nsDependentSubstring,
+                             IsWhitespace>(aSource)
+  {
+  }
+};
+
+class nsWhitespaceTokenizer
+  : public nsWhitespaceTokenizerTemplate<>
+{
+public:
+  nsWhitespaceTokenizer(const nsSubstring& aSource)
+    : nsWhitespaceTokenizerTemplate<>(aSource)
+  {
+  }
 };
 
 template<bool IsWhitespace(char16_t) = NS_IsAsciiWhitespace>
 class nsCWhitespaceTokenizerTemplate
+  : public nsTWhitespaceTokenizer<nsCSubstring, nsDependentCSubstring,
+                                  IsWhitespace>
 {
 public:
-    nsCWhitespaceTokenizerTemplate(const nsCSubstring& aSource)
-        : mIter(aSource.Data(), aSource.Length()),
-          mEnd(aSource.Data() + aSource.Length(), aSource.Data(),
-               aSource.Length()),
-          mWhitespaceBeforeFirstToken(false),
-          mWhitespaceAfterCurrentToken(false)
-    {
-        while (mIter < mEnd && IsWhitespace(*mIter)) {
-            mWhitespaceBeforeFirstToken = true;
-            ++mIter;
-        }
-    }
-
-    
-
-
-    bool hasMoreTokens() const
-    {
-        return mIter < mEnd;
-    }
-
-    
-
-
-    bool whitespaceBeforeFirstToken() const
-    {
-        return mWhitespaceBeforeFirstToken;
-    }
-
-    
-
-
-
-    bool whitespaceAfterCurrentToken() const
-    {
-        return mWhitespaceAfterCurrentToken;
-    }
-
-    
-
-
-    const nsDependentCSubstring nextToken()
-    {
-        const mozilla::RangedPtr<const char> tokenStart = mIter;
-        while (mIter < mEnd && !IsWhitespace(*mIter)) {
-            ++mIter;
-        }
-        const mozilla::RangedPtr<const char> tokenEnd = mIter;
-        mWhitespaceAfterCurrentToken = false;
-        while (mIter < mEnd && IsWhitespace(*mIter)) {
-            mWhitespaceAfterCurrentToken = true;
-            ++mIter;
-        }
-        return Substring(tokenStart.get(), tokenEnd.get());
-    }
-
-private:
-    mozilla::RangedPtr<const char> mIter;
-    const mozilla::RangedPtr<const char> mEnd;
-    bool mWhitespaceBeforeFirstToken;
-    bool mWhitespaceAfterCurrentToken;
+  nsCWhitespaceTokenizerTemplate(const nsCSubstring& aSource)
+    : nsTWhitespaceTokenizer<nsCSubstring, nsDependentCSubstring,
+                             IsWhitespace>(aSource)
+  {
+  }
 };
 
-class nsCWhitespaceTokenizer: public nsCWhitespaceTokenizerTemplate<>
+class nsCWhitespaceTokenizer
+  : public nsCWhitespaceTokenizerTemplate<>
 {
 public:
-    nsCWhitespaceTokenizer(const nsCSubstring& aSource)
-      : nsCWhitespaceTokenizerTemplate<>(aSource)
-    {
-    }
+  nsCWhitespaceTokenizer(const nsCSubstring& aSource)
+    : nsCWhitespaceTokenizerTemplate<>(aSource)
+  {
+  }
 };
 
 #endif
