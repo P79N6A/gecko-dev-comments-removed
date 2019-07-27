@@ -1678,7 +1678,7 @@ GetTypedArrayRange(TempAllocator &alloc, Scalar::Type type)
 }
 
 void
-MLoadTypedArrayElement::computeRange(TempAllocator &alloc)
+MLoadUnboxedScalar::computeRange(TempAllocator &alloc)
 {
     
     
@@ -2642,7 +2642,7 @@ MToDouble::operandTruncateKind(size_t index) const
 }
 
 MDefinition::TruncateKind
-MStoreTypedArrayElement::operandTruncateKind(size_t index) const
+MStoreUnboxedScalar::operandTruncateKind(size_t index) const
 {
     
     return index == 2 && isIntegerWrite() ? Truncate : NoTruncate;
