@@ -1070,7 +1070,9 @@ function getMatchedProps_impl(aObj, aMatch, {chainIterator, getProperties})
       if (prop.indexOf(aMatch) != 0) {
         continue;
       }
-
+      if (prop.indexOf('-') > -1) {
+        continue;
+      }
       
       
       
