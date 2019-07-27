@@ -58,6 +58,28 @@
 
   
   
+  var visibilityListeners = [];
+  var rootObject = window;
+
+  rootObject.document.addEventListener = function(eventName, func) {
+    if (eventName === "visibilitychange") {
+      visibilityListeners.push(func);
+    }
+    window.addEventListener(eventName, func);
+  };
+
+  rootObject.document.removeEventListener = function(eventName, func) {
+    if (eventName === "visibilitychange") {
+      var index = visibilityListeners.indexOf(func);
+      visibilityListeners.splice(index, 1);
+    }
+    window.removeEventListener(eventName, func);
+  };
+
+  loop.shared.mixins.setRootObject(rootObject);
+
+  
+  
   var stageFeedbackApiClient = new loop.FeedbackAPIClient(
     "https://input.allizom.org/api/v1/feedback", {
       product: "Loop"
@@ -757,6 +779,10 @@
   window.addEventListener("DOMContentLoaded", function() {
     try {
       React.renderComponent(React.createElement(App, null), document.getElementById("main"));
+
+      for (var listener of visibilityListeners) {
+        listener({target: {hidden: false}});
+      }
     } catch(err) {
       console.error(err);
       uncaughtError = err;
