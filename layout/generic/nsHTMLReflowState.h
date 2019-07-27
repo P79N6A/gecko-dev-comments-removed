@@ -650,11 +650,12 @@ public:
             nscoord         aContainingBlockBSize = -1,
             const nsMargin* aBorder = nullptr,
             const nsMargin* aPadding = nullptr);
+
   
 
 
-  static nscoord
-    GetContainingBlockContentWidth(const nsHTMLReflowState* aReflowState);
+
+  nscoord GetContainingBlockContentISize(mozilla::WritingMode aWritingMode) const;
 
   
 
