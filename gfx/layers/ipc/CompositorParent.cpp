@@ -1275,15 +1275,10 @@ CompositorParent::ShadowLayersUpdated(LayerTransactionParent* aLayerTree,
         mRootLayerTreeID, aPaintSequenceNumber);
   }
 
-#ifdef DEBUG
-  if (aTransactionId <= mPendingTransaction) {
-    
-    
-    printf_stderr("CRASH: aTransactionId %" PRIu64 " <= mPendingTransaction %" PRIu64 "\n",
-      aTransactionId, mPendingTransaction);
-  }
-#endif
-  MOZ_ASSERT(aTransactionId > mPendingTransaction);
+  
+  
+  
+  MOZ_ASSERT(aTransactionId == 1 || aTransactionId > mPendingTransaction);
   mPendingTransaction = aTransactionId;
 
   if (root) {
