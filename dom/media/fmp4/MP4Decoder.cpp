@@ -202,15 +202,6 @@ IsAndroidAvailable()
   return false;
 #else
   
-  nsCOMPtr<nsIGfxInfo> gfxInfo = do_GetService("@mozilla.org/gfx/info;1");
-
-  nsString vendor;
-  if (NS_FAILED(gfxInfo->GetAdapterVendorID(vendor)) ||
-      vendor.Find("Imagination") == 0) {
-    return nullptr;
-  }
-
-  
   return AndroidBridge::Bridge()->GetAPIVersion() >= 16;
 #endif
 }
