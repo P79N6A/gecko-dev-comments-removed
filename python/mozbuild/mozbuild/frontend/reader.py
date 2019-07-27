@@ -297,7 +297,7 @@ class MozbuildSandbox(Sandbox):
         """Include and exec another file within the context of this one."""
 
         
-        self.exec_file(unicode(path))
+        self.exec_file(path.full_path)
 
     def _warning(self, message):
         
@@ -1099,7 +1099,8 @@ class BuildReader(object):
                 if d in recurse_info:
                     raise SandboxValidationError(
                         'Directory (%s) registered multiple times in %s' % (
-                            mozpath.relpath(d, context.srcdir), var), context)
+                            mozpath.relpath(d.full_path, context.srcdir), var),
+                        context)
 
                 recurse_info[d] = {}
                 for key in sandbox.metadata:
@@ -1109,7 +1110,7 @@ class BuildReader(object):
                     recurse_info[d][key] = dict(sandbox.metadata[key])
 
         for path, child_metadata in recurse_info.items():
-            child_path = path.join('moz.build')
+            child_path = path.join('moz.build').full_path
 
             
             
