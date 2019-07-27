@@ -905,8 +905,8 @@ static bool SetBlendMode(GLContext* aGL, gfx::CompositionOp aBlendMode, bool aIs
 }
 
 gfx::Point3D
-CompositorOGL::GetLineCoefficients(const gfx::Point3D& aPoint1,
-                                   const gfx::Point3D& aPoint2)
+CompositorOGL::GetLineCoefficients(const gfx::Point& aPoint1,
+                                   const gfx::Point& aPoint2)
 {
   
   
@@ -1072,57 +1072,57 @@ CompositorOGL::DrawQuad(const Rect& aRect,
   if (bEnableAA) {
     
     
-    Point4D quadVerts[4];
-    quadVerts[0] = Point4D(aVisibleRect.x, aVisibleRect.y, 0.0, 1.0);
-    quadVerts[1] = Point4D(aVisibleRect.x + aVisibleRect.width, aVisibleRect.y, 0.0, 1.0);
-    quadVerts[2] = Point4D(aVisibleRect.x + aVisibleRect.width, aVisibleRect.y + aVisibleRect.height, 0.0, 1.0);
-    quadVerts[3] = Point4D(aVisibleRect.x, aVisibleRect.y + aVisibleRect.height, 0.0, 1.0);
-    for (int i = 0; i < 4; i++) {
-      quadVerts[i] = aTransform * quadVerts[i];
-      quadVerts[i] -= Point4D(offset.x, offset.y, 0.0f, 0.0f) * quadVerts[i].w;
-      quadVerts[i] /= quadVerts[i].w;
-      quadVerts[i] = mProjMatrix * quadVerts[i];
-      quadVerts[i].x = (quadVerts[i].x * 0.5f + 0.5f) * mViewportSize.width;
-      quadVerts[i].y = (quadVerts[i].y * 0.5f + 0.5f) * mViewportSize.height;
+    Matrix4x4 flatTransform = aTransform;
+    flatTransform.PostTranslate(-offset.x, -offset.y, 0.0f);
+    flatTransform *= mProjMatrix;
+
+    Rect viewportClip = Rect(-1.0f, -1.0f, 2.0f, 2.0f);
+    size_t edgeCount = 0;
+    Point3D coefficients[4];
+
+    Point points[Matrix4x4::kTransformAndClipRectMaxVerts];
+    size_t pointCount = flatTransform.TransformAndClipRect(aVisibleRect, viewportClip, points);
+    for (size_t i = 0; i < pointCount; i++) {
+      points[i] = Point((points[i].x * 0.5f + 0.5f) * mViewportSize.width,
+                        (points[i].y * 0.5f + 0.5f) * mViewportSize.height);
+    }
+    if (pointCount > 2) {
+      
+      
+      
+      float winding = 0.0f;
+      size_t wp = 0;
+      while (winding == 0.0f && wp < pointCount) {
+        int wp1 = (wp + 1) % pointCount;
+        int wp2 = (wp + 2) % pointCount;
+        winding = (points[wp1].x - points[wp].x) * (points[wp1].y + points[wp].y) +
+                  (points[wp2].x - points[wp1].x) * (points[wp2].y + points[wp1].y) +
+                  (points[wp].x - points[wp2].x) * (points[wp].y + points[wp2].y);
+        wp++;
+      }
+      bool frontFacing = winding >= 0.0f;
+
+      
+      
+      for (size_t i=0; i<pointCount; i++) {
+        const Point& p1 = points[i];
+        const Point& p2 = points[(i + 1) % pointCount];
+        
+        if (p1.x != p2.x && p1.y != p2.y && edgeCount < 4) {
+          if (frontFacing) {
+            coefficients[edgeCount++] = GetLineCoefficients(p2, p1);
+          } else {
+            coefficients[edgeCount++] = GetLineCoefficients(p1, p2);
+          }
+        }
+      }
     }
 
     
     
-    Point3D coefficients[4];
     
-    
-    float winding = (quadVerts[1].x - quadVerts[0].x) * (quadVerts[1].y + quadVerts[0].y) +
-                    (quadVerts[2].x - quadVerts[1].x) * (quadVerts[2].y + quadVerts[1].y) +
-                    (quadVerts[0].x - quadVerts[2].x) * (quadVerts[0].y + quadVerts[2].y);
-
-    if (winding >= 0) {
-      
-      coefficients[0] = GetLineCoefficients(
-        Point3D(quadVerts[3].x, quadVerts[3].y, 0.0f),
-        Point3D(quadVerts[2].x, quadVerts[2].y, 0.0f));
-      coefficients[1] = GetLineCoefficients(
-        Point3D(quadVerts[2].x, quadVerts[2].y, 0.0f),
-        Point3D(quadVerts[1].x, quadVerts[1].y, 0.0f));
-      coefficients[2] = GetLineCoefficients(
-        Point3D(quadVerts[1].x, quadVerts[1].y, 0.0f),
-        Point3D(quadVerts[0].x, quadVerts[0].y, 0.0f));
-      coefficients[3] = GetLineCoefficients(
-        Point3D(quadVerts[0].x, quadVerts[0].y, 0.0f),
-        Point3D(quadVerts[3].x, quadVerts[3].y, 0.0f));
-    } else {
-      
-      coefficients[0] = GetLineCoefficients(
-        Point3D(quadVerts[2].x, quadVerts[2].y, 0.0f),
-        Point3D(quadVerts[3].x, quadVerts[3].y, 0.0f));
-      coefficients[1] = GetLineCoefficients(
-        Point3D(quadVerts[1].x, quadVerts[1].y, 0.0f),
-        Point3D(quadVerts[2].x, quadVerts[2].y, 0.0f));
-      coefficients[2] = GetLineCoefficients(
-        Point3D(quadVerts[0].x, quadVerts[0].y, 0.0f),
-        Point3D(quadVerts[1].x, quadVerts[1].y, 0.0f));
-      coefficients[3] = GetLineCoefficients(
-        Point3D(quadVerts[3].x, quadVerts[3].y, 0.0f),
-        Point3D(quadVerts[0].x, quadVerts[0].y, 0.0f));
+    for (size_t i = edgeCount; i < 4; i++) {
+      coefficients[i] = Point3D(0.0f, 1.0f, mViewportSize.height);
     }
 
     
