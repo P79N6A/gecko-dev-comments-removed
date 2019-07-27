@@ -2011,17 +2011,16 @@ SetPropertyByDefining(typename ExecutionModeTraits<mode>::ContextType cxArg,
 
 
 
-
 template <ExecutionMode mode>
 static bool
 SetNonexistentProperty(typename ExecutionModeTraits<mode>::ContextType cxArg,
-                       HandleObject obj, HandleObject receiver, HandleId id,
-                       baseops::QualifiedBool qualified, HandleValue v, bool strict)
+                       HandleObject receiver, HandleId id, baseops::QualifiedBool qualified,
+                       HandleValue v, bool strict)
 {
     
-    MOZ_ASSERT(!obj->is<BlockObject>());
+    MOZ_ASSERT(!receiver->is<BlockObject>());
 
-    if (obj->isUnqualifiedVarObj() && !qualified) {
+    if (receiver->isUnqualifiedVarObj() && !qualified) {
         if (mode == ParallelExecution)
             return false;
 
@@ -2065,7 +2064,7 @@ baseops::SetPropertyHelper(typename ExecutionModeTraits<mode>::ContextType cxArg
     }
 
     if (!shape)
-        return SetNonexistentProperty<mode>(cxArg, obj, receiver, id, qualified, vp, strict);
+        return SetNonexistentProperty<mode>(cxArg, receiver, id, qualified, vp, strict);
 
     if (!pobj->isNative()) {
         if (pobj->is<ProxyObject>()) {
