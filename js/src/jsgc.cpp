@@ -2572,14 +2572,22 @@ ArenaLists::backgroundFinalize(FreeOp *fop, ArenaHeader *listHead)
     
     ArenaList finalized = finalizedSorted.toArenaList();
 
-    AutoLockGC lock(fop->runtime());
-    MOZ_ASSERT(lists->backgroundFinalizeState[thingKind] == BFS_RUN);
-
     
-    *al = finalized.insertListWithCursorAtEnd(*al);
+    
+    
+    
+    
+    {
+        AutoLockGC lock(fop->runtime());
+        MOZ_ASSERT(lists->backgroundFinalizeState[thingKind] == BFS_RUN);
+
+        
+        *al = finalized.insertListWithCursorAtEnd(*al);
+
+        lists->arenaListsToSweep[thingKind] = nullptr;
+    }
 
     lists->backgroundFinalizeState[thingKind] = BFS_DONE;
-    lists->arenaListsToSweep[thingKind] = nullptr;
 }
 
 void
