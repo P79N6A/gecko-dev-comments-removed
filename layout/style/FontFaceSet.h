@@ -312,9 +312,6 @@ private:
   bool mNonRuleFacesDirty;
 
   
-  bool mReadyIsResolved;
-
-  
   
   
   bool mHasLoadingFontFaces;
