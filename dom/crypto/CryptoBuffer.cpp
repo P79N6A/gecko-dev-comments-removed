@@ -11,6 +11,14 @@ namespace mozilla {
 namespace dom {
 
 uint8_t*
+CryptoBuffer::Assign(const CryptoBuffer& aData)
+{
+  
+  
+  return ReplaceElementsAt(0, Length(), aData.Elements(), aData.Length());
+}
+
+uint8_t*
 CryptoBuffer::Assign(const uint8_t* aData, uint32_t aLength)
 {
   return ReplaceElementsAt(0, Length(), aData, aLength);
