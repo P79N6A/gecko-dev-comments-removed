@@ -1057,6 +1057,19 @@ class TestManifest(ManifestParser):
         skip_tag = 'skip-if'
         fail_tag = 'fail-if'
 
+        cache = {}
+
+        def _parse(cond):
+            if '#' in cond:
+                cond = cond[:cond.index('#')]
+            cond = cond.strip()
+            if cond in cache:
+                ret = cache[cond]
+            else:
+                ret = parse(cond, **values)
+                cache[cond] = ret
+            return ret
+
         
         for test in tests:
             reason = None 
@@ -1064,13 +1077,13 @@ class TestManifest(ManifestParser):
             
             if run_tag in test:
                 condition = test[run_tag]
-                if not parse(condition, **values):
+                if not _parse(condition):
                     reason = '%s: %s' % (run_tag, condition)
 
             
             if skip_tag in test:
                 condition = test[skip_tag]
-                if parse(condition, **values):
+                if _parse(condition):
                     reason = '%s: %s' % (skip_tag, condition)
 
             
@@ -1080,7 +1093,7 @@ class TestManifest(ManifestParser):
             
             if fail_tag in test:
                 condition = test[fail_tag]
-                if parse(condition, **values):
+                if _parse(condition):
                     test['expected'] = 'fail'
 
     def active_tests(self, exists=True, disabled=True, options=None, **values):
