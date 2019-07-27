@@ -98,6 +98,14 @@ class NodeStack {
 
 } 
 
+enum class PushResult { Recyclable, CleanUpLater };
+
+static PushResult
+PushCodeNodeChildren(ParseNode *node, NodeStack *stack)
+{
+    MOZ_ASSERT(node->isArity(PN_CODE));
+
+    
 
 
 
@@ -106,76 +114,144 @@ class NodeStack {
 
 
 
-static bool
+
+
+
+
+
+
+
+
+    node->pn_funbox = nullptr;
+    stack->pushUnlessNull(node->pn_body);
+    node->pn_body = nullptr;
+
+    return PushResult::CleanUpLater;
+}
+
+static PushResult
+PushNameNodeChildren(ParseNode *node, NodeStack *stack)
+{
+    MOZ_ASSERT(node->isArity(PN_NAME));
+
+    
+
+
+
+
+
+
+
+
+
+
+    if (!node->isUsed()) {
+        stack->pushUnlessNull(node->pn_expr);
+        node->pn_expr = nullptr;
+    }
+
+    if (!node->isUsed() && !node->isDefn())
+        return PushResult::Recyclable;
+
+    return PushResult::CleanUpLater;
+}
+
+static PushResult
+PushListNodeChildren(ParseNode *node, NodeStack *stack)
+{
+    MOZ_ASSERT(node->isArity(PN_LIST));
+    node->checkListConsistency();
+
+    stack->pushList(node);
+
+    return PushResult::Recyclable;
+}
+
+static PushResult
+PushTernaryNodeChildren(ParseNode *node, NodeStack *stack)
+{
+    MOZ_ASSERT(node->isArity(PN_TERNARY));
+
+    stack->pushUnlessNull(node->pn_kid1);
+    stack->pushUnlessNull(node->pn_kid2);
+    stack->pushUnlessNull(node->pn_kid3);
+
+    return PushResult::Recyclable;
+}
+
+static PushResult
+PushUnaryNodeChild(ParseNode *node, NodeStack *stack)
+{
+    MOZ_ASSERT(node->isArity(PN_UNARY));
+
+    stack->pushUnlessNull(node->pn_kid);
+
+    return PushResult::Recyclable;
+}
+
+static PushResult
+PushBinaryNodeChildren(ParseNode *node, NodeStack *stack)
+{
+    MOZ_ASSERT(node->isArity(PN_BINARY) || node->isArity(PN_BINARY_OBJ));
+
+    
+    if (node->pn_left != node->pn_right)
+        stack->pushUnlessNull(node->pn_left);
+
+    stack->pushUnlessNull(node->pn_right);
+
+    return PushResult::Recyclable;
+}
+
+static PushResult
+CanRecycleNullaryNode(ParseNode *node, NodeStack *stack)
+{
+    MOZ_ASSERT(node->isArity(PN_NULLARY));
+
+    if (node->isUsed() || node->isDefn())
+        return PushResult::CleanUpLater;
+
+    return PushResult::Recyclable;
+}
+
+
+
+
+
+
+
+
+
+static PushResult
 PushNodeChildren(ParseNode *pn, NodeStack *stack)
 {
     switch (pn->getArity()) {
       case PN_CODE:
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        pn->pn_funbox = nullptr;
-        stack->pushUnlessNull(pn->pn_body);
-        pn->pn_body = nullptr;
-        return false;
+        return PushCodeNodeChildren(pn, stack);
 
       case PN_NAME:
-        
-
-
-
-
-
-
-
-
-
-
-        if (!pn->isUsed()) {
-            stack->pushUnlessNull(pn->pn_expr);
-            pn->pn_expr = nullptr;
-        }
-        return !pn->isUsed() && !pn->isDefn();
+        return PushNameNodeChildren(pn, stack);
 
       case PN_LIST:
-        pn->checkListConsistency();
-        stack->pushList(pn);
-        break;
+        return PushListNodeChildren(pn, stack);
+
       case PN_TERNARY:
-        stack->pushUnlessNull(pn->pn_kid1);
-        stack->pushUnlessNull(pn->pn_kid2);
-        stack->pushUnlessNull(pn->pn_kid3);
-        break;
+        return PushTernaryNodeChildren(pn, stack);
+
       case PN_BINARY:
       case PN_BINARY_OBJ:
-        if (pn->pn_left != pn->pn_right)
-            stack->pushUnlessNull(pn->pn_left);
-        stack->pushUnlessNull(pn->pn_right);
-        break;
-      case PN_UNARY:
-        stack->pushUnlessNull(pn->pn_kid);
-        break;
-      case PN_NULLARY:
-        return !pn->isUsed() && !pn->isDefn();
-      default:
-        ;
-    }
+        return PushBinaryNodeChildren(pn, stack);
 
-    return true;
+      case PN_UNARY:
+        return PushUnaryNodeChild(pn, stack);
+
+      case PN_NULLARY:
+        return CanRecycleNullaryNode(pn, stack);
+
+      default:
+        MOZ_CRASH("huh?");
+        return PushResult::CleanUpLater;
+    }
 }
 
 
@@ -186,19 +262,20 @@ PushNodeChildren(ParseNode *pn, NodeStack *stack)
 void
 ParseNodeAllocator::prepareNodeForMutation(ParseNode *pn)
 {
-    if (!pn->isArity(PN_NULLARY)) {
-        
-        NodeStack stack;
-        PushNodeChildren(pn, &stack);
-        
+    
+    if (pn->isArity(PN_NULLARY))
+        return;
 
+    
+    NodeStack stack;
+    PushNodeChildren(pn, &stack);
 
-
-        while (!stack.empty()) {
-            pn = stack.pop();
-            if (PushNodeChildren(pn, &stack))
-                freeNode(pn);
-        }
+    
+    
+    while (!stack.empty()) {
+        pn = stack.pop();
+        if (PushNodeChildren(pn, &stack) == PushResult::Recyclable)
+            freeNode(pn);
     }
 }
 
@@ -216,7 +293,7 @@ ParseNodeAllocator::freeTree(ParseNode *pn)
 
     NodeStack stack;
     for (;;) {
-        if (PushNodeChildren(pn, &stack))
+        if (PushNodeChildren(pn, &stack) == PushResult::Recyclable)
             freeNode(pn);
         if (stack.empty())
             break;
