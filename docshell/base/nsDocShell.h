@@ -35,6 +35,7 @@
 #include "nsContentUtils.h"
 #include "timeline/TimelineMarker.h"
 #include "timeline/TimelineConsumers.h"
+#include "timeline/ObservedDocShell.h"
 
 
 #define REFRESH_REDIRECT_TIMER 15000
@@ -263,43 +264,12 @@ public:
   void AddProfileTimelineMarker(const char* aName, TracingMetadata aMetaData);
   void AddProfileTimelineMarker(mozilla::UniquePtr<TimelineMarker>&& aMarker);
 
-  class ObservedDocShell : public mozilla::LinkedListElement<ObservedDocShell>
-  {
-  public:
-    explicit ObservedDocShell(nsDocShell* aDocShell)
-      : mDocShell(aDocShell)
-    { }
-
-    nsDocShell* operator*() const { return mDocShell.get(); }
-
-  private:
-    nsRefPtr<nsDocShell> mDocShell;
-  };
-
 private:
-  static mozilla::LinkedList<ObservedDocShell>* gObservedDocShells;
-
-  static mozilla::LinkedList<ObservedDocShell>& GetOrCreateObservedDocShells()
-  {
-    if (!gObservedDocShells) {
-      gObservedDocShells = new mozilla::LinkedList<ObservedDocShell>();
-    }
-    return *gObservedDocShells;
-  }
-
   
-  mozilla::UniquePtr<ObservedDocShell> mObserved;
-
-  
-  
+  mozilla::UniquePtr<mozilla::ObservedDocShell> mObserved;
   bool IsObserved() const { return !!mObserved; }
 
 public:
-  static const mozilla::LinkedList<ObservedDocShell>& GetObservedDocShells()
-  {
-    return GetOrCreateObservedDocShells();
-  }
-
   
   static void CopyFavicon(nsIURI* aOldURI,
                           nsIURI* aNewURI,
