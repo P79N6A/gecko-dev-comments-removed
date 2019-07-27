@@ -485,12 +485,62 @@ static MOZ_ALWAYS_INLINE bool
 GetPrimitiveElementOperation(JSContext *cx, JSOp op, JS::HandleValue receiver,
                              HandleValue key, MutableHandleValue res)
 {
+    MOZ_ASSERT(op == JSOP_GETELEM || op == JSOP_CALLELEM);
+
+    
     
     RootedObject boxed(cx, ToObjectFromStack(cx, receiver));
     if (!boxed)
         return false;
 
-    return GetObjectElementOperation(cx, op, boxed, key, res);
+    do {
+        uint32_t index;
+        if (IsDefinitelyIndex(key, &index)) {
+            if (JSObject::getElementNoGC(cx, boxed, boxed, index, res.address()))
+                break;
+
+            if (!JSObject::getElement(cx, boxed, boxed, index, res))
+                return false;
+            break;
+        }
+
+        if (IsSymbolOrSymbolWrapper(key)) {
+            RootedId id(cx, SYMBOL_TO_JSID(ToSymbolPrimitive(key)));
+            if (!JSObject::getGeneric(cx, boxed, boxed, id, res))
+                return false;
+            break;
+        }
+
+        if (JSAtom *name = ToAtom<NoGC>(cx, key)) {
+            if (name->isIndex(&index)) {
+                if (JSObject::getElementNoGC(cx, boxed, boxed, index, res.address()))
+                    break;
+            } else {
+                if (JSObject::getPropertyNoGC(cx, boxed, boxed, name->asPropertyName(),
+                                              res.address()))
+                {
+                    break;
+                }
+            }
+        }
+
+        JSAtom *name = ToAtom<CanGC>(cx, key);
+        if (!name)
+            return false;
+
+        if (name->isIndex(&index)) {
+            if (!JSObject::getElement(cx, boxed, boxed, index, res))
+                return false;
+        } else {
+            if (!JSObject::getProperty(cx, boxed, boxed, name->asPropertyName(), res))
+                return false;
+        }
+    } while (false);
+
+    
+
+    assertSameCompartmentDebugOnly(cx, res);
+    return true;
 }
 
 static MOZ_ALWAYS_INLINE bool
