@@ -57,6 +57,22 @@ class ArrayBufferViewObject;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class ArrayBufferObjectMaybeShared;
 
 uint32_t AnyArrayBufferByteLength(const ArrayBufferObjectMaybeShared *buf);
@@ -329,6 +345,8 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared
         setFlags(flags() | TYPED_OBJECT_VIEWS);
     }
 
+    bool forInlineTypedObject() const { return flags() & FOR_INLINE_TYPED_OBJECT; }
+
   protected:
     void setDataPointer(BufferContents contents, OwnsState ownsState);
     void setByteLength(size_t length);
@@ -341,7 +359,6 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared
         setFlags(owns ? (flags() | OWNS_DATA) : (flags() & ~OWNS_DATA));
     }
 
-    bool forInlineTypedObject() const { return flags() & FOR_INLINE_TYPED_OBJECT; }
     bool hasTypedObjectViews() const { return flags() & TYPED_OBJECT_VIEWS; }
 
     void setIsAsmJSMalloced() { setFlags((flags() & ~KIND_MASK) | ASMJS_MALLOCED); }

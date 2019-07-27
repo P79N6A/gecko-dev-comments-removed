@@ -1188,12 +1188,35 @@ ArrayBufferViewObject::trace(JSTracer *trc, JSObject *objArg)
     MarkSlot(trc, &bufSlot, "typedarray.buffer");
 
     
-    
     if (bufSlot.isObject()) {
         ArrayBufferObject &buf = AsArrayBuffer(MaybeForwarded(&bufSlot.toObject()));
         int32_t offset = obj->getReservedSlot(TypedArrayLayout::BYTEOFFSET_SLOT).toInt32();
         MOZ_ASSERT(buf.dataPointer() != nullptr);
-        obj->initPrivate(buf.dataPointer() + offset);
+
+        if (buf.forInlineTypedObject()) {
+            
+            
+            JSObject *view = buf.firstView();
+
+            
+            MarkObjectUnbarriered(trc, &view, "typed array nursery owner");
+            MOZ_ASSERT(view->is<InlineTypedObject>() && view != obj);
+
+            void *srcData = obj->getPrivate();
+            void *dstData = view->as<InlineTypedObject>().inlineTypedMem() + offset;
+            obj->setPrivate(dstData);
+
+            
+            
+            
+            trc->runtime()->gc.nursery.maybeSetForwardingPointer(trc, srcData, dstData,
+                                                                  false);
+        } else {
+            
+            
+            
+           obj->initPrivate(buf.dataPointer() + offset);
+        }
     }
 }
 

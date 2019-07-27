@@ -125,13 +125,25 @@ TypedArrayObject::ensureHasBuffer(JSContext *cx, Handle<TypedArrayObject *> tarr
 }
 
  void
-TypedArrayObject::ObjectMoved(JSObject *dstArg, const JSObject *srcArg)
+TypedArrayObject::trace(JSTracer *trc, JSObject *objArg)
 {
-    const TypedArrayObject &src = srcArg->as<TypedArrayObject>();
-    TypedArrayObject &dst = dstArg->as<TypedArrayObject>();
-    if (!src.hasBuffer()) {
-        MOZ_ASSERT(src.getPrivate() == src.fixedData(FIXED_DATA_START));
-        dst.setPrivate(dst.fixedData(FIXED_DATA_START));
+    
+    ArrayBufferViewObject::trace(trc, objArg);
+
+    
+    
+    
+    TypedArrayObject &obj = objArg->as<TypedArrayObject>();
+    if (!obj.hasBuffer() && obj.getPrivate() != obj.fixedData(FIXED_DATA_START)) {
+        void *oldData = obj.getPrivate();
+        void *newData = obj.fixedData(FIXED_DATA_START);
+
+        obj.setPrivateUnbarriered(newData);
+
+        
+        
+        
+        trc->runtime()->gc.nursery.maybeSetForwardingPointer(trc, oldData, newData, true);
     }
 }
 
@@ -354,6 +366,12 @@ class TypedArrayObjectTemplate : public TypedArrayObject
 
         if (buffer) {
             obj->initPrivate(buffer->dataPointer() + byteOffset);
+
+            
+            
+            
+            if (!IsInsideNursery(obj) && cx->runtime()->gc.nursery.isInside(buffer->dataPointer()))
+                cx->runtime()->gc.storeBuffer.putWholeCellFromMainThread(obj);
         } else {
             void *data = obj->fixedData(FIXED_DATA_START);
             obj->initPrivate(data);
@@ -966,6 +984,11 @@ DataViewObject::create(JSContext *cx, uint32_t byteOffset, uint32_t byteLength,
     dvobj.setFixedSlot(TypedArrayLayout::BUFFER_SLOT, ObjectValue(*arrayBuffer));
     dvobj.initPrivate(arrayBuffer->dataPointer() + byteOffset);
     MOZ_ASSERT(byteOffset + byteLength <= arrayBuffer->byteLength());
+
+    
+    
+    if (!IsInsideNursery(obj) && cx->runtime()->gc.nursery.isInside(arrayBuffer->dataPointer()))
+        cx->runtime()->gc.storeBuffer.putWholeCellFromMainThread(obj);
 
     
     MOZ_ASSERT(dvobj.numFixedSlots() == TypedArrayLayout::DATA_SLOT);
@@ -1747,15 +1770,8 @@ IMPL_TYPED_ARRAY_COMBINED_UNWRAPPERS(Float64, double, double)
     nullptr,                 /* call        */                                 \
     nullptr,                 /* hasInstance */                                 \
     nullptr,                 /* construct   */                                 \
-    ArrayBufferViewObject::trace, /* trace  */                                 \
-    TYPED_ARRAY_CLASS_SPEC(_typedArray),                                       \
-    {                                                                          \
-        nullptr,             /* outerObject */                                 \
-        nullptr,             /* innerObject */                                 \
-        false,               /* isWrappedNative */                             \
-        nullptr,             /* weakmapKeyDelegateOp */                        \
-        TypedArrayObject::ObjectMoved                                          \
-    }                                                                          \
+    TypedArrayObject::trace, /* trace  */                                      \
+    TYPED_ARRAY_CLASS_SPEC(_typedArray)                                        \
 }
 
 const Class TypedArrayObject::classes[Scalar::TypeMax] = {

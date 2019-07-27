@@ -1513,6 +1513,11 @@ OutlineTypedObject::setOwnerAndData(JSObject *owner, uint8_t *data)
 {
     
     
+    MOZ_ASSERT_IF(owner && owner->is<ArrayBufferObject>(),
+                  !owner->as<ArrayBufferObject>().forInlineTypedObject());
+
+    
+    
     owner_ = owner;
     data_ = data;
 
@@ -1553,6 +1558,14 @@ OutlineTypedObject::attach(JSContext *cx, ArrayBufferObject &buffer, int32_t off
     MOZ_ASSERT(!isAttached());
     MOZ_ASSERT(offset >= 0);
     MOZ_ASSERT((size_t) (offset + size()) <= buffer.byteLength());
+
+    
+    
+    if (buffer.forInlineTypedObject()) {
+        InlineTypedObject &realOwner = buffer.firstView()->as<InlineTypedObject>();
+        attach(cx, realOwner, offset);
+        return;
+    }
 
     buffer.setHasTypedObjectViews();
 
@@ -1683,22 +1696,29 @@ OutlineTypedObject::obj_trace(JSTracer *trc, JSObject *object)
     gc::MarkObjectUnbarriered(trc, &typedObj.owner_, "typed object owner");
     JSObject *owner = typedObj.owner_;
 
-    uint8_t *mem = typedObj.outOfLineTypedMem();
+    uint8_t *oldData = typedObj.outOfLineTypedMem();
+    uint8_t *newData = oldData;
 
     
     
+    
+    
+    MOZ_ASSERT_IF(owner->is<ArrayBufferObject>(),
+                  !owner->as<ArrayBufferObject>().forInlineTypedObject());
     if (owner != oldOwner &&
         (owner->is<InlineTypedObject>() ||
          owner->as<ArrayBufferObject>().hasInlineData()))
     {
-        mem += reinterpret_cast<uint8_t *>(owner) - reinterpret_cast<uint8_t *>(oldOwner);
-        typedObj.setData(mem);
+        newData += reinterpret_cast<uint8_t *>(owner) - reinterpret_cast<uint8_t *>(oldOwner);
+        typedObj.setData(newData);
+
+        trc->runtime()->gc.nursery.maybeSetForwardingPointer(trc, oldData, newData,  false);
     }
 
     if (!descr.opaque() || !typedObj.maybeForwardedIsAttached())
         return;
 
-    descr.traceInstances(trc, mem, 1);
+    descr.traceInstances(trc, newData, 1);
 }
 
 bool
@@ -2258,6 +2278,25 @@ InlineTypedObject::obj_trace(JSTracer *trc, JSObject *object)
     TypeDescr &descr = typedObj.maybeForwardedTypeDescr();
 
     descr.traceInstances(trc, typedObj.inlineTypedMem(), 1);
+}
+
+ void
+InlineTypedObject::objectMovedDuringMinorGC(JSTracer *trc, JSObject *dst, JSObject *src)
+{
+    
+    
+    
+    
+    TypeDescr &descr = dst->as<InlineTypedObject>().typeDescr();
+    if (descr.kind() == type::Array) {
+        
+        
+        
+        uint8_t *oldData = reinterpret_cast<uint8_t *>(src) + offsetOfDataStart();
+        uint8_t *newData = dst->as<InlineTypedObject>().inlineTypedMem();
+        trc->runtime()->gc.nursery.maybeSetForwardingPointer(trc, oldData, newData,
+                                                             descr.size() >= sizeof(uintptr_t));
+    }
 }
 
 ArrayBufferObject *
