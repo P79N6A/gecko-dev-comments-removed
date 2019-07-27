@@ -219,67 +219,10 @@ function prettyPrintLogArray(array) {
 
 
 
-
-function parsePropertiesArray(array) {
-  let data = new DataView(array.buffer);
-  let byteString = String.fromCharCode.apply(null, array);
-
-  let properties = {};
-
-  let propIndex = 0;
-  let propCount = data.getUint32(0, true);
-
-  
-  let tocOffset = 32;
-
-  const PROP_NAME_MAX = 32;
-  const PROP_VALUE_MAX = 92;
-
-  while (propIndex < propCount) {
-    
-    let infoOffset = data.getUint32(tocOffset, true) & 0xffffff;
-
-    
-    let propName = "";
-    let nameOffset = infoOffset;
-    while (byteString[nameOffset] != "\0" &&
-           (nameOffset - infoOffset) < PROP_NAME_MAX) {
-      propName += byteString[nameOffset];
-      nameOffset ++;
-    }
-
-    infoOffset += PROP_NAME_MAX;
-    
-    infoOffset += 4;
-
-    let propValue = "";
-    nameOffset = infoOffset;
-    while (byteString[nameOffset] != "\0" &&
-           (nameOffset - infoOffset) < PROP_VALUE_MAX) {
-      propValue += byteString[nameOffset];
-      nameOffset ++;
-    }
-
-    
-    tocOffset += 4;
-
-    properties[propName] = propValue;
-    propIndex += 1;
-  }
-
-  return properties;
-}
-
-
-
-
-
-
-function prettyPrintPropertiesArray(array) {
-  let properties = parsePropertiesArray(array);
+function prettyPrintPropertiesArray(properties) {
   let propertiesString = "";
   for(let propName in properties) {
-    propertiesString += propName + ": " + properties[propName] + "\n";
+    propertiesString += "[" + propName + "]: [" + properties[propName] + "]\n";
   }
   return propertiesString;
 }
@@ -294,7 +237,6 @@ function prettyPrintArray(array) {
 
 this.LogParser = {
   parseLogArray: parseLogArray,
-  parsePropertiesArray: parsePropertiesArray,
   prettyPrintArray: prettyPrintArray,
   prettyPrintLogArray: prettyPrintLogArray,
   prettyPrintPropertiesArray: prettyPrintPropertiesArray
