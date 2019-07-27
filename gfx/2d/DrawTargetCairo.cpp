@@ -12,6 +12,7 @@
 #include "BorrowedContext.h"
 #include "FilterNodeSoftware.h"
 #include "mozilla/Scoped.h"
+#include "mozilla/Vector.h"
 
 #include "cairo.h"
 #include "cairo-tee.h"
@@ -1149,7 +1150,15 @@ DrawTargetCairo::FillGlyphs(ScaledFont *aFont,
   cairo_set_antialias(mContext, GfxAntialiasToCairoAntialias(aOptions.mAntialiasMode));
 
   
-  std::vector<cairo_glyph_t> glyphs(aBuffer.mNumGlyphs);
+  
+  
+  
+  
+  
+  Vector<cairo_glyph_t, 1024 / sizeof(cairo_glyph_t)> glyphs;
+  if (!glyphs.resizeUninitialized(aBuffer.mNumGlyphs)) {
+    MOZ_CRASH("glyphs allocation failed");
+  }
   for (uint32_t i = 0; i < aBuffer.mNumGlyphs; ++i) {
     glyphs[i].index = aBuffer.mGlyphs[i].mIndex;
     glyphs[i].x = aBuffer.mGlyphs[i].mPosition.x;
