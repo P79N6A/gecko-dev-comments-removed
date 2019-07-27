@@ -3,6 +3,7 @@
 
 
 
+
 #include "TrackBuffer.h"
 
 #include "MediaSourceDecoder.h"
@@ -18,6 +19,11 @@
 #include "nsIRunnable.h"
 #include "nsThreadUtils.h"
 #include "prlog.h"
+
+#if defined(DEBUG)
+#include <sys/stat.h>
+#include <sys/types.h>
+#endif
 
 struct JSContext;
 class JSObject;
@@ -348,5 +354,23 @@ TrackBuffer::Decoders()
   
   return mInitializedDecoders;
 }
+
+#if defined(DEBUG)
+void
+TrackBuffer::Dump(const char* aPath)
+{
+  char path[255];
+  PR_snprintf(path, sizeof(path), "%s/trackbuffer-%p", aPath, this);
+  PR_MkDir(path, 0700);
+
+  for (uint32_t i = 0; i < mDecoders.Length(); ++i) {
+    char buf[255];
+    PR_snprintf(buf, sizeof(buf), "%s/reader-%p", path, mDecoders[i]->GetReader());
+    PR_MkDir(buf, 0700);
+
+    mDecoders[i]->GetResource()->Dump(buf);
+  }
+}
+#endif
 
 } 

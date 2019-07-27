@@ -98,6 +98,12 @@ public:
   
   void QueueInitializationEvent();
 
+#if defined(DEBUG)
+  
+  
+  void Dump(const char* aPath);
+#endif
+
 private:
   ~MediaSource();
 

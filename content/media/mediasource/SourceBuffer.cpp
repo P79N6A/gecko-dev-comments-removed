@@ -3,6 +3,7 @@
 
 
 
+
 #include "SourceBuffer.h"
 
 #include "AsyncEventRunner.h"
@@ -686,6 +687,16 @@ SourceBuffer::Evict(double aStart, double aEnd)
   }
   mTrackBuffer->EvictBefore(evictTime);
 }
+
+#if defined(DEBUG)
+void
+SourceBuffer::Dump(const char* aPath)
+{
+  if (mTrackBuffer) {
+    mTrackBuffer->Dump(aPath);
+  }
+}
+#endif
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(SourceBuffer, DOMEventTargetHelper,
                                    mMediaSource)
