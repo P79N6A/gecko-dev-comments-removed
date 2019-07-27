@@ -530,7 +530,9 @@ function writeFile(certNameToSKD, certSKDToName,
   
   
   let usedFingerprints = {};
+  let mozillaPins = {};
   gStaticPins.pinsets.forEach(function(pinset) {
+    mozillaPins[pinset.name] = true;
     
     if (pinset.sha1_hashes) {
       pinset.sha1_hashes.forEach(function(name) {
@@ -573,7 +575,12 @@ function writeFile(certNameToSKD, certSKDToName,
   });
   writeString("/* Chrome static pinsets */\n");
   for (let key in chromeImportedPinsets) {
-    writeFullPinset(certNameToSKD, certSKDToName, chromeImportedPinsets[key]);
+    if (mozillaPins[key]) {
+      dump("Skipping duplicate pinset " + key + "\n");
+    } else {
+      dump("Writing pinset " + key + "\n");
+      writeFullPinset(certNameToSKD, certSKDToName, chromeImportedPinsets[key]);
+    }
   }
 
   
