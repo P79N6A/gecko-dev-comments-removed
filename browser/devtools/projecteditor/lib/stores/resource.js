@@ -131,9 +131,8 @@ var Resource = Class({
 
 
 
-
-  hasChild: function(resource, name) {
-    for (let child of resource.children) {
+  hasChild: function(name) {
+    for (let child of this.children) {
       if (child.basename === name) {
         return true;
       }
