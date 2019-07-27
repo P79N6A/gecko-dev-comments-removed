@@ -65,6 +65,7 @@ public:
 
 private:
   VDADecoder mDecoder;
+  bool mIs106;
 
   
   nsresult SubmitFrame(mp4_demuxer::MP4Sample* aSample);

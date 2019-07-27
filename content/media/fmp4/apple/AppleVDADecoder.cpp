@@ -15,6 +15,7 @@
 #include "MacIOSurfaceImage.h"
 #include "mozilla/ArrayUtils.h"
 #include "nsAutoPtr.h"
+#include "nsCocoaFeatures.h"
 #include "nsThreadUtils.h"
 #include "prlog.h"
 #include "VideoUtils.h"
@@ -38,6 +39,7 @@ AppleVDADecoder::AppleVDADecoder(const mp4_demuxer::VideoDecoderConfig& aConfig,
   , mCallback(aCallback)
   , mImageContainer(aImageContainer)
   , mDecoder(nullptr)
+  , mIs106(!nsCocoaFeatures::OnLionOrLater())
 {
   MOZ_COUNT_CTOR(AppleVDADecoder);
   
@@ -165,7 +167,8 @@ PlatformCallback(void* decompressionOutputRefCon,
                  VDADecodeInfoFlags infoFlags,
                  CVImageBufferRef image)
 {
-  LOG("AppleVDADecoder %s status %d flags %d", __func__, status, infoFlags);
+  LOG("AppleVDADecoder[%s] status %d flags %d retainCount %ld",
+      __func__, status, infoFlags, CFGetRetainCount(frameInfo));
 
   
   
@@ -360,7 +363,7 @@ AppleVDADecoder::SubmitFrame(mp4_demuxer::MP4Sample* aSample)
   static_assert(ArrayLength(keys) == ArrayLength(values),
                 "Non matching keys/values array size");
 
-  AutoCFRelease<CFDictionaryRef> params =
+  AutoCFRelease<CFDictionaryRef> frameInfo =
     CFDictionaryCreate(kCFAllocatorDefault,
                        keys,
                        values,
@@ -371,10 +374,26 @@ AppleVDADecoder::SubmitFrame(mp4_demuxer::MP4Sample* aSample)
   OSStatus rv = VDADecoderDecode(mDecoder,
                                  0,
                                  block,
-                                 params);
+                                 frameInfo);
+
+  LOG("[%s]: FrameInfo retain count = %ld",
+      __func__, CFGetRetainCount(frameInfo));
+  MOZ_ASSERT(CFGetRetainCount(frameInfo) >= 2, "Bad retain count");
+
   if (rv != noErr) {
     NS_ERROR("AppleVDADecoder: Couldn't pass frame to decoder");
     return NS_ERROR_FAILURE;
+  }
+
+  if (mIs106) {
+    
+    
+    
+    
+    
+    
+    
+    CFRetain(frameInfo);
   }
 
   
