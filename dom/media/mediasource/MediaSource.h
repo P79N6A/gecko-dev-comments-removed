@@ -114,6 +114,10 @@ public:
   void Dump(const char* aPath);
 #endif
 
+  
+  
+  void GetMozDebugReaderData(nsAString& aString);
+
 private:
   
   
