@@ -150,12 +150,20 @@ LoginManagerPrompter.prototype = {
 
 
 
-    _showLoginNotification : function (aTitle, aBody, aButtons, aActionText) {
+
+    _showLoginNotification : function (aTitle, aBody, aButtons, aUsername, aPassword) {
         let notifyWin = this._window.top;
         let chromeWin = this._getChromeWindow(notifyWin).wrappedJSObject;
         let browser = chromeWin.BrowserApp.getBrowserForWindow(notifyWin);
         let tabID = chromeWin.BrowserApp.getTabForBrowser(browser).id;
 
+        let actionText = {
+            text: aUsername,
+            type: "EDIT",
+            bundle: { username: aUsername,
+                      password: aPassword }
+        };
+
         
         
 
@@ -163,12 +171,11 @@ LoginManagerPrompter.prototype = {
         
         
         
-
         let options = {
             persistWhileVisible: true,
             timeout: Date.now() + 10000,
             title: aTitle,
-            actionText: aActionText
+            actionText: actionText
         }
 
         var nativeWindow = this._getNativeWindow();
@@ -193,13 +200,6 @@ LoginManagerPrompter.prototype = {
         let title = { text: displayHost, resource: aLogin.hostname };
 
         let username = aLogin.username ? this._sanitizeUsername(aLogin.username) : "";
-
-        let actionText = {
-            text: username,
-            type: "EDIT",
-            bundle: { username: username,
-                       password: aLogin.password }
-        };
 
         
         
@@ -230,7 +230,7 @@ LoginManagerPrompter.prototype = {
             }
         ];
 
-        this._showLoginNotification(title, notificationText, buttons, actionText);
+        this._showLoginNotification(title, notificationText, buttons, aLogin.username, aLogin.password);
     },
 
     
@@ -280,15 +280,17 @@ LoginManagerPrompter.prototype = {
             },
             {
                 label: this._getLocalizedString("updateButton"),
-                callback:  function() {
-                    self._updateLogin(aOldLogin, aNewPassword);
-                    promptHistogram.add(PROMPT_UPDATE);
+                callback:  function(checked, response) {
+                   let password = response ? response["password"] : aNewPassword;
+                   self._updateLogin(aOldLogin, password);
+
+                   promptHistogram.add(PROMPT_UPDATE);
                 },
                 positive: true
             }
         ];
 
-        this._showLoginNotification(title, notificationText, buttons);
+        this._showLoginNotification(title, notificationText, buttons, aOldLogin.username, aNewPassword);
     },
 
 
