@@ -199,6 +199,7 @@ public class LocaleListPreference extends ListPreference {
             
             
             if (this.tag.equals("or") ||
+                this.tag.equals("my") ||
                 this.tag.equals("pa-IN") ||
                 this.tag.equals("gu-IN") ||
                 this.tag.equals("bn-IN")) {
