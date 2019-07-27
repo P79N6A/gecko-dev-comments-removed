@@ -13,7 +13,7 @@
 
 
 
-static const int32_t kSendDataChunk = 0x4000;
+static const int32_t kSendDataChunk = 0xffff;
 
 namespace mozilla {
 namespace plugins {
