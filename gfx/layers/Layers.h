@@ -1107,6 +1107,11 @@ public:
   
   
   void SetAnimations(const AnimationArray& aAnimations);
+  
+  
+  
+  
+  void StartPendingAnimations(const TimeStamp& aReadyTime);
 
   
   
