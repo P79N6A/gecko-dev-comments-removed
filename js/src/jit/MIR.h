@@ -1814,6 +1814,12 @@ class MSimdSwizzle
         return new(alloc) MSimdSwizzle(obj, type, laneX, laneY, laneZ, laneW);
     }
 
+    static MSimdSwizzle *New(TempAllocator &alloc, MDefinition *obj, MIRType type,
+                             uint32_t laneX, uint32_t laneY, uint32_t laneZ, uint32_t laneW)
+    {
+        return new(alloc) MSimdSwizzle(obj, type, laneX, laneY, laneZ, laneW);
+    }
+
     bool congruentTo(const MDefinition *ins) const MOZ_OVERRIDE {
         if (!ins->isSimdSwizzle())
             return false;
@@ -1828,6 +1834,57 @@ class MSimdSwizzle
     MDefinition *foldsTo(TempAllocator &alloc) MOZ_OVERRIDE;
 
     ALLOW_CLONE(MSimdSwizzle)
+};
+
+
+
+
+
+class MSimdGeneralSwizzle :
+    public MAryInstruction<5>,
+    public SimdSwizzlePolicy::Data
+{
+  protected:
+    MSimdGeneralSwizzle(MDefinition *vec, MDefinition *lanes[4], MIRType type)
+    {
+        MOZ_ASSERT(IsSimdType(type));
+        MOZ_ASSERT(SimdTypeToLength(type) == 4);
+
+        initOperand(0, vec);
+        for (unsigned i = 0; i < 4; i++)
+            initOperand(1 + i, lanes[i]);
+
+        setResultType(type);
+        specialization_ = type;
+        setMovable();
+    }
+
+  public:
+    INSTRUCTION_HEADER(SimdGeneralSwizzle);
+    ALLOW_CLONE(MSimdGeneralSwizzle);
+
+    static MSimdGeneralSwizzle *New(TempAllocator &alloc, MDefinition *vec, MDefinition *lanes[4],
+                                    MIRType type)
+    {
+        return new(alloc) MSimdGeneralSwizzle(vec, lanes, type);
+    }
+
+    MDefinition *input() const {
+        return getOperand(0);
+    }
+    MDefinition *lane(size_t i) const {
+        return getOperand(1 + i);
+    }
+
+    bool congruentTo(const MDefinition *ins) const MOZ_OVERRIDE {
+        return congruentIfOperandsEqual(ins);
+    }
+
+    MDefinition *foldsTo(TempAllocator &alloc) MOZ_OVERRIDE;
+
+    AliasSet getAliasSet() const MOZ_OVERRIDE {
+        return AliasSet::None();
+    }
 };
 
 
