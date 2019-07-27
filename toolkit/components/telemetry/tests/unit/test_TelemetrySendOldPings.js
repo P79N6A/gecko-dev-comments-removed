@@ -35,7 +35,6 @@ const PING_TIMEOUT_LENGTH = 5000;
 const OVERDUE_PINGS = 6;
 const OLD_FORMAT_PINGS = 4;
 const RECENT_PINGS = 4;
-const LRU_PINGS = TelemetrySend.MAX_LRU_PINGS;
 
 const TOTAL_EXPECTED_PINGS = OVERDUE_PINGS + RECENT_PINGS + OLD_FORMAT_PINGS;
 
@@ -88,6 +87,15 @@ let clearPings = Task.async(function* (aPingIds) {
     yield TelemetryStorage.removePendingPing(pingId);
   }
 });
+
+
+
+
+
+function fakePendingPingsQuota(aPendingQuota) {
+  let storage = Cu.import("resource://gre/modules/TelemetryStorage.jsm");
+  storage.Policy.getPendingPingsQuota = () => aPendingQuota;
+}
 
 
 
@@ -148,14 +156,6 @@ let clearPendingPings = Task.async(function*() {
     yield TelemetryStorage.removePendingPing(p.id);
   }
 });
-
-
-
-
-
-function startTelemetry() {
-  return TelemetryController.setup();
-}
 
 function run_test() {
   PingServer.start();
@@ -344,6 +344,100 @@ add_task(function* test_overdue_old_format() {
   Assert.equal(receivedPings, 1, "We must receive a ping in the old format.");
 
   yield clearPendingPings();
+  PingServer.resetPingHandler();
+});
+
+add_task(function* test_pendingPingsQuota() {
+  const PING_TYPE = "foo";
+  const PREF_FHR_UPLOAD = "datareporting.healthreport.uploadEnabled";
+
+  
+  Services.prefs.setBoolPref(PREF_FHR_UPLOAD, false);
+
+  
+  
+  yield clearPendingPings();
+  yield TelemetryController.reset();
+  yield TelemetrySend.testWaitOnOutgoingPings();
+  yield TelemetryStorage.testPendingQuotaTaskPromise();
+
+  
+  yield clearPendingPings();
+
+  let expectedPrunedPings = [];
+  let expectedNotPrunedPings = [];
+
+  let checkPendingPings = Task.async(function*() {
+    
+    for (let prunedPingId of expectedPrunedPings) {
+      yield Assert.rejects(TelemetryStorage.loadPendingPing(prunedPingId),
+                           "Ping " + prunedPingId + " should have been pruned.");
+      const pingPath = getSavePathForPingId(prunedPingId);
+      Assert.ok(!(yield OS.File.exists(pingPath)), "The ping should not be on the disk anymore.");
+    }
+
+    
+    for (let expectedPingId of expectedNotPrunedPings) {
+      Assert.ok((yield TelemetryStorage.loadPendingPing(expectedPingId)),
+                "Ping" + expectedPingId + " should be among the pending pings.");
+    }
+  });
+
+  let pendingPingsInfo = [];
+  let pingsSizeInBytes = 0;
+
+  
+  for (let days = 1; days < 11; days++) {
+    const date = fakeNow(2010, 1, days, 1, 1, 0);
+    const pingId = yield TelemetryController.addPendingPing(PING_TYPE, {}, {});
+
+    
+    const pingFilePath = getSavePathForPingId(pingId);
+    const pingSize = (yield OS.File.stat(pingFilePath)).size;
+    
+    pendingPingsInfo.unshift({id: pingId, size: pingSize, timestamp: date.getTime() });
+
+    
+    yield OS.File.setDates(pingFilePath, null, date.getTime());
+
+    
+    pingsSizeInBytes += pingSize;
+  }
+
+  
+  const testQuotaInBytes = pingsSizeInBytes * 0.8;
+  fakePendingPingsQuota(testQuotaInBytes);
+
+  
+  
+  const safeQuotaSize = Math.round(testQuotaInBytes * 0.9);
+  let sizeInBytes = 0;
+  let pingsWithinQuota = [];
+  let pingsOutsideQuota = [];
+
+  for (let pingInfo of pendingPingsInfo) {
+    sizeInBytes += pingInfo.size;
+    if (sizeInBytes >= safeQuotaSize) {
+      pingsOutsideQuota.push(pingInfo.id);
+      continue;
+    }
+    pingsWithinQuota.push(pingInfo.id);
+  }
+
+  expectedNotPrunedPings = pingsWithinQuota;
+  expectedPrunedPings = pingsOutsideQuota;
+
+  
+  yield TelemetryController.reset();
+  yield TelemetryStorage.testPendingQuotaTaskPromise();
+  yield checkPendingPings();
+
+  
+  yield TelemetryController.reset();
+  yield TelemetryStorage.testPendingQuotaTaskPromise();
+  yield checkPendingPings();
+
+  Services.prefs.setBoolPref(PREF_FHR_UPLOAD, true);
 });
 
 add_task(function* teardown() {

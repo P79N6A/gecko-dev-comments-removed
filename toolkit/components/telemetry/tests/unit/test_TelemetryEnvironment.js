@@ -1024,8 +1024,6 @@ add_task(function* test_defaultSearchEngine() {
   defaultBranch.setBoolPref("browser.search.loadFromJars", true);
 
   
-  
-  Preferences.set("browser.search.geoip.url", "");
   yield new Promise(resolve => Services.search.init(resolve));
 
   

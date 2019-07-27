@@ -175,6 +175,13 @@ this.TelemetryStorage = {
   
 
 
+  testPendingQuotaTaskPromise: function() {
+    return (TelemetryStorageImpl._enforcePendingPingsQuotaTask || Promise.resolve());
+  },
+
+  
+
+
 
 
 
@@ -1104,7 +1111,8 @@ let TelemetryStorageImpl = {
     this._log.trace("loadPendingPing - id: " + id);
     let info = this._pendingPings.get(id);
     if (!info) {
-      return;
+      this._log.trace("loadPendingPing - unknown id " + id);
+      return Promise.reject(new Error("TelemetryStorage.loadPendingPing - no ping with id " + id));
     }
 
     return this.loadPingFile(info.path, false);
