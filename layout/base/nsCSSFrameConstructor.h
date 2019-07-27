@@ -109,14 +109,47 @@ private:
                                     bool aAllowLazyConstruction);
 
   
+
+
+  struct InsertionPoint
+  {
+    InsertionPoint()
+      : mParentFrame(nullptr), mContainer(nullptr), mMultiple(false) {}
+    InsertionPoint(nsContainerFrame* aParentFrame, nsIContent* aContainer,
+                   bool aMultiple = false)
+      : mParentFrame(aParentFrame), mContainer(aContainer),
+        mMultiple(aMultiple) {}
+    
+
+
+
+
+
+
+
+    nsContainerFrame* mParentFrame;
+    
+
+
+
+    nsIContent* mContainer;
+    
+
+
+
+    bool mMultiple;
+  };
   
-  
-  
-  
-  nsContainerFrame* GetRangeInsertionPoint(nsIContent* aContainer,
-                                           nsIContent* aStartChild,
-                                           nsIContent* aEndChild,
-                                           bool aAllowLazyConstruction);
+
+
+
+
+
+
+  InsertionPoint GetRangeInsertionPoint(nsIContent* aContainer,
+                                        nsIContent* aStartChild,
+                                        nsIContent* aEndChild,
+                                        bool aAllowLazyConstruction);
 
   
   bool MaybeRecreateForFrameset(nsIFrame* aParentFrame,
@@ -267,9 +300,9 @@ public:
   nsresult ReplicateFixedFrames(nsPageContentFrame* aParentFrame);
 
   
-  nsContainerFrame* GetInsertionPoint(nsIContent* aContainer,
-                                      nsIContent* aChildContent,
-                                      bool*       aMultiple = nullptr);
+
+
+  InsertionPoint GetInsertionPoint(nsIContent* aContainer, nsIContent* aChild);
 
   nsresult CreateListBoxContent(nsPresContext*    aPresContext,
                                 nsContainerFrame* aParentFrame,
@@ -321,12 +354,21 @@ private:
   
   
   already_AddRefed<nsStyleContext>
-  ResolveStyleContext(nsIFrame*         aParentFrame,
-                      nsIContent*       aContent,
+  ResolveStyleContext(nsIFrame*                aParentFrame,
+                      nsIContent*              aContainer,
+                      nsIContent*              aChild,
                       nsFrameConstructorState* aState);
   already_AddRefed<nsStyleContext>
-  ResolveStyleContext(nsStyleContext* aParentStyleContext,
-                      nsIContent* aContent,
+  ResolveStyleContext(nsIFrame*                aParentFrame,
+                      nsIContent*              aChild,
+                      nsFrameConstructorState* aState);
+  already_AddRefed<nsStyleContext>
+  ResolveStyleContext(const InsertionPoint&    aInsertion,
+                      nsIContent*              aChild,
+                      nsFrameConstructorState* aState);
+  already_AddRefed<nsStyleContext>
+  ResolveStyleContext(nsStyleContext*          aParentStyleContext,
+                      nsIContent*              aContent,
                       nsFrameConstructorState* aState);
 
   
@@ -337,8 +379,25 @@ private:
   void AddFrameConstructionItems(nsFrameConstructorState& aState,
                                  nsIContent*              aContent,
                                  bool                     aSuppressWhiteSpaceOptimizations,
-                                 nsContainerFrame*        aParentFrame,
+                                 const InsertionPoint&    aInsertion,
                                  FrameConstructionItemList& aItems);
+
+  
+  
+  
+  bool ShouldCreateItemsForChild(nsFrameConstructorState& aState,
+                                 nsIContent* aContent,
+                                 nsContainerFrame* aParentFrame);
+
+  
+  
+  void DoAddFrameConstructionItems(nsFrameConstructorState& aState,
+                                   nsIContent* aContent,
+                                   nsStyleContext* aStyleContext,
+                                   bool aSuppressWhiteSpaceOptimizations,
+                                   nsContainerFrame* aParentFrame,
+                                   nsTArray<nsIAnonymousContentCreator::ContentInfo>* aAnonChildren,
+                                   FrameConstructionItemList& aItems);
 
   
   
@@ -631,6 +690,10 @@ private:
   
 
 #define FCDATA_IS_SVG_TEXT 0x80000
+  
+
+
+#define FCDATA_IS_CONTENTS 0x100000
 
   
 
@@ -1163,7 +1226,7 @@ private:
   
   
   void AddTextItemIfNeeded(nsFrameConstructorState& aState,
-                           nsContainerFrame* aParentFrame,
+                           const InsertionPoint& aInsertion,
                            nsIContent* aPossibleTextContent,
                            FrameConstructionItemList& aItems);
 
@@ -1502,7 +1565,14 @@ private:
                         PendingBinding*          aPendingBinding,
                         nsFrameItems&            aFrameItems);
 
-  nsresult MaybeRecreateFramesForElement(Element* aElement);
+  
+
+
+
+
+
+
+  nsStyleContext* MaybeRecreateFramesForElement(Element* aElement);
 
   
 
@@ -1773,28 +1843,63 @@ private:
                                  nsFrameItems&            aFrameItems);
 
   
-  
-  
-  
-  
-  
-  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   nsIFrame* FindFrameForContentSibling(nsIContent* aContent,
                                        nsIContent* aTargetContent,
                                        uint8_t& aTargetContentDisplay,
+                                       nsContainerFrame* aParentFrame,
                                        bool aPrevSibling);
 
   
-  
-  
+
+
+
+
+
+
+
+
+
+
+
+
+
   nsIFrame* FindPreviousSibling(mozilla::dom::FlattenedChildIterator aIter,
-                                uint8_t& aTargetContentDisplay);
+                                nsIContent* aTargetContent,
+                                uint8_t& aTargetContentDisplay,
+                                nsContainerFrame* aParentFrame);
 
   
-  
-  
+
+
+
+
+
+
+
+
+
+
+
+
+
   nsIFrame* FindNextSibling(mozilla::dom::FlattenedChildIterator aIter,
-                            uint8_t& aTargetContentDisplay);
+                            nsIContent* aTargetContent,
+                            uint8_t& aTargetContentDisplay,
+                            nsContainerFrame* aParentFrame);
 
   
   
@@ -1809,13 +1914,18 @@ private:
   
   
   
-  nsIFrame* GetInsertionPrevSibling(nsContainerFrame*& aParentFrame, 
-                                    nsIContent* aContainer,
+  nsIFrame* GetInsertionPrevSibling(InsertionPoint* aInsertion, 
                                     nsIContent* aChild,
                                     bool* aIsAppend,
                                     bool* aIsRangeInsertSafe,
                                     nsIContent* aStartSkipChild = nullptr,
                                     nsIContent *aEndSkipChild = nullptr);
+
+  
+
+
+
+  nsContainerFrame* GetContentInsertionFrameFor(nsIContent* aContent);
 
   
   

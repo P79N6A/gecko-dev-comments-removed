@@ -9,10 +9,12 @@
 
 
 #include "RestyleTracker.h"
+
+#include "GeckoProfiler.h"
+#include "nsFrameManager.h"
+#include "nsIDocument.h"
 #include "nsStyleChangeList.h"
 #include "RestyleManager.h"
-#include "GeckoProfiler.h"
-#include "nsIDocument.h"
 #include "RestyleTrackerInlines.h"
 
 namespace mozilla {
@@ -114,8 +116,10 @@ CollectRestyles(nsISupports* aElement,
   NS_ASSERTION(!element->HasFlag(collector->tracker->RootBit()) ||
                
                (element->GetFlattenedTreeParent() &&
-                (!element->GetFlattenedTreeParent()->GetPrimaryFrame()||
-                 element->GetFlattenedTreeParent()->GetPrimaryFrame()->IsLeaf())) ||
+                (!element->GetFlattenedTreeParent()->GetPrimaryFrame() ||
+                 element->GetFlattenedTreeParent()->GetPrimaryFrame()->IsLeaf() ||
+                 element->GetCurrentDoc()->GetShell()->FrameManager()
+                   ->GetDisplayContentsStyleFor(element))) ||
                
                
                
