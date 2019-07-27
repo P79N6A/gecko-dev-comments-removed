@@ -24,6 +24,9 @@
 #include "nsJSUtils.h"
 #include "nsPIDOMWindow.h"
 #include "nsJSEnvironment.h"
+#include "nsIScriptObjectPrincipal.h"
+#include "xpcpublic.h"
+#include "nsGlobalWindow.h"
 
 namespace mozilla {
 namespace dom {
@@ -1060,14 +1063,25 @@ Promise::MaybeReportRejected()
     return;
   }
 
-  if (!mResult.isObject()) {
+  AutoJSAPI jsapi;
+  
+  
+  jsapi.Init();
+  JSContext* cx = jsapi.cx();
+  JS::Rooted<JSObject*> obj(cx, GetWrapper());
+  MOZ_ASSERT(obj); 
+  JS::Rooted<JS::Value> val(cx, mResult);
+  JS::ExposeValueToActiveJS(val);
+
+  JSAutoCompartment ac(cx, obj);
+  if (!JS_WrapValue(cx, &val)) {
+    JS_ClearPendingException(cx);
     return;
   }
-  ThreadsafeAutoJSContext cx;
-  JS::Rooted<JSObject*> obj(cx, &mResult.toObject());
-  JSAutoCompartment ac(cx, obj);
-  JSErrorReport* report = JS_ErrorFromException(cx, obj);
-  if (!report) {
+
+  js::ErrorReport report(cx);
+  if (!report.init(cx, val)) {
+    JS_ClearPendingException(cx);
     return;
   }
 
@@ -1076,9 +1090,9 @@ Promise::MaybeReportRejected()
   bool isChromeError = false;
 
   if (MOZ_LIKELY(NS_IsMainThread())) {
-    win =
-      do_QueryInterface(nsJSUtils::GetStaticScriptGlobal(obj));
-    nsIPrincipal* principal = nsContentUtils::ObjectPrincipal(obj);
+    nsIPrincipal* principal;
+    win = xpc::WindowGlobalOrNull(obj);
+    principal = nsContentUtils::ObjectPrincipal(obj);
     isChromeError = nsContentUtils::IsSystemPrincipal(principal);
   } else {
     WorkerPrivate* worker = GetCurrentThreadWorkerPrivate();
@@ -1091,9 +1105,9 @@ Promise::MaybeReportRejected()
   
   
   nsRefPtr<AsyncErrorReporter> r =
-    new AsyncErrorReporter(JS_GetObjectRuntime(obj),
-                           report,
-                           nullptr,
+    new AsyncErrorReporter(CycleCollectedJSRuntime::Get()->Runtime(),
+                           report.report(),
+                           report.message(),
                            isChromeError,
                            win);
   NS_DispatchToMainThread(r);
