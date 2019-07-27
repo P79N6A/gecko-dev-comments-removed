@@ -112,6 +112,7 @@ public:
     , mDisplay(nsIntSize(aWidth, aHeight))
     , mStereoMode(StereoMode::MONO)
     , mImage(nsIntSize(aWidth, aHeight))
+    , mCodecSpecificConfig(new MediaByteBuffer)
     , mExtraData(new MediaByteBuffer)
   {
   }
@@ -130,7 +131,7 @@ public:
 
   
   nsIntSize mImage;
-
+  nsRefPtr<MediaByteBuffer> mCodecSpecificConfig;
   nsRefPtr<MediaByteBuffer> mExtraData;
 };
 
