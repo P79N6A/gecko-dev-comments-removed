@@ -3,6 +3,8 @@
 
 
 
+
+
 const TAG = "AndroidLogTest";
 
 const VERBOSE_MESSAGE = "This is a verbose message.";
