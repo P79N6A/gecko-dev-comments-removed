@@ -9,10 +9,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 
+import java.util.List;
 
 
 
-class AutoCompleteAdapter extends ArrayAdapter<AutoCompleteModel> {
+
+class AutoCompleteAdapter extends ArrayAdapter<String> {
 
     private final AcceptsJumpTaps acceptsJumpTaps;
 
@@ -21,6 +23,9 @@ class AutoCompleteAdapter extends ArrayAdapter<AutoCompleteModel> {
         
         super(context, 0);
         this.acceptsJumpTaps = acceptsJumpTaps;
+
+        
+        setNotifyOnChange(false);
     }
 
     @Override
@@ -34,12 +39,23 @@ class AutoCompleteAdapter extends ArrayAdapter<AutoCompleteModel> {
         }
 
         view.setOnJumpListener(acceptsJumpTaps);
-
-
-        AutoCompleteModel model = getItem(position);
-
-        view.setMainText(model.getMainText());
+        view.setMainText(getItem(position));
 
         return view;
+    }
+
+    
+
+
+
+
+    public void update(List<String> suggestions) {
+        clear();
+        if (suggestions != null) {
+            for (String s : suggestions) {
+                add(s);
+            }
+        }
+        notifyDataSetChanged();
     }
 }

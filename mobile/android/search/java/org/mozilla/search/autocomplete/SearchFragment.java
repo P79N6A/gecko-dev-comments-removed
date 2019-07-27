@@ -7,9 +7,10 @@ package org.mozilla.search.autocomplete;
 
 import android.content.Context;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.AsyncTaskLoader;
+import android.support.v4.content.Loader;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.KeyEvent;
@@ -27,22 +28,37 @@ import android.widget.TextView;
 
 import org.mozilla.search.R;
 
+import java.util.List;
 
 
 
 
 
 
-public class SearchFragment extends Fragment implements AdapterView.OnItemClickListener,
-        TextView.OnEditorActionListener, AcceptsJumpTaps {
+
+public class SearchFragment extends Fragment
+        implements TextView.OnEditorActionListener, AcceptsJumpTaps {
+
+    private static final int LOADER_ID_SUGGESTION = 0;
+    private static final String KEY_SEARCH_TERM = "search_term";
+
+    
+    private static final int SUGGESTION_TIMEOUT = 3000;
+
+    
+    private static final int SUGGESTION_MAX = 5;
 
     private View mainView;
     private FrameLayout backdropFrame;
     private EditText searchBar;
     private ListView suggestionDropdown;
     private InputMethodManager inputMethodManager;
+
     private AutoCompleteAdapter autoCompleteAdapter;
-    private AutoCompleteAgentManager autoCompleteAgentManager;
+
+    private SuggestClient suggestClient;
+    private SuggestionLoaderCallbacks suggestionLoaderCallbacks;
+
     private State state;
 
     private enum State {
@@ -58,7 +74,6 @@ public class SearchFragment extends Fragment implements AdapterView.OnItemClickL
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
-
         mainView = inflater.inflate(R.layout.search_auto_complete, container, false);
         backdropFrame = (FrameLayout) mainView.findViewById(R.id.auto_complete_backdrop);
         searchBar = (EditText) mainView.findViewById(R.id.auto_complete_search_bar);
@@ -71,17 +86,17 @@ public class SearchFragment extends Fragment implements AdapterView.OnItemClickL
         searchBar.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
             }
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-
             }
 
             @Override
             public void afterTextChanged(Editable s) {
-                autoCompleteAgentManager.search(s.toString());
+                final Bundle args = new Bundle();
+                args.putString(KEY_SEARCH_TERM, s.toString());
+                getLoaderManager().restartLoader(LOADER_ID_SUGGESTION, args, suggestionLoaderCallbacks);
             }
         });
         searchBar.setOnEditorActionListener(this);
@@ -106,17 +121,7 @@ public class SearchFragment extends Fragment implements AdapterView.OnItemClickL
         backdropFrame.setOnClickListener(new BackdropClickListener());
 
         autoCompleteAdapter = new AutoCompleteAdapter(getActivity(), this);
-
-        
-        
-        autoCompleteAdapter.setNotifyOnChange(false);
-
         suggestionDropdown.setAdapter(autoCompleteAdapter);
-
-        initRows();
-
-        autoCompleteAgentManager =
-                new AutoCompleteAgentManager(getActivity(), new MainUiHandler(autoCompleteAdapter));
 
         
         transitionToWaiting();
@@ -125,11 +130,17 @@ public class SearchFragment extends Fragment implements AdapterView.OnItemClickL
         suggestionDropdown.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                String query = ((AutoCompleteModel) suggestionDropdown.getItemAtPosition(position))
-                        .getMainText();
+                String query = (String) suggestionDropdown.getItemAtPosition(position);
                 startSearch(query);
             }
         });
+
+        
+        final String template = "https://search.yahoo.com/sugg/ff?" +
+                "output=fxjson&appid=ffm&command=__searchTerms__&nresults=" + SUGGESTION_MAX;
+
+        suggestClient = new SuggestClient(getActivity(), template, SUGGESTION_TIMEOUT, SUGGESTION_MAX);
+        suggestionLoaderCallbacks = new SuggestionLoaderCallbacks();
 
         return mainView;
     }
@@ -146,15 +157,8 @@ public class SearchFragment extends Fragment implements AdapterView.OnItemClickL
             suggestionDropdown = null;
         }
         autoCompleteAdapter = null;
-    }
-
-    
-
-
-    @Override
-    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-        
-        
+        suggestClient = null;
+        suggestionLoaderCallbacks = null;
     }
 
     
@@ -168,18 +172,6 @@ public class SearchFragment extends Fragment implements AdapterView.OnItemClickL
         }
         return false;
     }
-
-
-    private void initRows() {
-        
-        autoCompleteAdapter.add(new AutoCompleteModel("banana"));
-        autoCompleteAdapter.add(new AutoCompleteModel("cat pics"));
-        autoCompleteAdapter.add(new AutoCompleteModel("mexican food"));
-        autoCompleteAdapter.add(new AutoCompleteModel("cuba libre"));
-
-        autoCompleteAdapter.notifyDataSetChanged();
-    }
-
 
     
 
@@ -226,41 +218,78 @@ public class SearchFragment extends Fragment implements AdapterView.OnItemClickL
         searchBar.setText(suggestion);
         
         searchBar.setSelection(suggestion.length());
-        autoCompleteAgentManager.search(suggestion);
     }
 
-
-    
-
-
-    private static class MainUiHandler extends Handler {
-
-        final AutoCompleteAdapter autoCompleteAdapter1;
-
-        public MainUiHandler(AutoCompleteAdapter autoCompleteAdapter) {
-            autoCompleteAdapter1 = autoCompleteAdapter;
+    private class SuggestionLoaderCallbacks implements LoaderManager.LoaderCallbacks<List<String>> {
+        @Override
+        public Loader<List<String>> onCreateLoader(int id, Bundle args) {
+            
+            
+            
+            return new SuggestionAsyncLoader(getActivity(), suggestClient, args.getString(KEY_SEARCH_TERM));
         }
 
         @Override
-        public void handleMessage(Message msg) {
-            super.handleMessage(msg);
-            if (null == msg.obj) {
-                return;
+        public void onLoadFinished(Loader<List<String>> loader, List<String> suggestions) {
+            autoCompleteAdapter.update(suggestions);
+        }
+
+        @Override
+        public void onLoaderReset(Loader<List<String>> loader) {
+            if (autoCompleteAdapter != null) {
+                autoCompleteAdapter.update(null);
+            }
+        }
+    }
+
+    private static class SuggestionAsyncLoader extends AsyncTaskLoader<List<String>> {
+        private final SuggestClient suggestClient;
+        private final String searchTerm;
+        private List<String> suggestions;
+
+        public SuggestionAsyncLoader(Context context, SuggestClient suggestClient, String searchTerm) {
+            super(context);
+            this.suggestClient = suggestClient;
+            this.searchTerm = searchTerm;
+            this.suggestions = null;
+        }
+
+        @Override
+        public List<String> loadInBackground() {
+            return suggestClient.query(searchTerm);
+        }
+
+        @Override
+        public void deliverResult(List<String> suggestions) {
+            this.suggestions = suggestions;
+
+            if (isStarted()) {
+                super.deliverResult(suggestions);
+            }
+        }
+
+        @Override
+        protected void onStartLoading() {
+            if (suggestions != null) {
+                deliverResult(suggestions);
             }
 
-            if (!(msg.obj instanceof Iterable)) {
-                return;
+            if (takeContentChanged() || suggestions == null) {
+                forceLoad();
             }
+        }
 
-            autoCompleteAdapter1.clear();
+        @Override
+        protected void onStopLoading() {
+            cancelLoad();
+        }
 
-            for (Object obj : (Iterable) msg.obj) {
-                if (obj instanceof AutoCompleteModel) {
-                    autoCompleteAdapter1.add((AutoCompleteModel) obj);
-                }
-            }
-            autoCompleteAdapter1.notifyDataSetChanged();
+        @Override
+        protected void onReset() {
+            super.onReset();
 
+            onStopLoading();
+            suggestions = null;
         }
     }
 
