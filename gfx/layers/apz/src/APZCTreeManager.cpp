@@ -366,7 +366,10 @@ APZCTreeManager::PrepareNodeForLayer(const LayerMetricsWrapper& aLayer,
     
     
     
-    if (apzc && !apzc->Matches(guid)) {
+    
+    
+    
+    if (apzc && (!apzc->Matches(guid) || !apzc->HasTreeManager(this))) {
       apzc = nullptr;
     }
 
