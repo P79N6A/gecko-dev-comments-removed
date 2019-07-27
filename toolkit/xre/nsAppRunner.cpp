@@ -103,6 +103,10 @@
 #ifndef PROCESS_DEP_ENABLE
 #define PROCESS_DEP_ENABLE 0x1
 #endif
+
+#if defined(MOZ_CONTENT_SANDBOX)
+#include "nsIUUIDGenerator.h"
+#endif
 #endif
 
 #ifdef ACCESSIBILITY
@@ -582,6 +586,116 @@ CanShowProfileManager()
 {
   return true;
 }
+
+#if defined(XP_WIN) && defined(MOZ_CONTENT_SANDBOX)
+static already_AddRefed<nsIFile>
+GetAndCleanLowIntegrityTemp(const nsAString& aTempDirSuffix)
+{
+  
+  nsCOMPtr<nsIFile> lowIntegrityTemp;
+  nsresult rv = NS_GetSpecialDirectory(NS_WIN_LOW_INTEGRITY_TEMP_BASE,
+                                       getter_AddRefs(lowIntegrityTemp));
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return nullptr;
+  }
+
+  
+  rv = lowIntegrityTemp->Append(NS_LITERAL_STRING("Temp-") + aTempDirSuffix);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return nullptr;
+  }
+
+  rv = lowIntegrityTemp->Remove( true);
+  if (NS_FAILED(rv) && rv != NS_ERROR_FILE_NOT_FOUND) {
+    NS_WARNING("Failed to delete low integrity temp directory.");
+    return nullptr;
+  }
+
+  return lowIntegrityTemp.forget();
+}
+
+static void
+SetUpSandboxEnvironment()
+{
+  
+  
+  if (!IsVistaOrLater() || !BrowserTabsRemoteAutostart() ||
+      Preferences::GetInt("security.sandbox.content.level") != 1) {
+    return;
+  }
+
+  
+  nsresult rv;
+  nsAdoptingString tempDirSuffix =
+    Preferences::GetString("security.sandbox.content.tempDirSuffix");
+  if (tempDirSuffix.IsEmpty()) {
+    nsCOMPtr<nsIUUIDGenerator> uuidgen =
+      do_GetService("@mozilla.org/uuid-generator;1", &rv);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return;
+    }
+
+    nsID uuid;
+    rv = uuidgen->GenerateUUIDInPlace(&uuid);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return;
+    }
+
+    char uuidChars[NSID_LENGTH];
+    uuid.ToProvidedString(uuidChars);
+    tempDirSuffix.AssignASCII(uuidChars);
+
+    
+    rv = Preferences::SetCString("security.sandbox.content.tempDirSuffix",
+                                 uuidChars);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      
+      
+      return;
+    }
+
+    nsCOMPtr<nsIPrefService> prefsvc = Preferences::GetService();
+    if (!prefsvc || NS_FAILED(prefsvc->SavePrefFile(nullptr))) {
+      
+      
+      NS_WARNING("Failed to save pref file, cannot create temp dir.");
+      return;
+    }
+  }
+
+  
+  nsCOMPtr<nsIFile> lowIntegrityTemp = GetAndCleanLowIntegrityTemp(tempDirSuffix);
+  if (!lowIntegrityTemp) {
+    NS_WARNING("Failed to get or clean low integrity Mozilla temp directory.");
+    return;
+  }
+
+  rv = lowIntegrityTemp->Create(nsIFile::DIRECTORY_TYPE, 0700);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return;
+  }
+}
+
+static void
+CleanUpSandboxEnvironment()
+{
+  
+  if (!IsVistaOrLater()) {
+    return;
+  }
+
+  
+  nsAdoptingString tempDirSuffix =
+    Preferences::GetString("security.sandbox.content.tempDirSuffix");
+  if (tempDirSuffix.IsEmpty()) {
+    return;
+  }
+
+  
+  
+  unused << GetAndCleanLowIntegrityTemp(tempDirSuffix);
+}
+#endif
 
 bool gSafeMode = false;
 
@@ -4081,6 +4195,10 @@ XREMain::XRE_mainRun()
   }
 #endif 
 
+#if defined(XP_WIN) && defined(MOZ_CONTENT_SANDBOX)
+  SetUpSandboxEnvironment();
+#endif
+
   {
     rv = appStartup->Run();
     if (NS_FAILED(rv)) {
@@ -4088,6 +4206,10 @@ XREMain::XRE_mainRun()
       gLogConsoleErrors = true;
     }
   }
+
+#if defined(XP_WIN) && defined(MOZ_CONTENT_SANDBOX)
+  CleanUpSandboxEnvironment();
+#endif
 
   return rv;
 }

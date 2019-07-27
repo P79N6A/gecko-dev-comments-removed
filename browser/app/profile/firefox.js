@@ -1211,6 +1211,9 @@ pref("security.sandbox.content.level", 0);
 #endif
 
 
+
+pref("security.sandbox.content.tempDirSuffix", "");
+
 #if defined(MOZ_STACKWALKING)
 
 
@@ -1403,8 +1406,6 @@ pref("devtools.inspector.showUserAgentStyles", false);
 pref("devtools.inspector.showAllAnonymousContent", false);
 
 pref("devtools.inspector.mdnDocsTooltip.enabled", true);
-
-pref("devtools.inspector.animationInspectorV3", false);
 
 
 pref("devtools.defaultColorUnit", "hex");
