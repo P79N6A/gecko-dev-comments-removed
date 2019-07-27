@@ -57,10 +57,6 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
   ((((side_) + !!(second_))*2 + ((side_) + !(parallel_))%2) % 8)
 
 
-#define NS_BOXPROP_SOURCE_PHYSICAL 0
-#define NS_BOXPROP_SOURCE_LOGICAL  1
-
-
 #define NS_STYLE_BOX_SIZING_CONTENT       0
 #define NS_STYLE_BOX_SIZING_PADDING       1
 #define NS_STYLE_BOX_SIZING_BORDER        2
