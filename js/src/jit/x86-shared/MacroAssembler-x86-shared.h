@@ -938,7 +938,6 @@ class MacroAssemblerX86Shared : public Assembler
         
         
         
-        
         vcvttps2dq(src, dest);
     }
     void convertInt32x4ToFloat32x4(FloatRegister src, FloatRegister dest) {

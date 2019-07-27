@@ -2525,6 +2525,7 @@ class FunctionCompiler
                                            options, alloc_,
                                            graph_, info_, optimizationInfo,
                                            &m().onOutOfBoundsLabel(),
+                                            nullptr,
                                            m().usesSignalHandlersForOOB());
 
         if (!newBlock( nullptr, &curBlock_, fn_))

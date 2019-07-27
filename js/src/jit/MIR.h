@@ -1531,9 +1531,14 @@ class MSimdConvert
       : MUnaryInstruction(obj)
     {
         MOZ_ASSERT(IsSimdType(toType));
-        setMovable();
         setResultType(toType);
         specialization_ = fromType; 
+
+        setMovable();
+        if (IsFloatingPointSimdType(fromType) && IsIntegerSimdType(toType)) {
+            
+            setGuard();
+        }
     }
 
   public:

@@ -70,6 +70,28 @@ class CodeGeneratorX86Shared : public CodeGeneratorShared
     };
 
     
+    
+    class OutOfLineSimdFloatToIntCheck : public OutOfLineCodeBase<CodeGeneratorX86Shared>
+    {
+        Register temp_;
+        FloatRegister input_;
+        LInstruction* ins_;
+
+      public:
+        OutOfLineSimdFloatToIntCheck(Register temp, FloatRegister input, LInstruction *ins)
+          : temp_(temp), input_(input), ins_(ins)
+        {}
+
+        Register temp() const { return temp_; }
+        FloatRegister input() const { return input_; }
+        LInstruction* ins() const { return ins_; }
+
+        void accept(CodeGeneratorX86Shared* codegen) {
+            codegen->visitOutOfLineSimdFloatToIntCheck(this);
+        }
+    };
+
+    
     MOZ_WARN_UNUSED_RESULT
     uint32_t emitAsmJSBoundsCheckBranch(const MAsmJSHeapAccess* mir, const MInstruction* ins,
                                         Register ptr, Label* fail);
@@ -282,6 +304,7 @@ class CodeGeneratorX86Shared : public CodeGeneratorShared
     void visitModOverflowCheck(ModOverflowCheck* ool);
     void visitReturnZero(ReturnZero* ool);
     void visitOutOfLineTableSwitch(OutOfLineTableSwitch* ool);
+    void visitOutOfLineSimdFloatToIntCheck(OutOfLineSimdFloatToIntCheck* ool);
     void generateInvalidateEpilogue();
 };
 
