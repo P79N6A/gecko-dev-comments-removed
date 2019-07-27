@@ -28,8 +28,5 @@ function test() {
 
     
     test_historymode_retention("remember", "remember"),
-
-    
-    reset_preferences
   ]);
 }

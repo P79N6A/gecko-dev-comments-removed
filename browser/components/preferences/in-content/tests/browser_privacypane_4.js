@@ -27,8 +27,5 @@ function test() {
     test_custom_retention("alwaysClear", "remember"),
     test_custom_retention("alwaysClear", "custom"),
     test_historymode_retention("remember", "remember"),
-
-    
-    reset_preferences
   ]));
 }

@@ -19,8 +19,5 @@ function test() {
     test_custom_retention("rememberForms", "remember"),
     test_custom_retention("rememberForms", "custom"),
     test_historymode_retention("remember", "remember"),
-
-    
-    reset_preferences
   ]);
 }

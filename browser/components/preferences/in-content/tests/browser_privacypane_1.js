@@ -19,8 +19,5 @@ function test() {
     test_dependent_cookie_elements,
     test_dependent_clearonclose_elements,
     test_dependent_prefs,
-
-    
-    reset_preferences
   ]);
 }
