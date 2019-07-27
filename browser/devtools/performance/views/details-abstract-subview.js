@@ -67,7 +67,7 @@ let DetailsSubview = {
 
 
   _onRecordingStoppedOrSelected: function(_, recording) {
-    if (recording.isRecording()) {
+    if (!recording || recording.isRecording()) {
       return;
     }
     if (DetailsView.isViewSelected(this) || this.canUpdateWhileHidden) {

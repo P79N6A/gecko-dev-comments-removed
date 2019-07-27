@@ -265,6 +265,9 @@ let OverviewView = {
 
 
   _onRecordingSelected: function (_, recording) {
+    if (!recording) {
+      return;
+    }
     this.markersOverview.dropSelection();
     this._checkSelection(recording);
 
