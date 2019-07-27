@@ -35,7 +35,7 @@ taskHelper.push(function basicTest() {
   
   is(iccInfo.iccid, 89014103211118510720);
 
-  if (iccInfo instanceof Ci.nsIDOMMozGsmIccInfo) {
+  if (iccInfo instanceof MozGsmIccInfo) {
     log("Test Gsm IccInfo");
     is(iccInfo.iccType, "sim");
     is(iccInfo.spn, "Android");
