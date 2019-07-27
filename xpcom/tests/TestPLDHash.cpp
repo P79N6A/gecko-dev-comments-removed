@@ -236,8 +236,8 @@ static bool test_pldhash_RemovingIterator()
   
   
   {
-    PLDHashTable::Iterator iter1(&t);
-    PLDHashTable::Iterator iter2(mozilla::Move(iter1));
+    PLDHashTable::RemovingIterator iter1(&t);
+    PLDHashTable::RemovingIterator iter2(mozilla::Move(iter1));
   }
 
   
