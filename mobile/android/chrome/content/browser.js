@@ -3922,52 +3922,50 @@ Tab.prototype = {
           
           let isOpenSearch = (type == "application/opensearchdescription+xml");
           if (isOpenSearch && target.title && /^(?:https?|ftp):/i.test(target.href)) {
-            Services.search.init(() => {
-              let visibleEngines = Services.search.getVisibleEngines();
+            let visibleEngines = Services.search.getVisibleEngines();
+            
+            
+            if (visibleEngines.some(function(e) {
+              return e.name == target.title;
+            })) {
               
+              return;
+            }
+
+            if (this.browser.engines) {
               
-              if (visibleEngines.some(function(e) {
-                return e.name == target.title;
+              if (this.browser.engines.some(function(e) {
+                return e.url == target.href;
               })) {
-                
-                return;
+                  return;
               }
+            } else {
+              this.browser.engines = [];
+            }
 
-              if (this.browser.engines) {
-                
-                if (this.browser.engines.some(function(e) {
-                  return e.url == target.href;
-                })) {
-                    return;
-                }
-              } else {
-                this.browser.engines = [];
-              }
+            
+            let iconURL = target.ownerDocument.documentURIObject.prePath + "/favicon.ico";
 
-              
-              let iconURL = target.ownerDocument.documentURIObject.prePath + "/favicon.ico";
+            let newEngine = {
+              title: target.title,
+              url: target.href,
+              iconURL: iconURL
+            };
 
-              let newEngine = {
-                title: target.title,
-                url: target.href,
-                iconURL: iconURL
-              };
+            this.browser.engines.push(newEngine);
 
-              this.browser.engines.push(newEngine);
+            
+            if (this.browser.engines.length > 1)
+              return;
 
-              
-              if (this.browser.engines.length > 1)
-                return;
+            
+            let newEngineMessage = {
+              type: "Link:OpenSearch",
+              tabID: this.id,
+              visible: true
+            };
 
-              
-              let newEngineMessage = {
-                type: "Link:OpenSearch",
-                tabID: this.id,
-                visible: true
-              };
-
-              Messaging.sendRequest(newEngineMessage);
-            });
+            Messaging.sendRequest(newEngineMessage);
           }
         }
         break;
