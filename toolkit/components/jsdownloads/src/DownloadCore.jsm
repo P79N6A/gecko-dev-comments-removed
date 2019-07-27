@@ -477,16 +477,6 @@ this.Download.prototype = {
         
         
         if (this._currentAttempt == currentAttempt || !this._currentAttempt) {
-          if (!(ex instanceof DownloadError)) {
-            let properties = {innerException: ex};
-
-            if (ex.message) {
-              properties.message = ex.message;
-            }
-
-            ex = new DownloadError(properties);
-          }
-
           this.error = ex;
         }
         throw ex;
@@ -920,8 +910,8 @@ this.Download.prototype = {
       serializable.saver = saver;
     }
 
-    if (this.error) {
-      serializable.errorObj = this.error.toSerializable();
+    if (this.error && ("message" in this.error)) {
+      serializable.error = { message: this.error.message };
     }
 
     if (this.startTime) {
@@ -929,8 +919,8 @@ this.Download.prototype = {
     }
 
     
-    for (let property of kPlainSerializableDownloadProperties) {
-      if (this[property]) {
+    for (let property of kSerializableDownloadProperties) {
+      if (property != "error" && property != "startTime" && this[property]) {
         serializable[property] = this[property];
       }
     }
@@ -963,9 +953,10 @@ this.Download.prototype = {
 
 
 
-const kPlainSerializableDownloadProperties = [
+const kSerializableDownloadProperties = [
   "succeeded",
   "canceled",
+  "error",
   "totalBytes",
   "hasPartialData",
   "tryToKeepPartialData",
@@ -1020,22 +1011,17 @@ Download.fromSerializable = function (aSerializable) {
     download.startTime = new Date(time);
   }
 
-  if ("errorObj" in aSerializable) {
-    download.error = DownloadError.fromSerializable(aSerializable.errorObj);
-  }
-
-  for (let property of kPlainSerializableDownloadProperties) {
+  for (let property of kSerializableDownloadProperties) {
     if (property in aSerializable) {
       download[property] = aSerializable[property];
     }
   }
 
   deserializeUnknownProperties(download, aSerializable, property =>
-    kPlainSerializableDownloadProperties.indexOf(property) == -1 &&
+    kSerializableDownloadProperties.indexOf(property) == -1 &&
     property != "startTime" &&
     property != "source" &&
     property != "target" &&
-    property != "error" &&
     property != "saver");
 
   return download;
@@ -1277,10 +1263,6 @@ this.DownloadError = function (aProperties)
     this.becauseBlocked = true;
   }
 
-  if (aProperties.innerException) {
-    this.innerException = aProperties.innerException;
-  }
-
   this.stack = new Error().stack;
 }
 
@@ -1319,56 +1301,6 @@ this.DownloadError.prototype = {
 
 
   becauseBlockedByReputationCheck: false,
-
-  
-
-
-
-
-  innerException: null,
-
-  
-
-
-
-
-  toSerializable: function ()
-  {
-    let serializable = {
-      result: this.result,
-      message: this.message,
-      becauseSourceFailed: this.becauseSourceFailed,
-      becauseTargetFailed: this.becauseTargetFailed,
-      becauseBlocked: this.becauseBlocked,
-      becauseBlockedByParentalControls: this.becauseBlockedByParentalControls,
-      becauseBlockedByReputationCheck: this.becauseBlockedByReputationCheck,
-    };
-
-    serializeUnknownProperties(this, serializable);
-    return serializable;
-  },
-};
-
-
-
-
-
-
-
-
-
-this.DownloadError.fromSerializable = function (aSerializable) {
-  let e = new DownloadError(aSerializable);
-  deserializeUnknownProperties(e, aSerializable, property =>
-    property != "result" &&
-    property != "message" &&
-    property != "becauseSourceFailed" &&
-    property != "becauseTargetFailed" &&
-    property != "becauseBlocked" &&
-    property != "becauseBlockedByParentalControls" &&
-    property != "becauseBlockedByReputationCheck");
-
-  return e;
 };
 
 
