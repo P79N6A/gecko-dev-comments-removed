@@ -30,13 +30,16 @@
 #include "nsISupports.h"
 #include "nsIWidget.h"
 #include "nsPresContext.h"
-#include "nsThreadUtils.h"
 #include "nsWeakReference.h"
 #include "WritingModes.h"
 
 namespace mozilla {
 
 using namespace widget;
+
+
+
+
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(IMEContentObserver)
 
@@ -384,61 +387,6 @@ IMEContentObserver::GetSelectionAndRoot(nsISelection** aSelection,
   return NS_OK;
 }
 
-
-class SelectionChangeEvent : public nsRunnable
-{
-public:
-  SelectionChangeEvent(IMEContentObserver* aDispatcher,
-                       bool aCausedByComposition)
-    : mDispatcher(aDispatcher)
-    , mCausedByComposition(aCausedByComposition)
-  {
-    MOZ_ASSERT(mDispatcher);
-  }
-
-  NS_IMETHOD Run()
-  {
-    nsCOMPtr<nsIWidget> widget = mDispatcher->GetWidget();
-    nsPresContext* presContext = mDispatcher->GetPresContext();
-    if (!widget || !presContext) {
-      return NS_OK;
-    }
-
-    
-    
-    WidgetQueryContentEvent selection(true, NS_QUERY_SELECTED_TEXT, widget);
-    ContentEventHandler handler(presContext);
-    handler.OnQuerySelectedText(&selection);
-    if (NS_WARN_IF(!selection.mSucceeded)) {
-      return NS_OK;
-    }
-
-    
-    
-    widget = mDispatcher->GetWidget();
-    if (!widget || NS_WARN_IF(widget->Destroyed())) {
-      return NS_OK;
-    }
-
-    IMENotification notification(NOTIFY_IME_OF_SELECTION_CHANGE);
-    notification.mSelectionChangeData.mOffset =
-      selection.mReply.mOffset;
-    notification.mSelectionChangeData.mLength =
-      selection.mReply.mString.Length();
-    notification.mSelectionChangeData.SetWritingMode(
-                                        selection.GetWritingMode());
-    notification.mSelectionChangeData.mReversed = selection.mReply.mReversed;
-    notification.mSelectionChangeData.mCausedByComposition =
-      mCausedByComposition;
-    widget->NotifyIME(notification);
-    return NS_OK;
-  }
-
-private:
-  nsRefPtr<IMEContentObserver> mDispatcher;
-  bool mCausedByComposition;
-};
-
 nsresult
 IMEContentObserver::NotifySelectionChanged(nsIDOMDocument* aDOMDocument,
                                            nsISelection* aSelection,
@@ -458,29 +406,6 @@ IMEContentObserver::NotifySelectionChanged(nsIDOMDocument* aDOMDocument,
   }
   return NS_OK;
 }
-
-
-class PositionChangeEvent final : public nsRunnable
-{
-public:
-  explicit PositionChangeEvent(IMEContentObserver* aDispatcher)
-    : mDispatcher(aDispatcher)
-  {
-    MOZ_ASSERT(mDispatcher);
-  }
-
-  NS_IMETHOD Run()
-  {
-    if (mDispatcher->GetWidget()) {
-      mDispatcher->GetWidget()->NotifyIME(
-        IMENotification(NOTIFY_IME_OF_POSITION_CHANGE));
-    }
-    return NS_OK;
-  }
-
-private:
-  nsRefPtr<IMEContentObserver> mDispatcher;
-};
 
 void
 IMEContentObserver::ScrollPositionChanged()
@@ -581,40 +506,6 @@ IMEContentObserver::OnMouseButtonEvent(nsPresContext* aPresContext,
   aMouseEvent->mFlags.mDefaultPrevented = consumed;
   return consumed;
 }
-
-
-class TextChangeEvent : public nsRunnable
-{
-public:
-  TextChangeEvent(IMEContentObserver* aDispatcher,
-                  IMEContentObserver::TextChangeData& aData)
-    : mDispatcher(aDispatcher)
-    , mData(aData)
-  {
-    MOZ_ASSERT(mDispatcher);
-    MOZ_ASSERT(mData.mStored);
-    
-    aData.mStored = false;
-  }
-
-  NS_IMETHOD Run()
-  {
-    if (mDispatcher->GetWidget()) {
-      IMENotification notification(NOTIFY_IME_OF_TEXT_CHANGE);
-      notification.mTextChangeData.mStartOffset = mData.mStartOffset;
-      notification.mTextChangeData.mOldEndOffset = mData.mRemovedEndOffset;
-      notification.mTextChangeData.mNewEndOffset = mData.mAddedEndOffset;
-      notification.mTextChangeData.mCausedByComposition =
-        mData.mCausedOnlyByComposition;
-      mDispatcher->GetWidget()->NotifyIME(notification);
-    }
-    return NS_OK;
-  }
-
-private:
-  nsRefPtr<IMEContentObserver> mDispatcher;
-  IMEContentObserver::TextChangeData mData;
-};
 
 void
 IMEContentObserver::StoreTextChangeData(const TextChangeData& aTextChangeData)
@@ -1118,25 +1009,6 @@ IMEContentObserver::MaybeNotifyIMEOfPositionChange()
   mIsPositionChangeEventPending = true;
   FlushMergeableNotifications();
 }
-
-class AsyncMergeableNotificationsFlusher : public nsRunnable
-{
-public:
-  explicit AsyncMergeableNotificationsFlusher(IMEContentObserver* aIMEContentObserver)
-    : mIMEContentObserver(aIMEContentObserver)
-  {
-    MOZ_ASSERT(mIMEContentObserver);
-  }
-
-  NS_IMETHOD Run()
-  {
-    mIMEContentObserver->FlushMergeableNotifications();
-    return NS_OK;
-  }
-
-private:
-  nsRefPtr<IMEContentObserver> mIMEContentObserver;
-};
 
 void
 IMEContentObserver::FlushMergeableNotifications()
@@ -1653,5 +1525,93 @@ IMEContentObserver::TestMergingTextChangeData()
   mTextChangeData.mStored = false;
 }
 #endif 
+
+
+
+
+
+NS_IMETHODIMP
+IMEContentObserver::SelectionChangeEvent::Run()
+{
+  nsCOMPtr<nsIWidget> widget = mIMEContentObserver->mWidget;
+  nsPresContext* presContext = mIMEContentObserver->GetPresContext();
+  if (!widget || !presContext) {
+    return NS_OK;
+  }
+
+  
+  
+  WidgetQueryContentEvent selection(true, NS_QUERY_SELECTED_TEXT, widget);
+  ContentEventHandler handler(presContext);
+  handler.OnQuerySelectedText(&selection);
+  if (NS_WARN_IF(!selection.mSucceeded)) {
+    return NS_OK;
+  }
+
+  
+  
+  widget = mIMEContentObserver->mWidget;
+  if (!widget || NS_WARN_IF(widget->Destroyed())) {
+    return NS_OK;
+  }
+
+  IMENotification notification(NOTIFY_IME_OF_SELECTION_CHANGE);
+  notification.mSelectionChangeData.mOffset =
+    selection.mReply.mOffset;
+  notification.mSelectionChangeData.mLength =
+    selection.mReply.mString.Length();
+  notification.mSelectionChangeData.SetWritingMode(
+                                      selection.GetWritingMode());
+  notification.mSelectionChangeData.mReversed = selection.mReply.mReversed;
+  notification.mSelectionChangeData.mCausedByComposition =
+    mCausedByComposition;
+  widget->NotifyIME(notification);
+  return NS_OK;
+}
+
+
+
+
+
+NS_IMETHODIMP
+IMEContentObserver::TextChangeEvent::Run()
+{
+  if (!mIMEContentObserver->mWidget) {
+    return NS_OK;
+  }
+  IMENotification notification(NOTIFY_IME_OF_TEXT_CHANGE);
+  notification.mTextChangeData.mStartOffset = mData.mStartOffset;
+  notification.mTextChangeData.mOldEndOffset = mData.mRemovedEndOffset;
+  notification.mTextChangeData.mNewEndOffset = mData.mAddedEndOffset;
+  notification.mTextChangeData.mCausedByComposition =
+    mData.mCausedOnlyByComposition;
+  mIMEContentObserver->mWidget->NotifyIME(notification);
+  return NS_OK;
+}
+
+
+
+
+
+NS_IMETHODIMP
+IMEContentObserver::PositionChangeEvent::Run()
+{
+  if (mIMEContentObserver->mWidget) {
+    mIMEContentObserver->mWidget->NotifyIME(
+      IMENotification(NOTIFY_IME_OF_POSITION_CHANGE));
+  }
+  return NS_OK;
+}
+
+
+
+
+
+NS_IMETHODIMP
+IMEContentObserver::AsyncMergeableNotificationsFlusher::Run()
+{
+  mIMEContentObserver->FlushMergeableNotifications();
+  return NS_OK;
+}
 
 } 
