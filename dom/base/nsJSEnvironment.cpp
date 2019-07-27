@@ -710,10 +710,6 @@ DumpString(const nsAString &str)
 #define JS_OPTIONS_DOT_STR "javascript.options."
 
 static const char js_options_dot_str[]   = JS_OPTIONS_DOT_STR;
-static const char js_strict_option_str[] = JS_OPTIONS_DOT_STR "strict";
-#ifdef DEBUG
-static const char js_strict_debug_option_str[] = JS_OPTIONS_DOT_STR "strict.debug";
-#endif
 #ifdef JS_GC_ZEAL
 static const char js_zeal_option_str[]        = JS_OPTIONS_DOT_STR "gczeal";
 static const char js_zeal_frequency_str[]     = JS_OPTIONS_DOT_STR "gczeal.frequency";
@@ -724,34 +720,11 @@ static const char js_memnotify_option_str[]   = JS_OPTIONS_DOT_STR "mem.notify";
 void
 nsJSContext::JSOptionChangedCallback(const char *pref, void *data)
 {
-  nsJSContext *context = reinterpret_cast<nsJSContext *>(data);
-  JSContext *cx = context->mContext;
-
   sPostGCEventsToConsole = Preferences::GetBool(js_memlog_option_str);
   sPostGCEventsToObserver = Preferences::GetBool(js_memnotify_option_str);
 
-  JS::ContextOptionsRef(cx).setExtraWarnings(Preferences::GetBool(js_strict_option_str));
-
-  
-  
-  
-  nsIScriptGlobalObject *global = context->GetGlobalObjectRef();
-
-  
-  
-  nsCOMPtr<nsIDOMWindow> contentWindow(do_QueryInterface(global));
-  nsCOMPtr<nsIDOMChromeWindow> chromeWindow(do_QueryInterface(global));
-
-#ifdef DEBUG
-  
-  
-  if (Preferences::GetBool(js_strict_debug_option_str) &&
-      (chromeWindow || !contentWindow)) {
-    JS::ContextOptionsRef(cx).setExtraWarnings(true);
-  }
-#endif
-
 #ifdef JS_GC_ZEAL
+  nsJSContext *context = reinterpret_cast<nsJSContext *>(data);
   int32_t zeal = Preferences::GetInt(js_zeal_option_str, -1);
   int32_t frequency = Preferences::GetInt(js_zeal_frequency_str, JS_DEFAULT_ZEAL_FREQ);
   if (zeal >= 0)
