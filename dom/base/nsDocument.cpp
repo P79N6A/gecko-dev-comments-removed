@@ -11267,6 +11267,12 @@ ExitFullscreenInDocTree(nsIDocument* aMaybeNotARootDoc)
     "Fullscreen root should no longer be a fullscreen doc...");
 
   
+  
+  
+  nsRefPtr<AsyncEventDispatcher> asyncDispatcher = new AsyncEventDispatcher(
+    changed.LastElement(), NS_LITERAL_STRING("MozExitedDomFullscreen"), true, true);
+  asyncDispatcher->PostDOMEvent();
+  
   SetWindowFullScreen(root, false);
 }
 
@@ -11422,6 +11428,9 @@ nsDocument::RestorePreviousFullScreenState()
     
     NS_ASSERTION(!GetFullscreenRootDocument(this)->IsFullScreenDoc(),
       "Should have cleared all docs' stacks");
+    nsRefPtr<AsyncEventDispatcher> asyncDispatcher = new AsyncEventDispatcher(
+      this, NS_LITERAL_STRING("MozExitedDomFullscreen"), true, true);
+    asyncDispatcher->PostDOMEvent();
     SetWindowFullScreen(this, false);
   }
 }

@@ -10,6 +10,7 @@ var FullScreen = {
     
     window.addEventListener("fullscreen", this, true);
     window.messageManager.addMessageListener("MozEnteredDomFullscreen", this);
+    window.messageManager.addMessageListener("MozExitedDomFullscreen", this);
 
     if (window.fullScreen)
       this.toggle();
@@ -17,6 +18,7 @@ var FullScreen = {
 
   uninit: function() {
     window.messageManager.removeMessageListener("MozEnteredDomFullscreen", this);
+    window.messageManager.removeMessageListener("MozExitedDomFullscreen", this);
     this.cleanup();
   },
 
@@ -80,9 +82,6 @@ var FullScreen = {
       this.showNavToolbox(false);
       
       this._isPopupOpen = false;
-
-      document.documentElement.removeAttribute("inDOMFullscreen");
-
       this.cleanup();
     }
   },
@@ -123,6 +122,16 @@ var FullScreen = {
         windowUtils.remoteFrameFullscreenChanged(browser, data.origin);
       }
       this.enterDomFullscreen(browser, data.origin);
+    } else if (aMessage.name == "MozExitedDomFullscreen") {
+      document.documentElement.removeAttribute("inDOMFullscreen");
+      this.cleanupDomFullscreen();
+      this.showNavToolbox();
+      
+      
+      if (window.fullScreen) {
+        this._shouldAnimate = true;
+        this.hideNavToolbox();
+      }
     }
   },
 
@@ -169,6 +178,7 @@ var FullScreen = {
     
     
     this.hideNavToolbox(true);
+    this._fullScrToggler.hidden = true;
   },
 
   cleanup: function () {
@@ -178,16 +188,20 @@ var FullScreen = {
       document.removeEventListener("popupshown", this._setPopupOpen, false);
       document.removeEventListener("popuphidden", this._setPopupOpen, false);
 
-      this.cancelWarning();
-      gBrowser.tabContainer.removeEventListener("TabOpen", this.exitDomFullScreen);
-      gBrowser.tabContainer.removeEventListener("TabClose", this.exitDomFullScreen);
-      gBrowser.tabContainer.removeEventListener("TabSelect", this.exitDomFullScreen);
-      if (!this.useLionFullScreen)
-        window.removeEventListener("activate", this);
-
-      window.messageManager
-            .broadcastAsyncMessage("DOMFullscreen:Cleanup");
+      this.cleanupDomFullscreen();
     }
+  },
+
+  cleanupDomFullscreen: function () {
+    this.cancelWarning();
+    gBrowser.tabContainer.removeEventListener("TabOpen", this.exitDomFullScreen);
+    gBrowser.tabContainer.removeEventListener("TabClose", this.exitDomFullScreen);
+    gBrowser.tabContainer.removeEventListener("TabSelect", this.exitDomFullScreen);
+    if (!this.useLionFullScreen)
+      window.removeEventListener("activate", this);
+
+    window.messageManager
+          .broadcastAsyncMessage("DOMFullscreen:Cleanup");
   },
 
   getMouseTargetRect: function()

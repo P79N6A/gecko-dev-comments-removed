@@ -1538,6 +1538,7 @@ protected:
   
   
   bool                          mFullScreen : 1;
+  bool                          mFullscreenMode : 1;
   bool                          mIsClosed : 1;
   bool                          mInClose : 1;
   

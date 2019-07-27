@@ -1084,6 +1084,7 @@ nsGlobalWindow::nsGlobalWindow(nsGlobalWindow *aOuterWindow)
     mAddActiveEventFuzzTime(true),
     mIsFrozen(false),
     mFullScreen(false),
+    mFullscreenMode(false),
     mIsClosed(false),
     mInClose(false),
     mHavePendingClose(false),
@@ -6081,6 +6082,22 @@ nsGlobalWindow::SetFullScreenInternal(bool aFullScreen, bool aRequireTrust, gfx:
   
   if (mFullScreen == aFullScreen)
     return NS_OK;
+
+  
+  
+  
+  
+  
+  if (aRequireTrust) {
+    mFullscreenMode = aFullScreen;
+  } else {
+    
+    
+    
+    if (!aFullScreen && mFullscreenMode) {
+      return NS_OK;
+    }
+  }
 
   
   
