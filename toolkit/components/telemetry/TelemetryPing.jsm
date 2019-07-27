@@ -55,8 +55,8 @@ XPCOMUtils.defineLazyServiceGetter(this, "Telemetry",
                                    "nsITelemetry");
 XPCOMUtils.defineLazyModuleGetter(this, "AsyncShutdown",
                                   "resource://gre/modules/AsyncShutdown.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "TelemetryFile",
-                                  "resource://gre/modules/TelemetryFile.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "TelemetryStorage",
+                                  "resource://gre/modules/TelemetryStorage.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "TelemetryLog",
                                   "resource://gre/modules/TelemetryLog.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ThirdPartyCookieProbe",
@@ -490,7 +490,7 @@ let Impl = {
   popPayloads: function popPayloads() {
     this._log.trace("popPayloads");
     function payloadIter() {
-      let iterator = TelemetryFile.popPendingPings();
+      let iterator = TelemetryStorage.popPendingPings();
       for (let data of iterator) {
         yield data;
       }
@@ -525,7 +525,7 @@ let Impl = {
 
 
   addPendingPingFromFile: function(aPingPath, aRemoveOriginal) {
-    return TelemetryFile.addPendingPing(aPingPath).then(() => {
+    return TelemetryStorage.addPendingPing(aPingPath).then(() => {
         if (aRemoveOriginal) {
           return OS.File.remove(aPingPath);
         }
@@ -564,7 +564,7 @@ let Impl = {
       archivePromise,
       
       this.doPing(pingData, false)
-          .catch(() => TelemetryFile.savePing(pingData, true)),
+          .catch(() => TelemetryStorage.savePing(pingData, true)),
       this.sendPersistedPings(),
     ];
 
@@ -616,7 +616,7 @@ let Impl = {
                     ", aOptions " + JSON.stringify(aOptions));
 
     let pingData = this.assemblePing(aType, aPayload, aOptions);
-    return TelemetryFile.savePendingPings(pingData);
+    return TelemetryStorage.savePendingPings(pingData);
   },
 
   
@@ -643,7 +643,7 @@ let Impl = {
 
     let pingData = this.assemblePing(aType, aPayload, aOptions);
 
-    let savePromise = TelemetryFile.savePing(pingData, aOptions.overwrite);
+    let savePromise = TelemetryStorage.savePing(pingData, aOptions.overwrite);
     let archivePromise = this._archivePing(pingData).catch(e => {
       this._log.error("addPendingPing - Failed to archive ping " + pingData.id, e);
     });
@@ -680,7 +680,7 @@ let Impl = {
     this._log.trace("savePing - Type " + aType + ", Server " + this._server +
                     ", File Path " + aFilePath + ", aOptions " + JSON.stringify(aOptions));
     let pingData = this.assemblePing(aType, aPayload, aOptions);
-    return TelemetryFile.savePingToFile(pingData, aFilePath, aOptions.overwrite)
+    return TelemetryStorage.savePingToFile(pingData, aFilePath, aOptions.overwrite)
                         .then(() => pingData.id);
   },
 
@@ -694,7 +694,7 @@ let Impl = {
     hping.add(new Date() - startTime);
 
     if (success && isPersisted) {
-      return TelemetryFile.cleanupPingFile(ping);
+      return TelemetryStorage.cleanupPingFile(ping);
     } else {
       return Promise.resolve();
     }
@@ -953,11 +953,11 @@ let Impl = {
       try {
         this._initialized = true;
 
-        yield TelemetryFile.loadSavedPings();
+        yield TelemetryStorage.loadSavedPings();
         
         
-        if (TelemetryFile.pingsOverdue > 0) {
-          this._log.trace("setupChromeProcess - Sending " + TelemetryFile.pingsOverdue +
+        if (TelemetryStorage.pingsOverdue > 0) {
+          this._log.trace("setupChromeProcess - Sending " + TelemetryStorage.pingsOverdue +
                           " overdue pings now.");
           
           
@@ -1124,7 +1124,7 @@ let Impl = {
     const filePath = getArchivedPingPath(aPingData.id, creationDate, aPingData.type);
     yield OS.File.makeDir(OS.Path.dirname(filePath), { ignoreExisting: true,
                                                        from: OS.Constants.Path.profileDir });
-    yield TelemetryFile.savePingToFile(aPingData, filePath, true);
+    yield TelemetryStorage.savePingToFile(aPingData, filePath, true);
 
     this._archivedPings.set(aPingData.id, {
       timestampCreated: creationDate.getTime(),
@@ -1180,7 +1180,7 @@ let Impl = {
 
     const path = getArchivedPingPath(id, new Date(data.timestampCreated), data.type);
     this._log.trace("getArchivedPingById - loading ping from: " + path);
-    return TelemetryFile.loadPingFile(path);
+    return TelemetryStorage.loadPingFile(path);
   },
 
   

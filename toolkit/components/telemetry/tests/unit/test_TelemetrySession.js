@@ -16,7 +16,7 @@ Cu.import("resource://gre/modules/LightweightThemeManager.jsm", this);
 Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
 Cu.import("resource://gre/modules/TelemetryPing.jsm", this);
 Cu.import("resource://gre/modules/TelemetrySession.jsm", this);
-Cu.import("resource://gre/modules/TelemetryFile.jsm", this);
+Cu.import("resource://gre/modules/TelemetryStorage.jsm", this);
 Cu.import("resource://gre/modules/TelemetryEnvironment.jsm", this);
 Cu.import("resource://gre/modules/Task.jsm", this);
 Cu.import("resource://gre/modules/Promise.jsm", this);
@@ -506,7 +506,7 @@ add_task(function* test_runInvalidJSON() {
   writeStringToFile(pingFile, "this.is.invalid.JSON");
   do_check_true(pingFile.exists());
 
-  yield TelemetryFile.testLoadHistograms(pingFile);
+  yield TelemetryStorage.testLoadHistograms(pingFile);
   do_check_false(pingFile.exists());
 });
 
@@ -568,7 +568,7 @@ add_task(function* test_saveLoadPing() {
 
   setupTestData();
   yield TelemetrySession.testSaveHistograms(histogramsFile);
-  yield TelemetryFile.testLoadHistograms(histogramsFile);
+  yield TelemetryStorage.testLoadHistograms(histogramsFile);
   yield sendPing();
 
   
@@ -1127,7 +1127,7 @@ add_task(function* test_runOldPingFile() {
   let mtime = histogramsFile.lastModifiedTime;
   histogramsFile.lastModifiedTime = mtime - (14 * 24 * 60 * 60 * 1000 + 60000); 
 
-  yield TelemetryFile.testLoadHistograms(histogramsFile);
+  yield TelemetryStorage.testLoadHistograms(histogramsFile);
   do_check_false(histogramsFile.exists());
 });
 
@@ -1137,15 +1137,15 @@ add_task(function* test_savedPingsOnShutdown() {
   const expectedPings = (gIsAndroid) ? 1 : 2;
   
   
-  const dir = TelemetryFile.pingDirectoryPath;
+  const dir = TelemetryStorage.pingDirectoryPath;
   yield OS.File.removeDir(dir, {ignoreAbsent: true});
   yield OS.File.makeDir(dir);
   yield TelemetrySession.shutdown();
 
-  yield TelemetryFile.loadSavedPings();
-  Assert.equal(TelemetryFile.pingsLoaded, expectedPings);
+  yield TelemetryStorage.loadSavedPings();
+  Assert.equal(TelemetryStorage.pingsLoaded, expectedPings);
 
-  let pingsIterator = TelemetryFile.popPendingPings();
+  let pingsIterator = TelemetryStorage.popPendingPings();
   for (let ping of pingsIterator) {
     Assert.ok("type" in ping);
 
@@ -1298,7 +1298,7 @@ add_task(function* test_abortedSession() {
 
   
   
-  yield TelemetryFile.savePingToFile(abortedSessionPing, ABORTED_FILE, false);
+  yield TelemetryStorage.savePingToFile(abortedSessionPing, ABORTED_FILE, false);
 
   gRequestIterator = Iterator(new Request());
   yield TelemetrySession.reset();
@@ -1309,13 +1309,13 @@ add_task(function* test_abortedSession() {
   
   
   const PENDING_PING_FILE =
-    OS.Path.join(TelemetryFile.pingDirectoryPath, abortedSessionPing.id);
+    OS.Path.join(TelemetryStorage.pingDirectoryPath, abortedSessionPing.id);
   Assert.ok((yield OS.File.exists(PENDING_PING_FILE)),
             "The aborted session ping must exist in the saved pings directory.");
 
   
   
-  const OVERDUE_PING_FILE_AGE = TelemetryFile.OVERDUE_PING_FILE_AGE + 60 * 1000;
+  const OVERDUE_PING_FILE_AGE = TelemetryStorage.OVERDUE_PING_FILE_AGE + 60 * 1000;
   yield OS.File.setDates(PENDING_PING_FILE, null, Date.now() - OVERDUE_PING_FILE_AGE);
   yield TelemetryPing.reset();
 

@@ -16,7 +16,7 @@ Cu.import("resource://gre/modules/osfile.jsm", this);
 Cu.import("resource://gre/modules/Services.jsm", this);
 Cu.import("resource://testing-common/httpd.js", this);
 Cu.import("resource://gre/modules/Promise.jsm", this);
-Cu.import("resource://gre/modules/TelemetryFile.jsm", this);
+Cu.import("resource://gre/modules/TelemetryStorage.jsm", this);
 Cu.import("resource://gre/modules/TelemetryPing.jsm", this);
 Cu.import("resource://gre/modules/Task.jsm", this);
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -31,8 +31,8 @@ XPCOMUtils.defineLazyGetter(this, "gDatareportingService",
 
 
 const ONE_MINUTE_MS = 60 * 1000;
-const EXPIRED_PING_FILE_AGE = TelemetryFile.MAX_PING_FILE_AGE + ONE_MINUTE_MS;
-const OVERDUE_PING_FILE_AGE = TelemetryFile.OVERDUE_PING_FILE_AGE + ONE_MINUTE_MS;
+const EXPIRED_PING_FILE_AGE = TelemetryStorage.MAX_PING_FILE_AGE + ONE_MINUTE_MS;
+const OVERDUE_PING_FILE_AGE = TelemetryStorage.OVERDUE_PING_FILE_AGE + ONE_MINUTE_MS;
 
 const PING_SAVE_FOLDER = "saved-telemetry-pings";
 const PING_TIMEOUT_LENGTH = 5000;
@@ -40,7 +40,7 @@ const EXPIRED_PINGS = 5;
 const OVERDUE_PINGS = 6;
 const OLD_FORMAT_PINGS = 4;
 const RECENT_PINGS = 4;
-const LRU_PINGS = TelemetryFile.MAX_LRU_PINGS;
+const LRU_PINGS = TelemetryStorage.MAX_LRU_PINGS;
 
 const TOTAL_EXPECTED_PINGS = OVERDUE_PINGS + RECENT_PINGS + OLD_FORMAT_PINGS;
 
@@ -166,7 +166,7 @@ function stopHttpServer() {
 function resetTelemetry() {
   
   
-  let gen = TelemetryFile.popPendingPings();
+  let gen = TelemetryStorage.popPendingPings();
   for (let item of gen) {};
 }
 
@@ -202,7 +202,7 @@ function run_test() {
 add_task(function* setupEnvironment() {
   yield TelemetryPing.setup();
 
-  let directory = TelemetryFile.pingDirectoryPath;
+  let directory = TelemetryStorage.pingDirectoryPath;
   yield File.makeDir(directory, { ignoreExisting: true, unixMode: OS.Constants.S_IRWXU });
 
   yield resetTelemetry();
@@ -246,7 +246,7 @@ add_task(function* test_most_recent_pings_kept() {
   let tail = pings.slice(-3);
 
   yield startTelemetry();
-  let gen = TelemetryFile.popPendingPings();
+  let gen = TelemetryStorage.popPendingPings();
 
   for (let item of gen) {
     for (let id of tail) {
@@ -308,10 +308,10 @@ add_task(function* test_overdue_old_format() {
   ];
 
   
-  yield TelemetryFile.savePing(PING_OLD_FORMAT, true);
-  yield TelemetryFile.savePing(PING_NO_INFO, true);
-  yield TelemetryFile.savePing(PING_NO_PAYLOAD, true);
-  yield TelemetryFile.savePingToFile(PING_NO_SLUG, PING_FILES_PATHS[3], true);
+  yield TelemetryStorage.savePing(PING_OLD_FORMAT, true);
+  yield TelemetryStorage.savePing(PING_NO_INFO, true);
+  yield TelemetryStorage.savePing(PING_NO_PAYLOAD, true);
+  yield TelemetryStorage.savePingToFile(PING_NO_SLUG, PING_FILES_PATHS[3], true);
 
   for (let f in PING_FILES_PATHS) {
     yield File.setDates(PING_FILES_PATHS[f], null, Date.now() - OVERDUE_PING_FILE_AGE);
@@ -379,7 +379,7 @@ add_task(function* test_overdue_old_format() {
     Path.join(Constants.Path.profileDir, PING_SAVE_FOLDER, PING_OLD_FORMAT.slug);
 
   
-  yield TelemetryFile.savePing(PING_OLD_FORMAT, true);
+  yield TelemetryStorage.savePing(PING_OLD_FORMAT, true);
   yield File.setDates(filePath, null, Date.now() - OVERDUE_PING_FILE_AGE);
 
   let receivedPings = 0;
