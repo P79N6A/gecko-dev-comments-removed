@@ -58,8 +58,6 @@ caches.open(name).then(function(cache) {
   is(keys.length, 1, "One match should be found");
   ok(keys[0].url.indexOf(tests[0]) >= 0, "Valid URL");
   
-
-  
   return c.keys(tests[0], {cacheName: "non-existing-cache"});
 }).then(function(keys) {
   is(keys.length, 1, "One match should be found");
