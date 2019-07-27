@@ -868,15 +868,12 @@ TelephonyService.prototype = {
   },
 
   hangUpCall: function(aClientId, aCallIndex, aCallback) {
-    let parentId = this._currentCalls[aClientId][aCallIndex].parentId;
-    if (parentId) {
-      
-      
-      this.hangUpCall(aClientId, parentId, aCallback);
-    } else {
-      this._sendToRilWorker(aClientId, "hangUpCall", { callIndex: aCallIndex },
-                            this._defaultCallbackHandler.bind(this, aCallback));
-    }
+    
+    
+    aCallIndex = this._currentCalls[aClientId][aCallIndex].parentId || aCallIndex;
+
+    this._sendToRilWorker(aClientId, "hangUpCall", { callIndex: aCallIndex },
+                          this._defaultCallbackHandler.bind(this, aCallback));
   },
 
   holdCall: function(aClientId, aCallIndex, aCallback) {
