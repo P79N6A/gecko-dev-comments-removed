@@ -60,7 +60,6 @@ class Element;
 struct StructuredCloneData;
 
 class TabParent final : public PBrowserParent
-                      , public nsIDOMEventListener
                       , public nsITabParent
                       , public nsIAuthPromptProvider
                       , public nsISecureBrowserUI
@@ -74,8 +73,6 @@ class TabParent final : public PBrowserParent
 public:
     
     NS_DECL_NSITABPARENT
-    
-    NS_DECL_NSIDOMEVENTLISTENER
 
     TabParent(nsIContentParent* aManager,
               const TabId& aTabId,
@@ -109,8 +106,6 @@ public:
     nsIXULBrowserWindow* GetXULBrowserWindow();
 
     void Destroy();
-
-    void RemoveWindowListeners();
 
     virtual bool RecvMoveFocus(const bool& aForward) override;
     virtual bool RecvEvent(const RemoteDOMEvent& aEvent) override;
@@ -230,7 +225,8 @@ public:
     
     
     void Show(const ScreenIntSize& size, bool aParentIsActive);
-    void UpdateDimensions(const nsIntRect& rect, const ScreenIntSize& size);
+    void UpdateDimensions(const nsIntRect& rect, const ScreenIntSize& size,
+                          const nsIntPoint& chromeDisp);
     void UpdateFrame(const layers::FrameMetrics& aFrameMetrics);
     void UIResolutionChanged();
     void RequestFlingSnap(const FrameMetrics::ViewID& aScrollId,
