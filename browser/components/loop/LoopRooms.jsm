@@ -35,6 +35,8 @@ const roomsPushNotification = function(version, channelID) {
 
 let gDirty = true;
 
+let gCurrentUser = null;
+
 
 
 
@@ -479,6 +481,26 @@ let LoopRoomsInternal = {
     gDirty = true;
     this.getAll(version, () => {});
   },
+
+  
+
+
+
+
+
+  maybeRefresh: function(user = null) {
+    if (gCurrentUser == user) {
+      return;
+    }
+
+    gCurrentUser = user;
+    if (!gDirty) {
+      gDirty = true;
+      this.rooms.clear();
+      eventEmitter.emit("refresh");
+      this.getAll(null, () => {});
+    }
+  }
 };
 Object.freeze(LoopRoomsInternal);
 
@@ -542,6 +564,10 @@ this.LoopRooms = {
 
   getGuestCreatedRoom: function() {
     return LoopRoomsInternal.getGuestCreatedRoom();
+  },
+
+  maybeRefresh: function(user) {
+    return LoopRoomsInternal.maybeRefresh(user);
   },
 
   promise: function(method, ...params) {
