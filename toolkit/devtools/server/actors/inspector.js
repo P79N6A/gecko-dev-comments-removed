@@ -2106,8 +2106,7 @@ var WalkerActor = protocol.ActorClass({
       node: Arg(0, "domnode"),
       value: Arg(1),
     },
-    response: {
-    }
+    response: {}
   }),
 
   
@@ -2146,6 +2145,46 @@ var WalkerActor = protocol.ActorClass({
       node: Arg(0, "domnode"),
       parent: Arg(1, "domnode"),
       sibling: Arg(2, "nullable:domnode")
+    },
+    response: {}
+  }),
+
+  
+
+
+
+
+
+  editTagName: method(function(node, tagName) {
+    let oldNode = node.rawNode;
+
+    
+    
+    let newNode;
+    try {
+      newNode = nodeDocument(oldNode).createElement(tagName);
+    } catch(x) {
+      
+      
+      return Promise.reject(new Error("Could not change node's tagName to " + tagName));
+    }
+
+    let attrs = oldNode.attributes;
+    for (let i = 0; i < attrs.length; i ++) {
+      newNode.setAttribute(attrs[i].name, attrs[i].value);
+    }
+
+    
+    oldNode.parentNode.insertBefore(newNode, oldNode);
+    while (oldNode.firstChild) {
+      newNode.appendChild(oldNode.firstChild);
+    }
+
+    oldNode.remove();
+  }, {
+    request: {
+      node: Arg(0, "domnode"),
+      tagName: Arg(1, "string")
     },
     response: {}
   }),

@@ -620,8 +620,6 @@ MarkupView.prototype = {
 
   _mutationObserver: function(aMutations) {
     let requiresLayoutChange = false;
-    let reselectParent;
-    let reselectChildIndex;
 
     for (let mutation of aMutations) {
       let type = mutation.type;
@@ -651,22 +649,9 @@ MarkupView.prototype = {
           requiresLayoutChange = true;
         }
       } else if (type === "childList") {
-        let isFromOuterHTML = mutation.removed.some((n) => {
-          return n === this._outerHTMLNode;
-        });
-
-        
-        if (isFromOuterHTML) {
-          reselectParent = target;
-          reselectChildIndex = this._outerHTMLChildIndex;
-
-          delete this._outerHTMLNode;
-          delete this._outerHTMLChildIndex;
-        }
-
         container.childrenDirty = true;
         
-        this._updateChildren(container, {flash: !isFromOuterHTML});
+        this._updateChildren(container, {flash: true});
       }
     }
 
@@ -680,22 +665,6 @@ MarkupView.prototype = {
       
       
       this.htmlEditor.refresh();
-
-      
-      
-      if (this._inspector.selection.nodeFront === reselectParent) {
-        this.walker.children(reselectParent).then((o) => {
-          let node = o.nodes[reselectChildIndex];
-          let container = this.getContainer(node);
-          if (node && container) {
-            this.markNodeAsSelected(node, "outerhtml");
-            if (container.hasChildren) {
-              this.expandNode(node);
-            }
-          }
-        });
-
-      }
     });
   },
 
@@ -852,21 +821,65 @@ MarkupView.prototype = {
 
 
 
-  getNodeChildIndex: function(aNode) {
-    let def = promise.defer();
-    let parentNode = aNode.parentNode();
+  reselectOnRemoved: function(removedNode, reason) {
+    
+    
+    this.cancelReselectOnRemoved();
+
+    
+    let isHTMLTag = removedNode.tagName.toLowerCase() === "html";
+    let oldContainer = this.getContainer(removedNode);
+    let parentContainer = this.getContainer(removedNode.parentNode());
+    let childIndex = parentContainer.getChildContainers().indexOf(oldContainer);
+
+    let onMutations = this._removedNodeObserver = (e, mutations) => {
+      let isNodeRemovalMutation = false;
+      for (let mutation of mutations) {
+        let containsRemovedNode = mutation.removed &&
+                                  mutation.removed.some(n => n === removedNode);
+        if (mutation.type === "childList" && (containsRemovedNode || isHTMLTag)) {
+          isNodeRemovalMutation = true;
+          break;
+        }
+      }
+      if (!isNodeRemovalMutation) {
+        return;
+      }
+
+      this._inspector.off("markupmutation", onMutations);
+      this._removedNodeObserver = null;
+
+      
+      
+      if (this._inspector.selection.nodeFront === parentContainer.node ||
+          (this._inspector.selection.nodeFront === removedNode && isHTMLTag)) {
+        let childContainers = parentContainer.getChildContainers();
+        if (childContainers && childContainers[childIndex]) {
+          this.markNodeAsSelected(childContainers[childIndex].node, reason);
+          if (childContainers[childIndex].hasChildren) {
+            this.expandNode(childContainers[childIndex].node);
+          }
+          this.emit("reselectedonremoved");
+        }
+      }
+    };
 
     
     
-    if (!parentNode) {
-      def.resolve(-1);
-    } else {
-      this.walker.children(parentNode).then(children => {
-        def.resolve(children.nodes.indexOf(aNode));
-      });
+    this._inspector.on("markupmutation", onMutations);
+  },
+
+  
+
+
+
+
+  cancelReselectOnRemoved: function() {
+    if (this._removedNodeObserver) {
+      this._inspector.off("markupmutation", this._removedNodeObserver);
+      this._removedNodeObserver = null;
+      this.emit("canceledreselectonremoved");
     }
-
-    return def.promise;
   },
 
   
@@ -883,20 +896,12 @@ MarkupView.prototype = {
       return promise.reject();
     }
 
-    let def = promise.defer();
-
-    this.getNodeChildIndex(aNode).then((i) => {
-      this._outerHTMLChildIndex = i;
-      this._outerHTMLNode = aNode;
-
-      container.undo.do(() => {
-        this.walker.setOuterHTML(aNode, newValue).then(def.resolve, def.reject);
-      }, () => {
-        this.walker.setOuterHTML(aNode, oldValue).then(def.resolve, def.reject);
-      });
+    
+    
+    this.reselectOnRemoved(aNode, "outerhtml");
+    return this.walker.setOuterHTML(aNode, newValue).then(null, () => {
+      this.cancelReselectOnRemoved();
     });
-
-    return def.promise;
   },
 
   
@@ -1429,6 +1434,18 @@ MarkupContainer.prototype = {
   
 
 
+
+  getChildContainers: function() {
+    if (!this.hasChildren) {
+      return null;
+    }
+
+    return [...this.children.children].map(node => node.container);
+  },
+
+  
+
+
   get expanded() {
     return !this.elt.classList.contains("collapsed");
   },
@@ -1828,7 +1845,15 @@ RootContainer.prototype = {
   hasChildren: true,
   expanded: true,
   update: function() {},
-  destroy: function() {}
+  destroy: function() {},
+
+  
+
+
+
+  getChildContainers: function() {
+    return [...this.children.children].map(node => node.container);
+  }
 };
 
 
@@ -1969,13 +1994,9 @@ function ElementEditor(aContainer, aNode) {
   
   this.template("element", this);
 
-  if (aNode.isLocal_toBeDeprecated()) {
-    this.rawNode = aNode.rawNode();
-  }
-
   
   
-  if (this.rawNode && !aNode.isDocumentElement) {
+  if (!aNode.isDocumentElement) {
     this.tag.setAttribute("tabindex", "0");
     editableField({
       element: this.tag,
@@ -2207,57 +2228,19 @@ ElementEditor.prototype = {
   
 
 
-  onTagEdit: function(aVal, aCommit) {
-    if (!aCommit || aVal == this.rawNode.tagName) {
+  onTagEdit: function(newTagName, isCommit) {
+    if (!isCommit || newTagName == this.node.tagName ||
+        !("editTagName" in this.markup.walker)) {
       return;
     }
 
     
     
-    
-    try {
-      var newElt = nodeDocument(this.rawNode).createElement(aVal);
-    } catch(x) {
+    this.markup.reselectOnRemoved(this.node, "edittagname");
+    this.markup.walker.editTagName(this.node, newTagName).then(null, () => {
       
-      
-      return;
-    }
-
-    let attrs = this.rawNode.attributes;
-
-    for (let i = 0 ; i < attrs.length; i++) {
-      newElt.setAttribute(attrs[i].name, attrs[i].value);
-    }
-    let newFront = this.markup.walker.frontForRawNode(newElt);
-    let newContainer = this.markup.importNode(newFront);
-
-    
-    let walker = this.markup.walker;
-    promise.all([
-      walker.retainNode(newFront), walker.retainNode(this.node)
-    ]).then(() => {
-      function swapNodes(aOld, aNew) {
-        aOld.parentNode.insertBefore(aNew, aOld);
-        while (aOld.firstChild) {
-          aNew.appendChild(aOld.firstChild);
-        }
-        aOld.parentNode.removeChild(aOld);
-      }
-
-      this.container.undo.do(() => {
-        swapNodes(this.rawNode, newElt);
-        this.markup.setNodeExpanded(newFront, this.container.expanded);
-        if (this.container.selected) {
-          this.markup.navigate(newContainer);
-        }
-      }, () => {
-        swapNodes(newElt, this.rawNode);
-        this.markup.setNodeExpanded(this.node, newContainer.expanded);
-        if (newContainer.selected) {
-          this.markup.navigate(this.container);
-        }
-      });
-    }).then(null, console.error);
+      this.markup.cancelReselectOnRemoved();
+    });
   },
 
   destroy: function() {}
