@@ -13,6 +13,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Semaphore;
 
 import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.background.common.GlobalConstants;
@@ -35,6 +36,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.util.Log;
 
 
 
@@ -650,5 +652,57 @@ public class AndroidFxAccount {
     setState(state.makeSeparatedState());
     accountManager.setUserData(account, ACCOUNT_KEY_IDP_SERVER, authServerEndpoint);
     accountManager.setUserData(account, ACCOUNT_KEY_TOKEN_SERVER, tokenServerEndpoint);
+  }
+
+  
+
+
+
+
+
+
+  protected static final Semaphore sLock = new Semaphore(1, true );
+
+  
+  
+  protected String lockTag = null;
+
+  
+  
+  
+  protected boolean locked = false;
+
+  
+  public synchronized void acquireSharedAccountStateLock(final String tag) throws InterruptedException {
+    final long id = Thread.currentThread().getId();
+    this.lockTag = tag;
+    Log.d(Logger.DEFAULT_LOG_TAG, "Thread with tag and thread id acquiring lock: " + lockTag + ", " + id + " ...");
+    sLock.acquire();
+    locked = true;
+    Log.d(Logger.DEFAULT_LOG_TAG, "Thread with tag and thread id acquiring lock: " + lockTag + ", " + id + " ... ACQUIRED");
+  }
+
+  
+  public synchronized void releaseSharedAccountStateLock() {
+    final long id = Thread.currentThread().getId();
+    Log.d(Logger.DEFAULT_LOG_TAG, "Thread with tag and thread id releasing lock: " + lockTag + ", " + id + " ...");
+    if (locked) {
+      sLock.release();
+      locked = false;
+      Log.d(Logger.DEFAULT_LOG_TAG, "Thread with tag and thread id releasing lock: " + lockTag + ", " + id + " ... RELEASED");
+    } else {
+      Log.d(Logger.DEFAULT_LOG_TAG, "Thread with tag and thread id releasing lock: " + lockTag + ", " + id + " ... NOT LOCKED");
+    }
+  }
+
+  @Override
+  protected synchronized void finalize() {
+    if (locked) {
+      
+      sLock.release();
+      locked = false;
+      final long id = Thread.currentThread().getId();
+      Log.e(Logger.DEFAULT_LOG_TAG, "Thread with tag and thread id releasing lock: " + lockTag + ", " + id + " ... RELEASED DURING FINALIZE");
+    }
   }
 }
