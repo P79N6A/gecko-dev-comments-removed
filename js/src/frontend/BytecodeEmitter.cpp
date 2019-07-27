@@ -5549,12 +5549,38 @@ EmitStatement(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
             if (Emit1(cx, bce, op) < 0)
                 return false;
         }
-    } else if (!pn->isDirectivePrologueMember()) {
+    } else if (pn->isDirectivePrologueMember()) {
         
-        bce->current->currentLine = bce->parser->tokenStream.srcCoords.lineNum(pn2->pn_pos.begin);
-        bce->current->lastColumn = 0;
-        if (!bce->reportStrictWarning(pn2, JSMSG_USELESS_EXPR))
-            return false;
+        
+    } else {
+        if (JSAtom *atom = pn->isStringExprStatement()) {
+            
+            
+            
+            
+            
+            const char *directive = nullptr;
+            if (atom == cx->names().useStrict) {
+                if (!bce->sc->strict)
+                    directive = js_useStrict_str;
+            } else if (atom == cx->names().useAsm) {
+                if (bce->sc->isFunctionBox()) {
+                    JSFunction *fun = bce->sc->asFunctionBox()->function();
+                    if (fun->isNative() && IsAsmJSModuleNative(fun->native()))
+                        directive = js_useAsm_str;
+                }
+            }
+
+            if (directive) {
+                if (!bce->reportStrictWarning(pn2, JSMSG_CONTRARY_NONDIRECTIVE, directive))
+                    return false;
+            }
+        } else {
+            bce->current->currentLine = bce->parser->tokenStream.srcCoords.lineNum(pn2->pn_pos.begin);
+            bce->current->lastColumn = 0;
+            if (!bce->reportStrictWarning(pn2, JSMSG_USELESS_EXPR))
+                return false;
+        }
     }
 
     return true;
