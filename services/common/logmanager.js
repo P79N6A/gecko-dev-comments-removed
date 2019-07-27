@@ -81,6 +81,10 @@ LogManager.prototype = {
         let level = Log.Level[newVal] || defaultLevel;
         if (findSmallest) {
           
+          
+          
+          
+          
           for (let branch of allBranches) {
             let lookPrefBranch = new Preferences(branch);
             let lookVal = Log.Level[lookPrefBranch.get(prefName)];
@@ -110,6 +114,12 @@ LogManager.prototype = {
     
     for (let logName of logNames) {
       let log = Log.repository.getLogger(logName);
+      
+      
+      
+      
+      
+      log.level = Log.Level.All;
       for (let appender of [fapp, dumpAppender, consoleAppender]) {
         log.addAppender(appender);
       }
