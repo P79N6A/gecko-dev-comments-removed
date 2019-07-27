@@ -2877,6 +2877,12 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
     
     
     
+    
+    
+    
+    
+    oldContext->SetIneligibleForSharing();
+
     ContextToClear* toClear = mContextsToClear.AppendElement();
     toClear->mStyleContext = Move(oldContext);
     toClear->mStructs = swappedStructs;

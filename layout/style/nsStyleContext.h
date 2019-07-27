@@ -431,6 +431,13 @@ public:
 
   void ClearCachedInheritedStyleDataOnDescendants(uint32_t aStructs);
 
+  
+
+
+
+
+  void SetIneligibleForSharing();
+
 #ifdef DEBUG
   void List(FILE* out, int32_t aIndent, bool aListDescendants = true);
   static void AssertStyleStructMaxDifferenceValid();
