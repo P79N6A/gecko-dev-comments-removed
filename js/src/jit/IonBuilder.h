@@ -1115,6 +1115,10 @@ class IonBuilder
     bool failedShapeGuard_;
 
     
+    
+    bool failedLexicalCheck_;
+
+    
     bool nonStringIteration_;
 
     

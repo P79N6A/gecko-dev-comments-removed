@@ -978,6 +978,9 @@ class JSScript : public js::gc::TenuredCell
     bool invalidatedIdempotentCache_:1;
 
     
+    bool failedLexicalCheck_:1;
+
+    
     
     bool isGeneratorExp_:1;
 
@@ -1223,12 +1226,16 @@ class JSScript : public js::gc::TenuredCell
     bool invalidatedIdempotentCache() const {
         return invalidatedIdempotentCache_;
     }
+    bool failedLexicalCheck() const {
+        return failedLexicalCheck_;
+    }
 
     void setFailedBoundsCheck() { failedBoundsCheck_ = true; }
     void setFailedShapeGuard() { failedShapeGuard_ = true; }
     void setHadFrequentBailouts() { hadFrequentBailouts_ = true; }
     void setUninlineable() { uninlineable_ = true; }
     void setInvalidatedIdempotentCache() { invalidatedIdempotentCache_ = true; }
+    void setFailedLexicalCheck() { failedLexicalCheck_ = true; }
 
     bool hasScriptCounts() const { return hasScriptCounts_; }
 

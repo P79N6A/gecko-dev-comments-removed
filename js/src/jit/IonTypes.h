@@ -112,9 +112,6 @@ enum BailoutKind
     Bailout_Debugger,
 
     
-    Bailout_UninitializedLexical,
-
-    
 
 
     
@@ -149,6 +146,9 @@ enum BailoutKind
     
     
     Bailout_ShapeGuard,
+
+    
+    Bailout_UninitializedLexical,
 
     
     Bailout_IonExceptionDebugMode,
@@ -209,8 +209,6 @@ BailoutKindString(BailoutKind kind)
         return "Bailout_InitialState";
       case Bailout_Debugger:
         return "Bailout_Debugger";
-      case Bailout_UninitializedLexical:
-        return "Bailout_UninitializedLexical";
 
       
       case Bailout_OverflowInvalidate:
@@ -229,6 +227,8 @@ BailoutKindString(BailoutKind kind)
         return "Bailout_Neutered";
       case Bailout_ShapeGuard:
         return "Bailout_ShapeGuard";
+      case Bailout_UninitializedLexical:
+        return "Bailout_UninitializedLexical";
       case Bailout_IonExceptionDebugMode:
         return "Bailout_IonExceptionDebugMode";
       default:
