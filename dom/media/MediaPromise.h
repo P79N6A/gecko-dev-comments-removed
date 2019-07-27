@@ -636,6 +636,7 @@ ProxyInternal(TargetType* aTarget, MethodCallBase<PromiseType>* aMethodCall, con
   nsRefPtr<ProxyRunnable<PromiseType>> r = new ProxyRunnable<PromiseType>(p, aMethodCall);
   nsresult rv = detail::DispatchMediaPromiseRunnable(aTarget, r);
   MOZ_DIAGNOSTIC_ASSERT(NS_SUCCEEDED(rv));
+  (void) rv; 
   return Move(p);
 }
 
