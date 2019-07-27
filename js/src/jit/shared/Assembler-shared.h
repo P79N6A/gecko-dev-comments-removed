@@ -38,6 +38,11 @@ enum Scale {
     TimesEight = 3
 };
 
+static_assert(sizeof(JS::Value) == 8,
+              "required for TimesEight and 3 below to be correct");
+static const Scale ValueScale = TimesEight;
+static const size_t ValueShift = 3;
+
 static inline unsigned
 ScaleToShift(Scale scale)
 {
@@ -307,6 +312,40 @@ struct BaseIndex
     { }
 
     BaseIndex() { mozilla::PodZero(this); }
+};
+
+
+
+
+
+
+
+struct BaseValueIndex : BaseIndex
+{
+    BaseValueIndex(Register base, Register index, int32_t offset = 0)
+      : BaseIndex(base, index, ValueScale, offset)
+    { }
+};
+
+
+
+struct BaseObjectElementIndex : BaseValueIndex
+{
+    BaseObjectElementIndex(Register base, Register index)
+      : BaseValueIndex(base, index)
+    {
+        NativeObject::elementsSizeMustNotOverflow();
+    }
+};
+
+
+struct BaseObjectSlotIndex : BaseValueIndex
+{
+    BaseObjectSlotIndex(Register base, Register index)
+      : BaseValueIndex(base, index)
+    {
+        NativeObject::slotsSizeMustNotOverflow();
+    }
 };
 
 class Relocation {

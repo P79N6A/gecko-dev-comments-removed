@@ -659,6 +659,7 @@ EmitLoadSlot(MacroAssembler &masm, NativeObject *holder, Shape *shape, Register 
              TypedOrValueRegister output, Register scratchReg)
 {
     MOZ_ASSERT(holder);
+    NativeObject::slotsSizeMustNotOverflow();
     if (holder->isFixedSlot(shape->slot())) {
         Address addr(holderReg, NativeObject::getFixedSlotOffset(shape->slot()));
         masm.loadTypedOrValue(addr, output);
@@ -2006,6 +2007,7 @@ GenerateSetSlot(JSContext *cx, MacroAssembler &masm, IonCache::StubAttacher &att
         }
     }
 
+    NativeObject::slotsSizeMustNotOverflow();
     if (obj->isFixedSlot(shape->slot())) {
         Address addr(object, NativeObject::getFixedSlotOffset(shape->slot()));
 
@@ -2612,6 +2614,7 @@ GenerateAddSlot(JSContext *cx, MacroAssembler &masm, IonCache::StubAttacher &att
 
     
     
+    NativeObject::slotsSizeMustNotOverflow();
     if (obj->isFixedSlot(newShape->slot())) {
         Address addr(object, NativeObject::getFixedSlotOffset(newShape->slot()));
         masm.storeConstantOrRegister(value, addr);
@@ -3182,7 +3185,7 @@ GenerateDenseElement(JSContext *cx, MacroAssembler &masm, IonCache::StubAttacher
     masm.branch32(Assembler::BelowOrEqual, initLength, indexReg, &hole);
 
     
-    masm.loadElementTypedOrValue(BaseIndex(object, indexReg, TimesEight),
+    masm.loadElementTypedOrValue(BaseObjectElementIndex(object, indexReg),
                                  output, true, &hole);
 
     masm.pop(object);
@@ -3426,7 +3429,7 @@ GetElementIC::attachArgumentsElement(JSContext *cx, HandleScript outerScript, Io
 
     
     masm.pop(indexReg);
-    BaseIndex elemIdx(tmpReg, indexReg, ScaleFromElemWidth(sizeof(Value)));
+    BaseValueIndex elemIdx(tmpReg, indexReg);
 
     
     masm.branchTestMagic(Assembler::Equal, elemIdx, &failureRestoreIndex);
@@ -3600,7 +3603,7 @@ IsTypedArrayElementSetInlineable(JSObject *obj, const Value &idval, const Value 
 
 static void
 StoreDenseElement(MacroAssembler &masm, ConstantOrRegister value, Register elements,
-                  BaseIndex target)
+                  BaseObjectElementIndex target)
 {
     
     
@@ -3684,7 +3687,7 @@ GenerateSetDenseElement(JSContext *cx, MacroAssembler &masm, IonCache::StubAttac
         masm.loadPtr(Address(object, NativeObject::offsetOfElements()), elements);
 
         
-        BaseIndex target(elements, index, TimesEight);
+        BaseObjectElementIndex target(elements, index);
 
         
         
