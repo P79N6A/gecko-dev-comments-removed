@@ -14,8 +14,8 @@
 
 
 
-#ifndef mozilla_imagelib_RasterImage_h_
-#define mozilla_imagelib_RasterImage_h_
+#ifndef mozilla_image_src_RasterImage_h
+#define mozilla_image_src_RasterImage_h
 
 #include "Image.h"
 #include "nsCOMPtr.h"
@@ -182,7 +182,8 @@ public:
   
   uint32_t GetNumFrames() const { return mFrameCount; }
 
-  virtual size_t SizeOfSourceWithComputedFallback(MallocSizeOf aMallocSizeOf) const override;
+  virtual size_t SizeOfSourceWithComputedFallback(MallocSizeOf aMallocSizeOf)
+    const override;
   virtual size_t SizeOfDecoded(gfxMemoryLocation aLocation,
                                MallocSizeOf aMallocSizeOf) const override;
 
@@ -313,8 +314,9 @@ private:
 
   nsIntRect GetFirstFrameRect();
 
-  size_t SizeOfDecodedWithComputedFallbackIfHeap(gfxMemoryLocation aLocation,
-                                                 MallocSizeOf aMallocSizeOf) const;
+  size_t
+    SizeOfDecodedWithComputedFallbackIfHeap(gfxMemoryLocation aLocation,
+                                            MallocSizeOf aMallocSizeOf) const;
 
   Pair<DrawResult, nsRefPtr<layers::Image>>
     GetCurrentImage(layers::ImageContainer* aContainer, uint32_t aFlags);
@@ -325,7 +327,9 @@ private:
   
   
   
-  bool IsUnlocked() { return (mLockCount == 0 || (mAnim && mAnimationConsumers == 0)); }
+  bool IsUnlocked() {
+    return (mLockCount == 0 || (mAnim && mAnimationConsumers == 0));
+  }
 
 
   
@@ -374,6 +378,7 @@ private:
   
   int32_t                        mDecodeCount;
 
+  
   
   nsIntSize                  mRequestedResolution;
 
@@ -434,8 +439,10 @@ private:
   void RequestScale(imgFrame* aFrame, uint32_t aFlags, const nsIntSize& aSize);
 
   
-  bool CanScale(GraphicsFilter aFilter, const nsIntSize& aSize, uint32_t aFlags);
+  bool CanScale(GraphicsFilter aFilter, const nsIntSize& aSize,
+                uint32_t aFlags);
 
+  
   
   bool CanDownscaleDuringDecode(const nsIntSize& aSize, uint32_t aFlags);
 
@@ -478,7 +485,8 @@ protected:
   friend class ImageFactory;
 };
 
-inline NS_IMETHODIMP RasterImage::GetAnimationMode(uint16_t *aAnimationMode) {
+inline NS_IMETHODIMP
+RasterImage::GetAnimationMode(uint16_t* aAnimationMode) {
   return GetAnimationModeInternal(aAnimationMode);
 }
 

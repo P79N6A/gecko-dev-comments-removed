@@ -4,6 +4,7 @@
 
 
 
+
 #include "ImageLogging.h"
 
 #include "RasterImage.h"
@@ -295,12 +296,14 @@ RasterImage::Init(const char* aMimeType,
                   uint32_t aFlags)
 {
   
-  if (mInitialized)
+  if (mInitialized) {
     return NS_ERROR_ILLEGAL_VALUE;
+  }
 
   
-  if (mError)
+  if (mError) {
     return NS_ERROR_FAILURE;
+  }
 
   NS_ENSURE_ARG_POINTER(aMimeType);
 
@@ -382,7 +385,7 @@ RasterImage::RequestRefresh(const TimeStamp& aTime)
 
 
 NS_IMETHODIMP
-RasterImage::GetWidth(int32_t *aWidth)
+RasterImage::GetWidth(int32_t* aWidth)
 {
   NS_ENSURE_ARG_POINTER(aWidth);
 
@@ -398,7 +401,7 @@ RasterImage::GetWidth(int32_t *aWidth)
 
 
 NS_IMETHODIMP
-RasterImage::GetHeight(int32_t *aHeight)
+RasterImage::GetHeight(int32_t* aHeight)
 {
   NS_ENSURE_ARG_POINTER(aHeight);
 
@@ -416,8 +419,9 @@ RasterImage::GetHeight(int32_t *aHeight)
 NS_IMETHODIMP
 RasterImage::GetIntrinsicSize(nsSize* aSize)
 {
-  if (mError)
+  if (mError) {
     return NS_ERROR_FAILURE;
+  }
 
   *aSize = nsSize(nsPresContext::CSSPixelsToAppUnits(mSize.width),
                   nsPresContext::CSSPixelsToAppUnits(mSize.height));
@@ -429,8 +433,9 @@ RasterImage::GetIntrinsicSize(nsSize* aSize)
 NS_IMETHODIMP
 RasterImage::GetIntrinsicRatio(nsSize* aRatio)
 {
-  if (mError)
+  if (mError) {
     return NS_ERROR_FAILURE;
+  }
 
   *aRatio = nsSize(mSize.width, mSize.height);
   return NS_OK;
@@ -445,7 +450,7 @@ RasterImage::GetOrientation()
 
 
 NS_IMETHODIMP
-RasterImage::GetType(uint16_t *aType)
+RasterImage::GetType(uint16_t* aType)
 {
   NS_ENSURE_ARG_POINTER(aType);
 
@@ -604,10 +609,11 @@ RasterImage::OnSurfaceDiscarded()
 
 
 NS_IMETHODIMP
-RasterImage::GetAnimated(bool *aAnimated)
+RasterImage::GetAnimated(bool* aAnimated)
 {
-  if (mError)
+  if (mError) {
     return NS_ERROR_FAILURE;
+  }
 
   NS_ENSURE_ARG_POINTER(aAnimated);
 
@@ -619,8 +625,9 @@ RasterImage::GetAnimated(bool *aAnimated)
 
   
   
-  if (!mHasBeenDecoded)
+  if (!mHasBeenDecoded) {
     return NS_ERROR_NOT_AVAILABLE;
+  }
 
   
   *aAnimated = false;
@@ -633,12 +640,14 @@ RasterImage::GetAnimated(bool *aAnimated)
 NS_IMETHODIMP_(int32_t)
 RasterImage::GetFirstFrameDelay()
 {
-  if (mError)
+  if (mError) {
     return -1;
+  }
 
   bool animated = false;
-  if (NS_FAILED(GetAnimated(&animated)) || !animated)
+  if (NS_FAILED(GetAnimated(&animated)) || !animated) {
     return -1;
+  }
 
   MOZ_ASSERT(mAnim, "Animated images should have a FrameAnimator");
   return mAnim->GetTimeoutForFrame(0);
@@ -647,11 +656,13 @@ RasterImage::GetFirstFrameDelay()
 TemporaryRef<SourceSurface>
 RasterImage::CopyFrame(uint32_t aWhichFrame, uint32_t aFlags)
 {
-  if (aWhichFrame > FRAME_MAX_VALUE)
+  if (aWhichFrame > FRAME_MAX_VALUE) {
     return nullptr;
+  }
 
-  if (mError)
+  if (mError) {
     return nullptr;
+  }
 
   
   
@@ -944,6 +955,7 @@ RasterImage::OnAddedFrame(uint32_t aNewFrameCount,
       
       
       
+      
       LockImage();
 
       if (mPendingAnimation && ShouldAnimate()) {
@@ -961,13 +973,15 @@ RasterImage::SetSize(int32_t aWidth, int32_t aHeight, Orientation aOrientation)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  if (mError)
+  if (mError) {
     return NS_ERROR_FAILURE;
+  }
 
   
   
-  if ((aWidth < 0) || (aHeight < 0))
+  if ((aWidth < 0) || (aHeight < 0)) {
     return NS_ERROR_INVALID_ARG;
+  }
 
   
   if (mHasSize &&
@@ -1019,8 +1033,9 @@ RasterImage::SetAnimationMode(uint16_t aAnimationMode)
 nsresult
 RasterImage::StartAnimation()
 {
-  if (mError)
+  if (mError) {
     return NS_ERROR_FAILURE;
+  }
 
   MOZ_ASSERT(ShouldAnimate(), "Should not animate!");
 
@@ -1068,8 +1083,9 @@ RasterImage::StopAnimation()
 NS_IMETHODIMP
 RasterImage::ResetAnimation()
 {
-  if (mError)
+  if (mError) {
     return NS_ERROR_FAILURE;
+    }
 
   mPendingAnimation = false;
 
@@ -1080,8 +1096,9 @@ RasterImage::ResetAnimation()
 
   mAnimationFinished = false;
 
-  if (mAnimating)
+  if (mAnimating) {
     StopAnimation();
+  }
 
   MOZ_ASSERT(mAnim, "Should have a FrameAnimator");
   mAnim->ResetAnimation();
@@ -1100,8 +1117,9 @@ RasterImage::ResetAnimation()
 NS_IMETHODIMP_(void)
 RasterImage::SetAnimationStartTime(const TimeStamp& aTime)
 {
-  if (mError || mAnimationMode == kDontAnimMode || mAnimating || !mAnim)
+  if (mError || mAnimationMode == kDontAnimMode || mAnimating || !mAnim) {
     return;
+  }
 
   mAnim->SetAnimationFrameTime(aTime);
 }
@@ -1118,8 +1136,9 @@ RasterImage::GetFrameIndex(uint32_t aWhichFrame)
 void
 RasterImage::SetLoopCount(int32_t aLoopCount)
 {
-  if (mError)
+  if (mError) {
     return;
+  }
 
   
   if (mAnim) {
@@ -1238,25 +1257,28 @@ RasterImage::SetSourceSizeHint(uint32_t aSizeHint)
 
 
 NS_IMETHODIMP
-RasterImage::Get(const char *prop, const nsIID & iid, void * *result)
+RasterImage::Get(const char* prop, const nsIID& iid, void** result)
 {
-  if (!mProperties)
+  if (!mProperties) {
     return NS_ERROR_FAILURE;
+  }
   return mProperties->Get(prop, iid, result);
 }
 
 NS_IMETHODIMP
-RasterImage::Set(const char *prop, nsISupports *value)
+RasterImage::Set(const char* prop, nsISupports* value)
 {
-  if (!mProperties)
+  if (!mProperties) {
     mProperties = do_CreateInstance("@mozilla.org/properties;1");
-  if (!mProperties)
+  }
+  if (!mProperties) {
     return NS_ERROR_OUT_OF_MEMORY;
+  }
   return mProperties->Set(prop, value);
 }
 
 NS_IMETHODIMP
-RasterImage::Has(const char *prop, bool *_retval)
+RasterImage::Has(const char* prop, bool* _retval)
 {
   NS_ENSURE_ARG_POINTER(_retval);
   if (!mProperties) {
@@ -1267,15 +1289,16 @@ RasterImage::Has(const char *prop, bool *_retval)
 }
 
 NS_IMETHODIMP
-RasterImage::Undefine(const char *prop)
+RasterImage::Undefine(const char* prop)
 {
-  if (!mProperties)
+  if (!mProperties) {
     return NS_ERROR_FAILURE;
+  }
   return mProperties->Undefine(prop);
 }
 
 NS_IMETHODIMP
-RasterImage::GetKeys(uint32_t *count, char ***keys)
+RasterImage::GetKeys(uint32_t* count, char*** keys)
 {
   if (!mProperties) {
     *count = 0;
@@ -1400,18 +1423,22 @@ RasterImage::CreateDecoder(const Maybe<nsIntSize>& aSize, uint32_t aFlags)
   }
 
   if (!aSize) {
-    Telemetry::GetHistogramById(Telemetry::IMAGE_DECODE_COUNT)->Subtract(mDecodeCount);
+    Telemetry::GetHistogramById(
+      Telemetry::IMAGE_DECODE_COUNT)->Subtract(mDecodeCount);
     mDecodeCount++;
-    Telemetry::GetHistogramById(Telemetry::IMAGE_DECODE_COUNT)->Add(mDecodeCount);
+    Telemetry::GetHistogramById(
+      Telemetry::IMAGE_DECODE_COUNT)->Add(mDecodeCount);
 
     if (mDecodeCount > sMaxDecodeCount) {
       
       
       if (sMaxDecodeCount > 0) {
-        Telemetry::GetHistogramById(Telemetry::IMAGE_MAX_DECODE_COUNT)->Subtract(sMaxDecodeCount);
+        Telemetry::GetHistogramById(
+          Telemetry::IMAGE_MAX_DECODE_COUNT)->Subtract(sMaxDecodeCount);
       }
       sMaxDecodeCount = mDecodeCount;
-      Telemetry::GetHistogramById(Telemetry::IMAGE_MAX_DECODE_COUNT)->Add(sMaxDecodeCount);
+      Telemetry::GetHistogramById(
+        Telemetry::IMAGE_MAX_DECODE_COUNT)->Add(sMaxDecodeCount);
     }
   }
 
@@ -1784,17 +1811,20 @@ RasterImage::Draw(gfxContext* aContext,
                   const Maybe<SVGImageContext>& ,
                   uint32_t aFlags)
 {
-  if (aWhichFrame > FRAME_MAX_VALUE)
+  if (aWhichFrame > FRAME_MAX_VALUE) {
     return DrawResult::BAD_ARGS;
+  }
 
-  if (mError)
+  if (mError) {
     return DrawResult::BAD_IMAGE;
+  }
 
   
   
   
-  if (DecodeFlags(aFlags) != DECODE_FLAGS_DEFAULT)
+  if (DecodeFlags(aFlags) != DECODE_FLAGS_DEFAULT) {
     return DrawResult::BAD_ARGS;
+  }
 
   if (!aContext) {
     return DrawResult::BAD_ARGS;
@@ -1843,8 +1873,9 @@ RasterImage::LockImage()
 {
   MOZ_ASSERT(NS_IsMainThread(),
              "Main thread to encourage serialization with UnlockImage");
-  if (mError)
+  if (mError) {
     return NS_ERROR_FAILURE;
+  }
 
   
   mLockCount++;
@@ -1864,14 +1895,16 @@ RasterImage::UnlockImage()
 {
   MOZ_ASSERT(NS_IsMainThread(),
              "Main thread to encourage serialization with LockImage");
-  if (mError)
+  if (mError) {
     return NS_ERROR_FAILURE;
+  }
 
   
   MOZ_ASSERT(mLockCount > 0,
              "Calling UnlockImage with mLockCount == 0!");
-  if (mLockCount == 0)
+  if (mLockCount == 0) {
     return NS_ERROR_ABORT;
+  }
 
   
   mLockCount--;
@@ -1903,9 +1936,11 @@ void
 RasterImage::DoError()
 {
   
-  if (mError)
+  if (mError) {
     return;
+  }
 
+  
   
   if (!NS_IsMainThread()) {
     HandleErrorWorker::DispatchIfNeeded(this);
@@ -1980,7 +2015,7 @@ RasterImage::ShouldAnimate()
 
 #ifdef DEBUG
 NS_IMETHODIMP
-RasterImage::GetFramesNotified(uint32_t *aFramesNotified)
+RasterImage::GetFramesNotified(uint32_t* aFramesNotified)
 {
   NS_ENSURE_ARG_POINTER(aFramesNotified);
 
