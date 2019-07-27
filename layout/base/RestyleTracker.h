@@ -270,13 +270,7 @@ public:
   
 
 
-  void ProcessRestyles() {
-    
-    
-    if (mPendingRestyles.Count()) {
-      DoProcessRestyles();
-    }
-  }
+  void DoProcessRestyles();
 
   
   uint32_t RestyleBit() const {
@@ -361,11 +355,6 @@ private:
   inline void ProcessOneRestyle(Element* aElement,
                                 nsRestyleHint aRestyleHint,
                                 nsChangeHint aChangeHint);
-
-  
-
-
-  void DoProcessRestyles();
 
   typedef nsClassHashtable<nsISupportsHashKey, RestyleData> PendingRestyleTable;
   typedef nsAutoTArray< nsRefPtr<Element>, 32> RestyleRootArray;

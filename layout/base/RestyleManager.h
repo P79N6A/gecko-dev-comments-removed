@@ -463,6 +463,14 @@ private:
   
   bool RecomputePosition(nsIFrame* aFrame);
 
+  void ProcessRestyles(RestyleTracker& aRestyleTracker) {
+    
+    
+    if (aRestyleTracker.Count()) {
+      aRestyleTracker.DoProcessRestyles();
+    }
+  }
+
 private:
   nsPresContext* mPresContext; 
 
