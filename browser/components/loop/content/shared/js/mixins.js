@@ -198,15 +198,11 @@ loop.shared.mixins = (function() {
       
       return {
         insertMode: "append",
+        fitMode: "contain",
         width: "100%",
         height: "100%",
         publishVideo: options.publishVideo,
-        style: {
-          audioLevelDisplayMode: "off",
-          buttonDisplayMode: "off",
-          nameDisplayMode: "off",
-          videoDisabledDisplayMode: "off"
-        }
+        showControls: false,
       };
     },
 

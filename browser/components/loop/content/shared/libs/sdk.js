@@ -9,394 +9,382 @@
 
 
 
-(function(window) {
-  if (!window.OT) window.OT = {};
 
-  OT.properties = {
-    version: 'v2.2.9.7',         
-    build: '59e99bc',    
+!(function(window) {
 
-    
-    debug: 'false',
-    
-    websiteURL: 'http://www.tokbox.com',
+!(function(window, OTHelpers, undefined) {
 
-    
-    cdnURL: 'http://static.opentok.com',
-    
-    loggingURL: 'http://hlg.tokbox.com/prod',
-    
-    apiURL: 'http://anvil.opentok.com',
 
-    
-    messagingProtocol: 'wss',
-    
-    messagingPort: 443,
 
-    
-    supportSSL: 'true',
-    
-    cdnURLSSL: 'https://static.opentok.com',
-    
-    loggingURLSSL: 'https://hlg.tokbox.com/prod',
-    
-    apiURLSSL: 'https://anvil.opentok.com',
 
-    minimumVersion: {
-      firefox: parseFloat('29'),
-      chrome: parseFloat('34')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var prototypeSlice = Array.prototype.slice;
+
+
+
+var detectIdSelectors = /^#([\w-]*)$/;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var OTHelpers = function(selector, context) {
+  var results = [];
+
+  if (typeof(selector) === 'string') {
+    var idSelector = detectIdSelectors.exec(selector);
+    context = context || document;
+
+    if (idSelector && idSelector[1]) {
+      var element = context.getElementById(idSelector[1]);
+      if (element) results.push(element);
     }
-  };
+    else {
+      results = context.querySelectorAll(selector);
+    }
+  }
+  else if (selector.nodeType || window.XMLHttpRequest && selector instanceof XMLHttpRequest) {
+    
+    results = [selector];
+    context = selector;
+  }
+  else if (OTHelpers.isArray(selector)) {
+    results = selector.slice();
+    context  = null;
+  }
 
-})(window);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  return new ElementCollection(results, context);
+};
 
 
+var $ = OTHelpers;
 
 
-
-
-
-
-
-
-!(function(window, undefined) {
-
-
-  var OTHelpers = function(domId) {
-    return document.getElementById(domId);
-  };
-
-  var previousOTHelpers = window.OTHelpers;
-
-  window.OTHelpers = OTHelpers;
+var nodeListToArray = function nodeListToArray (nodes) {
+  if ($.env.name !== 'IE' || $.env.version > 9) {
+    return prototypeSlice.call(nodes);
+  }
 
   
-  window.___othelpers = true;
+  
+  var array = [];
 
-  OTHelpers.keys = Object.keys || function(object) {
-    var keys = [], hasOwnProperty = Object.prototype.hasOwnProperty;
-    for(var key in object) {
-      if(hasOwnProperty.call(object, key)) {
-        keys.push(key);
+  for (var i=0, num=nodes.length; i<num; ++i) {
+    array.push(nodes[i]);
+  }
+
+  return array;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var ElementCollection = function ElementCollection (elems, context) {
+  var elements = nodeListToArray(elems);
+  this.context = context;
+  this.toArray = function() { return elements; };
+
+  this.length = elements.length;
+  this.first = elements[0];
+  this.last = elements[elements.length-1];
+
+  this.get = function(index) {
+    if (index === void 0) return elements;
+    return elements[index];
+  };
+};
+
+
+ElementCollection.prototype.some = function (iter, context) {
+  return $.some(this.get(), iter, context);
+};
+
+ElementCollection.prototype.forEach = function(fn, context) {
+  $.forEach(this.get(), fn, context);
+  return this;
+};
+
+ElementCollection.prototype.map = function(fn, context) {
+  return new ElementCollection($.map(this.get(), fn, context), this.context);
+};
+
+ElementCollection.prototype.filter = function(fn, context) {
+  return new ElementCollection($.filter(this.get(), fn, context), this.context);
+};
+
+ElementCollection.prototype.find = function(selector) {
+  return $(selector, this.first);
+};
+
+
+var previousOTHelpers = window.OTHelpers;
+
+window.OTHelpers = OTHelpers;
+
+
+window.___othelpers = true;
+
+OTHelpers.keys = Object.keys || function(object) {
+  var keys = [], hasOwnProperty = Object.prototype.hasOwnProperty;
+  for(var key in object) {
+    if(hasOwnProperty.call(object, key)) {
+      keys.push(key);
+    }
+  }
+  return keys;
+};
+
+var _each = Array.prototype.forEach || function(iter, ctx) {
+  for(var idx = 0, count = this.length || 0; idx < count; ++idx) {
+    if(idx in this) {
+      iter.call(ctx, this[idx], idx);
+    }
+  }
+};
+
+OTHelpers.forEach = function(array, iter, ctx) {
+  return _each.call(array, iter, ctx);
+};
+
+var _map = Array.prototype.map || function(iter, ctx) {
+  var collect = [];
+  _each.call(this, function(item, idx) {
+    collect.push(iter.call(ctx, item, idx));
+  });
+  return collect;
+};
+
+OTHelpers.map = function(array, iter) {
+  return _map.call(array, iter);
+};
+
+var _filter = Array.prototype.filter || function(iter, ctx) {
+  var collect = [];
+  _each.call(this, function(item, idx) {
+    if(iter.call(ctx, item, idx)) {
+      collect.push(item);
+    }
+  });
+  return collect;
+};
+
+OTHelpers.filter = function(array, iter, ctx) {
+  return _filter.call(array, iter, ctx);
+};
+
+var _some = Array.prototype.some || function(iter, ctx) {
+  var any = false;
+  for(var idx = 0, count = this.length || 0; idx < count; ++idx) {
+    if(idx in this) {
+      if(iter.call(ctx, this[idx], idx)) {
+        any = true;
+        break;
       }
     }
-    return keys;
-  };
+  }
+  return any;
+};
 
-  var _each = Array.prototype.forEach || function(iter, ctx) {
-    for(var idx = 0, count = this.length || 0; idx < count; ++idx) {
-      if(idx in this) {
-        iter.call(ctx, this[idx], idx);
+OTHelpers.find = function(array, iter, ctx) {
+  if (!$.isFunction(iter)) {
+    throw new TypeError('iter must be a function');
+  }
+
+  var any = void 0;
+  for(var idx = 0, count = array.length || 0; idx < count; ++idx) {
+    if(idx in array) {
+      if(iter.call(ctx, array[idx], idx)) {
+        any = array[idx];
+        break;
       }
     }
-  };
+  }
+  return any;
+};
 
-  OTHelpers.forEach = function(array, iter, ctx) {
-    return _each.call(array, iter, ctx);
-  };
+OTHelpers.findIndex = function(array, iter, ctx) {
+  if (!$.isFunction(iter)) {
+    throw new TypeError('iter must be a function');
+  }
 
-  var _map = Array.prototype.map || function(iter, ctx) {
-    var collect = [];
-    _each.call(this, function(item, idx) {
-      collect.push(iter.call(ctx, item, idx));
-    });
-    return collect;
-  };
-
-  OTHelpers.map = function(array, iter) {
-    return _map.call(array, iter);
-  };
-
-  var _filter = Array.prototype.filter || function(iter, ctx) {
-    var collect = [];
-    _each.call(this, function(item, idx) {
-      if(iter.call(ctx, item, idx)) {
-        collect.push(item);
-      }
-    });
-    return collect;
-  };
-
-  OTHelpers.filter = function(array, iter, ctx) {
-    return _filter.call(array, iter, ctx);
-  };
-
-  var _some = Array.prototype.some || function(iter, ctx) {
-    var any = false;
-    for(var idx = 0, count = this.length || 0; idx < count; ++idx) {
-      if(idx in this) {
-        if(iter.call(ctx, this[idx], idx)) {
-          any = true;
-          break;
-        }
-      }
+  for (var i = 0, count = array.length || 0; i < count; ++i) {
+    if (i in array && iter.call(ctx, array[i], i, array)) {
+      return i;
     }
-    return any;
-  };
+  }
 
-  OTHelpers.some = function(array, iter, ctx) {
-    return _some.call(array, iter, ctx);
-  };
+  return -1;
+};
 
-  var _indexOf = Array.prototype.indexOf || function(searchElement, fromIndex) {
-    var i,
-        pivot = (fromIndex) ? fromIndex : 0,
-        length;
 
-    if (!this) {
-      throw new TypeError();
-    }
+OTHelpers.some = function(array, iter, ctx) {
+  return _some.call(array, iter, ctx);
+};
 
-    length = this.length;
+var _indexOf = Array.prototype.indexOf || function(searchElement, fromIndex) {
+  var i,
+      pivot = (fromIndex) ? fromIndex : 0,
+      length;
 
-    if (length === 0 || pivot >= length) {
-      return -1;
-    }
+  if (!this) {
+    throw new TypeError();
+  }
 
-    if (pivot < 0) {
-      pivot = length - Math.abs(pivot);
-    }
+  length = this.length;
 
-    for (i = pivot; i < length; i++) {
-      if (this[i] === searchElement) {
-        return i;
-      }
-    }
+  if (length === 0 || pivot >= length) {
     return -1;
-  };
+  }
 
-  OTHelpers.arrayIndexOf = function(array, searchElement, fromIndex) {
-    return _indexOf.call(array, searchElement, fromIndex);
-  };
+  if (pivot < 0) {
+    pivot = length - Math.abs(pivot);
+  }
 
-  var _bind = Function.prototype.bind || function() {
-    var args = Array.prototype.slice.call(arguments),
-        ctx = args.shift(),
-        fn = this;
-    return function() {
-      return fn.apply(ctx, args.concat(Array.prototype.slice.call(arguments)));
-    };
-  };
+  for (i = pivot; i < length; i++) {
+    if (this[i] === searchElement) {
+      return i;
+    }
+  }
+  return -1;
+};
 
-  OTHelpers.bind = function() {
-    var args = Array.prototype.slice.call(arguments),
-        fn = args.shift();
-    return _bind.apply(fn, args);
-  };
+OTHelpers.arrayIndexOf = function(array, searchElement, fromIndex) {
+  return _indexOf.call(array, searchElement, fromIndex);
+};
 
-  var _trim = String.prototype.trim || function() {
-    return this.replace(/^\s+|\s+$/g, '');
+var _bind = Function.prototype.bind || function() {
+  var args = prototypeSlice.call(arguments),
+      ctx = args.shift(),
+      fn = this;
+  return function() {
+    return fn.apply(ctx, args.concat(prototypeSlice.call(arguments)));
   };
+};
 
-  OTHelpers.trim = function(str) {
-    return _trim.call(str);
-  };
+OTHelpers.bind = function() {
+  var args = prototypeSlice.call(arguments),
+      fn = args.shift();
+  return _bind.apply(fn, args);
+};
 
+var _trim = String.prototype.trim || function() {
+  return this.replace(/^\s+|\s+$/g, '');
+};
+
+OTHelpers.trim = function(str) {
+  return _trim.call(str);
+};
+
+OTHelpers.noConflict = function() {
   OTHelpers.noConflict = function() {
-    OTHelpers.noConflict = function() {
-      return OTHelpers;
-    };
-    window.OTHelpers = previousOTHelpers;
     return OTHelpers;
   };
+  window.OTHelpers = previousOTHelpers;
+  return OTHelpers;
+};
 
-  OTHelpers.isNone = function(obj) {
-    return obj === undefined || obj === null;
+OTHelpers.isNone = function(obj) {
+  return obj === void 0 || obj === null;
+};
+
+OTHelpers.isObject = function(obj) {
+  return obj === Object(obj);
+};
+
+OTHelpers.isFunction = function(obj) {
+  return !!obj && (obj.toString().indexOf('()') !== -1 ||
+    Object.prototype.toString.call(obj) === '[object Function]');
+};
+
+OTHelpers.isArray = OTHelpers.isFunction(Array.isArray) && Array.isArray ||
+  function (vArg) {
+    return Object.prototype.toString.call(vArg) === '[object Array]';
   };
 
-  OTHelpers.isObject = function(obj) {
-    return obj === Object(obj);
-  };
+OTHelpers.isEmpty = function(obj) {
+  if (obj === null || obj === void 0) return true;
+  if (OTHelpers.isArray(obj) || typeof(obj) === 'string') return obj.length === 0;
 
-  OTHelpers.isFunction = function(obj) {
-    return !!obj && (obj.toString().indexOf('()') !== -1 ||
-      Object.prototype.toString.call(obj) === '[object Function]');
-  };
-
-  OTHelpers.isArray = OTHelpers.isFunction(Array.isArray) && Array.isArray ||
-    function (vArg) {
-      return Object.prototype.toString.call(vArg) === '[object Array]';
-    };
-
-  OTHelpers.isEmpty = function(obj) {
-    if (obj === null || obj === undefined) return true;
-    if (OTHelpers.isArray(obj) || typeof(obj) === 'string') return obj.length === 0;
-
-    
-    for (var key in obj) {
-      if (obj.hasOwnProperty(key)) return false;
-    }
-
-    return true;
-  };
-
-
-
-
-
-
-
-  OTHelpers.extend = function() {
-    var sources = Array.prototype.slice.call(arguments),
-        dest = sources.shift();
-
-    OTHelpers.forEach(sources, function(source) {
-      for (var key in source) {
-        dest[key] = source[key];
-      }
-    });
-
-    return dest;
-  };
-
-
-
-
-
-
-
-
-  OTHelpers.defaults = function() {
-    var sources = Array.prototype.slice.call(arguments),
-        dest = sources.shift();
-
-    OTHelpers.forEach(sources, function(source) {
-      for (var key in source) {
-        if (dest[key] === void 0) dest[key] = source[key];
-      }
-    });
-
-    return dest;
-  };
-
-  OTHelpers.clone = function(obj) {
-    if (!OTHelpers.isObject(obj)) return obj;
-    return OTHelpers.isArray(obj) ? obj.slice() : OTHelpers.extend({}, obj);
-  };
-
-
-
-
-  OTHelpers.noop = function() {};
-
-
-
-
-
-
-
-  OTHelpers.now = (function() {
-    var performance = window.performance || {},
-        navigationStart,
-        now =  performance.now       ||
-               performance.mozNow    ||
-               performance.msNow     ||
-               performance.oNow      ||
-               performance.webkitNow;
-
-    if (now) {
-      now = OTHelpers.bind(now, performance);
-      navigationStart = performance.timing.navigationStart;
-
-      return  function() { return navigationStart + now(); };
-    } else {
-      return function() { return new Date().getTime(); };
-    }
-  })();
-
-  var _browser = function() {
-    var userAgent = window.navigator.userAgent.toLowerCase(),
-        appName = window.navigator.appName,
-        navigatorVendor,
-        browser = 'unknown',
-        version = -1;
-
-    if (userAgent.indexOf('opera') > -1 || userAgent.indexOf('opr') > -1) {
-      browser = 'Opera';
-
-      if (/opr\/([0-9]{1,}[\.0-9]{0,})/.exec(userAgent) !== null) {
-        version = parseFloat( RegExp.$1 );
-      }
-
-    } else if (userAgent.indexOf('firefox') > -1)   {
-      browser = 'Firefox';
-
-      if (/firefox\/([0-9]{1,}[\.0-9]{0,})/.exec(userAgent) !== null) {
-        version = parseFloat( RegExp.$1 );
-      }
-
-    } else if (appName === 'Microsoft Internet Explorer') {
-      
-      browser = 'IE';
-
-      if (/msie ([0-9]{1,}[\.0-9]{0,})/.exec(userAgent) !== null) {
-        version = parseFloat( RegExp.$1 );
-      }
-
-    } else if (appName === 'Netscape' && userAgent.indexOf('trident') > -1) {
-      
-
-      browser = 'IE';
-
-      if (/trident\/.*rv:([0-9]{1,}[\.0-9]{0,})/.exec(userAgent) !== null) {
-        version = parseFloat( RegExp.$1 );
-      }
-
-    } else if (userAgent.indexOf('chrome') > -1) {
-      browser = 'Chrome';
-
-      if (/chrome\/([0-9]{1,}[\.0-9]{0,})/.exec(userAgent) !== null) {
-        version = parseFloat( RegExp.$1 );
-      }
-
-    } else if ((navigatorVendor = window.navigator.vendor) &&
-      navigatorVendor.toLowerCase().indexOf('apple') > -1) {
-      browser = 'Safari';
-
-      if (/version\/([0-9]{1,}[\.0-9]{0,})/.exec(userAgent) !== null) {
-        version = parseFloat( RegExp.$1 );
-      }
-    }
-
-    return {
-      browser: browser,
-      version: version,
-      iframeNeedsLoad: userAgent.indexOf('webkit') < 0
-    };
-  }();
-
-  OTHelpers.browser = function() {
-    return _browser.browser;
-  };
-
-  OTHelpers.browserVersion = function() {
-    return _browser;
-  };
-
-
-  OTHelpers.canDefineProperty = true;
-
-  try {
-    Object.defineProperty({}, 'x', {});
-  } catch (err) {
-    OTHelpers.canDefineProperty = false;
+  
+  for (var key in obj) {
+    if (obj.hasOwnProperty(key)) return false;
   }
 
+  return true;
+};
 
 
 
@@ -404,304 +392,220 @@
 
 
 
+OTHelpers.extend = function() {
+  var sources = prototypeSlice.call(arguments),
+      dest = sources.shift();
 
-
-
-
-
-  OTHelpers.defineGetters = function(self, getters, enumerable) {
-    var propsDefinition = {};
-
-    if (enumerable === void 0) enumerable = false;
-
-    for (var key in getters) {
-      propsDefinition[key] = {
-        get: getters[key],
-        enumerable: enumerable
-      };
+  OTHelpers.forEach(sources, function(source) {
+    for (var key in source) {
+      dest[key] = source[key];
     }
-
-    OTHelpers.defineProperties(self, propsDefinition);
-  };
-
-  var generatePropertyFunction = function(object, getter, setter) {
-    if(getter && !setter) {
-      return function() {
-        return getter.call(object);
-      };
-    } else if(getter && setter) {
-      return function(value) {
-        if(value !== void 0) {
-          setter.call(object, value);
-        }
-        return getter.call(object);
-      };
-    } else {
-      return function(value) {
-        if(value !== void 0) {
-          setter.call(object, value);
-        }
-      };
-    }
-  };
-
-  OTHelpers.defineProperties = function(object, getterSetters) {
-    for (var key in getterSetters) {
-      object[key] = generatePropertyFunction(object, getterSetters[key].get,
-        getterSetters[key].set);
-    }
-  };
-
-
-
-
-
-
-  if (!Object.create) {
-    Object.create = function (o) {
-      if (arguments.length > 1) {
-        throw new Error('Object.create implementation only accepts the first parameter.');
-      }
-      function F() {}
-      F.prototype = o;
-      return new F();
-    };
-  }
-
-  OTHelpers.setCookie = function(key, value) {
-    try {
-      localStorage.setItem(key, value);
-    } catch (err) {
-      
-      var date = new Date();
-      date.setTime(date.getTime()+(365*24*60*60*1000));
-      var expires = '; expires=' + date.toGMTString();
-      document.cookie = key + '=' + value + expires + '; path=/';
-    }
-  };
-
-  OTHelpers.getCookie = function(key) {
-    var value;
-
-    try {
-      value = localStorage.getItem('opentok_client_id');
-      return value;
-    } catch (err) {
-      
-      var nameEQ = key + '=';
-      var ca = document.cookie.split(';');
-      for(var i=0;i < ca.length;i++) {
-        var c = ca[i];
-        while (c.charAt(0) === ' ') {
-          c = c.substring(1,c.length);
-        }
-        if (c.indexOf(nameEQ) === 0) {
-          value = c.substring(nameEQ.length,c.length);
-        }
-      }
-
-      if (value) {
-        return value;
-      }
-    }
-
-    return null;
-  };
-
-
-
-
-
-
-
-
-
-
-  
-  OTHelpers.invert = function(obj) {
-    var result = {};
-    for (var key in obj) if (obj.hasOwnProperty(key)) result[obj[key]] = key;
-    return result;
-  };
-
-
-  
-  var entityMap = {
-    escape: {
-      '&':  '&amp;',
-      '<':  '&lt;',
-      '>':  '&gt;',
-      '"':  '&quot;',
-      '\'': '&#x27;',
-      '/':  '&#x2F;'
-    }
-  };
-
-  entityMap.unescape = OTHelpers.invert(entityMap.escape);
-
-  
-  var entityRegexes = {
-    escape:   new RegExp('[' + OTHelpers.keys(entityMap.escape).join('') + ']', 'g'),
-    unescape: new RegExp('(' + OTHelpers.keys(entityMap.unescape).join('|') + ')', 'g')
-  };
-
-  
-  OTHelpers.forEach(['escape', 'unescape'], function(method) {
-    OTHelpers[method] = function(string) {
-      if (string === null || string === undefined) return '';
-      return ('' + string).replace(entityRegexes[method], function(match) {
-        return entityMap[method][match];
-      });
-    };
   });
 
-
-
-  OTHelpers.templateSettings = {
-    evaluate    : /<%([\s\S]+?)%>/g,
-    interpolate : /<%=([\s\S]+?)%>/g,
-    escape      : /<%-([\s\S]+?)%>/g
-  };
+  return dest;
+};
 
 
 
 
-  var noMatch = /(.)^/;
-
-
-
-  var escapes = {
-    '\'':     '\'',
-    '\\':     '\\',
-    '\r':     'r',
-    '\n':     'n',
-    '\t':     't',
-    '\u2028': 'u2028',
-    '\u2029': 'u2029'
-  };
-
-  var escaper = /\\|'|\r|\n|\t|\u2028|\u2029/g;
 
 
 
 
-  OTHelpers.template = function(text, data, settings) {
-    var render;
-    settings = OTHelpers.defaults({}, settings, OTHelpers.templateSettings);
+OTHelpers.defaults = function() {
+  var sources = prototypeSlice.call(arguments),
+      dest = sources.shift();
 
-    
-    var matcher = new RegExp([
-      (settings.escape || noMatch).source,
-      (settings.interpolate || noMatch).source,
-      (settings.evaluate || noMatch).source
-    ].join('|') + '|$', 'g');
-
-    
-    var index = 0;
-    var source = '__p+=\'';
-    text.replace(matcher, function(match, escape, interpolate, evaluate, offset) {
-      source += text.slice(index, offset)
-        .replace(escaper, function(match) { return '\\' + escapes[match]; });
-
-      if (escape) {
-        source += '\'+\n((__t=(' + escape + '))==null?\'\':OTHelpers.escape(__t))+\n\'';
-      }
-      if (interpolate) {
-        source += '\'+\n((__t=(' + interpolate + '))==null?\'\':__t)+\n\'';
-      }
-      if (evaluate) {
-        source += '\';\n' + evaluate + '\n__p+=\'';
-      }
-      index = offset + match.length;
-      return match;
-    });
-    source += '\';\n';
-
-    
-    if (!settings.variable) source = 'with(obj||{}){\n' + source + '}\n';
-
-    source = 'var __t,__p=\'\',__j=Array.prototype.join,' +
-      'print=function(){__p+=__j.call(arguments,\'\');};\n' +
-      source + 'return __p;\n';
-
-    try {
-      
-      
-      render = new Function(settings.variable || 'obj', source);
-    } catch (e) {
-      e.source = source;
-      throw e;
+  OTHelpers.forEach(sources, function(source) {
+    for (var key in source) {
+      if (dest[key] === void 0) dest[key] = source[key];
     }
+  });
 
-    if (data) return render(data);
-    var template = function(data) {
-      return render.call(this, data);
+  return dest;
+};
+
+OTHelpers.clone = function(obj) {
+  if (!OTHelpers.isObject(obj)) return obj;
+  return OTHelpers.isArray(obj) ? obj.slice() : OTHelpers.extend({}, obj);
+};
+
+
+
+
+OTHelpers.noop = function() {};
+
+
+
+
+
+
+
+OTHelpers.now = (function() {
+  var performance = window.performance || {},
+      navigationStart,
+      now =  performance.now       ||
+             performance.mozNow    ||
+             performance.msNow     ||
+             performance.oNow      ||
+             performance.webkitNow;
+
+  if (now) {
+    now = OTHelpers.bind(now, performance);
+    navigationStart = performance.timing.navigationStart;
+
+    return  function() { return navigationStart + now(); };
+  } else {
+    return function() { return new Date().getTime(); };
+  }
+})();
+
+OTHelpers.canDefineProperty = true;
+
+try {
+  Object.defineProperty({}, 'x', {});
+} catch (err) {
+  OTHelpers.canDefineProperty = false;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+OTHelpers.defineGetters = function(self, getters, enumerable) {
+  var propsDefinition = {};
+
+  if (enumerable === void 0) enumerable = false;
+
+  for (var key in getters) {
+    propsDefinition[key] = {
+      get: getters[key],
+      enumerable: enumerable
     };
+  }
 
-    
-    template.source = 'function(' + (settings.variable || 'obj') + '){\n' + source + '}';
+  OTHelpers.defineProperties(self, propsDefinition);
+};
 
-    return template;
-  };
-
-})(window);
-
-
-
-
-
-(function(window, OTHelpers, undefined) {
-
-  OTHelpers.statable = function(self, possibleStates, initialState, stateChanged,
-    stateChangedFailed) {
-    var previousState,
-        currentState = self.currentState = initialState;
-
-    var setState = function(state) {
-      if (currentState !== state) {
-        if (OTHelpers.arrayIndexOf(possibleStates, state) === -1) {
-          if (stateChangedFailed && OTHelpers.isFunction(stateChangedFailed)) {
-            stateChangedFailed('invalidState', state);
-          }
-          return;
-        }
-
-        self.previousState = previousState = currentState;
-        self.currentState = currentState = state;
-        if (stateChanged && OTHelpers.isFunction(stateChanged)) stateChanged(state, previousState);
+var generatePropertyFunction = function(object, getter, setter) {
+  if(getter && !setter) {
+    return function() {
+      return getter.call(object);
+    };
+  } else if(getter && setter) {
+    return function(value) {
+      if(value !== void 0) {
+        setter.call(object, value);
+      }
+      return getter.call(object);
+    };
+  } else {
+    return function(value) {
+      if(value !== void 0) {
+        setter.call(object, value);
       }
     };
+  }
+};
+
+OTHelpers.defineProperties = function(object, getterSetters) {
+  for (var key in getterSetters) {
+    object[key] = generatePropertyFunction(object, getterSetters[key].get,
+      getterSetters[key].set);
+  }
+};
 
 
-    
-    
-    
-    
-    
-    
-    
-    
-    self.is = function () {
-      return OTHelpers.arrayIndexOf(arguments, currentState) !== -1;
-    };
 
 
-    
-    
-    
-    
-    
-    
-    
-    
-    self.isNot = function () {
-      return OTHelpers.arrayIndexOf(arguments, currentState) === -1;
-    };
 
-    return setState;
+
+if (!Object.create) {
+  Object.create = function (o) {
+    if (arguments.length > 1) {
+      throw new Error('Object.create implementation only accepts the first parameter.');
+    }
+    function F() {}
+    F.prototype = o;
+    return new F();
+  };
+}
+
+
+
+
+
+
+
+
+
+
+OTHelpers.invert = function(obj) {
+  var result = {};
+  for (var key in obj) if (obj.hasOwnProperty(key)) result[obj[key]] = key;
+  return result;
+};
+
+
+
+
+
+OTHelpers.statable = function(self, possibleStates, initialState, stateChanged,
+  stateChangedFailed) {
+  var previousState,
+      currentState = self.currentState = initialState;
+
+  var setState = function(state) {
+    if (currentState !== state) {
+      if (OTHelpers.arrayIndexOf(possibleStates, state) === -1) {
+        if (stateChangedFailed && OTHelpers.isFunction(stateChangedFailed)) {
+          stateChangedFailed('invalidState', state);
+        }
+        return;
+      }
+
+      self.previousState = previousState = currentState;
+      self.currentState = currentState = state;
+      if (stateChanged && OTHelpers.isFunction(stateChanged)) stateChanged(state, previousState);
+    }
   };
 
-})(window, window.OTHelpers);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  self.is = function () {
+    return OTHelpers.arrayIndexOf(arguments, currentState) !== -1;
+  };
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  self.isNot = function () {
+    return OTHelpers.arrayIndexOf(arguments, currentState) === -1;
+  };
+
+  return setState;
+};
 
 
 
@@ -720,7 +624,7 @@
 
 
 
-(function(window, OTHelpers, undefined) {
+(function() {
 
   
   
@@ -843,202 +747,795 @@
 
   OTHelpers.uuid = uuid;
 
-}(window, window.OTHelpers));
+}());
 
 
 
 
-(function(window, OTHelpers, undefined) {
 
-  OTHelpers.useLogHelpers = function(on){
+var getErrorLocation;
 
+
+var safeErrorProps = [
+  'description',
+  'fileName',
+  'lineNumber',
+  'message',
+  'name',
+  'number',
+  'stack'
+];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OTHelpers.Error = function (message, name, props) {
+  switch (arguments.length) {
+  case 1:
+    if ($.isObject(message)) {
+      props = message;
+      name = void 0;
+      message = void 0;
+    }
     
-    on.DEBUG    = 5;
-    on.LOG      = 4;
-    on.INFO     = 3;
-    on.WARN     = 2;
-    on.ERROR    = 1;
-    on.NONE     = 0;
+    break;
 
-    var _logLevel = on.NONE,
-        _logs = [],
-        _canApplyConsole = true;
+  case 2:
+    if ($.isObject(name)) {
+      props = name;
+      name = void 0;
+    }
+    
 
-    try {
-      Function.prototype.bind.call(window.console.log, window.console);
-    } catch (err) {
-      _canApplyConsole = false;
+    break;
+  }
+
+  if ( props instanceof Error) {
+    
+    
+    
+    for (var i = 0, num = safeErrorProps.length; i < num; ++i) {
+      this[safeErrorProps[i]] = props[safeErrorProps[i]];
+    }
+  }
+  else if ( $.isObject(props)) {
+    
+    for (var key in props) {
+      if (props.hasOwnProperty(key)) {
+        this[key] = props[key];
+      }
+    }
+  }
+
+  
+  
+  if ( !(this.fileName && this.lineNumber && this.columnNumber && this.stack) ) {
+    var err = getErrorLocation();
+
+    if (!this.fileName && err.fileName) {
+      this.fileName = err.fileName;
     }
 
-    
-    
-    
-    var makeLogArgumentsSafe = function(args) { return args; };
-
-    if (OTHelpers.browser() === 'IE') {
-      makeLogArgumentsSafe = function(args) {
-        return [toDebugString(Array.prototype.slice.apply(args))];
-      };
+    if (!this.lineNumber && err.lineNumber) {
+      this.lineNumber = err.lineNumber;
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    function generateLoggingMethod(method, level, fallback) {
-      return function() {
-        if (on.shouldLog(level)) {
-          var cons = window.console,
-              args = makeLogArgumentsSafe(arguments);
-
-          
-          
-          
-          if (cons && cons[method]) {
-            
-            
-            
-            if (cons[method].apply || _canApplyConsole) {
-              if (!cons[method].apply) {
-                cons[method] = Function.prototype.bind.call(cons[method], cons);
-              }
-
-              cons[method].apply(cons, args);
-            }
-            else {
-              
-              
-              cons[method](args);
-            }
-          }
-          else if (fallback) {
-            fallback.apply(on, args);
-
-            
-            return;
-          }
-
-          appendToLogs(method, makeLogArgumentsSafe(arguments));
-        }
-      };
+    if (!this.columnNumber && err.columnNumber) {
+      this.columnNumber = err.columnNumber;
     }
 
-    on.log = generateLoggingMethod('log', on.LOG);
+    if (!this.stack && err.stack) {
+      this.stack = err.stack;
+    }
+  }
 
-    
-    on.debug = generateLoggingMethod('debug', on.DEBUG, on.log);
-    on.info = generateLoggingMethod('info', on.INFO, on.log);
-    on.warn = generateLoggingMethod('warn', on.WARN, on.log);
-    on.error = generateLoggingMethod('error', on.ERROR, on.log);
+  if (!this.message && message) this.message = message;
+  if (!this.name && name) this.name = name;
+};
+
+OTHelpers.Error.prototype.toString =
+OTHelpers.Error.prototype.valueOf = function() {
+  var locationDetails = '';
+  if (this.fileName) locationDetails += ' ' + this.fileName;
+  if (this.lineNumber) {
+    locationDetails += ' ' + this.lineNumber;
+    if (this.columnNumber) locationDetails += ':' + this.columnNumber;
+  }
+
+  return '<' + (this.name ? this.name + ' ' : '') + this.message + locationDetails + '>';
+};
 
 
-    on.setLogLevel = function(level) {
-      _logLevel = typeof(level) === 'number' ? level : 0;
-      on.debug('TB.setLogLevel(' + _logLevel + ')');
-      return _logLevel;
+
+
+
+
+
+
+var prepareStackTrace = function prepareStackTrace (_, stack){
+  return $.map(stack.slice(2), function(frame) {
+    var _f = {
+      fileName: frame.getFileName(),
+      linenumber: frame.getLineNumber(),
+      columnNumber: frame.getColumnNumber()
     };
 
-    on.getLogs = function() {
-      return _logs;
-    };
+    if (frame.getFunctionName()) _f.functionName = frame.getFunctionName();
+    if (frame.getMethodName()) _f.methodName = frame.getMethodName();
+    if (frame.getThis()) _f.self = frame.getThis();
 
-    
-    on.shouldLog = function(level) {
-      return _logLevel >= level;
-    };
+    return _f;
+  });
+};
 
-    
-    
-    function formatDateStamp() {
-      var now = new Date();
-      return now.toLocaleTimeString() + now.getMilliseconds();
+
+
+getErrorLocation = function getErrorLocation () {
+  var info = {},
+      callstack,
+      errLocation,
+      err;
+
+  switch ($.env.name) {
+  case 'Firefox':
+  case 'Safari':
+  case 'IE':
+
+    if ($.env.name === 'IE') {
+      err = new Error();
     }
-
-    function toJson(object) {
+    else {
       try {
-        return JSON.stringify(object);
-      } catch(e) {
-        return object.toString();
+        window.call.js.is.explody;
       }
+      catch(e) { err = e; }
     }
 
-    function toDebugString(object) {
-      var components = [];
+    callstack = err.stack.split('\n');
 
-      if (typeof(object) === 'undefined') {
-        
-      }
-      else if (object === null) {
-        components.push('NULL');
-      }
-      else if (OTHelpers.isArray(object)) {
-        for (var i=0; i<object.length; ++i) {
-          components.push(toJson(object[i]));
-        }
-      }
-      else if (OTHelpers.isObject(object)) {
-        for (var key in object) {
-          var stringValue;
+    
+    callstack.shift();
+    callstack.shift();
 
-          if (!OTHelpers.isFunction(object[key])) {
-            stringValue = toJson(object[key]);
-          }
-          else if (object.hasOwnProperty(key)) {
-            stringValue = 'function ' + key + '()';
-          }
+    info.stack = callstack;
 
-          components.push(key + ': ' + stringValue);
-        }
-      }
-      else if (OTHelpers.isFunction(object)) {
-        try {
-          components.push(object.toString());
-        } catch(e) {
-          components.push('function()');
-        }
-      }
-      else  {
-        components.push(object.toString());
-      }
+    if ($.env.name === 'IE') {
+      
+      info.stack.shift();
 
-      return components.join(', ');
+      
+      
+      info.stack = $.map(callstack, function(call) {
+        return call.replace(/^\s+at\s+/g, '');
+      });
+    }
+
+    errLocation = /@(.+?):([0-9]+)(:([0-9]+))?$/.exec(callstack[0]);
+    if (errLocation) {
+      info.fileName = errLocation[1];
+      info.lineNumber = parseInt(errLocation[2], 10);
+      if (errLocation.length > 3) info.columnNumber = parseInt(errLocation[4], 10);
+    }
+    break;
+
+  case 'Chrome':
+  case 'Node':
+  case 'Opera':
+    var currentPST = Error.prepareStackTrace;
+    Error.prepareStackTrace = prepareStackTrace;
+    err = new Error();
+    info.stack = err.stack;
+    Error.prepareStackTrace = currentPST;
+
+    var topFrame = info.stack[0];
+    info.lineNumber = topFrame.lineNumber;
+    info.columnNumber = topFrame.columnNumber;
+    info.fileName = topFrame.fileName;
+    if (topFrame.functionName) info.functionName = topFrame.functionName;
+    if (topFrame.methodName) info.methodName = topFrame.methodName;
+    if (topFrame.self) info.self = topFrame.self;
+    break;
+
+  default:
+    err = new Error();
+    if (err.stack) info.stack = err.stack.split('\n');
+    break;
+  }
+
+  if (err.message) info.message = err.message;
+  return info;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(function() {
+  
+  var version = -1;
+
+  
+  
+  var versionGEThan = function versionGEThan (otherVersion) {
+    if (otherVersion === version) return true;
+
+    if (typeof(otherVersion) === 'number' && typeof(version) === 'number') {
+      return otherVersion > version;
     }
 
     
-    function appendToLogs(level, args) {
-      if (!args) return;
+    
+    
+    
+    var v1 = otherVersion.split('.'),
+        v2 = version.split('.'),
+        versionLength = (v1.length > v2.length ? v2 : v1).length;
 
-      var message = toDebugString(args);
-      if (message.length <= 2) return;
+    for (var i = 0; i < versionLength; ++i) {
+      if (parseInt(v1[i], 10) > parseInt(v2[i], 10)) {
+        return true;
+      }
+    }
 
-      _logs.push(
-        [level, formatDateStamp(), message]
-      );
+    
+    
+    
+    if (i < v1.length) {
+      return true;
+    }
+
+    return false;
+  };
+
+  var env = function() {
+    if (typeof(process) !== 'undefined' &&
+        typeof(process.versions) !== 'undefined' &&
+        typeof(process.versions.node) === 'string') {
+
+      version = process.versions.node;
+      if (version.substr(1) === 'v') version = version.substr(1);
+
+      
+      
+      return {
+        name: 'Node',
+        version: version,
+        userAgent: 'Node ' + version,
+        iframeNeedsLoad: false,
+        versionGreaterThan: versionGEThan
+      };
+    }
+
+    var userAgent = window.navigator.userAgent.toLowerCase(),
+        appName = window.navigator.appName,
+        navigatorVendor,
+        name = 'unknown';
+
+    if (userAgent.indexOf('opera') > -1 || userAgent.indexOf('opr') > -1) {
+      name = 'Opera';
+
+      if (/opr\/([0-9]{1,}[\.0-9]{0,})/.exec(userAgent) !== null) {
+        version = parseFloat( RegExp.$1 );
+      }
+
+    } else if (userAgent.indexOf('firefox') > -1)   {
+      name = 'Firefox';
+
+      if (/firefox\/([0-9]{1,}[\.0-9]{0,})/.exec(userAgent) !== null) {
+        version = parseFloat( RegExp.$1 );
+      }
+
+    } else if (appName === 'Microsoft Internet Explorer') {
+      
+      name = 'IE';
+
+      if (/msie ([0-9]{1,}[\.0-9]{0,})/.exec(userAgent) !== null) {
+        version = parseFloat( RegExp.$1 );
+      }
+
+    } else if (appName === 'Netscape' && userAgent.indexOf('trident') > -1) {
+      
+
+      name = 'IE';
+
+      if (/trident\/.*rv:([0-9]{1,}[\.0-9]{0,})/.exec(userAgent) !== null) {
+        version = parseFloat( RegExp.$1 );
+      }
+
+    } else if (userAgent.indexOf('chrome') > -1) {
+      name = 'Chrome';
+
+      if (/chrome\/([0-9]{1,}[\.0-9]{0,})/.exec(userAgent) !== null) {
+        version = parseFloat( RegExp.$1 );
+      }
+
+    } else if ((navigatorVendor = window.navigator.vendor) &&
+      navigatorVendor.toLowerCase().indexOf('apple') > -1) {
+      name = 'Safari';
+
+      if (/version\/([0-9]{1,}[\.0-9]{0,})/.exec(userAgent) !== null) {
+        version = parseFloat( RegExp.$1 );
+      }
+    }
+
+    return {
+      name: name,
+      version: version,
+      userAgent: window.navigator.userAgent,
+      iframeNeedsLoad: userAgent.indexOf('webkit') < 0,
+      versionGreaterThan: versionGEThan
+    };
+  }();
+
+
+  OTHelpers.env = env;
+
+  OTHelpers.browser = function() {
+    return OTHelpers.env.name;
+  };
+
+  OTHelpers.browserVersion = function() {
+    return OTHelpers.env;
+  };
+
+})();
+
+
+
+
+
+
+if (window.OTHelpers.env.name === 'Node') {
+  var request = require('request');
+
+  OTHelpers.request = function(url, options, callback) {
+    var completion = function(error, response, body) {
+      var event = {response: response, body: body};
+
+      
+      
+      if (!error && response.statusCode >= 200 &&
+                  (response.statusCode < 300 || response.statusCode === 304) ) {
+        callback(null, event);
+      } else {
+        callback(error, event);
+      }
+    };
+
+    if (options.method.toLowerCase() === 'get') {
+      request.get(url, completion);
+    }
+    else {
+      request.post(url, options.body, completion);
     }
   };
 
-  OTHelpers.useLogHelpers(OTHelpers);
-  OTHelpers.setLogLevel(OTHelpers.ERROR);
+  OTHelpers.getJSON = function(url, options, callback) {
+    var extendedHeaders = require('underscore').extend(
+      {
+        'Accept': 'application/json'
+      },
+      options.headers || {}
+    );
 
-})(window, window.OTHelpers);
+    request.get({
+      url: url,
+      headers: extendedHeaders,
+      json: true
+    }, function(err, response) {
+      callback(err, response && response.body);
+    });
+  };
+}
 
 
 
 
 
+function formatPostData(data) { 
+  
+  if (typeof(data) === 'string') return data;
 
-(function(window, OTHelpers, undefined) {
+  var queryString = [];
+
+  for (var key in data) {
+    queryString.push(
+      encodeURIComponent(key) + '=' + encodeURIComponent(data[key])
+    );
+  }
+
+  return queryString.join('&').replace(/\+/g, '%20');
+}
+
+if (window.OTHelpers.env.name !== 'Node') {
+
+  OTHelpers.xdomainRequest = function(url, options, callback) {
+    
+    var xdr = new XDomainRequest(),
+        _options = options || {},
+        _method = _options.method.toLowerCase();
+
+    if(!_method) {
+      callback(new Error('No HTTP method specified in options'));
+      return;
+    }
+
+    _method = _method.toUpperCase();
+
+    if(!(_method === 'GET' || _method === 'POST')) {
+      callback(new Error('HTTP method can only be '));
+      return;
+    }
+
+    function done(err, event) {
+      xdr.onload = xdr.onerror = xdr.ontimeout = function() {};
+      xdr = void 0;
+      callback(err, event);
+    }
+
+
+    xdr.onload = function() {
+      done(null, {
+        target: {
+          responseText: xdr.responseText,
+          headers: {
+            'content-type': xdr.contentType
+          }
+        }
+      });
+    };
+
+    xdr.onerror = function() {
+      done(new Error('XDomainRequest of ' + url + ' failed'));
+    };
+
+    xdr.ontimeout = function() {
+      done(new Error('XDomainRequest of ' + url + ' timed out'));
+    };
+
+    xdr.open(_method, url);
+    xdr.send(options.body && formatPostData(options.body));
+
+  };
+
+  OTHelpers.request = function(url, options, callback) {
+    var request = new XMLHttpRequest(),
+        _options = options || {},
+        _method = _options.method;
+
+    if(!_method) {
+      callback(new Error('No HTTP method specified in options'));
+      return;
+    }
+
+    
+    
+    
+    if(callback) {
+      OTHelpers.on(request, 'load', function(event) {
+        var status = event.target.status;
+
+        
+        
+        if ( status >= 200 && (status < 300 || status === 304) ) {
+          callback(null, event);
+        } else {
+          callback(event);
+        }
+      });
+
+      OTHelpers.on(request, 'error', callback);
+    }
+
+    request.open(options.method, url, true);
+
+    if (!_options.headers) _options.headers = {};
+
+    for (var name in _options.headers) {
+      request.setRequestHeader(name, _options.headers[name]);
+    }
+
+    request.send(options.body && formatPostData(options.body));
+  };
+
+
+  OTHelpers.getJSON = function(url, options, callback) {
+    options = options || {};
+
+    var done = function(error, event) {
+      if(error) {
+        callback(error, event && event.target && event.target.responseText);
+      } else {
+        var response;
+
+        try {
+          response = JSON.parse(event.target.responseText);
+        } catch(e) {
+          
+          callback(e, event && event.target && event.target.responseText);
+          return;
+        }
+
+        callback(null, response, event);
+      }
+    };
+
+    if(options.xdomainrequest) {
+      OTHelpers.xdomainRequest(url, { method: 'GET' }, done);
+    } else {
+      var extendedHeaders = OTHelpers.extend({
+        'Accept': 'application/json'
+      }, options.headers || {});
+
+      OTHelpers.get(url, OTHelpers.extend(options || {}, {
+        headers: extendedHeaders
+      }), done);
+    }
+
+  };
+
+}
+
+
+
+
+
+OTHelpers.useLogHelpers = function(on){
+
+  
+  on.DEBUG    = 5;
+  on.LOG      = 4;
+  on.INFO     = 3;
+  on.WARN     = 2;
+  on.ERROR    = 1;
+  on.NONE     = 0;
+
+  var _logLevel = on.NONE,
+      _logs = [],
+      _canApplyConsole = true;
+
+  try {
+    Function.prototype.bind.call(window.console.log, window.console);
+  } catch (err) {
+    _canApplyConsole = false;
+  }
+
+  
+  
+  
+  var makeLogArgumentsSafe = function(args) { return args; };
+
+  if (OTHelpers.env.name === 'IE') {
+    makeLogArgumentsSafe = function(args) {
+      return [toDebugString(prototypeSlice.apply(args))];
+    };
+  }
 
   
   
   
   
   
-  OTHelpers.on = function(element, eventName,  handler) {
+  
+  
+  
+  function generateLoggingMethod(method, level, fallback) {
+    return function() {
+      if (on.shouldLog(level)) {
+        var cons = window.console,
+            args = makeLogArgumentsSafe(arguments);
+
+        
+        
+        
+        if (cons && cons[method]) {
+          
+          
+          
+          if (cons[method].apply || _canApplyConsole) {
+            if (!cons[method].apply) {
+              cons[method] = Function.prototype.bind.call(cons[method], cons);
+            }
+
+            cons[method].apply(cons, args);
+          }
+          else {
+            
+            
+            cons[method](args);
+          }
+        }
+        else if (fallback) {
+          fallback.apply(on, args);
+
+          
+          return;
+        }
+
+        appendToLogs(method, makeLogArgumentsSafe(arguments));
+      }
+    };
+  }
+
+  on.log = generateLoggingMethod('log', on.LOG);
+
+  
+  on.debug = generateLoggingMethod('debug', on.DEBUG, on.log);
+  on.info = generateLoggingMethod('info', on.INFO, on.log);
+  on.warn = generateLoggingMethod('warn', on.WARN, on.log);
+  on.error = generateLoggingMethod('error', on.ERROR, on.log);
+
+
+  on.setLogLevel = function(level) {
+    _logLevel = typeof(level) === 'number' ? level : 0;
+    on.debug('TB.setLogLevel(' + _logLevel + ')');
+    return _logLevel;
+  };
+
+  on.getLogs = function() {
+    return _logs;
+  };
+
+  
+  on.shouldLog = function(level) {
+    return _logLevel >= level;
+  };
+
+  
+  
+  function formatDateStamp() {
+    var now = new Date();
+    return now.toLocaleTimeString() + now.getMilliseconds();
+  }
+
+  function toJson(object) {
+    try {
+      return JSON.stringify(object);
+    } catch(e) {
+      return object.toString();
+    }
+  }
+
+  function toDebugString(object) {
+    var components = [];
+
+    if (typeof(object) === 'undefined') {
+      
+    }
+    else if (object === null) {
+      components.push('NULL');
+    }
+    else if (OTHelpers.isArray(object)) {
+      for (var i=0; i<object.length; ++i) {
+        components.push(toJson(object[i]));
+      }
+    }
+    else if (OTHelpers.isObject(object)) {
+      for (var key in object) {
+        var stringValue;
+
+        if (!OTHelpers.isFunction(object[key])) {
+          stringValue = toJson(object[key]);
+        }
+        else if (object.hasOwnProperty(key)) {
+          stringValue = 'function ' + key + '()';
+        }
+
+        components.push(key + ': ' + stringValue);
+      }
+    }
+    else if (OTHelpers.isFunction(object)) {
+      try {
+        components.push(object.toString());
+      } catch(e) {
+        components.push('function()');
+      }
+    }
+    else  {
+      components.push(object.toString());
+    }
+
+    return components.join(', ');
+  }
+
+  
+  function appendToLogs(level, args) {
+    if (!args) return;
+
+    var message = toDebugString(args);
+    if (message.length <= 2) return;
+
+    _logs.push(
+      [level, formatDateStamp(), message]
+    );
+  }
+};
+
+OTHelpers.useLogHelpers(OTHelpers);
+OTHelpers.setLogLevel(OTHelpers.ERROR);
+
+
+
+
+
+
+
+
+
+
+
+
+ElementCollection.prototype.on = function (eventName, handler) {
+  return this.forEach(function(element) {
     if (element.addEventListener) {
       element.addEventListener(eventName, handler, false);
     } else if (element.attachEvent) {
@@ -1050,27 +1547,51 @@
         if (oldHandler) oldHandler.apply(this, arguments);
       };
     }
-    return element;
-  };
+  });
+};
 
-  
-  OTHelpers.off = function(element, eventName, handler) {
+
+ElementCollection.prototype.off = function (eventName, handler) {
+  return this.forEach(function(element) {
     if (element.removeEventListener) {
       element.removeEventListener (eventName, handler,false);
     }
     else if (element.detachEvent) {
       element.detachEvent('on' + eventName, handler);
     }
-  };
+  });
+};
 
-})(window, window.OTHelpers);
+ElementCollection.prototype.once = function (eventName, handler) {
+  var removeAfterTrigger = $.bind(function() {
+    this.off(eventName, removeAfterTrigger);
+    handler.apply(null, arguments);
+  }, this);
+
+  return this.on(eventName, removeAfterTrigger);
+};
+
+
+OTHelpers.on = function(element, eventName,  handler) {
+  return $(element).on(eventName, handler);
+};
+
+
+OTHelpers.off = function(element, eventName, handler) {
+  return $(element).off(eventName, handler);
+};
+
+
+OTHelpers.once = function (element, eventName, handler) {
+  return $(element).once(eventName, handler);
+};
 
 
 
 
 
 
-(function(window, OTHelpers, undefined) {
+(function() {
 
   var _domReady = typeof(document) === 'undefined' ||
                     document.readyState === 'complete' ||
@@ -1082,6 +1603,16 @@
 
       onDomReady = function() {
         _domReady = true;
+
+        if (typeof(document) !== 'undefined') {
+          if ( document.addEventListener ) {
+            document.removeEventListener('DOMContentLoaded', onDomReady, false);
+            window.removeEventListener('load', onDomReady, false);
+          } else {
+            document.detachEvent('onreadystatechange', onDomReady);
+            window.detachEvent('onload', onDomReady);
+          }
+        }
 
         
         
@@ -1131,43 +1662,268 @@
     return _domUnloaded;
   };
 
-
   if (_domReady) {
     onDomReady();
   } else if(typeof(document) !== 'undefined') {
     if (document.addEventListener) {
       document.addEventListener('DOMContentLoaded', onDomReady, false);
-    } else if (document.attachEvent) {
+
       
+      window.addEventListener( 'load', onDomReady, false );
+
+    } else if (document.attachEvent) {
       document.attachEvent('onreadystatechange', function() {
         if (document.readyState === 'complete') onDomReady();
       });
+
+      
+      window.attachEvent( 'onload', onDomReady );
     }
   }
 
-})(window, window.OTHelpers);
+})();
 
 
 
 
 
-(function(window, OTHelpers, undefined) {
+OTHelpers.setCookie = function(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch (err) {
+    
+    var date = new Date();
+    date.setTime(date.getTime()+(365*24*60*60*1000));
+    var expires = '; expires=' + date.toGMTString();
+    document.cookie = key + '=' + value + expires + '; path=/';
+  }
+};
 
-  OTHelpers.castToBoolean = function(value, defaultValue) {
-    if (value === undefined) return defaultValue;
-    return value === 'true' || value === true;
+OTHelpers.getCookie = function(key) {
+  var value;
+
+  try {
+    value = localStorage.getItem(key);
+    return value;
+  } catch (err) {
+    
+    var nameEQ = key + '=';
+    var ca = document.cookie.split(';');
+    for(var i=0;i < ca.length;i++) {
+      var c = ca[i];
+      while (c.charAt(0) === ' ') {
+        c = c.substring(1,c.length);
+      }
+      if (c.indexOf(nameEQ) === 0) {
+        value = c.substring(nameEQ.length,c.length);
+      }
+    }
+
+    if (value) {
+      return value;
+    }
+  }
+
+  return null;
+};
+
+
+
+
+
+
+
+OTHelpers.Collection = function(idField) {
+  var _models = [],
+      _byId = {},
+      _idField = idField || 'id';
+
+  OTHelpers.eventing(this, true);
+
+  var modelProperty = function(model, property) {
+    if(OTHelpers.isFunction(model[property])) {
+      return model[property]();
+    } else {
+      return model[property];
+    }
   };
 
-  OTHelpers.roundFloat = function(value, places) {
-    return Number(value.toFixed(places));
+  var onModelUpdate = OTHelpers.bind(function onModelUpdate (event) {
+        this.trigger('update', event);
+        this.trigger('update:'+event.target.id, event);
+      }, this),
+
+      onModelDestroy = OTHelpers.bind(function onModelDestroyed (event) {
+        this.remove(event.target, event.reason);
+      }, this);
+
+
+  this.reset = function() {
+    
+    OTHelpers.forEach(_models, function(model) {
+      model.off('updated', onModelUpdate, this);
+      model.off('destroyed', onModelDestroy, this);
+    }, this);
+
+    _models = [];
+    _byId = {};
   };
 
-})(window, window.OTHelpers);
+  this.destroy = function(reason) {
+    OTHelpers.forEach(_models, function(model) {
+      if(model && typeof model.destroy === 'function') {
+        model.destroy(reason, true);
+      }
+    });
+
+    this.reset();
+    this.off();
+  };
+
+  this.get = function(id) { return id && _byId[id] !== void 0 ? _models[_byId[id]] : void 0; };
+  this.has = function(id) { return id && _byId[id] !== void 0; };
+
+  this.toString = function() { return _models.toString(); };
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  this.where = function(attrsOrFilterFn, context) {
+    if (OTHelpers.isFunction(attrsOrFilterFn)) {
+      return OTHelpers.filter(_models, attrsOrFilterFn, context);
+    }
+
+    return OTHelpers.filter(_models, function(model) {
+      for (var key in attrsOrFilterFn) {
+        if(!attrsOrFilterFn.hasOwnProperty(key)) {
+          continue;
+        }
+        if (modelProperty(model, key) !== attrsOrFilterFn[key]) return false;
+      }
+
+      return true;
+    });
+  };
+
+  
+  
+  this.find = function(attrsOrFilterFn, context) {
+    var filterFn;
+
+    if (OTHelpers.isFunction(attrsOrFilterFn)) {
+      filterFn = attrsOrFilterFn;
+    }
+    else {
+      filterFn = function(model) {
+        for (var key in attrsOrFilterFn) {
+          if(!attrsOrFilterFn.hasOwnProperty(key)) {
+            continue;
+          }
+          if (modelProperty(model, key) !== attrsOrFilterFn[key]) return false;
+        }
+
+        return true;
+      };
+    }
+
+    filterFn = OTHelpers.bind(filterFn, context);
+
+    for (var i=0; i<_models.length; ++i) {
+      if (filterFn(_models[i]) === true) return _models[i];
+    }
+
+    return null;
+  };
+
+  this.add = function(model) {
+    var id = modelProperty(model, _idField);
+
+    if (this.has(id)) {
+      OTHelpers.warn('Model ' + id + ' is already in the collection', _models);
+      return this;
+    }
+
+    _byId[id] = _models.push(model) - 1;
+
+    model.on('updated', onModelUpdate, this);
+    model.on('destroyed', onModelDestroy, this);
+
+    this.trigger('add', model);
+    this.trigger('add:'+id, model);
+
+    return this;
+  };
+
+  this.remove = function(model, reason) {
+    var id = modelProperty(model, _idField);
+
+    _models.splice(_byId[id], 1);
+
+    
+    for (var i=_byId[id]; i<_models.length; ++i) {
+      _byId[_models[i][_idField]] = i;
+    }
+
+    delete _byId[id];
+
+    model.off('updated', onModelUpdate, this);
+    model.off('destroyed', onModelDestroy, this);
+
+    this.trigger('remove', model, reason);
+    this.trigger('remove:'+id, model, reason);
+
+    return this;
+  };
+
+  
+  
+  
+  this._triggerAddEvents = function() {
+    var models = this.where.apply(this, arguments);
+    OTHelpers.forEach(models, function(model) {
+      this.trigger('add', model);
+      this.trigger('add:' + modelProperty(model, _idField), model);
+    }, this);
+  };
+
+  this.length = function() {
+    return _models.length;
+  };
+};
 
 
 
 
-(function(window, OTHelpers, undefined) {
+
+
+OTHelpers.castToBoolean = function(value, defaultValue) {
+  if (value === undefined) return defaultValue;
+  return value === 'true' || value === true;
+};
+
+OTHelpers.roundFloat = function(value, places) {
+  return Number(value.toFixed(places));
+};
+
+
+
+
+
+(function() {
 
   var capabilities = {};
 
@@ -1221,7 +1977,7 @@
   
   
   OTHelpers.hasCapabilities = function() {
-    var capNames = Array.prototype.slice.call(arguments),
+    var capNames = prototypeSlice.call(arguments),
         name;
 
     for (var i=0; i<capNames.length; ++i) {
@@ -1239,21 +1995,7 @@
     return true;
   };
 
-})(window, window.OTHelpers);
-
-
-
-
-
-
-(function(window, OTHelpers, undefined) {
-
-  
-  OTHelpers.registerCapability('websockets', function() {
-    return 'WebSocket' in window;
-  });
-
-})(window, window.OTHelpers);
+})();
 
 
 
@@ -1261,7 +2003,16 @@
 
 
 
-(function(window, OTHelpers, undefined) {
+OTHelpers.registerCapability('websockets', function() {
+  return 'WebSocket' in window && window.WebSocket !== void 0;
+});
+
+
+
+
+
+
+(function() {
 
   var _callAsync;
 
@@ -1335,13 +2086,13 @@
     }
 
     _callAsync = function () {
-      timeouts.push(Array.prototype.slice.call(arguments));
+      timeouts.push(prototypeSlice.call(arguments));
       window.postMessage(messageName, '*');
     };
   }
   else {
     _callAsync = function () {
-      var args = Array.prototype.slice.call(arguments),
+      var args = prototypeSlice.call(arguments),
           fn = args.shift();
 
       setTimeout(function() {
@@ -1374,7 +2125,7 @@
   
   OTHelpers.createAsyncHandler = function(handler) {
     return function() {
-      var args = Array.prototype.slice.call(arguments);
+      var args = prototypeSlice.call(arguments);
 
       OTHelpers.callAsync(function() {
         handler.apply(null, args);
@@ -1382,7 +2133,7 @@
     };
   };
 
-})(window, window.OTHelpers);
+})();
 
 
 
@@ -1390,731 +2141,72 @@
 
 
 
-(function(window, OTHelpers, undefined) {
 
 
 
 
 
 
+OTHelpers.eventing = function(self, syncronous) {
+  var _events = {};
 
-  OTHelpers.eventing = function(self, syncronous) {
-    var _events = {};
+  
+  function executeDefaultAction(defaultAction, args) {
+    if (!defaultAction) return;
 
+    defaultAction.apply(null, args.slice());
+  }
 
-    
-    function executeDefaultAction(defaultAction, args) {
-      if (!defaultAction) return;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  function executeListenersAsyncronously(name, args, defaultAction) {
+    var listeners = _events[name];
+    if (!listeners || listeners.length === 0) return;
 
-      defaultAction.apply(null, args.slice());
-    }
+    var listenerAcks = listeners.length;
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    function executeListenersAsyncronously(name, args, defaultAction) {
-      var listeners = _events[name];
-      if (!listeners || listeners.length === 0) return;
-
-      var listenerAcks = listeners.length;
-
-      OTHelpers.forEach(listeners, function(listener) { 
-        function filterHandlerAndContext(_listener) {
-          return _listener.context === listener.context && _listener.handler === listener.handler;
-        }
-
-        
-        
-        OTHelpers.callAsync(function() {
-          try {
-            
-            if (_events[name] && OTHelpers.some(_events[name], filterHandlerAndContext)) {
-              (listener.closure || listener.handler).apply(listener.context || null, args);
-            }
-          }
-          finally {
-            listenerAcks--;
-
-            if (listenerAcks === 0) {
-              executeDefaultAction(defaultAction, args);
-            }
-          }
-        });
-      });
-    }
-
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    function executeListenersSyncronously(name, args) { 
-      var listeners = _events[name];
-      if (!listeners || listeners.length === 0) return;
-
-      OTHelpers.forEach(listeners, function(listener) { 
-        (listener.closure || listener.handler).apply(listener.context || null, args);
-      });
-    }
-
-    var executeListeners = syncronous === true ?
-      executeListenersSyncronously : executeListenersAsyncronously;
-
-
-    var removeAllListenersNamed = function (eventName, context) {
-      if (_events[eventName]) {
-        if (context) {
-          
-          
-          _events[eventName] = OTHelpers.filter(_events[eventName], function(listener){
-            return listener.context !== context;
-          });
-        }
-        else {
-          delete _events[eventName];
-        }
+    OTHelpers.forEach(listeners, function(listener) { 
+      function filterHandlerAndContext(_listener) {
+        return _listener.context === listener.context && _listener.handler === listener.handler;
       }
-    };
-
-    var addListeners = OTHelpers.bind(function (eventNames, handler, context, closure) {
-      var listener = {handler: handler};
-      if (context) listener.context = context;
-      if (closure) listener.closure = closure;
-
-      OTHelpers.forEach(eventNames, function(name) {
-        if (!_events[name]) _events[name] = [];
-        _events[name].push(listener);
-        var addedListener = name + ':added';
-        if (_events[addedListener]) {
-          executeListeners(addedListener, [_events[name].length]);
-        }
-      });
-    }, self);
-
-
-    var removeListeners = function (eventNames, handler, context) {
-      function filterHandlerAndContext(listener) {
-        return !(listener.handler === handler && listener.context === context);
-      }
-
-      OTHelpers.forEach(eventNames, OTHelpers.bind(function(name) {
-        if (_events[name]) {
-          _events[name] = OTHelpers.filter(_events[name], filterHandlerAndContext);
-          if (_events[name].length === 0) delete _events[name];
-          var removedListener = name + ':removed';
-          if (_events[ removedListener]) {
-            executeListeners(removedListener, [_events[name] ? _events[name].length : 0]);
-          }
-        }
-      }, self));
-
-    };
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    self.dispatchEvent = function(event, defaultAction) {
-      if (!event.type) {
-        OTHelpers.error('OTHelpers.Eventing.dispatchEvent: Event has no type');
-        OTHelpers.error(event);
-
-        throw new Error('OTHelpers.Eventing.dispatchEvent: Event has no type');
-      }
-
-      if (!event.target) {
-        event.target = this;
-      }
-
-      if (!_events[event.type] || _events[event.type].length === 0) {
-        executeDefaultAction(defaultAction, [event]);
-        return;
-      }
-
-      executeListeners(event.type, [event], defaultAction);
-
-      return this;
-    };
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    self.trigger = function(eventName) {
-      if (!_events[eventName] || _events[eventName].length === 0) {
-        return;
-      }
-
-      var args = Array.prototype.slice.call(arguments);
 
       
-      args.shift();
-
-      executeListeners(eventName, args);
-
-      return this;
-    };
-
-   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    self.on = function(eventNames, handlerOrContext, context) {
-      if (typeof(eventNames) === 'string' && handlerOrContext) {
-        addListeners(eventNames.split(' '), handlerOrContext, context);
-      }
-      else {
-        for (var name in eventNames) {
-          if (eventNames.hasOwnProperty(name)) {
-            addListeners([name], eventNames[name], handlerOrContext);
+      
+      OTHelpers.callAsync(function() {
+        try {
+          
+          if (_events[name] && OTHelpers.some(_events[name], filterHandlerAndContext)) {
+            (listener.closure || listener.handler).apply(listener.context || null, args);
           }
         }
-      }
+        finally {
+          listenerAcks--;
 
-      return this;
-    };
-
-   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    self.off = function(eventNames, handlerOrContext, context) {
-      if (typeof eventNames === 'string') {
-        if (handlerOrContext && OTHelpers.isFunction(handlerOrContext)) {
-          removeListeners(eventNames.split(' '), handlerOrContext, context);
-        }
-        else {
-          OTHelpers.forEach(eventNames.split(' '), function(name) {
-            removeAllListenersNamed(name, handlerOrContext);
-          }, this);
-        }
-
-      } else if (!eventNames) {
-        
-        _events = {};
-
-      } else {
-        for (var name in eventNames) {
-          if (eventNames.hasOwnProperty(name)) {
-            removeListeners([name], eventNames[name], handlerOrContext);
+          if (listenerAcks === 0) {
+            executeDefaultAction(defaultAction, args);
           }
         }
-      }
-
-      return this;
-    };
-
-
-   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    self.once = function(eventNames, handler, context) {
-      var names = eventNames.split(' '),
-          fun = OTHelpers.bind(function() {
-            var result = handler.apply(context || null, arguments);
-            removeListeners(names, handler, context);
-
-            return result;
-          }, this);
-
-      addListeners(names, handler, context, fun);
-      return this;
-    };
-
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-    
-    self.addEventListener = function(eventName, handler, context) {
-      OTHelpers.warn('The addEventListener() method is deprecated. Use on() or once() instead.');
-      addListeners([eventName], handler, context);
-    };
-
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-    
-    self.removeEventListener = function(eventName, handler, context) {
-      OTHelpers.warn('The removeEventListener() method is deprecated. Use off() instead.');
-      removeListeners([eventName], handler, context);
-    };
-
-
-
-    return self;
-  };
-
-  OTHelpers.eventing.Event = function() {
-
-    return function (type, cancelable) {
-      this.type = type;
-      this.cancelable = cancelable !== undefined ? cancelable : true;
-
-      var _defaultPrevented = false;
-
-      this.preventDefault = function() {
-        if (this.cancelable) {
-          _defaultPrevented = true;
-        } else {
-          OTHelpers.warn('Event.preventDefault :: Trying to preventDefault ' +
-            'on an Event that isn\'t cancelable');
-        }
-      };
-
-      this.isDefaultPrevented = function() {
-        return _defaultPrevented;
-      };
-    };
-
-  };
-
-})(window, window.OTHelpers);
-
-
-
-
-
-
-
-(function(window, OTHelpers, undefined) {
-
-  OTHelpers.isElementNode = function(node) {
-    return node && typeof node === 'object' && node.nodeType === 1;
-  };
-
-  
-  OTHelpers.supportsClassList = function() {
-    var hasSupport = (typeof document !== 'undefined') &&
-            ('classList' in document.createElement('a'));
-
-    OTHelpers.supportsClassList = function() { return hasSupport; };
-
-    return hasSupport;
-  };
-
-  OTHelpers.removeElement = function(element) {
-    if (element && element.parentNode) {
-      element.parentNode.removeChild(element);
-    }
-  };
-
-  OTHelpers.removeElementById = function(elementId) {
-    
-    this.removeElement(OTHelpers(elementId));
-  };
-
-  OTHelpers.removeElementsByType = function(parentElem, type) {
-    if (!parentElem) return;
-
-    var elements = parentElem.getElementsByTagName(type);
-
-    
-    
-    
-    
-    
-    while (elements.length) {
-      parentElem.removeChild(elements[0]);
-    }
-  };
-
-  OTHelpers.emptyElement = function(element) {
-    while (element.firstChild) {
-      element.removeChild(element.firstChild);
-    }
-    return element;
-  };
-
-  OTHelpers.createElement = function(nodeName, attributes, children, doc) {
-    var element = (doc || document).createElement(nodeName);
-
-    if (attributes) {
-      for (var name in attributes) {
-        if (typeof(attributes[name]) === 'object') {
-          if (!element[name]) element[name] = {};
-
-          var subAttrs = attributes[name];
-          for (var n in subAttrs) {
-            element[name][n] = subAttrs[n];
-          }
-        }
-        else if (name === 'className') {
-          element.className = attributes[name];
-        }
-        else {
-          element.setAttribute(name, attributes[name]);
-        }
-      }
-    }
-
-    var setChildren = function(child) {
-      if(typeof child === 'string') {
-        element.innerHTML = element.innerHTML + child;
-      } else {
-        element.appendChild(child);
-      }
-    };
-
-    if(OTHelpers.isArray(children)) {
-      OTHelpers.forEach(children, setChildren);
-    } else if(children) {
-      setChildren(children);
-    }
-
-    return element;
-  };
-
-  OTHelpers.createButton = function(innerHTML, attributes, events) {
-    var button = OTHelpers.createElement('button', attributes, innerHTML);
-
-    if (events) {
-      for (var name in events) {
-        if (events.hasOwnProperty(name)) {
-          OTHelpers.on(button, name, events[name]);
-        }
-      }
-
-      button._boundEvents = events;
-    }
-
-    return button;
-  };
-
-
-  
-  
-  OTHelpers.isDisplayNone = function(element) {
-    if ( (element.offsetWidth === 0 || element.offsetHeight === 0) &&
-                OTHelpers.css(element, 'display') === 'none') return true;
-
-    if (element.parentNode && element.parentNode.style) {
-      return OTHelpers.isDisplayNone(element.parentNode);
-    }
-
-    return false;
-  };
-
-  OTHelpers.findElementWithDisplayNone = function(element) {
-    if ( (element.offsetWidth === 0 || element.offsetHeight === 0) &&
-              OTHelpers.css(element, 'display') === 'none') return element;
-
-    if (element.parentNode && element.parentNode.style) {
-      return OTHelpers.findElementWithDisplayNone(element.parentNode);
-    }
-
-    return null;
-  };
-
-  function objectHasProperties(obj) {
-    for (var key in obj) {
-      if (obj.hasOwnProperty(key)) return true;
-    }
-    return false;
+      });
+    });
   }
 
 
@@ -2139,228 +2231,315 @@
   
   
   
-  
-  
-  
-  OTHelpers.observeStyleChanges = function(element, stylesToObserve, onChange) {
-    var oldStyles = {};
+  function executeListenersSyncronously(name, args) { 
+    var listeners = _events[name];
+    if (!listeners || listeners.length === 0) return;
 
-    var getStyle = function getStyle(style) {
-      switch (style) {
-      case 'width':
-        return OTHelpers.width(element);
-
-      case 'height':
-        return OTHelpers.height(element);
-
-      default:
-        return OTHelpers.css(element);
-      }
-    };
-
-    
-    OTHelpers.forEach(stylesToObserve, function(style) {
-      oldStyles[style] = getStyle(style);
+    OTHelpers.forEach(listeners, function(listener) { 
+      (listener.closure || listener.handler).apply(listener.context || null, args);
     });
+  }
 
-    var observer = new MutationObserver(function(mutations) {
-      var changeSet = {};
+  var executeListeners = syncronous === true ?
+    executeListenersSyncronously : executeListenersAsyncronously;
 
-      OTHelpers.forEach(mutations, function(mutation) {
-        if (mutation.attributeName !== 'style') return;
 
-        var isHidden = OTHelpers.isDisplayNone(element);
-
-        OTHelpers.forEach(stylesToObserve, function(style) {
-          if(isHidden && (style === 'width' || style === 'height')) return;
-
-          var newValue = getStyle(style);
-
-          if (newValue !== oldStyles[style]) {
-            changeSet[style] = [oldStyles[style], newValue];
-            oldStyles[style] = newValue;
-          }
-        });
-      });
-
-      if (objectHasProperties(changeSet)) {
+  var removeAllListenersNamed = function (eventName, context) {
+    if (_events[eventName]) {
+      if (context) {
         
-        OTHelpers.callAsync(function() {
-          onChange.call(null, changeSet);
+        
+        _events[eventName] = OTHelpers.filter(_events[eventName], function(listener){
+          return listener.context !== context;
         });
       }
-    });
-
-    observer.observe(element, {
-      attributes:true,
-      attributeFilter: ['style'],
-      childList:false,
-      characterData:false,
-      subtree:false
-    });
-
-    return observer;
+      else {
+        delete _events[eventName];
+      }
+    }
   };
 
+  var addListeners = OTHelpers.bind(function (eventNames, handler, context, closure) {
+    var listener = {handler: handler};
+    if (context) listener.context = context;
+    if (closure) listener.closure = closure;
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  OTHelpers.observeNodeOrChildNodeRemoval = function(element, onChange) {
-    var observer = new MutationObserver(function(mutations) {
-      var removedNodes = [];
-
-      OTHelpers.forEach(mutations, function(mutation) {
-        if (mutation.removedNodes.length) {
-          removedNodes = removedNodes.concat(Array.prototype.slice.call(mutation.removedNodes));
-        }
-      });
-
-      if (removedNodes.length) {
-        
-        OTHelpers.callAsync(function() {
-          onChange(removedNodes);
-        });
+    OTHelpers.forEach(eventNames, function(name) {
+      if (!_events[name]) _events[name] = [];
+      _events[name].push(listener);
+      var addedListener = name + ':added';
+      if (_events[addedListener]) {
+        executeListeners(addedListener, [_events[name].length]);
       }
     });
+  }, self);
 
-    observer.observe(element, {
-      attributes:false,
-      childList:true,
-      characterData:false,
-      subtree:true
-    });
 
-    return observer;
+  var removeListeners = function (eventNames, handler, context) {
+    function filterHandlerAndContext(listener) {
+      return !(listener.handler === handler && listener.context === context);
+    }
+
+    OTHelpers.forEach(eventNames, OTHelpers.bind(function(name) {
+      if (_events[name]) {
+        _events[name] = OTHelpers.filter(_events[name], filterHandlerAndContext);
+        if (_events[name].length === 0) delete _events[name];
+        var removedListener = name + ':removed';
+        if (_events[ removedListener]) {
+          executeListeners(removedListener, [_events[name] ? _events[name].length : 0]);
+        }
+      }
+    }, self));
+
   };
 
-})(window, window.OTHelpers);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  self.dispatchEvent = function(event, defaultAction) {
+    if (!event.type) {
+      OTHelpers.error('OTHelpers.Eventing.dispatchEvent: Event has no type');
+      OTHelpers.error(event);
 
-
-
-
-
-
-
-(function(window, OTHelpers, undefined) {
-
-  OTHelpers.Modal = function(options) {
-
-    OTHelpers.eventing(this, true);
-
-    var callback = arguments[arguments.length - 1];
-
-    if(!OTHelpers.isFunction(callback)) {
-      throw new Error('OTHelpers.Modal2 must be given a callback');
+      throw new Error('OTHelpers.Eventing.dispatchEvent: Event has no type');
     }
 
-    if(arguments.length < 2) {
-      options = {};
+    if (!event.target) {
+      event.target = this;
     }
 
-    var domElement = document.createElement('iframe');
-
-    domElement.id = options.id || OTHelpers.uuid();
-    domElement.style.position = 'absolute';
-    domElement.style.position = 'fixed';
-    domElement.style.height = '100%';
-    domElement.style.width = '100%';
-    domElement.style.top = '0px';
-    domElement.style.left = '0px';
-    domElement.style.right = '0px';
-    domElement.style.bottom = '0px';
-    domElement.style.zIndex = 1000;
-    domElement.style.border = '0';
-
-    try {
-      domElement.style.backgroundColor = 'rgba(0,0,0,0.2)';
-    } catch (err) {
-      
-      
-      domElement.style.backgroundColor = 'transparent';
-      domElement.setAttribute('allowTransparency', 'true');
+    if (!_events[event.type] || _events[event.type].length === 0) {
+      executeDefaultAction(defaultAction, [event]);
+      return;
     }
 
-    domElement.scrolling = 'no';
-    domElement.setAttribute('scrolling', 'no');
+    executeListeners(event.type, [event], defaultAction);
+
+    return this;
+  };
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  self.trigger = function(eventName) {
+    if (!_events[eventName] || _events[eventName].length === 0) {
+      return;
+    }
+
+    var args = prototypeSlice.call(arguments);
 
     
-    
-    var frameContent = '<!DOCTYPE html><html><head>' +
-                      '<meta http-equiv="x-ua-compatible" content="IE=Edge">' +
-                      '<meta http-equiv="Content-type" content="text/html; charset=utf-8">' +
-                      '<title></title></head><body></body></html>';
+    args.shift();
 
-    var wrappedCallback = function() {
-      var doc = domElement.contentDocument || domElement.contentWindow.document;
+    executeListeners(eventName, args);
 
-      if (OTHelpers.browserVersion().iframeNeedsLoad) {
-        doc.body.style.backgroundColor = 'transparent';
-        doc.body.style.border = 'none';
+    return this;
+  };
 
-        if (OTHelpers.browser() !== 'IE') {
-          
-          
-          doc.open();
-          doc.write(frameContent);
-          doc.close();
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  self.on = function(eventNames, handlerOrContext, context) {
+    if (typeof(eventNames) === 'string' && handlerOrContext) {
+      addListeners(eventNames.split(' '), handlerOrContext, context);
+    }
+    else {
+      for (var name in eventNames) {
+        if (eventNames.hasOwnProperty(name)) {
+          addListeners([name], eventNames[name], handlerOrContext);
         }
       }
+    }
 
-      callback(
-        domElement.contentWindow,
-        doc
-      );
-    };
+    return this;
+  };
 
-    document.body.appendChild(domElement);
+ 
 
-    if(OTHelpers.browserVersion().iframeNeedsLoad) {
-      if (OTHelpers.browser() === 'IE') {
-        
-        
-        
-        domElement.contentWindow.contents = frameContent;
-        
-        domElement.src = 'javascript:window["contents"]';
-        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  self.off = function(eventNames, handlerOrContext, context) {
+    if (typeof eventNames === 'string') {
+      if (handlerOrContext && OTHelpers.isFunction(handlerOrContext)) {
+        removeListeners(eventNames.split(' '), handlerOrContext, context);
+      }
+      else {
+        OTHelpers.forEach(eventNames.split(' '), function(name) {
+          removeAllListenersNamed(name, handlerOrContext);
+        }, this);
       }
 
-      OTHelpers.on(domElement, 'load', wrappedCallback);
+    } else if (!eventNames) {
+      
+      _events = {};
+
     } else {
-      setTimeout(wrappedCallback);
+      for (var name in eventNames) {
+        if (eventNames.hasOwnProperty(name)) {
+          removeListeners([name], eventNames[name], handlerOrContext);
+        }
+      }
     }
 
-    this.close = function() {
-      OTHelpers.removeElement(domElement);
-      this.trigger('closed');
-      this.element = domElement = null;
-      return this;
-    };
-
-    this.element = domElement;
-
+    return this;
   };
 
-})(window, window.OTHelpers);
+
+ 
 
 
 
@@ -2371,7 +2550,473 @@
 
 
 
-(function(window, OTHelpers, undefined) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  self.once = function(eventNames, handler, context) {
+    var names = eventNames.split(' '),
+        fun = OTHelpers.bind(function() {
+          var result = handler.apply(context || null, arguments);
+          removeListeners(names, handler, context);
+
+          return result;
+        }, this);
+
+    addListeners(names, handler, context, fun);
+    return this;
+  };
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  self.addEventListener = function(eventName, handler, context) {
+    OTHelpers.warn('The addEventListener() method is deprecated. Use on() or once() instead.');
+    addListeners([eventName], handler, context);
+  };
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  self.removeEventListener = function(eventName, handler, context) {
+    OTHelpers.warn('The removeEventListener() method is deprecated. Use off() instead.');
+    removeListeners([eventName], handler, context);
+  };
+
+
+  return self;
+};
+
+OTHelpers.eventing.Event = function() {
+  return function (type, cancelable) {
+    this.type = type;
+    this.cancelable = cancelable !== undefined ? cancelable : true;
+
+    var _defaultPrevented = false;
+
+    this.preventDefault = function() {
+      if (this.cancelable) {
+        _defaultPrevented = true;
+      } else {
+        OTHelpers.warn('Event.preventDefault :: Trying to preventDefault ' +
+          'on an Event that isn\'t cancelable');
+      }
+    };
+
+    this.isDefaultPrevented = function() {
+      return _defaultPrevented;
+    };
+  };
+};
+
+
+
+
+
+
+
+OTHelpers.createElement = function(nodeName, attributes, children, doc) {
+  var element = (doc || document).createElement(nodeName);
+
+  if (attributes) {
+    for (var name in attributes) {
+      if (typeof(attributes[name]) === 'object') {
+        if (!element[name]) element[name] = {};
+
+        var subAttrs = attributes[name];
+        for (var n in subAttrs) {
+          element[name][n] = subAttrs[n];
+        }
+      }
+      else if (name === 'className') {
+        element.className = attributes[name];
+      }
+      else {
+        element.setAttribute(name, attributes[name]);
+      }
+    }
+  }
+
+  var setChildren = function(child) {
+    if(typeof child === 'string') {
+      element.innerHTML = element.innerHTML + child;
+    } else {
+      element.appendChild(child);
+    }
+  };
+
+  if($.isArray(children)) {
+    $.forEach(children, setChildren);
+  } else if(children) {
+    setChildren(children);
+  }
+
+  return element;
+};
+
+OTHelpers.createButton = function(innerHTML, attributes, events) {
+  var button = $.createElement('button', attributes, innerHTML);
+
+  if (events) {
+    for (var name in events) {
+      if (events.hasOwnProperty(name)) {
+        $.on(button, name, events[name]);
+      }
+    }
+
+    button._boundEvents = events;
+  }
+
+  return button;
+};
+
+
+
+
+
+
+
+ElementCollection.prototype.appendTo = function(parentElement) {
+  if (!parentElement) throw new Error('appendTo requires a DOMElement to append to.');
+
+  return this.forEach(parentElement.appendChild.bind(parentElement));
+};
+
+ElementCollection.prototype.after = function(prevElement) {
+  if (!prevElement) throw new Error('after requires a DOMElement to insert after');
+
+  return this.forEach(function(element) {
+    if (element.parentElement) {
+      if (prevElement !== element.parentNode.lastChild) {
+        element.parentElement.before(element, prevElement);
+      }
+      else {
+        element.parentElement.appendChild(element);
+      }
+    }
+  });
+};
+
+ElementCollection.prototype.before = function(nextElement) {
+  if (!nextElement) throw new Error('before requires a DOMElement to insert before');
+
+  return this.forEach(function(element) {
+    if (element.parentElement) {
+      element.parentElement.before(element, nextElement);
+    }
+  });
+};
+
+ElementCollection.prototype.remove = function () {
+  return this.forEach(function(element) {
+    if (element.parentNode) {
+      element.parentNode.removeChild(element);
+    }
+  });
+};
+
+ElementCollection.prototype.empty = function () {
+  return this.forEach(function(element) {
+    
+    
+    
+    
+    
+    while (element.firstChild) {
+      element.removeChild(element.firstChild);
+    }
+  });
+};
+
+
+
+
+ElementCollection.prototype.isDisplayNone = function() {
+  return this.some(function(element) {
+    if ( (element.offsetWidth === 0 || element.offsetHeight === 0) &&
+                $(element).css('display') === 'none') return true;
+
+    if (element.parentNode && element.parentNode.style) {
+      return $(element.parentNode).isDisplayNone();
+    }
+  });
+};
+
+ElementCollection.prototype.findElementWithDisplayNone = function(element) {
+  return $.findElementWithDisplayNone(element);
+};
+
+
+
+OTHelpers.isElementNode = function(node) {
+  return node && typeof node === 'object' && node.nodeType === 1;
+};
+
+
+
+OTHelpers.removeElement = function(element) {
+  $(element).remove();
+};
+
+
+OTHelpers.removeElementById = function(elementId) {
+  return $('#'+elementId).remove();
+};
+
+
+OTHelpers.removeElementsByType = function(parentElem, type) {
+  return $(type, parentElem).remove();
+};
+
+
+OTHelpers.emptyElement = function(element) {
+  return $(element).empty();
+};
+
+
+
+
+
+
+OTHelpers.isDisplayNone = function(element) {
+  return $(element).isDisplayNone();
+};
+
+OTHelpers.findElementWithDisplayNone = function(element) {
+  if ( (element.offsetWidth === 0 || element.offsetHeight === 0) &&
+            $.css(element, 'display') === 'none') return element;
+
+  if (element.parentNode && element.parentNode.style) {
+    return $.findElementWithDisplayNone(element.parentNode);
+  }
+
+  return null;
+};
+
+
+
+
+
+
+
+
+OTHelpers.Modal = function(options) {
+
+  OTHelpers.eventing(this, true);
+
+  var callback = arguments[arguments.length - 1];
+
+  if(!OTHelpers.isFunction(callback)) {
+    throw new Error('OTHelpers.Modal2 must be given a callback');
+  }
+
+  if(arguments.length < 2) {
+    options = {};
+  }
+
+  var domElement = document.createElement('iframe');
+
+  domElement.id = options.id || OTHelpers.uuid();
+  domElement.style.position = 'absolute';
+  domElement.style.position = 'fixed';
+  domElement.style.height = '100%';
+  domElement.style.width = '100%';
+  domElement.style.top = '0px';
+  domElement.style.left = '0px';
+  domElement.style.right = '0px';
+  domElement.style.bottom = '0px';
+  domElement.style.zIndex = 1000;
+  domElement.style.border = '0';
+
+  try {
+    domElement.style.backgroundColor = 'rgba(0,0,0,0.2)';
+  } catch (err) {
+    
+    
+    domElement.style.backgroundColor = 'transparent';
+    domElement.setAttribute('allowTransparency', 'true');
+  }
+
+  domElement.scrolling = 'no';
+  domElement.setAttribute('scrolling', 'no');
+
+  
+  
+  var frameContent = '<!DOCTYPE html><html><head>' +
+                    '<meta http-equiv="x-ua-compatible" content="IE=Edge">' +
+                    '<meta http-equiv="Content-type" content="text/html; charset=utf-8">' +
+                    '<title></title></head><body></body></html>';
+
+  var wrappedCallback = function() {
+    var doc = domElement.contentDocument || domElement.contentWindow.document;
+
+    if (OTHelpers.env.iframeNeedsLoad) {
+      doc.body.style.backgroundColor = 'transparent';
+      doc.body.style.border = 'none';
+
+      if (OTHelpers.env.name !== 'IE') {
+        
+        
+        doc.open();
+        doc.write(frameContent);
+        doc.close();
+      }
+    }
+
+    callback(
+      domElement.contentWindow,
+      doc
+    );
+  };
+
+  document.body.appendChild(domElement);
+
+  if(OTHelpers.env.iframeNeedsLoad) {
+    if (OTHelpers.env.name === 'IE') {
+      
+      
+      
+      domElement.contentWindow.contents = frameContent;
+      
+      domElement.src = 'javascript:window["contents"]';
+      
+    }
+
+    OTHelpers.on(domElement, 'load', wrappedCallback);
+  } else {
+    setTimeout(wrappedCallback, 0);
+  }
+
+  this.close = function() {
+    OTHelpers.removeElement(domElement);
+    this.trigger('closed');
+    this.element = domElement = null;
+    return this;
+  };
+
+  this.element = domElement;
+
+};
+
+
+
+
+
+
+
+
+
+
+(function() {
 
   
 
@@ -2464,7 +3109,7 @@
     }
   };
 
-})(window, window.OTHelpers);
+})();
 
 
 
@@ -2472,87 +3117,425 @@
 
 
 
+var observeStyleChanges = function observeStyleChanges (element, stylesToObserve, onChange) {
+  var oldStyles = {};
 
-(function(window, OTHelpers, undefined) {
+  var getStyle = function getStyle(style) {
+    switch (style) {
+    case 'width':
+      return $(element).width();
 
-  OTHelpers.addClass = function(element, value) {
-    
-    if (element.nodeType !== 1) {
-      return;
+    case 'height':
+      return $(element).height();
+
+    default:
+      return $(element).css(style);
     }
+  };
 
-    var classNames = OTHelpers.trim(value).split(/\s+/),
-        i, l;
+  
+  $.forEach(stylesToObserve, function(style) {
+    oldStyles[style] = getStyle(style);
+  });
 
-    if (OTHelpers.supportsClassList()) {
-      for (i=0, l=classNames.length; i<l; ++i) {
-        element.classList.add(classNames[i]);
+  var observer = new MutationObserver(function(mutations) {
+    var changeSet = {};
+
+    $.forEach(mutations, function(mutation) {
+      if (mutation.attributeName !== 'style') return;
+
+      var isHidden = $.isDisplayNone(element);
+
+      $.forEach(stylesToObserve, function(style) {
+        if(isHidden && (style === 'width' || style === 'height')) return;
+
+        var newValue = getStyle(style);
+
+        if (newValue !== oldStyles[style]) {
+          changeSet[style] = [oldStyles[style], newValue];
+          oldStyles[style] = newValue;
+        }
+      });
+    });
+
+    if (!$.isEmpty(changeSet)) {
+      
+      $.callAsync(function() {
+        onChange.call(null, changeSet);
+      });
+    }
+  });
+
+  observer.observe(element, {
+    attributes:true,
+    attributeFilter: ['style'],
+    childList:false,
+    characterData:false,
+    subtree:false
+  });
+
+  return observer;
+};
+
+var observeNodeOrChildNodeRemoval = function observeNodeOrChildNodeRemoval (element, onChange) {
+  var observer = new MutationObserver(function(mutations) {
+    var removedNodes = [];
+
+    $.forEach(mutations, function(mutation) {
+      if (mutation.removedNodes.length) {
+        removedNodes = removedNodes.concat(prototypeSlice.call(mutation.removedNodes));
       }
+    });
 
-      return;
+    if (removedNodes.length) {
+      
+      $.callAsync(function() {
+        onChange($(removedNodes));
+      });
+    }
+  });
+
+  observer.observe(element, {
+    attributes:false,
+    childList:true,
+    characterData:false,
+    subtree:true
+  });
+
+  return observer;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ElementCollection.prototype.observeStyleChanges = function(stylesToObserve, onChange) {
+  var observers = [];
+
+  this.forEach(function(element) {
+    observers.push(
+      observeStyleChanges(element, stylesToObserve, onChange)
+    );
+  });
+
+  return observers;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ElementCollection.prototype.observeNodeOrChildNodeRemoval = function(onChange) {
+  var observers = [];
+
+  this.forEach(function(element) {
+    observers.push(
+      observeNodeOrChildNodeRemoval(element, onChange)
+    );
+  });
+
+  return observers;
+};
+
+
+
+OTHelpers.observeStyleChanges = function(element, stylesToObserve, onChange) {
+  return $(element).observeStyleChanges(stylesToObserve, onChange)[0];
+};
+
+
+OTHelpers.observeNodeOrChildNodeRemoval = function(element, onChange) {
+  return $(element).observeNodeOrChildNodeRemoval(onChange)[0];
+};
+
+
+
+
+
+
+
+
+OTHelpers.registerCapability('classList', function() {
+  return (typeof document !== 'undefined') && ('classList' in document.createElement('a'));
+});
+
+
+function hasClass (element, className) {
+  if (!className) return false;
+
+  if ($.hasCapabilities('classList')) {
+    return element.classList.contains(className);
+  }
+
+  return element.className.indexOf(className) > -1;
+}
+
+function toggleClasses (element, classNames) {
+  if (!classNames || classNames.length === 0) return;
+
+  
+  if (element.nodeType !== 1) {
+    return;
+  }
+
+  var numClasses = classNames.length,
+      i = 0;
+
+  if ($.hasCapabilities('classList')) {
+    for (; i<numClasses; ++i) {
+      element.classList.toggle(classNames[i]);
     }
 
-    
+    return;
+  }
 
-    if (!element.className && classNames.length === 1) {
-      element.className = value;
+  var className = (' ' + element.className + ' ').replace(/[\s+]/, ' ');
+
+
+  for (; i<numClasses; ++i) {
+    if (hasClass(element, classNames[i])) {
+      className = className.replace(' ' + classNames[i] + ' ', ' ');
     }
     else {
-      var setClass = ' ' + element.className + ' ';
+      className += classNames[i] + ' ';
+    }
+  }
 
-      for (i=0, l=classNames.length; i<l; ++i) {
-        if ( !~setClass.indexOf( ' ' + classNames[i] + ' ')) {
-          setClass += classNames[i] + ' ';
-        }
+  element.className = $.trim(className);
+}
+
+function addClass (element, classNames) {
+  if (!classNames || classNames.length === 0) return;
+
+  
+  if (element.nodeType !== 1) {
+    return;
+  }
+
+  var numClasses = classNames.length,
+      i = 0;
+
+  if ($.hasCapabilities('classList')) {
+    for (; i<numClasses; ++i) {
+      element.classList.add(classNames[i]);
+    }
+
+    return;
+  }
+
+  
+
+  if (!element.className && classNames.length === 1) {
+    element.className = classNames.join(' ');
+  }
+  else {
+    var setClass = ' ' + element.className + ' ';
+
+    for (; i<numClasses; ++i) {
+      if ( !~setClass.indexOf( ' ' + classNames[i] + ' ')) {
+        setClass += classNames[i] + ' ';
       }
-
-      element.className = OTHelpers.trim(setClass);
     }
 
-    return this;
-  };
+    element.className = $.trim(setClass);
+  }
+}
 
-  OTHelpers.removeClass = function(element, value) {
-    if (!value) return;
+function removeClass (element, classNames) {
+  if (!classNames || classNames.length === 0) return;
 
-    
-    if (element.nodeType !== 1) {
-      return;
+  
+  if (element.nodeType !== 1) {
+    return;
+  }
+
+  var numClasses = classNames.length,
+      i = 0;
+
+  if ($.hasCapabilities('classList')) {
+    for (; i<numClasses; ++i) {
+      element.classList.remove(classNames[i]);
     }
 
-    var newClasses = OTHelpers.trim(value).split(/\s+/),
-        i, l;
+    return;
+  }
 
-    if (OTHelpers.supportsClassList()) {
-      for (i=0, l=newClasses.length; i<l; ++i) {
-        element.classList.remove(newClasses[i]);
-      }
+  var className = (' ' + element.className + ' ').replace(/[\s+]/, ' ');
 
-      return;
+  for (; i<numClasses; ++i) {
+    className = className.replace(' ' + classNames[i] + ' ', ' ');
+  }
+
+  element.className = $.trim(className);
+}
+
+ElementCollection.prototype.addClass = function (value) {
+  if (value) {
+    var classNames = $.trim(value).split(/\s+/);
+
+    this.forEach(function(element) {
+      addClass(element, classNames);
+    });
+  }
+
+  return this;
+};
+
+ElementCollection.prototype.removeClass = function (value) {
+  if (value) {
+    var classNames = $.trim(value).split(/\s+/);
+
+    this.forEach(function(element) {
+      removeClass(element, classNames);
+    });
+  }
+
+  return this;
+};
+
+ElementCollection.prototype.toggleClass = function (value) {
+  if (value) {
+    var classNames = $.trim(value).split(/\s+/);
+
+    this.forEach(function(element) {
+      toggleClasses(element, classNames);
+    });
+  }
+
+  return this;
+};
+
+ElementCollection.prototype.hasClass = function (value) {
+  return this.some(function(element) {
+    return hasClass(element, value);
+  });
+};
+
+
+
+OTHelpers.addClass = function(element, className) {
+  return $(element).addClass(className);
+};
+
+
+OTHelpers.removeClass = function(element, value) {
+  return $(element).removeClass(value);
+};
+
+
+
+
+
+
+
+
+
+
+ElementCollection.prototype.attr = function (name, value) {
+  if (OTHelpers.isObject(name)) {
+    for (var key in name) {
+      this.first.setAttribute(key, name[key]);
     }
+  }
+  else if (value === void 0) {
+    return this.first.getAttribute(name);
+  }
+  else {
+    this.first.setAttribute(name, value);
+  }
 
-    var className = (' ' + element.className + ' ').replace(/[\s+]/, ' ');
+  return this;
+};
 
-    for (i=0,l=newClasses.length; i<l; ++i) {
-      className = className.replace(' ' + newClasses[i] + ' ', ' ');
-    }
 
-    element.className = OTHelpers.trim(className);
 
-    return this;
-  };
 
+
+ElementCollection.prototype.html = function (html) {
+  if (html !== void 0) {
+    this.first.innerHTML = html;
+  }
+
+  return this.first.innerHTML;
+};
+
+
+
+
+ElementCollection.prototype.center = function (width, height) {
+  var $element;
+
+  this.forEach(function(element) {
+    $element = $(element);
+    if (!width) width = parseInt($element.width(), 10);
+    if (!height) height = parseInt($element.height(), 10);
+
+    var marginLeft = -0.5 * width + 'px';
+    var marginTop = -0.5 * height + 'px';
+
+    $element.css('margin', marginTop + ' 0 0 ' + marginLeft)
+            .addClass('OT_centered');
+  });
+
+  return this;
+};
+
+
+
+
+
+OTHelpers.centerElement = function(element, width, height) {
+  return $(element).center(width, height);
+};
 
   
 
 
+(function() {
 
   var _width = function(element) {
         if (element.offsetWidth > 0) {
           return element.offsetWidth + 'px';
         }
 
-        return OTHelpers.css(element, 'width');
+        return $(element).css('width');
       },
 
       _height = function(element) {
@@ -2560,58 +3543,57 @@
           return element.offsetHeight + 'px';
         }
 
-        return OTHelpers.css(element, 'height');
+        return $(element).css('height');
       };
 
-  OTHelpers.width = function(element, newWidth) {
+  ElementCollection.prototype.width = function (newWidth) {
     if (newWidth) {
-      OTHelpers.css(element, 'width', newWidth);
+      this.css('width', newWidth);
       return this;
     }
     else {
-      if (OTHelpers.isDisplayNone(element)) {
-        
-        return OTHelpers.makeVisibleAndYield(element, function() {
+      if (this.isDisplayNone()) {
+        return this.makeVisibleAndYield(function(element) {
           return _width(element);
-        });
+        })[0];
       }
       else {
-        return _width(element);
+        return _width(this.get(0));
       }
     }
   };
 
-  OTHelpers.height = function(element, newHeight) {
+  ElementCollection.prototype.height = function (newHeight) {
     if (newHeight) {
-      OTHelpers.css(element, 'height', newHeight);
+      this.css('height', newHeight);
       return this;
     }
     else {
-      if (OTHelpers.isDisplayNone(element)) {
+      if (this.isDisplayNone()) {
         
-        return OTHelpers.makeVisibleAndYield(element, function() {
+        return this.makeVisibleAndYield(function(element) {
           return _height(element);
-        });
+        })[0];
       }
       else {
-        return _height(element);
+        return _height(this.get(0));
       }
     }
   };
 
   
-  
-  OTHelpers.centerElement = function(element, width, height) {
-    if (!width) width = parseInt(OTHelpers.width(element), 10);
-    if (!height) height = parseInt(OTHelpers.height(element), 10);
-
-    var marginLeft = -0.5 * width + 'px';
-    var marginTop = -0.5 * height + 'px';
-    OTHelpers.css(element, 'margin', marginTop + ' 0 0 ' + marginLeft);
-    OTHelpers.addClass(element, 'OT_centered');
+  OTHelpers.width = function(element, newWidth) {
+    var ret = $(element).width(newWidth);
+    return newWidth ? OTHelpers : ret;
   };
 
-})(window, window.OTHelpers);
+  
+  OTHelpers.height = function(element, newHeight) {
+    var ret = $(element).height(newHeight);
+    return newHeight ? OTHelpers : ret;
+  };
+
+})();
 
 
 
@@ -2621,12 +3603,13 @@
 
 
 
-(function(window, OTHelpers, undefined) {
+
+(function() {
 
   var displayStateCache = {},
       defaultDisplays = {};
 
-  var defaultDisplayValueForElement = function(element) {
+  var defaultDisplayValueForElement = function (element) {
     if (defaultDisplays[element.ownerDocument] &&
       defaultDisplays[element.ownerDocument][element.nodeName]) {
       return defaultDisplays[element.ownerDocument][element.nodeName];
@@ -2641,83 +3624,49 @@
 
     element.ownerDocument.body.appendChild(testNode);
     defaultDisplay = defaultDisplays[element.ownerDocument][element.nodeName] =
-      OTHelpers.css(testNode, 'display');
+    $(testNode).css('display');
 
-    OTHelpers.removeElement(testNode);
+    $(testNode).remove();
     testNode = null;
 
     return defaultDisplay;
   };
 
-  var isHidden = function(element) {
-    var computedStyle = OTHelpers.getComputedStyle(element);
+  var isHidden = function (element) {
+    var computedStyle = $.getComputedStyle(element);
     return computedStyle.getPropertyValue('display') === 'none';
   };
 
-  OTHelpers.show = function(element) {
-    var display = element.style.display;
+  var setCssProperties = function (element, hash) {
+    var style = element.style;
 
-    if (display === '' || display === 'none') {
-      element.style.display = displayStateCache[element] || '';
-      delete displayStateCache[element];
-    }
-
-    if (isHidden(element)) {
-      
-      
-      displayStateCache[element] = 'none';
-
-      element.style.display = defaultDisplayValueForElement(element);
-    }
-
-    return this;
-  };
-
-  OTHelpers.hide = function(element) {
-    if (element.style.display === 'none') return;
-
-    displayStateCache[element] = element.style.display;
-    element.style.display = 'none';
-
-    return this;
-  };
-
-  OTHelpers.css = function(element, nameOrHash, value) {
-    if (typeof(nameOrHash) !== 'string') {
-      var style = element.style;
-
-      for (var cssName in nameOrHash) {
-        if (nameOrHash.hasOwnProperty(cssName)) {
-          style[cssName] = nameOrHash[cssName];
-        }
+    for (var cssName in hash) {
+      if (hash.hasOwnProperty(cssName)) {
+        style[cssName] = hash[cssName];
       }
-
-      return this;
-
-    } else if (value !== undefined) {
-      element.style[nameOrHash] = value;
-      return this;
-
-    } else {
-      
-      
-
-      var name = nameOrHash.replace( /([A-Z]|^ms)/g, '-$1' ).toLowerCase(),
-          computedStyle = OTHelpers.getComputedStyle(element),
-          currentValue = computedStyle.getPropertyValue(name);
-
-      if (currentValue === '') {
-        currentValue = element.style[name];
-      }
-
-      return currentValue;
     }
   };
 
+  var setCssProperty = function (element, name, value) {
+    element.style[name] = value;
+  };
 
+  var getCssProperty = function (element, unnormalisedName) {
+    
+    
 
+    var name = unnormalisedName.replace( /([A-Z]|^ms)/g, '-$1' ).toLowerCase(),
+        computedStyle = $.getComputedStyle(element),
+        currentValue = computedStyle.getPropertyValue(name);
 
-  OTHelpers.applyCSS = function(element, styles, callback) {
+    if (currentValue === '') {
+      currentValue = element.style[name];
+    }
+
+    return currentValue;
+  };
+
+  var applyCSS = function(element, styles, callback) {
     var oldStyles = {},
         name,
         ret;
@@ -2730,36 +3679,135 @@
         
         oldStyles[name] = element.style[name];
 
-        OTHelpers.css(element, name, styles[name]);
+        $(element).css(name, styles[name]);
       }
     }
 
-    ret = callback();
+    ret = callback(element);
 
     
     for (name in styles) {
       if (styles.hasOwnProperty(name)) {
-        OTHelpers.css(element, name, oldStyles[name] || '');
+        $(element).css(name, oldStyles[name] || '');
       }
     }
 
     return ret;
   };
 
-  
-  OTHelpers.makeVisibleAndYield = function(element, callback) {
-    
-    
-    var targetElement = OTHelpers.findElementWithDisplayNone(element);
-    if (!targetElement) return;
+  ElementCollection.prototype.show = function() {
+    return this.forEach(function(element) {
+      var display = element.style.display;
 
-    return OTHelpers.applyCSS(targetElement, {
-      display: 'block',
-      visibility: 'hidden'
-    }, callback);
+      if (display === '' || display === 'none') {
+        element.style.display = displayStateCache[element] || '';
+        delete displayStateCache[element];
+      }
+
+      if (isHidden(element)) {
+        
+        
+        displayStateCache[element] = 'none';
+
+        element.style.display = defaultDisplayValueForElement(element);
+      }
+    });
   };
 
-})(window, window.OTHelpers);
+  ElementCollection.prototype.hide = function() {
+    return this.forEach(function(element) {
+      if (element.style.display === 'none') return;
+
+      displayStateCache[element] = element.style.display;
+      element.style.display = 'none';
+    });
+  };
+
+  ElementCollection.prototype.css = function(nameOrHash, value) {
+    if (this.length === 0) return;
+
+    if (typeof(nameOrHash) !== 'string') {
+
+      return this.forEach(function(element) {
+        setCssProperties(element, nameOrHash);
+      });
+
+    } else if (value !== undefined) {
+
+      return this.forEach(function(element) {
+        setCssProperty(element, nameOrHash, value);
+      });
+
+    } else {
+      return getCssProperty(this.first, nameOrHash, value);
+    }
+  };
+
+  
+  
+  ElementCollection.prototype.applyCSS = function (styles, callback) {
+    var results = [];
+
+    this.forEach(function(element) {
+      results.push(applyCSS(element, styles, callback));
+    });
+
+    return results;
+  };
+
+
+  
+  ElementCollection.prototype.makeVisibleAndYield = function (callback) {
+    var hiddenVisually = {
+        display: 'block',
+        visibility: 'hidden'
+      },
+      results = [];
+
+    this.forEach(function(element) {
+      
+      
+      var targetElement = $.findElementWithDisplayNone(element);
+      if (!targetElement) {
+        results.push(void 0);
+      }
+      else {
+        results.push(
+          applyCSS(targetElement, hiddenVisually, callback)
+        );
+      }
+    });
+
+    return results;
+  };
+
+
+  
+  OTHelpers.show = function(element) {
+    return $(element).show();
+  };
+
+  
+  OTHelpers.hide = function(element) {
+    return $(element).hide();
+  };
+
+  
+  OTHelpers.css = function(element, nameOrHash, value) {
+    return $(element).css(nameOrHash, value);
+  };
+
+  
+  OTHelpers.applyCSS = function(element, styles, callback) {
+    return $(element).applyCSS(styles, callback);
+  };
+
+  
+  OTHelpers.makeVisibleAndYield = function(element, callback) {
+    return $(element).makeVisibleAndYield(callback);
+  };
+
+})();
 
 
 
@@ -2767,7 +3815,101 @@
 
 
 
-(function(window, OTHelpers, undefined) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(function() {
+
+  OTHelpers.setImmediate = (function() {
+    if (typeof process === 'undefined' || !(process.nextTick)) {
+      if (typeof setImmediate === 'function') {
+        return function (fn) {
+          
+          setImmediate(fn);
+        };
+      }
+      return function (fn) {
+        setTimeout(fn, 0);
+      };
+    }
+    if (typeof setImmediate !== 'undefined') {
+      return setImmediate;
+    }
+    return process.nextTick;
+  })();
+
+  OTHelpers.iterator = function(tasks) {
+    var makeCallback = function (index) {
+      var fn = function () {
+        if (tasks.length) {
+          tasks[index].apply(null, arguments);
+        }
+        return fn.next();
+      };
+      fn.next = function () {
+        return (index < tasks.length - 1) ? makeCallback(index + 1) : null;
+      };
+      return fn;
+    };
+    return makeCallback(0);
+  };
+
+  OTHelpers.waterfall = function(array, done) {
+    done = done || function () {};
+    if (array.constructor !== Array) {
+      return done(new Error('First argument to waterfall must be an array of functions'));
+    }
+
+    if (!array.length) {
+      return done();
+    }
+
+    var next = function(iterator) {
+      return function (err) {
+        if (err) {
+          done.apply(null, arguments);
+          done = function () {};
+        } else {
+          var args = prototypeSlice.call(arguments, 1),
+              nextFn = iterator.next();
+          if (nextFn) {
+            args.push(next(nextFn));
+          } else {
+            args.push(done);
+          }
+          OTHelpers.setImmediate(function() {
+            iterator.apply(null, args);
+          });
+        }
+      };
+    };
+
+    next(OTHelpers.iterator(array))();
+  };
+
+})();
+
+
+
+
+
+(function() {
 
   var requestAnimationFrame = window.requestAnimationFrame ||
                               window.mozRequestAnimationFrame ||
@@ -2791,865 +3933,227 @@
   }
 
   OTHelpers.requestAnimationFrame = requestAnimationFrame;
-})(window, window.OTHelpers);
+})();
 
 
 
 
+(function() {
 
+  
+  var logQueue = [],
+      queueRunning = false;
 
-(function(window, OTHelpers, undefined) {
+  OTHelpers.Analytics = function(loggingUrl, debugFn) {
 
-  function formatPostData(data) { 
-    
-    if (typeof(data) === 'string') return data;
+    var endPoint = loggingUrl + '/logging/ClientEvent',
+        endPointQos = loggingUrl + '/logging/ClientQos',
 
-    var queryString = [];
+        reportedErrors = {},
 
-    for (var key in data) {
-      queryString.push(
-        encodeURIComponent(key) + '=' + encodeURIComponent(data[key])
-      );
-    }
+        send = function(data, isQos, callback) {
+          OTHelpers.post((isQos ? endPointQos : endPoint) + '?_=' + OTHelpers.uuid.v4(), {
+            body: data,
+            xdomainrequest: ($.env.name === 'IE' && $.env.version < 10),
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          }, callback);
+        },
 
-    return queryString.join('&').replace(/\+/g, '%20');
-  }
-
-  OTHelpers.getJSON = function(url, options, callback) {
-    options = options || {};
-
-    var done = function(error, event) {
-      if(error) {
-        callback(error, event && event.target && event.target.responseText);
-      } else {
-        var response;
-
-        try {
-          response = JSON.parse(event.target.responseText);
-        } catch(e) {
+        throttledPost = function() {
           
-          callback(e, event && event.target && event.target.responseText);
-          return;
-        }
+          if (!queueRunning && logQueue.length > 0) {
+            queueRunning = true;
+            var curr = logQueue[0];
 
-        callback(null, response, event);
-      }
-    };
+            
+            var processNextItem = function() {
+              logQueue.shift();
+              queueRunning = false;
+              throttledPost();
+            };
 
-    if(options.xdomainrequest) {
-      OTHelpers.xdomainRequest(url, { method: 'GET' }, done);
-    } else {
-      var extendedHeaders = OTHelpers.extend({
-        'Accept': 'application/json'
-      }, options.headers || {});
-
-      OTHelpers.get(url, OTHelpers.extend(options || {}, {
-        headers: extendedHeaders
-      }), done);
-    }
-
-  };
-
-  OTHelpers.xdomainRequest = function(url, options, callback) {
-    
-    var xdr = new XDomainRequest(),
-        _options = options || {},
-        _method = _options.method;
-
-    if(!_method) {
-      callback(new Error('No HTTP method specified in options'));
-      return;
-    }
-
-    _method = _method.toUpperCase();
-
-    if(!(_method === 'GET' || _method === 'POST')) {
-      callback(new Error('HTTP method can only be '));
-      return;
-    }
-
-    function done(err, event) {
-      xdr.onload = xdr.onerror = xdr.ontimeout = function() {};
-      xdr = void 0;
-      callback(err, event);
-    }
-
-
-    xdr.onload = function() {
-      done(null, {
-        target: {
-          responseText: xdr.responseText,
-          headers: {
-            'content-type': xdr.contentType
+            if (curr) {
+              send(curr.data, curr.isQos, function(err) {
+                if (err) {
+                  var debugMsg = 'Failed to send ClientEvent, moving on to the next item.';
+                  if (debugFn) {
+                    debugFn(debugMsg);
+                  } else {
+                    console.log(debugMsg);
+                  }
+                  
+                } else {
+                  curr.onComplete();
+                }
+                setTimeout(processNextItem, 50);
+              });
+            }
           }
-        }
-      });
-    };
-
-    xdr.onerror = function() {
-      done(new Error('XDomainRequest of ' + url + ' failed'));
-    };
-
-    xdr.ontimeout = function() {
-      done(new Error('XDomainRequest of ' + url + ' timed out'));
-    };
-
-    xdr.open(_method, url);
-    xdr.send(options.body && formatPostData(options.body));
-
-  };
-
-  OTHelpers.request = function(url, options, callback) {
-    var request = new XMLHttpRequest(),
-        _options = options || {},
-        _method = _options.method;
-
-    if(!_method) {
-      callback(new Error('No HTTP method specified in options'));
-      return;
-    }
-
-    
-    
-    
-    if(callback) {
-      OTHelpers.on(request, 'load', function(event) {
-        var status = event.target.status;
-
-        
-        
-        if ( status >= 200 && status < 300 || status === 304 ) {
-          callback(null, event);
-        } else {
-          callback(event);
-        }
-      });
-
-      OTHelpers.on(request, 'error', callback);
-    }
-
-    request.open(options.method, url, true);
-
-    if (!_options.headers) _options.headers = {};
-
-    for (var name in _options.headers) {
-      request.setRequestHeader(name, _options.headers[name]);
-    }
-
-    request.send(options.body && formatPostData(options.body));
-  };
-
-  OTHelpers.get = function(url, options, callback) {
-    var _options = OTHelpers.extend(options || {}, {
-      method: 'GET'
-    });
-    OTHelpers.request(url, _options, callback);
-  };
-
-  OTHelpers.post = function(url, options, callback) {
-    var _options = OTHelpers.extend(options || {}, {
-      method: 'POST'
-    });
-
-    if(_options.xdomainrequest) {
-      OTHelpers.xdomainRequest(url, _options, callback);
-    } else {
-      OTHelpers.request(url, _options, callback);
-    }
-  };
-
-})(window, window.OTHelpers);
-!(function(window) {
-
-  
-
-  if (!window.OT) window.OT = {};
-
-  
-  OT.$ = OTHelpers.noConflict();
-
-  
-  OT.$.eventing(OT);
-
-  
-
-  OT.$.defineGetters = function(self, getters, enumerable) {
-    var propsDefinition = {};
-
-    if (enumerable === void 0) enumerable = false;
-
-    for (var key in getters) {
-      if(!getters.hasOwnProperty(key)) {
-        continue;
-      }
-      propsDefinition[key] = {
-        get: getters[key],
-        enumerable: enumerable
-      };
-    }
-
-    Object.defineProperties(self, propsDefinition);
-  };
-
-  
-
-  
-  OT.Modal = OT.$.Modal;
-
-  
-  OT.$.useLogHelpers(OT);
-
-  var _debugHeaderLogged = false,
-      _setLogLevel = OT.setLogLevel;
-
-  
-  OT.setLogLevel = function(level) {
-    
-    OT.$.setLogLevel(level);
-    var retVal = _setLogLevel.call(OT, level);
-    if (OT.shouldLog(OT.DEBUG) && !_debugHeaderLogged) {
-      OT.debug('OpenTok JavaScript library ' + OT.properties.version);
-      OT.debug('Release notes: ' + OT.properties.websiteURL +
-        '/opentok/webrtc/docs/js/release-notes.html');
-      OT.debug('Known issues: ' + OT.properties.websiteURL +
-        '/opentok/webrtc/docs/js/release-notes.html#knownIssues');
-      _debugHeaderLogged = true;
-    }
-    OT.debug('OT.setLogLevel(' + retVal + ')');
-    return retVal;
-  };
-
-  var debugTrue = OT.properties.debug === 'true' || OT.properties.debug === true;
-  OT.setLogLevel(debugTrue ? OT.DEBUG : OT.ERROR);
-
-  OT.$.userAgent = function() {
-    var userAgent = navigator.userAgent;
-    if (TBPlugin.isInstalled()) userAgent += '; TBPlugin ' + TBPlugin.version();
-    return userAgent;
-  };
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-})(window);
-!(function() {
-
-  var adjustModal = function(callback) {
-    return function setFullHeightDocument(window, document) {
-      
-      document.querySelector('html').style.height = document.body.style.height = '100%';
-      callback(window, document);
-    };
-  };
-
-  var addCss = function(document, url, callback) {
-    var head = document.head || document.getElementsByTagName('head')[0];
-    var cssTag = OT.$.createElement('link', {
-      type: 'text/css',
-      media: 'screen',
-      rel: 'stylesheet',
-      href: url
-    });
-    head.appendChild(cssTag);
-    OT.$.on(cssTag, 'error', function(error) {
-      OT.error('Could not load CSS for dialog', url, error && error.message || error);
-    });
-    OT.$.on(cssTag, 'load', callback);
-  };
-
-  var addDialogCSS = function(document, urls, callback) {
-    var allURLs = [
-      '//fonts.googleapis.com/css?family=Didact+Gothic',
-      OT.properties.cssURL
-    ].concat(urls);
-    var remainingStylesheets = allURLs.length;
-    OT.$.forEach(allURLs, function(stylesheetUrl) {
-      addCss(document, stylesheetUrl, function() {
-        if(--remainingStylesheets <= 0) {
-          callback();
-        }
-      });
-    });
-
-  };
-
-  var templateElement = function(classes, children, tagName) {
-    var el = OT.$.createElement(tagName || 'div', { 'class': classes }, children, this);
-    el.on = OT.$.bind(OT.$.on, OT.$, el);
-    el.off = OT.$.bind(OT.$.off, OT.$, el);
-    return el;
-  };
-
-  var checkBoxElement = function (classes, nameAndId, onChange) {
-    var checkbox = templateElement.call(this, '', null, 'input').on('change', onChange);
-
-    if (OT.$.browser() === 'IE' && OT.$.browserVersion().version <= 8) {
-      
-      checkbox.on('click', function() {
-        checkbox.blur();
-        checkbox.focus();
-      });
-    }
-
-    checkbox.setAttribute('name', nameAndId);
-    checkbox.setAttribute('id', nameAndId);
-    checkbox.setAttribute('type', 'checkbox');
-
-    return checkbox;
-  };
-
-  var linkElement = function(children, href, classes) {
-    var link = templateElement.call(this, classes || '', children, 'a');
-    link.setAttribute('href', href);
-    return link;
-  };
-
-  OT.Dialogs = {};
-
-  OT.Dialogs.Plugin = {};
-
-  OT.Dialogs.Plugin.promptToInstall = function() {
-    var modal = new OT.$.Modal(adjustModal(function(window, document) {
-
-      var el = OT.$.bind(templateElement, document),
-          btn = function(children, size) {
-            var classes = 'OT_dialog-button ' +
-                          (size ? 'OT_dialog-button-' + size : 'OT_dialog-button-large'),
-                b = el(classes, children);
-
-            b.enable = function() {
-              OT.$.removeClass(this, 'OT_dialog-button-disabled');
-              return this;
-            };
-
-            b.disable = function() {
-              OT.$.addClass(this, 'OT_dialog-button-disabled');
-              return this;
-            };
-
-            return b;
-          },
-          downloadButton = btn('Download plugin'),
-          cancelButton = btn('cancel', 'small'),
-          refreshButton = btn('Refresh browser'),
-          acceptEULA,
-          checkbox,
-          close,
-          root;
-
-      OT.$.addClass(cancelButton, 'OT_dialog-no-natural-margin OT_dialog-button-block');
-      OT.$.addClass(refreshButton, 'OT_dialog-no-natural-margin');
-
-      function onDownload() {
-        modal.trigger('download');
-        setTimeout(function() {
-          root.querySelector('.OT_dialog-messages-main').innerHTML =
-                                              'Plugin installation successful';
-          var sections = root.querySelectorAll('.OT_dialog-section');
-          OT.$.addClass(sections[0], 'OT_dialog-hidden');
-          OT.$.removeClass(sections[1], 'OT_dialog-hidden');
-        }, 3000);
-      }
-
-      function onRefresh() {
-        modal.trigger('refresh');
-      }
-
-      function onToggleEULA() {
-        if (checkbox.checked) {
-          enableButtons();
-        }
-        else {
-          disableButtons();
-        }
-      }
-
-      function enableButtons() {
-        downloadButton.enable();
-        downloadButton.on('click', onDownload);
-
-        refreshButton.enable();
-        refreshButton.on('click', onRefresh);
-      }
-
-      function disableButtons() {
-        downloadButton.disable();
-        downloadButton.off('click', onDownload);
-
-        refreshButton.disable();
-        refreshButton.off('click', onRefresh);
-      }
-
-      downloadButton.disable();
-      refreshButton.disable();
-
-      cancelButton.on('click', function() {
-        modal.trigger('cancelButtonClicked');
-        modal.close();
-      });
-
-      close = el('OT_closeButton', '&times;')
-        .on('click', function() {
-          modal.trigger('closeButtonClicked');
-          modal.close();
-        });
-
-      acceptEULA = linkElement.call(document,
-                                    'end-user license agreement',
-                                    'http://tokbox.com/support/ie-eula');
-
-      checkbox = checkBoxElement.call(document, null, 'acceptEULA', onToggleEULA);
-
-      root = el('OT_dialog-centering', [
-        el('OT_dialog-centering-child', [
-          el('OT_root OT_dialog OT_dialog-plugin-prompt', [
-            close,
-            el('OT_dialog-messages', [
-              el('OT_dialog-messages-main', 'This app requires real-time communication')
-            ]),
-            el('OT_dialog-section', [
-              el('OT_dialog-single-button-with-title', [
-                el('OT_dialog-button-title', [
-                  checkbox,
-                  (function() {
-                    var x = el('', 'accept', 'label');
-                    x.setAttribute('for', checkbox.id);
-                    x.style.margin = '0 5px';
-                    return x;
-                  })(),
-                  acceptEULA
-                ]),
-                el('OT_dialog-actions-card', [
-                  downloadButton,
-                  cancelButton
-                ])
-              ])
-            ]),
-            el('OT_dialog-section OT_dialog-hidden', [
-              el('OT_dialog-button-title', [
-                'You can now enjoy webRTC enabled video via Internet Explorer.'
-              ]),
-              refreshButton
-            ])
-          ])
-        ])
-      ]);
-
-      addDialogCSS(document, [], function() {
-        document.body.appendChild(root);
-      });
-
-    }));
-    return modal;
-  };
-
-  OT.Dialogs.Plugin.promptToReinstall = function() {
-    var modal = new OT.$.Modal(adjustModal(function(window, document) {
-
-      var el = OT.$.bind(templateElement, document),
-          close,
-          okayButton,
-          root;
-
-      close = el('OT_closeButton', '&times;');
-      okayButton =
-        el('OT_dialog-button OT_dialog-button-large OT_dialog-no-natural-margin', 'Okay');
-
-      OT.$.on(okayButton, 'click', function() {
-        modal.trigger('okay');
-      });
-
-      OT.$.on(close, 'click', function() {
-        modal.trigger('closeButtonClicked');
-        modal.close();
-      });
-
-      root = el('OT_dialog-centering', [
-        el('OT_dialog-centering-child', [
-          el('OT_ROOT OT_dialog OT_dialog-plugin-reinstall', [
-            close,
-            el('OT_dialog-messages', [
-              el('OT_dialog-messages-main', 'Reinstall Opentok Plugin'),
-              el('OT_dialog-messages-minor', 'Uh oh! Try reinstalling the OpenTok plugin ' +
-                'again to enable real-time video communication for Internet Explorer.')
-            ]),
-            el('OT_dialog-section', [
-              el('OT_dialog-single-button', okayButton)
-            ])
-          ])
-        ])
-      ]);
-
-      addDialogCSS(document, [], function() {
-        document.body.appendChild(root);
-      });
-
-    }));
-
-    return modal;
-  };
-
-  OT.Dialogs.Plugin.updateInProgress = function() {
-
-    var progressBar,
-        progressText,
-        progressValue = 0;
-
-    var modal = new OT.$.Modal(adjustModal(function(window, document) {
-
-      var el = OT.$.bind(templateElement, document),
-          root;
-
-      progressText = el('OT_dialog-plugin-upgrade-percentage', '0%', 'strong');
-
-      progressBar = el('OT_dialog-progress-bar-fill');
-
-      root = el('OT_dialog-centering', [
-        el('OT_dialog-centering-child', [
-          el('OT_ROOT OT_dialog OT_dialog-plugin-upgrading', [
-            el('OT_dialog-messages', [
-              el('OT_dialog-messages-main', [
-                'One moment please... ',
-                progressText
-              ]),
-              el('OT_dialog-progress-bar', progressBar),
-              el('OT_dialog-messages-minor OT_dialog-no-natural-margin',
-                'Please wait while the OpenTok plugin is updated')
-            ])
-          ])
-        ])
-      ]);
-
-      addDialogCSS(document, [], function() {
-        document.body.appendChild(root);
-        if(progressValue != null) {
-          modal.setUpdateProgress(progressValue);
-        }
-      });
-    }));
-
-    modal.setUpdateProgress = function(newProgress) {
-      if(progressBar && progressText) {
-        if(newProgress > 99) {
-          OT.$.css(progressBar, 'width', '');
-          progressText.innerHTML = '100%';
-        } else if(newProgress < 1) {
-          OT.$.css(progressBar, 'width', '0%');
-          progressText.innerHTML = '0%';
-        } else {
-          OT.$.css(progressBar, 'width', newProgress + '%');
-          progressText.innerHTML = newProgress + '%';
-        }
-      } else {
-        progressValue = newProgress;
-      }
-    };
-
-    return modal;
-  };
-
-  OT.Dialogs.Plugin.updateComplete = function(error) {
-    var modal = new OT.$.Modal(adjustModal(function(window, document) {
-      var el = OT.$.bind(templateElement, document),
-          reloadButton,
-          root;
-
-      reloadButton =
-        el('OT_dialog-button OT_dialog-button-large OT_dialog-no-natural-margin', 'Reload')
-          .on('click', function() {
-            modal.trigger('reload');
+        },
+
+        post = function(data, onComplete, isQos) {
+          logQueue.push({
+            data: data,
+            onComplete: onComplete,
+            isQos: isQos
           });
 
-      var msgs;
-
-      if(error) {
-        msgs = ['Update Failed.', error + '' || 'NO ERROR'];
-      } else {
-        msgs = ['Update Complete.',
-          'The OpenTok plugin has been succesfully updated. ' +
-          'Please reload your browser.'];
-      }
-
-      root = el('OT_dialog-centering', [
-        el('OT_dialog-centering-child', [
-          el('OT_root OT_dialog OT_dialog-plugin-upgraded', [
-            el('OT_dialog-messages', [
-              el('OT_dialog-messages-main', msgs[0]),
-              el('OT_dialog-messages-minor', msgs[1])
-            ]),
-            el('OT_dialog-single-button', reloadButton)
-          ])
-        ])
-      ]);
-
-      addDialogCSS(document, [], function() {
-        document.body.appendChild(root);
-      });
-
-    }));
-
-    return modal;
-
-  };
-
-
-})();
-!(function(window) {
-
-  
-  if (!window.OT) window.OT = {};
-
-  if (!OT.properties) {
-    throw new Error('OT.properties does not exist, please ensure that you include a valid ' +
-      'properties file.');
-  }
-
-  OT.useSSL = function () {
-    return OT.properties.supportSSL && (window.location.protocol.indexOf('https') >= 0 ||
-          window.location.protocol.indexOf('chrome-extension') >= 0);
-  };
-
-  
-  OT.properties = function(properties) {
-    var props = OT.$.clone(properties);
-
-    props.debug = properties.debug === 'true' || properties.debug === true;
-    props.supportSSL = properties.supportSSL === 'true' || properties.supportSSL === true;
-
-    if (window.OTProperties) {
-      
-      if (window.OTProperties.cdnURL) props.cdnURL = window.OTProperties.cdnURL;
-      if (window.OTProperties.cdnURLSSL) props.cdnURLSSL = window.OTProperties.cdnURLSSL;
-      if (window.OTProperties.configURL) props.configURL = window.OTProperties.configURL;
-      if (window.OTProperties.assetURL) props.assetURL = window.OTProperties.assetURL;
-      if (window.OTProperties.cssURL) props.cssURL = window.OTProperties.cssURL;
-    }
-
-    if (!props.assetURL) {
-      if (OT.useSSL()) {
-        props.assetURL = props.cdnURLSSL + '/webrtc/' + props.version;
-      } else {
-        props.assetURL = props.cdnURL + '/webrtc/' + props.version;
-      }
-    }
-
-    var isIE89 = OT.$.browser() === 'IE' && OT.$.browserVersion().version <= 9;
-    if (!(isIE89 && window.location.protocol.indexOf('https') < 0)) {
-      props.apiURL = props.apiURLSSL;
-      props.loggingURL = props.loggingURLSSL;
-    }
-
-    if (!props.configURL) props.configURL = props.assetURL + '/js/dynamic_config.min.js';
-    if (!props.cssURL) props.cssURL = props.assetURL + '/css/ot.min.css';
-
-    return props;
-  }(OT.properties);
-})(window);
-!(function() {
-
-
-
-
-
-
-  OT.Config = (function() {
-    var _loaded = false,
-        _global = {},
-        _partners = {},
-        _script,
-        _head = document.head || document.getElementsByTagName('head')[0],
-        _loadTimer,
-
-        _clearTimeout = function() {
-          if (_loadTimer) {
-            clearTimeout(_loadTimer);
-            _loadTimer = null;
-          }
+          throttledPost();
         },
 
-        _cleanup = function() {
-          _clearTimeout();
+        shouldThrottleError = function(code, type, partnerId) {
+          if (!partnerId) return false;
 
-          if (_script) {
-            _script.onload = _script.onreadystatechange = null;
-
-            if ( _head && _script.parentNode ) {
-              _head.removeChild( _script );
-            }
-
-            _script = undefined;
-          }
-        },
-
-        _onLoad = function() {
+          var errKey = [partnerId, type, code].join('_'),
           
-          if (_script.readyState && !/loaded|complete/.test( _script.readyState )) {
-              
-            return;
-          }
+            msgLimit = 100;
+          if (msgLimit === null || msgLimit === undefined) return false;
+          return (reportedErrors[errKey] || 0) <= msgLimit;
+        };
 
-          _clearTimeout();
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    this.logError = function(code, type, message, details, options) {
+      if (!options) options = {};
+      var partnerId = options.partnerId;
 
-          if (!_loaded) {
-            
-            
-            
-            _this._onLoadTimeout();
-          }
-        },
-
-        _getModule = function(moduleName, apiKey) {
-          if (apiKey && _partners[apiKey] && _partners[apiKey][moduleName]) {
-            return _partners[apiKey][moduleName];
-          }
-
-          return _global[moduleName];
-        },
-
-        _this;
-
-    _this = {
-      
-      loadTimeout: 4000,
-
-      load: function(configUrl) {
-        if (!configUrl) throw new Error('You must pass a valid configUrl to Config.load');
-
-        _loaded = false;
-
-        setTimeout(function() {
-          _script = document.createElement( 'script' );
-          _script.async = 'async';
-          _script.src = configUrl;
-          _script.onload = _script.onreadystatechange = OT.$.bind(_onLoad, this);
-          _head.appendChild(_script);
-        },1);
-
-        _loadTimer = setTimeout(function() {
-          _this._onLoadTimeout();
-        }, this.loadTimeout);
-      },
-
-      _onLoadTimeout: function() {
-        _cleanup();
-
-        OT.warn('TB DynamicConfig failed to load in ' + _this.loadTimeout + ' ms');
-        this.trigger('dynamicConfigLoadFailed');
-      },
-
-      isLoaded: function() {
-        return _loaded;
-      },
-
-      reset: function() {
-        _cleanup();
-        _loaded = false;
-        _global = {};
-        _partners = {};
-      },
-
-      
-      
-      replaceWith: function(config) {
-        _cleanup();
-
-        if (!config) config = {};
-
-        _global = config.global || {};
-        _partners = config.partners || {};
-
-        if (!_loaded) _loaded = true;
-        this.trigger('dynamicConfigChanged');
-      },
-
-      
-      
-      
-      
-      
-      
-      
-      get: function(moduleName, key, apiKey) {
-        var module = _getModule(moduleName, apiKey);
-        return module ? module[key] : null;
+      if (shouldThrottleError(code, type, partnerId)) {
+        
+        
+        return;
       }
+
+      var errKey = [partnerId, type, code].join('_'),
+      payload =  details ? details : null;
+
+      reportedErrors[errKey] = typeof(reportedErrors[errKey]) !== 'undefined' ?
+        reportedErrors[errKey] + 1 : 1;
+      this.logEvent(OTHelpers.extend(options, {
+        action: type + '.' + code,
+        payload: payload
+      }), false);
     };
 
-    OT.$.eventing(_this);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    this.logEvent = function(data, qos, throttle) {
+      if (!qos) qos = false;
 
-    return _this;
-  })();
+      if (throttle && !isNaN(throttle)) {
+        if (Math.random() > throttle) {
+          return;
+        }
+      }
 
-})(window);
+      
+      for (var key in data) {
+        if (data.hasOwnProperty(key) && data[key] === null) {
+          delete data[key];
+        }
+      }
+
+      
+      data = JSON.stringify(data);
+
+      var onComplete = function() {
+        
+        
+      };
+
+      post(data, onComplete, qos);
+    };
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    this.logQOS = function(options) {
+      this.logEvent(options, true);
+    };
+  };
+
+})();
+
+
+
+
+
+
+
+
+
+OTHelpers.get = function(url, options, callback) {
+  var _options = OTHelpers.extend(options || {}, {
+    method: 'GET'
+  });
+  OTHelpers.request(url, _options, callback);
+};
+
+
+OTHelpers.post = function(url, options, callback) {
+  var _options = OTHelpers.extend(options || {}, {
+    method: 'POST'
+  });
+
+  if(_options.xdomainrequest) {
+    OTHelpers.xdomainRequest(url, _options, callback);
+  } else {
+    OTHelpers.request(url, _options, callback);
+  }
+};
+
+
+})(window, window.OTHelpers);
+
+
 
 
 
@@ -3670,27 +4174,40 @@
 
 
 
-if (scope.TBPlugin !== void 0) return;
+if (scope.OTPlugin !== void 0) return;
 
 
-if (scope.OT === void 0) return;
 
 
-var env = OT.$.browserVersion(),
-    isSupported = env.browser === 'IE' && env.version >= 8,
-    pluginReady = false;
 
-var TBPlugin = {
+
+
+var isSupported = (OTHelpers.env.name === 'IE' && OTHelpers.env.version >= 8 &&
+                    OTHelpers.env.userAgent.indexOf('x64') === -1),
+    pluginIsReady = false;
+
+
+var OTPlugin = {
   isSupported: function () { return isSupported; },
-  isReady: function() { return pluginReady; }
+  isReady: function() { return pluginIsReady; },
+  meta: {
+    mimeType: 'application/x-opentokie,version=0.4.0.9',
+    activeXName: 'TokBox.OpenTokIE.0.4.0.9',
+    version: '0.4.0.9'
+  }
 };
 
 
-scope.TBPlugin = TBPlugin;
 
 
-if (!TBPlugin.isSupported()) {
-  TBPlugin.isInstalled = function isInstalled () { return false; };
+OTHelpers.useLogHelpers(OTPlugin);
+
+scope.OTPlugin = OTPlugin;
+
+
+
+if (!OTPlugin.isSupported()) {
+  OTPlugin.isInstalled = function isInstalled () { return false; };
   return;
 }
 
@@ -3795,34 +4312,49 @@ var shim = function shim () {
 
 
 
-
-var PluginRumorSocket = function(plugin, server) {
+var RumorSocket = function(plugin, server) {
   var connected = false,
       rumorID;
+
+  var _onOpen,
+      _onClose;
+
 
   try {
     rumorID = plugin._.RumorInit(server, '');
   }
   catch(e) {
-    OT.error('Error creating the Rumor Socket: ', e.message);
+    OTPlugin.error('Error creating the Rumor Socket: ', e.message);
   }
 
   if(!rumorID) {
-    throw new Error('Could not initialise plugin rumor connection');
+    throw new Error('Could not initialise OTPlugin rumor connection');
   }
 
-  var socket = {
+  plugin._.SetOnRumorOpen(rumorID, function() {
+    if (_onOpen && OTHelpers.isFunction(_onOpen)) {
+      _onOpen.call(null);
+    }
+  });
+
+  plugin._.SetOnRumorClose(rumorID, function(code) {
+    _onClose(code);
+
+    
+    plugin.removeRef(this);
+  });
+
+  var api = {
     open: function() {
       connected = true;
       plugin._.RumorOpen(rumorID);
     },
 
     close: function(code, reason) {
-      if (!connected) return;
-      connected = false;
-
-      plugin._.RumorClose(rumorID, code, reason);
-      plugin.removeRef(this);
+      if (connected) {
+        connected = false;
+        plugin._.RumorClose(rumorID, code, reason);
+      }
     },
 
     destroy: function() {
@@ -3835,11 +4367,11 @@ var PluginRumorSocket = function(plugin, server) {
     },
 
     onOpen: function(callback) {
-      plugin._.SetOnRumorOpen(rumorID, callback);
+      _onOpen = callback;
     },
 
     onClose: function(callback) {
-      plugin._.SetOnRumorClose(rumorID, callback);
+      _onClose = callback;
     },
 
     onError: function(callback) {
@@ -3851,11 +4383,9 @@ var PluginRumorSocket = function(plugin, server) {
     }
   };
 
-  plugin.addRef(socket);
-  return socket;
-
+  plugin.addRef(api);
+  return api;
 };
-
 
 
 
@@ -3875,12 +4405,8 @@ var curryCallAsync = function curryCallAsync (fn) {
   return function() {
     var args = Array.prototype.slice.call(arguments);
     args.unshift(fn);
-    OT.$.callAsync.apply(OT.$, args);
+    OTHelpers.callAsync.apply(OTHelpers, args);
   };
-};
-
-var generatePluginUuid = function generatePluginUuid () {
-  return OT.$.uuid().replace(/\-+/g, '');
 };
 
 
@@ -3902,7 +4428,7 @@ var clearObjectLoadTimeout = function clearObjectLoadTimeout (callbackId) {
 };
 
 var removeObjectFromDom = function removeObjectFromDom (object) {
-  clearObjectLoadTimeout(object.getAttribute('tb_callbackId'));
+  clearObjectLoadTimeout(object.getAttribute('tbCallbackId'));
 
   if (mediaCaptureObject && mediaCaptureObject.id === object.id) {
     mediaCaptureObject = null;
@@ -3911,7 +4437,7 @@ var removeObjectFromDom = function removeObjectFromDom (object) {
     delete plugins[object.id];
   }
 
-  object.parentNode.removeChild(object);
+  OTHelpers.removeElement(object);
 };
 
 
@@ -3927,7 +4453,7 @@ var removeAllObjects = function removeAllObjects () {
 };
 
 
-var PluginObject = function PluginObject (plugin) {
+var PluginProxy = function PluginProxy (plugin) {
   var _plugin = plugin,
       _liveObjects = [];
 
@@ -3961,7 +4487,7 @@ var PluginObject = function PluginObject (plugin) {
 
   var eventHandlers = {};
 
-  var onCustomEvent = OT.$.bind(curryCallAsync(function onCustomEvent() {
+  var onCustomEvent = OTHelpers.bind(curryCallAsync(function onCustomEvent() {
     var args = Array.prototype.slice.call(arguments),
         name = args.shift();
 
@@ -3969,7 +4495,7 @@ var PluginObject = function PluginObject (plugin) {
       return;
     }
 
-    OT.$.forEach(eventHandlers[name], function(handler) {
+    OTHelpers.forEach(eventHandlers[name], function(handler) {
       handler[0].apply(handler[1], args);
     });
   }), this);
@@ -3990,7 +4516,7 @@ var PluginObject = function PluginObject (plugin) {
       return;
     }
 
-    OT.$.filter(eventHandlers[name], function(listener) {
+    OTHelpers.filter(eventHandlers[name], function(listener) {
       return listener[0] === callback &&
               listener[1] === context;
     });
@@ -4017,7 +4543,7 @@ var PluginObject = function PluginObject (plugin) {
 
     
     if (_plugin.initialise) {
-      this.on('ready', OT.$.bind(curryCallAsync(readyCallback), this));
+      this.on('ready', OTHelpers.bind(curryCallAsync(readyCallback), this));
       _plugin.initialise();
     }
     else {
@@ -4030,7 +4556,7 @@ var PluginObject = function PluginObject (plugin) {
       _liveObjects.shift().destroy();
     }
 
-    removeObjectFromDom(_plugin);
+    if (_plugin) removeObjectFromDom(_plugin);
     _plugin = null;
   };
 
@@ -4040,6 +4566,8 @@ var PluginObject = function PluginObject (plugin) {
         
         
         var verifyStream = function() {
+          if (!_plugin) return;
+
           if (_plugin.videoWidth > 0) {
             
             setTimeout(completion, 200);
@@ -4062,130 +4590,6 @@ var PluginObject = function PluginObject (plugin) {
 };
 
 
-var injectObject = function injectObject (mimeType, isVisible, params, completion) {
-  var callbackId = 'TBPlugin_loaded_' + generatePluginUuid();
-  params.onload = callbackId;
-  params.userAgent = window.navigator.userAgent.toLowerCase();
-
-  scope[callbackId] = function() {
-    clearObjectLoadTimeout(callbackId);
-
-    o.setAttribute('id', 'tb_plugin_' + o.uuid);
-    o.removeAttribute('tb_callbackId');
-
-    pluginRefCounted.uuid = o.uuid;
-    pluginRefCounted.id = o.id;
-
-    pluginRefCounted.onReady(function(err) {
-      if (err) {
-        OT.error('Error while starting up plugin ' + o.uuid + ': ' + err);
-        return;
-      }
-
-      debug('Plugin ' + o.id + ' is loaded');
-
-      if (completion && OT.$.isFunction(completion)) {
-        completion.call(TBPlugin, null, pluginRefCounted);
-      }
-    });
-  };
-
-  var tmpContainer = document.createElement('div'),
-      objBits = [],
-      extraAttributes = ['width="0" height="0"'],
-      pluginRefCounted,
-      o;
-
-  if (isVisible !== true) {
-    extraAttributes.push('visibility="hidden"');
-  }
-
-  objBits.push('<object type="' + mimeType + '" ' + extraAttributes.join(' ') + '>');
-
-  for (var name in params) {
-    if (params.hasOwnProperty(name)) {
-      objBits.push('<param name="' + name + '" value="' + params[name] + '" />');
-    }
-  }
-
-  objBits.push('</object>');
-  tmpContainer.innerHTML = objBits.join('');
-
-  _document.body.appendChild(tmpContainer);
-
-  function firstElementChild(element) {
-    if(element.firstElementChild) {
-      return element.firstElementChild;
-    }
-    for(var i = 0, len = element.childNodes.length; i < len; ++i) {
-      if(element.childNodes[i].nodeType === 1) {
-        return element.childNodes[i];
-      }
-    }
-    return null;
-  }
-
-  o = firstElementChild(tmpContainer);
-  o.setAttribute('tb_callbackId', callbackId);
-
-  pluginRefCounted = new PluginObject(o);
-
-  _document.body.appendChild(o);
-  _document.body.removeChild(tmpContainer);
-
-  objectTimeouts[callbackId] = setTimeout(function() {
-    clearObjectLoadTimeout(callbackId);
-
-    completion.call(TBPlugin, 'The object with the mimeType of ' +
-                                mimeType + ' timed out while loading.');
-
-    _document.body.removeChild(o);
-  }, 3000);
-
-  return pluginRefCounted;
-};
-
-
-
-
-
-
-
-
-var createMediaCaptureController = function createMediaCaptureController (completion) {
-  if (mediaCaptureObject) {
-    throw new Error('TBPlugin.createMediaCaptureController called multiple times!');
-  }
-
-  mediaCaptureObject = injectObject(pluginInfo.mimeType, false, {windowless: false}, completion);
-
-  mediaCaptureObject.selectSources = function() {
-    return this._.selectSources.apply(this._, arguments);
-  };
-
-  return mediaCaptureObject;
-};
-
-
-
-
-
-var createPeerController = function createPeerController (completion) {
-  var o = injectObject(pluginInfo.mimeType, true, {windowless: true}, function(err, plugin) {
-    if (err) {
-      completion.call(TBPlugin, err);
-      return;
-    }
-
-    plugins[plugin.id] = plugin;
-    completion.call(TBPlugin, null, plugin);
-  });
-
-  return o;
-};
-
-
-
 
 
 
@@ -4201,38 +4605,38 @@ var VideoContainer = function VideoContainer (plugin, stream) {
 
   this.appendTo = function (parentDomElement) {
     if (parentDomElement && plugin._.parentNode !== parentDomElement) {
-      debug('VideoContainer appendTo', parentDomElement);
+      OTPlugin.debug('VideoContainer appendTo', parentDomElement);
       parentDomElement.appendChild(plugin._);
       this.parentElement = parentDomElement;
     }
   };
 
   this.show = function (completion) {
-    debug('VideoContainer show');
+    OTPlugin.debug('VideoContainer show');
     plugin._.removeAttribute('width');
     plugin._.removeAttribute('height');
     plugin.setStream(stream, completion);
-    OT.$.show(plugin._);
+    OTHelpers.show(plugin._);
   };
 
   this.setWidth = function (width) {
-    debug('VideoContainer setWidth to ' + width);
+    OTPlugin.debug('VideoContainer setWidth to ' + width);
     plugin._.setAttribute('width', width);
   };
 
   this.setHeight = function (height) {
-    debug('VideoContainer setHeight to ' + height);
+    OTPlugin.debug('VideoContainer setHeight to ' + height);
     plugin._.setAttribute('height', height);
   };
 
   this.setVolume = function (value) {
     
-    debug('VideoContainer setVolume not implemented: called with ' + value);
+    OTPlugin.debug('VideoContainer setVolume not implemented: called with ' + value);
   };
 
   this.getVolume = function () {
     
-    debug('VideoContainer getVolume not implemented');
+    OTPlugin.debug('VideoContainer getVolume not implemented');
     return 0.5;
   };
 
@@ -4280,230 +4684,15 @@ var RTCStatsReport = function (reports) {
 
 
 
-
-
-
-var PeerConnection = function PeerConnection (iceServers, options, plugin) {
-  var id = OT.$.uuid(),
-      hasLocalDescription = false,
-      hasRemoteDescription = false,
-      candidates = [];
-
-  plugin.addRef(this);
-
-  var onAddIceCandidate = function onAddIceCandidate () {},
-
-      onAddIceCandidateFailed = function onAddIceCandidateFailed (err) {
-        OT.error('Failed to process candidate');
-        OT.error(err);
-      },
-
-      processPendingCandidates = function processPendingCandidates () {
-        for (var i=0; i<candidates.length; ++i) {
-          plugin._.addIceCandidate(id, candidates[i], onAddIceCandidate, onAddIceCandidateFailed);
-        }
-      },
-
-      callAsync = function callAsync () {
-        var args = Array.prototype.slice.call(arguments),
-            fn = args.shift();
-
-        setTimeout(function() {
-          return fn.apply(null, args);
-        }, 0);
-      }
-
-
-
-
-
-
-
-;
-
-  this.createOffer = function (success, error, constraints) {
-    OT.debug('createOffer', constraints);
-    plugin._.createOffer(id, function(type, sdp) {
-      success(new TBPlugin.RTCSessionDescription({
-        type: type,
-        sdp: sdp
-      }));
-    }, error, constraints || {});
-  };
-
-  this.createAnswer = function (success, error, constraints) {
-    OT.debug('createAnswer', constraints);
-    plugin._.createAnswer(id, function(type, sdp) {
-      success(new TBPlugin.RTCSessionDescription({
-        type: type,
-        sdp: sdp
-      }));
-    }, error, constraints || {});
-  };
-
-  this.setLocalDescription = function (description, success, error) {
-    OT.debug('setLocalDescription');
-
-    plugin._.setLocalDescription(id, description, function() {
-      hasLocalDescription = true;
-
-      if (hasRemoteDescription) processPendingCandidates();
-
-      if (success) success.call(null);
-    }, error);
-  };
-
-  this.setRemoteDescription = function (description, success, error) {
-    OT.debug('setRemoteDescription');
-
-    plugin._.setRemoteDescription(id, description, function() {
-      hasRemoteDescription = true;
-
-      if (hasLocalDescription) processPendingCandidates();
-      if (success) success.call(null);
-    }, error);
-  };
-
-  this.addIceCandidate = function (candidate) {
-    OT.debug('addIceCandidate');
-
-    if (hasLocalDescription && hasRemoteDescription) {
-      plugin._.addIceCandidate(id, candidate, onAddIceCandidate, onAddIceCandidateFailed);
-    }
-    else {
-      candidates.push(candidate);
-    }
-  };
-
-  this.addStream = function (stream) {
-    var constraints = {};
-    plugin._.addStream(id, stream, constraints);
-  };
-
-  this.removeStream = function (stream) {
-    plugin._.removeStream(id, stream);
-  };
-
-  this.getRemoteStreams = function () {
-    return plugin._.getRemoteStreams(id).map(function(stream) {
-      return MediaStream.fromJson(stream, plugin);
-    });
-  };
-
-  this.getLocalStreams = function () {
-    return plugin._.getLocalStreams(id).map(function(stream) {
-      return MediaStream.fromJson(stream, plugin);
-    });
-  };
-
-  this.getStreamById = function (streamId) {
-    return MediaStream.fromJson(plugin._.getStreamById(id, streamId), plugin);
-  };
-
-  this.getStats = function (mediaStreamTrack, success, error) {
-    plugin._.getStats(id, mediaStreamTrack || null, function(statsReportJson) {
-      var report = new RTCStatsReport(JSON.parse(statsReportJson));
-      callAsync(success, report);
-    }, error);
-  };
-
-  this.close = function () {
-    plugin._.destroyPeerConnection(id);
-    plugin.removeRef(this);
-  };
-
-  this.destroy = function () {
-    this.close();
-  };
-
-  
-  
-  
-  
-  this.onaddstream = null;
-  this.onremovestream = null;
-  this.onicecandidate = null;
-  this.onsignalingstatechange = null;
-  this.oniceconnectionstatechange = null;
-
-  
-  OT.$.forEach(iceServers.iceServers, function(iceServer) {
-    if (!iceServer.username) iceServer.username = '';
-    if (!iceServer.credential) iceServer.credential = '';
-  });
-
-  if (!plugin._.initPeerConnection(id, iceServers, options)) {
-    OT.error('Failed to initialise PeerConnection');
-    
-    return;
-  }
-
-  plugin._.on(id, {
-    addStream: function(streamJson) {
-      setTimeout(function() {
-        if (this.onaddstream && OT.$.isFunction(this.onaddstream)) {
-          var stream = MediaStream.fromJson(streamJson, plugin);
-          callAsync(this.onaddstream, {stream: stream});
-        }
-      }.bind(this), 3000);
-    }.bind(this),
-
-    removeStream: function(streamJson) {
-      if (this.onremovestream && OT.$.isFunction(this.onremovestream)) {
-        var stream = MediaStream.fromJson(streamJson, plugin);
-        callAsync(this.onremovestream, {stream: stream});
-      }
-    }.bind(this),
-
-    iceCandidate: function(candidateSdp, sdpMid, sdpMLineIndex) {
-      if (this.onicecandidate && OT.$.isFunction(this.onicecandidate)) {
-
-        var candidate = new TBPlugin.RTCIceCandidate({
-          candidate: candidateSdp,
-          sdpMid: sdpMid,
-          sdpMLineIndex: sdpMLineIndex
-        });
-
-        callAsync(this.onicecandidate, {candidate: candidate});
-      }
-    }.bind(this),
-
-    signalingStateChange: function(state) {
-      if (this.onsignalingstatechange && OT.$.isFunction(this.onsignalingstatechange)) {
-        callAsync(this.onsignalingstatechange, state);
-      }
-    }.bind(this),
-
-    iceConnectionChange: function(state) {
-      if (this.oniceconnectionstatechange && OT.$.isFunction(this.oniceconnectionstatechange)) {
-        callAsync(this.oniceconnectionstatechange, state);
-      }
-    }.bind(this)
-  });
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var MediaStreamTrack = function MediaStreamTrack (mediaStreamId, options, plugin) {
   this.id = options.id;
   this.kind = options.kind;
   this.label = options.label;
-  this.enabled = OT.$.castToBoolean(options.enabled);
+  this.enabled = OTHelpers.castToBoolean(options.enabled);
   this.streamId = mediaStreamId;
 
   this.setEnabled = function (enabled) {
-    this.enabled = OT.$.castToBoolean(enabled);
+    this.enabled = OTHelpers.castToBoolean(enabled);
 
     if (this.enabled) {
       plugin._.enableMediaStreamTrack(mediaStreamId, this.id);
@@ -4540,7 +4729,7 @@ var MediaStream = function MediaStream (options, plugin) {
   var hasTracksOfType = function (type) {
     var tracks = type === 'video' ? videoTracks : audioTracks;
 
-    return OT.$.some(tracks, function(track) {
+    return OTHelpers.some(tracks, function(track) {
       return track.enabled;
     });
   };
@@ -4586,7 +4775,7 @@ var MediaStream = function MediaStream (options, plugin) {
     plugin: plugin,
 
     
-    render: OT.$.bind(function() {
+    render: OTHelpers.bind(function() {
       return new VideoContainer(plugin, this);
     }, this)
   };
@@ -4597,6 +4786,303 @@ MediaStream.fromJson = function (json, plugin) {
   if (!json) return null;
   return new MediaStream( JSON.parse(json), plugin );
 };
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+var PeerConnection = function PeerConnection (iceServers, options, plugin, ready) {
+  var id = OTHelpers.uuid(),
+      hasLocalDescription = false,
+      hasRemoteDescription = false,
+      candidates = [],
+      inited = false,
+      deferMethods = [],
+      events,
+      _this = this;
+
+  plugin.addRef(this);
+
+  events = {
+    addstream: [],
+    removestream: [],
+    icecandidate: [],
+    signalingstatechange: [],
+    iceconnectionstatechange: []
+  };
+
+  var onAddIceCandidate = function onAddIceCandidate () {},
+
+      onAddIceCandidateFailed = function onAddIceCandidateFailed (err) {
+        OTPlugin.error('Failed to process candidate');
+        OTPlugin.error(err);
+      },
+
+      processPendingCandidates = function processPendingCandidates () {
+        for (var i=0; i<candidates.length; ++i) {
+          plugin._.addIceCandidate(id, candidates[i], onAddIceCandidate, onAddIceCandidateFailed);
+        }
+      },
+
+
+      deferMethod = function (method) {
+        return function() {
+          if (inited === true) {
+            return method.apply(_this, arguments);
+          }
+
+          deferMethods.push([method, arguments]);
+        };
+      },
+
+      processDeferredMethods = function () {
+        var m;
+        while ( (m = deferMethods.shift()) ) {
+          m[0].apply(_this, m[1]);
+        }
+      },
+
+      triggerEvent = function () {
+        var args = Array.prototype.slice.call(arguments),
+            eventName = args.shift();
+
+        if (!events.hasOwnProperty(eventName)) {
+          OTPlugin.error('PeerConnection does not have an event called: ' + eventName);
+          return;
+        }
+
+        OTHelpers.forEach(events[eventName], function(listener) {
+          listener.apply(null, args);
+        });
+      },
+
+      bindAndDelegateEvents = function () {
+        plugin._.on(id, {
+          addStream: function(streamJson) {
+            setTimeout(function() {
+              var stream = MediaStream.fromJson(streamJson, plugin),
+                  event = {stream: stream, target: _this};
+
+              if (_this.onaddstream && OTHelpers.isFunction(_this.onaddstream)) {
+                OTHelpers.callAsync(_this.onaddstream, event);
+              }
+
+              triggerEvent('addstream', event);
+            }, 3000);
+          },
+
+          removeStream: function(streamJson) {
+            var stream = MediaStream.fromJson(streamJson, plugin),
+                event = {stream: stream, target: _this};
+
+            if (_this.onremovestream && OTHelpers.isFunction(_this.onremovestream)) {
+              OTHelpers.callAsync(_this.onremovestream, event);
+            }
+
+            triggerEvent('removestream', event);
+          },
+
+          iceCandidate: function(candidateSdp, sdpMid, sdpMLineIndex) {
+            var candidate = new OTPlugin.RTCIceCandidate({
+              candidate: candidateSdp,
+              sdpMid: sdpMid,
+              sdpMLineIndex: sdpMLineIndex
+            });
+
+            var event = {candidate: candidate, target: _this};
+
+            if (_this.onicecandidate && OTHelpers.isFunction(_this.onicecandidate)) {
+              OTHelpers.callAsync(_this.onicecandidate, event);
+            }
+
+            triggerEvent('icecandidate', event);
+          },
+
+          signalingStateChange: function(state) {
+            _this.signalingState = state;
+            var event = {state: state, target: _this};
+
+            if (_this.onsignalingstatechange &&
+                    OTHelpers.isFunction(_this.onsignalingstatechange)) {
+              OTHelpers.callAsync(_this.onsignalingstatechange, event);
+            }
+
+            triggerEvent('signalingstate', event);
+          },
+
+          iceConnectionChange: function(state) {
+            _this.iceConnectionState = state;
+            var event = {state: state, target: _this};
+
+            if (_this.oniceconnectionstatechange &&
+                    OTHelpers.isFunction(_this.oniceconnectionstatechange)) {
+              OTHelpers.callAsync(_this.oniceconnectionstatechange, event);
+            }
+
+            triggerEvent('iceconnectionstatechange', event);
+          }
+        });
+      };
+
+  this.createOffer = deferMethod(function (success, error, constraints) {
+    OTPlugin.debug('createOffer', constraints);
+    plugin._.createOffer(id, function(type, sdp) {
+      success(new OTPlugin.RTCSessionDescription({
+        type: type,
+        sdp: sdp
+      }));
+    }, error, constraints || {});
+  });
+
+  this.createAnswer = deferMethod(function (success, error, constraints) {
+    OTPlugin.debug('createAnswer', constraints);
+    plugin._.createAnswer(id, function(type, sdp) {
+      success(new OTPlugin.RTCSessionDescription({
+        type: type,
+        sdp: sdp
+      }));
+    }, error, constraints || {});
+  });
+
+  this.setLocalDescription = deferMethod( function (description, success, error) {
+    OTPlugin.debug('setLocalDescription');
+
+    plugin._.setLocalDescription(id, description, function() {
+      hasLocalDescription = true;
+
+      if (hasRemoteDescription) processPendingCandidates();
+
+      if (success) success.call(null);
+    }, error);
+  });
+
+  this.setRemoteDescription = deferMethod( function (description, success, error) {
+    OTPlugin.debug('setRemoteDescription');
+
+    plugin._.setRemoteDescription(id, description, function() {
+      hasRemoteDescription = true;
+
+      if (hasLocalDescription) processPendingCandidates();
+      if (success) success.call(null);
+    }, error);
+  });
+
+  this.addIceCandidate = deferMethod( function (candidate) {
+    OTPlugin.debug('addIceCandidate');
+
+    if (hasLocalDescription && hasRemoteDescription) {
+      plugin._.addIceCandidate(id, candidate, onAddIceCandidate, onAddIceCandidateFailed);
+    }
+    else {
+      candidates.push(candidate);
+    }
+  });
+
+  this.addStream = deferMethod( function (stream) {
+    var constraints = {};
+    plugin._.addStream(id, stream, constraints);
+  });
+
+  this.removeStream = deferMethod( function (stream) {
+    plugin._.removeStream(id, stream);
+  });
+
+  this.getRemoteStreams = function () {
+    return OTHelpers.map(plugin._.getRemoteStreams(id), function(stream) {
+      return MediaStream.fromJson(stream, plugin);
+    });
+  };
+
+  this.getLocalStreams = function () {
+    return OTHelpers.map(plugin._.getLocalStreams(id), function(stream) {
+      return MediaStream.fromJson(stream, plugin);
+    });
+  };
+
+  this.getStreamById = function (streamId) {
+    return MediaStream.fromJson(plugin._.getStreamById(id, streamId), plugin);
+  };
+
+  this.getStats = deferMethod( function (mediaStreamTrack, success, error) {
+    plugin._.getStats(id, mediaStreamTrack || null, function(statsReportJson) {
+      var report = new RTCStatsReport(JSON.parse(statsReportJson));
+      OTHelpers.callAsync(success, report);
+    }, error);
+  });
+
+  this.close = function () {
+    plugin._.destroyPeerConnection(id);
+    plugin.removeRef(this);
+  };
+
+  this.destroy = function () {
+    this.close();
+  };
+
+  this.addEventListener = function  (event, handler ) {
+    if (events[event] === void 0) {
+      OTPlugin.error('Could not bind invalid event "' + event + '" to PeerConnection. ' +
+                      'The valid event types are:');
+      OTPlugin.error('\t' + OTHelpers.keys(events).join(', '));
+      return;
+    }
+
+    events[event].push(handler);
+  };
+
+  this.removeEventListener = function  (event, handler ) {
+    if (events[event] === void 0) {
+      OTPlugin.error('Could not unbind invalid event "' + event + '" to PeerConnection. ' +
+                      'The valid event types are:');
+      OTPlugin.error('\t' + OTHelpers.keys(events).join(', '));
+      return;
+    }
+
+    events[event] = OTHelpers.filter(events[event], handler);
+  };
+
+  
+  
+  
+  
+  this.onaddstream = null;
+  this.onremovestream = null;
+  this.onicecandidate = null;
+  this.onsignalingstatechange = null;
+  this.oniceconnectionstatechange = null;
+
+  
+  OTHelpers.forEach(iceServers.iceServers, function(iceServer) {
+    if (!iceServer.username) iceServer.username = '';
+    if (!iceServer.credential) iceServer.credential = '';
+  });
+
+  if (!plugin._.initPeerConnection(id, iceServers, options)) {
+    OTPlugin.error('Failed to initialise PeerConnection');
+    ready(new OTHelpers.error('Failed to initialise PeerConnection'));
+    return;
+  }
+
+  
+  inited = true;
+  bindAndDelegateEvents();
+  processDeferredMethods();
+  ready(void 0, this);
+};
+
+PeerConnection.create = function (iceServers, options, plugin, ready) {
+  new PeerConnection(iceServers, options, plugin, ready);
+};
+
 
 
 
@@ -4609,7 +5095,7 @@ MediaStream.fromJson = function (json, plugin) {
 
 
 var MediaConstraints = function(userConstraints) {
-  var constraints = OT.$.clone(userConstraints);
+  var constraints = OTHelpers.clone(userConstraints);
 
   this.hasVideo = constraints.video !== void 0 && constraints.video !== false;
   this.hasAudio = constraints.audio !== void 0 && constraints.audio !== false;
@@ -4656,6 +5142,196 @@ var MediaConstraints = function(userConstraints) {
 
 
 
+var objectTimeouts = {};
+
+var lastElementChild = function lastElementChild(parent) {
+  var node = parent.lastChild;
+
+  while(node && node.nodeType !== 1) {
+    node = node.previousSibling;
+  }
+
+  return node;
+};
+
+var generateCallbackUUID = function generateCallbackUUID () {
+  return 'OTPlugin_loaded_' + OTHelpers.uuid().replace(/\-+/g, '');
+};
+
+
+var clearObjectLoadTimeout = function clearObjectLoadTimeout (callbackId) {
+  if (!callbackId) return;
+
+  if (objectTimeouts[callbackId]) {
+    clearTimeout(objectTimeouts[callbackId]);
+    delete objectTimeouts[callbackId];
+  }
+
+  if (scope[callbackId]) {
+    try {
+      delete scope[callbackId];
+    } catch (err) {
+      scope[callbackId] = void 0;
+    }
+  }
+};
+
+var createPluginProxy = function createPluginProxy (callbackId, mimeType, params, isVisible) {
+  var objBits = [],
+      extraAttributes = ['width="0" height="0"'],
+      plugin;
+
+  if (isVisible !== true) {
+    extraAttributes.push('visibility="hidden"');
+  }
+
+  objBits.push('<object type="' + mimeType + '" ' + extraAttributes.join(' ') + '>');
+
+  for (var name in params) {
+    if (params.hasOwnProperty(name)) {
+      objBits.push('<param name="' + name + '" value="' + params[name] + '" />');
+    }
+  }
+
+  objBits.push('</object>');
+
+  scope.document.body.insertAdjacentHTML('beforeend', objBits.join(''));
+  plugin = new PluginProxy(lastElementChild(scope.document.body));
+  plugin._.setAttribute('tbCallbackId', callbackId);
+
+  return plugin;
+};
+
+
+
+var injectObject = function injectObject (mimeType, isVisible, params, completion) {
+  var callbackId = generateCallbackUUID(),
+      plugin;
+
+  params.onload = callbackId;
+  params.userAgent = OTHelpers.env.userAgent.toLowerCase();
+
+  scope[callbackId] = function() {
+    clearObjectLoadTimeout(callbackId);
+
+    plugin._.setAttribute('id', 'tb_plugin_' + plugin._.uuid);
+
+    if (plugin._.removeAttribute !== void 0) {
+      plugin._.removeAttribute('tbCallbackId');
+    }
+    else {
+      
+      plugin._.tbCallbackId = null;
+    }
+
+    plugin.uuid = plugin._.uuid;
+    plugin.id = plugin._.id;
+
+    plugin.onReady(function(err) {
+      if (err) {
+        OTPlugin.error('Error while starting up plugin ' + plugin.uuid + ': ' + err);
+        return;
+      }
+
+      OTPlugin.debug('Plugin ' + plugin.id + ' is loaded');
+
+      if (completion && OTHelpers.isFunction(completion)) {
+        completion.call(OTPlugin, null, plugin);
+      }
+    });
+  };
+
+  plugin = createPluginProxy(callbackId, mimeType, params, isVisible);
+
+  objectTimeouts[callbackId] = setTimeout(function() {
+    clearObjectLoadTimeout(callbackId);
+
+    completion.call(OTPlugin, 'The object with the mimeType of ' +
+                                mimeType + ' timed out while loading.');
+
+    scope.document.body.removeChild(plugin._);
+  }, 3000);
+
+  return plugin;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var objectTimeouts = {},
+    mediaCaptureObject,
+    plugins = {};
+
+
+
+
+var removeAllObjects = function removeAllObjects () {
+  if (mediaCaptureObject) mediaCaptureObject.destroy();
+
+  for (var id in plugins) {
+    if (plugins.hasOwnProperty(id)) {
+      plugins[id].destroy();
+    }
+  }
+};
+
+
+
+
+
+
+
+var createMediaCaptureController = function createMediaCaptureController (completion) {
+  if (mediaCaptureObject) {
+    throw new Error('OTPlugin.createMediaCaptureController called multiple times!');
+  }
+
+  mediaCaptureObject = injectObject(OTPlugin.meta.mimeType, false, {windowless: false}, completion);
+
+  mediaCaptureObject.selectSources = function() {
+    return this._.selectSources.apply(this._, arguments);
+  };
+
+  return mediaCaptureObject;
+};
+
+
+
+
+
+var createPeerController = function createPeerController (completion) {
+  var o = injectObject(OTPlugin.meta.mimeType, true, {windowless: true}, function(err, plugin) {
+    if (err) {
+      completion.call(OTPlugin, err);
+      return;
+    }
+
+    plugins[plugin.id] = plugin;
+    completion.call(OTPlugin, null, plugin);
+  });
+
+  return o;
+};
+
+
+
+
+
+
+
+
+
+
 
 var AutoUpdater;
 
@@ -4665,21 +5341,38 @@ var AutoUpdater;
       updaterMimeType,        
       installedVersion = -1;  
 
-
-  var versionGreaterThan = function versionGreaterThan (version1,version2) {
+  var versionGreaterThan = function versionGreaterThan (version1, version2) {
     if (version1 === version2) return false;
+    if (version1 === -1) return version2;
+    if (version2 === -1) return version1;
 
+    if (version1.indexOf('.') === -1 && version2.indexOf('.') === -1) {
+      return version1 > version2;
+    }
+
+    
+    
+    
+    
     var v1 = version1.split('.'),
-        v2 = version2.split('.');
-
-    v1 = parseFloat(parseInt(v1.shift(), 10) + '.' +
-                      v1.map(function(vcomp) { return parseInt(vcomp, 10); }).join(''));
-
-    v2 = parseFloat(parseInt(v2.shift(), 10) + '.' +
-                      v2.map(function(vcomp) { return parseInt(vcomp, 10); }).join(''));
+        v2 = version2.split('.'),
+        versionLength = (v1.length > v2.length ? v2 : v1).length;
 
 
-    return v1 > v2;
+    for (var i = 0; i < versionLength; ++i) {
+      if (parseInt(v1[i], 10) > parseInt(v2[i], 10)) {
+        return true;
+      }
+    }
+
+    
+    
+    
+    if (i < v1.length) {
+      return true;
+    }
+
+    return false;
   };
 
 
@@ -4692,11 +5385,11 @@ var AutoUpdater;
     }
 
     var activeXControlId = 'TokBox.otiePluginInstaller',
+        installPluginName = 'otiePluginInstaller',
         unversionedMimeType = 'application/x-otieplugininstaller',
-        plugin = navigator.plugins[activeXControlId];
+        plugin = navigator.plugins[activeXControlId] || navigator.plugins[installPluginName];
 
     installedVersion = -1;
-
 
     if (plugin) {
       
@@ -4705,9 +5398,10 @@ var AutoUpdater;
       
       var numMimeTypes = plugin.length,
           extractVersion = new RegExp(unversionedMimeType.replace('-', '\\-') +
-                                                            ',version=([0-9]+)', 'i'),
+                                                      ',version=([0-9a-zA-Z-_.]+)', 'i'),
           mimeType,
           bits;
+
 
       for (var i=0; i<numMimeTypes; ++i) {
         mimeType = plugin[i];
@@ -4726,7 +5420,7 @@ var AutoUpdater;
         }
       }
     }
-    else {
+    else if (OTHelpers.env.name === 'IE') {
       
       
       
@@ -4770,21 +5464,41 @@ var AutoUpdater;
   };
 
 
-  AutoUpdater = function (plugin) {
+  AutoUpdater = function () {
+    var plugin;
+
+    var getControllerCurry = function getControllerFirstCurry (fn) {
+      return function() {
+        if (plugin) {
+          return fn(void 0, arguments);
+        }
+
+        injectObject(getInstallerMimeType(), false, {windowless: false}, function(err, p) {
+          plugin = p;
+
+          if (err) {
+            OTPlugin.error('Error while loading the AutoUpdater: ' + err);
+            return;
+          }
+
+          return fn.apply(void 0, arguments);
+        });
+      };
+    };
 
     
     
     this.isOutOfDate = function () {
-      return versionGreaterThan(pluginInfo.version, getInstalledVersion());
+      return versionGreaterThan(OTPlugin.meta.version, getInstalledVersion());
     };
 
-    this.autoUpdate = function () {
+    this.autoUpdate = getControllerCurry(function () {
       var modal = OT.Dialogs.Plugin.updateInProgress(),
           analytics = new OT.Analytics(),
         payload = {
-          ieVersion: OT.$.browserVersion().version,
-          pluginOldVersion: TBPlugin.installedVersion(),
-          pluginNewVersion: TBPlugin.version()
+          ieVersion: OTHelpers.env.version,
+          pluginOldVersion: OTPlugin.installedVersion(),
+          pluginNewVersion: OTPlugin.version()
         };
 
       var success = curryCallAsync(function() {
@@ -4828,7 +5542,7 @@ var AutoUpdater;
               }
             });
 
-            OT.error('autoUpdate failed: ' + errorMessage + ' (' + errorCode +
+            OTPlugin.error('autoUpdate failed: ' + errorMessage + ' (' + errorCode +
                                       '). Please restart your browser and try again.');
             
           }),
@@ -4838,29 +5552,30 @@ var AutoUpdater;
             
           });
 
-      plugin._.updatePlugin(TBPlugin.pathToInstaller(), success, error, progress);
-    };
+      plugin._.updatePlugin(OTPlugin.pathToInstaller(), success, error, progress);
+    });
 
     this.destroy = function() {
-      plugin.destroy();
+      if (plugin) plugin.destroy();
     };
+
+    
+    if (navigator.plugins) {
+      navigator.plugins.refresh(false);
+    }
   };
 
   AutoUpdater.get = function (completion) {
-    if (autoUpdaterController) {
-      completion.call(null, void 0, autoUpdaterController);
-      return;
+    if (!autoUpdaterController) {
+      if (!this.isinstalled()) {
+        completion.call(null, 'Plugin was not installed');
+        return;
+      }
+
+      autoUpdaterController = new AutoUpdater();
     }
 
-    if (!this.isinstalled()) {
-      completion.call(null, 'Plugin was not installed');
-      return;
-    }
-
-    injectObject(getInstallerMimeType(), false, {windowless: false}, function(err, plugin) {
-      if (plugin) autoUpdaterController = new AutoUpdater(plugin);
-      completion.call(null, err, autoUpdaterController);
-    });
+    completion.call(null, void 0, autoUpdaterController);
   };
 
   AutoUpdater.isinstalled = function () {
@@ -4890,48 +5605,30 @@ var AutoUpdater;
 
 
 
+var readyCallbacks = [];
 
+var 
+    destroy = function destroy () {
+      removeAllObjects();
+    },
 
-  
+    registerReadyListener = function registerReadyListener (callback) {
+      readyCallbacks.push(callback);
+    },
 
-var pluginInfo = {
-    mimeType: 'application/x-opentokie,version=0.4.0.8',
-    activeXName: 'TokBox.OpenTokIE.0.4.0.8',
-    version: '0.4.0.8'
-  },
-  _document = scope.document,
-  readyCallbacks = [];
+    notifyReadyListeners = function notifyReadyListeners (err) {
+      var callback;
 
-var debug = function (message, object) {
-  if (object) {
-    scope.OT.info('TB Plugin - ' + message + ' => ', object);
-  }
-  else {
-    scope.OT.info('TB Plugin - ' + message);
-  }
-};
-
-
-
-
-var isDomReady = function isDomReady () {
-      return (_document.readyState === 'complete' ||
-             (_document.readyState === 'interactive' && _document.body));
+      while ( (callback = readyCallbacks.pop()) && OTHelpers.isFunction(callback) ) {
+        callback.call(OTPlugin, err);
+      }
     },
 
     onDomReady = function onDomReady () {
-      var callCompletionHandlers = function(err) {
-        var callback;
-
-        while ( (callback = readyCallbacks.pop()) && OT.$.isFunction(callback) ) {
-          callback.call(TBPlugin, err);
-        }
-      };
-
       AutoUpdater.get(function(err, updater) {
         if (err) {
-          OT.error('Error while loading the AutoUpdater: ' + err);
-          callCompletionHandlers('Error while loading the AutoUpdater: ' + err);
+          OTPlugin.error('Error while loading the AutoUpdater: ' + err);
+          notifyReadyListeners('Error while loading the AutoUpdater: ' + err);
           return;
         }
 
@@ -4948,54 +5645,51 @@ var isDomReady = function isDomReady () {
             err = 'The TB Plugin failed to load properly';
           }
 
-          pluginReady = true;
-          callCompletionHandlers(err);
+          pluginIsReady = true;
+          notifyReadyListeners(err);
 
-          OT.onUnload(destroy);
+          OTHelpers.onDOMUnload(destroy);
         });
       });
-    },
-
-    waitForDomReady = function waitForDomReady () {
-      if (isDomReady()) {
-        onDomReady();
-      }
-      else if (_document.addEventListener) {
-        _document.addEventListener('DOMContentLoaded', onDomReady, false);
-      } else if (_document.attachEvent) {
-        _document.attachEvent('onreadystatechange', function() {
-          if (_document.readyState === 'complete') onDomReady();
-        });
-      }
-    },
-
-    
-    
-    destroy = function destroy () {
-      removeAllObjects();
     };
 
 
 
 
-TBPlugin.isInstalled = function isInstalled () {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OTPlugin.isInstalled = function isInstalled () {
   if (!this.isSupported()) return false;
   return AutoUpdater.isinstalled();
 };
 
-TBPlugin.version = function version () {
-  return pluginInfo.version;
+OTPlugin.version = function version () {
+  return OTPlugin.meta.version;
 };
 
-TBPlugin.installedVersion = function installedVersion () {
+OTPlugin.installedVersion = function installedVersion () {
   return AutoUpdater.installedVersion();
 };
 
 
 
-TBPlugin.pathToInstaller = function pathToInstaller () {
+OTPlugin.pathToInstaller = function pathToInstaller () {
   return 'https://s3.amazonaws.com/otplugin.tokbox.com/v' +
-                    pluginInfo.version + '/otiePluginMain.msi';
+                    OTPlugin.meta.version + '/otiePluginMain.msi';
 };
 
 
@@ -5003,18 +5697,18 @@ TBPlugin.pathToInstaller = function pathToInstaller () {
 
 
 
-TBPlugin.ready = function ready (callback) {
-  if (TBPlugin.isReady()) {
+OTPlugin.ready = function ready (callback) {
+  if (OTPlugin.isReady()) {
     var err;
 
     if (!mediaCaptureObject || !mediaCaptureObject.isValid()) {
       err = 'The TB Plugin failed to load properly';
     }
 
-    callback.call(TBPlugin, err);
+    callback.call(OTPlugin, err);
   }
   else {
-    readyCallbacks.push(callback);
+    registerReadyListener(callback);
   }
 };
 
@@ -5022,12 +5716,12 @@ TBPlugin.ready = function ready (callback) {
 var _getUserMedia = function _getUserMedia(mediaConstraints, success, error) {
   createPeerController(function(err, plugin) {
     if (err) {
-      error.call(TBPlugin, err);
+      error.call(OTPlugin, err);
       return;
     }
 
     plugin._.getUserMedia(mediaConstraints.toHash(), function(streamJson) {
-      success.call(TBPlugin, MediaStream.fromJson(streamJson, plugin));
+      success.call(OTPlugin, MediaStream.fromJson(streamJson, plugin));
     }, error);
   });
 };
@@ -5035,7 +5729,7 @@ var _getUserMedia = function _getUserMedia(mediaConstraints, success, error) {
 
 
 
-TBPlugin.getUserMedia = function getUserMedia (userConstraints, success, error) {
+OTPlugin.getUserMedia = function getUserMedia (userConstraints, success, error) {
   var constraints = new MediaConstraints(userConstraints);
 
   if (constraints.screenSharing) {
@@ -5049,7 +5743,7 @@ TBPlugin.getUserMedia = function getUserMedia (userConstraints, success, error) 
     mediaCaptureObject.selectSources(sources, function(captureDevices) {
       for (var key in captureDevices) {
         if (captureDevices.hasOwnProperty(key)) {
-          OT.debug(key + ' Capture Device: ' + captureDevices[key]);
+          OTPlugin.debug(key + ' Capture Device: ' + captureDevices[key]);
         }
       }
 
@@ -5062,12 +5756,12 @@ TBPlugin.getUserMedia = function getUserMedia (userConstraints, success, error) 
   }
 };
 
-TBPlugin.initRumorSocket = function(messagingURL, completion) {
-  TBPlugin.ready(function(error) {
+OTPlugin.initRumorSocket = function(messagingURL, completion) {
+  OTPlugin.ready(function(error) {
     if(error) {
       completion(error);
     } else {
-      completion(null, new PluginRumorSocket(mediaCaptureObject, messagingURL));
+      completion(null, new RumorSocket(mediaCaptureObject, messagingURL));
     }
   });
 };
@@ -5076,21 +5770,26 @@ TBPlugin.initRumorSocket = function(messagingURL, completion) {
 
 
 
-TBPlugin.initPeerConnection = function initPeerConnection (iceServers,
+OTPlugin.initPeerConnection = function initPeerConnection (iceServers,
                                                            options,
                                                            localStream,
                                                            completion) {
 
   var gotPeerObject = function(err, plugin) {
     if (err) {
-      completion.call(TBPlugin, err);
+      completion.call(OTPlugin, err);
       return;
     }
 
-    debug('Got PeerConnection for ' + plugin.id);
-    var peerConnection = new PeerConnection(iceServers, options, plugin);
+    OTPlugin.debug('Got PeerConnection for ' + plugin.id);
+    PeerConnection.create(iceServers, options, plugin, function(err, peerConnection) {
+      if (err) {
+        completion.call(OTPlugin, err);
+        return;
+      }
 
-    completion.call(TBPlugin, null, peerConnection);
+      completion.call(OTPlugin, null, peerConnection);
+    });
   };
 
   
@@ -5108,13 +5807,13 @@ TBPlugin.initPeerConnection = function initPeerConnection (iceServers,
 };
 
 
-TBPlugin.RTCSessionDescription = function RTCSessionDescription (options) {
+OTPlugin.RTCSessionDescription = function RTCSessionDescription (options) {
   this.type = options.type;
   this.sdp = options.sdp;
 };
 
 
-TBPlugin.RTCIceCandidate = function RTCIceCandidate (options) {
+OTPlugin.RTCIceCandidate = function RTCIceCandidate (options) {
   this.sdpMid = options.sdpMid;
   this.sdpMLineIndex = parseInt(options.sdpMLineIndex, 10);
   this.candidate = options.candidate;
@@ -5122,3869 +5821,364 @@ TBPlugin.RTCIceCandidate = function RTCIceCandidate (options) {
 
 
 
-TBPlugin.debug = debug;
+
 
 shim();
 
-waitForDomReady();
-
+OTHelpers.onDOMLoad(onDomReady);
 
 
 })(this);
 
 
-!(function() {
 
 
-  var defaultAspectRatio = 4.0/3.0,
-      miniWidth = 128,
-      miniHeight = 128,
-      microWidth = 64,
-      microHeight = 64;
 
+!(function(window, OT) {
+
+
+
+
+
+
+
+
+
+
+if (location.protocol === 'file:') {
   
+  alert('You cannot test a page using WebRTC through the file system due to browser ' +
+    'permissions. You must run it over a web server.');
+}
+
+var OT = window.OT || {};
+
+
+OT.APIKEY = (function(){
   
-  
-  
-  function fixAspectRatio(element, width, height, desiredAspectRatio, rotated) {
-
-    if (TBPlugin.isInstalled()) {
-      
-      
-
-      OT.$.css(element, {
-        width: '100%',
-        height: '100%',
-        left: 0,
-        top: 0
-      });
-
-      return;
-    }
-
-    if (!width) width = parseInt(OT.$.width(element.parentNode), 10);
-    else width = parseInt(width, 10);
-
-    if (!height) height = parseInt(OT.$.height(element.parentNode), 10);
-    else height = parseInt(height, 10);
-
-    if (width === 0 || height === 0) return;
-
-    if (!desiredAspectRatio) desiredAspectRatio = defaultAspectRatio;
-
-    var actualRatio = (width + 0.0)/height,
-        props;
-
-    props = {
-      width: '100%',
-      height: '100%',
-      left: 0,
-      top: 0
-    };
-
-    if (actualRatio > desiredAspectRatio) {
-        
-      var newHeight = (actualRatio / desiredAspectRatio) * 100;
-
-      props.height = newHeight + '%';
-      props.top = '-' + ((newHeight - 100) / 2) + '%';
-    } else if (actualRatio < desiredAspectRatio) {
-      
-      var newWidth = (desiredAspectRatio / actualRatio) * 100;
-
-      props.width = newWidth + '%';
-      props.left = '-' + ((newWidth - 100) / 2) + '%';
-    }
-
-    OT.$.css(element, props);
-
-    var video = element.querySelector('video');
-    if(video) {
-      if(rotated) {
-        var w = element.offsetWidth,
-            h = element.offsetHeight,
-            diff = w - h;
-        props = {
-          width: h + 'px',
-          height: w + 'px',
-          marginTop: -(diff / 2) + 'px',
-          marginLeft: (diff / 2) + 'px'
-        };
-        OT.$.css(video, props);
-      } else {
-        OT.$.css(video, { width: '', height: '', marginTop: '', marginLeft: ''});
-      }
-    }
-  }
-
-  function fixMini(container, width, height) {
-    var w = parseInt(width, 10),
-        h = parseInt(height, 10);
-
-    if(w < microWidth || h < microHeight) {
-      OT.$.addClass(container, 'OT_micro');
-    } else {
-      OT.$.removeClass(container, 'OT_micro');
-    }
-    if(w < miniWidth || h < miniHeight) {
-      OT.$.addClass(container, 'OT_mini');
-    } else {
-      OT.$.removeClass(container, 'OT_mini');
-    }
-  }
-
-  var getOrCreateContainer = function getOrCreateContainer(elementOrDomId, insertMode) {
-    var container,
-        domId;
-
-    if (elementOrDomId && elementOrDomId.nodeName) {
-      
-      
-      container = elementOrDomId;
-      if (!container.getAttribute('id') || container.getAttribute('id').length === 0) {
-        container.setAttribute('id', 'OT_' + OT.$.uuid());
-      }
-
-      domId = container.getAttribute('id');
-    } else {
-      
-      container = OT.$(elementOrDomId);
-      domId = elementOrDomId || ('OT_' + OT.$.uuid());
-    }
-
-    if (!container) {
-      container = OT.$.createElement('div', {id: domId});
-      container.style.backgroundColor = '#000000';
-      document.body.appendChild(container);
-    } else {
-      if(!(insertMode == null || insertMode === 'replace')) {
-        var placeholder = document.createElement('div');
-        placeholder.id = ('OT_' + OT.$.uuid());
-        if(insertMode === 'append') {
-          container.appendChild(placeholder);
-          container = placeholder;
-        } else if(insertMode === 'before') {
-          container.parentNode.insertBefore(placeholder, container);
-          container = placeholder;
-        } else if(insertMode === 'after') {
-          container.parentNode.insertBefore(placeholder, container.nextSibling);
-          container = placeholder;
-        }
-      } else {
-        OT.$.emptyElement(container);
-      }
-    }
-
-    return container;
-  };
-
-  
-  
-  OT.WidgetView = function(targetElement, properties) {
-    var container = getOrCreateContainer(targetElement, properties && properties.insertMode),
-        videoContainer = document.createElement('div'),
-        oldContainerStyles = {},
-        dimensionsObserver,
-        videoElement,
-        videoObserver,
-        posterContainer,
-        loadingContainer,
-        width,
-        height,
-        loading = true,
-        audioOnly = false;
-
-    if (properties) {
-      width = properties.width;
-      height = properties.height;
-
-      if (width) {
-        if (typeof(width) === 'number') {
-          width = width + 'px';
-        }
-      }
-
-      if (height) {
-        if (typeof(height) === 'number') {
-          height = height + 'px';
-        }
-      }
-
-      container.style.width = width ? width : '264px';
-      container.style.height = height ? height : '198px';
-      container.style.overflow = 'hidden';
-      fixMini(container, width || '264px', height || '198px');
-
-      if (properties.mirror === undefined || properties.mirror) {
-        OT.$.addClass(container, 'OT_mirrored');
-      }
-    }
-
-    if (properties.classNames) OT.$.addClass(container, properties.classNames);
-    OT.$.addClass(container, 'OT_loading');
-
-
-    OT.$.addClass(videoContainer, 'OT_video-container');
-    videoContainer.style.width = container.style.width;
-    videoContainer.style.height = container.style.height;
-    container.appendChild(videoContainer);
-    fixAspectRatio(videoContainer, container.offsetWidth, container.offsetHeight);
-
-    loadingContainer = document.createElement('div');
-    OT.$.addClass(loadingContainer, 'OT_video-loading');
-    videoContainer.appendChild(loadingContainer);
-
-    posterContainer = document.createElement('div');
-    OT.$.addClass(posterContainer, 'OT_video-poster');
-    videoContainer.appendChild(posterContainer);
-
-    oldContainerStyles.width = container.offsetWidth;
-    oldContainerStyles.height = container.offsetHeight;
-
-    if (!TBPlugin.isInstalled()) {
-      
-      dimensionsObserver = OT.$.observeStyleChanges(container, ['width', 'height'],
-        function(changeSet) {
-        var width = changeSet.width ? changeSet.width[1] : container.offsetWidth,
-            height = changeSet.height ? changeSet.height[1] : container.offsetHeight;
-        fixMini(container, width, height);
-        fixAspectRatio(videoContainer, width, height, videoElement ?
-          videoElement.aspectRatio() : null);
-      });
-
-
-      
-      
-      videoObserver = OT.$.observeNodeOrChildNodeRemoval(container, function(removedNodes) {
-        if (!videoElement) return;
-
-        
-        
-        var videoRemoved = OT.$.some(removedNodes, function(node) {
-          return node === videoContainer || node.nodeName === 'VIDEO';
-        });
-
-        if (videoRemoved) {
-          videoElement.destroy();
-          videoElement = null;
-        }
-
-        if (videoContainer) {
-          OT.$.removeElement(videoContainer);
-          videoContainer = null;
-        }
-
-        if (dimensionsObserver) {
-          dimensionsObserver.disconnect();
-          dimensionsObserver = null;
-        }
-
-        if (videoObserver) {
-          videoObserver.disconnect();
-          videoObserver = null;
-        }
-      });
-    }
-
-    this.destroy = function() {
-      if (dimensionsObserver) {
-        dimensionsObserver.disconnect();
-        dimensionsObserver = null;
-      }
-
-      if (videoObserver) {
-        videoObserver.disconnect();
-        videoObserver = null;
-      }
-
-      if (videoElement) {
-        videoElement.destroy();
-        videoElement = null;
-      }
-
-      if (container) {
-        OT.$.removeElement(container);
-        container = null;
-      }
-    };
-
-    this.setBackgroundImageURI = function(bgImgURI) {
-      if (bgImgURI.substr(0, 5) !== 'http:' && bgImgURI.substr(0, 6) !== 'https:') {
-        if (bgImgURI.substr(0, 22) !== 'data:image/png;base64,') {
-          bgImgURI = 'data:image/png;base64,' + bgImgURI;
-        }
-      }
-      OT.$.css(posterContainer, 'backgroundImage', 'url(' + bgImgURI + ')');
-      OT.$.css(posterContainer, 'backgroundSize', 'contain');
-      OT.$.css(posterContainer, 'opacity', '1.0');
-    };
-
-    if (properties && properties.style && properties.style.backgroundImageURI) {
-      this.setBackgroundImageURI(properties.style.backgroundImageURI);
-    }
-
-    this.bindVideo = function(webRTCStream, options, completion) {
-      
-      
-      if (videoElement) {
-        videoElement.destroy();
-        videoElement = null;
-      }
-
-      var onError = options && options.error ? options.error : void 0;
-      delete options.error;
-
-      var video = new OT.VideoElement({ attributes: options }, onError);
-
-      
-      if (options.audioVolume) video.setAudioVolume(options.audioVolume);
-
-      
-      video.audioChannelType('telephony');
-
-      video.appendTo(videoContainer).bindToStream(webRTCStream, function(err) {
-        if (err) {
-          video.destroy();
-          completion(err);
-          return;
-        }
-
-        videoElement = video;
-
-        videoElement.on({
-          orientationChanged: function(){
-            fixAspectRatio(videoContainer, container.offsetWidth, container.offsetHeight,
-              videoElement.aspectRatio(), videoElement.isRotated());
-          }
-        });
-
-        var fix = function() {
-          fixAspectRatio(videoContainer, container.offsetWidth, container.offsetHeight,
-            videoElement ? videoElement.aspectRatio() : null,
-            videoElement ? videoElement.isRotated() : null);
-        };
-
-        if(isNaN(videoElement.aspectRatio())) {
-          videoElement.on('streamBound', fix);
-        } else {
-          fix();
-        }
-
-        completion(null, video);
-      });
-
-      return video;
-    };
-
-    this.video = function() { return videoElement; };
-
-
-    OT.$.defineProperties(this, {
-      showPoster: {
-        get: function() {
-          return !OT.$.isDisplayNone(posterContainer);
-        },
-        set: function(newValue) {
-          if(newValue) {
-            OT.$.show(posterContainer);
-          } else {
-            OT.$.hide(posterContainer);
-          }
-        }
-      },
-
-      poster: {
-        get: function() {
-          return OT.$.css(posterContainer, 'backgroundImage');
-        },
-        set: function(src) {
-          OT.$.css(posterContainer, 'backgroundImage', 'url(' + src + ')');
-        }
-      },
-
-      loading: {
-        get: function() { return loading; },
-        set: function(l) {
-          loading = l;
-
-          if (loading) {
-            OT.$.addClass(container, 'OT_loading');
-          } else {
-            OT.$.removeClass(container, 'OT_loading');
-          }
-        }
-      },
-
-      audioOnly: {
-        get: function() { return audioOnly; },
-        set: function(a) {
-          audioOnly = a;
-
-          if (audioOnly) {
-            OT.$.addClass(container, 'OT_audio-only');
-          } else {
-            OT.$.removeClass(container, 'OT_audio-only');
-          }
-        }
-      },
-
-      domId: {
-        get: function() { return container.getAttribute('id'); }
-      }
-
-    });
-
-    this.domElement = container;
-
-    this.addError = function(errorMsg, helpMsg, classNames) {
-      container.innerHTML = '<p>' + errorMsg +
-        (helpMsg ? ' <span class="ot-help-message">' + helpMsg + '</span>' : '') +
-        '</p>';
-      OT.$.addClass(container, classNames || 'OT_subscriber_error');
-      if(container.querySelector('p').offsetHeight > container.offsetHeight) {
-        container.querySelector('span').style.display = 'none';
-      }
-    };
-  };
-
-})(window);
-
-!(function(window) {
-
-  var NativeRTCPeerConnection = (window.webkitRTCPeerConnection ||
-                                 window.mozRTCPeerConnection);
-
-  if (navigator.webkitGetUserMedia) {
-    
-    
-    if (!webkitMediaStream.prototype.getVideoTracks) {
-      webkitMediaStream.prototype.getVideoTracks = function() {
-        return this.videoTracks;
-      };
-    }
-
-    
-    if (!webkitMediaStream.prototype.getAudioTracks) {
-      webkitMediaStream.prototype.getAudioTracks = function() {
-        return this.audioTracks;
-      };
-    }
-
-    if (!webkitRTCPeerConnection.prototype.getLocalStreams) {
-      webkitRTCPeerConnection.prototype.getLocalStreams = function() {
-        return this.localStreams;
-      };
-    }
-
-    if (!webkitRTCPeerConnection.prototype.getRemoteStreams) {
-      webkitRTCPeerConnection.prototype.getRemoteStreams = function() {
-        return this.remoteStreams;
-      };
-    }
-
-  } else if (navigator.mozGetUserMedia) {
-    
-    
-    if (!MediaStream.prototype.getVideoTracks) {
-      MediaStream.prototype.getVideoTracks = function() {
-        return [];
-      };
-    }
-
-    if (!MediaStream.prototype.getAudioTracks) {
-      MediaStream.prototype.getAudioTracks = function() {
-        return [];
-      };
-    }
-
-    
-    
-    
-    
-    
-    
-    
-
-    
-    
-    
-    
-    
-    
-    
-  }
-
-  
-  
-  
-  if (typeof window.MediaStreamTrack !== 'undefined') {
-    if (!window.MediaStreamTrack.prototype.setEnabled) {
-      window.MediaStreamTrack.prototype.setEnabled = function (enabled) {
-        this.enabled = OT.$.castToBoolean(enabled);
-      };
-    }
-  }
-
-
-  OT.$.createPeerConnection = function (config, options, publishersWebRtcStream, completion) {
-    if (TBPlugin.isInstalled()) {
-      TBPlugin.initPeerConnection(config, options,
-                                  publishersWebRtcStream, completion);
-    }
-    else {
-      var pc;
-
-      try {
-        pc = new NativeRTCPeerConnection(config, options);
-      } catch(e) {
-        completion(e.message);
-        return;
-      }
-
-      completion(null, pc);
-    }
-  };
-
-  
-  
-  
-  
-  
-  
-  
-  
-  OT.$.supportedCryptoScheme = function() {
-    if (!OT.$.hasCapabilities('webrtc')) return 'NONE';
-
-    var chromeVersion = window.navigator.userAgent.toLowerCase().match(/chrome\/([0-9\.]+)/i);
-    return chromeVersion && parseFloat(chromeVersion[1], 10) < 25 ? 'SDES_SRTP' : 'DTLS_SRTP';
-  };
-
-})(window);
-
-!(function(window) {
-
-  
-
-  
-
-  
-  
-  
-  
-  
-
-
-  
-  
-  
-  OT.$.registerCapability('getUserMedia', function() {
-    return !!(navigator.webkitGetUserMedia || navigator.mozGetUserMedia || TBPlugin.isInstalled());
-  });
-
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  OT.$.registerCapability('PeerConnection', function() {
-    var browser = OT.$.browserVersion();
-
-    if (navigator.webkitGetUserMedia) {
-      return typeof(window.webkitRTCPeerConnection) === 'function' &&
-                      !!window.webkitRTCPeerConnection.prototype.addStream;
-
-    } else if (navigator.mozGetUserMedia) {
-      if (typeof(window.mozRTCPeerConnection) === 'function' && browser.version > 20.0) {
-        try {
-          new window.mozRTCPeerConnection();
-          return true;
-        } catch (err) {
-          return false;
-        }
-      }
-    } else {
-      return TBPlugin.isInstalled();
-    }
-  });
-
-
-  
-  
-  
-  
-  OT.$.registerCapability('webrtc', function() {
-    var browser = OT.$.browserVersion(),
-        minimumVersions = OT.properties.minimumVersion || {},
-        minimumVersion = minimumVersions[browser.browser.toLowerCase()];
-
-    if(minimumVersion && minimumVersion > browser.version) {
-      OT.debug('Support for', browser.browser, 'is disabled because we require',
-        minimumVersion, 'but this is', browser.version);
-      return false;
-    }
-
-
-    return OT.$.hasCapabilities('getUserMedia', 'PeerConnection');
-  });
-
-
-  
-  
-  
-  
-  
-  
-  
-  
-  OT.$.registerCapability('bundle', function() {
-    return OT.$.hasCapabilities('webrtc') &&
-              (OT.$.browser() === 'Chrome' || TBPlugin.isInstalled());
-  });
-
-
-  
-  
-  
-  
-  
-  
-  
-  
-  OT.$.registerCapability('RTCPMux', function() {
-    return OT.$.hasCapabilities('webrtc') &&
-                (OT.$.browser() === 'Chrome' || TBPlugin.isInstalled());
-  });
-
-
-
-  
-  
-  OT.$.registerCapability('getMediaDevices', function() {
-    return OT.$.isFunction(window.MediaStreamTrack) &&
-              OT.$.isFunction(window.MediaStreamTrack.getSources);
-  });
-
-})(window);
-
-!(function() {
-
-  var nativeGetUserMedia,
-      vendorToW3CErrors,
-      gumNamesToMessages,
-      mapVendorErrorName,
-      parseErrorEvent,
-      areInvalidConstraints;
-
-  
-  nativeGetUserMedia = (function() {
-    if (navigator.getUserMedia) {
-      return OT.$.bind(navigator.getUserMedia, navigator);
-    } else if (navigator.mozGetUserMedia) {
-      return OT.$.bind(navigator.mozGetUserMedia, navigator);
-    } else if (navigator.webkitGetUserMedia) {
-      return OT.$.bind(navigator.webkitGetUserMedia, navigator);
-    } else if (TBPlugin.isInstalled()) {
-      return OT.$.bind(TBPlugin.getUserMedia, TBPlugin);
-    }
+  var scriptSrc = (function(){
+    var s = document.getElementsByTagName('script');
+    s = s[s.length - 1];
+    s = s.getAttribute('src') || s.src;
+    return s;
   })();
 
-  
-  
-  
-  vendorToW3CErrors = {
-    PERMISSION_DENIED: 'PermissionDeniedError',
-    NOT_SUPPORTED_ERROR: 'NotSupportedError',
-    MANDATORY_UNSATISFIED_ERROR: ' ConstraintNotSatisfiedError',
-    NO_DEVICES_FOUND: 'NoDevicesFoundError',
-    HARDWARE_UNAVAILABLE: 'HardwareUnavailableError',
-    TrackStartError: 'HardwareUnavailableError'
-  };
-
-  gumNamesToMessages = {
-    PermissionDeniedError: 'End-user denied permission to hardware devices',
-    PermissionDismissedError: 'End-user dismissed permission to hardware devices',
-    NotSupportedError: 'A constraint specified is not supported by the browser.',
-    ConstraintNotSatisfiedError: 'It\'s not possible to satisfy one or more constraints ' +
-      'passed into the getUserMedia function',
-    OverconstrainedError: 'Due to changes in the environment, one or more mandatory ' +
-      'constraints can no longer be satisfied.',
-    NoDevicesFoundError: 'No voice or video input devices are available on this machine.',
-    HardwareUnavailableError: 'The selected voice or video devices are unavailable. Verify ' +
-      'that the chosen devices are not in use by another application.'
-  };
-
-  
-  mapVendorErrorName = function mapVendorErrorName(vendorErrorName, vendorErrors) {
-    var errorName, errorMessage;
-
-    if(vendorErrors.hasOwnProperty(vendorErrorName)) {
-      errorName = vendorErrors[vendorErrorName];
-    } else {
-      
-      
-      errorName = vendorErrorName;
-    }
-
-    if(gumNamesToMessages.hasOwnProperty(errorName)) {
-      errorMessage = gumNamesToMessages[errorName];
-    } else {
-      errorMessage = 'Unknown Error while getting user media';
-    }
-
-    return {
-      name: errorName,
-      message: errorMessage
-    };
-  };
-
-  
-  
-  parseErrorEvent = function parseErrorObject(event) {
-    var error;
-
-    if (OT.$.isObject(event) && event.name) {
-      error = mapVendorErrorName(event.name, vendorToW3CErrors);
-      error.constraintName = event.constraintName;
-    } else if (typeof event === 'string') {
-      error = mapVendorErrorName(event, vendorToW3CErrors);
-    } else {
-      error = {
-        message: 'Unknown Error type while getting media'
-      };
-    }
-
-    return error;
-  };
-
-  
-  
-  areInvalidConstraints = function(constraints) {
-    if (!constraints || !OT.$.isObject(constraints)) return true;
-
-    for (var key in constraints) {
-      if(!constraints.hasOwnProperty(key)) {
-        continue;
-      }
-      if (constraints[key]) return false;
-    }
-
-    return true;
-  };
-
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  OT.$.getUserMedia = function(constraints, success, failure, accessDialogOpened,
-    accessDialogClosed, accessDenied, customGetUserMedia) {
-
-    var getUserMedia = nativeGetUserMedia;
-
-    if(OT.$.isFunction(customGetUserMedia)) {
-      getUserMedia = customGetUserMedia;
-    }
-
-    
-    
-    if (areInvalidConstraints(constraints)) {
-      OT.error('Couldn\'t get UserMedia: All constraints were false');
-      
-      failure.call(null, {
-        name: 'NO_VALID_CONSTRAINTS',
-        message: 'Video and Audio was disabled, you need to enabled at least one'
-      });
-
-      return;
-    }
-
-    var triggerOpenedTimer = null,
-        displayedPermissionDialog = false,
-
-        finaliseAccessDialog = function() {
-          if (triggerOpenedTimer) {
-            clearTimeout(triggerOpenedTimer);
-          }
-
-          if (displayedPermissionDialog && accessDialogClosed) accessDialogClosed();
-        },
-
-        triggerOpened = function() {
-          triggerOpenedTimer = null;
-          displayedPermissionDialog = true;
-
-          if (accessDialogOpened) accessDialogOpened();
-        },
-
-        onStream = function(stream) {
-          finaliseAccessDialog();
-          success.call(null, stream);
-        },
-
-        onError = function(event) {
-          finaliseAccessDialog();
-          var error = parseErrorEvent(event);
-
-          
-          if (error.name === 'PermissionDeniedError' || error.name === 'PermissionDismissedError') {
-            accessDenied.call(null, error);
-          } else {
-            failure.call(null, error);
-          }
-        };
-
-    try {
-      getUserMedia(constraints, onStream, onError);
-    } catch (e) {
-      OT.error('Couldn\'t get UserMedia: ' + e.toString());
-      onError();
-      return;
-    }
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    if (location.protocol.indexOf('https') === -1) {
-      
-      
-      triggerOpenedTimer = setTimeout(triggerOpened, 100);
-
-    } else {
-      
-      triggerOpenedTimer = setTimeout(triggerOpened, 500);
-    }
-  };
-
+  var m = scriptSrc.match(/[\?\&]apikey=([^&]+)/i);
+  return m ? m[1] : '';
 })();
 
-!(function(window) {
+
+if (!window.OT) window.OT = OT;
+if (!window.TB) window.TB = OT;
+
+
+
+OT.properties = {
+  version: 'v2.4.0',         
+  build: '54ae164',    
 
   
+  debug: 'false',
+  
+  websiteURL: 'http://www.tokbox.com',
 
   
+  cdnURL: 'http://static.opentok.com',
+  
+  loggingURL: 'http://hlg.tokbox.com/prod',
 
   
+  apiURL: 'http://anvil.opentok.com',
+
   
+  messagingProtocol: 'wss',
   
+  messagingPort: 443,
+
   
+  supportSSL: 'true',
   
+  cdnURLSSL: 'https://static.opentok.com',
+  
+  loggingURLSSL: 'https://hlg.tokbox.com/prod',
 
-  var chromeToW3CDeviceKinds = {
-    audio: 'audioInput',
-    video: 'videoInput'
-  };
+  
+  apiURLSSL: 'https://anvil.opentok.com',
+
+  minimumVersion: {
+    firefox: parseFloat('29'),
+    chrome: parseFloat('34')
+  }
+};
 
 
-  OT.$.shouldAskForDevices = function(callback) {
-    var MST = window.MediaStreamTrack;
 
-    if(MST != null && OT.$.isFunction(MST.getSources)) {
-      window.MediaStreamTrack.getSources(function(sources) {
-        var hasAudio = sources.some(function(src) {
-          return src.kind === 'audio';
-        });
 
-        var hasVideo = sources.some(function(src) {
-          return src.kind === 'video';
-        });
 
-        callback.call(null, { video: hasVideo, audio: hasAudio });
-      });
 
-    } else {
-      
-      OT.$.shouldAskForDevices = function(callback) {
-        setTimeout(OT.$.bind(callback, null, { video: true, audio: true }));
-      };
 
-      OT.$.shouldAskForDevices(callback);
+
+
+
+
+OT.$ = window.OTHelpers;
+
+
+OT.$.eventing(OT);
+
+
+
+OT.$.defineGetters = function(self, getters, enumerable) {
+  var propsDefinition = {};
+
+  if (enumerable === void 0) enumerable = false;
+
+  for (var key in getters) {
+    if(!getters.hasOwnProperty(key)) {
+      continue;
     }
-  };
+
+    propsDefinition[key] = {
+      get: getters[key],
+      enumerable: enumerable
+    };
+  }
+
+  Object.defineProperties(self, propsDefinition);
+};
 
 
-  OT.$.getMediaDevices = function(callback) {
-    if(OT.$.hasCapabilities('getMediaDevices')) {
-      window.MediaStreamTrack.getSources(function(sources) {
-        var filteredSources = OT.$.filter(sources, function(source) {
-          return chromeToW3CDeviceKinds[source.kind] != null;
+
+
+OT.Modal = OT.$.Modal;
+
+
+OT.$.useLogHelpers(OT);
+
+var _debugHeaderLogged = false,
+    _setLogLevel = OT.setLogLevel;
+
+
+OT.setLogLevel = function(level) {
+  
+  OT.$.setLogLevel(level);
+  var retVal = _setLogLevel.call(OT, level);
+  if (OT.shouldLog(OT.DEBUG) && !_debugHeaderLogged) {
+    OT.debug('OpenTok JavaScript library ' + OT.properties.version);
+    OT.debug('Release notes: ' + OT.properties.websiteURL +
+      '/opentok/webrtc/docs/js/release-notes.html');
+    OT.debug('Known issues: ' + OT.properties.websiteURL +
+      '/opentok/webrtc/docs/js/release-notes.html#knownIssues');
+    _debugHeaderLogged = true;
+  }
+  OT.debug('OT.setLogLevel(' + retVal + ')');
+  return retVal;
+};
+
+var debugTrue = OT.properties.debug === 'true' || OT.properties.debug === true;
+OT.setLogLevel(debugTrue ? OT.DEBUG : OT.ERROR);
+
+
+
+if (OTPlugin && OTPlugin.isInstalled()) {
+  OT.$.env.userAgent += '; OTPlugin ' + OTPlugin.version();
+}
+
+
+OT.$.userAgent = function() { return OT.$.env.userAgent; };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OT.Rumor = {
+  MessageType: {
+    
+    
+    
+    SUBSCRIBE: 0,
+
+    
+    
+    UNSUBSCRIBE: 1,
+
+    
+    
+    MESSAGE: 2,
+
+    
+    
+    
+    CONNECT: 3,
+
+    
+    
+    DISCONNECT: 4,
+
+    
+    PING: 7,
+    PONG: 8,
+    STATUS: 9
+  }
+};
+
+
+
+
+
+
+
+
+!(function() {
+
+  OT.Rumor.PluginSocket = function(messagingURL, events) {
+
+    var webSocket,
+        state = 'initializing';
+
+    OTPlugin.initRumorSocket(messagingURL, OT.$.bind(function(err, rumorSocket) {
+      if(err) {
+        state = 'closed';
+        events.onClose({ code: 4999 });
+      } else if(state === 'initializing') {
+        webSocket = rumorSocket;
+
+        webSocket.onOpen(function() {
+          state = 'open';
+          events.onOpen();
         });
-        callback(void 0, OT.$.map(filteredSources, function(source) {
-          return {
-            deviceId: source.id,
-            label: source.label,
-            kind: chromeToW3CDeviceKinds[source.kind]
-          };
-        }));
-      });
-    } else {
-      callback(new Error('This browser does not support getMediaDevices APIs'));
-    }
-  };
-
-})(window);
-(function(window) {
-
-  var VideoOrientationTransforms = {
-    0: 'rotate(0deg)',
-    270: 'rotate(90deg)',
-    90: 'rotate(-90deg)',
-    180: 'rotate(180deg)'
-  };
-
-  OT.VideoOrientation = {
-    ROTATED_NORMAL: 0,
-    ROTATED_LEFT: 270,
-    ROTATED_RIGHT: 90,
-    ROTATED_UPSIDE_DOWN: 180
-  };
-
-  var DefaultAudioVolume = 50;
-
-  var DEGREE_TO_RADIANS = Math.PI * 2 / 360;
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  OT.VideoElement = function( options) {
-    var _options = OT.$.defaults( options && !OT.$.isFunction(options) ? options : {}, {
-        fallbackText: 'Sorry, Web RTC is not available in your browser'
-      }),
-
-      errorHandler = OT.$.isFunction(arguments[arguments.length-1]) ?
-                                    arguments[arguments.length-1] : void 0,
-
-      orientationHandler = OT.$.bind(function(orientation) {
-        this.trigger('orientationChanged', orientation);
-      }, this),
-
-      _videoElement = TBPlugin.isInstalled() ?
-                            new PluginVideoElement(_options, errorHandler, orientationHandler) :
-                            new NativeDOMVideoElement(_options, errorHandler, orientationHandler),
-      _streamBound = false,
-      _stream,
-      _preInitialisedVolue;
-
-    OT.$.eventing(this);
-
-    
-    OT.$.defineProperties(this, {
-
-      domElement: {
-        get: function() {
-          return _videoElement.domElement();
-        }
-      },
-
-      videoWidth: {
-        get: function() {
-          return _videoElement['video' + (this.isRotated() ? 'Height' : 'Width')]();
-        }
-      },
-
-      videoHeight: {
-        get: function() {
-          return _videoElement['video' + (this.isRotated() ? 'Width' : 'Height')]();
-        }
-      },
-
-      aspectRatio: {
-        get: function() {
-          return (this.videoWidth() + 0.0) / this.videoHeight();
-        }
-      },
-
-      isRotated: {
-        get: function() {
-          return _videoElement.isRotated();
-        }
-      },
-
-      orientation: {
-        get: function() {
-          return _videoElement.orientation();
-        },
-        set: function(orientation) {
-          _videoElement.orientation(orientation);
-        }
-      },
-
-      audioChannelType: {
-        get: function() {
-          return _videoElement.audioChannelType();
-        },
-        set: function(type) {
-          _videoElement.audioChannelType(type);
-        }
-      }
-    });
-
-    
-
-    this.imgData = function() {
-      return _videoElement.imgData();
-    };
-
-    this.appendTo = function(parentDomElement) {
-      _videoElement.appendTo(parentDomElement);
-      return this;
-    };
-
-    this.bindToStream = function(webRtcStream, completion) {
-      _streamBound = false;
-      _stream = webRtcStream;
-
-      _videoElement.bindToStream(webRtcStream, OT.$.bind(function(err) {
-        if (err) {
-          completion(err);
-          return;
-        }
-
-        _streamBound = true;
-
-        if (_preInitialisedVolue) {
-          this.setAudioVolume(_preInitialisedVolue);
-          _preInitialisedVolue = null;
-        }
-
-        completion(null);
-      }, this));
-
-      return this;
-    };
-
-    this.unbindStream = function() {
-      if (!_stream) return this;
-
-      _stream = null;
-      _videoElement.unbindStream();
-      return this;
-    };
-
-    this.setAudioVolume = function (value) {
-      if (_streamBound) _videoElement.setAudioVolume( OT.$.roundFloat(value / 100, 2) );
-      else _preInitialisedVolue = value;
-
-      return this;
-    };
-
-    this.getAudioVolume = function () {
-      if (_streamBound) return parseInt(_videoElement.getAudioVolume() * 100, 10);
-      else return _preInitialisedVolue || 50;
-    };
-
-
-    this.whenTimeIncrements = function (callback, context) {
-      _videoElement.whenTimeIncrements(callback, context);
-      return this;
-    };
-
-    this.destroy = function () {
-      
-      this.off();
-
-      _videoElement.destroy();
-      return void 0;
-    };
-  };
-
-  var PluginVideoElement = function PluginVideoElement (options,
-                                                        errorHandler,
-                                                        orientationChangedHandler) {
-    var _videoProxy,
-        _parentDomElement;
-
-    canBeOrientatedMixin(this,
-                          function() { return _videoProxy.domElement; },
-                          orientationChangedHandler);
-
-    
-
-    this.domElement = function() {
-      return _videoProxy ? _videoProxy.domElement : void 0;
-    };
-
-    this.videoWidth = function() {
-      return _videoProxy ? _videoProxy.getVideoWidth() : void 0;
-    };
-
-    this.videoHeight = function() {
-      return _videoProxy ? _videoProxy.getVideoHeight() : void 0;
-    };
-
-    this.imgData = function() {
-      return _videoProxy ? _videoProxy.getImgData() : null;
-    };
-
-    
-    this.appendTo = function(parentDomElement) {
-      _parentDomElement = parentDomElement;
-      return this;
-    };
-
-    
-    this.bindToStream = function(webRtcStream, completion) {
-      if (!_parentDomElement) {
-        completion('The VideoElement must attached to a DOM node before a stream can be bound');
-        return;
-      }
-
-      _videoProxy = webRtcStream._.render();
-      _videoProxy.appendTo(_parentDomElement);
-      _videoProxy.show(completion);
-
-      return this;
-    };
-
-    
-    this.unbindStream = function() {
-      
-
-      if (_videoProxy) {
-        _videoProxy.destroy();
-        _parentDomElement = null;
-        _videoProxy = null;
-      }
-
-      return this;
-    };
-
-    this.setAudioVolume = function(value) {
-      if (_videoProxy) _videoProxy.setVolume(value);
-    };
-
-    this.getAudioVolume = function() {
-      
-      if (_videoProxy) return _videoProxy.getVolume();
-      return DefaultAudioVolume;
-    };
-
-    
-    
-    this.audioChannelType = function() {
-      return 'unknown';
-    };
-
-    this.whenTimeIncrements = function(callback, context) {
-      
-      OT.$.callAsync(OT.$.bind(callback, context));
-    };
-
-    this.destroy = function() {
-      this.unbindStream();
-
-      return void 0;
-    };
-  };
-
-
-  var NativeDOMVideoElement = function NativeDOMVideoElement (options,
-                                                              errorHandler,
-                                                              orientationChangedHandler) {
-    var _domElement,
-        _videoElementMovedWarning = false;
-
-
-    
-    var _onVideoError = OT.$.bind(function(event) {
-          var reason = 'There was an unexpected problem with the Video Stream: ' +
-                        videoElementErrorCodeToStr(event.target.error.code);
-          errorHandler(reason, this, 'VideoElement');
-        }, this),
-
-        
-        
-        
-        _playVideoOnPause = function() {
-          if(!_videoElementMovedWarning) {
-            OT.warn('Video element paused, auto-resuming. If you intended to do this, ' +
-                      'use publishVideo(false) or subscribeToVideo(false) instead.');
-
-            _videoElementMovedWarning = true;
-          }
-
-          _domElement.play();
-        };
-
-
-    _domElement = createNativeVideoElement(options.fallbackText, options.attributes);
-
-    _domElement.addEventListener('pause', _playVideoOnPause);
-
-    canBeOrientatedMixin(this, function() { return _domElement; }, orientationChangedHandler);
-
-    
-
-    this.domElement = function() {
-      return _domElement;
-    };
-
-    this.videoWidth = function() {
-      return _domElement.videoWidth;
-    };
-
-    this.videoHeight = function() {
-      return _domElement.videoHeight;
-    };
-
-    this.imgData = function() {
-      var canvas = OT.$.createElement('canvas', {
-        width: _domElement.videoWidth,
-        height: _domElement.videoHeight,
-        style: { display: 'none' }
-      });
-
-      document.body.appendChild(canvas);
-      try {
-        canvas.getContext('2d').drawImage(_domElement, 0, 0, canvas.width, canvas.height);
-      } catch(err) {
-        OT.warn('Cannot get image data yet');
-        return null;
-      }
-      var imgData = canvas.toDataURL('image/png');
-
-      OT.$.removeElement(canvas);
-
-      return OT.$.trim(imgData.replace('data:image/png;base64,', ''));
-    };
-
-    
-    this.appendTo = function(parentDomElement) {
-      parentDomElement.appendChild(_domElement);
-      return this;
-    };
-
-    
-    this.bindToStream = function(webRtcStream, completion) {
-      bindStreamToNativeVideoElement(_domElement, webRtcStream, function(err) {
-        if (err) {
-          completion(err);
-          return;
-        }
-
-        _domElement.addEventListener('error', _onVideoError, false);
-        completion(null);
-      });
-
-      return this;
-    };
-
-
-    
-    this.unbindStream = function() {
-      if (_domElement) {
-        unbindNativeStream(_domElement);
-      }
-
-      return this;
-    };
-
-    this.setAudioVolume = function(value) {
-      if (_domElement) _domElement.volume = value;
-    };
-
-    this.getAudioVolume = function() {
-      
-      if (_domElement) return _domElement.volume;
-      return DefaultAudioVolume;
-    };
-
-    
-    
-    
-    this.audioChannelType = function(type) {
-      if (type !== void 0) {
-        _domElement.mozAudioChannelType = type;
-      }
-
-      if ('mozAudioChannelType' in _domElement) {
-        return _domElement.mozAudioChannelType;
+        webSocket.onClose(function(error) {
+          state = 'closed'; 
+          events.onClose({ code: error });
+        });
+        webSocket.onError(function(error) {
+          state = 'closed'; 
+          events.onError(error);
+          
+          events.onClose({ code: error });
+        });
+
+        webSocket.onMessage(function(type, addresses, headers, payload) {
+          var msg = new OT.Rumor.Message(type, addresses, headers, payload);
+          events.onMessage(msg);
+        });
+
+        webSocket.open();
       } else {
-        return 'unknown';
+        this.close();
       }
-    };
+    }, this));
 
-    this.whenTimeIncrements = function(callback, context) {
-      if(_domElement) {
-        var lastTime, handler;
-        handler = OT.$.bind(function() {
-          if(!lastTime || lastTime >= _domElement.currentTime) {
-            lastTime = _domElement.currentTime;
-          } else {
-            _domElement.removeEventListener('timeupdate', handler, false);
-            callback.call(context, this);
-          }
-        }, this);
-        _domElement.addEventListener('timeupdate', handler, false);
-      }
-    };
-
-    this.destroy = function() {
-      this.unbindStream();
-
-      if (_domElement) {
-        
-        
-        _domElement.removeEventListener('pause', _playVideoOnPause);
-
-        OT.$.removeElement(_domElement);
-        _domElement = null;
-      }
-
-      return void 0;
-    };
-  };
-
-
-
-  
-  
-  
-  
-  
-  
-  
-  var canBeOrientatedMixin = function canBeOrientatedMixin (self,
-                                                            getDomElementCallback,
-                                                            orientationChangedHandler,
-                                                            initialOrientation) {
-    var _orientation = initialOrientation;
-
-    OT.$.defineProperties(self, {
-      isRotated: {
-        get: function() {
-          return this.orientation() &&
-                    (this.orientation().videoOrientation === 270 ||
-                     this.orientation().videoOrientation === 90);
-        }
-      },
-
-      orientation: {
-        get: function() { return _orientation; },
-        set: function(orientation) {
-          _orientation = orientation;
-
-          var transform = VideoOrientationTransforms[orientation.videoOrientation] ||
-                          VideoOrientationTransforms.ROTATED_NORMAL;
-
-          switch(OT.$.browser()) {
-            case 'Chrome':
-            case 'Safari':
-              getDomElementCallback().style.webkitTransform = transform;
-              break;
-
-            case 'IE':
-              if (OT.$.browserVersion().version >= 9) {
-                getDomElementCallback().style.msTransform = transform;
-              }
-              else {
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                var radians = orientation.videoOrientation * DEGREE_TO_RADIANS,
-                    element = getDomElementCallback(),
-                    costheta = Math.cos(radians),
-                    sintheta = Math.sin(radians);
-
-                
-                
-                
-                
-
-                element.style.filter = 'progid:DXImageTransform.Microsoft.Matrix(' +
-                                          'M11='+costheta+',' +
-                                          'M12='+(-sintheta)+',' +
-                                          'M21='+sintheta+',' +
-                                          'M22='+costheta+',SizingMethod=\'auto expand\')';
-              }
-
-
-              break;
-
-            default:
-              
-              getDomElementCallback().style.transform = transform;
-          }
-
-          orientationChangedHandler(_orientation);
-
-        }
-      },
-
-      
-      
-      
-      audioChannelType: {
-        get: function() {
-          if ('mozAudioChannelType' in this.domElement) {
-            return this.domElement.mozAudioChannelType;
-          } else {
-            return 'unknown';
-          }
-        },
-        set: function(type) {
-          if ('mozAudioChannelType' in this.domElement) {
-            this.domElement.mozAudioChannelType = type;
-          }
-        }
-      }
-    });
-  };
-
-  function createNativeVideoElement(fallbackText, attributes) {
-    var videoElement = document.createElement('video');
-    videoElement.setAttribute('autoplay', '');
-    videoElement.innerHTML = fallbackText;
-
-    if (attributes) {
-      if (attributes.muted === true) {
-        delete attributes.muted;
-        videoElement.muted = 'true';
-      }
-
-      for (var key in attributes) {
-        if(!attributes.hasOwnProperty(key)) {
-          continue;
-        }
-        videoElement.setAttribute(key, attributes[key]);
-      }
-    }
-
-    return videoElement;
-  }
-
-
-  
-  var _videoErrorCodes = {};
-
-  
-  
-  if (window.MediaError) {
-    _videoErrorCodes[window.MediaError.MEDIA_ERR_ABORTED] = 'The fetching process for the media ' +
-      'resource was aborted by the user agent at the user\'s request.';
-    _videoErrorCodes[window.MediaError.MEDIA_ERR_NETWORK] = 'A network error of some description ' +
-      'caused the user agent to stop fetching the media resource, after the resource was ' +
-      'established to be usable.';
-    _videoErrorCodes[window.MediaError.MEDIA_ERR_DECODE] = 'An error of some description ' +
-      'occurred while decoding the media resource, after the resource was established to be ' +
-      ' usable.';
-    _videoErrorCodes[window.MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED] = 'The media resource ' +
-      'indicated by the src attribute was not suitable.';
-  }
-
-  function videoElementErrorCodeToStr(errorCode) {
-    return _videoErrorCodes[parseInt(errorCode, 10)] || 'An unknown error occurred.';
-  }
-
-  function bindStreamToNativeVideoElement(videoElement, webRtcStream, completion) {
-    var cleanup,
-        onLoad,
-        onError,
-        onStoppedLoading,
-        timeout;
-
-    
-    
-    var browser = OT.$.browserVersion(),
-        needsDisabledAudioProtection = browser.browser === 'Chrome' && browser.version < 36;
-
-    if (navigator.mozGetUserMedia || !(needsDisabledAudioProtection &&
-        (webRtcStream.getVideoTracks().length > 0 && webRtcStream.getVideoTracks()[0].enabled))) {
-
-      cleanup = function cleanup () {
-        clearTimeout(timeout);
-        videoElement.removeEventListener('loadedmetadata', onLoad, false);
-        videoElement.removeEventListener('error', onError, false);
-        webRtcStream.onended = null;
-      };
-
-      onLoad = function onLoad () {
-        cleanup();
-        completion(null);
-      };
-
-      onError = function onError (event) {
-        cleanup();
-        unbindNativeStream(videoElement);
-        completion('There was an unexpected problem with the Video Stream: ' +
-          videoElementErrorCodeToStr(event.target.error.code));
-      };
-
-      onStoppedLoading = function onStoppedLoading () {
-        
-        
-        cleanup();
-        unbindNativeStream(videoElement);
-        completion('Stream ended while trying to bind it to a video element.');
-      };
-
-      
-      timeout = setTimeout(OT.$.bind(function() {
-        if (videoElement.currentTime === 0) {
-          cleanup();
-          completion('The video stream failed to connect. Please notify the site ' +
-            'owner if this continues to happen.');
-        } else if (webRtcStream.ended === true) {
-          
-          
-          onStoppedLoading();
-        } else {
-
-          OT.warn('Never got the loadedmetadata event but currentTime > 0');
-          onLoad(null);
-        }
-      }, this), 30000);
-
-      videoElement.addEventListener('loadedmetadata', onLoad, false);
-      videoElement.addEventListener('error', onError, false);
-      webRtcStream.onended = onStoppedLoading;
-    } else {
-      OT.$.callAsync(completion, null);
-    }
-
-    
-    if (videoElement.srcObject !== void 0) {
-      videoElement.srcObject = webRtcStream;
-    } else if (videoElement.mozSrcObject !== void 0) {
-      videoElement.mozSrcObject = webRtcStream;
-    } else {
-      videoElement.src = window.URL.createObjectURL(webRtcStream);
-    }
-
-    videoElement.play();
-  }
-
-
-  function unbindNativeStream(videoElement) {
-    if (videoElement.srcObject !== void 0) {
-      videoElement.srcObject = null;
-    } else if (videoElement.mozSrcObject !== void 0) {
-      videoElement.mozSrcObject = null;
-    } else {
-      window.URL.revokeObjectURL(videoElement.src);
-    }
-  }
-
-
-})(window);
-
-
-!(function() {
-  
-
-  
-
-  var currentGuidStorage,
-      currentGuid;
-
-  var isInvalidStorage = function isInvalidStorage (storageInterface) {
-    return !(OT.$.isFunction(storageInterface.get) && OT.$.isFunction(storageInterface.set));
-  };
-
-  var getClientGuid = function getClientGuid (completion) {
-    if (currentGuid) {
-      completion(null, currentGuid);
-      return;
-    }
-
-    
-    
-    
-    currentGuidStorage.get(completion);
-  };
-
-  OT.overrideGuidStorage = function (storageInterface) {
-    if (isInvalidStorage(storageInterface)) {
-      throw new Error('The storageInterface argument does not seem to be valid, ' +
-                                        'it must implement get and set methods');
-    }
-
-    if (currentGuidStorage === storageInterface) {
-      return;
-    }
-
-    currentGuidStorage = storageInterface;
-
-    
-    
-    if (currentGuid) {
-      currentGuidStorage.set(currentGuid, function(error) {
-        if (error) {
-          OT.error('Failed to send initial Guid value (' + currentGuid +
-                                ') to the newly assigned Guid Storage. The error was: ' + error);
-          
-        }
-      });
-    }
-  };
-
-  if (!OT._) OT._ = {};
-  OT._.getClientGuid = function (completion) {
-    getClientGuid(function(error, guid) {
-      if (error) {
-        completion(error);
+    this.close = function() {
+      if(state === 'initializing' || state === 'closed') {
+        state = 'closed';
         return;
       }
 
-      if (!guid) {
-        
-        
-        guid = OT.$.uuid();
-        currentGuidStorage.set(guid, function(error) {
-          if (error) {
-            completion(error);
-            return;
-          }
-
-          currentGuid = guid;
-        });
-      }
-      else if (!currentGuid) {
-        currentGuid = guid;
-      }
-
-      completion(null, currentGuid);
-    });
-  };
-
-
-  
-  
-  OT.overrideGuidStorage({
-    get: function(completion) {
-      completion(null, OT.$.getCookie('opentok_client_id'));
-    },
-
-    set: function(guid, completion) {
-      OT.$.setCookie('opentok_client_id', guid);
-      completion(null);
-    }
-  });
-
-})(window);
-!(function(window) {
-
-  
-  var logQueue = [],
-      queueRunning = false;
-
-
-  OT.Analytics = function() {
-
-    var endPoint = OT.properties.loggingURL + '/logging/ClientEvent',
-        endPointQos = OT.properties.loggingURL + '/logging/ClientQos',
-
-        reportedErrors = {},
-
-        
-        camelCasedKeys,
-
-        browser = OT.$.browserVersion(),
-
-        send = function(data, isQos, callback) {
-          OT.$.post((isQos ? endPointQos : endPoint) + '?_=' + OT.$.uuid.v4(), {
-            body: data,
-            xdomainrequest: (browser.browser === 'IE' && browser.version < 10),
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded'
-            }
-          }, callback);
-        },
-
-        throttledPost = function() {
-          
-          if (!queueRunning && logQueue.length > 0) {
-            queueRunning = true;
-            var curr = logQueue[0];
-
-            
-            var processNextItem = function() {
-              logQueue.shift();
-              queueRunning = false;
-              throttledPost();
-            };
-
-            if (curr) {
-              send(curr.data, curr.isQos, function(err) {
-                if(err) {
-                  OT.debug('Failed to send ClientEvent, moving on to the next item.');
-                  
-                } else {
-                  curr.onComplete();
-                }
-                setTimeout(processNextItem, 50);
-              });
-            }
-          }
-        },
-
-        post = function(data, onComplete, isQos) {
-          logQueue.push({
-            data: data,
-            onComplete: onComplete,
-            isQos: isQos
-          });
-
-          throttledPost();
-        },
-
-        shouldThrottleError = function(code, type, partnerId) {
-          if (!partnerId) return false;
-
-          var errKey = [partnerId, type, code].join('_'),
-          
-            msgLimit = 100;
-          if (msgLimit === null || msgLimit === undefined) return false;
-          return (reportedErrors[errKey] || 0) <= msgLimit;
-        };
-
-    camelCasedKeys = {
-      payloadType: 'payload_type',
-      partnerId: 'partner_id',
-      streamId: 'stream_id',
-      sessionId: 'session_id',
-      connectionId: 'connection_id',
-      widgetType: 'widget_type',
-      widgetId: 'widget_id',
-      avgAudioBitrate: 'avg_audio_bitrate',
-      avgVideoBitrate: 'avg_video_bitrate',
-      localCandidateType: 'local_candidate_type',
-      remoteCandidateType: 'remote_candidate_type',
-      transportType: 'transport_type'
+      webSocket.close(1000, '');
     };
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    this.logError = function(code, type, message, details, options) {
-      if (!options) options = {};
-      var partnerId = options.partnerId;
-
-      if (OT.Config.get('exceptionLogging', 'enabled', partnerId) !== true) {
-        return;
-      }
-
-      if (shouldThrottleError(code, type, partnerId)) {
-        
-        
-        return;
-      }
-
-      var errKey = [partnerId, type, code].join('_'),
-
-      payload = this.escapePayload(OT.$.extend(details || {}, {
-        message: payload,
-        userAgent: OT.$.userAgent()
-      }));
-
-
-      reportedErrors[errKey] = typeof(reportedErrors[errKey]) !== 'undefined' ?
-        reportedErrors[errKey] + 1 : 1;
-
-      return this.logEvent(OT.$.extend(options, {
-        action: type + '.' + code,
-        payloadType: payload[0],
-        payload: payload[1]
-      }));
-    };
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    this.logEvent = function(options) {
-      var partnerId = options.partnerId;
-
-      if (!options) options = {};
-
-      OT._.getClientGuid(function(error, guid) {
-        if (error) {
-          
-          return;
-        }
-
-        
-        var data = OT.$.extend({
-          'variation' : '',
-          'guid' : guid,
-          'widget_id' : '',
-          'session_id': '',
-          'connection_id': '',
-          'stream_id' : '',
-          'partner_id' : partnerId,
-          'source' : window.location.href,
-          'section' : '',
-          'build' : ''
-        }, options),
-
-        onComplete = function(){
-          
-          
-        };
-
-        
-        
-        for (var key in camelCasedKeys) {
-          if (camelCasedKeys.hasOwnProperty(key) && data[key]) {
-            data[camelCasedKeys[key]] = data[key];
-            delete data[key];
-          }
-        }
-
-        post(data, onComplete, false);
-      });
-    };
-
-    
-    
-    this.logQOS = function(options) {
-      var partnerId = options.partnerId;
-
-      if (!options) options = {};
-
-      OT._.getClientGuid(function(error, guid) {
-        if (error) {
-          
-          return;
-        }
-
-        
-        var data = OT.$.extend({
-          'guid' : guid,
-          'widget_id' : '',
-          'session_id': '',
-          'connection_id': '',
-          'stream_id' : '',
-          'partner_id' : partnerId,
-          'source' : window.location.href,
-          'build' : '',
-          'duration' : 0 
-        }, options),
-
-        onComplete = function(){
-          
-          
-        };
-
-        
-        
-        for (var key in camelCasedKeys) {
-          if (camelCasedKeys.hasOwnProperty(key)) {
-            if(data[key]) {
-              data[camelCasedKeys[key]] = data[key];
-            }
-            delete data[key];
-          }
-        }
-
-        post(data, onComplete, true);
-      });
-    };
-
-    
-    
-    
-    
-    this.escapePayload = function(payload) {
-      var escapedPayload = [],
-          escapedPayloadDesc = [];
-
-      for (var key in payload) {
-        if (payload.hasOwnProperty(key) && payload[key] !== null && payload[key] !== undefined) {
-          escapedPayload.push( payload[key] ? payload[key].toString().replace('|', '\\|') : '' );
-          escapedPayloadDesc.push( key.toString().replace('|', '\\|') );
-        }
-      }
-
-      return [
-        escapedPayloadDesc.join('|'),
-        escapedPayload.join('|')
-      ];
-    };
-  };
-
-})(window);
-!(function() {
-
-  OT.$.registerCapability('audioOutputLevelStat', function() {
-    return OT.$.browserVersion().browser === 'Chrome';
-  });
-
-  OT.$.registerCapability('webAudioCapableRemoteStream', function() {
-    return OT.$.browserVersion().browser === 'Firefox';
-  });
-
-  OT.$.registerCapability('getStatsWithSingleParameter', function() {
-    return OT.$.browserVersion().browser === 'Chrome';
-  });
-
-  OT.$.registerCapability('webAudio', function() {
-    return 'AudioContext' in window;
-  });
-
-})();
-!(function(window) {
-
-  
-  
-  
-  if (location.protocol === 'file:') {
-    
-    alert('You cannot test a page using WebRTC through the file system due to browser ' +
-      'permissions. You must run it over a web server.');
-  }
-
-  if (!window.OT) window.OT = {};
-
-  if (!window.URL && window.webkitURL) {
-    window.URL = window.webkitURL;
-  }
-
-  var _analytics = new OT.Analytics();
-
-  var 
-      _intervalId,
-      _lastHash = document.location.hash;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  OT.initSession = function(apiKey, sessionId) {
-
-    if(sessionId == null) {
-      sessionId = apiKey;
-      apiKey = null;
-    }
-
-    var session = OT.sessions.get(sessionId);
-
-    if (!session) {
-      session = new OT.Session(apiKey, sessionId);
-      OT.sessions.add(session);
-    }
-
-    return session;
-  };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  OT.initPublisher = function(targetElement, properties, completionHandler) {
-    OT.debug('OT.initPublisher('+targetElement+')');
-
-    
-    
-    if(targetElement != null && !(OT.$.isElementNode(targetElement) ||
-      (typeof targetElement === 'string' && document.getElementById(targetElement))) &&
-      typeof targetElement !== 'function') {
-      targetElement = properties;
-      properties = completionHandler;
-      completionHandler = arguments[3];
-    }
-
-    if(typeof targetElement === 'function') {
-      completionHandler = targetElement;
-      properties = undefined;
-      targetElement = undefined;
-    }
-
-    if(typeof properties === 'function') {
-      completionHandler = properties;
-      properties = undefined;
-    }
-
-    var publisher = new OT.Publisher();
-    OT.publishers.add(publisher);
-
-    var triggerCallback = function triggerCallback (err) {
-      if (err) {
-        OT.dispatchError(err.code, err.message, completionHandler, publisher.session);
-      } else if (completionHandler && OT.$.isFunction(completionHandler)) {
-        completionHandler.apply(null, arguments);
-      }
-    },
-
-    removeInitSuccessAndCallComplete = function removeInitSuccessAndCallComplete (err) {
-      publisher.off('publishComplete', removeHandlersAndCallComplete);
-      triggerCallback(err);
-    },
-
-    removeHandlersAndCallComplete = function removeHandlersAndCallComplete (err) {
-      publisher.off('initSuccess', removeInitSuccessAndCallComplete);
-
-      
-      
-      if (err) triggerCallback(err);
-    };
-
-
-    publisher.once('initSuccess', removeInitSuccessAndCallComplete);
-    publisher.once('publishComplete', removeHandlersAndCallComplete);
-
-    publisher.publish(targetElement, properties);
-
-    return publisher;
-  };
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  OT.getDevices = function(callback) {
-    OT.$.getMediaDevices(callback);
-  };
-
-
-
-
-
-
-
-
-
-  OT.checkSystemRequirements = function() {
-    OT.debug('OT.checkSystemRequirements()');
-
-    
-    var systemRequirementsMet = OT.$.hasCapabilities('websockets', 'webrtc') ||
-                                      TBPlugin.isInstalled();
-
-    systemRequirementsMet = systemRequirementsMet ?
-                                      this.HAS_REQUIREMENTS : this.NOT_HAS_REQUIREMENTS;
-
-    OT.checkSystemRequirements = function() {
-      OT.debug('OT.checkSystemRequirements()');
-      return systemRequirementsMet;
-    };
-
-    if(systemRequirementsMet === this.NOT_HAS_REQUIREMENTS) {
-      _analytics.logEvent({
-        action: 'checkSystemRequirements',
-        variation: 'notHasRequirements',
-        'payload_type': 'userAgent',
-        'partner_id': OT.APIKEY,
-        payload: OT.$.userAgent()
-      });
-    }
-
-    return systemRequirementsMet;
-  };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  OT.upgradeSystemRequirements = function(){
-    
-    OT.onLoad( function() {
-
-      if(TBPlugin.isSupported()) {
-        OT.Dialogs.Plugin.promptToInstall().on({
-          download: function() {
-            window.location = TBPlugin.pathToInstaller();
-          },
-          refresh: function() {
-            location.reload();
-          },
-          closed: function() {}
-        });
-        return;
-      }
-
-      var id = '_upgradeFlash';
-
-         
-      document.body.appendChild((function() {
-        var d = document.createElement('iframe');
-        d.id = id;
-        d.style.position = 'absolute';
-        d.style.position = 'fixed';
-        d.style.height = '100%';
-        d.style.width = '100%';
-        d.style.top = '0px';
-        d.style.left = '0px';
-        d.style.right = '0px';
-        d.style.bottom = '0px';
-        d.style.zIndex = 1000;
-        try {
-          d.style.backgroundColor = 'rgba(0,0,0,0.2)';
-        } catch (err) {
-          
-          
-          d.style.backgroundColor = 'transparent';
-          d.setAttribute('allowTransparency', 'true');
-        }
-        d.setAttribute('frameBorder', '0');
-        d.frameBorder = '0';
-        d.scrolling = 'no';
-        d.setAttribute('scrolling', 'no');
-
-        var browser = OT.$.browserVersion(),
-            minimumBrowserVersion = OT.properties.minimumVersion[browser.browser.toLowerCase()],
-            isSupportedButOld =  minimumBrowserVersion > browser.version;
-        d.src = OT.properties.assetURL + '/html/upgrade.html#' +
-                          encodeURIComponent(isSupportedButOld ? 'true' : 'false') + ',' +
-                          encodeURIComponent(JSON.stringify(OT.properties.minimumVersion)) + '|' +
-                          encodeURIComponent(document.location.href);
-
-        return d;
-      })());
-
-      
-      
-      
-      if (_intervalId) clearInterval(_intervalId);
-      _intervalId = setInterval(function(){
-        var hash = document.location.hash,
-            re = /^#?\d+&/;
-        if (hash !== _lastHash && re.test(hash)) {
-          _lastHash = hash;
-          if (hash.replace(re, '') === 'close_window'){
-            document.body.removeChild(document.getElementById(id));
-            document.location.hash = '';
-          }
-        }
-      }, 100);
-    });
-  };
-
-
-  OT.reportIssue = function(){
-    OT.warn('ToDo: haven\'t yet implemented OT.reportIssue');
-  };
-
-  OT.components = {};
-  OT.sessions = {};
-
-  
-  OT.rtc = {};
-
-
-  OT.APIKEY = (function(){
-    
-    var scriptSrc = (function(){
-      var s = document.getElementsByTagName('script');
-      s = s[s.length - 1];
-      s = s.getAttribute('src') || s.src;
-      return s;
-    })();
-
-    var m = scriptSrc.match(/[\?\&]apikey=([^&]+)/i);
-    return m ? m[1] : '';
-  })();
-
-  OT.HAS_REQUIREMENTS = 1;
-  OT.NOT_HAS_REQUIREMENTS = 0;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  if (!window.OT) window.OT = OT;
-  if (!window.TB) window.TB = OT;
-
-})(window);
-!(function() {
-
-  OT.Collection = function(idField) {
-    var _models = [],
-        _byId = {},
-        _idField = idField || 'id';
-
-    OT.$.eventing(this, true);
-
-    var modelProperty = function(model, property) {
-      if(OT.$.isFunction(model[property])) {
-        return model[property]();
-      } else {
-        return model[property];
+    this.send = function(msg) {
+      if(state === 'open') {
+        webSocket.send(msg);
       }
     };
 
-    var onModelUpdate = OT.$.bind(function onModelUpdate (event) {
-          this.trigger('update', event);
-          this.trigger('update:'+event.target.id, event);
-        }, this),
-
-        onModelDestroy = OT.$.bind(function onModelDestroyed (event) {
-          this.remove(event.target, event.reason);
-        }, this);
-
-
-    this.reset = function() {
-      
-      OT.$.forEach(_models, function(model) {
-        model.off('updated', onModelUpdate, this);
-        model.off('destroyed', onModelDestroy, this);
-      }, this);
-
-      _models = [];
-      _byId = {};
+    this.isClosed = function() {
+      return state === 'closed';
     };
 
-    this.destroy = function(reason) {
-      OT.$.forEach(_models, function(model) {
-        if(model && typeof model.destroy === 'function') {
-          model.destroy(reason, true);
-        }
-      });
-
-      this.reset();
-      this.off();
-    };
-
-    this.get = function(id) { return id && _byId[id] !== void 0 ? _models[_byId[id]] : void 0; };
-    this.has = function(id) { return id && _byId[id] !== void 0; };
-
-    this.toString = function() { return _models.toString(); };
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    this.where = function(attrsOrFilterFn, context) {
-      if (OT.$.isFunction(attrsOrFilterFn)) return OT.$.filter(_models, attrsOrFilterFn, context);
-
-      return OT.$.filter(_models, function(model) {
-        for (var key in attrsOrFilterFn) {
-          if(!attrsOrFilterFn.hasOwnProperty(key)) {
-            continue;
-          }
-          if (modelProperty(model, key) !== attrsOrFilterFn[key]) return false;
-        }
-
-        return true;
-      });
-    };
-
-    
-    
-    this.find = function(attrsOrFilterFn, context) {
-      var filterFn;
-
-      if (OT.$.isFunction(attrsOrFilterFn)) {
-        filterFn = attrsOrFilterFn;
-      }
-      else {
-        filterFn = function(model) {
-          for (var key in attrsOrFilterFn) {
-            if(!attrsOrFilterFn.hasOwnProperty(key)) {
-              continue;
-            }
-            if (modelProperty(model, key) !== attrsOrFilterFn[key]) return false;
-          }
-
-          return true;
-        };
-      }
-
-      filterFn = OT.$.bind(filterFn, context);
-
-      for (var i=0; i<_models.length; ++i) {
-        if (filterFn(_models[i]) === true) return _models[i];
-      }
-
-      return null;
-    };
-
-    this.add = function(model) {
-      var id = modelProperty(model, _idField);
-
-      if (this.has(id)) {
-        OT.warn('Model ' + id + ' is already in the collection', _models);
-        return this;
-      }
-
-      _byId[id] = _models.push(model) - 1;
-
-      model.on('updated', onModelUpdate, this);
-      model.on('destroyed', onModelDestroy, this);
-
-      this.trigger('add', model);
-      this.trigger('add:'+id, model);
-
-      return this;
-    };
-
-    this.remove = function(model, reason) {
-      var id = modelProperty(model, _idField);
-
-      _models.splice(_byId[id], 1);
-
-      
-      for (var i=_byId[id]; i<_models.length; ++i) {
-        _byId[_models[i][_idField]] = i;
-      }
-
-      delete _byId[id];
-
-      model.off('updated', onModelUpdate, this);
-      model.off('destroyed', onModelDestroy, this);
-
-      this.trigger('remove', model, reason);
-      this.trigger('remove:'+id, model, reason);
-
-      return this;
-    };
-
-    
-    this._triggerAddEvents = function() {
-      var models = this.where.apply(this, arguments);
-      OT.$.forEach(models, function(model) {
-        this.trigger('add', model);
-        this.trigger('add:' + modelProperty(model, _idField), model);
-      }, this);
-    };
-
-    this.length = function() {
-      return _models.length;
-    };
   };
 
 }(this));
-!(function() {
 
-  
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  OT.Event = OT.$.eventing.Event();
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
-
-
-
-
-
-
-
-
-  
-  OT.Event.names = {
-    
-    ACTIVE: 'active',
-    INACTIVE: 'inactive',
-    UNKNOWN: 'unknown',
-
-    
-    PER_SESSION: 'perSession',
-    PER_STREAM: 'perStream',
-
-    
-    EXCEPTION: 'exception',
-    ISSUE_REPORTED: 'issueReported',
-
-    
-    SESSION_CONNECTED: 'sessionConnected',
-    SESSION_DISCONNECTED: 'sessionDisconnected',
-    STREAM_CREATED: 'streamCreated',
-    STREAM_DESTROYED: 'streamDestroyed',
-    CONNECTION_CREATED: 'connectionCreated',
-    CONNECTION_DESTROYED: 'connectionDestroyed',
-    SIGNAL: 'signal',
-    STREAM_PROPERTY_CHANGED: 'streamPropertyChanged',
-    MICROPHONE_LEVEL_CHANGED: 'microphoneLevelChanged',
-
-
-    
-    RESIZE: 'resize',
-    SETTINGS_BUTTON_CLICK: 'settingsButtonClick',
-    DEVICE_INACTIVE: 'deviceInactive',
-    INVALID_DEVICE_NAME: 'invalidDeviceName',
-    ACCESS_ALLOWED: 'accessAllowed',
-    ACCESS_DENIED: 'accessDenied',
-    ACCESS_DIALOG_OPENED: 'accessDialogOpened',
-    ACCESS_DIALOG_CLOSED: 'accessDialogClosed',
-    ECHO_CANCELLATION_MODE_CHANGED: 'echoCancellationModeChanged',
-    PUBLISHER_DESTROYED: 'destroyed',
-
-    
-    SUBSCRIBER_DESTROYED: 'destroyed',
-
-    
-    DEVICES_DETECTED: 'devicesDetected',
-
-    
-    DEVICES_SELECTED: 'devicesSelected',
-    CLOSE_BUTTON_CLICK: 'closeButtonClick',
-
-    MICLEVEL : 'microphoneActivityLevel',
-    MICGAINCHANGED : 'microphoneGainChanged',
-
-    
-    ENV_LOADED: 'envLoaded',
-    ENV_UNLOADED: 'envUnloaded',
-
-    
-    AUDIO_LEVEL_UPDATED: 'audioLevelUpdated'
-  };
-
-  OT.ExceptionCodes = {
-    JS_EXCEPTION: 2000,
-    AUTHENTICATION_ERROR: 1004,
-    INVALID_SESSION_ID: 1005,
-    CONNECT_FAILED: 1006,
-    CONNECT_REJECTED: 1007,
-    CONNECTION_TIMEOUT: 1008,
-    NOT_CONNECTED: 1010,
-    P2P_CONNECTION_FAILED: 1013,
-    API_RESPONSE_FAILURE: 1014,
-    UNABLE_TO_PUBLISH: 1500,
-    UNABLE_TO_SUBSCRIBE: 1501,
-    UNABLE_TO_FORCE_DISCONNECT: 1520,
-    UNABLE_TO_FORCE_UNPUBLISH: 1530
-  };
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  OT.ExceptionEvent = function (type, message, title, code, component, target) {
-    OT.Event.call(this, type);
-
-    this.message = message;
-    this.title = title;
-    this.code = code;
-    this.component = component;
-    this.target = target;
-  };
-
-
-  OT.IssueReportedEvent = function (type, issueId) {
-    OT.Event.call(this, type);
-    this.issueId = issueId;
-  };
-
-  
-  OT.EnvLoadedEvent = function (type) {
-    OT.Event.call(this, type);
-  };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  var connectionEventPluralDeprecationWarningShown = false;
-  OT.ConnectionEvent = function (type, connection, reason) {
-    OT.Event.call(this, type, false);
-
-    if (OT.$.canDefineProperty) {
-      Object.defineProperty(this, 'connections', {
-        get: function() {
-          if(!connectionEventPluralDeprecationWarningShown) {
-            OT.warn('OT.ConnectionEvent connections property is deprecated, ' +
-              'use connection instead.');
-            connectionEventPluralDeprecationWarningShown = true;
-          }
-          return [connection];
-        }
-      });
-    } else {
-      this.connections = [connection];
-    }
-
-    this.connection = connection;
-    this.reason = reason;
-  };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  var streamEventPluralDeprecationWarningShown = false;
-  OT.StreamEvent = function (type, stream, reason, cancelable) {
-    OT.Event.call(this, type, cancelable);
-
-    if (OT.$.canDefineProperty) {
-      Object.defineProperty(this, 'streams', {
-        get: function() {
-          if(!streamEventPluralDeprecationWarningShown) {
-            OT.warn('OT.StreamEvent streams property is deprecated, use stream instead.');
-            streamEventPluralDeprecationWarningShown = true;
-          }
-          return [stream];
-        }
-      });
-    } else {
-      this.streams = [stream];
-    }
-
-    this.stream = stream;
-    this.reason = reason;
-  };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  var sessionConnectedConnectionsDeprecationWarningShown = false;
-  var sessionConnectedStreamsDeprecationWarningShown = false;
-  var sessionConnectedArchivesDeprecationWarningShown = false;
-
-  OT.SessionConnectEvent = function (type) {
-    OT.Event.call(this, type, false);
-    if (OT.$.canDefineProperty) {
-      Object.defineProperties(this, {
-        connections: {
-          get: function() {
-            if(!sessionConnectedConnectionsDeprecationWarningShown) {
-              OT.warn('OT.SessionConnectedEvent no longer includes connections. Listen ' +
-                'for connectionCreated events instead.');
-              sessionConnectedConnectionsDeprecationWarningShown = true;
-            }
-            return [];
-          }
-        },
-        streams: {
-          get: function() {
-            if(!sessionConnectedStreamsDeprecationWarningShown) {
-              OT.warn('OT.SessionConnectedEvent no longer includes streams. Listen for ' +
-                'streamCreated events instead.');
-              sessionConnectedConnectionsDeprecationWarningShown = true;
-            }
-            return [];
-          }
-        },
-        archives: {
-          get: function() {
-            if(!sessionConnectedArchivesDeprecationWarningShown) {
-              OT.warn('OT.SessionConnectedEvent no longer includes archives. Listen for ' +
-                'archiveStarted events instead.');
-              sessionConnectedArchivesDeprecationWarningShown = true;
-            }
-            return [];
-          }
-        }
-      });
-    } else {
-      this.connections = [];
-      this.streams = [];
-      this.archives = [];
-    }
-  };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  OT.SessionDisconnectEvent = function (type, reason, cancelable) {
-    OT.Event.call(this, type, cancelable);
-    this.reason = reason;
-  };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  OT.StreamPropertyChangedEvent = function (type, stream, changedProperty, oldValue, newValue) {
-    OT.Event.call(this, type, false);
-    this.type = type;
-    this.stream = stream;
-    this.changedProperty = changedProperty;
-    this.oldValue = oldValue;
-    this.newValue = newValue;
-  };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  OT.ArchiveEvent = function (type, archive) {
-    OT.Event.call(this, type, false);
-    this.type = type;
-    this.id = archive.id;
-    this.name = archive.name;
-    this.status = archive.status;
-    this.archive = archive;
-  };
-
-  OT.ArchiveUpdatedEvent = function (stream, key, oldValue, newValue) {
-    OT.Event.call(this, 'updated', false);
-    this.target = stream;
-    this.changedProperty = key;
-    this.oldValue = oldValue;
-    this.newValue = newValue;
-  };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  OT.SignalEvent = function(type, data, from) {
-    OT.Event.call(this, type ? 'signal:' + type : OT.Event.names.SIGNAL, false);
-    this.data = data;
-    this.from = from;
-  };
-
-  OT.StreamUpdatedEvent = function (stream, key, oldValue, newValue) {
-    OT.Event.call(this, 'updated', false);
-    this.target = stream;
-    this.changedProperty = key;
-    this.oldValue = oldValue;
-    this.newValue = newValue;
-  };
-
-  OT.DestroyedEvent = function(type, target, reason) {
-    OT.Event.call(this, type, false);
-    this.target = target;
-    this.reason = reason;
-  };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  OT.VideoEnabledChangedEvent = function(type, properties) {
-    OT.Event.call(this, type, false);
-    this.reason = properties.reason;
-  };
-
-  OT.VideoDisableWarningEvent = function(type) {
-    OT.Event.call(this, type, false);
-  };
-
-
-
-
-
-
-
-
-
-
-
-
-  OT.AudioLevelUpdatedEvent = function(audioLevel) {
-    OT.Event.call(this, OT.Event.names.AUDIO_LEVEL_UPDATED, false);
-    this.audioLevel = audioLevel;
-  };
-
-})(window);
 
 
 
@@ -9010,16 +6204,17 @@ waitForDomReady();
 (function(global) {
   'use strict';
 
-  var browser = OT.$.browserVersion();
-  if(browser && browser.browser === 'IE' && browser.version < 10) {
+
+  if(OT.$.env && OT.$.env.name === 'IE' && OT.$.env.version < 10) {
     return; 
   }
 
   if ( (global.TextEncoder !== void 0) && (global.TextDecoder !== void 0))  {
     
-    
     return;
   }
+
+  
 
   
   
@@ -9058,8 +6253,10 @@ waitForDomReady();
   
   
 
-   var EOF_byte = -1;
-   var EOF_code_point = -1;
+  
+  var EOF_byte = -1;
+  
+  var EOF_code_point = -1;
 
   
 
@@ -9690,52 +6887,6 @@ waitForDomReady();
   
   var indexes = global['encoding-indexes'] || {};
 
-  
-
-
-
-
-  function indexGB18030CodePointFor(pointer) {
-    if ((pointer > 39419 && pointer < 189000) || (pointer > 1237575)) {
-      return null;
-    }
-    var  offset = 0,
-         code_point_offset = 0,
-         index = indexes['gb18030'];
-    var i;
-    for (i = 0; i < index.length; ++i) {
-      var entry = index[i];
-      if (entry[0] <= pointer) {
-        offset = entry[0];
-        code_point_offset = entry[1];
-      } else {
-        break;
-      }
-    }
-    return code_point_offset + pointer - offset;
-  }
-
-  
-
-
-
-
-  function indexGB18030PointerFor(code_point) {
-    var  offset = 0,
-         pointer_offset = 0,
-         index = indexes['gb18030'];
-    var i;
-    for (i = 0; i < index.length; ++i) {
-      var entry = index[i];
-      if (entry[1] <= code_point) {
-        offset = entry[1];
-        pointer_offset = entry[0];
-      } else {
-        break;
-      }
-    }
-    return pointer_offset + code_point - offset;
-  }
 
   
   
@@ -9749,10 +6900,10 @@ waitForDomReady();
 
   function UTF8Decoder(options) {
     var fatal = options.fatal;
-    var  utf8_code_point = 0,
-         utf8_bytes_needed = 0,
-         utf8_bytes_seen = 0,
-         utf8_lower_boundary = 0;
+    var utf8_code_point = 0,
+        utf8_bytes_needed = 0,
+        utf8_bytes_seen = 0,
+        utf8_lower_boundary = 0;
 
     
 
@@ -9871,1394 +7022,6 @@ waitForDomReady();
     return new UTF8Decoder(options);
   };
 
-  
-  
-  
-
-  
-
-
-
-
-  function SingleByteDecoder(index, options) {
-    var fatal = options.fatal;
-    
-
-
-
-
-    this.decode = function(byte_pointer) {
-      var bite = byte_pointer.get();
-      if (bite === EOF_byte) {
-        return EOF_code_point;
-      }
-      byte_pointer.offset(1);
-      if (inRange(bite, 0x00, 0x7F)) {
-        return bite;
-      }
-      var code_point = index[bite - 0x80];
-      if (code_point === null) {
-        return decoderError(fatal);
-      }
-      return code_point;
-    };
-  }
-
-  
-
-
-
-
-  function SingleByteEncoder(index, options) {
-    var fatal = options.fatal;
-    
-
-
-
-
-    this.encode = function(output_byte_stream, code_point_pointer) {
-      var code_point = code_point_pointer.get();
-      if (code_point === EOF_code_point) {
-        return EOF_byte;
-      }
-      code_point_pointer.offset(1);
-      if (inRange(code_point, 0x0000, 0x007F)) {
-        return output_byte_stream.emit(code_point);
-      }
-      var pointer = indexPointerFor(code_point, index);
-      if (pointer === null) {
-        encoderError(code_point);
-      }
-      return output_byte_stream.emit(pointer + 0x80);
-    };
-  }
-
-  (function() {
-    ['ibm864', 'ibm866', 'iso-8859-2', 'iso-8859-3', 'iso-8859-4',
-     'iso-8859-5', 'iso-8859-6', 'iso-8859-7', 'iso-8859-8', 'iso-8859-10',
-     'iso-8859-13', 'iso-8859-14', 'iso-8859-15', 'iso-8859-16', 'koi8-r',
-     'koi8-u', 'macintosh', 'windows-874', 'windows-1250', 'windows-1251',
-     'windows-1252', 'windows-1253', 'windows-1254', 'windows-1255',
-     'windows-1256', 'windows-1257', 'windows-1258', 'x-mac-cyrillic'
-    ].forEach(function(name) {
-      var encoding = name_to_encoding[name];
-      var index = indexes[name];
-      encoding.getDecoder = function(options) {
-        return new SingleByteDecoder(index, options);
-      };
-      encoding.getEncoder = function(options) {
-        return new SingleByteEncoder(index, options);
-      };
-    });
-  }());
-
-  
-  
-  
-
-  
-
-  
-
-
-
-
-  function GBKDecoder(gb18030, options) {
-    var fatal = options.fatal;
-    var  gbk_first = 0x00,
-         gbk_second = 0x00,
-         gbk_third = 0x00;
-    
-
-
-
-
-    this.decode = function(byte_pointer) {
-      var bite = byte_pointer.get();
-      if (bite === EOF_byte && gbk_first === 0x00 &&
-          gbk_second === 0x00 && gbk_third === 0x00) {
-        return EOF_code_point;
-      }
-      if (bite === EOF_byte &&
-          (gbk_first !== 0x00 || gbk_second !== 0x00 || gbk_third !== 0x00)) {
-        gbk_first = 0x00;
-        gbk_second = 0x00;
-        gbk_third = 0x00;
-        decoderError(fatal);
-      }
-      byte_pointer.offset(1);
-      var code_point;
-      if (gbk_third !== 0x00) {
-        code_point = null;
-        if (inRange(bite, 0x30, 0x39)) {
-          code_point = indexGB18030CodePointFor(
-              (((gbk_first - 0x81) * 10 + (gbk_second - 0x30)) * 126 +
-               (gbk_third - 0x81)) * 10 + bite - 0x30);
-        }
-        gbk_first = 0x00;
-        gbk_second = 0x00;
-        gbk_third = 0x00;
-        if (code_point === null) {
-          byte_pointer.offset(-3);
-          return decoderError(fatal);
-        }
-        return code_point;
-      }
-      if (gbk_second !== 0x00) {
-        if (inRange(bite, 0x81, 0xFE)) {
-          gbk_third = bite;
-          return null;
-        }
-        byte_pointer.offset(-2);
-        gbk_first = 0x00;
-        gbk_second = 0x00;
-        return decoderError(fatal);
-      }
-      if (gbk_first !== 0x00) {
-        if (inRange(bite, 0x30, 0x39) && gb18030) {
-          gbk_second = bite;
-          return null;
-        }
-        var lead = gbk_first;
-        var pointer = null;
-        gbk_first = 0x00;
-        var offset = bite < 0x7F ? 0x40 : 0x41;
-        if (inRange(bite, 0x40, 0x7E) || inRange(bite, 0x80, 0xFE)) {
-          pointer = (lead - 0x81) * 190 + (bite - offset);
-        }
-        code_point = pointer === null ? null :
-            indexCodePointFor(pointer, indexes['gbk']);
-        if (pointer === null) {
-          byte_pointer.offset(-1);
-        }
-        if (code_point === null) {
-          return decoderError(fatal);
-        }
-        return code_point;
-      }
-      if (inRange(bite, 0x00, 0x7F)) {
-        return bite;
-      }
-      if (bite === 0x80) {
-        return 0x20AC;
-      }
-      if (inRange(bite, 0x81, 0xFE)) {
-        gbk_first = bite;
-        return null;
-      }
-      return decoderError(fatal);
-    };
-  }
-
-  
-
-
-
-
-  function GBKEncoder(gb18030, options) {
-    var fatal = options.fatal;
-    
-
-
-
-
-    this.encode = function(output_byte_stream, code_point_pointer) {
-      var code_point = code_point_pointer.get();
-      if (code_point === EOF_code_point) {
-        return EOF_byte;
-      }
-      code_point_pointer.offset(1);
-      if (inRange(code_point, 0x0000, 0x007F)) {
-        return output_byte_stream.emit(code_point);
-      }
-      var pointer = indexPointerFor(code_point, indexes['gbk']);
-      if (pointer !== null) {
-        var lead = div(pointer, 190) + 0x81;
-        var trail = pointer % 190;
-        var offset = trail < 0x3F ? 0x40 : 0x41;
-        return output_byte_stream.emit(lead, trail + offset);
-      }
-      if (pointer === null && !gb18030) {
-        return encoderError(code_point);
-      }
-      pointer = indexGB18030PointerFor(code_point);
-      var byte1 = div(div(div(pointer, 10), 126), 10);
-      pointer = pointer - byte1 * 10 * 126 * 10;
-      var byte2 = div(div(pointer, 10), 126);
-      pointer = pointer - byte2 * 10 * 126;
-      var byte3 = div(pointer, 10);
-      var byte4 = pointer - byte3 * 10;
-      return output_byte_stream.emit(byte1 + 0x81,
-                                     byte2 + 0x30,
-                                     byte3 + 0x81,
-                                     byte4 + 0x30);
-    };
-  }
-
-  name_to_encoding['gbk'].getEncoder = function(options) {
-    return new GBKEncoder(false, options);
-  };
-  name_to_encoding['gbk'].getDecoder = function(options) {
-    return new GBKDecoder(false, options);
-  };
-
-  
-  name_to_encoding['gb18030'].getEncoder = function(options) {
-    return new GBKEncoder(true, options);
-  };
-  name_to_encoding['gb18030'].getDecoder = function(options) {
-    return new GBKDecoder(true, options);
-  };
-
-  
-
-  
-
-
-
-  function HZGB2312Decoder(options) {
-    var fatal = options.fatal;
-    var  hzgb2312 = false,
-         hzgb2312_lead = 0x00;
-    
-
-
-
-
-    this.decode = function(byte_pointer) {
-      var bite = byte_pointer.get();
-      if (bite === EOF_byte && hzgb2312_lead === 0x00) {
-        return EOF_code_point;
-      }
-      if (bite === EOF_byte && hzgb2312_lead !== 0x00) {
-        hzgb2312_lead = 0x00;
-        return decoderError(fatal);
-      }
-      byte_pointer.offset(1);
-      if (hzgb2312_lead === 0x7E) {
-        hzgb2312_lead = 0x00;
-        if (bite === 0x7B) {
-          hzgb2312 = true;
-          return null;
-        }
-        if (bite === 0x7D) {
-          hzgb2312 = false;
-          return null;
-        }
-        if (bite === 0x7E) {
-          return 0x007E;
-        }
-        if (bite === 0x0A) {
-          return null;
-        }
-        byte_pointer.offset(-1);
-        return decoderError(fatal);
-      }
-      if (hzgb2312_lead !== 0x00) {
-        var lead = hzgb2312_lead;
-        hzgb2312_lead = 0x00;
-        var code_point = null;
-        if (inRange(bite, 0x21, 0x7E)) {
-          code_point = indexCodePointFor((lead - 1) * 190 +
-                                         (bite + 0x3F), indexes['gbk']);
-        }
-        if (bite === 0x0A) {
-          hzgb2312 = false;
-        }
-        if (code_point === null) {
-          return decoderError(fatal);
-        }
-        return code_point;
-      }
-      if (bite === 0x7E) {
-        hzgb2312_lead = 0x7E;
-        return null;
-      }
-      if (hzgb2312) {
-        if (inRange(bite, 0x20, 0x7F)) {
-          hzgb2312_lead = bite;
-          return null;
-        }
-        if (bite === 0x0A) {
-          hzgb2312 = false;
-        }
-        return decoderError(fatal);
-      }
-      if (inRange(bite, 0x00, 0x7F)) {
-        return bite;
-      }
-      return decoderError(fatal);
-    };
-  }
-
-  
-
-
-
-  function HZGB2312Encoder(options) {
-    var fatal = options.fatal;
-    var hzgb2312 = false;
-    
-
-
-
-
-    this.encode = function(output_byte_stream, code_point_pointer) {
-      var code_point = code_point_pointer.get();
-      if (code_point === EOF_code_point) {
-        return EOF_byte;
-      }
-      code_point_pointer.offset(1);
-      if (inRange(code_point, 0x0000, 0x007F) && hzgb2312) {
-        code_point_pointer.offset(-1);
-        hzgb2312 = false;
-        return output_byte_stream.emit(0x7E, 0x7D);
-      }
-      if (code_point === 0x007E) {
-        return output_byte_stream.emit(0x7E, 0x7E);
-      }
-      if (inRange(code_point, 0x0000, 0x007F)) {
-        return output_byte_stream.emit(code_point);
-      }
-      if (!hzgb2312) {
-        code_point_pointer.offset(-1);
-        hzgb2312 = true;
-        return output_byte_stream.emit(0x7E, 0x7B);
-      }
-      var pointer = indexPointerFor(code_point, indexes['gbk']);
-      if (pointer === null) {
-        return encoderError(code_point);
-      }
-      var lead = div(pointer, 190) + 1;
-      var trail = pointer % 190 - 0x3F;
-      if (!inRange(lead, 0x21, 0x7E) || !inRange(trail, 0x21, 0x7E)) {
-        return encoderError(code_point);
-      }
-      return output_byte_stream.emit(lead, trail);
-    };
-  }
-
-  name_to_encoding['hz-gb-2312'].getEncoder = function(options) {
-    return new HZGB2312Encoder(options);
-  };
-  name_to_encoding['hz-gb-2312'].getDecoder = function(options) {
-    return new HZGB2312Decoder(options);
-  };
-
-  
-  
-  
-
-  
-
-  
-
-
-
-  function Big5Decoder(options) {
-    var fatal = options.fatal;
-    var  big5_lead = 0x00,
-         big5_pending = null;
-
-    
-
-
-
-
-    this.decode = function(byte_pointer) {
-      
-      if (big5_pending !== null) {
-        var pending = big5_pending;
-        big5_pending = null;
-        return pending;
-      }
-      var bite = byte_pointer.get();
-      if (bite === EOF_byte && big5_lead === 0x00) {
-        return EOF_code_point;
-      }
-      if (bite === EOF_byte && big5_lead !== 0x00) {
-        big5_lead = 0x00;
-        return decoderError(fatal);
-      }
-      byte_pointer.offset(1);
-      if (big5_lead !== 0x00) {
-        var lead = big5_lead;
-        var pointer = null;
-        big5_lead = 0x00;
-        var offset = bite < 0x7F ? 0x40 : 0x62;
-        if (inRange(bite, 0x40, 0x7E) || inRange(bite, 0xA1, 0xFE)) {
-          pointer = (lead - 0x81) * 157 + (bite - offset);
-        }
-        if (pointer === 1133) {
-          big5_pending = 0x0304;
-          return 0x00CA;
-        }
-        if (pointer === 1135) {
-          big5_pending = 0x030C;
-          return 0x00CA;
-        }
-        if (pointer === 1164) {
-          big5_pending = 0x0304;
-          return 0x00EA;
-        }
-        if (pointer === 1166) {
-          big5_pending = 0x030C;
-          return 0x00EA;
-        }
-        var code_point = (pointer === null) ? null :
-            indexCodePointFor(pointer, indexes['big5']);
-        if (pointer === null) {
-          byte_pointer.offset(-1);
-        }
-        if (code_point === null) {
-          return decoderError(fatal);
-        }
-        return code_point;
-      }
-      if (inRange(bite, 0x00, 0x7F)) {
-        return bite;
-      }
-      if (inRange(bite, 0x81, 0xFE)) {
-        big5_lead = bite;
-        return null;
-      }
-      return decoderError(fatal);
-    };
-  }
-
-  
-
-
-
-  function Big5Encoder(options) {
-    var fatal = options.fatal;
-    
-
-
-
-
-    this.encode = function(output_byte_stream, code_point_pointer) {
-      var code_point = code_point_pointer.get();
-      if (code_point === EOF_code_point) {
-        return EOF_byte;
-      }
-      code_point_pointer.offset(1);
-      if (inRange(code_point, 0x0000, 0x007F)) {
-        return output_byte_stream.emit(code_point);
-      }
-      var pointer = indexPointerFor(code_point, indexes['big5']);
-      if (pointer === null) {
-        return encoderError(code_point);
-      }
-      var lead = div(pointer, 157) + 0x81;
-      
-      
-      
-      var trail = pointer % 157;
-      var offset = trail < 0x3F ? 0x40 : 0x62;
-      return output_byte_stream.emit(lead, trail + offset);
-    };
-  }
-
-  name_to_encoding['big5'].getEncoder = function(options) {
-    return new Big5Encoder(options);
-  };
-  name_to_encoding['big5'].getDecoder = function(options) {
-    return new Big5Decoder(options);
-  };
-
-
-  
-  
-  
-
-  
-
-  
-
-
-
-  function EUCJPDecoder(options) {
-    var fatal = options.fatal;
-    var  eucjp_first = 0x00,
-         eucjp_second = 0x00;
-    
-
-
-
-
-    this.decode = function(byte_pointer) {
-      var bite = byte_pointer.get();
-      if (bite === EOF_byte) {
-        if (eucjp_first === 0x00 && eucjp_second === 0x00) {
-          return EOF_code_point;
-        }
-        eucjp_first = 0x00;
-        eucjp_second = 0x00;
-        return decoderError(fatal);
-      }
-      byte_pointer.offset(1);
-
-      var lead, code_point;
-      if (eucjp_second !== 0x00) {
-        lead = eucjp_second;
-        eucjp_second = 0x00;
-        code_point = null;
-        if (inRange(lead, 0xA1, 0xFE) && inRange(bite, 0xA1, 0xFE)) {
-          code_point = indexCodePointFor((lead - 0xA1) * 94 + bite - 0xA1,
-                                         indexes['jis0212']);
-        }
-        if (!inRange(bite, 0xA1, 0xFE)) {
-          byte_pointer.offset(-1);
-        }
-        if (code_point === null) {
-          return decoderError(fatal);
-        }
-        return code_point;
-      }
-      if (eucjp_first === 0x8E && inRange(bite, 0xA1, 0xDF)) {
-        eucjp_first = 0x00;
-        return 0xFF61 + bite - 0xA1;
-      }
-      if (eucjp_first === 0x8F && inRange(bite, 0xA1, 0xFE)) {
-        eucjp_first = 0x00;
-        eucjp_second = bite;
-        return null;
-      }
-      if (eucjp_first !== 0x00) {
-        lead = eucjp_first;
-        eucjp_first = 0x00;
-        code_point = null;
-        if (inRange(lead, 0xA1, 0xFE) && inRange(bite, 0xA1, 0xFE)) {
-          code_point = indexCodePointFor((lead - 0xA1) * 94 + bite - 0xA1,
-                                         indexes['jis0208']);
-        }
-        if (!inRange(bite, 0xA1, 0xFE)) {
-          byte_pointer.offset(-1);
-        }
-        if (code_point === null) {
-          return decoderError(fatal);
-        }
-        return code_point;
-      }
-      if (inRange(bite, 0x00, 0x7F)) {
-        return bite;
-      }
-      if (bite === 0x8E || bite === 0x8F || (inRange(bite, 0xA1, 0xFE))) {
-        eucjp_first = bite;
-        return null;
-      }
-      return decoderError(fatal);
-    };
-  }
-
-  
-
-
-
-  function EUCJPEncoder(options) {
-    var fatal = options.fatal;
-    
-
-
-
-
-    this.encode = function(output_byte_stream, code_point_pointer) {
-      var code_point = code_point_pointer.get();
-      if (code_point === EOF_code_point) {
-        return EOF_byte;
-      }
-      code_point_pointer.offset(1);
-      if (inRange(code_point, 0x0000, 0x007F)) {
-        return output_byte_stream.emit(code_point);
-      }
-      if (code_point === 0x00A5) {
-        return output_byte_stream.emit(0x5C);
-      }
-      if (code_point === 0x203E) {
-        return output_byte_stream.emit(0x7E);
-      }
-      if (inRange(code_point, 0xFF61, 0xFF9F)) {
-        return output_byte_stream.emit(0x8E, code_point - 0xFF61 + 0xA1);
-      }
-
-      var pointer = indexPointerFor(code_point, indexes['jis0208']);
-      if (pointer === null) {
-        return encoderError(code_point);
-      }
-      var lead = div(pointer, 94) + 0xA1;
-      var trail = pointer % 94 + 0xA1;
-      return output_byte_stream.emit(lead, trail);
-    };
-  }
-
-  name_to_encoding['euc-jp'].getEncoder = function(options) {
-    return new EUCJPEncoder(options);
-  };
-  name_to_encoding['euc-jp'].getDecoder = function(options) {
-    return new EUCJPDecoder(options);
-  };
-
-  
-
-  
-
-
-
-  function ISO2022JPDecoder(options) {
-    var fatal = options.fatal;
-    
-    var state = {
-      ASCII: 0,
-      escape_start: 1,
-      escape_middle: 2,
-      escape_final: 3,
-      lead: 4,
-      trail: 5,
-      Katakana: 6
-    };
-    var  iso2022jp_state = state.ASCII,
-         iso2022jp_jis0212 = false,
-         iso2022jp_lead = 0x00;
-    
-
-
-
-
-    this.decode = function(byte_pointer) {
-      var bite = byte_pointer.get();
-      if (bite !== EOF_byte) {
-        byte_pointer.offset(1);
-      }
-      switch (iso2022jp_state) {
-        default:
-        case state.ASCII:
-          if (bite === 0x1B) {
-            iso2022jp_state = state.escape_start;
-            return null;
-          }
-          if (inRange(bite, 0x00, 0x7F)) {
-            return bite;
-          }
-          if (bite === EOF_byte) {
-            return EOF_code_point;
-          }
-          return decoderError(fatal);
-
-        case state.escape_start:
-          if (bite === 0x24 || bite === 0x28) {
-            iso2022jp_lead = bite;
-            iso2022jp_state = state.escape_middle;
-            return null;
-          }
-          if (bite !== EOF_byte) {
-            byte_pointer.offset(-1);
-          }
-          iso2022jp_state = state.ASCII;
-          return decoderError(fatal);
-
-        case state.escape_middle:
-          var lead = iso2022jp_lead;
-          iso2022jp_lead = 0x00;
-          if (lead === 0x24 && (bite === 0x40 || bite === 0x42)) {
-            iso2022jp_jis0212 = false;
-            iso2022jp_state = state.lead;
-            return null;
-          }
-          if (lead === 0x24 && bite === 0x28) {
-            iso2022jp_state = state.escape_final;
-            return null;
-          }
-          if (lead === 0x28 && (bite === 0x42 || bite === 0x4A)) {
-            iso2022jp_state = state.ASCII;
-            return null;
-          }
-          if (lead === 0x28 && bite === 0x49) {
-            iso2022jp_state = state.Katakana;
-            return null;
-          }
-          if (bite === EOF_byte) {
-            byte_pointer.offset(-1);
-          } else {
-            byte_pointer.offset(-2);
-          }
-          iso2022jp_state = state.ASCII;
-          return decoderError(fatal);
-
-        case state.escape_final:
-          if (bite === 0x44) {
-            iso2022jp_jis0212 = true;
-            iso2022jp_state = state.lead;
-            return null;
-          }
-          if (bite === EOF_byte) {
-            byte_pointer.offset(-2);
-          } else {
-            byte_pointer.offset(-3);
-          }
-          iso2022jp_state = state.ASCII;
-          return decoderError(fatal);
-
-        case state.lead:
-          if (bite === 0x0A) {
-            iso2022jp_state = state.ASCII;
-            return decoderError(fatal, 0x000A);
-          }
-          if (bite === 0x1B) {
-            iso2022jp_state = state.escape_start;
-            return null;
-          }
-          if (bite === EOF_byte) {
-            return EOF_code_point;
-          }
-          iso2022jp_lead = bite;
-          iso2022jp_state = state.trail;
-          return null;
-
-        case state.trail:
-          iso2022jp_state = state.lead;
-          if (bite === EOF_byte) {
-            return decoderError(fatal);
-          }
-          var code_point = null;
-          var pointer = (iso2022jp_lead - 0x21) * 94 + bite - 0x21;
-          if (inRange(iso2022jp_lead, 0x21, 0x7E) &&
-              inRange(bite, 0x21, 0x7E)) {
-            code_point = (iso2022jp_jis0212 === false) ?
-                indexCodePointFor(pointer, indexes['jis0208']) :
-                indexCodePointFor(pointer, indexes['jis0212']);
-          }
-          if (code_point === null) {
-            return decoderError(fatal);
-          }
-          return code_point;
-
-        case state.Katakana:
-          if (bite === 0x1B) {
-            iso2022jp_state = state.escape_start;
-            return null;
-          }
-          if (inRange(bite, 0x21, 0x5F)) {
-            return 0xFF61 + bite - 0x21;
-          }
-          if (bite === EOF_byte) {
-            return EOF_code_point;
-          }
-          return decoderError(fatal);
-      }
-    };
-  }
-
-  
-
-
-
-  function ISO2022JPEncoder(options) {
-    var fatal = options.fatal;
-    
-    var state = {
-      ASCII: 0,
-      lead: 1,
-      Katakana: 2
-    };
-    var  iso2022jp_state = state.ASCII;
-    
-
-
-
-
-    this.encode = function(output_byte_stream, code_point_pointer) {
-      var code_point = code_point_pointer.get();
-      if (code_point === EOF_code_point) {
-        return EOF_byte;
-      }
-      code_point_pointer.offset(1);
-      if ((inRange(code_point, 0x0000, 0x007F) ||
-           code_point === 0x00A5 || code_point === 0x203E) &&
-          iso2022jp_state !== state.ASCII) {
-        code_point_pointer.offset(-1);
-        iso2022jp_state = state.ASCII;
-        return output_byte_stream.emit(0x1B, 0x28, 0x42);
-      }
-      if (inRange(code_point, 0x0000, 0x007F)) {
-        return output_byte_stream.emit(code_point);
-      }
-      if (code_point === 0x00A5) {
-        return output_byte_stream.emit(0x5C);
-      }
-      if (code_point === 0x203E) {
-        return output_byte_stream.emit(0x7E);
-      }
-      if (inRange(code_point, 0xFF61, 0xFF9F) &&
-          iso2022jp_state !== state.Katakana) {
-        code_point_pointer.offset(-1);
-        iso2022jp_state = state.Katakana;
-        return output_byte_stream.emit(0x1B, 0x28, 0x49);
-      }
-      if (inRange(code_point, 0xFF61, 0xFF9F)) {
-        return output_byte_stream.emit(code_point - 0xFF61 - 0x21);
-      }
-      if (iso2022jp_state !== state.lead) {
-        code_point_pointer.offset(-1);
-        iso2022jp_state = state.lead;
-        return output_byte_stream.emit(0x1B, 0x24, 0x42);
-      }
-      var pointer = indexPointerFor(code_point, indexes['jis0208']);
-      if (pointer === null) {
-        return encoderError(code_point);
-      }
-      var lead = div(pointer, 94) + 0x21;
-      var trail = pointer % 94 + 0x21;
-      return output_byte_stream.emit(lead, trail);
-    };
-  }
-
-  name_to_encoding['iso-2022-jp'].getEncoder = function(options) {
-    return new ISO2022JPEncoder(options);
-  };
-  name_to_encoding['iso-2022-jp'].getDecoder = function(options) {
-    return new ISO2022JPDecoder(options);
-  };
-
-  
-
-  
-
-
-
-  function ShiftJISDecoder(options) {
-    var fatal = options.fatal;
-    var  shiftjis_lead = 0x00;
-    
-
-
-
-
-    this.decode = function(byte_pointer) {
-      var bite = byte_pointer.get();
-      if (bite === EOF_byte && shiftjis_lead === 0x00) {
-        return EOF_code_point;
-      }
-      if (bite === EOF_byte && shiftjis_lead !== 0x00) {
-        shiftjis_lead = 0x00;
-        return decoderError(fatal);
-      }
-      byte_pointer.offset(1);
-      if (shiftjis_lead !== 0x00) {
-        var lead = shiftjis_lead;
-        shiftjis_lead = 0x00;
-        if (inRange(bite, 0x40, 0x7E) || inRange(bite, 0x80, 0xFC)) {
-          var offset = (bite < 0x7F) ? 0x40 : 0x41;
-          var lead_offset = (lead < 0xA0) ? 0x81 : 0xC1;
-          var code_point = indexCodePointFor((lead - lead_offset) * 188 +
-                                             bite - offset, indexes['jis0208']);
-          if (code_point === null) {
-            return decoderError(fatal);
-          }
-          return code_point;
-        }
-        byte_pointer.offset(-1);
-        return decoderError(fatal);
-      }
-      if (inRange(bite, 0x00, 0x80)) {
-        return bite;
-      }
-      if (inRange(bite, 0xA1, 0xDF)) {
-        return 0xFF61 + bite - 0xA1;
-      }
-      if (inRange(bite, 0x81, 0x9F) || inRange(bite, 0xE0, 0xFC)) {
-        shiftjis_lead = bite;
-        return null;
-      }
-      return decoderError(fatal);
-    };
-  }
-
-  
-
-
-
-  function ShiftJISEncoder(options) {
-    var fatal = options.fatal;
-    
-
-
-
-
-    this.encode = function(output_byte_stream, code_point_pointer) {
-      var code_point = code_point_pointer.get();
-      if (code_point === EOF_code_point) {
-        return EOF_byte;
-      }
-      code_point_pointer.offset(1);
-      if (inRange(code_point, 0x0000, 0x0080)) {
-        return output_byte_stream.emit(code_point);
-      }
-      if (code_point === 0x00A5) {
-        return output_byte_stream.emit(0x5C);
-      }
-      if (code_point === 0x203E) {
-        return output_byte_stream.emit(0x7E);
-      }
-      if (inRange(code_point, 0xFF61, 0xFF9F)) {
-        return output_byte_stream.emit(code_point - 0xFF61 + 0xA1);
-      }
-      var pointer = indexPointerFor(code_point, indexes['jis0208']);
-      if (pointer === null) {
-        return encoderError(code_point);
-      }
-      var lead = div(pointer, 188);
-      var lead_offset = lead < 0x1F ? 0x81 : 0xC1;
-      var trail = pointer % 188;
-      var offset = trail < 0x3F ? 0x40 : 0x41;
-      return output_byte_stream.emit(lead + lead_offset, trail + offset);
-    };
-  }
-
-  name_to_encoding['shift_jis'].getEncoder = function(options) {
-    return new ShiftJISEncoder(options);
-  };
-  name_to_encoding['shift_jis'].getDecoder = function(options) {
-    return new ShiftJISDecoder(options);
-  };
-
-  
-  
-  
-
-  
-
-  
-
-
-
-  function EUCKRDecoder(options) {
-    var fatal = options.fatal;
-    var  euckr_lead = 0x00;
-    
-
-
-
-
-    this.decode = function(byte_pointer) {
-      var bite = byte_pointer.get();
-      if (bite === EOF_byte && euckr_lead === 0) {
-        return EOF_code_point;
-      }
-      if (bite === EOF_byte && euckr_lead !== 0) {
-        euckr_lead = 0x00;
-        return decoderError(fatal);
-      }
-      byte_pointer.offset(1);
-      if (euckr_lead !== 0x00) {
-        var lead = euckr_lead;
-        var pointer = null;
-        euckr_lead = 0x00;
-
-        if (inRange(lead, 0x81, 0xC6)) {
-          var temp = (26 + 26 + 126) * (lead - 0x81);
-          if (inRange(bite, 0x41, 0x5A)) {
-            pointer = temp + bite - 0x41;
-          } else if (inRange(bite, 0x61, 0x7A)) {
-            pointer = temp + 26 + bite - 0x61;
-          } else if (inRange(bite, 0x81, 0xFE)) {
-            pointer = temp + 26 + 26 + bite - 0x81;
-          }
-        }
-
-        if (inRange(lead, 0xC7, 0xFD) && inRange(bite, 0xA1, 0xFE)) {
-          pointer = (26 + 26 + 126) * (0xC7 - 0x81) + (lead - 0xC7) * 94 +
-              (bite - 0xA1);
-        }
-
-        var code_point = (pointer === null) ? null :
-            indexCodePointFor(pointer, indexes['euc-kr']);
-        if (pointer === null) {
-          byte_pointer.offset(-1);
-        }
-        if (code_point === null) {
-          return decoderError(fatal);
-        }
-        return code_point;
-      }
-
-      if (inRange(bite, 0x00, 0x7F)) {
-        return bite;
-      }
-
-      if (inRange(bite, 0x81, 0xFD)) {
-        euckr_lead = bite;
-        return null;
-      }
-
-      return decoderError(fatal);
-    };
-  }
-
-  
-
-
-
-  function EUCKREncoder(options) {
-    var fatal = options.fatal;
-    
-
-
-
-
-    this.encode = function(output_byte_stream, code_point_pointer) {
-      var code_point = code_point_pointer.get();
-      if (code_point === EOF_code_point) {
-        return EOF_byte;
-      }
-      code_point_pointer.offset(1);
-      if (inRange(code_point, 0x0000, 0x007F)) {
-        return output_byte_stream.emit(code_point);
-      }
-      var pointer = indexPointerFor(code_point, indexes['euc-kr']);
-      if (pointer === null) {
-        return encoderError(code_point);
-      }
-      var lead, trail;
-      if (pointer < ((26 + 26 + 126) * (0xC7 - 0x81))) {
-        lead = div(pointer, (26 + 26 + 126)) + 0x81;
-        trail = pointer % (26 + 26 + 126);
-        var offset = trail < 26 ? 0x41 : trail < 26 + 26 ? 0x47 : 0x4D;
-        return output_byte_stream.emit(lead, trail + offset);
-      }
-      pointer = pointer - (26 + 26 + 126) * (0xC7 - 0x81);
-      lead = div(pointer, 94) + 0xC7;
-      trail = pointer % 94 + 0xA1;
-      return output_byte_stream.emit(lead, trail);
-    };
-  }
-
-  name_to_encoding['euc-kr'].getEncoder = function(options) {
-    return new EUCKREncoder(options);
-  };
-  name_to_encoding['euc-kr'].getDecoder = function(options) {
-    return new EUCKRDecoder(options);
-  };
-
-  
-
-  
-
-
-
-  function ISO2022KRDecoder(options) {
-    var fatal = options.fatal;
-    
-    var state = {
-      ASCII: 0,
-      escape_start: 1,
-      escape_middle: 2,
-      escape_end: 3,
-      lead: 4,
-      trail: 5
-    };
-    var  iso2022kr_state = state.ASCII,
-         iso2022kr_lead = 0x00;
-    
-
-
-
-
-    this.decode = function(byte_pointer) {
-      var bite = byte_pointer.get();
-      if (bite !== EOF_byte) {
-        byte_pointer.offset(1);
-      }
-      switch (iso2022kr_state) {
-        default:
-        case state.ASCII:
-          if (bite === 0x0E) {
-            iso2022kr_state = state.lead;
-            return null;
-          }
-          if (bite === 0x0F) {
-            return null;
-          }
-          if (bite === 0x1B) {
-            iso2022kr_state = state.escape_start;
-            return null;
-          }
-          if (inRange(bite, 0x00, 0x7F)) {
-            return bite;
-          }
-          if (bite === EOF_byte) {
-            return EOF_code_point;
-          }
-          return decoderError(fatal);
-        case state.escape_start:
-          if (bite === 0x24) {
-            iso2022kr_state = state.escape_middle;
-            return null;
-          }
-          if (bite !== EOF_byte) {
-            byte_pointer.offset(-1);
-          }
-          iso2022kr_state = state.ASCII;
-          return decoderError(fatal);
-        case state.escape_middle:
-          if (bite === 0x29) {
-            iso2022kr_state = state.escape_end;
-            return null;
-          }
-          if (bite === EOF_byte) {
-            byte_pointer.offset(-1);
-          } else {
-            byte_pointer.offset(-2);
-          }
-          iso2022kr_state = state.ASCII;
-          return decoderError(fatal);
-        case state.escape_end:
-          if (bite === 0x43) {
-            iso2022kr_state = state.ASCII;
-            return null;
-          }
-          if (bite === EOF_byte) {
-            byte_pointer.offset(-2);
-          } else {
-            byte_pointer.offset(-3);
-          }
-          iso2022kr_state = state.ASCII;
-          return decoderError(fatal);
-        case state.lead:
-          if (bite === 0x0A) {
-            iso2022kr_state = state.ASCII;
-            return decoderError(fatal, 0x000A);
-          }
-          if (bite === 0x0E) {
-            return null;
-          }
-          if (bite === 0x0F) {
-            iso2022kr_state = state.ASCII;
-            return null;
-          }
-          if (bite === EOF_byte) {
-            return EOF_code_point;
-          }
-          iso2022kr_lead = bite;
-          iso2022kr_state = state.trail;
-          return null;
-        case state.trail:
-          iso2022kr_state = state.lead;
-          if (bite === EOF_byte) {
-            return decoderError(fatal);
-          }
-          var code_point = null;
-          if (inRange(iso2022kr_lead, 0x21, 0x46) &&
-              inRange(bite, 0x21, 0x7E)) {
-            code_point = indexCodePointFor((26 + 26 + 126) *
-                (iso2022kr_lead - 1) +
-                26 + 26 + bite - 1,
-                indexes['euc-kr']);
-          } else if (inRange(iso2022kr_lead, 0x47, 0x7E) &&
-              inRange(bite, 0x21, 0x7E)) {
-            code_point = indexCodePointFor((26 + 26 + 126) * (0xC7 - 0x81) +
-                (iso2022kr_lead - 0x47) * 94 +
-                (bite - 0x21),
-                indexes['euc-kr']);
-          }
-          if (code_point !== null) {
-            return code_point;
-          }
-          return decoderError(fatal);
-      }
-    };
-  }
-
-  
-
-
-
-  function ISO2022KREncoder(options) {
-    var fatal = options.fatal;
-    
-    var state = {
-      ASCII: 0,
-      lead: 1
-    };
-    var  iso2022kr_initialization = false,
-         iso2022kr_state = state.ASCII;
-    
-
-
-
-
-    this.encode = function(output_byte_stream, code_point_pointer) {
-      var code_point = code_point_pointer.get();
-      if (code_point === EOF_code_point) {
-        return EOF_byte;
-      }
-      if (!iso2022kr_initialization) {
-        iso2022kr_initialization = true;
-        output_byte_stream.emit(0x1B, 0x24, 0x29, 0x43);
-      }
-      code_point_pointer.offset(1);
-      if (inRange(code_point, 0x0000, 0x007F) &&
-          iso2022kr_state !== state.ASCII) {
-        code_point_pointer.offset(-1);
-        iso2022kr_state = state.ASCII;
-        return output_byte_stream.emit(0x0F);
-      }
-      if (inRange(code_point, 0x0000, 0x007F)) {
-        return output_byte_stream.emit(code_point);
-      }
-      if (iso2022kr_state !== state.lead) {
-        code_point_pointer.offset(-1);
-        iso2022kr_state = state.lead;
-        return output_byte_stream.emit(0x0E);
-      }
-      var pointer = indexPointerFor(code_point, indexes['euc-kr']);
-      if (pointer === null) {
-        return encoderError(code_point);
-      }
-      var lead, trail;
-      if (pointer < (26 + 26 + 126) * (0xC7 - 0x81)) {
-        lead = div(pointer, (26 + 26 + 126)) + 1;
-        trail = pointer % (26 + 26 + 126) - 26 - 26 + 1;
-        if (!inRange(lead, 0x21, 0x46) || !inRange(trail, 0x21, 0x7E)) {
-          return encoderError(code_point);
-        }
-        return output_byte_stream.emit(lead, trail);
-      }
-      pointer = pointer - (26 + 26 + 126) * (0xC7 - 0x81);
-      lead = div(pointer, 94) + 0x47;
-      trail = pointer % 94 + 0x21;
-      if (!inRange(lead, 0x47, 0x7E) || !inRange(trail, 0x21, 0x7E)) {
-        return encoderError(code_point);
-      }
-      return output_byte_stream.emit(lead, trail);
-    };
-  }
-
-  name_to_encoding['iso-2022-kr'].getEncoder = function(options) {
-    return new ISO2022KREncoder(options);
-  };
-  name_to_encoding['iso-2022-kr'].getDecoder = function(options) {
-    return new ISO2022KRDecoder(options);
-  };
-
-
-  
-  
-  
-
-  
-
-  
-
-
-
-
-  function UTF16Decoder(utf16_be, options) {
-    var fatal = options.fatal;
-    var  utf16_lead_byte = null,
-         utf16_lead_surrogate = null;
-    
-
-
-
-
-    this.decode = function(byte_pointer) {
-      var bite = byte_pointer.get();
-      if (bite === EOF_byte && utf16_lead_byte === null &&
-          utf16_lead_surrogate === null) {
-        return EOF_code_point;
-      }
-      if (bite === EOF_byte && (utf16_lead_byte !== null ||
-                                utf16_lead_surrogate !== null)) {
-        return decoderError(fatal);
-      }
-      byte_pointer.offset(1);
-      if (utf16_lead_byte === null) {
-        utf16_lead_byte = bite;
-        return null;
-      }
-      var code_point;
-      if (utf16_be) {
-        code_point = (utf16_lead_byte << 8) + bite;
-      } else {
-        code_point = (bite << 8) + utf16_lead_byte;
-      }
-      utf16_lead_byte = null;
-      if (utf16_lead_surrogate !== null) {
-        var lead_surrogate = utf16_lead_surrogate;
-        utf16_lead_surrogate = null;
-        if (inRange(code_point, 0xDC00, 0xDFFF)) {
-          return 0x10000 + (lead_surrogate - 0xD800) * 0x400 +
-              (code_point - 0xDC00);
-        }
-        byte_pointer.offset(-2);
-        return decoderError(fatal);
-      }
-      if (inRange(code_point, 0xD800, 0xDBFF)) {
-        utf16_lead_surrogate = code_point;
-        return null;
-      }
-      if (inRange(code_point, 0xDC00, 0xDFFF)) {
-        return decoderError(fatal);
-      }
-      return code_point;
-    };
-  }
-
-  
-
-
-
-
-  function UTF16Encoder(utf16_be, options) {
-    var fatal = options.fatal;
-    
-
-
-
-
-    this.encode = function(output_byte_stream, code_point_pointer) {
-      function convert_to_bytes(code_unit) {
-        var byte1 = code_unit >> 8;
-        var byte2 = code_unit & 0x00FF;
-        if (utf16_be) {
-          return output_byte_stream.emit(byte1, byte2);
-        }
-        return output_byte_stream.emit(byte2, byte1);
-      }
-      var code_point = code_point_pointer.get();
-      if (code_point === EOF_code_point) {
-        return EOF_byte;
-      }
-      code_point_pointer.offset(1);
-      if (inRange(code_point, 0xD800, 0xDFFF)) {
-        encoderError(code_point);
-      }
-      if (code_point <= 0xFFFF) {
-        return convert_to_bytes(code_point);
-      }
-      var lead = div((code_point - 0x10000), 0x400) + 0xD800;
-      var trail = ((code_point - 0x10000) % 0x400) + 0xDC00;
-      convert_to_bytes(lead);
-      return convert_to_bytes(trail);
-    };
-  }
-
-  name_to_encoding['utf-16'].getEncoder = function(options) {
-    return new UTF16Encoder(false, options);
-  };
-  name_to_encoding['utf-16'].getDecoder = function(options) {
-    return new UTF16Decoder(false, options);
-  };
-
-  
-  name_to_encoding['utf-16be'].getEncoder = function(options) {
-    return new UTF16Encoder(true, options);
-  };
-  name_to_encoding['utf-16be'].getDecoder = function(options) {
-    return new UTF16Decoder(true, options);
-  };
-
 
   
   
@@ -11304,7 +7067,8 @@ waitForDomReady();
   
   
 
-   var DEFAULT_ENCODING = 'utf-8';
+  
+  var DEFAULT_ENCODING = 'utf-8';
 
   
 
@@ -11465,397 +7229,249 @@ waitForDomReady();
 
   global['TextEncoder'] = global['TextEncoder'] || TextEncoder;
   global['TextDecoder'] = global['TextDecoder'] || TextDecoder;
+
+  
+
 }(this));
 
-!(function() {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OT.Rumor.Message = function (type, toAddress, headers, data) {
+  this.type = type;
+  this.toAddress = toAddress;
+  this.headers = headers;
+  this.data = data;
+
+  this.transactionId = this.headers['TRANSACTION-ID'];
+  this.status = this.headers.STATUS;
+  this.isError = !(this.status && this.status[0] === '2');
+};
+
+OT.Rumor.Message.prototype.serialize = function () {
+  var offset = 8,
+      cBuf = 7,
+      address = [],
+      headerKey = [],
+      headerVal = [],
+      strArray,
+      dataView,
+      i,
+      j;
 
   
-  
-  
-  
-  
-  
-  
-  
+  cBuf++;
 
-  OT.Rumor = {
-    MessageType: {
-      
-      
-      
-      SUBSCRIBE: 0,
+  
+  for (i = 0; i < this.toAddress.length; i++) {
+    
+    address.push(new TextEncoder('utf-8').encode(this.toAddress[i]));
+    cBuf += 2;
+    cBuf += address[i].length;
+  }
 
-      
-      
-      UNSUBSCRIBE: 1,
+  
+  cBuf++;
 
-      
-      
-      MESSAGE: 2,
+  
+  i = 0;
 
-      
-      
-      
-      CONNECT: 3,
-
-      
-      
-      DISCONNECT: 4,
-
-      
-      PING: 7,
-      PONG: 8,
-      STATUS: 9
+  for (var key in this.headers) {
+    if(!this.headers.hasOwnProperty(key)) {
+      continue;
     }
+    headerKey.push(new TextEncoder('utf-8').encode(key));
+    headerVal.push(new TextEncoder('utf-8').encode(this.headers[key]));
+    cBuf += 4;
+    cBuf += headerKey[i].length;
+    cBuf += headerVal[i].length;
+
+    i++;
+  }
+
+  dataView = new TextEncoder('utf-8').encode(this.data);
+  cBuf += dataView.length;
+
+  
+  var buffer = new ArrayBuffer(cBuf);
+  var uint8View = new Uint8Array(buffer, 0, cBuf);
+
+  
+  cBuf -= 4;
+
+  
+  uint8View[0] = (cBuf & 0xFF000000) >>> 24;
+  uint8View[1] = (cBuf & 0x00FF0000) >>> 16;
+  uint8View[2] = (cBuf & 0x0000FF00) >>>  8;
+  uint8View[3] = (cBuf & 0x000000FF) >>>  0;
+
+  
+  uint8View[4] = 0;
+  uint8View[5] = 0;
+
+  
+  uint8View[6] = this.type;
+  uint8View[7] = this.toAddress.length;
+
+  
+  for (i = 0; i < address.length; i++) {
+    strArray = address[i];
+    uint8View[offset++] = strArray.length >> 8 & 0xFF;
+    uint8View[offset++] = strArray.length >> 0 & 0xFF;
+    for (j = 0; j < strArray.length; j++) {
+      uint8View[offset++] = strArray[j];
+    }
+  }
+
+  uint8View[offset++] = headerKey.length;
+
+  
+  for (i = 0; i < headerKey.length; i++) {
+    strArray = headerKey[i];
+    uint8View[offset++] = strArray.length >> 8 & 0xFF;
+    uint8View[offset++] = strArray.length >> 0 & 0xFF;
+    for (j = 0; j < strArray.length; j++) {
+      uint8View[offset++] = strArray[j];
+    }
+
+    strArray = headerVal[i];
+    uint8View[offset++] = strArray.length >> 8 & 0xFF;
+    uint8View[offset++] = strArray.length >> 0 & 0xFF;
+    for (j = 0; j < strArray.length; j++) {
+      uint8View[offset++] = strArray[j];
+    }
+  }
+
+  
+  for (i = 0; i < dataView.length; i++) {
+    uint8View[offset++] = dataView[i];
+  }
+
+  return buffer;
+};
+
+function toArrayBuffer(buffer) {
+  var ab = new ArrayBuffer(buffer.length);
+  var view = new Uint8Array(ab);
+  for (var i = 0; i < buffer.length; ++i) {
+    view[i] = buffer[i];
+  }
+  return ab;
+}
+
+OT.Rumor.Message.deserialize = function (buffer) {
+
+  if(typeof Buffer !== 'undefined' &&
+    Buffer.isBuffer(buffer)) {
+    buffer = toArrayBuffer(buffer);
+  }
+  var cBuf = 0,
+      type,
+      offset = 8,
+      uint8View = new Uint8Array(buffer),
+      strView,
+      headerlen,
+      headers,
+      keyStr,
+      valStr,
+      length,
+      i;
+
+  
+  cBuf += uint8View[0] << 24;
+  cBuf += uint8View[1] << 16;
+  cBuf += uint8View[2] <<  8;
+  cBuf += uint8View[3] <<  0;
+
+  type = uint8View[6];
+  var address = [];
+
+  for (i = 0; i < uint8View[7]; i++) {
+    length = uint8View[offset++] << 8;
+    length += uint8View[offset++];
+    strView = new Uint8Array(buffer, offset, length);
+    
+    address[i] = new TextDecoder('utf-8').decode(strView);
+    offset += length;
+  }
+
+  headerlen = uint8View[offset++];
+  headers = {};
+
+  for (i = 0; i < headerlen; i++) {
+    length = uint8View[offset++] << 8;
+    length += uint8View[offset++];
+    strView = new Uint8Array(buffer, offset, length);
+    keyStr = new TextDecoder('utf-8').decode(strView);
+    offset += length;
+
+    length = uint8View[offset++] << 8;
+    length += uint8View[offset++];
+    strView = new Uint8Array(buffer, offset, length);
+    valStr = new TextDecoder('utf-8').decode(strView);
+    headers[keyStr] = valStr;
+    offset += length;
+  }
+
+  var dataView = new Uint8Array(buffer, offset);
+  var data = new TextDecoder('utf-8').decode(dataView);
+
+  return new OT.Rumor.Message(type, address, headers, data);
+};
+
+
+OT.Rumor.Message.Connect = function (uniqueId, notifyDisconnectAddress) {
+  var headers = {
+    uniqueId: uniqueId,
+    notifyDisconnectAddress: notifyDisconnectAddress
   };
 
-}(this));
-!(function(OT) {
-
-  var WEB_SOCKET_KEEP_ALIVE_INTERVAL = 9000,
-
-      
-      
-      
-      WEB_SOCKET_CONNECTIVITY_TIMEOUT = 5*WEB_SOCKET_KEEP_ALIVE_INTERVAL - 100,
-
-      wsCloseErrorCodes;
-
-
-
-  
-  
-  wsCloseErrorCodes = {
-    1002:  'The endpoint is terminating the connection due to a protocol error. ' +
-      '(CLOSE_PROTOCOL_ERROR)',
-    1003:  'The connection is being terminated because the endpoint received data of ' +
-      'a type it cannot accept (for example, a text-only endpoint received binary data). ' +
-      '(CLOSE_UNSUPPORTED)',
-    1004:  'The endpoint is terminating the connection because a data frame was received ' +
-      'that is too large. (CLOSE_TOO_LARGE)',
-    1005:  'Indicates that no status code was provided even though one was expected. ' +
-    '(CLOSE_NO_STATUS)',
-    1006:  'Used to indicate that a connection was closed abnormally (that is, with no ' +
-      'close frame being sent) when a status code is expected. (CLOSE_ABNORMAL)',
-    1007: 'Indicates that an endpoint is terminating the connection because it has received ' +
-      'data within a message that was not consistent with the type of the message (e.g., ' +
-      'non-UTF-8 [RFC3629] data within a text message)',
-    1008: 'Indicates that an endpoint is terminating the connection because it has received a ' +
-      'message that violates its policy.  This is a generic status code that can be returned ' +
-      'when there is no other more suitable status code (e.g., 1003 or 1009) or if there is a ' +
-      'need to hide specific details about the policy',
-    1009: 'Indicates that an endpoint is terminating the connection because it has received a ' +
-      'message that is too big for it to process',
-    1011: 'Indicates that a server is terminating the connection because it encountered an ' +
-      'unexpected condition that prevented it from fulfilling the request',
-
-    
-    4001:   'Connectivity loss was detected as it was too long since the socket received the ' +
-      'last PONG message'
-  };
-
-  OT.Rumor.SocketError = function(code, message) {
-    this.code = code;
-    this.message = message;
-  };
-
-  
-  
-  OT.Rumor.Socket = function(messagingURL, notifyDisconnectAddress, NativeSocket) {
-
-    var states = ['disconnected',  'error', 'connected', 'connecting', 'disconnecting'],
-        webSocket,
-        id,
-        onOpen,
-        onError,
-        onClose,
-        onMessage,
-        connectCallback,
-        connectTimeout,
-        lastMessageTimestamp,         
-        keepAliveTimer;               
-
-
-    
-    var stateChanged = function(newState) {
-          switch (newState) {
-            case 'disconnected':
-            case 'error':
-              webSocket = null;
-              if (onClose) {
-                var error;
-                if(hasLostConnectivity()) {
-                  error = new Error(wsCloseErrorCodes[4001]);
-                  error.code = 4001;
-                }
-                onClose(error);
-              }
-              break;
-          }
-        },
-
-        setState = OT.$.statable(this, states, 'disconnected', stateChanged),
-
-        validateCallback = function validateCallback (name, callback) {
-          if (callback === null || !OT.$.isFunction(callback) ) {
-            throw new Error('The Rumor.Socket ' + name +
-              ' callback must be a valid function or null');
-          }
-        },
-
-        error = OT.$.bind(function error (errorMessage) {
-          OT.error('Rumor.Socket: ' + errorMessage);
-
-          var socketError = new OT.Rumor.SocketError(null, errorMessage || 'Unknown Socket Error');
-
-          if (connectTimeout) clearTimeout(connectTimeout);
-
-          setState('error');
-
-          if (this.previousState === 'connecting' && connectCallback) {
-            connectCallback(socketError, null);
-            connectCallback = null;
-          }
-
-          if (onError) onError(socketError);
-        }, this),
-
-        hasLostConnectivity = function hasLostConnectivity () {
-          if (!lastMessageTimestamp) return false;
-
-          return (OT.$.now() - lastMessageTimestamp) >= WEB_SOCKET_CONNECTIVITY_TIMEOUT;
-        },
-
-        sendKeepAlive = OT.$.bind(function() {
-          if (!this.is('connected')) return;
-
-          if ( hasLostConnectivity() ) {
-            webSocketDisconnected({code: 4001});
-          }
-          else  {
-            webSocket.send(OT.Rumor.Message.Ping());
-            keepAliveTimer = setTimeout(sendKeepAlive, WEB_SOCKET_KEEP_ALIVE_INTERVAL);
-          }
-        }, this),
-
-        
-        
-        
-        isDOMUnloaded = function isDOMUnloaded () {
-          return !window.OT;
-        };
-
-
-    
-    var webSocketConnected = OT.$.bind(function webSocketConnected () {
-          if (connectTimeout) clearTimeout(connectTimeout);
-          if (this.isNot('connecting')) {
-            OT.debug('webSocketConnected reached in state other than connecting');
-            return;
-          }
-
-          
-          
-          
-          
-          webSocket.send(OT.Rumor.Message.Connect(id, notifyDisconnectAddress));
-
-          setState('connected');
-          if (connectCallback) {
-            connectCallback(null, id);
-            connectCallback = null;
-          }
-
-          if (onOpen) onOpen(id);
-
-          keepAliveTimer = setTimeout(function() {
-            lastMessageTimestamp = OT.$.now();
-            sendKeepAlive();
-          }, WEB_SOCKET_KEEP_ALIVE_INTERVAL);
-        }, this),
-
-        webSocketConnectTimedOut = function webSocketConnectTimedOut () {
-          var webSocketWas = webSocket;
-          error('Timed out while waiting for the Rumor socket to connect.');
-          
-          
-          
-          
-          try {
-            webSocketWas.close();
-          } catch(x) {}
-        },
-
-        webSocketError = function webSocketError () {},
-          
-          
-
-          
-          
-          
-          
-          
-          
-
-        webSocketDisconnected = OT.$.bind(function webSocketDisconnected (closeEvent) {
-          if (connectTimeout) clearTimeout(connectTimeout);
-          if (keepAliveTimer) clearTimeout(keepAliveTimer);
-
-          if (isDOMUnloaded()) {
-            
-            
-            
-            
-            return;
-          }
-
-          if (closeEvent.code !== 1000 && closeEvent.code !== 1001) {
-            var reason = closeEvent.reason || closeEvent.message;
-            if (!reason && wsCloseErrorCodes.hasOwnProperty(closeEvent.code)) {
-              reason = wsCloseErrorCodes[closeEvent.code];
-            }
-
-            error('Rumor Socket Disconnected: ' + reason);
-          }
-
-          if (this.isNot('error')) setState('disconnected');
-        }, this),
-
-        webSocketReceivedMessage = function webSocketReceivedMessage (msg) {
-          lastMessageTimestamp = OT.$.now();
-
-          if (onMessage) {
-            if (msg.type !== OT.Rumor.MessageType.PONG) {
-              onMessage(msg);
-            }
-          }
-        };
-
-
-    
-
-    this.publish = function (topics, message, headers) {
-      webSocket.send(OT.Rumor.Message.Publish(topics, message, headers));
-    };
-
-    this.subscribe = function(topics) {
-      webSocket.send(OT.Rumor.Message.Subscribe(topics));
-    };
-
-    this.unsubscribe = function(topics) {
-      webSocket.send(OT.Rumor.Message.Unsubscribe(topics));
-    };
-
-    this.connect = function (connectionId, complete) {
-      if (this.is('connecting', 'connected')) {
-        complete(new OT.Rumor.SocketError(null,
-            'Rumor.Socket cannot connect when it is already connecting or connected.'));
-        return;
-      }
-
-      id = connectionId;
-      connectCallback = complete;
-
-      setState('connecting');
-
-      var TheWebSocket = NativeSocket || window.WebSocket;
-
-      var events = {
-        onOpen:    webSocketConnected,
-        onClose:   webSocketDisconnected,
-        onError:   webSocketError,
-        onMessage: webSocketReceivedMessage
-      };
-
-      try {
-        if(typeof TheWebSocket !== 'undefined') {
-          webSocket = new OT.Rumor.NativeSocket(TheWebSocket, messagingURL, events);
-        } else {
-          webSocket = new OT.Rumor.PluginSocket(messagingURL, events);
-        }
-
-        connectTimeout = setTimeout(webSocketConnectTimedOut, OT.Rumor.Socket.CONNECT_TIMEOUT);
-      }
-      catch(e) {
-        OT.error(e);
-
-        
-        error('Could not connect to the Rumor socket, possibly because of a blocked port.');
-      }
-    };
-
-    this.disconnect = function(drainSocketBuffer) {
-      if (connectTimeout) clearTimeout(connectTimeout);
-      if (keepAliveTimer) clearTimeout(keepAliveTimer);
-
-      if (!webSocket) {
-        if (this.isNot('error')) setState('disconnected');
-        return;
-      }
-
-      if (webSocket.isClosed()) {
-        if (this.isNot('error')) setState('disconnected');
-      }
-      else {
-        if (this.is('connected')) {
-          
-          webSocket.send(OT.Rumor.Message.Disconnect());
-        }
-
-        
-        webSocket.close(drainSocketBuffer);
-      }
-    };
-
-
-
-    OT.$.defineProperties(this, {
-      id: {
-        get: function() { return id; }
-      },
-
-      onOpen: {
-        set: function(callback) {
-          validateCallback('onOpen', callback);
-          onOpen = callback;
-        },
-
-        get: function() { return onOpen; }
-      },
-
-      onError: {
-        set: function(callback) {
-          validateCallback('onError', callback);
-          onError = callback;
-        },
-
-        get: function() { return onError; }
-      },
-
-      onClose: {
-        set: function(callback) {
-          validateCallback('onClose', callback);
-          onClose = callback;
-        },
-
-        get: function() { return onClose; }
-      },
-
-      onMessage: {
-        set: function(callback) {
-          validateCallback('onMessage', callback);
-          onMessage = callback;
-        },
-
-        get: function() { return onMessage; }
-      }
-    });
-  };
-
-  
-  OT.Rumor.Socket.CONNECT_TIMEOUT = 15000;
-
-}(window.OT, this));
+  return new OT.Rumor.Message(OT.Rumor.MessageType.CONNECT, [], headers, '');
+};
+
+OT.Rumor.Message.Disconnect = function () {
+  return new OT.Rumor.Message(OT.Rumor.MessageType.DISCONNECT, [], {}, '');
+};
+
+OT.Rumor.Message.Subscribe = function(topics) {
+  return new OT.Rumor.Message(OT.Rumor.MessageType.SUBSCRIBE, topics, {}, '');
+};
+
+OT.Rumor.Message.Unsubscribe = function(topics) {
+  return new OT.Rumor.Message(OT.Rumor.MessageType.UNSUBSCRIBE, topics, {}, '');
+};
+
+OT.Rumor.Message.Publish = function(topics, message, headers) {
+  return new OT.Rumor.Message(OT.Rumor.MessageType.MESSAGE, topics, headers||{}, message || '');
+};
+
+
+
+
+
+OT.Rumor.Message.Ping = function() {
+  return new OT.Rumor.Message(OT.Rumor.MessageType.PING, [], {}, '');
+};
+
+
+
+
+
+
+
+
+
 !(function() {
 
   var BUFFER_DRAIN_INTERVAL = 100,
@@ -11931,1125 +7547,770 @@ waitForDomReady();
 
 
 }(this));
-!(function() {
 
-  OT.Rumor.PluginSocket = function(messagingURL, events) {
 
-    var webSocket,
-        state = 'initializing';
 
-    TBPlugin.initRumorSocket(messagingURL, OT.$.bind(function(err, rumorSocket) {
-      if(err) {
-        state = 'closed';
-        events.onClose({ code: 4999 });
-      } else if(state === 'initializing') {
-        webSocket = rumorSocket;
 
-        webSocket.onOpen(function() {
-          state = 'open';
-          events.onOpen();
-        });
-        webSocket.onClose(function(error) {
-          state = 'closed'; 
-          events.onClose({ code: error });
-        });
-        webSocket.onError(function(error) {
-          state = 'closed'; 
-          events.onError(error);
-          
-          events.onClose({ code: error });
-        });
 
-        webSocket.onMessage(function(type, addresses, headers, payload) {
-          var msg = new OT.Rumor.Message(type, addresses, headers, payload);
-          events.onMessage(msg);
-        });
 
-        webSocket.open();
-      } else {
-        this.close();
-      }
-    }, this));
 
-    this.close = function() {
-      if(state === 'initializing' || state === 'closed') {
-        state = 'closed';
-        return;
-      }
 
-      webSocket.close(1000, '');
-    };
 
-    this.send = function(msg) {
-      if(state === 'open') {
-        webSocket.send(msg);
-      }
-    };
 
-    this.isClosed = function() {
-      return state === 'closed';
-    };
-
-  };
-
-}(this));
-!(function() {
-
-  
-
-  
-  
-  
-  
-  
-  
-  OT.Rumor.Message = function (type, toAddress, headers, data) {
-    this.type = type;
-    this.toAddress = toAddress;
-    this.headers = headers;
-    this.data = data;
-
-    this.transactionId = this.headers['TRANSACTION-ID'];
-    this.status = this.headers.STATUS;
-    this.isError = !(this.status && this.status[0] === '2');
-  };
-
-  OT.Rumor.Message.prototype.serialize = function () {
-    var offset = 8,
-        cBuf = 7,
-        address = [],
-        headerKey = [],
-        headerVal = [],
-        strArray,
-        dataView,
-        i,
-        j;
-
-    
-    cBuf++;
-
-    
-    for (i = 0; i < this.toAddress.length; i++) {
-      
-      address.push(new TextEncoder('utf-8').encode(this.toAddress[i]));
-      cBuf += 2;
-      cBuf += address[i].length;
-    }
-
-    
-    cBuf++;
-
-    
-    i = 0;
-
-    for (var key in this.headers) {
-      if(!this.headers.hasOwnProperty(key)) {
-        continue;
-      }
-      headerKey.push(new TextEncoder('utf-8').encode(key));
-      headerVal.push(new TextEncoder('utf-8').encode(this.headers[key]));
-      cBuf += 4;
-      cBuf += headerKey[i].length;
-      cBuf += headerVal[i].length;
-
-      i++;
-    }
-
-    dataView = new TextEncoder('utf-8').encode(this.data);
-    cBuf += dataView.length;
-
-    
-    var buffer = new ArrayBuffer(cBuf);
-    var uint8View = new Uint8Array(buffer, 0, cBuf);
-
-    
-    cBuf -= 4;
-
-    
-    uint8View[0] = (cBuf & 0xFF000000) >>> 24;
-    uint8View[1] = (cBuf & 0x00FF0000) >>> 16;
-    uint8View[2] = (cBuf & 0x0000FF00) >>>  8;
-    uint8View[3] = (cBuf & 0x000000FF) >>>  0;
-
-    
-    uint8View[4] = 0;
-    uint8View[5] = 0;
-
-    
-    uint8View[6] = this.type;
-    uint8View[7] = this.toAddress.length;
-
-    
-    for (i = 0; i < address.length; i++) {
-      strArray = address[i];
-      uint8View[offset++] = strArray.length >> 8 & 0xFF;
-      uint8View[offset++] = strArray.length >> 0 & 0xFF;
-      for (j = 0; j < strArray.length; j++) {
-        uint8View[offset++] = strArray[j];
-      }
-    }
-
-    uint8View[offset++] = headerKey.length;
-
-    
-    for (i = 0; i < headerKey.length; i++) {
-      strArray = headerKey[i];
-      uint8View[offset++] = strArray.length >> 8 & 0xFF;
-      uint8View[offset++] = strArray.length >> 0 & 0xFF;
-      for (j = 0; j < strArray.length; j++) {
-        uint8View[offset++] = strArray[j];
-      }
-
-      strArray = headerVal[i];
-      uint8View[offset++] = strArray.length >> 8 & 0xFF;
-      uint8View[offset++] = strArray.length >> 0 & 0xFF;
-      for (j = 0; j < strArray.length; j++) {
-        uint8View[offset++] = strArray[j];
-      }
-    }
-
-    
-    for (i = 0; i < dataView.length; i++) {
-      uint8View[offset++] = dataView[i];
-    }
-
-    return buffer;
-  };
-
-  function toArrayBuffer(buffer) {
-    var ab = new ArrayBuffer(buffer.length);
-    var view = new Uint8Array(ab);
-    for (var i = 0; i < buffer.length; ++i) {
-      view[i] = buffer[i];
-    }
-    return ab;
-  }
-
-  OT.Rumor.Message.deserialize = function (buffer) {
-
-    if(typeof Buffer !== 'undefined' &&
-      Buffer.isBuffer(buffer)) {
-      buffer = toArrayBuffer(buffer);
-    }
-    var cBuf = 0,
-        type,
-        offset = 8,
-        uint8View = new Uint8Array(buffer),
-        strView,
-        headerlen,
-        headers,
-        keyStr,
-        valStr,
-        length,
-        i;
-
-    
-    cBuf += uint8View[0] << 24;
-    cBuf += uint8View[1] << 16;
-    cBuf += uint8View[2] <<  8;
-    cBuf += uint8View[3] <<  0;
-
-    type = uint8View[6];
-    var address = [];
-
-    for (i = 0; i < uint8View[7]; i++) {
-      length = uint8View[offset++] << 8;
-      length += uint8View[offset++];
-      strView = new Uint8Array(buffer, offset, length);
-      
-      address[i] = new TextDecoder('utf-8').decode(strView);
-      offset += length;
-    }
-
-    headerlen = uint8View[offset++];
-    headers = {};
-
-    for (i = 0; i < headerlen; i++) {
-      length = uint8View[offset++] << 8;
-      length += uint8View[offset++];
-      strView = new Uint8Array(buffer, offset, length);
-      keyStr = new TextDecoder('utf-8').decode(strView);
-      offset += length;
-
-      length = uint8View[offset++] << 8;
-      length += uint8View[offset++];
-      strView = new Uint8Array(buffer, offset, length);
-      valStr = new TextDecoder('utf-8').decode(strView);
-      headers[keyStr] = valStr;
-      offset += length;
-    }
-
-    var dataView = new Uint8Array(buffer, offset);
-    var data = new TextDecoder('utf-8').decode(dataView);
-
-    return new OT.Rumor.Message(type, address, headers, data);
-  };
-
-
-  OT.Rumor.Message.Connect = function (uniqueId, notifyDisconnectAddress) {
-    var headers = {
-      uniqueId: uniqueId,
-      notifyDisconnectAddress: notifyDisconnectAddress
-    };
-
-    return new OT.Rumor.Message(OT.Rumor.MessageType.CONNECT, [], headers, '');
-  };
-
-  OT.Rumor.Message.Disconnect = function () {
-    return new OT.Rumor.Message(OT.Rumor.MessageType.DISCONNECT, [], {}, '');
-  };
-
-  OT.Rumor.Message.Subscribe = function(topics) {
-    return new OT.Rumor.Message(OT.Rumor.MessageType.SUBSCRIBE, topics, {}, '');
-  };
-
-  OT.Rumor.Message.Unsubscribe = function(topics) {
-    return new OT.Rumor.Message(OT.Rumor.MessageType.UNSUBSCRIBE, topics, {}, '');
-  };
-
-  OT.Rumor.Message.Publish = function(topics, message, headers) {
-    return new OT.Rumor.Message(OT.Rumor.MessageType.MESSAGE, topics, headers||{}, message || '');
-  };
-
-  
-  
-  
-  
-  OT.Rumor.Message.Ping = function() {
-    return new OT.Rumor.Message(OT.Rumor.MessageType.PING, [], {}, '');
-  };
-
-}(this));
-!(function() {
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  OT.Raptor = {
-    Actions: {
-      
-      CONNECT: 100,
-      CREATE: 101,
-      UPDATE: 102,
-      DELETE: 103,
-      STATE: 104,
-
-      
-      FORCE_DISCONNECT: 105,
-      FORCE_UNPUBLISH: 106,
-      SIGNAL: 107,
-
-      
-      CREATE_ARCHIVE: 108,
-      CLOSE_ARCHIVE: 109,
-      START_RECORDING_SESSION: 110,
-      STOP_RECORDING_SESSION: 111,
-      START_RECORDING_STREAM: 112,
-      STOP_RECORDING_STREAM: 113,
-      LOAD_ARCHIVE: 114,
-      START_PLAYBACK: 115,
-      STOP_PLAYBACK: 116,
-
-      
-      APPSTATE_PUT: 117,
-      APPSTATE_DELETE: 118,
-
-      
-      OFFER: 119,
-      ANSWER: 120,
-      PRANSWER: 121,
-      CANDIDATE: 122,
-      SUBSCRIBE: 123,
-      UNSUBSCRIBE: 124,
-      QUERY: 125,
-      SDP_ANSWER: 126,
-
-      
-      PONG: 127,
-      REGISTER: 128, 
-
-      QUALITY_CHANGED: 129
-    },
-
-    Types: {
-      
-      RPC_REQUEST: 100,
-      RPC_RESPONSE: 101,
-
-      
-      STREAM: 102,
-      ARCHIVE: 103,
-      CONNECTION: 104,
-      APPSTATE: 105,
-      CONNECTIONCOUNT: 106,
-      MODERATION: 107,
-      SIGNAL: 108,
-      SUBSCRIBER: 110,
-
-      
-      JSEP: 109
-    }
-  };
-
-}(this));
-!(function() {
-
-
-  OT.Raptor.serializeMessage = function (message) {
-    return JSON.stringify(message);
-  };
-
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  OT.Raptor.deserializeMessage = function (msg) {
-    if (msg.length === 0) return {};
-
-    var message = JSON.parse(msg),
-        bits = message.uri.substr(1).split('/');
-
-    
-    bits.shift();
-    if (bits[bits.length-1] === '') bits.pop();
-
-    message.params = {};
-    for (var i=0, numBits=bits.length ; i<numBits-1; i+=2) {
-      message.params[bits[i]] = bits[i+1];
-    }
+var WEB_SOCKET_KEEP_ALIVE_INTERVAL = 9000,
 
     
     
     
-    if (bits.length % 2 === 0) {
-      if (bits[bits.length-2] === 'channel' && bits.length > 6) {
-        message.resource = bits[bits.length-4] + '_' + bits[bits.length-2];
-      } else {
-        message.resource = bits[bits.length-2];
-      }
-    }
-    else {
-      if (bits[bits.length-1] === 'channel' && bits.length > 5) {
-        message.resource = bits[bits.length-3] + '_' + bits[bits.length-1];
-      } else {
-        message.resource = bits[bits.length-1];
-      }
-    }
+    WEB_SOCKET_CONNECTIVITY_TIMEOUT = 5*WEB_SOCKET_KEEP_ALIVE_INTERVAL - 100,
 
-    message.signature = message.resource + '#' + message.method;
-    return message;
-  };
-
-  OT.Raptor.unboxFromRumorMessage = function (rumorMessage) {
-    var message = OT.Raptor.deserializeMessage(rumorMessage.data);
-    message.transactionId = rumorMessage.transactionId;
-    message.fromAddress = rumorMessage.headers['X-TB-FROM-ADDRESS'];
-
-    return message;
-  };
-
-  OT.Raptor.parseIceServers = function (message) {
-    try {
-      return JSON.parse(message.data).content.iceServers;
-    } catch (e) {
-      return [];
-    }
-  };
-
-  OT.Raptor.Message = {};
+    wsCloseErrorCodes;
 
 
-  OT.Raptor.Message.connections = {};
 
-  OT.Raptor.Message.connections.create = function (apiKey, sessionId, connectionId) {
-    return OT.Raptor.serializeMessage({
-      method: 'create',
-      uri: '/v2/partner/' + apiKey + '/session/' + sessionId + '/connection/' + connectionId,
-      content: {
-        userAgent: OT.$.userAgent()
-      }
-    });
-  };
-
-  OT.Raptor.Message.connections.destroy = function (apiKey, sessionId, connectionId) {
-    return OT.Raptor.serializeMessage({
-      method: 'delete',
-      uri: '/v2/partner/' + apiKey + '/session/' + sessionId + '/connection/' + connectionId,
-      content: {}
-    });
-  };
-
-
-  OT.Raptor.Message.sessions = {};
-
-  OT.Raptor.Message.sessions.get = function (apiKey, sessionId) {
-    return OT.Raptor.serializeMessage({
-      method: 'read',
-      uri: '/v2/partner/' + apiKey + '/session/' + sessionId,
-      content: {}
-    });
-  };
-
-
-  OT.Raptor.Message.streams = {};
-
-  OT.Raptor.Message.streams.get = function (apiKey, sessionId, streamId) {
-    return OT.Raptor.serializeMessage({
-      method: 'read',
-      uri: '/v2/partner/' + apiKey + '/session/' + sessionId + '/stream/' + streamId,
-      content: {}
-    });
-  };
-
-  OT.Raptor.Message.streams.create = function (apiKey, sessionId, streamId, name, videoOrientation,
-    videoWidth, videoHeight, hasAudio, hasVideo, frameRate, minBitrate, maxBitrate) {
-    var channels = [];
-
-    if (hasAudio !== void 0) {
-      channels.push({
-        id: 'audio1',
-        type: 'audio',
-        active: hasAudio
-      });
-    }
-
-    if (hasVideo !== void 0) {
-      var channel = {
-        id: 'video1',
-        type: 'video',
-        active: hasVideo,
-        width: videoWidth,
-        height: videoHeight,
-        orientation: videoOrientation
-      };
-      if (frameRate) channel.frameRate = frameRate;
-      channels.push(channel);
-    }
-
-    var messageContent = {
-      id: streamId,
-      name: name,
-      channel: channels
-    };
-
-    if (minBitrate) messageContent.minBitrate = minBitrate;
-    if (maxBitrate) messageContent.maxBitrate = maxBitrate;
-
-    return OT.Raptor.serializeMessage({
-      method: 'create',
-      uri: '/v2/partner/' + apiKey + '/session/' + sessionId + '/stream/' + streamId,
-      content: messageContent
-    });
-  };
-
-  OT.Raptor.Message.streams.destroy = function (apiKey, sessionId, streamId) {
-    return OT.Raptor.serializeMessage({
-      method: 'delete',
-      uri: '/v2/partner/' + apiKey + '/session/' + sessionId + '/stream/' + streamId,
-      content: {}
-    });
-  };
-
-  OT.Raptor.Message.streams.offer = function (apiKey, sessionId, streamId, offerSdp) {
-    return OT.Raptor.serializeMessage({
-      method: 'offer',
-      uri: '/v2/partner/' + apiKey + '/session/' + sessionId + '/stream/' + streamId,
-      content: {
-        sdp: offerSdp
-      }
-    });
-  };
-
-  OT.Raptor.Message.streams.answer = function (apiKey, sessionId, streamId, answerSdp) {
-    return OT.Raptor.serializeMessage({
-      method: 'answer',
-      uri: '/v2/partner/' + apiKey + '/session/' + sessionId + '/stream/' + streamId,
-      content: {
-        sdp: answerSdp
-      }
-    });
-  };
-
-  OT.Raptor.Message.streams.candidate = function (apiKey, sessionId, streamId, candidate) {
-    return OT.Raptor.serializeMessage({
-      method: 'candidate',
-      uri: '/v2/partner/' + apiKey + '/session/' + sessionId + '/stream/' + streamId,
-      content: candidate
-    });
-  };
-
-  OT.Raptor.Message.streamChannels = {};
-  OT.Raptor.Message.streamChannels.update =
-    function (apiKey, sessionId, streamId, channelId, attributes) {
-    return OT.Raptor.serializeMessage({
-      method: 'update',
-      uri: '/v2/partner/' + apiKey + '/session/' + sessionId + '/stream/' +
-        streamId + '/channel/' + channelId,
-      content: attributes
-    });
-  };
-
-
-  OT.Raptor.Message.subscribers = {};
-
-  OT.Raptor.Message.subscribers.create =
-    function (apiKey, sessionId, streamId, subscriberId, connectionId, channelsToSubscribeTo) {
-    var content = {
-      id: subscriberId,
-      connection: connectionId,
-      keyManagementMethod: OT.$.supportedCryptoScheme(),
-      bundleSupport: OT.$.hasCapabilities('bundle'),
-      rtcpMuxSupport: OT.$.hasCapabilities('RTCPMux')
-    };
-    if (channelsToSubscribeTo) content.channel = channelsToSubscribeTo;
-
-    return OT.Raptor.serializeMessage({
-      method: 'create',
-      uri: '/v2/partner/' + apiKey + '/session/' + sessionId +
-        '/stream/' + streamId + '/subscriber/' + subscriberId,
-      content: content
-    });
-  };
-
-  OT.Raptor.Message.subscribers.destroy = function (apiKey, sessionId, streamId, subscriberId) {
-    return OT.Raptor.serializeMessage({
-      method: 'delete',
-      uri: '/v2/partner/' + apiKey + '/session/' + sessionId +
-        '/stream/' + streamId + '/subscriber/' + subscriberId,
-      content: {}
-    });
-  };
-
-  OT.Raptor.Message.subscribers.update =
-    function (apiKey, sessionId, streamId, subscriberId, attributes) {
-    return OT.Raptor.serializeMessage({
-      method: 'update',
-      uri: '/v2/partner/' + apiKey + '/session/' + sessionId +
-      '/stream/' + streamId + '/subscriber/' + subscriberId,
-      content: attributes
-    });
-  };
-
-
-  OT.Raptor.Message.subscribers.candidate =
-    function (apiKey, sessionId, streamId, subscriberId, candidate) {
-    return OT.Raptor.serializeMessage({
-      method: 'candidate',
-      uri: '/v2/partner/' + apiKey + '/session/' + sessionId +
-        '/stream/' + streamId + '/subscriber/' + subscriberId,
-      content: candidate
-    });
-  };
-
-  OT.Raptor.Message.subscribers.offer =
-    function (apiKey, sessionId, streamId, subscriberId, offerSdp) {
-    return OT.Raptor.serializeMessage({
-      method: 'offer',
-      uri: '/v2/partner/' + apiKey + '/session/' + sessionId +
-        '/stream/' + streamId + '/subscriber/' + subscriberId,
-      content: {
-        sdp: offerSdp
-      }
-    });
-  };
-
-  OT.Raptor.Message.subscribers.answer =
-    function (apiKey, sessionId, streamId, subscriberId, answerSdp) {
-    return OT.Raptor.serializeMessage({
-      method: 'answer',
-      uri: '/v2/partner/' + apiKey + '/session/' + sessionId +
-      '/stream/' + streamId + '/subscriber/' + subscriberId,
-      content: {
-        sdp: answerSdp
-      }
-    });
-  };
-
-
-  OT.Raptor.Message.subscriberChannels = {};
-
-  OT.Raptor.Message.subscriberChannels.update =
-    function (apiKey, sessionId, streamId, subscriberId, channelId, attributes) {
-    return OT.Raptor.serializeMessage({
-      method: 'update',
-      uri: '/v2/partner/' + apiKey + '/session/' + sessionId +
-      '/stream/' + streamId + '/subscriber/' + subscriberId + '/channel/' + channelId,
-      content: attributes
-    });
-  };
-
-
-  OT.Raptor.Message.signals = {};
-
-  OT.Raptor.Message.signals.create = function (apiKey, sessionId, toAddress, type, data) {
-    var content = {};
-    if (type !== void 0) content.type = type;
-    if (data !== void 0) content.data = data;
-
-    return OT.Raptor.serializeMessage({
-      method: 'signal',
-      uri: '/v2/partner/' + apiKey + '/session/' + sessionId +
-        (toAddress !== void 0 ? '/connection/' + toAddress : '') + '/signal/' + OT.$.uuid(),
-      content: content
-    });
-  };
-
-}(this));
-!(function() {
-
-  var MAX_SIGNAL_DATA_LENGTH = 8192,
-      MAX_SIGNAL_TYPE_LENGTH = 128;
+wsCloseErrorCodes = {
+  1002:  'The endpoint is terminating the connection due to a protocol error. ' +
+    '(CLOSE_PROTOCOL_ERROR)',
+  1003:  'The connection is being terminated because the endpoint received data of ' +
+    'a type it cannot accept (for example, a text-only endpoint received binary data). ' +
+    '(CLOSE_UNSUPPORTED)',
+  1004:  'The endpoint is terminating the connection because a data frame was received ' +
+    'that is too large. (CLOSE_TOO_LARGE)',
+  1005:  'Indicates that no status code was provided even though one was expected. ' +
+  '(CLOSE_NO_STATUS)',
+  1006:  'Used to indicate that a connection was closed abnormally (that is, with no ' +
+    'close frame being sent) when a status code is expected. (CLOSE_ABNORMAL)',
+  1007: 'Indicates that an endpoint is terminating the connection because it has received ' +
+    'data within a message that was not consistent with the type of the message (e.g., ' +
+    'non-UTF-8 [RFC3629] data within a text message)',
+  1008: 'Indicates that an endpoint is terminating the connection because it has received a ' +
+    'message that violates its policy.  This is a generic status code that can be returned ' +
+    'when there is no other more suitable status code (e.g., 1003 or 1009) or if there is a ' +
+    'need to hide specific details about the policy',
+  1009: 'Indicates that an endpoint is terminating the connection because it has received a ' +
+    'message that is too big for it to process',
+  1011: 'Indicates that a server is terminating the connection because it encountered an ' +
+    'unexpected condition that prevented it from fulfilling the request',
 
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  OT.Signal = function(sessionId, fromConnectionId, options) {
-    var isInvalidType = function(type) {
-        
-        
-        return !/^[a-zA-Z0-9\-\._~]+$/.exec(type);
-      },
+  4001:   'Connectivity loss was detected as it was too long since the socket received the ' +
+    'last PONG message'
+};
 
-      validateTo = function(toAddress) {
-        if (!toAddress) {
-          return {
-            code: 400,
-            reason: 'The signal type was null or an empty String. Either set it to a non-empty ' +
-              'String value or omit it'
-          };
-        }
+OT.Rumor.SocketError = function(code, message) {
+  this.code = code;
+  this.message = message;
+};
 
-        if ( !(toAddress instanceof OT.Connection || toAddress instanceof OT.Session) ) {
-          return {
-            code: 400,
-            reason: 'The To field was invalid'
-          };
-        }
 
-        return null;
-      },
 
-      validateType = function(type) {
-        var error = null;
+OT.Rumor.Socket = function(messagingURL, notifyDisconnectAddress, NativeSocket) {
 
-        if (type === null || type === void 0) {
-          error = {
-            code: 400,
-            reason: 'The signal type was null or undefined. Either set it to a String value or ' +
-              'omit it'
-          };
-        }
-        else if (type.length > MAX_SIGNAL_TYPE_LENGTH) {
-          error = {
-            code: 413,
-            reason: 'The signal type was too long, the maximum length of it is ' +
-              MAX_SIGNAL_TYPE_LENGTH + ' characters'
-          };
-        }
-        else if ( isInvalidType(type) ) {
-          error = {
-            code: 400,
-            reason: 'The signal type was invalid, it can only contain letters, ' +
-              'numbers, \'-\', \'_\', and \'~\'.'
-          };
-        }
+  var states = ['disconnected',  'error', 'connected', 'connecting', 'disconnecting'],
+      webSocket,
+      id,
+      onOpen,
+      onError,
+      onClose,
+      onMessage,
+      connectCallback,
+      connectTimeout,
+      lastMessageTimestamp,         
+      keepAliveTimer;               
 
-        return error;
-      },
 
-      validateData = function(data) {
-        var error = null;
-        if (data === null || data === void 0) {
-          error = {
-            code: 400,
-            reason: 'The signal data was null or undefined. Either set it to a String value or ' +
-              'omit it'
-          };
-        }
-        else {
-          try {
-            if (JSON.stringify(data).length > MAX_SIGNAL_DATA_LENGTH) {
-              error = {
-                code: 413,
-                reason: 'The data field was too long, the maximum size of it is ' +
-                  MAX_SIGNAL_DATA_LENGTH + ' characters'
-              };
+  
+  var stateChanged = function(newState) {
+        switch (newState) {
+          case 'disconnected':
+          case 'error':
+            webSocket = null;
+            if (onClose) {
+              var error;
+              if(hasLostConnectivity()) {
+                error = new Error(wsCloseErrorCodes[4001]);
+                error.code = 4001;
+              }
+              onClose(error);
             }
-          }
-          catch(e) {
-            error = {code: 400, reason: 'The data field was not valid JSON'};
-          }
+            break;
+        }
+      },
+
+      setState = OT.$.statable(this, states, 'disconnected', stateChanged),
+
+      validateCallback = function validateCallback (name, callback) {
+        if (callback === null || !OT.$.isFunction(callback) ) {
+          throw new Error('The Rumor.Socket ' + name +
+            ' callback must be a valid function or null');
+        }
+      },
+
+      error = OT.$.bind(function error (errorMessage) {
+        OT.error('Rumor.Socket: ' + errorMessage);
+
+        var socketError = new OT.Rumor.SocketError(null, errorMessage || 'Unknown Socket Error');
+
+        if (connectTimeout) clearTimeout(connectTimeout);
+
+        setState('error');
+
+        if (this.previousState === 'connecting' && connectCallback) {
+          connectCallback(socketError, void 0);
+          connectCallback = null;
         }
 
-        return error;
+        if (onError) onError(socketError);
+      }, this),
+
+      hasLostConnectivity = function hasLostConnectivity () {
+        if (!lastMessageTimestamp) return false;
+
+        return (OT.$.now() - lastMessageTimestamp) >= WEB_SOCKET_CONNECTIVITY_TIMEOUT;
+      },
+
+      sendKeepAlive = OT.$.bind(function() {
+        if (!this.is('connected')) return;
+
+        if ( hasLostConnectivity() ) {
+          webSocketDisconnected({code: 4001});
+        }
+        else  {
+          webSocket.send(OT.Rumor.Message.Ping());
+          keepAliveTimer = setTimeout(sendKeepAlive, WEB_SOCKET_KEEP_ALIVE_INTERVAL);
+        }
+      }, this),
+
+      
+      
+      
+      isDOMUnloaded = function isDOMUnloaded () {
+        return !window.OT;
       };
 
 
-    this.toRaptorMessage = function() {
-      var to = this.to;
-
-      if (to && typeof(to) !== 'string') {
-        to = to.id;
-      }
-
-      return OT.Raptor.Message.signals.create(OT.APIKEY, sessionId, to, this.type, this.data);
-    };
-
-    this.toHash = function() {
-      return options;
-    };
-
-
-    this.error = null;
-
-    if (options) {
-      if (options.hasOwnProperty('data')) {
-        this.data = OT.$.clone(options.data);
-        this.error = validateData(this.data);
-      }
-
-      if (options.hasOwnProperty('to')) {
-        this.to = options.to;
-
-        if (!this.error) {
-          this.error = validateTo(this.to);
-        }
-      }
-
-      if (options.hasOwnProperty('type')) {
-        if (!this.error) {
-          this.error = validateType(options.type);
-        }
-        this.type = options.type;
-      }
-    }
-
-    this.valid = this.error === null;
-  };
-
-}(this));
-!(function() {
-
-  function SignalError(code, reason) {
-    this.code = code;
-    this.reason = reason;
-  }
-
   
-  
-  OT.Raptor.Socket = function(widgetId, messagingSocketUrl, symphonyUrl, dispatcher) {
-    var _states = ['disconnected', 'connecting', 'connected', 'error', 'disconnecting'],
-        _sessionId,
-        _token,
-        _rumor,
-        _dispatcher,
-        _completion;
-
-
-    
-    var setState = OT.$.statable(this, _states, 'disconnected'),
-
-        onConnectComplete = function onConnectComplete(error) {
-          if (error) {
-            setState('error');
-          }
-          else {
-            setState('connected');
-          }
-
-          _completion.apply(null, arguments);
-        },
-
-        onClose = OT.$.bind(function onClose (err) {
-          var reason = this.is('disconnecting') ? 'clientDisconnected' : 'networkDisconnected';
-
-          if(err && err.code === 4001) {
-            reason = 'networkTimedout';
-          }
-
-          setState('disconnected');
-
-          _dispatcher.onClose(reason);
-        }, this),
-
-        onError = function onError () {};
-        
-
-
-    
-
-    this.connect = function (token, sessionInfo, completion) {
-      if (!this.is('disconnected', 'error')) {
-        OT.warn('Cannot connect the Raptor Socket as it is currently connected. You should ' +
-          'disconnect first.');
-        return;
-      }
-
-      setState('connecting');
-      _sessionId = sessionInfo.sessionId;
-      _token = token;
-      _completion = completion;
-
-      var connectionId = OT.$.uuid(),
-          rumorChannel = '/v2/partner/' + OT.APIKEY + '/session/' + _sessionId;
-
-      _rumor = new OT.Rumor.Socket(messagingSocketUrl, symphonyUrl);
-      _rumor.onClose(onClose);
-      _rumor.onMessage(OT.$.bind(_dispatcher.dispatch, _dispatcher));
-
-      _rumor.connect(connectionId, OT.$.bind(function(error) {
-        if (error) {
-          error.message = 'WebSocketConnection:' + error.code + ':' + error.message;
-          onConnectComplete(error);
+  var webSocketConnected = OT.$.bind(function webSocketConnected () {
+        if (connectTimeout) clearTimeout(connectTimeout);
+        if (this.isNot('connecting')) {
+          OT.debug('webSocketConnected reached in state other than connecting');
           return;
         }
 
         
-        _rumor.onError(onError);
+        
+        
+        
+        webSocket.send(OT.Rumor.Message.Connect(id, notifyDisconnectAddress));
 
-        OT.debug('Raptor Socket connected. Subscribing to ' +
-          rumorChannel + ' on ' + messagingSocketUrl);
+        setState('connected');
+        if (connectCallback) {
+          connectCallback(void 0, id);
+          connectCallback = null;
+        }
 
-        _rumor.subscribe([rumorChannel]);
+        if (onOpen) onOpen(id);
+
+        keepAliveTimer = setTimeout(function() {
+          lastMessageTimestamp = OT.$.now();
+          sendKeepAlive();
+        }, WEB_SOCKET_KEEP_ALIVE_INTERVAL);
+      }, this),
+
+      webSocketConnectTimedOut = function webSocketConnectTimedOut () {
+        var webSocketWas = webSocket;
+        error('Timed out while waiting for the Rumor socket to connect.');
+        
+        
+        
+        
+        try {
+          webSocketWas.close();
+        } catch(x) {}
+      },
+
+      webSocketError = function webSocketError () {},
+        
+        
 
         
-        var connectMessage = OT.Raptor.Message.connections.create(OT.APIKEY,
-          _sessionId, _rumor.id());
-        this.publish(connectMessage, {'X-TB-TOKEN-AUTH': _token}, OT.$.bind(function(error) {
-          if (error) {
-            error.message = 'ConnectToSession:' + error.code +
-                ':Received error response to connection create message.';
-            onConnectComplete(error);
-            return;
+        
+        
+        
+        
+        
+
+      webSocketDisconnected = OT.$.bind(function webSocketDisconnected (closeEvent) {
+        if (connectTimeout) clearTimeout(connectTimeout);
+        if (keepAliveTimer) clearTimeout(keepAliveTimer);
+
+        if (isDOMUnloaded()) {
+          
+          
+          
+          
+          return;
+        }
+
+        if (closeEvent.code !== 1000 && closeEvent.code !== 1001) {
+          var reason = closeEvent.reason || closeEvent.message;
+          if (!reason && wsCloseErrorCodes.hasOwnProperty(closeEvent.code)) {
+            reason = wsCloseErrorCodes[closeEvent.code];
           }
 
-          this.publish( OT.Raptor.Message.sessions.get(OT.APIKEY, _sessionId),
-            function (error) {
-            if (error) {
-              error.message = 'GetSessionState:' + error.code +
-                ':Received error response to session read';
-            }
-            onConnectComplete.apply(null, arguments);
-          });
-        }, this));
-      }, this));
-    };
-
-
-    this.disconnect = function (drainSocketBuffer) {
-      if (this.is('disconnected')) return;
-
-      setState('disconnecting');
-      _rumor.disconnect(drainSocketBuffer);
-    };
-
-    
-    
-    
-    
-    
-    
-    this.publish = function (message, headers, completion) {
-      if (_rumor.isNot('connected')) {
-        OT.error('OT.Raptor.Socket: cannot publish until the socket is connected.' + message);
-        return;
-      }
-
-      var transactionId = OT.$.uuid(),
-          _headers = {},
-          _completion;
-
-      
-      
-      if (headers) {
-        if (OT.$.isFunction(headers)) {
-          _headers = {};
-          _completion = headers;
-        }
-        else {
-          _headers = headers;
-        }
-      }
-      if (!_completion && completion && OT.$.isFunction(completion)) _completion = completion;
-
-
-      if (_completion) _dispatcher.registerCallback(transactionId, _completion);
-
-      OT.debug('OT.Raptor.Socket Publish (ID:' + transactionId + ') ');
-      OT.debug(message);
-
-      _rumor.publish([symphonyUrl], message, OT.$.extend(_headers, {
-        'Content-Type': 'application/x-raptor+v2',
-        'TRANSACTION-ID': transactionId,
-        'X-TB-FROM-ADDRESS': _rumor.id()
-      }));
-
-      return transactionId;
-    };
-
-    
-    this.streamCreate = function(name, orientation, encodedWidth, encodedHeight,
-      hasAudio, hasVideo, frameRate, minBitrate, maxBitrate, completion) {
-      var streamId = OT.$.uuid(),
-          message = OT.Raptor.Message.streams.create( OT.APIKEY,
-                                                      _sessionId,
-                                                      streamId,
-                                                      name,
-                                                      orientation,
-                                                      encodedWidth,
-                                                      encodedHeight,
-                                                      hasAudio,
-                                                      hasVideo,
-                                                      frameRate,
-                                                      minBitrate,
-                                                      maxBitrate);
-
-      this.publish(message, function(error, message) {
-        completion(error, streamId, message);
-      });
-    };
-
-    this.streamDestroy = function(streamId) {
-      this.publish( OT.Raptor.Message.streams.destroy(OT.APIKEY, _sessionId, streamId) );
-    };
-
-    this.streamChannelUpdate = function(streamId, channelId, attributes) {
-      this.publish( OT.Raptor.Message.streamChannels.update(OT.APIKEY, _sessionId,
-        streamId, channelId, attributes) );
-    };
-
-    this.subscriberCreate = function(streamId, subscriberId, channelsToSubscribeTo, completion) {
-      this.publish( OT.Raptor.Message.subscribers.create(OT.APIKEY, _sessionId,
-        streamId, subscriberId, _rumor.id(), channelsToSubscribeTo), completion );
-    };
-
-    this.subscriberDestroy = function(streamId, subscriberId) {
-      this.publish( OT.Raptor.Message.subscribers.destroy(OT.APIKEY, _sessionId,
-        streamId, subscriberId) );
-    };
-
-    this.subscriberUpdate = function(streamId, subscriberId, attributes) {
-      this.publish( OT.Raptor.Message.subscribers.update(OT.APIKEY, _sessionId,
-        streamId, subscriberId, attributes) );
-    };
-
-    this.subscriberChannelUpdate = function(streamId, subscriberId, channelId, attributes) {
-      this.publish( OT.Raptor.Message.subscriberChannels.update(OT.APIKEY, _sessionId,
-        streamId, subscriberId, channelId, attributes) );
-    };
-
-    this.forceDisconnect = function(connectionIdToDisconnect, completion) {
-      this.publish( OT.Raptor.Message.connections.destroy(OT.APIKEY, _sessionId,
-        connectionIdToDisconnect), completion );
-    };
-
-    this.forceUnpublish = function(streamIdToUnpublish, completion) {
-      this.publish( OT.Raptor.Message.streams.destroy(OT.APIKEY, _sessionId,
-        streamIdToUnpublish), completion );
-    };
-
-    this.jsepCandidate = function(streamId, candidate) {
-      this.publish(
-        OT.Raptor.Message.streams.candidate(OT.APIKEY, _sessionId, streamId, candidate)
-      );
-    };
-
-    this.jsepCandidateP2p = function(streamId, subscriberId, candidate) {
-      this.publish(
-        OT.Raptor.Message.subscribers.candidate(OT.APIKEY, _sessionId, streamId,
-          subscriberId, candidate)
-      );
-    };
-
-    this.jsepOffer = function(streamId, offerSdp) {
-      this.publish( OT.Raptor.Message.streams.offer(OT.APIKEY, _sessionId, streamId, offerSdp) );
-    };
-
-    this.jsepOfferP2p = function(streamId, subscriberId, offerSdp) {
-      this.publish( OT.Raptor.Message.subscribers.offer(OT.APIKEY, _sessionId, streamId,
-        subscriberId, offerSdp) );
-    };
-
-    this.jsepAnswer = function(streamId, answerSdp) {
-      this.publish( OT.Raptor.Message.streams.answer(OT.APIKEY, _sessionId, streamId, answerSdp) );
-    };
-
-    this.jsepAnswerP2p = function(streamId, subscriberId, answerSdp) {
-      this.publish( OT.Raptor.Message.subscribers.answer(OT.APIKEY, _sessionId, streamId,
-        subscriberId, answerSdp) );
-    };
-
-    this.signal = function(options, completion) {
-      var signal = new OT.Signal(_sessionId, _rumor.id(), options || {});
-
-      if (!signal.valid) {
-        if (completion && OT.$.isFunction(completion)) {
-          completion( new SignalError(signal.error.code, signal.error.reason), signal.toHash() );
+          error('Rumor Socket Disconnected: ' + reason);
         }
 
-        return;
-      }
+        if (this.isNot('error')) setState('disconnected');
+      }, this),
 
-      this.publish( signal.toRaptorMessage(), function(err) {
-        var error;
-        if (err) error = new SignalError(err.code, err.message);
+      webSocketReceivedMessage = function webSocketReceivedMessage (msg) {
+        lastMessageTimestamp = OT.$.now();
 
-        if (completion && OT.$.isFunction(completion)) completion(error, signal.toHash());
-      });
-    };
+        if (onMessage) {
+          if (msg.type !== OT.Rumor.MessageType.PONG) {
+            onMessage(msg);
+          }
+        }
+      };
 
-    this.id = function() {
-      return _rumor && _rumor.id();
-    };
 
-    if(dispatcher == null) {
-      dispatcher = new OT.Raptor.Dispatcher();
-    }
-    _dispatcher = dispatcher;
+  
+
+  this.publish = function (topics, message, headers) {
+    webSocket.send(OT.Rumor.Message.Publish(topics, message, headers));
   };
 
-}(this));
+  this.subscribe = function(topics) {
+    webSocket.send(OT.Rumor.Message.Subscribe(topics));
+  };
+
+  this.unsubscribe = function(topics) {
+    webSocket.send(OT.Rumor.Message.Unsubscribe(topics));
+  };
+
+  this.connect = function (connectionId, complete) {
+    if (this.is('connecting', 'connected')) {
+      complete(new OT.Rumor.SocketError(null,
+          'Rumor.Socket cannot connect when it is already connecting or connected.'));
+      return;
+    }
+
+    id = connectionId;
+    connectCallback = complete;
+
+    setState('connecting');
+
+    var TheWebSocket = NativeSocket || window.WebSocket;
+
+    var events = {
+      onOpen:    webSocketConnected,
+      onClose:   webSocketDisconnected,
+      onError:   webSocketError,
+      onMessage: webSocketReceivedMessage
+    };
+
+    try {
+      if(typeof TheWebSocket !== 'undefined') {
+        webSocket = new OT.Rumor.NativeSocket(TheWebSocket, messagingURL, events);
+      } else {
+        webSocket = new OT.Rumor.PluginSocket(messagingURL, events);
+      }
+
+      connectTimeout = setTimeout(webSocketConnectTimedOut, OT.Rumor.Socket.CONNECT_TIMEOUT);
+    }
+    catch(e) {
+      OT.error(e);
+
+      
+      error('Could not connect to the Rumor socket, possibly because of a blocked port.');
+    }
+  };
+
+  this.disconnect = function(drainSocketBuffer) {
+    if (connectTimeout) clearTimeout(connectTimeout);
+    if (keepAliveTimer) clearTimeout(keepAliveTimer);
+
+    if (!webSocket) {
+      if (this.isNot('error')) setState('disconnected');
+      return;
+    }
+
+    if (webSocket.isClosed()) {
+      if (this.isNot('error')) setState('disconnected');
+    }
+    else {
+      if (this.is('connected')) {
+        
+        webSocket.send(OT.Rumor.Message.Disconnect());
+      }
+
+      
+      webSocket.close(drainSocketBuffer);
+    }
+  };
+
+
+
+  OT.$.defineProperties(this, {
+    id: {
+      get: function() { return id; }
+    },
+
+    onOpen: {
+      set: function(callback) {
+        validateCallback('onOpen', callback);
+        onOpen = callback;
+      },
+
+      get: function() { return onOpen; }
+    },
+
+    onError: {
+      set: function(callback) {
+        validateCallback('onError', callback);
+        onError = callback;
+      },
+
+      get: function() { return onError; }
+    },
+
+    onClose: {
+      set: function(callback) {
+        validateCallback('onClose', callback);
+        onClose = callback;
+      },
+
+      get: function() { return onClose; }
+    },
+
+    onMessage: {
+      set: function(callback) {
+        validateCallback('onMessage', callback);
+        onMessage = callback;
+      },
+
+      get: function() { return onMessage; }
+    }
+  });
+};
+
+
+OT.Rumor.Socket.CONNECT_TIMEOUT = 15000;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OT.Raptor = {
+  Actions: {
+    
+    CONNECT: 100,
+    CREATE: 101,
+    UPDATE: 102,
+    DELETE: 103,
+    STATE: 104,
+
+    
+    FORCE_DISCONNECT: 105,
+    FORCE_UNPUBLISH: 106,
+    SIGNAL: 107,
+
+    
+    CREATE_ARCHIVE: 108,
+    CLOSE_ARCHIVE: 109,
+    START_RECORDING_SESSION: 110,
+    STOP_RECORDING_SESSION: 111,
+    START_RECORDING_STREAM: 112,
+    STOP_RECORDING_STREAM: 113,
+    LOAD_ARCHIVE: 114,
+    START_PLAYBACK: 115,
+    STOP_PLAYBACK: 116,
+
+    
+    APPSTATE_PUT: 117,
+    APPSTATE_DELETE: 118,
+
+    
+    OFFER: 119,
+    ANSWER: 120,
+    PRANSWER: 121,
+    CANDIDATE: 122,
+    SUBSCRIBE: 123,
+    UNSUBSCRIBE: 124,
+    QUERY: 125,
+    SDP_ANSWER: 126,
+
+    
+    PONG: 127,
+    REGISTER: 128, 
+
+    QUALITY_CHANGED: 129
+  },
+
+  Types: {
+    
+    RPC_REQUEST: 100,
+    RPC_RESPONSE: 101,
+
+    
+    STREAM: 102,
+    ARCHIVE: 103,
+    CONNECTION: 104,
+    APPSTATE: 105,
+    CONNECTIONCOUNT: 106,
+    MODERATION: 107,
+    SIGNAL: 108,
+    SUBSCRIBER: 110,
+
+    
+    JSEP: 109
+  }
+};
+
+
+
+
+
+
+
+
+OT.Raptor.serializeMessage = function (message) {
+  return JSON.stringify(message);
+};
+
+
+
+
+
+
+
+
+
+
+
+OT.Raptor.deserializeMessage = function (msg) {
+  if (msg.length === 0) return {};
+
+  var message = JSON.parse(msg),
+      bits = message.uri.substr(1).split('/');
+
+  
+  bits.shift();
+  if (bits[bits.length-1] === '') bits.pop();
+
+  message.params = {};
+  for (var i=0, numBits=bits.length ; i<numBits-1; i+=2) {
+    message.params[bits[i]] = bits[i+1];
+  }
+
+  
+  
+  
+  if (bits.length % 2 === 0) {
+    if (bits[bits.length-2] === 'channel' && bits.length > 6) {
+      message.resource = bits[bits.length-4] + '_' + bits[bits.length-2];
+    } else {
+      message.resource = bits[bits.length-2];
+    }
+  }
+  else {
+    if (bits[bits.length-1] === 'channel' && bits.length > 5) {
+      message.resource = bits[bits.length-3] + '_' + bits[bits.length-1];
+    } else {
+      message.resource = bits[bits.length-1];
+    }
+  }
+
+  message.signature = message.resource + '#' + message.method;
+  return message;
+};
+
+OT.Raptor.unboxFromRumorMessage = function (rumorMessage) {
+  var message = OT.Raptor.deserializeMessage(rumorMessage.data);
+  message.transactionId = rumorMessage.transactionId;
+  message.fromAddress = rumorMessage.headers['X-TB-FROM-ADDRESS'];
+
+  return message;
+};
+
+OT.Raptor.parseIceServers = function (message) {
+  try {
+    return JSON.parse(message.data).content.iceServers;
+  } catch (e) {
+    return [];
+  }
+};
+
+OT.Raptor.Message = {};
+
+
+OT.Raptor.Message.offer = function (uri, offerSdp) {
+  return OT.Raptor.serializeMessage({
+    method: 'offer',
+    uri: uri,
+    content: {
+      sdp: offerSdp
+    }
+  });
+};
+
+
+OT.Raptor.Message.connections = {};
+
+OT.Raptor.Message.connections.create = function (apiKey, sessionId, connectionId) {
+  return OT.Raptor.serializeMessage({
+    method: 'create',
+    uri: '/v2/partner/' + apiKey + '/session/' + sessionId + '/connection/' + connectionId,
+    content: {
+      userAgent: OT.$.env.userAgent
+    }
+  });
+};
+
+OT.Raptor.Message.connections.destroy = function (apiKey, sessionId, connectionId) {
+  return OT.Raptor.serializeMessage({
+    method: 'delete',
+    uri: '/v2/partner/' + apiKey + '/session/' + sessionId + '/connection/' + connectionId,
+    content: {}
+  });
+};
+
+
+OT.Raptor.Message.sessions = {};
+
+OT.Raptor.Message.sessions.get = function (apiKey, sessionId) {
+  return OT.Raptor.serializeMessage({
+    method: 'read',
+    uri: '/v2/partner/' + apiKey + '/session/' + sessionId,
+    content: {}
+  });
+};
+
+
+OT.Raptor.Message.streams = {};
+
+OT.Raptor.Message.streams.get = function (apiKey, sessionId, streamId) {
+  return OT.Raptor.serializeMessage({
+    method: 'read',
+    uri: '/v2/partner/' + apiKey + '/session/' + sessionId + '/stream/' + streamId,
+    content: {}
+  });
+};
+
+OT.Raptor.Message.streams.channelFromOTChannel = function(channel) {
+  var raptorChannel = {
+    id: channel.id,
+    type: channel.type,
+    active: channel.active
+  };
+
+  if (channel.type === 'video') {
+    raptorChannel.width = channel.width;
+    raptorChannel.height = channel.height;
+    raptorChannel.orientation = channel.orientation;
+    raptorChannel.frameRate = channel.frameRate;
+    if (channel.source !== 'default') {
+      raptorChannel.source = channel.source;
+    }
+    raptorChannel.fitMode = channel.fitMode;
+  }
+
+  return raptorChannel;
+};
+
+OT.Raptor.Message.streams.create = function (apiKey, sessionId, streamId, name,
+  audioFallbackEnabled, channels, minBitrate, maxBitrate) {
+  var messageContent = {
+    id: streamId,
+    name: name,
+    audioFallbackEnabled: audioFallbackEnabled,
+    channel: OT.$.map(channels, function(channel) {
+      return OT.Raptor.Message.streams.channelFromOTChannel(channel);
+    })
+  };
+
+  if (minBitrate) messageContent.minBitrate = minBitrate;
+  if (maxBitrate) messageContent.maxBitrate = maxBitrate;
+
+  return OT.Raptor.serializeMessage({
+    method: 'create',
+    uri: '/v2/partner/' + apiKey + '/session/' + sessionId + '/stream/' + streamId,
+    content: messageContent
+  });
+};
+
+OT.Raptor.Message.streams.destroy = function (apiKey, sessionId, streamId) {
+  return OT.Raptor.serializeMessage({
+    method: 'delete',
+    uri: '/v2/partner/' + apiKey + '/session/' + sessionId + '/stream/' + streamId,
+    content: {}
+  });
+};
+
+
+OT.Raptor.Message.streams.answer = function (apiKey, sessionId, streamId, answerSdp) {
+  return OT.Raptor.serializeMessage({
+    method: 'answer',
+    uri: '/v2/partner/' + apiKey + '/session/' + sessionId + '/stream/' + streamId,
+    content: {
+      sdp: answerSdp
+    }
+  });
+};
+
+OT.Raptor.Message.streams.candidate = function (apiKey, sessionId, streamId, candidate) {
+  return OT.Raptor.serializeMessage({
+    method: 'candidate',
+    uri: '/v2/partner/' + apiKey + '/session/' + sessionId + '/stream/' + streamId,
+    content: candidate
+  });
+};
+
+OT.Raptor.Message.streamChannels = {};
+OT.Raptor.Message.streamChannels.update =
+  function (apiKey, sessionId, streamId, channelId, attributes) {
+  return OT.Raptor.serializeMessage({
+    method: 'update',
+    uri: '/v2/partner/' + apiKey + '/session/' + sessionId + '/stream/' +
+      streamId + '/channel/' + channelId,
+    content: attributes
+  });
+};
+
+
+OT.Raptor.Message.subscribers = {};
+
+OT.Raptor.Message.subscribers.create =
+  function (apiKey, sessionId, streamId, subscriberId, connectionId, channelsToSubscribeTo) {
+  var content = {
+    id: subscriberId,
+    connection: connectionId,
+    keyManagementMethod: OT.$.supportedCryptoScheme(),
+    bundleSupport: OT.$.hasCapabilities('bundle'),
+    rtcpMuxSupport: OT.$.hasCapabilities('RTCPMux')
+  };
+  if (channelsToSubscribeTo) content.channel = channelsToSubscribeTo;
+
+  return OT.Raptor.serializeMessage({
+    method: 'create',
+    uri: '/v2/partner/' + apiKey + '/session/' + sessionId +
+      '/stream/' + streamId + '/subscriber/' + subscriberId,
+    content: content
+  });
+};
+
+OT.Raptor.Message.subscribers.destroy = function (apiKey, sessionId, streamId, subscriberId) {
+  return OT.Raptor.serializeMessage({
+    method: 'delete',
+    uri: '/v2/partner/' + apiKey + '/session/' + sessionId +
+      '/stream/' + streamId + '/subscriber/' + subscriberId,
+    content: {}
+  });
+};
+
+OT.Raptor.Message.subscribers.update =
+  function (apiKey, sessionId, streamId, subscriberId, attributes) {
+  return OT.Raptor.serializeMessage({
+    method: 'update',
+    uri: '/v2/partner/' + apiKey + '/session/' + sessionId +
+    '/stream/' + streamId + '/subscriber/' + subscriberId,
+    content: attributes
+  });
+};
+
+
+OT.Raptor.Message.subscribers.candidate =
+  function (apiKey, sessionId, streamId, subscriberId, candidate) {
+  return OT.Raptor.serializeMessage({
+    method: 'candidate',
+    uri: '/v2/partner/' + apiKey + '/session/' + sessionId +
+      '/stream/' + streamId + '/subscriber/' + subscriberId,
+    content: candidate
+  });
+};
+
+
+OT.Raptor.Message.subscribers.answer =
+  function (apiKey, sessionId, streamId, subscriberId, answerSdp) {
+  return OT.Raptor.serializeMessage({
+    method: 'answer',
+    uri: '/v2/partner/' + apiKey + '/session/' + sessionId +
+    '/stream/' + streamId + '/subscriber/' + subscriberId,
+    content: {
+      sdp: answerSdp
+    }
+  });
+};
+
+
+OT.Raptor.Message.subscriberChannels = {};
+
+OT.Raptor.Message.subscriberChannels.update =
+  function (apiKey, sessionId, streamId, subscriberId, channelId, attributes) {
+  return OT.Raptor.serializeMessage({
+    method: 'update',
+    uri: '/v2/partner/' + apiKey + '/session/' + sessionId +
+    '/stream/' + streamId + '/subscriber/' + subscriberId + '/channel/' + channelId,
+    content: attributes
+  });
+};
+
+
+OT.Raptor.Message.signals = {};
+
+OT.Raptor.Message.signals.create = function (apiKey, sessionId, toAddress, type, data) {
+  var content = {};
+  if (type !== void 0) content.type = type;
+  if (data !== void 0) content.data = data;
+
+  return OT.Raptor.serializeMessage({
+    method: 'signal',
+    uri: '/v2/partner/' + apiKey + '/session/' + sessionId +
+      (toAddress !== void 0 ? '/connection/' + toAddress : '') + '/signal/' + OT.$.uuid(),
+    content: content
+  });
+};
+
+
+
+
+
 !(function() {
+  
+
   
 
   
@@ -13064,7 +8325,7 @@ waitForDomReady();
 
   OT.Raptor.Dispatcher = function () {
 
-    if(OT.isNodeModule) {
+    if(OT.$.env.name === 'Node') {
       EventEmitter.call(this);
     } else {
       OT.$.eventing(this, true);
@@ -13074,7 +8335,7 @@ waitForDomReady();
     this.callbacks = {};
   };
 
-  if(OT.isNodeModule) {
+  if(OT.$.env.name === 'Node') {
     util.inherits(OT.Raptor.Dispatcher, EventEmitter);
   }
 
@@ -13322,7 +8583,7 @@ waitForDomReady();
       case 'created':
         this.emit('archive#created', message.content);
         break;
-      
+
       case 'updated':
         this.emit('archive#updated', message.params.archive, message.content);
         break;
@@ -13330,12 +8591,21 @@ waitForDomReady();
   };
 
 }(this));
+
+
+
+
+
+
+
+
+
 (function(window) {
 
   
-  OT.publishers = new OT.Collection('guid');          
-  OT.subscribers = new OT.Collection('widgetId');     
-  OT.sessions = new OT.Collection();
+  OT.publishers = new OT.$.Collection('guid');          
+  OT.subscribers = new OT.$.Collection('widgetId');     
+  OT.sessions = new OT.$.Collection();
 
   function parseStream(dict, session) {
     var channel = dict.channel.map(function(channel) {
@@ -13376,20 +8646,78 @@ waitForDomReady();
     return archive;
   }
 
-  var sessionRead,
-    sessionReadQueue = [],
-    
-    unconnectedStreams = {};
+  var DelayedEventQueue = function DelayedEventQueue (eventDispatcher) {
+    var queue = [];
 
-  function sessionReadQueuePush(type, args) {
-    var triggerArgs = ['signal'];
-    triggerArgs.push.apply(triggerArgs, args);
-    sessionReadQueue.push(triggerArgs);
-  }
+    this.enqueue = function enqueue () {
+      queue.push( Array.prototype.slice.call(arguments) );
+    };
+
+    this.triggerAll = function triggerAll () {
+      var event;
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      while( (event = queue.shift()) ) {
+        eventDispatcher.trigger.apply(eventDispatcher, event);
+      }
+    };
+  };
+
+  var DelayedSessionEvents = function(dispatcher) {
+    var eventQueues = {};
+
+    this.enqueue = function enqueue () {
+      var key = arguments[0];
+      var eventArgs = Array.prototype.slice.call(arguments, 1);
+      if (!eventQueues[key]) {
+        eventQueues[key] = new DelayedEventQueue(dispatcher);
+      }
+      eventQueues[key].enqueue.apply(eventQueues[key], eventArgs);
+    };
+
+    this.triggerConnectionCreated = function triggerConnectionCreated (connection) {
+      if (eventQueues['connectionCreated' + connection.id]) {
+        eventQueues['connectionCreated' + connection.id].triggerAll();
+      }
+    };
+
+    this.triggerSessionConnected = function triggerSessionConnected (connections) {
+      if (eventQueues.sessionConnected) {
+        eventQueues.sessionConnected.triggerAll();
+      }
+
+      OT.$.forEach(connections, function(connection) {
+        this.triggerConnectionCreated(connection);
+      });
+    };
+  };
+
+  var unconnectedStreams = {};
 
   window.OT.SessionDispatcher = function(session) {
 
-    var dispatcher = new OT.Raptor.Dispatcher();
+    var dispatcher = new OT.Raptor.Dispatcher(),
+        sessionStateReceived = false,
+        delayedSessionEvents = new DelayedSessionEvents(dispatcher);
 
     dispatcher.on('close', function(reason) {
 
@@ -13406,8 +8734,36 @@ waitForDomReady();
       }
 
       connection.destroy( reason );
-
     });
+    
+    
+    
+    
+    var addConnection = function (connection, sessionRead) {
+      connection = OT.Connection.fromHash(connection);
+      if (sessionRead || session.connection && connection.id !== session.connection.id) {
+        session.connections.add( connection );
+        delayedSessionEvents.triggerConnectionCreated(connection);
+      }
+
+      OT.$.forEach(OT.$.keys(unconnectedStreams), function(streamId) {
+        var stream = unconnectedStreams[streamId];
+        if (stream && connection.id === stream.connection.id) {
+          
+          parseAndAddStreamToSession(stream, session);
+          delete unconnectedStreams[stream.id];
+          
+          var payload = {
+            debug: sessionRead ? 'connection came in session#read' :
+              'connection came in connection#created',
+            streamId : stream.id,
+          };
+          session.logEvent('streamCreated', 'warning', payload);
+        }
+      });
+      
+      return connection;
+    };
 
     dispatcher.on('session#read', function(content, transactionId) {
 
@@ -13419,9 +8775,8 @@ waitForDomReady();
       state.archives = [];
 
       OT.$.forEach(content.connection, function(connectionParams) {
-        connection = OT.Connection.fromHash(connectionParams);
+        connection = addConnection(connectionParams, true);
         state.connections.push(connection);
-        session.connections.add(connection);
       });
 
       OT.$.forEach(content.stream, function(streamParams) {
@@ -13436,28 +8791,12 @@ waitForDomReady();
 
       dispatcher.triggerCallback(transactionId, null, state);
 
-      sessionRead = true;
-      for (var i = 0; i < sessionReadQueue.length; ++i) {
-        dispatcher.trigger.apply(dispatcher, sessionReadQueue[i]);
-      }
-      sessionReadQueue = [];
-
+      sessionStateReceived = true;
+      delayedSessionEvents.triggerSessionConnected(session.connections);
     });
 
     dispatcher.on('connection#created', function(connection) {
-      connection = OT.Connection.fromHash(connection);
-      if (session.connection && connection.id !== session.connection.id) {
-        session.connections.add( connection );
-      }
-
-      OT.$.forEach(OT.$.keys(unconnectedStreams), function(streamId) {
-        var stream = unconnectedStreams[streamId];
-        if (stream && connection.id === stream.connection.id) {
-          
-          parseAndAddStreamToSession(stream, session);
-          delete unconnectedStreams[stream.id];
-        }
-      });
+      addConnection(connection);
     });
 
     dispatcher.on('connection#deleted', function(connection, reason) {
@@ -13471,6 +8810,12 @@ waitForDomReady();
         stream = parseAndAddStreamToSession(stream, session);
       } else {
         unconnectedStreams[stream.id] = stream;
+
+        var payload = {
+          type : 'eventOrderError -- streamCreated event before connectionCreated',
+          streamId : stream.id,
+        };
+        session.logEvent('streamCreated', 'warning', payload);
       }
 
       if (stream.publisher) {
@@ -13668,12 +9013,20 @@ waitForDomReady();
     });
 
     dispatcher.on('signal', function(fromAddress, signalType, data) {
-      if (sessionRead) {
-        var fromConnection = session.connections.get(fromAddress);
-        session._.dispatchSignal(fromConnection, signalType, data);
+      var fromConnection = session.connections.get(fromAddress);
+      if (session.connection && fromAddress === session.connection.connectionId) {
+        if (sessionStateReceived) {
+          session._.dispatchSignal(fromConnection, signalType, data);
+        } else {
+          delayedSessionEvents.enqueue('sessionConnected',
+            'signal', fromAddress, signalType, data);
+        }
       } else {
-        if (!sessionRead) {
-          sessionReadQueuePush('signal', arguments);
+        if (session.connections.get(fromAddress)) {
+          session._.dispatchSignal(fromConnection, signalType, data);
+        } else {
+          delayedSessionEvents.enqueue('connectionCreated' + fromAddress,
+            'signal', fromAddress, signalType, data);
         }
       }
     });
@@ -13700,136 +9053,8128 @@ waitForDomReady();
   };
 
 })(window);
-!(function() {
 
-  
-  
-  
-  
-  
-  
-  
-  function EnvironmentLoader() {
-    var _configReady = false,
+
+
+
+
+function httpTest(config) {
+
+  function otRequest(url, options, callback) {
+    var request = new XMLHttpRequest(),
+        _options = options || {},
+        _method = _options.method;
+
+    if (!_method) {
+      callback(new OT.$.Error('No HTTP method specified in options'));
+      return;
+    }
+
+    
+    
+    
+    if (callback) {
+      OTHelpers.on(request, 'load', function(event) {
+        var status = event.target.status;
 
         
         
-        _pluginSupported = TBPlugin.isSupported(),
-        _pluginLoadAttemptComplete = _pluginSupported ? TBPlugin.isReady() : true,
+        if (status >= 200 && (status < 300 || status === 304)) {
+          callback(null, event);
+        } else {
+          callback(event);
+        }
+      });
 
-        isReady = function() {
-          return !OT.$.isDOMUnloaded() && OT.$.isReady() &&
-                      _configReady && _pluginLoadAttemptComplete;
-        },
+      OTHelpers.on(request, 'error', callback);
+    }
 
-        onLoaded = function() {
-          if (isReady()) {
-            OT.dispatchEvent(new OT.EnvLoadedEvent(OT.Event.names.ENV_LOADED));
-          }
-        },
+    request.open(options.method, url, true);
+
+    if (!_options.headers) _options.headers = {};
+
+    for (var name in _options.headers) {
+      request.setRequestHeader(name, _options.headers[name]);
+    }
+
+    return request;
+  }
 
 
-        onDomReady = function() {
-          OT.$.onDOMUnload(onDomUnload);
+  var _httpConfig = config.httpConfig;
 
-          
-          OT.Config.load(OT.properties.configURL);
+  function timeout(delay) {
+    return new Promise(function(resolve) {
+      setTimeout(function() {
+        resolve();
+      }, delay);
+    });
+  }
 
-          onLoaded();
-        },
+  function generateRandom10DigitNumber() {
+    var min = 1000000000;
+    var max = 9999999999;
+    return min + Math.floor(Math.random() * (max - min));
+  }
 
-        onDomUnload = function() {
-          
-          
-          
-          
-          
-          
-          
-          
+  
 
-          OT.publishers.destroy();
-          OT.subscribers.destroy();
-          OT.sessions.destroy('unloaded');
 
-          OT.dispatchEvent(new OT.EnvLoadedEvent(OT.Event.names.ENV_UNLOADED));
-        },
 
-        onPluginReady = function(err) {
-          
-          
-          _pluginLoadAttemptComplete = true;
 
-          if (err) {
-            OT.debug('TB Plugin failed to load or was not installed');
-          }
+  function doDownload() {
 
-          onLoaded();
-        },
+    var xhr;
+    var startTs;
+    var loadedLength = 0;
+    var downloadPromise = new Promise(function(resolve, reject) {
+      xhr = otRequest([_httpConfig.downloadUrl, '?x=', generateRandom10DigitNumber()].join(''),
+        {method: 'get'}, function(error) {
+        if (error) {
+          reject(new OT.$.Error('Connection to the HTTP server failed (' +
+          error.target.status + ')', 1006));
+        } else {
+          resolve();
+        }
+      });
 
-        configLoaded = function() {
-          _configReady = true;
-          OT.Config.off('dynamicConfigChanged', configLoaded);
-          OT.Config.off('dynamicConfigLoadFailed', configLoadFailed);
+      xhr.addEventListener('loadstart', function() {
+        startTs = OT.$.now();
+      });
+      xhr.addEventListener('progress', function(evt) {
+        loadedLength = evt.loaded;
+      });
 
-          onLoaded();
-        },
+      xhr.send();
+    });
 
-        configLoadFailed = function() {
-          configLoaded();
+    return Promise.race([
+      downloadPromise,
+      timeout(_httpConfig.duration * 1000)
+    ])
+      .then(function() {
+        xhr.abort();
+        return {
+          byteDownloaded: loadedLength,
+          duration: OT.$.now() - startTs
         };
+      });
+  }
+
+  function doUpload() {
+    var payload = new Array(_httpConfig.uploadSize * _httpConfig.uploadCount).join('a');
+
+    var xhr;
+    var startTs;
+    var loadedLength = 0;
+    var uploadPromise = new Promise(function(resolve, reject) {
+      xhr = otRequest(_httpConfig.uploadUrl, {method: 'post'}, function(error) {
+        if (error) {
+          reject(new OT.$.Error('Connection to the HTTP server failed (' +
+          error.target.status + ')', 1006));
+        } else {
+          resolve();
+        }
+      });
+
+      xhr.upload.addEventListener('loadstart', function() {
+        startTs = OT.$.now();
+      });
+      xhr.upload.addEventListener('progress', function(evt) {
+        loadedLength = evt.loaded;
+      });
+
+      xhr.send(payload);
+    });
+
+    return Promise.race([
+      uploadPromise,
+      timeout(_httpConfig.duration * 1000)
+    ])
+      .then(function() {
+        xhr.abort();
+        return {
+          byteUploaded: loadedLength,
+          duration: OT.$.now() - startTs
+        };
+      });
+  }
+
+  return Promise.all([doDownload(), doUpload()])
+    .then(function(values) {
+      var downloadStats = values[0];
+      var uploadStats = values[1];
+
+      return {
+        downloadBandwidth: 1000 * (downloadStats.byteDownloaded * 8) / downloadStats.duration,
+        uploadBandwidth: 1000 * (uploadStats.byteUploaded * 8) / uploadStats.duration
+      };
+    });
+}
+
+OT.httpTest = httpTest;
 
 
-    OT.Config.on('dynamicConfigChanged', configLoaded);
-    OT.Config.on('dynamicConfigLoadFailed', configLoadFailed);
 
-    OT.$.onDOMLoad(onDomReady);
+
+
+
+
+
+
+
+
+
+
+
+
+var SDPHelpers = {
+  
+  getMLineIndex: function getMLineIndex(sdpLines, mediaType) {
+    var targetMLine = 'm=' + mediaType;
+
+    
+    return OT.$.findIndex(sdpLines, function(line) {
+      if (line.indexOf(targetMLine) !== -1) {
+        return true;
+      }
+
+      return false;
+    });
+  },
+
+  
+  
+  getMLinePayloadTypes: function getMLinePayloadTypes (mediaLine, mediaType) {
+    var mLineSelector = new RegExp('^m=' + mediaType +
+                          ' \\d+(/\\d+)? [a-zA-Z0-9/]+(( [a-zA-Z0-9/]+)+)$', 'i');
+
+    
+    var payloadTypes = mediaLine.match(mLineSelector);
+    if (!payloadTypes || payloadTypes.length < 2) {
+      
+      return [];
+    }
+
+    return OT.$.trim(payloadTypes[2]).split(' ');
+  },
+
+  removeTypesFromMLine: function removeTypesFromMLine (mediaLine, payloadTypes) {
+    return OT.$.trim(
+              mediaLine.replace(new RegExp(' ' + payloadTypes.join(' |'), 'ig') , ' ')
+                       .replace(/\s+/g, ' ') );
+  },
+
+
+  
+  
+  removeMediaEncoding: function removeMediaEncoding (sdp, mediaType, encodingName) {
+    var sdpLines = sdp.split('\r\n'),
+        mLineIndex = SDPHelpers.getMLineIndex(sdpLines, mediaType),
+        mLine = mLineIndex > -1 ? sdpLines[mLineIndex] : void 0,
+        typesToRemove = [],
+        payloadTypes,
+        match;
+
+    if (mLineIndex === -1) {
+      
+      return sdpLines.join('\r\n');
+    }
+
+    
+    payloadTypes = SDPHelpers.getMLinePayloadTypes(mLine, mediaType);
+    if (payloadTypes.length === 0) {
+      
+      return sdpLines.join('\r\n');
+    }
 
     
     
-    if (_pluginSupported) TBPlugin.ready(onPluginReady);
+    var matcher = new RegExp('a=rtpmap:(' + payloadTypes.join('|') + ') ' +
+                                          encodingName + '\\/\\d+', 'i');
 
-    this.onLoad = function(cb, context) {
-      if (isReady()) {
-        cb.call(context);
-        return;
+    sdpLines = OT.$.filter(sdpLines, function(line, index) {
+      match = line.match(matcher);
+      if (match === null) return true;
+
+      typesToRemove.push(match[1]);
+
+      if (index < mLineIndex) {
+        
+        mLineIndex--;
       }
 
-      OT.on(OT.Event.names.ENV_LOADED, cb, context);
-    };
+      
+      return false;
+    });
 
-    this.onUnload = function(cb, context) {
-      if (this.isUnloaded()) {
-        cb.call(context);
-        return;
+    if (typesToRemove.length > 0 && mLineIndex > -1) {
+      
+      sdpLines[mLineIndex] = SDPHelpers.removeTypesFromMLine(mLine, typesToRemove);
+    }
+
+    return sdpLines.join('\r\n');
+  },
+
+  
+  
+  
+  
+  removeComfortNoise: function removeComfortNoise (sdp) {
+    return SDPHelpers.removeMediaEncoding(sdp, 'audio', 'CN');
+  },
+
+  removeVideoCodec: function removeVideoCodec (sdp, codec) {
+    return SDPHelpers.removeMediaEncoding(sdp, 'video', codec);
+  }
+};
+
+
+
+
+
+function isVideoStat(stat) {
+  
+  return stat.hasOwnProperty('googFrameWidthReceived') ||
+    stat.hasOwnProperty('googFrameWidthInput') ||
+    stat.mediaType === 'video';
+}
+
+function isAudioStat(stat) {
+  
+  return stat.hasOwnProperty('audioInputLevel') ||
+    stat.hasOwnProperty('audioOutputLevel') ||
+    stat.mediaType === 'audio';
+}
+
+function isInboundStat(stat) {
+  return stat.hasOwnProperty('bytesReceived');
+}
+
+function parseStatCategory(stat) {
+  var statCategory = {
+    packetsLost: 0,
+    packetsReceived: 0,
+    bytesReceived: 0
+  };
+
+  if (stat.hasOwnProperty('packetsReceived')) {
+    statCategory.packetsReceived = parseInt(stat.packetsReceived, 10);
+  }
+  if (stat.hasOwnProperty('packetsLost')) {
+    statCategory.packetsLost = parseInt(stat.packetsLost, 10);
+  }
+  if (stat.hasOwnProperty('bytesReceived')) {
+    statCategory.bytesReceived += parseInt(stat.bytesReceived, 10);
+  }
+
+  return statCategory;
+}
+
+function normalizeTimestamp(timestamp) {
+  if (OT.$.isObject(timestamp) && 'getTime' in timestamp) {
+    
+    
+    return timestamp.getTime();
+  } else {
+    return timestamp;
+  }
+}
+
+var getStatsHelpers = {};
+getStatsHelpers.isVideoStat = isVideoStat;
+getStatsHelpers.isAudioStat = isAudioStat;
+getStatsHelpers.isInboundStat = isInboundStat;
+getStatsHelpers.parseStatCategory = parseStatCategory;
+getStatsHelpers.normalizeTimestamp = normalizeTimestamp;
+
+OT.getStatsHelpers = getStatsHelpers;
+
+
+
+
+
+
+
+
+function getStatsAdapter() {
+
+  
+
+
+
+  function getStatsOldAPI(peerConnection, completion) {
+
+    peerConnection.getStats(function(rtcStatsReport) {
+
+      var stats = [];
+      rtcStatsReport.result().forEach(function(rtcStat) {
+
+        var stat = {};
+
+        rtcStat.names().forEach(function(name) {
+          stat[name] = rtcStat.stat(name);
+        });
+
+        
+        stat.id = rtcStat.id;
+        stat.type = rtcStat.type;
+        stat.timestamp = rtcStat.timestamp;
+        stats.push(stat);
+      });
+
+      completion(null, stats);
+    });
+  }
+
+
+
+
+  function getStatsNewAPI(peerConnection, completion) {
+
+    peerConnection.getStats(null, function(rtcStatsReport) {
+
+      var stats = [];
+      rtcStatsReport.forEach(function(rtcStats) {
+        stats.push(rtcStats);
+      });
+
+      completion(null, stats);
+    }, completion);
+  }
+
+  if (OT.$.browserVersion().name === 'Firefox' || OTPlugin.isInstalled()) {
+    return getStatsNewAPI;
+  } else {
+    return getStatsOldAPI;
+  }
+}
+
+OT.getStatsAdpater = getStatsAdapter;
+
+
+
+
+
+
+
+
+
+
+function webrtcTest(config) {
+
+  var _getStats = OT.getStatsAdpater();
+  var _mediaConfig = config.mediaConfig;
+  var _localStream = config.localStream;
+
+  
+  
+  var NativeRTCSessionDescription,
+      NativeRTCIceCandidate;
+  if (!OTPlugin.isInstalled()) {
+    
+    NativeRTCSessionDescription = (window.mozRTCSessionDescription ||
+    window.RTCSessionDescription);
+    NativeRTCIceCandidate = (window.mozRTCIceCandidate || window.RTCIceCandidate);
+  }
+  else {
+    NativeRTCSessionDescription = OTPlugin.RTCSessionDescription;
+    NativeRTCIceCandidate = OTPlugin.RTCIceCandidate;
+  }
+
+
+  function isCandidateRelay(candidate) {
+    return candidate.candidate.indexOf('relay') !== -1;
+  }
+
+  
+
+
+
+
+  function createVideoElementForTest() {
+    var videoElement = new OT.VideoElement({attributes: {muted: true}});
+    videoElement.domElement().style.position = 'absolute';
+    videoElement.domElement().style.top = '-9999%';
+    videoElement.appendTo(document.body);
+    return videoElement;
+  }
+
+  function createPeerConnectionForTest() {
+    return new Promise(function(resolve, reject) {
+      OT.$.createPeerConnection({
+          iceServers: _mediaConfig.iceServers
+        }, {},
+        null,
+        function(error, pc) {
+          if (error) {
+            reject(new OT.$.Error('createPeerConnection failed', 1600, error));
+          } else {
+            resolve(pc);
+          }
+        }
+      );
+    });
+  }
+
+  function createOffer(pc) {
+    return new Promise(function(resolve, reject) {
+      pc.createOffer(resolve, reject);
+    });
+  }
+
+  function attachMediaStream(videoElement, webRtcStream) {
+    return new Promise(function(resolve, reject) {
+      videoElement.bindToStream(webRtcStream, function(error) {
+        if (error) {
+          reject(new OT.$.Error('bindToStream failed', 1600, error));
+        } else {
+          resolve();
+        }
+      });
+    });
+  }
+
+  function addIceCandidate(pc, candidate) {
+    return new Promise(function(resolve, reject) {
+      pc.addIceCandidate(new NativeRTCIceCandidate({
+        sdpMLineIndex: candidate.sdpMLineIndex,
+        candidate: candidate.candidate
+      }), resolve, reject);
+    });
+  }
+
+  function setLocalDescription(pc, offer) {
+    return new Promise(function(resolve, reject) {
+      pc.setLocalDescription(offer, resolve, function(error) {
+        reject(new OT.$.Error('setLocalDescription failed', 1600, error));
+      });
+    });
+  }
+
+  function setRemoteDescription(pc, offer) {
+    return new Promise(function(resolve, reject) {
+      pc.setRemoteDescription(offer, resolve, function(error) {
+        reject(new OT.$.Error('setRemoteDescription failed', 1600, error));
+      });
+    });
+  }
+
+  function createAnswer(pc) {
+    return new Promise(function(resolve, reject) {
+      pc.createAnswer(resolve, function(error) {
+        reject(new OT.$.Error('createAnswer failed', 1600, error));
+      });
+    });
+  }
+
+  function getStats(pc) {
+    return new Promise(function(resolve, reject) {
+      _getStats(pc, function(error, stats) {
+        if (error) {
+          reject(new OT.$.Error('geStats failed', 1600, error));
+        } else {
+          resolve(stats);
+        }
+      });
+    });
+  }
+
+  function createOnIceCandidateListener(pc) {
+    return function(event) {
+      if (event.candidate && isCandidateRelay(event.candidate)) {
+        addIceCandidate(pc, event.candidate)['catch'](function() {
+          OT.warn('An error occurred while adding a ICE candidate during webrtc test');
+        });
       }
-
-      OT.on(OT.Event.names.ENV_UNLOADED, cb, context);
-    };
-
-    this.isUnloaded = function() {
-      return OT.$.isDOMUnloaded();
     };
   }
 
-  var EnvLoader = new EnvironmentLoader();
+  
 
-  OT.onLoad = function(cb, context) {
-    EnvLoader.onLoad(cb, context);
+
+  function collectPeerConnectionStats(localPc, remotePc) {
+
+    var SAMPLING_DELAY = 1000;
+
+    return new Promise(function(resolve) {
+
+      var collectionActive = true;
+
+      var statsSamples = {
+        startTs: OT.$.now(),
+        packetLostRatioSamplesCount: 0,
+        packetLostRatio: 0,
+        roundTripTimeSamplesCount: 0,
+        roundTripTime: 0,
+        bytesReceived: 0
+      };
+
+      function calculateBandwidth() {
+        return 1000 * statsSamples.bytesReceived * 8 / (OT.$.now() - statsSamples.startTs);
+      }
+
+      function sample() {
+
+        Promise.all([
+          getStats(localPc).then(function(stats) {
+            OT.$.forEach(stats, function(stat) {
+              if (OT.getStatsHelpers.isVideoStat(stat)) {
+                var rtt = null;
+
+                if (stat.hasOwnProperty('googRtt')) {
+                  rtt = parseInt(stat.googRtt, 10);
+                } else if (stat.hasOwnProperty('mozRtt')) {
+                  rtt = stat.mozRtt;
+                }
+
+                if (rtt !== null && rtt > -1) {
+                  statsSamples.roundTripTimeSamplesCount++;
+                  statsSamples.roundTripTime += rtt;
+                }
+              }
+            });
+          }),
+
+          getStats(remotePc).then(function(stats) {
+            OT.$.forEach(stats, function(stat) {
+              if (OT.getStatsHelpers.isVideoStat(stat)) {
+                if (stat.hasOwnProperty('packetsReceived') &&
+                  stat.hasOwnProperty('packetsLost')) {
+
+                  var packetLost = parseInt(stat.packetsLost, 10);
+                  var packetsReceived = parseInt(stat.packetsReceived, 10);
+                  if (packetLost >= 0 && packetsReceived > 0) {
+                    statsSamples.packetLostRatioSamplesCount++;
+                    statsSamples.packetLostRatio += packetLost * 100 / packetsReceived;
+                  }
+                }
+
+                if (stat.hasOwnProperty('bytesReceived')) {
+                  statsSamples.bytesReceived += parseInt(stat.bytesReceived, 10);
+                }
+              }
+            });
+          })
+        ])
+          .then(function() {
+            
+            setTimeout(function() {
+              if (collectionActive) {
+                sample();
+              }
+            }, SAMPLING_DELAY);
+          });
+      }
+
+      
+      sample();
+
+      function stopCollectStats() {
+        collectionActive = false;
+
+        var pcStats = {
+          packetLostRatio: statsSamples.packetLostRatioSamplesCount > 0 ?
+            statsSamples.packetLostRatio /= statsSamples.packetLostRatioSamplesCount * 100 : null,
+          roundTripTime: statsSamples.roundTripTimeSamplesCount > 0 ?
+            statsSamples.roundTripTime /= statsSamples.roundTripTimeSamplesCount : null,
+          bandwidth: calculateBandwidth()
+        };
+
+        resolve(pcStats);
+      }
+
+      
+      
+      setTimeout(function() {
+
+        if (calculateBandwidth() < _mediaConfig.thresholdBitsPerSecond) {
+          
+          setTimeout(stopCollectStats, _mediaConfig.extendedDuration * 1000);
+        } else {
+          stopCollectStats();
+        }
+
+      }, _mediaConfig.duration * 1000);
+    });
+  }
+
+  return Promise
+    .all([createPeerConnectionForTest(), createPeerConnectionForTest()])
+    .then(function(pcs) {
+
+      var localPc = pcs[0],
+          remotePc = pcs[1];
+
+      var localVideo = createVideoElementForTest(),
+          remoteVideo = createVideoElementForTest();
+
+      attachMediaStream(localVideo, _localStream);
+      localPc.addStream(_localStream);
+
+      var remoteStream;
+      remotePc.onaddstream = function(evt) {
+        remoteStream = evt.stream;
+        attachMediaStream(remoteVideo, remoteStream);
+      };
+
+      localPc.onicecandidate = createOnIceCandidateListener(remotePc);
+      remotePc.onicecandidate = createOnIceCandidateListener(localPc);
+
+      function dispose() {
+        localVideo.destroy();
+        remoteVideo.destroy();
+        localPc.close();
+        remotePc.close();
+      }
+
+      return createOffer(localPc)
+        .then(function(offer) {
+          return Promise.all([
+            setLocalDescription(localPc, offer),
+            setRemoteDescription(remotePc, offer)
+          ]);
+        })
+        .then(function() {
+          return createAnswer(remotePc);
+        })
+        .then(function(answer) {
+          return Promise.all([
+            setLocalDescription(remotePc, answer),
+            setRemoteDescription(localPc, answer)
+          ]);
+        })
+        .then(function() {
+          return collectPeerConnectionStats(localPc, remotePc);
+        })
+        .then(function(value) {
+          dispose();
+          return value;
+        }, function(error) {
+          dispose();
+          throw error;
+        });
+    });
+}
+
+OT.webrtcTest = webrtcTest;
+
+
+
+
+
+
+
+
+OT.Chrome = function(properties) {
+  var _visible = false,
+      _widgets = {},
+
+      
+      _set = function(name, widget) {
+        widget.parent = this;
+        widget.appendTo(properties.parent);
+
+        _widgets[name] = widget;
+
+        this[name] = widget;
+      };
+
+  if (!properties.parent) {
+    
+    return;
+  }
+
+  OT.$.eventing(this);
+
+  this.destroy = function() {
+    this.off();
+    this.hideWhileLoading();
+
+    for (var name in _widgets) {
+      _widgets[name].destroy();
+    }
   };
 
-  OT.onUnload = function(cb, context) {
-    EnvLoader.onUnload(cb, context);
+  this.showAfterLoading = function() {
+    _visible = true;
+
+    for (var name in _widgets) {
+      _widgets[name].showAfterLoading();
+    }
   };
 
-  OT.isUnloaded = function() {
-    return EnvLoader.isUnloaded();
+  this.hideWhileLoading = function() {
+    _visible = false;
+
+    for (var name in _widgets) {
+      _widgets[name].hideWhileLoading();
+    }
   };
 
-})();
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  this.set = function(widgetName, widget) {
+    if (typeof(widgetName) === 'string' && widget) {
+      _set.call(this, widgetName, widget);
+
+    } else {
+      for (var name in widgetName) {
+        if (widgetName.hasOwnProperty(name)) {
+          _set.call(this, name, widgetName[name]);
+        }
+      }
+    }
+    return this;
+  };
+
+};
+
+
+
+
+
+
+
+
+
+if (!OT.Chrome.Behaviour) OT.Chrome.Behaviour = {};
+
+
+
+
+
+OT.Chrome.Behaviour.Widget = function(widget, options) {
+  var _options = options || {},
+      _mode,
+      _previousOnMode = 'auto',
+      _loadingMode;
+
+  
+  
+  
+  
+  widget.setDisplayMode = function(mode) {
+    var newMode = mode || 'auto';
+    if (_mode === newMode) return;
+
+    OT.$.removeClass(this.domElement, 'OT_mode-' + _mode);
+    OT.$.addClass(this.domElement, 'OT_mode-' + newMode);
+
+    if (newMode === 'off') {
+      _previousOnMode = _mode;
+    }
+    _mode = newMode;
+  };
+
+  widget.getDisplayMode = function() {
+    return _mode;
+  };
+
+  widget.show = function() {
+    if (_mode !== _previousOnMode) {
+      this.setDisplayMode(_previousOnMode);
+      if (_options.onShow) _options.onShow();
+    }
+    return this;
+  };
+
+  widget.showAfterLoading = function() {
+    this.setDisplayMode(_loadingMode);
+  };
+
+  widget.hide = function() {
+    if (_mode !== 'off') {
+      this.setDisplayMode('off');
+      if (_options.onHide) _options.onHide();
+    }
+    return this;
+  };
+
+  widget.hideWhileLoading = function() {
+    _loadingMode = _mode;
+    this.setDisplayMode('off');
+  };
+
+  widget.destroy = function() {
+    if (_options.onDestroy) _options.onDestroy(this.domElement);
+    if (this.domElement) OT.$.removeElement(this.domElement);
+
+    return widget;
+  };
+
+  widget.appendTo = function(parent) {
+    
+    this.domElement = OT.$.createElement(_options.nodeName || 'div',
+                                        _options.htmlAttributes,
+                                        _options.htmlContent);
+
+    if (_options.onCreate) _options.onCreate(this.domElement);
+
+    widget.setDisplayMode(_options.mode);
+
+    if (_options.mode === 'auto') {
+      
+      
+      OT.$.addClass(widget.domElement, 'OT_mode-on-hold');
+      setTimeout(function() {
+        OT.$.removeClass(widget.domElement, 'OT_mode-on-hold');
+      }, 2000);
+    }
+
+
+    
+    parent.appendChild(this.domElement);
+
+    return widget;
+  };
+};
+
+
+
+
+
+
+
+
+OT.Chrome.VideoDisabledIndicator = function(options) {
+  var _videoDisabled = false,
+      _warning = false,
+      updateClasses;
+
+  updateClasses = OT.$.bind(function(domElement) {
+    if (_videoDisabled) {
+      OT.$.addClass(domElement, 'OT_video-disabled');
+    } else {
+      OT.$.removeClass(domElement, 'OT_video-disabled');
+    }
+    if(_warning) {
+      OT.$.addClass(domElement, 'OT_video-disabled-warning');
+    } else {
+      OT.$.removeClass(domElement, 'OT_video-disabled-warning');
+    }
+    if ((_videoDisabled || _warning) &&
+        (this.getDisplayMode() === 'auto' || this.getDisplayMode() === 'on')) {
+      OT.$.addClass(domElement, 'OT_active');
+    } else {
+      OT.$.removeClass(domElement, 'OT_active');
+    }
+  }, this);
+
+  this.disableVideo = function(value) {
+    _videoDisabled = value;
+    if(value === true) {
+      _warning = false;
+    }
+    updateClasses(this.domElement);
+  };
+
+  this.setWarning = function(value) {
+    _warning = value;
+    updateClasses(this.domElement);
+  };
+
+  
+  OT.Chrome.Behaviour.Widget(this, {
+    mode: options.mode || 'auto',
+    nodeName: 'div',
+    htmlAttributes: {
+      className: 'OT_video-disabled-indicator'
+    }
+  });
+
+  var parentSetDisplayMode = OT.$.bind(this.setDisplayMode, this);
+  this.setDisplayMode = function(mode) {
+    parentSetDisplayMode(mode);
+    updateClasses(this.domElement);
+  };
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OT.Chrome.NamePanel = function(options) {
+  var _name = options.name;
+
+  if (!_name || OT.$.trim(_name).length === '') {
+    _name = null;
+
+    
+    options.mode = 'off';
+  }
+
+  this.setName = OT.$.bind(function(name) {
+    if (!_name) this.setDisplayMode('auto');
+    _name = name;
+    this.domElement.innerHTML = _name;
+  });
+
+  
+  OT.Chrome.Behaviour.Widget(this, {
+    mode: options.mode,
+    nodeName: 'h1',
+    htmlContent: _name,
+    htmlAttributes: {
+      className: 'OT_name OT_edge-bar-item'
+    }
+  });
+};
+
+
+
+
+
+
+
+
+OT.Chrome.MuteButton = function(options) {
+  var _onClickCb,
+      _muted = options.muted || false,
+      updateClasses,
+      attachEvents,
+      detachEvents,
+      onClick;
+
+  updateClasses = OT.$.bind(function() {
+    if (_muted) {
+      OT.$.addClass(this.domElement, 'OT_active');
+    } else {
+      OT.$.removeClass(this.domElement, 'OT_active ');
+    }
+  }, this);
+
+  
+  attachEvents = function(elem) {
+    _onClickCb = OT.$.bind(onClick, this);
+    OT.$.on(elem, 'click', _onClickCb);
+  };
+
+  detachEvents = function(elem) {
+    _onClickCb = null;
+    OT.$.off(elem, 'click', _onClickCb);
+  };
+
+  onClick = function() {
+    _muted = !_muted;
+
+    updateClasses();
+
+    if (_muted) {
+      this.parent.trigger('muted', this);
+    } else {
+      this.parent.trigger('unmuted', this);
+    }
+
+    return false;
+  };
+
+  OT.$.defineProperties(this, {
+    muted: {
+      get: function() { return _muted; },
+      set: function(muted) {
+        _muted = muted;
+        updateClasses();
+      }
+    }
+  });
+
+  
+  var classNames = _muted ? 'OT_edge-bar-item OT_mute OT_active' : 'OT_edge-bar-item OT_mute';
+  OT.Chrome.Behaviour.Widget(this, {
+    mode: options.mode,
+    nodeName: 'button',
+    htmlContent: 'Mute',
+    htmlAttributes: {
+      className: classNames
+    },
+    onCreate: OT.$.bind(attachEvents, this),
+    onDestroy: OT.$.bind(detachEvents, this)
+  });
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OT.Chrome.BackingBar = function(options) {
+  var _nameMode = options.nameMode,
+      _muteMode = options.muteMode;
+
+  function getDisplayMode() {
+    if(_nameMode === 'on' || _muteMode === 'on') {
+      return 'on';
+    } else if(_nameMode === 'mini' || _muteMode === 'mini') {
+      return 'mini';
+    } else if(_nameMode === 'mini-auto' || _muteMode === 'mini-auto') {
+      return 'mini-auto';
+    } else if(_nameMode === 'auto' || _muteMode === 'auto') {
+      return 'auto';
+    } else {
+      return 'off';
+    }
+  }
+
+  
+  OT.Chrome.Behaviour.Widget(this, {
+    mode: getDisplayMode(),
+    nodeName: 'div',
+    htmlContent: '',
+    htmlAttributes: {
+      className: 'OT_bar OT_edge-bar-item'
+    }
+  });
+
+  this.setNameMode = function(nameMode) {
+    _nameMode = nameMode;
+    this.setDisplayMode(getDisplayMode());
+  };
+
+  this.setMuteMode = function(muteMode) {
+    _muteMode = muteMode;
+    this.setDisplayMode(getDisplayMode());
+  };
+
+};
+
+
+
+
+
+
+
+
+
+
+OT.Chrome.AudioLevelMeter = function(options) {
+
+  var widget = this,
+      _meterBarElement,
+      _voiceOnlyIconElement,
+      _meterValueElement,
+      _value,
+      _maxValue = options.maxValue || 1,
+      _minValue = options.minValue || 0;
+
+  function onCreate() {
+    _meterBarElement = OT.$.createElement('div', {
+      className: 'OT_audio-level-meter__bar'
+    }, '');
+    _meterValueElement = OT.$.createElement('div', {
+      className: 'OT_audio-level-meter__value'
+    }, '');
+    _voiceOnlyIconElement = OT.$.createElement('div', {
+      className: 'OT_audio-level-meter__audio-only-img'
+    }, '');
+
+    widget.domElement.appendChild(_meterBarElement);
+    widget.domElement.appendChild(_voiceOnlyIconElement);
+    widget.domElement.appendChild(_meterValueElement);
+  }
+
+  function updateView() {
+    var percentSize = _value * 100 / (_maxValue - _minValue);
+    _meterValueElement.style.width = _meterValueElement.style.height = 2 * percentSize + '%';
+    _meterValueElement.style.top = _meterValueElement.style.right = -percentSize + '%';
+  }
+
+  
+  var widgetOptions = {
+    mode: options ? options.mode : 'auto',
+    nodeName: 'div',
+    htmlAttributes: {
+      className: 'OT_audio-level-meter'
+    },
+    onCreate: onCreate
+  };
+
+  OT.Chrome.Behaviour.Widget(this, widgetOptions);
+
+  
+  var _setDisplayMode = OT.$.bind(widget.setDisplayMode, widget);
+  widget.setDisplayMode = function(mode) {
+    _setDisplayMode(mode);
+    if (mode === 'off') {
+      if (options.onPassivate) options.onPassivate();
+    } else {
+      if (options.onActivate) options.onActivate();
+    }
+  };
+
+  widget.setValue = function(value) {
+    _value = value;
+    updateView();
+  };
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OT.Chrome.Archiving = function(options) {
+  var _archiving = options.archiving,
+      _archivingStarted = options.archivingStarted || 'Archiving on',
+      _archivingEnded = options.archivingEnded || 'Archiving off',
+      _initialState = true,
+      _lightBox,
+      _light,
+      _text,
+      _textNode,
+      renderStageDelayedAction,
+      renderText,
+      renderStage;
+
+  renderText = function(text) {
+    _textNode.nodeValue = text;
+    _lightBox.setAttribute('title', text);
+  };
+
+  renderStage = OT.$.bind(function() {
+    if(renderStageDelayedAction) {
+      clearTimeout(renderStageDelayedAction);
+      renderStageDelayedAction = null;
+    }
+
+    if(_archiving) {
+      OT.$.addClass(_light, 'OT_active');
+    } else {
+      OT.$.removeClass(_light, 'OT_active');
+    }
+
+    OT.$.removeClass(this.domElement, 'OT_archiving-' + (!_archiving ? 'on' : 'off'));
+    OT.$.addClass(this.domElement, 'OT_archiving-' + (_archiving ? 'on' : 'off'));
+    if(options.show && _archiving) {
+      renderText(_archivingStarted);
+      OT.$.addClass(_text, 'OT_mode-on');
+      OT.$.removeClass(_text, 'OT_mode-auto');
+      this.setDisplayMode('on');
+      renderStageDelayedAction = setTimeout(function() {
+        OT.$.addClass(_text, 'OT_mode-auto');
+        OT.$.removeClass(_text, 'OT_mode-on');
+      }, 5000);
+    } else if(options.show && !_initialState) {
+      OT.$.addClass(_text, 'OT_mode-on');
+      OT.$.removeClass(_text, 'OT_mode-auto');
+      this.setDisplayMode('on');
+      renderText(_archivingEnded);
+      renderStageDelayedAction = setTimeout(OT.$.bind(function() {
+        this.setDisplayMode('off');
+      }, this), 5000);
+    } else {
+      this.setDisplayMode('off');
+    }
+  }, this);
+
+  
+  OT.Chrome.Behaviour.Widget(this, {
+    mode: _archiving && options.show && 'on' || 'off',
+    nodeName: 'h1',
+    htmlAttributes: {className: 'OT_archiving OT_edge-bar-item OT_edge-bottom'},
+    onCreate: OT.$.bind(function() {
+      _lightBox = OT.$.createElement('div', {
+        className: 'OT_archiving-light-box'
+      }, '');
+      _light = OT.$.createElement('div', {
+        className: 'OT_archiving-light'
+      }, '');
+      _lightBox.appendChild(_light);
+      _text = OT.$.createElement('div', {
+        className: 'OT_archiving-status OT_mode-on OT_edge-bar-item OT_edge-bottom'
+      }, '');
+      _textNode = document.createTextNode('');
+      _text.appendChild(_textNode);
+      this.domElement.appendChild(_lightBox);
+      this.domElement.appendChild(_text);
+      renderStage();
+    }, this)
+  });
+
+  this.setShowArchiveStatus = OT.$.bind(function(show) {
+    options.show = show;
+    if(this.domElement) {
+      renderStage.call(this);
+    }
+  }, this);
+
+  this.setArchiving = OT.$.bind(function(status) {
+    _archiving = status;
+    _initialState = false;
+    if(this.domElement) {
+      renderStage.call(this);
+    }
+  }, this);
+
+};
+
+
+
+
+
+
+
+
+!(function(window) {
+  
+  if (window && typeof(navigator) !== 'undefined') {
+    var NativeRTCPeerConnection = (window.webkitRTCPeerConnection ||
+                                   window.mozRTCPeerConnection);
+
+    if (navigator.webkitGetUserMedia) {
+      
+      
+      if (!webkitMediaStream.prototype.getVideoTracks) {
+        webkitMediaStream.prototype.getVideoTracks = function() {
+          return this.videoTracks;
+        };
+      }
+
+      
+      if (!webkitMediaStream.prototype.getAudioTracks) {
+        webkitMediaStream.prototype.getAudioTracks = function() {
+          return this.audioTracks;
+        };
+      }
+
+      if (!webkitRTCPeerConnection.prototype.getLocalStreams) {
+        webkitRTCPeerConnection.prototype.getLocalStreams = function() {
+          return this.localStreams;
+        };
+      }
+
+      if (!webkitRTCPeerConnection.prototype.getRemoteStreams) {
+        webkitRTCPeerConnection.prototype.getRemoteStreams = function() {
+          return this.remoteStreams;
+        };
+      }
+
+    } else if (navigator.mozGetUserMedia) {
+      
+      
+      if (!MediaStream.prototype.getVideoTracks) {
+        MediaStream.prototype.getVideoTracks = function() {
+          return [];
+        };
+      }
+
+      if (!MediaStream.prototype.getAudioTracks) {
+        MediaStream.prototype.getAudioTracks = function() {
+          return [];
+        };
+      }
+
+      
+      
+      
+      
+      
+      
+      
+
+      
+      
+      
+      
+      
+      
+      
+    }
+
+    
+    
+    
+    if (typeof window.MediaStreamTrack !== 'undefined') {
+      if (!window.MediaStreamTrack.prototype.setEnabled) {
+        window.MediaStreamTrack.prototype.setEnabled = function (enabled) {
+          this.enabled = OT.$.castToBoolean(enabled);
+        };
+      }
+    }
+
+    if (!window.URL && window.webkitURL) {
+      window.URL = window.webkitURL;
+    }
+
+    OT.$.createPeerConnection = function (config, options, publishersWebRtcStream, completion) {
+      if (OTPlugin.isInstalled()) {
+        OTPlugin.initPeerConnection(config, options,
+                                    publishersWebRtcStream, completion);
+      }
+      else {
+        var pc;
+
+        try {
+          pc = new NativeRTCPeerConnection(config, options);
+        } catch(e) {
+          completion(e.message);
+          return;
+        }
+
+        completion(null, pc);
+      }
+    };
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  OT.$.supportedCryptoScheme = function() {
+    return OT.$.env.name === 'Chrome' && OT.$.env.version < 25 ? 'SDES_SRTP' : 'DTLS_SRTP';
+  };
+
+})(window);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var subscribeProcessor = function(peerConnection, success, failure) {
+  var constraints,
+      generateErrorCallback,
+      setLocalDescription;
+
+  constraints = {
+    mandatory: {},
+    optional: []
+  },
+
+  generateErrorCallback = function(message, prefix) {
+    return function(errorReason) {
+      OT.error(message);
+      OT.error(errorReason);
+
+      if (failure) failure(message, errorReason, prefix);
+    };
+  };
+
+  setLocalDescription = function(offer) {
+    offer.sdp = SDPHelpers.removeComfortNoise(offer.sdp);
+    offer.sdp = SDPHelpers.removeVideoCodec(offer.sdp, 'ulpfec');
+    offer.sdp = SDPHelpers.removeVideoCodec(offer.sdp, 'red');
+
+    peerConnection.setLocalDescription(
+      offer,
+
+      
+      function() {
+        success(offer);
+      },
+
+      
+      generateErrorCallback('Error while setting LocalDescription', 'SetLocalDescription')
+    );
+  };
+
+  
+  if (navigator.mozGetUserMedia) {
+    constraints.mandatory.MozDontOfferDataChannel = true;
+  }
+
+  peerConnection.createOffer(
+    
+    setLocalDescription,
+
+    
+    generateErrorCallback('Error while creating Offer', 'CreateOffer'),
+
+    constraints
+  );
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var offerProcessor = function(peerConnection, offer, success, failure) {
+  var generateErrorCallback,
+      setLocalDescription,
+      createAnswer;
+
+  generateErrorCallback = function(message, prefix) {
+    return function(errorReason) {
+      OT.error(message);
+      OT.error(errorReason);
+
+      if (failure) failure(message, errorReason, prefix);
+    };
+  };
+
+  setLocalDescription = function(answer) {
+    answer.sdp = SDPHelpers.removeComfortNoise(answer.sdp);
+    answer.sdp = SDPHelpers.removeVideoCodec(answer.sdp, 'ulpfec');
+    answer.sdp = SDPHelpers.removeVideoCodec(answer.sdp, 'red');
+
+    peerConnection.setLocalDescription(
+      answer,
+
+      
+      function() {
+        success(answer);
+      },
+
+      
+      generateErrorCallback('Error while setting LocalDescription', 'SetLocalDescription')
+    );
+  };
+
+  createAnswer = function() {
+    peerConnection.createAnswer(
+      
+      setLocalDescription,
+
+      
+      generateErrorCallback('Error while setting createAnswer', 'CreateAnswer'),
+
+      null, 
+      false 
+    );
+  };
+
+  
+  
+  if (offer.sdp.indexOf('a=crypto') === -1) {
+    var cryptoLine = 'a=crypto:1 AES_CM_128_HMAC_SHA1_80 ' +
+      'inline:FakeFakeFakeFakeFakeFakeFakeFakeFakeFake\\r\\n';
+
+      
+    offer.sdp = offer.sdp.replace(/^c=IN(.*)$/gmi, 'c=IN$1\r\n'+cryptoLine);
+  }
+
+  if (offer.sdp.indexOf('a=rtcp-fb') === -1) {
+    var rtcpFbLine = 'a=rtcp-fb:* ccm fir\r\na=rtcp-fb:* nack ';
+
+    
+    offer.sdp = offer.sdp.replace(/^m=video(.*)$/gmi, 'm=video$1\r\n'+rtcpFbLine);
+  }
+
+  peerConnection.setRemoteDescription(
+    offer,
+
+    
+    createAnswer,
+
+    
+    generateErrorCallback('Error while setting RemoteDescription', 'SetRemoteDescription')
+  );
+
+};
+
+
+
+
+
+
+var NativeRTCIceCandidate;
+
+if (!OTPlugin.isInstalled()) {
+  NativeRTCIceCandidate = (window.mozRTCIceCandidate || window.RTCIceCandidate);
+}
+else {
+  NativeRTCIceCandidate = OTPlugin.RTCIceCandidate;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var IceCandidateProcessor = function() {
+  var _pendingIceCandidates = [],
+      _peerConnection = null;
+
+  this.setPeerConnection = function(peerConnection) {
+    _peerConnection = peerConnection;
+  };
+
+  this.process = function(message) {
+    var iceCandidate = new NativeRTCIceCandidate(message.content);
+
+    if (_peerConnection) {
+      _peerConnection.addIceCandidate(iceCandidate);
+    } else {
+      _pendingIceCandidates.push(iceCandidate);
+    }
+  };
+
+  this.processPending = function() {
+    while(_pendingIceCandidates.length) {
+      _peerConnection.addIceCandidate(_pendingIceCandidates.shift());
+    }
+  };
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var connectionStateLogger = function(pc) {
+  var startTime = OT.$.now(),
+      finishTime,
+      suceeded,
+      states = [];
+
+  var trackState = function() {
+    var now = OT.$.now(),
+        lastState = states[states.length-1],
+        state = {delta: finishTime ? now - finishTime : 0};
+
+    if (!lastState || lastState.iceConnection !== pc.iceConnectionState) {
+      state.iceConnectionState = pc.iceConnectionState;
+    }
+
+    if (!lastState || lastState.signalingState !== pc.signalingState) {
+      state.signalingState = pc.signalingState;
+    }
+
+    if (!lastState || lastState.iceGatheringState !== pc.iceGatheringState) {
+      state.iceGathering = pc.iceGatheringState;
+    }
+    OT.debug(state);
+    states.push(state);
+    finishTime = now;
+  };
+
+  pc.addEventListener('iceconnectionstatechange', trackState, false);
+  pc.addEventListener('signalingstatechange', trackState, false);
+  pc.addEventListener('icegatheringstatechange', trackState, false);
+
+  return {
+    stop: function () {
+      pc.removeEventListener('iceconnectionstatechange', trackState, false);
+      pc.removeEventListener('signalingstatechange', trackState, false);
+      pc.removeEventListener('icegatheringstatechange', trackState, false);
+
+      
+
+      
+      suceeded = true;
+
+      var payload = {
+        type: 'PeerConnectionWorkflow',
+        success: suceeded,
+        startTime: startTime,
+        finishTime: finishTime,
+        states: states
+      };
+
+      
+      OT.debug(payload);
+    }
+  };
+};
+
+
+
+
+
+
+
+
+
+
+
+
+var NativeRTCSessionDescription;
+
+if (!OTPlugin.isInstalled()) {
+  
+  NativeRTCSessionDescription = (window.mozRTCSessionDescription ||
+                                 window.RTCSessionDescription);
+}
+else {
+  NativeRTCSessionDescription = OTPlugin.RTCSessionDescription;
+}
+
+
+
+var iceCandidateForwarder = function(messageDelegate) {
+  return function(event) {
+    if (event.candidate) {
+      messageDelegate(OT.Raptor.Actions.CANDIDATE, event.candidate);
+    } else {
+      OT.debug('IceCandidateForwarder: No more ICE candidates.');
+    }
+  };
+};
+
+
+
+
+
+
+
+
+
+
+OT.PeerConnection = function(config) {
+  var _peerConnection,
+      _peerConnectionCompletionHandlers = [],
+      _iceProcessor = new IceCandidateProcessor(),
+      _getStatsAdapter = OT.getStatsAdpater(),
+      _stateLogger,
+      _offer,
+      _answer,
+      _state = 'new',
+      _messageDelegates = [];
+
+
+  OT.$.eventing(this);
+
+  
+  
+  
+  if (!config.iceServers) config.iceServers = [];
+
+  
+  var delegateMessage = OT.$.bind(function(type, messagePayload, uri) {
+        if (_messageDelegates.length) {
+          
+          
+          
+          
+          
+          _messageDelegates[0](type, messagePayload, uri);
+        }
+      }, this),
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      createPeerConnection = OT.$.bind(function (completion, localWebRtcStream) {
+        if (_peerConnection) {
+          completion.call(null, null, _peerConnection);
+          return;
+        }
+
+        _peerConnectionCompletionHandlers.push(completion);
+
+        if (_peerConnectionCompletionHandlers.length > 1) {
+          
+          
+          return;
+        }
+
+        var pcConstraints = {
+          optional: [
+            {DtlsSrtpKeyAgreement: true}
+          ]
+        };
+
+        OT.debug('Creating peer connection config "' + JSON.stringify(config) + '".');
+
+        if (!config.iceServers || config.iceServers.length === 0) {
+          
+          OT.error('No ice servers present');
+        }
+
+        OT.$.createPeerConnection(config, pcConstraints, localWebRtcStream,
+                                        attachEventsToPeerConnection);
+      }, this),
+
+      
+      
+      
+      
+      
+      
+      attachEventsToPeerConnection = OT.$.bind(function(err, pc) {
+        if (err) {
+          triggerError('Failed to create PeerConnection, exception: ' +
+              err.toString(), 'NewPeerConnection');
+
+          _peerConnectionCompletionHandlers = [];
+          return;
+        }
+
+        OT.debug('OT attachEventsToPeerConnection');
+        _peerConnection = pc;
+        _stateLogger = connectionStateLogger(_peerConnection);
+
+        _peerConnection.addEventListener('icecandidate',
+                                    iceCandidateForwarder(delegateMessage), false);
+        _peerConnection.addEventListener('addstream', onRemoteStreamAdded, false);
+        _peerConnection.addEventListener('removestream', onRemoteStreamRemoved, false);
+        _peerConnection.addEventListener('signalingstatechange', routeStateChanged, false);
+
+        if (_peerConnection.oniceconnectionstatechange !== void 0) {
+          var failedStateTimer;
+          _peerConnection.addEventListener('iceconnectionstatechange', function (event) {
+            if (event.target.iceConnectionState === 'failed') {
+              if (failedStateTimer) {
+                clearTimeout(failedStateTimer);
+              }
+
+              
+              
+              
+              failedStateTimer = setTimeout(function () {
+                if (event.target.iceConnectionState === 'failed') {
+                  triggerError('The stream was unable to connect due to a network error.' +
+                   ' Make sure your connection isn\'t blocked by a firewall.', 'ICEWorkflow');
+                }
+              }, 5000);
+            }
+          }, false);
+        }
+
+        triggerPeerConnectionCompletion(null);
+      }, this),
+
+      triggerPeerConnectionCompletion = function () {
+        while (_peerConnectionCompletionHandlers.length) {
+          _peerConnectionCompletionHandlers.shift().call(null);
+        }
+      },
+
+      
+      
+      
+      tearDownPeerConnection = function() {
+        
+        if (_iceProcessor) _iceProcessor.setPeerConnection(null);
+        if (_stateLogger) _stateLogger.stop();
+
+        qos.stopCollecting();
+
+        if (_peerConnection !== null) {
+          if (_peerConnection.destroy) {
+            
+            
+            _peerConnection.destroy();
+          }
+
+          _peerConnection = null;
+          this.trigger('close');
+        }
+      },
+
+      routeStateChanged = OT.$.bind(function() {
+        var newState = _peerConnection.signalingState;
+
+        if (newState && newState !== _state) {
+          _state = newState;
+          OT.debug('PeerConnection.stateChange: ' + _state);
+
+          switch(_state) {
+            case 'closed':
+              tearDownPeerConnection.call(this);
+              break;
+          }
+        }
+      }, this),
+
+      qosCallback = OT.$.bind(function(parsedStats) {
+        this.trigger('qos', parsedStats);
+      }, this),
+
+      getRemoteStreams = function() {
+        var streams;
+
+        if (_peerConnection.getRemoteStreams) {
+          streams = _peerConnection.getRemoteStreams();
+        } else if (_peerConnection.remoteStreams) {
+          streams = _peerConnection.remoteStreams;
+        } else {
+          throw new Error('Invalid Peer Connection object implements no ' +
+            'method for retrieving remote streams');
+        }
+
+        
+        
+        
+        return Array.prototype.slice.call(streams);
+      },
+
+      
+      onRemoteStreamAdded = OT.$.bind(function(event) {
+        this.trigger('streamAdded', event.stream);
+      }, this),
+
+      onRemoteStreamRemoved = OT.$.bind(function(event) {
+        this.trigger('streamRemoved', event.stream);
+      }, this),
+
+      
+
+
+      
+      
+      relaySDP = function(messageType, sdp, uri) {
+        delegateMessage(messageType, sdp, uri);
+      },
+
+
+      
+      processOffer = function(message) {
+        var offer = new NativeRTCSessionDescription({type: 'offer', sdp: message.content.sdp}),
+
+            
+            relayAnswer = function(answer) {
+              _iceProcessor.setPeerConnection(_peerConnection);
+              _iceProcessor.processPending();
+              relaySDP(OT.Raptor.Actions.ANSWER, answer);
+
+              qos.startCollecting(_peerConnection);
+            },
+
+            reportError = function(message, errorReason, prefix) {
+              triggerError('PeerConnection.offerProcessor ' + message + ': ' +
+                errorReason, prefix);
+            };
+
+        createPeerConnection(function() {
+          offerProcessor(
+            _peerConnection,
+            offer,
+            relayAnswer,
+            reportError
+          );
+        });
+      },
+
+      processAnswer = function(message) {
+        if (!message.content.sdp) {
+          OT.error('PeerConnection.processMessage: Weird answer message, no SDP.');
+          return;
+        }
+
+        _answer = new NativeRTCSessionDescription({type: 'answer', sdp: message.content.sdp});
+
+        _peerConnection.setRemoteDescription(_answer,
+            function () {
+              OT.debug('setRemoteDescription Success');
+            }, function (errorReason) {
+              triggerError('Error while setting RemoteDescription ' + errorReason,
+                'SetRemoteDescription');
+            });
+
+        _iceProcessor.setPeerConnection(_peerConnection);
+        _iceProcessor.processPending();
+
+        qos.startCollecting(_peerConnection);
+      },
+
+      processSubscribe = function(message) {
+        OT.debug('PeerConnection.processSubscribe: Sending offer to subscriber.');
+
+        if (!_peerConnection) {
+          
+          
+          
+          throw new Error('PeerConnection broke!');
+        }
+
+        createPeerConnection(function() {
+          subscribeProcessor(
+            _peerConnection,
+
+            
+            function(offer) {
+              _offer = offer;
+              relaySDP(OT.Raptor.Actions.OFFER, _offer, message.uri);
+            },
+
+            
+            function(message, errorReason, prefix) {
+              triggerError('PeerConnection.subscribeProcessor ' + message + ': ' +
+                errorReason, prefix);
+            }
+          );
+        });
+      },
+
+      triggerError = OT.$.bind(function(errorReason, prefix) {
+        OT.error(errorReason);
+        this.trigger('error', errorReason, prefix);
+      }, this);
+
+  this.addLocalStream = function(webRTCStream) {
+    createPeerConnection(function() {
+      _peerConnection.addStream(webRTCStream);
+    }, webRTCStream);
+  };
+
+  this.disconnect = function() {
+    _iceProcessor = null;
+
+    if (_peerConnection &&
+        _peerConnection.signalingState &&
+        _peerConnection.signalingState.toLowerCase() !== 'closed') {
+
+      _peerConnection.close();
+
+      if (OT.$.env.name === 'Firefox') {
+        
+        
+        
+        
+        
+        
+        OT.$.callAsync(OT.$.bind(tearDownPeerConnection, this));
+      }
+    }
+
+    this.off();
+  };
+
+  this.processMessage = function(type, message) {
+    OT.debug('PeerConnection.processMessage: Received ' +
+      type + ' from ' + message.fromAddress);
+
+    OT.debug(message);
+
+    switch(type) {
+      case 'generateoffer':
+        processSubscribe.call(this, message);
+        break;
+
+      case 'offer':
+        processOffer.call(this, message);
+        break;
+
+      case 'answer':
+      case 'pranswer':
+        processAnswer.call(this, message);
+        break;
+
+      case 'candidate':
+        _iceProcessor.process(message);
+        break;
+
+      default:
+        OT.debug('PeerConnection.processMessage: Received an unexpected message of type ' +
+          type + ' from ' + message.fromAddress + ': ' + JSON.stringify(message));
+    }
+
+    return this;
+  };
+
+  this.setIceServers = function (iceServers) {
+    if (iceServers) {
+      config.iceServers = iceServers;
+    }
+  };
+
+  this.registerMessageDelegate = function(delegateFn) {
+    return _messageDelegates.push(delegateFn);
+  };
+
+  this.unregisterMessageDelegate = function(delegateFn) {
+    var index = OT.$.arrayIndexOf(_messageDelegates, delegateFn);
+
+    if ( index !== -1 ) {
+      _messageDelegates.splice(index, 1);
+    }
+    return _messageDelegates.length;
+  };
+
+  this.remoteStreams = function() {
+    return _peerConnection ? getRemoteStreams() : [];
+  };
+
+  this.getStats = function(callback) {
+    createPeerConnection(function() {
+      _getStatsAdapter(_peerConnection, callback);
+    });
+  };
+
+  var qos = new OT.PeerConnection.QOS(qosCallback);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 !(function() {
 
   
+  
+  
+  
+  var parseStatsOldAPI = function parseStatsOldAPI (peerConnection,
+                                                    prevStats,
+                                                    currentStats,
+                                                    completion) {
+
+    
+    var parseVideoStats = function (result) {
+          if (result.stat('googFrameRateSent')) {
+            currentStats.videoSentBytes = Number(result.stat('bytesSent'));
+            currentStats.videoSentPackets = Number(result.stat('packetsSent'));
+            currentStats.videoSentPacketsLost = Number(result.stat('packetsLost'));
+            currentStats.videoRtt = Number(result.stat('googRtt'));
+            currentStats.videoFrameRate = Number(result.stat('googFrameRateInput'));
+            currentStats.videoWidth = Number(result.stat('googFrameWidthSent'));
+            currentStats.videoHeight = Number(result.stat('googFrameHeightSent'));
+            currentStats.videoCodec = result.stat('googCodecName');
+          } else if (result.stat('googFrameRateReceived')) {
+            currentStats.videoRecvBytes = Number(result.stat('bytesReceived'));
+            currentStats.videoRecvPackets = Number(result.stat('packetsReceived'));
+            currentStats.videoRecvPacketsLost = Number(result.stat('packetsLost'));
+            currentStats.videoFrameRate = Number(result.stat('googFrameRateOutput'));
+            currentStats.videoWidth = Number(result.stat('googFrameWidthReceived'));
+            currentStats.videoHeight = Number(result.stat('googFrameHeightReceived'));
+            currentStats.videoCodec = result.stat('googCodecName');
+          }
+          return null;
+        },
+
+        parseAudioStats = function (result) {
+          if (result.stat('audioInputLevel')) {
+            currentStats.audioSentPackets = Number(result.stat('packetsSent'));
+            currentStats.audioSentPacketsLost = Number(result.stat('packetsLost'));
+            currentStats.audioSentBytes =  Number(result.stat('bytesSent'));
+            currentStats.audioCodec = result.stat('googCodecName');
+            currentStats.audioRtt = Number(result.stat('googRtt'));
+          } else if (result.stat('audioOutputLevel')) {
+            currentStats.audioRecvPackets = Number(result.stat('packetsReceived'));
+            currentStats.audioRecvPacketsLost = Number(result.stat('packetsLost'));
+            currentStats.audioRecvBytes =  Number(result.stat('bytesReceived'));
+            currentStats.audioCodec = result.stat('googCodecName');
+          }
+        },
+
+        parseStatsReports = function (stats) {
+          if (stats.result) {
+            var resultList = stats.result();
+            for (var resultIndex = 0; resultIndex < resultList.length; resultIndex++) {
+              var result = resultList[resultIndex];
+
+              if (result.stat) {
+
+                if(result.stat('googActiveConnection') === 'true') {
+                  currentStats.localCandidateType = result.stat('googLocalCandidateType');
+                  currentStats.remoteCandidateType = result.stat('googRemoteCandidateType');
+                  currentStats.transportType = result.stat('googTransportType');
+                }
+
+                parseAudioStats(result);
+                parseVideoStats(result);
+              }
+            }
+          }
+
+          completion(null, currentStats);
+        };
+
+    peerConnection.getStats(parseStatsReports);
+  };
+
+  
+  
+  
+  
+  var parseStatsOTPlugin = function parseStatsOTPlugin (peerConnection,
+                                                    prevStats,
+                                                    currentStats,
+                                                    completion) {
+
+    var onStatsError = function onStatsError (error) {
+          completion(error);
+        },
+
+        
+        
+        
+        
+        
+        parseAudioStats = function (statsReport) {
+          var lastBytesSent = prevStats.audioBytesTransferred || 0,
+              transferDelta;
+
+          if (statsReport.audioInputLevel) {
+            currentStats.audioSentBytes = Number(statsReport.bytesSent);
+            currentStats.audioSentPackets = Number(statsReport.packetsSent);
+            currentStats.audioSentPacketsLost = Number(statsReport.packetsLost);
+            currentStats.audioRtt = Number(statsReport.googRtt);
+            currentStats.audioCodec = statsReport.googCodecName;
+          }
+          else if (statsReport.audioOutputLevel) {
+            currentStats.audioBytesTransferred = Number(statsReport.bytesReceived);
+            currentStats.audioCodec = statsReport.googCodecName;
+          }
+
+          if (currentStats.audioBytesTransferred) {
+            transferDelta = currentStats.audioBytesTransferred - lastBytesSent;
+            currentStats.avgAudioBitrate = Math.round(transferDelta * 8 / currentStats.period);
+          }
+        },
+
+        
+        
+        
+        
+        
+        
+        parseVideoStats = function (statsReport) {
+
+          var lastBytesSent = prevStats.videoBytesTransferred || 0,
+              transferDelta;
+
+          if (statsReport.googFrameHeightSent) {
+            currentStats.videoSentBytes = Number(statsReport.bytesSent);
+            currentStats.videoSentPackets = Number(statsReport.packetsSent);
+            currentStats.videoSentPacketsLost = Number(statsReport.packetsLost);
+            currentStats.videoRtt = Number(statsReport.googRtt);
+            currentStats.videoCodec = statsReport.googCodecName;
+            currentStats.videoWidth = Number(statsReport.googFrameWidthSent);
+            currentStats.videoHeight = Number(statsReport.googFrameHeightSent);
+          }
+          else if (statsReport.googFrameHeightReceived) {
+            currentStats.videoRecvBytes =   Number(statsReport.bytesReceived);
+            currentStats.videoRecvPackets = Number(statsReport.packetsReceived);
+            currentStats.videoRecvPacketsLost = Number(statsReport.packetsLost);
+            currentStats.videoRtt = Number(statsReport.googRtt);
+            currentStats.videoCodec = statsReport.googCodecName;
+            currentStats.videoWidth = Number(statsReport.googFrameWidthReceived);
+            currentStats.videoHeight = Number(statsReport.googFrameHeightReceived);
+          }
+
+          if (currentStats.videoBytesTransferred) {
+            transferDelta = currentStats.videoBytesTransferred - lastBytesSent;
+            currentStats.avgVideoBitrate = Math.round(transferDelta * 8 / currentStats.period);
+          }
+
+          if (statsReport.googFrameRateSent) {
+            currentStats.videoFrameRate = Number(statsReport.googFrameRateSent);
+          } else if (statsReport.googFrameRateReceived) {
+            currentStats.videoFrameRate = Number(statsReport.googFrameRateReceived);
+          }
+        },
+
+        isStatsForVideoTrack = function(statsReport) {
+          return statsReport.googFrameHeightSent !== void 0 ||
+                  statsReport.googFrameHeightReceived !== void 0 ||
+                  currentStats.videoBytesTransferred !== void 0 ||
+                  statsReport.googFrameRateSent !== void 0;
+        },
+
+        isStatsForIceCandidate = function(statsReport) {
+          return statsReport.googActiveConnection === 'true';
+        };
+
+    peerConnection.getStats(null, function(statsReports) {
+      statsReports.forEach(function(statsReport) {
+        if (isStatsForIceCandidate(statsReport)) {
+          currentStats.localCandidateType = statsReport.googLocalCandidateType;
+          currentStats.remoteCandidateType = statsReport.googRemoteCandidateType;
+          currentStats.transportType = statsReport.googTransportType;
+        }
+        else if (isStatsForVideoTrack(statsReport)) {
+          parseVideoStats(statsReport);
+        }
+        else {
+          parseAudioStats(statsReport);
+        }
+      });
+
+      completion(null, currentStats);
+    }, onStatsError);
+  };
+
+
+  
+  
+  
+  var parseStatsNewAPI = function parseStatsNewAPI (peerConnection,
+                                                    prevStats,
+                                                    currentStats,
+                                                    completion) {
+
+    var onStatsError = function onStatsError (error) {
+          completion(error);
+        },
+
+        parseAudioStats = function (result) {
+          if (result.type==='outboundrtp') {
+            currentStats.audioSentPackets = result.packetsSent;
+            currentStats.audioSentPacketsLost = result.packetsLost;
+            currentStats.audioSentBytes =  result.bytesSent;
+          } else if (result.type==='inboundrtp') {
+            currentStats.audioRecvPackets = result.packetsReceived;
+            currentStats.audioRecvPacketsLost = result.packetsLost;
+            currentStats.audioRecvBytes =  result.bytesReceived;
+          }
+        },
+
+        parseVideoStats = function (result) {
+          if (result.type==='outboundrtp') {
+            currentStats.videoSentPackets = result.packetsSent;
+            currentStats.videoSentPacketsLost = result.packetsLost;
+            currentStats.videoSentBytes =  result.bytesSent;
+          } else if (result.type==='inboundrtp') {
+            currentStats.videoRecvPackets = result.packetsReceived;
+            currentStats.videoRecvPacketsLost = result.packetsLost;
+            currentStats.videoRecvBytes =  result.bytesReceived;
+          }
+        };
+
+    peerConnection.getStats(null, function(stats) {
+
+      for (var key in stats) {
+        if (stats.hasOwnProperty(key) &&
+          (stats[key].type === 'outboundrtp' || stats[key].type === 'inboundrtp')) {
+          var res = stats[key];
+
+          if (res.id.indexOf('audio') !== -1) {
+            parseAudioStats(res);
+          } else if (res.id.indexOf('video') !== -1) {
+            parseVideoStats(res);
+          }
+        }
+      }
+
+      completion(null, currentStats);
+    }, onStatsError);
+  };
+
+
+  var parseQOS = function (peerConnection, prevStats, currentStats, completion) {
+    if (OTPlugin.isInstalled()) {
+      parseQOS = parseStatsOTPlugin;
+      return parseStatsOTPlugin(peerConnection, prevStats, currentStats, completion);
+    }
+    else if (OT.$.env.name === 'Firefox' && OT.$.env.version >= 27) {
+      parseQOS = parseStatsNewAPI;
+      return parseStatsNewAPI(peerConnection, prevStats, currentStats, completion);
+    }
+    else {
+      parseQOS = parseStatsOldAPI;
+      return parseStatsOldAPI(peerConnection, prevStats, currentStats, completion);
+    }
+  };
+
+  OT.PeerConnection.QOS = function (qosCallback) {
+    var _creationTime = OT.$.now(),
+        _peerConnection;
+
+    var calculateQOS = OT.$.bind(function calculateQOS (prevStats) {
+      if (!_peerConnection) {
+        
+        
+        return;
+      }
+
+      var now = OT.$.now();
+
+      var currentStats = {
+        timeStamp: now,
+        duration: Math.round(now - _creationTime),
+        period: (now - prevStats.timeStamp) / 1000
+      };
+
+      var onParsedStats = function (err, parsedStats) {
+        if (err) {
+          OT.error('Failed to Parse QOS Stats: ' + JSON.stringify(err));
+          return;
+        }
+
+        qosCallback(parsedStats, prevStats);
+
+        
+        setTimeout(OT.$.bind(calculateQOS, null, parsedStats), OT.PeerConnection.QOS.INTERVAL);
+      };
+
+      parseQOS(_peerConnection, prevStats, currentStats, onParsedStats);
+    }, this);
+
+
+    this.startCollecting = function (peerConnection) {
+      if (!peerConnection || !peerConnection.getStats) {
+        
+        
+        return;
+      }
+
+      _peerConnection = peerConnection;
+
+      calculateQOS({
+        timeStamp: OT.$.now()
+      });
+    };
+
+    this.stopCollecting = function () {
+      _peerConnection = null;
+    };
+  };
+
+  
+  OT.PeerConnection.QOS.INTERVAL = 30000;
+})();
+
+
+
+
+OT.PeerConnections = (function() {
+  var _peerConnections = {};
+
+  return {
+    add: function(remoteConnection, streamId, config) {
+      var key = remoteConnection.id + '_' + streamId,
+          ref = _peerConnections[key];
+
+      if (!ref) {
+        ref = _peerConnections[key] = {
+          count: 0,
+          pc: new OT.PeerConnection(config)
+        };
+      }
+
+      
+      ref.count += 1;
+
+      return ref.pc;
+    },
+
+    remove: function(remoteConnection, streamId) {
+      var key = remoteConnection.id + '_' + streamId,
+          ref = _peerConnections[key];
+
+      if (ref) {
+        ref.count -= 1;
+
+        if (ref.count === 0) {
+          ref.pc.disconnect();
+          delete _peerConnections[key];
+        }
+      }
+    }
+  };
+})();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OT.SubscriberPeerConnection = function(remoteConnection, session, stream,
+  subscriber, properties) {
+  var _peerConnection,
+      _destroyed = false,
+      _hasRelayCandidates = false,
+      _onPeerClosed,
+      _onRemoteStreamAdded,
+      _onRemoteStreamRemoved,
+      _onPeerError,
+      _relayMessageToPeer,
+      _setEnabledOnStreamTracksCurry,
+      _onQOS;
+
+  
+  _onPeerClosed = function() {
+    this.destroy();
+    this.trigger('disconnected', this);
+  };
+
+  _onRemoteStreamAdded = function(remoteRTCStream) {
+    this.trigger('remoteStreamAdded', remoteRTCStream, this);
+  };
+
+  _onRemoteStreamRemoved = function(remoteRTCStream) {
+    this.trigger('remoteStreamRemoved', remoteRTCStream, this);
+  };
+
+  
+  _onPeerError = function(errorReason, prefix) {
+    this.trigger('error', null, errorReason, this, prefix);
+  };
+
+  _relayMessageToPeer = OT.$.bind(function(type, payload) {
+    if (!_hasRelayCandidates){
+      var extractCandidates = type === OT.Raptor.Actions.CANDIDATE ||
+                              type === OT.Raptor.Actions.OFFER ||
+                              type === OT.Raptor.Actions.ANSWER ||
+                              type === OT.Raptor.Actions.PRANSWER ;
+
+      if (extractCandidates) {
+        var message = (type === OT.Raptor.Actions.CANDIDATE) ? payload.candidate : payload.sdp;
+        _hasRelayCandidates = message.indexOf('typ relay') !== -1;
+      }
+    }
+
+    switch(type) {
+      case OT.Raptor.Actions.ANSWER:
+      case OT.Raptor.Actions.PRANSWER:
+        this.trigger('connected');
+
+        session._.jsepAnswerP2p(stream.id, subscriber.widgetId, payload.sdp);
+        break;
+
+      case OT.Raptor.Actions.OFFER:
+        session._.jsepOfferP2p(stream.id, subscriber.widgetId, payload.sdp);
+        break;
+
+      case OT.Raptor.Actions.CANDIDATE:
+        session._.jsepCandidateP2p(stream.id, subscriber.widgetId, payload);
+        break;
+    }
+  }, this);
+
+  
+  _setEnabledOnStreamTracksCurry = function(isVideo) {
+    var method = 'get' + (isVideo ? 'Video' : 'Audio') + 'Tracks';
+
+    return function(enabled) {
+      var remoteStreams = _peerConnection.remoteStreams(),
+          tracks,
+          stream;
+
+      if (remoteStreams.length === 0 || !remoteStreams[0][method]) {
+        
+        
+        return;
+      }
+
+      for (var i=0, num=remoteStreams.length; i<num; ++i) {
+        stream = remoteStreams[i];
+        tracks = stream[method]();
+
+        for (var k=0, numTracks=tracks.length; k < numTracks; ++k){
+          
+          
+          if (tracks[k].enabled !== enabled) tracks[k].enabled=enabled;
+        }
+      }
+    };
+  };
+
+  _onQOS = OT.$.bind(function _onQOS (parsedStats, prevStats) {
+    this.trigger('qos', parsedStats, prevStats);
+  }, this);
+
+  OT.$.eventing(this);
+
+  
+  this.destroy = function() {
+    if (_destroyed) return;
+    _destroyed = true;
+
+    if (_peerConnection) {
+      var numDelegates = _peerConnection.unregisterMessageDelegate(_relayMessageToPeer);
+
+      
+      if (numDelegates === 0) {
+        
+        if (session && session.isConnected() && stream && !stream.destroyed) {
+            
+          session._.subscriberDestroy(stream, subscriber);
+        }
+
+        
+        this.subscribeToAudio(false);
+      }
+      OT.PeerConnections.remove(remoteConnection, stream.id);
+    }
+    _peerConnection = null;
+    this.off();
+  };
+
+  this.processMessage = function(type, message) {
+    _peerConnection.processMessage(type, message);
+  };
+
+  this.getStats = function(callback) {
+    _peerConnection.getStats(callback);
+  };
+
+  this.subscribeToAudio = _setEnabledOnStreamTracksCurry(false);
+  this.subscribeToVideo = _setEnabledOnStreamTracksCurry(true);
+
+  this.hasRelayCandidates = function() {
+    return _hasRelayCandidates;
+  };
+
+  
+  this.init = function() {
+    _peerConnection = OT.PeerConnections.add(remoteConnection, stream.streamId, {});
+
+    _peerConnection.on({
+      close: _onPeerClosed,
+      streamAdded: _onRemoteStreamAdded,
+      streamRemoved: _onRemoteStreamRemoved,
+      error: _onPeerError,
+      qos: _onQOS
+    }, this);
+
+    var numDelegates = _peerConnection.registerMessageDelegate(_relayMessageToPeer);
+
+      
+    if (_peerConnection.remoteStreams().length > 0) {
+      OT.$.forEach(_peerConnection.remoteStreams(), _onRemoteStreamAdded, this);
+    } else if (numDelegates === 1) {
+      
+      
+
+      var channelsToSubscribeTo;
+
+      if (properties.subscribeToVideo || properties.subscribeToAudio) {
+        var audio = stream.getChannelsOfType('audio'),
+            video = stream.getChannelsOfType('video');
+
+        channelsToSubscribeTo = OT.$.map(audio, function(channel) {
+          return {
+            id: channel.id,
+            type: channel.type,
+            active: properties.subscribeToAudio
+          };
+        }).concat(OT.$.map(video, function(channel) {
+          return {
+            id: channel.id,
+            type: channel.type,
+            active: properties.subscribeToVideo,
+            restrictFrameRate: properties.restrictFrameRate !== void 0 ?
+              properties.restrictFrameRate : false
+          };
+        }));
+      }
+
+      session._.subscriberCreate(stream, subscriber, channelsToSubscribeTo,
+        OT.$.bind(function(err, message) {
+          if (err) {
+            this.trigger('error', err.message, this, 'Subscribe');
+          }
+          if (_peerConnection) {
+            _peerConnection.setIceServers(OT.Raptor.parseIceServers(message));
+          }
+        }, this));
+    }
+  };
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OT.PublisherPeerConnection = function(remoteConnection, session, streamId, webRTCStream) {
+  var _peerConnection,
+      _hasRelayCandidates = false,
+      _subscriberId = session._.subscriberMap[remoteConnection.id + '_' + streamId],
+      _onPeerClosed,
+      _onPeerError,
+      _relayMessageToPeer,
+      _onQOS;
+
+  
+  _onPeerClosed = function() {
+    this.destroy();
+    this.trigger('disconnected', this);
+  };
+
+  
+  _onPeerError = function(errorReason, prefix) {
+    this.trigger('error', null, errorReason, this, prefix);
+    this.destroy();
+  };
+
+  _relayMessageToPeer = OT.$.bind(function(type, payload, uri) {
+    if (!_hasRelayCandidates){
+      var extractCandidates = type === OT.Raptor.Actions.CANDIDATE ||
+                              type === OT.Raptor.Actions.OFFER ||
+                              type === OT.Raptor.Actions.ANSWER ||
+                              type === OT.Raptor.Actions.PRANSWER ;
+
+      if (extractCandidates) {
+        var message = (type === OT.Raptor.Actions.CANDIDATE) ? payload.candidate : payload.sdp;
+        _hasRelayCandidates = message.indexOf('typ relay') !== -1;
+      }
+    }
+
+    switch(type) {
+      case OT.Raptor.Actions.ANSWER:
+      case OT.Raptor.Actions.PRANSWER:
+        if (session.sessionInfo.p2pEnabled) {
+          session._.jsepAnswerP2p(streamId, _subscriberId, payload.sdp);
+        } else {
+          session._.jsepAnswer(streamId, payload.sdp);
+        }
+
+        break;
+
+      case OT.Raptor.Actions.OFFER:
+        this.trigger('connected');
+        session._.jsepOffer(uri, payload.sdp);
+
+        break;
+
+      case OT.Raptor.Actions.CANDIDATE:
+        if (session.sessionInfo.p2pEnabled) {
+          session._.jsepCandidateP2p(streamId, _subscriberId, payload);
+
+        } else {
+          session._.jsepCandidate(streamId, payload);
+        }
+    }
+  }, this);
+
+  _onQOS = OT.$.bind(function _onQOS (parsedStats, prevStats) {
+    this.trigger('qos', remoteConnection, parsedStats, prevStats);
+  }, this);
+
+  OT.$.eventing(this);
+
+  
+  this.destroy = function() {
+    
+    if (_peerConnection) {
+      _peerConnection.off();
+      OT.PeerConnections.remove(remoteConnection, streamId);
+    }
+
+    _peerConnection = null;
+  };
+
+  this.processMessage = function(type, message) {
+    _peerConnection.processMessage(type, message);
+  };
+
+  
+  this.init = function(iceServers) {
+    _peerConnection = OT.PeerConnections.add(remoteConnection, streamId, {
+      iceServers: iceServers
+    });
+
+    _peerConnection.on({
+      close: _onPeerClosed,
+      error: _onPeerError,
+      qos: _onQOS
+    }, this);
+
+    _peerConnection.registerMessageDelegate(_relayMessageToPeer);
+    _peerConnection.addLocalStream(webRTCStream);
+
+    this.remoteConnection = function() {
+      return remoteConnection;
+    };
+
+    this.hasRelayCandidates = function() {
+      return _hasRelayCandidates;
+    };
+
+  };
+};
+
+
+
+
+
+
+
+
+
+var videoContentResizesMixin = function(self, domElement) {
+
+  var width = domElement.videoWidth,
+      height = domElement.videoHeight,
+      stopped = true;
+
+  function actor() {
+    if (stopped) {
+      return;
+    }
+    if (width !== domElement.videoWidth || height !== domElement.videoHeight) {
+      self.trigger('videoDimensionsChanged',
+        { width: width, height: height },
+        { width: domElement.videoWidth, height: domElement.videoHeight }
+      );
+      width = domElement.videoWidth;
+      height = domElement.videoHeight;
+    }
+    waiter();
+  }
+
+  function waiter() {
+    self.whenTimeIncrements(function() {
+      window.requestAnimationFrame(actor);
+    });
+  }
+
+  self.startObservingSize = function() {
+    stopped = false;
+    waiter();
+  };
+
+  self.stopObservingSize = function() {
+    stopped = true;
+  };
+
+};
+
+(function(window) {
+
+  var VideoOrientationTransforms = {
+    0: 'rotate(0deg)',
+    270: 'rotate(90deg)',
+    90: 'rotate(-90deg)',
+    180: 'rotate(180deg)'
+  };
+
+  OT.VideoOrientation = {
+    ROTATED_NORMAL: 0,
+    ROTATED_LEFT: 270,
+    ROTATED_RIGHT: 90,
+    ROTATED_UPSIDE_DOWN: 180
+  };
+
+  var DefaultAudioVolume = 50;
+
+  var DEGREE_TO_RADIANS = Math.PI * 2 / 360;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  OT.VideoElement = function( options) {
+    var _options = OT.$.defaults( options && !OT.$.isFunction(options) ? options : {}, {
+        fallbackText: 'Sorry, Web RTC is not available in your browser'
+      }),
+
+      errorHandler = OT.$.isFunction(arguments[arguments.length-1]) ?
+                                    arguments[arguments.length-1] : void 0,
+
+      orientationHandler = OT.$.bind(function(orientation) {
+        this.trigger('orientationChanged', orientation);
+      }, this),
+
+      _videoElement = OTPlugin.isInstalled() ?
+                            new PluginVideoElement(_options, errorHandler, orientationHandler) :
+                            new NativeDOMVideoElement(_options, errorHandler, orientationHandler),
+      _streamBound = false,
+      _stream,
+      _preInitialisedVolue;
+
+    OT.$.eventing(this);
+
+    _videoElement.on('videoDimensionsChanged', OT.$.bind(function(oldValue, newValue) {
+      this.trigger('videoDimensionsChanged', oldValue, newValue);
+    }, this));
+
+    _videoElement.on('mediaStopped', OT.$.bind(function() {
+      this.trigger('mediaStopped');
+    }, this));
+
+    
+    OT.$.defineProperties(this, {
+
+      domElement: {
+        get: function() {
+          return _videoElement.domElement();
+        }
+      },
+
+      videoWidth: {
+        get: function() {
+          return _videoElement['video' + (this.isRotated() ? 'Height' : 'Width')]();
+        }
+      },
+
+      videoHeight: {
+        get: function() {
+          return _videoElement['video' + (this.isRotated() ? 'Width' : 'Height')]();
+        }
+      },
+
+      aspectRatio: {
+        get: function() {
+          return (this.videoWidth() + 0.0) / this.videoHeight();
+        }
+      },
+
+      isRotated: {
+        get: function() {
+          return _videoElement.isRotated();
+        }
+      },
+
+      orientation: {
+        get: function() {
+          return _videoElement.orientation();
+        },
+        set: function(orientation) {
+          _videoElement.orientation(orientation);
+        }
+      },
+
+      audioChannelType: {
+        get: function() {
+          return _videoElement.audioChannelType();
+        },
+        set: function(type) {
+          _videoElement.audioChannelType(type);
+        }
+      }
+    });
+
+    
+
+    this.imgData = function() {
+      return _videoElement.imgData();
+    };
+
+    this.appendTo = function(parentDomElement) {
+      _videoElement.appendTo(parentDomElement);
+      return this;
+    };
+
+    this.bindToStream = function(webRtcStream, completion) {
+      _streamBound = false;
+      _stream = webRtcStream;
+
+      _videoElement.bindToStream(webRtcStream, OT.$.bind(function(err) {
+        if (err) {
+          completion(err);
+          return;
+        }
+
+        _streamBound = true;
+
+        if (_preInitialisedVolue) {
+          this.setAudioVolume(_preInitialisedVolue);
+          _preInitialisedVolue = null;
+        }
+
+        _videoElement.on('aspectRatioAvailable',
+          OT.$.bind(this.trigger, this, 'aspectRatioAvailable'));
+
+        completion(null);
+      }, this));
+
+      return this;
+    };
+
+    this.unbindStream = function() {
+      if (!_stream) return this;
+
+      _stream = null;
+      _videoElement.unbindStream();
+      return this;
+    };
+
+    this.setAudioVolume = function (value) {
+      if (_streamBound) _videoElement.setAudioVolume( OT.$.roundFloat(value / 100, 2) );
+      else _preInitialisedVolue = value;
+
+      return this;
+    };
+
+    this.getAudioVolume = function () {
+      if (_streamBound) return parseInt(_videoElement.getAudioVolume() * 100, 10);
+      else return _preInitialisedVolue || 50;
+    };
+
+
+    this.whenTimeIncrements = function (callback, context) {
+      _videoElement.whenTimeIncrements(callback, context);
+      return this;
+    };
+
+    this.onRatioAvailable = function(callabck) {
+      _videoElement.onRatioAvailable(callabck) ;
+      return this;
+    };
+
+    this.destroy = function () {
+      
+      this.off();
+
+      _videoElement.destroy();
+      return void 0;
+    };
+  };
+
+  var PluginVideoElement = function PluginVideoElement (options,
+                                                        errorHandler,
+                                                        orientationChangedHandler) {
+    var _videoProxy,
+        _parentDomElement,
+        _ratioAvailable = false,
+        _ratioAvailableListeners = [];
+
+    OT.$.eventing(this);
+
+    canBeOrientatedMixin(this,
+                          function() { return _videoProxy.domElement; },
+                          orientationChangedHandler);
+
+    
+
+    this.domElement = function() {
+      return _videoProxy ? _videoProxy.domElement : void 0;
+    };
+
+    this.videoWidth = function() {
+      return _videoProxy ? _videoProxy.getVideoWidth() : void 0;
+    };
+
+    this.videoHeight = function() {
+      return _videoProxy ? _videoProxy.getVideoHeight() : void 0;
+    };
+
+    this.imgData = function() {
+      return _videoProxy ? _videoProxy.getImgData() : null;
+    };
+
+    
+    this.appendTo = function(parentDomElement) {
+      _parentDomElement = parentDomElement;
+      return this;
+    };
+
+    
+    this.bindToStream = function(webRtcStream, completion) {
+      if (!_parentDomElement) {
+        completion('The VideoElement must attached to a DOM node before a stream can be bound');
+        return;
+      }
+
+      _videoProxy = webRtcStream._.render();
+      _videoProxy.appendTo(_parentDomElement);
+      _videoProxy.show(function(error) {
+
+        if (!error) {
+          _ratioAvailable = true;
+          var listener;
+          while ((listener = _ratioAvailableListeners.shift())) {
+            listener();
+          }
+        }
+
+        completion(error);
+      });
+
+      return this;
+    };
+
+    
+    this.unbindStream = function() {
+      
+
+      if (_videoProxy) {
+        _videoProxy.destroy();
+        _parentDomElement = null;
+        _videoProxy = null;
+      }
+
+      return this;
+    };
+
+    this.setAudioVolume = function(value) {
+      if (_videoProxy) _videoProxy.setVolume(value);
+    };
+
+    this.getAudioVolume = function() {
+      
+      if (_videoProxy) return _videoProxy.getVolume();
+      return DefaultAudioVolume;
+    };
+
+    
+    
+    this.audioChannelType = function() {
+      return 'unknown';
+    };
+
+    this.whenTimeIncrements = function(callback, context) {
+      
+      OT.$.callAsync(OT.$.bind(callback, context));
+    };
+
+    this.onRatioAvailable = function(callback) {
+      if(_ratioAvailable) {
+        callback();
+      } else {
+        _ratioAvailableListeners.push(callback);
+      }
+    };
+
+    this.destroy = function() {
+      this.unbindStream();
+
+      return void 0;
+    };
+  };
+
+
+  var NativeDOMVideoElement = function NativeDOMVideoElement (options,
+                                                              errorHandler,
+                                                              orientationChangedHandler) {
+    var _domElement,
+        _videoElementMovedWarning = false;
+
+    OT.$.eventing(this);
+
+    
+    var _onVideoError = OT.$.bind(function(event) {
+          var reason = 'There was an unexpected problem with the Video Stream: ' +
+                        videoElementErrorCodeToStr(event.target.error.code);
+          errorHandler(reason, this, 'VideoElement');
+        }, this),
+
+        
+        
+        
+        _playVideoOnPause = function() {
+          if(!_videoElementMovedWarning) {
+            OT.warn('Video element paused, auto-resuming. If you intended to do this, ' +
+                      'use publishVideo(false) or subscribeToVideo(false) instead.');
+
+            _videoElementMovedWarning = true;
+          }
+
+          _domElement.play();
+        };
+
+
+    _domElement = createNativeVideoElement(options.fallbackText, options.attributes);
+
+    
+    
+    var ratioAvailable = false;
+    var ratioAvailableListeners = [];
+    _domElement.addEventListener('timeupdate', function timeupdateHandler() {
+      var aspectRatio = _domElement.videoWidth / _domElement.videoHeight;
+      if (!isNaN(aspectRatio)) {
+        _domElement.removeEventListener('timeupdate', timeupdateHandler);
+        ratioAvailable = true;
+        var listener;
+        while ((listener = ratioAvailableListeners.shift())) {
+          listener();
+        }
+      }
+    });
+
+    _domElement.addEventListener('pause', _playVideoOnPause);
+
+    videoContentResizesMixin(this, _domElement);
+
+    canBeOrientatedMixin(this, function() { return _domElement; }, orientationChangedHandler);
+
+    
+
+    this.domElement = function() {
+      return _domElement;
+    };
+
+    this.videoWidth = function() {
+      return _domElement.videoWidth;
+    };
+
+    this.videoHeight = function() {
+      return _domElement.videoHeight;
+    };
+
+    this.imgData = function() {
+      var canvas = OT.$.createElement('canvas', {
+        width: _domElement.videoWidth,
+        height: _domElement.videoHeight,
+        style: { display: 'none' }
+      });
+
+      document.body.appendChild(canvas);
+      try {
+        canvas.getContext('2d').drawImage(_domElement, 0, 0, canvas.width, canvas.height);
+      } catch(err) {
+        OT.warn('Cannot get image data yet');
+        return null;
+      }
+      var imgData = canvas.toDataURL('image/png');
+
+      OT.$.removeElement(canvas);
+
+      return OT.$.trim(imgData.replace('data:image/png;base64,', ''));
+    };
+
+    
+    this.appendTo = function(parentDomElement) {
+      parentDomElement.appendChild(_domElement);
+      return this;
+    };
+
+    
+    this.bindToStream = function(webRtcStream, completion) {
+      var _this = this;
+      bindStreamToNativeVideoElement(_domElement, webRtcStream, function(err) {
+        if (err) {
+          completion(err);
+          return;
+        }
+
+        _this.startObservingSize();
+
+        webRtcStream.onended = function() {
+          _this.trigger('mediaStopped', this);
+        };
+
+
+        _domElement.addEventListener('error', _onVideoError, false);
+        completion(null);
+      });
+
+      return this;
+    };
+
+
+    
+    this.unbindStream = function() {
+      if (_domElement) {
+        unbindNativeStream(_domElement);
+      }
+
+      this.stopObservingSize();
+
+      return this;
+    };
+
+    this.setAudioVolume = function(value) {
+      if (_domElement) _domElement.volume = value;
+    };
+
+    this.getAudioVolume = function() {
+      
+      if (_domElement) return _domElement.volume;
+      return DefaultAudioVolume;
+    };
+
+    
+    
+    
+    this.audioChannelType = function(type) {
+      if (type !== void 0) {
+        _domElement.mozAudioChannelType = type;
+      }
+
+      if ('mozAudioChannelType' in _domElement) {
+        return _domElement.mozAudioChannelType;
+      } else {
+        return 'unknown';
+      }
+    };
+
+    this.whenTimeIncrements = function(callback, context) {
+      if (_domElement) {
+        var lastTime, handler;
+        handler = OT.$.bind(function() {
+          if (_domElement) {
+            if (!lastTime || lastTime >= _domElement.currentTime) {
+              lastTime = _domElement.currentTime;
+            } else {
+              _domElement.removeEventListener('timeupdate', handler, false);
+              callback.call(context, this);
+            }
+          }
+        }, this);
+        _domElement.addEventListener('timeupdate', handler, false);
+      }
+    };
+
+    this.destroy = function() {
+      this.unbindStream();
+
+      if (_domElement) {
+        
+        
+        _domElement.removeEventListener('pause', _playVideoOnPause);
+
+        OT.$.removeElement(_domElement);
+        _domElement = null;
+      }
+
+      return void 0;
+    };
+
+    this.onRatioAvailable = function(callback) {
+      if(ratioAvailable) {
+        callback();
+      } else {
+        ratioAvailableListeners.push(callback);
+      }
+    };
+  };
+
+
+
+  
+  
+  
+  
+  
+  
+  
+  var canBeOrientatedMixin = function canBeOrientatedMixin (self,
+                                                            getDomElementCallback,
+                                                            orientationChangedHandler,
+                                                            initialOrientation) {
+    var _orientation = initialOrientation;
+
+    OT.$.defineProperties(self, {
+      isRotated: {
+        get: function() {
+          return this.orientation() &&
+                    (this.orientation().videoOrientation === 270 ||
+                     this.orientation().videoOrientation === 90);
+        }
+      },
+
+      orientation: {
+        get: function() { return _orientation; },
+        set: function(orientation) {
+          _orientation = orientation;
+
+          var transform = VideoOrientationTransforms[orientation.videoOrientation] ||
+                          VideoOrientationTransforms.ROTATED_NORMAL;
+
+          switch(OT.$.env.name) {
+            case 'Chrome':
+            case 'Safari':
+              getDomElementCallback().style.webkitTransform = transform;
+              break;
+
+            case 'IE':
+              if (OT.$.env.version >= 9) {
+                getDomElementCallback().style.msTransform = transform;
+              }
+              else {
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                var radians = orientation.videoOrientation * DEGREE_TO_RADIANS,
+                    element = getDomElementCallback(),
+                    costheta = Math.cos(radians),
+                    sintheta = Math.sin(radians);
+
+                
+                
+                
+                
+
+                element.style.filter = 'progid:DXImageTransform.Microsoft.Matrix(' +
+                                          'M11='+costheta+',' +
+                                          'M12='+(-sintheta)+',' +
+                                          'M21='+sintheta+',' +
+                                          'M22='+costheta+',SizingMethod=\'auto expand\')';
+              }
+
+
+              break;
+
+            default:
+              
+              getDomElementCallback().style.transform = transform;
+          }
+
+          orientationChangedHandler(_orientation);
+
+        }
+      },
+
+      
+      
+      
+      audioChannelType: {
+        get: function() {
+          if ('mozAudioChannelType' in this.domElement) {
+            return this.domElement.mozAudioChannelType;
+          } else {
+            return 'unknown';
+          }
+        },
+        set: function(type) {
+          if ('mozAudioChannelType' in this.domElement) {
+            this.domElement.mozAudioChannelType = type;
+          }
+        }
+      }
+    });
+  };
+
+  function createNativeVideoElement(fallbackText, attributes) {
+    var videoElement = document.createElement('video');
+    videoElement.setAttribute('autoplay', '');
+    videoElement.innerHTML = fallbackText;
+
+    if (attributes) {
+      if (attributes.muted === true) {
+        delete attributes.muted;
+        videoElement.muted = 'true';
+      }
+
+      for (var key in attributes) {
+        if(!attributes.hasOwnProperty(key)) {
+          continue;
+        }
+        videoElement.setAttribute(key, attributes[key]);
+      }
+    }
+
+    return videoElement;
+  }
+
+
+  
+  var _videoErrorCodes = {};
+
+  
+  
+  if (window.MediaError) {
+    _videoErrorCodes[window.MediaError.MEDIA_ERR_ABORTED] = 'The fetching process for the media ' +
+      'resource was aborted by the user agent at the user\'s request.';
+    _videoErrorCodes[window.MediaError.MEDIA_ERR_NETWORK] = 'A network error of some description ' +
+      'caused the user agent to stop fetching the media resource, after the resource was ' +
+      'established to be usable.';
+    _videoErrorCodes[window.MediaError.MEDIA_ERR_DECODE] = 'An error of some description ' +
+      'occurred while decoding the media resource, after the resource was established to be ' +
+      ' usable.';
+    _videoErrorCodes[window.MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED] = 'The media resource ' +
+      'indicated by the src attribute was not suitable.';
+  }
+
+  function videoElementErrorCodeToStr(errorCode) {
+    return _videoErrorCodes[parseInt(errorCode, 10)] || 'An unknown error occurred.';
+  }
+
+  function bindStreamToNativeVideoElement(videoElement, webRtcStream, completion) {
+    var timeout,
+        minVideoTracksForTimeUpdate = OT.$.env.name === 'Chrome' ? 1 : 0,
+        loadedEvent = webRtcStream.getVideoTracks().length > minVideoTracksForTimeUpdate ?
+          'timeupdate' : 'loadedmetadata';
+
+    var cleanup = function cleanup () {
+          clearTimeout(timeout);
+          videoElement.removeEventListener(loadedEvent, onLoad, false);
+          videoElement.removeEventListener('error', onError, false);
+          webRtcStream.onended = null;
+        },
+
+        onLoad = function onLoad () {
+          cleanup();
+          completion(null);
+        },
+
+        onError = function onError (event) {
+          cleanup();
+          unbindNativeStream(videoElement);
+          completion('There was an unexpected problem with the Video Stream: ' +
+            videoElementErrorCodeToStr(event.target.error.code));
+        },
+
+        onStoppedLoading = function onStoppedLoading () {
+          
+          
+          cleanup();
+          unbindNativeStream(videoElement);
+          completion('Stream ended while trying to bind it to a video element.');
+        };
+
+    videoElement.addEventListener(loadedEvent, onLoad, false);
+    videoElement.addEventListener('error', onError, false);
+    webRtcStream.onended = onStoppedLoading;
+
+    
+    if (videoElement.srcObject !== void 0) {
+      videoElement.srcObject = webRtcStream;
+    } else if (videoElement.mozSrcObject !== void 0) {
+      videoElement.mozSrcObject = webRtcStream;
+    } else {
+      videoElement.src = window.URL.createObjectURL(webRtcStream);
+    }
+  }
+
+
+  function unbindNativeStream(videoElement) {
+    if (videoElement.srcObject !== void 0) {
+      videoElement.srcObject = null;
+    } else if (videoElement.mozSrcObject !== void 0) {
+      videoElement.mozSrcObject = null;
+    } else {
+      window.URL.revokeObjectURL(videoElement.src);
+    }
+  }
+
+
+})(window);
+
+
+
+
+
+
+
+
+!(function() {
+
+
+  var defaultAspectRatio = 4.0/3.0,
+      miniWidth = 128,
+      miniHeight = 128,
+      microWidth = 64,
+      microHeight = 64;
+
+  
+
+
+
+
+
+
+
+
+
+  function fixFitModeCover(element, containerWidth, containerHeight, intrinsicRatio, rotated) {
+
+    var $video = OT.$('.OT_video-element', element);
+
+    if ($video.length > 0) {
+
+      var cssProps = {left: '', top: ''};
+
+      if (OTPlugin.isInstalled()) {
+        cssProps.width = '100%';
+        cssProps.height = '100%';
+      } else {
+        intrinsicRatio = intrinsicRatio || defaultAspectRatio;
+        intrinsicRatio = rotated ? 1 / intrinsicRatio : intrinsicRatio;
+
+        var containerRatio = containerWidth / containerHeight;
+
+        var enforcedVideoWidth,
+            enforcedVideoHeight;
+
+        if (rotated) {
+          
+          enforcedVideoHeight = containerWidth;
+          enforcedVideoWidth = enforcedVideoHeight * intrinsicRatio;
+
+          cssProps.width = enforcedVideoWidth + 'px';
+          cssProps.height = enforcedVideoHeight + 'px';
+          cssProps.top = (enforcedVideoWidth + containerHeight) / 2 + 'px';
+        } else {
+          if (intrinsicRatio < containerRatio) {
+            
+            enforcedVideoWidth = containerWidth;
+            enforcedVideoHeight = enforcedVideoWidth / intrinsicRatio;
+
+            cssProps.width = enforcedVideoWidth + 'px';
+            cssProps.height = enforcedVideoHeight + 'px';
+            cssProps.top = (-enforcedVideoHeight + containerHeight) / 2 + 'px';
+          } else {
+            enforcedVideoHeight = containerHeight;
+            enforcedVideoWidth = enforcedVideoHeight * intrinsicRatio;
+
+            cssProps.width = enforcedVideoWidth + 'px';
+            cssProps.height = enforcedVideoHeight + 'px';
+            cssProps.left = (-enforcedVideoWidth + containerWidth) / 2 + 'px';
+          }
+        }
+      }
+
+      $video.css(cssProps);
+    }
+  }
+
+  
+
+
+
+
+
+
+
+
+  function fixFitModeContain(element, containerWidth, containerHeight, intrinsicRatio, rotated) {
+
+    var $video = OT.$('.OT_video-element', element);
+
+    if ($video.length > 0) {
+
+      var cssProps = {left: '', top: ''};
+
+
+      if (OTPlugin.isInstalled()) {
+        intrinsicRatio = intrinsicRatio || defaultAspectRatio;
+
+        var containerRatio = containerWidth / containerHeight;
+
+        var enforcedVideoWidth,
+            enforcedVideoHeight;
+
+        if (intrinsicRatio < containerRatio) {
+          enforcedVideoHeight = containerHeight;
+          enforcedVideoWidth = containerHeight * intrinsicRatio;
+
+          cssProps.width = enforcedVideoWidth + 'px';
+          cssProps.height = enforcedVideoHeight + 'px';
+          cssProps.left = (containerWidth - enforcedVideoWidth) / 2 + 'px';
+        } else {
+          enforcedVideoWidth = containerWidth;
+          enforcedVideoHeight = enforcedVideoWidth / intrinsicRatio;
+
+          cssProps.width = enforcedVideoWidth + 'px';
+          cssProps.height = enforcedVideoHeight + 'px';
+          cssProps.top = (containerHeight - enforcedVideoHeight) / 2 + 'px';
+        }
+      } else {
+        if (rotated) {
+          cssProps.width = containerHeight + 'px';
+          cssProps.height = containerWidth + 'px';
+          cssProps.top = containerHeight + 'px';
+        } else {
+          cssProps.width = '100%';
+          cssProps.height = '100%';
+        }
+      }
+
+      $video.css(cssProps);
+    }
+  }
+
+  function fixMini(container, width, height) {
+    var w = parseInt(width, 10),
+        h = parseInt(height, 10);
+
+    if(w < microWidth || h < microHeight) {
+      OT.$.addClass(container, 'OT_micro');
+    } else {
+      OT.$.removeClass(container, 'OT_micro');
+    }
+    if(w < miniWidth || h < miniHeight) {
+      OT.$.addClass(container, 'OT_mini');
+    } else {
+      OT.$.removeClass(container, 'OT_mini');
+    }
+  }
+
+  var getOrCreateContainer = function getOrCreateContainer(elementOrDomId, insertMode) {
+    var container,
+        domId;
+
+    if (elementOrDomId && elementOrDomId.nodeName) {
+      
+      
+      container = elementOrDomId;
+      if (!container.getAttribute('id') || container.getAttribute('id').length === 0) {
+        container.setAttribute('id', 'OT_' + OT.$.uuid());
+      }
+
+      domId = container.getAttribute('id');
+    } else {
+      
+      container = OT.$('#' + elementOrDomId).get(0);
+      domId = elementOrDomId || ('OT_' + OT.$.uuid());
+    }
+
+    if (!container) {
+      container = OT.$.createElement('div', {id: domId});
+      container.style.backgroundColor = '#000000';
+      document.body.appendChild(container);
+    } else {
+      if(!(insertMode == null || insertMode === 'replace')) {
+        var placeholder = document.createElement('div');
+        placeholder.id = ('OT_' + OT.$.uuid());
+        if(insertMode === 'append') {
+          container.appendChild(placeholder);
+          container = placeholder;
+        } else if(insertMode === 'before') {
+          container.parentNode.insertBefore(placeholder, container);
+          container = placeholder;
+        } else if(insertMode === 'after') {
+          container.parentNode.insertBefore(placeholder, container.nextSibling);
+          container = placeholder;
+        }
+      } else {
+        OT.$.emptyElement(container);
+      }
+    }
+
+    return container;
+  };
+
+  
+  
+  OT.WidgetView = function(targetElement, properties) {
+
+    var widgetView = {};
+
+    var container = getOrCreateContainer(targetElement, properties && properties.insertMode),
+        widgetContainer = document.createElement('div'),
+        oldContainerStyles = {},
+        dimensionsObserver,
+        videoElement,
+        videoObserver,
+        posterContainer,
+        loadingContainer,
+        width,
+        height,
+        loading = true,
+        audioOnly = false,
+        fitMode = 'cover',
+        fixFitMode = fixFitModeCover;
+
+    OT.$.eventing(widgetView);
+
+    if (properties) {
+      width = properties.width;
+      height = properties.height;
+
+      if (width) {
+        if (typeof(width) === 'number') {
+          width = width + 'px';
+        }
+      }
+
+      if (height) {
+        if (typeof(height) === 'number') {
+          height = height + 'px';
+        }
+      }
+
+      container.style.width = width ? width : '264px';
+      container.style.height = height ? height : '198px';
+      container.style.overflow = 'hidden';
+      fixMini(container, width || '264px', height || '198px');
+
+      if (properties.mirror === undefined || properties.mirror) {
+        OT.$.addClass(container, 'OT_mirrored');
+      }
+
+      if (properties.fitMode === 'contain') {
+        fitMode = 'contain';
+        fixFitMode = fixFitModeContain;
+      } else if (properties.fitMode !== 'cover') {
+        OT.warn('Invalid fit value "' + properties.fitMode + '" passed. ' +
+        'Only "contain" and "cover" can be used.');
+      }
+    }
+
+    if (properties.classNames) OT.$.addClass(container, properties.classNames);
+
+    OT.$(container).addClass('OT_loading OT_fit-mode-' + fitMode);
+
+    OT.$.addClass(widgetContainer, 'OT_widget-container');
+    widgetContainer.style.width = '100%'; 
+    widgetContainer.style.height = '100%'; 
+    container.appendChild(widgetContainer);
+
+    loadingContainer = document.createElement('div');
+    OT.$.addClass(loadingContainer, 'OT_video-loading');
+    widgetContainer.appendChild(loadingContainer);
+
+    posterContainer = document.createElement('div');
+    OT.$.addClass(posterContainer, 'OT_video-poster');
+    widgetContainer.appendChild(posterContainer);
+
+    oldContainerStyles.width = container.offsetWidth;
+    oldContainerStyles.height = container.offsetHeight;
+
+    if (!OTPlugin.isInstalled()) {
+      
+      dimensionsObserver = OT.$.observeStyleChanges(container, ['width', 'height'],
+        function(changeSet) {
+          var width = changeSet.width ? changeSet.width[1] : container.offsetWidth,
+              height = changeSet.height ? changeSet.height[1] : container.offsetHeight;
+
+          fixMini(container, width, height);
+
+          if (videoElement) {
+            fixFitMode(widgetContainer, width, height, videoElement.aspectRatio(),
+              videoElement.isRotated());
+          }
+        });
+
+
+      
+      
+      videoObserver = OT.$.observeNodeOrChildNodeRemoval(container, function(removedNodes) {
+        if (!videoElement) return;
+
+        
+        
+        var videoRemoved = OT.$.some(removedNodes, function(node) {
+          return node === widgetContainer || node.nodeName === 'VIDEO';
+        });
+
+        if (videoRemoved) {
+          videoElement.destroy();
+          videoElement = null;
+        }
+
+        if (widgetContainer) {
+          OT.$.removeElement(widgetContainer);
+          widgetContainer = null;
+        }
+
+        if (dimensionsObserver) {
+          dimensionsObserver.disconnect();
+          dimensionsObserver = null;
+        }
+
+        if (videoObserver) {
+          videoObserver.disconnect();
+          videoObserver = null;
+        }
+      });
+    }
+
+    widgetView.destroy = function() {
+      if (dimensionsObserver) {
+        dimensionsObserver.disconnect();
+        dimensionsObserver = null;
+      }
+
+      if (videoObserver) {
+        videoObserver.disconnect();
+        videoObserver = null;
+      }
+
+      if (videoElement) {
+        videoElement.destroy();
+        videoElement = null;
+      }
+
+      if (container) {
+        OT.$.removeElement(container);
+        container = null;
+      }
+    };
+
+    widgetView.setBackgroundImageURI = function(bgImgURI) {
+      if (bgImgURI.substr(0, 5) !== 'http:' && bgImgURI.substr(0, 6) !== 'https:') {
+        if (bgImgURI.substr(0, 22) !== 'data:image/png;base64,') {
+          bgImgURI = 'data:image/png;base64,' + bgImgURI;
+        }
+      }
+      OT.$.css(posterContainer, 'backgroundImage', 'url(' + bgImgURI + ')');
+      OT.$.css(posterContainer, 'backgroundSize', 'contain');
+      OT.$.css(posterContainer, 'opacity', '1.0');
+    };
+
+    if (properties && properties.style && properties.style.backgroundImageURI) {
+      widgetView.setBackgroundImageURI(properties.style.backgroundImageURI);
+    }
+
+    widgetView.bindVideo = function(webRTCStream, options, completion) {
+      
+      
+      if (videoElement) {
+        videoElement.destroy();
+        videoElement = null;
+      }
+
+      var onError = options && options.error ? options.error : void 0;
+      delete options.error;
+
+      var video = new OT.VideoElement({attributes: options}, onError);
+
+      
+      if (options.audioVolume) video.setAudioVolume(options.audioVolume);
+
+      
+      video.audioChannelType('telephony');
+
+      video.appendTo(widgetContainer).bindToStream(webRTCStream, function(err) {
+        if (err) {
+          video.destroy();
+          completion(err);
+          return;
+        }
+
+        videoElement = video;
+
+        
+        OT.$.css(video.domElement(), 'height', '');
+
+        var fixFitModePartial = function() {
+          fixFitMode(widgetContainer, container.offsetWidth, container.offsetHeight,
+            video.aspectRatio(), video.isRotated());
+        };
+
+        video.on({
+          orientationChanged: fixFitModePartial,
+          videoDimensionsChanged: function(oldValue, newValue) {
+            fixFitModePartial();
+            widgetView.trigger('videoDimensionsChanged', oldValue, newValue);
+          },
+          mediaStopped: function() {
+            widgetView.trigger('mediaStopped');
+          }
+        });
+
+        video.onRatioAvailable(fixFitModePartial);
+
+        completion(null, video);
+      });
+
+      OT.$.addClass(video.domElement(), 'OT_video-element');
+
+      
+      
+      OT.$.css(video.domElement(), 'height', '1px');
+
+      return video;
+    };
+
+    OT.$.defineProperties(widgetView, {
+
+      video: {
+        get: function() {
+          return videoElement;
+        }
+      },
+
+      showPoster: {
+        get: function() {
+          return !OT.$.isDisplayNone(posterContainer);
+        },
+        set: function(newValue) {
+          if(newValue) {
+            OT.$.show(posterContainer);
+          } else {
+            OT.$.hide(posterContainer);
+          }
+        }
+      },
+
+      poster: {
+        get: function() {
+          return OT.$.css(posterContainer, 'backgroundImage');
+        },
+        set: function(src) {
+          OT.$.css(posterContainer, 'backgroundImage', 'url(' + src + ')');
+        }
+      },
+
+      loading: {
+        get: function() { return loading; },
+        set: function(l) {
+          loading = l;
+
+          if (loading) {
+            OT.$.addClass(container, 'OT_loading');
+          } else {
+            OT.$.removeClass(container, 'OT_loading');
+          }
+        }
+      },
+
+      audioOnly: {
+        get: function() { return audioOnly; },
+        set: function(a) {
+          audioOnly = a;
+
+          if (audioOnly) {
+            OT.$.addClass(container, 'OT_audio-only');
+          } else {
+            OT.$.removeClass(container, 'OT_audio-only');
+          }
+        }
+      },
+
+      domId: {
+        get: function() { return container.getAttribute('id'); }
+      }
+
+    });
+
+    widgetView.domElement = container;
+
+    widgetView.addError = function(errorMsg, helpMsg, classNames) {
+      container.innerHTML = '<p>' + errorMsg +
+        (helpMsg ? ' <span class="ot-help-message">' + helpMsg + '</span>' : '') +
+        '</p>';
+      OT.$.addClass(container, classNames || 'OT_subscriber_error');
+      if(container.querySelector('p').offsetHeight > container.offsetHeight) {
+        container.querySelector('span').style.display = 'none';
+      }
+    };
+
+    return widgetView;
+  };
+
+})(window);
+
+
+
+
+
+
+
+if (!OT.properties) {
+  throw new Error('OT.properties does not exist, please ensure that you include a valid ' +
+    'properties file.');
+}
+
+OT.useSSL = function () {
+  return OT.properties.supportSSL && (window.location.protocol.indexOf('https') >= 0 ||
+        window.location.protocol.indexOf('chrome-extension') >= 0);
+};
+
+
+OT.properties = function(properties) {
+  var props = OT.$.clone(properties);
+
+  props.debug = properties.debug === 'true' || properties.debug === true;
+  props.supportSSL = properties.supportSSL === 'true' || properties.supportSSL === true;
+
+  if (window.OTProperties) {
+    
+    if (window.OTProperties.cdnURL) props.cdnURL = window.OTProperties.cdnURL;
+    if (window.OTProperties.cdnURLSSL) props.cdnURLSSL = window.OTProperties.cdnURLSSL;
+    if (window.OTProperties.configURL) props.configURL = window.OTProperties.configURL;
+    if (window.OTProperties.assetURL) props.assetURL = window.OTProperties.assetURL;
+    if (window.OTProperties.cssURL) props.cssURL = window.OTProperties.cssURL;
+  }
+
+  if (!props.assetURL) {
+    if (OT.useSSL()) {
+      props.assetURL = props.cdnURLSSL + '/webrtc/' + props.version;
+    } else {
+      props.assetURL = props.cdnURL + '/webrtc/' + props.version;
+    }
+  }
+
+  var isIE89 = OT.$.env.name === 'IE' && OT.$.env.version <= 9;
+  if (!(isIE89 && window.location.protocol.indexOf('https') < 0)) {
+    props.apiURL = props.apiURLSSL;
+    props.loggingURL = props.loggingURLSSL;
+  }
+
+  if (!props.configURL) props.configURL = props.assetURL + '/js/dynamic_config.min.js';
+  if (!props.cssURL) props.cssURL = props.assetURL + '/css/TB.min.css';
+
+  return props;
+}(OT.properties);
+
+
+
+!(function() {
+  
+
+  
+
+  var currentGuidStorage,
+      currentGuid;
+
+  var isInvalidStorage = function isInvalidStorage (storageInterface) {
+    return !(OT.$.isFunction(storageInterface.get) && OT.$.isFunction(storageInterface.set));
+  };
+
+  var getClientGuid = function getClientGuid (completion) {
+    if (currentGuid) {
+      completion(null, currentGuid);
+      return;
+    }
+
+    
+    
+    
+    currentGuidStorage.get(completion);
+  };
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  OT.overrideGuidStorage = function (storageInterface) {
+    if (isInvalidStorage(storageInterface)) {
+      throw new Error('The storageInterface argument does not seem to be valid, ' +
+                                        'it must implement get and set methods');
+    }
+
+    if (currentGuidStorage === storageInterface) {
+      return;
+    }
+
+    currentGuidStorage = storageInterface;
+
+    
+    
+    if (currentGuid) {
+      currentGuidStorage.set(currentGuid, function(error) {
+        if (error) {
+          OT.error('Failed to send initial Guid value (' + currentGuid +
+                                ') to the newly assigned Guid Storage. The error was: ' + error);
+          
+        }
+      });
+    }
+  };
+
+  if (!OT._) OT._ = {};
+  OT._.getClientGuid = function (completion) {
+    getClientGuid(function(error, guid) {
+      if (error) {
+        completion(error);
+        return;
+      }
+
+      if (!guid) {
+        
+        
+        guid = OT.$.uuid();
+        currentGuidStorage.set(guid, function(error) {
+          if (error) {
+            completion(error);
+            return;
+          }
+
+          currentGuid = guid;
+        });
+      }
+      else if (!currentGuid) {
+        currentGuid = guid;
+      }
+
+      completion(null, currentGuid);
+    });
+  };
+
+
+  
+  
+  OT.overrideGuidStorage({
+    get: function(completion) {
+      completion(null, OT.$.getCookie('opentok_client_id'));
+    },
+
+    set: function(guid, completion) {
+      OT.$.setCookie('opentok_client_id', guid);
+      completion(null);
+    }
+  });
+
+})(window);
+
+
+
+
+
+!(function() {
+  
+
+  
+
+  var nativeGetUserMedia,
+      vendorToW3CErrors,
+      gumNamesToMessages,
+      mapVendorErrorName,
+      parseErrorEvent,
+      areInvalidConstraints;
+
+  
+  nativeGetUserMedia = (function() {
+    if (navigator.getUserMedia) {
+      return OT.$.bind(navigator.getUserMedia, navigator);
+    } else if (navigator.mozGetUserMedia) {
+      return OT.$.bind(navigator.mozGetUserMedia, navigator);
+    } else if (navigator.webkitGetUserMedia) {
+      return OT.$.bind(navigator.webkitGetUserMedia, navigator);
+    } else if (OTPlugin.isInstalled()) {
+      return OT.$.bind(OTPlugin.getUserMedia, OTPlugin);
+    }
+  })();
+
+  
+  
+  
+  vendorToW3CErrors = {
+    PERMISSION_DENIED: 'PermissionDeniedError',
+    NOT_SUPPORTED_ERROR: 'NotSupportedError',
+    MANDATORY_UNSATISFIED_ERROR: ' ConstraintNotSatisfiedError',
+    NO_DEVICES_FOUND: 'NoDevicesFoundError',
+    HARDWARE_UNAVAILABLE: 'HardwareUnavailableError',
+    TrackStartError: 'HardwareUnavailableError'
+  };
+
+  gumNamesToMessages = {
+    PermissionDeniedError: 'End-user denied permission to hardware devices',
+    PermissionDismissedError: 'End-user dismissed permission to hardware devices',
+    NotSupportedError: 'A constraint specified is not supported by the browser.',
+    ConstraintNotSatisfiedError: 'It\'s not possible to satisfy one or more constraints ' +
+      'passed into the getUserMedia function',
+    OverconstrainedError: 'Due to changes in the environment, one or more mandatory ' +
+      'constraints can no longer be satisfied.',
+    NoDevicesFoundError: 'No voice or video input devices are available on this machine.',
+    HardwareUnavailableError: 'The selected voice or video devices are unavailable. Verify ' +
+      'that the chosen devices are not in use by another application.'
+  };
+
+  
+  mapVendorErrorName = function mapVendorErrorName(vendorErrorName, vendorErrors) {
+    var errorName, errorMessage;
+
+    if(vendorErrors.hasOwnProperty(vendorErrorName)) {
+      errorName = vendorErrors[vendorErrorName];
+    } else {
+      
+      
+      errorName = vendorErrorName;
+    }
+
+    if(gumNamesToMessages.hasOwnProperty(errorName)) {
+      errorMessage = gumNamesToMessages[errorName];
+    } else {
+      errorMessage = 'Unknown Error while getting user media';
+    }
+
+    return {
+      name: errorName,
+      message: errorMessage
+    };
+  };
+
+  
+  
+  parseErrorEvent = function parseErrorObject(event) {
+    var error;
+
+    if (OT.$.isObject(event) && event.name) {
+      error = mapVendorErrorName(event.name, vendorToW3CErrors);
+      error.constraintName = event.constraintName;
+    } else if (typeof event === 'string') {
+      error = mapVendorErrorName(event, vendorToW3CErrors);
+    } else {
+      error = {
+        message: 'Unknown Error type while getting media'
+      };
+    }
+
+    return error;
+  };
+
+  
+  
+  areInvalidConstraints = function(constraints) {
+    if (!constraints || !OT.$.isObject(constraints)) return true;
+
+    for (var key in constraints) {
+      if(!constraints.hasOwnProperty(key)) {
+        continue;
+      }
+      if (constraints[key]) return false;
+    }
+
+    return true;
+  };
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  OT.$.getUserMedia = function(constraints, success, failure, accessDialogOpened,
+    accessDialogClosed, accessDenied, customGetUserMedia) {
+
+    var getUserMedia = nativeGetUserMedia;
+
+    if(OT.$.isFunction(customGetUserMedia)) {
+      getUserMedia = customGetUserMedia;
+    }
+
+    
+    
+    if (areInvalidConstraints(constraints)) {
+      OT.error('Couldn\'t get UserMedia: All constraints were false');
+      
+      failure.call(null, {
+        name: 'NO_VALID_CONSTRAINTS',
+        message: 'Video and Audio was disabled, you need to enabled at least one'
+      });
+
+      return;
+    }
+
+    var triggerOpenedTimer = null,
+        displayedPermissionDialog = false,
+
+        finaliseAccessDialog = function() {
+          if (triggerOpenedTimer) {
+            clearTimeout(triggerOpenedTimer);
+          }
+
+          if (displayedPermissionDialog && accessDialogClosed) accessDialogClosed();
+        },
+
+        triggerOpened = function() {
+          triggerOpenedTimer = null;
+          displayedPermissionDialog = true;
+
+          if (accessDialogOpened) accessDialogOpened();
+        },
+
+        onStream = function(stream) {
+          finaliseAccessDialog();
+          success.call(null, stream);
+        },
+
+        onError = function(event) {
+          finaliseAccessDialog();
+          var error = parseErrorEvent(event);
+
+          
+          if (error.name === 'PermissionDeniedError' || error.name === 'PermissionDismissedError') {
+            accessDenied.call(null, error);
+          } else {
+            failure.call(null, error);
+          }
+        };
+
+    try {
+      getUserMedia(constraints, onStream, onError);
+    } catch (e) {
+      OT.error('Couldn\'t get UserMedia: ' + e.toString());
+      onError();
+      return;
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (location.protocol.indexOf('https') === -1) {
+      
+      
+      triggerOpenedTimer = setTimeout(triggerOpened, 100);
+
+    } else {
+      
+      triggerOpenedTimer = setTimeout(triggerOpened, 500);
+    }
+  };
+
+})();
+
+
+
+
+
+
+
+!(function() {
+
+  var adjustModal = function(callback) {
+    return function setFullHeightDocument(window, document) {
+      
+      document.querySelector('html').style.height = document.body.style.height = '100%';
+      callback(window, document);
+    };
+  };
+
+  var addCss = function(document, url, callback) {
+    var head = document.head || document.getElementsByTagName('head')[0];
+    var cssTag = OT.$.createElement('link', {
+      type: 'text/css',
+      media: 'screen',
+      rel: 'stylesheet',
+      href: url
+    });
+    head.appendChild(cssTag);
+    OT.$.on(cssTag, 'error', function(error) {
+      OT.error('Could not load CSS for dialog', url, error && error.message || error);
+    });
+    OT.$.on(cssTag, 'load', callback);
+  };
+
+  var addDialogCSS = function(document, urls, callback) {
+    var allURLs = [
+      '//fonts.googleapis.com/css?family=Didact+Gothic',
+      OT.properties.cssURL
+    ].concat(urls);
+    var remainingStylesheets = allURLs.length;
+    OT.$.forEach(allURLs, function(stylesheetUrl) {
+      addCss(document, stylesheetUrl, function() {
+        if(--remainingStylesheets <= 0) {
+          callback();
+        }
+      });
+    });
+
+  };
+
+  var templateElement = function(classes, children, tagName) {
+    var el = OT.$.createElement(tagName || 'div', { 'class': classes }, children, this);
+    el.on = OT.$.bind(OT.$.on, OT.$, el);
+    el.off = OT.$.bind(OT.$.off, OT.$, el);
+    return el;
+  };
+
+  var checkBoxElement = function (classes, nameAndId, onChange) {
+    var checkbox = templateElement.call(this, '', null, 'input');
+    checkbox = OT.$(checkbox).on('change', onChange);
+
+    if (OT.$.env.name === 'IE' && OT.$.env.version <= 8) {
+      
+      checkbox.on('click', function() {
+        checkbox.first.blur();
+        checkbox.first.focus();
+      });
+    }
+
+    checkbox.attr({
+      name: nameAndId,
+      id: nameAndId,
+      type: 'checkbox'
+    });
+
+    return checkbox.first;
+  };
+
+  var linkElement = function(children, href, classes) {
+    var link = templateElement.call(this, classes || '', children, 'a');
+    link.setAttribute('href', href);
+    return link;
+  };
+
+  OT.Dialogs = {};
+
+  OT.Dialogs.Plugin = {};
+
+  OT.Dialogs.Plugin.promptToInstall = function() {
+    var modal = new OT.$.Modal(adjustModal(function(window, document) {
+
+      var el = OT.$.bind(templateElement, document),
+          btn = function(children, size) {
+            var classes = 'OT_dialog-button ' +
+                          (size ? 'OT_dialog-button-' + size : 'OT_dialog-button-large'),
+                b = el(classes, children);
+
+            b.enable = function() {
+              OT.$.removeClass(this, 'OT_dialog-button-disabled');
+              return this;
+            };
+
+            b.disable = function() {
+              OT.$.addClass(this, 'OT_dialog-button-disabled');
+              return this;
+            };
+
+            return b;
+          },
+          downloadButton = btn('Download plugin'),
+          cancelButton = btn('cancel', 'small'),
+          refreshButton = btn('Refresh browser'),
+          acceptEULA,
+          checkbox,
+          close,
+          root;
+
+      OT.$.addClass(cancelButton, 'OT_dialog-no-natural-margin OT_dialog-button-block');
+      OT.$.addClass(refreshButton, 'OT_dialog-no-natural-margin');
+
+      function onDownload() {
+        modal.trigger('download');
+        setTimeout(function() {
+          root.querySelector('.OT_dialog-messages-main').innerHTML =
+                                              'Plugin installation successful';
+          var sections = root.querySelectorAll('.OT_dialog-section');
+          OT.$.addClass(sections[0], 'OT_dialog-hidden');
+          OT.$.removeClass(sections[1], 'OT_dialog-hidden');
+        }, 3000);
+      }
+
+      function onRefresh() {
+        modal.trigger('refresh');
+      }
+
+      function onToggleEULA() {
+        if (checkbox.checked) {
+          enableButtons();
+        }
+        else {
+          disableButtons();
+        }
+      }
+
+      function enableButtons() {
+        downloadButton.enable();
+        downloadButton.on('click', onDownload);
+
+        refreshButton.enable();
+        refreshButton.on('click', onRefresh);
+      }
+
+      function disableButtons() {
+        downloadButton.disable();
+        downloadButton.off('click', onDownload);
+
+        refreshButton.disable();
+        refreshButton.off('click', onRefresh);
+      }
+
+      downloadButton.disable();
+      refreshButton.disable();
+
+      cancelButton.on('click', function() {
+        modal.trigger('cancelButtonClicked');
+        modal.close();
+      });
+
+      close = el('OT_closeButton', '&times;')
+        .on('click', function() {
+          modal.trigger('closeButtonClicked');
+          modal.close();
+        }).first;
+
+      var protocol = (window.location.protocol.indexOf('https') >= 0 ? 'https' : 'http');
+      acceptEULA = linkElement.call(document,
+                                    'end-user license agreement',
+                                    protocol + '://tokbox.com/support/ie-eula');
+
+      checkbox = checkBoxElement.call(document, null, 'acceptEULA', onToggleEULA);
+
+      root = el('OT_dialog-centering', [
+        el('OT_dialog-centering-child', [
+          el('OT_root OT_dialog OT_dialog-plugin-prompt', [
+            close,
+            el('OT_dialog-messages', [
+              el('OT_dialog-messages-main', 'This app requires real-time communication')
+            ]),
+            el('OT_dialog-section', [
+              el('OT_dialog-single-button-with-title', [
+                el('OT_dialog-button-title', [
+                  checkbox,
+                  (function() {
+                    var x = el('', 'accept', 'label');
+                    x.setAttribute('for', checkbox.id);
+                    x.style.margin = '0 5px';
+                    return x;
+                  })(),
+                  acceptEULA
+                ]),
+                el('OT_dialog-actions-card', [
+                  downloadButton,
+                  cancelButton
+                ])
+              ])
+            ]),
+            el('OT_dialog-section OT_dialog-hidden', [
+              el('OT_dialog-button-title', [
+                'You can now enjoy webRTC enabled video via Internet Explorer.'
+              ]),
+              refreshButton
+            ])
+          ])
+        ])
+      ]);
+
+      addDialogCSS(document, [], function() {
+        document.body.appendChild(root);
+      });
+
+    }));
+    return modal;
+  };
+
+  OT.Dialogs.Plugin.promptToReinstall = function() {
+    var modal = new OT.$.Modal(adjustModal(function(window, document) {
+
+      var el = OT.$.bind(templateElement, document),
+          close,
+          okayButton,
+          root;
+
+      close = el('OT_closeButton', '&times;')
+                .on('click', function() {
+                  modal.trigger('closeButtonClicked');
+                  modal.close();
+                }).first;
+
+      okayButton =
+        el('OT_dialog-button OT_dialog-button-large OT_dialog-no-natural-margin', 'Okay')
+          .on('click', function() {
+            modal.trigger('okay');
+          }).first;
+
+      root = el('OT_dialog-centering', [
+        el('OT_dialog-centering-child', [
+          el('OT_ROOT OT_dialog OT_dialog-plugin-reinstall', [
+            close,
+            el('OT_dialog-messages', [
+              el('OT_dialog-messages-main', 'Reinstall Opentok Plugin'),
+              el('OT_dialog-messages-minor', 'Uh oh! Try reinstalling the OpenTok plugin again ' +
+                'to enable real-time video communication for Internet Explorer.')
+            ]),
+            el('OT_dialog-section', [
+              el('OT_dialog-single-button', okayButton)
+            ])
+          ])
+        ])
+      ]);
+
+      addDialogCSS(document, [], function() {
+        document.body.appendChild(root);
+      });
+
+    }));
+
+    return modal;
+  };
+
+  OT.Dialogs.Plugin.updateInProgress = function() {
+
+    var progressBar,
+        progressText,
+        progressValue = 0;
+
+    var modal = new OT.$.Modal(adjustModal(function(window, document) {
+
+      var el = OT.$.bind(templateElement, document),
+          root;
+
+      progressText = el('OT_dialog-plugin-upgrade-percentage', '0%', 'strong');
+
+      progressBar = el('OT_dialog-progress-bar-fill');
+
+      root = el('OT_dialog-centering', [
+        el('OT_dialog-centering-child', [
+          el('OT_ROOT OT_dialog OT_dialog-plugin-upgrading', [
+            el('OT_dialog-messages', [
+              el('OT_dialog-messages-main', [
+                'One moment please... ',
+                progressText
+              ]),
+              el('OT_dialog-progress-bar', progressBar),
+              el('OT_dialog-messages-minor OT_dialog-no-natural-margin',
+                'Please wait while the OpenTok plugin is updated')
+            ])
+          ])
+        ])
+      ]);
+
+      addDialogCSS(document, [], function() {
+        document.body.appendChild(root);
+        if(progressValue != null) {
+          modal.setUpdateProgress(progressValue);
+        }
+      });
+    }));
+
+    modal.setUpdateProgress = function(newProgress) {
+      if(progressBar && progressText) {
+        if(newProgress > 99) {
+          OT.$.css(progressBar, 'width', '');
+          progressText.innerHTML = '100%';
+        } else if(newProgress < 1) {
+          OT.$.css(progressBar, 'width', '0%');
+          progressText.innerHTML = '0%';
+        } else {
+          OT.$.css(progressBar, 'width', newProgress + '%');
+          progressText.innerHTML = newProgress + '%';
+        }
+      } else {
+        progressValue = newProgress;
+      }
+    };
+
+    return modal;
+  };
+
+  OT.Dialogs.Plugin.updateComplete = function(error) {
+    var modal = new OT.$.Modal(adjustModal(function(window, document) {
+      var el = OT.$.bind(templateElement, document),
+          reloadButton,
+          root;
+
+      reloadButton =
+        el('OT_dialog-button OT_dialog-button-large OT_dialog-no-natural-margin', 'Reload')
+          .on('click', function() {
+            modal.trigger('reload');
+          }).first;
+
+      var msgs;
+
+      if(error) {
+        msgs = ['Update Failed.', error + '' || 'NO ERROR'];
+      } else {
+        msgs = ['Update Complete.',
+          'The OpenTok plugin has been succesfully updated. ' +
+          'Please reload your browser.'];
+      }
+
+      root = el('OT_dialog-centering', [
+        el('OT_dialog-centering-child', [
+          el('OT_root OT_dialog OT_dialog-plugin-upgraded', [
+            el('OT_dialog-messages', [
+              el('OT_dialog-messages-main', msgs[0]),
+              el('OT_dialog-messages-minor', msgs[1])
+            ]),
+            el('OT_dialog-single-button', reloadButton)
+          ])
+        ])
+      ]);
+
+      addDialogCSS(document, [], function() {
+        document.body.appendChild(root);
+      });
+
+    }));
+
+    return modal;
+
+  };
+
+
+})();
+
+
+
+
+
+!(function(window) {
+
+  
+
+  
+
+  
+  
+  
+  
+  
+
+  var chromeToW3CDeviceKinds = {
+    audio: 'audioInput',
+    video: 'videoInput'
+  };
+
+
+  OT.$.shouldAskForDevices = function(callback) {
+    var MST = window.MediaStreamTrack;
+
+    if(MST != null && OT.$.isFunction(MST.getSources)) {
+      window.MediaStreamTrack.getSources(function(sources) {
+        var hasAudio = sources.some(function(src) {
+          return src.kind === 'audio';
+        });
+
+        var hasVideo = sources.some(function(src) {
+          return src.kind === 'video';
+        });
+
+        callback.call(null, { video: hasVideo, audio: hasAudio });
+      });
+
+    } else {
+      
+      OT.$.shouldAskForDevices = function(callback) {
+        setTimeout(OT.$.bind(callback, null, { video: true, audio: true }));
+      };
+
+      OT.$.shouldAskForDevices(callback);
+    }
+  };
+
+
+  OT.$.getMediaDevices = function(callback) {
+    if(OT.$.hasCapabilities('getMediaDevices')) {
+      window.MediaStreamTrack.getSources(function(sources) {
+        var filteredSources = OT.$.filter(sources, function(source) {
+          return chromeToW3CDeviceKinds[source.kind] != null;
+        });
+        callback(void 0, OT.$.map(filteredSources, function(source) {
+          return {
+            deviceId: source.id,
+            label: source.label,
+            kind: chromeToW3CDeviceKinds[source.kind]
+          };
+        }));
+      });
+    } else {
+      callback(new Error('This browser does not support getMediaDevices APIs'));
+    }
+  };
+
+})(window);
+
+
+
+
+
+
+var loadCSS = function loadCSS(cssURL) {
+  var style = document.createElement('link');
+  style.type = 'text/css';
+  style.media = 'screen';
+  style.rel = 'stylesheet';
+  style.href = cssURL;
+  var head = document.head || document.getElementsByTagName('head')[0];
+  head.appendChild(style);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+OT.Config = (function() {
+  var _loaded = false,
+      _global = {},
+      _partners = {},
+      _script,
+      _head = document.head || document.getElementsByTagName('head')[0],
+      _loadTimer,
+
+      _clearTimeout = function() {
+        if (_loadTimer) {
+          clearTimeout(_loadTimer);
+          _loadTimer = null;
+        }
+      },
+
+      _cleanup = function() {
+        _clearTimeout();
+
+        if (_script) {
+          _script.onload = _script.onreadystatechange = null;
+
+          if ( _head && _script.parentNode ) {
+            _head.removeChild( _script );
+          }
+
+          _script = undefined;
+        }
+      },
+
+      _onLoad = function() {
+        
+        if (_script.readyState && !/loaded|complete/.test( _script.readyState )) {
+            
+          return;
+        }
+
+        _clearTimeout();
+
+        if (!_loaded) {
+          
+          
+          
+          _this._onLoadTimeout();
+        }
+      },
+
+      _onLoadError = function() {
+        _cleanup();
+
+        OT.warn('TB DynamicConfig failed to load due to an error');
+        this.trigger('dynamicConfigLoadFailed');
+      },
+
+      _getModule = function(moduleName, apiKey) {
+        if (apiKey && _partners[apiKey] && _partners[apiKey][moduleName]) {
+          return _partners[apiKey][moduleName];
+        }
+
+        return _global[moduleName];
+      },
+
+      _this;
+
+  _this = {
+    
+    loadTimeout: 4000,
+
+    _onLoadTimeout: function() {
+      _cleanup();
+
+      OT.warn('TB DynamicConfig failed to load in ' + _this.loadTimeout + ' ms');
+      this.trigger('dynamicConfigLoadFailed');
+    },
+
+    load: function(configUrl) {
+      if (!configUrl) throw new Error('You must pass a valid configUrl to Config.load');
+
+      _loaded = false;
+
+      setTimeout(function() {
+        _script = document.createElement( 'script' );
+        _script.async = 'async';
+        _script.src = configUrl;
+        _script.onload = _script.onreadystatechange = OT.$.bind(_onLoad, _this);
+        _script.onerror = OT.$.bind(_onLoadError, _this);
+        _head.appendChild(_script);
+      },1);
+
+      _loadTimer = setTimeout(function() {
+        _this._onLoadTimeout();
+      }, this.loadTimeout);
+    },
+
+
+    isLoaded: function() {
+      return _loaded;
+    },
+
+    reset: function() {
+      this.off();
+      _cleanup();
+      _loaded = false;
+      _global = {};
+      _partners = {};
+    },
+
+    
+    
+    replaceWith: function(config) {
+      _cleanup();
+
+      if (!config) config = {};
+
+      _global = config.global || {};
+      _partners = config.partners || {};
+
+      if (!_loaded) _loaded = true;
+      this.trigger('dynamicConfigChanged');
+    },
+
+    
+    
+    
+    
+    
+    
+    
+    get: function(moduleName, key, apiKey) {
+      var module = _getModule(moduleName, apiKey);
+      return module ? module[key] : null;
+    }
+  };
+
+  OT.$.eventing(_this);
+
+  return _this;
+})();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OT.$.registerCapability('getUserMedia', function() {
+  if (OT.$.env === 'Node') return false;
+  return !!(navigator.webkitGetUserMedia ||
+            navigator.mozGetUserMedia ||
+            OTPlugin.isInstalled());
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OT.$.registerCapability('PeerConnection', function() {
+  if (OT.$.env === 'Node') {
+    return false;
+  }
+  else if (typeof(window.webkitRTCPeerConnection) === 'function' &&
+                    !!window.webkitRTCPeerConnection.prototype.addStream) {
+    return true;
+  } else if (typeof(window.mozRTCPeerConnection) === 'function' && OT.$.env.version > 20.0) {
+    return true;
+  } else {
+    return OTPlugin.isInstalled();
+  }
+});
+
+
+
+
+
+
+
+OT.$.registerCapability('webrtc', function() {
+  if (OT.properties) {
+    var minimumVersions = OT.properties.minimumVersion || {},
+        minimumVersion = minimumVersions[OT.$.env.name.toLowerCase()];
+
+    if(minimumVersion && OT.$.env.versionGreaterThan(minimumVersion)) {
+      OT.debug('Support for', OT.$.env.name, 'is disabled because we require',
+        minimumVersion, 'but this is', OT.$.env.version);
+      return false;
+    }
+  }
+
+  if (OT.$.env === 'Node') {
+    
+    return true;
+  }
+
+  return OT.$.hasCapabilities('getUserMedia', 'PeerConnection');
+});
+
+
+
+
+
+
+
+
+
+
+
+OT.$.registerCapability('bundle', function() {
+  return OT.$.hasCapabilities('webrtc') &&
+            (OT.$.env.name === 'Chrome' ||
+              OT.$.env.name === 'Node' ||
+              OTPlugin.isInstalled());
+});
+
+
+
+
+
+
+
+
+
+
+OT.$.registerCapability('RTCPMux', function() {
+  return OT.$.hasCapabilities('webrtc') &&
+              (OT.$.env.name === 'Chrome' ||
+                OT.$.env.name === 'Node' ||
+                OTPlugin.isInstalled());
+});
+
+
+
+
+
+OT.$.registerCapability('getMediaDevices', function() {
+  return OT.$.isFunction(window.MediaStreamTrack) &&
+            OT.$.isFunction(window.MediaStreamTrack.getSources);
+});
+
+
+OT.$.registerCapability('audioOutputLevelStat', function() {
+  return OT.$.env.name === 'Chrome' || OT.$.env.name === 'IE';
+});
+
+OT.$.registerCapability('webAudioCapableRemoteStream', function() {
+  return OT.$.env.name === 'Firefox';
+});
+
+OT.$.registerCapability('webAudio', function() {
+  return 'AudioContext' in window;
+});
+
+
+
+
+
+
+
+
+
+
+OT.Analytics = function(loggingUrl) {
+
+  var LOG_VERSION = '1';
+  var _analytics = new OT.$.Analytics(loggingUrl, OT.debug, OT._.getClientGuid);
+
+  this.logError = function(code, type, message, details, options) {
+    if (!options) options = {};
+    var partnerId = options.partnerId;
+
+    if (OT.Config.get('exceptionLogging', 'enabled', partnerId) !== true) {
+      return;
+    }
+
+    OT._.getClientGuid(function(error, guid) {
+      if (error) {
+        
+        return;
+      }
+      var data = OT.$.extend({
+        
+        'clientVersion' : 'js-' + OT.properties.version.replace('v', ''),
+        'guid' : guid,
+        'partnerId' : partnerId,
+        'source' : window.location.href,
+        'logVersion' : LOG_VERSION,
+        'clientSystemTime' : new Date().getTime()
+      }, options);
+      _analytics.logError(code, type, message, details, data);
+    });
+
+  };
+
+  this.logEvent = function(options, throttle) {
+    var partnerId = options.partnerId;
+
+    if (!options) options = {};
+
+    OT._.getClientGuid(function(error, guid) {
+      if (error) {
+        
+        return;
+      }
+
+      
+      var data = OT.$.extend({
+        
+        'clientVersion' : 'js-' + OT.properties.version.replace('v', ''),
+        'guid' : guid,
+        'partnerId' : partnerId,
+        'source' : window.location.href,
+        'logVersion' : LOG_VERSION,
+        'clientSystemTime' : new Date().getTime()
+      }, options);
+      _analytics.logEvent(data, false, throttle);
+    });
+  };
+
+  this.logQOS = function(options) {
+    var partnerId = options.partnerId;
+
+    if (!options) options = {};
+
+    OT._.getClientGuid(function(error, guid) {
+      if (error) {
+        
+        return;
+      }
+
+      
+      var data = OT.$.extend({
+        
+        'clientVersion' : 'js-' + OT.properties.version.replace('v', ''),
+        'guid' : guid,
+        'partnerId' : partnerId,
+        'source' : window.location.href,
+        'logVersion' : LOG_VERSION,
+        'clientSystemTime' : new Date().getTime(),
+        'duration' : 0 
+      }, options);
+
+      _analytics.logQOS(data);
+    });
+  };
+};
+
+
+
+
+
+
+
+
+
+OT.ConnectivityAttemptPinger = function (options) {
+  var _state = 'Initial',
+    _previousState,
+    states = ['Initial', 'Attempt',  'Success', 'Failure'],
+    pingTimer,               
+    PING_INTERVAL = 5000,
+    PING_COUNT_TOTAL = 6,
+    pingCount;
+
+  
+  var stateChanged = function(newState) {
+      _state = newState;
+      var invalidSequence = false;
+      switch (_state) {
+        case 'Attempt':
+          if (_previousState !== 'Initial') {
+            invalidSequence = true;
+          }
+          startAttemptPings();
+          break;
+        case 'Success':
+          if (_previousState !== 'Attempt') {
+            invalidSequence = true;
+          }
+          stopAttemptPings();
+          break;
+        case 'Failure':
+          if (_previousState !== 'Attempt') {
+            invalidSequence = true;
+          }
+          stopAttemptPings();
+          break;
+      }
+      if (invalidSequence) {
+        var data = options ? OT.$.clone(options) : {};
+        data.action = 'Internal Error';
+        data.variation = 'Non-fatal';
+        data.payload = {
+          debug: 'Invalid sequence: ' + options.action + ' ' +
+            _previousState + ' -> ' + _state
+        };
+        OT.analytics.logEvent(data);
+      }
+    },
+
+    setState = OT.$.statable(this, states, 'Failure', stateChanged),
+
+    startAttemptPings = function() {
+      pingCount = 0;
+      pingTimer = setInterval(function() {
+        if (pingCount < PING_COUNT_TOTAL) {
+          var data = OT.$.extend(options, {variation: 'Attempting'});
+          OT.analytics.logEvent(data);
+        } else {
+          stopAttemptPings();
+        }
+        pingCount++;
+      }, PING_INTERVAL);
+    },
+
+    stopAttemptPings = function() {
+      clearInterval(pingTimer);
+    };
+
+  this.setVariation = function(variation) {
+    _previousState = _state;
+    setState(variation);
+
+    
+    
+    
+    
+    
+  };
+
+  this.stop = function() {
+    stopAttemptPings();
+  };
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OT.StylableComponent = function(self, initalStyles, showControls, logSetStyleWithPayload) {
+  if (!self.trigger) {
+    throw new Error('OT.StylableComponent is dependent on the mixin OT.$.eventing. ' +
+      'Ensure that this is included in the object before StylableComponent.');
+  }
+
+  var _readOnly = false;
+
+  
+  var onStyleChange = function(key, value, oldValue) {
+    if (oldValue) {
+      self.trigger('styleValueChanged', key, value, oldValue);
+    } else {
+      self.trigger('styleValueChanged', key, value);
+    }
+  };
+
+  if(showControls === false) {
+    initalStyles = {
+      buttonDisplayMode: 'off',
+      nameDisplayMode: 'off',
+      audioLevelDisplayMode: 'off'
+    };
+
+    _readOnly = true;
+    logSetStyleWithPayload({
+      showControls: false
+    });
+  }
+
+  var _style = new Style(initalStyles, onStyleChange);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  self.getStyle = function(key) {
+    return _style.get(key);
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  if(_readOnly) {
+    self.setStyle = function() {
+      OT.warn('Calling setStyle() has no effect because the' +
+        'showControls option was set to false');
+      return this;
+    };
+  } else {
+    self.setStyle = function(keyOrStyleHash, value, silent) {
+      var logPayload = {};
+      if (typeof(keyOrStyleHash) !== 'string') {
+        _style.setAll(keyOrStyleHash, silent);
+        logPayload = keyOrStyleHash;
+      } else {
+        _style.set(keyOrStyleHash, value);
+        logPayload[keyOrStyleHash] = value;
+      }
+      if (logSetStyleWithPayload) logSetStyleWithPayload(logPayload);
+      return this;
+    };
+  }
+};
+
+
+
+var Style = function(initalStyles, onStyleChange) {
+
+  var _style = {},
+      _COMPONENT_STYLES,
+      _validStyleValues,
+      isValidStyle,
+      castValue;
+
+
+  _COMPONENT_STYLES = [
+    'showMicButton',
+    'showSpeakerButton',
+    'nameDisplayMode',
+    'buttonDisplayMode',
+    'backgroundImageURI',
+    'audioLevelDisplayMode'
+  ];
+
+  _validStyleValues = {
+    buttonDisplayMode: ['auto', 'mini', 'mini-auto', 'off', 'on'],
+    nameDisplayMode: ['auto', 'off', 'on'],
+    audioLevelDisplayMode: ['auto', 'off', 'on'],
+    showSettingsButton: [true, false],
+    showMicButton: [true, false],
+    backgroundImageURI: null,
+    showControlBar: [true, false],
+    showArchiveStatus: [true, false],
+    videoDisabledDisplayMode: ['auto', 'off', 'on']
+  };
+
+  
+  isValidStyle = function(key, value) {
+    return key === 'backgroundImageURI' ||
+      (_validStyleValues.hasOwnProperty(key) &&
+        OT.$.arrayIndexOf(_validStyleValues[key], value) !== -1 );
+  };
+
+  castValue = function(value) {
+    switch(value) {
+      case 'true':
+        return true;
+      case 'false':
+        return false;
+      default:
+        return value;
+    }
+  };
+
+  
+  this.getAll = function() {
+    var style = OT.$.clone(_style);
+
+    for (var key in style) {
+      if(!style.hasOwnProperty(key)) {
+        continue;
+      }
+      if (OT.$.arrayIndexOf(_COMPONENT_STYLES, key) < 0) {
+
+        
+        delete style[key];
+      }
+    }
+
+    return style;
+  };
+
+  this.get = function(key) {
+    if (key) {
+      return _style[key];
+    }
+
+    
+    return this.getAll();
+  };
+
+  
+  this.setAll = function(newStyles, silent) {
+    var oldValue, newValue;
+
+    for (var key in newStyles) {
+      if(!newStyles.hasOwnProperty(key)) {
+        continue;
+      }
+      newValue = castValue(newStyles[key]);
+
+      if (isValidStyle(key, newValue)) {
+        oldValue = _style[key];
+
+        if (newValue !== oldValue) {
+          _style[key] = newValue;
+          if (!silent) onStyleChange(key, newValue, oldValue);
+        }
+
+      } else {
+        OT.warn('Style.setAll::Invalid style property passed ' + key + ' : ' + newValue);
+      }
+    }
+
+    return this;
+  };
+
+  this.set = function(key, value) {
+    OT.debug('setStyle: ' + key.toString());
+
+    var newValue = castValue(value),
+        oldValue;
+
+    if (!isValidStyle(key, newValue)) {
+      OT.warn('Style.set::Invalid style property passed ' + key + ' : ' + newValue);
+      return this;
+    }
+
+    oldValue = _style[key];
+    if (newValue !== oldValue) {
+      _style[key] = newValue;
+
+      onStyleChange(key, value, oldValue);
+    }
+
+    return this;
+  };
+
+  if (initalStyles) this.setAll(initalStyles, true);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OT.generateSimpleStateMachine = function(initialState, states, transitions) {
+  var validStates = states.slice(),
+      validTransitions = OT.$.clone(transitions);
+
+  var isValidState = function (state) {
+    return OT.$.arrayIndexOf(validStates, state) !== -1;
+  };
+
+  var isValidTransition = function(fromState, toState) {
+    return validTransitions[fromState] &&
+      OT.$.arrayIndexOf(validTransitions[fromState], toState) !== -1;
+  };
+
+  return function(stateChangeFailed) {
+    var currentState = initialState,
+        previousState = null;
+
+    this.current = currentState;
+
+    function signalChangeFailed(message, newState) {
+      stateChangeFailed({
+        message: message,
+        newState: newState,
+        currentState: currentState,
+        previousState: previousState
+      });
+    }
+
+    
+    function handleInvalidStateChanges(newState) {
+      if (!isValidState(newState)) {
+        signalChangeFailed('\'' + newState + '\' is not a valid state', newState);
+
+        return false;
+      }
+
+      if (!isValidTransition(currentState, newState)) {
+        signalChangeFailed('\'' + currentState + '\' cannot transition to \'' +
+          newState + '\'', newState);
+
+        return false;
+      }
+
+      return true;
+    }
+
+
+    this.set = function(newState) {
+      if (!handleInvalidStateChanges(newState)) return;
+      previousState = currentState;
+      this.current = currentState = newState;
+    };
+
+  };
+};
+
+
+
+
+
+
+
+
+!(function() {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  var validStates,
+      validTransitions,
+      initialState = 'NotSubscribing';
+
+  validStates = [
+    'NotSubscribing', 'Init', 'ConnectingToPeer',
+    'BindingRemoteStream', 'Subscribing', 'Failed',
+    'Destroyed'
+  ];
+
+  validTransitions = {
+    NotSubscribing: ['NotSubscribing', 'Init', 'Destroyed'],
+    Init: ['NotSubscribing', 'ConnectingToPeer', 'BindingRemoteStream', 'Destroyed'],
+    ConnectingToPeer: ['NotSubscribing', 'BindingRemoteStream', 'Failed', 'Destroyed'],
+    BindingRemoteStream: ['NotSubscribing', 'Subscribing', 'Failed', 'Destroyed'],
+    Subscribing: ['NotSubscribing', 'Failed', 'Destroyed'],
+    Failed: ['Destroyed'],
+    Destroyed: []
+  };
+
+  OT.SubscribingState = OT.generateSimpleStateMachine(initialState, validStates, validTransitions);
+
+  OT.SubscribingState.prototype.isDestroyed = function() {
+    return this.current === 'Destroyed';
+  };
+
+  OT.SubscribingState.prototype.isFailed = function() {
+    return this.current === 'Failed';
+  };
+
+  OT.SubscribingState.prototype.isSubscribing = function() {
+    return this.current === 'Subscribing';
+  };
+
+  OT.SubscribingState.prototype.isAttemptingToSubscribe = function() {
+    return OT.$.arrayIndexOf(
+      [ 'Init', 'ConnectingToPeer', 'BindingRemoteStream' ],
+      this.current
+    ) !== -1;
+  };
+
+})(window);
+
+
+
+
+
+
+
+
+!(function() {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  var validStates = [
+      'NotPublishing', 'GetUserMedia', 'BindingMedia', 'MediaBound',
+      'PublishingToSession', 'Publishing', 'Failed',
+      'Destroyed'
+    ],
+
+    validTransitions = {
+      NotPublishing: ['NotPublishing', 'GetUserMedia', 'Destroyed'],
+      GetUserMedia: ['BindingMedia', 'Failed', 'NotPublishing', 'Destroyed'],
+      BindingMedia: ['MediaBound', 'Failed', 'NotPublishing', 'Destroyed'],
+      MediaBound: ['NotPublishing', 'PublishingToSession', 'Failed', 'Destroyed'],
+      PublishingToSession: ['NotPublishing', 'Publishing', 'Failed', 'Destroyed'],
+      Publishing: ['NotPublishing', 'MediaBound', 'Failed', 'Destroyed'],
+      Failed: ['Destroyed'],
+      Destroyed: []
+    },
+
+    initialState = 'NotPublishing';
+
+  OT.PublishingState = OT.generateSimpleStateMachine(initialState, validStates, validTransitions);
+
+  OT.PublishingState.prototype.isDestroyed = function() {
+    return this.current === 'Destroyed';
+  };
+
+  OT.PublishingState.prototype.isAttemptingToPublish = function() {
+    return OT.$.arrayIndexOf(
+      [ 'GetUserMedia', 'BindingMedia', 'MediaBound', 'PublishingToSession' ],
+      this.current) !== -1;
+  };
+
+  OT.PublishingState.prototype.isPublishing = function() {
+    return this.current === 'Publishing';
+  };
+
+})(window);
+
+
+
+
+!(function() {
+
+
+
+
+
+
+
+
+
+
+
+  OT.Microphone = function(webRTCStream, muted) {
+    var _muted;
+
+    OT.$.defineProperties(this, {
+      muted: {
+        get: function() {
+          return _muted;
+        },
+        set: function(muted) {
+          if (_muted === muted) return;
+
+          _muted = muted;
+
+          var audioTracks = webRTCStream.getAudioTracks();
+
+          for (var i=0, num=audioTracks.length; i<num; ++i) {
+            audioTracks[i].setEnabled(!_muted);
+          }
+        }
+      }
+    });
+
+    
+    if (muted !== undefined) {
+      this.muted(muted === true);
+
+    } else if (webRTCStream.getAudioTracks().length) {
+      this.muted(!webRTCStream.getAudioTracks()[0].enabled);
+
+    } else {
+      this.muted(false);
+    }
+
+  };
+
+})(window);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OT.IntervalRunner = function(callback, frequency) {
+  var _callback = callback,
+    _frequency = frequency,
+    _intervalId = null;
+
+  this.start = function() {
+    _intervalId = window.setInterval(_callback, 1000 / _frequency);
+  };
+
+  this.stop = function() {
+    window.clearInterval(_intervalId);
+    _intervalId = null;
+  };
+};
+
+
+
+!(function() {
+  
+
+  
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  OT.Event = OT.$.eventing.Event();
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+  OT.Event.names = {
+    
+    ACTIVE: 'active',
+    INACTIVE: 'inactive',
+    UNKNOWN: 'unknown',
+
+    
+    PER_SESSION: 'perSession',
+    PER_STREAM: 'perStream',
+
+    
+    EXCEPTION: 'exception',
+    ISSUE_REPORTED: 'issueReported',
+
+    
+    SESSION_CONNECTED: 'sessionConnected',
+    SESSION_DISCONNECTED: 'sessionDisconnected',
+    STREAM_CREATED: 'streamCreated',
+    STREAM_DESTROYED: 'streamDestroyed',
+    CONNECTION_CREATED: 'connectionCreated',
+    CONNECTION_DESTROYED: 'connectionDestroyed',
+    SIGNAL: 'signal',
+    STREAM_PROPERTY_CHANGED: 'streamPropertyChanged',
+    MICROPHONE_LEVEL_CHANGED: 'microphoneLevelChanged',
+
+
+    
+    RESIZE: 'resize',
+    SETTINGS_BUTTON_CLICK: 'settingsButtonClick',
+    DEVICE_INACTIVE: 'deviceInactive',
+    INVALID_DEVICE_NAME: 'invalidDeviceName',
+    ACCESS_ALLOWED: 'accessAllowed',
+    ACCESS_DENIED: 'accessDenied',
+    ACCESS_DIALOG_OPENED: 'accessDialogOpened',
+    ACCESS_DIALOG_CLOSED: 'accessDialogClosed',
+    ECHO_CANCELLATION_MODE_CHANGED: 'echoCancellationModeChanged',
+    MEDIA_STOPPED: 'mediaStopped',
+    PUBLISHER_DESTROYED: 'destroyed',
+
+    
+    SUBSCRIBER_DESTROYED: 'destroyed',
+
+    
+    DEVICES_DETECTED: 'devicesDetected',
+
+    
+    DEVICES_SELECTED: 'devicesSelected',
+    CLOSE_BUTTON_CLICK: 'closeButtonClick',
+
+    MICLEVEL : 'microphoneActivityLevel',
+    MICGAINCHANGED : 'microphoneGainChanged',
+
+    
+    ENV_LOADED: 'envLoaded',
+    ENV_UNLOADED: 'envUnloaded',
+
+    
+    AUDIO_LEVEL_UPDATED: 'audioLevelUpdated'
+  };
+
+  OT.ExceptionCodes = {
+    JS_EXCEPTION: 2000,
+    AUTHENTICATION_ERROR: 1004,
+    INVALID_SESSION_ID: 1005,
+    CONNECT_FAILED: 1006,
+    CONNECT_REJECTED: 1007,
+    CONNECTION_TIMEOUT: 1008,
+    NOT_CONNECTED: 1010,
+    P2P_CONNECTION_FAILED: 1013,
+    API_RESPONSE_FAILURE: 1014,
+    TERMS_OF_SERVICE_FAILURE: 1026,
+    UNABLE_TO_PUBLISH: 1500,
+    UNABLE_TO_SUBSCRIBE: 1501,
+    UNABLE_TO_FORCE_DISCONNECT: 1520,
+    UNABLE_TO_FORCE_UNPUBLISH: 1530
+  };
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  OT.ExceptionEvent = function (type, message, title, code, component, target) {
+    OT.Event.call(this, type);
+
+    this.message = message;
+    this.title = title;
+    this.code = code;
+    this.component = component;
+    this.target = target;
+  };
+
+
+  OT.IssueReportedEvent = function (type, issueId) {
+    OT.Event.call(this, type);
+    this.issueId = issueId;
+  };
+
+  
+  OT.EnvLoadedEvent = function (type) {
+    OT.Event.call(this, type);
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  var connectionEventPluralDeprecationWarningShown = false;
+  OT.ConnectionEvent = function (type, connection, reason) {
+    OT.Event.call(this, type, false);
+
+    if (OT.$.canDefineProperty) {
+      Object.defineProperty(this, 'connections', {
+        get: function() {
+          if(!connectionEventPluralDeprecationWarningShown) {
+            OT.warn('OT.ConnectionEvent connections property is deprecated, ' +
+              'use connection instead.');
+            connectionEventPluralDeprecationWarningShown = true;
+          }
+          return [connection];
+        }
+      });
+    } else {
+      this.connections = [connection];
+    }
+
+    this.connection = connection;
+    this.reason = reason;
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  var streamEventPluralDeprecationWarningShown = false;
+  OT.StreamEvent = function (type, stream, reason, cancelable) {
+    OT.Event.call(this, type, cancelable);
+
+    if (OT.$.canDefineProperty) {
+      Object.defineProperty(this, 'streams', {
+        get: function() {
+          if(!streamEventPluralDeprecationWarningShown) {
+            OT.warn('OT.StreamEvent streams property is deprecated, use stream instead.');
+            streamEventPluralDeprecationWarningShown = true;
+          }
+          return [stream];
+        }
+      });
+    } else {
+      this.streams = [stream];
+    }
+
+    this.stream = stream;
+    this.reason = reason;
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  var sessionConnectedConnectionsDeprecationWarningShown = false;
+  var sessionConnectedStreamsDeprecationWarningShown = false;
+  var sessionConnectedArchivesDeprecationWarningShown = false;
+
+  OT.SessionConnectEvent = function (type) {
+    OT.Event.call(this, type, false);
+    if (OT.$.canDefineProperty) {
+      Object.defineProperties(this, {
+        connections: {
+          get: function() {
+            if(!sessionConnectedConnectionsDeprecationWarningShown) {
+              OT.warn('OT.SessionConnectedEvent no longer includes connections. Listen ' +
+                'for connectionCreated events instead.');
+              sessionConnectedConnectionsDeprecationWarningShown = true;
+            }
+            return [];
+          }
+        },
+        streams: {
+          get: function() {
+            if(!sessionConnectedStreamsDeprecationWarningShown) {
+              OT.warn('OT.SessionConnectedEvent no longer includes streams. Listen for ' +
+                'streamCreated events instead.');
+              sessionConnectedConnectionsDeprecationWarningShown = true;
+            }
+            return [];
+          }
+        },
+        archives: {
+          get: function() {
+            if(!sessionConnectedArchivesDeprecationWarningShown) {
+              OT.warn('OT.SessionConnectedEvent no longer includes archives. Listen for ' +
+                'archiveStarted events instead.');
+              sessionConnectedArchivesDeprecationWarningShown = true;
+            }
+            return [];
+          }
+        }
+      });
+    } else {
+      this.connections = [];
+      this.streams = [];
+      this.archives = [];
+    }
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  OT.SessionDisconnectEvent = function (type, reason, cancelable) {
+    OT.Event.call(this, type, cancelable);
+    this.reason = reason;
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  OT.StreamPropertyChangedEvent = function (type, stream, changedProperty, oldValue, newValue) {
+    OT.Event.call(this, type, false);
+    this.type = type;
+    this.stream = stream;
+    this.changedProperty = changedProperty;
+    this.oldValue = oldValue;
+    this.newValue = newValue;
+  };
+
+  OT.VideoDimensionsChangedEvent = function (target, oldValue, newValue) {
+    OT.Event.call(this, 'videoDimensionsChanged', false);
+    this.type = 'videoDimensionsChanged';
+    this.target = target;
+    this.oldValue = oldValue;
+    this.newValue = newValue;
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  OT.ArchiveEvent = function (type, archive) {
+    OT.Event.call(this, type, false);
+    this.type = type;
+    this.id = archive.id;
+    this.name = archive.name;
+    this.status = archive.status;
+    this.archive = archive;
+  };
+
+  OT.ArchiveUpdatedEvent = function (stream, key, oldValue, newValue) {
+    OT.Event.call(this, 'updated', false);
+    this.target = stream;
+    this.changedProperty = key;
+    this.oldValue = oldValue;
+    this.newValue = newValue;
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  OT.SignalEvent = function(type, data, from) {
+    OT.Event.call(this, type ? 'signal:' + type : OT.Event.names.SIGNAL, false);
+    this.data = data;
+    this.from = from;
+  };
+
+  OT.StreamUpdatedEvent = function (stream, key, oldValue, newValue) {
+    OT.Event.call(this, 'updated', false);
+    this.target = stream;
+    this.changedProperty = key;
+    this.oldValue = oldValue;
+    this.newValue = newValue;
+  };
+
+  OT.DestroyedEvent = function(type, target, reason) {
+    OT.Event.call(this, type, false);
+    this.target = target;
+    this.reason = reason;
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  OT.VideoEnabledChangedEvent = function(type, properties) {
+    OT.Event.call(this, type, false);
+    this.reason = properties.reason;
+  };
+
+  OT.VideoDisableWarningEvent = function(type) {
+    OT.Event.call(this, type, false);
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+  OT.AudioLevelUpdatedEvent = function(audioLevel) {
+    OT.Event.call(this, OT.Event.names.AUDIO_LEVEL_UPDATED, false);
+    this.audioLevel = audioLevel;
+  };
+
+  OT.MediaStoppedEvent = function(target) {
+    OT.Event.call(this, OT.Event.names.MEDIA_STOPPED, true);
+    this.target = target;
+  };
+
+})(window);
+
+
+
+
+var screenSharingExtensionByKind = {},
+    screenSharingExtensionClasses = {};
+
+OT.registerScreenSharingExtensionHelper = function(kind, helper) {
+  screenSharingExtensionClasses[kind] = helper;
+  if (helper.autoRegisters && helper.isSupportedInThisBrowser) {
+    OT.registerScreenSharingExtension(kind);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OT.registerScreenSharingExtension = function(kind) {
+  var initArgs = Array.prototype.slice.call(arguments, 1);
+
+  if (screenSharingExtensionClasses[kind] == null) {
+    throw new Error('Unsupported kind passed to OT.registerScreenSharingExtension');
+  }
+
+  var x = screenSharingExtensionClasses[kind]
+          .register.apply(screenSharingExtensionClasses[kind], initArgs);
+  screenSharingExtensionByKind[kind] = x;
+};
+
+var screenSharingPickHelper = function() {
+
+  var foundClass = OT.$.find(OT.$.keys(screenSharingExtensionClasses), function(cls) {
+    return screenSharingExtensionClasses[cls].isSupportedInThisBrowser;
+  });
+
+  if (foundClass === void 0) {
+    return {};
+  }
+
+  return {
+    name: foundClass,
+    proto: screenSharingExtensionClasses[foundClass],
+    instance: screenSharingExtensionByKind[foundClass]
+  };
+
+};
+
+OT.pickScreenSharingHelper = function() {
+  return screenSharingPickHelper();
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OT.checkScreenSharingCapability = function(callback) {
+
+  var response = {
+    supported: false,
+    extensionRequired: void 0,
+    extensionRegistered: void 0,
+    extensionInstalled: void 0,
+    supportedSources: {}
+  };
+
+  
+
+  var helper = screenSharingPickHelper();
+
+  if (helper.name === void 0) {
+    setTimeout(callback.bind(null, response));
+    return;
+  }
+
+  response.supported = true;
+  response.extensionRequired = helper.proto.extensionRequired ? helper.name : void 0;
+
+  response.supportedSources = {
+    screen: helper.proto.sources.screen,
+    application: helper.proto.sources.application,
+    window: helper.proto.sources.window
+  };
+
+  if (!helper.instance) {
+    response.extensionRegistered = false;
+    if (response.extensionRequired) {
+      response.extensionInstalled = false;
+    }
+    setTimeout(callback.bind(null, response));
+    return;
+  }
+
+  response.extensionRegistered = response.extensionRequired ? true : void 0;
+  helper.instance.isInstalled(function(installed) {
+    response.extensionInstalled = response.extensionRequired ? installed : void 0;
+    callback(response);
+  });
+  
+};
+
+
+
+OT.registerScreenSharingExtensionHelper('firefox', {
+  isSupportedInThisBrowser: OT.$.env.name === 'Firefox',
+  autoRegisters: true,
+  extensionRequired: false,
+  getConstraintsShowsPermissionUI: false,
+  sources: {
+    screen: true,
+    application: OT.$.env.name === 'Firefox' && OT.$.env.version >= 34,
+    window: OT.$.env.name === 'Firefox' && OT.$.env.version >= 34
+  },
+  register: function() {
+    return {
+      isInstalled: function(callback) {
+        callback(true);
+      },
+      getConstraints: function(source, constraints, callback) {
+        constraints.video = {
+          mediaSource: source
+        };
+        callback(void 0, constraints);
+      }
+    };
+  }
+});
+
+OT.registerScreenSharingExtensionHelper('chrome', {
+  isSupportedInThisBrowser: !!navigator.webkitGetUserMedia && typeof chrome !== 'undefined',
+  autoRegisters: false,
+  extensionRequired: true,
+  getConstraintsShowsPermissionUI: true,
+  sources: {
+    screen: true,
+    application: false,
+    window: false
+  },
+  register: function (extensionID) {
+    if(!extensionID) {
+      throw new Error('initChromeScreenSharingExtensionHelper: extensionID is required.');
+    }
+
+    var isChrome = !!navigator.webkitGetUserMedia && typeof chrome !== 'undefined',
+        callbackRegistry = {},
+        isInstalled = void 0;
+
+    var prefix = 'com.tokbox.screenSharing.' + extensionID;
+    var request = function(method, payload) {
+      var res = { payload: payload, from: 'jsapi' };
+      res[prefix] = method;
+      return res;
+    };
+
+    var addCallback = function(fn, timeToWait) {
+      var requestId = OT.$.uuid(),
+          timeout;
+      callbackRegistry[requestId] = function() {
+        clearTimeout(timeout);
+        timeout = null;
+        fn.apply(null, arguments);
+      };
+      if(timeToWait) {
+        timeout = setTimeout(function() {
+          delete callbackRegistry[requestId];
+          fn(new Error('Timeout waiting for response to request.'));
+        }, timeToWait);
+      }
+      return requestId;
+    };
+
+    var isAvailable = function(callback) {
+      if(!callback) {
+        throw new Error('isAvailable: callback is required.');
+      }
+
+      if(!isChrome) {
+        setTimeout(callback.bind(null, false));
+      }
+
+      if(isInstalled !== void 0) {
+        setTimeout(callback.bind(null, isInstalled));
+      } else {
+        var requestId = addCallback(function(error, event) {
+          if(isInstalled !== true) {
+            isInstalled = (event === 'extensionLoaded');
+          }
+          callback(isInstalled);
+        }, 2000);
+        var post = request('isExtensionInstalled', { requestId: requestId });
+        window.postMessage(post, '*');
+      }
+    };
+
+    var getConstraints = function(source, constraints, callback) {
+      if(!callback) {
+        throw new Error('getSourceId: callback is required');
+      }
+      isAvailable(function(isInstalled) {
+        if(isInstalled) {
+          var requestId = addCallback(function(error, event, payload) {
+            if(event === 'permissionDenied') {
+              callback(new Error('PermissionDeniedError'));
+            } else {
+              if (!constraints.video) {
+                constraints.video = {};
+              }
+              if (!constraints.video.mandatory) {
+                constraints.video.mandatory = {};
+              }
+              constraints.video.mandatory.chromeMediaSource = 'desktop';
+              constraints.video.mandatory.chromeMediaSourceId = payload.sourceId;
+              callback(void 0, constraints);
+            }
+          });
+          window.postMessage(request('getSourceId', { requestId: requestId, source: source }), '*');
+        } else {
+          callback(new Error('Extension is not installed'));
+        }
+      });
+    };
+
+    window.addEventListener('message', function(event) {
+
+      if (event.origin !== window.location.origin) {
+        return;
+      }
+
+      if(!(event.data != null && typeof event.data === 'object')) {
+        return;
+      }
+
+      if(event.data.from !== 'extension') {
+        return;
+      }
+
+      var method = event.data[prefix],
+          payload = event.data.payload;
+
+      if(payload && payload.requestId) {
+        var callback = callbackRegistry[payload.requestId];
+        delete callbackRegistry[payload.requestId];
+        if(callback) {
+          callback(null, method, payload);
+        }
+      }
+
+      if(method === 'extensionLoaded') {
+        isInstalled = true;
+      }
+    });
+
+    return {
+      isInstalled: isAvailable,
+      getConstraints: getConstraints
+    };
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OT.StreamChannel = function(options) {
+  this.id = options.id;
+  this.type = options.type;
+  this.active = OT.$.castToBoolean(options.active);
+  this.orientation = options.orientation || OT.VideoOrientation.ROTATED_NORMAL;
+  if (options.frameRate) this.frameRate = parseFloat(options.frameRate, 10);
+  this.width = parseInt(options.width, 10);
+  this.height = parseInt(options.height, 10);
+
+  
+  this.source = options.source || 'camera';
+  this.fitMode = options.fitMode || 'cover';
+
+  OT.$.eventing(this, true);
+
+  
+  this.update = function(attributes) {
+    var videoDimensions = {},
+        oldVideoDimensions = {};
+
+    for (var key in attributes) {
+      if(!attributes.hasOwnProperty(key)) {
+        continue;
+      }
+
+      
+      var oldValue = this[key];
+
+      switch(key) {
+        case 'active':
+          this.active = OT.$.castToBoolean(attributes[key]);
+          break;
+
+        case 'disableWarning':
+          this.disableWarning = OT.$.castToBoolean(attributes[key]);
+          break;
+
+        case 'frameRate':
+          this.frameRate = parseFloat(attributes[key], 10);
+          break;
+
+        case 'width':
+        case 'height':
+          this[key] = parseInt(attributes[key], 10);
+
+          videoDimensions[key] = this[key];
+          oldVideoDimensions[key] = oldValue;
+          break;
+
+        case 'orientation':
+          this[key] = attributes[key];
+
+          videoDimensions[key] = this[key];
+          oldVideoDimensions[key] = oldValue;
+          break;
+
+        case 'fitMode':
+          this[key] = attributes[key];
+          break;
+
+        case 'source':
+          this[key] = attributes[key];
+          break;
+
+        default:
+          OT.warn('Tried to update unknown key ' + key + ' on ' + this.type +
+            ' channel ' + this.id);
+          return;
+      }
+
+      this.trigger('update', this, key, oldValue, this[key]);
+    }
+
+    if (OT.$.keys(videoDimensions).length) {
+      
+      
+      this.trigger('update', this, 'videoDimensions', oldVideoDimensions, videoDimensions);
+    }
+
+    return true;
+  };
+};
+
+
+
+
+
+
+
+
+
+
+!(function() {
+
+  var validPropertyNames = ['name', 'archiving'];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  OT.Stream = function(id, name, creationTime, connection, session, channel) {
+    var destroyedReason;
+
+    this.id = this.streamId = id;
+    this.name = name;
+    this.creationTime = Number(creationTime);
+
+    this.connection = connection;
+    this.channel = channel;
+    this.publisher = OT.publishers.find({streamId: this.id});
+
+    OT.$.eventing(this);
+
+    var onChannelUpdate = OT.$.bind(function(channel, key, oldValue, newValue) {
+      var _key = key;
+
+      switch(_key) {
+        case 'active':
+          _key = channel.type === 'audio' ? 'hasAudio' : 'hasVideo';
+          this[_key] = newValue;
+          break;
+
+        case 'disableWarning':
+          _key = channel.type === 'audio' ? 'audioDisableWarning': 'videoDisableWarning';
+          this[_key] = newValue;
+          if (!this[channel.type === 'audio' ? 'hasAudio' : 'hasVideo']) {
+            return; 
+          }
+          break;
+
+        case 'fitMode':
+          _key = 'defaultFitMode';
+          this[_key] = newValue;
+          break;
+
+        case 'source':
+          _key = channel.type === 'audio' ? 'audioType' : 'videoType';
+          this[_key] = newValue;
+          break;
+
+        case 'orientation':
+        case 'width':
+        case 'height':
+          this.videoDimensions = {
+            width: channel.width,
+            height: channel.height,
+            orientation: channel.orientation
+          };
+
+          
+          return;
+      }
+
+      this.dispatchEvent( new OT.StreamUpdatedEvent(this, _key, oldValue, newValue) );
+    }, this);
+
+    var associatedWidget = OT.$.bind(function() {
+      if(this.publisher) {
+        return this.publisher;
+      } else {
+        return OT.subscribers.find(function(subscriber) {
+          return subscriber.stream.id === this.id &&
+            subscriber.session.id === session.id;
+        });
+      }
+    }, this);
+
+    
+    this.getChannelsOfType = function (type) {
+      return OT.$.filter(this.channel, function(channel) {
+        return channel.type === type;
+      });
+    };
+
+    this.getChannel = function (id) {
+      for (var i=0; i<this.channel.length; ++i) {
+        if (this.channel[i].id === id) return this.channel[i];
+      }
+
+      return null;
+    };
+
+
+    
+    
+    
+    
+
+    var audioChannel = this.getChannelsOfType('audio')[0],
+        videoChannel = this.getChannelsOfType('video')[0];
+
+    
+    
+    this.hasAudio = audioChannel != null && audioChannel.active;
+    this.hasVideo = videoChannel != null && videoChannel.active;
+
+    this.videoType = videoChannel && videoChannel.source;
+    this.defaultFitMode = videoChannel && videoChannel.fitMode;
+
+    this.videoDimensions = {};
+    if (videoChannel) {
+      this.videoDimensions.width = videoChannel.width;
+      this.videoDimensions.height = videoChannel.height;
+      this.videoDimensions.orientation = videoChannel.orientation;
+
+      videoChannel.on('update', onChannelUpdate);
+      this.frameRate = videoChannel.frameRate;
+    }
+
+    if (audioChannel) {
+      audioChannel.on('update', onChannelUpdate);
+    }
+
+    this.setChannelActiveState = function(channelType, activeState, activeReason) {
+      var attributes = {
+        active: activeState
+      };
+      if (activeReason) {
+        attributes.activeReason = activeReason;
+      }
+      updateChannelsOfType(channelType, attributes);
+    };
+
+    this.setVideoDimensions = function(width, height) {
+      updateChannelsOfType('video', {
+        width: width,
+        height: height,
+        orientation: 0
+      });
+    };
+
+    this.setRestrictFrameRate = function(restrict) {
+      updateChannelsOfType('video', {
+        restrictFrameRate: restrict
+      });
+    };
+
+    var updateChannelsOfType = OT.$.bind(function(channelType, attributes) {
+      var setChannelActiveState;
+      if (!this.publisher) {
+        var subscriber = OT.subscribers.find(function(subscriber) {
+          return subscriber.stream && subscriber.stream.id === this.id &&
+            subscriber.session.id === session.id;
+        }, this);
+
+        setChannelActiveState = function(channel) {
+          session._.subscriberChannelUpdate(this, subscriber, channel, attributes);
+        };
+      } else {
+        setChannelActiveState = function(channel) {
+          session._.streamChannelUpdate(this, channel, attributes);
+        };
+      }
+
+      OT.$.forEach(this.getChannelsOfType(channelType), OT.$.bind(setChannelActiveState, this));
+    }, this);
+
+    this.destroyed = false;
+    this.destroyedReason = void 0;
+
+    this.destroy = function(reason, quiet) {
+      destroyedReason = reason || 'clientDisconnected';
+      this.destroyed = true;
+      this.destroyedReason = destroyedReason;
+
+      if (quiet !== true) {
+        this.dispatchEvent(
+          new OT.DestroyedEvent(
+            'destroyed',      
+                              
+            this,
+            destroyedReason
+          )
+        );
+      }
+    };
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    this._ = {};
+    this._.updateProperty = OT.$.bind(function(key, value) {
+      if (OT.$.arrayIndexOf(validPropertyNames, key) === -1) {
+        OT.warn('Unknown stream property "' + key + '" was modified to "' + value + '".');
+        return;
+      }
+
+      var oldValue = this[key],
+          newValue = value;
+
+      switch(key) {
+        case 'name':
+          this[key] = newValue;
+          break;
+
+        case 'archiving':
+          var widget = associatedWidget();
+          if(widget) {
+            widget._.archivingStatus(newValue);
+          }
+          this[key] = newValue;
+          break;
+      }
+
+      var event = new OT.StreamUpdatedEvent(this, key, oldValue, newValue);
+      this.dispatchEvent(event);
+    }, this);
+
+    
+    this._.update = OT.$.bind(function(attributes) {
+      for (var key in attributes) {
+        if(!attributes.hasOwnProperty(key)) {
+          continue;
+        }
+        this._.updateProperty(key, attributes[key]);
+      }
+    }, this);
+
+    this._.updateChannel = OT.$.bind(function(channelId, attributes) {
+      this.getChannel(channelId).update(attributes);
+    }, this);
+  };
+
+})(window);
+
+
+
+
+
+
+
+
+
+!(function() {
+
+  var parseErrorFromJSONDocument,
+      onGetResponseCallback,
+      onGetErrorCallback;
+
+  OT.SessionInfo = function(jsonDocument) {
+    var sessionJSON = jsonDocument[0];
+
+    OT.log('SessionInfo Response:');
+    OT.log(jsonDocument);
+
+    
+
+    this.sessionId = sessionJSON.session_id;
+    this.partnerId = sessionJSON.partner_id;
+    this.sessionStatus = sessionJSON.session_status;
+
+    this.messagingServer = sessionJSON.messaging_server_url;
+
+    this.messagingURL = sessionJSON.messaging_url;
+    this.symphonyAddress = sessionJSON.symphony_address;
+
+    this.p2pEnabled = !!(sessionJSON.properties &&
+      sessionJSON.properties.p2p &&
+      sessionJSON.properties.p2p.preference &&
+      sessionJSON.properties.p2p.preference.value === 'enabled');
+  };
+
+  
+  
+  
+  OT.SessionInfo.get = function(session, onSuccess, onFailure) {
+    var sessionInfoURL = OT.properties.apiURL + '/session/' + session.id + '?extended=true',
+
+        startTime = OT.$.now(),
+
+        options,
+
+        validateRawSessionInfo = function(sessionInfo) {
+          session.logEvent('Instrumentation', null, 'gsi', OT.$.now() - startTime);
+          var error = parseErrorFromJSONDocument(sessionInfo);
+          if (error === false) {
+            onGetResponseCallback(session, onSuccess, sessionInfo);
+          } else {
+            onGetErrorCallback(session, onFailure, error, JSON.stringify(sessionInfo));
+          }
+        };
+
+
+    if(OT.$.env.name === 'IE' && OT.$.env.version < 10) {
+      sessionInfoURL = sessionInfoURL + '&format=json&token=' + encodeURIComponent(session.token) +
+                                        '&version=1&cache=' + OT.$.uuid();
+      options = {
+        xdomainrequest: true
+      };
+    }
+    else {
+      options = {
+        headers: {
+          'X-TB-TOKEN-AUTH': session.token,
+          'X-TB-VERSION': 1
+        }
+      };
+    }
+    session.logEvent('SessionInfo', 'Attempt', {messagingServer: OT.properties.apiURL});
+
+    OT.$.getJSON(sessionInfoURL, options, function(error, sessionInfo) {
+      if(error) {
+        var responseText = sessionInfo;
+        onGetErrorCallback(session, onFailure,
+          new OT.Error(error.target && error.target.status || error.code, error.message ||
+            'Could not connect to the OpenTok API Server.'), responseText);
+      } else {
+        validateRawSessionInfo(sessionInfo);
+      }
+    });
+  };
+
+  var messageServerToClientErrorCodes = {};
+  messageServerToClientErrorCodes['404'] = OT.ExceptionCodes.INVALID_SESSION_ID;
+  messageServerToClientErrorCodes['409'] = OT.ExceptionCodes.TERMS_OF_SERVICE_FAILURE;
+  messageServerToClientErrorCodes['400'] = OT.ExceptionCodes.INVALID_SESSION_ID;
+  messageServerToClientErrorCodes['403'] = OT.ExceptionCodes.AUTHENTICATION_ERROR;
+
+  
+  
+  parseErrorFromJSONDocument = function(jsonDocument) {
+    if(OT.$.isArray(jsonDocument)) {
+
+      var errors = OT.$.filter(jsonDocument, function(node) {
+        return node.error != null;
+      });
+
+      var numErrorNodes = errors.length;
+      if(numErrorNodes === 0) {
+        return false;
+      }
+
+      var errorCode = errors[0].error.code;
+      if (messageServerToClientErrorCodes[errorCode.toString()]) {
+        errorCode = messageServerToClientErrorCodes[errorCode];
+      }
+
+      return {
+        code: errorCode,
+        message: errors[0].error.errorMessage && errors[0].error.errorMessage.message
+      };
+    } else {
+      return {
+        code: null,
+        message: 'Unknown error: getSessionInfo JSON response was badly formed'
+      };
+    }
+  };
+
+  onGetResponseCallback = function(session, onSuccess, rawSessionInfo) {
+    session.logEvent('SessionInfo', 'Success', {messagingServer: OT.properties.apiURL});
+
+    onSuccess( new OT.SessionInfo(rawSessionInfo) );
+  };
+
+  onGetErrorCallback = function(session, onFailure, error, responseText) {
+    var payload = {
+      reason:'GetSessionInfo',
+      code: (error.code || 'No code'),
+      message: error.message + ':' +
+        (responseText || 'Empty responseText from API server')
+    };
+    session.logConnectivityEvent('Failure', payload);
+
+    onFailure(error, session);
+  };
+
+})(window);
+
+
+
+
+!(function() {
+  
+
+  
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14062,16 +17407,20 @@ waitForDomReady();
     1012: 'Peer-to-peer Stream Play Failed',
     1013: 'Connection Failed',
     1014: 'API Response Failure',
+    1015: 'Session connected, cannot test network',
+    1021: 'Request Timeout',
+    1026: 'Terms of Service Violation: Export Compliance',
     1500: 'Unable to Publish',
+    1503: 'No TURN server found',
     1520: 'Unable to Force Disconnect',
     1530: 'Unable to Force Unpublish',
+    1553: 'ICEWorkflow failed',
+    1600: 'createOffer, createAnswer, setLocalDescription, setRemoteDescription',
     2000: 'Internal Error',
-    2001: 'Embed Failed',
+    2001: 'Unexpected HTTP error codes (f.e. 500)',
     4000: 'WebSocket Connection Failed',
     4001: 'WebSocket Network Disconnected'
   };
-
-  var analytics;
 
   function _exceptionHandler(component, msg, errorCode, context) {
     var title = errorsCodesToTitle[errorCode],
@@ -14082,8 +17431,7 @@ waitForDomReady();
     if (!contextCopy.partnerId) contextCopy.partnerId = OT.APIKEY;
 
     try {
-      if (!analytics) analytics = new OT.Analytics();
-      analytics.logError(errorCode, 'tb.exception', title, {details:msg}, contextCopy);
+      OT.analytics.logError(errorCode, 'tb.exception', title, {details:msg}, contextCopy);
 
       OT.dispatchEvent(
         new OT.ExceptionEvent(OT.Event.names.EXCEPTION, msg, title, errorCode, component, component)
@@ -14143,103 +17491,16 @@ waitForDomReady();
   };
 
 })(window);
-!(function() {
 
-  OT.ConnectionCapabilities = function(capabilitiesHash) {
-    
-    var castCapabilities = function(capabilitiesHash) {
-      capabilitiesHash.supportsWebRTC = OT.$.castToBoolean(capabilitiesHash.supportsWebRTC);
-      return capabilitiesHash;
-    };
 
-    
-    var _caps = castCapabilities(capabilitiesHash);
-    this.supportsWebRTC = _caps.supportsWebRTC;
-  };
 
-})(window);
+
+
 !(function() {
 
   
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  OT.Connection = function(id, creationTime, data, capabilitiesHash, permissionsHash) {
-    var destroyedReason;
-
-    this.id = this.connectionId = id;
-    this.creationTime = creationTime ? Number(creationTime) : null;
-    this.data = data;
-    this.capabilities = new OT.ConnectionCapabilities(capabilitiesHash);
-    this.permissions = new OT.Capabilities(permissionsHash);
-    this.quality = null;
-
-    OT.$.eventing(this);
-
-    this.destroy = OT.$.bind(function(reason, quiet) {
-      destroyedReason = reason || 'clientDisconnected';
-
-      if (quiet !== true) {
-        this.dispatchEvent(
-          new OT.DestroyedEvent(
-            'destroyed',      
-                              
-            this,
-            destroyedReason
-          )
-        );
-      }
-    }, this);
-
-    this.destroyed = function() {
-      return destroyedReason !== void 0;
-    };
-
-    this.destroyedReason = function() {
-      return destroyedReason;
-    };
-
-  };
-
-  OT.Connection.fromHash = function(hash) {
-    return new OT.Connection(hash.id,
-                             hash.creationTime,
-                             hash.data,
-                             OT.$.extend(hash.capablities || {}, { supportsWebRTC: true }),
-                             hash.permissions || [] );
-  };
-
-})(window);
-!(function() {
+  
 
   
   
@@ -14248,402 +17509,160 @@ waitForDomReady();
   
   
   
-  OT.StreamChannel = function(options) {
-    this.id = options.id;
-    this.type = options.type;
-    this.active = OT.$.castToBoolean(options.active);
-    this.orientation = options.orientation || OT.VideoOrientation.ROTATED_NORMAL;
-    if (options.frameRate) this.frameRate = parseFloat(options.frameRate, 10);
-    this.width = parseInt(options.width, 10);
-    this.height = parseInt(options.height, 10);
+  function EnvironmentLoader() {
+    var _configReady = false,
 
-    OT.$.eventing(this, true);
-
-    
-    this.update = function(attributes) {
-      var videoDimensions = {},
-          oldVideoDimensions = {};
-
-      for (var key in attributes) {
-        if(!attributes.hasOwnProperty(key)) {
-          continue;
-        }
-        
-        var oldValue = this[key];
-
-        switch(key) {
-          case 'active':
-            this.active = OT.$.castToBoolean(attributes[key]);
-            break;
-
-          case 'disableWarning':
-            this.disableWarning = OT.$.castToBoolean(attributes[key]);
-            break;
-
-          case 'frameRate':
-            this.frameRate = parseFloat(attributes[key], 10);
-            break;
-
-          case 'width':
-          case 'height':
-            this[key] = parseInt(attributes[key], 10);
-
-            videoDimensions[key] = this[key];
-            oldVideoDimensions[key] = oldValue;
-            break;
-
-          case 'orientation':
-            this[key] = attributes[key];
-
-            videoDimensions[key] = this[key];
-            oldVideoDimensions[key] = oldValue;
-            break;
-
-          default:
-            OT.warn('Tried to update unknown key ' + key + ' on ' + this.type +
-              ' channel ' + this.id);
-            return;
-        }
-
-        this.trigger('update', this, key, oldValue, this[key]);
-      }
-
-      if (OT.$.keys(videoDimensions).length) {
         
         
-        this.trigger('update', this, 'videoDimensions', oldVideoDimensions, videoDimensions);
-      }
-
-      return true;
-    };
-  };
-
-})(window);
-!(function() {
-
-  var validPropertyNames = ['name', 'archiving'];
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  OT.Stream = function(id, name, creationTime, connection, session, channel) {
-    var destroyedReason;
-
-    this.id = this.streamId = id;
-    this.name = name;
-    this.creationTime = Number(creationTime);
-
-    this.connection = connection;
-    this.channel = channel;
-    this.publisher = OT.publishers.find({streamId: this.id});
-
-    OT.$.eventing(this);
-
-    var onChannelUpdate = OT.$.bind(function(channel, key, oldValue, newValue) {
-      var _key = key;
-
-      switch(_key) {
-        case 'active':
-          _key = channel.type === 'audio' ? 'hasAudio' : 'hasVideo';
-          this[_key] = newValue;
-          break;
-
-        case 'disableWarning':
-          _key = channel.type === 'audio' ? 'audioDisableWarning': 'videoDisableWarning';
-          this[_key] = newValue;
-          if (!this[channel.type === 'audio' ? 'hasAudio' : 'hasVideo']) {
-            return; 
+        _pluginSupported = OTPlugin.isSupported(),
+        _pluginLoadAttemptComplete = _pluginSupported ? OTPlugin.isReady() : true,
+
+        isReady = function() {
+          return !OT.$.isDOMUnloaded() && OT.$.isReady() &&
+                      _configReady && _pluginLoadAttemptComplete;
+        },
+
+        onLoaded = function() {
+          if (isReady()) {
+            OT.dispatchEvent(new OT.EnvLoadedEvent(OT.Event.names.ENV_LOADED));
           }
-          break;
+        },
 
-        case 'orientation':
-        case 'width':
-        case 'height':
-          this.videoDimensions = {
-            width: channel.width,
-            height: channel.height,
-            orientation: channel.orientation
-          };
+
+        onDomReady = function() {
+          OT.$.onDOMUnload(onDomUnload);
 
           
-          return;
-      }
+          OT.Config.load(OT.properties.configURL);
 
-      this.dispatchEvent( new OT.StreamUpdatedEvent(this, _key, oldValue, newValue) );
-    }, this);
+          onLoaded();
+        },
 
-    var associatedWidget = OT.$.bind(function() {
-      if(this.publisher) {
-        return this.publisher;
-      } else {
-        return OT.subscribers.find(function(subscriber) {
-          return subscriber.stream.id === this.id &&
-            subscriber.session.id === session.id;
-        });
-      }
-    }, this);
+        onDomUnload = function() {
+          OT.dispatchEvent(new OT.EnvLoadedEvent(OT.Event.names.ENV_UNLOADED));
+        },
 
-    
-    this.getChannelsOfType = function (type) {
-      return OT.$.filter(this.channel, function(channel) {
-        return channel.type === type;
-      });
-    };
+        onPluginReady = function(err) {
+          
+          
+          _pluginLoadAttemptComplete = true;
 
-    this.getChannel = function (id) {
-      for (var i=0; i<this.channel.length; ++i) {
-        if (this.channel[i].id === id) return this.channel[i];
-      }
+          if (err) {
+            OT.debug('TB Plugin failed to load or was not installed');
+          }
 
-      return null;
-    };
+          onLoaded();
+        },
 
+        configLoaded = function() {
+          _configReady = true;
+          OT.Config.off('dynamicConfigChanged', configLoaded);
+          OT.Config.off('dynamicConfigLoadFailed', configLoadFailed);
 
-    
-    
-    
-    
+          onLoaded();
+        },
 
-    var audioChannel = this.getChannelsOfType('audio')[0],
-        videoChannel = this.getChannelsOfType('video')[0];
-
-    
-    
-    this.hasAudio = audioChannel != null && audioChannel.active;
-    this.hasVideo = videoChannel != null && videoChannel.active;
-
-    this.videoDimensions = {};
-    if (videoChannel) {
-      this.videoDimensions.width = videoChannel.width;
-      this.videoDimensions.height = videoChannel.height;
-      this.videoDimensions.orientation = videoChannel.orientation;
-
-      videoChannel.on('update', onChannelUpdate);
-      this.frameRate = videoChannel.frameRate;
-    }
-
-    if (audioChannel) {
-      audioChannel.on('update', onChannelUpdate);
-    }
-
-    this.setChannelActiveState = function(channelType, activeState, activeReason) {
-      var attributes = {
-        active: activeState
-      };
-      if (activeReason) {
-        attributes.activeReason = activeReason;
-      }
-      updateChannelsOfType(channelType, attributes);
-    };
-
-    this.setRestrictFrameRate = function(restrict) {
-      updateChannelsOfType('video', {
-        restrictFrameRate: restrict
-      });
-    };
-
-    var updateChannelsOfType = OT.$.bind(function(channelType, attributes) {
-      var setChannelActiveState;
-      if (!this.publisher) {
-        var subscriber = OT.subscribers.find(function(subscriber) {
-          return subscriber.stream.id === this.id &&
-            subscriber.session.id === session.id;
-        }, this);
-
-        setChannelActiveState = function(channel) {
-          session._.subscriberChannelUpdate(this, subscriber, channel, attributes);
+        configLoadFailed = function() {
+          configLoaded();
         };
-      } else {
-        setChannelActiveState = function(channel) {
-          session._.streamChannelUpdate(this, channel, attributes);
-        };
-      }
 
-      OT.$.forEach(this.getChannelsOfType(channelType), OT.$.bind(setChannelActiveState, this));
-    }, this);
 
-    this.destroyed = false;
-    this.destroyedReason = void 0;
- 
-    this.destroy = function(reason, quiet) {
-      destroyedReason = reason || 'clientDisconnected';
-      this.destroyed = true;
-      this.destroyedReason = destroyedReason;
+    OT.Config.on('dynamicConfigChanged', configLoaded);
+    OT.Config.on('dynamicConfigLoadFailed', configLoadFailed);
 
-      if (quiet !== true) {
-        this.dispatchEvent(
-          new OT.DestroyedEvent(
-            'destroyed',      
-                              
-            this,
-            destroyedReason
-          )
-        );
-      }
-    };
-    
-    
+    OT.$.onDOMLoad(onDomReady);
 
     
     
-    
-    
-    
-    
-    
-    
-    this._ = {};
-    this._.updateProperty = OT.$.bind(function(key, value) {
-      if (OT.$.arrayIndexOf(validPropertyNames, key) === -1) {
-        OT.warn('Unknown stream property "' + key + '" was modified to "' + value + '".');
+    if (_pluginSupported) OTPlugin.ready(onPluginReady);
+
+    this.onLoad = function(cb, context) {
+      if (isReady()) {
+        cb.call(context);
         return;
       }
 
-      var oldValue = this[key],
-          newValue = value;
-
-      switch(key) {
-        case 'name':
-          this[key] = newValue;
-          break;
-
-        case 'archiving':
-          var widget = associatedWidget();
-          if(widget) {
-            widget._.archivingStatus(newValue);
-          }
-          this[key] = newValue;
-          break;
-      }
-
-      var event = new OT.StreamUpdatedEvent(this, key, oldValue, newValue);
-      this.dispatchEvent(event);
-    }, this);
-
-    
-    this._.update = OT.$.bind(function(attributes) {
-      for (var key in attributes) {
-        if(!attributes.hasOwnProperty(key)) {
-          continue;
-        }
-        this._.updateProperty(key, attributes[key]);
-      }
-    }, this);
-
-    this._.updateChannel = OT.$.bind(function(channelId, attributes) {
-      this.getChannel(channelId).update(attributes);
-    }, this);
-  };
-
-})(window);
-!(function() {
-
-
-  OT.Archive = function(id, name, status) {
-    this.id = id;
-    this.name = name;
-    this.status = status;
-
-    this._ = {};
-
-    OT.$.eventing(this);
-
-    
-    this._.update = OT.$.bind(function (attributes) {
-      for (var key in attributes) {
-        if(!attributes.hasOwnProperty(key)) {
-          continue;
-        }
-        var oldValue = this[key];
-        this[key] = attributes[key];
-
-        var event = new OT.ArchiveUpdatedEvent(this, key, oldValue, this[key]);
-        this.dispatchEvent(event);
-      }
-    }, this);
-
-    this.destroy = function() {};
-
-  };
-
-})(window);
-!(function() {
-
-  
-
-
-
-
-  OT.audioContext = function() {
-    var context = new window.AudioContext();
-    OT.audioContext = function() {
-      return context;
+      OT.on(OT.Event.names.ENV_LOADED, cb, context);
     };
-    return context;
+
+    this.onUnload = function(cb, context) {
+      if (this.isUnloaded()) {
+        cb.call(context);
+        return;
+      }
+
+      OT.on(OT.Event.names.ENV_UNLOADED, cb, context);
+    };
+
+    this.isUnloaded = function() {
+      return OT.$.isDOMUnloaded();
+    };
+  }
+
+  var EnvLoader = new EnvironmentLoader();
+
+  OT.onLoad = function(cb, context) {
+    EnvLoader.onLoad(cb, context);
+  };
+
+  OT.onUnload = function(cb, context) {
+    EnvLoader.onUnload(cb, context);
+  };
+
+  OT.isUnloaded = function() {
+    return EnvLoader.isUnloaded();
   };
 
 })();
-!(function() {
 
+
+
+
+
+
+
+
+
+
+var _intervalId,
+    _lastHash = document.location.hash;
+
+OT.HAS_REQUIREMENTS = 1;
+OT.NOT_HAS_REQUIREMENTS = 0;
+
+
+
+
+
+
+
+
+OT.checkSystemRequirements = function() {
+  OT.debug('OT.checkSystemRequirements()');
 
   
+  var systemRequirementsMet = OT.$.hasCapabilities('websockets', 'webrtc') ||
+                                    OTPlugin.isInstalled();
+
+  systemRequirementsMet = systemRequirementsMet ?
+                                    this.HAS_REQUIREMENTS : this.NOT_HAS_REQUIREMENTS;
+
+  OT.checkSystemRequirements = function() {
+    OT.debug('OT.checkSystemRequirements()');
+    return systemRequirementsMet;
+  };
+
+  if(systemRequirementsMet === this.NOT_HAS_REQUIREMENTS) {
+    OT.analytics.logEvent({
+      action: 'checkSystemRequirements',
+      variation: 'notHasRequirements',
+      partnerId: OT.APIKEY,
+      payload: {userAgent: OT.$.env.userAgent}
+    });
+  }
+
+  return systemRequirementsMet;
+};
 
 
 
@@ -14654,317 +17673,248 @@ waitForDomReady();
 
 
 
-  OT.GetStatsAudioLevelSampler = function(peerConnection) {
-
-    if (!OT.$.hasCapabilities('audioOutputLevelStat', 'getStatsWithSingleParameter')) {
-      throw new Error('The current platform does not provide the required capabilities');
-    }
-
-    var _peerConnection = peerConnection,
-        _statsProperty = 'audioOutputLevel';
-
-    
 
 
 
 
+OT.upgradeSystemRequirements = function(){
+  
+  OT.onLoad( function() {
 
-    this.sample = function(done) {
-      _peerConnection.getStatsWithSingleParameter(function(statsReport) {
-        var results = statsReport.result();
-
-        for (var i = 0; i < results.length; i++) {
-          var result = results[i];
-          if (result.local) {
-            var audioOutputLevel = parseFloat(result.local.stat(_statsProperty));
-            if (!isNaN(audioOutputLevel)) {
-              
-              done(audioOutputLevel / 32768);
-              return;
-            }
-          }
-        }
-
-        done(null);
+    if(OTPlugin.isSupported()) {
+      OT.Dialogs.Plugin.promptToInstall().on({
+        download: function() {
+          window.location = OTPlugin.pathToInstaller();
+        },
+        refresh: function() {
+          location.reload();
+        },
+        closed: function() {}
       });
-    };
-  };
+      return;
+    }
 
+    var id = '_upgradeFlash';
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  OT.AnalyserAudioLevelSampler = function(audioContext) {
-
-    var _sampler = this,
-        _analyser = null,
-        _timeDomainData = null;
-
-    var _getAnalyser = function(stream) {
-      var sourceNode = audioContext.createMediaStreamSource(stream);
-      var analyser = audioContext.createAnalyser();
-      sourceNode.connect(analyser);
-      return analyser;
-    };
-
-    this.webOTStream = null;
-
-    this.sample = function(done) {
-
-      if (!_analyser && _sampler.webOTStream) {
-        _analyser = _getAnalyser(_sampler.webOTStream);
-        _timeDomainData = new Uint8Array(_analyser.frequencyBinCount);
+       
+    document.body.appendChild((function() {
+      var d = document.createElement('iframe');
+      d.id = id;
+      d.style.position = 'absolute';
+      d.style.position = 'fixed';
+      d.style.height = '100%';
+      d.style.width = '100%';
+      d.style.top = '0px';
+      d.style.left = '0px';
+      d.style.right = '0px';
+      d.style.bottom = '0px';
+      d.style.zIndex = 1000;
+      try {
+        d.style.backgroundColor = 'rgba(0,0,0,0.2)';
+      } catch (err) {
+        
+        
+        d.style.backgroundColor = 'transparent';
+        d.setAttribute('allowTransparency', 'true');
       }
+      d.setAttribute('frameBorder', '0');
+      d.frameBorder = '0';
+      d.scrolling = 'no';
+      d.setAttribute('scrolling', 'no');
 
-      if (_analyser) {
-        _analyser.getByteTimeDomainData(_timeDomainData);
+      var minimumBrowserVersion = OT.properties.minimumVersion[OT.$.env.name.toLowerCase()],
+          isSupportedButOld =  minimumBrowserVersion > OT.$.env.version;
+      d.src = OT.properties.assetURL + '/html/upgrade.html#' +
+                        encodeURIComponent(isSupportedButOld ? 'true' : 'false') + ',' +
+                        encodeURIComponent(JSON.stringify(OT.properties.minimumVersion)) + '|' +
+                        encodeURIComponent(document.location.href);
 
-        
-        var max = 0;
-        for (var idx = 0; idx < _timeDomainData.length; idx++) {
-          max = Math.max(max, Math.abs(_timeDomainData[idx] - 128));
-        }
-
-        
-        
-        done(max / 128);
-      } else {
-        done(null);
-      }
-    };
-  };
-
-  
-
-
-
-
-
-
-
-
-  OT.AudioLevelTransformer = function() {
-
-    var _averageAudioLevel = null;
+      return d;
+    })());
 
     
-
-
-
-
-    this.transform = function(audioLevel) {
-      if (_averageAudioLevel === null || audioLevel >= _averageAudioLevel) {
-        _averageAudioLevel = audioLevel;
-      } else {
-        
-        _averageAudioLevel = audioLevel * 0.3 + _averageAudioLevel * 0.7;
+    
+    
+    if (_intervalId) clearInterval(_intervalId);
+    _intervalId = setInterval(function(){
+      var hash = document.location.hash,
+          re = /^#?\d+&/;
+      if (hash !== _lastHash && re.test(hash)) {
+        _lastHash = hash;
+        if (hash.replace(re, '') === 'close_window'){
+          document.body.removeChild(document.getElementById(id));
+          document.location.hash = '';
+        }
       }
+    }, 100);
+  });
+};
 
-      
-      var logScaled = (Math.log(_averageAudioLevel) / Math.LN10) / 1.5 + 1;
 
-      return Math.min(Math.max(logScaled, 0), 1);
-    };
+
+
+
+
+OT.ConnectionCapabilities = function(capabilitiesHash) {
+  
+  var castCapabilities = function(capabilitiesHash) {
+    capabilitiesHash.supportsWebRTC = OT.$.castToBoolean(capabilitiesHash.supportsWebRTC);
+    return capabilitiesHash;
   };
 
-})(window);
+  
+  var _caps = castCapabilities(capabilitiesHash);
+  this.supportsWebRTC = _caps.supportsWebRTC;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OT.Capabilities = function(permissions) {
+  this.publish = OT.$.arrayIndexOf(permissions, 'publish') !== -1 ? 1 : 0;
+  this.subscribe = OT.$.arrayIndexOf(permissions, 'subscribe') !== -1 ? 1 : 0;
+  this.forceUnpublish = OT.$.arrayIndexOf(permissions, 'forceunpublish') !== -1 ? 1 : 0;
+  this.forceDisconnect = OT.$.arrayIndexOf(permissions, 'forcedisconnect') !== -1 ? 1 : 0;
+  this.supportsWebRTC = OT.$.hasCapabilities('webrtc') ? 1 : 0;
+
+  this.permittedTo = function(action) {
+    return this.hasOwnProperty(action) && this[action] === 1;
+  };
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OT.Connection = function(id, creationTime, data, capabilitiesHash, permissionsHash) {
+  var destroyedReason;
+
+  this.id = this.connectionId = id;
+  this.creationTime = creationTime ? Number(creationTime) : null;
+  this.data = data;
+  this.capabilities = new OT.ConnectionCapabilities(capabilitiesHash);
+  this.permissions = new OT.Capabilities(permissionsHash);
+  this.quality = null;
+
+  OT.$.eventing(this);
+
+  this.destroy = OT.$.bind(function(reason, quiet) {
+    destroyedReason = reason || 'clientDisconnected';
+
+    if (quiet !== true) {
+      this.dispatchEvent(
+        new OT.DestroyedEvent(
+          'destroyed',      
+                            
+          this,
+          destroyedReason
+        )
+      );
+    }
+  }, this);
+
+  this.destroyed = function() {
+    return destroyedReason !== void 0;
+  };
+
+  this.destroyedReason = function() {
+    return destroyedReason;
+  };
+
+};
+
+OT.Connection.fromHash = function(hash) {
+  return new OT.Connection(hash.id,
+                           hash.creationTime,
+                           hash.data,
+                           OT.$.extend(hash.capablities || {}, { supportsWebRTC: true }),
+                           hash.permissions || [] );
+};
+
+
+
+
+
+
+
+
+
+
 !(function() {
 
-  
-
-
-
-
-
-
-  OT.IntervalRunner = function(callback, frequency) {
-    var _callback = callback,
-      _frequency = frequency,
-      _intervalId = null;
-
-    this.start = function() {
-      _intervalId = window.setInterval(_callback, 1000 / _frequency);
-    };
-
-    this.stop = function() {
-      window.clearInterval(_intervalId);
-      _intervalId = null;
-    };
-  };
-
-})(window);
-
-
-
-
-
-
-
-var findIndex = function(array, iter, ctx) {
-  if (!OT.$.isFunction(iter)) {
-    throw new TypeError('iter must be a function');
-  }
-
-  for (var i = 0, count = array.length || 0; i < count; ++i) {
-    if (i in array && iter.call(ctx, array[i], i, array)) {
-      return i;
-    }
-  }
-
-  return -1;
-};
-
-
-
-
-
-
-
-
-
-
-
-var SDPHelpers = {
-  
-  getMLineIndex: function getMLineIndex(sdpLines, mediaType) {
-    var targetMLine = 'm=' + mediaType;
-
-    
-    return findIndex(sdpLines, function(line) {
-      if (line.indexOf(targetMLine) !== -1) {
-        return true;
-      }
-
-      return false;
-    });
-  },
-
-  
-  
-  getMLinePayloadTypes: function getMLinePayloadTypes (mediaLine, mediaType) {
-    var mLineSelector = new RegExp('^m=' + mediaType +
-                          ' \\d+(/\\d+)? [a-zA-Z0-9/]+(( [a-zA-Z0-9/]+)+)$', 'i');
-
-    
-    var payloadTypes = mediaLine.match(mLineSelector);
-    if (!payloadTypes || payloadTypes.length < 2) {
-      
-      return [];
-    }
-
-    return OT.$.trim(payloadTypes[2]).split(' ');
-  },
-
-  removeTypesFromMLine: function removeTypesFromMLine (mediaLine, payloadTypes) {
-    return mediaLine.replace(new RegExp(' ' + payloadTypes.join(' |'), 'ig') , '')
-                    .replace(/\s+/g, ' ');
-  },
-
-
-  
-  
-  removeMediaEncoding: function removeMediaEncoding (sdp, mediaType, encodingName) {
-    var sdpLines = sdp.split('\r\n'),
-        mLineIndex = SDPHelpers.getMLineIndex(sdpLines, mediaType),
-        mLine = mLineIndex > -1 ? sdpLines[mLineIndex] : void 0,
-        typesToRemove = [],
-        payloadTypes,
-        match;
-
-    if (mLineIndex === -1) {
-      
-      return sdpLines.join('\r\n');
-    }
-
-    
-    payloadTypes = SDPHelpers.getMLinePayloadTypes(mLine, mediaType);
-    if (payloadTypes.length === 0) {
-      
-      return sdpLines.join('\r\n');
-    }
-
-    
-    
-    var matcher = new RegExp('a=rtpmap:(' + payloadTypes.join('|') + ') ' +
-                                          encodingName + '\\/\\d+', 'i');
-
-    sdpLines = OT.$.filter(sdpLines, function(line, index) {
-      match = line.match(matcher);
-      if (match === null) return true;
-
-      typesToRemove.push(match[1]);
-
-      if (index < mLineIndex) {
-        
-        mLineIndex--;
-      }
-
-      
-      return false;
-    });
-
-    if (typesToRemove.length > 0 && mLineIndex > -1) {
-      
-      sdpLines[mLineIndex] = SDPHelpers.removeTypesFromMLine(mLine, typesToRemove);
-    }
-
-    return sdpLines.join('\r\n');
-  },
-
-  
-  
-  
-  
-  removeComfortNoise: function removeComfortNoise (sdp) {
-    return SDPHelpers.removeMediaEncoding(sdp, 'audio', 'CN');
-  },
-
-  removeVideoCodec: function removeVideoCodec (sdp, codec) {
-    return SDPHelpers.removeMediaEncoding(sdp, 'video', codec);
-  }
-};
-
-
-!(function(window) {
-  
-
-  
-  var NativeRTCSessionDescription,
-      NativeRTCIceCandidate;
-
-  if (!TBPlugin.isInstalled()) {
-    
-    NativeRTCSessionDescription = (window.mozRTCSessionDescription ||
-                                   window.RTCSessionDescription);
-    NativeRTCIceCandidate = (window.mozRTCIceCandidate || window.RTCIceCandidate);
-  }
-  else {
-    NativeRTCSessionDescription = TBPlugin.RTCSessionDescription;
-    NativeRTCIceCandidate = TBPlugin.RTCIceCandidate;
-  }
-
-  
-  var iceCandidateForwarder = function(messageDelegate) {
-    return function(event) {
-      if (event.candidate) {
-        messageDelegate(OT.Raptor.Actions.CANDIDATE, event.candidate);
-      } else {
-        OT.debug('IceCandidateForwarder: No more ICE candidates.');
-      }
-    };
-  };
-
+  var MAX_SIGNAL_DATA_LENGTH = 8192,
+      MAX_SIGNAL_TYPE_LENGTH = 128;
 
   
   
@@ -14977,7295 +17927,1408 @@ var SDPHelpers = {
   
   
   
-  
-  
-  
-  
-  var IceCandidateProcessor = function() {
-    var _pendingIceCandidates = [],
-        _peerConnection = null;
-
-    this.setPeerConnection = function(peerConnection) {
-      _peerConnection = peerConnection;
-    };
-
-    this.process = function(message) {
-      var iceCandidate = new NativeRTCIceCandidate(message.content);
-
-      if (_peerConnection) {
-        _peerConnection.addIceCandidate(iceCandidate);
-      } else {
-        _pendingIceCandidates.push(iceCandidate);
-      }
-    };
-
-    this.processPending = function() {
-      while(_pendingIceCandidates.length) {
-        _peerConnection.addIceCandidate(_pendingIceCandidates.shift());
-      }
-    };
-  };
-
-
-  
-  
-  
-  
-  
-  
-  
-  
-  var offerProcessor = function(peerConnection, offer, success, failure) {
-    var generateErrorCallback,
-        setLocalDescription,
-        createAnswer;
-
-    generateErrorCallback = function(message, prefix) {
-      return function(errorReason) {
-        OT.error(message);
-        OT.error(errorReason);
-
-        if (failure) failure(message, errorReason, prefix);
-      };
-    };
-
-    setLocalDescription = function(answer) {
-      answer.sdp = SDPHelpers.removeComfortNoise(answer.sdp);
-      answer.sdp = SDPHelpers.removeVideoCodec(answer.sdp, 'ulpfec');
-      answer.sdp = SDPHelpers.removeVideoCodec(answer.sdp, 'red');
-
-      peerConnection.setLocalDescription(
-        answer,
-
-        
-        function() {
-          success(answer);
-        },
-
-        
-        generateErrorCallback('Error while setting LocalDescription', 'SetLocalDescription')
-      );
-    };
-
-    createAnswer = function() {
-      peerConnection.createAnswer(
-        
-        setLocalDescription,
-
-        
-        generateErrorCallback('Error while setting createAnswer', 'CreateAnswer'),
-
-        null, 
-        false 
-      );
-    };
-
-    
-    
-    if (offer.sdp.indexOf('a=crypto') === -1) {
-      var cryptoLine = 'a=crypto:1 AES_CM_128_HMAC_SHA1_80 ' +
-        'inline:FakeFakeFakeFakeFakeFakeFakeFakeFakeFake\\r\\n';
-
-        
-      offer.sdp = offer.sdp.replace(/^c=IN(.*)$/gmi, 'c=IN$1\r\n'+cryptoLine);
-    }
-
-    if (offer.sdp.indexOf('a=rtcp-fb') === -1) {
-      var rtcpFbLine = 'a=rtcp-fb:* ccm fir\r\na=rtcp-fb:* nack ';
-
-      
-      offer.sdp = offer.sdp.replace(/^m=video(.*)$/gmi, 'm=video$1\r\n'+rtcpFbLine);
-    }
-
-    peerConnection.setRemoteDescription(
-      offer,
-
-      
-      createAnswer,
-
-      
-      generateErrorCallback('Error while setting RemoteDescription', 'SetRemoteDescription')
-    );
-
-  };
-
-  
-  
-  
-  
-  
-  
-  
-  var suscribeProcessor = function(peerConnection, success, failure) {
-    var constraints,
-        generateErrorCallback,
-        setLocalDescription;
-
-    constraints = {
-      mandatory: {},
-      optional: []
-    },
-
-    generateErrorCallback = function(message, prefix) {
-      return function(errorReason) {
-        OT.error(message);
-        OT.error(errorReason);
-
-        if (failure) failure(message, errorReason, prefix);
-      };
-    };
-
-    setLocalDescription = function(offer) {
-      offer.sdp = SDPHelpers.removeComfortNoise(offer.sdp);
-      offer.sdp = SDPHelpers.removeVideoCodec(offer.sdp, 'ulpfec');
-      offer.sdp = SDPHelpers.removeVideoCodec(offer.sdp, 'red');
-
-
-      peerConnection.setLocalDescription(
-        offer,
-
-        
-        function() {
-          success(offer);
-        },
-
-        
-        generateErrorCallback('Error while setting LocalDescription', 'SetLocalDescription')
-      );
-    };
-
-    
-    if (navigator.mozGetUserMedia) {
-      constraints.mandatory.MozDontOfferDataChannel = true;
-    }
-
-    peerConnection.createOffer(
-      
-      setLocalDescription,
-
-      
-      generateErrorCallback('Error while creating Offer', 'CreateOffer'),
-
-      constraints
-    );
-  };
-
-  
-
-
-
-
-
-
-
-
-  OT.PeerConnection = function(config) {
-    var _peerConnection,
-        _peerConnectionCompletionHandlers = [],
-        _iceProcessor = new IceCandidateProcessor(),
-        _offer,
-        _answer,
-        _state = 'new',
-        _messageDelegates = [];
-
-
-    OT.$.eventing(this);
-
-    
-    
-    
-    if (!config.iceServers) config.iceServers = [];
-
-    
-    var delegateMessage = OT.$.bind(function(type, messagePayload) {
-          if (_messageDelegates.length) {
-            
-            
-            
-            
-            
-            _messageDelegates[0](type, messagePayload);
-          }
-        }, this),
-
+  OT.Signal = function(sessionId, fromConnectionId, options) {
+    var isInvalidType = function(type) {
         
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        createPeerConnection = OT.$.bind(function (completion, localWebRtcStream) {
-          if (_peerConnection) {
-            completion.call(null, null, _peerConnection);
-            return;
-          }
+        return !/^[a-zA-Z0-9\-\._~]+$/.exec(type);
+      },
 
-          _peerConnectionCompletionHandlers.push(completion);
-
-          if (_peerConnectionCompletionHandlers.length > 1) {
-            
-            
-            return;
-          }
-
-          var pcConstraints = {
-            optional: [
-              {DtlsSrtpKeyAgreement: true}
-            ]
+      validateTo = function(toAddress) {
+        if (!toAddress) {
+          return {
+            code: 400,
+            reason: 'The signal to field was invalid. Either set it to a OT.Connection, ' +
+                                'OT.Session, or omit it entirely'
           };
-
-          OT.debug('Creating peer connection config "' + JSON.stringify(config) + '".');
-
-          if (!config.iceServers || config.iceServers.length === 0) {
-            
-            OT.error('No ice servers present');
-          }
-
-          OT.$.createPeerConnection(config, pcConstraints, localWebRtcStream,
-                                    OT.$.bind(attachEventsToPeerConnection, this));
-        }, this),
-
-        
-        
-        
-        
-        
-        
-        attachEventsToPeerConnection = OT.$.bind(function(err, pc) {
-          if (err) {
-            triggerError('Failed to create PeerConnection, exception: ' +
-                err.toString(), 'NewPeerConnection');
-
-            _peerConnectionCompletionHandlers = [];
-            return;
-          }
-
-          OT.debug('OT attachEventsToPeerConnection');
-          _peerConnection = pc;
-
-          _peerConnection.onicecandidate = iceCandidateForwarder(delegateMessage);
-          _peerConnection.onaddstream = OT.$.bind(onRemoteStreamAdded, this);
-          _peerConnection.onremovestream = OT.$.bind(onRemoteStreamRemoved, this);
-
-          if (_peerConnection.onsignalingstatechange !== undefined) {
-            _peerConnection.onsignalingstatechange = OT.$.bind(routeStateChanged, this);
-          } else if (_peerConnection.onstatechange !== undefined) {
-            _peerConnection.onstatechange = OT.$.bind(routeStateChanged, this);
-          }
-
-          if (_peerConnection.oniceconnectionstatechange !== undefined) {
-            var failedStateTimer;
-            _peerConnection.oniceconnectionstatechange = function (event) {
-              if (event.target.iceConnectionState === 'failed') {
-                if (failedStateTimer) {
-                  clearTimeout(failedStateTimer);
-                }
-                
-                
-                
-                setTimeout(function () {
-                  if (event.target.iceConnectionState === 'failed') {
-                    triggerError('The stream was unable to connect due to a network error.' +
-                     ' Make sure your connection isn\'t blocked by a firewall.', 'ICEWorkflow');
-                  }
-                }, 5000);
-              }
-            };
-          }
-
-          triggerPeerConnectionCompletion(null);
-        }, this),
-
-        triggerPeerConnectionCompletion = function () {
-          while (_peerConnectionCompletionHandlers.length) {
-            _peerConnectionCompletionHandlers.shift().call(null);
-          }
-        },
-
-        
-        
-        
-        tearDownPeerConnection = function() {
-          
-          if (_iceProcessor) _iceProcessor.setPeerConnection(null);
-
-          qos.stopCollecting();
-
-          if (_peerConnection !== null) {
-            if (_peerConnection.destroy) {
-              
-              
-              _peerConnection.destroy();
-            }
-
-            _peerConnection = null;
-            this.trigger('close');
-          }
-        },
-
-        routeStateChanged = function(event) {
-          var newState;
-
-          if (typeof(event) === 'string') {
-            
-            newState = event;
-
-          } else if (event.target && event.target.signalingState) {
-            
-            newState = event.target.signalingState;
-
-          } else {
-            
-            newState = event.target.readyState;
-          }
-
-          if (newState && newState.toLowerCase() !== _state) {
-            _state = newState.toLowerCase();
-            OT.debug('PeerConnection.stateChange: ' + _state);
-
-            switch(_state) {
-              case 'closed':
-                tearDownPeerConnection.call(this);
-                break;
-            }
-          }
-        },
-
-        qosCallback = OT.$.bind(function(parsedStats) {
-          this.trigger('qos', parsedStats);
-        }, this),
-
-        getRemoteStreams = function() {
-          var streams;
-
-          if (_peerConnection.getRemoteStreams) {
-            streams = _peerConnection.getRemoteStreams();
-          } else if (_peerConnection.remoteStreams) {
-            streams = _peerConnection.remoteStreams;
-          } else {
-            throw new Error('Invalid Peer Connection object implements no ' +
-              'method for retrieving remote streams');
-          }
-
-          
-          
-          
-          return Array.prototype.slice.call(streams);
-        },
-
-        
-        onRemoteStreamAdded = function(event) {
-          this.trigger('streamAdded', event.stream);
-        },
-
-        onRemoteStreamRemoved = function(event) {
-          this.trigger('streamRemoved', event.stream);
-        },
-
-        
-
-
-        
-        
-        relaySDP = function(messageType, sdp) {
-          delegateMessage(messageType, sdp);
-        },
-
-
-        
-        processOffer = function(message) {
-          var offer = new NativeRTCSessionDescription({type: 'offer', sdp: message.content.sdp}),
-
-              
-              relayAnswer = function(answer) {
-                _iceProcessor.setPeerConnection(_peerConnection);
-                _iceProcessor.processPending();
-                relaySDP(OT.Raptor.Actions.ANSWER, answer);
-
-                qos.startCollecting(_peerConnection);
-              },
-
-              reportError = function(message, errorReason, prefix) {
-                triggerError('PeerConnection.offerProcessor ' + message + ': ' +
-                  errorReason, prefix);
-              };
-
-          createPeerConnection(function() {
-            offerProcessor(
-              _peerConnection,
-              offer,
-              relayAnswer,
-              reportError
-            );
-          });
-        },
-
-        processAnswer = function(message) {
-          if (!message.content.sdp) {
-            OT.error('PeerConnection.processMessage: Weird answer message, no SDP.');
-            return;
-          }
-
-          _answer = new NativeRTCSessionDescription({type: 'answer', sdp: message.content.sdp});
-
-          _peerConnection.setRemoteDescription(_answer,
-              function () {
-                OT.debug('setRemoteDescription Success');
-              }, function (errorReason) {
-                triggerError('Error while setting RemoteDescription ' + errorReason,
-                  'SetRemoteDescription');
-              });
-
-          _iceProcessor.setPeerConnection(_peerConnection);
-          _iceProcessor.processPending();
-
-          qos.startCollecting(_peerConnection);
-        },
-
-        processSubscribe = function() {
-          OT.debug('PeerConnection.processSubscribe: Sending offer to subscriber.');
-
-          if (!_peerConnection) {
-            
-            
-            
-            throw new Error('PeerConnection broke!');
-          }
-
-          createPeerConnection(function() {
-            suscribeProcessor(
-              _peerConnection,
-
-              
-              function(offer) {
-                _offer = offer;
-                relaySDP(OT.Raptor.Actions.OFFER, _offer);
-              },
-
-              
-              function(message, errorReason, prefix) {
-                triggerError('PeerConnection.suscribeProcessor ' + message + ': ' +
-                  errorReason, prefix);
-              }
-            );
-          });
-        },
-
-        triggerError = OT.$.bind(function(errorReason, prefix) {
-          OT.error(errorReason);
-          this.trigger('error', errorReason, prefix);
-        }, this);
-
-    this.addLocalStream = function(webRTCStream) {
-      createPeerConnection(function() {
-        _peerConnection.addStream(webRTCStream);
-      }, webRTCStream);
-    };
-
-    this.disconnect = function() {
-      _iceProcessor = null;
-
-      if (_peerConnection) {
-        var currentState = (_peerConnection.signalingState || _peerConnection.readyState);
-        if (currentState && currentState.toLowerCase() !== 'closed') _peerConnection.close();
-
-          
-          
-          
-        tearDownPeerConnection.call(this);
-      }
-
-      this.off();
-    };
-
-    this.processMessage = function(type, message) {
-      OT.debug('PeerConnection.processMessage: Received ' +
-        type + ' from ' + message.fromAddress);
-
-      OT.debug(message);
-
-      switch(type) {
-        case 'generateoffer':
-          processSubscribe.call(this, message);
-          break;
-
-        case 'offer':
-          processOffer.call(this, message);
-          break;
-
-        case 'answer':
-        case 'pranswer':
-          processAnswer.call(this, message);
-          break;
-
-        case 'candidate':
-          _iceProcessor.process(message);
-          break;
-
-        default:
-          OT.debug('PeerConnection.processMessage: Received an unexpected message of type ' +
-            type + ' from ' + message.fromAddress + ': ' + JSON.stringify(message));
-      }
-
-      return this;
-    };
-
-    this.setIceServers = function (iceServers) {
-      if (iceServers) {
-        config.iceServers = iceServers;
-      }
-    };
-
-    this.registerMessageDelegate = function(delegateFn) {
-      return _messageDelegates.push(delegateFn);
-    };
-
-    this.unregisterMessageDelegate = function(delegateFn) {
-      var index = OT.$.arrayIndexOf(_messageDelegates, delegateFn);
-
-      if ( index !== -1 ) {
-        _messageDelegates.splice(index, 1);
-      }
-      return _messageDelegates.length;
-    };
-
-    this.remoteStreams = function() {
-      return _peerConnection ? getRemoteStreams() : [];
-    };
-
-    this.getStatsWithSingleParameter = function(callback) {
-      if (OT.$.hasCapabilities('getStatsWithSingleParameter')) {
-        createPeerConnection(function() {
-          _peerConnection.getStats(callback);
-        });
-      }
-    };
-
-    var qos = new OT.PeerConnection.QOS(qosCallback);
-  };
-
-})(window);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-!(function() {
-
-  
-  
-  
-  
-  var parseStatsOldAPI = function parseStatsOldAPI (peerConnection,
-                                                    prevStats,
-                                                    currentStats,
-                                                    completion) {
-
-    
-    var parseAvgVideoBitrate = function (result) {
-          if (result.stat('googFrameHeightSent')) {
-            currentStats.videoBytesTransferred = result.stat('bytesSent');
-          } else if (result.stat('googFrameHeightReceived')) {
-            currentStats.videoBytesTransferred = result.stat('bytesReceived');
-          } else {
-            return NaN;
-          }
-
-          var transferDelta = currentStats.videoBytesTransferred -
-                                        (prevStats.videoBytesTransferred || 0);
-
-          return Math.round(transferDelta * 8 / currentStats.deltaSecs);
-        },
-
-        
-        parseAvgAudioBitrate = function (result) {
-          if (result.stat('audioInputLevel')) {
-            currentStats.audioBytesTransferred = result.stat('bytesSent');
-          } else if (result.stat('audioOutputLevel')) {
-            currentStats.audioBytesTransferred = result.stat('bytesReceived');
-          } else {
-            return NaN;
-          }
-
-          var transferDelta = currentStats.audioBytesTransferred -
-                                        (prevStats.audioBytesTransferred || 0);
-          return Math.round(transferDelta * 8 / currentStats.deltaSecs);
-        },
-
-        parseFrameRate = function (result) {
-          if (result.stat('googFrameRateSent')) {
-            return result.stat('googFrameRateSent');
-          } else if (result.stat('googFrameRateReceived')) {
-            return result.stat('googFrameRateReceived');
-          }
-          return null;
-        },
-
-        parseStatsReports = function (stats) {
-          if (stats.result) {
-            var resultList = stats.result();
-            for (var resultIndex = 0; resultIndex < resultList.length; resultIndex++) {
-              var result = resultList[resultIndex];
-
-              if (result.stat) {
-
-                if(result.stat('googActiveConnection') === 'true') {
-                  currentStats.localCandidateType = result.stat('googLocalCandidateType');
-                  currentStats.remoteCandidateType = result.stat('googRemoteCandidateType');
-                  currentStats.transportType = result.stat('googTransportType');
-                }
-
-                var avgVideoBitrate = parseAvgVideoBitrate(result);
-                if (!isNaN(avgVideoBitrate)) {
-                  currentStats.avgVideoBitrate = avgVideoBitrate;
-                }
-
-                var avgAudioBitrate = parseAvgAudioBitrate(result);
-                if (!isNaN(avgAudioBitrate)) {
-                  currentStats.avgAudioBitrate = avgAudioBitrate;
-                }
-
-                var frameRate = parseFrameRate(result);
-                if (frameRate != null) {
-                  currentStats.frameRate = frameRate;
-                }
-              }
-            }
-          }
-
-          completion(null, currentStats);
-        };
-
-    peerConnection.getStats(parseStatsReports);
-  };
-
-  
-  
-  
-  
-  var parseStatsOTPlugin = function parseStatsOTPlugin (peerConnection,
-                                                    prevStats,
-                                                    currentStats,
-                                                    completion) {
-
-    var onStatsError = function onStatsError (error) {
-          completion(error);
-        },
-
-        
-        
-        
-        
-        
-        parseAudioStats = function (statsReport) {
-          var lastBytesSent = prevStats.audioBytesTransferred || 0,
-              transferDelta;
-
-          if (statsReport.audioInputLevel) {
-            currentStats.audioBytesTransferred = statsReport.bytesSent;
-          }
-          else if (statsReport.audioOutputLevel) {
-            currentStats.audioBytesTransferred = statsReport.bytesReceived;
-          }
-
-          if (currentStats.audioBytesTransferred) {
-            transferDelta = currentStats.audioBytesTransferred - lastBytesSent;
-            currentStats.avgAudioBitrate = Math.round(transferDelta * 8 / currentStats.deltaSecs);
-          }
-        },
-
-        
-        
-        
-        
-        
-        
-        parseVideoStats = function (statsReport) {
-
-          var lastBytesSent = prevStats.videoBytesTransferred || 0,
-              transferDelta;
-
-          if (statsReport.googFrameHeightSent) {
-            currentStats.videoBytesTransferred = statsReport.bytesSent;
-          }
-          else if (statsReport.googFrameHeightReceived) {
-            currentStats.videoBytesTransferred = statsReport.bytesReceived;
-          }
-
-          if (currentStats.videoBytesTransferred) {
-            transferDelta = currentStats.videoBytesTransferred - lastBytesSent;
-            currentStats.avgVideoBitrate = Math.round(transferDelta * 8 / currentStats.deltaSecs);
-          }
-
-          if (statsReport.googFrameRateSent) {
-            currentStats.frameRate = statsReport.googFrameRateSent;
-          } else if (statsReport.googFrameRateReceived) {
-            currentStats.frameRate = statsReport.googFrameRateReceived;
-          }
-        },
-
-        isStatsForVideoTrack = function(statsReport) {
-          return statsReport.googFrameHeightSent !== void 0 ||
-                  statsReport.googFrameHeightReceived !== void 0 ||
-                  currentStats.videoBytesTransferred !== void 0 ||
-                  statsReport.googFrameRateSent !== void 0;
-        },
-
-        isStatsForIceCandidate = function(statsReport) {
-          return statsReport.googActiveConnection === 'true';
-        };
-
-    peerConnection.getStats(null, function(statsReports) {
-      statsReports.forEach(function(statsReport) {
-        if (isStatsForIceCandidate(statsReport)) {
-          currentStats.localCandidateType = statsReport.googLocalCandidateType;
-          currentStats.remoteCandidateType = statsReport.googRemoteCandidateType;
-          currentStats.transportType = statsReport.googTransportType;
         }
-        else if (isStatsForVideoTrack(statsReport)) {
-          parseVideoStats(statsReport);
+
+        if ( !(toAddress instanceof OT.Connection || toAddress instanceof OT.Session) ) {
+          return {
+            code: 400,
+            reason: 'The To field was invalid'
+          };
+        }
+
+        return null;
+      },
+
+      validateType = function(type) {
+        var error = null;
+
+        if (type === null || type === void 0) {
+          error = {
+            code: 400,
+            reason: 'The signal type was null or undefined. Either set it to a String value or ' +
+              'omit it'
+          };
+        }
+        else if (type.length > MAX_SIGNAL_TYPE_LENGTH) {
+          error = {
+            code: 413,
+            reason: 'The signal type was too long, the maximum length of it is ' +
+              MAX_SIGNAL_TYPE_LENGTH + ' characters'
+          };
+        }
+        else if ( isInvalidType(type) ) {
+          error = {
+            code: 400,
+            reason: 'The signal type was invalid, it can only contain letters, ' +
+              'numbers, \'-\', \'_\', and \'~\'.'
+          };
+        }
+
+        return error;
+      },
+
+      validateData = function(data) {
+        var error = null;
+        if (data === null || data === void 0) {
+          error = {
+            code: 400,
+            reason: 'The signal data was null or undefined. Either set it to a String value or ' +
+              'omit it'
+          };
         }
         else {
-          parseAudioStats(statsReport);
-        }
-      });
-
-      completion(null, currentStats);
-    }, onStatsError);
-  };
-
-
-  
-  
-  
-  var parseStatsNewAPI = function parseStatsNewAPI (peerConnection,
-                                                    prevStats,
-                                                    currentStats,
-                                                    completion) {
-
-    var onStatsError = function onStatsError (error) {
-          completion(error);
-        },
-
-        parseAvgVideoBitrate = function parseAvgVideoBitrate (result) {
-          if (result.bytesSent || result.bytesReceived) {
-            currentStats.videoBytesTransferred = result.bytesSent || result.bytesReceived;
-          }
-          else {
-            return NaN;
-          }
-
-          var transferDelta = currentStats.videoBytesTransferred -
-                                        (prevStats.videoBytesTransferred || 0);
-
-          return Math.round(transferDelta * 8 / currentStats.deltaSecs);
-        },
-
-        parseAvgAudioBitrate = function parseAvgAudioBitrate (result) {
-          if (result.bytesSent || result.bytesReceived) {
-            currentStats.audioBytesTransferred = result.bytesSent || result.bytesReceived;
-          } else {
-            return NaN;
-          }
-
-          var transferDelta = currentStats.audioBytesTransferred -
-                                        (prevStats.audioBytesTransferred || 0);
-          return Math.round(transferDelta * 8 / currentStats.deltaSecs);
-        };
-
-
-    peerConnection.getStats(null, function(stats) {
-
-      for (var key in stats) {
-        if (stats.hasOwnProperty(key) &&
-          (stats[key].type === 'outboundrtp' || stats[key].type === 'inboundrtp')) {
-
-          var res = stats[key];
-
-          
-          if (res.id.indexOf('video') !== -1) {
-            var avgVideoBitrate = parseAvgVideoBitrate(res);
-            if(!isNaN(avgVideoBitrate)) {
-              currentStats.avgVideoBitrate = avgVideoBitrate;
+          try {
+            if (JSON.stringify(data).length > MAX_SIGNAL_DATA_LENGTH) {
+              error = {
+                code: 413,
+                reason: 'The data field was too long, the maximum size of it is ' +
+                  MAX_SIGNAL_DATA_LENGTH + ' characters'
+              };
             }
-
-          } else if (res.id.indexOf('audio') !== -1) {
-            var avgAudioBitrate = parseAvgAudioBitrate(res);
-            if(!isNaN(avgAudioBitrate)) {
-              currentStats.avgAudioBitrate = avgAudioBitrate;
-            }
-
+          }
+          catch(e) {
+            error = {code: 400, reason: 'The data field was not valid JSON'};
           }
         }
-      }
 
-      completion(null, currentStats);
-    }, onStatsError);
-  };
-
-
-  var parseQOS = function (peerConnection, prevStats, currentStats, completion) {
-    var firefoxVersion = window.navigator.userAgent
-                              .toLowerCase().match(/Firefox\/([0-9\.]+)/i);
-
-    if (TBPlugin.isInstalled()) {
-      parseQOS = parseStatsOTPlugin;
-      return parseStatsOTPlugin(peerConnection, prevStats, currentStats, completion);
-    }
-    else if (firefoxVersion !== null && parseFloat(firefoxVersion[1], 10) >= 27.0) {
-      parseQOS = parseStatsNewAPI;
-      return parseStatsNewAPI(peerConnection, prevStats, currentStats, completion);
-    }
-    else {
-      parseQOS = parseStatsOldAPI;
-      return parseStatsOldAPI(peerConnection, prevStats, currentStats, completion);
-    }
-  };
-
-  OT.PeerConnection.QOS = function (qosCallback) {
-    var _creationTime = OT.$.now(),
-        _peerConnection;
-
-    var calculateQOS = OT.$.bind(function calculateQOS (prevStats) {
-      if (!_peerConnection) {
-        
-        
-        return;
-      }
-
-      var now = OT.$.now();
-
-      var currentStats = {
-        timeStamp: now,
-        duration: Math.round(now - _creationTime),
-        deltaSecs: (now - prevStats.timeStamp) / 1000
+        return error;
       };
 
-      var onParsedStats = function (err, parsedStats) {
-        if (err) {
-          OT.error('Failed to Parse QOS Stats: ' + JSON.stringify(err));
-          return;
+
+    this.toRaptorMessage = function() {
+      var to = this.to;
+
+      if (to && typeof(to) !== 'string') {
+        to = to.id;
+      }
+
+      return OT.Raptor.Message.signals.create(OT.APIKEY, sessionId, to, this.type, this.data);
+    };
+
+    this.toHash = function() {
+      return options;
+    };
+
+
+    this.error = null;
+
+    if (options) {
+      if (options.hasOwnProperty('data')) {
+        this.data = OT.$.clone(options.data);
+        this.error = validateData(this.data);
+      }
+
+      if (options.hasOwnProperty('to')) {
+        this.to = options.to;
+
+        if (!this.error) {
+          this.error = validateTo(this.to);
         }
-
-        qosCallback(parsedStats, prevStats);
-
-        
-        setTimeout(OT.$.bind(calculateQOS, null, parsedStats), OT.PeerConnection.QOS.INTERVAL);
-      };
-
-      parseQOS(_peerConnection, prevStats, currentStats, onParsedStats);
-    }, this);
-
-
-    this.startCollecting = function (peerConnection) {
-      if (!peerConnection || !peerConnection.getStats) {
-        
-        
-        return;
       }
 
-      _peerConnection = peerConnection;
+      if (options.hasOwnProperty('type')) {
+        if (!this.error) {
+          this.error = validateType(options.type);
+        }
+        this.type = options.type;
+      }
+    }
 
-      calculateQOS({
-        timeStamp: OT.$.now()
-      });
-    };
-
-    this.stopCollecting = function () {
-      _peerConnection = null;
-    };
+    this.valid = this.error === null;
   };
+
+}(this));
+
+
+
+
+
+
+
+
+
+
+
+function SignalError(code, message) {
+  this.code = code;
+  this.message = message;
 
   
-  OT.PeerConnection.QOS.INTERVAL = 30000;
-})();
-!(function() {
+  this.reason = message;
+}
 
-  var _peerConnections = {};
 
-  OT.PeerConnections = {
-    add: function(remoteConnection, streamId, config) {
-      var key = remoteConnection.id + '_' + streamId,
-          ref = _peerConnections[key];
 
-      if (!ref) {
-        ref = _peerConnections[key] = {
-          count: 0,
-          pc: new OT.PeerConnection(config)
-        };
-      }
+OT.Raptor.Socket = function(connectionId, widgetId, messagingSocketUrl, symphonyUrl, dispatcher) {
+  var _states = ['disconnected', 'connecting', 'connected', 'error', 'disconnecting'],
+      _sessionId,
+      _token,
+      _rumor,
+      _dispatcher,
+      _completion;
 
-      
-      ref.count += 1;
 
-      return ref.pc;
-    },
+  
+  var setState = OT.$.statable(this, _states, 'disconnected'),
 
-    remove: function(remoteConnection, streamId) {
-      var key = remoteConnection.id + '_' + streamId,
-          ref = _peerConnections[key];
-
-      if (ref) {
-        ref.count -= 1;
-
-        if (ref.count === 0) {
-          ref.pc.disconnect();
-          delete _peerConnections[key];
+      onConnectComplete = function onConnectComplete(error) {
+        if (error) {
+          setState('error');
         }
-      }
-    }
-  };
+        else {
+          setState('connected');
+        }
 
-})(window);
-!(function() {
+        _completion.apply(null, arguments);
+      },
+
+      onClose = OT.$.bind(function onClose (err) {
+        var reason = this.is('disconnecting') ? 'clientDisconnected' : 'networkDisconnected';
+
+        if(err && err.code === 4001) {
+          reason = 'networkTimedout';
+        }
+
+        setState('disconnected');
+
+        _dispatcher.onClose(reason);
+      }, this),
+
+      onError = function onError () {};
+      
+
 
   
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  OT.PublisherPeerConnection = function(remoteConnection, session, streamId, webRTCStream) {
-    var _peerConnection,
-        _hasRelayCandidates = false,
-        _subscriberId = session._.subscriberMap[remoteConnection.id + '_' + streamId],
-        _onPeerClosed,
-        _onPeerError,
-        _relayMessageToPeer,
-        _onQOS;
-
-    
-    _onPeerClosed = function() {
-      this.destroy();
-      this.trigger('disconnected', this);
-    };
-
-    
-    _onPeerError = function(errorReason, prefix) {
-      this.trigger('error', null, errorReason, this, prefix);
-      this.destroy();
-    };
-
-    _relayMessageToPeer = OT.$.bind(function(type, payload) {
-      if (!_hasRelayCandidates){
-        var extractCandidates = type === OT.Raptor.Actions.CANDIDATE ||
-                                type === OT.Raptor.Actions.OFFER ||
-                                type === OT.Raptor.Actions.ANSWER ||
-                                type === OT.Raptor.Actions.PRANSWER ;
-
-        if (extractCandidates) {
-          var message = (type === OT.Raptor.Actions.CANDIDATE) ? payload.candidate : payload.sdp;
-          _hasRelayCandidates = message.indexOf('typ relay') !== -1;
-        }
-      }
-
-      switch(type) {
-        case OT.Raptor.Actions.ANSWER:
-        case OT.Raptor.Actions.PRANSWER:
-          if (session.sessionInfo.p2pEnabled) {
-            session._.jsepAnswerP2p(streamId, _subscriberId, payload.sdp);
-          } else {
-            session._.jsepAnswer(streamId, payload.sdp);
-          }
-
-          break;
-
-        case OT.Raptor.Actions.OFFER:
-          this.trigger('connected');
-
-          if (session.sessionInfo.p2pEnabled) {
-            session._.jsepOfferP2p(streamId, _subscriberId, payload.sdp);
-
-          } else {
-            session._.jsepOffer(streamId, payload.sdp);
-          }
-
-          break;
-
-        case OT.Raptor.Actions.CANDIDATE:
-          if (session.sessionInfo.p2pEnabled) {
-            session._.jsepCandidateP2p(streamId, _subscriberId, payload);
-
-          } else {
-            session._.jsepCandidate(streamId, payload);
-          }
-      }
-    }, this);
-
-    _onQOS = OT.$.bind(function _onQOS (parsedStats, prevStats) {
-      this.trigger('qos', remoteConnection, parsedStats, prevStats);
-    }, this);
-
-    OT.$.eventing(this);
-
-    
-    this.destroy = function() {
-      
-      if (_peerConnection) {
-        _peerConnection.off();
-        OT.PeerConnections.remove(remoteConnection, streamId);
-      }
-
-      _peerConnection = null;
-    };
-
-    this.processMessage = function(type, message) {
-      _peerConnection.processMessage(type, message);
-    };
-
-    
-    this.init = function(iceServers) {
-      _peerConnection = OT.PeerConnections.add(remoteConnection, streamId, {
-        iceServers: iceServers
-      });
-
-      _peerConnection.on({
-        close: _onPeerClosed,
-        error: _onPeerError,
-        qos: _onQOS
-      }, this);
-
-      _peerConnection.registerMessageDelegate(_relayMessageToPeer);
-      _peerConnection.addLocalStream(webRTCStream);
-
-      this.remoteConnection = function() {
-        return remoteConnection;
-      };
-
-      this.hasRelayCandidates = function() {
-        return _hasRelayCandidates;
-      };
-
-    };
-  };
-
-})(window);
-!(function() {
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  OT.SubscriberPeerConnection = function(remoteConnection, session, stream,
-    subscriber, properties) {
-    var _peerConnection,
-        _destroyed = false,
-        _hasRelayCandidates = false,
-        _onPeerClosed,
-        _onRemoteStreamAdded,
-        _onRemoteStreamRemoved,
-        _onPeerError,
-        _relayMessageToPeer,
-        _setEnabledOnStreamTracksCurry,
-        _onQOS;
-
-    
-    _onPeerClosed = function() {
-      this.destroy();
-      this.trigger('disconnected', this);
-    };
-
-    _onRemoteStreamAdded = function(remoteRTCStream) {
-      this.trigger('remoteStreamAdded', remoteRTCStream, this);
-    };
-
-    _onRemoteStreamRemoved = function(remoteRTCStream) {
-      this.trigger('remoteStreamRemoved', remoteRTCStream, this);
-    };
-
-    
-    _onPeerError = function(errorReason, prefix) {
-      this.trigger('error', errorReason, this, prefix);
-    };
-
-    _relayMessageToPeer = OT.$.bind(function(type, payload) {
-      if (!_hasRelayCandidates){
-        var extractCandidates = type === OT.Raptor.Actions.CANDIDATE ||
-                                type === OT.Raptor.Actions.OFFER ||
-                                type === OT.Raptor.Actions.ANSWER ||
-                                type === OT.Raptor.Actions.PRANSWER ;
-
-        if (extractCandidates) {
-          var message = (type === OT.Raptor.Actions.CANDIDATE) ? payload.candidate : payload.sdp;
-          _hasRelayCandidates = message.indexOf('typ relay') !== -1;
-        }
-      }
-
-      switch(type) {
-        case OT.Raptor.Actions.ANSWER:
-        case OT.Raptor.Actions.PRANSWER:
-          this.trigger('connected');
-
-          session._.jsepAnswerP2p(stream.id, subscriber.widgetId, payload.sdp);
-          break;
-
-        case OT.Raptor.Actions.OFFER:
-          session._.jsepOfferP2p(stream.id, subscriber.widgetId, payload.sdp);
-          break;
-
-        case OT.Raptor.Actions.CANDIDATE:
-          session._.jsepCandidateP2p(stream.id, subscriber.widgetId, payload);
-          break;
-      }
-    }, this);
-
-    
-    _setEnabledOnStreamTracksCurry = function(isVideo) {
-      var method = 'get' + (isVideo ? 'Video' : 'Audio') + 'Tracks';
-
-      return function(enabled) {
-        var remoteStreams = _peerConnection.remoteStreams(),
-            tracks,
-            stream;
-
-        if (remoteStreams.length === 0 || !remoteStreams[0][method]) {
-          
-          
-          return;
-        }
-
-        for (var i=0, num=remoteStreams.length; i<num; ++i) {
-          stream = remoteStreams[i];
-          tracks = stream[method]();
-
-          for (var k=0, numTracks=tracks.length; k < numTracks; ++k){
-            
-            
-            if (tracks[k].enabled !== enabled) tracks[k].enabled=enabled;
-          }
-        }
-      };
-    };
-
-    _onQOS = OT.$.bind(function _onQOS (parsedStats, prevStats) {
-      this.trigger('qos', parsedStats, prevStats);
-    }, this);
-
-    OT.$.eventing(this);
-
-    
-    this.destroy = function() {
-      if (_destroyed) return;
-      _destroyed = true;
-
-      if (_peerConnection) {
-        var numDelegates = _peerConnection.unregisterMessageDelegate(_relayMessageToPeer);
-
-        
-        if (numDelegates === 0) {
-          
-          if (session && session.isConnected() && stream && !stream.destroyed) {
-              
-            session._.subscriberDestroy(stream, subscriber);
-          }
-
-          
-          this.subscribeToAudio(false);
-        }
-        OT.PeerConnections.remove(remoteConnection, stream.id);
-      }
-      _peerConnection = null;
-      this.off();
-    };
-
-    this.processMessage = function(type, message) {
-      _peerConnection.processMessage(type, message);
-    };
-
-
-    this.subscribeToAudio = _setEnabledOnStreamTracksCurry(false);
-    this.subscribeToVideo = _setEnabledOnStreamTracksCurry(true);
-
-    this.hasRelayCandidates = function() {
-      return _hasRelayCandidates;
-    };
-
-    
-    this.init = function() {
-      _peerConnection = OT.PeerConnections.add(remoteConnection, stream.streamId, {});
-
-      _peerConnection.on({
-        close: _onPeerClosed,
-        streamAdded: _onRemoteStreamAdded,
-        streamRemoved: _onRemoteStreamRemoved,
-        error: _onPeerError,
-        qos: _onQOS
-      }, this);
-
-      var numDelegates = _peerConnection.registerMessageDelegate(_relayMessageToPeer);
-
-        
-      if (_peerConnection.remoteStreams().length > 0) {
-        OT.$.forEach(_peerConnection.remoteStreams(), _onRemoteStreamAdded, this);
-      } else if (numDelegates === 1) {
-        
-        
-
-        var channelsToSubscribeTo;
-
-        if (properties.subscribeToVideo || properties.subscribeToAudio) {
-          var audio = stream.getChannelsOfType('audio'),
-              video = stream.getChannelsOfType('video');
-
-          channelsToSubscribeTo = OT.$.map(audio, function(channel) {
-            return {
-              id: channel.id,
-              type: channel.type,
-              active: properties.subscribeToAudio
-            };
-          }).concat(OT.$.map(video, function(channel) {
-            return {
-              id: channel.id,
-              type: channel.type,
-              active: properties.subscribeToVideo,
-              restrictFrameRate: properties.restrictFrameRate !== void 0 ?
-                properties.restrictFrameRate : false
-            };
-          }));
-        }
-
-        session._.subscriberCreate(stream, subscriber, channelsToSubscribeTo,
-          OT.$.bind(function(err, message) {
-            if (err) {
-              this.trigger('error', err.message, this, 'Subscribe');
-            }
-            _peerConnection.setIceServers(OT.Raptor.parseIceServers(message));
-          }, this));
-      }
-    };
-
-    this.getStatsWithSingleParameter = function(callback) {
-      if(_peerConnection) {
-        _peerConnection.getStatsWithSingleParameter(callback);
-      }
-    };
-  };
-
-})(window);
-!(function() {
-
-
-  OT.Chrome = function(properties) {
-    var _visible = false,
-        _widgets = {},
-
-        
-        _set = function(name, widget) {
-          widget.parent = this;
-          widget.appendTo(properties.parent);
-
-          _widgets[name] = widget;
-
-          this[name] = widget;
-        };
-
-    if (!properties.parent) {
-      
+  this.connect = function (token, sessionInfo, completion) {
+    if (!this.is('disconnected', 'error')) {
+      OT.warn('Cannot connect the Raptor Socket as it is currently connected. You should ' +
+        'disconnect first.');
       return;
     }
 
-    OT.$.eventing(this);
-
-    this.destroy = function() {
-      this.off();
-      this.hide();
-
-      for (var name in _widgets) {
-        _widgets[name].destroy();
-      }
-    };
-
-    this.show = function() {
-      _visible = true;
-
-      for (var name in _widgets) {
-        _widgets[name].show();
-      }
-    };
-
-    this.hide = function() {
-      _visible = false;
-
-      for (var name in _widgets) {
-        _widgets[name].hide();
-      }
-    };
-
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    this.set = function(widgetName, widget) {
-      if (typeof(widgetName) === 'string' && widget) {
-        _set.call(this, widgetName, widget);
-
-      } else {
-        for (var name in widgetName) {
-          if (widgetName.hasOwnProperty(name)) {
-            _set.call(this, name, widgetName[name]);
-          }
-        }
-      }
-      return this;
-    };
-
-  };
-
-})(window);
-!(function() {
-
-  if (!OT.Chrome.Behaviour) OT.Chrome.Behaviour = {};
-
-  
-  
-  
-  
-  OT.Chrome.Behaviour.Widget = function(widget, options) {
-    var _options = options || {},
-        _mode,
-        _previousMode;
-
-    
-    
-    
-    
-    widget.setDisplayMode = function(mode) {
-      var newMode = mode || 'auto';
-      if (_mode === newMode) return;
-
-      OT.$.removeClass(this.domElement, 'OT_mode-' + _mode);
-      OT.$.addClass(this.domElement, 'OT_mode-' + newMode);
-
-      _previousMode = _mode;
-      _mode = newMode;
-    };
-
-    widget.show = function() {
-      this.setDisplayMode(_previousMode);
-      if (_options.onShow) _options.onShow();
-
-      return this;
-    };
-
-    widget.hide = function() {
-      this.setDisplayMode('off');
-      if (_options.onHide) _options.onHide();
-
-      return this;
-    };
-
-    widget.destroy = function() {
-      if (_options.onDestroy) _options.onDestroy(this.domElement);
-      if (this.domElement) OT.$.removeElement(this.domElement);
-
-      return widget;
-    };
-
-    widget.appendTo = function(parent) {
-      
-      this.domElement = OT.$.createElement(_options.nodeName || 'div',
-                                          _options.htmlAttributes,
-                                          _options.htmlContent);
-
-      if (_options.onCreate) _options.onCreate(this.domElement);
-
-      widget.setDisplayMode(_options.mode);
-
-      if (_options.mode === 'auto') {
-        
-        
-        OT.$.addClass(widget.domElement, 'OT_mode-on-hold');
-        setTimeout(function() {
-          OT.$.removeClass(widget.domElement, 'OT_mode-on-hold');
-        }, 2000);
-      }
-
-
-      
-      parent.appendChild(this.domElement);
-
-      return widget;
-    };
-  };
-
-})(window);
-!(function() {
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  OT.Chrome.BackingBar = function(options) {
-    var _nameMode = options.nameMode,
-        _muteMode = options.muteMode;
-
-    function getDisplayMode() {
-      if(_nameMode === 'on' || _muteMode === 'on') {
-        return 'on';
-      } else if(_nameMode === 'mini' || _muteMode === 'mini') {
-        return 'mini';
-      } else if(_nameMode === 'mini-auto' || _muteMode === 'mini-auto') {
-        return 'mini-auto';
-      } else if(_nameMode === 'auto' || _muteMode === 'auto') {
-        return 'auto';
-      } else {
-        return 'off';
-      }
-    }
-
-    
-    OT.Chrome.Behaviour.Widget(this, {
-      mode: getDisplayMode(),
-      nodeName: 'div',
-      htmlContent: '',
-      htmlAttributes: {
-        className: 'OT_bar OT_edge-bar-item'
-      }
-    });
-
-    this.setNameMode = function(nameMode) {
-      _nameMode = nameMode;
-      this.setDisplayMode(getDisplayMode());
-    };
-
-    this.setMuteMode = function(muteMode) {
-      _muteMode = muteMode;
-      this.setDisplayMode(getDisplayMode());
-    };
-
-  };
-
-})(window);
-!(function() {
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  OT.Chrome.NamePanel = function(options) {
-    var _name = options.name;
-
-    if (!_name || OT.$.trim(_name).length === '') {
-      _name = null;
-
-      
-      options.mode = 'off';
-    }
-
-    this.setName = OT.$.bind(function(name) {
-      if (!_name) this.setDisplayMode('auto');
-      _name = name;
-      this.domElement.innerHTML = _name;
-    });
-
-    
-    OT.Chrome.Behaviour.Widget(this, {
-      mode: options.mode,
-      nodeName: 'h1',
-      htmlContent: _name,
-      htmlAttributes: {
-        className: 'OT_name OT_edge-bar-item'
-      }
-    });
-
-  };
-
-})(window);
-!(function() {
-
-  OT.Chrome.MuteButton = function(options) {
-    var _onClickCb,
-        _muted = options.muted || false,
-        updateClasses,
-        attachEvents,
-        detachEvents,
-        onClick;
-
-    updateClasses = OT.$.bind(function() {
-      if (_muted) {
-        OT.$.addClass(this.domElement, 'OT_active');
-      } else {
-        OT.$.removeClass(this.domElement, 'OT_active ');
-      }
-    }, this);
-
-    
-    attachEvents = function(elem) {
-      _onClickCb = OT.$.bind(onClick, this);
-      OT.$.on(elem, 'click', _onClickCb);
-    };
-
-    detachEvents = function(elem) {
-      _onClickCb = null;
-      OT.$.off(elem, 'click', _onClickCb);
-    };
-
-    onClick = function() {
-      _muted = !_muted;
-
-      updateClasses();
-
-      if (_muted) {
-        this.parent.trigger('muted', this);
-      } else {
-        this.parent.trigger('unmuted', this);
-      }
-
-      return false;
-    };
-
-    OT.$.defineProperties(this, {
-      muted: {
-        get: function() { return _muted; },
-        set: function(muted) {
-          _muted = muted;
-          updateClasses();
-        }
-      }
-    });
-
-    
-    var classNames = _muted ? 'OT_edge-bar-item OT_mute OT_active' : 'OT_edge-bar-item OT_mute';
-    OT.Chrome.Behaviour.Widget(this, {
-      mode: options.mode,
-      nodeName: 'button',
-      htmlContent: 'Mute',
-      htmlAttributes: {
-        className: classNames
-      },
-      onCreate: OT.$.bind(attachEvents, this),
-      onDestroy: OT.$.bind(detachEvents, this)
-    });
-  };
-
-
-})(window);
-!(function() {
-
-  
-  
-  
-  
-  
-
-  
-  
-  
-  
-  
-  
-  
-  OT.Chrome.Archiving = function(options) {
-    var _archiving = options.archiving,
-        _archivingStarted = options.archivingStarted || 'Archiving on',
-        _archivingEnded = options.archivingEnded || 'Archiving off',
-        _initialState = true,
-        _lightBox,
-        _light,
-        _text,
-        _textNode,
-        renderStageDelayedAction,
-        renderText,
-        renderStage;
-
-    renderText = function(text) {
-      _textNode.nodeValue = text;
-      _lightBox.setAttribute('title', text);
-    };
-
-    renderStage = OT.$.bind(function() {
-      if(renderStageDelayedAction) {
-        clearTimeout(renderStageDelayedAction);
-        renderStageDelayedAction = null;
-      }
-
-      if(_archiving) {
-        OT.$.addClass(_light, 'OT_active');
-      } else {
-        OT.$.removeClass(_light, 'OT_active');
-      }
-
-      OT.$.removeClass(this.domElement, 'OT_archiving-' + (!_archiving ? 'on' : 'off'));
-      OT.$.addClass(this.domElement, 'OT_archiving-' + (_archiving ? 'on' : 'off'));
-      if(options.show && _archiving) {
-        renderText(_archivingStarted);
-        OT.$.addClass(_text, 'OT_mode-on');
-        OT.$.removeClass(_text, 'OT_mode-auto');
-        this.setDisplayMode('on');
-        renderStageDelayedAction = setTimeout(function() {
-          OT.$.addClass(_text, 'OT_mode-auto');
-          OT.$.removeClass(_text, 'OT_mode-on');
-        }, 5000);
-      } else if(options.show && !_initialState) {
-        OT.$.addClass(_text, 'OT_mode-on');
-        OT.$.removeClass(_text, 'OT_mode-auto');
-        this.setDisplayMode('on');
-        renderText(_archivingEnded);
-        renderStageDelayedAction = setTimeout(OT.$.bind(function() {
-          this.setDisplayMode('off');
-        }, this), 5000);
-      } else {
-        this.setDisplayMode('off');
-      }
-    }, this);
-
-    
-    OT.Chrome.Behaviour.Widget(this, {
-      mode: _archiving && options.show && 'on' || 'off',
-      nodeName: 'h1',
-      htmlAttributes: {className: 'OT_archiving OT_edge-bar-item OT_edge-bottom'},
-      onCreate: OT.$.bind(function() {
-        _lightBox = OT.$.createElement('div', {
-          className: 'OT_archiving-light-box'
-        }, '');
-        _light = OT.$.createElement('div', {
-          className: 'OT_archiving-light'
-        }, '');
-        _lightBox.appendChild(_light);
-        _text = OT.$.createElement('div', {
-          className: 'OT_archiving-status OT_mode-on OT_edge-bar-item OT_edge-bottom'
-        }, '');
-        _textNode = document.createTextNode('');
-        _text.appendChild(_textNode);
-        this.domElement.appendChild(_lightBox);
-        this.domElement.appendChild(_text);
-        renderStage();
-      }, this)
-    });
-
-    this.setShowArchiveStatus = OT.$.bind(function(show) {
-      options.show = show;
-      if(this.domElement) {
-        renderStage.call(this);
-      }
-    }, this);
-
-    this.setArchiving = OT.$.bind(function(status) {
-      _archiving = status;
-      _initialState = false;
-      if(this.domElement) {
-        renderStage.call(this);
-      }
-    }, this);
-
-  };
-
-})(window);
-!(function() {
-
-  OT.Chrome.AudioLevelMeter = function(options) {
-
-    var widget = this,
-        _meterBarElement,
-        _voiceOnlyIconElement,
-        _meterValueElement,
-        _value,
-        _maxValue = options.maxValue || 1,
-        _minValue = options.minValue || 0;
-
-    function onCreate() {
-      _meterBarElement = OT.$.createElement('div', {
-        className: 'OT_audio-level-meter__bar'
-      }, '');
-      _meterValueElement = OT.$.createElement('div', {
-        className: 'OT_audio-level-meter__value'
-      }, '');
-      _voiceOnlyIconElement = OT.$.createElement('div', {
-        className: 'OT_audio-level-meter__audio-only-img'
-      }, '');
-
-      widget.domElement.appendChild(_meterBarElement);
-      widget.domElement.appendChild(_voiceOnlyIconElement);
-      widget.domElement.appendChild(_meterValueElement);
-    }
-
-    function updateView() {
-      var percentSize = _value * 100 / (_maxValue - _minValue);
-      _meterValueElement.style.width = _meterValueElement.style.height = 2 * percentSize + '%';
-      _meterValueElement.style.top = _meterValueElement.style.right = -percentSize + '%';
-    }
-
-    
-    var widgetOptions = {
-      mode: options ? options.mode : 'auto',
-      nodeName: 'div',
-      htmlAttributes: {
-        className: 'OT_audio-level-meter'
-      },
-      onCreate: onCreate
-    };
-
-    OT.Chrome.Behaviour.Widget(this, widgetOptions);
-
-    
-    var _setDisplayMode = OT.$.bind(widget.setDisplayMode, widget);
-    widget.setDisplayMode = function(mode) {
-      _setDisplayMode(mode);
-      if (mode === 'off') {
-        if (options.onPassivate) options.onPassivate();
-      } else {
-        if (options.onActivate) options.onActivate();
-      }
-    };
-
-    widget.setValue = function(value) {
-      _value = value;
-      updateView();
-    };
-  };
-
-})(window);
-!(function() {
-  OT.Chrome.VideoDisabledIndicator = function(options) {
-    var _mode,
-        _videoDisabled = false,
-        _warning = false,
-        updateClasses;
-
-    _mode = options.mode || 'auto';
-    updateClasses = function(domElement) {
-      if (_videoDisabled) {
-        OT.$.addClass(domElement, 'OT_video-disabled');
-      } else {
-        OT.$.removeClass(domElement, 'OT_video-disabled');
-      }
-      if(_warning) {
-        OT.$.addClass(domElement, 'OT_video-disabled-warning');
-      } else {
-        OT.$.removeClass(domElement, 'OT_video-disabled-warning');
-      }
-      if ((_videoDisabled || _warning) && (_mode === 'auto' || _mode === 'on')) {
-        OT.$.addClass(domElement, 'OT_active');
-      } else {
-        OT.$.removeClass(domElement, 'OT_active');
-      }
-    };
-
-    this.disableVideo = function(value) {
-      _videoDisabled = value;
-      if(value === true) {
-        _warning = false;
-      }
-      updateClasses(this.domElement);
-    };
-
-    this.setWarning = function(value) {
-      _warning = value;
-      updateClasses(this.domElement);
-    };
-
-    
-    OT.Chrome.Behaviour.Widget(this, {
-      mode: _mode,
-      nodeName: 'div',
-      htmlAttributes: {
-        className: 'OT_video-disabled-indicator'
-      }
-    });
-
-    this.setDisplayMode = function(mode) {
-      _mode = mode;
-      updateClasses(this.domElement);
-    };
-  };
-})(window);
-(function() {
-
-
-
-
-
-
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  OT.StylableComponent = function(self, initalStyles) {
-    if (!self.trigger) {
-      throw new Error('OT.StylableComponent is dependent on the mixin OT.$.eventing. ' +
-        'Ensure that this is included in the object before StylableComponent.');
-    }
-
-    
-    var onStyleChange = function(key, value, oldValue) {
-      if (oldValue) {
-        self.trigger('styleValueChanged', key, value, oldValue);
-      } else {
-        self.trigger('styleValueChanged', key, value);
-      }
-    };
-
-    var _style = new Style(initalStyles, onStyleChange);
-
-  
-
-
-
-
-
-
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-    
-    self.getStyle = function(key) {
-      return _style.get(key);
-    };
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    self.setStyle = function(keyOrStyleHash, value, silent) {
-      if (typeof(keyOrStyleHash) !== 'string') {
-        _style.setAll(keyOrStyleHash, silent);
-      } else {
-        _style.set(keyOrStyleHash, value);
-      }
-      return this;
-    };
-  };
-
-  var Style = function(initalStyles, onStyleChange) {
-    var _style = {},
-        _COMPONENT_STYLES,
-        _validStyleValues,
-        isValidStyle,
-        castValue;
-
-    _COMPONENT_STYLES = [
-      'showMicButton',
-      'showSpeakerButton',
-      'nameDisplayMode',
-      'buttonDisplayMode',
-      'backgroundImageURI'
-    ];
-
-    _validStyleValues = {
-      buttonDisplayMode: ['auto', 'mini', 'mini-auto', 'off', 'on'],
-      nameDisplayMode: ['auto', 'off', 'on'],
-      audioLevelDisplayMode: ['auto', 'off', 'on'],
-      showSettingsButton: [true, false],
-      showMicButton: [true, false],
-      backgroundImageURI: null,
-      showControlBar: [true, false],
-      showArchiveStatus: [true, false],
-      videoDisabledDisplayMode: ['auto', 'off', 'on']
-    };
-
-
-    
-    isValidStyle = function(key, value) {
-      return key === 'backgroundImageURI' ||
-        (_validStyleValues.hasOwnProperty(key) &&
-          OT.$.arrayIndexOf(_validStyleValues[key], value) !== -1 );
-    };
-
-    castValue = function(value) {
-      switch(value) {
-        case 'true':
-          return true;
-        case 'false':
-          return false;
-        default:
-          return value;
-      }
-    };
-
-    
-    this.getAll = function() {
-      var style = OT.$.clone(_style);
-
-      for (var key in style) {
-        if(!style.hasOwnProperty(key)) {
-          continue;
-        }
-        if (OT.$.arrayIndexOf(_COMPONENT_STYLES, key) < 0) {
-
-          
-          delete style[key];
-        }
-      }
-
-      return style;
-    };
-
-    this.get = function(key) {
-      if (key) {
-        return _style[key];
-      }
-
-      
-      return this.getAll();
-    };
-
-    
-    this.setAll = function(newStyles, silent) {
-      var oldValue, newValue;
-
-      for (var key in newStyles) {
-        if(!newStyles.hasOwnProperty(key)) {
-          continue;
-        }
-        newValue = castValue(newStyles[key]);
-
-        if (isValidStyle(key, newValue)) {
-          oldValue = _style[key];
-
-          if (newValue !== oldValue) {
-            _style[key] = newValue;
-            if (!silent) onStyleChange(key, newValue, oldValue);
-          }
-
-        } else {
-          OT.warn('Style.setAll::Invalid style property passed ' + key + ' : ' + newValue);
-        }
-      }
-
-      return this;
-    };
-
-    this.set = function(key, value) {
-      OT.debug('setStyle: ' + key.toString());
-
-      var newValue = castValue(value),
-          oldValue;
-
-      if (!isValidStyle(key, newValue)) {
-        OT.warn('Style.set::Invalid style property passed ' + key + ' : ' + newValue);
-        return this;
-      }
-
-      oldValue = _style[key];
-      if (newValue !== oldValue) {
-        _style[key] = newValue;
-
-        onStyleChange(key, value, oldValue);
-      }
-
-      return this;
-    };
-
-
-    if (initalStyles) this.setAll(initalStyles, true);
-  };
-
-})(window);
-!(function() {
-
-
-
-
-
-
-
-  OT.Microphone = function(webRTCStream, muted) {
-    var _muted;
-
-    OT.$.defineProperties(this, {
-      muted: {
-        get: function() {
-          return _muted;
-        },
-        set: function(muted) {
-          if (_muted === muted) return;
-
-          _muted = muted;
-
-          var audioTracks = webRTCStream.getAudioTracks();
-
-          for (var i=0, num=audioTracks.length; i<num; ++i) {
-            audioTracks[i].setEnabled(!_muted);
-          }
-        }
-      }
-    });
-
-    
-    if (muted !== undefined) {
-      this.muted(muted === true);
-
-    } else if (webRTCStream.getAudioTracks().length) {
-      this.muted(!webRTCStream.getAudioTracks()[0].enabled);
-
-    } else {
-      this.muted(false);
-    }
-
-  };
-
-})(window);
-!(function(window, OT) {
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  OT.generateSimpleStateMachine = function(initialState, states, transitions) {
-    var validStates = states.slice(),
-        validTransitions = OT.$.clone(transitions);
-
-    var isValidState = function (state) {
-      return OT.$.arrayIndexOf(validStates, state) !== -1;
-    };
-
-    var isValidTransition = function(fromState, toState) {
-      return validTransitions[fromState] &&
-        OT.$.arrayIndexOf(validTransitions[fromState], toState) !== -1;
-    };
-
-    return function(stateChangeFailed) {
-      var currentState = initialState,
-          previousState = null;
-
-      this.current = currentState;
-
-      function signalChangeFailed(message, newState) {
-        stateChangeFailed({
-          message: message,
-          newState: newState,
-          currentState: currentState,
-          previousState: previousState
+    setState('connecting');
+    _sessionId = sessionInfo.sessionId;
+    _token = token;
+    _completion = completion;
+
+    var rumorChannel = '/v2/partner/' + OT.APIKEY + '/session/' + _sessionId;
+
+    _rumor = new OT.Rumor.Socket(messagingSocketUrl, symphonyUrl);
+    _rumor.onClose(onClose);
+    _rumor.onMessage(OT.$.bind(_dispatcher.dispatch, _dispatcher));
+
+    _rumor.connect(connectionId, OT.$.bind(function(error) {
+      if (error) {
+        onConnectComplete({
+          reason: 'WebSocketConnection',
+          code: error.code,
+          message: error.message
         });
+        return;
       }
 
       
-      function handleInvalidStateChanges(newState) {
-        if (!isValidState(newState)) {
-          signalChangeFailed('\'' + newState + '\' is not a valid state', newState);
+      _rumor.onError(onError);
 
-          return false;
-        }
+      OT.debug('Raptor Socket connected. Subscribing to ' +
+        rumorChannel + ' on ' + messagingSocketUrl);
 
-        if (!isValidTransition(currentState, newState)) {
-          signalChangeFailed('\'' + currentState + '\' cannot transition to \'' +
-            newState + '\'', newState);
+      _rumor.subscribe([rumorChannel]);
 
-          return false;
-        }
-
-        return true;
-      }
-
-
-      this.set = function(newState) {
-        if (!handleInvalidStateChanges(newState)) return;
-        previousState = currentState;
-        this.current = currentState = newState;
-      };
       
-    };
-  };
-
-})(window, window.OT);
-!(function() {
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  var validStates,
-      validTransitions,
-      initialState = 'NotSubscribing';
-
-  validStates = [
-    'NotSubscribing', 'Init', 'ConnectingToPeer',
-    'BindingRemoteStream', 'Subscribing', 'Failed',
-    'Destroyed'
-  ];
-
-  validTransitions = {
-    NotSubscribing: ['NotSubscribing', 'Init', 'Destroyed'],
-    Init: ['NotSubscribing', 'ConnectingToPeer', 'BindingRemoteStream', 'Destroyed'],
-    ConnectingToPeer: ['NotSubscribing', 'BindingRemoteStream', 'Failed', 'Destroyed'],
-    BindingRemoteStream: ['NotSubscribing', 'Subscribing', 'Failed', 'Destroyed'],
-    Subscribing: ['NotSubscribing', 'Failed', 'Destroyed'],
-    Failed: ['Destroyed'],
-    Destroyed: []
-  };
-
-  OT.SubscribingState = OT.generateSimpleStateMachine(initialState, validStates, validTransitions);
-
-  OT.SubscribingState.prototype.isDestroyed = function() {
-    return this.current === 'Destroyed';
-  };
-
-  OT.SubscribingState.prototype.isFailed = function() {
-    return this.current === 'Failed';
-  };
-
-  OT.SubscribingState.prototype.isSubscribing = function() {
-    return this.current === 'Subscribing';
-  };
-
-  OT.SubscribingState.prototype.isAttemptingToSubscribe = function() {
-    return OT.$.arrayIndexOf(
-      [ 'Init', 'ConnectingToPeer', 'BindingRemoteStream' ],
-      this.current
-    ) !== -1;
-  };
-
-})(window);
-!(function() {
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  var validStates = [
-      'NotPublishing', 'GetUserMedia', 'BindingMedia', 'MediaBound',
-      'PublishingToSession', 'Publishing', 'Failed',
-      'Destroyed'
-    ],
-
-    validTransitions = {
-      NotPublishing: ['NotPublishing', 'GetUserMedia', 'Destroyed'],
-      GetUserMedia: ['BindingMedia', 'Failed', 'NotPublishing', 'Destroyed'],
-      BindingMedia: ['MediaBound', 'Failed', 'NotPublishing', 'Destroyed'],
-      MediaBound: ['NotPublishing', 'PublishingToSession', 'Failed', 'Destroyed'],
-      PublishingToSession: ['NotPublishing', 'Publishing', 'Failed', 'Destroyed'],
-      Publishing: ['NotPublishing', 'MediaBound', 'Failed', 'Destroyed'],
-      Failed: ['Destroyed'],
-      Destroyed: []
-    },
-
-    initialState = 'NotPublishing';
-
-  OT.PublishingState = OT.generateSimpleStateMachine(initialState, validStates, validTransitions);
-
-  OT.PublishingState.prototype.isDestroyed = function() {
-    return this.current === 'Destroyed';
-  };
-
-  OT.PublishingState.prototype.isAttemptingToPublish = function() {
-    return OT.$.arrayIndexOf(
-      [ 'GetUserMedia', 'BindingMedia', 'MediaBound', 'PublishingToSession' ],
-      this.current) !== -1;
-  };
-
-  OT.PublishingState.prototype.isPublishing = function() {
-    return this.current === 'Publishing';
-  };
-
-})(window);
-!(function() {
-
-  
-  var defaultConstraints = {
-    audio: true,
-    video: true
-  };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  OT.Publisher = function() {
-    
-    
-    if (!OT.checkSystemRequirements()) {
-      OT.upgradeSystemRequirements();
-      return;
-    }
-
-    var _guid = OT.Publisher.nextId(),
-        _domId,
-        _container,
-        _targetElement,
-        _stream,
-        _streamId,
-        _webRTCStream,
-        _session,
-        _peerConnections = {},
-        _loaded = false,
-        _publishProperties,
-        _publishStartTime,
-        _microphone,
-        _chrome,
-        _audioLevelMeter,
-        _analytics = new OT.Analytics(),
-        _validResolutions,
-        _validFrameRates = [ 1, 7, 15, 30 ],
-        _prevStats,
-        _state,
-        _iceServers,
-        _audioLevelCapable = OT.$.hasCapabilities('webAudio'),
-        _audioLevelSampler,
-        _publisher = this;
-
-    _validResolutions = {
-      '320x240': {width: 320, height: 240},
-      '640x480': {width: 640, height: 480},
-      '1280x720': {width: 1280, height: 720}
-    };
-
-    _prevStats = {
-      'timeStamp' : OT.$.now()
-    };
-
-    OT.$.eventing(this);
-
-    if(_audioLevelCapable) {
-      _audioLevelSampler = new OT.AnalyserAudioLevelSampler(OT.audioContext());
-
-      var audioLevelRunner = new OT.IntervalRunner(function() {
-        _audioLevelSampler.sample(function(audioInputLevel) {
-          OT.$.requestAnimationFrame(function() {
-            _publisher.dispatchEvent(
-              new OT.AudioLevelUpdatedEvent(audioInputLevel));
-          });
-        });
-      }, 60);
-
-      this.on({
-        'audioLevelUpdated:added': function(count) {
-          if (count === 1) {
-            audioLevelRunner.start();
-          }
-        },
-        'audioLevelUpdated:removed': function(count) {
-          if (count === 0) {
-            audioLevelRunner.stop();
-          }
-        }
-      });
-    }
-
-    OT.StylableComponent(this, {
-      showArchiveStatus: true,
-      nameDisplayMode: 'auto',
-      buttonDisplayMode: 'auto',
-      audioLevelDisplayMode: 'auto',
-      backgroundImageURI: null
-    });
-
-        
-    var logAnalyticsEvent = function(action, variation, payloadType, payload) {
-          _analytics.logEvent({
-            action: action,
-            variation: variation,
-            'payload_type': payloadType,
+      var connectMessage = OT.Raptor.Message.connections.create(OT.APIKEY,
+        _sessionId, _rumor.id());
+      this.publish(connectMessage, {'X-TB-TOKEN-AUTH': _token}, OT.$.bind(function(error) {
+        if (error) {
+          error.message = 'ConnectToSession:' + error.code +
+              ':Received error response to connection create message.';
+          var payload = {
+            reason: 'ConnectToSession',
+            code: error.code,
+            message: 'Received error response to connection create message.'
+          };
+          var event = {
+            action: 'Connect',
+            variation: 'Failure',
             payload: payload,
-            'session_id': _session ? _session.sessionId : null,
-            'connection_id': _session &&
-              _session.isConnected() ? _session.connection.connectionId : null,
-            'partner_id': _session ? _session.apiKey : OT.APIKEY,
-            streamId: _stream ? _stream.id : null,
-            'widget_id': _guid,
-            'widget_type': 'Publisher'
-          });
-        },
+            sessionId: _sessionId,
+            partnerId: OT.APIKEY,
+            connectionId: connectionId
+          };
+          OT.analytics.logEvent(event);
+          onConnectComplete(payload);
+          return;
+        }
 
-        recordQOS = OT.$.bind(function(connection, parsedStats) {
-          if(!_state.isPublishing()) {
+        this.publish( OT.Raptor.Message.sessions.get(OT.APIKEY, _sessionId),
+          function (error) {
+          if (error) {
+            var payload = {
+              reason: 'GetSessionState',
+              code: error.code,
+              message: 'Received error response to session read'
+            };
+            var event = {
+              action: 'Connect',
+              variation: 'Failure',
+              payload: payload,
+              sessionId: _sessionId,
+              partnerId: OT.APIKEY,
+              connectionId: connectionId
+            };
+            OT.analytics.logEvent(event);
+            onConnectComplete(payload);
+          } else {
+            onConnectComplete.apply(null, arguments);
+          }
+        });
+      }, this));
+    }, this));
+  };
+
+
+  this.disconnect = function (drainSocketBuffer) {
+    if (this.is('disconnected')) return;
+
+    setState('disconnecting');
+    _rumor.disconnect(drainSocketBuffer);
+  };
+
+  
+  
+  
+  
+  
+  
+  this.publish = function (message, headers, completion) {
+    if (_rumor.isNot('connected')) {
+      OT.error('OT.Raptor.Socket: cannot publish until the socket is connected.' + message);
+      return;
+    }
+
+    var transactionId = OT.$.uuid(),
+        _headers = {},
+        _completion;
+
+    
+    
+    if (headers) {
+      if (OT.$.isFunction(headers)) {
+        _headers = {};
+        _completion = headers;
+      }
+      else {
+        _headers = headers;
+      }
+    }
+    if (!_completion && completion && OT.$.isFunction(completion)) _completion = completion;
+
+
+    if (_completion) _dispatcher.registerCallback(transactionId, _completion);
+
+    OT.debug('OT.Raptor.Socket Publish (ID:' + transactionId + ') ');
+    OT.debug(message);
+
+    _rumor.publish([symphonyUrl], message, OT.$.extend(_headers, {
+      'Content-Type': 'application/x-raptor+v2',
+      'TRANSACTION-ID': transactionId,
+      'X-TB-FROM-ADDRESS': _rumor.id()
+    }));
+
+    return transactionId;
+  };
+
+  
+  this.streamCreate = function(name, audioFallbackEnabled, channels, minBitrate, maxBitrate,
+    completion) {
+    var streamId = OT.$.uuid(),
+        message = OT.Raptor.Message.streams.create( OT.APIKEY,
+                                                    _sessionId,
+                                                    streamId,
+                                                    name,
+                                                    audioFallbackEnabled,
+                                                    channels,
+                                                    minBitrate,
+                                                    maxBitrate);
+
+    this.publish(message, function(error, message) {
+      completion(error, streamId, message);
+    });
+  };
+
+  this.streamDestroy = function(streamId) {
+    this.publish( OT.Raptor.Message.streams.destroy(OT.APIKEY, _sessionId, streamId) );
+  };
+
+  this.streamChannelUpdate = function(streamId, channelId, attributes) {
+    this.publish( OT.Raptor.Message.streamChannels.update(OT.APIKEY, _sessionId,
+      streamId, channelId, attributes) );
+  };
+
+  this.subscriberCreate = function(streamId, subscriberId, channelsToSubscribeTo, completion) {
+    this.publish( OT.Raptor.Message.subscribers.create(OT.APIKEY, _sessionId,
+      streamId, subscriberId, _rumor.id(), channelsToSubscribeTo), completion );
+  };
+
+  this.subscriberDestroy = function(streamId, subscriberId) {
+    this.publish( OT.Raptor.Message.subscribers.destroy(OT.APIKEY, _sessionId,
+      streamId, subscriberId) );
+  };
+
+  this.subscriberUpdate = function(streamId, subscriberId, attributes) {
+    this.publish( OT.Raptor.Message.subscribers.update(OT.APIKEY, _sessionId,
+      streamId, subscriberId, attributes) );
+  };
+
+  this.subscriberChannelUpdate = function(streamId, subscriberId, channelId, attributes) {
+    this.publish( OT.Raptor.Message.subscriberChannels.update(OT.APIKEY, _sessionId,
+      streamId, subscriberId, channelId, attributes) );
+  };
+
+  this.forceDisconnect = function(connectionIdToDisconnect, completion) {
+    this.publish( OT.Raptor.Message.connections.destroy(OT.APIKEY, _sessionId,
+      connectionIdToDisconnect), completion );
+  };
+
+  this.forceUnpublish = function(streamIdToUnpublish, completion) {
+    this.publish( OT.Raptor.Message.streams.destroy(OT.APIKEY, _sessionId,
+      streamIdToUnpublish), completion );
+  };
+
+  this.jsepCandidate = function(streamId, candidate) {
+    this.publish(
+      OT.Raptor.Message.streams.candidate(OT.APIKEY, _sessionId, streamId, candidate)
+    );
+  };
+
+  this.jsepCandidateP2p = function(streamId, subscriberId, candidate) {
+    this.publish(
+      OT.Raptor.Message.subscribers.candidate(OT.APIKEY, _sessionId, streamId,
+        subscriberId, candidate)
+    );
+  };
+
+  this.jsepOffer = function(uri, offerSdp) {
+    this.publish( OT.Raptor.Message.offer(uri, offerSdp) );
+  };
+
+  this.jsepAnswer = function(streamId, answerSdp) {
+    this.publish( OT.Raptor.Message.streams.answer(OT.APIKEY, _sessionId, streamId, answerSdp) );
+  };
+
+  this.jsepAnswerP2p = function(streamId, subscriberId, answerSdp) {
+    this.publish( OT.Raptor.Message.subscribers.answer(OT.APIKEY, _sessionId, streamId,
+      subscriberId, answerSdp) );
+  };
+
+  this.signal = function(options, completion, logEventFn) {
+    var signal = new OT.Signal(_sessionId, _rumor.id(), options || {});
+
+    if (!signal.valid) {
+      if (completion && OT.$.isFunction(completion)) {
+        completion( new SignalError(signal.error.code, signal.error.reason), signal.toHash() );
+      }
+
+      return;
+    }
+
+    this.publish( signal.toRaptorMessage(), function(err) {
+      var error;
+      if (err) {
+        error = new SignalError(err.code, err.message);
+      } else {
+        var typeStr = signal.data? typeof(signal.data) : null;
+        logEventFn('signal', 'send', {type: typeStr});
+      }
+
+      if (completion && OT.$.isFunction(completion)) completion(error, signal.toHash());
+    });
+  };
+
+  this.id = function() {
+    return _rumor && _rumor.id();
+  };
+
+  if(dispatcher == null) {
+    dispatcher = new OT.Raptor.Dispatcher();
+  }
+  _dispatcher = dispatcher;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OT.GetStatsAudioLevelSampler = function(peerConnection) {
+
+  if (!OT.$.hasCapabilities('audioOutputLevelStat')) {
+    throw new Error('The current platform does not provide the required capabilities');
+  }
+
+  var _peerConnection = peerConnection,
+      _statsProperty = 'audioOutputLevel';
+
+  
+
+
+
+
+
+  this.sample = function(done) {
+    _peerConnection.getStats(function(error, stats) {
+      if (!error) {
+        for (var idx = 0; idx < stats.length; idx++) {
+          var stat = stats[idx];
+          var audioOutputLevel = parseFloat(stat[_statsProperty]);
+          if (!isNaN(audioOutputLevel)) {
+            
+            done(audioOutputLevel / 32768);
             return;
           }
-          var QoSBlob = {
-            'widget_type': 'Publisher',
-            'stream_type': 'WebRTC',
+        }
+      }
+
+      done(null);
+    });
+  };
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OT.AnalyserAudioLevelSampler = function(audioContext) {
+
+  var _sampler = this,
+      _analyser = null,
+      _timeDomainData = null;
+
+  var _getAnalyser = function(stream) {
+    var sourceNode = audioContext.createMediaStreamSource(stream);
+    var analyser = audioContext.createAnalyser();
+    sourceNode.connect(analyser);
+    return analyser;
+  };
+
+  this.webRTCStream = null;
+
+  this.sample = function(done) {
+
+    if (!_analyser && _sampler.webRTCStream) {
+      _analyser = _getAnalyser(_sampler.webRTCStream);
+      _timeDomainData = new Uint8Array(_analyser.frequencyBinCount);
+    }
+
+    if (_analyser) {
+      _analyser.getByteTimeDomainData(_timeDomainData);
+
+      
+      var max = 0;
+      for (var idx = 0; idx < _timeDomainData.length; idx++) {
+        max = Math.max(max, Math.abs(_timeDomainData[idx] - 128));
+      }
+
+      
+      
+      done(max / 128);
+    } else {
+      done(null);
+    }
+  };
+};
+
+
+
+
+
+
+
+
+
+
+OT.AudioLevelTransformer = function() {
+
+  var _averageAudioLevel = null;
+
+  
+
+
+
+
+  this.transform = function(audioLevel) {
+    if (_averageAudioLevel === null || audioLevel >= _averageAudioLevel) {
+      _averageAudioLevel = audioLevel;
+    } else {
+      
+      _averageAudioLevel = audioLevel * 0.3 + _averageAudioLevel * 0.7;
+    }
+
+    
+    var logScaled = (Math.log(_averageAudioLevel) / Math.LN10) / 1.5 + 1;
+
+    return Math.min(Math.max(logScaled, 0), 1);
+  };
+};
+
+
+
+
+
+
+
+
+
+
+
+
+OT.audioContext = function() {
+  var context = new window.AudioContext();
+  OT.audioContext = function() {
+    return context;
+  };
+  return context;
+};
+
+
+
+
+
+
+
+
+OT.Archive = function(id, name, status) {
+  this.id = id;
+  this.name = name;
+  this.status = status;
+
+  this._ = {};
+
+  OT.$.eventing(this);
+
+  
+  this._.update = OT.$.bind(function (attributes) {
+    for (var key in attributes) {
+      if(!attributes.hasOwnProperty(key)) {
+        continue;
+      }
+      var oldValue = this[key];
+      this[key] = attributes[key];
+
+      var event = new OT.ArchiveUpdatedEvent(this, key, oldValue, this[key]);
+      this.dispatchEvent(event);
+    }
+  }, this);
+
+  this.destroy = function() {};
+
+};
+
+
+
+
+
+
+
+
+
+OT.analytics = new OT.Analytics(OT.properties.loggingURL);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OT.Subscriber = function(targetElement, options, completionHandler) {
+  var _widgetId = OT.$.uuid(),
+      _domId = targetElement || _widgetId,
+      _container,
+      _streamContainer,
+      _chrome,
+      _audioLevelMeter,
+      _fromConnectionId,
+      _peerConnection,
+      _session = options.session,
+      _stream = options.stream,
+      _subscribeStartTime,
+      _startConnectingTime,
+      _properties,
+      _audioVolume = 100,
+      _state,
+      _prevStats,
+      _lastSubscribeToVideoReason,
+      _audioLevelCapable =  OT.$.hasCapabilities('audioOutputLevelStat') ||
+                            OT.$.hasCapabilities('webAudioCapableRemoteStream'),
+      _audioLevelSampler,
+      _audioLevelRunner,
+      _frameRateRestricted = false,
+      _connectivityAttemptPinger,
+      _subscriber = this;
+
+  _properties = OT.$.defaults({}, options, {
+    showControls: true,
+    fitMode: _stream.defaultFitMode || 'cover'
+  });
+
+  this.id = _domId;
+  this.widgetId = _widgetId;
+  this.session = _session;
+  this.stream = _stream = _properties.stream;
+  this.streamId = _stream.id;
+
+  _prevStats = {
+    timeStamp: OT.$.now()
+  };
+
+  if (!_session) {
+    OT.handleJsException('Subscriber must be passed a session option', 2000, {
+      session: _session,
+      target: this
+    });
+
+    return;
+  }
+
+  OT.$.eventing(this, false);
+
+  if (typeof completionHandler === 'function') {
+    this.once('subscribeComplete', completionHandler);
+  }
+
+  if(_audioLevelCapable) {
+    this.on({
+      'audioLevelUpdated:added': function(count) {
+        if (count === 1 && _audioLevelRunner) {
+          _audioLevelRunner.start();
+        }
+      },
+      'audioLevelUpdated:removed': function(count) {
+        if (count === 0 && _audioLevelRunner) {
+          _audioLevelRunner.stop();
+        }
+      }
+    });
+  }
+
+  var logAnalyticsEvent = function(action, variation, payload, throttle) {
+        var args = [{
+          action: action,
+          variation: variation,
+          payload: payload,
+          streamId: _stream ? _stream.id : null,
+          sessionId: _session ? _session.sessionId : null,
+          connectionId: _session && _session.isConnected() ?
+            _session.connection.connectionId : null,
+          partnerId: _session && _session.isConnected() ? _session.sessionInfo.partnerId : null,
+          subscriberId: _widgetId,
+        }];
+        if (throttle) args.push(throttle);
+        OT.analytics.logEvent.apply(OT.analytics, args);
+      },
+
+      logConnectivityEvent = function(variation, payload) {
+        if (variation === 'Attempt' || !_connectivityAttemptPinger) {
+          _connectivityAttemptPinger = new OT.ConnectivityAttemptPinger({
+            action: 'Subscribe',
             sessionId: _session ? _session.sessionId : null,
             connectionId: _session && _session.isConnected() ?
               _session.connection.connectionId : null,
-            partnerId: _session ? _session.apiKey : OT.APIKEY,
-            streamId: _stream ? _stream.id : null,
-            width: _container ? OT.$.width(_container.domElement)  : undefined,
-            height: _container ? OT.$.height(_container.domElement)  : undefined,
-            widgetId: _guid,
-            version: OT.properties.version,
-            'media_server_name': _session ? _session.sessionInfo.messagingServer : null,
-            p2pFlag: _session ? _session.sessionInfo.p2pEnabled : false,
-            duration: _publishStartTime ? new Date().getTime() - _publishStartTime.getTime() : 0,
-            'remote_connection_id': connection.id
-          };
-
-          _analytics.logQOS( OT.$.extend(QoSBlob, parsedStats) );
-          this.trigger('qos', parsedStats);
-        }, this),
-
-        
-
-        stateChangeFailed = function(changeFailed) {
-          OT.error('Publisher State Change Failed: ', changeFailed.message);
-          OT.debug(changeFailed);
-        },
-
-        onLoaded = function() {
-          if (_state.isDestroyed()) {
-            
-            return;
-          }
-
-          OT.debug('OT.Publisher.onLoaded');
-
-          _state.set('MediaBound');
-
-          
-          
-          _container.loading(this.session ? !_stream : false);
-
-          _loaded = true;
-
-          _createChrome.call(this);
-
-          this.trigger('initSuccess');
-          this.trigger('loaded', this);
-        },
-
-        onLoadFailure = function(reason) {
-          logAnalyticsEvent('publish', 'Failure', 'reason',
-            'Publisher PeerConnection Error: ' + reason);
-
-          _state.set('Failed');
-          this.trigger('publishComplete', new OT.Error(OT.ExceptionCodes.P2P_CONNECTION_FAILED,
-            'Publisher PeerConnection Error: ' + reason));
-
-          OT.handleJsException('Publisher PeerConnection Error: ' + reason,
-            OT.ExceptionCodes.P2P_CONNECTION_FAILED, {
-            session: _session,
-            target: this
+            partnerId: _session.isConnected() ? _session.sessionInfo.partnerId : null,
+            streamId: _stream ? _stream.id : null
           });
-        },
-
-        onStreamAvailable = function(webOTStream) {
-          OT.debug('OT.Publisher.onStreamAvailable');
-
-          _state.set('BindingMedia');
-
-          cleanupLocalStream();
-          _webRTCStream = webOTStream;
-
-          _microphone = new OT.Microphone(_webRTCStream, !_publishProperties.publishAudio);
-          this.publishVideo(_publishProperties.publishVideo &&
-            _webRTCStream.getVideoTracks().length > 0);
-
-          this.accessAllowed = true;
-          this.dispatchEvent(new OT.Event(OT.Event.names.ACCESS_ALLOWED, false));
-
-          var videoContainerOptions = {
-            muted: true,
-            error: OT.$.bind(onVideoError, this)
-          };
-
-          _targetElement = _container.bindVideo(_webRTCStream,
-                                            videoContainerOptions,
-                                            OT.$.bind(function(err) {
-            if (err) {
-              onLoadFailure.call(this, err);
-              return;
-            }
-
-            onLoaded.call(this);
-          }, this));
-
-          if(_audioLevelSampler && webOTStream.getAudioTracks().length > 0) {
-            _audioLevelSampler.webOTStream = webOTStream;
-          }
-
-        },
-
-        onStreamAvailableError = function(error) {
-          OT.error('OT.Publisher.onStreamAvailableError ' + error.name + ': ' + error.message);
-
-          _state.set('Failed');
-          this.trigger('publishComplete', new OT.Error(OT.ExceptionCodes.UNABLE_TO_PUBLISH,
-              error.message));
-
-          if (_container) _container.destroy();
-
-          logAnalyticsEvent('publish', 'Failure', 'reason',
-            'GetUserMedia:Publisher failed to access camera/mic: ' + error.message);
-
-          OT.handleJsException('Publisher failed to access camera/mic: ' + error.message,
-          OT.ExceptionCodes.UNABLE_TO_PUBLISH, {
-            session: _session,
-            target: this
-          });
-        },
-
-        
-        
-        onAccessDenied = function(error) {
-          OT.error('OT.Publisher.onStreamAvailableError Permission Denied');
-
-          _state.set('Failed');
-          this.trigger('publishComplete', new OT.Error(OT.ExceptionCodes.UNABLE_TO_PUBLISH,
-              'Publisher Access Denied: Permission Denied' +
-                  (error.message ? ': ' + error.message : '')));
-
-          logAnalyticsEvent('publish', 'Failure', 'reason',
-            'GetUserMedia:Publisher Access Denied: Permission Denied');
-
-          this.dispatchEvent(new OT.Event(OT.Event.names.ACCESS_DENIED));
-        },
-
-        accessDialogWasOpened = false,
-
-        onAccessDialogOpened = function() {
-
-          accessDialogWasOpened = true;
-
-          logAnalyticsEvent('accessDialog', 'Opened', '', '');
-
-          this.dispatchEvent(new OT.Event(OT.Event.names.ACCESS_DIALOG_OPENED, true));
-        },
-
-        onAccessDialogClosed = function() {
-          logAnalyticsEvent('accessDialog', 'Closed', '', '');
-
-          this.dispatchEvent( new OT.Event(OT.Event.names.ACCESS_DIALOG_CLOSED, false));
-        },
-
-        onVideoError = function(errorCode, errorReason) {
-          OT.error('OT.Publisher.onVideoError');
-
-          var message = errorReason + (errorCode ? ' (' + errorCode + ')' : '');
-          logAnalyticsEvent('stream', null, 'reason',
-            'Publisher while playing stream: ' + message);
-
-          _state.set('Failed');
-
-          if (_state.isAttemptingToPublish()) {
-            this.trigger('publishComplete', new OT.Error(OT.ExceptionCodes.UNABLE_TO_PUBLISH,
-                message));
-          } else {
-            this.trigger('error', message);
-          }
-
-          OT.handleJsException('Publisher error playing stream: ' + message,
-          OT.ExceptionCodes.UNABLE_TO_PUBLISH, {
-            session: _session,
-            target: this
-          });
-        },
-
-        onPeerDisconnected = function(peerConnection) {
-          OT.debug('OT.Subscriber has been disconnected from the Publisher\'s PeerConnection');
-
-          this.cleanupSubscriber(peerConnection.remoteConnection().id);
-        },
-
-        onPeerConnectionFailure = function(code, reason, peerConnection, prefix) {
-          logAnalyticsEvent('publish', 'Failure', 'reason|hasRelayCandidates',
-            (prefix ? prefix : '') + [':Publisher PeerConnection with connection ' +
-              (peerConnection && peerConnection.remoteConnection &&
-              peerConnection.remoteConnection().id)  + ' failed: ' +
-              reason, peerConnection.hasRelayCandidates()
-          ].join('|'));
-
-          OT.handleJsException('Publisher PeerConnection Error: ' + reason,
-          OT.ExceptionCodes.UNABLE_TO_PUBLISH, {
-            session: _session,
-            target: this
-          });
-
-          
-          
-          
-          
-
-          delete _peerConnections[peerConnection.remoteConnection().id];
-        },
-
-        
-
-        
-        
-        
-        assignStream = OT.$.bind(function(stream) {
-          this.stream = _stream = stream;
-          _stream.on('destroyed', this.disconnect, this);
-
-          _state.set('Publishing');
-          _container.loading(!_loaded);
-          _publishStartTime = new Date();
-
-          this.trigger('publishComplete', null, this);
-
-          this.dispatchEvent(new OT.StreamEvent('streamCreated', stream, null, false));
-
-          logAnalyticsEvent('publish', 'Success', 'streamType:streamId', 'WebRTC:' + _streamId);
-        }, this),
-
-        
-        cleanupLocalStream = function() {
-          if (_webRTCStream) {
-            
-            
-            _webRTCStream.stop();
-            _webRTCStream = null;
-          }
-        },
-
-        createPeerConnectionForRemote = function(remoteConnection) {
-          var peerConnection = _peerConnections[remoteConnection.id];
-
-          if (!peerConnection) {
-            var startConnectingTime = OT.$.now();
-
-            logAnalyticsEvent('createPeerConnection', 'Attempt', '', '');
-
-            
-            remoteConnection.on('destroyed',
-              OT.$.bind(this.cleanupSubscriber, this, remoteConnection.id));
-
-            peerConnection = _peerConnections[remoteConnection.id] = new OT.PublisherPeerConnection(
-              remoteConnection,
-              _session,
-              _streamId,
-              _webRTCStream
-            );
-
-            peerConnection.on({
-              connected: function() {
-                logAnalyticsEvent('createPeerConnection', 'Success', 'pcc|hasRelayCandidates', [
-                  parseInt(OT.$.now() - startConnectingTime, 10),
-                  peerConnection.hasRelayCandidates()
-                ].join('|'));
-              },
-              disconnected: onPeerDisconnected,
-              error: onPeerConnectionFailure,
-              qos: recordQOS
-            }, this);
-
-            peerConnection.init(_iceServers);
-          }
-
-          return peerConnection;
-        },
-
-        
-
-        
-        
-        
-        chromeButtonMode = function(mode) {
-          if (mode === false) return 'off';
-
-          var defaultMode = this.getStyle('buttonDisplayMode');
-
-          
-          if (defaultMode === false) return 'on';
-
-          
-          return defaultMode;
-        },
-
-        updateChromeForStyleChange = function(key, value) {
-          if (!_chrome) return;
-
-          switch(key) {
-            case 'nameDisplayMode':
-              _chrome.name.setDisplayMode(value);
-              _chrome.backingBar.setNameMode(value);
-              break;
-
-            case 'showArchiveStatus':
-              logAnalyticsEvent('showArchiveStatus', 'styleChange', 'mode', value ? 'on': 'off');
-              _chrome.archive.setShowArchiveStatus(value);
-              break;
-
-            case 'buttonDisplayMode':
-              _chrome.muteButton.setDisplayMode(value);
-              _chrome.backingBar.setMuteMode(value);
-              break;
-
-            case 'audioLevelDisplayMode':
-              _chrome.audioLevel.setDisplayMode(value);
-              break;
-
-            case 'backgroundImageURI':
-              _container.setBackgroundImageURI(value);
-          }
-        },
-
-        _createChrome = function() {
-
-          if(!this.getStyle('showArchiveStatus')) {
-            logAnalyticsEvent('showArchiveStatus', 'createChrome', 'mode', 'off');
-          }
-
-          var widgets = {
-            backingBar: new OT.Chrome.BackingBar({
-              nameMode: !_publishProperties.name ? 'off' : this.getStyle('nameDisplayMode'),
-              muteMode: chromeButtonMode.call(this, this.getStyle('buttonDisplayMode'))
-            }),
-
-            name: new OT.Chrome.NamePanel({
-              name: _publishProperties.name,
-              mode: this.getStyle('nameDisplayMode')
-            }),
-
-            muteButton: new OT.Chrome.MuteButton({
-              muted: _publishProperties.publishAudio === false,
-              mode: chromeButtonMode.call(this, this.getStyle('buttonDisplayMode'))
-            }),
-
-            archive: new OT.Chrome.Archiving({
-              show: this.getStyle('showArchiveStatus'),
-              archiving: false
-            })
-          };
-
-          if (_audioLevelCapable) {
-            var audioLevelTransformer = new OT.AudioLevelTransformer();
-
-            var audioLevelUpdatedHandler = function(evt) {
-              _audioLevelMeter.setValue(audioLevelTransformer.transform(evt.audioLevel));
-            };
-
-            _audioLevelMeter = new OT.Chrome.AudioLevelMeter({
-              mode: this.getStyle('audioLevelDisplayMode'),
-              onActivate: function() {
-                _publisher.on('audioLevelUpdated', audioLevelUpdatedHandler);
-              },
-              onPassivate: function() {
-                _publisher.off('audioLevelUpdated', audioLevelUpdatedHandler);
-              }
-            });
-
-            widgets.audioLevel = _audioLevelMeter;
-          }
-
-          _chrome = new OT.Chrome({
-            parent: _container.domElement
-          }).set(widgets).on({
-            muted: OT.$.bind(this.publishAudio, this, false),
-            unmuted: OT.$.bind(this.publishAudio, this, true)
-          });
-
-          if(_audioLevelMeter && this.getStyle('audioLevelDisplayMode') === 'auto') {
-            _audioLevelMeter[_container.audioOnly() ? 'show' : 'hide']();
-          }
-        },
-
-        reset = OT.$.bind(function() {
-          if (_chrome) {
-            _chrome.destroy();
-            _chrome = null;
-          }
-
-          this.disconnect();
-
-          _microphone = null;
-
-          if (_targetElement) {
-            _targetElement.destroy();
-            _targetElement = null;
-          }
-
-          cleanupLocalStream();
-
-          if (_container) {
-            _container.destroy();
-            _container = null;
-          }
-
-          if (_session) {
-            this._.unpublishFromSession(_session, 'reset');
-          }
-
-          this.id = _domId = null;
-          this.stream = _stream = null;
-          _loaded = false;
-
-          this.session = _session = null;
-
-          if (!_state.isDestroyed()) _state.set('NotPublishing');
-        }, this);
-
-    var setAudioOnly = function(audioOnly) {
-      if (_container) {
-        _container.audioOnly(audioOnly);
-        _container.showPoster(audioOnly);
-      }
-
-      if (_audioLevelMeter && _publisher.getStyle('audioLevelDisplayMode') === 'auto') {
-        _audioLevelMeter[audioOnly ? 'show' : 'hide']();
-      }
-    };
-
-    this.publish = function(targetElement, properties) {
-      OT.debug('OT.Publisher: publish');
-
-      if ( _state.isAttemptingToPublish() || _state.isPublishing() ) reset();
-      _state.set('GetUserMedia');
-
-      _publishProperties = OT.$.defaults(properties || {}, {
-        publishAudio : true,
-        publishVideo : true,
-        mirror: true
-      });
-
-      if (!_publishProperties.constraints) {
-        _publishProperties.constraints = OT.$.clone(defaultConstraints);
-
-        if(_publishProperties.audioSource === null || _publishProperties.audioSource === false) {
-          _publishProperties.constraints.audio = false;
-          _publishProperties.publishAudio = false;
-        } else {
-          if(typeof _publishProperties.audioSource === 'object') {
-            if(_publishProperties.audioSource.deviceId != null) {
-              _publishProperties.audioSource = _publishProperties.audioSource.deviceId;
-            } else {
-              OT.warn('Invalid audioSource passed to Publisher. Expected either a device ID');
-            }
-          }
-
-          if (_publishProperties.audioSource) {
-            if (typeof _publishProperties.constraints.audio !== 'object') {
-              _publishProperties.constraints.audio = {};
-            }
-            if (!_publishProperties.constraints.audio.mandatory) {
-              _publishProperties.constraints.audio.mandatory = {};
-            }
-            if (!_publishProperties.constraints.audio.optional) {
-              _publishProperties.constraints.audio.optional = [];
-            }
-            _publishProperties.constraints.audio.mandatory.sourceId =
-              _publishProperties.audioSource;
-          }
         }
-
-        if(_publishProperties.videoSource === null || _publishProperties.videoSource === false) {
-          _publishProperties.constraints.video = false;
-          _publishProperties.publishVideo = false;
-        } else {
-
-          if(typeof _publishProperties.videoSource === 'object') {
-            if(_publishProperties.videoSource.deviceId != null) {
-              _publishProperties.videoSource = _publishProperties.videoSource.deviceId;
-            } else {
-              OT.warn('Invalid videoSource passed to Publisher. Expected either a device ID');
-            }
-          }
-
-          if (_publishProperties.videoSource) {
-            if (typeof _publishProperties.constraints.video !== 'object') {
-              _publishProperties.constraints.video = {};
-            }
-            if (!_publishProperties.constraints.video.mandatory) {
-              _publishProperties.constraints.video.mandatory = {};
-            }
-            if (!_publishProperties.constraints.video.optional) {
-              _publishProperties.constraints.video.optional = [];
-            }
-            _publishProperties.constraints.video.mandatory.sourceId =
-              _publishProperties.videoSource;
-          }
-
-          if (_publishProperties.resolution) {
-            if (_publishProperties.resolution !== void 0 &&
-              !_validResolutions.hasOwnProperty(_publishProperties.resolution)) {
-              OT.warn('Invalid resolution passed to the Publisher. Got: ' +
-                _publishProperties.resolution + ' expecting one of "' +
-                OT.$.keys(_validResolutions).join('","') + '"');
-            } else {
-              _publishProperties.videoDimensions = _validResolutions[_publishProperties.resolution];
-              if (typeof _publishProperties.constraints.video !== 'object') {
-                _publishProperties.constraints.video = {};
-              }
-              if (!_publishProperties.constraints.video.mandatory) {
-                _publishProperties.constraints.video.mandatory = {};
-              }
-              if (!_publishProperties.constraints.video.optional) {
-                _publishProperties.constraints.video.optional = [];
-              }
-              _publishProperties.constraints.video.optional =
-                _publishProperties.constraints.video.optional.concat([
-                  {minWidth: _publishProperties.videoDimensions.width},
-                  {maxWidth: _publishProperties.videoDimensions.width},
-                  {minHeight: _publishProperties.videoDimensions.height},
-                  {maxHeight: _publishProperties.videoDimensions.height}
-                ]);
-            }
-          }
-
-          if (_publishProperties.frameRate !== void 0 &&
-            OT.$.arrayIndexOf(_validFrameRates, _publishProperties.frameRate) === -1) {
-            OT.warn('Invalid frameRate passed to the publisher got: ' +
-              _publishProperties.frameRate + ' expecting one of ' + _validFrameRates.join(','));
-            delete _publishProperties.frameRate;
-          } else if (_publishProperties.frameRate) {
-            if (typeof _publishProperties.constraints.video !== 'object') {
-              _publishProperties.constraints.video = {};
-            }
-            if (!_publishProperties.constraints.video.mandatory) {
-              _publishProperties.constraints.video.mandatory = {};
-            }
-            if (!_publishProperties.constraints.video.optional) {
-              _publishProperties.constraints.video.optional = [];
-            }
-            _publishProperties.constraints.video.optional =
-              _publishProperties.constraints.video.optional.concat([
-                { minFrameRate: _publishProperties.frameRate },
-                { maxFrameRate: _publishProperties.frameRate }
-              ]);
-          }
-        }
-
-      } else {
-        OT.warn('You have passed your own constraints not using ours');
-      }
-
-
-      if (_publishProperties.style) {
-        this.setStyle(_publishProperties.style, null, true);
-      }
-
-      if (_publishProperties.name) {
-        _publishProperties.name = _publishProperties.name.toString();
-      }
-
-      _publishProperties.classNames = 'OT_root OT_publisher';
-
-      
-      
-      OT.onLoad(function() {
-        _container = new OT.WidgetView(targetElement, _publishProperties);
-        this.id = _domId = _container.domId();
-        this.element = _container.domElement;
-
-        OT.$.shouldAskForDevices(OT.$.bind(function(devices) {
-          if(!devices.video) {
-            OT.warn('Setting video constraint to false, there are no video sources');
-            _publishProperties.constraints.video = false;
-          }
-          if(!devices.audio) {
-            OT.warn('Setting audio constraint to false, there are no audio sources');
-            _publishProperties.constraints.audio = false;
-          }
-          OT.$.getUserMedia(
-            _publishProperties.constraints,
-            OT.$.bind(onStreamAvailable, this),
-            OT.$.bind(onStreamAvailableError, this),
-            OT.$.bind(onAccessDialogOpened, this),
-            OT.$.bind(onAccessDialogClosed, this),
-            OT.$.bind(onAccessDenied, this)
-          );
-        }, this));
-
-      }, this);
-
-      return this;
-    };
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-    this.publishAudio = function(value) {
-      _publishProperties.publishAudio = value;
-
-      if (_microphone) {
-        _microphone.muted(!value);
-      }
-
-      if (_chrome) {
-        _chrome.muteButton.muted(!value);
-      }
-
-      if (_session && _stream) {
-        _stream.setChannelActiveState('audio', value);
-      }
-
-      return this;
-    };
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-    this.publishVideo = function(value) {
-      var oldValue = _publishProperties.publishVideo;
-      _publishProperties.publishVideo = value;
-
-      if (_session && _stream && _publishProperties.publishVideo !== oldValue) {
-        _stream.setChannelActiveState('video', value);
-      }
-
-      
-      
-      
-      if (_webRTCStream) {
-        var videoTracks = _webRTCStream.getVideoTracks();
-        for (var i=0, num=videoTracks.length; i<num; ++i) {
-          videoTracks[i].setEnabled(value);
-        }
-      }
-
-      setAudioOnly(!value);
-
-      return this;
-    };
-
-
-    
-
-
-
-
-
-
-
-
-
-    this.destroy = function( reason, quiet) {
-      if (_state.isDestroyed()) return;
-      _state.set('Destroyed');
-
-      reset();
-
-      if (quiet !== true) {
-        this.dispatchEvent(
-          new OT.DestroyedEvent(
-            OT.Event.names.PUBLISHER_DESTROYED,
-            this,
-            reason
-          ),
-          OT.$.bind(this.off,this)
-        );
-      }
-
-      return this;
-    };
-
-    
-
-
-
-    this.disconnect = function() {
-      
-      for (var fromConnectionId in _peerConnections) {
-        this.cleanupSubscriber(fromConnectionId);
-      }
-    };
-
-    this.cleanupSubscriber = function(fromConnectionId) {
-      var pc = _peerConnections[fromConnectionId];
-
-      if (pc) {
-        pc.destroy();
-        delete _peerConnections[fromConnectionId];
-
-        logAnalyticsEvent('disconnect', 'PeerConnection',
-          'subscriberConnection', fromConnectionId);
-      }
-    };
-
-
-    this.processMessage = function(type, fromConnection, message) {
-      OT.debug('OT.Publisher.processMessage: Received ' + type + ' from ' + fromConnection.id);
-      OT.debug(message);
-
-      switch (type) {
-        case 'unsubscribe':
-          this.cleanupSubscriber(message.content.connection.id);
-          break;
-
-        default:
-          var peerConnection = createPeerConnectionForRemote.call(this, fromConnection);
-          peerConnection.processMessage(type, message);
-      }
-    };
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    this.getImgData = function() {
-      if (!_loaded) {
-        OT.error('OT.Publisher.getImgData: Cannot getImgData before the Publisher is publishing.');
-
-        return null;
-      }
-
-      return _targetElement.imgData();
-    };
-
-
-    
-    this._ = {
-      publishToSession: OT.$.bind(function(session) {
-        
-        this.session = _session = session;
-
-        var createStream = function() {
-
-          var streamWidth,
-              streamHeight;
-
-          
-          
-          if (!_session) return;
-
-          _state.set('PublishingToSession');
-
-          var onStreamRegistered = OT.$.bind(function(err, streamId, message) {
-            if (err) {
-              
-              
-              logAnalyticsEvent('publish', 'Failure', 'reason',
-                'Publish:' + OT.ExceptionCodes.UNABLE_TO_PUBLISH + ':' + err.message);
-              if (_state.isAttemptingToPublish()) {
-                this.trigger('publishComplete', new OT.Error(OT.ExceptionCodes.UNABLE_TO_PUBLISH,
-                  err.message));
-              }
-              return;
-            }
-
-            this.streamId = _streamId = streamId;
-            _iceServers = OT.Raptor.parseIceServers(message);
-          }, this);
-
-          
-          
-          if (_publishProperties.videoDimensions) {
-            streamWidth = Math.min(_publishProperties.videoDimensions.width,
-              _targetElement.videoWidth() || 640);
-            streamHeight = Math.min(_publishProperties.videoDimensions.height,
-              _targetElement.videoHeight() || 480);
-          } else {
-            streamWidth = _targetElement.videoWidth() || 640;
-            streamHeight = _targetElement.videoHeight() || 480;
-          }
-
-          session._.streamCreate(
-            _publishProperties && _publishProperties.name ? _publishProperties.name : '',
-            OT.VideoOrientation.ROTATED_NORMAL,
-            streamWidth,
-            streamHeight,
-            _publishProperties.publishAudio,
-            _publishProperties.publishVideo,
-            _publishProperties.frameRate,
-            onStreamRegistered
-          );
+        _connectivityAttemptPinger.setVariation(variation);
+        logAnalyticsEvent('Subscribe', variation, payload);
+      },
+
+      recordQOS = OT.$.bind(function(parsedStats) {
+        var QoSBlob = {
+          streamType : 'WebRTC',
+          width: _container ? Number(OT.$.width(_container.domElement).replace('px', '')) : null,
+          height: _container ? Number(OT.$.height(_container.domElement).replace('px', '')) : null,
+          sessionId: _session ? _session.sessionId : null,
+          connectionId: _session ? _session.connection.connectionId : null,
+          mediaServerName: _session ? _session.sessionInfo.messagingServer : null,
+          p2pFlag: _session ? _session.sessionInfo.p2pEnabled : false,
+          partnerId: _session ? _session.apiKey : null,
+          streamId: _stream.id,
+          subscriberId: _widgetId,
+          version: OT.properties.version,
+          duration: parseInt(OT.$.now() - _subscribeStartTime, 10),
+          remoteConnectionId: _stream.connection.connectionId
         };
 
-        if (_loaded) createStream.call(this);
-        else this.on('initSuccess', createStream, this);
-
-        logAnalyticsEvent('publish', 'Attempt', 'streamType', 'WebRTC');
-
-        return this;
+        OT.analytics.logQOS( OT.$.extend(QoSBlob, parsedStats) );
+        this.trigger('qos', parsedStats);
       }, this),
 
-      unpublishFromSession: OT.$.bind(function(session, reason) {
-        if (!_session || session.id !== _session.id) {
-          OT.warn('The publisher ' + _guid + ' is trying to unpublish from a session ' +
-            session.id + ' it is not attached to (it is attached to ' +
-            (_session && _session.id || 'no session') + ')');
-          return this;
+
+      stateChangeFailed = function(changeFailed) {
+        OT.error('Subscriber State Change Failed: ', changeFailed.message);
+        OT.debug(changeFailed);
+      },
+
+      onLoaded = function() {
+        if (_state.isSubscribing() || !_streamContainer) return;
+
+        OT.debug('OT.Subscriber.onLoaded');
+
+        _state.set('Subscribing');
+        _subscribeStartTime = OT.$.now();
+
+        var payload = {
+          pcc: parseInt(_subscribeStartTime - _startConnectingTime, 10),
+          hasRelayCandidates: _peerConnection && _peerConnection.hasRelayCandidates()
+        };
+        logAnalyticsEvent('createPeerConnection', 'Success', payload);
+
+        _container.loading(false);
+        _chrome.showAfterLoading();
+
+        if(_frameRateRestricted) {
+          _stream.setRestrictFrameRate(true);
         }
 
-        if (session.isConnected() && this.stream) {
-          session._.streamDestroy(this.stream.id);
+        if(_audioLevelMeter && _subscriber.getStyle('audioLevelDisplayMode') === 'auto') {
+          _audioLevelMeter[_container.audioOnly() ? 'show' : 'hide']();
         }
 
-        
-        
+        this.trigger('subscribeComplete', null, this);
+        this.trigger('loaded', this);
+
+        logConnectivityEvent('Success', {streamId: _stream.id});
+      },
+
+      onDisconnected = function() {
+        OT.debug('OT.Subscriber has been disconnected from the Publisher\'s PeerConnection');
+
+        if (_state.isAttemptingToSubscribe()) {
+          
+          _state.set('Failed');
+          this.trigger('subscribeComplete', new OT.Error(null, 'ClientDisconnected'));
+
+        } else if (_state.isSubscribing()) {
+          _state.set('Failed');
+
+          
+          
+        }
+
         this.disconnect();
-        this.session = _session = null;
+      },
 
-        
-        if (!_state.isDestroyed()) _state.set('MediaBound');
-
-        logAnalyticsEvent('unpublish', 'Success', 'sessionId', session.id);
-
-        this._.streamDestroyed(reason);
-
-        return this;
-      }, this),
-
-      streamDestroyed: OT.$.bind(function(reason) {
-        if(OT.$.arrayIndexOf(['reset'], reason) < 0) {
-          var event = new OT.StreamEvent('streamDestroyed', _stream, reason, true);
-          var defaultAction = OT.$.bind(function() {
-            if(!event.isDefaultPrevented()) {
-              this.destroy();
-            }
-          }, this);
-          this.dispatchEvent(event, defaultAction);
-        }
-      }, this),
-
-
-      archivingStatus: OT.$.bind(function(status) {
-        if(_chrome) {
-          _chrome.archive.setArchiving(status);
-        }
-
-        return status;
-      }, this),
-
-      webRtcStream: function() {
-        return _webRTCStream;
-      }
-    };
-
-    this.detectDevices = function() {
-      OT.warn('Fixme: Haven\'t implemented detectDevices');
-    };
-
-    this.detectMicActivity = function() {
-      OT.warn('Fixme: Haven\'t implemented detectMicActivity');
-    };
-
-    this.getEchoCancellationMode = function() {
-      OT.warn('Fixme: Haven\'t implemented getEchoCancellationMode');
-      return 'fullDuplex';
-    };
-
-    this.setMicrophoneGain = function() {
-      OT.warn('Fixme: Haven\'t implemented setMicrophoneGain');
-    };
-
-    this.getMicrophoneGain = function() {
-      OT.warn('Fixme: Haven\'t implemented getMicrophoneGain');
-      return 0.5;
-    };
-
-    this.setCamera = function() {
-      OT.warn('Fixme: Haven\'t implemented setCamera');
-    };
-
-    this.setMicrophone = function() {
-      OT.warn('Fixme: Haven\'t implemented setMicrophone');
-    };
-
-
-    
-
-    this.guid = function() {
-      return _guid;
-    };
-
-    this.videoElement = function() {
-      return _targetElement.domElement();
-    };
-
-    this.setStream = assignStream;
-
-    this.isWebRTC = true;
-
-    this.isLoading = function() {
-      return _container && _container.loading();
-    };
-
-    this.videoWidth = function() {
-      return _targetElement.videoWidth();
-    };
-
-    this.videoHeight = function() {
-      return _targetElement.videoHeight();
-    };
-
-    
-
-    this.on('styleValueChanged', updateChromeForStyleChange, this);
-    _state = new OT.PublishingState(stateChangeFailed);
-
-    this.accessAllowed = false;
-
-	
-
-
-
-
-
-
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-	
-
-
-
-
-
-
-
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	
-
-
-
-
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-	
-
-
-
-
-
-
-  };
-
-  
-  OT.Publisher.nextId = OT.$.uuid;
-
-})(window);
-!(function() {
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  OT.Subscriber = function(targetElement, options) {
-    var _widgetId = OT.$.uuid(),
-        _domId = targetElement || _widgetId,
-        _container,
-        _streamContainer,
-        _chrome,
-        _audioLevelMeter,
-        _stream,
-        _fromConnectionId,
-        _peerConnection,
-        _session = options.session,
-        _subscribeStartTime,
-        _startConnectingTime,
-        _properties = OT.$.clone(options),
-        _analytics = new OT.Analytics(),
-        _audioVolume = 100,
-        _state,
-        _prevStats,
-        _lastSubscribeToVideoReason,
-        _audioLevelCapable =  OT.$.hasCapabilities('audioOutputLevelStat') ||
-                              OT.$.hasCapabilities('webAudioCapableRemoteStream'),
-        _audioLevelSampler,
-        _audioLevelRunner,
-        _frameRateRestricted = false,
-        _subscriber = this;
-
-    this.id = _domId;
-    this.widgetId = _widgetId;
-    this.session = _session;
-
-    _prevStats = {
-      timeStamp: OT.$.now()
-    };
-
-    if (!_session) {
-      OT.handleJsException('Subscriber must be passed a session option', 2000, {
-        session: _session,
-        target: this
-      });
-
-      return;
-    }
-
-    OT.$.eventing(this, false);
-
-    if(_audioLevelCapable) {
-      this.on({
-        'audioLevelUpdated:added': function(count) {
-          if (count === 1 && _audioLevelRunner) {
-            _audioLevelRunner.start();
-          }
-        },
-        'audioLevelUpdated:removed': function(count) {
-          if (count === 0 && _audioLevelRunner) {
-            _audioLevelRunner.stop();
-          }
-        }
-      });
-    }
-
-    OT.StylableComponent(this, {
-      nameDisplayMode: 'auto',
-      buttonDisplayMode: 'auto',
-      audioLevelDisplayMode: 'auto',
-      videoDisabledIndicatorDisplayMode: 'auto',
-      backgroundImageURI: null,
-      showArchiveStatus: true,
-      showMicButton: true
-    });
-
-    var logAnalyticsEvent = function(action, variation, payloadType, payload) {
-          
-          _analytics.logEvent({
-            action: action,
-            variation: variation,
-            payload_type: payloadType,
-            payload: payload,
-            stream_id: _stream ? _stream.id : null,
-            session_id: _session ? _session.sessionId : null,
-            connection_id: _session && _session.isConnected() ?
-              _session.connection.connectionId : null,
-            partner_id: _session && _session.isConnected() ? _session.sessionInfo.partnerId : null,
-            widget_id: _widgetId,
-            widget_type: 'Subscriber'
-          });
-        },
-
-        recordQOS = OT.$.bind(function(parsedStats) {
-          if(_state.isSubscribing() && _session && _session.isConnected()) {
-            
-            var QoSBlob = {
-              widget_type: 'Subscriber',
-              stream_type : 'WebRTC',
-              width: _container ? OT.$.width(_container.domElement) : undefined,
-              height: _container ? OT.$.height(_container.domElement) : undefined,
-              session_id: _session ? _session.sessionId : null,
-              connectionId: _session ? _session.connection.connectionId : null,
-              media_server_name: _session ? _session.sessionInfo.messagingServer : null,
-              p2pFlag: _session ? _session.sessionInfo.p2pEnabled : false,
-              partner_id: _session ? _session.apiKey : null,
-              stream_id: _stream.id,
-              widget_id: _widgetId,
-              version: OT.properties.version,
-              duration: parseInt(OT.$.now() - _subscribeStartTime, 10),
-              remote_connection_id: _stream.connection.connectionId
-            };
-
-            _analytics.logQOS( OT.$.extend(QoSBlob, parsedStats) );
-            this.trigger('qos', parsedStats);
-          }
-        }, this),
-
-
-        stateChangeFailed = function(changeFailed) {
-          OT.error('Subscriber State Change Failed: ', changeFailed.message);
-          OT.debug(changeFailed);
-        },
-
-        onLoaded = function() {
-          if (_state.isSubscribing() || !_streamContainer) return;
-
-          OT.debug('OT.Subscriber.onLoaded');
-
-          _state.set('Subscribing');
-          _subscribeStartTime = OT.$.now();
-
-          logAnalyticsEvent('createPeerConnection', 'Success', 'pcc|hasRelayCandidates', [
-            parseInt(_subscribeStartTime - _startConnectingTime, 10),
-            _peerConnection && _peerConnection.hasRelayCandidates()
-          ].join('|'));
-
-          _container.loading(false);
-
-          _createChrome.call(this);
-          if(_frameRateRestricted) {
-            _stream.setRestrictFrameRate(true);
-          }
-
-          this.trigger('subscribeComplete', null, this);
-          this.trigger('loaded', this);
-
-          logAnalyticsEvent('subscribe', 'Success', 'streamId', _stream.id);
-        },
-
-        onDisconnected = function() {
-          OT.debug('OT.Subscriber has been disconnected from the Publisher\'s PeerConnection');
-
-          if (_state.isAttemptingToSubscribe()) {
-            
-            _state.set('Failed');
-            this.trigger('subscribeComplete', new OT.Error(null, 'ClientDisconnected'));
-
-          } else if (_state.isSubscribing()) {
-            _state.set('Failed');
-
-            
-            
-          }
-
-          this.disconnect();
-        },
-
-        onPeerConnectionFailure = OT.$.bind(function(reason, peerConnection, prefix) {
-          if (_state.isAttemptingToSubscribe()) {
-            
-            
-            logAnalyticsEvent('createPeerConnection', 'Failure', 'reason|hasRelayCandidates', [
-              'Subscriber PeerConnection Error: ' + reason,
-              _peerConnection && _peerConnection.hasRelayCandidates()
-            ].join('|'));
-
-            _state.set('Failed');
-            this.trigger('subscribeComplete', new OT.Error(null, reason));
-
-          } else if (_state.isSubscribing()) {
-            
-            _state.set('Failed');
-            this.trigger('error', reason);
-          }
-
-          this.disconnect();
-
-          logAnalyticsEvent('subscribe', 'Failure', 'reason',
-            (prefix ? prefix : '') + ':Subscriber PeerConnection Error: ' + reason);
-
-          OT.handleJsException('Subscriber PeerConnection Error: ' + reason,
-            OT.ExceptionCodes.P2P_CONNECTION_FAILED, {
-              session: _session,
-              target: this
-            }
-          );
-          _showError.call(this, reason);
-        }, this),
-
-        onRemoteStreamAdded = function(webOTStream) {
-          OT.debug('OT.Subscriber.onRemoteStreamAdded');
-
-          _state.set('BindingRemoteStream');
-
-          
-          this.subscribeToAudio(_properties.subscribeToAudio);
-
-          _lastSubscribeToVideoReason = 'loading';
-          this.subscribeToVideo(_properties.subscribeToVideo, 'loading');
-
-          var videoContainerOptions = {
-            error: onPeerConnectionFailure,
-            audioVolume: _audioVolume
-          };
-
-          
-          
-          
-          var browser = OT.$.browserVersion(),
-              tracks,
-              reenableVideoTrack = false;
-          if (!_stream.hasVideo && browser.browser === 'Chrome' && browser.version >= 35) {
-            tracks = webOTStream.getVideoTracks();
-            if(tracks.length > 0) {
-              tracks[0].enabled = false;
-              reenableVideoTrack = tracks[0];
-            }
-          }
-
-          _streamContainer = _container.bindVideo(webOTStream,
-                                              videoContainerOptions,
-                                              OT.$.bind(function(err) {
-            if (err) {
-              onPeerConnectionFailure(err.message || err, _peerConnection, 'VideoElement');
-              return;
-            }
-
-            
-            if (reenableVideoTrack != null && _properties.subscribeToVideo) {
-              reenableVideoTrack.enabled = true;
-            }
-
-            _streamContainer.orientation({
-              width: _stream.videoDimensions.width,
-              height: _stream.videoDimensions.height,
-              videoOrientation: _stream.videoDimensions.orientation
-            });
-
-            onLoaded.call(this, null);
-          }, this));
-
-          if (OT.$.hasCapabilities('webAudioCapableRemoteStream') && _audioLevelSampler &&
-            webOTStream.getAudioTracks().length > 0) {
-            _audioLevelSampler.webOTStream = webOTStream;
-          }
-
-          logAnalyticsEvent('createPeerConnection', 'StreamAdded', '', '');
-          this.trigger('streamAdded', this);
-        },
-
-        onRemoteStreamRemoved = function(webOTStream) {
-          OT.debug('OT.Subscriber.onStreamRemoved');
-
-          if (_streamContainer.stream === webOTStream) {
-            _streamContainer.destroy();
-            _streamContainer = null;
-          }
-
-
-          this.trigger('streamRemoved', this);
-        },
-
-        streamDestroyed = function () {
-          this.disconnect();
-        },
-
-        streamUpdated = function(event) {
-
-          switch(event.changedProperty) {
-            case 'videoDimensions':
-              if (!_streamContainer) {
-                
-                break;
-              }
-              _streamContainer.orientation({
-                width: event.newValue.width,
-                height: event.newValue.height,
-                videoOrientation: event.newValue.orientation
-              });
-              break;
-
-            case 'videoDisableWarning':
-              _chrome.videoDisabledIndicator.setWarning(event.newValue);
-              this.dispatchEvent(new OT.VideoDisableWarningEvent(
-                event.newValue ? 'videoDisableWarning' : 'videoDisableWarningLifted'
-              ));
-              break;
-
-            case 'hasVideo':
-
-              setAudioOnly(!(_stream.hasVideo && _properties.subscribeToVideo));
-
-              this.dispatchEvent(new OT.VideoEnabledChangedEvent(
-                _stream.hasVideo ? 'videoEnabled' : 'videoDisabled', {
-                reason: 'publishVideo'
-              }));
-              break;
-
-            case 'hasAudio':
-              
-          }
-        },
-
-        
-
-        
-        
-        
-        chromeButtonMode = function(mode) {
-          if (mode === false) return 'off';
-
-          var defaultMode = this.getStyle('buttonDisplayMode');
-
-          
-          if (defaultMode === false) return 'on';
-
-          
-          return defaultMode;
-        },
-
-        updateChromeForStyleChange = function(key, value) {
-          if (!_chrome) return;
-
-          switch(key) {
-            case 'nameDisplayMode':
-              _chrome.name.setDisplayMode(value);
-              _chrome.backingBar.setNameMode(value);
-              break;
-
-            case 'videoDisabledDisplayMode':
-              _chrome.videoDisabledIndicator.setDisplayMode(value);
-              break;
-
-            case 'showArchiveStatus':
-              _chrome.archive.setShowArchiveStatus(value);
-              break;
-
-            case 'buttonDisplayMode':
-              _chrome.muteButton.setDisplayMode(value);
-              _chrome.backingBar.setMuteMode(value);
-              break;
-
-            case 'audioLevelDisplayMode':
-              _chrome.audioLevel.setDisplayMode(value);
-              break;
-
-            case 'backgroundImageURI':
-              _container.setBackgroundImageURI(value);
-          }
-        },
-
-        _createChrome = function() {
-
-          var widgets = {
-            backingBar: new OT.Chrome.BackingBar({
-              nameMode: !_properties.name ? 'off' : this.getStyle('nameDisplayMode'),
-              muteMode: chromeButtonMode.call(this, this.getStyle('showMuteButton'))
-            }),
-
-            name: new OT.Chrome.NamePanel({
-              name: _properties.name,
-              mode: this.getStyle('nameDisplayMode')
-            }),
-
-            muteButton: new OT.Chrome.MuteButton({
-              muted: _properties.muted,
-              mode: chromeButtonMode.call(this, this.getStyle('showMuteButton'))
-            }),
-
-            archive: new OT.Chrome.Archiving({
-              show: this.getStyle('showArchiveStatus'),
-              archiving: false
-            })
-          };
-
-          if (_audioLevelCapable) {
-            var audioLevelTransformer = new OT.AudioLevelTransformer();
-
-            var audioLevelUpdatedHandler = function(evt) {
-              _audioLevelMeter.setValue(audioLevelTransformer.transform(evt.audioLevel));
-            };
-
-            _audioLevelMeter = new OT.Chrome.AudioLevelMeter({
-              mode: this.getStyle('audioLevelDisplayMode'),
-              onActivate: function() {
-                _subscriber.on('audioLevelUpdated', audioLevelUpdatedHandler);
-              },
-              onPassivate: function() {
-                _subscriber.off('audioLevelUpdated', audioLevelUpdatedHandler);
-              }
-            });
-
-            widgets.audioLevel = _audioLevelMeter;
-          }
-
-          widgets.videoDisabledIndicator = new OT.Chrome.VideoDisabledIndicator({
-            mode: this.getStyle('videoDisabledDisplayMode')
-          });
-
-          _chrome = new OT.Chrome({
-            parent: _container.domElement
-          }).set(widgets).on({
-            muted: function() {
-              muteAudio.call(this, true);
-            },
-
-            unmuted: function() {
-              muteAudio.call(this, false);
-            }
-          }, this);
-
-          if(_audioLevelMeter && this.getStyle('audioLevelDisplayMode') === 'auto') {
-            _audioLevelMeter[_container.audioOnly() ? 'show' : 'hide']();
-          }
-        },
-
-        _showError = function() {
-          
-          
-          if (_container) {
-            _container.addError(
-              'The stream was unable to connect due to a network error.',
-              'Make sure your connection isn\'t blocked by a firewall.'
-            );
-          }
-        };
-
-    var setAudioOnly = function(audioOnly) {
-      if(_container) {
-        _container.audioOnly(audioOnly);
-        _container.showPoster(audioOnly);
-      }
-
-      if (_audioLevelMeter && _subscriber.getStyle('audioLevelDisplayMode') === 'auto') {
-        _audioLevelMeter[audioOnly ? 'show' : 'hide']();
-      }
-    };
-
-    this.subscribe = function(stream) {
-      OT.debug('OT.Subscriber: subscribe to ' + stream.id);
-
-      if (_state.isSubscribing()) {
-        
-        OT.error('OT.Subscriber.Subscribe: Cannot subscribe, already subscribing.');
-        return false;
-      }
-
-      _state.set('Init');
-
-      if (!stream) {
-        
-        OT.error('OT.Subscriber: No stream parameter.');
-        return false;
-      }
-
-      if (_stream) {
-        
-        OT.error('OT.Subscriber: Already subscribed');
-        return false;
-      }
-
-      this.stream = _stream = stream;
-      this.streamId = _stream.id;
-      _stream.on({
-        updated: streamUpdated,
-        destroyed: streamDestroyed
-      }, this);
-
-      _fromConnectionId = stream.connection.id;
-      _properties.name = _properties.name || _stream.name;
-      _properties.classNames = 'OT_root OT_subscriber';
-
-      if (_properties.style) {
-        this.setStyle(_properties.style, null, true);
-      }
-      if (_properties.audioVolume) {
-        this.setAudioVolume(_properties.audioVolume);
-      }
-
-      _properties.subscribeToAudio = OT.$.castToBoolean(_properties.subscribeToAudio, true);
-      _properties.subscribeToVideo = OT.$.castToBoolean(_properties.subscribeToVideo, true);
-
-      _container = new OT.WidgetView(targetElement, _properties);
-      this.id = _domId = _container.domId();
-      this.element = _container.domElement;
-
-      _startConnectingTime = OT.$.now();
-
-      if (_stream.connection.id !== _session.connection.id) {
-        logAnalyticsEvent('createPeerConnection', 'Attempt', '', '');
-
-        _state.set('ConnectingToPeer');
-
-        _peerConnection = new OT.SubscriberPeerConnection(_stream.connection, _session,
-          _stream, this, _properties);
-
-        _peerConnection.on({
-          disconnected: onDisconnected,
-          error: onPeerConnectionFailure,
-          remoteStreamAdded: onRemoteStreamAdded,
-          remoteStreamRemoved: onRemoteStreamRemoved,
-          qos: recordQOS
-        }, this);
-
-        
-        _peerConnection.init();
-
-        if (OT.$.hasCapabilities('audioOutputLevelStat')) {
-          _audioLevelSampler = new OT.GetStatsAudioLevelSampler(_peerConnection, 'out');
-        } else if (OT.$.hasCapabilities('webAudioCapableRemoteStream')) {
-          _audioLevelSampler = new OT.AnalyserAudioLevelSampler(OT.audioContext());
-        }
-
-        if(_audioLevelSampler) {
-          
-          
-          _audioLevelRunner = new OT.IntervalRunner(function() {
-            _audioLevelSampler.sample(function(audioOutputLevel) {
-              if (audioOutputLevel !== null) {
-                OT.$.requestAnimationFrame(function() {
-                  _subscriber.dispatchEvent(
-                    new OT.AudioLevelUpdatedEvent(audioOutputLevel));
-                });
-              }
-            });
-          }, 60);
-        }
-      } else {
-        logAnalyticsEvent('createPeerConnection', 'Attempt', '', '');
-
-        var publisher = _session.getPublisherForStream(_stream);
-        if(!(publisher && publisher._.webRtcStream())) {
-          this.trigger('subscribeComplete', new OT.Error(null, 'InvalidStreamID'));
-          return this;
-        }
-
-        
-        onRemoteStreamAdded.call(this, publisher._.webRtcStream());
-      }
-
-      logAnalyticsEvent('subscribe', 'Attempt', 'streamId', _stream.id);
-
-      return this;
-    };
-
-    this.destroy = function(reason, quiet) {
-      if (_state.isDestroyed()) return;
-
-      if(reason === 'streamDestroyed') {
+      onPeerConnectionFailure = OT.$.bind(function(code, reason, peerConnection, prefix) {
+        var payload;
         if (_state.isAttemptingToSubscribe()) {
           
           
-          this.trigger('subscribeComplete', new OT.Error(null, 'InvalidStreamID'));
+          payload = {
+            reason: prefix ? prefix : 'PeerConnectionError',
+            message: 'Subscriber PeerConnection Error: ' + reason,
+            hasRelayCandidates: _peerConnection && _peerConnection.hasRelayCandidates()
+          };
+          logAnalyticsEvent('createPeerConnection', 'Failure', payload);
+
+          _state.set('Failed');
+          this.trigger('subscribeComplete', new OT.Error(null, reason));
+
+        } else if (_state.isSubscribing()) {
+          
+          _state.set('Failed');
+          this.trigger('error', reason);
         }
-      }
 
-      _state.set('Destroyed');
+        this.disconnect();
 
-      if(_audioLevelRunner) {
-        _audioLevelRunner.stop();
-      }
+        payload = {
+          reason: prefix ? prefix : 'PeerConnectionError',
+          message: 'Subscriber PeerConnection Error: ' + reason,
+          code: OT.ExceptionCodes.P2P_CONNECTION_FAILED
+        };
+        logConnectivityEvent('Failure', payload);
 
-      this.disconnect();
-
-      if (_chrome) {
-        _chrome.destroy();
-        _chrome = null;
-      }
-
-      if (_container) {
-        _container.destroy();
-        _container = null;
-        this.element = null;
-      }
-
-      if (_stream && !_stream.destroyed) {
-        logAnalyticsEvent('unsubscribe', null, 'streamId', _stream.id);
-      }
-
-      this.id = _domId = null;
-      this.stream = _stream = null;
-      this.streamId = null;
-
-      this.session =_session = null;
-      _properties = null;
-
-      if (quiet !== true) {
-        this.dispatchEvent(
-          new OT.DestroyedEvent(
-            OT.Event.names.SUBSCRIBER_DESTROYED,
-            this,
-            reason
-          ),
-          OT.$.bind(this.off, this)
+        OT.handleJsException('Subscriber PeerConnection Error: ' + reason,
+          OT.ExceptionCodes.P2P_CONNECTION_FAILED, {
+            session: _session,
+            target: this
+          }
         );
-      }
+        _showError.call(this, reason);
+      }, this),
 
-      return this;
-    };
+      onRemoteStreamAdded = function(webRTCStream) {
+        OT.debug('OT.Subscriber.onRemoteStreamAdded');
 
-    this.disconnect = function() {
-      if (!_state.isDestroyed() && !_state.isFailed()) {
+        _state.set('BindingRemoteStream');
+
         
-        
-        _state.set('NotSubscribing');
-      }
-
-      if (_streamContainer) {
-        _streamContainer.destroy();
-        _streamContainer = null;
-      }
-
-      if (_peerConnection) {
-        _peerConnection.destroy();
-        _peerConnection = null;
-
-        logAnalyticsEvent('disconnect', 'PeerConnection', 'streamId', _stream.id);
-      }
-    };
-
-    this.processMessage = function(type, fromConnection, message) {
-      OT.debug('OT.Subscriber.processMessage: Received ' + type + ' message from ' +
-        fromConnection.id);
-      OT.debug(message);
-
-      if (_fromConnectionId !== fromConnection.id) {
-        _fromConnectionId = fromConnection.id;
-      }
-
-      if (_peerConnection) {
-        _peerConnection.processMessage(type, message);
-      }
-    };
-
-    this.disableVideo = function(active) {
-      if (!active) {
-        OT.warn('Due to high packet loss and low bandwidth, video has been disabled');
-      } else {
-        if (_lastSubscribeToVideoReason === 'auto') {
-          OT.info('Video has been re-enabled');
-          _chrome.videoDisabledIndicator.disableVideo(false);
-        } else {
-          OT.info('Video was not re-enabled because it was manually disabled');
-          return;
-        }
-      }
-      this.subscribeToVideo(active, 'auto');
-      if(!active) {
-        _chrome.videoDisabledIndicator.disableVideo(true);
-      }
-      logAnalyticsEvent('updateQuality', 'video', active ? 'videoEnabled' : 'videoDisabled', true);
-    };
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    this.getImgData = function() {
-      if (!this.isSubscribing()) {
-        OT.error('OT.Subscriber.getImgData: Cannot getImgData before the Subscriber ' +
-          'is subscribing.');
-        return null;
-      }
-
-      return _streamContainer.imgData();
-    };
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    this.setAudioVolume = function(value) {
-      value = parseInt(value, 10);
-      if (isNaN(value)) {
-        OT.error('OT.Subscriber.setAudioVolume: value should be an integer between 0 and 100');
-        return this;
-      }
-      _audioVolume = Math.max(0, Math.min(100, value));
-      if (_audioVolume !== value) {
-        OT.warn('OT.Subscriber.setAudioVolume: value should be an integer between 0 and 100');
-      }
-      if(_properties.muted && _audioVolume > 0) {
-        _properties.premuteVolume = value;
-        muteAudio.call(this, false);
-      }
-      if (_streamContainer) {
-        _streamContainer.setAudioVolume(_audioVolume);
-      }
-      return this;
-    };
-
-    
-
-
-
-
-
-
-
-
-
-
-    this.getAudioVolume = function() {
-      if(_properties.muted) {
-        return 0;
-      }
-      if (_streamContainer) return _streamContainer.getAudioVolume();
-      else return _audioVolume;
-    };
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    this.subscribeToAudio = function(pValue) {
-      var value = OT.$.castToBoolean(pValue, true);
-
-      if (_peerConnection) {
-        _peerConnection.subscribeToAudio(value && !_properties.subscribeMute);
-
-        if (_session && _stream && value !== _properties.subscribeToAudio) {
-          _stream.setChannelActiveState('audio', value && !_properties.subscribeMute);
-        }
-      }
-
-      _properties.subscribeToAudio = value;
-
-      return this;
-    };
-
-    var muteAudio = function(_mute) {
-      _chrome.muteButton.muted(_mute);
-
-      if(_mute === _properties.mute) {
-        return;
-      }
-      if(OT.$.browser() === 'Chrome' || TBPlugin.isInstalled()) {
-        _properties.subscribeMute = _properties.muted = _mute;
         this.subscribeToAudio(_properties.subscribeToAudio);
-      } else {
-        if(_mute) {
-          _properties.premuteVolume = this.getAudioVolume();
-          _properties.muted = true;
-          this.setAudioVolume(0);
-        } else if(_properties.premuteVolume || _properties.audioVolume) {
-          _properties.muted = false;
-          this.setAudioVolume(_properties.premuteVolume || _properties.audioVolume);
-        }
-      }
-      _properties.mute = _properties.mute;
-    };
 
-    var reasonMap = {
-      auto: 'quality',
-      publishVideo: 'publishVideo',
-      subscribeToVideo: 'subscribeToVideo'
-    };
+        _lastSubscribeToVideoReason = 'loading';
+        this.subscribeToVideo(_properties.subscribeToVideo, 'loading');
 
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    this.subscribeToVideo = function(pValue, reason) {
-      var value = OT.$.castToBoolean(pValue, true);
-
-      setAudioOnly(!(value && _stream.hasVideo));
-
-      if ( value && _container  && _container.video()) {
-        _container.loading(value);
-        _container.video().whenTimeIncrements(function() {
-          _container.loading(false);
-        }, this);
-      }
-
-      if (_chrome && _chrome.videoDisabledIndicator) {
-        _chrome.videoDisabledIndicator.disableVideo(false);
-      }
-
-      if (_peerConnection) {
-        _peerConnection.subscribeToVideo(value);
-
-        if (_session && _stream && (value !== _properties.subscribeToVideo ||
-            reason !== _lastSubscribeToVideoReason)) {
-          _stream.setChannelActiveState('video', value, reason);
-        }
-      }
-
-      _properties.subscribeToVideo = value;
-      _lastSubscribeToVideoReason = reason;
-
-      if (reason !== 'loading') {
-        this.dispatchEvent(new OT.VideoEnabledChangedEvent(
-          value ? 'videoEnabled' : 'videoDisabled',
-          {
-            reason: reasonMap[reason] || 'subscribeToVideo'
-          }
-        ));
-      }
-
-      return this;
-    };
-
-    this.isSubscribing = function() {
-      return _state.isSubscribing();
-    };
-
-    this.isWebRTC = true;
-
-    this.isLoading = function() {
-      return _container && _container.loading();
-    };
-
-    this.videoWidth = function() {
-      return _streamContainer.videoWidth();
-    };
-
-    this.videoHeight = function() {
-      return _streamContainer.videoHeight();
-    };
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    this.restrictFrameRate = function(val) {
-      OT.debug('OT.Subscriber.restrictFrameRate(' + val + ')');
-
-      logAnalyticsEvent('restrictFrameRate', val.toString(), 'streamId', _stream.id);
-
-      if (_session.sessionInfo.p2pEnabled) {
-        OT.warn('OT.Subscriber.restrictFrameRate: Cannot restrictFrameRate on a P2P session');
-      }
-
-      if (typeof val !== 'boolean') {
-        OT.error('OT.Subscriber.restrictFrameRate: expected a boolean value got a ' + typeof val);
-      } else {
-        _frameRateRestricted = val;
-        _stream.setRestrictFrameRate(val);
-      }
-      return this;
-    };
-
-    this.on('styleValueChanged', updateChromeForStyleChange, this);
-
-    this._ = {
-      archivingStatus: function(status) {
-        if(_chrome) {
-          _chrome.archive.setArchiving(status);
-        }
-      }
-    };
-
-    _state = new OT.SubscribingState(stateChangeFailed);
-
-   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	
-
-
-
-
-
-
-
-  };
-
-})(window);
-!(function() {
-
-  var parseErrorFromJSONDocument,
-      onGetResponseCallback,
-      onGetErrorCallback;
-
-  OT.SessionInfo = function(jsonDocument) {
-    var sessionJSON = jsonDocument[0];
-
-    OT.log('SessionInfo Response:');
-    OT.log(jsonDocument);
-
-    
-
-    this.sessionId = sessionJSON.session_id;
-    this.partnerId = sessionJSON.partner_id;
-    this.sessionStatus = sessionJSON.session_status;
-
-    this.messagingServer = sessionJSON.messaging_server_url;
-
-    this.messagingURL = sessionJSON.messaging_url;
-    this.symphonyAddress = sessionJSON.symphony_address;
-
-    this.p2pEnabled = !!(sessionJSON.properties &&
-      sessionJSON.properties.p2p &&
-      sessionJSON.properties.p2p.preference &&
-      sessionJSON.properties.p2p.preference.value === 'enabled');
-  };
-
-  
-  
-  
-  OT.SessionInfo.get = function(session, onSuccess, onFailure) {
-    var sessionInfoURL = OT.properties.apiURL + '/session/' + session.id + '?extended=true',
-
-        browser = OT.$.browserVersion(),
-
-        startTime = OT.$.now(),
-
-        options,
-
-        validateRawSessionInfo = function(sessionInfo) {
-          session.logEvent('Instrumentation', null, 'gsi', OT.$.now() - startTime);
-          var error = parseErrorFromJSONDocument(sessionInfo);
-          if (error === false) {
-            onGetResponseCallback(session, onSuccess, sessionInfo);
-          } else {
-            onGetErrorCallback(session, onFailure, error, JSON.stringify(sessionInfo));
-          }
+        var videoContainerOptions = {
+          error: onPeerConnectionFailure,
+          audioVolume: _audioVolume
         };
 
-
-    if(browser.browser === 'IE' && browser.version < 10) {
-      sessionInfoURL = sessionInfoURL + '&format=json&token=' + encodeURIComponent(session.token) +
-                                        '&version=1&cache=' + OT.$.uuid();
-      options = {
-        xdomainrequest: true
-      };
-    }
-    else {
-      options = {
-        headers: {
-          'X-TB-TOKEN-AUTH': session.token,
-          'X-TB-VERSION': 1
+        
+        
+        
+        
+        var tracks,
+            reenableVideoTrack = false;
+        if (!_stream.hasVideo && OT.$.env.name === 'Chrome' && OT.$.env.version >= 35) {
+          tracks = webRTCStream.getVideoTracks();
+          if(tracks.length > 0) {
+            tracks[0].enabled = false;
+            reenableVideoTrack = tracks[0];
+          }
         }
-      };
-    }
 
-    session.logEvent('getSessionInfo', 'Attempt', 'api_url', OT.properties.apiURL);
-
-    OT.$.getJSON(sessionInfoURL, options, function(error, sessionInfo) {
-      if(error) {
-        var responseText = sessionInfo;
-        onGetErrorCallback(session, onFailure,
-          new OT.Error(error.target && error.target.status || error.code, error.message ||
-            'Could not connect to the OpenTok API Server.'), responseText);
-      } else {
-        validateRawSessionInfo(sessionInfo);
-      }
-    });
-  };
-
-  var messageServerToClientErrorCodes = {};
-  messageServerToClientErrorCodes['404'] = OT.ExceptionCodes.INVALID_SESSION_ID;
-  messageServerToClientErrorCodes['409'] = OT.ExceptionCodes.INVALID_SESSION_ID;
-  messageServerToClientErrorCodes['400'] = OT.ExceptionCodes.INVALID_SESSION_ID;
-  messageServerToClientErrorCodes['403'] = OT.ExceptionCodes.AUTHENTICATION_ERROR;
-
-  
-  
-  parseErrorFromJSONDocument = function(jsonDocument) {
-    if(OT.$.isArray(jsonDocument)) {
-
-      var errors = OT.$.filter(jsonDocument, function(node) {
-        return node.error != null;
-      });
-
-      var numErrorNodes = errors.length;
-      if(numErrorNodes === 0) {
-        return false;
-      }
-
-      var errorCode = errors[0].error.code;
-      if (messageServerToClientErrorCodes[errorCode.toString()]) {
-        errorCode = messageServerToClientErrorCodes[errorCode];
-      }
-
-      return {
-        code: errorCode,
-        message: errors[0].error.errorMessage && errors[0].error.errorMessage.message
-      };
-    } else {
-      return {
-        code: null,
-        message: 'Unknown error: getSessionInfo JSON response was badly formed'
-      };
-    }
-  };
-
-  onGetResponseCallback = function(session, onSuccess, rawSessionInfo) {
-    session.logEvent('getSessionInfo', 'Success', 'api_url', OT.properties.apiURL);
-
-    onSuccess( new OT.SessionInfo(rawSessionInfo) );
-  };
-
-  onGetErrorCallback = function(session, onFailure, error, responseText) {
-    session.logEvent('Connect', 'Failure', 'errorMessage',
-      'GetSessionInfo:' + (error.code || 'No code') + ':' + error.message + ':' +
-        (responseText || 'Empty responseText from API server'));
-
-    onFailure(error, session);
-  };
-
-})(window);
-!(function() {
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	OT.Capabilities = function(permissions) {
-	    this.publish = OT.$.arrayIndexOf(permissions, 'publish') !== -1 ? 1 : 0;
-	    this.subscribe = OT.$.arrayIndexOf(permissions, 'subscribe') !== -1 ? 1 : 0;
-	    this.forceUnpublish = OT.$.arrayIndexOf(permissions, 'forceunpublish') !== -1 ? 1 : 0;
-	    this.forceDisconnect = OT.$.arrayIndexOf(permissions, 'forcedisconnect') !== -1 ? 1 : 0;
-	    this.supportsWebRTC = OT.$.hasCapabilities('webrtc') ? 1 : 0;
-
-      this.permittedTo = function(action) {
-        return this.hasOwnProperty(action) && this[action] === 1;
-      };
-    };
-
-})(window);
-!(function(window) {
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  OT.Session = function(apiKey, sessionId) {
-    OT.$.eventing(this);
-
-    
-    
-    if (!OT.checkSystemRequirements()) {
-      OT.upgradeSystemRequirements();
-      return;
-    }
-
-    if(sessionId == null) {
-      sessionId = apiKey;
-      apiKey = null;
-    }
-
-    this.id = this.sessionId = sessionId;
-
-    var _initialConnection = true,
-        _apiKey = apiKey,
-        _token,
-        _sessionId = sessionId,
-        _socket,
-        _widgetId = OT.$.uuid(),
-        _connectionId,
-        _analytics = new OT.Analytics(),
-        sessionConnectFailed,
-        sessionDisconnectedHandler,
-        connectionCreatedHandler,
-        connectionDestroyedHandler,
-        streamCreatedHandler,
-        streamPropertyModifiedHandler,
-        streamDestroyedHandler,
-        archiveCreatedHandler,
-        archiveDestroyedHandler,
-        archiveUpdatedHandler,
-        reset,
-        disconnectComponents,
-        destroyPublishers,
-        destroySubscribers,
-        connectMessenger,
-        getSessionInfo,
-        onSessionInfoResponse,
-        permittedTo,
-        dispatchError;
-
-
-
-    var setState = OT.$.statable(this, [
-      'disconnected', 'connecting', 'connected', 'disconnecting'
-    ], 'disconnected');
-
-    this.connection = null;
-    this.connections = new OT.Collection();
-    this.streams = new OT.Collection();
-    this.archives = new OT.Collection();
-
-
-  
-  
-  
-
-  
-  
-    sessionConnectFailed = function(reason, code) {
-      setState('disconnected');
-
-      OT.error(reason);
-
-      this.trigger('sessionConnectFailed',
-        new OT.Error(code || OT.ExceptionCodes.CONNECT_FAILED, reason));
-
-      OT.handleJsException(reason, code || OT.ExceptionCodes.CONNECT_FAILED, {
-        session: this
-      });
-    };
-
-    sessionDisconnectedHandler = function(event) {
-      var reason = event.reason;
-      if(reason === 'networkTimedout') {
-        reason = 'networkDisconnected';
-        this.logEvent('Connect', 'TimeOutDisconnect', 'reason', event.reason);
-      } else {
-        this.logEvent('Connect', 'Disconnected', 'reason', event.reason);
-      }
-
-      var publicEvent = new OT.SessionDisconnectEvent('sessionDisconnected', reason);
-
-      reset.call(this);
-      disconnectComponents.call(this, reason);
-
-      var defaultAction = OT.$.bind(function() {
-        
-        destroyPublishers.call(this, publicEvent.reason);
-        
-        if (!publicEvent.isDefaultPrevented()) destroySubscribers.call(this, publicEvent.reason);
-      }, this);
-
-      this.dispatchEvent(publicEvent, defaultAction);
-    };
-
-    connectionCreatedHandler = function(connection) {
-      
-      if (connection.id.match(/^symphony\./)) return;
-
-      this.dispatchEvent(new OT.ConnectionEvent(
-        OT.Event.names.CONNECTION_CREATED,
-        connection
-      ));
-    };
-
-    connectionDestroyedHandler = function(connection, reason) {
-      
-      if (connection.id.match(/^symphony\./)) return;
-
-      
-      
-      
-      if (connection.id === _socket.id()) return;
-
-      this.dispatchEvent(
-        new OT.ConnectionEvent(
-          OT.Event.names.CONNECTION_DESTROYED,
-          connection,
-          reason
-        )
-      );
-    };
-
-    streamCreatedHandler = function(stream) {
-      if(stream.connection.id !== this.connection.id) {
-        this.dispatchEvent(new OT.StreamEvent(
-          OT.Event.names.STREAM_CREATED,
-          stream,
-          null,
-          false
-        ));
-      }
-    };
-
-    streamPropertyModifiedHandler = function(event) {
-      var stream = event.target,
-          propertyName = event.changedProperty,
-          newValue = event.newValue;
-
-      if (propertyName === 'videoDisableWarning' || propertyName === 'audioDisableWarning') {
-        return; 
-      }
-
-      if (propertyName === 'orientation') {
-        propertyName = 'videoDimensions';
-        newValue = {width: newValue.width, height: newValue.height};
-      }
-
-      this.dispatchEvent(new OT.StreamPropertyChangedEvent(
-        OT.Event.names.STREAM_PROPERTY_CHANGED,
-        stream,
-        propertyName,
-        event.oldValue,
-        newValue
-      ));
-    };
-
-    streamDestroyedHandler = function(stream, reason) {
-
-      
-      
-      if(stream.connection.id === this.connection.id) {
-        OT.$.forEach(OT.publishers.where({ streamId: stream.id }), OT.$.bind(function(publisher) {
-          publisher._.unpublishFromSession(this, reason);
+        _streamContainer = _container.bindVideo(webRTCStream,
+                                            videoContainerOptions,
+                                            OT.$.bind(function(err) {
+          if (err) {
+            onPeerConnectionFailure(null, err.message || err, _peerConnection, 'VideoElement');
+            return;
+          }
+
+          
+          
+          if (reenableVideoTrack != null && _properties.subscribeToVideo) {
+            reenableVideoTrack.enabled = true;
+          }
+
+          _streamContainer.orientation({
+            width: _stream.videoDimensions.width,
+            height: _stream.videoDimensions.height,
+            videoOrientation: _stream.videoDimensions.orientation
+          });
+
+          onLoaded.call(this, null);
         }, this));
-        return;
-      }
 
-      var event = new OT.StreamEvent('streamDestroyed', stream, reason, true);
+        if (OT.$.hasCapabilities('webAudioCapableRemoteStream') && _audioLevelSampler &&
+          webRTCStream.getAudioTracks().length > 0) {
+          _audioLevelSampler.webRTCStream = webRTCStream;
+        }
 
-      var defaultAction = OT.$.bind(function() {
-        if (!event.isDefaultPrevented()) {
-          
-          OT.$.forEach(OT.subscribers.where({streamId: stream.id}), function(subscriber) {
-            if (subscriber.session.id === this.id) {
-              if(subscriber.stream) {
-                subscriber.destroy('streamDestroyed');
-              }
+        logAnalyticsEvent('createPeerConnection', 'StreamAdded');
+        this.trigger('streamAdded', this);
+      },
+
+      onRemoteStreamRemoved = function(webRTCStream) {
+        OT.debug('OT.Subscriber.onStreamRemoved');
+
+        if (_streamContainer.stream === webRTCStream) {
+          _streamContainer.destroy();
+          _streamContainer = null;
+        }
+
+
+        this.trigger('streamRemoved', this);
+      },
+
+      streamDestroyed = function () {
+        this.disconnect();
+      },
+
+      streamUpdated = function(event) {
+
+        switch(event.changedProperty) {
+          case 'videoDimensions':
+            if (!_streamContainer) {
+              
+              break;
             }
-          }, this);
-        } else {
-          
+            _streamContainer.orientation({
+              width: event.newValue.width,
+              height: event.newValue.height,
+              videoOrientation: event.newValue.orientation
+            });
+
+            this.dispatchEvent(new OT.VideoDimensionsChangedEvent(
+              this, event.oldValue, event.newValue
+            ));
+
+            break;
+
+          case 'videoDisableWarning':
+            _chrome.videoDisabledIndicator.setWarning(event.newValue);
+            this.dispatchEvent(new OT.VideoDisableWarningEvent(
+              event.newValue ? 'videoDisableWarning' : 'videoDisableWarningLifted'
+            ));
+            break;
+
+          case 'hasVideo':
+
+            setAudioOnly(!(_stream.hasVideo && _properties.subscribeToVideo));
+
+            this.dispatchEvent(new OT.VideoEnabledChangedEvent(
+              _stream.hasVideo ? 'videoEnabled' : 'videoDisabled', {
+              reason: 'publishVideo'
+            }));
+            break;
+
+          case 'hasAudio':
+            
         }
-      }, this);
+      },
 
-      this.dispatchEvent(event, defaultAction);
-    };
-
-    archiveCreatedHandler = function(archive) {
-      this.dispatchEvent(new OT.ArchiveEvent('archiveStarted', archive));
-    };
-
-    archiveDestroyedHandler = function(archive) {
-      this.dispatchEvent(new OT.ArchiveEvent('archiveDestroyed', archive));
-    };
-
-    archiveUpdatedHandler = function(event) {
-      var archive = event.target,
-        propertyName = event.changedProperty,
-        newValue = event.newValue;
-
-      if(propertyName === 'status' && newValue === 'stopped') {
-        this.dispatchEvent(new OT.ArchiveEvent('archiveStopped', archive));
-      } else {
-        this.dispatchEvent(new OT.ArchiveEvent('archiveUpdated', archive));
-      }
-    };
-
-    
-    reset = function() {
-      this.token = _token = null;
-      setState('disconnected');
-      this.connection = null;
-      this.capabilities = new OT.Capabilities([]);
-      this.connections.destroy();
-      this.streams.destroy();
-      this.archives.destroy();
-    };
-
-    disconnectComponents = function(reason) {
-      OT.$.forEach(OT.publishers.where({session: this}), function(publisher) {
-        publisher.disconnect(reason);
-      });
-
-      OT.$.forEach(OT.subscribers.where({session: this}), function(subscriber) {
-        subscriber.disconnect();
-      });
-    };
-
-    destroyPublishers = function(reason) {
-      OT.$.forEach(OT.publishers.where({session: this}), function(publisher) {
-        publisher._.streamDestroyed(reason);
-      });
-    };
-
-    destroySubscribers = function(reason) {
-      OT.$.forEach(OT.subscribers.where({session: this}), function(subscriber) {
-        subscriber.destroy(reason);
-      });
-    };
-
-    connectMessenger = function() {
-      OT.debug('OT.Session: connecting to Raptor');
-
-      var socketUrl = this.sessionInfo.messagingURL,
-          symphonyUrl = OT.properties.symphonyAddresss || this.sessionInfo.symphonyAddress;
-
-      _socket = new OT.Raptor.Socket(_widgetId, socketUrl, symphonyUrl,
-        OT.SessionDispatcher(this));
-
-      var analyticsPayload = [
-        socketUrl, OT.$.userAgent(), OT.properties.version,
-        window.externalHost ? 'yes' : 'no'
-      ];
-
-      _socket.connect(_token, this.sessionInfo, OT.$.bind(function(error, sessionState) {
-        if (error) {
-          _socket = void 0;
-          analyticsPayload.splice(0,0,error.message);
-          this.logEvent('Connect', 'Failure',
-            'reason|webSocketServerUrl|userAgent|sdkVersion|chromeFrame',
-            analyticsPayload.map(function(e) { return e.replace('|', '\\|'); }).join('|'));
-
-          sessionConnectFailed.call(this, error.message, error.code);
-          return;
-        }
-
-        OT.debug('OT.Session: Received session state from Raptor', sessionState);
-
-        this.connection = this.connections.get(_socket.id());
-        if(this.connection) {
-          this.capabilities = this.connection.permissions;
-        }
-
-        setState('connected');
-
-        this.logEvent('Connect', 'Success',
-          'webSocketServerUrl|userAgent|sdkVersion|chromeFrame',
-          OT.$.map(analyticsPayload, function(e) {
-            return e.replace('|', '\\|');
-          }).join('|'), {connectionId: this.connection.id});
-
-        
-        this.connection.on('destroyed', sessionDisconnectedHandler, this);
-
-        
-        this.connections.on({
-          add: connectionCreatedHandler,
-          remove: connectionDestroyedHandler
-        }, this);
-
-        
-        this.streams.on({
-          add: streamCreatedHandler,
-          remove: streamDestroyedHandler,
-          update: streamPropertyModifiedHandler
-        }, this);
-
-        this.archives.on({
-          add: archiveCreatedHandler,
-          remove: archiveDestroyedHandler,
-          update: archiveUpdatedHandler
-        }, this);
-
-        this.dispatchEvent(
-          new OT.SessionConnectEvent(OT.Event.names.SESSION_CONNECTED), OT.$.bind(function() {
-            this.connections._triggerAddEvents(); 
-            this.streams._triggerAddEvents(); 
-            this.archives._triggerAddEvents();
-          }, this)
-        );
-
-      }, this));
-    };
-
-    getSessionInfo = function() {
-      if (this.is('connecting')) {
-        OT.SessionInfo.get(
-          this,
-          OT.$.bind(onSessionInfoResponse, this),
-          OT.$.bind(function(error) {
-            sessionConnectFailed.call(this, error.message +
-              (error.code ? ' (' + error.code + ')' : ''), error.code);
-          }, this)
-        );
-      }
-    };
-
-    onSessionInfoResponse = function(sessionInfo) {
-      if (this.is('connecting')) {
-        var overrides = OT.properties.sessionInfoOverrides;
-        this.sessionInfo = sessionInfo;
-        if (overrides != null && typeof overrides === 'object') {
-          this.sessionInfo = OT.$.defaults(overrides, this.sessionInfo);
-          console.log('is', this.sessionInfo);
-        }
-        if (this.sessionInfo.partnerId && this.sessionInfo.partnerId !== _apiKey) {
-          this.apiKey = _apiKey = this.sessionInfo.partnerId;
-
-          var reason = 'Authentication Error: The API key does not match the token or session.';
-
-          this.logEvent('Connect', 'Failure', 'reason', 'GetSessionInfo:' +
-            OT.ExceptionCodes.AUTHENTICATION_ERROR + ':' + reason);
-
-          sessionConnectFailed.call(this, reason, OT.ExceptionCodes.AUTHENTICATION_ERROR);
-        } else {
-          connectMessenger.call(this);
-        }
-      }
-    };
-
-    
-    permittedTo = OT.$.bind(function(action) {
-      return this.capabilities.permittedTo(action);
-    }, this);
-
-    dispatchError = OT.$.bind(function(code, message, completionHandler) {
-      OT.dispatchError(code, message, completionHandler, this);
-    }, this);
-
-    this.logEvent = function(action, variation, payloadType, payload, options) {
       
-      var event = {
-        action: action,
-        variation: variation,
-        payload_type: payloadType,
-        payload: payload,
-        session_id: _sessionId,
-        partner_id: _apiKey,
-        widget_id: _widgetId,
-        widget_type: 'Controller'
+
+      
+      
+      
+      chromeButtonMode = function(mode) {
+        if (mode === false) return 'off';
+
+        var defaultMode = this.getStyle('buttonDisplayMode');
+
+        
+        if (defaultMode === false) return 'on';
+
+        
+        return defaultMode;
+      },
+
+      updateChromeForStyleChange = function(key, value) {
+        if (!_chrome) return;
+
+        switch(key) {
+          case 'nameDisplayMode':
+            _chrome.name.setDisplayMode(value);
+            _chrome.backingBar.setNameMode(value);
+            break;
+
+          case 'videoDisabledDisplayMode':
+            _chrome.videoDisabledIndicator.setDisplayMode(value);
+            break;
+
+          case 'showArchiveStatus':
+            _chrome.archive.setShowArchiveStatus(value);
+            break;
+
+          case 'buttonDisplayMode':
+            _chrome.muteButton.setDisplayMode(value);
+            _chrome.backingBar.setMuteMode(value);
+            break;
+
+          case 'audioLevelDisplayMode':
+            _chrome.audioLevel.setDisplayMode(value);
+            break;
+
+          case 'bugDisplayMode':
+            
+
+          case 'backgroundImageURI':
+            _container.setBackgroundImageURI(value);
+        }
+      },
+
+      _createChrome = function() {
+
+        var widgets = {
+          backingBar: new OT.Chrome.BackingBar({
+            nameMode: !_properties.name ? 'off' : this.getStyle('nameDisplayMode'),
+            muteMode: chromeButtonMode.call(this, this.getStyle('showMuteButton'))
+          }),
+
+          name: new OT.Chrome.NamePanel({
+            name: _properties.name,
+            mode: this.getStyle('nameDisplayMode')
+          }),
+
+          muteButton: new OT.Chrome.MuteButton({
+            muted: _properties.muted,
+            mode: chromeButtonMode.call(this, this.getStyle('showMuteButton'))
+          }),
+
+          archive: new OT.Chrome.Archiving({
+            show: this.getStyle('showArchiveStatus'),
+            archiving: false
+          })
+        };
+
+        if (_audioLevelCapable) {
+          var audioLevelTransformer = new OT.AudioLevelTransformer();
+
+          var audioLevelUpdatedHandler = function(evt) {
+            _audioLevelMeter.setValue(audioLevelTransformer.transform(evt.audioLevel));
+          };
+
+          _audioLevelMeter = new OT.Chrome.AudioLevelMeter({
+            mode: this.getStyle('audioLevelDisplayMode'),
+            onActivate: function() {
+              _subscriber.on('audioLevelUpdated', audioLevelUpdatedHandler);
+            },
+            onPassivate: function() {
+              _subscriber.off('audioLevelUpdated', audioLevelUpdatedHandler);
+            }
+          });
+
+          widgets.audioLevel = _audioLevelMeter;
+        }
+
+        widgets.videoDisabledIndicator = new OT.Chrome.VideoDisabledIndicator({
+          mode: this.getStyle('videoDisabledDisplayMode')
+        });
+
+        _chrome = new OT.Chrome({
+          parent: _container.domElement
+        }).set(widgets).on({
+          muted: function() {
+            muteAudio.call(this, true);
+          },
+
+          unmuted: function() {
+            muteAudio.call(this, false);
+          }
+        }, this);
+
+        
+        _chrome.hideWhileLoading();
+      },
+
+      _showError = function() {
+        
+        
+        if (_container) {
+          _container.addError(
+            'The stream was unable to connect due to a network error.',
+            'Make sure your connection isn\'t blocked by a firewall.'
+          );
+        }
       };
-      if (this.connection && this.connection.id) _connectionId = event.connection_id =
-        this.connection.id;
-      else if (_connectionId) event.connection_id = _connectionId;
+      
+  OT.StylableComponent(this, {
+    nameDisplayMode: 'auto',
+    buttonDisplayMode: 'auto',
+    audioLevelDisplayMode: 'auto',
+    videoDisabledDisplayMode: 'auto',
+    backgroundImageURI: null,
+    showArchiveStatus: true,
+    showMicButton: true
+  }, _properties.showControls, function (payload) {
+    logAnalyticsEvent('SetStyle', 'Subscriber', payload, 0.1);
+  });
 
-      if (options) event = OT.$.extend(options, event);
-      _analytics.logEvent(event);
+  var setAudioOnly = function(audioOnly) {
+    if (_container) {
+      _container.audioOnly(audioOnly);
+      _container.showPoster(audioOnly);
+    }
+
+    if (_audioLevelMeter && _subscriber.getStyle('audioLevelDisplayMode') === 'auto') {
+      _audioLevelMeter[audioOnly ? 'show' : 'hide']();
+    }
+  };
+
+  
+  var notifyGetStatsCalled = (function() {
+    var callCount = 0;
+    return function throttlingNotifyGetStatsCalled() {
+      if (callCount % 100 === 0) {
+        logAnalyticsEvent('getStats', 'Called');
+      }
+      callCount++;
     };
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    this.connect = function(token) {
-
-      if(apiKey == null && arguments.length > 1 &&
-        (typeof arguments[0] === 'string' || typeof arguments[0] === 'number') &&
-        typeof arguments[1] === 'string') {
-        _apiKey = token.toString();
-        token = arguments[1];
+  })();
+
+  this.destroy = function(reason, quiet) {
+    if (_state.isDestroyed()) return;
+
+    if(reason === 'streamDestroyed') {
+      if (_state.isAttemptingToSubscribe()) {
+        
+        
+        this.trigger('subscribeComplete', new OT.Error(null, 'InvalidStreamID'));
       }
+    }
 
-      
-      var completionHandler = arguments[arguments.length - 1];
+    _state.set('Destroyed');
 
-      if (this.is('connecting', 'connected')) {
-        OT.warn('OT.Session: Cannot connect, the session is already ' + this.state);
-        return this;
-      }
+    if(_audioLevelRunner) {
+      _audioLevelRunner.stop();
+    }
 
-      reset.call(this);
-      setState('connecting');
-      this.token = _token = !OT.$.isFunction(token) && token;
+    this.disconnect();
 
-      
-      if (_initialConnection) {
-        _initialConnection = false;
-      } else {
-        _widgetId = OT.$.uuid();
-      }
+    if (_chrome) {
+      _chrome.destroy();
+      _chrome = null;
+    }
 
-      if (completionHandler && OT.$.isFunction(completionHandler)) {
-        this.once('sessionConnected', OT.$.bind(completionHandler, null, null));
-        this.once('sessionConnectFailed', completionHandler);
-      }
+    if (_container) {
+      _container.destroy();
+      _container = null;
+      this.element = null;
+    }
 
-      if(_apiKey == null || OT.$.isFunction(_apiKey)) {
-        setTimeout(OT.$.bind(
-          sessionConnectFailed,
+    if (_stream && !_stream.destroyed) {
+      logAnalyticsEvent('unsubscribe', null, {streamId: _stream.id});
+    }
+
+    this.id = _domId = null;
+    this.stream = _stream = null;
+    this.streamId = null;
+
+    this.session =_session = null;
+    _properties = null;
+
+    if (quiet !== true) {
+      this.dispatchEvent(
+        new OT.DestroyedEvent(
+          OT.Event.names.SUBSCRIBER_DESTROYED,
           this,
-          'API Key is undefined. You must pass an API Key to initSession.',
-          OT.ExceptionCodes.AUTHENTICATION_ERROR
-        ));
-
-        return this;
-      }
-
-      if (!_sessionId) {
-        setTimeout(OT.$.bind(
-          sessionConnectFailed,
-          this,
-          'SessionID is undefined. You must pass a sessionID to initSession.',
-          OT.ExceptionCodes.INVALID_SESSION_ID
-        ));
-
-        return this;
-      }
-
-      this.apiKey = _apiKey = _apiKey.toString();
-
-      
-      if (OT.APIKEY.length === 0) {
-        OT.APIKEY = _apiKey;
-      }
-
-      var analyticsPayload = [
-        OT.$.userAgent(), OT.properties.version,
-        window.externalHost ? 'yes' : 'no'
-      ];
-      this.logEvent( 'Connect', 'Attempt',
-        'userAgent|sdkVersion|chromeFrame',
-        analyticsPayload.map(function(e) { return e.replace('|', '\\|'); }).join('|')
+          reason
+        ),
+        OT.$.bind(this.off, this)
       );
+    }
 
-      getSessionInfo.call(this);
-      return this;
-    };
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    var disconnect = OT.$.bind(function disconnect(drainSocketBuffer) {
-      if (_socket && _socket.isNot('disconnected')) {
-        if (_socket.isNot('disconnecting')) {
-          setState('disconnecting');
-          _socket.disconnect(drainSocketBuffer);
-        }
-      }
-      else {
-        reset.call(this);
-      }
-    }, this);
-
-    this.disconnect = function(drainSocketBuffer) {
-      disconnect(drainSocketBuffer !== void 0 ? drainSocketBuffer : true);
-    };
-
-    this.destroy = function(reason) {
-      this.streams.destroy();
-      this.connections.destroy();
-      this.archives.destroy();
-      disconnect(reason !== 'unloaded');
-    };
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    this.publish = function(publisher, properties, completionHandler) {
-      if(typeof publisher === 'function') {
-        completionHandler = publisher;
-        publisher = undefined;
-      }
-      if(typeof properties === 'function') {
-        completionHandler = properties;
-        properties = undefined;
-      }
-      if (this.isNot('connected')) {
-        
-        _analytics.logError(1010, 'OT.exception',
-          'We need to be connected before you can publish', null, {
-          action: 'publish',
-          variation: 'Failure',
-          payload_type: 'reason',
-          payload: 'We need to be connected before you can publish',
-          session_id: _sessionId,
-          partner_id: _apiKey,
-          widgetId: _widgetId,
-          widget_type: 'Controller'
-        });
-
-        if (completionHandler && OT.$.isFunction(completionHandler)) {
-          dispatchError(OT.ExceptionCodes.NOT_CONNECTED,
-            'We need to be connected before you can publish', completionHandler);
-        }
-
-        return null;
-      }
-
-      if (!permittedTo('publish')) {
-        this.logEvent('publish', 'Failure', 'reason',
-          'This token does not allow publishing. The role must be at least `publisher` ' +
-          'to enable this functionality');
-        dispatchError(OT.ExceptionCodes.UNABLE_TO_PUBLISH,
-          'This token does not allow publishing. The role must be at least `publisher` ' +
-          'to enable this functionality', completionHandler);
-        return null;
-      }
-
-      
-      if (!publisher || typeof(publisher)==='string' || OT.$.isElementNode(publisher)) {
-        
-        publisher = OT.initPublisher(publisher, properties);
-
-      } else if (publisher instanceof OT.Publisher){
-
-        
-        if ('session' in publisher && publisher.session && 'sessionId' in publisher.session) {
-          
-          if( publisher.session.sessionId === this.sessionId){
-            OT.warn('Cannot publish ' + publisher.guid() + ' again to ' +
-              this.sessionId + '. Please call session.unpublish(publisher) first.');
-          } else {
-            OT.warn('Cannot publish ' + publisher.guid() + ' publisher already attached to ' +
-              publisher.session.sessionId+ '. Please call session.unpublish(publisher) first.');
-          }
-        }
-
-      } else {
-        dispatchError(OT.ExceptionCodes.UNABLE_TO_PUBLISH,
-          'Session.publish :: First parameter passed in is neither a ' +
-          'string nor an instance of the Publisher',
-          completionHandler);
-        return;
-      }
-
-      publisher.once('publishComplete', function(err) {
-        if (err) {
-          dispatchError(OT.ExceptionCodes.UNABLE_TO_PUBLISH,
-            'Session.publish :: ' + err.message,
-            completionHandler);
-          return;
-        }
-
-        if (completionHandler && OT.$.isFunction(completionHandler)) {
-          completionHandler.apply(null, arguments);
-        }
-      });
-
-      
-      publisher._.publishToSession(this);
-
-      
-      return publisher;
-    };
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    this.unpublish = function(publisher) {
-      if (!publisher) {
-        OT.error('OT.Session.unpublish: publisher parameter missing.');
-        return;
-      }
-
-      
-      publisher._.unpublishFromSession(this, 'unpublished');
-    };
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    this.subscribe = function(stream, targetElement, properties, completionHandler) {
-
-      if (!this.connection || !this.connection.connectionId) {
-        dispatchError(OT.ExceptionCodes.UNABLE_TO_SUBSCRIBE,
-                      'Session.subscribe :: Connection required to subscribe',
-                      completionHandler);
-        return;
-      }
-
-      if (!stream) {
-        dispatchError(OT.ExceptionCodes.UNABLE_TO_SUBSCRIBE,
-                      'Session.subscribe :: stream cannot be null',
-                      completionHandler);
-        return;
-      }
-
-      if (!stream.hasOwnProperty('streamId')) {
-        dispatchError(OT.ExceptionCodes.UNABLE_TO_SUBSCRIBE,
-                      'Session.subscribe :: invalid stream object',
-                      completionHandler);
-        return;
-      }
-
-      if(typeof targetElement === 'function') {
-        completionHandler = targetElement;
-        targetElement = undefined;
-      }
-
-      if(typeof properties === 'function') {
-        completionHandler = properties;
-        properties = undefined;
-      }
-
-      var subscriber = new OT.Subscriber(targetElement, OT.$.extend(properties || {}, {
-        session: this
-      }));
-
-      subscriber.once('subscribeComplete', function(err) {
-        if (err) {
-          dispatchError(OT.ExceptionCodes.UNABLE_TO_SUBSCRIBE,
-                'Session.subscribe :: ' + err.message,
-                completionHandler);
-
-          return;
-        }
-
-        if (completionHandler && OT.$.isFunction(completionHandler)) {
-          completionHandler.apply(null, arguments);
-        }
-      });
-
-      OT.subscribers.add(subscriber);
-      subscriber.subscribe(stream);
-
-      return subscriber;
-    };
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    this.unsubscribe = function(subscriber) {
-      if (!subscriber) {
-        var errorMsg = 'OT.Session.unsubscribe: subscriber cannot be null';
-        OT.error(errorMsg);
-        throw new Error(errorMsg);
-      }
-
-      if (!subscriber.stream) {
-        OT.warn('OT.Session.unsubscribe:: tried to unsubscribe a subscriber that had no stream');
-        return false;
-      }
-
-      OT.debug('OT.Session.unsubscribe: subscriber ' + subscriber.id);
-
-      subscriber.destroy();
-
-      return true;
-    };
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-    this.getSubscribersForStream = function(stream) {
-      return OT.subscribers.where({streamId: stream.id});
-    };
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    this.getPublisherForStream = function(stream) {
-      var streamId,
-          errorMsg;
-
-      if (typeof stream === 'string') {
-        streamId = stream;
-      } else if (typeof stream === 'object' && stream && stream.hasOwnProperty('id')) {
-        streamId = stream.id;
-      } else {
-        errorMsg = 'Session.getPublisherForStream :: Invalid stream type';
-        OT.error(errorMsg);
-        throw new Error(errorMsg);
-      }
-
-      return OT.publishers.where({streamId: streamId})[0];
-    };
-
-    
-    this._ = {
-      jsepCandidateP2p: function(streamId, subscriberId, candidate) {
-        return _socket.jsepCandidateP2p(streamId, subscriberId, candidate);
-      },
-
-      jsepCandidate: function(streamId, candidate) {
-        return _socket.jsepCandidate(streamId, candidate);
-      },
-
-      jsepOffer: function(streamId, offerSdp) {
-        return _socket.jsepOffer(streamId, offerSdp);
-      },
-
-      jsepOfferP2p: function(streamId, subscriberId, offerSdp) {
-        return _socket.jsepOfferP2p(streamId, subscriberId, offerSdp);
-      },
-
-      jsepAnswer: function(streamId, answerSdp) {
-        return _socket.jsepAnswer(streamId, answerSdp);
-      },
-
-      jsepAnswerP2p: function(streamId, subscriberId, answerSdp) {
-        return _socket.jsepAnswerP2p(streamId, subscriberId, answerSdp);
-      },
-
-      
-      
-      dispatchSignal: OT.$.bind(function(fromConnection, type, data) {
-        var event = new OT.SignalEvent(type, data, fromConnection);
-        event.target = this;
-
-        
-        
-        this.trigger(OT.Event.names.SIGNAL, event);
-
-        
-        if (type) this.dispatchEvent(event);
-      }, this),
-
-      subscriberCreate: function(stream, subscriber, channelsToSubscribeTo, completion) {
-        return _socket.subscriberCreate(stream.id, subscriber.widgetId,
-          channelsToSubscribeTo, completion);
-      },
-
-      subscriberDestroy: function(stream, subscriber) {
-        return _socket.subscriberDestroy(stream.id, subscriber.widgetId);
-      },
-
-      subscriberUpdate: function(stream, subscriber, attributes) {
-        return _socket.subscriberUpdate(stream.id, subscriber.widgetId, attributes);
-      },
-
-      subscriberChannelUpdate: function(stream, subscriber, channel, attributes) {
-        return _socket.subscriberChannelUpdate(stream.id, subscriber.widgetId, channel.id,
-          attributes);
-      },
-
-      streamCreate: OT.$.bind(function(name, orientation, encodedWidth, encodedHeight,
-                                                hasAudio, hasVideo,
-                                                frameRate, completion) {
-
-        _socket.streamCreate(
-          name,
-          orientation,
-          encodedWidth,
-          encodedHeight,
-          hasAudio,
-          hasVideo,
-          frameRate,
-          OT.Config.get('bitrates', 'min', OT.APIKEY),
-          OT.Config.get('bitrates', 'max', OT.APIKEY),
-          completion
-        );
-      }, this),
-
-      streamDestroy: function(streamId) {
-        _socket.streamDestroy(streamId);
-      },
-
-      streamChannelUpdate: function(stream, channel, attributes) {
-        _socket.streamChannelUpdate(stream.id, channel.id, attributes);
-      }
-    };
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    this.signal = function(options, completion) {
-      var _options = options,
-          _completion = completion;
-
-      if (OT.$.isFunction(_options)) {
-        _completion = _options;
-        _options = null;
-      }
-
-      if (this.isNot('connected')) {
-        var notConnectedErrorMsg = 'Unable to send signal - you are not connected to the session.';
-        dispatchError(500, notConnectedErrorMsg, _completion);
-        return;
-      }
-
-      _socket.signal(_options, _completion);
-      if (options && options.data && (typeof(options.data) !== 'string')) {
-        OT.warn('Signaling of anything other than Strings is deprecated. ' +
-                'Please update the data property to be a string.');
-      }
-      this.logEvent('signal', 'send', 'type',
-        (options && options.data) ? typeof(options.data) : 'null');
-    };
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    this.forceDisconnect = function(connectionOrConnectionId, completionHandler) {
-      if (this.isNot('connected')) {
-        var notConnectedErrorMsg = 'Cannot call forceDisconnect(). You are not ' +
-                                   'connected to the session.';
-        dispatchError(OT.ExceptionCodes.NOT_CONNECTED, notConnectedErrorMsg, completionHandler);
-        return;
-      }
-
-      var notPermittedErrorMsg = 'This token does not allow forceDisconnect. ' +
-        'The role must be at least `moderator` to enable this functionality';
-
-      if (permittedTo('forceDisconnect')) {
-        var connectionId = typeof connectionOrConnectionId === 'string' ?
-          connectionOrConnectionId : connectionOrConnectionId.id;
-
-        _socket.forceDisconnect(connectionId, function(err) {
-          if (err) {
-            dispatchError(OT.ExceptionCodes.UNABLE_TO_FORCE_DISCONNECT,
-              notPermittedErrorMsg, completionHandler);
-
-          } else if (completionHandler && OT.$.isFunction(completionHandler)) {
-            completionHandler.apply(null, arguments);
-          }
-        });
-      } else {
-        
-        dispatchError(OT.ExceptionCodes.UNABLE_TO_FORCE_DISCONNECT,
-          notPermittedErrorMsg, completionHandler);
-      }
-    };
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    this.forceUnpublish = function(streamOrStreamId, completionHandler) {
-      if (this.isNot('connected')) {
-        var notConnectedErrorMsg = 'Cannot call forceUnpublish(). You are not ' +
-                                   'connected to the session.';
-        dispatchError(OT.ExceptionCodes.NOT_CONNECTED, notConnectedErrorMsg, completionHandler);
-        return;
-      }
-
-      var notPermittedErrorMsg = 'This token does not allow forceUnpublish. ' +
-        'The role must be at least `moderator` to enable this functionality';
-
-      if (permittedTo('forceUnpublish')) {
-        var stream = typeof streamOrStreamId === 'string' ?
-          this.streams.get(streamOrStreamId) : streamOrStreamId;
-
-        _socket.forceUnpublish(stream.id, function(err) {
-          if (err) {
-            dispatchError(OT.ExceptionCodes.UNABLE_TO_FORCE_UNPUBLISH,
-              notPermittedErrorMsg, completionHandler);
-          } else if (completionHandler && OT.$.isFunction(completionHandler)) {
-            completionHandler.apply(null, arguments);
-          }
-        });
-      } else {
-        
-        dispatchError(OT.ExceptionCodes.UNABLE_TO_FORCE_UNPUBLISH,
-          notPermittedErrorMsg, completionHandler);
-      }
-    };
-
-    this.getStateManager = function() {
-      OT.warn('Fixme: Have not implemented session.getStateManager');
-    };
-
-    this.isConnected = function() {
-      return this.is('connected');
-    };
-
-    this.capabilities = new OT.Capabilities([]);
-
-  
-
-
-
-
-
-
-
-
-
-  
-
-
-
-
-
-
-
-
-
-  
-
-
-
-
-
-
-
-
-  
-
-
-
-
-
-
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
-
-
-
-
-
-
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    return this;
   };
 
-})(window);
-(function() {
+  this.disconnect = function() {
+    if (!_state.isDestroyed() && !_state.isFailed()) {
+      
+      
+      _state.set('NotSubscribing');
+    }
 
-  var txt = function(text) {
-    return document.createTextNode(text);
+    if (_streamContainer) {
+      _streamContainer.destroy();
+      _streamContainer = null;
+    }
+
+    if (_peerConnection) {
+      _peerConnection.destroy();
+      _peerConnection = null;
+
+      logAnalyticsEvent('disconnect', 'PeerConnection', {streamId: _stream.id});
+    }
   };
 
-  var el = function(attr, children, tagName) {
-    var el = OT.$.createElement(tagName || 'div', attr, children);
-    el.on = OT.$.bind(OT.$.on, OT.$, el);
-    return el;
+  this.processMessage = function(type, fromConnection, message) {
+    OT.debug('OT.Subscriber.processMessage: Received ' + type + ' message from ' +
+      fromConnection.id);
+    OT.debug(message);
+
+    if (_fromConnectionId !== fromConnection.id) {
+      _fromConnectionId = fromConnection.id;
+    }
+
+    if (_peerConnection) {
+      _peerConnection.processMessage(type, message);
+    }
   };
 
-  function DevicePickerController(opts) {
-    var destroyExistingPublisher,
-        publisher,
-        devicesById;
-
-    this.change = OT.$.bind(function() {
-      destroyExistingPublisher();
-
-      var settings;
-
-      this.pickedDevice = devicesById[opts.selectTag.value];
-
-      if(!this.pickedDevice) {
-        console.log('No device for', opts.mode, opts.selectTag.value);
-        return;
-      }
-
-      settings = {
-        insertMode: 'append',
-        name: this.pickedDevice.label,
-        audioSource: null,
-        videoSource: null,
-        width: 220,
-        height: 165
-      };
-
-      settings[opts.mode] = this.pickedDevice.deviceId;
-
-      console.log('initPublisher', opts.previewTag, settings);
-      var pub = OT.initPublisher(opts.previewTag, settings);
-
-      pub.on({
-        accessDialogOpened: function(event) {
-          event.preventDefault();
-        },
-        accessDialogClosed: function() {
-        },
-        accessAllowed: function() {
-        },
-        accessDenied: function(event) {
-          event.preventDefault();
-        }
-      });
-
-      publisher = pub;
-    }, this);
-
-    this.cleanup = destroyExistingPublisher = function() {
-      if(publisher) {
-        publisher.destroy();
-        publisher = void 0;
-      }
-    };
-
-    var disableSelector = function (opt, str) {
-      opt.innerHTML = '';
-      opt.appendChild(el({}, txt(str), 'option'));
-      opt.setAttribute('disabled', '');
-    };
-
-    var addDevice = function (device) {
-      devicesById[device.deviceId] = device;
-      return el({ value: device.deviceId }, txt(device.label), 'option');
-    };
-
-    this.setDeviceList = OT.$.bind(function (devices) {
-      opts.selectTag.innerHTML = '';
-      devicesById = {};
-      if(devices.length > 0) {
-        devices.map(addDevice).map(OT.$.bind(opts.selectTag.appendChild, opts.selectTag));
-        opts.selectTag.removeAttribute('disabled');
+  this.disableVideo = function(active) {
+    if (!active) {
+      OT.warn('Due to high packet loss and low bandwidth, video has been disabled');
+    } else {
+      if (_lastSubscribeToVideoReason === 'auto') {
+        OT.info('Video has been re-enabled');
+        _chrome.videoDisabledIndicator.disableVideo(false);
       } else {
-        disableSelector(opts.selectTag, 'No devices');
-      }
-      this.change();
-    }, this);
-
-    this.setLoading = function() {
-      disableSelector(opts.selectTag, 'Loading...');
-    };
-
-    OT.$.on(opts.selectTag, 'change', this.change);
-  }
-
-  OT.HardwareSetup = function(targetElement, options, callback) {
-
-    var camera,
-        microphone,
-        setupDOM,
-        setState;
-
-    setState = OT.$.statable(this, ['getDevices', 'chooseDevices', 'destroyed'], 'getDevices');
-
-    this.audioSource = function() {
-      return microphone && microphone.pickedDevice;
-    };
-
-    this.videoSource = function() {
-      return camera && camera.pickedDevice;
-    };
-
-    this.destroy = OT.$.bind(function() {
-      if(this.is('destroyed')) {
+        OT.info('Video was not re-enabled because it was manually disabled');
         return;
       }
-      if(camera) {
-        camera.cleanup();
-      }
-      if(microphone) {
-        microphone.cleanup();
-      }
-      if(this.is('chooseDevices')) {
-        targetElement.parentNode.removeChild(targetElement);
-      }
-      setState('destroyed');
-    }, this);
+    }
+    this.subscribeToVideo(active, 'auto');
+    if(!active) {
+      _chrome.videoDisabledIndicator.disableVideo(true);
+    }
+    var payload = active ? {videoEnabled: true} : {videoDisabled: true};
+    logAnalyticsEvent('updateQuality', 'video', payload);
+  };
 
-    if(targetElement == null) {
-      callback(new Error('You must provide a targetElement'));
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  this.getImgData = function() {
+    if (!this.isSubscribing()) {
+      OT.error('OT.Subscriber.getImgData: Cannot getImgData before the Subscriber ' +
+        'is subscribing.');
+      return null;
+    }
+
+    return _streamContainer.imgData();
+  };
+
+  this.getStats = function(callback) {
+    if (!_peerConnection) {
+      callback(new OT.$.Error('Subscriber is not connected cannot getStats', 1015));
       return;
     }
 
-    if(!OT.$.hasCapabilities('getMediaDevices')) {
-      callback(new Error('This browser does not support getMediaDevices APIs'));
-      return;
-    }
+    notifyGetStatsCalled();
 
-    var camSelector,
-        camPreview,
-        micSelector,
-        micPreview,
-        container;
-
-    camSelector = el({ style: 'width: 100%' }, '', 'select');
-    camPreview = el({
-      style: 'background-color: #000; margin-left: 100px; width: 220px; height: 165px;'
-    }, ''),
-    micSelector = el({ style: 'width: 100%' }, '', 'select'),
-    micPreview = el({
-      style: 'background-color: #000; margin-left: 100px; width: 220px; height: 165px;'
-    }, '');
-
-    container = el({
-      id: 'OT_' + OT.$.uuid(),
-      style: 'border: 1px solid #000; padding: 10px; width: 320px;'
-    }, [
-      el({ style: 'padding: 0 0 10px; overflow: auto; text-align: right; ' }, [
-        el({ style: 'float: left; width: 90px; padding-right: 10px; line-height: 160%;' },
-          'Camera'),
-        el({ style: 'margin-left: 100px; ' }, camSelector),
-        camPreview
-      ]),
-      el({ style: 'overflow: auto; text-align: right;' }, [
-        el({ style: 'float: left; width: 90px; padding-right: 10px; line-height: 160%;' },
-          'Microphone'),
-        el({ style: 'margin-left: 100px; ' }, micSelector),
-        micPreview
-      ])
-    ]);
-
-    camera = new DevicePickerController({
-      selectTag: camSelector,
-      previewTag: camPreview,
-      mode: 'videoSource'
-    });
-
-    microphone = new DevicePickerController({
-      selectTag: micSelector,
-      previewTag: micPreview,
-      mode: 'audioSource'
-    });
-
-    camera.setLoading();
-    microphone.setLoading();
-
-    OT.getDevices(OT.$.bind(function(error, devices) {
+    _peerConnection.getStats(function(error, stats) {
       if (error) {
         callback(error);
         return;
       }
 
-      if(this.is('destroyed')) {
-        return; 
-      }
+      var otStats = {
+        timestamp: 0
+      };
 
-      setupDOM();
+      OT.$.forEach(stats, function(stat) {
+        if (OT.getStatsHelpers.isInboundStat(stat)) {
+          var video = OT.getStatsHelpers.isVideoStat(stat);
+          var audio = OT.getStatsHelpers.isAudioStat(stat);
 
-      camera.setDeviceList(devices.filter(function(device) {
-        return device.kind === 'videoinput';
-      }));
-
-      microphone.setDeviceList(devices.filter(function(device) {
-        return device.kind === 'audioinput';
-      }));
-
-      setState('chooseDevices');
-
-    }, this));
-
-    setupDOM = function() {
-      var insertMode = options.insertMode;
-      if(!(insertMode == null || insertMode === 'replace')) {
-        if(insertMode === 'append') {
-          targetElement.appendChild(container);
-          targetElement = container;
-        } else if(insertMode === 'before') {
-          targetElement.parentNode.insertBefore(container, targetElement);
-          targetElement = container;
-        } else if(insertMode === 'after') {
-          targetElement.parentNode.insertBefore(container, targetElement.nextSibling);
-          targetElement = container;
+          
+          
+          if (audio || video) {
+            otStats.timestamp = OT.getStatsHelpers.normalizeTimestamp(stat.timestamp);
+          }
+          if (video) {
+            otStats.video = OT.getStatsHelpers.parseStatCategory(stat);
+          } else if (audio) {
+            otStats.audio = OT.getStatsHelpers.parseStatCategory(stat);
+          }
         }
-      } else {
-        OT.$.emptyElement(targetElement);
-        if(targetElement.getAttribute('id') == null) {
-          targetElement.setAttribute('id', container.getAttribute('id'));
-        }
-        for(var key in container.style) {
-          targetElement.style[key] = container.style[key];
-        }
-        while(container.childNodes.length > 0) {
-          targetElement.appendChild(container.firstChild);
-        }
-      }
-    };
+      });
 
+      callback(null, otStats);
+    });
   };
 
-  OT.initHardwareSetup = function(targetElement, options, callback) {
-    return new OT.HardwareSetup(targetElement, options, callback);
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  this.setAudioVolume = function(value) {
+    value = parseInt(value, 10);
+    if (isNaN(value)) {
+      OT.error('OT.Subscriber.setAudioVolume: value should be an integer between 0 and 100');
+      return this;
+    }
+    _audioVolume = Math.max(0, Math.min(100, value));
+    if (_audioVolume !== value) {
+      OT.warn('OT.Subscriber.setAudioVolume: value should be an integer between 0 and 100');
+    }
+    if(_properties.muted && _audioVolume > 0) {
+      _properties.premuteVolume = value;
+      muteAudio.call(this, false);
+    }
+    if (_streamContainer) {
+      _streamContainer.setAudioVolume(_audioVolume);
+    }
+    return this;
   };
 
-})();
-!(function() {
-  var style = document.createElement('link');
-  style.type = 'text/css';
-  style.media = 'screen';
-  style.rel = 'stylesheet';
-  style.href = OT.properties.cssURL;
-  var head = document.head || document.getElementsByTagName('head')[0];
-  head.appendChild(style);
-})(window);
-!(function(){
+  
 
 
 
@@ -22274,8 +19337,4791 @@ var SDPHelpers = {
 
 
 
-  if (typeof define === 'function' && define.amd) {
-    define( 'TB', [], function () { return TB; } );
+
+
+  this.getAudioVolume = function() {
+    if(_properties.muted) {
+      return 0;
+    }
+    if (_streamContainer) return _streamContainer.getAudioVolume();
+    else return _audioVolume;
+  };
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  this.subscribeToAudio = function(pValue) {
+    var value = OT.$.castToBoolean(pValue, true);
+
+    if (_peerConnection) {
+      _peerConnection.subscribeToAudio(value && !_properties.subscribeMute);
+
+      if (_session && _stream && value !== _properties.subscribeToAudio) {
+        _stream.setChannelActiveState('audio', value && !_properties.subscribeMute);
+      }
+    }
+
+    _properties.subscribeToAudio = value;
+
+    return this;
+  };
+
+  var muteAudio = function(_mute) {
+    _chrome.muteButton.muted(_mute);
+
+    if(_mute === _properties.mute) {
+      return;
+    }
+    if(OT.$.env.name === 'Chrome' || OTPlugin.isInstalled()) {
+      _properties.subscribeMute = _properties.muted = _mute;
+      this.subscribeToAudio(_properties.subscribeToAudio);
+    } else {
+      if(_mute) {
+        _properties.premuteVolume = this.getAudioVolume();
+        _properties.muted = true;
+        this.setAudioVolume(0);
+      } else if(_properties.premuteVolume || _properties.audioVolume) {
+        _properties.muted = false;
+        this.setAudioVolume(_properties.premuteVolume || _properties.audioVolume);
+      }
+    }
+    _properties.mute = _properties.mute;
+  };
+
+  var reasonMap = {
+    auto: 'quality',
+    publishVideo: 'publishVideo',
+    subscribeToVideo: 'subscribeToVideo'
+  };
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  this.subscribeToVideo = function(pValue, reason) {
+    var value = OT.$.castToBoolean(pValue, true);
+    
+    setAudioOnly(!(value && _stream.hasVideo));
+
+    if ( value && _container  && _container.video()) {
+      _container.loading(value);
+      _container.video().whenTimeIncrements(function() {
+        _container.loading(false);
+      }, this);
+    }
+
+    if (_chrome && _chrome.videoDisabledIndicator) {
+      _chrome.videoDisabledIndicator.disableVideo(false);
+    }
+
+    if (_peerConnection) {
+      _peerConnection.subscribeToVideo(value);
+
+      if (_session && _stream && (value !== _properties.subscribeToVideo ||
+          reason !== _lastSubscribeToVideoReason)) {
+        _stream.setChannelActiveState('video', value, reason);
+      }
+    }
+
+    _properties.subscribeToVideo = value;
+    _lastSubscribeToVideoReason = reason;
+
+    if (reason !== 'loading') {
+      this.dispatchEvent(new OT.VideoEnabledChangedEvent(
+        value ? 'videoEnabled' : 'videoDisabled',
+        {
+          reason: reasonMap[reason] || 'subscribeToVideo'
+        }
+      ));
+    }
+
+    return this;
+  };
+
+  this.isSubscribing = function() {
+    return _state.isSubscribing();
+  };
+
+  this.isWebRTC = true;
+
+  this.isLoading = function() {
+    return _container && _container.loading();
+  };
+
+  this.videoElement = function() {
+    return _streamContainer.domElement();
+  };
+
+  this.videoWidth = function() {
+    return _streamContainer.videoWidth();
+  };
+
+  this.videoHeight = function() {
+    return _streamContainer.videoHeight();
+  };
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  this.restrictFrameRate = function(val) {
+    OT.debug('OT.Subscriber.restrictFrameRate(' + val + ')');
+
+    logAnalyticsEvent('restrictFrameRate', val.toString(), {streamId: _stream.id});
+
+    if (_session.sessionInfo.p2pEnabled) {
+      OT.warn('OT.Subscriber.restrictFrameRate: Cannot restrictFrameRate on a P2P session');
+    }
+
+    if (typeof val !== 'boolean') {
+      OT.error('OT.Subscriber.restrictFrameRate: expected a boolean value got a ' + typeof val);
+    } else {
+      _frameRateRestricted = val;
+      _stream.setRestrictFrameRate(val);
+    }
+    return this;
+  };
+
+  this.on('styleValueChanged', updateChromeForStyleChange, this);
+
+  this._ = {
+    archivingStatus: function(status) {
+      if(_chrome) {
+        _chrome.archive.setArchiving(status);
+      }
+    }
+  };
+
+  _state = new OT.SubscribingState(stateChangeFailed);
+
+  OT.debug('OT.Subscriber: subscribe to ' + _stream.id);
+
+  _state.set('Init');
+
+  if (!_stream) {
+    
+    OT.error('OT.Subscriber: No stream parameter.');
+    return false;
   }
 
-})(window);
+  _stream.on({
+    updated: streamUpdated,
+    destroyed: streamDestroyed
+  }, this);
+
+  _fromConnectionId = _stream.connection.id;
+  _properties.name = _properties.name || _stream.name;
+  _properties.classNames = 'OT_root OT_subscriber';
+
+  if (_properties.style) {
+    this.setStyle(_properties.style, null, true);
+  }
+  if (_properties.audioVolume) {
+    this.setAudioVolume(_properties.audioVolume);
+  }
+
+  _properties.subscribeToAudio = OT.$.castToBoolean(_properties.subscribeToAudio, true);
+  _properties.subscribeToVideo = OT.$.castToBoolean(_properties.subscribeToVideo, true);
+
+  _container = new OT.WidgetView(targetElement, _properties);
+  this.id = _domId = _container.domId();
+  this.element = _container.domElement;
+
+  _createChrome.call(this);
+
+  _startConnectingTime = OT.$.now();
+
+  if (_stream.connection.id !== _session.connection.id) {
+    logAnalyticsEvent('createPeerConnection', 'Attempt', '');
+
+    _state.set('ConnectingToPeer');
+
+    _peerConnection = new OT.SubscriberPeerConnection(_stream.connection, _session,
+      _stream, this, _properties);
+
+    _peerConnection.on({
+      disconnected: onDisconnected,
+      error: onPeerConnectionFailure,
+      remoteStreamAdded: onRemoteStreamAdded,
+      remoteStreamRemoved: onRemoteStreamRemoved,
+      qos: recordQOS
+    }, this);
+
+    
+    _peerConnection.init();
+
+    if (OT.$.hasCapabilities('audioOutputLevelStat')) {
+      _audioLevelSampler = new OT.GetStatsAudioLevelSampler(_peerConnection, 'out');
+    } else if (OT.$.hasCapabilities('webAudioCapableRemoteStream')) {
+      _audioLevelSampler = new OT.AnalyserAudioLevelSampler(OT.audioContext());
+    }
+
+    if(_audioLevelSampler) {
+      var subscriber = this;
+      
+      
+      _audioLevelRunner = new OT.IntervalRunner(function() {
+        _audioLevelSampler.sample(function(audioOutputLevel) {
+          if (audioOutputLevel !== null) {
+            OT.$.requestAnimationFrame(function() {
+              subscriber.dispatchEvent(
+                new OT.AudioLevelUpdatedEvent(audioOutputLevel));
+            });
+          }
+        });
+      }, 60);
+    }
+  } else {
+    logAnalyticsEvent('createPeerConnection', 'Attempt', '');
+
+    var publisher = _session.getPublisherForStream(_stream);
+    if(!(publisher && publisher._.webRtcStream())) {
+      this.trigger('subscribeComplete', new OT.Error(null, 'InvalidStreamID'));
+      return this;
+    }
+
+    
+    onRemoteStreamAdded.call(this, publisher._.webRtcStream());
+  }
+
+  logConnectivityEvent('Attempt', {streamId: _stream.id});
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OT.Session = function(apiKey, sessionId) {
+  OT.$.eventing(this);
+
+  
+  
+  if (!OT.checkSystemRequirements()) {
+    OT.upgradeSystemRequirements();
+    return;
+  }
+
+  if(sessionId == null) {
+    sessionId = apiKey;
+    apiKey = null;
+  }
+
+  this.id = this.sessionId = sessionId;
+
+  var _initialConnection = true,
+      _apiKey = apiKey,
+      _token,
+      _session = this,
+      _sessionId = sessionId,
+      _socket,
+      _widgetId = OT.$.uuid(),
+      _connectionId = OT.$.uuid(),
+      sessionConnectFailed,
+      sessionDisconnectedHandler,
+      connectionCreatedHandler,
+      connectionDestroyedHandler,
+      streamCreatedHandler,
+      streamPropertyModifiedHandler,
+      streamDestroyedHandler,
+      archiveCreatedHandler,
+      archiveDestroyedHandler,
+      archiveUpdatedHandler,
+      init,
+      reset,
+      disconnectComponents,
+      destroyPublishers,
+      destroySubscribers,
+      connectMessenger,
+      getSessionInfo,
+      onSessionInfoResponse,
+      permittedTo,
+      _connectivityAttemptPinger,
+      dispatchError;
+
+
+
+  var setState = OT.$.statable(this, [
+    'disconnected', 'connecting', 'connected', 'disconnecting'
+  ], 'disconnected');
+
+  this.connection = null;
+  this.connections = new OT.$.Collection();
+  this.streams = new OT.$.Collection();
+  this.archives = new OT.$.Collection();
+
+
+
+
+
+
+
+
+  sessionConnectFailed = function(reason, code) {
+    setState('disconnected');
+
+    OT.error(reason);
+
+    this.trigger('sessionConnectFailed',
+      new OT.Error(code || OT.ExceptionCodes.CONNECT_FAILED, reason));
+
+    OT.handleJsException(reason, code || OT.ExceptionCodes.CONNECT_FAILED, {
+      session: this
+    });
+  };
+
+  sessionDisconnectedHandler = function(event) {
+    var reason = event.reason;
+    if(reason === 'networkTimedout') {
+      reason = 'networkDisconnected';
+      this.logEvent('Connect', 'TimeOutDisconnect', {reason: event.reason});
+    } else {
+      this.logEvent('Connect', 'Disconnected', {reason: event.reason});
+    }
+
+    var publicEvent = new OT.SessionDisconnectEvent('sessionDisconnected', reason);
+
+    reset();
+    disconnectComponents.call(this, reason);
+
+    var defaultAction = OT.$.bind(function() {
+      
+      destroyPublishers.call(this, publicEvent.reason);
+      
+      if (!publicEvent.isDefaultPrevented()) destroySubscribers.call(this, publicEvent.reason);
+    }, this);
+
+    this.dispatchEvent(publicEvent, defaultAction);
+  };
+
+  connectionCreatedHandler = function(connection) {
+    
+    if (connection.id.match(/^symphony\./)) return;
+
+    this.dispatchEvent(new OT.ConnectionEvent(
+      OT.Event.names.CONNECTION_CREATED,
+      connection
+    ));
+  };
+
+  connectionDestroyedHandler = function(connection, reason) {
+    
+    if (connection.id.match(/^symphony\./)) return;
+
+    
+    
+    
+    if (connection.id === _socket.id()) return;
+
+    this.dispatchEvent(
+      new OT.ConnectionEvent(
+        OT.Event.names.CONNECTION_DESTROYED,
+        connection,
+        reason
+      )
+    );
+  };
+
+  streamCreatedHandler = function(stream) {
+    if(stream.connection.id !== this.connection.id) {
+      this.dispatchEvent(new OT.StreamEvent(
+        OT.Event.names.STREAM_CREATED,
+        stream,
+        null,
+        false
+      ));
+    }
+  };
+
+  streamPropertyModifiedHandler = function(event) {
+    var stream = event.target,
+        propertyName = event.changedProperty,
+        newValue = event.newValue;
+
+    if (propertyName === 'videoDisableWarning' || propertyName === 'audioDisableWarning') {
+      return; 
+    }
+
+    if (propertyName === 'orientation') {
+      propertyName = 'videoDimensions';
+      newValue = {width: newValue.width, height: newValue.height};
+    }
+
+    this.dispatchEvent(new OT.StreamPropertyChangedEvent(
+      OT.Event.names.STREAM_PROPERTY_CHANGED,
+      stream,
+      propertyName,
+      event.oldValue,
+      newValue
+    ));
+  };
+
+  streamDestroyedHandler = function(stream, reason) {
+
+    
+    
+    if(stream.connection.id === this.connection.id) {
+      OT.$.forEach(OT.publishers.where({ streamId: stream.id }), OT.$.bind(function(publisher) {
+        publisher._.unpublishFromSession(this, reason);
+      }, this));
+      return;
+    }
+
+    var event = new OT.StreamEvent('streamDestroyed', stream, reason, true);
+
+    var defaultAction = OT.$.bind(function() {
+      if (!event.isDefaultPrevented()) {
+        
+        OT.$.forEach(OT.subscribers.where({streamId: stream.id}), function(subscriber) {
+          if (subscriber.session.id === this.id) {
+            if(subscriber.stream) {
+              subscriber.destroy('streamDestroyed');
+            }
+          }
+        }, this);
+      } else {
+        
+      }
+    }, this);
+
+    this.dispatchEvent(event, defaultAction);
+  };
+
+  archiveCreatedHandler = function(archive) {
+    this.dispatchEvent(new OT.ArchiveEvent('archiveStarted', archive));
+  };
+
+  archiveDestroyedHandler = function(archive) {
+    this.dispatchEvent(new OT.ArchiveEvent('archiveDestroyed', archive));
+  };
+
+  archiveUpdatedHandler = function(event) {
+    var archive = event.target,
+      propertyName = event.changedProperty,
+      newValue = event.newValue;
+
+    if(propertyName === 'status' && newValue === 'stopped') {
+      this.dispatchEvent(new OT.ArchiveEvent('archiveStopped', archive));
+    } else {
+      this.dispatchEvent(new OT.ArchiveEvent('archiveUpdated', archive));
+    }
+  };
+
+  init = function() {
+    _session.token = _token = null;
+    setState('disconnected');
+    _session.connection = null;
+    _session.capabilities = new OT.Capabilities([]);
+    _session.connections.destroy();
+    _session.streams.destroy();
+    _session.archives.destroy();
+  };
+
+  
+  reset = function() {
+    
+    
+    
+    
+    _connectionId = OT.$.uuid();
+    init();
+  };
+
+  disconnectComponents = function(reason) {
+    OT.$.forEach(OT.publishers.where({session: this}), function(publisher) {
+      publisher.disconnect(reason);
+    });
+
+    OT.$.forEach(OT.subscribers.where({session: this}), function(subscriber) {
+      subscriber.disconnect();
+    });
+  };
+
+  destroyPublishers = function(reason) {
+    OT.$.forEach(OT.publishers.where({session: this}), function(publisher) {
+      publisher._.streamDestroyed(reason);
+    });
+  };
+
+  destroySubscribers = function(reason) {
+    OT.$.forEach(OT.subscribers.where({session: this}), function(subscriber) {
+      subscriber.destroy(reason);
+    });
+  };
+
+  connectMessenger = function() {
+    OT.debug('OT.Session: connecting to Raptor');
+
+    var socketUrl = this.sessionInfo.messagingURL,
+        symphonyUrl = OT.properties.symphonyAddresss || this.sessionInfo.symphonyAddress;
+
+    _socket = new OT.Raptor.Socket(_connectionId, _widgetId, socketUrl, symphonyUrl,
+      OT.SessionDispatcher(this));
+
+
+    _socket.connect(_token, this.sessionInfo, OT.$.bind(function(error, sessionState) {
+      if (error) {
+        _socket = void 0;
+        this.logConnectivityEvent('Failure', error);
+
+        sessionConnectFailed.call(this, error.message, error.code);
+        return;
+      }
+
+      OT.debug('OT.Session: Received session state from Raptor', sessionState);
+
+      this.connection = this.connections.get(_socket.id());
+      if(this.connection) {
+        this.capabilities = this.connection.permissions;
+      }
+
+      setState('connected');
+
+      this.logConnectivityEvent('Success', null, {connectionId: this.connection.id});
+
+      
+      this.connection.on('destroyed', sessionDisconnectedHandler, this);
+
+      
+      this.connections.on({
+        add: connectionCreatedHandler,
+        remove: connectionDestroyedHandler
+      }, this);
+
+      
+      this.streams.on({
+        add: streamCreatedHandler,
+        remove: streamDestroyedHandler,
+        update: streamPropertyModifiedHandler
+      }, this);
+
+      this.archives.on({
+        add: archiveCreatedHandler,
+        remove: archiveDestroyedHandler,
+        update: archiveUpdatedHandler
+      }, this);
+
+      this.dispatchEvent(
+        new OT.SessionConnectEvent(OT.Event.names.SESSION_CONNECTED), OT.$.bind(function() {
+          this.connections._triggerAddEvents(); 
+          this.streams._triggerAddEvents(); 
+          this.archives._triggerAddEvents();
+        }, this)
+      );
+
+    }, this));
+  };
+
+  getSessionInfo = function() {
+    if (this.is('connecting')) {
+      OT.SessionInfo.get(
+        this,
+        OT.$.bind(onSessionInfoResponse, this),
+        OT.$.bind(function(error) {
+          sessionConnectFailed.call(this, error.message +
+            (error.code ? ' (' + error.code + ')' : ''), error.code);
+        }, this)
+      );
+    }
+  };
+
+  onSessionInfoResponse = function(sessionInfo) {
+    if (this.is('connecting')) {
+      var overrides = OT.properties.sessionInfoOverrides;
+      this.sessionInfo = sessionInfo;
+      if (overrides != null && typeof overrides === 'object') {
+        this.sessionInfo = OT.$.defaults(overrides, this.sessionInfo);
+      }
+      if (this.sessionInfo.partnerId && this.sessionInfo.partnerId !== _apiKey) {
+        this.apiKey = _apiKey = this.sessionInfo.partnerId;
+
+        var reason = 'Authentication Error: The API key does not match the token or session.';
+
+        var payload = {
+          code: OT.ExceptionCodes.AUTHENTICATION_ERROR,
+          message: reason
+        };
+        this.logEvent('Failure', 'SessionInfo', payload);
+
+        sessionConnectFailed.call(this, reason, OT.ExceptionCodes.AUTHENTICATION_ERROR);
+      } else {
+        connectMessenger.call(this);
+      }
+    }
+  };
+
+  
+  permittedTo = OT.$.bind(function(action) {
+    return this.capabilities.permittedTo(action);
+  }, this);
+
+  dispatchError = OT.$.bind(function(code, message, completionHandler) {
+    OT.dispatchError(code, message, completionHandler, this);
+  }, this);
+
+  this.logEvent = function(action, variation, payload, options) {
+    var event = {
+      action: action,
+      variation: variation,
+      payload: payload,
+      sessionId: _sessionId,
+      partnerId: _apiKey
+    };
+
+    event.connectionId = _connectionId;
+
+    if (options) event = OT.$.extend(options, event);
+    OT.analytics.logEvent(event);
+  };
+
+  
+
+
+
+
+
+
+
+  function getTestNetworkConfig(token) {
+    return new Promise(function(resolve, reject) {
+      OT.$.getJSON(
+        [OT.properties.apiURL, '/v2/partner/', _apiKey, '/session/', _sessionId, '/connection/',
+          _connectionId, '/testNetworkConfig'].join(''),
+        {
+          headers: {'X-TB-TOKEN-AUTH': token}
+        },
+        function(errorEvent, response) {
+          if (errorEvent) {
+            var error = JSON.parse(errorEvent.target.responseText);
+            if (error.code === -1) {
+              reject(new OT.$.Error('Unexpected HTTP error codes ' +
+              errorEvent.target.status, '2001'));
+            } else if (error.code === 10001 || error.code === 10002) {
+              reject(new OT.$.Error(error.message, '1004'));
+            } else {
+              reject(new OT.$.Error(error.message, error.code));
+            }
+          } else {
+            resolve(response);
+          }
+        });
+    });
+  }
+
+  
+
+
+
+
+  this.testNetwork = function(token, publisher, callback) {
+
+    
+    var origCallback = callback;
+    callback = function loggingCallback(error, stats) {
+      if (error) {
+        _session.logEvent('testNetwork', 'Failure', {
+          failureCode: error.name || error.message || 'unknown'
+        });
+      } else {
+        _session.logEvent('testNetwork', 'Success', stats);
+      }
+      origCallback(error, stats);
+    };
+
+    _session.logEvent('testNetwork', 'Attempt', {});
+
+    if(this.isConnected()) {
+      callback(new OT.$.Error('Session connected, cannot test network', 1015));
+      return;
+    }
+
+    var webRtcStreamPromise = new Promise(
+      function(resolve, reject) {
+        var webRtcStream = publisher._.webRtcStream();
+        if (webRtcStream) {
+          resolve(webRtcStream);
+        } else {
+
+          var onAccessAllowed = function() {
+            unbind();
+            resolve(publisher._.webRtcStream());
+          };
+
+          var onPublishComplete = function(error) {
+            if (error) {
+              unbind();
+              reject(error);
+            }
+          };
+
+          var unbind = function() {
+            publisher.off('publishComplete', onPublishComplete);
+            publisher.off('accessAllowed', onAccessAllowed);
+          };
+
+          publisher.on('publishComplete', onPublishComplete);
+          publisher.on('accessAllowed', onAccessAllowed);
+
+        }
+      });
+
+    var testConfig;
+    var webrtcStats;
+    Promise.all([getTestNetworkConfig(token), webRtcStreamPromise])
+      .then(function(values) {
+        var webRtcStream = values[1];
+        testConfig = values[0];
+        return OT.webrtcTest({mediaConfig: testConfig.media, localStream: webRtcStream});
+      })
+      .then(function(stats) {
+        OT.debug('Received stats from webrtcTest: ', stats);
+        if (stats.bandwidth < testConfig.media.thresholdBitsPerSecond) {
+          return Promise.reject(new OT.$.Error('The detect bandwidth form the WebRTC stage of ' +
+          'the test was not sufficient to run the HTTP stage of the test', 1553));
+        }
+
+        webrtcStats = stats;
+      })
+      .then(function() {
+        return OT.httpTest({httpConfig: testConfig.http});
+      })
+      .then(function(httpStats) {
+        var stats = {
+          uploadBitsPerSecond: httpStats.uploadBandwidth,
+          downloadBitsPerSecond: httpStats.downloadBandwidth,
+          packetLossRatio: webrtcStats.packetLostRatio,
+          roundTripTimeMilliseconds: webrtcStats.roundTripTime
+        };
+        callback(null, stats);
+        
+      })['catch'](function(error) {
+        callback(error);
+      });
+  };
+
+  this.logConnectivityEvent = function(variation, payload, options) {
+    if (variation === 'Attempt' || !_connectivityAttemptPinger) {
+      var pingerOptions = {
+        action: 'Connect',
+        sessionId: _sessionId,
+        partnerId: _apiKey
+      };
+      if (this.connection && this.connection.id) {
+        pingerOptions = event.connectionId = this.connection.id;
+      } else if (_connectionId) {
+        pingerOptions.connectionId = _connectionId;
+      }
+      _connectivityAttemptPinger = new OT.ConnectivityAttemptPinger(pingerOptions);
+    }
+    _connectivityAttemptPinger.setVariation(variation);
+    this.logEvent('Connect', variation, payload, options);
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  this.connect = function(token) {
+
+    if(apiKey == null && arguments.length > 1 &&
+      (typeof arguments[0] === 'string' || typeof arguments[0] === 'number') &&
+      typeof arguments[1] === 'string') {
+      _apiKey = token.toString();
+      token = arguments[1];
+    }
+
+    
+    var completionHandler = arguments[arguments.length - 1];
+
+    if (this.is('connecting', 'connected')) {
+      OT.warn('OT.Session: Cannot connect, the session is already ' + this.state);
+      return this;
+    }
+
+    init();
+    setState('connecting');
+    this.token = _token = !OT.$.isFunction(token) && token;
+
+    
+    if (_initialConnection) {
+      _initialConnection = false;
+    } else {
+      _widgetId = OT.$.uuid();
+    }
+
+    if (completionHandler && OT.$.isFunction(completionHandler)) {
+      this.once('sessionConnected', OT.$.bind(completionHandler, null, null));
+      this.once('sessionConnectFailed', completionHandler);
+    }
+
+    if(_apiKey == null || OT.$.isFunction(_apiKey)) {
+      setTimeout(OT.$.bind(
+        sessionConnectFailed,
+        this,
+        'API Key is undefined. You must pass an API Key to initSession.',
+        OT.ExceptionCodes.AUTHENTICATION_ERROR
+      ));
+
+      return this;
+    }
+
+    if (!_sessionId) {
+      setTimeout(OT.$.bind(
+        sessionConnectFailed,
+        this,
+        'SessionID is undefined. You must pass a sessionID to initSession.',
+        OT.ExceptionCodes.INVALID_SESSION_ID
+      ));
+
+      return this;
+    }
+
+    this.apiKey = _apiKey = _apiKey.toString();
+
+    
+    if (OT.APIKEY.length === 0) {
+      OT.APIKEY = _apiKey;
+    }
+
+    this.logConnectivityEvent('Attempt');
+
+    getSessionInfo.call(this);
+    return this;
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  var disconnect = OT.$.bind(function disconnect(drainSocketBuffer) {
+    if (_socket && _socket.isNot('disconnected')) {
+      if (_socket.isNot('disconnecting')) {
+        setState('disconnecting');
+        _socket.disconnect(drainSocketBuffer);
+      }
+    }
+    else {
+      reset();
+    }
+  }, this);
+
+  this.disconnect = function(drainSocketBuffer) {
+    disconnect(drainSocketBuffer !== void 0 ? drainSocketBuffer : true);
+  };
+
+  this.destroy = function(reason) {
+    this.streams.destroy();
+    this.connections.destroy();
+    this.archives.destroy();
+    disconnect(reason !== 'unloaded');
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  this.publish = function(publisher, properties, completionHandler) {
+    if(typeof publisher === 'function') {
+      completionHandler = publisher;
+      publisher = undefined;
+    }
+    if(typeof properties === 'function') {
+      completionHandler = properties;
+      properties = undefined;
+    }
+    if (this.isNot('connected')) {
+      OT.analytics.logError(1010, 'OT.exception',
+        'We need to be connected before you can publish', null, {
+        action: 'Publish',
+        variation: 'Failure',
+        payload: {
+          reason:'unconnected',
+          code: OT.ExceptionCodes.NOT_CONNECTED,
+          message: 'We need to be connected before you can publish'
+        },
+        sessionId: _sessionId,
+        partnerId: _apiKey,
+      });
+
+      if (completionHandler && OT.$.isFunction(completionHandler)) {
+        dispatchError(OT.ExceptionCodes.NOT_CONNECTED,
+          'We need to be connected before you can publish', completionHandler);
+      }
+
+      return null;
+    }
+
+    if (!permittedTo('publish')) {
+      var errorMessage = 'This token does not allow publishing. The role must be at least ' +
+        '`publisher` to enable this functionality';
+      var payload = {
+        reason: 'permission',
+        code: OT.ExceptionCodes.UNABLE_TO_PUBLISH,
+        message: errorMessage
+      };
+      this.logEvent('publish', 'Failure', payload);
+      dispatchError(OT.ExceptionCodes.UNABLE_TO_PUBLISH, errorMessage, completionHandler);
+      return null;
+    }
+
+    
+    if (!publisher || typeof(publisher)==='string' || OT.$.isElementNode(publisher)) {
+      
+      publisher = OT.initPublisher(publisher, properties);
+
+    } else if (publisher instanceof OT.Publisher){
+
+      
+      if ('session' in publisher && publisher.session && 'sessionId' in publisher.session) {
+        
+        if( publisher.session.sessionId === this.sessionId){
+          OT.warn('Cannot publish ' + publisher.guid() + ' again to ' +
+            this.sessionId + '. Please call session.unpublish(publisher) first.');
+        } else {
+          OT.warn('Cannot publish ' + publisher.guid() + ' publisher already attached to ' +
+            publisher.session.sessionId+ '. Please call session.unpublish(publisher) first.');
+        }
+      }
+
+    } else {
+      dispatchError(OT.ExceptionCodes.UNABLE_TO_PUBLISH,
+        'Session.publish :: First parameter passed in is neither a ' +
+        'string nor an instance of the Publisher',
+        completionHandler);
+      return;
+    }
+
+    publisher.once('publishComplete', function(err) {
+      if (err) {
+        dispatchError(OT.ExceptionCodes.UNABLE_TO_PUBLISH,
+          'Session.publish :: ' + err.message,
+          completionHandler);
+        return;
+      }
+
+      if (completionHandler && OT.$.isFunction(completionHandler)) {
+        completionHandler.apply(null, arguments);
+      }
+    });
+
+    
+    publisher._.publishToSession(this);
+
+    
+    return publisher;
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  this.unpublish = function(publisher) {
+    if (!publisher) {
+      OT.error('OT.Session.unpublish: publisher parameter missing.');
+      return;
+    }
+
+    
+    publisher._.unpublishFromSession(this, 'unpublished');
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  this.subscribe = function(stream, targetElement, properties, completionHandler) {
+
+    if (!this.connection || !this.connection.connectionId) {
+      dispatchError(OT.ExceptionCodes.UNABLE_TO_SUBSCRIBE,
+                    'Session.subscribe :: Connection required to subscribe',
+                    completionHandler);
+      return;
+    }
+
+    if (!stream) {
+      dispatchError(OT.ExceptionCodes.UNABLE_TO_SUBSCRIBE,
+                    'Session.subscribe :: stream cannot be null',
+                    completionHandler);
+      return;
+    }
+
+    if (!stream.hasOwnProperty('streamId')) {
+      dispatchError(OT.ExceptionCodes.UNABLE_TO_SUBSCRIBE,
+                    'Session.subscribe :: invalid stream object',
+                    completionHandler);
+      return;
+    }
+
+    if(typeof targetElement === 'function') {
+      completionHandler = targetElement;
+      targetElement = undefined;
+      properties = undefined;
+    }
+
+    if(typeof properties === 'function') {
+      completionHandler = properties;
+      properties = undefined;
+    }
+
+    var subscriber = new OT.Subscriber(targetElement, OT.$.extend(properties || {}, {
+      stream: stream,
+      session: this
+    }), function(err) {
+
+      if (err) {
+        dispatchError(OT.ExceptionCodes.UNABLE_TO_SUBSCRIBE,
+              'Session.subscribe :: ' + err.message,
+              completionHandler);
+
+      } else  if (completionHandler && OT.$.isFunction(completionHandler)) {
+        completionHandler.apply(null, arguments);
+      }
+
+    });
+
+    OT.subscribers.add(subscriber);
+
+    return subscriber;
+
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  this.unsubscribe = function(subscriber) {
+    if (!subscriber) {
+      var errorMsg = 'OT.Session.unsubscribe: subscriber cannot be null';
+      OT.error(errorMsg);
+      throw new Error(errorMsg);
+    }
+
+    if (!subscriber.stream) {
+      OT.warn('OT.Session.unsubscribe:: tried to unsubscribe a subscriber that had no stream');
+      return false;
+    }
+
+    OT.debug('OT.Session.unsubscribe: subscriber ' + subscriber.id);
+
+    subscriber.destroy();
+
+    return true;
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  this.getSubscribersForStream = function(stream) {
+    return OT.subscribers.where({streamId: stream.id});
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  this.getPublisherForStream = function(stream) {
+    var streamId,
+        errorMsg;
+
+    if (typeof stream === 'string') {
+      streamId = stream;
+    } else if (typeof stream === 'object' && stream && stream.hasOwnProperty('id')) {
+      streamId = stream.id;
+    } else {
+      errorMsg = 'Session.getPublisherForStream :: Invalid stream type';
+      OT.error(errorMsg);
+      throw new Error(errorMsg);
+    }
+
+    return OT.publishers.where({streamId: streamId})[0];
+  };
+
+  
+  this._ = {
+    jsepCandidateP2p: function(streamId, subscriberId, candidate) {
+      return _socket.jsepCandidateP2p(streamId, subscriberId, candidate);
+    },
+
+    jsepCandidate: function(streamId, candidate) {
+      return _socket.jsepCandidate(streamId, candidate);
+    },
+
+    jsepOffer: function(streamId, offerSdp) {
+      return _socket.jsepOffer(streamId, offerSdp);
+    },
+
+    jsepOfferP2p: function(streamId, subscriberId, offerSdp) {
+      return _socket.jsepOfferP2p(streamId, subscriberId, offerSdp);
+    },
+
+    jsepAnswer: function(streamId, answerSdp) {
+      return _socket.jsepAnswer(streamId, answerSdp);
+    },
+
+    jsepAnswerP2p: function(streamId, subscriberId, answerSdp) {
+      return _socket.jsepAnswerP2p(streamId, subscriberId, answerSdp);
+    },
+
+    
+    
+    dispatchSignal: OT.$.bind(function(fromConnection, type, data) {
+      var event = new OT.SignalEvent(type, data, fromConnection);
+      event.target = this;
+
+      
+      
+      this.trigger(OT.Event.names.SIGNAL, event);
+
+      
+      if (type) this.dispatchEvent(event);
+    }, this),
+
+    subscriberCreate: function(stream, subscriber, channelsToSubscribeTo, completion) {
+      return _socket.subscriberCreate(stream.id, subscriber.widgetId,
+        channelsToSubscribeTo, completion);
+    },
+
+    subscriberDestroy: function(stream, subscriber) {
+      return _socket.subscriberDestroy(stream.id, subscriber.widgetId);
+    },
+
+    subscriberUpdate: function(stream, subscriber, attributes) {
+      return _socket.subscriberUpdate(stream.id, subscriber.widgetId, attributes);
+    },
+
+    subscriberChannelUpdate: function(stream, subscriber, channel, attributes) {
+      return _socket.subscriberChannelUpdate(stream.id, subscriber.widgetId, channel.id,
+        attributes);
+    },
+
+    streamCreate: function(name, audioFallbackEnabled, channels, completion) {
+      _socket.streamCreate(
+        name,
+        audioFallbackEnabled,
+        channels,
+        OT.Config.get('bitrates', 'min', OT.APIKEY),
+        OT.Config.get('bitrates', 'max', OT.APIKEY),
+        completion
+      );
+    },
+
+    streamDestroy: function(streamId) {
+      _socket.streamDestroy(streamId);
+    },
+
+    streamChannelUpdate: function(stream, channel, attributes) {
+      _socket.streamChannelUpdate(stream.id, channel.id, attributes);
+    }
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  this.signal = function(options, completion) {
+    var _options = options,
+        _completion = completion;
+
+    if (OT.$.isFunction(_options)) {
+      _completion = _options;
+      _options = null;
+    }
+
+    if (this.isNot('connected')) {
+      var notConnectedErrorMsg = 'Unable to send signal - you are not connected to the session.';
+      dispatchError(500, notConnectedErrorMsg, _completion);
+      return;
+    }
+
+    _socket.signal(_options, _completion, this.logEvent);
+    if (options && options.data && (typeof(options.data) !== 'string')) {
+      OT.warn('Signaling of anything other than Strings is deprecated. ' +
+              'Please update the data property to be a string.');
+    }
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  this.forceDisconnect = function(connectionOrConnectionId, completionHandler) {
+    if (this.isNot('connected')) {
+      var notConnectedErrorMsg = 'Cannot call forceDisconnect(). You are not ' +
+                                 'connected to the session.';
+      dispatchError(OT.ExceptionCodes.NOT_CONNECTED, notConnectedErrorMsg, completionHandler);
+      return;
+    }
+
+    var notPermittedErrorMsg = 'This token does not allow forceDisconnect. ' +
+      'The role must be at least `moderator` to enable this functionality';
+
+    if (permittedTo('forceDisconnect')) {
+      var connectionId = typeof connectionOrConnectionId === 'string' ?
+        connectionOrConnectionId : connectionOrConnectionId.id;
+
+      _socket.forceDisconnect(connectionId, function(err) {
+        if (err) {
+          dispatchError(OT.ExceptionCodes.UNABLE_TO_FORCE_DISCONNECT,
+            notPermittedErrorMsg, completionHandler);
+
+        } else if (completionHandler && OT.$.isFunction(completionHandler)) {
+          completionHandler.apply(null, arguments);
+        }
+      });
+    } else {
+      
+      dispatchError(OT.ExceptionCodes.UNABLE_TO_FORCE_DISCONNECT,
+        notPermittedErrorMsg, completionHandler);
+    }
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  this.forceUnpublish = function(streamOrStreamId, completionHandler) {
+    if (this.isNot('connected')) {
+      var notConnectedErrorMsg = 'Cannot call forceUnpublish(). You are not ' +
+                                 'connected to the session.';
+      dispatchError(OT.ExceptionCodes.NOT_CONNECTED, notConnectedErrorMsg, completionHandler);
+      return;
+    }
+
+    var notPermittedErrorMsg = 'This token does not allow forceUnpublish. ' +
+      'The role must be at least `moderator` to enable this functionality';
+
+    if (permittedTo('forceUnpublish')) {
+      var stream = typeof streamOrStreamId === 'string' ?
+        this.streams.get(streamOrStreamId) : streamOrStreamId;
+
+      _socket.forceUnpublish(stream.id, function(err) {
+        if (err) {
+          dispatchError(OT.ExceptionCodes.UNABLE_TO_FORCE_UNPUBLISH,
+            notPermittedErrorMsg, completionHandler);
+        } else if (completionHandler && OT.$.isFunction(completionHandler)) {
+          completionHandler.apply(null, arguments);
+        }
+      });
+    } else {
+      
+      dispatchError(OT.ExceptionCodes.UNABLE_TO_FORCE_UNPUBLISH,
+        notPermittedErrorMsg, completionHandler);
+    }
+  };
+
+  this.getStateManager = function() {
+    OT.warn('Fixme: Have not implemented session.getStateManager');
+  };
+
+  this.isConnected = function() {
+    return this.is('connected');
+  };
+
+  this.capabilities = new OT.Capabilities([]);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var defaultConstraints = {
+  audio: true,
+  video: true
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OT.Publisher = function(options) {
+  
+  
+  if (!OT.checkSystemRequirements()) {
+    OT.upgradeSystemRequirements();
+    return;
+  }
+
+  var _guid = OT.Publisher.nextId(),
+      _domId,
+      _widgetView,
+      _targetElement,
+      _stream,
+      _streamId,
+      _webRTCStream,
+      _session,
+      _peerConnections = {},
+      _loaded = false,
+      _publishStartTime,
+      _microphone,
+      _chrome,
+      _audioLevelMeter,
+      _properties,
+      _validResolutions,
+      _validFrameRates = [ 1, 7, 15, 30 ],
+      _prevStats,
+      _state,
+      _iceServers,
+      _audioLevelCapable = OT.$.hasCapabilities('webAudio'),
+      _audioLevelSampler,
+      _isScreenSharing = options && (
+        options.videoSource === 'screen' ||
+        options.videoSource === 'window' ||
+        options.videoSource === 'tab' ||
+        options.videoSource === 'application'
+      ),
+      _connectivityAttemptPinger,
+      _publisher = this;
+
+  _properties = OT.$.defaults(options || {}, {
+    publishAudio: _isScreenSharing ? false : true,
+    publishVideo: true,
+    mirror: _isScreenSharing ? false : true,
+    showControls: true,
+    fitMode: _isScreenSharing ? 'contain' : 'cover',
+    audioFallbackEnabled: _isScreenSharing ? false : true,
+    maxResolution: _isScreenSharing ? { width: 1920, height: 1920 } : undefined
+  });
+
+  _validResolutions = {
+    '320x240': {width: 320, height: 240},
+    '640x480': {width: 640, height: 480},
+    '1280x720': {width: 1280, height: 720}
+  };
+  
+  if (_isScreenSharing) {
+    if (window.location.protocol !== 'https:') {
+      OT.warn('Screen Sharing typically requires pages to be loadever over HTTPS - unless this ' +
+        'browser is configured locally to allow non-SSL pages, permission will be denied ' +
+        'without user input.');
+    }
+  }
+
+  _prevStats = {
+    'timeStamp' : OT.$.now()
+  };
+
+  OT.$.eventing(this);
+
+  if(!_isScreenSharing && _audioLevelCapable) {
+    _audioLevelSampler = new OT.AnalyserAudioLevelSampler(OT.audioContext());
+
+    var audioLevelRunner = new OT.IntervalRunner(function() {
+      _audioLevelSampler.sample(function(audioInputLevel) {
+        OT.$.requestAnimationFrame(function() {
+          _publisher.dispatchEvent(
+            new OT.AudioLevelUpdatedEvent(audioInputLevel));
+        });
+      });
+    }, 60);
+
+    this.on({
+      'audioLevelUpdated:added': function(count) {
+        if (count === 1) {
+          audioLevelRunner.start();
+        }
+      },
+      'audioLevelUpdated:removed': function(count) {
+        if (count === 0) {
+          audioLevelRunner.stop();
+        }
+      }
+    });
+  }
+
+  
+  var logAnalyticsEvent = function(action, variation, payload, throttle) {
+        OT.analytics.logEvent({
+          action: action,
+          variation: variation,
+          payload: payload,
+          'sessionId': _session ? _session.sessionId : null,
+          'connectionId': _session &&
+            _session.isConnected() ? _session.connection.connectionId : null,
+          'partnerId': _session ? _session.apiKey : OT.APIKEY,
+          streamId: _stream ? _stream.id : null
+        }, throttle);
+      },
+
+      logConnectivityEvent = function(variation, payload) {
+        if (variation === 'Attempt' || !_connectivityAttemptPinger) {
+          _connectivityAttemptPinger = new OT.ConnectivityAttemptPinger({
+            action: 'Publish',
+            'sessionId': _session ? _session.sessionId : null,
+            'connectionId': _session &&
+              _session.isConnected() ? _session.connection.connectionId : null,
+            'partnerId': _session ? _session.apiKey : OT.APIKEY,
+            streamId: _stream ? _stream.id : null
+          });
+        }
+        if (variation === 'Failure' && payload.reason !== 'Non-fatal') {
+          
+          
+          _connectivityAttemptPinger.setVariation(variation);
+        }
+        logAnalyticsEvent('Publish', variation, payload);
+      },
+
+      recordQOS = OT.$.bind(function(connection, parsedStats) {
+        var QoSBlob = {
+          streamType: 'WebRTC',
+          sessionId: _session ? _session.sessionId : null,
+          connectionId: _session && _session.isConnected() ?
+            _session.connection.connectionId : null,
+          partnerId: _session ? _session.apiKey : OT.APIKEY,
+          streamId: _stream ? _stream.id : null,
+          width: _widgetView ? Number(OT.$.width(_widgetView.domElement).replace('px', ''))
+            : undefined,
+          height: _widgetView ? Number(OT.$.height(_widgetView.domElement).replace('px', ''))
+            : undefined,
+          version: OT.properties.version,
+          mediaServerName: _session ? _session.sessionInfo.messagingServer : null,
+          p2pFlag: _session ? _session.sessionInfo.p2pEnabled : false,
+          duration: _publishStartTime ? new Date().getTime() - _publishStartTime.getTime() : 0,
+          remoteConnectionId: connection.id
+        };
+        OT.analytics.logQOS( OT.$.extend(QoSBlob, parsedStats) );
+        this.trigger('qos', parsedStats);
+      }, this),
+
+      
+
+      stateChangeFailed = function(changeFailed) {
+        OT.error('Publisher State Change Failed: ', changeFailed.message);
+        OT.debug(changeFailed);
+      },
+
+      onLoaded = OT.$.bind(function() {
+        if (_state.isDestroyed()) {
+          
+          return;
+        }
+
+        OT.debug('OT.Publisher.onLoaded');
+
+        _state.set('MediaBound');
+
+        
+        
+        _widgetView.loading(this.session ? !_stream : false);
+
+        _loaded = true;
+
+        createChrome.call(this);
+
+        this.trigger('initSuccess');
+        this.trigger('loaded', this);
+      }, this),
+
+      onLoadFailure = OT.$.bind(function(reason) {
+        var errorCode = OT.ExceptionCodes.P2P_CONNECTION_FAILED;
+        var payload = {
+          reason: 'Publisher PeerConnection Error: ',
+          code: errorCode,
+          message: reason
+        };
+        logConnectivityEvent('Failure', payload);
+
+        _state.set('Failed');
+        this.trigger('publishComplete', new OT.Error(errorCode,
+          'Publisher PeerConnection Error: ' + reason));
+
+        OT.handleJsException('Publisher PeerConnection Error: ' + reason,
+          OT.ExceptionCodes.P2P_CONNECTION_FAILED, {
+          session: _session,
+          target: this
+        });
+      }, this),
+
+      onStreamAvailable = OT.$.bind(function(webOTStream) {
+        OT.debug('OT.Publisher.onStreamAvailable');
+
+        _state.set('BindingMedia');
+
+        cleanupLocalStream();
+        _webRTCStream = webOTStream;
+
+        _microphone = new OT.Microphone(_webRTCStream, !_properties.publishAudio);
+        this.publishVideo(_properties.publishVideo &&
+          _webRTCStream.getVideoTracks().length > 0);
+
+
+        this.accessAllowed = true;
+        this.dispatchEvent(new OT.Event(OT.Event.names.ACCESS_ALLOWED, false));
+
+        var videoContainerOptions = {
+          muted: true,
+          error: onVideoError
+        };
+
+        _targetElement = _widgetView.bindVideo(_webRTCStream,
+                                          videoContainerOptions,
+                                          function(err) {
+          if (err) {
+            onLoadFailure(err);
+            return;
+          }
+
+          onLoaded();
+        });
+
+        if(_audioLevelSampler && _webRTCStream.getAudioTracks().length > 0) {
+          _audioLevelSampler.webRTCStream = _webRTCStream;
+        }
+
+      }, this),
+
+      onStreamAvailableError = OT.$.bind(function(error) {
+        OT.error('OT.Publisher.onStreamAvailableError ' + error.name + ': ' + error.message);
+
+        _state.set('Failed');
+        this.trigger('publishComplete', new OT.Error(OT.ExceptionCodes.UNABLE_TO_PUBLISH,
+            error.message));
+
+        if (_widgetView) _widgetView.destroy();
+
+        var payload = {
+          reason: 'GetUserMedia',
+          code: OT.ExceptionCodes.UNABLE_TO_PUBLISH,
+          message: 'Publisher failed to access camera/mic: ' + error.message
+        };
+        logConnectivityEvent('Failure', payload);
+
+        OT.handleJsException(payload.reason,
+          payload.code, {
+          session: _session,
+          target: this
+        });
+      }, this),
+
+      onScreenSharingError = OT.$.bind(function(error) {
+        OT.error('OT.Publisher.onScreenSharingError ' + error.message);
+        _state.set('Failed');
+
+        this.trigger('publishComplete', new OT.Error(OT.ExceptionCodes.UNABLE_TO_PUBLISH,
+          'Screensharing: ' + error.message));
+
+        var payload = {
+          reason: 'ScreenSharing',
+          message:error.message
+        };
+        logConnectivityEvent('Failure', payload);
+      }, this),
+
+      
+      
+      onAccessDenied = OT.$.bind(function(error) {
+        OT.error('OT.Publisher.onStreamAvailableError Permission Denied');
+
+        _state.set('Failed');
+        var errorMessage = 'Publisher Access Denied: Permission Denied' +
+            (error.message ? ': ' + error.message : '');
+        var errorCode = OT.ExceptionCodes.UNABLE_TO_PUBLISH;
+        this.trigger('publishComplete', new OT.Error(errorCode, errorMessage));
+
+        var payload = {
+          reason: 'GetUserMedia',
+          code: errorCode,
+          message: errorMessage
+        };
+        logConnectivityEvent('Failure', payload);
+
+        this.dispatchEvent(new OT.Event(OT.Event.names.ACCESS_DENIED));
+      }, this),
+
+      onAccessDialogOpened = OT.$.bind(function() {
+        logAnalyticsEvent('accessDialog', 'Opened');
+
+        this.dispatchEvent(new OT.Event(OT.Event.names.ACCESS_DIALOG_OPENED, true));
+      }, this),
+
+      onAccessDialogClosed = OT.$.bind(function() {
+        logAnalyticsEvent('accessDialog', 'Closed');
+
+        this.dispatchEvent( new OT.Event(OT.Event.names.ACCESS_DIALOG_CLOSED, false));
+      }, this),
+
+      onVideoError = OT.$.bind(function(errorCode, errorReason) {
+        OT.error('OT.Publisher.onVideoError');
+
+        var message = errorReason + (errorCode ? ' (' + errorCode + ')' : '');
+        logAnalyticsEvent('stream', null, {reason:'Publisher while playing stream: ' + message});
+
+        _state.set('Failed');
+
+        if (_state.isAttemptingToPublish()) {
+          this.trigger('publishComplete', new OT.Error(OT.ExceptionCodes.UNABLE_TO_PUBLISH,
+              message));
+        } else {
+          this.trigger('error', message);
+        }
+
+        OT.handleJsException('Publisher error playing stream: ' + message,
+        OT.ExceptionCodes.UNABLE_TO_PUBLISH, {
+          session: _session,
+          target: this
+        });
+      }, this),
+
+      onPeerDisconnected = OT.$.bind(function(peerConnection) {
+        OT.debug('OT.Subscriber has been disconnected from the Publisher\'s PeerConnection');
+
+        this.cleanupSubscriber(peerConnection.remoteConnection().id);
+      }, this),
+
+      onPeerConnectionFailure = OT.$.bind(function(code, reason, peerConnection, prefix) {
+        var payload = {
+          reason: prefix ? prefix : 'PeerConnectionError',
+          code: OT.ExceptionCodes.UNABLE_TO_PUBLISH,
+          message: (prefix ? prefix : '') + ':Publisher PeerConnection with connection ' +
+            (peerConnection && peerConnection.remoteConnection &&
+            peerConnection.remoteConnection().id) + ' failed: ' + reason,
+          hasRelayCandidates: peerConnection.hasRelayCandidates()
+        };
+        if (_state.isPublishing()) {
+          
+          
+          payload.reason = 'Non-fatal';
+        }
+        logConnectivityEvent('Failure', payload);
+
+        OT.handleJsException('Publisher PeerConnection Error: ' + reason,
+        OT.ExceptionCodes.UNABLE_TO_PUBLISH, {
+          session: _session,
+          target: this
+        });
+
+        
+        
+        
+        
+
+        delete _peerConnections[peerConnection.remoteConnection().id];
+      }, this),
+
+      
+
+      
+      
+      
+      assignStream = OT.$.bind(function(stream) {
+        this.stream = _stream = stream;
+        _stream.on('destroyed', this.disconnect, this);
+
+        _state.set('Publishing');
+        _widgetView.loading(!_loaded);
+        _publishStartTime = new Date();
+
+        this.trigger('publishComplete', null, this);
+
+        this.dispatchEvent(new OT.StreamEvent('streamCreated', stream, null, false));
+
+        var payload = {
+          streamType: 'WebRTC',
+        };
+        logConnectivityEvent('Success', payload);
+      }, this),
+
+      
+      cleanupLocalStream = function() {
+        if (_webRTCStream) {
+          
+          
+          _webRTCStream.stop();
+          _webRTCStream = null;
+        }
+      },
+
+      createPeerConnectionForRemote = OT.$.bind(function(remoteConnection) {
+        var peerConnection = _peerConnections[remoteConnection.id];
+
+        if (!peerConnection) {
+          var startConnectingTime = OT.$.now();
+
+          logAnalyticsEvent('createPeerConnection', 'Attempt');
+
+          
+          remoteConnection.on('destroyed',
+            OT.$.bind(this.cleanupSubscriber, this, remoteConnection.id));
+
+          peerConnection = _peerConnections[remoteConnection.id] = new OT.PublisherPeerConnection(
+            remoteConnection,
+            _session,
+            _streamId,
+            _webRTCStream
+          );
+
+          peerConnection.on({
+            connected: function() {
+              var payload = {
+                pcc: parseInt(OT.$.now() - startConnectingTime, 10),
+                hasRelayCandidates: peerConnection.hasRelayCandidates()
+              };
+              logAnalyticsEvent('createPeerConnection', 'Success', payload);
+            },
+            disconnected: onPeerDisconnected,
+            error: onPeerConnectionFailure,
+            qos: recordQOS
+          }, this);
+
+          peerConnection.init(_iceServers);
+        }
+
+        return peerConnection;
+      }, this),
+
+      
+
+      
+      
+      
+      chromeButtonMode = function(mode) {
+        if (mode === false) return 'off';
+
+        var defaultMode = this.getStyle('buttonDisplayMode');
+
+        
+        if (defaultMode === false) return 'on';
+
+        
+        return defaultMode;
+      },
+
+      updateChromeForStyleChange = function(key, value) {
+        if (!_chrome) return;
+
+        switch(key) {
+          case 'nameDisplayMode':
+            _chrome.name.setDisplayMode(value);
+            _chrome.backingBar.setNameMode(value);
+            break;
+
+          case 'showArchiveStatus':
+            logAnalyticsEvent('showArchiveStatus', 'styleChange', {mode: value ? 'on': 'off'});
+            _chrome.archive.setShowArchiveStatus(value);
+            break;
+
+          case 'buttonDisplayMode':
+            _chrome.muteButton.setDisplayMode(value);
+            _chrome.backingBar.setMuteMode(value);
+            break;
+
+          case 'audioLevelDisplayMode':
+            _chrome.audioLevel.setDisplayMode(value);
+            break;
+
+          case 'backgroundImageURI':
+            _widgetView.setBackgroundImageURI(value);
+        }
+      },
+
+      createChrome = function() {
+
+        if(!this.getStyle('showArchiveStatus')) {
+          logAnalyticsEvent('showArchiveStatus', 'createChrome', {mode: 'off'});
+        }
+
+        var widgets = {
+          backingBar: new OT.Chrome.BackingBar({
+            nameMode: !_properties.name ? 'off' : this.getStyle('nameDisplayMode'),
+            muteMode: chromeButtonMode.call(this, this.getStyle('buttonDisplayMode'))
+          }),
+
+          name: new OT.Chrome.NamePanel({
+            name: _properties.name,
+            mode: this.getStyle('nameDisplayMode')
+          }),
+
+          muteButton: new OT.Chrome.MuteButton({
+            muted: _properties.publishAudio === false,
+            mode: chromeButtonMode.call(this, this.getStyle('buttonDisplayMode'))
+          }),
+
+          archive: new OT.Chrome.Archiving({
+            show: this.getStyle('showArchiveStatus'),
+            archiving: false
+          })
+        };
+
+        if (_audioLevelCapable) {
+          var audioLevelTransformer = new OT.AudioLevelTransformer();
+
+          var audioLevelUpdatedHandler = function(evt) {
+            _audioLevelMeter.setValue(audioLevelTransformer.transform(evt.audioLevel));
+          };
+
+          _audioLevelMeter = new OT.Chrome.AudioLevelMeter({
+            mode: this.getStyle('audioLevelDisplayMode'),
+            onActivate: function() {
+              _publisher.on('audioLevelUpdated', audioLevelUpdatedHandler);
+            },
+            onPassivate: function() {
+              _publisher.off('audioLevelUpdated', audioLevelUpdatedHandler);
+            }
+          });
+
+          widgets.audioLevel = _audioLevelMeter;
+        }
+
+        _chrome = new OT.Chrome({
+          parent: _widgetView.domElement
+        }).set(widgets).on({
+          muted: OT.$.bind(this.publishAudio, this, false),
+          unmuted: OT.$.bind(this.publishAudio, this, true)
+        });
+
+        if(_audioLevelMeter && this.getStyle('audioLevelDisplayMode') === 'auto') {
+          _audioLevelMeter[_widgetView.audioOnly() ? 'show' : 'hide']();
+        }
+      },
+
+      reset = OT.$.bind(function() {
+        if (_chrome) {
+          _chrome.destroy();
+          _chrome = null;
+        }
+
+        this.disconnect();
+
+        _microphone = null;
+
+        if (_targetElement) {
+          _targetElement.destroy();
+          _targetElement = null;
+        }
+
+        cleanupLocalStream();
+
+        if (_widgetView) {
+          _widgetView.destroy();
+          _widgetView = null;
+        }
+
+        if (_session) {
+          this._.unpublishFromSession(_session, 'reset');
+        }
+
+        this.id = _domId = null;
+        this.stream = _stream = null;
+        _loaded = false;
+
+        this.session = _session = null;
+
+        if (!_state.isDestroyed()) _state.set('NotPublishing');
+      }, this);
+      
+  OT.StylableComponent(this, {
+    showArchiveStatus: true,
+    nameDisplayMode: 'auto',
+    buttonDisplayMode: 'auto',
+    audioLevelDisplayMode: _isScreenSharing ? 'off' : 'auto',
+    backgroundImageURI: null
+  }, _properties.showControls, function (payload) {
+    logAnalyticsEvent('SetStyle', 'Publisher', payload, 0.1);
+  });
+
+  var setAudioOnly = function(audioOnly) {
+    if (_widgetView) {
+      _widgetView.audioOnly(audioOnly);
+      _widgetView.showPoster(audioOnly);
+    }
+  
+    if (_audioLevelMeter && _publisher.getStyle('audioLevelDisplayMode') === 'auto') {
+      _audioLevelMeter[audioOnly ? 'show' : 'hide']();
+    }
+  };
+
+  this.publish = function(targetElement) {
+    OT.debug('OT.Publisher: publish');
+
+    if ( _state.isAttemptingToPublish() || _state.isPublishing() ) reset();
+    _state.set('GetUserMedia');
+
+    if (!_properties.constraints) {
+      _properties.constraints = OT.$.clone(defaultConstraints);
+
+      if (_isScreenSharing) {
+        if (_properties.audioSource != null) {
+          OT.warn('Invalid audioSource passed to Publisher - when using screen sharing no ' +
+            'audioSource may be used');
+        }
+        _properties.audioSource = null;
+      }
+
+      if(_properties.audioSource === null || _properties.audioSource === false) {
+        _properties.constraints.audio = false;
+        _properties.publishAudio = false;
+      } else {
+        if(typeof _properties.audioSource === 'object') {
+          if(_properties.audioSource.deviceId != null) {
+            _properties.audioSource = _properties.audioSource.deviceId;
+          } else {
+            OT.warn('Invalid audioSource passed to Publisher. Expected either a device ID');
+          }
+        }
+
+        if (_properties.audioSource) {
+          if (typeof _properties.constraints.audio !== 'object') {
+            _properties.constraints.audio = {};
+          }
+          if (!_properties.constraints.audio.mandatory) {
+            _properties.constraints.audio.mandatory = {};
+          }
+          if (!_properties.constraints.audio.optional) {
+            _properties.constraints.audio.optional = [];
+          }
+          _properties.constraints.audio.mandatory.sourceId =
+            _properties.audioSource;
+        }
+      }
+
+      if(_properties.videoSource === null || _properties.videoSource === false) {
+        _properties.constraints.video = false;
+        _properties.publishVideo = false;
+      } else {
+
+        if(typeof _properties.videoSource === 'object' &&
+          _properties.videoSource.deviceId == null) {
+          OT.warn('Invalid videoSource passed to Publisher. Expected either a device ' +
+            'ID or device.');
+          _properties.videoSource = null;
+        }
+
+        var _setupVideoDefaults = function() {
+          if (typeof _properties.constraints.video !== 'object') {
+            _properties.constraints.video = {};
+          }
+          if (!_properties.constraints.video.mandatory) {
+            _properties.constraints.video.mandatory = {};
+          }
+          if (!_properties.constraints.video.optional) {
+            _properties.constraints.video.optional = [];
+          }
+        };
+
+        if (_properties.videoSource) {
+          _setupVideoDefaults();
+
+          var mandatory = _properties.constraints.video.mandatory;
+          
+          if(_isScreenSharing) {
+            
+          } else if(_properties.videoSource.deviceId != null) {
+            mandatory.sourceId = _properties.videoSource.deviceId;
+          } else {
+            mandatory.sourceId = _properties.videoSource;
+          }
+        }
+
+        if (_properties.resolution) {
+          if (!_validResolutions.hasOwnProperty(_properties.resolution)) {
+            OT.warn('Invalid resolution passed to the Publisher. Got: ' +
+              _properties.resolution + ' expecting one of "' +
+              OT.$.keys(_validResolutions).join('","') + '"');
+          } else {
+            _properties.videoDimensions = _validResolutions[_properties.resolution];
+            _setupVideoDefaults();
+            if (OT.$.env.name === 'Chrome') {
+              _properties.constraints.video.optional =
+                _properties.constraints.video.optional.concat([
+                  {minWidth: _properties.videoDimensions.width},
+                  {maxWidth: _properties.videoDimensions.width},
+                  {minHeight: _properties.videoDimensions.height},
+                  {maxHeight: _properties.videoDimensions.height}
+                ]);
+            } else {
+              
+            }
+          }
+        }
+
+        if (_properties.maxResolution) {
+          _setupVideoDefaults();
+          if (_properties.maxResolution.width > 1920) {
+            OT.warn('Invalid maxResolution passed to the Publisher. maxResolution.width must ' +
+              'be less than or equal to 1920');
+            _properties.maxResolution.width = 1920;
+          }
+          if (_properties.maxResolution.height > 1920) {
+            OT.warn('Invalid maxResolution passed to the Publisher. maxResolution.height must ' +
+              'be less than or equal to 1920');
+            _properties.maxResolution.height = 1920;
+          }
+
+          _properties.videoDimensions = _properties.maxResolution;
+
+          if (OT.$.env.name === 'Chrome') {
+            _setupVideoDefaults();
+            _properties.constraints.video.mandatory.maxWidth =
+              _properties.videoDimensions.width;
+            _properties.constraints.video.mandatory.maxHeight =
+              _properties.videoDimensions.height;
+          } else {
+            
+          }
+        }
+
+        if (_properties.frameRate !== void 0 &&
+          OT.$.arrayIndexOf(_validFrameRates, _properties.frameRate) === -1) {
+          OT.warn('Invalid frameRate passed to the publisher got: ' +
+          _properties.frameRate + ' expecting one of ' + _validFrameRates.join(','));
+          delete _properties.frameRate;
+        } else if (_properties.frameRate) {
+          _setupVideoDefaults();
+          _properties.constraints.video.optional =
+            _properties.constraints.video.optional.concat([
+              { minFrameRate: _properties.frameRate },
+              { maxFrameRate: _properties.frameRate }
+            ]);
+        }
+
+      }
+
+    } else {
+      OT.warn('You have passed your own constraints not using ours');
+    }
+
+    if (_properties.style) {
+      this.setStyle(_properties.style, null, true);
+    }
+
+    if (_properties.name) {
+      _properties.name = _properties.name.toString();
+    }
+
+    _properties.classNames = 'OT_root OT_publisher';
+
+    
+    
+    OT.onLoad(function() {
+      _widgetView = new OT.WidgetView(targetElement, _properties);
+      _publisher.id = _domId = _widgetView.domId();
+      _publisher.element = _widgetView.domElement;
+
+      _widgetView.on('videoDimensionsChanged', function(oldValue, newValue) {
+        if (_stream) {
+          _stream.setVideoDimensions(newValue.width, newValue.height);
+        }
+        _publisher.dispatchEvent(
+          new OT.VideoDimensionsChangedEvent(_publisher, oldValue, newValue)
+        );
+      });
+
+      _widgetView.on('mediaStopped', function() {
+        var event = new OT.MediaStoppedEvent(_publisher);
+
+        _publisher.dispatchEvent(event, function() {
+          if(!event.isDefaultPrevented()) {
+            if (_session) {
+              _publisher._.unpublishFromSession(_session, 'mediaStopped');
+            } else {
+              _publisher.destroy('mediaStopped');
+            }
+          }
+        });
+      });
+
+      OT.$.waterfall([
+        function(cb) {
+          if (_isScreenSharing) {
+            OT.checkScreenSharingCapability(function(response) {
+              if (!response.supported) {
+                onScreenSharingError(
+                  new Error('Screen Sharing is not supported in this browser')
+                );
+              } else if (response.extensionRegistered === false) {
+                onScreenSharingError(
+                  new Error('Screen Sharing suppor in this browser requires an extension, but ' +
+                    'one has not been registered.')
+                );
+              } else if (response.extensionInstalled === false) {
+                onScreenSharingError(
+                  new Error('Screen Sharing suppor in this browser requires an extension, but ' +
+                    'the extension is not installed.')
+                );
+              } else {
+
+                var helper = OT.pickScreenSharingHelper();
+
+                if (helper.proto.getConstraintsShowsPermissionUI) {
+                  onAccessDialogOpened();
+                }
+
+                helper.instance.getConstraints(options.videoSource, _properties.constraints,
+                  function(err, constraints) {
+                  if (helper.proto.getConstraintsShowsPermissionUI) {
+                    onAccessDialogClosed();
+                  }
+                  if (err) {
+                    if (err.message === 'PermissionDeniedError') {
+                      onAccessDenied(err);
+                    } else {
+                      onScreenSharingError(err);
+                    }
+                  } else {
+                    _properties.constraints = constraints;
+                    cb();
+                  }
+                });
+              }
+            });
+          } else {
+            OT.$.shouldAskForDevices(function(devices) {
+              if(!devices.video) {
+                OT.warn('Setting video constraint to false, there are no video sources');
+                _properties.constraints.video = false;
+              }
+              if(!devices.audio) {
+                OT.warn('Setting audio constraint to false, there are no audio sources');
+                _properties.constraints.audio = false;
+              }
+              cb();
+            });
+          }
+        },
+
+        function() {
+
+          if (_state.isDestroyed()) {
+            return;
+          }
+
+          OT.$.getUserMedia(
+            _properties.constraints,
+            onStreamAvailable,
+            onStreamAvailableError,
+            onAccessDialogOpened,
+            onAccessDialogClosed,
+            onAccessDenied
+          );
+        }
+
+      ]);
+
+    }, this);
+
+    return this;
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  this.publishAudio = function(value) {
+    _properties.publishAudio = value;
+
+    if (_microphone) {
+      _microphone.muted(!value);
+    }
+
+    if (_chrome) {
+      _chrome.muteButton.muted(!value);
+    }
+
+    if (_session && _stream) {
+      _stream.setChannelActiveState('audio', value);
+    }
+
+    return this;
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  this.publishVideo = function(value) {
+    var oldValue = _properties.publishVideo;
+    _properties.publishVideo = value;
+
+    if (_session && _stream && _properties.publishVideo !== oldValue) {
+      _stream.setChannelActiveState('video', value);
+    }
+
+    
+    
+    
+    if (_webRTCStream) {
+      var videoTracks = _webRTCStream.getVideoTracks();
+      for (var i=0, num=videoTracks.length; i<num; ++i) {
+        videoTracks[i].setEnabled(value);
+      }
+    }
+
+    setAudioOnly(!value);
+
+    return this;
+  };
+
+
+  
+
+
+
+
+
+
+
+
+
+  this.destroy = function( reason, quiet) {
+    if (_state.isDestroyed()) return;
+    _state.set('Destroyed');
+
+    reset();
+
+    if (quiet !== true) {
+      this.dispatchEvent(
+        new OT.DestroyedEvent(
+          OT.Event.names.PUBLISHER_DESTROYED,
+          this,
+          reason
+        ),
+        OT.$.bind(this.off, this)
+      );
+    }
+
+    return this;
+  };
+
+  
+
+
+
+  this.disconnect = function() {
+    
+    for (var fromConnectionId in _peerConnections) {
+      this.cleanupSubscriber(fromConnectionId);
+    }
+  };
+
+  this.cleanupSubscriber = function(fromConnectionId) {
+    var pc = _peerConnections[fromConnectionId];
+
+    if (pc) {
+      pc.destroy();
+      delete _peerConnections[fromConnectionId];
+
+      logAnalyticsEvent('disconnect', 'PeerConnection',
+        {subscriberConnection: fromConnectionId});
+    }
+  };
+
+
+  this.processMessage = function(type, fromConnection, message) {
+    OT.debug('OT.Publisher.processMessage: Received ' + type + ' from ' + fromConnection.id);
+    OT.debug(message);
+
+    switch (type) {
+      case 'unsubscribe':
+        this.cleanupSubscriber(message.content.connection.id);
+        break;
+
+      default:
+        var peerConnection = createPeerConnectionForRemote(fromConnection);
+        peerConnection.processMessage(type, message);
+    }
+  };
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  this.getImgData = function() {
+    if (!_loaded) {
+      OT.error('OT.Publisher.getImgData: Cannot getImgData before the Publisher is publishing.');
+
+      return null;
+    }
+
+    return _targetElement.imgData();
+  };
+
+
+  
+  this._ = {
+    publishToSession: OT.$.bind(function(session) {
+      
+      this.session = _session = session;
+
+      var createStream = function() {
+
+        var streamWidth,
+            streamHeight;
+
+        
+        
+        if (!_session) return;
+
+        _state.set('PublishingToSession');
+
+        var onStreamRegistered = OT.$.bind(function(err, streamId, message) {
+          if (err) {
+            
+            
+            var errorCode = OT.ExceptionCodes.UNABLE_TO_PUBLISH;
+            var payload = {
+              reason: 'Publish',
+              code: errorCode,
+              message: err.message
+            };
+            logConnectivityEvent('Failure', payload);
+            if (_state.isAttemptingToPublish()) {
+              this.trigger('publishComplete', new OT.Error(errorCode, err.message));
+            }
+            return;
+          }
+
+          this.streamId = _streamId = streamId;
+          _iceServers = OT.Raptor.parseIceServers(message);
+        }, this);
+
+        
+        
+        if (_properties.videoDimensions) {
+          streamWidth = Math.min(_properties.videoDimensions.width,
+            _targetElement.videoWidth() || 640);
+          streamHeight = Math.min(_properties.videoDimensions.height,
+            _targetElement.videoHeight() || 480);
+        } else {
+          streamWidth = _targetElement.videoWidth() || 640;
+          streamHeight = _targetElement.videoHeight() || 480;
+        }
+
+        var streamChannels = [];
+
+        if (!(_properties.videoSource === null || _properties.videoSource === false)) {
+          streamChannels.push(new OT.StreamChannel({
+            id: 'video1',
+            type: 'video',
+            active: _properties.publishVideo,
+            orientation: OT.VideoOrientation.ROTATED_NORMAL,
+            frameRate: _properties.frameRate,
+            width: streamWidth,
+            height: streamHeight,
+            source: _isScreenSharing ? 'screen' : 'camera',
+            fitMode: _properties.fitMode
+          }));
+        }
+
+        if (!(_properties.audioSource === null || _properties.audioSource === false)) {
+          streamChannels.push(new OT.StreamChannel({
+            id: 'audio1',
+            type: 'audio',
+            active: _properties.publishAudio
+          }));
+        }
+
+        session._.streamCreate(_properties.name || '', _properties.audioFallbackEnabled,
+          streamChannels, onStreamRegistered);
+
+      };
+
+      if (_loaded) createStream.call(this);
+      else this.on('initSuccess', createStream, this);
+
+      logConnectivityEvent('Attempt', {streamType: 'WebRTC'});
+
+      return this;
+    }, this),
+
+    unpublishFromSession: OT.$.bind(function(session, reason) {
+      if (!_session || session.id !== _session.id) {
+        OT.warn('The publisher ' + _guid + ' is trying to unpublish from a session ' +
+          session.id + ' it is not attached to (it is attached to ' +
+          (_session && _session.id || 'no session') + ')');
+        return this;
+      }
+
+      if (session.isConnected() && this.stream) {
+        session._.streamDestroy(this.stream.id);
+      }
+
+      
+      
+      this.disconnect();
+      this.session = _session = null;
+
+      
+      if (!_state.isDestroyed()) _state.set('MediaBound');
+
+      if(_connectivityAttemptPinger) {
+        _connectivityAttemptPinger.stop();
+      }
+      logAnalyticsEvent('unpublish', 'Success', {sessionId: session.id});
+
+      this._.streamDestroyed(reason);
+
+      return this;
+    }, this),
+
+    streamDestroyed: OT.$.bind(function(reason) {
+      if(OT.$.arrayIndexOf(['reset'], reason) < 0) {
+        var event = new OT.StreamEvent('streamDestroyed', _stream, reason, true);
+        var defaultAction = OT.$.bind(function() {
+          if(!event.isDefaultPrevented()) {
+            this.destroy();
+          }
+        }, this);
+        this.dispatchEvent(event, defaultAction);
+      }
+    }, this),
+
+
+    archivingStatus: OT.$.bind(function(status) {
+      if(_chrome) {
+        _chrome.archive.setArchiving(status);
+      }
+
+      return status;
+    }, this),
+
+    webRtcStream: function() {
+      return _webRTCStream;
+    }
+  };
+
+  this.detectDevices = function() {
+    OT.warn('Fixme: Haven\'t implemented detectDevices');
+  };
+
+  this.detectMicActivity = function() {
+    OT.warn('Fixme: Haven\'t implemented detectMicActivity');
+  };
+
+  this.getEchoCancellationMode = function() {
+    OT.warn('Fixme: Haven\'t implemented getEchoCancellationMode');
+    return 'fullDuplex';
+  };
+
+  this.setMicrophoneGain = function() {
+    OT.warn('Fixme: Haven\'t implemented setMicrophoneGain');
+  };
+
+  this.getMicrophoneGain = function() {
+    OT.warn('Fixme: Haven\'t implemented getMicrophoneGain');
+    return 0.5;
+  };
+
+  this.setCamera = function() {
+    OT.warn('Fixme: Haven\'t implemented setCamera');
+  };
+
+  this.setMicrophone = function() {
+    OT.warn('Fixme: Haven\'t implemented setMicrophone');
+  };
+
+
+  
+
+  this.guid = function() {
+    return _guid;
+  };
+
+  this.videoElement = function() {
+    return _targetElement.domElement();
+  };
+
+  this.setStream = assignStream;
+
+  this.isWebRTC = true;
+
+  this.isLoading = function() {
+    return _widgetView && _widgetView.loading();
+  };
+
+  this.videoWidth = function() {
+    return _targetElement.videoWidth();
+  };
+
+  this.videoHeight = function() {
+    return _targetElement.videoHeight();
+  };
+
+  
+
+  this.on('styleValueChanged', updateChromeForStyleChange, this);
+  _state = new OT.PublishingState(stateChangeFailed);
+
+  this.accessAllowed = false;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+};
+
+
+OT.Publisher.nextId = OT.$.uuid;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OT.initSession = function(apiKey, sessionId) {
+
+  if(sessionId == null) {
+    sessionId = apiKey;
+    apiKey = null;
+  }
+
+  var session = OT.sessions.get(sessionId);
+
+  if (!session) {
+    session = new OT.Session(apiKey, sessionId);
+    OT.sessions.add(session);
+  }
+
+  return session;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OT.initPublisher = function(targetElement, properties, completionHandler) {
+  OT.debug('OT.initPublisher('+targetElement+')');
+
+  
+  
+  if(targetElement != null && !(OT.$.isElementNode(targetElement) ||
+    (typeof targetElement === 'string' && document.getElementById(targetElement))) &&
+    typeof targetElement !== 'function') {
+    targetElement = properties;
+    properties = completionHandler;
+    completionHandler = arguments[3];
+  }
+
+  if(typeof targetElement === 'function') {
+    completionHandler = targetElement;
+    properties = undefined;
+    targetElement = undefined;
+  }
+
+  if(typeof properties === 'function') {
+    completionHandler = properties;
+    properties = undefined;
+  }
+
+  var publisher = new OT.Publisher(properties);
+  OT.publishers.add(publisher);
+
+  var triggerCallback = function triggerCallback (err) {
+    if (err) {
+      OT.dispatchError(err.code, err.message, completionHandler, publisher.session);
+    } else if (completionHandler && OT.$.isFunction(completionHandler)) {
+      completionHandler.apply(null, arguments);
+    }
+  },
+
+  removeInitSuccessAndCallComplete = function removeInitSuccessAndCallComplete (err) {
+    publisher.off('publishComplete', removeHandlersAndCallComplete);
+    triggerCallback(err);
+  },
+
+  removeHandlersAndCallComplete = function removeHandlersAndCallComplete (err) {
+    publisher.off('initSuccess', removeInitSuccessAndCallComplete);
+
+    
+    
+    if (err) triggerCallback(err);
+  };
+
+
+  publisher.once('initSuccess', removeInitSuccessAndCallComplete);
+  publisher.once('publishComplete', removeHandlersAndCallComplete);
+
+  publisher.publish(targetElement);
+
+  return publisher;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OT.getDevices = function(callback) {
+  OT.$.getMediaDevices(callback);
+};
+
+
+
+OT.reportIssue = function(){
+  OT.warn('ToDo: haven\'t yet implemented OT.reportIssue');
+};
+
+OT.components = {};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OT.onUnload(function() {
+  OT.publishers.destroy();
+  OT.subscribers.destroy();
+  OT.sessions.destroy('unloaded');
+});
+
+loadCSS(OT.properties.cssURL);
+
+
+
+
+
+
+
+if (typeof define === 'function' && define.amd) {
+  define( 'TB', [], function () { return TB; } );
+}
+
+
+
+})(window, window.OT);
+
+
+})(window || exports);
