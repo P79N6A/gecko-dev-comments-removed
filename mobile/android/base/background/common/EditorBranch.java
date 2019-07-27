@@ -22,9 +22,9 @@ public class EditorBranch implements Editor {
     this.editor = prefs.edit();
   }
 
+  @Override
   public void apply() {
-    
-    this.editor.commit();
+    this.editor.apply();
   }
 
   @Override
