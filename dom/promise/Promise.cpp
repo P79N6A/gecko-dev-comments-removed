@@ -205,12 +205,23 @@ protected:
     JS::Rooted<JSObject*> rootedThenable(cx, mThenable);
 
     mThen->Call(rootedThenable, resolveFunc, rejectFunc, rv,
-                CallbackObject::eRethrowExceptions);
+                CallbackObject::eRethrowExceptions,
+                mPromise->Compartment());
 
     rv.WouldReportJSException();
-    if (rv.IsJSException()) {
+    if (rv.Failed()) {
       JS::Rooted<JS::Value> exn(cx);
-      rv.StealJSException(cx, &exn);
+      if (rv.IsJSException()) {
+        rv.StealJSException(cx, &exn);
+      } else {
+        
+        
+        
+        
+        JSAutoCompartment ac(cx, mPromise->GlobalJSObject());
+        DebugOnly<bool> conversionResult = ToJSValue(cx, rv, &exn);
+        MOZ_ASSERT(conversionResult);
+      }
 
       bool couldMarkAsCalled = MarkAsCalledIfNotCalledBefore(cx, resolveFunc);
 
@@ -562,7 +573,8 @@ Promise::CallInitFunction(const GlobalObject& aGlobal,
     return;
   }
 
-  aInit.Call(resolveFunc, rejectFunc, aRv, CallbackObject::eRethrowExceptions);
+  aInit.Call(resolveFunc, rejectFunc, aRv, CallbackObject::eRethrowExceptions,
+             Compartment());
   aRv.WouldReportJSException();
 
   if (aRv.IsJSException()) {
@@ -578,6 +590,12 @@ Promise::CallInitFunction(const GlobalObject& aGlobal,
 
     MaybeRejectInternal(cx, value);
   }
+
+  
+  
+  
+  
+  
 }
 
  already_AddRefed<Promise>
@@ -934,6 +952,18 @@ Promise::AppendNativeHandler(PromiseNativeHandler* aRunnable)
     new NativePromiseCallback(aRunnable, Rejected);
 
   AppendCallbacks(resolveCb, rejectCb);
+}
+
+JSObject*
+Promise::GlobalJSObject() const
+{
+  return mGlobal->GetGlobalJSObject();
+}
+
+JSCompartment*
+Promise::Compartment() const
+{
+  return js::GetObjectCompartment(GlobalJSObject());
 }
 
 void

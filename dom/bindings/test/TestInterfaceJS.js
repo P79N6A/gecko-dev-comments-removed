@@ -2,10 +2,11 @@
 
 
 
+
+"use strict";
 const Cu = Components.utils;
 const Ci = Components.interfaces;
 
-"use strict";
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
@@ -70,6 +71,46 @@ TestInterfaceJS.prototype = {
   testThrowDOMException: function() {
     throw new this._win.DOMException("We are a DOMException",
                                      "NotSupportedError");
+  },
+
+  testPromiseWithThrowingChromePromiseInit: function() {
+    return new this._win.Promise(function() {
+      noSuchMethodExistsYo1();
+    })
+  },
+
+  testPromiseWithThrowingContentPromiseInit: function(func) {
+      return new this._win.Promise(func);
+  },
+
+  testPromiseWithThrowingChromeThenFunction: function() {
+    return this._win.Promise.resolve(5).then(function() {
+      noSuchMethodExistsYo2();
+    });
+  },
+
+  testPromiseWithThrowingContentThenFunction: function(func) {
+    return this._win.Promise.resolve(10).then(func);
+  },
+
+  testPromiseWithThrowingChromeThenable: function() {
+    
+    
+    var thenable = new this._win.Object();
+    Cu.waiveXrays(thenable).then = function() {
+      noSuchMethodExistsYo3()
+    }
+    return new this._win.Promise(function(resolve) {
+      resolve(thenable)
+    });
+  },
+
+  testPromiseWithThrowingContentThenable: function(thenable) {
+    
+    
+    
+    
+    return this._win.Promise.resolve(Cu.waiveXrays(thenable));
   },
 };
 

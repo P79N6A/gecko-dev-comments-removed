@@ -205,18 +205,29 @@ WrapperPromiseCallback::Call(JSContext* aCx,
 
   
   JS::Rooted<JS::Value> retValue(aCx);
-  mCallback->Call(value, &retValue, rv, CallbackObject::eRethrowExceptions);
+  mCallback->Call(value, &retValue, rv, CallbackObject::eRethrowExceptions,
+                  mNextPromise->Compartment());
 
   rv.WouldReportJSException();
 
   
-  if (rv.Failed() && rv.IsJSException()) {
+  if (rv.Failed()) {
     JS::Rooted<JS::Value> value(aCx);
-    rv.StealJSException(aCx, &value);
+    if (rv.IsJSException()) {
+      rv.StealJSException(aCx, &value);
 
-    if (!JS_WrapValue(aCx, &value)) {
-      NS_WARNING("Failed to wrap value into the right compartment.");
-      return;
+      if (!JS_WrapValue(aCx, &value)) {
+        NS_WARNING("Failed to wrap value into the right compartment.");
+        return;
+      }
+    } else {
+      
+      
+      
+      
+      JSAutoCompartment ac(aCx, mNextPromise->GlobalJSObject());
+      DebugOnly<bool> conversionResult = ToJSValue(aCx, rv, &value);
+      MOZ_ASSERT(conversionResult);
     }
 
     mNextPromise->RejectInternal(aCx, value);
