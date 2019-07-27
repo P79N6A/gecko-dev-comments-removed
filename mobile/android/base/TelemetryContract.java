@@ -68,6 +68,15 @@ public interface TelemetryContract {
         SEARCH("search.1"),
 
         
+        SEARCH_REMOVE("search.remove.1"),
+
+        
+        SEARCH_RESTORE_DEFAULTS("search.restoredefaults.1"),
+
+        
+        SEARCH_SET_DEFAULT("search.setdefault.1"),
+
+        
         SHARE("share.1"),
 
         

@@ -37,6 +37,10 @@ public class SearchEnginePreference extends CustomListPreference {
 
     private FaviconView mFaviconView;
 
+    
+    
+    private String mIdentifier;
+
     public SearchEnginePreference(Context context, SearchPreferenceCategory parentCategory) {
         super(context, parentCategory);
     }
@@ -113,7 +117,14 @@ public class SearchEnginePreference extends CustomListPreference {
                 Log.w(LOGTAG, "Selected index out of range.");
                 break;
         }
-     }
+    }
+
+    
+
+
+    public String getIdentifier() {
+        return (mIdentifier == null) ? "other" : mIdentifier;
+    }
 
     
 
@@ -121,6 +132,8 @@ public class SearchEnginePreference extends CustomListPreference {
 
 
     public void setSearchEngineFromJSON(JSONObject geckoEngineJSON) throws JSONException {
+        mIdentifier = geckoEngineJSON.getString("identifier");
+
         final String engineName = geckoEngineJSON.getString("name");
         final SpannableString titleSpannable = new SpannableString(engineName);
 
