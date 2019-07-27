@@ -919,7 +919,7 @@ void
 nsString::ReplaceChar( const char16_t* aSet, char16_t aNewChar )
 {
   if (!EnsureMutable()) 
-    AllocFailed(mLength);
+    NS_ABORT_OOM(mLength);
 
   char16_t* data = mData;
   uint32_t lenRemaining = mLength;
