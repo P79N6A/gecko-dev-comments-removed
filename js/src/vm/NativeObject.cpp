@@ -1461,12 +1461,6 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
 
             if (!desc.hasValue()) {
                 
-                
-                
-                desc.setGetter(shape->getter());
-                desc.setSetter(shape->setter());
-
-                
                 desc.setValue(currentValue);
             } else {
                 
