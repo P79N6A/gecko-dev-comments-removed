@@ -328,10 +328,6 @@ protected:
     nsString mString;
 
     
-    
-    nsString mLastData;
-
-    
     LONG mStart;
 
     bool IsComposing() const
