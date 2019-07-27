@@ -195,6 +195,18 @@ class TextRangeArray final : public nsAutoTArray<TextRange, 10>
 
   NS_INLINE_DECL_REFCOUNTING(TextRangeArray)
 
+  const TextRange* GetTargetClause() const
+  {
+    for (uint32_t i = 0; i < Length(); ++i) {
+      const TextRange& range = ElementAt(i);
+      if (range.mRangeType == NS_TEXTRANGE_SELECTEDRAWTEXT ||
+          range.mRangeType == NS_TEXTRANGE_SELECTEDCONVERTEDTEXT) {
+        return &range;
+      }
+    }
+    return nullptr;
+  }
+
 public:
   bool IsComposing() const
   {
@@ -210,14 +222,16 @@ public:
   
   uint32_t TargetClauseOffset() const
   {
-    for (uint32_t i = 0; i < Length(); ++i) {
-      const TextRange& range = ElementAt(i);
-      if (range.mRangeType == NS_TEXTRANGE_SELECTEDRAWTEXT ||
-          range.mRangeType == NS_TEXTRANGE_SELECTEDCONVERTEDTEXT) {
-        return range.mStartOffset;
-      }
-    }
-    return 0;
+    const TextRange* range = GetTargetClause();
+    return range ? range->mStartOffset : 0;
+  }
+
+  
+  
+  uint32_t TargetClauseLength() const
+  {
+    const TextRange* range = GetTargetClause();
+    return range ? range->Length() : UINT32_MAX;
   }
 
   bool Equals(const TextRangeArray& aOther) const

@@ -125,8 +125,27 @@ protected:
     
     GdkEventKey* mProcessingKeyEvent;
 
+    struct Range
+    {
+        uint32_t mOffset;
+        uint32_t mLength;
+
+        Range()
+            : mOffset(UINT32_MAX)
+            , mLength(UINT32_MAX)
+        {
+        }
+
+        bool IsValid() const { return mOffset != UINT32_MAX; }
+        void Clear()
+        {
+            mOffset = UINT32_MAX;
+            mLength = UINT32_MAX;
+        }
+    };
+
     
-    uint32_t mCompositionTargetOffset;
+    Range mCompositionTargetRange;
 
     
     enum eCompositionState {
@@ -331,10 +350,7 @@ protected:
 
 
 
-
-
-
-    void SetCursorPosition(GtkIMContext* aContext, uint32_t aTargetOffset);
+    void SetCursorPosition(GtkIMContext* aContext);
 
     
     uint32_t GetSelectionOffset(nsWindow* aWindow);
