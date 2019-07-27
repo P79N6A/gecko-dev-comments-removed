@@ -729,6 +729,7 @@ class WorkerDebugger : public nsIWorkerDebugger {
   bool mIsEnabled;
 
   
+  bool mIsInitialized;
   nsTArray<nsCOMPtr<nsIWorkerDebuggerListener>> mListeners;
 
 public:
