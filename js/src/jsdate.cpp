@@ -2869,18 +2869,26 @@ date_toSource(JSContext* cx, unsigned argc, Value* vp)
 }
 #endif
 
-MOZ_ALWAYS_INLINE bool
-date_toString_impl(JSContext* cx, CallArgs args)
-{
-    return date_format(cx, args.thisv().toObject().as<DateObject>().UTCTime().toNumber(),
-                       FORMATSPEC_FULL, args.rval());
-}
 
 static bool
 date_toString(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
-    return CallNonGenericMethod<IsDate, date_toString_impl>(cx, args);
+    
+    double tv = GenericNaN();
+    if (args.thisv().isObject()) {
+        
+        RootedObject obj(cx, &args.thisv().toObject());
+        
+        if (ObjectClassIs(obj, ESClass_Date, cx)) {
+            
+            RootedValue unboxed(cx);
+            Unbox(cx, obj, &unboxed);
+            tv = unboxed.toNumber();
+        }
+    }
+    
+    return date_format(cx, tv, FORMATSPEC_FULL, args.rval());
 }
 
 MOZ_ALWAYS_INLINE bool
@@ -3119,11 +3127,16 @@ js::DateConstructor(JSContext* cx, unsigned argc, Value* vp)
     return DateMultipleArguments(cx, args);
 }
 
+
+static JSObject*
+CreateDatePrototype(JSContext* cx, JSProtoKey key)
+{
+    return cx->global()->createBlankPrototype(cx, &DateObject::protoClass_);
+}
+
 static bool
 FinishDateClassInit(JSContext* cx, HandleObject ctor, HandleObject proto)
 {
-    proto->as<DateObject>().setUTCTime(ClippedTime::NaN());
-
     
 
 
@@ -3131,8 +3144,8 @@ FinishDateClassInit(JSContext* cx, HandleObject ctor, HandleObject proto)
     RootedValue toUTCStringFun(cx);
     RootedId toUTCStringId(cx, NameToId(cx->names().toUTCString));
     RootedId toGMTStringId(cx, NameToId(cx->names().toGMTString));
-    return NativeGetProperty(cx, proto.as<DateObject>(), toUTCStringId, &toUTCStringFun) &&
-           NativeDefineProperty(cx, proto.as<DateObject>(), toGMTStringId, toUTCStringFun,
+    return NativeGetProperty(cx, proto.as<NativeObject>(), toUTCStringId, &toUTCStringFun) &&
+           NativeDefineProperty(cx, proto.as<NativeObject>(), toGMTStringId, toUTCStringFun,
                                 nullptr, nullptr, 0);
 }
 
@@ -3155,12 +3168,40 @@ const Class DateObject::class_ = {
     nullptr, 
     {
         GenericCreateConstructor<DateConstructor, 7, gc::AllocKind::FUNCTION>,
-        GenericCreatePrototype,
+        CreateDatePrototype,
         date_static_methods,
         nullptr,
         date_methods,
         nullptr,
         FinishDateClassInit
+    }
+};
+
+const Class DateObject::protoClass_ = {
+    js_Object_str,
+    JSCLASS_HAS_CACHED_PROTO(JSProto_Date),
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    {
+        DELEGATED_CLASSSPEC(&DateObject::class_.spec),
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        ClassSpec::IsDelegated
     }
 };
 
