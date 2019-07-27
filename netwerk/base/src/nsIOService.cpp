@@ -688,7 +688,7 @@ nsIOService::NewChannelFromURIWithProxyFlagsInternal(nsIURI* aURI,
 
       
       
-      if (loadInfo && loadInfo->GetLoadingSandboxed()) {
+      if (loadInfo->GetLoadingSandboxed()) {
         (*result)->SetOwner(nullptr);
       }
     }
