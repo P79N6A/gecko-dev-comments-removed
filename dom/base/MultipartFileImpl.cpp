@@ -235,6 +235,36 @@ MultipartFileImpl::GetMozFullPathInternal(nsAString& aFilename,
   blobImpl->GetMozFullPathInternal(aFilename, aRv);
 }
 
+nsresult
+MultipartFileImpl::SetMutable(bool aMutable)
+{
+  nsresult rv;
+
+  
+  
+  
+  
+  if (!aMutable && !mImmutable && !mBlobImpls.IsEmpty()) {
+    for (uint32_t index = 0, count = mBlobImpls.Length();
+         index < count;
+         index++) {
+      rv = mBlobImpls[index]->SetMutable(aMutable);
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        return rv;
+      }
+    }
+  }
+
+  rv = FileImplBase::SetMutable(aMutable);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  MOZ_ASSERT_IF(!aMutable, mImmutable);
+
+  return NS_OK;
+}
+
 void
 MultipartFileImpl::InitializeChromeFile(File& aBlob,
                                         const ChromeFilePropertyBag& aBag,
