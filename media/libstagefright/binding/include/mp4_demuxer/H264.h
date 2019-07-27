@@ -35,6 +35,16 @@ struct SPSData
 
 
 
+  uint32_t display_width;
+  uint32_t display_height;
+
+  float sample_ratio;
+
+  
+
+
+
+
   bool constraint_set0_flag;
   bool constraint_set1_flag;
   bool constraint_set2_flag;
@@ -222,120 +232,86 @@ struct SPSData
   uint32_t sar_width;
   uint32_t sar_height;
 
+  
+
+
+
+
+
+  bool video_signal_type_present_flag;
+
+  
+
+
+
+
+
   bool overscan_info_present_flag;
+  
+
+
+
+
+
+
   bool overscan_appropriate_flag;
 
+  
+
+
+
+
+
+
   uint8_t video_format;
+
+  
+
+
+
+
+
+
   bool video_full_range_flag;
+
+  
+
+
+
+
+
   bool colour_description_present_flag;
+
+  
+
+
+
+
+
+
+
   uint8_t colour_primaries;
+
+  
+
+
+
+
+
+
+
+
+
   uint8_t transfer_characteristics;
+
   uint8_t matrix_coefficients;
   bool chroma_loc_info_present_flag;
   uint32_t chroma_sample_loc_type_top_field;
   uint32_t chroma_sample_loc_type_bottom_field;
+  bool timing_info_present_flag;
   uint32_t num_units_in_tick;
   uint32_t time_scale;
   bool fixed_frame_rate_flag;
-
-  
-
-  
-
-
-
-
-
-
-
-  bool pic_struct_present_flag;
-
-  
-
-
-
-
-
-  bool bitstream_restriction_flag;
-
-  
-
-
-
-
-
-
-
-
-
-
-  bool motion_vectors_over_pic_boundaries_flag;
-
-  
-
-
-
-
-  uint32_t max_bytes_per_pic_denom;
-
-  
-
-
-
-
-
-  uint32_t max_bits_per_mb_denom;
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-   uint32_t log2_max_mv_length_horizontal;
-   uint32_t log2_max_mv_length_vertical;
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-   uint32_t max_num_reorder_frames;
-
-  
-
-
-
-
-
-
-
-
-
-
-
-   uint32_t max_dec_frame_buffering;
 
   SPSData();
 };
