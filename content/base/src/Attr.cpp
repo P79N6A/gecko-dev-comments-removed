@@ -54,8 +54,6 @@ Attr::Attr(nsDOMAttributeMap *aAttrMap,
 
   
   
-
-  SetIsDOMBinding();
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(Attr)

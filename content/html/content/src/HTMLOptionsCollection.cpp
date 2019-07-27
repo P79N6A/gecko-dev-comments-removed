@@ -35,8 +35,6 @@ namespace dom {
 
 HTMLOptionsCollection::HTMLOptionsCollection(HTMLSelectElement* aSelect)
 {
-  SetIsDOMBinding();
-
   
   
   mSelect = aSelect;

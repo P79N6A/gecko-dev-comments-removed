@@ -25,7 +25,8 @@ public:
 
   SVGAnimatedLength(nsSVGLength2* aVal, nsSVGElement *aSVGElement)
     : mVal(aVal), mSVGElement(aSVGElement)
-  { SetIsDOMBinding(); }
+  {
+  }
 
   
   nsSVGElement* GetParentObject() { return mSVGElement; }

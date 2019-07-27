@@ -42,8 +42,6 @@ public:
     , mHasOrHasHadOwnerWindow(false)
   {
     BindToOwner(aWindow);
-    
-    SetIsDOMBinding();
   }
   explicit DOMEventTargetHelper(DOMEventTargetHelper* aOther)
     : mParentObject(nullptr)
@@ -51,8 +49,6 @@ public:
     , mHasOrHasHadOwnerWindow(false)
   {
     BindToOwner(aOther);
-    
-    SetIsDOMBinding();
   }
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS

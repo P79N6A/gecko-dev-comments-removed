@@ -314,12 +314,10 @@ PostMessageRunnable::Run()
 MessagePortBase::MessagePortBase(nsPIDOMWindow* aWindow)
   : DOMEventTargetHelper(aWindow)
 {
-  
 }
 
 MessagePortBase::MessagePortBase()
 {
-  SetIsDOMBinding();
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(MessagePort)

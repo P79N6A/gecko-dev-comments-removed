@@ -24,7 +24,6 @@ nsDOMTokenList::nsDOMTokenList(Element* aElement, nsIAtom* aAttrAtom)
 {
   
   
-  SetIsDOMBinding();
 }
 
 nsDOMTokenList::~nsDOMTokenList() { }

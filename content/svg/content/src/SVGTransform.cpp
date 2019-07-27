@@ -112,7 +112,6 @@ SVGTransform::SVGTransform(DOMSVGTransformList *aList,
   , mIsAnimValItem(aIsAnimValItem)
   , mTransform(nullptr)
 {
-  SetIsDOMBinding();
   
   NS_ABORT_IF_FALSE(aList &&
                     aListIndex <= MaxListIndex(), "bad arg");
@@ -128,7 +127,6 @@ SVGTransform::SVGTransform()
                                      
                                      
 {
-  SetIsDOMBinding();
 }
 
 SVGTransform::SVGTransform(const gfxMatrix &aMatrix)
@@ -137,7 +135,6 @@ SVGTransform::SVGTransform(const gfxMatrix &aMatrix)
   , mIsAnimValItem(false)
   , mTransform(new nsSVGTransform(aMatrix))
 {
-  SetIsDOMBinding();
 }
 
 SVGTransform::SVGTransform(const nsSVGTransform &aTransform)
@@ -146,7 +143,6 @@ SVGTransform::SVGTransform(const nsSVGTransform &aTransform)
   , mIsAnimValItem(false)
   , mTransform(new nsSVGTransform(aTransform))
 {
-  SetIsDOMBinding();
 }
 
 SVGTransform::~SVGTransform()

@@ -34,7 +34,6 @@ nsDOMAttributeMap::nsDOMAttributeMap(Element* aContent)
 {
   
   
-  SetIsDOMBinding();
 }
 
 

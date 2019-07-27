@@ -200,8 +200,6 @@ Exception::Exception(const nsACString& aMessage,
   mInitialized(false),
   mHoldingJSVal(false)
 {
-  SetIsDOMBinding();
-
   
   
   
@@ -600,7 +598,6 @@ DOMException::DOMException(nsresult aRv, const nsACString& aMessage,
     mMessage(aMessage),
     mCode(aCode)
 {
-  SetIsDOMBinding();
 }
 
 NS_IMETHODIMP

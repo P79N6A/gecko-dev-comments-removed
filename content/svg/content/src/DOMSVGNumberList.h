@@ -61,8 +61,6 @@ public:
                    const SVGNumberList &aInternalList)
     : mAList(aAList)
   {
-    SetIsDOMBinding();
-
     
     
     

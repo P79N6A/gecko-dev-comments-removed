@@ -24,7 +24,6 @@ PeriodicWave::PeriodicWave(AudioContext* aContext,
   : mContext(aContext)
 {
   MOZ_ASSERT(aContext);
-  SetIsDOMBinding();
 
   
   MOZ_ASSERT(aLength > 0);

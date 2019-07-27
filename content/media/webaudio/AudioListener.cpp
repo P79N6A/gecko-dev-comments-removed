@@ -26,7 +26,6 @@ AudioListener::AudioListener(AudioContext* aContext)
   , mSpeedOfSound(343.3) 
 {
   MOZ_ASSERT(aContext);
-  SetIsDOMBinding();
 }
 
 JSObject*

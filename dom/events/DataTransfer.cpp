@@ -83,7 +83,6 @@ DataTransfer::DataTransfer(nsISupports* aParent, uint32_t aEventType,
     mDragImageY(0)
 {
   MOZ_ASSERT(mParent);
-  SetIsDOMBinding();
   
   
   
@@ -129,7 +128,6 @@ DataTransfer::DataTransfer(nsISupports* aParent,
     mDragImageY(aDragImageY)
 {
   MOZ_ASSERT(mParent);
-  SetIsDOMBinding();
   
   
   

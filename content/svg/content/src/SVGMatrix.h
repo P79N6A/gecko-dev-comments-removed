@@ -59,21 +59,15 @@ public:
   
 
 
-  explicit SVGMatrix(SVGTransform& aTransform) : mTransform(&aTransform) {
-    SetIsDOMBinding();
-  }
+  explicit SVGMatrix(SVGTransform& aTransform) : mTransform(&aTransform) {}
 
   
 
 
   
-  SVGMatrix() {
-    SetIsDOMBinding();
-  }
+  SVGMatrix() {}
 
-  explicit SVGMatrix(const gfxMatrix &aMatrix) : mMatrix(aMatrix) {
-    SetIsDOMBinding();
-  }
+  explicit SVGMatrix(const gfxMatrix &aMatrix) : mMatrix(aMatrix) {}
 
   const gfxMatrix& GetMatrix() const {
     return mTransform ? mTransform->Matrixgfx() : mMatrix;

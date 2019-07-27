@@ -56,8 +56,6 @@ public:
                       const SVGTransformList &aInternalList)
     : mAList(aAList)
   {
-    SetIsDOMBinding();
-
     
     
     

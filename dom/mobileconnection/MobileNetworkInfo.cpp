@@ -22,7 +22,6 @@ NS_INTERFACE_MAP_END
 MobileNetworkInfo::MobileNetworkInfo(nsPIDOMWindow* aWindow)
   : mWindow(aWindow)
 {
-  SetIsDOMBinding();
 }
 
 MobileNetworkInfo::MobileNetworkInfo(const nsAString& aShortName,
@@ -38,7 +37,6 @@ MobileNetworkInfo::MobileNetworkInfo(const nsAString& aShortName,
 {
   
   
-  SetIsDOMBinding();
 }
 
 void
