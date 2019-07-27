@@ -41,6 +41,8 @@ SelectionManager* SelectionMgr();
 ApplicationAccessible* ApplicationAcc();
 xpcAccessibleApplication* XPCApplicationAcc();
 
+typedef Accessible* (New_Accessible)(nsIContent* aContent, Accessible* aContext);
+
 } 
 } 
 
@@ -194,13 +196,6 @@ private:
 
 
   already_AddRefed<Accessible>
-    CreateHTMLAccessibleByMarkup(nsIFrame* aFrame, nsIContent* aContent,
-                                 Accessible* aContext);
-
-  
-
-
-  already_AddRefed<Accessible>
     CreateAccessibleByFrameType(nsIFrame* aFrame, nsIContent* aContent,
                                 Accessible* aContext);
 
@@ -227,6 +222,8 @@ private:
 
 
   static bool gIsShutdown;
+
+  nsDataHashtable<nsPtrHashKey<const nsIAtom>, mozilla::a11y::New_Accessible*> mMarkupMap;
 
   friend nsAccessibilityService* GetAccService();
   friend mozilla::a11y::FocusManager* mozilla::a11y::FocusMgr();
