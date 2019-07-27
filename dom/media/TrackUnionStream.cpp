@@ -46,7 +46,7 @@ PRLogModuleInfo* gTrackUnionStreamLog;
 #define STREAM_LOG(type, msg) MOZ_LOG(gTrackUnionStreamLog, type, msg)
 
 TrackUnionStream::TrackUnionStream(DOMMediaStream* aWrapper) :
-  ProcessedMediaStream(aWrapper), mNextAvailableTrackID(1)
+  ProcessedMediaStream(aWrapper)
 {
   if (!gTrackUnionStreamLog) {
     gTrackUnionStreamLog = PR_NewLogModule("TrackUnionStream");
@@ -161,23 +161,23 @@ TrackUnionStream::TrackUnionStream(DOMMediaStream* aWrapper) :
   uint32_t TrackUnionStream::AddTrack(MediaInputPort* aPort, StreamBuffer::Track* aTrack,
                     GraphTime aFrom)
   {
+    
+    
     TrackID id = aTrack->GetID();
-    if (id > mNextAvailableTrackID &&
-       mUsedTracks.BinaryIndexOf(id) == mUsedTracks.NoIndex) {
+    TrackID maxTrackID = 0;
+    for (uint32_t i = 0; i < mTrackMap.Length(); ++i) {
+      TrackID outID = mTrackMap[i].mOutputTrackID;
+      maxTrackID = std::max(maxTrackID, outID);
+    }
+    
+    
+    
+    while (1) {
       
-      mUsedTracks.InsertElementSorted(id);
-    } else {
-      
-      id = mNextAvailableTrackID;
-
-      
-      
-      while (1) {
-        if (!mUsedTracks.RemoveElementSorted(++mNextAvailableTrackID)) {
-          
-          break;
-        }
+      if (!mBuffer.FindTrack(id)) {
+        break;
       }
+      id = ++maxTrackID;
     }
 
     
