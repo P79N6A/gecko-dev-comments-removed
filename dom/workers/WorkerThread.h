@@ -8,6 +8,7 @@
 #define mozilla_dom_workers_WorkerThread_h__
 
 #include "mozilla/Attributes.h"
+#include "mozilla/CondVar.h"
 #include "mozilla/DebugOnly.h"
 #include "nsISupportsImpl.h"
 #include "nsRefPtr.h"
@@ -19,54 +20,70 @@ namespace mozilla {
 namespace dom {
 namespace workers {
 
+class RuntimeService;
 class WorkerPrivate;
+template <class> class WorkerPrivateParent;
 class WorkerRunnable;
+
+
+
+
+class WorkerThreadFriendKey
+{
+  friend class RuntimeService;
+  friend class WorkerPrivate;
+  friend class WorkerPrivateParent<WorkerPrivate>;
+
+#ifdef NS_BUILD_REFCNT_LOGGING
+  WorkerThreadFriendKey();
+  ~WorkerThreadFriendKey();
+#endif
+};
 
 class WorkerThread MOZ_FINAL
   : public nsThread
 {
   class Observer;
 
+  CondVar mWorkerPrivateCondVar;
+
+  
   WorkerPrivate* mWorkerPrivate;
+
+  
   nsRefPtr<Observer> mObserver;
 
-#ifdef DEBUG
   
-  bool mAcceptingNonWorkerRunnables;
-#endif
+  bool mOtherThreadDispatchingViaEventTarget;
+
+  
+  DebugOnly<bool> mAcceptingNonWorkerRunnables;
 
 public:
   static already_AddRefed<WorkerThread>
-  Create();
+  Create(const WorkerThreadFriendKey& aKey);
 
   void
-  SetWorker(WorkerPrivate* aWorkerPrivate);
+  SetWorker(const WorkerThreadFriendKey& aKey, WorkerPrivate* aWorkerPrivate);
+
+  nsresult
+  DispatchPrimaryRunnable(const WorkerThreadFriendKey& aKey,
+                          nsIRunnable* aRunnable);
+
+  nsresult
+  Dispatch(const WorkerThreadFriendKey& aKey,
+           WorkerRunnable* aWorkerRunnable);
 
   NS_DECL_ISUPPORTS_INHERITED
 
-  NS_IMETHOD
-  Dispatch(nsIRunnable* aRunnable, uint32_t aFlags) MOZ_OVERRIDE;
-
-#ifdef DEBUG
-  bool
-  IsAcceptingNonWorkerRunnables()
-  {
-    MutexAutoLock lock(mLock);
-    return mAcceptingNonWorkerRunnables;
-  }
-
-  void
-  SetAcceptingNonWorkerRunnables(bool aAcceptingNonWorkerRunnables)
-  {
-    MutexAutoLock lock(mLock);
-    mAcceptingNonWorkerRunnables = aAcceptingNonWorkerRunnables;
-  }
-#endif
-
 private:
   WorkerThread();
-
   ~WorkerThread();
+
+  
+  
+  NS_IMETHOD
+  Dispatch(nsIRunnable* aRunnable, uint32_t aFlags) MOZ_OVERRIDE;
 };
 
 } 
