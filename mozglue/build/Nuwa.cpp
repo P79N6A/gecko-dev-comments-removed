@@ -28,6 +28,59 @@
 #include "mozilla/TaggedAnonymousMemory.h"
 #include "Nuwa.h"
 
+
+
+
+
+
+
+
+#if defined(MOZ_VALGRIND)
+# include <valgrind/memcheck.h>
+#endif
+
+#define DEBUG_VALGRIND_ANNOTATIONS 1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if defined(MOZ_VALGRIND) && defined(VALGRIND_MAKE_MEM_DEFINED_IF_ADDRESSABLE) \
+    && defined(__arm__) && !defined(__aarch64__)
+# define POST_SETJMP_RESTORE(_who) \
+    do { \
+      /* setjmp returned 1 (meaning "restored").  Paint the area */ \
+      /* immediately above SP as "defined where it is accessible". */ \
+      register unsigned long int sp; \
+      __asm__ __volatile__("mov %0, sp" : "=r"(sp)); \
+      unsigned long int len = 1024*2; \
+      VALGRIND_MAKE_MEM_DEFINED_IF_ADDRESSABLE(sp, len); \
+      if (DEBUG_VALGRIND_ANNOTATIONS) { \
+        VALGRIND_PRINTF("Nuwa: POST_SETJMP_RESTORE: marking [0x%lx, +%ld) as " \
+                        "Defined-if-Addressible, called by %s\n", \
+                        sp, len, (_who)); \
+      } \
+    } while (0)
+#else
+# define POST_SETJMP_RESTORE(_who)
+#endif
+
+
 using namespace mozilla;
 
 
@@ -717,7 +770,7 @@ _thread_create_startup(void *arg) {
 }
 
 
-#define STACK_RESERVED_SZ 64
+#define STACK_RESERVED_SZ 96
 #define STACK_SENTINEL(v) ((v)[0])
 #define STACK_SENTINEL_VALUE(v) ((uint32_t)(v) ^ 0xdeadbeef)
 
@@ -1041,6 +1094,7 @@ static int sRecreateGatePassed = 0;
         abort();                                               \
       }                                                        \
     } else {                                                   \
+      POST_SETJMP_RESTORE("THREAD_FREEZE_POINT1");             \
       RECREATE_CONTINUE();                                     \
       RECREATE_GATE();                                         \
       freezeCountChg = false;                                  \
@@ -1074,6 +1128,7 @@ static int sRecreateGatePassed = 0;
         abort();                                               \
       }                                                        \
     } else {                                                   \
+      POST_SETJMP_RESTORE("THREAD_FREEZE_POINT1_VIP");         \
       freezeCountChg = false;                                  \
       recreated = true;                                        \
     }                                                          \
@@ -1469,6 +1524,7 @@ thread_recreate_startup(void *arg) {
   RestoreTLSInfo(tinfo);
 
   if (setjmp(tinfo->retEnv) != 0) {
+    POST_SETJMP_RESTORE("thread_recreate_startup");
     return nullptr;
   }
 
@@ -1918,6 +1974,7 @@ NuwaFreezeCurrentThread() {
 
       REAL(pthread_mutex_lock)(&sThreadFreezeLock);
     } else {
+      POST_SETJMP_RESTORE("NuwaFreezeCurrentThread");
       RECREATE_CONTINUE();
       RECREATE_GATE();
     }
@@ -1967,6 +2024,7 @@ NuwaCheckpointCurrentThread2(int setjmpCond) {
     pthread_mutex_unlock(&sThreadCountLock);
     return true;
   }
+  POST_SETJMP_RESTORE("NuwaCheckpointCurrentThread2");
   RECREATE_CONTINUE();
   RECREATE_GATE();
   return false;               
