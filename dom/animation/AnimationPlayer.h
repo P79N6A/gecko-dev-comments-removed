@@ -118,14 +118,13 @@ public:
   
   Nullable<TimeDuration> mStartTime; 
 
-  nsRefPtr<AnimationTimeline> mTimeline;
-  nsRefPtr<Animation> mSource;
-
 protected:
   void FlushStyle() const;
   void MaybePostRestyle() const;
   StickyTimeDuration SourceContentEnd() const;
 
+  nsRefPtr<AnimationTimeline> mTimeline;
+  nsRefPtr<Animation> mSource;
   Nullable<TimeDuration> mHoldTime;  
   bool mIsPaused;
   bool mIsRunningOnCompositor;
