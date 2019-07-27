@@ -1952,10 +1952,13 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   
   
   
+  bool needEventRegions = aBuilder->IsBuildingLayerEventRegions() &&
+      StyleVisibility()->GetEffectivePointerEvents(this) != NS_STYLE_POINTER_EVENTS_NONE;
   if (disp->mOpacity == 0.0 && aBuilder->IsForPainting() &&
       !aBuilder->WillComputePluginGeometry() &&
       !(disp->mWillChangeBitField & NS_STYLE_WILL_CHANGE_OPACITY) &&
-      !nsLayoutUtils::HasAnimations(mContent, eCSSProperty_opacity)) {
+      !nsLayoutUtils::HasAnimations(mContent, eCSSProperty_opacity) &&
+      !needEventRegions) {
     return;
   }
 
