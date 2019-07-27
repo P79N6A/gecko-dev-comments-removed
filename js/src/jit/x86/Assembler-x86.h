@@ -111,11 +111,10 @@ static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegD2 = esi;
 
 
 #if defined(__GNUC__)
-static const uint32_t StackAlignment = 16;
+static const uint32_t ABIStackAlignment = 16;
 #else
-static const uint32_t StackAlignment = 4;
+static const uint32_t ABIStackAlignment = 4;
 #endif
-static const bool StackKeptAligned = false;
 static const uint32_t CodeAlignment = 8;
 
 
@@ -124,6 +123,8 @@ static const uint32_t CodeAlignment = 8;
 
 static const bool SupportsSimd = true;
 static const uint32_t SimdStackAlignment = 16;
+
+static const uint32_t AsmJSStackAlignment = SimdStackAlignment;
 
 struct ImmTag : public Imm32
 {
