@@ -3,11 +3,11 @@
 
 
 
-from by import By
-from marionette import Actions
+from marionette_driver.by import By
+from marionette_driver.marionette import Actions
 from marionette_test import MarionetteTestCase
-from selection import SelectionManager
-from gestures import long_press_without_contextmenu
+from marionette_driver.selection import SelectionManager
+from marionette_driver.gestures import long_press_without_contextmenu
 
 
 class SelectionCaretsTest(MarionetteTestCase):
