@@ -27,7 +27,7 @@ public:
     virtual nscoord GetMinISize(nsRenderingContext* aRenderingContext) MOZ_OVERRIDE;
     virtual nscoord GetPrefISize(nsRenderingContext* aRenderingContext,
                                  bool aComputingSize) MOZ_OVERRIDE;
-    virtual void MarkIntrinsicWidthsDirty() MOZ_OVERRIDE;
+    virtual void MarkIntrinsicISizesDirty() MOZ_OVERRIDE;
     virtual void ComputeColumnWidths(const nsHTMLReflowState& aReflowState) MOZ_OVERRIDE;
 
 private:
@@ -38,7 +38,7 @@ private:
                          BTLS_FINAL_WIDTH };
 
     
-    void ComputeColumnIntrinsicWidths(nsRenderingContext* aRenderingContext);
+    void ComputeColumnIntrinsicISizes(nsRenderingContext* aRenderingContext);
 
     
     void DistributePctWidthToColumns(float aSpanPrefPct,
@@ -69,7 +69,7 @@ private:
 
     
     
-    void ComputeIntrinsicWidths(nsRenderingContext* aRenderingContext);
+    void ComputeIntrinsicISizes(nsRenderingContext* aRenderingContext);
 
     nsTableFrame *mTableFrame;
     nscoord mMinWidth;

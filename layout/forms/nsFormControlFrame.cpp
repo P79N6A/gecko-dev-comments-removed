@@ -45,7 +45,7 @@ NS_QUERYFRAME_TAIL_INHERITING(nsLeafFrame)
 NS_IMPL_FRAMEARENA_HELPERS(nsFormControlFrame)
 
 nscoord
-nsFormControlFrame::GetIntrinsicWidth()
+nsFormControlFrame::GetIntrinsicISize()
 {
   
   
@@ -54,7 +54,7 @@ nsFormControlFrame::GetIntrinsicWidth()
 }
 
 nscoord
-nsFormControlFrame::GetIntrinsicHeight()
+nsFormControlFrame::GetIntrinsicBSize()
 {
   
   

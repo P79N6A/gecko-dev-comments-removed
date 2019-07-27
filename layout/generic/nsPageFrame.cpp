@@ -650,13 +650,13 @@ nsPageBreakFrame::~nsPageBreakFrame()
 }
 
 nscoord
-nsPageBreakFrame::GetIntrinsicWidth()
+nsPageBreakFrame::GetIntrinsicISize()
 {
   return nsPresContext::CSSPixelsToAppUnits(1);
 }
 
 nscoord
-nsPageBreakFrame::GetIntrinsicHeight()
+nsPageBreakFrame::GetIntrinsicBSize()
 {
   return 0;
 }
@@ -673,7 +673,7 @@ nsPageBreakFrame::Reflow(nsPresContext*           aPresContext,
   
   
   WritingMode wm = aReflowState.GetWritingMode();
-  LogicalSize finalSize(wm, GetIntrinsicWidth(),
+  LogicalSize finalSize(wm, GetIntrinsicISize(),
                         aReflowState.AvailableBSize() == NS_UNCONSTRAINEDSIZE ?
                           0 : aReflowState.AvailableBSize());
   

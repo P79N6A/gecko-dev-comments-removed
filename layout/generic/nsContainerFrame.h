@@ -216,7 +216,7 @@ public:
   
   void DoInlineIntrinsicISize(nsRenderingContext *aRenderingContext,
                               InlineIntrinsicISizeData *aData,
-                              nsLayoutUtils::IntrinsicWidthType aType);
+                              nsLayoutUtils::IntrinsicISizeType aType);
 
   
 

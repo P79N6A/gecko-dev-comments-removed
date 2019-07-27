@@ -5201,7 +5201,7 @@ SVGTextFrame::DoReflow()
   if (UpdateFontSizeScaleFactor()) {
     
     
-    kid->MarkIntrinsicWidthsDirty();
+    kid->MarkIntrinsicISizesDirty();
   }
 
   mState |= NS_STATE_SVG_TEXT_IN_REFLOW;

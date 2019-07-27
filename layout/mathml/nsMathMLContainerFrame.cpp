@@ -964,7 +964,7 @@ nsMathMLContainerFrame::GetMinISize(nsRenderingContext *aRenderingContext)
   nscoord result;
   DISPLAY_MIN_WIDTH(this, result);
   nsHTMLReflowMetrics desiredSize(GetWritingMode());
-  GetIntrinsicWidthMetrics(aRenderingContext, desiredSize);
+  GetIntrinsicISizeMetrics(aRenderingContext, desiredSize);
 
   
   
@@ -979,7 +979,7 @@ nsMathMLContainerFrame::GetPrefISize(nsRenderingContext *aRenderingContext)
   nscoord result;
   DISPLAY_PREF_WIDTH(this, result);
   nsHTMLReflowMetrics desiredSize(GetWritingMode());
-  GetIntrinsicWidthMetrics(aRenderingContext, desiredSize);
+  GetIntrinsicISizeMetrics(aRenderingContext, desiredSize);
 
   
   
@@ -989,7 +989,7 @@ nsMathMLContainerFrame::GetPrefISize(nsRenderingContext *aRenderingContext)
 }
 
  void
-nsMathMLContainerFrame::GetIntrinsicWidthMetrics(nsRenderingContext* aRenderingContext, nsHTMLReflowMetrics& aDesiredSize)
+nsMathMLContainerFrame::GetIntrinsicISizeMetrics(nsRenderingContext* aRenderingContext, nsHTMLReflowMetrics& aDesiredSize)
 {
   
   nsIFrame* childFrame = mFrames.FirstChild();
@@ -998,7 +998,7 @@ nsMathMLContainerFrame::GetIntrinsicWidthMetrics(nsRenderingContext* aRenderingC
 
     nsMathMLContainerFrame* containerFrame = do_QueryFrame(childFrame);
     if (containerFrame) {
-      containerFrame->GetIntrinsicWidthMetrics(aRenderingContext,
+      containerFrame->GetIntrinsicISizeMetrics(aRenderingContext,
                                                childDesiredSize);
     } else {
       

@@ -1484,7 +1484,7 @@ nsTableFrame::ProcessRowInserted(nscoord aNewHeight)
 }
 
  void
-nsTableFrame::MarkIntrinsicWidthsDirty()
+nsTableFrame::MarkIntrinsicISizesDirty()
 {
   nsITableLayoutStrategy* tls = LayoutStrategy();
   if (MOZ_UNLIKELY(!tls)) {
@@ -1496,11 +1496,11 @@ nsTableFrame::MarkIntrinsicWidthsDirty()
     
     return;
   }
-  tls->MarkIntrinsicWidthsDirty();
+  tls->MarkIntrinsicISizesDirty();
 
   
 
-  nsContainerFrame::MarkIntrinsicWidthsDirty();
+  nsContainerFrame::MarkIntrinsicISizesDirty();
 }
 
  nscoord
@@ -1525,11 +1525,11 @@ nsTableFrame::GetPrefISize(nsRenderingContext *aRenderingContext)
   return LayoutStrategy()->GetPrefISize(aRenderingContext, false);
 }
 
- nsIFrame::IntrinsicWidthOffsetData
-nsTableFrame::IntrinsicWidthOffsets(nsRenderingContext* aRenderingContext)
+ nsIFrame::IntrinsicISizeOffsetData
+nsTableFrame::IntrinsicISizeOffsets(nsRenderingContext* aRenderingContext)
 {
-  IntrinsicWidthOffsetData result =
-    nsContainerFrame::IntrinsicWidthOffsets(aRenderingContext);
+  IntrinsicISizeOffsetData result =
+    nsContainerFrame::IntrinsicISizeOffsets(aRenderingContext);
 
   result.hMargin = 0;
   result.hPctMargin = 0;

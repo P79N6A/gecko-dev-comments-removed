@@ -80,7 +80,7 @@ protected:
 
 
 
-  virtual nscoord GetIntrinsicWidth() = 0;
+  virtual nscoord GetIntrinsicISize() = 0;
 
   
 
@@ -89,7 +89,7 @@ protected:
 
 
 
-  virtual nscoord GetIntrinsicHeight();
+  virtual nscoord GetIntrinsicBSize();
 
   
 

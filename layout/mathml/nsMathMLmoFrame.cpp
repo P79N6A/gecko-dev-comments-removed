@@ -948,7 +948,7 @@ nsMathMLmoFrame::Reflow(nsPresContext*          aPresContext,
 }
 
  void
-nsMathMLmoFrame::MarkIntrinsicWidthsDirty()
+nsMathMLmoFrame::MarkIntrinsicISizesDirty()
 {
   
   
@@ -969,11 +969,11 @@ nsMathMLmoFrame::MarkIntrinsicWidthsDirty()
   
   RebuildAutomaticDataForChildren(target);
 
-  nsMathMLContainerFrame::MarkIntrinsicWidthsDirty();
+  nsMathMLContainerFrame::MarkIntrinsicISizesDirty();
 }
 
  void
-nsMathMLmoFrame::GetIntrinsicWidthMetrics(nsRenderingContext *aRenderingContext, nsHTMLReflowMetrics& aDesiredSize)
+nsMathMLmoFrame::GetIntrinsicISizeMetrics(nsRenderingContext *aRenderingContext, nsHTMLReflowMetrics& aDesiredSize)
 {
   ProcessOperatorData();
   if (UseMathMLChar()) {
@@ -985,7 +985,7 @@ nsMathMLmoFrame::GetIntrinsicWidthMetrics(nsRenderingContext *aRenderingContext,
                   NS_MATHML_OPERATOR_MAXSIZE_IS_ABSOLUTE(mFlags));
   }
   else {
-    nsMathMLTokenFrame::GetIntrinsicWidthMetrics(aRenderingContext,
+    nsMathMLTokenFrame::GetIntrinsicISizeMetrics(aRenderingContext,
                                                  aDesiredSize);
   }
 

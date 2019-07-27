@@ -31,7 +31,7 @@ public:
                                  bool aComputingSize) = 0;
 
     
-    virtual void MarkIntrinsicWidthsDirty() = 0;
+    virtual void MarkIntrinsicISizesDirty() = 0;
 
     
 

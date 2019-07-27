@@ -61,9 +61,9 @@ nsGridLayout2::Layout(nsIFrame* aBox, nsBoxLayoutState& aBoxLayoutState)
 }
 
 void
-nsGridLayout2::IntrinsicWidthsDirty(nsIFrame* aBox, nsBoxLayoutState& aBoxLayoutState)
+nsGridLayout2::IntrinsicISizesDirty(nsIFrame* aBox, nsBoxLayoutState& aBoxLayoutState)
 {
-  nsStackLayout::IntrinsicWidthsDirty(aBox, aBoxLayoutState);
+  nsStackLayout::IntrinsicISizesDirty(aBox, aBoxLayoutState);
   
   
   

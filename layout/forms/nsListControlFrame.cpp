@@ -396,7 +396,7 @@ nsListControlFrame::Reflow(nsPresContext*           aPresContext,
   if (!(GetStateBits() & NS_FRAME_FIRST_REFLOW) && autoHeight) {
     
     
-    nscoord computedHeight = CalcIntrinsicHeight(oldHeightOfARow, length);
+    nscoord computedHeight = CalcIntrinsicBSize(oldHeightOfARow, length);
     computedHeight = state.ApplyMinMaxHeight(computedHeight);
     state.SetComputedHeight(computedHeight);
   }
@@ -453,7 +453,7 @@ nsListControlFrame::Reflow(nsPresContext*           aPresContext,
                                nsDidReflowStatus::FINISHED);
 
   
-  nscoord computedHeight = CalcIntrinsicHeight(HeightOfARow(), length); 
+  nscoord computedHeight = CalcIntrinsicBSize(HeightOfARow(), length); 
   computedHeight = state.ApplyMinMaxHeight(computedHeight);
   state.SetComputedHeight(computedHeight);
 
@@ -1526,7 +1526,7 @@ nsListControlFrame::CalcFallbackRowHeight(float aFontSizeInflation)
 }
 
 nscoord
-nsListControlFrame::CalcIntrinsicHeight(nscoord aHeightOfARow,
+nsListControlFrame::CalcIntrinsicBSize(nscoord aHeightOfARow,
                                         int32_t aNumberOfOptions)
 {
   NS_PRECONDITION(!IsInDropDownMode(),

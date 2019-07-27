@@ -219,7 +219,7 @@ class TextOverflow {
     
     nscoord                        mWidth;
     
-    nscoord                        mIntrinsicWidth;
+    nscoord                        mIntrinsicISize;
     
     const nsStyleTextOverflowSide* mStyle;
     

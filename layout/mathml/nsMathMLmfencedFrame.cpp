@@ -554,7 +554,7 @@ GetMaxCharWidth(nsPresContext*       aPresContext,
 }
 
  void
-nsMathMLmfencedFrame::GetIntrinsicWidthMetrics(nsRenderingContext* aRenderingContext, nsHTMLReflowMetrics& aDesiredSize)
+nsMathMLmfencedFrame::GetIntrinsicISizeMetrics(nsRenderingContext* aRenderingContext, nsHTMLReflowMetrics& aDesiredSize)
 {
   nscoord width = 0;
 

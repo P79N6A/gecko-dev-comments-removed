@@ -334,7 +334,7 @@ protected:
 
   
   
-  nscoord CalcIntrinsicHeight(nscoord aHeightOfARow, int32_t aNumberOfOptions);
+  nscoord CalcIntrinsicBSize(nscoord aHeightOfARow, int32_t aNumberOfOptions);
 
   
   void     SetComboboxItem(int32_t aIndex);

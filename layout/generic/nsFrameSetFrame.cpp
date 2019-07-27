@@ -111,8 +111,8 @@ public:
 protected:
   nsHTMLFramesetBorderFrame(nsStyleContext* aContext, int32_t aWidth, bool aVertical, bool aVisible);
   virtual ~nsHTMLFramesetBorderFrame();
-  virtual nscoord GetIntrinsicWidth() MOZ_OVERRIDE;
-  virtual nscoord GetIntrinsicHeight() MOZ_OVERRIDE;
+  virtual nscoord GetIntrinsicISize() MOZ_OVERRIDE;
+  virtual nscoord GetIntrinsicBSize() MOZ_OVERRIDE;
 
   
   
@@ -155,8 +155,8 @@ public:
 protected:
   nsHTMLFramesetBlankFrame(nsStyleContext* aContext) : nsLeafFrame(aContext) {}
   virtual ~nsHTMLFramesetBlankFrame();
-  virtual nscoord GetIntrinsicWidth() MOZ_OVERRIDE;
-  virtual nscoord GetIntrinsicHeight() MOZ_OVERRIDE;
+  virtual nscoord GetIntrinsicISize() MOZ_OVERRIDE;
+  virtual nscoord GetIntrinsicBSize() MOZ_OVERRIDE;
 
   friend class nsHTMLFramesetFrame;
   friend class nsHTMLFrameset;
@@ -1417,13 +1417,13 @@ nsHTMLFramesetBorderFrame::~nsHTMLFramesetBorderFrame()
 
 NS_IMPL_FRAMEARENA_HELPERS(nsHTMLFramesetBorderFrame)
 
-nscoord nsHTMLFramesetBorderFrame::GetIntrinsicWidth()
+nscoord nsHTMLFramesetBorderFrame::GetIntrinsicISize()
 {
   
   return 0;
 }
 
-nscoord nsHTMLFramesetBorderFrame::GetIntrinsicHeight()
+nscoord nsHTMLFramesetBorderFrame::GetIntrinsicBSize()
 {
   
   return 0;
@@ -1635,13 +1635,13 @@ nsHTMLFramesetBlankFrame::~nsHTMLFramesetBlankFrame()
   
 }
 
-nscoord nsHTMLFramesetBlankFrame::GetIntrinsicWidth()
+nscoord nsHTMLFramesetBlankFrame::GetIntrinsicISize()
 {
   
   return 0;
 }
 
-nscoord nsHTMLFramesetBlankFrame::GetIntrinsicHeight()
+nscoord nsHTMLFramesetBlankFrame::GetIntrinsicBSize()
 {
   
   return 0;
