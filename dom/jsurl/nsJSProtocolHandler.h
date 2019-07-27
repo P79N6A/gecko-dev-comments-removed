@@ -86,6 +86,9 @@ public:
     NS_IMETHOD Write(nsIObjectOutputStream* aStream) MOZ_OVERRIDE;
 
     
+    NS_DECL_NSIIPCSERIALIZABLEURI
+
+    
     
     NS_IMETHOD GetClassIDNoAlloc(nsCID *aClassIDNoAlloc) MOZ_OVERRIDE;
     
