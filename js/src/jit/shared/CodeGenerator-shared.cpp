@@ -1169,6 +1169,10 @@ CodeGeneratorShared::verifyOsiPointRegs(LSafepoint *safepoint)
 
     
     
+    masm.store32(Imm32(0), checkRegs);
+
+    
+    
     
     
     

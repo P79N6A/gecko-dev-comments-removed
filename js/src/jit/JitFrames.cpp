@@ -747,6 +747,11 @@ HandleException(ResumeFromException *rfe)
 
     JitActivation *activation = cx->runtime()->activation()->asJit();
 
+#ifdef CHECK_OSIPOINT_REGISTERS
+    if (js_JitOptions.checkOsiPointRegisters)
+        activation->setCheckRegs(false);
+#endif
+
     
     
     
