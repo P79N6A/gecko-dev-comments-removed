@@ -1197,7 +1197,7 @@ ThreadActor.prototype = {
 
   _breakOnEnter: function(script) {
     let offsets = script.getAllOffsets();
-    let sourceActor = this.sources.source({ source: script.source });
+    let sourceActor = this.sources.createNonSourceMappedActor(script.source);
 
     for (let line = 0, n = offsets.length; line < n; line++) {
       if (offsets[line]) {
@@ -1348,7 +1348,7 @@ ThreadActor.prototype = {
       }
     }
 
-    return all([this.sources.sourcesForScript(script)
+    return all([this.sources.createSourceActors(script.source)
                 for (script of sourcesToScripts.values())]);
   },
 
@@ -1963,8 +1963,6 @@ ThreadActor.prototype = {
 
 
   onNewScript: function (aScript, aGlobal) {
-    this.sources.sourcesForScript(aScript);
-
     
     
     
@@ -2029,9 +2027,8 @@ ThreadActor.prototype = {
     }
 
     
-
     let endLine = aScript.startLine + aScript.lineCount - 1;
-    let source = this.sources.source({ source: aScript.source });
+    let source = this.sources.createNonSourceMappedActor(aScript.source);
     for (let bpActor of this.breakpointActorMap.findActors({ source: source.form() })) {
       
       if (bpActor.location.line >= aScript.startLine
@@ -2039,6 +2036,11 @@ ThreadActor.prototype = {
         source.setBreakpoint(bpActor.location, aScript);
       }
     }
+
+    
+    
+    
+    this.sources.createSourceActors(aScript.source);
 
     return true;
   },
@@ -5123,7 +5125,10 @@ function ThreadSources(aThreadActor, aOptions, aAllowPredicate,
   this._useSourceMaps = aOptions.useSourceMaps;
   this._autoBlackBox = aOptions.autoBlackBox;
   this._allow = aAllowPredicate;
-  this._onNewSource = aOnNewSource;
+  this._onNewSource = DevToolsUtils.makeInfallible(
+    aOnNewSource,
+    "ThreadSources.prototype._onNewSource"
+  );
   this._anonSourceMapId = 1;
 
   
@@ -5238,21 +5243,35 @@ ThreadSources.prototype = {
       this._sourceMappedSourceActors[originalUrl] = actor;
     }
 
-    
-    
-    
-    if (!source || !this._sourceMaps.has(source)) {
-      try {
-        this._onNewSource(actor);
-      } catch (e) {
-        reportError(e);
-      }
-    }
-
+    this._emitNewSource(actor);
     return actor;
   },
 
-  getSource: function(source) {
+  _emitNewSource: function(actor) {
+    if(!actor.source) {
+      
+      
+      
+      this._onNewSource(actor);
+    }
+    else {
+      
+      
+      
+      
+      
+      
+      
+      
+      this.fetchSourceMap(actor.source).then(map => {
+        if(!map) {
+          this._onNewSource(actor);
+        }
+      });
+    }
+  },
+
+  getSourceActor: function(source) {
     if (source.url in this._sourceMappedSourceActors) {
       return this._sourceMappedSourceActors[source.url];
     }
@@ -5265,7 +5284,7 @@ ThreadSources.prototype = {
                     (source.url || 'source'));
   },
 
-  getSourceByURL: function(url) {
+  getSourceActorByURL: function(url) {
     if (url) {
       for (let [source, actor] of this._sourceActors) {
         if (source.url === url) {
@@ -5304,13 +5323,21 @@ ThreadSources.prototype = {
   
 
 
-  _sourceForScript: function (aScript) {
+
+
+
+
+
+
+  createNonSourceMappedActor: function (aSource) {
     
     
-    let url = isEvalSource(aScript.source) ? null : aScript.source.url;
-    let spec = {
-      source: aScript.source
-    };
+    
+    
+    
+    
+    let url = isEvalSource(aSource) ? null : aSource.url;
+    let spec = { source: aSource };
 
     
     
@@ -5347,27 +5374,48 @@ ThreadSources.prototype = {
 
 
 
-  sourcesForScript: function (aScript) {
-    if (!this._useSourceMaps || !aScript.source.sourceMapURL) {
-      return resolve([this._sourceForScript(aScript)].filter(isNotNull));
+
+
+
+  _createSourceMappedActors: function (aSource) {
+    if (!this._useSourceMaps || !aSource.sourceMapURL) {
+      return resolve(null);
     }
 
-    return this.fetchSourceMap(aScript.source)
+    return this.fetchSourceMap(aSource)
       .then(map => {
         if (map) {
           return [
-            this.source({ originalUrl: s,
-                          generatedSource: aScript.source })
+            this.source({ originalUrl: s, generatedSource: aSource })
             for (s of map.sources)
-          ];
+          ].filter(isNotNull);
         }
-
-        return [this._sourceForScript(aScript)];
-      })
-      .then(ss => ss.filter(isNotNull));
+        return null;
+      });
   },
 
   
+
+
+
+
+
+
+
+
+
+  createSourceActors: function(aSource) {
+    return this._createSourceMappedActors(aSource).then(actors => {
+      let actor = this.createNonSourceMappedActor(aSource);
+      return (actors || [actor]).filter(isNotNull);
+    });
+  },
+
+  
+
+
+
+
 
 
 
@@ -5385,13 +5433,12 @@ ThreadSources.prototype = {
     if (aSource.url) {
       sourceMapURL = this._normalize(sourceMapURL, aSource.url);
     }
+    let result = this._fetchSourceMap(sourceMapURL, aSource.url);
 
-    let map = this._fetchSourceMap(sourceMapURL, aSource.url);
-    if (map) {
-      this._sourceMaps.set(aSource, map);
-      return map;
-    }
-    return resolve(null);
+    
+    
+    this._sourceMaps.set(aSource, result);
+    return result;
   },
 
   
@@ -5429,7 +5476,7 @@ ThreadSources.prototype = {
       return this._sourceMapCache[aAbsSourceMapURL];
     }
     else if (!this._useSourceMaps) {
-      return null;
+      return resolve(null);
     }
 
     let fetching = fetch(aAbsSourceMapURL, { loadFromCache: false })
@@ -5440,7 +5487,7 @@ ThreadSources.prototype = {
       })
       .then(null, error => {
         if (!DevToolsUtils.reportingDisabled) {
-          DevToolsUtils.reportException("ThreadSources.prototype.getOriginalLocation", error);
+          DevToolsUtils.reportException("ThreadSources.prototype._fetchSourceMap", error);
         }
         return null;
       });
@@ -5535,6 +5582,9 @@ ThreadSources.prototype = {
 
 
 
+
+
+
   getOriginalLocation: function ({ source, line, column }) {
     
     
@@ -5554,7 +5604,17 @@ ThreadSources.prototype = {
         });
 
         return {
-          sourceActor: sourceUrl && this.source({ originalUrl: sourceUrl }),
+          
+          
+          
+          
+          
+          
+          
+          sourceActor: (!sourceUrl) ? null : this.source({
+            originalUrl: sourceUrl,
+            generatedSource: source
+          }),
           url: sourceUrl,
           line: sourceLine,
           column: sourceCol,
@@ -5564,9 +5624,7 @@ ThreadSources.prototype = {
 
       
       return resolve({
-        
-        
-        sourceActor: this.source({ source }),
+        sourceActor: this.createNonSourceMappedActor(source),
         url: source.url,
         line: line,
         column: column
@@ -5600,9 +5658,7 @@ ThreadSources.prototype = {
         });
 
         return {
-          
-          
-          sourceActor: this.source({ source: source }),
+          sourceActor: this.createNonSourceMappedActor(source),
           line: genLine,
           column: genColumn
         };
