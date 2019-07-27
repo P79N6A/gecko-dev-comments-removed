@@ -160,10 +160,6 @@ JitOptions::JitOptions()
     SET_DEFAULT(osrPcMismatchesBeforeRecompile, 6000);
 
     
-    
-    
-    
-    
     SET_DEFAULT(smallFunctionMaxBytecodeLength_, 100);
 }
 

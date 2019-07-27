@@ -776,6 +776,9 @@ IonBuilder::build()
     if (!init())
         return false;
 
+    if (script()->hasBaselineScript())
+        script()->baselineScript()->resetMaxInliningDepth();
+
     if (!setCurrentAndSpecializePhis(newBlock(pc)))
         return false;
     if (!current)
@@ -4842,56 +4845,6 @@ IonBuilder::makeInliningDecision(JSObject *targetArg, CallInfo &callInfo)
     JSScript *targetScript = target->nonLazyScript();
 
     
-    if (js_JitOptions.isSmallFunction(targetScript)) {
-        if (inliningDepth_ >= optimizationInfo().smallFunctionMaxInlineDepth()) {
-            trackOptimizationOutcome(TrackedOutcome::CantInlineExceededDepth);
-            return DontInline(targetScript, "Vetoed: exceeding allowed inline depth");
-        }
-    } else {
-        if (inliningDepth_ >= optimizationInfo().maxInlineDepth()) {
-            trackOptimizationOutcome(TrackedOutcome::CantInlineExceededDepth);
-            return DontInline(targetScript, "Vetoed: exceeding allowed inline depth");
-        }
-
-        if (targetScript->hasLoops()) {
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            bool hasOpportunities = false;
-            for (size_t i = 0, e = callInfo.argv().length(); !hasOpportunities && i < e; i++) {
-                MDefinition *arg = callInfo.argv()[i];
-                hasOpportunities = arg->isLambda() || arg->isConstantValue();
-            }
-
-            if (!hasOpportunities) {
-                trackOptimizationOutcome(TrackedOutcome::CantInlineBigLoop);
-                return DontInline(targetScript, "Vetoed: big function that contains a loop");
-            }
-        }
-
-        
-        if (script()->length() >= optimizationInfo().inliningMaxCallerBytecodeLength()) {
-            trackOptimizationOutcome(TrackedOutcome::CantInlineBigCaller);
-            return DontInline(targetScript, "Vetoed: caller excessively large");
-        }
-    }
-
-    
     
     bool offThread = options.offThreadCompilationAvailable();
     if (targetScript->length() > optimizationInfo().inlineMaxBytecodePerCallSite(offThread)) {
@@ -4921,6 +4874,65 @@ IonBuilder::makeInliningDecision(JSObject *targetArg, CallInfo &callInfo)
         trackOptimizationOutcome(TrackedOutcome::CantInlineExceededTotalBytecodeLength);
         return DontInline(targetScript, "Vetoed: exceeding max total bytecode length");
     }
+
+    
+
+    uint32_t maxInlineDepth;
+    if (js_JitOptions.isSmallFunction(targetScript)) {
+        maxInlineDepth = optimizationInfo().smallFunctionMaxInlineDepth();
+    } else {
+        maxInlineDepth = optimizationInfo().maxInlineDepth();
+
+        
+        if (script()->length() >= optimizationInfo().inliningMaxCallerBytecodeLength()) {
+            trackOptimizationOutcome(TrackedOutcome::CantInlineBigCaller);
+            return DontInline(targetScript, "Vetoed: caller excessively large");
+        }
+    }
+
+    BaselineScript *outerBaseline = outermostBuilder()->script()->baselineScript();
+    if (inliningDepth_ >= maxInlineDepth) {
+        
+        
+        
+        
+        outerBaseline->setMaxInliningDepth(0);
+
+        trackOptimizationOutcome(TrackedOutcome::CantInlineExceededDepth);
+        return DontInline(targetScript, "Vetoed: exceeding allowed inline depth");
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (targetScript->hasLoops() &&
+        inliningDepth_ >= targetScript->baselineScript()->maxInliningDepth())
+    {
+        trackOptimizationOutcome(TrackedOutcome::CantInlineExceededDepth);
+        return DontInline(targetScript, "Vetoed: exceeding allowed script inline depth");
+    }
+
+    
+    MOZ_ASSERT(maxInlineDepth > inliningDepth_);
+    uint32_t scriptInlineDepth = maxInlineDepth - inliningDepth_ - 1;
+    if (scriptInlineDepth < outerBaseline->maxInliningDepth())
+        outerBaseline->setMaxInliningDepth(scriptInlineDepth);
+
+    
 
     
     TypeSet::ObjectKey *targetKey = TypeSet::ObjectKey::get(target);
