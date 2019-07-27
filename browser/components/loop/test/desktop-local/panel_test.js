@@ -4,6 +4,7 @@
 
 
 
+
 var expect = chai.expect;
 var TestUtils = React.addons.TestUtils;
 
@@ -82,25 +83,18 @@ describe("loop.panel", function() {
       });
 
       describe("#home", function() {
-        it("should reset the PanelView", function() {
-          sandbox.stub(router, "reset");
-
-          router.home();
-
-          sinon.assert.calledOnce(router.reset);
-        });
-      });
-
-      describe("#reset", function() {
-        it("should clear all pending notifications", function() {
+        beforeEach(function() {
           sandbox.stub(notifications, "reset");
-          router.reset();
+        });
+
+        it("should clear all pending notifications", function() {
+          router.home();
 
           sinon.assert.calledOnce(notifications.reset);
         });
 
         it("should load the home view", function() {
-          router.reset();
+          router.home();
 
           sinon.assert.calledOnce(router.loadReactComponent);
           sinon.assert.calledWithExactly(router.loadReactComponent,
@@ -110,51 +104,6 @@ describe("loop.panel", function() {
             }));
         });
       });
-    });
-
-    describe("Events", function() {
-      beforeEach(function() {
-        sandbox.stub(loop.panel.PanelRouter.prototype, "trigger");
-      });
-
-      it("should listen to document visibility changes", function() {
-        var fakeDocument = {
-          hidden: true,
-          addEventListener: sandbox.spy()
-        };
-
-        var router = createTestRouter(fakeDocument);
-
-        sinon.assert.calledOnce(fakeDocument.addEventListener);
-        sinon.assert.calledWith(fakeDocument.addEventListener,
-                                "visibilitychange");
-      });
-
-      it("should trigger panel:open when the panel document is visible",
-        function() {
-          var router = createTestRouter({
-            hidden: false,
-            addEventListener: function(name, cb) {
-              cb({currentTarget: {hidden: false}});
-            }
-          });
-
-          sinon.assert.calledOnce(router.trigger);
-          sinon.assert.calledWith(router.trigger, "panel:open");
-        });
-
-      it("should trigger panel:closed when the panel document is hidden",
-        function() {
-          var router = createTestRouter({
-            hidden: true,
-            addEventListener: function(name, cb) {
-              cb({currentTarget: {hidden: true}});
-            }
-          });
-
-          sinon.assert.calledOnce(router.trigger);
-          sinon.assert.calledWith(router.trigger, "panel:closed");
-        });
     });
   });
 

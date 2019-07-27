@@ -11,10 +11,10 @@ var loop = loop || {};
 loop.panel = (function(_, mozL10n) {
   "use strict";
 
-  var sharedViews = loop.shared.views,
-      sharedModels = loop.shared.models,
-      
-      __ = mozL10n.get;
+  var sharedViews = loop.shared.views;
+  var sharedModels = loop.shared.models;
+  var sharedMixins = loop.shared.mixins;
+  var __ = mozL10n.get; 
 
   
 
@@ -76,38 +76,8 @@ loop.panel = (function(_, mozL10n) {
   
 
 
-
-  var DropdownMenuMixin = {
-    getInitialState: function() {
-      return {showMenu: false};
-    },
-
-    _onBodyClick: function() {
-      this.setState({showMenu: false});
-    },
-
-    componentDidMount: function() {
-      document.body.addEventListener("click", this._onBodyClick);
-    },
-
-    componentWillUnmount: function() {
-      document.body.removeEventListener("click", this._onBodyClick);
-    },
-
-    showDropdownMenu: function() {
-      this.setState({showMenu: true});
-    },
-
-    hideDropdownMenu: function() {
-      this.setState({showMenu: false});
-    }
-  };
-
-  
-
-
   var AvailabilityDropdown = React.createClass({displayName: 'AvailabilityDropdown',
-    mixins: [DropdownMenuMixin],
+    mixins: [sharedMixins.DropdownMenuMixin],
 
     getInitialState: function() {
       return {
@@ -239,7 +209,7 @@ loop.panel = (function(_, mozL10n) {
 
 
   var SettingsDropdown = React.createClass({displayName: 'SettingsDropdown',
-    mixins: [DropdownMenuMixin],
+    mixins: [sharedMixins.DropdownMenuMixin],
 
     handleClickSettingsEntry: function() {
       
@@ -308,7 +278,12 @@ loop.panel = (function(_, mozL10n) {
     }
   });
 
+  
+
+
   var CallUrlResult = React.createClass({displayName: 'CallUrlResult',
+    mixins: [sharedMixins.DocumentVisibilityMixin],
+
     propTypes: {
       callUrl:        React.PropTypes.string,
       callUrlExpiry:  React.PropTypes.number,
@@ -329,6 +304,14 @@ loop.panel = (function(_, mozL10n) {
 
 
 
+    onDocumentVisible: function() {
+      this._fetchCallUrl();
+    },
+
+    
+
+
+
 
     conversationIdentifier: function() {
       return Math.random().toString(36).substring(5);
@@ -341,6 +324,13 @@ loop.panel = (function(_, mozL10n) {
         return;
       }
 
+      this._fetchCallUrl();
+    },
+
+    
+
+
+    _fetchCallUrl: function() {
       this.setState({pending: true});
       this.props.client.requestCallUrl(this.conversationIdentifier(),
                                        this._onCallUrlReceived);
@@ -506,7 +496,8 @@ loop.panel = (function(_, mozL10n) {
                         __("display_name_guest");
       return (
         React.DOM.div(null, 
-          NotificationListView({notifications: this.props.notifications}), 
+          NotificationListView({notifications: this.props.notifications, 
+                                clearOnDocumentHidden: true}), 
           TabView({onSelect: this.selectTab}, 
             Tab({name: "call"}, 
               CallUrlResult({client: this.props.client, 
@@ -547,42 +538,12 @@ loop.panel = (function(_, mozL10n) {
       if (!options.document) {
         throw new Error("missing required document");
       }
-      this.document = options.document;
-
-      this._registerVisibilityChangeEvent();
-
-      this.on("panel:open", this.reset, this);
-    },
-
-    
-
-
-
-
-
-
-
-
-    _registerVisibilityChangeEvent: function() {
-      
-      
-      this.document.addEventListener("visibilitychange", function(event) {
-        this.trigger(event.currentTarget.hidden ? "panel:closed"
-                                                : "panel:open");
-      }.bind(this));
     },
 
     
 
 
     home: function() {
-      this.reset();
-    },
-
-    
-
-
-    reset: function() {
       this._notifications.reset();
       var client = new loop.Client({
         baseServerUrl: navigator.mozLoop.serverUrl
