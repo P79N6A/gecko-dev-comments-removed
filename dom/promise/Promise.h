@@ -9,6 +9,7 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/ErrorResult.h"
+#include "mozilla/TimeStamp.h"
 #include "mozilla/TypeTraits.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "nsCycleCollectionParticipant.h"
@@ -322,6 +323,12 @@ private:
   
   
   nsAutoPtr<PromiseReportRejectFeature> mFeature;
+
+  
+  TimeStamp mCreationTimestamp;
+
+  
+  TimeStamp mSettlementTimestamp;
 };
 
 } 
