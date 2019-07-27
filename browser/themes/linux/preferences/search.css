@@ -1,0 +1,39 @@
+
+
+
+
+#defaultEngine > .menulist-label-box > .menulist-icon {
+  height: 16px;
+}
+
+
+.searchengine-menuitem > .menu-iconic-left {
+  display: -moz-box;
+}
+
+#engineList {
+  margin: .5em 6px;
+}
+
+#engineList treechildren::-moz-tree-checkbox(checked) {
+  list-style-image: url("chrome://global/skin/checkbox/cbox-check.gif");
+}
+
+#engineList treechildren::-moz-tree-image(engineName) {
+  -moz-margin-end: 4px;
+  -moz-margin-start: 0;
+  width: 16px;
+  height: 16px;
+}
+
+#engineList treechildren::-moz-tree-row {
+  min-height: 20px;
+}
+
+#engineList treechildren::-moz-tree-drop-feedback {
+  background-color: Highlight;
+  width: 10000px; 
+
+  height: 2px;
+  -moz-margin-start: 0;
+}
