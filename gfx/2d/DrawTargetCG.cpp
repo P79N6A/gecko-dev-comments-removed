@@ -1261,7 +1261,7 @@ DrawTargetCG::StrokeRect(const Rect &aRect,
   bool pixelAlignedStroke = mTransform.IsAllIntegers() &&
     mTransform.PreservesAxisAlignedRectangles() &&
     aPattern.GetType() == PatternType::COLOR &&
-    IsPixelAlignedStroke(aRect, aStrokeOptions.mLineWidth);
+    IsPixelAlignedStroke(rect, aStrokeOptions.mLineWidth);
   CGContextSetShouldAntialias(cg,
     aDrawOptions.mAntialiasMode != AntialiasMode::NONE && !pixelAlignedStroke);
 
@@ -1272,7 +1272,7 @@ DrawTargetCG::StrokeRect(const Rect &aRect,
   if (isGradient(aPattern)) {
     
     CGContextBeginPath(cg);
-    CGContextAddRect(cg, RectToCGRect(aRect));
+    CGContextAddRect(cg, RectToCGRect(rect));
     CGContextReplacePathWithStrokedPath(cg);
     CGRect extents = CGContextGetPathBoundingBox(cg);
     
@@ -1285,12 +1285,11 @@ DrawTargetCG::StrokeRect(const Rect &aRect,
     
     
     
-    CGRect rect = RectToCGRect(aRect);
     CGContextBeginPath(cg);
-    CGContextMoveToPoint(cg, CGRectGetMinX(rect), CGRectGetMinY(rect));
-    CGContextAddLineToPoint(cg, CGRectGetMaxX(rect), CGRectGetMinY(rect));
-    CGContextAddLineToPoint(cg, CGRectGetMaxX(rect), CGRectGetMaxY(rect));
-    CGContextAddLineToPoint(cg, CGRectGetMinX(rect), CGRectGetMaxY(rect));
+    CGContextMoveToPoint(cg, rect.x, rect.y);
+    CGContextAddLineToPoint(cg, rect.XMost(), rect.y);
+    CGContextAddLineToPoint(cg, rect.XMost(), rect.YMost());
+    CGContextAddLineToPoint(cg, rect.x, rect.YMost());
     CGContextClosePath(cg);
     CGContextStrokePath(cg);
   }
