@@ -1716,8 +1716,10 @@ Debugger::trace(JSTracer *trc)
     
 
 
-    for (AllocationSite *s = allocationsLog.getFirst(); s; s = s->getNext())
-        MarkObject(trc, &s->frame, "allocation log SavedFrame");
+    for (AllocationSite *s = allocationsLog.getFirst(); s; s = s->getNext()) {
+        if (s->frame)
+            MarkObject(trc, &s->frame, "allocation log SavedFrame");
+    }
 
     
     scripts.trace(trc);
