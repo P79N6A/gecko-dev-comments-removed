@@ -328,31 +328,6 @@ this.TelemetryStorage = {
   loadPingFile: Task.async(function* (aFilePath) {
     return TelemetryStorageImpl.loadPingFile(aFilePath);
   }),
-
-  
-
-
-
-
-
-
-  _testGetArchivedPingPath: function(aPingId, aDate, aType) {
-    return getArchivedPingPath(aPingId, aDate, aType);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  _testGetArchivedPingDataFromFileName: function(aFileName) {
-    return TelemetryStorageImpl._getArchivedPingDataFromFileName(aFileName);
-  },
 };
 
 
