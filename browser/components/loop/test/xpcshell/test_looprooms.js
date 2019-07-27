@@ -212,7 +212,16 @@ add_task(function* setup_server() {
   
   [...kRooms.values()].forEach(function(room) {
     loopServer.registerPathHandler("/rooms/" + encodeURIComponent(room.roomToken), (req, res) => {
-      returnRoomDetails(res, room.roomName);
+      if (req.method == "POST") {
+        let body = CommonUtils.readBytesFromInputStream(req.bodyInputStream);
+        let data = JSON.parse(body);
+        res.setStatusLine(null, 200, "OK");
+        res.write(JSON.stringify(data));
+        res.processAsync();
+        res.finish();
+      } else {
+        returnRoomDetails(res, room.roomName);
+      }
     });
   });
 
@@ -322,6 +331,39 @@ add_task(function* test_roomUpdates() {
 });
 
 
+add_task(function* test_joinRoom() {
+  
+  Services.prefs.setCharPref("loop.fxa_oauth.profile", JSON.stringify({
+    email: "fake@invalid.com"
+  }));
+  Services.prefs.setCharPref("loop.fxa_oauth.tokendata", JSON.stringify({
+    token_type: "bearer"
+  }));
+
+  let roomToken = "_nxD4V4FflQ";
+  let joinedData = yield LoopRooms.promise("join", roomToken);
+  Assert.equal(joinedData.action, "join");
+  Assert.equal(joinedData.displayName, "fake@invalid.com");
+});
+
+
+add_task(function* test_refreshMembership() {
+  let roomToken = "_nxD4V4FflQ";
+  let refreshedData = yield LoopRooms.promise("refreshMembership", roomToken,
+    "fakeSessionToken");
+  Assert.equal(refreshedData.action, "refresh");
+  Assert.equal(refreshedData.sessionToken, "fakeSessionToken");
+});
+
+
+add_task(function* test_leaveRoom() {
+  let roomToken = "_nxD4V4FflQ";
+  let leaveData = yield LoopRooms.promise("leave", roomToken, "fakeLeaveSessionToken");
+  Assert.equal(leaveData.action, "leave");
+  Assert.equal(leaveData.sessionToken, "fakeLeaveSessionToken");
+});
+
+
 add_task(function* () {
   Assert.strictEqual(gExpectedAdds.length, 0, "No room additions should be expected anymore");
   Assert.strictEqual(gExpectedUpdates.length, 0, "No room updates should be expected anymore");
@@ -338,6 +380,9 @@ function run_test() {
   do_register_cleanup(function () {
     
     Chat.open = openChatOrig;
+
+    Services.prefs.clearUserPref("loop.fxa_oauth.profile");
+    Services.prefs.clearUserPref("loop.fxa_oauth.tokendata");
 
     LoopRooms.off("add", onRoomAdded);
     LoopRooms.off("update", onRoomUpdated);

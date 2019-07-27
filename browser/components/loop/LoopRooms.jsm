@@ -18,6 +18,9 @@ XPCOMUtils.defineLazyGetter(this, "eventEmitter", function() {
 
 this.EXPORTED_SYMBOLS = ["LoopRooms", "roomsPushNotification"];
 
+
+const CLIENT_MAX_SIZE = 2;
+
 const roomsPushNotification = function(version, channelID) {
   return LoopRoomsInternal.onNotification(version, channelID);
 };
@@ -271,6 +274,81 @@ let LoopRoomsInternal = {
       }, error => callback(error)).catch(error => callback(error));
   },
 
+  
+
+
+
+
+
+
+
+
+  _postToRoom(roomToken, postData, callback) {
+    let url = "/rooms/" + encodeURIComponent(roomToken);
+    MozLoopService.hawkRequest(this.sessionType, url, "POST", postData).then(response => {
+      
+      var joinData = response.body ? JSON.parse(response.body) : {};
+      callback(null, joinData);
+    }, error => callback(error)).catch(error => callback(error));
+  },
+
+  
+
+
+
+
+
+
+
+  join: function(roomToken, callback) {
+    this._postToRoom(roomToken, {
+      action: "join",
+      displayName: MozLoopService.userProfile.email,
+      clientMaxSize: CLIENT_MAX_SIZE
+    }, callback);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  refreshMembership: function(roomToken, sessionToken, callback) {
+    this._postToRoom(roomToken, {
+      action: "refresh",
+      sessionToken: sessionToken
+    }, callback);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  leave: function(roomToken, sessionToken, callback) {
+    if (!callback) {
+      callback = function(error) {
+        if (error) {
+          MozLoopService.log.error(error);
+        }
+      };
+    }
+    this._postToRoom(roomToken, {
+      action: "leave",
+      sessionToken: sessionToken
+    }, callback);
+  },
 
   
 
@@ -320,6 +398,19 @@ this.LoopRooms = {
 
   delete: function(roomToken, callback) {
     return LoopRoomsInternal.delete(roomToken, callback);
+  },
+
+  join: function(roomToken, callback) {
+    return LoopRoomsInternal.join(roomToken, callback);
+  },
+
+  refreshMembership: function(roomToken, sessionToken, callback) {
+    return LoopRoomsInternal.refreshMembership(roomToken, sessionToken,
+      callback);
+  },
+
+  leave: function(roomToken, sessionToken, callback) {
+    return LoopRoomsInternal.leave(roomToken, sessionToken, callback);
   },
 
   promise: function(method, ...params) {
