@@ -105,7 +105,8 @@ nsMenuPopupFrame::nsMenuPopupFrame(nsStyleContext* aContext)
   mIsMenuLocked(false),
   mMouseTransparent(false),
   mHFlip(false),
-  mVFlip(false)
+  mVFlip(false),
+  mAnchorType(MenuPopupAnchorType_Node)
 {
   
   
@@ -621,6 +622,7 @@ nsMenuPopupFrame::InitializePopup(nsIContent* aAnchorContent,
                                   nsIContent* aTriggerContent,
                                   const nsAString& aPosition,
                                   int32_t aXPos, int32_t aYPos,
+                                  MenuPopupAnchorType aAnchorType,
                                   bool aAttributesOverride)
 {
   EnsureWidget();
@@ -635,10 +637,12 @@ nsMenuPopupFrame::InitializePopup(nsIContent* aAnchorContent,
   mHFlip = false;
   mAlignmentOffset = 0;
 
+  mAnchorType = aAnchorType;
+
   
   
   
-  if (aAnchorContent) {
+  if (aAnchorContent || aAnchorType == MenuPopupAnchorType_Rect) {
     nsAutoString anchor, align, position, flip;
     mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::popupanchor, anchor);
     mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::popupalign, align);
@@ -730,8 +734,7 @@ nsMenuPopupFrame::InitializePopup(nsIContent* aAnchorContent,
     }
   }
 
-  mScreenXPos = -1;
-  mScreenYPos = -1;
+  mScreenRect = nsIntRect(-1, -1, 0, 0);
 
   if (aAttributesOverride) {
     
@@ -744,12 +747,12 @@ nsMenuPopupFrame::InitializePopup(nsIContent* aAnchorContent,
     if (!left.IsEmpty()) {
       int32_t x = left.ToInteger(&err);
       if (NS_SUCCEEDED(err))
-        mScreenXPos = x;
+        mScreenRect.x = x;
     }
     if (!top.IsEmpty()) {
       int32_t y = top.ToInteger(&err);
       if (NS_SUCCEEDED(err))
-        mScreenYPos = y;
+        mScreenRect.y = y;
     }
   }
 }
@@ -764,13 +767,26 @@ nsMenuPopupFrame::InitializePopupAtScreen(nsIContent* aTriggerContent,
   mPopupState = ePopupShowing;
   mAnchorContent = nullptr;
   mTriggerContent = aTriggerContent;
-  mScreenXPos = aXPos;
-  mScreenYPos = aYPos;
+  mScreenRect = nsIntRect(aXPos, aYPos, 0, 0);
+  mXPos = 0;
+  mYPos = 0;
   mFlip = FlipType_Default;
   mPopupAnchor = POPUPALIGNMENT_NONE;
   mPopupAlignment = POPUPALIGNMENT_NONE;
   mIsContextMenu = aIsContextMenu;
   mAdjustOffsetForContextMenu = aIsContextMenu;
+  mAnchorType = MenuPopupAnchorType_Point;
+}
+
+void
+nsMenuPopupFrame::InitializePopupAtRect(nsIContent* aTriggerContent,
+                                        const nsAString& aPosition,
+                                        const nsIntRect& aRect,
+                                        bool aAttributesOverride)
+{
+  InitializePopup(nullptr, aTriggerContent, aPosition, 0, 0,
+                  MenuPopupAnchorType_Rect, aAttributesOverride);
+  mScreenRect = aRect;
 }
 
 void
@@ -790,18 +806,18 @@ nsMenuPopupFrame::InitializePopupWithAnchorAlign(nsIContent* aAnchorContent,
   
   if (aXPos == -1 && aYPos == -1) {
     mAnchorContent = aAnchorContent;
-    mScreenXPos = -1;
-    mScreenYPos = -1;
+    mAnchorType = MenuPopupAnchorType_Node;
+    mScreenRect = nsIntRect(-1, -1, 0, 0);
     mXPos = 0;
     mYPos = 0;
     InitPositionFromAnchorAlign(aAnchor, aAlign);
   }
   else {
     mAnchorContent = nullptr;
+    mAnchorType = MenuPopupAnchorType_Point;
     mPopupAnchor = POPUPALIGNMENT_NONE;
     mPopupAlignment = POPUPALIGNMENT_NONE;
-    mScreenXPos = aXPos;
-    mScreenYPos = aYPos;
+    mScreenRect = nsIntRect(aXPos, aYPos, 0, 0);
     mXPos = aXPos;
     mYPos = aYPos;
   }
@@ -1213,42 +1229,63 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove, bool aS
 
   
   
+  nsRect anchorRect;
+
   
-  if (!aAnchorFrame) {
-    if (mAnchorContent) {
-      aAnchorFrame = mAnchorContent->GetPrimaryFrame();
+  int32_t parentWidth;
+
+  bool anchored = IsAnchored();
+  if (anchored || aSizedToPopup) {
+    
+    nsPresContext* rootPresContext = presContext->GetRootPresContext();
+
+    
+    if (!rootPresContext) {
+      return NS_OK;
     }
 
-    if (!aAnchorFrame) {
-      aAnchorFrame = rootFrame;
-      if (!aAnchorFrame)
-        return NS_OK;
+    
+    
+    if (mAnchorType == MenuPopupAnchorType_Rect) {
+      anchorRect = ToAppUnits(mScreenRect, presContext->AppUnitsPerCSSPixel());
     }
+    else {
+      
+      
+      
+      if (!aAnchorFrame) {
+        if (mAnchorContent) {
+          aAnchorFrame = mAnchorContent->GetPrimaryFrame();
+        }
+
+        if (!aAnchorFrame) {
+          aAnchorFrame = rootFrame;
+          if (!aAnchorFrame)
+            return NS_OK;
+        }
+      }
+
+      
+      nsIFrame* referenceFrame = rootPresContext->FrameManager()->GetRootFrame();
+
+      
+      nsRect parentRect = aAnchorFrame->GetRectRelativeToSelf();
+      
+      anchorRect = nsLayoutUtils::TransformFrameRectToAncestor(aAnchorFrame,
+                                                               parentRect,
+                                                               referenceFrame);
+      
+      anchorRect.MoveBy(referenceFrame->GetScreenRectInAppUnits().TopLeft());
+
+      
+      anchorRect =
+        anchorRect.ScaleToOtherAppUnitsRoundOut(rootPresContext->AppUnitsPerDevPixel(),
+                                                presContext->AppUnitsPerDevPixel());
+    }
+
+    
+    parentWidth = anchorRect.width;
   }
-
-  
-  nsPresContext* rootPresContext = presContext->GetRootPresContext();
-
-  
-  if (!rootPresContext) {
-    return NS_OK;
-  }
-
-  
-  nsIFrame* referenceFrame = rootPresContext->FrameManager()->GetRootFrame();
-
-  
-  nsRect parentRect = aAnchorFrame->GetRectRelativeToSelf();
-  
-  parentRect = nsLayoutUtils::TransformFrameRectToAncestor(aAnchorFrame,
-                                                           parentRect,
-                                                           referenceFrame);
-  
-  parentRect.MoveBy(referenceFrame->GetScreenRectInAppUnits().TopLeft());
-  
-  parentRect =
-    parentRect.ScaleToOtherAppUnitsRoundOut(rootPresContext->AppUnitsPerDevPixel(),
-                                            presContext->AppUnitsPerDevPixel());
 
   
   
@@ -1256,15 +1293,11 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove, bool aS
   
   NS_ASSERTION(mPrefSize.width >= 0 || mPrefSize.height >= 0,
                "preferred size of popup not set");
-  mRect.width = aSizedToPopup ? parentRect.width : mPrefSize.width;
+  mRect.width = aSizedToPopup ? parentWidth : mPrefSize.width;
   mRect.height = mPrefSize.height;
 
   
   nsPoint screenPoint;
-
-  
-  
-  nsRect anchorRect = parentRect;
 
   
   FlipStyle hFlip = FlipStyle_None, vFlip = FlipStyle_None;
@@ -1281,14 +1314,14 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove, bool aS
   bool isNoAutoHide = IsNoAutoHide();
   nsPopupLevel popupLevel = PopupLevel(isNoAutoHide);
 
-  if (IsAnchored()) {
+  if (anchored) {
     
     
     
     
     
     
-    if (mAnchorContent) {
+    if (mAnchorContent || mAnchorType == MenuPopupAnchorType_Rect) {
       
       
       
@@ -1321,11 +1354,13 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove, bool aS
     
     
     
-    if (isNoAutoHide && popupLevel != ePopupLevelParent) {
+    if (isNoAutoHide &&
+        (popupLevel != ePopupLevelParent || mAnchorType == MenuPopupAnchorType_Rect)) {
       
       
-      mScreenXPos = presContext->AppUnitsToIntCSSPixels(screenPoint.x - margin.left);
-      mScreenYPos = presContext->AppUnitsToIntCSSPixels(screenPoint.y - margin.top);
+      mAnchorType = MenuPopupAnchorType_Point;
+      mScreenRect.x = presContext->AppUnitsToIntCSSPixels(screenPoint.x - margin.left);
+      mScreenRect.y = presContext->AppUnitsToIntCSSPixels(screenPoint.y - margin.top);
     }
   }
   else {
@@ -1346,9 +1381,9 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove, bool aS
 
     
     screenPoint.x = presContext->DevPixelsToAppUnits(
-                      nsPresContext::CSSPixelsToAppUnits(mScreenXPos) / factor);
+                      nsPresContext::CSSPixelsToAppUnits(mScreenRect.x) / factor);
     screenPoint.y = presContext->DevPixelsToAppUnits(
-                      nsPresContext::CSSPixelsToAppUnits(mScreenYPos) / factor);
+                      nsPresContext::CSSPixelsToAppUnits(mScreenRect.y) / factor);
     anchorRect = nsRect(screenPoint, nsSize(0, 0));
 
     
@@ -1448,7 +1483,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove, bool aS
   if (aSizedToPopup) {
     nsBoxLayoutState state(PresContext());
     
-    SetBounds(state, nsRect(mRect.x, mRect.y, parentRect.width, mRect.height));
+    SetBounds(state, nsRect(mRect.x, mRect.y, parentWidth, mRect.height));
   }
 
   return NS_OK;
@@ -2081,7 +2116,7 @@ void
 nsMenuPopupFrame::MoveTo(int32_t aLeft, int32_t aTop, bool aUpdateAttrs)
 {
   nsIWidget* widget = GetWidget();
-  if ((mScreenXPos == aLeft && mScreenYPos == aTop) &&
+  if ((mScreenRect.x == aLeft && mScreenRect.y == aTop) &&
       (!widget || widget->GetClientOffset() == mLastClientOffset)) {
     return;
   }
@@ -2102,8 +2137,10 @@ nsMenuPopupFrame::MoveTo(int32_t aLeft, int32_t aTop, bool aUpdateAttrs)
   }
 
   nsPresContext* presContext = PresContext();
-  mScreenXPos = aLeft - presContext->AppUnitsToIntCSSPixels(margin.left);
-  mScreenYPos = aTop - presContext->AppUnitsToIntCSSPixels(margin.top);
+  mAnchorType = aLeft == -1 || aTop == -1 ?
+                MenuPopupAnchorType_Node : MenuPopupAnchorType_Point;
+  mScreenRect.x = aLeft - presContext->AppUnitsToIntCSSPixels(margin.left);
+  mScreenRect.y = aTop - presContext->AppUnitsToIntCSSPixels(margin.top);
 
   SetPopupPosition(nullptr, true, false);
 
@@ -2129,7 +2166,7 @@ nsMenuPopupFrame::MoveToAnchor(nsIContent* aAnchorContent,
 
   nsPopupState oldstate = mPopupState;
   InitializePopup(aAnchorContent, mTriggerContent, aPosition,
-                  aXPos, aYPos, aAttributesOverride);
+                  aXPos, aYPos, MenuPopupAnchorType_Node, aAttributesOverride);
   
   mPopupState = oldstate;
 

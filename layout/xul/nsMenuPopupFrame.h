@@ -86,6 +86,12 @@ enum FlipType {
   FlipType_Slide = 3    
 };
 
+enum MenuPopupAnchorType {
+  MenuPopupAnchorType_Node = 0, 
+  MenuPopupAnchorType_Point = 1, 
+  MenuPopupAnchorType_Rect = 2, 
+};
+
 
 
 #define POPUPALIGNMENT_NONE 0
@@ -283,7 +289,13 @@ public:
                        nsIContent* aTriggerContent,
                        const nsAString& aPosition,
                        int32_t aXPos, int32_t aYPos,
+                       MenuPopupAnchorType aAnchorType,
                        bool aAttributesOverride);
+
+  void InitializePopupAtRect(nsIContent* aTriggerContent,
+                             const nsAString& aPosition,
+                             const nsIntRect& aRect,
+                             bool aAttributesOverride);
 
   
 
@@ -371,14 +383,14 @@ public:
                       mozilla::LayoutDeviceIntPoint& aChange);
 
   
-  bool IsAnchored() const { return mScreenXPos == -1 && mScreenYPos == -1; }
+  bool IsAnchored() const { return mAnchorType != MenuPopupAnchorType_Point; }
 
   
   nsIContent* GetAnchor() const { return mAnchorContent; }
 
   
   
-  nsIntPoint ScreenPosition() const { return nsIntPoint(mScreenXPos, mScreenYPos); }
+  nsIntPoint ScreenPosition() const { return mScreenRect.TopLeft(); }
 
   nsIntPoint GetLastClientOffset() const { return mLastClientOffset; }
 
@@ -507,8 +519,7 @@ protected:
   
   int32_t mXPos;
   int32_t mYPos;
-  int32_t mScreenXPos;
-  int32_t mScreenYPos;
+  nsIntRect mScreenRect;
 
   
   
@@ -569,6 +580,9 @@ protected:
   
   bool mHFlip;
   bool mVFlip;
+
+  
+  MenuPopupAnchorType mAnchorType;
 
   static int8_t sDefaultLevelIsTop;
 
