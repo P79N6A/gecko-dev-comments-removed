@@ -1555,6 +1555,20 @@ function JSTermHelpers(aOwner)
 
 
 
+  Object.defineProperty(aOwner.sandbox, "$_", {
+    get: function() {
+      return aOwner.consoleActor.getLastConsoleInputEvaluation();
+    },
+    enumerable: true,
+    configurable: true
+  });
+
+  
+
+
+
+
+
 
 
 
