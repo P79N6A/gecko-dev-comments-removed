@@ -249,14 +249,6 @@ ExposedPropertiesOnly::check(JSContext *cx, HandleObject wrapper, HandleId id, W
         return false;
 
     
-    if ((JS_IsArrayObject(cx, wrappedObject) ||
-         JS_IsTypedArrayObject(wrappedObject)) &&
-        ((JSID_IS_INT(id) && JSID_TO_INT(id) >= 0) ||
-         (JSID_IS_STRING(id) && JS_FlatStringEqualsAscii(JSID_TO_FLAT_STRING(id), "length")))) {
-        return true; 
-    }
-
-    
     if (!found) {
         return false;
     }
