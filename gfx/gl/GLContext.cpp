@@ -1253,7 +1253,7 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
 
         if (IsSupported(GLFeature::texture_3D)) {
             SymLoadStruct coreSymbols[] = {
-                
+                { (PRFuncPtr*) &mSymbols.fTexImage3D, { "TexImage3D", nullptr } },
                 { (PRFuncPtr*) &mSymbols.fTexSubImage3D, { "TexSubImage3D", nullptr } },
                 END_SYMBOLS
             };
