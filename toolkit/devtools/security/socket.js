@@ -66,8 +66,46 @@ let DebuggerSocket = {};
 
 
 
-DebuggerSocket.connect = Task.async(function*({ host, port, encryption }) {
-  let attempt = yield _attemptTransport({ host, port, encryption });
+
+
+
+DebuggerSocket.connect = Task.async(function*(settings) {
+  let { host, port, encryption, authenticator } = settings;
+  let transport = yield _getTransport(settings);
+
+  
+  authenticator = authenticator || new (Authenticators.get().Client)();
+
+  yield authenticator.authenticate({
+    host,
+    port,
+    encryption,
+    transport
+  });
+  return transport;
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+let _getTransport = Task.async(function*(settings) {
+  let { host, port, encryption } = settings;
+  let attempt = yield _attemptTransport(settings);
   if (attempt.transport) {
     return attempt.transport; 
   }
@@ -80,7 +118,7 @@ DebuggerSocket.connect = Task.async(function*({ host, port, encryption }) {
     throw new Error("Connection failed");
   }
 
-  attempt = yield _attemptTransport({ host, port, encryption });
+  attempt = yield _attemptTransport(settings);
   if (attempt.transport) {
     return attempt.transport; 
   }
@@ -99,7 +137,16 @@ DebuggerSocket.connect = Task.async(function*({ host, port, encryption }) {
 
 
 
-let _attemptTransport = Task.async(function*({ host, port, encryption }){
+
+
+
+
+
+
+
+
+
+let _attemptTransport = Task.async(function*({ host, port, encryption }) {
   
   
   let { s, input, output } = _attemptConnect({ host, port, encryption });

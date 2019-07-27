@@ -8,6 +8,7 @@
 
 let { Ci } = require("chrome");
 let Services = require("Services");
+let promise = require("promise");
 loader.lazyRequireGetter(this, "prompt",
   "devtools/toolkit/security/prompt");
 
@@ -87,6 +88,24 @@ Prompt.Client = function() {};
 Prompt.Client.prototype = {
 
   mode: Prompt.mode,
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  authenticate() {},
 
 };
 
@@ -211,6 +230,34 @@ OOBCert.Client = function() {};
 OOBCert.Client.prototype = {
 
   mode: OOBCert.mode,
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  authenticate({ transport }) {
+    let deferred = promise.defer();
+    transport.hooks = {
+      onPacket(packet) {
+        let { authResult } = packet;
+        
+      }
+    };
+    transport.ready();
+    return deferred.promise;
+  },
 
 };
 
