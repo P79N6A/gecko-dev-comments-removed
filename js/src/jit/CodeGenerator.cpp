@@ -755,11 +755,9 @@ CodeGenerator::visitObjectGroupDispatch(LObjectGroupDispatch *lir)
     Register temp = ToRegister(lir->temp());
 
     
-
     masm.loadPtr(Address(input, JSObject::offsetOfGroup()), temp);
 
     
-
     MacroAssembler::BranchGCPtr lastBranch;
     LBlock *lastBlock = nullptr;
     InlinePropertyTable *propTable = mir->propTable();
@@ -785,6 +783,21 @@ CodeGenerator::visitObjectGroupDispatch(LObjectGroupDispatch *lir)
     }
 
     
+    
+
+    if (!mir->hasFallback()) {
+        MOZ_ASSERT(lastBranch.isInitialized());
+#ifdef DEBUG
+        Label ok;
+        lastBranch.relink(&ok);
+        lastBranch.emit(masm);
+        masm.assumeUnreachable("Unexpected ObjectGroup");
+        masm.bind(&ok);
+#endif
+        if (!isNextBlock(lastBlock))
+            masm.jump(lastBlock->label());
+        return;
+    }
 
     LBlock *fallback = skipTrivialBlocks(mir->getFallback())->lir();
     if (!lastBranch.isInitialized()) {
@@ -2676,9 +2689,7 @@ CodeGenerator::visitPostWriteBarrierO(LPostWriteBarrierO *lir)
     Register temp = ToTempRegisterOrInvalid(lir->temp());
 
     if (lir->object()->isConstant()) {
-#ifdef DEBUG
         MOZ_ASSERT(!IsInsideNursery(&lir->object()->toConstant()->toObject()));
-#endif
     } else {
         masm.branchPtrInNurseryRange(Assembler::Equal, ToRegister(lir->object()), temp,
                                      ool->rejoin());

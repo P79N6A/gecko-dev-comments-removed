@@ -5355,12 +5355,6 @@ IonBuilder::inlineCalls(CallInfo &callInfo, const ObjectVector &targets, BoolVec
     retPhi->reserveLength(count);
 
     
-    
-    
-    TemporaryTypeSet *cacheObjectTypeSet =
-        maybeCache ? maybeCache->object()->resultTypeSet() : nullptr;
-
-    
     for (uint32_t i = 0; i < targets.length(); i++) {
         
         if (!choiceSet[i])
@@ -5407,12 +5401,16 @@ IonBuilder::inlineCalls(CallInfo &callInfo, const ObjectVector &targets, BoolVec
         inlineInfo.setFun(funcDef);
 
         if (maybeCache) {
+            
+            
             MOZ_ASSERT(callInfo.thisArg() == maybeCache->object());
-            TemporaryTypeSet *targetThisTypes =
-                maybeCache->propTable()->buildTypeSetForFunction(target);
-            if (!targetThisTypes)
+            TemporaryTypeSet *thisTypes = maybeCache->propTable()->buildTypeSetForFunction(target);
+            if (!thisTypes)
                 return false;
-            maybeCache->object()->setResultTypeSet(targetThisTypes);
+
+            MFilterTypeSet *filter = MFilterTypeSet::New(alloc(), inlineInfo.thisArg(), thisTypes);
+            inlineBlock->add(filter);
+            inlineInfo.setThis(filter);
         }
 
         
@@ -5447,27 +5445,68 @@ IonBuilder::inlineCalls(CallInfo &callInfo, const ObjectVector &targets, BoolVec
     }
 
     
+    bool useFallback;
     if (maybeCache) {
-        maybeCache->object()->setResultTypeSet(cacheObjectTypeSet);
-
         InlinePropertyTable *propTable = maybeCache->propTable();
         propTable->trimTo(targets, choiceSet);
 
-        
         if (propTable->numEntries() == 0) {
+            
             MOZ_ASSERT(dispatch->numCases() == 0);
             maybeCache = nullptr;
+            useFallback = true;
+        } else {
+            
+            
+            useFallback = false;
+            TemporaryTypeSet *objectTypes = maybeCache->object()->resultTypeSet();
+            for (uint32_t i = 0; i < objectTypes->getObjectCount(); i++) {
+                TypeSet::ObjectKey *obj = objectTypes->getObject(i);
+                if (!obj)
+                    continue;
+
+                if (!obj->isGroup()) {
+                    useFallback = true;
+                    break;
+                }
+
+                if (!propTable->hasObjectGroup(obj->group())) {
+                    useFallback = true;
+                    break;
+                }
+            }
+
+            if (!useFallback) {
+                
+                
+                
+                if (callInfo.fun()->isGetPropertyCache()) {
+                    MOZ_ASSERT(callInfo.fun() == maybeCache);
+                } else {
+                    MTypeBarrier *barrier = callInfo.fun()->toTypeBarrier();
+                    MOZ_ASSERT(!barrier->hasUses());
+                    MOZ_ASSERT(barrier->type() == MIRType_Object);
+                    MOZ_ASSERT(barrier->input()->isGetPropertyCache());
+                    MOZ_ASSERT(barrier->input()->toGetPropertyCache() == maybeCache);
+                    barrier->block()->discard(barrier);
+                }
+
+                MOZ_ASSERT(!maybeCache->hasUses());
+                maybeCache->block()->discard(maybeCache);
+            }
         }
+    } else {
+        useFallback = dispatch->numCases() < targets.length();
     }
 
     
-    
-    if (maybeCache || dispatch->numCases() < targets.length()) {
+    if (useFallback) {
         
         if (maybeCache) {
             MBasicBlock *fallbackTarget;
-            if (!inlineObjectGroupFallback(callInfo, dispatchBlock, (MObjectGroupDispatch *)dispatch,
-                                          maybeCache, &fallbackTarget))
+            if (!inlineObjectGroupFallback(callInfo, dispatchBlock,
+                                           dispatch->toObjectGroupDispatch(),
+                                           maybeCache, &fallbackTarget))
             {
                 return false;
             }
