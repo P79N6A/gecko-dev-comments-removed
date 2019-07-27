@@ -20,6 +20,25 @@ function promiseNotification(topic) {
 }
 
 
+let MockStorage = function() {
+  this.data = null;
+};
+MockStorage.prototype = Object.freeze({
+  set: function (contents) {
+    this.data = contents;
+    return Promise.resolve(null);
+  },
+  get: function () {
+    return Promise.resolve(this.data);
+  },
+  getOAuthTokens() {
+    return Promise.resolve(null);
+  },
+  setOAuthTokens(contents) {
+    return Promise.resolve();
+  },
+});
+
 function MockFxAccountsClient() {
   this._email = "nobody@example.com";
   this._verified = false;
@@ -43,6 +62,7 @@ function MockFxAccounts(mockGrantClient) {
   return new FxAccounts({
     fxAccountsClient: new MockFxAccountsClient(),
     getAssertion: () => Promise.resolve("assertion"),
+    signedInUserStorage: new MockStorage(),
     _destroyOAuthToken: function(tokenData) {
       
       return mockGrantClient.destroyToken(tokenData.token).then( () => {
