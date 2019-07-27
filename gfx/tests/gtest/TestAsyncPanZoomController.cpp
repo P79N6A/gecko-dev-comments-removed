@@ -349,10 +349,10 @@ ApzcPanAndCheckStatus(AsyncPanZoomController* aApzc,
   ApzcPan(aApzc, aTreeManager, aTime, aTouchStartY, aTouchEndY, false, aAllowedTouchBehaviors, &statuses);
 
   nsEventStatus touchStartStatus;
-  if (hasTouchListeners) {
+  if (hasTouchListeners || gfxPrefs::TouchActionEnabled()) {
     
     
-    touchStartStatus = nsEventStatus_eIgnore;
+    touchStartStatus = nsEventStatus_eConsumeDoDefault;
   } else {
     
     touchStartStatus = nsEventStatus_eConsumeNoDefault;
@@ -360,7 +360,10 @@ ApzcPanAndCheckStatus(AsyncPanZoomController* aApzc,
   EXPECT_EQ(touchStartStatus, statuses[0]);
 
   nsEventStatus touchMoveStatus;
-  if (expectIgnoredPan) {
+  if (hasTouchListeners) {
+    
+    touchMoveStatus = nsEventStatus_eConsumeDoDefault;
+  } else if (expectIgnoredPan) {
     
     
     touchMoveStatus = nsEventStatus_eIgnore;
@@ -1036,12 +1039,23 @@ protected:
     int time = 0;
 
     nsEventStatus status = ApzcDown(apzc, 10, 10, time);
-    EXPECT_EQ(nsEventStatus_eConsumeNoDefault, status);
+    if (gfxPrefs::TouchActionEnabled()) {
+      
+      
+      EXPECT_EQ(nsEventStatus_eConsumeDoDefault, status);
+    } else {
+      
+      EXPECT_EQ(nsEventStatus_eConsumeNoDefault, status);
+    }
 
+    if (gfxPrefs::TouchActionEnabled()) {
+      
+      nsTArray<uint32_t> allowedTouchBehaviors;
+      allowedTouchBehaviors.AppendElement(aBehavior);
+      apzc->SetAllowedTouchBehavior(allowedTouchBehaviors);
+    }
     
-    nsTArray<uint32_t> allowedTouchBehaviors;
-    allowedTouchBehaviors.AppendElement(aBehavior);
-    apzc->SetAllowedTouchBehavior(allowedTouchBehaviors);
+    apzc->ContentReceivedTouch(false);
 
     MockFunction<void(std::string checkPointName)> check;
 
@@ -1057,6 +1071,7 @@ protected:
       EXPECT_CALL(check, Call("postHandleLongTapUp"));
     }
 
+    
     mcc->CheckHasDelayedTask();
 
     
@@ -1066,24 +1081,23 @@ protected:
 
     
     mcc->DestroyOldestTask();
+
     
     
     
     
+    
+    apzc->ContentReceivedTouch(false);
     mcc->CheckHasDelayedTask();
-    mcc->ClearDelayedTask();
-    apzc->ContentReceivedTouch(true);
+    mcc->RunDelayedTask();
 
     time += 1000;
 
-    status = ApzcUp(apzc, 10, 10, time);
-    EXPECT_EQ(nsEventStatus_eIgnore, status);
-
-    
     
     
     check.Call("preHandleLongTapUp");
-    apzc->ContentReceivedTouch(false);
+    status = ApzcUp(apzc, 10, 10, time);
+    EXPECT_EQ(nsEventStatus_eIgnore, status);
     check.Call("postHandleLongTapUp");
 
     apzc->AssertStateIsReset();
@@ -1101,12 +1115,23 @@ protected:
 
     int time = 0;
     nsEventStatus status = ApzcDown(apzc, touchX, touchStartY, time);
-    EXPECT_EQ(nsEventStatus_eConsumeNoDefault, status);
+    if (gfxPrefs::TouchActionEnabled()) {
+      
+      
+      EXPECT_EQ(nsEventStatus_eConsumeDoDefault, status);
+    } else {
+      
+      EXPECT_EQ(nsEventStatus_eConsumeNoDefault, status);
+    }
 
+    if (gfxPrefs::TouchActionEnabled()) {
+      
+      nsTArray<uint32_t> allowedTouchBehaviors;
+      allowedTouchBehaviors.AppendElement(aBehavior);
+      apzc->SetAllowedTouchBehavior(allowedTouchBehaviors);
+    }
     
-    nsTArray<uint32_t> allowedTouchBehaviors;
-    allowedTouchBehaviors.AppendElement(aBehavior);
-    apzc->SetAllowedTouchBehavior(allowedTouchBehaviors);
+    apzc->ContentReceivedTouch(false);
 
     MockFunction<void(std::string checkPointName)> check;
 
@@ -1127,11 +1152,15 @@ protected:
 
     
     mcc->DestroyOldestTask();
+
     
     
     
-    mcc->ClearDelayedTask();
+    
+    
     apzc->ContentReceivedTouch(true);
+    mcc->CheckHasDelayedTask();
+    mcc->RunDelayedTask();
 
     time += 1000;
 
@@ -1143,11 +1172,6 @@ protected:
     EXPECT_CALL(*mcc, HandleLongTapUp(CSSPoint(touchX, touchEndY), 0, apzc->GetGuid())).Times(0);
     status = ApzcUp(apzc, touchX, touchEndY, time);
     EXPECT_EQ(nsEventStatus_eIgnore, status);
-
-    
-    
-    
-    apzc->ContentReceivedTouch(false);
 
     ScreenPoint pointOut;
     ViewTransform viewTransformOut;

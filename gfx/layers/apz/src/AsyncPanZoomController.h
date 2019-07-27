@@ -15,6 +15,7 @@
 #include "mozilla/Monitor.h"
 #include "mozilla/ReentrantMonitor.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/UniquePtr.h"
 #include "mozilla/Atomics.h"
 #include "InputData.h"
 #include "Axis.h"
@@ -41,6 +42,7 @@ class PCompositorParent;
 struct ViewTransform;
 class AsyncPanZoomAnimation;
 class FlingAnimation;
+class TouchBlockState;
 
 
 
@@ -112,6 +114,9 @@ public:
 
 
 
+
+
+
   nsEventStatus ReceiveInputEvent(const InputData& aEvent);
 
   
@@ -120,14 +125,6 @@ public:
 
 
   void ZoomToRect(CSSRect aRect);
-
-  
-
-
-
-
-
-  void ContentReceivedTouch(bool aPreventDefault);
 
   
 
@@ -307,15 +304,6 @@ public:
 
 
 
-
-
-
-  void SetAllowedTouchBehavior(const nsTArray<TouchBehaviorFlags>& aBehaviors);
-
-  
-
-
-
   bool HasScrollgrab() const { return mFrameMetrics.GetHasScrollgrab(); }
 
   
@@ -347,10 +335,6 @@ protected:
 
     PINCHING,                 
     ANIMATING_ZOOM,           
-    WAITING_CONTENT_RESPONSE, 
-
-
-
     SNAP_BACK,                
   };
 
@@ -487,7 +471,7 @@ protected:
   
 
 
-  void HandlePanningWithTouchAction(double angle, TouchBehaviorFlags value);
+  void HandlePanningWithTouchAction(double angle);
 
   
 
@@ -549,83 +533,9 @@ protected:
 
 
 
-
-  void SetContentResponseTimer();
-
-  
-
-
-
-
-
-
-  void TimeoutContentResponse();
-
-  
-
-
-
-
-
   void FireAsyncScrollOnTimeout();
 
 private:
-  
-  struct TouchBlockState {
-
-    TouchBlockState()
-      :  mAllowedTouchBehaviorSet(false),
-         mPreventDefault(false),
-         mPreventDefaultSet(false),
-         mSingleTapOccurred(false)
-    {}
-
-    
-    
-    
-    
-    nsTArray<TouchBehaviorFlags> mAllowedTouchBehaviors;
-
-    
-    bool mAllowedTouchBehaviorSet;
-
-    
-    
-    bool mPreventDefault;
-
-    
-    bool mPreventDefaultSet;
-
-    
-    bool mSingleTapOccurred;
-  };
-
-  
-
-
-  bool TouchActionAllowPinchZoom();
-
-  
-
-
-  bool TouchActionAllowDoubleTapZoom();
-
-  
-
-
-
-
-  TouchBehaviorFlags GetTouchBehavior(uint32_t touchIndex);
-
-  
-
-
-
-
-
-
-  void CheckContentResponse();
-
   
 
 
@@ -734,10 +644,6 @@ private:
   
   FrameMetrics mLastDispatchedPaintMetrics;
 
-  nsTArray<MultiTouchInput> mTouchQueue;
-
-  CancelableTask* mContentResponseTimeoutTask;
-
   AxisX mX;
   AxisY mY;
 
@@ -771,18 +677,97 @@ private:
   
   CancelableTask* mAsyncScrollTimeoutTask;
 
-  
-  
-  
-  
-  bool mHandlingTouchQueue;
-
-  
-  TouchBlockState mTouchBlockState;
-
   nsRefPtr<AsyncPanZoomAnimation> mAnimation;
 
   friend class Axis;
+
+  
+
+
+
+
+public:
+  
+
+
+
+
+
+
+  void ContentReceivedTouch(bool aPreventDefault);
+
+  
+
+
+
+
+
+
+  void SetAllowedTouchBehavior(const nsTArray<TouchBehaviorFlags>& aBehaviors);
+
+private:
+  void ScheduleContentResponseTimeout();
+  void ContentResponseTimeout();
+  
+
+
+
+  void ProcessPendingInputBlocks();
+  TouchBlockState* StartNewTouchBlock(bool aCopyAllowedTouchBehaviorFromCurrent);
+  TouchBlockState* CurrentTouchBlock();
+  bool HasReadyTouchBlock();
+
+private:
+  
+  nsTArray<UniquePtr<TouchBlockState>> mTouchBlockQueue;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  int32_t mTouchBlockBalance;
 
 
   
