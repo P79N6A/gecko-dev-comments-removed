@@ -1155,6 +1155,12 @@ nsPlaintextEditor::Redo(uint32_t aCount)
 bool
 nsPlaintextEditor::CanCutOrCopy(PasswordFieldAllowed aPasswordFieldAllowed)
 {
+  nsCOMPtr<nsIDocument> doc = GetDocument();
+  if (doc && doc->IsHTMLOrXHTML()) {
+    
+    return true;
+  }
+
   nsRefPtr<Selection> selection = GetSelection();
   if (!selection) {
     return false;

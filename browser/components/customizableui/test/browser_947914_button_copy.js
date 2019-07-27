@@ -19,7 +19,7 @@ add_task(function() {
 
   let copyButton = document.getElementById("copy-button");
   ok(copyButton, "Copy button exists in Panel Menu");
-  ok(!copyButton.getAttribute("disabled"), "Copy button is initially enabled");
+  ok(copyButton.getAttribute("disabled"), "Copy button is initially disabled");
 
   
   gURLBar.value = testText;
