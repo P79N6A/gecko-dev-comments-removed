@@ -355,10 +355,8 @@ add_test(function test_update_mwis() {
       
       equal(this.readString(), null);
 
-      if (!ril.v5Legacy) {
-        
-        this.readInt32();
-      }
+      
+      this.readInt32();
     };
 
     ok(!isUpdated);
