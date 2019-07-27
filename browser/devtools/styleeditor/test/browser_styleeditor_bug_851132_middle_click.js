@@ -1,75 +1,56 @@
 
 
+"use strict";
 
 
 
-
-
-
-thisTestLeaksUncaughtRejectionsAndShouldBeFixed("Error: Unknown sheet source");
 
 const TESTCASE_URI = TEST_BASE_HTTP + "four.html";
 
-let gUI;
-
-function test() {
-  waitForExplicitFinish();
-
-  addTabAndOpenStyleEditors(4, runTests);
-
-  content.location = TESTCASE_URI;
-}
-
-let timeoutID;
-
-function runTests(panel) {
-  gUI = panel.UI;
-
+add_task(function* () {
+  let { ui } = yield openStyleEditorForURL(TESTCASE_URI);
   gBrowser.tabContainer.addEventListener("TabOpen", onTabAdded, false);
-  gUI.editors[0].getSourceEditor().then(onEditor0Attach);
-  gUI.editors[1].getSourceEditor().then(onEditor1Attach);
-}
 
-function getStylesheetNameLinkFor(aEditor) {
-  return aEditor.summary.querySelector(".stylesheet-name");
-}
-
-function onEditor0Attach(aEditor) {
+  yield ui.editors[0].getSourceEditor();
   info("first editor selected");
 
-  waitForFocus(function () {
-    
-    EventUtils.synthesizeMouseAtCenter(
-      getStylesheetNameLinkFor(gUI.editors[1]),
-      {button: 0},
-      gPanelWindow);
-  }, gPanelWindow);
-}
+  info("Left-clicking on the second editor link.");
+  yield clickOnStyleSheetLink(ui.editors[1], 0);
 
-function onEditor1Attach(aEditor) {
-  info("second editor selected");
+  info("Waiting for the second editor to be selected.");
+  let editor = yield ui.once("editor-selected");
+
+  ok(editor.sourceEditor.hasFocus(),
+     "Left mouse click gave second editor focus.");
 
   
-  executeSoon(function () {
-    ok(aEditor.sourceEditor.hasFocus(),
-       "left mouse click has given editor 1 focus");
+  info("Middle clicking on the third editor link.");
+  yield clickOnStyleSheetLink(ui.editors[2], 1);
+});
 
-    
-    EventUtils.synthesizeMouseAtCenter(
-      getStylesheetNameLinkFor(gUI.editors[2]),
-      {button: 1},
-      gPanelWindow);
 
-    setTimeout(finish, 0);
-  });
+
+
+
+
+
+
+
+function* clickOnStyleSheetLink(editor, button) {
+  let window = editor._window;
+  let link = editor.summary.querySelector(".stylesheet-name");
+
+  info("Waiting for focus.");
+  yield SimpleTest.promiseFocus(window);
+
+  info("Pressing button " + button + " on style sheet name link.");
+  EventUtils.synthesizeMouseAtCenter(link, { button }, window);
 }
 
 function onTabAdded() {
   ok(false, "middle mouse click has opened a new tab");
-  finish();
 }
 
 registerCleanupFunction(function () {
   gBrowser.tabContainer.removeEventListener("TabOpen", onTabAdded, false);
-  gUI = null;
 });
