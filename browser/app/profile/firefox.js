@@ -1531,7 +1531,7 @@ pref("browser.newtabpage.rows", 3);
 pref("browser.newtabpage.columns", 5);
 
 
-pref("browser.newtabpage.directory.source", "chrome://global/content/directoryLinks.json");
+pref("browser.newtabpage.directory.source", "https://tiles.up.mozillalabs.com/v2/links/fetch");
 
 
 pref("browser.newtabpage.directory.ping", "https://tiles.up.mozillalabs.com/v2/links/");
