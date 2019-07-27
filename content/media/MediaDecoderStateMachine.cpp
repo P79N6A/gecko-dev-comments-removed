@@ -2707,7 +2707,8 @@ void MediaDecoderStateMachine::AdvanceFrame()
     
     
     int64_t frameTime = currentFrame->mTime - mStartTime;
-    if (frameTime > 0  || (frameTime == 0 && mPlayDuration == 0)) {
+    if (frameTime > 0  || (frameTime == 0 && mPlayDuration == 0) ||
+        mScheduler->IsRealTime()) {
       ReentrantMonitorAutoExit exitMon(mDecoder->GetReentrantMonitor());
       
       
