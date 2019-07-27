@@ -6646,10 +6646,15 @@ function AddonWrapper(aAddon) {
       return AddonManager.PENDING_UNINSTALL;
     }
 
-    if (aAddon.active && isAddonDisabled(aAddon))
-      pending |= AddonManager.PENDING_DISABLE;
-    else if (!aAddon.active && !isAddonDisabled(aAddon))
-      pending |= AddonManager.PENDING_ENABLE;
+    
+    
+    
+    if (aAddon.type != "experiment") {
+      if (aAddon.active && isAddonDisabled(aAddon))
+        pending |= AddonManager.PENDING_DISABLE;
+      else if (!aAddon.active && !isAddonDisabled(aAddon))
+        pending |= AddonManager.PENDING_ENABLE;
+    }
 
     if (aAddon.pendingUpgrade)
       pending |= AddonManager.PENDING_UPGRADE;
