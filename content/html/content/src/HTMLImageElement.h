@@ -202,7 +202,20 @@ protected:
   virtual ~HTMLImageElement();
 
   
+  
+  
+  
+  
+  
   void QueueImageLoadTask();
+
+  
+  
+  bool HaveSrcsetOrInPicture();
+
+  
+  
+  bool InResponsiveMode();
 
   
   

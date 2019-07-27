@@ -55,6 +55,7 @@ static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
 
 NS_IMPL_NS_NEW_HTML_ELEMENT(Image)
 
+#ifdef DEBUG
 
 static bool IsPreviousSibling(nsINode *aSubject, nsINode *aNode)
 {
@@ -69,6 +70,7 @@ static bool IsPreviousSibling(nsINode *aSubject, nsINode *aNode)
 
   return false;
 }
+#endif
 
 namespace mozilla {
 namespace dom {
@@ -402,7 +404,7 @@ HTMLImageElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
       !aValue) {
     
     
-    if (mResponsiveSelector) {
+    if (InResponsiveMode()) {
       if (mResponsiveSelector->Content() == this) {
         mResponsiveSelector->SetDefaultSource(nullptr);
       }
@@ -423,7 +425,7 @@ HTMLImageElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
              aNameSpaceID == kNameSpaceID_None &&
              aNotify) {
     
-    if (mResponsiveSelector) {
+    if (InResponsiveMode()) {
       
       
       QueueImageLoadTask();
@@ -525,7 +527,7 @@ HTMLImageElement::SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
       return NS_OK;
     }
 
-    if (mResponsiveSelector || mPendingImageLoadTask) {
+    if (InResponsiveMode()) {
       if (mResponsiveSelector &&
           mResponsiveSelector->Content() == this) {
         mResponsiveSelector->SetDefaultSource(aValue);
@@ -577,7 +579,7 @@ HTMLImageElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                         HTMLPictureElement::IsPictureEnabled();
   if (addedToPicture) {
     QueueImageLoadTask();
-  } else if (!mResponsiveSelector &&
+  } else if (!InResponsiveMode() &&
              HasAttr(kNameSpaceID_None, nsGkAtoms::src)) {
     
     
@@ -862,6 +864,32 @@ HTMLImageElement::QueueImageLoadTask()
   } else {
     MOZ_ASSERT(false, "expect appshell for HTMLImageElement");
   }
+}
+
+bool
+HTMLImageElement::HaveSrcsetOrInPicture()
+{
+  if (IsSrcsetEnabled() && HasAttr(kNameSpaceID_None, nsGkAtoms::srcset)) {
+    return true;
+  }
+
+  if (!HTMLPictureElement::IsPictureEnabled()) {
+    return false;
+  }
+
+  nsINode *parent = nsINode::GetParentNode();
+  return (parent && parent->Tag() == nsGkAtoms::picture);
+}
+
+bool
+HTMLImageElement::InResponsiveMode()
+{
+  
+  
+  
+  return mResponsiveSelector ||
+         mPendingImageLoadTask ||
+         HaveSrcsetOrInPicture();
 }
 
 nsresult
