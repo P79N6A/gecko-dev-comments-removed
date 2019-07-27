@@ -807,8 +807,11 @@ public:
 
 
 
-  bool TakeOverFling(ScreenPoint aVelocity,
-                     const nsRefPtr<const OverscrollHandoffChain>& aOverscrollHandoffChain);
+
+
+  bool AttemptFling(ScreenPoint aVelocity,
+                    const nsRefPtr<const OverscrollHandoffChain>& aOverscrollHandoffChain,
+                    bool aHandoff);
 
 private:
   friend class FlingAnimation;
@@ -829,6 +832,7 @@ private:
   
   void AcceptFling(const ScreenPoint& aVelocity,
                    const nsRefPtr<const OverscrollHandoffChain>& aOverscrollHandoffChain,
+                   bool aHandoff,
                    bool aAllowOverscroll);
 
   

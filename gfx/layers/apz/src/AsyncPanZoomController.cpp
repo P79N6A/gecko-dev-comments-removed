@@ -1147,17 +1147,31 @@ nsEventStatus AsyncPanZoomController::OnTouchEnd(const MultiTouchInput& aEvent) 
   case PANNING:
   case PANNING_LOCKED_X:
   case PANNING_LOCKED_Y:
+  {
     CurrentTouchBlock()->GetOverscrollHandoffChain()->FlushRepaints();
     mX.EndTouch(aEvent.mTime);
     mY.EndTouch(aEvent.mTime);
-    SetState(FLING);
+    ScreenPoint flingVelocity(mX.GetVelocity(), mY.GetVelocity());
+    
+    
+    
+    mX.SetVelocity(0);
+    mY.SetVelocity(0);
+    
+    
+    SetState(NOTHING);
     APZC_LOG("%p starting a fling animation\n", this);
-    StartAnimation(new FlingAnimation(*this,
+    
+    
+    
+    if (APZCTreeManager* treeManagerLocal = mTreeManager) {
+      treeManagerLocal->DispatchFling(this,
+                                      flingVelocity,
                                       CurrentTouchBlock()->GetOverscrollHandoffChain(),
-                                      true  ,
-                                      false ));
+                                      false );
+    }
     return nsEventStatus_eConsumeNoDefault;
-
+  }
   case PINCHING:
     SetState(NOTHING);
     
@@ -1765,6 +1779,7 @@ nsRefPtr<const OverscrollHandoffChain> AsyncPanZoomController::BuildOverscrollHa
 
 void AsyncPanZoomController::AcceptFling(const ScreenPoint& aVelocity,
                                          const nsRefPtr<const OverscrollHandoffChain>& aOverscrollHandoffChain,
+                                         bool aHandoff,
                                          bool aAllowOverscroll) {
   
   
@@ -1772,16 +1787,20 @@ void AsyncPanZoomController::AcceptFling(const ScreenPoint& aVelocity,
   mY.SetVelocity(mY.GetVelocity() + aVelocity.y);
   SetState(FLING);
   StartAnimation(new FlingAnimation(*this,
-                                    aOverscrollHandoffChain,
-                                    false ,
-                                    aAllowOverscroll));
+      aOverscrollHandoffChain,
+      !aHandoff,  
+      aAllowOverscroll));
 }
 
-bool AsyncPanZoomController::TakeOverFling(ScreenPoint aVelocity,
-                                           const nsRefPtr<const OverscrollHandoffChain>& aOverscrollHandoffChain) {
+bool AsyncPanZoomController::AttemptFling(ScreenPoint aVelocity,
+                                          const nsRefPtr<const OverscrollHandoffChain>& aOverscrollHandoffChain,
+                                          bool aHandoff) {
   
   if (IsPannable()) {
-    AcceptFling(aVelocity, aOverscrollHandoffChain, false );
+    AcceptFling(aVelocity,
+                aOverscrollHandoffChain,
+                aHandoff,
+                false );
     return true;
   }
 
@@ -1792,16 +1811,25 @@ bool AsyncPanZoomController::TakeOverFling(ScreenPoint aVelocity,
   
   APZCTreeManager* treeManagerLocal = mTreeManager;
   return treeManagerLocal
-      && treeManagerLocal->HandOffFling(this, aVelocity, aOverscrollHandoffChain);
+      && treeManagerLocal->DispatchFling(this,
+                                         aVelocity,
+                                         aOverscrollHandoffChain,
+                                         true );
 }
 
 void AsyncPanZoomController::HandleFlingOverscroll(const ScreenPoint& aVelocity,
                                                    const nsRefPtr<const OverscrollHandoffChain>& aOverscrollHandoffChain) {
   APZCTreeManager* treeManagerLocal = mTreeManager;
-  if (!(treeManagerLocal && treeManagerLocal->HandOffFling(this, aVelocity, aOverscrollHandoffChain))) {
+  if (!(treeManagerLocal && treeManagerLocal->DispatchFling(this,
+                                                            aVelocity,
+                                                            aOverscrollHandoffChain,
+                                                            true ))) {
     
     if (IsPannable()) {
-      AcceptFling(aVelocity, aOverscrollHandoffChain, true );
+      AcceptFling(aVelocity,
+                  aOverscrollHandoffChain,
+                  true ,
+                  true );
     }
   }
 }
