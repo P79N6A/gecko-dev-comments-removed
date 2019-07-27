@@ -27,17 +27,29 @@ public:
 
 
 
-  static bool ChainHasValidPins(const CERTCertList* certList,
-                                const char* hostname,
-                                mozilla::pkix::Time time,
-                                bool enforceTestMode);
+  static nsresult ChainHasValidPins(const CERTCertList* certList,
+                                    const char* hostname,
+                                    mozilla::pkix::Time time,
+                                    bool enforceTestMode,
+                             bool& chainHasValidPins);
   
 
 
 
 
-  static bool ChainMatchesPinset(const CERTCertList* certList,
-                                 const nsTArray<nsCString>& aSHA256keys);
+  static nsresult ChainMatchesPinset(const CERTCertList* certList,
+                                     const nsTArray<nsCString>& aSHA256keys,
+                              bool& chainMatchesPinset);
+
+  
+
+
+
+
+  static nsresult HostHasPins(const char* hostname,
+                              mozilla::pkix::Time time,
+                              bool enforceTestMode,
+                       bool& hostHasPins);
 
   
 

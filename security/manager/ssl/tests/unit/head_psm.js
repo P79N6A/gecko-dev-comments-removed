@@ -582,3 +582,45 @@ FakeSSLStatus.prototype = {
     throw Components.results.NS_ERROR_NO_INTERFACE;
   },
 }
+
+
+
+
+
+
+function add_cert_override(aHost, aExpectedBits, aSecurityInfo) {
+  let sslstatus = aSecurityInfo.QueryInterface(Ci.nsISSLStatusProvider)
+                               .SSLStatus;
+  let bits =
+    (sslstatus.isUntrusted ? Ci.nsICertOverrideService.ERROR_UNTRUSTED : 0) |
+    (sslstatus.isDomainMismatch ? Ci.nsICertOverrideService.ERROR_MISMATCH : 0) |
+    (sslstatus.isNotValidAtThisTime ? Ci.nsICertOverrideService.ERROR_TIME : 0);
+  do_check_eq(bits, aExpectedBits);
+  let cert = sslstatus.serverCert;
+  let certOverrideService = Cc["@mozilla.org/security/certoverride;1"]
+                              .getService(Ci.nsICertOverrideService);
+  certOverrideService.rememberValidityOverride(aHost, 8443, cert, aExpectedBits,
+                                               true);
+}
+
+
+
+
+
+function add_cert_override_test(aHost, aExpectedBits, aExpectedError) {
+  add_connection_test(aHost, aExpectedError, null,
+                      add_cert_override.bind(this, aHost, aExpectedBits));
+  add_connection_test(aHost, PRErrorCodeSuccess);
+}
+
+
+
+
+
+
+
+function add_prevented_cert_override_test(aHost, aExpectedBits, aExpectedError) {
+  add_connection_test(aHost, aExpectedError, null,
+                      add_cert_override.bind(this, aHost, aExpectedBits));
+  add_connection_test(aHost, aExpectedError);
+}

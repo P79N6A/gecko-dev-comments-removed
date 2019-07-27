@@ -28,6 +28,15 @@ do_get_profile();
 const certdb = Cc["@mozilla.org/security/x509certdb;1"]
                   .getService(Ci.nsIX509CertDB);
 
+function add_clear_override(host) {
+  add_test(function() {
+    let certOverrideService = Cc["@mozilla.org/security/certoverride;1"]
+                                .getService(Ci.nsICertOverrideService);
+    certOverrideService.clearValidityOverride(host, 8443);
+    run_next_test();
+  });
+}
+
 function test_strict() {
   
   
@@ -39,9 +48,11 @@ function test_strict() {
 
   
   
-  
-  add_connection_test("unknownissuer.include-subdomains.pinning.example.com",
-                      MOZILLA_PKIX_ERROR_KEY_PINNING_FAILURE);
+  add_prevented_cert_override_test(
+    "unknownissuer.include-subdomains.pinning.example.com",
+    Ci.nsICertOverrideService.ERROR_UNTRUSTED,
+    SEC_ERROR_UNKNOWN_ISSUER);
+  add_clear_override("unknownissuer.include-subdomains.pinning.example.com");
 
   
   add_connection_test("bad.include-subdomains.pinning.example.com",
@@ -73,6 +84,11 @@ function test_strict() {
   
   add_connection_test("test-mode.pinning.example.com",
                       PRErrorCodeSuccess);
+  
+  add_cert_override_test("unknownissuer.test-mode.pinning.example.com",
+                         Ci.nsICertOverrideService.ERROR_UNTRUSTED,
+                         SEC_ERROR_UNKNOWN_ISSUER);
+  add_clear_override("unknownissuer.test-mode.pinning.example.com");
 }
 
 function test_mitm() {
@@ -88,8 +104,15 @@ function test_mitm() {
   add_connection_test("good.include-subdomains.pinning.example.com",
                       PRErrorCodeSuccess);
 
-  add_connection_test("unknownissuer.include-subdomains.pinning.example.com",
-                      SEC_ERROR_UNKNOWN_ISSUER);
+  
+  
+  
+  
+  add_prevented_cert_override_test(
+    "unknownissuer.include-subdomains.pinning.example.com",
+    Ci.nsICertOverrideService.ERROR_UNTRUSTED,
+    SEC_ERROR_UNKNOWN_ISSUER);
+  add_clear_override("unknownissuer.include-subdomains.pinning.example.com");
 
   
   
@@ -101,6 +124,10 @@ function test_mitm() {
   add_connection_test("sub.exclude-subdomains.pinning.example.com",
                       PRErrorCodeSuccess);
   add_connection_test("test-mode.pinning.example.com", PRErrorCodeSuccess);
+  add_cert_override_test("unknownissuer.test-mode.pinning.example.com",
+                         Ci.nsICertOverrideService.ERROR_UNTRUSTED,
+                         SEC_ERROR_UNKNOWN_ISSUER);
+  add_clear_override("unknownissuer.test-mode.pinning.example.com");
 };
 
 function test_disabled() {
@@ -122,8 +149,14 @@ function test_disabled() {
                       PRErrorCodeSuccess);
   add_connection_test("test-mode.pinning.example.com", PRErrorCodeSuccess);
 
-  add_connection_test("unknownissuer.include-subdomains.pinning.example.com",
-                      SEC_ERROR_UNKNOWN_ISSUER);
+  add_cert_override_test("unknownissuer.include-subdomains.pinning.example.com",
+                         Ci.nsICertOverrideService.ERROR_UNTRUSTED,
+                         SEC_ERROR_UNKNOWN_ISSUER);
+  add_clear_override("unknownissuer.include-subdomains.pinning.example.com");
+  add_cert_override_test("unknownissuer.test-mode.pinning.example.com",
+                         Ci.nsICertOverrideService.ERROR_UNTRUSTED,
+                         SEC_ERROR_UNKNOWN_ISSUER);
+  add_clear_override("unknownissuer.test-mode.pinning.example.com");
 }
 
 function test_enforce_test_mode() {
@@ -133,8 +166,13 @@ function test_enforce_test_mode() {
     run_next_test();
   });
 
-  add_connection_test("unknownissuer.include-subdomains.pinning.example.com",
-                      MOZILLA_PKIX_ERROR_KEY_PINNING_FAILURE);
+  
+  
+  add_prevented_cert_override_test(
+    "unknownissuer.include-subdomains.pinning.example.com",
+    Ci.nsICertOverrideService.ERROR_UNTRUSTED,
+    SEC_ERROR_UNKNOWN_ISSUER);
+  add_clear_override("unknownissuer.include-subdomains.pinning.example.com");
 
   
   add_connection_test("bad.include-subdomains.pinning.example.com",
@@ -159,6 +197,13 @@ function test_enforce_test_mode() {
   
   add_connection_test("test-mode.pinning.example.com",
                       MOZILLA_PKIX_ERROR_KEY_PINNING_FAILURE);
+  
+  
+  add_prevented_cert_override_test(
+    "unknownissuer.test-mode.pinning.example.com",
+    Ci.nsICertOverrideService.ERROR_UNTRUSTED,
+    SEC_ERROR_UNKNOWN_ISSUER);
+  add_clear_override("unknownissuer.test-mode.pinning.example.com");
 }
 
 function check_pinning_telemetry() {
@@ -169,7 +214,7 @@ function check_pinning_telemetry() {
                          .snapshot();
   
   
-  do_check_eq(prod_histogram.counts[0], 6); 
+  do_check_eq(prod_histogram.counts[0], 4); 
   do_check_eq(prod_histogram.counts[1], 4); 
   do_check_eq(test_histogram.counts[0], 2); 
   do_check_eq(test_histogram.counts[1], 0); 

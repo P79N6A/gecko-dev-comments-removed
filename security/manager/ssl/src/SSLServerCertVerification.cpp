@@ -481,26 +481,45 @@ CertErrorRunnable::CheckCertOverrides()
 
   uint32_t remaining_display_errors = mCollectedErrors;
 
-  nsresult nsrv;
 
   
   
   
   bool strictTransportSecurityEnabled = false;
-  nsCOMPtr<nsISiteSecurityService> sss
-    = do_GetService(NS_SSSERVICE_CONTRACTID, &nsrv);
-  if (NS_SUCCEEDED(nsrv)) {
-    nsrv = sss->IsSecureHost(nsISiteSecurityService::HEADER_HSTS,
-                             mInfoObject->GetHostNameRaw(),
-                             mProviderFlags,
-                             &strictTransportSecurityEnabled);
+  bool hasPinningInformation = false;
+  nsCOMPtr<nsISiteSecurityService> sss(do_GetService(NS_SSSERVICE_CONTRACTID));
+  if (!sss) {
+    PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
+           ("[%p][%p] couldn't get nsISiteSecurityService to check for HSTS/HPKP\n",
+            mFdForLogging, this));
+    return new SSLServerCertVerificationResult(mInfoObject,
+                                               mDefaultErrorCodeToReport);
   }
+  nsresult nsrv = sss->IsSecureHost(nsISiteSecurityService::HEADER_HSTS,
+                                    mInfoObject->GetHostNameRaw(),
+                                    mProviderFlags,
+                                    &strictTransportSecurityEnabled);
   if (NS_FAILED(nsrv)) {
+    PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
+           ("[%p][%p] checking for HSTS failed\n", mFdForLogging, this));
+    return new SSLServerCertVerificationResult(mInfoObject,
+                                               mDefaultErrorCodeToReport);
+  }
+  nsrv = sss->IsSecureHost(nsISiteSecurityService::HEADER_HPKP,
+                           mInfoObject->GetHostNameRaw(),
+                           mProviderFlags,
+                           &hasPinningInformation);
+  if (NS_FAILED(nsrv)) {
+    PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
+           ("[%p][%p] checking for HPKP failed\n", mFdForLogging, this));
     return new SSLServerCertVerificationResult(mInfoObject,
                                                mDefaultErrorCodeToReport);
   }
 
-  if (!strictTransportSecurityEnabled) {
+  if (!strictTransportSecurityEnabled && !hasPinningInformation) {
+    PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
+           ("[%p][%p] no HSTS or HPKP - overrides allowed\n",
+            mFdForLogging, this));
     nsCOMPtr<nsICertOverrideService> overrideService =
       do_GetService(NS_CERTOVERRIDE_CONTRACTID);
     
@@ -549,8 +568,8 @@ CertErrorRunnable::CheckCertOverrides()
     }
   } else {
     PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
-           ("[%p][%p] Strict-Transport-Security is violated: untrusted "
-            "transport layer\n", mFdForLogging, this));
+           ("[%p][%p] HSTS or HPKP - no overrides allowed\n",
+            mFdForLogging, this));
   }
 
   PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,

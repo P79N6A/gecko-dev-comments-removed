@@ -5025,22 +5025,30 @@ nsDocShell::DisplayLoadError(nsresult aError, nsIURI* aURI,
 
         
         
-        uint32_t type = nsISiteSecurityService::HEADER_HSTS;
+        
         uint32_t flags =
           mInPrivateBrowsing ? nsISocketProvider::NO_PERMANENT_STORAGE : 0;
         bool isStsHost = false;
+        bool isPinnedHost = false;
         if (XRE_GetProcessType() == GeckoProcessType_Default) {
           nsCOMPtr<nsISiteSecurityService> sss =
             do_GetService(NS_SSSERVICE_CONTRACTID, &rv);
           NS_ENSURE_SUCCESS(rv, rv);
-          rv = sss->IsSecureURI(type, aURI, flags, &isStsHost);
+          rv = sss->IsSecureURI(nsISiteSecurityService::HEADER_HSTS, aURI,
+                                flags, &isStsHost);
+          NS_ENSURE_SUCCESS(rv, rv);
+          rv = sss->IsSecureURI(nsISiteSecurityService::HEADER_HPKP, aURI,
+                                flags, &isPinnedHost);
           NS_ENSURE_SUCCESS(rv, rv);
         } else {
           mozilla::dom::ContentChild* cc =
             mozilla::dom::ContentChild::GetSingleton();
           mozilla::ipc::URIParams uri;
           SerializeURI(aURI, uri);
-          cc->SendIsSecureURI(type, uri, flags, &isStsHost);
+          cc->SendIsSecureURI(nsISiteSecurityService::HEADER_HSTS, uri, flags,
+                              &isStsHost);
+          cc->SendIsSecureURI(nsISiteSecurityService::HEADER_HPKP, uri, flags,
+                              &isPinnedHost);
         }
 
         if (Preferences::GetBool(
@@ -5050,9 +5058,14 @@ nsDocShell::DisplayLoadError(nsresult aError, nsIURI* aURI,
 
         
         
+        
+        
+        if (isStsHost || isPinnedHost) {
+          cssClass.AssignLiteral("badStsCert");
+        }
+
         uint32_t bucketId;
         if (isStsHost) {
-          cssClass.AssignLiteral("badStsCert");
           
           
           bucketId = nsISecurityUITelemetry::WARNING_BAD_CERT_TOP_STS;
