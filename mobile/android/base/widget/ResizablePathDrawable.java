@@ -60,7 +60,11 @@ public class ResizablePathDrawable extends ShapeDrawable {
         
         
         
-        paint.setAlpha(alpha);
+        
+        if (currentColor != Color.TRANSPARENT) {
+            paint.setAlpha(alpha);
+        }
+
         super.onDraw(shape, canvas, paint);
     }
 
