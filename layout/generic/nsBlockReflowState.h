@@ -217,7 +217,13 @@ public:
   
   void SetupPushedFloatList();
   
-  void AppendPushedFloat(nsIFrame* aFloatCont);
+
+
+
+
+
+
+  void AppendPushedFloatChain(nsIFrame* aFloatCont);
 
   
   nsOverflowContinuationTracker* mOverflowTracker;

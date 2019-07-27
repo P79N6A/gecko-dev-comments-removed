@@ -1101,6 +1101,15 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
     AddStateBits(NS_FRAME_HAS_DIRTY_CHILDREN);
   }
 
+#ifdef DEBUG
+  
+  
+  
+  
+  
+  nsLayoutUtils::AssertNoDuplicateContinuations(this, mFloats);
+#endif
+
   
   
   
@@ -4058,6 +4067,10 @@ nsBlockFrame::SplitFloat(nsBlockReflowState& aState,
                          nsIFrame*           aFloat,
                          nsReflowStatus      aFloatStatus)
 {
+  MOZ_ASSERT(!NS_FRAME_IS_FULLY_COMPLETE(aFloatStatus),
+             "why split the frame if it's fully complete?");
+  MOZ_ASSERT(aState.mBlock == this);
+
   nsIFrame* nextInFlow = aFloat->GetNextInFlow();
   if (nextInFlow) {
     nsContainerFrame *oldParent = nextInFlow->GetParent();
@@ -4073,11 +4086,9 @@ nsBlockFrame::SplitFloat(nsBlockReflowState& aState,
     nextInFlow = aState.mPresContext->PresShell()->FrameConstructor()->
       CreateContinuingFrame(aState.mPresContext, aFloat, this);
   }
-  if (NS_FRAME_OVERFLOW_IS_INCOMPLETE(aFloatStatus))
-    aFloat->GetNextInFlow()->AddStateBits(NS_FRAME_IS_OVERFLOW_CONTAINER);
-
-  
-  NS_FRAME_SET_OVERFLOW_INCOMPLETE(aState.mReflowStatus);
+  if (NS_FRAME_OVERFLOW_IS_INCOMPLETE(aFloatStatus)) {
+    nextInFlow->AddStateBits(NS_FRAME_IS_OVERFLOW_CONTAINER);
+  }
 
   if (aFloat->StyleDisplay()->mFloats == NS_STYLE_FLOAT_LEFT) {
     aState.mFloatManager->SetSplitLeftFloatAcrossBreak();
@@ -4087,7 +4098,8 @@ nsBlockFrame::SplitFloat(nsBlockReflowState& aState,
     aState.mFloatManager->SetSplitRightFloatAcrossBreak();
   }
 
-  aState.AppendPushedFloat(nextInFlow);
+  aState.AppendPushedFloatChain(nextInFlow);
+  NS_FRAME_SET_OVERFLOW_INCOMPLETE(aState.mReflowStatus);
   return NS_OK;
 }
 
@@ -4538,6 +4550,15 @@ nsBlockFrame::DrainOverflowLines()
       
       nsAutoOOFFrameList oofs(prevBlock);
       if (oofs.mList.NotEmpty()) {
+        
+        
+        for (nsFrameList::Enumerator e(oofs.mList); !e.AtEnd(); e.Next()) {
+          nsIFrame* nif = e.get()->GetNextInFlow();
+          for (; nif && nif->GetParent() == this; nif = nif->GetNextInFlow()) {
+            MOZ_ASSERT(mFloats.ContainsFrame(nif));
+            nif->RemoveStateBits(NS_FRAME_IS_PUSHED_FLOAT);
+          }
+        }
         ReparentFrames(oofs.mList, prevBlock, this);
         mFloats.InsertFrames(nullptr, nullptr, oofs.mList);
       }
@@ -4583,6 +4604,10 @@ nsBlockFrame::DrainSelfOverflowList()
     mFrames.AppendFrames(nullptr, ourOverflowLines->mFrames);
     mLines.splice(mLines.end(), ourOverflowLines->mLines);
   }
+
+#ifdef DEBUG
+  VerifyOverflowSituation();
+#endif
   return true;
 }
 
@@ -4610,15 +4635,6 @@ nsBlockFrame::DrainSelfOverflowList()
 void
 nsBlockFrame::DrainPushedFloats(nsBlockReflowState& aState)
 {
-#ifdef DEBUG
-  
-  
-  
-  
-  
-  nsLayoutUtils::AssertNoDuplicateContinuations(this, mFloats);
-#endif
-
   
   
   
@@ -6086,7 +6102,7 @@ nsBlockFrame::ReflowPushedFloats(nsBlockReflowState& aState,
     nsIFrame *prevContinuation = f->GetPrevContinuation();
     if (prevContinuation && prevContinuation->GetParent() == f->GetParent()) {
       mFloats.RemoveFrame(f);
-      aState.AppendPushedFloat(f);
+      aState.AppendPushedFloatChain(f);
       f = !prev ? mFloats.FirstChild() : prev->GetNextSibling();
       continue;
     }
@@ -7014,9 +7030,10 @@ nsBlockFrame::DoCollectFloats(nsIFrame* aFrame, nsFrameList& aList,
       nsIFrame *outOfFlowFrame =
         aFrame->GetType() == nsGkAtoms::placeholderFrame ?
           nsLayoutUtils::GetFloatFromPlaceholder(aFrame) : nullptr;
-      if (outOfFlowFrame && outOfFlowFrame->GetParent() == this) {
+      while (outOfFlowFrame && outOfFlowFrame->GetParent() == this) {
         RemoveFloat(outOfFlowFrame);
         aList.AppendFrame(nullptr, outOfFlowFrame);
+        outOfFlowFrame = outOfFlowFrame->GetNextInFlow();
         
         
         
@@ -7345,6 +7362,47 @@ nsBlockFrame::VerifyLines(bool aFinalCheckOK)
 void
 nsBlockFrame::VerifyOverflowSituation()
 {
+  
+  nsFrameList* oofs = GetOverflowOutOfFlows() ;
+  if (oofs) {
+    for (nsFrameList::Enumerator e(*oofs); !e.AtEnd(); e.Next()) {
+      nsIFrame* nif = e.get()->GetNextInFlow();
+      MOZ_ASSERT(!nif || (!mFloats.ContainsFrame(nif) && !mFrames.ContainsFrame(nif)));
+    }
+  }
+
+  
+  oofs = GetPushedFloats();
+  if (oofs) {
+    for (nsFrameList::Enumerator e(*oofs); !e.AtEnd(); e.Next()) {
+      nsIFrame* nif = e.get()->GetNextInFlow();
+      MOZ_ASSERT(!nif || (!mFloats.ContainsFrame(nif) && !mFrames.ContainsFrame(nif)));
+    }
+  }
+
+  
+  
+  nsIFrame::ChildListID childLists[] = { nsIFrame::kFloatList,
+                                         nsIFrame::kPushedFloatsList };
+  for (size_t i = 0; i < ArrayLength(childLists); ++i) {
+    nsFrameList children(GetChildList(childLists[i]));
+    for (nsFrameList::Enumerator e(children); !e.AtEnd(); e.Next()) {
+      nsIFrame* parent = this;
+      nsIFrame* nif = e.get()->GetNextInFlow();
+      for (; nif; nif = nif->GetNextInFlow()) {
+        bool found = false;
+        for (nsIFrame* p = parent; p; p = p->GetNextInFlow()) {
+          if (nif->GetParent() == p) {
+            parent = p;
+            found = true;
+            break;
+          }
+        }
+        MOZ_ASSERT(found, "next-in-flow is a child of parent earlier in the frame tree?");
+      }
+    }
+  }
+
   nsBlockFrame* flow = static_cast<nsBlockFrame*>(FirstInFlow());
   while (flow) {
     FrameLines* overflowLines = flow->GetOverflowLines();
