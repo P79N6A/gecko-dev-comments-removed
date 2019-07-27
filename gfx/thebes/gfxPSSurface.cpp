@@ -25,18 +25,18 @@ write_func(void *closure, const unsigned char *data, unsigned int length)
 gfxPSSurface::gfxPSSurface(nsIOutputStream *aStream, const gfxSize& aSizeInPoints, PageOrientation aOrientation)
     : mStream(aStream), mXDPI(-1), mYDPI(-1), mOrientation(aOrientation)
 {
-    mSize = gfxIntSize(aSizeInPoints.width, aSizeInPoints.height);
+    mSize = mozilla::gfx::IntSize(aSizeInPoints.width, aSizeInPoints.height);
 
     
     
     
     
     
-    gfxIntSize cairoSize;
+    mozilla::gfx::IntSize cairoSize;
     if (mOrientation == PORTRAIT) {
         cairoSize = mSize;
     } else {
-        cairoSize = gfxIntSize(mSize.height, mSize.width);
+        cairoSize = mozilla::gfx::IntSize(mSize.height, mSize.width);
     }
     cairo_surface_t* ps_surface = cairo_ps_surface_create_for_stream(write_func, (void*)mStream, cairoSize.width, cairoSize.height);
     cairo_ps_surface_restrict_to_level(ps_surface, CAIRO_PS_LEVEL_2);

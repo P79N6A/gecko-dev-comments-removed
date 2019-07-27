@@ -34,18 +34,18 @@ public:
     gfxWindowsSurface(IDirect3DSurface9 *surface, uint32_t flags = 0);
 
     
-    gfxWindowsSurface(const gfxIntSize& size,
+    gfxWindowsSurface(const mozilla::gfx::IntSize& size,
                       gfxImageFormat imageFormat = gfxImageFormat::RGB24);
 
     
     gfxWindowsSurface(HDC dc,
-                      const gfxIntSize& size,
+                      const mozilla::gfx::IntSize& size,
                       gfxImageFormat imageFormat = gfxImageFormat::RGB24);
 
     gfxWindowsSurface(cairo_surface_t *csurf);
 
     virtual already_AddRefed<gfxASurface> CreateSimilarSurface(gfxContentType aType,
-                                                               const gfxIntSize& aSize);
+                                                               const mozilla::gfx::IntSize& aSize);
 
     void InitWithDC(uint32_t flags);
 
@@ -63,14 +63,14 @@ public:
     nsresult BeginPage();
     nsresult EndPage();
 
-    const gfxIntSize GetSize() const;
+    const mozilla::gfx::IntSize GetSize() const;
 
     
     
     virtual gfxMemoryLocation GetMemoryLocation() const;
 
 private:
-    void MakeInvalid(gfxIntSize& size);
+    void MakeInvalid(mozilla::gfx::IntSize& size);
 
     bool mOwnsDC;
     bool mForPrinting;

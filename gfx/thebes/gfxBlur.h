@@ -73,8 +73,8 @@ public:
 
 
     gfxContext* Init(const gfxRect& aRect,
-                     const gfxIntSize& aSpreadRadius,
-                     const gfxIntSize& aBlurRadius,
+                     const mozilla::gfx::IntSize& aSpreadRadius,
+                     const mozilla::gfx::IntSize& aBlurRadius,
                      const gfxRect* aDirtyRect,
                      const gfxRect* aSkipRect);
 
@@ -106,7 +106,7 @@ public:
 
 
 
-    static gfxIntSize CalculateBlurRadius(const gfxPoint& aStandardDeviation);
+    static mozilla::gfx::IntSize CalculateBlurRadius(const gfxPoint& aStandardDeviation);
 
     
 

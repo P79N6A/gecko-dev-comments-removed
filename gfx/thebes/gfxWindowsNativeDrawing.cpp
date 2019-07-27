@@ -117,7 +117,7 @@ gfxWindowsNativeDrawing::BeginNativeDrawing()
                 
                 
                 mTempSurfaceSize =
-                    gfxIntSize((int32_t) ceil(mNativeRect.Width() + 1),
+                    IntSize((int32_t) ceil(mNativeRect.Width() + 1),
                                (int32_t) ceil(mNativeRect.Height() + 1));
             } else {
                 
@@ -132,7 +132,7 @@ gfxWindowsNativeDrawing::BeginNativeDrawing()
 
                 
                 mTempSurfaceSize =
-                    gfxIntSize((int32_t) ceil(mNativeRect.Width() * mScale.width + 1),
+                    IntSize((int32_t) ceil(mNativeRect.Width() * mScale.width + 1),
                                (int32_t) ceil(mNativeRect.Height() * mScale.height + 1));
             }
         }
