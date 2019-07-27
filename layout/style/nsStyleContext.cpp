@@ -448,7 +448,6 @@ nsStyleContext::GetUniqueStyleData(const nsStyleStructID& aSID)
   UNIQUE_CASE(Display)
   UNIQUE_CASE(Text)
   UNIQUE_CASE(TextReset)
-  UNIQUE_CASE(Visibility)
 
 #undef UNIQUE_CASE
 
@@ -592,23 +591,6 @@ nsStyleContext::ApplyStyleFixups(bool aSkipParentDisplayBasedStyleFixup)
 
   if ((mParent && mParent->HasPseudoElementData()) || mPseudoTag) {
     mBits |= NS_STYLE_HAS_PSEUDO_ELEMENT_DATA;
-  }
-
-  
-  
-  if (mPseudoTag == nsCSSAnonBoxes::viewport) {
-    nsPresContext* presContext = PresContext();
-    mozilla::dom::Element* docElement = presContext->Document()->GetRootElement();
-    if (docElement) {
-      nsRefPtr<nsStyleContext> rootStyle =
-        presContext->StyleSet()->ResolveStyleFor(docElement, nullptr);
-      auto dir = rootStyle->StyleVisibility()->mDirection;
-      if (dir != StyleVisibility()->mDirection) {
-        nsStyleVisibility* uniqueVisibility =
-          (nsStyleVisibility*)GetUniqueStyleData(eStyleStruct_Visibility);
-        uniqueVisibility->mDirection = dir;
-      }
-    }
   }
 
   
