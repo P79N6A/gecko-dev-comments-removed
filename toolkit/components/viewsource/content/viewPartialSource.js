@@ -15,6 +15,15 @@ var gTargetNode = null;
 var gEntityConverter = null;
 var gWrapLongLines = false;
 const gViewSourceCSS = 'resource://gre-resources/viewsource.css';
+const NS_XHTML = 'http://www.w3.org/1999/xhtml';
+
+
+
+
+
+
+const MARK_SELECTION_START = '\uFDD0';
+const MARK_SELECTION_END = '\uFDEF';
 
 function onLoadViewPartialSource()
 {
@@ -27,11 +36,267 @@ function onLoadViewPartialSource()
                         Services.prefs.getBoolPref("view_source.syntax_highlight"));
 
   if (window.arguments[3] == 'selection')
-    viewSourceChrome.loadViewSourceFromSelection(window.arguments[2]);
+    viewPartialSourceForSelection(window.arguments[2]);
   else
     viewPartialSourceForFragment(window.arguments[2], window.arguments[3]);
 
   window.content.focus();
+}
+
+
+
+
+function viewPartialSourceForSelection(selection)
+{
+  var range = selection.getRangeAt(0);
+  var ancestorContainer = range.commonAncestorContainer;
+  var doc = ancestorContainer.ownerDocument;
+
+  var startContainer = range.startContainer;
+  var endContainer = range.endContainer;
+  var startOffset = range.startOffset;
+  var endOffset = range.endOffset;
+
+  
+  if (ancestorContainer.nodeType == Node.TEXT_NODE ||
+      ancestorContainer.nodeType == Node.CDATA_SECTION_NODE)
+    ancestorContainer = ancestorContainer.parentNode;
+
+  
+  
+  try {
+    if (ancestorContainer == doc.body)
+      ancestorContainer = doc.documentElement;
+  } catch (e) { }
+
+  
+  
+  var startPath = getPath(ancestorContainer, startContainer);
+  var endPath = getPath(ancestorContainer, endContainer);
+
+  
+  
+  
+  
+  
+  
+  var isHTML = (doc.createElement("div").tagName == "DIV");
+  var dataDoc = isHTML ?
+    ancestorContainer.ownerDocument.implementation.createHTMLDocument("") :
+    ancestorContainer.ownerDocument.implementation.createDocument("", "", null);
+  ancestorContainer = dataDoc.importNode(ancestorContainer, true);
+  startContainer = ancestorContainer;
+  endContainer = ancestorContainer;
+
+  
+  
+  
+  var canDrawSelection = ancestorContainer.hasChildNodes();
+  if (canDrawSelection) {
+    var i;
+    for (i = startPath ? startPath.length-1 : -1; i >= 0; i--) {
+      startContainer = startContainer.childNodes.item(startPath[i]);
+    }
+    for (i = endPath ? endPath.length-1 : -1; i >= 0; i--) {
+      endContainer = endContainer.childNodes.item(endPath[i]);
+    }
+
+    
+    
+    
+    
+    var tmpNode;
+    if (endContainer.nodeType == Node.TEXT_NODE ||
+        endContainer.nodeType == Node.CDATA_SECTION_NODE) {
+      
+      
+      
+      
+      
+      if ((endOffset > 0 && endOffset < endContainer.data.length) ||
+          !endContainer.parentNode || !endContainer.parentNode.parentNode)
+        endContainer.insertData(endOffset, MARK_SELECTION_END);
+      else {
+        tmpNode = dataDoc.createTextNode(MARK_SELECTION_END);
+        endContainer = endContainer.parentNode;
+        if (endOffset == 0)
+          endContainer.parentNode.insertBefore(tmpNode, endContainer);
+        else
+          endContainer.parentNode.insertBefore(tmpNode, endContainer.nextSibling);
+      }
+    }
+    else {
+      tmpNode = dataDoc.createTextNode(MARK_SELECTION_END);
+      endContainer.insertBefore(tmpNode, endContainer.childNodes.item(endOffset));
+    }
+
+    if (startContainer.nodeType == Node.TEXT_NODE ||
+        startContainer.nodeType == Node.CDATA_SECTION_NODE) {
+      
+      
+      
+      
+      
+      if ((startOffset > 0 && startOffset < startContainer.data.length) ||
+          !startContainer.parentNode || !startContainer.parentNode.parentNode ||
+          startContainer != startContainer.parentNode.lastChild)
+        startContainer.insertData(startOffset, MARK_SELECTION_START);
+      else {
+        tmpNode = dataDoc.createTextNode(MARK_SELECTION_START);
+        startContainer = startContainer.parentNode;
+        if (startOffset == 0)
+          startContainer.parentNode.insertBefore(tmpNode, startContainer);
+        else
+          startContainer.parentNode.insertBefore(tmpNode, startContainer.nextSibling);
+      }
+    }
+    else {
+      tmpNode = dataDoc.createTextNode(MARK_SELECTION_START);
+      startContainer.insertBefore(tmpNode, startContainer.childNodes.item(startOffset));
+    }
+  }
+
+  
+  tmpNode = dataDoc.createElementNS(NS_XHTML, 'div');
+  tmpNode.appendChild(ancestorContainer);
+
+  
+  
+  if (canDrawSelection) {
+    window.document.getElementById("content").addEventListener("load", drawSelection, true);
+  }
+
+  
+  var loadFlags = Components.interfaces.nsIWebNavigation.LOAD_FLAGS_NONE;
+  var referrerPolicy = Components.interfaces.nsIHttpChannel.REFERRER_POLICY_DEFAULT;
+  viewSourceChrome.webNav.loadURIWithOptions((isHTML ?
+                                              "view-source:data:text/html;charset=utf-8," :
+                                              "view-source:data:application/xml;charset=utf-8,")
+                                             + encodeURIComponent(tmpNode.innerHTML),
+                                             loadFlags,
+                                             null, referrerPolicy,  
+                                             null, null,  
+                                             Services.io.newURI(doc.baseURI, null, null));
+}
+
+
+
+
+function getPath(ancestor, node)
+{
+  var n = node;
+  var p = n.parentNode;
+  if (n == ancestor || !p)
+    return null;
+  var path = new Array();
+  if (!path)
+    return null;
+  do {
+    for (var i = 0; i < p.childNodes.length; i++) {
+      if (p.childNodes.item(i) == n) {
+        path.push(i);
+        break;
+      }
+    }
+    n = p;
+    p = n.parentNode;
+  } while (n != ancestor && p);
+  return path;
+}
+
+
+
+
+
+function drawSelection()
+{
+  gBrowser.contentDocument.title =
+    gViewSourceBundle.getString("viewSelectionSourceTitle");
+
+  
+  
+  var findService = null;
+  try {
+    
+    findService = Components.classes["@mozilla.org/find/find_service;1"]
+                            .getService(Components.interfaces.nsIFindService);
+  } catch(e) { }
+  if (!findService)
+    return;
+
+  
+  var matchCase     = findService.matchCase;
+  var entireWord    = findService.entireWord;
+  var wrapFind      = findService.wrapFind;
+  var findBackwards = findService.findBackwards;
+  var searchString  = findService.searchString;
+  var replaceString = findService.replaceString;
+
+  
+  var findInst = gBrowser.webBrowserFind;
+  findInst.matchCase = true;
+  findInst.entireWord = false;
+  findInst.wrapFind = true;
+  findInst.findBackwards = false;
+
+  
+  findInst.searchString = MARK_SELECTION_START;
+  var startLength = MARK_SELECTION_START.length;
+  findInst.findNext();
+
+  var selection = content.getSelection();
+  if (!selection.rangeCount)
+    return;
+
+  var range = selection.getRangeAt(0);
+
+  var startContainer = range.startContainer;
+  var startOffset = range.startOffset;
+
+  
+  findInst.searchString = MARK_SELECTION_END;
+  var endLength = MARK_SELECTION_END.length;
+  findInst.findNext();
+
+  var endContainer = selection.anchorNode;
+  var endOffset = selection.anchorOffset;
+
+  
+  selection.removeAllRanges();
+
+  
+  endContainer.deleteData(endOffset, endLength);
+  startContainer.deleteData(startOffset, startLength);
+  if (startContainer == endContainer)
+    endOffset -= startLength; 
+  range.setEnd(endContainer, endOffset);
+
+  
+  selection.addRange(range);
+  
+  
+  
+  try {
+    getSelectionController().scrollSelectionIntoView(
+                               Ci.nsISelectionController.SELECTION_NORMAL,
+                               Ci.nsISelectionController.SELECTION_ANCHOR_REGION,
+                               true);
+  }
+  catch(e) { }
+
+  
+  findService.matchCase     = matchCase;
+  findService.entireWord    = entireWord;
+  findService.wrapFind      = wrapFind;
+  findService.findBackwards = findBackwards;
+  findService.searchString  = searchString;
+  findService.replaceString = replaceString;
+
+  findInst.matchCase     = matchCase;
+  findInst.entireWord    = entireWord;
+  findInst.wrapFind      = wrapFind;
+  findInst.findBackwards = findBackwards;
+  findInst.searchString  = searchString;
 }
 
 

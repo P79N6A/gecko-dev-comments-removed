@@ -1005,22 +1005,11 @@ nsContextMenu.prototype = {
     else
       throw "not reached";
 
-    let inTab = Services.prefs.getBoolPref("view_source.tab");
-    if (inTab) {
-      let tab = gBrowser.loadOneTab("about:blank", {
-        relatedToCurrent: true,
-        inBackground: false
-      });
-      let viewSourceBrowser = gBrowser.getBrowserForTab(tab);
-      top.gViewSourceUtils.viewSourceFromSelectionInBrowser(reference,
-                                                            viewSourceBrowser);
-    } else {
-      
-      var docUrl = null;
-      window.openDialog("chrome://global/content/viewPartialSource.xul",
-                        "_blank", "scrollbars,resizable,chrome,dialog=no",
-                        docUrl, docCharset, reference, aContext);
-    }
+    
+    var docUrl = null;
+    window.openDialog("chrome://global/content/viewPartialSource.xul",
+                      "_blank", "scrollbars,resizable,chrome,dialog=no",
+                      docUrl, docCharset, reference, aContext);
   },
 
   
