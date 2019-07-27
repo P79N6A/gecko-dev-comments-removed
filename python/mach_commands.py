@@ -8,6 +8,7 @@ import argparse
 import logging
 import mozpack.path as mozpath
 import os
+import which
 
 from mozbuild.base import (
     MachCommandBase,
@@ -18,6 +19,17 @@ from mach.decorators import (
     CommandProvider,
     Command,
 )
+
+
+ESLINT_NOT_FOUND_MESSAGE = '''
+Could not find eslint!  We looked at the --binary option, at the ESLINT
+environment variable, and then at your path.  Install eslint and needed plugins
+with
+
+npm install -g eslint eslint-plugin-react
+
+and try again.
+'''.strip()
 
 
 @CommandProvider
@@ -32,8 +44,8 @@ class MachCommands(MachCommandBase):
         self._activate_virtualenv()
 
         return self.run_process([self.virtualenv_manager.python_path] + args,
-            pass_thru=True, 
-            ensure_exit_code=False, 
+            pass_thru=True,  
+            ensure_exit_code=False,  
             
             append_env={b'PYTHONDONTWRITEBYTECODE': str('1')})
 
@@ -89,14 +101,15 @@ class MachCommands(MachCommandBase):
                         return 1
 
         for f in files:
-            file_displayed_test = [] 
+            file_displayed_test = []  
+
             def _line_handler(line):
                 if not file_displayed_test and line.startswith('TEST-'):
                     file_displayed_test.append(True)
 
             inner_return_code = self.run_process(
                 [self.virtualenv_manager.python_path, f],
-                ensure_exit_code=False, 
+                ensure_exit_code=False,  
                 log_name='python-test',
                 
                 append_env={b'PYTHONDONTWRITEBYTECODE': str('1')},
@@ -118,3 +131,54 @@ class MachCommands(MachCommandBase):
                 return 1
 
         return 0 if return_code == 0 else 1
+
+    @Command('eslint', category='devenv')
+    @CommandArgument('path', nargs='?', default='.',
+        help='Path to files to lint, like "browser/components/loop" '
+            'or "mobile/android". '
+            'Defaults to the current directory if not given.')
+    @CommandArgument('-e', '--ext', default='[.js,.jsm,.jsx]',
+        help='Filename extensions to lint, default: "[.js,.jsm,.jsx]".')
+    @CommandArgument('-b', '--binary', default=None,
+        help='Path to eslint binary.')
+    @CommandArgument('args', nargs=argparse.REMAINDER)  
+    def eslint(self, path, ext=None, binary=None, args=[]):
+        '''Run eslint.'''
+
+        if not binary:
+            binary = os.environ.get('ESLINT', None)
+            if not binary:
+                try:
+                    binary = which.which('eslint')
+                except which.WhichError:
+                    pass
+
+        if not binary:
+            print(ESLINT_NOT_FOUND_MESSAGE)
+            return 1
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+        self.log(logging.INFO, 'eslint', {'binary': binary, 'path': path},
+            'Running {binary} in {path}')
+
+        cmd_args = [binary,
+            '--ext', ext,  
+        ] + args
+        
+        cmd_args += ['.']
+
+        return self.run_process(cmd_args,
+            cwd=path,
+            pass_thru=True,  
+            ensure_exit_code=False,  
+        )
