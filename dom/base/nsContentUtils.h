@@ -1883,6 +1883,14 @@ public:
   
 
 
+  static bool IsUserTimingLoggingEnabled()
+  {
+    return sIsUserTimingLoggingEnabled;
+  }
+
+  
+
+
   static bool IsResourceTimingEnabled()
   {
     return sIsResourceTimingEnabled;
@@ -2360,6 +2368,7 @@ private:
   static uint32_t sHandlingInputTimeout;
   static bool sIsPerformanceTimingEnabled;
   static bool sIsResourceTimingEnabled;
+  static bool sIsUserTimingLoggingEnabled;
   static bool sIsExperimentalAutocompleteEnabled;
   static bool sEncodeDecodeURLHash;
 
