@@ -662,8 +662,7 @@ LayerTransactionParent::RecvGetAnimationTransform(PLayerParent* aParent,
 
   
   
-  transform = nsLayoutUtils::ChangeMatrixBasis(-scaledOrigin - transformOrigin,
-                                               transform);
+  transform.ChangeBasis(-scaledOrigin - transformOrigin);
 
   
   

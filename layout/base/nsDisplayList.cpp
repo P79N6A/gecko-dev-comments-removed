@@ -4571,7 +4571,8 @@ nsDisplayTransform::GetResultingTransformMatrixInternal(const FrameTransformProp
     
 
 
-    result = result * nsLayoutUtils::ChangeMatrixBasis(aProperties.mToPerspectiveOrigin - aProperties.mToTransformOrigin, perspective);
+    perspective.ChangeBasis(aProperties.mToPerspectiveOrigin - aProperties.mToTransformOrigin);
+    result = result * perspective;
   }
 
   
@@ -4601,7 +4602,8 @@ nsDisplayTransform::GetResultingTransformMatrixInternal(const FrameTransformProp
                                           aAppUnitsPerPixel, nullptr,
                                           aOutAncestor, false);
 
-    result = nsLayoutUtils::ChangeMatrixBasis(offsetBetweenOrigins, result) * parent;
+    result.ChangeBasis(offsetBetweenOrigins);
+    result = result * parent;
     if (aOffsetByOrigin) {
       result.Translate(roundedOrigin);
     }
@@ -4616,7 +4618,7 @@ nsDisplayTransform::GetResultingTransformMatrixInternal(const FrameTransformProp
     result.Translate(-aProperties.mToTransformOrigin);
     result.TranslatePost(offsetBetweenOrigins);
   } else {
-    result = nsLayoutUtils::ChangeMatrixBasis(offsetBetweenOrigins, result);
+    result.ChangeBasis(offsetBetweenOrigins);
   }
   return result;
 }
@@ -4718,7 +4720,7 @@ nsDisplayTransform::GetTransform()
                   0.0f);
     if (mTransformGetter) {
       mTransform = mTransformGetter(mFrame, scale);
-      mTransform = nsLayoutUtils::ChangeMatrixBasis(newOrigin, mTransform);
+      mTransform.ChangeBasis(newOrigin);
     } else {
       
 

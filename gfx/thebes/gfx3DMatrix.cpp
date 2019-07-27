@@ -226,6 +226,16 @@ gfx3DMatrix::ScalePost(float aX, float aY, float aZ)
 }
 
 void
+gfx3DMatrix::ChangeBasis(const gfxPoint3D& aOrigin)
+{
+  
+  Translate(-aOrigin);
+
+  
+  TranslatePost(aOrigin);
+}
+
+void
 gfx3DMatrix::SkewXY(double aSkew)
 {
     (*this)[1] += (*this)[0] * aSkew;

@@ -672,20 +672,6 @@ public:
 
 
 
-  static gfx3DMatrix ChangeMatrixBasis(const gfxPoint3D &aOrigin, const gfx3DMatrix &aMatrix);
-
-  
-
-
-
-
-
-
-
-
-
-
-
   static nsresult GetRemoteContentIds(nsIFrame* aFrame,
                                      const nsRect& aTarget,
                                      nsTArray<ViewID> &aOutIDs,

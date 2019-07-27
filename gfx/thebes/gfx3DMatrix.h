@@ -230,6 +230,18 @@ public:
   
 
 
+
+
+
+
+
+
+
+  void ChangeBasis(const gfxPoint3D& aOrigin);
+
+  
+
+
   gfxPoint Transform(const gfxPoint& point) const;
 
   
