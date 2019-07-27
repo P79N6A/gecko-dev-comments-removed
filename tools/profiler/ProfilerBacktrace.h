@@ -8,7 +8,8 @@
 #define __PROFILER_BACKTRACE_H
 
 class SyncProfile;
-class JSStreamWriter;
+class SpliceableJSONWriter;
+class UniqueStacks;
 
 class ProfilerBacktrace
 {
@@ -16,7 +17,13 @@ public:
   explicit ProfilerBacktrace(SyncProfile* aProfile);
   ~ProfilerBacktrace();
 
-  void StreamJSObject(JSStreamWriter& b);
+  
+  
+  
+  
+  
+  
+  void StreamJSON(SpliceableJSONWriter& aWriter, UniqueStacks& aUniqueStacks);
 
 private:
   ProfilerBacktrace(const ProfilerBacktrace&);

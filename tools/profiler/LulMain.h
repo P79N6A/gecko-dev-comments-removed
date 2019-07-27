@@ -8,6 +8,7 @@
 #define LulMain_h
 
 #include "LulPlatformMacros.h"
+#include "mozilla/Atomics.h"
 
 
 

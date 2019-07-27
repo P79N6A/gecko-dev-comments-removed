@@ -238,7 +238,7 @@ public:
     SingleLineStyle
   };
 
-private:
+protected:
   const UniquePtr<JSONWriteFunc> mWriter;
   Vector<bool, 8> mNeedComma;     
   Vector<bool, 8> mNeedNewlines;  

@@ -205,18 +205,28 @@ ProfilerMarker::GetTime() const {
   return mTime;
 }
 
-void ProfilerMarker::StreamJSObject(JSStreamWriter& b) const {
-  b.BeginObject();
-    b.NameValue("name", GetMarkerName());
+void ProfilerMarker::StreamJSON(SpliceableJSONWriter& aWriter,
+                                UniqueStacks& aUniqueStacks) const
+{
+  
+  
+
+  aWriter.StartArrayElement();
+  {
+    aUniqueStacks.mUniqueStrings.WriteElement(aWriter, GetMarkerName());
+    aWriter.DoubleElement(mTime);
     
     
     
     if (mPayload) {
-      b.Name("data");
-      mPayload->StreamPayload(b);
+      aWriter.StartObjectElement();
+      {
+          mPayload->StreamPayload(aWriter, aUniqueStacks);
+      }
+      aWriter.EndObject();
     }
-    b.NameValue("time", mTime);
-  b.EndObject();
+  }
+  aWriter.EndArray();
 }
 
 

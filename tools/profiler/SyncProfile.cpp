@@ -51,3 +51,10 @@ SyncProfile::EndUnwind()
   }
 }
 
+
+
+void
+SyncProfile::StreamJSON(SpliceableJSONWriter& aWriter, UniqueStacks& aUniqueStacks)
+{
+  ThreadProfile::StreamSamplesAndMarkers(aWriter,  0, aUniqueStacks);
+}
