@@ -1582,7 +1582,7 @@ already_AddRefed<LayerManager> nsDisplayList::PaintRoot(nsDisplayListBuilder* aB
   }
 
   if (addMetrics || ensureMetricsForRootId) {
-    bool isRoot = presContext->IsRootContentDocument();
+    bool isRootContent = presContext->IsRootContentDocument();
 
     nsRect viewport(aBuilder->ToReferenceFrame(frame), frame->GetSize());
 
@@ -1591,7 +1591,7 @@ already_AddRefed<LayerManager> nsDisplayList::PaintRoot(nsDisplayListBuilder* aB
                          rootScrollFrame, content,
                          aBuilder->FindReferenceFrameFor(frame),
                          root, FrameMetrics::NULL_SCROLL_ID, viewport, Nothing(),
-                         isRoot, containerParameters));
+                         isRootContent, containerParameters));
   } else {
     
     root->SetFrameMetrics(nsTArray<FrameMetrics>());

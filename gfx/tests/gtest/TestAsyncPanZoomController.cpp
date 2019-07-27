@@ -780,7 +780,7 @@ protected:
     fm.SetScrollOffset(CSSPoint(300, 300));
     fm.SetZoom(CSSToParentLayerScale2D(2.0, 2.0));
     
-    fm.SetIsRoot(true);
+    fm.SetIsRootContent(true);
     
     return fm;
   }
@@ -921,7 +921,7 @@ TEST_F(APZCBasicTester, Overzoom) {
   fm.SetScrollableRect(CSSRect(0, 0, 125, 150));
   fm.SetScrollOffset(CSSPoint(10, 0));
   fm.SetZoom(CSSToParentLayerScale2D(1.0, 1.0));
-  fm.SetIsRoot(true);
+  fm.SetIsRootContent(true);
   apzc->SetFrameMetrics(fm);
 
   MakeApzcZoomable();

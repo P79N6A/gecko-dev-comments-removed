@@ -79,7 +79,7 @@ public:
 
 
 
-  virtual void SendAsyncScrollDOMEvent(bool aIsRoot,
+  virtual void SendAsyncScrollDOMEvent(bool aIsRootContent,
                                        const CSSRect &aContentRect,
                                        const CSSSize &aScrollableSize) = 0;
 
