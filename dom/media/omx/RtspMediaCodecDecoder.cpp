@@ -32,15 +32,15 @@ RtspMediaCodecDecoder::CreateStateMachineFromReader(MediaOmxCommonReader* aReade
 }
 
 void
-RtspMediaCodecDecoder::ApplyStateToStateMachine(PlayState aState)
+RtspMediaCodecDecoder::ChangeState(PlayState aState)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  MediaDecoder::ApplyStateToStateMachine(aState);
+  MediaDecoder::ChangeState(aState);
 
   
   
-  if (aState == PLAY_STATE_ENDED) {
+  if (mPlayState == PLAY_STATE_ENDED) {
     nsRefPtr<RtspMediaResource> resource = mResource->GetRtspPointer();
     if (resource) {
       nsIStreamingProtocolController* controller =

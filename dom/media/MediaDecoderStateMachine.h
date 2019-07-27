@@ -581,6 +581,9 @@ protected:
   void PlayStateChanged();
 
   
+  void LogicallySeekingChanged();
+
+  
   
   void StopPlayback();
 
@@ -891,6 +894,7 @@ public:
   
   Mirror<MediaDecoder::PlayState> mPlayState;
   Mirror<MediaDecoder::PlayState> mNextPlayState;
+  Mirror<bool> mLogicallySeeking;
 
   
   

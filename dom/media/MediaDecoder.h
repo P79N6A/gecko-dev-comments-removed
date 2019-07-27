@@ -295,7 +295,6 @@ public:
     PLAY_STATE_LOADING,
     PLAY_STATE_PAUSED,
     PLAY_STATE_PLAYING,
-    PLAY_STATE_SEEKING,
     PLAY_STATE_ENDED,
     PLAY_STATE_SHUTDOWN
   };
@@ -513,6 +512,9 @@ public:
 
 
   void ConnectDecodedStreamToOutputStream(OutputStreamData* aStream);
+
+  void UpdateDecodedStream();
+
   
 
 
@@ -755,9 +757,6 @@ public:
                      nsAutoPtr<MediaInfo> aInfo,
                      nsAutoPtr<MetadataTags> aTags) override;
 
-  int64_t GetSeekTime() { return mRequestedSeekTarget.mTime; }
-  void ResetSeekTime() { mRequestedSeekTarget.Reset(); }
-
   
 
 
@@ -803,7 +802,11 @@ public:
   
   void PlaybackEnded();
 
-  void OnSeekRejected() { mSeekRequest.Complete(); }
+  void OnSeekRejected()
+  {
+    mSeekRequest.Complete();
+    mLogicallySeeking = false;
+  }
   void OnSeekResolved(SeekResolveValue aVal);
 
   
@@ -1154,19 +1157,16 @@ protected:
   
   
   Canonical<PlayState> mNextState;
+
+  
+  Canonical<bool> mLogicallySeeking;
 public:
   AbstractCanonical<PlayState>* CanonicalPlayState() { return &mPlayState; }
   AbstractCanonical<PlayState>* CanonicalNextPlayState() { return &mNextState; }
+  AbstractCanonical<bool>* CanonicalLogicallySeeking() { return &mLogicallySeeking; }
 protected:
 
-  
-  
-  
-  
-  
-  
-  
-  SeekTarget mRequestedSeekTarget;
+  virtual void CallSeek(const SeekTarget& aTarget);
 
   MediaPromiseConsumerHolder<SeekPromise> mSeekRequest;
 
