@@ -4798,7 +4798,9 @@ EventStateManager::SetContentState(nsIContent* aContent, EventStates aState)
     if (aState == NS_EVENT_STATE_ACTIVE) {
       
       
-      if (aContent && aContent->IsEditable()) {
+      
+      if (aContent && aContent->IsEditable() &&
+          !aContent->IsInNativeAnonymousSubtree()) {
         aContent = nullptr;
       }
       if (aContent != mActiveContent) {
