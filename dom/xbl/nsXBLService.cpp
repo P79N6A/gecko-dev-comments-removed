@@ -644,6 +644,53 @@ nsXBLService::GetBinding(nsIContent* aBoundElement, nsIURI* aURI,
                     aResult, uris);
 }
 
+static bool
+MayBindToContent(nsXBLPrototypeBinding* aProtoBinding, nsIContent* aBoundElement,
+                 nsIURI* aURI)
+{
+  
+  if (aProtoBinding->BindToUntrustedContent()) {
+    return true;
+  }
+
+  
+  
+  if (aBoundElement->IsXUL() || aBoundElement->OwnerDoc()->IsXUL()) {
+    return true;
+  }
+
+  
+  
+  
+  
+  if (aBoundElement->IsInAnonymousSubtree()) {
+    return true;
+  }
+
+  
+  nsCOMPtr<nsIDocument> bindingDoc = aProtoBinding->XBLDocumentInfo()->GetDocument();
+  NS_ENSURE_TRUE(bindingDoc, false);
+  if (aBoundElement->NodePrincipal()->Subsumes(bindingDoc->NodePrincipal())) {
+    return true;
+  }
+
+  
+  
+  
+  
+  if (nsContentUtils::AllowXULXBLForPrincipal(aBoundElement->NodePrincipal())) {
+    bool isDataURI = false;
+    nsresult rv = aURI->SchemeIs("data", &isDataURI);
+    NS_ENSURE_SUCCESS(rv, false);
+    if (isDataURI) {
+      return true;
+    }
+  }
+
+  
+  return false;
+}
+
 nsresult
 nsXBLService::GetBinding(nsIContent* aBoundElement, nsIURI* aURI,
                          bool aPeekOnly, nsIPrincipal* aOriginPrincipal,
@@ -689,6 +736,21 @@ nsXBLService::GetBinding(nsIContent* aBoundElement, nsIURI* aURI,
     NS_WARNING(message.get());
 #endif
     return NS_ERROR_FAILURE;
+  }
+
+  
+  
+  if (!MayBindToContent(protoBinding, aBoundElement, aURI)) {
+#ifdef DEBUG
+    nsAutoCString uriSpec;
+    aURI->GetSpec(uriSpec);
+    nsAutoCString message("Permission denied to apply binding ");
+    message += uriSpec;
+    message += " to unprivileged content. Set bindToUntrustedContent=true on "
+               "the binding to override this restriction.";
+    NS_WARNING(message.get());
+#endif
+   return NS_ERROR_FAILURE;
   }
 
   NS_ENSURE_TRUE(aDontExtendURIs.AppendElement(protoBinding->BindingURI()),
