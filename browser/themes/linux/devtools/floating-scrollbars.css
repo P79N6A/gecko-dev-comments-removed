@@ -9,10 +9,8 @@ scrollbar {
   padding: 2px;
 }
 
-
-
 scrollbar[orient="vertical"] {
-  margin-left: -10px;
+  -moz-margin-start: -10px;
   min-width: 10px;
   max-width: 10px;
 }
