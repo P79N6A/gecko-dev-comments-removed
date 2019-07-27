@@ -44,7 +44,11 @@ public class ThemedRelativeLayout extends android.widget.RelativeLayout
 
     private void initialize(final Context context, final AttributeSet attrs) {
         
-        mTheme = ((GeckoApplication) context.getApplicationContext()).getLightweightTheme();
+        
+        final Context applicationContext = context.getApplicationContext();
+        if (applicationContext instanceof GeckoApplication) {
+            mTheme = ((GeckoApplication) applicationContext).getLightweightTheme();
+        }
 
         final TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.LightweightTheme);
         mAutoUpdateTheme = mTheme != null && a.getBoolean(R.styleable.LightweightTheme_autoUpdateTheme, true);
