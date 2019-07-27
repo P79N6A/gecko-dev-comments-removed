@@ -177,6 +177,7 @@ public:
   NS_IMETHOD AddRedirect(nsIPrincipal *aRedirect);
   NS_IMETHOD ForcePending(bool aForcePending);
   NS_IMETHOD GetLastModifiedTime(PRTime* lastModifiedTime);
+  NS_IMETHOD ForceNoIntercept();
 
   inline void CleanRedirectCacheChainIfNecessary()
   {
@@ -276,6 +277,10 @@ protected:
   
   nsIPrincipal *GetPrincipal(bool requireAppId);
 
+  
+  
+  bool ShouldIntercept();
+
   friend class PrivateBrowsingChannel<HttpBaseChannel>;
 
   nsCOMPtr<nsIURI>                  mURI;
@@ -347,6 +352,9 @@ protected:
   
   
   uint32_t                          mAllRedirectsPassTimingAllowCheck : 1;
+
+  
+  uint32_t                          mForceNoIntercept           : 1;
 
   
   uint32_t                          mSuspendCount;

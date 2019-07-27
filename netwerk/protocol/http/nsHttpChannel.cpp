@@ -16,6 +16,7 @@
 #include "nsICacheStorage.h"
 #include "nsICacheEntry.h"
 #include "nsICryptoHash.h"
+#include "nsINetworkInterceptController.h"
 #include "nsIStringBundle.h"
 #include "nsIStreamListenerTee.h"
 #include "nsISeekableStream.h"
@@ -150,6 +151,9 @@ WillRedirect(const nsHttpResponseHead * response)
 
 } 
 
+nsresult
+StoreAuthorizationMetaData(nsICacheEntry *entry, nsHttpRequestHead *requestHead);
+
 class AutoRedirectVetoNotifier
 {
 public:
@@ -198,6 +202,43 @@ AutoRedirectVetoNotifier::ReportRedirectResult(bool succeeded)
 
 
 
+class InterceptedChannel : public nsIInterceptedChannel
+{
+    
+    nsRefPtr<nsHttpChannel> mChannel;
+
+    
+    nsCOMPtr<nsINetworkInterceptController> mController;
+
+    
+    nsCOMPtr<nsICacheEntry>           mSynthesizedCacheEntry;
+
+    
+    Maybe<nsHttpResponseHead>         mSynthesizedResponseHead;
+
+    void EnsureSynthesizedResponse();
+
+    virtual ~InterceptedChannel() {}
+public:
+    InterceptedChannel(nsHttpChannel* aChannel,
+                       nsINetworkInterceptController* aController,
+                       nsICacheEntry* aEntry)
+    : mChannel(aChannel)
+    , mController(aController)
+    , mSynthesizedCacheEntry(aEntry)
+    {
+    }
+
+    
+    
+    void NotifyController();
+
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSIINTERCEPTEDCHANNEL
+};
+
+
+
 
 
 nsHttpChannel::nsHttpChannel()
@@ -206,6 +247,7 @@ nsHttpChannel::nsHttpChannel()
     , mPostID(0)
     , mRequestTime(0)
     , mOfflineCacheLastModifiedTime(0)
+    , mInterceptCache(DO_NOT_INTERCEPT)
     , mCachedContentIsValid(false)
     , mCachedContentIsPartial(false)
     , mCacheOnlyMetadata(false)
@@ -329,7 +371,7 @@ nsHttpChannel::Connect()
     rv = OpenCacheEntry(isHttps);
 
     
-    if (mCacheEntriesToWaitFor) {
+    if (AwaitingCacheCallbacks()) {
         MOZ_ASSERT(NS_SUCCEEDED(rv), "Unexpected state");
         return NS_OK;
     }
@@ -1822,6 +1864,13 @@ nsHttpChannel::StartRedirectChannelToURI(nsIURI *upgradedURI, uint32_t flags)
     
     mRedirectChannel = newChannel;
 
+    
+    
+    nsCOMPtr<nsIHttpChannelInternal> httpRedirect = do_QueryInterface(mRedirectChannel);
+    if (httpRedirect) {
+        httpRedirect->ForceNoIntercept();
+    }
+
     PushRedirectAsyncFunc(
         &nsHttpChannel::ContinueAsyncRedirectChannelToURI);
     rv = gHttpHandler->AsyncOnChannelRedirect(this, newChannel, flags);
@@ -2659,6 +2708,7 @@ nsHttpChannel::OpenCacheEntry(bool isHttps)
     NS_PRECONDITION(!mCacheEntry, "cache entry already open");
 
     nsAutoCString cacheKey;
+    nsAutoCString extension;
 
     if (mRequestHead.IsPost()) {
         
@@ -2740,7 +2790,7 @@ nsHttpChannel::OpenCacheEntry(bool isHttps)
             mApplicationCache,
             getter_AddRefs(cacheStorage));
     }
-    else if (mLoadFlags & INHIBIT_PERSISTENT_CACHING) {
+    else if (PossiblyIntercepted() || mLoadFlags & INHIBIT_PERSISTENT_CACHING) {
         rv = cacheStorageService->MemoryCacheStorage(info, 
             getter_AddRefs(cacheStorage));
     }
@@ -2762,10 +2812,29 @@ nsHttpChannel::OpenCacheEntry(bool isHttps)
     if (mLoadFlags & LOAD_BYPASS_LOCAL_CACHE_IF_BUSY)
         cacheEntryOpenFlags |= nsICacheStorage::OPEN_BYPASS_IF_BUSY;
 
-    rv = cacheStorage->AsyncOpenURI(
-        openURI, mPostID ? nsPrintfCString("%d", mPostID) : EmptyCString(),
-        cacheEntryOpenFlags, this);
-    NS_ENSURE_SUCCESS(rv, rv);
+    if (mPostID) {
+        extension.Append(nsPrintfCString("%d", mPostID));
+    }
+    if (PossiblyIntercepted()) {
+        extension.Append('u');
+    }
+
+    
+    
+    if (mInterceptCache == MAYBE_INTERCEPT) {
+        nsCOMPtr<nsICacheEntry> entry;
+        rv = cacheStorage->OpenTruncate(openURI, extension, getter_AddRefs(entry));
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        nsCOMPtr<nsINetworkInterceptController> controller;
+        GetCallback(controller);
+
+        nsRefPtr<InterceptedChannel> intercepted = new InterceptedChannel(this, controller, entry);
+        intercepted->NotifyController();
+    } else {
+        rv = cacheStorage->AsyncOpenURI(openURI, extension, cacheEntryOpenFlags, this);
+        NS_ENSURE_SUCCESS(rv, rv);
+    }
 
     waitFlags.Keep(WAIT_FOR_CACHE_ENTRY);
 
@@ -3272,7 +3341,7 @@ nsHttpChannel::OnCacheEntryAvailableInternal(nsICacheEntry *entry,
       return rv;
 
     
-    if (mCacheEntriesToWaitFor)
+    if (AwaitingCacheCallbacks())
       return NS_OK;
 
     return ContinueConnect();
@@ -3972,23 +4041,27 @@ nsHttpChannel::InitOfflineCacheEntry()
 
 
 nsresult
-nsHttpChannel::AddCacheEntryHeaders(nsICacheEntry *entry)
+DoAddCacheEntryHeaders(nsHttpChannel *self,
+                       nsICacheEntry *entry,
+                       nsHttpRequestHead *requestHead,
+                       nsHttpResponseHead *responseHead,
+                       nsISupports *securityInfo)
 {
     nsresult rv;
 
-    LOG(("nsHttpChannel::AddCacheEntryHeaders [this=%p] begin", this));
+    LOG(("nsHttpChannel::AddCacheEntryHeaders [this=%p] begin", self));
     
-    if (mSecurityInfo)
-        entry->SetSecurityInfo(mSecurityInfo);
+    if (securityInfo)
+        entry->SetSecurityInfo(securityInfo);
 
     
     
     rv = entry->SetMetaDataElement("request-method",
-                                   mRequestHead.Method().get());
+                                   requestHead->Method().get());
     if (NS_FAILED(rv)) return rv;
 
     
-    rv = StoreAuthorizationMetaData(entry);
+    rv = StoreAuthorizationMetaData(entry, requestHead);
     if (NS_FAILED(rv)) return rv;
 
     
@@ -4004,7 +4077,7 @@ nsHttpChannel::AddCacheEntryHeaders(nsICacheEntry *entry)
     
     {
         nsAutoCString buf, metaKey;
-        mResponseHead->GetHeader(nsHttp::Vary, buf);
+        responseHead->GetHeader(nsHttp::Vary, buf);
         if (!buf.IsEmpty()) {
             NS_NAMED_LITERAL_CSTRING(prefix, "request-");
 
@@ -4012,16 +4085,16 @@ nsHttpChannel::AddCacheEntryHeaders(nsICacheEntry *entry)
             char *token = nsCRT::strtok(val, NS_HTTP_HEADER_SEPS, &val);
             while (token) {
                 LOG(("nsHttpChannel::AddCacheEntryHeaders [this=%p] " \
-                        "processing %s", this, token));
+                        "processing %s", self, token));
                 if (*token != '*') {
                     nsHttpAtom atom = nsHttp::ResolveAtom(token);
-                    const char *val = mRequestHead.PeekHeader(atom);
+                    const char *val = requestHead->PeekHeader(atom);
                     nsAutoCString hash;
                     if (val) {
                         
                         if (atom == nsHttp::Cookie) {
                             LOG(("nsHttpChannel::AddCacheEntryHeaders [this=%p] " \
-                                    "cookie-value %s", this, val));
+                                    "cookie-value %s", self, val));
                             rv = Hash(val, hash);
                             
                             
@@ -4038,7 +4111,7 @@ nsHttpChannel::AddCacheEntryHeaders(nsICacheEntry *entry)
                         entry->SetMetaDataElement(metaKey.get(), val);
                     } else {
                         LOG(("nsHttpChannel::AddCacheEntryHeaders [this=%p] " \
-                                "clearing metadata for %s", this, token));
+                                "clearing metadata for %s", self, token));
                         metaKey = prefix + nsDependentCString(token);
                         entry->SetMetaDataElement(metaKey.get(), nullptr);
                     }
@@ -4052,7 +4125,7 @@ nsHttpChannel::AddCacheEntryHeaders(nsICacheEntry *entry)
     
     
     nsAutoCString head;
-    mResponseHead->Flatten(head, true);
+    responseHead->Flatten(head, true);
     rv = entry->SetMetaDataElement("response-head", head.get());
     if (NS_FAILED(rv)) return rv;
 
@@ -4060,6 +4133,12 @@ nsHttpChannel::AddCacheEntryHeaders(nsICacheEntry *entry)
     rv = entry->MetaDataReady();
 
     return rv;
+}
+
+nsresult
+nsHttpChannel::AddCacheEntryHeaders(nsICacheEntry *entry)
+{
+    return DoAddCacheEntryHeaders(this, entry, &mRequestHead, mResponseHead, mSecurityInfo);
 }
 
 inline void
@@ -4075,10 +4154,10 @@ GetAuthType(const char *challenge, nsCString &authType)
 }
 
 nsresult
-nsHttpChannel::StoreAuthorizationMetaData(nsICacheEntry *entry)
+StoreAuthorizationMetaData(nsICacheEntry *entry, nsHttpRequestHead *requestHead)
 {
     
-    const char *val = mRequestHead.PeekHeader(nsHttp::Authorization);
+    const char *val = requestHead->PeekHeader(nsHttp::Authorization);
     if (!val)
         return NS_OK;
 
@@ -4651,6 +4730,10 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
         return rv;
     }
 
+    if (ShouldIntercept()) {
+        mInterceptCache = MAYBE_INTERCEPT;
+    }
+
     
     const char *cookieHeader = mRequestHead.PeekHeader(nsHttp::Cookie);
     if (cookieHeader) {
@@ -5127,7 +5210,6 @@ nsHttpChannel::GetRequestMethod(nsACString& aMethod)
 {
     return HttpBaseChannel::GetRequestMethod(aMethod);
 }
-
 
 
 
@@ -6418,6 +6500,116 @@ nsHttpChannel::SetNotificationCallbacks(nsIInterfaceRequestor *aCallbacks)
         UpdateAggregateCallbacks();
     }
     return rv;
+}
+
+void
+nsHttpChannel::MarkIntercepted()
+{
+    mInterceptCache = INTERCEPTED;
+}
+
+bool
+nsHttpChannel::AwaitingCacheCallbacks()
+{
+    return mCacheEntriesToWaitFor != 0;
+}
+
+NS_IMPL_ISUPPORTS(InterceptedChannel, nsIInterceptedChannel)
+
+void
+InterceptedChannel::NotifyController()
+{
+    nsCOMPtr<nsIOutputStream> out;
+    nsresult rv = mSynthesizedCacheEntry->OpenOutputStream(0, getter_AddRefs(out));
+    NS_ENSURE_SUCCESS_VOID(rv);
+
+    rv = mController->ChannelIntercepted(this, out);
+    NS_ENSURE_SUCCESS_VOID(rv);
+}
+
+void
+InterceptedChannel::EnsureSynthesizedResponse()
+{
+    if (mSynthesizedResponseHead.isNothing()) {
+        mSynthesizedResponseHead.emplace();
+    }
+}
+
+NS_IMETHODIMP
+InterceptedChannel::ResetInterception()
+{
+    if (!mChannel) {
+        return NS_ERROR_NOT_AVAILABLE;
+    }
+
+    mSynthesizedCacheEntry->AsyncDoom(nullptr);
+    mSynthesizedCacheEntry = nullptr;
+
+    nsCOMPtr<nsIURI> uri;
+    mChannel->GetURI(getter_AddRefs(uri));
+
+    nsresult rv = mChannel->StartRedirectChannelToURI(uri, nsIChannelEventSink::REDIRECT_INTERNAL);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    mChannel = nullptr;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+InterceptedChannel::SynthesizeHeader(const nsACString& aName, const nsACString& aValue)
+{
+    if (!mSynthesizedCacheEntry) {
+        return NS_ERROR_NOT_AVAILABLE;
+    }
+
+    EnsureSynthesizedResponse();
+    nsAutoCString header = aName + NS_LITERAL_CSTRING(": ") + aValue;
+    
+    nsresult rv = mSynthesizedResponseHead->ParseHeaderLine(header.get());
+    NS_ENSURE_SUCCESS(rv, rv);
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+InterceptedChannel::FinishSynthesizedResponse()
+{
+    if (!mChannel) {
+        return NS_ERROR_NOT_AVAILABLE;
+    }
+
+    mChannel->MarkIntercepted();
+
+    
+    
+
+    nsCOMPtr<nsISupports> securityInfo;
+    nsresult rv = mChannel->GetSecurityInfo(getter_AddRefs(securityInfo));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    EnsureSynthesizedResponse();
+    rv = DoAddCacheEntryHeaders(mChannel, mSynthesizedCacheEntry, mChannel->GetRequestHead(),
+                                mSynthesizedResponseHead.ptr(), securityInfo);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCOMPtr<nsIURI> uri;
+    mChannel->GetURI(getter_AddRefs(uri));
+
+    bool usingSSL = false;
+    uri->SchemeIs("https", &usingSSL);
+
+    
+    rv = mChannel->OpenCacheEntry(usingSSL);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    mSynthesizedCacheEntry = nullptr;
+
+    if (!mChannel->AwaitingCacheCallbacks()) {
+        rv = mChannel->ContinueConnect();
+        NS_ENSURE_SUCCESS(rv, rv);
+    }
+
+    mChannel = nullptr;
+    return NS_OK;
 }
 
 } } 
