@@ -9,6 +9,7 @@
 #include "AbstractMediaDecoder.h"
 #include "MediaInfo.h"
 #include "MediaData.h"
+#include "MediaPromise.h"
 #include "MediaQueue.h"
 #include "AudioCompactor.h"
 
@@ -36,6 +37,9 @@ public:
     WAITING_FOR_DATA,
     CANCELED
   };
+
+  typedef MediaPromise<nsRefPtr<AudioData>, NotDecodedReason> AudioDataPromise;
+  typedef MediaPromise<nsRefPtr<VideoData>, NotDecodedReason> VideoDataPromise;
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaDecoderReader)
 
@@ -98,7 +102,8 @@ public:
   
   
   
-  virtual void RequestAudioData();
+  
+  virtual nsRefPtr<AudioDataPromise> RequestAudioData();
 
   
   
@@ -106,9 +111,8 @@ public:
   
   
   
-  
-  virtual void RequestVideoData(bool aSkipToNextKeyframe,
-                                int64_t aTimeThreshold);
+  virtual nsRefPtr<VideoDataPromise>
+  RequestVideoData(bool aSkipToNextKeyframe, int64_t aTimeThreshold);
 
   virtual bool HasAudio() = 0;
   virtual bool HasVideo() = 0;
@@ -275,8 +279,32 @@ protected:
   
   
   int64_t mStartTime;
-private:
 
+  MediaPromiseHolder<AudioDataPromise> mAudioPromise;
+  MediaPromiseHolder<VideoDataPromise> mVideoPromise;
+
+  
+  bool HasPromise(MediaData::Type aType)
+  {
+    return aType == MediaData::AUDIO_DATA ? !mAudioPromise.IsEmpty() : !mVideoPromise.IsEmpty();
+  }
+  void RejectPromise(MediaData::Type aType, NotDecodedReason aReason,
+                     const char* aMethodName)
+  {
+    if (aType == MediaData::AUDIO_DATA) {
+      mAudioPromise.Reject(aReason, aMethodName);
+    } else {
+      mVideoPromise.Reject(aReason, aMethodName);
+    }
+  }
+
+  
+  
+  
+  
+  bool mHitAudioDecodeError;
+
+private:
   nsRefPtr<RequestSampleCallback> mSampleDecodedCallback;
 
   nsRefPtr<MediaTaskQueue> mTaskQueue;
@@ -297,17 +325,6 @@ class RequestSampleCallback {
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(RequestSampleCallback)
 
-  
-  virtual void OnAudioDecoded(AudioData* aSample) = 0;
-
-  
-  virtual void OnVideoDecoded(VideoData* aSample) = 0;
-
-  
-  
-  virtual void OnNotDecoded(MediaData::Type aType,
-                            MediaDecoderReader::NotDecodedReason aReason) = 0;
-
   virtual void OnSeekCompleted(nsresult aResult) = 0;
 
   
@@ -321,29 +338,28 @@ protected:
 
 
 
-class AudioDecodeRendezvous : public RequestSampleCallback {
+class AudioDecodeRendezvous {
 public:
-  AudioDecodeRendezvous();
-  ~AudioDecodeRendezvous();
+  AudioDecodeRendezvous(MediaDecoderReader *aReader);
 
-  
-  
-  virtual void OnAudioDecoded(AudioData* aSample) MOZ_OVERRIDE;
-  virtual void OnVideoDecoded(VideoData* aSample) MOZ_OVERRIDE {}
-  virtual void OnNotDecoded(MediaData::Type aType,
-                            MediaDecoderReader::NotDecodedReason aReason) MOZ_OVERRIDE;
-  virtual void OnSeekCompleted(nsresult aResult) MOZ_OVERRIDE {};
-  virtual void BreakCycles() MOZ_OVERRIDE {};
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(AudioDecodeRendezvous)
+
+  void OnAudioDecoded(AudioData* aSample);
+  void OnAudioNotDecoded(MediaDecoderReader::NotDecodedReason aReason);
   void Reset();
 
   
   
-  nsresult Await(nsRefPtr<AudioData>& aSample);
+  nsresult RequestAndWait(nsRefPtr<AudioData>& aSample);
 
   
   void Cancel();
 
+protected:
+  ~AudioDecodeRendezvous();
+
 private:
+  nsRefPtr<MediaDecoderReader> mReader;
   Monitor mMonitor;
   nsresult mStatus;
   nsRefPtr<AudioData> mSample;
