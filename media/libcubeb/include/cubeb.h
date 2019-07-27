@@ -174,6 +174,11 @@ typedef void (* cubeb_state_callback)(cubeb_stream * stream,
 
 
 
+typedef void (* cubeb_device_changed_callback)(void * user_ptr);
+
+
+
+
 
 
 
@@ -310,6 +315,18 @@ int cubeb_stream_get_current_output_device(cubeb_stream * stm,
 
 int cubeb_stream_output_device_destroy(cubeb_stream * stream,
                                        cubeb_output_device * devices);
+
+
+
+
+
+
+
+
+
+
+int cubeb_stream_register_device_changed_callback(cubeb_stream * stream,
+                                                  cubeb_device_changed_callback  device_changed_callback);
 
 #if defined(__cplusplus)
 }

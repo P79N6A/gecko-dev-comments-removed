@@ -716,5 +716,6 @@ static struct cubeb_ops const winmm_ops = {
    winmm_stream_set_volume,
    winmm_stream_set_panning,
    NULL,
+   NULL,
    NULL
 };
