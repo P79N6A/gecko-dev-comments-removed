@@ -36,7 +36,7 @@ public:
   
 
 
-  FileLocation(nsIFile *file);
+  explicit FileLocation(nsIFile *file);
 
   
 
