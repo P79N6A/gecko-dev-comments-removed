@@ -873,8 +873,3 @@ pref("toolkit.telemetry.unified", false);
 
 
 pref("selectioncaret.detects.longtap", false);
-
-
-#ifdef NIGHTLY_BUILD
-pref("dom.serviceWorkers.enabled", true);
-#endif
