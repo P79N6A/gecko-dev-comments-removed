@@ -150,10 +150,25 @@ struct AnimationPropertySegment
 struct AnimationProperty
 {
   nsCSSProperty mProperty;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  bool mWinsInCascade;
+
   InfallibleTArray<AnimationPropertySegment> mSegments;
 
   bool operator==(const AnimationProperty& aOther) const {
     return mProperty == aOther.mProperty &&
+           mWinsInCascade == aOther.mWinsInCascade &&
            mSegments == aOther.mSegments;
   }
   bool operator!=(const AnimationProperty& aOther) const {
