@@ -435,7 +435,7 @@ loop.store.ActiveRoomStore = (function() {
       
       
       
-      loop.shared.utils.hasAudioDevices(function(hasAudio) {
+      loop.shared.utils.hasAudioOrVideoDevices(function(hasAudio) {
         if (hasAudio) {
           
           
