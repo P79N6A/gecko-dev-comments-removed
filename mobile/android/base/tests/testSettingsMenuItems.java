@@ -162,12 +162,6 @@ public class testSettingsMenuItems extends PixelTest {
 
             
             if (HardwareUtils.isTablet()) {
-                String[] newTabletUi = { StringHelper.NEW_TABLET_UI };
-                settingsMap.get(PATH_DISPLAY).add(newTabletUi);
-            }
-
-            
-            if (NewTabletUI.isEnabled(getActivity())) {
                 settingsMap.get(PATH_DISPLAY).remove(TITLE_BAR_LABEL_ARR);
             }
 
