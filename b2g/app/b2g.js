@@ -754,13 +754,11 @@ pref("hal.processPriorityManager.gonk.notifyLowMemUnderKB", 14336);
 
 pref("gonk.systemMemoryPressureRecoveryPollMS", 5000);
 
-#ifndef DEBUG
 
 
 pref("dom.ipc.processPrelaunch.enabled", true);
 
 pref("dom.ipc.processPrelaunch.delayMs", 5000);
-#endif
 
 pref("dom.ipc.reuse_parent_app", false);
 
