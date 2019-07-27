@@ -429,6 +429,12 @@ public:
     id = NS_ConvertASCIItoUTF16(mName.c_str());
     return NS_OK;
   }
+
+  nsresult SetId(const nsAString& id)
+  {
+    mName = NS_ConvertUTF16toUTF8(id).get();
+    return NS_OK;
+  }
 #endif
 
   
