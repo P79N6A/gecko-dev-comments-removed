@@ -171,7 +171,7 @@ static int nr_ice_peer_ctx_parse_stream_attributes_int(nr_ice_peer_ctx *pctx, nr
         }
       }
       else {
-        r_log(LOG_ICE,LOG_WARNING,"ICE(%s): peer (%s) specified bogus attribute",pctx->ctx->label,pctx->label);
+        r_log(LOG_ICE,LOG_WARNING,"ICE(%s): peer (%s) specified bogus attribute: %s",pctx->ctx->label,pctx->label,attrs[i]);
       }
     }
 
@@ -219,6 +219,9 @@ static int nr_ice_ctx_parse_candidate(nr_ice_peer_ctx *pctx, nr_ice_media_stream
     cand->component=comp;
 
     TAILQ_INSERT_TAIL(&comp->candidates,cand,entry_comp);
+
+    r_log(LOG_ICE,LOG_DEBUG,"ICE-PEER(%s)/CAND(%s): creating peer candidate",
+      pctx->label,cand->label);
 
     _status=0;
  abort:
@@ -291,10 +294,8 @@ int nr_ice_peer_ctx_parse_trickle_candidate(nr_ice_peer_ctx *pctx, nr_ice_media_
         r_log(LOG_ICE,LOG_ERR,"ICE(%s): peer (%s), stream(%s) failed to pair trickle ICE candidates",pctx->ctx->label,pctx->label,stream->label);
         ABORT(r);
       }
-    }
 
-    
-
+      
 
 
 
@@ -306,10 +307,12 @@ int nr_ice_peer_ctx_parse_trickle_candidate(nr_ice_peer_ctx *pctx, nr_ice_media_
 
 
 
-    if (!pstream->timer) {
-      if(r=nr_ice_media_stream_start_checks(pctx, pstream)) {
-        r_log(LOG_ICE,LOG_ERR,"ICE(%s): peer (%s), stream(%s) failed to start checks",pctx->ctx->label,pctx->label,stream->label);
-        ABORT(r);
+
+      if (!pstream->timer) {
+        if(r=nr_ice_media_stream_start_checks(pctx, pstream)) {
+          r_log(LOG_ICE,LOG_ERR,"ICE(%s): peer (%s), stream(%s) failed to start checks",pctx->ctx->label,pctx->label,stream->label);
+          ABORT(r);
+        }
       }
     }
 

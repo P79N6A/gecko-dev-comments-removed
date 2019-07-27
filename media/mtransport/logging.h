@@ -40,7 +40,6 @@
 
 #define MOZ_MTLOG_MODULE(n)
 #define MOZ_MTLOG(level, b)
-
 #endif 
 
 #endif 

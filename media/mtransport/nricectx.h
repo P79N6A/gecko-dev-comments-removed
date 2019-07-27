@@ -207,8 +207,19 @@ class NrIceCtx {
   RefPtr<NrIceMediaStream> CreateStream(const std::string& name,
                                                  int components);
 
+  RefPtr<NrIceMediaStream> GetStream(size_t index) {
+    if (index < streams_.size()) {
+      return streams_[index];
+    }
+    return nullptr;
+  }
+
   
   const std::string& name() const { return name_; }
+
+  
+  std::string ufrag() const;
+  std::string pwd() const;
 
   
   ConnectionState connection_state() const {

@@ -335,8 +335,8 @@ pref("media.navigator.video.default_width",0);
 pref("media.navigator.video.default_height",0); 
 pref("media.peerconnection.enabled", true);
 pref("media.peerconnection.video.enabled", true);
-pref("media.navigator.video.max_fs", 0); 
-pref("media.navigator.video.max_fr", 0); 
+pref("media.navigator.video.max_fs", 12288); 
+pref("media.navigator.video.max_fr", 60);
 pref("media.navigator.video.h264.level", 31); 
 pref("media.navigator.video.h264.max_br", 0);
 pref("media.navigator.video.h264.max_mbps", 0);
@@ -359,6 +359,7 @@ pref("media.peerconnection.use_document_iceservers", true);
 
 pref("media.peerconnection.identity.enabled", false);
 pref("media.peerconnection.identity.timeout", 10000);
+pref("media.peerconnection.ice.loopback", false); 
 
 
 

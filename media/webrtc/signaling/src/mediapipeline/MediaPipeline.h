@@ -366,7 +366,6 @@ public:
                         nsCOMPtr<nsIEventTarget> main_thread,
                         nsCOMPtr<nsIEventTarget> sts_thread,
                         DOMMediaStream *domstream,
-                        int pipeline_index, 
                         int level,
                         bool is_video,
                         RefPtr<MediaSessionConduit> conduit,
@@ -377,7 +376,6 @@ public:
                     conduit, rtp_transport, rtcp_transport),
       listener_(new PipelineListener(conduit)),
       domstream_(domstream),
-      pipeline_index_(pipeline_index),
       is_video_(is_video)
   {}
 
@@ -387,7 +385,6 @@ public:
   virtual void AttachToTrack(TrackID track_id);
 
   
-  virtual TrackID pipeline_index() const { return pipeline_index_; }
   
   
   virtual TrackID const trackid_locked() { return listener_->trackid(); }
@@ -521,7 +518,6 @@ public:
  private:
   RefPtr<PipelineListener> listener_;
   DOMMediaStream *domstream_;
-  int pipeline_index_; 
   bool is_video_;
 };
 
