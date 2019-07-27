@@ -3335,8 +3335,8 @@ RangeAnalysis::prepareForUCE(bool* shouldRemoveDeadCode)
     return tryRemovingGuards();
 }
 
-bool RangeAnalysis::tryRemovingGuards() {
-
+bool RangeAnalysis::tryRemovingGuards()
+{
     MDefinitionVector guards(alloc());
 
     for (ReversePostorderIterator block = graph_.rpoBegin(); block != graph_.rpoEnd(); block++) {
@@ -3364,20 +3364,22 @@ bool RangeAnalysis::tryRemovingGuards() {
         guard->setGuardRangeBailouts();
 #endif
 
-        if (!guard->range())
-            continue;
+        if (!guard->isPhi()) {
+            if (!guard->range())
+                continue;
 
-        
-        Range typeFilteredRange(guard);
+            
+            Range typeFilteredRange(guard);
 
-        
-        
-        
-        
-        
-        
-        if (typeFilteredRange.update(guard->range()))
-            continue;
+            
+            
+            
+            
+            
+            
+            if (typeFilteredRange.update(guard->range()))
+                continue;
+        }
 
         guard->setNotGuardRangeBailouts();
 
