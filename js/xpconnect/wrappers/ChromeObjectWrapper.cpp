@@ -52,6 +52,7 @@ PropIsFromStandardPrototype(JSContext *cx, JS::MutableHandle<JSPropertyDescripto
 
 
 
+
 static bool
 PropIsFromStandardPrototype(JSContext *cx, HandleObject wrapper,
                             HandleId id)
@@ -60,8 +61,8 @@ PropIsFromStandardPrototype(JSContext *cx, HandleObject wrapper,
                &ChromeObjectWrapper::singleton);
     Rooted<JSPropertyDescriptor> desc(cx);
     const ChromeObjectWrapper *handler = &ChromeObjectWrapper::singleton;
-    if (!handler->ChromeObjectWrapperBase::getPropertyDescriptor(cx, wrapper, id,
-                                                                 &desc) ||
+    if (!handler->CrossCompartmentSecurityWrapper::getPropertyDescriptor(cx, wrapper, id,
+                                                                         &desc) ||
         !desc.object())
     {
         return false;
