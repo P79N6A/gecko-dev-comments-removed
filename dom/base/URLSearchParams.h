@@ -27,6 +27,10 @@ public:
   virtual void URLSearchParamsUpdated(URLSearchParams* aFromThis) = 0;
 };
 
+
+
+
+
 class URLSearchParams final : public nsISupports,
                               public nsWrapperCache
 {
@@ -81,15 +85,24 @@ public:
     Serialize(aRetval);
   }
 
-  typedef void (*ParamFunc)(const nsString& aName, const nsString& aValue,
-                            void* aClosure);
+  class ForEachIterator
+  {
+  public:
+    virtual bool
+    URLSearchParamsIterator(const nsString& aName, const nsString& aValue) = 0;
+  };
 
-  void
-  ForEach(ParamFunc aFunc, void* aClosure)
+  bool
+  ForEach(ForEachIterator& aIterator)
   {
     for (uint32_t i = 0; i < mSearchParams.Length(); ++i) {
-      aFunc(mSearchParams[i].mKey, mSearchParams[i].mValue, aClosure);
+      if (!aIterator.URLSearchParamsIterator(mSearchParams[i].mKey,
+                                             mSearchParams[i].mValue)) {
+        return false;
+      }
     }
+
+    return true;
   }
 
 private:
