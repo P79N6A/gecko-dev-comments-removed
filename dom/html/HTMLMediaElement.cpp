@@ -3091,10 +3091,12 @@ void HTMLMediaElement::CheckProgress(bool aHaveNewProgress)
   
   
   
-  if (!mDataTime.IsNull() &&
-      (mProgressTime.IsNull() ||
-       (now - mProgressTime >= TimeDuration::FromMilliseconds(PROGRESS_MS) &&
-        mDataTime > mProgressTime))) {
+  NS_ASSERTION((mProgressTime.IsNull() && !aHaveNewProgress) ||
+               !mDataTime.IsNull(),
+               "null TimeStamp mDataTime should not be used in comparison");
+  if (mProgressTime.IsNull() ? aHaveNewProgress
+      : (now - mProgressTime >= TimeDuration::FromMilliseconds(PROGRESS_MS) &&
+         mDataTime > mProgressTime)) {
     DispatchAsyncEvent(NS_LITERAL_STRING("progress"));
     
     
@@ -3104,13 +3106,20 @@ void HTMLMediaElement::CheckProgress(bool aHaveNewProgress)
     if (mDataTime > mProgressTime) {
       mDataTime = mProgressTime;
     }
+    if (!mProgressTimer) {
+      NS_ASSERTION(aHaveNewProgress,
+                   "timer dispatched when there was no timer");
+      
+      StartProgressTimer();
+    }
   }
 
-  if (!mDataTime.IsNull() &&
-      now - mDataTime >= TimeDuration::FromMilliseconds(STALL_MS)) {
+  if (now - mDataTime >= TimeDuration::FromMilliseconds(STALL_MS)) {
     DispatchAsyncEvent(NS_LITERAL_STRING("stalled"));
+    NS_ASSERTION(mProgressTimer, "detected stalled without timer");
     
-    mDataTime = TimeStamp();
+    
+    StopProgress();
   }
 }
 
@@ -3121,28 +3130,38 @@ void HTMLMediaElement::ProgressTimerCallback(nsITimer* aTimer, void* aClosure)
   decoder->CheckProgress(false);
 }
 
-nsresult HTMLMediaElement::StartProgress()
+void HTMLMediaElement::StartProgressTimer()
 {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(mNetworkState == nsIDOMHTMLMediaElement::NETWORK_LOADING);
   NS_ASSERTION(!mProgressTimer, "Already started progress timer.");
 
   mProgressTimer = do_CreateInstance("@mozilla.org/timer;1");
-  return mProgressTimer->InitWithFuncCallback(ProgressTimerCallback,
-                                              this,
-                                              PROGRESS_MS,
-                                              nsITimer::TYPE_REPEATING_SLACK);
+  mProgressTimer->InitWithFuncCallback(ProgressTimerCallback,
+                                       this,
+                                       PROGRESS_MS,
+                                       nsITimer::TYPE_REPEATING_SLACK);
 }
 
-nsresult HTMLMediaElement::StopProgress()
+void HTMLMediaElement::StartProgress()
+{
+  
+  mDataTime = TimeStamp::NowLoRes();
+  
+  
+  mProgressTime = TimeStamp();
+  StartProgressTimer();
+}
+
+void HTMLMediaElement::StopProgress()
 {
   MOZ_ASSERT(NS_IsMainThread());
-  NS_ASSERTION(mProgressTimer, "Already stopped progress timer.");
+  if (!mProgressTimer) {
+    return;
+  }
 
-  nsresult rv = mProgressTimer->Cancel();
+  mProgressTimer->Cancel();
   mProgressTimer = nullptr;
-
-  return rv;
 }
 
 void HTMLMediaElement::DownloadProgressed()

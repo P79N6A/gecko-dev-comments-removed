@@ -368,7 +368,6 @@ ChannelMediaResource::OnStartRequest(nsIRequest* aRequest)
   }
 
   
-  
   owner->DownloadProgressed();
 
   return NS_OK;

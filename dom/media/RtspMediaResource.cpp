@@ -741,7 +741,6 @@ RtspMediaResource::OnConnected(uint8_t aTrackIdx,
   MediaDecoderOwner* owner = mDecoder->GetMediaOwner();
   NS_ENSURE_TRUE(owner, NS_ERROR_FAILURE);
   
-  
   owner->DownloadProgressed();
 
   dom::HTMLMediaElement* element = owner->GetMediaElement();

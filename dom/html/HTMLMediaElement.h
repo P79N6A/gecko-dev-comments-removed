@@ -887,11 +887,15 @@ protected:
   
 
 
-  nsresult StartProgress();
+  void StartProgressTimer();
   
 
 
-  nsresult StopProgress();
+  void StartProgress();
+  
+
+
+  void StopProgress();
 
   
 
@@ -1085,7 +1089,6 @@ protected:
   
   TimeStamp mProgressTime;
 
-  
   
   
   
