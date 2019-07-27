@@ -186,21 +186,24 @@ loop.store = loop.store || {};
           break;
         }
         case WS_STATES.CONNECTING: {
-          this.sdkDriver.connectSession({
-            apiKey: state.apiKey,
-            sessionId: state.sessionId,
-            sessionToken: state.sessionToken
-          });
-          this.mozLoop.addConversationContext(
-            state.windowId,
-            state.sessionId,
-            state.callId);
-          this.setStoreState({callState: CALL_STATES.ONGOING});
+          if (state.outgoing) {
+            
+            
+            
+            this._startCallConnection();
+          } else if (state.callState !== CALL_STATES.ONGOING) {
+            console.error("Websocket unexpectedly changed to next state whilst waiting for call acceptance.");
+            
+            this.declineCall(new sharedActions.DeclineCall({blockCaller: false}));
+          }
           break;
         }
         case WS_STATES.HALF_CONNECTED:
         case WS_STATES.CONNECTED: {
-          this.setStoreState({callState: CALL_STATES.ONGOING});
+          if (this.getStoreState("callState") !== CALL_STATES.ONGOING) {
+            console.error("Unexpected websocket state received in wrong callState");
+            this.setStoreState({callState: CALL_STATES.ONGOING});
+          }
           break;
         }
         default: {
@@ -261,6 +264,25 @@ loop.store = loop.store || {};
 
 
 
+    _startCallConnection: function() {
+      var state = this.getStoreState();
+
+      this.sdkDriver.connectSession({
+        apiKey: state.apiKey,
+        sessionId: state.sessionId,
+        sessionToken: state.sessionToken
+      });
+      this.mozLoop.addConversationContext(
+        state.windowId,
+        state.sessionId,
+        state.callId);
+      this.setStoreState({callState: CALL_STATES.ONGOING});
+    },
+
+    
+
+
+
 
     acceptCall: function(actionData) {
       if (this.getStoreState("outgoing")) {
@@ -273,9 +295,9 @@ loop.store = loop.store || {};
         videoMuted: actionData.callType === CALL_TYPES.AUDIO_ONLY
       });
 
-      
-      
       this._websocket.accept();
+
+      this._startCallConnection();
     },
 
     
