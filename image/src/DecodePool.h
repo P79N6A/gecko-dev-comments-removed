@@ -12,9 +12,11 @@
 
 #include "mozilla/Mutex.h"
 #include "mozilla/StaticPtr.h"
+#include "nsCOMArray.h"
 #include "nsCOMPtr.h"
 #include "nsIEventTarget.h"
 #include "nsIObserver.h"
+#include "nsRefPtr.h"
 
 class nsIThread;
 class nsIThreadPool;
@@ -23,6 +25,7 @@ namespace mozilla {
 namespace image {
 
 class Decoder;
+class DecodePoolImpl;
 
 
 
@@ -70,28 +73,10 @@ public:
 
 
 
-  already_AddRefed<nsIEventTarget> GetEventTarget();
-
-  
-
-
-
-
-
-
   already_AddRefed<nsIEventTarget> GetIOEventTarget();
 
-  
-
-
-
-
-
-
-  already_AddRefed<nsIRunnable> CreateDecodeWorker(Decoder* aDecoder);
-
 private:
-  friend class DecodeWorker;
+  friend class DecodePoolWorker;
 
   DecodePool();
   virtual ~DecodePool();
@@ -102,9 +87,11 @@ private:
 
   static StaticRefPtr<DecodePool> sSingleton;
 
+  nsRefPtr<DecodePoolImpl>    mImpl;
+
   
   Mutex                     mMutex;
-  nsCOMPtr<nsIThreadPool>   mThreadPool;
+  nsCOMArray<nsIThread>     mThreads;
   nsCOMPtr<nsIThread>       mIOThread;
 };
 

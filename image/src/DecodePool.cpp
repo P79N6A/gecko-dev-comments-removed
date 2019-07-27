@@ -8,10 +8,12 @@
 #include <algorithm>
 
 #include "mozilla/ClearOnShutdown.h"
+#include "mozilla/Monitor.h"
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "nsIObserverService.h"
 #include "nsIThreadPool.h"
+#include "nsThreadManager.h"
 #include "nsThreadUtils.h"
 #include "nsXPCOMCIDInternal.h"
 #include "prsystem.h"
@@ -107,48 +109,7 @@ private:
   nsRefPtr<Decoder> mDecoder;
 };
 
-class DecodeWorker : public nsRunnable
-{
-public:
-  explicit DecodeWorker(Decoder* aDecoder)
-    : mDecoder(aDecoder)
-  {
-    MOZ_ASSERT(mDecoder);
-  }
-
-  NS_IMETHOD Run() override
-  {
-    MOZ_ASSERT(!NS_IsMainThread());
-    DecodePool::Singleton()->Decode(mDecoder);
-    return NS_OK;
-  }
-
-private:
-  nsRefPtr<Decoder> mDecoder;
-};
-
 #ifdef MOZ_NUWA_PROCESS
-
-class DecodePoolNuwaListener final : public nsIThreadPoolListener
-{
-public:
-  NS_DECL_THREADSAFE_ISUPPORTS
-
-  NS_IMETHODIMP OnThreadCreated()
-  {
-    if (IsNuwaProcess()) {
-      NuwaMarkCurrentThread(static_cast<void(*)(void*)>(nullptr), nullptr);
-    }
-    return NS_OK;
-  }
-
-  NS_IMETHODIMP OnThreadShuttingDown() { return NS_OK; }
-
-private:
-  ~DecodePoolNuwaListener() { }
-};
-
-NS_IMPL_ISUPPORTS(DecodePoolNuwaListener, nsIThreadPoolListener)
 
 class RegisterDecodeIOThreadWithNuwaRunnable : public nsRunnable
 {
@@ -159,6 +120,7 @@ public:
     return NS_OK;
   }
 };
+
 #endif 
 
 
@@ -169,6 +131,166 @@ public:
  StaticRefPtr<DecodePool> DecodePool::sSingleton;
 
 NS_IMPL_ISUPPORTS(DecodePool, nsIObserver)
+
+struct Work
+{
+  enum class Type {
+    DECODE,
+    SHUTDOWN
+  } mType;
+
+  nsRefPtr<Decoder> mDecoder;
+};
+
+class DecodePoolImpl
+{
+public:
+  MOZ_DECLARE_REFCOUNTED_TYPENAME(DecodePoolImpl)
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(DecodePoolImpl)
+
+  DecodePoolImpl()
+    : mMonitor("DecodePoolImpl")
+    , mShuttingDown(false)
+  { }
+
+  
+  void InitCurrentThread()
+  {
+    MOZ_ASSERT(!NS_IsMainThread());
+
+    mThreadNaming.SetThreadPoolName(NS_LITERAL_CSTRING("ImgDecoder"));
+
+#ifdef MOZ_NUWA_PROCESS
+    if (IsNuwaProcess()) {
+      NuwaMarkCurrentThread(static_cast<void(*)(void*)>(nullptr), nullptr);
+    }
+#endif 
+  }
+
+  
+  static void ShutdownThread(nsIThread* aThisThread)
+  {
+    
+    
+    nsCOMPtr<nsIRunnable> runnable =
+      NS_NewRunnableMethod(aThisThread, &nsIThread::Shutdown);
+    NS_DispatchToMainThread(runnable);
+  }
+
+  
+
+
+
+
+  void RequestShutdown()
+  {
+    MonitorAutoLock lock(mMonitor);
+    mShuttingDown = true;
+    mMonitor.NotifyAll();
+  }
+
+  
+  void PushWork(Decoder* aDecoder)
+  {
+    nsRefPtr<Decoder> decoder(aDecoder);
+
+    MonitorAutoLock lock(mMonitor);
+
+    if (mShuttingDown) {
+      
+      return;
+    }
+
+    mQueue.AppendElement(Move(decoder));
+    mMonitor.Notify();
+  }
+
+  
+  Work PopWork()
+  {
+    Work work;
+
+    MonitorAutoLock lock(mMonitor);
+
+    do {
+      if (!mQueue.IsEmpty()) {
+        
+        
+        
+        
+        work.mType = Work::Type::DECODE;
+        work.mDecoder = mQueue.ElementAt(0);
+        mQueue.RemoveElementAt(0);
+
+#ifdef MOZ_NUWA_PROCESS
+        nsThreadManager::get()->SetThreadWorking();
+#endif 
+
+        return work;
+      }
+
+      if (mShuttingDown) {
+        work.mType = Work::Type::SHUTDOWN;
+        return work;
+      }
+
+#ifdef MOZ_NUWA_PROCESS
+      nsThreadManager::get()->SetThreadIdle(nullptr);
+#endif 
+
+      
+      mMonitor.Wait();
+    } while (true);
+  }
+
+private:
+  ~DecodePoolImpl() { }
+
+  nsThreadPoolNaming mThreadNaming;
+
+  
+  Monitor mMonitor;
+  nsTArray<nsRefPtr<Decoder>> mQueue;
+  bool mShuttingDown;
+};
+
+class DecodePoolWorker : public nsRunnable
+{
+public:
+  explicit DecodePoolWorker(DecodePoolImpl* aImpl) : mImpl(aImpl) { }
+
+  NS_IMETHOD Run()
+  {
+    MOZ_ASSERT(!NS_IsMainThread());
+
+    mImpl->InitCurrentThread();
+
+    nsCOMPtr<nsIThread> thisThread;
+    nsThreadManager::get()->GetCurrentThread(getter_AddRefs(thisThread));
+
+    do {
+      Work work = mImpl->PopWork();
+      switch (work.mType) {
+        case Work::Type::DECODE:
+          DecodePool::Singleton()->Decode(work.mDecoder);
+          break;
+
+        case Work::Type::SHUTDOWN:
+          DecodePoolImpl::ShutdownThread(thisThread);
+          return NS_OK;
+
+        default:
+          MOZ_ASSERT_UNREACHABLE("Unknown work type");
+      }
+    } while (true);
+
+    MOZ_ASSERT_UNREACHABLE("Exiting thread without Work::Type::SHUTDOWN");
+    return NS_OK;
+  }
+
+private:
+  nsRefPtr<DecodePoolImpl> mImpl;
+};
 
  void
 DecodePool::Initialize()
@@ -190,14 +312,10 @@ DecodePool::Singleton()
 }
 
 DecodePool::DecodePool()
-  : mMutex("image::DecodePool")
+  : mImpl(new DecodePoolImpl)
+  , mMutex("image::DecodePool")
 {
   
-  mThreadPool = do_CreateInstance(NS_THREADPOOL_CONTRACTID);
-  MOZ_RELEASE_ASSERT(mThreadPool,
-                     "Should succeed in creating image decoding thread pool");
-
-  mThreadPool->SetName(NS_LITERAL_CSTRING("ImageDecoder"));
   int32_t prefLimit = gfxPrefs::ImageMTDecodingLimit();
   uint32_t limit;
   if (prefLimit <= 0) {
@@ -206,14 +324,15 @@ DecodePool::DecodePool()
     limit = static_cast<uint32_t>(prefLimit);
   }
 
-  mThreadPool->SetThreadLimit(limit);
-  mThreadPool->SetIdleThreadLimit(limit);
-
-#ifdef MOZ_NUWA_PROCESS
-  if (IsNuwaProcess()) {
-    mThreadPool->SetListener(new DecodePoolNuwaListener());
+  
+  for (uint32_t i = 0 ; i < limit ; ++i) {
+    nsCOMPtr<nsIRunnable> worker = new DecodePoolWorker(mImpl);
+    nsCOMPtr<nsIThread> thread;
+    nsresult rv = NS_NewThread(getter_AddRefs(thread), worker);
+    MOZ_RELEASE_ASSERT(NS_SUCCEEDED(rv) && thread,
+                       "Should successfully create image decoding threads");
+    mThreads.AppendElement(Move(thread));
   }
-#endif
 
   
   nsresult rv = NS_NewNamedThread("ImageIO", getter_AddRefs(mIOThread));
@@ -243,17 +362,20 @@ DecodePool::Observe(nsISupports*, const char* aTopic, const char16_t*)
 {
   MOZ_ASSERT(strcmp(aTopic, "xpcom-shutdown-threads") == 0, "Unexpected topic");
 
-  nsCOMPtr<nsIThreadPool> threadPool;
+  nsCOMArray<nsIThread> threads;
   nsCOMPtr<nsIThread> ioThread;
 
   {
     MutexAutoLock lock(mMutex);
-    threadPool.swap(mThreadPool);
+    threads.AppendElements(mThreads);
+    mThreads.Clear();
     ioThread.swap(mIOThread);
   }
 
-  if (threadPool) {
-    threadPool->Shutdown();
+  mImpl->RequestShutdown();
+
+  for (int32_t i = 0 ; i < threads.Count() ; ++i) {
+    threads[i]->Shutdown();
   }
 
   if (ioThread) {
@@ -267,15 +389,7 @@ void
 DecodePool::AsyncDecode(Decoder* aDecoder)
 {
   MOZ_ASSERT(aDecoder);
-
-  nsCOMPtr<nsIRunnable> worker = new DecodeWorker(aDecoder);
-
-  
-  
-  MutexAutoLock threadPoolLock(mMutex);
-  if (mThreadPool) {
-    mThreadPool->Dispatch(worker, nsIEventTarget::DISPATCH_NORMAL);
-  }
+  mImpl->PushWork(aDecoder);
 }
 
 void
@@ -300,27 +414,11 @@ DecodePool::SyncDecodeIfPossible(Decoder* aDecoder)
 }
 
 already_AddRefed<nsIEventTarget>
-DecodePool::GetEventTarget()
-{
-  MutexAutoLock threadPoolLock(mMutex);
-  nsCOMPtr<nsIEventTarget> target = do_QueryInterface(mThreadPool);
-  return target.forget();
-}
-
-already_AddRefed<nsIEventTarget>
 DecodePool::GetIOEventTarget()
 {
   MutexAutoLock threadPoolLock(mMutex);
   nsCOMPtr<nsIEventTarget> target = do_QueryInterface(mIOThread);
   return target.forget();
-}
-
-already_AddRefed<nsIRunnable>
-DecodePool::CreateDecodeWorker(Decoder* aDecoder)
-{
-  MOZ_ASSERT(aDecoder);
-  nsCOMPtr<nsIRunnable> worker = new DecodeWorker(aDecoder);
-  return worker.forget();
 }
 
 void
