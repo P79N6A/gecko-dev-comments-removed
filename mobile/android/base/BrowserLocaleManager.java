@@ -330,6 +330,9 @@ public class BrowserLocaleManager implements LocaleManager {
         return GeckoSharedPrefs.forApp(context);
     }
 
+    
+
+
     private String getPersistedLocale(Context context) {
         final SharedPreferences settings = getSharedPreferences(context);
         final String locale = settings.getString(PREF_LOCALE, "");
@@ -365,6 +368,9 @@ public class BrowserLocaleManager implements LocaleManager {
 
 
 
+
+
+
     private String updateLocale(Context context, String localeCode) {
         
         final Locale defaultLocale = Locale.getDefault();
@@ -376,6 +382,9 @@ public class BrowserLocaleManager implements LocaleManager {
 
         return updateLocale(context, locale);
     }
+
+    
+
 
     private String updateLocale(Context context, final Locale locale) {
         
