@@ -99,7 +99,7 @@ public:
 
 
   virtual void SetDefaultVolumeControlChannel(int32_t aChannel,
-                                              bool aHidden);
+                                              bool aVisible);
 
   bool AnyAudioChannelIsActive();
 
@@ -153,7 +153,7 @@ protected:
 
   
   void SetDefaultVolumeControlChannelInternal(int32_t aChannel,
-                                              bool aHidden, uint64_t aChildID);
+                                              bool aVisible, uint64_t aChildID);
 
   AudioChannelState CheckTelephonyPolicy(AudioChannel aChannel,
                                          uint64_t aChildID);
