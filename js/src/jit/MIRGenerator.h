@@ -127,18 +127,9 @@ class MIRGenerator
     bool performsCall() const {
         return performsCall_;
     }
-    void setNeedsInitialStackAlignment() {
-        needsInitialStackAlignment_ = true;
-    }
-    bool needsInitialStackAlignment() const {
-        JS_ASSERT(compilingAsmJS());
-        return needsInitialStackAlignment_;
-    }
-    void setPerformsAsmJSCall() {
-        JS_ASSERT(compilingAsmJS());
-        setPerformsCall();
-        setNeedsInitialStackAlignment();
-    }
+    
+    
+    bool usesSimd();
     void noteMinAsmJSHeapLength(uint32_t len) {
         minAsmJSHeapLength_ = len;
     }
@@ -167,7 +158,8 @@ class MIRGenerator
 
     uint32_t maxAsmJSStackArgBytes_;
     bool performsCall_;
-    bool needsInitialStackAlignment_;
+    bool usesSimd_;
+    bool usesSimdCached_;
     uint32_t minAsmJSHeapLength_;
 
     

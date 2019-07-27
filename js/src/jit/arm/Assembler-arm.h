@@ -150,6 +150,7 @@ static const bool StackKeptAligned = true;
 
 
 static const bool SupportsSimd = false;
+static const uint32_t SimdStackAlignment = 8;
 
 static const Scale ScalePointer = TimesFour;
 

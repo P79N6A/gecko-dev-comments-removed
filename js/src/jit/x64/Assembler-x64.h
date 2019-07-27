@@ -194,6 +194,7 @@ static const uint32_t CodeAlignment = 8;
 
 
 static const bool SupportsSimd = true;
+static const uint32_t SimdStackAlignment = 16;
 
 static const Scale ScalePointer = TimesEight;
 
