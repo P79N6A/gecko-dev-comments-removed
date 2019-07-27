@@ -858,3 +858,6 @@ pref("reader.color_scheme.values", "[\"light\",\"dark\",\"auto\"]");
 
 
 pref("reader.toolbar.vertical", false);
+
+
+pref("browser.readinglist.enabled", true);
