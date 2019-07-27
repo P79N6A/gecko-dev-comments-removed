@@ -76,6 +76,7 @@ int __real_close(int aFd);
 
 
 static bool sIsNuwaProcess = false; 
+static bool sIsNuwaChildProcess = false; 
 static bool sIsFreezing = false; 
 static bool sNuwaReady = false;  
 static bool sNuwaPendingSpawn = false; 
@@ -301,6 +302,7 @@ struct AllThreadsListType : public AutoCleanLinkedList<thread_info_t>
   }
 };
 static AllThreadsListType sAllThreads;
+static AllThreadsListType sExitingThreads;
 
 
 
@@ -344,6 +346,14 @@ GetThreadInfoInner(pthread_t threadID) {
     }
   }
 
+  for (thread_info_t *tinfo = sExitingThreads.getFirst();
+       tinfo;
+       tinfo = tinfo->getNext()) {
+    if (pthread_equal(tinfo->origThreadID, threadID)) {
+      return tinfo;
+    }
+  }
+
   return nullptr;
 }
 
@@ -354,13 +364,11 @@ GetThreadInfoInner(pthread_t threadID) {
 
 static thread_info_t *
 GetThreadInfo(pthread_t threadID) {
-  if (sIsNuwaProcess) {
-    REAL(pthread_mutex_lock)(&sThreadCountLock);
-  }
+  REAL(pthread_mutex_lock)(&sThreadCountLock);
+
   thread_info_t *tinfo = GetThreadInfoInner(threadID);
-  if (sIsNuwaProcess) {
-    pthread_mutex_unlock(&sThreadCountLock);
-  }
+
+  pthread_mutex_unlock(&sThreadCountLock);
   return tinfo;
 }
 
@@ -597,24 +605,69 @@ thread_info_cleanup(void *arg) {
   pthread_mutex_unlock(&sThreadCountLock);
 }
 
-static void*
-cleaner_thread(void *arg) {
-  thread_info_t *tinfo = (thread_info_t *)arg;
-  pthread_t *thread = sIsNuwaProcess ? &tinfo->origThreadID
-                                     : &tinfo->recreatedThreadID;
+static void
+EnsureThreadExited(thread_info_t *tinfo) {
+  pid_t thread = sIsNuwaProcess ? tinfo->origNativeThreadID
+                                     : tinfo->recreatedNativeThreadID;
   
-  while (!pthread_kill(*thread, 0)) {
+  
+  
+  
+  while (!syscall(__NR_tgkill, getpid(), thread, 0)) {
     sched_yield();
   }
+}
+
+static void*
+safe_thread_info_cleanup(void *arg)
+{
+  thread_info_t *tinfo = (thread_info_t *)arg;
+
+  
+  EnsureThreadExited(tinfo);
   thread_info_cleanup(tinfo);
+
   return nullptr;
 }
 
 static void
-thread_cleanup(void *arg) {
+MaybeCleanUpDetachedThread(thread_info_t *tinfo)
+{
+  if (pthread_getattr_np(REAL(pthread_self()), &tinfo->threadAttr)) {
+    return;
+  }
+
+  int detachState = 0;
+  if (pthread_attr_getdetachstate(&tinfo->threadAttr, &detachState) ||
+      detachState == PTHREAD_CREATE_JOINABLE) {
+    
+    
+    return;
+  }
+
+  
   pthread_t thread;
-  REAL(pthread_create)(&thread, nullptr, &cleaner_thread, arg);
-  pthread_detach(thread);
+  if (!REAL(pthread_create)(&thread,
+                            nullptr,
+                            safe_thread_info_cleanup,
+                            tinfo)) {
+    pthread_detach(thread);
+  }
+}
+
+static void
+invalidate_thread_info(void *arg) {
+  REAL(pthread_mutex_lock)(&sThreadCountLock);
+
+  
+  
+  thread_info_t *tinfo = (thread_info_t*) arg;
+  tinfo->remove();
+  sExitingThreads.insertBack(tinfo);
+
+  pthread_mutex_unlock(&sThreadCountLock);
+
+  MaybeCleanUpDetachedThread(tinfo);
 }
 
 static void *
@@ -630,15 +683,7 @@ _thread_create_startup(void *arg) {
   tinfo->origThreadID = REAL(pthread_self)();
   tinfo->origNativeThreadID = gettid();
 
-  pthread_cleanup_push(thread_cleanup, tinfo);
-
   r = tinfo->startupFunc(tinfo->startupArg);
-
-  if (!sIsNuwaProcess) {
-    return r;
-  }
-
-  pthread_cleanup_pop(1);
 
   return r;
 }
@@ -670,7 +715,12 @@ thread_create_startup(void *arg) {
     abort();                    
   }
 
+  
+  
+  
   thread_info_t *tinfo = CUR_THREAD_INFO;
+  invalidate_thread_info(tinfo);
+
   if (!sIsNuwaProcess) {
     longjmp(tinfo->retEnv, 1);
 
@@ -766,7 +816,11 @@ __wrap_pthread_key_create(pthread_key_t *key, void (*destructor)(void*)) {
 
 extern "C" MFBT_API int
 __wrap_pthread_key_delete(pthread_key_t key) {
-  int rv = REAL(pthread_key_delete)(key);
+  
+  
+  
+  int rv = sIsNuwaChildProcess ?
+             0 : REAL(pthread_key_delete)(key);
   if (rv != 0) {
     return rv;
   }
@@ -798,8 +852,23 @@ __wrap_pthread_join(pthread_t thread, void **retval) {
   if (tinfo == nullptr) {
     return REAL(pthread_join)(thread, retval);
   }
+
+  pthread_t thread_info_t::*threadIDptr =
+        (sIsNuwaProcess ?
+           &thread_info_t::origThreadID :
+           &thread_info_t::recreatedThreadID);
+
   
-  return REAL(pthread_join)(tinfo->recreatedThreadID, retval);
+  
+  int rc = REAL(pthread_join)(tinfo->*threadIDptr, retval);
+
+  
+  
+  
+  
+  safe_thread_info_cleanup(tinfo);
+
+  return rc;
 }
 
 
@@ -1643,6 +1712,7 @@ ForkIPCProcess() {
     CloseAllProtoSockets(sProtoFdInfos, sProtoFdInfosSize);
   } else {
     
+    sIsNuwaChildProcess = true;
     if (getenv("MOZ_DEBUG_CHILD_PROCESS")) {
       printf("\n\nNUWA CHILDCHILDCHILDCHILD\n  debug me @ %d\n\n", getpid());
       sleep(30);
