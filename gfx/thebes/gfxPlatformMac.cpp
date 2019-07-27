@@ -20,7 +20,6 @@
 #include "mozilla/VsyncDispatcher.h"
 #include "qcms.h"
 #include "gfx2DGlue.h"
-#include "gfxPrefs.h"
 
 #include <dlfcn.h>
 #include <CoreVideo/CoreVideo.h>
@@ -403,16 +402,6 @@ gfxPlatformMac::UseAcceleratedCanvas()
 {
   
   return nsCocoaFeatures::OnLionOrLater() && Preferences::GetBool("gfx.canvas.azure.accelerated", false);
-}
-
-bool
-gfxPlatformMac::UseTiling()
-{
-  if (gfxPrefs::LayersTilesForceEnabled()) {
-    return true;
-  }
-  
-  return nsCocoaFeatures::OnLionOrLater() && gfxPlatform::UseTiling();
 }
 
 bool

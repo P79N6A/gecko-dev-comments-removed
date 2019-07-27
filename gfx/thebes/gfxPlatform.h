@@ -274,7 +274,6 @@ public:
 
     
     
-    virtual bool UseTiling() { return gfxPrefs::LayersTilesEnabledDoNotUseDirectly(); }
     virtual bool UseProgressivePaint() { return gfxPrefs::ProgressivePaintDoNotUseDirectly(); }
 
     void GetAzureBackendInfo(mozilla::widget::InfoObject &aObj) {

@@ -1896,7 +1896,7 @@ ScrollFrameHelper::ScrollFrameHelper(nsContainerFrame* aOuter,
   EnsureImageVisPrefsCached();
 
   if (IsAlwaysActive() &&
-      gfxPlatform::GetPlatform()->UseTiling() &&
+      gfxPrefs::LayersTilesEnabled() &&
       !nsLayoutUtils::UsesAsyncScrolling() &&
       mOuter->GetContent()) {
     
