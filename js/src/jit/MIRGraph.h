@@ -61,14 +61,16 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     
     void setVariable(uint32_t slot);
 
-    void discardResumePoint(MResumePoint *rp);
-
     enum ReferencesType {
+        RefType_None = 0,
         RefType_AssertNoUses = 1 << 0,
         RefType_DiscardOperands = 1 << 1,
         RefType_DiscardResumePoint = 1 << 2,
+        RefType_DefaultNoAssert = RefType_DiscardOperands | RefType_DiscardResumePoint,
         RefType_Default = RefType_AssertNoUses | RefType_DiscardOperands | RefType_DiscardResumePoint
     };
+
+    void discardResumePoint(MResumePoint *rp, ReferencesType refType = RefType_Default);
 
     
     
@@ -182,6 +184,12 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     
     void addResumePoint(MResumePoint *resume) {
         resumePoints_.pushFront(resume);
+    }
+
+    
+    void discardPreAllocatedResumePoint(MResumePoint *resume) {
+        MOZ_ASSERT(!resume->instruction());
+        discardResumePoint(resume);
     }
 
     
