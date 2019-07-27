@@ -519,6 +519,10 @@ this.OpenGraphBuilder = {
           query["body"] = body;
         }
       });
+      
+      if (!query.text && !query.title && pageData.title) {
+        query.text = pageData.title;
+      }
     }
     var str = [];
     for (let p in query)
