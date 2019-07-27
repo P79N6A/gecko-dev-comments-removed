@@ -146,6 +146,32 @@ BluetoothHfpManager::Init()
   return true;
 }
 
+
+void
+BluetoothHfpManager::InitHfpInterface()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  
+
+
+
+
+}
+
+
+void
+BluetoothHfpManager::DeinitHfpInterface()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  
+
+
+
+
+}
+
 void
 BluetoothHfpManager::HandleShutdown()
 {
