@@ -21,5 +21,7 @@
 %aboutHomeDTD;
 <!ENTITY % searchBarDTD SYSTEM "chrome:
 %searchBarDTD;
+<!ENTITY % syncBrandDTD SYSTEM "chrome:
+%syncBrandDTD;
 ]>
 
