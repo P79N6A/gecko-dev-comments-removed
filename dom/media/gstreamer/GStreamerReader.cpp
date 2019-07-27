@@ -15,17 +15,12 @@
 #endif
 #include "GStreamerFormatHelper.h"
 #include "VideoUtils.h"
-#include "mozilla/ArrayUtils.h"
 #include "mozilla/dom/TimeRanges.h"
 #include "mozilla/Endian.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/unused.h"
 #include "GStreamerLoader.h"
 #include "gfx2DGlue.h"
-
-#include <gst/gstplugin.h>
-#include <gst/gstpluginfeature.h>
-#include <gst/gstregistry.h>
 
 namespace mozilla {
 
@@ -1173,65 +1168,11 @@ GStreamerReader::PlayElementAddedCb(GstBin *aBin, GstElement *aElement,
   g_free(name);
 }
 
-
-
-
-
-#define STRING_LENGTH(string) (ArrayLength(string) - 1)
-
-
-bool GStreamerReader::IsFactoryBlacklisted(GstElementFactory* aFactory)
-{
-  
-#if GST_VERSION_MAJOR >= 1
-  GstPlugin* plugin = gst_plugin_feature_get_plugin(GST_PLUGIN_FEATURE(aFactory));
-  const gchar* version = plugin ? gst_plugin_get_version(plugin) : "unknown";
-#else
-  const gchar* plugin_name = GST_PLUGIN_FEATURE(aFactory)->plugin_name;
-  if (!plugin_name) {
-    return true;
-  }
-  GstPlugin* plugin = gst_default_registry_find_plugin(plugin_name);
-  const gchar* version = plugin ? plugin->desc.version : "unknown";
-#endif
-  if (!plugin) {
-    return true;
-  }
-  
-  const gchar* name = gst_element_get_name(aFactory);
-
-  
-  const char badname[] = "h264parse";
-  const char version_base[] = "0.10.";
-  
-  const size_t version_min = STRING_LENGTH(version_base) + 2;
-  if (strcmp(name, badname) == 0 &&
-      strncmp(version, version_base, strlen(version_base)) == 0 &&
-      strlen(version) >= version_min &&
-      atoi(version + strlen(version_base)) <= 23) {
-    gst_object_unref(plugin);
-    return true;
-  }
-
-  
-  gst_object_unref(plugin);
-
-  
-  return false;
-}
-
-
 bool
 GStreamerReader::ShouldAutoplugFactory(GstElementFactory* aFactory, GstCaps* aCaps)
 {
-  
-  if (IsFactoryBlacklisted(aFactory)) {
-    return false;
-  }
-
-  
   bool autoplug;
-  const gchar* klass = gst_element_factory_get_klass(aFactory);
+  const gchar *klass = gst_element_factory_get_klass(aFactory);
   if (strstr(klass, "Demuxer") && !strstr(klass, "Metadata")) {
     autoplug = GStreamerFormatHelper::Instance()->CanHandleContainerCaps(aCaps);
   } else if (strstr(klass, "Decoder") && !strstr(klass, "Generic")) {
