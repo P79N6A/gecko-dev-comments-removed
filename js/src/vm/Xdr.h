@@ -35,7 +35,7 @@ namespace js {
 
 
 
-static const uint32_t XDR_BYTECODE_VERSION_SUBTRAHEND = 220;
+static const uint32_t XDR_BYTECODE_VERSION_SUBTRAHEND = 222;
 static_assert(XDR_BYTECODE_VERSION_SUBTRAHEND % 2 == 0, "see the comment above");
 static const uint32_t XDR_BYTECODE_VERSION =
     uint32_t(0xb973c0de - (XDR_BYTECODE_VERSION_SUBTRAHEND
