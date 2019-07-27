@@ -8,6 +8,7 @@
 #define NS_CSS_RENDERING_BORDERS_H
 
 #include "gfxRect.h"
+#include "mozilla/Attributes.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/PathHelpers.h"
 #include "mozilla/RefPtr.h"
@@ -75,13 +76,16 @@ typedef enum {
   BorderColorStyleDark
 } BorderColorStyle;
 
-struct nsCSSBorderRenderer {
+class nsCSSBorderRenderer MOZ_FINAL
+{
   typedef mozilla::gfx::ColorPattern ColorPattern;
   typedef mozilla::gfx::DrawTarget DrawTarget;
   typedef mozilla::gfx::Float Float;
   typedef mozilla::gfx::Path Path;
   typedef mozilla::gfx::Rect Rect;
   typedef mozilla::gfx::RectCornerRadii RectCornerRadii;
+
+public:
 
   nsCSSBorderRenderer(gfxContext* aDestContext,
                       Rect& aOuterRect,
@@ -91,6 +95,24 @@ struct nsCSSBorderRenderer {
                       const nscolor* aBorderColors,
                       nsBorderColors* const* aCompositeColors,
                       nscolor aBackgroundColor);
+
+  
+  void DrawBorders();
+
+  
+  static void ComputeInnerRadii(const RectCornerRadii& aRadii,
+                                const Float* aBorderSizes,
+                                RectCornerRadii* aInnerRadiiRet);
+
+  
+  
+  
+  
+  static void ComputeOuterRadii(const RectCornerRadii& aRadii,
+                                const Float* aBorderSizes,
+                                RectCornerRadii* aOuterRadiiRet);
+
+private:
 
   RectCornerRadii mBorderCornerDimensions;
 
@@ -208,22 +230,6 @@ struct nsCSSBorderRenderer {
   
   
   void DrawRectangularCompositeColors();
-
-  
-  void DrawBorders ();
-
-  
-  static void ComputeInnerRadii(const RectCornerRadii& aRadii,
-                                const Float* aBorderSizes,
-                                RectCornerRadii* aInnerRadiiRet);
-
-  
-  
-  
-  
-  static void ComputeOuterRadii(const RectCornerRadii& aRadii,
-                                const Float* aBorderSizes,
-                                RectCornerRadii* aOuterRadiiRet);
 };
 
 namespace mozilla {
