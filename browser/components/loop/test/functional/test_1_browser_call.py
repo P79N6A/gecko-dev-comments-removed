@@ -193,7 +193,7 @@ class Test1BrowserCall(MarionetteTestCase):
 
     def local_get_media_start_time(self):
         return self.local_get_chatbox_window_expr(
-            "loop.conversation._sdkDriver.connectionStartTime")
+            "loop.conversation._sdkDriver._getTwoWayMediaStartTime()")
 
     
     def local_get_media_start_time_uninitialized(self):
@@ -221,7 +221,7 @@ class Test1BrowserCall(MarionetteTestCase):
 
         self.assertGreater(noted_calls, 0,
                            "OTSdkDriver._connectionLengthNotedCalls should be "
-                           "> 0")
+                           "> 0, noted_calls = " + str(noted_calls))
 
     def test_1_browser_call(self):
         self.switch_to_panel()

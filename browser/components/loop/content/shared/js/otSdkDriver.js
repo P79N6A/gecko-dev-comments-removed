@@ -27,25 +27,37 @@ loop.OTSdkDriver = (function() {
       this.dispatcher = options.dispatcher;
       this.sdk = options.sdk;
 
-      
-      
-      this.mozLoop = options.mozLoop;
+      this._isDesktop = !!options.isDesktop;
+
+      if (this._isDesktop) {
+        if (!options.mozLoop) {
+          throw new Error("Missing option mozLoop");
+        }
+        this.mozLoop = options.mozLoop;
+      }
 
       this.connections = {};
-      this.connectionStartTime = this.CONNECTION_START_TIME_UNINITIALIZED;
+      this._setTwoWayMediaStartTime(this.CONNECTION_START_TIME_UNINITIALIZED);
 
       this.dispatcher.register(this, [
         "setupStreamElements",
         "setMute"
       ]);
 
+      
+      
+      
+      
+      
+      this._debugTwoWayMediaTelemetry =
+        loop.shared.utils.getBoolPreference("debug.twoWayMediaTelemetry");
+
     
 
 
 
 
-    if ("isDesktop" in options && options.isDesktop &&
-        !window.MediaStreamTrack.getSources) {
+    if (this._isDesktop && !window.MediaStreamTrack.getSources) {
       
       
       
@@ -56,9 +68,6 @@ loop.OTSdkDriver = (function() {
   };
 
   OTSdkDriver.prototype = {
-    CONNECTION_START_TIME_UNINITIALIZED: -1,
-    CONNECTION_START_TIME_ALREADY_NOTED: -2,
-
     
 
 
@@ -236,7 +245,7 @@ loop.OTSdkDriver = (function() {
         delete this.publisher;
       }
 
-      this._noteConnectionLengthIfNeeded(this.connectionStartTime, performance.now());
+      this._noteConnectionLengthIfNeeded(this._getTwoWayMediaStartTime(), performance.now());
 
       
       delete this._sessionConnected;
@@ -244,7 +253,7 @@ loop.OTSdkDriver = (function() {
       delete this._publishedLocalStream;
       delete this._subscribedRemoteStream;
       this.connections = {};
-      this.connectionStartTime = this.CONNECTION_START_TIME_UNINITIALIZED;
+      this._setTwoWayMediaStartTime(this.CONNECTION_START_TIME_UNINITIALIZED);
     },
 
     
@@ -308,7 +317,7 @@ loop.OTSdkDriver = (function() {
       if (connection && (connection.id in this.connections)) {
         delete this.connections[connection.id];
       }
-      this._noteConnectionLengthIfNeeded(this.connectionStartTime, performance.now());
+      this._noteConnectionLengthIfNeeded(this._getTwoWayMediaStartTime(), performance.now());
       this.dispatcher.dispatch(new sharedActions.RemotePeerDisconnected({
         peerHungup: event.reason === "clientDisconnected"
       }));
@@ -335,7 +344,7 @@ loop.OTSdkDriver = (function() {
           return;
       }
 
-      this._noteConnectionLengthIfNeeded(this.connectionStartTime,
+      this._noteConnectionLengthIfNeeded(this._getTwoWayMediaStartTime(),
         performance.now());
       this.dispatcher.dispatch(new sharedActions.ConnectionFailure({
         reason: reason
@@ -408,7 +417,7 @@ loop.OTSdkDriver = (function() {
 
       this._subscribedRemoteStream = true;
       if (this._checkAllStreamsConnected()) {
-        this.connectionStartTime = performance.now();
+        this._setTwoWayMediaStartTime(performance.now());
         this.dispatcher.dispatch(new sharedActions.MediaConnected());
       }
     },
@@ -429,6 +438,56 @@ loop.OTSdkDriver = (function() {
       }
     },
 
+    
+
+
+
+
+
+    __twoWayMediaStartTime: undefined,
+
+    
+
+
+
+    CONNECTION_START_TIME_UNINITIALIZED: -1,
+
+    
+
+
+
+    CONNECTION_START_TIME_ALREADY_NOTED: -2,
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    _setTwoWayMediaStartTime: function(start) {
+      if (!this._isDesktop) {
+        return;
+      }
+
+      this.__twoWayMediaStartTime = start;
+      if (this._debugTwoWayMediaTelemetry) {
+        console.log("Loop Telemetry: noted two-way connection start, " +
+                    "start time in ms:", start);
+      }
+    },
+    _getTwoWayMediaStartTime: function() {
+      return this.__twoWayMediaStartTime;
+    },
 
     
 
@@ -528,7 +587,7 @@ loop.OTSdkDriver = (function() {
         
         this._publishedLocalStream = true;
         if (this._checkAllStreamsConnected()) {
-          this.connectionStartTime = performance.now();
+          this._setTwoWayMediaStartTime(performance.now);
           this.dispatcher.dispatch(new sharedActions.MediaConnected());
         }
       }
@@ -570,6 +629,14 @@ loop.OTSdkDriver = (function() {
 
 
 
+    
+
+
+
+
+
+
+
     _connectionLengthNotedCalls: 0,
 
     
@@ -594,9 +661,13 @@ loop.OTSdkDriver = (function() {
 
       this.mozLoop.telemetryAddKeyedValue("LOOP_TWO_WAY_MEDIA_CONN_LENGTH",
         bucket);
-      this.connectionStartTime = this.CONNECTION_START_TIME_ALREADY_NOTED;
+      this._setTwoWayMediaStartTime(this.CONNECTION_START_TIME_ALREADY_NOTED);
 
       this._connectionLengthNotedCalls++;
+      if (this._debugTwoWayMediaTelemetry) {
+        console.log('Loop Telemetry: noted two-way media connection ' +
+          'in bucket: ', bucket);
+      }
     },
 
     
@@ -610,23 +681,31 @@ loop.OTSdkDriver = (function() {
 
 
     _noteConnectionLengthIfNeeded: function(startTime, endTime) {
-      if (!this.mozLoop) {
+      if (!this._isDesktop) {
         return;
       }
 
       if (startTime == this.CONNECTION_START_TIME_ALREADY_NOTED ||
           startTime == this.CONNECTION_START_TIME_UNINITIALIZED ||
           startTime > endTime) {
-        console.log("_noteConnectionLengthIfNeeded called with " +
-                    " invalid params, either the calls were never" +
-                    " connected or there is a bug; startTime:", startTime,
-                    "endTime:", endTime);
+        if (this._debugTwoWayMediaTelemetry) {
+          console.log("_noteConnectionLengthIfNeeded called with " +
+            " invalid params, either the calls were never" +
+            " connected or there is a bug; startTime:", startTime,
+            "endTime:", endTime);
+        }
         return;
       }
 
       var callLengthSeconds = (endTime - startTime) / 1000;
       this._noteConnectionLength(callLengthSeconds);
-    }
+    },
+
+    
+
+
+
+    _debugTwoWayMediaTelemetry: false
   };
 
   return OTSdkDriver;
