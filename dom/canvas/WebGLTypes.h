@@ -46,13 +46,13 @@ namespace mozilla {
 
 
 
-MOZ_BEGIN_ENUM_CLASS(WebGLContextFakeBlackStatus, int)
+MOZ_BEGIN_ENUM_CLASS(WebGLContextFakeBlackStatus, uint8_t)
   Unknown,
   NotNeeded,
   Needed
 MOZ_END_ENUM_CLASS(WebGLContextFakeBlackStatus)
 
-MOZ_BEGIN_ENUM_CLASS(WebGLTextureFakeBlackStatus, int)
+MOZ_BEGIN_ENUM_CLASS(WebGLTextureFakeBlackStatus, uint8_t)
   Unknown,
   NotNeeded,
   IncompleteTexture,
@@ -65,7 +65,7 @@ MOZ_END_ENUM_CLASS(WebGLTextureFakeBlackStatus)
 
 
 
-MOZ_BEGIN_ENUM_CLASS(WebGLVertexAttrib0Status, int)
+MOZ_BEGIN_ENUM_CLASS(WebGLVertexAttrib0Status, uint8_t)
     Default, 
     EmulatedUninitializedArray, 
     EmulatedInitializedArray 
@@ -81,7 +81,7 @@ MOZ_END_ENUM_CLASS(WebGLVertexAttrib0Status)
 
 
 
-MOZ_BEGIN_ENUM_CLASS(WebGLImageDataStatus, int)
+MOZ_BEGIN_ENUM_CLASS(WebGLImageDataStatus, uint8_t)
     NoImageData,
     UninitializedImageData,
     InitializedImageData
@@ -95,7 +95,7 @@ MOZ_END_ENUM_CLASS(WebGLImageDataStatus)
 
 
 
-MOZ_BEGIN_ENUM_CLASS(WebGLTexelFormat, int)
+MOZ_BEGIN_ENUM_CLASS(WebGLTexelFormat, uint8_t)
     
     None,
     
@@ -130,7 +130,7 @@ MOZ_BEGIN_ENUM_CLASS(WebGLTexelFormat, int)
     RGBA32F 
 MOZ_END_ENUM_CLASS(WebGLTexelFormat)
 
-MOZ_BEGIN_ENUM_CLASS(WebGLTexImageFunc, int)
+MOZ_BEGIN_ENUM_CLASS(WebGLTexImageFunc, uint8_t)
     TexImage,
     TexSubImage,
     CopyTexImage,
@@ -138,6 +138,11 @@ MOZ_BEGIN_ENUM_CLASS(WebGLTexImageFunc, int)
     CompTexImage,
     CompTexSubImage,
 MOZ_END_ENUM_CLASS(WebGLTexImageFunc)
+
+MOZ_BEGIN_ENUM_CLASS(WebGLTexDimensions, uint8_t)
+    Tex2D,
+    Tex3D
+MOZ_END_ENUM_CLASS(WebGLTexDimensions)
 
 
 MOZ_BEGIN_ENUM_CLASS(WebGLExtensionID, uint8_t)

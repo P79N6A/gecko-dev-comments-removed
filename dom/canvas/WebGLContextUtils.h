@@ -106,6 +106,13 @@ WebGLContext::WebGLObjectAsJSObject(JSContext *cx, const WebGLObjectType *object
     return &v.toObject();
 }
 
+
+
+
+
+const char*
+InfoFrom(WebGLTexImageFunc func, WebGLTexDimensions dims);
+
 } 
 
 #endif 
