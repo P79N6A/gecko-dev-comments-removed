@@ -128,9 +128,18 @@ GetIsLineBreakAllowed(nsIFrame* aFrame, bool aIsLineBreakable,
   *aAllowLineBreak = allowLineBreak;
 }
 
+
+
+
+
+
+
+
+
 static nscoord
 CalculateColumnPrefISize(nsRenderingContext* aRenderingContext,
-                         const RubyColumnEnumerator& aEnumerator)
+                         const RubyColumnEnumerator& aEnumerator,
+                         nsIFrame::InlineIntrinsicISizeData* aBaseISizeData)
 {
   nscoord max = 0;
   uint32_t levelCount = aEnumerator.GetLevelCount();
@@ -138,9 +147,22 @@ CalculateColumnPrefISize(nsRenderingContext* aRenderingContext,
     nsIFrame* frame = aEnumerator.GetFrameAtLevel(i);
     if (frame) {
       nsIFrame::InlinePrefISizeData data;
+      if (i == 0) {
+        data.lineContainer = aBaseISizeData->lineContainer;
+        data.skipWhitespace = aBaseISizeData->skipWhitespace;
+        data.trailingWhitespace = aBaseISizeData->trailingWhitespace;
+      } else {
+        
+        
+        data.lineContainer = frame->GetParent();
+      }
       frame->AddInlinePrefISize(aRenderingContext, &data);
       MOZ_ASSERT(data.prevLines == 0, "Shouldn't have prev lines");
       max = std::max(max, data.currentLine);
+      if (i == 0) {
+        aBaseISizeData->skipWhitespace = data.skipWhitespace;
+        aBaseISizeData->trailingWhitespace = data.trailingWhitespace;
+      }
     }
   }
   return max;
@@ -160,11 +182,16 @@ nsRubyBaseContainerFrame::AddInlineMinISize(
       
       
       nsIFrame::InlinePrefISizeData data;
+      data.lineContainer = aData->lineContainer;
+      data.skipWhitespace = aData->skipWhitespace;
+      data.trailingWhitespace = aData->trailingWhitespace;
       AddInlinePrefISize(aRenderingContext, &data);
       aData->currentLine += data.currentLine;
       if (data.currentLine > 0) {
         aData->atStartOfLine = false;
       }
+      aData->skipWhitespace = data.skipWhitespace;
+      aData->trailingWhitespace = data.trailingWhitespace;
       return;
     }
   }
@@ -188,7 +215,8 @@ nsRubyBaseContainerFrame::AddInlineMinISize(
         }
       }
       firstFrame = false;
-      nscoord isize = CalculateColumnPrefISize(aRenderingContext, enumerator);
+      nscoord isize = CalculateColumnPrefISize(aRenderingContext,
+                                               enumerator, aData);
       aData->currentLine += isize;
       if (isize > 0) {
         aData->atStartOfLine = false;
@@ -208,7 +236,7 @@ nsRubyBaseContainerFrame::AddInlinePrefISize(
     RubyColumnEnumerator enumerator(
       static_cast<nsRubyBaseContainerFrame*>(frame), textContainers);
     for (; !enumerator.AtEnd(); enumerator.Next()) {
-      sum += CalculateColumnPrefISize(aRenderingContext, enumerator);
+      sum += CalculateColumnPrefISize(aRenderingContext, enumerator, aData);
     }
   }
   for (uint32_t i = 0, iend = textContainers.Length(); i < iend; i++) {
