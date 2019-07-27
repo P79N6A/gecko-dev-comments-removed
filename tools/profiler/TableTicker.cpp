@@ -486,7 +486,16 @@ void mergeStacksIntoProfile(ThreadProfile& aProfile, TickSample* aSample, Native
   
   
 
-  uint32_t startBufferGen = aProfile.bufferGeneration();
+  
+  
+  
+  
+  uint32_t startBufferGen;
+  if (aSample->isSamplingCurrentThread) {
+    startBufferGen = UINT32_MAX;
+  } else {
+    startBufferGen = aProfile.bufferGeneration();
+  }
   uint32_t jsCount = 0;
   JS::ProfilingFrameIterator::Frame jsFrames[1000];
   
