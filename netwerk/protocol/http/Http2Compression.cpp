@@ -410,6 +410,11 @@ Http2Decompressor::OutputHeader(const nsACString &name, const nsACString &value)
     }
   }
   if(isColonHeader) {
+    
+    if (!name.EqualsLiteral(":status") && !mIsPush) {
+      LOG(("HTTP Decompressor found illegal response pseudo-header %s", name.BeginReading()));
+      return NS_ERROR_ILLEGAL_VALUE;
+    }
     if (mSeenNonColonHeader) {
       LOG(("HTTP Decompressor found illegal : header %s", name.BeginReading()));
       return NS_ERROR_ILLEGAL_VALUE;
