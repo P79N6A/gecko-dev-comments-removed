@@ -16,6 +16,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <android/log.h>
+#include <cutils/properties.h>
 
 #include "AutoMounter.h"
 #include "nsVolumeService.h"
@@ -26,7 +27,9 @@
 #include "mozilla/Hal.h"
 #include "mozilla/StaticPtr.h"
 #include "MozMtpServer.h"
+#include "MozMtpStorage.h"
 #include "nsAutoPtr.h"
+#include "nsCharSeparatedTokenizer.h"
 #include "nsMemory.h"
 #include "nsString.h"
 #include "nsThreadUtils.h"
@@ -90,6 +93,13 @@ USING_MTP_NAMESPACE
 namespace mozilla {
 namespace system {
 
+#define SYS_USB_CONFIG          "sys.usb.config"
+#define PERSIST_SYS_USB_CONFIG  "persist.sys.usb.config"
+
+#define USB_FUNC_ADB  "adb"
+#define USB_FUNC_MTP  "mtp"
+#define USB_FUNC_UMS  "mass_storage"
+
 class AutoMounter;
 
 static void SetAutoMounterStatus(int32_t aStatus);
@@ -115,7 +125,9 @@ IsUsbCablePluggedIn()
   if (access(ICS_SYS_USB_STATE, F_OK) == 0) {
     char usbState[20];
     if (ReadSysFile(ICS_SYS_USB_STATE, usbState, sizeof(usbState))) {
-      return strcmp(usbState, "CONFIGURED") == 0;
+      DBG("IsUsbCablePluggedIn: state = '%s'", usbState);
+      return strcmp(usbState, "CONFIGURED") == 0 ||
+             strcmp(usbState, "CONNECTED") == 0;
     }
     ERR("Error reading file '%s': %s", ICS_SYS_USB_STATE, strerror(errno));
     return false;
@@ -127,6 +139,26 @@ IsUsbCablePluggedIn()
   ERR("Error reading file '%s': %s", GB_SYS_USB_CONFIGURED, strerror(errno));
   return false;
 #endif
+}
+
+static bool
+IsUsbConfigured()
+{
+  if (access(ICS_SYS_USB_STATE, F_OK) == 0) {
+    char usbState[20];
+    if (ReadSysFile(ICS_SYS_USB_STATE, usbState, sizeof(usbState))) {
+      DBG("IsUsbConfigured: state = '%s'", usbState);
+      return strcmp(usbState, "CONFIGURED") == 0;
+    }
+    ERR("Error reading file '%s': %s", ICS_SYS_USB_STATE, strerror(errno));
+    return false;
+  }
+  bool configured;
+  if (ReadSysFile(GB_SYS_USB_CONFIGURED, &configured)) {
+    return configured;
+  }
+  ERR("Error reading file '%s': %s", GB_SYS_USB_CONFIGURED, strerror(errno));
+  return false;
 }
 
 
@@ -144,7 +176,7 @@ public:
 class AutoVolumeEventObserver : public Volume::EventObserver
 {
 public:
-  virtual void Notify(Volume * const & aEvent);
+  virtual void Notify(Volume* const& aEvent);
 };
 
 class AutoMounterResponseCallback : public VolumeResponseCallback
@@ -174,7 +206,8 @@ public:
   typedef nsTArray<RefPtr<Volume>> VolumeArray;
 
   AutoMounter()
-    : mResponseCallback(new AutoMounterResponseCallback),
+    : mState(STATE_IDLE),
+      mResponseCallback(new AutoMounterResponseCallback),
       mMode(AUTOMOUNTER_DISABLE)
   {
     VolumeManager::RegisterStateObserver(&mVolumeManagerStateObserver);
@@ -232,19 +265,32 @@ public:
     }
   }
 
+  void UpdateState();
+
+  void ConfigureUsbFunction(const char* aUsbFunc);
+
   void StartMtpServer();
   void StopMtpServer();
 
-  void UpdateState();
+  void StartUmsSharing();
+  void StopUmsSharing();
+
 
   const char* ModeStr(int32_t aMode)
   {
     switch (aMode) {
       case AUTOMOUNTER_DISABLE:                 return "Disable";
-      case AUTOMOUNTER_ENABLE:                  return "Enable";
+      case AUTOMOUNTER_ENABLE_UMS:              return "Enable-UMS";
       case AUTOMOUNTER_DISABLE_WHEN_UNPLUGGED:  return "DisableWhenUnplugged";
+      case AUTOMOUNTER_ENABLE_MTP:              return "Enable-MTP";
     }
     return "??? Unknown ???";
+  }
+
+  bool IsModeEnabled(int32_t aMode)
+  {
+    return aMode == AUTOMOUNTER_ENABLE_MTP ||
+           aMode == AUTOMOUNTER_ENABLE_UMS;
   }
 
   void SetMode(int32_t aMode)
@@ -256,8 +302,8 @@ public:
       aMode = AUTOMOUNTER_DISABLE;
     }
 
-    if ((aMode == AUTOMOUNTER_DISABLE) &&
-        (mMode == AUTOMOUNTER_ENABLE) && IsUsbCablePluggedIn()) {
+    if (aMode == AUTOMOUNTER_DISABLE &&
+        mMode == AUTOMOUNTER_ENABLE_UMS && IsUsbCablePluggedIn()) {
       
       
       
@@ -346,10 +392,64 @@ public:
 
 private:
 
+  enum STATE
+  {
+    
+    STATE_IDLE,
+
+    
+    
+    
+    
+    
+    STATE_MTP_CONFIGURING,
+
+    
+    
+    
+    STATE_MTP_STARTED,
+
+    
+    
+    STATE_MTP_CONNECTED,
+
+    
+    
+    STATE_UMS_CONFIGURING,
+
+    
+    
+    STATE_UMS_CONFIGURED,
+  };
+
+  const char *StateStr(STATE aState)
+  {
+    switch (aState) {
+      case STATE_IDLE:            return "IDLE";
+      case STATE_MTP_CONFIGURING: return "MTP_CONFIGURING";
+      case STATE_MTP_CONNECTED:   return "MTP_CONNECTED";
+      case STATE_MTP_STARTED:     return "MTP_STARTED";
+      case STATE_UMS_CONFIGURING: return "UMS_CONFIGURING";
+      case STATE_UMS_CONFIGURED:  return "UMS_CONFIGURED";
+    }
+    return "STATE_???";
+  }
+
+  void SetState(STATE aState)
+  {
+    const char *oldStateStr = StateStr(mState);
+    mState = aState;
+    const char *newStateStr = StateStr(mState);
+    LOG("AutoMounter state changed from %s to %s", oldStateStr, newStateStr);
+  }
+
+  STATE                           mState;
+
   AutoVolumeEventObserver         mVolumeEventObserver;
   AutoVolumeManagerStateObserver  mVolumeManagerStateObserver;
   RefPtr<VolumeResponseCallback>  mResponseCallback;
   int32_t                         mMode;
+  MozMtpStorage::Array            mMozMtpStorage;
 };
 
 static StaticRefPtr<AutoMounter> sAutoMounter;
@@ -405,6 +505,78 @@ AutoMounterResponseCallback::ResponseReceived(const VolumeCommand* aCommand)
   }
 }
 
+static bool
+IsUsbFunctionEnabled(const char* aConfig, const char* aUsbFunc)
+{
+  nsAutoCString config(aConfig);
+  nsCCharSeparatedTokenizer tokenizer(config, ',');
+
+  while (tokenizer.hasMoreTokens()) {
+    nsAutoCString token(tokenizer.nextToken());
+    if (token.Equals(aUsbFunc)) {
+      DBG("IsUsbFunctionEnabled('%s', '%s'): returning true", aConfig, aUsbFunc);
+      return true;
+    }
+  }
+  DBG("IsUsbFunctionEnabled('%s', '%s'): returning false", aConfig, aUsbFunc);
+  return false;
+}
+
+static void
+SetUsbFunction(const char* aUsbFunc)
+{
+  char oldSysUsbConfig[PROPERTY_VALUE_MAX];
+  property_get(SYS_USB_CONFIG, oldSysUsbConfig, "");
+
+  if (IsUsbFunctionEnabled(oldSysUsbConfig, aUsbFunc)) {
+    
+    DBG("SetUsbFunction('%s') - already set - nothing to do", aUsbFunc);
+    return;
+  }
+
+  char newSysUsbConfig[PROPERTY_VALUE_MAX];
+
+  if (strcmp(aUsbFunc, USB_FUNC_MTP) == 0) {
+    
+    strlcpy(newSysUsbConfig, USB_FUNC_MTP, sizeof(newSysUsbConfig));
+  } else if (strcmp(aUsbFunc, USB_FUNC_UMS) == 0) {
+    
+    
+    property_get(PERSIST_SYS_USB_CONFIG, newSysUsbConfig, "");
+  } else {
+    printf_stderr("AutoMounter::SetUsbFunction Unrecognized aUsbFunc '%s'\n", aUsbFunc);
+    MOZ_ASSERT(0);
+    return;
+  }
+
+  
+  
+
+  if (IsUsbFunctionEnabled(oldSysUsbConfig, USB_FUNC_ADB)) {
+    
+    if (!IsUsbFunctionEnabled(newSysUsbConfig, USB_FUNC_ADB)) {
+      
+      strlcat(newSysUsbConfig, ",", sizeof(newSysUsbConfig));
+      strlcat(newSysUsbConfig, USB_FUNC_ADB, sizeof(newSysUsbConfig));
+    }
+  } else {
+    
+    if (IsUsbFunctionEnabled(newSysUsbConfig, USB_FUNC_ADB)) {
+      
+      if (strcmp(newSysUsbConfig, USB_FUNC_ADB) == 0) {
+        newSysUsbConfig[0] = '\0';
+      } else {
+        nsAutoCString withoutAdb(newSysUsbConfig);
+        withoutAdb.ReplaceSubstring( "," USB_FUNC_ADB, "");
+        strlcpy(newSysUsbConfig, withoutAdb.get(), sizeof(newSysUsbConfig));
+      }
+    }
+  }
+
+  LOG("SetUsbFunction(%s) %s to '%s'", aUsbFunc, SYS_USB_CONFIG, newSysUsbConfig);
+  property_set(SYS_USB_CONFIG, newSysUsbConfig);
+}
+
 void
 AutoMounter::StartMtpServer()
 {
@@ -415,12 +587,22 @@ AutoMounter::StartMtpServer()
   LOG("Starting MtpServer");
   sMozMtpServer = new MozMtpServer();
   sMozMtpServer->Run();
+
+  VolumeArray::index_type volIndex;
+  VolumeArray::size_type  numVolumes = VolumeManager::NumVolumes();
+  for (volIndex = 0; volIndex < numVolumes; volIndex++) {
+    RefPtr<Volume> vol = VolumeManager::GetVolume(volIndex);
+    nsRefPtr<MozMtpStorage> storage = new MozMtpStorage(vol, sMozMtpServer);
+    mMozMtpStorage.AppendElement(storage);
+  }
 }
 
 void
 AutoMounter::StopMtpServer()
 {
   LOG("Stopping MtpServer");
+
+  mMozMtpStorage.Clear();
   sMozMtpServer = nullptr;
 }
 
@@ -465,10 +647,20 @@ AutoMounter::UpdateState()
     return;
   }
 
-  bool  umsAvail = false;
-  bool  umsEnabled = false;
-  bool  mtpAvail = false;
-  bool  mtpEnabled = false;
+  
+  
+  
+  
+  
+  
+
+  bool umsAvail = false;
+  bool umsConfigured = false;
+  bool umsEnabled = false;
+  bool mtpAvail = false;
+  bool mtpConfigured = false;
+  bool mtpEnabled = false;
+  bool usbCablePluggedIn = IsUsbCablePluggedIn();
 
   if (access(ICS_SYS_USB_FUNCTIONS, F_OK) == 0) {
     char functionsStr[60];
@@ -476,39 +668,148 @@ AutoMounter::UpdateState()
       ERR("Error reading file '%s': %s", ICS_SYS_USB_FUNCTIONS, strerror(errno));
       functionsStr[0] = '\0';
     }
+    DBG("UpdateState: USB functions: '%s'", functionsStr);
+
+    bool  usbConfigured = IsUsbConfigured();
     umsAvail = (access(ICS_SYS_UMS_DIRECTORY, F_OK) == 0);
     if (umsAvail) {
-      umsEnabled = strstr(functionsStr, "mass_storage") != nullptr;
+      umsConfigured = usbConfigured && strstr(functionsStr, USB_FUNC_UMS) != nullptr;
+      umsEnabled = (mMode == AUTOMOUNTER_ENABLE_UMS) ||
+                   (mMode == AUTOMOUNTER_DISABLE_WHEN_UNPLUGGED) && umsConfigured;
+    } else {
+      umsConfigured = false;
+      umsEnabled = false;
     }
+
     mtpAvail = (access(ICS_SYS_MTP_DIRECTORY, F_OK) == 0);
     if (mtpAvail) {
-      mtpEnabled = strstr(functionsStr, "mtp") != nullptr;
+      mtpConfigured = usbConfigured && strstr(functionsStr, USB_FUNC_MTP) != nullptr;
+      mtpEnabled = (mMode == AUTOMOUNTER_ENABLE_MTP) ||
+                   (mMode == AUTOMOUNTER_DISABLE_WHEN_UNPLUGGED) && mtpConfigured;
+    } else {
+      mtpConfigured = false;
+      mtpEnabled = false;
     }
   }
 
-  bool usbCablePluggedIn = IsUsbCablePluggedIn();
-  bool enabled = (mMode == AUTOMOUNTER_ENABLE);
+  bool enabled = mtpEnabled || umsEnabled;
 
   if (mMode == AUTOMOUNTER_DISABLE_WHEN_UNPLUGGED) {
+    
     enabled = usbCablePluggedIn;
     if (!usbCablePluggedIn) {
       mMode = AUTOMOUNTER_DISABLE;
+      mtpEnabled = false;
+      umsEnabled = false;
     }
   }
 
-  bool tryToShare = (((umsAvail && umsEnabled) || (mtpAvail && mtpEnabled))
-                  && enabled && usbCablePluggedIn);
-  LOG("UpdateState: ums:%d%d mtp:%d%d mode:%d usbCablePluggedIn:%d tryToShare:%d",
-      umsAvail, umsEnabled, mtpAvail, mtpEnabled, mMode, usbCablePluggedIn, tryToShare);
+  DBG("UpdateState: ums:A%dC%dE%d mtp:A%dC%dE%d mode:%d usb:%d mState:%s",
+      umsAvail, umsConfigured, umsEnabled,
+      mtpAvail, mtpConfigured, mtpEnabled,
+      mMode, usbCablePluggedIn, StateStr(mState));
 
-  if (mtpAvail && mtpEnabled) {
-    if (enabled && usbCablePluggedIn) {
-      StartMtpServer();
-    } else {
-      StopMtpServer();
-    }
-    return;
+  switch (mState) {
+
+    case STATE_IDLE:
+      if (!usbCablePluggedIn) {
+        
+        
+        break;
+      }
+      if (mtpEnabled) {
+        if (mtpConfigured) {
+          
+          
+          
+          
+          StartMtpServer();
+          SetState(STATE_MTP_STARTED);
+        } else {
+          
+          
+          SetUsbFunction(USB_FUNC_MTP);
+          SetState(STATE_MTP_CONFIGURING);
+        }
+      } else if (umsConfigured) {
+        
+        SetState(STATE_UMS_CONFIGURED);
+      } else if (umsAvail) {
+        
+        
+        
+        SetUsbFunction(USB_FUNC_UMS);
+        SetState(STATE_UMS_CONFIGURING);
+      }
+      break;
+
+    case STATE_MTP_CONFIGURING:
+      
+      
+      
+      if (mtpEnabled && mtpConfigured) {
+        
+        
+        StartMtpServer();
+        SetState(STATE_MTP_STARTED);
+      }
+      break;
+
+    case STATE_MTP_STARTED:
+      if (usbCablePluggedIn) {
+        if (mtpConfigured && mtpEnabled) {
+          
+          break;
+        }
+        DBG("STATE_MTP_STARTED: About to StopMtpServer "
+            "mtpConfigured = %d mtpEnabled = %d usbCablePluggedIn: %d",
+            mtpConfigured, mtpEnabled, usbCablePluggedIn);
+        StopMtpServer();
+        if (umsAvail) {
+          
+          SetUsbFunction(USB_FUNC_UMS);
+          SetState(STATE_UMS_CONFIGURING);
+          break;
+        }
+      }
+      SetState(STATE_IDLE);
+      break;
+
+    case STATE_UMS_CONFIGURING:
+      
+      
+      
+      if (umsConfigured) {
+        SetState(STATE_UMS_CONFIGURED);
+      }
+      break;
+
+    case STATE_UMS_CONFIGURED:
+      if (usbCablePluggedIn) {
+        if (mtpEnabled) {
+          
+          SetState(STATE_MTP_CONFIGURING);
+          SetUsbFunction(USB_FUNC_MTP);
+          break;
+        }
+        if (umsConfigured && umsEnabled) {
+          
+          break;
+        }
+      }
+      SetState(STATE_IDLE);
+      break;
+
+    default:
+      SetState(STATE_IDLE);
+      break;
   }
+
+  bool tryToShare = umsEnabled && usbCablePluggedIn;
+  LOG("UpdateState: ums:A%dC%dE%d mtp:A%dC%dE%d mode:%d usb:%d tryToShare:%d state:%s",
+      umsAvail, umsConfigured, umsEnabled,
+      mtpAvail, mtpConfigured, mtpEnabled,
+      mMode, usbCablePluggedIn, tryToShare, StateStr(mState));
 
   bool filesOpen = false;
   static unsigned filesOpenDelayCount = 0;
@@ -524,7 +825,8 @@ AutoMounter::UpdateState()
           vol->MediaPresent() ? "inserted" : "missing",
           vol->MountPoint().get(), vol->MountGeneration(),
           (int)vol->IsMountLocked(),
-          vol->CanBeShared() ? (vol->IsSharingEnabled() ? (vol->IsSharing() ? "en-y" : "en-n") : "dis") : "x");
+          vol->CanBeShared() ? (vol->IsSharingEnabled() ?
+                                 (vol->IsSharing() ? "en-y" : "en-n") : "dis") : "x");
       if (vol->IsSharing() && !usbCablePluggedIn) {
         
         
@@ -940,6 +1242,7 @@ void
 ShutdownAutoMounter()
 {
   if (sAutoMounter) {
+    DBG("ShutdownAutoMounter: About to StopMtpServer");
     sAutoMounter->StopMtpServer();
   }
   sAutoMounterSetting = nullptr;
