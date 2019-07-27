@@ -176,9 +176,13 @@ private:
 
 
 
+bool CanRecordBase();
 
 
-bool CanRecord();
+
+
+
+bool CanRecordExtended();
 
 
 
