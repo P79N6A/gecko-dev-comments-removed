@@ -65,7 +65,7 @@ function runProcess(aExeFile, aArgs) {
   return process.exitValue;
 }
 
-function test(aJsonFile, aPrefix, aOptions) {
+function test(aPrefix, aArgs) {
   
   
   let expectedFile = FileUtils.getFile("CurWorkD", [aPrefix + "-expected.txt"]);
@@ -77,9 +77,7 @@ function test(aJsonFile, aPrefix, aOptions) {
     gDmdScriptFile.path,
     "--filter-stacks-for-testing",
     "-o", actualFile.path
-  ];
-  args = args.concat(aOptions);
-  args.push(aJsonFile.path);
+  ].concat(aArgs);
 
   runProcess(new FileUtils.File(gPythonName), args);
 
@@ -116,7 +114,7 @@ function test(aJsonFile, aPrefix, aOptions) {
 }
 
 function run_test() {
-  let jsonFile;
+  let jsonFile, jsonFile2;
 
   
   
@@ -134,8 +132,8 @@ function run_test() {
   for (let i = 0; i < fullTestNames.length; i++) {
       let name = fullTestNames[i];
       jsonFile = FileUtils.getFile("CurWorkD", ["full-" + name + ".json"]);
-      test(jsonFile, "full-heap-" + name, ["--ignore-reports"])
-      test(jsonFile, "full-reports-" + name, [])
+      test("full-heap-" + name, ["--ignore-reports", jsonFile.path])
+      test("full-reports-" + name, [jsonFile.path])
       jsonFile.remove(true);
   }
 
@@ -148,27 +146,45 @@ function run_test() {
   
   
   jsonFile = FileUtils.getFile("CurWorkD", ["script-max-frames.json"]);
-  test(jsonFile, "script-max-frames-8", ["-r", "--max-frames=8"]);
-  test(jsonFile, "script-max-frames-3", ["-r", "--max-frames=3",
-                                         "--no-fix-stacks"]);
-  test(jsonFile, "script-max-frames-1", ["-r", "--max-frames=1"]);
+  test("script-max-frames-8",
+       ["--ignore-reports", "--max-frames=8", jsonFile.path]);
+  test("script-max-frames-3",
+       ["--ignore-reports", "--max-frames=3", "--no-fix-stacks",
+        jsonFile.path]);
+  test("script-max-frames-1",
+       ["--ignore-reports", "--max-frames=1", jsonFile.path]);
 
   
   
   
   jsonFile = FileUtils.getFile("CurWorkD", ["script-sort-by.json.gz"]);
-  test(jsonFile, "script-sort-by-usable", ["-r", "--sort-by=usable"]);
-  test(jsonFile, "script-sort-by-req",    ["-r", "--sort-by=req",
-                                           "--no-fix-stacks"]);
-  test(jsonFile, "script-sort-by-slop",   ["-r", "--sort-by=slop"]);
+  test("script-sort-by-usable",
+       ["--ignore-reports", "--sort-by=usable", jsonFile.path]);
+  test("script-sort-by-req",
+       ["--ignore-reports", "--sort-by=req", "--no-fix-stacks", jsonFile.path]);
+  test("script-sort-by-slop",
+       ["--ignore-reports", "--sort-by=slop", jsonFile.path]);
 
   
   
   jsonFile = FileUtils.getFile("CurWorkD", ["script-ignore-alloc-fns.json"]);
-  test(jsonFile, "script-ignore-alloc-fns", ["-r", "--ignore-alloc-fns"]);
+  test("script-ignore-alloc-fns",
+       ["--ignore-reports", "--ignore-alloc-fns", jsonFile.path]);
 
   
   
   jsonFile = FileUtils.getFile("CurWorkD", ["script-show-all-block-sizes.json"]);
-  test(jsonFile, "script-show-all-block-sizes", ["-r", "--show-all-block-sizes"]);
+  test("script-show-all-block-sizes",
+       ["--ignore-reports", "--show-all-block-sizes", jsonFile.path]);
+
+  
+  
+  jsonFile  = FileUtils.getFile("CurWorkD", ["script-diff1.json"]);
+  jsonFile2 = FileUtils.getFile("CurWorkD", ["script-diff2.json"]);
+  test("script-diff-basic",
+       [jsonFile.path, jsonFile2.path]);
+  test("script-diff-options",
+       ["--ignore-reports", "--show-all-block-sizes",
+        jsonFile.path, jsonFile2.path]);
 }
+
