@@ -201,32 +201,6 @@ private:
   T* mInstance;
 };
 
-class RequestClosingSocketRunnable : public SocketIORunnable<UnixSocketImpl>
-{
-public:
-  RequestClosingSocketRunnable(UnixSocketImpl* aImpl)
-  : SocketIORunnable<UnixSocketImpl>(aImpl)
-  { }
-
-  NS_IMETHOD Run() MOZ_OVERRIDE
-  {
-    MOZ_ASSERT(NS_IsMainThread());
-
-    UnixSocketImpl* impl = GetIO();
-    if (impl->IsShutdownOnMainThread()) {
-      NS_WARNING("CloseSocket has already been called!");
-      
-      
-      return NS_OK;
-    }
-
-    
-    
-    impl->mConsumer->CloseSocket();
-    return NS_OK;
-  }
-};
-
 class UnixSocketImplTask : public CancelableTask
 {
 public:
@@ -594,8 +568,8 @@ UnixSocketImpl::OnSocketCanReceiveWithoutBlocking()
       
       
       RemoveWatchers(READ_WATCHER|WRITE_WATCHER);
-      nsRefPtr<RequestClosingSocketRunnable> r =
-        new RequestClosingSocketRunnable(this);
+      nsRefPtr<nsRunnable> r =
+        new SocketIORequestClosingRunnable<UnixSocketImpl>(this);
       NS_DispatchToMainThread(r);
       return;
     }
