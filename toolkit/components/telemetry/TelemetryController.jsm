@@ -21,6 +21,7 @@ Cu.import("resource://gre/modules/PromiseUtils.jsm", this);
 Cu.import("resource://gre/modules/Task.jsm", this);
 Cu.import("resource://gre/modules/DeferredTask.jsm", this);
 Cu.import("resource://gre/modules/Preferences.jsm");
+Cu.import("resource://gre/modules/Timer.jsm");
 
 const LOGGER_NAME = "Toolkit.Telemetry";
 const LOGGER_PREFIX = "TelemetryController::";
@@ -51,6 +52,12 @@ const TELEMETRY_TEST_DELAY = 100;
 const DEFAULT_RETENTION_DAYS = 14;
 
 const PING_SUBMIT_TIMEOUT_MS = 2 * 60 * 1000;
+
+
+const MIDNIGHT_TOLERANCE_MS = 15 * 60 * 1000;
+
+const MIDNIGHT_FUZZING_INTERVAL_MS = 60 * 60 * 1000;
+const MIDNIGHT_FUZZING_DELAY_MS = Math.random() * MIDNIGHT_FUZZING_INTERVAL_MS;
 
 XPCOMUtils.defineLazyModuleGetter(this, "ClientID",
                                   "resource://gre/modules/ClientID.jsm");
@@ -122,8 +129,27 @@ function isNewPingFormat(aPing) {
 
 
 
+function truncateToDays(date) {
+  return new Date(date.getFullYear(),
+                  date.getMonth(),
+                  date.getDate(),
+                  0, 0, 0, 0);
+}
+
+function tomorrow(date) {
+  let d = new Date(date);
+  d.setDate(d.getDate() + 1);
+  return d;
+}
+
+
+
+
 let Policy = {
   now: () => new Date(),
+  midnightPingFuzzingDelay: () => MIDNIGHT_FUZZING_DELAY_MS,
+  setPingSendTimeout: (callback, delayMs) => setTimeout(callback, delayMs),
+  clearPingSendTimeout: (id) => clearTimeout(id),
 }
 
 this.EXPORTED_SYMBOLS = ["TelemetryController"];
@@ -346,6 +372,9 @@ let Impl = {
   
   _delayedInitTaskDeferred: null,
   
+  _pingSendTimer: null,
+
+  
   _sessionRecorder: null,
   
   
@@ -496,6 +525,31 @@ let Impl = {
 
 
 
+  _getNextPingSendTime: function(now) {
+    const todayDate = truncateToDays(now);
+    const tomorrowDate = tomorrow(todayDate);
+    const nextMidnightRangeStart = tomorrowDate.getTime() - MIDNIGHT_TOLERANCE_MS;
+    const currentMidnightRangeEnd = todayDate.getTime() - MIDNIGHT_TOLERANCE_MS + Policy.midnightPingFuzzingDelay();
+
+    if (now.getTime() < currentMidnightRangeEnd) {
+      return currentMidnightRangeEnd;
+    }
+
+    if (now.getTime() >= nextMidnightRangeStart) {
+      return nextMidnightRangeStart + Policy.midnightPingFuzzingDelay();
+    }
+
+    return now.getTime();
+  },
+
+  
+
+
+
+
+
+
+
 
 
 
@@ -514,12 +568,23 @@ let Impl = {
     
     let archivePromise = TelemetryArchive.promiseArchivePing(pingData)
       .catch(e => this._log.error("submitExternalPing - Failed to archive ping " + pingData.id, e));
-
     let p = [ archivePromise ];
 
-    if (!this._initialized) {
+    
+    const now = Policy.now();
+    const nextPingSendTime = this._getNextPingSendTime(now);
+    const throttled = (nextPingSendTime > now.getTime());
+
+    
+    if (throttled) {
+      this._log.trace("submitExternalPing - throttled, delaying ping send to " + new Date(nextPingSendTime));
+      this._reschedulePingSendTimer(nextPingSendTime);
+    }
+
+    if (!this._initialized || throttled) {
       
-      this._log.trace("submitExternalPing - still initializing, ping is pending");
+      this._log.trace("submitExternalPing - ping is pending, initialized: " + this._initialized +
+                      ", throttled: " + throttled);
       p.push(TelemetryStorage.addPendingPing(pingData));
     } else {
       
@@ -546,6 +611,16 @@ let Impl = {
       return Promise.resolve();
     }
 
+    
+    const now = Policy.now();
+    const nextPingSendTime = this._getNextPingSendTime(now);
+    if (nextPingSendTime > now.getTime()) {
+      this._log.trace("sendPersistedPings - delaying ping send to " + new Date(nextPingSendTime));
+      this._reschedulePingSendTimer(nextPingSendTime);
+      return Promise.resolve();
+    }
+
+    
     let pingsIterator = Iterator(this.popPayloads());
     let p = [for (data of pingsIterator) this.doPing(data, true).catch((e) => {
       this._log.error("sendPersistedPings - doPing rejected", e);
@@ -959,6 +1034,10 @@ let Impl = {
     try {
       
       yield this._shutdownBarrier.wait();
+
+      
+      this._clearPingSendTimer();
+
       
       yield this._connectionsBarrier.wait();
     } finally {
@@ -1049,6 +1128,19 @@ let Impl = {
       shutdownBarrier: this._shutdownBarrier.state,
       connectionsBarrier: this._connectionsBarrier.state,
     };
+  },
+
+  _reschedulePingSendTimer: function(timestamp) {
+    this._clearPingSendTimer();
+    const interval = timestamp - Policy.now();
+    this._pingSendTimer = Policy.setPingSendTimeout(() => this.sendPersistedPings(), interval);
+  },
+
+  _clearPingSendTimer: function() {
+    if (this._pingSendTimer) {
+      Policy.clearPingSendTimeout(this._pingSendTimer);
+      this._pingSendTimer = null;
+    }
   },
 
   
