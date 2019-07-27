@@ -21,7 +21,8 @@ nsContextMenu.prototype = {
       return;
 
     this.hasPageMenu = false;
-    if (!aIsShift) {
+    
+    if (!aIsShift && !this.isRemote) {
       this.hasPageMenu = PageMenu.maybeBuildAndAttachMenu(this.target,
                                                           aXulMenu);
     }
