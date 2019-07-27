@@ -147,10 +147,6 @@
 .realtime-disabled-message,
 .realtime-disabled-on-e10s-message {
   display: none;
-  
-
-
-  max-width: 60vw;
 }
 
 #performance-view[e10s="disabled"] .realtime-disabled-on-e10s-message {
