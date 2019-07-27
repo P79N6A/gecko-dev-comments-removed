@@ -80,6 +80,13 @@ public:
 
   void QueueEvents(EventArray& aEventsToDispatch);
 
+  
+  
+  
+  
+  
+  bool mInEffectForCascadeResults;
+
 protected:
   virtual ~CSSAnimationPlayer() { }
   virtual css::CommonAnimationManager* GetAnimationManager() const override;
@@ -170,6 +177,9 @@ public:
                             mozilla::EnsureStyleRuleFlags aFlags);
   void QueueEvents(mozilla::AnimationPlayerCollection* aEA,
                    mozilla::EventArray &aEventsToDispatch);
+
+  void MaybeUpdateCascadeResults(mozilla::AnimationPlayerCollection*
+                                   aCollection);
 
   
   virtual size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf)

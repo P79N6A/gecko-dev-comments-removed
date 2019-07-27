@@ -803,6 +803,13 @@ AnimationPlayerCollection::EnsureStyleRuleFor(TimeStamp aRefreshTime,
   
   if (mStyleRuleRefreshTime.IsNull() ||
       mStyleRuleRefreshTime != aRefreshTime) {
+    if (mManager->IsAnimationManager()) {
+      
+      
+      static_cast<nsAnimationManager*>(mManager)->
+        MaybeUpdateCascadeResults(this);
+    }
+
     mStyleRuleRefreshTime = aRefreshTime;
     mStyleRule = nullptr;
     
