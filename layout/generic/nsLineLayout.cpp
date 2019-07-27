@@ -485,19 +485,7 @@ nsLineLayout::SplitLineTo(int32_t aNewCount)
       psd->mLastFrame = pfd;
 
       
-      pfd = next;
-      while (nullptr != pfd) {
-        next = pfd->mNext;
-        pfd->mNext = mBaseLineLayout->mFrameFreeList;
-        mBaseLineLayout->mFrameFreeList = pfd;
-#ifdef DEBUG
-        mBaseLineLayout->mFramesFreed++;
-#endif
-        if (nullptr != pfd->mSpan) {
-          FreeSpan(pfd->mSpan);
-        }
-        pfd = next;
-      }
+      UnlinkFrame(next);
       break;
     }
     pfd = pfd->mNext;
@@ -535,14 +523,8 @@ nsLineLayout::PushFrame(nsIFrame* aFrame)
   }
 
   
-  pfd->mNext = mBaseLineLayout->mFrameFreeList;
-  mBaseLineLayout->mFrameFreeList = pfd;
-#ifdef DEBUG
-  mBaseLineLayout->mFramesFreed++;
-#endif
-  if (nullptr != pfd->mSpan) {
-    FreeSpan(pfd->mSpan);
-  }
+  MOZ_ASSERT(!pfd->mNext);
+  UnlinkFrame(pfd);
 #ifdef NOISY_PUSHING
   nsFrame::IndentBy(stdout, mSpanDepth);
   printf("PushFrame: %p after:\n", psd);
@@ -551,15 +533,13 @@ nsLineLayout::PushFrame(nsIFrame* aFrame)
 }
 
 void
-nsLineLayout::FreeSpan(PerSpanData* psd)
+nsLineLayout::UnlinkFrame(PerFrameData* pfd)
 {
-  
-  PerFrameData* pfd = psd->mFirstFrame;
   while (nullptr != pfd) {
+    PerFrameData* next = pfd->mNext;
     if (nullptr != pfd->mSpan) {
       FreeSpan(pfd->mSpan);
     }
-    PerFrameData* next = pfd->mNext;
     pfd->mNext = mBaseLineLayout->mFrameFreeList;
     mBaseLineLayout->mFrameFreeList = pfd;
 #ifdef DEBUG
@@ -567,6 +547,13 @@ nsLineLayout::FreeSpan(PerSpanData* psd)
 #endif
     pfd = next;
   }
+}
+
+void
+nsLineLayout::FreeSpan(PerSpanData* psd)
+{
+  
+  UnlinkFrame(psd->mFirstFrame);
 
   
   psd->mNextFreeSpan = mBaseLineLayout->mSpanFreeList;
