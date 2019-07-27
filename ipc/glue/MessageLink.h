@@ -170,9 +170,6 @@ class ProcessLink
     Transport* mTransport;
     MessageLoop* mIOLoop;       
     Transport::Listener* mExistingListener; 
-#ifdef MOZ_NUWA_PROCESS
-    bool mIsToNuwaProcess;
-#endif
 };
 
 class ThreadLink : public MessageLink
