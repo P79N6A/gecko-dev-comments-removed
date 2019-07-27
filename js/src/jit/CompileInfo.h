@@ -493,6 +493,9 @@ class CompileInfo
         if (slot == thisSlot())
             return true;
 
+        if (funMaybeLazy()->isHeavyweight() && slot == scopeChainSlot())
+            return true;
+
         
         
         
