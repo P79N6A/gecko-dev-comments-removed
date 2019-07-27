@@ -117,6 +117,11 @@ using namespace js::jit;
 
 
 
+
+
+
+
+
 const RValueAllocation::Layout &
 RValueAllocation::layoutFromMode(Mode mode)
 {
@@ -228,6 +233,14 @@ RValueAllocation::layoutFromMode(Mode mode)
             PAYLOAD_INDEX,
             PAYLOAD_NONE,
             "instruction"
+        };
+        return layout;
+      }
+      case RI_WITH_DEFAULT_CST: {
+        static const RValueAllocation::Layout layout = {
+            PAYLOAD_INDEX,
+            PAYLOAD_INDEX,
+            "instruction with default"
         };
         return layout;
       }

@@ -1749,7 +1749,7 @@ FromTypedPayload(JSValueType type, uintptr_t payload)
 }
 
 bool
-SnapshotIterator::allocationReadable(const RValueAllocation &alloc)
+SnapshotIterator::allocationReadable(const RValueAllocation &alloc, ReadMethod rm)
 {
     switch (alloc.mode()) {
       case RValueAllocation::DOUBLE_REG:
@@ -1776,6 +1776,8 @@ SnapshotIterator::allocationReadable(const RValueAllocation &alloc)
 
       case RValueAllocation::RECOVER_INSTRUCTION:
         return hasInstructionResult(alloc.index());
+      case RValueAllocation::RI_WITH_DEFAULT_CST:
+        return rm & RM_AlwaysDefault || hasInstructionResult(alloc.index());
 
       default:
         return true;
@@ -1783,7 +1785,7 @@ SnapshotIterator::allocationReadable(const RValueAllocation &alloc)
 }
 
 Value
-SnapshotIterator::allocationValue(const RValueAllocation &alloc)
+SnapshotIterator::allocationValue(const RValueAllocation &alloc, ReadMethod rm)
 {
     switch (alloc.mode()) {
       case RValueAllocation::CONSTANT:
@@ -1887,6 +1889,12 @@ SnapshotIterator::allocationValue(const RValueAllocation &alloc)
       case RValueAllocation::RECOVER_INSTRUCTION:
         return fromInstructionResult(alloc.index());
 
+      case RValueAllocation::RI_WITH_DEFAULT_CST:
+        if (rm & RM_Normal && hasInstructionResult(alloc.index()))
+            return fromInstructionResult(alloc.index());
+        MOZ_ASSERT(rm & RM_AlwaysDefault);
+        return ionScript_->getConstant(alloc.index2());
+
       default:
         MOZ_CRASH("huh?");
     }
@@ -1956,6 +1964,12 @@ SnapshotIterator::writeAllocationValuePayload(const RValueAllocation &alloc, Val
         MOZ_CRASH("Recover instructions are handled by the JitActivation.");
         break;
 
+      case RValueAllocation::RI_WITH_DEFAULT_CST:
+        
+        
+        ionScript_->getConstant(alloc.index2()) = v;
+        break;
+
       default:
         MOZ_CRASH("huh?");
     }
@@ -1965,10 +1979,10 @@ void
 SnapshotIterator::traceAllocation(JSTracer *trc)
 {
     RValueAllocation alloc = readAllocation();
-    if (!allocationReadable(alloc))
+    if (!allocationReadable(alloc, RM_AlwaysDefault))
         return;
 
-    Value v = allocationValue(alloc);
+    Value v = allocationValue(alloc, RM_AlwaysDefault);
     if (!v.isMarkable())
         return;
 
@@ -2314,7 +2328,11 @@ InlineFrameIterator::findNextFrame()
             si_.skip();
 
         
-        Value funval = si_.read();
+        
+        
+        
+        
+        Value funval = si_.readWithDefault();
 
         
         while (si_.moreAllocations())

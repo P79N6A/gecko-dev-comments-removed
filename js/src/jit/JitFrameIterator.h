@@ -356,6 +356,18 @@ class SnapshotIterator
     IonScript *ionScript_;
     RInstructionResults *instructionResults_;
 
+    enum ReadMethod {
+        
+        RM_Normal          = 1 << 0,
+
+        
+        RM_AlwaysDefault   = 1 << 1,
+
+        
+        
+        RM_NormalOrDefault = RM_Normal | RM_AlwaysDefault,
+    };
+
   private:
     
     bool hasRegister(Register reg) const {
@@ -383,8 +395,8 @@ class SnapshotIterator
     }
     Value fromInstructionResult(uint32_t index) const;
 
-    Value allocationValue(const RValueAllocation &a);
-    bool allocationReadable(const RValueAllocation &a);
+    Value allocationValue(const RValueAllocation &a, ReadMethod rm = RM_Normal);
+    bool allocationReadable(const RValueAllocation &a, ReadMethod rm = RM_Normal);
     void writeAllocationValuePayload(const RValueAllocation &a, Value v);
     void warnUnreadableAllocation();
 
@@ -480,6 +492,14 @@ class SnapshotIterator
 
     Value read() {
         return allocationValue(readAllocation());
+    }
+
+    
+    
+    
+    
+    Value readWithDefault() {
+        return allocationValue(readAllocation(), RM_NormalOrDefault);
     }
 
     Value maybeRead(MaybeReadFallback &fallback) {
