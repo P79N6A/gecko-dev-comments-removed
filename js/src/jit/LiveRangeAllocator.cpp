@@ -12,7 +12,6 @@
 
 #include "jit/BacktrackingAllocator.h"
 #include "jit/BitSet.h"
-#include "jit/LinearScan.h"
 
 using namespace js;
 using namespace js::jit;
@@ -244,21 +243,6 @@ LiveInterval::covers(CodePosition pos)
 }
 
 CodePosition
-LiveInterval::nextCoveredAfter(CodePosition pos)
-{
-    for (size_t i = 0; i < ranges_.length(); i++) {
-        if (ranges_[i].to <= pos) {
-            if (i)
-                return ranges_[i-1].from;
-            break;
-        }
-        if (ranges_[i].from <= pos)
-            return pos;
-    }
-    return CodePosition::MIN;
-}
-
-CodePosition
 LiveInterval::intersect(LiveInterval* other)
 {
     if (start() > other->start())
@@ -409,22 +393,6 @@ LiveInterval::nextUsePosAfter(CodePosition after)
     return min ? min->pos : CodePosition::MAX;
 }
 
-
-
-
-
-
-
-CodePosition
-LiveInterval::firstIncompatibleUse(LAllocation alloc)
-{
-    for (UsePositionIterator usePos(usesBegin()); usePos != usesEnd(); usePos++) {
-        if (!UseCompatibleWith(usePos->use, alloc))
-            return usePos->pos;
-    }
-    return CodePosition::MAX;
-}
-
 LiveInterval*
 VirtualRegister::intervalFor(CodePosition pos)
 {
@@ -446,24 +414,10 @@ VirtualRegister::getFirstInterval()
 }
 
 
-template bool LiveRangeAllocator<LinearScanVirtualRegister, true>::buildLivenessInfo();
-template bool LiveRangeAllocator<BacktrackingVirtualRegister, false>::buildLivenessInfo();
-template void LiveRangeAllocator<LinearScanVirtualRegister, true>::dumpVregs();
-template void LiveRangeAllocator<BacktrackingVirtualRegister, false>::dumpVregs();
+template bool LiveRangeAllocator<BacktrackingVirtualRegister>::buildLivenessInfo();
+template void LiveRangeAllocator<BacktrackingVirtualRegister>::dumpVregs();
 
 #ifdef DEBUG
-static inline bool
-NextInstructionHasFixedUses(LBlock* block, LInstruction* ins)
-{
-    LInstructionIterator iter(block->begin(ins));
-    iter++;
-    for (LInstruction::InputIterator alloc(**iter); alloc.more(); alloc.next()) {
-        if (alloc->isUse() && alloc->toUse()->isFixedRegister())
-            return true;
-    }
-    return false;
-}
-
 
 static bool
 IsInputReused(LInstruction* ins, LUse* use)
@@ -492,9 +446,9 @@ IsInputReused(LInstruction* ins, LUse* use)
 
 
 
-template <typename VREG, bool forLSRA>
+template <typename VREG>
 bool
-LiveRangeAllocator<VREG, forLSRA>::init()
+LiveRangeAllocator<VREG>::init()
 {
     if (!RegisterAllocator::init())
         return false;
@@ -550,20 +504,6 @@ LiveRangeAllocator<VREG, forLSRA>::init()
     return true;
 }
 
-static void
-AddRegisterToSafepoint(LSafepoint* safepoint, AnyRegister reg, const LDefinition& def)
-{
-    safepoint->addLiveRegister(reg);
-
-    MOZ_ASSERT(def.type() == LDefinition::GENERAL ||
-               def.type() == LDefinition::INT32 ||
-               def.type() == LDefinition::DOUBLE ||
-               def.type() == LDefinition::FLOAT32 ||
-               def.type() == LDefinition::OBJECT);
-
-    if (def.type() == LDefinition::OBJECT)
-        safepoint->addGcRegister(reg.gpr());
-}
 
 
 
@@ -584,10 +524,9 @@ AddRegisterToSafepoint(LSafepoint* safepoint, AnyRegister reg, const LDefinition
 
 
 
-
-template <typename VREG, bool forLSRA>
+template <typename VREG>
 bool
-LiveRangeAllocator<VREG, forLSRA>::buildLivenessInfo()
+LiveRangeAllocator<VREG>::buildLivenessInfo()
 {
     JitSpew(JitSpew_RegAlloc, "Beginning liveness analysis");
 
@@ -646,22 +585,17 @@ LiveRangeAllocator<VREG, forLSRA>::buildLivenessInfo()
             
             if (ins->isCall()) {
                 for (AnyRegisterIterator iter(allRegisters_.asLiveSet()); iter.more(); iter++) {
-                    if (forLSRA) {
-                        if (!addFixedRangeAtHead(*iter, inputOf(*ins), outputOf(*ins)))
-                            return false;
-                    } else {
-                        bool found = false;
+                    bool found = false;
 
-                        for (size_t i = 0; i < ins->numDefs(); i++) {
-                            if (ins->getDef(i)->isFixed() &&
-                                ins->getDef(i)->output()->aliases(LAllocation(*iter))) {
-                                found = true;
-                                break;
-                            }
+                    for (size_t i = 0; i < ins->numDefs(); i++) {
+                        if (ins->getDef(i)->isFixed() &&
+                            ins->getDef(i)->output()->aliases(LAllocation(*iter))) {
+                            found = true;
+                            break;
                         }
-                        if (!found && !addFixedRangeAtHead(*iter, outputOf(*ins), outputOf(*ins).next()))
-                            return false;
                     }
+                    if (!found && !addFixedRangeAtHead(*iter, outputOf(*ins), outputOf(*ins).next()))
+                        return false;
                 }
             }
             DebugOnly<bool> hasDoubleDef = false;
@@ -676,23 +610,7 @@ LiveRangeAllocator<VREG, forLSRA>::buildLivenessInfo()
                     if (def->type() == LDefinition::FLOAT32)
                         hasFloat32Def = true;
 #endif
-                CodePosition from;
-                if (def->policy() == LDefinition::FIXED && def->output()->isRegister() && forLSRA) {
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    MOZ_ASSERT(!NextInstructionHasFixedUses(block, *ins));
-                    AnyRegister reg = def->output()->toRegister();
-                    if (!addFixedRangeAtHead(reg, inputOf(*ins), outputOf(*ins).next()))
-                        return false;
-                    from = outputOf(*ins).next();
-                } else {
-                    from = forLSRA ? inputOf(*ins) : outputOf(*ins);
-                }
+                CodePosition from = outputOf(*ins);
 
                 if (def->policy() == LDefinition::MUST_REUSE_INPUT) {
                     
@@ -723,48 +641,29 @@ LiveRangeAllocator<VREG, forLSRA>::buildLivenessInfo()
                 if (temp->isBogusTemp())
                     continue;
 
-                if (forLSRA) {
-                    if (temp->policy() == LDefinition::FIXED) {
-                        if (ins->isCall())
-                            continue;
-                        AnyRegister reg = temp->output()->toRegister();
-                        if (!addFixedRangeAtHead(reg, inputOf(*ins), outputOf(*ins)))
-                            return false;
-
-                        
-                        
-                        if (LSafepoint* safepoint = ins->safepoint())
-                            AddRegisterToSafepoint(safepoint, reg, *temp);
-                    } else {
-                        MOZ_ASSERT(!ins->isCall());
-                        if (!vregs[temp].getInterval(0)->addRangeAtHead(inputOf(*ins), outputOf(*ins)))
-                            return false;
-                    }
-                } else {
-                    
-                    
-                    
-                    
-                    
-                    CodePosition from = inputOf(*ins);
-                    if (temp->policy() == LDefinition::FIXED) {
-                        AnyRegister reg = temp->output()->toRegister();
-                        for (LInstruction::InputIterator alloc(**ins); alloc.more(); alloc.next()) {
-                            if (alloc->isUse()) {
-                                LUse* use = alloc->toUse();
-                                if (use->isFixedRegister()) {
-                                    if (GetFixedRegister(vregs[use].def(), use) == reg)
-                                        from = outputOf(*ins);
-                                }
+                
+                
+                
+                
+                
+                CodePosition from = inputOf(*ins);
+                if (temp->policy() == LDefinition::FIXED) {
+                    AnyRegister reg = temp->output()->toRegister();
+                    for (LInstruction::InputIterator alloc(**ins); alloc.more(); alloc.next()) {
+                        if (alloc->isUse()) {
+                            LUse* use = alloc->toUse();
+                            if (use->isFixedRegister()) {
+                                if (GetFixedRegister(vregs[use].def(), use) == reg)
+                                    from = outputOf(*ins);
                             }
                         }
                     }
-
-                    CodePosition to =
-                        ins->isCall() ? outputOf(*ins) : outputOf(*ins).next();
-                    if (!vregs[temp].getInterval(0)->addRangeAtHead(from, to))
-                        return false;
                 }
+
+                CodePosition to =
+                    ins->isCall() ? outputOf(*ins) : outputOf(*ins).next();
+                if (!vregs[temp].getInterval(0)->addRangeAtHead(from, to))
+                    return false;
             }
 
             DebugOnly<bool> hasUseRegister = false;
@@ -773,9 +672,6 @@ LiveRangeAllocator<VREG, forLSRA>::buildLivenessInfo()
             for (LInstruction::InputIterator inputAlloc(**ins); inputAlloc.more(); inputAlloc.next()) {
                 if (inputAlloc->isUse()) {
                     LUse* use = inputAlloc->toUse();
-
-                    
-                    MOZ_ASSERT_IF(forLSRA, inputOf(*ins) > outputOf(block->firstElementWithId()));
 
                     
                     
@@ -802,53 +698,29 @@ LiveRangeAllocator<VREG, forLSRA>::buildLivenessInfo()
                         }
                     }
                     MOZ_ASSERT(!(hasUseRegister && hasUseRegisterAtStart));
-
-                    
-                    MOZ_ASSERT_IF(forLSRA && hasUnaliasedDouble() && hasFloat32Def
-                                  && vregs[use].type() == LDefinition::DOUBLE,
-                                  !use->usedAtStart());
-                    MOZ_ASSERT_IF(forLSRA && hasMultiAlias() && hasDoubleDef
-                                  && vregs[use].type() == LDefinition::FLOAT32,
-                                  !use->usedAtStart());
 #endif
 
                     
                     if (use->policy() == LUse::RECOVERED_INPUT)
                         continue;
 
-                    CodePosition to;
-                    if (forLSRA) {
-                        if (use->isFixedRegister()) {
-                            AnyRegister reg = GetFixedRegister(vregs[use].def(), use);
-                            if (!addFixedRangeAtHead(reg, inputOf(*ins), outputOf(*ins)))
-                                return false;
-                            to = inputOf(*ins);
-
-                            
-                            
-                            LSafepoint* safepoint = ins->safepoint();
-                            if (!ins->isCall() && safepoint)
-                                AddRegisterToSafepoint(safepoint, reg, *vregs[use].def());
-                        } else {
-                            to = use->usedAtStart() ? inputOf(*ins) : outputOf(*ins);
-                        }
-                    } else {
-                        
-                        
-                        to = (use->usedAtStart() || (ins->isCall() && use->isFixedRegister()))
-                           ? inputOf(*ins) : outputOf(*ins);
-                        if (use->isFixedRegister()) {
-                            LAllocation reg(AnyRegister::FromCode(use->registerCode()));
-                            for (size_t i = 0; i < ins->numDefs(); i++) {
-                                LDefinition* def = ins->getDef(i);
-                                if (def->policy() == LDefinition::FIXED && *def->output() == reg)
-                                    to = inputOf(*ins);
-                            }
+                    
+                    
+                    CodePosition to =
+                        (use->usedAtStart() || (ins->isCall() && use->isFixedRegister()))
+                        ? inputOf(*ins)
+                        : outputOf(*ins);
+                    if (use->isFixedRegister()) {
+                        LAllocation reg(AnyRegister::FromCode(use->registerCode()));
+                        for (size_t i = 0; i < ins->numDefs(); i++) {
+                            LDefinition* def = ins->getDef(i);
+                            if (def->policy() == LDefinition::FIXED && *def->output() == reg)
+                                to = inputOf(*ins);
                         }
                     }
 
                     LiveInterval* interval = vregs[use].getInterval(0);
-                    if (!interval->addRangeAtHead(entryOf(block), forLSRA ? to : to.next()))
+                    if (!interval->addRangeAtHead(entryOf(block), to.next()))
                         return false;
                     interval->addUse(new(alloc()) UsePosition(use, to));
 
@@ -963,9 +835,9 @@ LiveRangeAllocator<VREG, forLSRA>::buildLivenessInfo()
     return true;
 }
 
-template <typename VREG, bool forLSRA>
+template <typename VREG>
 void
-LiveRangeAllocator<VREG, forLSRA>::dumpVregs()
+LiveRangeAllocator<VREG>::dumpVregs()
 {
 #ifdef DEBUG
     

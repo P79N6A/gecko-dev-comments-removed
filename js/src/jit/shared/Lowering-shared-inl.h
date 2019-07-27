@@ -69,12 +69,7 @@ LIRGeneratorShared::defineFixed(LInstructionHelper<1, X, Y>* lir, MDefinition* m
     LDefinition def(type, LDefinition::FIXED);
     def.setOutput(output);
 
-    
-    
     define(lir, mir, def);
-
-    if (gen->optimizationInfo().registerAllocator() == RegisterAllocator_LSRA)
-        add(new(alloc()) LNop);
 }
 
 template <size_t Ops, size_t Temps> void
@@ -155,9 +150,6 @@ LIRGeneratorShared::defineReturn(LInstruction* lir, MDefinition* mir)
 
     mir->setVirtualRegister(vreg);
     add(lir);
-
-    if (gen->optimizationInfo().registerAllocator() == RegisterAllocator_LSRA)
-        add(new(alloc()) LNop);
 }
 
 

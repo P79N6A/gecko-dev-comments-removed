@@ -1488,7 +1488,7 @@ CodeGeneratorShared::labelForBackedgeWithImplicitCheck(MBasicBlock* mir)
     
     if (!gen->compilingAsmJS() && mir->isLoopHeader() && mir->id() <= current->mir()->id()) {
         for (LInstructionIterator iter = mir->lir()->begin(); iter != mir->lir()->end(); iter++) {
-            if (iter->isLabel() || iter->isMoveGroup()) {
+            if (iter->isMoveGroup()) {
                 
             } else if (iter->isInterruptCheckImplicit()) {
                 return iter->toInterruptCheckImplicit()->oolEntry();

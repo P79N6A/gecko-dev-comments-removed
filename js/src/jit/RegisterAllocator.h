@@ -339,7 +339,7 @@ class RegisterAllocator
         
         while (true) {
             LNode* next = insData[ins->id() + 1];
-            if (!next->isNop() && !next->isOsiPoint())
+            if (!next->isOsiPoint())
                 break;
             ins = next;
         }

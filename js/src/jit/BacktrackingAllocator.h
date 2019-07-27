@@ -109,8 +109,11 @@ class BacktrackingVirtualRegister : public VirtualRegister
 typedef js::Vector<CodePosition, 4, SystemAllocPolicy> SplitPositionVector;
 
 class BacktrackingAllocator
-  : private LiveRangeAllocator<BacktrackingVirtualRegister,  false>
+  : private LiveRangeAllocator<BacktrackingVirtualRegister>
 {
+    friend class C1Spewer;
+    friend class JSONSpewer;
+
     
     
     struct QueueItem
@@ -196,7 +199,7 @@ class BacktrackingAllocator
 
   public:
     BacktrackingAllocator(MIRGenerator* mir, LIRGenerator* lir, LIRGraph& graph)
-      : LiveRangeAllocator<BacktrackingVirtualRegister,  false>(mir, lir, graph),
+      : LiveRangeAllocator<BacktrackingVirtualRegister>(mir, lir, graph),
         numVirtualStackSlots(0)
     { }
 
