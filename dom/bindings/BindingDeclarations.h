@@ -38,7 +38,7 @@ protected:
 
   bool StringifyToJSON(JSContext* aCx,
                        JS::MutableHandle<JS::Value> aValue,
-                       nsAString& aJSON);
+                       nsAString& aJSON) const;
 private:
   
   
