@@ -5,9 +5,6 @@
 
 package org.mozilla.gecko.home;
 
-import java.util.EnumMap;
-import java.util.Map;
-
 import org.mozilla.gecko.GeckoScreenOrientation;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.fxa.AccountLoader;
@@ -24,6 +21,7 @@ import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager.LoaderCallbacks;
 import android.support.v4.content.Loader;
+import android.support.v4.util.Pair;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -43,24 +41,13 @@ public class RemoteTabsPanel extends HomeFragment {
 
     
     private static final int LOADER_ID_ACCOUNT = 0;
+    private static final String FRAGMENT_ACTION = "FRAGMENT_ACTION";
+    private static final String FRAGMENT_ORIENTATION = "FRAGMENT_ORIENTATION";
+    private static final String FRAGMENT_TAG = "FRAGMENT_TAG";
+    private static final String NO_ACCOUNT = "NO_ACCOUNT";
 
     
     private AccountLoaderCallbacks mAccountLoaderCallbacks;
-
-    
-    
-    
-    private Fragment mCurrentFragment;
-
-    
-    
-    
-    private final Map<Action, Fragment> mFragmentCache = new EnumMap<>(Action.class);
-
-    
-    
-    
-    private Fragment mFallbackFragment;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -79,11 +66,23 @@ public class RemoteTabsPanel extends HomeFragment {
     @Override
     protected void loadIfVisible() {
         
-        if (canLoad() && HardwareUtils.isTablet() && (mCurrentFragment instanceof RemoteTabsBaseFragment)) {
-            load();
-            return;
-        }
+        Pair<String, Integer> actionOrientationPair;
+        if (canLoad() && HardwareUtils.isTablet() && (actionOrientationPair = getActionAndOrientationForFragmentInBackStack()) != null) {
+            if (actionOrientationPair.first.equals(Action.None.name()) && actionOrientationPair.second != GeckoScreenOrientation.getInstance().getAndroidOrientation()) {
+                
+                
+                
+                getChildFragmentManager()
+                        .beginTransaction()
+                        .addToBackStack(null)
+                        .remove(getChildFragmentManager().findFragmentByTag(FRAGMENT_TAG))
+                        .commitAllowingStateLoss();
+                getChildFragmentManager().executePendingTransactions();
 
+                load();
+                return;
+            }
+        }
         super.loadIfVisible();
     }
 
@@ -92,24 +91,42 @@ public class RemoteTabsPanel extends HomeFragment {
         getLoaderManager().initLoader(LOADER_ID_ACCOUNT, null, mAccountLoaderCallbacks);
     }
 
-    private void showSubPanel(Fragment subPanel) {
-        if (mCurrentFragment == subPanel) {
+    private void showSubPanel(Account account) {
+        final Action actionNeeded = getActionNeeded(account);
+        final String actionString = actionNeeded != null ? actionNeeded.name() : NO_ACCOUNT;
+        final int orientation = HardwareUtils.isTablet() ? GeckoScreenOrientation.getInstance().getAndroidOrientation()
+                : Configuration.ORIENTATION_UNDEFINED;
+
+        
+        final Pair<String, Integer> actionOrientationPair = getActionAndOrientationForFragmentInBackStack();
+        if (actionOrientationPair != null && actionOrientationPair.first.equals(actionString) && (actionOrientationPair.second == orientation)) {
             return;
         }
-        mCurrentFragment = subPanel;
 
-        Bundle args = subPanel.getArguments();
-        if (args == null) {
-            args = new Bundle();
-        }
+        
+        Fragment subPanel = makeFragmentForAction(actionNeeded);
+        final Bundle args = new Bundle();
         args.putBoolean(HomePager.CAN_LOAD_ARG, getCanLoadHint());
+        args.putString(FRAGMENT_ACTION, actionString);
+        args.putInt(FRAGMENT_ORIENTATION, orientation);
         subPanel.setArguments(args);
 
+        
         getChildFragmentManager()
             .beginTransaction()
             .addToBackStack(null)
-            .replace(R.id.remote_tabs_container, subPanel)
+            .replace(R.id.remote_tabs_container, subPanel, FRAGMENT_TAG)
             .commitAllowingStateLoss();
+    }
+
+    private Pair<String, Integer> getActionAndOrientationForFragmentInBackStack() {
+        final Fragment currentFragment = getChildFragmentManager().findFragmentByTag(FRAGMENT_TAG);
+        if (currentFragment != null && currentFragment.getArguments() != null) {
+            final String fragmentAction  = currentFragment.getArguments().getString(FRAGMENT_ACTION);
+            final int fragmentOrientation = currentFragment.getArguments().getInt(FRAGMENT_ORIENTATION);
+            return Pair.create(fragmentAction, fragmentOrientation);
+        }
+        return null;
     }
 
     
@@ -194,36 +211,6 @@ public class RemoteTabsPanel extends HomeFragment {
 
 
 
-
-    private Fragment getFragmentNeeded(Account account) {
-        final Action actionNeeded = getActionNeeded(account);
-
-        if (actionNeeded == null) {
-            if (mFallbackFragment == null) {
-                mFallbackFragment = makeFragmentForAction(null);
-            }
-            return mFallbackFragment;
-        }
-
-        Fragment fragment = mFragmentCache.get(actionNeeded);
-        
-        
-        if (fragment == null || (HardwareUtils.isTablet() && actionNeeded == Action.None)) {
-            fragment = makeFragmentForAction(actionNeeded);
-            mFragmentCache.put(actionNeeded, fragment);
-        }
-
-        return fragment;
-    }
-
-    
-
-
-
-
-
-
-
     protected void updateUiFromAccount(Account account) {
         if (getView() == null) {
             
@@ -234,7 +221,7 @@ public class RemoteTabsPanel extends HomeFragment {
             
             return;
         }
-        showSubPanel(getFragmentNeeded(account));
+        showSubPanel(account);
     }
 
     private class AccountLoaderCallbacks implements LoaderCallbacks<Account> {
