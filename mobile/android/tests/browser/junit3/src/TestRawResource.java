@@ -1,19 +1,18 @@
 
 
 
-package org.mozilla.gecko.browser.tests;
+package org.mozilla.gecko;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+
+import org.mozilla.gecko.util.RawResource;
 
 import android.content.Context;
 import android.content.res.Resources;
 import android.test.mock.MockContext;
 import android.test.mock.MockResources;
-import android.util.TypedValue;
-
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.io.IOException;
-
-import org.mozilla.gecko.util.RawResource;
 
 
 

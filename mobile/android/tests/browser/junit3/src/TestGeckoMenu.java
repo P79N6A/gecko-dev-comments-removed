@@ -2,7 +2,7 @@
 
 
 
-package org.mozilla.gecko.browser.tests;
+package org.mozilla.gecko;
 
 import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.menu.GeckoMenu;

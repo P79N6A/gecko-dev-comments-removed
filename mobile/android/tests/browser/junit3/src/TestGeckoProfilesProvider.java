@@ -2,7 +2,7 @@
 
 
 
-package org.mozilla.gecko.browser.tests;
+package org.mozilla.gecko;
 
 import java.io.File;
 import java.util.HashMap;

@@ -1,7 +1,7 @@
 
 
 
-package org.mozilla.gecko.browser.tests;
+package org.mozilla.gecko;
 
 import java.io.InputStream;
 
