@@ -837,7 +837,7 @@ nsTextControlFrame::SelectAllOrCollapseToEndOfText(bool aSelect)
     
     nsIContent *child = rootContent->GetChildAt(numChildren - 1);
     if (child) {
-      if (child->Tag() == nsGkAtoms::br)
+      if (child->IsHTMLElement(nsGkAtoms::br))
         --numChildren;
     }
     if (!aSelect && numChildren) {

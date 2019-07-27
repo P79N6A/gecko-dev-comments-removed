@@ -179,48 +179,46 @@ IsElementClickable(nsIFrame* aFrame, nsIAtom* stopAt = nullptr)
   
   for (nsIContent* content = aFrame->GetContent(); content;
        content = content->GetFlattenedTreeParent()) {
-    nsIAtom* tag = content->Tag();
-    if (content->IsHTMLElement() && stopAt && tag == stopAt) {
+    if (stopAt && content->IsHTMLElement(stopAt)) {
       break;
     }
     if (HasTouchListener(content) || HasMouseListener(content)) {
       return true;
     }
-    if (content->IsHTMLElement()) {
-      if (tag == nsGkAtoms::button ||
-          tag == nsGkAtoms::input ||
-          tag == nsGkAtoms::select ||
-          tag == nsGkAtoms::textarea ||
-          tag == nsGkAtoms::label) {
-        return true;
-      }
-      
-      
-      
-      if (tag == nsGkAtoms::iframe &&
-          content->AttrValueIs(kNameSpaceID_None, nsGkAtoms::mozbrowser,
-                               nsGkAtoms::_true, eIgnoreCase) &&
-          content->AttrValueIs(kNameSpaceID_None, nsGkAtoms::Remote,
-                               nsGkAtoms::_true, eIgnoreCase)) {
-        return true;
-      }
-    } else if (content->IsXULElement()) {
-      nsIAtom* tag = content->Tag();
-      
-      
-      if (tag == nsGkAtoms::button ||
-          tag == nsGkAtoms::checkbox ||
-          tag == nsGkAtoms::radio ||
-          tag == nsGkAtoms::autorepeatbutton ||
-          tag == nsGkAtoms::menu ||
-          tag == nsGkAtoms::menubutton ||
-          tag == nsGkAtoms::menuitem ||
-          tag == nsGkAtoms::menulist ||
-          tag == nsGkAtoms::scrollbarbutton ||
-          tag == nsGkAtoms::resizer) {
-        return true;
-      }
+    if (content->IsAnyOfHTMLElements(nsGkAtoms::button,
+                                     nsGkAtoms::input,
+                                     nsGkAtoms::select,
+                                     nsGkAtoms::textarea,
+                                     nsGkAtoms::label)) {
+      return true;
     }
+
+    
+    
+    
+    if (content->IsHTMLElement(nsGkAtoms::iframe) &&
+        content->AttrValueIs(kNameSpaceID_None, nsGkAtoms::mozbrowser,
+                             nsGkAtoms::_true, eIgnoreCase) &&
+        content->AttrValueIs(kNameSpaceID_None, nsGkAtoms::Remote,
+                             nsGkAtoms::_true, eIgnoreCase)) {
+      return true;
+    }
+
+    
+    
+    if (content->IsAnyOfXULElements(nsGkAtoms::button,
+                                    nsGkAtoms::checkbox,
+                                    nsGkAtoms::radio,
+                                    nsGkAtoms::autorepeatbutton,
+                                    nsGkAtoms::menu,
+                                    nsGkAtoms::menubutton,
+                                    nsGkAtoms::menuitem,
+                                    nsGkAtoms::menulist,
+                                    nsGkAtoms::scrollbarbutton,
+                                    nsGkAtoms::resizer)) {
+      return true;
+    }
+
     static nsIContent::AttrValuesArray clickableRoles[] =
       { &nsGkAtoms::button, &nsGkAtoms::key, nullptr };
     if (content->FindAttrValueIn(kNameSpaceID_None, nsGkAtoms::role,
