@@ -432,7 +432,10 @@ nsComputedDOMStyle::GetStyleContextForElementNoFlush(Element* aElement,
       return nullptr;
   }
 
-  if (!aPseudo && aStyleType == eAll) {
+  
+  
+  
+  if (!aPseudo && aStyleType == eAll && !aElement->IsHTML(nsGkAtoms::area)) {
     nsIFrame* frame = nsLayoutUtils::GetStyleFrame(aElement);
     if (frame) {
       nsStyleContext* result = frame->StyleContext();
@@ -594,7 +597,10 @@ nsComputedDOMStyle::UpdateCurrentStyleSources(bool aNeedsLayoutFlush)
     return;
   }
 
-  if (!mPseudo && mStyleType == eAll) {
+  
+  
+  
+  if (!mPseudo && mStyleType == eAll && !mContent->IsHTML(nsGkAtoms::area)) {
     mOuterFrame = mContent->GetPrimaryFrame();
     mInnerFrame = mOuterFrame;
     if (mOuterFrame) {
