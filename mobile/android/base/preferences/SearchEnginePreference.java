@@ -8,6 +8,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.favicons.Favicons;
+import org.mozilla.gecko.favicons.OnFaviconLoadedListener;
 import org.mozilla.gecko.favicons.decoders.FaviconDecoder;
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.gecko.widget.FaviconView;
@@ -34,6 +35,7 @@ public class SearchEnginePreference extends CustomListPreference {
 
     
     private Bitmap mIconBitmap;
+    private final Object bitmapLock = new Object();
 
     private FaviconView mFaviconView;
 
@@ -56,8 +58,15 @@ public class SearchEnginePreference extends CustomListPreference {
         super.onBindView(view);
 
         
-        mFaviconView = ((FaviconView) view.findViewById(R.id.search_engine_icon));
-        mFaviconView.updateAndScaleImage(mIconBitmap, getTitle().toString());
+        
+        synchronized (bitmapLock) {
+            
+            mFaviconView = ((FaviconView) view.findViewById(R.id.search_engine_icon));
+
+            if (mIconBitmap != null) {
+                mFaviconView.updateAndScaleImage(mIconBitmap, getTitle().toString());
+            }
+        }
     }
 
     @Override
@@ -161,9 +170,20 @@ public class SearchEnginePreference extends CustomListPreference {
                 }
             }
 
-            
-            mIconBitmap = FaviconDecoder.getMostSuitableBitmapFromDataURI(iconURI, desiredWidth);
+            Favicons.getSizedFavicon(getContext(), mIdentifier, iconURI, desiredWidth, 0,
+                new OnFaviconLoadedListener() {
+                    @Override
+                    public void onFaviconLoaded(String url, String faviconURL, Bitmap favicon) {
+                        synchronized (bitmapLock) {
+                            mIconBitmap = favicon;
 
+                            if (mFaviconView != null) {
+                                mFaviconView.updateAndScaleImage(mIconBitmap, getTitle().toString());
+                            }
+                        }
+                    }
+                }
+            );
         } catch (IllegalArgumentException e) {
             Log.e(LOGTAG, "IllegalArgumentException creating Bitmap. Most likely a zero-length bitmap.", e);
         } catch (NullPointerException e) {
