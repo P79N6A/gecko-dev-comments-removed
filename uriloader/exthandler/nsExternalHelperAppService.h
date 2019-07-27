@@ -190,8 +190,9 @@ protected:
 private:
   nsresult DoContentContentProcessHelper(const nsACString& aMimeContentType,
                                          nsIRequest *aRequest,
-                                         nsIInterfaceRequestor *aWindowContext,
+                                         nsIInterfaceRequestor *aContentContext,
                                          bool aForceSave,
+                                         nsIInterfaceRequestor *aWindowContext,
                                          nsIStreamListener ** aStreamListener);
 };
 
@@ -228,7 +229,12 @@ public:
 
 
 
+
+
+
+
   nsExternalAppHandler(nsIMIMEInfo * aMIMEInfo, const nsCSubstring& aFileExtension,
+                       nsIInterfaceRequestor * aContentContext,
                        nsIInterfaceRequestor * aWindowContext,
                        nsExternalHelperAppService * aExtProtSvc,
                        const nsAString& aFilename,
@@ -242,6 +248,10 @@ public:
 protected:
   ~nsExternalAppHandler();
 
+  nsIInterfaceRequestor* GetDialogParent() {
+    return mWindowContext ? mWindowContext : mContentContext;
+  }
+
   nsCOMPtr<nsIFile> mTempFile;
   nsCOMPtr<nsIURI> mSourceUrl;
   nsString mTempFileExtension;
@@ -251,6 +261,16 @@ protected:
 
 
   nsCOMPtr<nsIMIMEInfo> mMimeInfo;
+
+  
+
+
+  nsCOMPtr<nsIInterfaceRequestor> mContentContext;
+
+  
+
+
+
   nsCOMPtr<nsIInterfaceRequestor> mWindowContext;
 
   
