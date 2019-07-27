@@ -838,16 +838,14 @@ let Impl = {
       Cu.import("resource://gre/modules/TelemetryTimestamps.jsm", o);
       appTimestamps = o.TelemetryTimestamps.get();
     } catch (ex) {}
-    try {
-      if (!IS_CONTENT_PROCESS) {
+
+    
+    if (!IS_CONTENT_PROCESS && Telemetry.canRecordExtended) {
+      try {
         ret.addonManager = AddonManagerPrivate.getSimpleMeasures();
-      }
-    } catch (ex) {}
-    try {
-      if (!IS_CONTENT_PROCESS) {
         ret.UITelemetry = UITelemetry.getSimpleMeasures();
-      }
-    } catch (ex) {}
+      } catch (ex) {}
+    }
 
     if (si.process) {
       for each (let field in Object.keys(si)) {
@@ -984,11 +982,20 @@ let Impl = {
     return retgram;
   },
 
+  
+
+
+
+  getDatasetType: function() {
+    return Telemetry.canRecordExtended ? Ci.nsITelemetry.DATASET_RELEASE_CHANNEL_OPTIN
+                                       : Ci.nsITelemetry.DATASET_RELEASE_CHANNEL_OPTOUT;
+  },
+
   getHistograms: function getHistograms(subsession, clearSubsession) {
     this._log.trace("getHistograms - subsession: " + subsession + ", clearSubsession: " + clearSubsession);
 
     let registered =
-      Telemetry.registeredHistograms(Ci.nsITelemetry.DATASET_RELEASE_CHANNEL_OPTIN, []);
+      Telemetry.registeredHistograms(this.getDatasetType(), []);
     let hls = subsession ? Telemetry.snapshotSubsessionHistograms(clearSubsession)
                          : Telemetry.histogramSnapshots;
     let ret = {};
@@ -1027,7 +1034,7 @@ let Impl = {
     this._log.trace("getKeyedHistograms - subsession: " + subsession + ", clearSubsession: " + clearSubsession);
 
     let registered =
-      Telemetry.registeredKeyedHistograms(Ci.nsITelemetry.DATASET_RELEASE_CHANNEL_OPTIN, []);
+      Telemetry.registeredKeyedHistograms(this.getDatasetType(), []);
     let ret = {};
 
     for (let id of registered) {
@@ -1115,6 +1122,11 @@ let Impl = {
 
 
   gatherMemory: function gatherMemory() {
+    if (!Telemetry.canRecordExtended) {
+      this._log.trace("gatherMemory - Extended data recording disabled, skipping.");
+      return;
+    }
+
     this._log.trace("gatherMemory");
 
     let mgr;
@@ -1242,7 +1254,7 @@ let Impl = {
     this._log.trace("gatherStartupHistograms");
 
     let info =
-      Telemetry.registeredHistograms(Ci.nsITelemetry.DATASET_RELEASE_CHANNEL_OPTIN, []);
+      Telemetry.registeredHistograms(this.getDatasetType(), []);
     let snapshots = Telemetry.histogramSnapshots;
     for (let name of info) {
       
@@ -1274,10 +1286,14 @@ let Impl = {
       simpleMeasurements: simpleMeasurements,
       histograms: this.getHistograms(isSubsession, clearSubsession),
       keyedHistograms: this.getKeyedHistograms(isSubsession, clearSubsession),
-      chromeHangs: Telemetry.chromeHangs,
-      threadHangStats: this.getThreadHangStats(Telemetry.threadHangStats),
-      log: TelemetryLog.entries(),
     };
+
+    
+    if (Telemetry.canRecordExtended) {
+      payloadObj.chromeHangs = Telemetry.chromeHangs;
+      payloadObj.threadHangStats = this.getThreadHangStats(Telemetry.threadHangStats);
+      payloadObj.log = TelemetryLog.entries();
+    }
 
     if (IS_CONTENT_PROCESS) {
       return payloadObj;
@@ -1285,17 +1301,21 @@ let Impl = {
 
     
     payloadObj.info = info;
-    payloadObj.slowSQL = Telemetry.slowSQL;
-    payloadObj.fileIOReports = Telemetry.fileIOReports;
-    payloadObj.lateWrites = Telemetry.lateWrites;
-    payloadObj.addonHistograms = this.getAddonHistograms();
-    payloadObj.addonDetails = AddonManagerPrivate.getTelemetryDetails();
-    payloadObj.UIMeasurements = UITelemetry.getUIMeasurements();
 
-    if (Object.keys(this._slowSQLStartup).length != 0 &&
-        (Object.keys(this._slowSQLStartup.mainThread).length ||
-         Object.keys(this._slowSQLStartup.otherThreads).length)) {
-      payloadObj.slowSQLStartup = this._slowSQLStartup;
+    
+    if (Telemetry.canRecordExtended) {
+      payloadObj.slowSQL = Telemetry.slowSQL;
+      payloadObj.fileIOReports = Telemetry.fileIOReports;
+      payloadObj.lateWrites = Telemetry.lateWrites;
+      payloadObj.addonHistograms = this.getAddonHistograms();
+      payloadObj.addonDetails = AddonManagerPrivate.getTelemetryDetails();
+      payloadObj.UIMeasurements = UITelemetry.getUIMeasurements();
+
+      if (Object.keys(this._slowSQLStartup).length != 0 &&
+          (Object.keys(this._slowSQLStartup.mainThread).length ||
+           Object.keys(this._slowSQLStartup.otherThreads).length)) {
+        payloadObj.slowSQLStartup = this._slowSQLStartup;
+      }
     }
 
     if (this._childTelemetry.length) {

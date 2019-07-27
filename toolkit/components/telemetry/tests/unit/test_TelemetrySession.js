@@ -1503,6 +1503,61 @@ add_task(function* test_schedulerNothingDue() {
   yield TelemetrySession.shutdown();
 });
 
+add_task(function* test_pingExtendedStats() {
+  const EXTENDED_PAYLOAD_FIELDS = [
+    "chromeHangs", "threadHangStats", "log", "slowSQL", "fileIOReports", "lateWrites",
+    "addonHistograms", "addonDetails", "UIMeasurements",
+  ];
+
+  
+  Telemetry.canRecordExtended = false;
+
+  gRequestIterator = Iterator(new Request());
+  yield TelemetrySession.reset();
+  yield sendPing();
+
+  let request = yield gRequestIterator.next();
+  let ping = decodeRequestPayload(request);
+  checkPingFormat(ping, PING_TYPE_MAIN, true, true);
+
+  
+  for (let f in EXTENDED_PAYLOAD_FIELDS) {
+    Assert.ok(!(EXTENDED_PAYLOAD_FIELDS[f] in ping.payload),
+              EXTENDED_PAYLOAD_FIELDS[f] + " must not be in the payload if the extended set is off.");
+  }
+
+  
+  
+  Assert.ok(!("slowSQLStartup" in ping.payload),
+            "slowSQLStartup must not be sent if the extended set is off");
+
+  Assert.ok(!("addonManager" in ping.payload.simpleMeasurements),
+            "addonManager must not be sent if the extended set is off.");
+  Assert.ok(!("UITelemetry" in ping.payload.simpleMeasurements),
+            "UITelemetry must not be sent if the extended set is off.");
+
+  
+  Telemetry.canRecordExtended = true;
+
+  
+  yield TelemetrySession.reset();
+  yield sendPing();
+  request = yield gRequestIterator.next();
+  ping = decodeRequestPayload(request);
+  checkPingFormat(ping, PING_TYPE_MAIN, true, true);
+
+  
+  for (let f in EXTENDED_PAYLOAD_FIELDS) {
+    Assert.ok(EXTENDED_PAYLOAD_FIELDS[f] in ping.payload,
+              EXTENDED_PAYLOAD_FIELDS[f] + " must be in the payload if the extended set is on.");
+  }
+
+  Assert.ok("addonManager" in ping.payload.simpleMeasurements,
+            "addonManager must be sent if the extended set is on.");
+  Assert.ok("UITelemetry" in ping.payload.simpleMeasurements,
+            "UITelemetry must be sent if the extended set is on.");
+});
+
 add_task(function* stopServer(){
   gHttpServer.stop(do_test_finished);
 });
