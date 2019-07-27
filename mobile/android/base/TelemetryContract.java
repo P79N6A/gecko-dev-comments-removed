@@ -62,7 +62,6 @@ public interface TelemetryContract {
         SANITIZE("sanitize.1"),
 
         
-        
         SAVE("save.1"),
 
         
@@ -75,7 +74,6 @@ public interface TelemetryContract {
         
         UNPIN("unpin.1"),
 
-        
         
         UNSAVE("unsave.1"),
 
