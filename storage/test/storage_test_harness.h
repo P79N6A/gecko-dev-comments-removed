@@ -5,9 +5,13 @@
 
 
 #include "TestHarness.h"
+
 #include "nsMemory.h"
+#include "prthread.h"
 #include "nsThreadUtils.h"
 #include "nsDirectoryServiceDefs.h"
+#include "mozilla/ReentrantMonitor.h"
+
 #include "mozIStorageService.h"
 #include "mozIStorageConnection.h"
 #include "mozIStorageStatementCallback.h"
@@ -18,7 +22,10 @@
 #include "mozIStorageStatement.h"
 #include "mozIStoragePendingStatement.h"
 #include "mozIStorageError.h"
-#include "nsThreadUtils.h"
+#include "nsIInterfaceRequestorUtils.h"
+#include "nsIEventTarget.h"
+
+#include "sqlite3.h"
 
 static int gTotalTests = 0;
 static int gPassedTests = 0;
@@ -53,6 +60,8 @@ static int gPassedTests = 0;
   do_check_true(aExpected == aActual)
 #else
 #include <sstream>
+
+#define do_check_ok(aInvoc) do_check_true((aInvoc) == SQLITE_OK)
 
 
 std::ostream& operator<<(std::ostream& aStream, const nsresult aInput)
@@ -223,4 +232,160 @@ blocking_async_close(mozIStorageConnection *db)
 
   db->AsyncClose(spinner);
   spinner->SpinUntilCompleted();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_mutex_methods orig_mutex_methods;
+sqlite3_mutex_methods wrapped_mutex_methods;
+
+bool mutex_used_on_watched_thread = false;
+PRThread *watched_thread = nullptr;
+
+
+
+
+
+
+
+
+
+PRThread *last_non_watched_thread = nullptr;
+
+
+
+
+
+extern "C" void wrapped_MutexEnter(sqlite3_mutex *mutex)
+{
+  PRThread *curThread = ::PR_GetCurrentThread();
+  if (curThread == watched_thread)
+    mutex_used_on_watched_thread = true;
+  else
+    last_non_watched_thread = curThread;
+  orig_mutex_methods.xMutexEnter(mutex);
+}
+
+extern "C" int wrapped_MutexTry(sqlite3_mutex *mutex)
+{
+  if (::PR_GetCurrentThread() == watched_thread)
+    mutex_used_on_watched_thread = true;
+  return orig_mutex_methods.xMutexTry(mutex);
+}
+
+void hook_sqlite_mutex()
+{
+  
+  
+  do_check_ok(sqlite3_initialize());
+  do_check_ok(sqlite3_shutdown());
+  do_check_ok(::sqlite3_config(SQLITE_CONFIG_GETMUTEX, &orig_mutex_methods));
+  do_check_ok(::sqlite3_config(SQLITE_CONFIG_GETMUTEX, &wrapped_mutex_methods));
+  wrapped_mutex_methods.xMutexEnter = wrapped_MutexEnter;
+  wrapped_mutex_methods.xMutexTry = wrapped_MutexTry;
+  do_check_ok(::sqlite3_config(SQLITE_CONFIG_MUTEX, &wrapped_mutex_methods));
+}
+
+
+
+
+
+
+
+
+void watch_for_mutex_use_on_this_thread()
+{
+  watched_thread = ::PR_GetCurrentThread();
+  mutex_used_on_watched_thread = false;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+class ThreadWedger : public nsRunnable
+{
+public:
+  explicit ThreadWedger(nsIEventTarget *aTarget)
+  : mReentrantMonitor("thread wedger")
+  , unwedged(false)
+  {
+    aTarget->Dispatch(this, aTarget->NS_DISPATCH_NORMAL);
+  }
+
+  NS_IMETHOD Run()
+  {
+    mozilla::ReentrantMonitorAutoEnter automon(mReentrantMonitor);
+
+    if (!unwedged)
+      automon.Wait();
+
+    return NS_OK;
+  }
+
+  void unwedge()
+  {
+    mozilla::ReentrantMonitorAutoEnter automon(mReentrantMonitor);
+    unwedged = true;
+    automon.Notify();
+  }
+
+private:
+  mozilla::ReentrantMonitor mReentrantMonitor;
+  bool unwedged;
+};
+
+
+
+
+
+
+
+
+
+already_AddRefed<nsIThread>
+get_conn_async_thread(mozIStorageConnection *db)
+{
+  
+  watch_for_mutex_use_on_this_thread();
+
+  
+  nsCOMPtr<mozIStorageAsyncStatement> stmt;
+  db->CreateAsyncStatement(
+    NS_LITERAL_CSTRING("SELECT 1"),
+    getter_AddRefs(stmt));
+  blocking_async_execute(stmt);
+  stmt->Finalize();
+
+  nsCOMPtr<nsIThreadManager> threadMan =
+    do_GetService("@mozilla.org/thread-manager;1");
+  nsCOMPtr<nsIThread> asyncThread;
+  threadMan->GetThreadFromPRThread(last_non_watched_thread,
+                                   getter_AddRefs(asyncThread));
+
+  
+  
+  nsCOMPtr<nsIEventTarget> target = do_GetInterface(db);
+  nsCOMPtr<nsIThread> allegedAsyncThread = do_QueryInterface(target);
+  PRThread *allegedPRThread;
+  (void)allegedAsyncThread->GetPRThread(&allegedPRThread);
+  do_check_eq(allegedPRThread, last_non_watched_thread);
+  return asyncThread.forget();
 }
