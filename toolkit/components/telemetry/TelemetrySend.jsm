@@ -208,6 +208,13 @@ this.TelemetrySend = {
   setServer: function(server) {
     return TelemetrySendImpl.setServer(server);
   },
+
+  
+
+
+  testWaitOnOutgoingPings: function() {
+    return TelemetrySendImpl.promisePendingPingActivity();
+  },
 };
 
 let TelemetrySendImpl = {
@@ -218,7 +225,7 @@ let TelemetrySendImpl = {
   
   _pendingPingRequests: new Map(),
   
-  _connectionsBarrier: new AsyncShutdown.Barrier("TelemetrySend: Waiting for pending ping activity"),
+  _pendingPingActivity: new Set(),
   
   _testMode: false,
 
@@ -350,7 +357,7 @@ let TelemetrySendImpl = {
     
     yield this._cancelOutgoingRequests();
     
-    yield this._connectionsBarrier.wait();
+    yield this.promisePendingPingActivity();
   }),
 
   reset: function() {
@@ -702,6 +709,20 @@ let TelemetrySendImpl = {
 
 
   _trackPendingPingTask: function (promise) {
-    this._connectionsBarrier.client.addBlocker("Waiting for ping task", promise);
+    let clear = () => this._pendingPingActivity.delete(promise);
+    promise.then(clear, clear);
+    this._pendingPingActivity.add(promise);
+  },
+
+  
+
+
+
+
+  promisePendingPingActivity: function () {
+    this._log.trace("promisePendingPingActivity - Waiting for ping task");
+    return Promise.all([for (p of this._pendingPingActivity) p.catch(ex => {
+      this._log.error("promisePendingPingActivity - ping activity had an error", ex);
+    })]);
   },
 };
