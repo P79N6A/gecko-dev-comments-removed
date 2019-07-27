@@ -13,7 +13,14 @@ function recur(n, limit) {
 function checkRecursion(n, limit) {
   print("checkRecursion(" + uneval(n) + ", " + uneval(limit) + ")");
 
-  var stack = recur(n, limit);
+  try {
+    var stack = recur(n, limit);
+  } catch (e) {
+    
+    
+    assertEq(/too much recursion/.test("" + e), true);
+    return;
+  }
 
   
   
