@@ -1310,8 +1310,7 @@ void nsWindow::ConfigureAPZCTreeManager()
 }
 
 void nsWindow::RegisterTouchWindow() {
-  if (Preferences::GetInt("dom.w3c_touch_events.enabled", 0) ||
-      gIsPointerEventsEnabled) {
+  if (Preferences::GetInt("dom.w3c_touch_events.enabled", 0)) {
     mTouchWindow = true;
     mGesture.RegisterTouchWindow(mWnd);
     ::EnumChildWindows(mWnd, nsWindow::RegisterTouchForDescendants, 0);
@@ -5321,10 +5320,6 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
         
         
         
-        if (gIsPointerEventsEnabled) {
-          result = false;
-          break;
-        }
 
         GESTURENOTIFYSTRUCT * gestureinfo = (GESTURENOTIFYSTRUCT*)lParam;
         nsPointWin touchPoint;
@@ -6274,10 +6269,6 @@ static int32_t RoundDown(double aDouble)
 
 bool nsWindow::OnGesture(WPARAM wParam, LPARAM lParam)
 {
-  if (gIsPointerEventsEnabled) {
-    return false;
-  }
-
   
   if (mGesture.IsPanEvent(lParam)) {
     if ( !mGesture.ProcessPanMessage(mWnd, wParam, lParam) )
