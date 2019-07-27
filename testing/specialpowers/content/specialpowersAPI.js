@@ -98,9 +98,16 @@ function isObjectOrArray(obj) {
 
 
 
+
+
+
+
 function waiveXraysIfAppropriate(obj, propName) {
-  if (propName == 'toString' || isObjectOrArray(obj))
+  if (propName == 'toString' || isObjectOrArray(obj) ||
+      /Opaque/.test(Object.prototype.toString.call(obj)))
+{
     return XPCNativeWrapper.unwrap(obj);
+}
   return obj;
 }
 
