@@ -121,6 +121,11 @@ private:
   bool CanSelectAudioReader(MediaDecoderReader* aNewReader);
   bool CanSelectVideoReader(MediaDecoderReader* aNewReader);
 
+  
+  
+  
+  void WaitForTimeRange(double aTime);
+
   nsRefPtr<MediaDecoderReader> mAudioReader;
   nsRefPtr<MediaDecoderReader> mVideoReader;
 

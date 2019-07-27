@@ -56,10 +56,8 @@ public:
   void SetMediaSourceDuration(double aDuration);
 
   
-  void WaitForData();
-
   
-  void NotifyGotData();
+  void NotifyTimeRangesChanged();
 
   
   

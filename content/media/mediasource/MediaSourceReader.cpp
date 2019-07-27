@@ -438,6 +438,21 @@ private:
   nsRefPtr<AbstractMediaDecoder> mDecoder;
 };
 
+void
+MediaSourceReader::WaitForTimeRange(double aTime)
+{
+  MSE_DEBUG("MediaSourceReader(%p)::WaitForTimeRange(%f)", this, aTime);
+  ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+
+  
+  
+  
+  while (!TrackBuffersContainTime(aTime) && !IsShutdown() && !IsEnded()) {
+    MSE_DEBUG("MediaSourceReader(%p)::WaitForTimeRange(%f) waiting", this, aTime);
+    mon.Wait();
+  }
+}
+
 bool
 MediaSourceReader::TrackBuffersContainTime(double aTime)
 {
@@ -473,14 +488,7 @@ MediaSourceReader::Seek(int64_t aTime, int64_t aStartTime, int64_t aEndTime,
     NS_DispatchToMainThread(new ChangeToHaveMetadata(mDecoder));
   }
 
-  
-  
-  
-  
-  while (!TrackBuffersContainTime(target) && !IsShutdown() && !IsEnded()) {
-    MSE_DEBUG("MediaSourceReader(%p)::Seek waiting for target=%f", this, target);
-    static_cast<MediaSourceDecoder*>(mDecoder)->WaitForData();
-  }
+  WaitForTimeRange(target);
 
   if (IsShutdown()) {
     return NS_ERROR_FAILURE;
