@@ -8,6 +8,7 @@
 #include "gfxContext.h"
 #include "gfxPlatform.h"
 #include "gfxColor.h"
+#include "gfx2DGlue.h"
 #ifdef MOZ_X11
 #include "cairo.h"
 #include "gfxXlibSurface.h"
@@ -25,86 +26,6 @@ gfxSurfaceDrawable::gfxSurfaceDrawable(SourceSurface* aSurface,
 {
 }
 
-static gfxMatrix
-DeviceToImageTransform(gfxContext* aContext,
-                       const gfxMatrix& aUserSpaceToImageSpace)
-{
-    gfxFloat deviceX, deviceY;
-    nsRefPtr<gfxASurface> currentTarget =
-        aContext->CurrentSurface(&deviceX, &deviceY);
-    gfxMatrix currentMatrix = aContext->CurrentMatrix();
-    gfxMatrix deviceToUser = currentMatrix;
-    if (!deviceToUser.Invert()) {
-        return gfxMatrix(0, 0, 0, 0, 0, 0); 
-    }
-    deviceToUser.Translate(-gfxPoint(-deviceX, -deviceY));
-    return deviceToUser * aUserSpaceToImageSpace;
-}
-
-static void
-PreparePatternForUntiledDrawing(gfxPattern* aPattern,
-                                const gfxMatrix& aDeviceToImage,
-                                gfxASurface *currentTarget,
-                                const GraphicsFilter aDefaultFilter)
-{
-    if (!currentTarget) {
-        
-        aPattern->SetExtend(gfxPattern::EXTEND_PAD);
-        aPattern->SetFilter(aDefaultFilter);
-        return;
-    }
-
-    
-    
-    
-    switch (currentTarget->GetType()) {
-
-#ifdef MOZ_X11
-        case gfxSurfaceType::Xlib:
-        {
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            if (static_cast<gfxXlibSurface*>(currentTarget)->IsPadSlow()) {
-                bool isDownscale =
-                    aDeviceToImage._11 >= 1.0 && aDeviceToImage._22 >= 1.0 &&
-                    aDeviceToImage._21 == 0.0 && aDeviceToImage._12 == 0.0;
-
-                GraphicsFilter filter =
-                    isDownscale ? aDefaultFilter : (const GraphicsFilter)GraphicsFilter::FILTER_FAST;
-                aPattern->SetFilter(filter);
-
-                
-                break;
-            }
-            
-        }
-#endif
-
-        default:
-            
-            
-            
-            aPattern->SetExtend(gfxPattern::EXTEND_PAD);
-            aPattern->SetFilter(aDefaultFilter);
-            break;
-    }
-}
-
 bool
 gfxSurfaceDrawable::Draw(gfxContext* aContext,
                          const gfxRect& aFillRect,
@@ -112,35 +33,35 @@ gfxSurfaceDrawable::Draw(gfxContext* aContext,
                          const GraphicsFilter& aFilter,
                          const gfxMatrix& aTransform)
 {
-    nsRefPtr<gfxPattern> pattern = new gfxPattern(mSourceSurface, Matrix());
+    ExtendMode extend = ExtendMode::CLAMP;
 
     if (aRepeat) {
-        pattern->SetExtend(gfxPattern::EXTEND_REPEAT);
-        pattern->SetFilter(aFilter);
-    } else {
-        GraphicsFilter filter = aFilter;
-        if (aContext->CurrentMatrix().HasOnlyIntegerTranslation() &&
-            aTransform.HasOnlyIntegerTranslation())
-        {
-          
-          
-          
-          filter = GraphicsFilter::FILTER_FAST;
-        }
-        nsRefPtr<gfxASurface> currentTarget = aContext->CurrentSurface();
-        gfxMatrix deviceSpaceToImageSpace =
-            DeviceToImageTransform(aContext, aTransform);
-        PreparePatternForUntiledDrawing(pattern, deviceSpaceToImageSpace,
-                                        currentTarget, filter);
+        extend = ExtendMode::REPEAT;
     }
-    pattern->SetMatrix(aTransform * mTransform);
-    aContext->NewPath();
-    aContext->SetPattern(pattern);
-    aContext->Rectangle(aFillRect);
-    aContext->Fill();
-    
-    
-    aContext->SetDeviceColor(gfxRGBA(0.0, 0.0, 0.0, 0.0));
+
+    Matrix patternTransform = ToMatrix(aTransform * mTransform);
+    patternTransform.Invert();
+
+    SurfacePattern pattern(mSourceSurface, extend,
+                           patternTransform, ToFilter(aFilter));
+
+    Rect fillRect = ToRect(aFillRect);
+    DrawTarget* dt = aContext->GetDrawTarget();
+
+    if (aContext->CurrentOperator() == gfxContext::OPERATOR_CLEAR) {
+        dt->ClearRect(fillRect);
+    } else if (aContext->CurrentOperator() == gfxContext::OPERATOR_SOURCE) {
+        
+        dt->ClearRect(fillRect);
+        dt->FillRect(fillRect, pattern);
+    } else {
+        CompositionOp op = CompositionOpForOp(aContext->CurrentOperator());
+        AntialiasMode aaMode =
+            aContext->CurrentAntialiasMode() == gfxContext::MODE_ALIASED ?
+                AntialiasMode::NONE :
+                AntialiasMode::SUBPIXEL;
+        dt->FillRect(fillRect, pattern, DrawOptions(1.0f, op, aaMode));
+    }
     return true;
 }
 
