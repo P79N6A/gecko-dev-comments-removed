@@ -152,7 +152,7 @@ LoginManagerPrompter.prototype = {
 
 
 
-    _showLoginNotification : function (aName, aTitle, aBody, aButtons, aSubtext) {
+    _showLoginNotification : function (aName, aTitle, aBody, aButtons, aActionText) {
         this.log("Adding new " + aName + " notification bar");
         let notifyWin = this._window.top;
         let chromeWin = this._getChromeWindow(notifyWin).wrappedJSObject;
@@ -171,7 +171,7 @@ LoginManagerPrompter.prototype = {
             persistWhileVisible: true,
             timeout: Date.now() + 10000,
             title: aTitle,
-            subtext: aSubtext
+            actionText: aActionText
         }
 
         var nativeWindow = this._getNativeWindow();
@@ -194,11 +194,16 @@ LoginManagerPrompter.prototype = {
 
         let displayHost = this._getShortDisplayHost(aLogin.hostname);
         let title = { text: displayHost, resource: aLogin.hostname };
-        let subtext = null;
 
-        if (aLogin.username) {
-          subtext = this._sanitizeUsername(aLogin.username);
-        }
+        let username = aLogin.username ? this._sanitizeUsername(aLogin.username) : "";
+
+        let actionText = {
+            text: username,
+            type: "EDIT",
+            bundle: { username: username,
+                       password: aLogin.password }
+        };
+
         
         
         
@@ -222,7 +227,7 @@ LoginManagerPrompter.prototype = {
             }
         ];
 
-        this._showLoginNotification("password-save", title, notificationText, buttons, subtext);
+        this._showLoginNotification("password-save", title, notificationText, buttons, actionText);
     },
 
     
