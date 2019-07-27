@@ -4066,6 +4066,9 @@ nsBlockFrame::SplitFloat(nsBlockReflowState& aState,
     if (oldParent != this) {
       ReparentFrame(nextInFlow, oldParent, this);
     }
+    if (!NS_FRAME_OVERFLOW_IS_INCOMPLETE(aFloatStatus)) {
+      nextInFlow->RemoveStateBits(NS_FRAME_IS_OVERFLOW_CONTAINER);
+    }
   } else {
     nextInFlow = aState.mPresContext->PresShell()->FrameConstructor()->
       CreateContinuingFrame(aState.mPresContext, aFloat, this);
@@ -7223,8 +7226,9 @@ nsBlockFrame::ComputeFinalBSize(const nsHTMLReflowState& aReflowState,
                                               computedBSizeLeftOver),
                          aBorderPadding.BEnd(wm));
 
-  if (NS_FRAME_IS_NOT_COMPLETE(*aStatus)
-      && aFinalSize.BSize(wm) < aReflowState.AvailableBSize()) {
+  if (NS_FRAME_IS_NOT_COMPLETE(*aStatus) &&
+      aFinalSize.BSize(wm) < aReflowState.AvailableBSize()) {
+    
     
     
     NS_FRAME_SET_OVERFLOW_INCOMPLETE(*aStatus);
