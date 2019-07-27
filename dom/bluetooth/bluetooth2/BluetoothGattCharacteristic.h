@@ -11,6 +11,7 @@
 #include "mozilla/dom/BluetoothGattCharacteristicBinding.h"
 #include "mozilla/dom/bluetooth/BluetoothCommon.h"
 #include "mozilla/dom/bluetooth/BluetoothGattDescriptor.h"
+#include "mozilla/dom/TypedArray.h"
 #include "nsCOMPtr.h"
 #include "nsWrapperCache.h"
 #include "nsPIDOMWindow.h"
@@ -58,6 +59,17 @@ public:
   {
     return mCharId.mInstanceId;
   }
+
+  void GetValue(JSContext* cx, JS::MutableHandle<JSObject*> aValue) const;
+
+  void GetProperties(GattCharacteristicProperties& aProperties) const;
+
+  
+
+
+  already_AddRefed<Promise> ReadValue(ErrorResult& aRv);
+  already_AddRefed<Promise> WriteValue(const ArrayBuffer& aValue,
+                                       ErrorResult& aRv);
 
   
 
@@ -125,6 +137,21 @@ private:
 
 
   nsString mUuidStr;
+
+  
+
+
+  nsTArray<uint8_t> mValue;
+
+  
+
+
+  BluetoothGattCharProp mProperties;
+
+  
+
+
+  BluetoothGattWriteType mWriteType;
 };
 
 END_BLUETOOTH_NAMESPACE
