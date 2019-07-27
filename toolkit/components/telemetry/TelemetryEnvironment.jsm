@@ -871,6 +871,11 @@ EnvironmentCache.prototype = {
 
 
   _updateSearchEngine: function () {
+    if (!Services.search) {
+      
+      return;
+    }
+
     this._log.trace("_updateSearchEngine - isInitialized: " + Services.search.isInitialized);
     if (!Services.search.isInitialized) {
       return;
