@@ -85,10 +85,14 @@ class nsCopySupport
 
 
 
+
+
+
     static bool FireClipboardEvent(int32_t aType,
                                    int32_t aClipboardType,
                                    nsIPresShell* aPresShell,
-                                   nsISelection* aSelection);
+                                   nsISelection* aSelection,
+                                   bool* aActionTaken = nullptr);
 };
 
 #endif
