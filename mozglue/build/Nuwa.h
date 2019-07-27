@@ -90,6 +90,10 @@ MFBT_API pid_t NuwaSpawn();
 
 
 
+
+
+
+
 MFBT_API void NuwaMarkCurrentThread(void (*recreate)(void *), void *arg);
 
 
@@ -142,6 +146,8 @@ MFBT_API void MakeNuwaProcess();
 
 
 
+
+
 MFBT_API void NuwaAddConstructor(void (*construct)(void *), void *arg);
 
 
@@ -151,7 +157,21 @@ MFBT_API void NuwaAddConstructor(void (*construct)(void *), void *arg);
 
 
 
+
+
 MFBT_API void NuwaAddFinalConstructor(void (*construct)(void *), void *arg);
+
+
+
+
+
+
+
+
+
+
+
+MFBT_API void NuwaAddThreadConstructor(void (*construct)(void *), void *arg);
 
 
 
