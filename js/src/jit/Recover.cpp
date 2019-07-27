@@ -906,6 +906,10 @@ RNewObject::recover(JSContext *cx, SnapshotIterator &iter) const
     JSObject *resultObject = nullptr;
 
     
+    
+    types::AutoEnterAnalysis enter(cx);
+
+    
     if (templateObjectIsClassPrototype_)
         resultObject = NewInitObjectWithClassPrototype(cx, templateObject);
     else
@@ -936,6 +940,10 @@ RNewDerivedTypedObject::recover(JSContext *cx, SnapshotIterator &iter) const
     Rooted<SizedTypeDescr *> descr(cx, &iter.read().toObject().as<SizedTypeDescr>());
     Rooted<TypedObject *> owner(cx, &iter.read().toObject().as<TypedObject>());
     int32_t offset = iter.read().toInt32();
+
+    
+    
+    types::AutoEnterAnalysis enter(cx);
 
     JSObject *obj = TypedObject::createDerived(cx, descr, owner, offset);
     if (!obj)
