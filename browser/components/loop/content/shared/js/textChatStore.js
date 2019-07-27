@@ -17,6 +17,7 @@ loop.store.TextChatStore = (function(mozL10n) {
   };
 
   var CHAT_CONTENT_TYPES = loop.store.CHAT_CONTENT_TYPES = {
+    CONTEXT: "chat-context",
     TEXT: "chat-text",
     ROOM_NAME: "room-name"
   };
@@ -80,13 +81,17 @@ loop.store.TextChatStore = (function(mozL10n) {
 
 
 
-    _appendTextChatMessage: function(type, actionData) {
+
+
+
+    _appendTextChatMessage: function(type, messageData) {
       
       
       var message = {
         type: type,
-        contentType: actionData.contentType,
-        message: actionData.message
+        contentType: messageData.contentType,
+        message: messageData.message,
+        extraData: messageData.extraData
       };
       var newList = this._storeState.messageList.concat(message);
       this.setStoreState({ messageList: newList });
@@ -136,6 +141,21 @@ loop.store.TextChatStore = (function(mozL10n) {
         contentType: CHAT_CONTENT_TYPES.ROOM_NAME,
         message: mozL10n.get("rooms_welcome_title", {conversationName: actionData.roomName})
       });
+
+      
+      if ("urls" in actionData && actionData.urls.length) {
+        
+        var urlData = actionData.urls[0];
+
+        this._appendTextChatMessage(CHAT_MESSAGE_TYPES.SPECIAL, {
+          contentType: CHAT_CONTENT_TYPES.CONTEXT,
+          message: urlData.description,
+          extraData: {
+            location: urlData.location,
+            thumbnail: urlData.thumbnail
+          }
+        });
+      }
     }
   });
 

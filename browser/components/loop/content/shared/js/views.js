@@ -693,6 +693,94 @@ loop.shared.views = (function(_, l10n) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+  var ContextUrlView = React.createClass({displayName: "ContextUrlView",
+    mixins: [React.addons.PureRenderMixin],
+
+    PropTypes: {
+      allowClick: React.PropTypes.bool.isRequired,
+      description: React.PropTypes.string.isRequired,
+      dispatcher: React.PropTypes.instanceOf(loop.Dispatcher),
+      showContextTitle: React.PropTypes.bool.isRequired,
+      thumbnail: React.PropTypes.string,
+      url: React.PropTypes.string,
+      useDesktopPaths: React.PropTypes.bool.isRequired
+    },
+
+    
+
+
+    handleLinkClick: function() {
+      if (!this.props.allowClick) {
+        return;
+      }
+
+      this.props.dispatcher.dispatch(new sharedActions.RecordClick({
+        linkInfo: "Shared URL"
+      }));
+    },
+
+    
+
+
+    renderContextTitle: function() {
+      if (!this.props.showContextTitle) {
+        return null;
+      }
+
+      return React.createElement("p", null, l10n.get("context_inroom_label"));
+    },
+
+    render: function() {
+      var hostname;
+
+      try {
+        hostname = new URL(this.props.url).hostname;
+      } catch (ex) {
+        return null;
+      }
+
+      var thumbnail = this.props.thumbnail;
+
+      if (!thumbnail) {
+        thumbnail = this.props.useDesktopPaths ?
+          "loop/shared/img/icons-16x16.svg#globe" :
+          "shared/img/icons-16x16.svg#globe";
+      }
+
+      return (
+        React.createElement("div", {className: "context-content"}, 
+          this.renderContextTitle(), 
+          React.createElement("div", {className: "context-wrapper"}, 
+            React.createElement("img", {className: "context-preview", src: thumbnail}), 
+            React.createElement("span", {className: "context-description"}, 
+              this.props.description, 
+              React.createElement("a", {className: "context-url", 
+                 onClick: this.handleLinkClick, 
+                 href: this.props.allowClick ? this.props.url : null, 
+                 target: "_blank"}, hostname)
+            )
+          )
+        )
+      );
+    }
+  });
+
+  
+
+
+
   var MediaView = React.createClass({displayName: "MediaView",
     
     
@@ -800,6 +888,7 @@ loop.shared.views = (function(_, l10n) {
     Button: Button,
     ButtonGroup: ButtonGroup,
     Checkbox: Checkbox,
+    ContextUrlView: ContextUrlView,
     ConversationView: ConversationView,
     ConversationToolbar: ConversationToolbar,
     MediaControlButton: MediaControlButton,
