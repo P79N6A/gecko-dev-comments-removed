@@ -5130,7 +5130,8 @@ nsCSSFrameConstructor::FindSVGData(Element* aElement,
   }
 
   if ((aTag != nsGkAtoms::svg && !parentIsSVG) ||
-      (aTag == nsGkAtoms::desc || aTag == nsGkAtoms::title)) {
+      (aTag == nsGkAtoms::desc || aTag == nsGkAtoms::title ||
+       aTag == nsGkAtoms::metadata)) {
     
     
     
