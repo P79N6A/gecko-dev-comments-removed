@@ -1213,7 +1213,7 @@ MappedAttrParser::CreateStyleRule()
     return nullptr; 
   }
 
-  nsRefPtr<css::StyleRule> rule = new css::StyleRule(nullptr, mDecl);
+  nsRefPtr<css::StyleRule> rule = new css::StyleRule(nullptr, mDecl, 0, 0);
   mDecl = nullptr; 
   return rule.forget();
 }

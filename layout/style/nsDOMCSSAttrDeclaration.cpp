@@ -128,7 +128,7 @@ nsDOMCSSAttributeDeclaration::GetCSSDeclaration(bool aAllocate)
   
   css::Declaration *decl = new css::Declaration();
   decl->InitializeEmpty();
-  nsRefPtr<css::StyleRule> newRule = new css::StyleRule(nullptr, decl);
+  nsRefPtr<css::StyleRule> newRule = new css::StyleRule(nullptr, decl, 0, 0);
 
   
   nsresult rv;
