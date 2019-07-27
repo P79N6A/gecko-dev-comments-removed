@@ -31,8 +31,10 @@ const PREF_SERVER = PREF_BRANCH + "server";
 const PREF_ENABLED = PREF_BRANCH + "enabled";
 const PREF_LOG_LEVEL = PREF_BRANCH_LOG + "level";
 const PREF_LOG_DUMP = PREF_BRANCH_LOG + "dump";
-const PREF_CACHED_CLIENTID = PREF_BRANCH + "cachedClientID"
+const PREF_CACHED_CLIENTID = PREF_BRANCH + "cachedClientID";
+const PREF_FHR_ENABLED = "datareporting.healthreport.service.enabled";
 const PREF_FHR_UPLOAD_ENABLED = "datareporting.healthreport.uploadEnabled";
+const PREF_SESSIONS_BRANCH = "datareporting.sessions.";
 
 const PING_FORMAT_VERSION = 4;
 
@@ -60,6 +62,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "ThirdPartyCookieProbe",
                                   "resource://gre/modules/ThirdPartyCookieProbe.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "TelemetryEnvironment",
                                   "resource://gre/modules/TelemetryEnvironment.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "SessionRecorder",
+                                  "resource://gre/modules/SessionRecorder.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "UpdateChannel",
                                   "resource://gre/modules/UpdateChannel.jsm");
 
@@ -260,6 +264,14 @@ this.TelemetryPing = Object.freeze({
    get shutdown() {
     return Impl._shutdownBarrier.client;
    },
+
+   
+
+
+
+   getSessionRecorder: function() {
+    return Impl._sessionRecorder;
+   },
 });
 
 let Impl = {
@@ -275,7 +287,8 @@ let Impl = {
   _delayedInitTask: null,
   
   _delayedInitTaskDeferred: null,
-
+  
+  _sessionRecorder: null,
   
   
   
@@ -747,6 +760,14 @@ let Impl = {
     if (this._initialized && !testing) {
       this._log.error("setupTelemetry - already initialized");
       return Promise.resolve();
+    }
+
+    
+    
+    
+    if (!this._sessionRecorder && Preferences.get(PREF_FHR_ENABLED, true)) {
+      this._sessionRecorder = new SessionRecorder(PREF_SESSIONS_BRANCH);
+      this._sessionRecorder.onStartup();
     }
 
     

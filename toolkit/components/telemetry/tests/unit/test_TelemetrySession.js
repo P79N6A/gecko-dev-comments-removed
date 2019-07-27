@@ -71,9 +71,6 @@ const PREF_SERVER = PREF_BRANCH + "server";
 const PREF_FHR_UPLOAD_ENABLED = "datareporting.healthreport.uploadEnabled";
 const PREF_FHR_SERVICE_ENABLED = "datareporting.healthreport.service.enabled";
 
-const SESSION_RECORDER_EXPECTED = HAS_DATAREPORTINGSERVICE &&
-                                  Preferences.get(PREF_FHR_SERVICE_ENABLED, true);
-
 const DATAREPORTING_DIR = "datareporting";
 const ABORTED_PING_FILE_NAME = "aborted-session-ping";
 const ABORTED_SESSION_UPDATE_INTERVAL_MS = 5 * 60 * 1000;
@@ -88,11 +85,6 @@ let gHttpServer = new HttpServer();
 let gServerStarted = false;
 let gRequestIterator = null;
 let gClientID = null;
-
-XPCOMUtils.defineLazyGetter(this, "gDatareportingService",
-  () => Cc["@mozilla.org/datareporting/service;1"]
-          .getService(Ci.nsISupports)
-          .wrappedJSObject);
 
 function generateUUID() {
   let str = Cc["@mozilla.org/uuid-generator;1"].getService(Ci.nsIUUIDGenerator).generateUUID().toString();
@@ -321,7 +313,7 @@ function checkPayload(payload, reason, successfulPings) {
   Assert.ok(payload.simpleMeasurements.maximalNumberOfConcurrentThreads >= gNumberOfThreadsLaunched);
 
   let activeTicks = payload.simpleMeasurements.activeTicks;
-  Assert.ok(SESSION_RECORDER_EXPECTED ? activeTicks >= 0 : activeTicks == -1);
+  Assert.ok(activeTicks >= 0);
 
   Assert.equal(payload.simpleMeasurements.failedProfileLockCount,
               FAILED_PROFILE_LOCK_ATTEMPTS);
@@ -492,13 +484,6 @@ function run_test() {
   Services.prefs.setBoolPref(PREF_FHR_UPLOAD_ENABLED, true);
 
   
-  
-  if (HAS_DATAREPORTINGSERVICE) {
-    gDatareportingService.observe(null, "app-startup", null);
-    gDatareportingService.observe(null, "profile-after-change", null);
-  }
-
-  
   write_fake_failedprofilelocks_file();
 
   
@@ -532,20 +517,6 @@ function run_test() {
 add_task(function* asyncSetup() {
   yield TelemetrySession.setup();
   yield TelemetryPing.setup();
-
-  if (HAS_DATAREPORTINGSERVICE) {
-    
-    gDatareportingService.simulateNoSessionRecorder();
-  }
-
-  
-  do_check_eq(TelemetrySession.getPayload().simpleMeasurements.activeTicks, -1);
-
-  if (HAS_DATAREPORTINGSERVICE) {
-    
-    gDatareportingService.simulateRestoreSessionRecorder();
-  }
-
   
   gClientID = yield ClientID.getClientID();
 });
@@ -851,14 +822,13 @@ add_task(function* test_checkSubsessionHistograms() {
 });
 
 add_task(function* test_checkSubsessionData() {
-  if (gIsAndroid || !SESSION_RECORDER_EXPECTED) {
-    
+  if (gIsAndroid) {
     
     return;
   }
 
   
-  let sessionRecorder = gDatareportingService.getSessionRecorder();
+  let sessionRecorder = TelemetryPing.getSessionRecorder();
   let activeTicksAtSubsessionStart = sessionRecorder.activeTicks;
   let expectedActiveTicks = activeTicksAtSubsessionStart;
 
