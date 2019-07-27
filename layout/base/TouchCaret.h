@@ -45,18 +45,9 @@ public:
 
   nsEventStatus HandleEvent(WidgetEvent* aEvent);
 
-  
+  void SyncVisibilityWithCaret();
 
-
-
-  void UpdateTouchCaret(bool aVisible);
-
-  
-
-
-
-
-  void SetVisibility(bool aVisible);
+  void UpdatePositionIfNeeded();
 
   
 
@@ -71,6 +62,17 @@ private:
   TouchCaret() MOZ_DELETE;
 
   ~TouchCaret();
+
+  bool IsDisplayable();
+
+  void UpdatePosition();
+
+  
+
+
+
+
+  void SetVisibility(bool aVisible);
 
   
 
