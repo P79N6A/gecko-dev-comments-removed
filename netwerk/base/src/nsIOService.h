@@ -129,6 +129,7 @@ private:
     nsTArray<int32_t>                    mRestrictedPortList;
 
     bool                                 mAutoDialEnabled;
+    bool                                 mNetworkNotifyChanged;
 public:
     
     static uint32_t   gDefaultSegmentSize;
