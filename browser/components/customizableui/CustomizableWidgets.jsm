@@ -150,7 +150,8 @@ function clearSubview(aSubview) {
   parent.appendChild(aSubview);
 }
 
-const CustomizableWidgets = [{
+const CustomizableWidgets = [
+  {
     id: "history-panelmenu",
     type: "view",
     viewId: "PanelUI-history",
@@ -923,6 +924,18 @@ const CustomizableWidgets = [{
       });
       return node;
     }
+  }, {
+    id: "web-apps-button",
+    label: "web-apps-button.label",
+    tooltiptext: "web-apps-button.tooltiptext",
+    onCommand: function(aEvent) {
+      let win = aEvent.target &&
+                aEvent.target.ownerDocument &&
+                aEvent.target.ownerDocument.defaultView;
+      if (win && typeof win.BrowserOpenApps == "function") {
+        win.BrowserOpenApps();
+      }
+    }
   }];
 
 #ifdef XP_WIN
@@ -1048,26 +1061,28 @@ if (Services.prefs.getBoolPref("privacy.panicButton.enabled")) {
 
 
 
-let getCommandFunction = function(aOpenRemote) {
-  return function(aEvent) {
-    let win = aEvent.view;
-    if (win && typeof win.OpenBrowserWindow == "function") {
-      win.OpenBrowserWindow({remote: aOpenRemote});
-    }
-  };
+if (Services.prefs.getBoolPref("browser.tabs.remote")) {
+  let getCommandFunction = function(aOpenRemote) {
+    return function(aEvent) {
+      let win = aEvent.view;
+      if (win && typeof win.OpenBrowserWindow == "function") {
+        win.OpenBrowserWindow({remote: aOpenRemote});
+      }
+    };
+  }
+
+  let openRemote = !Services.appinfo.browserTabsRemoteAutostart;
+  
+  
+  let buttonLabel = openRemote ? "New e10s Window"
+                               : "New Non-e10s Window";
+
+  CustomizableWidgets.push({
+    id: "e10s-button",
+    label: buttonLabel,
+    tooltiptext: buttonLabel,
+    defaultArea: CustomizableUI.AREA_PANEL,
+    onCommand: getCommandFunction(openRemote),
+  });
 }
-
-let openRemote = !Services.appinfo.browserTabsRemoteAutostart;
-
-
-let buttonLabel = openRemote ? "New e10s Window"
-                              : "New Non-e10s Window";
-
-CustomizableWidgets.push({
-  id: "e10s-button",
-  label: buttonLabel,
-  tooltiptext: buttonLabel,
-  defaultArea: CustomizableUI.AREA_PANEL,
-  onCommand: getCommandFunction(openRemote),
-});
 #endif
