@@ -25,7 +25,7 @@
 #ifndef mozilla_pkix__pkixtypes_h
 #define mozilla_pkix__pkixtypes_h
 
-#include "pkix/enumclass.h"
+#include "pkix/Result.h"
 #include "pkix/nullptr.h"
 #include "prtime.h"
 #include "seccomon.h"
@@ -198,10 +198,10 @@ public:
   
   
   
-  virtual SECStatus GetCertTrust(EndEntityOrCA endEntityOrCA,
-                                 const CertPolicyId& policy,
-                                 const SECItem& candidateCertDER,
-                          TrustLevel* trustLevel) = 0;
+  virtual Result GetCertTrust(EndEntityOrCA endEntityOrCA,
+                              const CertPolicyId& policy,
+                              const SECItem& candidateCertDER,
+                               TrustLevel* trustLevel) = 0;
 
   class IssuerChecker
   {
@@ -213,9 +213,9 @@ public:
     
     
     
-    virtual SECStatus Check(const SECItem& potentialIssuerDER,
-                const SECItem* additionalNameConstraints,
-                     bool& keepGoing) = 0;
+    virtual Result Check(const SECItem& potentialIssuerDER,
+                          const SECItem* additionalNameConstraints,
+                          bool& keepGoing) = 0;
   protected:
     IssuerChecker();
     virtual ~IssuerChecker();
@@ -265,8 +265,8 @@ public:
   
   
   
-  virtual SECStatus FindIssuer(const SECItem& encodedIssuerName,
-                               IssuerChecker& checker, PRTime time) = 0;
+  virtual Result FindIssuer(const SECItem& encodedIssuerName,
+                            IssuerChecker& checker, PRTime time) = 0;
 
   
   
@@ -289,14 +289,22 @@ public:
   
   
   
-  virtual SECStatus IsChainValid(const DERArray& certChain) = 0;
+  virtual Result IsChainValid(const DERArray& certChain) = 0;
 
   
   
-  virtual SECStatus CheckRevocation(EndEntityOrCA endEntityOrCA,
-                                    const CertID& certID, PRTime time,
-                        const SECItem* stapledOCSPresponse,
-                        const SECItem* aiaExtension) = 0;
+  virtual Result CheckRevocation(EndEntityOrCA endEntityOrCA,
+                                 const CertID& certID, PRTime time,
+                     const SECItem* stapledOCSPresponse,
+                     const SECItem* aiaExtension) = 0;
+
+  
+  
+  
+  
+  
+  
+  virtual Result CheckPublicKey(const SECItem& subjectPublicKeyInfo) = 0;
 
   
   
@@ -305,8 +313,8 @@ public:
   
   
   
-  virtual SECStatus VerifySignedData(const SignedDataWithSignature& signedData,
-                                     const SECItem& subjectPublicKeyInfo) = 0;
+  virtual Result VerifySignedData(const SignedDataWithSignature& signedData,
+                                  const SECItem& subjectPublicKeyInfo) = 0;
 
   
   
@@ -319,17 +327,8 @@ public:
   
   
   static const size_t DIGEST_LENGTH = 20; 
-  virtual SECStatus DigestBuf(const SECItem& item,  uint8_t* digestBuf,
-                              size_t digestBufLen) = 0;
-
-  
-  
-  
-  
-  
-  
-  virtual SECStatus CheckPublicKey(const SECItem& subjectPublicKeyInfo) = 0;
-
+  virtual Result DigestBuf(const SECItem& item,  uint8_t* digestBuf,
+                           size_t digestBufLen) = 0;
 protected:
   TrustDomain() { }
 

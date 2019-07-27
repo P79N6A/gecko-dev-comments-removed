@@ -22,10 +22,10 @@
 
 
 
-#include "pkixgtest.h"
+#include "gtest/gtest.h"
+#include "pkix/pkixtypes.h"
 
 using namespace mozilla::pkix;
-using namespace mozilla::pkix::test;
 
 namespace mozilla { namespace pkix {
 
@@ -35,17 +35,9 @@ extern Result CheckKeyUsage(EndEntityOrCA endEntityOrCA,
 
 } } 
 
-class pkixcheck_CheckKeyUsage : public ::testing::Test
-{
-public:
-  pkixcheck_CheckKeyUsage()
-  {
-    PR_SetError(0, 0);
-  }
-};
+class pkixcheck_CheckKeyUsage : public ::testing::Test { };
 
-#define ASSERT_BAD(x) \
-  ASSERT_RecoverableError(SEC_ERROR_INADEQUATE_KEY_USAGE, x)
+#define ASSERT_BAD(x) ASSERT_EQ(Result::ERROR_INADEQUATE_KEY_USAGE, x)
 
 
 #define NAMED_SIMPLE_KU(name, unusedBits, bits) \
@@ -71,18 +63,18 @@ TEST_F(pkixcheck_CheckKeyUsage, EE_none)
   
   
 
-  ASSERT_Success(CheckKeyUsage(EndEntityOrCA::MustBeEndEntity, nullptr,
-                               KeyUsage::noParticularKeyUsageRequired));
-  ASSERT_Success(CheckKeyUsage(EndEntityOrCA::MustBeEndEntity, nullptr,
-                               KeyUsage::digitalSignature));
-  ASSERT_Success(CheckKeyUsage(EndEntityOrCA::MustBeEndEntity, nullptr,
-                               KeyUsage::nonRepudiation));
-  ASSERT_Success(CheckKeyUsage(EndEntityOrCA::MustBeEndEntity, nullptr,
-                               KeyUsage::keyEncipherment));
-  ASSERT_Success(CheckKeyUsage(EndEntityOrCA::MustBeEndEntity, nullptr,
-                               KeyUsage::dataEncipherment));
-  ASSERT_Success(CheckKeyUsage(EndEntityOrCA::MustBeEndEntity, nullptr,
-                               KeyUsage::keyAgreement));
+  ASSERT_EQ(Success, CheckKeyUsage(EndEntityOrCA::MustBeEndEntity, nullptr,
+                                   KeyUsage::noParticularKeyUsageRequired));
+  ASSERT_EQ(Success, CheckKeyUsage(EndEntityOrCA::MustBeEndEntity, nullptr,
+                                   KeyUsage::digitalSignature));
+  ASSERT_EQ(Success, CheckKeyUsage(EndEntityOrCA::MustBeEndEntity, nullptr,
+                                   KeyUsage::nonRepudiation));
+  ASSERT_EQ(Success, CheckKeyUsage(EndEntityOrCA::MustBeEndEntity, nullptr,
+                                   KeyUsage::keyEncipherment));
+  ASSERT_EQ(Success, CheckKeyUsage(EndEntityOrCA::MustBeEndEntity, nullptr,
+                                   KeyUsage::dataEncipherment));
+  ASSERT_EQ(Success, CheckKeyUsage(EndEntityOrCA::MustBeEndEntity, nullptr,
+                                   KeyUsage::keyAgreement));
 }
 
 TEST_F(pkixcheck_CheckKeyUsage, EE_empty)
@@ -98,8 +90,8 @@ TEST_F(pkixcheck_CheckKeyUsage, EE_empty)
 TEST_F(pkixcheck_CheckKeyUsage, CA_none)
 {
   
-  ASSERT_Success(CheckKeyUsage(EndEntityOrCA::MustBeCA, nullptr,
-                               KeyUsage::keyCertSign));
+  ASSERT_EQ(Success, CheckKeyUsage(EndEntityOrCA::MustBeCA, nullptr,
+                                   KeyUsage::keyCertSign));
 }
 
 TEST_F(pkixcheck_CheckKeyUsage, CA_empty)
@@ -114,8 +106,8 @@ TEST_F(pkixcheck_CheckKeyUsage, CA_empty)
 TEST_F(pkixcheck_CheckKeyUsage, maxUnusedBits)
 {
   NAMED_SIMPLE_KU(encoded, 7, 0x80);
-  ASSERT_Success(CheckKeyUsage(EndEntityOrCA::MustBeEndEntity, &encoded,
-                               KeyUsage::digitalSignature));
+  ASSERT_EQ(Success, CheckKeyUsage(EndEntityOrCA::MustBeEndEntity, &encoded,
+                                   KeyUsage::digitalSignature));
 }
 
 TEST_F(pkixcheck_CheckKeyUsage, tooManyUnusedBits)
@@ -182,8 +174,9 @@ void ASSERT_SimpleCase(uint8_t unusedBits, uint8_t bits, KeyUsage usage)
   
   
   NAMED_SIMPLE_KU(good, unusedBits, bits);
-  ASSERT_Success(CheckKeyUsage(EndEntityOrCA::MustBeEndEntity, &good, usage));
-  ASSERT_Success(CheckKeyUsage(EndEntityOrCA::MustBeCA, &good, usage));
+  ASSERT_EQ(Success,
+            CheckKeyUsage(EndEntityOrCA::MustBeEndEntity, &good, usage));
+  ASSERT_EQ(Success, CheckKeyUsage(EndEntityOrCA::MustBeCA, &good, usage));
 
   
   
@@ -226,8 +219,8 @@ TEST_F(pkixcheck_CheckKeyUsage, keyCertSign)
   NAMED_SIMPLE_KU(good, 2, 0x04);
   ASSERT_BAD(CheckKeyUsage(EndEntityOrCA::MustBeEndEntity, &good,
                            KeyUsage::keyCertSign));
-  ASSERT_Success(CheckKeyUsage(EndEntityOrCA::MustBeCA, &good,
-                               KeyUsage::keyCertSign));
+  ASSERT_EQ(Success, CheckKeyUsage(EndEntityOrCA::MustBeCA, &good,
+                                   KeyUsage::keyCertSign));
 
   
   
@@ -262,11 +255,12 @@ TEST_F(pkixcheck_CheckKeyUsage, unusedBitNotZero)
     controlOneValueByteData,
     sizeof(controlOneValueByteData)
   };
-  ASSERT_Success(CheckKeyUsage(EndEntityOrCA::MustBeEndEntity,
-                               &controlOneValueByte,
-                               KeyUsage::digitalSignature));
-  ASSERT_Success(CheckKeyUsage(EndEntityOrCA::MustBeCA, &controlOneValueByte,
-                               KeyUsage::digitalSignature));
+  ASSERT_EQ(Success, CheckKeyUsage(EndEntityOrCA::MustBeEndEntity,
+                                   &controlOneValueByte,
+                                   KeyUsage::digitalSignature));
+  ASSERT_EQ(Success, CheckKeyUsage(EndEntityOrCA::MustBeCA,
+                                   &controlOneValueByte,
+                                   KeyUsage::digitalSignature));
 
   
   static uint8_t oneValueByteData[] = {
@@ -292,11 +286,12 @@ TEST_F(pkixcheck_CheckKeyUsage, unusedBitNotZero)
     controlTwoValueBytesData,
     sizeof(controlTwoValueBytesData)
   };
-  ASSERT_Success(CheckKeyUsage(EndEntityOrCA::MustBeEndEntity,
-                               &controlTwoValueBytes,
-                               KeyUsage::digitalSignature));
-  ASSERT_Success(CheckKeyUsage(EndEntityOrCA::MustBeCA, &controlTwoValueBytes,
-                               KeyUsage::digitalSignature));
+  ASSERT_EQ(Success, CheckKeyUsage(EndEntityOrCA::MustBeEndEntity,
+                                   &controlTwoValueBytes,
+                                   KeyUsage::digitalSignature));
+  ASSERT_EQ(Success, CheckKeyUsage(EndEntityOrCA::MustBeCA,
+                                   &controlTwoValueBytes,
+                                   KeyUsage::digitalSignature));
 
   
   static uint8_t twoValueBytesData[] = {

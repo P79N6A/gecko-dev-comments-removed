@@ -243,11 +243,11 @@ BackCert::RememberExtension(Input& extnID, const SECItem& extnValue,
     
     
     if (extnValue.len == 0) {
-      return Fail(SEC_ERROR_EXTENSION_VALUE_INVALID);
+      return Result::ERROR_EXTENSION_VALUE_INVALID;
     }
     if (out->len != 0) {
       
-      return Fail(SEC_ERROR_EXTENSION_VALUE_INVALID);
+      return Result::ERROR_EXTENSION_VALUE_INVALID;
     }
     *out = extnValue;
     understood = true;

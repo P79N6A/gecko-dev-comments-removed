@@ -28,7 +28,6 @@
 #include "nssgtest.h"
 #include "pkix/pkixtypes.h"
 #include "pkixder.h"
-#include "pkixgtest.h"
 
 using namespace mozilla::pkix;
 using namespace mozilla::pkix::der;
@@ -36,14 +35,7 @@ using namespace mozilla::pkix::test;
 
 namespace {
 
-class pkixder_pki_types_tests : public ::testing::Test
-{
-protected:
-  virtual void SetUp()
-  {
-    PR_SetError(0, 0);
-  }
-};
+class pkixder_pki_types_tests : public ::testing::Test { };
 
 TEST_F(pkixder_pki_types_tests, CertificateSerialNumber)
 {
@@ -113,8 +105,7 @@ TEST_F(pkixder_pki_types_tests, CertificateSerialNumberZeroLength)
                                 sizeof DER_CERT_SERIAL_ZERO_LENGTH));
 
   SECItem item;
-  ASSERT_RecoverableError(SEC_ERROR_BAD_DER,
-                          CertificateSerialNumber(input, item));
+  ASSERT_EQ(Result::ERROR_BAD_DER, CertificateSerialNumber(input, item));
 }
 
 TEST_F(pkixder_pki_types_tests, OptionalVersionV1ExplicitEncodingAllowed)
@@ -128,7 +119,6 @@ TEST_F(pkixder_pki_types_tests, OptionalVersionV1ExplicitEncodingAllowed)
   ASSERT_EQ(Success, input.Init(DER_OPTIONAL_VERSION_V1,
                                 sizeof DER_OPTIONAL_VERSION_V1));
 
-  
   
   
   
@@ -182,7 +172,7 @@ TEST_F(pkixder_pki_types_tests, OptionalVersionUnknown)
                                 sizeof DER_OPTIONAL_VERSION_INVALID));
 
   der::Version version = der::Version::v1;
-  ASSERT_RecoverableError(SEC_ERROR_BAD_DER, OptionalVersion(input, version));
+  ASSERT_EQ(Result::ERROR_BAD_DER, OptionalVersion(input, version));
 }
 
 TEST_F(pkixder_pki_types_tests, OptionalVersionInvalidTooLong)
@@ -197,7 +187,7 @@ TEST_F(pkixder_pki_types_tests, OptionalVersionInvalidTooLong)
                                 sizeof DER_OPTIONAL_VERSION_INVALID_TOO_LONG));
 
   der::Version version;
-  ASSERT_RecoverableError(SEC_ERROR_BAD_DER, OptionalVersion(input, version));
+  ASSERT_EQ(Result::ERROR_BAD_DER, OptionalVersion(input, version));
 }
 
 TEST_F(pkixder_pki_types_tests, OptionalVersionMissing)
@@ -301,8 +291,8 @@ TEST_F(pkixder_DigestAlgorithmIdentifier, Invalid_MD5)
   Input input;
   ASSERT_EQ(Success, input.Init(DER, sizeof(DER)));
   DigestAlgorithm alg;
-  ASSERT_RecoverableError(SEC_ERROR_INVALID_ALGORITHM,
-                          DigestAlgorithmIdentifier(input, alg));
+  ASSERT_EQ(Result::ERROR_INVALID_ALGORITHM,
+            DigestAlgorithmIdentifier(input, alg));
 }
 
 TEST_F(pkixder_DigestAlgorithmIdentifier, Invalid_Digest_ECDSA_WITH_SHA256)
@@ -317,8 +307,8 @@ TEST_F(pkixder_DigestAlgorithmIdentifier, Invalid_Digest_ECDSA_WITH_SHA256)
   Input input;
   ASSERT_EQ(Success, input.Init(DER, sizeof(DER)));
   DigestAlgorithm alg;
-  ASSERT_RecoverableError(SEC_ERROR_INVALID_ALGORITHM,
-                          DigestAlgorithmIdentifier(input, alg));
+  ASSERT_EQ(Result::ERROR_INVALID_ALGORITHM,
+            DigestAlgorithmIdentifier(input, alg));
 }
 
 static const AlgorithmIdentifierTestInfo<SignatureAlgorithm>
@@ -432,8 +422,8 @@ TEST_F(pkixder_SignatureAlgorithmIdentifier, Invalid_RSA_With_MD5)
   Input input;
   ASSERT_EQ(Success, input.Init(DER, sizeof(DER)));
   SignatureAlgorithm alg;
-  ASSERT_RecoverableError(SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED,
-                          SignatureAlgorithmIdentifier(input, alg));
+  ASSERT_EQ(Result::ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED,
+            SignatureAlgorithmIdentifier(input, alg));
 }
 
 TEST_F(pkixder_SignatureAlgorithmIdentifier, Invalid_SignatureAlgorithm_SHA256)
@@ -448,8 +438,8 @@ TEST_F(pkixder_SignatureAlgorithmIdentifier, Invalid_SignatureAlgorithm_SHA256)
   Input input;
   ASSERT_EQ(Success, input.Init(DER, sizeof(DER)));
   SignatureAlgorithm alg;
-  ASSERT_RecoverableError(SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED,
-                          SignatureAlgorithmIdentifier(input, alg));
+  ASSERT_EQ(Result::ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED,
+            SignatureAlgorithmIdentifier(input, alg));
 }
 
 } 

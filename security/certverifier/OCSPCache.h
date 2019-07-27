@@ -28,6 +28,7 @@
 #include "hasht.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/Vector.h"
+#include "pkix/Result.h"
 #include "prerror.h"
 #include "prtime.h"
 #include "seccomon.h"
@@ -58,7 +59,8 @@ public:
   
   
   bool Get(const mozilla::pkix::CertID& aCertID,
-            PRErrorCode& aErrorCode,  PRTime& aValidThrough);
+            mozilla::pkix::Result& aResult,
+            PRTime& aValidThrough);
 
   
   
@@ -69,8 +71,9 @@ public:
   
   
   
-  SECStatus Put(const mozilla::pkix::CertID& aCertID, PRErrorCode aErrorCode,
-                PRTime aThisUpdate, PRTime aValidThrough);
+  mozilla::pkix::Result Put(const mozilla::pkix::CertID& aCertID,
+                            mozilla::pkix::Result aResult, PRTime aThisUpdate,
+                            PRTime aValidThrough);
 
   
   void Clear();
@@ -79,10 +82,11 @@ private:
   class Entry
   {
   public:
-    SECStatus Init(const mozilla::pkix::CertID& aCertID, PRErrorCode aErrorCode,
-                   PRTime aThisUpdate, PRTime aValidThrough);
+    mozilla::pkix::Result Init(const mozilla::pkix::CertID& aCertID,
+                               mozilla::pkix::Result aResult,
+                               PRTime aThisUpdate, PRTime aValidThrough);
 
-    PRErrorCode mErrorCode;
+    mozilla::pkix::Result mResult;
     PRTime mThisUpdate;
     PRTime mValidThrough;
     

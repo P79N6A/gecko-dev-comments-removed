@@ -44,7 +44,7 @@ ExpectTagAndGetLength(Input& input, uint8_t expectedTag, uint16_t& length)
   }
 
   if (tag != expectedTag) {
-    return Fail(SEC_ERROR_BAD_DER);
+    return Result::ERROR_BAD_DER;
   }
 
   
@@ -66,7 +66,7 @@ ExpectTagAndGetLength(Input& input, uint8_t expectedTag, uint16_t& length)
     }
     if (length2 < 128) {
       
-      return Fail(SEC_ERROR_BAD_DER);
+      return Result::ERROR_BAD_DER;
     }
     length = length2;
   } else if (length1 == 0x82) {
@@ -76,11 +76,11 @@ ExpectTagAndGetLength(Input& input, uint8_t expectedTag, uint16_t& length)
     }
     if (length < 256) {
       
-      return Fail(SEC_ERROR_BAD_DER);
+      return Result::ERROR_BAD_DER;
     }
   } else {
     
-    return Fail(SEC_ERROR_BAD_DER);
+    return Result::ERROR_BAD_DER;
   }
 
   
@@ -132,7 +132,7 @@ DigestAlgorithmOIDValue(Input& algorithmID,  DigestAlgorithm& algorithm)
   } else if (algorithmID.MatchRest(id_sha512)) {
     algorithm = DigestAlgorithm::sha512;
   } else {
-    return Fail(SEC_ERROR_INVALID_ALGORITHM);
+    return Result::ERROR_INVALID_ALGORITHM;
   }
 
   return Success;
@@ -227,7 +227,7 @@ SignatureAlgorithmOIDValue(Input& algorithmID,
     algorithm = SignatureAlgorithm::dsa_with_sha256;
   } else {
     
-    return Fail(SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED);
+    return Result::ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED;
   }
 
   return Success;
@@ -304,7 +304,7 @@ SignedData(Input& input,  Input& tbs,
     return rv;
   }
   if (signedData.signature.len == 0) {
-    return Fail(SEC_ERROR_BAD_SIGNATURE);
+    return Result::ERROR_BAD_SIGNATURE;
   }
   unsigned int unusedBitsAtEnd = signedData.signature.data[0];
   
@@ -314,7 +314,7 @@ SignedData(Input& input,  Input& tbs,
   
   
   if (unusedBitsAtEnd != 0) {
-    return Fail(SEC_ERROR_BAD_SIGNATURE);
+    return Result::ERROR_BAD_SIGNATURE;
   }
   ++signedData.signature.data;
   --signedData.signature.len;
@@ -327,10 +327,10 @@ ReadDigit(Input& input,  int& value)
 {
   uint8_t b;
   if (input.Read(b) != Success) {
-    return Fail(SEC_ERROR_INVALID_TIME);
+    return Result::ERROR_INVALID_TIME;
   }
   if (b < '0' || b > '9') {
-    return Fail(SEC_ERROR_INVALID_TIME);
+    return Result::ERROR_INVALID_TIME;
   }
   value = b - '0';
   return Success;
@@ -351,7 +351,7 @@ ReadTwoDigits(Input& input, int minValue, int maxValue,  int& value)
   }
   value = (hi * 10) + lo;
   if (value < minValue || value > maxValue) {
-    return Fail(SEC_ERROR_INVALID_TIME);
+    return Result::ERROR_INVALID_TIME;
   }
   return Success;
 }
@@ -402,12 +402,12 @@ TimeChoice(Input& tagged, uint8_t expectedTag,  PRTime& time)
     yearHi = yearLo >= 50 ? 19 : 20;
   } else {
     PR_NOT_REACHED("invalid tag given to TimeChoice");
-    return Fail(SEC_ERROR_INVALID_TIME);
+    return Result::ERROR_INVALID_TIME;
   }
   int year = (yearHi * 100) + yearLo;
   if (year < 1970) {
     
-    return Fail(SEC_ERROR_INVALID_TIME); 
+    return Result::ERROR_INVALID_TIME;
   }
   if (year > 1970) {
     
@@ -466,7 +466,7 @@ TimeChoice(Input& tagged, uint8_t expectedTag,  PRTime& time)
              break;
     default:
       PR_NOT_REACHED("month already bounds-checked by ReadTwoDigits");
-      return Fail(PR_INVALID_STATE_ERROR);
+      return Result::FATAL_ERROR_INVALID_STATE;
   }
 
   int dayOfMonth;
@@ -494,13 +494,13 @@ TimeChoice(Input& tagged, uint8_t expectedTag,  PRTime& time)
 
   uint8_t b;
   if (input.Read(b) != Success) {
-    return Fail(SEC_ERROR_INVALID_TIME);
+    return Result::ERROR_INVALID_TIME;
   }
   if (b != 'Z') {
-    return Fail(SEC_ERROR_INVALID_TIME); 
+    return Result::ERROR_INVALID_TIME;
   }
   if (End(input) != Success) {
-    return Fail(SEC_ERROR_INVALID_TIME);
+    return Result::ERROR_INVALID_TIME;
   }
 
   int64_t totalSeconds = (static_cast<int64_t>(days) * 24 * 60 * 60) +
