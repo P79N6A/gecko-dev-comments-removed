@@ -20,7 +20,7 @@ namespace mozilla {
 
 class SharedThreadPool;
 
-typedef MediaPromise<bool, bool> ShutdownPromise;
+typedef MediaPromise<bool, bool, false> ShutdownPromise;
 
 
 

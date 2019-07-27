@@ -50,10 +50,15 @@ public:
     CANCELED
   };
 
-  typedef MediaPromise<nsRefPtr<AudioData>, NotDecodedReason> AudioDataPromise;
-  typedef MediaPromise<nsRefPtr<VideoData>, NotDecodedReason> VideoDataPromise;
-  typedef MediaPromise<int64_t, nsresult> SeekPromise;
-  typedef MediaPromise<MediaData::Type, WaitForDataRejectValue> WaitForDataPromise;
+  typedef MediaPromise<nsRefPtr<AudioData>, NotDecodedReason,  true> AudioDataPromise;
+  typedef MediaPromise<nsRefPtr<VideoData>, NotDecodedReason,  true> VideoDataPromise;
+  typedef MediaPromise<int64_t, nsresult,  true> SeekPromise;
+
+  
+  
+  
+  
+  typedef MediaPromise<MediaData::Type, WaitForDataRejectValue,  true> WaitForDataPromise;
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaDecoderReader)
 
