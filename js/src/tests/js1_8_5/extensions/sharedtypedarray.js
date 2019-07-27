@@ -14,8 +14,6 @@
 
 
 
-
-
 var b;
 
 function testSharedArrayBuffer() {
@@ -36,9 +34,6 @@ function testSharedArrayBuffer() {
 
     
     assertThrowsInstanceOf(() => SharedArrayBuffer({}), TypeError);
-
-    
-    assertThrowsInstanceOf(() => new SharedArrayBuffer(12), Error);
 
     
     assertEq(Object.getOwnPropertyDescriptor(SharedArrayBuffer.prototype,"byteLength").get.call(b), 4096);
