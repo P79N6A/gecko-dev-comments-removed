@@ -143,8 +143,9 @@ nsTextControlFrame::GetType() const
 
 nsresult
 nsTextControlFrame::CalcIntrinsicSize(nsRenderingContext* aRenderingContext,
-                                      nsSize&             aIntrinsicSize,
-                                      float               aFontSizeInflation)
+                                      WritingMode aWM,
+                                      LogicalSize& aIntrinsicSize,
+                                      float aFontSizeInflation)
 {
   
   nscoord lineHeight  = 0;
@@ -165,7 +166,7 @@ nsTextControlFrame::CalcIntrinsicSize(nsRenderingContext* aRenderingContext,
 
   
   int32_t cols = GetCols();
-  aIntrinsicSize.width = cols * charWidth;
+  aIntrinsicSize.ISize(aWM) = cols * charWidth;
 
   
   
@@ -182,12 +183,12 @@ nsTextControlFrame::CalcIntrinsicSize(nsRenderingContext* aRenderingContext,
       internalPadding += t - rest;
     }
     
-    aIntrinsicSize.width += internalPadding;
+    aIntrinsicSize.ISize(aWM) += internalPadding;
   } else {
     
     
     if (PresContext()->CompatibilityMode() == eCompatibility_FullStandards) {
-      aIntrinsicSize.width += 1;
+      aIntrinsicSize.ISize(aWM) += 1;
     }
   }
 
@@ -197,14 +198,14 @@ nsTextControlFrame::CalcIntrinsicSize(nsRenderingContext* aRenderingContext,
     if (eStyleUnit_Coord == lsCoord.GetUnit()) {
       nscoord letterSpacing = lsCoord.GetCoordValue();
       if (letterSpacing != 0) {
-        aIntrinsicSize.width += cols * letterSpacing;
+        aIntrinsicSize.ISize(aWM) += cols * letterSpacing;
       }
     }
   }
 
   
   
-  aIntrinsicSize.height = lineHeight * GetRows();
+  aIntrinsicSize.BSize(aWM) = lineHeight * GetRows();
 
   
   if (IsTextArea()) {
@@ -217,9 +218,8 @@ nsTextControlFrame::CalcIntrinsicSize(nsRenderingContext* aRenderingContext,
       nsMargin scrollbarSizes =
       scrollableFrame->GetDesiredScrollbarSizes(PresContext(), aRenderingContext);
 
-      aIntrinsicSize.width  += scrollbarSizes.LeftRight();
-
-      aIntrinsicSize.height += scrollbarSizes.TopBottom();;
+      aIntrinsicSize.Width(aWM) += scrollbarSizes.LeftRight();
+      aIntrinsicSize.Height(aWM) += scrollbarSizes.TopBottom();
     }
   }
 
@@ -425,10 +425,11 @@ nsTextControlFrame::GetPrefISize(nsRenderingContext* aRenderingContext)
     DISPLAY_PREF_WIDTH(this, result);
 
     float inflation = nsLayoutUtils::FontSizeInflationFor(this);
-    nsSize autoSize;
-    CalcIntrinsicSize(aRenderingContext, autoSize, inflation);
+    WritingMode wm = GetWritingMode();
+    LogicalSize autoSize(wm);
+    CalcIntrinsicSize(aRenderingContext, wm, autoSize, inflation);
 
-    return autoSize.width; 
+    return autoSize.ISize(wm);
 }
 
 nscoord
@@ -454,29 +455,32 @@ nsTextControlFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
                                     bool aShrinkWrap)
 {
   float inflation = nsLayoutUtils::FontSizeInflationFor(this);
-  
-  nsSize autoSize;
-  nsresult rv = CalcIntrinsicSize(aRenderingContext, autoSize, inflation);
+  LogicalSize autoSize(aWM);
+  nsresult rv = CalcIntrinsicSize(aRenderingContext, aWM, autoSize, inflation);
   if (NS_FAILED(rv)) {
     
-    autoSize.SizeTo(0, 0);
+    autoSize.SizeTo(aWM, 0, 0);
   }
 #ifdef DEBUG
   
-  else if (StylePosition()->mWidth.GetUnit() == eStyleUnit_Auto) {
-    LogicalSize ancestorAutoSize =
-      nsContainerFrame::ComputeAutoSize(aRenderingContext, aWM,
-                                        aCBSize, aAvailableISize,
-                                        aMargin, aBorder,
-                                        aPadding, aShrinkWrap);
-    
-    NS_ASSERTION(inflation != 1.0f ||
-                 ancestorAutoSize.Width(aWM) == autoSize.width,
+  else {
+    const nsStyleCoord& inlineStyleCoord =
+      aWM.IsVertical() ? StylePosition()->mHeight : StylePosition()->mWidth;
+    if (inlineStyleCoord.GetUnit() == eStyleUnit_Auto) {
+      LogicalSize ancestorAutoSize =
+        nsContainerFrame::ComputeAutoSize(aRenderingContext, aWM,
+                                          aCBSize, aAvailableISize,
+                                          aMargin, aBorder,
+                                          aPadding, aShrinkWrap);
+      
+      MOZ_ASSERT(inflation != 1.0f ||
+                 ancestorAutoSize.ISize(aWM) == autoSize.ISize(aWM),
                  "Incorrect size computed by ComputeAutoSize?");
+    }
   }
 #endif
 
-  return LogicalSize(aWM, autoSize);
+  return autoSize;
 }
 
 void

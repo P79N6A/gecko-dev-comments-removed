@@ -272,8 +272,9 @@ protected:
   
   
   nsresult CalcIntrinsicSize(nsRenderingContext* aRenderingContext,
-                             nsSize&             aIntrinsicSize,
-                             float               aFontSizeInflation);
+                             mozilla::WritingMode aWM,
+                             mozilla::LogicalSize& aIntrinsicSize,
+                             float aFontSizeInflation);
 
   nsresult ScrollSelectionIntoView() MOZ_OVERRIDE;
 

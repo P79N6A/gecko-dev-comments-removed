@@ -3800,9 +3800,13 @@ nsFrame::GetCursor(const nsPoint& aPoint,
     
     aCursor.mCursor =
       (mContent && mContent->IsEditable())
-      ? GetWritingMode().IsVertical()
-        ? NS_STYLE_CURSOR_VERTICAL_TEXT : NS_STYLE_CURSOR_TEXT
-      : NS_STYLE_CURSOR_DEFAULT;
+      ? NS_STYLE_CURSOR_TEXT : NS_STYLE_CURSOR_DEFAULT;
+  }
+  if (NS_STYLE_CURSOR_TEXT == aCursor.mCursor &&
+      GetWritingMode().IsVertical()) {
+    
+    
+    aCursor.mCursor = NS_STYLE_CURSOR_VERTICAL_TEXT;
   }
 
   return NS_OK;
