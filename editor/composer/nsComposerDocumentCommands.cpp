@@ -92,7 +92,7 @@ nsSetDocumentOptionsCommand::DoCommandParams(const char *aCommandName,
   NS_ENSURE_SUCCESS(rv, rv);
   NS_ENSURE_TRUE(presContext, NS_ERROR_FAILURE);
 
-  int32_t animationMode; 
+  int32_t animationMode;
   rv = aParams->GetLongValue("imageAnimation", &animationMode);
   if (NS_SUCCEEDED(rv))
   {
@@ -101,7 +101,7 @@ nsSetDocumentOptionsCommand::DoCommandParams(const char *aCommandName,
     presContext->SetImageAnimationMode(animationMode);
   }
 
-  bool allowPlugins; 
+  bool allowPlugins;
   rv = aParams->GetBooleanValue("plugins", &allowPlugins);
   if (NS_SUCCEEDED(rv))
   {
@@ -150,7 +150,7 @@ nsSetDocumentOptionsCommand::GetCommandStateParams(const char *aCommandName,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  bool allowPlugins = false; 
+  bool allowPlugins = false;
   rv = aParams->GetBooleanValue("plugins", &allowPlugins);
   if (NS_SUCCEEDED(rv))
   {
@@ -205,7 +205,7 @@ nsSetDocumentStateCommand::DoCommandParams(const char *aCommandName,
   {
     NS_ENSURE_ARG_POINTER(aParams);
 
-    bool modified; 
+    bool modified;
     nsresult rv = aParams->GetBooleanValue(STATE_ATTRIBUTE, &modified);
 
     
@@ -221,7 +221,7 @@ nsSetDocumentStateCommand::DoCommandParams(const char *aCommandName,
   if (!nsCRT::strcmp(aCommandName, "cmd_setDocumentReadOnly"))
   {
     NS_ENSURE_ARG_POINTER(aParams);
-    bool isReadOnly; 
+    bool isReadOnly;
     nsresult rvRO = aParams->GetBooleanValue(STATE_ATTRIBUTE, &isReadOnly);
     NS_ENSURE_SUCCESS(rvRO, rvRO);
 
@@ -474,7 +474,7 @@ nsDocumentStateCommand::GetCommandStateParams(const char *aCommandName,
     
     aParams->SetLongValue(STATE_DATA, editorStatus);
     return NS_OK;
-  }  
+  }
   else if (!nsCRT::strcmp(aCommandName, "obs_documentLocationChanged"))
   {
     nsCOMPtr<nsIEditor> editor = do_QueryInterface(refCon);
@@ -491,7 +491,7 @@ nsDocumentStateCommand::GetCommandStateParams(const char *aCommandName,
       return aParams->SetISupportsValue(STATE_DATA, (nsISupports*)uri);
     }
     return NS_OK;
-  }  
+  }
 
   return NS_ERROR_NOT_IMPLEMENTED;
 }

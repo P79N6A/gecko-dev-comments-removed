@@ -58,12 +58,12 @@ nsComposeTxtSrvFilterConstructor(nsISupports *aOuter, REFNSIID aIID,
                                  void **aResult, bool aIsForMail)
 {
     *aResult = nullptr;
-    if (nullptr != aOuter) 
+    if (nullptr != aOuter)
     {
         return NS_ERROR_NO_AGGREGATION;
     }
     nsComposeTxtSrvFilter * inst = new nsComposeTxtSrvFilter();
-    if (nullptr == inst) 
+    if (nullptr == inst)
     {
         return NS_ERROR_OUT_OF_MEMORY;
     }
@@ -75,7 +75,7 @@ nsComposeTxtSrvFilterConstructor(nsISupports *aOuter, REFNSIID aIID,
 }
 
 static nsresult
-nsComposeTxtSrvFilterConstructorForComposer(nsISupports *aOuter, 
+nsComposeTxtSrvFilterConstructorForComposer(nsISupports *aOuter,
                                             REFNSIID aIID,
                                             void **aResult)
 {
@@ -83,7 +83,7 @@ nsComposeTxtSrvFilterConstructorForComposer(nsISupports *aOuter,
 }
 
 static nsresult
-nsComposeTxtSrvFilterConstructorForMail(nsISupports *aOuter, 
+nsComposeTxtSrvFilterConstructorForMail(nsISupports *aOuter,
                                         REFNSIID aIID,
                                         void **aResult)
 {
@@ -107,16 +107,16 @@ CreateControllerWithSingletonCommandTable(const nsCID& inCommandTableCID, nsICon
 
   nsCOMPtr<nsIControllerCommandTable> composerCommandTable = do_GetService(inCommandTableCID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
-  
+
   
   composerCommandTable->MakeImmutable();
-  
+
   nsCOMPtr<nsIControllerContext> controllerContext = do_QueryInterface(controller, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
-  
+
   rv = controllerContext->Init(composerCommandTable);
   NS_ENSURE_SUCCESS(rv, rv);
-  
+
   *aResult = controller;
   NS_ADDREF(*aResult);
   return NS_OK;
@@ -126,7 +126,7 @@ CreateControllerWithSingletonCommandTable(const nsCID& inCommandTableCID, nsICon
 
 
 static nsresult
-nsHTMLEditorDocStateControllerConstructor(nsISupports *aOuter, REFNSIID aIID, 
+nsHTMLEditorDocStateControllerConstructor(nsISupports *aOuter, REFNSIID aIID,
                                               void **aResult)
 {
   nsCOMPtr<nsIController> controller;
@@ -150,40 +150,40 @@ nsHTMLEditorControllerConstructor(nsISupports *aOuter, REFNSIID aIID, void **aRe
 
 
 static nsresult
-nsHTMLEditorCommandTableConstructor(nsISupports *aOuter, REFNSIID aIID, 
+nsHTMLEditorCommandTableConstructor(nsISupports *aOuter, REFNSIID aIID,
                                               void **aResult)
 {
   nsresult rv;
   nsCOMPtr<nsIControllerCommandTable> commandTable =
       do_CreateInstance(NS_CONTROLLERCOMMANDTABLE_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
-  
+
   rv = nsComposerController::RegisterHTMLEditorCommands(commandTable);
   NS_ENSURE_SUCCESS(rv, rv);
+
   
   
-  
-  
+
   return commandTable->QueryInterface(aIID, aResult);
 }
 
 
 
 static nsresult
-nsHTMLEditorDocStateCommandTableConstructor(nsISupports *aOuter, REFNSIID aIID, 
+nsHTMLEditorDocStateCommandTableConstructor(nsISupports *aOuter, REFNSIID aIID,
                                               void **aResult)
 {
   nsresult rv;
   nsCOMPtr<nsIControllerCommandTable> commandTable =
       do_CreateInstance(NS_CONTROLLERCOMMANDTABLE_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
-  
+
   rv = nsComposerController::RegisterEditorDocStateCommands(commandTable);
   NS_ENSURE_SUCCESS(rv, rv);
+
   
   
-  
-  
+
   return commandTable->QueryInterface(aIID, aResult);
 }
 

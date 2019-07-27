@@ -93,7 +93,7 @@ nsFilteredContentIterator::Init(nsIDOMRange* aRange)
 }
 
 
-nsresult 
+nsresult
 nsFilteredContentIterator::SwitchDirections(bool aChangeToForward)
 {
   nsINode *node = mCurrentIterator->GetCurrentNode();
@@ -251,7 +251,7 @@ ContentIsInTraversalRange(nsRange* aRange, nsIDOMNode* aNextNode, bool aIsPreMod
 
 
 
-nsresult 
+nsresult
 nsFilteredContentIterator::AdvanceNode(nsIDOMNode* aNode, nsIDOMNode*& aNewNode, eDirectionType aDir)
 {
   nsCOMPtr<nsIDOMNode> nextNode;

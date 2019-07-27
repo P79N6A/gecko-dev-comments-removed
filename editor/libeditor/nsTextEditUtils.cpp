@@ -25,7 +25,7 @@ using namespace mozilla;
 
 
 
-bool 
+bool
 nsTextEditUtils::IsBody(nsIDOMNode *node)
 {
   return nsEditor::NodeIsType(node, nsGkAtoms::body);
@@ -34,13 +34,13 @@ nsTextEditUtils::IsBody(nsIDOMNode *node)
 
 
 
-bool 
+bool
 nsTextEditUtils::IsBreak(nsIDOMNode *node)
 {
   return nsEditor::NodeIsType(node, nsGkAtoms::br);
 }
- 
-bool 
+
+bool
 nsTextEditUtils::IsBreak(nsINode* aNode)
 {
   MOZ_ASSERT(aNode);
@@ -51,7 +51,7 @@ nsTextEditUtils::IsBreak(nsINode* aNode)
 
 
 
-bool 
+bool
 nsTextEditUtils::IsMozBR(nsIDOMNode *node)
 {
   NS_PRECONDITION(node, "null node passed to nsHTMLEditUtils::IsMozBR");
@@ -74,7 +74,7 @@ nsTextEditUtils::IsMozBR(nsINode* aNode)
 
 
 
-bool 
+bool
 nsTextEditUtils::HasMozAttr(nsIDOMNode *node)
 {
   NS_PRECONDITION(node, "null parent passed to nsHTMLEditUtils::HasMozAttr");

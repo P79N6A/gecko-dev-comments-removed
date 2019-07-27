@@ -195,14 +195,14 @@ public:
                            int32_t aRowIndex, int32_t aColIndex,
                            nsIDOMElement **aCell,
                            int32_t* aStartRowIndex, int32_t* aStartColIndex,
-                           int32_t* aRowSpan, int32_t* aColSpan, 
-                           int32_t* aActualRowSpan, int32_t* aActualColSpan, 
+                           int32_t* aRowSpan, int32_t* aColSpan,
+                           int32_t* aActualRowSpan, int32_t* aActualColSpan,
                            bool* aIsSelected) override;
   NS_IMETHOD GetFirstRow(nsIDOMElement* aTableElement, nsIDOMNode** aRowNode) override;
   NS_IMETHOD GetNextRow(nsIDOMNode* aCurrentRowNode, nsIDOMNode** aRowNode) override;
   nsresult GetLastCellInRow(nsIDOMNode* aRowNode, nsIDOMNode** aCellNode);
 
-  NS_IMETHOD SetSelectionAfterTableEdit(nsIDOMElement* aTable, int32_t aRow, int32_t aCol, 
+  NS_IMETHOD SetSelectionAfterTableEdit(nsIDOMElement* aTable, int32_t aRow, int32_t aCol,
                                         int32_t aDirection, bool aSelected) override;
   NS_IMETHOD GetSelectedOrParentTableElement(nsAString& aTagName,
                                              int32_t *aSelectedCount,
@@ -223,7 +223,7 @@ public:
 
   
   NS_IMETHOD GetFirstSelectedCellInTable(int32_t *aRowIndex, int32_t *aColIndex, nsIDOMElement **aCell) override;
-    
+
   
   
   
@@ -290,7 +290,7 @@ public:
   
   virtual bool TagCanContainTag(nsIAtom& aParentTag, nsIAtom& aChildTag)
     override;
-  
+
   
   virtual bool IsContainer(nsINode* aNode) override;
   virtual bool IsContainer(nsIDOMNode* aNode) override;
@@ -337,9 +337,9 @@ public:
 
   
   NS_IMETHOD TypedText(const nsAString& aString, ETypingAction aAction) override;
-  nsresult InsertNodeAtPoint( nsIDOMNode *aNode, 
-                              nsCOMPtr<nsIDOMNode> *ioParent, 
-                              int32_t *ioOffset, 
+  nsresult InsertNodeAtPoint( nsIDOMNode *aNode,
+                              nsCOMPtr<nsIDOMNode> *ioParent,
+                              int32_t *ioOffset,
                               bool aNoEmptyNodes);
 
   
@@ -358,7 +358,7 @@ public:
   nsresult IsVisTextNode(nsIContent* aNode,
                          bool* outIsEmptyNode,
                          bool aSafeToAskFrames);
-  nsresult IsEmptyNode(nsIDOMNode *aNode, bool *outIsEmptyBlock, 
+  nsresult IsEmptyNode(nsIDOMNode *aNode, bool *outIsEmptyBlock,
                        bool aMozBRDoesntCount = false,
                        bool aListOrCellNotEmpty = false,
                        bool aSafeToAskFrames = false);
@@ -367,7 +367,7 @@ public:
                        bool aListOrCellNotEmpty = false,
                        bool aSafeToAskFrames = false);
   nsresult IsEmptyNodeImpl(nsINode* aNode,
-                           bool *outIsEmptyBlock, 
+                           bool *outIsEmptyBlock,
                            bool aMozBRDoesntCount,
                            bool aListOrCellNotEmpty,
                            bool aSafeToAskFrames,
@@ -427,7 +427,7 @@ protected:
   NS_IMETHOD TabInTable(bool inIsShift, bool *outHandled);
   already_AddRefed<mozilla::dom::Element> CreateBR(nsINode* aNode,
       int32_t aOffset, EDirection aSelect = eNone);
-  NS_IMETHOD CreateBR(nsIDOMNode *aNode, int32_t aOffset, 
+  NS_IMETHOD CreateBR(nsIDOMNode *aNode, int32_t aOffset,
                       nsCOMPtr<nsIDOMNode> *outBRNode, nsIEditor::EDirection aSelect = nsIEditor::eNone) override;
 
 
@@ -474,7 +474,7 @@ protected:
                           nsIDOMNode** aCellParent, int32_t* aCellOffset,
                           int32_t* aRowIndex, int32_t* aColIndex);
 
-  NS_IMETHOD GetCellSpansAt(nsIDOMElement* aTable, int32_t aRowIndex, int32_t aColIndex, 
+  NS_IMETHOD GetCellSpansAt(nsIDOMElement* aTable, int32_t aRowIndex, int32_t aColIndex,
                             int32_t& aActualRowSpan, int32_t& aActualColSpan);
 
   NS_IMETHOD SplitCellIntoColumns(nsIDOMElement *aTable, int32_t aRowIndex, int32_t aColIndex,
@@ -494,7 +494,7 @@ protected:
   nsresult SetSelectionAtDocumentStart(mozilla::dom::Selection* aSelection);
 
 
-  
+
   static already_AddRefed<mozilla::dom::Element>
     GetEnclosingTable(nsINode* aNode);
   static nsCOMPtr<nsIDOMNode> GetEnclosingTable(nsIDOMNode *aNode);
@@ -553,7 +553,7 @@ protected:
   
   NS_IMETHOD PrepareTransferable(nsITransferable **transferable) override;
   nsresult PrepareHTMLTransferable(nsITransferable **transferable, bool havePrivFlavor);
-  nsresult InsertFromTransferable(nsITransferable *transferable, 
+  nsresult InsertFromTransferable(nsITransferable *transferable,
                                     nsIDOMDocument *aSourceDoc,
                                     const nsAString & aContextStr,
                                     const nsAString & aInfoStr,
@@ -571,13 +571,13 @@ protected:
   nsresult   DoContentFilterCallback(const nsAString &aFlavor,
                                      nsIDOMDocument *aSourceDoc,
                                      bool aWillDeleteSelection,
-                                     nsIDOMNode **aFragmentAsNode,      
+                                     nsIDOMNode **aFragmentAsNode,
                                      nsIDOMNode **aFragStartNode,
                                      int32_t *aFragStartOffset,
                                      nsIDOMNode **aFragEndNode,
                                      int32_t *aFragEndOffset,
-                                     nsIDOMNode **aTargetNode,       
-                                     int32_t *aTargetOffset,   
+                                     nsIDOMNode **aTargetNode,
+                                     int32_t *aTargetOffset,
                                      bool *aDoContinue);
 
   bool       IsInLink(nsIDOMNode *aNode, nsCOMPtr<nsIDOMNode> *outLink = nullptr);
@@ -633,14 +633,14 @@ protected:
   
   nsresult MakeDefinitionItem(const nsAString & aItemType);
   nsresult InsertBasicBlock(const nsAString & aBlockType);
-  
+
   
   enum class FontSize { incr, decr };
   nsresult RelativeFontChange(FontSize aDir);
+
   
-  
-  nsresult RelativeFontChangeOnTextNode( int32_t aSizeChange, 
-                                         nsIDOMCharacterData *aTextNode, 
+  nsresult RelativeFontChangeOnTextNode( int32_t aSizeChange,
+                                         nsIDOMCharacterData *aTextNode,
                                          int32_t aStartOffset,
                                          int32_t aEndOffset);
   nsresult RelativeFontChangeOnNode(int32_t aSizeChange, nsIContent* aNode);
@@ -661,18 +661,18 @@ protected:
   nsresult PromoteInlineRange(nsRange* aRange);
   nsresult PromoteRangeIfStartsOrEndsInNamedAnchor(nsRange* aRange);
   nsresult SplitStyleAboveRange(nsRange* aRange,
-                                nsIAtom *aProperty, 
+                                nsIAtom *aProperty,
                                 const nsAString *aAttribute);
   nsresult SplitStyleAbovePoint(nsCOMPtr<nsIDOMNode> *aNode,
                                 int32_t *aOffset,
-                                nsIAtom *aProperty, 
+                                nsIAtom *aProperty,
                                 const nsAString *aAttribute,
                                 nsCOMPtr<nsIDOMNode> *outLeftNode = nullptr,
                                 nsCOMPtr<nsIDOMNode> *outRightNode = nullptr);
   nsresult ApplyDefaultProperties();
-  nsresult RemoveStyleInside(nsIDOMNode *aNode, 
-                             nsIAtom *aProperty, 
-                             const nsAString *aAttribute, 
+  nsresult RemoveStyleInside(nsIDOMNode *aNode,
+                             nsIAtom *aProperty,
+                             const nsAString *aAttribute,
                              const bool aChildrenOnly = false);
   nsresult RemoveStyleInside(nsIContent& aNode,
                              nsIAtom* aProperty,
@@ -782,7 +782,7 @@ protected:
   
   nsTArray<nsString> mStyleSheetURLs;
   nsTArray<nsRefPtr<mozilla::CSSStyleSheet>> mStyleSheets;
-  
+
   
   nsTArray<PropItem*> mDefaultStyles;
 

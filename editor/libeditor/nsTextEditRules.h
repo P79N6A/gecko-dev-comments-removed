@@ -127,11 +127,11 @@ protected:
   nsresult DidInsert(mozilla::dom::Selection* aSelection, nsresult aResult);
 
   nsresult WillDeleteSelection(mozilla::dom::Selection* aSelection,
-                               nsIEditor::EDirection aCollapsedAction, 
+                               nsIEditor::EDirection aCollapsedAction,
                                bool *aCancel,
                                bool *aHandled);
   nsresult DidDeleteSelection(mozilla::dom::Selection* aSelection,
-                              nsIEditor::EDirection aCollapsedAction, 
+                              nsIEditor::EDirection aCollapsedAction,
                               nsresult aResult);
 
   nsresult WillSetTextProperty(mozilla::dom::Selection* aSelection,
@@ -161,8 +161,8 @@ protected:
 
   nsresult WillOutputText(mozilla::dom::Selection* aSelection,
                           const nsAString  *aInFormat,
-                          nsAString *aOutText, 
-                          bool     *aOutCancel, 
+                          nsAString *aOutText,
+                          bool     *aOutCancel,
                           bool *aHandled);
 
   nsresult DidOutputText(mozilla::dom::Selection* aSelection, nsresult aResult);
@@ -172,10 +172,10 @@ protected:
 
   
   nsresult RemoveRedundantTrailingBR();
-  
+
   
   nsresult CreateTrailingBRIfNeeded();
-  
+
  
   nsresult CreateBogusNodeIfNeeded(mozilla::dom::Selection* aSelection);
 
@@ -194,8 +194,8 @@ protected:
                        nsIDOMNode** outBRNode = nullptr);
 
   nsresult CheckBidiLevelForDeletion(mozilla::dom::Selection* aSelection,
-                                     nsIDOMNode           *aSelNode, 
-                                     int32_t               aSelOffset, 
+                                     nsIDOMNode           *aSelNode,
+                                     int32_t               aSelOffset,
                                      nsIEditor::EDirection aAction,
                                      bool                 *aCancel);
 
@@ -261,7 +261,7 @@ protected:
 class nsTextRulesInfo : public nsRulesInfo
 {
  public:
- 
+
   explicit nsTextRulesInfo(EditAction aAction) :
     nsRulesInfo(aAction),
     inString(0),
@@ -279,17 +279,17 @@ class nsTextRulesInfo : public nsRulesInfo
     {}
 
   virtual ~nsTextRulesInfo() {}
-  
+
   
   const nsAString *inString;
   nsAString *outString;
   const nsAString *outputFormat;
   int32_t maxLength;
-  
+
   
   nsIEditor::EDirection collapsedAction;
   nsIEditor::EStripWrappers stripWrappers;
-  
+
   
   bool bOrdered;
   bool entireList;
@@ -297,10 +297,10 @@ class nsTextRulesInfo : public nsRulesInfo
 
   
   const nsAString *alignType;
-  
+
   
   const nsAString *blockType;
-  
+
   
   const nsIDOMElement* insertElement;
 };
@@ -314,12 +314,12 @@ class nsTextRulesInfo : public nsRulesInfo
 class nsAutoLockRulesSniffing
 {
   public:
-  
-  explicit nsAutoLockRulesSniffing(nsTextEditRules *rules) : mRules(rules) 
+
+  explicit nsAutoLockRulesSniffing(nsTextEditRules *rules) : mRules(rules)
                  {if (mRules) mRules->mLockRulesSniffing = true;}
-  ~nsAutoLockRulesSniffing() 
+  ~nsAutoLockRulesSniffing()
                  {if (mRules) mRules->mLockRulesSniffing = false;}
-  
+
   protected:
   nsTextEditRules *mRules;
 };
@@ -332,12 +332,12 @@ class nsAutoLockRulesSniffing
 class nsAutoLockListener
 {
   public:
-  
+
   explicit nsAutoLockListener(bool *enabled) : mEnabled(enabled)
                  {if (mEnabled) { mOldState=*mEnabled; *mEnabled = false;}}
-  ~nsAutoLockListener() 
+  ~nsAutoLockListener()
                  {if (mEnabled) *mEnabled = mOldState;}
-  
+
   protected:
   bool *mEnabled;
   bool mOldState;

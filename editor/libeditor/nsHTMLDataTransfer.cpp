@@ -96,7 +96,7 @@ using namespace mozilla::dom;
 #define kInsertCookie  "_moz_Insert Here_moz_"
 
 
-static bool FindIntegerAfterString(const char *aLeadingString, 
+static bool FindIntegerAfterString(const char *aLeadingString,
                                      nsCString &aCStr, int32_t &foundNumber);
 static nsresult RemoveFragComments(nsCString &theStr);
 static void RemoveBodyAndHead(nsINode& aNode);
@@ -501,7 +501,7 @@ nsHTMLEditor::DoInsertHTMLWithContext(const nsAString & aInputString,
       
       
       
-      else if (nsHTMLEditUtils::IsList(curNode) && 
+      else if (nsHTMLEditUtils::IsList(curNode) &&
               (nsHTMLEditUtils::IsList(parentNode)  || nsHTMLEditUtils::IsListItem(parentNode)) )
       {
         nsCOMPtr<nsIDOMNode> child, tmp;
@@ -599,7 +599,7 @@ nsHTMLEditor::DoInsertHTMLWithContext(const nsAString & aInputString,
     }
 
     
-    if (lastInsertNode) 
+    if (lastInsertNode)
     {
       
       nsCOMPtr<nsIDOMNode> selNode, tmp, highTable;
@@ -721,15 +721,15 @@ nsHTMLEditor::RemoveInsertionListener(nsIContentFilter *aListener)
 
   return NS_OK;
 }
- 
+
 nsresult
-nsHTMLEditor::DoContentFilterCallback(const nsAString &aFlavor, 
+nsHTMLEditor::DoContentFilterCallback(const nsAString &aFlavor,
                                       nsIDOMDocument *sourceDoc,
                                       bool aWillDeleteSelection,
-                                      nsIDOMNode **aFragmentAsNode, 
-                                      nsIDOMNode **aFragStartNode, 
+                                      nsIDOMNode **aFragmentAsNode,
+                                      nsIDOMNode **aFragStartNode,
                                       int32_t *aFragStartOffset,
-                                      nsIDOMNode **aFragEndNode, 
+                                      nsIDOMNode **aFragEndNode,
                                       int32_t *aFragEndOffset,
                                       nsIDOMNode **aTargetNode,
                                       int32_t *aTargetOffset,
@@ -760,7 +760,7 @@ nsHTMLEditor::IsInLink(nsIDOMNode *aNode, nsCOMPtr<nsIDOMNode> *outLink)
   nsCOMPtr<nsIDOMNode> tmp, node = aNode;
   while (node)
   {
-    if (nsHTMLEditUtils::IsLink(node)) 
+    if (nsHTMLEditUtils::IsLink(node))
     {
       if (outLink)
         *outLink = node;
@@ -825,7 +825,7 @@ nsHTMLEditor::PrepareHTMLTransferable(nsITransferable **aTransferable,
     
     if (!IsPlaintextEditor())
     {
-      if (!aHavePrivFlavor) 
+      if (!aHavePrivFlavor)
       {
         (*aTransferable)->AddDataFlavor(kNativeHTMLMime);
       }
@@ -858,12 +858,12 @@ nsHTMLEditor::PrepareHTMLTransferable(nsITransferable **aTransferable,
     (*aTransferable)->AddDataFlavor(kUnicodeMime);
     (*aTransferable)->AddDataFlavor(kMozTextInternal);
   }
-  
+
   return NS_OK;
 }
 
 bool
-FindIntegerAfterString(const char *aLeadingString, 
+FindIntegerAfterString(const char *aLeadingString,
                        nsCString &aCStr, int32_t &foundNumber)
 {
   
@@ -908,16 +908,16 @@ nsHTMLEditor::ParseCFHTML(nsCString & aCfhtml, char16_t **aStuffToPaste, char16_
 {
   
   int32_t startHTML, endHTML, startFragment, endFragment;
-  if (!FindIntegerAfterString("StartHTML:", aCfhtml, startHTML) || 
+  if (!FindIntegerAfterString("StartHTML:", aCfhtml, startHTML) ||
       startHTML < -1)
     return NS_ERROR_FAILURE;
-  if (!FindIntegerAfterString("EndHTML:", aCfhtml, endHTML) || 
+  if (!FindIntegerAfterString("EndHTML:", aCfhtml, endHTML) ||
       endHTML < -1)
     return NS_ERROR_FAILURE;
-  if (!FindIntegerAfterString("StartFragment:", aCfhtml, startFragment) || 
+  if (!FindIntegerAfterString("StartFragment:", aCfhtml, startFragment) ||
       startFragment < 0)
     return NS_ERROR_FAILURE;
-  if (!FindIntegerAfterString("EndFragment:", aCfhtml, endFragment) || 
+  if (!FindIntegerAfterString("EndFragment:", aCfhtml, endFragment) ||
       startFragment < 0)
     return NS_ERROR_FAILURE;
 
@@ -954,10 +954,10 @@ nsHTMLEditor::ParseCFHTML(nsCString & aCfhtml, char16_t **aStuffToPaste, char16_
           
           break;
       }
-      else if (aCfhtml[curPos] == '<') 
+      else if (aCfhtml[curPos] == '<')
       {
           
-          if (curPos != startFragment) 
+          if (curPos != startFragment)
           {
               
               
@@ -966,7 +966,7 @@ nsHTMLEditor::ParseCFHTML(nsCString & aCfhtml, char16_t **aStuffToPaste, char16_
           }
           break;
       }
-      else 
+      else
       {
           curPos--;
       }
@@ -989,8 +989,8 @@ nsHTMLEditor::ParseCFHTML(nsCString & aCfhtml, char16_t **aStuffToPaste, char16_
   int32_t oldLengthInChars = fragUcs2Str.Length() + 1;  
   int32_t newLengthInChars = 0;
   *aStuffToPaste = nsLinebreakConverter::ConvertUnicharLineBreaks(fragUcs2Str.get(),
-                                                           nsLinebreakConverter::eLinebreakAny, 
-                                                           nsLinebreakConverter::eLinebreakContent, 
+                                                           nsLinebreakConverter::eLinebreakAny,
+                                                           nsLinebreakConverter::eLinebreakContent,
                                                            oldLengthInChars, &newLengthInChars);
   NS_ENSURE_TRUE(*aStuffToPaste, NS_ERROR_FAILURE);
 
@@ -998,8 +998,8 @@ nsHTMLEditor::ParseCFHTML(nsCString & aCfhtml, char16_t **aStuffToPaste, char16_
   oldLengthInChars = cntxtUcs2Str.Length() + 1;  
   newLengthInChars = 0;
   *aCfcontext = nsLinebreakConverter::ConvertUnicharLineBreaks(cntxtUcs2Str.get(),
-                                                           nsLinebreakConverter::eLinebreakAny, 
-                                                           nsLinebreakConverter::eLinebreakContent, 
+                                                           nsLinebreakConverter::eLinebreakAny,
+                                                           nsLinebreakConverter::eLinebreakContent,
                                                            oldLengthInChars, &newLengthInChars);
   
 
@@ -1084,7 +1084,7 @@ nsresult nsHTMLEditor::InsertObject(const char* aType, nsISupports* aObject, boo
     AppendUTF8toUTF16(data64, stuffToPaste);
     stuffToPaste.AppendLiteral("\" alt=\"\" >");
     nsAutoEditBatch beginBatching(this);
-    rv = DoInsertHTMLWithContext(stuffToPaste, EmptyString(), EmptyString(), 
+    rv = DoInsertHTMLWithContext(stuffToPaste, EmptyString(), EmptyString(),
                                  NS_LITERAL_STRING(kFileMime),
                                  aSourceDoc,
                                  aDestinationNode, aDestOffset,
@@ -2182,7 +2182,7 @@ nsHTMLEditor::DiscoverPartialListsAndTables(nsTArray<OwningNonNull<nsINode>>& aP
 {
   int32_t ret = -1;
   int32_t listAndTableParents = aListsAndTables.Length();
-  
+
   
   for (auto& curNode : aPasteNodes) {
     if (nsHTMLEditUtils::IsTableElement(curNode) &&
@@ -2230,7 +2230,7 @@ nsHTMLEditor::ScanForListAndTableStructure(StartOrEnd aStartOrEnd,
   
   int32_t idx = aStartOrEnd == StartOrEnd::end ? aNodes.Length() - 1 : 0;
   bool isList = nsHTMLEditUtils::IsList(&aListOrTable);
-  
+
   for (nsCOMPtr<nsINode> node = aNodes[idx]; node;
        node = node->GetParentNode()) {
     if ((isList && nsHTMLEditUtils::IsListItem(node)) ||

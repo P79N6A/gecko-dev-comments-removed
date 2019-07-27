@@ -26,10 +26,10 @@ class Selection;
 class nsRulesInfo
 {
   public:
-  
+
   explicit nsRulesInfo(EditAction aAction) : action(aAction) {}
   virtual ~nsRulesInfo() {}
-  
+
   EditAction action;
 };
 
@@ -41,7 +41,7 @@ class nsIEditRules : public nsISupports
 {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_IEDITRULES_IID)
-  
+
 
 
 

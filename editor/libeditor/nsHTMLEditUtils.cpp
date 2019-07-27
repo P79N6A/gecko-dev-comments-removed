@@ -29,7 +29,7 @@ using namespace mozilla;
 
 
 
-bool 
+bool
 nsHTMLEditUtils::IsInlineStyle(nsIDOMNode* aNode)
 {
   NS_PRECONDITION(aNode, "null parent passed to nsHTMLEditUtils::IsInlineStyle");
@@ -100,11 +100,11 @@ nsHTMLEditUtils::IsNodeThatCanOutdent(nsIDOMNode* aNode)
 
 
 
- 
 
 
 
-bool 
+
+bool
 nsHTMLEditUtils::IsHeader(nsINode& aNode)
 {
   return aNode.IsAnyOfHTMLElements(nsGkAtoms::h1,
@@ -127,7 +127,7 @@ nsHTMLEditUtils::IsHeader(nsIDOMNode* aNode)
 
 
 
-bool 
+bool
 nsHTMLEditUtils::IsParagraph(nsIDOMNode* aNode)
 {
   return nsEditor::NodeIsType(aNode, nsGkAtoms::p);
@@ -137,7 +137,7 @@ nsHTMLEditUtils::IsParagraph(nsIDOMNode* aNode)
 
 
 
-bool 
+bool
 nsHTMLEditUtils::IsHR(nsIDOMNode* aNode)
 {
   return nsEditor::NodeIsType(aNode, nsGkAtoms::hr);
@@ -147,7 +147,7 @@ nsHTMLEditUtils::IsHR(nsIDOMNode* aNode)
 
 
 
-bool 
+bool
 nsHTMLEditUtils::IsListItem(nsIDOMNode* aNode)
 {
   NS_PRECONDITION(aNode, "null parent passed to nsHTMLEditUtils::IsListItem");
@@ -193,7 +193,7 @@ nsHTMLEditUtils::IsTableElement(nsINode* aNode)
 
 
 
-bool 
+bool
 nsHTMLEditUtils::IsTableElementButNotTable(nsIDOMNode* aNode)
 {
   NS_PRECONDITION(aNode, "null node passed to nsHTMLEditor::IsTableElementButNotTable");
@@ -232,7 +232,7 @@ nsHTMLEditUtils::IsTable(nsINode* aNode)
 
 
 
-bool 
+bool
 nsHTMLEditUtils::IsTableRow(nsIDOMNode* aNode)
 {
   return nsEditor::NodeIsType(aNode, nsGkAtoms::tr);
@@ -242,7 +242,7 @@ nsHTMLEditUtils::IsTableRow(nsIDOMNode* aNode)
 
 
 
-bool 
+bool
 nsHTMLEditUtils::IsTableCell(nsIDOMNode* aNode)
 {
   NS_PRECONDITION(aNode, "null parent passed to nsHTMLEditUtils::IsTableCell");
@@ -261,7 +261,7 @@ nsHTMLEditUtils::IsTableCell(nsINode* aNode)
 
 
 
-bool 
+bool
 nsHTMLEditUtils::IsTableCellOrCaption(nsIDOMNode* aNode)
 {
   NS_PRECONDITION(aNode, "null parent passed to nsHTMLEditUtils::IsTableCell");
@@ -296,7 +296,7 @@ nsHTMLEditUtils::IsList(nsINode* aNode)
 
 
 
-bool 
+bool
 nsHTMLEditUtils::IsOrderedList(nsIDOMNode* aNode)
 {
   return nsEditor::NodeIsType(aNode, nsGkAtoms::ol);
@@ -306,7 +306,7 @@ nsHTMLEditUtils::IsOrderedList(nsIDOMNode* aNode)
 
 
 
-bool 
+bool
 nsHTMLEditUtils::IsUnorderedList(nsIDOMNode* aNode)
 {
   return nsEditor::NodeIsType(aNode, nsGkAtoms::ul);
@@ -316,7 +316,7 @@ nsHTMLEditUtils::IsUnorderedList(nsIDOMNode* aNode)
 
 
 
-bool 
+bool
 nsHTMLEditUtils::IsBlockquote(nsIDOMNode* aNode)
 {
   return nsEditor::NodeIsType(aNode, nsGkAtoms::blockquote);
@@ -326,7 +326,7 @@ nsHTMLEditUtils::IsBlockquote(nsIDOMNode* aNode)
 
 
 
-bool 
+bool
 nsHTMLEditUtils::IsPre(nsIDOMNode* aNode)
 {
   return nsEditor::NodeIsType(aNode, nsGkAtoms::pre);
@@ -342,13 +342,13 @@ nsHTMLEditUtils::IsImage(nsINode* aNode)
   return aNode && aNode->IsHTMLElement(nsGkAtoms::img);
 }
 
-bool 
+bool
 nsHTMLEditUtils::IsImage(nsIDOMNode* aNode)
 {
   return nsEditor::NodeIsType(aNode, nsGkAtoms::img);
 }
 
-bool 
+bool
 nsHTMLEditUtils::IsLink(nsIDOMNode *aNode)
 {
   nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
@@ -371,7 +371,7 @@ nsHTMLEditUtils::IsLink(nsINode* aNode)
   return false;
 }
 
-bool 
+bool
 nsHTMLEditUtils::IsNamedAnchor(nsIDOMNode *aNode)
 {
   nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
@@ -395,7 +395,7 @@ nsHTMLEditUtils::IsNamedAnchor(nsINode* aNode)
 
 
 
-bool 
+bool
 nsHTMLEditUtils::IsDiv(nsIDOMNode* aNode)
 {
   return nsEditor::NodeIsType(aNode, nsGkAtoms::div);
@@ -405,7 +405,7 @@ nsHTMLEditUtils::IsDiv(nsIDOMNode* aNode)
 
 
 
-bool 
+bool
 nsHTMLEditUtils::IsMozDiv(nsIDOMNode* aNode)
 {
   if (IsDiv(aNode) && nsTextEditUtils::HasMozAttr(aNode)) return true;
@@ -847,7 +847,7 @@ nsHTMLEditUtils::CanContain(int32_t aParent, int32_t aChild)
 
   const nsElementInfo& child = kElements[aChild - 1];
   return (parent.mCanContainGroups & child.mGroup) != 0;
-} 
+}
 
 bool
 nsHTMLEditUtils::IsContainer(int32_t aTag)

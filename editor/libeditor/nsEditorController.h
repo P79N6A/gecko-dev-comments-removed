@@ -20,7 +20,7 @@ class nsIControllerCommandTable;
 
 
 
-class nsEditorController 
+class nsEditorController
 {
 public:
   static nsresult RegisterEditorCommands(nsIControllerCommandTable* inCommandTable);

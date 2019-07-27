@@ -78,7 +78,7 @@ public:
   NS_IMETHOD Init(nsIDOMDocument *aDoc, nsIContent *aRoot,
                   nsISelectionController *aSelCon, uint32_t aFlags,
                   const nsAString& aValue) override;
-  
+
   NS_IMETHOD GetDocumentIsEmpty(bool *aDocumentIsEmpty) override;
   NS_IMETHOD GetIsDocumentEditable(bool *aIsDocumentEditable) override;
 
@@ -103,7 +103,7 @@ public:
   NS_IMETHOD OutputToString(const nsAString& aFormatType,
                             uint32_t aFlags,
                             nsAString& aOutputString) override;
-                            
+
   NS_IMETHOD OutputToStream(nsIOutputStream* aOutputStream,
                             const nsAString& aFormatType,
                             const nsACString& aCharsetOverride,
@@ -178,7 +178,7 @@ protected:
                                   nsIDocumentEncoder** encoder);
 
   
-  NS_IMETHOD CreateBR(nsIDOMNode *aNode, int32_t aOffset, 
+  NS_IMETHOD CreateBR(nsIDOMNode *aNode, int32_t aOffset,
                       nsCOMPtr<nsIDOMNode> *outBRNode, EDirection aSelect = eNone);
   already_AddRefed<mozilla::dom::Element>
       CreateBRImpl(nsCOMPtr<nsINode>* aInOutParent, int32_t* aInOutOffset,

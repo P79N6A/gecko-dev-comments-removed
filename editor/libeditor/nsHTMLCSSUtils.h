@@ -404,7 +404,7 @@ private:
 
 private:
   nsHTMLEditor            *mHTMLEditor;
-  bool                    mIsCSSPrefChecked; 
+  bool                    mIsCSSPrefChecked;
 };
 
 #define NS_EDITOR_INDENT_INCREMENT_IN        0.4134f
@@ -415,6 +415,6 @@ private:
 #define NS_EDITOR_INDENT_INCREMENT_EM        3
 #define NS_EDITOR_INDENT_INCREMENT_EX        6
 #define NS_EDITOR_INDENT_INCREMENT_PX        40
-#define NS_EDITOR_INDENT_INCREMENT_PERCENT   4 
+#define NS_EDITOR_INDENT_INCREMENT_PERCENT   4
 
 #endif 

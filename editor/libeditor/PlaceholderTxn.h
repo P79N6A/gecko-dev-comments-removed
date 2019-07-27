@@ -27,14 +27,14 @@ class IMETextTxn;
 
 
 
- 
-class PlaceholderTxn : public EditAggregateTxn, 
-                       public nsIAbsorbingTransaction, 
+
+class PlaceholderTxn : public EditAggregateTxn,
+                       public nsIAbsorbingTransaction,
                        public nsSupportsWeakReference
 {
 public:
-  NS_DECL_ISUPPORTS_INHERITED  
-  
+  NS_DECL_ISUPPORTS_INHERITED
+
   PlaceholderTxn();
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(PlaceholderTxn, EditAggregateTxn)
@@ -49,9 +49,9 @@ public:
 
   NS_IMETHOD Init(nsIAtom* aName, nsSelectionState* aSelState,
                   nsEditor* aEditor) override;
-  
+
   NS_IMETHOD GetTxnName(nsIAtom **aName) override;
-  
+
   NS_IMETHOD StartSelectionEquals(nsSelectionState *aSelState, bool *aResult) override;
 
   NS_IMETHOD EndPlaceHolderBatch() override;

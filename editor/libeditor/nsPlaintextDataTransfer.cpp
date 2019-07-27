@@ -128,7 +128,7 @@ NS_IMETHODIMP nsPlaintextEditor::InsertTextFromTransferable(nsITransferable *aTr
     }
   }
   free(bestFlavor);
-      
+
   
 
   if (NS_SUCCEEDED(rv))
@@ -278,7 +278,7 @@ nsresult nsPlaintextEditor::InsertFromDrop(nsIDOMEvent* aDropEvent)
       
       
     }
-    else 
+    else
     {
       
       if (srcdomdoc == destdomdoc)
@@ -381,7 +381,7 @@ NS_IMETHODIMP nsPlaintextEditor::CanPaste(int32_t aSelectionType, bool *aCanPast
   nsresult rv;
   nsCOMPtr<nsIClipboard> clipboard(do_GetService("@mozilla.org/widget/clipboard;1", &rv));
   NS_ENSURE_SUCCESS(rv, rv);
-  
+
   
   const char* textEditorFlavors[] = { kUnicodeMime };
 
@@ -390,7 +390,7 @@ NS_IMETHODIMP nsPlaintextEditor::CanPaste(int32_t aSelectionType, bool *aCanPast
                                          ArrayLength(textEditorFlavors),
                                          aSelectionType, &haveFlavors);
   NS_ENSURE_SUCCESS(rv, rv);
-  
+
   *aCanPaste = haveFlavors;
   return NS_OK;
 }
@@ -421,7 +421,7 @@ NS_IMETHODIMP nsPlaintextEditor::CanPasteTransferable(nsITransferable *aTransfer
     *aCanPaste = true;
   else
     *aCanPaste = false;
-  
+
   return NS_OK;
 }
 

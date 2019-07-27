@@ -41,7 +41,7 @@ NS_INTERFACE_MAP_END
 
 
 
- 
+
 TypeInState::TypeInState() :
  mSetArray()
 ,mClearedArray()
@@ -63,7 +63,7 @@ nsresult
 TypeInState::UpdateSelState(Selection* aSelection)
 {
   NS_ENSURE_TRUE(aSelection, NS_ERROR_NULL_POINTER);
-  
+
   if (!aSelection->Collapsed()) {
     return NS_OK;
   }
@@ -114,7 +114,7 @@ NS_IMETHODIMP TypeInState::NotifySelectionChanged(nsIDOMDocument *, nsISelection
     }
   }
 
-  Reset(); 
+  Reset();
   return NS_OK;
 }
 
@@ -189,7 +189,7 @@ TypeInState::ClearProp(nsIAtom* aProp, const nsAString& aAttr)
 
 
 
-  
+
 PropItem*
 TypeInState::TakeClearProperty()
 {
@@ -207,7 +207,7 @@ TypeInState::TakeClearProperty()
 
 
 
-  
+
 PropItem*
 TypeInState::TakeSetProperty()
 {
@@ -266,7 +266,7 @@ TypeInState::GetTypingState(bool &isSet,
 
 
 
- 
+
 void
 TypeInState::RemovePropFromSetList(nsIAtom* aProp, const nsAString& aAttr)
 {
@@ -354,7 +354,7 @@ bool TypeInState::IsPropCleared(nsIAtom* aProp,
   return false;
 }
 
-bool TypeInState::FindPropInList(nsIAtom *aProp, 
+bool TypeInState::FindPropInList(nsIAtom *aProp,
                                    const nsAString &aAttr,
                                    nsAString *outValue,
                                    nsTArray<PropItem*> &aList,
@@ -366,7 +366,7 @@ bool TypeInState::FindPropInList(nsIAtom *aProp,
   {
     PropItem *item = aList[i];
     if ( (item->tag == aProp) &&
-         (item->attr == aAttr) ) 
+         (item->attr == aAttr) )
     {
       if (outValue) *outValue = item->value;
       outIndex = i;
@@ -382,7 +382,7 @@ bool TypeInState::FindPropInList(nsIAtom *aProp,
 
 
 
-PropItem::PropItem() : 
+PropItem::PropItem() :
  tag(nullptr)
 ,attr()
 ,value()

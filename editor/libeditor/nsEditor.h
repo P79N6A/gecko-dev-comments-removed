@@ -294,8 +294,8 @@ protected:
                                        int32_t* aOffset,
                                        int32_t* aLength);
 
-  nsresult CreateTxnForDeleteInsertionPoint(nsRange* aRange, 
-                                            EDirection aAction, 
+  nsresult CreateTxnForDeleteInsertionPoint(nsRange* aRange,
+                                            EDirection aAction,
                                             EditAggregateTxn* aTxn,
                                             nsINode** aNode,
                                             int32_t* aOffset,
@@ -322,7 +322,7 @@ protected:
 
   NS_IMETHOD CreateTxnForRemoveStyleSheet(mozilla::CSSStyleSheet* aSheet,
                                           RemoveStyleSheetTxn* *aTxn);
-  
+
   nsresult DeleteText(nsGenericDOMDataNode& aElement,
                       uint32_t aOffset, uint32_t aLength);
 
@@ -335,7 +335,7 @@ protected:
   already_AddRefed<mozilla::dom::DeleteTextTxn>
   CreateTxnForDeleteCharacter(nsGenericDOMDataNode& aData, uint32_t aOffset,
                               EDirection aDirection);
-	
+
   already_AddRefed<mozilla::dom::SplitNodeTxn>
   CreateTxnForSplitNode(nsIContent& aNode, uint32_t aOffset);
 
@@ -364,10 +364,10 @@ protected:
     eDocumentToBeDestroyed,
     eDocumentStateChanged
   } TDocumentListenerNotification;
-  
+
   
   NS_IMETHOD NotifyDocumentListeners(TDocumentListenerNotification aNotificationType);
-  
+
   
   virtual nsresult SelectEntireDocument(mozilla::dom::Selection* aSelection);
 
@@ -387,7 +387,7 @@ protected:
   bool IsBlockNode(nsIDOMNode* aNode);
   
   virtual bool IsBlockNode(nsINode* aNode);
-  
+
   
   nsIContent* FindNextLeafNode(nsINode  *aCurrentNode,
                                bool      aGoForward,
@@ -577,7 +577,7 @@ public:
 
   
   uint32_t CountEditableChildren(nsINode* aNode);
-  
+
   
   nsINode* GetFirstEditableNode(nsINode* aRoot);
 
@@ -599,7 +599,7 @@ public:
 
   static bool IsTextNode(nsIDOMNode *aNode);
   static bool IsTextNode(nsINode *aNode);
-  
+
   static nsCOMPtr<nsIDOMNode> GetChildAt(nsIDOMNode *aParent, int32_t aOffset);
   static nsCOMPtr<nsIDOMNode> GetNodeAtRangeOffsetPoint(nsIDOMNode* aParentOrNode, int32_t aOffset);
 
@@ -634,8 +634,8 @@ public:
 
   nsresult IsPreformatted(nsIDOMNode *aNode, bool *aResult);
 
-  nsresult SplitNodeDeep(nsIDOMNode *aNode, 
-                         nsIDOMNode *aSplitPointParent, 
+  nsresult SplitNodeDeep(nsIDOMNode *aNode,
+                         nsIDOMNode *aSplitPointParent,
                          int32_t aSplitPointOffset,
                          int32_t *outOffset,
                          bool    aNoEmptyContainers = false,
@@ -734,7 +734,7 @@ public:
   {
     return (mFlags & nsIPlaintextEditor::eEditorDontEchoPassword) != 0;
   }
-  
+
   bool ShouldSkipSpellCheck() const
   {
     return (mFlags & nsIPlaintextEditor::eEditorSkipSpellCheck) != 0;

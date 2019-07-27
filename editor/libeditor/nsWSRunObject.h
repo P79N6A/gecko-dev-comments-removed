@@ -154,7 +154,7 @@ class MOZ_STACK_CLASS nsWSRunObject
     nsWSRunObject(nsHTMLEditor* aEd, nsINode* aNode, int32_t aOffset);
     nsWSRunObject(nsHTMLEditor *aEd, nsIDOMNode *aNode, int32_t aOffset);
     ~nsWSRunObject();
-    
+
     
 
     
@@ -163,7 +163,7 @@ class MOZ_STACK_CLASS nsWSRunObject
                                        BlockBoundary aBoundary,
                                        nsINode* aBlock,
                                        int32_t aOffset = -1);
- 
+
     
     
     
@@ -251,7 +251,7 @@ class MOZ_STACK_CLASS nsWSRunObject
     nsresult AdjustWhitespace();
 
   protected:
-    
+
     
     
     
@@ -274,7 +274,7 @@ class MOZ_STACK_CLASS nsWSRunObject
       {
       }
     };
-    
+
     
     
     
@@ -289,13 +289,13 @@ class MOZ_STACK_CLASS nsWSRunObject
       WSPoint() : mTextNode(0),mOffset(0),mChar(0) {}
       WSPoint(mozilla::dom::Text* aTextNode, int32_t aOffset, char16_t aChar) :
                      mTextNode(aTextNode),mOffset(aOffset),mChar(aChar) {}
-    };    
+    };
 
     enum AreaRestriction
     {
       eAnywhere, eOutsideUserSelectAll
-    };    
-    
+    };
+
     
     
 
@@ -341,40 +341,40 @@ class MOZ_STACK_CLASS nsWSRunObject
                                int32_t aOffset);
     nsresult CheckLeadingNBSP(WSFragment* aRun, nsINode* aNode,
                               int32_t aOffset);
-    
+
     nsresult Scrub();
+
     
-    
-    
+
     nsCOMPtr<nsINode> mNode;           
     int32_t mOffset;                   
     
-    
+
     bool    mPRE;                      
     nsCOMPtr<nsINode> mStartNode;      
     int32_t mStartOffset;              
     WSType mStartReason;               
     nsCOMPtr<nsINode> mStartReasonNode;
-    
+
     nsCOMPtr<nsINode> mEndNode;        
     int32_t mEndOffset;                
     WSType mEndReason;                 
     nsCOMPtr<nsINode> mEndReasonNode;  
-    
+
     nsRefPtr<mozilla::dom::Text> mFirstNBSPNode; 
     int32_t mFirstNBSPOffset;          
-    
+
     nsRefPtr<mozilla::dom::Text> mLastNBSPNode; 
     int32_t mLastNBSPOffset;           
-    
+
     
     nsTArray<nsRefPtr<mozilla::dom::Text>> mNodeArray;
-    
+
     WSFragment *mStartRun;             
     WSFragment *mEndRun;               
-    
+
     nsHTMLEditor *mHTMLEditor;         
-    
+
     friend class nsHTMLEditRules;  
     friend class nsHTMLEditor;     
 };

@@ -56,7 +56,7 @@ public:
 
   
   NS_DECL_NSIWEBPROGRESSLISTENER
-  
+
   
   NS_DECL_NSIEDITINGSESSION
 
@@ -64,13 +64,13 @@ protected:
   virtual         ~nsEditingSession();
 
   nsIDocShell *   GetDocShellFromWindow(nsIDOMWindow *aWindow);
-  
+
   nsresult        SetupEditorCommandController(const char *aControllerClassName,
                                                nsIDOMWindow *aWindow,
                                                nsISupports *aContext,
                                                uint32_t *aControllerId);
 
-  nsresult        SetContextOnControllerById(nsIControllers* aControllers, 
+  nsresult        SetContextOnControllerById(nsIControllers* aControllers,
                                             nsISupports* aContext,
                                             uint32_t aID);
 
@@ -78,17 +78,17 @@ protected:
 
   static void     TimerCallback(nsITimer *aTimer, void *aClosure);
   nsCOMPtr<nsITimer>  mLoadBlankDocTimer;
-  
+
   
   nsresult        StartDocumentLoad(nsIWebProgress *aWebProgress,
                                     bool isToBeMadeEditable);
-  nsresult        EndDocumentLoad(nsIWebProgress *aWebProgress, 
+  nsresult        EndDocumentLoad(nsIWebProgress *aWebProgress,
                                   nsIChannel* aChannel, nsresult aStatus,
                                   bool isToBeMadeEditable);
   nsresult        StartPageLoad(nsIChannel *aChannel);
-  nsresult        EndPageLoad(nsIWebProgress *aWebProgress, 
+  nsresult        EndPageLoad(nsIWebProgress *aWebProgress,
                               nsIChannel* aChannel, nsresult aStatus);
-  
+
   bool            IsProgressForTargetDocument(nsIWebProgress *aWebProgress);
 
   void            RemoveEditorControllers(nsIDOMWindow *aWindow);
@@ -105,7 +105,7 @@ protected:
   
   
   
-  bool            mCanCreateEditor; 
+  bool            mCanCreateEditor;
 
   bool            mInteractive;
   bool            mMakeWholeDocumentEditable;
@@ -128,9 +128,9 @@ protected:
   
   
   nsRefPtr<nsComposerCommandsUpdater> mStateMaintainer;
+
   
-  
-  nsCString       mEditorType; 
+  nsCString       mEditorType;
   uint32_t        mEditorFlags;
   uint32_t        mEditorStatus;
   uint32_t        mBaseCommandControllerId;

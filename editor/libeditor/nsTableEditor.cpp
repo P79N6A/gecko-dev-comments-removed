@@ -53,20 +53,20 @@ class MOZ_STACK_CLASS nsSetSelectionAfterTableEdit
     nsCOMPtr<nsIDOMElement> mTable;
     int32_t mCol, mRow, mDirection, mSelected;
   public:
-    nsSetSelectionAfterTableEdit(nsITableEditor *aEd, nsIDOMElement* aTable, 
-                                 int32_t aRow, int32_t aCol, int32_t aDirection, 
-                                 bool aSelected) : 
+    nsSetSelectionAfterTableEdit(nsITableEditor *aEd, nsIDOMElement* aTable,
+                                 int32_t aRow, int32_t aCol, int32_t aDirection,
+                                 bool aSelected) :
         mEd(do_QueryInterface(aEd))
-    { 
-      mTable = aTable; 
-      mRow = aRow; 
-      mCol = aCol; 
+    {
+      mTable = aTable;
+      mRow = aRow;
+      mCol = aCol;
       mDirection = aDirection;
       mSelected = aSelected;
-    } 
-    
-    ~nsSetSelectionAfterTableEdit() 
-    { 
+    }
+
+    ~nsSetSelectionAfterTableEdit()
+    {
       if (mEd)
         mEd->SetSelectionAfterTableEdit(mTable, mRow, mCol, mDirection, mSelected);
     }
@@ -78,7 +78,7 @@ class MOZ_STACK_CLASS nsSetSelectionAfterTableEdit
 
 
 NS_IMETHODIMP
-nsHTMLEditor::InsertCell(nsIDOMElement *aCell, int32_t aRowSpan, int32_t aColSpan, 
+nsHTMLEditor::InsertCell(nsIDOMElement *aCell, int32_t aRowSpan, int32_t aColSpan,
                          bool aAfter, bool aIsHeader, nsIDOMElement **aNewCell)
 {
   NS_ENSURE_TRUE(aCell, NS_ERROR_NULL_POINTER);
@@ -97,7 +97,7 @@ nsHTMLEditor::InsertCell(nsIDOMElement *aCell, int32_t aRowSpan, int32_t aColSpa
     res = CreateElementWithDefaults(NS_LITERAL_STRING("th"), getter_AddRefs(newCell));
   else
     res = CreateElementWithDefaults(NS_LITERAL_STRING("td"), getter_AddRefs(newCell));
-    
+
   if(NS_FAILED(res)) return res;
   if(!newCell) return NS_ERROR_FAILURE;
 
@@ -157,8 +157,8 @@ nsHTMLEditor::InsertTableCell(int32_t aNumber, bool aAfter)
   nsCOMPtr<nsIDOMNode> cellParent;
   int32_t cellOffset, startRowIndex, startColIndex;
   nsresult res = GetCellContext(nullptr,
-                                getter_AddRefs(table), 
-                                getter_AddRefs(curCell), 
+                                getter_AddRefs(table),
+                                getter_AddRefs(curCell),
                                 getter_AddRefs(cellParent), &cellOffset,
                                 &startRowIndex, &startColIndex);
   NS_ENSURE_SUCCESS(res, res);
@@ -196,12 +196,12 @@ nsHTMLEditor::InsertTableCell(int32_t aNumber, bool aAfter)
 }
 
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsHTMLEditor::GetFirstRow(nsIDOMElement* aTableElement, nsIDOMNode** aRowNode)
 {
   NS_ENSURE_TRUE(aRowNode, NS_ERROR_NULL_POINTER);
 
-  *aRowNode = nullptr;  
+  *aRowNode = nullptr;
 
   NS_ENSURE_TRUE(aTableElement, NS_ERROR_NULL_POINTER);
 
@@ -232,7 +232,7 @@ nsHTMLEditor::GetFirstRow(nsIDOMElement* aTableElement, nsIDOMNode** aRowNode)
         nsCOMPtr<nsIDOMNode> rowNode;
         res = tableChild->GetFirstChild(getter_AddRefs(rowNode));
         NS_ENSURE_SUCCESS(res, res);
-        
+
         
         while (rowNode && !nsHTMLEditUtils::IsTableRow(rowNode))
         {
@@ -264,18 +264,18 @@ nsHTMLEditor::GetFirstRow(nsIDOMElement* aTableElement, nsIDOMNode** aRowNode)
   return NS_EDITOR_ELEMENT_NOT_FOUND;
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsHTMLEditor::GetNextRow(nsIDOMNode* aCurrentRowNode, nsIDOMNode **aRowNode)
 {
   NS_ENSURE_TRUE(aRowNode, NS_ERROR_NULL_POINTER);
 
-  *aRowNode = nullptr;  
+  *aRowNode = nullptr;
 
   NS_ENSURE_TRUE(aCurrentRowNode, NS_ERROR_NULL_POINTER);
 
   if (!nsHTMLEditUtils::IsTableRow(aCurrentRowNode))
     return NS_ERROR_FAILURE;
-  
+
   nsCOMPtr<nsIDOMNode> nextRow;
   nsresult res = aCurrentRowNode->GetNextSibling(getter_AddRefs(nextRow));
   NS_ENSURE_SUCCESS(res, res);
@@ -287,7 +287,7 @@ nsHTMLEditor::GetNextRow(nsIDOMNode* aCurrentRowNode, nsIDOMNode **aRowNode)
   {
     res = nextRow->GetNextSibling(getter_AddRefs(nextNode));
     NS_ENSURE_SUCCESS(res, res);
-  
+
     nextRow = nextNode;
   }
   if(nextRow)
@@ -311,7 +311,7 @@ nsHTMLEditor::GetNextRow(nsIDOMNode* aCurrentRowNode, nsIDOMNode **aRowNode)
   {
     res = parentSibling->GetFirstChild(getter_AddRefs(nextRow));
     NS_ENSURE_SUCCESS(res, res);
-  
+
     
     while (nextRow && !nsHTMLEditUtils::IsTableRow(nextRow))
     {
@@ -379,8 +379,8 @@ nsHTMLEditor::InsertTableColumn(int32_t aNumber, bool aAfter)
   nsCOMPtr<nsIDOMElement> curCell;
   int32_t startRowIndex, startColIndex;
   nsresult res = GetCellContext(getter_AddRefs(selection),
-                                getter_AddRefs(table), 
-                                getter_AddRefs(curCell), 
+                                getter_AddRefs(table),
+                                getter_AddRefs(curCell),
                                 nullptr, nullptr,
                                 &startRowIndex, &startColIndex);
   NS_ENSURE_SUCCESS(res, res);
@@ -393,7 +393,7 @@ nsHTMLEditor::InsertTableColumn(int32_t aNumber, bool aAfter)
   res = GetCellDataAt(table, startRowIndex, startColIndex,
                       getter_AddRefs(curCell),
                       &curStartRowIndex, &curStartColIndex,
-                      &rowSpan, &colSpan, 
+                      &rowSpan, &colSpan,
                       &actualRowSpan, &actualColSpan, &isSelected);
   NS_ENSURE_SUCCESS(res, res);
   NS_ENSURE_TRUE(curCell, NS_ERROR_FAILURE);
@@ -413,7 +413,7 @@ nsHTMLEditor::InsertTableColumn(int32_t aNumber, bool aAfter)
     if (colSpan == 0)
       SetColSpan(curCell, actualColSpan);
   }
-   
+
   int32_t rowCount, colCount, rowIndex;
   res = GetTableSize(table, &rowCount, &colCount);
   NS_ENSURE_SUCCESS(res, res);
@@ -438,7 +438,7 @@ nsHTMLEditor::InsertTableColumn(int32_t aNumber, bool aAfter)
       res = GetCellDataAt(table, rowIndex, startColIndex,
                           getter_AddRefs(curCell),
                           &curStartRowIndex, &curStartColIndex,
-                          &rowSpan, &colSpan, 
+                          &rowSpan, &colSpan,
                           &actualRowSpan, &actualColSpan, &isSelected);
       NS_ENSURE_SUCCESS(res, res);
 
@@ -504,12 +504,12 @@ nsHTMLEditor::InsertTableRow(int32_t aNumber, bool aAfter)
   nsRefPtr<Selection> selection;
   nsCOMPtr<nsIDOMElement> table;
   nsCOMPtr<nsIDOMElement> curCell;
-  
+
   int32_t startRowIndex, startColIndex;
   nsresult res = GetCellContext(nullptr,
-                                getter_AddRefs(table), 
-                                getter_AddRefs(curCell), 
-                                nullptr, nullptr, 
+                                getter_AddRefs(table),
+                                getter_AddRefs(curCell),
+                                nullptr, nullptr,
                                 &startRowIndex, &startColIndex);
   NS_ENSURE_SUCCESS(res, res);
   
@@ -521,11 +521,11 @@ nsHTMLEditor::InsertTableRow(int32_t aNumber, bool aAfter)
   res = GetCellDataAt(table, startRowIndex, startColIndex,
                       getter_AddRefs(curCell),
                       &curStartRowIndex, &curStartColIndex,
-                      &rowSpan, &colSpan, 
+                      &rowSpan, &colSpan,
                       &actualRowSpan, &actualColSpan, &isSelected);
   NS_ENSURE_SUCCESS(res, res);
   NS_ENSURE_TRUE(curCell, NS_ERROR_FAILURE);
-  
+
   int32_t rowCount, colCount;
   res = GetTableSize(table, &rowCount, &colCount);
   NS_ENSURE_SUCCESS(res, res);
@@ -563,9 +563,9 @@ nsHTMLEditor::InsertTableRow(int32_t aNumber, bool aAfter)
     
     
     while ( NS_OK == GetCellDataAt(table, startRowIndex, colIndex,
-                                   getter_AddRefs(curCell), 
+                                   getter_AddRefs(curCell),
                                    &curStartRowIndex, &curStartColIndex,
-                                   &rowSpan, &colSpan, 
+                                   &rowSpan, &colSpan,
                                    &actualRowSpan, &actualColSpan,
                                    &isSelected) )
     {
@@ -600,20 +600,20 @@ nsHTMLEditor::InsertTableRow(int32_t aNumber, bool aAfter)
     
     
     cellsInRow = colCount;
-    
+
     
     int32_t lastRow = rowCount-1;
     int32_t tempColIndex = 0;
     while ( NS_OK == GetCellDataAt(table, lastRow, tempColIndex,
-                                   getter_AddRefs(curCell), 
+                                   getter_AddRefs(curCell),
                                    &curStartRowIndex, &curStartColIndex,
-                                   &rowSpan, &colSpan, 
+                                   &rowSpan, &colSpan,
                                    &actualRowSpan, &actualColSpan,
                                    &isSelected) )
     {
       if (rowSpan == 0)
         cellsInRow -= actualColSpan;
-      
+
       tempColIndex += actualColSpan;
 
       
@@ -640,7 +640,7 @@ nsHTMLEditor::InsertTableRow(int32_t aNumber, bool aAfter)
       NS_ENSURE_TRUE(parentOfRow, NS_ERROR_NULL_POINTER);
 
       newRowOffset = GetChildOffset(parentRow, parentOfRow);
-      
+
       
       if (aAfter && startRowIndex >= rowCount)
         newRowOffset++;
@@ -656,7 +656,7 @@ nsHTMLEditor::InsertTableRow(int32_t aNumber, bool aAfter)
       if (NS_SUCCEEDED(res))
       {
         NS_ENSURE_TRUE(newRow, NS_ERROR_FAILURE);
-      
+
         for (int32_t i = 0; i < cellsInRow; i++)
         {
           nsCOMPtr<nsIDOMElement> newCell;
@@ -702,9 +702,9 @@ nsHTMLEditor::DeleteTable()
   nsRefPtr<Selection> selection;
   nsCOMPtr<nsIDOMElement> table;
   nsresult res = GetCellContext(getter_AddRefs(selection),
-                                getter_AddRefs(table), 
+                                getter_AddRefs(table),
                                 nullptr, nullptr, nullptr, nullptr, nullptr);
-    
+
   NS_ENSURE_SUCCESS(res, res);
 
   nsAutoEditBatch beginBatching(this);
@@ -721,8 +721,8 @@ nsHTMLEditor::DeleteTableCell(int32_t aNumber)
 
 
   nsresult res = GetCellContext(getter_AddRefs(selection),
-                         getter_AddRefs(table), 
-                         getter_AddRefs(cell), 
+                         getter_AddRefs(table),
+                         getter_AddRefs(cell),
                          nullptr, nullptr,
                          &startRowIndex, &startColIndex);
 
@@ -789,7 +789,7 @@ nsHTMLEditor::DeleteTableCell(int32_t aNumber)
             NS_ENSURE_SUCCESS(res, res);
           }
           
-          res = DeleteRow(table, startRowIndex);          
+          res = DeleteRow(table, startRowIndex);
           NS_ENSURE_SUCCESS(res, res);
 
           if (cell)
@@ -824,9 +824,9 @@ nsHTMLEditor::DeleteTableCell(int32_t aNumber)
               NS_ENSURE_SUCCESS(res, res);
             }
             
-            res = DeleteColumn(table, startColIndex);          
+            res = DeleteColumn(table, startColIndex);
             NS_ENSURE_SUCCESS(res, res);
-            if (cell) 
+            if (cell)
             {
               
               startColIndex = nextCol - 1;
@@ -845,7 +845,7 @@ nsHTMLEditor::DeleteTableCell(int32_t aNumber)
           
           res = DeleteNode(cell);
           NS_ENSURE_SUCCESS(res, res);
-          
+
           
           cell = nextCell;
           if (cell)
@@ -860,8 +860,8 @@ nsHTMLEditor::DeleteTableCell(int32_t aNumber)
   else for (int32_t i = 0; i < aNumber; i++)
   {
     res = GetCellContext(getter_AddRefs(selection),
-                         getter_AddRefs(table), 
-                         getter_AddRefs(cell), 
+                         getter_AddRefs(table),
+                         getter_AddRefs(cell),
                          nullptr, nullptr,
                          &startRowIndex, &startColIndex);
     NS_ENSURE_SUCCESS(res, res);
@@ -881,14 +881,14 @@ nsHTMLEditor::DeleteTableCell(int32_t aNumber)
       int32_t rowCount, colCount;
       res = GetTableSize(table, &rowCount, &colCount);
       NS_ENSURE_SUCCESS(res, res);
-      
+
       if (rowCount == 1)
         return DeleteTable2(table, selection);
-    
+
       
       res = DeleteTableRow(1);
       NS_ENSURE_SUCCESS(res, res);
-    } 
+    }
     else
     {
       
@@ -914,8 +914,8 @@ nsHTMLEditor::DeleteTableCellContents()
   int32_t startRowIndex, startColIndex;
   nsresult res;
   res = GetCellContext(getter_AddRefs(selection),
-                       getter_AddRefs(table), 
-                       getter_AddRefs(cell), 
+                       getter_AddRefs(table),
+                       getter_AddRefs(cell),
                        nullptr, nullptr,
                        &startRowIndex, &startColIndex);
   NS_ENSURE_SUCCESS(res, res);
@@ -990,8 +990,8 @@ nsHTMLEditor::DeleteTableColumn(int32_t aNumber)
   nsCOMPtr<nsIDOMElement> cell;
   int32_t startRowIndex, startColIndex, rowCount, colCount;
   nsresult res = GetCellContext(getter_AddRefs(selection),
-                                getter_AddRefs(table), 
-                                getter_AddRefs(cell), 
+                                getter_AddRefs(table),
+                                getter_AddRefs(cell),
                                 nullptr, nullptr,
                                 &startRowIndex, &startColIndex);
   NS_ENSURE_SUCCESS(res, res);
@@ -1054,7 +1054,7 @@ nsHTMLEditor::DeleteTableColumn(int32_t aNumber)
         res = GetCellIndexes(cell, &startRowIndex, &nextCol);
         NS_ENSURE_SUCCESS(res, res);
       }
-      res = DeleteColumn(table, startColIndex);          
+      res = DeleteColumn(table, startColIndex);
       NS_ENSURE_SUCCESS(res, res);
     }
   }
@@ -1077,10 +1077,10 @@ nsHTMLEditor::DeleteColumn(nsIDOMElement *aTable, int32_t aColIndex)
   bool    isSelected;
   int32_t rowIndex = 0;
   nsresult res = NS_OK;
-   
+
   do {
     res = GetCellDataAt(aTable, rowIndex, aColIndex, getter_AddRefs(cell),
-                        &startRowIndex, &startColIndex, &rowSpan, &colSpan, 
+                        &startRowIndex, &startColIndex, &rowSpan, &colSpan,
                         &actualRowSpan, &actualColSpan, &isSelected);
 
     NS_ENSURE_SUCCESS(res, res);
@@ -1107,8 +1107,8 @@ nsHTMLEditor::DeleteColumn(nsIDOMElement *aTable, int32_t aColIndex)
         }
         
         rowIndex += actualRowSpan;
-      } 
-      else 
+      }
+      else
       {
         
         if (1 == GetNumberOfCellsInRow(aTable, rowIndex))
@@ -1132,7 +1132,7 @@ nsHTMLEditor::DeleteColumn(nsIDOMElement *aTable, int32_t aColIndex)
             NS_ENSURE_TRUE(selection, NS_ERROR_FAILURE);
             return DeleteTable2(aTable, selection);
           }
-    
+
           
           
           res = DeleteRow(aTable, startRowIndex);
@@ -1141,8 +1141,8 @@ nsHTMLEditor::DeleteColumn(nsIDOMElement *aTable, int32_t aColIndex)
           
           
           
-        } 
-        else 
+        }
+        else
         {
           
           res = DeleteNode(cell);
@@ -1153,7 +1153,7 @@ nsHTMLEditor::DeleteColumn(nsIDOMElement *aTable, int32_t aColIndex)
         }
       }
     }
-  } while (cell);    
+  } while (cell);
 
   return NS_OK;
 }
@@ -1167,8 +1167,8 @@ nsHTMLEditor::DeleteTableRow(int32_t aNumber)
   int32_t startRowIndex, startColIndex;
   int32_t rowCount, colCount;
   nsresult res =  GetCellContext(getter_AddRefs(selection),
-                                 getter_AddRefs(table), 
-                                 getter_AddRefs(cell), 
+                                 getter_AddRefs(table),
+                                 getter_AddRefs(cell),
                                  nullptr, nullptr,
                                  &startRowIndex, &startColIndex);
   NS_ENSURE_SUCCESS(res, res);
@@ -1231,7 +1231,7 @@ nsHTMLEditor::DeleteTableRow(int32_t aNumber)
         NS_ENSURE_SUCCESS(res, res);
       }
       
-      res = DeleteRow(table, startRowIndex);          
+      res = DeleteRow(table, startRowIndex);
       NS_ENSURE_SUCCESS(res, res);
     }
   }
@@ -1246,7 +1246,7 @@ nsHTMLEditor::DeleteTableRow(int32_t aNumber)
       
       if (NS_FAILED(res))
         startRowIndex++;
-    
+
       
       res = GetCellAt(table, startRowIndex, startColIndex, getter_AddRefs(cell));
       NS_ENSURE_SUCCESS(res, res);
@@ -1269,7 +1269,7 @@ nsHTMLEditor::DeleteRow(nsIDOMElement *aTable, int32_t aRowIndex)
   bool    isSelected;
   int32_t colIndex = 0;
   nsresult res = NS_OK;
-   
+
   
   nsAutoRules beginRulesSniffing(this, EditAction::deleteNode, nsIEditor::eNext);
 
@@ -1290,9 +1290,9 @@ nsHTMLEditor::DeleteRow(nsIDOMElement *aTable, int32_t aRowIndex)
       break;
 
     res = GetCellDataAt(aTable, aRowIndex, colIndex, getter_AddRefs(cell),
-                        &startRowIndex, &startColIndex, &rowSpan, &colSpan, 
+                        &startRowIndex, &startColIndex, &rowSpan, &colSpan,
                         &actualRowSpan, &actualColSpan, &isSelected);
-  
+
     
     if(NS_FAILED(res)) return res;
 
@@ -1314,7 +1314,7 @@ nsHTMLEditor::DeleteRow(nsIDOMElement *aTable, int32_t aRowIndex)
           newSpanList.AppendElement(std::max((aRowIndex - startRowIndex), actualRowSpan-1));
         }
       }
-      else 
+      else
       {
         if (rowSpan > 1)
         {
@@ -1362,7 +1362,7 @@ nsHTMLEditor::DeleteRow(nsIDOMElement *aTable, int32_t aRowIndex)
 }
 
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsHTMLEditor::SelectTable()
 {
   nsCOMPtr<nsIDOMElement> table;
@@ -1379,7 +1379,7 @@ nsHTMLEditor::SelectTable()
   return res;
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsHTMLEditor::SelectTableCell()
 {
   nsCOMPtr<nsIDOMElement> cell;
@@ -1394,11 +1394,11 @@ nsHTMLEditor::SelectTableCell()
   return res;
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsHTMLEditor::SelectBlockOfCells(nsIDOMElement *aStartCell, nsIDOMElement *aEndCell)
 {
   NS_ENSURE_TRUE(aStartCell && aEndCell, NS_ERROR_NULL_POINTER);
-  
+
   nsRefPtr<Selection> selection = GetSelection();
   NS_ENSURE_TRUE(selection, NS_ERROR_FAILURE);
 
@@ -1413,7 +1413,7 @@ nsHTMLEditor::SelectBlockOfCells(nsIDOMElement *aStartCell, nsIDOMElement *aEndC
   res = GetElementOrParentByTagName(tableStr, aEndCell, getter_AddRefs(endTable));
   NS_ENSURE_SUCCESS(res, res);
   NS_ENSURE_TRUE(endTable, NS_ERROR_FAILURE);
-  
+
   
   
   if (table != endTable) return NS_OK;
@@ -1450,13 +1450,13 @@ nsHTMLEditor::SelectBlockOfCells(nsIDOMElement *aStartCell, nsIDOMElement *aEndC
     res = GetCellIndexes(cell, &currentRowIndex, &currentColIndex);
     NS_ENSURE_SUCCESS(res, res);
 
-    if (currentRowIndex < maxRow || currentRowIndex > maxRow || 
+    if (currentRowIndex < maxRow || currentRowIndex > maxRow ||
         currentColIndex < maxColumn || currentColIndex > maxColumn)
     {
       selection->RemoveRange(range);
       
       mSelectedCellIndex--;
-    }    
+    }
     res = GetNextSelectedCell(getter_AddRefs(range), getter_AddRefs(cell));
     NS_ENSURE_SUCCESS(res, res);
   }
@@ -1469,7 +1469,7 @@ nsHTMLEditor::SelectBlockOfCells(nsIDOMElement *aStartCell, nsIDOMElement *aEndC
     {
       res = GetCellDataAt(table, row, col, getter_AddRefs(cell),
                           &currentRowIndex, &currentColIndex,
-                          &rowSpan, &colSpan, 
+                          &rowSpan, &colSpan,
                           &actualRowSpan, &actualColSpan, &isSelected);
       if (NS_FAILED(res)) break;
       
@@ -1483,18 +1483,18 @@ nsHTMLEditor::SelectBlockOfCells(nsIDOMElement *aStartCell, nsIDOMElement *aEndC
   return res;
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsHTMLEditor::SelectAllTableCells()
 {
   nsCOMPtr<nsIDOMElement> cell;
   nsresult res = GetElementOrParentByTagName(NS_LITERAL_STRING("td"), nullptr, getter_AddRefs(cell));
   NS_ENSURE_SUCCESS(res, res);
-  
+
   
   NS_ENSURE_TRUE(cell, NS_EDITOR_ELEMENT_NOT_FOUND);
 
   nsCOMPtr<nsIDOMElement> startCell = cell;
-  
+
   
   nsCOMPtr<nsIDOMElement> table;
   res = GetElementOrParentByTagName(NS_LITERAL_STRING("table"), cell, getter_AddRefs(table));
@@ -1526,7 +1526,7 @@ nsHTMLEditor::SelectAllTableCells()
     {
       res = GetCellDataAt(table, row, col, getter_AddRefs(cell),
                           &currentRowIndex, &currentColIndex,
-                          &rowSpan, &colSpan, 
+                          &rowSpan, &colSpan,
                           &actualRowSpan, &actualColSpan, &isSelected);
       if (NS_FAILED(res)) break;
       
@@ -1546,13 +1546,13 @@ nsHTMLEditor::SelectAllTableCells()
   return res;
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsHTMLEditor::SelectTableRow()
 {
   nsCOMPtr<nsIDOMElement> cell;
   nsresult res = GetElementOrParentByTagName(NS_LITERAL_STRING("td"), nullptr, getter_AddRefs(cell));
   NS_ENSURE_SUCCESS(res, res);
-  
+
   
   NS_ENSURE_TRUE(cell, NS_EDITOR_ELEMENT_NOT_FOUND);
   nsCOMPtr<nsIDOMElement> startCell = cell;
@@ -1563,13 +1563,13 @@ nsHTMLEditor::SelectTableRow()
   int32_t startRowIndex, startColIndex;
 
   res = GetCellContext(getter_AddRefs(selection),
-                       getter_AddRefs(table), 
+                       getter_AddRefs(table),
                        getter_AddRefs(cell),
                        nullptr, nullptr,
                        &startRowIndex, &startColIndex);
   NS_ENSURE_SUCCESS(res, res);
   NS_ENSURE_TRUE(table, NS_ERROR_FAILURE);
-  
+
   int32_t rowCount, colCount;
   res = GetTableSize(table, &rowCount, &colCount);
   NS_ENSURE_SUCCESS(res, res);
@@ -1593,7 +1593,7 @@ nsHTMLEditor::SelectTableRow()
   for(int32_t col = 0; col < colCount; col += std::max(actualColSpan, 1))
   {
     res = GetCellDataAt(table, startRowIndex, col, getter_AddRefs(cell),
-                        &currentRowIndex, &currentColIndex, &rowSpan, &colSpan, 
+                        &currentRowIndex, &currentColIndex, &rowSpan, &colSpan,
                         &actualRowSpan, &actualColSpan, &isSelected);
     if (NS_FAILED(res)) break;
     
@@ -1612,25 +1612,25 @@ nsHTMLEditor::SelectTableRow()
   return res;
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsHTMLEditor::SelectTableColumn()
 {
   nsCOMPtr<nsIDOMElement> cell;
   nsresult res = GetElementOrParentByTagName(NS_LITERAL_STRING("td"), nullptr, getter_AddRefs(cell));
   NS_ENSURE_SUCCESS(res, res);
-  
+
   
   NS_ENSURE_TRUE(cell, NS_EDITOR_ELEMENT_NOT_FOUND);
 
   nsCOMPtr<nsIDOMElement> startCell = cell;
-  
+
   
   nsRefPtr<Selection> selection;
   nsCOMPtr<nsIDOMElement> table;
   int32_t startRowIndex, startColIndex;
 
   res = GetCellContext(getter_AddRefs(selection),
-                       getter_AddRefs(table), 
+                       getter_AddRefs(table),
                        getter_AddRefs(cell),
                        nullptr, nullptr,
                        &startRowIndex, &startColIndex);
@@ -1656,7 +1656,7 @@ nsHTMLEditor::SelectTableColumn()
   for(int32_t row = 0; row < rowCount; row += std::max(actualRowSpan, 1))
   {
     res = GetCellDataAt(table, row, startColIndex, getter_AddRefs(cell),
-                        &currentRowIndex, &currentColIndex, &rowSpan, &colSpan, 
+                        &currentRowIndex, &currentColIndex, &rowSpan, &colSpan,
                         &actualRowSpan, &actualColSpan, &isSelected);
     if (NS_FAILED(res)) break;
     
@@ -1675,7 +1675,7 @@ nsHTMLEditor::SelectTableColumn()
   return res;
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsHTMLEditor::SplitTableCell()
 {
   nsCOMPtr<nsIDOMElement> table;
@@ -1683,7 +1683,7 @@ nsHTMLEditor::SplitTableCell()
   int32_t startRowIndex, startColIndex, actualRowSpan, actualColSpan;
   
   nsresult res = GetCellContext(nullptr,
-                                getter_AddRefs(table), 
+                                getter_AddRefs(table),
                                 getter_AddRefs(cell),
                                 nullptr, nullptr,
                                 &startRowIndex, &startColIndex);
@@ -1697,7 +1697,7 @@ nsHTMLEditor::SplitTableCell()
   
   if (actualRowSpan <= 1 && actualColSpan <= 1)
     return NS_OK;
-  
+
   nsAutoEditBatch beginBatching(this);
   
   nsAutoRules beginRulesSniffing(this, EditAction::insertNode, nsIEditor::eNext);
@@ -1754,7 +1754,7 @@ nsHTMLEditor::CopyCellBackgroundColor(nsIDOMElement *destCell, nsIDOMElement *so
   return res;
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsHTMLEditor::SplitCellIntoColumns(nsIDOMElement *aTable, int32_t aRowIndex, int32_t aColIndex,
                                    int32_t aColSpanLeft, int32_t aColSpanRight,
                                    nsIDOMElement **aNewCell)
@@ -1767,11 +1767,11 @@ nsHTMLEditor::SplitCellIntoColumns(nsIDOMElement *aTable, int32_t aRowIndex, int
   bool    isSelected;
   nsresult res = GetCellDataAt(aTable, aRowIndex, aColIndex, getter_AddRefs(cell),
                                &startRowIndex, &startColIndex,
-                               &rowSpan, &colSpan, 
+                               &rowSpan, &colSpan,
                                &actualRowSpan, &actualColSpan, &isSelected);
   NS_ENSURE_SUCCESS(res, res);
   NS_ENSURE_TRUE(cell, NS_ERROR_NULL_POINTER);
-  
+
   
   if (actualColSpan <= 1 || (aColSpanLeft + aColSpanRight) > actualColSpan)
     return NS_OK;
@@ -1779,7 +1779,7 @@ nsHTMLEditor::SplitCellIntoColumns(nsIDOMElement *aTable, int32_t aRowIndex, int
   
   res = SetColSpan(cell, aColSpanLeft);
   NS_ENSURE_SUCCESS(res, res);
-  
+
   
   
   nsCOMPtr<nsIDOMElement> newCell;
@@ -1799,7 +1799,7 @@ nsHTMLEditor::SplitCellIntoColumns(nsIDOMElement *aTable, int32_t aRowIndex, int
 
 NS_IMETHODIMP
 nsHTMLEditor::SplitCellIntoRows(nsIDOMElement *aTable, int32_t aRowIndex, int32_t aColIndex,
-                                int32_t aRowSpanAbove, int32_t aRowSpanBelow, 
+                                int32_t aRowSpanAbove, int32_t aRowSpanBelow,
                                 nsIDOMElement **aNewCell)
 {
   NS_ENSURE_TRUE(aTable, NS_ERROR_NULL_POINTER);
@@ -1810,11 +1810,11 @@ nsHTMLEditor::SplitCellIntoRows(nsIDOMElement *aTable, int32_t aRowIndex, int32_
   bool    isSelected;
   nsresult res = GetCellDataAt(aTable, aRowIndex, aColIndex, getter_AddRefs(cell),
                                &startRowIndex, &startColIndex,
-                               &rowSpan, &colSpan, 
+                               &rowSpan, &colSpan,
                                &actualRowSpan, &actualColSpan, &isSelected);
   NS_ENSURE_SUCCESS(res, res);
   NS_ENSURE_TRUE(cell, NS_ERROR_NULL_POINTER);
-  
+
   
   if (actualRowSpan <= 1 || (aRowSpanAbove + aRowSpanBelow) > actualRowSpan)
     return NS_OK;
@@ -1831,14 +1831,14 @@ nsHTMLEditor::SplitCellIntoRows(nsIDOMElement *aTable, int32_t aRowIndex, int32_
   bool insertAfter = (startColIndex > 0);
   
   int32_t rowBelowIndex = startRowIndex+aRowSpanAbove;
+
   
-  
-  do 
+  do
   {
     
-    res = GetCellDataAt(aTable, rowBelowIndex, 
+    res = GetCellDataAt(aTable, rowBelowIndex,
                         colIndex, getter_AddRefs(cell2),
-                        &startRowIndex2, &startColIndex2, &rowSpan2, &colSpan2, 
+                        &startRowIndex2, &startColIndex2, &rowSpan2, &colSpan2,
                         &actualRowSpan2, &actualColSpan2, &isSelected2);
     
     
@@ -1949,7 +1949,7 @@ nsHTMLEditor::SwitchTableCellHeaderType(nsIDOMElement *aSourceCell, nsIDOMElemen
   return NS_OK;
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsHTMLEditor::JoinTableCells(bool aMergeNonContiguousContents)
 {
   nsCOMPtr<nsIDOMElement> table;
@@ -1962,7 +1962,7 @@ nsHTMLEditor::JoinTableCells(bool aMergeNonContiguousContents)
 
   
   nsresult res = GetCellContext(nullptr,
-                                getter_AddRefs(table), 
+                                getter_AddRefs(table),
                                 getter_AddRefs(targetCell),
                                 nullptr, nullptr,
                                 &startRowIndex, &startColIndex);
@@ -1981,7 +1981,7 @@ nsHTMLEditor::JoinTableCells(bool aMergeNonContiguousContents)
   int32_t firstRowIndex, firstColIndex;
   res = GetFirstSelectedCellInTable(&firstRowIndex, &firstColIndex, getter_AddRefs(firstCell));
   NS_ENSURE_SUCCESS(res, res);
-  
+
   bool joinSelectedCells = false;
   if (firstCell)
   {
@@ -2036,7 +2036,7 @@ nsHTMLEditor::JoinTableCells(bool aMergeNonContiguousContents)
       {
         res = GetCellDataAt(table, rowIndex, colIndex, getter_AddRefs(cell2),
                             &startRowIndex2, &startColIndex2,
-                            &rowSpan2, &colSpan2, 
+                            &rowSpan2, &colSpan2,
                             &actualRowSpan2, &actualColSpan2, &isSelected2);
         NS_ENSURE_SUCCESS(res, res);
 
@@ -2065,7 +2065,7 @@ nsHTMLEditor::JoinTableCells(bool aMergeNonContiguousContents)
         else if (cellFoundInRow)
         {
           
-          
+
           if (rowIndex > (firstRowIndex+1) && colIndex <= lastColIndex)
           {
             
@@ -2079,7 +2079,7 @@ nsHTMLEditor::JoinTableCells(bool aMergeNonContiguousContents)
       } 
 
       
-      if (cellFoundInRow) 
+      if (cellFoundInRow)
       {
         if (rowIndex == firstRowIndex)
         {
@@ -2113,7 +2113,7 @@ nsHTMLEditor::JoinTableCells(bool aMergeNonContiguousContents)
         lastRowIndex = std::max(0,rowIndex - 1);
       }
     }
-  
+
     
     nsTArray<nsCOMPtr<nsIDOMElement> > deleteList;
 
@@ -2124,7 +2124,7 @@ nsHTMLEditor::JoinTableCells(bool aMergeNonContiguousContents)
       {
         res = GetCellDataAt(table, rowIndex, colIndex, getter_AddRefs(cell2),
                             &startRowIndex2, &startColIndex2,
-                            &rowSpan2, &colSpan2, 
+                            &rowSpan2, &colSpan2,
                             &actualRowSpan2, &actualColSpan2, &isSelected2);
         NS_ENSURE_SUCCESS(res, res);
 
@@ -2135,7 +2135,7 @@ nsHTMLEditor::JoinTableCells(bool aMergeNonContiguousContents)
         
         if (isSelected2 && cell2 != firstCell)
         {
-          if (rowIndex >= firstRowIndex && rowIndex <= lastRowIndex && 
+          if (rowIndex >= firstRowIndex && rowIndex <= lastRowIndex &&
               colIndex >= firstColIndex && colIndex <= lastColIndex)
           {
             
@@ -2151,7 +2151,7 @@ nsHTMLEditor::JoinTableCells(bool aMergeNonContiguousContents)
               int32_t extraColSpan = (startColIndex2 + actualColSpan2) - (lastColIndex+1);
               if ( extraColSpan > 0)
               {
-                res = SplitCellIntoColumns(table, startRowIndex2, startColIndex2, 
+                res = SplitCellIntoColumns(table, startRowIndex2, startColIndex2,
                                            actualColSpan2-extraColSpan, extraColSpan, nullptr);
                 NS_ENSURE_SUCCESS(res, res);
               }
@@ -2159,7 +2159,7 @@ nsHTMLEditor::JoinTableCells(bool aMergeNonContiguousContents)
 
             res = MergeCells(firstCell, cell2, false);
             NS_ENSURE_SUCCESS(res, res);
-            
+
             
             deleteList.AppendElement(cell2.get());
           }
@@ -2217,8 +2217,8 @@ nsHTMLEditor::JoinTableCells(bool aMergeNonContiguousContents)
     NS_ENSURE_SUCCESS(res, res);
     res = SetColSpan(firstCell, lastColIndex-firstColIndex+1);
     NS_ENSURE_SUCCESS(res, res);
-    
-    
+
+
     
     NormalizeTable(table);
   }
@@ -2226,14 +2226,14 @@ nsHTMLEditor::JoinTableCells(bool aMergeNonContiguousContents)
   {
     
     res = GetCellDataAt(table, startRowIndex, startColIndex, getter_AddRefs(targetCell),
-                        &startRowIndex, &startColIndex, &rowSpan, &colSpan, 
+                        &startRowIndex, &startColIndex, &rowSpan, &colSpan,
                         &actualRowSpan, &actualColSpan, &isSelected);
     NS_ENSURE_SUCCESS(res, res);
     NS_ENSURE_TRUE(targetCell, NS_ERROR_NULL_POINTER);
 
     
     res = GetCellDataAt(table, startRowIndex, startColIndex+actualColSpan, getter_AddRefs(cell2),
-                        &startRowIndex2, &startColIndex2, &rowSpan2, &colSpan2, 
+                        &startRowIndex2, &startColIndex2, &rowSpan2, &colSpan2,
                         &actualRowSpan2, &actualColSpan2, &isSelected2);
     NS_ENSURE_SUCCESS(res, res);
     if(!cell2) return NS_OK; 
@@ -2251,7 +2251,7 @@ nsHTMLEditor::JoinTableCells(bool aMergeNonContiguousContents)
       
       
       res = SplitCellIntoRows(table, startRowIndex2, startColIndex2,
-                              spanAboveMergedCell+actualRowSpan, 
+                              spanAboveMergedCell+actualRowSpan,
                               effectiveRowSpan2-actualRowSpan, nullptr);
       NS_ENSURE_SUCCESS(res, res);
     }
@@ -2259,8 +2259,8 @@ nsHTMLEditor::JoinTableCells(bool aMergeNonContiguousContents)
     
     
     
-    res = MergeCells(targetCell, cell2, 
-                     (startRowIndex2 == startRowIndex) && 
+    res = MergeCells(targetCell, cell2,
+                     (startRowIndex2 == startRowIndex) &&
                      (effectiveRowSpan2 >= actualRowSpan));
     NS_ENSURE_SUCCESS(res, res);
 
@@ -2288,8 +2288,8 @@ nsHTMLEditor::JoinTableCells(bool aMergeNonContiguousContents)
   return res;
 }
 
-NS_IMETHODIMP 
-nsHTMLEditor::MergeCells(nsCOMPtr<nsIDOMElement> aTargetCell, 
+NS_IMETHODIMP
+nsHTMLEditor::MergeCells(nsCOMPtr<nsIDOMElement> aTargetCell,
                          nsCOMPtr<nsIDOMElement> aCellToMerge,
                          bool aDeleteCellToMerge)
 {
@@ -2338,7 +2338,7 @@ nsHTMLEditor::MergeCells(nsCOMPtr<nsIDOMElement> aTargetCell,
 }
 
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsHTMLEditor::FixBadRowSpan(nsIDOMElement *aTable, int32_t aRowIndex, int32_t& aNewRowCount)
 {
   NS_ENSURE_TRUE(aTable, NS_ERROR_NULL_POINTER);
@@ -2353,17 +2353,17 @@ nsHTMLEditor::FixBadRowSpan(nsIDOMElement *aTable, int32_t aRowIndex, int32_t& a
 
   int32_t minRowSpan = -1;
   int32_t colIndex;
-  
+
   for( colIndex = 0; colIndex < colCount; colIndex += std::max(actualColSpan, 1))
   {
     res = GetCellDataAt(aTable, aRowIndex, colIndex, getter_AddRefs(cell),
-                        &startRowIndex, &startColIndex, &rowSpan, &colSpan, 
+                        &startRowIndex, &startColIndex, &rowSpan, &colSpan,
                         &actualRowSpan, &actualColSpan, &isSelected);
     
     
     if(NS_FAILED(res)) return res;
     if (!cell) break;
-    if(rowSpan > 0 && 
+    if(rowSpan > 0 &&
        startRowIndex == aRowIndex &&
        (rowSpan < minRowSpan || minRowSpan == -1))
     {
@@ -2379,12 +2379,12 @@ nsHTMLEditor::FixBadRowSpan(nsIDOMElement *aTable, int32_t aRowIndex, int32_t& a
     for(colIndex = 0; colIndex < colCount; colIndex += std::max(actualColSpan, 1))
     {
       res = GetCellDataAt(aTable, aRowIndex, colIndex, getter_AddRefs(cell),
-                          &startRowIndex, &startColIndex, &rowSpan, &colSpan, 
+                          &startRowIndex, &startColIndex, &rowSpan, &colSpan,
                           &actualRowSpan, &actualColSpan, &isSelected);
       if(NS_FAILED(res)) return res;
       
       if(cell && rowSpan > 0 &&
-         startRowIndex == aRowIndex && 
+         startRowIndex == aRowIndex &&
          startColIndex ==  colIndex )
       {
         res = SetRowSpan(cell, rowSpan-rowsReduced);
@@ -2396,7 +2396,7 @@ nsHTMLEditor::FixBadRowSpan(nsIDOMElement *aTable, int32_t aRowIndex, int32_t& a
   return GetTableSize(aTable, &aNewRowCount, &colCount);
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsHTMLEditor::FixBadColSpan(nsIDOMElement *aTable, int32_t aColIndex, int32_t& aNewColCount)
 {
   NS_ENSURE_TRUE(aTable, NS_ERROR_NULL_POINTER);
@@ -2411,17 +2411,17 @@ nsHTMLEditor::FixBadColSpan(nsIDOMElement *aTable, int32_t aColIndex, int32_t& a
 
   int32_t minColSpan = -1;
   int32_t rowIndex;
-  
+
   for( rowIndex = 0; rowIndex < rowCount; rowIndex += std::max(actualRowSpan, 1))
   {
     res = GetCellDataAt(aTable, rowIndex, aColIndex, getter_AddRefs(cell),
-                        &startRowIndex, &startColIndex, &rowSpan, &colSpan, 
+                        &startRowIndex, &startColIndex, &rowSpan, &colSpan,
                         &actualRowSpan, &actualColSpan, &isSelected);
     
     
     if(NS_FAILED(res)) return res;
     if (!cell) break;
-    if(colSpan > 0 && 
+    if(colSpan > 0 &&
        startColIndex == aColIndex &&
        (colSpan < minColSpan || minColSpan == -1))
     {
@@ -2437,12 +2437,12 @@ nsHTMLEditor::FixBadColSpan(nsIDOMElement *aTable, int32_t aColIndex, int32_t& a
     for(rowIndex = 0; rowIndex < rowCount; rowIndex += std::max(actualRowSpan, 1))
     {
       res = GetCellDataAt(aTable, rowIndex, aColIndex, getter_AddRefs(cell),
-                          &startRowIndex, &startColIndex, &rowSpan, &colSpan, 
+                          &startRowIndex, &startColIndex, &rowSpan, &colSpan,
                           &actualRowSpan, &actualColSpan, &isSelected);
       if(NS_FAILED(res)) return res;
       
       if(cell && colSpan > 0 &&
-         startColIndex == aColIndex && 
+         startColIndex == aColIndex &&
          startRowIndex ==  rowIndex )
       {
         res = SetColSpan(cell, colSpan-colsReduced);
@@ -2454,7 +2454,7 @@ nsHTMLEditor::FixBadColSpan(nsIDOMElement *aTable, int32_t aColIndex, int32_t& a
   return GetTableSize(aTable, &rowCount, &aNewColCount);
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsHTMLEditor::NormalizeTable(nsIDOMElement *aTable)
 {
   nsRefPtr<Selection> selection = GetSelection();
@@ -2503,7 +2503,7 @@ nsHTMLEditor::NormalizeTable(nsIDOMElement *aTable)
     for(colIndex = 0; colIndex < colCount; colIndex++)
     {
       res = GetCellDataAt(table, rowIndex, colIndex, getter_AddRefs(cell),
-                          &startRowIndex, &startColIndex, &rowSpan, &colSpan, 
+                          &startRowIndex, &startColIndex, &rowSpan, &colSpan,
                           &actualRowSpan, &actualColSpan, &isSelected);
       
       
@@ -2523,7 +2523,7 @@ nsHTMLEditor::NormalizeTable(nsIDOMElement *aTable)
 
           
           if(cell)
-            startRowIndex = rowIndex;   
+            startRowIndex = rowIndex;
         } else {
           
 #ifdef DEBUG
@@ -2542,7 +2542,7 @@ nsHTMLEditor::NormalizeTable(nsIDOMElement *aTable)
   return res;
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsHTMLEditor::GetCellIndexes(nsIDOMElement *aCell,
                              int32_t *aRowIndex, int32_t *aColIndex)
 {
@@ -2598,7 +2598,7 @@ int32_t nsHTMLEditor::GetNumberOfCellsInRow(nsIDOMElement* aTable, int32_t rowIn
     int32_t startRowIndex, startColIndex, rowSpan, colSpan, actualRowSpan, actualColSpan;
     bool    isSelected;
     res = GetCellDataAt(aTable, rowIndex, colIndex, getter_AddRefs(cell),
-                        &startRowIndex, &startColIndex, &rowSpan, &colSpan, 
+                        &startRowIndex, &startColIndex, &rowSpan, &colSpan,
                         &actualRowSpan, &actualColSpan, &isSelected);
     NS_ENSURE_SUCCESS(res, 0);
     if (cell)
@@ -2606,7 +2606,7 @@ int32_t nsHTMLEditor::GetNumberOfCellsInRow(nsIDOMElement* aTable, int32_t rowIn
       
       if (startRowIndex == rowIndex)
         cellCount++;
-      
+
       
       colIndex += actualColSpan;
     }
@@ -2635,7 +2635,7 @@ nsHTMLEditor::GetTableSize(nsIDOMElement *aTable,
   res = GetElementOrParentByTagName(NS_LITERAL_STRING("table"), aTable, getter_AddRefs(table));
   NS_ENSURE_SUCCESS(res, res);
   NS_ENSURE_TRUE(table, NS_ERROR_FAILURE);
-  
+
   nsTableOuterFrame* tableFrame = GetTableFrame(table.get());
   NS_ENSURE_TRUE(tableFrame, NS_ERROR_FAILURE);
 
@@ -2645,12 +2645,12 @@ nsHTMLEditor::GetTableSize(nsIDOMElement *aTable,
   return NS_OK;
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsHTMLEditor::GetCellDataAt(nsIDOMElement* aTable, int32_t aRowIndex,
-                            int32_t aColIndex, nsIDOMElement **aCell, 
-                            int32_t* aStartRowIndex, int32_t* aStartColIndex, 
-                            int32_t* aRowSpan, int32_t* aColSpan, 
-                            int32_t* aActualRowSpan, int32_t* aActualColSpan, 
+                            int32_t aColIndex, nsIDOMElement **aCell,
+                            int32_t* aStartRowIndex, int32_t* aStartColIndex,
+                            int32_t* aRowSpan, int32_t* aColSpan,
+                            int32_t* aActualRowSpan, int32_t* aActualColSpan,
                             bool* aIsSelected)
 {
   NS_ENSURE_ARG_POINTER(aStartRowIndex);
@@ -2684,7 +2684,7 @@ nsHTMLEditor::GetCellDataAt(nsIDOMElement* aTable, int32_t aRowIndex,
     else
       return NS_ERROR_FAILURE;
   }
-  
+
   nsTableOuterFrame* tableFrame = GetTableFrame(aTable);
   NS_ENSURE_TRUE(tableFrame, NS_ERROR_FAILURE);
 
@@ -2707,7 +2707,7 @@ nsHTMLEditor::GetCellDataAt(nsIDOMElement* aTable, int32_t aRowIndex,
 }
 
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsHTMLEditor::GetCellAt(nsIDOMElement* aTable, int32_t aRowIndex, int32_t aColIndex, nsIDOMElement **aCell)
 {
   NS_ENSURE_ARG_POINTER(aCell);
@@ -2736,7 +2736,7 @@ nsHTMLEditor::GetCellAt(nsIDOMElement* aTable, int32_t aRowIndex, int32_t aColIn
 
 
 NS_IMETHODIMP
-nsHTMLEditor::GetCellSpansAt(nsIDOMElement* aTable, int32_t aRowIndex, int32_t aColIndex, 
+nsHTMLEditor::GetCellSpansAt(nsIDOMElement* aTable, int32_t aRowIndex, int32_t aColIndex,
                              int32_t& aActualRowSpan, int32_t& aActualColSpan)
 {
   nsTableOuterFrame* tableFrame = GetTableFrame(aTable);
@@ -2856,7 +2856,7 @@ nsHTMLEditor::GetCellContext(Selection** aSelection,
   return res;
 }
 
-nsresult 
+nsresult
 nsHTMLEditor::GetCellFromRange(nsRange* aRange, nsIDOMElement** aCell)
 {
   
@@ -2888,11 +2888,11 @@ nsHTMLEditor::GetCellFromRange(nsRange* aRange, nsIDOMElement** aCell)
   int32_t endOffset;
   res = aRange->GetEndOffset(&endOffset);
   NS_ENSURE_SUCCESS(res, res);
+
   
   
   
-  
-  if (startParent == endParent && 
+  if (startParent == endParent &&
       endOffset == startOffset+1 &&
       nsHTMLEditUtils::IsTableCell(childNode))
   {
@@ -2906,7 +2906,7 @@ nsHTMLEditor::GetCellFromRange(nsRange* aRange, nsIDOMElement** aCell)
   return NS_EDITOR_ELEMENT_NOT_FOUND;
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsHTMLEditor::GetFirstSelectedCell(nsIDOMRange **aRange, nsIDOMElement **aCell)
 {
   NS_ENSURE_TRUE(aCell, NS_ERROR_NULL_POINTER);
@@ -2941,7 +2941,7 @@ nsHTMLEditor::GetFirstSelectedCell(nsIDOMRange **aRange, nsIDOMElement **aCell)
   
   mSelectedCellIndex = 1;
 
-  return res;  
+  return res;
 }
 
 NS_IMETHODIMP
@@ -2957,7 +2957,7 @@ nsHTMLEditor::GetNextSelectedCell(nsIDOMRange **aRange, nsIDOMElement **aCell)
   int32_t rangeCount = selection->RangeCount();
 
   
-  if (mSelectedCellIndex >= rangeCount) 
+  if (mSelectedCellIndex >= rangeCount)
     return NS_EDITOR_ELEMENT_NOT_FOUND;
 
   
@@ -2971,7 +2971,7 @@ nsHTMLEditor::GetNextSelectedCell(nsIDOMRange **aRange, nsIDOMElement **aCell)
     res = GetCellFromRange(range, aCell);
     
     NS_ENSURE_SUCCESS(res, NS_EDITOR_ELEMENT_NOT_FOUND);
-    
+
     
     if (*aCell) break;
 
@@ -2989,10 +2989,10 @@ nsHTMLEditor::GetNextSelectedCell(nsIDOMRange **aRange, nsIDOMElement **aCell)
   
   mSelectedCellIndex++;
 
-  return res;  
+  return res;
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsHTMLEditor::GetFirstSelectedCellInTable(int32_t *aRowIndex, int32_t *aColIndex, nsIDOMElement **aCell)
 {
   NS_ENSURE_TRUE(aCell, NS_ERROR_NULL_POINTER);
@@ -3028,14 +3028,14 @@ nsHTMLEditor::GetFirstSelectedCellInTable(int32_t *aRowIndex, int32_t *aColIndex
 }
 
 NS_IMETHODIMP
-nsHTMLEditor::SetSelectionAfterTableEdit(nsIDOMElement* aTable, int32_t aRow, int32_t aCol, 
+nsHTMLEditor::SetSelectionAfterTableEdit(nsIDOMElement* aTable, int32_t aRow, int32_t aCol,
                                      int32_t aDirection, bool aSelected)
 {
   NS_ENSURE_TRUE(aTable, NS_ERROR_NOT_INITIALIZED);
 
   nsRefPtr<Selection> selection = GetSelection();
   nsresult res;
-  
+
   if (!selection)
   {
     return NS_ERROR_FAILURE;
@@ -3117,7 +3117,7 @@ nsHTMLEditor::SetSelectionAfterTableEdit(nsIDOMElement* aTable, int32_t aRow, in
   return SetSelectionAtDocumentStart(selection);
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsHTMLEditor::GetSelectedOrParentTableElement(nsAString& aTagName,
                                               int32_t *aSelectedCount,
                                               nsIDOMElement** aTableElement)
@@ -3211,7 +3211,7 @@ nsHTMLEditor::GetSelectedOrParentTableElement(nsAString& aTagName,
   return res;
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsHTMLEditor::GetSelectedCellsType(nsIDOMElement *aElement, uint32_t *aSelectionType)
 {
   NS_ENSURE_ARG_POINTER(aSelectionType);
@@ -3233,7 +3233,7 @@ nsHTMLEditor::GetSelectedCellsType(nsIDOMElement *aElement, uint32_t *aSelection
   res = GetFirstSelectedCell(nullptr, getter_AddRefs(selectedCell));
   NS_ENSURE_SUCCESS(res, res);
   if (res == NS_EDITOR_ELEMENT_NOT_FOUND) return NS_OK;
-  
+
   
   *aSelectionType = nsISelectionPrivate::TABLESELECTION_CELL;
 
@@ -3248,7 +3248,7 @@ nsHTMLEditor::GetSelectedCellsType(nsIDOMElement *aElement, uint32_t *aSelection
     int32_t startRowIndex, startColIndex;
     res = GetCellIndexes(selectedCell, &startRowIndex, &startColIndex);
     if(NS_FAILED(res)) return res;
-    
+
     if (!indexArray.Contains(startColIndex))
     {
       indexArray.AppendElement(startColIndex);
@@ -3277,7 +3277,7 @@ nsHTMLEditor::GetSelectedCellsType(nsIDOMElement *aElement, uint32_t *aSelection
     int32_t startRowIndex, startColIndex;
     res = GetCellIndexes(selectedCell, &startRowIndex, &startColIndex);
     if(NS_FAILED(res)) return res;
-  
+
     if (!indexArray.Contains(startRowIndex))
     {
       indexArray.AppendElement(startColIndex);
@@ -3293,7 +3293,7 @@ nsHTMLEditor::GetSelectedCellsType(nsIDOMElement *aElement, uint32_t *aSelection
   return NS_OK;
 }
 
-bool 
+bool
 nsHTMLEditor::AllCellsInRowSelected(nsIDOMElement *aTable, int32_t aRowIndex, int32_t aNumberOfColumns)
 {
   NS_ENSURE_TRUE(aTable, false);
@@ -3303,12 +3303,12 @@ nsHTMLEditor::AllCellsInRowSelected(nsIDOMElement *aTable, int32_t aRowIndex, in
 
   for( int32_t col = 0; col < aNumberOfColumns; col += std::max(actualColSpan, 1))
   {
-    nsCOMPtr<nsIDOMElement> cell;    
+    nsCOMPtr<nsIDOMElement> cell;
     nsresult res = GetCellDataAt(aTable, aRowIndex, col, getter_AddRefs(cell),
                                  &curStartRowIndex, &curStartColIndex,
                                  &rowSpan, &colSpan,
                                  &actualRowSpan, &actualColSpan, &isSelected);
- 
+
     NS_ENSURE_SUCCESS(res, false);
     
     
@@ -3322,7 +3322,7 @@ nsHTMLEditor::AllCellsInRowSelected(nsIDOMElement *aTable, int32_t aRowIndex, in
   return true;
 }
 
-bool 
+bool
 nsHTMLEditor::AllCellsInColumnSelected(nsIDOMElement *aTable, int32_t aColIndex, int32_t aNumberOfRows)
 {
   NS_ENSURE_TRUE(aTable, false);
@@ -3332,12 +3332,12 @@ nsHTMLEditor::AllCellsInColumnSelected(nsIDOMElement *aTable, int32_t aColIndex,
 
   for( int32_t row = 0; row < aNumberOfRows; row += std::max(actualRowSpan, 1))
   {
-    nsCOMPtr<nsIDOMElement> cell;    
+    nsCOMPtr<nsIDOMElement> cell;
     nsresult res = GetCellDataAt(aTable, row, aColIndex, getter_AddRefs(cell),
                                  &curStartRowIndex, &curStartColIndex,
                                  &rowSpan, &colSpan,
                                  &actualRowSpan, &actualColSpan, &isSelected);
-    
+
     NS_ENSURE_SUCCESS(res, false);
     
     
@@ -3349,7 +3349,7 @@ nsHTMLEditor::AllCellsInColumnSelected(nsIDOMElement *aTable, int32_t aColIndex,
   return true;
 }
 
-bool 
+bool
 nsHTMLEditor::IsEmptyCell(dom::Element* aCell)
 {
   MOZ_ASSERT(aCell);

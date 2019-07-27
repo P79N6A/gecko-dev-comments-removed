@@ -40,7 +40,7 @@ protected:
 
   
   nsIHTMLEditor*  mEditor;
-  
+
   
   nsString    mValue;
 

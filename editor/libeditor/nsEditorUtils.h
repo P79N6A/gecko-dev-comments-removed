@@ -35,7 +35,7 @@ class MOZ_STACK_CLASS nsAutoPlaceHolderBatch
   private:
     nsCOMPtr<nsIEditor> mEd;
   public:
-    nsAutoPlaceHolderBatch( nsIEditor *aEd, nsIAtom *atom) : mEd(do_QueryInterface(aEd)) 
+    nsAutoPlaceHolderBatch( nsIEditor *aEd, nsIAtom *atom) : mEd(do_QueryInterface(aEd))
                    { if (mEd) mEd->BeginPlaceHolderTransaction(atom); }
     ~nsAutoPlaceHolderBatch() { if (mEd) mEd->EndPlaceHolderTransaction(); }
 };
@@ -66,7 +66,7 @@ class MOZ_STACK_CLASS nsAutoSelectionReset
   public:
     
     nsAutoSelectionReset(mozilla::dom::Selection* aSel, nsEditor* aEd);
-    
+
     
     ~nsAutoSelectionReset();
 
@@ -80,25 +80,25 @@ class MOZ_STACK_CLASS nsAutoSelectionReset
 class MOZ_STACK_CLASS nsAutoRules
 {
   public:
-  
+
   nsAutoRules(nsEditor *ed, EditAction action,
               nsIEditor::EDirection aDirection) :
          mEd(ed), mDoNothing(false)
-  { 
+  {
     if (mEd && !mEd->mAction) 
     {
       mEd->StartOperation(action, aDirection);
     }
     else mDoNothing = true; 
   }
-  ~nsAutoRules() 
+  ~nsAutoRules()
   {
-    if (mEd && !mDoNothing) 
+    if (mEd && !mDoNothing)
     {
       mEd->EndOperation();
     }
   }
-  
+
   protected:
   nsEditor *mEd;
   bool mDoNothing;
@@ -112,24 +112,24 @@ class MOZ_STACK_CLASS nsAutoRules
 class MOZ_STACK_CLASS nsAutoTxnsConserveSelection
 {
   public:
-  
+
   explicit nsAutoTxnsConserveSelection(nsEditor *ed) : mEd(ed), mOldState(true)
   {
-    if (mEd) 
+    if (mEd)
     {
       mOldState = mEd->GetShouldTxnSetSelection();
       mEd->SetShouldTxnSetSelection(false);
     }
   }
-  
-  ~nsAutoTxnsConserveSelection() 
+
+  ~nsAutoTxnsConserveSelection()
   {
-    if (mEd) 
+    if (mEd)
     {
       mEd->SetShouldTxnSetSelection(mOldState);
     }
   }
-  
+
   protected:
   nsEditor *mEd;
   bool mOldState;
@@ -141,21 +141,21 @@ class MOZ_STACK_CLASS nsAutoTxnsConserveSelection
 class MOZ_STACK_CLASS nsAutoUpdateViewBatch
 {
   public:
-  
+
   explicit nsAutoUpdateViewBatch(nsEditor *ed) : mEd(ed)
   {
     NS_ASSERTION(mEd, "null mEd pointer!");
 
-    if (mEd) 
+    if (mEd)
       mEd->BeginUpdateViewBatch();
   }
-  
-  ~nsAutoUpdateViewBatch() 
+
+  ~nsAutoUpdateViewBatch()
   {
-    if (mEd) 
+    if (mEd)
       mEd->EndUpdateViewBatch();
   }
-  
+
   protected:
   nsEditor *mEd;
 };
@@ -164,7 +164,7 @@ class MOZ_STACK_CLASS nsAutoUpdateViewBatch
 
 
 
-class nsBoolDomIterFunctor 
+class nsBoolDomIterFunctor
 {
   public:
     virtual bool operator()(nsINode* aNode) const = 0;

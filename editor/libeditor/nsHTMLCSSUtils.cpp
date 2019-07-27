@@ -150,14 +150,14 @@ void ProcessMarginLeftValue(const nsAString * aInputString, nsAString & aOutputS
   if (aInputString) {
     if (aInputString->EqualsLiteral("center") ||
         aInputString->EqualsLiteral("-moz-center")) {
-      aOutputString.AppendLiteral("auto"); 
+      aOutputString.AppendLiteral("auto");
     }
     else if (aInputString->EqualsLiteral("right") ||
              aInputString->EqualsLiteral("-moz-right")) {
-      aOutputString.AppendLiteral("auto"); 
+      aOutputString.AppendLiteral("auto");
     }
     else {
-      aOutputString.AppendLiteral("0px"); 
+      aOutputString.AppendLiteral("0px");
     }
   }
 }
@@ -171,14 +171,14 @@ void ProcessMarginRightValue(const nsAString * aInputString, nsAString & aOutput
   if (aInputString) {
     if (aInputString->EqualsLiteral("center") ||
         aInputString->EqualsLiteral("-moz-center")) {
-      aOutputString.AppendLiteral("auto"); 
+      aOutputString.AppendLiteral("auto");
     }
     else if (aInputString->EqualsLiteral("left") ||
              aInputString->EqualsLiteral("-moz-left")) {
-      aOutputString.AppendLiteral("auto"); 
+      aOutputString.AppendLiteral("auto");
     }
     else {
-      aOutputString.AppendLiteral("0px"); 
+      aOutputString.AppendLiteral("0px");
     }
   }
 }

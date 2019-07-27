@@ -106,7 +106,7 @@ nsEditorEventListener::nsEditorEventListener()
 {
 }
 
-nsEditorEventListener::~nsEditorEventListener() 
+nsEditorEventListener::~nsEditorEventListener()
 {
   if (mEditor) {
     NS_WARNING("We're not uninstalled");

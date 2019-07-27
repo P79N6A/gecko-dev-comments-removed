@@ -171,7 +171,7 @@ nsTextEditRules::BeforeEdit(EditAction action,
                             nsIEditor::EDirection aDirection)
 {
   if (mLockRulesSniffing) return NS_OK;
-  
+
   nsAutoLockRulesSniffing lockIt(this);
   mDidExplicitlySetInterline = false;
   if (!mActionNesting)
@@ -180,7 +180,7 @@ nsTextEditRules::BeforeEdit(EditAction action,
     mTheAction = action;
   }
   mActionNesting++;
-  
+
   
   NS_ENSURE_STATE(mEditor);
   nsRefPtr<Selection> selection = mEditor->GetSelection();
@@ -198,9 +198,9 @@ nsTextEditRules::AfterEdit(EditAction action,
                            nsIEditor::EDirection aDirection)
 {
   if (mLockRulesSniffing) return NS_OK;
-  
+
   nsAutoLockRulesSniffing lockIt(this);
-  
+
   NS_PRECONDITION(mActionNesting>0, "bad action nesting!");
   nsresult res = NS_OK;
   if (!--mActionNesting)
@@ -208,7 +208,7 @@ nsTextEditRules::AfterEdit(EditAction action,
     NS_ENSURE_STATE(mEditor);
     nsRefPtr<Selection> selection = mEditor->GetSelection();
     NS_ENSURE_STATE(selection);
-  
+
     NS_ENSURE_STATE(mEditor);
     res = mEditor->HandleInlineSpellCheck(action, selection,
                                           mCachedSelectionNode, mCachedSelectionOffset,
@@ -223,7 +223,7 @@ nsTextEditRules::AfterEdit(EditAction action,
     
     res = CreateBogusNodeIfNeeded(selection);
     NS_ENSURE_SUCCESS(res, res);
-    
+
     
     res = CreateTrailingBRIfNeeded();
     NS_ENSURE_SUCCESS(res, res);
@@ -280,7 +280,7 @@ nsTextEditRules::WillDoAction(Selection* aSelection,
   }
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsTextEditRules::DidDoAction(Selection* aSelection,
                              nsRulesInfo *aInfo, nsresult aResult)
 {
@@ -290,7 +290,7 @@ nsTextEditRules::DidDoAction(Selection* aSelection,
   nsAutoTxnsConserveSelection dontSpazMySelection(mEditor);
 
   NS_ENSURE_TRUE(aSelection && aInfo, NS_ERROR_NULL_POINTER);
-    
+
   
   nsTextRulesInfo *info = static_cast<nsTextRulesInfo*>(aInfo);
 
@@ -324,7 +324,7 @@ NS_IMETHODIMP
 nsTextEditRules::DocumentIsEmpty(bool *aDocumentIsEmpty)
 {
   NS_ENSURE_TRUE(aDocumentIsEmpty, NS_ERROR_NULL_POINTER);
-  
+
   *aDocumentIsEmpty = (mBogusNode != nullptr);
   return NS_OK;
 }
@@ -338,12 +338,12 @@ nsresult
 nsTextEditRules::WillInsert(Selection* aSelection, bool* aCancel)
 {
   NS_ENSURE_TRUE(aSelection && aCancel, NS_ERROR_NULL_POINTER);
-  
+
   CANCEL_OPERATION_IF_READONLY_OR_DISABLED
 
   
   *aCancel = false;
-  
+
   
   if (mBogusNode)
   {
@@ -373,7 +373,7 @@ nsTextEditRules::WillInsertBreak(Selection* aSelection,
   if (IsSingleLineEditor()) {
     *aCancel = true;
   }
-  else 
+  else
   {
     
     
@@ -406,7 +406,7 @@ nsTextEditRules::WillInsertBreak(Selection* aSelection,
     
     
     *aCancel = false;
-  
+
   }
   return NS_OK;
 }
@@ -587,7 +587,7 @@ nsTextEditRules::WillInsertText(EditAction aAction,
                                 const nsAString *inString,
                                 nsAString *outString,
                                 int32_t          aMaxLength)
-{  
+{
   if (!aSelection || !aCancel || !aHandled) { return NS_ERROR_NULL_POINTER; }
 
   if (inString->IsEmpty() && aAction != EditAction::insertIMEText) {
@@ -600,7 +600,7 @@ nsTextEditRules::WillInsertText(EditAction aAction,
     *aHandled = false;
     return NS_OK;
   }
-  
+
   
   *aCancel = false;
   *aHandled = true;
@@ -618,7 +618,7 @@ nsTextEditRules::WillInsertText(EditAction aAction,
     *aCancel = true;
     return NS_OK;
   }
-  
+
   int32_t start = 0;
   int32_t end = 0;
 
@@ -645,7 +645,7 @@ nsTextEditRules::WillInsertText(EditAction aAction,
   
   
   *aCancel = false;
-  
+
   
   
   
@@ -696,8 +696,8 @@ nsTextEditRules::WillInsertText(EditAction aAction,
       }
       mTimer->InitWithCallback(this, LookAndFeel::GetPasswordMaskDelay(),
                                nsITimer::TYPE_ONE_SHOT);
-    } 
-    else 
+    }
+    else
     {
       FillBufWithPWChars(outString, outString->Length());
     }
@@ -720,7 +720,7 @@ nsTextEditRules::WillInsertText(EditAction aAction,
   NS_ENSURE_STATE(mEditor);
   nsCOMPtr<nsIDocument> doc = mEditor->GetDocument();
   NS_ENSURE_TRUE(doc, NS_ERROR_NOT_INITIALIZED);
-    
+
   if (aAction == EditAction::insertIMEText) {
     NS_ENSURE_STATE(mEditor);
     res = mEditor->InsertTextImpl(*outString, address_of(selNode), &selOffset, doc);
@@ -738,7 +738,7 @@ nsTextEditRules::WillInsertText(EditAction aAction,
                                   &curOffset, doc);
     NS_ENSURE_SUCCESS(res, res);
 
-    if (curNode) 
+    if (curNode)
     {
       
       
@@ -765,7 +765,7 @@ nsresult
 nsTextEditRules::WillSetTextProperty(Selection* aSelection, bool* aCancel,
                                      bool* aHandled)
 {
-  if (!aSelection || !aCancel || !aHandled) 
+  if (!aSelection || !aCancel || !aHandled)
     { return NS_ERROR_NULL_POINTER; }
 
   
@@ -785,7 +785,7 @@ nsresult
 nsTextEditRules::WillRemoveTextProperty(Selection* aSelection, bool* aCancel,
                                         bool* aHandled)
 {
-  if (!aSelection || !aCancel || !aHandled) 
+  if (!aSelection || !aCancel || !aHandled)
     { return NS_ERROR_NULL_POINTER; }
 
   
@@ -803,7 +803,7 @@ nsTextEditRules::DidRemoveTextProperty(Selection* aSelection, nsresult aResult)
 
 nsresult
 nsTextEditRules::WillDeleteSelection(Selection* aSelection,
-                                     nsIEditor::EDirection aCollapsedAction, 
+                                     nsIEditor::EDirection aCollapsedAction,
                                      bool *aCancel,
                                      bool *aHandled)
 {
@@ -813,7 +813,7 @@ nsTextEditRules::WillDeleteSelection(Selection* aSelection,
   
   *aCancel = false;
   *aHandled = false;
-  
+
   
   if (mBogusNode) {
     *aCancel = true;
@@ -866,11 +866,11 @@ nsTextEditRules::WillDeleteSelection(Selection* aSelection,
     res = mEditor->GetStartNodeAndOffset(aSelection, getter_AddRefs(startNode), &startOffset);
     NS_ENSURE_SUCCESS(res, res);
     NS_ENSURE_TRUE(startNode, NS_ERROR_FAILURE);
-    
+
     bool bCollapsed;
     res = aSelection->GetIsCollapsed(&bCollapsed);
     NS_ENSURE_SUCCESS(res, res);
-  
+
     if (!bCollapsed)
       return NS_OK;
 
@@ -894,8 +894,8 @@ nsTextEditRules::WillDeleteSelection(Selection* aSelection,
 }
 
 nsresult
-nsTextEditRules::DidDeleteSelection(Selection* aSelection, 
-                                    nsIEditor::EDirection aCollapsedAction, 
+nsTextEditRules::DidDeleteSelection(Selection* aSelection,
+                                    nsIEditor::EDirection aCollapsedAction,
                                     nsresult aResult)
 {
   nsCOMPtr<nsIDOMNode> startNode;
@@ -904,7 +904,7 @@ nsTextEditRules::DidDeleteSelection(Selection* aSelection,
   nsresult res = mEditor->GetStartNodeAndOffset(aSelection, getter_AddRefs(startNode), &startOffset);
   NS_ENSURE_SUCCESS(res, res);
   NS_ENSURE_TRUE(startNode, NS_ERROR_FAILURE);
-  
+
   
   if (mEditor->IsTextNode(startNode))
   {
@@ -912,7 +912,7 @@ nsTextEditRules::DidDeleteSelection(Selection* aSelection,
     uint32_t strLength;
     res = textNode->GetLength(&strLength);
     NS_ENSURE_SUCCESS(res, res);
-    
+
     
     if (!strLength)
     {
@@ -980,12 +980,12 @@ nsTextEditRules::DidRedo(Selection* aSelection, nsresult aResult)
 {
   nsresult res = aResult;  
   if (!aSelection) { return NS_ERROR_NULL_POINTER; }
-  if (NS_SUCCEEDED(res)) 
+  if (NS_SUCCEEDED(res))
   {
     NS_ENSURE_STATE(mEditor);
     nsCOMPtr<nsIDOMElement> theRoot = do_QueryInterface(mEditor->GetRoot());
     NS_ENSURE_TRUE(theRoot, NS_ERROR_FAILURE);
-    
+
     nsCOMPtr<nsIDOMHTMLCollection> nodeList;
     res = theRoot->GetElementsByTagName(NS_LITERAL_STRING("br"),
                                         getter_AddRefs(nodeList));
@@ -994,11 +994,11 @@ nsTextEditRules::DidRedo(Selection* aSelection, nsresult aResult)
     {
       uint32_t len;
       nodeList->GetLength(&len);
-      
+
       if (len != 1) {
         
         mBogusNode = nullptr;
-        return NS_OK;  
+        return NS_OK;
       }
 
       nsCOMPtr<nsIDOMNode> node;
@@ -1018,12 +1018,12 @@ nsTextEditRules::DidRedo(Selection* aSelection, nsresult aResult)
 nsresult
 nsTextEditRules::WillOutputText(Selection* aSelection,
                                 const nsAString  *aOutputFormat,
-                                nsAString *aOutString,                                
+                                nsAString *aOutString,
                                 bool     *aCancel,
                                 bool     *aHandled)
 {
   
-  if (!aOutString || !aOutputFormat || !aCancel || !aHandled) 
+  if (!aOutString || !aOutputFormat || !aCancel || !aHandled)
     { return NS_ERROR_NULL_POINTER; }
 
   
@@ -1204,7 +1204,7 @@ nsTextEditRules::TruncateInsertionIfNeeded(Selection* aSelection,
                                            bool *aTruncated)
 {
   if (!aSelection || !aInString || !aOutString) {return NS_ERROR_NULL_POINTER;}
-  
+
   nsresult res = NS_OK;
   if (!aOutString->Assign(*aInString, mozilla::fallible)) {
     return NS_ERROR_OUT_OF_MEMORY;
@@ -1212,7 +1212,7 @@ nsTextEditRules::TruncateInsertionIfNeeded(Selection* aSelection,
   if (aTruncated) {
     *aTruncated = false;
   }
-  
+
   NS_ENSURE_STATE(mEditor);
   if ((-1 != aMaxLength) && IsPlaintextEditor() && !mEditor->IsIMEComposing() )
   {
@@ -1331,10 +1331,10 @@ nsresult nsTextEditRules::HideLastPWInput() {
 
   nsCOMPtr<nsIDOMNode> selNode = GetTextNode(selection, mEditor);
   NS_ENSURE_TRUE(selNode, NS_OK);
-  
+
   nsCOMPtr<nsIDOMCharacterData> nodeAsText(do_QueryInterface(selNode));
   NS_ENSURE_TRUE(nodeAsText, NS_OK);
-  
+
   nodeAsText->ReplaceData(mLastStart, mLastLength, hiddenText);
   selection->Collapse(selNode, start);
   if (start != end)
@@ -1361,7 +1361,7 @@ nsTextEditRules::FillBufWithPWChars(nsAString *aOutString, int32_t aLength)
 
 
 
-nsresult 
+nsresult
 nsTextEditRules::CreateMozBR(nsIDOMNode* inParent, int32_t inOffset,
                              nsIDOMNode** outBRNode)
 {

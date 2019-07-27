@@ -120,7 +120,7 @@ nsWSRunObject::ScrubBlockBoundary(nsHTMLEditor* aHTMLEd,
     NS_ENSURE_STATE(aOffset >= 0);
     offset = aOffset;
   }
-  
+
   nsWSRunObject theWSObj(aHTMLEd, aBlock, offset);
   return theWSObj.Scrub();
 }
@@ -573,7 +573,7 @@ nsWSRunObject::NextVisibleNode(nsINode* aNode,
   *outType = mEndReason;
 }
 
-nsresult 
+nsresult
 nsWSRunObject::AdjustWhitespace()
 {
   
@@ -629,7 +629,7 @@ nsWSRunObject::GetWSNodes()
   
   if (nsRefPtr<Text> textNode = mNode->GetAsText()) {
     const nsTextFragment* textFrag = textNode->GetText();
-    
+
     mNodeArray.InsertElementAt(0, textNode);
     if (mOffset) {
       for (int32_t pos = mOffset - 1; pos >= 0; pos--) {
@@ -729,9 +729,9 @@ nsWSRunObject::GetWSNodes()
       mStartOffset = start.offset;
       mStartReason = WSType::thisBlock;
       mStartReasonNode = wsBoundingParent;
-    } 
+    }
   }
-  
+
   
   if (nsRefPtr<Text> textNode = mNode->GetAsText()) {
     
@@ -837,7 +837,7 @@ nsWSRunObject::GetWSNodes()
       mEndOffset = end.offset;
       mEndReason = WSType::thisBlock;
       mEndReasonNode = wsBoundingParent;
-    } 
+    }
   }
 
   return NS_OK;
@@ -847,7 +847,7 @@ void
 nsWSRunObject::GetRuns()
 {
   ClearRuns();
-  
+
   
   mHTMLEditor->IsPreformatted(GetAsDOMNode(mNode), &mPRE);
   
@@ -875,12 +875,12 @@ nsWSRunObject::GetRuns()
     MakeSingleWSRun(wstype);
     return;
   }
-  
+
   
   mStartRun = new WSFragment();
   mStartRun->mStartNode = mStartNode;
   mStartRun->mStartOffset = mStartOffset;
-  
+
   if (mStartReason & WSType::block || mStartReason == WSType::br) {
     
     mStartRun->mType = WSType::leadingWS;
@@ -888,7 +888,7 @@ nsWSRunObject::GetRuns()
     mStartRun->mEndOffset = mFirstNBSPOffset;
     mStartRun->mLeftType = mStartReason;
     mStartRun->mRightType = WSType::normalWS;
-    
+
     
     WSFragment *normalRun = new WSFragment();
     mStartRun->mRight = normalRun;
@@ -923,7 +923,7 @@ nsWSRunObject::GetRuns()
         normalRun->mEndNode = mLastNBSPNode;
         normalRun->mEndOffset = mLastNBSPOffset+1;
         normalRun->mRightType = WSType::trailingWS;
-        
+
         
         WSFragment *lastRun = new WSFragment();
         lastRun->mType = WSType::trailingWS;
@@ -1000,7 +1000,7 @@ nsWSRunObject::MakeSingleWSRun(WSType aType)
   mStartRun->mEndOffset   = mEndOffset;
   mStartRun->mLeftType    = mStartReason;
   mStartRun->mRightType   = mEndReason;
-  
+
   mEndRun  = mStartRun;
 }
 
@@ -1171,7 +1171,7 @@ nsWSRunObject::GetNextWSNode(::DOMPoint aPoint, nsINode* aBlockParent)
   return nextNode;
 }
 
-nsresult 
+nsresult
 nsWSRunObject::PrepareToDeleteRangePriv(nsWSRunObject* aEndObject)
 {
   
@@ -1180,15 +1180,15 @@ nsWSRunObject::PrepareToDeleteRangePriv(nsWSRunObject* aEndObject)
   
   
   
-  
+
   NS_ENSURE_TRUE(aEndObject, NS_ERROR_NULL_POINTER);
   nsresult res = NS_OK;
-  
+
   
   WSFragment *beforeRun, *afterRun;
   FindRun(mNode, mOffset, &beforeRun, false);
   aEndObject->FindRun(aEndObject->mNode, aEndObject->mOffset, &afterRun, true);
-  
+
   
   if (afterRun && (afterRun->mType & WSType::leadingWS)) {
     res = aEndObject->DeleteChars(aEndObject->mNode, aEndObject->mOffset,
@@ -1239,19 +1239,19 @@ nsWSRunObject::PrepareToDeleteRangePriv(nsWSRunObject* aEndObject)
   return res;
 }
 
-nsresult 
+nsresult
 nsWSRunObject::PrepareToSplitAcrossBlocksPriv()
 {
   
   
   
   nsresult res = NS_OK;
-  
+
   
   WSFragment *beforeRun, *afterRun;
   FindRun(mNode, mOffset, &beforeRun, false);
   FindRun(mNode, mOffset, &afterRun, true);
-  
+
   
   if (afterRun && afterRun->mType == WSType::normalWS) {
     
@@ -1609,7 +1609,7 @@ nsWSRunObject::FindRun(nsINode* aNode, int32_t aOffset, WSFragment** outRun,
   }
 }
 
-char16_t 
+char16_t
 nsWSRunObject::GetCharAt(Text* aTextNode, int32_t aOffset)
 {
   
@@ -1618,7 +1618,7 @@ nsWSRunObject::GetCharAt(Text* aTextNode, int32_t aOffset)
   int32_t len = int32_t(aTextNode->TextLength());
   if (aOffset < 0 || aOffset >= len)
     return 0;
-    
+
   return aTextNode->GetText()->CharAt(aOffset);
 }
 
