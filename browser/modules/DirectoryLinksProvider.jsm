@@ -48,6 +48,12 @@ const PREF_DIRECTORY_PING = "browser.newtabpage.directory.ping";
 const PREF_NEWTAB_ENHANCED = "browser.newtabpage.enhanced";
 
 
+const ALLOWED_LINK_SCHEMES = new Set(["http", "https"]);
+
+
+const ALLOWED_IMAGE_SCHEMES = new Set(["https", "data"]);
+
+
 const DIRECTORY_FRECENCY = 1000;
 
 
@@ -362,14 +368,36 @@ let DirectoryLinksProvider = {
   
 
 
+  isURLAllowed: function DirectoryLinksProvider_isURLAllowed(url, allowed) {
+    
+    if (!url) {
+      return true;
+    }
+
+    let scheme = "";
+    try {
+      
+      scheme = Services.io.newURI(url, null, null).scheme;
+    }
+    catch(ex) {}
+    return allowed.has(scheme);
+  },
+
+  
+
+
 
   getLinks: function DirectoryLinksProvider_getLinks(aCallback) {
     this._readDirectoryLinksFile().then(rawLinks => {
       
       this._enhancedLinks.clear();
 
-      
-      return rawLinks.map((link, position) => {
+      return rawLinks.filter(link => {
+        
+        return this.isURLAllowed(link.url, ALLOWED_LINK_SCHEMES) &&
+               this.isURLAllowed(link.imageURI, ALLOWED_IMAGE_SCHEMES) &&
+               this.isURLAllowed(link.enhancedImageURI, ALLOWED_IMAGE_SCHEMES);
+      }).map((link, position) => {
         
         if (link.enhancedImageURI) {
           this._enhancedLinks.set(NewTabUtils.extractSite(link.url), link);
