@@ -148,8 +148,7 @@ extern JS_FRIEND_API(JSObject *)
 JS_ObjectToOuterObject(JSContext *cx, JS::HandleObject obj);
 
 extern JS_FRIEND_API(JSObject *)
-JS_CloneObject(JSContext *cx, JS::HandleObject obj, JS::HandleObject proto,
-               JS::HandleObject parent);
+JS_CloneObject(JSContext *cx, JS::HandleObject obj, JS::HandleObject proto);
 
 
 
