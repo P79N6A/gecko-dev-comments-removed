@@ -348,8 +348,8 @@ GrallocTextureClientOGL::GetBufferSize() const
 }
 
  TemporaryRef<TextureClient>
-GrallocTextureClientOGL::FromShSurf(gl::SharedSurface* abstractSurf,
-                                    TextureFlags flags)
+GrallocTextureClientOGL::FromSharedSurface(gl::SharedSurface* abstractSurf,
+                                           TextureFlags flags)
 {
   auto surf = gl::SharedSurface_Gralloc::Cast(abstractSurf);
 

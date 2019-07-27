@@ -144,91 +144,6 @@ CanvasClient2D::CreateTextureClientForCanvas(gfx::SurfaceFormat aFormat,
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 CanvasClientSharedSurface::CanvasClientSharedSurface(CompositableForwarder* aLayerForwarder,
                                                      TextureFlags aFlags)
   : CanvasClient(aLayerForwarder, aFlags)
@@ -247,7 +162,7 @@ TexClientFromShSurf(SharedSurface* surf, TextureFlags flags)
 
 #ifdef MOZ_WIDGET_GONK
     case SharedSurfaceType::Gralloc:
-      return GrallocTextureClientOGL::FromShSurf(surf, flags);
+      return GrallocTextureClientOGL::FromSharedSurface(surf, flags);
 #endif
 
     default:

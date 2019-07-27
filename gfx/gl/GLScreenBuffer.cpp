@@ -43,7 +43,7 @@ GLScreenBuffer::Create(GLContext* gl,
 
 #ifdef MOZ_WIDGET_GONK
     
-    auto allocator = caps.surfaceAllocator;
+    layers::ISurfaceAllocator* allocator = caps.surfaceAllocator;
     if (!factory &&
         allocator &&
         XRE_GetProcessType() != GeckoProcessType_Default)
