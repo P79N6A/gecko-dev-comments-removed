@@ -2,22 +2,24 @@
 
 
 
+"use strict";
 
-let {CC, Cc, Ci, Cu, Cr} = require('chrome');
+let {Ci, Cu} = require("chrome");
 
-Cu.import('resource://gre/modules/Services.jsm');
+Cu.import("resource://gre/modules/Services.jsm");
 
-let handlerCount = 0;
-
-let orig_w3c_touch_events = Services.prefs.getIntPref('dom.w3c_touch_events.enabled');
+let savedTouchEventsEnabled =
+  Services.prefs.getIntPref("dom.w3c_touch_events.enabled");
 
 let systemAppOrigin = (function() {
   let systemOrigin = "_";
   try {
     systemOrigin = Services.io.newURI(
-      Services.prefs.getCharPref('b2g.system_manifest_url'), null, null)
+      Services.prefs.getCharPref("b2g.system_manifest_url"), null, null)
       .prePath;
-  } catch(e) {}
+  } catch(e) {
+    
+  }
   return systemOrigin;
 })();
 
@@ -25,7 +27,7 @@ let trackedWindows = new WeakMap();
 
 
 
-function TouchEventHandler (window) {
+function TouchEventHandler(window) {
   
   let cached = trackedWindows.get(window);
   if (cached) {
@@ -33,27 +35,31 @@ function TouchEventHandler (window) {
   }
 
   let contextMenuTimeout = 0;
-
-
   let threshold = 25;
   try {
-    threshold = Services.prefs.getIntPref('ui.dragThresholdX');
-  } catch(e) {}
+    threshold = Services.prefs.getIntPref("ui.dragThresholdX");
+  } catch(e) {
+    
+  }
 
   let delay = 500;
   try {
-    delay = Services.prefs.getIntPref('ui.click_hold_context_menus.delay');
-  } catch(e) {}
+    delay = Services.prefs.getIntPref("ui.click_hold_context_menus.delay");
+  } catch(e) {
+    
+  }
 
-  let TouchEventHandler = {
+  let handler = {
     enabled: false,
-    events: ['mousedown', 'mousemove', 'mouseup', 'touchstart', 'touchend'],
-    start: function teh_start() {
-      if (this.enabled)
+    events: ["mousedown", "mousemove", "mouseup", "touchstart", "touchend"],
+    start() {
+      if (this.enabled) {
         return false;
+      }
       this.enabled = true;
-      let isReloadNeeded = Services.prefs.getIntPref('dom.w3c_touch_events.enabled') != 1;
-      Services.prefs.setIntPref('dom.w3c_touch_events.enabled', 1);
+      let isReloadNeeded =
+        Services.prefs.getIntPref("dom.w3c_touch_events.enabled") != 1;
+      Services.prefs.setIntPref("dom.w3c_touch_events.enabled", 1);
       this.events.forEach((function(evt) {
         
         
@@ -61,16 +67,18 @@ function TouchEventHandler (window) {
       }).bind(this));
       return isReloadNeeded;
     },
-    stop: function teh_stop() {
-      if (!this.enabled)
+    stop() {
+      if (!this.enabled) {
         return;
+      }
       this.enabled = false;
-      Services.prefs.setIntPref('dom.w3c_touch_events.enabled', orig_w3c_touch_events);
+      Services.prefs.setIntPref("dom.w3c_touch_events.enabled",
+                                savedTouchEventsEnabled);
       this.events.forEach((function(evt) {
         window.removeEventListener(evt, this, true);
       }).bind(this));
     },
-    handleEvent: function teh_handleEvent(evt) {
+    handleEvent(evt) {
       
       
       
@@ -78,16 +86,17 @@ function TouchEventHandler (window) {
       if (!content) {
         return;
       }
-      let isSystemWindow = content.location.toString().startsWith(systemAppOrigin);
+      let isSystemWindow = content.location.toString()
+                                  .startsWith(systemAppOrigin);
 
       
       
-      if (evt.type.startsWith('touch') && !isSystemWindow) {
+      if (evt.type.startsWith("touch") && !isSystemWindow) {
         let sysFrame = content.realFrameElement;
         let sysDocument = sysFrame.ownerDocument;
         let sysWindow = sysDocument.defaultView;
 
-        let touchEvent = sysDocument.createEvent('touchevent');
+        let touchEvent = sysDocument.createEvent("touchevent");
         let touch = evt.touches[0] || evt.changedTouches[0];
         let point = sysDocument.createTouch(sysWindow, sysFrame, 0,
                                             touch.pageX, touch.pageY,
@@ -107,18 +116,20 @@ function TouchEventHandler (window) {
 
       
       
-      if (evt.button || evt.mozInputSource != Ci.nsIDOMMouseEvent.MOZ_SOURCE_MOUSE || evt.isSynthesized) {
+      if (evt.button ||
+          evt.mozInputSource != Ci.nsIDOMMouseEvent.MOZ_SOURCE_MOUSE ||
+          evt.isSynthesized) {
         return;
       }
 
       let eventTarget = this.target;
-      let type = '';
+      let type = "";
       switch (evt.type) {
-        case 'mousedown':
+        case "mousedown":
           this.target = evt.target;
 
           contextMenuTimeout =
-            this.sendContextMenu(evt.target, evt.pageX, evt.pageY, delay);
+            this.sendContextMenu(evt.target, evt.pageX, evt.pageY);
 
           this.cancelClick = false;
           this.startX = evt.pageX;
@@ -128,12 +139,13 @@ function TouchEventHandler (window) {
           
           evt.target.setCapture(false);
 
-          type = 'touchstart';
+          type = "touchstart";
           break;
 
-        case 'mousemove':
-          if (!eventTarget)
+        case "mousemove":
+          if (!eventTarget) {
             return;
+          }
 
           if (!this.cancelClick) {
             if (Math.abs(this.startX - evt.pageX) > threshold ||
@@ -143,48 +155,47 @@ function TouchEventHandler (window) {
             }
           }
 
-          type = 'touchmove';
+          type = "touchmove";
           break;
 
-        case 'mouseup':
-          if (!eventTarget)
+        case "mouseup":
+          if (!eventTarget) {
             return;
+          }
           this.target = null;
 
           content.clearTimeout(contextMenuTimeout);
-          type = 'touchend';
+          type = "touchend";
 
           
           
           
           if (evt.detail == 1) {
-            window.addEventListener('click', this, true, false);
+            window.addEventListener("click", this, true, false);
           }
           break;
 
-        case 'click':
+        case "click":
           
           
           evt.preventDefault();
           evt.stopImmediatePropagation();
 
-          window.removeEventListener('click', this, true, false);
+          window.removeEventListener("click", this, true, false);
 
-          if (this.cancelClick)
+          if (this.cancelClick) {
             return;
+          }
 
-          ignoreEvents = true;
           content.setTimeout(function dispatchMouseEvents(self) {
             try {
-              self.fireMouseEvent('mousedown', evt);
-              self.fireMouseEvent('mousemove', evt);
-              self.fireMouseEvent('mouseup', evt);
+              self.fireMouseEvent("mousedown", evt);
+              self.fireMouseEvent("mousemove", evt);
+              self.fireMouseEvent("mouseup", evt);
             } catch(e) {
-              Cu.reportError('Exception in touch event helper: ' + e);
+              Cu.reportError("Exception in touch event helper: " + e);
             }
-            ignoreEvents = false;
-         }, 0, this);
-
+          }, 0, this);
           return;
       }
 
@@ -198,16 +209,17 @@ function TouchEventHandler (window) {
         evt.stopImmediatePropagation();
       }
     },
-    fireMouseEvent: function teh_fireMouseEvent(type, evt)  {
+    fireMouseEvent(type, evt) {
       let content = this.getContent(evt.target);
-      var utils = content.QueryInterface(Ci.nsIInterfaceRequestor)
+      let utils = content.QueryInterface(Ci.nsIInterfaceRequestor)
                          .getInterface(Ci.nsIDOMWindowUtils);
-      utils.sendMouseEvent(type, evt.clientX, evt.clientY, 0, 1, 0, true, 0, Ci.nsIDOMMouseEvent.MOZ_SOURCE_TOUCH);
+      utils.sendMouseEvent(type, evt.clientX, evt.clientY, 0, 1, 0, true, 0,
+                           Ci.nsIDOMMouseEvent.MOZ_SOURCE_TOUCH);
     },
-    sendContextMenu: function teh_sendContextMenu(target, x, y, delay) {
+    sendContextMenu(target, x, y) {
       let doc = target.ownerDocument;
-      let evt = doc.createEvent('MouseEvent');
-      evt.initMouseEvent('contextmenu', true, true, doc.defaultView,
+      let evt = doc.createEvent("MouseEvent");
+      evt.initMouseEvent("contextmenu", true, true, doc.defaultView,
                          0, x, y, x, y, false, false, false, false,
                          0, null);
 
@@ -219,7 +231,10 @@ function TouchEventHandler (window) {
 
       return timeout;
     },
-    sendTouchEvent: function teh_sendTouchEvent(evt, target, name) {
+    sendTouchEvent(evt, target, name) {
+      function clone(obj) {
+        return Cu.cloneInto(obj, target);
+      }
       
       
       if (target.localName == "iframe" && target.mozbrowser === true) {
@@ -232,25 +247,22 @@ function TouchEventHandler (window) {
             this.cancelClick = true;
           }
         }
-        function clone(obj) {
-          return Cu.cloneInto(obj, target);
-        }
-        let unwraped = XPCNativeWrapper.unwrap(target);
-        unwraped.sendTouchEvent(name, clone([0]),       
-                                clone([evt.clientX]),   
-                                clone([evt.clientY]),   
-                                clone([1]), clone([1]), 
-                                clone([0]), clone([0]), 
-                                1);                     
+        let unwrapped = XPCNativeWrapper.unwrap(target);
+        unwrapped.sendTouchEvent(name, clone([0]),       
+                                 clone([evt.clientX]),   
+                                 clone([evt.clientY]),   
+                                 clone([1]), clone([1]), 
+                                 clone([0]), clone([0]), 
+                                 1);                     
         return;
       }
       let document = target.ownerDocument;
       let content = this.getContent(target);
       if (!content) {
-        return null;
+        return;
       }
 
-      let touchEvent = document.createEvent('touchevent');
+      let touchEvent = document.createEvent("touchevent");
       let point = document.createTouch(content, target, 0,
                                        evt.pageX, evt.pageY,
                                        evt.screenX, evt.screenY,
@@ -263,18 +275,17 @@ function TouchEventHandler (window) {
                                 false, false, false, false,
                                 touches, targetTouches, changedTouches);
       target.dispatchEvent(touchEvent);
-      return touchEvent;
     },
-    getContent: function teh_getContent(target) {
+    getContent(target) {
       let win = (target && target.ownerDocument)
         ? target.ownerDocument.defaultView
         : null;
       return win;
     }
   };
-  trackedWindows.set(window, TouchEventHandler);
+  trackedWindows.set(window, handler);
 
-  return TouchEventHandler;
+  return handler;
 }
 
 exports.TouchEventHandler = TouchEventHandler;
