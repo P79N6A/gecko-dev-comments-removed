@@ -208,6 +208,11 @@ private:
   RuleCascadeData* mRuleCascades;
 
   
+  
+  
+  mozilla::UniquePtr<nsMediaQueryResultCacheKey> mPreviousCacheKey;
+
+  
   nsPresContext *mLastPresContext;
 
   
