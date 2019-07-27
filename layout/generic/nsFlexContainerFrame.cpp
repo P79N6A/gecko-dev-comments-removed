@@ -1069,9 +1069,46 @@ nsFlexContainerFrame::
   
   
   
+  if (NS_STYLE_FLEX_WRAP_NOWRAP ==
+      aParentReflowState.mStylePosition->mFlexWrap) {
+    aFlexItem.ResolveStretchedCrossSize(aParentReflowState.ComputedWidth(),
+                                        aAxisTracker);
+  }
 
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  bool forceVerticalResizeForMeasuringReflow =
+    !aFlexItem.IsFrozen() || 
+    !isMainSizeAuto; 
+
+  nscoord contentHeight =
+    MeasureFlexItemContentHeight(aPresContext, aFlexItem,
+                                 forceVerticalResizeForMeasuringReflow,
+                                 aParentReflowState);
+
+  if (isMainSizeAuto) {
+    aFlexItem.SetFlexBaseSizeAndMainSize(contentHeight);
+  }
+  if (isMainMinSizeAuto) {
+    aFlexItem.UpdateMainMinSize(contentHeight);
+  }
+}
+
+nscoord
+nsFlexContainerFrame::
+  MeasureFlexItemContentHeight(nsPresContext* aPresContext,
+                               FlexItem& aFlexItem,
+                               bool aForceVerticalResizeForMeasuringReflow,
+                               const nsHTMLReflowState& aParentReflowState)
+{
   
   nsHTMLReflowState
     childRSForMeasuringHeight(aPresContext, aParentReflowState,
@@ -1082,34 +1119,12 @@ nsFlexContainerFrame::
   childRSForMeasuringHeight.mFlags.mIsFlexContainerMeasuringHeight = true;
   childRSForMeasuringHeight.Init(aPresContext);
 
-  
-  
-  
-  
-  
-  if (NS_STYLE_FLEX_WRAP_NOWRAP ==
-      aParentReflowState.mStylePosition->mFlexWrap) {
-    aFlexItem.ResolveStretchedCrossSize(aParentReflowState.ComputedWidth(),
-                                        aAxisTracker);
-  }
-
   if (aFlexItem.IsStretched()) {
     childRSForMeasuringHeight.SetComputedWidth(aFlexItem.GetCrossSize());
     childRSForMeasuringHeight.mFlags.mHResize = true;
   }
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  if (!aFlexItem.IsFrozen() ||  
-      !isMainSizeAuto) { 
+  if (aForceVerticalResizeForMeasuringReflow) {
     childRSForMeasuringHeight.mFlags.mVResize = true;
   }
 
@@ -1128,20 +1143,14 @@ nsFlexContainerFrame::
                     childDesiredSize, &childRSForMeasuringHeight,
                     0, 0, flags);
 
+  aFlexItem.SetHadMeasuringReflow();
+
   
   
   nscoord childDesiredHeight = childDesiredSize.Height() -
     childRSForMeasuringHeight.ComputedPhysicalBorderPadding().TopBottom();
-  childDesiredHeight = std::max(0, childDesiredHeight);
 
-  if (isMainSizeAuto) {
-    aFlexItem.SetFlexBaseSizeAndMainSize(childDesiredHeight);
-  }
-  if (isMainMinSizeAuto) {
-    aFlexItem.UpdateMainMinSize(childDesiredHeight);
-  }
-
-  aFlexItem.SetHadMeasuringReflow();
+  return std::max(0, childDesiredHeight);
 }
 
 FlexItem::FlexItem(nsHTMLReflowState& aFlexItemReflowState,
