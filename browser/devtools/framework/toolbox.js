@@ -897,6 +897,15 @@ Toolbox.prototype = {
         let panel = built;
         iframe.panel = panel;
 
+        
+        
+        
+        
+        
+        if (typeof panel.emit == "undefined") {
+          EventEmitter.decorate(panel);
+        }
+
         gDevTools.emit(id + "-build", this, panel);
         this.emit(id + "-build", panel);
 
@@ -914,6 +923,14 @@ Toolbox.prototype = {
       
       promise.resolve(built).then((panel) => {
         this._toolPanels.set(id, panel);
+
+        
+        
+        
+        
+        if (typeof panel.emit == "undefined") {
+          EventEmitter.decorate(panel);
+        }
 
         gDevTools.emit(id + "-ready", this, panel);
         this.emit(id + "-ready", panel);
