@@ -331,7 +331,8 @@ CodeGenerator::visitValueToFloat32(LValueToFloat32 *lir)
 
     masm.bind(&isDouble);
     
-#ifdef JS_CODEGEN_ARM
+    
+#if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
     masm.unboxDouble(operand, ScratchDoubleReg);
     masm.convertDoubleToFloat32(ScratchDoubleReg, output);
 #else
