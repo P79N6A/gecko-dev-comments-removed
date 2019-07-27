@@ -155,6 +155,10 @@ public:
     void Run() MOZ_OVERRIDE
     {
         mParent->DoInjection(mSnapshot);
+        
+        
+        
+        mozilla::MutexAutoLock lock(mMutex);
     }
 
     void Cancel() MOZ_OVERRIDE
