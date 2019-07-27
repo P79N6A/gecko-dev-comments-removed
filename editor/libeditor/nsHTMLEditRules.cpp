@@ -17,7 +17,6 @@
 #include "mozilla/mozalloc.h"
 #include "nsAString.h"
 #include "nsAlgorithm.h"
-#include "nsCOMArray.h"
 #include "nsCRT.h"
 #include "nsCRTGlue.h"
 #include "nsComponentManagerUtils.h"
@@ -7718,9 +7717,12 @@ nsHTMLEditRules::InDifferentTableElements(nsINode* aNode1, nsINode* aNode2)
 }
 
 
-nsresult 
+nsresult
 nsHTMLEditRules::RemoveEmptyNodes()
 {
+  NS_ENSURE_STATE(mHTMLEditor);
+  nsCOMPtr<nsIEditor> kungFuDeathGrip(mHTMLEditor);
+
   
   
   
@@ -7744,22 +7746,23 @@ nsHTMLEditRules::RemoveEmptyNodes()
   
   
   
-  nsCOMPtr<nsIContentIterator> iter =
-                  do_CreateInstance("@mozilla.org/content/post-content-iterator;1");
-  NS_ENSURE_TRUE(iter, NS_ERROR_NULL_POINTER);
   
+  
+
+  
+  nsCOMPtr<nsIContentIterator> iter = NS_NewContentIterator();
+
   nsresult res = iter->Init(mDocChangeRange);
   NS_ENSURE_SUCCESS(res, res);
-  
-  nsCOMArray<nsINode> arrayOfEmptyNodes, arrayOfEmptyCites;
-  nsTArray<nsCOMPtr<nsINode> > skipList;
+
+  nsTArray<nsCOMPtr<nsINode>> arrayOfEmptyNodes, arrayOfEmptyCites, skipList;
 
   
   while (!iter->IsDone()) {
-    nsINode* node = iter->GetCurrentNode();
+    nsCOMPtr<nsINode> node = iter->GetCurrentNode();
     NS_ENSURE_TRUE(node, NS_ERROR_FAILURE);
 
-    nsINode* parent = node->GetParentNode();
+    nsCOMPtr<nsINode> parent = node->GetParentNode();
 
     size_t idx = skipList.IndexOf(node);
     if (idx != skipList.NoIndex) {
@@ -7772,50 +7775,46 @@ nsHTMLEditRules::RemoveEmptyNodes()
       bool bIsMailCite = false;
 
       if (node->IsElement()) {
-        dom::Element* element = node->AsElement();
-        if (element->IsHTMLElement(nsGkAtoms::body)) {
+        if (node->IsHTMLElement(nsGkAtoms::body)) {
           
-        } else if ((bIsMailCite = nsHTMLEditUtils::IsMailCite(element))  ||
-                   element->IsHTMLElement(nsGkAtoms::a)                  ||
-                   nsHTMLEditUtils::IsInlineStyle(element)               ||
-                   nsHTMLEditUtils::IsList(element)                      ||
-                   element->IsHTMLElement(nsGkAtoms::div)) {
+        } else if ((bIsMailCite = nsHTMLEditUtils::IsMailCite(node)) ||
+                   node->IsHTMLElement(nsGkAtoms::a) ||
+                   nsHTMLEditUtils::IsInlineStyle(node) ||
+                   nsHTMLEditUtils::IsList(node) ||
+                   node->IsHTMLElement(nsGkAtoms::div)) {
           
           bIsCandidate = true;
-        } else if (nsHTMLEditUtils::IsFormatNode(element) ||
-                   nsHTMLEditUtils::IsListItem(element)   ||
-                   element->IsHTMLElement(nsGkAtoms::blockquote)) {
-          
+        } else if (nsHTMLEditUtils::IsFormatNode(node) ||
+                   nsHTMLEditUtils::IsListItem(node) ||
+                   node->IsHTMLElement(nsGkAtoms::blockquote)) {
           
           
           
           bool bIsSelInNode;
           res = SelectionEndpointInNode(node, &bIsSelInNode);
           NS_ENSURE_SUCCESS(res, res);
-          if (!bIsSelInNode)
-          {
+          if (!bIsSelInNode) {
             bIsCandidate = true;
           }
         }
       }
-      
+
       if (bIsCandidate) {
         
         
-        NS_ENSURE_STATE(mHTMLEditor);
         res = mHTMLEditor->IsEmptyNode(node->AsDOMNode(), &bIsEmptyNode,
                                        bIsMailCite, true);
         NS_ENSURE_SUCCESS(res, res);
         if (bIsEmptyNode) {
           if (bIsMailCite) {
             
-            arrayOfEmptyCites.AppendObject(node);
+            arrayOfEmptyCites.AppendElement(node);
           } else {
-            arrayOfEmptyNodes.AppendObject(node);
+            arrayOfEmptyNodes.AppendElement(node);
           }
         }
       }
-      
+
       if (!bIsEmptyNode) {
         
         skipList.AppendElement(parent);
@@ -7824,47 +7823,34 @@ nsHTMLEditRules::RemoveEmptyNodes()
 
     iter->Next();
   }
+
   
-  
-  int32_t nodeCount = arrayOfEmptyNodes.Count();
-  for (int32_t j = 0; j < nodeCount; j++) {
-    nsCOMPtr<nsIDOMNode> delNode = arrayOfEmptyNodes[0]->AsDOMNode();
-    arrayOfEmptyNodes.RemoveObjectAt(0);
-    NS_ENSURE_STATE(mHTMLEditor);
+  for (auto& delNode : arrayOfEmptyNodes) {
     if (mHTMLEditor->IsModifiableNode(delNode)) {
-      NS_ENSURE_STATE(mHTMLEditor);
       res = mHTMLEditor->DeleteNode(delNode);
       NS_ENSURE_SUCCESS(res, res);
     }
   }
+
   
   
-  
-  nodeCount = arrayOfEmptyCites.Count();
-  for (int32_t j = 0; j < nodeCount; j++) {
-    nsCOMPtr<nsIDOMNode> delNode = arrayOfEmptyCites[0]->AsDOMNode();
-    arrayOfEmptyCites.RemoveObjectAt(0);
+  for (auto& delNode : arrayOfEmptyCites) {
     bool bIsEmptyNode;
-    NS_ENSURE_STATE(mHTMLEditor);
     res = mHTMLEditor->IsEmptyNode(delNode, &bIsEmptyNode, false, true);
     NS_ENSURE_SUCCESS(res, res);
-    if (!bIsEmptyNode)
-    {
+    if (!bIsEmptyNode) {
       
       
-      nsCOMPtr<nsIDOMNode> parent, brNode;
-      int32_t offset;
-      parent = nsEditor::GetNodeLocation(delNode, &offset);
-      NS_ENSURE_STATE(mHTMLEditor);
-      res = mHTMLEditor->CreateBR(parent, offset, address_of(brNode));
-      NS_ENSURE_SUCCESS(res, res);
+      nsCOMPtr<nsINode> parent = delNode->GetParentNode();
+      int32_t offset = parent ? parent->IndexOf(delNode) : -1;
+      nsCOMPtr<Element> br = mHTMLEditor->CreateBR(parent, offset);
+      NS_ENSURE_STATE(br);
     }
-    NS_ENSURE_STATE(mHTMLEditor);
     res = mHTMLEditor->DeleteNode(delNode);
     NS_ENSURE_SUCCESS(res, res);
   }
-  
-  return res;
+
+  return NS_OK;
 }
 
 nsresult
