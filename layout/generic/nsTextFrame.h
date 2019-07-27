@@ -13,6 +13,7 @@
 #include "gfxSkipChars.h"
 #include "gfxTextRun.h"
 #include "nsDisplayList.h"
+#include "JustificationUtils.h"
 
 class nsTextPaintStyle;
 class PropertyProvider;
@@ -234,10 +235,6 @@ public:
     
     
     bool mChanged;
-    
-    
-    
-    bool mLastCharIsJustifiable;
     
     nscoord      mDeltaWidth;
   };
@@ -528,6 +525,9 @@ public:
 
   virtual bool UpdateOverflow() MOZ_OVERRIDE;
 
+  void AssignJustificationGaps(const mozilla::JustificationAssignment& aAssign);
+  mozilla::JustificationAssignment GetJustificationAssignment() const;
+
 protected:
   virtual ~nsTextFrame();
 
@@ -710,6 +710,8 @@ protected:
   virtual bool HasAnyNoncollapsedCharacters() MOZ_OVERRIDE;
 
   void ClearMetrics(nsHTMLReflowMetrics& aMetrics);
+
+  NS_DECLARE_FRAME_PROPERTY(JustificationAssignment, nullptr)
 };
 
 #endif
