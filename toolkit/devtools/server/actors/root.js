@@ -145,7 +145,11 @@ RootActor.prototype = {
     
     addNewRule: true,
     
-    getUniqueSelector: true
+    getUniqueSelector: true,
+    
+    
+    noBlackBoxing: false,
+    noPrettyPrinting: false
   },
 
   
