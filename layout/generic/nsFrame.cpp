@@ -2395,6 +2395,21 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
       
       
       
+
+      if (aBuilder->IsBuildingLayerEventRegions()) {
+        MOZ_ASSERT(buildingForChild.GetPrevAnimatedGeometryRoot() ==
+                   aBuilder->FindAnimatedGeometryRootFor(child->GetParent()));
+
+        
+        
+        nsIFrame *animatedGeometryRoot = aBuilder->FindAnimatedGeometryRootFor(child);
+        if (animatedGeometryRoot != buildingForChild.GetPrevAnimatedGeometryRoot()) {
+          nsDisplayLayerEventRegions* eventRegions =
+            new (aBuilder) nsDisplayLayerEventRegions(aBuilder, this);
+          aBuilder->SetLayerEventRegions(eventRegions);
+        }
+      }
+
       nsDisplayLayerEventRegions* eventRegions = aBuilder->GetLayerEventRegions();
       if (eventRegions) {
         eventRegions->AddFrame(aBuilder, child);
