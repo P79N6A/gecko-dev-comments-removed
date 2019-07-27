@@ -698,6 +698,11 @@ TokenStream::reportCompileErrorNumberVA(uint32_t offset, unsigned flags, unsigne
 
         
         
+        if (windowStart < userbuf.startOffset())
+            windowStart = userbuf.startOffset();
+
+        
+        
         size_t windowEnd = userbuf.findEOLMax(offset, windowRadius);
         size_t windowLength = windowEnd - windowStart;
         MOZ_ASSERT(windowLength <= windowRadius * 2);

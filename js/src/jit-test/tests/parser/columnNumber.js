@@ -36,3 +36,10 @@ assertEq(evaluate("saveStack().column", { columnNumber: maxColumn }),
 
 assertEq(evaluate(" saveStack().column", { columnNumber: maxColumn }),
          0);
+
+
+
+
+assertThrowsInstanceOf(() => evaluate("function x(y,y) { 'use strict'; } x()",
+                                      { columnNumber: 10 }),
+                       SyntaxError);

@@ -667,7 +667,7 @@ class MOZ_STACK_CLASS TokenStream
       public:
         TokenBuf(ExclusiveContext *cx, const char16_t *buf, size_t length, size_t startOffset)
           : base_(buf),
-            startOffset(startOffset),
+            startOffset_(startOffset),
             limit_(buf + length),
             ptr(buf)
         { }
@@ -680,14 +680,18 @@ class MOZ_STACK_CLASS TokenStream
             return offset() == 0;
         }
 
+        size_t startOffset() const {
+            return startOffset_;
+        }
+
         size_t offset() const {
-            return startOffset + mozilla::PointerRangeSize(base_, ptr);
+            return startOffset_ + mozilla::PointerRangeSize(base_, ptr);
         }
 
         const char16_t *rawCharPtrAt(size_t offset) const {
-            MOZ_ASSERT(startOffset <= offset);
-            MOZ_ASSERT(offset - startOffset <= mozilla::PointerRangeSize(base_, limit_));
-            return base_ + (offset - startOffset);
+            MOZ_ASSERT(startOffset_ <= offset);
+            MOZ_ASSERT(offset - startOffset_ <= mozilla::PointerRangeSize(base_, limit_));
+            return base_ + (offset - startOffset_);
         }
 
         const char16_t *limit() const {
@@ -748,11 +752,11 @@ class MOZ_STACK_CLASS TokenStream
 
         
         
-        size_t findEOLMax(size_t startOffset, size_t max);
+        size_t findEOLMax(size_t start, size_t max);
 
       private:
         const char16_t *base_;          
-        uint32_t startOffset;           
+        uint32_t startOffset_;          
         const char16_t *limit_;         
         const char16_t *ptr;            
     };
