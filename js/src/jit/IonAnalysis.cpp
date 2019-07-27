@@ -3215,11 +3215,11 @@ jit::MarkLoopBlocks(MIRGraph &graph, MBasicBlock *header, bool *canOsr)
                    "Reached the end of the graph while searching for the loop header");
         MBasicBlock *block = *i;
         
-        if (!block->isMarked())
-            continue;
-        
         if (block == header)
             break;
+        
+        if (!block->isMarked())
+            continue;
         
         for (size_t p = 0, e = block->numPredecessors(); p != e; ++p) {
             MBasicBlock *pred = block->getPredecessor(p);
@@ -3262,7 +3262,15 @@ jit::MarkLoopBlocks(MIRGraph &graph, MBasicBlock *header, bool *canOsr)
             }
         }
     }
-    MOZ_ASSERT(header->isMarked(), "Loop header should be part of the loop");
+
+    
+    
+    
+    if (!header->isMarked()) {
+        jit::UnmarkLoopBlocks(graph, header);
+        return 0;
+    }
+
     return numMarked;
 }
 
@@ -3346,6 +3354,10 @@ jit::MakeLoopsContiguous(MIRGraph &graph)
         
         bool canOsr;
         size_t numMarked = MarkLoopBlocks(graph, header, &canOsr);
+
+        
+        if (numMarked == 0)
+            continue;
 
         
         
