@@ -2,10 +2,6 @@
 
 
 
-
-
-
-
 add_task(function*() {
   yield BrowserTestUtils.withNewTab({
     gBrowser,
