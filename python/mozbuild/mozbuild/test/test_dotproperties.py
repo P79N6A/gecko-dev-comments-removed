@@ -1,14 +1,13 @@
-
-
-
+# -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
 
 import os
-import sys
 import unittest
 
 from StringIO import StringIO
+
+import mozpack.path as mozpath
 
 from mozbuild.dotproperties import (
     DotProperties,
@@ -18,10 +17,8 @@ from mozunit import (
     main,
 )
 
-if sys.version_info[0] == 3:
-    str_type = 'str'
-else:
-    str_type = 'unicode'
+test_data_path = mozpath.abspath(mozpath.dirname(__file__))
+test_data_path = mozpath.join(test_data_path, 'data')
 
 
 class TestDotProperties(unittest.TestCase):
@@ -83,6 +80,35 @@ B.url=url B
             p.get_dict('A', required_keys=['title', 'url'])
         with self.assertRaises(ValueError):
             p.get_dict('missing', required_keys=['key'])
+
+    def test_unicode(self):
+        contents = StringIO('''
+# Danish.
+# ####  ~~ Søren Munk Skrøder, sskroeder - 2009-05-30 @ #mozmae
+
+# Korean.
+A.title=한메일
+
+# Russian.
+list.0 = test
+list.1 = Яндекс
+''')
+        p = DotProperties(contents)
+        self.assertEqual(p.get_dict('A'), {'title': '한메일'})
+        self.assertEqual(p.get_list('list'), ['test', 'Яндекс'])
+
+    def test_valid_unicode_from_file(self):
+        
+        
+        p = DotProperties(os.path.join(test_data_path, 'valid.properties'))
+        self.assertEqual(p.get_dict('A'), {'title': '한메일'})
+        self.assertEqual(p.get_list('list'), ['test', 'Яндекс'])
+
+    def test_bad_unicode_from_file(self):
+        
+        
+        with self.assertRaises(UnicodeDecodeError):
+            DotProperties(os.path.join(test_data_path, 'bad.properties'))
 
 
 if __name__ == '__main__':
