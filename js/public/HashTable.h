@@ -959,7 +959,6 @@ class HashTable : private AllocPolicy
         
         
         void rekeyFront(const Lookup &l, const Key &k) {
-            JS_ASSERT(&k != &HashPolicy::getKey(this->cur->get()));
             Ptr p(*this->cur, table_);
             table_.rekeyWithoutRehash(p, l, k);
             rekeyed = true;
