@@ -26,6 +26,7 @@ class RemoteXPCShellTestThread(xpcshell.XPCShellTestThread):
     def __init__(self, *args, **kwargs):
         xpcshell.XPCShellTestThread.__init__(self, *args, **kwargs)
 
+        self.shellReturnCode = None
         
         mobileArgs = kwargs.get('mobileArgs')
         for key in mobileArgs:
