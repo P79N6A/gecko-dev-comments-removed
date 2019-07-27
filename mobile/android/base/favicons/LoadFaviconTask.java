@@ -319,8 +319,6 @@ public class LoadFaviconTask {
     
     
     public final void execute() {
-        ThreadUtils.assertOnUiThread();
-
         try {
             Favicons.longRunningExecutor.execute(new Runnable() {
                 @Override
@@ -357,6 +355,14 @@ public class LoadFaviconTask {
     Bitmap doInBackground() {
         if (isCancelled()) {
             return null;
+        }
+
+        
+        
+        
+        LoadFaviconResult uriBitmaps = FaviconDecoder.decodeDataURI(faviconURL);
+        if (uriBitmaps != null) {
+            return pushToCacheAndGetResult(uriBitmaps);
         }
 
         String storedFaviconUrl;
