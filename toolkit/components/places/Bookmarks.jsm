@@ -456,83 +456,15 @@ let Bookmarks = Object.freeze({
 
   eraseEverything: Task.async(function* () {
     let db = yield DBConnPromised;
-
     yield db.executeTransaction(function* () {
-      let rows = yield db.executeCached(
-        `WITH RECURSIVE
-         descendants(did) AS (
-           SELECT b.id FROM moz_bookmarks b
-           JOIN moz_bookmarks p ON b.parent = p.id
-           WHERE p.guid IN ( :toolbarGuid, :menuGuid, :unfiledGuid )
-           UNION ALL
-           SELECT id FROM moz_bookmarks
-           JOIN descendants ON parent = did
-         )
-         SELECT b.id AS _id, b.parent AS _parentId, b.position AS 'index',
-                b.type, url, b.guid, p.guid AS parentGuid, b.dateAdded,
-                b.lastModified, b.title, p.parent AS _grandParentId,
-                NULL AS _childCount, NULL AS keyword
-         FROM moz_bookmarks b
-         JOIN moz_bookmarks p ON p.id = b.parent
-         LEFT JOIN moz_places h ON b.fk = h.id
-         WHERE b.id IN descendants
-        `, { menuGuid: this.menuGuid, toolbarGuid: this.toolbarGuid,
-             unfiledGuid: this.unfiledGuid });
-      let items = rowsToItemsArray(rows);
-
-      yield db.executeCached(
-        `WITH RECURSIVE
-         descendants(did) AS (
-           SELECT b.id FROM moz_bookmarks b
-           JOIN moz_bookmarks p ON b.parent = p.id
-           WHERE p.guid IN ( :toolbarGuid, :menuGuid, :unfiledGuid )
-           UNION ALL
-           SELECT id FROM moz_bookmarks
-           JOIN descendants ON parent = did
-         )
-         DELETE FROM moz_bookmarks WHERE id IN descendants
-        `, { menuGuid: this.menuGuid, toolbarGuid: this.toolbarGuid,
-             unfiledGuid: this.unfiledGuid });
-
-      
-      yield removeOrphanAnnotations(db);
-      yield removeOrphanKeywords(db);
-
-      
-
-      
-      yield db.executeCached(
-        `UPDATE moz_bookmarks SET lastModified = :time
-         WHERE id IN (SELECT id FROM moz_bookmarks
-                      WHERE guid IN ( :rootGuid, :toolbarGuid, :menuGuid, :unfiledGuid ))
-        `, { time: toPRTime(new Date()), rootGuid: this.rootGuid,
-             menuGuid: this.menuGuid, toolbarGuid: this.toolbarGuid,
-             unfiledGuid: this.unfiledGuid });
-
-      let urls = [for (item of items) if (item.url) item.url];
-      updateFrecency(db, urls).then(null, Cu.reportError);
-
-      
-      
-      
-
-      
-      let observers = PlacesUtils.bookmarks.getObservers();
-      for (let item of items.reverse()) {
-        let uri = item.hasOwnProperty("url") ? toURI(item.url) : null;
-        notify(observers, "onItemRemoved", [ item._id, item._parentId,
-                                             item.index, item.type, uri,
-                                             item.guid, item.parentGuid ]);
-
-        let isUntagging = item._grandParentId == PlacesUtils.tagsFolderId;
-        if (isUntagging) {
-          for (let entry of (yield fetchBookmarksByURL(item))) {
-            notify(observers, "onItemChanged", [ entry._id, "tags", false, "",
-                                                 toPRTime(entry.lastModified),
-                                                 entry.type, entry._parentId,
-                                                 entry.guid, entry.parentGuid ]);
-          }
-        }
+      const folderGuids = [this.toolbarGuid, this.menuGuid, this.unfiledGuid];
+      yield removeFoldersContents(db, folderGuids);
+      const time = toPRTime(new Date());
+      for (let folderGuid of folderGuids) {
+        yield db.executeCached(
+          `UPDATE moz_bookmarks SET lastModified = :time
+           WHERE id IN (SELECT id FROM moz_bookmarks WHERE guid = :folderGuid )
+          `, { folderGuid, time });
       }
     }.bind(this));
   }),
@@ -1027,6 +959,10 @@ function* removeBookmark(item) {
 
   yield db.executeTransaction(function* transaction() {
     
+    if (item.type == Bookmarks.TYPE_FOLDER)
+      yield removeFoldersContents(db, [item.guid]);
+
+    
     if (!isUntagging) {
       
       
@@ -1413,4 +1349,84 @@ let setAncestorsLastModified = Task.async(function* (db, folderGuid, time) {
      WHERE id IN ancestors
     `, { guid: folderGuid, type: Bookmarks.TYPE_FOLDER,
          time: toPRTime(time) });
+});
+
+
+
+
+
+
+
+
+
+let removeFoldersContents =
+Task.async(function* (db, folderGuids) {
+  let itemsRemoved = [];
+  for (let folderGuid of folderGuids) {
+    let rows = yield db.executeCached(
+      `WITH RECURSIVE
+       descendants(did) AS (
+         SELECT b.id FROM moz_bookmarks b
+         JOIN moz_bookmarks p ON b.parent = p.id
+         WHERE p.guid = :folderGuid
+         UNION ALL
+         SELECT id FROM moz_bookmarks
+         JOIN descendants ON parent = did
+       )
+       SELECT b.id AS _id, b.parent AS _parentId, b.position AS 'index',
+              b.type, url, b.guid, p.guid AS parentGuid, b.dateAdded,
+              b.lastModified, b.title, p.parent AS _grandParentId,
+              NULL AS _childCount, NULL AS keyword
+       FROM moz_bookmarks b
+       JOIN moz_bookmarks p ON p.id = b.parent
+       LEFT JOIN moz_places h ON b.fk = h.id
+       WHERE b.id IN descendants`, { folderGuid });
+
+    itemsRemoved = itemsRemoved.concat(rowsToItemsArray(rows));
+
+    yield db.executeCached(
+      `WITH RECURSIVE
+       descendants(did) AS (
+         SELECT b.id FROM moz_bookmarks b
+         JOIN moz_bookmarks p ON b.parent = p.id
+         WHERE p.guid = :folderGuid
+         UNION ALL
+         SELECT id FROM moz_bookmarks
+         JOIN descendants ON parent = did
+       )
+       DELETE FROM moz_bookmarks WHERE id IN descendants`, { folderGuid });
+  }
+
+  
+  yield removeOrphanAnnotations(db);
+  yield removeOrphanKeywords(db);
+
+  
+
+  let urls = [for (item of itemsRemoved) if (item.url) item.url];
+  updateFrecency(db, urls).then(null, Cu.reportError);
+
+  
+  
+  
+  
+
+  
+  let observers = PlacesUtils.bookmarks.getObservers();
+  for (let item of itemsRemoved.reverse()) {
+    let uri = item.hasOwnProperty("url") ? toURI(item.url) : null;
+    notify(observers, "onItemRemoved", [ item._id, item._parentId,
+                                         item.index, item.type, uri,
+                                         item.guid, item.parentGuid ]);
+
+    let isUntagging = item._grandParentId == PlacesUtils.tagsFolderId;
+    if (isUntagging) {
+      for (let entry of (yield fetchBookmarksByURL(item))) {
+        notify(observers, "onItemChanged", [ entry._id, "tags", false, "",
+                                             toPRTime(entry.lastModified),
+                                             entry.type, entry._parentId,
+                                             entry.guid, entry.parentGuid ]);
+      }
+    }
+  }
 });
