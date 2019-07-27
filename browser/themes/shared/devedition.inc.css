@@ -157,7 +157,8 @@
 
 
 #urlbar ::-moz-selection,
-#navigator-toolbox .searchbar-textbox ::-moz-selection {
+#navigator-toolbox .searchbar-textbox ::-moz-selection,
+.browserContainer > findbar ::-moz-selection {
   background-color: var(--chrome-selection-background-color);
   color: var(--chrome-selection-color);
 }
@@ -184,6 +185,12 @@
 
 .browserContainer > findbar {
   background-image: none;
+}
+
+
+.browserContainer > findbar .findbar-find-status,
+.browserContainer > findbar .found-matches {
+  color: inherit;
 }
 
 #navigator-toolbox .toolbarbutton-1,
