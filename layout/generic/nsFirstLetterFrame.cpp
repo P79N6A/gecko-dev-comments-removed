@@ -184,6 +184,9 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
     availSize.BSize(wm) -= bp.BStartEnd(wm);
   }
 
+  WritingMode lineWM = aMetrics.GetWritingMode();
+  nsHTMLReflowMetrics kidMetrics(lineWM);
+
   
   if (!aReflowState.mLineLayout) {
     
@@ -203,14 +206,14 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
     ll.SetFirstLetterStyleOK(true);
 
     kid->WillReflow(aPresContext);
-    kid->Reflow(aPresContext, aMetrics, rs, aReflowStatus);
+    kid->Reflow(aPresContext, kidMetrics, rs, aReflowStatus);
 
     ll.EndLineReflow();
     ll.SetInFirstLetter(false);
 
     
     
-    mBaseline = aMetrics.BlockStartAscent();
+    mBaseline = kidMetrics.BlockStartAscent();
   }
   else {
     
@@ -221,23 +224,22 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
       mStyleContext->GetPseudo() == nsCSSPseudoElements::firstLetter);
     ll->BeginSpan(this, &aReflowState, bp.IStart(wm),
                   availSize.ISize(wm), &mBaseline);
-    ll->ReflowFrame(kid, aReflowStatus, &aMetrics, pushedFrame);
+    ll->ReflowFrame(kid, aReflowStatus, &kidMetrics, pushedFrame);
     ll->EndSpan(this);
     ll->SetInFirstLetter(false);
   }
 
   
-  WritingMode lineWM = aMetrics.GetWritingMode();
-  LogicalSize convertedSize = aMetrics.Size(lineWM).ConvertTo(wm, lineWM);
+  LogicalSize convertedSize = kidMetrics.Size(lineWM).ConvertTo(wm, lineWM);
   kid->SetRect(nsRect(bp.IStart(wm), bp.BStart(wm),
                       convertedSize.ISize(wm), convertedSize.BSize(wm)));
-  kid->FinishAndStoreOverflow(&aMetrics);
+  kid->FinishAndStoreOverflow(&kidMetrics);
   kid->DidReflow(aPresContext, nullptr, nsDidReflowStatus::FINISHED);
 
   convertedSize.ISize(wm) += bp.IStartEnd(wm);
   convertedSize.BSize(wm) += bp.BStartEnd(wm);
   aMetrics.SetSize(wm, convertedSize);
-  aMetrics.SetBlockStartAscent(aMetrics.BlockStartAscent() +
+  aMetrics.SetBlockStartAscent(kidMetrics.BlockStartAscent() +
                                bp.BStart(wm));
 
   
