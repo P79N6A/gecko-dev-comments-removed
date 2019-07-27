@@ -87,6 +87,10 @@ BasicCompositor::CreateRenderTarget(const IntRect& aRect, SurfaceInitMode aInit)
 {
   RefPtr<DrawTarget> target = mDrawTarget->CreateSimilarDrawTarget(aRect.Size(), SurfaceFormat::B8G8R8A8);
 
+  if (!target) {
+    return nullptr;
+  }
+
   RefPtr<BasicCompositingRenderTarget> rt = new BasicCompositingRenderTarget(target, aRect);
 
   return rt.forget();
@@ -427,6 +431,12 @@ BasicCompositor::BeginFrame(const nsIntRegion& aInvalidRegion,
   
   
   RefPtr<CompositingRenderTarget> target = CreateRenderTarget(mInvalidRect, INIT_MODE_CLEAR);
+  if (!target) {
+    if (!mTarget) {
+      mWidget->EndRemoteDrawing();
+    }
+    return;
+  }
   SetRenderTarget(target);
 
   
