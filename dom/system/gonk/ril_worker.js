@@ -170,7 +170,7 @@ BufObject.prototype = {
 
     
     this.outgoingIndex = this.PARCEL_SIZE_SIZE;
-    this.writeInt32(type);
+    this.writeInt32(this._reMapRequestType(type));
     this.writeInt32(this.mToken);
 
     if (!options) {
@@ -190,6 +190,28 @@ BufObject.prototype = {
 
   onSendParcel: function(parcel) {
     postRILMessage(this.context.clientId, parcel);
+  },
+
+  
+
+
+
+
+
+  _reMapRequestType: function(type) {
+    let newType = type;
+    switch (type) {
+      case REQUEST_SET_UICC_SUBSCRIPTION:
+      case REQUEST_SET_DATA_SUBSCRIPTION:
+        if (this.context.RIL.version < 9) {
+          
+          
+          newType = type - 1;
+        }
+        break;
+    }
+
+    return newType;
   }
 };
 
@@ -355,6 +377,10 @@ function RilObject(aContext) {
 RilObject.prototype = {
   context: null,
 
+  
+
+
+  version: null,
   v5Legacy: null,
 
   
@@ -6746,8 +6772,6 @@ RilObject.prototype[REQUEST_SET_DATA_SUBSCRIPTION] = function REQUEST_SET_DATA_S
   }
   this.sendChromeMessage(options);
 };
-RilObject.prototype[REQUEST_GET_UICC_SUBSCRIPTION] = null;
-RilObject.prototype[REQUEST_GET_DATA_SUBSCRIPTION] = null;
 RilObject.prototype[REQUEST_GET_UNLOCK_RETRY_COUNT] = function REQUEST_GET_UNLOCK_RETRY_COUNT(length, options) {
   options.success = (options.rilRequestError === 0);
   if (!options.success) {
@@ -7094,10 +7118,10 @@ RilObject.prototype[UNSOLICITED_RIL_CONNECTED] = function UNSOLICITED_RIL_CONNEC
     return;
   }
 
-  let version = this.context.Buf.readInt32List()[0];
-  this.v5Legacy = (version < 5);
+  this.version = this.context.Buf.readInt32List()[0];
+  this.v5Legacy = (this.version < 5);
   if (DEBUG) {
-    this.context.debug("Detected RIL version " + version);
+    this.context.debug("Detected RIL version " + this.version);
     this.context.debug("this.v5Legacy is " + this.v5Legacy);
   }
 
