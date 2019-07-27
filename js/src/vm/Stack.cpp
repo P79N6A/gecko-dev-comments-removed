@@ -1875,8 +1875,7 @@ JS::ProfilingFrameIterator::extractStack(Frame *frames, uint32_t offset, uint32_
     
     jit::JitcodeGlobalTable *table = rt_->jitRuntime()->getJitcodeGlobalTable();
     jit::JitcodeGlobalEntry entry;
-    mozilla::DebugOnly<bool> result = table->lookup(returnAddr, &entry, rt_);
-    MOZ_ASSERT(result);
+    table->lookupInfallible(returnAddr, &entry, rt_);
 
     MOZ_ASSERT(entry.isIon() || entry.isIonCache() || entry.isBaseline() || entry.isDummy());
 
@@ -1898,7 +1897,25 @@ JS::ProfilingFrameIterator::extractStack(Frame *frames, uint32_t offset, uint32_
         frames[offset + i].returnAddress = returnAddr;
         frames[offset + i].activation = activation_;
         frames[offset + i].label = labels[i];
+        frames[offset + i].hasTrackedOptimizations = false;
+        frames[offset + i].trackedOptimizationIndex = 0;
     }
+
+    
+    
+    
+    
+    
+    
+    
+    if (false && entry.hasTrackedOptimizations()) {
+        mozilla::Maybe<uint8_t> index = entry.trackedOptimizationIndexAtAddr(returnAddr);
+        if (index.isSome()) {
+            frames[offset].hasTrackedOptimizations = true;
+            frames[offset].trackedOptimizationIndex = index.value();
+        }
+    }
+
     return depth;
 }
 
