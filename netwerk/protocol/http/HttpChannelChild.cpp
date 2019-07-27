@@ -435,13 +435,16 @@ HttpChannelChild::OnTransportAndData(const nsresult& channelStatus,
     return;
 
   
-  if (!mProgressSink)
+  if (!mProgressSink) {
     GetCallback(mProgressSink);
+  }
 
   
   
   AutoEventEnqueuer ensureSerialDispatch(mEventQ);
 
+  
+  
   
   
   
@@ -604,15 +607,14 @@ HttpChannelChild::OnProgress(const uint64_t& progress,
     return;
 
   
-  if (!mProgressSink)
+  if (!mProgressSink) {
     GetCallback(mProgressSink);
+  }
 
   AutoEventEnqueuer ensureSerialDispatch(mEventQ);
 
   
-  
-  if (mProgressSink && NS_SUCCEEDED(mStatus) && mIsPending &&
-      !(mLoadFlags & LOAD_BACKGROUND))
+  if (mProgressSink && NS_SUCCEEDED(mStatus) && mIsPending)
   {
     if (progress > 0) {
       MOZ_ASSERT(progress <= progressMax, "unexpected progress values");
