@@ -500,7 +500,7 @@ SystemMessageInternal.prototype = {
         
         let pendingMessages = [];
         page.pendingMessages.forEach(function(aMessage) {
-          pendingMessages.push(aMessage.msg);
+          pendingMessages.push({ msg: aMessage.msg, msgID: aMessage.msgID });
         });
 
         
