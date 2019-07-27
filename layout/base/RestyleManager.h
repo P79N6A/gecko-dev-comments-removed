@@ -386,6 +386,13 @@ public:
     return animations;
   }
 
+  
+  
+  
+  
+  
+  static uint32_t StructsToLog();
+
   static nsCString StructNamesToString(uint32_t aSIDs);
   int32_t& LoggingDepth() { return mLoggingDepth; }
 #endif
