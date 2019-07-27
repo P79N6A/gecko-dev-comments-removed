@@ -187,6 +187,7 @@ InspectorPanel.prototype = {
     this.selection.setNodeFront(null);
     this._destroyMarkup();
     this.isDirty = false;
+    this._pendingSelection = null;
   },
 
   _getPageStyle: function() {
@@ -204,18 +205,35 @@ InspectorPanel.prototype = {
     }
     let walker = this.walker;
     let rootNode = null;
+    let pendingSelection = this._pendingSelection;
+
+    
+    
+    let hasNavigated = () => pendingSelection !== this._pendingSelection;
 
     
     
     return walker.getRootNode().then(aRootNode => {
+      if (hasNavigated()) {
+        return promise.reject("navigated; resolution of _defaultNode aborted");
+      }
+
       rootNode = aRootNode;
       return walker.querySelector(rootNode, this.selectionCssSelector);
     }).then(front => {
+      if (hasNavigated()) {
+        return promise.reject("navigated; resolution of _defaultNode aborted");
+      }
+
       if (front) {
         return front;
       }
       return walker.querySelector(rootNode, "body");
     }).then(front => {
+      if (hasNavigated()) {
+        return promise.reject("navigated; resolution of _defaultNode aborted");
+      }
+
       if (front) {
         return front;
       }
@@ -339,7 +357,7 @@ InspectorPanel.prototype = {
       });
     };
     this._pendingSelection = onNodeSelected;
-    this._getDefaultNodeForSelection().then(onNodeSelected);
+    this._getDefaultNodeForSelection().then(onNodeSelected, console.error);
   },
 
   _selectionCssSelector: null,
