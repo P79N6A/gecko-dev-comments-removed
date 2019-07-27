@@ -69,6 +69,15 @@ struct CGBlockScopeList {
     void finish(BlockScopeArray *array);
 };
 
+struct CGYieldOffsetList {
+    Vector<uint32_t> list;
+    explicit CGYieldOffsetList(ExclusiveContext *cx) : list(cx) {}
+
+    bool append(uint32_t offset) { return list.append(offset); }
+    size_t length() const { return list.length(); }
+    void finish(YieldOffsetArray &array, uint32_t prologLength);
+};
+
 struct StmtInfoBCE;
 
 
@@ -126,8 +135,6 @@ struct BytecodeEmitter
     int32_t         stackDepth;     
     uint32_t        maxStackDepth;  
 
-    uint32_t        yieldIndex;     
-
     uint32_t        arrayCompDepth; 
 
     unsigned        emitLevel;      
@@ -139,6 +146,12 @@ struct BytecodeEmitter
 
     CGTryNoteList   tryNoteList;    
     CGBlockScopeList blockScopeList;
+
+    
+
+
+
+    CGYieldOffsetList yieldOffsetList;
 
     uint16_t        typesetCount;   
 

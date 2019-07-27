@@ -75,13 +75,9 @@ GeneratorObject::suspend(JSContext *cx, HandleObject obj, AbstractFramePtr frame
     }
 
     uint32_t yieldIndex = GET_UINT24(pc);
-    MOZ_ASSERT((*pc == JSOP_INITIALYIELD) == (yieldIndex == 0));
+    MOZ_ASSERT((*pc == JSOP_INITIALYIELD) == (yieldIndex == 0)); 
 
-    static_assert(JSOP_INITIALYIELD_LENGTH == JSOP_YIELD_LENGTH,
-                  "code below assumes INITIALYIELD and YIELD have same length");
-    pc += JSOP_YIELD_LENGTH;
-
-    genObj->setSuspendedBytecodeOffset(frame.script()->pcToOffset(pc), yieldIndex);
+    genObj->setYieldIndex(yieldIndex);
     genObj->setScopeChain(*frame.scopeChain());
 
     if (nvalues) {
@@ -147,16 +143,9 @@ GeneratorObject::resume(JSContext *cx, InterpreterActivation &activation,
         genObj->clearExpressionStack();
     }
 
-    activation.regs().pc = callee->nonLazyScript()->code() + genObj->suspendedBytecodeOffset();
-
-#ifdef DEBUG
-    
-    static_assert(JSOP_INITIALYIELD_LENGTH == JSOP_YIELD_LENGTH,
-                  "code below assumes INITIALYIELD and YIELD have same length");
-    jsbytecode *yieldpc = activation.regs().pc - JSOP_YIELD_LENGTH;
-    MOZ_ASSERT(*yieldpc == JSOP_INITIALYIELD || *yieldpc == JSOP_YIELD);
-    MOZ_ASSERT(GET_UINT24(yieldpc) == genObj->suspendedYieldIndex());
-#endif
+    JSScript *script = callee->nonLazyScript();
+    uint32_t offset = script->yieldOffsets()[genObj->yieldIndex()];
+    activation.regs().pc = script->offsetToPC(offset);
 
     
     
