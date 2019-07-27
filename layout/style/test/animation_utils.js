@@ -101,11 +101,13 @@ function runOMTATest(aTestFunction, aOnSkip) {
         
         
         
-        ok(isWorking, "OMTA is working as expected");
+        ok(isWorking, "OMTA should work");
         aOnSkip();
       }
     } else {
-      todo(isWorking, "OMTA is working");
+      todo(isWorking,
+           "OMTA should ideally work, though we don't expect it to work on " +
+           "this platform/configuration");
       aOnSkip();
     }
   }).catch(function(err) {
