@@ -33,8 +33,6 @@ public:
 
 #ifdef MOZ_DMD
   
-  static nsresult DumpDMD(const nsAString& aIdentifier);
-  
   
   static nsresult OpenDMDFile(const nsAString& aIdentifier, int aPid,
                               FILE** aOutFile);

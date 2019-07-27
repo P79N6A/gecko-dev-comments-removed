@@ -1094,7 +1094,7 @@ nsMemoryReporterManager::GetReports(
                             aFinishReporting, aFinishReportingData,
                             aAnonymize,
                              false,
-                             nsString());
+                             EmptyString());
 }
 
 NS_IMETHODIMP
