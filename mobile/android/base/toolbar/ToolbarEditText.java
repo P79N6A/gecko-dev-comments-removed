@@ -51,6 +51,8 @@ public class ToolbarEditText extends CustomEditText
     private OnDismissListener mDismissListener;
     private OnFilterListener mFilterListener;
 
+    private ToolbarPrefs mPrefs;
+
     
     private String mAutoCompleteResult = "";
     
@@ -114,6 +116,10 @@ public class ToolbarEditText extends CustomEditText
 
         
         resetAutocompleteState();
+    }
+
+    void setToolbarPrefs(final ToolbarPrefs prefs) {
+        mPrefs = prefs;
     }
 
     
@@ -462,7 +468,7 @@ public class ToolbarEditText extends CustomEditText
 
             final String text = getNonAutocompleteText(editable);
             final int textLength = text.length();
-            boolean doAutocomplete = true;
+            boolean doAutocomplete = mPrefs.shouldAutocomplete();
 
             if (StringUtils.isSearchQuery(text, false)) {
                 doAutocomplete = false;
