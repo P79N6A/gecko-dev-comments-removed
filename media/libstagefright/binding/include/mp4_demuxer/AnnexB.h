@@ -23,6 +23,7 @@ public:
   
   
   static void ConvertSampleToAVCC(MP4Sample* aSample);
+  static void ConvertSampleTo4BytesAVCC(MP4Sample* aSample);
 
   
   static already_AddRefed<ByteBuffer> ConvertExtraDataToAnnexB(
@@ -31,6 +32,7 @@ public:
     const MP4Sample* aSample);
   static bool HasSPS(const MP4Sample* aSample);
   static bool HasSPS(const ByteBuffer* aExtraData);
+  static bool IsAVCC(const MP4Sample* aSample);
 
 private:
   
