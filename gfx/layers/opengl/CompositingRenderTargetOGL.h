@@ -149,6 +149,10 @@ public:
   virtual TemporaryRef<gfx::DataSourceSurface> Dump(Compositor* aCompositor);
 #endif
 
+  const gfx::IntSize& GetInitSize() const {
+    return mInitParams.mSize;
+  }
+
 private:
   
 
