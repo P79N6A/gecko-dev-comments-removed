@@ -221,11 +221,22 @@ const uint8_t*
 gfxUserFontEntry::SanitizeOpenTypeData(const uint8_t* aData,
                                        uint32_t       aLength,
                                        uint32_t&      aSaneLength,
-                                       bool           aIsCompressed)
+                                       gfxUserFontType aFontType)
 {
+    if (aFontType == GFX_USERFONT_UNKNOWN) {
+        aSaneLength = 0;
+        return nullptr;
+    }
+
+    uint32_t lengthHint = aLength;
+    if (aFontType == GFX_USERFONT_WOFF) {
+        lengthHint *= 2;
+    } else if (aFontType == GFX_USERFONT_WOFF2) {
+        lengthHint *= 3;
+    }
+
     
-    ExpandingMemoryStream output(aIsCompressed ? aLength * 2 : aLength,
-                                 1024 * 1024 * 256);
+    ExpandingMemoryStream output(lengthHint, 1024 * 1024 * 256);
 
     gfxOTSContext otsContext(this);
 
@@ -554,8 +565,7 @@ gfxUserFontEntry::LoadPlatformFont(const uint8_t* aFontData, uint32_t& aLength)
     
     uint32_t saneLen;
     const uint8_t* saneData =
-        SanitizeOpenTypeData(aFontData, aLength, saneLen,
-                             fontType == GFX_USERFONT_WOFF);
+        SanitizeOpenTypeData(aFontData, aLength, saneLen, fontType);
     if (!saneData) {
         mFontSet->LogMessage(this, "rejected by sanitizer");
     }
@@ -690,6 +700,11 @@ gfxUserFontSet::gfxUserFontSet()
     if (fp) {
         fp->AddUserFontSet(this);
     }
+
+    
+    
+    
+    ots::EnableWOFF2();
 }
 
 gfxUserFontSet::~gfxUserFontSet()
