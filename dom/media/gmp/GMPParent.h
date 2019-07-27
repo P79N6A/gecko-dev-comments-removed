@@ -113,6 +113,7 @@ public:
 
   
   void SetNodeId(const nsACString& aNodeId);
+  const nsACString& GetNodeId() const { return mNodeId; }
 
   
   bool CanBeSharedCrossNodeIds() const;
@@ -130,8 +131,6 @@ public:
   virtual void CheckThread() MOZ_OVERRIDE;
 
   void AbortAsyncShutdown();
-
-  bool HasAccessedStorage() const;
 
 private:
   ~GMPParent();
@@ -197,7 +196,6 @@ private:
 
   bool mAsyncShutdownRequired;
   bool mAsyncShutdownInProgress;
-  bool mHasAccessedStorage;
 };
 
 } 

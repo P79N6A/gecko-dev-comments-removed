@@ -1261,14 +1261,12 @@ GeckoMediaPluginService::ClearStorage()
   
   
   
-  
-  
   nsTArray<nsRefPtr<GMPParent>> pluginsToKill;
   {
     MutexAutoLock lock(mMutex);
     for (size_t i = 0; i < mPlugins.Length(); i++) {
       nsRefPtr<GMPParent> parent(mPlugins[i]);
-      if (parent->HasAccessedStorage()) {
+      if (!parent->GetNodeId().IsEmpty()) {
         pluginsToKill.AppendElement(parent);
       }
     }
