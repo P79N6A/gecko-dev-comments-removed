@@ -3497,7 +3497,14 @@ status_t MPEG4Source::read(
         
         
 
-        CHECK(mBuffer->range_length() >= mNALLengthSize);
+        if (mBuffer->range_length() < mNALLengthSize) {
+            ALOGE("incomplete NAL unit.");
+
+            mBuffer->release();
+            mBuffer = NULL;
+
+            return ERROR_MALFORMED;
+        }
 
         const uint8_t *src =
             (const uint8_t *)mBuffer->data() + mBuffer->range_offset();
@@ -3859,7 +3866,14 @@ status_t MPEG4Source::fragmentedRead(
         
         
 
-        CHECK(mBuffer->range_length() >= mNALLengthSize);
+        if (mBuffer->range_length() < mNALLengthSize) {
+            ALOGE("incomplete NAL unit.");
+
+            mBuffer->release();
+            mBuffer = NULL;
+
+            return ERROR_MALFORMED;
+        }
 
         const uint8_t *src =
             (const uint8_t *)mBuffer->data() + mBuffer->range_offset();
