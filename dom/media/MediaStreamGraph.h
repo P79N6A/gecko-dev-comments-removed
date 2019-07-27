@@ -728,8 +728,19 @@ public:
 
 
 
-  void AddTrack(TrackID aID, TrackRate aRate, TrackTicks aStart,
-                MediaSegment* aSegment);
+  void AddTrack(TrackID aID, TrackTicks aStart, MediaSegment* aSegment)
+  {
+    AddTrackInternal(aID, GraphRate(), aStart, aSegment);
+  }
+
+  
+
+
+  void AddAudioTrack(TrackID aID, TrackRate aRate, TrackTicks aStart,
+                     AudioSegment* aSegment)
+  {
+    AddTrackInternal(aID, aRate, aStart, aSegment);
+  }
 
   
 
@@ -848,6 +859,9 @@ protected:
   bool NeedsMixing();
 
   void ResampleAudioToGraphSampleRate(TrackData* aTrackData, MediaSegment* aSegment);
+
+  void AddTrackInternal(TrackID aID, TrackRate aRate,
+                        TrackTicks aStart, MediaSegment* aSegment);
 
   TrackData* FindDataForTrack(TrackID aID)
   {

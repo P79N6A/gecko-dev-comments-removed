@@ -133,7 +133,7 @@ MediaEngineDefaultVideoSource::Start(SourceMediaStream* aStream, TrackID aID)
     return NS_ERROR_FAILURE;
   }
 
-  aStream->AddTrack(aID, aStream->GraphRate(), 0, new VideoSegment());
+  aStream->AddTrack(aID, 0, new VideoSegment());
   aStream->AdvanceKnownTracksTime(STREAM_TIME_MAX);
 
   
@@ -371,7 +371,7 @@ MediaEngineDefaultAudioSource::Start(SourceMediaStream* aStream, TrackID aID)
 
   
   AudioSegment* segment = new AudioSegment();
-  mSource->AddTrack(aID, AUDIO_RATE, 0, segment);
+  mSource->AddAudioTrack(aID, AUDIO_RATE, 0, segment);
 
   
   mSource->AdvanceKnownTracksTime(STREAM_TIME_MAX);

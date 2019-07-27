@@ -1330,8 +1330,15 @@ static void AddTrackAndListener(MediaStream* source,
       
       
       segment_->AppendNullData(current_ticks);
-      mStream->AsSourceStream()->AddTrack(track_id_, track_rate_,
-                                          current_ticks, segment_.forget());
+      if (segment_->GetType() == MediaSegment::AUDIO) {
+        mStream->AsSourceStream()->AddAudioTrack(track_id_, track_rate_,
+                                                 current_ticks,
+                                                 static_cast<AudioSegment*>(segment_.forget()));
+      } else {
+        NS_ASSERTION(mStream->GraphRate() == track_rate_, "Rate mismatch");
+        mStream->AsSourceStream()->AddTrack(track_id_,
+                                            current_ticks, segment_.forget());
+      }
       
       
       
@@ -1356,7 +1363,12 @@ static void AddTrackAndListener(MediaStream* source,
   source->GraphImpl()->AppendMessage(new Message(source, track_id, track_rate, segment, listener, completed));
 #else
   source->AddListener(listener);
-  source->AsSourceStream()->AddTrack(track_id, track_rate, 0, segment);
+  if (segment->GetType() == MediaSegment::AUDIO) {
+    source->AsSourceStream()->AddAudioTrack(track_id, track_rate, 0,
+        static_cast<AudioSegment*>(segment));
+  } else {
+    source->AsSourceStream()->AddTrack(track_id, 0, segment);
+  }
 #endif
 }
 

@@ -63,7 +63,7 @@ class Fake_AudioGenerator {
 
     
     mozilla::AudioSegment *segment = new mozilla::AudioSegment();
-    mStream->GetStream()->AsSourceStream()->AddTrack(1, 16000, 0, segment);
+    mStream->GetStream()->AsSourceStream()->AddAudioTrack(1, 16000, 0, segment);
 
     
     mTimer->InitWithFuncCallback(Callback, this, 100, nsITimer::TYPE_REPEATING_PRECISE);
@@ -107,8 +107,7 @@ class Fake_VideoGenerator {
 
     
     mozilla::VideoSegment *segment = new mozilla::VideoSegment();
-    mStream->GetStream()->AsSourceStream()->AddTrack(1,
-        mStream->GetStream()->GraphRate(), 0, segment);
+    mStream->GetStream()->AsSourceStream()->AddTrack(1, 0, segment);
     mStream->GetStream()->AsSourceStream()->AdvanceKnownTracksTime(mozilla::STREAM_TIME_MAX);
 
     
