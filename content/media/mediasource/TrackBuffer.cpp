@@ -3,6 +3,7 @@
 
 
 
+
 #include "TrackBuffer.h"
 
 #include "MediaSourceDecoder.h"
@@ -348,5 +349,23 @@ TrackBuffer::Decoders()
   
   return mInitializedDecoders;
 }
+
+#if defined(DEBUG)
+void
+TrackBuffer::Dump(const char* aPath)
+{
+  char path[255];
+  PR_snprintf(path, sizeof(path), "%s/trackbuffer-%p", aPath, this);
+  mkdir(path, 0700);
+
+  for (uint32_t i = 0; i < mDecoders.Length(); ++i) {
+    char buf[255];
+    PR_snprintf(buf, sizeof(buf), "%s/reader-%p", path, mDecoders[i]->GetReader());
+    mkdir(buf, 0700);
+
+    mDecoders[i]->GetResource()->Dump(buf);
+  }
+}
+#endif
 
 } 
