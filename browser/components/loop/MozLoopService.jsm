@@ -73,6 +73,7 @@ XPCOMUtils.defineLazyServiceGetter(this, "gDNSService",
 let gRegisteredDeferred = null;
 let gPushHandler = null;
 let gHawkClient = null;
+let gRegisteredLoopServer = false;
 let gLocalizedStrings =  null;
 let gInitializeTimer = null;
 let gFxAOAuthClientPromise = null;
@@ -291,20 +292,6 @@ let MozLoopServiceInternal = {
     return true;
   },
 
-
-  
-
-
-
-
-
-
-
-
-  clearSessionToken: function(sessionType) {
-    Services.prefs.clearUserPref(this.getSessionTokenPrefName(sessionType));
-  },
-
   
 
 
@@ -327,7 +314,7 @@ let MozLoopServiceInternal = {
       
       
     }, (error) => {
-      console.error("Failed to register with Loop server: ", error);
+      Cu.reportError("Failed to register with Loop server: " + error.errno);
       gRegisteredDeferred.reject(error.errno);
       gRegisteredDeferred = null;
     });
@@ -362,48 +349,18 @@ let MozLoopServiceInternal = {
           }
 
           
-          this.clearSessionToken(sessionType);
+          Services.prefs.clearUserPref(this.getSessionTokenPrefName(sessionType));
           if (retry) {
             return this.registerWithLoopServer(sessionType, pushUrl, false);
           }
         }
 
         
-        console.error("Failed to register with the loop server. Error: ", error);
+        Cu.reportError("Failed to register with the loop server. error: " + error);
         this.setError("registration", error);
         throw error;
       }
     );
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  unregisterFromLoopServer: function(sessionType, pushURL) {
-    let unregisterURL = "/registration?simplePushURL=" + encodeURIComponent(pushURL);
-    return this.hawkRequest(sessionType, unregisterURL, "DELETE")
-      .then(() => {
-        MozLoopServiceInternal.clearSessionToken(sessionType);
-      },
-      error => {
-        
-        MozLoopServiceInternal.clearSessionToken(sessionType);
-        if (error.code === 401 && error.errno === INVALID_AUTH_TOKEN) {
-          
-          return;
-        }
-
-        console.error("Failed to unregister with the loop server. Error: ", error);
-        throw error;
-      });
   },
 
   
@@ -1080,30 +1037,6 @@ this.MozLoopService = {
       throw error;
     });
   },
-
-  
-
-
-
-
-
-
-  logOutFromFxA: Task.async(function*() {
-    yield MozLoopServiceInternal.unregisterFromLoopServer(LOOP_SESSION_TYPE.FXA,
-                                                          gPushHandler.pushUrl);
-
-    gFxAOAuthTokenData = null;
-    gFxAOAuthProfile = null;
-
-    
-    
-    gFxAOAuthClient = null;
-    gFxAOAuthClientPromise = null;
-
-    
-    
-    MozLoopServiceInternal.clearError("registration");
-  }),
 
   
 
