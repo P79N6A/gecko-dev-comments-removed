@@ -2628,9 +2628,12 @@ nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
   }
 
 #ifdef USE_CONTROLLERS_SHIM
+  
+  
+  
   if (id == XPCJSRuntime::Get()->GetStringID(XPCJSRuntime::IDX_CONTROLLERS) &&
       !xpc::IsXrayWrapper(obj) &&
-      !nsContentUtils::IsSystemPrincipal(aWin->GetPrincipal()))
+      !nsContentUtils::IsSystemPrincipal(nsContentUtils::ObjectPrincipal(obj)))
   {
     if (aWin->GetDoc()) {
       aWin->GetDoc()->WarnOnceAbout(nsIDocument::eWindow_Controllers);
