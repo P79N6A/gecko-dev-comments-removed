@@ -2614,6 +2614,10 @@ nsChangeHint nsStyleDisplay::CalcDifference(const nsStyleDisplay& aOther) const
     }
   }
 
+  if (mMixBlendMode != aOther.mMixBlendMode) {
+    NS_UpdateHint(hint, nsChangeHint_RepaintFrame);
+  }
+
   
 
 
@@ -2711,7 +2715,6 @@ nsChangeHint nsStyleDisplay::CalcDifference(const nsStyleDisplay& aOther) const
       (!mClip.IsEqualEdges(aOther.mClip) ||
        mOriginalDisplay != aOther.mOriginalDisplay ||
        mOriginalFloats != aOther.mOriginalFloats ||
-       mMixBlendMode != aOther.mMixBlendMode ||
        mTransitions != aOther.mTransitions ||
        mTransitionTimingFunctionCount !=
          aOther.mTransitionTimingFunctionCount ||
