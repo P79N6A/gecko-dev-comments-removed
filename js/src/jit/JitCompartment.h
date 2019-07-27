@@ -57,7 +57,6 @@ typedef void (*EnterJitCode)(void* code, unsigned argc, Value* argv, Interpreter
                              CalleeToken calleeToken, JSObject* scopeChain,
                              size_t numStackValues, Value* vp);
 
-class IonBuilder;
 class JitcodeGlobalTable;
 
 

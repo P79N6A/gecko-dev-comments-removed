@@ -31,7 +31,6 @@ namespace js {
 
 struct Class;
 class FreeOp;
-class PropertyName;
 class Shape;
 
 

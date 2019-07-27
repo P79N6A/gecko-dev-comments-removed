@@ -256,7 +256,6 @@ class Instruction;
 class InstReg;
 class InstImm;
 class InstJump;
-class BranchInstBlock;
 
 uint32_t RS(Register r);
 uint32_t RT(Register r);
@@ -445,7 +444,6 @@ enum FunctionField {
     ff_null        = 0
 };
 
-class MacroAssemblerMIPS;
 class Operand;
 
 

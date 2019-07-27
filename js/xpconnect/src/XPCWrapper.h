@@ -10,8 +10,6 @@
 #include "xpcprivate.h"
 #include "jswrapper.h"
 
-class nsIScriptSecurityManager;
-
 namespace XPCNativeWrapper {
 
 

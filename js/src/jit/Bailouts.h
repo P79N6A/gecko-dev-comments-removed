@@ -104,8 +104,6 @@ static const uint32_t BAILOUT_RETURN_OVERRECURSED = 2;
 
 static uint8_t * const FAKE_JIT_TOP_FOR_BAILOUT = reinterpret_cast<uint8_t*>(0xba1);
 
-class JitCompartment;
-
 
 
 class BailoutStack;

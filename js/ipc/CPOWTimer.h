@@ -10,8 +10,6 @@
 
 #include "prinrval.h"
 
-class JSObject;
-
 
 
 

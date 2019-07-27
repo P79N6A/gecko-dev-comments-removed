@@ -569,8 +569,6 @@ class PerThreadData : public PerThreadDataFriendFields
 };
 
 class AutoLockForExclusiveAccess;
-
-struct AutoStopwatch;
 } 
 
 struct JSRuntime : public JS::shadow::Runtime,
