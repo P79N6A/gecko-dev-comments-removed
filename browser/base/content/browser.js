@@ -676,7 +676,7 @@ function gKeywordURIFixup({ target: browser, data: fixupInfo }) {
   
   
   let alternativeURI = deserializeURI(fixupInfo.fixedURI);
-  if (!fixupInfo.fixupUsedKeyword || !alternativeURI) {
+  if (!fixupInfo.fixupUsedKeyword || !alternativeURI || !alternativeURI.host) {
     return;
   }
 
