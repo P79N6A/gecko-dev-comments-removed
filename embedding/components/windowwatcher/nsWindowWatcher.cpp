@@ -451,6 +451,12 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
   nsCOMPtr<nsIDocShellTreeOwner>  parentTreeOwner;  
   nsCOMPtr<nsIDocShellTreeItem>   newDocShellItem;  
 
+  nsCOMPtr<nsPIDOMWindow> parent = do_QueryInterface(aParent);
+  if (parent && parent->IsInnerWindow()) {
+    NS_ENSURE_STATE(parent->IsCurrentInnerWindow());
+    aParent = parent->GetOuterWindow();
+  }
+
   MOZ_ASSERT_IF(openedFromRemoteTab, XRE_GetProcessType() == GeckoProcessType_Default);
   NS_ENSURE_ARG_POINTER(_retval);
   *_retval = 0;
