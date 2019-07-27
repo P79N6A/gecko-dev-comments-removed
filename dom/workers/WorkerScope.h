@@ -210,10 +210,7 @@ public:
   }
 
   void
-  Update()
-  {
-    
-  }
+  Update();
 
   already_AddRefed<Promise>
   Unregister(ErrorResult& aRv);
