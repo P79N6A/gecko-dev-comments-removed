@@ -477,9 +477,14 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info, PRLibrary **outLibrary)
   
   
   
+  
   if (nsCocoaFeatures::OnYosemiteOrLater()) {
-    if (fileName.EqualsLiteral("fbplugin")) {
-      NS_WARNING("Preventing load of fbplugin (see bug 1086977)");
+    if (fileName.EqualsLiteral("fbplugin") ||
+        StringBeginsWith(fileName, NS_LITERAL_CSTRING("fbplugin_"))) {
+      nsAutoCString msg;
+      msg.AppendPrintf("Preventing load of %s (see bug 1086977)",
+                       fileName.get());
+      NS_WARNING(msg.get());
       return NS_ERROR_FAILURE;
     }
 #if defined(MOZ_CRASHREPORTER)
@@ -487,7 +492,7 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info, PRLibrary **outLibrary)
     
     
     
-    CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("Bug 1086977"),
+    CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("Bug_1086977"),
                                        fileName);
 #endif
   }
@@ -503,8 +508,7 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info, PRLibrary **outLibrary)
   if (nsCocoaFeatures::OnYosemiteOrLater()) {
     
     
-    
-    CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("Bug 1086977"),
+    CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("Bug_1086977"),
                                        NS_LITERAL_CSTRING("Didn't crash, please ignore"));
   }
 #endif
