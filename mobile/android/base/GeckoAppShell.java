@@ -190,6 +190,11 @@ public class GeckoAppShell
         }
     };
 
+    public static CrashHandler ensureCrashHandling() {
+        
+        return CRASH_HANDLER;
+    }
+
     private static final Queue<GeckoEvent> PENDING_EVENTS = new ConcurrentLinkedQueue<GeckoEvent>();
     private static final Map<String, String> ALERT_COOKIES = new ConcurrentHashMap<String, String>();
 
