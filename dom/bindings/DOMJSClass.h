@@ -163,18 +163,22 @@ struct NativePropertyHooks
 enum DOMObjectType {
   eInstance,
   eInterface,
-  eInterfacePrototype
+  eInterfacePrototype,
+  eNamedPropertiesObject
 };
 
 typedef JSObject* (*ParentGetter)(JSContext* aCx, JS::Handle<JSObject*> aObj);
 
+typedef JSObject* (*ProtoGetter)(JSContext* aCx,
+                                 JS::Handle<JSObject*> aGlobal);
 
 
 
 
 
-typedef JS::Handle<JSObject*> (*ProtoGetter)(JSContext* aCx,
-                                             JS::Handle<JSObject*> aGlobal);
+
+typedef JS::Handle<JSObject*> (*ProtoHandleGetter)(JSContext* aCx,
+                                                   JS::Handle<JSObject*> aGlobal);
 
 
 struct DOMJSClass
@@ -197,7 +201,7 @@ struct DOMJSClass
   const NativePropertyHooks* mNativeHooks;
 
   ParentGetter mGetParent;
-  ProtoGetter mGetProto;
+  ProtoHandleGetter mGetProto;
 
   
   
@@ -236,6 +240,8 @@ struct DOMIfaceAndProtoJSClass
 
   const prototypes::ID mPrototypeID;
   const uint32_t mDepth;
+
+  ProtoGetter mGetParentProto;
 
   static const DOMIfaceAndProtoJSClass* FromJSClass(const JSClass* base) {
     MOZ_ASSERT(base->flags & JSCLASS_IS_DOMIFACEANDPROTOJSCLASS);
