@@ -105,9 +105,9 @@ struct Token
     
     
     Token()
-      : type(TOK_ERROR),
-        pos(0, 0)
+      : pos(0, 0)
     {
+        MOZ_MAKE_MEM_UNDEFINED(&type, sizeof(type));
     }
 
     
@@ -348,6 +348,7 @@ class MOZ_STACK_CLASS TokenStream
         bool isDirtyLine:1;     
         bool sawOctalEscape:1;  
         bool hadError:1;        
+                                
 
         Flags()
           : isEOF(), isDirtyLine(), sawOctalEscape(), hadError()
