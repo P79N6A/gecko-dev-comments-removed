@@ -154,9 +154,7 @@ let RecordingsView = Heritage.extend(WidgetMethods, {
 
 
 
-
-
-  _onRecordingImported: function (_, recordingData, model) {
+  _onRecordingImported: function (_, model) {
     let recordingItem = this.addEmptyRecording(model);
     recordingItem.isRecording = false;
 

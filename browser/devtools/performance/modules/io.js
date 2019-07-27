@@ -127,7 +127,6 @@ function isValidSerializerVersion (version) {
 
 
 
-
 function convertLegacyData (legacyData) {
   let { profilerData, ticksData, recordingDuration } = legacyData;
 
