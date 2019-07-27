@@ -107,7 +107,6 @@ let GMPPrefs = {
 
   KEY_LOG_ENABLED: "media.gmp-manager.log",
   KEY_ADDON_LAST_UPDATE: "media.{0}.lastUpdate",
-  KEY_ADDON_PATH: "media.{0}.path",
   KEY_ADDON_VERSION: "media.{0}.version",
   KEY_ADDON_AUTOUPDATE: "media.{0}.autoupdate",
   KEY_URL: "media.gmp-manager.url",
@@ -889,7 +888,9 @@ GMPDownloader.prototype = {
       let gmpAddon = this._gmpAddon;
       let installToDirPath = Cc["@mozilla.org/file/local;1"].
                           createInstance(Ci.nsIFile);
-      let path = OS.Path.join(OS.Constants.Path.profileDir, gmpAddon.id);
+      let path = OS.Path.join(OS.Constants.Path.profileDir,
+                              gmpAddon.id,
+                              gmpAddon.version);
       installToDirPath.initWithPath(path);
       log.info("install to directory path: " + installToDirPath.path);
       let gmpInstaller = new GMPExtractor(zipPath, installToDirPath.path);
@@ -902,8 +903,6 @@ GMPDownloader.prototype = {
         
         GMPPrefs.set(GMPPrefs.KEY_ADDON_VERSION, gmpAddon.version,
                      gmpAddon.id);
-        GMPPrefs.set(GMPPrefs.KEY_ADDON_PATH,
-                     installToDirPath.path, gmpAddon.id);
         this._deferred.resolve(extractedPaths);
       }, err => {
         this._deferred.reject(err);
