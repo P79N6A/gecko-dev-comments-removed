@@ -183,8 +183,10 @@ exports.getHighlighterUtils = function(toolbox) {
   
 
 
+
   function onPickerNodeCanceled() {
     stopPicker();
+    toolbox.frame.focus();
   }
 
   
