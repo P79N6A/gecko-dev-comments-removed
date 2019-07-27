@@ -9184,7 +9184,9 @@ nsDocShell::CheckLoadingPermissions()
     
     
     
-    NS_ENSURE_TRUE(nsContentUtils::GetCurrentJSContext(), NS_OK);
+    if (!nsContentUtils::GetCurrentJSContext()) {
+      return NS_OK;
+    }
 
     
     
