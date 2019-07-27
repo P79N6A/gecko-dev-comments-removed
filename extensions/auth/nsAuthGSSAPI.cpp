@@ -227,8 +227,6 @@ gssInit()
     return NS_OK;
 }
 
-#if defined( PR_LOGGING )
-
 
 
 void
@@ -269,12 +267,6 @@ LogGssError(OM_uint32 maj_stat, OM_uint32 min_stat, const char *prefix)
 
     LOG(("%s\n", errorStr.get()));
 }
-
-#else 
-
-#define LogGssError(x,y,z)
-
-#endif 
 
 
 

@@ -14,7 +14,6 @@ enum pType {
 
 #include "prlog.h"
 
-#if defined( PR_LOGGING )
 
 
 
@@ -24,8 +23,5 @@ enum pType {
 extern PRLogModuleInfo* gNegotiateLog;
 
 #define LOG(args) PR_LOG(gNegotiateLog, PR_LOG_DEBUG, args)
-#else
-#define LOG(args)
-#endif
 
 #endif 
