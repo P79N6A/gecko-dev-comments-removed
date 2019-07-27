@@ -44,7 +44,7 @@ public:
 protected:
   virtual ~nsUrlClassifierPrefixSet();
 
-  static const uint32_t DELTAS_LIMIT = 100;
+  static const uint32_t DELTAS_LIMIT = 120;
   static const uint32_t MAX_INDEX_DIFF = (1 << 16);
   static const uint32_t PREFIXSET_VERSION_MAGIC = 1;
 
@@ -57,12 +57,15 @@ protected:
   
   bool mHasPrefixes;
   
+  
   nsTArray<uint32_t> mIndexPrefixes;
   
   
-  nsTArray<uint32_t> mIndexStarts;
   
-  nsTArray<uint16_t> mDeltas;
+  
+  nsTArray<nsTArray<uint16_t> > mIndexDeltas;
+  
+  uint32_t mTotalPrefixes;
 
   nsCString mMemoryReportPath;
 };
