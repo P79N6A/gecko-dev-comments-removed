@@ -76,17 +76,26 @@ SVGAttrAnimationRuleProcessor::MediumFeaturesChanged(nsPresContext* aPresContext
  void
 SVGAttrAnimationRuleProcessor::RulesMatching(PseudoElementRuleProcessorData* aData)
 {
+  
+  
+  
+  
+  
 }
 
  void
 SVGAttrAnimationRuleProcessor::RulesMatching(AnonBoxRuleProcessorData* aData)
 {
+  
+  
 }
 
 #ifdef MOZ_XUL
  void
 SVGAttrAnimationRuleProcessor::RulesMatching(XULTreeRuleProcessorData* aData)
 {
+  
+  
 }
 #endif
 

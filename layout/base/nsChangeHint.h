@@ -307,12 +307,19 @@ enum nsRestyleHint {
 
   
   
-  eRestyle_Force = (1<<5),
+  
+  
+  
+  eRestyle_SVGAttrAnimations = (1<<5),
+
+  
+  
+  eRestyle_Force = (1<<8),
 
   
   
   
-  eRestyle_ForceDescendants = (1<<6),
+  eRestyle_ForceDescendants = (1<<9),
 };
 
 
