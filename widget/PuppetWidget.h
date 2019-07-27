@@ -92,8 +92,14 @@ public:
                     double aWidth,
                     double aHeight,
                     bool   aRepaint) MOZ_OVERRIDE
-  
-  { return Resize(aWidth, aHeight, aRepaint); }
+  {
+    if (mBounds.x != aX || mBounds.y != aY) {
+      NotifyWindowMoved(aX, aY);
+    }
+    mBounds.x = aX;
+    mBounds.y = aY;
+    return Resize(aWidth, aHeight, aRepaint);
+  }
 
   
   
@@ -123,9 +129,8 @@ public:
   NS_IMETHOD SetTitle(const nsAString& aTitle) MOZ_OVERRIDE
   { return NS_ERROR_UNEXPECTED; }
   
-  
   virtual mozilla::LayoutDeviceIntPoint WidgetToScreenOffset() MOZ_OVERRIDE
-  { return mozilla::LayoutDeviceIntPoint(0, 0); }
+  { return LayoutDeviceIntPoint::FromUntyped(GetWindowPosition() + GetChromeDimensions()); }
 
   void InitEvent(WidgetGUIEvent& aEvent, nsIntPoint* aPoint = nullptr);
 
@@ -198,6 +203,8 @@ public:
   
   nsIntPoint GetWindowPosition();
 
+  NS_IMETHOD GetScreenBounds(nsIntRect &aRect) MOZ_OVERRIDE;
+
 protected:
   bool mEnabled;
   bool mVisible;
@@ -252,7 +259,6 @@ private:
   mozilla::RefPtr<DrawTarget> mDrawTarget;
   
   nsIMEUpdatePreference mIMEPreferenceOfParent;
-  bool mIMEComposing;
   
   uint32_t mIMELastReceivedSeqno;
   

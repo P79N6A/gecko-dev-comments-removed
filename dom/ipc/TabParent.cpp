@@ -80,6 +80,7 @@
 #include "nsICancelable.h"
 #include "gfxPrefs.h"
 #include "nsILoginManagerPrompter.h"
+#include "nsPIWindowRoot.h"
 #include <algorithm>
 
 using namespace mozilla::dom;
@@ -258,6 +259,7 @@ TabParent::TabParent(nsIContentParent* aManager,
   , mWritingMode()
   , mIMEComposing(false)
   , mIMECompositionEnding(false)
+  , mIMEEventCountAfterEnding(0)
   , mIMECompositionStart(0)
   , mIMESeqno(0)
   , mIMECompositionRectOffset(0)
@@ -320,7 +322,27 @@ TabParent::RemoveTabParentFromTable(uint64_t aLayersId)
 void
 TabParent::SetOwnerElement(Element* aElement)
 {
+  
+  if (mFrameElement && mFrameElement->OwnerDoc()->GetWindow()) {
+    nsCOMPtr<nsPIDOMWindow> window = mFrameElement->OwnerDoc()->GetWindow();
+    nsCOMPtr<EventTarget> eventTarget = window->GetTopWindowRoot();
+    if (eventTarget) {
+      eventTarget->RemoveEventListener(NS_LITERAL_STRING("MozUpdateWindowPos"),
+                                       this, false);
+    }
+  }
+
+  
   mFrameElement = aElement;
+  if (mFrameElement && mFrameElement->OwnerDoc()->GetWindow()) {
+    nsCOMPtr<nsPIDOMWindow> window = mFrameElement->OwnerDoc()->GetWindow();
+    nsCOMPtr<EventTarget> eventTarget = window->GetTopWindowRoot();
+    if (eventTarget) {
+      eventTarget->AddEventListener(NS_LITERAL_STRING("MozUpdateWindowPos"),
+                                    this, false, false);
+    }
+  }
+
   TryCacheDPIAndScale();
 }
 
@@ -355,6 +377,8 @@ TabParent::Destroy()
   if (mIsDestroyed) {
     return;
   }
+
+  SetOwnerElement(nullptr);
 
   
   
@@ -883,8 +907,7 @@ TabParent::RecvSetDimensions(const uint32_t& aFlags,
 }
 
 void
-TabParent::UpdateDimensions(const nsIntRect& rect, const nsIntSize& size,
-                            const nsIntPoint& aChromeDisp)
+TabParent::UpdateDimensions(const nsIntRect& rect, const nsIntSize& size)
 {
   if (mIsDestroyed) {
     return;
@@ -895,12 +918,20 @@ TabParent::UpdateDimensions(const nsIntRect& rect, const nsIntSize& size,
 
   if (!mUpdatedDimensions || mOrientation != orientation ||
       mDimensions != size || !mRect.IsEqualEdges(rect)) {
+    nsCOMPtr<nsIWidget> widget = GetWidget();
+    nsIntRect contentRect = rect;
+    if (widget) {
+      contentRect.x += widget->GetClientOffset().x;
+      contentRect.y += widget->GetClientOffset().y;
+    }
+
     mUpdatedDimensions = true;
-    mRect = rect;
+    mRect = contentRect;
     mDimensions = size;
     mOrientation = orientation;
 
-    unused << SendUpdateDimensions(mRect, mDimensions, mOrientation, aChromeDisp);
+    nsIntPoint chromeOffset = LayoutDevicePixel::ToUntyped(-GetChildProcessOffset());
+    unused << SendUpdateDimensions(mRect, mDimensions, mOrientation, chromeOffset);
   }
 }
 
@@ -1999,8 +2030,10 @@ TabParent::SendCompositionEvent(WidgetCompositionEvent& event)
 
   mIMEComposing = !event.CausesDOMCompositionEndEvent();
   mIMECompositionStart = std::min(mIMESelectionAnchor, mIMESelectionFocus);
-  if (mIMECompositionEnding)
+  if (mIMECompositionEnding) {
+    mIMEEventCountAfterEnding++;
     return true;
+  }
   event.mSeqno = ++mIMESeqno;
   return PBrowserParent::SendCompositionEvent(event);
 }
@@ -2018,6 +2051,7 @@ TabParent::SendCompositionChangeEvent(WidgetCompositionEvent& event)
 {
   if (mIMECompositionEnding) {
     mIMECompositionText = event.mData;
+    mIMEEventCountAfterEnding++;
     return true;
   }
 
@@ -2108,6 +2142,7 @@ TabParent::GetRenderFrame()
 
 bool
 TabParent::RecvEndIMEComposition(const bool& aCancel,
+                                 bool* aNoCompositionEvent,
                                  nsString* aComposition)
 {
   nsCOMPtr<nsIWidget> widget = GetWidget();
@@ -2115,11 +2150,13 @@ TabParent::RecvEndIMEComposition(const bool& aCancel,
     return true;
 
   mIMECompositionEnding = true;
+  mIMEEventCountAfterEnding = 0;
 
   widget->NotifyIME(IMENotification(aCancel ? REQUEST_TO_CANCEL_COMPOSITION :
                                               REQUEST_TO_COMMIT_COMPOSITION));
 
   mIMECompositionEnding = false;
+  *aNoCompositionEvent = !mIMEEventCountAfterEnding;
   *aComposition = mIMECompositionText;
   mIMECompositionText.Truncate(0);  
   return true;
@@ -2661,6 +2698,27 @@ TabParent::DeallocPPluginWidgetParent(mozilla::plugins::PPluginWidgetParent* aAc
 {
   delete aActor;
   return true;
+}
+
+nsresult
+TabParent::HandleEvent(nsIDOMEvent* aEvent)
+{
+  nsAutoString eventType;
+  aEvent->GetType(eventType);
+
+  if (eventType.EqualsLiteral("MozUpdateWindowPos")) {
+    
+    
+    nsRefPtr<nsFrameLoader> frameLoader = GetFrameLoader();
+    if (!frameLoader) {
+      return NS_OK;
+    }
+    nsIntRect windowDims;
+    NS_ENSURE_SUCCESS(frameLoader->GetWindowDimensions(windowDims), NS_ERROR_FAILURE);
+    UpdateDimensions(windowDims, mDimensions);
+    return NS_OK;
+  }
+  return NS_OK;
 }
 
 class FakeChannel MOZ_FINAL : public nsIChannel,
