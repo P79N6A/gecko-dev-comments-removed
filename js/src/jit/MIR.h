@@ -11697,6 +11697,7 @@ class MFilterTypeSet
     virtual bool neverHoist() const override {
         return resultTypeSet()->empty();
     }
+    void computeRange(TempAllocator &alloc) override;
 };
 
 
