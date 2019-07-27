@@ -37,6 +37,16 @@ var gPrivacyPane = {
   
 
 
+
+  _initTrackingProtectionPBM: function () {
+    let link = document.getElementById("trackingProtectionPBMLearnMore");
+    let url = Services.urlFormatter.formatURLPref("app.support.baseURL") + "tracking-protection-pbm";
+    link.setAttribute("href", url);
+  },
+
+  
+
+
   _initAutocomplete: function () {
     let unifiedCompletePref = false;
     try {
@@ -73,6 +83,7 @@ var gPrivacyPane = {
 #ifdef NIGHTLY_BUILD
     this._initTrackingProtection();
 #endif
+    this._initTrackingProtectionPBM();
     this._initAutocomplete();
 
     setEventListener("privacy.sanitize.sanitizeOnShutdown", "change",
