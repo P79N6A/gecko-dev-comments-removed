@@ -1566,13 +1566,6 @@ nsHTMLDocument::Open(JSContext* cx,
     return nullptr;
   }
 
-  
-  
-
-  if (rv.Failed()) {
-    return nullptr;
-  }
-
   if (callerChannel) {
     nsLoadFlags callerLoadFlags;
     rv = callerChannel->GetLoadFlags(&callerLoadFlags);
