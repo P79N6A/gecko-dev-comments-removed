@@ -30,7 +30,6 @@ const OBSERVING = [
   "quit-application-requested", "browser-lastwindow-close-granted",
   "quit-application", "browser:purge-session-history",
   "browser:purge-domain-data",
-  "gather-telemetry",
   "idle-daily",
 ];
 
@@ -102,9 +101,6 @@ const TAB_EVENTS = [
   "TabOpen", "TabClose", "TabSelect", "TabShow", "TabHide", "TabPinned",
   "TabUnpinned"
 ];
-
-
-const MS_PER_DAY = 1000.0 * 60.0 * 60.0 * 24.0;
 
 Cu.import("resource://gre/modules/Services.jsm", this);
 Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
@@ -590,9 +586,6 @@ let SessionStoreInternal = {
         break;
       case "nsPref:changed": 
         this.onPrefChange(aData);
-        break;
-      case "gather-telemetry":
-        this.onGatherTelemetry();
         break;
       case "idle-daily":
         this.onIdleDaily();
@@ -1616,14 +1609,6 @@ let SessionStoreInternal = {
     this._resetLocalTabRestoringState(tab);
   },
 
-  onGatherTelemetry: function() {
-    
-    
-    Services.obs.removeObserver(this, "gather-telemetry");
-    let stateString = SessionStore.getBrowserState();
-    return SessionFile.gatherTelemetry(stateString);
-  },
-
   
   
   
@@ -2405,7 +2390,6 @@ let SessionStoreInternal = {
   _collectWindowData: function ssi_collectWindowData(aWindow) {
     if (!this._isWindowLoaded(aWindow))
       return;
-    TelemetryStopwatch.start("FX_SESSION_RESTORE_COLLECT_SINGLE_WINDOW_DATA_MS");
 
     let tabbrowser = aWindow.gBrowser;
     let tabs = tabbrowser.tabs;
@@ -2427,7 +2411,6 @@ let SessionStoreInternal = {
         aWindow.__SS_lastSessionWindowID;
 
     DirtyWindows.remove(aWindow);
-    TelemetryStopwatch.finish("FX_SESSION_RESTORE_COLLECT_SINGLE_WINDOW_DATA_MS");
   },
 
   
@@ -3077,14 +3060,6 @@ let SessionStoreInternal = {
     
     if (state.session && state.session.startTime) {
       this._sessionStartTime = state.session.startTime;
-
-      
-      let sessionLength = (Date.now() - this._sessionStartTime) / MS_PER_DAY;
-
-      if (sessionLength > 0) {
-        
-        Services.telemetry.getHistogramById("FX_SESSION_RESTORE_SESSION_LENGTH").add(sessionLength);
-      }
     }
   },
 

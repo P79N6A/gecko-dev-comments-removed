@@ -74,22 +74,6 @@ this.SessionFile = {
   
 
 
-
-
-
-
-
-
-
-
-
-
-  gatherTelemetry: function(aData) {
-    return SessionFileInternal.gatherTelemetry(aData);
-  },
-  
-
-
   wipe: function () {
     return SessionFileInternal.wipe();
   },
@@ -268,14 +252,6 @@ let SessionFileInternal = {
     return result;
   }),
 
-  gatherTelemetry: function(aStateString) {
-    return Task.spawn(function() {
-      let msg = yield SessionWorker.post("gatherTelemetry", [aStateString]);
-      this._recordTelemetry(msg.telemetry);
-      throw new Task.Result(msg.telemetry);
-    }.bind(this));
-  },
-
   write: function (aData) {
     if (RunState.isClosed) {
       return Promise.reject(new Error("SessionFile is closed"));
@@ -289,25 +265,11 @@ let SessionFileInternal = {
       RunState.setClosed();
     }
 
-    let refObj = {};
-    let name = "FX_SESSION_RESTORE_WRITE_FILE_LONGEST_OP_MS";
+    let performShutdownCleanup = isFinalWrite &&
+      !sessionStartup.isAutomaticRestoreEnabled();
 
-    let promise = new Promise(resolve => {
-      
-      TelemetryStopwatch.start(name, refObj);
-
-      let performShutdownCleanup = isFinalWrite &&
-        !sessionStartup.isAutomaticRestoreEnabled();
-
-      let options = {isFinalWrite, performShutdownCleanup};
-
-      try {
-        resolve(SessionWorker.post("write", [aData, options]));
-      } finally {
-        
-        TelemetryStopwatch.finish(name, refObj);
-      }
-    });
+    let options = {isFinalWrite, performShutdownCleanup};
+    let promise = SessionWorker.post("write", [aData, options]);
 
     
     promise = promise.then(msg => {
@@ -322,7 +284,6 @@ let SessionFileInternal = {
       }
     }, err => {
       
-      TelemetryStopwatch.cancel(name, refObj);
       console.error("Could not write session state file ", err, err.stack);
       
       

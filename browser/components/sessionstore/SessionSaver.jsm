@@ -246,8 +246,6 @@ let SessionSaverInternal = {
 
 
   _writeState: function (state) {
-    stopWatchStart("WRITE_STATE_LONGEST_OP_MS");
-
     
     
     
@@ -257,14 +255,9 @@ let SessionSaverInternal = {
     
     
     
-    let promise = SessionFile.write(state);
-    stopWatchFinish("WRITE_STATE_LONGEST_OP_MS");
-
-    promise = promise.then(() => {
+    return SessionFile.write(state).then(() => {
       this.updateLastSaveTime();
       notify(null, "sessionstore-state-write-complete");
     }, console.error);
-
-    return promise;
   },
 };
