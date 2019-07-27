@@ -150,11 +150,7 @@ public:
 
 
 
-  virtual JSObject* WrapObject(JSContext* cx)
-  {
-    MOZ_ASSERT(!IsDOMBinding(), "Someone forgot to override WrapObject");
-    return nullptr;
-  }
+  virtual JSObject* WrapObject(JSContext* cx) = 0;
 
   
 

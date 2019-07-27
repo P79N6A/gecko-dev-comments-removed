@@ -82,7 +82,7 @@ public:
   virtual nsIDOMNode* AsDOMNode() { return this; }
 
   
-  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext* aCx) MOZ_OVERRIDE;
 
   
   
