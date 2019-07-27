@@ -159,6 +159,12 @@ static DllBlockInfo sWindowsDllBlocklist[] = {
   
   { "dtwxsvc.dll", 0x53153234, DllBlockInfo::USE_TIMESTAMP },
 
+  
+  { "activedetect32.dll", UNVERSIONED },
+  { "activedetect64.dll", UNVERSIONED },
+  { "windowsapihookdll32.dll", UNVERSIONED },
+  { "windowsapihookdll64.dll", UNVERSIONED },
+
   { nullptr, 0 }
 };
 
