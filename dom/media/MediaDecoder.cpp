@@ -1299,6 +1299,8 @@ void MediaDecoder::ApplyStateToStateMachine(PlayState aState)
         break;
       default:
         
+        
+        ScheduleStateMachineThread();
         break;
     }
   }
