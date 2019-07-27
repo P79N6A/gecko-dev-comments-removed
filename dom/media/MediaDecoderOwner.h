@@ -121,6 +121,12 @@ public:
   virtual void UpdateReadyStateForData(NextFrameStatus aNextFrame) = 0;
 
   
+  virtual bool IsActive() = 0;
+
+  
+  virtual bool IsHidden() = 0;
+
+  
   
   virtual VideoFrameContainer* GetVideoFrameContainer() = 0;
 

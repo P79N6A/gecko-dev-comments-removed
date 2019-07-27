@@ -211,6 +211,10 @@ public:
   
   virtual void NotifySuspendedByCache(bool aIsSuspended) MOZ_FINAL MOZ_OVERRIDE;
 
+  virtual bool IsActive() MOZ_FINAL MOZ_OVERRIDE;
+
+  virtual bool IsHidden() MOZ_FINAL MOZ_OVERRIDE;
+
   
   
   virtual VideoFrameContainer* GetVideoFrameContainer() MOZ_FINAL MOZ_OVERRIDE;
@@ -374,7 +378,7 @@ public:
 
   
   
-  void ResetConnectionState() MOZ_FINAL MOZ_OVERRIDE;
+  virtual void ResetConnectionState() MOZ_FINAL MOZ_OVERRIDE;
 
   
   void SetPreload(const nsAString& aValue, ErrorResult& aRv)

@@ -364,7 +364,8 @@ public:
   
   
   
-  virtual void SetDormantIfNecessary(bool aDormant);
+  
+  virtual void NotifyOwnerActivityChanged();
 
   
   virtual void Pause();
@@ -1215,6 +1216,9 @@ protected:
   
   
   nsAutoPtr<MediaInfo> mInfo;
+
+  
+  bool mIsDormant;
 };
 
 } 
