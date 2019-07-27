@@ -499,12 +499,10 @@ nsRangeFrame::GetValueAtEventPoint(WidgetGUIEvent* aEvent)
   if (IsThemed()) {
     
     nsPresContext *presContext = PresContext();
-    nsRefPtr<nsRenderingContext> tmpCtx =
-      presContext->PresShell()->CreateReferenceRenderingContext();
     bool notUsedCanOverride;
     nsIntSize size;
     presContext->GetTheme()->
-      GetMinimumWidgetSize(tmpCtx.get(), this, NS_THEME_RANGE_THUMB, &size,
+      GetMinimumWidgetSize(presContext, this, NS_THEME_RANGE_THUMB, &size,
                            &notUsedCanOverride);
     thumbSize.width = presContext->DevPixelsToAppUnits(size.width);
     thumbSize.height = presContext->DevPixelsToAppUnits(size.height);
