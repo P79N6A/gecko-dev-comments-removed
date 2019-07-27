@@ -58,7 +58,7 @@ public:
     enum Flags {
         NoFlags          = 0x0,
         UseNearestFilter = 0x1,
-        NeedsYFlip       = 0x2,
+        OriginBottomLeft = 0x2,
         DisallowBigImage = 0x4
     };
 
@@ -372,6 +372,7 @@ CreateBasicTextureImage(GLContext* aGL,
                         GLenum aWrapMode,
                         TextureImage::Flags aFlags,
                         TextureImage::ImageFormat aImageFormat = gfxImageFormat::Unknown);
+
 
 
 

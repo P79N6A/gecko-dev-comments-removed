@@ -30,7 +30,7 @@ MOZ_BEGIN_ENUM_CLASS(TextureFlags, uint32_t)
   
   USE_NEAREST_FILTER = 1 << 0,
   
-  NEEDS_Y_FLIP       = 1 << 1,
+  ORIGIN_BOTTOM_LEFT = 1 << 1,
   
   
   DISALLOW_BIGIMAGE  = 1 << 2,
