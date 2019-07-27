@@ -12463,6 +12463,7 @@ nsGlobalWindow::RunTimeoutHandler(nsTimeout* aTimeout,
     
     
     AutoEntryScript entryScript(this, reason, true, aScx->GetNativeContext());
+    entryScript.TakeOwnershipOfErrorReporting();
     JS::CompileOptions options(entryScript.cx());
     options.setFileAndLine(filename, lineNo)
            .setVersion(JSVERSION_DEFAULT);

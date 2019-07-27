@@ -98,41 +98,6 @@ nsJSUtils::GetCurrentlyRunningCodeInnerWindowID(JSContext *aContext)
   return innerWindowID;
 }
 
-void
-nsJSUtils::ReportPendingException(JSContext *aContext)
-{
-  if (JS_IsExceptionPending(aContext)) {
-    bool saved = JS_SaveFrameChain(aContext);
-    {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      nsIScriptContext* scx = GetScriptContextFromJSContext(aContext);
-      JS::Rooted<JSObject*> scope(aContext);
-      scope = scx ? scx->GetWindowProxy() : nullptr;
-      if (!scope) {
-        
-        MOZ_ASSERT(NS_IsMainThread());
-        MOZ_ASSERT(aContext == nsContentUtils::GetSafeJSContext());
-        scope = xpc::UnprivilegedJunkScope(); 
-      }
-      JSAutoCompartment ac(aContext, scope);
-      JS_ReportPendingException(aContext);
-    }
-    if (saved) {
-      JS_RestoreFrameChain(aContext);
-    }
-  }
-}
-
 nsresult
 nsJSUtils::CompileFunction(AutoJSAPI& jsapi,
                            JS::AutoObjectVector& aScopeChain,
@@ -199,6 +164,8 @@ nsJSUtils::EvaluateString(JSContext* aCx,
   PROFILER_LABEL("nsJSUtils", "EvaluateString",
     js::ProfileEntry::Category::JS);
 
+  MOZ_ASSERT(JS::ContextOptionsRef(aCx).autoJSAPIOwnsErrorReporting(),
+             "Caller must own error reporting");
   MOZ_ASSERT_IF(aCompileOptions.versionSet,
                 aCompileOptions.version != JSVERSION_UNKNOWN);
   MOZ_ASSERT_IF(aEvaluateOptions.coerceToString, !aCompileOptions.noScriptRval);
@@ -221,10 +188,6 @@ nsJSUtils::EvaluateString(JSContext* aCx,
 
   nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
   NS_ENSURE_TRUE(ssm->ScriptAllowed(aEvaluationGlobal), NS_OK);
-
-  
-  
-  AutoDontReportUncaught dontReport(aCx);
 
   bool ok = true;
   
@@ -269,7 +232,7 @@ nsJSUtils::EvaluateString(JSContext* aCx,
   }
 
   if (!ok) {
-    ReportPendingException(aCx);
+    rv = NS_SUCCESS_DOM_SCRIPT_EVALUATION_THREW;
     if (!aCompileOptions.noScriptRval) {
       aRetValue.setUndefined();
     }

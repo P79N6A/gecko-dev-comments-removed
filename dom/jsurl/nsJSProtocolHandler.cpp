@@ -251,6 +251,10 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
     
     AutoEntryScript entryScript(innerGlobal, "javascript: URI", true,
                                 scriptContext->GetNativeContext());
+    
+    
+    
+    entryScript.TakeOwnershipOfErrorReporting();
     JSContext* cx = entryScript.cx();
     JS::Rooted<JSObject*> globalJSObject(cx, innerGlobal->GetGlobalJSObject());
     NS_ENSURE_TRUE(globalJSObject, NS_ERROR_UNEXPECTED);
@@ -278,20 +282,13 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
     rv = nsJSUtils::EvaluateString(cx, NS_ConvertUTF8toUTF16(script),
                                    globalJSObject, options, evalOptions, &v);
 
-    
-    
-    
-    
-    
-    
-    
-    ::JS_ReportPendingException(cx);
-
     if (NS_FAILED(rv) || !(v.isString() || v.isUndefined())) {
         return NS_ERROR_MALFORMED_URI;
     } else if (v.isUndefined()) {
         return NS_ERROR_DOM_RETVAL_UNDEFINED;
     } else {
+        MOZ_ASSERT(rv != NS_SUCCESS_DOM_SCRIPT_EVALUATION_THREW,
+                   "How did we get a non-undefined return value?");
         nsAutoJSString result;
         if (!result.init(cx, v)) {
             return NS_ERROR_OUT_OF_MEMORY;

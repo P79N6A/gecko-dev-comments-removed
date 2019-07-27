@@ -53,13 +53,6 @@ public:
 
   static uint64_t GetCurrentlyRunningCodeInnerWindowID(JSContext *aContext);
 
-  
-
-
-
-
-  static void ReportPendingException(JSContext *aContext);
-
   static nsresult CompileFunction(mozilla::dom::AutoJSAPI& jsapi,
                                   JS::AutoObjectVector& aScopeChain,
                                   JS::CompileOptions& aOptions,
@@ -84,6 +77,8 @@ public:
     }
   };
 
+  
+  
   
   
   

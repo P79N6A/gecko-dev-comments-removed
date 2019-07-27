@@ -1120,6 +1120,7 @@ nsScriptLoader::EvaluateScript(nsScriptLoadRequest* aRequest,
   
   AutoEntryScript entryScript(globalObject, "<script> element", true,
                               context->GetNativeContext());
+  entryScript.TakeOwnershipOfErrorReporting();
   JS::Rooted<JSObject*> global(entryScript.cx(),
                                globalObject->GetGlobalJSObject());
 
