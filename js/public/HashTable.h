@@ -136,20 +136,21 @@ class HashMap
 
     template<typename KeyInput, typename ValueInput>
     bool add(AddPtr& p, KeyInput&& k, ValueInput&& v) {
-        Entry e(mozilla::Forward<KeyInput>(k), mozilla::Forward<ValueInput>(v));
-        return impl.add(p, mozilla::Move(e));
+        return impl.add(p,
+                        mozilla::Forward<KeyInput>(k),
+                        mozilla::Forward<ValueInput>(v));
     }
 
     template<typename KeyInput>
     bool add(AddPtr& p, KeyInput&& k) {
-        Entry e(mozilla::Forward<KeyInput>(k), Value());
-        return impl.add(p, mozilla::Move(e));
+        return impl.add(p, mozilla::Forward<KeyInput>(k), Value());
     }
 
     template<typename KeyInput, typename ValueInput>
     bool relookupOrAdd(AddPtr& p, KeyInput&& k, ValueInput&& v) {
-        Entry e(mozilla::Forward<KeyInput>(k), mozilla::Forward<ValueInput>(v));
-        return impl.relookupOrAdd(p, e.key(), mozilla::Move(e));
+        return impl.relookupOrAdd(p, k,
+                                  mozilla::Forward<KeyInput>(k),
+                                  mozilla::Forward<ValueInput>(v));
     }
 
     
@@ -227,8 +228,7 @@ class HashMap
     
     template<typename KeyInput, typename ValueInput>
     bool putNew(KeyInput&& k, ValueInput&& v) {
-        Entry e(mozilla::Forward<KeyInput>(k), mozilla::Forward<ValueInput>(v));
-        return impl.putNew(e.key(), mozilla::Move(e));
+        return impl.putNew(k, mozilla::Forward<KeyInput>(k), mozilla::Forward<ValueInput>(v));
     }
 
     
@@ -734,12 +734,12 @@ class HashTableEntry
     bool matchHash(HashNumber hn)     { return (keyHash & ~sCollisionBit) == hn; }
     HashNumber getKeyHash() const     { return keyHash & ~sCollisionBit; }
 
-    template <class U>
-    void setLive(HashNumber hn, U&& u)
+    template <typename... Args>
+    void setLive(HashNumber hn, Args&&... args)
     {
         MOZ_ASSERT(!isLive());
         keyHash = hn;
-        new(mem.addr()) T(mozilla::Forward<U>(u));
+        new(mem.addr()) T(mozilla::Forward<Args>(args)...);
         MOZ_ASSERT(isLive());
     }
 };
@@ -1570,8 +1570,8 @@ class HashTable : private AllocPolicy
         return p;
     }
 
-    template <class U>
-    bool add(AddPtr& p, U&& u)
+    template <typename... Args>
+    bool add(AddPtr& p, Args&&... args)
     {
         mozilla::ReentrancyGuard g(*this);
         MOZ_ASSERT(table);
@@ -1593,7 +1593,7 @@ class HashTable : private AllocPolicy
                 p.entry_ = &findFreeEntry(p.keyHash);
         }
 
-        p.entry_->setLive(p.keyHash, mozilla::Forward<U>(u));
+        p.entry_->setLive(p.keyHash, mozilla::Forward<Args>(args)...);
         entryCount++;
 #ifdef JS_DEBUG
         mutationCount++;
@@ -1605,8 +1605,8 @@ class HashTable : private AllocPolicy
 
     
     
-    template <class U>
-    void putNewInfallible(const Lookup& l, U&& u)
+    template <typename... Args>
+    void putNewInfallible(const Lookup& l, Args&&... args)
     {
         MOZ_ASSERT(table);
 
@@ -1619,7 +1619,7 @@ class HashTable : private AllocPolicy
             keyHash |= sCollisionBit;
         }
 
-        entry->setLive(keyHash, mozilla::Forward<U>(u));
+        entry->setLive(keyHash, mozilla::Forward<Args>(args)...);
         entryCount++;
 #ifdef JS_DEBUG
         mutationCount++;
@@ -1628,20 +1628,20 @@ class HashTable : private AllocPolicy
 
     
     
-    template <class U>
-    bool putNew(const Lookup& l, U&& u)
+    template <typename... Args>
+    bool putNew(const Lookup& l, Args&&... args)
     {
         if (checkOverloaded() == RehashFailed)
             return false;
 
-        putNewInfallible(l, mozilla::Forward<U>(u));
+        putNewInfallible(l, mozilla::Forward<Args>(args)...);
         return true;
     }
 
     
     
-    template <class U>
-    bool relookupOrAdd(AddPtr& p, const Lookup& l, U&& u)
+    template <typename... Args>
+    bool relookupOrAdd(AddPtr& p, const Lookup& l, Args&&... args)
     {
 #ifdef JS_DEBUG
         p.generation = generation();
@@ -1652,7 +1652,7 @@ class HashTable : private AllocPolicy
             MOZ_ASSERT(prepareHash(l) == p.keyHash); 
             p.entry_ = &lookup(l, p.keyHash, sCollisionBit);
         }
-        return p.found() || add(p, mozilla::Forward<U>(u));
+        return p.found() || add(p, mozilla::Forward<Args>(args)...);
     }
 
     void remove(Ptr p)
