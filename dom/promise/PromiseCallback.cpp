@@ -265,7 +265,6 @@ WrapperPromiseCallback::Call(JSContext* aCx,
       }
 
       
-      JS::Rooted<JSString*> stack(aCx, JS_GetEmptyString(JS_GetRuntime(aCx)));
       JS::Rooted<JSString*> fn(aCx, JS_NewStringCopyZ(aCx, fileName));
       if (!fn) {
         
@@ -283,7 +282,7 @@ WrapperPromiseCallback::Call(JSContext* aCx,
       }
 
       JS::Rooted<JS::Value> typeError(aCx);
-      if (!JS::CreateError(aCx, JSEXN_TYPEERR, stack, fn, lineNumber, 0,
+      if (!JS::CreateError(aCx, JSEXN_TYPEERR, JS::NullPtr(), fn, lineNumber, 0,
                            nullptr, message, &typeError)) {
         
         JS_ClearPendingException(aCx);

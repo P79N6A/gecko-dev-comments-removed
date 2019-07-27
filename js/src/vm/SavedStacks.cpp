@@ -800,6 +800,11 @@ SavedStacks::saveCurrentStack(JSContext *cx, MutableHandleSavedFrame frame, unsi
     MOZ_ASSERT(initialized());
     assertSameCompartment(cx, this);
 
+    if (creatingSavedFrame) {
+        frame.set(nullptr);
+        return true;
+    }
+
     FrameIter iter(cx, FrameIter::ALL_CONTEXTS, FrameIter::GO_THROUGH_SAVED);
     return insertFrames(cx, iter, frame, maxFrameCount);
 }
@@ -920,8 +925,10 @@ SavedStacks::insertFrames(JSContext *cx, FrameIter &iter, MutableHandleSavedFram
 
         
         
-        if (!stackChain->growByUninitialized(1))
+        if (!stackChain->growByUninitialized(1)) {
+            ReportOutOfMemory(cx);
             return false;
+        }
         new (&stackChain->back()) SavedFrame::Lookup(
           location->source,
           location->line,
@@ -992,8 +999,10 @@ SavedStacks::adoptAsyncStack(JSContext *cx, HandleSavedFrame asyncStack,
     for (unsigned i = 0; i < maxFrameCount && currentSavedFrame; i++) {
         
         
-        if (!stackChain->growByUninitialized(1))
+        if (!stackChain->growByUninitialized(1)) {
+            ReportOutOfMemory(cx);
             return false;
+        }
         new (&stackChain->back()) SavedFrame::Lookup(*currentSavedFrame);
 
         
@@ -1030,8 +1039,10 @@ SavedStacks::getOrCreateSavedFrame(JSContext *cx, SavedFrame::HandleLookup looku
     if (!frame)
         return nullptr;
 
-    if (!p.add(cx, frames, lookupInstance, frame))
+    if (!p.add(cx, frames, lookupInstance, frame)) {
+        ReportOutOfMemory(cx);
         return nullptr;
+    }
 
     return frame;
 }
@@ -1041,6 +1052,11 @@ SavedStacks::createFrameFromLookup(JSContext *cx, SavedFrame::HandleLookup looku
 {
     RootedGlobalObject global(cx, cx->global());
     assertSameCompartment(cx, global);
+
+    
+    
+    
+    SavedStacks::AutoReentrancyGuard guard(*this);
 
     RootedNativeObject proto(cx, GlobalObject::getOrCreateSavedFramePrototype(cx, global));
     if (!proto)
@@ -1132,8 +1148,10 @@ SavedStacks::getLocation(JSContext *cx, const FrameIter &iter, MutableHandleLoca
 
         
         LocationValue value(source, line, column + 1);
-        if (!pcLocationMap.add(p, key, value))
+        if (!pcLocationMap.add(p, key, value)) {
+            ReportOutOfMemory(cx);
             return false;
+        }
     }
 
     locationp.set(p->value());

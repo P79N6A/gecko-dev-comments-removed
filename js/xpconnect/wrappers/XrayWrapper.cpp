@@ -406,12 +406,12 @@ JSXrayTraits::resolveOwnProperty(JSContext *cx, const Wrapper &jsWrapper,
             
             
             
+            
             bool isErrorIntProperty =
                 id == GetRTIdByIndex(cx, XPCJSRuntime::IDX_LINENUMBER) ||
                 id == GetRTIdByIndex(cx, XPCJSRuntime::IDX_COLUMNNUMBER);
             bool isErrorStringProperty =
                 id == GetRTIdByIndex(cx, XPCJSRuntime::IDX_FILENAME) ||
-                id == GetRTIdByIndex(cx, XPCJSRuntime::IDX_STACK) ||
                 id == GetRTIdByIndex(cx, XPCJSRuntime::IDX_MESSAGE);
             if (isErrorIntProperty || isErrorStringProperty) {
                 RootedObject waiver(cx, wrapper);
