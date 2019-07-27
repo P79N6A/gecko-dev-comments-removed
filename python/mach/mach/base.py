@@ -78,6 +78,9 @@ class MethodHandler(object):
         'description',
 
         
+        'docstring',
+
+        
         
         'conditions',
 
@@ -99,7 +102,7 @@ class MethodHandler(object):
     )
 
     def __init__(self, cls, method, name, category=None, description=None,
-        conditions=None, parser=None, arguments=None,
+        docstring=None, conditions=None, parser=None, arguments=None,
         argument_group_names=None, pass_context=False,
         subcommand_handlers=None):
 
@@ -108,6 +111,7 @@ class MethodHandler(object):
         self.name = name
         self.category = category
         self.description = description
+        self.docstring = docstring
         self.conditions = conditions or []
         self.arguments = arguments or []
         self.argument_group_names = argument_group_names or []
