@@ -9,6 +9,7 @@ const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
+Cu.import("resource://gre/modules/osfile.jsm", this);
 
 this.EXPORTED_SYMBOLS = ["MozLoopService"];
 
@@ -52,7 +53,6 @@ XPCOMUtils.defineLazyServiceGetter(this, "uuidgen",
 let MozLoopServiceInternal = {
   
   loopServerUri: Services.prefs.getCharPref("loop.server"),
-  telemetryUri: Services.prefs.getCharPref("loop.telemetryURL"),
 
   
   
@@ -318,61 +318,63 @@ let MozLoopServiceInternal = {
 
 
 
-  uploadTelemetry: function(window, pc) {
-    if (!this.telemetryUri) {
-      return;
-    }
+  stageForTelemetryUpload: function(window, pc) {
     window.WebrtcGlobalInformation.getAllStats(allStats => {
       let internalFormat = allStats.reports[0]; 
       window.WebrtcGlobalInformation.getLogging('', logs => {
+        let report = convertToRTCStatsReport(internalFormat);
+        let logStr = "";
+        logs.forEach(s => { logStr += s + "\n"; });
 
+        
+
+        
         
         
 
         let ai = Services.appinfo;
-        let report = convertToRTCStatsReport(internalFormat);
-
-        let payload = {
-          ver: 1,
-          info: {
-            appUpdateChannel: ai.defaultUpdateChannel,
-            appBuildID: ai.appBuildID,
-            appName: ai.name,
-            appVersion: ai.version,
-            reason: "loop",
-            OS: ai.OS,
-            version: Services.sysinfo.getProperty("version")
-          },
-          report: "ice failure",
-          connectionstate: pc.iceConnectionState,
-          stats: report,
-          localSdp: internalFormat.localSdp,
-          remoteSdp: internalFormat.remoteSdp,
-          log: ""
-        };
-        logs.forEach(s => { payload.log += s + "\n"; });
-
         let uuid = uuidgen.generateUUID().toString();
         uuid = uuid.substr(1,uuid.length-2); 
 
-        let url = this.telemetryUri;
-        url += ((url.substr(-1) == "/")? "":"/") + uuid + "/loop/" +
-                ai.OS + "/" + ai.version + "/" + ai.defaultUpdateChannel + "/" +
-                ai.appBuildID;
-
-        
-        
-
-        let xhr = new window.XMLHttpRequest();
-        xhr.open("POST", url, true);
-        xhr.setRequestHeader("Content-Type", 'application/json');
-        xhr.onreadystatechange = function() {
-          if (xhr.readyState == 4 && xhr.status == 200) {
-            console.log("Failed to upload telemetry logs: " + xhr.responseText);
+        let directory = OS.Path.join(OS.Constants.Path.profileDir,
+                                     "saved-telemetry-pings");
+        let job = {
+          directory: directory,
+          filename: uuid + ".json",
+          ping: {
+            reason: "loop",
+            slug: uuid,
+            payload: {
+              ver: 1,
+              info: {
+                appUpdateChannel: ai.defaultUpdateChannel,
+                appBuildID: ai.appBuildID,
+                appName: ai.name,
+                appVersion: ai.version,
+                reason: "loop",
+                OS: ai.OS,
+                version: Services.sysinfo.getProperty("version")
+              },
+              report: "ice failure",
+              connectionstate: pc.iceConnectionState,
+              stats: report,
+              localSdp: internalFormat.localSdp,
+              remoteSdp: internalFormat.remoteSdp,
+              log: logStr
+            }
           }
         };
-        xhr.send(JSON.stringify(payload));
-        console.log("Uploading telemetry logs to " + url);
+
+        
+        
+
+        let worker = new ChromeWorker("MozLoopWorker.js");
+        worker.onmessage = function(e) {
+          console.log(e.data.ok ?
+            "Successfully staged loop report for telemetry upload." :
+            ("Failed to stage loop report. Error: " + e.data.fail));
+        }
+        worker.postMessage(job);
       });
     }, pc.id);
   },
@@ -420,7 +422,10 @@ let MozLoopServiceInternal = {
             switch(pc.iceConnectionState) {
               case "failed":
               case "disconnected":
-                this.uploadTelemetry(window, pc);
+                if (Services.telemetry.canSend ||
+                    Services.prefs.getBoolPref("toolkit.telemetry.test")) {
+                  this.stageForTelemetryUpload(window, pc);
+                }
                 break;
             }
           }
