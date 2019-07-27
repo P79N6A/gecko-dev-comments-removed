@@ -764,8 +764,11 @@ bool
 GetKeyLightEnabled()
 {
   LightConfiguration config;
-  GetLight(eHalLightID_Buttons, &config);
-  return (config.color != 0x00000000);
+  bool ok = GetLight(eHalLightID_Buttons, &config);
+  if (ok) {
+    return (config.color != 0x00000000);
+  }
+  return false;
 }
 
 void
@@ -798,10 +801,15 @@ GetScreenBrightness()
   LightConfiguration config;
   LightType light = eHalLightID_Backlight;
 
-  GetLight(light, &config);
+  bool ok = GetLight(light, &config);
+  if (ok) {
+    
+    int brightness = config.color & 0xFF;
+    return brightness / 255.0;
+  }
   
-  int brightness = config.color & 0xFF;
-  return brightness / 255.0;
+  
+  return 0;
 }
 
 void
