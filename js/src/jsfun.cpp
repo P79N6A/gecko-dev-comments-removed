@@ -556,7 +556,7 @@ js::XDRInterpretedFunction(XDRState<mode>* xdr, HandleObject enclosingScope, Han
             
             
             
-            MOZ_ASSERT(!fun->lazyScript()->maybeScript());
+            MOZ_ASSERT(!fun->lazyScript()->maybeScriptUnbarriered());
 
             
             firstword |= IsLazy;
@@ -1527,11 +1527,6 @@ JSFunction::maybeRelazify(JSRuntime* rt)
     u.i.s.lazy_ = lazy;
     if (lazy) {
         MOZ_ASSERT(!isSelfHostedBuiltin());
-        
-        
-        
-        if (lazy->maybeScript() == script)
-            lazy->resetScript();
     } else {
         MOZ_ASSERT(isSelfHostedBuiltin());
         MOZ_ASSERT(isExtended());
