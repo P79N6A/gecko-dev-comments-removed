@@ -64,7 +64,10 @@ public:
   {
     return &mRef;
   }
+
 private:
+  
+  AutoCFRelease<T>& operator=(const AutoCFRelease<T>&);
   T mRef;
 };
 
