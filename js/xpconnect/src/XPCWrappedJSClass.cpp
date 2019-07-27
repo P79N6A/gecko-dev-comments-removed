@@ -86,7 +86,7 @@ bool xpc_IsReportableErrorCode(nsresult code)
 
 class MOZ_STACK_CLASS AutoSavePendingResult {
 public:
-    AutoSavePendingResult(XPCContext *xpcc) :
+    explicit AutoSavePendingResult(XPCContext *xpcc) :
         mXPCContext(xpcc)
     {
         
