@@ -303,6 +303,9 @@ struct JSCompartment
     js::LazyArrayBufferTable *lazyArrayBuffers;
 
     
+    mozilla::LinkedList<js::UnboxedLayout> unboxedLayouts;
+
+    
     unsigned                     gcIndex;
 
     
