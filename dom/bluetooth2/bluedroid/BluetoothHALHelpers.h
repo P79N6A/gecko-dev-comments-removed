@@ -766,6 +766,23 @@ Convert(btrc_remote_features_t aIn, unsigned long& aOut)
 }
 #endif 
 
+inline nsresult
+Convert(int aIn, BluetoothGattStatus& aOut)
+{
+  
+
+
+
+
+  if (!aIn) {
+    aOut = GATT_STATUS_SUCCESS;
+  } else {
+    aOut = GATT_STATUS_ERROR;
+  }
+
+  return NS_OK;
+}
+
 nsresult
 Convert(const uint8_t* aIn, BluetoothGattAdvData& aOut);
 
