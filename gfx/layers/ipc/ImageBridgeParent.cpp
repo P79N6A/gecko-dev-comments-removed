@@ -54,12 +54,15 @@ ImageBridgeParent::ImageBridgeParent(MessageLoop* aLoop,
   , mChildProcessId(aChildProcessId)
 {
   MOZ_ASSERT(NS_IsMainThread());
+  sMainLoop = MessageLoop::current();
+
+  
+  SetMessageLoopToPostDestructionTo(sMainLoop);
 
   
   
   CompositableMap::Create();
   sImageBridges[aChildProcessId] = this;
-  sMainLoop = MessageLoop::current();
 }
 
 ImageBridgeParent::~ImageBridgeParent()
@@ -274,21 +277,10 @@ MessageLoop * ImageBridgeParent::GetMessageLoop() const {
   return mMessageLoop;
 }
 
-static void
-DeferredReleaseImageBridgeParentOnMainThread(ImageBridgeParent* aDyingImageBridgeParent)
-{
-  aDyingImageBridgeParent->Release();
-}
-
 void
 ImageBridgeParent::DeferredDestroy()
 {
-  ImageBridgeParent* self;
-  mSelfRef.forget(&self);
-
-  sMainLoop->PostTask(
-    FROM_HERE,
-    NewRunnableFunction(&DeferredReleaseImageBridgeParentOnMainThread, this));
+  mSelfRef = nullptr;
 }
 
 ImageBridgeParent*
