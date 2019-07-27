@@ -528,7 +528,7 @@ this.ProviderManager.prototype = Object.freeze({
 
 
   _recordProviderError: function (name, msg, ex) {
-    let msg = "Provider error: " + name + ": " + msg;
+    msg = "Provider error: " + name + ": " + msg;
     if (ex) {
       msg += ": " + CommonUtils.exceptionStr(ex);
     }
