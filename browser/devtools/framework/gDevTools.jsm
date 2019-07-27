@@ -283,20 +283,10 @@ DevTools.prototype = {
 
       
       
-      
-      if (toolId != null) {
-        toolbox.once(toolId + "-selected", (event, panel) => {
-          this.emit("toolbox-ready", toolbox);
-          deferred.resolve(toolbox);
-        });
-        toolbox.open();
-      }
-      else {
-        toolbox.open().then(() => {
-          deferred.resolve(toolbox);
-          this.emit("toolbox-ready", toolbox);
-        });
-      }
+      toolbox.open().then(() => {
+        deferred.resolve(toolbox);
+        this.emit("toolbox-ready", toolbox);
+      });
     }
 
     return deferred.promise;

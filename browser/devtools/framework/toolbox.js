@@ -6,6 +6,7 @@
 
 const MAX_ORDINAL = 99;
 const ZOOM_PREF = "devtools.toolbox.zoomValue";
+const SPLITCONSOLE_ENABLED_PREF = "devtools.toolbox.splitconsoleEnabled";
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 2;
 
@@ -247,7 +248,6 @@ Toolbox.prototype = {
         this._buildDockButtons();
         this._buildOptions();
         this._buildTabs();
-        let buttonsPromise = this._buildButtons();
         this._applyCacheSettings();
         this._addKeysToWindow();
         this._addReloadKeys();
@@ -255,10 +255,20 @@ Toolbox.prototype = {
         this._addZoomKeys();
         this._loadInitialZoom();
 
+        let splitConsolePromise = promise.resolve();
+        if (Services.prefs.getBoolPref(SPLITCONSOLE_ENABLED_PREF)) {
+          
+          splitConsolePromise = this.toggleSplitConsole(true);
+        }
+        let buttonsPromise = this._buildButtons();
+
         this._telemetry.toolOpened("toolbox");
 
         this.selectTool(this._defaultToolId).then(panel => {
-          buttonsPromise.then(() => {
+          promise.all([
+            splitConsolePromise,
+            buttonsPromise
+          ]).then(() => {
             this.emit("ready");
             deferred.resolve();
           }, deferred.reject);
@@ -964,21 +974,33 @@ Toolbox.prototype = {
 
 
 
-  toggleSplitConsole: function() {
+
+
+
+
+
+
+
+  toggleSplitConsole: function(forceToggle = false) {
     let openedConsolePanel = this.currentToolId === "webconsole";
+    let ret = promise.resolve();
 
     
-    if (!openedConsolePanel) {
+    if (!openedConsolePanel || forceToggle) {
       this._splitConsole = !this._splitConsole;
+      Services.prefs.setBoolPref(SPLITCONSOLE_ENABLED_PREF, this._splitConsole);
+
       this._refreshConsoleDisplay();
       this.emit("split-console");
 
       if (this._splitConsole) {
-        this.loadTool("webconsole").then(() => {
+        ret = this.loadTool("webconsole").then(() => {
           this.focusConsoleInput();
         });
       }
     }
+
+    return ret;
   },
 
   
