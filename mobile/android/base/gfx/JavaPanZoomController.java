@@ -275,6 +275,11 @@ class JavaPanZoomController
             } else if (MESSAGE_TOUCH_LISTENER.equals(event)) {
                 int tabId = message.getInt("tabID");
                 final Tab tab = Tabs.getInstance().getTab(tabId);
+                
+                if (tab == null) {
+                    return;
+                }
+
                 tab.setHasTouchListeners(true);
                 mTarget.post(new Runnable() {
                     @Override
@@ -1348,17 +1353,13 @@ class JavaPanZoomController
         GeckoAppShell.sendEventToGecko(e);
     }
 
-    private boolean waitForDoubleTap() {
-        return !mMediumPress && mTarget.getZoomConstraints().getAllowDoubleTapZoom();
-    }
-
     @Override
     public boolean onSingleTapUp(MotionEvent motionEvent) {
         
         
         
         
-        if (!waitForDoubleTap()) {
+        if (mMediumPress || !mTarget.getZoomConstraints().getAllowDoubleTapZoom()) {
             sendPointToGecko("Gesture:SingleTap", motionEvent);
         }
         
@@ -1368,7 +1369,7 @@ class JavaPanZoomController
     @Override
     public boolean onSingleTapConfirmed(MotionEvent motionEvent) {
         
-        if (waitForDoubleTap()) {
+        if (mTarget.getZoomConstraints().getAllowDoubleTapZoom()) {
             sendPointToGecko("Gesture:SingleTap", motionEvent);
         }
         return true;
