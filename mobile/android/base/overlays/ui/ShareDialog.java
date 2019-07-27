@@ -59,7 +59,8 @@ public class ShareDialog extends Locales.LocaleAwareActivity implements SendTabT
     private static final String LOGTAG = "GeckoShareDialog";
 
     
-    public static final String INTENT_EXTRA_DEVICES_ONLY = "org.mozilla.gecko.intent.extra.DEVICES_ONLY";
+    public static final String INTENT_EXTRA_DEVICES_ONLY =
+            AppConstants.ANDROID_PACKAGE_NAME + ".intent.extra.DEVICES_ONLY";
 
     
     private static final int MAXIMUM_INLINE_DEVICES = 2;
