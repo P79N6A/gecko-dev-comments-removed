@@ -34,7 +34,7 @@ add_test(function test_registration_invalid_token() {
   MozLoopService.promiseRegisteredWithServers().then(() => {
     
     
-    Assert.equal(authorizationAttempts, 4); 
+    Assert.equal(authorizationAttempts, 2); 
     Assert.equal(Services.prefs.getCharPref(LOOP_HAWK_PREF), fakeSessionToken2);
     run_next_test();
   }, err => {

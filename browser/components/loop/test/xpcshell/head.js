@@ -32,6 +32,7 @@ Services.prefs.setBoolPref("loop.enabled", true);
 
 
 do_register_cleanup(() => {
+  Services.prefs.clearUserPref("loop.enabled");
   MozLoopService.errors.clear();
 });
 
@@ -47,6 +48,19 @@ function setupFakeLoopServer() {
   do_register_cleanup(function() {
     loopServer.stop(function() {});
     MozLoopServiceInternal.mocks.pushHandler = undefined;
+  });
+}
+
+
+
+
+function setupFakeFxAUserProfile() {
+  MozLoopServiceInternal.fxAOAuthTokenData = { token_type: "bearer" };
+  MozLoopServiceInternal.fxAOAuthProfile = { email: "fake@invalid.com" };
+
+  do_register_cleanup(function() {
+    MozLoopServiceInternal.fxAOAuthTokenData = null;
+    MozLoopServiceInternal.fxAOAuthProfile = null;
   });
 }
 

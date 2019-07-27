@@ -21,32 +21,28 @@ add_task(function test_initialize_no_expiry() {
 
 
 
-add_task(function test_initialize_expiry_past() {
-  
-  let nowSeconds = Date.now() / 1000;
-  Services.prefs.setIntPref("loop.urlsExpiryTimeSeconds", nowSeconds - 2);
+add_task(function test_initialize_no_guest_rooms() {
+  Services.prefs.setBoolPref("loop.createdRoom", false);
   startTimerCalled = false;
 
   MozLoopService.initialize();
 
   Assert.equal(startTimerCalled, false,
-    "should not register when expiry time is in past");
+    "should not register when no guest rooms have been created");
 });
 
 
 
 
 
-add_task(function test_initialize_starts_timer() {
-  
-  let nowSeconds = Date.now() / 1000;
-  Services.prefs.setIntPref("loop.urlsExpiryTimeSeconds", nowSeconds + 60);
+add_task(function test_initialize_with_guest_rooms() {
+  Services.prefs.setBoolPref("loop.createdRoom", true);
   startTimerCalled = false;
 
   MozLoopService.initialize();
 
   Assert.equal(startTimerCalled, true,
-    "should start the timer when expiry time is in the future");
+    "should start the timer when guest rooms have been created");
 });
 
 function run_test() {
@@ -57,6 +53,10 @@ function run_test() {
   MozLoopService.initializeTimerFunc = function() {
     startTimerCalled = true;
   };
+
+  do_register_cleanup(function() {
+    Services.prefs.clearUserPref("loop.createdRoom");
+  });
 
   run_next_test();
 }
