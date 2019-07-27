@@ -5864,6 +5864,20 @@ ComputeSnappedImageDrawingParameters(gfxContext*     aCtx,
 
     gfxRect anchoredDestRect(anchorPoint, scaledDest);
     gfxRect anchoredImageRect(imageSpaceAnchorPoint, imageSize);
+
+    
+    
+    if (fill.Width() != devPixelFill.Width() &&
+        devPixelDest.x == devPixelFill.x &&
+        devPixelDest.XMost() == devPixelFill.XMost()) {
+      anchoredDestRect.width = fill.width;
+    }
+    if (fill.Height() != devPixelFill.Height() &&
+        devPixelDest.y == devPixelFill.y &&
+        devPixelDest.YMost() == devPixelFill.YMost()) {
+      anchoredDestRect.height = fill.height;
+    }
+
     transform = TransformBetweenRects(anchoredImageRect, anchoredDestRect);
     invTransform = TransformBetweenRects(anchoredDestRect, anchoredImageRect);
   }
