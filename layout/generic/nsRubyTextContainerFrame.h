@@ -62,12 +62,18 @@ protected:
     NS_NewRubyTextContainerFrame(nsIPresShell* aPresShell,
                                  nsStyleContext* aContext);
   explicit nsRubyTextContainerFrame(nsStyleContext* aContext)
-    : nsRubyTextContainerFrameSuper(aContext) {}
+    : nsRubyTextContainerFrameSuper(aContext)
+    , mLineSize(mozilla::WritingMode(aContext)) {}
 
   void UpdateSpanFlag();
 
-  
   friend class nsRubyBaseContainerFrame;
+  void SetLineSize(const mozilla::LogicalSize& aSize) { mLineSize = aSize; }
+
+  
+  
+  
+  mozilla::LogicalSize mLineSize;
 };
 
 #endif 
