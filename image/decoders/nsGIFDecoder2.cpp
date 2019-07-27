@@ -824,10 +824,15 @@ nsGIFDecoder2::WriteInternal(const char* aBuffer, uint32_t aCount)
       mGIFStruct.is_transparent = *q & 0x1;
       mGIFStruct.tpixel = q[3];
       mGIFStruct.disposal_method = ((*q) >> 2) & 0x7;
-      
-      
+
       if (mGIFStruct.disposal_method == 4) {
+        
+        
         mGIFStruct.disposal_method = 3;
+      } else if (mGIFStruct.disposal_method > 4) {
+        
+        
+        mGIFStruct.disposal_method = 0;
       }
 
       {
