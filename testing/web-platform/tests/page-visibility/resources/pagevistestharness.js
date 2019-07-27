@@ -54,7 +54,7 @@ function pv_test(func, msg, doc)
             assert_true(visStateVal !== undefined && hiddenVal != null,
                         "document.visibilityState is defined and not null.");},
                         "document.visibilityState is defined and not null.");
-
+    
     }
 
     if (func)
