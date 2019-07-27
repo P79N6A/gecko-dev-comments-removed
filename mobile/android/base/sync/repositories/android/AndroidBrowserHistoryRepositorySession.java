@@ -34,7 +34,7 @@ public class AndroidBrowserHistoryRepositorySession extends AndroidBrowserReposi
   
 
 
-  public static final int INSERT_RECORD_THRESHOLD = 50;
+  public static int INSERT_RECORD_THRESHOLD = 50;
 
   public AndroidBrowserHistoryRepositorySession(Repository repository, Context context) {
     super(repository);
@@ -154,7 +154,7 @@ public class AndroidBrowserHistoryRepositorySession extends AndroidBrowserReposi
     super.finish(delegate);
   }
 
-  protected final Object recordsBufferMonitor = new Object();
+  protected Object recordsBufferMonitor = new Object();
   protected ArrayList<HistoryRecord> recordsBuffer = new ArrayList<HistoryRecord>();
 
   
@@ -223,7 +223,10 @@ public class AndroidBrowserHistoryRepositorySession extends AndroidBrowserReposi
       try {
         
         updateBookkeeping(succeeded);
-      } catch (NoGuidForIdException | ParentNotFoundException e) {
+      } catch (NoGuidForIdException e) {
+        
+        throw new NullCursorException(e);
+      } catch (ParentNotFoundException e) {
         
         throw new NullCursorException(e);
       } catch (NullCursorException e) {

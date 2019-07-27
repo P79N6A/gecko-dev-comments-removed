@@ -123,11 +123,13 @@ public abstract class EnvironmentV1 {
     EnvironmentAppender appender = null;
     try {
       appender = appenderClass.newInstance();
-    } catch (InstantiationException | IllegalAccessException ex) {
+    } catch (InstantiationException ex) {
+      
+      Logger.warn(LOG_TAG,  "Could not compute hash.", ex);
+    } catch (IllegalAccessException ex) {
       
       Logger.warn(LOG_TAG,  "Could not compute hash.", ex);
     }
-
     return appender;
   }
 
