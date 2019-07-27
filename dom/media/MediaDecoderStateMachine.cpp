@@ -222,8 +222,9 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
   mWaitingForDecoderSeek(false),
   mCurrentTimeBeforeSeek(0),
   mLastFrameStatus(MediaDecoderOwner::NEXT_FRAME_UNINITIALIZED),
-  mDecodingFrozenAtStateMetadata(false),
-  mDecodingFrozenAtStateDecoding(false)
+  mDecodingFrozenAtStateDecoding(false),
+  mSentLoadedMetadataEvent(false),
+  mSentFirstFrameLoadedEvent(false)
 {
   MOZ_COUNT_CTOR(MediaDecoderStateMachine);
   NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
@@ -1501,7 +1502,6 @@ void MediaDecoderStateMachine::SetDormant(bool aDormant)
     StopPlayback();
     mDecoder->GetReentrantMonitor().NotifyAll();
   } else if ((aDormant != true) && (mState == DECODER_STATE_DORMANT)) {
-    mDecodingFrozenAtStateMetadata = true;
     mDecodingFrozenAtStateDecoding = true;
     ScheduleStateMachine();
     mCurrentFrameTime = 0;
@@ -2233,8 +2233,20 @@ MediaDecoderStateMachine::EnqueueLoadedMetadataEvent()
   nsAutoPtr<MediaInfo> info(new MediaInfo());
   *info = mInfo;
   nsCOMPtr<nsIRunnable> metadataLoadedEvent =
-    new MetadataEventRunner(mDecoder, info, mMetadataTags);
+    new MetadataEventRunner(mDecoder, info, mMetadataTags, mSentLoadedMetadataEvent);
   NS_DispatchToMainThread(metadataLoadedEvent, NS_DISPATCH_NORMAL);
+  mSentLoadedMetadataEvent = true;
+}
+
+void
+MediaDecoderStateMachine::EnqueueFirstFrameLoadedEvent()
+{
+  nsAutoPtr<MediaInfo> info(new MediaInfo());
+  *info = mInfo;
+  nsCOMPtr<nsIRunnable> event =
+    new FirstFrameLoadedEventRunner(mDecoder, info, mSentFirstFrameLoadedEvent);
+  NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
+  mSentFirstFrameLoadedEvent = true;
 }
 
 void
@@ -2273,7 +2285,10 @@ MediaDecoderStateMachine::DecodeFirstFrame()
     SetStartTime(0);
     nsresult res = FinishDecodeFirstFrame();
     NS_ENSURE_SUCCESS(res, res);
-  } else if (mDecodingFrozenAtStateMetadata) {
+  } else if (mSentFirstFrameLoadedEvent) {
+    
+    
+    
     SetStartTime(mStartTime);
     nsresult res = FinishDecodeFirstFrame();
     NS_ENSURE_SUCCESS(res, res);
@@ -2308,7 +2323,7 @@ MediaDecoderStateMachine::FinishDecodeFirstFrame()
     return NS_ERROR_FAILURE;
   }
 
-  if (!IsRealTime() && !mDecodingFrozenAtStateMetadata) {
+  if (!IsRealTime() && !mSentFirstFrameLoadedEvent) {
     const VideoData* v = VideoQueue().PeekFront();
     const AudioData* a = AudioQueue().PeekFront();
     SetStartTime(mReader->ComputeStartTime(v, a));
@@ -2327,8 +2342,6 @@ MediaDecoderStateMachine::FinishDecodeFirstFrame()
               mStartTime, mEndTime, GetDuration(),
               mDecoder->IsTransportSeekable(), mDecoder->IsMediaSeekable());
 
-  mDecodingFrozenAtStateMetadata = false;
-
   if (HasAudio() && !HasVideo()) {
     
     
@@ -2345,20 +2358,15 @@ MediaDecoderStateMachine::FinishDecodeFirstFrame()
 
   nsAutoPtr<MediaInfo> info(new MediaInfo());
   *info = mInfo;
-  nsCOMPtr<nsIRunnable> event;
   if (!mGotDurationFromMetaData) {
     
     
-    event =
-      new MetadataUpdatedEventRunner(mDecoder,
-                                     info,
-                                     mMetadataTags);
+    EnqueueLoadedMetadataEvent();
+    EnqueueFirstFrameLoadedEvent();
   } else {
     
-    event =
-      new FirstFrameLoadedEventRunner(mDecoder, info);
+    EnqueueFirstFrameLoadedEvent();
   }
-  NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
 
   if (mState == DECODER_STATE_DECODING_FIRSTFRAME) {
     StartDecoding();

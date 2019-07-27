@@ -628,6 +628,8 @@ protected:
   
   void EnqueueLoadedMetadataEvent();
 
+  void EnqueueFirstFrameLoadedEvent();
+
   
   
   
@@ -1125,14 +1127,17 @@ protected:
 
   
   
-  
-  
-  
-  
-  
-  
-  bool mDecodingFrozenAtStateMetadata;
   bool mDecodingFrozenAtStateDecoding;
+
+  
+  
+  bool mSentLoadedMetadataEvent;
+  
+  
+  
+  
+  
+  bool mSentFirstFrameLoadedEvent;
 };
 
 } 
