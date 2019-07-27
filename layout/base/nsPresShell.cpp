@@ -7171,6 +7171,9 @@ PresShell::HandleEvent(nsIFrame* aFrame,
 
         if (pointerCapturingContent) {
           if (nsIFrame* capturingFrame = pointerCapturingContent->GetPrimaryFrame()) {
+            
+            
+            pointerEvent->retargetedByPointerCapture = (frame != capturingFrame);
             frame = capturingFrame;
           }
 
