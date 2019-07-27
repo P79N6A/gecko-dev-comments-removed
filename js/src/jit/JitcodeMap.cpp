@@ -123,24 +123,7 @@ JitcodeGlobalEntry::compare(const JitcodeGlobalEntry &ent1, const JitcodeGlobalE
     
     JS_ASSERT_IF(!ent1.isQuery() && !ent2.isQuery(), !ent1.overlapsWith(ent2));
 
-    
-    if (!ent1.isQuery() && !ent2.isQuery())
-        return ComparePointers(ent1.nativeStartAddr(), ent2.nativeStartAddr());
-
-    void *ptr = ent1.isQuery() ? ent1.nativeStartAddr() : ent2.nativeStartAddr();
-    const JitcodeGlobalEntry &ent = ent1.isQuery() ? ent2 : ent1;
-    int flip = ent1.isQuery() ? 1 : -1;
-
-    if (ent.startsBelowPointer(ptr)) {
-        if (ent.endsAbovePointer(ptr))
-            return 0;
-
-        
-        return flip * 1;
-    }
-
-    
-    return flip * -1;
+    return ComparePointers(ent1.nativeStartAddr(), ent2.nativeStartAddr());
 }
 
 bool
