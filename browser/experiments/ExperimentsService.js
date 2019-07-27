@@ -21,7 +21,12 @@ const PREF_EXPERIMENTS_ENABLED  = "experiments.enabled";
 const PREF_ACTIVE_EXPERIMENT    = "experiments.activeExperiment"; 
 const PREF_HEALTHREPORT_ENABLED = "datareporting.healthreport.service.enabled";
 const PREF_TELEMETRY_ENABLED    = "toolkit.telemetry.enabled";
+const PREF_TELEMETRY_UNIFIED    = "toolkit.telemetry.unified";
 const DELAY_INIT_MS             = 30 * 1000;
+
+
+
+const IS_UNIFIED_TELEMETRY = Preferences.get(PREF_TELEMETRY_UNIFIED, false);
 
 XPCOMUtils.defineLazyGetter(
   this, "gPrefs", () => {
@@ -30,9 +35,11 @@ XPCOMUtils.defineLazyGetter(
 
 XPCOMUtils.defineLazyGetter(
   this, "gExperimentsEnabled", () => {
+    
+    
     return gPrefs.get(PREF_EXPERIMENTS_ENABLED, false) &&
-           gPrefs.get(PREF_TELEMETRY_ENABLED, false) &&
-           gPrefs.get(PREF_HEALTHREPORT_ENABLED, false);
+           (gPrefs.get(PREF_HEALTHREPORT_ENABLED, false) || IS_UNIFIED_TELEMETRY) &&
+           gPrefs.get(PREF_TELEMETRY_ENABLED, false);
   });
 
 XPCOMUtils.defineLazyGetter(
