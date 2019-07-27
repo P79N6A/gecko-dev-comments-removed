@@ -81,6 +81,13 @@ public:
     return mContext;
   }
 
+  
+  void
+  SetContext(RequestContext aContext)
+  {
+    mContext = aContext;
+  }
+
   void
   GetReferrer(nsAString& aReferrer) const
   {
