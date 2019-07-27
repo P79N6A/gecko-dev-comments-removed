@@ -88,6 +88,8 @@ public:
   typedef DeadlockDetector<BlockingResourceBase> DDT;
 
 protected:
+  typedef bool AcquisitionState;
+
   
 
 
@@ -184,7 +186,7 @@ protected:
 
 
 
-  bool GetAcquisitionState()
+  AcquisitionState GetAcquisitionState()
   {
     return mAcquired;
   }
@@ -195,7 +197,7 @@ protected:
 
 
 
-  void SetAcquisitionState(bool aAcquisitionState)
+  void SetAcquisitionState(const AcquisitionState& aAcquisitionState)
   {
     mAcquired = aAcquisitionState;
   }
@@ -227,7 +229,7 @@ private:
 
 
 
-  bool mAcquired;
+  AcquisitionState mAcquired;
 
   
 

@@ -340,7 +340,7 @@ ReentrantMonitor::Wait(PRIntervalTime aInterval)
 
   
   int32_t savedEntryCount = mEntryCount;
-  bool savedAcquisitionState = GetAcquisitionState();
+  AcquisitionState savedAcquisitionState = GetAcquisitionState();
   BlockingResourceBase* savedChainPrev = mChainPrev;
   mEntryCount = 0;
   SetAcquisitionState(false);
@@ -377,7 +377,7 @@ CondVar::Wait(PRIntervalTime aInterval)
   AssertCurrentThreadOwnsMutex();
 
   
-  bool savedAcquisitionState = mLock->GetAcquisitionState();
+  AcquisitionState savedAcquisitionState = mLock->GetAcquisitionState();
   BlockingResourceBase* savedChainPrev = mLock->mChainPrev;
   mLock->SetAcquisitionState(false);
   mLock->mChainPrev = 0;
