@@ -73,12 +73,6 @@ enum ProcessPriority {
   NUM_PROCESS_PRIORITY
 };
 
-enum ProcessCPUPriority {
-  PROCESS_CPU_PRIORITY_LOW,
-  PROCESS_CPU_PRIORITY_NORMAL,
-  NUM_PROCESS_CPU_PRIORITY
-};
-
 
 
 
@@ -98,13 +92,8 @@ enum ThreadPriority {
 
 
 
-
 const char*
 ProcessPriorityToString(ProcessPriority aPriority);
-
-const char*
-ProcessPriorityToString(ProcessPriority aPriority,
-                        ProcessCPUPriority aCPUPriority);
 
 
 

@@ -111,8 +111,7 @@ const browserElementTestHelpers = {
 
 
 
-function expectProcessCreated( initialPriority,
-                               initialCPUPriority) {
+function expectProcessCreated( initialPriority) {
   return new Promise(function(resolve, reject) {
     var observed = false;
     browserElementTestHelpers.addProcessPriorityObserver(
@@ -128,7 +127,7 @@ function expectProcessCreated( initialPriority,
         var childID = parseInt(data);
         ok(true, 'Got new process, id=' + childID);
         if (initialPriority) {
-          expectPriorityChange(childID, initialPriority, initialCPUPriority).then(function() {
+          expectPriorityChange(childID, initialPriority).then(function() {
             resolve(childID);
           });
         } else {
@@ -141,9 +140,8 @@ function expectProcessCreated( initialPriority,
 
 
 
-function expectOnlyOneProcessCreated( initialPriority,
-                                      initialCPUPriority) {
-  var p = expectProcessCreated(initialPriority, initialCPUPriority);
+function expectOnlyOneProcessCreated( initialPriority) {
+  var p = expectProcessCreated(initialPriority);
   p.then(function() {
     expectProcessCreated().then(function(childID) {
       ok(false, 'Got unexpected process creation, childID=' + childID);
@@ -156,12 +154,7 @@ function expectOnlyOneProcessCreated( initialPriority,
 
 
 
-
-
-
-
-function expectPriorityChange(childID, expectedPriority,
-                               expectedCPUPriority) {
+function expectPriorityChange(childID, expectedPriority) {
   return new Promise(function(resolve, reject) {
     var observed = false;
     browserElementTestHelpers.addProcessPriorityObserver(
@@ -171,7 +164,7 @@ function expectPriorityChange(childID, expectedPriority,
           return;
         }
 
-        var [id, priority, cpuPriority] = data.split(":");
+        var [id, priority] = data.split(":");
         if (id != childID) {
           return;
         }
@@ -184,14 +177,7 @@ function expectPriorityChange(childID, expectedPriority,
            'Expected priority of childID ' + childID +
            ' to change to ' + expectedPriority);
 
-        if (expectedCPUPriority) {
-          is(cpuPriority, expectedCPUPriority,
-             'Expected CPU priority of childID ' + childID +
-             ' to change to ' + expectedCPUPriority);
-        }
-
-        if (priority == expectedPriority &&
-            (!expectedCPUPriority || expectedCPUPriority == cpuPriority)) {
+        if (priority == expectedPriority) {
           resolve();
         } else {
           reject();
@@ -212,13 +198,14 @@ function expectPriorityWithBackgroundLRUSet(childID, expectedBackgroundLRU) {
       'process-priority-with-background-LRU-set',
       function(subject, topic, data) {
 
-        var [id, priority, cpuPriority, backgroundLRU] = data.split(":");
+        var [id, priority, backgroundLRU] = data.split(":");
         if (id != childID) {
           return;
         }
 
         is(backgroundLRU, expectedBackgroundLRU,
-           'Expected backgroundLRU ' + backgroundLRU + ' of childID ' + childID +
+           'Expected backgroundLRU ' + backgroundLRU +
+           ' of childID ' + childID +
            ' to change to ' + expectedBackgroundLRU);
 
         if (backgroundLRU == expectedBackgroundLRU) {
