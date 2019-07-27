@@ -98,10 +98,19 @@ LIRGeneratorX86::visitBox(MBox *box)
 void
 LIRGeneratorX86::visitUnbox(MUnbox *unbox)
 {
-    
-    
-    
     MDefinition *inner = unbox->getOperand(0);
+
+    if (inner->type() == MIRType_ObjectOrNull) {
+        LUnboxObjectOrNull *lir = new(alloc()) LUnboxObjectOrNull(useRegisterAtStart(inner));
+        if (unbox->fallible())
+            assignSnapshot(lir, unbox->bailoutKind());
+        defineReuseInput(lir, unbox, 0);
+        return;
+    }
+
+    
+    
+    
     MOZ_ASSERT(inner->type() == MIRType_Value);
 
     ensureDefined(inner);

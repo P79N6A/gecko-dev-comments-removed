@@ -1728,7 +1728,9 @@ SnapshotIterator::fromStack(int32_t offset) const
 static Value
 FromObjectPayload(uintptr_t payload)
 {
-    return ObjectValue(*reinterpret_cast<JSObject *>(payload));
+    
+    
+    return ObjectOrNullValue(reinterpret_cast<JSObject *>(payload));
 }
 
 static Value
