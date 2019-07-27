@@ -74,8 +74,11 @@ CanvasClient2D::Update(gfx::IntSize aSize, ClientCanvasLayer* aLayer)
 
     gfx::SurfaceFormat surfaceFormat = gfx::ImageFormatToSurfaceFormat(format);
     mBuffer = CreateTextureClientForCanvas(surfaceFormat, aSize, flags, aLayer);
+    if (!mBuffer) {
+      NS_WARNING("Failed to allocate the TextureClient");
+      return;
+    }
     MOZ_ASSERT(mBuffer->CanExposeDrawTarget());
-    mBuffer->AllocateForSurface(aSize);
 
     bufferCreated = true;
   }
@@ -118,16 +121,20 @@ CanvasClient2D::CreateTextureClientForCanvas(gfx::SurfaceFormat aFormat,
     
     
     
-    return CreateBufferTextureClient(aFormat, aFlags, BackendType::CAIRO);
+    return TextureClient::CreateForRawBufferAccess(GetForwarder(),
+                                                   aFormat, aSize, BackendType::CAIRO,
+                                                   mTextureInfo.mTextureFlags | aFlags);
   }
 
   gfx::BackendType backend = gfxPlatform::GetPlatform()->GetPreferredCanvasBackend();
 #ifdef XP_WIN
-  return CreateTextureClientForDrawing(aFormat, aFlags, backend, aSize);
+  return CreateTextureClientForDrawing(aFormat, aSize, backend, aFlags);
 #else
   
   
-  return CreateBufferTextureClient(aFormat, aFlags, backend);
+  return TextureClient::CreateForRawBufferAccess(GetForwarder(),
+                                                 aFormat, aSize, backend,
+                                                 mTextureInfo.mTextureFlags | aFlags);
 #endif
 }
 
