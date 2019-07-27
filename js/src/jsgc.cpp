@@ -3232,7 +3232,7 @@ GCHelperState::finish()
 }
 
 GCHelperState::State
-GCHelperState::state()
+GCHelperState::state() const
 {
     JS_ASSERT(rt->gc.currentThreadOwnsGCLock());
     return state_;
@@ -3381,6 +3381,15 @@ GCHelperState::waitBackgroundSweepOrAllocEnd()
         waitForBackgroundThread();
     if (rt->gc.incrementalState == NO_INCREMENTAL)
         rt->gc.assertBackgroundSweepingFinished();
+}
+
+void
+GCHelperState::assertStateIsIdle() const
+{
+#ifdef DEBUG
+    AutoLockGC lock(rt);
+    JS_ASSERT(state() == IDLE);
+#endif
 }
 
 
@@ -5539,14 +5548,15 @@ GCRuntime::gcCycle(bool incremental, int64_t budget, JSGCInvocationKind gckind,
     JS::AutoAssertOnGC::VerifyIsSafeToGC(rt);
 
     
-
-
-
-
-
-    {
+    
+    
+    
+    if (incrementalState == NO_INCREMENTAL) {
         gcstats::AutoPhase ap(stats, gcstats::PHASE_WAIT_BACKGROUND_THREAD);
         waitBackgroundSweepOrAllocEnd();
+    } else {
+        
+        helperState.assertStateIsIdle();
     }
 
     State prevState = incrementalState;
