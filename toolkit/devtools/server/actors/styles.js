@@ -249,14 +249,47 @@ var PageStyleActor = protocol.ActorClass({
 
 
 
+  getAllUsedFontFaces: method(function(options) {
+    let windows = this.inspector.tabActor.windows;
+    let fontsList = [];
+    for(let win of windows){
+      fontsList = [...fontsList,
+                   ...this.getUsedFontFaces(win.document.body, options)];
+    }
+    return fontsList;
+  },
+  {
+    request: {
+      includePreviews: Option(0, "boolean"),
+      previewText: Option(0, "string"),
+      previewFontSize: Option(0, "string"),
+      previewFillStyle: Option(0, "string")
+    },
+    response: {
+      fontFaces: RetVal("array:fontface")
+    }
+  }),
+
+  
+
+
+
+
+
+
+
+
+
+
 
 
   getUsedFontFaces: method(function(node, options) {
-    let contentDocument = node.rawNode.ownerDocument;
-
+    
+    let actualNode = node.rawNode || node;
+    let contentDocument = actualNode.ownerDocument;
     
     let rng = contentDocument.createRange();
-    rng.selectNodeContents(node.rawNode);
+    rng.selectNodeContents(actualNode);
     let fonts = DOMUtils.getUsedFontFaces(rng);
     let fontsArray = [];
 
