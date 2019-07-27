@@ -26,7 +26,7 @@ function tenure(obj) {
 
 function tByteSize(obj) {
   var size = byteSize(obj);
-  gc();
+  minorgc();
   if (size != byteSize(obj))
     return 0;
   return size;
