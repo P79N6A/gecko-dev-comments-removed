@@ -90,7 +90,7 @@ public:
   
   
   nsTHashtable()
-    : mTable(Ops(), sizeof(EntryType), PL_DHASH_DEFAULT_INITIAL_LENGTH)
+    : mTable(Ops(), sizeof(EntryType), PLDHashTable::kDefaultInitialLength)
   {}
   explicit nsTHashtable(uint32_t aInitLength)
     : mTable(Ops(), sizeof(EntryType), aInitLength)

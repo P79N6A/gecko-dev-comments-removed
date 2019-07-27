@@ -78,7 +78,7 @@ void
 InitCapacityOk_InitialLengthTooBig()
 {
   PLDHashTable t(PL_DHashGetStubOps(), sizeof(PLDHashEntryStub),
-                 PL_DHASH_MAX_INITIAL_LENGTH + 1);
+                 PLDHashTable::kMaxInitialLength + 1);
 }
 
 void
@@ -96,7 +96,7 @@ TEST(PLDHashTableTest, InitCapacityOk)
   
   
   PLDHashTable t1(PL_DHashGetStubOps(), sizeof(PLDHashEntryStub),
-                 PL_DHASH_MAX_INITIAL_LENGTH);
+                  PLDHashTable::kMaxInitialLength);
 
   
   
@@ -314,7 +314,7 @@ TEST(PLDHashTableTest, Iterator)
     iter.Remove();
   }
   ASSERT_EQ(t.EntryCount(), 0u);
-  ASSERT_EQ(t.Capacity(), unsigned(PL_DHASH_MIN_CAPACITY));
+  ASSERT_EQ(t.Capacity(), unsigned(PLDHashTable::kMinCapacity));
 }
 
 
@@ -337,7 +337,8 @@ TEST(PLDHashTableTest, GrowToMaxCapacity)
 
   
   
-  if (numInserted != PL_DHASH_MAX_CAPACITY - (PL_DHASH_MAX_CAPACITY >> 5)) {
+  if (numInserted !=
+      PLDHashTable::kMaxCapacity - (PLDHashTable::kMaxCapacity >> 5)) {
     delete t;
     ASSERT_TRUE(false);
   }

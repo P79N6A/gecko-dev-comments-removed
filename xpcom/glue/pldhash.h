@@ -25,33 +25,6 @@
 #define PL_DHASH_FASTCALL
 #endif
 
-
-
-
-
-
-
-
-#define PL_DHASH_MAX_CAPACITY           ((uint32_t)1 << 26)
-
-#define PL_DHASH_MIN_CAPACITY           8
-
-
-
-
-
-#define PL_DHASH_MAX_INITIAL_LENGTH     (PL_DHASH_MAX_CAPACITY / 2)
-
-
-#define PL_DHASH_DEFAULT_INITIAL_LENGTH 4
-
-
-
-
-
-#define PL_DHASH_BITS           32
-#define PL_DHASH_GOLDEN_RATIO   0x9E3779B9U
-
 typedef uint32_t PLDHashNumber;
 
 class PLDHashTable;
@@ -270,10 +243,27 @@ public:
   
   
   
+  static const uint32_t kMaxCapacity = ((uint32_t)1 << 26);
+
+  static const uint32_t kMinCapacity = 8;
+
+  
+  
+  static const uint32_t kMaxInitialLength = kMaxCapacity / 2;
+
+  
+  static const uint32_t kDefaultInitialLength = 4;
+
+  
+  
+  
+  
+  
+  
   
   
   PLDHashTable(const PLDHashTableOps* aOps, uint32_t aEntrySize,
-               uint32_t aLength = PL_DHASH_DEFAULT_INITIAL_LENGTH);
+               uint32_t aLength = kDefaultInitialLength);
 
   PLDHashTable(PLDHashTable&& aOther)
       
@@ -420,13 +410,20 @@ public:
   }
 
 private:
+  
+  
+  static const uint32_t kHashBits = 32;
+  static const uint32_t kGoldenRatio = 0x9E3779B9U;
+
+  static uint32_t HashShift(uint32_t aEntrySize, uint32_t aLength);
+
   static bool EntryIsFree(PLDHashEntryHdr* aEntry);
 
   
   
   uint32_t CapacityFromHashShift() const
   {
-    return ((uint32_t)1 << (PL_DHASH_BITS - mHashShift));
+    return ((uint32_t)1 << (kHashBits - mHashShift));
   }
 
   PLDHashNumber ComputeKeyHash(const void* aKey);
