@@ -107,6 +107,10 @@ private:
   nsTArray<nsRefPtr<SourceBufferDecoder>> mDecoders;
 
   
+  
+  nsTArray<nsRefPtr<SourceBufferDecoder>> mInitializedDecoders;
+
+  
   nsRefPtr<SourceBufferDecoder> mCurrentDecoder;
 
   nsRefPtr<MediaSourceDecoder> mParentDecoder;
