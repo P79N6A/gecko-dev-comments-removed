@@ -34,6 +34,7 @@
 #include "nsThreadUtils.h"
 #include "nsContentUtils.h"
 #include "timeline/TimelineMarker.h"
+#include "timeline/TimelineConsumers.h"
 
 
 #define REFRESH_REDIRECT_TIMER 15000
@@ -261,10 +262,6 @@ public:
   
   void AddProfileTimelineMarker(const char* aName, TracingMetadata aMetaData);
   void AddProfileTimelineMarker(mozilla::UniquePtr<TimelineMarker>&& aMarker);
-
-  
-  
-  static unsigned long gProfileTimelineRecordingsCount;
 
   class ObservedDocShell : public mozilla::LinkedListElement<ObservedDocShell>
   {
