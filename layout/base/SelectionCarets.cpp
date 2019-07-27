@@ -63,13 +63,6 @@ static const int32_t kMoveStartTolerancePx = 5;
 
 static const int32_t kScrollEndTimerDelay = 300;
 
-
-
-
-
-
-static bool kSupportNonEditableFields = false;
-
 NS_IMPL_ISUPPORTS(SelectionCarets,
                   nsIReflowObserver,
                   nsISelectionListener,
@@ -102,8 +95,6 @@ SelectionCarets::SelectionCarets(nsIPresShell* aPresShell)
   if (!addedPref) {
     Preferences::AddIntVarCache(&sSelectionCaretsInflateSize,
                                 "selectioncaret.inflatesize.threshold");
-    Preferences::AddBoolVarCache(&kSupportNonEditableFields,
-                                 "selectioncaret.noneditable");
     addedPref = true;
   }
 }
@@ -503,14 +494,6 @@ SelectionCarets::UpdateSelectionCarets()
   }
 
   
-  
-  if (!kSupportNonEditableFields &&
-      (!startFrame->GetContent()->IsEditable() ||
-       !endFrame->GetContent()->IsEditable())) {
-    return;
-  }
-
-  
   if (nsLayoutUtils::CompareTreePosition(startFrame, endFrame) > 0) {
     SetVisibility(false);
     return;
@@ -612,12 +595,6 @@ SelectionCarets::SelectWord()
   nsIFrame *ptFrame = nsLayoutUtils::GetFrameForPoint(rootFrame, mDownPoint,
     nsLayoutUtils::IGNORE_PAINT_SUPPRESSION | nsLayoutUtils::IGNORE_CROSS_DOC);
   if (!ptFrame) {
-    return NS_OK;
-  }
-
-  
-  
-  if (!kSupportNonEditableFields && !ptFrame->GetContent()->IsEditable()) {
     return NS_OK;
   }
 

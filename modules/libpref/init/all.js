@@ -4364,7 +4364,6 @@ pref("touchcaret.expiration.time", 3000);
 
 
 pref("selectioncaret.enabled", false);
-pref("selectioncaret.noneditable", false);
 
 
 
