@@ -2539,7 +2539,8 @@ public class BrowserApp extends GeckoApp
     @Override
     public void openOptionsMenu() {
         
-        if (mBrowserToolbar.isEditing()) {
+        
+        if (mBrowserToolbar.isEditing() && !NewTabletUI.isEnabled(this)) {
             return;
         }
 
