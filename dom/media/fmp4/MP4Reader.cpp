@@ -92,10 +92,28 @@ InvokeAndRetry(ThisType* aThisVal, ReturnType(ThisType::*aMethod)(), MP4Stream* 
       return result;
     }
     prevFailure = failure;
-    nsAutoArrayPtr<uint8_t> dummyBuffer(new uint8_t[failure.mCount]);
-    size_t ignored;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    size_t bufferSize = failure.mCount + (MediaCacheStream::BLOCK_SIZE - failure.mCount % MediaCacheStream::BLOCK_SIZE);
+    nsAutoArrayPtr<uint8_t> dummyBuffer(new uint8_t[bufferSize]);
     MonitorAutoUnlock unlock(*aMonitor);
-    if (!stream->BlockingReadAt(failure.mOffset, dummyBuffer, failure.mCount, &ignored)) {
+    size_t ignored;
+    if (NS_WARN_IF(!stream->BlockingReadAt(failure.mOffset, dummyBuffer, bufferSize, &ignored))) {
       return result;
     }
   }
