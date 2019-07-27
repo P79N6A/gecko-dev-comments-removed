@@ -682,6 +682,11 @@ public final class GeckoProfile {
 
                 final ContentResolver cr = context.getContentResolver();
 
+                
+                
+                
+                
+                
                 final int offset = BrowserDB.addDistributionBookmarks(cr, distribution, 0);
                 BrowserDB.addDefaultBookmarks(context, cr, offset);
             }

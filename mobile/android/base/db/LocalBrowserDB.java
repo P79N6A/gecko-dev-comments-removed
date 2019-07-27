@@ -10,8 +10,8 @@ import java.io.File;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
@@ -116,11 +116,40 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
     
 
 
+    private static class NameCounter {
+        private final HashMap<String, Integer> names = new HashMap<String, Integer>();
+        private int counter = 0;
+        private final int increment;
+
+        public NameCounter(int start, int increment) {
+            this.counter = start;
+            this.increment = increment;
+        }
+
+        public int get(final String name) {
+            Integer mapping = names.get(name);
+            if (mapping == null) {
+                int ours = counter;
+                counter += increment;
+                names.put(name, ours);
+                return ours;
+            }
+            return mapping.intValue();
+        }
+
+        public boolean has(final String name) {
+            return names.containsKey(name);
+        }
+    }
+
+    
+
+
 
     @Override
     public int addDefaultBookmarks(Context context, ContentResolver cr, final int offset) {
-        long folderId = getFolderIdFromGuid(cr, Bookmarks.MOBILE_FOLDER_GUID);
-        if (folderId == -1L) {
+        long folderID = getFolderIdFromGuid(cr, Bookmarks.MOBILE_FOLDER_GUID);
+        if (folderID == -1L) {
             Log.e(LOGTAG, "No mobile folder: cannot add default bookmarks.");
             return offset;
         }
@@ -136,6 +165,10 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
 
         final ArrayList<ContentValues> bookmarkValues = new ArrayList<ContentValues>();
         final ArrayList<ContentValues> faviconValues = new ArrayList<ContentValues>();
+
+        
+        final NameCounter faviconIDs = new NameCounter((-1 - offset), -1);
+
         for (int i = 0; i < fields.length; i++) {
             final String name = fields[i].getName();
             final Matcher m = p.matcher(name);
@@ -144,14 +177,15 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
             }
 
             try {
-                final int titleid = fields[i].getInt(null);
-                final String title = context.getString(titleid);
+                final int titleID = fields[i].getInt(null);
+                final String title = context.getString(titleID);
 
                 final Field urlField = stringsClass.getField(name.replace("_title_", "_url_"));
-                final int urlId = urlField.getInt(null);
-                final String url = context.getString(urlId);
+                final int urlID = urlField.getInt(null);
+                final String url = context.getString(urlID);
 
-                bookmarkValues.add(createBookmark(now, title, url, pos++, folderId));
+                final ContentValues bookmarkValue = createBookmark(now, title, url, pos++, folderID);
+                bookmarkValues.add(bookmarkValue);
 
                 Bitmap icon = getDefaultFaviconFromPath(context, name);
                 if (icon == null) {
@@ -162,7 +196,14 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
                 }
 
                 final ContentValues iconValue = createFavicon(url, icon);
+
+                
+                
+                
                 if (iconValue != null) {
+                    final int faviconID = faviconIDs.get(name);
+                    iconValue.put("_id", faviconID);
+                    bookmarkValue.put(Bookmarks.FAVICON_ID, faviconID);
                     faviconValues.add(iconValue);
                 }
             } catch (IllegalAccessException e) {
@@ -224,6 +265,10 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
 
         final ArrayList<ContentValues> bookmarkValues = new ArrayList<ContentValues>();
         final ArrayList<ContentValues> faviconValues = new ArrayList<ContentValues>();
+
+        
+        final NameCounter faviconIDs = new NameCounter((-1 - offset), -1);
+
         for (int i = 0; i < bookmarks.length(); i++) {
             try {
                 final JSONObject bookmark = bookmarks.getJSONObject(i);
@@ -240,7 +285,8 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
                     pos = mobilePos++;
                 }
 
-                bookmarkValues.add(createBookmark(now, title, url, pos, parent));
+                final ContentValues bookmarkValue = createBookmark(now, title, url, pos, parent);
+                bookmarkValues.add(bookmarkValue);
 
                 
                 if (!bookmark.has("icon")) {
@@ -253,8 +299,27 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
                     if (icon == null) {
                         continue;
                     }
+
                     final ContentValues iconValue = createFavicon(url, icon);
-                    if (iconValue != null) {
+
+                    if (iconValue == null) {
+                        continue;
+                    }
+
+                    
+
+
+
+
+
+
+                    final boolean seen = faviconIDs.has(iconData);
+                    final int faviconID = faviconIDs.get(iconData);
+
+                    iconValue.put("_id", faviconID);
+                    bookmarkValue.put(Bookmarks.FAVICON_ID, faviconID);
+
+                    if (!seen) {
                         faviconValues.add(iconValue);
                     }
                 } catch (JSONException e) {
