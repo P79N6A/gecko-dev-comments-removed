@@ -2027,9 +2027,14 @@ AbstractCanvasGraph.createIframe = function(url, parent, callback) {
     callback(iframe);
   });
 
+  
+  
   iframe.setAttribute("frameborder", "0");
+  iframe.style.width = "100%";
+  iframe.style.minWidth = "50px";
   iframe.src = url;
 
+  parent.style.display = "flex";
   parent.appendChild(iframe);
 };
 
