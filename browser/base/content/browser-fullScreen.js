@@ -92,6 +92,8 @@ var FullScreen = {
       
       this._isPopupOpen = false;
 
+      document.documentElement.removeAttribute("inDOMFullscreen");
+
       this.cleanup();
     }
   },
@@ -156,9 +158,7 @@ var FullScreen = {
       return;
     }
 
-    
-    if (!document.getElementById("sidebar-box").hidden)
-      toggleSidebar();
+    document.documentElement.setAttribute("inDOMFullscreen", true);
 
     if (gFindBarInitialized)
       gFindBar.close();
