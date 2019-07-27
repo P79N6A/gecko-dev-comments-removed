@@ -108,6 +108,9 @@ pref("offline-apps.quota.warn",        51200);
 pref("browser.cache.compression_level", 0);
 
 
+pref("dom.abortablepromise.enabled", false);
+
+
 pref("dom.quotaManager.testing", false);
 
 
