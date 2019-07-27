@@ -154,7 +154,8 @@ TypeUtils::ToCacheRequest(CacheRequest& aOut, InternalRequest* aIn,
   aIn->GetURL(aOut.url());
 
   bool schemeValid;
-  ProcessURL(aOut.url(), &schemeValid, &aOut.urlWithoutQuery(), aRv);
+  ProcessURL(aOut.url(), &schemeValid, &aOut.urlWithoutQuery(),
+             &aOut.urlQuery(), aRv);
   if (aRv.Failed()) {
     return;
   }
@@ -205,7 +206,7 @@ TypeUtils::ToCacheResponseWithoutBody(CacheResponse& aOut,
   if (aOut.url() != EmptyCString()) {
     
     
-    ProcessURL(aOut.url(), nullptr, nullptr, aRv);
+    ProcessURL(aOut.url(), nullptr, nullptr, nullptr, aRv);
     if (aRv.Failed()) {
       return;
     }
@@ -373,7 +374,8 @@ TypeUtils::ToInternalHeaders(const nsTArray<HeadersEntry>& aHeadersEntryList,
 
 void
 TypeUtils::ProcessURL(nsACString& aUrl, bool* aSchemeValidOut,
-                      nsACString* aUrlWithoutQueryOut, ErrorResult& aRv)
+                      nsACString* aUrlWithoutQueryOut,nsACString* aUrlQueryOut,
+                      ErrorResult& aRv)
 {
   const nsAFlatCString& flatURL = PromiseFlatCString(aUrl);
   const char* url = flatURL.get();
@@ -422,17 +424,19 @@ TypeUtils::ProcessURL(nsACString& aUrl, bool* aSchemeValidOut,
     return;
   }
 
+  MOZ_ASSERT(aUrlQueryOut);
+
   if (queryLen < 0) {
     *aUrlWithoutQueryOut = aUrl;
+    *aUrlQueryOut = EmptyCString();
     return;
   }
 
   
   queryPos += pathPos;
 
-  
-  
   *aUrlWithoutQueryOut = Substring(aUrl, 0, queryPos - 1);
+  *aUrlQueryOut = Substring(aUrl, queryPos - 1, queryLen + 1);
 }
 
 void

@@ -110,9 +110,14 @@ public:
   
   
   
+  
+  
+  
+  
   static void
   ProcessURL(nsACString& aUrl, bool* aSchemeValidOut,
-             nsACString* aUrlWithoutQueryOut, ErrorResult& aRv);
+             nsACString* aUrlWithoutQueryOut, nsACString* aUrlQueryOut,
+             ErrorResult& aRv);
 
 private:
   void

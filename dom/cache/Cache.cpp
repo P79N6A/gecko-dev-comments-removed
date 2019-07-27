@@ -41,7 +41,7 @@ IsValidPutRequestURL(const nsAString& aUrl, ErrorResult& aRv)
   
   NS_ConvertUTF16toUTF8 url(aUrl);
 
-  TypeUtils::ProcessURL(url, &validScheme, nullptr, aRv);
+  TypeUtils::ProcessURL(url, &validScheme, nullptr, nullptr, aRv);
   if (aRv.Failed()) {
     return false;
   }
