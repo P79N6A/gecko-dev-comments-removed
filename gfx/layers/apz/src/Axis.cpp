@@ -197,7 +197,7 @@ bool Axis::IsInUnderscroll() const {
   return mInUnderscroll;
 }
 
-bool Axis::SampleOverscrollAnimation(const TimeDuration& aDelta) {
+void Axis::StepOverscrollAnimation(double aStepDurationMilliseconds) {
   
   
   
@@ -218,10 +218,10 @@ bool Axis::SampleOverscrollAnimation(const TimeDuration& aDelta) {
   
   float springForce = -1 * kSpringStiffness * mOverscroll;
   
-  mVelocity += springForce * aDelta.ToMilliseconds();
+  mVelocity += springForce * aStepDurationMilliseconds;
 
   
-  mVelocity *= pow(double(1 - kSpringFriction), aDelta.ToMilliseconds());
+  mVelocity *= pow(double(1 - kSpringFriction), aStepDurationMilliseconds);
   AXIS_LOG("%p|%s sampled overscroll animation, leaving velocity at %f\n",
     mAsyncPanZoomController, Name(), mVelocity);
 
@@ -230,13 +230,33 @@ bool Axis::SampleOverscrollAnimation(const TimeDuration& aDelta) {
   
   
   float oldOverscroll = mOverscroll;
-  mOverscroll += (mVelocity * aDelta.ToMilliseconds());
+  mOverscroll += (mVelocity * aStepDurationMilliseconds);
   bool signChange = (oldOverscroll * mOverscroll) < 0;
   if (signChange) {
     
     
     mInUnderscroll = !mInUnderscroll;
   }
+}
+
+bool Axis::SampleOverscrollAnimation(const TimeDuration& aDelta) {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  double milliseconds = aDelta.ToMilliseconds();
+  int wholeMilliseconds = (int) aDelta.ToMilliseconds();
+  double fractionalMilliseconds = milliseconds - wholeMilliseconds;
+  for (int i = 0; i < wholeMilliseconds; ++i) {
+    StepOverscrollAnimation(1);
+  }
+  StepOverscrollAnimation(fractionalMilliseconds);
 
   
   

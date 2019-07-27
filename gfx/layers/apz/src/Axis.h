@@ -262,6 +262,9 @@ protected:
   ParentLayerCoord ApplyResistance(ParentLayerCoord aOverscroll) const;
 
   
+  void StepOverscrollAnimation(double aStepDurationMilliseconds);
+
+  
   float ToLocalVelocity(float aVelocityInchesPerMs) const;
 };
 
