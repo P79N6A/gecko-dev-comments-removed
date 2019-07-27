@@ -186,7 +186,14 @@ TextInputProcessor::BeginInputTransactionInternal(
 
   
   
-  UnlinkFromTextEventDispatcher();
+  if (mDispatcher) {
+    mDispatcher->EndInputTransaction(this);
+    if (NS_WARN_IF(mDispatcher)) {
+      
+      
+      UnlinkFromTextEventDispatcher();
+    }
+  }
 
   if (aForTests) {
     rv = dispatcher->BeginInputTransactionForTests(this);

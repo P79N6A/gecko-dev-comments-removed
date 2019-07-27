@@ -62,6 +62,14 @@ public:
   
 
 
+
+
+
+  void EndInputTransaction(TextEventDispatcherListener* aListener);
+
+  
+
+
   void OnDestroyWidget();
 
   
