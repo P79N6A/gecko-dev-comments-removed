@@ -2516,6 +2516,120 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
   RestyleChildren(childRestyleHint);
 }
 
+
+
+
+
+
+
+
+
+
+ElementRestyler::RestyleResult
+ElementRestyler::ComputeRestyleResultFromFrame(nsIFrame* aSelf)
+{
+  
+  
+  
+  
+  if (aSelf->GetAdditionalStyleContext(0)) {
+    return eRestyleResult_Continue;
+  }
+
+  
+  
+  
+  
+  
+  nsIAtom* type = aSelf->GetType();
+  if (type == nsGkAtoms::letterFrame || type == nsGkAtoms::lineFrame) {
+    return eRestyleResult_Continue;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  nsStyleContext* oldContext = aSelf->StyleContext();
+  if (oldContext->HasChildThatUsesGrandancestorStyle()) {
+    return eRestyleResult_Continue;
+  }
+
+  
+  if (oldContext->GetStyleIfVisited()) {
+    return eRestyleResult_Continue;
+  }
+
+  nsStyleContext* parentContext = oldContext->GetParent();
+  if (parentContext && parentContext->GetStyleIfVisited()) {
+    return eRestyleResult_Continue;
+  }
+
+  
+  
+  
+  
+  
+  nsIAtom* pseudoTag = oldContext->GetPseudo();
+  if (pseudoTag && pseudoTag != nsCSSAnonBoxes::mozNonElement) {
+    return eRestyleResult_Continue;
+  }
+
+  nsIFrame* parent = mFrame->GetParent();
+
+  if (parent) {
+    
+    
+    
+    nsIAtom* parentPseudoTag = parent->StyleContext()->GetPseudo();
+    if (parentPseudoTag && parentPseudoTag != nsCSSAnonBoxes::mozNonElement) {
+      return eRestyleResult_Continue;
+    }
+  }
+
+  return eRestyleResult_Stop;
+}
+
+ElementRestyler::RestyleResult
+ElementRestyler::ComputeRestyleResultFromNewContext(nsIFrame* aSelf,
+                                                    nsStyleContext* aNewContext)
+{
+  
+  
+  
+  if (aNewContext->GetStyleIfVisited()) {
+    return eRestyleResult_Continue;
+  }
+
+  
+  
+  
+  nsStyleContext* oldContext = aSelf->StyleContext();
+  if (oldContext->IsLinkContext() != aNewContext->IsLinkContext() ||
+      oldContext->RelevantLinkVisited() != aNewContext->RelevantLinkVisited() ||
+      oldContext->GetPseudo() != aNewContext->GetPseudo() ||
+      oldContext->GetPseudoType() != aNewContext->GetPseudoType() ||
+      oldContext->RuleNode() != aNewContext->RuleNode()) {
+    return eRestyleResult_Continue;
+  }
+
+  
+  
+  
+  
+  if (oldContext->HasTextDecorationLines() !=
+        aNewContext->HasTextDecorationLines() ||
+      oldContext->HasPseudoElementData() !=
+        aNewContext->HasPseudoElementData()) {
+    return eRestyleResult_Continue;
+  }
+
+  return eRestyleResult_Stop;
+}
+
 ElementRestyler::RestyleResult
 ElementRestyler::RestyleSelf(nsIFrame* aSelf, nsRestyleHint aRestyleHint)
 {
@@ -2529,6 +2643,16 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf, nsRestyleHint aRestyleHint)
   
   
   
+
+  RestyleResult result;
+
+  if (aRestyleHint & eRestyle_ForceDescendants) {
+    result = eRestyleResult_ContinueAndForceDescendants;
+  } else if (aRestyleHint) {
+    result = eRestyleResult_Continue;
+  } else {
+    result = ComputeRestyleResultFromFrame(aSelf);
+  }
 
   nsChangeHint assumeDifferenceHint = NS_STYLE_HINT_NONE;
   nsRefPtr<nsStyleContext> oldContext = aSelf->StyleContext();
@@ -2579,6 +2703,8 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf, nsRestyleHint aRestyleHint)
     
     
     mResolvedChild = providerFrame;
+    
+    result = eRestyleResult_Continue;
   }
 
   if (providerFrame != aSelf->GetParent()) {
@@ -2693,17 +2819,81 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf, nsRestyleHint aRestyleHint)
       
       
       newContext = oldContext;
+      
+      result = eRestyleResult_Continue;
     }
   }
 
   if (newContext != oldContext) {
-    if (!copyFromContinuation) {
+    if (result == eRestyleResult_Stop) {
+      if (oldContext->IsShared()) {
+        
+        
+        
+        
+        result = eRestyleResult_Continue;
+      } else {
+        
+        
+        
+        result = ComputeRestyleResultFromNewContext(aSelf, newContext);
+      }
+    }
+
+    if (copyFromContinuation) {
+      
+      
+      
+      
+      
+      if (result == eRestyleResult_Stop) {
+        uint32_t equalStructs;
+        oldContext->CalcStyleDifference(newContext, nsChangeHint(0),
+                                        &equalStructs);
+        if (equalStructs != NS_STYLE_INHERIT_MASK) {
+          
+          
+          result = eRestyleResult_Continue;
+        }
+      }
+    } else {
       RestyleManager::TryStartingTransition(mPresContext, aSelf->GetContent(),
                                             oldContext, &newContext);
 
       uint32_t equalStructs;
       CaptureChange(oldContext, newContext, assumeDifferenceHint,
                     &equalStructs);
+      if (equalStructs != NS_STYLE_INHERIT_MASK) {
+        
+        
+        result = eRestyleResult_Continue;
+      }
+    }
+
+    if (result == eRestyleResult_Stop) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      for (nsStyleStructID sid = nsStyleStructID(0);
+           sid < nsStyleStructID_Length;
+           sid = nsStyleStructID(sid + 1)) {
+        if (oldContext->HasCachedInheritedStyleData(sid) &&
+            !oldContext->HasSameCachedStyleData(newContext, sid)) {
+          result = eRestyleResult_Continue;
+          break;
+        }
+      }
     }
 
     if (!(mHintsHandled & nsChangeHint_ReconstructFrame)) {
@@ -2714,7 +2904,10 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf, nsRestyleHint aRestyleHint)
       
       
       
-      aSelf->SetStyleContext(newContext);
+
+      if (result != eRestyleResult_Stop) {
+        aSelf->SetStyleContext(newContext);
+      }
     }
   }
   oldContext = nullptr;
@@ -2781,7 +2974,7 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf, nsRestyleHint aRestyleHint)
     }
   }
 
-  return eRestyleResult_Continue;
+  return result;
 }
 
 void

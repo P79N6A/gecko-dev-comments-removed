@@ -488,6 +488,9 @@ private:
                      nsStyleContext* aNewContext,
                      nsChangeHint aChangeToAssume,
                      uint32_t* aEqualStructs);
+  RestyleResult ComputeRestyleResultFromFrame(nsIFrame* aSelf);
+  RestyleResult ComputeRestyleResultFromNewContext(nsIFrame* aSelf,
+                                                   nsStyleContext* aNewContext);
 
   
 
