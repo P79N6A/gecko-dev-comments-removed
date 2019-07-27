@@ -313,7 +313,7 @@ FrameAnimator::GetTimeoutForFrame(uint32_t aFrameNum) const
   
   
   
-  if (data.mRawTimeout >= 0 && data.mRawTimeout <= 10 && mLoopCount != 0) {
+  if (data.mRawTimeout >= 0 && data.mRawTimeout <= 10) {
     return 100;
   }
 
