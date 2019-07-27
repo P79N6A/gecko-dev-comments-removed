@@ -2526,7 +2526,8 @@ public class BrowserApp extends GeckoApp
 
         
         saveAsPDF.setEnabled(!(isAboutHome(tab) ||
-                               tab.getContentType().equals("application/vnd.mozilla.xul+xml")));
+                               tab.getContentType().equals("application/vnd.mozilla.xul+xml") ||
+                               tab.getContentType().startsWith("video/")));
 
         
         findInPage.setEnabled(!isAboutHome(tab));
