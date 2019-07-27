@@ -47,6 +47,7 @@ MediaEngineDefaultVideoSource::MediaEngineDefaultVideoSource()
   , mTimer(nullptr)
   , mMonitor("Fake video")
   , mCb(16), mCr(16)
+  , mProducedDuration(0)
 {
   mImageContainer = layers::LayerManager::CreateImageContainer();
 }
@@ -244,8 +245,7 @@ void
 MediaEngineDefaultVideoSource::NotifyPull(MediaStreamGraph* aGraph,
                                           SourceMediaStream *aSource,
                                           TrackID aID,
-                                          StreamTime aDesiredTime,
-                                          StreamTime &aLastEndTime)
+                                          StreamTime aDesiredTime)
 {
   
   VideoSegment segment;
@@ -256,7 +256,7 @@ MediaEngineDefaultVideoSource::NotifyPull(MediaStreamGraph* aGraph,
 
   
   nsRefPtr<layers::Image> image = mImage;
-  StreamTime delta = aDesiredTime - aLastEndTime;
+  StreamTime delta = aDesiredTime - mProducedDuration;
 
   if (delta > 0) {
     
@@ -265,7 +265,7 @@ MediaEngineDefaultVideoSource::NotifyPull(MediaStreamGraph* aGraph,
     
     
     if (aSource->AppendToTrack(aID, &segment)) {
-      aLastEndTime = aDesiredTime;
+      mProducedDuration = aDesiredTime;
     }
     
     if (mHasFakeTracks) {
