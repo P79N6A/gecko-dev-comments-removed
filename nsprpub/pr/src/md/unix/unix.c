@@ -21,6 +21,10 @@
 #include <poll.h>
 #endif
 
+#if defined(ANDROID)
+#include <android/api-level.h>
+#endif
+
 
 #if defined(UNIXWARE)
 #include <sys/filio.h>
@@ -2710,7 +2714,7 @@ static void* _MD_Unix_mmap64(
 #endif 
 
 
-#if defined(ANDROID)
+#if defined(ANDROID) && __ANDROID_API__ <= 19
 extern void *__mmap2(void *, size_t, int, int, int, size_t);
 
 #define ANDROID_PAGE_SIZE 4096
