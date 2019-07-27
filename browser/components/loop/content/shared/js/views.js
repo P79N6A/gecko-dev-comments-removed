@@ -17,83 +17,6 @@ loop.shared.views = (function(_, OT, l10n) {
   
 
 
-  var L10nView = (function() {
-    var L10nViewImpl   = Backbone.View.extend(), 
-        originalExtend = L10nViewImpl.extend;    
-
-    
-
-
-
-
-
-    L10nViewImpl.extend = function() {
-      var ExtendedView   = originalExtend.apply(this, arguments),
-          originalRender = ExtendedView.prototype.render;
-
-      
-
-
-
-
-
-      ExtendedView.prototype.render = function() {
-        if (originalRender) {
-          originalRender.apply(this, arguments);
-          l10n.translate(this.el);
-        }
-        return this;
-      };
-
-      return ExtendedView;
-    };
-
-    return L10nViewImpl;
-  })();
-
-  
-
-
-  var BaseView = L10nView.extend({
-    
-
-
-
-
-    hide: function() {
-      this.$el.hide();
-      return this;
-    },
-
-    
-
-
-
-
-    show: function() {
-      this.$el.show();
-      return this;
-    },
-
-    
-
-
-
-
-
-
-
-    render: function() {
-      if (this.template) {
-        this.$el.html(this.template());
-      }
-      return this;
-    }
-  });
-
-  
-
-
 
 
 
@@ -704,43 +627,11 @@ loop.shared.views = (function(_, OT, l10n) {
     }
   });
 
-  
-
-
-  var UnsupportedBrowserView = BaseView.extend({
-    template: _.template([
-      '<div>',
-      '  <h2 data-l10n-id="incompatible_browser"></h2>',
-      '  <p data-l10n-id="powered_by_webrtc"></p>',
-      '  <p data-l10n-id="use_latest_firefox" ',
-      '    data-l10n-args=\'{"ff_url": "https://www.mozilla.org/firefox/"}\'>',
-      '  </p>',
-      '</div>'
-    ].join(""))
-  });
-
-  
-
-
-  var UnsupportedDeviceView = BaseView.extend({
-    template: _.template([
-      '<div>',
-      '  <h2 data-l10n-id="incompatible_device"></h2>',
-      '  <p data-l10n-id="sorry_device_unsupported"></p>',
-      '  <p data-l10n-id="use_firefox_windows_mac_linux"></p>',
-      '</div>'
-    ].join(""))
-  });
-
   return {
-    L10nView: L10nView,
-    BaseView: BaseView,
     ConversationView: ConversationView,
     ConversationToolbar: ConversationToolbar,
     FeedbackView: FeedbackView,
     MediaControlButton: MediaControlButton,
-    NotificationListView: NotificationListView,
-    UnsupportedBrowserView: UnsupportedBrowserView,
-    UnsupportedDeviceView: UnsupportedDeviceView
+    NotificationListView: NotificationListView
   };
 })(_, window.OT, navigator.mozL10n || document.mozL10n);

@@ -20,12 +20,6 @@ loop.shared.router = (function() {
 
 
 
-    _activeView: undefined,
-
-    
-
-
-
     _notifications: undefined,
 
     
@@ -51,47 +45,17 @@ loop.shared.router = (function() {
 
 
 
-    loadView: function(view) {
-      this.clearActiveView();
-      this._activeView = {type: "backbone", view: view.render().show()};
-      this.updateView(this._activeView.view.$el);
-    },
-
-    
-
-
-
-
     loadReactComponent: function(reactComponent) {
       this.clearActiveView();
-      this._activeView = {
-        type: "react",
-        view: React.renderComponent(reactComponent,
-                                    document.querySelector("#main"))
-      };
+      React.renderComponent(reactComponent,
+                            document.querySelector("#main"));
     },
 
     
 
 
     clearActiveView: function() {
-      if (!this._activeView) {
-        return;
-      }
-      if (this._activeView.type === "react") {
-        React.unmountComponentAtNode(document.querySelector("#main"));
-      } else {
-        this._activeView.view.remove();
-      }
-    },
-
-    
-
-
-
-
-    updateView: function($el) {
-      $("#main").html($el);
+      React.unmountComponentAtNode(document.querySelector("#main"));
     }
   });
 
