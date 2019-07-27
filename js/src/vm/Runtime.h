@@ -519,6 +519,12 @@ class PerThreadData : public PerThreadDataFriendFields
 
     JSContext           *jitJSContext;
 
+     
+
+
+
+    js::jit::JitActivation *jitActivation;
+
     
   private:
     mozilla::Atomic<uintptr_t, mozilla::Relaxed> jitStackLimit_;

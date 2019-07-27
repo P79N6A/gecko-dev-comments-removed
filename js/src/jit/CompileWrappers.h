@@ -35,6 +35,9 @@ class CompileRuntime
     const void *addressOfJitTop();
 
     
+    const void *addressOfJitActivation();
+
+    
     const void *addressOfJitStackLimit();
 
     
