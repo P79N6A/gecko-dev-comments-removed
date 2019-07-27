@@ -11,6 +11,7 @@
 #include "nscore.h"
 #ifdef MOZILLA_INTERNAL_API
 #include "nsString.h"
+#include "nsXULAppAPI.h"
 #if !defined(MOZILLA_XPCOMRT_API)
 #include "mozilla/Preferences.h"
 #endif 
@@ -146,9 +147,11 @@ void ConfigWebRtcLog(uint32_t trace_mask, nsCString &aLogFile, nsCString &aAECLo
     }
   }
 #if !defined(MOZILLA_EXTERNAL_LINKAGE)
-  
-  mozilla::Preferences::SetCString("media.webrtc.debug.log_file", aLogFile);
-  mozilla::Preferences::SetCString("media.webrtc.debug.aec_log_dir", aAECLogDir);
+  if (XRE_GetProcessType() == GeckoProcessType_Default) {
+    
+    mozilla::Preferences::SetCString("media.webrtc.debug.log_file", aLogFile);
+    mozilla::Preferences::SetCString("media.webrtc.debug.aec_log_dir", aAECLogDir);
+  }
 #endif
   return;
 }
