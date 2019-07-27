@@ -978,6 +978,12 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     }
 
     
+    void branchTestObject(Condition cond, const Address &src, Label *label) {
+        cond = testObject(cond, src);
+        j(cond, label);
+    }
+
+    
     
     void branchTestUndefined(Condition cond, const ValueOperand &src, Label *label) {
         cond = testUndefined(cond, src);
