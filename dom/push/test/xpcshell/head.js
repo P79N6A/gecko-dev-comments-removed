@@ -68,46 +68,6 @@ function after(times, func) {
 
 
 
-
-function promisifyDatabase(db) {
-  return new Proxy(db, {
-    get(target, property) {
-      let method = target[property];
-      if (typeof method != 'function') {
-        return method;
-      }
-      return function(...params) {
-        return new Promise((resolve, reject) => {
-          method.call(target, ...params, resolve, reject);
-        });
-      };
-    }
-  });
-}
-
-
-
-
-
-
-
-function cleanupDatabase(db) {
-  return new Promise(resolve => {
-    function close() {
-      db.close();
-      resolve();
-    }
-    db.drop(close, close);
-  });
-}
-
-
-
-
-
-
-
-
 function waterfall(...callbacks) {
   callbacks.reduce((promise, callback) => promise.then(() => {
     callback();
