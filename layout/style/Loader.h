@@ -11,6 +11,7 @@
 #include "nsIPrincipal.h"
 #include "nsAutoPtr.h"
 #include "nsCompatibility.h"
+#include "nsCycleCollectionParticipant.h"
 #include "nsDataHashtable.h"
 #include "nsRefPtrHashtable.h"
 #include "nsStringFwd.h"
@@ -136,7 +137,8 @@ public:
   ~Loader();
 
  public:
-  NS_INLINE_DECL_REFCOUNTING(Loader)
+  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(Loader)
+  NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(Loader)
 
   void DropDocumentReference(); 
 
@@ -366,14 +368,6 @@ public:
   typedef nsTArray<nsRefPtr<SheetLoadData> > LoadDataArray;
 
   
-  
-  void TraverseCachedSheets(nsCycleCollectionTraversalCallback& cb);
-
-  
-  
-  void UnlinkCachedSheets();
-
-  
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
   
@@ -496,7 +490,6 @@ private:
   
   LoadDataArray     mPostedEvents;
 
-  
   
   nsTObserverArray<nsCOMPtr<nsICSSLoaderObserver> > mObservers;
 
