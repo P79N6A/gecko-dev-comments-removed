@@ -3215,13 +3215,9 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
 #elif defined(XP_WIN)
     
     
-    
-    
-    
-    
     const size_t kStackQuota = 900 * 1024;
-    const size_t kTrustedScriptBuffer = (sizeof(size_t) == 8) ? 96 * 1024
-                                                              : 64 * 1024;
+    const size_t kTrustedScriptBuffer = (sizeof(size_t) == 8) ? 120 * 1024
+                                                              : 80 * 1024;
     
     
 #elif defined(DEBUG)
