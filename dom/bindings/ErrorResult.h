@@ -47,10 +47,6 @@ public:
     mResult = NS_OK;
 
 #ifdef DEBUG
-    
-    
-    
-    mMessage = nullptr;
     mMightHaveUnreportedJSException = false;
     mHasMessage = false;
 #endif
