@@ -18,7 +18,9 @@
 
 #ifdef __cplusplus
 
+#include "mozilla/Alignment.h"
 #include "mozilla/Array.h"
+#include "mozilla/TypeTraits.h"
 
 namespace mozilla {
 
@@ -80,6 +82,69 @@ MOZ_CONSTEXPR const T*
 ArrayEnd(const Array<T, N>& aArr)
 {
   return &aArr[0] + ArrayLength(aArr);
+}
+
+namespace detail {
+
+template<typename AlignType, typename Pointee>
+struct AlignedChecker
+{
+  static void
+  test(Pointee* aPtr)
+  {
+    MOZ_ASSERT((uintptr_t(aPtr) % MOZ_ALIGNOF(AlignType)) == 0,
+               "performing a range-check with a misaligned pointer");
+  }
+};
+
+template<typename Pointee>
+struct AlignedChecker<void, Pointee>
+{
+  static void
+  test(Pointee* aPtr)
+  {
+  }
+};
+
+} 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<typename T, typename U>
+inline typename EnableIf<IsSame<T, U>::value ||
+                         IsBaseOf<T, U>::value ||
+                         IsVoid<T>::value,
+                         bool>::Type
+IsInRange(T* aPtr, U* aBegin, U* aEnd)
+{
+  MOZ_ASSERT(aBegin <= aEnd);
+  detail::AlignedChecker<U, T>::test(aPtr);
+  detail::AlignedChecker<U, U>::test(aBegin);
+  detail::AlignedChecker<U, U>::test(aEnd);
+  return aBegin <= static_cast<U*>(aPtr) && static_cast<U*>(aPtr) < aEnd;
+}
+
+
+
+
+
+
+template<typename T>
+inline bool
+IsInRange(T* aPtr, uintptr_t aBegin, uintptr_t aEnd)
+{
+  return IsInRange(aPtr, reinterpret_cast<T*>(aBegin), reinterpret_cast<T*>(aEnd));
 }
 
 namespace detail {
