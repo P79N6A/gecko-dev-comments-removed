@@ -2514,9 +2514,11 @@ nsStandardURL::SetRef(const nsACString &input)
         mRef.mLen = 0;
     }
 
+    
+    
+    nsAutoCString buf;
     if (nsContentUtils::EncodeDecodeURLHash()) {
         
-        nsAutoCString buf;
         bool encoded;
         GET_SEGMENT_ENCODER(encoder);
         encoder.EncodeSegmentCount(ref, URLSegment(0, refLen), esc_Ref,
