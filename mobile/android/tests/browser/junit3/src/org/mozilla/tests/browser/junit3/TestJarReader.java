@@ -5,6 +5,7 @@ package org.mozilla.tests.browser.junit3;
 
 import java.io.InputStream;
 
+import android.test.InstrumentationTestCase;
 import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.util.GeckoJarReader;
 
@@ -12,9 +13,9 @@ import org.mozilla.gecko.util.GeckoJarReader;
 
 
 
-public class TestJarReader extends BrowserTestCase {
+public class TestJarReader extends InstrumentationTestCase {
     public void testJarReader() {
-        String appPath = getActivity().getApplication().getPackageResourcePath();
+        String appPath = getInstrumentation().getTargetContext().getPackageResourcePath();
         assertNotNull(appPath);
 
         
