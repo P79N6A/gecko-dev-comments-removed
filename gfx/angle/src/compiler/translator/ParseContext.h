@@ -6,10 +6,10 @@
 #ifndef _PARSER_HELPER_INCLUDED_
 #define _PARSER_HELPER_INCLUDED_
 
+#include "compiler/translator/Compiler.h"
 #include "compiler/translator/Diagnostics.h"
 #include "compiler/translator/DirectiveHandler.h"
-#include "compiler/translator/localintermediate.h"
-#include "compiler/translator/ShHandle.h"
+#include "compiler/translator/Intermediate.h"
 #include "compiler/translator/SymbolTable.h"
 #include "compiler/preprocessor/Preprocessor.h"
 
@@ -25,7 +25,7 @@ struct TMatrixFields {
 
 
 struct TParseContext {
-    TParseContext(TSymbolTable& symt, TExtensionBehavior& ext, TIntermediate& interm, ShShaderType type, ShShaderSpec spec, int options, bool checksPrecErrors, const char* sourcePath, TInfoSink& is) :
+    TParseContext(TSymbolTable& symt, TExtensionBehavior& ext, TIntermediate& interm, sh::GLenum type, ShShaderSpec spec, int options, bool checksPrecErrors, const char* sourcePath, TInfoSink& is) :
             intermediate(interm),
             symbolTable(symt),
             shaderType(type),
@@ -47,7 +47,7 @@ struct TParseContext {
             scanner(NULL) {  }
     TIntermediate& intermediate; 
     TSymbolTable& symbolTable;   
-    ShShaderType shaderType;              
+    sh::GLenum shaderType;              
     ShShaderSpec shaderSpec;              
     int shaderVersion;
     int compileOptions;
@@ -76,6 +76,9 @@ struct TParseContext {
                  const char* extraInfo="");
     void trace(const char* str);
     void recover();
+
+    
+    const TVariable *getNamedVariable(const TSourceLoc &location, const TString *name, const TSymbol *symbol);
 
     bool parseVectorFields(const TString&, int vecSize, TVectorFields&, const TSourceLoc& line);
     bool parseMatrixFields(const TString&, int matCols, int matRows, TMatrixFields&, const TSourceLoc& line);
@@ -126,6 +129,8 @@ struct TParseContext {
     TIntermAggregate* parseSingleDeclaration(TPublicType &publicType, const TSourceLoc& identifierLocation, const TString &identifier);
     TIntermAggregate* parseSingleArrayDeclaration(TPublicType &publicType, const TSourceLoc& identifierLocation, const TString &identifier, const TSourceLoc& indexLocation, TIntermTyped *indexExpression);
     TIntermAggregate* parseSingleInitDeclaration(TPublicType &publicType, const TSourceLoc& identifierLocation, const TString &identifier, const TSourceLoc& initLocation, TIntermTyped *initializer);
+    TIntermAggregate* parseInvariantDeclaration(const TSourceLoc &invariantLoc, const TSourceLoc &identifierLoc, const TString *identifier, const TSymbol *symbol);
+
     TIntermAggregate* parseDeclarator(TPublicType &publicType, TIntermAggregate *aggregateDeclaration, TSymbol *identifierSymbol, const TSourceLoc& identifierLocation, const TString &identifier);
     TIntermAggregate* parseArrayDeclarator(TPublicType &publicType, const TSourceLoc& identifierLocation, const TString &identifier, const TSourceLoc& arrayLocation, TIntermNode *declaratorList, TIntermTyped *indexExpression);
     TIntermAggregate* parseInitDeclarator(TPublicType &publicType, TIntermAggregate *declaratorList, const TSourceLoc& identifierLocation, const TString &identifier, const TSourceLoc& initLocation, TIntermTyped *initializer);
@@ -133,8 +138,6 @@ struct TParseContext {
     TFunction *addConstructorFunc(TPublicType publicType);
     TIntermTyped* addConstructor(TIntermNode*, const TType*, TOperator, TFunction*, const TSourceLoc&);
     TIntermTyped* foldConstConstructor(TIntermAggregate* aggrNode, const TType& type);
-    TIntermTyped* constructStruct(TIntermNode*, TType*, int, const TSourceLoc&, bool subset);
-    TIntermTyped* constructBuiltIn(const TType*, TOperator, TIntermNode*, const TSourceLoc&, bool subset);
     TIntermTyped* addConstVectorNode(TVectorFields&, TIntermTyped*, const TSourceLoc&);
     TIntermTyped* addConstMatrixNode(int , TIntermTyped*, const TSourceLoc&);
     TIntermTyped* addConstArrayNode(int index, TIntermTyped* node, const TSourceLoc& line);

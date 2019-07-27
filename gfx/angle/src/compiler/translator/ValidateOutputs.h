@@ -4,7 +4,7 @@
 
 
 
-#include "compiler/translator/intermediate.h"
+#include "compiler/translator/IntermNode.h"
 
 #include <set>
 

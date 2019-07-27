@@ -11,7 +11,7 @@
 #define COMPILER_UNFOLD_SHORT_CIRCUIT_AST_H_
 
 #include "common/angleutils.h"
-#include "compiler/translator/intermediate.h"
+#include "compiler/translator/IntermNode.h"
 
 
 

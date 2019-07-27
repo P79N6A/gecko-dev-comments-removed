@@ -8,7 +8,7 @@
 #define COMPILIER_BUILT_IN_FUNCTION_EMULATOR_H_
 
 #include "compiler/translator/InfoSink.h"
-#include "compiler/translator/intermediate.h"
+#include "compiler/translator/IntermNode.h"
 
 
 
@@ -17,7 +17,7 @@
 
 class BuiltInFunctionEmulator {
 public:
-    BuiltInFunctionEmulator(ShShaderType shaderType);
+    BuiltInFunctionEmulator(sh::GLenum shaderType);
     
     
     

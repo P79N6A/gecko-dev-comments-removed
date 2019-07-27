@@ -1,4 +1,3 @@
-#include "precompiled.h"
 
 
 
@@ -9,14 +8,13 @@
 
 #include "libGLESv2/Query.h"
 #include "libGLESv2/renderer/QueryImpl.h"
-#include "libGLESv2/renderer/Renderer.h"
 
 namespace gl
 {
-
-Query::Query(rx::Renderer *renderer, GLenum type, GLuint id) : RefCountObject(id)
-{ 
-    mQuery = renderer->createQuery(type);
+Query::Query(rx::QueryImpl *impl, GLuint id)
+    : RefCountObject(id),
+      mQuery(impl)
+{
 }
 
 Query::~Query()
@@ -26,7 +24,11 @@ Query::~Query()
 
 void Query::begin()
 {
-    mQuery->begin();
+    
+    
+    
+    
+    mStarted = mQuery->begin();
 }
 
 void Query::end()
@@ -51,7 +53,7 @@ GLenum Query::getType() const
 
 bool Query::isStarted() const
 {
-    return mQuery->isStarted();
+    return mStarted;
 }
 
 }

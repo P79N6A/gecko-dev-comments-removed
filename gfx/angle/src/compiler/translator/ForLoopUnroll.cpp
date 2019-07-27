@@ -43,8 +43,8 @@ bool ForLoopUnrollMarker::visitLoop(Visit, TIntermLoop *node)
         
         
         
-        TIntermSequence& declSeq = node->getInit()->getAsAggregate()->getSequence();
-        TIntermSymbol* symbol = declSeq[0]->getAsBinaryNode()->getLeft()->getAsSymbolNode();
+        TIntermSequence *declSeq = node->getInit()->getAsAggregate()->getSequence();
+        TIntermSymbol *symbol = (*declSeq)[0]->getAsBinaryNode()->getLeft()->getAsSymbolNode();
         if (symbol->getBasicType() == EbtInt)
             node->setUnrollFlag(true);
     }

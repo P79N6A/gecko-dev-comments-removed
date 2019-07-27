@@ -4,8 +4,8 @@
 
 
 
-#ifndef COMPILER_DEPGRAPH_DEPENDENCY_GRAPH_BUILDER_H
-#define COMPILER_DEPGRAPH_DEPENDENCY_GRAPH_BUILDER_H
+#ifndef COMPILER_TRANSLATOR_DEPGRAPH_DEPENDENCY_GRAPH_BUILDER_H
+#define COMPILER_TRANSLATOR_DEPGRAPH_DEPENDENCY_GRAPH_BUILDER_H
 
 #include "compiler/translator/depgraph/DependencyGraph.h"
 
@@ -13,19 +13,20 @@
 
 
 
-class TDependencyGraphBuilder : public TIntermTraverser {
-public:
-    static void build(TIntermNode* node, TDependencyGraph* graph);
+class TDependencyGraphBuilder : public TIntermTraverser
+{
+  public:
+    static void build(TIntermNode *node, TDependencyGraph *graph);
 
-    virtual void visitSymbol(TIntermSymbol*);
-    virtual bool visitBinary(Visit visit, TIntermBinary*);
-    virtual bool visitSelection(Visit visit, TIntermSelection*);
-    virtual bool visitAggregate(Visit visit, TIntermAggregate*);
-    virtual bool visitLoop(Visit visit, TIntermLoop*);
+    virtual void visitSymbol(TIntermSymbol *);
+    virtual bool visitBinary(Visit visit, TIntermBinary *);
+    virtual bool visitSelection(Visit visit, TIntermSelection *);
+    virtual bool visitAggregate(Visit visit, TIntermAggregate *);
+    virtual bool visitLoop(Visit visit, TIntermLoop *);
 
-private:
-    typedef std::stack<TGraphSymbol*> TSymbolStack;
-    typedef std::set<TGraphParentNode*> TParentNodeSet;
+  private:
+    typedef std::stack<TGraphSymbol *> TSymbolStack;
+    typedef std::set<TGraphParentNode *> TParentNodeSet;
 
     
     
@@ -33,26 +34,28 @@ private:
     
     
     
-    class TNodeSetStack {
-    public:
+    
+    class TNodeSetStack
+    {
+      public:
         TNodeSetStack() {};
         ~TNodeSetStack() { clear(); }
 
         
         
-        TParentNodeSet* getTopSet() const
+        TParentNodeSet *getTopSet() const
         {
-            ASSERT(!nodeSets.empty());
-            TParentNodeSet* topSet = nodeSets.top();
+            ASSERT(!mNodeSets.empty());
+            TParentNodeSet *topSet = mNodeSets.top();
             return !topSet->empty() ? topSet : NULL;
         }
 
-        void pushSet() { nodeSets.push(new TParentNodeSet()); }
+        void pushSet() { mNodeSets.push(new TParentNodeSet()); }
         void popSet()
         {
-            ASSERT(!nodeSets.empty());
-            delete nodeSets.top();
-            nodeSets.pop();
+            ASSERT(!mNodeSets.empty());
+            delete mNodeSets.top();
+            mNodeSets.pop();
         }
 
         
@@ -60,12 +63,13 @@ private:
         
         void popSetIntoNext()
         {
-            ASSERT(!nodeSets.empty());
-            TParentNodeSet* oldTopSet = nodeSets.top();
-            nodeSets.pop();
+            ASSERT(!mNodeSets.empty());
+            TParentNodeSet *oldTopSet = mNodeSets.top();
+            mNodeSets.pop();
 
-            if (!nodeSets.empty()) {
-                TParentNodeSet* newTopSet = nodeSets.top();
+            if (!mNodeSets.empty())
+            {
+                TParentNodeSet *newTopSet = mNodeSets.top();
                 newTopSet->insert(oldTopSet->begin(), oldTopSet->end());
             }
 
@@ -76,104 +80,118 @@ private:
         
         
         
-        void insertIntoTopSet(TGraphParentNode* node)
+        void insertIntoTopSet(TGraphParentNode *node)
         {
-            if (nodeSets.empty())
+            if (mNodeSets.empty())
                 return;
 
-            nodeSets.top()->insert(node);
+            mNodeSets.top()->insert(node);
         }
 
         void clear()
         {
-            while (!nodeSets.empty())
+            while (!mNodeSets.empty())
                 popSet();
         }
 
-    private:
-        typedef std::stack<TParentNodeSet*> TParentNodeSetStack;
+      private:
+        typedef std::stack<TParentNodeSet *> TParentNodeSetStack;
 
-        TParentNodeSetStack nodeSets;
+        TParentNodeSetStack mNodeSets;
     };
 
     
     
     
     
-    class TNodeSetMaintainer {
-    public:
-        TNodeSetMaintainer(TDependencyGraphBuilder* factory)
-            : sets(factory->mNodeSets) { sets.pushSet(); }
-        ~TNodeSetMaintainer() { sets.popSet(); }
-    protected:
-        TNodeSetStack& sets;
-    };
-
-    
-    
-    
-    
-    
-    class TNodeSetPropagatingMaintainer {
-    public:
-        TNodeSetPropagatingMaintainer(TDependencyGraphBuilder* factory)
-            : sets(factory->mNodeSets) { sets.pushSet(); }
-        ~TNodeSetPropagatingMaintainer() { sets.popSetIntoNext(); }
-    protected:
-        TNodeSetStack& sets;
-    };
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    class TLeftmostSymbolMaintainer {
-    public:
-        TLeftmostSymbolMaintainer(TDependencyGraphBuilder* factory, TGraphSymbol& subtree)
-            : leftmostSymbols(factory->mLeftmostSymbols)
+    class TNodeSetMaintainer
+    {
+      public:
+        TNodeSetMaintainer(TDependencyGraphBuilder *factory)
+            : mSets(factory->mNodeSets)
         {
-            needsPlaceholderSymbol = leftmostSymbols.empty() || leftmostSymbols.top() != &subtree;
-            if (needsPlaceholderSymbol)
-                leftmostSymbols.push(&subtree);
+            mSets.pushSet();
+        }
+        ~TNodeSetMaintainer() { mSets.popSet(); }
+      protected:
+        TNodeSetStack &mSets;
+    };
+
+    
+    
+    
+    
+    
+    class TNodeSetPropagatingMaintainer
+    {
+      public:
+        TNodeSetPropagatingMaintainer(TDependencyGraphBuilder *factory)
+            : mSets(factory->mNodeSets)
+        {
+            mSets.pushSet();
+        }
+        ~TNodeSetPropagatingMaintainer() { mSets.popSetIntoNext(); }
+      protected:
+        TNodeSetStack &mSets;
+    };
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    class TLeftmostSymbolMaintainer
+    {
+      public:
+        TLeftmostSymbolMaintainer(
+            TDependencyGraphBuilder *factory, TGraphSymbol &subtree)
+            : mLeftmostSymbols(factory->mLeftmostSymbols)
+        {
+            mNeedsPlaceholderSymbol =
+                mLeftmostSymbols.empty() || mLeftmostSymbols.top() != &subtree;
+            if (mNeedsPlaceholderSymbol)
+                mLeftmostSymbols.push(&subtree);
         }
 
         ~TLeftmostSymbolMaintainer()
         {
-            if (needsPlaceholderSymbol)
-                leftmostSymbols.pop();
+            if (mNeedsPlaceholderSymbol)
+                mLeftmostSymbols.pop();
         }
 
-    protected:
-        TSymbolStack& leftmostSymbols;
-        bool needsPlaceholderSymbol;
+      protected:
+        TSymbolStack& mLeftmostSymbols;
+        bool mNeedsPlaceholderSymbol;
     };
 
-    TDependencyGraphBuilder(TDependencyGraph* graph)
-        : TIntermTraverser(true, false, false)
-        , mLeftSubtree(NULL)
-        , mRightSubtree(NULL)
-        , mGraph(graph) {}
-    void build(TIntermNode* intermNode) { intermNode->traverse(this); }
+    TDependencyGraphBuilder(TDependencyGraph *graph)
+        : TIntermTraverser(true, false, false),
+          mLeftSubtree(NULL),
+          mRightSubtree(NULL),
+          mGraph(graph) {}
+    void build(TIntermNode *intermNode) { intermNode->traverse(this); }
 
-    void connectMultipleNodesToSingleNode(TParentNodeSet* nodes, TGraphNode* node) const;
+    void connectMultipleNodesToSingleNode(
+        TParentNodeSet *nodes, TGraphNode *node) const;
 
-    void visitAssignment(TIntermBinary*);
-    void visitLogicalOp(TIntermBinary*);
-    void visitBinaryChildren(TIntermBinary*);
-    void visitFunctionDefinition(TIntermAggregate*);
-    void visitFunctionCall(TIntermAggregate* intermFunctionCall);
-    void visitAggregateChildren(TIntermAggregate*);
+    void visitAssignment(TIntermBinary *);
+    void visitLogicalOp(TIntermBinary *);
+    void visitBinaryChildren(TIntermBinary *);
+    void visitFunctionDefinition(TIntermAggregate *);
+    void visitFunctionCall(TIntermAggregate *intermFunctionCall);
+    void visitAggregateChildren(TIntermAggregate *);
 
     TGraphSymbol mLeftSubtree;
     TGraphSymbol mRightSubtree;
 
-    TDependencyGraph* mGraph;
+    TDependencyGraph *mGraph;
     TNodeSetStack mNodeSets;
     TSymbolStack mLeftmostSymbols;
 };

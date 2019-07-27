@@ -1,4 +1,3 @@
-#include "precompiled.h"
 
 
 
@@ -13,7 +12,7 @@ namespace gl
 {
 
 LinkedUniform::LinkedUniform(GLenum type, GLenum precision, const std::string &name, unsigned int arraySize,
-                             const int blockIndex, const BlockMemberInfo &blockInfo)
+                             const int blockIndex, const sh::BlockMemberInfo &blockInfo)
     : type(type),
       precision(precision),
       name(name),
@@ -71,7 +70,7 @@ bool LinkedUniform::isInDefaultBlock() const
 size_t LinkedUniform::dataSize() const
 {
     ASSERT(type != GL_STRUCT_ANGLEX);
-    return UniformInternalSize(type) * elementCount();
+    return VariableInternalSize(type) * elementCount();
 }
 
 bool LinkedUniform::isSampler() const

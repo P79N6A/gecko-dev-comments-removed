@@ -10,30 +10,53 @@
 #ifndef COMMON_BLOCKLAYOUT_H_
 #define COMMON_BLOCKLAYOUT_H_
 
-#include <vector>
-#include <GLES3/gl3.h>
-#include <GLES2/gl2.h>
-#include <GLSLANG/ShaderLang.h>
 #include <cstddef>
+#include <vector>
 
-namespace gl
+#include "angle_gl.h"
+#include <GLSLANG/ShaderLang.h>
+
+namespace sh
 {
-
 struct ShaderVariable;
 struct InterfaceBlockField;
-struct BlockMemberInfo;
 struct Uniform;
 struct Varying;
+struct InterfaceBlock;
+
+struct BlockMemberInfo
+{
+    BlockMemberInfo(int offset, int arrayStride, int matrixStride, bool isRowMajorMatrix)
+        : offset(offset),
+          arrayStride(arrayStride),
+          matrixStride(matrixStride),
+          isRowMajorMatrix(isRowMajorMatrix)
+    {}
+
+    static BlockMemberInfo getDefaultBlockInfo()
+    {
+        return BlockMemberInfo(-1, -1, -1, false);
+    }
+
+    int offset;
+    int arrayStride;
+    int matrixStride;
+    bool isRowMajorMatrix;
+};
 
 class BlockLayoutEncoder
 {
   public:
-    BlockLayoutEncoder(std::vector<BlockMemberInfo> *blockInfoOut);
+    BlockLayoutEncoder();
 
-    void encodeInterfaceBlockFields(const std::vector<InterfaceBlockField> &fields);
-    void encodeInterfaceBlockField(const InterfaceBlockField &field);
-    void encodeType(GLenum type, unsigned int arraySize, bool isRowMajorMatrix);
+    BlockMemberInfo encodeType(GLenum type, unsigned int arraySize, bool isRowMajorMatrix);
+
     size_t getBlockSize() const { return mCurrentOffset * BytesPerComponent; }
+    size_t getCurrentRegister() const { return mCurrentOffset / ComponentsPerRegister; }
+    size_t getCurrentElement() const { return mCurrentOffset % ComponentsPerRegister; }
+
+    virtual void enterAggregateType() = 0;
+    virtual void exitAggregateType() = 0;
 
     static const size_t BytesPerComponent = 4u;
     static const unsigned int ComponentsPerRegister = 4u;
@@ -43,13 +66,8 @@ class BlockLayoutEncoder
 
     void nextRegister();
 
-    virtual void enterAggregateType() = 0;
-    virtual void exitAggregateType() = 0;
     virtual void getBlockLayoutInfo(GLenum type, unsigned int arraySize, bool isRowMajorMatrix, int *arrayStrideOut, int *matrixStrideOut) = 0;
     virtual void advanceOffset(GLenum type, unsigned int arraySize, bool isRowMajorMatrix, int arrayStride, int matrixStride) = 0;
-
-  private:
-    std::vector<BlockMemberInfo> *mBlockInfoOut;
 };
 
 
@@ -58,11 +76,12 @@ class BlockLayoutEncoder
 class Std140BlockEncoder : public BlockLayoutEncoder
 {
   public:
-    Std140BlockEncoder(std::vector<BlockMemberInfo> *blockInfoOut);
+    Std140BlockEncoder();
 
-  protected:
     virtual void enterAggregateType();
     virtual void exitAggregateType();
+
+  protected:
     virtual void getBlockLayoutInfo(GLenum type, unsigned int arraySize, bool isRowMajorMatrix, int *arrayStrideOut, int *matrixStrideOut);
     virtual void advanceOffset(GLenum type, unsigned int arraySize, bool isRowMajorMatrix, int arrayStride, int matrixStride);
 };
@@ -81,14 +100,15 @@ class HLSLBlockEncoder : public BlockLayoutEncoder
         ENCODE_LOOSE
     };
 
-    HLSLBlockEncoder(std::vector<BlockMemberInfo> *blockInfoOut,
-                     HLSLBlockEncoderStrategy strategy);
+    HLSLBlockEncoder(HLSLBlockEncoderStrategy strategy);
 
     virtual void enterAggregateType();
     virtual void exitAggregateType();
     void skipRegisters(unsigned int numRegisters);
 
     bool isPacked() const { return mEncoderStrategy == ENCODE_PACKED; }
+
+    static HLSLBlockEncoderStrategy GetStrategyFor(ShShaderOutput outputType);
 
   protected:
     virtual void getBlockLayoutInfo(GLenum type, unsigned int arraySize, bool isRowMajorMatrix, int *arrayStrideOut, int *matrixStrideOut);
@@ -99,13 +119,9 @@ class HLSLBlockEncoder : public BlockLayoutEncoder
 
 
 
-void HLSLVariableGetRegisterInfo(unsigned int baseRegisterIndex, Uniform *variable, ShShaderOutput outputType);
-
-
-
 unsigned int HLSLVariableRegisterCount(const Varying &variable);
 unsigned int HLSLVariableRegisterCount(const Uniform &variable, ShShaderOutput outputType);
 
 }
 
-#endif
+#endif 

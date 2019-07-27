@@ -55,8 +55,6 @@ TOutputGLSLBase::TOutputGLSLBase(TInfoSinkBase &objSink,
       mSymbolTable(symbolTable),
       mShaderVersion(shaderVersion)
 {
-    
-    mDeclaredStructs.push_back(ScopedDeclaredStructs());
 }
 
 void TOutputGLSLBase::writeTriplet(
@@ -83,14 +81,21 @@ void TOutputGLSLBase::writeVariableType(const TType &type)
 {
     TInfoSinkBase &out = objSink();
     TQualifier qualifier = type.getQualifier();
-    
     if (qualifier != EvqTemporary && qualifier != EvqGlobal)
+    {
         out << type.getQualifierString() << " ";
+    }
     
     if (type.getBasicType() == EbtStruct && !structDeclared(type.getStruct()))
     {
-        declareStruct(type.getStruct());
-        mDeclaredStructs[mDeclaredStructs.size() - 1].push_back(type.getStruct());
+        TStructure *structure = type.getStruct();
+
+        declareStruct(structure);
+
+        if (!structure->name().empty())
+        {
+            mDeclaredStructs.insert(structure->uniqueId());
+        }
     }
     else
     {
@@ -293,8 +298,8 @@ bool TOutputGLSLBase::visitBinary(Visit visit, TIntermBinary *node)
         {
             out << ".";
             TIntermAggregate *rightChild = node->getRight()->getAsAggregate();
-            TIntermSequence &sequence = rightChild->getSequence();
-            for (TIntermSequence::iterator sit = sequence.begin(); sit != sequence.end(); ++sit)
+            TIntermSequence *sequence = rightChild->getSequence();
+            for (TIntermSequence::iterator sit = sequence->begin(); sit != sequence->end(); ++sit)
             {
                 TIntermConstantUnion *element = (*sit)->getAsConstantUnion();
                 ASSERT(element->getBasicType() == EbtInt);
@@ -397,67 +402,6 @@ bool TOutputGLSLBase::visitUnary(Visit visit, TIntermUnary *node)
       case EOpPostDecrement: preString = "("; postString = "--)"; break;
       case EOpPreIncrement: preString = "(++"; break;
       case EOpPreDecrement: preString = "(--"; break;
-
-      case EOpConvIntToBool:
-      case EOpConvFloatToBool:
-        switch (node->getOperand()->getType().getNominalSize())
-        {
-          case 1:
-            preString =  "bool(";
-            break;
-          case 2:
-            preString = "bvec2(";
-            break;
-          case 3:
-            preString = "bvec3(";
-            break;
-          case 4:
-            preString = "bvec4(";
-            break;
-          default:
-            UNREACHABLE();
-        }
-        break;
-      case EOpConvBoolToFloat:
-      case EOpConvIntToFloat:
-        switch (node->getOperand()->getType().getNominalSize())
-        {
-          case 1:
-            preString = "float(";
-            break;
-          case 2:
-            preString = "vec2(";
-            break;
-          case 3:
-            preString = "vec3(";
-            break;
-          case 4:
-            preString = "vec4(";
-            break;
-          default:
-            UNREACHABLE();
-        }
-        break;
-      case EOpConvFloatToInt:
-      case EOpConvBoolToInt:
-        switch (node->getOperand()->getType().getNominalSize())
-        {
-          case 1:
-            preString = "int(";
-            break;
-          case 2:
-            preString = "ivec2(";
-            break;
-          case 3:
-            preString = "ivec3(";
-            break;
-          case 4:
-            preString = "ivec4(";
-            break;
-          default:
-            UNREACHABLE();
-        }
-        break;
 
       case EOpRadians:
         preString = "radians(";
@@ -601,15 +545,14 @@ bool TOutputGLSLBase::visitAggregate(Visit visit, TIntermAggregate *node)
     {
       case EOpSequence:
         
-        if (depth > 0)
+        if (mDepth > 0)
         {
             out << "{\n";
-            pushDeclaredStructsScope();
         }
 
         incrementDepth(node);
-        for (TIntermSequence::const_iterator iter = node->getSequence().begin();
-             iter != node->getSequence().end(); ++iter)
+        for (TIntermSequence::const_iterator iter = node->getSequence()->begin();
+             iter != node->getSequence()->end(); ++iter)
         {
             TIntermNode *node = *iter;
             ASSERT(node != NULL);
@@ -621,9 +564,8 @@ bool TOutputGLSLBase::visitAggregate(Visit visit, TIntermAggregate *node)
         decrementDepth();
 
         
-        if (depth > 0)
+        if (mDepth > 0)
         {
-            popDeclaredStructsScope();
             out << "}\n";
         }
         visitChildren = false;
@@ -635,7 +577,7 @@ bool TOutputGLSLBase::visitAggregate(Visit visit, TIntermAggregate *node)
         out << " " << hashName(node->getName());
 
         out << "(";
-        writeFunctionParameters(node->getSequence());
+        writeFunctionParameters(*(node->getSequence()));
         out << ")";
 
         visitChildren = false;
@@ -650,7 +592,7 @@ bool TOutputGLSLBase::visitAggregate(Visit visit, TIntermAggregate *node)
         
         
         
-        const TIntermSequence &sequence = node->getSequence();
+        const TIntermSequence &sequence = *(node->getSequence());
         ASSERT((sequence.size() == 1) || (sequence.size() == 2));
         TIntermSequence::const_iterator seqIter = sequence.begin();
 
@@ -683,7 +625,7 @@ bool TOutputGLSLBase::visitAggregate(Visit visit, TIntermAggregate *node)
         
         ASSERT(visit == PreVisit);
         out << "(";
-        writeFunctionParameters(node->getSequence());
+        writeFunctionParameters(*(node->getSequence()));
         out << ")";
         visitChildren = false;
         break;
@@ -691,7 +633,7 @@ bool TOutputGLSLBase::visitAggregate(Visit visit, TIntermAggregate *node)
         
         if (visit == PreVisit)
         {
-            const TIntermSequence &sequence = node->getSequence();
+            const TIntermSequence &sequence = *(node->getSequence());
             const TIntermTyped *variable = sequence.front()->getAsTyped();
             writeVariableType(variable->getType());
             out << " ";
@@ -707,6 +649,17 @@ bool TOutputGLSLBase::visitAggregate(Visit visit, TIntermAggregate *node)
             mDeclaringVariables = false;
         }
         break;
+      case EOpInvariantDeclaration: {
+            
+            ASSERT(visit == PreVisit);
+            const TIntermSequence *sequence = node->getSequence();
+            ASSERT(sequence && sequence->size() == 1);
+            const TIntermSymbol *symbol = sequence->front()->getAsSymbolNode();
+            ASSERT(symbol);
+            out << "invariant " << symbol->getSymbol() << ";";
+            visitChildren = false;
+            break;
+        }
       case EOpConstructFloat:
         writeTriplet(visit, "float(", NULL, ")");
         break;
@@ -873,10 +826,10 @@ bool TOutputGLSLBase::visitLoop(Visit visit, TIntermLoop *node)
         else
         {
             
-            TIntermSequence &declSeq =
+            TIntermSequence *declSeq =
                 node->getInit()->getAsAggregate()->getSequence();
             TIntermSymbol *indexSymbol =
-                declSeq[0]->getAsBinaryNode()->getLeft()->getAsSymbolNode();
+                (*declSeq)[0]->getAsBinaryNode()->getLeft()->getAsSymbolNode();
             TString name = hashVariableName(indexSymbol->getSymbol());
             out << "for (int " << name << " = 0; "
                 << name << " < 1; "
@@ -1035,17 +988,12 @@ TString TOutputGLSLBase::hashFunctionName(const TString &mangled_name)
 bool TOutputGLSLBase::structDeclared(const TStructure *structure) const
 {
     ASSERT(structure);
-    ASSERT(mDeclaredStructs.size() > 0);
-    for (size_t ii = mDeclaredStructs.size(); ii > 0; --ii)
+    if (structure->name().empty())
     {
-        const ScopedDeclaredStructs &scope = mDeclaredStructs[ii - 1];
-        for (size_t jj = 0; jj < scope.size(); ++jj)
-        {
-            if (scope[jj]->equals(*structure))
-                return true;
-        }
+        return false;
     }
-    return false;
+
+    return (mDeclaredStructs.count(structure->uniqueId()) > 0);
 }
 
 void TOutputGLSLBase::declareStruct(const TStructure *structure)
@@ -1067,14 +1015,3 @@ void TOutputGLSLBase::declareStruct(const TStructure *structure)
     out << "}";
 }
 
-void TOutputGLSLBase::pushDeclaredStructsScope()
-{
-    mDeclaredStructs.push_back(ScopedDeclaredStructs());
-}
-
-void TOutputGLSLBase::popDeclaredStructsScope()
-{
-    
-    ASSERT(mDeclaredStructs.size() >= 2);
-    mDeclaredStructs.pop_back();
-}

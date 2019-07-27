@@ -23,13 +23,24 @@
 #define COMPILER_EXPORT
 #endif
 
-#include "KHR/khrplatform.h"
 #include <stddef.h>
 
+#include "KHR/khrplatform.h"
 
 
 
 
+
+
+namespace sh
+{
+
+typedef unsigned int GLenum;
+}
+
+
+
+#include "ShaderVars.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,18 +48,7 @@ extern "C" {
 
 
 
-#define ANGLE_SH_VERSION 125
-
-
-
-
-
-
-
-typedef enum {
-  SH_FRAGMENT_SHADER = 0x8B30,
-  SH_VERTEX_SHADER   = 0x8B31
-} ShShaderType;
+#define ANGLE_SH_VERSION 130
 
 typedef enum {
   SH_GLES2_SPEC = 0x8B40,
@@ -86,52 +86,6 @@ typedef enum {
 } ShShaderOutput;
 
 typedef enum {
-  SH_NONE           = 0,
-  SH_INT            = 0x1404,
-  SH_UNSIGNED_INT   = 0x1405,
-  SH_FLOAT          = 0x1406,
-  SH_FLOAT_VEC2     = 0x8B50,
-  SH_FLOAT_VEC3     = 0x8B51,
-  SH_FLOAT_VEC4     = 0x8B52,
-  SH_INT_VEC2       = 0x8B53,
-  SH_INT_VEC3       = 0x8B54,
-  SH_INT_VEC4       = 0x8B55,
-  SH_UNSIGNED_INT_VEC2 = 0x8DC6,
-  SH_UNSIGNED_INT_VEC3 = 0x8DC7,
-  SH_UNSIGNED_INT_VEC4 = 0x8DC8,
-  SH_BOOL           = 0x8B56,
-  SH_BOOL_VEC2      = 0x8B57,
-  SH_BOOL_VEC3      = 0x8B58,
-  SH_BOOL_VEC4      = 0x8B59,
-  SH_FLOAT_MAT2     = 0x8B5A,
-  SH_FLOAT_MAT3     = 0x8B5B,
-  SH_FLOAT_MAT4     = 0x8B5C,
-  SH_FLOAT_MAT2x3   = 0x8B65,
-  SH_FLOAT_MAT2x4   = 0x8B66,
-  SH_FLOAT_MAT3x2   = 0x8B67,
-  SH_FLOAT_MAT3x4   = 0x8B68,
-  SH_FLOAT_MAT4x2   = 0x8B69,
-  SH_FLOAT_MAT4x3   = 0x8B6A,
-  SH_SAMPLER_2D     = 0x8B5E,
-  SH_SAMPLER_3D     = 0x8B5F,
-  SH_SAMPLER_CUBE   = 0x8B60,
-  SH_SAMPLER_2D_RECT_ARB = 0x8B63,
-  SH_SAMPLER_EXTERNAL_OES = 0x8D66,
-  SH_SAMPLER_2D_ARRAY   = 0x8DC1,
-  SH_INT_SAMPLER_2D     = 0x8DCA,
-  SH_INT_SAMPLER_3D     = 0x8DCB,
-  SH_INT_SAMPLER_CUBE   = 0x8DCC,
-  SH_INT_SAMPLER_2D_ARRAY = 0x8DCF,
-  SH_UNSIGNED_INT_SAMPLER_2D     = 0x8DD2,
-  SH_UNSIGNED_INT_SAMPLER_3D     = 0x8DD3,
-  SH_UNSIGNED_INT_SAMPLER_CUBE   = 0x8DD4,
-  SH_UNSIGNED_INT_SAMPLER_2D_ARRAY = 0x8DD7,
-  SH_SAMPLER_2D_SHADOW       = 0x8B62,
-  SH_SAMPLER_CUBE_SHADOW     = 0x8DC5,
-  SH_SAMPLER_2D_ARRAY_SHADOW = 0x8DC4
-} ShDataType;
-
-typedef enum {
   SH_PRECISION_HIGHP     = 0x5001,
   SH_PRECISION_MEDIUMP   = 0x5002,
   SH_PRECISION_LOWP      = 0x5003,
@@ -151,14 +105,9 @@ typedef enum {
   SH_NAME_MAX_LENGTH                = 0x6001,
   SH_HASHED_NAME_MAX_LENGTH         = 0x6002,
   SH_HASHED_NAMES_COUNT             = 0x6003,
-  SH_ACTIVE_UNIFORMS_ARRAY          = 0x6004,
-  SH_SHADER_VERSION                 = 0x6005,
-  SH_ACTIVE_INTERFACE_BLOCKS_ARRAY  = 0x6006,
-  SH_ACTIVE_OUTPUT_VARIABLES_ARRAY  = 0x6007,
-  SH_ACTIVE_ATTRIBUTES_ARRAY        = 0x6008,
-  SH_ACTIVE_VARYINGS_ARRAY          = 0x6009,
-  SH_RESOURCES_STRING_LENGTH        = 0x600A,
-  SH_OUTPUT_TYPE                    = 0x600B
+  SH_SHADER_VERSION                 = 0x6004,
+  SH_RESOURCES_STRING_LENGTH        = 0x6005,
+  SH_OUTPUT_TYPE                    = 0x6006
 } ShShaderInfo;
 
 
@@ -236,6 +185,15 @@ typedef enum {
   
   
   SH_INIT_VARYINGS_WITHOUT_STATIC_USE = 0x20000,
+
+  
+  
+  SH_SCALARIZE_VEC_AND_MAT_CONSTRUCTOR_ARGS = 0x40000,
+
+  
+  
+  
+  SH_REGENERATE_STRUCT_NAMES = 0x80000,
 } ShCompileOptions;
 
 
@@ -352,7 +310,7 @@ COMPILER_EXPORT void ShGetBuiltInResourcesString(const ShHandle handle, size_t o
 
 
 COMPILER_EXPORT ShHandle ShConstructCompiler(
-    ShShaderType type,
+    sh::GLenum type,
     ShShaderSpec spec,
     ShShaderOutput output,
     const ShBuiltInResources* resources);
@@ -476,7 +434,7 @@ COMPILER_EXPORT void ShGetVariableInfo(const ShHandle handle,
                                        int index,
                                        size_t* length,
                                        int* size,
-                                       ShDataType* type,
+                                       sh::GLenum* type,
                                        ShPrecisionType* precision,
                                        int* staticUse,
                                        char* name,
@@ -506,15 +464,15 @@ COMPILER_EXPORT void ShGetNameHashingEntry(const ShHandle handle,
 
 
 
-
-
-COMPILER_EXPORT void ShGetInfoPointer(const ShHandle handle,
-                                      ShShaderInfo pname,
-                                      void** params);
+COMPILER_EXPORT const std::vector<sh::Uniform> *ShGetUniforms(const ShHandle handle);
+COMPILER_EXPORT const std::vector<sh::Varying> *ShGetVaryings(const ShHandle handle);
+COMPILER_EXPORT const std::vector<sh::Attribute> *ShGetAttributes(const ShHandle handle);
+COMPILER_EXPORT const std::vector<sh::Attribute> *ShGetOutputVariables(const ShHandle handle);
+COMPILER_EXPORT const std::vector<sh::InterfaceBlock> *ShGetInterfaceBlocks(const ShHandle handle);
 
 typedef struct
 {
-    ShDataType type;
+    sh::GLenum type;
     int size;
 } ShVariableInfo;
 
@@ -530,6 +488,29 @@ COMPILER_EXPORT int ShCheckVariablesWithinPackingLimits(
     int maxVectors,
     ShVariableInfo* varInfoArray,
     size_t varInfoArraySize);
+
+
+
+
+
+
+
+
+COMPILER_EXPORT bool ShGetInterfaceBlockRegister(const ShHandle handle,
+                                                 const char *interfaceBlockName,
+                                                 unsigned int *indexOut);
+
+
+
+
+
+
+
+
+
+COMPILER_EXPORT bool ShGetUniformRegister(const ShHandle handle,
+                                          const char *uniformName,
+                                          unsigned int *indexOut);
 
 #ifdef __cplusplus
 }

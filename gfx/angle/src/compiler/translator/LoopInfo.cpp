@@ -93,9 +93,9 @@ void TLoopIndexInfo::fillInfo(TIntermLoop *node)
 
     
     
-    TIntermSequence &declSeq =
+    TIntermSequence *declSeq =
         node->getInit()->getAsAggregate()->getSequence();
-    TIntermBinary *declInit = declSeq[0]->getAsBinaryNode();
+    TIntermBinary *declInit = (*declSeq)[0]->getAsBinaryNode();
     TIntermSymbol *symbol = declInit->getLeft()->getAsSymbolNode();
 
     mId = symbol->getId();
