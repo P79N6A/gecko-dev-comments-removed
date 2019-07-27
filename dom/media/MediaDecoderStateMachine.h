@@ -427,41 +427,6 @@ protected:
   void LogicalPlaybackRateChanged();
   void PreservesPitchChanged();
 
-  class WakeDecoderRunnable : public nsRunnable {
-  public:
-    explicit WakeDecoderRunnable(MediaDecoderStateMachine* aSM)
-      : mMutex("WakeDecoderRunnable"), mStateMachine(aSM) {}
-    NS_IMETHOD Run() override
-    {
-      nsRefPtr<MediaDecoderStateMachine> stateMachine;
-      {
-        
-        
-        MutexAutoLock lock(mMutex);
-        if (!mStateMachine)
-          return NS_OK;
-        stateMachine = mStateMachine;
-      }
-      stateMachine->ScheduleStateMachineWithLockAndWakeDecoder();
-      return NS_OK;
-    }
-    void Revoke()
-    {
-      MutexAutoLock lock(mMutex);
-      mStateMachine = nullptr;
-    }
-
-    Mutex mMutex;
-    
-    
-    
-    
-    
-    
-    MediaDecoderStateMachine* mStateMachine;
-  };
-  WakeDecoderRunnable* GetWakeDecoderRunnable();
-
   MediaQueue<AudioData>& AudioQueue() { return mAudioQueue; }
   MediaQueue<VideoData>& VideoQueue() { return mVideoQueue; }
 
@@ -975,13 +940,6 @@ protected:
   
   
   nsRefPtr<MediaDecoderReader> mReader;
-
-  
-  
-  
-  
-  
-  nsRevocableEventPtr<WakeDecoderRunnable> mPendingWakeDecoder;
 
   
   
