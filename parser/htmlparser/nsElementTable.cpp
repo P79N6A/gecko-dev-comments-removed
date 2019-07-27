@@ -172,6 +172,10 @@ const nsHTMLElement gHTMLElements[] = {
      kSpecial, true
   },
   {
+             eHTMLTag_extapp,
+     kNone, false
+  },
+  {
              eHTMLTag_fieldset,
      kBlock, false
   },
