@@ -940,15 +940,9 @@ APZCTreeManager::ProcessWheelEvent(WidgetWheelEvent& aEvent,
 static bool
 WillHandleWheelEvent(WidgetWheelEvent* aEvent)
 {
-  
-  
-  
   return EventStateManager::WheelEventIsScrollAction(aEvent) &&
          (aEvent->deltaMode == nsIDOMWheelEvent::DOM_DELTA_LINE
-#ifdef XP_MACOSX
-            || aEvent->deltaMode == nsIDOMWheelEvent::DOM_DELTA_PIXEL
-#endif
-           ) &&
+            || aEvent->deltaMode == nsIDOMWheelEvent::DOM_DELTA_PIXEL) &&
          !EventStateManager::WheelEventNeedsDeltaMultipliers(aEvent);
 }
 
