@@ -381,36 +381,32 @@ nsHTMLEditor::SetInlinePropertyOnTextNode(Text& aText,
 
 
 nsresult
-nsHTMLEditor::SetInlinePropertyOnNodeImpl(nsIContent* aNode,
-                                          nsIAtom* aProperty,
+nsHTMLEditor::SetInlinePropertyOnNodeImpl(nsIContent& aNode,
+                                          nsIAtom& aProperty,
                                           const nsAString* aAttribute,
-                                          const nsAString* aValue)
+                                          const nsAString& aValue)
 {
-  MOZ_ASSERT(aNode && aProperty);
-  MOZ_ASSERT(aValue);
-
   nsCOMPtr<nsIAtom> attrAtom = aAttribute ? do_GetAtom(*aAttribute) : nullptr;
 
   
   
-  if (!TagCanContain(*nsGkAtoms::span, *aNode)) {
-    if (aNode->HasChildren()) {
-      nsCOMArray<nsIContent> arrayOfNodes;
+  if (!TagCanContain(*nsGkAtoms::span, aNode)) {
+    if (aNode.HasChildren()) {
+      nsTArray<OwningNonNull<nsIContent>> arrayOfNodes;
 
       
-      for (nsIContent* child = aNode->GetFirstChild();
+      for (nsCOMPtr<nsIContent> child = aNode.GetFirstChild();
            child;
            child = child->GetNextSibling()) {
         if (IsEditable(child) && !IsEmptyTextNode(this, child)) {
-          arrayOfNodes.AppendObject(child);
+          arrayOfNodes.AppendElement(*child);
         }
       }
 
       
-      int32_t listCount = arrayOfNodes.Count();
-      for (int32_t j = 0; j < listCount; ++j) {
-        nsresult rv = SetInlinePropertyOnNode(arrayOfNodes[j], aProperty,
-                                              aAttribute, aValue);
+      for (auto& node : arrayOfNodes) {
+        nsresult rv = SetInlinePropertyOnNode(node, &aProperty, aAttribute,
+                                              &aValue);
         NS_ENSURE_SUCCESS(rv, rv);
       }
     }
@@ -419,36 +415,36 @@ nsHTMLEditor::SetInlinePropertyOnNodeImpl(nsIContent* aNode,
 
   
   nsresult res;
-  nsCOMPtr<nsIContent> previousSibling = GetPriorHTMLSibling(aNode);
-  nsCOMPtr<nsIContent> nextSibling = GetNextHTMLSibling(aNode);
-  if (IsSimpleModifiableNode(previousSibling, aProperty, aAttribute, aValue)) {
-    res = MoveNode(aNode, previousSibling, -1);
+  nsCOMPtr<nsIContent> previousSibling = GetPriorHTMLSibling(&aNode);
+  nsCOMPtr<nsIContent> nextSibling = GetNextHTMLSibling(&aNode);
+  if (IsSimpleModifiableNode(previousSibling, &aProperty, aAttribute, &aValue)) {
+    res = MoveNode(&aNode, previousSibling, -1);
     NS_ENSURE_SUCCESS(res, res);
-    if (IsSimpleModifiableNode(nextSibling, aProperty, aAttribute, aValue)) {
+    if (IsSimpleModifiableNode(nextSibling, &aProperty, aAttribute, &aValue)) {
       res = JoinNodes(*previousSibling, *nextSibling);
       NS_ENSURE_SUCCESS(res, res);
     }
     return NS_OK;
   }
-  if (IsSimpleModifiableNode(nextSibling, aProperty, aAttribute, aValue)) {
-    res = MoveNode(aNode, nextSibling, 0);
+  if (IsSimpleModifiableNode(nextSibling, &aProperty, aAttribute, &aValue)) {
+    res = MoveNode(&aNode, nextSibling, 0);
     NS_ENSURE_SUCCESS(res, res);
     return NS_OK;
   }
 
   
-  if (mHTMLCSSUtils->IsCSSEditableProperty(aNode, aProperty, aAttribute)) {
+  if (mHTMLCSSUtils->IsCSSEditableProperty(&aNode, &aProperty, aAttribute)) {
     if (mHTMLCSSUtils->IsCSSEquivalentToHTMLInlineStyleSet(
-          aNode, aProperty, aAttribute, *aValue, nsHTMLCSSUtils::eComputed)) {
+          &aNode, &aProperty, aAttribute, aValue, nsHTMLCSSUtils::eComputed)) {
       return NS_OK;
     }
-  } else if (IsTextPropertySetByContent(aNode, aProperty,
-                                        aAttribute, aValue)) {
+  } else if (IsTextPropertySetByContent(&aNode, &aProperty,
+                                        aAttribute, &aValue)) {
     return NS_OK;
   }
 
   bool useCSS = (IsCSSEnabled() &&
-                 mHTMLCSSUtils->IsCSSEditableProperty(aNode, aProperty, aAttribute)) ||
+                 mHTMLCSSUtils->IsCSSEditableProperty(&aNode, &aProperty, aAttribute)) ||
                 
                 aAttribute->EqualsLiteral("bgcolor");
 
@@ -456,33 +452,33 @@ nsHTMLEditor::SetInlinePropertyOnNodeImpl(nsIContent* aNode,
     nsCOMPtr<dom::Element> tmp;
     
     
-    if (aNode->IsHTMLElement(nsGkAtoms::span) &&
-        !aNode->AsElement()->GetAttrCount()) {
-      tmp = aNode->AsElement();
+    if (aNode.IsHTMLElement(nsGkAtoms::span) &&
+        !aNode.AsElement()->GetAttrCount()) {
+      tmp = aNode.AsElement();
     } else {
-      tmp = InsertContainerAbove(aNode, nsGkAtoms::span);
+      tmp = InsertContainerAbove(&aNode, nsGkAtoms::span);
       NS_ENSURE_STATE(tmp);
     }
 
     
     int32_t count;
     res = mHTMLCSSUtils->SetCSSEquivalentToHTMLStyle(tmp->AsDOMNode(),
-                                                     aProperty, aAttribute,
-                                                     aValue, &count, false);
+                                                     &aProperty, aAttribute,
+                                                     &aValue, &count, false);
     NS_ENSURE_SUCCESS(res, res);
     return NS_OK;
   }
 
   
-  if (aNode->IsHTMLElement(aProperty)) {
+  if (aNode.IsHTMLElement(&aProperty)) {
     
-    nsCOMPtr<nsIDOMElement> elem = do_QueryInterface(aNode);
-    return SetAttribute(elem, *aAttribute, *aValue);
+    nsCOMPtr<nsIDOMElement> elem = do_QueryInterface(&aNode);
+    return SetAttribute(elem, *aAttribute, aValue);
   }
 
   
-  nsCOMPtr<Element> tmp = InsertContainerAbove(aNode, aProperty, attrAtom,
-                                               aValue);
+  nsCOMPtr<Element> tmp = InsertContainerAbove(&aNode, &aProperty, attrAtom,
+                                               &aValue);
   NS_ENSURE_STATE(tmp);
 
   return NS_OK;
@@ -527,8 +523,8 @@ nsHTMLEditor::SetInlinePropertyOnNode(nsIContent* aNode,
 
   if (aNode->GetParentNode()) {
     
-    return SetInlinePropertyOnNodeImpl(aNode, aProperty,
-                                       aAttribute, aValue);
+    return SetInlinePropertyOnNodeImpl(*aNode, *aProperty,
+                                       aAttribute, *aValue);
   }
 
   
@@ -550,8 +546,8 @@ nsHTMLEditor::SetInlinePropertyOnNode(nsIContent* aNode,
 
   int32_t nodesToSetCount = nodesToSet.Count();
   for (int32_t k = 0; k < nodesToSetCount; k++) {
-    res = SetInlinePropertyOnNodeImpl(nodesToSet[k], aProperty,
-                                      aAttribute, aValue);
+    res = SetInlinePropertyOnNodeImpl(*nodesToSet[k], *aProperty,
+                                      aAttribute, *aValue);
     NS_ENSURE_SUCCESS(res, res);
   }
 
