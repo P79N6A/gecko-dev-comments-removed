@@ -60,6 +60,7 @@ public:
   {
     READ_ONLY = 0,
     READ_WRITE,
+    READ_WRITE_FLUSH,
     VERSION_CHANGE,
 
     
@@ -177,7 +178,9 @@ public:
   IsWriteAllowed() const
   {
     AssertIsOnOwningThread();
-    return mMode == READ_WRITE || mMode == VERSION_CHANGE;
+    return mMode == READ_WRITE ||
+           mMode == READ_WRITE_FLUSH ||
+           mMode == VERSION_CHANGE;
   }
 
   bool
