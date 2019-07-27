@@ -1004,19 +1004,34 @@ function loadManifestFromRDF(aUri, aStream) {
   }
 
   
-  
-  let storage = Services.storage;
+  Object.defineProperty(addon, "syncGUID", {
+    get: () => {
+      
+      
+      let storage = Services.storage;
 
-  
-  
-  let rng = Cc["@mozilla.org/security/random-generator;1"].
-            createInstance(Ci.nsIRandomGenerator);
-  let bytes = rng.generateRandomBytes(9);
-  let byte_string = [String.fromCharCode(byte) for each (byte in bytes)]
-                    .join("");
-  
-  addon.syncGUID = btoa(byte_string).replace(/\+/g, '-')
-                                    .replace(/\//g, '_');
+      
+      
+      let rng = Cc["@mozilla.org/security/random-generator;1"].
+        createInstance(Ci.nsIRandomGenerator);
+      let bytes = rng.generateRandomBytes(9);
+      let byte_string = [String.fromCharCode(byte) for each (byte in bytes)]
+                        .join("");
+      
+      let guid = btoa(byte_string).replace(/\+/g, '-')
+        .replace(/\//g, '_');
+
+      delete addon.syncGUID;
+      addon.syncGUID = guid;
+      return guid;
+    },
+    set: (val) => {
+      delete addon.syncGUID;
+      addon.syncGUID = val;
+    },
+    configurable: true,
+    enumerable: true,
+  });
 
   return addon;
 }
