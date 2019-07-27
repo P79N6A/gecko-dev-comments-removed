@@ -10,7 +10,19 @@ this.EXPORTED_SYMBOLS = [
 
 const {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
 
+const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
+
 this.TelemetryUtils = {
+  
+
+
+
+
+
+  millisecondsToDays: function(aMsec) {
+    return Math.floor(aMsec / MILLISECONDS_PER_DAY);
+  },
+
   
 
 
@@ -62,5 +74,16 @@ this.TelemetryUtils = {
       return nextMidnightDate;
     }
     return null;
+  },
+
+  
+
+
+
+
+
+  getElapsedTimeInMonths: function(aStartDate, aEndDate) {
+    return (aEndDate.getMonth() - aStartDate.getMonth())
+           + 12 * (aEndDate.getFullYear() - aStartDate.getFullYear());
   },
 };
