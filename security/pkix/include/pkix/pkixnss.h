@@ -34,7 +34,6 @@ namespace mozilla { namespace pkix {
 
 Result VerifySignedData(const SignedDataWithSignature& sd,
                         Input subjectPublicKeyInfo,
-                        unsigned int minimumNonECCBits,
                         void* pkcs11PinArg);
 
 
@@ -52,9 +51,7 @@ Result DigestBuf(Input item,  uint8_t* digestBuf,
                  size_t digestBufLen);
 
 
-
-Result CheckPublicKey(Input subjectPublicKeyInfo,
-                      unsigned int minimumNonECCBits);
+Result CheckPublicKey(Input subjectPublicKeyInfo);
 
 Result MapPRErrorCodeToResult(PRErrorCode errorCode);
 PRErrorCode MapResultToPRErrorCode(Result result);
