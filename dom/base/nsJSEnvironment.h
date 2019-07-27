@@ -197,14 +197,11 @@ public:
 
   NS_IMETHOD Run()
   {
-    ReportError();
+    mReport->LogToConsole();
     return NS_OK;
   }
 
 protected:
-  
-  void ReportError();
-
   nsRefPtr<xpc::ErrorReport> mReport;
 };
 
