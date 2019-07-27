@@ -3240,6 +3240,10 @@ ReadSourceFromFilename(JSContext* cx, const char* filename, char16_t** src, size
     if (!scheme.EqualsLiteral("file") && !scheme.EqualsLiteral("jar"))
         return NS_OK;
 
+    
+    
+    scriptChannel->SetContentType(NS_LITERAL_CSTRING("text/plain"));
+
     nsCOMPtr<nsIInputStream> scriptStream;
     rv = scriptChannel->Open(getter_AddRefs(scriptStream));
     NS_ENSURE_SUCCESS(rv, rv);
