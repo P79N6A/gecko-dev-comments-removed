@@ -13,13 +13,6 @@ public class BackButton extends NavButton {
         super(context, attrs);
     }
 
-    
-    @Override
-    public void setPrivateMode(boolean isPrivate) {
-        super.setPrivateMode(isPrivate);
-        mBorderPaint.setColor(isPrivate ? 0xFF363B40 : 0xFFB5B5B5);
-    }
-
     @Override
     protected void onSizeChanged(int width, int height, int oldWidth, int oldHeight) {
         super.onSizeChanged(width, height, oldWidth, oldHeight);
