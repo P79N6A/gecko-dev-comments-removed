@@ -97,7 +97,7 @@ FrameWorker.prototype = {
 
     
     
-    let needsWaive = ['XMLHttpRequest', 'WebSocket', 'Worker'];
+    let needsWaive = ['XMLHttpRequest', 'WebSocket', 'Worker' ];
     
     let needsBind = ['atob', 'btoa', 'dump', 'setInterval', 'clearInterval',
                      'setTimeout', 'clearTimeout'];

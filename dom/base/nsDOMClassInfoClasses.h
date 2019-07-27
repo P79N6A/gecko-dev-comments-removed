@@ -48,9 +48,6 @@ DOMCI_CLASS(XSLTProcessor)
 
 DOMCI_CLASS(XPathNSResolver)
 
-
-DOMCI_CLASS(Storage)
-
 DOMCI_CLASS(Blob)
 DOMCI_CLASS(File)
 

@@ -915,8 +915,8 @@ public:
             mozilla::ErrorResult& aError);
   void Btoa(const nsAString& aBinaryData, nsAString& aAsciiBase64String,
             mozilla::ErrorResult& aError);
-  nsIDOMStorage* GetSessionStorage(mozilla::ErrorResult& aError);
-  nsIDOMStorage* GetLocalStorage(mozilla::ErrorResult& aError);
+  mozilla::dom::DOMStorage* GetSessionStorage(mozilla::ErrorResult& aError);
+  mozilla::dom::DOMStorage* GetLocalStorage(mozilla::ErrorResult& aError);
   mozilla::dom::Selection* GetSelection(mozilla::ErrorResult& aError);
   mozilla::dom::indexedDB::IDBFactory* GetIndexedDB(mozilla::ErrorResult& aError);
   already_AddRefed<nsICSSDeclaration>
@@ -1545,8 +1545,8 @@ protected:
   
   nsCOMPtr<nsISupports>         mExternal;
 
-  nsCOMPtr<nsIDOMStorage>      mLocalStorage;
-  nsCOMPtr<nsIDOMStorage>      mSessionStorage;
+  nsRefPtr<mozilla::dom::DOMStorage> mLocalStorage;
+  nsRefPtr<mozilla::dom::DOMStorage> mSessionStorage;
 
   
   nsRefPtr<mozilla::EventListenerManager> mListenerManager;

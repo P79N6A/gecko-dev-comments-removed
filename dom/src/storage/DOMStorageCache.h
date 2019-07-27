@@ -98,7 +98,7 @@ public:
   nsresult RemoveItem(const DOMStorage* aStorage, const nsAString& aKey, nsString& aOld);
   nsresult Clear(const DOMStorage* aStorage);
 
-  nsTArray<nsString>* GetKeys(const DOMStorage* aStorage);
+  void GetKeys(const DOMStorage* aStorage, nsTArray<nsString>& aKeys);
 
   
   bool CheckPrincipal(nsIPrincipal* aPrincipal) const;

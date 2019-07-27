@@ -107,11 +107,12 @@ let SessionStorageInternal = {
       let uri = Services.io.newURI(host, null, null);
       let principal = Services.scriptSecurityManager.getDocShellCodebasePrincipal(uri, aDocShell);
       let storageManager = aDocShell.QueryInterface(Ci.nsIDOMStorageManager);
+      let window = aDocShell.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindow);
 
       
       
       
-      let storage = storageManager.createStorage(principal, "", aDocShell.usePrivateBrowsing);
+      let storage = storageManager.createStorage(window, principal, "", aDocShell.usePrivateBrowsing);
 
       for (let key of Object.keys(data)) {
         try {
@@ -135,9 +136,11 @@ let SessionStorageInternal = {
     let hostData = {};
     let storage;
 
+    let window = aDocShell.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindow);
+
     try {
       let storageManager = aDocShell.QueryInterface(Ci.nsIDOMStorageManager);
-      storage = storageManager.getStorage(aPrincipal);
+      storage = storageManager.getStorage(window, aPrincipal);
     } catch (e) {
       
     }
