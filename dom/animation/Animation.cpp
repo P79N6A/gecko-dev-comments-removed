@@ -292,9 +292,9 @@ Animation::Tick()
     mPendingReadyTime.SetNull();
   }
 
-  if (IsPossiblyOrphanedPendingPlayer()) {
+  if (IsPossiblyOrphanedPendingAnimation()) {
     MOZ_ASSERT(mTimeline && !mTimeline->GetCurrentTime().IsNull(),
-               "Orphaned pending players should have an active timeline");
+               "Orphaned pending animtaions should have an active timeline");
     FinishPendingAt(mTimeline->GetCurrentTime().Value());
   }
 
@@ -304,6 +304,7 @@ Animation::Tick()
 void
 Animation::TriggerOnNextTick(const Nullable<TimeDuration>& aReadyTime)
 {
+  
   
   
   
@@ -320,7 +321,7 @@ void
 Animation::TriggerNow()
 {
   MOZ_ASSERT(PlayState() == AnimationPlayState::Pending,
-             "Expected to start a pending player");
+             "Expected to start a pending animation");
   MOZ_ASSERT(mTimeline && !mTimeline->GetCurrentTime().IsNull(),
              "Expected an active timeline");
 
@@ -599,9 +600,9 @@ Animation::ResumeAt(const TimeDuration& aReadyTime)
   
   
   MOZ_ASSERT(mPendingState == PendingState::PlayPending,
-             "Expected to resume a play-pending player");
+             "Expected to resume a play-pending animation");
   MOZ_ASSERT(mHoldTime.IsNull() != mStartTime.IsNull(),
-             "A player in the play-pending state should have either a"
+             "An animation in the play-pending state should have either a"
              " resolved hold time or resolved start time (but not both)");
 
   
@@ -628,7 +629,7 @@ void
 Animation::PauseAt(const TimeDuration& aReadyTime)
 {
   MOZ_ASSERT(mPendingState == PendingState::PausePending,
-             "Expected to pause a pause-pending player");
+             "Expected to pause a pause-pending animation");
 
   if (!mStartTime.IsNull()) {
     mHoldTime.SetValue((aReadyTime - mStartTime.Value())
@@ -771,7 +772,7 @@ Animation::IsFinished() const
 }
 
 bool
-Animation::IsPossiblyOrphanedPendingPlayer() const
+Animation::IsPossiblyOrphanedPendingAnimation() const
 {
   
   
@@ -873,13 +874,14 @@ Animation::GetCollection() const
   if (!manager) {
     return nullptr;
   }
-  MOZ_ASSERT(mEffect, "A player with an animation manager must have an effect");
+  MOZ_ASSERT(mEffect,
+             "An animation with an animation manager must have an effect");
 
   Element* targetElement;
   nsCSSPseudoElements::Type targetPseudoType;
   mEffect->GetTarget(targetElement, targetPseudoType);
   MOZ_ASSERT(targetElement,
-             "A player with an animation manager must have a target");
+             "An animation with an animation manager must have a target");
 
   return manager->GetAnimations(targetElement, targetPseudoType, false);
 }

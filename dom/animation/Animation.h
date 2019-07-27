@@ -295,7 +295,7 @@ protected:
 
   bool IsFinished() const;
 
-  bool IsPossiblyOrphanedPendingPlayer() const;
+  bool IsPossiblyOrphanedPendingAnimation() const;
   StickyTimeDuration EffectEnd() const;
 
   nsIDocument* GetRenderedDocument() const;

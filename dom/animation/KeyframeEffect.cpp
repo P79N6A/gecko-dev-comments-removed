@@ -234,10 +234,10 @@ KeyframeEffectReadonly::ActiveDuration(const AnimationTiming& aTiming)
 
 
 bool
-KeyframeEffectReadonly::IsInPlay(const Animation& aPlayer) const
+KeyframeEffectReadonly::IsInPlay(const Animation& aAnimation) const
 {
   if (IsFinishedTransition() ||
-      aPlayer.PlayState() == AnimationPlayState::Finished) {
+      aAnimation.PlayState() == AnimationPlayState::Finished) {
     return false;
   }
 
@@ -246,10 +246,10 @@ KeyframeEffectReadonly::IsInPlay(const Animation& aPlayer) const
 
 
 bool
-KeyframeEffectReadonly::IsCurrent(const Animation& aPlayer) const
+KeyframeEffectReadonly::IsCurrent(const Animation& aAnimation) const
 {
   if (IsFinishedTransition() ||
-      aPlayer.PlayState() == AnimationPlayState::Finished) {
+      aAnimation.PlayState() == AnimationPlayState::Finished) {
     return false;
   }
 
