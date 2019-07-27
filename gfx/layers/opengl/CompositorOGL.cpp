@@ -1393,7 +1393,9 @@ CompositorOGL::SetFBAcquireFence(Layer* aLayer)
   
   TiledLayerComposer* composer = nullptr;
   LayerComposite* shadow = aLayer->AsLayerComposite();
-  if (shadow) {
+  
+  
+  if (shadow && shadow->GetCompositableHost()) {
     composer = shadow->GetTiledLayerComposer();
     if (composer) {
       composer->SetReleaseFence(new android::Fence(GetGonkDisplay()->GetPrevFBAcquireFd()));
