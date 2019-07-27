@@ -15,7 +15,7 @@
 
 
 
-template<class T, class Compare = nsDefaultComparator<T, T> >
+template<class T, class Compare = nsDefaultComparator<T, T>>
 class nsTPriorityQueue
 {
 public:
@@ -25,37 +25,32 @@ public:
 
 
 
-  nsTPriorityQueue() : mCompare(Compare()) { }
+  nsTPriorityQueue() : mCompare(Compare()) {}
 
   
 
 
 
-  nsTPriorityQueue(const Compare& aComp) : mCompare(aComp) { }
+  nsTPriorityQueue(const Compare& aComp) : mCompare(aComp) {}
 
   
 
 
   nsTPriorityQueue(const nsTPriorityQueue& aOther)
-    : mElements(aOther.mElements),
-      mCompare(aOther.mCompare)
-  { }
-
-  
-
-
-  bool IsEmpty() const
+    : mElements(aOther.mElements)
+    , mCompare(aOther.mCompare)
   {
-    return mElements.IsEmpty();
   }
 
   
 
 
-  size_type Length() const
-  {
-    return mElements.Length();
-  }
+  bool IsEmpty() const { return mElements.IsEmpty(); }
+
+  
+
+
+  size_type Length() const { return mElements.Length(); }
 
   
 
@@ -78,8 +73,9 @@ public:
   bool Push(const T& aElement)
   {
     T* elem = mElements.AppendElement(aElement);
-    if (!elem)
-      return false; 
+    if (!elem) {
+      return false;  
+    }
 
     
     size_type i = mElements.Length() - 1;
@@ -112,9 +108,9 @@ public:
 
     
     size_type i = 0;
-    while (2*i + 1 < mElements.Length()) {
+    while (2 * i + 1 < mElements.Length()) {
       size_type swap = i;
-      size_type l_child = 2*i + 1;
+      size_type l_child = 2 * i + 1;
       if (mCompare.LessThan(mElements[l_child], mElements[i])) {
         swap = l_child;
       }
@@ -136,10 +132,7 @@ public:
   
 
 
-  void Clear()
-  {
-    mElements.Clear();
-  }
+  void Clear() { mElements.Clear(); }
 
   
 
@@ -148,10 +141,7 @@ public:
 
 
 
-  const T* Elements() const
-  {
-    return mElements.Elements();
-  }
+  const T* Elements() const { return mElements.Elements(); }
 
 protected:
   

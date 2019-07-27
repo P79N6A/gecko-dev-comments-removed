@@ -18,7 +18,11 @@ namespace mozilla {
 class NS_COM_GLUE ScopedAppData : public nsXREAppData
 {
 public:
-  ScopedAppData() { Zero(); this->size = sizeof(*this); }
+  ScopedAppData()
+  {
+    Zero();
+    this->size = sizeof(*this);
+  }
 
   ScopedAppData(const nsXREAppData* aAppData);
 
@@ -33,9 +37,7 @@ public:
 
 
 
-
-void SetAllocatedString(const char *&str, const char *newvalue);
-
+void SetAllocatedString(const char*& aStr, const char* aNewValue);
 
 
 
@@ -43,14 +45,16 @@ void SetAllocatedString(const char *&str, const char *newvalue);
 
 
 
-void SetAllocatedString(const char *&str, const nsACString &newvalue);
+
+void SetAllocatedString(const char*& aStr, const nsACString& aNewValue);
 
 template<class T>
-void SetStrongPtr(T *&ptr, T* newvalue)
+void
+SetStrongPtr(T*& aPtr, T* aNewValue)
 {
-  NS_IF_RELEASE(ptr);
-  ptr = newvalue;
-  NS_IF_ADDREF(ptr);
+  NS_IF_RELEASE(aPtr);
+  aPtr = aNewValue;
+  NS_IF_ADDREF(aPtr);
 }
 
 } 

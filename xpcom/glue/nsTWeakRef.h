@@ -59,21 +59,24 @@
 
 
 
-template <class Type>
-class nsTWeakRef {
+template<class Type>
+class nsTWeakRef
+{
 public:
-  ~nsTWeakRef() {
-    if (mRef)
+  ~nsTWeakRef()
+  {
+    if (mRef) {
       mRef->Release();
+    }
   }
 
   
 
 
-  explicit
-  nsTWeakRef(Type *obj = nullptr) {
-    if (obj) {
-      mRef = new Inner(obj);
+  explicit nsTWeakRef(Type* aObj = nullptr)
+  {
+    if (aObj) {
+      mRef = new Inner(aObj);
     } else {
       mRef = nullptr;
     }
@@ -82,20 +85,23 @@ public:
   
 
 
-  explicit
-  nsTWeakRef(const nsTWeakRef<Type> &other) : mRef(other.mRef) {
-    if (mRef)
+  explicit nsTWeakRef(const nsTWeakRef<Type>& aOther) : mRef(aOther.mRef)
+  {
+    if (mRef) {
       mRef->AddRef();
+    }
   }
 
   
 
 
-  nsTWeakRef<Type> &operator=(Type *obj) {
-    if (mRef)  
+  nsTWeakRef<Type>& operator=(Type* aObj)
+  {
+    if (mRef) {
       mRef->Release();
-    if (obj) {
-      mRef = new Inner(obj);
+    }
+    if (aObj) {
+      mRef = new Inner(aObj);
     } else {
       mRef = nullptr;
     }
@@ -104,13 +110,16 @@ public:
 
   
 
- 
-  nsTWeakRef<Type> &operator=(const nsTWeakRef<Type> &other) {
-    if (mRef)  
+
+  nsTWeakRef<Type>& operator=(const nsTWeakRef<Type>& aOther)
+  {
+    if (mRef) {
       mRef->Release();
-    mRef = other.mRef;
-    if (mRef)
+    }
+    mRef = aOther.mRef;
+    if (mRef) {
       mRef->AddRef();
+    }
     return *this;
   }
 
@@ -118,17 +127,16 @@ public:
 
 
 
-  Type *get() const {
-    return mRef ? mRef->mObj : nullptr;
-  }
+  Type* get() const { return mRef ? mRef->mObj : nullptr; }
 
   
 
 
 
 
-  Type *forget() {
-    Type *obj;
+  Type* forget()
+  {
+    Type* obj;
     if (mRef) {
       obj = mRef->mObj;
       mRef->mObj = nullptr;
@@ -143,32 +151,44 @@ public:
   
 
 
-  operator Type *() const {
-    return get();
-  }
+  operator Type*() const { return get(); }
 
   
 
 
 
-  Type *operator->() const {
+  Type* operator->() const
+  {
     NS_ASSERTION(mRef && mRef->mObj,
-        "You can't dereference a null weak reference with operator->().");
+                 "You can't dereference a null weak reference with operator->().");
     return get();
   }
 
 private:
 
-  struct Inner {
+  struct Inner
+  {
     int     mCnt;
-    Type   *mObj;
+    Type*   mObj;
 
-    Inner(Type *obj) : mCnt(1), mObj(obj) {}
-    void AddRef() { ++mCnt; }
-    void Release() { if (--mCnt == 0) delete this; }
+    Inner(Type* aObj)
+      : mCnt(1)
+      , mObj(aObj)
+    {
+    }
+    void AddRef()
+    {
+      ++mCnt;
+    }
+    void Release()
+    {
+      if (--mCnt == 0) {
+        delete this;
+      }
+    }
   };
 
-  Inner *mRef;
+  Inner* mRef;
 };
 
 #endif  

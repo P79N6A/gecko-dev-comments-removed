@@ -23,53 +23,51 @@ class nsIFile;
 class NS_COM_GLUE nsINIParser
 {
 public:
-    nsINIParser() { }
-    ~nsINIParser() { }
+  nsINIParser() {}
+  ~nsINIParser() {}
 
-    
-
-
-
-
-
-    nsresult Init(nsIFile* aFile);
-
-    
+  
 
 
 
 
 
-    nsresult Init(const char *aPath);
+  nsresult Init(nsIFile* aFile);
 
-    
-
-
-
-    typedef bool
-    (* INISectionCallback)(const char *aSection, void *aClosure);
-
-    
-
-
-    nsresult GetSections(INISectionCallback aCB, void *aClosure);
-
-    
+  
 
 
 
-    typedef bool
-    (* INIStringCallback)(const char *aString, const char *aValue,
-                          void *aClosure);
-
-    
 
 
+  nsresult Init(const char* aPath);
 
-    nsresult GetStrings(const char *aSection,
-                        INIStringCallback aCB, void *aClosure);
+  
 
-    
+
+
+  typedef bool (*INISectionCallback)(const char* aSection, void* aClosure);
+
+  
+
+
+  nsresult GetSections(INISectionCallback aCB, void* aClosure);
+
+  
+
+
+
+  typedef bool (*INIStringCallback)(const char* aString, const char* aValue,
+                                    void* aClosure);
+
+  
+
+
+
+  nsresult GetStrings(const char* aSection,
+                      INIStringCallback aCB, void* aClosure);
+
+  
 
 
 
@@ -79,10 +77,10 @@ public:
 
 
 
-    nsresult GetString(const char *aSection, const char *aKey, 
-                       nsACString &aResult);
+  nsresult GetString(const char* aSection, const char* aKey,
+                     nsACString& aResult);
 
-    
+  
 
 
 
@@ -93,33 +91,36 @@ public:
 
 
 
-    nsresult GetString(const char *aSection, const char* aKey,
-                       char *aResult, uint32_t aResultLen);
+  nsresult GetString(const char* aSection, const char* aKey,
+                     char* aResult, uint32_t aResultLen);
 
 private:
-    struct INIValue
+  struct INIValue
+  {
+    INIValue(const char* aKey, const char* aValue)
+      : key(aKey)
+      , value(aValue)
     {
-        INIValue(const char *aKey, const char *aValue)
-            : key(aKey), value(aValue) { }
+    }
 
-        const char *key;
-        const char *value;
-        nsAutoPtr<INIValue> next;
-    };
+    const char* key;
+    const char* value;
+    nsAutoPtr<INIValue> next;
+  };
 
-    struct GSClosureStruct
-    {
-        INISectionCallback  usercb;
-        void               *userclosure;
-    };
+  struct GSClosureStruct
+  {
+    INISectionCallback usercb;
+    void* userclosure;
+  };
 
-    nsClassHashtable<nsDepCharHashKey, INIValue> mSections;
-    nsAutoArrayPtr<char> mFileContents;    
+  nsClassHashtable<nsDepCharHashKey, INIValue> mSections;
+  nsAutoArrayPtr<char> mFileContents;
 
-    nsresult InitFromFILE(FILE *fd);
+  nsresult InitFromFILE(FILE* aFd);
 
-    static PLDHashOperator GetSectionsCB(const char *aKey,
-                                         INIValue *aData, void *aClosure);
+  static PLDHashOperator GetSectionsCB(const char* aKey,
+                                       INIValue* aData, void* aClosure);
 };
 
 #endif 

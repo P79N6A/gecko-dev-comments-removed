@@ -32,18 +32,24 @@ class nsIMemory;
 class nsMemory
 {
 public:
-    static NS_HIDDEN_(void*) Alloc(size_t size)
-        { return NS_Alloc(size); }
+  static NS_HIDDEN_(void*) Alloc(size_t aSize)
+  {
+    return NS_Alloc(aSize);
+  }
 
-    static NS_HIDDEN_(void*) Realloc(void* ptr, size_t size)
-        { return NS_Realloc(ptr, size); }
+  static NS_HIDDEN_(void*) Realloc(void* aPtr, size_t aSize)
+  {
+    return NS_Realloc(aPtr, aSize);
+  }
 
-    static NS_HIDDEN_(void) Free(void* ptr)
-        { NS_Free(ptr); }
+  static NS_HIDDEN_(void) Free(void* aPtr)
+  {
+    NS_Free(aPtr);
+  }
 
-    static NS_COM_GLUE nsresult   HeapMinimize(bool aImmediate);
-    static NS_COM_GLUE void*      Clone(const void* ptr, size_t size);
-    static NS_COM_GLUE nsIMemory* GetGlobalMemoryService();       
+  static NS_COM_GLUE nsresult   HeapMinimize(bool aImmediate);
+  static NS_COM_GLUE void*      Clone(const void* aPtr, size_t aSize);
+  static NS_COM_GLUE nsIMemory* GetGlobalMemoryService();       
 };
 
 
@@ -121,12 +127,12 @@ public:
 
 
 namespace mozilla {
-  template <class T>
-  struct AlignmentTestStruct
-  {
-    char c;
-    T t;
-  };
+template<class T>
+struct AlignmentTestStruct
+{
+  char c;
+  T t;
+};
 }
 
 #define NS_ALIGNMENT_OF(t_) \
@@ -135,10 +141,11 @@ namespace mozilla {
 
 
 
-enum nsAssignmentType {
-    NS_ASSIGNMENT_COPY,   
-    NS_ASSIGNMENT_DEPEND, 
-    NS_ASSIGNMENT_ADOPT   
+enum nsAssignmentType
+{
+  NS_ASSIGNMENT_COPY,   
+  NS_ASSIGNMENT_DEPEND, 
+  NS_ASSIGNMENT_ADOPT   
 };
 
 #endif 

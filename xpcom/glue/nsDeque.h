@@ -37,9 +37,10 @@
 
 
 
-class nsDequeFunctor{
+class nsDequeFunctor
+{
 public:
-  virtual void* operator()(void* anObject)=0;
+  virtual void* operator()(void* aObject) = 0;
   virtual ~nsDequeFunctor() {}
 };
 
@@ -59,11 +60,12 @@ public:
 
 class nsDequeIterator;
 
-class NS_COM_GLUE nsDeque {
+class NS_COM_GLUE nsDeque
+{
   friend class nsDequeIterator;
   typedef mozilla::fallible_t fallible_t;
-  public:
-   nsDeque(nsDequeFunctor* aDeallocator = nullptr);
+public:
+  nsDeque(nsDequeFunctor* aDeallocator = nullptr);
   ~nsDeque();
 
   
@@ -72,33 +74,35 @@ class NS_COM_GLUE nsDeque {
 
 
 
-  inline int32_t GetSize() const {return mSize;}
+  inline int32_t GetSize() const { return mSize; }
 
   
 
 
 
 
-  void Push(void* aItem) {
+  void Push(void* aItem)
+  {
     if (!Push(aItem, fallible_t())) {
       NS_ABORT_OOM(mSize);
     }
   }
 
-  bool Push(void* aItem, const fallible_t&) NS_WARN_UNUSED_RESULT;
+  NS_WARN_UNUSED_RESULT bool Push(void* aItem, const fallible_t&);
 
   
 
 
 
 
-  void PushFront(void* aItem) {
+  void PushFront(void* aItem)
+  {
     if (!PushFront(aItem, fallible_t())) {
       NS_ABORT_OOM(mSize);
     }
   }
 
-  bool PushFront(void* aItem, const fallible_t&) NS_WARN_UNUSED_RESULT;
+  NS_WARN_UNUSED_RESULT bool PushFront(void* aItem, const fallible_t&);
 
   
 
@@ -214,7 +218,7 @@ private:
 
 
 
-  nsDeque(const nsDeque& other);
+  nsDeque(const nsDeque& aOther);
 
   
 
@@ -222,7 +226,7 @@ private:
 
 
 
-  nsDeque& operator=(const nsDeque& anOther);
+  nsDeque& operator=(const nsDeque& aOther);
 
   bool GrowCapacity();
 };
@@ -231,7 +235,8 @@ private:
 
 
 
-class NS_COM_GLUE nsDequeIterator {
+class NS_COM_GLUE nsDequeIterator
+{
 public:
   
 
@@ -250,7 +255,7 @@ public:
 
 
 
-  nsDequeIterator(const nsDeque& aQueue, int aIndex=0);
+  nsDequeIterator(const nsDeque& aQueue, int aIndex = 0);
 
   
 
@@ -383,7 +388,7 @@ public:
 
   const void* FirstThat(nsDequeFunctor& aFunctor) const;
 
-  protected:
+protected:
 
   int32_t         mIndex;
   const nsDeque&  mDeque;

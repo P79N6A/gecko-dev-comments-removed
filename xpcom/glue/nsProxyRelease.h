@@ -22,14 +22,14 @@
 
 
 
-template <class T>
+template<class T>
 inline NS_HIDDEN_(nsresult)
-NS_ProxyRelease
-    (nsIEventTarget *target, nsCOMPtr<T> &doomed, bool alwaysProxy=false)
+NS_ProxyRelease(nsIEventTarget* aTarget, nsCOMPtr<T>& aDoomed,
+                bool aAlwaysProxy = false)
 {
-   T* raw = nullptr;
-   doomed.swap(raw);
-   return NS_ProxyRelease(target, raw, alwaysProxy);
+  T* raw = nullptr;
+  aDoomed.swap(raw);
+  return NS_ProxyRelease(aTarget, raw, aAlwaysProxy);
 }
 
 
@@ -37,14 +37,14 @@ NS_ProxyRelease
 
 
 
-template <class T>
+template<class T>
 inline NS_HIDDEN_(nsresult)
-NS_ProxyRelease
-    (nsIEventTarget *target, nsRefPtr<T> &doomed, bool alwaysProxy=false)
+NS_ProxyRelease(nsIEventTarget* aTarget, nsRefPtr<T>& aDoomed,
+                bool aAlwaysProxy = false)
 {
-   T* raw = nullptr;
-   doomed.swap(raw);
-   return NS_ProxyRelease(target, raw, alwaysProxy);
+  T* raw = nullptr;
+  aDoomed.swap(raw);
+  return NS_ProxyRelease(aTarget, raw, aAlwaysProxy);
 }
 
 
@@ -61,8 +61,8 @@ NS_ProxyRelease
 
 
 NS_COM_GLUE nsresult
-NS_ProxyRelease
-    (nsIEventTarget *target, nsISupports *doomed, bool alwaysProxy=false);
+NS_ProxyRelease(nsIEventTarget* aTarget, nsISupports* aDoomed,
+                bool aAlwaysProxy = false);
 
 
 
@@ -111,16 +111,20 @@ public:
   
   
   
-  nsMainThreadPtrHolder(T* ptr, bool strict = true) : mRawPtr(nullptr), mStrict(strict) {
+  nsMainThreadPtrHolder(T* aPtr, bool aStrict = true)
+    : mRawPtr(nullptr)
+    , mStrict(aStrict)
+  {
     
     
     MOZ_ASSERT(!mStrict || NS_IsMainThread());
-    NS_IF_ADDREF(mRawPtr = ptr);
+    NS_IF_ADDREF(mRawPtr = aPtr);
   }
 
 private:
   
-  ~nsMainThreadPtrHolder() {
+  ~nsMainThreadPtrHolder()
+  {
     if (NS_IsMainThread()) {
       NS_IF_RELEASE(mRawPtr);
     } else if (mRawPtr) {
@@ -135,7 +139,8 @@ private:
   }
 
 public:
-  T* get() {
+  T* get()
+  {
     
     if (mStrict && MOZ_UNLIKELY(!NS_IsMainThread())) {
       NS_ERROR("Can't dereference nsMainThreadPtrHolder off main thread");
@@ -144,7 +149,10 @@ public:
     return mRawPtr;
   }
 
-  bool operator==(const nsMainThreadPtrHolder<T>& aOther) const { return mRawPtr == aOther.mRawPtr; }
+  bool operator==(const nsMainThreadPtrHolder<T>& aOther) const
+  {
+    return mRawPtr == aOther.mRawPtr;
+  }
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(nsMainThreadPtrHolder<T>)
 
@@ -157,20 +165,24 @@ private:
 
   
   
-  T& operator=(nsMainThreadPtrHolder& other);
-  nsMainThreadPtrHolder(const nsMainThreadPtrHolder& other);
+  T& operator=(nsMainThreadPtrHolder& aOther);
+  nsMainThreadPtrHolder(const nsMainThreadPtrHolder& aOther);
 };
 
 template<class T>
 class nsMainThreadPtrHandle
 {
-  nsRefPtr<nsMainThreadPtrHolder<T> > mPtr;
+  nsRefPtr<nsMainThreadPtrHolder<T>> mPtr;
 
-  public:
+public:
   nsMainThreadPtrHandle() : mPtr(nullptr) {}
-  nsMainThreadPtrHandle(nsMainThreadPtrHolder<T> *aHolder) : mPtr(aHolder) {}
-  nsMainThreadPtrHandle(const nsMainThreadPtrHandle& aOther) : mPtr(aOther.mPtr) {}
-  nsMainThreadPtrHandle& operator=(const nsMainThreadPtrHandle& aOther) {
+  nsMainThreadPtrHandle(nsMainThreadPtrHolder<T>* aHolder) : mPtr(aHolder) {}
+  nsMainThreadPtrHandle(const nsMainThreadPtrHandle& aOther)
+    : mPtr(aOther.mPtr)
+  {
+  }
+  nsMainThreadPtrHandle& operator=(const nsMainThreadPtrHandle& aOther)
+  {
     mPtr = aOther.mPtr;
     return *this;
   }
@@ -197,9 +209,11 @@ class nsMainThreadPtrHandle
   T* operator->() { return get(); }
 
   
-  bool operator==(const nsMainThreadPtrHandle<T>& aOther) const {
-    if (!mPtr || !aOther.mPtr)
+  bool operator==(const nsMainThreadPtrHandle<T>& aOther) const
+  {
+    if (!mPtr || !aOther.mPtr) {
       return mPtr == aOther.mPtr;
+    }
     return *mPtr == *aOther.mPtr;
   }
   bool operator!() { return !mPtr; }

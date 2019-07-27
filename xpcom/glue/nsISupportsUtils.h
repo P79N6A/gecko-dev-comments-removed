@@ -37,14 +37,13 @@ extern "C++" {
 
 
 
-template <class T>
-inline
-void
-ns_if_addref( T expr )
+template<class T>
+inline void
+ns_if_addref(T aExpr)
 {
-    if (expr) {
-        expr->AddRef();
-    }
+  if (aExpr) {
+    aExpr->AddRef();
+  }
 }
 
 } 
@@ -124,22 +123,21 @@ ns_if_addref( T expr )
   static_cast<nsISupports*>(static_cast<__unambiguousBase>(__expr))
 
 
-template <class T, class DestinationType>
-inline
-nsresult
-CallQueryInterface( T* aSource, DestinationType** aDestination )
+template<class T, class DestinationType>
+inline nsresult
+CallQueryInterface(T* aSource, DestinationType** aDestination)
 {
-    
-    
-    static_assert(!mozilla::IsSame<T, DestinationType>::value ||
-                  mozilla::IsSame<DestinationType, nsISupports>::value,
-                  "don't use CallQueryInterface for compile-time-determinable casts");
+  
+  
+  static_assert(!mozilla::IsSame<T, DestinationType>::value ||
+                mozilla::IsSame<DestinationType, nsISupports>::value,
+                "don't use CallQueryInterface for compile-time-determinable casts");
 
-    NS_PRECONDITION(aSource, "null parameter");
-    NS_PRECONDITION(aDestination, "null parameter");
+  NS_PRECONDITION(aSource, "null parameter");
+  NS_PRECONDITION(aDestination, "null parameter");
 
-    return aSource->QueryInterface(NS_GET_TEMPLATE_IID(DestinationType),
-                                   reinterpret_cast<void**>(aDestination));
+  return aSource->QueryInterface(NS_GET_TEMPLATE_IID(DestinationType),
+                                 reinterpret_cast<void**>(aDestination));
 }
 
 #endif 

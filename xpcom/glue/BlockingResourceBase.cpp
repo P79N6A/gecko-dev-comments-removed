@@ -27,8 +27,8 @@ namespace mozilla {
 
 const char* const BlockingResourceBase::kResourceTypeName[] =
 {
-    
-    "Mutex", "ReentrantMonitor", "CondVar"
+  
+  "Mutex", "ReentrantMonitor", "CondVar"
 };
 
 #ifdef DEBUG
@@ -40,30 +40,30 @@ BlockingResourceBase::DDT* BlockingResourceBase::sDeadlockDetector;
 bool
 BlockingResourceBase::DeadlockDetectorEntry::Print(
     const DDT::ResourceAcquisition& aFirstSeen,
-    nsACString& out,
+    nsACString& aOut,
     bool aPrintFirstSeenCx) const
 {
-    CallStack lastAcquisition = mAcquisitionContext; 
-    bool maybeCurrentlyAcquired = (CallStack::kNone != lastAcquisition);
-    CallStack printAcquisition =
-        (aPrintFirstSeenCx || !maybeCurrentlyAcquired) ?
-            aFirstSeen.mCallContext : lastAcquisition;
+  CallStack lastAcquisition = mAcquisitionContext; 
+  bool maybeCurrentlyAcquired = (CallStack::kNone != lastAcquisition);
+  CallStack printAcquisition =
+    (aPrintFirstSeenCx || !maybeCurrentlyAcquired) ?
+      aFirstSeen.mCallContext : lastAcquisition;
 
-    fprintf(stderr, "--- %s : %s",
-            kResourceTypeName[mType], mName);
-    out += BlockingResourceBase::kResourceTypeName[mType];
-    out += " : ";
-    out += mName;
+  fprintf(stderr, "--- %s : %s",
+          kResourceTypeName[mType], mName);
+  aOut += BlockingResourceBase::kResourceTypeName[mType];
+  aOut += " : ";
+  aOut += mName;
 
-    if (maybeCurrentlyAcquired) {
-        fputs(" (currently acquired)\n", stderr);
-        out += " (currently acquired)\n";
-    }
+  if (maybeCurrentlyAcquired) {
+    fputs(" (currently acquired)\n", stderr);
+    aOut += " (currently acquired)\n";
+  }
 
-    fputs(" calling context\n", stderr);
-    printAcquisition.Print(stderr);
+  fputs(" calling context\n", stderr);
+  printAcquisition.Print(stderr);
 
-    return maybeCurrentlyAcquired;
+  return maybeCurrentlyAcquired;
 }
 
 
@@ -71,151 +71,152 @@ BlockingResourceBase::BlockingResourceBase(
     const char* aName,
     BlockingResourceBase::BlockingResourceType aType)
 {
-    
-    
-    if (PR_SUCCESS != PR_CallOnce(&sCallOnce, InitStatics))
-        NS_RUNTIMEABORT("can't initialize blocking resource static members");
+  
+  
+  if (PR_SUCCESS != PR_CallOnce(&sCallOnce, InitStatics)) {
+    NS_RUNTIMEABORT("can't initialize blocking resource static members");
+  }
 
-    mDDEntry = new BlockingResourceBase::DeadlockDetectorEntry(aName, aType);
-    mChainPrev = 0;
-    sDeadlockDetector->Add(mDDEntry);
+  mDDEntry = new BlockingResourceBase::DeadlockDetectorEntry(aName, aType);
+  mChainPrev = 0;
+  sDeadlockDetector->Add(mDDEntry);
 }
 
 
 BlockingResourceBase::~BlockingResourceBase()
 {
-    
-    
-    
-    
-    mChainPrev = 0;             
-    mDDEntry = 0;               
+  
+  
+  
+  
+  mChainPrev = 0;             
+  mDDEntry = 0;               
 }
 
 
 void
 BlockingResourceBase::CheckAcquire(const CallStack& aCallContext)
 {
-    if (eCondVar == mDDEntry->mType) {
-        NS_NOTYETIMPLEMENTED(
-            "FIXME bug 456272: annots. to allow CheckAcquire()ing condvars");
-        return;
-    }
+  if (mDDEntry->mType == eCondVar) {
+    NS_NOTYETIMPLEMENTED(
+      "FIXME bug 456272: annots. to allow CheckAcquire()ing condvars");
+    return;
+  }
 
-    BlockingResourceBase* chainFront = ResourceChainFront();
-    nsAutoPtr<DDT::ResourceAcquisitionArray> cycle(
-        sDeadlockDetector->CheckAcquisition(
-            chainFront ? chainFront->mDDEntry : 0, mDDEntry,
-            aCallContext));
-    if (!cycle)
-        return;
+  BlockingResourceBase* chainFront = ResourceChainFront();
+  nsAutoPtr<DDT::ResourceAcquisitionArray> cycle(
+    sDeadlockDetector->CheckAcquisition(
+      chainFront ? chainFront->mDDEntry : 0, mDDEntry, aCallContext));
+  if (!cycle) {
+    return;
+  }
 
-    fputs("###!!! ERROR: Potential deadlock detected:\n", stderr);
-    nsAutoCString out("Potential deadlock detected:\n");
-    bool maybeImminent = PrintCycle(cycle, out);
+  fputs("###!!! ERROR: Potential deadlock detected:\n", stderr);
+  nsAutoCString out("Potential deadlock detected:\n");
+  bool maybeImminent = PrintCycle(cycle, out);
 
-    if (maybeImminent) {
-        fputs("\n###!!! Deadlock may happen NOW!\n\n", stderr);
-        out.AppendLiteral("\n###!!! Deadlock may happen NOW!\n\n");
-    } else {
-        fputs("\nDeadlock may happen for some other execution\n\n",
-              stderr);
-        out.AppendLiteral("\nDeadlock may happen for some other execution\n\n");
-    }
+  if (maybeImminent) {
+    fputs("\n###!!! Deadlock may happen NOW!\n\n", stderr);
+    out.AppendLiteral("\n###!!! Deadlock may happen NOW!\n\n");
+  } else {
+    fputs("\nDeadlock may happen for some other execution\n\n",
+          stderr);
+    out.AppendLiteral("\nDeadlock may happen for some other execution\n\n");
+  }
 
-    
-    
-    
-    
-    NS_ERROR(out.get());
+  
+  
+  
+  
+  NS_ERROR(out.get());
 }
 
 
 void
 BlockingResourceBase::Acquire(const CallStack& aCallContext)
 {
-    if (eCondVar == mDDEntry->mType) {
-        NS_NOTYETIMPLEMENTED(
-            "FIXME bug 456272: annots. to allow Acquire()ing condvars");
-        return;
-    }
-    NS_ASSERTION(mDDEntry->mAcquisitionContext == CallStack::kNone,
-                 "reacquiring already acquired resource");
+  if (mDDEntry->mType == eCondVar) {
+    NS_NOTYETIMPLEMENTED(
+      "FIXME bug 456272: annots. to allow Acquire()ing condvars");
+    return;
+  }
+  NS_ASSERTION(mDDEntry->mAcquisitionContext == CallStack::kNone,
+               "reacquiring already acquired resource");
 
-    ResourceChainAppend(ResourceChainFront());
-    mDDEntry->mAcquisitionContext = aCallContext;
+  ResourceChainAppend(ResourceChainFront());
+  mDDEntry->mAcquisitionContext = aCallContext;
 }
 
 
 void
 BlockingResourceBase::Release()
 {
-    if (eCondVar == mDDEntry->mType) {
-        NS_NOTYETIMPLEMENTED(
-            "FIXME bug 456272: annots. to allow Release()ing condvars");
-        return;
-    }
-      
-    BlockingResourceBase* chainFront = ResourceChainFront();
-    NS_ASSERTION(chainFront
-                 && CallStack::kNone != mDDEntry->mAcquisitionContext,
-                 "Release()ing something that hasn't been Acquire()ed");
+  if (mDDEntry->mType == eCondVar) {
+    NS_NOTYETIMPLEMENTED(
+      "FIXME bug 456272: annots. to allow Release()ing condvars");
+    return;
+  }
 
-    if (chainFront == this) {
-        ResourceChainRemove();
-    }
-    else {
-        
-        NS_WARNING("Resource acquired at calling context\n");
-        mDDEntry->mAcquisitionContext.Print(stderr);
-        NS_WARNING("\nis being released in non-LIFO order; why?");
-        
-        
-        
-        
-        
-        
-        BlockingResourceBase* curr = chainFront;
-        BlockingResourceBase* prev = nullptr;
-        while (curr && (prev = curr->mChainPrev) && (prev != this))
-            curr = prev;
-        if (prev == this)
-            curr->mChainPrev = prev->mChainPrev;
-    }
+  BlockingResourceBase* chainFront = ResourceChainFront();
+  NS_ASSERTION(chainFront && mDDEntry->mAcquisitionContext != CallStack::kNone,
+               "Release()ing something that hasn't been Acquire()ed");
 
-    mDDEntry->mAcquisitionContext = CallStack::kNone;
+  if (chainFront == this) {
+    ResourceChainRemove();
+  } else {
+    
+    NS_WARNING("Resource acquired at calling context\n");
+    mDDEntry->mAcquisitionContext.Print(stderr);
+    NS_WARNING("\nis being released in non-LIFO order; why?");
+
+    
+    
+    
+    
+    
+    BlockingResourceBase* curr = chainFront;
+    BlockingResourceBase* prev = nullptr;
+    while (curr && (prev = curr->mChainPrev) && (prev != this)) {
+      curr = prev;
+    }
+    if (prev == this) {
+      curr->mChainPrev = prev->mChainPrev;
+    }
+  }
+
+  mDDEntry->mAcquisitionContext = CallStack::kNone;
 }
 
 
 bool
 BlockingResourceBase::PrintCycle(const DDT::ResourceAcquisitionArray* aCycle,
-                                 nsACString& out)
+                                 nsACString& aOut)
 {
-    NS_ASSERTION(aCycle->Length() > 1, "need > 1 element for cycle!");
+  NS_ASSERTION(aCycle->Length() > 1, "need > 1 element for cycle!");
 
-    bool maybeImminent = true;
+  bool maybeImminent = true;
 
-    fputs("=== Cyclical dependency starts at\n", stderr);
-    out += "Cyclical dependency starts at\n";
+  fputs("=== Cyclical dependency starts at\n", stderr);
+  aOut += "Cyclical dependency starts at\n";
 
-    const DDT::ResourceAcquisition res = aCycle->ElementAt(0);
-    maybeImminent &= res.mResource->Print(res, out);
+  const DDT::ResourceAcquisition res = aCycle->ElementAt(0);
+  maybeImminent &= res.mResource->Print(res, aOut);
 
-    DDT::ResourceAcquisitionArray::index_type i;
-    DDT::ResourceAcquisitionArray::size_type len = aCycle->Length();
-    const DDT::ResourceAcquisition* it = 1 + aCycle->Elements();
-    for (i = 1; i < len - 1; ++i, ++it) {
-        fputs("\n--- Next dependency:\n", stderr);
-        out += "\nNext dependency:\n";
+  DDT::ResourceAcquisitionArray::index_type i;
+  DDT::ResourceAcquisitionArray::size_type len = aCycle->Length();
+  const DDT::ResourceAcquisition* it = 1 + aCycle->Elements();
+  for (i = 1; i < len - 1; ++i, ++it) {
+    fputs("\n--- Next dependency:\n", stderr);
+    aOut += "\nNext dependency:\n";
 
-        maybeImminent &= it->mResource->Print(*it, out);
-    }
+    maybeImminent &= it->mResource->Print(*it, aOut);
+  }
 
-    fputs("\n=== Cycle completed at\n", stderr);
-    out += "Cycle completed at\n";
-    it->mResource->Print(*it, out, true);
+  fputs("\n=== Cycle completed at\n", stderr);
+  aOut += "Cycle completed at\n";
+  it->mResource->Print(*it, aOut, true);
 
-    return maybeImminent;
+  return maybeImminent;
 }
 
 
@@ -224,19 +225,19 @@ BlockingResourceBase::PrintCycle(const DDT::ResourceAcquisitionArray* aCycle,
 void
 OffTheBooksMutex::Lock()
 {
-    CallStack callContext = CallStack();
+  CallStack callContext = CallStack();
 
-    CheckAcquire(callContext);
-    PR_Lock(mLock);
-    Acquire(callContext);       
+  CheckAcquire(callContext);
+  PR_Lock(mLock);
+  Acquire(callContext);       
 }
 
 void
 OffTheBooksMutex::Unlock()
 {
-    Release();                  
-    PRStatus status = PR_Unlock(mLock);
-    NS_ASSERTION(PR_SUCCESS == status, "bad Mutex::Unlock()");
+  Release();                  
+  PRStatus status = PR_Unlock(mLock);
+  NS_ASSERTION(PR_SUCCESS == status, "bad Mutex::Unlock()");
 }
 
 
@@ -245,116 +246,116 @@ OffTheBooksMutex::Unlock()
 void
 ReentrantMonitor::Enter()
 {
-    BlockingResourceBase* chainFront = ResourceChainFront();
+  BlockingResourceBase* chainFront = ResourceChainFront();
 
+  
+
+  if (this == chainFront) {
     
+    PR_EnterMonitor(mReentrantMonitor);
+    ++mEntryCount;
+    return;
+  }
 
-    if (this == chainFront) {
+  CallStack callContext = CallStack();
+
+  
+  
+  if (chainFront) {
+    for (BlockingResourceBase* br = ResourceChainPrev(chainFront);
+         br;
+         br = ResourceChainPrev(br)) {
+      if (br == this) {
+        NS_WARNING(
+          "Re-entering ReentrantMonitor after acquiring other resources.\n"
+          "At calling context\n");
+        GetAcquisitionContext().Print(stderr);
+
         
+        CheckAcquire(callContext);
+
         PR_EnterMonitor(mReentrantMonitor);
         ++mEntryCount;
         return;
+      }
     }
+  }
 
-    CallStack callContext = CallStack();
-    
-    
-    
-    if (chainFront) {
-        for (BlockingResourceBase* br = ResourceChainPrev(chainFront);
-             br;
-             br = ResourceChainPrev(br)) {
-            if (br == this) {
-                NS_WARNING(
-                    "Re-entering ReentrantMonitor after acquiring other resources.\n"
-                    "At calling context\n");
-                GetAcquisitionContext().Print(stderr);
-
-                
-                CheckAcquire(callContext);
-
-                PR_EnterMonitor(mReentrantMonitor);
-                ++mEntryCount;
-                return;
-            }
-        }
-    }
-
-    CheckAcquire(callContext);
-    PR_EnterMonitor(mReentrantMonitor);
-    NS_ASSERTION(0 == mEntryCount, "ReentrantMonitor isn't free!");
-    Acquire(callContext);       
-    mEntryCount = 1;
+  CheckAcquire(callContext);
+  PR_EnterMonitor(mReentrantMonitor);
+  NS_ASSERTION(mEntryCount == 0, "ReentrantMonitor isn't free!");
+  Acquire(callContext);       
+  mEntryCount = 1;
 }
 
 void
 ReentrantMonitor::Exit()
 {
-    if (0 == --mEntryCount)
-        Release();              
-    PRStatus status = PR_ExitMonitor(mReentrantMonitor);
-    NS_ASSERTION(PR_SUCCESS == status, "bad ReentrantMonitor::Exit()");
+  if (--mEntryCount == 0) {
+    Release();              
+  }
+  PRStatus status = PR_ExitMonitor(mReentrantMonitor);
+  NS_ASSERTION(PR_SUCCESS == status, "bad ReentrantMonitor::Exit()");
 }
 
 nsresult
-ReentrantMonitor::Wait(PRIntervalTime interval)
+ReentrantMonitor::Wait(PRIntervalTime aInterval)
 {
-    AssertCurrentThreadIn();
+  AssertCurrentThreadIn();
 
-    
-    int32_t savedEntryCount = mEntryCount;
-    CallStack savedAcquisitionContext = GetAcquisitionContext();
-    BlockingResourceBase* savedChainPrev = mChainPrev;
-    mEntryCount = 0;
-    SetAcquisitionContext(CallStack::kNone);
-    mChainPrev = 0;
+  
+  int32_t savedEntryCount = mEntryCount;
+  CallStack savedAcquisitionContext = GetAcquisitionContext();
+  BlockingResourceBase* savedChainPrev = mChainPrev;
+  mEntryCount = 0;
+  SetAcquisitionContext(CallStack::kNone);
+  mChainPrev = 0;
 
-    nsresult rv;
+  nsresult rv;
 #ifdef MOZILLA_INTERNAL_API
-    {
-        GeckoProfilerSleepRAII profiler_sleep;
+  {
+    GeckoProfilerSleepRAII profiler_sleep;
 #endif
 
 
-    rv = PR_Wait(mReentrantMonitor, interval) == PR_SUCCESS ?
-            NS_OK : NS_ERROR_FAILURE;
+    rv = PR_Wait(mReentrantMonitor, aInterval) == PR_SUCCESS ? NS_OK :
+                                                               NS_ERROR_FAILURE;
 
 #ifdef MOZILLA_INTERNAL_API
-    }
+  }
 #endif 
 
-    
-    mEntryCount = savedEntryCount;
-    SetAcquisitionContext(savedAcquisitionContext);
-    mChainPrev = savedChainPrev;
+  
+  mEntryCount = savedEntryCount;
+  SetAcquisitionContext(savedAcquisitionContext);
+  mChainPrev = savedChainPrev;
 
-    return rv;
+  return rv;
 }
 
 
 
 
 nsresult
-CondVar::Wait(PRIntervalTime interval)
+CondVar::Wait(PRIntervalTime aInterval)
 {
-    AssertCurrentThreadOwnsMutex();
+  AssertCurrentThreadOwnsMutex();
 
-    
-    CallStack savedAcquisitionContext = mLock->GetAcquisitionContext();
-    BlockingResourceBase* savedChainPrev = mLock->mChainPrev;
-    mLock->SetAcquisitionContext(CallStack::kNone);
-    mLock->mChainPrev = 0;
+  
+  CallStack savedAcquisitionContext = mLock->GetAcquisitionContext();
+  BlockingResourceBase* savedChainPrev = mLock->mChainPrev;
+  mLock->SetAcquisitionContext(CallStack::kNone);
+  mLock->mChainPrev = 0;
 
-    
-    nsresult rv =
-        PR_WaitCondVar(mCvar, interval) == PR_SUCCESS ?
-            NS_OK : NS_ERROR_FAILURE;
+  
+  nsresult rv =
+    PR_WaitCondVar(mCvar, aInterval) == PR_SUCCESS ? NS_OK : NS_ERROR_FAILURE;
 
-    
-    mLock->SetAcquisitionContext(savedAcquisitionContext);
-    mLock->mChainPrev = savedChainPrev;
+  
+  mLock->SetAcquisitionContext(savedAcquisitionContext);
+  mLock->mChainPrev = savedChainPrev;
 
-    return rv;
+  return rv;
 }
 
 #endif 

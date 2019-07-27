@@ -15,8 +15,7 @@
 
 
 
-NS_COM_GLUE const char*
-NS_strspnp(const char *delims, const char *str);
+NS_COM_GLUE const char* NS_strspnp(const char* aDelims, const char* aStr);
 
 
 
@@ -34,60 +33,57 @@ NS_strspnp(const char *delims, const char *str);
 
 
 
-NS_COM_GLUE char*
-NS_strtok(const char *delims, char **str);
+NS_COM_GLUE char* NS_strtok(const char* aDelims, char** aStr);
 
 
 
 
-NS_COM_GLUE uint32_t
-NS_strlen(const char16_t *aString);
+NS_COM_GLUE uint32_t NS_strlen(const char16_t* aString);
 
 
 
 
-NS_COM_GLUE int
-NS_strcmp(const char16_t *a, const char16_t *b);
+NS_COM_GLUE int NS_strcmp(const char16_t* aStrA, const char16_t* aStrB);
 
 
 
 
-NS_COM_GLUE char16_t*
-NS_strdup(const char16_t *aString);
+NS_COM_GLUE char16_t* NS_strdup(const char16_t* aString);
 
 
 
 
-NS_COM_GLUE char*
-NS_strdup(const char *aString);
+NS_COM_GLUE char* NS_strdup(const char* aString);
 
 
 
 
 
-NS_COM_GLUE char16_t*
-NS_strndup(const char16_t *aString, uint32_t aLen);
+NS_COM_GLUE char16_t* NS_strndup(const char16_t* aString, uint32_t aLen);
 
 
 
 
 
-class NS_COM_GLUE nsLowerUpperUtils {
+class NS_COM_GLUE nsLowerUpperUtils
+{
 public:
   static const unsigned char kLower2Upper[256];
   static const unsigned char kUpper2Lower[256];
 };
 
-inline char NS_ToUpper(char aChar)
+inline char
+NS_ToUpper(char aChar)
 {
   return (char)nsLowerUpperUtils::kLower2Upper[(unsigned char)aChar];
 }
 
-inline char NS_ToLower(char aChar)
+inline char
+NS_ToLower(char aChar)
 {
   return (char)nsLowerUpperUtils::kUpper2Lower[(unsigned char)aChar];
 }
-  
+
 NS_COM_GLUE bool NS_IsUpper(char aChar);
 NS_COM_GLUE bool NS_IsLower(char aChar);
 
@@ -100,7 +96,7 @@ NS_COM_GLUE bool NS_IsAscii(const char* aString);
 NS_COM_GLUE bool NS_IsAscii(const char* aString, uint32_t aLength);
 
 #ifndef XPCOM_GLUE_AVOID_NSPR
-NS_COM_GLUE void NS_MakeRandomString(char *buf, int32_t bufLen);
+NS_COM_GLUE void NS_MakeRandomString(char* aBuf, int32_t aBufLen);
 #endif
 
 #define FF '\f'

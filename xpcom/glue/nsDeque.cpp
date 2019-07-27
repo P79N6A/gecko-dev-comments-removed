@@ -46,26 +46,28 @@
 
 
 
-nsDeque::nsDeque(nsDequeFunctor* aDeallocator) {
+nsDeque::nsDeque(nsDequeFunctor* aDeallocator)
+{
   MOZ_COUNT_CTOR(nsDeque);
-  mDeallocator=aDeallocator;
-  mOrigin=mSize=0;
-  mData=mBuffer; 
-  mCapacity=sizeof(mBuffer)/sizeof(mBuffer[0]);
-  memset(mData, 0, mCapacity*sizeof(mBuffer[0]));
+  mDeallocator = aDeallocator;
+  mOrigin = mSize = 0;
+  mData = mBuffer; 
+  mCapacity = sizeof(mBuffer) / sizeof(mBuffer[0]);
+  memset(mData, 0, mCapacity * sizeof(mBuffer[0]));
 }
 
 
 
 
-nsDeque::~nsDeque() {
+nsDeque::~nsDeque()
+{
   MOZ_COUNT_DTOR(nsDeque);
 
 #ifdef DEBUG_rickg
   char buffer[30];
   printf("Capacity: %i\n", mCapacity);
 
-  static int mCaps[15] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+  static int mCaps[15] = {0};
   switch(mCapacity) {
     case 4:     mCaps[0]++; break;
     case 8:     mCaps[1]++; break;
@@ -84,14 +86,16 @@ nsDeque::~nsDeque() {
 #endif
 
   Erase();
-  if (mData && (mData!=mBuffer)) {
+  if (mData && mData != mBuffer) {
     free(mData);
   }
-  mData=0;
+  mData = 0;
   SetDeallocator(0);
 }
 
-size_t nsDeque::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
+size_t
+nsDeque::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
+{
   size_t size = 0;
   if (mData != mBuffer) {
     size += aMallocSizeOf(mData);
@@ -104,7 +108,9 @@ size_t nsDeque::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
   return size;
 }
 
-size_t nsDeque::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
+size_t
+nsDeque::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
+{
   return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
 }
 
@@ -114,26 +120,32 @@ size_t nsDeque::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
 
 
 
-void nsDeque::SetDeallocator(nsDequeFunctor* aDeallocator){
+void
+nsDeque::SetDeallocator(nsDequeFunctor* aDeallocator)
+{
   delete mDeallocator;
-  mDeallocator=aDeallocator;
+  mDeallocator = aDeallocator;
 }
 
 
 
 
-void nsDeque::Empty() {
+void
+nsDeque::Empty()
+{
   if (mSize && mData) {
-    memset(mData, 0, mCapacity*sizeof(mData));
+    memset(mData, 0, mCapacity * sizeof(mData));
   }
-  mSize=0;
-  mOrigin=0;
+  mSize = 0;
+  mOrigin = 0;
 }
 
 
 
 
-void nsDeque::Erase() {
+void
+nsDeque::Erase()
+{
   if (mDeallocator && mSize) {
     ForEach(*mDeallocator);
   }
@@ -147,14 +159,18 @@ void nsDeque::Erase() {
 
 
 
-bool nsDeque::GrowCapacity() {
-  int32_t theNewSize=mCapacity<<2;
-  NS_ASSERTION(theNewSize>mCapacity, "Overflow");
-  if (theNewSize<=mCapacity)
+bool
+nsDeque::GrowCapacity()
+{
+  int32_t theNewSize = mCapacity << 2;
+  NS_ASSERTION(theNewSize > mCapacity, "Overflow");
+  if (theNewSize <= mCapacity) {
     return false;
-  void** temp=(void**)malloc(theNewSize * sizeof(void*));
-  if (!temp)
+  }
+  void** temp = (void**)malloc(theNewSize * sizeof(void*));
+  if (!temp) {
     return false;
+  }
 
   
   
@@ -168,9 +184,9 @@ bool nsDeque::GrowCapacity() {
     free(mData);
   }
 
-  mCapacity=theNewSize;
-  mOrigin=0; 
-  mData=temp;
+  mCapacity = theNewSize;
+  mOrigin = 0; 
+  mData = temp;
 
   return true;
 }
@@ -182,11 +198,13 @@ bool nsDeque::GrowCapacity() {
 
 
 
-bool nsDeque::Push(void* aItem, const fallible_t&) {
-  if (mSize==mCapacity && !GrowCapacity()) {
+bool
+nsDeque::Push(void* aItem, const fallible_t&)
+{
+  if (mSize == mCapacity && !GrowCapacity()) {
     return false;
   }
-  mData[modulus(mOrigin + mSize, mCapacity)]=aItem;
+  mData[modulus(mOrigin + mSize, mCapacity)] = aItem;
   mSize++;
   return true;
 }
@@ -223,17 +241,19 @@ bool nsDeque::Push(void* aItem, const fallible_t&) {
 
 
 
-bool nsDeque::PushFront(void* aItem, const fallible_t&) {
+bool
+nsDeque::PushFront(void* aItem, const fallible_t&)
+{
   mOrigin--;
-  modasgn(mOrigin,mCapacity);
-  if (mSize==mCapacity) {
+  modasgn(mOrigin, mCapacity);
+  if (mSize == mCapacity) {
     if (!GrowCapacity()) {
       return false;
     }
     
-    mData[mSize]=mData[mOrigin];
+    mData[mSize] = mData[mOrigin];
   }
-  mData[mOrigin]=aItem;
+  mData[mOrigin] = aItem;
   mSize++;
   return true;
 }
@@ -243,15 +263,17 @@ bool nsDeque::PushFront(void* aItem, const fallible_t&) {
 
 
 
-void* nsDeque::Pop() {
-  void* result=0;
-  if (mSize>0) {
+void*
+nsDeque::Pop()
+{
+  void* result = 0;
+  if (mSize > 0) {
     --mSize;
-    int32_t offset=modulus(mSize + mOrigin, mCapacity);
-    result=mData[offset];
-    mData[offset]=0;
+    int32_t offset = modulus(mSize + mOrigin, mCapacity);
+    result = mData[offset];
+    mData[offset] = 0;
     if (!mSize) {
-      mOrigin=0;
+      mOrigin = 0;
     }
   }
   return result;
@@ -263,17 +285,19 @@ void* nsDeque::Pop() {
 
 
 
-void* nsDeque::PopFront() {
-  void* result=0;
-  if (mSize>0) {
+void*
+nsDeque::PopFront()
+{
+  void* result = 0;
+  if (mSize > 0) {
     NS_ASSERTION(mOrigin < mCapacity, "Error: Bad origin");
-    result=mData[mOrigin];
-    mData[mOrigin++]=0;     
+    result = mData[mOrigin];
+    mData[mOrigin++] = 0;   
     mSize--;
     
     
-    if (mCapacity==mOrigin || !mSize) {
-      mOrigin=0;
+    if (mCapacity == mOrigin || !mSize) {
+      mOrigin = 0;
     }
   }
   return result;
@@ -285,13 +309,15 @@ void* nsDeque::PopFront() {
 
 
 
-void* nsDeque::Peek() {
-  void* result=0;
-  if (mSize>0) {
+void*
+nsDeque::Peek()
+{
+  void* result = 0;
+  if (mSize > 0) {
     result = mData[modulus(mSize - 1 + mOrigin, mCapacity)];
   }
   return result;
-} 
+}
 
 
 
@@ -299,10 +325,12 @@ void* nsDeque::Peek() {
 
 
 
-void* nsDeque::PeekFront() {
-  void* result=0;
-  if (mSize>0) {
-    result=mData[mOrigin];
+void*
+nsDeque::PeekFront()
+{
+  void* result = 0;
+  if (mSize > 0) {
+    result = mData[mOrigin];
   }
   return result;
 }
@@ -316,23 +344,27 @@ void* nsDeque::PeekFront() {
 
 
 
-void* nsDeque::ObjectAt(int32_t aIndex) const {
-  void* result=0;
-  if ((aIndex>=0) && (aIndex<mSize)) {
-    result=mData[modulus(mOrigin + aIndex, mCapacity)];
+void*
+nsDeque::ObjectAt(int32_t aIndex) const
+{
+  void* result = 0;
+  if (aIndex >= 0 && aIndex < mSize) {
+    result = mData[modulus(mOrigin + aIndex, mCapacity)];
   }
   return result;
 }
 
-void* nsDeque::RemoveObjectAt(int32_t aIndex) {
-  if ((aIndex<0) || (aIndex>=mSize)) {
+void*
+nsDeque::RemoveObjectAt(int32_t aIndex)
+{
+  if (aIndex < 0 || aIndex >= mSize) {
     return 0;
   }
-  void* result=mData[modulus(mOrigin + aIndex, mCapacity)];
+  void* result = mData[modulus(mOrigin + aIndex, mCapacity)];
 
   
   
-  for (int32_t i=aIndex; i<mSize; i++) {
+  for (int32_t i = aIndex; i < mSize; ++i) {
     mData[modulus(mOrigin + i, mCapacity)] = mData[modulus(mOrigin + i + 1, mCapacity)];
   }
   mSize--;
@@ -347,7 +379,9 @@ void* nsDeque::RemoveObjectAt(int32_t aIndex) {
 
 
 
-nsDequeIterator nsDeque::Begin() const{
+nsDequeIterator
+nsDeque::Begin() const
+{
   return nsDequeIterator(*this, 0);
 }
 
@@ -359,11 +393,15 @@ nsDequeIterator nsDeque::Begin() const{
 
 
 
-nsDequeIterator nsDeque::End() const{
+nsDequeIterator
+nsDeque::End() const
+{
   return nsDequeIterator(*this, mSize - 1);
 }
 
-void* nsDeque::Last() const {
+void*
+nsDeque::Last() const
+{
   return End().GetCurrent();
 }
 
@@ -375,8 +413,10 @@ void* nsDeque::Last() const {
 
 
 
-void nsDeque::ForEach(nsDequeFunctor& aFunctor) const{
-  for (int32_t i=0; i<mSize; i++) {
+void
+nsDeque::ForEach(nsDequeFunctor& aFunctor) const
+{
+  for (int32_t i = 0; i < mSize; ++i) {
     aFunctor(ObjectAt(i));
   }
 }
@@ -390,9 +430,11 @@ void nsDeque::ForEach(nsDequeFunctor& aFunctor) const{
 
 
 
-const void* nsDeque::FirstThat(nsDequeFunctor& aFunctor) const{
-  for (int32_t i=0; i<mSize; i++) {
-    void* obj=aFunctor(ObjectAt(i));
+const void*
+nsDeque::FirstThat(nsDequeFunctor& aFunctor) const
+{
+  for (int32_t i = 0; i < mSize; ++i) {
+    void* obj = aFunctor(ObjectAt(i));
     if (obj) {
       return obj;
     }
@@ -415,8 +457,8 @@ const void* nsDeque::FirstThat(nsDequeFunctor& aFunctor) const{
 
 
 nsDequeIterator::nsDequeIterator(const nsDeque& aQueue, int aIndex)
-: mIndex(aIndex),
-  mDeque(aQueue)
+  : mIndex(aIndex)
+  , mDeque(aQueue)
 {
 }
 
@@ -426,8 +468,8 @@ nsDequeIterator::nsDequeIterator(const nsDeque& aQueue, int aIndex)
 
 
 nsDequeIterator::nsDequeIterator(const nsDequeIterator& aCopy)
-: mIndex(aCopy.mIndex),
-  mDeque(aCopy.mDeque)
+  : mIndex(aCopy.mIndex)
+  , mDeque(aCopy.mDeque)
 {
 }
 
@@ -435,8 +477,10 @@ nsDequeIterator::nsDequeIterator(const nsDequeIterator& aCopy)
 
 
 
-nsDequeIterator& nsDequeIterator::First(){
-  mIndex=0;
+nsDequeIterator&
+nsDequeIterator::First()
+{
+  mIndex = 0;
   return *this;
 }
 
@@ -446,9 +490,12 @@ nsDequeIterator& nsDequeIterator::First(){
 
 
 
-nsDequeIterator& nsDequeIterator::operator=(const nsDequeIterator& aCopy) {
-  NS_ASSERTION(&mDeque==&aCopy.mDeque,"you can't change the deque that an interator is iterating over, sorry.");
-  mIndex=aCopy.mIndex;
+nsDequeIterator&
+nsDequeIterator::operator=(const nsDequeIterator& aCopy)
+{
+  NS_ASSERTION(&mDeque == &aCopy.mDeque,
+               "you can't change the deque that an interator is iterating over, sorry.");
+  mIndex = aCopy.mIndex;
   return *this;
 }
 
@@ -459,8 +506,10 @@ nsDequeIterator& nsDequeIterator::operator=(const nsDequeIterator& aCopy) {
 
 
 
-bool nsDequeIterator::operator!=(nsDequeIterator& aIter) {
-  return bool(!this->operator==(aIter));
+bool
+nsDequeIterator::operator!=(nsDequeIterator& aIter)
+{
+  return !this->operator==(aIter);
 }
 
 
@@ -471,8 +520,10 @@ bool nsDequeIterator::operator!=(nsDequeIterator& aIter) {
 
 
 
-bool nsDequeIterator::operator<(nsDequeIterator& aIter) {
-  return bool(((mIndex<aIter.mIndex) && (&mDeque==&aIter.mDeque)));
+bool
+nsDequeIterator::operator<(nsDequeIterator& aIter)
+{
+  return mIndex < aIter.mIndex && &mDeque == &aIter.mDeque;
 }
 
 
@@ -481,8 +532,10 @@ bool nsDequeIterator::operator<(nsDequeIterator& aIter) {
 
 
 
-bool nsDequeIterator::operator==(nsDequeIterator& aIter) {
-  return bool(((mIndex==aIter.mIndex) && (&mDeque==&aIter.mDeque)));
+bool
+nsDequeIterator::operator==(nsDequeIterator& aIter)
+{
+  return mIndex == aIter.mIndex && &mDeque == &aIter.mDeque;
 }
 
 
@@ -493,8 +546,10 @@ bool nsDequeIterator::operator==(nsDequeIterator& aIter) {
 
 
 
-bool nsDequeIterator::operator>=(nsDequeIterator& aIter) {
-  return bool(((mIndex>=aIter.mIndex) && (&mDeque==&aIter.mDeque)));
+bool
+nsDequeIterator::operator>=(nsDequeIterator& aIter)
+{
+  return mIndex >= aIter.mIndex && &mDeque == &aIter.mDeque;
 }
 
 
@@ -502,13 +557,16 @@ bool nsDequeIterator::operator>=(nsDequeIterator& aIter) {
 
 
 
-void* nsDequeIterator::operator++() {
-  NS_ASSERTION(mIndex<mDeque.mSize,
-    "You have reached the end of the Internet."\
-    "You have seen everything there is to see. Please go back. Now."
-  );
+void*
+nsDequeIterator::operator++()
+{
+  NS_ASSERTION(mIndex < mDeque.mSize,
+               "You have reached the end of the Internet. You have seen "
+               "everything there is to see. Please go back. Now.");
 #ifndef TIMELESS_LIGHTWEIGHT
-  if (mIndex>=mDeque.mSize) return 0;
+  if (mIndex >= mDeque.mSize) {
+    return 0;
+  }
 #endif
   return mDeque.ObjectAt(++mIndex);
 }
@@ -519,13 +577,16 @@ void* nsDequeIterator::operator++() {
 
 
 
-void* nsDequeIterator::operator++(int) {
-  NS_ASSERTION(mIndex<=mDeque.mSize,
-    "You have already reached the end of the Internet."\
-    "You have seen everything there is to see. Please go back. Now."
-  );
+void*
+nsDequeIterator::operator++(int)
+{
+  NS_ASSERTION(mIndex <= mDeque.mSize,
+               "You have reached the end of the Internet. You have seen "
+               "everything there is to see. Please go back. Now.");
 #ifndef TIMELESS_LIGHTWEIGHT
-  if (mIndex>mDeque.mSize) return 0;
+  if (mIndex > mDeque.mSize) {
+    return 0;
+  }
 #endif
   return mDeque.ObjectAt(mIndex++);
 }
@@ -535,13 +596,16 @@ void* nsDequeIterator::operator++(int) {
 
 
 
-void* nsDequeIterator::operator--() {
-  NS_ASSERTION(mIndex>=0,
-    "You have reached the beginning of the Internet."\
-    "You have seen everything there is to see. Please go forward. Now."
-  );
+void*
+nsDequeIterator::operator--()
+{
+  NS_ASSERTION(mIndex >= 0,
+               "You have reached the end of the Internet. You have seen "
+               "everything there is to see. Please go forward. Now.");
 #ifndef TIMELESS_LIGHTWEIGHT
-  if (mIndex<0) return 0;
+  if (mIndex < 0) {
+    return 0;
+  }
 #endif
   return mDeque.ObjectAt(--mIndex);
 }
@@ -552,13 +616,16 @@ void* nsDequeIterator::operator--() {
 
 
 
-void* nsDequeIterator::operator--(int) {
-  NS_ASSERTION(mIndex>=0,
-    "You have already reached the beginning of the Internet."\
-    "You have seen everything there is to see. Please go forward. Now."
-  );
+void*
+nsDequeIterator::operator--(int)
+{
+  NS_ASSERTION(mIndex >= 0,
+               "You have reached the end of the Internet. You have seen "
+               "everything there is to see. Please go forward. Now.");
 #ifndef TIMELESS_LIGHTWEIGHT
-  if (mIndex<0) return 0;
+  if (mIndex < 0) {
+    return 0;
+  }
 #endif
   return mDeque.ObjectAt(mIndex--);
 }
@@ -576,10 +643,14 @@ void* nsDequeIterator::operator--(int) {
 
 
 
-void* nsDequeIterator::GetCurrent() {
-  NS_ASSERTION(mIndex<mDeque.mSize&&mIndex>=0,"Current is out of bounds");
+void*
+nsDequeIterator::GetCurrent()
+{
+  NS_ASSERTION(mIndex < mDeque.mSize && mIndex >= 0, "Current is out of bounds");
 #ifndef TIMELESS_LIGHTWEIGHT
-  if (mIndex>=mDeque.mSize||mIndex<0) return 0;
+  if (mIndex >= mDeque.mSize || mIndex < 0) {
+    return 0;
+  }
 #endif
   return mDeque.ObjectAt(mIndex);
 }
@@ -592,7 +663,9 @@ void* nsDequeIterator::GetCurrent() {
 
 
 
-void nsDequeIterator::ForEach(nsDequeFunctor& aFunctor) const{
+void
+nsDequeIterator::ForEach(nsDequeFunctor& aFunctor) const
+{
   mDeque.ForEach(aFunctor);
 }
 
@@ -605,6 +678,8 @@ void nsDequeIterator::ForEach(nsDequeFunctor& aFunctor) const{
 
 
 
-const void* nsDequeIterator::FirstThat(nsDequeFunctor& aFunctor) const{
+const void*
+nsDequeIterator::FirstThat(nsDequeFunctor& aFunctor) const
+{
   return mDeque.FirstThat(aFunctor);
 }

@@ -16,7 +16,8 @@
 
 
 
-struct nsID {
+struct nsID
+{
   
 
 
@@ -38,20 +39,21 @@ struct nsID {
 
 
 
-  inline bool Equals(const nsID& other) const {
+  inline bool Equals(const nsID& aOther) const
+  {
     
     return
-      ((((uint32_t*) &m0)[0] == ((uint32_t*) &other.m0)[0]) &&
-       (((uint32_t*) &m0)[1] == ((uint32_t*) &other.m0)[1]) &&
-       (((uint32_t*) &m0)[2] == ((uint32_t*) &other.m0)[2]) &&
-       (((uint32_t*) &m0)[3] == ((uint32_t*) &other.m0)[3]));
+      (((uint32_t*)&m0)[0] == ((uint32_t*)&aOther.m0)[0]) &&
+      (((uint32_t*)&m0)[1] == ((uint32_t*)&aOther.m0)[1]) &&
+      (((uint32_t*)&m0)[2] == ((uint32_t*)&aOther.m0)[2]) &&
+      (((uint32_t*)&m0)[3] == ((uint32_t*)&aOther.m0)[3]);
   }
 
   
 
 
 
-  NS_COM_GLUE bool Parse(const char *aIDStr);
+  NS_COM_GLUE bool Parse(const char* aIDStr);
 
 #ifndef XPCOM_GLUE_AVOID_NSPR
   
@@ -66,7 +68,7 @@ struct nsID {
 
 
 
-  NS_COM_GLUE void ToProvidedString(char (&dest)[NSID_LENGTH]) const;
+  NS_COM_GLUE void ToProvidedString(char (&aDest)[NSID_LENGTH]) const;
 
 #endif 
 
@@ -105,7 +107,7 @@ typedef nsID nsIID;
 
 
 
- 
+
 #define NS_DEFINE_IID(_name, _iidspec) \
   const nsIID _name = _iidspec
 
@@ -121,11 +123,11 @@ typedef nsID nsIID;
   struct COMTypeInfo;
 
 #define NS_DEFINE_STATIC_IID_ACCESSOR(the_interface, the_iid)           \
-  template <typename T>                                                 \
+  template<typename T>                                                  \
   struct the_interface::COMTypeInfo<the_interface, T> {                 \
     static const nsIID kIID NS_HIDDEN;                                  \
   };                                                                    \
-  template <typename T>                                                 \
+  template<typename T>                                                  \
   const nsIID the_interface::COMTypeInfo<the_interface, T>::kIID NS_HIDDEN = the_iid;
 
 

@@ -19,19 +19,17 @@
 
 
 template<class KeyClass, class RefPtr>
-class nsRefPtrHashtable :
-  public nsBaseHashtable< KeyClass, nsRefPtr<RefPtr> , RefPtr* >
+class nsRefPtrHashtable
+  : public nsBaseHashtable<KeyClass, nsRefPtr<RefPtr>, RefPtr*>
 {
 public:
   typedef typename KeyClass::KeyType KeyType;
   typedef RefPtr* UserDataType;
-  typedef nsBaseHashtable< KeyClass, nsRefPtr<RefPtr> , RefPtr* > base_type;
+  typedef nsBaseHashtable<KeyClass, nsRefPtr<RefPtr>, RefPtr*> base_type;
 
-  nsRefPtrHashtable()
-  {
-  }
+  nsRefPtrHashtable() {}
   explicit nsRefPtrHashtable(uint32_t aInitSize)
-    : nsBaseHashtable<KeyClass,nsRefPtr<RefPtr>,RefPtr*>(aInitSize)
+    : nsBaseHashtable<KeyClass, nsRefPtr<RefPtr>, RefPtr*>(aInitSize)
   {
   }
 
@@ -40,7 +38,7 @@ public:
 
 
 
-  bool Get(KeyType aKey, UserDataType* pData) const;
+  bool Get(KeyType aKey, UserDataType* aData) const;
 
   
 
@@ -55,7 +53,8 @@ public:
 
   void Put(KeyType aKey, already_AddRefed<RefPtr> aData);
 
-  bool Put(KeyType aKey, already_AddRefed<RefPtr> aData, const mozilla::fallible_t&) MOZ_WARN_UNUSED_RESULT;
+  MOZ_WARN_UNUSED_RESULT bool Put(KeyType aKey, already_AddRefed<RefPtr> aData,
+                                  const mozilla::fallible_t&);
 
   
   using base_type::Remove;
@@ -67,17 +66,17 @@ public:
 
 
 
-  bool Remove(KeyType aKey, UserDataType* pData);
+  bool Remove(KeyType aKey, UserDataType* aData);
 };
 
-template <typename K, typename T>
+template<typename K, typename T>
 inline void
 ImplCycleCollectionUnlink(nsRefPtrHashtable<K, T>& aField)
 {
   aField.Clear();
 }
 
-template <typename K, typename T>
+template<typename K, typename T>
 inline void
 ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback& aCallback,
                             nsRefPtrHashtable<K, T>& aField,
@@ -86,7 +85,7 @@ ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback& aCallback,
 {
   nsBaseHashtableCCTraversalData userData(aCallback, aName, aFlags);
 
-  aField.EnumerateRead(ImplCycleCollectionTraverse_EnumFunc<typename K::KeyType,T*>,
+  aField.EnumerateRead(ImplCycleCollectionTraverse_EnumFunc<typename K::KeyType, T*>,
                        &userData);
 }
 
@@ -96,16 +95,16 @@ ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback& aCallback,
 
 template<class KeyClass, class RefPtr>
 bool
-nsRefPtrHashtable<KeyClass,RefPtr>::Get
-  (KeyType aKey, UserDataType* pRefPtr) const
+nsRefPtrHashtable<KeyClass, RefPtr>::Get(KeyType aKey,
+                                         UserDataType* aRefPtr) const
 {
   typename base_type::EntryType* ent = this->GetEntry(aKey);
 
   if (ent) {
-    if (pRefPtr) {
-      *pRefPtr = ent->mData;
+    if (aRefPtr) {
+      *aRefPtr = ent->mData;
 
-      NS_IF_ADDREF(*pRefPtr);
+      NS_IF_ADDREF(*aRefPtr);
     }
 
     return true;
@@ -113,8 +112,8 @@ nsRefPtrHashtable<KeyClass,RefPtr>::Get
 
   
   
-  if (pRefPtr) {
-    *pRefPtr = nullptr;
+  if (aRefPtr) {
+    *aRefPtr = nullptr;
   }
 
   return false;
@@ -122,8 +121,7 @@ nsRefPtrHashtable<KeyClass,RefPtr>::Get
 
 template<class KeyClass, class RefPtr>
 RefPtr*
-nsRefPtrHashtable<KeyClass,RefPtr>::GetWeak
-  (KeyType aKey, bool* aFound) const
+nsRefPtrHashtable<KeyClass, RefPtr>::GetWeak(KeyType aKey, bool* aFound) const
 {
   typename base_type::EntryType* ent = this->GetEntry(aKey);
 
@@ -145,7 +143,8 @@ nsRefPtrHashtable<KeyClass,RefPtr>::GetWeak
 
 template<class KeyClass, class RefPtr>
 void
-nsRefPtrHashtable<KeyClass,RefPtr>::Put(KeyType aKey, already_AddRefed<RefPtr> aData)
+nsRefPtrHashtable<KeyClass, RefPtr>::Put(KeyType aKey,
+                                         already_AddRefed<RefPtr> aData)
 {
   if (!Put(aKey, mozilla::Move(aData), mozilla::fallible_t())) {
     NS_ABORT_OOM(this->mTable.entrySize * this->mTable.entryCount);
@@ -154,9 +153,9 @@ nsRefPtrHashtable<KeyClass,RefPtr>::Put(KeyType aKey, already_AddRefed<RefPtr> a
 
 template<class KeyClass, class RefPtr>
 bool
-nsRefPtrHashtable<KeyClass,RefPtr>::Put(KeyType aKey,
-                                        already_AddRefed<RefPtr> aData,
-                                        const mozilla::fallible_t&)
+nsRefPtrHashtable<KeyClass, RefPtr>::Put(KeyType aKey,
+                                         already_AddRefed<RefPtr> aData,
+                                         const mozilla::fallible_t&)
 {
   typename base_type::EntryType* ent = this->PutEntry(aKey);
 
@@ -171,21 +170,21 @@ nsRefPtrHashtable<KeyClass,RefPtr>::Put(KeyType aKey,
 
 template<class KeyClass, class RefPtr>
 bool
-nsRefPtrHashtable<KeyClass,RefPtr>::Remove(KeyType aKey,
-                                           UserDataType* pRefPtr)
+nsRefPtrHashtable<KeyClass, RefPtr>::Remove(KeyType aKey,
+                                            UserDataType* aRefPtr)
 {
-  MOZ_ASSERT(pRefPtr);
+  MOZ_ASSERT(aRefPtr);
   typename base_type::EntryType* ent = this->GetEntry(aKey);
 
   if (ent) {
-    ent->mData.forget(pRefPtr);
+    ent->mData.forget(aRefPtr);
     this->Remove(aKey);
     return true;
   }
 
   
   
-  *pRefPtr = nullptr;
+  *aRefPtr = nullptr;
   return false;
 }
 

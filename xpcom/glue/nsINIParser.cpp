@@ -24,72 +24,82 @@
 #endif
 
 #ifdef XP_WIN
-inline FILE *TS_tfopen (const char *path, const wchar_t *mode)
+inline FILE*
+TS_tfopen(const char* aPath, const wchar_t* aMode)
 {
-    wchar_t wPath[MAX_PATH];
-    MultiByteToWideChar(CP_UTF8, 0, path, -1, wPath, MAX_PATH);
-    return _wfopen(wPath, mode);
+  wchar_t wPath[MAX_PATH];
+  MultiByteToWideChar(CP_UTF8, 0, aPath, -1, wPath, MAX_PATH);
+  return _wfopen(wPath, aMode);
 }
 #else
-inline FILE *TS_tfopen (const char *path, const char *mode)
+inline FILE*
+TS_tfopen(const char* aPath, const char* aMode)
 {
-    return fopen(path, mode);
+  return fopen(aPath, aMode);
 }
 #endif
 
 
 
 
-class AutoFILE {
+class AutoFILE
+{
 public:
-  AutoFILE(FILE *fp = nullptr) : fp_(fp) {}
-  ~AutoFILE() { if (fp_) fclose(fp_); }
-  operator FILE *() { return fp_; }
-  FILE** operator &() { return &fp_; }
-  void operator=(FILE *fp) { fp_ = fp; }
+  AutoFILE(FILE* aFp = nullptr) : fp_(aFp) {}
+  ~AutoFILE()
+  {
+    if (fp_) {
+      fclose(fp_);
+    }
+  }
+  operator FILE*() { return fp_; }
+  FILE** operator&() { return &fp_; }
+  void operator=(FILE* aFp) { fp_ = aFp; }
 private:
-  FILE *fp_;
+  FILE* fp_;
 };
 
 nsresult
 nsINIParser::Init(nsIFile* aFile)
 {
-    
+  
 
 
 
-    AutoFILE fd;
+  AutoFILE fd;
 
 #ifdef XP_WIN
-    nsAutoString path;
-    nsresult rv = aFile->GetPath(path);
-    if (NS_WARN_IF(NS_FAILED(rv)))
-      return rv;
+  nsAutoString path;
+  nsresult rv = aFile->GetPath(path);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
 
-    fd = _wfopen(path.get(), READ_BINARYMODE);
+  fd = _wfopen(path.get(), READ_BINARYMODE);
 #else
-    nsAutoCString path;
-    aFile->GetNativePath(path);
+  nsAutoCString path;
+  aFile->GetNativePath(path);
 
-    fd = fopen(path.get(), READ_BINARYMODE);
+  fd = fopen(path.get(), READ_BINARYMODE);
 #endif
 
-    if (!fd)
-      return NS_ERROR_FAILURE;
+  if (!fd) {
+    return NS_ERROR_FAILURE;
+  }
 
-    return InitFromFILE(fd);
+  return InitFromFILE(fd);
 }
 
 nsresult
-nsINIParser::Init(const char *aPath)
+nsINIParser::Init(const char* aPath)
 {
-    
-    AutoFILE fd = TS_tfopen(aPath, READ_BINARYMODE);
+  
+  AutoFILE fd = TS_tfopen(aPath, READ_BINARYMODE);
+  if (!fd) {
+    return NS_ERROR_FAILURE;
+  }
 
-    if (!fd)
-        return NS_ERROR_FAILURE;
-
-    return InitFromFILE(fd);
+  return InitFromFILE(fd);
 }
 
 static const char kNL[] = "\r\n";
@@ -98,224 +108,230 @@ static const char kWhitespace[] = " \t";
 static const char kRBracket[] = "]";
 
 nsresult
-nsINIParser::InitFromFILE(FILE *fd)
+nsINIParser::InitFromFILE(FILE* aFd)
 {
+  
+  if (fseek(aFd, 0, SEEK_END) != 0) {
+    return NS_ERROR_FAILURE;
+  }
+
+  long flen = ftell(aFd);
+  if (flen == 0) {
+    return NS_ERROR_FAILURE;
+  }
+
+  
+  mFileContents = new char[flen + 2];
+  if (!mFileContents) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  
+  if (fseek(aFd, 0, SEEK_SET) != 0) {
+    return NS_BASE_STREAM_OSERROR;
+  }
+
+  int rd = fread(mFileContents, sizeof(char), flen, aFd);
+  if (rd != flen) {
+    return NS_BASE_STREAM_OSERROR;
+  }
+
+  
+  mFileContents[flen] = mFileContents[flen + 1] = '\0';
+
+  char* buffer = &mFileContents[0];
+
+  if (flen >= 3 &&
+      mFileContents[0] == static_cast<char>(0xEF) &&
+      mFileContents[1] == static_cast<char>(0xBB) &&
+      mFileContents[2] == static_cast<char>(0xBF)) {
     
-    if (fseek(fd, 0, SEEK_END) != 0)
-        return NS_ERROR_FAILURE;
-
-    long flen = ftell(fd);
-    if (flen == 0)
-        return NS_ERROR_FAILURE;
-
     
-    mFileContents = new char[flen + 2];
-    if (!mFileContents)
-        return NS_ERROR_OUT_OF_MEMORY;
-
     
-    if (fseek(fd, 0, SEEK_SET) != 0)
-        return NS_BASE_STREAM_OSERROR;
-
-    int rd = fread(mFileContents, sizeof(char), flen, fd);
-    if (rd != flen)
-        return NS_BASE_STREAM_OSERROR;
-
-    
-    mFileContents[flen] = mFileContents[flen + 1] = '\0';
-
-    char *buffer = &mFileContents[0];
-
-    if (flen >= 3
-    && mFileContents[0] == static_cast<char>(0xEF)
-    && mFileContents[1] == static_cast<char>(0xBB)
-    && mFileContents[2] == static_cast<char>(0xBF)) {
-      
-      
-      
-      buffer = &mFileContents[3];
-    }
+    buffer = &mFileContents[3];
+  }
 
 #ifdef XP_WIN
-    if (flen >= 2
-     && mFileContents[0] == static_cast<char>(0xFF)
-     && mFileContents[1] == static_cast<char>(0xFE)) {
-        
-        buffer = &mFileContents[2];
-        
-        flen = WideCharToMultiByte(CP_UTF8,
-                                   0,
-                                   reinterpret_cast<LPWSTR>(buffer),
-                                   -1,
-                                   nullptr,
-                                   0,
-                                   nullptr,
-                                   nullptr);
-        if (0 == flen) {
-            return NS_ERROR_FAILURE;
-        }
-
-        nsAutoArrayPtr<char> utf8Buffer(new char[flen]);
-        if (0 == WideCharToMultiByte(CP_UTF8,
-                                     0,
-                                     reinterpret_cast<LPWSTR>(buffer),
-                                     -1,
-                                     utf8Buffer,
-                                     flen,
-                                     nullptr,
-                                     nullptr)) {
-            return NS_ERROR_FAILURE;
-        }
-        mFileContents = utf8Buffer.forget();
-        buffer = mFileContents;
+  if (flen >= 2 &&
+      mFileContents[0] == static_cast<char>(0xFF) &&
+      mFileContents[1] == static_cast<char>(0xFE)) {
+    
+    buffer = &mFileContents[2];
+    
+    flen = WideCharToMultiByte(CP_UTF8,
+                               0,
+                               reinterpret_cast<LPWSTR>(buffer),
+                               -1,
+                               nullptr,
+                               0,
+                               nullptr,
+                               nullptr);
+    if (flen == 0) {
+      return NS_ERROR_FAILURE;
     }
+
+    nsAutoArrayPtr<char> utf8Buffer(new char[flen]);
+    if (WideCharToMultiByte(CP_UTF8, 0, reinterpret_cast<LPWSTR>(buffer), -1,
+                            utf8Buffer, flen, nullptr, nullptr) == 0) {
+      return NS_ERROR_FAILURE;
+    }
+    mFileContents = utf8Buffer.forget();
+    buffer = mFileContents;
+  }
 #endif
 
-    char *currSection = nullptr;
+  char* currSection = nullptr;
+
+  
+  while (char* token = NS_strtok(kNL, &buffer)) {
+    if (token[0] == '#' || token[0] == ';') { 
+      continue;
+    }
+
+    token = (char*)NS_strspnp(kWhitespace, token);
+    if (!*token) { 
+      continue;
+    }
+
+    if (token[0] == '[') { 
+      ++token;
+      currSection = token;
+
+      char* rb = NS_strtok(kRBracket, &token);
+      if (!rb || NS_strtok(kWhitespace, &token)) {
+        
+        
+        
+        
+        currSection = nullptr;
+      }
+
+      continue;
+    }
+
+    if (!currSection) {
+      
+      
+      continue;
+    }
+
+    char* key = token;
+    char* e = NS_strtok(kEquals, &token);
+    if (!e || !token) {
+      continue;
+    }
+
+    INIValue* v;
+    if (!mSections.Get(currSection, &v)) {
+      v = new INIValue(key, token);
+      if (!v) {
+        return NS_ERROR_OUT_OF_MEMORY;
+      }
+
+      mSections.Put(currSection, v);
+      continue;
+    }
 
     
-    while (char *token = NS_strtok(kNL, &buffer)) {
-        if (token[0] == '#' || token[0] == ';') 
-            continue;
-
-        token = (char*) NS_strspnp(kWhitespace, token);
-        if (!*token) 
-            continue;
-
-        if (token[0] == '[') { 
-            ++token;
-            currSection = token;
-
-            char *rb = NS_strtok(kRBracket, &token);
-            if (!rb || NS_strtok(kWhitespace, &token)) {
-                
-                
-                
-                
-                currSection = nullptr;
-            }
-
-            continue;
+    
+    while (v) {
+      if (!strcmp(key, v->key)) {
+        v->value = token;
+        break;
+      }
+      if (!v->next) {
+        v->next = new INIValue(key, token);
+        if (!v->next) {
+          return NS_ERROR_OUT_OF_MEMORY;
         }
-
-        if (!currSection) {
-            
-            
-            continue;
-        }
-
-        char *key = token;
-        char *e = NS_strtok(kEquals, &token);
-        if (!e || !token)
-            continue;
-
-        INIValue *v;
-        if (!mSections.Get(currSection, &v)) {
-            v = new INIValue(key, token);
-            if (!v)
-                return NS_ERROR_OUT_OF_MEMORY;
-
-            mSections.Put(currSection, v);
-            continue;
-        }
-
-        
-        
-        while (v) {
-            if (!strcmp(key, v->key)) {
-                v->value = token;
-                break;
-            }
-            if (!v->next) {
-                v->next = new INIValue(key, token);
-                if (!v->next)
-                    return NS_ERROR_OUT_OF_MEMORY;
-                break;
-            }
-            v = v->next;
-        }
-        NS_ASSERTION(v, "v should never be null coming out of this loop");
+        break;
+      }
+      v = v->next;
     }
+    NS_ASSERTION(v, "v should never be null coming out of this loop");
+  }
 
-    return NS_OK;
+  return NS_OK;
 }
 
 nsresult
-nsINIParser::GetString(const char *aSection, const char *aKey, 
-                       nsACString &aResult)
+nsINIParser::GetString(const char* aSection, const char* aKey,
+                       nsACString& aResult)
 {
-    INIValue *val;
-    mSections.Get(aSection, &val);
+  INIValue* val;
+  mSections.Get(aSection, &val);
 
-    while (val) {
-        if (strcmp(val->key, aKey) == 0) {
-            aResult.Assign(val->value);
-            return NS_OK;
-        }
-
-        val = val->next;
+  while (val) {
+    if (strcmp(val->key, aKey) == 0) {
+      aResult.Assign(val->value);
+      return NS_OK;
     }
 
-    return NS_ERROR_FAILURE;
+    val = val->next;
+  }
+
+  return NS_ERROR_FAILURE;
 }
 
 nsresult
-nsINIParser::GetString(const char *aSection, const char *aKey, 
-                       char *aResult, uint32_t aResultLen)
+nsINIParser::GetString(const char* aSection, const char* aKey,
+                       char* aResult, uint32_t aResultLen)
 {
-    INIValue *val;
-    mSections.Get(aSection, &val);
+  INIValue* val;
+  mSections.Get(aSection, &val);
 
-    while (val) {
-        if (strcmp(val->key, aKey) == 0) {
-            strncpy(aResult, val->value, aResultLen);
-            aResult[aResultLen - 1] = '\0';
-            if (strlen(val->value) >= aResultLen)
-                return NS_ERROR_LOSS_OF_SIGNIFICANT_DATA;
+  while (val) {
+    if (strcmp(val->key, aKey) == 0) {
+      strncpy(aResult, val->value, aResultLen);
+      aResult[aResultLen - 1] = '\0';
+      if (strlen(val->value) >= aResultLen) {
+        return NS_ERROR_LOSS_OF_SIGNIFICANT_DATA;
+      }
 
-            return NS_OK;
-        }
-
-        val = val->next;
+      return NS_OK;
     }
 
-    return NS_ERROR_FAILURE;
+    val = val->next;
+  }
+
+  return NS_ERROR_FAILURE;
 }
 
 PLDHashOperator
-nsINIParser::GetSectionsCB(const char *aKey, INIValue *aData,
-                           void *aClosure)
+nsINIParser::GetSectionsCB(const char* aKey, INIValue* aData,
+                           void* aClosure)
 {
-    GSClosureStruct *cs = reinterpret_cast<GSClosureStruct*>(aClosure);
+  GSClosureStruct* cs = reinterpret_cast<GSClosureStruct*>(aClosure);
 
-    return cs->usercb(aKey, cs->userclosure) ? PL_DHASH_NEXT : PL_DHASH_STOP;
+  return cs->usercb(aKey, cs->userclosure) ? PL_DHASH_NEXT : PL_DHASH_STOP;
 }
 
 nsresult
-nsINIParser::GetSections(INISectionCallback aCB, void *aClosure)
+nsINIParser::GetSections(INISectionCallback aCB, void* aClosure)
 {
-    GSClosureStruct gs = {
-        aCB,
-        aClosure
-    };
+  GSClosureStruct gs = {
+    aCB,
+    aClosure
+  };
 
-    mSections.EnumerateRead(GetSectionsCB, &gs);
-    return NS_OK;
+  mSections.EnumerateRead(GetSectionsCB, &gs);
+  return NS_OK;
 }
 
 nsresult
-nsINIParser::GetStrings(const char *aSection,
-                        INIStringCallback aCB, void *aClosure)
+nsINIParser::GetStrings(const char* aSection,
+                        INIStringCallback aCB, void* aClosure)
 {
-    INIValue *val;
+  INIValue* val;
 
-    for (mSections.Get(aSection, &val);
-         val;
-         val = val->next) {
+  for (mSections.Get(aSection, &val);
+       val;
+       val = val->next) {
 
-        if (!aCB(val->key, val->value, aClosure))
-            return NS_OK;
+    if (!aCB(val->key, val->value, aClosure)) {
+      return NS_OK;
     }
+  }
 
-    return NS_OK;
+  return NS_OK;
 }

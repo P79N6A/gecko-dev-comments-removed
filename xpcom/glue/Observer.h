@@ -18,11 +18,11 @@ namespace mozilla {
 
 
 
-template <class T>
+template<class T>
 class Observer
 {
 public:
-  virtual ~Observer() { }
+  virtual ~Observer() {}
   virtual void Notify(const T& aParam) = 0;
 };
 
@@ -34,7 +34,7 @@ public:
 
 
 
-template <class T>
+template<class T>
 class ObserverList
 {
 public:
@@ -45,7 +45,8 @@ public:
 
 
 
-  void AddObserver(Observer<T>* aObserver) {
+  void AddObserver(Observer<T>* aObserver)
+  {
     mObservers.AppendElement(aObserver);
   }
 
@@ -53,17 +54,20 @@ public:
 
 
 
-  bool RemoveObserver(Observer<T>* aObserver) {
+  bool RemoveObserver(Observer<T>* aObserver)
+  {
     return mObservers.RemoveElement(aObserver);
   }
 
-  uint32_t Length() {
+  uint32_t Length()
+  {
     return mObservers.Length();
   }
 
-  void Broadcast(const T& aParam) {
+  void Broadcast(const T& aParam)
+  {
     uint32_t size = mObservers.Length();
-    for (uint32_t i=0; i<size; ++i) {
+    for (uint32_t i = 0; i < size; ++i) {
       mObservers[i]->Notify(aParam);
     }
   }

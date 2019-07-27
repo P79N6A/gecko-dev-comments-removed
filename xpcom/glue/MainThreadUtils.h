@@ -18,15 +18,14 @@ class nsIThread;
 
 
 
-extern NS_COM_GLUE NS_METHOD
-NS_GetMainThread(nsIThread **result);
+extern NS_COM_GLUE NS_METHOD NS_GetMainThread(nsIThread** aResult);
 
 #ifdef MOZILLA_INTERNAL_API
 
 
 
 
-extern NS_COM_GLUE nsIThread *NS_GetCurrentThread();
+extern NS_COM_GLUE nsIThread* NS_GetCurrentThread();
 #endif
 
 #if defined(MOZILLA_INTERNAL_API) && defined(XP_WIN)
@@ -39,8 +38,7 @@ extern NS_TLS mozilla::threads::ID gTLSThreadID;
 
 MOZ_ASAN_BLACKLIST bool NS_IsMainThread();
 #else
-inline
-bool NS_IsMainThread()
+inline bool NS_IsMainThread()
 {
   return gTLSThreadID == mozilla::threads::Main;
 }

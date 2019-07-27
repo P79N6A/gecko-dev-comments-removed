@@ -17,15 +17,15 @@ class nsCOMArray_base;
 
 
 NS_COM_GLUE nsresult
-NS_NewArrayEnumerator(nsISimpleEnumerator* *result,
-                      nsIArray* array);
+NS_NewArrayEnumerator(nsISimpleEnumerator** aResult,
+                      nsIArray* aArray);
 
 
 
 
 
 NS_COM_GLUE nsresult
-NS_NewArrayEnumerator(nsISimpleEnumerator* *aResult,
+NS_NewArrayEnumerator(nsISimpleEnumerator** aResult,
                       const nsCOMArray_base& aArray);
 
 #endif

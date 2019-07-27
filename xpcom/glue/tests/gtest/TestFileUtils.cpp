@@ -79,7 +79,8 @@ TEST(ReadSysFile, Main) {
   
 
 
-  struct {
+  struct
+  {
     
     const char* input;
     
@@ -188,7 +189,8 @@ TEST(ReadSysFile, Main) {
 
 TEST(ReadSysFile, Int) {
   static const char* fn = "TestReadSysFileInt";
-  struct {
+  struct
+  {
     
     const char* input;
     
@@ -237,7 +239,8 @@ TEST(ReadSysFile, Int) {
 
 TEST(ReadSysFile, Bool) {
   static const char* fn = "TestReadSysFileBool";
-  struct {
+  struct
+  {
     
     const char* input;
     

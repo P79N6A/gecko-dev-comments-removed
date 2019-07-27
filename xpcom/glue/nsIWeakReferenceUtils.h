@@ -17,92 +17,84 @@ typedef nsCOMPtr<nsIWeakReference> nsWeakPtr;
 
 
 
-template <class T, class DestinationType>
-inline
-nsresult
-CallQueryReferent( T* aSource, DestinationType** aDestination )
-  {
-    NS_PRECONDITION(aSource, "null parameter");
-    NS_PRECONDITION(aDestination, "null parameter");
+template<class T, class DestinationType>
+inline nsresult
+CallQueryReferent(T* aSource, DestinationType** aDestination)
+{
+  NS_PRECONDITION(aSource, "null parameter");
+  NS_PRECONDITION(aDestination, "null parameter");
 
-    return aSource->QueryReferent(NS_GET_TEMPLATE_IID(DestinationType),
-                                  reinterpret_cast<void**>(aDestination));
-  }
+  return aSource->QueryReferent(NS_GET_TEMPLATE_IID(DestinationType),
+                                reinterpret_cast<void**>(aDestination));
+}
 
 
 class NS_COM_GLUE nsQueryReferent : public nsCOMPtr_helper
+{
+public:
+  nsQueryReferent(nsIWeakReference* aWeakPtr, nsresult* aError)
+    : mWeakPtr(aWeakPtr)
+    , mErrorPtr(aError)
   {
-    public:
-      nsQueryReferent( nsIWeakReference* aWeakPtr, nsresult* error )
-          : mWeakPtr(aWeakPtr),
-            mErrorPtr(error)
-        {
-          
-        }
-
-      virtual nsresult NS_FASTCALL operator()( const nsIID& aIID, void** ) const;
-
-    private:
-      nsIWeakReference*  mWeakPtr;
-      nsresult*          mErrorPtr;
-  };
-
-inline
-const nsQueryReferent
-do_QueryReferent( nsIWeakReference* aRawPtr, nsresult* error = 0 )
-  {
-    return nsQueryReferent(aRawPtr, error);
   }
 
+  virtual nsresult NS_FASTCALL operator()(const nsIID& aIID, void**) const;
 
+private:
+  nsIWeakReference*  mWeakPtr;
+  nsresult*          mErrorPtr;
+};
+
+inline const nsQueryReferent
+do_QueryReferent(nsIWeakReference* aRawPtr, nsresult* aError = 0)
+{
+  return nsQueryReferent(aRawPtr, aError);
+}
+
+
+
+
+
+extern NS_COM_GLUE nsIWeakReference* NS_GetWeakReference(nsISupports*,
+                                                         nsresult* aResult = 0);
+
+
+
+
+
+
+
+
+inline already_AddRefed<nsIWeakReference>
+do_GetWeakReference(nsISupports* aRawPtr, nsresult* aError = 0)
+{
+  return dont_AddRef(NS_GetWeakReference(aRawPtr, aError));
+}
+
+inline void
+do_GetWeakReference(nsIWeakReference* aRawPtr, nsresult* aError = 0)
+{
   
-
-
-extern NS_COM_GLUE
-nsIWeakReference*
-NS_GetWeakReference( nsISupports* , nsresult* aResult=0 );
-
   
+  
+}
 
+template<class T>
+inline void
+do_GetWeakReference(already_AddRefed<T>&)
+{
+  
+  
+  
+}
 
-
-
-
-
-inline
-already_AddRefed<nsIWeakReference>
-do_GetWeakReference( nsISupports* aRawPtr, nsresult* error = 0 )
-  {
-    return dont_AddRef(NS_GetWeakReference(aRawPtr, error));
-  }
-
-inline
-void
-do_GetWeakReference( nsIWeakReference* aRawPtr, nsresult* error = 0 )
-  {
-    
-    
-    
-  }
-
-template <class T>
-inline
-void
-do_GetWeakReference( already_AddRefed<T>& )
-  {
-    
-    
-    
-  }
-
-template <class T>
-inline
-void
-do_GetWeakReference( already_AddRefed<T>&, nsresult* )
-  {
-    
-    
-    
-  }
+template<class T>
+inline void
+do_GetWeakReference(already_AddRefed<T>&, nsresult*)
+{
+  
+  
+  
+}
 
 #endif

@@ -39,10 +39,10 @@ struct ScopedCloseFDTraits
 {
   typedef int type;
   static type empty() { return -1; }
-  static void release(type fd) {
-    if (fd != -1) {
-      while ((close(fd) == -1) && (errno == EINTR)) {
-        ;
+  static void release(type aFd)
+  {
+    if (aFd != -1) {
+      while (close(aFd) == -1 && errno == EINTR) {
       }
     }
   }
@@ -60,9 +60,10 @@ struct ScopedClosePRFDTraits
 {
   typedef PRFileDesc* type;
   static type empty() { return nullptr; }
-  static void release(type fd) {
-    if (fd != nullptr) {
-      PR_Close(fd);
+  static void release(type aFd)
+  {
+    if (aFd) {
+      PR_Close(aFd);
     }
   }
 };
@@ -71,11 +72,12 @@ typedef Scoped<ScopedClosePRFDTraits> AutoFDClose;
 
 struct ScopedCloseFileTraits
 {
-  typedef FILE *type;
+  typedef FILE* type;
   static type empty() { return nullptr; }
-  static void release(type f) {
-    if (f) {
-      fclose(f);
+  static void release(type aFile)
+  {
+    if (aFile) {
+      fclose(aFile);
     }
   }
 };
@@ -90,7 +92,7 @@ typedef Scoped<ScopedCloseFileTraits> ScopedCloseFile;
 
 
 
-NS_COM_GLUE bool fallocate(PRFileDesc *aFD, int64_t aLength);
+NS_COM_GLUE bool fallocate(PRFileDesc* aFD, int64_t aLength);
 
 
 
@@ -187,30 +189,20 @@ NS_COM_GLUE void ReadAhead(filedesc_t aFd, const size_t aOffset = 0,
 
 
 
-bool
-ReadSysFile(
-  const char* aFilename,
-  char* aBuf,
-  size_t aBufSize);
+bool ReadSysFile(const char* aFilename, char* aBuf, size_t aBufSize);
 
 
 
 
 
-bool
-ReadSysFile(
-  const char* aFilename,
-  int* aVal);
+bool ReadSysFile(const char* aFilename, int* aVal);
 
 
 
 
 
 
-bool
-ReadSysFile(
-  const char* aFilename,
-  bool* aVal);
+bool ReadSysFile(const char* aFilename, bool* aVal);
 
 #endif 
 

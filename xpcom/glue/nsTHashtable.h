@@ -18,11 +18,10 @@
 #include <new>
 
 
-NS_COM_GLUE PLDHashOperator
-PL_DHashStubEnumRemove(PLDHashTable    *table,
-                       PLDHashEntryHdr *entry,
-                       uint32_t         ordinal,
-                       void            *userArg);
+NS_COM_GLUE PLDHashOperator PL_DHashStubEnumRemove(PLDHashTable* aTable,
+                                                   PLDHashEntryHdr* aEntry,
+                                                   uint32_t aOrdinal,
+                                                   void* aUserArg);
 
 
 
@@ -85,14 +84,8 @@ class nsTHashtable
 public:
   
   
-  nsTHashtable()
-  {
-    Init(PL_DHASH_MIN_SIZE);
-  }
-  explicit nsTHashtable(uint32_t aInitSize)
-  {
-    Init(aInitSize);
-  }
+  nsTHashtable() { Init(PL_DHASH_MIN_SIZE); }
+  explicit nsTHashtable(uint32_t aInitSize) { Init(aInitSize); }
 
   
 
@@ -132,13 +125,10 @@ public:
   EntryType* GetEntry(KeyType aKey) const
   {
     NS_ASSERTION(mTable.entrySize, "nsTHashtable was not initialized properly.");
-  
-    EntryType* entry =
-      reinterpret_cast<EntryType*>
-                      (PL_DHashTableOperate(
-                            const_cast<PLDHashTable*>(&mTable),
-                            EntryType::KeyToPointer(aKey),
-                            PL_DHASH_LOOKUP));
+
+    EntryType* entry = reinterpret_cast<EntryType*>(
+      PL_DHashTableOperate(const_cast<PLDHashTable*>(&mTable),
+                           EntryType::KeyToPointer(aKey), PL_DHASH_LOOKUP));
     return PL_DHASH_ENTRY_IS_BUSY(entry) ? entry : nullptr;
   }
 
@@ -147,10 +137,7 @@ public:
 
 
 
-  bool Contains(KeyType aKey) const
-  {
-    return !!GetEntry(aKey);
-  }
+  bool Contains(KeyType aKey) const { return !!GetEntry(aKey); }
 
   
 
@@ -161,20 +148,17 @@ public:
   EntryType* PutEntry(KeyType aKey)
   {
     EntryType* e = PutEntry(aKey, fallible_t());
-    if (!e)
+    if (!e) {
       NS_ABORT_OOM(mTable.entrySize * mTable.entryCount);
+    }
     return e;
   }
 
-  EntryType* PutEntry(KeyType aKey, const fallible_t&) NS_WARN_UNUSED_RESULT
-  {
+  EntryType* PutEntry(KeyType aKey, const fallible_t&) NS_WARN_UNUSED_RESULT {
     NS_ASSERTION(mTable.entrySize, "nsTHashtable was not initialized properly.");
 
-    return static_cast<EntryType*>
-                      (PL_DHashTableOperate(
-                            &mTable,
-                            EntryType::KeyToPointer(aKey),
-                            PL_DHASH_ADD));
+    return static_cast<EntryType*>(PL_DHashTableOperate(
+      &mTable, EntryType::KeyToPointer(aKey), PL_DHASH_ADD));
   }
 
   
@@ -213,7 +197,7 @@ public:
 
 
 
-  typedef PLDHashOperator (* Enumerator)(EntryType* aEntry, void* userArg);
+  typedef PLDHashOperator (*Enumerator)(EntryType* aEntry, void* userArg);
 
   
 
@@ -222,11 +206,11 @@ public:
 
 
 
-  uint32_t EnumerateEntries(Enumerator enumFunc, void* userArg)
+  uint32_t EnumerateEntries(Enumerator aEnumFunc, void* aUserArg)
   {
     NS_ASSERTION(mTable.entrySize, "nsTHashtable was not initialized properly.");
-    
-    s_EnumArgs args = { enumFunc, userArg };
+
+    s_EnumArgs args = { aEnumFunc, aUserArg };
     return PL_DHashTableEnumerate(&mTable, s_EnumStub, &args);
   }
 
@@ -248,9 +232,9 @@ public:
 
 
 
-  typedef size_t (* SizeOfEntryExcludingThisFun)(EntryType* aEntry,
-                                                 mozilla::MallocSizeOf mallocSizeOf,
-                                                 void *arg);
+  typedef size_t (*SizeOfEntryExcludingThisFun)(EntryType* aEntry,
+                                                mozilla::MallocSizeOf aMallocSizeOf,
+                                                void* aArg);
 
   
 
@@ -264,26 +248,27 @@ public:
 
 
 
-  size_t SizeOfExcludingThis(SizeOfEntryExcludingThisFun sizeOfEntryExcludingThis,
-                             mozilla::MallocSizeOf mallocSizeOf,
-                             void *userArg = nullptr) const
+  size_t SizeOfExcludingThis(SizeOfEntryExcludingThisFun aSizeOfEntryExcludingThis,
+                             mozilla::MallocSizeOf aMallocSizeOf,
+                             void* aUserArg = nullptr) const
   {
-    if (sizeOfEntryExcludingThis) {
-      s_SizeOfArgs args = { sizeOfEntryExcludingThis, userArg };
-      return PL_DHashTableSizeOfExcludingThis(&mTable, s_SizeOfStub, mallocSizeOf, &args);
+    if (aSizeOfEntryExcludingThis) {
+      s_SizeOfArgs args = { aSizeOfEntryExcludingThis, aUserArg };
+      return PL_DHashTableSizeOfExcludingThis(&mTable, s_SizeOfStub,
+                                              aMallocSizeOf, &args);
     }
-    return PL_DHashTableSizeOfExcludingThis(&mTable, nullptr, mallocSizeOf);
+    return PL_DHashTableSizeOfExcludingThis(&mTable, nullptr, aMallocSizeOf);
   }
 
   
 
 
-  size_t SizeOfIncludingThis(SizeOfEntryExcludingThisFun sizeOfEntryExcludingThis,
-                             mozilla::MallocSizeOf mallocSizeOf,
-                             void *userArg = nullptr) const
+  size_t SizeOfIncludingThis(SizeOfEntryExcludingThisFun aSizeOfEntryExcludingThis,
+                             mozilla::MallocSizeOf aMallocSizeOf,
+                             void* aUserArg = nullptr) const
   {
-    return mallocSizeOf(this) +
-        SizeOfExcludingThis(sizeOfEntryExcludingThis, mallocSizeOf, userArg);
+    return aMallocSizeOf(this) +
+      SizeOfExcludingThis(aSizeOfEntryExcludingThis, aMallocSizeOf, aUserArg);
   }
 
 #ifdef DEBUG
@@ -304,26 +289,20 @@ public:
 protected:
   PLDHashTable mTable;
 
-  static const void* s_GetKey(PLDHashTable    *table,
-                              PLDHashEntryHdr *entry);
+  static const void* s_GetKey(PLDHashTable* aTable, PLDHashEntryHdr* aEntry);
 
-  static PLDHashNumber s_HashKey(PLDHashTable *table,
-                                 const void   *key);
+  static PLDHashNumber s_HashKey(PLDHashTable* aTable, const void* aKey);
 
-  static bool s_MatchEntry(PLDHashTable           *table,
-                             const PLDHashEntryHdr  *entry,
-                             const void             *key);
-  
-  static void s_CopyEntry(PLDHashTable          *table,
-                          const PLDHashEntryHdr *from,
-                          PLDHashEntryHdr       *to);
-  
-  static void s_ClearEntry(PLDHashTable *table,
-                           PLDHashEntryHdr *entry);
+  static bool s_MatchEntry(PLDHashTable* aTable, const PLDHashEntryHdr* aEntry,
+                           const void* aKey);
 
-  static bool s_InitEntry(PLDHashTable     *table,
-                            PLDHashEntryHdr  *entry,
-                            const void       *key);
+  static void s_CopyEntry(PLDHashTable* aTable, const PLDHashEntryHdr* aFrom,
+                          PLDHashEntryHdr* aTo);
+
+  static void s_ClearEntry(PLDHashTable* aTable, PLDHashEntryHdr* aEntry);
+
+  static bool s_InitEntry(PLDHashTable* aTable, PLDHashEntryHdr* aEntry,
+                          const void* aKey);
 
   
 
@@ -337,11 +316,10 @@ protected:
     Enumerator userFunc;
     void* userArg;
   };
-  
-  static PLDHashOperator s_EnumStub(PLDHashTable    *table,
-                                    PLDHashEntryHdr *entry,
-                                    uint32_t         number,
-                                    void            *arg);
+
+  static PLDHashOperator s_EnumStub(PLDHashTable* aTable,
+                                    PLDHashEntryHdr* aEntry,
+                                    uint32_t aNumber, void* aArg);
 
   
 
@@ -355,14 +333,13 @@ protected:
     SizeOfEntryExcludingThisFun userFunc;
     void* userArg;
   };
-  
-  static size_t s_SizeOfStub(PLDHashEntryHdr *entry,
-                             mozilla::MallocSizeOf mallocSizeOf,
-                             void *arg);
+
+  static size_t s_SizeOfStub(PLDHashEntryHdr* aEntry,
+                             mozilla::MallocSizeOf aMallocSizeOf, void* aArg);
 
 private:
   
-  nsTHashtable(nsTHashtable<EntryType>& toCopy) MOZ_DELETE;
+  nsTHashtable(nsTHashtable<EntryType>& aToCopy) MOZ_DELETE;
 
   
 
@@ -371,7 +348,7 @@ private:
   void Init(uint32_t aInitSize);
 
   
-  nsTHashtable<EntryType>& operator= (nsTHashtable<EntryType>& toEqual) MOZ_DELETE;
+  nsTHashtable<EntryType>& operator=(nsTHashtable<EntryType>& aToEqual) MOZ_DELETE;
 };
 
 
@@ -379,8 +356,7 @@ private:
 
 
 template<class EntryType>
-nsTHashtable<EntryType>::nsTHashtable(
-  nsTHashtable<EntryType>&& aOther)
+nsTHashtable<EntryType>::nsTHashtable(nsTHashtable<EntryType>&& aOther)
   : mTable(mozilla::Move(aOther.mTable))
 {
   
@@ -395,8 +371,9 @@ nsTHashtable<EntryType>::nsTHashtable(
 template<class EntryType>
 nsTHashtable<EntryType>::~nsTHashtable()
 {
-  if (mTable.entrySize)
+  if (mTable.entrySize) {
     PL_DHashTableFinish(&mTable);
+  }
 }
 
 template<class EntryType>
@@ -422,78 +399,77 @@ nsTHashtable<EntryType>::Init(uint32_t aInitSize)
 
 template<class EntryType>
 PLDHashNumber
-nsTHashtable<EntryType>::s_HashKey(PLDHashTable  *table,
-                                   const void    *key)
+nsTHashtable<EntryType>::s_HashKey(PLDHashTable* aTable, const void* aKey)
 {
-  return EntryType::HashKey(reinterpret_cast<const KeyTypePointer>(key));
+  return EntryType::HashKey(reinterpret_cast<const KeyTypePointer>(aKey));
 }
 
 template<class EntryType>
 bool
-nsTHashtable<EntryType>::s_MatchEntry(PLDHashTable          *table,
-                                      const PLDHashEntryHdr *entry,
-                                      const void            *key)
+nsTHashtable<EntryType>::s_MatchEntry(PLDHashTable* aTable,
+                                      const PLDHashEntryHdr* aEntry,
+                                      const void* aKey)
 {
-  return ((const EntryType*) entry)->KeyEquals(
-    reinterpret_cast<const KeyTypePointer>(key));
+  return ((const EntryType*)aEntry)->KeyEquals(
+    reinterpret_cast<const KeyTypePointer>(aKey));
 }
 
 template<class EntryType>
 void
-nsTHashtable<EntryType>::s_CopyEntry(PLDHashTable          *table,
-                                     const PLDHashEntryHdr *from,
-                                     PLDHashEntryHdr       *to)
+nsTHashtable<EntryType>::s_CopyEntry(PLDHashTable* aTable,
+                                     const PLDHashEntryHdr* aFrom,
+                                     PLDHashEntryHdr* aTo)
 {
   EntryType* fromEntry =
-    const_cast<EntryType*>(reinterpret_cast<const EntryType*>(from));
+    const_cast<EntryType*>(reinterpret_cast<const EntryType*>(aFrom));
 
-  new(to) EntryType(mozilla::Move(*fromEntry));
+  new (aTo) EntryType(mozilla::Move(*fromEntry));
 
   fromEntry->~EntryType();
 }
 
 template<class EntryType>
 void
-nsTHashtable<EntryType>::s_ClearEntry(PLDHashTable    *table,
-                                      PLDHashEntryHdr *entry)
+nsTHashtable<EntryType>::s_ClearEntry(PLDHashTable* aTable,
+                                      PLDHashEntryHdr* aEntry)
 {
-  reinterpret_cast<EntryType*>(entry)->~EntryType();
+  reinterpret_cast<EntryType*>(aEntry)->~EntryType();
 }
 
 template<class EntryType>
 bool
-nsTHashtable<EntryType>::s_InitEntry(PLDHashTable    *table,
-                                     PLDHashEntryHdr *entry,
-                                     const void      *key)
+nsTHashtable<EntryType>::s_InitEntry(PLDHashTable* aTable,
+                                     PLDHashEntryHdr* aEntry,
+                                     const void* aKey)
 {
-  new(entry) EntryType(reinterpret_cast<KeyTypePointer>(key));
+  new (aEntry) EntryType(reinterpret_cast<KeyTypePointer>(aKey));
   return true;
 }
 
 template<class EntryType>
 PLDHashOperator
-nsTHashtable<EntryType>::s_EnumStub(PLDHashTable    *table,
-                                    PLDHashEntryHdr *entry,
-                                    uint32_t         number,
-                                    void            *arg)
+nsTHashtable<EntryType>::s_EnumStub(PLDHashTable* aTable,
+                                    PLDHashEntryHdr* aEntry,
+                                    uint32_t aNumber,
+                                    void* aArg)
 {
   
-  return (* reinterpret_cast<s_EnumArgs*>(arg)->userFunc)(
-    reinterpret_cast<EntryType*>(entry),
-    reinterpret_cast<s_EnumArgs*>(arg)->userArg);
+  return (*reinterpret_cast<s_EnumArgs*>(aArg)->userFunc)(
+    reinterpret_cast<EntryType*>(aEntry),
+    reinterpret_cast<s_EnumArgs*>(aArg)->userArg);
 }
 
 template<class EntryType>
 size_t
-nsTHashtable<EntryType>::s_SizeOfStub(PLDHashEntryHdr *entry,
-                                      mozilla::MallocSizeOf mallocSizeOf,
-                                      void *arg)
+nsTHashtable<EntryType>::s_SizeOfStub(PLDHashEntryHdr* aEntry,
+                                      mozilla::MallocSizeOf aMallocSizeOf,
+                                      void* aArg)
 {
   
-  return (* reinterpret_cast<s_SizeOfArgs*>(arg)->userFunc)(
-    reinterpret_cast<EntryType*>(entry),
-    mallocSizeOf,
-    reinterpret_cast<s_SizeOfArgs*>(arg)->userArg);
+  return (*reinterpret_cast<s_SizeOfArgs*>(aArg)->userFunc)(
+    reinterpret_cast<EntryType*>(aEntry),
+    aMallocSizeOf,
+    reinterpret_cast<s_SizeOfArgs*>(aArg)->userArg);
 }
 
 class nsCycleCollectionTraversalCallback;
@@ -503,9 +479,9 @@ struct MOZ_STACK_CLASS nsTHashtableCCTraversalData
   nsTHashtableCCTraversalData(nsCycleCollectionTraversalCallback& aCallback,
                               const char* aName,
                               uint32_t aFlags)
-  : mCallback(aCallback),
-    mName(aName),
-    mFlags(aFlags)
+    : mCallback(aCallback)
+    , mName(aName)
+    , mFlags(aFlags)
   {
   }
 
@@ -514,10 +490,9 @@ struct MOZ_STACK_CLASS nsTHashtableCCTraversalData
   uint32_t mFlags;
 };
 
-template <class EntryType>
+template<class EntryType>
 PLDHashOperator
-ImplCycleCollectionTraverse_EnumFunc(EntryType *aEntry,
-                                     void* aUserData)
+ImplCycleCollectionTraverse_EnumFunc(EntryType* aEntry, void* aUserData)
 {
   auto userData = static_cast<nsTHashtableCCTraversalData*>(aUserData);
 
@@ -528,14 +503,14 @@ ImplCycleCollectionTraverse_EnumFunc(EntryType *aEntry,
   return PL_DHASH_NEXT;
 }
 
-template <class EntryType>
+template<class EntryType>
 inline void
 ImplCycleCollectionUnlink(nsTHashtable<EntryType>& aField)
 {
   aField.Clear();
 }
 
-template <class EntryType>
+template<class EntryType>
 inline void
 ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback& aCallback,
                             nsTHashtable<EntryType>& aField,
