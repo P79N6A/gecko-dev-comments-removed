@@ -92,6 +92,8 @@ let gSubDialog = {
     
     this._box.removeAttribute("width");
     this._box.removeAttribute("height");
+    this._box.style.removeProperty("min-height");
+    this._box.style.removeProperty("min-width");
 
     setTimeout(() => {
       
@@ -146,10 +148,17 @@ let gSubDialog = {
 
     
     
-    let paddingBottom = parseFloat(this._frame.contentWindow.getComputedStyle(docEl).paddingBottom);
+    let frameVerticalPadding = 2 * parseFloat(this._frame.contentWindow.getComputedStyle(docEl).paddingTop);
+    let frameHorizontalPadding = 2 * parseFloat(this._frame.contentWindow.getComputedStyle(docEl).paddingLeft);
+    let frameWidth = parseFloat(docEl.style.width) || docEl.scrollWidth;
+    let frameHeight = parseFloat(docEl.style.height) || (docEl.scrollHeight + frameVerticalPadding);
+    let boxVerticalBorder = 2 * parseFloat(getComputedStyle(this._box).borderTopWidth);
+    let boxHorizontalBorder = 2 * parseFloat(getComputedStyle(this._box).borderLeftWidth);
 
-    this._frame.style.width = docEl.style.width || docEl.scrollWidth + "px";
-    this._frame.style.height = docEl.style.height || (docEl.scrollHeight + paddingBottom) + "px";
+    this._frame.style.width = frameWidth + "px";
+    this._frame.style.height = frameHeight + "px";
+    this._box.style.minHeight = (boxVerticalBorder + this._box.clientHeight) + "px";
+    this._box.style.minWidth = (boxHorizontalBorder + frameHorizontalPadding + this._box.clientWidth) + "px";
 
     this._overlay.style.visibility = "visible";
     this._frame.focus();
