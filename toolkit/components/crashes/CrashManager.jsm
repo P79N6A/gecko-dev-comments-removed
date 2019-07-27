@@ -362,10 +362,11 @@ this.CrashManager.prototype = Object.freeze({
 
 
 
-  addCrash: function (processType, crashType, id, date) {
+
+  addCrash: function (processType, crashType, id, date, metadata) {
     return Task.spawn(function* () {
       let store = yield this._getStore();
-      if (store.addCrash(processType, crashType, id, date)) {
+      if (store.addCrash(processType, crashType, id, date, metadata)) {
         yield store.save();
       }
     }.bind(this));
@@ -1055,7 +1056,9 @@ CrashStore.prototype = Object.freeze({
 
 
 
-  _ensureCrashRecord: function (processType, crashType, id, date) {
+
+
+  _ensureCrashRecord: function (processType, crashType, id, date, metadata) {
     if (!id) {
       
       
@@ -1083,6 +1086,7 @@ CrashStore.prototype = Object.freeze({
         crashDate: date,
         submissions: new Map(),
         classifications: [],
+        metadata: metadata,
       });
     }
 
@@ -1103,8 +1107,9 @@ CrashStore.prototype = Object.freeze({
 
 
 
-  addCrash: function (processType, crashType, id, date) {
-    return !!this._ensureCrashRecord(processType, crashType, id, date);
+
+  addCrash: function (processType, crashType, id, date, metadata) {
+    return !!this._ensureCrashRecord(processType, crashType, id, date, metadata);
   },
 
   
@@ -1264,6 +1269,10 @@ CrashRecord.prototype = Object.freeze({
 
   get classifications() {
     return this._o.classifications;
+  },
+
+  get metadata() {
+    return this._o.metadata;
   },
 });
 
