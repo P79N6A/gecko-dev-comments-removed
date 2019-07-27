@@ -18,8 +18,12 @@ add_task(function*() {
 
   let filterTooltip = view.tooltips.filterEditor;
   let onShow = filterTooltip.tooltip.once("shown");
+  let onRuleViewChanged = view.once("ruleview-changed");
   swatch.click();
   yield onShow;
+  
+  
+  yield onRuleViewChanged;
 
   ok(true, "The shown event was emitted after clicking on swatch");
   ok(!inplaceEditor(swatch.parentNode),
