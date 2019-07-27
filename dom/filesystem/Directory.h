@@ -79,6 +79,14 @@ public:
 
   
 
+  void
+  GetPath(nsAString& aRetval) const;
+
+  already_AddRefed<Promise>
+  GetFilesAndDirectories();
+
+  
+
   FileSystemBase*
   GetFileSystem() const;
 private:
