@@ -5,6 +5,8 @@
 
 
 
+#include "mozilla/ArrayUtils.h"
+
 #include "jit/IonAnalysis.h"
 #include "jit/MIRGenerator.h"
 #include "jit/MIRGraph.h"
@@ -209,3 +211,67 @@ BEGIN_TEST(testJitRangeAnalysis_MathSignBeta)
     return true;
 }
 END_TEST(testJitRangeAnalysis_MathSignBeta)
+
+BEGIN_TEST(testJitRangeAnalysis_StrictCompareBeta)
+{
+    MinimalFunc func;
+
+    MBasicBlock *entry = func.createEntryBlock();
+    MBasicBlock *thenBlock = func.createBlock(entry);
+    MBasicBlock *elseBlock = func.createBlock(entry);
+
+    
+    MParameter *p = func.createParameter();
+    entry->add(p);
+    MConstant *c0 = MConstant::New(func.alloc, DoubleValue(0.0));
+    entry->add(c0);
+    MCompare *cmp = MCompare::New(func.alloc, p, c0, JSOP_STRICTEQ);
+    entry->add(cmp);
+    entry->end(MTest::New(func.alloc, cmp, thenBlock, elseBlock));
+
+    
+    
+    
+    MConstant *cm0 = MConstant::New(func.alloc, DoubleValue(-0.0));
+    thenBlock->add(cm0);
+    MAdd *thenAdd = MAdd::NewAsmJS(func.alloc, p, cm0, MIRType_Double);
+    thenBlock->add(thenAdd);
+    MReturn *thenRet = MReturn::New(func.alloc, thenAdd);
+    thenBlock->end(thenRet);
+
+    
+    
+    
+    
+    MReturn *elseRet = MReturn::New(func.alloc, c0);
+    elseBlock->end(elseRet);
+
+    
+    
+
+    
+    
+    MCompare::CompareType nonNumerics[] = {
+        MCompare::Compare_Unknown,
+        MCompare::Compare_Object,
+        MCompare::Compare_Value,
+        MCompare::Compare_String
+    };
+    for (size_t i = 0; i < mozilla::ArrayLength(nonNumerics); ++i) {
+        cmp->setCompareType(nonNumerics[i]);
+        if (!func.runRangeAnalysis())
+            return false;
+        CHECK(!thenAdd->range() || thenAdd->range()->isUnknown());
+        ClearDominatorTree(func.graph);
+    }
+
+    
+    cmp->setCompareType(MCompare::Compare_Double);
+    if (!func.runRangeAnalysis())
+        return false;
+    CHECK(EquivalentRanges(thenAdd->range(),
+                           Range::NewDoubleRange(func.alloc, 0.0, 0.0)));
+
+    return true;
+}
+END_TEST(testJitRangeAnalysis_StrictCompareBeta)

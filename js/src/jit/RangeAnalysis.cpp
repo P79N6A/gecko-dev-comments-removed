@@ -247,9 +247,19 @@ RangeAnalysis::addBetaNodes()
             if (bound == 0)
                 comp.refineToExcludeNegativeZero();
             break;
+          case JSOP_STRICTEQ:
+            
+            if (!compare->isNumericComparison())
+                continue;
+            
           case JSOP_EQ:
             comp.setDouble(bound, bound);
             break;
+          case JSOP_STRICTNE:
+            
+            if (!compare->isNumericComparison())
+                continue;
+            
           case JSOP_NE:
             
             if (bound == 0) {
