@@ -820,6 +820,73 @@ nsCORSListenerProxy::OnRedirectVerifyCallback(nsresult result)
   return NS_OK;
 }
 
+
+
+
+
+
+
+
+
+
+bool
+CheckUpgradeInsecureRequestsPreventsCORS(nsIPrincipal* aRequestingPrincipal,
+                                         nsIChannel* aChannel)
+{
+  nsCOMPtr<nsIURI> channelURI;
+  nsresult rv = NS_GetFinalChannelURI(aChannel, getter_AddRefs(channelURI));
+  NS_ENSURE_SUCCESS(rv, false);
+  bool isHttpScheme = false;
+  rv = channelURI->SchemeIs("http", &isHttpScheme);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  
+  if (!isHttpScheme) {
+    return false;
+  }
+
+  nsCOMPtr<nsIURI> principalURI;
+  rv = aRequestingPrincipal->GetURI(getter_AddRefs(principalURI));
+  NS_ENSURE_SUCCESS(rv, false);
+
+  
+  if (!principalURI) {
+    return false;
+  }
+
+  nsCOMPtr<nsIURI>originalURI;
+  rv = aChannel->GetOriginalURI(getter_AddRefs(originalURI));
+  NS_ENSURE_SUCCESS(rv, false);
+
+  nsAutoCString principalHost, channelHost, origChannelHost;
+
+  
+  if (NS_FAILED(principalURI->GetAsciiHost(principalHost)) ||
+      NS_FAILED(channelURI->GetAsciiHost(channelHost)) ||
+      NS_FAILED(originalURI->GetAsciiHost(origChannelHost))) {
+    return false;
+  }
+
+  
+  if (!principalHost.EqualsIgnoreCase(channelHost.get())) {
+    return false;
+  }
+
+  
+  if (!channelHost.EqualsIgnoreCase(origChannelHost.get())) {
+    return false;
+  }
+
+  nsCOMPtr<nsILoadInfo> loadInfo;
+  rv = aChannel->GetLoadInfo(getter_AddRefs(loadInfo));
+  NS_ENSURE_SUCCESS(rv, false);
+
+  
+  
+  return loadInfo->GetUpgradeInsecureRequests();
+}
+
+
 nsresult
 nsCORSListenerProxy::UpdateChannel(nsIChannel* aChannel,
                                    DataURIHandling aAllowDataURI)
@@ -874,6 +941,17 @@ nsCORSListenerProxy::UpdateChannel(nsIChannel* aChannel,
       (originalURI == uri ||
        NS_SUCCEEDED(mRequestingPrincipal->CheckMayLoad(originalURI,
                                                        false, false)))) {
+    return NS_OK;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  if (CheckUpgradeInsecureRequestsPreventsCORS(mRequestingPrincipal, aChannel)) {
     return NS_OK;
   }
 

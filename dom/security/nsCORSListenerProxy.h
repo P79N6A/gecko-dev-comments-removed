@@ -83,6 +83,10 @@ private:
   nsCOMPtr<nsINetworkInterceptController> mInterceptController;
   bool mWithCredentials;
   bool mRequestApproved;
+  
+  
+  
+  
   bool mHasBeenCrossSite;
   bool mIsPreflight;
 #ifdef DEBUG
