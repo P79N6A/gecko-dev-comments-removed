@@ -268,6 +268,20 @@ public:
     mNewChildLayersIndex(-1),
     mAllDrawingAbove(false)
   {}
+
+#ifdef MOZ_DUMP_PAINTING
+  
+
+
+  nsAutoCString mLog;
+
+  #define FLB_LOG_PAINTED_LAYER_DECISION(tld, ...) \
+          tld->mLog.AppendPrintf("\t\t\t\t"); \
+          tld->mLog.AppendPrintf(__VA_ARGS__);
+#else
+  #define FLB_LOG_PAINTED_LAYER_DECISION(...)
+#endif
+
   
 
 
@@ -293,13 +307,13 @@ public:
 
 
 
-  void AccumulateEventRegions(const nsRegion& aHitRegion,
-                              const nsRegion& aMaybeHitRegion,
-                              const nsRegion& aDispatchToContentHitRegion)
+  void AccumulateEventRegions(nsDisplayLayerEventRegions* aEventRegions)
   {
-    mHitRegion.Or(mHitRegion, aHitRegion);
-    mMaybeHitRegion.Or(mMaybeHitRegion, aMaybeHitRegion);
-    mDispatchToContentHitRegion.Or(mDispatchToContentHitRegion, aDispatchToContentHitRegion);
+    FLB_LOG_PAINTED_LAYER_DECISION(this, "Accumulating event regions %p against tld=%p\n", aEventRegions, this);
+
+    mHitRegion.Or(mHitRegion, aEventRegions->HitRegion());
+    mMaybeHitRegion.Or(mMaybeHitRegion, aEventRegions->MaybeHitRegion());
+    mDispatchToContentHitRegion.Or(mDispatchToContentHitRegion, aEventRegions->DispatchToContentHitRegion());
   }
 
   
@@ -373,20 +387,6 @@ public:
   {
     return mFixedPosFrameForLayerData != nullptr;
   }
-
-#ifdef MOZ_DUMP_PAINTING
-
-  
-
-
-  nsAutoCString mLog;
-
-  #define FLB_LOG_PAINTED_LAYER_DECISION(tld, ...) \
-          tld->mLog.AppendPrintf("\t\t\t\t"); \
-          tld->mLog.AppendPrintf(__VA_ARGS__);
-#else
-  #define FLB_LOG_PAINTED_LAYER_DECISION(...)
-#endif
 
   
 
@@ -3055,9 +3055,7 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList)
       if (itemType == nsDisplayItem::TYPE_LAYER_EVENT_REGIONS) {
         nsDisplayLayerEventRegions* eventRegions =
             static_cast<nsDisplayLayerEventRegions*>(item);
-        paintedLayerData->AccumulateEventRegions(eventRegions->HitRegion(),
-                                                eventRegions->MaybeHitRegion(),
-                                                eventRegions->DispatchToContentHitRegion());
+        paintedLayerData->AccumulateEventRegions(eventRegions);
       } else {
         
         
