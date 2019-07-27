@@ -504,7 +504,8 @@ public:
   {
     MOZ_ASSERT(mCallback);
     mCallback->UpdateFailed(aError);
-    FailCommon(NS_ERROR_DOM_JS_EXCEPTION);
+    mCallback = nullptr;
+    Done(NS_ERROR_DOM_JS_EXCEPTION);
   }
 
   
@@ -633,39 +634,16 @@ private:
     mCallback = nullptr;
   }
 
-  void
-  FailCommon(nsresult aRv)
-  {
-    mCallback = nullptr;
-    MaybeRemoveRegistration();
-    
-    mRegistration = nullptr;
-    Done(aRv);
-  }
-
   
   
   
   void
-  Fail(nsresult aRv)
+  Fail(nsresult rv)
   {
     MOZ_ASSERT(mCallback);
-    mCallback->UpdateFailed(aRv);
-    FailCommon(aRv);
-  }
-
-  void
-  MaybeRemoveRegistration()
-  {
-    MOZ_ASSERT(mRegistration);
-    nsRefPtr<ServiceWorkerInfo> newest = mRegistration->Newest();
-    if (!newest) {
-      nsRefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
-      nsRefPtr<ServiceWorkerManager::ServiceWorkerDomainInfo> domainInfo =
-        swm->GetDomainInfo(mRegistration->mScope);
-      MOZ_ASSERT(domainInfo);
-      domainInfo->RemoveRegistration(mRegistration);
-    }
+    mCallback->UpdateFailed(rv);
+    mCallback = nullptr;
+    Done(rv);
   }
 
   void
@@ -688,7 +666,6 @@ private:
       mRegistration->mInstallingWorker = nullptr;
       swm->InvalidateServiceWorkerRegistrationWorker(mRegistration,
                                                      WhichServiceWorker::INSTALLING_WORKER);
-      MaybeRemoveRegistration();
       return Done(NS_ERROR_DOM_ABORT_ERR);
     }
 
