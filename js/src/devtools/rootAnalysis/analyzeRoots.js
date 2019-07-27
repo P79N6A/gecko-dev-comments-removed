@@ -1,4 +1,4 @@
-/* -*- indent-tabs-mode: nil; js-indent-level: 4 -*- */
+
 
 "use strict";
 
@@ -85,39 +85,55 @@ function expressionUsesVariable(exp, variable)
     return false;
 }
 
-function edgeUsesVariable(edge, variable)
+
+
+
+
+
+
+
+
+
+
+function edgeUsesVariable(edge, variable, body)
 {
     if (ignoreEdgeUse(edge, variable))
-        return false;
+        return 0;
+
+    if (variable.Kind == "Return" && body.Index[1] == edge.Index[1] && body.BlockId.Kind == "Function")
+        return edge.Index[1]; 
+
+    var src = edge.Index[0];
+
     switch (edge.Kind) {
 
     case "Assign":
         if (expressionUsesVariable(edge.Exp[0], variable))
-            return true;
-        return expressionUsesVariable(edge.Exp[1], variable);
+            return src;
+        return expressionUsesVariable(edge.Exp[1], variable) ? src : 0;
 
     case "Assume":
-        return expressionUsesVariable(edge.Exp[0], variable);
+        return expressionUsesVariable(edge.Exp[0], variable) ? src : 0;
 
     case "Call":
         if (expressionUsesVariable(edge.Exp[0], variable))
-            return true;
+            return src;
         if (1 in edge.Exp && expressionUsesVariable(edge.Exp[1], variable))
-            return true;
+            return src;
         if ("PEdgeCallInstance" in edge) {
             if (expressionUsesVariable(edge.PEdgeCallInstance.Exp, variable))
-                return true;
+                return src;
         }
         if ("PEdgeCallArguments" in edge) {
             for (var exp of edge.PEdgeCallArguments.Exp) {
                 if (expressionUsesVariable(exp, variable))
-                    return true;
+                    return src;
             }
         }
-        return false;
+        return 0;
 
     case "Loop":
-        return false;
+        return 0;
 
     default:
         assert(false);
@@ -155,7 +171,7 @@ function edgeTakesVariableAddress(edge, variable)
 
 function edgeKillsVariable(edge, variable)
 {
-    // Direct assignments kill their lhs.
+    
     if (edge.Kind == "Assign") {
         var lhs = edge.Exp[0];
         if (lhs.Kind == "Var" && sameVariable(lhs.Variable, variable))
@@ -165,19 +181,19 @@ function edgeKillsVariable(edge, variable)
     if (edge.Kind != "Call")
         return false;
 
-    // Assignments of call results kill their lhs.
+    
     if (1 in edge.Exp) {
         var lhs = edge.Exp[1];
         if (lhs.Kind == "Var" && sameVariable(lhs.Variable, variable))
             return true;
     }
 
-    // Constructor calls kill their 'this' value.
+    
     if ("PEdgeCallInstance" in edge) {
         do {
             var instance = edge.PEdgeCallInstance.Exp;
 
-            // Kludge around incorrect dereference on some constructor calls.
+            
             if (instance.Kind == "Drf")
                 instance = instance.Exp[0];
 
@@ -191,7 +207,7 @@ function edgeKillsVariable(edge, variable)
             assert(callee.Variable.Kind == "Func");
             var calleeName = readable(callee.Variable.Name[0]);
 
-            // Constructor calls include the text 'Name::Name(' or 'Name<...>::Name('.
+            
             var openParen = calleeName.indexOf('(');
             if (openParen < 0)
                 break;
@@ -244,9 +260,9 @@ function edgeCanGC(edge)
 
 function variableUseFollowsGC(suppressed, variable, worklist)
 {
-    // Scan through all edges following an unrooted variable use, using an
-    // explicit worklist. A worklist contains a following edge together with a
-    // description of where one of its predecessors GC'd (if any).
+    
+    
+    
 
     while (worklist.length) {
         var entry = worklist.pop();
@@ -265,7 +281,7 @@ function variableUseFollowsGC(suppressed, variable, worklist)
 
         if (ppoint == body.Index[0]) {
             if (body.BlockId.Kind == "Loop") {
-                // propagate to parents that enter the loop body.
+                
                 if ("BlockPPoint" in body) {
                     for (var parent of body.BlockPPoint) {
                         var found = false;
@@ -281,6 +297,8 @@ function variableUseFollowsGC(suppressed, variable, worklist)
                     }
                 }
             } else if (variable.Kind == "Arg" && entry.gcInfo) {
+                
+                
                 return {gcInfo:entry.gcInfo, why:entry};
             }
         }
@@ -307,7 +325,7 @@ function variableUseFollowsGC(suppressed, variable, worklist)
                     gcInfo = {name:gcName, body:body, ppoint:source};
             }
 
-            if (edgeUsesVariable(edge, variable)) {
+            if (edgeUsesVariable(edge, variable, body)) {
                 if (gcInfo)
                     return {gcInfo:gcInfo, why:entry};
                 if (!body.minimumUse || source < body.minimumUse)
@@ -315,8 +333,8 @@ function variableUseFollowsGC(suppressed, variable, worklist)
             }
 
             if (edge.Kind == "Loop") {
-                // propagate to exit points of the loop body, in addition to the
-                // predecessor of the loop edge itself.
+                
+                
                 var found = false;
                 for (var xbody of functionBodies) {
                     if (sameBlockId(xbody.BlockId, edge.BlockId)) {
@@ -338,8 +356,8 @@ function variableUseFollowsGC(suppressed, variable, worklist)
 
 function variableLiveAcrossGC(suppressed, variable)
 {
-    // A variable is live across a GC if (1) it is used by an edge, and (2) it
-    // is used after a GC in a successor edge.
+    
+    
 
     for (var body of functionBodies) {
         body.seen = null;
@@ -350,8 +368,10 @@ function variableLiveAcrossGC(suppressed, variable)
         if (!("PEdge" in body))
             continue;
         for (var edge of body.PEdge) {
-            if (edgeUsesVariable(edge, variable) && !edgeKillsVariable(edge, variable)) {
-                var worklist = [{body:body, ppoint:edge.Index[0], gcInfo:null, why:null}];
+            var usePoint = edgeUsesVariable(edge, variable, body);
+            if (usePoint && !edgeKillsVariable(edge, variable)) {
+                
+                var worklist = [{body:body, ppoint:usePoint, gcInfo:null, why:null}];
                 var call = variableUseFollowsGC(suppressed, variable, worklist);
                 if (call)
                     return call;
@@ -361,12 +381,12 @@ function variableLiveAcrossGC(suppressed, variable)
     return null;
 }
 
-// An unrooted variable has its address stored in another variable via
-// assignment, or passed into a function that can GC. If the address is
-// assigned into some other variable, we can't track it to see if it is held
-// live across a GC. If it is passed into a function that can GC, then it's
-// sort of like a Handle to an unrooted location, and the callee could GC
-// before overwriting it or rooting it.
+
+
+
+
+
+
 function unsafeVariableAddressTaken(suppressed, variable)
 {
     for (var body of functionBodies) {
@@ -390,7 +410,7 @@ function computePrintedLines(functionName)
     for (var body of functionBodies)
         body.lines = [];
 
-    // Distribute lines of output to the block they originate from.
+    
     var currentBody = null;
     for (var i = 0; i < lines.length; i++) {
         var line = lines[i];
@@ -445,17 +465,17 @@ function printEntryTrace(functionName, entry)
 
         var edgeText = null;
         if (entry.why && entry.why.body == entry.body) {
-            // If the next point in the trace is in the same block, look for an edge between them.
+            
             var next = entry.why.ppoint;
             for (var line of entry.body.lines) {
                 if (match = /\((\d+),(\d+),/.exec(line)) {
                     if (match[1] == ppoint && match[2] == next)
-                        edgeText = line; // May be multiple
+                        edgeText = line; 
                 }
             }
             assert(edgeText);
         } else {
-            // Look for any outgoing edge from the chosen point.
+            
             for (var line of entry.body.lines) {
                 if (match = /\((\d+),/.exec(line)) {
                     if (match[1] == ppoint) {
@@ -499,16 +519,17 @@ function processBodies(functionName)
         return;
     var suppressed = (mangled(functionName) in suppressedFunctions);
     for (var variable of functionBodies[0].DefineVariable) {
-        if (variable.Variable.Kind == "Return")
-            continue;
         var name;
         if (variable.Variable.Kind == "This")
             name = "this";
+        else if (variable.Variable.Kind == "Return")
+            name = "<returnvalue>";
         else
             name = variable.Variable.Name[0];
+
         if (isRootedType(variable.Type)) {
             if (!variableLiveAcrossGC(suppressed, variable.Variable)) {
-                // The earliest use of the variable should be its constructor.
+                
                 var lineText;
                 for (var body of functionBodies) {
                     if (body.minimumUse) {
