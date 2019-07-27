@@ -78,13 +78,24 @@ struct CycleCollectionNoteChildImpl<T, false>
   }
 };
 
+
+
+
 template<typename T>
 inline void
 CycleCollectionNoteChild(nsCycleCollectionTraversalCallback& aCallback,
-                         T* aChild, const char* aName, uint32_t aFlags = 0)
+                         T* aChild, const char* aName, uint32_t aFlags)
 {
   CycleCollectionNoteEdgeName(aCallback, aName, aFlags);
   CycleCollectionNoteChildImpl<T>::Run(aCallback, aChild);
+}
+
+template<typename T>
+inline void
+CycleCollectionNoteChild(nsCycleCollectionTraversalCallback& aCallback,
+                         T* aChild, const char* aName)
+{
+  CycleCollectionNoteChild(aCallback, aChild, aName, 0);
 }
 
 #endif 
