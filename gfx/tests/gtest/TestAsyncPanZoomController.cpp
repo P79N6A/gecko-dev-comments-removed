@@ -1230,7 +1230,7 @@ protected:
     
     
     int timeDelta = aSlow ? 2000 : 10;
-    int tapCallsExpected = aSlow ? 1 : 0;
+    int tapCallsExpected = aSlow ? 2 : 1;
 
     
     ParentLayerPoint pointOut;
@@ -1241,6 +1241,12 @@ protected:
     
     EXPECT_CALL(*mcc, HandleSingleTap(_, 0, apzc->GetGuid())).Times(tapCallsExpected);
     Tap(apzc, 10, 10, time, 0);
+    while (mcc->RunThroughDelayedTasks());
+
+    
+    
+    time += 500;
+    Tap(apzc, 100, 100, time, 0);
     while (mcc->RunThroughDelayedTasks());
 
     
