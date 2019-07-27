@@ -96,6 +96,7 @@ public:
   virtual void Resume() = 0;
   
   virtual void Revive() = 0;
+  void Shutdown();
   
 
 
@@ -464,12 +465,7 @@ public:
   };
 
 
-  AsyncCubebTask(AudioCallbackDriver* aDriver, AsyncCubebOperation aOperation)
-    : mDriver(aDriver),
-      mOperation(aOperation)
-  {
-    MOZ_ASSERT(mDriver->mAudioStream || aOperation == INIT, "No audio stream !");
-  }
+  AsyncCubebTask(AudioCallbackDriver* aDriver, AsyncCubebOperation aOperation);
 
   nsresult Dispatch()
   {
@@ -483,13 +479,14 @@ public:
   }
 
 protected:
-  virtual ~AsyncCubebTask() {};
+  virtual ~AsyncCubebTask();
 
 private:
   NS_IMETHOD Run() MOZ_OVERRIDE MOZ_FINAL;
   nsCOMPtr<nsIThread> mThread;
   nsRefPtr<AudioCallbackDriver> mDriver;
   AsyncCubebOperation mOperation;
+  nsRefPtr<MediaStreamGraphImpl> mShutdownGrip;
 };
 
 }

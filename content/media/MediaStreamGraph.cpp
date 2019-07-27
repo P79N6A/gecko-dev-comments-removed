@@ -542,8 +542,11 @@ MediaStreamGraphImpl::UpdateStreamOrder()
       started = CurrentDriver()->AsAudioCallbackDriver()->IsStarted();
     }
     if (started) {
-      SystemClockDriver* driver = new SystemClockDriver(this);
-      CurrentDriver()->SwitchAtNextIteration(driver);
+      MonitorAutoLock mon(mMonitor);
+      if (mLifecycleState == LIFECYCLE_RUNNING) {
+        SystemClockDriver* driver = new SystemClockDriver(this);
+        CurrentDriver()->SwitchAtNextIteration(driver);
+      }
     }
   }
 
@@ -921,9 +924,12 @@ MediaStreamGraphImpl::CreateOrDestroyAudioStreams(GraphTime aAudioOutputStartTim
 
         if (!CurrentDriver()->AsAudioCallbackDriver() &&
             !CurrentDriver()->Switching()) {
-          AudioCallbackDriver* driver = new AudioCallbackDriver(this);
-          mMixer.AddCallback(driver);
-          CurrentDriver()->SwitchAtNextIteration(driver);
+          MonitorAutoLock mon(mMonitor);
+          if (mLifecycleState == LIFECYCLE_RUNNING) {
+            AudioCallbackDriver* driver = new AudioCallbackDriver(this);
+            mMixer.AddCallback(driver);
+            CurrentDriver()->SwitchAtNextIteration(driver);
+          }
         }
       }
     }
@@ -1478,7 +1484,7 @@ public:
       MOZ_ASSERT(!mGraph->CurrentDriver()->AsAudioCallbackDriver()->InCallback());
     }
 
-    mGraph->CurrentDriver()->Stop();
+    mGraph->CurrentDriver()->Shutdown();
 
     
     if (mGraph->IsEmpty()) {
@@ -1605,11 +1611,6 @@ MediaStreamGraphImpl::RunInStableState(bool aSourceIsMSG)
       if (mLifecycleState == LIFECYCLE_WAITING_FOR_MAIN_THREAD_CLEANUP && IsEmpty()) {
         
         
-        LIFECYCLE_LOG("Disconnecting MediaStreamGraph %p", this);
-        if (this == gGraph) {
-          
-          gGraph = nullptr;
-        }
         
         
         
@@ -1617,6 +1618,12 @@ MediaStreamGraphImpl::RunInStableState(bool aSourceIsMSG)
         LIFECYCLE_LOG("Sending MediaStreamGraphShutDownRunnable %p", this);
         nsCOMPtr<nsIRunnable> event = new MediaStreamGraphShutDownRunnable(this );
         NS_DispatchToMainThread(event);
+
+        LIFECYCLE_LOG("Disconnecting MediaStreamGraph %p", this);
+        if (this == gGraph) {
+          
+          gGraph = nullptr;
+        }
       }
     } else {
       if (mLifecycleState <= LIFECYCLE_WAITING_FOR_MAIN_THREAD_CLEANUP) {
