@@ -2,11 +2,13 @@
 
 
 
-'''A generic script to verify all test files are in the 
+'''A generic script to verify all test files are in the
 corresponding .ini file.
 
 Usage: xpccheck.py <directory> [<directory> ...]
 '''
+
+from __future__ import absolute_import
 
 import sys
 import os

@@ -5,6 +5,8 @@
 
 
 
+from __future__ import absolute_import
+
 from mozpack.files import FileFinder
 from mozpack.copier import Jarrer
 from mozpack.errors import errors

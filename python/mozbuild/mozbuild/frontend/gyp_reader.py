@@ -2,12 +2,12 @@
 
 
 
-from __future__ import unicode_literals
+from __future__ import absolute_import, unicode_literals
+
 import gyp
 import sys
 import time
 import os
-from itertools import chain
 import mozpack.path as mozpath
 from mozpack.files import FileFinder
 from .sandbox import alphabetical_sorted
