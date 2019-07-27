@@ -774,14 +774,7 @@ let MozLoopServiceInternal = {
   openChatWindow: function(conversationWindowData) {
     
     let origin = this.loopServerUri;
-    
-    
-    
-    
-    let windowId = ("contact" in conversationWindowData) ?
-                   conversationWindowData.contact._guid :
-                   conversationWindowData.roomToken || conversationWindowData.callId ||
-                   gLastWindowId++;
+    let windowId = gLastWindowId++;
     
     windowId = windowId.toString();
 
