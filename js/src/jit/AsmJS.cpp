@@ -5927,16 +5927,6 @@ static const unsigned FramePushedAfterSave = NonVolatileRegs.gprs().size() * siz
                                              NonVolatileRegs.fpus().size() * sizeof(double);
 #endif
 
-
-
-
-
-#if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
-static const unsigned MaybeRetAddr = sizeof(void*);
-#else
-static const unsigned MaybeRetAddr = 0;
-#endif
-
 static bool
 GenerateEntry(ModuleCompiler &m, const AsmJSModule::ExportedFunction &exportedFunc)
 {
@@ -6232,7 +6222,7 @@ GenerateFFIInterpreterExit(ModuleCompiler &m, const ModuleCompiler::ExitDescript
     
     
     
-    unsigned offsetToArgv = AlignBytes(StackArgBytes(invokeArgTypes) + MaybeRetAddr, StackAlignment);
+    unsigned offsetToArgv = AlignBytes(StackArgBytes(invokeArgTypes), StackAlignment);
     unsigned argvBytes = Max<size_t>(1, exit.sig().args().length()) * sizeof(Value);
     unsigned stackDec = StackDecrementForCall(masm, offsetToArgv + argvBytes);
     masm.reserveStack(stackDec);
@@ -6327,7 +6317,7 @@ GenerateOOLConvert(ModuleCompiler &m, RetType retType, Label *throwLabel)
     
 
     
-    unsigned offsetToArgv = StackArgBytes(callArgTypes) + MaybeRetAddr;
+    unsigned offsetToArgv = StackArgBytes(callArgTypes);
     masm.storeValue(JSReturnOperand, Address(StackPointer, offsetToArgv));
 
     Register scratch = ABIArgGenerator::NonArgReturnVolatileReg0;
@@ -6375,6 +6365,16 @@ GenerateOOLConvert(ModuleCompiler &m, RetType retType, Label *throwLabel)
     }
 }
 
+
+
+
+
+#if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
+static const unsigned MaybeRetAddr = sizeof(void*);
+#else
+static const unsigned MaybeRetAddr = 0;
+#endif
+
 static void
 GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit,
                          unsigned exitIndex, Label *throwLabel)
@@ -6418,8 +6418,7 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
     MIRType typeArray[] = { MIRType_Pointer, MIRType_Pointer }; 
     MIRTypeVector callArgTypes(m.cx());
     callArgTypes.infallibleAppend(typeArray, ArrayLength(typeArray));
-    unsigned oolExtraBytes = sizeof(Value) + MaybeRetAddr;
-    unsigned stackDecForOOLCall = StackDecrementForCall(masm, callArgTypes, oolExtraBytes);
+    unsigned stackDecForOOLCall = StackDecrementForCall(masm, callArgTypes, sizeof(Value));
 
     
     unsigned stackDec = Max(stackDecForIonCall, stackDecForOOLCall);
@@ -6644,7 +6643,7 @@ GenerateStackOverflowExit(ModuleCompiler &m, Label *throwLabel)
     MIRTypeVector argTypes(m.cx());
     argTypes.infallibleAppend(MIRType_Pointer); 
 
-    unsigned stackDec = StackDecrementForCall(masm, argTypes, MaybeRetAddr);
+    unsigned stackDec = StackDecrementForCall(masm, argTypes);
     masm.reserveStack(stackDec);
 
     ABIArgMIRTypeIter i(argTypes);
