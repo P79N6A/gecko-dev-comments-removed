@@ -8,21 +8,11 @@
 
 
 
-
-
-
-function addDiv(t, attrs) {
+function addDiv(t) {
   var div = document.createElement('div');
-  if (attrs) {
-    for (var attrName in attrs) {
-      div.setAttribute(attrName, attrs[attrName]);
-    }
-  }
   document.body.appendChild(div);
   if (t && typeof t.add_cleanup === 'function') {
-    t.add_cleanup(function() {
-      div.parentNode.removeChild(div);
-    });
+    t.add_cleanup(function() { div.remove(); });
   }
   return div;
 }
