@@ -480,19 +480,19 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
     
     
     
-    if (aReflowState.ComputedHeight() != NS_UNCONSTRAINEDSIZE) {
-      kidReflowState.SetComputedHeight(
-         std::max(0, aReflowState.ComputedHeight() - mLegendSpace));
+    if (aReflowState.ComputedBSize() != NS_UNCONSTRAINEDSIZE) {
+      kidReflowState.SetComputedBSize(
+         std::max(0, aReflowState.ComputedBSize() - mLegendSpace));
     }
 
-    if (aReflowState.ComputedMinHeight() > 0) {
-      kidReflowState.ComputedMinHeight() =
-        std::max(0, aReflowState.ComputedMinHeight() - mLegendSpace);
+    if (aReflowState.ComputedMinBSize() > 0) {
+      kidReflowState.ComputedMinBSize() =
+        std::max(0, aReflowState.ComputedMinBSize() - mLegendSpace);
     }
 
-    if (aReflowState.ComputedMaxHeight() != NS_UNCONSTRAINEDSIZE) {
-      kidReflowState.ComputedMaxHeight() =
-        std::max(0, aReflowState.ComputedMaxHeight() - mLegendSpace);
+    if (aReflowState.ComputedMaxBSize() != NS_UNCONSTRAINEDSIZE) {
+      kidReflowState.ComputedMaxBSize() =
+        std::max(0, aReflowState.ComputedMaxBSize() - mLegendSpace);
     }
 
     nsHTMLReflowMetrics kidDesiredSize(kidReflowState,
