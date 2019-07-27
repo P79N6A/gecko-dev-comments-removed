@@ -58,3 +58,6 @@
     
     branch.setBoolPref("browser.search.isUS", true);
     branch.setCharPref("browser.search.countryCode", "US");
+
+    
+    branch.setCharPref("browser.selfsupport.url", "https://%(server)s/selfsupport-dummy/");
