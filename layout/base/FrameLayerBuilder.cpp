@@ -530,7 +530,7 @@ public:
 
 
 
-  void Finish(uint32_t *aTextContentFlags, LayerManagerData* aData, bool& aHasComponentAlphaChildren);
+  void Finish(uint32_t *aTextContentFlags, LayerManagerData* aData);
 
   nsRect GetChildrenBounds() { return mBounds; }
 
@@ -3065,7 +3065,7 @@ ContainerState::CollectOldLayers()
 }
 
 void
-ContainerState::Finish(uint32_t* aTextContentFlags, LayerManagerData* aData, bool& aHasComponentAlphaChildren)
+ContainerState::Finish(uint32_t* aTextContentFlags, LayerManagerData* aData)
 {
   while (!mThebesLayerDataStack.IsEmpty()) {
     PopThebesLayerData();
@@ -3084,16 +3084,6 @@ ContainerState::Finish(uint32_t* aTextContentFlags, LayerManagerData* aData, boo
       textContentFlags |=
         layer->GetContentFlags() & (Layer::CONTENT_COMPONENT_ALPHA |
                                     Layer::CONTENT_COMPONENT_ALPHA_DESCENDANT);
-
-      
-      
-      
-      
-      if ((layer->GetContentFlags() & Layer::CONTENT_COMPONENT_ALPHA) &&
-          (layer->GetType() != Layer::TYPE_CONTAINER ||
-           layer->GetBaseTransform().IsIdentity())) {
-        aHasComponentAlphaChildren = true;
-      }
     }
 
     if (!layer->GetParent()) {
@@ -3433,13 +3423,12 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
     
     
     
-    bool hasComponentAlphaChildren = false;
-    state.Finish(&flags, data, hasComponentAlphaChildren);
+    state.Finish(&flags, data);
     bounds = state.GetChildrenBounds();
     pixBounds = state.ScaleToOutsidePixels(bounds, false);
     appUnitsPerDevPixel = state.GetAppUnitsPerDevPixel();
 
-    if (hasComponentAlphaChildren &&
+    if ((flags & Layer::CONTENT_COMPONENT_ALPHA) &&
         mRetainingManager &&
         !mRetainingManager->AreComponentAlphaLayersEnabled() &&
         containerLayer->HasMultipleChildren() &&
