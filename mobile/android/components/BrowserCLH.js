@@ -120,7 +120,32 @@ BrowserCLH.prototype = {
   },
 
   
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsICommandLineHandler]),
+
+
+
+
+  setResourceSubstitutions: function () {
+    let registry = Cc["@mozilla.org/chrome/chrome-registry;1"].getService(Ci["nsIChromeRegistry"]);
+    
+    let url = registry.convertChromeURL(Services.io.newURI("chrome://browser/content/aboutHome.xhtml", null, null)).spec;
+    
+    url = url.substring(4, url.indexOf("!/") + 2);
+
+    let protocolHandler = Services.io.getProtocolHandler("resource").QueryInterface(Ci.nsIResProtocolHandler);
+    protocolHandler.setSubstitution("android", Services.io.newURI(url, null, null));
+  },
+
+  observe: function (subject, topic, data) {
+    switch (topic) {
+      case "app-startup":
+        this.setResourceSubstitutions();
+        break;
+    }
+  },
+
+  
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsICommandLineHandler,
+                                         Ci.nsIObserver]),
 
   
   classID: Components.ID("{be623d20-d305-11de-8a39-0800200c9a66}")
