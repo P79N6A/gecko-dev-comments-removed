@@ -31,6 +31,8 @@ public:
 
 
 
+
+
   static bool ProcessFragmentIdentifier(nsIDocument *aDocument,
                                         const nsAString &aAnchorName);
 

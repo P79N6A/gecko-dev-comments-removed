@@ -259,7 +259,9 @@ SVGFragmentIdentifier::ProcessFragmentIdentifier(nsIDocument* aDocument,
     *rootElement->mCurrentViewID = aAnchorName;
     rootElement->mUseCurrentView = true;
     rootElement->InvalidateTransformNotifyFrame();
-    return true;
+    
+    
+    return false;
   }
 
   bool wasOverridden = !!rootElement->mCurrentViewID;
