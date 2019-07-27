@@ -6832,11 +6832,14 @@ PresShell::HandleEvent(nsIFrame* aFrame,
                                        retargetEventDoc->GetShell() :
                                        nullptr;
 
-    nsRefPtr<SelectionCarets> selectionCaret = presShell ?
-                                               presShell->GetSelectionCarets() :
-                                               nullptr;
-    if (selectionCaret) {
-      *aEventStatus = selectionCaret->HandleEvent(aEvent);
+    
+    
+    
+    nsRefPtr<TouchCaret> touchCaret = presShell ?
+                                      presShell->GetTouchCaret() :
+                                      nullptr;
+    if (touchCaret) {
+      *aEventStatus = touchCaret->HandleEvent(aEvent);
       if (*aEventStatus == nsEventStatus_eConsumeNoDefault) {
         
         
@@ -6845,9 +6848,11 @@ PresShell::HandleEvent(nsIFrame* aFrame,
       }
     }
 
-    nsRefPtr<TouchCaret> touchCaret = presShell ? presShell->GetTouchCaret() : nullptr;
-    if (touchCaret) {
-      *aEventStatus = touchCaret->HandleEvent(aEvent);
+    nsRefPtr<SelectionCarets> selectionCaret = presShell ?
+                                               presShell->GetSelectionCarets() :
+                                               nullptr;
+    if (selectionCaret) {
+      *aEventStatus = selectionCaret->HandleEvent(aEvent);
       if (*aEventStatus == nsEventStatus_eConsumeNoDefault) {
         
         
