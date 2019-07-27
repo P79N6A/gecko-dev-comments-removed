@@ -151,9 +151,6 @@ user_pref("layout.css.object-fit-and-position.enabled", true);
 user_pref("layout.css.ruby.enabled", true);
 
 
-user_pref("layout.css.font-loading-api.enabled", true);
-
-
 user_pref("layout.spammy_warnings.enabled", false);
 
 
@@ -252,6 +249,8 @@ user_pref("browser.newtabpage.directory.ping", "");
 
 user_pref("loop.enabled", true);
 user_pref("loop.throttled", false);
+user_pref("loop.oauth.google.URL", "http://%(server)s/browser/browser/components/loop/test/mochitest/google_service.sjs?action=");
+user_pref("loop.oauth.google.getContactsURL", "http://%(server)s/browser/browser/components/loop/test/mochitest/google_service.sjs?action=contacts");
 
 
 user_pref("browser.uitour.pinnedTabUrl", "http://%(server)s/uitour-dummy/pinnedTab");
