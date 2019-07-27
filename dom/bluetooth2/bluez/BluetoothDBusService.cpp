@@ -419,6 +419,37 @@ BluetoothDBusService::~BluetoothDBusService()
   sGetPropertyMonitor = nullptr;
 }
 
+static nsString
+GetObjectPathFromAddress(const nsAString& aAdapterPath,
+                         const nsAString& aDeviceAddress)
+{
+  
+  
+  
+  nsString devicePath(aAdapterPath);
+  devicePath.AppendLiteral("/dev_");
+  devicePath.Append(aDeviceAddress);
+  devicePath.ReplaceChar(':', '_');
+  return devicePath;
+}
+
+static nsString
+GetAddressFromObjectPath(const nsAString& aObjectPath)
+{
+  
+  
+  
+  nsString address(aObjectPath);
+  int addressHead = address.RFind("/") + 5;
+
+  MOZ_ASSERT(addressHead + BLUETOOTH_ADDRESS_LENGTH == (int)address.Length());
+
+  address.Cut(0, addressHead);
+  address.ReplaceChar('_', ':');
+
+  return address;
+}
+
 static bool
 GetConnectedDevicesFilter(const BluetoothValue& aValue)
 {

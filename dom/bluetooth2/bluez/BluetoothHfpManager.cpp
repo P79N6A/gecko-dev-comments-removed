@@ -687,6 +687,28 @@ BluetoothHfpManager::HandleShutdown()
   sBluetoothHfpManager = nullptr;
 }
 
+void
+BluetoothHfpManager::ParseAtCommand(const nsACString& aAtCommand,
+                                    const int aStart,
+                                    nsTArray<nsCString>& aRetValues)
+{
+  int length = aAtCommand.Length();
+  int begin = aStart;
+
+  for (int i = aStart; i < length; ++i) {
+    
+    if (aAtCommand[i] == ',') {
+      nsCString tmp(nsDependentCSubstring(aAtCommand, begin, i - begin));
+      aRetValues.AppendElement(tmp);
+
+      begin = i + 1;
+    }
+  }
+
+  nsCString tmp(nsDependentCSubstring(aAtCommand, begin));
+  aRetValues.AppendElement(tmp);
+}
+
 
 void
 BluetoothHfpManager::ReceiveSocketData(BluetoothSocket* aSocket,
