@@ -897,21 +897,6 @@ let gDevToolsBrowser = {
 
 
   _connectToProfiler: function DT_connectToProfiler() {
-    let ProfilerController = devtools.require("devtools/profiler/controller");
-
-    for (let win of gDevToolsBrowser._trackedBrowserWindows) {
-      if (devtools.TargetFactory.isKnownTab(win.gBrowser.selectedTab)) {
-        let target = devtools.TargetFactory.forTab(win.gBrowser.selectedTab);
-        if (gDevTools._toolboxes.has(target)) {
-          target.makeRemote().then(() => {
-            let profiler = new ProfilerController(target);
-            profiler.connect();
-          }).then(null, Cu.reportError);
-
-          return;
-        }
-      }
-    }
   },
 
   
