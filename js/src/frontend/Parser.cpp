@@ -449,6 +449,8 @@ Parser<ParseHandler>::Parser(ExclusiveContext *cx, LifoAlloc *alloc,
 template <typename ParseHandler>
 Parser<ParseHandler>::~Parser()
 {
+    accumulateTelemetry();
+
     alloc.release(tempPoolMark);
 
     
@@ -7565,6 +7567,29 @@ Parser<ParseHandler>::exprInParens()
 #endif 
 
     return pn;
+}
+
+template <typename ParseHandler>
+void
+Parser<ParseHandler>::accumulateTelemetry()
+{
+    JSContext* cx = context->maybeJSContext();
+    if (!cx)
+        return;
+    JSAccumulateTelemetryDataCallback cb = cx->runtime()->telemetryCallback;
+    if (!cb)
+        return;
+    const char* filename = getFilename();
+    if (!filename)
+        return;
+
+    bool isHTTP = strncmp(filename, "http://", 7) == 0 || strncmp(filename, "https://", 8) == 0;
+
+    
+    if (!isHTTP)
+        return;
+
+    
 }
 
 template class Parser<FullParseHandler>;
