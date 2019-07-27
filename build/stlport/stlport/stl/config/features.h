@@ -308,8 +308,7 @@
 
 
 
-
-#  define _STLP_STATIC_ASSERT(expr) static_assert(expr, "static_assert failed");
+#  define _STLP_STATIC_ASSERT(expr) typedef char __static_assert[expr ? 1 : -1];
 #endif
 
 
