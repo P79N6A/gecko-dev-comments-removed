@@ -869,6 +869,9 @@ nsBaseWidget::GetPreferredCompositorBackends(nsTArray<LayersBackend>& aHints)
 
 void nsBaseWidget::CreateCompositor(int aWidth, int aHeight)
 {
+  
+  gfxPlatform::GetPlatform();
+
   MOZ_ASSERT(gfxPlatform::UsesOffMainThreadCompositing(),
              "This function assumes OMTC");
 
