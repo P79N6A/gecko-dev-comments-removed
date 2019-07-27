@@ -141,7 +141,7 @@ verify_sdescriptions_mki (char *buf, char *mkiVal, u16 *mkiLen)
 
     char       *ptr,
                mkiValBuf[SDP_SRTP_MAX_MKI_SIZE_BYTES],
-	       mkiLenBuf[MKI_BUF_LEN];
+               mkiLenBuf[MKI_BUF_LEN];
     int        idx = 0;
     unsigned long strtoul_result;
     char *strtoul_end;
@@ -155,17 +155,17 @@ verify_sdescriptions_mki (char *buf, char *mkiVal, u16 *mkiLen)
     
     while (*ptr) {
         if (*ptr == ':') {
-	    
-	    mkiValBuf[idx] = 0;
-	    ptr++;
-	    break;
-	} else if ((isdigit((int) *ptr) && (idx < SDP_SRTP_MAX_MKI_SIZE_BYTES-1))) {
-	     mkiValBuf[idx++] = *ptr;
-	} else {
-	     return FALSE;
-	}
+            
+            mkiValBuf[idx] = 0;
+            ptr++;
+            break;
+        } else if ((isdigit((int) *ptr) && (idx < SDP_SRTP_MAX_MKI_SIZE_BYTES-1))) {
+             mkiValBuf[idx++] = *ptr;
+        } else {
+             return FALSE;
+        }
 
-	ptr++;
+        ptr++;
     }
 
     
@@ -178,12 +178,12 @@ verify_sdescriptions_mki (char *buf, char *mkiVal, u16 *mkiLen)
     
     while (*ptr) {
         if (isdigit((int) *ptr) && (idx < 3)) {
-	    mkiLenBuf[idx++] = *ptr;
-	} else {
-	    return FALSE;
-	}
+            mkiLenBuf[idx++] = *ptr;
+        } else {
+            return FALSE;
+        }
 
-	ptr++;
+        ptr++;
     }
 
     mkiLenBuf[idx] = 0;
@@ -231,8 +231,8 @@ verify_sdescriptions_lifetime (char *buf)
 
     while (*ptr) {
         if (*ptr == '^') {
-	    if (tokenFound) {
-	        
+            if (tokenFound) {
+                
                 return FALSE;
             } else {
                 tokenFound = TRUE;
@@ -241,11 +241,11 @@ verify_sdescriptions_lifetime (char *buf)
 
 
                 if (buf[0] != '2' || buf[1] != '^') {
-		    return FALSE;
+                    return FALSE;
                 }
             }
         } else if (!isdigit((int) *ptr)) {
-	           return FALSE;
+                   return FALSE;
         }
 
         ptr++;
@@ -255,8 +255,8 @@ verify_sdescriptions_lifetime (char *buf)
     
     if (tokenFound) {
         if (strlen(buf) <= 2) {
-	    return FALSE;
-	}
+            return FALSE;
+        }
     }
 
     return TRUE;
@@ -301,11 +301,11 @@ char *sdp_findchar (const char *ptr, char *char_list)
     int i;
 
     for (;*ptr != '\0'; ptr++) {
-	for (i=0; char_list[i] != '\0'; i++) {
-	    if (*ptr == char_list[i]) {
-		return ((char *)ptr);
-	    }
-	}
+        for (i=0; char_list[i] != '\0'; i++) {
+            if (*ptr == char_list[i]) {
+                return ((char *)ptr);
+            }
+        }
     }
     return ((char *)ptr);
 }
@@ -547,16 +547,16 @@ static const int star_strlen = sizeof(star_string) - 1;
 #define CHAR_IS_WHITESPACE(_test_char) \
     ((((_test_char)==' ')||((_test_char)=='\t'))?1:0)
 
-#define SKIP_WHITESPACE(_cptr, _max_cptr)	    \
-    while ((_cptr)<=(_max_cptr)) {		    \
-	if (!CHAR_IS_WHITESPACE(*(_cptr))) break;   \
-	(_cptr)++;				    \
+#define SKIP_WHITESPACE(_cptr, _max_cptr)           \
+    while ((_cptr)<=(_max_cptr)) {                  \
+        if (!CHAR_IS_WHITESPACE(*(_cptr))) break;   \
+        (_cptr)++;                                  \
     }
 
-#define FIND_WHITESPACE(_cptr, _max_cptr)	    \
-    while ((_cptr)<=(_max_cptr)) {		    \
-	if (CHAR_IS_WHITESPACE(*(_cptr))) break;    \
-	(_cptr)++;				    \
+#define FIND_WHITESPACE(_cptr, _max_cptr)           \
+    while ((_cptr)<=(_max_cptr)) {                  \
+        if (CHAR_IS_WHITESPACE(*(_cptr))) break;    \
+        (_cptr)++;                                  \
     }
 
 
@@ -582,59 +582,59 @@ void sdp_crypto_debug (char *buffer, ulong length_bytes)
 
 
     for (start=current=buffer;
-	 current<=last-MIN_CRYPTO_STRING_SIZE_BYTES;
-	 current++) {
-	if ((*current == 'x') || (*current == 'X')) {
-	    result = cpr_strncasecmp(current, crypto_string, crypto_strlen);
-	    if (!result) {
-		current += crypto_strlen;
-		if (current > last) break;
+         current<=last-MIN_CRYPTO_STRING_SIZE_BYTES;
+         current++) {
+        if ((*current == 'x') || (*current == 'X')) {
+            result = cpr_strncasecmp(current, crypto_string, crypto_strlen);
+            if (!result) {
+                current += crypto_strlen;
+                if (current > last) break;
 
-		
-		FIND_WHITESPACE(current, last);
+                
+                FIND_WHITESPACE(current, last);
 
-		
-		SKIP_WHITESPACE(current, last);
+                
+                SKIP_WHITESPACE(current, last);
 
-		
-		result = cpr_strncasecmp(current, inline_string, inline_strlen);
-		if (!result) {
-		    int star_count = 0;
+                
+                result = cpr_strncasecmp(current, inline_string, inline_strlen);
+                if (!result) {
+                    int star_count = 0;
 
-		    current += inline_strlen;
-		    if (current > last) break;
+                    current += inline_strlen;
+                    if (current > last) break;
 
-		    sdp_dump_buffer(start, current - start);
+                    sdp_dump_buffer(start, current - start);
 
-		    
-		    while (current<=last) {
-			if (*current == '|' || *current == '\n') {
-			    
-			    while (star_count > star_strlen) {
-				
+                    
+                    while (current<=last) {
+                        if (*current == '|' || *current == '\n') {
+                            
+                            while (star_count > star_strlen) {
+                                
 
 
 
-				sdp_dump_buffer((char*)star_string, star_strlen);
-				star_count -= star_strlen;
-			    }
-			    sdp_dump_buffer((char*)star_string, star_count);
-			    break;
-			} else {
-			    star_count++;
-			    current++;
-			}
-		    }
-		    
-		    start=current;
-		}
-	    }
-	}
+                                sdp_dump_buffer((char*)star_string, star_strlen);
+                                star_count -= star_strlen;
+                            }
+                            sdp_dump_buffer((char*)star_string, star_count);
+                            break;
+                        } else {
+                            star_count++;
+                            current++;
+                        }
+                    }
+                    
+                    start=current;
+                }
+            }
+        }
     }
 
     if (last > start) {
-	
-	sdp_dump_buffer(start, last - start);
+        
+        sdp_dump_buffer(start, last - start);
     }
 }
 
@@ -661,46 +661,46 @@ char * sdp_debug_msg_filter (char *buffer, ulong length_bytes)
     int result;
 
     SDP_PRINT("\n%s:%d: Eliding sensitive data from debug output",
-	    __FILE__, __LINE__);
+            __FILE__, __LINE__);
     
 
 
 
 
     for (current=buffer;
-	 current<=last-MIN_CRYPTO_STRING_SIZE_BYTES;
-	 current++) {
-	if ((*current == 'x') || (*current == 'X')) {
-	    result = cpr_strncasecmp(current, crypto_string, crypto_strlen);
-	    if (!result) {
-		current += crypto_strlen;
-		if (current > last) break;
+         current<=last-MIN_CRYPTO_STRING_SIZE_BYTES;
+         current++) {
+        if ((*current == 'x') || (*current == 'X')) {
+            result = cpr_strncasecmp(current, crypto_string, crypto_strlen);
+            if (!result) {
+                current += crypto_strlen;
+                if (current > last) break;
 
-		
-		FIND_WHITESPACE(current, last);
+                
+                FIND_WHITESPACE(current, last);
 
-		
-		SKIP_WHITESPACE(current, last);
+                
+                SKIP_WHITESPACE(current, last);
 
-		
-		result = cpr_strncasecmp(current, inline_string, inline_strlen);
-		if (!result) {
-		    current += inline_strlen;
-		    if (current > last) break;
+                
+                result = cpr_strncasecmp(current, inline_string, inline_strlen);
+                if (!result) {
+                    current += inline_strlen;
+                    if (current > last) break;
 
-		    
-		    while (current<=last) {
-			if (*current == '|' || *current == '\n') {
-			    
-			    break;
-			} else {
-			    *current = '*';
-			    current++;
-			}
-		    }
-		}
-	    }
-	}
+                    
+                    while (current<=last) {
+                        if (*current == '|' || *current == '\n') {
+                            
+                            break;
+                        } else {
+                            *current = '*';
+                            current++;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     return buffer;
@@ -741,28 +741,28 @@ tinybool sdp_checkrange (sdp_t *sdp_p, char *num, ulong *u_val)
     if (*endP == '\0') {
 
         if (l_val > 4294967295UL) {
-	    if (sdp_p->debug_flag[SDP_DEBUG_ERRORS]) {
-		CSFLogError(logTag, "%s ERROR: Parameter value: %s is greater than 4294967295",
-			  sdp_p->debug_str, num);
-	    }
-	    return FALSE;
-	}
+            if (sdp_p->debug_flag[SDP_DEBUG_ERRORS]) {
+                CSFLogError(logTag, "%s ERROR: Parameter value: %s is greater than 4294967295",
+                          sdp_p->debug_str, num);
+            }
+            return FALSE;
+        }
 
-	if (l_val == 4294967295UL) {
-	    
-
-
+        if (l_val == 4294967295UL) {
+            
 
 
 
-	    if (strcmp("4294967295", num)) {
-		if (sdp_p->debug_flag[SDP_DEBUG_ERRORS]) {
-		    CSFLogError(logTag, "%s ERROR: Parameter value: %s is greater than 4294967295",
-			      sdp_p->debug_str, num);
-		}
-		return FALSE;
-	    }
-	}
+
+
+            if (strcmp("4294967295", num)) {
+                if (sdp_p->debug_flag[SDP_DEBUG_ERRORS]) {
+                    CSFLogError(logTag, "%s ERROR: Parameter value: %s is greater than 4294967295",
+                              sdp_p->debug_str, num);
+                }
+                return FALSE;
+            }
+        }
     }
     *u_val = l_val;
     return TRUE;
