@@ -264,6 +264,8 @@ function _deepEqual(actual, expected) {
   
   
   } else if (instanceOf(actual, "Date") && instanceOf(expected, "Date")) {
+    if (isNaN(actual.getTime()) && isNaN(expected.getTime()))
+      return true;
     return actual.getTime() === expected.getTime();
   
   
