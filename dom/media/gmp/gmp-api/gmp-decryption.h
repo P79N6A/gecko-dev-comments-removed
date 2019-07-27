@@ -182,17 +182,6 @@ public:
 
 class GMPDecryptorHost {
 public:
-
-  
-  
-  
-  
-  
-  
-  
-  virtual void GetNodeId(const char** aOutNodeId,
-                         uint32_t* aOutNodeIdLength) = 0;
-
   virtual void GetSandboxVoucher(const uint8_t** aVoucher,
                                  uint8_t* aVoucherLength) = 0;
 
