@@ -141,15 +141,33 @@ function getNode(nodeOrSelector, options = {}) {
 
 
 
+function selectAndHighlightNode(nodeOrSelector, inspector) {
+  info("Highlighting and selecting the node " + nodeOrSelector);
+
+  let node = getNode(nodeOrSelector);
+  let updated = inspector.toolbox.once("highlighter-ready");
+  inspector.selection.setNode(node, "test-highlight");
+  return updated;
+
+}
+
+
+
+
+
+
+
+
+
+
 
 
 
 function selectNode(nodeOrSelector, inspector, reason="test") {
   info("Selecting the node " + nodeOrSelector);
+
   let node = getNode(nodeOrSelector);
-  let updated = inspector.once("inspector-updated", () => {
-    is(inspector.selection.node, node, "Correct node was selected");
-  });
+  let updated = inspector.once("inspector-updated");
   inspector.selection.setNode(node, reason);
   return updated;
 }
