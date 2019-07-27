@@ -177,8 +177,7 @@ ClearKeyUtils::ParseInitData(const uint8_t* aInitData, uint32_t aInitDataSize,
 
  void
 ClearKeyUtils::MakeKeyRequest(const vector<KeyId>& aKeyIDs,
-                              string& aOutRequest,
-                              GMPSessionType aSessionType)
+                              string& aOutRequest)
 {
   MOZ_ASSERT(aKeyIDs.size() && aOutRequest.empty());
 
@@ -196,10 +195,9 @@ ClearKeyUtils::MakeKeyRequest(const vector<KeyId>& aKeyIDs,
     aOutRequest.append("\"");
   }
   aOutRequest.append("], \"type\":");
-
-  aOutRequest.append("\"");
-  aOutRequest.append(SessionTypeToString(aSessionType));
-  aOutRequest.append("\"}");
+  
+  aOutRequest.append("\"temporary\"");
+  aOutRequest.append("}");
 }
 
 #define EXPECT_SYMBOL(CTX, X) do { \
@@ -511,8 +509,7 @@ ParseKeys(ParserContext& aCtx, vector<KeyIdPair>& aOutKeys)
 
  bool
 ClearKeyUtils::ParseJWK(const uint8_t* aKeyData, uint32_t aKeyDataSize,
-                        vector<KeyIdPair>& aOutKeys,
-                        GMPSessionType aSessionType)
+                        vector<KeyIdPair>& aOutKeys)
 {
   ParserContext ctx;
   ctx.mIter = aKeyData;
@@ -534,7 +531,8 @@ ClearKeyUtils::ParseJWK(const uint8_t* aKeyData, uint32_t aKeyDataSize,
       
       string type;
       if (!GetNextLabel(ctx, type)) return false;
-      if (type != SessionTypeToString(aSessionType)) {
+      
+      if (type != "temporary") {
         return false;
       }
     } else {
@@ -553,34 +551,5 @@ ClearKeyUtils::ParseJWK(const uint8_t* aKeyData, uint32_t aKeyDataSize,
   
   EXPECT_SYMBOL(ctx, '}');
 
-  return true;
-}
-
- const char*
-ClearKeyUtils::SessionTypeToString(GMPSessionType aSessionType)
-{
-  switch (aSessionType) {
-    case kGMPTemporySession: return "temporary";
-    case kGMPPersistentSession: return "persistent";
-    default: {
-      MOZ_ASSERT(false, "Should not reach here.");
-      return "invalid";
-    }
-  }
-}
-
- bool
-ClearKeyUtils::IsValidSessionId(const char* aBuff, uint32_t aLength)
-{
-  if (aLength > 10) {
-    
-    
-    return false;
-  }
-  for (uint32_t i = 0; i < aLength; i++) {
-    if (!isdigit(aBuff[i])) {
-      return false;
-    }
-  }
   return true;
 }
