@@ -9,8 +9,10 @@
 
 #include "nsStyleTransformMatrix.h"
 #include "nsCSSValue.h"
+#include "nsLayoutUtils.h"
 #include "nsPresContext.h"
 #include "nsRuleNode.h"
+#include "nsSVGUtils.h"
 #include "nsCSSKeywords.h"
 #include "mozilla/StyleAnimationValue.h"
 #include "gfxMatrix.h"
@@ -48,9 +50,44 @@ TransformReferenceBox::EnsureDimensionsAreCached()
   mIsCached = true;
 
   if (mFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT) {
-    
-    mWidth = 0;
-    mHeight = 0;
+    if (!nsLayoutUtils::SVGTransformOriginEnabled()) {
+      mX = -mFrame->GetPosition().x;
+      mY = -mFrame->GetPosition().y;
+      mWidth = 0;
+      mHeight = 0;
+    } else
+    if (mFrame->StyleDisplay()->mTransformBox ==
+          NS_STYLE_TRANSFORM_BOX_FILL_BOX) {
+      
+      
+      gfxRect bbox = nsSVGUtils::GetBBox(const_cast<nsIFrame*>(mFrame));
+      nsRect bboxInAppUnits =
+        nsLayoutUtils::RoundGfxRectToAppRect(bbox,
+                                             mFrame->PresContext()->AppUnitsPerCSSPixel());
+      
+      
+      
+      
+      mX = bboxInAppUnits.x - mFrame->GetPosition().x;
+      mY = bboxInAppUnits.y - mFrame->GetPosition().y;
+      mWidth = bboxInAppUnits.width;
+      mHeight = bboxInAppUnits.height;
+    } else {
+      
+      MOZ_ASSERT(mFrame->StyleDisplay()->mTransformBox ==
+                   NS_STYLE_TRANSFORM_BOX_VIEW_BOX ||
+                 mFrame->StyleDisplay()->mTransformBox ==
+                   NS_STYLE_TRANSFORM_BOX_BORDER_BOX,
+                 "Unexpected value for 'transform-box'");
+      
+      
+      
+      mX = -mFrame->GetPosition().x;
+      mY = -mFrame->GetPosition().y;
+      Size contextSize = nsSVGUtils::GetContextSize(mFrame);
+      mWidth = nsPresContext::CSSPixelsToAppUnits(contextSize.width);
+      mHeight = nsPresContext::CSSPixelsToAppUnits(contextSize.height);
+    }
     return;
   }
 
@@ -78,6 +115,8 @@ TransformReferenceBox::EnsureDimensionsAreCached()
   }
 #endif
 
+  mX = 0;
+  mY = 0;
   mWidth = rect.Width();
   mHeight = rect.Height();
 }
@@ -87,6 +126,8 @@ TransformReferenceBox::Init(const nsSize& aDimensions)
 {
   MOZ_ASSERT(!mFrame && !mIsCached);
 
+  mX = 0;
+  mY = 0;
   mWidth = aDimensions.width;
   mHeight = aDimensions.height;
   mIsCached = true;

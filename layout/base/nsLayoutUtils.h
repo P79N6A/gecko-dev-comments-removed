@@ -2305,6 +2305,10 @@ public:
     return sFontSizeInflationDisabledInMasterProcess;
   }
 
+  static bool SVGTransformOriginEnabled() {
+    return sSVGTransformOriginEnabled;
+  }
+
   
 
 
@@ -2657,6 +2661,7 @@ private:
   static bool sInvalidationDebuggingIsEnabled;
   static bool sCSSVariablesEnabled;
   static bool sInterruptibleReflowEnabled;
+  static bool sSVGTransformOriginEnabled;
 
   
 

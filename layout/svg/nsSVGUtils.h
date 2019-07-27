@@ -184,6 +184,7 @@ public:
   typedef mozilla::gfx::AntialiasMode AntialiasMode;
   typedef mozilla::gfx::FillRule FillRule;
   typedef mozilla::gfx::GeneralPattern GeneralPattern;
+  typedef mozilla::gfx::Size Size;
 
   static void Init();
 
@@ -249,6 +250,14 @@ public:
 
 
   static void NotifyAncestorsOfFilterRegionChange(nsIFrame *aFrame);
+
+  
+
+
+
+
+
+  static Size GetContextSize(const nsIFrame* aFrame);
 
   
 

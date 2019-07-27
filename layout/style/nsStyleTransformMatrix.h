@@ -79,11 +79,28 @@ namespace nsStyleTransformMatrix {
 
     void Init(const nsSize& aDimensions);
 
+    
+
+
+
+
+
+    nscoord X() {
+      EnsureDimensionsAreCached();
+      return mX;
+    }
+    nscoord Y() {
+      EnsureDimensionsAreCached();
+      return mY;
+    }
+
+    
+
+
     nscoord Width() {
       EnsureDimensionsAreCached();
       return mWidth;
     }
-
     nscoord Height() {
       EnsureDimensionsAreCached();
       return mHeight;
@@ -98,7 +115,7 @@ namespace nsStyleTransformMatrix {
     void EnsureDimensionsAreCached();
 
     const nsIFrame* mFrame;
-    nscoord mWidth, mHeight;
+    nscoord mX, mY, mWidth, mHeight;
     bool mIsCached;
   };
 

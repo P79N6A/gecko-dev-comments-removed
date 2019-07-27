@@ -4652,17 +4652,23 @@ nsDisplayTransform::GetDeltaToTransformOrigin(const nsIFrame* aFrame,
 
 
   const nsStyleDisplay* display = aFrame->StyleDisplay();
+  
+  
+  
   TransformReferenceBox refBox;
-  if (aBoundsOverride) {
+  if (aBoundsOverride &&
+      !(aFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT)) {
     refBox.Init(aBoundsOverride->Size());
   } else {
     refBox.Init(aFrame);
   }
 
   
-  float coords[3];
+  float coords[2];
   TransformReferenceBox::DimensionGetter dimensionGetter[] =
     { &TransformReferenceBox::Width, &TransformReferenceBox::Height };
+  TransformReferenceBox::DimensionGetter offsetGetter[] =
+    { &TransformReferenceBox::X, &TransformReferenceBox::Y };
 
   for (uint8_t index = 0; index < 2; ++index) {
     
@@ -4684,20 +4690,19 @@ nsDisplayTransform::GetDeltaToTransformOrigin(const nsIFrame* aFrame,
       coords[index] =
         NSAppUnitsToFloatPixels(coord.GetCoordValue(), aAppUnitsPerPixel);
     }
-    if ((aFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT) &&
-        coord.GetUnit() != eStyleUnit_Percent) {
+
+    if (aFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT) {
       
       
-      nscoord offset =
-        (index == 0) ? aFrame->GetPosition().x : aFrame->GetPosition().y;
-      coords[index] -= NSAppUnitsToFloatPixels(offset, aAppUnitsPerPixel);
+      
+      coords[index] +=
+        NSAppUnitsToFloatPixels((refBox.*offsetGetter[index])(), aAppUnitsPerPixel);
     }
   }
 
-  coords[2] = NSAppUnitsToFloatPixels(display->mTransformOrigin[2].GetCoordValue(),
-                                      aAppUnitsPerPixel);
-
-  return Point3D(coords[0], coords[1], coords[2]);
+  return Point3D(coords[0], coords[1],
+                 NSAppUnitsToFloatPixels(display->mTransformOrigin[2].GetCoordValue(),
+                                         aAppUnitsPerPixel));
 }
 
 
@@ -4847,8 +4852,12 @@ nsDisplayTransform::GetResultingTransformMatrixInternal(const FrameTransformProp
 
   
 
+  
+  
+  
   TransformReferenceBox refBox;
-  if (aBoundsOverride) {
+  if (aBoundsOverride &&
+      (!frame || !(frame->GetStateBits() & NS_FRAME_SVG_LAYOUT))) {
     refBox.Init(aBoundsOverride->Size());
   } else {
     refBox.Init(frame);
@@ -4862,6 +4871,8 @@ nsDisplayTransform::GetResultingTransformMatrixInternal(const FrameTransformProp
   Matrix svgTransform, transformFromSVGParent;
   bool hasSVGTransforms =
     frame && frame->IsSVGTransformed(&svgTransform, &transformFromSVGParent);
+  bool hasTransformFromSVGParent =
+    hasSVGTransforms && !transformFromSVGParent.IsIdentity();
   
   if (aProperties.mTransformList) {
     result = nsStyleTransformMatrix::ReadTransforms(aProperties.mTransformList->mHead,
@@ -4875,15 +4886,6 @@ nsDisplayTransform::GetResultingTransformMatrixInternal(const FrameTransformProp
     svgTransform._31 *= pixelsPerCSSPx;
     svgTransform._32 *= pixelsPerCSSPx;
     result = gfx3DMatrix::From2D(ThebesMatrix(svgTransform));
-  }
-
-  if (hasSVGTransforms && !transformFromSVGParent.IsIdentity()) {
-    
-    float pixelsPerCSSPx = frame->PresContext()->AppUnitsPerCSSPixel() /
-                             aAppUnitsPerPixel;
-    transformFromSVGParent._31 *= pixelsPerCSSPx;
-    transformFromSVGParent._32 *= pixelsPerCSSPx;
-    result = result * gfx3DMatrix::From2D(ThebesMatrix(transformFromSVGParent));
   }
 
   if (aProperties.mChildPerspective > 0.0) {
@@ -4907,17 +4909,52 @@ nsDisplayTransform::GetResultingTransformMatrixInternal(const FrameTransformProp
   Point3D roundedOrigin(hasSVGTransforms ? newOrigin.x : NS_round(newOrigin.x),
                         hasSVGTransforms ? newOrigin.y : NS_round(newOrigin.y),
                         0);
-  Point3D offsetBetweenOrigins = roundedOrigin + aProperties.mToTransformOrigin;
 
-  if (aOffsetByOrigin) {
+  if (!hasSVGTransforms || !hasTransformFromSVGParent) {
     
     
     
-    
-    result.Translate(-aProperties.mToTransformOrigin);
-    result.TranslatePost(offsetBetweenOrigins);
+    Point3D offsets = roundedOrigin + aProperties.mToTransformOrigin;
+    if (aOffsetByOrigin) {
+      
+      
+      
+      
+      result.Translate(-aProperties.mToTransformOrigin);
+      result.TranslatePost(offsets);
+    } else {
+      result.ChangeBasis(offsets);
+    }
   } else {
-    result.ChangeBasis(offsetBetweenOrigins);
+    Point3D refBoxOffset(NSAppUnitsToFloatPixels(refBox.X(), aAppUnitsPerPixel),
+                         NSAppUnitsToFloatPixels(refBox.Y(), aAppUnitsPerPixel),
+                         0);
+    
+    
+    
+    
+    
+    
+    result.ChangeBasis(aProperties.mToTransformOrigin - refBoxOffset);
+
+    
+    
+    float pixelsPerCSSPx =
+      frame->PresContext()->AppUnitsPerCSSPixel() / aAppUnitsPerPixel;
+    transformFromSVGParent._31 *= pixelsPerCSSPx;
+    transformFromSVGParent._32 *= pixelsPerCSSPx;
+    result = result * gfx3DMatrix::From2D(ThebesMatrix(transformFromSVGParent));
+
+    
+    
+    
+    Point3D offsets = roundedOrigin + refBoxOffset;
+    if (aOffsetByOrigin) {
+      result.Translate(-refBoxOffset);
+      result.TranslatePost(offsets);
+    } else {
+      result.ChangeBasis(offsets);
+    }
   }
 
   if (frame && frame->Preserves3D()) {
