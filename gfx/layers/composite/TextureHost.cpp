@@ -497,6 +497,8 @@ BufferTextureHost::Upload(nsIntRegion *aRegion)
     return false;
   }
   if (!mCompositor) {
+    NS_WARNING("Tried to upload without a compositor. Skipping texture upload...");
+    
     
     
     return false;
