@@ -5848,6 +5848,11 @@ nsDocument::ProcessTopElementQueue(bool aIsBaseQueue)
 {
   MOZ_ASSERT(nsContentUtils::IsSafeToRunScript());
 
+  if (sProcessingStack.isNothing()) {
+    
+    return;
+  }
+
   nsTArray<CustomElementData*>& stack = *sProcessingStack;
   uint32_t firstQueue = stack.LastIndexOf((CustomElementData*) nullptr);
 
