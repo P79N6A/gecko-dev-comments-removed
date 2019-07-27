@@ -580,6 +580,15 @@ EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     }
     break;
   }
+  case NS_MOUSE_ENTER_WIDGET:
+    
+    
+    
+    
+    
+    
+    aEvent->mFlags.mNoCrossProcessBoundaryForwarding = true;
+    break;
   case NS_MOUSE_EXIT_WIDGET:
     
     
@@ -591,6 +600,10 @@ EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     if (XRE_GetProcessType() == GeckoProcessType_Content) {
       ClearCachedWidgetCursor(mCurrentTarget);
     }
+
+    
+    
+    aEvent->mFlags.mNoCrossProcessBoundaryForwarding = true;
 
     
     
@@ -1183,7 +1196,6 @@ CrossProcessSafeEvent(const WidgetEvent& aEvent)
     case NS_CONTEXTMENU:
     case NS_MOUSE_ENTER_WIDGET:
     case NS_MOUSE_EXIT_WIDGET:
-    case NS_MOUSE_OVER:
       return true;
     default:
       return false;
