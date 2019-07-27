@@ -135,7 +135,7 @@ pref("dom.serviceWorkers.enabled", false);
 pref("dom.enable_performance", true);
 
 
-pref("dom.enable_resource_timing", false);
+pref("dom.enable_resource_timing", true);
 
 
 pref("dom.gamepad.enabled", true);
