@@ -292,6 +292,15 @@ function injectLoopAPI(targetWindow) {
           listener(cloneValueInto(err, targetWindow));
           return;
         }
+        if (browser.getAttribute("remote") == "true") {
+          
+          
+          let err = new Error("Tab sharing is not supported for e10s-enabled browsers");
+          MozLoopService.log.error(err);
+          listener(cloneValueInto(err, targetWindow));
+          return;
+        }
+
         win.LoopUI.addBrowserSharingListener(listener);
 
         savedWindowListeners.set(listener, Cu.getWeakReference(win));
