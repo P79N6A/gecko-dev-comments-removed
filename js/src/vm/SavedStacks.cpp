@@ -338,7 +338,7 @@ GetFirstSubsumedSavedFrame(JSContext *cx, HandleObject savedFrame)
 
  bool
 SavedFrame::checkThis(JSContext *cx, CallArgs &args, const char *fnName,
-                      MutableHandleSavedFrame frame)
+                      MutableHandleObject frame)
 {
     const Value &thisValue = args.thisv();
 
@@ -366,8 +366,8 @@ SavedFrame::checkThis(JSContext *cx, CallArgs &args, const char *fnName,
 
     
     
-    RootedSavedFrame rooted(cx, &thisObject->as<SavedFrame>());
-    frame.set(GetFirstSubsumedFrame(cx, rooted));
+    
+    frame.set(&thisValue.toObject());
     return true;
 }
 
@@ -384,7 +384,7 @@ SavedFrame::checkThis(JSContext *cx, CallArgs &args, const char *fnName,
 
 #define THIS_SAVEDFRAME(cx, argc, vp, fnName, args, frame)             \
     CallArgs args = CallArgsFromVp(argc, vp);                          \
-    RootedSavedFrame frame(cx);                                        \
+    RootedObject frame(cx);                                            \
     if (!checkThis(cx, args, fnName, &frame))                          \
         return false;
 
