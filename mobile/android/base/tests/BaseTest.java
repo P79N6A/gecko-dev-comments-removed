@@ -53,6 +53,7 @@ import android.widget.TextView;
 
 import com.jayway.android.robotium.solo.Condition;
 import com.jayway.android.robotium.solo.Solo;
+import com.jayway.android.robotium.solo.Timeout;
 
 
 
@@ -396,8 +397,17 @@ abstract class BaseTest extends BaseRobocopTest {
         return assets.open(filename);
     }
 
-    public boolean waitForText(String text) {
-        boolean rc = mSolo.waitForText(text);
+    public boolean waitForText(final String text) {
+        
+        
+        return waitForText(text, false);
+    }
+
+    public boolean waitForText(final String text, final boolean onlyVisibleViews) {
+        
+        
+        final boolean rc =
+                mSolo.waitForText(text, 0, Timeout.getLargeTimeout(), true, onlyVisibleViews);
         if (!rc) {
             
             
@@ -489,7 +499,7 @@ abstract class BaseTest extends BaseRobocopTest {
         
         String itemName = "^" + menuItemName + "$";
         mActions.sendSpecialKey(Actions.SpecialKey.MENU);
-        if (waitForText(itemName)) {
+        if (waitForText(itemName, true)) {
             mSolo.clickOnText(itemName);
         } else {
             
