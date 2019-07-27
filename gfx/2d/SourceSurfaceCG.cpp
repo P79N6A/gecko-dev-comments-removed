@@ -360,6 +360,24 @@ SourceSurfaceCGBitmapContext::DrawTargetWillChange()
   }
 }
 
+void
+SourceSurfaceCGBitmapContext::DrawTargetWillGoAway()
+{
+  if (mDrawTarget) {
+    if (mDrawTarget->mData != CGBitmapContextGetData(mCg)) {
+      DrawTargetWillChange();
+      return;
+    }
+
+    
+    mDataHolder.Swap(mDrawTarget->mData);
+    mData = mDataHolder;
+    mCg = nullptr;
+    mDrawTarget = nullptr;
+    
+  }
+}
+
 SourceSurfaceCGBitmapContext::~SourceSurfaceCGBitmapContext()
 {
   if (mImage)
