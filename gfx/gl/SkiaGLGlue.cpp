@@ -730,33 +730,6 @@ GrGLvoid glGenVertexArrays_mozilla(GrGLsizei n, GrGLuint *arrays) {
     return sGLContext.get()->fGenVertexArrays(n, arrays);
 }
 
-
-
-GrGLvoid glLoadMatrixf_mozilla(const GLfloat* matrix)
-{
-    return sGLContext.get()->fLoadMatrixf(matrix);
-}
-
-GrGLvoid glLoadIdentity_mozilla()
-{
-    return sGLContext.get()->fLoadIdentity();
-}
-
-GrGLvoid glMatrixMode_mozilla(GrGLenum mode)
-{
-    return sGLContext.get()->fMatrixMode(mode);
-}
-
-GrGLvoid glTexGeni_mozilla(GrGLenum coord, GrGLenum pname, GrGLint param)
-{
-    return sGLContext.get()->fTexGeni(coord, pname, param);
-}
-
-GrGLvoid glTexGenfv_mozilla(GrGLenum coord, GrGLenum pname, const GrGLfloat* param)
-{
-    return sGLContext.get()->fTexGenfv(coord, pname, param);
-}
-
 } 
 
 static GrGLInterface* CreateGrGLInterfaceFromGLContext(GLContext* context)
@@ -915,13 +888,6 @@ static GrGLInterface* CreateGrGLInterfaceFromGLContext(GLContext* context)
 
     
     i->fFunctions.fDrawBuffers = glDrawBuffers_mozilla;
-
-    
-    i->fFunctions.fLoadIdentity = glLoadIdentity_mozilla;
-    i->fFunctions.fLoadMatrixf = glLoadMatrixf_mozilla;
-    i->fFunctions.fMatrixMode = glMatrixMode_mozilla;
-    i->fFunctions.fTexGenfv = glTexGenfv_mozilla;
-    i->fFunctions.fTexGeni = glTexGeni_mozilla;
 
     return i;
 }
