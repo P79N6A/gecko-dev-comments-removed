@@ -2385,12 +2385,56 @@ MarionetteServerConnection.prototype = {
 
 
 
+
+
+
   takeScreenshot: function MDA_takeScreenshot(aRequest) {
     this.command_id = this.getCommandId();
-    this.sendAsync("takeScreenshot",
+    if (this.context == "chrome") {
+      var win = this.getCurrentWindow();
+      var canvas = win.document.createElementNS("http://www.w3.org/1999/xhtml", "canvas");
+      var doc;
+      if (appName == "B2G") {
+        doc = win.document.body;
+      } else {
+        doc = win.document.getElementsByTagName('window')[0];
+      }
+      var docRect = doc.getBoundingClientRect();
+      var width = docRect.width;
+      var height = docRect.height;
+
+      
+      
+      var scale = win.devicePixelRatio;
+      canvas.setAttribute("width", Math.round(width * scale));
+      canvas.setAttribute("height", Math.round(height * scale));
+
+      var context = canvas.getContext("2d");
+      var flags;
+      if (appName == "B2G") {
+        flags =
+          context.DRAWWINDOW_DRAW_CARET |
+          context.DRAWWINDOW_DRAW_VIEW |
+          context.DRAWWINDOW_USE_WIDGET_LAYERS;
+      } else {
+        
+        
+        flags =
+          context.DRAWWINDOW_DRAW_VIEW |
+          context.DRAWWINDOW_USE_WIDGET_LAYERS;
+      }
+      context.scale(scale, scale);
+      context.drawWindow(win, 0, 0, width, height, "rgb(255,255,255)", flags);
+      var dataUrl = canvas.toDataURL("image/png", "");
+      var data = dataUrl.substring(dataUrl.indexOf(",") + 1);
+      this.sendResponse(data, this.command_id);
+    }
+    else {
+      this.sendAsync("takeScreenshot",
                    {id: aRequest.parameters.id,
                     highlights: aRequest.parameters.highlights},
                    this.command_id);
+    }
   },
 
   
