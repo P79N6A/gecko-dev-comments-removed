@@ -540,6 +540,14 @@ protected:
            lastAction.mIncomplete;
   }
 
+  void CompleteLastActionIfStillIncomplete()
+  {
+    if (!IsPendingCompositionUpdateIncomplete()) {
+      return;
+    }
+    RecordCompositionUpdateAction();
+  }
+
   
   
   
