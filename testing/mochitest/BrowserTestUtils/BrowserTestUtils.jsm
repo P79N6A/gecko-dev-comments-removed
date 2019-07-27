@@ -166,6 +166,41 @@ this.BrowserTestUtils = {
 
 
 
+  waitForNewTab(tabbrowser, url) {
+    return new Promise((resolve, reject) => {
+      tabbrowser.tabContainer.addEventListener("TabOpen", function onTabOpen(openEvent) {
+        tabbrowser.tabContainer.removeEventListener("TabOpen", onTabOpen);
+
+        let progressListener = {
+          onLocationChange(aBrowser) {
+            if (aBrowser != openEvent.target.linkedBrowser ||
+                aBrowser.currentURI.spec != url) {
+              return;
+            }
+
+            tabbrowser.removeTabsProgressListener(progressListener);
+            resolve(openEvent.target);
+          },
+        };
+        tabbrowser.addTabsProgressListener(progressListener);
+
+      });
+    });
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
   loadURI: Task.async(function* (browser, uri) {
     
     browser.loadURI(uri);

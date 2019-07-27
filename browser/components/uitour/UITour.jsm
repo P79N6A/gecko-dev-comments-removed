@@ -619,6 +619,16 @@ this.UITour = {
         break;
       }
 
+      case "openPreferences": {
+        if (typeof data.pane != "string" && typeof data.pane != "undefined") {
+          log.warn("openPreferences: Invalid pane specified");
+          return false;
+        }
+
+        window.openPreferences(data.pane);
+        break;
+      }
+
       case "showFirefoxAccounts": {
         
         
