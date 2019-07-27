@@ -128,8 +128,8 @@ PRLogModuleInfo* nsExternalHelperAppService::mLog = nullptr;
 
 
 #undef LOG
-#define LOG(args) MOZ_LOG(nsExternalHelperAppService::mLog, 3, args)
-#define LOG_ENABLED() MOZ_LOG_TEST(nsExternalHelperAppService::mLog, 3)
+#define LOG(args) MOZ_LOG(nsExternalHelperAppService::mLog, PR_LOG_INFO, args)
+#define LOG_ENABLED() MOZ_LOG_TEST(nsExternalHelperAppService::mLog, PR_LOG_INFO)
 
 static const char NEVER_ASK_FOR_SAVE_TO_DISK_PREF[] =
   "browser.helperApps.neverAsk.saveToDisk";
