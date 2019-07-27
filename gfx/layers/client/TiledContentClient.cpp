@@ -883,20 +883,7 @@ ClientTiledLayerBuffer::PaintThebes(const nsIntRegion& aNewValidRegion,
   
   NS_ASSERTION(!aPaintRegion.GetBounds().IsEmpty(), "Empty paint region\n");
 
-  bool useSinglePaintBuffer = UseSinglePaintBuffer();
-  
-  
-
-
-
-
-
-
-
-
-
-
-  if (useSinglePaintBuffer && !gfxPrefs::TiledDrawTargetEnabled()) {
+  if (!gfxPrefs::TiledDrawTargetEnabled()) {
     nsRefPtr<gfxContext> ctxt;
 
     const nsIntRect bounds = aPaintRegion.GetBounds();
@@ -1118,7 +1105,9 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
   nsIntRegion offsetScaledDirtyRegion = aDirtyRegion.MovedBy(-aTileOrigin);
   offsetScaledDirtyRegion.ScaleRoundOut(mResolution, mResolution);
 
-  bool usingSinglePaintBuffer = !!mSinglePaintDrawTarget;
+  bool usingTiledDrawTarget = gfxPrefs::TiledDrawTargetEnabled();
+  MOZ_ASSERT(usingTiledDrawTarget || !!mSinglePaintDrawTarget);
+
   SurfaceMode mode;
   gfxContentType content = GetContentType(&mode);
   nsIntRegion extraPainted;
@@ -1127,7 +1116,7 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
     aTile.GetBackBuffer(offsetScaledDirtyRegion,
                         content, mode,
                         &createdTextureClient, extraPainted,
-                        !usingSinglePaintBuffer && !gfxPrefs::TiledDrawTargetEnabled(),
+                        usingTiledDrawTarget,
                         &backBufferOnWhite);
 
   extraPainted.MoveBy(aTileOrigin);
@@ -1160,7 +1149,7 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
     }
   }
 
-  if (gfxPrefs::TiledDrawTargetEnabled()) {
+  if (usingTiledDrawTarget) {
     aTile.Flip();
 
     if (createdTextureClient) {
@@ -1222,10 +1211,16 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
       }
     }
 
+    
+    aTile.mInvalidFront.Sub(nsIntRect(0, 0, GetTileSize().width, GetTileSize().height),
+                            offsetScaledDirtyRegion);
+
     return aTile;
-  } else {
-    MOZ_ASSERT(!backBufferOnWhite, "Component alpha only supported with TiledDrawTarget");
   }
+
+  
+
+  MOZ_ASSERT(!backBufferOnWhite, "Component alpha only supported with TiledDrawTarget");
 
   
   
@@ -1235,106 +1230,54 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
 
   RefPtr<gfxContext> ctxt = new gfxContext(drawTarget);
 
-  if (usingSinglePaintBuffer) {
-    
-    RefPtr<gfx::SourceSurface> source = mSinglePaintDrawTarget->Snapshot();
-    nsIntRegionRectIterator it(aDirtyRegion);
-    for (const nsIntRect* dirtyRect = it.Next(); dirtyRect != nullptr; dirtyRect = it.Next()) {
+  
+  RefPtr<gfx::SourceSurface> source = mSinglePaintDrawTarget->Snapshot();
+  nsIntRegionRectIterator it(aDirtyRegion);
+  for (const nsIntRect* dirtyRect = it.Next(); dirtyRect != nullptr; dirtyRect = it.Next()) {
 #ifdef GFX_TILEDLAYER_PREF_WARNINGS
-      printf_stderr(" break into subdirtyRect %i, %i, %i, %i\n",
-                    dirtyRect->x, dirtyRect->y, dirtyRect->width, dirtyRect->height);
+    printf_stderr(" break into subdirtyRect %i, %i, %i, %i\n",
+                  dirtyRect->x, dirtyRect->y, dirtyRect->width, dirtyRect->height);
 #endif
-      gfx::Rect drawRect(dirtyRect->x - aTileOrigin.x,
-                         dirtyRect->y - aTileOrigin.y,
-                         dirtyRect->width,
-                         dirtyRect->height);
-      drawRect.Scale(mResolution);
+    gfx::Rect drawRect(dirtyRect->x - aTileOrigin.x,
+                       dirtyRect->y - aTileOrigin.y,
+                       dirtyRect->width,
+                       dirtyRect->height);
+    drawRect.Scale(mResolution);
 
-      gfx::IntRect copyRect(NS_roundf((dirtyRect->x - mSinglePaintBufferOffset.x) * mResolution),
-                            NS_roundf((dirtyRect->y - mSinglePaintBufferOffset.y) * mResolution),
-                            drawRect.width,
-                            drawRect.height);
-      gfx::IntPoint copyTarget(NS_roundf(drawRect.x), NS_roundf(drawRect.y));
-      drawTarget->CopySurface(source, copyRect, copyTarget);
-
-      
-      aTile.mInvalidFront.Or(aTile.mInvalidFront, nsIntRect(copyTarget.x, copyTarget.y, copyRect.width, copyRect.height));
-    }
+    gfx::IntRect copyRect(NS_roundf((dirtyRect->x - mSinglePaintBufferOffset.x) * mResolution),
+                          NS_roundf((dirtyRect->y - mSinglePaintBufferOffset.y) * mResolution),
+                          drawRect.width,
+                          drawRect.height);
+    gfx::IntPoint copyTarget(NS_roundf(drawRect.x), NS_roundf(drawRect.y));
+    drawTarget->CopySurface(source, copyRect, copyTarget);
 
     
-    
-    
-    if (mResolution == 1) {
-      nsIntRect unscaledTile = nsIntRect(aTileOrigin.x,
-                                         aTileOrigin.y,
-                                         GetTileSize().width,
-                                         GetTileSize().height);
-
-      nsIntRegion tileValidRegion = GetValidRegion();
-      tileValidRegion.Or(tileValidRegion, aDirtyRegion);
-      
-      if (!tileValidRegion.Contains(unscaledTile)) {
-        tileValidRegion = tileValidRegion.Intersect(unscaledTile);
-        
-        tileValidRegion.MoveBy(-nsIntPoint(unscaledTile.x, unscaledTile.y));
-        PadDrawTargetOutFromRegion(drawTarget, tileValidRegion);
-      }
-    }
-
-    
-    aTile.mInvalidBack.Sub(nsIntRect(0, 0, GetTileSize().width, GetTileSize().height),
-                           offsetScaledDirtyRegion);
-  } else {
-    
-    nsIntRegion tileRegion =
-      nsIntRect(aTileOrigin.x, aTileOrigin.y,
-                GetScaledTileSize().width, GetScaledTileSize().height);
-
-    
-    tileRegion = tileRegion.Intersect(aDirtyRegion);
-
-    
-    nsIntPoint unscaledTileOrigin = nsIntPoint(aTileOrigin.x * mResolution,
-                                               aTileOrigin.y * mResolution);
-    nsIntRegion unscaledTileRegion(tileRegion);
-    unscaledTileRegion.ScaleRoundOut(mResolution, mResolution);
-
-    
-    aTile.mInvalidFront.MoveBy(unscaledTileOrigin);
-    aTile.mInvalidBack.MoveBy(unscaledTileOrigin);
-
-    
-    
-    aTile.mInvalidFront.Or(aTile.mInvalidFront, unscaledTileRegion);
-
-    
-    tileRegion.Or(tileRegion, aTile.mInvalidBack);
-
-    
-    aTile.mInvalidFront.MoveBy(-unscaledTileOrigin);
-
-    
-    aTile.mInvalidBack.SetEmpty();
-
-    nsIntRect bounds = tileRegion.GetBounds();
-    bounds.MoveBy(-aTileOrigin);
-
-    if (GetContentType() != gfxContentType::COLOR) {
-      drawTarget->ClearRect(Rect(bounds.x, bounds.y, bounds.width, bounds.height));
-    }
-
-    ctxt->NewPath();
-    ctxt->Clip(gfxRect(bounds.x, bounds.y, bounds.width, bounds.height));
-    ctxt->SetMatrix(
-      ctxt->CurrentMatrix().Translate(-unscaledTileOrigin.x,
-                                      -unscaledTileOrigin.y).
-                            Scale(mResolution, mResolution));
-    mCallback(mPaintedLayer, ctxt,
-              tileRegion.GetBounds(),
-              DrawRegionClip::NONE,
-              nsIntRegion(), mCallbackData);
-
+    aTile.mInvalidFront.Or(aTile.mInvalidFront, nsIntRect(copyTarget.x, copyTarget.y, copyRect.width, copyRect.height));
   }
+
+  
+  
+  
+  if (mResolution == 1) {
+    nsIntRect unscaledTile = nsIntRect(aTileOrigin.x,
+                                       aTileOrigin.y,
+                                       GetTileSize().width,
+                                       GetTileSize().height);
+
+    nsIntRegion tileValidRegion = GetValidRegion();
+    tileValidRegion.Or(tileValidRegion, aDirtyRegion);
+    
+    if (!tileValidRegion.Contains(unscaledTile)) {
+      tileValidRegion = tileValidRegion.Intersect(unscaledTile);
+      
+      tileValidRegion.MoveBy(-nsIntPoint(unscaledTile.x, unscaledTile.y));
+      PadDrawTargetOutFromRegion(drawTarget, tileValidRegion);
+    }
+  }
+
+  
+  aTile.mInvalidBack.Sub(nsIntRect(0, 0, GetTileSize().width, GetTileSize().height),
+                         offsetScaledDirtyRegion);
 
 #ifdef GFX_TILEDLAYER_DEBUG_OVERLAY
   DrawDebugOverlay(drawTarget, aTileOrigin.x * mResolution,

@@ -445,12 +445,6 @@ protected:
 
   void UnlockTile(TileClient aTile);
 
-  
-  
-  
-  
-  bool UseSinglePaintBuffer() { return !gfxPrefs::PerTileDrawing(); }
-
   void ReleaseTile(TileClient aTile) { aTile.Release(); }
 
   void SwapTiles(TileClient& aTileA, TileClient& aTileB) { std::swap(aTileA, aTileB); }
