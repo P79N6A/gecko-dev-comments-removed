@@ -397,12 +397,10 @@ SelectWrapper(bool securityWrapper, bool wantXrays, XrayType xrayType,
     }
 
     
-    if (xrayType == XrayForWrappedNative)
-        return &FilteringWrapper<SecurityXrayXPCWN,
-                                 CrossOriginAccessiblePropertiesOnly>::singleton;
-    else if (xrayType == XrayForDOMObject)
+    if (xrayType == XrayForDOMObject)
         return &FilteringWrapper<SecurityXrayDOM,
                                  CrossOriginAccessiblePropertiesOnly>::singleton;
+
     
     
     
@@ -411,7 +409,6 @@ SelectWrapper(bool securityWrapper, bool wantXrays, XrayType xrayType,
     
     
     
-    MOZ_ASSERT(xrayType == XrayForJSObject || xrayType == XrayForOpaqueObject);
     if (originIsXBLScope)
         return &FilteringWrapper<CrossCompartmentSecurityWrapper, OpaqueWithCall>::singleton;
     return &FilteringWrapper<CrossCompartmentSecurityWrapper, Opaque>::singleton;
