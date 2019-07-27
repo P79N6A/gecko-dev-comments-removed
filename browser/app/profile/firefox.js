@@ -1522,7 +1522,7 @@ pref("browser.newtabpage.enhanced", false);
 pref("browser.newtabpage.rows", 3);
 
 
-pref("browser.newtabpage.columns", 3);
+pref("browser.newtabpage.columns", 8);
 
 
 pref("browser.newtabpage.directory.source", "chrome://global/content/directoryLinks.json");
