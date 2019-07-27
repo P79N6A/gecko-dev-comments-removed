@@ -74,6 +74,16 @@ public:
 
 
 
+
+   nsresult CommitComposition(nsEventStatus& aStatus,
+                              const nsAString* aCommitString = nullptr);
+
+  
+
+
+
+
+
   nsresult SetPendingCompositionString(const nsAString& aString)
   {
     return mPendingComposition.SetString(aString);
