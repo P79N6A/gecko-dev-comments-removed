@@ -2,6 +2,7 @@
 
 
 
+
 "use strict";
 
 const {Cu} = require("chrome");
@@ -49,7 +50,7 @@ BottomHost.prototype = {
   
 
 
-  create: function BH_create() {
+  create: function() {
     let deferred = promise.defer();
 
     let gBrowser = this.hostTab.ownerDocument.defaultView.gBrowser;
@@ -90,7 +91,7 @@ BottomHost.prototype = {
   
 
 
-  raise: function BH_raise() {
+  raise: function() {
     focusTab(this.hostTab);
   },
 
@@ -99,7 +100,7 @@ BottomHost.prototype = {
 
 
 
-  minimize: function BH_minimize(height=0) {
+  minimize: function(height=0) {
     if (this.isMinimized) {
       return;
     }
@@ -119,7 +120,7 @@ BottomHost.prototype = {
 
 
 
-  maximize: function BH_maximize() {
+  maximize: function() {
     if (!this.isMinimized) {
       return;
     }
@@ -139,21 +140,20 @@ BottomHost.prototype = {
 
 
 
-  toggleMinimizeMode: function BH_toggleMinimizedMode(minHeight) {
+  toggleMinimizeMode: function(minHeight) {
     this.isMinimized ? this.maximize() : this.minimize(minHeight);
   },
 
   
 
 
-  setTitle: function BH_setTitle(title) {
-    
-  },
+
+  setTitle: function() {},
 
   
 
 
-  destroy: function BH_destroy() {
+  destroy: function() {
     if (!this._destroyed) {
       this._destroyed = true;
 
@@ -164,8 +164,7 @@ BottomHost.prototype = {
 
     return promise.resolve(null);
   }
-}
-
+};
 
 
 
@@ -184,7 +183,7 @@ SidebarHost.prototype = {
   
 
 
-  create: function SH_create() {
+  create: function() {
     let deferred = promise.defer();
 
     let gBrowser = this.hostTab.ownerDocument.defaultView.gBrowser;
@@ -224,21 +223,20 @@ SidebarHost.prototype = {
   
 
 
-  raise: function SH_raise() {
+  raise: function() {
     focusTab(this.hostTab);
   },
 
   
 
 
-  setTitle: function SH_setTitle(title) {
-    
-  },
+
+  setTitle: function() {},
 
   
 
 
-  destroy: function SH_destroy() {
+  destroy: function() {
     if (!this._destroyed) {
       this._destroyed = true;
 
@@ -249,7 +247,7 @@ SidebarHost.prototype = {
 
     return promise.resolve(null);
   }
-}
+};
 
 
 
@@ -268,14 +266,14 @@ WindowHost.prototype = {
   
 
 
-  create: function WH_create() {
+  create: function() {
     let deferred = promise.defer();
 
     let flags = "chrome,centerscreen,resizable,dialog=no";
     let win = Services.ww.openWindow(null, this.WINDOW_URL, "_blank",
                                      flags, null);
 
-    let frameLoad = (event) => {
+    let frameLoad = () => {
       win.removeEventListener("load", frameLoad, true);
       win.focus();
       this.frame = win.document.getElementById("toolbox-iframe");
@@ -307,21 +305,21 @@ WindowHost.prototype = {
   
 
 
-  raise: function RH_raise() {
+  raise: function() {
     this._window.focus();
   },
 
   
 
 
-  setTitle: function WH_setTitle(title) {
+  setTitle: function(title) {
     this._window.document.title = title;
   },
 
   
 
 
-  destroy: function WH_destroy() {
+  destroy: function() {
     if (!this._destroyed) {
       this._destroyed = true;
 
@@ -345,14 +343,14 @@ function CustomHost(hostTab, options) {
 CustomHost.prototype = {
   type: "custom",
 
-  _sendMessageToTopWindow: function CH__sendMessageToTopWindow(msg, data) {
+  _sendMessageToTopWindow: function(msg, data) {
     
     
     let topWindow = this.frame.ownerDocument.defaultView;
     if (!topWindow) {
       return;
     }
-    let json = {name:"toolbox-" + msg, uid: this.uid};
+    let json = {name: "toolbox-" + msg, uid: this.uid};
     if (data) {
       json.data = data;
     }
@@ -362,35 +360,35 @@ CustomHost.prototype = {
   
 
 
-  create: function CH_create() {
+  create: function() {
     return promise.resolve(this.frame);
   },
 
   
 
 
-  raise: function CH_raise() {
+  raise: function() {
     this._sendMessageToTopWindow("raise");
   },
 
   
 
 
-  setTitle: function CH_setTitle(title) {
+  setTitle: function(title) {
     this._sendMessageToTopWindow("title", { value: title });
   },
 
   
 
 
-  destroy: function WH_destroy() {
+  destroy: function() {
     if (!this._destroyed) {
       this._destroyed = true;
       this._sendMessageToTopWindow("close");
     }
     return promise.resolve(null);
   }
-}
+};
 
 
 
