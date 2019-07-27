@@ -192,13 +192,12 @@ this.TelemetryController = Object.freeze({
 
 
 
-  send: function(aType, aPayload, aOptions = {}) {
-    let options = aOptions;
-    options.retentionDays = aOptions.retentionDays || DEFAULT_RETENTION_DAYS;
-    options.addClientId = aOptions.addClientId || false;
-    options.addEnvironment = aOptions.addEnvironment || false;
 
-    return Impl.send(aType, aPayload, options);
+  submitExternalPing: function(aType, aPayload, aOptions = {}) {
+    aOptions.addClientId = aOptions.addClientId || false;
+    aOptions.addEnvironment = aOptions.addEnvironment || false;
+
+    return Impl.submitExternalPing(aType, aPayload, aOptions);
   },
 
   
@@ -492,16 +491,14 @@ let Impl = {
 
 
 
-
-
-  send: function send(aType, aPayload, aOptions) {
-    this._log.trace("send - Type " + aType + ", Server " + this._server +
+  submitExternalPing: function send(aType, aPayload, aOptions) {
+    this._log.trace("submitExternalPing - Type " + aType + ", Server " + this._server +
                     ", aOptions " + JSON.stringify(aOptions));
 
     let pingData = this.assemblePing(aType, aPayload, aOptions);
     
     let archivePromise = TelemetryArchive.promiseArchivePing(pingData)
-      .catch(e => this._log.error("send - Failed to archive ping " + pingData.id, e));
+      .catch(e => this._log.error("submitExternalPing - Failed to archive ping " + pingData.id, e));
 
     
     let p = [
