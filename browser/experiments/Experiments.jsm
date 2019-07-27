@@ -141,28 +141,6 @@ function configureLogging() {
 
 
 
-function allResolvedOrRejected(promises) {
-  if (!promises.length) {
-    return Promise.resolve([]);
-  }
-
-  let countdown = promises.length;
-  let deferred = Promise.defer();
-
-  for (let p of promises) {
-    let helper = () => {
-      if (--countdown == 0) {
-        deferred.resolve();
-      }
-    };
-    Promise.resolve(p).then(helper, helper);
-  }
-
-  return deferred.promise;
-}
-
-
-
 
 
 
