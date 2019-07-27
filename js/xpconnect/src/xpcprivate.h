@@ -624,8 +624,14 @@ public:
 
     PRTime GetWatchdogTimestamp(WatchdogTimestampCategory aCategory);
 
-    void OnProcessNextEvent() { mSlowScriptCheckpoint = mozilla::TimeStamp::NowLoRes(); }
-    void OnAfterProcessNextEvent() { mSlowScriptCheckpoint = mozilla::TimeStamp(); }
+    void OnProcessNextEvent() {
+        mSlowScriptCheckpoint = mozilla::TimeStamp::NowLoRes();
+        mSlowScriptSecondHalf = false;
+    }
+    void OnAfterProcessNextEvent() {
+        mSlowScriptCheckpoint = mozilla::TimeStamp();
+        mSlowScriptSecondHalf = false;
+    }
 
     nsTArray<nsXPCWrappedJS*>& WrappedJSToReleaseArray() { return mWrappedJSToReleaseArray; }
 
@@ -669,6 +675,23 @@ private:
     JS::PersistentRootedObject mCompilationScope;
     nsRefPtr<AsyncFreeSnowWhite> mAsyncSnowWhiteFreer;
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    bool mSlowScriptSecondHalf;
+
+    
+    
+    
+    
+    
     mozilla::TimeStamp mSlowScriptCheckpoint;
 
     friend class Watchdog;

@@ -1307,7 +1307,18 @@ WatchdogMain(void *arg)
         
         
         
-        PRTime usecs = self->MinScriptRunTimeSeconds() * PR_USEC_PER_SEC;
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        PRTime usecs = self->MinScriptRunTimeSeconds() * PR_USEC_PER_SEC / 2;
         if (manager->IsRuntimeActive() &&
             manager->TimeSinceLastRuntimeStateChange() >= usecs)
         {
@@ -1380,8 +1391,10 @@ XPCJSRuntime::InterruptCallback(JSContext *cx)
 
     
     
+    
     if (self->mSlowScriptCheckpoint.IsNull()) {
         self->mSlowScriptCheckpoint = TimeStamp::NowLoRes();
+        self->mSlowScriptSecondHalf = false;
         return true;
     }
 
@@ -1403,8 +1416,17 @@ XPCJSRuntime::InterruptCallback(JSContext *cx)
     int32_t limit = Preferences::GetInt(prefName, chrome ? 20 : 10);
 
     
-    if (limit == 0 || duration.ToSeconds() < limit)
+    if (limit == 0 || duration.ToSeconds() < limit / 2.0)
         return true;
+
+    
+    
+    
+    if (!self->mSlowScriptSecondHalf) {
+        self->mSlowScriptCheckpoint = TimeStamp::NowLoRes();
+        self->mSlowScriptSecondHalf = true;
+        return true;
+    }
 
     
     
@@ -3197,7 +3219,8 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
    mUnprivilegedJunkScope(this->Runtime(), nullptr),
    mPrivilegedJunkScope(this->Runtime(), nullptr),
    mCompilationScope(this->Runtime(), nullptr),
-   mAsyncSnowWhiteFreer(new AsyncFreeSnowWhite())
+   mAsyncSnowWhiteFreer(new AsyncFreeSnowWhite()),
+   mSlowScriptSecondHalf(false)
 {
     
     mStrIDs[0] = JSID_VOID;
