@@ -856,6 +856,10 @@ BrowserGlue.prototype = {
 
   
   _onWindowsRestored: function BG__onWindowsRestored() {
+#ifdef MOZ_DEV_EDITION
+    this._createExtraDefaultProfile();
+#endif
+
     this._initServiceDiscovery();
 
     
@@ -926,6 +930,39 @@ BrowserGlue.prototype = {
     E10SUINotification.checkStatus();
 #endif
   },
+
+#ifdef MOZ_DEV_EDITION
+  _createExtraDefaultProfile: function () {
+    
+    
+    
+    
+    let profileService = Cc["@mozilla.org/toolkit/profile-service;1"]
+                         .getService(Ci.nsIToolkitProfileService);
+    let profileCount = profileService.profileCount;
+    if (profileCount == 1 && profileService.selectedProfile.name != "default") {
+      let newProfile;
+      try {
+        newProfile = profileService.createProfile(null, "default");
+        profileService.defaultProfile = newProfile;
+        profileService.flush();
+      } catch (e) {
+        Cu.reportError("Could not create profile 'default': " + e);
+      }
+      if (newProfile) {
+        
+        
+        
+        let newProfilePath = newProfile.rootDir.path;
+        OS.File.removeDir(newProfilePath).then(() => {
+          return OS.File.makeDir(newProfilePath);
+        }).then(null, e => {
+          Cu.reportError("Could not empty profile 'default': " + e);
+        });
+      }
+    }
+  },
+#endif
 
   _onQuitRequest: function BG__onQuitRequest(aCancelQuit, aQuitType) {
     
