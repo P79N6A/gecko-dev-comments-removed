@@ -748,7 +748,11 @@ FxAccountsInternal.prototype = {
   },
 
   startVerifiedCheck: function(data) {
-    log.debug("startVerifiedCheck " + JSON.stringify(data));
+    log.debug("startVerifiedCheck", data && data.verified);
+    if (logPII) {
+      log.debug("startVerifiedCheck with user data", data);
+    }
+
     
     
     
