@@ -1785,8 +1785,7 @@ nsMessageManagerScriptExecutor::TryCacheLoadAndCompileScript(
       }
     } else {
       
-      options.setHasPollutedScope(true);
-      if (!JS::Compile(cx, options, srcBuf, &script)) {
+      if (!JS::CompileForNonSyntacticScope(cx, options, srcBuf, &script)) {
         return;
       }
     }
