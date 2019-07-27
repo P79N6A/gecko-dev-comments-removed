@@ -750,11 +750,7 @@ function handleRevivedTab() {
     removeEventListener("pagehide", handleRevivedTab);
 
     
-    
-    
-    
-    let browser = docShell.chromeEventHandler;
-    cpmm.sendAsyncMessage("SessionStore:RemoteTabRevived", null, {browser: browser});
+    sendAsyncMessage("SessionStore:crashedTabRevived");
   }
 }
 

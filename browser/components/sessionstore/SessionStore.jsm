@@ -45,7 +45,7 @@ const WINDOW_HIDEABLE_FEATURES = [
 ];
 
 
-const FMM_MESSAGES = [
+const MESSAGES = [
   
   
   "SessionStore:setupSyncHandler",
@@ -70,11 +70,15 @@ const FMM_MESSAGES = [
   
   
   "SessionStore:reloadPendingTab",
+
+  
+  
+  "SessionStore:crashedTabRevived",
 ];
 
 
 
-const FMM_NOTAB_MESSAGES = new Set([
+const NOTAB_MESSAGES = new Set([
   
   "SessionStore:setupSyncHandler",
 
@@ -83,14 +87,12 @@ const FMM_NOTAB_MESSAGES = new Set([
 ]);
 
 
-const PPMM_MESSAGES = [
+
+
+const CLOSED_MESSAGES = new Set([
   
-  
-  
-  
-  
-  "SessionStore:RemoteTabRevived",
-];
+  "SessionStore:crashedTabRevived",
+]);
 
 
 const TAB_EVENTS = [
@@ -423,8 +425,6 @@ let SessionStoreInternal = {
       Services.obs.addObserver(this, aTopic, true);
     }, this);
 
-    PPMM_MESSAGES.forEach(msg => ppmm.addMessageListener(msg, this));
-
     this._initPrefs();
     this._initialized = true;
   },
@@ -554,8 +554,6 @@ let SessionStoreInternal = {
 
     
     SessionSaver.cancel();
-
-    PPMM_MESSAGES.forEach(msg => ppmm.removeMessageListener(msg, this));
   },
 
   
@@ -603,12 +601,6 @@ let SessionStoreInternal = {
 
   receiveMessage(aMessage) {
     
-    if (aMessage.name == "SessionStore:RemoteTabRevived") {
-      this._crashedBrowsers.delete(aMessage.objects.browser.permanentKey);
-      return;
-    }
-
-    
     
     var browser = aMessage.target;
     var win = browser.ownerDocument.defaultView;
@@ -616,7 +608,7 @@ let SessionStoreInternal = {
 
     
     
-    if (!tab && !FMM_NOTAB_MESSAGES.has(aMessage.name)) {
+    if (!tab && !NOTAB_MESSAGES.has(aMessage.name)) {
       throw new Error(`received unexpected message '${aMessage.name}' ` +
                       `from a browser that has no tab`);
     }
@@ -709,6 +701,9 @@ let SessionStoreInternal = {
           }
         }
         break;
+      case "SessionStore:crashedTabRevived":
+        this._crashedBrowsers.delete(browser.permanentKey);
+        break;
       default:
         throw new Error(`received unknown message '${aMessage.name}'`);
         break;
@@ -799,7 +794,10 @@ let SessionStoreInternal = {
     aWindow.__SSi = this._generateWindowID();
 
     let mm = aWindow.getGroupMessageManager("browsers");
-    FMM_MESSAGES.forEach(msg => mm.addMessageListener(msg, this));
+    MESSAGES.forEach(msg => {
+      let listenWhenClosed = CLOSED_MESSAGES.has(msg);
+      mm.addMessageListener(msg, this, listenWhenClosed);
+    });
 
     
     mm.loadFrameScript("chrome://browser/content/content-sessionStore.js", true);
@@ -1128,7 +1126,7 @@ let SessionStoreInternal = {
     DyingWindowCache.set(aWindow, winData);
 
     let mm = aWindow.getGroupMessageManager("browsers");
-    FMM_MESSAGES.forEach(msg => mm.removeMessageListener(msg, this));
+    MESSAGES.forEach(msg => mm.removeMessageListener(msg, this));
 
     delete aWindow.__SSi;
   },
