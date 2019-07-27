@@ -58,11 +58,15 @@ class AnyContextFlags
     
     bool            hasDebuggerStatement:1;
 
+    
+    bool            hasDirectEval:1;
+
   public:
     AnyContextFlags()
      :  hasExplicitUseStrict(false),
         bindingsAccessedDynamically(false),
-        hasDebuggerStatement(false)
+        hasDebuggerStatement(false),
+        hasDirectEval(false)
     { }
 };
 
@@ -195,10 +199,12 @@ class SharedContext
     bool hasExplicitUseStrict()        const { return anyCxFlags.hasExplicitUseStrict; }
     bool bindingsAccessedDynamically() const { return anyCxFlags.bindingsAccessedDynamically; }
     bool hasDebuggerStatement()        const { return anyCxFlags.hasDebuggerStatement; }
+    bool hasDirectEval()               const { return anyCxFlags.hasDirectEval; }
 
     void setExplicitUseStrict()           { anyCxFlags.hasExplicitUseStrict        = true; }
     void setBindingsAccessedDynamically() { anyCxFlags.bindingsAccessedDynamically = true; }
     void setHasDebuggerStatement()        { anyCxFlags.hasDebuggerStatement        = true; }
+    void setHasDirectEval()               { anyCxFlags.hasDirectEval               = true; }
 
     inline bool allLocalsAliased();
 
