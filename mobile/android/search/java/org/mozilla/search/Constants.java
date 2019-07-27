@@ -20,4 +20,6 @@ public class Constants {
 
     
     public static final String DEFAULT_ENGINE_IDENTIFIER = "yahoo";
+
+    public static final String PREF_SEARCH_ENGINE_KEY = "search.engines.default";
 }
