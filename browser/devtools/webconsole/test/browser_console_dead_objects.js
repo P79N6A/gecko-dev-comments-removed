@@ -12,6 +12,8 @@
 
 
 
+"use strict";
+
 const TEST_URI = "data:text/html;charset=utf8,<p>dead objects!";
 
 function test()
@@ -36,7 +38,6 @@ function test()
     hud.jsterm.clearOutput();
 
     
-
     yield execute("Cu = Components.utils;" +
                   "Cu.import('resource://gre/modules/Services.jsm');" +
                   "chromeWindow = Services.wm.getMostRecentWindow('navigator:browser');" +

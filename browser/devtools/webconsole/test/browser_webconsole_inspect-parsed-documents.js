@@ -1,10 +1,11 @@
 
 
 
-"use strict";
 
 
 
+
+"use strict;"
 
 const TEST_CASES = [
   {

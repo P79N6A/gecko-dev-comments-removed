@@ -5,6 +5,8 @@
 
 
 
+"use strict";
+
 function test() {
   function* runner() {
     const TEST_EVAL_STRING = "document";

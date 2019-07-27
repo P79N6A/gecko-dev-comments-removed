@@ -5,6 +5,8 @@
 
 
 
+"use strict";
+
 function test() {
   let originalNetPref = Services.prefs.getBoolPref("devtools.webconsole.filter.networkinfo");
   registerCleanupFunction(() => {

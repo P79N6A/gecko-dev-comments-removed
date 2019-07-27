@@ -5,6 +5,8 @@
 
 
 
+"use strict";
+
 function test() {
   Task.spawn(function*() {
     const {tab} = yield loadTab("about:config");

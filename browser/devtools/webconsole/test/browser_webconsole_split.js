@@ -3,6 +3,8 @@
 
 
 
+const TEST_URI = "data:text/html;charset=utf-8,Web Console test for splitting";
+
 function test()
 {
   
@@ -13,11 +15,7 @@ function test()
   let Toolbox = devtools.Toolbox;
   let toolbox;
 
-  addTab("data:text/html;charset=utf-8,Web Console test for splitting");
-  browser.addEventListener("load", function onLoad() {
-    browser.removeEventListener("load", onLoad, true);
-    testConsoleLoadOnDifferentPanel()
-  }, true);
+  loadTab(TEST_URI).then(testConsoleLoadOnDifferentPanel);
 
   function testConsoleLoadOnDifferentPanel()
   {

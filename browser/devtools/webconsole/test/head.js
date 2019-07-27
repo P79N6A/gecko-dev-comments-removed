@@ -16,6 +16,7 @@ let {Messages} = require("devtools/webconsole/console-output");
 
 
 
+
 let gPendingOutputTest = 0;
 
 
@@ -40,35 +41,13 @@ const WEBCONSOLE_STRINGS_URI = "chrome://browser/locale/devtools/webconsole.prop
 let WCU_l10n = new WebConsoleUtils.l10n(WEBCONSOLE_STRINGS_URI);
 
 gDevTools.testing = true;
-SimpleTest.registerCleanupFunction(() => {
-  gDevTools.testing = false;
-});
 
-function log(aMsg)
-{
-  dump("*** WebConsoleTest: " + aMsg + "\n");
+function asyncTest(generator) {
+  return () => {
+    Task.spawn(generator).then(finishTest);
+  };
 }
 
-function pprint(aObj)
-{
-  for (let prop in aObj) {
-    if (typeof aObj[prop] == "function") {
-      log("function " + prop);
-    }
-    else {
-      log(prop + ": " + aObj[prop]);
-    }
-  }
-}
-
-let tab, browser, hudId, hud, hudBox, filterBox, outputNode, cs;
-
-function addTab(aURL)
-{
-  gBrowser.selectedTab = gBrowser.addTab(aURL);
-  tab = gBrowser.selectedTab;
-  browser = gBrowser.getBrowserForTab(tab);
-}
 
 function loadTab(url) {
   let deferred = promise.defer();
@@ -89,7 +68,7 @@ function loadBrowser(browser) {
 
   browser.addEventListener("load", function onLoad() {
     browser.removeEventListener("load", onLoad, true);
-    deferred.resolve(null)
+    deferred.resolve(null);
   }, true);
 
   return deferred.promise;
@@ -198,18 +177,16 @@ function findLogEntry(aString)
 
 
 
-function openConsole(aTab, aCallback = function() { })
-{
-  let deferred = promise.defer();
-  let target = TargetFactory.forTab(aTab || tab);
-  gDevTools.showToolbox(target, "webconsole").then(function(toolbox) {
+let openConsole = function(aTab) {
+  let webconsoleOpened = promise.defer();
+  let target = TargetFactory.forTab(aTab || gBrowser.selectedTab);
+  gDevTools.showToolbox(target, "webconsole").then(toolbox => {
     let hud = toolbox.getCurrentPanel().hud;
     hud.jsterm._lazyVariablesView = false;
-    aCallback(hud);
-    deferred.resolve(hud);
+    webconsoleOpened.resolve(hud);
   });
-  return deferred.promise;
-}
+  return webconsoleOpened.promise;
+};
 
 
 
@@ -223,22 +200,16 @@ function openConsole(aTab, aCallback = function() { })
 
 
 
-function closeConsole(aTab, aCallback = function() { })
-{
-  let target = TargetFactory.forTab(aTab || tab);
+let closeConsole = Task.async(function* (aTab) {
+  let target = TargetFactory.forTab(aTab || gBrowser.selectedTab);
   let toolbox = gDevTools.getToolbox(target);
   if (toolbox) {
-    let panel = toolbox.getPanel("webconsole");
-    if (panel) {
-      let hudId = panel.hud.hudId;
-      return toolbox.destroy().then(aCallback.bind(null, hudId)).then(null, console.debug);
-    }
-    return toolbox.destroy().then(aCallback.bind(null));
+    yield toolbox.destroy();
   }
+});
 
-  aCallback();
-  return promise.resolve(null);
-}
+
+
 
 
 
@@ -259,7 +230,7 @@ function waitForContextMenu(aPopup, aButton, aOnShown, aOnHidden)
     info("onPopupShown");
     aPopup.removeEventListener("popupshown", onPopupShown);
 
-    aOnShown();
+    aOnShown && aOnShown();
 
     
     aPopup.addEventListener("popuphidden", onPopupHidden);
@@ -268,15 +239,20 @@ function waitForContextMenu(aPopup, aButton, aOnShown, aOnHidden)
   function onPopupHidden() {
     info("onPopupHidden");
     aPopup.removeEventListener("popuphidden", onPopupHidden);
-    aOnHidden();
+
+    aOnHidden && aOnHidden();
+
+    deferred.resolve(aPopup);
   }
 
+  let deferred = promise.defer();
   aPopup.addEventListener("popupshown", onPopupShown);
 
   info("wait for the context menu to open");
   let eventDetails = { type: "contextmenu", button: 2};
   EventUtils.synthesizeMouse(aButton, 2, 2, eventDetails,
                              aButton.ownerDocument.defaultView);
+  return deferred.promise;
 }
 
 
@@ -326,10 +302,7 @@ function dumpMessageElement(aMessage)
                 "text", text);
 }
 
-function finishTest()
-{
-  browser = hudId = hud = filterBox = outputNode = cs = hudBox = null;
-
+let finishTest = Task.async(function* () {
   dumpConsoles();
 
   let browserConsole = HUDService.getBrowserConsole();
@@ -337,27 +310,19 @@ function finishTest()
     if (browserConsole.jsterm) {
       browserConsole.jsterm.clearOutput(true);
     }
-    HUDService.toggleBrowserConsole().then(finishTest);
-    return;
+    yield HUDService.toggleBrowserConsole();
   }
 
-  let contentHud = HUDService.getHudByWindow(content);
-  if (!contentHud) {
-    finish();
-    return;
-  }
+  let target = TargetFactory.forTab(gBrowser.selectedTab);
+  yield gDevTools.closeToolbox(target);
 
-  if (contentHud.jsterm) {
-    contentHud.jsterm.clearOutput(true);
-  }
-
-  closeConsole(contentHud.target.tab, finish);
-
-  contentHud = null;
-}
+  finish();
+});
 
 function tearDown()
 {
+  gDevTools.testing = false;
+
   dumpConsoles();
 
   if (HUDService.getBrowserConsole()) {
@@ -366,10 +331,10 @@ function tearDown()
 
   let target = TargetFactory.forTab(gBrowser.selectedTab);
   gDevTools.closeToolbox(target);
+
   while (gBrowser.tabs.length > 1) {
     gBrowser.removeCurrentTab();
   }
-  WCU_l10n = tab = browser = hudId = hud = filterBox = outputNode = cs = null;
 }
 
 registerCleanupFunction(tearDown);
@@ -395,41 +360,42 @@ waitForExplicitFinish();
 
 
 
-
-
 function waitForSuccess(aOptions)
 {
+  let deferred = promise.defer();
   let start = Date.now();
   let timeout = aOptions.timeout || 5000;
+  let {validator} = aOptions;
 
-  function wait(validatorFn, successFn, failureFn)
+
+  function wait()
   {
     if ((Date.now() - start) > timeout) {
       
       ok(false, "Timed out while waiting for: " + aOptions.name);
-      failureFn(aOptions);
+      deferred.reject(null);
       return;
     }
 
-    if (validatorFn(aOptions)) {
+    if (validator(aOptions)) {
       ok(true, aOptions.name);
-      successFn();
+      deferred.resolve(null);
     }
     else {
-      setTimeout(function() wait(validatorFn, successFn, failureFn), 100);
+      setTimeout(wait, 100);
     }
   }
 
-  wait(aOptions.validatorFn, aOptions.successFn, aOptions.failureFn);
+  setTimeout(wait, 100);
+
+  return deferred.promise;
 }
 
-function openInspector(aCallback, aTab = gBrowser.selectedTab)
-{
+let openInspector = Task.async(function* (aTab = gBrowser.selectedTab) {
   let target = TargetFactory.forTab(aTab);
-  gDevTools.showToolbox(target, "inspector").then(function(toolbox) {
-    aCallback(toolbox.getCurrentPanel());
-  });
-}
+  let toolbox = yield gDevTools.showToolbox(target, "inspector");
+  return toolbox.getCurrentPanel();
+});
 
 
 
@@ -775,8 +741,8 @@ function variablesViewExpandTo(aOptions)
 
 
 
-function updateVariablesViewProperty(aOptions)
-{
+
+let updateVariablesViewProperty = Task.async(function* (aOptions) {
   let view = aOptions.property._variablesView;
   view.window.focus();
   aOptions.property.focus();
@@ -790,27 +756,34 @@ function updateVariablesViewProperty(aOptions)
       break;
     default:
       throw new Error("options.field is incorrect");
-      return;
   }
+
+  let deferred = promise.defer();
 
   executeSoon(() => {
     EventUtils.synthesizeKey("A", { accelKey: true }, view.window);
 
     for (let c of aOptions.string) {
-      EventUtils.synthesizeKey(c, {}, gVariablesView.window);
+      EventUtils.synthesizeKey(c, {}, view.window);
     }
 
     if (aOptions.webconsole) {
-      aOptions.webconsole.jsterm.once("variablesview-fetched", aOptions.callback);
+      aOptions.webconsole.jsterm.once("variablesview-fetched").then((varView) => {
+        deferred.resolve(varView);
+      });
     }
 
     EventUtils.synthesizeKey("VK_RETURN", {}, view.window);
 
     if (!aOptions.webconsole) {
-      executeSoon(aOptions.callback);
+      executeSoon(() => {
+        deferred.resolve(null);
+      });
     }
   });
-}
+
+  return deferred.promise;
+});
 
 
 

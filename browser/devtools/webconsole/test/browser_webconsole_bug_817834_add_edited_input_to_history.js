@@ -13,13 +13,17 @@
 
 
 
-function test() {
-  addTab("data:text/html;charset=utf-8,Web Console test for bug 817834");
-  browser.addEventListener("load", function onLoad() {
-    browser.removeEventListener("load", onLoad, true);
-    openConsole(null, testEditedInputHistory);
-  }, true);
-}
+"use strict";
+
+const TEST_URI = "data:text/html;charset=utf-8,Web Console test for bug 817834";
+
+let test = asyncTest(function* () {
+  yield loadTab(TEST_URI);
+
+  let hud = yield openConsole();
+
+  testEditedInputHistory(hud);
+});
 
 function testEditedInputHistory(HUD) {
   let jsterm = HUD.jsterm;
@@ -56,6 +60,4 @@ function testEditedInputHistory(HUD) {
   EventUtils.synthesizeKey("VK_DOWN", {});
   is(inputNode.value, '"editing input 2"',
      "test history down restores new in-progress input again");
-
-  executeSoon(finishTest);
 }

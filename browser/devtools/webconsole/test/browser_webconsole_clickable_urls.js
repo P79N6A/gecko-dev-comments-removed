@@ -6,6 +6,8 @@
 
 
 
+"use strict";
+
 const TEST_URI = "data:text/html;charset=utf8,Bug 1005909 - Clickable URLS";
 
 let inputTests = [

@@ -1,7 +1,7 @@
 
 
 
-let prefs = {
+const prefs = {
   "net": [
     "network",
     "netwarn",
@@ -25,7 +25,7 @@ let prefs = {
   ]
 };
 
-function test() {
+let test = asyncTest(function* () {
   
   for (let category in prefs) {
     prefs[category].forEach(function(pref) {
@@ -33,11 +33,25 @@ function test() {
     });
   }
 
-  addTab("about:blank");
-  openConsole(null, onConsoleOpen);
-}
+  yield loadTab("about:blank");
+
+  let hud = yield openConsole();
+
+  let hud2 = yield onConsoleOpen(hud);
+  let hud3 = yield onConsoleReopen1(hud2);
+  yield onConsoleReopen2(hud3);
+
+  
+  for (let category in prefs) {
+    prefs[category].forEach(function(pref) {
+      Services.prefs.clearUserPref("devtools.webconsole.filter." + pref);
+    });
+  }
+});
 
 function onConsoleOpen(hud) {
+  let deferred = promise.defer();
+
   let hudBox = hud.ui.rootElement;
 
   
@@ -60,12 +74,17 @@ function onConsoleOpen(hud) {
   }
 
   
-  closeConsole(null, function() {
-    openConsole(null, onConsoleReopen1);
+  closeConsole().then(() => {
+    openConsole().then(deferred.resolve);
   });
+
+  return deferred.promise;
 }
 
 function onConsoleReopen1(hud) {
+  info("testing after reopening once");
+  let deferred = promise.defer();
+
   let hudBox = hud.ui.rootElement;
 
   
@@ -86,12 +105,16 @@ function onConsoleReopen1(hud) {
   }
 
   
-  closeConsole(null, function() {
-    openConsole(null, onConsoleReopen2);
+  closeConsole().then(() => {
+    openConsole().then(deferred.resolve);
   });
+
+  return deferred.promise;
 }
 
 function onConsoleReopen2(hud) {
+  info("testing after reopening again");
+
   let hudBox = hud.ui.rootElement;
 
   
@@ -104,16 +127,6 @@ function onConsoleReopen2(hud) {
     let menuitem = hudBox.querySelector("menuitem[prefKey=" + pref + "]");
     ok(isChecked(menuitem), "first " + category + " menuitem is checked");
   }
-
-  
-  for (let category in prefs) {
-    prefs[category].forEach(function(pref) {
-      Services.prefs.clearUserPref("devtools.webconsole.filter." + pref);
-    });
-  }
-
-  prefs = null;
-  finishTest();
 }
 
 function isChecked(aNode) {

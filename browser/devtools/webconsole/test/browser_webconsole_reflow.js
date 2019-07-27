@@ -3,33 +3,30 @@
 
 
 
-function test()
-{
-  addTab("data:text/html;charset=utf-8,Web Console test for reflow activity");
+"use strict";
 
-  browser.addEventListener("load", function onLoad() {
-    browser.removeEventListener("load", onLoad, true);
-    openConsole(gBrowser.selectedTab, function(hud) {
+const TEST_URI = "data:text/html;charset=utf-8,Web Console test for reflow activity";
 
-      function onReflowListenersReady(aType, aPacket) {
-        browser.contentDocument.body.style.display = "none";
-        browser.contentDocument.body.clientTop;
-      }
+let test = asyncTest(function* () {
+  let { browser } = yield loadTab(TEST_URI);
 
-      Services.prefs.setBoolPref("devtools.webconsole.filter.csslog", true);
-      hud.ui._updateReflowActivityListener(onReflowListenersReady);
-      Services.prefs.clearUserPref("devtools.webconsole.filter.csslog");
+  let hud = yield openConsole();
 
-      waitForMessages({
-        webconsole: hud,
-        messages: [{
-          text: /reflow: /,
-          category: CATEGORY_CSS,
-          severity: SEVERITY_LOG,
-        }],
-      }).then(() => {
-        finishTest();
-      });
-    });
-  }, true);
-}
+  function onReflowListenersReady(aType, aPacket) {
+    browser.contentDocument.body.style.display = "none";
+    browser.contentDocument.body.clientTop;
+  }
+
+  Services.prefs.setBoolPref("devtools.webconsole.filter.csslog", true);
+  hud.ui._updateReflowActivityListener(onReflowListenersReady);
+  Services.prefs.clearUserPref("devtools.webconsole.filter.csslog");
+
+  yield waitForMessages({
+    webconsole: hud,
+    messages: [{
+      text: /reflow: /,
+      category: CATEGORY_CSS,
+      severity: SEVERITY_LOG,
+    }],
+  })
+});

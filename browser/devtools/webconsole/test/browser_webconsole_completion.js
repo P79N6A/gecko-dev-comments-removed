@@ -7,34 +7,20 @@
 
 const TEST_URI = "data:text/html;charset=utf8,<p>test code completion";
 
-let testDriver;
+let jsterm;
 
-function test() {
-  addTab(TEST_URI);
-  browser.addEventListener("load", function onLoad() {
-    browser.removeEventListener("load", onLoad, true);
-    openConsole(null, function(hud) {
-      testDriver = testCompletion(hud);
-      testDriver.next();
-    });
-  }, true);
-}
+let test = asyncTest(function* () {
+  yield loadTab(TEST_URI);
 
-function testNext() {
-  executeSoon(function() {
-    testDriver.next();
-  });
-}
+  let hud = yield openConsole();
 
-function testCompletion(hud) {
-  let jsterm = hud.jsterm;
+  jsterm = hud.jsterm;
   let input = jsterm.inputNode;
 
   
   input.value = "docu";
   input.setSelectionRange(4, 4);
-  jsterm.complete(jsterm.COMPLETE_HINT_ONLY, testNext);
-  yield undefined;
+  yield complete(jsterm.COMPLETE_HINT_ONLY);
 
   is(input.value, "docu", "'docu' completion (input.value)");
   is(jsterm.completeNode.value, "    ment", "'docu' completion (completeNode)");
@@ -42,8 +28,7 @@ function testCompletion(hud) {
   
   input.value = "docu";
   input.setSelectionRange(4, 4);
-  jsterm.complete(jsterm.COMPLETE_FORWARD, testNext);
-  yield undefined;
+  yield complete(jsterm.COMPLETE_FORWARD);
 
   is(input.value, "document", "'docu' tab completion");
   is(input.selectionStart, 8, "start selection is alright");
@@ -54,30 +39,26 @@ function testCompletion(hud) {
   
   input.value = "window.Ob";
   input.setSelectionRange(9, 9);
-  jsterm.complete(jsterm.COMPLETE_FORWARD, testNext);
-  yield undefined;
+  yield complete(jsterm.COMPLETE_FORWARD);
 
   is(input.value, "window.Object", "'window.Ob' tab completion");
 
   
   input.value = "document.getElem";
   input.setSelectionRange(16, 16);
-  jsterm.complete(jsterm.COMPLETE_FORWARD, testNext);
-  yield undefined;
+  yield complete(jsterm.COMPLETE_FORWARD);
 
   is(input.value, "document.getElem", "'document.getElem' completion");
   is(jsterm.completeNode.value, "                entsByTagNameNS", "'document.getElem' completion");
 
   
-  jsterm.complete(jsterm.COMPLETE_FORWARD, testNext);
-  yield undefined;
+  yield jsterm.complete(jsterm.COMPLETE_FORWARD);
 
   is(input.value, "document.getElem", "'document.getElem' completion");
   is(jsterm.completeNode.value, "                entsByTagName", "'document.getElem' another tab completion");
 
   
-  jsterm.complete(jsterm.COMPLETE_BACKWARD, testNext);
-  yield undefined;
+  complete(jsterm.COMPLETE_BACKWARD);
 
   is(input.value, "document.getElem", "'document.getElem' untab completion");
   is(jsterm.completeNode.value, "                entsByTagNameNS", "'document.getElem' completion");
@@ -85,8 +66,7 @@ function testCompletion(hud) {
   jsterm.clearOutput();
 
   input.value = "docu";
-  jsterm.complete(jsterm.COMPLETE_HINT_ONLY, testNext);
-  yield undefined;
+  yield complete(jsterm.COMPLETE_HINT_ONLY);
 
   is(jsterm.completeNode.value, "    ment", "'docu' completion");
   jsterm.execute();
@@ -94,27 +74,28 @@ function testCompletion(hud) {
 
   
   input.value =                 "console.log('one');\nconsol";
-  jsterm.complete(jsterm.COMPLETE_HINT_ONLY, testNext);
-  yield undefined;
+  yield complete(jsterm.COMPLETE_HINT_ONLY);
 
   is(jsterm.completeNode.value, "                   \n      e", "multi-line completion");
 
   
   input.value = "Object.name.sl";
-  jsterm.complete(jsterm.COMPLETE_HINT_ONLY, testNext);
-  yield undefined;
+  yield complete(jsterm.COMPLETE_HINT_ONLY);
 
   is(jsterm.completeNode.value, "              ice", "non-object completion");
 
   
   input.value = "'Asimov'.sl";
-  jsterm.complete(jsterm.COMPLETE_HINT_ONLY, testNext);
-  yield undefined;
+  yield complete(jsterm.COMPLETE_HINT_ONLY);
 
   is(jsterm.completeNode.value, "           ice", "string literal completion");
 
-  testDriver = jsterm = input = null;
-  executeSoon(finishTest);
-  yield undefined;
-}
+  jsterm = null;
+});
 
+
+function complete(type) {
+  let updated = jsterm.once("autocomplete-updated");
+  jsterm.complete(type);
+  return updated;
+}

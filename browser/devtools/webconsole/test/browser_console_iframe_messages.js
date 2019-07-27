@@ -8,7 +8,7 @@
 
 const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test/test-consoleiframes.html";
 
-let expectedMessages = [
+const expectedMessages = [
   {
     text: "main file",
     category: CATEGORY_WEBDEV,
@@ -35,7 +35,7 @@ let expectedMessages = [
 
 
 
-let expectedMessagesAny = [
+const expectedMessagesAny = [
   {
     name: "iframe 1 (count: 2)",
     text: "iframe 1",
@@ -55,12 +55,9 @@ let expectedMessagesAny = [
 function test()
 {
   expectUncaughtException();
-  addTab(TEST_URI);
-  browser.addEventListener("load", function onLoad() {
-    browser.removeEventListener("load", onLoad, true);
-    info("open web console");
-    openConsole(null, consoleOpened);
-  }, true);
+  loadTab(TEST_URI).then(() => {
+    openConsole().then(consoleOpened);
+  });
 }
 
 function consoleOpened(hud)
@@ -77,7 +74,7 @@ function consoleOpened(hud)
       messages: expectedMessagesAny,
       matchCondition: "any",
     }).then(() => {
-      closeConsole(null, onWebConsoleClose);
+      closeConsole().then(onWebConsoleClose);
     });
   });
 }
@@ -101,7 +98,7 @@ function onBrowserConsoleOpen(hud)
       messages: expectedMessagesAny,
       matchCondition: "any",
     }).then(() => {
-      closeConsole(null, finishTest);
+      closeConsole().then(finishTest);
     });
   });
 }
