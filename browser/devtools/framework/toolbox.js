@@ -179,6 +179,33 @@ Toolbox.prototype = {
 
 
 
+
+
+
+
+
+
+
+
+  getPanelWhenReady: function(id) {
+    let deferred = promise.defer();
+    let panel = this.getPanel(id);
+    if (panel) {
+      deferred.resolve(panel);
+    } else {
+      this.on(id + "-ready", (e, panel) => {
+        deferred.resolve(panel);
+      });
+    }
+
+    return deferred.promise;
+  },
+
+  
+
+
+
+
   getCurrentPanel: function() {
     return this._toolPanels.get(this.currentToolId);
   },
