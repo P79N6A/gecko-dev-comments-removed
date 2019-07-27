@@ -7,6 +7,7 @@
 #include "jsmath.h"
 
 #include "builtin/AtomicsObject.h"
+#include "builtin/SIMD.h"
 #include "builtin/TestingFunctions.h"
 #include "builtin/TypedObject.h"
 #include "jit/BaselineInspector.h"
@@ -245,6 +246,10 @@ IonBuilder::inlineNativeCall(CallInfo &callInfo, JSFunction *target)
     
     if (native == js::CallOrConstructBoundFunction)
         return inlineBoundFunction(callInfo, target);
+
+    
+    if (native == js::simd_int32x4_add)
+        return inlineSimdInt32x4BinaryArith(callInfo, native, MSimdBinaryArith::Add);
 
     return InliningStatus_NotInlined;
 }
@@ -2605,6 +2610,38 @@ IonBuilder::inlineConstructSimdObject(CallInfo &callInfo, SimdTypeDescr *descr)
 
     MSimdBox *obj = MSimdBox::New(alloc(), constraints(), values, inlineTypedObject,
                                   inlineTypedObject->type()->initialHeap(constraints()));
+    current->add(obj);
+    current->push(obj);
+
+    callInfo.setImplicitlyUsedUnchecked();
+    return InliningStatus_Inlined;
+}
+
+IonBuilder::InliningStatus
+IonBuilder::inlineSimdInt32x4BinaryArith(CallInfo &callInfo, JSNative native,
+                                         MSimdBinaryArith::Operation op)
+{
+    if (callInfo.argc() != 2)
+        return InliningStatus_NotInlined;
+
+    JSObject *templateObject = inspector->getTemplateObjectForNative(pc, native);
+    if (!templateObject)
+        return InliningStatus_NotInlined;
+
+    InlineTypedObject *inlineTypedObject = &templateObject->as<InlineTypedObject>();
+    MOZ_ASSERT(inlineTypedObject->typeDescr().as<SimdTypeDescr>().type() == js::Int32x4::type);
+
+    
+    
+    
+    
+    MSimdBinaryArith *ins = MSimdBinaryArith::New(alloc(), callInfo.getArg(0), callInfo.getArg(1),
+                                                  op, MIRType_Int32x4);
+
+    MSimdBox *obj = MSimdBox::New(alloc(), constraints(), ins, inlineTypedObject,
+                                  inlineTypedObject->type()->initialHeap(constraints()));
+
+    current->add(ins);
     current->add(obj);
     current->push(obj);
 
