@@ -4636,18 +4636,18 @@ nsHTMLEditRules::WillAlign(Selection* aSelection,
   
   
   *aHandled = true;
-  nsTArray<nsCOMPtr<nsINode>> array;
-  res = GetNodesFromSelection(*aSelection, EditAction::align, array);
+  nsTArray<nsCOMPtr<nsINode>> nodeArray;
+  res = GetNodesFromSelection(*aSelection, EditAction::align, nodeArray);
   NS_ENSURE_SUCCESS(res, res);
 
   
   
   bool emptyDiv = false;
-  int32_t listCount = array.Length();
+  int32_t listCount = nodeArray.Length();
   if (!listCount) emptyDiv = true;
   if (listCount == 1)
   {
-    nsCOMPtr<nsINode> theNode = array[0];
+    nsCOMPtr<nsINode> theNode = nodeArray[0];
 
     if (nsHTMLEditUtils::SupportsAlignAttr(GetAsDOMNode(theNode))) {
       
@@ -4740,14 +4740,8 @@ nsHTMLEditRules::WillAlign(Selection* aSelection,
   
   
 
-  nsCOMArray<nsIDOMNode> arrayOfNodes;
-  for (auto& node : array) {
-    arrayOfNodes.AppendObject(GetAsDOMNode(node));
-  }
-
   nsTArray<bool> transitionList;
-  res = MakeTransitionList(arrayOfNodes, transitionList);
-  NS_ENSURE_SUCCESS(res, res);                                 
+  MakeTransitionList(nodeArray, transitionList);
 
   
   
@@ -4757,7 +4751,7 @@ nsHTMLEditRules::WillAlign(Selection* aSelection,
   bool useCSS = mHTMLEditor->IsCSSEnabled();
   for (int32_t i = 0; i < listCount; ++i) {
     
-    nsCOMPtr<nsIDOMNode> curNode = arrayOfNodes[i];
+    nsCOMPtr<nsIDOMNode> curNode = nodeArray[i]->AsDOMNode();
     nsCOMPtr<nsIContent> curContent = do_QueryInterface(curNode);
     NS_ENSURE_STATE(curContent);
 
@@ -6270,34 +6264,23 @@ nsHTMLEditRules::GetNodesFromSelection(Selection& aSelection,
 
 
 
-
-nsresult 
-nsHTMLEditRules::MakeTransitionList(nsCOMArray<nsIDOMNode>& inArrayOfNodes, 
-                                    nsTArray<bool> &inTransitionArray)
+void
+nsHTMLEditRules::MakeTransitionList(nsTArray<nsCOMPtr<nsINode>>& aNodeArray,
+                                    nsTArray<bool>& aTransitionArray)
 {
-  uint32_t listCount = inArrayOfNodes.Count();
-  inTransitionArray.EnsureLengthAtLeast(listCount);
-  uint32_t i;
-  nsCOMPtr<nsIDOMNode> prevElementParent;
-  nsCOMPtr<nsIDOMNode> curElementParent;
-  
-  for (i=0; i<listCount; i++)
-  {
-    nsIDOMNode* transNode = inArrayOfNodes[i];
-    transNode->GetParentNode(getter_AddRefs(curElementParent));
-    if (curElementParent != prevElementParent)
-    {
+  nsCOMPtr<nsINode> prevParent;
+
+  aTransitionArray.EnsureLengthAtLeast(aNodeArray.Length());
+  for (uint32_t i = 0; i < aNodeArray.Length(); i++) {
+    if (aNodeArray[i]->GetParentNode() != prevParent) {
       
-      inTransitionArray[i] = true;
-    }
-    else
-    {
+      aTransitionArray[i] = true;
+    } else {
       
-      inTransitionArray[i] = false;
+      aTransitionArray[i] = false;
     }
-    prevElementParent = curElementParent;
+    prevParent = aNodeArray[i]->GetParentNode();
   }
-  return NS_OK;
 }
 
 
