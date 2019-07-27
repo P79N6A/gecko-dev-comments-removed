@@ -311,8 +311,6 @@ public:
                                          ResolveMethodType aResolveMethod, RejectMethodType aRejectMethod,
                                          TaskDispatcher& aDispatcher = PassByRef<AutoTaskDispatcher>())
   {
-    MutexAutoLock lock(mMutex);
-
     
     
     
@@ -322,6 +320,7 @@ public:
     
     aDispatcher.AssertIsTailDispatcherIfRequired();
 
+    MutexAutoLock lock(mMutex);
     MOZ_DIAGNOSTIC_ASSERT(!IsExclusive || !mHaveConsumer);
     mHaveConsumer = true;
     nsRefPtr<ThenValueBase> thenValue = new ThenValue<ThisType, ResolveMethodType, RejectMethodType>(
