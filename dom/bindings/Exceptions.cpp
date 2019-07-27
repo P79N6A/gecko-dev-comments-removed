@@ -183,6 +183,15 @@ GetCurrentJSStack()
   }
 
   
+  uint32_t language;
+  nsCOMPtr<nsIStackFrame> caller;
+  while (stack &&
+         NS_SUCCEEDED(stack->GetLanguage(&language)) &&
+         language != nsIProgrammingLanguage::JAVASCRIPT &&
+         NS_SUCCEEDED(stack->GetCaller(getter_AddRefs(caller))) &&
+         caller) {
+    stack = caller;
+  }
   return stack.forget();
 }
 
