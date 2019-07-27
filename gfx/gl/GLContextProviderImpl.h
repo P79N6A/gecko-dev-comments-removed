@@ -61,10 +61,6 @@ public:
                     const SurfaceCaps& caps);
 
     
-    static already_AddRefed<GLContext>
-    CreateHeadless();
-
-    
 
 
 

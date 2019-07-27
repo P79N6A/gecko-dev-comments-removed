@@ -72,8 +72,6 @@
 #include "mozilla/layers/ShadowLayers.h"
 #endif
 
-#include <queue>
-
 using namespace mozilla;
 using namespace mozilla::dom;
 using namespace mozilla::gfx;
@@ -437,10 +435,12 @@ WebGLContext::SetContextOptions(JSContext* aCx, JS::Handle<JS::Value> aOptions)
     newOpts.premultipliedAlpha = attributes.mPremultipliedAlpha;
     newOpts.antialias = attributes.mAntialias;
     newOpts.preserveDrawingBuffer = attributes.mPreserveDrawingBuffer;
-
     if (attributes.mAlpha.WasPassed()) {
-        newOpts.alpha = attributes.mAlpha.Value();
+      newOpts.alpha = attributes.mAlpha.Value();
     }
+
+    
+    newOpts.depth |= newOpts.stencil;
 
     
     if (!gfxPrefs::MSAALevel()) {
@@ -471,332 +471,35 @@ WebGLContext::SetContextOptions(JSContext* aCx, JS::Handle<JS::Value> aOptions)
 int32_t
 WebGLContext::GetWidth() const
 {
-    return mWidth;
+  return mWidth;
 }
 
 int32_t
 WebGLContext::GetHeight() const
 {
-    return mHeight;
+  return mHeight;
 }
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static bool
-IsFeatureInBlacklist(const nsCOMPtr<nsIGfxInfo>& gfxInfo, int32_t feature)
-{
-    int32_t status;
-    if (!NS_SUCCEEDED(gfxInfo->GetFeatureStatus(feature, &status)))
-        return false;
-
-    return status != nsIGfxInfo::FEATURE_STATUS_OK;
-}
-
-static already_AddRefed<GLContext>
-CreateHeadlessNativeGL(bool forceEnabled,
-                       const nsCOMPtr<nsIGfxInfo>& gfxInfo,
-                       WebGLContext* webgl)
-{
-    if (!forceEnabled &&
-        IsFeatureInBlacklist(gfxInfo, nsIGfxInfo::FEATURE_WEBGL_OPENGL))
-    {
-        webgl->GenerateWarning("Refused to create native OpenGL context"
-                               " because of blacklisting.");
-        return nullptr;
-    }
-
-    nsRefPtr<GLContext> gl = gl::GLContextProvider::CreateHeadless();
-    if (!gl) {
-        webgl->GenerateWarning("Error during native OpenGL init.");
-        return nullptr;
-    }
-    MOZ_ASSERT(!gl->IsANGLE());
-
-    return gl.forget();
-}
-
-
-
-
-static already_AddRefed<GLContext>
-CreateHeadlessANGLE(bool forceEnabled,
-                    const nsCOMPtr<nsIGfxInfo>& gfxInfo,
-                    WebGLContext* webgl)
-{
-    nsRefPtr<GLContext> gl;
-
-#ifdef XP_WIN
-    if (!forceEnabled &&
-        IsFeatureInBlacklist(gfxInfo, nsIGfxInfo::FEATURE_WEBGL_ANGLE))
-    {
-        webgl->GenerateWarning("Refused to create ANGLE OpenGL context"
-                               " because of blacklisting.");
-        return nullptr;
-    }
-
-    gl = gl::GLContextProviderEGL::CreateHeadless();
-    if (!gl) {
-        webgl->GenerateWarning("Error during ANGLE OpenGL init.");
-        return nullptr;
-    }
-    MOZ_ASSERT(gl->IsANGLE());
-#endif
-
-    return gl.forget();
-}
-
-static already_AddRefed<GLContext>
-CreateHeadlessEGL(bool forceEnabled,
-                  const nsCOMPtr<nsIGfxInfo>& gfxInfo,
-                  WebGLContext* webgl)
-{
-    nsRefPtr<GLContext> gl;
-
-#ifdef ANDROID
-    gl = gl::GLContextProviderEGL::CreateHeadless();
-    if (!gl) {
-        webgl->GenerateWarning("Error during EGL OpenGL init.");
-        return nullptr;
-    }
-    MOZ_ASSERT(!gl->IsANGLE());
-#endif
-
-    return gl.forget();
-}
-
-
-static already_AddRefed<GLContext>
-CreateHeadlessGL(bool forceEnabled,
-                 const nsCOMPtr<nsIGfxInfo>& gfxInfo,
-                 WebGLContext* webgl)
-{
-    bool preferEGL = PR_GetEnv("MOZ_WEBGL_PREFER_EGL");
-    bool disableANGLE = Preferences::GetBool("webgl.disable-angle", false);
-
-    if (PR_GetEnv("MOZ_WEBGL_FORCE_OPENGL")) {
-        disableANGLE = true;
-    }
-
-    nsRefPtr<GLContext> gl;
-
-    if (preferEGL)
-        gl = CreateHeadlessEGL(forceEnabled, gfxInfo, webgl);
-
-    if (!gl && !disableANGLE)
-        gl = CreateHeadlessANGLE(forceEnabled, gfxInfo, webgl);
-
-    if (!gl)
-        gl = CreateHeadlessNativeGL(forceEnabled, gfxInfo, webgl);
-
-    return gl.forget();
-}
-
-
-static bool
-CreateOffscreenWithCaps(GLContext* gl, const SurfaceCaps& caps)
-{
-    gfx::IntSize dummySize(16, 16);
-    return gl->InitOffscreen(dummySize, caps);
-}
-
-static void
-PopulateCapFallbackQueue(const SurfaceCaps& baseCaps,
-                         std::queue<SurfaceCaps>* fallbackCaps)
-{
-    fallbackCaps->push(baseCaps);
-
-    
-    
-    
-    if (baseCaps.antialias) {
-        SurfaceCaps nextCaps(baseCaps);
-        nextCaps.antialias = false;
-        PopulateCapFallbackQueue(nextCaps, fallbackCaps);
-    }
-
-    
-    
-    
-    if (baseCaps.stencil) {
-        SurfaceCaps nextCaps(baseCaps);
-        nextCaps.stencil = false;
-        PopulateCapFallbackQueue(nextCaps, fallbackCaps);
-    }
-
-    if (baseCaps.depth) {
-        SurfaceCaps nextCaps(baseCaps);
-        nextCaps.depth = false;
-        PopulateCapFallbackQueue(nextCaps, fallbackCaps);
-    }
-}
-
-static bool
-CreateOffscreen(GLContext* gl,
-                const WebGLContextOptions& options,
-                const nsCOMPtr<nsIGfxInfo>& gfxInfo,
-                WebGLContext* webgl,
-                layers::ISurfaceAllocator* surfAllocator)
-{
-    SurfaceCaps baseCaps;
-
-    baseCaps.color = true;
-    baseCaps.alpha = options.alpha;
-    baseCaps.antialias = options.antialias;
-    baseCaps.depth = options.depth;
-    baseCaps.preserve = options.preserveDrawingBuffer;
-    baseCaps.stencil = options.stencil;
-
-    
-    
-    
-    baseCaps.bpp16 = Preferences::GetBool("webgl.prefer-16bpp", false);
-
-#ifdef MOZ_WIDGET_GONK
-    baseCaps.surfaceAllocator = surfAllocator;
-#endif
-
-    
-
-    bool forceAllowAA = Preferences::GetBool("webgl.msaa-force", false);
-    if (!forceAllowAA &&
-        IsFeatureInBlacklist(gfxInfo, nsIGfxInfo::FEATURE_WEBGL_MSAA))
-    {
-        webgl->GenerateWarning("Disallowing antialiased backbuffers due"
-                               " to blacklisting.");
-        baseCaps.antialias = false;
-    }
-
-    std::queue<SurfaceCaps> fallbackCaps;
-    PopulateCapFallbackQueue(baseCaps, &fallbackCaps);
-
-    bool created = false;
-    while (!fallbackCaps.empty()) {
-        SurfaceCaps& caps = fallbackCaps.front();
-
-        created = CreateOffscreenWithCaps(gl, caps);
-        if (created)
-            break;
-
-        fallbackCaps.pop();
-    }
-
-    return created;
-}
-
-bool
-WebGLContext::CreateOffscreenGL(bool forceEnabled)
-{
-    nsCOMPtr<nsIGfxInfo> gfxInfo = do_GetService("@mozilla.org/gfx/info;1");
-
-    layers::ISurfaceAllocator* surfAllocator = nullptr;
-#ifdef MOZ_WIDGET_GONK
-    nsIWidget* docWidget = nsContentUtils::WidgetForDocument(mCanvasElement->OwnerDoc());
-    if (docWidget) {
-        layers::LayerManager* layerManager = docWidget->GetLayerManager();
-        if (layerManager) {
-            
-            layers::ShadowLayerForwarder* forwarder = layerManager->AsShadowForwarder();
-            if (forwarder) {
-                surfAllocator = static_cast<layers::ISurfaceAllocator*>(forwarder);
-            }
-        }
-    }
-#endif
-
-    gl = CreateHeadlessGL(forceEnabled, gfxInfo, this);
-
-    do {
-        if (!gl)
-            break;
-
-        if (!CreateOffscreen(gl, mOptions, gfxInfo, this, surfAllocator))
-            break;
-
-        if (!InitAndValidateGL())
-            break;
-
-        return true;
-    } while (false);
-
-    gl = nullptr;
-    return false;
-}
-
-
-bool
-WebGLContext::ResizeBackbuffer(uint32_t requestedWidth, uint32_t requestedHeight)
-{
-    uint32_t width = requestedWidth;
-    uint32_t height = requestedHeight;
-
-    bool resized = false;
-    while (width || height) {
-      width = width ? width : 1;
-      height = height ? height : 1;
-
-      gfx::IntSize curSize(width, height);
-      if (gl->ResizeOffscreen(curSize)) {
-          resized = true;
-          break;
-      }
-
-      width /= 2;
-      height /= 2;
-    }
-
-    if (!resized)
-        return false;
-
-    mWidth = gl->OffscreenSize().width;
-    mHeight = gl->OffscreenSize().height;
-    MOZ_ASSERT((uint32_t)mWidth == width);
-    MOZ_ASSERT((uint32_t)mHeight == height);
-
-    if (width != requestedWidth ||
-        height != requestedHeight)
-    {
-        GenerateWarning("Requested size %dx%d was too large, but resize"
-                          " to %dx%d succeeded.",
-                        requestedWidth, requestedHeight,
-                        width, height);
-    }
-    return true;
-}
-
 
 NS_IMETHODIMP
-WebGLContext::SetDimensions(int32_t sWidth, int32_t sHeight)
+WebGLContext::SetDimensions(int32_t width, int32_t height)
 {
     
-    if (!GetCanvas())
-        return NS_ERROR_FAILURE;
 
-    if (sWidth < 0 || sHeight < 0) {
+    if (width < 0 || height < 0) {
         GenerateWarning("Canvas size is too large (seems like a negative value wrapped)");
         return NS_ERROR_OUT_OF_MEMORY;
     }
 
-    uint32_t width = sWidth;
-    uint32_t height = sHeight;
+    if (!GetCanvas())
+        return NS_ERROR_FAILURE;
 
     
+
     GetCanvas()->InvalidateCanvas();
+
+    if (gl && mWidth == width && mHeight == height)
+        return NS_OK;
 
     
     if (width == 0) {
@@ -808,29 +511,20 @@ WebGLContext::SetDimensions(int32_t sWidth, int32_t sHeight)
 
     
     if (gl) {
-        if ((uint32_t)mWidth == width &&
-            (uint32_t)mHeight == height)
-        {
-            return NS_OK;
-        }
-
-        if (IsContextLost())
-            return NS_OK;
-
         MakeContextCurrent();
 
         
         PresentScreenBuffer();
 
         
-        if (!ResizeBackbuffer(width, height)) {
-            GenerateWarning("WebGL context failed to resize.");
-            ForceLoseContext();
-            return NS_OK;
-        }
+        gl->ResizeOffscreen(gfx::IntSize(width, height)); 
+        
 
         
+        mWidth = gl->OffscreenSize().width;
+        mHeight = gl->OffscreenSize().height;
         mResetLayer = true;
+
         mBackbufferNeedsClear = true;
 
         return NS_OK;
@@ -848,39 +542,139 @@ WebGLContext::SetDimensions(int32_t sWidth, int32_t sHeight)
     LoseOldestWebGLContextIfLimitExceeded();
 
     
-    
-    
-    
-
-    
-    
-    
-    if (!(mGeneration + 1).isValid()) {
-        GenerateWarning("Too many WebGL contexts created this run.");
-        return NS_ERROR_FAILURE; 
-    }
-
-    
     NS_ENSURE_TRUE(Preferences::GetRootBranch(), NS_ERROR_FAILURE);
 
-    bool disabled = Preferences::GetBool("webgl.disabled", false);
-    if (disabled) {
-        GenerateWarning("WebGL creation is disabled, and so disallowed here.");
-        return NS_ERROR_FAILURE;
-    }
+#ifdef XP_WIN
+    bool preferEGL =
+        Preferences::GetBool("webgl.prefer-egl", false);
+    bool preferOpenGL =
+        Preferences::GetBool("webgl.prefer-native-gl", false);
+#endif
+    bool forceEnabled =
+        Preferences::GetBool("webgl.force-enabled", false);
+    bool disabled =
+        Preferences::GetBool("webgl.disabled", false);
+    bool prefer16bit =
+        Preferences::GetBool("webgl.prefer-16bpp", false);
 
-    
-    bool forceEnabled = Preferences::GetBool("webgl.force-enabled", false);
     ScopedGfxFeatureReporter reporter("WebGL", forceEnabled);
 
-    if (!CreateOffscreenGL(forceEnabled)) {
-        GenerateWarning("WebGL creation failed.");
+    if (disabled)
         return NS_ERROR_FAILURE;
-    }
-    MOZ_ASSERT(gl);
 
-    if (!ResizeBackbuffer(width, height)) {
-        GenerateWarning("Initializing WebGL backbuffer failed.");
+    
+    
+    
+    
+
+    
+    
+    
+    if (!(mGeneration + 1).isValid())
+        return NS_ERROR_FAILURE; 
+
+    SurfaceCaps caps;
+
+    caps.color = true;
+    caps.alpha = mOptions.alpha;
+    caps.depth = mOptions.depth;
+    caps.stencil = mOptions.stencil;
+
+    
+    
+    
+    caps.bpp16 = prefer16bit;
+
+    caps.preserve = mOptions.preserveDrawingBuffer;
+
+#ifdef MOZ_WIDGET_GONK
+    nsIWidget *docWidget = nsContentUtils::WidgetForDocument(mCanvasElement->OwnerDoc());
+    if (docWidget) {
+        layers::LayerManager *layerManager = docWidget->GetLayerManager();
+        if (layerManager) {
+            
+            layers::ShadowLayerForwarder *forwarder = layerManager->AsShadowForwarder();
+            if (forwarder) {
+                caps.surfaceAllocator = static_cast<layers::ISurfaceAllocator*>(forwarder);
+            }
+        }
+    }
+#endif
+
+    bool forceMSAA =
+        Preferences::GetBool("webgl.msaa-force", false);
+
+    int32_t status;
+    nsCOMPtr<nsIGfxInfo> gfxInfo = do_GetService("@mozilla.org/gfx/info;1");
+    if (mOptions.antialias &&
+        gfxInfo &&
+        NS_SUCCEEDED(gfxInfo->GetFeatureStatus(nsIGfxInfo::FEATURE_WEBGL_MSAA, &status))) {
+        if (status == nsIGfxInfo::FEATURE_STATUS_OK || forceMSAA) {
+            caps.antialias = true;
+        }
+    }
+
+#ifdef XP_WIN
+    if (PR_GetEnv("MOZ_WEBGL_PREFER_EGL")) {
+        preferEGL = true;
+    }
+#endif
+
+    
+    bool useOpenGL = true;
+
+#ifdef XP_WIN
+    bool useANGLE = true;
+#endif
+
+    if (gfxInfo && !forceEnabled) {
+        if (NS_SUCCEEDED(gfxInfo->GetFeatureStatus(nsIGfxInfo::FEATURE_WEBGL_OPENGL, &status))) {
+            if (status != nsIGfxInfo::FEATURE_STATUS_OK) {
+                useOpenGL = false;
+            }
+        }
+#ifdef XP_WIN
+        if (NS_SUCCEEDED(gfxInfo->GetFeatureStatus(nsIGfxInfo::FEATURE_WEBGL_ANGLE, &status))) {
+            if (status != nsIGfxInfo::FEATURE_STATUS_OK) {
+                useANGLE = false;
+            }
+        }
+#endif
+    }
+
+#ifdef XP_WIN
+    
+    if (PR_GetEnv("MOZ_WEBGL_FORCE_OPENGL")) {
+        preferEGL = false;
+        useANGLE = false;
+        useOpenGL = true;
+    }
+#endif
+
+    gfxIntSize size(width, height);
+
+#ifdef XP_WIN
+    
+    if (!gl && (preferEGL || useANGLE) && !preferOpenGL) {
+        gl = gl::GLContextProviderEGL::CreateOffscreen(size, caps);
+        if (!gl || !InitAndValidateGL()) {
+            GenerateWarning("Error during ANGLE OpenGL ES initialization");
+            return NS_ERROR_FAILURE;
+        }
+    }
+#endif
+
+    
+    if (!gl && useOpenGL) {
+        gl = gl::GLContextProvider::CreateOffscreen(size, caps);
+        if (gl && !InitAndValidateGL()) {
+            GenerateWarning("Error during OpenGL initialization");
+            return NS_ERROR_FAILURE;
+        }
+    }
+
+    if (!gl) {
+        GenerateWarning("Can't get a usable WebGL context");
         return NS_ERROR_FAILURE;
     }
 
@@ -890,17 +684,22 @@ WebGLContext::SetDimensions(int32_t sWidth, int32_t sHeight)
     }
 #endif
 
+    mWidth = width;
+    mHeight = height;
+    mViewportWidth = width;
+    mViewportHeight = height;
     mResetLayer = true;
     mOptionsFrozen = true;
 
     
     ++mGeneration;
+#if 0
+    if (mGeneration > 0) {
+        
+    }
+#endif
 
     MakeContextCurrent();
-
-    gl->fViewport(0, 0, mWidth, mHeight);
-    mViewportWidth = mWidth;
-    mViewportHeight = mHeight;
 
     
     
@@ -916,12 +715,12 @@ WebGLContext::SetDimensions(int32_t sWidth, int32_t sHeight)
 
     mShouldPresent = true;
 
-    MOZ_ASSERT(gl->Caps().color);
-    MOZ_ASSERT(gl->Caps().alpha == mOptions.alpha);
-    MOZ_ASSERT(gl->Caps().depth == mOptions.depth || !gl->Caps().depth);
-    MOZ_ASSERT(gl->Caps().stencil == mOptions.stencil || !gl->Caps().stencil);
-    MOZ_ASSERT(gl->Caps().antialias == mOptions.antialias || !gl->Caps().antialias);
-    MOZ_ASSERT(gl->Caps().preserve == mOptions.preserveDrawingBuffer);
+    MOZ_ASSERT(gl->Caps().color == caps.color);
+    MOZ_ASSERT(gl->Caps().alpha == caps.alpha);
+    MOZ_ASSERT(gl->Caps().depth == caps.depth || !gl->Caps().depth);
+    MOZ_ASSERT(gl->Caps().stencil == caps.stencil || !gl->Caps().stencil);
+    MOZ_ASSERT(gl->Caps().antialias == caps.antialias || !gl->Caps().antialias);
+    MOZ_ASSERT(gl->Caps().preserve == caps.preserve);
 
     AssertCachedBindings();
     AssertCachedState();
@@ -1412,7 +1211,7 @@ WebGLContext::PresentScreenBuffer()
     gl->MakeCurrent();
     MOZ_ASSERT(!mBackbufferNeedsClear);
     if (!gl->PublishFrame()) {
-        ForceLoseContext();
+        this->ForceLoseContext();
         return false;
     }
 

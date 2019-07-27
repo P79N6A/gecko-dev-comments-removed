@@ -878,29 +878,20 @@ GLContextEGL::CreateEGLPixmapOffscreenContext(const gfxIntSize& size)
     return glContext.forget();
 }
 
-already_AddRefed<GLContext>
-GLContextProviderEGL::CreateHeadless()
-{
-    if (!sEGLLibrary.EnsureInitialized()) {
-        return nullptr;
-    }
-
-    gfxIntSize dummySize = gfxIntSize(16, 16);
-    nsRefPtr<GLContext> glContext;
-    glContext = GLContextEGL::CreateEGLPBufferOffscreenContext(dummySize);
-    if (!glContext)
-        return nullptr;
-
-    return glContext.forget();
-}
-
 
 
 already_AddRefed<GLContext>
 GLContextProviderEGL::CreateOffscreen(const gfxIntSize& size,
                                       const SurfaceCaps& caps)
 {
-    nsRefPtr<GLContext> glContext = CreateHeadless();
+    if (!sEGLLibrary.EnsureInitialized()) {
+        return nullptr;
+    }
+
+    gfxIntSize dummySize = gfxIntSize(16, 16);
+    nsRefPtr<GLContextEGL> glContext;
+    glContext = GLContextEGL::CreateEGLPBufferOffscreenContext(dummySize);
+
     if (!glContext)
         return nullptr;
 
@@ -913,7 +904,7 @@ GLContextProviderEGL::CreateOffscreen(const gfxIntSize& size,
 
 
 
-GLContext*
+GLContext *
 GLContextProviderEGL::GetGlobalContext()
 {
     return nullptr;
