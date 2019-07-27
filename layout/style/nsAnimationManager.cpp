@@ -15,6 +15,7 @@
 #include "nsPresContext.h"
 #include "nsStyleSet.h"
 #include "nsStyleChangeList.h"
+#include "nsContentUtils.h"
 #include "nsCSSRules.h"
 #include "RestyleManager.h"
 #include "nsLayoutUtils.h"
@@ -110,6 +111,65 @@ CSSAnimation::PauseFromStyle()
   if (rv.Failed()) {
     NS_WARNING("Unexpected exception pausing animation - silently failing");
   }
+}
+
+bool
+CSSAnimation::HasLowerCompositeOrderThan(const Animation& aOther) const
+{
+  
+  if (&aOther == this) {
+    return false;
+  }
+
+  
+  
+  
+  
+  
+  const CSSAnimation* otherAnimation = aOther.AsCSSAnimation();
+  if (!otherAnimation) {
+    MOZ_ASSERT(aOther.AsCSSTransition(),
+               "Animation being compared is a CSS transition");
+    return false;
+  }
+
+  
+  
+  
+  if (!IsUsingCustomCompositeOrder()) {
+    return !aOther.IsUsingCustomCompositeOrder() ?
+           Animation::HasLowerCompositeOrderThan(aOther) :
+           false;
+  }
+  if (!aOther.IsUsingCustomCompositeOrder()) {
+    return true;
+  }
+
+  
+  Element* ourElement;
+  nsCSSPseudoElements::Type ourPseudoType;
+  GetOwningElement(ourElement, ourPseudoType);
+
+  Element* otherElement;
+  nsCSSPseudoElements::Type otherPseudoType;
+  otherAnimation->GetOwningElement(otherElement, otherPseudoType);
+  MOZ_ASSERT(ourElement && otherElement,
+             "Animations using custom composite order should have an "
+             "owning element");
+
+  if (ourElement != otherElement) {
+    return nsContentUtils::PositionIsBefore(ourElement, otherElement);
+  }
+
+  
+  if (ourPseudoType != otherPseudoType) {
+    return ourPseudoType == nsCSSPseudoElements::ePseudo_NotPseudoElement ||
+           (ourPseudoType == nsCSSPseudoElements::ePseudo_before &&
+            otherPseudoType == nsCSSPseudoElements::ePseudo_after);
+  }
+
+  
+  return mSequenceNum < otherAnimation->mSequenceNum;
 }
 
 void

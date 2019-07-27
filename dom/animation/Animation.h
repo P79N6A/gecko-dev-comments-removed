@@ -260,7 +260,7 @@ public:
   
 
 
-  bool HasLowerCompositeOrderThan(const Animation& aOther) const;
+  virtual bool HasLowerCompositeOrderThan(const Animation& aOther) const;
   
 
 
