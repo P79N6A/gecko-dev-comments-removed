@@ -65,7 +65,7 @@ enum EventClassID MOZ_ENUM_TYPE(EventClassIDType)
   
   eCommandEventClass,                
   eContentCommandEventClass,         
-  NS_PLUGIN_EVENT,                   
+  ePluginEventClass,                 
 
   
   NS_MUTATION_EVENT                  

@@ -145,9 +145,9 @@ class WidgetPluginEvent : public WidgetGUIEvent
 public:
   virtual WidgetPluginEvent* AsPluginEvent() MOZ_OVERRIDE { return this; }
 
-  WidgetPluginEvent(bool aIsTrusted, uint32_t aMessage, nsIWidget* aWidget) :
-    WidgetGUIEvent(aIsTrusted, aMessage, aWidget, NS_PLUGIN_EVENT),
-    retargetToFocusedDocument(false)
+  WidgetPluginEvent(bool aIsTrusted, uint32_t aMessage, nsIWidget* aWidget)
+    : WidgetGUIEvent(aIsTrusted, aMessage, aWidget, ePluginEventClass)
+    , retargetToFocusedDocument(false)
   {
   }
 
@@ -155,7 +155,7 @@ public:
   {
     
     
-    MOZ_ASSERT(mClass == NS_PLUGIN_EVENT,
+    MOZ_ASSERT(mClass == ePluginEventClass,
                "Duplicate() must be overridden by sub class");
     
     WidgetPluginEvent* result = new WidgetPluginEvent(false, message, nullptr);
