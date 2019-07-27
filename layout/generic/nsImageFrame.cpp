@@ -1437,14 +1437,32 @@ nsDisplayImage::GetContainer(LayerManager* aManager,
 }
 
 nsRect
-nsDisplayImage::GetDestRect()
+nsDisplayImage::GetDestRect(bool* aSnap)
 {
   
   
-  bool snap;
-  nsRect dest = GetBounds(&snap);
+  
+  
+  bool snap = true;
+  const nsRect frameContentBox = GetBounds(&snap);
+  if (aSnap) {
+    *aSnap = snap;
+  }
 
-  return dest;
+  
+  
+  nsImageFrame* imageFrame = static_cast<nsImageFrame*>(mFrame);
+  nsRect constraintRect(frameContentBox.TopLeft(),
+                        imageFrame->mComputedSize);
+  constraintRect.y -= imageFrame->GetContinuationOffset();
+
+  const nsRect destRect =
+    nsLayoutUtils::ComputeObjectDestRect(constraintRect,
+                                         imageFrame->mIntrinsicSize,
+                                         imageFrame->mIntrinsicRatio,
+                                         imageFrame->StylePosition());
+
+  return destRect.Intersect(frameContentBox);
 }
 
 LayerState
@@ -1509,28 +1527,8 @@ nsDisplayImage::GetLayerState(nsDisplayListBuilder* aBuilder,
 nsDisplayImage::GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
                                 bool* aSnap)
 {
-  *aSnap = true;
   if (mImage && mImage->IsOpaque()) {
-    
-    
-    
-    
-    const nsRect frameContentBox = GetBounds(aSnap);
-
-    
-    
-    nsImageFrame* imageFrame = static_cast<nsImageFrame*>(mFrame);
-    nsRect constraintRect(frameContentBox.TopLeft(),
-                          imageFrame->mComputedSize);
-    constraintRect.y -= imageFrame->GetContinuationOffset();
-
-    const nsRect destRect =
-      nsLayoutUtils::ComputeObjectDestRect(constraintRect,
-                                           imageFrame->mIntrinsicSize,
-                                           imageFrame->mIntrinsicRatio,
-                                           imageFrame->StylePosition());
-
-    return nsRegion(destRect.Intersect(frameContentBox));
+    return nsRegion(GetDestRect(aSnap));
   }
   return nsRegion();
 }
