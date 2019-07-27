@@ -15,6 +15,7 @@
 
 
 class nsCollationWin MOZ_FINAL : public nsICollation {
+  ~nsCollationWin();
 
 protected:
   nsCollation   *mCollation;  
@@ -22,7 +23,6 @@ protected:
 
 public: 
   nsCollationWin();
-  ~nsCollationWin(); 
 
   
   NS_DECL_ISUPPORTS
