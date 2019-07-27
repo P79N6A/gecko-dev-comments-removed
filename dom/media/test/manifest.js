@@ -172,10 +172,6 @@ var gPlayTests = [
   { name:"split.webm", type:"video/webm", duration:1.967 },
 
   
-  
-  { name:"vp9cake.webm", type:"video/webm", duration:7.966 },
-
-  
   { name:"seek.yuv", type:"video/x-raw-yuv", duration:1.833 },
 
   
@@ -222,7 +218,11 @@ var gPlayTests = [
   { name:"vbr-head.mp3", type:"audio/mpeg", duration:10.00 },
 
   
-  { name:"bogus.duh", type:"bogus/duh", duration:Number.NaN }
+  { name:"bogus.duh", type:"bogus/duh", duration:Number.NaN },
+
+  
+  
+  { name:"vp9cake.webm", type:"video/webm", duration:7.966 }
 ];
 
 
