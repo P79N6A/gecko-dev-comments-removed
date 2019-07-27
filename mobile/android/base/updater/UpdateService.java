@@ -118,11 +118,6 @@ public class UpdateService extends IntentService {
         } else if (UpdateServiceHelper.ACTION_CANCEL_DOWNLOAD.equals(intent.getAction())) {
             mCancelDownload = true;
         } else {
-            if (!UpdateServiceHelper.ACTION_APPLY_UPDATE.equals(intent.getAction())) {
-                
-                deleteUpdatePackage(getLastFileName());
-            }
-
             super.onStartCommand(intent, flags, startId);
         }
 
@@ -463,6 +458,11 @@ public class UpdateService extends IntentService {
                 
                 downloadFile.delete();
             }
+        }
+
+        if (!info.buildID.equals(getLastBuildID())) {
+            
+            deleteUpdatePackage(getLastFileName());
         }
 
         Log.i(LOGTAG, "downloading update package");
