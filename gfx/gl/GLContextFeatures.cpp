@@ -381,6 +381,15 @@ static const FeatureInfo sFeatureInfoArr[] = {
         }
     },
     {
+        "sampler_objects",
+        330, 
+        300, 
+        GLContext::ARB_sampler_objects,
+        {
+            GLContext::Extensions_End
+        }
+    },
+    {
         "standard_derivatives",
         200, 
         300, 
