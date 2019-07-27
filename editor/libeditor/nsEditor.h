@@ -30,7 +30,6 @@
 class AddStyleSheetTxn;
 class DeleteNodeTxn;
 class EditAggregateTxn;
-class IMETextTxn;
 class JoinElementTxn;
 class RemoveStyleSheetTxn;
 class SplitElementTxn;
@@ -73,6 +72,7 @@ class DataTransfer;
 class DeleteTextTxn;
 class Element;
 class EventTarget;
+class IMETextTxn;
 class InsertTextTxn;
 class InsertNodeTxn;
 class Selection;
@@ -310,8 +310,9 @@ protected:
   CreateTxnForInsertText(const nsAString& aStringToInsert,
                          mozilla::dom::Text& aTextNode, int32_t aOffset);
 
-  NS_IMETHOD CreateTxnForIMEText(const nsAString & aStringToInsert,
-                                 IMETextTxn ** aTxn);
+  
+  already_AddRefed<mozilla::dom::IMETextTxn>
+  CreateTxnForIMEText(const nsAString & aStringToInsert);
 
   
 
@@ -835,7 +836,7 @@ protected:
 
   nsRefPtr<nsTransactionManager> mTxnMgr;
   nsCOMPtr<mozilla::dom::Element> mRootElement; 
-  nsCOMPtr<nsIDOMCharacterData>     mIMETextNode;      
+  nsRefPtr<mozilla::dom::Text>    mIMETextNode; 
   nsCOMPtr<mozilla::dom::EventTarget> mEventTarget; 
   nsCOMPtr<nsIDOMEventListener> mEventListener;
   nsWeakPtr        mSelConWeak;          

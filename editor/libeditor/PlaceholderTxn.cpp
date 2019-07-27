@@ -126,9 +126,8 @@ NS_IMETHODIMP PlaceholderTxn::Merge(nsITransaction *aTransaction, bool *aDidMerg
   
   if (mAbsorb)
   { 
-    nsRefPtr<IMETextTxn> otherTxn;
-    if (NS_SUCCEEDED(aTransaction->QueryInterface(IMETextTxn::GetCID(), getter_AddRefs(otherTxn))) && otherTxn)
-    {
+    nsRefPtr<IMETextTxn> otherTxn = do_QueryObject(aTransaction);
+    if (otherTxn) {
       
       
       if (!mIMETextTxn) 

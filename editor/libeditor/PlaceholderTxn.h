@@ -16,7 +16,12 @@
 #include "nsAutoPtr.h"
 
 class nsHTMLEditor;
+
+namespace mozilla {
+namespace dom {
 class IMETextTxn;
+}
+}
 
 
 
@@ -65,7 +70,7 @@ protected:
   
   bool        mAbsorb;          
   nsWeakPtr   mForwarding;
-  IMETextTxn *mIMETextTxn;      
+  mozilla::dom::IMETextTxn *mIMETextTxn;      
                                 
   bool        mCommitted;       
   

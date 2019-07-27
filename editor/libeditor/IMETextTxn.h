@@ -6,25 +6,24 @@
 #ifndef IMETextTxn_h__
 #define IMETextTxn_h__
 
-#include "EditTxn.h"
-#include "nsCOMPtr.h"
-#include "nsCycleCollectionParticipant.h"
-#include "nsID.h"
-#include "nsIDOMCharacterData.h"
-#include "nsString.h"
-#include "nscore.h"
-#include "mozilla/TextRange.h"
+#include "EditTxn.h"                      
+#include "nsAutoPtr.h"                    
+#include "nsCycleCollectionParticipant.h" 
+#include "nsString.h"                     
 
-class nsITransaction;
+class nsEditor;
 
+#define NS_IMETEXTTXN_IID \
+  { 0xb391355d, 0x346c, 0x43d1, \
+    { 0x85, 0xed, 0x9e, 0x65, 0xbe, 0xe7, 0x7e, 0x48 } }
 
-#define IME_TEXT_TXN_CID							\
-{0xd4d25721, 0x2813, 0x11d3,						\
-{0x9e, 0xa3, 0x0, 0x60, 0x8, 0x9f, 0xe5, 0x9b }}
+namespace mozilla {
 
+class TextRangeArray;
 
-class nsIEditor;
+namespace dom {
 
+class Text;
 
 
 
@@ -32,7 +31,7 @@ class nsIEditor;
 class IMETextTxn : public EditTxn
 {
 public:
-  static const nsIID& GetCID() { static const nsIID iid = IME_TEXT_TXN_CID; return iid; }
+  NS_DECLARE_STATIC_IID_ACCESSOR(NS_IMETEXTTXN_IID)
 
   
 
@@ -41,51 +40,48 @@ public:
 
 
 
-
-  NS_IMETHOD Init(nsIDOMCharacterData *aElement,
-                  uint32_t aOffset,
-                  uint32_t aReplaceLength,
-                  mozilla::TextRangeArray* aTextRangeArray,
-                  const nsAString& aString,
-                  nsIEditor* aEditor);
-
-  IMETextTxn();
+  IMETextTxn(Text& aTextNode, uint32_t aOffset, uint32_t aReplaceLength,
+             TextRangeArray* aTextRangeArray, const nsAString& aString,
+             nsEditor& aEditor);
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(IMETextTxn, EditTxn)
 
+  NS_DECL_ISUPPORTS_INHERITED
+
   NS_DECL_EDITTXN
 
-  NS_IMETHOD Merge(nsITransaction *aTransaction, bool *aDidMerge);
+  NS_IMETHOD Merge(nsITransaction* aTransaction, bool* aDidMerge) MOZ_OVERRIDE;
 
-  NS_IMETHOD MarkFixed(void);
+  void MarkFixed();
 
-
-
-  
-  NS_IMETHOD QueryInterface(const nsIID& aIID, void** aInstancePtr);
-
-protected:
+private:
+  ~IMETextTxn();
 
   nsresult SetSelectionForRanges();
 
   
-  nsCOMPtr<nsIDOMCharacterData> mElement;
-  
+  nsRefPtr<Text> mTextNode;
+
   
   uint32_t mOffset;
 
   uint32_t mReplaceLength;
 
   
-  nsString mStringToInsert;
-
-  
   nsRefPtr<mozilla::TextRangeArray> mRanges;
 
   
-  nsIEditor *mEditor;
+  nsString mStringToInsert;
 
-  bool	mFixed;
+  
+  nsEditor& mEditor;
+
+  bool mFixed;
 };
+
+NS_DEFINE_STATIC_IID_ACCESSOR(IMETextTxn, NS_IMETEXTTXN_IID)
+
+}
+}
 
 #endif
