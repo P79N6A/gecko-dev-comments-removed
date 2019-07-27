@@ -1204,7 +1204,7 @@ void MacroAssembler::PrintfNoPreserve(const char * format, const CPURegister& ar
   Adr(x0, &format_address);
 
   
-  {
+  { 
     flushBuffer();
     Label after_data;
     B(&after_data);
