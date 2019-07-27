@@ -2411,7 +2411,7 @@ let DefaultBrowserCheck = {
 let E10SUINotification = {
   
   
-  CURRENT_NOTICE_COUNT: 1,
+  CURRENT_NOTICE_COUNT: 2,
   CURRENT_PROMPT_PREF: "browser.displayedE10SPrompt.1",
   PREVIOUS_PROMPT_PREF: "browser.displayedE10SPrompt",
 
