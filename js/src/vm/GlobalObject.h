@@ -120,9 +120,9 @@ class GlobalObject : public NativeObject
                   "global object slot counts are inconsistent");
 
     enum WarnOnceFlag : int32_t {
-        WARN_WATCH_DEPRECATED = 0x00000001,
-        WARN_PROTO_SETTING_SLOW = 0x00000002,
-        WARN_STRING_CONTAINS_DEPRECATED = 0x00000004
+        WARN_WATCH_DEPRECATED                   = 0x00000001,
+        WARN_PROTO_SETTING_SLOW                 = 0x00000002,
+        WARN_STRING_CONTAINS_DEPRECATED         = 0x00000004
     };
 
     
@@ -130,7 +130,7 @@ class GlobalObject : public NativeObject
     
     
     static bool
-    warnOnceAbout(JSContext* cx, HandleObject obj, WarnOnceFlag slot, unsigned errorNumber);
+    warnOnceAbout(JSContext* cx, HandleObject obj, WarnOnceFlag flag, unsigned errorNumber);
 
 
   public:
