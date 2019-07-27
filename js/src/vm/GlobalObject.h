@@ -99,9 +99,8 @@ class GlobalObject : public NativeObject
     static const unsigned NUMBER_FORMAT_PROTO     = COLLATOR_PROTO + 1;
     static const unsigned DATE_TIME_FORMAT_PROTO  = NUMBER_FORMAT_PROTO + 1;
     static const unsigned REGEXP_STATICS          = DATE_TIME_FORMAT_PROTO + 1;
-    static const unsigned WARNED_WATCH_DEPRECATED = REGEXP_STATICS + 1;
-    static const unsigned WARNED_PROTO_SETTING_SLOW = WARNED_WATCH_DEPRECATED + 1;
-    static const unsigned RUNTIME_CODEGEN_ENABLED = WARNED_PROTO_SETTING_SLOW + 1;
+    static const unsigned WARNED_ONCE_FLAGS       = REGEXP_STATICS + 1;
+    static const unsigned RUNTIME_CODEGEN_ENABLED = WARNED_ONCE_FLAGS + 1;
     static const unsigned DEBUGGERS               = RUNTIME_CODEGEN_ENABLED + 1;
     static const unsigned INTRINSICS              = DEBUGGERS + 1;
     static const unsigned FLOAT32X4_TYPE_DESCR    = INTRINSICS + 1;
@@ -120,12 +119,17 @@ class GlobalObject : public NativeObject
     static_assert(JSCLASS_GLOBAL_SLOT_COUNT == RESERVED_SLOTS,
                   "global object slot counts are inconsistent");
 
+    enum WarnOnceFlag : int32_t {
+        WARN_WATCH_DEPRECATED = 0x00000001,
+        WARN_PROTO_SETTING_SLOW = 0x00000002
+    };
+
     
     
     
     
     static bool
-    warnOnceAbout(JSContext* cx, HandleObject obj, uint32_t slot, unsigned errorNumber);
+    warnOnceAbout(JSContext* cx, HandleObject obj, WarnOnceFlag slot, unsigned errorNumber);
 
 
   public:
@@ -651,7 +655,7 @@ class GlobalObject : public NativeObject
     
     
     static bool warnOnceAboutPrototypeMutation(JSContext* cx, HandleObject protoSetter) {
-        return warnOnceAbout(cx, protoSetter, WARNED_PROTO_SETTING_SLOW, JSMSG_PROTO_SETTING_SLOW);
+        return warnOnceAbout(cx, protoSetter, WARN_PROTO_SETTING_SLOW, JSMSG_PROTO_SETTING_SLOW);
     }
 
     static bool getOrCreateEval(JSContext* cx, Handle<GlobalObject*> global,
