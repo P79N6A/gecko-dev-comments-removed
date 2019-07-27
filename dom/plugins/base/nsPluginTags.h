@@ -22,7 +22,7 @@ class nsNPAPIPlugin;
 
 
 
-class nsPluginTag : public nsIPluginTag
+class nsPluginTag MOZ_FINAL : public nsIPluginTag
 {
 public:
   NS_DECL_ISUPPORTS

@@ -27,7 +27,7 @@ class TimeRanges;
 
 } 
 
-class SourceBufferDecoder : public AbstractMediaDecoder
+class SourceBufferDecoder MOZ_FINAL : public AbstractMediaDecoder
 {
 public:
   

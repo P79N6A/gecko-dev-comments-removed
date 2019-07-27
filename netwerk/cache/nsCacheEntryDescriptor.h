@@ -20,7 +20,7 @@
 
 
 
-class nsCacheEntryDescriptor :
+class nsCacheEntryDescriptor MOZ_FINAL :
     public PRCList,
     public nsICacheEntryDescriptor
 {

@@ -32,8 +32,8 @@ class nsString;
 
 
 
-class nsTextServicesDocument : public nsITextServicesDocument,
-                               public nsIEditActionListener
+class nsTextServicesDocument MOZ_FINAL : public nsITextServicesDocument,
+                                         public nsIEditActionListener
 {
 private:
   static nsIAtom *sAAtom;

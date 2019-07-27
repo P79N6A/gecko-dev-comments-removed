@@ -3870,7 +3870,7 @@ JSOpToCondition(MCompare::CompareType compareType, JSOp op)
 
 
 
-class MUnbox : public MUnaryInstruction, public BoxInputsPolicy::Data
+class MUnbox MOZ_FINAL : public MUnaryInstruction, public BoxInputsPolicy::Data
 {
   public:
     enum Mode {

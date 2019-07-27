@@ -35,7 +35,7 @@ class XULDocument;
 
 
 
-class nsXULPrototypeDocument : public nsISerializable
+class nsXULPrototypeDocument MOZ_FINAL : public nsISerializable
 {
 public:
     static nsresult

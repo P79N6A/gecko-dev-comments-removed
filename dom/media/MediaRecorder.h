@@ -38,8 +38,8 @@ class AudioNode;
 
 
 
-class MediaRecorder : public DOMEventTargetHelper,
-                      public nsIDocumentActivity
+class MediaRecorder MOZ_FINAL : public DOMEventTargetHelper,
+                                public nsIDocumentActivity
 {
   class Session;
 

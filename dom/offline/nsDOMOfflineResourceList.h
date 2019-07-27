@@ -34,11 +34,11 @@ class DOMStringList;
 } 
 } 
 
-class nsDOMOfflineResourceList : public mozilla::DOMEventTargetHelper,
-                                 public nsIDOMOfflineResourceList,
-                                 public nsIObserver,
-                                 public nsIOfflineCacheUpdateObserver,
-                                 public nsSupportsWeakReference
+class nsDOMOfflineResourceList MOZ_FINAL : public mozilla::DOMEventTargetHelper,
+                                           public nsIDOMOfflineResourceList,
+                                           public nsIObserver,
+                                           public nsIOfflineCacheUpdateObserver,
+                                           public nsSupportsWeakReference
 {
   typedef mozilla::ErrorResult ErrorResult;
 

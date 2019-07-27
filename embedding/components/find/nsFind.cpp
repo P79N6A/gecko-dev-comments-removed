@@ -79,7 +79,7 @@ PR_STATIC_ASSERT(CH_SHY <= 255);
 
 
 
-class nsFindContentIterator : public nsIContentIterator
+class nsFindContentIterator MOZ_FINAL : public nsIContentIterator
 {
 public:
   explicit nsFindContentIterator(bool aFindBackward)

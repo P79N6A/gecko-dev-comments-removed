@@ -76,13 +76,13 @@ class nsIStreamListener;
 
 
 
-class nsFtpState : public nsBaseContentStream,
-                   public nsIInputStreamCallback,
-                   public nsITransportEventSink,
-                   public nsICacheListener,
-                   public nsIRequestObserver,
-                   public nsFtpControlConnectionListener,
-                   public nsIProtocolProxyCallback
+class nsFtpState MOZ_FINAL : public nsBaseContentStream,
+                             public nsIInputStreamCallback,
+                             public nsITransportEventSink,
+                             public nsICacheListener,
+                             public nsIRequestObserver,
+                             public nsFtpControlConnectionListener,
+                             public nsIProtocolProxyCallback
 {
 public:
     NS_DECL_ISUPPORTS_INHERITED
