@@ -106,7 +106,8 @@ MediaCodecReader::VideoResourceListener::codecCanceled()
   }
 }
 
-bool MediaCodecReader::TrackInputCopier::Copy(MediaBuffer* aSourceBuffer, sp<ABuffer> aCodecBuffer)
+bool
+MediaCodecReader::TrackInputCopier::Copy(MediaBuffer* aSourceBuffer, sp<ABuffer> aCodecBuffer)
 {
   if (aSourceBuffer == nullptr ||
       aCodecBuffer == nullptr ||
@@ -132,7 +133,8 @@ MediaCodecReader::Track::Track()
 
 
 
-bool MediaCodecReader::VorbisInputCopier::Copy(MediaBuffer* aSourceBuffer, sp<ABuffer> aCodecBuffer)
+bool
+MediaCodecReader::VorbisInputCopier::Copy(MediaBuffer* aSourceBuffer, sp<ABuffer> aCodecBuffer)
 {
   if (aSourceBuffer == nullptr ||
       aCodecBuffer == nullptr ||
@@ -176,7 +178,7 @@ MediaCodecReader::CodecBufferInfo::CodecBufferInfo()
 }
 
 MediaCodecReader::MediaCodecReader(AbstractMediaDecoder* aDecoder)
-  : MediaDecoderReader(aDecoder)
+  : MediaOmxCommonReader(aDecoder)
   , mColorConverterBufferSize(0)
 {
   mHandler = new MessageHandler(this);
@@ -427,6 +429,10 @@ MediaCodecReader::ReadMetadata(MediaInfo* aInfo,
     return NS_ERROR_FAILURE;
   }
 
+#ifdef MOZ_AUDIO_OFFLOAD
+  CheckAudioOffload();
+#endif
+
   if (IsWaitingMediaResources()) {
     return NS_OK;
   }
@@ -527,8 +533,7 @@ MediaCodecReader::IsMediaSeekable()
 android::sp<android::MediaSource>
 MediaCodecReader::GetAudioOffloadTrack()
 {
-  
-  return nullptr;
+  return mAudioOffloadTrack.mSource;
 }
 
 bool
@@ -682,6 +687,8 @@ MediaCodecReader::CreateMediaSources()
     if (audioSource != nullptr && audioSource->start() == OK) {
       mAudioTrack.mSource = audioSource;
     }
+    
+    mAudioOffloadTrack.mSource = mExtractor->getTrack(audioTrackIndex);
   }
 
   if (videoTrackIndex != invalidTrackIndex && mVideoTrack.mSource == nullptr) {
@@ -701,6 +708,7 @@ MediaCodecReader::DestroyMediaSources()
 {
   mAudioTrack.mSource = nullptr;
   mVideoTrack.mSource = nullptr;
+  mAudioOffloadTrack.mSource = nullptr;
 }
 
 bool
@@ -1233,8 +1241,6 @@ MediaCodecReader::onMessageReceived(const sp<AMessage> &aMessage)
       ReleaseCriticalResources();
       break;
     }
-
-    
 
     default:
       TRESPASS();

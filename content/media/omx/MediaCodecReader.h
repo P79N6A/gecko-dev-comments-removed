@@ -15,7 +15,7 @@
 
 #include "I420ColorConverterHelper.h"
 #include "MediaCodecProxy.h"
-#include "MediaDecoderReader.h"
+#include "MediaOmxCommonReader.h"
 
 namespace android {
 struct ALooper;
@@ -29,7 +29,7 @@ struct MediaCodec;
 
 namespace mozilla {
 
-class MediaCodecReader : public MediaDecoderReader
+class MediaCodecReader : public MediaOmxCommonReader
 {
 public:
   MediaCodecReader(AbstractMediaDecoder* aDecoder);
@@ -254,6 +254,7 @@ private:
   
   AudioTrack mAudioTrack;
   VideoTrack mVideoTrack;
+  AudioTrack mAudioOffloadTrack; 
 
   
   android::I420ColorConverterHelper mColorConverter;
