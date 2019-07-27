@@ -55,7 +55,7 @@ AnimationPlayer::PlayState() const
     return AnimationPlayState::Idle;
   }
 
-  if (mIsPaused) {
+  if (mStartTime.IsNull()) {
     return AnimationPlayState::Paused;
   }
 
@@ -167,11 +167,14 @@ AnimationPlayer::DoPlay()
   
   
   
-  
-  if (!mIsPaused) {
+
+  Nullable<TimeDuration> currentTime = GetCurrentTime();
+  if (currentTime.IsNull()) {
+    mHoldTime.SetValue(TimeDuration(0));
+  } else if (mHoldTime.IsNull()) {
+    
     return;
   }
-  mIsPaused = false;
 
   Nullable<TimeDuration> timelineTime = mTimeline->GetCurrentTime();
   if (timelineTime.IsNull()) {
@@ -181,7 +184,6 @@ AnimationPlayer::DoPlay()
   }
 
   
-  MOZ_ASSERT(!mHoldTime.IsNull(), "Hold time should not be null when paused");
   mStartTime.SetValue(timelineTime.Value() - mHoldTime.Value());
   mHoldTime.SetNull();
 }
@@ -189,10 +191,12 @@ AnimationPlayer::DoPlay()
 void
 AnimationPlayer::DoPause()
 {
-  if (mIsPaused) {
+  if (IsPaused()) {
     return;
   }
-  mIsPaused = true;
+  
+  
+  
   mIsRunningOnCompositor = false;
 
   
