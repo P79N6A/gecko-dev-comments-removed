@@ -96,7 +96,7 @@ public:
 
 
   void SetIsInFontFaceSet(bool aInFontFaceSet) {
-    MOZ_ASSERT(!(!aInFontFaceSet && IsConnected()),
+    MOZ_ASSERT(!(!aInFontFaceSet && HasRule()),
                "use DisconnectFromRule instead");
     mInFontFaceSet = aInFontFaceSet;
   }
@@ -122,7 +122,7 @@ public:
 
 
 
-  bool IsConnected() const { return mRule; }
+  bool HasRule() const { return mRule; }
 
   
 

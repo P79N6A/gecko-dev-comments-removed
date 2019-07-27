@@ -258,13 +258,13 @@ private:
                       nsresult aStatus);
   void DoRebuildUserFontSet();
 
-  void InsertConnectedFontFace(FontFace* aFontFace, uint8_t aSheetType,
-                               nsTArray<FontFaceRecord>& aOldRecords,
-                               bool& aFontSetModified);
-  void InsertUnconnectedFontFace(FontFace* aFontFace, bool& aFontSetModified);
+  void InsertRuleFontFace(FontFace* aFontFace, uint8_t aSheetType,
+                          nsTArray<FontFaceRecord>& aOldRecords,
+                          bool& aFontSetModified);
+  void InsertNonRuleFontFace(FontFace* aFontFace, bool& aFontSetModified);
 
 #ifdef DEBUG
-  bool HasConnectedFontFace(FontFace* aFontFace);
+  bool HasRuleFontFace(FontFace* aFontFace);
 #endif
 
   
@@ -295,11 +295,11 @@ private:
   nsTHashtable< nsPtrHashKey<nsFontFaceLoader> > mLoaders;
 
   
-  nsTArray<FontFaceRecord> mConnectedFaces;
+  nsTArray<FontFaceRecord> mRuleFaces;
 
   
   
-  nsTArray<nsRefPtr<FontFace>> mOtherFaces;
+  nsTArray<nsRefPtr<FontFace>> mNonRuleFaces;
 
   
   
@@ -309,7 +309,7 @@ private:
   mozilla::dom::FontFaceSetLoadStatus mStatus;
 
   
-  bool mOtherFacesDirty;
+  bool mNonRuleFacesDirty;
 
   
   bool mReadyIsResolved;
