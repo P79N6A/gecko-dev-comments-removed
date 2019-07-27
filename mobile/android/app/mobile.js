@@ -269,7 +269,7 @@ pref("browser.search.order.3", "chrome://browser/locale/region.properties");
 
 
 pref("browser.search.geoSpecificDefaults", false);
-pref("browser.search.geoSpecificDefaults.url", "");
+pref("browser.search.geoSpecificDefaults.url", "https://search.services.mozilla.com/1/%APP%/%VERSION%/%CHANNEL%/%LOCALE%/%REGION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%");
 
 
 pref("browser.search.defaultenginename.US", "chrome://browser/locale/region.properties");
@@ -807,14 +807,10 @@ pref("gfx.canvas.azure.backends", "skia");
 pref("gfx.canvas.azure.accelerated", true);
 
 
-
-pref("general.useragent.updates.enabled", false);
+pref("general.useragent.updates.enabled", true);
 pref("general.useragent.updates.url", "https://dynamicua.cdn.mozilla.net/0/%APP_ID%");
 pref("general.useragent.updates.interval", 604800); 
 pref("general.useragent.updates.retry", 86400); 
-
-
-pref("general.useragent.override.youtube.com", "Android\\s\\d.+?;#Android;");
 
 
 pref("browser.ui.linkify.phone", false);

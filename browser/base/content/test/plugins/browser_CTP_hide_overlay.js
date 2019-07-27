@@ -30,7 +30,7 @@ add_task(function* () {
   yield promiseUpdatePluginBindings(gBrowser.selectedBrowser);
 
   
-  yield ContentTask.spawn(gBrowser.selectedBrowser, {}, function* () {
+  let overlayIsVisible = yield ContentTask.spawn(gBrowser.selectedBrowser, {}, function* () {
     let doc = content.document;
     let plugin = doc.getElementById("test");
     let overlay = doc.getAnonymousElementByAttribute(plugin, "anonid", "main");
@@ -42,14 +42,10 @@ add_task(function* () {
                        .getInterface(Components.interfaces.nsIDOMWindowUtils);
     utils.sendMouseEvent("mousedown", left, top, 0, 1, 0, false, 0, 0);
     utils.sendMouseEvent("mouseup", left, top, 0, 1, 0, false, 0, 0);
+
+    return overlay.classList.contains("visible");
   });
 
-  let overlayIsVisible = yield ContentTask.spawn(gBrowser.selectedBrowser, {}, function* () {
-    let doc = content.document;
-    let plugin = doc.getElementById("test");
-    let overlay = doc.getAnonymousElementByAttribute(plugin, "anonid", "main");
-    return plugin && overlay.classList.contains("visible");
-  });
   ok(!overlayIsVisible, "overlay should be hidden.");
 });
 
