@@ -13,10 +13,10 @@ let { gDevTools } = Cu.import("resource:///modules/devtools/gDevTools.jsm", {});
 let { DevToolsUtils } = Cu.import("resource://gre/modules/devtools/DevToolsUtils.jsm", {});
 let { DebuggerServer } = Cu.import("resource://gre/modules/devtools/dbg-server.jsm", {});
 let { merge } = devtools.require("sdk/util/object");
+let { generateUUID } = Cc["@mozilla.org/uuid-generator;1"].getService(Ci.nsIUUIDGenerator);
 let { getPerformanceActorsConnection, PerformanceFront } = devtools.require("devtools/performance/front");
-
-let nsIProfilerModule = Cc["@mozilla.org/tools/profiler;1"].getService(Ci.nsIProfiler);
 let TargetFactory = devtools.TargetFactory;
+
 let mm = null;
 
 const FRAME_SCRIPT_UTILS_URL = "chrome://browser/content/devtools/frame-script-utils.js"
@@ -73,8 +73,6 @@ Services.prefs.setBoolPref("devtools.debugger.log", false);
 
 
 
-
-
 function loadFrameScripts () {
   mm = gBrowser.selectedBrowser.messageManager;
   mm.loadFrameScript(FRAME_SCRIPT_UTILS_URL, false);
@@ -88,9 +86,6 @@ registerCleanupFunction(() => {
   Object.keys(DEFAULT_PREFS).forEach(pref => {
     Preferences.set(pref, DEFAULT_PREFS[pref]);
   });
-
-  
-  nsIProfilerModule.StopProfiler();
 
   Cu.forceGC();
 });
@@ -576,4 +571,40 @@ function synthesizeProfileForTest(samples) {
     samples: samples,
     markers: []
   }, uniqueStacks);
+}
+
+function PMM_isProfilerActive () {
+  return sendProfilerCommand("IsActive");
+}
+
+function PMM_stopProfiler () {
+  return Task.spawn(function*() {
+    let isActive = (yield sendProfilerCommand("IsActive")).isActive;
+    if (isActive) {
+      return sendProfilerCommand("StopProfiler");
+    }
+  });
+}
+
+function sendProfilerCommand (method, args=[]) {
+  let deferred = Promise.defer();
+
+  if (!mm) {
+    throw new Error("`loadFrameScripts()` must be called when using MessageManager.");
+  }
+
+  let id = generateUUID().toString();
+  mm.addMessageListener("devtools:test:profiler:response", handler);
+  mm.sendAsyncMessage("devtools:test:profiler", { method, args, id });
+
+  function handler ({ data }) {
+    if (id !== data.id) {
+      return;
+    }
+
+    mm.removeMessageListener("devtools:test:profiler:response", handler);
+    deferred.resolve(data.data);
+  }
+
+  return deferred.promise;
 }
