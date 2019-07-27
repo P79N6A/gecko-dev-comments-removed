@@ -233,6 +233,9 @@ static_assert((CSS_PROPERTY_PARSE_PROPERTY_MASK &
 #define CSS_PROPERTY_LOGICAL_END_EDGE             (1<<26)
 
 
+#define CSS_PROPERTY_CAN_ANIMATE_ON_COMPOSITOR    (1<<27)
+
+
 
 
 enum nsStyleAnimType {
