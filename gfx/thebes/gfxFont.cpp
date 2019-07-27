@@ -2103,8 +2103,7 @@ gfxFont::Measure(gfxTextRun *aTextRun,
                  uint32_t aStart, uint32_t aEnd,
                  BoundingBoxType aBoundingBoxType,
                  gfxContext *aRefContext,
-                 Spacing *aSpacing,
-                 uint16_t aOrientation)
+                 Spacing *aSpacing)
 {
     
     
@@ -2120,15 +2119,14 @@ gfxFont::Measure(gfxTextRun *aTextRun,
         if (mNonAAFont) {
             return mNonAAFont->Measure(aTextRun, aStart, aEnd,
                                        TIGHT_HINTED_OUTLINE_EXTENTS,
-                                       aRefContext, aSpacing, aOrientation);
+                                       aRefContext, aSpacing);
         }
     }
 
     const int32_t appUnitsPerDevUnit = aTextRun->GetAppUnitsPerDevUnit();
     
     gfxFont::Orientation orientation =
-        aOrientation == gfxTextRunFactory::TEXT_ORIENT_VERTICAL_UPRIGHT
-        ? gfxFont::eVertical : gfxFont::eHorizontal;
+        aTextRun->IsVertical() ? gfxFont::eVertical : gfxFont::eHorizontal;
     const gfxFont::Metrics& fontMetrics = GetMetrics(orientation);
 
     RunMetrics metrics;
