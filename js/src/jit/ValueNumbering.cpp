@@ -138,22 +138,6 @@ ValueNumberer::VisibleValues::has(const MDefinition *def) const
 #endif
 
 
-static bool
-DeadIfUnused(const MDefinition *def)
-{
-    return !def->isEffectful() && !def->isGuard() && !def->isControlInstruction() &&
-           (!def->isInstruction() || !def->toInstruction()->resumePoint());
-}
-
-
-
-static bool
-IsDiscardable(const MDefinition *def)
-{
-    return !def->hasUses() && (DeadIfUnused(def) || def->block()->isMarked());
-}
-
-
 static void
 ReplaceAllUsesWith(MDefinition *from, MDefinition *to)
 {

@@ -536,6 +536,22 @@ jit::EliminateDeadResumePointOperands(MIRGenerator *mir, MIRGraph &graph)
 }
 
 
+bool
+js::jit::DeadIfUnused(const MDefinition *def)
+{
+    return !def->isEffectful() && !def->isGuard() && !def->isControlInstruction() &&
+           (!def->isInstruction() || !def->toInstruction()->resumePoint());
+}
+
+
+
+bool
+js::jit::IsDiscardable(const MDefinition *def)
+{
+    return !def->hasUses() && (DeadIfUnused(def) || def->block()->isMarked());
+}
+
+
 
 
 bool
@@ -550,9 +566,7 @@ jit::EliminateDeadCode(MIRGenerator *mir, MIRGraph &graph)
         
         for (MInstructionReverseIterator iter = block->rbegin(); iter != block->rend(); ) {
             MInstruction *inst = *iter++;
-            if (!inst->isEffectful() && !inst->resumePoint() &&
-                !inst->hasUses() && !inst->isGuard() &&
-                !inst->isControlInstruction())
+            if (js::jit::IsDiscardable(inst))
             {
                 block->discard(inst);
             } else if (!inst->isRecoveredOnBailout() && !inst->isGuard() &&
