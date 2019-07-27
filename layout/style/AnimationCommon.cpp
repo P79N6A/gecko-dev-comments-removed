@@ -383,20 +383,12 @@ CommonAnimationManager::GetAnimationRule(mozilla::dom::Element* aElement,
   }
 
   
-  
-  
-  if (IsAnimationManager()) {
-    NS_WARN_IF_FALSE(!collection->mNeedsRefreshes ||
-                     collection->mStyleRuleRefreshTime ==
-                       mPresContext->RefreshDriver()->MostRecentRefresh(),
-                     "should already have refreshed style rule");
-  } else {
-    
+  if (!IsAnimationManager()) {
     collection->mNeedsRefreshes = true;
-    collection->EnsureStyleRuleFor(
-      mPresContext->RefreshDriver()->MostRecentRefresh(),
-      EnsureStyleRule_IsNotThrottled);
   }
+  collection->EnsureStyleRuleFor(
+    mPresContext->RefreshDriver()->MostRecentRefresh(),
+    EnsureStyleRule_IsNotThrottled);
 
   return collection->mStyleRule;
 }
