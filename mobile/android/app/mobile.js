@@ -445,9 +445,6 @@ pref("dom.max_script_run_time", 20);
 
 pref("devtools.errorconsole.enabled", false);
 
-
-pref("devtools.debugger.unix-domain-socket", "/data/data/@ANDROID_PACKAGE_NAME@/firefox-debugger-socket");
-
 pref("font.size.inflation.minTwips", 120);
 
 
@@ -508,6 +505,9 @@ pref("security.warn_viewing_mixed", false);
 
 
 pref("security.mixed_content.block_active_content", true);
+
+
+pref("security.cert_pinning.enforcement_level", 1);
 
 
 pref("ui.-moz-dialog", "#efebe7");
