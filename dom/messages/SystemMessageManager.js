@@ -57,7 +57,7 @@ function SystemMessageManager() {
 SystemMessageManager.prototype = {
   __proto__: DOMRequestIpcHelper.prototype,
 
-  _dispatchMessage: function(aType, aDispatcher, aMessage) {
+  _dispatchMessage: function(aType, aDispatcher, aMessage, aMessageID) {
     if (aDispatcher.isHandling) {
       
       
@@ -66,7 +66,7 @@ SystemMessageManager.prototype = {
       
       
       
-      aDispatcher.messages.push(aMessage);
+      aDispatcher.messages.push({ message: aMessage, messageID: aMessageID });
       return;
     }
 
@@ -96,16 +96,17 @@ SystemMessageManager.prototype = {
 
     
     
-    cpmm.sendAsyncMessage("SystemMessageManager:HandleMessagesDone",
+    cpmm.sendAsyncMessage("SystemMessageManager:HandleMessageDone",
                           { type: aType,
                             manifestURL: this._manifestURL,
                             pageURL: this._pageURL,
-                            handledCount: 1 });
+                            msgID: aMessageID });
 
     aDispatcher.isHandling = false;
 
     if (aDispatcher.messages.length > 0) {
-      this._dispatchMessage(aType, aDispatcher, aDispatcher.messages.shift());
+      let msg = aDispatcher.messages.shift();
+      this._dispatchMessage(aType, aDispatcher, msg.message, msg.messageID);
     } else {
       
       
@@ -236,8 +237,9 @@ SystemMessageManager.prototype = {
       }
 
       messages.forEach(function(aMsg) {
-        this._dispatchMessage(msg.type, dispatcher, aMsg);
+        this._dispatchMessage(msg.type, dispatcher, aMsg, msg.msgID);
       }, this);
+
     } else {
       
       
