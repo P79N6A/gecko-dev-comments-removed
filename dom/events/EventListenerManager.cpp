@@ -863,6 +863,18 @@ EventListenerManager::CompileEventHandlerInternal(Listener* aListener,
     }
   }
 
+  JS::AutoObjectVector scopeChain(cx);
+  { 
+    
+    JS::Rooted<JSObject*> curScope(cx, &v.toObject());
+    while (curScope && !JS_IsGlobalObject(curScope)) {
+      if (!scopeChain.append(curScope)) {
+        return NS_ERROR_OUT_OF_MEMORY;
+      }
+      curScope = JS_GetParent(curScope);
+    }
+  }
+
   if (addonId) {
     JS::Rooted<JSObject*> vObj(cx, &v.toObject());
     JS::Rooted<JSObject*> addonScope(cx, xpc::GetAddonScope(cx, vObj, addonId));
@@ -870,6 +882,11 @@ EventListenerManager::CompileEventHandlerInternal(Listener* aListener,
       return NS_ERROR_FAILURE;
     }
     JSAutoCompartment ac(cx, addonScope);
+    for (size_t i = 0; i < scopeChain.length(); ++i) {
+      if (!JS_WrapObject(cx, scopeChain[i])) {
+        return NS_ERROR_FAILURE;
+      }
+    }
 
     
     
@@ -879,16 +896,6 @@ EventListenerManager::CompileEventHandlerInternal(Listener* aListener,
   }
   JS::Rooted<JSObject*> target(cx, &v.toObject());
   JSAutoCompartment ac(cx, target);
-
-  
-  
-  
-  
-  
-  JS::AutoObjectVector scopeChain(cx);
-  if (!nsJSUtils::GetScopeChainForElement(cx, element, scopeChain)) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
 
   nsDependentAtomString str(attrName);
   

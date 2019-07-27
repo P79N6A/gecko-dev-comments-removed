@@ -3534,18 +3534,6 @@ JS_DefineFunctionById(JSContext *cx, JS::Handle<JSObject*> obj, JS::Handle<jsid>
 extern JS_PUBLIC_API(JSObject *)
 JS_CloneFunctionObject(JSContext *cx, JS::Handle<JSObject*> funobj, JS::Handle<JSObject*> parent);
 
-namespace JS {
-
-
-
-
-
-
-extern JS_PUBLIC_API(JSObject *)
-CloneFunctionObject(JSContext *cx, HandleObject funobj, AutoObjectVector &scopeChain);
-
-} 
-
 
 
 

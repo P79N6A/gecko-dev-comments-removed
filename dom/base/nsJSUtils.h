@@ -25,7 +25,6 @@ class nsIScriptGlobalObject;
 namespace mozilla {
 namespace dom {
 class AutoJSAPI;
-class Element;
 }
 }
 
@@ -120,11 +119,6 @@ public:
                                  JS::CompileOptions &aCompileOptions,
                                  void **aOffThreadToken = nullptr);
 
-  
-  
-  static bool GetScopeChainForElement(JSContext* aCx,
-                                      mozilla::dom::Element* aElement,
-                                      JS::AutoObjectVector& aScopeChain);
 };
 
 class MOZ_STACK_CLASS AutoDontReportUncaught {
