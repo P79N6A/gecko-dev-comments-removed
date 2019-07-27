@@ -285,11 +285,18 @@ public:
   }
   const nsRect GetBounds () const { return BoxToRect(mImpl.extents); }
   uint64_t Area () const;
+
   
-  
-  
-  nsRegion ConvertAppUnitsRoundOut (int32_t aFromAPP, int32_t aToAPP) const;
-  nsRegion ConvertAppUnitsRoundIn (int32_t aFromAPP, int32_t aToAPP) const;
+
+
+
+
+
+
+  MOZ_WARN_UNUSED_RESULT nsRegion
+    ConvertAppUnitsRoundOut (int32_t aFromAPP, int32_t aToAPP) const;
+  MOZ_WARN_UNUSED_RESULT nsRegion
+    ConvertAppUnitsRoundIn (int32_t aFromAPP, int32_t aToAPP) const;
   nsRegion& ScaleRoundOut(float aXScale, float aYScale);
   nsRegion& ScaleInverseRoundOut(float aXScale, float aYScale);
   nsRegion& Transform (const gfx3DMatrix &aTransform);

@@ -27,7 +27,12 @@ struct nsSize : public mozilla::gfx::BaseSize<nscoord, nsSize> {
   inline nsIntSize ToNearestPixels(nscoord aAppUnitsPerPixel) const;
 
   
-  inline nsSize ConvertAppUnits(int32_t aFromAPP, int32_t aToAPP) const;
+
+
+
+
+  MOZ_WARN_UNUSED_RESULT inline nsSize
+    ConvertAppUnits(int32_t aFromAPP, int32_t aToAPP) const;
 };
 
 struct nsIntSize : public mozilla::gfx::BaseSize<int32_t, nsIntSize> {

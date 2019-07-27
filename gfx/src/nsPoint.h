@@ -27,7 +27,12 @@ struct nsPoint : public mozilla::gfx::BasePoint<nscoord, nsPoint> {
   inline nsIntPoint ToNearestPixels(nscoord aAppUnitsPerPixel) const;
 
   
-  inline nsPoint ConvertAppUnits(int32_t aFromAPP, int32_t aToAPP) const;
+
+
+
+
+  MOZ_WARN_UNUSED_RESULT inline nsPoint
+    ConvertAppUnits(int32_t aFromAPP, int32_t aToAPP) const;
 };
 
 

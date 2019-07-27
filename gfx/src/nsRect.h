@@ -135,12 +135,18 @@ struct NS_GFX nsRect :
   }
 
   
-  
-  
-  
-  
-  inline nsRect ConvertAppUnitsRoundOut(int32_t aFromAPP, int32_t aToAPP) const;
-  inline nsRect ConvertAppUnitsRoundIn(int32_t aFromAPP, int32_t aToAPP) const;
+
+
+
+
+
+
+
+
+  MOZ_WARN_UNUSED_RESULT inline nsRect
+    ConvertAppUnitsRoundOut(int32_t aFromAPP, int32_t aToAPP) const;
+  MOZ_WARN_UNUSED_RESULT inline nsRect
+    ConvertAppUnitsRoundIn(int32_t aFromAPP, int32_t aToAPP) const;
 
   inline nsIntRect ScaleToNearestPixels(float aXScale, float aYScale,
                                         nscoord aAppUnitsPerPixel) const;
