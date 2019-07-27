@@ -188,6 +188,8 @@ protected:
 class ColorPattern : public Pattern
 {
 public:
+  
+  
   explicit ColorPattern(const Color &aColor)
     : mColor(aColor)
   {}
