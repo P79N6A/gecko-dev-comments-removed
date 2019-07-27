@@ -42,6 +42,10 @@ def run_marionette(tests, b2g_path=None, emulator=None, testtype=None,
     
     
     
+    
+    clientdir = os.path.join(topsrcdir, 'testing/marionette/client')
+    if clientdir in sys.path:
+        sys.path.remove(clientdir)
     path = os.path.join(topsrcdir, 'testing/marionette/client/marionette/runtests.py')
     with open(path, 'r') as fh:
         imp.load_module('marionetteharness', fh, path,
