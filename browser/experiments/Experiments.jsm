@@ -419,6 +419,14 @@ Experiments.Experiments = function (policy=new Experiments.Policy()) {
 Experiments.Experiments.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsITimerCallback, Ci.nsIObserver]),
 
+  
+
+
+
+  get isReady() {
+    return !this._shutdown;
+  },
+
   init: function () {
     this._shutdown = false;
     configureLogging();
