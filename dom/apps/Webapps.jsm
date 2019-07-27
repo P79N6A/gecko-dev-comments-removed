@@ -736,6 +736,7 @@ this.DOMApplicationRegistry = {
   loadAndUpdateApps: function() {
     return Task.spawn(function*() {
       let runUpdate = AppsUtils.isFirstRun(Services.prefs);
+      let loadAppPermission = Services.prefs.getBoolPref("dom.apps.reset-permissions");
 
       yield this.loadCurrentRegistry();
 
@@ -764,7 +765,7 @@ this.DOMApplicationRegistry = {
         }
       } catch(e) {} 
 
-      if (runUpdate) {
+      if (runUpdate || !loadAppPermission) {
 
         
         let appMigrator = Components.classes["@mozilla.org/app-migrator;1"];
@@ -796,6 +797,8 @@ this.DOMApplicationRegistry = {
         
         
         this._saveApps();
+
+	Services.prefs.setBoolPref("dom.apps.reset-permissions", true);
       }
 
       
