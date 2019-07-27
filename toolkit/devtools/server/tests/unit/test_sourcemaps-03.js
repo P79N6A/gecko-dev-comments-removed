@@ -36,8 +36,7 @@ function testBreakpointMapping(aName, aCallback)
       source.setBreakpoint({
         
         
-        line: 3,
-        column: 0
+        line: 3
       }, function (aResponse) {
         do_check_true(!aResponse.error);
 

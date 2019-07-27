@@ -2821,7 +2821,7 @@ SourceActor.prototype = {
 
   _setBreakpoint: function (actor) {
     let { originalLocation } = actor;
-    let { originalColumn } = originalLocation;
+    let { originalSourceActor, originalLine, originalColumn } = originalLocation;
 
     return this._setBreakpointAtOriginalLocation(actor, originalLocation)
                .then((actualLocation) => {
@@ -2867,12 +2867,6 @@ SourceActor.prototype = {
             }
           }
 
-          let {
-            originalSourceActor,
-            originalLine,
-            originalColumn
-          } = originalLocation;
-
           
           
           
@@ -2882,7 +2876,7 @@ SourceActor.prototype = {
           
           
           
-          let actualLine = originalLine;
+          let actualLine = originalLine + 1;
           while (actualLine < lineToEntryPointsMap.length) {
             let entryPoints = lineToEntryPointsMap[actualLine];
             if (entryPoints) {
@@ -2908,15 +2902,41 @@ SourceActor.prototype = {
           return originalLocation;
         }
       } else {
-        
-        return this.threadActor.sources.getGeneratedLocation(originalLocation)
-                                       .then((generatedLocation) => {
-          return generatedLocation.generatedSourceActor
-                                  ._setBreakpointAtLocationWithSliding(
-            actor,
-            generatedLocation
-          );
-        });
+        if (originalColumn === undefined) {
+          let loop = (actualLocation) => {
+            let {
+              originalLine: actualLine,
+              originalColumn: actualColumn
+            } = actualLocation;
+
+            return this.threadActor.sources.getAllGeneratedLocations(actualLocation)
+                                           .then((generatedLocations) => {
+              
+              
+              
+              
+              
+              if (generatedLocations.length === 0) {
+                return originalLocation;
+              }
+
+              
+              
+              
+              if (this._setBreakpointAtAllGeneratedLocations(actor, generatedLocations)) {
+                return this.threadActor.sources.getOriginalLocation(generatedLocations[0]);
+              }
+
+              
+              return loop(new OriginalLocation(this, actualLine + 1));
+            });
+          };
+
+          return loop(new OriginalLocation(this, originalLine + 1));
+        } else {
+          
+          return originalLocation;
+        }
       }
     }).then((actualLocation) => {
       
@@ -2993,11 +3013,16 @@ SourceActor.prototype = {
 
 
   _setBreakpointAtGeneratedLocation: function (actor, generatedLocation) {
-    let { generatedLine, generatedColumn } = generatedLocation;
+    let {
+      generatedSourceActor,
+      generatedLine,
+      generatedColumn,
+      generatedLastColumn
+    } = generatedLocation;
 
     
     let scripts = this.scripts.getScriptsBySourceActorAndLine(
-      this,
+      generatedSourceActor,
       generatedLine
     ).filter((script) => !actor.hasScript(script));
 
@@ -3023,7 +3048,7 @@ SourceActor.prototype = {
         for (let { columnNumber: column, offset } of columnToOffsetMap) {
           
           
-          if (column == generatedColumn) {
+          if (column >= generatedColumn && column <= generatedLastColumn) {
             entryPoints.push({ script, offsets: [offset] });
           }
         }
@@ -3035,241 +3060,6 @@ SourceActor.prototype = {
     }
     setBreakpointAtEntryPoints(actor, entryPoints);
     return true;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  _setBreakpointAtLocationWithSliding: function (actor, generatedLocation) {
-    let originalLocation = actor.originalLocation;
-    let { generatedLine, generatedColumn } = generatedLocation;
-
-    
-    
-    
-    
-    let scripts = this.scripts.getScriptsBySourceActorAndLine(this, generatedLine);
-    if (scripts.length === 0) {
-      
-      
-      
-      
-      
-      
-      return actor;
-    }
-
-    
-    
-    scripts = scripts.filter((script) => !actor.hasScript(script));
-
-    let actualGeneratedLocation;
-
-    
-    
-    if (generatedColumn) {
-      this._setBreakpointAtColumn(scripts, generatedLocation, actor);
-      actualGeneratedLocation = generatedLocation;
-    } else {
-      let result;
-      if (actor.scripts.size === 0) {
-        
-        
-        
-        
-        result = this._findNextLineWithOffsets(scripts, generatedLine);
-      } else {
-        
-        
-        
-        let entryPoints = findEntryPointsForLine(scripts, generatedLine)
-        if (entryPoints) {
-          result = {
-            line: generatedLine,
-            entryPoints: entryPoints
-          };
-        }
-      }
-
-      if (!result) {
-        return actor;
-      }
-
-      if (result.line !== generatedLine) {
-        actualGeneratedLocation = new GeneratedLocation(
-          generatedLocation.generatedSourceActor,
-          result.line,
-          generatedLocation.generatedColumn
-        );
-      } else {
-        actualGeneratedLocation = generatedLocation;
-      }
-
-      setBreakpointAtEntryPoints(actor, result.entryPoints);
-    }
-
-    return Promise.resolve().then(() => {
-      if (actualGeneratedLocation.generatedSourceActor.source) {
-        return this.threadActor.sources.getOriginalLocation(actualGeneratedLocation);
-      } else {
-        return OriginalLocation.fromGeneratedLocation(actualGeneratedLocation);
-      }
-    });
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  _setBreakpointAtColumn: function (scripts, generatedLocation, actor) {
-    
-    const scriptsAndOffsetMappings = new Map();
-
-    for (let script of scripts) {
-      this._findClosestOffsetMappings(generatedLocation,
-                                      script,
-                                      scriptsAndOffsetMappings);
-    }
-
-    for (let [script, mappings] of scriptsAndOffsetMappings) {
-      for (let offsetMapping of mappings) {
-        script.setBreakpoint(offsetMapping.offset, actor);
-      }
-      actor.addScript(script, this.threadActor);
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  _findNextLineWithOffsets: function (scripts, startLine) {
-    const maxLine = Math.max(...scripts.map(s => s.startLine + s.lineCount));
-
-    for (let line = startLine; line < maxLine; line++) {
-      const entryPoints = findEntryPointsForLine(scripts, line);
-      if (entryPoints.length) {
-        return { line, entryPoints };
-      }
-    }
-
-    return null;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  _findClosestOffsetMappings: function (aTargetLocation,
-                                aScript,
-                                aScriptsAndOffsetMappings) {
-    let offsetMappings = aScript.getAllColumnOffsets()
-      .filter(({ lineNumber }) => lineNumber === aTargetLocation.generatedLine);
-
-    
-    
-    
-    
-    let closestDistance = Infinity;
-    if (aScriptsAndOffsetMappings.size) {
-      for (let mappings of aScriptsAndOffsetMappings.values()) {
-        closestDistance = Math.abs(aTargetLocation.generatedColumn - mappings[0].columnNumber);
-        break;
-      }
-    }
-
-    for (let mapping of offsetMappings) {
-      let currentDistance = Math.abs(aTargetLocation.generatedColumn - mapping.columnNumber);
-
-      if (currentDistance > closestDistance) {
-        continue;
-      } else if (currentDistance < closestDistance) {
-        closestDistance = currentDistance;
-        aScriptsAndOffsetMappings.clear();
-        aScriptsAndOffsetMappings.set(aScript, [mapping]);
-      } else {
-        if (!aScriptsAndOffsetMappings.has(aScript)) {
-          aScriptsAndOffsetMappings.set(aScript, []);
-        }
-        aScriptsAndOffsetMappings.get(aScript).push(mapping);
-      }
-    }
   }
 };
 
