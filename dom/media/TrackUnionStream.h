@@ -23,17 +23,9 @@ public:
 
   
   
-  typedef bool (*TrackIDFilterCallback)(StreamBuffer::Track*);
-
-  void SetTrackIDFilter(TrackIDFilterCallback aCallback);
-
-  
-  
   virtual void ForwardTrackEnabled(TrackID aOutputID, bool aEnabled) MOZ_OVERRIDE;
 
 protected:
-  TrackIDFilterCallback mFilterCallback;
-
   
   struct TrackMapEntry {
     
