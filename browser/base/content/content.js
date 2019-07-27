@@ -672,8 +672,8 @@ let ClickEventHandler = {
             event.preventDefault(); 
           }
         }
-        json.noReferrer = BrowserUtils.linkHasNoReferrer(node)
       }
+      json.noReferrer = BrowserUtils.linkHasNoReferrer(node)
 
       sendAsyncMessage("Content:Click", json);
       return;
