@@ -543,45 +543,6 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
             }
         }
 
-        
-
-
-
-
-
-        private Rect getMaskForLayer(Layer layer) {
-            if (layer == null) {
-                return null;
-            }
-
-            RectF bounds = RectUtils.contract(layer.getBounds(mPageContext), 1.0f, 1.0f);
-            Rect mask = RectUtils.roundIn(bounds);
-
-            
-            
-            
-            if (mask.top <= 2) {
-                mask.top = -1;
-            }
-            if (mask.left <= 2) {
-                mask.left = -1;
-            }
-
-            
-            
-            int pageRight = mPageRect.width();
-            int pageBottom = mPageRect.height();
-
-            if (mask.right >= pageRight - 2) {
-                mask.right = pageRight + 1;
-            }
-            if (mask.bottom >= pageBottom - 2) {
-                mask.bottom = pageBottom + 1;
-            }
-
-            return mask;
-        }
-
         private void clear(int color) {
             GLES20.glClearColor(((color >> 16) & 0xFF) / 255.0f,
                                 ((color >> 8) & 0xFF) / 255.0f,
@@ -611,16 +572,6 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
             setScissorRect();
             clear(mBackgroundColor);
             GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
-        }
-
-        
-        void drawRootLayer() {
-            Layer rootLayer = mView.getLayerClient().getRoot();
-            if (rootLayer == null) {
-                return;
-            }
-
-            rootLayer.draw(mPageContext);
         }
 
         @JNITarget
