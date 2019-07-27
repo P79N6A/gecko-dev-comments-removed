@@ -96,6 +96,59 @@ BlockComputesConstant(MBasicBlock *block, MDefinition *value)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static bool
+IsPhiRedudantFilter(MPhi *phi)
+{
+    
+    if (phi->operandIfRedundant())
+        return true;
+
+    
+    bool onlyFilters = false;
+    MDefinition *a = phi->getOperand(0);
+    if (a->isFilterTypeSet()) {
+        a = a->toFilterTypeSet()->input();
+        onlyFilters = true;
+    }
+
+    for (size_t i = 1; i < phi->numOperands(); i++) {
+        MDefinition *operand = phi->getOperand(i);
+        if (operand == a) {
+            onlyFilters = false;
+            continue;
+        }
+        if (operand->isFilterTypeSet() && operand->toFilterTypeSet()->input() == a)
+            continue;
+        return false;
+    }
+    if (!onlyFilters)
+        return true;
+
+    
+    MOZ_ASSERT(onlyFilters);
+    return EqualTypes(a->type(), a->resultTypeSet(),
+                      phi->type(), phi->resultTypeSet());
+}
+
+
+
 static bool
 BlockIsSingleTest(MBasicBlock *phiBlock, MBasicBlock *testBlock, MPhi **pphi, MTest **ptest)
 {
@@ -131,8 +184,13 @@ BlockIsSingleTest(MBasicBlock *phiBlock, MBasicBlock *testBlock, MPhi **pphi, MT
     }
 
     for (MPhiIterator iter = phiBlock->phisBegin(); iter != phiBlock->phisEnd(); ++iter) {
-        if (*iter != phi)
-            return false;
+        if (*iter == phi)
+            continue;
+
+        if (IsPhiRedudantFilter(*iter))
+            continue;
+
+        return false;
     }
 
     if (phiBlock != testBlock && !testBlock->phisEmpty())
@@ -256,6 +314,23 @@ MaybeFoldConditionBlock(MIRGraph &graph, MBasicBlock *initialBlock)
     MDefinition *falseResult = phi->getOperand(phiBlock->indexForPredecessor(falseBranch));
 
     
+
+    
+    for (MPhiIterator iter = phiBlock->phisBegin(); iter != phiBlock->phisEnd(); ++iter) {
+        if (*iter == phi)
+            continue;
+
+        MOZ_ASSERT(IsPhiRedudantFilter(*iter));
+        MDefinition *redundant = (*iter)->operandIfRedundant();
+
+        if (!redundant) {
+            redundant = (*iter)->getOperand(0);
+            if (redundant->isFilterTypeSet())
+                redundant = redundant->toFilterTypeSet()->input();
+        }
+
+        (*iter)->replaceAllUsesWith(redundant);
+    }
 
     
     phiBlock->discardPhi(*phiBlock->phisBegin());
