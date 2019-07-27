@@ -24,7 +24,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.TypedArray;
-import android.os.Bundle;
 import android.os.Handler;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -33,7 +32,6 @@ import android.view.View;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 public class GeckoView extends LayerView
     implements ContextGetter {
@@ -83,27 +81,18 @@ public class GeckoView extends LayerView
     private final NativeEventListener mNativeEventListener = new NativeEventListener() {
         @Override
         public void handleMessage(final String event, final NativeJSObject message, final EventCallback callback) {
-            try {
-                if ("Accessibility:Ready".equals(event)) {
-                    GeckoAccessibility.updateAccessibilitySettings(getContext());
-                } else if ("GeckoView:Message".equals(event)) {
-                    
-                    NativeJSObject json = message.optObject("data", null);
-                    if (json == null) {
-                        
-                        return;
-                    }
-                    final Bundle data = json.toBundle();
-                    ThreadUtils.postToUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            handleScriptMessage(data, callback);
+            ThreadUtils.postToUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        if ("Accessibility:Ready".equals(event)) {
+                            GeckoAccessibility.updateAccessibilitySettings(getContext());
                         }
-                    });
+                    } catch (Exception e) {
+                        Log.w(LOGTAG, "handleMessage threw for " + event, e);
+                    }
                 }
-            } catch (Exception e) {
-                Log.w(LOGTAG, "handleMessage threw for " + event, e);
-            }
+            });
         }
     };
 
@@ -175,8 +164,7 @@ public class GeckoView extends LayerView
             "Prompt:ShowTop");
 
         EventDispatcher.getInstance().registerGeckoThreadListener(mNativeEventListener,
-            "Accessibility:Ready",
-            "GeckoView:Message");
+            "Accessibility:Ready");
 
         initializeView(EventDispatcher.getInstance());
 
@@ -342,16 +330,6 @@ public class GeckoView extends LayerView
             } else if ("remotedebug".equals(hint)) {
                 mChromeDelegate.onDebugRequest(GeckoView.this, new PromptResult(message));
             }
-        }
-    }
-
-    private void handleScriptMessage(final Bundle data, final EventCallback callback) {
-        if (mChromeDelegate != null) {
-            MessageResult result = null;
-            if (callback != null) {
-                result = new MessageResult(callback);
-            }
-            mChromeDelegate.onScriptMessage(GeckoView.this, data, result);
         }
     }
 
@@ -547,51 +525,6 @@ public class GeckoView extends LayerView
         }
     }
 
-    
-
-
-    public class MessageResult {
-        private final EventCallback mCallback;
-
-        public MessageResult(EventCallback callback) {
-            if (callback == null) {
-                throw new IllegalArgumentException("EventCallback should not be null.");
-            }
-            mCallback = callback;
-        }
-
-        private JSONObject bundleToJSON(Bundle data) {
-            JSONObject result = new JSONObject();
-            if (data == null) {
-                return result;
-            }
-
-            final Set<String> keys = data.keySet();
-            for (String key : keys) {
-                try {
-                    result.put(key, data.get(key));
-                } catch (JSONException e) {
-                }
-            }
-            return result;
-        }
-
-        
-
-
-
-        public void success(Bundle data) {
-            mCallback.sendSuccess(bundleToJSON(data));
-        }
-
-        
-
-
-        public void failure(Bundle data) {
-            mCallback.sendError(bundleToJSON(data));
-        }
-    }
-
     public interface ChromeDelegate {
         
 
@@ -637,15 +570,6 @@ public class GeckoView extends LayerView
 
 
         public void onDebugRequest(GeckoView view, GeckoView.PromptResult result);
-
-        
-
-
-
-
-
-
-        public void onScriptMessage(GeckoView view, Bundle data, GeckoView.MessageResult result);
     }
 
     public interface ContentDelegate {
