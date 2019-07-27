@@ -133,7 +133,6 @@ typedef struct {
   unsigned int crop_top;       
   unsigned int crop_left;      
   unsigned int crop_right;     
-  unsigned int alpha_mode;     
 } nestegg_video_params;
 
 
@@ -340,19 +339,6 @@ int nestegg_packet_count(nestegg_packet * packet, unsigned int * count);
 
 int nestegg_packet_data(nestegg_packet * packet, unsigned int item,
                         unsigned char ** data, size_t * length);
-
-
-
-
-
-
-
-
-
-
-
-int nestegg_packet_additional_data(nestegg_packet * packet, unsigned int id,
-                                   unsigned char ** data, size_t * length);
 
 
 
