@@ -2711,10 +2711,93 @@ RunLastDitchGC(JSContext *cx, JS::Zone *zone, AllocKind thingKind)
 
 
     size_t thingSize = Arena::thingSize(thingKind);
-    if (void *thing = zone->allocator.arenas.allocateFromFreeList(thingKind, thingSize))
-        return thing;
+    return zone->allocator.arenas.allocateFromFreeList(thingKind, thingSize);
+}
 
+template <AllowGC allowGC>
+ void *
+ArenaLists::refillFreeListFromMainThread(JSContext *cx, AllocKind thingKind)
+{
+    MOZ_ASSERT(!cx->runtime()->isHeapBusy(), "allocating while under GC");
+    MOZ_ASSERT_IF(allowGC, !cx->runtime()->currentThreadHasExclusiveAccess());
+
+    Allocator *allocator = cx->allocator();
+    Zone *zone = allocator->zone_;
+
+    
+    
+    
+    const bool mustCollectNow = allowGC &&
+                                cx->runtime()->gc.incrementalState != NO_INCREMENTAL &&
+                                zone->usage.gcBytes() > zone->threshold.gcTriggerBytes();
+
+    bool outOfMemory = false;  
+    bool ranGC = false;  
+    do {
+        if (MOZ_UNLIKELY(mustCollectNow || outOfMemory)) {
+            
+            
+            if (!allowGC) {
+                MOZ_ASSERT(!mustCollectNow);
+                return nullptr;
+            }
+
+            if (void *thing = RunLastDitchGC(cx, zone, thingKind))
+                return thing;
+            ranGC = true;
+        }
+
+        AutoMaybeStartBackgroundAllocation maybeStartBGAlloc;
+        void *thing = allocator->arenas.allocateFromArenaInline(zone, thingKind, maybeStartBGAlloc);
+        if (MOZ_LIKELY(thing))
+            return thing;
+
+        
+        
+        
+        
+        cx->runtime()->gc.waitBackgroundSweepEnd();
+
+        thing = allocator->arenas.allocateFromArenaInline(zone, thingKind, maybeStartBGAlloc);
+        if (MOZ_LIKELY(thing))
+            return thing;
+
+        
+        outOfMemory = true;
+    } while (!ranGC);
+
+    MOZ_ASSERT(allowGC, "A fallible allocation must not report OOM on failure.");
+    js_ReportOutOfMemory(cx);
     return nullptr;
+}
+
+ void *
+ArenaLists::refillFreeListOffMainThread(ExclusiveContext *cx, AllocKind thingKind)
+{
+    Allocator *allocator = cx->allocator();
+    Zone *zone = allocator->zone_;
+    JSRuntime *rt = zone->runtimeFromAnyThread();
+
+    AutoMaybeStartBackgroundAllocation maybeStartBGAlloc;
+
+    
+    
+    
+    AutoLockHelperThreadState lock;
+    while (rt->isHeapBusy())
+        HelperThreadState().wait(GlobalHelperThreadState::PRODUCER);
+
+    return allocator->arenas.allocateFromArenaInline(zone, thingKind, maybeStartBGAlloc);
+}
+
+ void *
+ArenaLists::refillFreeListPJS(ForkJoinContext *cx, AllocKind thingKind)
+{
+    Allocator *allocator = cx->allocator();
+    Zone *zone = allocator->zone_;
+
+    AutoMaybeStartBackgroundAllocation maybeStartBGAlloc;
+    return allocator->arenas.allocateFromArenaInline(zone, thingKind, maybeStartBGAlloc);
 }
 
 template <AllowGC allowGC>
@@ -2722,81 +2805,14 @@ template <AllowGC allowGC>
 ArenaLists::refillFreeList(ThreadSafeContext *cx, AllocKind thingKind)
 {
     MOZ_ASSERT(cx->allocator()->arenas.freeLists[thingKind].isEmpty());
-    MOZ_ASSERT_IF(cx->isJSContext(), !cx->asJSContext()->runtime()->isHeapBusy());
 
-    Zone *zone = cx->allocator()->zone_;
+    if (cx->isJSContext())
+        return refillFreeListFromMainThread<allowGC>(cx->asJSContext(), thingKind);
 
-    bool runGC = cx->allowGC() && allowGC &&
-                 cx->asJSContext()->runtime()->gc.incrementalState != NO_INCREMENTAL &&
-                 zone->usage.gcBytes() > zone->threshold.gcTriggerBytes();
+    if (cx->allocator()->zone_->runtimeFromAnyThread()->exclusiveThreadsPresent())
+        return refillFreeListOffMainThread(cx->asExclusiveContext(), thingKind);
 
-    MOZ_ASSERT_IF(cx->isJSContext() && allowGC,
-                  !cx->asJSContext()->runtime()->currentThreadHasExclusiveAccess());
-
-    for (;;) {
-        if (MOZ_UNLIKELY(runGC)) {
-            if (void *thing = RunLastDitchGC(cx->asJSContext(), zone, thingKind))
-                return thing;
-        }
-
-        AutoMaybeStartBackgroundAllocation maybeStartBackgroundAllocation;
-
-        if (cx->isJSContext()) {
-            
-
-
-
-
-
-
-
-            for (bool secondAttempt = false; ; secondAttempt = true) {
-                void *thing = cx->allocator()->arenas.allocateFromArenaInline(zone, thingKind,
-                                                                              maybeStartBackgroundAllocation);
-                if (MOZ_LIKELY(!!thing))
-                    return thing;
-                if (secondAttempt)
-                    break;
-
-                cx->asJSContext()->runtime()->gc.waitBackgroundSweepEnd();
-            }
-        } else {
-            
-
-
-
-
-
-
-            mozilla::Maybe<AutoLockHelperThreadState> lock;
-            JSRuntime *rt = zone->runtimeFromAnyThread();
-            if (rt->exclusiveThreadsPresent()) {
-                lock.emplace();
-                while (rt->isHeapBusy())
-                    HelperThreadState().wait(GlobalHelperThreadState::PRODUCER);
-            }
-
-            void *thing = cx->allocator()->arenas.allocateFromArenaInline(zone, thingKind,
-                                                                          maybeStartBackgroundAllocation);
-            if (thing)
-                return thing;
-        }
-
-        if (!cx->allowGC() || !allowGC)
-            return nullptr;
-
-        
-
-
-
-        if (runGC)
-            break;
-        runGC = true;
-    }
-
-    MOZ_ASSERT(allowGC);
-    js_ReportOutOfMemory(cx);
-    return nullptr;
+    return refillFreeListPJS(cx->asForkJoinContext(), thingKind);
 }
 
 template void *
