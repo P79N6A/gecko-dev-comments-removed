@@ -2154,10 +2154,21 @@ void
 MediaDecoderStateMachine::DecodeError()
 {
   AssertCurrentThreadInMonitor();
-  NS_ASSERTION(OnDecodeThread(), "Should be on decode thread.");
-
   if (mState == DECODER_STATE_SHUTDOWN) {
     
+    return;
+  }
+
+  
+  
+  if (!OnDecodeThread()) {
+    RefPtr<nsIRunnable> task(
+      NS_NewRunnableMethod(this, &MediaDecoderStateMachine::AcquireMonitorAndInvokeDecodeError));
+    nsresult rv = DecodeTaskQueue()->Dispatch(task);
+
+    if (NS_FAILED(rv)) {
+      DECODER_WARN("Failed to dispatch AcquireMonitorAndInvokeDecodeError");
+    }
     return;
   }
 
@@ -3643,12 +3654,7 @@ void MediaDecoderStateMachine::OnAudioSinkError()
 
   
   
-  RefPtr<nsIRunnable> task(
-    NS_NewRunnableMethod(this, &MediaDecoderStateMachine::AcquireMonitorAndInvokeDecodeError));
-  nsresult rv = DecodeTaskQueue()->Dispatch(task);
-  if (NS_FAILED(rv)) {
-    DECODER_WARN("Failed to dispatch AcquireMonitorAndInvokeDecodeError");
-  }
+  DecodeError();
 }
 
 } 
