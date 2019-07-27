@@ -3092,7 +3092,15 @@ ScrollFrameHelper::ComputeFrameMetrics(Layer* aLayer,
     parentLayerClip = Some(clip);
   }
 
-  if (!gfxPrefs::AsyncPanZoomEnabled()) {
+  bool thisScrollFrameUsesAsyncScrolling = nsLayoutUtils::UsesAsyncScrolling();
+#if defined(MOZ_WIDGET_ANDROID) && !defined(MOZ_ANDROID_APZ)
+  
+  
+  if (!isRoot) {
+    thisScrollFrameUsesAsyncScrolling = false;
+  }
+#endif
+  if (!thisScrollFrameUsesAsyncScrolling) {
     if (parentLayerClip) {
       
       
