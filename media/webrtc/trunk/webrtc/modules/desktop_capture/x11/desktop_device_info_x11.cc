@@ -3,6 +3,7 @@
 
 
 #include "webrtc/modules/desktop_capture/x11/desktop_device_info_x11.h"
+#include "webrtc/modules/desktop_capture/window_capturer.h"
 
 namespace webrtc{
 
