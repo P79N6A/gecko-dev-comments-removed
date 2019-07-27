@@ -185,7 +185,9 @@ nsListBoxBodyFrame::Init(nsIContent*       aContent,
                          nsIFrame*         aPrevInFlow)
 {
   nsBoxFrame::Init(aContent, aParent, aPrevInFlow);
-  nsIScrollableFrame* scrollFrame = nsLayoutUtils::GetScrollableFrameFor(this);
+  
+  
+  nsIScrollableFrame* scrollFrame = do_QueryFrame(aParent);
   if (scrollFrame) {
     nsIFrame* verticalScrollbar = scrollFrame->GetScrollbarBox(true);
     nsScrollbarFrame* scrollbarFrame = do_QueryFrame(verticalScrollbar);
