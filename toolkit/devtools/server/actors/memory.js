@@ -252,13 +252,21 @@ let MemoryActor = protocol.ActorClass({
 
 
 
+
+
+
+
+
+
+
   getAllocations: method(expectState("attached", function() {
     const allocations = this.dbg.memory.drainAllocationsLog()
     const packet = {
-      allocations: []
+      allocations: [],
+      allocationsTimestamps: []
     };
 
-    for (let { frame: stack } of allocations) {
+    for (let { frame: stack, timestamp } of allocations) {
       if (stack && Cu.isDeadWrapper(stack)) {
         continue;
       }
@@ -275,6 +283,7 @@ let MemoryActor = protocol.ActorClass({
       this._countFrame(waived);
 
       packet.allocations.push(this._framesToIndices.get(waived));
+      packet.allocationsTimestamps.push(timestamp);
     }
 
     
