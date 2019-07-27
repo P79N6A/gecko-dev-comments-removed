@@ -99,31 +99,6 @@ this.BrowserUtils = {
 
 
 
-
-
-
-
-  getFocusSync: function(document) {
-    let elt = document.commandDispatcher.focusedElement;
-    var window = document.commandDispatcher.focusedWindow;
-
-    const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
-    if (elt instanceof window.XULElement &&
-        elt.localName == "browser" &&
-        elt.namespaceURI == XUL_NS &&
-        elt.getAttribute("remote")) {
-      [elt, window] = elt.syncHandler.getFocusedElementAndWindow();
-    }
-
-    return [elt, window];
-  },
-
-  
-
-
-
-
-
   getElementBoundingScreenRect: function(aElement) {
     let rect = aElement.getBoundingClientRect();
     let window = aElement.ownerDocument.defaultView;
@@ -318,4 +293,106 @@ this.BrowserUtils = {
     }
     return true;
   },
+
+  getSelectionDetails: function(topWindow, aCharLen) {
+    
+    const kMaxSelectionLen = 150;
+    const charLen = Math.min(aCharLen || kMaxSelectionLen, kMaxSelectionLen);
+
+    let focusedWindow = {};
+    let focusedElement = Services.focus.getFocusedElementForWindow(topWindow, true, focusedWindow);
+    focusedWindow = focusedWindow.value;
+
+    let selection = focusedWindow.getSelection();
+    let selectionStr = selection.toString();
+
+    let collapsed = selection.isCollapsed;
+
+    let url;
+    let linkText;
+    if (selectionStr) {
+      
+      
+      linkText = selectionStr.trim();
+      if (/^(?:https?|ftp):/i.test(linkText)) {
+        try {
+          url = this.makeURI(linkText);
+        } catch (ex) {}
+      }
+      
+      else if (/^(?:[a-z\d-]+\.)+[a-z]+$/i.test(linkText)) {
+        
+        
+        
+
+        
+        
+        let beginRange = selection.getRangeAt(0);
+        let delimitedAtStart = /^\s/.test(beginRange);
+        if (!delimitedAtStart) {
+          let container = beginRange.startContainer;
+          let offset = beginRange.startOffset;
+          if (container.nodeType == container.TEXT_NODE && offset > 0)
+            delimitedAtStart = /\W/.test(container.textContent[offset - 1]);
+          else
+            delimitedAtStart = true;
+        }
+
+        let delimitedAtEnd = false;
+        if (delimitedAtStart) {
+          let endRange = selection.getRangeAt(selection.rangeCount - 1);
+          delimitedAtEnd = /\s$/.test(endRange);
+          if (!delimitedAtEnd) {
+            let container = endRange.endContainer;
+            let offset = endRange.endOffset;
+            if (container.nodeType == container.TEXT_NODE &&
+                offset < container.textContent.length)
+              delimitedAtEnd = /\W/.test(container.textContent[offset]);
+            else
+              delimitedAtEnd = true;
+          }
+        }
+
+        if (delimitedAtStart && delimitedAtEnd) {
+          let uriFixup = Cc["@mozilla.org/docshell/urifixup;1"]
+                           .getService(Ci.nsIURIFixup);
+          try {
+            url = uriFixup.createFixupURI(linkText, uriFixup.FIXUP_FLAG_NONE);
+          } catch (ex) {}
+        }
+      }
+    }
+
+    
+    if (!selectionStr && focusedElement instanceof Ci.nsIDOMNSEditableElement) {
+      
+      if (focusedElement instanceof Ci.nsIDOMHTMLTextAreaElement ||
+          (focusedElement instanceof Ci.nsIDOMHTMLInputElement &&
+           focusedElement.mozIsTextField(true))) {
+        selectionStr = focusedElement.editor.selection.toString();
+      }
+    }
+
+    if (selectionStr) {
+      if (selectionStr.length > charLen) {
+        
+        var pattern = new RegExp("^(?:\\s*.){0," + charLen + "}");
+        pattern.test(selectionStr);
+        selectionStr = RegExp.lastMatch;
+      }
+
+      selectionStr = selectionStr.trim().replace(/\s+/g, " ");
+
+      if (selectionStr.length > charLen) {
+        selectionStr = selectionStr.substr(0, charLen);
+      }
+    }
+
+    if (url && !url.host) {
+      url = null;
+    }
+
+    return { text: selectionStr, docSelectionIsCollapsed: collapsed,
+             linkURL: url ? url.spec : null, linkText: url ? linkText : "" };
+  }
 };
