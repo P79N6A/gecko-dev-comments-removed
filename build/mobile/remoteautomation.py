@@ -12,7 +12,7 @@ import subprocess
 import sys
 
 from automation import Automation
-from devicemanager import DMError
+from devicemanager import DMError, DeviceManager
 from mozlog.structured import get_default_logger
 import mozcrash
 
@@ -124,8 +124,10 @@ class RemoteAutomation(Automation):
         
         traces = "/data/anr/traces.txt"
         try:
-            self._devicemanager.shellCheckOutput(['echo', '', '>', traces], root=True)
-            self._devicemanager.shellCheckOutput(['chmod', '666', traces], root=True)
+            self._devicemanager.shellCheckOutput(['echo', '', '>', traces], root=True,
+                                                 timeout=DeviceManager.short_timeout)
+            self._devicemanager.shellCheckOutput(['chmod', '666', traces], root=True,
+                                                 timeout=DeviceManager.short_timeout)
         except DMError:
             print "Error deleting %s" % traces
             pass
@@ -150,7 +152,8 @@ class RemoteAutomation(Automation):
         
         remoteDir = "/data/tombstones"
         try:
-            self._devicemanager.shellCheckOutput(['rm', '-r', remoteDir], root=True)
+            self._devicemanager.shellCheckOutput(['rm', '-r', remoteDir], root=True,
+                                                 timeout=DeviceManager.short_timeout)
         except DMError:
             
             pass
@@ -165,8 +168,10 @@ class RemoteAutomation(Automation):
             if self._devicemanager.dirExists(remoteDir):
                 
                 try:
-                    self._devicemanager.shellCheckOutput(['chmod', '777', remoteDir], root=True)
-                    self._devicemanager.shellCheckOutput(['chmod', '666', os.path.join(remoteDir, '*')], root=True)
+                    self._devicemanager.shellCheckOutput(['chmod', '777', remoteDir], root=True,
+                                                 timeout=DeviceManager.short_timeout)
+                    self._devicemanager.shellCheckOutput(['chmod', '666', os.path.join(remoteDir, '*')], root=True,
+                                                 timeout=DeviceManager.short_timeout)
                     self._devicemanager.getDirectory(remoteDir, blobberUploadDir, False)
                 except DMError:
                     
@@ -192,12 +197,7 @@ class RemoteAutomation(Automation):
         self.checkForANRs()
         self.checkForTombstones()
 
-        try:
-            logcat = self._devicemanager.getLogcat(filterOutRegexps=fennecLogcatFilters)
-        except DMError:
-            print "getLogcat threw DMError; re-trying just once..."
-            time.sleep(1)
-            logcat = self._devicemanager.getLogcat(filterOutRegexps=fennecLogcatFilters)
+        logcat = self._devicemanager.getLogcat(filterOutRegexps=fennecLogcatFilters)
 
         javaException = mozcrash.check_for_java_exception(logcat)
         if javaException:
