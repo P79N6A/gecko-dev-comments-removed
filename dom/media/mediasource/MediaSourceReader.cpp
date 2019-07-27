@@ -167,7 +167,7 @@ MediaSourceReader::OnNotDecoded(MediaData::Type aType, RequestSampleCallback::No
     return;
   }
 
-  MOZ_ASSERT(aReason == RequestSampleCallback::END_OF_STREAM);
+  
   if (aType == MediaData::AUDIO_DATA && SwitchAudioReader(mLastAudioTime)) {
     RequestAudioData();
     return;
@@ -177,11 +177,15 @@ MediaSourceReader::OnNotDecoded(MediaData::Type aType, RequestSampleCallback::No
     return;
   }
 
+  
   if (IsEnded()) {
-    GetCallback()->OnNotDecoded(aType, aReason);
+    GetCallback()->OnNotDecoded(aType, RequestSampleCallback::END_OF_STREAM);
+    return;
   }
 
   
+  
+  GetCallback()->OnNotDecoded(aType, RequestSampleCallback::WAITING_FOR_DATA);
 }
 
 void

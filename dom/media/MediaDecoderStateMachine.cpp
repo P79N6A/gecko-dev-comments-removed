@@ -820,6 +820,12 @@ MediaDecoderStateMachine::OnNotDecoded(MediaData::Type aType,
 
   
   
+  if (aReason == RequestSampleCallback::WAITING_FOR_DATA) {
+    return;
+  }
+
+  
+  
   MOZ_ASSERT(aReason == RequestSampleCallback::END_OF_STREAM);
   if (!isAudio && mState == DECODER_STATE_SEEKING &&
       mCurrentSeekTarget.IsValid() && mFirstVideoFrameAfterSeek) {
