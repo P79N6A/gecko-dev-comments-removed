@@ -16,8 +16,16 @@ namespace mozilla {
 NS_IMPL_ISUPPORTS(SnappyUncompressInputStream,
                   nsIInputStream);
 
-static size_t kCompressedBufferLength =
-  detail::SnappyFrameUtils::MaxCompressedBufferLength(snappy::kBlockSize);
+
+
+static size_t CompressedBufferLength()
+{
+  static size_t kCompressedBufferLength =
+      detail::SnappyFrameUtils::MaxCompressedBufferLength(snappy::kBlockSize);
+
+  MOZ_ASSERT(kCompressedBufferLength > 0);
+  return kCompressedBufferLength;
+}
 
 SnappyUncompressInputStream::SnappyUncompressInputStream(nsIInputStream* aBaseStream)
   : mBaseStream(aBaseStream)
@@ -195,7 +203,7 @@ SnappyUncompressInputStream::ParseNextChunk(uint32_t* aBytesReadOut)
   }
 
   if (!mCompressedBuffer) {
-    mCompressedBuffer.reset(new (fallible) char[kCompressedBufferLength]);
+    mCompressedBuffer.reset(new (fallible) char[CompressedBufferLength()]);
     if (NS_WARN_IF(!mCompressedBuffer)) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
@@ -208,7 +216,7 @@ SnappyUncompressInputStream::ParseNextChunk(uint32_t* aBytesReadOut)
     const uint32_t firstReadLength = kHeaderLength +
                                      kStreamIdentifierDataLength +
                                      kHeaderLength;
-    MOZ_ASSERT(firstReadLength <= kCompressedBufferLength);
+    MOZ_ASSERT(firstReadLength <= CompressedBufferLength());
 
     rv = ReadAll(mCompressedBuffer.get(), firstReadLength, firstReadLength,
                  aBytesReadOut);
@@ -261,7 +269,7 @@ SnappyUncompressInputStream::ParseNextChunk(uint32_t* aBytesReadOut)
   
   
   uint32_t readLength = mNextChunkDataLength;
-  MOZ_ASSERT(readLength <= kCompressedBufferLength);
+  MOZ_ASSERT(readLength <= CompressedBufferLength());
 
   
   
@@ -270,7 +278,7 @@ SnappyUncompressInputStream::ParseNextChunk(uint32_t* aBytesReadOut)
   if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
   if (avail >= (readLength + kHeaderLength)) {
     readLength += kHeaderLength;
-    MOZ_ASSERT(readLength <= kCompressedBufferLength);
+    MOZ_ASSERT(readLength <= CompressedBufferLength());
   }
 
   rv = ReadAll(mCompressedBuffer.get(), readLength, mNextChunkDataLength,
