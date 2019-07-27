@@ -701,10 +701,34 @@ js::CreateRegExpPrototype(JSContext* cx, JSProtoKey key)
     return proto;
 }
 
+static bool
+ReportLastIndexNonwritable(JSContext* cx)
+{
+    JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_READ_ONLY, "\"lastIndex\"");
+    return false;
+}
+
+static bool
+SetLastIndex(JSContext* cx, Handle<RegExpObject*> reobj, double lastIndex)
+{
+    if (!reobj->lookup(cx, cx->names().lastIndex)->writable())
+        return ReportLastIndexNonwritable(cx);
+
+    reobj->setLastIndex(lastIndex);
+    return true;
+}
+
+
 RegExpRunStatus
 js::ExecuteRegExp(JSContext* cx, HandleObject regexp, HandleString string,
                   MatchPairs* matches, RegExpStaticsUpdate staticsUpdate)
 {
+    
+
+
+
+
+
     
     Rooted<RegExpObject*> reobj(cx, &regexp->as<RegExpObject>());
 
@@ -721,16 +745,15 @@ js::ExecuteRegExp(JSContext* cx, HandleObject regexp, HandleString string,
         res = nullptr;
     }
 
-    
     RootedLinearString input(cx, string->ensureLinear(cx));
     if (!input)
         return RegExpRunStatus_Error;
 
     
-    RootedValue lastIndex(cx, reobj->getLastIndex());
     size_t length = input->length();
 
     
+    RootedValue lastIndex(cx, reobj->getLastIndex());
     int searchIndex;
     if (lastIndex.isInt32()) {
         
@@ -742,7 +765,11 @@ js::ExecuteRegExp(JSContext* cx, HandleObject regexp, HandleString string,
 
         
         if (reobj->needUpdateLastIndex() && (d < 0 || d > length)) {
-            reobj->zeroLastIndex();
+            
+            if (!SetLastIndex(cx, reobj, 0))
+                return RegExpRunStatus_Error;
+
+            
             return RegExpRunStatus_Success_NotFound;
         }
 
@@ -765,7 +792,11 @@ js::ExecuteRegExp(JSContext* cx, HandleObject regexp, HandleString string,
 
     
     if (searchIndex < 0 || size_t(searchIndex) > length) {
-        reobj->zeroLastIndex();
+        
+        if (!SetLastIndex(cx, reobj, 0))
+            return RegExpRunStatus_Error;
+
+        
         return RegExpRunStatus_Success_NotFound;
     }
 
@@ -774,11 +805,15 @@ js::ExecuteRegExp(JSContext* cx, HandleObject regexp, HandleString string,
     if (status == RegExpRunStatus_Error)
         return RegExpRunStatus_Error;
 
-    
-    if (status == RegExpRunStatus_Success_NotFound)
-        reobj->zeroLastIndex();
-    else if (reobj->needUpdateLastIndex())
-        reobj->setLastIndex((*matches)[0].limit);
+    if (status == RegExpRunStatus_Success_NotFound) {
+        
+        if (!SetLastIndex(cx, reobj, 0))
+            return RegExpRunStatus_Error;
+    } else if (reobj->needUpdateLastIndex()) {
+        
+        if (!SetLastIndex(cx, reobj, (*matches)[0].limit))
+            return RegExpRunStatus_Error;
+    }
 
     return status;
 }
