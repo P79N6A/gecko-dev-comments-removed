@@ -50,6 +50,67 @@ this.SEUtils = {
 
     return true;
   },
+
+  ensureIsArray: function ensureIsArray(obj) {
+    return Array.isArray(obj) ? obj : [obj];
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  parseTLV: function parseTLV(bytes, containerTags) {
+    let result = {};
+
+    if (typeof bytes === "string") {
+      bytes = this.hexStringToByteArray(bytes);
+    }
+
+    if (!Array.isArray(bytes)) {
+      debug("Passed value is not an array nor a string.");
+      return null;
+    }
+
+    for (let pos = 0; pos < bytes.length; ) {
+      let tag = bytes[pos],
+          length = bytes[pos + 1],
+          value = bytes.slice(pos + 2, pos + 2 + length),
+          parsed = null;
+
+      
+      if (tag === 0xFF) {
+        break;
+      }
+
+      if (containerTags.indexOf(tag) >= 0) {
+        parsed = this.parseTLV(value, containerTags);
+      } else {
+        parsed = value;
+      }
+
+      
+      if (!result[tag]) {
+        result[tag] = parsed;
+      } else if (Array.isArray(result[tag])) {
+        result[tag].push(parsed);
+      } else {
+        result[tag] = [result[tag], parsed];
+      }
+
+      pos = pos + 2 + length;
+    }
+
+    return result;
+  }
 };
 
 this.EXPORTED_SYMBOLS = ["SEUtils"];
