@@ -3367,6 +3367,11 @@ IonBuilder::improveTypesAtTest(MDefinition *ins, bool trueBranch, MTest *test)
     if (!ins)
         return true;
 
+    
+    
+    
+    
+    
     switch (ins->op()) {
       case MDefinition::Op_Not:
         return improveTypesAtTest(ins->toNot()->getOperand(0), !trueBranch, test);
@@ -3390,8 +3395,10 @@ IonBuilder::improveTypesAtTest(MDefinition *ins, bool trueBranch, MTest *test)
       }
       case MDefinition::Op_Phi: {
         bool branchIsAnd = true;
-        if (!detectAndOrStructure(ins->toPhi(), &branchIsAnd))
-            return true;
+        if (!detectAndOrStructure(ins->toPhi(), &branchIsAnd)) {
+            
+            break;
+        }
 
         
         if (branchIsAnd) {
@@ -3430,53 +3437,54 @@ IonBuilder::improveTypesAtTest(MDefinition *ins, bool trueBranch, MTest *test)
       case MDefinition::Op_Compare:
         return improveTypesAtCompare(ins->toCompare(), trueBranch, test);
 
-      
-      
-      
-      default: {
-        
-        if (!ins->resultTypeSet() || ins->resultTypeSet()->unknown())
-            return true;
-
-        types::TemporaryTypeSet *oldType = ins->resultTypeSet();
-        types::TemporaryTypeSet *type;
-
-        
-        if (trueBranch) {
-            
-            if (!ins->mightBeType(MIRType_Undefined) &&
-                !ins->mightBeType(MIRType_Null))
-            {
-                return true;
-            }
-            type = oldType->filter(alloc_->lifoAlloc(), true, true);
-        } else {
-            
-            
-            uint32_t flags = types::TYPE_FLAG_PRIMITIVE;
-
-            
-            
-            if (oldType->maybeEmulatesUndefined())
-                flags |= types::TYPE_FLAG_ANYOBJECT;
-
-            
-            
-            
-            if (!oldType->hasAnyFlag(~flags & types::TYPE_FLAG_BASE_MASK) &&
-                (oldType->maybeEmulatesUndefined() || !oldType->maybeObject()))
-            {
-                return true;
-            }
-
-            types::TemporaryTypeSet base(flags, static_cast<types::TypeObjectKey**>(nullptr));
-            type = types::TypeSet::intersectSets(&base, oldType, alloc_->lifoAlloc());
-        }
-        replaceTypeSet(ins, type, test);
-      }
-
+      default:
+        break;
     }
-    return true;
+
+    
+    
+    
+
+    
+    if (!ins->resultTypeSet() || ins->resultTypeSet()->unknown())
+        return true;
+
+    types::TemporaryTypeSet *oldType = ins->resultTypeSet();
+    types::TemporaryTypeSet *type;
+
+    
+    if (trueBranch) {
+        
+        if (!ins->mightBeType(MIRType_Undefined) &&
+            !ins->mightBeType(MIRType_Null))
+        {
+            return true;
+        }
+        type = oldType->filter(alloc_->lifoAlloc(), true, true);
+    } else {
+        
+        
+        uint32_t flags = types::TYPE_FLAG_PRIMITIVE;
+
+        
+        
+        if (oldType->maybeEmulatesUndefined())
+            flags |= types::TYPE_FLAG_ANYOBJECT;
+
+        
+        
+        
+        if (!oldType->hasAnyFlag(~flags & types::TYPE_FLAG_BASE_MASK) &&
+            (oldType->maybeEmulatesUndefined() || !oldType->maybeObject()))
+        {
+            return true;
+        }
+
+        types::TemporaryTypeSet base(flags, static_cast<types::TypeObjectKey**>(nullptr));
+        type = types::TypeSet::intersectSets(&base, oldType, alloc_->lifoAlloc());
+    }
+
+    return replaceTypeSet(ins, type, test);
 }
 
 bool
