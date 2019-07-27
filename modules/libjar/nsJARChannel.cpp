@@ -945,6 +945,9 @@ nsJARChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *ctx)
     mListenerContext = ctx;
     mIsPending = true;
 
+
+
+#ifndef RELEASE_BUILD
     
     
     if (ShouldIntercept()) {
@@ -967,6 +970,7 @@ nsJARChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *ctx)
 
       return NS_OK;
     }
+#endif
 
     return ContinueAsyncOpen();
 }
