@@ -194,7 +194,10 @@ public:
     : mColor(aColor)
   {}
 
-  virtual PatternType GetType() const { return PatternType::COLOR; }
+  virtual PatternType GetType() const MOZ_OVERRIDE
+  {
+    return PatternType::COLOR;
+  }
 
   Color mColor;
 };
@@ -219,7 +222,10 @@ public:
   {
   }
 
-  virtual PatternType GetType() const { return PatternType::LINEAR_GRADIENT; }
+  virtual PatternType GetType() const MOZ_OVERRIDE
+  {
+    return PatternType::LINEAR_GRADIENT;
+  }
 
   Point mBegin;                 
   Point mEnd;                   
@@ -256,7 +262,10 @@ public:
   {
   }
 
-  virtual PatternType GetType() const { return PatternType::RADIAL_GRADIENT; }
+  virtual PatternType GetType() const MOZ_OVERRIDE
+  {
+    return PatternType::RADIAL_GRADIENT;
+  }
 
   Point mCenter1; 
   Point mCenter2; 
@@ -286,7 +295,10 @@ public:
     , mSamplingRect(aSamplingRect)
   {}
 
-  virtual PatternType GetType() const { return PatternType::SURFACE; }
+  virtual PatternType GetType() const MOZ_OVERRIDE
+  {
+    return PatternType::SURFACE;
+  }
 
   RefPtr<SourceSurface> mSurface; 
   ExtendMode mExtendMode;         
@@ -383,7 +395,7 @@ public:
     READ_WRITE
   };
 
-  virtual SurfaceType GetType() const { return SurfaceType::DATA; }
+  virtual SurfaceType GetType() const MOZ_OVERRIDE { return SurfaceType::DATA; }
   
 
 
@@ -415,7 +427,7 @@ public:
 
 
 
-  virtual TemporaryRef<DataSourceSurface> GetDataSurface();
+  virtual TemporaryRef<DataSourceSurface> GetDataSurface() MOZ_OVERRIDE;
 
 protected:
   bool mIsMapped;

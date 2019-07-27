@@ -42,9 +42,9 @@ class InjectionDelegate {
 
 
 class FileDescriptorTableInjection : public InjectionDelegate {
-  bool Duplicate(int* result, int fd);
-  bool Move(int src, int dest);
-  void Close(int fd);
+  virtual bool Duplicate(int* result, int fd) MOZ_OVERRIDE;
+  virtual bool Move(int src, int dest) MOZ_OVERRIDE;
+  virtual void Close(int fd) MOZ_OVERRIDE;
 };
 
 

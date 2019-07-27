@@ -98,7 +98,7 @@ class Channel : public Message::Sender {
   
   
   
-  virtual bool Send(Message* message);
+  virtual bool Send(Message* message) MOZ_OVERRIDE;
 
   
   

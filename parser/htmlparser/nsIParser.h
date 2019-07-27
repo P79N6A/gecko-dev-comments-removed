@@ -120,7 +120,7 @@ class nsIParser : public nsParserBase {
 
 
 
-    NS_IMETHOD GetChannel(nsIChannel** aChannel) = 0;
+    NS_IMETHOD GetChannel(nsIChannel** aChannel) MOZ_OVERRIDE = 0;
 
     
 
@@ -163,7 +163,7 @@ class nsIParser : public nsParserBase {
 
     NS_IMETHOD_(void) ContinueInterruptedParsingAsync() = 0;
 
-    NS_IMETHOD_(bool) IsParserEnabled() = 0;
+    NS_IMETHOD_(bool) IsParserEnabled() MOZ_OVERRIDE = 0;
     NS_IMETHOD_(bool) IsComplete() = 0;
     
     NS_IMETHOD Parse(nsIURI* aURL,
