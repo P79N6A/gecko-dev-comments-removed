@@ -46,6 +46,10 @@ template <class T>
 class Heap;
 } 
 
+namespace js {
+class JS_FRIEND_API(BaseProxyHandler);
+} 
+
 extern JS_FRIEND_API(void)
 JS_SetGrayGCRootsTracer(JSRuntime *rt, JSTraceDataOp traceOp, void *data);
 
@@ -2459,6 +2463,33 @@ extern JS_FRIEND_API(bool)
 CheckDefineProperty(JSContext *cx, JS::HandleObject obj, JS::HandleId id, JS::HandleValue value,
                     unsigned attrs,
                     JSPropertyOp getter = nullptr, JSStrictPropertyOp setter = nullptr);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+JS_FRIEND_API(bool)
+SetPropertyIgnoringNamedGetter(JSContext *cx, const BaseProxyHandler *handler,
+                               JS::HandleObject proxy, JS::HandleObject receiver,
+                               JS::HandleId id, JS::MutableHandle<JSPropertyDescriptor> desc,
+                               bool descIsOwn, bool strict, JS::MutableHandleValue vp);
 
 JS_FRIEND_API(void)
 ReportErrorWithId(JSContext *cx, const char *msg, JS::HandleId id);
