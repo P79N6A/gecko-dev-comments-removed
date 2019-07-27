@@ -91,7 +91,7 @@ public class ToolbarComponent extends BaseComponent {
         return (ImageButton) getToolbarView().findViewById(R.id.edit_cancel);
     }
 
-    private String getTitle() {
+    private CharSequence getTitle() {
         return getTitleHelper(true);
     }
 
@@ -100,16 +100,16 @@ public class ToolbarComponent extends BaseComponent {
 
 
 
-    public String getPotentiallyInconsistentTitle() {
+    public CharSequence getPotentiallyInconsistentTitle() {
         return getTitleHelper(false);
     }
 
-    private String getTitleHelper(final boolean shouldAssertNotEditing) {
+    private CharSequence getTitleHelper(final boolean shouldAssertNotEditing) {
         if (shouldAssertNotEditing) {
             assertIsNotEditing();
         }
 
-        return getUrlTitleText().getText().toString();
+        return getUrlTitleText().getText();
     }
 
     private boolean isEditing() {
