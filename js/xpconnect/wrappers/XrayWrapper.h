@@ -12,7 +12,6 @@
 #include "WrapperFactory.h"
 
 #include "jswrapper.h"
-#include "js/Proxy.h"
 
 
 
@@ -527,13 +526,6 @@ public:
 
     virtual bool call(JSContext *cx, JS::Handle<JSObject*> proxy,
                       const JS::CallArgs &args) const MOZ_OVERRIDE;
-
-    static const size_t SandboxProxySlot = 0;
-
-    static inline JSObject *getSandboxProxy(JS::Handle<JSObject*> proxy)
-    {
-        return &js::GetProxyExtra(proxy, SandboxProxySlot).toObject();
-    }
 };
 
 extern const SandboxCallableProxyHandler sandboxCallableProxyHandler;
