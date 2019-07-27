@@ -1405,16 +1405,13 @@ nsStyleSet::RuleNodeWithReplacement(Element* aElement,
                 nsCSSPseudoElements::PseudoElementSupportsUserActionState(aPseudoType))),
              "should have aPseudoElement only for certain pseudo elements");
 
-  NS_ABORT_IF_FALSE(!(aReplacements & ~(eRestyle_CSSTransitions |
-                                        eRestyle_CSSAnimations |
-                                        eRestyle_SVGAttrAnimations |
-                                        eRestyle_StyleAttribute |
-                                        eRestyle_Force |
-                                        eRestyle_ForceDescendants)),
-                    
-                    
-                    nsPrintfCString("unexpected replacement bits 0x%" PRIX32,
-                                    uint32_t(aReplacements)).get());
+  MOZ_ASSERT(!(aReplacements & ~(eRestyle_CSSTransitions |
+                                 eRestyle_CSSAnimations |
+                                 eRestyle_SVGAttrAnimations |
+                                 eRestyle_StyleAttribute |
+                                 eRestyle_Force |
+                                 eRestyle_ForceDescendants)),
+             "unexpected replacement bits");
 
   
   
