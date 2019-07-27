@@ -1188,6 +1188,14 @@ IonTrackedOptimizationsTypeInfo::ForEachOpAdapter::readType(const IonTrackedType
     const uint32_t bufsize = mozilla::ArrayLength(buf);
 
     if (JSFunction* fun = FunctionFromTrackedType(tracked)) {
+        
+        
+        char* name = nullptr;
+        if (fun->displayAtom()) {
+            PutEscapedString(buf, bufsize, fun->displayAtom(), 0);
+            name = buf;
+        }
+
         if (fun->isNative()) {
             
             
@@ -1207,20 +1215,21 @@ IonTrackedOptimizationsTypeInfo::ForEachOpAdapter::readType(const IonTrackedType
             
             
             
-            uintptr_t addr = JS_FUNC_TO_DATA_PTR(uintptr_t, fun->native());
-            JS_snprintf(buf, bufsize, "%llx", addr);
-            op_.readType("native", nullptr, buf, UINT32_MAX);
+            
+            char locationBuf[20];
+            if (!name) {
+                uintptr_t addr = JS_FUNC_TO_DATA_PTR(uintptr_t, fun->native());
+                JS_snprintf(locationBuf, mozilla::ArrayLength(locationBuf), "%llx", addr);
+            }
+            op_.readType("native", name, name ? nullptr : locationBuf, UINT32_MAX);
             return;
         }
 
-        if (fun->displayAtom())
-            PutEscapedString(buf, bufsize, fun->displayAtom(), 0);
         const char* filename;
         unsigned lineno;
         InterpretedFunctionFilenameAndLineNumber(fun, &filename, &lineno);
         op_.readType(tracked.constructor ? "constructor" : "function",
-                     fun->displayAtom() ? buf : nullptr,
-                     filename, lineno);
+                     name, filename, lineno);
         return;
     }
 
