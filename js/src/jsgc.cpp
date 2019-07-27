@@ -3040,8 +3040,10 @@ bool
 GCRuntime::triggerZoneGC(Zone* zone, JS::gcreason::Reason reason)
 {
     
-    if (zone->usedByExclusiveThread)
+    if (!CurrentThreadCanAccessRuntime(rt)) {
+        MOZ_ASSERT(zone->usedByExclusiveThread || rt->isAtomsZone(zone));
         return false;
+    }
 
     
     if (rt->isHeapCollecting())
