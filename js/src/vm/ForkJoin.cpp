@@ -172,7 +172,7 @@ class ForkJoinOperation
 
         
         
-        uint32_t warmUpCounter;
+        uint32_t warmUpCount;
 
         
         
@@ -180,7 +180,7 @@ class ForkJoinOperation
 
         void reset() {
             calleesEnqueued = false;
-            warmUpCounter = 0;
+            warmUpCount = 0;
             stallCount = 0;
         }
     };
@@ -652,10 +652,10 @@ ForkJoinOperation::compileForParallelExecution(ExecutionStatus *status)
             
             
             if (!script->hasBaselineScript()) {
-                uint32_t previousWarmUpCounter = worklistData_[i].warmUpCounter;
-                uint32_t currentWarmUpCounter = script->getWarmUpCounter();
-                if (previousWarmUpCounter < currentWarmUpCounter) {
-                    worklistData_[i].warmUpCounter = currentWarmUpCounter;
+                uint32_t previousWarmUpCount = worklistData_[i].warmUpCount;
+                uint32_t currentWarmUpCount = script->getWarmUpCount();
+                if (previousWarmUpCount < currentWarmUpCount) {
+                    worklistData_[i].warmUpCount = currentWarmUpCount;
                     worklistData_[i].stallCount = 0;
                     gatheringTypeInformation = true;
 
@@ -663,7 +663,7 @@ ForkJoinOperation::compileForParallelExecution(ExecutionStatus *status)
                          "Script %p:%s:%d has no baseline script, "
                          "but warm-up counter grew from %d to %d",
                          script.get(), script->filename(), script->lineno(),
-                         previousWarmUpCounter, currentWarmUpCounter);
+                         previousWarmUpCount, currentWarmUpCount);
                 } else {
                     uint32_t stallCount = ++worklistData_[i].stallCount;
                     if (stallCount < stallThreshold) {
@@ -674,7 +674,7 @@ ForkJoinOperation::compileForParallelExecution(ExecutionStatus *status)
                          "Script %p:%s:%d has no baseline script, "
                          "and warm-up counter has %u stalls at %d",
                          script.get(), script->filename(), script->lineno(),
-                         stallCount, previousWarmUpCounter);
+                         stallCount, previousWarmUpCount);
                 }
                 continue;
             }

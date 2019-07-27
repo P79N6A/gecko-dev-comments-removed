@@ -819,7 +819,7 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     uint32_t        sourceStart_;
     uint32_t        sourceEnd_;
 
-    uint32_t        warmUpCounter;   
+    uint32_t        warmUpCount; 
 
 
 
@@ -1408,13 +1408,13 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     bool makeTypes(JSContext *cx);
 
   public:
-    uint32_t getWarmUpCounter() const {
-        return warmUpCounter;
+    uint32_t getWarmUpCount() const {
+        return warmUpCount;
     }
-    uint32_t incWarmUpCounter(uint32_t amount = 1) { return warmUpCounter += amount; }
-    uint32_t *addressOfWarmUpCounter() { return &warmUpCounter; }
-    static size_t offsetOfWarmUpCounter() { return offsetof(JSScript, warmUpCounter); }
-    void resetWarmUpCounter() { warmUpCounter = 0; }
+    uint32_t incWarmUpCounter(uint32_t amount = 1) { return warmUpCount += amount; }
+    uint32_t *addressOfWarmUpCounter() { return &warmUpCount; }
+    static size_t offsetOfWarmUpCounter() { return offsetof(JSScript, warmUpCount); }
+    void resetWarmUpCounter() { warmUpCount = 0; }
 
   public:
     bool initScriptCounts(JSContext *cx);
