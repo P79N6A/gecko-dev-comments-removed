@@ -1629,29 +1629,6 @@ MediaManager::GetUserMedia(
     c.mVideo.SetAsBoolean() = false;
   }
 
-#if defined(ANDROID) || defined(MOZ_WIDGET_GONK)
-  
-  if (c.mVideo.IsMediaTrackConstraints()) {
-    auto& tc = c.mVideo.GetAsMediaTrackConstraints();
-    if (!tc.mRequire.WasPassed() &&
-        tc.mMandatory.mFacingMode.WasPassed() && !tc.mFacingMode.WasPassed()) {
-      tc.mFacingMode.Construct().SetAsString() = tc.mMandatory.mFacingMode.Value();
-      tc.mRequire.Construct().AppendElement(NS_LITERAL_STRING("facingMode"));
-    }
-    if (tc.mOptional.WasPassed() && !tc.mAdvanced.WasPassed()) {
-      tc.mAdvanced.Construct();
-      for (size_t i = 0; i < tc.mOptional.Value().Length(); i++) {
-        if (tc.mOptional.Value()[i].mFacingMode.WasPassed()) {
-          MediaTrackConstraintSet n;
-          n.mFacingMode.Construct().SetAsString() =
-              tc.mOptional.Value()[i].mFacingMode.Value();
-          tc.mAdvanced.Value().AppendElement(n);
-        }
-      }
-    }
-  }
-#endif
-
   if (c.mVideo.IsMediaTrackConstraints() && !privileged) {
     auto& tc = c.mVideo.GetAsMediaTrackConstraints();
     
