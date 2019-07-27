@@ -48,8 +48,8 @@ PendingPlayerTracker::IsWaiting(const dom::AnimationPlayer& aPlayer,
 }
 
 PLDHashOperator
-StartPlayerAtTime(nsRefPtrHashKey<dom::AnimationPlayer>* aKey,
-                  void* aReadyTime)
+TriggerPlayerAtTime(nsRefPtrHashKey<dom::AnimationPlayer>* aKey,
+                    void* aReadyTime)
 {
   dom::AnimationPlayer* player = aKey->GetKey();
   dom::AnimationTimeline* timeline = player->Timeline();
@@ -65,7 +65,7 @@ StartPlayerAtTime(nsRefPtrHashKey<dom::AnimationPlayer>* aKey,
 
   Nullable<TimeDuration> readyTime =
     timeline->ToTimelineTime(*static_cast<const TimeStamp*>(aReadyTime));
-  player->StartOnNextTick(readyTime);
+  player->TriggerOnNextTick(readyTime);
 
   return PL_DHASH_REMOVE;
 }
@@ -74,21 +74,21 @@ void
 PendingPlayerTracker::TriggerPendingPlayersOnNextTick(const TimeStamp&
                                                         aReadyTime)
 {
-  mPlayPendingSet.EnumerateEntries(StartPlayerAtTime,
+  mPlayPendingSet.EnumerateEntries(TriggerPlayerAtTime,
                                    const_cast<TimeStamp*>(&aReadyTime));
 }
 
 PLDHashOperator
-StartPlayerNow(nsRefPtrHashKey<dom::AnimationPlayer>* aKey, void*)
+TriggerPlayerNow(nsRefPtrHashKey<dom::AnimationPlayer>* aKey, void*)
 {
-  aKey->GetKey()->StartNow();
+  aKey->GetKey()->TriggerNow();
   return PL_DHASH_NEXT;
 }
 
 void
 PendingPlayerTracker::TriggerPendingPlayersNow()
 {
-  mPlayPendingSet.EnumerateEntries(StartPlayerNow, nullptr);
+  mPlayPendingSet.EnumerateEntries(TriggerPlayerNow, nullptr);
   mPlayPendingSet.Clear();
 }
 

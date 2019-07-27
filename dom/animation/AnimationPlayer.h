@@ -148,7 +148,16 @@ public:
 
 
 
-  void StartOnNextTick(const Nullable<TimeDuration>& aReadyTime);
+
+
+
+
+
+
+
+
+
+  void TriggerOnNextTick(const Nullable<TimeDuration>& aReadyTime);
 
   
   
@@ -158,7 +167,7 @@ public:
   
   
   
-  void StartNow();
+  void TriggerNow();
 
   
 

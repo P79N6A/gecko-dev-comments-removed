@@ -284,9 +284,8 @@ AnimationPlayer::Tick()
 }
 
 void
-AnimationPlayer::StartOnNextTick(const Nullable<TimeDuration>& aReadyTime)
+AnimationPlayer::TriggerOnNextTick(const Nullable<TimeDuration>& aReadyTime)
 {
-  
   
   
   
@@ -300,7 +299,7 @@ AnimationPlayer::StartOnNextTick(const Nullable<TimeDuration>& aReadyTime)
 }
 
 void
-AnimationPlayer::StartNow()
+AnimationPlayer::TriggerNow()
 {
   MOZ_ASSERT(PlayState() == AnimationPlayState::Pending,
              "Expected to start a pending player");
@@ -449,7 +448,7 @@ AnimationPlayer::DoPlay()
 
   nsIDocument* doc = GetRenderedDocument();
   if (!doc) {
-    StartOnNextTick(Nullable<TimeDuration>());
+    TriggerOnNextTick(Nullable<TimeDuration>());
     return;
   }
 
