@@ -49,6 +49,14 @@ class WindowCapturer : public DesktopCapturer {
   
   
   virtual bool SelectWindow(WindowId id) = 0;
+
+  
+  
+  
+  
+  virtual bool BringSelectedWindowToFront() {
+    return true;
+  }
 };
 
 }  

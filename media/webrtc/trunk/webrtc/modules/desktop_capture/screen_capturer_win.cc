@@ -189,6 +189,7 @@ void ScreenCapturerWin::Capture(const DesktopRegion& region) {
     helper_.InvalidateRegion(region);
   } else {
     
+    
     helper_.InvalidateScreen(current_frame->size());
   }
 
