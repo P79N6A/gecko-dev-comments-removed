@@ -1599,6 +1599,16 @@ function JSTermHelpers(aOwner)
   
 
 
+  aOwner.sandbox.clearHistory = function JSTH_clearHistory()
+  {
+    aOwner.helperResult = {
+      type: "clearHistory",
+    };
+  };
+
+  
+
+
 
 
 

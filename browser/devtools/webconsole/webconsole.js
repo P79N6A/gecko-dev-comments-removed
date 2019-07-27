@@ -3118,8 +3118,23 @@ JSTerm.prototype = {
   
 
 
+
+
+
+
+  clearHistory: function() {
+    this.history = [];
+    this.historyIndex = this.historyPlaceHolder = 0;
+    return this.storeHistory();
+  },
+
+  
+
+
+
+
   storeHistory: function() {
-    asyncStorage.setItem("webConsoleHistory", this.history);
+    return asyncStorage.setItem("webConsoleHistory", this.history);
   },
 
   
@@ -3311,6 +3326,9 @@ JSTerm.prototype = {
       switch (helperResult.type) {
         case "clearOutput":
           this.clearOutput();
+          break;
+        case "clearHistory":
+          this.clearHistory();
           break;
         case "inspectObject":
           if (aAfterMessage) {
