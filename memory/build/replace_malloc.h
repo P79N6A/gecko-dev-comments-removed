@@ -58,6 +58,15 @@
 
 
 
+#ifdef replace_malloc_bridge_h
+#error Do not include replace_malloc_bridge.h before replace_malloc.h. \
+  In fact, you only need the latter.
+#endif
+
+#define REPLACE_MALLOC_IMPL
+
+#include "replace_malloc_bridge.h"
+
 
 #define MOZ_NO_MOZALLOC 1
 

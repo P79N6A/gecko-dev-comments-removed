@@ -32,6 +32,7 @@
 
 
 
+
 #ifdef XP_DARWIN
 #  define MOZ_REPLACE_WEAK __attribute__((weak_import))
 #elif defined(XP_WIN) || defined(MOZ_WIDGET_ANDROID)
@@ -129,6 +130,16 @@ init()
   replace_malloc_initialized = 1;
   if (replace_init)
     replace_init(&malloc_table);
+}
+
+MFBT_API struct ReplaceMallocBridge*
+get_bridge(void)
+{
+  if (MOZ_UNLIKELY(!replace_malloc_initialized))
+    init();
+  if (MOZ_LIKELY(!replace_get_bridge))
+    return NULL;
+  return replace_get_bridge();
 }
 
 void*
