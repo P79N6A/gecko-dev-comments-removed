@@ -475,6 +475,8 @@ class MochitestOptions(optparse.OptionParser):
             
             if options.app != self.defaults['app']:
                 options.xrePath = os.path.dirname(options.app)
+                if mozinfo.isMac:
+                    options.xrePath = os.path.join(os.path.dirname(options.xrePath), "Resources")
             elif build_obj is not None:
                 
                 options.xrePath = build_obj.bindir
