@@ -42,6 +42,8 @@ public:
 
   static bool IsAccessKeyPressed(nsIDOMKeyEvent* event);
 
+  void OnDestroyMenuBarFrame();
+
 protected:
   
 
@@ -54,6 +56,8 @@ protected:
   
   
   void ToggleMenuActiveState();
+
+  bool Destroyed() const { return !mMenuBarFrame; }
 
   nsMenuBarFrame* mMenuBarFrame; 
   
