@@ -299,10 +299,8 @@ struct FloatRegister {
         MOZ_ASSERT(uint32_t(reg_) < Codes::TotalPhys);
         return reg_;
     }
-    const char *name() const {
-        
-        return FloatRegisters::GetName(encoding());
-    }
+    
+    const char *name() const;
     bool volatile_() const {
         return !!((SetType(1) << code()) & FloatRegisters::VolatileMask);
     }
