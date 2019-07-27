@@ -159,17 +159,15 @@ MOZ_END_ENUM_CLASS(EffectTypes)
 MOZ_BEGIN_ENUM_CLASS(CompositableType, uint8_t)
   BUFFER_UNKNOWN,
   
-  BUFFER_IMAGE_SINGLE,    
-  BUFFER_IMAGE_BUFFERED,  
-  BUFFER_BRIDGE,          
   BUFFER_CONTENT_INC,     
                           
   
   BUFFER_TILED,           
   BUFFER_SIMPLE_TILED,
   
-  IMAGE,     
-  IMAGE_OVERLAY, 
+  IMAGE,           
+  IMAGE_OVERLAY,   
+  IMAGE_BRIDGE,    
   CONTENT_SINGLE,  
   CONTENT_DOUBLE,  
   BUFFER_COUNT

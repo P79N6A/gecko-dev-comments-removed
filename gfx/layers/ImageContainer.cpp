@@ -137,7 +137,7 @@ ImageContainer::ImageContainer(int flag)
   if (flag == ENABLE_ASYNC && ImageBridgeChild::IsCreated()) {
     
     
-    mImageClient = ImageBridgeChild::GetSingleton()->CreateImageClient(CompositableType::BUFFER_IMAGE_SINGLE).drop();
+    mImageClient = ImageBridgeChild::GetSingleton()->CreateImageClient(CompositableType::IMAGE).drop();
     MOZ_ASSERT(mImageClient);
   }
 }
