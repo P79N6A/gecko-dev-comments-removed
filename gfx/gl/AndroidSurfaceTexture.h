@@ -42,6 +42,10 @@ public:
   
   static bool Check();
 
+  AndroidNativeWindow* NativeWindow() {
+    return mNativeWindow;
+  }
+
   
   void UpdateTexImage();
 
@@ -70,6 +74,7 @@ private:
   jobject mSurfaceTexture;
   jobject mSurface;
 
+  RefPtr<AndroidNativeWindow> mNativeWindow;
   int mID;
   nsRefPtr<nsIRunnable> mFrameAvailableCallback;
 };
