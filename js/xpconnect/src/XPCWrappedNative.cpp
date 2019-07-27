@@ -1251,6 +1251,78 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCWrappedNativeScope* aOldScope,
     return NS_OK;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static nsresult
+RescueOrphans(HandleObject obj)
+{
+    AutoJSContext cx;
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    nsresult rv;
+    RootedObject parentObj(cx, js::GetObjectParent(obj));
+    if (!parentObj)
+        return NS_OK; 
+    parentObj = js::UncheckedUnwrap(parentObj,  false);
+
+    
+    rv = RescueOrphans(parentObj);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+    if (!js::IsCrossCompartmentWrapper(parentObj))
+        return NS_OK;
+
+    
+    if (IS_WN_REFLECTOR(obj)) {
+        RootedObject realParent(cx, js::UncheckedUnwrap(parentObj));
+        XPCWrappedNative *wn =
+            static_cast<XPCWrappedNative*>(js::GetObjectPrivate(obj));
+        return wn->ReparentWrapperIfFound(ObjectScope(parentObj),
+                                          ObjectScope(realParent),
+                                          realParent, wn->GetIdentityObject());
+    }
+
+    JSAutoCompartment ac(cx, obj);
+    return ReparentWrapper(cx, obj);
+}
+
+
+
+
+
+nsresult
+XPCWrappedNative::RescueOrphans()
+{
+    AutoJSContext cx;
+    RootedObject flatJSObject(cx, mFlatJSObject);
+    return ::RescueOrphans(flatJSObject);
+}
+
 bool
 XPCWrappedNative::ExtendSet(XPCNativeInterface* aInterface)
 {
