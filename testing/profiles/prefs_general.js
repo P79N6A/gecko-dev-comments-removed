@@ -151,6 +151,9 @@ user_pref("layout.css.object-fit-and-position.enabled", true);
 user_pref("layout.css.ruby.enabled", true);
 
 
+user_pref("layout.css.font-loading-api.enabled", true);
+
+
 user_pref("layout.spammy_warnings.enabled", false);
 
 
