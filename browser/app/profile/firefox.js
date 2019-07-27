@@ -1214,6 +1214,18 @@ pref("security.sandbox.windows.log.stackTraceDepth", 0);
 #endif
 #endif
 
+#if defined(XP_MACOSX) && defined(MOZ_SANDBOX) && defined(MOZ_CONTENT_SANDBOX)
+
+
+
+
+
+
+
+
+pref("security.sandbox.macos.content.moreStrict", 1);
+#endif
+
 
 
 
@@ -1856,6 +1868,3 @@ pref("dom.ipc.reportProcessHangs", true);
 
 
 pref("reader.parse-on-load.enabled", false);
-
-
-pref("browser.readinglist.enabled", false);
