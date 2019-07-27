@@ -674,9 +674,15 @@ private:
       
       mRegistration->mWaitingWorker->UpdateState(ServiceWorkerState::Redundant);
     }
+
+    
+    
+    
+    
+    
+    mRegistration->mInstallingWorker->UpdateState(ServiceWorkerState::Installed);
     mRegistration->mWaitingWorker = mRegistration->mInstallingWorker.forget();
     mRegistration->mWaitingToActivate = false;
-    mRegistration->mWaitingWorker->UpdateState(ServiceWorkerState::Installed);
     swm->InvalidateServiceWorkerRegistrationWorker(mRegistration,
                                                    WhichServiceWorker::INSTALLING_WORKER | WhichServiceWorker::WAITING_WORKER);
 
@@ -922,14 +928,21 @@ InstallEventRunnable::DispatchInstallEvent(JSContext* aCx, WorkerPrivate* aWorke
   result = target->DispatchDOMEvent(nullptr, event, nullptr, nullptr);
 
   nsCOMPtr<nsIGlobalObject> sgo = aWorkerPrivate->GlobalScope();
-  if (!result.Failed()) {
+  WidgetEvent* internalEvent = event->GetInternalNSEvent();
+  if (!result.Failed() && !internalEvent->mFlags.mExceptionHasBeenRisen) {
     waitUntilPromise = event->GetPromise();
     if (!waitUntilPromise) {
       ErrorResult result;
       waitUntilPromise =
         Promise::Resolve(sgo, aCx, JS::UndefinedHandleValue, result);
+      if (NS_WARN_IF(result.Failed())) {
+        return true;
+      }
     }
   } else {
+    
+    
+    
     
     waitUntilPromise = Promise::Reject(sgo, aCx,
                                        JS::UndefinedHandleValue, result);
@@ -938,7 +951,6 @@ InstallEventRunnable::DispatchInstallEvent(JSContext* aCx, WorkerPrivate* aWorke
   if (result.Failed()) {
     return false;
   }
-  
 
   nsRefPtr<FinishInstallHandler> handler =
     new FinishInstallHandler(mJob, event->ActivateImmediately());
@@ -1041,7 +1053,8 @@ private:
     
     ErrorResult result;
     result = target->DispatchDOMEvent(nullptr, event, nullptr, nullptr);
-    if (!result.Failed()) {
+    WidgetEvent* internalEvent = event->GetInternalNSEvent();
+    if (!result.Failed() && !internalEvent->mFlags.mExceptionHasBeenRisen) {
       waitUntilPromise = event->GetPromise();
       if (!waitUntilPromise) {
         nsCOMPtr<nsIGlobalObject> global =
