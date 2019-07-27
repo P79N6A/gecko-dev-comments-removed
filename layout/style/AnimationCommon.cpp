@@ -99,39 +99,23 @@ CommonAnimationManager::RemoveAllElementCollections()
 }
 
 void
-CommonAnimationManager::MaybeStartObservingRefreshDriver()
-{
-  if (mIsObservingRefreshDriver || !NeedsRefresh()) {
-    return;
-  }
-
-  mPresContext->RefreshDriver()->AddRefreshObserver(this, Flush_Style);
-  mIsObservingRefreshDriver = true;
-}
-
-void
-CommonAnimationManager::MaybeStartOrStopObservingRefreshDriver()
-{
-  bool needsRefresh = NeedsRefresh();
-  if (needsRefresh && !mIsObservingRefreshDriver) {
-    mPresContext->RefreshDriver()->AddRefreshObserver(this, Flush_Style);
-  } else if (!needsRefresh && mIsObservingRefreshDriver) {
-    mPresContext->RefreshDriver()->RemoveRefreshObserver(this, Flush_Style);
-  }
-  mIsObservingRefreshDriver = needsRefresh;
-}
-
-bool
-CommonAnimationManager::NeedsRefresh() const
+CommonAnimationManager::CheckNeedsRefresh()
 {
   for (PRCList *l = PR_LIST_HEAD(&mElementCollections);
        l != &mElementCollections;
        l = PR_NEXT_LINK(l)) {
     if (static_cast<AnimationPlayerCollection*>(l)->mNeedsRefreshes) {
-      return true;
+      if (!mIsObservingRefreshDriver) {
+        mPresContext->RefreshDriver()->AddRefreshObserver(this, Flush_Style);
+        mIsObservingRefreshDriver = true;
+      }
+      return;
     }
   }
-  return false;
+  if (mIsObservingRefreshDriver) {
+    mIsObservingRefreshDriver = false;
+    mPresContext->RefreshDriver()->RemoveRefreshObserver(this, Flush_Style);
+  }
 }
 
 AnimationPlayerCollection*
@@ -292,7 +276,7 @@ void
 CommonAnimationManager::NotifyCollectionUpdated(AnimationPlayerCollection&
                                                   aCollection)
 {
-  MaybeStartObservingRefreshDriver();
+  CheckNeedsRefresh();
   mPresContext->ClearLastStyleUpdateForAllAnimations();
   mPresContext->RestyleManager()->IncrementAnimationGeneration();
   aCollection.UpdateAnimationGeneration(mPresContext);
@@ -392,9 +376,21 @@ CommonAnimationManager::GetAnimationRule(mozilla::dom::Element* aElement,
     return nullptr;
   }
 
-  collection->EnsureStyleRuleFor(
-    mPresContext->RefreshDriver()->MostRecentRefresh(),
-    EnsureStyleRule_IsNotThrottled);
+  
+  
+  
+  if (IsAnimationManager()) {
+    NS_WARN_IF_FALSE(!collection->mNeedsRefreshes ||
+                     collection->mStyleRuleRefreshTime ==
+                       mPresContext->RefreshDriver()->MostRecentRefresh(),
+                     "should already have refreshed style rule");
+  } else {
+    
+    collection->mNeedsRefreshes = true;
+    collection->EnsureStyleRuleFor(
+      mPresContext->RefreshDriver()->MostRecentRefresh(),
+      EnsureStyleRule_IsNotThrottled);
+  }
 
   return collection->mStyleRule;
 }
@@ -744,7 +740,7 @@ AnimationPlayerCollection::EnsureStyleRuleFor(TimeStamp aRefreshTime,
     }
   }
 
-  mManager->MaybeStartObservingRefreshDriver();
+  mManager->CheckNeedsRefresh();
 
   
   
