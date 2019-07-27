@@ -26,8 +26,8 @@
 
 namespace js {
 
-class Nursery;
 class Shape;
+class TenuringTracer;
 
 
 
@@ -180,9 +180,9 @@ class ObjectElements
 
   private:
     friend class ::JSObject;
-    friend class NativeObject;
     friend class ArrayObject;
-    friend class Nursery;
+    friend class NativeObject;
+    friend class TenuringTracer;
 
     friend bool js::SetIntegrityLevel(JSContext* cx, HandleObject obj, IntegrityLevel level);
 
@@ -457,7 +457,7 @@ class NativeObject : public JSObject
     bool toDictionaryMode(ExclusiveContext* cx);
 
   private:
-    friend class Nursery;
+    friend class TenuringTracer;
 
     
 
