@@ -18,8 +18,10 @@ const DevToolsUtils = devtools.require("devtools/toolkit/DevToolsUtils.js");
 
 
 
-Services.prefs.setBoolPref("devtools.debugger.log", true);
-Services.prefs.setBoolPref("devtools.debugger.log.verbose", true);
+
+
+
+
 
 Services.prefs.setBoolPref("devtools.debugger.remote-enabled", true);
 
