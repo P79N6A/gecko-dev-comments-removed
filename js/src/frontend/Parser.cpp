@@ -3944,12 +3944,26 @@ Parser<ParseHandler>::variables(YieldHandling yieldHandling,
                 if (!init)
                     return null();
 
+                
+                
+                if (pc->parsingForInit && kind == PNK_VAR) {
+                    TokenKind afterInit;
+                    if (!tokenStream.peekToken(&afterInit))
+                        return null();
+                    if (afterInit == TOK_IN) {
+                        report(ParseError, false, init, JSMSG_INVALID_FOR_INOF_DECL_WITH_INIT,
+                               "in");
+                        return null();
+                    }
+                }
+
                 if (!bindBeforeInitializer && !checkDestructuring(&data, pn2))
                     return null();
 
                 pn2 = handler.newBinary(PNK_ASSIGN, pn2, init);
                 if (!pn2)
                     return null();
+
                 handler.addList(pn, pn2);
                 break;
             }
@@ -3997,11 +4011,34 @@ Parser<ParseHandler>::variables(YieldHandling yieldHandling,
                 if (!init)
                     return null();
 
-                if (!bindBeforeInitializer && !data.binder(&data, name, this))
-                    return null();
+                
+                
+                
+                
+                
+                
+                bool performAssignment = true;
+                if (pc->parsingForInit && kind == PNK_VAR) {
+                    TokenKind afterInit;
+                    if (!tokenStream.peekToken(&afterInit))
+                        return null();
+                    if (afterInit == TOK_IN) {
+                        performAssignment = false;
+                        if (!report(ParseWarning, pc->sc->strict(), init,
+                                    JSMSG_INVALID_FOR_INOF_DECL_WITH_INIT, "in"))
+                        {
+                            return null();
+                        }
+                    }
+                }
 
-                if (!handler.finishInitializerAssignment(pn2, init, data.op))
-                    return null();
+                if (performAssignment) {
+                    if (!bindBeforeInitializer && !data.binder(&data, name, this))
+                        return null();
+
+                    if (!handler.finishInitializerAssignment(pn2, init, data.op))
+                        return null();
+                }
             } else {
                 if (data.isConst && !pc->parsingForInit) {
                     report(ParseError, false, null(), JSMSG_BAD_CONST_DECL);
@@ -4885,6 +4922,12 @@ Parser<FullParseHandler>::forStatement(YieldHandling yieldHandling)
         if (isForDecl) {
             pn2 = pn1->pn_head;
             if ((pn2->isKind(PNK_NAME) && pn2->maybeExpr()) || pn2->isKind(PNK_ASSIGN)) {
+                MOZ_ASSERT(!(headKind == PNK_FORIN && pn1->isKind(PNK_VAR)),
+                           "Parser::variables should have ignored the "
+                           "initializer in the ES5-sanctioned, ES6-prohibited "
+                           "|for (var ... = ... in ...)| syntax");
+
+                
                 
                 
                 report(ParseError, false, pn2, JSMSG_INVALID_FOR_INOF_DECL_WITH_INIT,
