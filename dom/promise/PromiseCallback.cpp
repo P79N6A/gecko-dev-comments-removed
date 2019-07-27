@@ -278,8 +278,8 @@ WrapperPromiseCallback::Call(JSContext* aCx,
       }
 
       JS::Rooted<JS::Value> typeError(aCx);
-      if (!JS::CreateTypeError(aCx, stack, fn, lineNumber, 0,
-                               nullptr, message, &typeError)) {
+      if (!JS::CreateError(aCx, JSEXN_TYPEERR, stack, fn, lineNumber, 0,
+                           nullptr, message, &typeError)) {
         
         JS_ClearPendingException(aCx);
         return;
