@@ -338,9 +338,18 @@ ClientTiledThebesLayer::RenderLayer()
   TILING_LOG("TILING %p: Initial low-precision valid region %s\n", this, Stringify(mLowPrecisionValidRegion).c_str());
 
   nsIntRegion neededRegion = mVisibleRegion;
-  if (neededRegion.GetNumRects() > 1 &&
-      MayResample()) {
-    neededRegion = neededRegion.GetBounds();
+  if (MayResample()) {
+    
+    
+    
+    
+    nsIntRect bounds = neededRegion.GetBounds();
+    nsIntRect wholeTiles = bounds;
+    wholeTiles.Inflate(nsIntSize(gfxPrefs::LayersTileWidth(), gfxPrefs::LayersTileHeight()));
+    nsIntRect padded = bounds;
+    padded.Inflate(1);
+    padded.IntersectRect(padded, wholeTiles);
+    neededRegion = padded;
   }
 
   nsIntRegion invalidRegion;
