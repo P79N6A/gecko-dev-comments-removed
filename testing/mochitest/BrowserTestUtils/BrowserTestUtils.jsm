@@ -275,4 +275,69 @@ this.BrowserTestUtils = {
       });
     });
   },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  synthesizeMouse(target, offsetX, offsetY, event, browser)
+  {
+    return new Promise(resolve => {
+      let mm = browser.messageManager;
+      mm.addMessageListener("Test:SynthesizeMouseDone", function mouseMsg(message) {
+        mm.removeMessageListener("Test:SynthesizeMouseDone", mouseMsg);
+        resolve(message.data.defaultPrevented);
+      });
+
+      let cpowObject = null;
+      if (typeof target != "string") {
+        cpowObject = target;
+        target = null;
+      }
+
+      mm.sendAsyncMessage("Test:SynthesizeMouse",
+                          {target, target, x: offsetX, y: offsetY, event: event},
+                          {object: cpowObject});
+    });
+  },
+
+  
+
+
+
+  synthesizeMouseAtCenter(target, event, browser)
+  {
+    
+    event.centered = true;
+    return BrowserTestUtils.synthesizeMouse(target, 0, 0, event, browser);
+  },
+
+  
+
+
+
+
+  synthesizeMouseAtPoint(offsetX, offsetY, event, browser)
+  {
+    return BrowserTestUtils.synthesizeMouse(null, offsetX, offsetY, event, browser);
+  }
 };
