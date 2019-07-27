@@ -86,8 +86,12 @@ class nsTHashtable
 public:
   
   
-  nsTHashtable() { Init(PL_DHASH_DEFAULT_INITIAL_LENGTH); }
-  explicit nsTHashtable(uint32_t aInitLength) { Init(aInitLength); }
+  nsTHashtable()
+    : mTable(Ops(), sizeof(EntryType), PL_DHASH_DEFAULT_INITIAL_LENGTH)
+  {}
+  explicit nsTHashtable(uint32_t aInitLength)
+    : mTable(Ops(), sizeof(EntryType), aInitLength)
+  {}
 
   
 
@@ -130,7 +134,7 @@ public:
                  "nsTHashtable was not initialized properly.");
 
     return static_cast<EntryType*>(
-      PL_DHashTableSearch(const_cast<PLDHashTable*>(&mTable),
+      PL_DHashTableSearch(const_cast<PLDHashTable*>(static_cast<const PLDHashTable*>(&mTable)),
                           EntryType::KeyToPointer(aKey)));
   }
 
@@ -324,7 +328,7 @@ public:
 #endif
 
 protected:
-  PLDHashTable mTable;
+  PLDHashTable2 mTable;
 
   static const void* s_GetKey(PLDHashTable* aTable, PLDHashEntryHdr* aEntry);
 
@@ -380,8 +384,7 @@ private:
   
 
 
-
-  void Init(uint32_t aInitLength);
+  static const PLDHashTableOps* Ops();
 
   
 
@@ -411,15 +414,15 @@ nsTHashtable<EntryType>::nsTHashtable(nsTHashtable<EntryType>&& aOther)
 template<class EntryType>
 nsTHashtable<EntryType>::~nsTHashtable()
 {
-  if (mTable.IsInitialized()) {
-    PL_DHashTableFinish(&mTable);
-  }
 }
 
 template<class EntryType>
-void
-nsTHashtable<EntryType>::Init(uint32_t aInitLength)
+ const PLDHashTableOps*
+nsTHashtable<EntryType>::Ops()
 {
+  
+  
+  
   static const PLDHashTableOps sOps =
   {
     s_HashKey,
@@ -428,8 +431,7 @@ nsTHashtable<EntryType>::Init(uint32_t aInitLength)
     s_ClearEntry,
     s_InitEntry
   };
-
-  PL_DHashTableInit(&mTable, &sOps, sizeof(EntryType), aInitLength);
+  return &sOps;
 }
 
 
