@@ -18,7 +18,9 @@
 #include "nsCategoryCache.h"
 #include "nsISpeculativeConnect.h"
 #include "nsDataHashtable.h"
+#include "mozilla/Atomics.h"
 #include "mozilla/Attributes.h"
+#include "prtime.h"
 #include "nsICaptivePortalService.h"
 
 #define NS_N(x) (sizeof(x)/sizeof(*x))
@@ -79,6 +81,9 @@ public:
                                     nsAsyncRedirectVerifyHelper *helper);
 
     bool IsOffline() { return mOffline; }
+    PRIntervalTime LastOfflineStateChange() { return mLastOfflineStateChange; }
+    PRIntervalTime LastConnectivityChange() { return mLastConnectivityChange; }
+    PRIntervalTime LastNetworkLinkChange() { return mLastNetworkLinkChange; }
     bool IsShutdown() { return mShutdown; }
     bool IsLinkUp();
 
@@ -171,6 +176,14 @@ private:
     nsDataHashtable<nsUint32HashKey, int32_t> mAppsOfflineStatus;
 
     static bool                          sTelemetryEnabled;
+
+    
+    
+    
+    
+    mozilla::Atomic<PRIntervalTime>  mLastOfflineStateChange;
+    mozilla::Atomic<PRIntervalTime>  mLastConnectivityChange;
+    mozilla::Atomic<PRIntervalTime>  mLastNetworkLinkChange;
 public:
     
     static uint32_t   gDefaultSegmentSize;

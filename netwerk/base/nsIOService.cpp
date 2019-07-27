@@ -174,6 +174,9 @@ nsIOService::nsIOService()
     , mAutoDialEnabled(false)
     , mNetworkNotifyChanged(true)
     , mPreviousWifiState(-1)
+    , mLastOfflineStateChange(PR_IntervalNow())
+    , mLastConnectivityChange(PR_IntervalNow())
+    , mLastNetworkLinkChange(PR_IntervalNow())
 {
 }
 
@@ -1001,6 +1004,7 @@ nsIOService::SetOffline(bool offline)
             if (mSocketTransportService)
                 mSocketTransportService->SetOffline(true);
 
+            mLastOfflineStateChange = PR_IntervalNow();
             if (observerService)
                 observerService->NotifyObservers(subject,
                                                  NS_IOSERVICE_OFFLINE_STATUS_TOPIC,
@@ -1021,12 +1025,14 @@ nsIOService::SetOffline(bool offline)
             if (mProxyService)
                 mProxyService->ReloadPAC();
 
+            mLastOfflineStateChange = PR_IntervalNow();
             
             
-            if (observerService && mConnectivity)
+            if (observerService && mConnectivity) {
                 observerService->NotifyObservers(subject,
                                                  NS_IOSERVICE_OFFLINE_STATUS_TOPIC,
                                                  NS_LITERAL_STRING(NS_IOSERVICE_ONLINE).get());
+            }
         }
     }
 
@@ -1076,6 +1082,10 @@ nsIOService::SetConnectivityInternal(bool aConnectivity)
         return NS_OK;
     }
     mConnectivity = aConnectivity;
+
+    
+    
+    mLastConnectivityChange = PR_IntervalNow();
 
     nsCOMPtr<nsIObserverService> observerService =
         mozilla::services::GetObserverService();
@@ -1606,6 +1616,7 @@ nsIOService::OnNetworkLinkEvent(const char *data)
 
     bool isUp = true;
     if (!strcmp(data, NS_NETWORK_LINK_DATA_CHANGED)) {
+        mLastNetworkLinkChange = PR_IntervalNow();
         
         return NS_OK;
     } else if (!strcmp(data, NS_NETWORK_LINK_DATA_DOWN)) {
