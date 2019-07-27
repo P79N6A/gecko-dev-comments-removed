@@ -7,6 +7,25 @@
 
 
 let PerformanceView = {
+
+  _state: null,
+
+  
+  
+  states: {
+    empty: [
+      { deck: "#performance-view", pane: "#empty-notice" }
+    ],
+    recording: [
+      { deck: "#performance-view", pane: "#performance-view-content" },
+      { deck: "#details-pane-container", pane: "#recording-notice" }
+    ],
+    recorded: [
+      { deck: "#performance-view", pane: "#performance-view-content" },
+      { deck: "#details-pane-container", pane: "#details-pane" }
+    ]
+  },
+
   
 
 
@@ -18,13 +37,20 @@ let PerformanceView = {
     this._onImportButtonClick = this._onImportButtonClick.bind(this);
     this._lockRecordButton = this._lockRecordButton.bind(this);
     this._unlockRecordButton = this._unlockRecordButton.bind(this);
+    this._onRecordingSelected = this._onRecordingSelected.bind(this);
+    this._onRecordingStopped = this._onRecordingStopped.bind(this);
 
-    this._recordButton.addEventListener("click", this._onRecordButtonClick);
+    for (let button of $$(".record-button")) {
+      button.addEventListener("click", this._onRecordButtonClick);
+    }
     this._importButton.addEventListener("click", this._onImportButtonClick);
 
     
     PerformanceController.on(EVENTS.RECORDING_STARTED, this._unlockRecordButton);
-    PerformanceController.on(EVENTS.RECORDING_STOPPED, this._unlockRecordButton);
+    PerformanceController.on(EVENTS.RECORDING_STOPPED, this._onRecordingStopped);
+    PerformanceController.on(EVENTS.RECORDING_SELECTED, this._onRecordingSelected);
+
+    this.setState("empty");
 
     return promise.all([
       RecordingsView.initialize(),
@@ -38,11 +64,14 @@ let PerformanceView = {
 
 
   destroy: function () {
-    this._recordButton.removeEventListener("click", this._onRecordButtonClick);
+    for (let button of $$(".record-button")) {
+      button.removeEventListener("click", this._onRecordButtonClick);
+    }
     this._importButton.removeEventListener("click", this._onImportButtonClick);
 
     PerformanceController.off(EVENTS.RECORDING_STARTED, this._unlockRecordButton);
-    PerformanceController.off(EVENTS.RECORDING_STOPPED, this._unlockRecordButton);
+    PerformanceController.off(EVENTS.RECORDING_STOPPED, this._onRecordingStopped);
+    PerformanceController.off(EVENTS.RECORDING_SELECTED, this._onRecordingSelected);
 
     return promise.all([
       RecordingsView.destroy(),
@@ -50,6 +79,29 @@ let PerformanceView = {
       ToolbarView.destroy(),
       DetailsView.destroy()
     ]);
+  },
+
+  
+
+
+
+  setState: function (state) {
+    let viewConfig = this.states[state];
+    if (!viewConfig) {
+      throw new Error(`Invalid state for PerformanceView: ${state}`);
+    }
+    for (let { deck, pane } of viewConfig) {
+      $(deck).selectedPanel = $(pane);
+    }
+
+    this._state = state;
+  },
+
+  
+
+
+  getState: function () {
+    return this._state;
   },
 
   
@@ -65,6 +117,20 @@ let PerformanceView = {
 
   _unlockRecordButton: function () {
     this._recordButton.removeAttribute("locked");
+  },
+
+  
+
+
+  _onRecordingStopped: function (_, recording) {
+    this._unlockRecordButton();
+
+    
+    
+    
+    if (recording === PerformanceController.getCurrentRecording()) {
+      this.setState("recorded");
+    }
   },
 
   
@@ -93,6 +159,17 @@ let PerformanceView = {
 
     if (fp.show() == Ci.nsIFilePicker.returnOK) {
       this.emit(EVENTS.UI_IMPORT_RECORDING, fp.file);
+    }
+  },
+
+  
+
+
+  _onRecordingSelected: function (_, recording) {
+    if (recording.isRecording()) {
+      this.setState("recording");
+    } else {
+      this.setState("recorded");
     }
   }
 };
