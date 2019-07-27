@@ -617,18 +617,13 @@ AbstractCanvasGraph.prototype = {
   
 
 
-
-
-
-  refresh: function(options={}) {
+  refresh: function() {
     let bounds = this._parent.getBoundingClientRect();
     let newWidth = this.fixedWidth || bounds.width;
     let newHeight = this.fixedHeight || bounds.height;
 
     
-    
-    if (!options.force &&
-        this._width == newWidth * this._pixelRatio &&
+    if (this._width == newWidth * this._pixelRatio &&
         this._height == newHeight * this._pixelRatio) {
       this.emit("refresh-cancelled");
       return;
