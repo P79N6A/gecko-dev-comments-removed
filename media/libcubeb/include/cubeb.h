@@ -131,8 +131,9 @@ typedef struct {
 
 
 typedef struct {
-  char * name; 
-} cubeb_output_device;
+  char * output_name; 
+  char * input_name; 
+} cubeb_device;
 
 
 typedef enum {
@@ -303,8 +304,8 @@ int cubeb_stream_set_panning(cubeb_stream * stream, float panning);
 
 
 
-int cubeb_stream_get_current_output_device(cubeb_stream * stm,
-                                           cubeb_output_device ** const device);
+int cubeb_stream_get_current_device(cubeb_stream * stm,
+                                    cubeb_device ** const device);
 
 
 
@@ -313,8 +314,8 @@ int cubeb_stream_get_current_output_device(cubeb_stream * stm,
 
 
 
-int cubeb_stream_output_device_destroy(cubeb_stream * stream,
-                                       cubeb_output_device * devices);
+int cubeb_stream_device_destroy(cubeb_stream * stream,
+                                cubeb_device * devices);
 
 
 
