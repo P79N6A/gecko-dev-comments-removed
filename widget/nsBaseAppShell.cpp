@@ -31,6 +31,7 @@ nsBaseAppShell::nsBaseAppShell()
   , mSwitchTime(0)
   , mLastNativeEventTime(0)
   , mEventloopNestingState(eEventloopNone)
+  , mRunningSyncSections(false)
   , mRunning(false)
   , mExiting(false)
   , mBlockNativeEvent(false)
@@ -352,6 +353,11 @@ nsBaseAppShell::RunSyncSectionsInternal(bool aStable,
 
   
   
+  MOZ_RELEASE_ASSERT(!mRunningSyncSections);
+  mRunningSyncSections = true;
+
+  
+  
   
   
   
@@ -377,6 +383,7 @@ nsBaseAppShell::RunSyncSectionsInternal(bool aStable,
   }
 
   mSyncSections.SwapElements(pendingSyncSections);
+  mRunningSyncSections = false;
 }
 
 void
