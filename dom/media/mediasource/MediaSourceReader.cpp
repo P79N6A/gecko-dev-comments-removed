@@ -226,9 +226,7 @@ MediaSourceReader::OnAudioNotDecoded(NotDecodedReason aReason)
   }
 
   
-  
-  
-  if (SwitchAudioReader(mLastAudioTime, EOS_FUZZ_US) == READER_NEW) {
+  if (SwitchAudioReader(mLastAudioTime) == READER_NEW) {
     mAudioSeekRequest.Begin(mAudioReader->Seek(mLastAudioTime, 0)
                             ->RefableThen(GetTaskQueue(), __func__, this,
                                           &MediaSourceReader::CompleteAudioSeekAndDoRequest,
@@ -338,9 +336,7 @@ MediaSourceReader::OnVideoNotDecoded(NotDecodedReason aReason)
   }
 
   
-  
-  
-  if (SwitchVideoReader(mLastVideoTime, EOS_FUZZ_US) == READER_NEW) {
+  if (SwitchVideoReader(mLastVideoTime) == READER_NEW) {
     mVideoSeekRequest.Begin(mVideoReader->Seek(mLastVideoTime, 0)
                            ->RefableThen(GetTaskQueue(), __func__, this,
                                          &MediaSourceReader::CompleteVideoSeekAndDoRequest,
@@ -472,14 +468,21 @@ MediaSourceReader::HaveData(int64_t aTarget, MediaData::Type aType)
 }
 
 MediaSourceReader::SwitchReaderResult
-MediaSourceReader::SwitchAudioReader(int64_t aTarget, int64_t aTolerance)
+MediaSourceReader::SwitchAudioReader(int64_t aTarget)
 {
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
   
   if (!mAudioTrack) {
     return READER_ERROR;
   }
-  nsRefPtr<MediaDecoderReader> newReader = SelectReader(aTarget, aTolerance, mAudioTrack->Decoders());
+
+  
+  
+  
+  nsRefPtr<MediaDecoderReader> newReader = SelectReader(aTarget,  0, mAudioTrack->Decoders());
+  if (!newReader) {
+    newReader = SelectReader(aTarget, EOS_FUZZ_US, mAudioTrack->Decoders());
+  }
   if (newReader && newReader != mAudioReader) {
     mAudioReader->SetIdle();
     mAudioReader = newReader;
@@ -490,14 +493,21 @@ MediaSourceReader::SwitchAudioReader(int64_t aTarget, int64_t aTolerance)
 }
 
 MediaSourceReader::SwitchReaderResult
-MediaSourceReader::SwitchVideoReader(int64_t aTarget, int64_t aTolerance)
+MediaSourceReader::SwitchVideoReader(int64_t aTarget)
 {
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
   
   if (!mVideoTrack) {
     return READER_ERROR;
   }
-  nsRefPtr<MediaDecoderReader> newReader = SelectReader(aTarget, aTolerance, mVideoTrack->Decoders());
+
+  
+  
+  
+  nsRefPtr<MediaDecoderReader> newReader = SelectReader(aTarget,  0, mVideoTrack->Decoders());
+  if (!newReader) {
+    newReader = SelectReader(aTarget, EOS_FUZZ_US, mVideoTrack->Decoders());
+  }
   if (newReader && newReader != mVideoReader) {
     mVideoReader->SetIdle();
     mVideoReader = newReader;
