@@ -1532,28 +1532,6 @@ struct JSRuntime : public JS::shadow::Runtime,
             return isActive_;
         }
 
-        
-        
-        
-        
-        
-        struct MonotonicTimeStamp {
-            MonotonicTimeStamp()
-              : latestGood_(0)
-            {}
-            inline uint64_t monotonize(uint64_t stamp)
-            {
-                if (stamp <= latestGood_)
-                    return latestGood_;
-                latestGood_ = stamp;
-                return stamp;
-            }
-          private:
-            uint64_t latestGood_;
-        };
-        MonotonicTimeStamp systemTimeFix;
-        MonotonicTimeStamp userTimeFix;
-
     private:
         
 

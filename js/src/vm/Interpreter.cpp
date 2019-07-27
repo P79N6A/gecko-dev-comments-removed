@@ -567,14 +567,11 @@ struct AutoStopwatch final
         ULARGE_INTEGER userTimeInt;
         kernelTimeInt.LowPart = kernelFileTime.dwLowDateTime;
         kernelTimeInt.HighPart = kernelFileTime.dwHighDateTime;
-        
-        *systemTime = runtime_-> stopwatch.systemTimeFix.monotonize(kernelTimeInt.QuadPart / 10);
+        *systemTime = kernelTimeInt.QuadPart / 10; 
 
         userTimeInt.LowPart = userFileTime.dwLowDateTime;
         userTimeInt.HighPart = userFileTime.dwHighDateTime;
-        
-        *userTime = runtime_-> stopwatch.userTimeFix.monotonize(userTimeInt.QuadPart / 10);
-
+        *userTime = userTimeInt.QuadPart / 10; 
 #endif 
 
         return true;
