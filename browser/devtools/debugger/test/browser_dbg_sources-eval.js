@@ -5,12 +5,11 @@
 
 
 
-
 const TAB_URL = EXAMPLE_URL + "doc_script-eval.html";
 
 function test() {
   let gTab, gPanel, gDebugger;
-  let gSources, gBreakpoints, gEditor;
+  let gSources, gBreakpoints;
 
   initDebugger(TAB_URL).then(([aTab,, aPanel]) => {
     gTab = aTab;
@@ -18,30 +17,25 @@ function test() {
     gDebugger = gPanel.panelWin;
     gSources = gDebugger.DebuggerView.Sources;
     gBreakpoints = gDebugger.DebuggerController.Breakpoints;
-    gEditor = gDebugger.DebuggerView.editor;
 
+    waitForSourceShown(gPanel, "-eval.js")
+      .then(run)
+      .then(null, aError => {
+        ok(false, "Got an error: " + aError.message + "\n" + aError.stack);
+      });
+  });
+
+  function run() {
     return Task.spawn(function*() {
-      yield waitForSourceShown(gPanel, "-eval.js");
       is(gSources.values.length, 1, "Should have 1 source");
 
       let newSource = waitForDebuggerEvents(gPanel, gDebugger.EVENTS.NEW_SOURCE);
-      callInTab(gTab, "evalSourceWithSourceURL");
+      callInTab(gTab, "evalSource");
       yield newSource;
 
       is(gSources.values.length, 2, "Should have 2 sources");
 
-      let item = gSources.getItemForAttachment(e => e.label == "bar.js");
-      ok(item, "Source label is incorrect.");
-      ok(item.attachment.group === 'http://example.com', 'Source group is incorrect');
-
-      let shown = waitForDebuggerEvents(gPanel, gDebugger.EVENTS.SOURCE_SHOWN);
-      gSources.selectedItem = item;
-      yield shown;
-
-      ok(gEditor.getText().indexOf('bar = function() {') === 0,
-         'Correct source is shown');
-
       yield closeDebuggerAndFinish(gPanel);
     });
-  });
+  }
 }

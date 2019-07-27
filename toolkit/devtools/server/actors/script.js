@@ -12,7 +12,6 @@ const { ActorPool, getOffsetColumn } = require("devtools/server/actors/common");
 const { DebuggerServer } = require("devtools/server/main");
 const DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
 const { dbg_assert, dumpn, update, fetch } = DevToolsUtils;
-const { dirname, joinURI } = require("devtools/toolkit/path");
 const { SourceMapConsumer, SourceMapGenerator } = require("source-map");
 const promise = require("promise");
 const PromiseDebugging = require("PromiseDebugging");
@@ -5365,9 +5364,7 @@ ThreadSources.prototype = {
 
 
   _sourceForScript: function (aScript) {
-    
-    
-    let url = isEvalSource(aScript.source) ? null : aScript.source.url;
+    let url = getSourceURL(aScript.source);
     let spec = {
       source: aScript.source
     };
@@ -5858,30 +5855,17 @@ function getSymbolName(symbol) {
   return name || undefined;
 }
 
-function isEvalSource(source) {
+function getSourceURL(source) {
   let introType = source.introductionType;
   
   
-  return (introType === 'eval' ||
-          introType === 'Function' ||
-          introType === 'eventHandler' ||
-          introType === 'setTimeout' ||
-          introType === 'setInterval');
-}
-
-function getSourceURL(source) {
-  if(isEvalSource(source)) {
-    
-    
-    
-
-    if(source.displayURL &&
-       source.introductionScript &&
-       !isEvalSource(source.introductionScript.source)) {
-      return joinURI(dirname(source.introductionScript.source.url),
-                     source.displayURL);
-    }
-
+  
+  
+  if (introType === 'eval' ||
+      introType === 'Function' ||
+      introType === 'eventHandler' ||
+      introType === 'setTimeout' ||
+      introType === 'setInterval') {
     return source.displayURL;
   }
   return source.url;
