@@ -1365,7 +1365,7 @@ WebGLContext::ValidateTexImage(GLuint dims, GLenum target,
 
 
 
-    WebGLTexture* tex = activeBoundTextureForTarget(target);
+    WebGLTexture* tex = activeBoundTextureForTexImageTarget(target);
     if (!tex) {
         ErrorInvalidOperation("%s: no texture is bound to target %s",
                               info, WebGLContext::EnumName(target));
@@ -1733,6 +1733,19 @@ WebGLContext::InitAndValidateGL()
         gl->fGetIntegerv(LOCAL_GL_MAX_RENDERBUFFER_SIZE, &mGLMaxRenderbufferSize);
         gl->fGetIntegerv(LOCAL_GL_MAX_TEXTURE_IMAGE_UNITS, &mGLMaxTextureImageUnits);
         gl->fGetIntegerv(LOCAL_GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS, &mGLMaxVertexTextureImageUnits);
+    }
+
+    
+    mGLMaxTextureSizeLog2 = 0;
+    int32_t tempSize = mGLMaxTextureSize;
+    while (tempSize >>= 1) {
+        ++mGLMaxTextureSizeLog2;
+    }
+
+    mGLMaxCubeMapTextureSizeLog2 = 0;
+    tempSize = mGLMaxCubeMapTextureSize;
+    while (tempSize >>= 1) {
+        ++mGLMaxCubeMapTextureSizeLog2;
     }
 
     mGLMaxTextureSize = floorPOT(mGLMaxTextureSize);

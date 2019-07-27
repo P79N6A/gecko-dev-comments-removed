@@ -19,6 +19,20 @@ void DriverFormatsFromFormatAndType(gl::GLContext* gl, GLenum webGLFormat, GLenu
                                     GLenum* out_driverInternalFormat, GLenum* out_driverFormat);
 GLenum DriverTypeFromType(gl::GLContext* gl, GLenum webGLType);
 
+
+
+
+
+
+
+
+
+
+
+
+
+GLenum TexImageTargetToTexTarget(GLenum texImageTarget);
+
 struct GLComponents
 {
     unsigned char mComponents;
