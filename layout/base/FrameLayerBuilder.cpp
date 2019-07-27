@@ -1089,7 +1089,7 @@ protected:
 
 
 
-  already_AddRefed<ImageLayer> CreateOrRecycleMaskImageLayerFor(Layer* aLayer);
+  already_AddRefed<ImageLayer> CreateOrRecycleMaskImageLayerFor(Layer* aLayer, const Maybe<size_t>& aForAncestorMaskLayer);
   
 
 
@@ -1190,6 +1190,12 @@ protected:
   void SetupMaskLayer(Layer *aLayer, const DisplayItemClip& aClip,
                       const nsIntRegion& aLayerVisibleRegion,
                       uint32_t aRoundedRectClipCount = UINT32_MAX);
+
+  already_AddRefed<Layer> CreateMaskLayer(
+    Layer *aLayer, const DisplayItemClip& aClip,
+    const nsIntRegion& aLayerVisibleRegion,
+    const Maybe<size_t>& aForAncestorMaskLayer,
+    uint32_t aRoundedRectClipCount = UINT32_MAX);
 
   bool ChooseAnimatedGeometryRoot(const nsDisplayList& aList,
                                   const nsIFrame **aAnimatedGeometryRoot);
@@ -1927,10 +1933,10 @@ ContainerState::CreateOrRecycleImageLayer(PaintedLayer *aPainted)
 }
 
 already_AddRefed<ImageLayer>
-ContainerState::CreateOrRecycleMaskImageLayerFor(Layer* aLayer)
+ContainerState::CreateOrRecycleMaskImageLayerFor(Layer* aLayer, const Maybe<size_t>& aForAncestorMaskLayer)
 {
   nsRefPtr<ImageLayer> result = mRecycledMaskImageLayers.Get(aLayer);
-  if (result) {
+  if (result && !aForAncestorMaskLayer) {
     mRecycledMaskImageLayers.Remove(aLayer);
     aLayer->ClearExtraDumpInfo();
     
@@ -5637,8 +5643,27 @@ ContainerState::SetupMaskLayer(Layer *aLayer,
     return;
   }
 
+  nsRefPtr<Layer> maskLayer =
+    CreateMaskLayer(aLayer, aClip, aLayerVisibleRegion, Nothing(), aRoundedRectClipCount);
+
+  if (!maskLayer) {
+    SetClipCount(paintedData, 0);
+    return;
+  }
+
+  aLayer->SetMaskLayer(maskLayer);
+  SetClipCount(paintedData, aRoundedRectClipCount);
+}
+
+already_AddRefed<Layer>
+ContainerState::CreateMaskLayer(Layer *aLayer,
+                               const DisplayItemClip& aClip,
+                               const nsIntRegion& aLayerVisibleRegion,
+                               const Maybe<size_t>& aForAncestorMaskLayer,
+                               uint32_t aRoundedRectClipCount)
+{
   
-  nsRefPtr<ImageLayer> maskLayer =  CreateOrRecycleMaskImageLayerFor(aLayer);
+  nsRefPtr<ImageLayer> maskLayer = CreateOrRecycleMaskImageLayerFor(aLayer, aForAncestorMaskLayer);
   MaskLayerUserData* userData = GetMaskLayerUserData(maskLayer);
 
   MaskLayerUserData newData;
@@ -5649,9 +5674,7 @@ ContainerState::SetupMaskLayer(Layer *aLayer,
   newData.mAppUnitsPerDevPixel = mContainerFrame->PresContext()->AppUnitsPerDevPixel();
 
   if (*userData == newData) {
-    aLayer->SetMaskLayer(maskLayer);
-    SetClipCount(paintedData, aRoundedRectClipCount);
-    return;
+    return maskLayer.forget();
   }
 
   
@@ -5704,8 +5727,7 @@ ContainerState::SetupMaskLayer(Layer *aLayer,
     
     if (!dt) {
       NS_WARNING("Could not create DrawTarget for mask layer.");
-      SetClipCount(paintedData, 0);
-      return;
+      return nullptr;
     }
 
     nsRefPtr<gfxContext> context = new gfxContext(dt);
@@ -5750,9 +5772,7 @@ ContainerState::SetupMaskLayer(Layer *aLayer,
   userData->mRoundedClipRects.SwapElements(newData.mRoundedClipRects);
   userData->mImageKey = lookupKey;
 
-  aLayer->SetMaskLayer(maskLayer);
-  SetClipCount(paintedData, aRoundedRectClipCount);
-  return;
+  return maskLayer.forget();
 }
 
 } 
