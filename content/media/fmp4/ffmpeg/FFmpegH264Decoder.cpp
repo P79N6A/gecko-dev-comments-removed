@@ -86,16 +86,7 @@ FFmpegH264Decoder<LIBAV_VER>::DecodeFrame(mp4_demuxer::MP4Sample* aSample)
       aSample->is_sync_point, -1,
       gfx::IntRect(0, 0, mCodecContext.width, mCodecContext.height));
 
-    
-    mDelayedFrames.Push(data.forget());
-
-    
-    
-    
-    if (mDelayedFrames.Length() > (uint32_t)mCodecContext.max_b_frames + 1) {
-      VideoData* d = mDelayedFrames.Pop();
-      mCallback->Output(d);
-    }
+    mCallback->Output(data.forget());
   }
 
   if (mTaskQueue->IsEmpty()) {
@@ -219,14 +210,6 @@ FFmpegH264Decoder<LIBAV_VER>::Input(mp4_demuxer::MP4Sample* aSample)
   return NS_OK;
 }
 
-void
-FFmpegH264Decoder<LIBAV_VER>::OutputDelayedFrames()
-{
-  while (!mDelayedFrames.IsEmpty()) {
-    mCallback->Output(mDelayedFrames.Pop());
-  }
-}
-
 nsresult
 FFmpegH264Decoder<LIBAV_VER>::Drain()
 {
@@ -241,9 +224,6 @@ FFmpegH264Decoder<LIBAV_VER>::Drain()
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  mTaskQueue->Dispatch(NS_NewRunnableMethod(
-    this, &FFmpegH264Decoder<LIBAV_VER>::OutputDelayedFrames));
-
   return NS_OK;
 }
 
@@ -252,14 +232,12 @@ FFmpegH264Decoder<LIBAV_VER>::Flush()
 {
   nsresult rv = FFmpegDataDecoder::Flush();
   
-  mDelayedFrames.Clear();
   return rv;
 }
 
 FFmpegH264Decoder<LIBAV_VER>::~FFmpegH264Decoder()
 {
   MOZ_COUNT_DTOR(FFmpegH264Decoder);
-  MOZ_ASSERT(mDelayedFrames.IsEmpty());
 }
 
 } 

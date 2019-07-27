@@ -7,8 +7,6 @@
 #ifndef __FFmpegH264Decoder_h__
 #define __FFmpegH264Decoder_h__
 
-#include "nsTPriorityQueue.h"
-
 #include "FFmpegDataDecoder.h"
 
 namespace mozilla
@@ -67,21 +65,6 @@ private:
 
 
   nsRefPtr<Image> mCurrentImage;
-
-  struct VideoDataComparator
-  {
-    bool LessThan(VideoData* const& a, VideoData* const& b) const
-    {
-      return a->mTime < b->mTime;
-    }
-  };
-
-  
-
-
-
-
-  nsTPriorityQueue<VideoData*, VideoDataComparator> mDelayedFrames;
 };
 
 } 
