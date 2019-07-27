@@ -109,18 +109,22 @@ public:
     , mState(0)
   { }
 
-  
-  
-  
-  
-  void SetImage(mozilla::image::Image* aImage);
-
-  
-  
-  void ResetImage();
+  bool HasImage() const { return mImage; }
+  already_AddRefed<mozilla::image::Image> GetImage() const
+  {
+    nsRefPtr<mozilla::image::Image> image = mImage;
+    return image.forget();
+  }
 
   
   void SetIsMultipart();
+
+  
+  
+  bool IsLoading() const;
+
+  
+  uint32_t GetImageStatus() const;
 
   
   
@@ -150,8 +154,22 @@ public:
 
   
   
+  void ResetForNewRequest();
+
   
-  void EmulateRequestFinished(imgRequestProxy* proxy, nsresult aStatus);
+  
+  void OnDiscard();
+  void OnUnlockedDraw();
+  void OnImageAvailable();
+
+  
+  mozilla::image::ImageStatusDiff Difference(const mozilla::image::ImageStatusDiff& aOther) const;
+
+  
+  
+  
+  void SyncNotifyDifference(const mozilla::image::ImageStatusDiff& aDiff,
+                            const nsIntRect& aInvalidRect = nsIntRect());
 
   
   
@@ -173,53 +191,26 @@ public:
     mConsumers = aTracker->mConsumers;
   }
 
-  
-  
-  bool IsLoading() const;
-
-  
-  uint32_t GetImageStatus() const;
-
-  
-  
-  void OnStartRequest();
-  
-  
-  void OnDataAvailable();
-  void OnDiscard();
-  void OnUnlockedDraw();
-
-  
-  void MaybeUnblockOnload();
-
-  void RecordError();
-
-  bool IsMultipart() const { return mState & mozilla::image::FLAG_IS_MULTIPART; }
-
-  
-  inline already_AddRefed<mozilla::image::Image> GetImage() const {
-    nsRefPtr<mozilla::image::Image> image = mImage;
-    return image.forget();
-  }
-  inline bool HasImage() { return mImage; }
-
-  
-  mozilla::image::ImageStatusDiff Difference(const mozilla::image::ImageStatusDiff& aOther) const;
-
-  
-  
-  
-  void SyncNotifyDifference(const mozilla::image::ImageStatusDiff& aDiff,
-                            const nsIntRect& aInvalidRect = nsIntRect());
-
 private:
   typedef nsTObserverArray<mozilla::WeakPtr<imgRequestProxy>> ProxyArray;
   friend class imgStatusNotifyRunnable;
   friend class imgRequestNotifyRunnable;
-  friend class imgStatusTrackerObserver;
   friend class imgStatusTrackerInit;
 
   imgStatusTracker(const imgStatusTracker& aOther) MOZ_DELETE;
+
+  
+  
+  void SetImage(mozilla::image::Image* aImage);
+
+  
+  
+  void ResetImage();
+
+  
+  
+  
+  void EmulateRequestFinished(imgRequestProxy* aProxy, nsresult aStatus);
 
   
   void FireFailureNotification();

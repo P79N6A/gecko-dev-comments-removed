@@ -238,7 +238,8 @@ imgStatusTracker::NotifyCurrentState(imgRequestProxy* proxy)
 
  void
 imgStatusTracker::SyncNotifyState(ProxyArray& aProxies,
-                                  bool aHasImage, uint32_t aState,
+                                  bool aHasImage,
+                                  uint32_t aState,
                                   const nsIntRect& aDirtyRect)
 {
   MOZ_ASSERT(NS_IsMainThread());
@@ -418,12 +419,6 @@ imgStatusTracker::FirstConsumerIs(imgRequestProxy* aConsumer)
 }
 
 void
-imgStatusTracker::RecordError()
-{
-  mState |= FLAG_HAS_ERROR;
-}
-
-void
 imgStatusTracker::OnUnlockedDraw()
 {
   MOZ_ASSERT(NS_IsMainThread());
@@ -431,16 +426,13 @@ imgStatusTracker::OnUnlockedDraw()
 }
 
 void
-imgStatusTracker::OnStartRequest()
+imgStatusTracker::ResetForNewRequest()
 {
   MOZ_ASSERT(NS_IsMainThread());
 
   
   
   mState &= FLAG_IS_MULTIPART | FLAG_HAS_ERROR;
-  mState |= FLAG_REQUEST_STARTED;
-
-  NOTIFY_IMAGE_OBSERVERS(mConsumers, OnStartRequest());
 }
 
 void
@@ -451,36 +443,18 @@ imgStatusTracker::OnDiscard()
 }
 
 void
-imgStatusTracker::OnDataAvailable()
+imgStatusTracker::OnImageAvailable()
 {
   if (!NS_IsMainThread()) {
     
     
     
     NS_DispatchToMainThread(
-      NS_NewRunnableMethod(this, &imgStatusTracker::OnDataAvailable));
+      NS_NewRunnableMethod(this, &imgStatusTracker::OnImageAvailable));
     return;
   }
 
   NOTIFY_IMAGE_OBSERVERS(mConsumers, SetHasImage());
-}
-
-void
-imgStatusTracker::MaybeUnblockOnload()
-{
-  if (!NS_IsMainThread()) {
-    NS_DispatchToMainThread(
-      NS_NewRunnableMethod(this, &imgStatusTracker::MaybeUnblockOnload));
-    return;
-  }
-
-  if (!(mState & FLAG_ONLOAD_BLOCKED) || (mState & FLAG_ONLOAD_UNBLOCKED)) {
-    return;
-  }
-
-  mState |= FLAG_ONLOAD_UNBLOCKED;
-
-  NOTIFY_IMAGE_OBSERVERS(mConsumers, UnblockOnload());
 }
 
 void
