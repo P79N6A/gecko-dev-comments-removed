@@ -181,6 +181,10 @@ public:
   void NotifyStreamStateChanged();
 
   
+  
+  void AssignId(const nsAString& aID) { mID = aID; }
+
+  
   enum {
     HINT_CONTENTS_AUDIO = 1 << 0,
     HINT_CONTENTS_VIDEO = 1 << 1,

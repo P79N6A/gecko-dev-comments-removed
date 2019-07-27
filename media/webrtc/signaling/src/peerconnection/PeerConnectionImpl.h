@@ -598,11 +598,12 @@ public:
   
   virtual void PrincipalChanged(DOMMediaStream* aMediaStream) MOZ_OVERRIDE;
 
-  nsresult GetRemoteTrackId(DOMMediaStream* mediaStream,
+  nsresult GetRemoteTrackId(const std::string streamId,
                             TrackID numericTrackId,
                             std::string* trackId) const;
 #endif
 
+  static std::string GetStreamId(const DOMMediaStream& aStream);
   static std::string GetTrackId(const dom::MediaStreamTrack& track);
 
 private:
