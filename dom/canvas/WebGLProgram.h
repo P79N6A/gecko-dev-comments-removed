@@ -173,6 +173,10 @@ public:
                                       nsCString* const out_userName,
                                       bool* const out_isArray) const;
 
+    void TransformFeedbackVaryings(const dom::Sequence<nsString>& varyings,
+                                   GLenum bufferMode);
+    already_AddRefed<WebGLActiveInfo> GetTransformFeedbackVarying(GLuint index);
+
     bool IsLinked() const { return mMostRecentLinkInfo; }
 
     const webgl::LinkedProgramInfo* LinkInfo() const {
@@ -199,8 +203,13 @@ private:
     WebGLRefPtr<WebGLShader> mVertShader;
     WebGLRefPtr<WebGLShader> mFragShader;
     std::map<nsCString, GLuint> mBoundAttribLocs;
+    std::vector<nsCString> mTransformFeedbackVaryings;
+    GLenum mTransformFeedbackBufferMode;
     nsCString mLinkLog;
     RefPtr<const webgl::LinkedProgramInfo> mMostRecentLinkInfo;
+    
+    
+    std::vector<std::string> mTempMappedVaryings;
 };
 
 } 
