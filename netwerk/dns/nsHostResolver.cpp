@@ -632,24 +632,24 @@ nsHostResolver::ClearPendingQueue(PRCList *aPendingQ)
 void
 nsHostResolver::FlushCache()
 {
-  MutexAutoLock lock(mLock);
-  mEvictionQSize = 0;
+    MutexAutoLock lock(mLock);
+    mEvictionQSize = 0;
 
-  
-  
-  if (!PR_CLIST_IS_EMPTY(&mEvictionQ)) {
-      PRCList *node = mEvictionQ.next;
-      while (node != &mEvictionQ) {
-          nsHostRecord *rec = static_cast<nsHostRecord *>(node);
-          node = node->next;
-          PR_REMOVE_AND_INIT_LINK(rec);
-          PL_DHashTableRemove(&mDB, (nsHostKey *) rec);
-          NS_RELEASE(rec);
-      }
-  }
+    
+    
+    if (!PR_CLIST_IS_EMPTY(&mEvictionQ)) {
+        PRCList *node = mEvictionQ.next;
+        while (node != &mEvictionQ) {
+            nsHostRecord *rec = static_cast<nsHostRecord *>(node);
+            node = node->next;
+            PR_REMOVE_AND_INIT_LINK(rec);
+            PL_DHashTableRemove(&mDB, (nsHostKey *) rec);
+            NS_RELEASE(rec);
+        }
+    }
 
-  
-  PL_DHashTableEnumerate(&mDB, HostDB_PruneEntry, nullptr);
+    
+    PL_DHashTableEnumerate(&mDB, HostDB_PruneEntry, nullptr);
 }
 
 void
