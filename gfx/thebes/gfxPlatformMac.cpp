@@ -427,6 +427,17 @@ gfxPlatformMac::UseProgressivePaint()
   return nsCocoaFeatures::OnLionOrLater() && gfxPlatform::UseProgressivePaint();
 }
 
+bool
+gfxPlatformMac::AccelerateLayersByDefault()
+{
+  
+  
+  
+  
+  
+  return nsCocoaFeatures::AccelerateByDefault();
+}
+
 
 static CVReturn VsyncCallback(CVDisplayLinkRef aDisplayLink,
                               const CVTimeStamp* aNow,

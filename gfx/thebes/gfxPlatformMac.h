@@ -72,6 +72,11 @@ public:
       return true;
     }
 
+    bool SupportsBasicCompositor() const override {
+      
+      return false;
+    }
+
     bool UseAcceleratedCanvas();
 
     virtual bool UseProgressivePaint() override;
@@ -79,6 +84,9 @@ public:
 
     
     uint32_t GetAntiAliasingThreshold() { return mFontAntiAliasingThreshold; }
+
+protected:
+    bool AccelerateLayersByDefault() override;
 
 private:
     virtual void GetPlatformCMSOutputProfile(void* &mem, size_t &size) override;

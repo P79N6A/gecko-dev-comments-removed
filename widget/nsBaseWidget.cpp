@@ -152,7 +152,6 @@ nsBaseWidget::nsBaseWidget()
 , mCursor(eCursor_standard)
 , mUpdateCursor(true)
 , mBorderStyle(eBorderStyle_none)
-, mUseLayersAcceleration(false)
 , mUseAttachedEvents(false)
 , mBounds(0,0,0,0)
 , mOriginalBounds(nullptr)
@@ -839,80 +838,9 @@ nsBaseWidget::AutoLayerManagerSetup::~AutoLayerManagerSetup()
 }
 
 bool
-nsBaseWidget::ComputeShouldAccelerate(bool aDefault)
+nsBaseWidget::ComputeShouldAccelerate()
 {
-  
-  if (gfxPrefs::LayersAccelerationDisabled()) {
-    return false;
-  }
-
-  
-  if (gfxPlatform::InSafeMode()) {
-    return false;
-  }
-
-  
-  if (gfxPrefs::LayersAccelerationForceEnabled()) {
-    return true;
-  }
-
-  
-  
-  bool whitelisted = false;
-
-  nsCOMPtr<nsIGfxInfo> gfxInfo = services::GetGfxInfo();
-  if (gfxInfo) {
-    
-    
-    
-    
-    gfxInfo->GetData();
-
-    int32_t status;
-    if (NS_SUCCEEDED(gfxInfo->GetFeatureStatus(nsIGfxInfo::FEATURE_OPENGL_LAYERS, &status))) {
-      if (status == nsIGfxInfo::FEATURE_STATUS_OK) {
-        whitelisted = true;
-      }
-    }
-  }
-
-  if (!whitelisted) {
-    static int tell_me_once = 0;
-    if (!tell_me_once) {
-      NS_WARNING("OpenGL-accelerated layers are not supported on this system");
-      tell_me_once = 1;
-    }
-#ifdef MOZ_WIDGET_ANDROID
-    NS_RUNTIMEABORT("OpenGL-accelerated layers are a hard requirement on this platform. "
-                    "Cannot continue without support for them");
-#endif
-    return false;
-  }
-
-#if defined (XP_MACOSX)
-  
-  
-  
-  
-  
-  bool accelerateByDefault = nsCocoaFeatures::AccelerateByDefault();
-#elif defined(XP_WIN) || defined(ANDROID) || \
-    defined(MOZ_GL_PROVIDER) || defined(MOZ_WIDGET_QT) || \
-    defined(MOZ_WIDGET_UIKIT)
-  bool accelerateByDefault = true;
-#else
-  bool accelerateByDefault = false;
-#endif
-
-  
-  
-  const char *acceleratedEnv = PR_GetEnv("MOZ_ACCELERATED");
-  if (accelerateByDefault || (acceleratedEnv && (*acceleratedEnv != '0'))) {
-    return true;
-  }
-
-  
-  return aDefault;
+  return gfxPlatform::GetPlatform()->ShouldUseLayersAcceleration();
 }
 
 CompositorParent* nsBaseWidget::NewCompositorParent(int aSurfaceWidth,
@@ -1105,16 +1033,6 @@ nsBaseWidget::DispatchAPZAwareEvent(WidgetInputEvent* aEvent)
   return status;
 }
 
-void
-nsBaseWidget::GetPreferredCompositorBackends(nsTArray<LayersBackend>& aHints)
-{
-  if (mUseLayersAcceleration) {
-    aHints.AppendElement(LayersBackend::LAYERS_OPENGL);
-  }
-
-  aHints.AppendElement(LayersBackend::LAYERS_BASIC);
-}
-
 nsIDocument*
 nsBaseWidget::GetDocument() const
 {
@@ -1185,8 +1103,9 @@ void nsBaseWidget::CreateCompositor(int aWidth, int aHeight)
 
   TextureFactoryIdentifier textureFactoryIdentifier;
   PLayerTransactionChild* shadowManager = nullptr;
+
   nsTArray<LayersBackend> backendHints;
-  GetPreferredCompositorBackends(backendHints);
+  gfxPlatform::GetPlatform()->GetCompositorBackends(ComputeShouldAccelerate(), backendHints);
 
   bool success = false;
   if (!backendHints.IsEmpty()) {
@@ -1221,9 +1140,6 @@ LayerManager* nsBaseWidget::GetLayerManager(PLayerTransactionChild* aShadowManag
                                             bool* aAllowRetaining)
 {
   if (!mLayerManager) {
-
-    mUseLayersAcceleration = ComputeShouldAccelerate(mUseLayersAcceleration);
-
     
     if (ShouldUseOffMainThreadCompositing()) {
       

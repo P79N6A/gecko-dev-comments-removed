@@ -480,6 +480,12 @@ public:
     static bool CanUseDirect3D11ANGLE();
 
     
+    bool ShouldUseLayersAcceleration();
+
+    
+    void GetCompositorBackends(bool useAcceleration, nsTArray<mozilla::layers::LayersBackend>& aBackends);
+
+    
 
 
 
@@ -636,6 +642,17 @@ protected:
 
 
     virtual already_AddRefed<mozilla::gfx::VsyncSource> CreateHardwareVsyncSource();
+
+    
+    virtual bool AccelerateLayersByDefault();
+
+    
+    virtual void GetAcceleratedCompositorBackends(nsTArray<mozilla::layers::LayersBackend>& aBackends);
+
+    
+    virtual bool SupportsBasicCompositor() const {
+      return true;
+    }
 
     
 

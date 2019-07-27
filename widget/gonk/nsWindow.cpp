@@ -742,10 +742,6 @@ nsWindow::GetLayerManager(PLayerTransactionChild* aShadowManager,
         return mLayerManager;
     }
 
-    
-    
-    mUseLayersAcceleration = ComputeShouldAccelerate(mUseLayersAcceleration);
-
     const nsTArray<nsWindow*>& windows = mScreen->GetTopWindows();
     nsWindow *topWindow = windows[0];
 
