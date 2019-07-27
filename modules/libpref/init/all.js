@@ -4572,6 +4572,14 @@ pref("media.gmp.insecure.allow", false);
 #endif
 
 
+
+#if defined(XP_WIN) || defined(XP_MACOSX)
+pref("gfx.vsync.hw-vsync.enabled", false);
+pref("gfx.vsync.compositor", false);
+pref("gfx.vsync.refreshdriver", false);
+#endif
+
+
 #ifdef MOZ_SECUREELEMENT
 pref("dom.secureelement.enabled", false);
 #endif
