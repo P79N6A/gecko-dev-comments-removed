@@ -101,7 +101,7 @@ public:
   
 
 
-  ProcessLRUPool(ProcessPriority aPriority);
+  explicit ProcessLRUPool(ProcessPriority aPriority);
 
   
 
