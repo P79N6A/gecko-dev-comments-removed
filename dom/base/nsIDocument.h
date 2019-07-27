@@ -2052,15 +2052,6 @@ public:
 
   virtual nsISupports* GetCurrentContentSink() = 0;
 
-  
-
-
-
-
-
-  virtual void RegisterHostObjectUri(const nsACString& aUri) = 0;
-  virtual void UnregisterHostObjectUri(const nsACString& aUri) = 0;
-
   virtual void SetScrollToRef(nsIURI *aDocumentURI) = 0;
   virtual void ScrollToRef() = 0;
   virtual void ResetScrolledToRefAlready() = 0;
