@@ -177,6 +177,11 @@ using namespace mozilla::system;
 #include "nsIIPCBackgroundChildCreateCallback.h"
 #endif
 
+#ifdef MOZ_B2G_RIL
+#include "mozilla/dom/mobileconnection/MobileConnectionParent.h"
+using namespace mozilla::dom::mobileconnection;
+#endif
+
 #if defined(MOZ_CONTENT_SANDBOX) && defined(XP_LINUX)
 #include "mozilla/Sandbox.h"
 #endif
@@ -2352,12 +2357,12 @@ ContentParent::RecvAudioChannelGetState(const AudioChannel& aChannel,
                                         AudioChannelState* aState)
 {
     nsRefPtr<AudioChannelService> service =
-        AudioChannelService::GetOrCreateAudioChannelService();
+        AudioChannelService::GetAudioChannelService();
     *aState = AUDIO_CHANNEL_STATE_NORMAL;
-    MOZ_ASSERT(service);
-    *aState = service->GetStateInternal(aChannel, mChildID,
-                                        aElementHidden, aElementWasHidden);
-
+    if (service) {
+        *aState = service->GetStateInternal(aChannel, mChildID,
+                                            aElementHidden, aElementWasHidden);
+    }
     return true;
 }
 
@@ -2366,10 +2371,10 @@ ContentParent::RecvAudioChannelRegisterType(const AudioChannel& aChannel,
                                             const bool& aWithVideo)
 {
     nsRefPtr<AudioChannelService> service =
-        AudioChannelService::GetOrCreateAudioChannelService();
-    MOZ_ASSERT(service);
-    service->RegisterType(aChannel, mChildID, aWithVideo);
-
+        AudioChannelService::GetAudioChannelService();
+    if (service) {
+        service->RegisterType(aChannel, mChildID, aWithVideo);
+    }
     return true;
 }
 
@@ -2379,10 +2384,10 @@ ContentParent::RecvAudioChannelUnregisterType(const AudioChannel& aChannel,
                                               const bool& aWithVideo)
 {
     nsRefPtr<AudioChannelService> service =
-        AudioChannelService::GetOrCreateAudioChannelService();
-    MOZ_ASSERT(service);
-    service->UnregisterType(aChannel, aElementHidden, mChildID, aWithVideo);
-
+        AudioChannelService::GetAudioChannelService();
+    if (service) {
+        service->UnregisterType(aChannel, aElementHidden, mChildID, aWithVideo);
+    }
     return true;
 }
 
@@ -2390,10 +2395,10 @@ bool
 ContentParent::RecvAudioChannelChangedNotification()
 {
     nsRefPtr<AudioChannelService> service =
-        AudioChannelService::GetOrCreateAudioChannelService();
-    MOZ_ASSERT(service);
-    service->SendAudioChannelChangedNotification(ChildID());
-
+        AudioChannelService::GetAudioChannelService();
+    if (service) {
+       service->SendAudioChannelChangedNotification(ChildID());
+    }
     return true;
 }
 
@@ -2402,10 +2407,11 @@ ContentParent::RecvAudioChannelChangeDefVolChannel(const int32_t& aChannel,
                                                    const bool& aHidden)
 {
     nsRefPtr<AudioChannelService> service =
-        AudioChannelService::GetOrCreateAudioChannelService();
-    MOZ_ASSERT(service);
-    service->SetDefaultVolumeControlChannelInternal(aChannel,
-                                                    aHidden, mChildID);
+        AudioChannelService::GetAudioChannelService();
+    if (service) {
+       service->SetDefaultVolumeControlChannelInternal(aChannel,
+                                                       aHidden, mChildID);
+    }
     return true;
 }
 
@@ -3089,6 +3095,32 @@ ContentParent::DeallocPTestShellParent(PTestShellParent* shell)
 {
     delete shell;
     return true;
+}
+
+PMobileConnectionParent*
+ContentParent::AllocPMobileConnectionParent(const uint32_t& aClientId)
+{
+#ifdef MOZ_B2G_RIL
+    nsRefPtr<MobileConnectionParent> parent = new MobileConnectionParent(aClientId);
+    
+    parent->AddRef();
+
+    return parent;
+#else
+    MOZ_CRASH("No support for mobileconnection on this platform!");
+#endif
+}
+
+bool
+ContentParent::DeallocPMobileConnectionParent(PMobileConnectionParent* aActor)
+{
+#ifdef MOZ_B2G_RIL
+    
+    static_cast<MobileConnectionParent*>(aActor)->Release();
+    return true;
+#else
+    MOZ_CRASH("No support for mobileconnection on this platform!");
+#endif
 }
 
 PNeckoParent*
