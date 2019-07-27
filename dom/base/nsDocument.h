@@ -1222,18 +1222,8 @@ public:
 
   
   
-  
-  
-  
-  
-  
-  
-  
-  
   void RequestFullScreen(Element* aElement,
-                         mozilla::dom::FullScreenOptions& aOptions,
-                         bool aWasCallerChrome,
-                         bool aNotifyOnOriginChange);
+                         const mozilla::dom::FullScreenOptions& aOptions);
 
   
   

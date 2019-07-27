@@ -3151,8 +3151,9 @@ Element::MozRequestFullScreen(JSContext* aCx, JS::Handle<JS::Value> aOptions,
   }
 
   FullScreenOptions opts;
-  RequestFullscreenOptions fsOptions;
+  opts.mIsCallerChrome = nsContentUtils::IsCallerChrome();
 
+  RequestFullscreenOptions fsOptions;
   
   
   

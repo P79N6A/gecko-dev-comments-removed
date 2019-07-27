@@ -146,6 +146,16 @@ typedef CallbackObjectHolder<NodeFilter, nsIDOMNodeFilter> NodeFilterHolder;
 struct FullScreenOptions {
   FullScreenOptions();
   nsRefPtr<gfx::VRHMDInfo> mVRHMDDevice;
+  
+  
+  bool mIsCallerChrome = false;
+  
+  
+  
+  
+  
+  
+  bool mShouldNotifyNewOrigin = true;
 };
 
 } 
