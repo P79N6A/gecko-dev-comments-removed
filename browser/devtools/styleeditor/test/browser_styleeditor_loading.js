@@ -1,37 +1,36 @@
 
 
 
+"use strict";
+
+
 
 const TESTCASE_URI = TEST_BASE_HTTP + "longload.html";
 
-
-function test()
-{
-  waitForExplicitFinish();
-
+add_task(function* () {
   
   
   
   
+  let tabAdded = addTab(TESTCASE_URI);
+  let target = TargetFactory.forTab(gBrowser.selectedTab);
+  let styleEditorLoaded = gDevTools.showToolbox(target, "styleeditor");
 
-  addTabAndCheckOnStyleEditorAdded(function(panel) {
-    content.location = TESTCASE_URI;
-  }, testEditorAdded);
-}
+  yield Promise.all([tabAdded, styleEditorLoaded]);
 
-function testEditorAdded(event, editor)
-{
-  let root = gPanelWindow.document.querySelector(".splitview-root");
+  let toolbox = gDevTools.getToolbox(target);
+  let panel = toolbox.getPanel("styleeditor");
+  let { panelWindow } = panel;
+
+  let root = panelWindow.document.querySelector(".splitview-root");
   ok(!root.classList.contains("loading"),
      "style editor root element does not have 'loading' class name anymore");
 
-  let button = gPanelWindow.document.querySelector(".style-editor-newButton");
+  let button = panelWindow.document.querySelector(".style-editor-newButton");
   ok(!button.hasAttribute("disabled"),
      "new style sheet button is enabled");
 
-  button = gPanelWindow.document.querySelector(".style-editor-importButton");
+  button = panelWindow.document.querySelector(".style-editor-importButton");
   ok(!button.hasAttribute("disabled"),
      "import button is enabled");
-
-  finish();
-}
+});
