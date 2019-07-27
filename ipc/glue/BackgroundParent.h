@@ -14,8 +14,8 @@ template <class> struct already_AddRefed;
 namespace mozilla {
 namespace dom {
 
+class BlobImpl;
 class ContentParent;
-class FileImpl;
 class PBlobParent;
 
 } 
@@ -31,8 +31,8 @@ class BackgroundParent final
   friend class mozilla::dom::ContentParent;
 
   typedef base::ProcessId ProcessId;
+  typedef mozilla::dom::BlobImpl BlobImpl;
   typedef mozilla::dom::ContentParent ContentParent;
-  typedef mozilla::dom::FileImpl FileImpl;
   typedef mozilla::ipc::Transport Transport;
 
 public:
@@ -56,7 +56,7 @@ public:
 
   static mozilla::dom::PBlobParent*
   GetOrCreateActorForBlobImpl(PBackgroundParent* aBackgroundActor,
-                              FileImpl* aBlobImpl);
+                              BlobImpl* aBlobImpl);
 
   
   

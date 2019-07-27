@@ -113,7 +113,7 @@ PostMessageReadStructuredClone(JSContext* cx,
 
     
     
-    FileImpl* blobImpl;
+    BlobImpl* blobImpl;
     if (JS_ReadBytes(reader, &blobImpl, sizeof(blobImpl))) {
       MOZ_ASSERT(blobImpl);
 
@@ -170,7 +170,7 @@ PostMessageWriteStructuredClone(JSContext* cx,
   {
     Blob* blob = nullptr;
     if (NS_SUCCEEDED(UNWRAP_OBJECT(Blob, obj, blob))) {
-      FileImpl* blobImpl = blob->Impl();
+      BlobImpl* blobImpl = blob->Impl();
       if (JS_WriteUint32Pair(writer, SCTAG_DOM_BLOB, 0) &&
           JS_WriteBytes(writer, &blobImpl, sizeof(blobImpl))) {
         scInfo->mEvent->StoreISupports(blobImpl);

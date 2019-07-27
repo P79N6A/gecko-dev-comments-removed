@@ -25,8 +25,8 @@ class PBackgroundChild;
 
 namespace dom {
 
+class BlobImpl;
 class ContentChild;
-class FileImpl;
 class nsIContentChild;
 class PBlobStreamChild;
 
@@ -41,7 +41,7 @@ class BlobChild final
   class RemoteBlobSliceImpl;
   friend class RemoteBlobSliceImpl;
 
-  FileImpl* mBlobImpl;
+  BlobImpl* mBlobImpl;
   RemoteBlobImpl* mRemoteBlobImpl;
 
   
@@ -62,10 +62,10 @@ public:
 
   
   static BlobChild*
-  GetOrCreate(nsIContentChild* aManager, FileImpl* aBlobImpl);
+  GetOrCreate(nsIContentChild* aManager, BlobImpl* aBlobImpl);
 
   static BlobChild*
-  GetOrCreate(PBackgroundChild* aManager, FileImpl* aBlobImpl);
+  GetOrCreate(PBackgroundChild* aManager, BlobImpl* aBlobImpl);
 
   
   static BlobChild*
@@ -106,7 +106,7 @@ public:
   
   
   
-  already_AddRefed<FileImpl>
+  already_AddRefed<BlobImpl>
   GetBlobImpl();
 
   
@@ -130,13 +130,13 @@ public:
 
 private:
   
-  BlobChild(nsIContentChild* aManager, FileImpl* aBlobImpl);
+  BlobChild(nsIContentChild* aManager, BlobImpl* aBlobImpl);
 
-  BlobChild(PBackgroundChild* aManager, FileImpl* aBlobImpl);
+  BlobChild(PBackgroundChild* aManager, BlobImpl* aBlobImpl);
 
   BlobChild(nsIContentChild* aManager, BlobChild* aOther);
 
-  BlobChild(PBackgroundChild* aManager, BlobChild* aOther, FileImpl* aBlobImpl);
+  BlobChild(PBackgroundChild* aManager, BlobChild* aOther, BlobImpl* aBlobImpl);
 
   
   BlobChild(nsIContentChild* aManager,
@@ -158,10 +158,10 @@ private:
   ~BlobChild();
 
   void
-  CommonInit(FileImpl* aBlobImpl);
+  CommonInit(BlobImpl* aBlobImpl);
 
   void
-  CommonInit(BlobChild* aOther, FileImpl* aBlobImpl);
+  CommonInit(BlobChild* aOther, BlobImpl* aBlobImpl);
 
   void
   CommonInit(const ChildBlobConstructorParams& aParams);
@@ -171,7 +171,7 @@ private:
 
   template <class ChildManagerType>
   static BlobChild*
-  GetOrCreateFromImpl(ChildManagerType* aManager, FileImpl* aBlobImpl);
+  GetOrCreateFromImpl(ChildManagerType* aManager, BlobImpl* aBlobImpl);
 
   template <class ChildManagerType>
   static BlobChild*
@@ -187,12 +187,12 @@ private:
   static BlobChild*
   MaybeGetActorFromRemoteBlob(nsIRemoteBlob* aRemoteBlob,
                               nsIContentChild* aManager,
-                              FileImpl* aBlobImpl);
+                              BlobImpl* aBlobImpl);
 
   static BlobChild*
   MaybeGetActorFromRemoteBlob(nsIRemoteBlob* aRemoteBlob,
                               PBackgroundChild* aManager,
-                              FileImpl* aBlobImpl);
+                              BlobImpl* aBlobImpl);
 
   void
   NoteDyingRemoteBlobImpl();
