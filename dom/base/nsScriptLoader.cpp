@@ -83,7 +83,8 @@ public:
       mScriptTextLength(0),
       mJSVersion(aVersion),
       mLineNo(1),
-      mCORSMode(aCORSMode)
+      mCORSMode(aCORSMode),
+      mReferrerPolicy(mozilla::net::RP_Default)
   {
   }
 
@@ -116,6 +117,7 @@ public:
   nsAutoCString mURL;   
   int32_t mLineNo;
   const CORSMode mCORSMode;
+  mozilla::net::ReferrerPolicy mReferrerPolicy;
 };
 
 
@@ -340,7 +342,8 @@ nsScriptLoader::StartLoad(nsScriptLoadRequest *aRequest, const nsAString &aType,
     httpChannel->SetRequestHeader(NS_LITERAL_CSTRING("Accept"),
                                   NS_LITERAL_CSTRING("*/*"),
                                   false);
-    httpChannel->SetReferrer(mDocument->GetDocumentURI());
+    httpChannel->SetReferrerWithPolicy(mDocument->GetDocumentURI(),
+                                       aRequest->mReferrerPolicy);
   }
 
   nsCOMPtr<nsILoadContext> loadContext(do_QueryInterface(docshell));
@@ -594,6 +597,9 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
                              &nsIScriptElement::FireErrorEvent));
       return false;
     }
+
+    
+    mozilla::net::ReferrerPolicy ourRefPolicy = mDocument->GetReferrerPolicy();
     CORSMode ourCORSMode = aElement->GetCORSMode();
     nsTArray<PreloadInfo>::index_type i =
       mPreloads.IndexOf(scriptURI.get(), 0, PreloadURIComparator());
@@ -610,7 +616,8 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
       nsAutoString elementCharset;
       aElement->GetScriptCharset(elementCharset);
       if (elementCharset.Equals(preloadCharset) &&
-          ourCORSMode == request->mCORSMode) {
+          ourCORSMode == request->mCORSMode &&
+          ourRefPolicy == request->mReferrerPolicy) {
         rv = CheckContentPolicy(mDocument, aElement, request->mURI, type);
         NS_ENSURE_SUCCESS(rv, false);
       } else {
@@ -625,6 +632,7 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
       request->mURI = scriptURI;
       request->mIsInline = false;
       request->mLoading = true;
+      request->mReferrerPolicy = ourRefPolicy;
 
       
       
@@ -1556,7 +1564,8 @@ void
 nsScriptLoader::PreloadURI(nsIURI *aURI, const nsAString &aCharset,
                            const nsAString &aType,
                            const nsAString &aCrossOrigin,
-                           bool aScriptFromHead)
+                           bool aScriptFromHead,
+                           const mozilla::net::ReferrerPolicy aReferrerPolicy)
 {
   
   if (!mEnabled || !mDocument->IsScriptEnabled()) {
@@ -1569,6 +1578,8 @@ nsScriptLoader::PreloadURI(nsIURI *aURI, const nsAString &aCharset,
   request->mURI = aURI;
   request->mIsInline = false;
   request->mLoading = true;
+  request->mReferrerPolicy = aReferrerPolicy;
+
   nsresult rv = StartLoad(request, aType, aScriptFromHead);
   if (NS_FAILED(rv)) {
     return;
