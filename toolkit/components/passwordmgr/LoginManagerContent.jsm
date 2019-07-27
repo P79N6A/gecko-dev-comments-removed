@@ -64,9 +64,11 @@ var observer = {
     
 
     try {
-      LoginManagerContent._onFormSubmit(formElement);
+      let formLike = FormLikeFactory.createFromForm(formElement);
+      LoginManagerContent._onFormSubmit(formLike);
     } catch (e) {
       log("Caught error in onFormSubmit(", e.lineNumber, "):", e.message);
+      Cu.reportError(e);
     }
 
     return true; 
@@ -642,14 +644,8 @@ var LoginManagerContent = {
 
 
 
-
-
-  _isAutocompleteDisabled :  function (element) {
-    if (element && element.hasAttribute("autocomplete") &&
-        element.getAttribute("autocomplete").toLowerCase() == "off")
-      return true;
-
-    return false;
+  _isAutocompleteDisabled(element) {
+    return element && element.autocomplete == "off";
   },
 
   
@@ -658,7 +654,9 @@ var LoginManagerContent = {
 
 
 
-  _onFormSubmit : function (form) {
+
+
+  _onFormSubmit(form) {
     var doc = form.ownerDocument;
     var win = doc.defaultView;
 
@@ -1096,8 +1094,8 @@ UserAutoCompleteResult.prototype = {
 
 let FormLikeFactory = {
   _propsFromForm: [
-      "action",
-      "autocomplete",
+    "autocomplete",
+    "ownerDocument",
   ],
 
   
@@ -1113,8 +1111,8 @@ let FormLikeFactory = {
     }
 
     let formLike = {
+      action: LoginUtils._getActionOrigin(aForm),
       elements: [...aForm.elements],
-      ownerDocument: aForm.ownerDocument,
       rootElement: aForm,
     };
 
@@ -1152,7 +1150,7 @@ let FormLikeFactory = {
     let doc = aPasswordField.ownerDocument;
     log("Created non-form FormLike for rootElement:", doc.documentElement);
     return {
-      action: "",
+      action: LoginUtils._getPasswordOrigin(doc.baseURI),
       autocomplete: "on",
       
       
