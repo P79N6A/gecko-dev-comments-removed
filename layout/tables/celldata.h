@@ -8,6 +8,7 @@
 #include "nsISupports.h"
 #include "nsCoord.h"
 #include "mozilla/gfx/Types.h"
+#include "mozilla/WritingModes.h"
 #include <stdint.h>
 
 class nsTableCellFrame;
@@ -187,48 +188,48 @@ public:
 
   ~BCData();
 
-  nscoord GetLeftEdge(BCBorderOwner& aOwner,
-                      bool&        aStart) const;
+  nscoord GetIStartEdge(BCBorderOwner& aOwner,
+                        bool&          aStart) const;
 
-  void SetLeftEdge(BCBorderOwner aOwner,
-                   nscoord       aSize,
-                   bool          aStart);
+  void SetIStartEdge(BCBorderOwner aOwner,
+                     nscoord       aSize,
+                     bool          aStart);
 
-  nscoord GetTopEdge(BCBorderOwner& aOwner,
-                     bool&        aStart) const;
+  nscoord GetBStartEdge(BCBorderOwner& aOwner,
+                        bool&          aStart) const;
 
-  void SetTopEdge(BCBorderOwner aOwner,
-                  nscoord       aSize,
-                  bool          aStart);
+  void SetBStartEdge(BCBorderOwner aOwner,
+                     nscoord       aSize,
+                     bool          aStart);
 
-  BCPixelSize GetCorner(mozilla::Side&       aCornerOwner,
-                        bool&  aBevel) const;
+  BCPixelSize GetCorner(mozilla::LogicalSide& aCornerOwner,
+                        bool&                 aBevel) const;
 
-  void SetCorner(BCPixelSize aSubSize,
-                 mozilla::Side aOwner,
-                 bool    aBevel);
+  void SetCorner(BCPixelSize          aSubSize,
+                 mozilla::LogicalSide aOwner,
+                 bool                 aBevel);
 
-  bool IsLeftStart() const;
+  bool IsIStartStart() const;
 
-  void SetLeftStart(bool aValue);
+  void SetIStartStart(bool aValue);
 
-  bool IsTopStart() const;
+  bool IsBStartStart() const;
 
-  void SetTopStart(bool aValue);
+  void SetBStartStart(bool aValue);
 
 
 protected:
-  BCPixelSize mLeftSize;      
-  BCPixelSize mTopSize;       
+  BCPixelSize mIStartSize;    
+  BCPixelSize mBStartSize;    
   BCPixelSize mCornerSubSize; 
                               
                               
                               
                               
-  unsigned mLeftOwner:     4; 
-  unsigned mTopOwner:      4; 
-  unsigned mLeftStart:     1; 
-  unsigned mTopStart:      1; 
+  unsigned mIStartOwner:   4; 
+  unsigned mBStartOwner:   4; 
+  unsigned mIStartStart:   1; 
+  unsigned mBStartStart:   1; 
   unsigned mCornerSide:    2; 
   unsigned mCornerBevel:   1; 
 };
@@ -402,10 +403,10 @@ inline void CellData::SetOverlap(bool aOverlap)
 
 inline BCData::BCData()
 {
-  mLeftOwner = mTopOwner = eCellOwner;
-  mLeftStart = mTopStart = 1;
-  mLeftSize = mCornerSubSize = mTopSize = 0;
-  mCornerSide = NS_SIDE_TOP;
+  mIStartOwner = mBStartOwner = eCellOwner;
+  mIStartStart = mBStartStart = 1;
+  mIStartSize = mCornerSubSize = mBStartSize = 0;
+  mCornerSide = mozilla::eLogicalSideBStart;
   mCornerBevel = false;
 }
 
@@ -413,77 +414,77 @@ inline BCData::~BCData()
 {
 }
 
-inline nscoord BCData::GetLeftEdge(BCBorderOwner& aOwner,
-                                   bool&        aStart) const
+inline nscoord BCData::GetIStartEdge(BCBorderOwner& aOwner,
+                                     bool&          aStart) const
 {
-  aOwner = (BCBorderOwner)mLeftOwner;
-  aStart = (bool)mLeftStart;
+  aOwner = (BCBorderOwner)mIStartOwner;
+  aStart = (bool)mIStartStart;
 
-  return (nscoord)mLeftSize;
+  return (nscoord)mIStartSize;
 }
 
-inline void BCData::SetLeftEdge(BCBorderOwner  aOwner,
-                                nscoord        aSize,
-                                bool           aStart)
+inline void BCData::SetIStartEdge(BCBorderOwner  aOwner,
+                                  nscoord        aSize,
+                                  bool           aStart)
 {
-  mLeftOwner = aOwner;
-  mLeftSize  = (aSize > MAX_BORDER_WIDTH) ? MAX_BORDER_WIDTH : aSize;
-  mLeftStart = aStart;
+  mIStartOwner = aOwner;
+  mIStartSize  = (aSize > MAX_BORDER_WIDTH) ? MAX_BORDER_WIDTH : aSize;
+  mIStartStart = aStart;
 }
 
-inline nscoord BCData::GetTopEdge(BCBorderOwner& aOwner,
-                                  bool&        aStart) const
+inline nscoord BCData::GetBStartEdge(BCBorderOwner& aOwner,
+                                     bool&          aStart) const
 {
-  aOwner = (BCBorderOwner)mTopOwner;
-  aStart = (bool)mTopStart;
+  aOwner = (BCBorderOwner)mBStartOwner;
+  aStart = (bool)mBStartStart;
 
-  return (nscoord)mTopSize;
+  return (nscoord)mBStartSize;
 }
 
-inline void BCData::SetTopEdge(BCBorderOwner  aOwner,
-                               nscoord        aSize,
-                               bool           aStart)
+inline void BCData::SetBStartEdge(BCBorderOwner  aOwner,
+                                  nscoord        aSize,
+                                  bool           aStart)
 {
-  mTopOwner = aOwner;
-  mTopSize  = (aSize > MAX_BORDER_WIDTH) ? MAX_BORDER_WIDTH : aSize;
-  mTopStart = aStart;
+  mBStartOwner = aOwner;
+  mBStartSize  = (aSize > MAX_BORDER_WIDTH) ? MAX_BORDER_WIDTH : aSize;
+  mBStartStart = aStart;
 }
 
-inline BCPixelSize BCData::GetCorner(mozilla::Side& aOwnerSide,
-                                     bool&       aBevel) const
+inline BCPixelSize BCData::GetCorner(mozilla::LogicalSide& aOwnerSide,
+                                     bool&                 aBevel) const
 {
-  aOwnerSide = mozilla::Side(mCornerSide);
+  aOwnerSide = mozilla::LogicalSide(mCornerSide);
   aBevel     = (bool)mCornerBevel;
   return mCornerSubSize;
 }
 
-inline void BCData::SetCorner(BCPixelSize aSubSize,
-                              mozilla::Side aOwnerSide,
-                              bool    aBevel)
+inline void BCData::SetCorner(BCPixelSize          aSubSize,
+                              mozilla::LogicalSide aOwnerSide,
+                              bool                 aBevel)
 {
   mCornerSubSize = aSubSize;
   mCornerSide    = aOwnerSide;
   mCornerBevel   = aBevel;
 }
 
-inline bool BCData::IsLeftStart() const
+inline bool BCData::IsIStartStart() const
 {
-  return (bool)mLeftStart;
+  return (bool)mIStartStart;
 }
 
-inline void BCData::SetLeftStart(bool aValue)
+inline void BCData::SetIStartStart(bool aValue)
 {
-  mLeftStart = aValue;
+  mIStartStart = aValue;
 }
 
-inline bool BCData::IsTopStart() const
+inline bool BCData::IsBStartStart() const
 {
-  return (bool)mTopStart;
+  return (bool)mBStartStart;
 }
 
-inline void BCData::SetTopStart(bool aValue)
+inline void BCData::SetBStartStart(bool aValue)
 {
-  mTopStart = aValue;
+  mBStartStart = aValue;
 }
 
 #endif
