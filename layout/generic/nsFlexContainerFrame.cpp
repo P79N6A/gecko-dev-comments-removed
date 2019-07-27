@@ -3697,9 +3697,17 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
             item->Frame()->GetContentRectRelativeToSelf().Size()) {
           
           
-          itemNeedsReflow = false;
-          MoveFlexItemToFinalPosition(aReflowState, *item, framePos,
-                                      containerWidth);
+          
+          
+          if (!(item->Frame()->GetStateBits() &
+                NS_FRAME_CONTAINS_RELATIVE_HEIGHT)) {
+            
+            
+            
+            itemNeedsReflow = false;
+            MoveFlexItemToFinalPosition(aReflowState, *item, framePos,
+                                        containerWidth);
+          }
         }
       }
       if (itemNeedsReflow) {
