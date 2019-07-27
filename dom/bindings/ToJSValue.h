@@ -237,6 +237,24 @@ ToJSValue(JSContext* aCx, JS::Handle<JS::Value> aArgument,
 }
 
 
+inline bool
+ToJSValue(JSContext* aCx, const JS::Heap<JS::Value>& aArgument,
+          JS::MutableHandle<JS::Value> aValue)
+{
+  aValue.set(aArgument);
+  return MaybeWrapValue(aCx, aValue);
+}
+
+
+inline bool
+ToJSValue(JSContext* aCx, const JS::Rooted<JS::Value>& aArgument,
+          JS::MutableHandle<JS::Value> aValue)
+{
+  aValue.set(aArgument);
+  return MaybeWrapValue(aCx, aValue);
+}
+
+
 
 bool
 ToJSValue(JSContext* aCx,
