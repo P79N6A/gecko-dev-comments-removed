@@ -37,68 +37,67 @@ MobileIdentityVerificationFlow.prototype = {
           return Promise.reject(ERROR_INTERNAL_UNEXPECTED);
         }
         this.sessionToken = registerResult.msisdnSessionToken;
-        return this._doVerification();
+        
+        
+        if (!this.timer) {
+          log.debug("Creating verification code timer");
+          this.timerCreation = Date.now();
+          this.timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+          this.timer.initWithCallback(this.onVerificationCodeTimeout.bind(this),
+                                      VERIFICATIONCODE_TIMEOUT,
+                                      this.timer.TYPE_ONE_SHOT);
+        }
+
+        if (!this.verifyStrategy) {
+          return Promise.reject(ERROR_INTERNAL_INVALID_VERIFICATION_FLOW);
+        }
+
+        return this.verifyStrategy()
+        .then(() => {
+          return this._doVerification();
+        }, (reason) => {
+          this.verificationCodeDeferred.reject(reason);
+        });
       }
     )
   },
 
   _doVerification: function() {
     log.debug("_doVerification");
-    
-    
-    if (!this.timer) {
-      log.debug("Creating verification code timer");
-      this.timerCreation = Date.now();
-      this.timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-      this.timer.initWithCallback(this.onVerificationCodeTimeout.bind(this),
-                                  VERIFICATIONCODE_TIMEOUT,
-                                  this.timer.TYPE_ONE_SHOT);
-    }
-
-    if (!this.verifyStrategy) {
-      return Promise.reject(ERROR_INTERNAL_INVALID_VERIFICATION_FLOW);
-    }
 
     this.verificationCodeDeferred = Promise.defer();
 
-    this.verifyStrategy()
-    .then(
-      () => {
-        
-        
-        
-        
-        
-        if (this.verificationOptions.external) {
-          let timeLeft = 0;
-          if (this.timer) {
-            timeLeft = this.timerCreation + VERIFICATIONCODE_TIMEOUT -
-                       Date.now();
-          }
-          this.ui.verificationCodePrompt(this.retries,
-                                         VERIFICATIONCODE_TIMEOUT / 1000,
-                                         timeLeft / 1000)
-          .then(
-            (verificationCode) => {
-              if (!verificationCode) {
-                return this.verificationCodeDeferred.reject(
-                  ERROR_INTERNAL_INVALID_PROMPT_RESULT);
-              }
-              
-              
-              
-              this.ui.verify();
-              this.verificationCodeDeferred.resolve(verificationCode);
-            }
-          );
-        } else {
-          this.ui.verify();
-        }
-      },
-      (reason) => {
-        this.verificationCodeDeferred.reject(reason);
+    
+    
+    
+    
+    
+    if (this.verificationOptions.external) {
+      let timeLeft = 0;
+      if (this.timer) {
+        timeLeft = this.timerCreation + VERIFICATIONCODE_TIMEOUT -
+                   Date.now();
       }
-    );
+      this.ui.verificationCodePrompt(this.retries,
+                                     VERIFICATIONCODE_TIMEOUT / 1000,
+                                     timeLeft / 1000)
+      .then(
+        (verificationCode) => {
+          if (!verificationCode) {
+            return this.verificationCodeDeferred.reject(
+              ERROR_INTERNAL_INVALID_PROMPT_RESULT);
+          }
+          
+          
+          
+          this.ui.verify();
+          this.verificationCodeDeferred.resolve(verificationCode);
+        }
+      );
+    } else {
+      this.ui.verify();
+    }
+
     return this.verificationCodeDeferred.promise.then(
       this.onVerificationCode.bind(this)
     );
@@ -145,8 +144,11 @@ MobileIdentityVerificationFlow.prototype = {
         log.error("Retries left " + this.retries);
         if (!this.retries) {
           this.ui.error(ERROR_NO_RETRIES_LEFT);
+          this.timer.cancel();
+          this.timer = null;
           return Promise.reject(ERROR_NO_RETRIES_LEFT);
         }
+        this.ui.error(ERROR_INVALID_VERIFICATION_CODE);
         this.verifying = false;
         if (this.queuedTimeout) {
           this.onVerificationCodeTimeout();
