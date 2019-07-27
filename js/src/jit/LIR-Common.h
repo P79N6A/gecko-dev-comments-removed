@@ -3395,17 +3395,6 @@ class LStart : public LInstructionHelper<0, 0, 0>
 };
 
 
-class LPcOffset : public LInstructionHelper<0, 0, 0>
-{
-  public:
-    LIR_HEADER(PcOffset)
-
-    const MPcOffset *mir() const {
-        return mir_->toPcOffset();
-    }
-};
-
-
 
 class LOsrEntry : public LInstructionHelper<1, 0, 0>
 {

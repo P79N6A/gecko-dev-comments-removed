@@ -1277,9 +1277,6 @@ IonBuilder::traverseBytecode()
         }
 #endif
 
-        if (isNativeToBytecodeMapEnabled())
-            current->add(MPcOffset::New(alloc()));
-
         
         JSOp op = JSOp(*pc);
         if (!inspectOpcode(op))
