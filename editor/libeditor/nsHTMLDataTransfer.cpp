@@ -2006,18 +2006,15 @@ nsresult nsHTMLEditor::CreateDOMFragmentFromPaste(const nsAString &aInputString,
                                                   bool aTrustedInput)
 {
   NS_ENSURE_TRUE(outFragNode && outStartNode && outEndNode, NS_ERROR_NULL_POINTER);
-  nsCOMPtr<nsIDOMDocumentFragment> docfrag;
-  nsCOMPtr<nsIDOMNode> contextAsNode, tmp;
-  nsresult rv = NS_OK;
 
   nsCOMPtr<nsIDocument> doc = GetDocument();
   NS_ENSURE_TRUE(doc, NS_ERROR_FAILURE);
 
   
-  nsCOMPtr<nsIDOMDocumentFragment> contextfrag;
-  nsCOMPtr<nsIDOMNode> contextLeaf, junk;
-  if (!aContextStr.IsEmpty())
-  {
+  nsresult rv = NS_OK;
+  nsCOMPtr<nsIDOMNode> contextLeaf;
+  nsCOMPtr<nsIDOMNode> contextAsNode;
+  if (!aContextStr.IsEmpty()) {
     rv = ParseFragment(aContextStr, nullptr, doc, address_of(contextAsNode),
                        aTrustedInput);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -2057,9 +2054,9 @@ nsresult nsHTMLEditor::CreateDOMFragmentFromPaste(const nsAString &aInputString,
 
   RemoveBodyAndHead(*outFragNode);
 
-  if (contextAsNode)
-  {
+  if (contextAsNode) {
     
+    nsCOMPtr<nsIDOMNode> junk;
     contextLeaf->AppendChild(*outFragNode, getter_AddRefs(junk));
     *outFragNode = contextAsNode;
   }
@@ -2069,35 +2066,33 @@ nsresult nsHTMLEditor::CreateDOMFragmentFromPaste(const nsAString &aInputString,
 
   
   
-  if (contextLeaf)
+  if (contextLeaf) {
     *outEndNode = *outStartNode = contextLeaf;
-  else
+  } else {
     *outEndNode = *outStartNode = *outFragNode;
+  }
 
   *outStartOffset = 0;
 
   
-  nsAutoString numstr1, numstr2;
-  if (!aInfoStr.IsEmpty())
-  {
-    int32_t sep, num;
-    sep = aInfoStr.FindChar((char16_t)',');
-    numstr1 = Substring(aInfoStr, 0, sep);
-    numstr2 = Substring(aInfoStr, sep+1, aInfoStr.Length() - (sep+1));
+  if (!aInfoStr.IsEmpty()) {
+    int32_t sep = aInfoStr.FindChar((char16_t)',');
+    nsAutoString numstr1(Substring(aInfoStr, 0, sep));
+    nsAutoString numstr2(Substring(aInfoStr, sep+1, aInfoStr.Length() - (sep+1)));
 
     
     nsresult err;
-    num = numstr1.ToInteger(&err);
-    while (num--)
-    {
+    int32_t num = numstr1.ToInteger(&err);
+
+    nsCOMPtr<nsIDOMNode> tmp;
+    while (num--) {
       (*outStartNode)->GetFirstChild(getter_AddRefs(tmp));
       NS_ENSURE_TRUE(tmp, NS_ERROR_FAILURE);
       tmp.swap(*outStartNode);
     }
 
     num = numstr2.ToInteger(&err);
-    while (num--)
-    {
+    while (num--) {
       (*outEndNode)->GetLastChild(getter_AddRefs(tmp));
       NS_ENSURE_TRUE(tmp, NS_ERROR_FAILURE);
       tmp.swap(*outEndNode);
