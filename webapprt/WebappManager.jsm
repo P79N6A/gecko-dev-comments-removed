@@ -68,7 +68,7 @@ this.WebappManager = {
     
     if (choice == 0) {
       let nativeApp = new NativeApp(data.app, jsonManifest,
-                                    WebappRT.config.app.categories,
+                                    data.app.categories,
                                     WebappRT.config.registryDir);
       let localDir;
       try {
