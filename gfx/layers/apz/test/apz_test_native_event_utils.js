@@ -124,23 +124,3 @@ function synthesizeNativeMouseMoveAndWaitForMoveEvent(aElement, aX, aY, aCallbac
   });
   return synthesizeNativeMouseMove(aElement, aX, aY);
 }
-
-
-
-function scrollWheelOver(aElement, aWheelDelta, aCallback) {
-  var scale = window.devicePixelRatio;
-  var rect = aElement.getBoundingClientRect();
-  var x = (rect.left + 10) * scale;
-  var y = (rect.top + 10) * scale;
-  
-  
-  
-  
-  
-  
-  
-  synthesizeNativeMouseMoveAndWaitForMoveEvent(aElement, x, y, function() {
-    synthesizeNativeWheelAndWaitForScrollEvent(aElement, x, y, 0, aWheelDelta, aCallback);
-  });
-}
-
