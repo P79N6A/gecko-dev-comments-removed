@@ -717,16 +717,6 @@ nsFocusManager::WindowRaised(nsIDOMWindow* aWindow)
   if (!currentWindow)
     return NS_OK;
 
-  nsCOMPtr<nsIDocShell> currentDocShell = currentWindow->GetDocShell();
-
-  nsCOMPtr<nsIPresShell> presShell = currentDocShell->GetPresShell();
-  if (presShell) {
-    
-    
-    nsRefPtr<nsFrameSelection> frameSelection = presShell->FrameSelection();
-    frameSelection->SetDragState(false);
-  }
-
   
   
   nsCOMPtr<nsIXULWindow> xulWin(do_GetInterface(baseWindow));
@@ -763,6 +753,19 @@ nsFocusManager::WindowLowered(nsIDOMWindow* aWindow)
 
   
   nsIPresShell::SetCapturingContent(nullptr, 0);
+
+  
+  
+  if (mFocusedWindow) {
+    nsCOMPtr<nsIDocShell> docShell = mFocusedWindow->GetDocShell();
+    if (docShell) {
+      nsCOMPtr<nsIPresShell> presShell = docShell->GetPresShell();
+      if (presShell) {
+        nsRefPtr<nsFrameSelection> frameSelection = presShell->FrameSelection();
+        frameSelection->SetDragState(false);
+      }
+    }
+  }
 
   
   
