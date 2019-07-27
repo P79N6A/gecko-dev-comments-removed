@@ -32,6 +32,8 @@ AudioDecoder::AudioDecoder(GMPAudioHost *aHostAPI)
   , mNumInputTasks(0)
   , mHasShutdown(false)
 {
+  
+  AddRef();
 }
 
 AudioDecoder::~AudioDecoder()
@@ -84,9 +86,9 @@ AudioDecoder::Decode(GMPAudioSamples* aInput)
     AutoLock lock(mMutex);
     mNumInputTasks++;
   }
-  mWorkerThread->Post(WrapTask(this,
-                               &AudioDecoder::DecodeTask,
-                               aInput));
+  mWorkerThread->Post(WrapTaskRefCounted(this,
+                                         &AudioDecoder::DecodeTask,
+                                         aInput));
 }
 
 void
@@ -258,8 +260,8 @@ AudioDecoder::Drain()
     return;
   }
   EnsureWorker();
-  mWorkerThread->Post(WrapTask(this,
-                               &AudioDecoder::DrainTask));
+  mWorkerThread->Post(WrapTaskRefCounted(this,
+                                         &AudioDecoder::DrainTask));
 }
 
 void
@@ -272,22 +274,17 @@ AudioDecoder::DecodingComplete()
 
   
   
-  GetPlatform()->runonmainthread(WrapTask(this, &AudioDecoder::Destroy));
+  
+  Release();
 }
 
 void
-AudioDecoder::Destroy()
-{
-  delete this;
-}
-
-void
-AudioDecoder::MaybeRunOnMainThread(gmp_task_args_base* aTask)
+AudioDecoder::MaybeRunOnMainThread(GMPTask* aTask)
 {
   class MaybeRunTask : public GMPTask
   {
   public:
-    MaybeRunTask(AudioDecoder* aDecoder, gmp_task_args_base* aTask)
+    MaybeRunTask(AudioDecoder* aDecoder, GMPTask* aTask)
       : mDecoder(aDecoder), mTask(aTask)
     { }
 
@@ -307,8 +304,8 @@ AudioDecoder::MaybeRunOnMainThread(gmp_task_args_base* aTask)
     }
 
   private:
-    AudioDecoder* mDecoder;
-    gmp_task_args_base* mTask;
+    RefPtr<AudioDecoder> mDecoder;
+    GMPTask* mTask;
   };
 
   GetPlatform()->runonmainthread(new MaybeRunTask(this, aTask));
