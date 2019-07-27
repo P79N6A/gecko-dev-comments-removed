@@ -1675,7 +1675,9 @@ public:
   
   bool mSSApplicableStateNotificationPending:1;
 
-  uint32_t mCancelledPointerLockRequests;
+  
+  
+  uint8_t mCancelledPointerLockRequests:2;
 
   uint8_t mXMLDeclarationBits;
 
