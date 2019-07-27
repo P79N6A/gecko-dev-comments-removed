@@ -1,13 +1,5 @@
 
 
-
-
-
-thisTestLeaksUncaughtRejectionsAndShouldBeFixed("TypeError: this.docShell is null");
-
-
-
-
 var gNewTab;
 
 function test() {
