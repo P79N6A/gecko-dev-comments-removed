@@ -34,6 +34,9 @@ const UPDATE_STYLESHEET_THROTTLE_DELAY = 500;
 const AUTOCOMPLETION_PREF = "devtools.styleeditor.autocompletion-enabled";
 
 
+const TRANSITION_PREF = "devtools.styleeditor.transitions";
+
+
 
 const CHECK_LINKED_SHEET_DELAY=500;
 
@@ -461,7 +464,9 @@ StyleSheetEditor.prototype = {
       this._state.text = this.sourceEditor.getText();
     }
 
-    this.styleSheet.update(this._state.text, true);
+    let transitionsEnabled = Services.prefs.getBoolPref(TRANSITION_PREF);
+
+    this.styleSheet.update(this._state.text, transitionsEnabled);
   },
 
   
