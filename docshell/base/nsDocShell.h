@@ -897,6 +897,7 @@ protected:
   bool mUseRemoteTabs;
   bool mDeviceSizeIsPageSize;
   bool mWindowDraggingAllowed;
+  bool mBlockNavigation;
 
   
   
