@@ -76,23 +76,6 @@ class MOZ_STACK_CLASS nsSetSelectionAfterTableEdit
 };
 
 
-class MOZ_STACK_CLASS nsSelectionBatcherForTable
-{
-private:
-  nsRefPtr<mozilla::dom::Selection> mSelection;
-public:
-  explicit nsSelectionBatcherForTable(Selection* aSelection)
-  {
-    mSelection = aSelection;
-    if (mSelection)  mSelection->StartBatchChanges();
-  }
-  virtual ~nsSelectionBatcherForTable() 
-  { 
-    if (mSelection) mSelection->EndBatchChanges();
-  }
-};
-
-
 
 NS_IMETHODIMP
 nsHTMLEditor::InsertCell(nsIDOMElement *aCell, int32_t aRowSpan, int32_t aColSpan, 
@@ -1448,7 +1431,7 @@ nsHTMLEditor::SelectBlockOfCells(nsIDOMElement *aStartCell, nsIDOMElement *aEndC
 
   
   
-  nsSelectionBatcherForTable selectionBatcher(selection);
+  SelectionBatcher selectionBatcher(selection);
 
   
   
@@ -1529,7 +1512,7 @@ nsHTMLEditor::SelectAllTableCells()
 
   
   
-  nsSelectionBatcherForTable selectionBatcher(selection);
+  SelectionBatcher selectionBatcher(selection);
 
   
   
@@ -1599,7 +1582,7 @@ nsHTMLEditor::SelectTableRow()
 
   
   
-  nsSelectionBatcherForTable selectionBatcher(selection);
+  SelectionBatcher selectionBatcher(selection);
 
   
   
@@ -1662,7 +1645,7 @@ nsHTMLEditor::SelectTableColumn()
 
   
   
-  nsSelectionBatcherForTable selectionBatcher(selection);
+  SelectionBatcher selectionBatcher(selection);
 
   
   

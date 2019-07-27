@@ -313,6 +313,28 @@ private:
   bool mApplyUserSelectStyle;
 };
 
+
+class MOZ_STACK_CLASS SelectionBatcher MOZ_FINAL
+{
+private:
+  nsRefPtr<Selection> mSelection;
+public:
+  explicit SelectionBatcher(Selection* aSelection)
+  {
+    mSelection = aSelection;
+    if (mSelection) {
+      mSelection->StartBatchChanges();
+    }
+  }
+
+  ~SelectionBatcher()
+  {
+    if (mSelection) {
+      mSelection->EndBatchChanges();
+    }
+  }
+};
+
 } 
 } 
 
