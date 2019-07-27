@@ -38,7 +38,6 @@
 #include "mozilla/net/DataChannel.h"
 #include "VideoUtils.h"
 #include "VideoSegment.h"
-#include "nsNSSShutDown.h"
 #include "mozilla/dom/RTCStatsReportBinding.h"
 #include "nsIPrincipal.h"
 #include "mozilla/PeerIdentity.h"
@@ -78,6 +77,7 @@ class DOMMediaStream;
 #endif
 
 namespace dom {
+class RTCCertificate;
 struct RTCConfiguration;
 struct RTCIceServer;
 struct RTCOfferOptions;
@@ -242,7 +242,6 @@ class RTCStatsQuery {
 class PeerConnectionImpl final : public nsISupports,
 #if !defined(MOZILLA_EXTERNAL_LINKAGE)
                                  public mozilla::DataChannelConnection::DataConnectionListener,
-                                 public nsNSSShutDownObject,
                                  public DOMMediaStream::PrincipalChangeObserver,
 #endif
                                  public sigslot::has_slots<>
@@ -333,9 +332,6 @@ public:
     return mSTSThread;
   }
 
-  
-  mozilla::RefPtr<DtlsIdentity> const GetIdentity() const;
-
   nsPIDOMWindow* GetWindow() const {
     PC_AUTO_ENTER_API_CALL_NO_CHECK();
     return mWindow;
@@ -357,6 +353,13 @@ public:
                   nsISupports* aThread,
                   ErrorResult &rv);
 #endif
+
+#if !defined(MOZILLA_EXTERNAL_LINKAGE)
+  void SetCertificate(mozilla::dom::RTCCertificate& aCertificate);
+  const nsRefPtr<mozilla::dom::RTCCertificate>& Certificate() const;
+#endif
+  
+  mozilla::RefPtr<DtlsIdentity> Identity() const;
 
   NS_IMETHODIMP_TO_ERRORRESULT(CreateOffer, ErrorResult &rv,
                                const RTCOfferOptions& aOptions)
@@ -620,7 +623,7 @@ private:
   PeerConnectionImpl(const PeerConnectionImpl&rhs);
   PeerConnectionImpl& operator=(PeerConnectionImpl);
   nsresult CalculateFingerprint(const std::string& algorithm,
-                                std::vector<uint8_t>& fingerprint) const;
+                                std::vector<uint8_t>* fingerprint) const;
   nsresult ConfigureJsepSessionCodecs();
 
   NS_IMETHODIMP EnsureDataConnection(uint16_t aNumstreams);
@@ -645,8 +648,6 @@ private:
   }
 
 #if !defined(MOZILLA_EXTERNAL_LINKAGE)
-  void virtualDestroyNSSReference() final;
-  void destructorSafeDestroyNSSReference();
   nsresult GetTimeSinceEpoch(DOMHighResTimeStamp *result);
 #endif
 
@@ -713,11 +714,14 @@ private:
   std::string mRemoteFingerprint;
 
   
-  mozilla::RefPtr<DtlsIdentity> mIdentity;
 #if !defined(MOZILLA_EXTERNAL_LINKAGE)
   
   
   nsAutoPtr<PeerIdentity> mPeerIdentity;
+  
+  nsRefPtr<mozilla::dom::RTCCertificate> mCertificate;
+#else
+  mozilla::RefPtr<DtlsIdentity> mIdentity;
 #endif
   
   
