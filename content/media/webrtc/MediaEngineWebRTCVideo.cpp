@@ -799,6 +799,8 @@ MediaEngineWebRTCVideoSource::Notify(const hal::ScreenConfiguration& aConfigurat
          mRotation, mCaptureIndex, mBackCamera, mCameraAngle));
   }
 #endif
+
+  mOrientationChanged = true;
 }
 
 void
@@ -1080,13 +1082,54 @@ MediaEngineWebRTCVideoSource::TakePhoto(PhotoCallback* aCallback)
   
   
   if (!mPhotoCallbacks.Length()) {
-    nsresult rv = mCameraControl->TakePicture();
+    nsresult rv;
+    if (mOrientationChanged) {
+      UpdatePhotoOrientation();
+    }
+    rv = mCameraControl->TakePicture();
     if (NS_FAILED(rv)) {
       return rv;
     }
   }
 
   mPhotoCallbacks.AppendElement(aCallback);
+
+  return NS_OK;
+}
+
+nsresult
+MediaEngineWebRTCVideoSource::UpdatePhotoOrientation()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  hal::ScreenConfiguration config;
+  hal::GetCurrentScreenConfiguration(&config);
+
+  
+  int orientation = 0;
+  switch (config.orientation()) {
+    case eScreenOrientation_PortraitPrimary:
+      orientation = 0;
+      break;
+    case eScreenOrientation_PortraitSecondary:
+      orientation = 180;
+      break;
+   case eScreenOrientation_LandscapePrimary:
+      orientation = 270;
+      break;
+   case eScreenOrientation_LandscapeSecondary:
+      orientation = 90;
+      break;
+  }
+
+  
+  orientation = (mBackCamera ? orientation : (-orientation));
+
+  ICameraControlParameterSetAutoEnter batch(mCameraControl);
+  
+  mCameraControl->Set(CAMERA_PARAM_PICTURE_ROTATION, orientation);
+
+  mOrientationChanged = false;
 
   return NS_OK;
 }

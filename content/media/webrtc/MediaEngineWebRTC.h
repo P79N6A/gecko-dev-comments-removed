@@ -101,6 +101,7 @@ public:
     , mCallbackMonitor("WebRTCCamera.CallbackMonitor")
     , mRotation(0)
     , mBackCamera(false)
+    , mOrientationChanged(true) 
     , mCaptureIndex(aIndex)
     , mMediaSource(aMediaSource)
     , mMonitor("WebRTCCamera.Monitor")
@@ -202,6 +203,10 @@ public:
 
   nsresult TakePhoto(PhotoCallback* aCallback) MOZ_OVERRIDE;
 
+  
+  
+  nsresult UpdatePhotoOrientation();
+
 #endif
 
   
@@ -245,6 +250,7 @@ private:
   int mRotation;
   int mCameraAngle; 
   bool mBackCamera;
+  bool mOrientationChanged; 
 #else
   webrtc::VideoEngine* mVideoEngine; 
   webrtc::ViEBase* mViEBase;
