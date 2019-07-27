@@ -608,7 +608,7 @@ public:
 
 
   mozilla::WritingMode GetWritingMode() const {
-    return mozilla::WritingMode(StyleVisibility());
+    return mozilla::WritingMode(StyleContext());
   }
 
   

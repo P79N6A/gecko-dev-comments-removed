@@ -7,7 +7,7 @@
 #define WritingModes_h_
 
 #include "nsRect.h"
-#include "nsStyleStruct.h"
+#include "nsStyleContext.h"
 
 
 
@@ -213,6 +213,20 @@ public:
 
 
 
+
+
+
+#ifdef WRITING_MODE_VERTICAL_ENABLED
+  bool IsSideways() const { return !!(mWritingMode & eSidewaysMask); }
+#else
+  bool IsSideways() const { return false; }
+#endif
+
+  
+
+
+
+
   WritingMode()
     : mWritingMode(0)
   { }
@@ -220,25 +234,49 @@ public:
   
 
 
-  explicit WritingMode(const nsStyleVisibility* aStyleVisibility)
+  explicit WritingMode(nsStyleContext* aStyleContext)
   {
-    NS_ASSERTION(aStyleVisibility, "we need an nsStyleVisibility here");
+    NS_ASSERTION(aStyleContext, "we need an nsStyleContext here");
+
+    const nsStyleVisibility* styleVisibility = aStyleContext->StyleVisibility();
 
 #ifdef WRITING_MODE_VERTICAL_ENABLED
-    switch (aStyleVisibility->mWritingMode) {
+    switch (styleVisibility->mWritingMode) {
       case NS_STYLE_WRITING_MODE_HORIZONTAL_TB:
         mWritingMode = 0;
         break;
 
       case NS_STYLE_WRITING_MODE_VERTICAL_LR:
+      {
         mWritingMode = eBlockFlowMask |
-                       eLineOrientMask | 
+                       eLineOrientMask |
                        eOrientationMask;
+        uint8_t textOrientation = aStyleContext->StyleText()->mTextOrientation;
+#if 0 
+        if (textOrientation == NS_STYLE_TEXT_ORIENTATION_SIDEWAYS_LEFT) {
+          mWritingMode &= ~eLineOrientMask;
+        }
+#endif
+        if (textOrientation >= NS_STYLE_TEXT_ORIENTATION_SIDEWAYS_RIGHT) {
+          mWritingMode |= eSidewaysMask;
+        }
         break;
+      }
 
       case NS_STYLE_WRITING_MODE_VERTICAL_RL:
+      {
         mWritingMode = eOrientationMask;
+        uint8_t textOrientation = aStyleContext->StyleText()->mTextOrientation;
+#if 0 
+        if (textOrientation == NS_STYLE_TEXT_ORIENTATION_SIDEWAYS_LEFT) {
+          mWritingMode |= eLineOrientMask;
+        }
+#endif
+        if (textOrientation >= NS_STYLE_TEXT_ORIENTATION_SIDEWAYS_RIGHT) {
+          mWritingMode |= eSidewaysMask;
+        }
         break;
+      }
 
       default:
         NS_NOTREACHED("unknown writing mode!");
@@ -249,7 +287,7 @@ public:
     mWritingMode = 0;
 #endif
 
-    if (NS_STYLE_DIRECTION_RTL == aStyleVisibility->mDirection) {
+    if (NS_STYLE_DIRECTION_RTL == styleVisibility->mDirection) {
       mWritingMode |= eInlineFlowMask | 
                       eBidiMask;
     }
@@ -324,6 +362,10 @@ private:
     eBidiMask        = 0x10, 
     
     
+
+    eSidewaysMask    = 0x20, 
+                             
+                             
 
     
     eInlineMask = 0x03,
