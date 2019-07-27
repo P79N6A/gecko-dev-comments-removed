@@ -1,7 +1,6 @@
 
 
 
-
 "use strict";
 
 module.metadata = {
@@ -10,9 +9,7 @@ module.metadata = {
 
 const { Class } = require('../core/heritage');
 const { MatchPattern } = require('./match-pattern');
-const { on, off, emit } = require('../event/core');
-const { method } = require('../lang/functional');
-const objectUtil = require('./object');
+const { emit } = require('../event/core');
 const { EventTarget } = require('../event/target');
 const { List, addListItem, removeListItem } = require('./list');
 

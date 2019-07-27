@@ -1,7 +1,6 @@
 
 
 
-
 "use strict";
 
 const { pathFor } = require('sdk/system');

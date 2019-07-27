@@ -71,26 +71,6 @@ const Tab = Class({
   },
   set url(url) setTabURL(tabNS(this).tab, url),
 
-  
-
-
-
-  get favicon() {
-    
-
-
-
-
-
-    console.error(
-      'tab.favicon is deprecated, and currently ' +
-      'favicon helpers are not yet supported by Fennec'
-    );
-
-    
-    return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAEklEQVQ4jWNgGAWjYBSMAggAAAQQAAF/TXiOAAAAAElFTkSuQmCC';
-  },
-
   getThumbnail: function() {
     
     console.error(ERR_FENNEC_MSG);

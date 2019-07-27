@@ -1,22 +1,16 @@
 
 
 
-'use strict';
+"use strict";
 
-const { Cc, Ci, Cu } = require("chrome");
-const { defer } = require("../core/promise");
+const { Cc, Ci } = require("chrome");
 
-const getZipReader = function getZipReader(aFile) {
-  let { promise, resolve, reject } = defer();
-  let zipReader = Cc["@mozilla.org/libjar/zip-reader;1"].
-                      createInstance(Ci.nsIZipReader);
-  try {
+function getZipReader(aFile) {
+  return new Promise(resolve => {
+    let zipReader = Cc["@mozilla.org/libjar/zip-reader;1"].
+                        createInstance(Ci.nsIZipReader);
     zipReader.open(aFile);
-  }
-  catch(e){
-    reject(e);
-  }
-  resolve(zipReader);
-  return promise;
+    resolve(zipReader);
+  });
 };
 exports.getZipReader = getZipReader;

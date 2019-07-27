@@ -1,17 +1,15 @@
 
 
 
-
 "use strict";
 
 module.metadata = {
   "stability": "experimental"
 };
 
-const {Cc,Ci,Cu,components} = require("chrome");
-var NetUtil = {};
-Cu.import("resource://gre/modules/NetUtil.jsm", NetUtil);
-NetUtil = NetUtil.NetUtil;
+const { Cc, Ci, Cu, components } = require("chrome");
+const { ensure } = require("../system/unload");
+const { NetUtil } = Cu.import("resource://gre/modules/NetUtil.jsm", {});
 
 
 
@@ -19,8 +17,6 @@ const BUFFER_BYTE_LEN = 0x8000;
 const PR_UINT32_MAX = 0xffffffff;
 const DEFAULT_CHARSET = "UTF-8";
 
-exports.TextReader = TextReader;
-exports.TextWriter = TextWriter;
 
 
 
@@ -35,7 +31,6 @@ exports.TextWriter = TextWriter;
 
 
 function TextReader(inputStream, charset) {
-  const self = this;
   charset = checkCharset(charset);
 
   let stream = Cc["@mozilla.org/intl/converter-input-stream;1"].
@@ -89,6 +84,7 @@ function TextReader(inputStream, charset) {
     return str;
   };
 }
+exports.TextReader = TextReader;
 
 
 
@@ -103,7 +99,6 @@ function TextReader(inputStream, charset) {
 
 
 function TextWriter(outputStream, charset) {
-  const self = this;
   charset = checkCharset(charset);
 
   let stream = outputStream;
@@ -169,7 +164,7 @@ function TextWriter(outputStream, charset) {
   this.writeAsync = function TextWriter_writeAsync(str, callback) {
     manager.ensureOpened();
     let istream = uconv.convertToInputStream(str);
-    NetUtil.asyncCopy(istream, stream, function (result) {
+    NetUtil.asyncCopy(istream, stream, (result) => {
         let err = components.isSuccessCode(result) ? undefined :
         new Error("An error occured while writing to the stream: " + result);
       if (err)
@@ -180,7 +175,7 @@ function TextWriter(outputStream, charset) {
 
       if (typeof(callback) === "function") {
         try {
-          callback.call(self, err);
+          callback.call(this, err);
         }
         catch (exc) {
           console.exception(exc);
@@ -189,34 +184,32 @@ function TextWriter(outputStream, charset) {
     });
   };
 }
+exports.TextWriter = TextWriter;
 
 
 
 
 
 function StreamManager(stream, rawStream) {
-  const self = this;
   this.rawStream = rawStream;
   this.opened = true;
 
   
 
 
-  stream.__defineGetter__("closed", function stream_closed() {
-    return !self.opened;
-  });
+  stream.__defineGetter__("closed", () => !this.opened);
 
   
 
 
 
 
-  stream.close = function stream_close() {
-    self.ensureOpened();
-    self.unload();
+  stream.close = () => {
+    this.ensureOpened();
+    this.unload();
   };
 
-  require("../system/unload").ensure(this);
+  ensure(this);
 }
 
 StreamManager.prototype = {
