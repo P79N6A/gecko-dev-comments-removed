@@ -362,7 +362,6 @@ xptiInterfaceEntry::GetEntryForParam(uint16_t methodIndex,
     
     if(!theEntry)
     {
-        NS_WARNING("Declared InterfaceInfo not found");
         *entry = nullptr;
         return NS_ERROR_FAILURE;
     }
