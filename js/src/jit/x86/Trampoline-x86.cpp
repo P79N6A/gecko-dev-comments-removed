@@ -274,7 +274,7 @@ JitRuntime::generateEnterJIT(JSContext* cx, EnterJitType type)
 
 
 
-    masm.call(Operand(ebp, ARG_JITCODE));
+    masm.call(Address(ebp, ARG_JITCODE));
 
     if (type == EnterJitBaseline) {
         

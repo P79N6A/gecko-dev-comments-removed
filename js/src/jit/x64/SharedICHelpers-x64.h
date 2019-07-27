@@ -42,7 +42,7 @@ EmitCallIC(CodeOffsetLabel* patchOffset, MacroAssembler& masm)
                  ICStubReg);
 
     
-    masm.call(Operand(ICStubReg, ICStub::offsetOfStubCode()));
+    masm.call(Address(ICStubReg, ICStub::offsetOfStubCode()));
 }
 
 inline void
@@ -230,7 +230,7 @@ EmitCallTypeUpdateIC(MacroAssembler& masm, JitCode* code, uint32_t objectOffset)
                  ICStubReg);
 
     
-    masm.call(Operand(ICStubReg, ICStub::offsetOfStubCode()));
+    masm.call(Address(ICStubReg, ICStub::offsetOfStubCode()));
 
     
     masm.pop(ICStubReg);
