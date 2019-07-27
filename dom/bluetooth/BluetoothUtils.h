@@ -35,19 +35,6 @@ UuidToString(const BluetoothUuid& aUuid, nsAString& aString);
 
 
 
-
-
-
-
-void
-ReversedUuidToString(const BluetoothUuid& aUuid, nsAString& aString);
-
-
-
-
-
-
-
 void
 StringToUuid(const char* aString, BluetoothUuid& aUuid);
 

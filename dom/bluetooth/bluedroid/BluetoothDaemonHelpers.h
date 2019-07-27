@@ -579,6 +579,57 @@ PackPDU(const PackCString0& aIn, BluetoothDaemonPDU& aPDU)
                        aIn.mString.Length() + 1), aPDU);
 }
 
+
+
+
+
+template<typename T>
+struct PackReversed
+{
+  PackReversed(const T& aValue)
+    : mValue(aValue)
+  { }
+
+  const T& mValue;
+};
+
+
+
+
+template<typename T>
+nsresult
+PackPDU(const PackReversed<T>& aIn, BluetoothDaemonPDU& aPDU);
+
+
+
+
+template<typename U>
+inline nsresult
+PackPDU(const PackReversed<PackArray<U>>& aIn, BluetoothDaemonPDU& aPDU)
+{
+  for (size_t i = 0; i < aIn.mValue.mLength; ++i) {
+    nsresult rv = PackPDU(aIn.mValue.mData[aIn.mValue.mLength - i - 1], aPDU);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+  }
+  return NS_OK;
+}
+
+
+
+
+template <>
+inline nsresult
+PackPDU<BluetoothUuid>(const PackReversed<BluetoothUuid>& aIn,
+                       BluetoothDaemonPDU& aPDU)
+{
+ return PackPDU(
+   PackReversed<PackArray<uint8_t>>(
+     PackArray<uint8_t>(aIn.mValue.mUuid, sizeof(aIn.mValue.mUuid))),
+   aPDU);
+}
+
 template <typename T1, typename T2>
 inline nsresult
 PackPDU(const T1& aIn1, const T2& aIn2, BluetoothDaemonPDU& aPDU)
@@ -1098,6 +1149,59 @@ struct UnpackString0
 
 nsresult
 UnpackPDU(BluetoothDaemonPDU& aPDU, const UnpackString0& aOut);
+
+
+
+
+
+template<typename T>
+struct UnpackReversed
+{
+  UnpackReversed(T& aValue)
+    : mValue(&aValue)
+  { }
+
+  UnpackReversed(T&& aValue)
+    : mValue(&aValue)
+  { }
+
+  T* mValue;
+};
+
+
+
+
+template<typename T>
+nsresult
+UnpackPDU(BluetoothDaemonPDU& aPDU, const UnpackReversed<T>& aOut);
+
+template<typename U>
+inline nsresult
+UnpackPDU(BluetoothDaemonPDU& aPDU, const UnpackReversed<UnpackArray<U>>& aOut)
+{
+  for (size_t i = 0; i < aOut.mValue->mLength; ++i) {
+    nsresult rv = UnpackPDU(aPDU,
+                            aOut.mValue->mData[aOut.mValue->mLength - i - 1]);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+  }
+  return NS_OK;
+}
+
+
+
+
+template<>
+inline nsresult
+UnpackPDU<BluetoothUuid>(BluetoothDaemonPDU& aPDU,
+                         const UnpackReversed<BluetoothUuid>& aOut)
+{
+  return UnpackPDU(
+    aPDU,
+    UnpackReversed<UnpackArray<uint8_t>>(
+      UnpackArray<uint8_t>(aOut.mValue->mUuid, sizeof(aOut.mValue->mUuid))));
+}
 
 
 
