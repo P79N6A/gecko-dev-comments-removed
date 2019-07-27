@@ -1424,35 +1424,21 @@ PreloadAsUserFontFaces(nsStringHashKey::KeyType aKey,
         }
 
         
-        
-        bool isWoff = (data[0] == 'w');
-
-        
-        nsCString encodedData;
-        nsresult rv = Base64Encode(Substring(data, buf.st_size), encodedData);
+        uint32_t crc = crc32(0, nullptr, 0);
+        crc = crc32(crc, (Bytef*)data, buf.st_size);
         munmap(data, buf.st_size);
-        if (NS_FAILED(rv)) {
-            continue;
-        }
-        nsCString spec("data:font/");
-        spec.Append(isWoff ? "woff" : "opentype");
-        spec.Append(";base64,");
-        spec.Append(encodedData);
+
 #if 0
-        ALOG("\n**** Preloading family [%s] face [%s]:\n%s\n\n",
+        ALOG("\n**** Preloading family [%s] face [%s] CRC32 [0x%08x]",
              NS_ConvertUTF16toUTF8(family->Name()).get(),
              fe->mFilename.get(),
-             spec.get());
+             crc);
 #endif
 
-        
-        nsCOMPtr<nsIURI> uri;
-        if (NS_FAILED(NS_NewURI(getter_AddRefs(uri), spec))) {
-            continue;
-        }
         fe->mUserFontData = new gfxUserFontData;
-        fe->mUserFontData->mURI = uri;
         fe->mUserFontData->mRealName = fe->Name();
+        fe->mUserFontData->mCRC32 = crc;
+        fe->mUserFontData->mLength = buf.st_size;
 
         
         gfxUserFontSet::UserFontCache::CacheFont(

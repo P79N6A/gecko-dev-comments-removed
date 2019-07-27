@@ -61,7 +61,8 @@ operator==(const gfxFontFaceSrc& a, const gfxFontFaceSrc& b)
 class gfxUserFontData {
 public:
     gfxUserFontData()
-        : mSrcIndex(0), mFormat(0), mMetaOrigLen(0), mPrivate(false)
+        : mSrcIndex(0), mFormat(0), mMetaOrigLen(0),
+          mCRC32(0), mLength(0), mPrivate(false)
     { }
     virtual ~gfxUserFontData() { }
 
@@ -73,6 +74,8 @@ public:
     uint32_t          mSrcIndex;  
     uint32_t          mFormat;    
     uint32_t          mMetaOrigLen; 
+    uint32_t          mCRC32;     
+    uint32_t          mLength;    
     bool              mPrivate;   
 };
 
@@ -335,6 +338,8 @@ public:
             nsCOMPtr<nsIURI>        mURI;
             nsCOMPtr<nsIPrincipal>  mPrincipal; 
             gfxFontEntry           *mFontEntry;
+            uint32_t                mCRC32;
+            uint32_t                mLength;
             bool                    mPrivate;
             EntryPersistence        mPersistence;
 
@@ -344,6 +349,20 @@ public:
                 : mURI(aURI),
                   mPrincipal(aPrincipal),
                   mFontEntry(aFontEntry),
+                  mCRC32(0),
+                  mLength(0),
+                  mPrivate(aPrivate),
+                  mPersistence(aPersistence)
+            { }
+
+            Key(uint32_t aCRC32, uint32_t aLength,
+                gfxFontEntry* aFontEntry, bool aPrivate,
+                EntryPersistence aPersistence = kDiscardable)
+                : mURI(nullptr),
+                  mPrincipal(nullptr),
+                  mFontEntry(aFontEntry),
+                  mCRC32(aCRC32),
+                  mLength(aLength),
                   mPrivate(aPrivate),
                   mPersistence(aPersistence)
             { }
@@ -358,6 +377,8 @@ public:
                 : mURI(aKey->mURI),
                   mPrincipal(aKey->mPrincipal),
                   mFontEntry(aKey->mFontEntry),
+                  mCRC32(aKey->mCRC32),
+                  mLength(aKey->mLength),
                   mPrivate(aKey->mPrivate),
                   mPersistence(aKey->mPersistence)
             { }
@@ -366,6 +387,8 @@ public:
                 : mURI(aOther.mURI),
                   mPrincipal(aOther.mPrincipal),
                   mFontEntry(aOther.mFontEntry),
+                  mCRC32(aOther.mCRC32),
+                  mLength(aOther.mLength),
                   mPrivate(aOther.mPrivate),
                   mPersistence(aOther.mPersistence)
             { }
@@ -377,6 +400,9 @@ public:
             static KeyTypePointer KeyToPointer(KeyType aKey) { return &aKey; }
 
             static PLDHashNumber HashKey(const KeyTypePointer aKey) {
+                if (aKey->mLength) {
+                    return aKey->mCRC32;
+                }
                 uint32_t principalHash = 0;
                 if (aKey->mPrincipal) {
                     aKey->mPrincipal->GetHashValue(&principalHash);
@@ -417,6 +443,9 @@ public:
 
             nsCOMPtr<nsIURI>       mURI;
             nsCOMPtr<nsIPrincipal> mPrincipal; 
+
+            uint32_t               mCRC32;
+            uint32_t               mLength;
 
             
             
