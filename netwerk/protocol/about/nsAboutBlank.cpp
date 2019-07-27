@@ -23,28 +23,12 @@ nsAboutBlank::NewChannel(nsIURI* aURI,
     if (NS_FAILED(rv)) return rv;
 
     nsCOMPtr<nsIChannel> channel;
-    
-    
-    
-    
-    if (aLoadInfo) {
-      rv = NS_NewInputStreamChannelInternal(getter_AddRefs(channel),
-                                            aURI,
-                                            in,
-                                            NS_LITERAL_CSTRING("text/html"),
-                                            NS_LITERAL_CSTRING("utf-8"),
-                                            aLoadInfo);
-    }
-    else {
-      rv = NS_NewInputStreamChannel(getter_AddRefs(channel),
-                                    aURI,
-                                    in,
-                                    nsContentUtils::GetSystemPrincipal(),
-                                    nsILoadInfo::SEC_NORMAL,
-                                    nsIContentPolicy::TYPE_OTHER,
-                                    NS_LITERAL_CSTRING("text/html"),
-                                    NS_LITERAL_CSTRING("utf-8"));
-    }
+    rv = NS_NewInputStreamChannelInternal(getter_AddRefs(channel),
+                                          aURI,
+                                          in,
+                                          NS_LITERAL_CSTRING("text/html"),
+                                          NS_LITERAL_CSTRING("utf-8"),
+                                          aLoadInfo);
     if (NS_FAILED(rv)) return rv;
 
     channel.forget(result);

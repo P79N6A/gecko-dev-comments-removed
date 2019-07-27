@@ -163,18 +163,9 @@ AboutRedirector::NewChannel(nsIURI* aURI,
       rv = NS_NewURI(getter_AddRefs(tempURI),
                      nsDependentCString(kRedirMap[i].url));
       NS_ENSURE_SUCCESS(rv, rv);
-      
-      
-      
-      
-      if (aLoadInfo) {
-        rv = NS_NewChannelInternal(getter_AddRefs(tempChannel),
-                                   tempURI,
-                                   aLoadInfo);
-      }
-      else {
-        rv = ioService->NewChannelFromURI(tempURI, getter_AddRefs(tempChannel));
-      }
+      rv = NS_NewChannelInternal(getter_AddRefs(tempChannel),
+                                 tempURI,
+                                 aLoadInfo);
       NS_ENSURE_SUCCESS(rv, rv);
 
       tempChannel->SetOriginalURI(aURI);

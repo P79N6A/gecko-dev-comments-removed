@@ -147,20 +147,9 @@ nsChromeProtocolHandler::NewChannel2(nsIURI* aURI,
         return rv;
     }
 
-    
-    
-    
-    
-    if (aLoadInfo) {
-        rv = NS_NewChannelInternal(getter_AddRefs(result),
-                                   resolvedURI,
-                                   aLoadInfo);
-    }
-    else {
-        nsCOMPtr<nsIIOService> ioServ(do_GetIOService(&rv));
-        NS_ENSURE_SUCCESS(rv, rv);
-        rv = ioServ->NewChannelFromURI(resolvedURI, getter_AddRefs(result));
-    }
+    rv = NS_NewChannelInternal(getter_AddRefs(result),
+                               resolvedURI,
+                               aLoadInfo);
     NS_ENSURE_SUCCESS(rv, rv);
 
 #ifdef DEBUG

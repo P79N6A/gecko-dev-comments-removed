@@ -1063,33 +1063,12 @@ nsGIOProtocolHandler::NewChannel2(nsIURI* aURI,
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  
-  
-  
-  
-  if (aLoadInfo) {
-    rv = NS_NewInputStreamChannelInternal(aResult,
-                                          aURI,
-                                          stream,
-                                          NS_LITERAL_CSTRING(UNKNOWN_CONTENT_TYPE),
-                                          EmptyCString(), 
-                                          aLoadInfo);
-  }
-  else {
-    nsCOMPtr<nsIPrincipal> nullPrincipal =
-      do_CreateInstance("@mozilla.org/nullprincipal;1", &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    
-    rv = NS_NewInputStreamChannel(aResult,
-                                  aURI,
-                                  stream,
-                                  nullPrincipal,
-                                  nsILoadInfo::SEC_NORMAL,
-                                  nsIContentPolicy::TYPE_OTHER,
-                                  NS_LITERAL_CSTRING(UNKNOWN_CONTENT_TYPE));
-  }
+  rv = NS_NewInputStreamChannelInternal(aResult,
+                                        aURI,
+                                        stream,
+                                        NS_LITERAL_CSTRING(UNKNOWN_CONTENT_TYPE),
+                                        EmptyCString(), 
+                                        aLoadInfo);
   if (NS_SUCCEEDED(rv)) {
     stream->SetChannel(*aResult);
   }

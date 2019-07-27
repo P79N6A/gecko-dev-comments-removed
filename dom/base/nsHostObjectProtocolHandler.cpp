@@ -518,26 +518,12 @@ nsHostObjectProtocolHandler::NewChannel2(nsIURI* uri,
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIChannel> channel;
-  
-  
-  
-  
-  if (aLoadInfo) {
-    rv = NS_NewInputStreamChannelInternal(getter_AddRefs(channel),
-                                          uri,
-                                          stream,
-                                          EmptyCString(), 
-                                          EmptyCString(), 
-                                          aLoadInfo);
-  }
-  else {
-    rv = NS_NewInputStreamChannel(getter_AddRefs(channel),
-                                  uri,
-                                  stream,
-                                  info->mPrincipal,
-                                  nsILoadInfo::SEC_NORMAL,
-                                  nsIContentPolicy::TYPE_OTHER);
-  }
+  rv = NS_NewInputStreamChannelInternal(getter_AddRefs(channel),
+                                        uri,
+                                        stream,
+                                        EmptyCString(), 
+                                        EmptyCString(), 
+                                        aLoadInfo);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsString type;

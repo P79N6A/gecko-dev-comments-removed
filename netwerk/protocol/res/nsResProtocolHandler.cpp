@@ -288,22 +288,13 @@ nsResProtocolHandler::NewChannel2(nsIURI* uri,
     nsresult rv = ResolveURI(uri, spec);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    
-    
-    
-    
     nsCOMPtr<nsIURI> newURI;
     rv = NS_NewURI(getter_AddRefs(newURI), spec);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    if (aLoadInfo) {
-        rv = NS_NewChannelInternal(result,
-                                   newURI,
-                                   aLoadInfo);
-    }
-    else {
-        rv = mIOService->NewChannelFromURI(newURI, result);
-    }
+    rv = NS_NewChannelInternal(result,
+                               newURI,
+                               aLoadInfo);
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsLoadFlags loadFlags = 0;
