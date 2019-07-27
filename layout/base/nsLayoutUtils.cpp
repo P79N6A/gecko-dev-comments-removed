@@ -6755,7 +6755,9 @@ ShouldInflateFontsForContainer(const nsIFrame *aFrame)
          !(aFrame->GetStateBits() & NS_FRAME_IN_CONSTRAINED_HEIGHT) &&
          
          
-         styleText->WhiteSpaceCanWrap(aFrame);
+         
+         (styleText->WhiteSpaceCanWrap(aFrame) ||
+          aFrame->IsFrameOfType(nsIFrame::eMathML));
 }
 
 nscoord
@@ -7224,7 +7226,9 @@ AutoMaybeDisableFontInflation::AutoMaybeDisableFontInflation(nsIFrame *aFrame)
   
   
   
-  if (aFrame->IsContainerForFontSizeInflation()) {
+  
+  if (aFrame->IsContainerForFontSizeInflation() &&
+      !aFrame->IsFrameOfType(nsIFrame::eMathML)) {
     mPresContext = aFrame->PresContext();
     mOldValue = mPresContext->mInflationDisabledForShrinkWrap;
     mPresContext->mInflationDisabledForShrinkWrap = true;

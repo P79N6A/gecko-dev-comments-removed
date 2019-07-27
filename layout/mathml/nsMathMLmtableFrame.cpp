@@ -1123,6 +1123,18 @@ nsMathMLmtdFrame::~nsMathMLmtdFrame()
 {
 }
 
+void
+nsMathMLmtdFrame::Init(nsIContent*       aContent,
+                       nsContainerFrame* aParent,
+                       nsIFrame*         aPrevInFlow)
+{
+  nsTableCellFrame::Init(aContent, aParent, aPrevInFlow);
+
+  
+  
+  RemoveStateBits(NS_FRAME_FONT_INFLATION_FLOW_ROOT);
+}
+
 int32_t
 nsMathMLmtdFrame::GetRowSpan()
 {
