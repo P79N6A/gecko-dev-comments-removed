@@ -1172,15 +1172,13 @@ Messages.Extended.prototype = Heritage.extend(Messages.Simple.prototype,
 
   _renderObjectActor: function(objectActor, options = {})
   {
-    let widget = null;
-    let {preview} = objectActor;
+    let widget = Widgets.ObjectRenderers.byClass[objectActor.class];
 
-    if (preview && preview.kind) {
+    let { preview } = objectActor;
+    if ((!widget || (widget.canRender && !widget.canRender(objectActor)))
+        && preview
+        && preview.kind) {
       widget = Widgets.ObjectRenderers.byKind[preview.kind];
-    }
-
-    if (!widget || (widget.canRender && !widget.canRender(objectActor))) {
-      widget = Widgets.ObjectRenderers.byClass[objectActor.class];
     }
 
     if (!widget || (widget.canRender && !widget.canRender(objectActor))) {
@@ -2302,6 +2300,118 @@ Widgets.JSObject.prototype = Heritage.extend(Widgets.BaseWidget.prototype,
   
 
 
+  _renderConciseObject: function()
+  {
+    this.element = this._anchor(this.objectActor.class,
+                                { className: "cm-variable" });
+  },
+
+  
+
+
+  _renderObjectPrefix: function()
+  {
+    let { kind } = this.objectActor.preview;
+    this.element = this.el("span.kind-" + kind);
+    this._anchor(this.objectActor.class, { className: "cm-variable" });
+    this._text(" { ");
+  },
+
+  
+
+
+  _renderObjectSuffix: function()
+  {
+    this._text(" }");
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _renderObjectProperty: function(key, value, container, needsComma, valueIsText = false)
+  {
+    if (needsComma) {
+      this._text(", ");
+    }
+
+    container.appendChild(this.el("span.cm-property", key));
+    this._text(": ");
+
+    if (valueIsText) {
+      this._text(value);
+    } else {
+      let valueElem = this.message._renderValueGrip(value, { concise: true });
+      container.appendChild(valueElem);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+  _renderObjectProperties: function(container, needsComma)
+  {
+    let { preview } = this.objectActor;
+    let { ownProperties, safeGetterValues } = preview;
+
+    let shown = 0;
+
+    let getValue = desc => {
+      if (desc.get) {
+        return "Getter";
+      } else if (desc.set) {
+        return "Setter";
+      } else {
+        return desc.value;
+      }
+    };
+
+    for (let key of Object.keys(ownProperties || {})) {
+      this._renderObjectProperty(key, getValue(ownProperties[key]), container,
+                                 shown > 0 || needsComma,
+                                 ownProperties[key].get || ownProperties[key].set);
+      shown++;
+    }
+
+    let ownPropertiesShown = shown;
+
+    for (let key of Object.keys(safeGetterValues || {})) {
+      this._renderObjectProperty(key, safeGetterValues[key].getterValue,
+                                 container, shown > 0 || needsComma);
+      shown++;
+    }
+
+    if (typeof preview.ownPropertiesLength == "number" &&
+        ownPropertiesShown < preview.ownPropertiesLength) {
+      this._text(", ");
+
+      let n = preview.ownPropertiesLength - ownPropertiesShown;
+      let str = VariablesView.stringifiers._getNMoreString(n);
+      this._anchor(str);
+    }
+  },
+
+  
+
+
 
 
 
@@ -3089,77 +3199,55 @@ Widgets.ObjectRenderers.add({
 
 
 Widgets.ObjectRenderers.add({
+  byClass: "Promise",
+
+  render: function()
+  {
+    let { ownProperties, safeGetterValues } = this.objectActor.preview;
+    if ((!ownProperties && !safeGetterValues) || this.options.concise) {
+      this._renderConciseObject();
+      return;
+    }
+
+    this._renderObjectPrefix();
+    let container = this.element;
+    let addedPromiseInternalProps = false;
+
+    if (this.objectActor.promiseState) {
+      const { state, value, reason } = this.objectActor.promiseState;
+
+      this._renderObjectProperty("<state>", state, container, false);
+      addedPromiseInternalProps = true;
+
+      if (state == "fulfilled") {
+        this._renderObjectProperty("<value>", value, container, true);
+      } else if (state == "rejected") {
+        this._renderObjectProperty("<reason>", reason, container, true);
+      }
+    }
+
+    this._renderObjectProperties(container, addedPromiseInternalProps);
+    this._renderObjectSuffix();
+  }
+}); 
+
+
+
+
+Widgets.ObjectRenderers.add({
   byKind: "Object",
 
   render: function()
   {
-    let {preview} = this.objectActor;
-    let {ownProperties, safeGetterValues} = preview;
-
+    let { ownProperties, safeGetterValues } = this.objectActor.preview;
     if ((!ownProperties && !safeGetterValues) || this.options.concise) {
-      this.element = this._anchor(this.objectActor.class,
-                                  { className: "cm-variable" });
+      this._renderConciseObject();
       return;
     }
 
-    let container = this.element = this.el("span.kind-" + preview.kind);
-    this._anchor(this.objectActor.class, { className: "cm-variable" });
-    this._text(" { ");
-
-    let addProperty = (str) => {
-      container.appendChild(this.el("span.cm-property", str));
-    };
-
-    let shown = 0;
-    for (let key of Object.keys(ownProperties || {})) {
-      if (shown > 0) {
-        this._text(", ");
-      }
-
-      let value = ownProperties[key];
-
-      addProperty(key);
-      this._text(": ");
-
-      if (value.get) {
-        addProperty("Getter");
-      } else if (value.set) {
-        addProperty("Setter");
-      } else {
-        let valueElem = this.message._renderValueGrip(value.value, { concise: true });
-        container.appendChild(valueElem);
-      }
-
-      shown++;
-    }
-
-    let ownPropertiesShown = shown;
-
-    for (let key of Object.keys(safeGetterValues || {})) {
-      if (shown > 0) {
-        this._text(", ");
-      }
-
-      addProperty(key);
-      this._text(": ");
-
-      let value = safeGetterValues[key].getterValue;
-      let valueElem = this.message._renderValueGrip(value, { concise: true });
-      container.appendChild(valueElem);
-
-      shown++;
-    }
-
-    if (typeof preview.ownPropertiesLength == "number" &&
-        ownPropertiesShown < preview.ownPropertiesLength) {
-      this._text(", ");
-
-      let n = preview.ownPropertiesLength - ownPropertiesShown;
-      let str = VariablesView.stringifiers._getNMoreString(n);
-      this._anchor(str);
-    }
-
-    this._text(" }");
+    this._renderObjectPrefix();
+    this._renderObjectProperties(this.element, false);
+    this._renderObjectSuffix();
   },
 }); 
 

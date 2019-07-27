@@ -84,6 +84,26 @@ let inputTests = [
     inspectable: true,
     variablesViewLabel: "String[5]"
   },
+
+  
+  {
+    
+    
+    input: "new Promise(function () {})",
+    output: 'Promise { <state>: "pending" }',
+    printOutput: "[object Promise]",
+    inspectable: true,
+    variablesViewLabel: "Promise"
+  },
+
+  
+  {
+    input: "(function () { var p = new Promise(function () {}); p.foo = 1; return p; }())",
+    output: 'Promise { <state>: "pending", foo: 1 }',
+    printOutput: "[object Promise]",
+    inspectable: true,
+    variablesViewLabel: "Promise"
+  }
 ];
 
 function test() {
