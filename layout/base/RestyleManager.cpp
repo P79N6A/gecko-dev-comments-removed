@@ -2449,12 +2449,14 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
   
   RestyleResult result = RestyleResult(0);
   uint32_t swappedStructs = 0;
+  nsIFrame* providerFrame = nullptr;
 
   nsRestyleHint thisRestyleHint = aRestyleHint;
 
   bool haveMoreContinuations = false;
   for (nsIFrame* f = mFrame; f; ) {
-    RestyleResult thisResult = RestyleSelf(f, thisRestyleHint, &swappedStructs);
+    RestyleResult thisResult =
+      RestyleSelf(f, thisRestyleHint, &swappedStructs, &providerFrame);
 
     if (thisResult != eRestyleResult_Stop) {
       
@@ -2493,8 +2495,10 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
     MOZ_ASSERT(mFrame->StyleContext() == oldContext,
                "frame should have been left with its old style context");
 
-    nsStyleContext* newParent =
-      mFrame->GetParentStyleContextFrame()->StyleContext();
+    MOZ_ASSERT(providerFrame, "RestyleSelf should have supplied a providerFrame "
+                              "if it returned eRestyleResult_Stop");
+
+    nsStyleContext* newParent = providerFrame->StyleContext();
 
     if (oldContext->GetParent() != newParent) {
       
@@ -2664,7 +2668,8 @@ ElementRestyler::ComputeRestyleResultFromNewContext(nsIFrame* aSelf,
 ElementRestyler::RestyleResult
 ElementRestyler::RestyleSelf(nsIFrame* aSelf,
                              nsRestyleHint aRestyleHint,
-                             uint32_t* aSwappedStructs)
+                             uint32_t* aSwappedStructs,
+                             nsIFrame** aProviderFrame)
 {
   MOZ_ASSERT(!(aRestyleHint & eRestyle_LaterSiblings),
              "eRestyle_LaterSiblings must not be part of aRestyleHint");
@@ -2702,7 +2707,7 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf,
   nsStyleContext* parentContext;
   
   
-  nsIFrame* providerFrame = aSelf->GetParentStyleContextFrame();
+  nsIFrame* const providerFrame = aSelf->GetParentStyleContextFrame();
   bool isChild = providerFrame && providerFrame->GetParent() == aSelf;
   if (!isChild) {
     if (providerFrame)
@@ -2745,6 +2750,13 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf,
     
     mParentFrameHintsNotHandledForDescendants =
       nsChangeHint_Hints_NotHandledForDescendants;
+  }
+
+  if (*aProviderFrame && *aProviderFrame != providerFrame) {
+    
+    
+    
+    result = eRestyleResult_Continue;
   }
 
   
@@ -3032,6 +3044,10 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf,
         aSelf->SetAdditionalStyleContext(contextIndex, newExtraContext);
       }
     }
+  }
+
+  if (result == eRestyleResult_Stop) {
+    *aProviderFrame = providerFrame;
   }
 
   return result;
