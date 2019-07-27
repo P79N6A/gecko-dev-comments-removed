@@ -2057,7 +2057,6 @@ WaitForServiceFinishThread(void *param)
   
   
   WaitForServiceStop(SVC_NAME, 595);
-  LOG(("calling QuitProgressUI"));
   QuitProgressUI();
 }
 #endif
