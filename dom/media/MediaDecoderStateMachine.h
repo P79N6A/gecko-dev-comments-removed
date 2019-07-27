@@ -497,7 +497,7 @@ protected:
   
   
   
-  void AdvanceFrame();
+  void UpdateRenderedVideoFrames();
 
   
   
