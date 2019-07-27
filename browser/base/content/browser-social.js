@@ -639,18 +639,31 @@ SocialShare = {
     
     
     
+    let _dataFn;
     if (!pageData || sharedURI == gBrowser.currentURI) {
-      pageData = OpenGraphBuilder.getData(gBrowser);
-      if (graphData) {
-        
-        for (let p in graphData) {
-          pageData[p] = graphData[p];
+      messageManager.addMessageListener("Social:PageDataResult", _dataFn = (msg) => {
+        messageManager.removeMessageListener("Social:PageDataResult", _dataFn);
+        let pageData = msg.json;
+        if (graphData) {
+          
+          for (let p in graphData) {
+            pageData[p] = graphData[p];
+          }
         }
-      }
+        this.sharePage(providerOrigin, pageData, target);
+      });
+      gBrowser.selectedBrowser.messageManager.sendAsyncMessage("Social:GetPageData");
+      return;
     }
     
     if (!pageData.microdata && target) {
-      pageData.microdata = OpenGraphBuilder.getMicrodata(gBrowser, target);
+      messageManager.addMessageListener("Social:PageDataResult", _dataFn = (msg) => {
+        messageManager.removeMessageListener("Social:PageDataResult", _dataFn);
+        pageData.microdata = msg.data;
+        this.sharePage(providerOrigin, pageData, target);
+      });
+      gBrowser.selectedBrowser.messageManager.sendAsyncMessage("Social:GetMicrodata", null, target);
+      return;
     }
     this.currentShare = pageData;
 

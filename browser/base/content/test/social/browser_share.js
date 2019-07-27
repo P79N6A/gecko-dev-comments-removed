@@ -130,7 +130,7 @@ var tests = {
   testShareDisabledOnActivation: function(next) {
     
     
-    is(gBrowser.contentDocument.location.href, "about:blank");
+    is(gBrowser.currentURI.spec, "about:blank");
 
     
     CustomizableUI.addWidgetToArea("social-share-button", CustomizableUI.AREA_NAVBAR);
