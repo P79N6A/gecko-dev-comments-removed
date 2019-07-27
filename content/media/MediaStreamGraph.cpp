@@ -692,17 +692,18 @@ MediaStreamGraphImpl::UpdateStreamOrder()
     MOZ_ASSERT(cycleStackMarker == ps->mCycleMarker);
     
     bool haveDelayNode = false;
-    auto next = static_cast<ProcessedMediaStream*>(sccStack.getFirst());
+    auto next = sccStack.getFirst();
     
     
     
     
     
     
-    while (next && next->mCycleMarker <= cycleStackMarker) {
+    while (next && static_cast<ProcessedMediaStream*>(next)->
+           mCycleMarker <= cycleStackMarker) {
       auto ns = next->AsAudioNodeStream();
       
-      next = static_cast<ProcessedMediaStream*>(next->getNext());
+      next = next->getNext();
       if (ns && ns->Engine()->AsDelayNodeEngine()) {
         haveDelayNode = true;
         
@@ -716,8 +717,9 @@ MediaStreamGraphImpl::UpdateStreamOrder()
       }
     }
     auto after_scc = next;
-    while ((next = static_cast<ProcessedMediaStream*>(sccStack.popFirst()))
-           != after_scc) {
+    while ((next = sccStack.getFirst()) != after_scc) {
+      next->remove();
+      auto removed = static_cast<ProcessedMediaStream*>(next);
       if (haveDelayNode) {
         
         
@@ -726,14 +728,14 @@ MediaStreamGraphImpl::UpdateStreamOrder()
         
         
         
-        next->mCycleMarker = NOT_VISITED;
-        dfsStack.insertFront(next);
+        removed->mCycleMarker = NOT_VISITED;
+        dfsStack.insertFront(removed);
       } else {
         
         
         
-        next->mCycleMarker = IN_MUTED_CYCLE;
-        mStreams[orderedStreamCount] = next;
+        removed->mCycleMarker = IN_MUTED_CYCLE;
+        mStreams[orderedStreamCount] = removed;
         ++orderedStreamCount;
       }
     }
