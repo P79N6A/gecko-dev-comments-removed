@@ -98,6 +98,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "NetErrorHelper",
 XPCOMUtils.defineLazyModuleGetter(this, "PermissionsUtils",
                                   "resource://gre/modules/PermissionsUtils.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "SharedPreferences",
+                                  "resource://gre/modules/SharedPreferences.jsm");
+
 
 [
   ["SelectHelper", "chrome://browser/content/SelectHelper.js"],
@@ -6764,12 +6767,16 @@ var SearchEngines = {
   PREF_SUGGEST_ENABLED: "browser.search.suggest.enabled",
   PREF_SUGGEST_PROMPTED: "browser.search.suggest.prompted",
 
+  
+  PREF_SEARCH_ACTIVITY_ENGINE_KEY: "search.engines.default",
+
   init: function init() {
     Services.obs.addObserver(this, "SearchEngines:Add", false);
     Services.obs.addObserver(this, "SearchEngines:GetVisible", false);
     Services.obs.addObserver(this, "SearchEngines:Remove", false);
     Services.obs.addObserver(this, "SearchEngines:RestoreDefaults", false);
     Services.obs.addObserver(this, "SearchEngines:SetDefault", false);
+    Services.obs.addObserver(this, "browser-search-engine-modified", false);
 
     let filter = {
       matches: function (aElement) {
@@ -6814,6 +6821,7 @@ var SearchEngines = {
     Services.obs.removeObserver(this, "SearchEngines:Remove");
     Services.obs.removeObserver(this, "SearchEngines:RestoreDefaults");
     Services.obs.removeObserver(this, "SearchEngines:SetDefault");
+    Services.obs.removeObserver(this, "browser-search-engine-modified");
     if (this._contextMenuId != null)
       NativeWindow.contextmenus.remove(this._contextMenuId);
   },
@@ -6894,11 +6902,47 @@ var SearchEngines = {
         Services.search.moveEngine(engine, 0);
         Services.search.defaultEngine = engine;
         break;
-
+      case "browser-search-engine-modified":
+        if (aData == "engine-default") {
+          this._setSearchActivityDefaultPref(aSubject.QueryInterface(Ci.nsISearchEngine));
+        }
+        break;
       default:
         dump("Unexpected message type observed: " + aTopic);
         break;
     }
+  },
+
+  
+  _setSearchActivityDefaultPref: function _setSearchActivityDefaultPref(engine) {
+    
+    
+    function sanitizeName(aName) {
+      const maxLength = 60;
+      const minLength = 1;
+      let name = aName.toLowerCase();
+      name = name.replace(/\s+/g, "-");
+      name = name.replace(/[^-a-z0-9]/g, "");
+
+      if (name.length < minLength) {
+        
+        
+        
+        Cu.reportError("Couldn't create search plugin file name from engine name: " + aName);
+        return null;
+      }
+
+      
+      return name.substring(0, maxLength);
+    }
+
+    let identifier = engine.identifier;
+    if (identifier === null) {
+      
+      
+      identifier = sanitizeName(engine.name);
+    }
+    SharedPreferences.forApp().setCharPref(this.PREF_SEARCH_ACTIVITY_ENGINE_KEY, identifier);
   },
 
   
