@@ -396,6 +396,14 @@ protected:
     PerFrameData* mPrev;
 
     
+    
+    
+    
+    
+    
+    PerFrameData* mNextAnnotation;
+
+    
     PerSpanData* mSpan;
 
     
@@ -428,7 +436,8 @@ protected:
 #define PFD_ISBULLET                    0x00000040
 #define PFD_SKIPWHENTRIMMINGWHITESPACE  0x00000080
 #define PFD_ISEMPTY                     0x00000100
-#define PFD_LASTFLAG                    PFD_ISEMPTY
+#define PFD_ISLINKEDTOBASE              0x00000200
+#define PFD_LASTFLAG                    PFD_ISLINKEDTOBASE
 
     
     uint16_t mFlags;
