@@ -140,6 +140,25 @@ fetchXHR('http://example.com/tests/dom/base/test/file_CrossSiteXHR_server.sjs?st
   finish();
 });
 
+
+
+
+fetchXHR('something.txt', function(xhr) {
+  my_ok(xhr.status == 200, "load should be successful");
+  my_ok(xhr.responseText == "something else response body", "load should have something else");
+  finish();
+});
+
+
+
+
+
+fetchXHR('redirect_serviceworker.sjs', function(xhr) {
+  my_ok(xhr.status == 200, "load should be successful");
+  my_ok(xhr.responseText == "// empty worker, always succeed!\n", "load should have redirection content");
+  finish();
+});
+
 expectAsyncResult();
 fetch('http://example.com/tests/dom/base/test/file_CrossSiteXHR_server.sjs?status=200&allowOrigin=*')
 .then(function(res) {

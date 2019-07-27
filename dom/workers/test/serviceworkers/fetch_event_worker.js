@@ -190,4 +190,20 @@ onfetch = function(ev) {
       return new Response(body + body);
     }));
   }
-}
+
+  else if (ev.request.url.includes('something.txt')) {
+    ev.respondWith(Response.redirect('fetch/somethingelse.txt'));
+  }
+
+  else if (ev.request.url.includes('somethingelse.txt')) {
+    ev.respondWith(new Response('something else response body', {}));
+  }
+
+  else if (ev.request.url.includes('redirect_serviceworker.sjs')) {
+    
+    
+    
+    
+    ev.respondWith(fetch('redirect_serviceworker.sjs'));
+  }
+};
