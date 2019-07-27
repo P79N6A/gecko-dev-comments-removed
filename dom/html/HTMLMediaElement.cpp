@@ -3719,7 +3719,8 @@ void HTMLMediaElement::SetRequestHeaders(nsIHttpChannel* aChannel)
                              EmptyCString(), false);
 
   
-  aChannel->SetReferrer(OwnerDoc()->GetDocumentURI());
+  aChannel->SetReferrerWithPolicy(OwnerDoc()->GetDocumentURI(),
+                                  OwnerDoc()->GetReferrerPolicy());
 }
 
 void HTMLMediaElement::FireTimeUpdate(bool aPeriodic)
