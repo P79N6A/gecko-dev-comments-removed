@@ -100,9 +100,6 @@ public:
   UserFontSet* GetUserFontSet() { return mUserFontSet; }
 
   
-  void DestroyUserFontSet();
-
-  
   
   void RemoveLoader(nsFontFaceLoader* aLoader);
 
