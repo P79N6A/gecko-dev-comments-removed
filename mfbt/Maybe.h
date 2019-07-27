@@ -11,11 +11,61 @@
 
 #include "mozilla/Alignment.h"
 #include "mozilla/Assertions.h"
+#include "mozilla/Move.h"
+#include "mozilla/TypeTraits.h"
 
-
-#include <new>
+#include <new>  
 
 namespace mozilla {
+
+struct Nothing { };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -31,151 +81,284 @@ namespace mozilla {
 template<class T>
 class Maybe
 {
-  AlignedStorage2<T> storage;
-  bool constructed;
+  typedef void (Maybe::* ConvertibleToBool)(float*****, double*****);
+  void nonNull(float*****, double*****) {}
 
-  T& asT() { return *storage.addr(); }
+  bool mIsSome;
+  AlignedStorage2<T> mStorage;
 
 public:
-  Maybe() { constructed = false; }
-  ~Maybe() { if (constructed) { asT().~T(); } }
+  typedef T ValueType;
 
-  bool empty() const { return !constructed; }
+  Maybe() : mIsSome(false) { }
+  ~Maybe() { reset(); }
 
-  void construct()
+  Maybe(Nothing) : mIsSome(false) { }
+
+  Maybe(const Maybe& aOther)
+    : mIsSome(false)
   {
-    MOZ_ASSERT(!constructed);
-    ::new (storage.addr()) T();
-    constructed = true;
+    if (aOther.mIsSome) {
+      emplace(*aOther);
+    }
   }
 
-  template<class T1>
-  void construct(const T1& aT1)
+  Maybe(Maybe&& aOther)
+    : mIsSome(aOther.mIsSome)
   {
-    MOZ_ASSERT(!constructed);
-    ::new (storage.addr()) T(aT1);
-    constructed = true;
+    if (aOther.mIsSome) {
+      ::new (mStorage.addr()) T(Move(*aOther));
+      aOther.reset();
+    }
   }
 
-  template<class T1, class T2>
-  void construct(const T1& aT1, const T2& aT2)
+  Maybe& operator=(const Maybe& aOther)
   {
-    MOZ_ASSERT(!constructed);
-    ::new (storage.addr()) T(aT1, aT2);
-    constructed = true;
+    if (&aOther != this) {
+      if (aOther.mIsSome) {
+        if (mIsSome) {
+          
+          
+          
+
+
+          reset();
+          emplace(*aOther);
+        } else {
+          emplace(*aOther);
+        }
+      } else {
+        reset();
+      }
+    }
+    return *this;
   }
 
-  template<class T1, class T2, class T3>
-  void construct(const T1& aT1, const T2& aT2, const T3& aT3)
+  Maybe& operator=(Maybe&& aOther)
   {
-    MOZ_ASSERT(!constructed);
-    ::new (storage.addr()) T(aT1, aT2, aT3);
-    constructed = true;
+    MOZ_ASSERT(this != &aOther, "Self-moves are prohibited");
+
+    if (aOther.mIsSome) {
+      if (mIsSome) {
+        ref() = Move(aOther.ref());
+      } else {
+        mIsSome = true;
+        ::new (mStorage.addr()) T(Move(*aOther));
+      }
+      aOther.reset();
+    } else {
+      reset();
+    }
+
+    return *this;
   }
 
-  template<class T1, class T2, class T3, class T4>
-  void construct(const T1& aT1, const T2& aT2, const T3& aT3, const T4& aT4)
+  
+  operator ConvertibleToBool() const { return mIsSome ? &Maybe::nonNull : 0; }
+  bool isSome() const { return mIsSome; }
+  bool isNothing() const { return !mIsSome; }
+
+  
+  T value() const
   {
-    MOZ_ASSERT(!constructed);
-    ::new (storage.addr()) T(aT1, aT2, aT3, aT4);
-    constructed = true;
+    MOZ_ASSERT(mIsSome);
+    return ref();
   }
 
-  template<class T1, class T2, class T3, class T4, class T5>
-  void construct(const T1& aT1, const T2& aT2, const T3& aT3, const T4& aT4,
-                 const T5& aT5)
+  
+  T* ptr()
   {
-    MOZ_ASSERT(!constructed);
-    ::new (storage.addr()) T(aT1, aT2, aT3, aT4, aT5);
-    constructed = true;
+    MOZ_ASSERT(mIsSome);
+    return &ref();
   }
 
-  template<class T1, class T2, class T3, class T4, class T5, class T6>
-  void construct(const T1& aT1, const T2& aT2, const T3& aT3, const T4& aT4,
-                 const T5& aT5, const T6& aT6)
+  const T* ptr() const
   {
-    MOZ_ASSERT(!constructed);
-    ::new (storage.addr()) T(aT1, aT2, aT3, aT4, aT5, aT6);
-    constructed = true;
+    MOZ_ASSERT(mIsSome);
+    return &ref();
   }
 
-  template<class T1, class T2, class T3, class T4, class T5, class T6,
-           class T7>
-  void construct(const T1& aT1, const T2& aT2, const T3& aT3, const T4& aT4,
-                 const T5& aT5, const T6& aT6, const T7& aT7)
+  T* operator->()
   {
-    MOZ_ASSERT(!constructed);
-    ::new (storage.addr()) T(aT1, aT2, aT3, aT4, aT5, aT6, aT7);
-    constructed = true;
+    MOZ_ASSERT(mIsSome);
+    return ptr();
   }
 
-  template<class T1, class T2, class T3, class T4, class T5, class T6,
-           class T7, class T8>
-  void construct(const T1& aT1, const T2& aT2, const T3& aT3, const T4& aT4,
-                 const T5& aT5, const T6& aT6, const T7& aT7, const T8& aT8)
+  const T* operator->() const
   {
-    MOZ_ASSERT(!constructed);
-    ::new (storage.addr()) T(aT1, aT2, aT3, aT4, aT5, aT6, aT7, aT8);
-    constructed = true;
+    MOZ_ASSERT(mIsSome);
+    return ptr();
   }
 
-  template<class T1, class T2, class T3, class T4, class T5, class T6,
-           class T7, class T8, class T9>
-  void construct(const T1& aT1, const T2& aT2, const T3& aT3, const T4& aT4,
-                 const T5& aT5, const T6& aT6, const T7& aT7, const T8& aT8,
-                 const T9& aT9)
-  {
-    MOZ_ASSERT(!constructed);
-    ::new (storage.addr()) T(aT1, aT2, aT3, aT4, aT5, aT6, aT7, aT8, aT9);
-    constructed = true;
-  }
-
-  template<class T1, class T2, class T3, class T4, class T5, class T6,
-           class T7, class T8, class T9, class T10>
-  void construct(const T1& aT1, const T2& aT2, const T3& aT3, const T4& aT4,
-                 const T5& aT5, const T6& aT6, const T7& aT7, const T8& aT8,
-                 const T9& aT9, const T10& aT10)
-  {
-    MOZ_ASSERT(!constructed);
-    ::new (storage.addr()) T(aT1, aT2, aT3, aT4, aT5, aT6, aT7, aT8, aT9, aT10);
-    constructed = true;
-  }
-
-  T* addr()
-  {
-    MOZ_ASSERT(constructed);
-    return &asT();
-  }
-
+  
   T& ref()
   {
-    MOZ_ASSERT(constructed);
-    return asT();
+    MOZ_ASSERT(mIsSome);
+    return *mStorage.addr();
   }
 
   const T& ref() const
   {
-    MOZ_ASSERT(constructed);
-    return const_cast<Maybe*>(this)->asT();
+    MOZ_ASSERT(mIsSome);
+    return *mStorage.addr();
   }
 
-  void destroy()
+  T& operator*()
   {
-    ref().~T();
-    constructed = false;
+    MOZ_ASSERT(mIsSome);
+    return ref();
   }
 
-  void destroyIfConstructed()
+  const T& operator*() const
   {
-    if (!empty()) {
-      destroy();
+    MOZ_ASSERT(mIsSome);
+    return ref();
+  }
+
+  
+  void reset()
+  {
+    if (isSome()) {
+      ref().~T();
+      mIsSome = false;
     }
   }
 
-private:
-  Maybe(const Maybe& aOther) MOZ_DELETE;
-  const Maybe& operator=(const Maybe& aOther) MOZ_DELETE;
+  
+
+
+
+
+
+
+  void emplace()
+  {
+    MOZ_ASSERT(!mIsSome);
+    ::new (mStorage.addr()) T();
+    mIsSome = true;
+  }
+
+  template<typename T1>
+  void emplace(T1&& t1)
+  {
+    MOZ_ASSERT(!mIsSome);
+    ::new (mStorage.addr()) T(Forward<T1>(t1));
+    mIsSome = true;
+  }
+
+  template<typename T1, typename T2>
+  void emplace(T1&& t1, T2&& t2)
+  {
+    MOZ_ASSERT(!mIsSome);
+    ::new (mStorage.addr()) T(Forward<T1>(t1), Forward<T2>(t2));
+    mIsSome = true;
+  }
+
+  template<typename T1, typename T2, typename T3>
+  void emplace(T1&& t1, T2&& t2, T3&& t3)
+  {
+    MOZ_ASSERT(!mIsSome);
+    ::new (mStorage.addr()) T(Forward<T1>(t1), Forward<T2>(t2), Forward<T3>(t3));
+    mIsSome = true;
+  }
+
+  template<typename T1, typename T2, typename T3, typename T4>
+  void emplace(T1&& t1, T2&& t2, T3&& t3, T4&& t4)
+  {
+    MOZ_ASSERT(!mIsSome);
+    ::new (mStorage.addr()) T(Forward<T1>(t1), Forward<T2>(t2), Forward<T3>(t3),
+                              Forward<T4>(t4));
+    mIsSome = true;
+  }
+
+  template<typename T1, typename T2, typename T3, typename T4, typename T5>
+  void emplace(T1&& t1, T2&& t2, T3&& t3, T4&& t4, T5&& t5)
+  {
+    MOZ_ASSERT(!mIsSome);
+    ::new (mStorage.addr()) T(Forward<T1>(t1), Forward<T2>(t2), Forward<T3>(t3),
+                              Forward<T4>(t4), Forward<T5>(t5));
+    mIsSome = true;
+  }
+
+  template<typename T1, typename T2, typename T3, typename T4, typename T5,
+           typename T6>
+  void emplace(T1&& t1, T2&& t2, T3&& t3, T4&& t4, T5&& t5, T6&& t6)
+  {
+    MOZ_ASSERT(!mIsSome);
+    ::new (mStorage.addr()) T(Forward<T1>(t1), Forward<T2>(t2), Forward<T3>(t3),
+                              Forward<T4>(t4), Forward<T5>(t5), Forward<T6>(t6));
+    mIsSome = true;
+  }
+
+  template<typename T1, typename T2, typename T3, typename T4, typename T5,
+           typename T6, typename T7>
+  void emplace(T1&& t1, T2&& t2, T3&& t3, T4&& t4, T5&& t5, T6&& t6,
+               T7&& t7)
+  {
+    MOZ_ASSERT(!mIsSome);
+    ::new (mStorage.addr()) T(Forward<T1>(t1), Forward<T2>(t2), Forward<T3>(t3),
+                              Forward<T4>(t4), Forward<T5>(t5), Forward<T6>(t6),
+                              Forward<T7>(t7));
+    mIsSome = true;
+  }
+
+  template<typename T1, typename T2, typename T3, typename T4, typename T5,
+           typename T6, typename T7, typename T8>
+  void emplace(T1&& t1, T2&& t2, T3&& t3, T4&& t4, T5&& t5, T6&& t6,
+               T7&& t7, T8&& t8)
+  {
+    MOZ_ASSERT(!mIsSome);
+    ::new (mStorage.addr()) T(Forward<T1>(t1), Forward<T2>(t2), Forward<T3>(t3),
+                              Forward<T4>(t4), Forward<T5>(t5), Forward<T6>(t6),
+                              Forward<T7>(t7), Forward<T8>(t8));
+    mIsSome = true;
+  }
+
+  template<typename T1, typename T2, typename T3, typename T4, typename T5,
+           typename T6, typename T7, typename T8, typename T9>
+  void emplace(T1&& t1, T2&& t2, T3&& t3, T4&& t4, T5&& t5, T6&& t6,
+               T7&& t7, T8&& t8, T9&& t9)
+  {
+    MOZ_ASSERT(!mIsSome);
+    ::new (mStorage.addr()) T(Forward<T1>(t1), Forward<T2>(t2), Forward<T3>(t3),
+                              Forward<T4>(t4), Forward<T5>(t5), Forward<T6>(t6),
+                              Forward<T7>(t7), Forward<T8>(t8), Forward<T9>(t9));
+    mIsSome = true;
+  }
+
+  template<typename T1, typename T2, typename T3, typename T4, typename T5,
+           typename T6, typename T7, typename T8, typename T9, typename T10>
+  void emplace(T1&& t1, T2&& t2, T3&& t3, T4&& t4, T5&& t5, T6&& t6,
+               T7&& t7, T8&& t8, T9&& t9, T10&& t10)
+  {
+    MOZ_ASSERT(!mIsSome);
+    ::new (mStorage.addr()) T(Forward<T1>(t1), Forward<T2>(t2), Forward<T3>(t3),
+                              Forward<T4>(t4), Forward<T5>(t5), Forward<T6>(t6),
+                              Forward<T7>(t7), Forward<T8>(t8), Forward<T9>(t9),
+                              Forward<T1>(t10));
+    mIsSome = true;
+  }
 };
+
+
+
+
+
+
+
+
+
+
+
+template<typename T>
+Maybe<typename RemoveCV<typename RemoveReference<T>::Type>::Type>
+Some(T&& aValue)
+{
+  typedef typename RemoveCV<typename RemoveReference<T>::Type>::Type U;
+  Maybe<U> value;
+  value.emplace(Forward<T>(aValue));
+  return value;
+}
 
 } 
 
