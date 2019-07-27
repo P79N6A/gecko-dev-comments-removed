@@ -867,8 +867,8 @@ class BaselineStubFrameLayout : public CommonFrameLayout
 
 class InvalidationBailoutStack
 {
-    mozilla::Array<double, FloatRegisters::TotalPhys> fpregs_;
-    mozilla::Array<uintptr_t, Registers::Total> regs_;
+    RegisterDump::FPUArray fpregs_;
+    RegisterDump::GPRArray regs_;
     IonScript   *ionScript_;
     uint8_t       *osiPointReturnAddress_;
 
