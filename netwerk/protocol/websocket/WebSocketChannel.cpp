@@ -1114,20 +1114,20 @@ WebSocketChannel::WebSocketChannel() :
   mMaxConcurrentConnections(200),
   mGotUpgradeOK(0),
   mRecvdHttpUpgradeTransport(0),
+  mAutoFollowRedirects(0),
+  mAllowPMCE(1),
+  mPingOutstanding(0),
+  mReleaseOnTransmit(0),
+  mDataStarted(0),
   mRequestedClose(0),
   mClientClosed(0),
   mServerClosed(0),
   mStopped(0),
   mCalledOnStop(0),
-  mPingOutstanding(0),
-  mAutoFollowRedirects(0),
-  mReleaseOnTransmit(0),
   mTCPClosed(0),
   mOpenedHttpChannel(0),
-  mDataStarted(0),
   mIncrementedSessionCount(0),
   mDecrementedSessionCount(0),
-  mAllowPMCE(1),
   mMaxMessageSize(INT32_MAX),
   mStopOnClose(NS_OK),
   mServerCloseCode(CLOSE_ABNORMAL),
@@ -2228,6 +2228,13 @@ WebSocketChannel::StopSession(nsresult reason)
 
   
   
+  if (NS_IsMainThread()) {
+    MOZ_DIAGNOSTIC_ASSERT(!mDataStarted);
+  } else {
+    MOZ_DIAGNOSTIC_ASSERT(PR_GetCurrentThread() == gSocketThread,
+                          "Called on unexpected thread!");
+    MOZ_DIAGNOSTIC_ASSERT(mDataStarted);
+  }
 
   mStopped = 1;
 
@@ -2330,10 +2337,17 @@ void
 WebSocketChannel::AbortSession(nsresult reason)
 {
   LOG(("WebSocketChannel::AbortSession() %p [reason %x] stopped = %d\n",
-       this, reason, mStopped));
+       this, reason, !!mStopped));
 
   
   
+  if (NS_IsMainThread()) {
+    MOZ_DIAGNOSTIC_ASSERT(!mDataStarted);
+  } else {
+    MOZ_DIAGNOSTIC_ASSERT(PR_GetCurrentThread() == gSocketThread,
+                          "Called on unexpected thread!");
+    MOZ_DIAGNOSTIC_ASSERT(mDataStarted);
+  }
 
   
   
@@ -2367,7 +2381,7 @@ void
 WebSocketChannel::ReleaseSession()
 {
   LOG(("WebSocketChannel::ReleaseSession() %p stopped = %d\n",
-       this, mStopped));
+       this, !!mStopped));
   MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread, "not socket thread");
 
   if (mStopped)
@@ -3693,7 +3707,13 @@ WebSocketChannel::SaveNetworkStats(bool enforce)
     return NS_OK;
   }
 
-  if (mCountRecv <= 0 && mCountSent <= 0) {
+  uint64_t countRecv = 0;
+  uint64_t countSent = 0;
+
+  mCountRecv.exchange(countRecv);
+  mCountSent.exchange(countSent);
+
+  if (countRecv == 0 && countSent == 0) {
     
     return NS_OK;
   }
@@ -3701,7 +3721,7 @@ WebSocketChannel::SaveNetworkStats(bool enforce)
   
   
   
-  uint64_t totalBytes = mCountRecv + mCountSent;
+  uint64_t totalBytes = countRecv + countSent;
   if (!enforce && totalBytes < NETWORK_STATS_THRESHOLD) {
     return NS_OK;
   }
@@ -3710,12 +3730,8 @@ WebSocketChannel::SaveNetworkStats(bool enforce)
   
   nsRefPtr<nsRunnable> event =
     new SaveNetworkStatsEvent(mAppId, mIsInBrowser, mActiveNetwork,
-                              mCountRecv, mCountSent, false);
+                              countRecv, countSent, false);
   NS_DispatchToMainThread(event);
-
-  
-  mCountSent = 0;
-  mCountRecv = 0;
 
   return NS_OK;
 #else
