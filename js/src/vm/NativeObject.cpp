@@ -2013,10 +2013,6 @@ baseops::SetPropertyHelper(typename ExecutionModeTraits<mode>::ContextType cxArg
 
 
     unsigned attrs = JSPROP_ENUMERATE;
-    const Class *clasp = obj->getClass();
-    PropertyOp getter = clasp->getProperty;
-    StrictPropertyOp setter = clasp->setProperty;
-
     if (IsImplicitDenseOrTypedArrayElement(shape)) {
         
         if (pobj != obj)
@@ -2053,10 +2049,10 @@ baseops::SetPropertyHelper(typename ExecutionModeTraits<mode>::ContextType cxArg
             }
         }
 
-        attrs = shape->attributes();
-        if (pobj != obj) {
+        if (pobj == obj) {
+            attrs = shape->attributes();
+        } else {
             
-
 
             if (!shape->shadowable()) {
                 if (shape->hasDefaultSetter() && !shape->hasGetterValue())
@@ -2069,27 +2065,6 @@ baseops::SetPropertyHelper(typename ExecutionModeTraits<mode>::ContextType cxArg
             }
 
             
-
-
-
-
-
-
-
-
-            if (!shape->hasSlot()) {
-                attrs &= ~JSPROP_SHARED;
-                getter = shape->getter();
-                setter = shape->setter();
-            } else {
-                
-                attrs = JSPROP_ENUMERATE;
-            }
-
-            
-
-
-
             shape = nullptr;
         }
     }
@@ -2172,11 +2147,12 @@ baseops::SetPropertyHelper(typename ExecutionModeTraits<mode>::ContextType cxArg
             return true;
         }
 
+        const Class *clasp = obj->getClass();
         if (mode == ParallelExecution) {
             if (obj->isDelegate())
                 return false;
 
-            if (getter != JS_PropertyStub || !types::HasTypePropertyId(obj, id, vp))
+            if (clasp->getProperty != JS_PropertyStub || !types::HasTypePropertyId(obj, id, vp))
                 return false;
         } else {
             JSContext *cx = cxArg->asJSContext();
@@ -2186,7 +2162,8 @@ baseops::SetPropertyHelper(typename ExecutionModeTraits<mode>::ContextType cxArg
                 return false;
         }
 
-        return DefinePropertyOrElement<mode>(cxArg, obj, id, getter, setter,
+        return DefinePropertyOrElement<mode>(cxArg, obj, id,
+                                             clasp->getProperty, clasp->setProperty,
                                              attrs, vp, true, strict);
     }
 
