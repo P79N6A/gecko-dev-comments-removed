@@ -60,7 +60,7 @@ public:
   Animation* GetSource() const { return mSource; }
   AnimationTimeline* Timeline() const { return mTimeline; }
   Nullable<double> GetStartTime() const;
-  Nullable<double> GetCurrentTime() const;
+  Nullable<TimeDuration> GetCurrentTime() const;
   AnimationPlayState PlayState() const;
   virtual void Play(UpdateFlags aUpdateFlags);
   virtual void Pause(UpdateFlags aUpdateFlags);
@@ -68,6 +68,9 @@ public:
 
   
   
+  
+  
+  Nullable<double> GetCurrentTimeAsDouble() const;
   AnimationPlayState PlayStateFromJS() const;
   void PlayFromJS();
   void PauseFromJS();
@@ -89,10 +92,6 @@ public:
   bool HasInEffectSource() const {
     return GetSource() && GetSource()->IsInEffect();
   }
-
-  
-  
-  Nullable<TimeDuration> GetCurrentTimeDuration() const;
 
   
   Nullable<TimeDuration> mStartTime; 

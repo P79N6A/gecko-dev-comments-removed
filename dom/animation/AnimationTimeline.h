@@ -33,9 +33,11 @@ public:
   virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   
-  Nullable<double> GetCurrentTime() const;
+  Nullable<TimeDuration> GetCurrentTime() const;
 
-  Nullable<TimeDuration> GetCurrentTimeDuration() const;
+  
+  
+  Nullable<double> GetCurrentTimeAsDouble() const;
 
   Nullable<TimeDuration> ToTimelineTime(const TimeStamp& aTimeStamp) const;
   TimeStamp ToTimeStamp(const TimeDuration& aTimelineTime) const;
