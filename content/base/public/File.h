@@ -91,11 +91,17 @@ public:
   Create(nsISupports* aParent, const nsAString& aContentType, uint64_t aStart,
          uint64_t aLength);
 
+  
+  
+  
   static already_AddRefed<File>
   CreateMemoryFile(nsISupports* aParent, void* aMemoryBuffer, uint64_t aLength,
                    const nsAString& aName, const nsAString& aContentType,
                    uint64_t aLastModifiedDate);
 
+  
+  
+  
   static already_AddRefed<File>
   CreateMemoryFile(nsISupports* aParent, void* aMemoryBuffer, uint64_t aLength,
                    const nsAString& aContentType);
@@ -106,7 +112,7 @@ public:
                           const nsAString& aContentType);
 
   static already_AddRefed<File>
-  CreateFromFile(nsISupports* aParent, nsIFile* aFile, bool aTemporary = false);
+  CreateFromFile(nsISupports* aParent, nsIFile* aFile);
 
   static already_AddRefed<File>
   CreateFromFile(nsISupports* aParent, const nsAString& aContentType,
@@ -631,12 +637,11 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  explicit FileImplFile(nsIFile* aFile, bool aTemporary = false)
+  explicit FileImplFile(nsIFile* aFile)
     : FileImplBase(EmptyString(), EmptyString(), UINT64_MAX, UINT64_MAX)
     , mFile(aFile)
     , mWholeFile(true)
     , mStoredFile(false)
-    , mIsTemporary(aTemporary)
   {
     NS_ASSERTION(mFile, "must have file");
     
@@ -649,7 +654,6 @@ public:
     , mFile(aFile)
     , mWholeFile(true)
     , mStoredFile(true)
-    , mIsTemporary(false)
   {
     NS_ASSERTION(mFile, "must have file");
     NS_ASSERTION(aFileInfo, "must have file info");
@@ -667,7 +671,6 @@ public:
     , mFile(aFile)
     , mWholeFile(true)
     , mStoredFile(false)
-    , mIsTemporary(false)
   {
     NS_ASSERTION(mFile, "must have file");
   }
@@ -679,7 +682,6 @@ public:
     , mFile(aFile)
     , mWholeFile(true)
     , mStoredFile(false)
-    , mIsTemporary(false)
   {
     NS_ASSERTION(mFile, "must have file");
   }
@@ -691,7 +693,6 @@ public:
     , mFile(aFile)
     , mWholeFile(true)
     , mStoredFile(false)
-    , mIsTemporary(false)
   {
     NS_ASSERTION(mFile, "must have file");
     if (aContentType.IsEmpty()) {
@@ -708,7 +709,6 @@ public:
     , mFile(aFile)
     , mWholeFile(true)
     , mStoredFile(true)
-    , mIsTemporary(false)
   {
     NS_ASSERTION(mFile, "must have file");
     mFileInfos.AppendElement(aFileInfo);
@@ -721,7 +721,6 @@ public:
     , mFile(aFile)
     , mWholeFile(true)
     , mStoredFile(true)
-    , mIsTemporary(false)
   {
     NS_ASSERTION(mFile, "must have file");
     mFileInfos.AppendElement(aFileInfo);
@@ -732,7 +731,6 @@ public:
     : FileImplBase(EmptyString(), EmptyString(), UINT64_MAX, UINT64_MAX)
     , mWholeFile(true)
     , mStoredFile(false)
-    , mIsTemporary(false)
   {
     
     mContentType.SetIsVoid(true);
@@ -750,18 +748,7 @@ public:
   void SetPath(const nsAString& aFullPath);
 
 protected:
-  virtual ~FileImplFile() {
-    if (mFile && mIsTemporary) {
-      NS_WARNING("In temporary ~FileImplFile");
-      
-      
-#ifdef DEBUG
-      nsresult rv =
-#endif
-      mFile->Remove(false);
-      NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Failed to remove temporary DOMFile.");
-    }
-  }
+  virtual ~FileImplFile() {}
 
 private:
   
@@ -771,7 +758,6 @@ private:
     , mFile(aOther->mFile)
     , mWholeFile(false)
     , mStoredFile(aOther->mStoredFile)
-    , mIsTemporary(false)
   {
     NS_ASSERTION(mFile, "must have file");
     mImmutable = aOther->mImmutable;
@@ -810,7 +796,6 @@ private:
   nsCOMPtr<nsIFile> mFile;
   bool mWholeFile;
   bool mStoredFile;
-  bool mIsTemporary;
 };
 
 class FileList MOZ_FINAL : public nsIDOMFileList,
