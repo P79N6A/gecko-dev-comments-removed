@@ -1154,7 +1154,6 @@ GCRuntime::GCRuntime(JSRuntime *rt) :
     lock(nullptr),
     lockOwner(nullptr),
     allocTask(rt, emptyChunks_),
-    decommitTask(rt),
     helperState(rt)
 {
     setGCMode(JSGC_MODE_GLOBAL);
@@ -3310,75 +3309,49 @@ GCRuntime::decommitAllWithoutUnlocking(const AutoLockGC &lock)
 }
 
 void
-GCRuntime::startDecommit()
+GCRuntime::decommitArenas(AutoLockGC &lock)
 {
-    MOZ_ASSERT(CurrentThreadCanAccessRuntime(rt));
-    MOZ_ASSERT(!decommitTask.isRunningOutsideLock());
+    
+    for (ChunkPool::Iter chunk(emptyChunks(lock)); !chunk.done(); chunk.next())
+        MOZ_ASSERT(!chunk->info.numArenasFreeCommitted);
 
-    {
-        AutoLockGC lock(rt);
-
-        
-        for (ChunkPool::Iter chunk(emptyChunks(lock)); !chunk.done(); chunk.next())
-            MOZ_ASSERT(!chunk->info.numArenasFreeCommitted);
-
-        
-        MOZ_ASSERT(availableChunks(lock).verify());
-        ChunkVector toDecommit;
-        for (ChunkPool::Iter iter(availableChunks(lock)); !iter.done(); iter.next()) {
-            if (!toDecommit.append(iter.get())) {
-                
-                
-                return onOutOfMallocMemory(lock);
-            }
-        }
-        if (!decommitTask.setChunksToScan(toDecommit))
+    
+    
+    
+    mozilla::Vector<Chunk *> toDecommit;
+    MOZ_ASSERT(availableChunks(lock).verify());
+    for (ChunkPool::Iter iter(availableChunks(lock)); !iter.done(); iter.next()) {
+        if (!toDecommit.append(iter.get())) {
+            
+            
             return onOutOfMallocMemory(lock);
+        }
     }
 
-    if (sweepOnBackgroundThread)
-        decommitTask.start();
-    else
-        decommitTask.runFromMainThread(rt);
-}
-
-bool
-BackgroundDecommitTask::setChunksToScan(const ChunkVector &chunks)
-{
-    MOZ_ASSERT(CurrentThreadCanAccessRuntime(runtime));
-    MOZ_ASSERT(toDecommit_.empty());
-    return toDecommit_.appendAll(chunks);
-}
-
- void
-BackgroundDecommitTask::run()
-{
-    AutoLockGC lock(runtime);
-
     
     
-    for (size_t i = toDecommit_.length(); i > 1; --i) {
-        Chunk *chunk = toDecommit_[i - 1];
+    for (size_t i = toDecommit.length(); i > 1; --i) {
+        Chunk *chunk = toDecommit[i - 1];
         MOZ_ASSERT(chunk);
 
         
         
         while (chunk->info.numArenasFreeCommitted) {
-            ArenaHeader *aheader = chunk->allocateArena(runtime, nullptr, FINALIZE_OBJECT0, lock);
+            ArenaHeader *aheader = chunk->allocateArena(rt, nullptr, FINALIZE_OBJECT0, lock);
             bool ok;
             {
                 AutoUnlockGC unlock(lock);
                 ok = MarkPagesUnused(aheader->getArena(), ArenaSize);
             }
-            chunk->releaseArena(runtime, aheader, lock, Chunk::ArenaDecommitState(ok));
+            chunk->releaseArena(rt, aheader, lock, Chunk::ArenaDecommitState(ok));
 
             
             
-            if (cancel_ || !ok)
-                break;
+            if ( !ok)
+                return;
         }
     }
-    toDecommit_.clearAndFree();
+    MOZ_ASSERT(availableChunks(lock).verify());
 }
 
 void
@@ -3389,6 +3362,9 @@ GCRuntime::expireChunksAndArenas(bool shouldShrink, AutoLockGC &lock)
         AutoUnlockGC unlock(lock);
         FreeChunkPool(rt, toFree);
     }
+
+    if (shouldShrink)
+        decommitArenas(lock);
 }
 
 void
@@ -5457,13 +5433,6 @@ GCRuntime::endSweepPhase(bool lastGC)
     }
 
     
-
-
-
-
-    startDecommit();
-
-    
     if (!sweepOnBackgroundThread) {
         gcstats::AutoPhase ap(stats, gcstats::PHASE_DESTROY);
 
@@ -6090,11 +6059,8 @@ GCRuntime::gcCycle(bool incremental, SliceBudget &budget, JS::gcreason::Reason r
 
         
         
-        
-        if (!isIncrementalGCInProgress()) {
+        if (!isIncrementalGCInProgress())
             waitBackgroundSweepEnd();
-            decommitTask.cancel(GCParallelTask::CancelAndWait);
-        }
 
         
         

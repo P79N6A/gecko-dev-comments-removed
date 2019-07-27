@@ -1042,7 +1042,6 @@ class GCParallelTask
     }
 
     
-    bool isRunningOutsideLock() const;
     bool isRunning() const;
 
     
