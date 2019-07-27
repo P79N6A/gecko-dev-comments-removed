@@ -682,91 +682,37 @@ RTCPeerConnection.prototype = {
       
       let origin = Cu.getWebIDLCallerPrincipal().origin;
 
-      return this._chain(() => new this._win.Promise((resolve, reject) =>
-        this._setRemoteDescriptionImpl(type, desc.sdp, origin, resolve, reject)));
+      return this._chain(() => {
+        let expectedIdentity = this._impl.peerIdentity;
+
+        
+        let p = new this._win.Promise((resolve, reject) => {
+          this._onSetRemoteDescriptionSuccess = resolve;
+          this._onSetRemoteDescriptionFailure = reject;
+          this._impl.setRemoteDescription(type, desc.sdp);
+        });
+
+        let pp = new Promise(resolve =>
+            this._remoteIdp.verifyIdentityFromSDP(desc.sdp, origin, resolve))
+        .then(msg => {
+          
+          if (expectedIdentity && (!msg || msg.identity !== expectedIdentity)) {
+            throw new this._win.DOMException(
+                "Peer Identity mismatch, expected: " + expectedIdentity,
+                "IncompatibleSessionDescriptionError");
+          }
+          if (msg) {
+            
+            this._impl.peerIdentity = msg.identity;
+            this._peerIdentity = new this._win.RTCIdentityAssertion(
+              this._remoteIdp.provider, msg.identity);
+            this.dispatchEvent(new this._win.Event("peeridentity"));
+          }
+        });
+        
+        return expectedIdentity? this._win.Promise.all([p, pp]).then(() => {}) : p;
+      });
     });
-  },
-
-  
-
-
-
-
-
-  _processIdpResult: function(message) {
-    let good = !!message;
-    
-    
-    if (good && this._impl.peerIdentity) {
-      good = (message.identity === this._impl.peerIdentity);
-    }
-    if (good) {
-      this._impl.peerIdentity = message.identity;
-      this._peerIdentity = new this._win.RTCIdentityAssertion(
-        this._remoteIdp.provider, message.identity);
-      this.dispatchEvent(new this._win.Event("peeridentity"));
-    }
-    return good;
-  },
-
-  _setRemoteDescriptionImpl: function(type, sdp, origin, onSuccess, onError) {
-    let idpComplete = false;
-    let setRemoteComplete = false;
-    let idpError = null;
-    let isDone = false;
-
-    
-    
-    
-    let allDone = () => {
-      if (!setRemoteComplete || !idpComplete || isDone) {
-        return;
-      }
-      
-      
-      onSuccess();
-      isDone = true;
-    };
-
-    let setRemoteDone = () => {
-      setRemoteComplete = true;
-      allDone();
-    };
-
-    
-    
-    let idpDone;
-    if (!this._impl.peerIdentity) {
-      idpDone = this._processIdpResult.bind(this);
-      idpComplete = true; 
-    } else {
-      idpDone = message => {
-        let idpGood = this._processIdpResult(message);
-        if (!idpGood) {
-          
-          
-          idpError = "Peer Identity mismatch, expected: " +
-            this._impl.peerIdentity;
-          onError(idpError);
-          this.close();
-        } else {
-          idpComplete = true;
-          allDone();
-        }
-      };
-    }
-
-    try {
-      this._remoteIdp.verifyIdentityFromSDP(sdp, origin, idpDone);
-    } catch (e) {
-      
-      this.logWarning(e.message, e.fileName, e.lineNumber);
-      idpDone(null);
-    }
-
-    this._onSetRemoteDescriptionSuccess = setRemoteDone;
-    this._onSetRemoteDescriptionFailure = onError;
-    this._impl.setRemoteDescription(type, sdp);
   },
 
   setIdentityProvider: function(provider, protocol, username) {
