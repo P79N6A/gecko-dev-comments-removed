@@ -89,11 +89,14 @@ static bool CalculateClipRect(const gfx::Matrix& aTransform,
 
 
 
+
+
 static bool PrepareVisibleRegion(const nsIntRegion& aVisible,
                                  const gfx::Matrix& aLayerTransform,
                                  const gfx::Matrix& aLayerBufferTransform,
                                  nsIntRect aClip, nsIntRect aBufferRect,
-                                 RectVector* aVisibleRegionScreen);
+                                 RectVector* aVisibleRegionScreen,
+                                 bool& aIsVisible);
 
 
 
