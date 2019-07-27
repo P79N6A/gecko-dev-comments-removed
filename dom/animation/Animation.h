@@ -127,11 +127,10 @@ public:
 
 
   void PauseFromJS(ErrorResult& aRv) { Pause(aRv); }
+
   
-  
-  
-  
-  void CancelFromStyle() { DoCancel(); }
+
+  virtual void CancelFromStyle() { DoCancel(); }
 
   void Tick();
 

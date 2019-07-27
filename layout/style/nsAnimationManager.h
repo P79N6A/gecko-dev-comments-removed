@@ -56,10 +56,12 @@ namespace dom {
 class CSSAnimation final : public Animation
 {
 public:
- explicit CSSAnimation(DocumentTimeline* aTimeline,
+ explicit CSSAnimation(dom::DocumentTimeline* aTimeline,
                        const nsSubstring& aAnimationName)
-    : Animation(aTimeline)
+    : dom::Animation(aTimeline)
     , mAnimationName(aAnimationName)
+    , mOwningElement(nullptr)
+    , mOwningPseudoType(nsCSSPseudoElements::ePseudo_NotPseudoElement)
     , mIsStylePaused(false)
     , mPauseShouldStick(false)
     , mPreviousPhaseOrIteration(PREVIOUS_PHASE_BEFORE)
@@ -92,6 +94,13 @@ public:
 
   void PlayFromStyle();
   void PauseFromStyle();
+  void CancelFromStyle() override
+  {
+    mOwningElement = nullptr;
+    mOwningPseudoType = nsCSSPseudoElements::ePseudo_NotPseudoElement;
+
+    Animation::CancelFromStyle();
+  }
 
   bool IsStylePaused() const { return mIsStylePaused; }
 
@@ -102,15 +111,66 @@ public:
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  void GetOwningElement(dom::Element*& aElement,
+                        nsCSSPseudoElements::Type& aPseudoType) const {
+    MOZ_ASSERT(mOwningElement != nullptr ||
+               mOwningPseudoType ==
+                 nsCSSPseudoElements::ePseudo_NotPseudoElement,
+               "When there is no owning element there should be no "
+               "pseudo-type");
+    aElement = mOwningElement;
+    aPseudoType = mOwningPseudoType;
+  }
+
+  
+  
+  
+  
+  void SetOwningElement(dom::Element& aElement,
+                        nsCSSPseudoElements::Type aPseudoType)
+  {
+    mOwningElement = &aElement;
+    mOwningPseudoType = aPseudoType;
+  }
+
+  
+  
+  
+  
+  
   bool mInEffectForCascadeResults;
 
 protected:
-  virtual ~CSSAnimation() { }
+  virtual ~CSSAnimation()
+  {
+    MOZ_ASSERT(!mOwningElement, "Owning element should be cleared before a "
+                                "CSS animation is destroyed");
+  }
   virtual css::CommonAnimationManager* GetAnimationManager() const override;
 
   static nsString PseudoTypeAsString(nsCSSPseudoElements::Type aPseudoType);
 
   nsString mAnimationName;
+
+  
+  
+  
+  
+  
+  dom::Element* MOZ_NON_OWNING_REF mOwningElement;
+  nsCSSPseudoElements::Type        mOwningPseudoType;
 
   
   
