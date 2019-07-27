@@ -6,6 +6,10 @@
 
 "use strict";
 
+let Services = require("Services");
+loader.lazyRequireGetter(this, "prompt",
+  "devtools/toolkit/security/prompt");
+
 
 
 
@@ -62,6 +66,42 @@ Prompt.Server.prototype = {
   augmentAdvertisement(listener, advertisement) {
     advertisement.authentication = Prompt.mode;
   },
+
+  
+
+
+
+
+
+  authenticate() {
+    return !Services.prefs.getBoolPref("devtools.debugger.prompt-connection") ||
+           this.allowConnection();
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  allowConnection: prompt.Server.defaultAllowConnection,
 
 };
 
@@ -130,6 +170,47 @@ OOBCert.Server.prototype = {
       sha256: listener._socket.serverCert.sha256Fingerprint
     };
   },
+
+  
+
+
+
+
+
+  authenticate() {
+    return this.allowConnection();
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  allowConnection: prompt.Server.defaultAllowConnection,
 
 };
 

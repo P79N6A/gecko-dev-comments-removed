@@ -25,8 +25,6 @@ loader.lazyRequireGetter(this, "cert",
   "devtools/toolkit/security/cert");
 loader.lazyRequireGetter(this, "Authenticators",
   "devtools/toolkit/security/auth", true);
-loader.lazyRequireGetter(this, "prompt",
-  "devtools/toolkit/security/prompt");
 loader.lazyRequireGetter(this, "setTimeout", "Timer", true);
 loader.lazyRequireGetter(this, "clearTimeout", "Timer", true);
 
@@ -225,15 +223,6 @@ SocketListener.prototype = {
 
 
   portOrPath: null,
-
-  
-
-
-
-
-
-
-  allowConnection: prompt.Server.defaultAllowConnection,
 
   
 
@@ -512,8 +501,7 @@ ServerSocketConnection.prototype = {
   },
 
   _authenticate() {
-    if (Services.prefs.getBoolPref("devtools.debugger.prompt-connection") &&
-        !this._listener.allowConnection()) {
+    if (!this._listener.authenticator.authenticate()) {
       return promise.reject(Cr.NS_ERROR_CONNECTION_REFUSED);
     }
     return promise.resolve();
