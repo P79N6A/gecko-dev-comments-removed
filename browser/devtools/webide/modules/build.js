@@ -37,7 +37,7 @@ const ProjectBuilding = exports.ProjectBuilding = {
 
   
   build: Task.async(function* ({ project, logger }) {
-    if (!this.hasPrepackage(project)) {
+    if (!(yield this.hasPrepackage(project))) {
       return;
     }
 
@@ -168,4 +168,3 @@ const ProjectBuilding = exports.ProjectBuilding = {
     }
   }),
 };
-
