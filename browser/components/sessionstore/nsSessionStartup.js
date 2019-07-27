@@ -115,7 +115,7 @@ SessionStartup.prototype = {
 
 
 
-  _onSessionFileRead: function ({source, parsed}) {
+  _onSessionFileRead: function ({source, parsed, noFilesFound}) {
     this._initialized = true;
 
     
@@ -161,14 +161,14 @@ SessionStartup.prototype = {
         
         
         this._previousSessionCrashed = !checkpoints["sessionstore-final-state-write-complete"];
+
       } else {
         
         
         
         
 
-        if (!this._initialState) {
-          
+        if (noFilesFound) {
           
           
           this._previousSessionCrashed = false;
