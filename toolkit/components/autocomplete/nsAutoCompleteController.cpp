@@ -491,6 +491,21 @@ nsAutoCompleteController::HandleKeyNavigation(uint32_t aKey, bool *_retval)
     uint32_t minResultsForPopup;
     input->GetMinResultsForPopup(&minResultsForPopup);
     if (isOpen || (mRowCount > 0 && mRowCount < minResultsForPopup)) {
+      
+      
+      
+      if (isOpen) {
+        bool noRollup;
+        input->GetNoRollupOnCaretMove(&noRollup);
+        if (noRollup) {
+          bool completeSelection;
+          input->GetCompleteSelectedIndex(&completeSelection);
+          if (completeSelection) {
+            return NS_OK;
+          }
+        }
+      }
+
       int32_t selectedIndex;
       popup->GetSelectedIndex(&selectedIndex);
       bool shouldComplete;
@@ -530,13 +545,9 @@ nsAutoCompleteController::HandleKeyNavigation(uint32_t aKey, bool *_retval)
         }
       }
 
-      bool noRollup;
-      input->GetNoRollupOnCaretMove(&noRollup);
-      if (!noRollup) {
-        
-        ClearSearchTimer();
-        ClosePopup();
-      }
+      
+      ClearSearchTimer();
+      ClosePopup();
     }
     
     
