@@ -692,6 +692,7 @@ DOMException::Constructor(GlobalObject& ,
       if (name.EqualsASCII(sDOMErrorMsgMap[idx].mName)) {
         exceptionResult = sDOMErrorMsgMap[idx].mNSResult;
         exceptionCode = sDOMErrorMsgMap[idx].mCode;
+        break;
       }
     }
   }
