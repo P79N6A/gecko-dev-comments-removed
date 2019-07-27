@@ -109,11 +109,7 @@ var SelectionHandler = {
         break;
 
       case "Gesture:SingleTap": {
-        if (this._activeType == this.TYPE_SELECTION) {
-          let data = JSON.parse(aData);
-          if (!this._pointInSelection(data.x, data.y))
-            this._closeSelection();
-        } else if (this._activeType == this.TYPE_CURSOR) {
+        if (this._activeType == this.TYPE_CURSOR) {
           
           
           this._deactivate();
@@ -1041,16 +1037,6 @@ var SelectionHandler = {
     }
 
     return offset;
-  },
-
-  _pointInSelection: function sh_pointInSelection(aX, aY) {
-    let offset = this._getViewOffset();
-    let rangeRect = this._getSelection().getRangeAt(0).getBoundingClientRect();
-    let radius = ElementTouchHelper.getTouchRadius();
-    return (aX - offset.x > rangeRect.left - radius.left &&
-            aX - offset.x < rangeRect.right + radius.right &&
-            aY - offset.y > rangeRect.top - radius.top &&
-            aY - offset.y < rangeRect.bottom + radius.bottom);
   },
 
   
