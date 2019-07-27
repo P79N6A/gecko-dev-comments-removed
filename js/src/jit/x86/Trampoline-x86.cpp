@@ -503,7 +503,25 @@ static void
 PushBailoutFrame(MacroAssembler &masm, uint32_t frameClass, Register spArg)
 {
     
-    masm.PushRegsInMask(AllRegs);
+    if (JitSupportsSimd()) {
+        masm.PushRegsInMask(AllRegs);
+    } else {
+        
+        
+        
+        
+        
+        RegisterSet set = AllRegs;
+        for (GeneralRegisterBackwardIterator iter(set.gprs()); iter.more(); iter++)
+            masm.Push(*iter);
+
+        masm.reserveStack(sizeof(RegisterDump::FPUArray));
+        for (FloatRegisterBackwardIterator iter(set.fpus()); iter.more(); iter++) {
+            FloatRegister reg = *iter;
+            Address spillAddress(StackPointer, reg.getRegisterDumpOffsetInBytes());
+            masm.storeDouble(reg, spillAddress);
+        }
+    }
 
     
     masm.push(Imm32(frameClass));
