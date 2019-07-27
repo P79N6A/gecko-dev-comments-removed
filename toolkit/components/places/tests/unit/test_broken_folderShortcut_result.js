@@ -26,7 +26,7 @@ add_task(function test_execute()
   );
 
   
-  yield promiseAddVisits(uri(("http://3.moz.org/")));
+  yield PlacesTestUtils.addVisits(uri(("http://3.moz.org/")));
 
   
   let query = PlacesUtils.history.getNewQuery();

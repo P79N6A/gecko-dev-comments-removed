@@ -49,7 +49,7 @@ add_task(function test_execute()
 {
   
   for (let [, transition] in Iterator(transitions)) {
-    yield promiseAddVisits({
+    yield PlacesTestUtils.addVisits({
       uri: uri("http://" + transition + ".mozilla.org/"),
       transition: transition
     });

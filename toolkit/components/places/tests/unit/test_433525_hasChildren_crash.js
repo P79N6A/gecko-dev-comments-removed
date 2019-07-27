@@ -22,7 +22,7 @@ add_task(function test_execute()
 
   
   var testURI = uri("http://test");
-  yield promiseAddVisits(testURI);
+  yield PlacesTestUtils.addVisits(testURI);
 
   
   var options = histsvc.getNewQueryOptions();

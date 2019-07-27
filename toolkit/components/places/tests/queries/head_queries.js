@@ -49,7 +49,7 @@ function task_populateDB(aArray)
       var qdata = new queryData(data);
       if (qdata.isVisit) {
         
-        yield promiseAddVisits({
+        yield PlacesTestUtils.addVisits({
           uri: uri(qdata.uri),
           transition: qdata.transType,
           visitDate: qdata.lastVisit,
@@ -94,7 +94,7 @@ function task_populateDB(aArray)
 
       if (qdata.isDetails) {
         
-        yield promiseAddVisits({
+        yield PlacesTestUtils.addVisits({
           uri: uri(qdata.uri),
           visitDate: qdata.lastVisit,
           title: qdata.title

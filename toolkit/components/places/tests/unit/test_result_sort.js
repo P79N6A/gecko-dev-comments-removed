@@ -117,8 +117,7 @@ add_task(function test() {
   
   
   let waitForVisited = promiseOnItemVisited();
-  yield promiseAddVisits({ uri: uri2,
-                           transition: TRANSITION_TYPED});
+  yield PlacesTestUtils.addVisits({ uri: uri2, transition: TRANSITION_TYPED });
   yield waitForVisited;
 
   do_print("Sort by frecency desc");

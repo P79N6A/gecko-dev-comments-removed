@@ -26,7 +26,7 @@ add_task(function test_execute()
                     transition: TRANSITION_FRAMED_LINK });
     }
   }
-  yield promiseAddVisits(places);
+  yield PlacesTestUtils.addVisits(places);
 
   
   

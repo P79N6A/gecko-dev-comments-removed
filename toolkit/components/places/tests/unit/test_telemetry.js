@@ -63,7 +63,7 @@ add_task(function test_execute()
 
   
   for (let i = 0; i < 2; i++) {
-    yield promiseAddVisits({
+    yield PlacesTestUtils.addVisits({
       uri: uri("http://" +  i + ".moz.org/"),
       visitDate: Date.now() 
     });

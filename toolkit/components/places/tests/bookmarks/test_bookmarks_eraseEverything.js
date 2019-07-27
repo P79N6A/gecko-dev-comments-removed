@@ -2,8 +2,8 @@
 
 
 add_task(function* test_eraseEverything() {
-  yield promiseAddVisits({ uri: NetUtil.newURI("http://example.com/") });
-  yield promiseAddVisits({ uri: NetUtil.newURI("http://mozilla.org/") });
+  yield PlacesTestUtils.addVisits({ uri: NetUtil.newURI("http://example.com/") });
+  yield PlacesTestUtils.addVisits({ uri: NetUtil.newURI("http://mozilla.org/") });
   let frecencyForExample = frecencyForUrl("http://example.com/");
   let frecencyForMozilla = frecencyForUrl("http://example.com/");
   Assert.ok(frecencyForExample > 0);

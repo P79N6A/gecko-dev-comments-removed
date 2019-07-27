@@ -126,7 +126,7 @@ add_test(function test_savedsearches_bookmarks() {
 add_task(function test_savedsearches_history() {
   
   var testURI = uri("http://" + searchTerm + ".com");
-  yield promiseAddVisits({ uri: testURI, title: searchTerm });
+  yield PlacesTestUtils.addVisits({ uri: testURI, title: searchTerm });
 
   
   var searchId = PlacesUtils.bookmarks.insertBookmark(testRoot,
@@ -166,7 +166,7 @@ add_task(function test_savedsearches_history() {
       do_check_eq(item.uri, testURI.spec); 
 
       
-      yield promiseAddVisits({
+      yield PlacesTestUtils.addVisits({
         uri: uri("http://foo.com"),
         title: searchTerm + "blah"
       });

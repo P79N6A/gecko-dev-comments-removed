@@ -617,7 +617,7 @@ add_task(function test_bookmarks() {
   
   let uri1 = uri("http://foo.tld/a");
   bs.insertBookmark(testRoot, uri1, bs.DEFAULT_INDEX, "");
-  yield promiseAddVisits(uri1);
+  yield PlacesTestUtils.addVisits(uri1);
 
   
   let title15 = Array(TITLE_LENGTH_MAX + 5).join("X");

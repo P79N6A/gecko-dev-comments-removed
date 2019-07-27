@@ -49,7 +49,7 @@ add_task(function* () {
   });
 
   
-  yield promiseAddVisits(uri("http://typed.mozilla.org"));
+  yield PlacesTestUtils.addVisits(uri("http://typed.mozilla.org"));
 
   yield notificationsPromised;
 });

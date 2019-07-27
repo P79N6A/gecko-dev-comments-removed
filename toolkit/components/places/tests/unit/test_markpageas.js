@@ -48,8 +48,10 @@ add_task(function test_execute()
      
      
     }
-    yield promiseAddVisits({uri: uri(visit.url),
-                            transition: visit.transition});
+    yield PlacesTestUtils.addVisits({
+      uri: uri(visit.url),
+      transition: visit.transition
+    });
   }
 
   yield completionPromise;

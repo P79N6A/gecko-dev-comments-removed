@@ -22,7 +22,7 @@ add_task(function test_execute()
                                "http://www.test-framed.com/"];
 
   
-  yield promiseAddVisits([
+  yield PlacesTestUtils.addVisits([
     { uri: uri("http://www.test-link.com/"),
       transition: TRANSITION_LINK },
     { uri: uri("http://www.test-typed.com/"),

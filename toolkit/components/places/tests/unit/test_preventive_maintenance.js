@@ -1154,18 +1154,18 @@ tests.push({
     let now = Date.now() * 1000;
     
     let url = "http://1.moz.org/";
-    yield promiseAddVisits({ uri: uri(url), visitDate: now++ });
+    yield PlacesTestUtils.addVisits({ uri: uri(url), visitDate: now++ });
     
     url = "http://2.moz.org/";
-    yield promiseAddVisits({ uri: uri(url), visitDate: now++ });
+    yield PlacesTestUtils.addVisits({ uri: uri(url), visitDate: now++ });
     setVisitCount(url, 10);
     
     url = "http://3.moz.org/";
-    yield promiseAddVisits({ uri: uri(url), visitDate: now++ });
+    yield PlacesTestUtils.addVisits({ uri: uri(url), visitDate: now++ });
     setLastVisitDate(url, now++);
     
     url = "http://4.moz.org/";
-    yield promiseAddVisits({ uri: uri(url), visitDate: now++ });
+    yield PlacesTestUtils.addVisits({ uri: uri(url), visitDate: now++ });
     setVisitCount(url, 10);
     setLastVisitDate(url, now++);
 
@@ -1209,7 +1209,7 @@ tests.push({
   desc: "recalculate hidden for redirects.",
 
   setup: function() {
-    promiseAddVisits([
+    PlacesTestUtils.addVisits([
       { uri: NetUtil.newURI("http://l3.moz.org/"),
         transition: TRANSITION_TYPED },
       { uri: NetUtil.newURI("http://l3.moz.org/redirecting/"),
@@ -1264,7 +1264,7 @@ tests.push({
 
   setup: function() {
     
-    yield promiseAddVisits([
+    yield PlacesTestUtils.addVisits([
       { uri: this._uri1 },
       { uri: this._uri2 },
     ]);
@@ -1325,7 +1325,7 @@ add_task(function test_preventive_maintenance()
 {
   
   
-  yield promiseAddVisits(uri("http://force.bookmarks.hash"));
+  yield PlacesTestUtils.addVisits(uri("http://force.bookmarks.hash"));
   do_check_false(bs.isBookmarked(uri("http://force.bookmarks.hash")));
 
   

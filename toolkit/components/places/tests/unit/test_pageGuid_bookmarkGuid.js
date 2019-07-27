@@ -92,7 +92,7 @@ add_task(function test_addVisitAndCheckGuid() {
   
   let now = Date.now() * 1000;
   let sourceURI = uri("http://test4.com/");
-  yield promiseAddVisits({ uri: sourceURI });
+  yield PlacesTestUtils.addVisits({ uri: sourceURI });
   do_check_eq(bmsvc.getBookmarkedURIFor(sourceURI), null);
 
   let options = histsvc.getNewQueryOptions();

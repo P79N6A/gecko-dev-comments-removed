@@ -13,10 +13,14 @@ let gNow = getExpirablePRTime();
 add_task(function test_expire_orphans()
 {
   
-  yield promiseAddVisits({ uri: uri("http://page1.mozilla.org/"),
-                           visitDate: gNow++ });
-  yield promiseAddVisits({ uri: uri("http://page2.mozilla.org/"),
-                           visitDate: gNow++ });
+  yield PlacesTestUtils.addVisits({
+    uri: uri("http://page1.mozilla.org/"),
+    visitDate: gNow++
+  });
+  yield PlacesTestUtils.addVisits({
+    uri: uri("http://page2.mozilla.org/"),
+    visitDate: gNow++
+  });
   
   let id = PlacesUtils.bookmarks.insertBookmark(PlacesUtils.unfiledBookmarksFolderId,
                                                 NetUtil.newURI("http://page3.mozilla.org/"),
@@ -38,10 +42,14 @@ add_task(function test_expire_orphans()
 add_task(function test_expire_orphans_optionalarg()
 {
   
-  yield promiseAddVisits({ uri: uri("http://page1.mozilla.org/"),
-                           visitDate: gNow++ });
-  yield promiseAddVisits({ uri: uri("http://page2.mozilla.org/"),
-                           visitDate: gNow++ });
+  yield PlacesTestUtils.addVisits({
+    uri: uri("http://page1.mozilla.org/"),
+    visitDate: gNow++
+  });
+  yield PlacesTestUtils.addVisits({
+    uri: uri("http://page2.mozilla.org/"),
+    visitDate: gNow++
+  });
   
   let id = PlacesUtils.bookmarks.insertBookmark(PlacesUtils.unfiledBookmarksFolderId,
                                                 NetUtil.newURI("http://page3.mozilla.org/"),
@@ -64,10 +72,14 @@ add_task(function test_expire_limited()
 {
   
   
-  yield promiseAddVisits({ uri: uri("http://page1.mozilla.org/"),
-                           visitDate: gNow++ });
-  yield promiseAddVisits({ uri: uri("http://page2.mozilla.org/"),
-                           visitDate: gNow++ });
+  yield PlacesTestUtils.addVisits({
+    uri: uri("http://page1.mozilla.org/"),
+    visitDate: gNow++
+  });
+  yield PlacesTestUtils.addVisits({
+    uri: uri("http://page2.mozilla.org/"),
+    visitDate: gNow++
+  });
 
   
   yield promiseForceExpirationStep(1);
@@ -84,10 +96,14 @@ add_task(function test_expire_unlimited()
 {
   
   
-  yield promiseAddVisits({ uri: uri("http://page1.mozilla.org/"),
-                           visitDate: gNow++ });
-  yield promiseAddVisits({ uri: uri("http://page2.mozilla.org/"),
-                           visitDate: gNow++ });
+  yield PlacesTestUtils.addVisits({
+    uri: uri("http://page1.mozilla.org/"),
+    visitDate: gNow++
+  });
+  yield PlacesTestUtils.addVisits({
+    uri: uri("http://page2.mozilla.org/"),
+    visitDate: gNow++
+  });
 
   
   yield promiseForceExpirationStep(-1);

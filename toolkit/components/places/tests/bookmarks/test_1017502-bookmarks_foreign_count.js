@@ -27,7 +27,7 @@ add_task(function* add_remove_change_bookmark_test() {
   let conn = yield PlacesUtils.promiseDBConnection();
 
   
-  yield promiseAddVisits(T_URI);
+  yield PlacesTestUtils.addVisits(T_URI);
   Assert.equal((yield getForeignCountForURL(conn, T_URI)), 0);
 
   
@@ -63,7 +63,7 @@ add_task(function* maintenance_foreign_count_test() {
   let conn = yield PlacesUtils.promiseDBConnection();
 
   
-  yield promiseAddVisits(T_URI);
+  yield PlacesTestUtils.addVisits(T_URI);
 
   
   let deferred = Promise.defer();
@@ -93,7 +93,7 @@ add_task(function* maintenance_foreign_count_test() {
 add_task(function* add_remove_tags_test(){
   let conn = yield PlacesUtils.promiseDBConnection();
 
-  yield promiseAddVisits(T_URI);
+  yield PlacesTestUtils.addVisits(T_URI);
   Assert.equal((yield getForeignCountForURL(conn, T_URI)), 0);
 
   

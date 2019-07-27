@@ -414,7 +414,7 @@ tests.push({
     
     yield task_populateDB(this._unsortedData);
     
-    yield promiseAddVisits([
+    yield PlacesTestUtils.addVisits([
       { uri: uri("http://example.com/a"), transition: TRANSITION_TYPED, visitDate: timeInMicroseconds },
       { uri: uri("http://example.com/b1"), transition: TRANSITION_TYPED, visitDate: timeInMicroseconds },
       { uri: uri("http://example.com/b1"), transition: TRANSITION_TYPED, visitDate: timeInMicroseconds },
