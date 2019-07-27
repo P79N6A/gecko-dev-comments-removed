@@ -366,17 +366,11 @@ Proxy::set(JSContext *cx, HandleObject proxy, HandleObject receiver, HandleId id
 
     
     
-    
-    
-    
-    
-    Rooted<PropertyDescriptor> newDesc(cx);
-    if (desc.object() == proxy)
-        newDesc.setAttributes(desc.attributes());
-    else
-        newDesc.setAttributes(JSPROP_ENUMERATE);
-    newDesc.value().set(vp);
-    return handler->defineProperty(cx, receiver, id, &newDesc);
+    unsigned attrs =
+        (desc.object() == proxy)
+        ? JSPROP_IGNORE_ENUMERATE | JSPROP_IGNORE_READONLY | JSPROP_IGNORE_PERMANENT
+        : JSPROP_ENUMERATE;
+    return JSObject::defineGeneric(cx, receiver, id, vp, nullptr, nullptr, attrs);
 }
 
 bool
