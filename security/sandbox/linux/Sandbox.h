@@ -8,6 +8,7 @@
 #define mozilla_Sandbox_h
 
 #include "mozilla/Types.h"
+#include "nsXULAppAPI.h"
 
 
 
@@ -22,6 +23,9 @@
 #endif
 
 namespace mozilla {
+
+
+MOZ_SANDBOX_EXPORT void SandboxEarlyInit(GeckoProcessType aType, bool aIsNuwa);
 
 #ifdef MOZ_CONTENT_SANDBOX
 

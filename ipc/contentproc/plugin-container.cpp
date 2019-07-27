@@ -52,7 +52,11 @@
        "Gecko:MozillaRntimeMain", __VA_ARGS__)) \
      : (void)0 )
 
-#endif
+# ifdef MOZ_CONTENT_SANDBOX
+# include "mozilla/Sandbox.h"
+# endif
+
+#endif 
 
 #ifdef MOZ_NUWA_PROCESS
 #include <binder/ProcessState.h>
@@ -164,6 +168,16 @@ content_process_main(int argc, char* argv[])
     if (isNuwa) {
         PrepareNuwaProcess();
     }
+#endif
+
+#if defined(XP_LINUX) && defined(MOZ_SANDBOX)
+    
+    
+    
+    
+    
+    
+    mozilla::SandboxEarlyInit(XRE_GetProcessType(), isNuwa);
 #endif
 
 #ifdef MOZ_WIDGET_GONK
