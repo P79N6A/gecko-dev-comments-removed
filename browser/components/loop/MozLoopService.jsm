@@ -450,6 +450,11 @@ this.MozLoopService = {
 
   initialize: function() {
     
+    if (!Services.prefs.getBoolPref("loop.enabled")) {
+      return;
+    }
+
+    
     if (MozLoopServiceInternal.urlExpiryTimeIsInFuture()) {
       this._startInitializeTimer();
     }
@@ -481,6 +486,11 @@ this.MozLoopService = {
 
 
   register: function(mockPushHandler) {
+    
+    if (!Services.prefs.getBoolPref("loop.enabled")) {
+      throw new Error("Loop is not enabled");
+    }
+
     return MozLoopServiceInternal.promiseRegisteredWithServers(mockPushHandler);
   },
 

@@ -1541,12 +1541,9 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
 }
 
 
-%ifdef MOZ_LOOP
-
 #loop-call-button {
   list-style-image: url("chrome://global/skin/loop/loop-call.png");
 }
-%endif
 
 
 
