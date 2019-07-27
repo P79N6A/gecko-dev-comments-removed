@@ -15,6 +15,7 @@
 #include "nsIRunnable.h"
 #include "Latency.h"
 #include "mozilla/WeakPtr.h"
+#include "GraphDriver.h"
 
 namespace mozilla {
 
@@ -100,6 +101,12 @@ protected:
   MediaStream* mStream;
 };
 
+struct MessageBlock {
+  int64_t mGraphUpdateIndex;
+  nsTArray<nsAutoPtr<ControlMessage> > mMessages;
+};
+
+
 
 
 
@@ -179,16 +186,16 @@ public:
 
 
 
-  void EnsureNextIteration();
-  
-
-
-  void EnsureNextIterationLocked(MonitorAutoLock& aLock);
+  bool OneIteration(nsTArray<MessageBlock>& aMessageQueue);
   
 
 
 
-  void EnsureImmediateWakeUpLocked(MonitorAutoLock& aLock);
+  void DoIteration(nsTArray<MessageBlock>& aMessageQueue);
+
+  
+
+  GraphTime IterationEnd();
   
 
 
@@ -466,13 +473,6 @@ public:
 
   
   
-  
-  
-  
-  Monitor mMonitor;
-
-  
-  
 
   
 
@@ -482,10 +482,6 @@ public:
 
 
   nsTArray<nsCOMPtr<nsIRunnable> > mUpdateRunnables;
-  struct MessageBlock {
-    int64_t mGraphUpdateIndex;
-    nsTArray<nsAutoPtr<ControlMessage> > mMessages;
-  };
   
 
 
@@ -643,6 +639,12 @@ private:
 
 
   bool mNeedsMemoryReport;
+
+  
+
+
+
+  bool mAudioOutputsPaused;
 
 #ifdef DEBUG
   
