@@ -1907,19 +1907,19 @@ GetFlexContainer(nsIFrame* aFrame)
 
 
 static nscoord
-VerticalOffsetPercentBasis(const nsIFrame* aFrame,
-                           nscoord aContainingBlockWidth,
-                           nscoord aContainingBlockHeight)
+BlockDirOffsetPercentBasis(const nsIFrame* aFrame,
+                           nscoord aContainingBlockISize,
+                           nscoord aContainingBlockBSize)
 {
   if (!aFrame->IsFlexOrGridItem()) {
-    return aContainingBlockWidth;
+    return aContainingBlockISize;
   }
 
-  if (aContainingBlockHeight == NS_AUTOHEIGHT) {
+  if (aContainingBlockBSize == NS_AUTOHEIGHT) {
     return 0;
   }
 
-  return aContainingBlockHeight;
+  return aContainingBlockBSize;
 }
 
 
@@ -1937,13 +1937,17 @@ nsHTMLReflowState::InitConstraints(nsPresContext* aPresContext,
                            aContainingBlockWidth, aContainingBlockHeight,
                            aBorder, aPadding);
 
+  WritingMode wm = GetWritingMode();
+
   
   
   if (nullptr == parentReflowState || mFlags.mDummyParentReflowState) {
     
-    InitOffsets(aContainingBlockWidth,
-                VerticalOffsetPercentBasis(frame, aContainingBlockWidth,
-                                           aContainingBlockHeight),
+    LogicalSize cbSize(wm, nsSize(aContainingBlockWidth,
+                                  aContainingBlockHeight));
+    InitOffsets(cbSize.ISize(wm),
+                BlockDirOffsetPercentBasis(frame, cbSize.ISize(wm),
+                                           cbSize.BSize(wm)),
                 aFrameType, aBorder, aPadding);
     
     
@@ -1993,9 +1997,12 @@ nsHTMLReflowState::InitConstraints(nsPresContext* aPresContext,
 
     
     
-    InitOffsets(aContainingBlockWidth,
-                VerticalOffsetPercentBasis(frame, aContainingBlockWidth,
-                                           aContainingBlockHeight),
+    WritingMode cbwm = mCBReflowState->GetWritingMode();
+    LogicalSize cbSize(cbwm, nsSize(aContainingBlockWidth,
+                                    aContainingBlockHeight));
+    InitOffsets(cbSize.ISize(cbwm),
+                BlockDirOffsetPercentBasis(frame, cbSize.ISize(cbwm),
+                                           cbSize.BSize(cbwm)),
                 aFrameType, aBorder, aPadding);
 
     const nsStyleCoord &height = mStylePosition->mHeight;
@@ -2166,8 +2173,6 @@ nsHTMLReflowState::InitConstraints(nsPresContext* aPresContext,
                    "'mIsFlexContainerMeasuringHeight' shouldn't be set");
       }
 
-      WritingMode wm = GetWritingMode();
-
       LogicalSize cbSize(wm, nsSize(aContainingBlockWidth,
                                     aContainingBlockHeight));
       if (cbSize.ISize(wm) == NS_UNCONSTRAINEDSIZE) {
@@ -2221,15 +2226,15 @@ UpdateProp(FrameProperties& aProps,
 }
 
 void
-nsCSSOffsetState::InitOffsets(nscoord aHorizontalPercentBasis,
-                              nscoord aVerticalPercentBasis,
+nsCSSOffsetState::InitOffsets(nscoord aInlineDirPercentBasis,
+                              nscoord aBlockDirPercentBasis,
                               nsIAtom* aFrameType,
                               const nsMargin *aBorder,
                               const nsMargin *aPadding)
 {
   DISPLAY_INIT_OFFSETS(frame, this,
-                       aHorizontalPercentBasis,
-                       aVerticalPercentBasis,
+                       aInlineDirPercentBasis,
+                       aBlockDirPercentBasis,
                        aBorder, aPadding);
 
   
@@ -2242,8 +2247,8 @@ nsCSSOffsetState::InitOffsets(nscoord aHorizontalPercentBasis,
   
   
   
-  bool needMarginProp = ComputeMargin(aHorizontalPercentBasis,
-                                      aVerticalPercentBasis);
+  bool needMarginProp = ComputeMargin(aInlineDirPercentBasis,
+                                      aBlockDirPercentBasis);
   
   
   
@@ -2276,8 +2281,8 @@ nsCSSOffsetState::InitOffsets(nscoord aHorizontalPercentBasis,
 	  (frame->GetStateBits() & NS_FRAME_REFLOW_ROOT);
   }
   else {
-    needPaddingProp = ComputePadding(aHorizontalPercentBasis,
-                                     aVerticalPercentBasis, aFrameType);
+    needPaddingProp = ComputePadding(aInlineDirPercentBasis,
+                                     aBlockDirPercentBasis, aFrameType);
   }
 
   if (isThemed) {
@@ -2586,8 +2591,8 @@ nsHTMLReflowState::CalcLineHeight(nsIContent* aContent,
 }
 
 bool
-nsCSSOffsetState::ComputeMargin(nscoord aHorizontalPercentBasis,
-                                nscoord aVerticalPercentBasis)
+nsCSSOffsetState::ComputeMargin(nscoord aInlineDirPercentBasis,
+                                nscoord aBlockDirPercentBasis)
 {
   
   if (frame->IsSVGText()) {
@@ -2599,38 +2604,44 @@ nsCSSOffsetState::ComputeMargin(nscoord aHorizontalPercentBasis,
   bool isCBDependent = !styleMargin->GetMargin(ComputedPhysicalMargin());
   if (isCBDependent) {
     
-    ComputedPhysicalMargin().left = nsLayoutUtils::
-      ComputeCBDependentValue(aHorizontalPercentBasis,
+    LogicalMargin m(mWritingMode);
+    nscoord horizontalPercentBasis =
+      mWritingMode.IsVertical() ? aBlockDirPercentBasis
+                                : aInlineDirPercentBasis;
+    m.Left(mWritingMode) = nsLayoutUtils::
+      ComputeCBDependentValue(horizontalPercentBasis,
                               styleMargin->mMargin.GetLeft());
-    ComputedPhysicalMargin().right = nsLayoutUtils::
-      ComputeCBDependentValue(aHorizontalPercentBasis,
+    m.Right(mWritingMode) = nsLayoutUtils::
+      ComputeCBDependentValue(horizontalPercentBasis,
                               styleMargin->mMargin.GetRight());
 
-    ComputedPhysicalMargin().top = nsLayoutUtils::
-      ComputeCBDependentValue(aVerticalPercentBasis,
+    nscoord verticalPercentBasis =
+      mWritingMode.IsVertical() ? aInlineDirPercentBasis
+                                : aBlockDirPercentBasis;
+    m.Top(mWritingMode) = nsLayoutUtils::
+      ComputeCBDependentValue(verticalPercentBasis,
                               styleMargin->mMargin.GetTop());
-    ComputedPhysicalMargin().bottom = nsLayoutUtils::
-      ComputeCBDependentValue(aVerticalPercentBasis,
+    m.Bottom(mWritingMode) = nsLayoutUtils::
+      ComputeCBDependentValue(verticalPercentBasis,
                               styleMargin->mMargin.GetBottom());
+
+    SetComputedLogicalMargin(m);
   }
 
   nscoord marginAdjustment = FontSizeInflationListMarginAdjustment(frame);
 
   if (marginAdjustment > 0) {
-    const nsStyleVisibility* visibility = frame->StyleVisibility();
-    if (visibility->mDirection == NS_STYLE_DIRECTION_RTL) {
-      ComputedPhysicalMargin().right = ComputedPhysicalMargin().right + marginAdjustment;
-    } else {
-      ComputedPhysicalMargin().left = ComputedPhysicalMargin().left + marginAdjustment;
-    }
+    LogicalMargin m = ComputedLogicalMargin();
+    m.IStart(mWritingMode) += marginAdjustment;
+    SetComputedLogicalMargin(m);
   }
 
   return isCBDependent;
 }
 
 bool
-nsCSSOffsetState::ComputePadding(nscoord aHorizontalPercentBasis,
-                                 nscoord aVerticalPercentBasis,
+nsCSSOffsetState::ComputePadding(nscoord aInlineDirPercentBasis,
+                                 nscoord aBlockDirPercentBasis,
                                  nsIAtom* aFrameType)
 {
   
@@ -2647,19 +2658,28 @@ nsCSSOffsetState::ComputePadding(nscoord aHorizontalPercentBasis,
   else if (isCBDependent) {
     
     
-    ComputedPhysicalPadding().left = std::max(0, nsLayoutUtils::
-      ComputeCBDependentValue(aHorizontalPercentBasis,
+    LogicalMargin p(mWritingMode);
+    nscoord horizontalPercentBasis =
+      mWritingMode.IsVertical() ? aBlockDirPercentBasis
+                                : aInlineDirPercentBasis;
+    p.Left(mWritingMode) = std::max(0, nsLayoutUtils::
+      ComputeCBDependentValue(horizontalPercentBasis,
                               stylePadding->mPadding.GetLeft()));
-    ComputedPhysicalPadding().right = std::max(0, nsLayoutUtils::
-      ComputeCBDependentValue(aHorizontalPercentBasis,
+    p.Right(mWritingMode) = std::max(0, nsLayoutUtils::
+      ComputeCBDependentValue(horizontalPercentBasis,
                               stylePadding->mPadding.GetRight()));
 
-    ComputedPhysicalPadding().top = std::max(0, nsLayoutUtils::
-      ComputeCBDependentValue(aVerticalPercentBasis,
+    nscoord verticalPercentBasis =
+      mWritingMode.IsVertical() ? aInlineDirPercentBasis
+                                : aBlockDirPercentBasis;
+    p.Top(mWritingMode) = std::max(0, nsLayoutUtils::
+      ComputeCBDependentValue(verticalPercentBasis,
                               stylePadding->mPadding.GetTop()));
-    ComputedPhysicalPadding().bottom = std::max(0, nsLayoutUtils::
-      ComputeCBDependentValue(aVerticalPercentBasis,
+    p.Bottom(mWritingMode) = std::max(0, nsLayoutUtils::
+      ComputeCBDependentValue(verticalPercentBasis,
                               stylePadding->mPadding.GetBottom()));
+
+    SetComputedLogicalPadding(p);
   }
   return isCBDependent;
 }

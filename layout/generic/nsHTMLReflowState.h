@@ -166,8 +166,8 @@ public:
   
   static void* DisplayInitOffsetsEnter(nsIFrame* aFrame,
                                        nsCSSOffsetState* aState,
-                                       nscoord aHorizontalPercentBasis,
-                                       nscoord aVerticalPercentBasis,
+                                       nscoord aInlineDirPercentBasis,
+                                       nscoord aBlockDirPercentBasis,
                                        const nsMargin* aBorder,
                                        const nsMargin* aPadding);
   static void DisplayInitOffsetsExit(nsIFrame* aFrame,
@@ -189,8 +189,8 @@ private:
 
 
 
-  bool ComputeMargin(nscoord aHorizontalPercentBasis,
-                     nscoord aVerticalPercentBasis);
+  bool ComputeMargin(nscoord aInlineDirPercentBasis,
+                     nscoord aBlockDirPercentBasis);
   
   
 
@@ -205,13 +205,13 @@ private:
 
 
 
-   bool ComputePadding(nscoord aHorizontalPercentBasis,
-                       nscoord aVerticalPercentBasis, nsIAtom* aFrameType);
+   bool ComputePadding(nscoord aInlineDirPercentBasis,
+                       nscoord aBlockDirPercentBasis, nsIAtom* aFrameType);
 
 protected:
 
-  void InitOffsets(nscoord aHorizontalPercentBasis,
-                   nscoord aVerticalPercentBasis,
+  void InitOffsets(nscoord aInlineDirPercentBasis,
+                   nscoord aBlockDirPercentBasis,
                    nsIAtom* aFrameType,
                    const nsMargin *aBorder = nullptr,
                    const nsMargin *aPadding = nullptr);
