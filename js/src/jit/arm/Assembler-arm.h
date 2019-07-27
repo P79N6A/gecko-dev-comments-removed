@@ -1799,6 +1799,12 @@ class Assembler : public AssemblerShared
     bool bailed() {
         return m_buffer.bail();
     }
+
+    void verifyHeapAccessDisassembly(uint32_t begin, uint32_t end,
+                                     const Disassembler::HeapAccess &heapAccess)
+    {
+        
+    }
 }; 
 
 

@@ -300,6 +300,7 @@ CodeGeneratorX64::visitAsmJSLoadHeap(LAsmJSLoadHeap *ins)
           MOZ_CRASH("unexpected array type");
     }
     uint32_t after = masm.size();
+    verifyHeapAccessDisassembly(before, after, true, vt, srcAddr, *out->output());
     if (ool)
         masm.bind(ool->rejoin());
     memoryBarrier(ins->mir()->barrierAfter());
@@ -366,6 +367,7 @@ CodeGeneratorX64::visitAsmJSStoreHeap(LAsmJSStoreHeap *ins)
         }
     }
     uint32_t after = masm.size();
+    verifyHeapAccessDisassembly(before, after, false, vt, dstAddr, *ins->value());
     if (rejoin.used())
         masm.bind(&rejoin);
     memoryBarrier(ins->mir()->barrierAfter());
