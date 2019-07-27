@@ -196,14 +196,16 @@ APZCCallbackHelper::UpdateRootFrame(nsIPresShell* aPresShell,
   CSSSize scrollPort = aMetrics.CalculateCompositedSizeInCssPixels();
   nsLayoutUtils::SetScrollPositionClampingScrollPortSize(aPresShell, scrollPort);
 
-  nsIContent* content = nsLayoutUtils::FindContentFor(aMetrics.GetScrollId());
-  ScrollFrame(content, aMetrics);
-
   
   
   presShellResolution = aMetrics.GetPresShellResolution()
                       * aMetrics.GetAsyncZoom().scale;
   nsLayoutUtils::SetResolutionAndScaleTo(aPresShell, presShellResolution);
+
+  
+  
+  nsIContent* content = nsLayoutUtils::FindContentFor(aMetrics.GetScrollId());
+  ScrollFrame(content, aMetrics);
 
   SetDisplayPortMargins(aPresShell, content, aMetrics);
 }
