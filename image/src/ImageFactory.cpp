@@ -48,6 +48,7 @@ ComputeImageFlags(ImageURL* uri, const nsCString& aMimeType, bool isMultiPart)
   bool isDiscardable = gfxPrefs::ImageMemDiscardable();
   bool doDecodeOnlyOnDraw = gfxPrefs::ImageDecodeOnlyOnDrawEnabled() &&
                             gfxPrefs::AsyncPanZoomEnabled();
+  bool doDecodeImmediately = gfxPrefs::ImageDecodeImmediatelyEnabled();
   bool doDownscaleDuringDecode = gfxPrefs::ImageDownscaleDuringDecodeEnabled();
 
   
@@ -75,6 +76,11 @@ ComputeImageFlags(ImageURL* uri, const nsCString& aMimeType, bool isMultiPart)
   }
 
   
+  if (doDecodeImmediately) {
+    doDecodeOnlyOnDraw = false;
+  }
+
+  
   
   if (isMultiPart) {
     isDiscardable = doDecodeOnlyOnDraw = doDownscaleDuringDecode = false;
@@ -87,6 +93,9 @@ ComputeImageFlags(ImageURL* uri, const nsCString& aMimeType, bool isMultiPart)
   }
   if (doDecodeOnlyOnDraw) {
     imageFlags |= Image::INIT_FLAG_DECODE_ONLY_ON_DRAW;
+  }
+  if (doDecodeImmediately) {
+    imageFlags |= Image::INIT_FLAG_DECODE_IMMEDIATELY;
   }
   if (isMultiPart) {
     imageFlags |= Image::INIT_FLAG_TRANSIENT;

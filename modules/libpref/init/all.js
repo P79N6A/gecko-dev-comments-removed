@@ -3845,6 +3845,10 @@ pref("image.cache.timeweight", 500);
 pref("image.decode-only-on-draw.enabled", true);
 
 
+
+pref("image.decode-immediately.enabled", false);
+
+
 pref("image.downscale-during-decode.enabled", false);
 
 
