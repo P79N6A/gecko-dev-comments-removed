@@ -256,6 +256,9 @@ class MNode : public TempObject
 
   protected:
     
+    friend void AssertBasicGraphCoherency(MIRGraph &graph);
+
+    
     virtual MUse *getUseFor(size_t index) = 0;
     virtual const MUse *getUseFor(size_t index) const = 0;
 };
