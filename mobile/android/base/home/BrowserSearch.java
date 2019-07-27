@@ -294,7 +294,7 @@ public class BrowserSearch extends HomeFragment
                 }
 
                 
-                position -= getSuggestEngineCount();
+                position -= getPrimaryEngineCount();
                 final Cursor c = mAdapter.getCursor(position);
                 final String url = c.getString(c.getColumnIndexOrThrow(URLColumns.URL));
 
@@ -317,7 +317,7 @@ public class BrowserSearch extends HomeFragment
                 }
 
                 
-                position -= getSuggestEngineCount();
+                position -= getPrimaryEngineCount();
                 return mList.onItemLongClick(parent, view, position, id);
             }
         });
@@ -345,7 +345,9 @@ public class BrowserSearch extends HomeFragment
         
         
         
-        mSearchEngineBar.setSearchEngines(mSearchEngines);
+        mSearchEngineBar.setSearchEngines(
+                mSearchEngines.subList(getPrimaryEngineCount(), mSearchEngines.size())
+        );
         mSearchEngineBar.setOnSearchBarClickListener(this);
     }
 
@@ -584,7 +586,9 @@ public class BrowserSearch extends HomeFragment
                 mAdapter.notifyDataSetChanged();
             }
 
-            mSearchEngineBar.setSearchEngines(mSearchEngines);
+            mSearchEngineBar.setSearchEngines(
+                    mSearchEngines.subList(getPrimaryEngineCount(), mSearchEngines.size())
+            );
 
             
             
@@ -733,8 +737,8 @@ public class BrowserSearch extends HomeFragment
         mList.startAnimation(shrinkAnimation);
     }
 
-    private int getSuggestEngineCount() {
-        return (TextUtils.isEmpty(mSearchTerm) || mSuggestClient == null || !mSuggestionsEnabled) ? 0 : 1;
+    private int getPrimaryEngineCount() {
+        return mSearchEngines.size() > 0 ? 1 : 0;
     }
 
     private void restartSearchLoader() {
@@ -839,21 +843,20 @@ public class BrowserSearch extends HomeFragment
 
         @Override
         public int getItemViewType(int position) {
-            final int engine = getEngineIndex(position);
+            if (position < getPrimaryEngineCount()) {
+                if (mSuggestionsEnabled && mSearchEngines.get(position).hasSuggestions()) {
+                    
+                    
+                    
+                    
 
-            if (engine == -1) {
-                return ROW_STANDARD;
+                    return ROW_SUGGEST;
+                } else {
+                    return ROW_SEARCH;
+                }
             }
 
-            if (engine == 0 && mSuggestionsEnabled) {
-                
-                
-                
-                
-                return ROW_SUGGEST;
-            }
-
-            return ROW_SEARCH;
+            return ROW_STANDARD;
         }
 
         @Override
@@ -868,9 +871,9 @@ public class BrowserSearch extends HomeFragment
             
             
             
-            final int index = getEngineIndex(position);
-            if (index != -1) {
-                return !mSearchEngines.get(index).hasSuggestions();
+
+            if (position < getPrimaryEngineCount()) {
+                return !mSearchEngines.get(position).hasSuggestions();
             }
 
             return true;
@@ -886,7 +889,7 @@ public class BrowserSearch extends HomeFragment
                 return resultCount;
             }
 
-            return resultCount + mSearchEngines.size();
+            return resultCount + getPrimaryEngineCount();
         }
 
         @Override
@@ -900,7 +903,7 @@ public class BrowserSearch extends HomeFragment
                 row.setOnEditSuggestionListener(mEditSuggestionListener);
                 row.setSearchTerm(mSearchTerm);
 
-                final SearchEngine engine = mSearchEngines.get(getEngineIndex(position));
+                final SearchEngine engine = mSearchEngines.get(position);
                 final boolean animate = (mAnimateSuggestions && engine.hasSuggestions());
                 row.updateFromSearchEngine(engine, animate);
                 if (animate) {
@@ -909,30 +912,12 @@ public class BrowserSearch extends HomeFragment
                 }
             } else {
                 
-                position -= getSuggestEngineCount();
+                position -= getPrimaryEngineCount();
 
                 final Cursor c = getCursor(position);
                 final TwoLinePageRow row = (TwoLinePageRow) view;
                 row.updateFromCursor(c);
             }
-        }
-
-        private int getEngineIndex(int position) {
-            final int resultCount = super.getCount();
-            final int suggestEngineCount = getSuggestEngineCount();
-
-            
-            if (position < suggestEngineCount) {
-                return position;
-            }
-
-            
-            if (position - suggestEngineCount < resultCount) {
-                return -1;
-            }
-
-            
-            return position - resultCount;
         }
     }
 
