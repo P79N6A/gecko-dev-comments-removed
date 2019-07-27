@@ -16,6 +16,8 @@ const TETHERING_SETTING_END_IP = "192.168.1.30";
 const TETHERING_SETTING_DNS1 = "8.8.8.8";
 const TETHERING_SETTING_DNS2 = "8.8.4.4";
 
+const TETHERING_NETWORK_ADDR = "192.168.1.0/24";
+
 
 
 
@@ -24,6 +26,7 @@ const TETHERING_SETTING_SECURITY = "open";
 const TETHERING_SETTING_KEY = "1234567890";
 
 const SETTINGS_RIL_DATA_ENABLED = 'ril.data.enabled';
+const SETTINGS_KEY_DATA_APN_SETTINGS = "ril.data.apnSettings";
 
 
 Promise.defer = function() { return new Deferred(); }
@@ -204,6 +207,20 @@ let gTestSuite = (function() {
   
 
 
+  function getDataApnSettings(aAllowError) {
+    return getSettings(SETTINGS_KEY_DATA_APN_SETTINGS, aAllowError);
+  }
+
+  
+
+
+  function setDataApnSettings(aApnSettings, aAllowError) {
+    return setSettings1(SETTINGS_KEY_DATA_APN_SETTINGS, aApnSettings, aAllowError);
+  }
+
+  
+
+
 
 
 
@@ -304,9 +321,13 @@ let gTestSuite = (function() {
 
 
 
-  function verifyTetheringRouting(aEnabled) {
+
+
+
+  function verifyTetheringRouting(aEnabled, aIsDun) {
     let netcfgResult = {};
     let ipRouteResult = {};
+    let ipSecondaryRouteResult = {};
 
     
     
@@ -418,8 +439,76 @@ let gTestSuite = (function() {
         });
     }
 
+    
+    
+    function verifyIpRule() {
+      if (!aIsDun) {
+        return;
+      }
+
+      return runEmulatorShellSafe(['ip', 'rule', 'show'])
+        .then(function (aLines) {
+          
+          
+          
+          
+          
+          
+          
+          let tableId = (function findTableId() {
+            for (let i = 0; i < aLines.length; i++) {
+              let tokens = aLines[i].split(/\s+/);
+              if (-1 != tokens.indexOf(TETHERING_NETWORK_ADDR)) {
+                let lookupIndex = tokens.indexOf('lookup');
+                if (lookupIndex < 0 || lookupIndex + 1 >= tokens.length) {
+                  return;
+                }
+                return tokens[lookupIndex + 1];
+              }
+            }
+            return;
+          })();
+
+          if ((aEnabled && !tableId) || (!aEnabled && tableId)) {
+            throw 'Secondary table' + (tableId ? '' : ' not') + ' found while tethering is ' +
+                  (aEnabled ? 'enabled' : 'disabled');
+          }
+
+          return tableId;
+        });
+    }
+
+    
+    
+    function execAndParseSecondaryTable(aTableId) {
+      if (!aIsDun || !aEnabled) {
+        return;
+      }
+
+      return runEmulatorShellSafe(['ip', 'route', 'show', 'table', aTableId])
+        .then(function (aLines) {
+          
+          aLines.forEach(function (aLine) {
+            let tokens = aLine.split(/\s+/);
+            if (tokens.length < 2) {
+              return;
+            }
+            if ('default' === tokens[0]) {
+              let ifnameIndex = tokens.indexOf('dev');
+              if (ifnameIndex < 0 || ifnameIndex + 1 >= tokens.length) {
+                return;
+              }
+              let ifname = tokens[ifnameIndex + 1];
+              ipSecondaryRouteResult[ifname] = { default: true };
+              return;
+            }
+          });
+        });
+    }
+
     function verifyDefaultRouteAndIp(aExpectedWifiTetheringIp) {
       log(JSON.stringify(ipRouteResult));
+      log(JSON.stringify(ipSecondaryRouteResult));
       log(JSON.stringify(netcfgResult));
 
       if (aEnabled) {
@@ -429,10 +518,19 @@ let gTestSuite = (function() {
         isOrThrow(ipRouteResult['wlan0'].src, netcfgResult['wlan0'].ip, 'wlan0.ip');
         isOrThrow(ipRouteResult['wlan0'].src, aExpectedWifiTetheringIp, 'expected ip');
         isOrThrow(ipRouteResult['wlan0'].default, false, 'wlan0.default');
+
+        if (aIsDun) {
+          isOrThrow(ipRouteResult['rmnet1'].src, netcfgResult['rmnet1'].ip, 'rmnet1.ip');
+          isOrThrow(ipRouteResult['rmnet1'].default, false, 'rmnet1.default');
+          
+          isOrThrow(ipSecondaryRouteResult['rmnet1'].default, true, 'secondary rmnet1.default');
+        }
       }
     }
 
     return verifyIptables()
+      .then(verifyIpRule)
+      .then(tableId => execAndParseSecondaryTable(tableId))
       .then(exeAndParseNetcfg)
       .then(exeAndParseIpRoute)
       .then(() => verifyDefaultRouteAndIp(TETHERING_SETTING_IP));
@@ -453,7 +551,9 @@ let gTestSuite = (function() {
 
 
 
-  function setWifiTetheringEnabled(aEnabled) {
+
+
+  function setWifiTetheringEnabled(aEnabled, aIsDun) {
     let RETRY_INTERVAL_MS = 1000;
     let retryCnt = 20;
 
@@ -472,7 +572,7 @@ let gTestSuite = (function() {
 
     return tetheringManager.setTetheringEnabled(aEnabled, TYPE_WIFI, config)
       .then(function waitForRoutingVerified() {
-        return verifyTetheringRouting(aEnabled)
+        return verifyTetheringRouting(aEnabled, aIsDun)
           .then(null, function onreject(aReason) {
 
             log('verifyTetheringRouting rejected due to ' + aReason +
@@ -602,6 +702,9 @@ let gTestSuite = (function() {
   
   suite.ensureWifiEnabled = ensureWifiEnabled;
   suite.setWifiTetheringEnabled = setWifiTetheringEnabled;
+  suite.getDataApnSettings = getDataApnSettings;
+  suite.setDataApnSettings = setDataApnSettings;
+
 
   
 
