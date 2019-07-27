@@ -3536,17 +3536,17 @@ nsHTMLEditRules::WillMakeBasicBlock(Selection* aSelection,
     
     
     
-    nsCOMArray<nsIDOMNode> arrayOfDOMNodes;
-    for (auto& node : arrayOfNodes) {
-      arrayOfDOMNodes.AppendObject(GetAsDOMNode(node));
-    }
-    if (tString.EqualsLiteral("blockquote"))
+    if (tString.EqualsLiteral("blockquote")) {
       res = MakeBlockquote(arrayOfNodes);
-    else if (tString.EqualsLiteral("normal") ||
-             tString.IsEmpty() )
-      res = RemoveBlockStyle(arrayOfDOMNodes);
-    else
+    } else if (tString.EqualsLiteral("normal") || tString.IsEmpty()) {
+      res = RemoveBlockStyle(arrayOfNodes);
+    } else {
+      nsCOMArray<nsIDOMNode> arrayOfDOMNodes;
+      for (auto& node : arrayOfNodes) {
+        arrayOfDOMNodes.AppendObject(GetAsDOMNode(node));
+      }
       res = ApplyBlockStyle(arrayOfDOMNodes, aBlockType);
+    }
     return res;
   }
   return res;
@@ -4311,25 +4311,18 @@ nsHTMLEditRules::WillOutdent(Selection* aSelection,
 
 
 
-
-
-
-nsresult 
-nsHTMLEditRules::RemovePartOfBlock(nsIDOMNode *aBlock, 
-                                   nsIDOMNode *aStartChild, 
-                                   nsIDOMNode *aEndChild,
-                                   nsCOMPtr<nsIDOMNode> *aLeftNode,
-                                   nsCOMPtr<nsIDOMNode> *aRightNode)
+nsresult
+nsHTMLEditRules::RemovePartOfBlock(Element& aBlock,
+                                   nsIContent& aStartChild,
+                                   nsIContent& aEndChild)
 {
-  nsCOMPtr<nsIDOMNode> middleNode;
-  nsresult res = SplitBlock(aBlock, aStartChild, aEndChild,
-                            aLeftNode, aRightNode,
-                            address_of(middleNode));
+  nsresult res = SplitBlock(aBlock.AsDOMNode(), aStartChild.AsDOMNode(),
+                            aEndChild.AsDOMNode());
   NS_ENSURE_SUCCESS(res, res);
   
 
   NS_ENSURE_STATE(mHTMLEditor);
-  return mHTMLEditor->RemoveBlockContainer(aBlock);
+  return mHTMLEditor->RemoveBlockContainer(aBlock.AsDOMNode());
 }
 
 nsresult 
@@ -6869,112 +6862,89 @@ nsHTMLEditRules::MakeBlockquote(nsTArray<nsCOMPtr<nsINode>>& aNodeArray)
 
 
 
-
-nsresult 
-nsHTMLEditRules::RemoveBlockStyle(nsCOMArray<nsIDOMNode>& arrayOfNodes)
+nsresult
+nsHTMLEditRules::RemoveBlockStyle(nsTArray<nsCOMPtr<nsINode>>& aNodeArray)
 {
-  
-  
-  
-  
-  nsresult res = NS_OK;
-  
-  nsCOMPtr<nsIDOMNode> curBlock, firstNode, lastNode;
-  int32_t listCount = arrayOfNodes.Count();
-  for (int32_t i = 0; i < listCount; ++i) {
-    
-    nsCOMPtr<nsIDOMNode> curNode = arrayOfNodes[i];
+  NS_ENSURE_STATE(mHTMLEditor);
+  nsCOMPtr<nsIEditor> kungFuDeathGrip(mHTMLEditor);
 
-    nsCOMPtr<dom::Element> curElement = do_QueryInterface(curNode);
+  
+  
+  
+  nsresult res;
 
+  nsCOMPtr<Element> curBlock;
+  nsCOMPtr<nsIContent> firstNode, lastNode;
+  for (auto& curNode : aNodeArray) {
     
-    if (curElement && nsHTMLEditUtils::IsFormatNode(curElement)) {
+    if (nsHTMLEditUtils::IsFormatNode(curNode)) {
       
-      if (curBlock)
-      {
-        res = RemovePartOfBlock(curBlock, firstNode, lastNode);
+      if (curBlock) {
+        res = RemovePartOfBlock(*curBlock, *firstNode, *lastNode);
         NS_ENSURE_SUCCESS(res, res);
-        curBlock = 0;  firstNode = 0;  lastNode = 0;
+        firstNode = lastNode = curBlock = nullptr;
       }
       
-      NS_ENSURE_STATE(mHTMLEditor);
-      res = mHTMLEditor->RemoveBlockContainer(curNode); 
+      res = mHTMLEditor->RemoveBlockContainer(curNode->AsDOMNode());
       NS_ENSURE_SUCCESS(res, res);
-    } else if (curElement &&
-               (curElement->IsAnyOfHTMLElements(nsGkAtoms::table,
-                                                nsGkAtoms::tr,
-                                                nsGkAtoms::tbody,
-                                                nsGkAtoms::td,
-                                                nsGkAtoms::li,
-                                                nsGkAtoms::blockquote,
-                                                nsGkAtoms::div) ||
-                nsHTMLEditUtils::IsList(curElement))) {
+    } else if (curNode->IsAnyOfHTMLElements(nsGkAtoms::table,
+                                            nsGkAtoms::tr,
+                                            nsGkAtoms::tbody,
+                                            nsGkAtoms::td,
+                                            nsGkAtoms::li,
+                                            nsGkAtoms::blockquote,
+                                            nsGkAtoms::div) ||
+                nsHTMLEditUtils::IsList(curNode)) {
       
-      if (curBlock)
-      {
-        res = RemovePartOfBlock(curBlock, firstNode, lastNode);
+      if (curBlock) {
+        res = RemovePartOfBlock(*curBlock, *firstNode, *lastNode);
         NS_ENSURE_SUCCESS(res, res);
-        curBlock = 0;  firstNode = 0;  lastNode = 0;
+        firstNode = lastNode = curBlock = nullptr;
       }
       
       nsTArray<nsCOMPtr<nsINode>> childArray;
-      GetChildNodesForOperation(*curElement, childArray);
-      nsCOMArray<nsIDOMNode> childArrayDOM;
-      for (auto& child : childArray) {
-        childArrayDOM.AppendObject(GetAsDOMNode(child));
-      }
-      res = RemoveBlockStyle(childArrayDOM);
+      GetChildNodesForOperation(*curNode, childArray);
+      res = RemoveBlockStyle(childArray);
       NS_ENSURE_SUCCESS(res, res);
-    }
-    else if (IsInlineNode(curNode))
-    {
-      if (curBlock)
-      {
+    } else if (IsInlineNode(GetAsDOMNode(curNode))) {
+      if (curBlock) {
         
-        if (nsEditorUtils::IsDescendantOf(curNode, curBlock))
-        {
-          lastNode = curNode;
-          continue;  
-        }
-        else
-        {
+        if (nsEditorUtils::IsDescendantOf(curNode, curBlock)) {
+          
+          lastNode = curNode->AsContent();
+          continue;
+        } else {
           
           
           
-          res = RemovePartOfBlock(curBlock, firstNode, lastNode);
+          res = RemovePartOfBlock(*curBlock, *firstNode, *lastNode);
           NS_ENSURE_SUCCESS(res, res);
-          curBlock = 0;  firstNode = 0;  lastNode = 0;
+          firstNode = lastNode = curBlock = nullptr;
           
         }
       }
-      NS_ENSURE_STATE(mHTMLEditor);
       curBlock = mHTMLEditor->GetBlockNodeParent(curNode);
       if (curBlock && nsHTMLEditUtils::IsFormatNode(curBlock)) {
-        firstNode = curNode;  
-        lastNode = curNode;
+        firstNode = lastNode = curNode->AsContent();
+      } else {
+        
+        curBlock = nullptr;
       }
-      else
-        curBlock = 0;  
-    }
-    else
-    { 
+    } else if (curBlock) {
       
-      if (curBlock)
-      {
-        res = RemovePartOfBlock(curBlock, firstNode, lastNode);
-        NS_ENSURE_SUCCESS(res, res);
-        curBlock = 0;  firstNode = 0;  lastNode = 0;
-      }
+      
+      res = RemovePartOfBlock(*curBlock, *firstNode, *lastNode);
+      NS_ENSURE_SUCCESS(res, res);
+      firstNode = lastNode = curBlock = nullptr;
     }
   }
   
-  if (curBlock)
-  {
-    res = RemovePartOfBlock(curBlock, firstNode, lastNode);
+  if (curBlock) {
+    res = RemovePartOfBlock(*curBlock, *firstNode, *lastNode);
     NS_ENSURE_SUCCESS(res, res);
-    curBlock = 0;  firstNode = 0;  lastNode = 0;
+    firstNode = lastNode = curBlock = nullptr;
   }
-  return res;
+  return NS_OK;
 }
 
 
