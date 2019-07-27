@@ -207,13 +207,11 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
       MOZ_ASSERT(tex.get());
       compositable->UseTextureHost(tex);
 
-      if (IsAsync()) {
+      if (IsAsync() && compositable->GetLayer()) {
         ScheduleComposition(op);
         
         
-        if (compositable->GetLayer()) {
-          compositable->GetLayer()->SetInvalidRectToVisibleRegion();
-        }
+        compositable->GetLayer()->SetInvalidRectToVisibleRegion();
       }
       break;
     }
