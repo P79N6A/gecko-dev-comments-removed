@@ -2,25 +2,26 @@
 
 
 
+
+
+
+
 'use strict';
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
-const Cr = Components.results;
+const {utils: Cu, interfaces: Ci} = Components;
 
-this.EXPORTED_SYMBOLS = ['AccessFu'];
+this.EXPORTED_SYMBOLS = ['AccessFu']; 
 
 Cu.import('resource://gre/modules/Services.jsm');
 Cu.import('resource://gre/modules/accessibility/Utils.jsm');
 
-const ACCESSFU_DISABLE = 0;
+const ACCESSFU_DISABLE = 0; 
 const ACCESSFU_ENABLE = 1;
 const ACCESSFU_AUTO = 2;
 
 const SCREENREADER_SETTING = 'accessibility.screenreader';
 
-this.AccessFu = {
+this.AccessFu = { 
   
 
 
@@ -76,8 +77,9 @@ this.AccessFu = {
 
 
   _enable: function _enable() {
-    if (this._enabled)
+    if (this._enabled) {
       return;
+    }
     this._enabled = true;
 
     Cu.import('resource://gre/modules/accessibility/Utils.jsm');
@@ -86,7 +88,7 @@ this.AccessFu = {
 
     Logger.info('Enabled');
 
-    for each (let mm in Utils.AllMessageManagers) {
+    for (let mm of Utils.AllMessageManagers) {
       this._addMessageListeners(mm);
       this._loadFrameScript(mm);
     }
@@ -142,8 +144,9 @@ this.AccessFu = {
 
 
   _disable: function _disable() {
-    if (!this._enabled)
+    if (!this._enabled) {
       return;
+    }
 
     this._enabled = false;
 
@@ -155,7 +158,7 @@ this.AccessFu = {
       this.announce('screenReaderStopped');
     }
 
-    for each (let mm in Utils.AllMessageManagers) {
+    for (let mm of Utils.AllMessageManagers) {
       mm.sendAsyncMessage('AccessFu:Stop');
       this._removeMessageListeners(mm);
     }
@@ -193,10 +196,11 @@ this.AccessFu = {
       }
       let activatePref = this._activatePref.value;
       if (activatePref == ACCESSFU_ENABLE ||
-          this._systemPref && activatePref == ACCESSFU_AUTO)
+          this._systemPref && activatePref == ACCESSFU_AUTO) {
         this._enable();
-      else
+      } else {
         this._disable();
+      }
     } catch (x) {
       dump('Error ' + x.message + ' ' + x.fileName + ':' + x.lineNumber);
     }
@@ -231,9 +235,10 @@ this.AccessFu = {
   },
 
   _output: function _output(aPresentationData, aBrowser) {
-    for each (let presenter in aPresentationData) {
-      if (!presenter)
+    for (let presenter of aPresentationData) {
+      if (!presenter) {
         continue;
+      }
 
       try {
         Output[presenter.type](presenter.details, aBrowser);
@@ -398,44 +403,46 @@ this.AccessFu = {
 
 
 
-  adjustContentBounds: function(aJsonBounds, aBrowser, aToCSSPixels, aFromDevicePixels) {
-    let bounds = new Rect(aJsonBounds.left, aJsonBounds.top,
-                          aJsonBounds.right - aJsonBounds.left,
-                          aJsonBounds.bottom - aJsonBounds.top);
-    let win = Utils.win;
-    let dpr = win.devicePixelRatio;
-    let vp = Utils.getViewport(win);
-    let offset = { left: -win.mozInnerScreenX, top: -win.mozInnerScreenY };
+  adjustContentBounds:
+    function(aJsonBounds, aBrowser, aToCSSPixels, aFromDevicePixels) {
+      let bounds = new Rect(aJsonBounds.left, aJsonBounds.top,
+                            aJsonBounds.right - aJsonBounds.left,
+                            aJsonBounds.bottom - aJsonBounds.top);
+      let win = Utils.win;
+      let dpr = win.devicePixelRatio;
+      let vp = Utils.getViewport(win);
+      let offset = { left: -win.mozInnerScreenX, top: -win.mozInnerScreenY };
 
-    if (!aBrowser.contentWindow) {
+      if (!aBrowser.contentWindow) {
+        
+        
+        let clientRect = aBrowser.getBoundingClientRect();
+        let win = aBrowser.ownerDocument.defaultView;
+        offset.left += clientRect.left + win.mozInnerScreenX;
+        offset.top += clientRect.top + win.mozInnerScreenY;
+      }
+
       
       
-      let clientRect = aBrowser.getBoundingClientRect();
-      let win = aBrowser.ownerDocument.defaultView;
-      offset.left += clientRect.left + win.mozInnerScreenX;
-      offset.top += clientRect.top + win.mozInnerScreenY;
+      
+      
+      
+      if (!aFromDevicePixels && vp) {
+        bounds = bounds.scale(vp.zoom / dpr, vp.zoom / dpr);
+      }
+
+      
+      
+      bounds = bounds.translate(offset.left * dpr, offset.top * dpr);
+
+      
+      
+      if (aToCSSPixels) {
+        bounds = bounds.scale(1 / dpr, 1 / dpr);
+      }
+
+      return bounds.expandToIntegers();
     }
-
-    
-    
-    
-    
-    if (!aFromDevicePixels && vp) {
-      bounds = bounds.scale(vp.zoom / dpr, vp.zoom / dpr);
-    }
-
-    
-    
-    bounds = bounds.translate(offset.left * dpr, offset.top * dpr);
-
-    
-    
-    if (aToCSSPixels) {
-      bounds = bounds.scale(1 / dpr, 1 / dpr);
-    }
-
-    return bounds.expandToIntegers();
-  }
 };
 
 var Output = {
@@ -450,6 +457,7 @@ var Output = {
       if (aOutput && 'output' in aOutput) {
         this.startOffset = aOutput.startOffset;
         this.endOffset = aOutput.endOffset;
+        
         
         
         this.text = aOutput.output + ' ';
@@ -499,8 +507,10 @@ var Output = {
       braille.startOffset = this.startOffset;
       braille.endOffset = this.endOffset;
       braille.text = this.text;
-      this.selectionStart = braille.selectionStart = aSelection.selectionStart + this.startOffset;
-      this.selectionEnd = braille.selectionEnd = aSelection.selectionEnd + this.startOffset;
+      this.selectionStart = braille.selectionStart =
+        aSelection.selectionStart + this.startOffset;
+      this.selectionEnd = braille.selectionEnd =
+        aSelection.selectionEnd + this.startOffset;
 
       return braille;
     }
@@ -577,8 +587,9 @@ var Output = {
       case 'tabstate-change':
       {
         let highlightBox = this.highlightBox ? this.highlightBox.get() : null;
-        if (highlightBox)
+        if (highlightBox) {
           highlightBox.style.display = 'none';
+        }
         break;
       }
     }
@@ -602,20 +613,25 @@ var Output = {
       return;
     }
 
-    for each (let androidEvent in aDetails) {
+    for (let androidEvent of aDetails) {
       androidEvent.type = 'Accessibility:Event';
-      if (androidEvent.bounds)
-        androidEvent.bounds = AccessFu.adjustContentBounds(androidEvent.bounds, aBrowser);
+      if (androidEvent.bounds) {
+        androidEvent.bounds = AccessFu.adjustContentBounds(
+          androidEvent.bounds, aBrowser);
+      }
 
       switch(androidEvent.eventType) {
         case ANDROID_VIEW_TEXT_CHANGED:
-          androidEvent.brailleOutput = this.brailleState.adjustText(androidEvent.text);
+          androidEvent.brailleOutput = this.brailleState.adjustText(
+            androidEvent.text);
           break;
         case ANDROID_VIEW_TEXT_SELECTION_CHANGED:
-          androidEvent.brailleOutput = this.brailleState.adjustSelection(androidEvent.brailleOutput);
+          androidEvent.brailleOutput = this.brailleState.adjustSelection(
+            androidEvent.brailleOutput);
           break;
         default:
-          androidEvent.brailleOutput = this.brailleState.init(androidEvent.brailleOutput);
+          androidEvent.brailleOutput = this.brailleState.init(
+            androidEvent.brailleOutput);
           break;
       }
       this.androidBridge.handleGeckoMessage(androidEvent);
@@ -731,16 +747,18 @@ var Input = {
     let target = aEvent.target;
 
     
-    if (aEvent.ctrlKey || aEvent.altKey || aEvent.metaKey)
+    if (aEvent.ctrlKey || aEvent.altKey || aEvent.metaKey) {
       return;
+    }
 
     switch (aEvent.keyCode) {
       case 0:
         
         
         
-        if (this.editState.editing)
+        if (this.editState.editing) {
           return;
+        }
 
         let key = String.fromCharCode(aEvent.charCode);
         try {
@@ -752,43 +770,50 @@ var Input = {
         break;
       case aEvent.DOM_VK_RIGHT:
         if (this.editState.editing) {
-          if (!this.editState.atEnd)
+          if (!this.editState.atEnd) {
             
             
             return;
-          else
+          } else {
             target.blur();
+          }
         }
-        this.moveCursor(aEvent.shiftKey ? 'moveLast' : 'moveNext', 'Simple', 'keyboard');
+        this.moveCursor(aEvent.shiftKey ?
+          'moveLast' : 'moveNext', 'Simple', 'keyboard');
         break;
       case aEvent.DOM_VK_LEFT:
         if (this.editState.editing) {
-          if (!this.editState.atStart)
+          if (!this.editState.atStart) {
             
             
             return;
-          else
+          } else {
             target.blur();
+          }
         }
-        this.moveCursor(aEvent.shiftKey ? 'moveFirst' : 'movePrevious', 'Simple', 'keyboard');
+        this.moveCursor(aEvent.shiftKey ?
+          'moveFirst' : 'movePrevious', 'Simple', 'keyboard');
         break;
       case aEvent.DOM_VK_UP:
         if (this.editState.multiline) {
-          if (!this.editState.atStart)
+          if (!this.editState.atStart) {
             
             return;
-          else
+          } else {
             target.blur();
+          }
         }
 
-        if (Utils.MozBuildApp == 'mobile/android')
+        if (Utils.MozBuildApp == 'mobile/android') {
           
           Services.androidBridge.handleGeckoMessage(
               { type: 'ToggleChrome:Focus' });
+        }
         break;
       case aEvent.DOM_VK_RETURN:
-        if (this.editState.editing)
+        if (this.editState.editing) {
           return;
+        }
         this.activateCurrent();
         break;
     default:
@@ -862,7 +887,8 @@ var Input = {
 
   activateContextMenu: function activateContextMenu(aDetails) {
     if (Utils.MozBuildApp === 'mobile/android') {
-      let p = AccessFu.adjustContentBounds(aDetails.bounds, Utils.CurrentBrowser,
+      let p = AccessFu.adjustContentBounds(aDetails.bounds,
+                                           Utils.CurrentBrowser,
                                            true, true).center();
       Services.obs.notifyObservers(null, 'Gesture:LongPress',
                                    JSON.stringify({x: p.x, y: p.y}));
@@ -881,7 +907,8 @@ var Input = {
 
   sendScrollMessage: function sendScrollMessage(aPage, aHorizontal) {
     let mm = Utils.getMessageManager(Utils.CurrentBrowser);
-    mm.sendAsyncMessage('AccessFu:Scroll', {page: aPage, horizontal: aHorizontal, origin: 'top'});
+    mm.sendAsyncMessage('AccessFu:Scroll',
+      {page: aPage, horizontal: aHorizontal, origin: 'top'});
   },
 
   doScroll: function doScroll(aDetails) {
@@ -940,13 +967,15 @@ var Input = {
     },
 
     previous: function quickNavMode_previous() {
-      if (--this._currentIndex < 0)
+      if (--this._currentIndex < 0) {
         this._currentIndex = this.modes.length - 1;
+      }
     },
 
     next: function quickNavMode_next() {
-      if (++this._currentIndex >= this.modes.length)
+      if (++this._currentIndex >= this.modes.length) {
         this._currentIndex = 0;
+      }
     },
 
     updateModes: function updateModes(aModes) {
