@@ -3205,7 +3205,8 @@ bool MediaDecoderStateMachine::JustExitedQuickBuffering()
 
 void MediaDecoderStateMachine::StartBuffering()
 {
-  AssertCurrentThreadInMonitor();
+  MOZ_ASSERT(OnTaskQueue());
+  ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
 
   if (mState != DECODER_STATE_DECODING) {
     

@@ -254,11 +254,17 @@ public:
   
   void UpdatePlaybackPosition(int64_t aTime);
 
-  
+private:
   
   
   
   void StartBuffering();
+public:
+
+  void DispatchStartBuffering()
+  {
+    TaskQueue()->Dispatch(NS_NewRunnableMethod(this, &MediaDecoderStateMachine::StartBuffering));
+  }
 
   
   
