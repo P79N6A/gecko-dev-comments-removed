@@ -53,7 +53,7 @@ TriggerAnimationAtTime(nsRefPtrHashKey<dom::Animation>* aKey,
                     void* aReadyTime)
 {
   dom::Animation* animation = aKey->GetKey();
-  dom::AnimationTimeline* timeline = animation->Timeline();
+  dom::AnimationTimeline* timeline = animation->GetTimeline();
 
   
   
