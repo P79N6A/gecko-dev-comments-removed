@@ -217,7 +217,12 @@ public:
   
   
   
+  
+  
   virtual media::TimeIntervals GetBuffered();
+
+  
+  virtual void UpdateBuffered();
 
   
   virtual bool ForceZeroStartTime() const { return false; }
@@ -240,12 +245,14 @@ public:
   virtual size_t SizeOfAudioQueueInFrames();
 
 protected:
+  friend class TrackBuffer;
   virtual void NotifyDataArrivedInternal(uint32_t aLength, int64_t aOffset) { }
   void NotifyDataArrived(uint32_t aLength, int64_t aOffset)
   {
     MOZ_ASSERT(OnTaskQueue());
     NS_ENSURE_TRUE_VOID(!mShutdown);
     NotifyDataArrivedInternal(aLength, aOffset);
+    UpdateBuffered();
   }
 
 public:
@@ -276,7 +283,20 @@ public:
   
   
   virtual bool IsMediaSeekable() = 0;
-  void SetStartTime(int64_t aStartTime);
+
+  void DispatchSetStartTime(int64_t aStartTime)
+  {
+    nsRefPtr<MediaDecoderReader> self = this;
+    nsCOMPtr<nsIRunnable> r =
+      NS_NewRunnableFunction([self, aStartTime] () -> void
+    {
+      MOZ_ASSERT(self->OnTaskQueue());
+      MOZ_ASSERT(self->mStartTime == -1);
+      self->mStartTime = aStartTime;
+      self->UpdateBuffered();
+    });
+    TaskQueue()->Dispatch(r.forget());
+  }
 
   MediaTaskQueue* TaskQueue() {
     return mTaskQueue;
@@ -334,6 +354,15 @@ protected:
 
   
   nsRefPtr<MediaTaskQueue> mTaskQueue;
+
+  
+  WatchManager<MediaDecoderReader> mWatchManager;
+
+  
+  Canonical<media::TimeIntervals> mBuffered;
+public:
+  AbstractCanonical<media::TimeIntervals>* CanonicalBuffered() { return &mBuffered; }
+protected:
 
   
   MediaInfo mInfo;
