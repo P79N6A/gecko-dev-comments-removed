@@ -801,7 +801,7 @@ MediaEngineGonkVideoSource::OnNewMediaBufferFrame(MediaBuffer* aBuffer)
       
       
       GonkCameraImage* cameraImage = static_cast<GonkCameraImage*>(mImage.get());
-      cameraImage->SetBuffer(aBuffer);
+      cameraImage->SetMediaBuffer(aBuffer);
     } else {
       LOG(("mImage is non-GrallocImage"));
     }
@@ -822,7 +822,7 @@ MediaEngineGonkVideoSource::OnNewMediaBufferFrame(MediaBuffer* aBuffer)
       GonkCameraImage* cameraImage = static_cast<GonkCameraImage*>(mImage.get());
       
       
-      cameraImage->ClearBuffer();
+      cameraImage->ClearMediaBuffer();
     }
   }
 
