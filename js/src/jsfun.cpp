@@ -374,7 +374,7 @@ ResolveInterpretedFunctionPrototype(JSContext* cx, HandleFunction fun, HandleId 
     
     
     
-    MOZ_ASSERT(!IsInternalFunctionObject(fun));
+    MOZ_ASSERT(!IsInternalFunctionObject(*fun));
     MOZ_ASSERT(!fun->isBoundFunction());
 
     
@@ -461,7 +461,7 @@ fun_resolve(JSContext* cx, HandleObject obj, HandleId id, bool* resolvedp)
 
     bool isLength = JSID_IS_ATOM(id, cx->names().length);
     if (isLength || JSID_IS_ATOM(id, cx->names().name)) {
-        MOZ_ASSERT(!IsInternalFunctionObject(obj));
+        MOZ_ASSERT(!IsInternalFunctionObject(*obj));
 
         RootedValue v(cx);
 
