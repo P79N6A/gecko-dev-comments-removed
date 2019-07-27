@@ -3058,7 +3058,7 @@ class MNewObject
     bool canRecoverOnBailout() const MOZ_OVERRIDE {
         
         
-        return true;
+        return templateObject() != nullptr;
     }
 };
 
