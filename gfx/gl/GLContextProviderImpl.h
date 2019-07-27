@@ -10,6 +10,9 @@
 #ifndef GL_CONTEXT_PROVIDER_NAME
 #error GL_CONTEXT_PROVIDER_NAME not defined
 #endif
+#if defined(ANDROID)
+typedef void* EGLSurface;
+#endif 
 
 class GL_CONTEXT_PROVIDER_NAME
 {
@@ -75,6 +78,11 @@ public:
 
     static already_AddRefed<GLContext>
     CreateWrappingExisting(void* aContext, void* aSurface);
+
+#if defined(ANDROID)
+    static EGLSurface CreateEGLSurface(void* aWindow);
+    static void DestroyEGLSurface(EGLSurface surface);
+#endif 
 
     
 
