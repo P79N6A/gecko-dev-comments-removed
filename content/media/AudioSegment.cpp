@@ -154,7 +154,8 @@ AudioSegment::WriteTo(uint64_t aID, AudioMixer& aMixer, uint32_t aOutputChannels
   
   uint32_t offset = 0;
 
-  if (!GetDuration()) {
+  if (GetDuration() <= 0) {
+    MOZ_ASSERT(GetDuration() == 0);
     return;
   }
 
