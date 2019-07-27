@@ -479,7 +479,22 @@ protected:
 
   
   
+  
+  
   bool HasLowDecodedData(int64_t aAudioUsecs);
+
+  bool OutOfDecodedAudio()
+  {
+    return IsAudioDecoding() && !AudioQueue().IsFinished() && AudioQueue().GetSize() == 0;
+  }
+
+  bool OutOfDecodedVideo()
+  {
+    
+    int emptyVideoSize = mState == DECODER_STATE_BUFFERING ? 1 : 0;
+    return IsVideoDecoding() && !VideoQueue().IsFinished() && VideoQueue().GetSize() <= emptyVideoSize;
+  }
+
 
   
   
