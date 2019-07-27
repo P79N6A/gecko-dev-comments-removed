@@ -374,6 +374,19 @@ this.AppsUtils = {
 
 
 
+
+
+  checkAppRole: function(aRole, aStatus) {
+    if (aRole == "theme" && aStatus !== Ci.nsIPrincipal.APP_STATUS_CERTIFIED) {
+      return false;
+    }
+    return true;
+  },
+
+  
+
+
+
   ensureSameAppName: function ensureSameAppName(aOldManifest, aNewManifest, aApp) {
     
     aNewManifest.name = aApp.name;
