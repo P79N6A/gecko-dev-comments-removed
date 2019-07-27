@@ -16,6 +16,7 @@
 #include "nsIDNSListener.h"
 #include "nsString.h"
 #include "nsTArray.h"
+#include "nsAutoPtr.h"
 #include "mozilla/net/DNS.h"
 #include "mozilla/net/DashboardTypes.h"
 #include "mozilla/TimeStamp.h"
@@ -30,6 +31,17 @@ class nsResolveHostCallback;
 
 #define MAX_RESOLVER_THREADS (MAX_RESOLVER_THREADS_FOR_ANY_PRIORITY + \
                               MAX_RESOLVER_THREADS_FOR_HIGH_PRIORITY)
+
+#if XP_WIN
+
+
+
+
+
+#define DO_MERGE_FOR_AF_UNSPEC 1
+#else
+#define DO_MERGE_FOR_AF_UNSPEC 0
+#endif
 
 struct nsHostKey
 {
@@ -69,7 +81,10 @@ public:
 
 
     Mutex        addr_info_lock;
-    int          addr_info_gencnt; 
+    
+
+
+    int          addr_info_gencnt;
     mozilla::net::AddrInfo *addr_info;
     mozilla::net::NetAddr  *addr;
     bool         negative;   
@@ -100,6 +115,23 @@ private:
     bool    onQueue;  
     bool    usingAnyThread; 
     bool    mDoomed; 
+
+#if DO_MERGE_FOR_AF_UNSPEC
+    
+    
+    uint16_t mInnerAF;
+    static const uint16_t UNSPECAF_NULL = -1;
+
+    
+    
+    nsHostRecord* mCloneOf;
+
+    
+    
+    int mNumPending;
+
+    nsresult CloneForAFUnspec(nsHostRecord** aNewRecord, uint16_t aUnspecAF);
+#endif
 
     
     
@@ -244,12 +276,19 @@ private:
    ~nsHostResolver();
 
     nsresult Init();
-    nsresult IssueLookup(nsHostRecord *);
     bool     GetHostToLookup(nsHostRecord **m);
     void     OnLookupComplete(nsHostRecord *, nsresult, mozilla::net::AddrInfo *);
     void     DeQueue(PRCList &aQ, nsHostRecord **aResult);
     void     ClearPendingQueue(PRCList *aPendingQueue);
     nsresult ConditionallyCreateThread(nsHostRecord *rec);
+
+    
+    
+    
+    nsresult IssueLookup(nsHostRecord *);
+
+    
+    nsresult IssueLookupInternal(nsHostRecord *);
 
     
 
