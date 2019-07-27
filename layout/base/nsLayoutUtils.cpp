@@ -4325,8 +4325,8 @@ AddIntrinsicSizeOffset(nsRenderingContext* aRenderingContext,
                        const nsIFrame::IntrinsicISizeOffsetData& aOffsets,
                        nsLayoutUtils::IntrinsicISizeType aType,
                        uint8_t aBoxSizing,
-                       nscoord result,
-                       nscoord min,
+                       nscoord aContentSize,
+                       nscoord aContentMinSize,
                        const nsStyleCoord& aStyleSize,
                        const nsStyleCoord& aStyleMinSize,
                        const nsStyleCoord& aStyleMaxSize,
@@ -4340,6 +4340,8 @@ AddIntrinsicSizeOffset(nsRenderingContext* aRenderingContext,
   
   
   
+  nscoord result = aContentSize;
+  nscoord min = aContentMinSize;
   nscoord coordOutsideSize = 0;
   float pctOutsideSize = 0;
   float pctTotal = 0.0f;
@@ -4376,11 +4378,11 @@ AddIntrinsicSizeOffset(nsRenderingContext* aRenderingContext,
   result = NSCoordSaturatingAdd(result, coordOutsideSize);
   pctTotal += pctOutsideSize;
 
-  nscoord w;
-  if (GetAbsoluteCoord(aStyleSize, w) ||
+  nscoord size;
+  if (GetAbsoluteCoord(aStyleSize, size) ||
       GetIntrinsicCoord(aStyleSize, aRenderingContext, aFrame,
-                        PROP_WIDTH, w)) {
-    result = AddPercents(aType, w + coordOutsideSize, pctOutsideSize);
+                        PROP_WIDTH, size)) {
+    result = AddPercents(aType, size + coordOutsideSize, pctOutsideSize);
   }
   else if (aType == nsLayoutUtils::MIN_ISIZE &&
            
