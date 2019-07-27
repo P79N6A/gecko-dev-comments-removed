@@ -356,4 +356,25 @@ static const KeycodeLabel AXES[] = {
     { NULL, -1 }
 };
 
+static const KeycodeLabel LEDS[] = {
+    { "NUM_LOCK", 1},
+    { "CAPS_LOCK", 2},
+    { "SCROLL_LOCK", 3},
+    { "COMPOSE", 4},
+    { "KANA", 5},
+    { "SLEEP", 6},
+    { "SUSPEND", 7},
+    { "MUTE", 8},
+    { "MISC", 9},
+    { "MAIL", 10},
+    { "CHARGING", 11},
+    { "CONTROLLER_1", 12},
+    { "CONTROLLER_2", 13},
+    { "CONTROLLER_3", 14},
+    { "CONTROLLER_4", 15},
+
+    
+    { NULL, 0 }
+};
+
 #endif 
