@@ -64,7 +64,10 @@ public:
   }
 
   bool IsRunning() const;
-  bool IsCurrent() const;
+
+  bool HasCurrentSource() const {
+    return GetSource() && GetSource()->IsCurrent();
+  }
 
   
   
