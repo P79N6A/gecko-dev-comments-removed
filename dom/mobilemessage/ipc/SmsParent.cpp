@@ -53,7 +53,7 @@ MmsAttachmentDataToJSObject(JSContext* aContext,
     return nullptr;
   }
 
-  nsRefPtr<BlobImpl> blobImpl = static_cast<BlobParent*>(aAttachment.contentParent())->GetBlobImpl();
+  nsRefPtr<FileImpl> blobImpl = static_cast<BlobParent*>(aAttachment.contentParent())->GetBlobImpl();
 
   
   

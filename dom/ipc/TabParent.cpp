@@ -187,7 +187,7 @@ private:
     }
 
     
-    void OpenBlobImpl()
+    void OpenFileImpl()
     {
         MOZ_ASSERT(!NS_IsMainThread());
         MOZ_ASSERT(!mFD);
@@ -207,7 +207,7 @@ private:
     {
         MOZ_ASSERT(!NS_IsMainThread());
 
-        OpenBlobImpl();
+        OpenFileImpl();
 
         if (NS_FAILED(NS_DispatchToMainThread(this))) {
             NS_WARNING("Failed to dispatch to main thread!");

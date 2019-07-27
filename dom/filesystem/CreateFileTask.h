@@ -17,7 +17,7 @@ namespace mozilla {
 namespace dom {
 
 class Blob;
-class BlobImpl;
+class FileImpl;
 class Promise;
 
 class CreateFileTask final
@@ -76,7 +76,7 @@ private:
 
   
   
-  nsRefPtr<BlobImpl> mTargetBlobImpl;
+  nsRefPtr<FileImpl> mTargetFileImpl;
 };
 
 } 

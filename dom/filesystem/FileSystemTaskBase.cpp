@@ -154,7 +154,7 @@ FileSystemTaskBase::Recv__delete__(const FileSystemResponseValue& aValue)
 }
 
 BlobParent*
-FileSystemTaskBase::GetBlobParent(BlobImpl* aFile) const
+FileSystemTaskBase::GetBlobParent(FileImpl* aFile) const
 {
   MOZ_ASSERT(FileSystemUtils::IsParentProcess(),
              "Only call from parent process!");
@@ -180,7 +180,7 @@ FileSystemTaskBase::GetBlobParent(BlobImpl* aFile) const
   }
 
   ContentParent* cp = static_cast<ContentParent*>(mRequestParent->Manager());
-  return cp->GetOrCreateActorForBlobImpl(aFile);
+  return cp->GetOrCreateActorForFileImpl(aFile);
 }
 
 void
