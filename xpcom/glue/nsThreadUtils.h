@@ -64,17 +64,6 @@ NS_NewThread(nsIThread** aResult,
 
 
 
-
-
-extern NS_METHOD
-NS_NewUnmonitoredThread(nsIThread** aResult,
-                        nsIRunnable* aInitialEvent = nullptr,
-                        uint32_t aStackSize =
-                                 nsIThreadManager::DEFAULT_STACK_SIZE);
-
-
-
-
 template<size_t LEN>
 inline NS_METHOD
 NS_NewNamedThread(const char (&aName)[LEN],
