@@ -178,7 +178,9 @@ int32_t NetUtils::do_dhcp_do_request(const char *ifname,
     char domains[PROPERTY_VALUE_MAX];
     ret = dhcp_do_request(ifname, ipaddr, gateway, prefixLength, dns,
                           server, lease, vendorinfo, domains);
-  } else if (sdkVersion == 19) {
+  } else if (sdkVersion >= 19) {
+    
+    
     
     
     DEFINE_DLFUNC(dhcp_do_request, int32_t, const char*, char*, char*,  uint32_t*, char**, char*, uint32_t*, char*, char*, char*)
