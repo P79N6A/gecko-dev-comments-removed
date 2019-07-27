@@ -239,6 +239,19 @@ public:
 
   TextRenderer* GetTextRenderer() { return mTextRenderer; }
 
+  
+
+
+
+  void VisualFrameWarning(float severity) {
+    mozilla::TimeStamp now = TimeStamp::Now();
+    if (severity > mWarningLevel ||
+        mWarnTime + TimeDuration::FromMilliseconds(1500) < now) {
+      mWarnTime = now;
+      mWarningLevel = severity;
+    }
+  }
+
 private:
   
   nsIntRegion mClippingRegion;
@@ -277,6 +290,8 @@ private:
                                bool aInvertEffect,
                                float aContrastEffect);
 
+  float mWarningLevel;
+  mozilla::TimeStamp mWarnTime;
   RefPtr<Compositor> mCompositor;
   UniquePtr<LayerProperties> mClonedLayerTreeProperties;
 
