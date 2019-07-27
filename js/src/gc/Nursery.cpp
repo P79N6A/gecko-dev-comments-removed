@@ -895,7 +895,7 @@ js::Nursery::collect(JSRuntime *rt, JS::gcreason::Reason reason, TypeObjectList 
     
     
     
-    if (rt->gc.usage.gcBytes() >= rt->gc.tunables.gcMaxBytes())
+    if (rt->gc.usage.gcBytes() >= rt->gc.maxBytesAllocated())
         disable();
 
     TIME_END(total);
