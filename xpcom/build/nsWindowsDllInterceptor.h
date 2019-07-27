@@ -136,6 +136,8 @@ public:
       return false;
     }
 
+    fn = ResolveRedirectedAddress(fn);
+
     
     
     
@@ -201,6 +203,18 @@ public:
                            0);
 
     return true;
+  }
+
+private:
+  static byteptr_t ResolveRedirectedAddress(const byteptr_t aOriginalFunction)
+  {
+    
+    
+    if (aOriginalFunction[0] == 0xff && aOriginalFunction[1] == 0x25) {
+      return (byteptr_t)(**((uint32_t**) (aOriginalFunction + 2)));
+    }
+
+    return aOriginalFunction;
   }
 #else
   bool AddHook(const char* aName, intptr_t aHookDest, void** aOrigFunc)
@@ -311,6 +325,8 @@ public:
       
       return false;
     }
+
+    pAddr = ResolveRedirectedAddress((byteptr_t)pAddr);
 
     CreateTrampoline(pAddr, aHookDest, aOrigFunc);
     if (!*aOrigFunc) {
@@ -652,6 +668,19 @@ protected:
     mCurHooks++;
 
     return p;
+  }
+
+  static void* ResolveRedirectedAddress(const byteptr_t aOriginalFunction)
+  {
+#if defined(_M_IX86)
+    
+    
+    if (aOriginalFunction[0] == 0xff && aOriginalFunction[1] == 0x25) {
+      return (void*)(**((uint32_t**) (aOriginalFunction + 2)));
+    }
+#endif
+
+    return aOriginalFunction;
   }
 };
 
