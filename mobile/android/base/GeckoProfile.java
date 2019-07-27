@@ -203,6 +203,7 @@ public final class GeckoProfile {
     }
 
     
+    @RobocopTarget
     public static GeckoProfile createGuestProfile(Context context) {
         try {
             
