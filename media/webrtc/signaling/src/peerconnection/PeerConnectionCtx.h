@@ -8,17 +8,6 @@
 #include <string>
 
 #include "mozilla/Attributes.h"
-#include "CallControlManager.h"
-#include "CC_Device.h"
-#include "CC_DeviceInfo.h"
-#include "CC_Call.h"
-#include "CC_CallInfo.h"
-#include "CC_Line.h"
-#include "CC_LineInfo.h"
-#include "CC_Observer.h"
-#include "CC_FeatureInfo.h"
-#include "cpr_stdlib.h"
-
 #include "StaticPtr.h"
 #include "PeerConnectionImpl.h"
 #include "mozIGeckoMediaPluginService.h"
@@ -33,49 +22,14 @@ class WebrtcGlobalInformation;
 
 
 
-class SipccOfferOptions {
-public:
-  SipccOfferOptions();
-  explicit SipccOfferOptions(const dom::RTCOfferOptions &aOther);
-  cc_media_options_t* build() const;
-protected:
-  cc_media_options_t mOptions;
-};
-}
-
-namespace sipcc {
-
-class OnCallEventArgs {
-public:
-  OnCallEventArgs(ccapi_call_event_e aCallEvent, CSF::CC_CallInfoPtr aInfo)
-  : mCallEvent(aCallEvent), mInfo(aInfo) {}
-
-  ccapi_call_event_e mCallEvent;
-  CSF::CC_CallInfoPtr mInfo;
-};
 
 
-
-
-
-
-class PeerConnectionCtx : public CSF::CC_Observer {
+class PeerConnectionCtx {
  public:
   static nsresult InitializeGlobal(nsIThread *mainThread, nsIEventTarget *stsThread);
   static PeerConnectionCtx* GetInstance();
   static bool isActive();
   static void Destroy();
-
-  
-  virtual void onDeviceEvent(ccapi_device_event_e deviceEvent, CSF::CC_DevicePtr device, CSF::CC_DeviceInfoPtr info);
-  virtual void onFeatureEvent(ccapi_device_event_e deviceEvent, CSF::CC_DevicePtr device, CSF::CC_FeatureInfoPtr feature_info) {}
-  virtual void onLineEvent(ccapi_line_event_e lineEvent, CSF::CC_LinePtr line, CSF::CC_LineInfoPtr info) {}
-  virtual void onCallEvent(ccapi_call_event_e callEvent, CSF::CC_CallPtr call, CSF::CC_CallInfoPtr info) {}
-
-  
-  CSF::CC_CallPtr createCall();
-
-  mozilla::dom::PCImplSipccState sipcc_state() { return mSipccState; }
 
   bool isReady() {
     
@@ -87,6 +41,8 @@ class PeerConnectionCtx : public CSF::CC_Observer {
 
   void queueJSEPOperation(nsRefPtr<nsIRunnable> aJSEPOperation);
   void onGMPReady();
+
+  bool gmpHasH264();
 
   
   friend class PeerConnectionImpl;
@@ -104,8 +60,7 @@ class PeerConnectionCtx : public CSF::CC_Observer {
   
   std::map<const std::string, PeerConnectionImpl *> mPeerConnections;
 
-  PeerConnectionCtx() :  mSipccState(mozilla::dom::PCImplSipccState::Idle),
-                         mCCM(nullptr), mDevice(nullptr), mGMPReady(false) {}
+  PeerConnectionCtx() :  mGMPReady(false) {}
   
   PeerConnectionCtx(const PeerConnectionCtx& other) MOZ_DELETE;
   void operator=(const PeerConnectionCtx& other) MOZ_DELETE;
@@ -113,10 +68,6 @@ class PeerConnectionCtx : public CSF::CC_Observer {
 
   nsresult Initialize();
   nsresult Cleanup();
-
-  void ChangeSipccState(mozilla::dom::PCImplSipccState aState) {
-    mSipccState = aState;
-  }
 
   void initGMP();
 
@@ -135,11 +86,6 @@ public:
   nsTArray<nsAutoPtr<mozilla::dom::RTCStatsReportInternal>> mLastReports;
 private:
 #endif
-
-  
-  mozilla::dom::PCImplSipccState mSipccState;  
-  CSF::CallControlManagerPtr mCCM;
-  CSF::CC_DevicePtr mDevice;
 
   
   

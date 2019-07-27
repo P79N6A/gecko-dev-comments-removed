@@ -607,7 +607,8 @@ class TransportTestPeer : public sigslot::has_slots<> {
         connect(this, &TransportTestPeer::GotCandidate);
 
     
-    ice_ = new TransportLayerIce(name, ice_ctx_, stream, 1);
+    ice_ = new TransportLayerIce(name);
+    ice_->SetParameters(ice_ctx_, stream, 1);
 
     
     nsAutoPtr<std::queue<mozilla::TransportLayer *> > layers(

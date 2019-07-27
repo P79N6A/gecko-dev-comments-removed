@@ -22,7 +22,12 @@
 #include "nricemediastream.h"
 #include "nsComponentManagerUtils.h"
 #include "nsPIDOMWindow.h"
+#include "nsIUUIDGenerator.h"
 #include "nsIThread.h"
+
+#include "signaling/src/jsep/JsepSession.h"
+#include "signaling/src/jsep/JsepSessionImpl.h"
+#include "signaling/src/sdp/SdpMediaSection.h"
 
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/PeerConnectionImplEnumsBinding.h"
@@ -88,7 +93,6 @@ class PeerConnectionObserver;
 typedef NS_ConvertUTF8toUTF16 PCObserverString;
 #endif
 }
-class SipccOfferOptions;
 }
 
 #if defined(__cplusplus) && __cplusplus >= 201103L
@@ -110,7 +114,7 @@ already_AddRefed<resulttype> func (__VA_ARGS__, rv)
 
 struct MediaStreamTable;
 
-namespace sipcc {
+namespace mozilla {
 
 using mozilla::dom::PeerConnectionObserver;
 using mozilla::dom::RTCConfiguration;
@@ -129,6 +133,15 @@ using mozilla::PeerIdentity;
 class PeerConnectionWrapper;
 class PeerConnectionMedia;
 class RemoteSourceStreamInfo;
+
+
+class PCUuidGenerator : public mozilla::JsepUuidGenerator {
+ public:
+  virtual bool Generate(std::string* idp) MOZ_OVERRIDE;
+
+ private:
+  nsCOMPtr<nsIUUIDGenerator> mGenerator;
+};
 
 class IceConfiguration
 {
@@ -226,6 +239,7 @@ public:
 
   enum Error {
     kNoError                          = 0,
+    kInvalidCandidate                 = 2,
     kInvalidMediastreamTrack          = 3,
     kInvalidState                     = 4,
     kInvalidSessionDescription        = 5,
@@ -247,7 +261,8 @@ public:
                                           IceConfiguration *aDst);
   already_AddRefed<DOMMediaStream> MakeMediaStream(uint32_t aHint);
 
-  nsresult CreateRemoteSourceStreamInfo(nsRefPtr<RemoteSourceStreamInfo>* aInfo);
+  nsresult CreateRemoteSourceStreamInfo(nsRefPtr<RemoteSourceStreamInfo>* aInfo,
+                                        const std::string& aId);
 
   
   void NotifyDataChannel(already_AddRefed<mozilla::DataChannel> aChannel);
@@ -272,6 +287,10 @@ public:
                                 NrIceCtx::ConnectionState state);
   void IceGatheringStateChange(NrIceCtx* ctx,
                                NrIceCtx::GatheringState state);
+  
+  void EndOfLocalCandidates(const std::string& defaultAddr,
+                            uint16_t defaultPort,
+                            uint16_t level);
   void IceStreamReady(NrIceMediaStream *aStream);
 
   static void ListenThread(void *aData);
@@ -291,9 +310,6 @@ public:
 
   
   mozilla::RefPtr<DtlsIdentity> const GetIdentity() const;
-  std::string GetFingerprint() const;
-  std::string GetFingerprintAlgorithm() const;
-  std::string GetFingerprintHexValue() const;
 
   
   nsresult CreateFakeMediaStream(uint32_t hint, mozilla::DOMMediaStream** retval);
@@ -336,7 +352,8 @@ public:
     rv = CreateAnswer();
   }
 
-  NS_IMETHODIMP CreateOffer(const mozilla::SipccOfferOptions& aConstraints);
+  NS_IMETHODIMP CreateOffer(
+      const mozilla::JsepOfferOptions& aConstraints);
 
   NS_IMETHODIMP SetLocalDescription (int32_t aAction, const char* aSDP);
 
@@ -367,8 +384,6 @@ public:
     rv = AddIceCandidate(NS_ConvertUTF16toUTF8(aCandidate).get(),
                          NS_ConvertUTF16toUTF8(aMid).get(), aLevel);
   }
-
-  void OnRemoteStreamAdded(const MediaStreamTable& aStream);
 
   NS_IMETHODIMP CloseStreams();
 
@@ -477,15 +492,6 @@ public:
     return state;
   }
 
-  NS_IMETHODIMP SipccState(mozilla::dom::PCImplSipccState* aState);
-
-  mozilla::dom::PCImplSipccState SipccState()
-  {
-    mozilla::dom::PCImplSipccState state;
-    SipccState(&state);
-    return state;
-  }
-
   NS_IMETHODIMP IceConnectionState(
       mozilla::dom::PCImplIceConnectionState* aState);
 
@@ -517,8 +523,7 @@ public:
                    const nsAString& aPluginName,
                    const nsAString& aPluginDumpID);
 
-  nsresult InitializeDataChannel(int track_id, uint16_t aLocalport,
-                                 uint16_t aRemoteport, uint16_t aNumstreams);
+  nsresult InitializeDataChannel();
 
   NS_IMETHODIMP_TO_ERRORRESULT(ConnectDataConnection, ErrorResult &rv,
                                uint16_t aLocalport,
@@ -559,16 +564,6 @@ public:
   
   
   void ClearSdpParseErrorMessages();
-
-  void StartTrickle();
-
-  
-  
-  void OnNewMline(uint16_t level) {
-    if (level > mNumMlines) {
-      mNumMlines = level;
-    }
-  }
 
   void OnAddIceCandidateError() {
     ++mAddCandidateErrorCount;
@@ -613,6 +608,9 @@ private:
                            const IceConfiguration* aConfiguration,
                            const RTCConfiguration* aRTCConfiguration,
                            nsISupports* aThread);
+  nsresult CalculateFingerprint(const std::string& algorithm,
+                                std::vector<uint8_t>& fingerprint) const;
+  nsresult ConfigureJsepSessionCodecs();
 
   NS_IMETHODIMP EnsureDataConnection(uint16_t aNumstreams);
 
@@ -646,11 +644,10 @@ private:
   void SendLocalIceCandidateToContent(uint16_t level,
                                       const std::string& mid,
                                       const std::string& candidate);
-  void FoundIceCandidate(const std::string& candidate, uint16_t level);
 
-  NS_IMETHOD FingerprintSplitHelper(
-      std::string& fingerprint, size_t& spaceIdx) const;
-
+  nsresult GetDatachannelParameters(
+      const mozilla::JsepApplicationCodecDescription** codec,
+      uint16_t* level) const;
 
 #ifdef MOZILLA_INTERNAL_API
   static void GetStatsForPCObserver_s(
@@ -676,8 +673,6 @@ private:
   
   Timecard *mTimeCard;
 
-  
-  mozilla::ScopedDeletePtr<Internal> mInternal;
   mozilla::dom::PCImplSignalingState mSignalingState;
 
   
@@ -697,12 +692,6 @@ private:
   
   std::string mLocalRequestedSDP;
   std::string mRemoteRequestedSDP;
-  
-  std::string mLocalSDP;
-  std::string mRemoteSDP;
-
-  
-  std::vector<std::pair<std::string, uint16_t>> mCandidateBuffer;
 
   
   std::string mFingerprint;
@@ -740,6 +729,10 @@ private:
   bool mAllowIceLoopback;
   nsRefPtr<PeerConnectionMedia> mMedia;
 
+  
+  mozilla::UniquePtr<PCUuidGenerator> mUuidGen;
+  mozilla::UniquePtr<mozilla::JsepSession> mJsepSession;
+
 #ifdef MOZILLA_INTERNAL_API
   
   mozilla::TimeStamp mIceStartTime;
@@ -756,10 +749,6 @@ private:
 
   bool mHaveDataStream;
 
-  uint16_t mNumMlines;
-
-  
-  std::vector<std::string> mSDPParseErrorMessages;
   unsigned int mAddCandidateErrorCount;
 
   bool mTrickle;
