@@ -15,6 +15,7 @@
 #include "mozilla/TouchEvents.h"
 #include "Units.h"
 
+class nsCanvasFrame;
 class nsIFrame;
 class nsIPresShell;
 
@@ -84,7 +85,7 @@ private:
   
 
 
-  nsIFrame* GetCanvasFrame();
+  nsCanvasFrame* GetCanvasFrame();
 
   
 
