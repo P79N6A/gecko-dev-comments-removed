@@ -13,7 +13,6 @@
 
 #include "mozilla/dom/SystemDictionariesBinding.h"
 
-class nsIContentSecurityPolicy;
 class nsIObjectOutputStream;
 class nsIObjectInputStream;
 
@@ -43,7 +42,9 @@ public:
   
   
   void CreateSuffix(nsACString& aStr) const;
-  bool PopulateFromSuffix(const nsACString& aStr);
+
+  void Serialize(nsIObjectOutputStream* aStream) const;
+  nsresult Deserialize(nsIObjectInputStream* aStream);
 };
 
 
@@ -56,7 +57,7 @@ public:
 class BasePrincipal : public nsJSPrincipals
 {
 public:
-  BasePrincipal();
+  BasePrincipal() {}
 
   enum DocumentDomainConsideration { DontConsiderDocumentDomain, ConsiderDocumentDomain};
   bool Subsumes(nsIPrincipal* aOther, DocumentDomainConsideration aConsideration);
@@ -92,7 +93,7 @@ public:
   bool IsInBrowserElement() const { return mOriginAttributes.mInBrowser; }
 
 protected:
-  virtual ~BasePrincipal();
+  virtual ~BasePrincipal() {}
 
   virtual nsresult GetOriginInternal(nsACString& aOrigin) = 0;
   virtual bool SubsumesInternal(nsIPrincipal* aOther, DocumentDomainConsideration aConsider) = 0;
