@@ -227,6 +227,19 @@ public:
   #undef STYLE_STRUCT_RESET
   #undef STYLE_STRUCT_INHERITED
 
+  
+
+
+
+  bool HasSameCachedStyleData(nsStyleContext* aOther, nsStyleStructID aSID);
+
+  
+
+
+
+  bool HasCachedInheritedStyleData(nsStyleStructID aSID)
+    { return mBits & nsCachedStyleData::GetBitForSID(aSID); }
+
   nsRuleNode* RuleNode() { return mRuleNode; }
   void AddStyleBit(const uint64_t& aBit) { mBits |= aBit; }
 
