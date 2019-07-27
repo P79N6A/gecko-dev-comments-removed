@@ -3028,10 +3028,12 @@ CodeGenerator::visitCallGeneric(LCallGeneric* call)
 
     
     
-    if (call->mir()->isConstructing())
+    if (call->mir()->isConstructing()) {
         masm.branchIfNotInterpretedConstructor(calleereg, nargsreg, &invoke);
-    else
+    } else {
         masm.branchIfFunctionHasNoScript(calleereg, &invoke);
+        masm.branchFunctionKind(Assembler::Equal, JSFunction::ClassConstructor, calleereg, objreg, &invoke);
+    }
 
     
     masm.loadPtr(Address(calleereg, JSFunction::offsetOfNativeOrScript()), objreg);
@@ -3125,6 +3127,7 @@ CodeGenerator::visitCallKnown(LCallKnown* call)
 
     
     MOZ_ASSERT(!target->isNative());
+    MOZ_ASSERT_IF(target->isClassConstructor(), call->isConstructing());
     
     DebugOnly<unsigned> numNonArgsOnStack = 1 + call->isConstructing();
     MOZ_ASSERT(target->nargs() <= call->mir()->numStackArgs() - numNonArgsOnStack);

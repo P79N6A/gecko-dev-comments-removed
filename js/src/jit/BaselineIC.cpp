@@ -9560,6 +9560,10 @@ TryAttachCallStub(JSContext* cx, ICCall_Fallback* stub, HandleScript script, jsb
         if (constructing && !fun->isConstructor())
             return true;
 
+        
+        if (!constructing && fun->isClassConstructor())
+            return true;
+
         if (!fun->hasJITCode()) {
             
             
@@ -10418,10 +10422,13 @@ ICCallScriptedCompiler::generateStubCode(MacroAssembler& masm)
         
         masm.branchTestObjClass(Assembler::NotEqual, callee, regs.getAny(), &JSFunction::class_,
                                 &failure);
-        if (isConstructing_)
+        if (isConstructing_) {
             masm.branchIfNotInterpretedConstructor(callee, regs.getAny(), &failure);
-        else
+        } else {
             masm.branchIfFunctionHasNoScript(callee, &failure);
+            masm.branchFunctionKind(Assembler::Equal, JSFunction::ClassConstructor, callee,
+                                    regs.getAny(), &failure);
+        }
     }
 
     
