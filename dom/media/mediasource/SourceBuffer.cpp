@@ -488,11 +488,13 @@ SourceBuffer::AppendDataCompletedWithSuccess(bool aHasActiveTracks)
       }
     }
   }
-  if (mActive) {
+  if (mActive && mIsUsingFormatReader) {
     
     
     
     mMediaSource->GetDecoder()->NotifyDataArrived(nullptr, 1, mReportedOffset++);
+    
+    mMediaSource->GetDecoder()->NotifyBytesDownloaded();
   }
 
   CheckEndTime();
