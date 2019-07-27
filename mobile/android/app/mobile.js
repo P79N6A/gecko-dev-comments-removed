@@ -406,6 +406,9 @@ pref("devtools.errorconsole.enabled", false);
 
 pref("devtools.debugger.unix-domain-socket", "/data/data/@ANDROID_PACKAGE_NAME@/firefox-debugger-socket");
 
+pref("devtools.remote.usb.enabled", false);
+pref("devtools.remote.wifi.enabled", false);
+
 pref("font.size.inflation.minTwips", 0);
 
 
@@ -591,7 +594,7 @@ pref("media.mediasource.enabled", true);
 
 
 pref("image.downscale-during-decode.enabled", true);
-pref("image.decode-only-on-draw.enabled", false);
+pref("image.decode-only-on-draw.enabled", true);
 
 #ifdef NIGHTLY_BUILD
 
