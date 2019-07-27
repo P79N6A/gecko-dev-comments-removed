@@ -159,10 +159,13 @@ private:
     OnDemuxFailed(TrackType::kAudioTrack, aFailure);
   }
 
+  void DoEvictData(const TimeUnit& aPlaybackTime, uint32_t aThreshold);
+
   struct TrackData {
     TrackData()
       : mNumTracks(0)
       , mNeedRandomAccessPoint(true)
+      , mSizeBuffer(0)
     {}
     uint32_t mNumTracks;
     Maybe<TimeUnit> mLastDecodeTimestamp;
@@ -176,6 +179,7 @@ private:
     
     nsTArray<TrackBuffer> mBuffers;
     TimeIntervals mBufferedRanges;
+    uint32_t mSizeBuffer;
   };
   bool ProcessFrame(MediaRawData* aSample, TrackData& aTrackData);
   MediaPromiseRequestHolder<CodedFrameProcessingPromise> mProcessingRequest;
@@ -222,6 +226,9 @@ private:
   Atomic<bool> mAbort;
   
   Atomic<bool> mEnded;
+
+  
+  Atomic<int64_t> mSizeSourceBuffer;
 
   
   mutable Monitor mMonitor;
