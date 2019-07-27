@@ -231,8 +231,7 @@ function* UpdateTests(front, win, client) {
 
 
 function test() {
-  waitForExplicitFinish();
-  addTab(MAIN_DOMAIN + "storage-updates.html", function(doc) {
+  addTab(MAIN_DOMAIN + "storage-updates.html").then(function(doc) {
     try {
       
       

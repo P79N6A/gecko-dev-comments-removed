@@ -124,10 +124,8 @@ function getServerTabActor(callback) {
 }
 
 function test() {
-  waitForExplicitFinish();
-
   
-  addTab(URL1, function(doc) {
+  addTab(URL1).then(function(doc) {
     getServerTabActor(function (tabActor) {
       
       events.on(tabActor, "will-navigate", function (data) {
