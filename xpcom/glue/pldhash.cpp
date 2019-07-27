@@ -910,7 +910,7 @@ PLDHashTable::Iterator::Iterator(const PLDHashTable* aTable)
   
   uint32_t capacity = mTable->Capacity();
 
-  if (ChaosMode::isActive(ChaosMode::HashTableIteration)) {
+  if (ChaosMode::isActive(ChaosMode::HashTableIteration) && capacity > 0) {
     
     
     
