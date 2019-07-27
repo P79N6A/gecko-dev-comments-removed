@@ -627,6 +627,9 @@ ImportLoader::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
   mDocument->SetMasterDocument(master);
 
   
+  mDocument->SetSandboxFlags(master->GetSandboxFlags());
+
+  
   
   nsCOMPtr<nsIStreamListener> listener;
   nsCOMPtr<nsILoadGroup> loadGroup;
