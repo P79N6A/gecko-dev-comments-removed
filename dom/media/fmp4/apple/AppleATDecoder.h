@@ -34,15 +34,29 @@ public:
   
   const mp4_demuxer::AudioDecoderConfig& mConfig;
 
+  
+  Vector<uint8_t> mMagicCookie;
+  
+  
+  bool mFileStreamError;
+
 private:
   RefPtr<MediaTaskQueue> mTaskQueue;
   MediaDataDecoderCallback* mCallback;
   AudioConverterRef mConverter;
   AudioStreamBasicDescription mOutputFormat;
   UInt32 mFormatID;
+  AudioFileStreamID mStream;
+  nsTArray<nsAutoPtr<mp4_demuxer::MP4Sample>> mQueuedSamples;
 
   void SubmitSample(nsAutoPtr<mp4_demuxer::MP4Sample> aSample);
-  nsresult GetInputAudioDescription(AudioStreamBasicDescription& aDesc);
+  nsresult DecodeSample(mp4_demuxer::MP4Sample* aSample);
+  nsresult GetInputAudioDescription(AudioStreamBasicDescription& aDesc,
+                                    const Vector<uint8_t>& aExtraData);
+  
+  
+  nsresult SetupDecoder(mp4_demuxer::MP4Sample* aSample);
+  nsresult GetImplicitAACMagicCookie(const mp4_demuxer::MP4Sample* aSample);
 };
 
 } 
