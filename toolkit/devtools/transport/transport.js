@@ -754,4 +754,120 @@ ChildDebuggerTransport.prototype = {
 
 exports.ChildDebuggerTransport = ChildDebuggerTransport;
 
+
+
+
+
+
+
+
+
+
+
+if (!this.isWorker) {
+  (function () { 
+    
+
+
+
+    function WorkerDebuggerTransport(dbg, id) {
+      this._dbg = dbg;
+      this._id = id;
+      this.onMessage = this._onMessage.bind(this);
+    }
+
+    WorkerDebuggerTransport.prototype = {
+      constructor: WorkerDebuggerTransport,
+
+      ready: function () {
+        this._dbg.addListener(this);
+      },
+
+      close: function () {
+        this._dbg.removeListener(this);
+        if (this.hooks) {
+          this.hooks.onClosed();
+        }
+      },
+
+      send: function (packet) {
+        this._dbg.postMessage(JSON.stringify({
+          type: "message",
+          id: this._id,
+          message: packet
+        }));
+      },
+
+      startBulkSend: function () {
+        throw new Error("Can't send bulk data from worker threads!");
+      },
+
+      _onMessage: function (message) {
+        let packet = JSON.parse(message);
+        if (packet.type !== "message" || packet.id !== this._id) {
+          return;
+        }
+
+        if (this.hooks) {
+          this.hooks.onPacket(packet.message);
+        }
+      }
+    };
+
+    exports.WorkerDebuggerTransport = WorkerDebuggerTransport;
+  }).call(this);
+} else {
+  (function () { 
+    
+
+
+
+    function WorkerDebuggerTransport(scope, id) {
+      this._scope = scope;
+      this._id = id;
+      this._onMessage = this._onMessage.bind(this);
+    }
+
+    WorkerDebuggerTransport.prototype = {
+      constructor: WorkerDebuggerTransport,
+
+      ready: function () {
+        this._scope.addEventListener("message", this._onMessage);
+      },
+
+      close: function () {
+        this._scope.removeEventListener("message", this._onMessage);
+        if (this.hooks) {
+          this.hooks.onClosed();
+        }
+      },
+
+      send: function (packet) {
+        this._scope.postMessage(JSON.stringify({
+          type: "message",
+          id: this._id,
+          message: packet
+        }));
+      },
+
+      startBulkSend: function () {
+        throw new Error("Can't send bulk data from worker threads!");
+      },
+
+      _onMessage: function (event) {
+        let packet = JSON.parse(event.data);
+        if (packet.type !== "message" || packet.id !== this._id) {
+          return;
+        }
+
+        if (this.hooks) {
+          this.hooks.onPacket(packet.message);
+        }
+      }
+    };
+
+    exports.WorkerDebuggerTransport = WorkerDebuggerTransport;
+  }).call(this);
+}
+
 });
