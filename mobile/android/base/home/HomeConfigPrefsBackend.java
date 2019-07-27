@@ -100,6 +100,22 @@ class HomeConfigPrefsBackend implements HomeConfigBackend {
     
 
 
+    private static boolean allPanelsAreDisabled(JSONArray jsonPanels) throws JSONException {
+        final int count = jsonPanels.length();
+        for (int i = 0; i < count; i++) {
+            final JSONObject jsonPanelConfig = jsonPanels.getJSONObject(i);
+
+            if (!jsonPanelConfig.optBoolean(PanelConfig.JSON_KEY_DISABLED, false)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    
+
+
 
 
 
@@ -144,8 +160,13 @@ class HomeConfigPrefsBackend implements HomeConfigBackend {
             switch (v) {
                 case 1:
                     
-                    final PanelConfig recentTabsConfig = createBuiltinPanelConfig(context, PanelType.RECENT_TABS);
-                    final JSONObject jsonRecentTabsConfig = recentTabsConfig.toJSON();
+                    final JSONObject jsonRecentTabsConfig =
+                            createBuiltinPanelConfig(context, PanelType.RECENT_TABS).toJSON();
+
+                    
+                    
+                    jsonRecentTabsConfig.put(PanelConfig.JSON_KEY_DISABLED,
+                                             allPanelsAreDisabled(originalJsonPanels));
 
                     
                     if (!HardwareUtils.isTablet()) {
