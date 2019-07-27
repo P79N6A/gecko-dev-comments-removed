@@ -177,6 +177,7 @@ private:
   nsRefPtr<Manager> mManager;
   State mState;
   QuotaInfo mQuotaInfo;
+  nsRefPtr<QuotaInitRunnable> mInitRunnable;
   nsTArray<PendingAction> mPendingActions;
 
   
