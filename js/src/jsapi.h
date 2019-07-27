@@ -4037,7 +4037,6 @@ JS_DecompileFunctionBody(JSContext *cx, JS::Handle<JSFunction*> fun, unsigned in
 
 
 
-
 extern JS_PUBLIC_API(bool)
 JS_ExecuteScript(JSContext *cx, JS::HandleObject obj, JS::HandleScript script, JS::MutableHandleValue rval);
 
@@ -4066,23 +4065,6 @@ extern JS_PUBLIC_API(bool)
 CloneAndExecuteScript(JSContext *cx, JS::Handle<JSObject*> obj, JS::Handle<JSScript*> script);
 
 } 
-
-extern JS_PUBLIC_API(bool)
-JS_EvaluateScript(JSContext *cx, JS::HandleObject obj,
-                  const char *bytes, unsigned length,
-                  const char *filename, unsigned lineno,
-                  JS::MutableHandleValue rval);
-
-extern JS_PUBLIC_API(bool)
-JS_EvaluateScript(JSContext *cx, JS::HandleObject obj,
-                  const char *bytes, unsigned length,
-                  const char *filename, unsigned lineno);
-
-extern JS_PUBLIC_API(bool)
-JS_EvaluateUCScript(JSContext *cx, JS::Handle<JSObject*> obj,
-                    const char16_t *chars, unsigned length,
-                    const char *filename, unsigned lineno,
-                    JS::MutableHandle<JS::Value> rval);
 
 namespace JS {
 
