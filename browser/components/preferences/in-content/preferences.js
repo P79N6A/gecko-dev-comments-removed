@@ -79,6 +79,22 @@ function init_all() {
   helpCmd.addEventListener("command", helpButtonCommand);
 
   
+  let catPadding = Number.parseInt(getComputedStyle(categories)
+                                     .getPropertyValue('padding-top'));
+  let fullHeight = categories.lastElementChild.getBoundingClientRect().bottom;
+  let mediaRule = `
+  @media (max-height: ${fullHeight}px) {
+    #categories {
+      padding-top: calc(100vh - ${fullHeight - catPadding}px);
+    }
+  }
+  `;
+  let mediaStyle = document.createElementNS('http://www.w3.org/1999/xhtml', 'html:style');
+  mediaStyle.setAttribute('type', 'text/css');
+  mediaStyle.appendChild(document.createCDATASection(mediaRule));
+  document.documentElement.appendChild(mediaStyle);
+
+  
   
   Services.obs.notifyObservers(window, "advanced-pane-loaded", null);
 }

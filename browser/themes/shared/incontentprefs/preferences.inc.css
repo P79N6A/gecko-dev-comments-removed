@@ -33,6 +33,16 @@ treecol {
   overflow-x: hidden !important;
 }
 
+
+
+
+
+
+#categories > .category[hidden="true"] {
+  display: -moz-box;
+  visibility: collapse;
+}
+
 .category-icon {
   list-style-image: url("chrome://browser/skin/preferences/in-content/icons.png");
 }
