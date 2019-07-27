@@ -17,6 +17,7 @@
 #include "nsRefPtrHashtable.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/MediaKeysBinding.h"
+#include "mozilla/dom/UnionTypes.h"
 
 namespace mozilla {
 
@@ -30,6 +31,12 @@ typedef nsRefPtrHashtable<nsStringHashKey, MediaKeySession> KeySessionHashMap;
 typedef nsRefPtrHashtable<nsUint32HashKey, dom::Promise> PromiseHashMap;
 typedef nsRefPtrHashtable<nsUint32HashKey, MediaKeySession> PendingKeySessionsHashMap;
 typedef uint32_t PromiseId;
+
+
+
+bool
+CopyArrayBufferViewOrArrayBufferData(const ArrayBufferViewOrArrayBuffer& aBufferOrView,
+                                     nsTArray<uint8_t>& aOutData);
 
 
 
@@ -53,7 +60,7 @@ public:
 
   
   already_AddRefed<Promise> CreateSession(const nsAString& aInitDataType,
-                                          const Uint8Array& aInitData,
+                                          const ArrayBufferViewOrArrayBuffer& aInitData,
                                           SessionType aSessionType,
                                           ErrorResult& aRv);
 
@@ -62,7 +69,7 @@ public:
                                         ErrorResult& aRv);
 
   
-  already_AddRefed<Promise> SetServerCertificate(const Uint8Array& aServerCertificate,
+  already_AddRefed<Promise> SetServerCertificate(const ArrayBufferViewOrArrayBuffer& aServerCertificate,
                                                  ErrorResult& aRv);
 
   

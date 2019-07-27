@@ -10,7 +10,6 @@
 #include "nsString.h"
 #include "nsAutoPtr.h"
 #include "mozilla/dom/MediaKeys.h"
-#include "mozilla/dom/TypedArray.h"
 #include "mozilla/Monitor.h"
 #include "nsIThread.h"
 #include "GMPDecryptorProxy.h"
@@ -39,7 +38,6 @@ public:
 class CDMProxy {
   typedef dom::PromiseId PromiseId;
   typedef dom::SessionType SessionType;
-  typedef dom::Uint8Array Uint8Array;
 public:
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CDMProxy)
@@ -59,7 +57,7 @@ public:
   void CreateSession(dom::SessionType aSessionType,
                      PromiseId aPromiseId,
                      const nsAString& aInitDataType,
-                     const Uint8Array& aInitData);
+                     nsTArray<uint8_t>& aInitData);
 
   
   
@@ -73,7 +71,7 @@ public:
   
   
   void SetServerCertificate(PromiseId aPromiseId,
-                            const Uint8Array& aCert);
+                            nsTArray<uint8_t>& aCert);
 
   
   
@@ -82,7 +80,7 @@ public:
   
   void UpdateSession(const nsAString& aSessionId,
                      PromiseId aPromiseId,
-                     const Uint8Array& aResponse);
+                     nsTArray<uint8_t>& aResponse);
 
   
   
