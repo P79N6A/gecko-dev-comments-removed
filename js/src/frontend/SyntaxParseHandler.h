@@ -229,7 +229,7 @@ class SyntaxParseHandler
     Node setInParens(Node pn) {
         
         
-        return NodeGeneric;
+        return (pn == NodeString) ? NodeGeneric : pn;
     }
     void setPrologue(Node pn) {}
 
