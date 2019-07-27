@@ -154,50 +154,6 @@ public class FaviconDecoder {
     
 
 
-
-
-
-
-
-
-
-    public static Bitmap getMostSuitableBitmapFromDataURI(String iconURI, int desiredWidth) {
-        LoadFaviconResult result = FaviconDecoder.decodeDataURI(iconURI);
-        if (result == null) {
-            
-            Log.w(LOG_TAG, "Unable to decode icon URI.");
-            return null;
-        }
-
-        final Iterator<Bitmap> bitmaps = result.getBitmaps();
-        if (!bitmaps.hasNext()) {
-            Log.w(LOG_TAG, "No bitmaps in decoded icon.");
-            return null;
-        }
-
-        Bitmap bitmap = bitmaps.next();
-        if (!bitmaps.hasNext()) {
-            
-            return bitmap;
-        }
-
-        
-        int currentWidth = bitmap.getWidth();
-        while ((currentWidth < desiredWidth) &&
-               bitmaps.hasNext()) {
-            final Bitmap b = bitmaps.next();
-            if (b.getWidth() > currentWidth) {
-                currentWidth = b.getWidth();
-                bitmap = b;
-            }
-        }
-
-        return bitmap;
-    }
-
-    
-
-
     static class SingleBitmapIterator implements Iterator<Bitmap> {
         private Bitmap bitmap;
 
