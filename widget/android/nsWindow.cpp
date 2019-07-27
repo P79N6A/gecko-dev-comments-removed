@@ -929,10 +929,6 @@ nsWindow::OnGlobalAndroidEvent(AndroidGeckoEvent *ae)
             }
             break;
 
-        case AndroidGeckoEvent::COMPOSITOR_CREATE:
-            win->CreateLayerManager(ae->Width(), ae->Height());
-            break;
-
         case AndroidGeckoEvent::COMPOSITOR_PAUSE:
             
             
@@ -943,6 +939,10 @@ nsWindow::OnGlobalAndroidEvent(AndroidGeckoEvent *ae)
             }
             sCompositorPaused = true;
             break;
+
+        case AndroidGeckoEvent::COMPOSITOR_CREATE:
+            win->CreateLayerManager(ae->Width(), ae->Height());
+            
 
         case AndroidGeckoEvent::COMPOSITOR_RESUME:
             
