@@ -236,7 +236,7 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
   aDesiredSize.SetSize(wm, maxSize);
   aDesiredSize.SetOverflowAreasToDesiredBounds();
 
-  if (IsAbsoluteContainer()) {
+  if (HasAbsolutelyPositionedChildren()) {
     
     
     nsHTMLReflowState reflowState(aReflowState);
