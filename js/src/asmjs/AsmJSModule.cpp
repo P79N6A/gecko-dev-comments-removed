@@ -97,6 +97,10 @@ AsmJSModule::AsmJSModule(ScriptSource* scriptSource, uint32_t srcStart, uint32_t
     pod.strict_ = strict;
     pod.usesSignalHandlers_ = canUseSignalHandlers;
 
+    
+    
+    MOZ_ASSERT(pod.minHeapLength_ - AsmJSCheckedImmediateRange <= pod.minHeapLength_);
+
     scriptSource_->incref();
 }
 
