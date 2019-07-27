@@ -264,19 +264,6 @@ public:
                                  nsINode* aEndParent, int32_t aEndOffset,
                                  bool aClampToEdge, bool aFlushLayout);
 
-  
-
-
-
-
-
-
-
-
-
-
-  void ExcludeNonSelectableNodes(nsTArray<nsRefPtr<nsRange>>* aOutRanges);
-
   typedef nsTHashtable<nsPtrHashKey<nsRange> > RangeHashTable;
 protected:
   void RegisterCommonAncestor(nsINode* aNode);

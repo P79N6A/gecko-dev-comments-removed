@@ -9,13 +9,12 @@
 
 #include "nsIWeakReference.h"
 
-#include "mozilla/AutoRestore.h"
-#include "mozilla/TextRange.h"
 #include "nsISelection.h"
 #include "nsISelectionController.h"
 #include "nsISelectionPrivate.h"
 #include "nsRange.h"
 #include "nsThreadUtils.h"
+#include "mozilla/TextRange.h"
 #include "nsWrapperCache.h"
 
 struct CachedOffsetForFrame;
@@ -101,14 +100,8 @@ public:
                                int32_t aFlags = 0);
   nsresult      SubtractRange(RangeData* aRange, nsRange* aSubtract,
                               nsTArray<RangeData>* aOutput);
-  
-
-
-
-
-
-  nsresult      AddItem(nsRange* aRange, int32_t* aOutIndex);
-  nsresult      RemoveItem(nsRange* aRange);
+  nsresult      AddItem(nsRange *aRange, int32_t* aOutIndex);
+  nsresult      RemoveItem(nsRange *aRange);
   nsresult      RemoveCollapsedRanges();
   nsresult      Clear(nsPresContext* aPresContext);
   nsresult      Collapse(nsINode* aParentNode, int32_t aOffset);
@@ -212,19 +205,6 @@ public:
 
   nsresult     NotifySelectionListeners();
 
-  friend struct AutoApplyUserSelectStyle;
-  struct MOZ_STACK_CLASS AutoApplyUserSelectStyle
-  {
-    AutoApplyUserSelectStyle(Selection* aSelection
-                             MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : mSavedValue(aSelection->mApplyUserSelectStyle)
-    {
-      MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-      aSelection->mApplyUserSelectStyle = true;
-    }
-    AutoRestore<bool> mSavedValue;
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
-  };
 private:
 
   class ScrollSelectionIntoViewEvent;
@@ -279,11 +259,6 @@ private:
   RangeData* FindRangeData(nsIDOMRange* aRange);
 
   
-
-
-  nsresult AddItemInternal(nsRange* aRange, int32_t* aOutIndex);
-
-  
   
   
   
@@ -306,14 +281,9 @@ private:
   CachedOffsetForFrame *mCachedOffsetForFrame;
   nsDirection mDirection;
   SelectionType mType;
-  
-
-
-
-  bool mApplyUserSelectStyle;
 };
 
 } 
 } 
 
-#endif
+#endif 
