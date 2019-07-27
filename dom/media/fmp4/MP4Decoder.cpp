@@ -47,7 +47,7 @@ MP4Decoder::SetCDMProxy(CDMProxy* aProxy)
     
     
     CDMCaps::AutoLock caps(aProxy->Capabilites());
-    nsRefPtr<nsIRunnable> task(
+    nsCOMPtr<nsIRunnable> task(
       NS_NewRunnableMethod(this, &MediaDecoder::NotifyWaitingForResourcesStatusChanged));
     caps.CallOnMainThreadWhenCapsAvailable(task);
   }

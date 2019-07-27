@@ -88,7 +88,7 @@ void
 nsEventQueue::PutEvent(nsIRunnable* aRunnable)
 {
   
-  nsRefPtr<nsIRunnable> event(aRunnable);
+  nsCOMPtr<nsIRunnable> event(aRunnable);
 
   if (ChaosMode::isActive(ChaosMode::ThreadScheduling)) {
     

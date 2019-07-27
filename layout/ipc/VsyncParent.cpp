@@ -49,7 +49,7 @@ VsyncParent::NotifyVsync(TimeStamp aTimeStamp)
 {
   
   MOZ_ASSERT(!IsOnBackgroundThread());
-  nsRefPtr<nsIRunnable> vsyncEvent =
+  nsCOMPtr<nsIRunnable> vsyncEvent =
     NS_NewRunnableMethodWithArg<TimeStamp>(this,
                                            &VsyncParent::DispatchVsyncEvent,
                                            aTimeStamp);

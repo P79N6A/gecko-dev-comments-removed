@@ -48,7 +48,7 @@ NS_ProxyRelease(nsIEventTarget* aTarget, nsISupports* aDoomed,
     }
   }
 
-  nsRefPtr<nsIRunnable> ev = new nsProxyReleaseEvent(aDoomed);
+  nsCOMPtr<nsIRunnable> ev = new nsProxyReleaseEvent(aDoomed);
   if (!ev) {
     
     

@@ -500,7 +500,7 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
   
   
   
-  std::vector<nsRefPtr<nsIRunnable>> mQueuedIceCtxOperations;
+  std::vector<nsCOMPtr<nsIRunnable>> mQueuedIceCtxOperations;
 
   
   nsCOMPtr<nsICancelable> mProxyRequest;

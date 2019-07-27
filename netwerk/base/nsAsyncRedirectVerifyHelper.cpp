@@ -182,7 +182,7 @@ nsAsyncRedirectVerifyHelper::ExplicitCallback(nsresult result)
     mWaitingForRedirectCallback = false;
 
     
-    nsRefPtr<nsIRunnable> event =
+    nsCOMPtr<nsIRunnable> event =
         new nsAsyncVerifyRedirectCallbackEvent(callback, result);
     if (!event) {
         NS_WARNING("nsAsyncRedirectVerifyHelper::ExplicitCallback() "

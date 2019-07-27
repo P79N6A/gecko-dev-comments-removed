@@ -94,7 +94,7 @@ private:
   
   nsCOMPtr<mozIGeckoMediaPluginService> mGMPService;
   bool mGMPReady;
-  nsTArray<nsRefPtr<nsIRunnable>> mQueuedJSEPOperations;
+  nsTArray<nsCOMPtr<nsIRunnable>> mQueuedJSEPOperations;
 
   static PeerConnectionCtx *gInstance;
 public:

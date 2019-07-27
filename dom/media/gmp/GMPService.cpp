@@ -558,7 +558,7 @@ GeckoMediaPluginService::AsyncShutdownComplete(GMPParent* aParent)
   if (mAsyncShutdownPlugins.IsEmpty() && mShuttingDownOnGMPThread) {
     
     
-    nsRefPtr<nsIRunnable> task(NS_NewRunnableMethod(
+    nsCOMPtr<nsIRunnable> task(NS_NewRunnableMethod(
       this, &GeckoMediaPluginService::SetAsyncShutdownComplete));
     NS_DispatchToMainThread(task);
   }
@@ -592,7 +592,7 @@ GeckoMediaPluginService::UnloadPlugins()
   }
 
   if (mAsyncShutdownPlugins.IsEmpty()) {
-    nsRefPtr<nsIRunnable> task(NS_NewRunnableMethod(
+    nsCOMPtr<nsIRunnable> task(NS_NewRunnableMethod(
       this, &GeckoMediaPluginService::SetAsyncShutdownComplete));
     NS_DispatchToMainThread(task);
   }

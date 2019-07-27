@@ -59,7 +59,7 @@ Tickler::~Tickler()
 
   
   
-  nsRefPtr<nsIRunnable> event = new TicklerThreadDestructor(mThread);
+  nsCOMPtr<nsIRunnable> event = new TicklerThreadDestructor(mThread);
   if (NS_FAILED(NS_DispatchToCurrentThread(event))) {
     mThread->Shutdown();
   }
