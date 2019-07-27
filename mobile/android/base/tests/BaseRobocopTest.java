@@ -6,13 +6,13 @@ package org.mozilla.gecko.tests;
 
 import java.util.Map;
 
-import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.Assert;
 import org.mozilla.gecko.FennecInstrumentationTestRunner;
 import org.mozilla.gecko.FennecMochitestAssert;
 import org.mozilla.gecko.FennecNativeDriver;
 import org.mozilla.gecko.FennecTalosAssert;
-import org.mozilla.gecko.RobocopUtils;
+
+import org.mozilla.gecko.AppConstants;
 
 import android.app.Activity;
 import android.test.ActivityInstrumentationTestCase2;
@@ -106,17 +106,5 @@ public abstract class BaseRobocopTest extends ActivityInstrumentationTestCase2<A
         }
         mAsserter.setLogFile(mLogFile);
         mAsserter.setTestName(this.getClass().getName());
-
-        
-        
-        
-        
-        final Activity activity = getActivity();
-        RobocopUtils.runOnUiThreadSync(activity, new Runnable() {
-            @Override
-            public void run() {
-                activity.getWindow().getDecorView().setKeepScreenOn(true);
-            }
-        });
     }
 }
