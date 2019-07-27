@@ -130,6 +130,44 @@ let emulator = (function() {
 
 
 
+
+
+
+
+  function waitForSystemMessage(aMessageName, aMatchFun = null) {
+    
+    
+    let systemMessenger = SpecialPowers.Cc["@mozilla.org/system-message-internal;1"]
+                                       .getService(SpecialPowers.Ci.nsISystemMessagesInternal);
+
+    
+    systemMessenger.registerPage(aMessageName,
+                                 SpecialPowers.Services.io.newURI("app://system.gaiamobile.org/index.html", null, null),
+                                 SpecialPowers.Services.io.newURI("app://system.gaiamobile.org/manifest.webapp", null, null));
+
+    return new Promise(function(aResolve, aReject) {
+      window.navigator.mozSetMessageHandler(aMessageName, function(aMessage) {
+        if (!aMatchFun || aMatchFun(aMessage)) {
+          log("System message '" + aMessageName + "' got.");
+          window.navigator.mozSetMessageHandler(aMessageName, null);
+          aResolve(aMessage);
+        }
+      });
+    });
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
   function waitForEvent(aTarget, aEventName, aPredicate) {
     return new Promise(function(resolve, reject) {
       aTarget.addEventListener(aEventName, function onevent(aEvent) {
@@ -1098,6 +1136,7 @@ let emulator = (function() {
 
 
   this.gDelay = delay;
+  this.gWaitForSystemMessage = waitForSystemMessage;
   this.gWaitForEvent = waitForEvent;
   this.gWaitForCallsChangedEvent = waitForCallsChangedEvent;
   this.gWaitForNamedStateEvent = waitForNamedStateEvent;
