@@ -5900,7 +5900,18 @@ nsFrame::GetPointFromOffset(int32_t inOffset, nsPoint* outPoint)
     if (newContent){
       int32_t newOffset = newContent->IndexOf(mContent);
 
-      bool isRTL = (NS_GET_EMBEDDING_LEVEL(this) & 1) == 1;
+      
+      
+      
+      
+      
+      bool hasEmbeddingLevel;
+      nsBidiLevel embeddingLevel =
+        NS_PTR_TO_INT32(Properties().Get(nsIFrame::EmbeddingLevelProperty(),
+                                         &hasEmbeddingLevel));
+      bool isRTL = hasEmbeddingLevel
+        ? (embeddingLevel & 1) == 1
+        : StyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
       if ((!isRTL && inOffset > newOffset) ||
           (isRTL && inOffset <= newOffset)) {
         pt = contentRect.TopRight();
