@@ -159,6 +159,8 @@ var interfaceNamesInGlobalScope =
 
     "Notification",
 
+    "NotificationEvent",
+
     "Performance",
 
     "PerformanceEntry",

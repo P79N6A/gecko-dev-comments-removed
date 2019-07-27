@@ -1022,7 +1022,7 @@ pref("dom.allow_scripts_to_close_windows",          false);
 
 pref("dom.disable_open_during_load",                false);
 pref("dom.popup_maximum",                           20);
-pref("dom.popup_allowed_events", "change click dblclick mouseup reset submit touchend");
+pref("dom.popup_allowed_events", "change click dblclick mouseup notificationclick reset submit touchend");
 pref("dom.disable_open_click_delay", 1000);
 
 pref("dom.storage.enabled", true);
@@ -3962,7 +3962,6 @@ pref("signon.autologin.proxy",              false);
 pref("signon.storeWhenAutocompleteOff",     true);
 pref("signon.ui.experimental",              false);
 pref("signon.debug",                        false);
-pref("signon.recipes.path",                 "chrome://passwordmgr/content/recipes.json");
 
 
 pref("browser.formfill.debug",            false);

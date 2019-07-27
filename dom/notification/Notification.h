@@ -115,6 +115,7 @@ class Notification : public DOMEventTargetHelper
   friend class NotificationPermissionRequest;
   friend class NotificationObserver;
   friend class NotificationStorageCallback;
+  friend class ServiceWorkerNotificationObserver;
   friend class WorkerNotificationObserver;
 
 public:
@@ -134,6 +135,30 @@ public:
                                                     const nsAString& aTitle,
                                                     const NotificationOptions& aOption,
                                                     ErrorResult& aRv);
+
+  
+
+
+
+
+
+
+
+
+
+  static already_AddRefed<Notification>
+  ConstructFromFields(
+    nsIGlobalObject* aGlobal,
+    const nsAString& aID,
+    const nsAString& aTitle,
+    const nsAString& aDir,
+    const nsAString& aLang,
+    const nsAString& aBody,
+    const nsAString& aTag,
+    const nsAString& aIcon,
+    const nsAString& aData,
+    ErrorResult& aRv);
+
   void GetID(nsAString& aRetval) {
     aRetval = mID;
   }
@@ -249,6 +274,7 @@ public:
                                                       ErrorResult& rv);
 
   bool DispatchClickEvent();
+  bool DispatchNotificationClickEvent();
 protected:
   
   
@@ -301,6 +327,18 @@ protected:
     aRetval = mAlertName;
   }
 
+  void GetScope(nsAString& aScope)
+  {
+    aScope = mScope;
+  }
+
+  void
+  SetScope(const nsAString& aScope)
+  {
+    MOZ_ASSERT(mScope.IsEmpty());
+    mScope = aScope;
+  }
+
   const nsString mID;
   const nsString mTitle;
   const nsString mBody;
@@ -315,6 +353,7 @@ protected:
   nsCOMPtr<nsIVariant> mData;
 
   nsString mAlertName;
+  nsString mScope;
 
   
   bool mIsClosed;
