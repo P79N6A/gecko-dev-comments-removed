@@ -550,11 +550,22 @@ VariablesView.prototype = {
 
   _doSearch: function(aToken) {
     if (this.controller.supportsSearch()) {
-      this.empty();
-      let scope = this.addScope(aToken);
-      scope.expanded = true; 
-      scope.locked = true; 
+      
+      let scope = this._store[0]._store.get("");
+      if (!aToken) {
+        
+        
+        
+        for (let property of scope._store.values()) {
+          property.remove();
+        }
+      }
+      
       this.controller.performSearch(scope, aToken);
+      
+      if (aToken) {
+        scope._performSearch(aToken.toLowerCase());
+      }
       return;
     }
     for (let scope of this._store) {
@@ -1288,7 +1299,7 @@ Scope.prototype = {
 
   addItem: function(aName = "", aDescriptor = {}, aRelaxed = false) {
     if (this._store.has(aName) && !aRelaxed) {
-      return null;
+      return this._store.get(aName);
     }
 
     let child = this._createChild(aName, aDescriptor);
