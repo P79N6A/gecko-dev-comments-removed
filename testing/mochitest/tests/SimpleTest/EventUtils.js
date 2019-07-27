@@ -483,6 +483,10 @@ function synthesizeWheel(aTarget, aOffsetX, aOffsetY, aEvent, aWindow)
 
 
 
+
+
+
+
 function sendWheelAndPaint(aTarget, aOffsetX, aOffsetY, aEvent, aCallback, aWindow) {
   aWindow = aWindow || window;
 
@@ -508,6 +512,10 @@ function sendWheelAndPaint(aTarget, aOffsetX, aOffsetY, aEvent, aCallback, aWind
     
     setTimeout(function() {
       utils.advanceTimeAndRefresh(1000);
+
+      if (!aCallback)
+        return;
+
       aWindow.waitForAllPaintsFlushed(function() {
         utils.restoreNormalRefresh();
         aCallback();
