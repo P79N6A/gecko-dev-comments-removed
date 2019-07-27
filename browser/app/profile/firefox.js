@@ -1201,7 +1201,12 @@ pref("dom.ipc.plugins.sandbox-level.default", 0);
 
 
 
+#if defined(NIGHTLY_BUILD)
+pref("security.sandbox.content.level", 1);
+#else
 pref("security.sandbox.content.level", 0);
+#endif
+
 
 #if defined(MOZ_STACKWALKING)
 
