@@ -144,7 +144,8 @@ public:
                                   const nsString& aFeatures,
                                   const nsString& aBaseURI,
                                   bool* aWindowIsNew,
-                                  InfallibleTArray<FrameScriptInfo>* aFrameScripts) MOZ_OVERRIDE;
+                                  InfallibleTArray<FrameScriptInfo>* aFrameScripts,
+                                  nsCString* aURLToLoad) MOZ_OVERRIDE;
     virtual bool RecvSyncMessage(const nsString& aMessage,
                                  const ClonedMessageData& aData,
                                  InfallibleTArray<CpowEntry>&& aCpows,
@@ -496,7 +497,16 @@ private:
     
     
     
-    bool mSkipLoad;
+    
+    
+    
+    
+    
+    
+    
+    
+    bool mCreatingWindow;
+    nsCString mDelayedURL;
 
     
     
