@@ -100,7 +100,7 @@ private:
   void DispatchLoadEvent(nsINode* aNode);
 
   
-  void Error();
+  void Error(bool aUnblockScripts);
 
   
   void Done();
