@@ -167,6 +167,14 @@ protected:
 
   nsresult WantsUntrusted(bool* aRetVal);
 
+  
+  
+  
+  virtual bool IsCertainlyAliveForCC() const
+  {
+    return false;
+  }
+
   nsRefPtr<EventListenerManager> mListenerManager;
   
   nsresult DispatchTrustedEvent(nsIDOMEvent* aEvent);
