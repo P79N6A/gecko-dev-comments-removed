@@ -81,6 +81,7 @@ public class PostSearchFragment extends Fragment {
         
         
         if (!TextUtils.equals(webview.getUrl(), url)) {
+            webview.loadUrl("about:blank");
             webview.loadUrl(url);
         }
     }
