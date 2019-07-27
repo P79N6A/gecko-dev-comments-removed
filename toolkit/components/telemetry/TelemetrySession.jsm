@@ -249,7 +249,8 @@ function toLocalTimeISOString(date) {
   }
 
   let sign = (n) => n >= 0 ? "+" : "-";
-  let tzOffset = date.getTimezoneOffset();
+  
+  let tzOffset = - date.getTimezoneOffset();
 
   
   return    padNumber(date.getFullYear(), 4)
@@ -259,8 +260,8 @@ function toLocalTimeISOString(date) {
     + ":" + padNumber(date.getMinutes(), 2)
     + ":" + padNumber(date.getSeconds(), 2)
     + "." + date.getMilliseconds()
-    + sign(tzOffset) + Math.abs(Math.floor(tzOffset / 60))
-    + ":" + Math.abs(tzOffset % 60);
+    + sign(tzOffset) + padNumber(Math.floor(Math.abs(tzOffset / 60)), 2)
+    + ":" + padNumber(Math.abs(tzOffset % 60), 2);
 }
 
 
