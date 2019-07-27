@@ -128,6 +128,8 @@ TestKeyPair* GenerateKeyPair();
 inline void DeleteTestKeyPair(TestKeyPair* keyPair) { delete keyPair; }
 typedef ScopedPtr<TestKeyPair, DeleteTestKeyPair> ScopedTestKeyPair;
 
+ByteString SHA1(const ByteString& toHash);
+
 
 
 
