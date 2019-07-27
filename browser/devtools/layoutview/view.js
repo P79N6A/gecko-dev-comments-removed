@@ -302,9 +302,21 @@ LayoutView.prototype = {
   
 
 
-  isActive: function() {
+
+  isViewVisible: function() {
     return this.inspector &&
            this.inspector.sidebar.getCurrentTabID() == "layoutview";
+  },
+
+  
+
+
+
+
+  isViewVisibleAndNodeValid: function() {
+    return this.isViewVisible() &&
+           this.inspector.selection.isConnected() &&
+           this.inspector.selection.isElementNode();
   },
 
   
@@ -328,9 +340,7 @@ LayoutView.prototype = {
   },
 
   onSidebarSelect: function(e, sidebar) {
-    if (sidebar !== "layoutview") {
-      this.dim();
-    }
+    this.setActive(sidebar === "layoutview");
   },
 
   
@@ -348,14 +358,7 @@ LayoutView.prototype = {
 
 
   onNewNode: function() {
-    if (this.isActive() &&
-        this.inspector.selection.isConnected() &&
-        this.inspector.selection.isElementNode()) {
-      this.undim();
-    } else {
-      this.dim();
-    }
-
+    this.setActive(this.isViewVisibleAndNodeValid());
     return this.update();
   },
 
@@ -363,20 +366,19 @@ LayoutView.prototype = {
 
 
 
-  dim: function() {
-    this.untrackReflows();
-    this.doc.body.classList.add("dim");
-    this.dimmed = true;
-  },
 
-  
+  setActive: function(isActive) {
+    if (isActive === this.isActive) {
+      return;
+    }
+    this.isActive = isActive;
 
-
-
-  undim: function() {
-    this.trackReflows();
-    this.doc.body.classList.remove("dim");
-    this.dimmed = false;
+    this.doc.body.classList.toggle("inactive", !isActive);
+    if (isActive) {
+      this.trackReflows();
+    } else {
+      this.untrackReflows();
+    }
   },
 
   
@@ -386,15 +388,13 @@ LayoutView.prototype = {
 
   update: function() {
     let lastRequest = Task.spawn((function*() {
-      if (!this.isActive() ||
-          !this.inspector.selection.isConnected() ||
-          !this.inspector.selection.isElementNode()) {
+      if (!this.isViewVisibleAndNodeValid()) {
         return;
       }
 
       let node = this.inspector.selection.nodeFront;
       let layout = yield this.inspector.pageStyle.getLayout(node, {
-        autoMargins: !this.dimmed
+        autoMargins: this.isActive
       });
       let styleEntries = yield this.inspector.pageStyle.getApplied(node, {});
 
@@ -413,7 +413,7 @@ LayoutView.prototype = {
       }
 
       
-      if (this.dimmed) {
+      if (!this.isActive) {
         this.inspector.emit("layoutview-updated");
         return null;
       }
@@ -436,10 +436,18 @@ LayoutView.prototype = {
       }
 
       let margins = layout.autoMargins;
-      if ("top" in margins) this.map.marginTop.value = "auto";
-      if ("right" in margins) this.map.marginRight.value = "auto";
-      if ("bottom" in margins) this.map.marginBottom.value = "auto";
-      if ("left" in margins) this.map.marginLeft.value = "auto";
+      if ("top" in margins) {
+        this.map.marginTop.value = "auto";
+      }
+      if ("right" in margins) {
+        this.map.marginRight.value = "auto";
+      }
+      if ("bottom" in margins) {
+        this.map.marginBottom.value = "auto";
+      }
+      if ("left" in margins) {
+        this.map.marginLeft.value = "auto";
+      }
 
       for (let i in this.map) {
         let selector = this.map[i].selector;
