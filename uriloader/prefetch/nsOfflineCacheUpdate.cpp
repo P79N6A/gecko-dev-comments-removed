@@ -40,6 +40,7 @@
 #include "nsIAsyncVerifyRedirectCallback.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Attributes.h"
+#include "nsContentUtils.h"
 
 #include "nsXULAppAPI.h"
 
@@ -179,11 +180,16 @@ nsManifestCheck::Begin()
 
     rv = mManifestHash->Init(nsICryptoHash::MD5);
     NS_ENSURE_SUCCESS(rv, rv);
-
     rv = NS_NewChannel(getter_AddRefs(mChannel),
                        mURI,
-                       nullptr, nullptr, nullptr,
+                       nsContentUtils::GetSystemPrincipal(),
+                       nsILoadInfo::SEC_NORMAL,
+                       nsIContentPolicy::TYPE_OTHER,
+                       nullptr,   
+                       nullptr,   
+                       nullptr,   
                        nsIRequest::LOAD_BYPASS_CACHE);
+
     NS_ENSURE_SUCCESS(rv, rv);
 
     
@@ -374,8 +380,14 @@ nsOfflineCacheUpdateItem::OpenChannel(nsOfflineCacheUpdate *aUpdate)
 
     rv = NS_NewChannel(getter_AddRefs(mChannel),
                        mURI,
-                       nullptr, nullptr, this,
+                       nsContentUtils::GetSystemPrincipal(),
+                       nsILoadInfo::SEC_NORMAL,
+                       nsIContentPolicy::TYPE_OTHER,
+                       nullptr,  
+                       nullptr,  
+                       this,     
                        flags);
+
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsCOMPtr<nsIApplicationCacheChannel> appCacheChannel =
