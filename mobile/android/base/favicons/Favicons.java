@@ -31,6 +31,8 @@ import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Favicons {
     private static final String LOGTAG = "GeckoFavicons";
@@ -59,6 +61,9 @@ public class Favicons {
 
     
     public static int largestFaviconSize;
+
+    
+    public static final ExecutorService longRunningExecutor = Executors.newSingleThreadExecutor();
 
     private static final SparseArray<LoadFaviconTask> loadTasks = new SparseArray<LoadFaviconTask>();
 
@@ -194,10 +199,11 @@ public class Favicons {
 
 
 
-    public static int getSizedFaviconForPageFromLocal(final String pageURL, final int targetSize, final OnFaviconLoadedListener callback) {
+    public static int getSizedFaviconForPageFromLocal(final String pageURL, final int targetSize,
+                                                      final OnFaviconLoadedListener callback) {
         
         
-        String targetURL = pageURLMappings.get(pageURL);
+        final String targetURL = pageURLMappings.get(pageURL);
         if (targetURL != null) {
             
             if (faviconsCache.isFailedFavicon(targetURL)) {
@@ -205,7 +211,7 @@ public class Favicons {
             }
 
             
-            Bitmap result = getSizedFaviconFromCache(targetURL, targetSize);
+            final Bitmap result = getSizedFaviconFromCache(targetURL, targetSize);
             if (result != null) {
                 
                 return dispatchResult(pageURL, targetURL, result, callback);
@@ -213,12 +219,14 @@ public class Favicons {
         }
 
         
-        LoadFaviconTask task = new LoadFaviconTask(ThreadUtils.getBackgroundHandler(), pageURL, targetURL, 0, callback, targetSize, true);
-        int taskId = task.getId();
+        final LoadFaviconTask task =
+            new LoadFaviconTask(pageURL, targetURL, 0, callback, targetSize, true);
+        final int taskId = task.getId();
         synchronized(loadTasks) {
             loadTasks.put(taskId, task);
         }
         task.execute();
+
         return taskId;
     }
 
@@ -272,20 +280,20 @@ public class Favicons {
 
 
 
-    private static int loadUncachedFavicon(String pageUrl, String faviconUrl, int flags, int targetSize, OnFaviconLoadedListener listener) {
+    private static int loadUncachedFavicon(String pageURL, String faviconURL, int flags,
+                                           int targetSize, OnFaviconLoadedListener listener) {
         
-        if (TextUtils.isEmpty(pageUrl)) {
+        if (TextUtils.isEmpty(pageURL)) {
             dispatchResult(null, null, null, listener);
             return NOT_LOADING;
         }
 
-        LoadFaviconTask task = new LoadFaviconTask(ThreadUtils.getBackgroundHandler(), pageUrl, faviconUrl, flags, listener, targetSize, false);
-
-        int taskId = task.getId();
+        final LoadFaviconTask task =
+            new LoadFaviconTask(pageURL, faviconURL, flags, listener, targetSize, false);
+        final int taskId = task.getId();
         synchronized(loadTasks) {
             loadTasks.put(taskId, task);
         }
-
         task.execute();
 
         return taskId;
@@ -325,22 +333,22 @@ public class Favicons {
             return false;
         }
 
-        boolean cancelled;
         synchronized (loadTasks) {
             if (loadTasks.indexOfKey(taskId) < 0) {
                 return false;
             }
 
             Log.v(LOGTAG, "Cancelling favicon load " + taskId + ".");
-
             LoadFaviconTask task = loadTasks.get(taskId);
-            cancelled = task.cancel(false);
+            return task.cancel();
         }
-        return cancelled;
     }
 
     public static void close() {
         Log.d(LOGTAG, "Closing Favicons database");
+
+        
+        longRunningExecutor.shutdown();
 
         
         synchronized (loadTasks) {
