@@ -263,7 +263,8 @@ class MacroAssemblerARM : public Assembler
 
     
     
-    void ma_mod_mask(Register src, Register dest, Register hold, int32_t shift);
+    void ma_mod_mask(Register src, Register dest, Register hold, Register tmp,
+                     int32_t shift);
 
     
     void ma_smod(Register num, Register div, Register dest);
