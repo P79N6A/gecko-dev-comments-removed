@@ -459,18 +459,6 @@ public class LayerView extends FrameLayout implements Tabs.OnTabsChangedListener
         return mGLController;
     }
 
-    private Bitmap getDrawable(String name) {
-        BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inScaled = false;
-        Context context = getContext();
-        int resId = context.getResources().getIdentifier(name, "drawable", context.getPackageName());
-        return BitmapUtils.decodeResource(context, resId, options);
-    }
-
-    Bitmap getScrollbarImage() {
-        return getDrawable("scrollbar");
-    }
-
     
 
 
