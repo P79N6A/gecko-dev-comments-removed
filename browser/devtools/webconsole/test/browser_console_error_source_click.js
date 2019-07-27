@@ -6,19 +6,19 @@
 
 
 
+"use strict";
+
 const TEST_URI = "data:text/html;charset=utf8,<p>hello world from bug 877778 " +
                  "<button onclick='foobar.explode()' " +
                  "style='test-color: green-please'>click!</button>";
-function test()
-{
+function test() {
   let hud;
 
   loadTab(TEST_URI).then(() => {
     HUDService.toggleBrowserConsole().then(browserConsoleOpened);
   });
 
-  function browserConsoleOpened(aHud)
-  {
+  function browserConsoleOpened(aHud) {
     hud = aHud;
     ok(hud, "browser console opened");
 
@@ -48,8 +48,7 @@ function test()
     }).then(onMessageFound);
   }
 
-  function onMessageFound(results)
-  {
+  function onMessageFound(results) {
     let viewSource = hud.viewSource;
     let viewSourceCalled = false;
     hud.viewSourceInDebugger = () => viewSourceCalled = true;

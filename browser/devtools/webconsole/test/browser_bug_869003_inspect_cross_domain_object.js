@@ -8,9 +8,11 @@
 
 "use strict";
 
-const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test/test-bug-869003-top-window.html";
+const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/" +
+                 "test/test-bug-869003-top-window.html";
 
 let test = asyncTest(function* () {
+  
   
   
   
@@ -43,7 +45,7 @@ let test = asyncTest(function* () {
   ok(body.textContent.includes('{ hello: "world!",'), "message text check");
 
   executeSoon(() => {
-    EventUtils.synthesizeMouse(clickable, 2, 2, {}, hud.iframeWindow)
+    EventUtils.synthesizeMouse(clickable, 2, 2, {}, hud.iframeWindow);
   });
 
   let aVar = yield hud.jsterm.once("variablesview-fetched");

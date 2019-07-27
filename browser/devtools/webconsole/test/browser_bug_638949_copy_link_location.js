@@ -55,7 +55,8 @@ let test = asyncTest(function* () {
   });
 
   hud.jsterm.clearOutput();
-  content.location.reload(); 
+  
+  content.location.reload();
 
   
   
@@ -80,10 +81,15 @@ let test = asyncTest(function* () {
 
   let deferred = promise.defer();
 
-  waitForClipboard((aData) => { return aData.trim() == message.url; },
-    () => { goDoCommand(COMMAND_NAME); },
-    () => { deferred.resolve(null); },
-    () => { deferred.reject(null); });
+  waitForClipboard((aData) => {
+    return aData.trim() == message.url;
+  }, () => {
+    goDoCommand(COMMAND_NAME);
+  }, () => {
+    deferred.resolve(null);
+  }, () => {
+    deferred.reject(null);
+  });
 
   yield deferred.promise;
 

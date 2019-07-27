@@ -5,10 +5,13 @@
 
 
 
-const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test/test-webconsole-error-observer.html";
 
-function test()
-{
+"use strict";
+
+const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/" +
+                 "test/test-webconsole-error-observer.html";
+
+function test() {
   waitForExplicitFinish();
 
   expectUncaughtException();
@@ -16,8 +19,7 @@ function test()
   loadTab(TEST_URI).then(testOpenUI);
 }
 
-function testOpenUI(aTestReopen)
-{
+function testOpenUI(aTestReopen) {
   openConsole().then((hud) => {
     waitForMessages({
       webconsole: hud,

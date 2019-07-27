@@ -11,8 +11,7 @@
 
 const TEST_URI = "data:text/html;charset=utf8,<p>hello world from bug 866950";
 
-function test()
-{
+function test() {
   requestLongerTimeout(2);
 
   let webconsole, browserconsole;
@@ -30,7 +29,8 @@ function test()
     
     let toolbox = gDevTools.getToolbox(webconsole.target);
     let oldPanels = toolbox._toolPanels;
-    toolbox._toolPanels = {}; 
+    
+    toolbox._toolPanels = {};
 
     function fixToolbox() {
       toolbox._toolPanels = oldPanels;
