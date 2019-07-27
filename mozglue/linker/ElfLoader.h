@@ -120,6 +120,11 @@ public:
   
 
 
+  virtual void *GetBase() const = 0;
+
+  
+
+
   const char *GetName() const;
 
   
@@ -267,6 +272,7 @@ public:
   virtual ~SystemElf();
   virtual void *GetSymbolPtr(const char *symbol) const;
   virtual bool Contains(void *addr) const { return false;  }
+  virtual void *GetBase() const { return nullptr;  }
 
 #ifdef __ARM_EABI__
   virtual const void *FindExidx(int *pcount) const;
