@@ -363,6 +363,25 @@ class nsHtml5StreamParser : public nsICharsetDetectionObserver {
 
     void TimerFlush();
 
+    
+
+
+    void MaybeDisableFutureSpeculation()
+    {
+        mSpeculationFailureCount++;
+    }
+
+    
+
+
+
+
+
+    bool IsSpeculationEnabled()
+    {
+        return mSpeculationFailureCount < 100;
+    }
+
     nsCOMPtr<nsIRequest>          mRequest;
     nsCOMPtr<nsIRequestObserver>  mObserver;
 
@@ -483,6 +502,11 @@ class nsHtml5StreamParser : public nsICharsetDetectionObserver {
 
     nsTArray<nsAutoPtr<nsHtml5Speculation> >  mSpeculations;
     mozilla::Mutex                            mSpeculationMutex;
+
+    
+
+
+    uint32_t                      mSpeculationFailureCount;
 
     
 

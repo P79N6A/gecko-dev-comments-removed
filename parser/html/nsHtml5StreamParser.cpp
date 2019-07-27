@@ -1315,7 +1315,11 @@ nsHtml5StreamParser::ParseAvailableData()
   if (IsTerminatedOrInterrupted()) {
     return;
   }
-  
+
+  if (mSpeculating && !IsSpeculationEnabled()) {
+    return;
+  }
+
   for (;;) {
     if (!mFirstBuffer->hasMore()) {
       if (mFirstBuffer == mLastBuffer) {
@@ -1454,6 +1458,7 @@ nsHtml5StreamParser::ContinueAfterScripts(nsHtml5Tokenizer* aTokenizer,
         !aTreeBuilder->snapshotMatches(speculation->GetSnapshot())) {
       speculationFailed = true;
       
+      MaybeDisableFutureSpeculation();
       Interrupt(); 
       
     } else {
