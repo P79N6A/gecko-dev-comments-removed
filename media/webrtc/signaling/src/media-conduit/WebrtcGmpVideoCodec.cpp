@@ -495,8 +495,6 @@ WebrtcGmpVideoDecoder::Decode_g(const webrtc::EncodedImage& aInputImage,
 
   
   
-  MOZ_ASSERT(ntohl(*(reinterpret_cast<uint32_t*>(const_cast<uint8_t*>(aInputImage._buffer)))) ==
-             0x00000001);
   *(reinterpret_cast<uint32_t*>(frame->Buffer())) = frame->Size();
 
   
