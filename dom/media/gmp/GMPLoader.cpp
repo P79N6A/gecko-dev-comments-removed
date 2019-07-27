@@ -9,6 +9,7 @@
 #include "mozilla/Attributes.h"
 #include "gmp-entrypoints.h"
 #include "prlink.h"
+#include "prenv.h"
 
 #include <string>
 
@@ -168,22 +169,25 @@ GMPLoaderImpl::Load(const char* aLibPath,
     if (!rlz_lib::BytesToString(digest, SHA256_LENGTH, &nodeId)) {
       return false;
     }
-    
-    
-    
-    
-    uint8_t* top;
-    uint8_t* bottom;
-    if (!GetStackAfterCurrentFrame(&top, &bottom)) {
-      return false;
-    }
-    assert(top >= bottom);
-    
-    
-    
-    
-    for (volatile uint8_t* p = (volatile uint8_t*)bottom; p < top; p++) {
-      *p = 0;
+
+    if (!PR_GetEnv("MOZ_GMP_DISABLE_NODE_ID_CLEANUP")) {
+      
+      
+      
+      
+      uint8_t* top;
+      uint8_t* bottom;
+      if (!GetStackAfterCurrentFrame(&top, &bottom)) {
+        return false;
+      }
+      assert(top >= bottom);
+      
+      
+      
+      
+      for (volatile uint8_t* p = (volatile uint8_t*)bottom; p < top; p++) {
+        *p = 0;
+      }
     }
   } else
 #endif
