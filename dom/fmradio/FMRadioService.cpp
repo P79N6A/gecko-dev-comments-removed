@@ -135,6 +135,13 @@ public:
 
     EnableFMRadio(info);
 
+    FMRadioService* fmRadioService = FMRadioService::Singleton();
+    if (!fmRadioService->mTuneThread) {
+      
+      
+      NS_NewNamedThread("FM Tuning", getter_AddRefs(fmRadioService->mTuneThread));
+    }
+
     return NS_OK;
   }
 
@@ -214,10 +221,15 @@ public:
 
   NS_IMETHOD Run()
   {
+    FMRadioService* fmRadioService = FMRadioService::Singleton();
+    if (fmRadioService->mTuneThread) {
+      fmRadioService->mTuneThread->Shutdown();
+      fmRadioService->mTuneThread = nullptr;
+    }
     
     
     DisableFMRadio();
-    IFMRadioService::Singleton()->EnableAudio(false);
+    fmRadioService->EnableAudio(false);
 
     return NS_OK;
   }
@@ -298,7 +310,7 @@ FMRadioService::RemoveObserver(FMRadioEventObserver* aObserver)
   {
     
     if (IsFMRadioOn()) {
-      NS_DispatchToMainThread(new DisableRunnable());
+      DoDisable();
     }
   }
 }
@@ -595,7 +607,8 @@ FMRadioService::SetFrequency(double aFrequencyInMHz,
     return;
   }
 
-  NS_DispatchToMainThread(new SetFrequencyRunnable(roundedFrequency));
+  mTuneThread->Dispatch(new SetFrequencyRunnable(roundedFrequency),
+                        nsIThread::DISPATCH_NORMAL);
 
   aReplyRunnable->SetReply(SuccessResponse());
   NS_DispatchToMainThread(aReplyRunnable);
@@ -636,7 +649,7 @@ FMRadioService::Seek(FMRadioSeekDirection aDirection,
   SetState(Seeking);
   mPendingRequest = aReplyRunnable;
 
-  NS_DispatchToMainThread(new SeekRunnable(aDirection));
+  mTuneThread->Dispatch(new SeekRunnable(aDirection), nsIThread::DISPATCH_NORMAL);
 }
 
 void
