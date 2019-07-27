@@ -399,8 +399,6 @@ const CustomizableWidgets = [
     }
   }, {
     id: "social-share-button",
-    tooltiptext: "social-share-button.label",
-    label: "social-share-button.tooltiptext",
     
     type: "custom",
     onBuild: function(aDocument) {
