@@ -48,6 +48,7 @@ class JSFunction : public js::NativeObject
         INTERPRETED_LAZY = 0x1000,  
         ARROW            = 0x2000,  
         RESOLVED_LENGTH  = 0x4000,  
+        RESOLVED_NAME    = 0x8000,  
 
         
         NATIVE_FUN = 0,
@@ -134,6 +135,7 @@ class JSFunction : public js::NativeObject
     bool isArrow()                  const { return flags() & ARROW; }
 
     bool hasResolvedLength()        const { return flags() & RESOLVED_LENGTH; }
+    bool hasResolvedName()          const { return flags() & RESOLVED_NAME; }
 
     bool hasJITCode() const {
         if (!hasScript())
@@ -204,6 +206,10 @@ class JSFunction : public js::NativeObject
 
     void setResolvedLength() {
         flags_ |= RESOLVED_LENGTH;
+    }
+
+    void setResolvedName() {
+        flags_ |= RESOLVED_NAME;
     }
 
     JSAtom *atom() const { return hasGuessedAtom() ? nullptr : atom_.get(); }

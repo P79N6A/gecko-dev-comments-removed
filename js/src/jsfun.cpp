@@ -486,17 +486,22 @@ js::fun_resolve(JSContext *cx, HandleObject obj, HandleId id, bool *resolvedp)
         MOZ_ASSERT(!IsInternalFunctionObject(obj));
 
         RootedValue v(cx);
-        uint32_t attrs;
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         if (isLength) {
-            
-            
-            
-            
-            
-            
-            
-            
-            
             if (fun->hasResolvedLength())
                 return true;
 
@@ -505,17 +510,20 @@ js::fun_resolve(JSContext *cx, HandleObject obj, HandleId id, bool *resolvedp)
             uint16_t length = fun->hasScript() ? fun->nonLazyScript()->funLength() :
                 fun->nargs() - fun->hasRest();
             v.setInt32(length);
-            attrs = JSPROP_READONLY;
         } else {
+            if (fun->hasResolvedName())
+                return true;
+
             v.setString(fun->atom() == nullptr ? cx->runtime()->emptyString : fun->atom());
-            attrs = JSPROP_READONLY | JSPROP_PERMANENT;
         }
 
-        if (!NativeDefineProperty(cx, fun, id, v, nullptr, nullptr, attrs))
+        if (!NativeDefineProperty(cx, fun, id, v, nullptr, nullptr, JSPROP_READONLY))
             return false;
 
         if (isLength)
             fun->setResolvedLength();
+        else
+            fun->setResolvedName();
 
         *resolvedp = true;
         return true;
