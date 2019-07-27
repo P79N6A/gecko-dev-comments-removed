@@ -7,7 +7,6 @@
 #ifndef mozilla_dom_cache_CacheOpParent_h
 #define mozilla_dom_cache_CacheOpParent_h
 
-#include "mozilla/dom/cache/FetchPut.h"
 #include "mozilla/dom/cache/Manager.h"
 #include "mozilla/dom/cache/PCacheOpParent.h"
 #include "mozilla/dom/cache/PrincipalVerifier.h"
@@ -23,7 +22,6 @@ namespace cache {
 class CacheOpParent final : public PCacheOpParent
                           , public PrincipalVerifier::Listener
                           , public Manager::Listener
-                          , public FetchPut::Listener
 {
   
   using Manager::Listener::OnOpComplete;
@@ -62,10 +60,6 @@ private:
                StreamList* aStreamList) override;
 
   
-  virtual void
-  OnFetchPut(FetchPut* aFetchPut, ErrorResult&& aRv) override;
-
-  
   already_AddRefed<nsIInputStream>
   DeserializeCacheStream(const CacheReadStreamOrVoid& aStreamOrVoid);
 
@@ -75,7 +69,6 @@ private:
   const CacheOpArgs mOpArgs;
   nsRefPtr<Manager> mManager;
   nsRefPtr<PrincipalVerifier> mVerifier;
-  nsTArray<nsRefPtr<FetchPut>> mFetchPutList;
 
   NS_DECL_OWNINGTHREAD
 };

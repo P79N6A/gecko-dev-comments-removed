@@ -7,6 +7,8 @@
 #include "mozilla/dom/cache/AutoUtils.h"
 
 #include "mozilla/unused.h"
+#include "mozilla/dom/InternalHeaders.h"
+#include "mozilla/dom/InternalRequest.h"
 #include "mozilla/dom/cache/CacheParent.h"
 #include "mozilla/dom/cache/CachePushStreamChild.h"
 #include "mozilla/dom/cache/CacheStreamControlParent.h"
@@ -17,6 +19,8 @@
 #include "mozilla/ipc/FileDescriptorSetChild.h"
 #include "mozilla/ipc/FileDescriptorSetParent.h"
 #include "mozilla/ipc/PBackgroundParent.h"
+#include "nsCRT.h"
+#include "nsHttp.h"
 
 namespace {
 
@@ -168,15 +172,6 @@ AutoChildOpArgs::~AutoChildOpArgs()
       CleanupChild(args.requestOrVoid().get_CacheRequest().body(), action);
       break;
     }
-    case CacheOpArgs::TCacheAddAllArgs:
-    {
-      CacheAddAllArgs& args = mOpArgs.get_CacheAddAllArgs();
-      auto& list = args.requestList();
-      for (uint32_t i = 0; i < list.Length(); ++i) {
-        CleanupChild(list[i].body(), action);
-      }
-      break;
-    }
     case CacheOpArgs::TCachePutAllArgs:
     {
       CachePutAllArgs& args = mOpArgs.get_CachePutAllArgs();
@@ -216,8 +211,7 @@ AutoChildOpArgs::~AutoChildOpArgs()
 
 void
 AutoChildOpArgs::Add(InternalRequest* aRequest, BodyAction aBodyAction,
-                     ReferrerAction aReferrerAction, SchemeAction aSchemeAction,
-                     ErrorResult& aRv)
+                     SchemeAction aSchemeAction, ErrorResult& aRv)
 {
   MOZ_ASSERT(!mSent);
 
@@ -226,7 +220,7 @@ AutoChildOpArgs::Add(InternalRequest* aRequest, BodyAction aBodyAction,
     {
       CacheMatchArgs& args = mOpArgs.get_CacheMatchArgs();
       mTypeUtils->ToCacheRequest(args.request(), aRequest, aBodyAction,
-                                  aReferrerAction, aSchemeAction, aRv);
+                                 aSchemeAction, aRv);
       break;
     }
     case CacheOpArgs::TCacheMatchAllArgs:
@@ -235,35 +229,14 @@ AutoChildOpArgs::Add(InternalRequest* aRequest, BodyAction aBodyAction,
       MOZ_ASSERT(args.requestOrVoid().type() == CacheRequestOrVoid::Tvoid_t);
       args.requestOrVoid() = CacheRequest();
       mTypeUtils->ToCacheRequest(args.requestOrVoid().get_CacheRequest(),
-                                  aRequest, aBodyAction, aReferrerAction,
-                                  aSchemeAction, aRv);
-      break;
-    }
-    case CacheOpArgs::TCacheAddAllArgs:
-    {
-      CacheAddAllArgs& args = mOpArgs.get_CacheAddAllArgs();
-
-      
-      
-      
-      
-      
-      
-      
-      CacheRequest& request = *args.requestList().AppendElement();
-
-      mTypeUtils->ToCacheRequest(request, aRequest, aBodyAction,
-                                  aReferrerAction, aSchemeAction, aRv);
-      if (aRv.Failed()) {
-        args.requestList().RemoveElementAt(args.requestList().Length() - 1);
-      }
+                                  aRequest, aBodyAction, aSchemeAction, aRv);
       break;
     }
     case CacheOpArgs::TCacheDeleteArgs:
     {
       CacheDeleteArgs& args = mOpArgs.get_CacheDeleteArgs();
       mTypeUtils->ToCacheRequest(args.request(), aRequest, aBodyAction,
-                                  aReferrerAction, aSchemeAction, aRv);
+                                 aSchemeAction, aRv);
       break;
     }
     case CacheOpArgs::TCacheKeysArgs:
@@ -272,15 +245,14 @@ AutoChildOpArgs::Add(InternalRequest* aRequest, BodyAction aBodyAction,
       MOZ_ASSERT(args.requestOrVoid().type() == CacheRequestOrVoid::Tvoid_t);
       args.requestOrVoid() = CacheRequest();
       mTypeUtils->ToCacheRequest(args.requestOrVoid().get_CacheRequest(),
-                                  aRequest, aBodyAction, aReferrerAction,
-                                  aSchemeAction, aRv);
+                                  aRequest, aBodyAction, aSchemeAction, aRv);
       break;
     }
     case CacheOpArgs::TStorageMatchArgs:
     {
       StorageMatchArgs& args = mOpArgs.get_StorageMatchArgs();
       mTypeUtils->ToCacheRequest(args.request(), aRequest, aBodyAction,
-                                  aReferrerAction, aSchemeAction, aRv);
+                                 aSchemeAction, aRv);
       break;
     }
     default:
@@ -288,10 +260,112 @@ AutoChildOpArgs::Add(InternalRequest* aRequest, BodyAction aBodyAction,
   }
 }
 
+namespace {
+
+bool
+MatchInPutList(InternalRequest* aRequest,
+               const nsTArray<CacheRequestResponse>& aPutList)
+{
+  MOZ_ASSERT(aRequest);
+
+  
+  
+  
+  
+  
+
+  
+  
+#ifdef DEBUG
+  nsAutoCString method;
+  aRequest->GetMethod(method);
+  MOZ_ASSERT(method.LowerCaseEqualsLiteral("get") ||
+             method.LowerCaseEqualsLiteral("head"));
+#endif
+
+  nsRefPtr<InternalHeaders> requestHeaders = aRequest->Headers();
+
+  for (uint32_t i = 0; i < aPutList.Length(); ++i) {
+    const CacheRequest& cachedRequest = aPutList[i].request();
+    const CacheResponse& cachedResponse = aPutList[i].response();
+
+    nsAutoCString url;
+    aRequest->GetURL(url);
+
+    
+    if (NS_ConvertUTF8toUTF16(url) != cachedRequest.url()) {
+      continue;
+    }
+
+    nsRefPtr<InternalHeaders> cachedRequestHeaders =
+      TypeUtils::ToInternalHeaders(cachedRequest.headers());
+
+    nsRefPtr<InternalHeaders> cachedResponseHeaders =
+      TypeUtils::ToInternalHeaders(cachedResponse.headers());
+
+    nsAutoTArray<nsCString, 16> varyHeaders;
+    ErrorResult rv;
+    cachedResponseHeaders->GetAll(NS_LITERAL_CSTRING("vary"), varyHeaders, rv);
+    MOZ_ALWAYS_TRUE(!rv.Failed());
+
+    
+    bool varyHeadersMatch = true;
+
+    for (uint32_t j = 0; j < varyHeaders.Length(); ++j) {
+      
+      nsAutoCString varyValue(varyHeaders[j]);
+      char* rawBuffer = varyValue.BeginWriting();
+      char* token = nsCRT::strtok(rawBuffer, NS_HTTP_HEADER_SEPS, &rawBuffer);
+      bool bailOut = false;
+      for (; token;
+           token = nsCRT::strtok(rawBuffer, NS_HTTP_HEADER_SEPS, &rawBuffer)) {
+        nsDependentCString header(token);
+        MOZ_ASSERT(!header.EqualsLiteral("*"),
+                   "We should have already caught this in "
+                   "TypeUtils::ToPCacheResponseWithoutBody()");
+
+        ErrorResult headerRv;
+        nsAutoCString value;
+        requestHeaders->Get(header, value, headerRv);
+        if (NS_WARN_IF(headerRv.Failed())) {
+          headerRv.SuppressException();
+          MOZ_ASSERT(value.IsEmpty());
+        }
+
+        nsAutoCString cachedValue;
+        cachedRequestHeaders->Get(header, value, headerRv);
+        if (NS_WARN_IF(headerRv.Failed())) {
+          headerRv.SuppressException();
+          MOZ_ASSERT(cachedValue.IsEmpty());
+        }
+
+        if (value != cachedValue) {
+          varyHeadersMatch = false;
+          bailOut = true;
+          break;
+        }
+      }
+
+      if (bailOut) {
+        break;
+      }
+    }
+
+    
+    if (varyHeadersMatch) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+} 
+
 void
 AutoChildOpArgs::Add(InternalRequest* aRequest, BodyAction aBodyAction,
-                     ReferrerAction aReferrerAction, SchemeAction aSchemeAction,
-                     Response& aResponse, ErrorResult& aRv)
+                     SchemeAction aSchemeAction, Response& aResponse,
+                     ErrorResult& aRv)
 {
   MOZ_ASSERT(!mSent);
 
@@ -299,6 +373,14 @@ AutoChildOpArgs::Add(InternalRequest* aRequest, BodyAction aBodyAction,
     case CacheOpArgs::TCachePutAllArgs:
     {
       CachePutAllArgs& args = mOpArgs.get_CachePutAllArgs();
+
+      
+      
+      
+      if (MatchInPutList(aRequest, args.requestResponseList())) {
+        aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
+        return;
+      }
 
       
       
@@ -312,7 +394,7 @@ AutoChildOpArgs::Add(InternalRequest* aRequest, BodyAction aBodyAction,
       pair.response().body() = void_t();
 
       mTypeUtils->ToCacheRequest(pair.request(), aRequest, aBodyAction,
-                                  aReferrerAction, aSchemeAction, aRv);
+                                 aSchemeAction, aRv);
       if (!aRv.Failed()) {
         mTypeUtils->ToCacheResponse(pair.response(), aResponse, aRv);
       }
