@@ -289,7 +289,15 @@ void
 SourceBuffer::StopUpdating()
 {
   MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(mUpdating);
+  if (!mUpdating) {
+    
+    
+    
+    
+    
+    
+    return;
+  }
   mUpdating = false;
   QueueAsyncSimpleEvent("update");
   QueueAsyncSimpleEvent("updateend");
