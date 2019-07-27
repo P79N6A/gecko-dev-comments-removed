@@ -56,6 +56,13 @@ startTestCommon(function() {
 
 
 
+
+
+
+
+
+
+
   return getEmulatorOperatorNames()
     .then(function(aOperators) {
       let {longName: longName, shortName: shortName} = aOperators[0];
@@ -106,6 +113,41 @@ startTestCommon(function() {
         
         .then(() => test("Foo1", "Bar1", "001", "001", 0x0012, TEST_CELL_ID,
                          "Test4", ""))
+
+        
+        .then(() => test("Foo10", "Bar10", "001", "10", 0x0000, TEST_CELL_ID,
+                         "Test5", ""))
+        .then(() => test("Foo11", "Bar11", "001", "11", 0x0001, TEST_CELL_ID,
+                         "Test5", ""))
+        .then(() => test("Foo12", "Bar12", "001", "12", 0x0002, TEST_CELL_ID,
+                         "Test5", ""))
+        .then(() => test("Foo13", "Bar13", "001", "13", 0x0003, TEST_CELL_ID,
+                         "Test5", ""))
+        .then(() => test("Foo14", "Bar14", "001", "14", 0x0004, TEST_CELL_ID,
+                         "Test5", ""))
+        .then(() => test("Foo15", "Bar15", "001", "15", 0x0005, TEST_CELL_ID,
+                         "Test5", ""))
+        .then(() => test("Foo16", "Bar16", "001", "16", 0x0006, TEST_CELL_ID,
+                         "Test5", ""))
+        .then(() => test("Foo17", "Bar17", "001", "17", 0x0007, TEST_CELL_ID,
+                         "Test5", ""))
+        .then(() => test("Foo18", "Bar18", "001", "18", 0x0008, TEST_CELL_ID,
+                         "Test5", ""))
+        .then(() => test("Foo19", "Bar19", "001", "19", 0x0009, TEST_CELL_ID,
+                         "Test5", ""))
+        .then(() => test("Foo20", "Bar20", "001", "20", 0x000A, TEST_CELL_ID))
+
+        
+        .then(() => test("Foo0", "Bar0", "001", "200", 0x00C8, TEST_CELL_ID,
+                         "Test6", ""))
+        .then(() => test("Foo1", "Bar1", "001", "299", 0x012B, TEST_CELL_ID,
+                         "Test6", ""))
+
+        
+        .then(() => test("Foo300", "Bar300", "001", "300", 0x012C, TEST_CELL_ID,
+                         "Test7", ""))
+        .then(() => test("Foo999", "Bar999", "001", "999", 0x03E7, TEST_CELL_ID,
+                         "Test7", ""))
 
         
         .then(() => test(longName, shortName, mcc, mnc, lac, cid));
