@@ -161,8 +161,6 @@ typedef size_t (*PLDHashSizeOfEntryExcludingThisFun)(
 
 class PLDHashTable
 {
-  friend class PLDHashTable2;
-
 private:
   const PLDHashTableOps* mOps;        
   int16_t             mHashShift;     
@@ -207,21 +205,13 @@ public:
   
   
   
-  MOZ_CONSTEXPR PLDHashTable()
-    : mOps(nullptr)
-    , mHashShift(0)
-    , mEntrySize(0)
-    , mEntryCount(0)
-    , mRemovedCount(0)
-    , mGeneration(0)
-    , mEntryStore(nullptr)
-#ifdef PL_DHASHMETER
-    , mStats()
-#endif
-#ifdef DEBUG
-    , mRecursionLevel()
-#endif
-  {}
+  
+  
+  
+  
+  
+  PLDHashTable(const PLDHashTableOps* aOps, uint32_t aEntrySize,
+               uint32_t aLength = PL_DHASH_DEFAULT_INITIAL_LENGTH);
 
   PLDHashTable(PLDHashTable&& aOther)
     : mOps(nullptr)
@@ -234,6 +224,8 @@ public:
   }
 
   PLDHashTable& operator=(PLDHashTable&& aOther);
+
+  ~PLDHashTable();
 
   bool IsInitialized() const { return !!mOps; }
 
@@ -262,6 +254,20 @@ public:
   void RawRemove(PLDHashEntryHdr* aEntry);
 
   uint32_t Enumerate(PLDHashEnumerator aEtor, void* aArg);
+
+  
+  
+  void Clear();
+
+  
+  
+  
+  
+  
+  
+  
+  
+  void ClearAndPrepareForLength(uint32_t aLength);
 
   size_t SizeOfIncludingThis(
     PLDHashSizeOfEntryExcludingThisFun aSizeOfEntryExcludingThis,
@@ -336,60 +342,7 @@ private:
 };
 
 
-
-
-
-
-
-
-
-
-
-
-class PLDHashTable2 : public PLDHashTable
-{
-public:
-  
-  
-  
-  
-  
-  
-  
-  
-  PLDHashTable2(const PLDHashTableOps* aOps, uint32_t aEntrySize,
-                uint32_t aLength = PL_DHASH_DEFAULT_INITIAL_LENGTH);
-
-  PLDHashTable2(PLDHashTable2&& aOther)
-    : PLDHashTable(mozilla::Move(aOther))
-  {}
-
-  PLDHashTable2& operator=(PLDHashTable2&& aOther)
-  {
-    return static_cast<PLDHashTable2&>(
-      PLDHashTable::operator=(mozilla::Move(aOther)));
-  }
-
-  ~PLDHashTable2();
-
-  
-  
-  void Clear();
-
-  
-  
-  
-  
-  
-  
-  
-  
-  void ClearAndPrepareForLength(uint32_t aLength);
-
-private:
-  PLDHashTable2(const PLDHashTable2& aOther) = delete;
-  PLDHashTable2& operator=(const PLDHashTable2& aOther) = delete;
-};
+typedef PLDHashTable PLDHashTable2;
 
 
 
