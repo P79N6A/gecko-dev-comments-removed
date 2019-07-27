@@ -448,7 +448,6 @@ public:
                     uint32_t aKey,
                     Layer* aLayer,
                     nsIFrame* aFrame = nullptr);
-    DisplayItemData(DisplayItemData &toCopy);
 
     
 

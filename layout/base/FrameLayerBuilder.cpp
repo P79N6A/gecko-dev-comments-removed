@@ -61,23 +61,6 @@ FrameLayerBuilder::DisplayItemData::DisplayItemData(LayerManagerData* aParent, u
   }
 }
 
-FrameLayerBuilder::DisplayItemData::DisplayItemData(DisplayItemData &toCopy)
-{
-  
-  
-  mParent = toCopy.mParent;
-  mLayer = toCopy.mLayer;
-  mInactiveManager = toCopy.mInactiveManager;
-  mFrameList = toCopy.mFrameList;
-  mGeometry = toCopy.mGeometry;
-  mDisplayItemKey = toCopy.mDisplayItemKey;
-  mClip = toCopy.mClip;
-  mContainerLayerGeneration = toCopy.mContainerLayerGeneration;
-  mLayerState = toCopy.mLayerState;
-  mItem = toCopy.mItem;
-  mUsed = toCopy.mUsed;
-}
-
 void
 FrameLayerBuilder::DisplayItemData::AddFrame(nsIFrame* aFrame)
 {
