@@ -73,16 +73,18 @@ struct DeviceAttachmentsD3D11
   
   
   
-  RefPtr<ID3D11InputLayout> mVRDistortionInputLayout;
-  RefPtr<ID3D11Buffer> mVRDistortionConstants;
-
+  typedef EnumeratedArray<VRHMDType, VRHMDType::NumHMDTypes, RefPtr<ID3D11InputLayout>>
+          VRDistortionInputLayoutArray;
   typedef EnumeratedArray<VRHMDType, VRHMDType::NumHMDTypes, RefPtr<ID3D11VertexShader>>
           VRVertexShaderArray;
   typedef EnumeratedArray<VRHMDType, VRHMDType::NumHMDTypes, RefPtr<ID3D11PixelShader>>
           VRPixelShaderArray;
 
+  VRDistortionInputLayoutArray mVRDistortionInputLayout;
   VRVertexShaderArray mVRDistortionVS;
   VRPixelShaderArray mVRDistortionPS;
+
+  RefPtr<ID3D11Buffer> mVRDistortionConstants;
 
   
   
@@ -334,7 +336,12 @@ CompositorD3D11::Initialize()
                                     sizeof(vrlayout) / sizeof(D3D11_INPUT_ELEMENT_DESC),
                                     OculusVRDistortionVS,
                                     sizeof(OculusVRDistortionVS),
-                                    byRef(mAttachments->mVRDistortionInputLayout));
+                                    byRef(mAttachments->mVRDistortionInputLayout[VRHMDType::Oculus]));
+
+    
+    mAttachments->mVRDistortionInputLayout[VRHMDType::Cardboard] =
+      mAttachments->mVRDistortionInputLayout[VRHMDType::Oculus];
+
     cBufferDesc.ByteWidth = sizeof(gfx::VRDistortionConstants);
     hr = mDevice->CreateBuffer(&cBufferDesc, nullptr, byRef(mAttachments->mVRDistortionConstants));
     if (FAILED(hr)) {
@@ -661,6 +668,7 @@ CompositorD3D11::DrawVRDistortion(const gfx::Rect& aRect,
   gfx::IntSize size = vrEffect->mRenderTarget->GetSize(); 
 
   VRHMDInfo* hmdInfo = vrEffect->mHMD;
+  VRHMDType hmdType = hmdInfo->GetType();
   VRDistortionConstants shaderConstants;
 
   
@@ -709,11 +717,9 @@ CompositorD3D11::DrawVRDistortion(const gfx::Rect& aRect,
 
   
   mContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-  mContext->IASetInputLayout(mAttachments->mVRDistortionInputLayout);
-
-  
-  mContext->VSSetShader(mAttachments->mVRDistortionVS[mAttachments->mVRConfiguration.hmdType], nullptr, 0);
-  mContext->PSSetShader(mAttachments->mVRDistortionPS[mAttachments->mVRConfiguration.hmdType], nullptr, 0);
+  mContext->IASetInputLayout(mAttachments->mVRDistortionInputLayout[hmdType]);
+  mContext->VSSetShader(mAttachments->mVRDistortionVS[hmdType], nullptr, 0);
+  mContext->PSSetShader(mAttachments->mVRDistortionPS[hmdType], nullptr, 0);
 
   
   
@@ -721,7 +727,6 @@ CompositorD3D11::DrawVRDistortion(const gfx::Rect& aRect,
   mDevice->CreateShaderResourceView(source->GetD3D11Texture(), nullptr, byRef(view));
   ID3D11ShaderResourceView* srView = view;
   mContext->PSSetShaderResources(0, 1, &srView);
-
 
   gfx::IntSize vpSizeInt = mCurrentRT->GetSize();
   gfx::Size vpSize(vpSizeInt.width, vpSizeInt.height);
@@ -1342,6 +1347,11 @@ CompositorD3D11::CreateShaders()
   if (FAILED(hr)) {
     return false;
   }
+
+  
+  
+  mAttachments->mVRDistortionVS[VRHMDType::Cardboard] = mAttachments->mVRDistortionVS[VRHMDType::Oculus];
+  mAttachments->mVRDistortionPS[VRHMDType::Cardboard] = mAttachments->mVRDistortionPS[VRHMDType::Oculus];
 
   return true;
 }

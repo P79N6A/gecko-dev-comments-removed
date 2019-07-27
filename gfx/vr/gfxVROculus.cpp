@@ -331,10 +331,10 @@ HMDInfoOculus::FillDistortionConstants(uint32_t whichEye,
 
   ovrHmd_GetRenderScaleAndOffset(mFOVPort[whichEye], texSize, eyePort, scaleOut);
 
-  values.eyeToSourceScaleAndOffset[0] = scaleOut[0].x;
-  values.eyeToSourceScaleAndOffset[1] = scaleOut[0].y;
-  values.eyeToSourceScaleAndOffset[2] = scaleOut[1].x;
-  values.eyeToSourceScaleAndOffset[3] = scaleOut[1].y;
+  values.eyeToSourceScaleAndOffset[0] = scaleOut[1].x;
+  values.eyeToSourceScaleAndOffset[1] = scaleOut[1].y;
+  values.eyeToSourceScaleAndOffset[2] = scaleOut[0].x;
+  values.eyeToSourceScaleAndOffset[3] = scaleOut[0].y;
 
   
   
