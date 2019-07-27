@@ -18,6 +18,7 @@
 #include "nsRect.h"
 #include "nsStringGlue.h"
 #include "nsTArray.h"
+#include "WritingModes.h"
 
 
 
@@ -455,6 +456,8 @@ public:
     bool mHasSelection;
     
     bool mWidgetIsHit;
+    
+    mozilla::WritingMode mWritingMode;
     
     nsCOMPtr<nsITransferable> mTransferable;
   } mReply;
