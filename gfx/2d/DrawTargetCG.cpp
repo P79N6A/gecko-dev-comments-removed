@@ -1108,7 +1108,19 @@ DrawTargetCG::StrokeRect(const Rect &aRect,
     DrawGradient(mColorSpace, cg, aPattern, extents);
   } else {
     SetStrokeFromPattern(cg, mColorSpace, aPattern);
-    CGContextStrokeRect(cg, RectToCGRect(aRect));
+    
+    
+    
+    
+    
+    CGRect rect = RectToCGRect(aRect);
+    CGContextBeginPath(cg);
+    CGContextMoveToPoint(cg, CGRectGetMinX(rect), CGRectGetMinY(rect));
+    CGContextAddLineToPoint(cg, CGRectGetMaxX(rect), CGRectGetMinY(rect));
+    CGContextAddLineToPoint(cg, CGRectGetMaxX(rect), CGRectGetMaxY(rect));
+    CGContextAddLineToPoint(cg, CGRectGetMinX(rect), CGRectGetMaxY(rect));
+    CGContextClosePath(cg);
+    CGContextStrokePath(cg);
   }
 
   fixer.Fix(mCg);
