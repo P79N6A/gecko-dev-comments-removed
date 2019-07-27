@@ -436,13 +436,18 @@ nsTextControlFrame::GetMinISize(nsRenderingContext* aRenderingContext)
   return result;
 }
 
-nsSize
+LogicalSize
 nsTextControlFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
-                                    nsSize aCBSize, nscoord aAvailableWidth,
-                                    nsSize aMargin, nsSize aBorder,
-                                    nsSize aPadding, bool aShrinkWrap)
+                                    WritingMode aWM,
+                                    const LogicalSize& aCBSize,
+                                    nscoord aAvailableISize,
+                                    const LogicalSize& aMargin,
+                                    const LogicalSize& aBorder,
+                                    const LogicalSize& aPadding,
+                                    bool aShrinkWrap)
 {
   float inflation = nsLayoutUtils::FontSizeInflationFor(this);
+  
   nsSize autoSize;
   nsresult rv = CalcIntrinsicSize(aRenderingContext, autoSize, inflation);
   if (NS_FAILED(rv)) {
@@ -452,18 +457,19 @@ nsTextControlFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
 #ifdef DEBUG
   
   else if (StylePosition()->mWidth.GetUnit() == eStyleUnit_Auto) {
-    nsSize ancestorAutoSize =
-      nsContainerFrame::ComputeAutoSize(aRenderingContext,
-                                        aCBSize, aAvailableWidth,
+    LogicalSize ancestorAutoSize =
+      nsContainerFrame::ComputeAutoSize(aRenderingContext, aWM,
+                                        aCBSize, aAvailableISize,
                                         aMargin, aBorder,
                                         aPadding, aShrinkWrap);
     
-    NS_ASSERTION(inflation != 1.0f || ancestorAutoSize.width == autoSize.width,
+    NS_ASSERTION(inflation != 1.0f ||
+                 ancestorAutoSize.Width(aWM) == autoSize.width,
                  "Incorrect size computed by ComputeAutoSize?");
   }
 #endif
 
-  return autoSize;
+  return LogicalSize(aWM, autoSize);
 }
 
 void

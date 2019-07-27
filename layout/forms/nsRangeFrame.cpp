@@ -728,11 +728,15 @@ nsRangeFrame::AttributeChanged(int32_t  aNameSpaceID,
   return nsContainerFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);
 }
 
-nsSize
+LogicalSize
 nsRangeFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
-                              nsSize aCBSize, nscoord aAvailableWidth,
-                              nsSize aMargin, nsSize aBorder,
-                              nsSize aPadding, bool aShrinkWrap)
+                              WritingMode aWM,
+                              const LogicalSize& aCBSize,
+                              nscoord aAvailableISize,
+                              const LogicalSize& aMargin,
+                              const LogicalSize& aBorder,
+                              const LogicalSize& aPadding,
+                              bool aShrinkWrap)
 {
   nscoord oneEm = NSToCoordRound(StyleFont()->mFont.size *
                                  nsLayoutUtils::FontSizeInflationFor(this)); 
@@ -740,9 +744,10 @@ nsRangeFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
   
   
   nsSize frameSizeOverride(10,1);
-  bool isHorizontal = IsHorizontal(&frameSizeOverride);
+  bool isInlineOriented = IsHorizontal(&frameSizeOverride);
 
-  nsSize autoSize;
+  const WritingMode wm = GetWritingMode();
+  LogicalSize autoSize(wm);
 
   
   
@@ -750,15 +755,15 @@ nsRangeFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
   
   
 
-  if (isHorizontal) {
-    autoSize.width = LONG_SIDE_TO_SHORT_SIDE_RATIO * oneEm;
-    autoSize.height = IsThemed() ? 0 : oneEm;
+  if (isInlineOriented) {
+    autoSize.ISize(wm) = LONG_SIDE_TO_SHORT_SIDE_RATIO * oneEm;
+    autoSize.BSize(wm) = IsThemed() ? 0 : oneEm;
   } else {
-    autoSize.width = IsThemed() ? 0 : oneEm;
-    autoSize.height = LONG_SIDE_TO_SHORT_SIDE_RATIO * oneEm;
+    autoSize.ISize(wm) = IsThemed() ? 0 : oneEm;
+    autoSize.BSize(wm) = LONG_SIDE_TO_SHORT_SIDE_RATIO * oneEm;
   }
 
-  return autoSize;
+  return autoSize.ConvertTo(aWM, wm);
 }
 
 nscoord

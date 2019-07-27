@@ -210,27 +210,32 @@ nsMeterFrame::AttributeChanged(int32_t  aNameSpaceID,
                                             aModType);
 }
 
-nsSize
+LogicalSize
 nsMeterFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
-                              nsSize aCBSize, nscoord aAvailableWidth,
-                              nsSize aMargin, nsSize aBorder,
-                              nsSize aPadding, bool aShrinkWrap)
+                              WritingMode aWM,
+                              const LogicalSize& aCBSize,
+                              nscoord aAvailableISize,
+                              const LogicalSize& aMargin,
+                              const LogicalSize& aBorder,
+                              const LogicalSize& aPadding,
+                              bool aShrinkWrap)
 {
   nsRefPtr<nsFontMetrics> fontMet;
   NS_ENSURE_SUCCESS(nsLayoutUtils::GetFontMetricsForFrame(this,
                                                           getter_AddRefs(fontMet)),
-                    nsSize(0, 0));
+                    LogicalSize(aWM));
 
-  nsSize autoSize;
-  autoSize.height = autoSize.width = fontMet->Font().size; 
+  const WritingMode wm = GetWritingMode();
+  LogicalSize autoSize(wm);
+  autoSize.BSize(wm) = autoSize.ISize(wm) = fontMet->Font().size; 
 
   if (StyleDisplay()->mOrient == NS_STYLE_ORIENT_VERTICAL) {
-    autoSize.height *= 5; 
+    autoSize.Height(wm) *= 5; 
   } else {
-    autoSize.width *= 5; 
+    autoSize.Width(wm) *= 5; 
   }
 
-  return autoSize;
+  return autoSize.ConvertTo(aWM, wm);
 }
 
 nscoord

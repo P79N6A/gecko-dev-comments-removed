@@ -59,23 +59,31 @@ nsTableOuterFrame::GetLogicalBaseline(WritingMode aWritingMode) const
          kid->BStart(aWritingMode, mRect.width);
 }
 
- nsSize
+
+LogicalSize
 nsTableCaptionFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
-                                     nsSize aCBSize, nscoord aAvailableWidth,
-                                     nsSize aMargin, nsSize aBorder,
-                                     nsSize aPadding, bool aShrinkWrap)
+                                     WritingMode aWM,
+                                     const LogicalSize& aCBSize,
+                                     nscoord aAvailableISize,
+                                     const LogicalSize& aMargin,
+                                     const LogicalSize& aBorder,
+                                     const LogicalSize& aPadding,
+                                     bool aShrinkWrap)
 {
-  nsSize result = nsBlockFrame::ComputeAutoSize(aRenderingContext, aCBSize,
-                    aAvailableWidth, aMargin, aBorder, aPadding, aShrinkWrap);
+  LogicalSize result =
+    nsBlockFrame::ComputeAutoSize(aRenderingContext, aWM, aCBSize,
+                                  aAvailableISize, aMargin, aBorder,
+                                  aPadding, aShrinkWrap);
 
   
   
   AutoMaybeDisableFontInflation an(this);
 
+  
   uint8_t captionSide = StyleTableBorder()->mCaptionSide;
   if (captionSide == NS_STYLE_CAPTION_SIDE_LEFT ||
       captionSide == NS_STYLE_CAPTION_SIDE_RIGHT) {
-    result.width = GetMinISize(aRenderingContext);
+    result.ISize(aWM) = GetMinISize(aRenderingContext);
   } else if (captionSide == NS_STYLE_CAPTION_SIDE_TOP ||
              captionSide == NS_STYLE_CAPTION_SIDE_BOTTOM) {
     
@@ -84,10 +92,12 @@ nsTableCaptionFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
     
     
     nscoord min = GetMinISize(aRenderingContext);
-    if (min > aCBSize.width)
-      min = aCBSize.width;
-    if (min > result.width)
-      result.width = min;
+    if (min > aCBSize.ISize(aWM)) {
+      min = aCBSize.ISize(aWM);
+    }
+    if (min > result.ISize(aWM)) {
+      result.ISize(aWM) = min;
+    }
   }
   return result;
 }
@@ -490,19 +500,27 @@ ChildShrinkWrapWidth(nsRenderingContext *aRenderingContext,
                       offsets.ComputedLogicalBorderPadding().IStartEnd(wm);
 }
 
- nsSize
+
+LogicalSize
 nsTableOuterFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
-                                   nsSize aCBSize, nscoord aAvailableWidth,
-                                   nsSize aMargin, nsSize aBorder,
-                                   nsSize aPadding, bool aShrinkWrap)
+                                   WritingMode aWM,
+                                   const LogicalSize& aCBSize,
+                                   nscoord aAvailableISize,
+                                   const LogicalSize& aMargin,
+                                   const LogicalSize& aBorder,
+                                   const LogicalSize& aPadding,
+                                   bool aShrinkWrap)
 {
-  nscoord kidAvailableWidth = aAvailableWidth - aMargin.width;
-  NS_ASSERTION(aBorder == nsSize(0, 0) &&
-               aPadding == nsSize(0, 0),
-               "Table outer frames cannot hae borders or paddings");
+  nscoord kidAvailableWidth = aAvailableISize - aMargin.ISize(aWM);
+  NS_ASSERTION(aBorder == LogicalSize(aWM) &&
+               aPadding == LogicalSize(aWM),
+               "Table outer frames cannot have borders or paddings");
 
   
   
+  
+  
+
   
   
 
@@ -511,22 +529,27 @@ nsTableOuterFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
   nscoord width;
   if (captionSide == NO_SIDE) {
     width = ChildShrinkWrapWidth(aRenderingContext, InnerTableFrame(),
-                                 aCBSize, kidAvailableWidth);
+                                 aCBSize.GetPhysicalSize(aWM),
+                                 kidAvailableWidth);
   } else if (captionSide == NS_STYLE_CAPTION_SIDE_LEFT ||
              captionSide == NS_STYLE_CAPTION_SIDE_RIGHT) {
     nscoord capWidth = ChildShrinkWrapWidth(aRenderingContext,
                                             mCaptionFrames.FirstChild(),
-                                            aCBSize, kidAvailableWidth);
+                                            aCBSize.GetPhysicalSize(aWM),
+                                            kidAvailableWidth);
     width = capWidth + ChildShrinkWrapWidth(aRenderingContext,
-                                            InnerTableFrame(), aCBSize,
+                                            InnerTableFrame(),
+                                            aCBSize.GetPhysicalSize(aWM),
                                             kidAvailableWidth - capWidth);
   } else if (captionSide == NS_STYLE_CAPTION_SIDE_TOP ||
              captionSide == NS_STYLE_CAPTION_SIDE_BOTTOM) {
     nscoord margin;
     width = ChildShrinkWrapWidth(aRenderingContext, InnerTableFrame(),
-                                 aCBSize, kidAvailableWidth, &margin);
+                                 aCBSize.GetPhysicalSize(aWM),
+                                 kidAvailableWidth, &margin);
     nscoord capWidth = ChildShrinkWrapWidth(aRenderingContext,
-                                            mCaptionFrames.FirstChild(), aCBSize,
+                                            mCaptionFrames.FirstChild(),
+                                            aCBSize.GetPhysicalSize(aWM),
                                             width - margin);
     if (capWidth > width)
       width = capWidth;
@@ -535,15 +558,17 @@ nsTableOuterFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
                  captionSide == NS_STYLE_CAPTION_SIDE_BOTTOM_OUTSIDE,
                  "unexpected caption-side");
     width = ChildShrinkWrapWidth(aRenderingContext, InnerTableFrame(),
-                                 aCBSize, kidAvailableWidth);
+                                 aCBSize.GetPhysicalSize(aWM),
+                                 kidAvailableWidth);
     nscoord capWidth = ChildShrinkWrapWidth(aRenderingContext,
                                             mCaptionFrames.FirstChild(),
-                                            aCBSize, kidAvailableWidth);
+                                            aCBSize.GetPhysicalSize(aWM),
+                                            kidAvailableWidth);
     if (capWidth > width)
       width = capWidth;
   }
 
-  return nsSize(width, NS_UNCONSTRAINEDSIZE);
+  return LogicalSize(aWM, width, NS_UNCONSTRAINEDSIZE);
 }
 
 uint8_t
