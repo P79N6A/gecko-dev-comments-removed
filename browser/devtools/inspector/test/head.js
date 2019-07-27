@@ -49,9 +49,9 @@ SimpleTest.registerCleanupFunction(() => {
   Services.prefs.clearUserPref("devtools.inspector.activeSidebar");
 });
 
-registerCleanupFunction(() => {
+registerCleanupFunction(function*() {
   let target = TargetFactory.forTab(gBrowser.selectedTab);
-  gDevTools.closeToolbox(target);
+  yield gDevTools.closeToolbox(target);
 
   
   
