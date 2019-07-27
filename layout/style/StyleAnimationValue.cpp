@@ -2590,7 +2590,7 @@ StyleAnimationValue::ComputeValue(nsCSSProperty aProperty,
     
     
     *aIsContextSensitive =
-      !tmpStyleContext->RuleNode()->NodeHasCachedData(sid);
+      !tmpStyleContext->RuleNode()->NodeHasCachedUnconditionalData(sid);
   }
 
   
