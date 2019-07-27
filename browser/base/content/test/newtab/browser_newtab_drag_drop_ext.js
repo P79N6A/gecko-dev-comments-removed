@@ -1,6 +1,8 @@
 
 
 
+const PREF_NEWTAB_COLUMNS = "browser.newtabpage.columns";
+
 
 
 
@@ -10,6 +12,8 @@
 
 
 function runTests() {
+  registerCleanupFunction(_ => Services.prefs.clearUserPref(PREF_NEWTAB_COLUMNS));
+
   
   yield setLinks("0,1,2,3,4,5,6,7,8");
   setPinnedLinks(",,,,,,,7,8");
@@ -28,6 +32,8 @@ function runTests() {
   yield addNewTabPageTab();
   checkGrid("0,1,2,3,4,5,6,7p,8p");
 
+  
+  Services.prefs.setIntPref(PREF_NEWTAB_COLUMNS, 3);
   yield simulateExternalDrop(7);
   checkGrid("0,1,2,3,4,5,7p,99p,8p");
 
