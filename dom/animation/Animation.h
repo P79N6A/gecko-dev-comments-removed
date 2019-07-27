@@ -110,7 +110,6 @@ public:
   
   
   
-
   Nullable<double> GetStartTimeAsDouble() const;
   void SetStartTimeAsDouble(const Nullable<double>& aStartTime);
   Nullable<double> GetCurrentTimeAsDouble() const;
@@ -119,15 +118,15 @@ public:
   virtual AnimationPlayState PlayStateFromJS() const { return PlayState(); }
   virtual void PlayFromJS() { Play(LimitBehavior::AutoRewind); }
   
-  
-  
+
+
+
+
   void PauseFromJS() { Pause(); }
-
   
   
   
   
-
   void CancelFromStyle() { DoCancel(); }
 
   void Tick();
@@ -184,17 +183,17 @@ public:
 
 
   void TriggerOnNextTick(const Nullable<TimeDuration>& aReadyTime);
+  
 
-  
-  
-  
-  
-  
-  
-  
-  
+
+
+
+
+
+
+
+
   void TriggerNow();
-
   
 
 
@@ -255,29 +254,28 @@ public:
            (PlayState() == AnimationPlayState::Running ||
             mPendingState == PendingState::PlayPending);
   }
-
   bool IsRelevant() const { return mIsRelevant; }
   void UpdateRelevance();
-
   void SetIsRunningOnCompositor() { mIsRunningOnCompositor = true; }
   void ClearIsRunningOnCompositor() { mIsRunningOnCompositor = false; }
+  
 
-  
-  
-  
+
+
+
   bool CanThrottle() const;
+  
 
-  
-  
-  
-  
-  
-  
-  
+
+
+
+
+
+
+
   void ComposeStyle(nsRefPtr<css::AnimValuesStyleRule>& aStyleRule,
                     nsCSSPropertySet& aSetProperties,
                     bool& aNeedsRefreshes);
-
 protected:
   void SilentlySetCurrentTime(const TimeDuration& aNewCurrentTime);
   void SilentlySetPlaybackRate(double aPlaybackRate);
