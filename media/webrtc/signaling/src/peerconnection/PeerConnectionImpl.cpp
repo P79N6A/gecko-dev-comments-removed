@@ -955,17 +955,6 @@ PeerConnectionImpl::CreateFakeMediaStream(uint32_t aHint, DOMMediaStream** aRetv
 
 
 NS_IMETHODIMP
-PeerConnectionImpl::ConnectDataConnection(uint16_t aLocalport,
-                                          uint16_t aRemoteport,
-                                          uint16_t aNumstreams)
-{
-  return NS_OK; 
-}
-
-
-
-
-NS_IMETHODIMP
 PeerConnectionImpl::EnsureDataConnection(uint16_t aNumstreams)
 {
   PC_AUTO_ENTER_API_CALL_NO_CHECK();
