@@ -515,59 +515,24 @@ TelephonyService.prototype = {
       return;
     }
 
-    if (this._hasCalls(aClientId)) {
-      
-      
-
-      let mmiCallback = response => {
-        aCallback.notifyDialMMI(RIL.MMI_KS_SC_CALL);
-        if (!response.success) {
-          aCallback.notifyDialMMIError(RIL.MMI_ERROR_KS_ERROR);
-        } else {
-          aCallback.notifyDialMMISuccess(RIL.MMI_SM_KS_CALL_CONTROL);
-        }
-      };
-
-      if (aNumber === "0") {
-        this._sendToRilWorker(aClientId, "hangUpBackground", null, mmiCallback);
-      } else if (aNumber === "1") {
-        this._sendToRilWorker(aClientId, "hangUpForeground", null, mmiCallback);
-      } else if (aNumber[0] === "1" && aNumber.length === 2) {
-        this._sendToRilWorker(aClientId, "hangUp",
-                              { callIndex: parseInt(aNumber[1]) }, mmiCallback);
-      } else if (aNumber === "2") {
-        this._sendToRilWorker(aClientId, "switchActiveCall", null, mmiCallback);
-      } else if (aNumber[0] === "2" && aNumber.length === 2) {
-        this._sendToRilWorker(aClientId, "separateCall",
-                              { callIndex: parseInt(aNumber[1]) }, mmiCallback);
-      } else if (aNumber === "3") {
-        this._sendToRilWorker(aClientId, "conferenceCall", null, mmiCallback);
-      } else {
-        
-        this._dialCall(aClientId,
-                       { number: aNumber,
-                         isDialEmergency: aIsDialEmergency }, aCallback);
-      }
+    let mmi = this._parseMMI(aNumber, this._hasCalls(aClientId));
+    if (!mmi) {
+      this._dialCall(aClientId,
+                     { number: aNumber,
+                       isDialEmergency: aIsDialEmergency }, aCallback);
+    } else if (this._isTemporaryCLIR(mmi)) {
+      this._dialCall(aClientId,
+                     { number: mmi.dialNumber,
+                       clirMode: this._getTemporaryCLIRMode(mmi.procedure),
+                       isDialEmergency: aIsDialEmergency }, aCallback);
     } else {
-      let mmi = this._parseMMI(aNumber);
-      if (!mmi) {
-        this._dialCall(aClientId,
-                       { number: aNumber,
-                         isDialEmergency: aIsDialEmergency }, aCallback);
-      } else if (this._isTemporaryCLIR(mmi)) {
-        this._dialCall(aClientId,
-                       { number: mmi.dialNumber,
-                         clirMode: this._getTemporaryCLIRMode(mmi.procedure),
-                         isDialEmergency: aIsDialEmergency }, aCallback);
-      } else {
-        
-        if (aIsDialEmergency) {
-          aCallback.notifyError(DIAL_ERROR_BAD_NUMBER);
-          return;
-        }
-
-        this._dialMMI(aClientId, mmi, aCallback, true);
+      
+      if (aIsDialEmergency) {
+        aCallback.notifyError(DIAL_ERROR_BAD_NUMBER);
+        return;
       }
+
+      this._dialMMI(aClientId, mmi, aCallback, true);
     }
   },
 
@@ -717,7 +682,7 @@ TelephonyService.prototype = {
       }
 
       
-      if (response.additionalInformation === undefined) {
+      if (response.additionalInformation == undefined) {
         aCallback.notifyDialMMISuccess(response.statusMessage);
         return;
       }
@@ -826,9 +791,13 @@ TelephonyService.prototype = {
   
 
 
-  _isShortString: function(aMmiString) {
+  _isShortString: function(aMmiString, hasCalls) {
     if (aMmiString.length > 2) {
       return false;
+    }
+
+    if (hasCalls) {
+      return true;
     }
 
     
@@ -845,7 +814,7 @@ TelephonyService.prototype = {
   
 
 
-  _parseMMI: function(aMmiString) {
+  _parseMMI: function(aMmiString, hasCalls) {
     if (!aMmiString) {
       return null;
     }
@@ -864,7 +833,8 @@ TelephonyService.prototype = {
       };
     }
 
-    if (this._isPoundString(aMmiString) || this._isShortString(aMmiString)) {
+    if (this._isPoundString(aMmiString) ||
+        this._isShortString(aMmiString, hasCalls)) {
       return {
         fullMMI: aMmiString
       };
