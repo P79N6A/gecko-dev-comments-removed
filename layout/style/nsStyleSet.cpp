@@ -233,10 +233,6 @@ nsStyleSet::EndReconstruct()
   mInReconstruct = false;
 #ifdef DEBUG
   for (int32_t i = mRoots.Length() - 1; i >= 0; --i) {
-    nsRuleNode *n = mRoots[i]->RuleNode();
-    while (n->GetParent()) {
-      n = n->GetParent();
-    }
     
     
     
@@ -244,7 +240,8 @@ nsStyleSet::EndReconstruct()
     
     
 
-    NS_ASSERTION(n == mRuleTree, "style context has old rule node");
+    NS_ASSERTION(mRoots[i]->RuleNode()->RuleTree() == mRuleTree,
+                 "style context has old rule node");
   }
 #endif
   
