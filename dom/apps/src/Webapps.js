@@ -439,7 +439,11 @@ WebappsApplication.prototype = {
   },
 
   get downloadError() {
-    return new this._window.DOMError(this._downloadError || '');
+    
+    if (!this._downloadError) {
+      return null;
+    }
+    return new this._window.DOMError(this._downloadError);
   },
 
   download: function() {
@@ -593,7 +597,8 @@ WebappsApplication.prototype = {
       }
     }
 
-    if (aMsg.error) {
+    
+    if ('error' in aMsg) {
       this._downloadError = aMsg.error;
     }
 
@@ -648,6 +653,12 @@ WebappsApplication.prototype = {
         }
 
         msg.eventType.forEach((aEventType) => {
+          
+          if (aEventType === 'downloadapplied' ||
+              aEventType === 'downloadsuccess') {
+            this._downloadError = null;
+          }
+
           if ("_on" + aEventType in this) {
             this._fireEvent(aEventType);
           } else {
