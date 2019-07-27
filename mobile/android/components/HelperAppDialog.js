@@ -73,6 +73,10 @@ HelperAppLauncherDialog.prototype = {
       let file = url.QueryInterface(Ci.nsIFileURL).file;
 
       
+      
+      file.normalize();
+
+      
 
       let appRoot = FileUtils.getFile("XREExeF", []);
       if (appRoot.contains(file, true)) {
