@@ -22,9 +22,12 @@
 struct JSContext;
 
 namespace mozilla {
+
+class CSSAnimationPlayer;
+
 namespace dom {
 
-class AnimationPlayer MOZ_FINAL : public nsWrapperCache
+class AnimationPlayer : public nsWrapperCache
 {
 protected:
   virtual ~AnimationPlayer() { }
@@ -42,6 +45,8 @@ public:
 
   AnimationTimeline* GetParentObject() const { return mTimeline; }
   virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+
+  virtual CSSAnimationPlayer* AsCSSAnimationPlayer() { return nullptr; }
 
   
   
@@ -101,6 +106,22 @@ protected:
 };
 
 } 
+
+class CSSAnimationPlayer MOZ_FINAL : public dom::AnimationPlayer
+{
+public:
+ explicit CSSAnimationPlayer(dom::AnimationTimeline* aTimeline)
+    : dom::AnimationPlayer(aTimeline)
+  {
+  }
+
+  virtual CSSAnimationPlayer*
+  AsCSSAnimationPlayer() MOZ_OVERRIDE { return this; }
+
+protected:
+  virtual ~CSSAnimationPlayer() { }
+};
+
 } 
 
 #endif 
