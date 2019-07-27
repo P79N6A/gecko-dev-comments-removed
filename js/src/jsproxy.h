@@ -87,6 +87,14 @@ class JS_FRIEND_API(Wrapper);
 
 class JS_FRIEND_API(BaseProxyHandler)
 {
+    
+
+
+
+
+
+
+
     const void *mFamily;
 
     
