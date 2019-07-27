@@ -125,6 +125,16 @@ loop.shared.actions = (function() {
 
 
     GetAllRooms: Action.define("getAllRooms", {
-    })
+    }),
+
+    
+
+
+
+
+
+    SetupEmptyRoom: Action.define("setupEmptyRoom", {
+      localRoomId: String
+    }),
   };
 })();
