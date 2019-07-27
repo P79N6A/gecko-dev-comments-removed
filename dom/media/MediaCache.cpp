@@ -56,10 +56,6 @@ static const uint32_t REPLAY_PENALTY_FACTOR = 3;
 
 static const uint32_t FREE_BLOCK_SCAN_LIMIT = 16;
 
-
-
-static const uint32_t CACHE_POWERSAVE_WAKEUP_LOW_THRESHOLD_MS = 10000;
-
 #ifdef DEBUG
 
 
@@ -1164,6 +1160,9 @@ MediaCache::Update()
       }
     }
 
+    int32_t resumeThreshold = Preferences::GetInt("media.cache_resume_threshold", 10);
+    int32_t readaheadLimit = Preferences::GetInt("media.cache_readahead_limit", 30);
+
     for (uint32_t i = 0; i < mStreams.Length(); ++i) {
       actions.AppendElement(NONE);
 
@@ -1245,9 +1244,13 @@ MediaCache::Update()
         TimeDuration predictedNewDataUse = PredictNextUseForIncomingData(stream);
 
         if (stream->mCacheSuspended &&
-            predictedNewDataUse.ToMilliseconds() > CACHE_POWERSAVE_WAKEUP_LOW_THRESHOLD_MS) {
+            predictedNewDataUse.ToSeconds() > resumeThreshold) {
           
           CACHE_LOG(PR_LOG_DEBUG, ("Stream %p avoiding wakeup since more data is not needed", stream));
+          enableReading = false;
+        } else if (predictedNewDataUse.ToSeconds() > readaheadLimit) {
+          
+          CACHE_LOG(PR_LOG_DEBUG, ("Stream %p throttling to avoid reading ahead too far", stream));
           enableReading = false;
         } else if (freeBlockCount > 0) {
           

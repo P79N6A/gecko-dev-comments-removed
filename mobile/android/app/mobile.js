@@ -552,6 +552,11 @@ pref("dom.indexedDB.warningQuota", 5);
 
 pref("media.preload.default", 1); 
 pref("media.preload.auto", 2);    
+pref("media.cache_size", 32768);    
+
+
+pref("media.cache_resume_threshold", 10);
+pref("media.cache_readahead_limit", 30);
 
 
 
@@ -611,11 +616,6 @@ pref("urlclassifier.gethash.timeout_ms", 5000);
 
 
 pref("urlclassifier.max-complete-age", 2700);
-#endif
-
-
-#ifdef RELEASE_BUILD
-pref("browser.tiles.reportURL", "https://tiles.services.mozilla.com/v2/links/click");
 #endif
 
 
