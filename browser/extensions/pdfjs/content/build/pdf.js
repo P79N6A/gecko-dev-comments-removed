@@ -22,8 +22,8 @@ if (typeof PDFJS === 'undefined') {
   (typeof window !== 'undefined' ? window : this).PDFJS = {};
 }
 
-PDFJS.version = '1.0.1040';
-PDFJS.build = '997096f';
+PDFJS.version = '1.0.1130';
+PDFJS.build = 'e4f0ae2';
 
 (function pdfjsWrapper() {
   
@@ -341,6 +341,7 @@ function isValidUrl(url, allowRelative) {
     case 'https':
     case 'ftp':
     case 'mailto':
+    case 'tel':
       return true;
     default:
       return false;
@@ -470,6 +471,8 @@ var XRefParseException = (function XRefParseExceptionClosure() {
 
 
 function bytesToString(bytes) {
+  assert(bytes !== null && typeof bytes === 'object' &&
+         bytes.length !== undefined, 'Invalid argument for bytesToString');
   var length = bytes.length;
   var MAX_ARGUMENT_COUNT = 8192;
   if (length < MAX_ARGUMENT_COUNT) {
@@ -485,6 +488,7 @@ function bytesToString(bytes) {
 }
 
 function stringToBytes(str) {
+  assert(typeof str === 'string', 'Invalid argument for stringToBytes');
   var length = str.length;
   var bytes = new Uint8Array(length);
   for (var i = 0; i < length; ++i) {
@@ -1376,6 +1380,9 @@ PDFJS.disableStream = (PDFJS.disableStream === undefined ?
 
 
 
+
+
+
 PDFJS.disableAutoFetch = (PDFJS.disableAutoFetch === undefined ?
                           false : PDFJS.disableAutoFetch);
 
@@ -1483,46 +1490,209 @@ PDFJS.maxCanvasPixels = (PDFJS.maxCanvasPixels === undefined ?
 
 
 
-PDFJS.getDocument = function getDocument(source,
+
+
+
+PDFJS.getDocument = function getDocument(src,
                                          pdfDataRangeTransport,
                                          passwordCallback,
                                          progressCallback) {
-  var workerInitializedCapability, workerReadyCapability, transport;
-
-  if (typeof source === 'string') {
-    source = { url: source };
-  } else if (isArrayBuffer(source)) {
-    source = { data: source };
-  } else if (typeof source !== 'object') {
-    error('Invalid parameter in getDocument, need either Uint8Array, ' +
-          'string or a parameter object');
-  }
-
-  if (!source.url && !source.data) {
-    error('Invalid parameter array, need either .data or .url');
-  }
+  var task = new PDFDocumentLoadingTask();
 
   
+  if (pdfDataRangeTransport) {
+    if (!(pdfDataRangeTransport instanceof PDFDataRangeTransport)) {
+      
+      pdfDataRangeTransport = Object.create(pdfDataRangeTransport);
+      pdfDataRangeTransport.length = src.length;
+      pdfDataRangeTransport.initialData = src.initialData;
+    }
+    src = Object.create(src);
+    src.range = pdfDataRangeTransport;
+  }
+  task.onPassword = passwordCallback || null;
+  task.onProgress = progressCallback || null;
+
+  var workerInitializedCapability, transport;
+  var source;
+  if (typeof src === 'string') {
+    source = { url: src };
+  } else if (isArrayBuffer(src)) {
+    source = { data: src };
+  } else if (src instanceof PDFDataRangeTransport) {
+    source = { range: src };
+  } else {
+    if (typeof src !== 'object') {
+      error('Invalid parameter in getDocument, need either Uint8Array, ' +
+        'string or a parameter object');
+    }
+    if (!src.url && !src.data && !src.range) {
+      error('Invalid parameter object: need either .data, .range or .url');
+    }
+
+    source = src;
+  }
+
   var params = {};
   for (var key in source) {
     if (key === 'url' && typeof window !== 'undefined') {
+      
       params[key] = combineUrl(window.location.href, source[key]);
+      continue;
+    } else if (key === 'range') {
+      continue;
+    } else if (key === 'data' && !(source[key] instanceof Uint8Array)) {
+      
+      var pdfBytes = source[key];
+      if (typeof pdfBytes === 'string') {
+        params[key] = stringToBytes(pdfBytes);
+      } else if (typeof pdfBytes === 'object' && pdfBytes !== null &&
+                 !isNaN(pdfBytes.length)) {
+        params[key] = new Uint8Array(pdfBytes);
+      } else {
+        error('Invalid PDF binary data: either typed array, string or ' +
+              'array-like object is expected in the data property.');
+      }
       continue;
     }
     params[key] = source[key];
   }
 
   workerInitializedCapability = createPromiseCapability();
-  workerReadyCapability = createPromiseCapability();
-  transport = new WorkerTransport(workerInitializedCapability,
-                                  workerReadyCapability, pdfDataRangeTransport,
-                                  progressCallback);
+  transport = new WorkerTransport(workerInitializedCapability, source.range);
   workerInitializedCapability.promise.then(function transportInitialized() {
-    transport.passwordCallback = passwordCallback;
-    transport.fetchDocument(params);
+    transport.fetchDocument(task, params);
   });
-  return workerReadyCapability.promise;
+
+  return task;
 };
+
+
+
+
+
+var PDFDocumentLoadingTask = (function PDFDocumentLoadingTaskClosure() {
+  
+  function PDFDocumentLoadingTask() {
+    this._capability = createPromiseCapability();
+
+    
+
+
+
+
+    this.onPassword = null;
+
+    
+
+
+
+
+    this.onProgress = null;
+  }
+
+  PDFDocumentLoadingTask.prototype =
+       {
+    
+
+
+    get promise() {
+      return this._capability.promise;
+    },
+
+    
+
+    
+
+
+
+
+
+
+
+    then: function PDFDocumentLoadingTask_then(onFulfilled, onRejected) {
+      return this.promise.then.apply(this.promise, arguments);
+    }
+  };
+
+  return PDFDocumentLoadingTask;
+})();
+
+
+
+
+
+var PDFDataRangeTransport = (function pdfDataRangeTransportClosure() {
+  
+
+
+
+
+  function PDFDataRangeTransport(length, initialData) {
+    this.length = length;
+    this.initialData = initialData;
+
+    this._rangeListeners = [];
+    this._progressListeners = [];
+    this._progressiveReadListeners = [];
+    this._readyCapability = createPromiseCapability();
+  }
+  PDFDataRangeTransport.prototype =
+       {
+    addRangeListener:
+        function PDFDataRangeTransport_addRangeListener(listener) {
+      this._rangeListeners.push(listener);
+    },
+
+    addProgressListener:
+        function PDFDataRangeTransport_addProgressListener(listener) {
+      this._progressListeners.push(listener);
+    },
+
+    addProgressiveReadListener:
+        function PDFDataRangeTransport_addProgressiveReadListener(listener) {
+      this._progressiveReadListeners.push(listener);
+    },
+
+    onDataRange: function PDFDataRangeTransport_onDataRange(begin, chunk) {
+      var listeners = this._rangeListeners;
+      for (var i = 0, n = listeners.length; i < n; ++i) {
+        listeners[i](begin, chunk);
+      }
+    },
+
+    onDataProgress: function PDFDataRangeTransport_onDataProgress(loaded) {
+      this._readyCapability.promise.then(function () {
+        var listeners = this._progressListeners;
+        for (var i = 0, n = listeners.length; i < n; ++i) {
+          listeners[i](loaded);
+        }
+      }.bind(this));
+    },
+
+    onDataProgressiveRead:
+        function PDFDataRangeTransport_onDataProgress(chunk) {
+      this._readyCapability.promise.then(function () {
+        var listeners = this._progressiveReadListeners;
+        for (var i = 0, n = listeners.length; i < n; ++i) {
+          listeners[i](chunk);
+        }
+      }.bind(this));
+    },
+
+    transportReady: function PDFDataRangeTransport_transportReady() {
+      this._readyCapability.resolve();
+    },
+
+    requestDataRange:
+        function PDFDataRangeTransport_requestDataRange(begin, end) {
+      throw new Error('Abstract method PDFDataRangeTransport.requestDataRange');
+    }
+  };
+  return PDFDataRangeTransport;
+})();
+
+PDFJS.PDFDataRangeTransport = PDFDataRangeTransport;
 
 
 
@@ -1836,7 +2006,12 @@ var PDFPageProxy = (function PDFPageProxyClosure() {
         intentState.renderTasks = [];
       }
       intentState.renderTasks.push(internalRenderTask);
-      var renderTask = new RenderTask(internalRenderTask);
+      var renderTask = internalRenderTask.task;
+
+      
+      if (params.continueCallback) {
+        renderTask.onContinue = params.continueCallback;
+      }
 
       var self = this;
       intentState.displayReadyCapability.promise.then(
@@ -2001,19 +2176,16 @@ var PDFPageProxy = (function PDFPageProxyClosure() {
 
 
 var WorkerTransport = (function WorkerTransportClosure() {
-  function WorkerTransport(workerInitializedCapability, workerReadyCapability,
-                           pdfDataRangeTransport, progressCallback) {
+  function WorkerTransport(workerInitializedCapability, pdfDataRangeTransport) {
     this.pdfDataRangeTransport = pdfDataRangeTransport;
-
     this.workerInitializedCapability = workerInitializedCapability;
-    this.workerReadyCapability = workerReadyCapability;
-    this.progressCallback = progressCallback;
     this.commonObjs = new PDFObjects();
+
+    this.loadingTask = null;
 
     this.pageCache = [];
     this.pagePromises = [];
     this.downloadInfoCapability = createPromiseCapability();
-    this.passwordCallback = null;
 
     
     
@@ -2152,48 +2324,50 @@ var WorkerTransport = (function WorkerTransportClosure() {
         this.numPages = data.pdfInfo.numPages;
         var pdfDocument = new PDFDocumentProxy(pdfInfo, this);
         this.pdfDocument = pdfDocument;
-        this.workerReadyCapability.resolve(pdfDocument);
+        this.loadingTask._capability.resolve(pdfDocument);
       }, this);
 
       messageHandler.on('NeedPassword',
                         function transportNeedPassword(exception) {
-        if (this.passwordCallback) {
-          return this.passwordCallback(updatePassword,
-                                       PasswordResponses.NEED_PASSWORD);
+        var loadingTask = this.loadingTask;
+        if (loadingTask.onPassword) {
+          return loadingTask.onPassword(updatePassword,
+                                        PasswordResponses.NEED_PASSWORD);
         }
-        this.workerReadyCapability.reject(
+        loadingTask._capability.reject(
           new PasswordException(exception.message, exception.code));
       }, this);
 
       messageHandler.on('IncorrectPassword',
                         function transportIncorrectPassword(exception) {
-        if (this.passwordCallback) {
-          return this.passwordCallback(updatePassword,
-                                       PasswordResponses.INCORRECT_PASSWORD);
+        var loadingTask = this.loadingTask;
+        if (loadingTask.onPassword) {
+          return loadingTask.onPassword(updatePassword,
+                                        PasswordResponses.INCORRECT_PASSWORD);
         }
-        this.workerReadyCapability.reject(
+        loadingTask._capability.reject(
           new PasswordException(exception.message, exception.code));
       }, this);
 
       messageHandler.on('InvalidPDF', function transportInvalidPDF(exception) {
-        this.workerReadyCapability.reject(
+        this.loadingTask._capability.reject(
           new InvalidPDFException(exception.message));
       }, this);
 
       messageHandler.on('MissingPDF', function transportMissingPDF(exception) {
-        this.workerReadyCapability.reject(
+        this.loadingTask._capability.reject(
           new MissingPDFException(exception.message));
       }, this);
 
       messageHandler.on('UnexpectedResponse',
                         function transportUnexpectedResponse(exception) {
-        this.workerReadyCapability.reject(
+        this.loadingTask._capability.reject(
           new UnexpectedResponseException(exception.message, exception.status));
       }, this);
 
       messageHandler.on('UnknownError',
                         function transportUnknownError(exception) {
-        this.workerReadyCapability.reject(
+        this.loadingTask._capability.reject(
           new UnknownErrorException(exception.message, exception.details));
       }, this);
 
@@ -2288,8 +2462,9 @@ var WorkerTransport = (function WorkerTransportClosure() {
       }, this);
 
       messageHandler.on('DocProgress', function transportDocProgress(data) {
-        if (this.progressCallback) {
-          this.progressCallback({
+        var loadingTask = this.loadingTask;
+        if (loadingTask.onProgress) {
+          loadingTask.onProgress({
             loaded: data.loaded,
             total: data.total
           });
@@ -2349,10 +2524,16 @@ var WorkerTransport = (function WorkerTransportClosure() {
       });
     },
 
-    fetchDocument: function WorkerTransport_fetchDocument(source) {
+    fetchDocument: function WorkerTransport_fetchDocument(loadingTask, source) {
+      this.loadingTask = loadingTask;
+
       source.disableAutoFetch = PDFJS.disableAutoFetch;
       source.disableStream = PDFJS.disableStream;
       source.chunkedViewerLoading = !!this.pdfDataRangeTransport;
+      if (this.pdfDataRangeTransport) {
+        source.length = this.pdfDataRangeTransport.length;
+        source.initialData = this.pdfDataRangeTransport.initialData;
+      }
       this.messageHandler.send('GetDocRequest', {
         source: source,
         disableRange: PDFJS.disableRange,
@@ -2563,12 +2744,15 @@ var PDFObjects = (function PDFObjectsClosure() {
 
 var RenderTask = (function RenderTaskClosure() {
   function RenderTask(internalRenderTask) {
-    this.internalRenderTask = internalRenderTask;
+    this._internalRenderTask = internalRenderTask;
+
     
 
 
 
-    this.promise = this.internalRenderTask.capability.promise;
+
+
+    this.onContinue = null;
   }
 
   RenderTask.prototype =  {
@@ -2576,9 +2760,17 @@ var RenderTask = (function RenderTaskClosure() {
 
 
 
+    get promise() {
+      return this._internalRenderTask.capability.promise;
+    },
+
+    
+
+
+
 
     cancel: function RenderTask_cancel() {
-      this.internalRenderTask.cancel();
+      this._internalRenderTask.cancel();
     },
 
     
@@ -2590,7 +2782,7 @@ var RenderTask = (function RenderTaskClosure() {
 
 
     then: function RenderTask_then(onFulfilled, onRejected) {
-      return this.promise.then(onFulfilled, onRejected);
+      return this.promise.then.apply(this.promise, arguments);
     }
   };
 
@@ -2617,6 +2809,7 @@ var InternalRenderTask = (function InternalRenderTaskClosure() {
     this.graphicsReady = false;
     this.cancelled = false;
     this.capability = createPromiseCapability();
+    this.task = new RenderTask(this);
     
     this._continueBound = this._continue.bind(this);
     this._scheduleNextBound = this._scheduleNext.bind(this);
@@ -2679,8 +2872,8 @@ var InternalRenderTask = (function InternalRenderTaskClosure() {
       if (this.cancelled) {
         return;
       }
-      if (this.params.continueCallback) {
-        this.params.continueCallback(this._scheduleNextBound);
+      if (this.task.onContinue) {
+        this.task.onContinue.call(this.task, this._scheduleNextBound);
       } else {
         this._scheduleNext();
       }

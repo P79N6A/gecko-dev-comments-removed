@@ -22,8 +22,8 @@ if (typeof PDFJS === 'undefined') {
   (typeof window !== 'undefined' ? window : this).PDFJS = {};
 }
 
-PDFJS.version = '1.0.1040';
-PDFJS.build = '997096f';
+PDFJS.version = '1.0.1130';
+PDFJS.build = 'e4f0ae2';
 
 (function pdfjsWrapper() {
   
@@ -341,6 +341,7 @@ function isValidUrl(url, allowRelative) {
     case 'https':
     case 'ftp':
     case 'mailto':
+    case 'tel':
       return true;
     default:
       return false;
@@ -470,6 +471,8 @@ var XRefParseException = (function XRefParseExceptionClosure() {
 
 
 function bytesToString(bytes) {
+  assert(bytes !== null && typeof bytes === 'object' &&
+         bytes.length !== undefined, 'Invalid argument for bytesToString');
   var length = bytes.length;
   var MAX_ARGUMENT_COUNT = 8192;
   if (length < MAX_ARGUMENT_COUNT) {
@@ -485,6 +488,7 @@ function bytesToString(bytes) {
 }
 
 function stringToBytes(str) {
+  assert(typeof str === 'string', 'Invalid argument for stringToBytes');
   var length = str.length;
   var bytes = new Uint8Array(length);
   for (var i = 0; i < length; ++i) {
@@ -1449,6 +1453,9 @@ var ChunkedStream = (function ChunkedStreamClosure() {
     getUint16: function ChunkedStream_getUint16() {
       var b0 = this.getByte();
       var b1 = this.getByte();
+      if (b0 === -1 || b1 === -1) {
+        return -1;
+      }
       return (b0 << 8) + b1;
     },
 
@@ -15996,7 +16003,7 @@ var Font = (function FontClosure() {
       
       var fontName = name.replace(/[,_]/g, '-');
       var isStandardFont = !!stdFontMap[fontName] ||
-        (nonStdFontMap[fontName] && !!stdFontMap[nonStdFontMap[fontName]]);
+        !!(nonStdFontMap[fontName] && stdFontMap[nonStdFontMap[fontName]]);
       fontName = stdFontMap[fontName] || nonStdFontMap[fontName] || fontName;
 
       this.bold = (fontName.search(/bold/gi) !== -1);
@@ -29599,6 +29606,102 @@ var Parser = (function ParserClosure() {
 
 
 
+    findDCTDecodeInlineStreamEnd:
+        function Parser_findDCTDecodeInlineStreamEnd(stream) {
+      var startPos = stream.pos, foundEOI = false, b, markerLength, length;
+      while ((b = stream.getByte()) !== -1) {
+        if (b !== 0xFF) { 
+          continue;
+        }
+        switch (stream.getByte()) {
+          case 0x00: 
+            
+            break;
+
+          case 0xFF: 
+            
+            stream.skip(-1);
+            break;
+
+          case 0xD9: 
+            foundEOI = true;
+            break;
+
+          case 0xC0: 
+          case 0xC1: 
+          case 0xC2: 
+          case 0xC3: 
+
+          case 0xC5: 
+          case 0xC6: 
+          case 0xC7: 
+
+          case 0xC9: 
+          case 0xCA: 
+          case 0xCB: 
+
+          case 0xCD: 
+          case 0xCE: 
+          case 0xCF: 
+
+          case 0xC4: 
+          case 0xCC: 
+
+          case 0xDA: 
+          case 0xDB: 
+          case 0xDC: 
+          case 0xDD: 
+          case 0xDE: 
+          case 0xDF: 
+
+          case 0xE0: 
+          case 0xE1: 
+          case 0xE2: 
+          case 0xE3: 
+          case 0xE4: 
+          case 0xE5: 
+          case 0xE6: 
+          case 0xE7: 
+          case 0xE8: 
+          case 0xE9: 
+          case 0xEA: 
+          case 0xEB: 
+          case 0xEC: 
+          case 0xED: 
+          case 0xEE: 
+          case 0xEF: 
+
+          case 0xFE: 
+            
+            markerLength = stream.getUint16();
+            if (markerLength > 2) {
+              
+              
+              stream.skip(markerLength - 2); 
+            } else {
+              
+              stream.skip(-2);
+            }
+            break;
+        }
+        if (foundEOI) {
+          break;
+        }
+      }
+      length = stream.pos - startPos;
+      if (b === -1) {
+        warn('Inline DCTDecode image stream: ' +
+             'EOI marker not found, searching for /EI/ instead.');
+        stream.skip(-length); 
+        return this.findDefaultInlineStreamEnd(stream);
+      }
+      this.inlineStreamSkipEI(stream);
+      return length;
+    },
+    
+
+
+
     findASCII85DecodeInlineStreamEnd:
         function Parser_findASCII85DecodeInlineStreamEnd(stream) {
       var TILDE = 0x7E, GT = 0x3E;
@@ -29686,7 +29789,9 @@ var Parser = (function ParserClosure() {
 
       
       var startPos = stream.pos, length, i, ii;
-      if (filterName === 'ASCII85Decide' || filterName === 'A85') {
+      if (filterName === 'DCTDecode' || filterName === 'DCT') {
+        length = this.findDCTDecodeInlineStreamEnd(stream);
+      } else if (filterName === 'ASCII85Decide' || filterName === 'A85') {
         length = this.findASCII85DecodeInlineStreamEnd(stream);
       } else if (filterName === 'ASCIIHexDecode' || filterName === 'AHx') {
         length = this.findASCIIHexDecodeInlineStreamEnd(stream);
@@ -30613,6 +30718,9 @@ var Stream = (function StreamClosure() {
     getUint16: function Stream_getUint16() {
       var b0 = this.getByte();
       var b1 = this.getByte();
+      if (b0 === -1 || b1 === -1) {
+        return -1;
+      }
       return (b0 << 8) + b1;
     },
     getInt32: function Stream_getInt32() {
@@ -30740,6 +30848,9 @@ var DecodeStream = (function DecodeStreamClosure() {
     getUint16: function DecodeStream_getUint16() {
       var b0 = this.getByte();
       var b1 = this.getByte();
+      if (b0 === -1 || b1 === -1) {
+        return -1;
+      }
       return (b0 << 8) + b1;
     },
     getInt32: function DecodeStream_getInt32() {
@@ -34839,11 +34950,6 @@ var JpxImage = (function JpxImageClosure() {
               context.QCC = [];
               context.COC = [];
               break;
-            case 0xFF55: 
-              var Ltlm = readUint16(data, position); 
-              
-              position += Ltlm;
-              break;
             case 0xFF5C: 
               length = readUint16(data, position);
               var qcd = {};
@@ -35033,6 +35139,9 @@ var JpxImage = (function JpxImageClosure() {
               length = tile.dataEnd - position;
               parseTilePackets(context, data, position, length);
               break;
+            case 0xFF55: 
+            case 0xFF57: 
+            case 0xFF58: 
             case 0xFF64: 
               length = readUint16(data, position);
               
@@ -35373,7 +35482,7 @@ var JpxImage = (function JpxImageClosure() {
     r = 0;
     c = 0;
     p = 0;
-    
+
     this.nextPacket = function JpxImage_nextPacket() {
       
       for (; r <= maxDecompositionLevelsCount; r++) {
@@ -35457,7 +35566,7 @@ var JpxImage = (function JpxImageClosure() {
     var componentsCount = siz.Csiz;
     var precinctsSizes = getPrecinctSizesInImageScale(tile);
     var l = 0, r = 0, c = 0, px = 0, py = 0;
-    
+
     this.nextPacket = function JpxImage_nextPacket() {
       
       for (; c < componentsCount; ++c) {
@@ -37030,10 +37139,9 @@ var Jbig2Image = (function Jbig2ImageClosure() {
 
         
         
-        
-        
         contextLabel = ((contextLabel & OLD_PIXEL_MASK) << 1) |
-                       (row2[j + 3] << 11) | (row1[j + 4] << 4) | pixel;
+                       (j + 3 < width ? row2[j + 3] << 11 : 0) |
+                       (j + 4 < width ? row1[j + 4] << 4 : 0) | pixel;
       }
     }
 
