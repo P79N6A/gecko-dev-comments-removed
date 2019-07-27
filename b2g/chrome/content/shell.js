@@ -56,16 +56,6 @@ XPCOMUtils.defineLazyGetter(this, 'DebuggerServer', function() {
   return DebuggerServer;
 });
 
-XPCOMUtils.defineLazyGetter(this, 'devtools', function() {
-  const { devtools } =
-    Cu.import('resource://gre/modules/devtools/Loader.jsm', {});
-  return devtools;
-});
-
-XPCOMUtils.defineLazyGetter(this, 'discovery', function() {
-  return devtools.require('devtools/toolkit/discovery/discovery');
-});
-
 XPCOMUtils.defineLazyGetter(this, "ppmm", function() {
   return Cc["@mozilla.org/parentprocessmessagemanager;1"]
          .getService(Ci.nsIMessageListenerManager);
@@ -816,11 +806,10 @@ let IndexedDBPromptHelper = {
   }
 }
 
-function RemoteDebugger() {}
-RemoteDebugger.prototype = {
+let RemoteDebugger = {
   _promptDone: false,
   _promptAnswer: false,
-  _listener: null,
+  _running: false,
 
   prompt: function debugger_prompt() {
     this._promptDone = false;
@@ -841,146 +830,108 @@ RemoteDebugger.prototype = {
     this._promptDone = true;
   },
 
-  initServer: function() {
-    if (DebuggerServer.initialized) {
-      return;
-    }
-
-    
-    DebuggerServer.init(this.prompt.bind(this));
-
-    
-    
-
-    
-    
-    let restrictPrivileges = Services.prefs.getBoolPref("devtools.debugger.forbid-certified-apps");
-    DebuggerServer.addBrowserActors("navigator:browser", restrictPrivileges);
-
-    
-
-
-
-
-
-
-
-
-    DebuggerServer.createRootActor = function createRootActor(connection)
-    {
-      let { Promise: promise } = Cu.import("resource://gre/modules/Promise.jsm", {});
-      let parameters = {
-        
-        
-        
-        
-        tabList: {
-          getList: function() {
-            return promise.resolve([]);
-          }
-        },
-        
-        
-        globalActorFactories: restrictPrivileges ? {
-          webappsActor: DebuggerServer.globalActorFactories.webappsActor,
-          deviceActor: DebuggerServer.globalActorFactories.deviceActor,
-        } : DebuggerServer.globalActorFactories
-      };
-      let { RootActor } = devtools.require("devtools/server/actors/root");
-      let root = new RootActor(connection, parameters);
-      root.applicationType = "operating-system";
-      return root;
-    };
-
-#ifdef MOZ_WIDGET_GONK
-    DebuggerServer.on("connectionchange", function() {
-      AdbController.updateState();
-    });
-#endif
-  }
-};
-
-let USBRemoteDebugger = new RemoteDebugger();
-
-Object.defineProperty(USBRemoteDebugger, "isDebugging", {
-  get: function() {
-    if (!this._listener) {
+  get isDebugging() {
+    if (!this._running) {
       return false;
     }
 
     return DebuggerServer._connections &&
            Object.keys(DebuggerServer._connections).length > 0;
+  },
+
+  
+  start: function debugger_start() {
+    if (this._running) {
+      return;
+    }
+
+    if (!DebuggerServer.initialized) {
+      
+      DebuggerServer.init(this.prompt.bind(this));
+
+      
+      
+
+      
+      
+      let restrictPrivileges = Services.prefs.getBoolPref("devtools.debugger.forbid-certified-apps");
+      DebuggerServer.addBrowserActors("navigator:browser", restrictPrivileges);
+
+      
+
+
+
+
+
+
+
+
+      DebuggerServer.createRootActor = function createRootActor(connection)
+      {
+        let { Promise: promise } = Cu.import("resource://gre/modules/Promise.jsm", {});
+        let parameters = {
+          
+          
+          
+          
+          tabList: {
+            getList: function() {
+              return promise.resolve([]);
+            }
+          },
+          
+          
+          globalActorFactories: restrictPrivileges ? {
+            webappsActor: DebuggerServer.globalActorFactories.webappsActor,
+            deviceActor: DebuggerServer.globalActorFactories.deviceActor,
+          } : DebuggerServer.globalActorFactories
+        };
+        let devtools = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools;
+        let { RootActor } = devtools.require("devtools/server/actors/root");
+        let root = new RootActor(connection, parameters);
+        root.applicationType = "operating-system";
+        return root;
+      };
+
+#ifdef MOZ_WIDGET_GONK
+      DebuggerServer.on("connectionchange", function() {
+        AdbController.updateState();
+      });
+#endif
+    }
+
+    let path = Services.prefs.getCharPref("devtools.debugger.unix-domain-socket") ||
+               "/data/local/debugger-socket";
+    try {
+      DebuggerServer.openListener(path);
+      
+      
+      Services.obs.notifyObservers(null, 'debugger-server-started', null);
+      this._running = true;
+    } catch (e) {
+      dump('Unable to start debugger server: ' + e + '\n');
+    }
+  },
+
+  stop: function debugger_stop() {
+    if (!this._running) {
+      return;
+    }
+
+    if (!DebuggerServer.initialized) {
+      
+      this._running = false;
+      return;
+    }
+
+    try {
+      DebuggerServer.closeAllListeners();
+    } catch (e) {
+      dump('Unable to stop debugger server: ' + e + '\n');
+    }
+    this._running = false;
   }
-});
-
-USBRemoteDebugger.start = function() {
-  if (this._listener) {
-    return;
-  }
-
-  this.initServer();
-
-  let portOrPath =
-    Services.prefs.getCharPref("devtools.debugger.unix-domain-socket") ||
-    "/data/local/debugger-socket";
-
-  try {
-    debug("Starting USB debugger on " + portOrPath);
-    this._listener = DebuggerServer.openListener(portOrPath);
-    
-    
-    Services.obs.notifyObservers(null, 'debugger-server-started', null);
-  } catch (e) {
-    debug('Unable to start USB debugger server: ' + e);
-  }
-};
-
-USBRemoteDebugger.stop = function() {
-  if (!this._listener) {
-    return;
-  }
-
-  try {
-    this._listener.close();
-    this._listener = null;
-  } catch (e) {
-    debug('Unable to stop USB debugger server: ' + e);
-  }
-};
-
-let WiFiRemoteDebugger = new RemoteDebugger();
-
-WiFiRemoteDebugger.start = function() {
-  if (this._listener) {
-    return;
-  }
-
-  this.initServer();
-
-  try {
-    debug("Starting WiFi debugger");
-    this._listener = DebuggerServer.openListener(-1);
-    let port = this._listener.port;
-    debug("Started WiFi debugger on " + port);
-    discovery.addService("devtools", { port: port });
-  } catch (e) {
-    debug('Unable to start WiFi debugger server: ' + e);
-  }
-};
-
-WiFiRemoteDebugger.stop = function() {
-  if (!this._listener) {
-    return;
-  }
-
-  try {
-    discovery.removeService("devtools");
-    this._listener.close();
-    this._listener = null;
-  } catch (e) {
-    debug('Unable to stop WiFi debugger server: ' + e);
-  }
-};
+}
 
 let KeyboardHelper = {
   handleEvent: function keyboard_handleEvent(detail) {
