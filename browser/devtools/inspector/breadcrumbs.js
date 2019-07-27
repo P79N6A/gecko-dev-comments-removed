@@ -532,7 +532,11 @@ HTMLBreadcrumbs.prototype = {
         let button = this.buildButton(node);
         fragment.insertBefore(button, lastButtonInserted);
         lastButtonInserted = button;
-        this.nodeHierarchy.splice(originalLength, 0, {node, button});
+        this.nodeHierarchy.splice(originalLength, 0, {
+          node,
+          button,
+          currentPrettyPrintText: this.prettyPrintNodeAsText(node)
+        });
       }
       node = node.parentNode();
     }
@@ -642,14 +646,22 @@ HTMLBreadcrumbs.prototype = {
     }
 
     for (let i = this.nodeHierarchy.length - 1; i >= 0; i--) {
-      let crumb = this.nodeHierarchy[i];
-      let button = crumb.button;
+      let {node, button, currentPrettyPrintText} = this.nodeHierarchy[i];
 
-      while (button.hasChildNodes()) {
-        button.removeChild(button.firstChild);
+      
+      let textOutput = this.prettyPrintNodeAsText(node);
+      if (currentPrettyPrintText === textOutput) {
+        continue;
       }
-      button.appendChild(this.prettyPrintNodeAsXUL(crumb.node));
-      button.setAttribute("tooltiptext", this.prettyPrintNodeAsText(crumb.node));
+
+      
+      while (button.hasChildNodes()) {
+        button.firstChild.remove();
+      }
+      button.appendChild(this.prettyPrintNodeAsXUL(node));
+      button.setAttribute("tooltiptext", textOutput);
+
+      this.nodeHierarchy[i].currentPrettyPrintText = textOutput;
     }
   },
 
@@ -657,13 +669,53 @@ HTMLBreadcrumbs.prototype = {
 
 
 
-  update: function(reason) {
+
+
+
+
+  _hasInterestingMutations: function(mutations) {
+    if (!mutations || !mutations.length) {
+      return false;
+    }
+
+    for (let {type, added, removed, target, attributeName} of mutations) {
+      if (type === "childList") {
+        
+        
+        
+        return added.some(node => this.indexOf(node) > -1) ||
+               removed.some(node => this.indexOf(node) > -1) ||
+               this.indexOf(target) === this.nodeHierarchy.length - 1;
+      } else if (type === "attributes" && this.indexOf(target) > -1) {
+        
+        
+        return attributeName === "class" || attributeName === "id";
+      }
+    }
+
+    
+    
+    return false;
+  },
+
+  
+
+
+
+
+
+  update: function(reason, mutations) {
     if (this.isDestroyed) {
       return;
     }
 
     if (reason !== "markupmutation") {
       this.inspector.hideNodeMenu();
+    }
+
+    let hasInterestingMutations = this._hasInterestingMutations(mutations);
+    if (reason === "markupmutation" && !hasInterestingMutations) {
+      return;
     }
 
     let cmdDispatcher = this.chromeDoc.commandDispatcher;
@@ -684,7 +736,7 @@ HTMLBreadcrumbs.prototype = {
 
     
     
-    if (idx > -1 && reason !== "markupmutation") {
+    if (idx > -1 && !hasInterestingMutations) {
       
       this.setCursor(idx);
     } else {

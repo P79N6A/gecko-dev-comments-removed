@@ -227,13 +227,8 @@ let openLayoutView = Task.async(function*() {
 
 
 
-
-
-
 function waitForUpdate(inspector) {
-  let onLayoutView = inspector.once("layoutview-updated");
-  let onInspector = inspector.once("inspector-updated");
-  return promise.all([onLayoutView, onInspector]);
+  return inspector.once("layoutview-updated");
 }
 
 
