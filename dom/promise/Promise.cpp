@@ -1226,6 +1226,32 @@ Promise::CaptureStack(JSContext* aCx, JS::Heap<JSObject*>& aTarget)
   return true;
 }
 
+void
+Promise::GetDependentPromises(nsTArray<nsRefPtr<Promise>>& aPromises)
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  for (size_t i = 0; i < mRejectCallbacks.Length(); ++i) {
+    Promise* p = mRejectCallbacks[i]->GetDependentPromise();
+    if (p) {
+      aPromises.AppendElement(p);
+    }
+  }
+}
+
 
 
 class PromiseWorkerProxyRunnable : public workers::WorkerRunnable

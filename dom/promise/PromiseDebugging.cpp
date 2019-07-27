@@ -57,5 +57,12 @@ PromiseDebugging::GetFullfillmentStack(GlobalObject&, Promise& aPromise,
   aStack.set(aPromise.mFullfillmentStack);
 }
 
+ void
+PromiseDebugging::GetDependentPromises(GlobalObject&, Promise& aPromise,
+                                       nsTArray<nsRefPtr<Promise>>& aPromises)
+{
+  aPromise.GetDependentPromises(aPromises);
+}
+
 } 
 } 
