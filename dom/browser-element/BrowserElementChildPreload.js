@@ -94,6 +94,7 @@ function BrowserElementChild() {
 
   this._isContentWindowCreated = false;
   this._pendingSetInputMethodActive = [];
+  this._forceDispatchSelectionChange = false;
 
   this._init();
 };
@@ -596,6 +597,47 @@ BrowserElementChild.prototype = {
     let boundingClientRect = e.boundingClientRect;
     if (!boundingClientRect) {
       return;
+    }
+
+    let isCollapsed = (e.selectedText.length == 0);
+    let isMouseUp = (e.reasons.indexOf('mouseup') == 0);
+    let canPaste = this._isCommandEnabled("paste");
+
+    if (!this._forceDispatchSelectionChange) {
+      
+      
+      
+      
+      if(e.reasons.length == 0 ||
+         e.reasons.indexOf('drag') == 0 ||
+         e.reasons.indexOf('keypress') == 0 ||
+         e.reasons.indexOf('mousedown') == 0) {
+        return;
+      }
+
+      
+      
+      
+      if (isCollapsed) {
+        if (isMouseUp && canPaste) {
+          
+        } else {
+          return;
+        }
+      }
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    if (isMouseUp && !isCollapsed) {
+      this._forceDispatchSelectionChange = true;
+    } else {
+      this._forceDispatchSelectionChange = false;
     }
 
     let zoomFactor = content.screen.width / content.innerWidth;
