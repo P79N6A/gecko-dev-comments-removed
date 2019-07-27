@@ -574,6 +574,36 @@ LookupOwnPropertyInline(ExclusiveContext *cx,
     return true;
 }
 
+
+
+
+
+static inline void
+NativeLookupOwnPropertyNoResolve(ExclusiveContext *cx, HandleNativeObject obj, HandleId id,
+                                 MutableHandleShape result)
+{
+    
+    if (JSID_IS_INT(id) && obj->containsDenseElement(JSID_TO_INT(id))) {
+        MarkDenseOrTypedArrayElementFound<CanGC>(result);
+        return;
+    }
+
+    
+    if (IsAnyTypedArray(obj)) {
+        uint64_t index;
+        if (IsTypedArrayIndex(id, &index)) {
+            if (index < AnyTypedArrayLength(obj))
+                MarkDenseOrTypedArrayElementFound<CanGC>(result);
+            else
+                result.set(nullptr);
+            return;
+        }
+    }
+
+    
+    result.set(obj->lookup(cx, id));
+}
+
 template <AllowGC allowGC>
 static MOZ_ALWAYS_INLINE bool
 LookupPropertyInline(ExclusiveContext *cx,

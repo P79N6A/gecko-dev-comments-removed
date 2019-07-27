@@ -1473,31 +1473,36 @@ js::DefineNativeProperty(ExclusiveContext *cx, HandleNativeObject obj, HandleId 
         }
     } else if (!(attrs & JSPROP_IGNORE_VALUE)) {
         
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        NativeLookupOwnPropertyNoResolve(cx, obj, id, &shape);
 
-
-
-
-
-
-
-
-
-        shape = obj->lookup(cx, id);
         if (shape) {
             if (shape->isAccessorDescriptor() &&
                 !CheckAccessorRedefinition(cx, obj, shape, getter, setter, id, attrs))
             {
                 return false;
             }
-            if (shape->isDataDescriptor())
+
+            
+            
+            if (IsImplicitDenseOrTypedArrayElement(shape))
+                attrs = ApplyAttributes(attrs, true, true, !IsAnyTypedArray(obj));
+            else
                 attrs = ApplyOrDefaultAttributes(attrs, shape);
         }
     } else {
         
-
-
-
-
+        
+        
         if (!NativeLookupOwnProperty(cx, obj, id, &shape))
             return false;
 
