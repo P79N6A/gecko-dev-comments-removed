@@ -562,6 +562,30 @@ function makeActionURL(action, params) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function Search(searchString, searchParam, autocompleteListener,
                 resultListener, autocompleteSearch) {
   
@@ -872,8 +896,9 @@ Search.prototype = {
   }),
 
   *_matchSearchSuggestions() {
-    if (!this.hasBehavior("searches"))
+    if (!this.hasBehavior("searches") || this._inPrivateWindow) {
       return;
+    }
 
     this._searchSuggestionController =
       PlacesSearchAutocompleteProvider.getSuggestionController(
