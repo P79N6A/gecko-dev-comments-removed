@@ -1514,6 +1514,9 @@ pref("devtools.canvasdebugger.enabled", false);
 pref("devtools.webaudioeditor.enabled", false);
 
 
+pref("devtools.webaudioeditor.inspectorWidth", 300);
+
+
 #ifdef MOZ_DEV_EDITION
 pref("devtools.theme", "dark");
 #else
