@@ -917,9 +917,7 @@ private:
 
   
   void InsertRecordToFrecencyArray(CacheIndexRecord *aRecord);
-  void InsertRecordToExpirationArray(CacheIndexRecord *aRecord);
   void RemoveRecordFromFrecencyArray(CacheIndexRecord *aRecord);
-  void RemoveRecordFromExpirationArray(CacheIndexRecord *aRecord);
 
   
   void AddRecordToIterators(CacheIndexRecord *aRecord);
@@ -1025,10 +1023,7 @@ private:
   
   
   
-  
-  
   nsTArray<CacheIndexRecord *>  mFrecencyArray;
-  nsTArray<CacheIndexRecord *>  mExpirationArray;
 
   nsTArray<CacheIndexIterator *> mIterators;
 

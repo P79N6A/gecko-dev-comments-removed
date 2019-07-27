@@ -46,7 +46,6 @@ public:
     : mIndex(aIndex)
     , mOldRecord(nullptr)
     , mOldFrecency(0)
-    , mOldExpirationTime(nsICacheEntry::NO_EXPIRATION_TIME)
     , mDoNotSearchInIndex(false)
     , mDoNotSearchInUpdates(false)
   {
@@ -58,7 +57,6 @@ public:
     if (entry && entry->IsInitialized() && !entry->IsRemoved()) {
       mOldRecord = entry->mRec;
       mOldFrecency = entry->mRec->mFrecency;
-      mOldExpirationTime = entry->mRec->mExpirationTime;
     }
   }
 
@@ -74,43 +72,29 @@ public:
 
     if (entry && !mOldRecord) {
       mIndex->InsertRecordToFrecencyArray(entry->mRec);
-      mIndex->InsertRecordToExpirationArray(entry->mRec);
       mIndex->AddRecordToIterators(entry->mRec);
     } else if (!entry && mOldRecord) {
       mIndex->RemoveRecordFromFrecencyArray(mOldRecord);
-      mIndex->RemoveRecordFromExpirationArray(mOldRecord);
       mIndex->RemoveRecordFromIterators(mOldRecord);
     } else if (entry && mOldRecord) {
       bool replaceFrecency = false;
-      bool replaceExpiration = false;
 
       if (entry->mRec != mOldRecord) {
         
-        replaceFrecency = replaceExpiration = true;
+        replaceFrecency = true;
         mIndex->ReplaceRecordInIterators(mOldRecord, entry->mRec);
-      } else {
-        if (entry->mRec->mFrecency == 0 &&
-            entry->mRec->mExpirationTime == nsICacheEntry::NO_EXPIRATION_TIME) {
-          
-          
-          replaceFrecency = replaceExpiration = true;
-        } else {
-          if (entry->mRec->mFrecency != mOldFrecency) {
-            replaceFrecency = true;
-          }
-          if (entry->mRec->mExpirationTime != mOldExpirationTime) {
-            replaceExpiration = true;
-          }
-        }
+      } else if (entry->mRec->mFrecency == 0 &&
+                 entry->mRec->mExpirationTime == nsICacheEntry::NO_EXPIRATION_TIME) {
+        
+        
+        replaceFrecency = true;
+      } else if (entry->mRec->mFrecency != mOldFrecency) {
+        replaceFrecency = true;
       }
 
       if (replaceFrecency) {
         mIndex->RemoveRecordFromFrecencyArray(mOldRecord);
         mIndex->InsertRecordToFrecencyArray(entry->mRec);
-      }
-      if (replaceExpiration) {
-        mIndex->RemoveRecordFromExpirationArray(mOldRecord);
-        mIndex->InsertRecordToExpirationArray(entry->mRec);
       }
     } else {
       
@@ -156,7 +140,6 @@ private:
   nsRefPtr<CacheIndex> mIndex;
   CacheIndexRecord    *mOldRecord;
   uint32_t             mOldFrecency;
-  uint32_t             mOldExpirationTime;
   bool                 mDoNotSearchInIndex;
   bool                 mDoNotSearchInUpdates;
 };
@@ -1093,7 +1076,6 @@ CacheIndex::RemoveAll()
 
     index->mIndexStats.Clear();
     index->mFrecencyArray.Clear();
-    index->mExpirationArray.Clear();
     index->mIndex.Clear();
   }
 
@@ -1188,82 +1170,35 @@ CacheIndex::GetEntryForEviction(bool aIgnoreEmptyEntries, SHA1Sum::Hash *aHash, 
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  MOZ_ASSERT(index->mFrecencyArray.Length() ==
-             index->mExpirationArray.Length());
-
-  if (index->mExpirationArray.Length() == 0)
-    return NS_ERROR_NOT_AVAILABLE;
-
   SHA1Sum::Hash hash;
   bool foundEntry = false;
-  uint32_t i = 0, j = 0;
-  uint32_t now = PR_Now() / PR_USEC_PER_SEC;
+  uint32_t i;
 
   
-  for (i = 0; i < index->mExpirationArray.Length(); i++) {
-    if (index->mExpirationArray[i]->mExpirationTime < now) {
-      memcpy(&hash, &index->mExpirationArray[i]->mHash, sizeof(SHA1Sum::Hash));
+  for (i = 0; i < index->mFrecencyArray.Length(); ++i) {
+    memcpy(&hash, &index->mFrecencyArray[i]->mHash, sizeof(SHA1Sum::Hash));
 
-      if (IsForcedValidEntry(&hash)) {
-        continue;
-      }
-
-      if (aIgnoreEmptyEntries &&
-          !CacheIndexEntry::GetFileSize(index->mExpirationArray[i])) {
-        continue;
-      }
-
-      foundEntry = true;
-      break;
-    } else {
-      
-      break;
-    }
-  }
-
-  if (foundEntry) {
-    *aCnt = index->mExpirationArray.Length() - i;
-
-    LOG(("CacheIndex::GetEntryForEviction() - returning entry from expiration "
-         "array [hash=%08x%08x%08x%08x%08x, cnt=%u, expTime=%u, now=%u, "
-         "frecency=%u]", LOGSHA1(&hash), *aCnt,
-         index->mExpirationArray[i]->mExpirationTime, now,
-         index->mExpirationArray[i]->mFrecency));
-  }
-  else {
-    
-    if (i == index->mExpirationArray.Length())
-      return NS_ERROR_NOT_AVAILABLE;
-
-    
-    for (j = 0; j < index->mFrecencyArray.Length(); j++) {
-      memcpy(&hash, &index->mFrecencyArray[j]->mHash, sizeof(SHA1Sum::Hash));
-
-      if (IsForcedValidEntry(&hash)) {
-        continue;
-      }
-
-      if (aIgnoreEmptyEntries &&
-          !CacheIndexEntry::GetFileSize(index->mFrecencyArray[j])) {
-        continue;
-      }
-
-      foundEntry = true;
-      break;
+    if (IsForcedValidEntry(&hash)) {
+      continue;
     }
 
-    if (!foundEntry)
-      return NS_ERROR_NOT_AVAILABLE;
+    if (aIgnoreEmptyEntries &&
+        !CacheIndexEntry::GetFileSize(index->mFrecencyArray[i])) {
+      continue;
+    }
 
-    
-    *aCnt = index->mFrecencyArray.Length() - std::max(i, j);
-
-    LOG(("CacheIndex::GetEntryForEviction() - returning entry from frecency "
-         "array [hash=%08x%08x%08x%08x%08x, cnt=%u, expTime=%u, now=%u, "
-         "frecency=%u]", LOGSHA1(&hash), *aCnt,
-         index->mFrecencyArray[j]->mExpirationTime, now,
-         index->mFrecencyArray[j]->mFrecency));
+    foundEntry = true;
+    break;
   }
+
+  if (!foundEntry)
+    return NS_ERROR_NOT_AVAILABLE;
+
+  *aCnt = index->mFrecencyArray.Length() - i;
+
+  LOG(("CacheIndex::GetEntryForEviction() - returning entry from frecency "
+        "array [hash=%08x%08x%08x%08x%08x, cnt=%u, frecency=%u]",
+        LOGSHA1(&hash), *aCnt, index->mFrecencyArray[i]->mFrecency));
 
   memcpy(aHash, &hash, sizeof(SHA1Sum::Hash));
 
@@ -3264,17 +3199,6 @@ public:
   }
 };
 
-class ExpirationComparator
-{
-public:
-  bool Equals(CacheIndexRecord* a, CacheIndexRecord* b) const {
-    return a->mExpirationTime == b->mExpirationTime;
-  }
-  bool LessThan(CacheIndexRecord* a, CacheIndexRecord* b) const {
-    return a->mExpirationTime < b->mExpirationTime;
-  }
-};
-
 } 
 
 void
@@ -3288,32 +3212,12 @@ CacheIndex::InsertRecordToFrecencyArray(CacheIndexRecord *aRecord)
 }
 
 void
-CacheIndex::InsertRecordToExpirationArray(CacheIndexRecord *aRecord)
-{
-  LOG(("CacheIndex::InsertRecordToExpirationArray() [record=%p, hash=%08x%08x"
-       "%08x%08x%08x]", aRecord, LOGSHA1(aRecord->mHash)));
-
-  MOZ_ASSERT(!mExpirationArray.Contains(aRecord));
-  mExpirationArray.InsertElementSorted(aRecord, ExpirationComparator());
-}
-
-void
 CacheIndex::RemoveRecordFromFrecencyArray(CacheIndexRecord *aRecord)
 {
   LOG(("CacheIndex::RemoveRecordFromFrecencyArray() [record=%p]", aRecord));
 
   DebugOnly<bool> removed;
   removed = mFrecencyArray.RemoveElement(aRecord);
-  MOZ_ASSERT(removed);
-}
-
-void
-CacheIndex::RemoveRecordFromExpirationArray(CacheIndexRecord *aRecord)
-{
-  LOG(("CacheIndex::RemoveRecordFromExpirationArray() [record=%p]", aRecord));
-
-  DebugOnly<bool> removed;
-  removed = mExpirationArray.RemoveElement(aRecord);
   MOZ_ASSERT(removed);
 }
 
@@ -3690,9 +3594,7 @@ CacheIndex::SizeOfExcludingThisInternal(mozilla::MallocSizeOf mallocSizeOf) cons
   n += mTmpJournal.SizeOfExcludingThis(mallocSizeOf);
 
   
-  
   n += mFrecencyArray.SizeOfExcludingThis(mallocSizeOf);
-  n += mExpirationArray.SizeOfExcludingThis(mallocSizeOf);
   n += mDiskConsumptionObservers.SizeOfExcludingThis(mallocSizeOf);
 
   return n;
