@@ -588,108 +588,48 @@ DefineTransaction.isAnnotationObject = function (obj) {
 
 DefineTransaction.inputProps = new Map();
 DefineTransaction.defineInputProps =
-function (aNames, aValidationFunction,
-          aDefaultValue, aTransformFunction = null) {
+function (aNames, aValidationFunction, aDefaultValue) {
   for (let name of aNames) {
-    let propName = name;
-    this.inputProps.set(propName, {
-      validateValue: function (aValue) {
-        if (aValue === undefined)
-          return aDefaultValue;
-        if (!aValidationFunction(aValue))
-          throw new Error(`Invalid value for input property ${propName}`);
-        return aTransformFunction ? aTransformFunction(aValue) : aValue;
-      },
-
-      validateInput: function (aInput, aRequired) {
-        if (aRequired && !(propName in aInput))
-          throw new Error(`Required input property is missing: ${propName}`);
-        return this.validateValue(aInput[propName]);
-      },
-
-      isArrayProperty: false
+    this.inputProps.set(name, {
+      validate:     aValidationFunction,
+      defaultValue: aDefaultValue,
+      isGUIDProp:   false
     });
   }
 };
 
 DefineTransaction.defineArrayInputProp =
-function (aName, aBasePropertyName) {
-  let baseProp = this.inputProps.get(aBasePropertyName);
-  if (!baseProp)
-    throw new Error(`Unknown input property: ${aBasePropertyName}`);
-
+function (aName, aValidationFunction, aDefaultValue) {
   this.inputProps.set(aName, {
-    validateValue: function (aValue) {
-      if (aValue == undefined)
-        return [];
-
-      if (!Array.isArray(aValue))
-        throw new Error(`${aName} input property value must be an array`);
-
-      
-      
-      return [for (e of aValue) baseProp.validateValue(e)];
-    },
-
-    
-    
-    
-    validateInput: function (aInput, aRequired) {
-      if (aName in aInput) {
-        
-        if (aBasePropertyName in aInput) {
-          throw new Error(`It is not allowed to set both ${aName} and
-                          ${aBasePropertyName} as  input properties`);
-        }
-        let array = this.validateValue(aInput[aName]);
-        if (aRequired && array.length == 0) {
-          throw new Error(`Empty array passed for required input property:
-                           ${aName}`);
-        }
-        return array;
-      }
-      
-      
-      if (aRequired && !(aBasePropertyName in aInput))
-        throw new Error(`Required input property is missing: ${aName}`);
-
-      if (aBasePropertyName in aInput)
-        return [baseProp.validateValue(aInput[aBasePropertyName])];
-
-      return [];
-    },
-
-    isArrayProperty: true
+    validate:     (v) => Array.isArray(v) && v.every(aValidationFunction),
+    defaultValue: aDefaultValue,
+    isGUIDProp:   false
   });
 };
 
-DefineTransaction.validatePropertyValue =
-function (aProp, aInput, aRequired) {
-  return this.inputProps.get(aProp).validateInput(aInput, aRequired);
-};
-
-DefineTransaction.getInputObjectForSingleValue =
-function (aInput, aRequiredProps, aOptionalProps) {
-  
-  
-  
-  
-  if (aRequiredProps.length > 1 ||
-      (aRequiredProps.length == 0 && aOptionalProps.length > 1)) {
-    throw new Error("Transaction input isn't an object");
+DefineTransaction.verifyPropertyValue =
+function (aProp, aValue, aRequired) {
+  if (aValue === undefined) {
+    if (aRequired)
+      throw new Error("Required property is missing: " + aProp);
+    return this.inputProps.get(aProp).defaultValue;
   }
 
-  let propName = aRequiredProps.length == 1 ?
-                 aRequiredProps[0] : aOptionalProps[0];
-  let propValue =
-    this.inputProps.get(propName).isArrayProperty && !Array.isArray(aInput) ?
-    [aInput] : aInput;
-  return { [propName]: propValue };
+  if (!this.inputProps.get(aProp).validate(aValue))
+    throw new Error("Invalid value for property: " + aProp);
+
+  if (Array.isArray(aValue)) {
+    
+    
+    return Components.utils.cloneInto(aValue, {});
+  }
+
+  return aValue;
 };
 
 DefineTransaction.verifyInput =
-function (aInput, aRequiredProps = [], aOptionalProps = []) {
-  if (aRequiredProps.length == 0 && aOptionalProps.length == 0)
+function (aInput, aRequired = [], aOptional = []) {
+  if (aRequired.length == 0 && aOptional.length == 0)
     return {};
 
   
@@ -698,23 +638,49 @@ function (aInput, aRequiredProps = [], aOptionalProps = []) {
   
   
   
-  let input = aInput;
   let isSinglePropertyInput =
     this.isPrimitive(aInput) ||
-    Array.isArray(aInput) ||
     (aInput instanceof Components.interfaces.nsISupports);
-  if (isSinglePropertyInput) {
-    input =  this.getInputObjectForSingleValue(aInput,
-                                               aRequiredProps,
-                                               aOptionalProps);
+  let fixedInput = { };
+  if (aRequired.length > 0) {
+    if (isSinglePropertyInput) {
+      if (aRequired.length == 1) {
+        let prop = aRequired[0], value = aInput;
+        value = this.verifyPropertyValue(prop, value, true);
+        fixedInput[prop] = value;
+      }
+      else {
+        throw new Error("Transaction input isn't an object");
+      }
+    }
+    else {
+      for (let prop of aRequired) {
+        let value = this.verifyPropertyValue(prop, aInput[prop], true);
+        fixedInput[prop] = value;
+      }
+    }
   }
 
-  let fixedInput = { };
-  for (let prop of aRequiredProps) {
-    fixedInput[prop] = this.validatePropertyValue(prop, input, true);
-  }
-  for (let prop of aOptionalProps) {
-    fixedInput[prop] = this.validatePropertyValue(prop, input, false);
+  if (aOptional.length > 0) {
+    if (isSinglePropertyInput && !aRequired.length > 0) {
+      if (aOptional.length == 1) {
+        let prop = aOptional[0], value = aInput;
+        value = this.verifyPropertyValue(prop, value, true);
+        fixedInput[prop] = value;
+      }
+      else if (aInput !== null && aInput !== undefined) {
+        throw new Error("Transaction input isn't an object");
+      }
+    }
+    else {
+      for (let prop of aOptional) {
+        let value = this.verifyPropertyValue(prop, aInput[prop], false);
+        if (value !== undefined)
+          fixedInput[prop] = value;
+        else
+          fixedInput[prop] = this.defaultValues[prop];
+      }
+    }
   }
 
   return fixedInput;
@@ -728,16 +694,18 @@ DefineTransaction.defineInputProps(["GUID", "parentGUID", "newParentGUID"],
                                    DefineTransaction.isGUID);
 DefineTransaction.defineInputProps(["title"],
                                    DefineTransaction.isStrOrNull, null);
-DefineTransaction.defineInputProps(["keyword", "postData", "tag"],
+DefineTransaction.defineInputProps(["keyword", "postData"],
                                    DefineTransaction.isStr, "");
 DefineTransaction.defineInputProps(["index", "newIndex"],
                                    DefineTransaction.isIndex,
                                    PlacesUtils.bookmarks.DEFAULT_INDEX);
-DefineTransaction.defineInputProps(["annotation"],
+DefineTransaction.defineInputProps(["annotationObject"],
                                    DefineTransaction.isAnnotationObject);
-DefineTransaction.defineArrayInputProp("uris", "uri");
-DefineTransaction.defineArrayInputProp("tags", "tag");
-DefineTransaction.defineArrayInputProp("annotations", "annotation")
+DefineTransaction.defineArrayInputProp("tags",
+                                       DefineTransaction.isStr, null);
+DefineTransaction.defineArrayInputProp("annotations",
+                                       DefineTransaction.isAnnotationObject,
+                                       null);
 
 
 
@@ -920,9 +888,9 @@ PT.NewBookmark.prototype = Object.seal({
           PlacesUtils.bookmarks.setKeywordForBookmark(itemId, aKeyword);
         if (aPostData)
           PlacesUtils.setPostDataForBookmark(itemId, aPostData);
-        if (aAnnos.length)
+        if (aAnnos)
           PlacesUtils.setAnnotationsForItem(itemId, aAnnos);
-        if (aTags.length > 0) {
+        if (aTags && aTags.length > 0) {
           let currentTags = PlacesUtils.tagging.getTagsForURI(aURI);
           aTags = [t for (t of aTags) if (currentTags.indexOf(t) == -1)];
           PlacesUtils.tagging.tagURI(aURI, aTags);
@@ -931,7 +899,7 @@ PT.NewBookmark.prototype = Object.seal({
         return itemId;
       },
       function _additionalOnUndo() {
-        if (aTags.length > 0)
+        if (aTags && aTags.length > 0)
           PlacesUtils.tagging.untagURI(aURI, aTags);
       });
   }
@@ -953,7 +921,7 @@ PT.NewFolder.prototype = Object.seal({
       function(parentId, guidToRestore = "") {
         let itemId = PlacesUtils.bookmarks.createFolder(
           parentId, aTitle, aIndex, guidToRestore);
-        if (aAnnos.length > 0)
+        if (aAnnos)
           PlacesUtils.setAnnotationsForItem(itemId, aAnnos);
         return itemId;
       });
@@ -1002,7 +970,7 @@ PT.NewLivemark.prototype = Object.seal({
     let createItem = function* () {
       livemarkInfo.parentId = yield PlacesUtils.promiseItemId(aParentGUID);
       let livemark = yield PlacesUtils.livemarks.addLivemark(livemarkInfo);
-      if (aAnnos.length > 0)
+      if (aAnnos)
         PlacesUtils.setAnnotationsForItem(livemark.id, aAnnos);
 
       if ("dateAdded" in livemarkInfo) {
@@ -1123,30 +1091,26 @@ PT.EditURI.prototype = Object.seal({
 
 
 
-PT.Annotate = DefineTransaction(["GUID", "annotations"]);
-PT.Annotate.prototype = {
-  execute: function* (aGUID, aNewAnnos) {
-    let itemId = yield PlacesUtils.promiseItemId(aGUID);
-    let currentAnnos = PlacesUtils.getAnnotationsForItem(itemId);
-    let undoAnnos = [];
-    for (let newAnno of aNewAnnos) {
-      let currentAnno = currentAnnos.find( a => a.name == newAnno.name );
-      if (!!currentAnno) {
-        undoAnnos.push(currentAnno);
-      }
-      else {
-        
-        undoAnnos.push({ name: newAnno.name });
-      }
+PT.SetItemAnnotation = DefineTransaction(["GUID", "annotationObject"]);
+PT.SetItemAnnotation.prototype = {
+  execute: function* (aGUID, aAnno) {
+    let itemId = yield PlacesUtils.promiseItemId(aGUID), oldAnno;
+    if (PlacesUtils.annotations.itemHasAnnotation(itemId, aAnno.name)) {
+      
+      let flags = {}, expires = {};
+      PlacesUtils.annotations.getItemAnnotationInfo(itemId, aAnno.name, flags,
+                                                    expires, { });
+      let value = PlacesUtils.annotations.getItemAnnotation(itemId, aAnno.name);
+      oldAnno = { name: aAnno.name, flags: flags.value,
+                  value: value, expires: expires.value };
+    }
+    else {
+      
+      oldAnno = { name: aAnno.name };
     }
 
-    PlacesUtils.setAnnotationsForItem(itemId, aNewAnnos);
-    this.undo = () => {
-      PlacesUtils.setAnnotationsForItem(itemId, undoAnnos);
-    };
-    this.redo = () => {
-      PlacesUtils.setAnnotationsForItem(itemId, aNewAnnos);
-    };
+    PlacesUtils.setAnnotationsForItem(itemId, [aAnno]);
+    this.undo = () => { PlacesUtils.setAnnotationsForItem(itemId, [oldAnno]); };
   }
 };
 
@@ -1299,7 +1263,7 @@ PT.UntagURI.prototype = {
   execute: function* (aURI, aTags) {
     let tagsSet = PlacesUtils.tagging.getTagsForURI(aURI);
 
-    if (aTags.length > 0)
+    if (aTags && aTags.length > 0)
       aTags = [t for (t of aTags) if (tagsSet.indexOf(t) != -1)];
     else
       aTags = tagsSet;
