@@ -955,6 +955,60 @@ nsMathMLmoFrame::Reflow(nsPresContext*          aPresContext,
                              aReflowState, aStatus);
 }
 
+nsresult
+nsMathMLmoFrame::Place(nsRenderingContext&  aRenderingContext,
+                       bool                 aPlaceOrigin,
+                       nsHTMLReflowMetrics& aDesiredSize)
+{
+  nsresult rv = nsMathMLTokenFrame::Place(aRenderingContext, aPlaceOrigin,
+                                          aDesiredSize);
+
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+  if (!aPlaceOrigin &&
+      StyleFont()->mMathDisplay == NS_MATHML_DISPLAYSTYLE_BLOCK &&
+      NS_MATHML_OPERATOR_IS_LARGEOP(mFlags) && UseMathMLChar()) {
+    nsBoundingMetrics newMetrics;
+    rv = mMathMLChar.Stretch(PresContext(), aRenderingContext,
+                                      nsLayoutUtils::FontSizeInflationFor(this),
+                                      NS_STRETCH_DIRECTION_VERTICAL,
+                                      aDesiredSize.mBoundingMetrics, newMetrics,
+                                      NS_STRETCH_LARGEOP, StyleVisibility()->mDirection);
+
+    if (NS_FAILED(rv)) {
+      
+      return NS_OK;
+    }
+
+    aDesiredSize.mBoundingMetrics = newMetrics;
+     
+
+
+
+    aDesiredSize.SetBlockStartAscent(std::max(mBoundingMetrics.ascent,
+                                              newMetrics.ascent));
+    aDesiredSize.Height() = aDesiredSize.BlockStartAscent() +
+                            std::max(mBoundingMetrics.descent,
+                                     newMetrics.descent);
+    aDesiredSize.Width() = newMetrics.width;
+    mBoundingMetrics = newMetrics;
+  }
+  return NS_OK;
+}
+
  void
 nsMathMLmoFrame::MarkIntrinsicISizesDirty()
 {
