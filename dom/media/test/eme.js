@@ -121,6 +121,15 @@ function PlayFragmented(test, elem, token)
     var curFragment = 0;
 
     function addNextFragment() {
+      
+
+
+
+
+      if (ms.readyState == "ended") {
+        return;
+      }
+
       if (curFragment >= test.fragments.length) {
         Log(token, "addNextFragment() end of stream");
         ms.endOfStream();
