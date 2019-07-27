@@ -280,15 +280,28 @@ loop.standaloneRoomViews = (function(mozL10n) {
       roomInfoFailure: React.PropTypes.string
     },
 
+    getInitialState: function() {
+      return {
+        failureLogged: false
+      }
+    },
+
+    _logFailure: function(message) {
+      if (!this.state.failureLogged) {
+        console.error(mozL10n.get(message));
+        this.state.failureLogged = true;
+      }
+    },
+
     render: function() {
+      
+      
       if (this.props.roomInfoFailure === ROOM_INFO_FAILURES.WEB_CRYPTO_UNSUPPORTED) {
-        return (React.createElement("h2", {className: "room-info-failure"}, 
-          mozL10n.get("room_information_failure_unsupported_browser")
-        ));
+        this._logFailure("room_information_failure_unsupported_browser");
+        return null;
       } else if (this.props.roomInfoFailure) {
-        return (React.createElement("h2", {className: "room-info-failure"}, 
-          mozL10n.get("room_information_failure_not_available")
-        ));
+        this._logFailure("room_information_failure_not_available");
+        return null;
       }
 
       
