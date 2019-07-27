@@ -879,6 +879,7 @@ this.UITour = {
     loopPanel.removeEventListener("popuphidden", this.onPanelHidden);
     loopPanel.removeEventListener("popuphiding", this.hideLoopPanelAnnotations);
     let controlCenterPanel = aWindow.gIdentityHandler._identityPopup;
+    controlCenterPanel.removeEventListener("popuphidden", this.onPanelHidden);
     controlCenterPanel.removeEventListener("popuphiding", this.hideControlCenterAnnotations);
 
     this.endUrlbarCapture(aWindow);
@@ -1565,6 +1566,10 @@ this.UITour = {
       
       
       popup.addEventListener("popuphiding", this.hideControlCenterAnnotations);
+      popup.addEventListener("popuphidden", this.onPanelHidden);
+
+      popup.setAttribute("noautohide", true);
+      this.availableTargetsCache.clear();
 
       if (popup.state == "open") {
         if (aOpenCallback) {
@@ -1572,6 +1577,8 @@ this.UITour = {
         }
         return;
       }
+
+      this.recreatePopup(popup);
 
       
       if (aOpenCallback) {
@@ -1718,6 +1725,7 @@ this.UITour = {
   onPanelHidden: function(aEvent) {
     aEvent.target.removeAttribute("noautohide");
     UITour.recreatePopup(aEvent.target);
+    this.availableTargetsCache.clear();
   },
 
   recreatePopup: function(aPanel) {
