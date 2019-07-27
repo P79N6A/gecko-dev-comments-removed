@@ -312,7 +312,6 @@ AutoJSAPI::~AutoJSAPI()
 {
   if (mOwnErrorReporting) {
     MOZ_ASSERT(NS_IsMainThread(), "See corresponding assertion in TakeOwnershipOfErrorReporting()");
-    JS::ContextOptionsRef(cx()).setAutoJSAPIOwnsErrorReporting(mOldAutoJSAPIOwnsErrorReporting);
 
     if (HasException()) {
 
@@ -342,6 +341,13 @@ AutoJSAPI::~AutoJSAPI()
         NS_WARNING("OOMed while acquiring uncaught exception from JSAPI");
       }
     }
+
+    
+    
+    
+    
+    
+    JS::ContextOptionsRef(cx()).setAutoJSAPIOwnsErrorReporting(mOldAutoJSAPIOwnsErrorReporting);
   }
 
   if (mOldErrorReporter.isSome()) {
