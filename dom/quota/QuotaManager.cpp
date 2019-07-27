@@ -796,20 +796,6 @@ SanitizeOriginString(nsCString& aOrigin)
   aOrigin.ReplaceChar(kReplaceChars, '+');
 }
 
-
-
-bool
-IsPersistentOriginWhitelisted(const nsACString& aOrigin)
-{
-  if (aOrigin.EqualsLiteral(kChromeOrigin) ||
-      aOrigin.EqualsLiteral(kAboutHomeOrigin) ||
-      StringBeginsWith(aOrigin, nsDependentCString(kIndexedDBOriginPrefix))) {
-    return true;
-  }
-
-  return false;
-}
-
 nsresult
 CloneStoragePath(nsIFile* aBaseDir,
                  const nsACString& aStorageName,
@@ -2723,6 +2709,21 @@ QuotaManager::GetInfoForChrome(nsACString* aGroup,
 
 
 bool
+QuotaManager::IsOriginWhitelistedForPersistentStorage(const nsACString& aOrigin)
+{
+  
+  
+  if (aOrigin.EqualsLiteral(kChromeOrigin) ||
+      aOrigin.EqualsLiteral(kAboutHomeOrigin) ||
+      StringBeginsWith(aOrigin, nsDependentCString(kIndexedDBOriginPrefix))) {
+    return true;
+  }
+
+  return false;
+}
+
+
+bool
 QuotaManager::IsTreatedAsPersistent(PersistenceType aPersistenceType,
                                     bool aIsApp)
 {
@@ -2744,7 +2745,7 @@ QuotaManager::IsFirstPromptRequired(PersistenceType aPersistenceType,
     return false;
   }
 
-  return !IsPersistentOriginWhitelisted(aOrigin);
+  return !IsOriginWhitelistedForPersistentStorage(aOrigin);
 }
 
 
@@ -2758,7 +2759,7 @@ QuotaManager::IsQuotaEnforced(PersistenceType aPersistenceType,
     return true;
   }
 
-  if (IsPersistentOriginWhitelisted(aOrigin)) {
+  if (IsOriginWhitelistedForPersistentStorage(aOrigin)) {
     return false;
   }
 
@@ -3136,7 +3137,8 @@ QuotaManager::LockedQuotaIsLifted()
 
 #if 1
   
-  return false;
+  
+  return true;
 #else
   nsPIDOMWindow* window =
     static_cast<nsPIDOMWindow*>(PR_GetThreadPrivate(mCurrentWindowIndex));
@@ -4776,7 +4778,8 @@ StorageDirectoryHelper::CreateOrUpgradeMetadataFiles()
       }
 
       
-      if (IsPersistentOriginWhitelisted(originProps.mSpec)) {
+      if (QuotaManager::IsOriginWhitelistedForPersistentStorage(
+                                                           originProps.mSpec)) {
         if (!permanentStorageDir) {
           permanentStorageDir =
             do_CreateInstance(NS_LOCAL_FILE_CONTRACTID, &rv);
