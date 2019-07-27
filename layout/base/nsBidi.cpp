@@ -1452,7 +1452,7 @@ bool nsBidi::GetRuns()
     GetSingleRun(mParaLevel);
   } else  {
     
-    int32_t length=mLength, limit=length;
+    int32_t length=mLength, limit=mTrailingWSStart;
 
     
 
@@ -1465,7 +1465,6 @@ bool nsBidi::GetRuns()
 
 
 
-    limit=mTrailingWSStart;
     if(limit==0) {
       
       GetSingleRun(mParaLevel);
