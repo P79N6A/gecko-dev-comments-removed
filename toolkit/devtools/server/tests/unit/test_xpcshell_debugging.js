@@ -14,30 +14,32 @@ function run_test() {
   let client = new DebuggerClient(transport);
   client.connect(() => {
     
-    client.listTabs(response => {
-      let chromeDebugger = response.chromeDebugger;
-      client.attachThread(chromeDebugger, (response, threadClient) => {
-        threadClient.addOneTimeListener("paused", (event, packet) => {
-        equal(packet.why.type, "breakpoint",
-              "yay - hit the breakpoint at the first line in our script");
-          
+    client.attachProcess().then(response => {
+      let actor = response.form.actor;
+      client.attachTab(actor, (response, tabClient) => {
+        tabClient.attachThread(null, (response, threadClient) => {
           threadClient.addOneTimeListener("paused", (event, packet) => {
-            equal(packet.why.type, "debuggerStatement",
-                  "yay - hit the 'debugger' statement in our script");
-            threadClient.resume(() => {
-              finishClient(client);
+          equal(packet.why.type, "breakpoint",
+                "yay - hit the breakpoint at the first line in our script");
+            
+            threadClient.addOneTimeListener("paused", (event, packet) => {
+              equal(packet.why.type, "debuggerStatement",
+                    "yay - hit the 'debugger' statement in our script");
+              threadClient.resume(() => {
+                finishClient(client);
+              });
             });
+            threadClient.resume();
           });
-          threadClient.resume();
-        });
-        
-        
-        threadClient.resume(response => {
           
-          ok(testResumed);
           
-          load(testFile.path);
-          
+          threadClient.resume(response => {
+            
+            ok(testResumed);
+            
+            load(testFile.path);
+            
+          });
         });
       });
     });
