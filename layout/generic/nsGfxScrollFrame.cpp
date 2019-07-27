@@ -2433,13 +2433,18 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     
     
     
-    bool addScrollBars = mIsRoot &&
-      nsLayoutUtils::GetDisplayPort(mOuter->GetContent()) &&
-      !aBuilder->IsForEventDelivery();
+    bool usingDisplayPort = nsLayoutUtils::GetDisplayPort(mOuter->GetContent());
+    bool addScrollBars = mIsRoot && usingDisplayPort && !aBuilder->IsForEventDelivery();
+
+    nsRect scrollbarDirty = aDirtyRect;
+    if (usingDisplayPort) {
+      
+      scrollbarDirty.Inflate(GetActualScrollbarSizes());
+    }
 
     if (addScrollBars) {
       
-      AppendScrollPartsTo(aBuilder, aDirtyRect, aLists, createLayersForScrollbars,
+      AppendScrollPartsTo(aBuilder, scrollbarDirty, aLists, createLayersForScrollbars,
                           false);
     }
 
@@ -2451,22 +2456,12 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
     if (addScrollBars) {
       
-      AppendScrollPartsTo(aBuilder, aDirtyRect, aLists,
+      AppendScrollPartsTo(aBuilder, scrollbarDirty, aLists,
                           createLayersForScrollbars, true);
     }
 
     return;
   }
-
-  
-  
-  
-  
-  
-  
-  
-  AppendScrollPartsTo(aBuilder, aDirtyRect, aLists, createLayersForScrollbars,
-                      false);
 
   
   
@@ -2513,6 +2508,22 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       dirtyRect = displayPort;
     }
   }
+
+  nsRect scrollbarDirty = aDirtyRect;
+  if (usingDisplayport) {
+    
+    scrollbarDirty.Inflate(GetActualScrollbarSizes());
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  AppendScrollPartsTo(aBuilder, scrollbarDirty, aLists, createLayersForScrollbars,
+                      false);
 
   if (aBuilder->IsForImageVisibility()) {
     
@@ -2650,7 +2661,7 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     }
   }
   
-  AppendScrollPartsTo(aBuilder, aDirtyRect, scrolledContent,
+  AppendScrollPartsTo(aBuilder, scrollbarDirty, scrolledContent,
                       createLayersForScrollbars, true);
   scrolledContent.MoveTo(aLists);
 }
