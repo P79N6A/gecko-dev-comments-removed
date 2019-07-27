@@ -256,6 +256,9 @@ this.BasePromiseWorker.prototype = {
 
 
 
+
+
+
   post: function(fun, args, closure, transfers) {
     return Task.spawn(function* postMessage() {
       
@@ -264,6 +267,22 @@ this.BasePromiseWorker.prototype = {
       }
       if (transfers) {
         transfers = yield Promise.resolve(Promise.all(transfers));
+      } else {
+        transfers = [];
+      }
+
+      if (args) {
+        
+        args = args.map(arg => {
+          if (arg instanceof BasePromiseWorker.Meta) {
+            if (arg.meta && "transfers" in arg.meta) {
+              transfers.push(...arg.meta.transfers);
+            }
+            return arg.data;
+          } else {
+            return arg;
+          }
+        });
       }
 
       let id = ++this._id;
@@ -351,4 +370,22 @@ this.BasePromiseWorker.prototype = {
 
 function WorkerError(data) {
   this.data = data;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+this.BasePromiseWorker.Meta = function(data, meta) {
+  this.data = data;
+  this.meta = meta;
 };
