@@ -218,11 +218,6 @@ public:
 
     do {
       
-      
-      
-      
-
-      
       if (!mSizeDecodeQueue.IsEmpty()) {
         return PopWorkFromQueue(mSizeDecodeQueue);
       }
@@ -249,8 +244,8 @@ private:
   {
     Work work;
     work.mType = Work::Type::DECODE;
-    work.mDecoder = aQueue.ElementAt(0);
-    aQueue.RemoveElementAt(0);
+    work.mDecoder = aQueue.LastElement();
+    aQueue.RemoveElementAt(aQueue.Length() - 1);
 
     return work;
   }
