@@ -7,6 +7,7 @@ import sys
 
 from mozboot.base import BaseBootstrapper
 
+
 class DebianBootstrapper(BaseBootstrapper):
     
     
