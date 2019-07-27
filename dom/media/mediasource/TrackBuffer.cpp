@@ -211,7 +211,7 @@ TrackBuffer::AppendData(LargeDataBuffer* aData, int64_t aTimestampOffset)
   }
 
   if (gotMedia) {
-    if (mLastEndTimestamp &&
+    if (mParser->IsMediaSegmentPresent(aData) && mLastEndTimestamp &&
         (!mParser->TimestampsFuzzyEqual(start, mLastEndTimestamp.value()) ||
          mLastTimestampOffset != aTimestampOffset ||
          mDecoderPerSegment ||
@@ -256,11 +256,12 @@ TrackBuffer::AppendData(LargeDataBuffer* aData, int64_t aTimestampOffset)
     
     
     return p;
-  } else if (gotMedia) {
-    
-    
-    mParentDecoder->GetReader()->MaybeNotifyHaveData();
   }
+
+  
+  
+  mParentDecoder->GetReader()->MaybeNotifyHaveData();
+
   mInitializationPromise.Resolve(gotMedia, __func__);
   return p;
 }
