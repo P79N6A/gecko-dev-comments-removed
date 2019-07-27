@@ -469,14 +469,19 @@ nsHostRecord::GetPriority(uint16_t aFlags)
 bool
 nsHostRecord::RemoveOrRefresh()
 {
-  
-  
-  
-    if (resolving && !onQueue) {
-        mResolveAgain = true;
+    if (resolving) {
+        if (!onQueue) {
+            
+            
+            
+            mResolveAgain = true;
+        }
+        
+        
         return false;
     }
-    return true; 
+    
+    return true;
 }
 
 
@@ -599,9 +604,9 @@ HostDB_PruneEntry(PLDHashTable *table,
                   void *arg)
 {
     nsHostDBEnt* ent = static_cast<nsHostDBEnt *>(hdr);
-
     
     if (ent->rec->RemoveOrRefresh()) {
+        PR_REMOVE_LINK(ent->rec);
         return PL_DHASH_REMOVE;
     }
     return PL_DHASH_NEXT;
@@ -786,26 +791,24 @@ nsHostResolver::ClearPendingQueue(PRCList *aPendingQ)
 void
 nsHostResolver::FlushCache()
 {
-    PRCList evictionQ;
-    PR_INIT_CLIST(&evictionQ);
+  MutexAutoLock lock(mLock);
+  mEvictionQSize = 0;
 
-    {
-        MutexAutoLock lock(mLock);
-        MoveCList(mEvictionQ, evictionQ);
-        mEvictionQSize = 0;
+  
+  
+  if (!PR_CLIST_IS_EMPTY(&mEvictionQ)) {
+      PRCList *node = mEvictionQ.next;
+      while (node != &mEvictionQ) {
+          nsHostRecord *rec = static_cast<nsHostRecord *>(node);
+          node = node->next;
+          PR_REMOVE_AND_INIT_LINK(rec);
+          PL_DHashTableOperate(&mDB, (nsHostKey *) rec, PL_DHASH_REMOVE);
+          NS_RELEASE(rec);
+      }
+  }
 
-        
-        PL_DHashTableEnumerate(&mDB, HostDB_PruneEntry, nullptr);
-    }
-
-    if (!PR_CLIST_IS_EMPTY(&evictionQ)) {
-        PRCList *node = evictionQ.next;
-        while (node != &evictionQ) {
-            nsHostRecord *rec = static_cast<nsHostRecord *>(node);
-            node = node->next;
-            NS_RELEASE(rec);
-        }
-    }
+  
+  PL_DHashTableEnumerate(&mDB, HostDB_PruneEntry, nullptr);
 }
 
 void
@@ -1459,6 +1462,17 @@ nsHostResolver::OnLookupComplete(nsHostRecord* rec, nsresult status, AddrInfo* r
                 
                 NS_RELEASE(head);
             }
+#if TTL_AVAILABLE
+            if (!rec->mGetTtl && sDnsVariant != DNS_EXP_VARIANT_CONTROL
+                && !rec->resolving) {
+                LOG(("Issuing second async lookup for TTL for %s.", rec->host));
+                rec->flags =
+                  (rec->flags & ~RES_PRIORITY_MEDIUM) | RES_PRIORITY_LOW;
+                DebugOnly<nsresult> rv = IssueLookup(rec);
+                NS_WARN_IF_FALSE(NS_SUCCEEDED(rv),
+                                 "Could not issue second async lookup for TTL.");
+            }
+#endif
         }
     }
 
@@ -1474,21 +1488,6 @@ nsHostResolver::OnLookupComplete(nsHostRecord* rec, nsresult status, AddrInfo* r
             
         }
     }
-
-#if TTL_AVAILABLE
-    {
-        MutexAutoLock lock(mLock);
-        if (!mShutdown && !rec->mGetTtl
-                && sDnsVariant != DNS_EXP_VARIANT_CONTROL && !rec->resolving) {
-            LOG(("Issuing second async lookup for TTL for %s.", rec->host));
-            rec->flags =
-                (rec->flags & ~RES_PRIORITY_MEDIUM) | RES_PRIORITY_LOW;
-            DebugOnly<nsresult> rv = IssueLookup(rec);
-            NS_WARN_IF_FALSE(NS_SUCCEEDED(rv),
-                             "Could not issue second async lookup for TTL.");
-        }
-    }
-#endif
 
     NS_RELEASE(rec);
 
