@@ -234,7 +234,6 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     
     
     
-    
     void replacePredecessor(MBasicBlock *old, MBasicBlock *split);
     void replaceSuccessor(size_t pos, MBasicBlock *split);
 

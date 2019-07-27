@@ -2476,9 +2476,6 @@ TypeZone::addPendingRecompile(JSContext *cx, JSScript *script)
     if (script->hasIonScript())
         addPendingRecompile(cx, script->ionScript()->recompileInfo());
 
-    if (script->hasParallelIonScript())
-        addPendingRecompile(cx, script->parallelIonScript()->recompileInfo());
-
     
     
     
@@ -5026,8 +5023,7 @@ JSScript::maybeSweepTypes(AutoClearTypeInferenceStateOnOOM *oom)
     
     if (types.sweepReleaseTypes &&
         !hasBaselineScript() &&
-        !hasIonScript() &&
-        !hasParallelIonScript())
+        !hasIonScript())
     {
         types_->destroy();
         types_ = nullptr;
@@ -5049,8 +5045,6 @@ JSScript::maybeSweepTypes(AutoClearTypeInferenceStateOnOOM *oom)
     
     if (hasIonScript())
         ionScript()->recompileInfoRef().shouldSweep(types);
-    if (hasParallelIonScript())
-        parallelIonScript()->recompileInfoRef().shouldSweep(types);
 }
 
 void

@@ -102,12 +102,6 @@ enum BailoutKind
     Bailout_NonSymbolInput,
 
     
-    Bailout_GuardThreadExclusive,
-
-    
-    Bailout_ParallelUnsafe,
-
-    
     Bailout_InitialState,
 
     
@@ -200,8 +194,6 @@ BailoutKindString(BailoutKind kind)
         return "Bailout_NonStringInput";
       case Bailout_NonSymbolInput:
         return "Bailout_NonSymbolInput";
-      case Bailout_GuardThreadExclusive:
-        return "Bailout_GuardThreadExclusive";
       case Bailout_InitialState:
         return "Bailout_InitialState";
       case Bailout_Debugger:

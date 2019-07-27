@@ -270,16 +270,7 @@ CanEnterBaselineJIT(JSContext *cx, HandleScript script, InterpreterFrame *osrFra
         return Method_Compiled;
 
     
-    
-    
-    
-    
-    
-    
-    if (cx->runtime()->forkJoinWarmup > 0) {
-        if (osrFrame)
-            return Method_Skipped;
-    } else if (script->incWarmUpCounter() <= js_JitOptions.baselineWarmUpThreshold) {
+    if (script->incWarmUpCounter() <= js_JitOptions.baselineWarmUpThreshold) {
         return Method_Skipped;
     }
 

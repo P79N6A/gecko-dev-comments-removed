@@ -842,9 +842,6 @@ class JSScript : public js::gc::TenuredCell
     js::jit::BaselineScript *baseline;
 
     
-    js::jit::IonScript *parallelIon;
-
-    
     js::LazyScript *lazyScript;
 
     
@@ -973,6 +970,7 @@ class JSScript : public js::gc::TenuredCell
     bool usesArgumentsApplyAndThis_:1;
 
     
+    
 
 
 
@@ -1013,6 +1011,13 @@ class JSScript : public js::gc::TenuredCell
     
     
     bool typesGeneration_:1;
+
+    
+    
+  protected:
+#if JS_BITS_PER_WORD == 32
+    uint32_t padding;
+#endif
 
     
     
@@ -1312,7 +1317,7 @@ class JSScript : public js::gc::TenuredCell
     }
 
     bool hasAnyIonScript() const {
-        return hasIonScript() || hasParallelIonScript();
+        return hasIonScript();
     }
 
     bool hasIonScript() const {
@@ -1372,39 +1377,11 @@ class JSScript : public js::gc::TenuredCell
         return ion->pendingBuilder();
     }
 
-    bool hasParallelIonScript() const {
-        return parallelIon && parallelIon != ION_DISABLED_SCRIPT && parallelIon != ION_COMPILING_SCRIPT;
-    }
-
-    bool canParallelIonCompile() const {
-        return parallelIon != ION_DISABLED_SCRIPT;
-    }
-
-    bool isParallelIonCompilingOffThread() const {
-        return parallelIon == ION_COMPILING_SCRIPT;
-    }
-
-    js::jit::IonScript *parallelIonScript() const {
-        MOZ_ASSERT(hasParallelIonScript());
-        return parallelIon;
-    }
-    js::jit::IonScript *maybeParallelIonScript() const {
-        return parallelIon;
-    }
-    void setParallelIonScript(js::jit::IonScript *ionScript) {
-        if (hasParallelIonScript())
-            js::jit::IonScript::writeBarrierPre(zone(), parallelIon);
-        parallelIon = ionScript;
-    }
-
     static size_t offsetOfBaselineScript() {
         return offsetof(JSScript, baseline);
     }
     static size_t offsetOfIonScript() {
         return offsetof(JSScript, ion);
-    }
-    static size_t offsetOfParallelIonScript() {
-        return offsetof(JSScript, parallelIon);
     }
     static size_t offsetOfBaselineOrIonRaw() {
         return offsetof(JSScript, baselineOrIonRaw);

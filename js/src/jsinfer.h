@@ -129,16 +129,9 @@ class CallObject;
 
 
 
-
 enum ExecutionMode {
     
     SequentialExecution,
-
-    
-
-
-
-    ParallelExecution,
 
     
 
@@ -164,8 +157,6 @@ ExecutionModeString(ExecutionMode mode)
     switch (mode) {
       case SequentialExecution:
         return "SequentialExecution";
-      case ParallelExecution:
-        return "ParallelExecution";
       case DefinitePropertiesAnalysis:
         return "DefinitePropertiesAnalysis";
       case ArgumentsUsageAnalysis:
@@ -179,7 +170,7 @@ ExecutionModeString(ExecutionMode mode)
 
 
 
-static const unsigned NumExecutionModes = ParallelExecution + 1;
+static const unsigned NumExecutionModes = SequentialExecution + 1;
 
 namespace jit {
     struct IonScript;
