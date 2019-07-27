@@ -685,3 +685,17 @@ function createTestHTTPServer() {
   server.start(-1);
   return server;
 }
+
+
+
+
+function contextMenuClick(element) {
+  let evt = element.ownerDocument.createEvent('MouseEvents');
+  let button = 2;  
+
+  evt.initMouseEvent('contextmenu', true, true,
+       element.ownerDocument.defaultView, 1, 0, 0, 0, 0, false,
+       false, false, false, button, null);
+
+  element.dispatchEvent(evt);
+}
