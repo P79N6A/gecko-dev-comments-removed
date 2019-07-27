@@ -10,6 +10,27 @@
   --chrome-nav-bar-separator-color: rgba(10, 31, 51, 0.35);
 }
 
+
+
+
+
+
+@media not all and (-moz-windows-compositor) {
+  #main-window[tabsintitlebar] #titlebar:-moz-lwtheme {
+    visibility: visible;
+  }
+
+  #main-window {
+    background: var(--chrome-background-color) !important;
+  }
+}
+
+@media (-moz-windows-compositor) {
+  #main-window {
+    background: transparent !important;
+  }
+}
+
 #TabsToolbar::after {
   display: none;
 }
