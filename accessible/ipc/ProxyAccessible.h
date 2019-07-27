@@ -72,6 +72,11 @@ public:
   
 
 
+  void Value(nsString& aValue) const;
+
+  
+
+
   void Description(nsString& aDesc) const;
 
   
