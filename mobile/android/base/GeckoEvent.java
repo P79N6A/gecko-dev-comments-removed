@@ -116,26 +116,6 @@ public class GeckoEvent {
     }
 
     
-
-
-
-    @JNITarget
-    public enum DomKeyLocation {
-        DOM_KEY_LOCATION_STANDARD(0),
-        DOM_KEY_LOCATION_LEFT(1),
-        DOM_KEY_LOCATION_RIGHT(2),
-        DOM_KEY_LOCATION_NUMPAD(3),
-        DOM_KEY_LOCATION_MOBILE(4),
-        DOM_KEY_LOCATION_JOYSTICK(5);
-
-        public final int value;
-
-        private DomKeyLocation(int value) {
-            this.value = value;
-        }
-    }
-
-    
     @JNITarget
     public enum ImeAction {
         IME_SYNCHRONIZE(0),
@@ -223,7 +203,6 @@ public class GeckoEvent {
     private int mRangeLineColor;
     private Location mLocation;
     private Address mAddress;
-    private DomKeyLocation mDomKeyLocation;
 
     private int     mConnectionType;
     private boolean mIsWifi;
@@ -312,30 +291,6 @@ public class GeckoEvent {
             if (unmodifiedMetaState != mMetaState) {
                 mDOMPrintableKeyValue = k.getUnicodeChar(unmodifiedMetaState);
             }
-        }
-        mDomKeyLocation = isJoystickButton(mKeyCode) ? DomKeyLocation.DOM_KEY_LOCATION_JOYSTICK
-                                                     : DomKeyLocation.DOM_KEY_LOCATION_MOBILE;
-    }
-
-    
-
-
-
-
-
-    private static boolean isJoystickButton(int keyCode) {
-        switch (keyCode) {
-            case KeyEvent.KEYCODE_DPAD_CENTER:
-            case KeyEvent.KEYCODE_DPAD_LEFT:
-            case KeyEvent.KEYCODE_DPAD_RIGHT:
-            case KeyEvent.KEYCODE_DPAD_DOWN:
-            case KeyEvent.KEYCODE_DPAD_UP:
-                return true;
-            default:
-                if (Versions.feature12Plus) {
-                    return KeyEvent.isGamepadButton(keyCode);
-                }
-                return GeckoEvent.isGamepadButton(keyCode);
         }
     }
 
