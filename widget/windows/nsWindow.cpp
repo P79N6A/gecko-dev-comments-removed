@@ -1701,8 +1701,6 @@ NS_METHOD nsWindow::ConstrainPosition(bool aAllowSlop,
   int32_t logWidth = std::max<int32_t>(NSToIntRound(mBounds.width / dpiScale), 1);
   int32_t logHeight = std::max<int32_t>(NSToIntRound(mBounds.height / dpiScale), 1);
 
-  bool doConstrain = false; 
-
   
 
   RECT screenRect;
@@ -1726,7 +1724,6 @@ NS_METHOD nsWindow::ConstrainPosition(bool aAllowSlop,
       screenRect.right = left + width;
       screenRect.top = top;
       screenRect.bottom = top + height;
-      doConstrain = true;
     }
   } else {
     if (mWnd) {
@@ -1740,7 +1737,6 @@ NS_METHOD nsWindow::ConstrainPosition(bool aAllowSlop,
             screenRect.right = GetSystemMetrics(SM_CXFULLSCREEN);
             screenRect.bottom = GetSystemMetrics(SM_CYFULLSCREEN);
           }
-          doConstrain = true;
         }
         ::ReleaseDC(mWnd, dc);
       }
@@ -2700,6 +2696,8 @@ void nsWindow::UpdateGlass()
     
   case eTransparencyGlass:
     policy = DWMNCRP_ENABLED;
+    break;
+  default:
     break;
   }
 
@@ -5179,7 +5177,7 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
       *aRetValue = 0;
       
       
-      DWORD objId = static_cast<DWORD>(lParam);
+      int32_t objId = static_cast<DWORD>(lParam);
       if (objId == OBJID_CLIENT) { 
         a11y::Accessible* rootAccessible = GetAccessible(); 
         if (rootAccessible) {
@@ -6567,8 +6565,6 @@ nsWindow::GetPreferredCompositorBackends(nsTArray<LayersBackend>& aHints)
     if (prefs.mPreferOpenGL) {
       aHints.AppendElement(LayersBackend::LAYERS_OPENGL);
     }
-
-    ID3D11Device* device = gfxWindowsPlatform::GetPlatform()->GetD3D11Device();
 
     if (!prefs.mPreferD3D9) {
       aHints.AppendElement(LayersBackend::LAYERS_D3D11);

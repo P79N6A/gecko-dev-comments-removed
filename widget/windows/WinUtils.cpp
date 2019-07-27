@@ -481,12 +481,11 @@ WinUtils::LogW(const wchar_t *fmt, ...)
   OutputDebugStringW(buffer);
   OutputDebugStringW(L"\n");
 
-  int len = wcslen(buffer);
+  int len = WideCharToMultiByte(CP_ACP, 0, buffer, -1, nullptr, 0, nullptr, nullptr);
   if (len) {
-    char* utf8 = new char[len+1];
-    memset(utf8, 0, sizeof(utf8));
+    char* utf8 = new char[len];
     if (WideCharToMultiByte(CP_ACP, 0, buffer,
-                            -1, utf8, len+1, nullptr,
+                            -1, utf8, len, nullptr,
                             nullptr) > 0) {
       
       printf("%s\n", utf8);

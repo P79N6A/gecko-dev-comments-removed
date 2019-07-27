@@ -237,7 +237,6 @@ nsresult JumpListBuilder::RemoveIconCacheForAllItems()
     if (NS_FAILED(currFile->GetPath(path)))
       continue;
 
-    int32_t len = path.Length();
     if (StringTail(path, 4).LowerCaseEqualsASCII(".ico")) {
       
       bool exists;

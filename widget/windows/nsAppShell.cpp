@@ -29,7 +29,7 @@ using namespace mozilla::widget;
 
 
 
-class WinWakeLockListener : public nsIDOMMozWakeLockListener {
+class WinWakeLockListener MOZ_FINAL : public nsIDOMMozWakeLockListener {
 public:
   NS_DECL_ISUPPORTS;
 
