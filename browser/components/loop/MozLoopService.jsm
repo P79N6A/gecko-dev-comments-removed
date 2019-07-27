@@ -9,12 +9,17 @@ const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
-let console = (Cu.import("resource://gre/modules/devtools/Console.jsm", {})).console;
 
 this.EXPORTED_SYMBOLS = ["MozLoopService"];
 
+XPCOMUtils.defineLazyModuleGetter(this, "console",
+  "resource://gre/modules/devtools/Console.jsm");
+
 XPCOMUtils.defineLazyModuleGetter(this, "injectLoopAPI",
   "resource:///modules/loop/MozLoopAPI.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "convertToRTCStatsReport",
+  "resource://gre/modules/media/RTCStatsReport.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "Chat", "resource:///modules/Chat.jsm");
 
@@ -33,6 +38,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "deriveHawkCredentials",
 XPCOMUtils.defineLazyModuleGetter(this, "MozLoopPushHandler",
                                   "resource:///modules/loop/MozLoopPushHandler.jsm");
 
+XPCOMUtils.defineLazyServiceGetter(this, "uuidgen",
+                                   "@mozilla.org/uuid-generator;1",
+                                   "nsIUUIDGenerator");
+
 
 
 
@@ -43,6 +52,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "MozLoopPushHandler",
 let MozLoopServiceInternal = {
   
   loopServerUri: Services.prefs.getCharPref("loop.server"),
+  telemetryUri: Services.prefs.getCharPref("loop.telemetryURL"),
 
   
   
@@ -308,11 +318,74 @@ let MozLoopServiceInternal = {
 
 
 
+  uploadTelemetry: function(window, pc) {
+    if (!this.telemetryUri) {
+      return;
+    }
+    window.WebrtcGlobalInformation.getAllStats(allStats => {
+      let internalFormat = allStats.reports[0]; 
+      window.WebrtcGlobalInformation.getLogging('', logs => {
+
+        
+        
+
+        let ai = Services.appinfo;
+        let report = convertToRTCStatsReport(internalFormat);
+
+        let payload = {
+          ver: 1,
+          info: {
+            appUpdateChannel: ai.defaultUpdateChannel,
+            appBuildID: ai.appBuildID,
+            appName: ai.name,
+            appVersion: ai.version,
+            reason: "loop",
+            OS: ai.OS,
+            version: Services.sysinfo.getProperty("version")
+          },
+          report: "ice failure",
+          connectionstate: pc.iceConnectionState,
+          stats: report,
+          localSdp: internalFormat.localSdp,
+          remoteSdp: internalFormat.remoteSdp,
+          log: ""
+        };
+        logs.forEach(s => { payload.log += s + "\n"; });
+
+        let uuid = uuidgen.generateUUID().toString();
+        uuid = uuid.substr(1,uuid.length-2); 
+
+        let url = this.telemetryUri;
+        url += ((url.substr(-1) == "/")? "":"/") + uuid + "/loop/" +
+                ai.OS + "/" + ai.version + "/" + ai.defaultUpdateChannel + "/" +
+                ai.appBuildID;
+
+        
+        
+
+        let xhr = new window.XMLHttpRequest();
+        xhr.open("POST", url, true);
+        xhr.setRequestHeader("Content-Type", 'application/json');
+        xhr.onreadystatechange = function() {
+          if (xhr.readyState == 4 && xhr.status == 200) {
+            console.log("Failed to upload telemetry logs: " + xhr.responseText);
+          }
+        };
+        xhr.send(JSON.stringify(payload));
+        console.log("Uploading telemetry logs to " + url);
+      });
+    }, pc.id);
+  },
+
+  
 
 
 
 
-  openChatWindow: function(contentWindow, title, url, mode) {
+
+
+
+  openChatWindow: function(contentWindow, title, url) {
     
     let origin = this.loopServerUri;
     url = url.spec || url;
@@ -332,8 +405,30 @@ let MozLoopServiceInternal = {
           return;
         }
         chatbox.removeEventListener("DOMContentLoaded", loaded, true);
-        injectLoopAPI(chatbox.contentWindow);
-      }, true);
+
+        let window = chatbox.contentWindow;
+        injectLoopAPI(window);
+
+        let ourID = window.QueryInterface(Ci.nsIInterfaceRequestor)
+            .getInterface(Ci.nsIDOMWindowUtils).currentInnerWindowID;
+
+        let onPCLifecycleChange = (pc, winID, type) => {
+          if (winID != ourID) {
+            return;
+          }
+          if (type == "iceconnectionstatechange") {
+            switch(pc.iceConnectionState) {
+              case "failed":
+              case "disconnected":
+                this.uploadTelemetry(window, pc);
+                break;
+            }
+          }
+        };
+
+        let pc_static = new window.mozRTCPeerConnectionStatic();
+        pc_static.registerPeerConnectionLifecycleCallback(onPCLifecycleChange);
+      }.bind(this), true);
     };
 
     Chat.open(contentWindow, origin, title, url, undefined, undefined, callback);
