@@ -1020,10 +1020,10 @@ ScriptedDirectProxyHandler::set(JSContext *cx, HandleObject proxy, HandleObject 
 
 bool
 ScriptedDirectProxyHandler::iterate(JSContext *cx, HandleObject proxy, unsigned flags,
-                                    MutableHandleValue vp) const
+                                    MutableHandleObject objp) const
 {
     
-    return DirectProxyHandler::iterate(cx, proxy, flags, vp);
+    return DirectProxyHandler::iterate(cx, proxy, flags, objp);
 }
 
 
