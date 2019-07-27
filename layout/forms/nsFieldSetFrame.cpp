@@ -598,7 +598,16 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
     LogicalRect actualLegendRect = mLegendRect;
     actualLegendRect.Deflate(wm, legendMargin);
     LogicalPoint actualLegendPos(actualLegendRect.Origin(wm));
-    legendReflowState->ApplyRelativePositioning(&actualLegendPos, containerWidth);
+
+    
+    
+    LogicalMargin offsets =
+      legendReflowState->ComputedLogicalOffsets().
+        ConvertTo(wm, legendReflowState->GetWritingMode());
+    nsHTMLReflowState::ApplyRelativePositioning(legend, wm, offsets,
+                                                &actualLegendPos,
+                                                containerWidth);
+
     legend->SetPosition(wm, actualLegendPos, containerWidth);
     nsContainerFrame::PositionFrameView(legend);
     nsContainerFrame::PositionChildViews(legend);
