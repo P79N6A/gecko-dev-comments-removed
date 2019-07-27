@@ -3,11 +3,9 @@
 
 
 
-
-
 function TestManySmallArrays() {
     function doIter(f, arr) {
-        return f(...arr)
+        return f(...new Set(arr));
     }
 
     function fun(a, b, c) {
@@ -37,7 +35,7 @@ TestManySmallArrays();
 
 function TestSingleSmallArray() {
     function doIter(f, arr) {
-        return f(...arr)
+        return f(...new Set(arr));
     }
 
     function fun(a, b, c) {
@@ -69,7 +67,7 @@ TestSingleSmallArray();
 
 function TestChangeArrayPrototype() {
     function doIter(f, arr) {
-        return f(...arr)
+        return f(...new Set(arr));
     }
 
     function fun(a, b, c) {
@@ -106,7 +104,7 @@ TestChangeArrayPrototype();
 
 function TestChangeManyArrayShape() {
     function doIter(f, arr) {
-        return f(...arr)
+        return f(...new Set(arr));
     }
 
     function fun(a, b, c) {

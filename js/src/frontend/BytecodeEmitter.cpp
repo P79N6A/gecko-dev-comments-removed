@@ -333,6 +333,7 @@ static const char * const statementName[] = {
     "for/in loop",           
     "for/of loop",           
     "while loop",            
+    "spread",                
 };
 
 JS_STATIC_ASSERT(JS_ARRAY_LENGTH(statementName) == STMT_LIMIT);
@@ -603,6 +604,10 @@ NonLocalExitScope::prepareForNonLocalJump(StmtInfoBCE *toStmt)
                 return false;
             break;
 
+          case STMT_SPREAD:
+            MOZ_ASSERT_UNREACHABLE("can't break/continue/return from inside a spread");
+            break;
+
           case STMT_SUBROUTINE:
             
 
@@ -706,12 +711,16 @@ PushLoopStatement(BytecodeEmitter *bce, LoopStmtInfo *stmt, StmtType type, ptrdi
     stmt->loopDepth = downLoop ? downLoop->loopDepth + 1 : 1;
 
     int loopSlots;
-    if (type == STMT_FOR_OF_LOOP)
+    if (type == STMT_SPREAD)
+        loopSlots = 3;
+    else if (type == STMT_FOR_OF_LOOP)
         loopSlots = 2;
     else if (type == STMT_FOR_IN_LOOP)
         loopSlots = 1;
     else
         loopSlots = 0;
+
+    MOZ_ASSERT(loopSlots <= stmt->stackDepth);
 
     if (downLoop)
         stmt->canIonOsr = (downLoop->canIonOsr &&
@@ -4436,13 +4445,26 @@ EmitIterator(ExclusiveContext *cx, BytecodeEmitter *bce)
     return true;
 }
 
-static bool
-EmitForOf(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t top)
-{
-    ParseNode *forHead = pn->pn_left;
-    ParseNode *forBody = pn->pn_right;
 
-    ParseNode *pn1 = forHead->pn_kid1;
+
+
+
+
+
+
+
+
+static bool
+EmitForOf(ExclusiveContext *cx, BytecodeEmitter *bce, StmtType type, ParseNode *pn, ptrdiff_t top)
+{
+    JS_ASSERT(type == STMT_FOR_OF_LOOP || type == STMT_SPREAD);
+    JS_ASSERT_IF(type == STMT_FOR_OF_LOOP, pn && pn->pn_left->isKind(PNK_FOROF));
+    JS_ASSERT_IF(type == STMT_SPREAD, !pn);
+
+    ParseNode *forHead = pn ? pn->pn_left : nullptr;
+    ParseNode *forBody = pn ? pn->pn_right : nullptr;
+
+    ParseNode *pn1 = forHead ? forHead->pn_kid1 : nullptr;
     bool letDecl = pn1 && pn1->isKind(PNK_LEXICALSCOPE);
     JS_ASSERT_IF(letDecl, pn1->isLet());
 
@@ -4457,19 +4479,27 @@ EmitForOf(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t t
         bce->emittingForInit = false;
     }
 
-    
-    
+    if (type == STMT_FOR_OF_LOOP) {
+        
+        
 
-    
-    if (!EmitTree(cx, bce, forHead->pn_kid3))
-        return false;
+        
+        if (!EmitTree(cx, bce, forHead->pn_kid3))
+            return false;
+        if (!EmitIterator(cx, bce))
+            return false;
 
-    if (!EmitIterator(cx, bce))
-        return false;
-
-    
-    if (Emit1(cx, bce, JSOP_UNDEFINED) < 0)                    
-        return false;
+        
+        if (Emit1(cx, bce, JSOP_UNDEFINED) < 0)                
+            return false;
+    } else {
+        
+        
+        if (Emit2(cx, bce, JSOP_PICK, (jsbytecode)2) < 0)      
+            return false;
+        if (Emit2(cx, bce, JSOP_PICK, (jsbytecode)2) < 0)      
+            return false;
+    }
 
     
     StmtInfoBCE letStmt(cx);
@@ -4479,7 +4509,7 @@ EmitForOf(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t t
     }
 
     LoopStmtInfo stmtInfo(cx);
-    PushLoopStatement(bce, &stmtInfo, STMT_FOR_OF_LOOP, top);
+    PushLoopStatement(bce, &stmtInfo, type, top);
 
     
     
@@ -4496,51 +4526,68 @@ EmitForOf(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t t
     if (EmitLoopHead(cx, bce, nullptr) < 0)
         return false;
 
+    if (type == STMT_SPREAD)
+        bce->stackDepth++;
+
 #ifdef DEBUG
     int loopDepth = bce->stackDepth;
 #endif
 
     
-    if (Emit1(cx, bce, JSOP_DUP) < 0)                          
-        return false;
+    if (type == STMT_FOR_OF_LOOP) {
+        if (Emit1(cx, bce, JSOP_DUP) < 0)                      
+            return false;
+    }
     if (!EmitAtomOp(cx, cx->names().value, JSOP_GETPROP, bce)) 
         return false;
-    if (!EmitAssignment(cx, bce, forHead->pn_kid2, JSOP_NOP, nullptr)) 
-        return false;
-    if (Emit1(cx, bce, JSOP_POP) < 0)                          
-        return false;
+    if (type == STMT_FOR_OF_LOOP) {
+        if (!EmitAssignment(cx, bce, forHead->pn_kid2, JSOP_NOP, nullptr)) 
+            return false;
+        if (Emit1(cx, bce, JSOP_POP) < 0)                      
+            return false;
 
-    
-    JS_ASSERT(bce->stackDepth == loopDepth);
+        
+        JS_ASSERT(bce->stackDepth == loopDepth);
 
-    
-    if (!EmitTree(cx, bce, forBody))
-        return false;
+        
+        if (!EmitTree(cx, bce, forBody))
+            return false;
 
-    
-    StmtInfoBCE *stmt = &stmtInfo;
-    do {
-        stmt->update = bce->offset();
-    } while ((stmt = stmt->down) != nullptr && stmt->type == STMT_LABEL);
+        
+        StmtInfoBCE *stmt = &stmtInfo;
+        do {
+            stmt->update = bce->offset();
+        } while ((stmt = stmt->down) != nullptr && stmt->type == STMT_LABEL);
+    } else {
+        if (Emit1(cx, bce, JSOP_INITELEM_INC) < 0)             
+            return false;
+
+        JS_ASSERT(bce->stackDepth == loopDepth - 1);
+
+        
+    }
 
     
     SetJumpOffsetAt(bce, jmp);
     if (!EmitLoopEntry(cx, bce, nullptr))
         return false;
 
-    if (Emit1(cx, bce, JSOP_POP) < 0)                          
-        return false;
-    if (Emit1(cx, bce, JSOP_DUP) < 0)                          
-        return false;
+    if (type == STMT_FOR_OF_LOOP) {
+        if (Emit1(cx, bce, JSOP_POP) < 0)                      
+            return false;
+        if (Emit1(cx, bce, JSOP_DUP) < 0)                      
+            return false;
+    } else {
+        if (!EmitDupAt(cx, bce, bce->stackDepth - 1 - 2))      
+            return false;
+    }
     if (Emit1(cx, bce, JSOP_DUP) < 0)                          
         return false;
     if (!EmitAtomOp(cx, cx->names().next, JSOP_CALLPROP, bce)) 
         return false;
     if (Emit1(cx, bce, JSOP_SWAP) < 0)                         
         return false;
-    if (Emit1(cx, bce, JSOP_UNDEFINED) < 0)                    
-        return false;
-    if (EmitCall(cx, bce, JSOP_CALL, 1, forHead) < 0)          
+    if (EmitCall(cx, bce, JSOP_CALL, 0, forHead) < 0)          
         return false;
     CheckTypeSet(cx, bce, JSOP_CALL);
     if (Emit1(cx, bce, JSOP_DUP) < 0)                          
@@ -4559,11 +4606,17 @@ EmitForOf(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t t
         return false;
 
     
+    
     if (!PopStatementBCE(cx, bce))
         return false;
 
     if (letDecl) {
         if (!LeaveNestedScope(cx, bce, &letStmt))
+            return false;
+    }
+
+    if (type == STMT_SPREAD) {
+        if (Emit2(cx, bce, JSOP_PICK, (jsbytecode)3) < 0)      
             return false;
     }
 
@@ -4856,7 +4909,7 @@ EmitFor(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t top
         return EmitForIn(cx, bce, pn, top);
 
     if (pn->pn_left->isKind(PNK_FOROF))
-        return EmitForOf(cx, bce, pn, top);
+        return EmitForOf(cx, bce, STMT_FOR_OF_LOOP, pn, top);
 
     JS_ASSERT(pn->pn_left->isKind(PNK_FORHEAD));
     return EmitNormalFor(cx, bce, pn, top);
@@ -6079,6 +6132,19 @@ EmitArrayComp(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     return Emit1(cx, bce, JSOP_ENDINIT) >= 0;
 }
 
+
+
+
+
+
+
+
+static bool
+EmitSpread(ExclusiveContext *cx, BytecodeEmitter *bce)
+{
+    return EmitForOf(cx, bce, STMT_SPREAD, nullptr, -1);
+}
+
 static bool
 EmitArray(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, uint32_t count)
 {
@@ -6129,7 +6195,7 @@ EmitArray(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, uint32_t co
         if (pn2->isKind(PNK_SPREAD)) {
             if (!EmitIterator(cx, bce))
                 return false;
-            if (Emit1(cx, bce, JSOP_SPREAD) < 0)
+            if (!EmitSpread(cx, bce))
                 return false;
         } else if (afterSpread) {
             if (Emit1(cx, bce, JSOP_INITELEM_INC) < 0)

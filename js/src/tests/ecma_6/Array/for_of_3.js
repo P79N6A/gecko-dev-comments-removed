@@ -5,10 +5,9 @@
 
 
 
-
 function TestIncreaseArrayLength() {
     function doIter(f, arr) {
-        return f(...arr)
+        return f(...new Set(arr));
     }
 
     function fun(a, b, c) {

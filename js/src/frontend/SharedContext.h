@@ -359,6 +359,7 @@ enum StmtType {
     STMT_FOR_IN_LOOP,           
     STMT_FOR_OF_LOOP,           
     STMT_WHILE_LOOP,            
+    STMT_SPREAD,                
     STMT_LIMIT
 };
 
