@@ -1220,7 +1220,7 @@ public:
     
     
     void callJit(Register callee);
-    void callJitFromAsmJS(Register callee) { call(callee); }
+    void callJitFromAsmJS(Register callee) { callJit(callee); }
 
     void reserveStack(uint32_t amount);
     void freeStack(uint32_t amount);
