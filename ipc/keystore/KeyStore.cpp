@@ -400,8 +400,7 @@ KeyStore::ResetHandlerInfo()
 bool
 KeyStore::CheckSize(UnixSocketRawData *aMessage, size_t aExpectSize)
 {
-  return (aMessage->mSize - aMessage->mCurrentWriteOffset >= aExpectSize) ?
-         true : false;
+  return (aMessage->GetSize() >= aExpectSize);
 }
 
 ResponseCode
@@ -417,8 +416,8 @@ KeyStore::ReadCommand(UnixSocketRawData *aMessage)
     return PROTOCOL_ERROR;
   }
 
-  mHandlerInfo.command = aMessage->mData[aMessage->mCurrentWriteOffset];
-  aMessage->mCurrentWriteOffset++;
+  mHandlerInfo.command = *aMessage->GetData();
+  aMessage->Consume(1);
 
   
   const struct ProtocolCommand *command = commands;
@@ -457,9 +456,10 @@ KeyStore::ReadLength(UnixSocketRawData *aMessage)
   }
 
   
+  
   unsigned short dataLength;
-  memcpy(&dataLength, &aMessage->mData[aMessage->mCurrentWriteOffset], 2);
-  aMessage->mCurrentWriteOffset += 2;
+  memcpy(&dataLength, aMessage->GetData(), 2);
+  aMessage->Consume(2);
   mHandlerInfo.param[mHandlerInfo.paramCount].length = ntohs(dataLength);
 
   mHandlerInfo.state = STATE_READ_PARAM_DATA;
@@ -482,9 +482,9 @@ KeyStore::ReadData(UnixSocketRawData *aMessage)
 
   
   memcpy(mHandlerInfo.param[mHandlerInfo.paramCount].data,
-         &aMessage->mData[aMessage->mCurrentWriteOffset],
+         aMessage->GetData(),
          mHandlerInfo.param[mHandlerInfo.paramCount].length);
-  aMessage->mCurrentWriteOffset += mHandlerInfo.param[mHandlerInfo.paramCount].length;
+  aMessage->Consume(mHandlerInfo.param[mHandlerInfo.paramCount].length);
   mHandlerInfo.paramCount++;
 
   if (mHandlerInfo.paramCount == mHandlerInfo.commandPattern->paramNum) {
@@ -528,7 +528,7 @@ KeyStore::ReceiveSocketData(nsAutoPtr<UnixSocketRawData>& aMessage)
 
   
   ResponseCode result = SUCCESS;
-  while (aMessage->mCurrentWriteOffset < aMessage->mSize ||
+  while (aMessage->GetSize() ||
          mHandlerInfo.state == STATE_PROCESSING) {
     switch (mHandlerInfo.state) {
       case STATE_IDLE:
