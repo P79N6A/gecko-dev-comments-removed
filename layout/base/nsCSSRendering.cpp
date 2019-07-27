@@ -9,6 +9,7 @@
 #include <ctime>
 
 #include "mozilla/DebugOnly.h"
+#include "mozilla/gfx/2D.h"
 #include "mozilla/HashFunctions.h"
 #include "mozilla/MathAlgorithms.h"
 
@@ -3598,8 +3599,8 @@ nsCSSRendering::DrawTableBorderSegment(nsRenderingContext&     aContext,
   }
 
   gfxContext *ctx = aContext.ThebesContext();
-  gfxContext::AntialiasMode oldMode = ctx->CurrentAntialiasMode();
-  ctx->SetAntialiasMode(gfxContext::MODE_ALIASED);
+  AntialiasMode oldMode = ctx->CurrentAntialiasMode();
+  ctx->SetAntialiasMode(AntialiasMode::NONE);
 
   switch (aBorderStyle) {
   case NS_STYLE_BORDER_STYLE_NONE:
@@ -3932,12 +3933,12 @@ nsCSSRendering::PaintDecorationLine(nsIFrame* aFrame,
       contextIsSaved = true;
       aGfxContext->Clip(rect);
       if (lineHeight > 2.0) {
-        aGfxContext->SetAntialiasMode(gfxContext::MODE_COVERAGE);
+        aGfxContext->SetAntialiasMode(AntialiasMode::SUBPIXEL);
       } else {
         
         
         
-        aGfxContext->SetAntialiasMode(gfxContext::MODE_ALIASED);
+        aGfxContext->SetAntialiasMode(AntialiasMode::NONE);
       }
       break;
     default:

@@ -529,17 +529,8 @@ public:
     void SetOperator(GraphicsOperator op);
     GraphicsOperator CurrentOperator() const;
 
-    
-
-
-
-
-    enum AntialiasMode {
-        MODE_ALIASED,
-        MODE_COVERAGE
-    };
-    void SetAntialiasMode(AntialiasMode mode);
-    AntialiasMode CurrentAntialiasMode() const;
+    void SetAntialiasMode(mozilla::gfx::AntialiasMode mode);
+    mozilla::gfx::AntialiasMode CurrentAntialiasMode() const;
 
     
 
