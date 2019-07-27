@@ -945,31 +945,13 @@ nsDownloadManager::Init()
   
   
   mUseJSTransfer = Preferences::GetBool(PREF_BD_USEJSTRANSFER, false);
-#else
-
-  nsAutoCString appID;
-  nsCOMPtr<nsIXULAppInfo> info = do_GetService("@mozilla.org/xre/app-info;1");
-  if (info) {
-    rv = info->GetID(appID);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  
-  
-  
-  if (appID.EqualsLiteral("webapprt@mozilla.org")) {
-    mUseJSTransfer = false;
-  } else {
-#if !defined(XP_WIN)
-    mUseJSTransfer = true;
-#else
+#elif defined(XP_WIN)
     
     
     
     mUseJSTransfer = !IsRunningInWindowsMetro();
-#endif
-  }
-
+#else
+    mUseJSTransfer = true;
 #endif
 
   if (mUseJSTransfer)
