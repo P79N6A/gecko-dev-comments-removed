@@ -1486,11 +1486,18 @@ public:
 
     LIFECYCLE_LOG("Shutting down graph %p", mGraph.get());
 
-    if (mGraph->CurrentDriver()->AsAudioCallbackDriver()) {
-      MOZ_ASSERT(!mGraph->CurrentDriver()->AsAudioCallbackDriver()->InCallback());
+    
+    
+#if 0 
+    
+    
+    
+    if (mGraph->mDriver->AsAudioCallbackDriver()) {
+      MOZ_ASSERT(!mGraph->mDriver->AsAudioCallbackDriver()->InCallback());
     }
+#endif
 
-    mGraph->CurrentDriver()->Shutdown();
+    mGraph->mDriver->Shutdown();
 
     
     if (mGraph->IsEmpty()) {
@@ -1719,6 +1726,7 @@ MediaStreamGraphImpl::RunInStableState(bool aSourceIsMSG)
     mLifecycleState >= LIFECYCLE_WAITING_FOR_THREAD_SHUTDOWN;
 #endif
 }
+
 
 static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
 
