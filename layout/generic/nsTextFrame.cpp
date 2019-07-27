@@ -136,6 +136,21 @@ struct TabwidthAdaptor
   }
 };
 
+
+
+
+
+
+
+LayoutDeviceRect AppUnitGfxRectToDevRect(gfxRect aRect,
+                                         int32_t aAppUnitsPerDevPixel)
+{
+  return LayoutDeviceRect(aRect.x / aAppUnitsPerDevPixel,
+                          aRect.y / aAppUnitsPerDevPixel,
+                          aRect.width / aAppUnitsPerDevPixel,
+                          aRect.height / aAppUnitsPerDevPixel);
+}
+
 } 
 
 void
@@ -4727,22 +4742,23 @@ nsTextFrame::GetSelectionDetails()
 }
 
 static void
-PaintSelectionBackground(gfxContext* aCtx, nsPresContext* aPresContext,
-                         nscolor aColor, const gfxRect& aDirtyRect,
-                         const gfxRect& aRect,
+PaintSelectionBackground(gfxContext* aCtx,
+                         nscolor aColor,
+                         const LayoutDeviceRect& aDirtyRect,
+                         const LayoutDeviceRect& aRect,
                          nsTextFrame::DrawPathCallbacks* aCallbacks)
 {
+  DrawTarget& aDrawTarget = *aCtx->GetDrawTarget();
+
   if (aCallbacks) {
     aCallbacks->NotifyBeforeSelectionBackground(aColor);
   }
 
-  gfxRect r = aRect.Intersect(aDirtyRect);
+  Rect rect = aRect.Intersect(aDirtyRect).ToUnknownRect();
   
-  int32_t app = aPresContext->AppUnitsPerDevPixel();
   aCtx->NewPath();
   
-  aCtx->Rectangle(gfxRect(r.X() / app, r.Y() / app,
-                          r.Width() / app, r.Height() / app), true);
+  aCtx->Rectangle(ThebesRect(rect), true);
 
   if (aCallbacks) {
     aCallbacks->NotifySelectionBackgroundPathEmitted();
@@ -5659,6 +5675,8 @@ nsTextFrame::PaintTextWithSelectionColors(gfxContext* aCtx,
   TextRangeStyle rangeStyle;
   
   if (anyBackgrounds) {
+    int32_t appUnitsPerDevPixel = aTextPaintStyle.PresContext()->AppUnitsPerDevPixel();
+    LayoutDeviceRect dirtyRect = AppUnitGfxRectToDevRect(aDirtyRect, appUnitsPerDevPixel);
     SelectionIterator iterator(prevailingSelections, aContentOffset, aContentLength,
                                aProvider, mTextRun, startIOffset);
     while (iterator.GetNextSegment(&iOffset, &offset, &length, &hyphenWidth,
@@ -5679,9 +5697,9 @@ nsTextFrame::PaintTextWithSelectionColors(gfxContext* aCtx,
           bgRect = gfxRect(aFramePt.x + offs, aFramePt.y,
                            advance, GetSize().height);
         }
-        PaintSelectionBackground(aCtx, aTextPaintStyle.PresContext(),
-                                 background, aDirtyRect,
-                                 bgRect, aCallbacks);
+        PaintSelectionBackground(aCtx, background, dirtyRect,
+                                 AppUnitGfxRectToDevRect(bgRect, appUnitsPerDevPixel),
+                                 aCallbacks);
       }
       iterator.UpdateWithAdvance(advance);
     }
