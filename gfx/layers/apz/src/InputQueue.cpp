@@ -49,21 +49,21 @@ InputQueue::ReceiveInputEvent(const nsRefPtr<AsyncPanZoomController>& aTarget,
       
       
       
-      return aTarget->HandleInputEvent(aEvent);
+      return aTarget->HandleInputEvent(aEvent, aTarget->GetTransformToThis());
   }
 }
 
 bool
-InputQueue::MaybeHandleCurrentBlock(const nsRefPtr<AsyncPanZoomController>& aTarget,
-                                    CancelableBlockState *block,
+InputQueue::MaybeHandleCurrentBlock(CancelableBlockState *block,
                                     const InputData& aEvent) {
   if (block == CurrentBlock() && block->IsReadyForHandling()) {
+    const nsRefPtr<AsyncPanZoomController>& target = block->GetTargetApzc();
     INPQ_LOG("current block is ready with target %p preventdefault %d\n",
-        aTarget.get(), block->IsDefaultPrevented());
-    if (!aTarget || block->IsDefaultPrevented()) {
+        target.get(), block->IsDefaultPrevented());
+    if (!target || block->IsDefaultPrevented()) {
       return true;
     }
-    aTarget->HandleInputEvent(aEvent);
+    block->DispatchImmediate(aEvent);
     return true;
   }
   return false;
@@ -115,7 +115,7 @@ InputQueue::ReceiveTouchInput(const nsRefPtr<AsyncPanZoomController>& aTarget,
   } else if (target && target->ArePointerEventsConsumable(block, aEvent.AsMultiTouchInput().mTouches.Length())) {
     result = nsEventStatus_eConsumeDoDefault;
   }
-  if (!MaybeHandleCurrentBlock(target, block, aEvent)) {
+  if (!MaybeHandleCurrentBlock(block, aEvent)) {
     block->AddEvent(aEvent.AsMultiTouchInput());
   }
   return result;
@@ -157,9 +157,8 @@ InputQueue::ReceiveScrollWheelInput(const nsRefPtr<AsyncPanZoomController>& aTar
   
   
   
-  nsRefPtr<AsyncPanZoomController> target = block->GetTargetApzc();
-
-  if (!MaybeHandleCurrentBlock(target, block, aEvent)) {
+  
+  if (!MaybeHandleCurrentBlock(block, aEvent)) {
     block->AddEvent(aEvent.AsScrollWheelInput());
   }
 
@@ -250,11 +249,11 @@ InputQueue::SweepDepletedBlocks()
 TouchBlockState*
 InputQueue::StartNewTouchBlock(const nsRefPtr<AsyncPanZoomController>& aTarget,
                                bool aTargetConfirmed,
-                               bool aCopyAllowedTouchBehaviorFromCurrent)
+                               bool aCopyPropertiesFromCurrent)
 {
   TouchBlockState* newBlock = new TouchBlockState(aTarget, aTargetConfirmed);
-  if (gfxPrefs::TouchActionEnabled() && aCopyAllowedTouchBehaviorFromCurrent) {
-    newBlock->CopyAllowedTouchBehaviorsFrom(*CurrentTouchBlock());
+  if (aCopyPropertiesFromCurrent) {
+    newBlock->CopyPropertiesFrom(*CurrentTouchBlock());
   }
 
   SweepDepletedBlocks();
@@ -402,7 +401,7 @@ InputQueue::ProcessInputBlocks() {
       curBlock->DropEvents();
       target->ResetInputState();
     } else {
-      curBlock->HandleEvents(target);
+      curBlock->HandleEvents();
     }
     MOZ_ASSERT(!curBlock->HasEvents());
 

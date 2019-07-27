@@ -254,8 +254,8 @@ public:
   
 
 
-
-  nsEventStatus HandleInputEvent(const InputData& aEvent);
+  nsEventStatus HandleInputEvent(const InputData& aEvent,
+                                 const Matrix4x4& aTransformToApzc);
 
   
 

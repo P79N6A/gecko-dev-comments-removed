@@ -7,9 +7,10 @@
 #ifndef mozilla_layers_InputBlockState_h
 #define mozilla_layers_InputBlockState_h
 
-#include "nsTArray.h"                       
 #include "InputData.h"                      
-#include "nsAutoPtr.h"
+#include "mozilla/gfx/Matrix.h"             
+#include "nsAutoPtr.h"                      
+#include "nsTArray.h"                       
 
 namespace mozilla {
 namespace layers {
@@ -19,6 +20,9 @@ class OverscrollHandoffChain;
 class CancelableBlockState;
 class TouchBlockState;
 class WheelBlockState;
+
+
+
 
 
 
@@ -46,6 +50,11 @@ private:
   nsRefPtr<const OverscrollHandoffChain> mOverscrollHandoffChain;
   bool mTargetConfirmed;
   const uint64_t mBlockId;
+protected:
+  
+  
+  
+  gfx::Matrix4x4 mTransformToApzc;
 };
 
 
@@ -96,6 +105,13 @@ public:
 
 
 
+
+  void DispatchImmediate(const InputData& aEvent) const;
+
+  
+
+
+
   virtual bool IsReadyForHandling() const;
 
   
@@ -111,7 +127,8 @@ public:
   
 
 
-  virtual void HandleEvents(const nsRefPtr<AsyncPanZoomController>& aTarget) = 0;
+
+  virtual void HandleEvents() = 0;
 
   
 
@@ -142,7 +159,7 @@ public:
   bool IsReadyForHandling() const MOZ_OVERRIDE;
   bool HasEvents() const MOZ_OVERRIDE;
   void DropEvents() MOZ_OVERRIDE;
-  void HandleEvents(const nsRefPtr<AsyncPanZoomController>& aTarget) MOZ_OVERRIDE;
+  void HandleEvents() MOZ_OVERRIDE;
   bool MustStayActive() MOZ_OVERRIDE;
   const char* Type() MOZ_OVERRIDE;
 
@@ -199,8 +216,7 @@ public:
   
 
 
-
-  bool CopyAllowedTouchBehaviorsFrom(const TouchBlockState& aOther);
+  void CopyPropertiesFrom(const TouchBlockState& aOther);
 
   
 
@@ -255,16 +271,9 @@ public:
 
   bool HasEvents() const MOZ_OVERRIDE;
   void DropEvents() MOZ_OVERRIDE;
-  void HandleEvents(const nsRefPtr<AsyncPanZoomController>& aTarget) MOZ_OVERRIDE;
+  void HandleEvents() MOZ_OVERRIDE;
   bool MustStayActive() MOZ_OVERRIDE;
   const char* Type() MOZ_OVERRIDE;
-
-private:
-  
-
-
-
-  MultiTouchInput RemoveFirstEvent();
 
 private:
   nsTArray<TouchBehaviorFlags> mAllowedTouchBehaviors;

@@ -98,7 +98,7 @@ private:
 
   TouchBlockState* StartNewTouchBlock(const nsRefPtr<AsyncPanZoomController>& aTarget,
                                       bool aTargetConfirmed,
-                                      bool aCopyAllowedTouchBehaviorFromCurrent);
+                                      bool aCopyPropertiesFromCurrent);
 
   
 
@@ -129,9 +129,9 @@ private:
   
 
 
-  bool MaybeHandleCurrentBlock(const nsRefPtr<AsyncPanZoomController>& aTarget,
-                                      CancelableBlockState* block,
-                                      const InputData& aEvent);
+
+  bool MaybeHandleCurrentBlock(CancelableBlockState* block,
+                               const InputData& aEvent);
 
   void ScheduleMainThreadTimeout(const nsRefPtr<AsyncPanZoomController>& aTarget, uint64_t aInputBlockId);
   void MainThreadTimeout(const uint64_t& aInputBlockId);
