@@ -17,6 +17,7 @@ namespace a11y {
 
 class Accessible;
 class DocAccessible;
+class DocAccessibleParent;
 
 
 
@@ -63,6 +64,25 @@ public:
   {
     mDocAccessibleCache.Remove(aDocument);
     RemoveListeners(aDocument);
+  }
+
+  
+
+
+  void RemoteDocShutdown(DocAccessibleParent* aDoc)
+  {
+    DebugOnly<bool> result = mRemoteDocuments.RemoveElement(aDoc);
+    MOZ_ASSERT(result, "Why didn't we find the document!");
+  }
+
+  
+
+
+  void RemoteDocAdded(DocAccessibleParent* aDoc)
+  {
+    MOZ_ASSERT(!mRemoteDocuments.Contains(aDoc),
+               "How did we already have the doc!");
+    mRemoteDocuments.AppendElement(aDoc);
   }
 
 #ifdef DEBUG
@@ -144,6 +164,11 @@ private:
 #endif
 
   DocAccessibleHashtable mDocAccessibleCache;
+
+  
+
+
+  nsTArray<DocAccessibleParent*> mRemoteDocuments;
 };
 
 

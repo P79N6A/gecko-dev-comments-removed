@@ -241,6 +241,19 @@ GetAccService()
 
 
 
+inline bool
+IPCAccessibilityActive()
+{
+#ifdef MOZ_B2G
+  return false;
+#else
+  return XRE_GetProcessType() != GeckoProcessType_Default;
+#endif
+}
+
+
+
+
 
 static const char kEventTypeNames[][40] = {
   "unknown",                                 
