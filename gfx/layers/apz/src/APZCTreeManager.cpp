@@ -649,9 +649,6 @@ APZCTreeManager::ReceiveInputEvent(InputData& aEvent,
       break;
     }
   }
-  if (hitResult == HitOverscrolledApzc) {
-    result = nsEventStatus_eConsumeNoDefault;
-  }
   return result;
 }
 
@@ -772,9 +769,6 @@ APZCTreeManager::ProcessTouchInput(MultiTouchInput& aInput,
           outTransform, touchData.mScreenPoint);
     }
   }
-  if (mHitResultForInputBlock == HitOverscrolledApzc) {
-    result = nsEventStatus_eConsumeNoDefault;
-  }
 
   if (aInput.mType == MultiTouchInput::MULTITOUCH_END) {
     if (mTouchCount >= aInput.mTouches.Length()) {
@@ -833,9 +827,6 @@ APZCTreeManager::ProcessEvent(WidgetInputEvent& aEvent,
     Matrix4x4 transformToGecko = GetApzcToGeckoTransform(apzc);
     Matrix4x4 outTransform = transformToApzc * transformToGecko;
     aEvent.refPoint = TransformTo<LayoutDevicePixel>(outTransform, aEvent.refPoint);
-  }
-  if (hitResult == HitOverscrolledApzc) {
-    result = nsEventStatus_eConsumeNoDefault;
   }
   return result;
 }
@@ -1195,8 +1186,6 @@ APZCTreeManager::GetTargetAPZC(const ScreenPoint& aPoint, HitTestResult* aOutHit
     PixelCastJustification::ScreenIsParentLayerForRoot);
   nsRefPtr<AsyncPanZoomController> target = GetAPZCAtPoint(mRootNode, point, &hitResult);
 
-  
-  MOZ_ASSERT(!(target && (hitResult == HitOverscrolledApzc)));
   if (aOutHitResult) {
     *aOutHitResult = hitResult;
   }
@@ -1322,8 +1311,6 @@ APZCTreeManager::GetAPZCAtPoint(HitTestingTreeNode* aNode,
   
   
   for (HitTestingTreeNode* node = aNode; node; node = node->GetPrevSibling()) {
-    AsyncPanZoomController* apzc = node->GetApzc();
-
     if (node->IsOutsideClip(aHitTestPoint)) {
       
       
@@ -1342,10 +1329,6 @@ APZCTreeManager::GetAPZCAtPoint(HitTestingTreeNode* aNode,
       ParentLayerPoint childPoint = ViewAs<ParentLayerPixel>(hitTestPointForChildLayers.ref(),
         PixelCastJustification::MovingDownToChildren);
       result = GetAPZCAtPoint(node->GetLastChild(), childPoint, aOutHitResult);
-      if (*aOutHitResult == HitOverscrolledApzc) {
-        
-        return nullptr;
-      }
     }
 
     
@@ -1363,15 +1346,6 @@ APZCTreeManager::GetAPZCAtPoint(HitTestingTreeNode* aNode,
         
         *aOutHitResult = hitResult;
       }
-    }
-
-    
-    
-    
-    if (*aOutHitResult != HitNothing && apzc && apzc->IsOverscrolled()) {
-      APZCTM_LOG("Result is inside overscrolled APZC %p\n", apzc);
-      *aOutHitResult = HitOverscrolledApzc;
-      return nullptr;
     }
 
     if (*aOutHitResult != HitNothing) {

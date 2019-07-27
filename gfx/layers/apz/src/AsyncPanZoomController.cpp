@@ -1146,6 +1146,7 @@ nsEventStatus AsyncPanZoomController::OnTouchStart(const MultiTouchInput& aEvent
     case FLING:
     case ANIMATING_ZOOM:
     case SMOOTH_SCROLL:
+    case OVERSCROLL_ANIMATION:
       CurrentTouchBlock()->GetOverscrollHandoffChain()->CancelAnimations();
       
     case NOTHING: {
