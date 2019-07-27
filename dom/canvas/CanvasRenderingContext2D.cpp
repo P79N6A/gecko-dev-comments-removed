@@ -3204,7 +3204,7 @@ struct MOZ_STACK_CLASS CanvasBidiProcessor : public nsBidiPresUtils::BidiProcess
           PreTranslate(baselineOrigin).      
           PreRotate(gfx::Float(M_PI / 2.0)). 
           PreTranslate(-baselineOrigin).     
-          PreTranslate(Point(0, metrics.emAscent - metrics.emDescent) / 2));
+          PreTranslate(Point(0, (metrics.emAscent - metrics.emDescent) / 2)));
                               
                               
                               

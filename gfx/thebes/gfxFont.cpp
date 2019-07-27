@@ -1904,7 +1904,7 @@ gfxFont::Draw(gfxTextRun *aTextRun, uint32_t aStart, uint32_t aEnd,
             Translate(p).       
             Rotate(M_PI / 2.0). 
             Translate(-p).      
-            Translate(gfxPoint(0, metrics.emAscent - metrics.emDescent) / 2));
+            Translate(gfxPoint(0, (metrics.emAscent - metrics.emDescent) / 2)));
                                 
                                 
                                 
