@@ -1198,7 +1198,9 @@ nsTextEditRules::TruncateInsertionIfNeeded(Selection* aSelection,
   if (!aSelection || !aInString || !aOutString) {return NS_ERROR_NULL_POINTER;}
   
   nsresult res = NS_OK;
-  *aOutString = *aInString;
+  if (!aOutString->Assign(*aInString, mozilla::fallible_t())) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
   if (aTruncated) {
     *aTruncated = false;
   }
@@ -1233,6 +1235,8 @@ nsTextEditRules::TruncateInsertionIfNeeded(Selection* aSelection,
     const int32_t resultingDocLength = docLength - selectionLength - oldCompStrLength;
     if (resultingDocLength >= aMaxLength)
     {
+      
+      
       aOutString->Truncate();
       if (aTruncated) {
         *aTruncated = true;
@@ -1251,6 +1255,8 @@ nsTextEditRules::TruncateInsertionIfNeeded(Selection* aSelection,
             NS_IS_LOW_SURROGATE(removingFirstChar)) {
           newLength--;
         }
+        
+        
         
         
         aOutString->Truncate(newLength);
