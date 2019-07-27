@@ -204,6 +204,23 @@ BlockIsSingleTest(MBasicBlock* phiBlock, MBasicBlock* testBlock, MPhi** pphi, MT
 
 
 
+static void
+UpdateGotoSuccessor(TempAllocator& alloc, MBasicBlock* block, MBasicBlock* target,
+                     MBasicBlock* existingPred)
+{
+    MInstruction* ins = block->lastIns();
+    MOZ_ASSERT(ins->isGoto());
+    ins->toGoto()->target()->removePredecessor(block);
+    block->discardLastIns();
+
+    MGoto* newGoto = MGoto::New(alloc, target);
+    block->end(newGoto);
+
+    target->addPredecessorSameInputsAs(block, existingPred);
+}
+
+
+
 
 
 
@@ -348,9 +365,7 @@ MaybeFoldConditionBlock(MIRGraph& graph, MBasicBlock* initialBlock)
         phiBlock->removePredecessor(trueBranch);
         graph.removeBlock(trueBranch);
     } else if (initialTest->input() == trueResult) {
-        trueTarget = finalTest->ifTrue();
-        phiBlock->removePredecessor(trueBranch);
-        graph.removeBlock(trueBranch);
+        UpdateGotoSuccessor(graph.alloc(), trueBranch, finalTest->ifTrue(), testBlock);
     } else {
         UpdateTestSuccessors(graph.alloc(), trueBranch, trueResult,
                              finalTest->ifTrue(), finalTest->ifFalse(), testBlock);
@@ -364,9 +379,7 @@ MaybeFoldConditionBlock(MIRGraph& graph, MBasicBlock* initialBlock)
         phiBlock->removePredecessor(falseBranch);
         graph.removeBlock(falseBranch);
     } else if (initialTest->input() == falseResult) {
-        falseTarget = finalTest->ifFalse();
-        phiBlock->removePredecessor(falseBranch);
-        graph.removeBlock(falseBranch);
+        UpdateGotoSuccessor(graph.alloc(), falseBranch, finalTest->ifFalse(), testBlock);
     } else {
         UpdateTestSuccessors(graph.alloc(), falseBranch, falseResult,
                              finalTest->ifTrue(), finalTest->ifFalse(), testBlock);
