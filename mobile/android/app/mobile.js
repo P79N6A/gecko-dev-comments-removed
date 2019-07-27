@@ -862,3 +862,7 @@ pref("reader.toolbar.vertical", false);
 
 
 pref("browser.readinglist.enabled", true);
+
+
+pref("gfx.vsync.hw-vsync.enabled", true);
+pref("gfx.vsync.compositor", true);
