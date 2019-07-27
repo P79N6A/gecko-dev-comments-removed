@@ -49,6 +49,10 @@ class TextOverflow {
   
 
 
+  static bool HasClippedOverflow(nsIFrame* aBlockFrame);
+  
+
+
   static bool CanHaveTextOverflow(nsDisplayListBuilder* aBuilder,
                                   nsIFrame*             aBlockFrame);
 

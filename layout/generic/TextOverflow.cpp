@@ -293,6 +293,11 @@ TextOverflow::WillProcessLines(nsDisplayListBuilder*   aBuilder,
   if (!CanHaveTextOverflow(aBuilder, aBlockFrame)) {
     return nullptr;
   }
+  nsIScrollableFrame* scrollableFrame = nsLayoutUtils::GetScrollableFrameFor(aBlockFrame);
+  if (scrollableFrame && scrollableFrame->IsTransformingByAPZ()) {
+    
+    return nullptr;
+  }
   nsAutoPtr<TextOverflow> textOverflow(new TextOverflow);
   textOverflow->Init(aBuilder, aBlockFrame);
   return textOverflow.forget();
@@ -666,14 +671,20 @@ TextOverflow::PruneDisplayListContents(nsDisplayList*        aList,
 }
 
  bool
+TextOverflow::HasClippedOverflow(nsIFrame* aBlockFrame)
+{
+  const nsStyleTextReset* style = aBlockFrame->StyleTextReset();
+  return style->mTextOverflow.mLeft.mType == NS_STYLE_TEXT_OVERFLOW_CLIP &&
+         style->mTextOverflow.mRight.mType == NS_STYLE_TEXT_OVERFLOW_CLIP;
+}
+
+ bool
 TextOverflow::CanHaveTextOverflow(nsDisplayListBuilder* aBuilder,
                                   nsIFrame*             aBlockFrame)
 {
-  const nsStyleTextReset* style = aBlockFrame->StyleTextReset();
   
   
-  if ((style->mTextOverflow.mLeft.mType == NS_STYLE_TEXT_OVERFLOW_CLIP &&
-       style->mTextOverflow.mRight.mType == NS_STYLE_TEXT_OVERFLOW_CLIP) ||
+  if (HasClippedOverflow(aBlockFrame) ||
       IsHorizontalOverflowVisible(aBlockFrame) ||
       aBuilder->IsForEventDelivery() || aBuilder->IsForImageVisibility()) {
     return false;

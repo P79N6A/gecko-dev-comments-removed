@@ -20,6 +20,7 @@
 #include "nsBoxLayoutState.h"
 #include "nsQueryFrame.h"
 #include "nsExpirationTracker.h"
+#include "TextOverflow.h"
 
 class nsPresContext;
 class nsIPresShell;
@@ -326,6 +327,11 @@ public:
 
   void SetTransformingByAPZ(bool aTransforming) {
     mTransformingByAPZ = aTransforming;
+    if (!mozilla::css::TextOverflow::HasClippedOverflow(mOuter)) {
+      
+      
+      mOuter->SchedulePaint();
+    }
   }
   bool IsTransformingByAPZ() const {
     return mTransformingByAPZ;
