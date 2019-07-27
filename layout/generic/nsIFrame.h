@@ -1634,7 +1634,8 @@ public:
   
 
 
-  enum {
+  enum ComputeSizeFlags {
+    eDefault =           0,
     
 
 
@@ -1693,7 +1694,7 @@ public:
               const mozilla::LogicalSize& aMargin,
               const mozilla::LogicalSize& aBorder,
               const mozilla::LogicalSize& aPadding,
-              uint32_t aFlags) = 0;
+              ComputeSizeFlags aFlags) = 0;
 
   
 

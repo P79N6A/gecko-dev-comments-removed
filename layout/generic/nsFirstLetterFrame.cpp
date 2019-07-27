@@ -147,7 +147,7 @@ nsFirstLetterFrame::ComputeSize(nsRenderingContext *aRenderingContext,
                                 const LogicalSize& aMargin,
                                 const LogicalSize& aBorder,
                                 const LogicalSize& aPadding,
-                                uint32_t aFlags)
+                                ComputeSizeFlags aFlags)
 {
   if (GetPrevInFlow()) {
     
