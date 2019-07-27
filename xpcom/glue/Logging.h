@@ -16,5 +16,10 @@
 
 #define MOZ_LOG PR_LOG
 
+
+
+#define MOZ_LOG_TEST(_module, _level) \
+  ((_module) && (_module)->level >= (_level))
+
 #endif 
 
