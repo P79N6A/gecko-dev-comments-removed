@@ -244,6 +244,7 @@ protected:
 
 
 
+
   LineRange
   ResolveAbsPosLineRange(const nsStyleGridLine& aStart,
                          const nsStyleGridLine& aEnd,
@@ -251,7 +252,8 @@ protected:
                          uint32_t GridNamedArea::* aAreaStart,
                          uint32_t GridNamedArea::* aAreaEnd,
                          uint32_t aExplicitGridEnd,
-                         uint32_t aGridEnd,
+                         int32_t aGridStart,
+                         int32_t aGridEnd,
                          const nsStylePosition* aStyle);
 
   
