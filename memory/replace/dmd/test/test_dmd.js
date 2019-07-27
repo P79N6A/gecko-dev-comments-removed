@@ -174,6 +174,8 @@ function run_test() {
        ["--sort-by=req", "--no-fix-stacks", jsonFile.path]);
   test("script-sort-by-slop",
        ["--sort-by=slop", jsonFile.path]);
+  test("script-sort-by-num-blocks",
+       ["--sort-by=num-blocks", jsonFile.path]);
 
   
   
