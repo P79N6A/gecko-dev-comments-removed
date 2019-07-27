@@ -284,7 +284,7 @@ public:
     
 
 
-    TrackIter(const StreamBuffer& aBuffer) :
+    explicit TrackIter(const StreamBuffer& aBuffer) :
       mBuffer(&aBuffer.mTracks), mIndex(0), mMatchType(false) {}
     
 

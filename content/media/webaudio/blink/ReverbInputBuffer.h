@@ -37,7 +37,7 @@ namespace WebCore {
 
 class ReverbInputBuffer {
 public:
-    ReverbInputBuffer(size_t length);
+    explicit ReverbInputBuffer(size_t length);
 
     
     

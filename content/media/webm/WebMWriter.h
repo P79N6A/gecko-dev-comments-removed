@@ -46,7 +46,7 @@ class WebMWriter : public ContainerWriter
 public:
   
   
-  WebMWriter(uint32_t aTrackTypes);
+  explicit WebMWriter(uint32_t aTrackTypes);
   virtual ~WebMWriter();
 
   

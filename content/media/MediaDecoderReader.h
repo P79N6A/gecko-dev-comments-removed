@@ -31,7 +31,7 @@ class MediaDecoderReader {
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaDecoderReader)
 
-  MediaDecoderReader(AbstractMediaDecoder* aDecoder);
+  explicit MediaDecoderReader(AbstractMediaDecoder* aDecoder);
 
   
   

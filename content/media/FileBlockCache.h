@@ -93,7 +93,7 @@ public:
 
     
     
-    BlockChange(const uint8_t* aData)
+    explicit BlockChange(const uint8_t* aData)
       : mSourceBlockIndex(-1)
     {
       mData = new uint8_t[BLOCK_SIZE];
@@ -102,7 +102,7 @@ public:
 
     
     
-    BlockChange(int32_t aSourceBlockIndex)
+    explicit BlockChange(int32_t aSourceBlockIndex)
       : mSourceBlockIndex(aSourceBlockIndex) {}
 
     nsAutoArrayPtr<uint8_t> mData;

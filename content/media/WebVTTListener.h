@@ -36,7 +36,7 @@ class WebVTTListener MOZ_FINAL : public nsIWebVTTListener,
                                            nsIStreamListener)
 
 public:
-  WebVTTListener(HTMLTrackElement* aElement);
+  explicit WebVTTListener(HTMLTrackElement* aElement);
 
   
 

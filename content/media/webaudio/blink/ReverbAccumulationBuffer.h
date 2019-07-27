@@ -41,7 +41,7 @@ typedef nsTArray<float> AudioFloatArray;
 
 class ReverbAccumulationBuffer {
 public:
-    ReverbAccumulationBuffer(size_t length);
+    explicit ReverbAccumulationBuffer(size_t length);
 
     
     void readAndClear(float* destination, size_t numberOfFrames);

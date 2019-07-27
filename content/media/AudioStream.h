@@ -37,7 +37,7 @@ class FrameHistory;
 class AudioClock
 {
 public:
-  AudioClock(AudioStream* aStream);
+  explicit AudioClock(AudioStream* aStream);
   
   
   void Init();

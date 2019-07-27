@@ -22,7 +22,7 @@ namespace gmp {
 class GMPProcessParent MOZ_FINAL : public mozilla::ipc::GeckoChildProcessHost
 {
 public:
-  GMPProcessParent(const std::string& aGMPPath);
+  explicit GMPProcessParent(const std::string& aGMPPath);
   ~GMPProcessParent();
 
   

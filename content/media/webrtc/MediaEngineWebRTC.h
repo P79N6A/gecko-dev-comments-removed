@@ -390,7 +390,7 @@ private:
 class MediaEngineWebRTC : public MediaEngine
 {
 public:
-  MediaEngineWebRTC(MediaEnginePrefs &aPrefs);
+  explicit MediaEngineWebRTC(MediaEnginePrefs &aPrefs);
 
   
   

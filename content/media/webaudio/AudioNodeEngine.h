@@ -32,7 +32,7 @@ public:
   
 
 
-  ThreadSharedFloatArrayBufferList(uint32_t aCount)
+  explicit ThreadSharedFloatArrayBufferList(uint32_t aCount)
   {
     mContents.SetLength(aCount);
   }

@@ -51,7 +51,7 @@ protected:
 template <typename Time, typename T, uint32_t ReservedChanges>
 class TimeVarying : public TimeVaryingBase {
 public:
-  TimeVarying(const T& aInitial) : mCurrent(aInitial) {}
+  explicit TimeVarying(const T& aInitial) : mCurrent(aInitial) {}
   
 
 

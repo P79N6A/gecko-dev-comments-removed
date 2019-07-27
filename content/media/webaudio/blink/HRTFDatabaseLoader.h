@@ -112,7 +112,7 @@ private:
     
     class LoaderByRateEntry : public nsFloatHashKey {
     public:
-        LoaderByRateEntry(KeyTypePointer aKey)
+        explicit LoaderByRateEntry(KeyTypePointer aKey)
             : nsFloatHashKey(aKey)
             , mLoader() 
         {
