@@ -195,21 +195,6 @@ function newIncomingParcel(fakeParcelSize, response, request, data) {
 
 
 
-let ril_ns;
-function newRadioInterface() {
-  if (!ril_ns) {
-    ril_ns = {};
-    subscriptLoader.loadSubScript("resource://gre/components/RadioInterfaceLayer.js", ril_ns);
-  }
-
-  return {
-    __proto__: ril_ns.RadioInterface.prototype,
-  };
-}
-
-
-
-
 
 
 
