@@ -76,6 +76,12 @@ this.TelemetryUtils = {
     return null;
   },
 
+  generateUUID: function() {
+    let str = Cc["@mozilla.org/uuid-generator;1"].getService(Ci.nsIUUIDGenerator).generateUUID().toString();
+    
+    return str.substring(1, str.length - 1);
+  },
+
   
 
 

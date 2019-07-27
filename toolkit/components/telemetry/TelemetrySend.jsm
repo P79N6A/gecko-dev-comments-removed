@@ -65,6 +65,17 @@ const PING_SUBMIT_TIMEOUT_MS = 2 * 60 * 1000;
 
 
 
+const MAX_PING_FILE_AGE = 14 * 24 * 60 * 60 * 1000; 
+
+
+
+const OVERDUE_PING_FILE_AGE = 7 * 24 * 60 * 60 * 1000; 
+
+
+const MAX_LRU_PINGS = 50;
+
+
+
 
 
 
@@ -120,6 +131,27 @@ this.TelemetrySend = {
   
 
 
+  get MAX_PING_FILE_AGE() {
+    return MAX_PING_FILE_AGE;
+  },
+
+  
+
+
+  get OVERDUE_PING_FILE_AGE() {
+    return OVERDUE_PING_FILE_AGE;
+  },
+
+  
+
+
+  get MAX_LRU_PINGS() {
+    return MAX_LRU_PINGS;
+  },
+
+  
+
+
 
 
 
@@ -153,6 +185,27 @@ this.TelemetrySend = {
   
 
 
+  get discardedPingsCount() {
+    return TelemetrySendImpl.discardedPingsCount;
+  },
+
+  
+
+
+  get overduePingsCount() {
+    return TelemetrySendImpl.overduePingsCount;
+  },
+
+  
+
+
+  reset: function() {
+    return TelemetrySendImpl.reset();
+  },
+
+  
+
+
   setServer: function(server) {
     return TelemetrySendImpl.setServer(server);
   },
@@ -170,6 +223,13 @@ let TelemetrySendImpl = {
   
   _testMode: false,
 
+  
+  _discardedPingsCount: 0,
+  
+  _evictedPingsCount: 0,
+  
+  _overduePingCount: 0,
+
   OBSERVER_TOPICS: [
     TOPIC_IDLE_DAILY,
   ],
@@ -182,11 +242,22 @@ let TelemetrySendImpl = {
     return this._logger;
   },
 
+  get discardedPingsCount() {
+    return this._discardedPingsCount;
+  },
+
+  get overduePingsCount() {
+    return this._overduePingCount;
+  },
+
   setup: Task.async(function*(testing) {
     this._log.trace("setup");
 
     this._testMode = testing;
     this._sendingEnabled = true;
+
+    this._discardedPingsCount = 0;
+    this._evictedPingsCount = 0;
 
     Services.obs.addObserver(this, TOPIC_IDLE_DAILY, false);
 
@@ -197,22 +268,73 @@ let TelemetrySendImpl = {
     yield this._sendPersistedPings();
 
     
-    yield TelemetryStorage.loadSavedPings();
+    yield this._checkPendingPings();
+  }),
+
+  _checkPendingPings: Task.async(function*() {
+    
+    let infos = yield TelemetryStorage.loadPendingPingList();
+    this._log.info("_checkPendingPings - pending ping count: " + infos.length);
+    if (infos.length == 0) {
+      this._log.trace("_checkPendingPings - no pending pings");
+      return;
+    }
 
     
+    const now = new Date();
+    const tooOld = (info) => (now.getTime() - info.lastModificationDate) > MAX_PING_FILE_AGE;
+
+    const oldPings = infos.filter((info) => tooOld(info));
+    infos = infos.filter((info) => !tooOld(info));
+    this._log.info("_checkPendingPings - clearing out " + oldPings.length + " old pings");
+
+    for (let info of oldPings) {
+      try {
+        yield TelemetryStorage.removePendingPing(info.id);
+        ++this._discardedPingsCount;
+      } catch(ex) {
+        this._log.error("_checkPendingPings - failed to remove old ping", ex);
+      }
+    }
+
     
-    if (TelemetryStorage.pingsOverdue > 0) {
-      this._log.trace("setup - Sending " + TelemetryStorage.pingsOverdue +
-                      " overdue pings now.");
+    const shouldEvict = infos.splice(MAX_LRU_PINGS, infos.length);
+    let evictedCount = 0;
+    this._log.info("_checkPendingPings - evicting " + shouldEvict.length + " pings to " +
+                   "avoid overgrowing the backlog");
+
+    for (let info of shouldEvict) {
+      try {
+        yield TelemetryStorage.removePendingPing(info.id);
+        ++this._evictedPingsCount;
+      } catch(ex) {
+        this._log.error("_checkPendingPings - failed to evict ping", ex);
+      }
+    }
+
+    Services.telemetry.getHistogramById('TELEMETRY_FILES_EVICTED')
+                      .add(evictedCount);
+
+    
+    const overduePings = infos.filter((info) =>
+      (now.getTime() - info.lastModificationDate) > OVERDUE_PING_FILE_AGE);
+    this._overduePingCount = overduePings.length;
+
+
+    if (overduePings.length > 0) {
+      this._log.trace("_checkForOverduePings - Have " + overduePings.length +
+                       " overdue pending pings, sending " + infos.length +
+                       " pings now.");
       yield this._sendPersistedPings();
     }
-  }),
+   }),
 
   shutdown: Task.async(function*() {
     for (let topic of this.OBSERVER_TOPICS) {
       Services.obs.removeObserver(this, topic);
     }
 
+    
     this._sendingEnabled = false;
 
     
@@ -222,6 +344,23 @@ let TelemetrySendImpl = {
     
     yield this._connectionsBarrier.wait();
   }),
+
+  reset: function() {
+    this._log.trace("reset");
+
+    this._overduePingCount = 0;
+    this._discardedPingsCount = 0;
+    this._evictedPingsCount = 0;
+
+    const histograms = [
+      "TELEMETRY_SUCCESS",
+      "TELEMETRY_FILES_EVICTED",
+      "TELEMETRY_SEND",
+      "TELEMETRY_PING",
+    ];
+
+    histograms.forEach(h => Telemetry.getHistogramById(h).clear());
+  },
 
   observe: function(subject, topic, data) {
     switch(topic) {
@@ -252,16 +391,16 @@ let TelemetrySendImpl = {
       
       this._log.trace("submitPing - ping is pending, sendingEnabled: " + this._sendingEnabled +
                       ", throttled: " + throttled);
-      return TelemetryStorage.addPendingPing(ping);
+      return TelemetryStorage.savePendingPing(ping);
     }
 
     
     this._log.trace("submitPing - already initialized, ping will be sent");
     let ps = [];
-    ps.push(this._doPing(ping, false)
+    ps.push(this._doPing(ping, ping.id, false)
                 .catch((ex) => {
                   this._log.info("submitPing - ping not sent, saving to disk", ex);
-                  TelemetryStorage.savePing(ping, true);
+                  TelemetryStorage.savePendingPing(ping);
                 }));
     ps.push(this._sendPersistedPings());
 
@@ -333,8 +472,14 @@ let TelemetrySendImpl = {
 
 
 
-  _sendPersistedPings: function() {
+  _sendPersistedPings: Task.async(function*() {
     this._log.trace("_sendPersistedPings - Can send: " + this._canSend());
+
+    if (TelemetryStorage.pendingPingCount < 1) {
+      this._log.trace("_sendPersistedPings - no pings to send");
+      return Promise.resolve();
+    }
+
     if (!this._canSend()) {
       this._log.trace("_sendPersistedPings - Telemetry is not allowed to send pings.");
       return Promise.resolve();
@@ -350,17 +495,23 @@ let TelemetrySendImpl = {
     }
 
     
-    let pingsIterator = Iterator(this._popPayloads());
-    let p = [for (data of pingsIterator) this._doPing(data, true).catch((e) => {
-      this._log.error("_sendPersistedPings - doPing rejected", e);
-    })];
+    const pendingPings = TelemetryStorage.getPendingPingList();
+    this._log.trace("_sendPersistedPings - sending " + pendingPings.length + " pings");
+    let pingSendPromises = [];
+    for (let ping of pendingPings) {
+      let p = ping;
+      pingSendPromises.push(
+        TelemetryStorage.loadPendingPing(p.id)
+          .then((data) => this._doPing(data, p.id, true)
+          .catch(e => this._log.error("_sendPersistedPings - _doPing rejected", e))));
+    }
 
-    let promise = Promise.all(p);
+    let promise = Promise.all(pingSendPromises);
     this._trackPendingPingTask(promise);
-    return promise;
-  },
+    yield promise;
+  }),
 
-  _onPingRequestFinished: function(success, startTime, ping, isPersisted) {
+  _onPingRequestFinished: function(success, startTime, id, isPersisted) {
     this._log.trace("_onPingRequestFinished - success: " + success + ", persisted: " + isPersisted);
 
     Telemetry.getHistogramById("TELEMETRY_SEND").add(new Date() - startTime);
@@ -371,7 +522,7 @@ let TelemetrySendImpl = {
     hping.add(new Date() - startTime);
 
     if (success && isPersisted) {
-      return TelemetryStorage.cleanupPingFile(ping);
+      return TelemetryStorage.removePendingPing(id);
     } else {
       return Promise.resolve();
     }
@@ -391,7 +542,7 @@ let TelemetrySendImpl = {
       
       if (!("slug" in ping)) {
         
-        ping.slug = generateUUID();
+        ping.slug = Utils.generateUUID();
       }
 
       
@@ -410,14 +561,15 @@ let TelemetrySendImpl = {
     return "/submit/telemetry/" + slug;
   },
 
-  _doPing: function(ping, isPersisted) {
+  _doPing: function(ping, id, isPersisted) {
     if (!this._canSend()) {
       
       this._log.trace("_doPing - Sending is disabled.");
       return Promise.resolve();
     }
 
-    this._log.trace("_doPing - Server " + this._server + ", Persisted " + isPersisted);
+    this._log.trace("_doPing - server: " + this._server + ", persisted: " + isPersisted +
+                    ", id: " + id);
     const isNewPing = isV4PingFormat(ping);
     const version = isNewPing ? PING_FORMAT_VERSION : 1;
     const url = this._server + this._getSubmissionPath(ping) + "?v=" + version;
@@ -446,7 +598,7 @@ let TelemetrySendImpl = {
       };
 
       this._pendingPingRequests.delete(url);
-      this._onPingRequestFinished(success, startTime, ping, isPersisted)
+      this._onPingRequestFinished(success, startTime, id, isPersisted)
         .then(() => onCompletion(),
               (error) => {
                 this._log.error("_doPing - request success: " + success + ", error" + error);
@@ -546,19 +698,6 @@ let TelemetrySendImpl = {
       Policy.clearPingSendTimeout(this._pingSendTimer);
       this._pingSendTimer = null;
     }
-  },
-
-  _popPayloads: function popPayloads() {
-    this._log.trace("_popPayloads");
-    function payloadIter() {
-      let iterator = TelemetryStorage.popPendingPings();
-      for (let data of iterator) {
-        yield data;
-      }
-    }
-
-    let payloadIterWithThis = payloadIter.bind(this);
-    return { __iterator__: payloadIterWithThis };
   },
 
   

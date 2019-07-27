@@ -33,6 +33,7 @@ const Utils = TelemetryUtils;
 const DATAREPORTING_DIR = "datareporting";
 const PINGS_ARCHIVE_DIR = "archived";
 const ABORTED_SESSION_FILE_NAME = "aborted-session-ping";
+
 XPCOMUtils.defineLazyGetter(this, "gDataReportingDir", function() {
   return OS.Path.join(OS.Constants.Path.profileDir, DATAREPORTING_DIR);
 });
@@ -44,17 +45,6 @@ XPCOMUtils.defineLazyGetter(this, "gAbortedSessionFilePath", function() {
 });
 
 
-
-const MAX_PING_FILE_AGE = 14 * 24 * 60 * 60 * 1000; 
-
-
-
-const OVERDUE_PING_FILE_AGE = 7 * 24 * 60 * 60 * 1000; 
-
-
-const MAX_LRU_PINGS = 50;
-
-
 const MAX_ARCHIVED_PINGS_RETENTION_MS = 180 * 24 * 60 * 60 * 1000;  
 
 
@@ -63,20 +53,7 @@ const ARCHIVE_QUOTA_BYTES = 120 * 1024 * 1024;
 
 const ARCHIVE_SIZE_PROBE_SPECIAL_VALUE = 300;
 
-
-
-let pingsLoaded = 0;
-
-
-
-let pingsDiscarded = 0;
-
-
-
-let pingsOverdue = 0;
-
-
-let pendingPings = [];
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 let isPingDirectoryCreated = false;
 
@@ -112,18 +89,6 @@ function waitForAll(it) {
 }
 
 this.TelemetryStorage = {
-  get MAX_PING_FILE_AGE() {
-    return MAX_PING_FILE_AGE;
-  },
-
-  get OVERDUE_PING_FILE_AGE() {
-    return OVERDUE_PING_FILE_AGE;
-  },
-
-  get MAX_LRU_PINGS() {
-    return MAX_LRU_PINGS;
-  },
-
   get pingDirectoryPath() {
     return OS.Path.join(OS.Constants.Path.profileDir, "saved-telemetry-pings");
   },
@@ -163,6 +128,17 @@ this.TelemetryStorage = {
 
 
 
+
+  loadArchivedPingList: function() {
+    return TelemetryStorageImpl.loadArchivedPingList();
+  },
+
+  
+
+
+
+
+
   runCleanPingArchiveTask: function() {
     return TelemetryStorageImpl.runCleanPingArchiveTask();
   },
@@ -187,10 +163,57 @@ this.TelemetryStorage = {
 
 
 
-
-  loadArchivedPingList: function() {
-    return TelemetryStorageImpl.loadArchivedPingList();
+  savePendingPing: function(ping) {
+    return TelemetryStorageImpl.savePendingPing(ping);
   },
+
+  
+
+
+
+
+
+  loadPendingPing: function(id) {
+    return TelemetryStorageImpl.loadPendingPing(id);
+  },
+
+  
+
+
+
+
+
+  removePendingPing: function(id) {
+    return TelemetryStorageImpl.removePendingPing(id);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  loadPendingPingList: function() {
+    return TelemetryStorageImpl.loadPendingPingList();
+   },
+
+  
+
+
+
+
+
+
+
+
+
+  getPendingPingList: function() {
+    return TelemetryStorageImpl.getPendingPingList();
+   },
 
   
 
@@ -288,21 +311,6 @@ this.TelemetryStorage = {
 
 
 
-
-
-  loadSavedPings: function() {
-    return TelemetryStorageImpl.loadSavedPings();
-  },
-
-  
-
-
-
-
-
-
-
-
   loadHistograms: function loadHistograms(file) {
     return TelemetryStorageImpl.loadHistograms(file);
   },
@@ -310,36 +318,8 @@ this.TelemetryStorage = {
   
 
 
-  get pingsLoaded() {
-    return TelemetryStorageImpl.pingsLoaded;
-  },
-
-  
-
-
-
-  get pingsOverdue() {
-    return TelemetryStorageImpl.pingsOverdue;
-  },
-
-  
-
-
-
-  get pingsDiscarded() {
-    return TelemetryStorageImpl.pingsDiscarded;
-  },
-
-  
-
-
-
-
-  popPendingPings: function*() {
-    while (pendingPings.length > 0) {
-      let data = pendingPings.pop();
-      yield data;
-    }
+  get pendingPingCount() {
+    return TelemetryStorageImpl.pendingPingCount;
   },
 
   testLoadHistograms: function(file) {
@@ -490,6 +470,10 @@ let TelemetryStorageImpl = {
   _scannedArchiveDirectory: false,
 
   
+  
+  _pendingPings: new Map(),
+
+  
   _shutdown: false,
 
   get _log() {
@@ -508,7 +492,6 @@ let TelemetryStorageImpl = {
   shutdown: Task.async(function*() {
     this._shutdown = true;
     yield this._abortedSessionSerializer.flushTasks();
-    yield this.savePendingPings();
     
     
     yield this._cleanArchiveTask;
@@ -819,6 +802,8 @@ let TelemetryStorageImpl = {
     this._shutdown = false;
     this._scannedArchiveDirectory = false;
     this._archivedPings = new Map();
+    this._scannedPendingDirectory = false;
+    this._pendingPings = new Map();
   },
 
   
@@ -946,25 +931,12 @@ let TelemetryStorageImpl = {
 
 
 
-  savePing: function(ping, overwrite) {
-    return Task.spawn(function*() {
-      yield getPingDirectory();
-      let file = pingFilePath(ping);
-      yield this.savePingToFile(ping, file, overwrite);
-    }.bind(this));
-  },
-
-  
-
-
-
-
-  savePendingPings: function() {
-    let p = [for (ping of pendingPings) this.savePing(ping, false).catch(ex => {
-      this._log.error("savePendingPings - failed to save pending pings.");
-    })];
-    return Promise.all(p);
-  },
+  savePing: Task.async(function*(ping, overwrite) {
+    yield getPingDirectory();
+    let file = pingFilePath(ping);
+    yield this.savePingToFile(ping, file, overwrite);
+    return file;
+  }),
 
   
 
@@ -995,10 +967,7 @@ let TelemetryStorageImpl = {
 
 
   addPendingPing: function(ping) {
-    
-    pendingPings.push(ping);
-    
-    return this.savePing(ping, false);
+    return this.savePendingPing(ping);
   },
 
   
@@ -1011,114 +980,141 @@ let TelemetryStorageImpl = {
     return OS.File.remove(pingFilePath(ping));
   },
 
-  
-
-
-
-
-
-
-
-  loadSavedPings: function() {
-    return Task.spawn(function*() {
-      let directory = TelemetryStorage.pingDirectoryPath;
-      let iter = new OS.File.DirectoryIterator(directory);
-      let exists = yield iter.exists();
-
-      if (exists) {
-        let entries = yield iter.nextBatch();
-        let sortedEntries = [];
-
-        for (let entry of entries) {
-          if (entry.isDir) {
-            continue;
-          }
-
-          let info = yield OS.File.stat(entry.path);
-          sortedEntries.push({entry:entry, lastModificationDate: info.lastModificationDate});
-        }
-
-        sortedEntries.sort(function compare(a, b) {
-          return b.lastModificationDate - a.lastModificationDate;
-        });
-
-        let count = 0;
-        let result = [];
-
-        
-        for (let i = 0; i < MAX_LRU_PINGS && i < sortedEntries.length; i++) {
-          let entry = sortedEntries[i].entry;
-          result.push(this.loadHistograms(entry.path))
-        }
-
-        for (let i = MAX_LRU_PINGS; i < sortedEntries.length; i++) {
-          let entry = sortedEntries[i].entry;
-          OS.File.remove(entry.path);
-        }
-
-        yield Promise.all(result);
-
-        Services.telemetry.getHistogramById('TELEMETRY_FILES_EVICTED').
-          add(sortedEntries.length - MAX_LRU_PINGS);
-      }
-
-      yield iter.close();
-    }.bind(this));
-  },
-
-  
-
-
-
-
-
-
-
-
-  loadHistograms: function loadHistograms(file) {
-    return OS.File.stat(file).then(function(info){
-      let now = Date.now();
-      if (now - info.lastModificationDate > MAX_PING_FILE_AGE) {
-        
-        pingsDiscarded++;
-        return OS.File.remove(file);
-      }
-
-      
-      if (now - info.lastModificationDate > OVERDUE_PING_FILE_AGE) {
-        pingsOverdue++;
-      }
-
-      pingsLoaded++;
-      return addToPendingPings(file);
+  savePendingPing: function(ping) {
+    return this.savePing(ping, true).then((path) => {
+      this._pendingPings.set(ping.id, {
+        path: path,
+        lastModificationDate: Policy.now().getTime(),
+      });
     });
   },
 
-  
+  loadPendingPing: function(id) {
+    this._log.trace("loadPendingPing - id: " + id);
+    let info = this._pendingPings.get(id);
+    if (!info) {
+      return;
+    }
 
+    return this.loadPingFile(info.path, false);
+  },
 
-  get pingsLoaded() {
-    return pingsLoaded;
+  removePendingPing: function(id) {
+    let info = this._pendingPings.get(id);
+    if (!info) {
+      this._log.trace("removePendingPing - unknown id " + id);
+      return Promise.resolve();
+    }
+
+    this._log.trace("removePendingPing - deleting ping with id: " + id +
+                    ", path: " + info.path);
+    this._pendingPings.delete(id);
+    return OS.File.remove(info.path).catch((ex) =>
+      this._log.error("removePendingPing - failed to remove ping", ex));
+  },
+
+  loadPendingPingList: function() {
+    
+    if (this._scanPendingPingsTask) {
+      return this._scanPendingPingsTask;
+    }
+
+    if (this._scannedPendingDirectory) {
+      this._log.trace("loadPendingPingList - Pending already scanned, hitting cache.");
+      return Promise.resolve(this._buildPingList());
+    }
+
+    
+    let clear = pings => {
+      this._scanPendingPingsTask = null;
+      return pings;
+    };
+
+    
+    this._scanPendingPingsTask = this._scanPendingPings().then(clear, clear);
+    return this._scanPendingPingsTask;
+  },
+
+  getPendingPingList: function() {
+    return this._buildPingList();
+  },
+
+  _scanPendingPings: Task.async(function*() {
+    this._log.trace("_scanPendingPings");
+
+    let directory = TelemetryStorage.pingDirectoryPath;
+    let iter = new OS.File.DirectoryIterator(directory);
+    let exists = yield iter.exists();
+
+    if (!exists) {
+      yield iter.close();
+      return [];
+    }
+
+    let files = (yield iter.nextBatch()).filter(e => !e.isDir);
+
+    for (let file of files) {
+      if (this._shutdown) {
+        yield iter.close();
+        return [];
+      }
+
+      let info = yield OS.File.stat(file.path);
+      let id = OS.Path.basename(file.path);
+      if (!UUID_REGEX.test(id)) {
+        this._log.trace("_scanPendingPings - unknown filename is not a UUID: " + id);
+        id = Utils.generateUUID();
+      }
+
+      this._pendingPings.set(id, {
+        path: file.path,
+        lastModificationDate: info.lastModificationDate,
+      });
+    }
+
+    yield iter.close();
+    this._scannedPendingDirectory = true;
+    return this._buildPingList();
+  }),
+
+  _buildPingList: function() {
+    const list = [for (p of this._pendingPings) {
+      id: p[0],
+      lastModificationDate: p[1].lastModificationDate,
+    }];
+
+    list.sort((a, b) => b.lastModificationDate - a.lastModificationDate);
+    return list;
   },
 
   
 
 
 
-  get pingsOverdue() {
-    return pingsOverdue;
-  },
-
-  
 
 
 
-  get pingsDiscarded() {
-    return pingsDiscarded;
+
+
+  loadHistograms: Task.async(function*(file) {
+    let success = true;
+    try {
+      const ping = yield this.loadPingfile(file);
+      return ping;
+    } catch (ex) {
+      success = false;
+      yield OS.File.remove(file);
+    } finally {
+      const success_histogram = Telemetry.getHistogramById("READ_SAVED_PING_SUCCESS");
+      success_histogram.add(success);
+    }
+  }),
+
+  get pendingPingCount() {
+    return this._pendingPings.size;
   },
 
   testLoadHistograms: function(file) {
-    pingsLoaded = 0;
     return this.loadHistograms(file.path);
   },
 
@@ -1180,8 +1176,7 @@ let TelemetryStorageImpl = {
     }
 
     
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(uuid)) {
+    if (!UUID_REGEX.test(uuid)) {
       this._log.trace("_getArchivedPingDataFromFileName - should have a valid id");
       return null;
     }
@@ -1253,22 +1248,6 @@ function getPingDirectory() {
 
     return directory;
   });
-}
-
-function addToPendingPings(file) {
-  function onLoad(success) {
-    let success_histogram = Telemetry.getHistogramById("READ_SAVED_PING_SUCCESS");
-    success_histogram.add(success);
-  }
-
-  return TelemetryStorage.loadPingFile(file).then(ping => {
-      pendingPings.push(ping);
-      onLoad(true);
-    },
-    () => {
-      onLoad(false);
-      return OS.File.remove(file);
-    });
 }
 
 
