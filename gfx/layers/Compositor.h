@@ -177,8 +177,6 @@ enum SurfaceInitMode
 
 
 
-
-
 class Compositor
 {
 protected:
@@ -354,11 +352,6 @@ public:
 
 
   virtual void EndFrameForExternalComposition(const gfx::Matrix& aTransform) = 0;
-
-  
-
-
-  virtual void AbortFrame() = 0;
 
   
 

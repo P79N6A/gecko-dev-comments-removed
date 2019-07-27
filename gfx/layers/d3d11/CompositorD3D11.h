@@ -127,11 +127,6 @@ public:
   
 
 
-  virtual void AbortFrame() MOZ_OVERRIDE {}
-
-  
-
-
 
   virtual void PrepareViewport(const gfx::IntSize& aSize) MOZ_OVERRIDE;
 
