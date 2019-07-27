@@ -23,7 +23,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 
 
 
-const HANG_EXPIRATION_TIME = 5000;
+const HANG_EXPIRATION_TIME = 10000;
 
 let ProcessHangMonitor = {
   
