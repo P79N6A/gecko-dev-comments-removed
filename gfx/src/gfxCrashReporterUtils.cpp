@@ -14,6 +14,7 @@
 #include <string.h>                     
 #include "mozilla/Assertions.h"         
 #include "mozilla/Services.h"           
+#include "mozilla/StaticMutex.h"
 #include "mozilla/mozalloc.h"           
 #include "nsAutoPtr.h"                  
 #include "nsCOMPtr.h"                   
@@ -33,6 +34,7 @@
 namespace mozilla {
 
 static nsTArray<nsCString> *gFeaturesAlreadyReported = nullptr;
+static StaticMutex gFeaturesAlreadyReportedMutex;
 
 class ObserverToDestroyFeaturesAlreadyReported final : public nsIObserver
 {
@@ -55,6 +57,7 @@ ObserverToDestroyFeaturesAlreadyReported::Observe(nsISupports* aSubject,
                                                   const char16_t* aData)
 {
   if (!strcmp(aTopic, "xpcom-shutdown")) {
+    StaticMutexAutoLock al(gFeaturesAlreadyReportedMutex);
     if (gFeaturesAlreadyReported) {
       delete gFeaturesAlreadyReported;
       gFeaturesAlreadyReported = nullptr;
@@ -63,51 +66,48 @@ ObserverToDestroyFeaturesAlreadyReported::Observe(nsISupports* aSubject,
   return NS_OK;
 }
 
-class ScopedGfxFeatureReporter::AppNoteWritingRunnable : public nsRunnable {
+class RegisterObserverRunnable : public nsRunnable {
 public:
-  AppNoteWritingRunnable(char aStatusChar, const char *aFeature) :
-    mStatusChar(aStatusChar), mFeature(aFeature) {}
-  NS_IMETHOD Run() { 
+  NS_IMETHOD Run() {
     
     
     
     
     
     
-    if (!gFeaturesAlreadyReported) {
-      nsCOMPtr<nsIObserverService> observerService = mozilla::services::GetObserverService();
-      if (!observerService)
-        return NS_OK;
-      nsRefPtr<ObserverToDestroyFeaturesAlreadyReported> observer = new ObserverToDestroyFeaturesAlreadyReported;
-      nsresult rv = observerService->AddObserver(observer, "xpcom-shutdown", false);
-      if (NS_FAILED(rv)) {
-        observer = nullptr;
-        return NS_OK;
-      }
-      gFeaturesAlreadyReported = new nsTArray<nsCString>;
-    }
-
-    nsAutoCString featureString;
-    featureString.AppendPrintf("%s%c ",
-                               mFeature,
-                               mStatusChar);
-
-    if (!gFeaturesAlreadyReported->Contains(featureString)) {
-      gFeaturesAlreadyReported->AppendElement(featureString);
-      CrashReporter::AppendAppNotesToCrashReport(featureString);
+    nsCOMPtr<nsIObserverService> observerService = mozilla::services::GetObserverService();
+    if (!observerService)
+      return NS_OK;
+    nsRefPtr<ObserverToDestroyFeaturesAlreadyReported> observer = new ObserverToDestroyFeaturesAlreadyReported;
+    nsresult rv = observerService->AddObserver(observer, "xpcom-shutdown", false);
+    if (NS_FAILED(rv)) {
+      observer = nullptr;
+      return NS_OK;
     }
     return NS_OK;
   }
-private:
-  char mStatusChar;
-  const char *mFeature;
 };
 
 void
 ScopedGfxFeatureReporter::WriteAppNote(char statusChar)
 {
-  nsCOMPtr<nsIRunnable> r = new AppNoteWritingRunnable(statusChar, mFeature);
-  NS_DispatchToMainThread(r);
+  StaticMutexAutoLock al(gFeaturesAlreadyReportedMutex);
+
+  if (!gFeaturesAlreadyReported) {
+    gFeaturesAlreadyReported = new nsTArray<nsCString>;
+    nsCOMPtr<nsIRunnable> r = new RegisterObserverRunnable();
+    NS_DispatchToMainThread(r);
+  }
+
+  nsAutoCString featureString;
+  featureString.AppendPrintf("%s%c ",
+                             mFeature,
+                             mStatusChar);
+
+  if (!gFeaturesAlreadyReported->Contains(featureString)) {
+    gFeaturesAlreadyReported->AppendElement(featureString);
+    CrashReporter::AppendAppNotesToCrashReport(featureString);
+  }
 }
 
 } 
