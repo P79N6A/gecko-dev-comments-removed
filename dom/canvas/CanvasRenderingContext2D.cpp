@@ -9,6 +9,7 @@
 
 #include "nsIServiceManager.h"
 #include "nsMathUtils.h"
+#include "SVGImageContext.h"
 
 #include "nsContentUtils.h"
 
@@ -3484,11 +3485,13 @@ CanvasRenderingContext2D::DrawDirectlyToCanvas(
   
   uint32_t modifiedFlags = image.mDrawingFlags | imgIContainer::FLAG_CLAMP;
 
+  SVGImageContext svgContext(scaledImageSize, Nothing(), CurrentState().globalAlpha);
+
   nsresult rv = image.mImgContainer->
     Draw(context, scaledImageSize,
          ImageRegion::Create(gfxRect(src.x, src.y, src.width, src.height)),
          image.mWhichFrame, GraphicsFilter::FILTER_GOOD,
-         Nothing(), modifiedFlags);
+         Some(svgContext), modifiedFlags);
 
   NS_ENSURE_SUCCESS_VOID(rv);
 }
