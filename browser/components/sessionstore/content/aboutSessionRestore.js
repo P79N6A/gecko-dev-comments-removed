@@ -124,7 +124,7 @@ function restoreSession() {
         if (gTreeData[t].checked === 0)
           
           gStateObject.windows[ix].tabs =
-            gStateObject.windows[ix].tabs.filter(function(aTabData, aIx)
+            gStateObject.windows[ix].tabs.filter((aTabData, aIx) =>
                                                    gTreeData[t].tabs[aIx].checked);
         else if (!gTreeData[t].checked)
           
@@ -218,11 +218,13 @@ function getBrowserWindow() {
 }
 
 function toggleRowChecked(aIx) {
+  function isChecked(aItem) {
+    return aItem.checked;
+  }
+
   var item = gTreeData[aIx];
   item.checked = !item.checked;
   treeView.treeBox.invalidateRow(aIx);
-
-  function isChecked(aItem) aItem.checked;
 
   if (treeView.isContainer(aIx)) {
     
