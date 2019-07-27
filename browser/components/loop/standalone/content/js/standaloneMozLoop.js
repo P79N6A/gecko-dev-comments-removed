@@ -118,7 +118,9 @@ loop.StandaloneMozLoop = (function(mozL10n) {
 
 
 
-    _postToRoom: function(roomToken, sessionToken, roomData, expectedProps, callback) {
+
+    _postToRoom: function(roomToken, sessionToken, roomData, expectedProps,
+                          async, callback) {
       var req = $.ajax({
         url:         this._baseServerUrl + "/rooms/" + roomToken,
         method:      "POST",
@@ -129,19 +131,19 @@ loop.StandaloneMozLoop = (function(mozL10n) {
           if (sessionToken) {
             xhr.setRequestHeader("Authorization", "Basic " + btoa(sessionToken));
           }
-        }
+        },
+        async: async,
+        success: function(responseData) {
+          console.log("done");
+          try {
+            callback(null, validate(responseData, expectedProps));
+          } catch (err) {
+            console.error("Error requesting call info", err.message);
+            callback(err);
+          }
+        }.bind(this),
+        error: failureHandler.bind(this, callback)
       });
-
-      req.done(function(responseData) {
-        try {
-          callback(null, validate(responseData, expectedProps));
-        } catch (err) {
-          console.error("Error requesting call info", err.message);
-          callback(err);
-        }
-      }.bind(this));
-
-      req.fail(failureHandler.bind(this, callback));
     },
 
     
@@ -172,7 +174,7 @@ loop.StandaloneMozLoop = (function(mozL10n) {
         sessionId: String,
         sessionToken: String,
         expires: Number
-      }, callbackWrapper.bind(this));
+      }, true, callbackWrapper.bind(this));
     },
 
     
@@ -191,7 +193,7 @@ loop.StandaloneMozLoop = (function(mozL10n) {
         sessionToken: sessionToken
       }, {
         expires: Number
-      }, callback);
+      }, true, callback);
     },
 
     
@@ -214,10 +216,11 @@ loop.StandaloneMozLoop = (function(mozL10n) {
         };
       }
 
+      
       this._postToRoom(roomToken, sessionToken, {
         action: "leave",
         sessionToken: sessionToken
-      }, null, callback);
+      }, null, false, callback);
     },
 
     
