@@ -87,6 +87,9 @@
 #include "nsSHistory.h"
 #include "nsDocShellEditorData.h"
 #include "GeckoProfiler.h"
+#ifdef MOZ_ENABLE_PROFILER_SPS
+#include "ProfilerMarkers.h"
+#endif
 
 
 #include "nsError.h"
@@ -2856,6 +2859,7 @@ unsigned long nsDocShell::gProfileTimelineRecordingsCount = 0;
 NS_IMETHODIMP
 nsDocShell::SetRecordProfileTimelineMarkers(bool aValue)
 {
+#ifdef MOZ_ENABLE_PROFILER_SPS
   bool currentValue = nsIDocShell::GetRecordProfileTimelineMarkers();
   if (currentValue != aValue) {
     if (aValue) {
@@ -2871,6 +2875,9 @@ nsDocShell::SetRecordProfileTimelineMarkers(bool aValue)
   }
 
   return NS_OK;
+#else
+  return NS_ERROR_FAILURE;
+#endif
 }
 
 NS_IMETHODIMP
@@ -2884,6 +2891,7 @@ nsresult
 nsDocShell::PopProfileTimelineMarkers(JSContext* aCx,
                           JS::MutableHandle<JS::Value> aProfileTimelineMarkers)
 {
+#ifdef MOZ_ENABLE_PROFILER_SPS
   
   
   
@@ -2985,6 +2993,9 @@ nsDocShell::PopProfileTimelineMarkers(JSContext* aCx,
   }
 
   return NS_OK;
+#else
+  return NS_ERROR_FAILURE;
+#endif
 }
 
 nsresult
@@ -2999,27 +3010,33 @@ void
 nsDocShell::AddProfileTimelineMarker(const char* aName,
                                      TracingMetadata aMetaData)
 {
+#ifdef MOZ_ENABLE_PROFILER_SPS
   if (mProfileTimelineRecording) {
     TimelineMarker* marker = new TimelineMarker(this, aName, aMetaData);
     mProfileTimelineMarkers.AppendElement(marker);
   }
+#endif
 }
 
 void
 nsDocShell::AddProfileTimelineMarker(UniquePtr<TimelineMarker>& aMarker)
 {
+#ifdef MOZ_ENABLE_PROFILER_SPS
   if (mProfileTimelineRecording) {
     mProfileTimelineMarkers.AppendElement(aMarker.release());
   }
+#endif
 }
 
 void
 nsDocShell::ClearProfileTimelineMarkers()
 {
+#ifdef MOZ_ENABLE_PROFILER_SPS
   for (uint32_t i = 0; i < mProfileTimelineMarkers.Length(); ++i) {
     delete mProfileTimelineMarkers[i];
   }
   mProfileTimelineMarkers.Clear();
+#endif
 }
 
 nsIDOMStorageManager*
@@ -8219,14 +8236,6 @@ nsDocShell::RestorePresentation(nsISHEntry *aSHEntry, bool *aRestoring)
     
     
     
-    
-    
-
-    BeginRestore(viewer, true);
-
-    
-    
-    
 
     
     NS_ASSERTION(!mRestorePresentationEvent.IsPending(),
@@ -8245,10 +8254,40 @@ nsDocShell::RestorePresentation(nsISHEntry *aSHEntry, bool *aRestoring)
     return rv;
 }
 
+namespace {
+class MOZ_STACK_CLASS PresentationEventForgetter
+{
+public:
+  explicit PresentationEventForgetter(
+    nsRevocableEventPtr<nsDocShell::RestorePresentationEvent>& aRestorePresentationEvent)
+  : mRestorePresentationEvent(aRestorePresentationEvent)
+  , mEvent(aRestorePresentationEvent.get())
+  {
+  }
+
+  ~PresentationEventForgetter()
+  {
+    Forget();
+  }
+
+  void Forget()
+  {
+    if (mRestorePresentationEvent.get() == mEvent) {
+      mRestorePresentationEvent.Forget();
+      mEvent = nullptr;
+    }
+  }
+private:
+  nsRevocableEventPtr<nsDocShell::RestorePresentationEvent>& mRestorePresentationEvent;
+  nsRefPtr<nsDocShell::RestorePresentationEvent> mEvent;
+};
+}
+
 nsresult
 nsDocShell::RestoreFromHistory()
 {
-    mRestorePresentationEvent.Forget();
+    MOZ_ASSERT(mRestorePresentationEvent.IsPending());
+    PresentationEventForgetter forgetter(mRestorePresentationEvent);
 
     
     if (!mLSHE)
@@ -8301,6 +8340,24 @@ nsDocShell::RestoreFromHistory()
     
     if (mLSHE != origLSHE)
       return NS_OK;
+
+    
+    
+    
+    
+    
+
+    nsRefPtr<RestorePresentationEvent> currentPresentationRestoration =
+      mRestorePresentationEvent.get();
+    Stop();
+    
+    
+    NS_ENSURE_STATE(currentPresentationRestoration ==
+                    mRestorePresentationEvent.get());
+    BeginRestore(viewer, true);
+    NS_ENSURE_STATE(currentPresentationRestoration ==
+                    mRestorePresentationEvent.get());
+    forgetter.Forget();
 
     
     
