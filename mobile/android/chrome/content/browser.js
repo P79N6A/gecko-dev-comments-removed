@@ -4157,6 +4157,13 @@ Tab.prototype = {
     if (!sameDocument) {
       
       
+
+      
+      
+      
+      
+      this.setBrowserSize(kDefaultCSSViewportWidth, kDefaultCSSViewportHeight, true);
+
       this.contentDocumentIsDisplayed = false;
       this.hasTouchListener = false;
     } else {
@@ -4460,9 +4467,11 @@ Tab.prototype = {
     });
   },
 
-  setBrowserSize: function(aWidth, aHeight) {
-    if (fuzzyEquals(this.browserWidth, aWidth) && fuzzyEquals(this.browserHeight, aHeight)) {
-      return;
+  setBrowserSize: function(aWidth, aHeight, aForce) {
+    if (!aForce) {
+      if (fuzzyEquals(this.browserWidth, aWidth) && fuzzyEquals(this.browserHeight, aHeight)) {
+        return;
+      }
     }
 
     this.browserWidth = aWidth;
