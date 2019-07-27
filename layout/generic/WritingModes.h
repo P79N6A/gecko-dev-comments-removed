@@ -247,6 +247,37 @@ public:
 
   bool IsSideways() const { return !!(mWritingMode & eSidewaysMask); }
 
+  static mozilla::PhysicalAxis PhysicalAxisForLogicalAxis(
+                                              uint8_t aWritingModeValue,
+                                              LogicalAxis aAxis)
+  {
+    
+    
+    
+    
+    static_assert(NS_STYLE_WRITING_MODE_HORIZONTAL_TB == 0 &&
+                  NS_STYLE_WRITING_MODE_VERTICAL_RL == 1 &&
+                  NS_STYLE_WRITING_MODE_VERTICAL_LR == 3 &&
+                  eLogicalAxisBlock == 0 &&
+                  eLogicalAxisInline == 1 &&
+                  eAxisVertical == 0 && 
+                  eAxisHorizontal == 1,
+                  "unexpected writing-mode, logical axis or physical axis "
+                  "constant values");
+    return mozilla::PhysicalAxis((aWritingModeValue ^ aAxis) & 0x1);
+  }
+
+  mozilla::PhysicalAxis PhysicalAxis(LogicalAxis aAxis) const
+  {
+    
+    
+    
+    
+    
+    int wm = mWritingMode & eOrientationMask;
+    return PhysicalAxisForLogicalAxis(wm, aAxis);
+  }
+
   static mozilla::Side PhysicalSideForBlockAxis(uint8_t aWritingModeValue,
                                                 LogicalEdge aEdge)
   {
