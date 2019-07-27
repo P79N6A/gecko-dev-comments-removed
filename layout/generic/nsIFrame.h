@@ -1899,6 +1899,12 @@ public:
 
 
 
+  nsPoint GetOffsetToCrossDoc(const nsIFrame* aOther, const int32_t aAPD) const;
+
+  
+
+
+
   nsIntRect GetScreenRect() const;
   virtual nsIntRect GetScreenRectExternal() const;
 
@@ -3080,7 +3086,6 @@ private:
 
 
   bool SetOverflowAreas(const nsOverflowAreas& aOverflowAreas);
-  nsPoint GetOffsetToCrossDoc(const nsIFrame* aOther, const int32_t aAPD) const;
 
   
   template<bool IsLessThanOrEqual(nsIFrame*, nsIFrame*)>
