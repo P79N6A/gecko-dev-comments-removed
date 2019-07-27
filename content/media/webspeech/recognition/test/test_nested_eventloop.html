@@ -66,10 +66,7 @@
    */
 
   performTest({
-    eventsToRequest: [
-      "EVENT_START",
-      "EVENT_AUDIO_DATA",
-    ],
+    eventsToRequest: [],
     expectedEvents: {
       "audiostart": abortAndSpinEventLoop,
       "audioend": abortAndSpinEventLoop,
