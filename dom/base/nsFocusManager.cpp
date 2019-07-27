@@ -1612,12 +1612,12 @@ nsFocusManager::Blur(nsPIDOMWindow* aWindowToClear,
             widget->SetFocus(false);
         }
       }
+    }
 
       
-      if (TabParent* remote = TabParent::GetFrom(content)) {
-        remote->Deactivate();
-        LOGFOCUS(("Remote browser deactivated"));
-      }
+    if (TabParent* remote = TabParent::GetFrom(content)) {
+      remote->Deactivate();
+      LOGFOCUS(("Remote browser deactivated"));
     }
   }
 
