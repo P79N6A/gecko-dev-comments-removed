@@ -4274,10 +4274,15 @@ LIRGenerator::visitBlock(MBasicBlock *block)
     
     
     
+    
+    
+    
+    
+    
     if (lastResumePoint_) {
         for (size_t s = 0; s < block->numSuccessors(); s++) {
             MBasicBlock *succ = block->getSuccessor(s);
-            if (!succ->entryResumePoint()) {
+            if (!succ->entryResumePoint() && succ->numPredecessors() == 1) {
                 MOZ_ASSERT(succ->isSplitEdge());
                 MOZ_ASSERT(succ->phisBegin() == succ->phisEnd());
                 succ->setEntryResumePoint(lastResumePoint_);
