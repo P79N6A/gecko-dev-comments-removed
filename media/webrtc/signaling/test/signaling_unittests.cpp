@@ -1246,7 +1246,8 @@ class SignalingAgent {
     if (getRemoteDescription().empty()) {
       
       
-      deferredCandidates_.push_back({candidate, mid, level, true});
+      DeferredCandidate candidateStruct = {candidate, mid, level, true};
+      deferredCandidates_.push_back(candidateStruct);
     } else {
       AddIceCandidate(candidate, mid, level, true);
     }
