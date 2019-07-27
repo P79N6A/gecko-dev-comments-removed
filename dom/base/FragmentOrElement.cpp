@@ -1184,6 +1184,10 @@ FragmentOrElement::DestroyContent()
     
     mAttrsAndChildren.ChildAt(i)->DestroyContent();
   }
+  ShadowRoot* shadowRoot = GetShadowRoot();
+  if (shadowRoot) {
+    shadowRoot->DestroyContent();
+  }
 }
 
 void

@@ -19,6 +19,13 @@ namespace dom {
 static bool
 ShouldExposeChildWindow(nsString& aNameBeingResolved, nsIDOMWindow *aChild)
 {
+  nsCOMPtr<nsPIDOMWindow> piWin = do_QueryInterface(aChild);
+  NS_ENSURE_TRUE(piWin, false);
+  Element* e = piWin->GetFrameElementInternal();
+  if (e && e->IsInShadowTree()) {
+    return false;
+  }
+
   
   nsCOMPtr<nsIScriptObjectPrincipal> sop = do_QueryInterface(aChild);
   NS_ENSURE_TRUE(sop, false);
@@ -63,9 +70,6 @@ ShouldExposeChildWindow(nsString& aNameBeingResolved, nsIDOMWindow *aChild)
   
   
   
-  nsCOMPtr<nsPIDOMWindow> piWin = do_QueryInterface(aChild);
-  NS_ENSURE_TRUE(piWin, false);
-  Element* e = piWin->GetFrameElementInternal();
   return e && e->AttrValueIs(kNameSpaceID_None, nsGkAtoms::name,
                              aNameBeingResolved, eCaseMatters);
 }

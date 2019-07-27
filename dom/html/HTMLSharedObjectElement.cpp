@@ -80,7 +80,7 @@ HTMLSharedObjectElement::DoneAddingChildren(bool aHaveNotified)
 
     
     
-    if (IsInDoc()) {
+    if (IsInComposedDoc()) {
       StartObjectLoad(aHaveNotified);
     }
   }
@@ -180,7 +180,7 @@ HTMLSharedObjectElement::SetAttr(int32_t aNameSpaceID, nsIAtom *aName,
   
   
   
-  if (aNotify && IsInDoc() && mIsDoneAddingChildren &&
+  if (aNotify && IsInComposedDoc() && mIsDoneAddingChildren &&
       aNameSpaceID == kNameSpaceID_None && aName == URIAttrName()) {
     return LoadObject(aNotify, true);
   }
@@ -313,7 +313,7 @@ HTMLSharedObjectElement::StartObjectLoad(bool aNotify)
 {
   
   
-  if (!IsInDoc() || !OwnerDoc()->IsActive()) {
+  if (!IsInComposedDoc() || !OwnerDoc()->IsActive()) {
     return;
   }
 

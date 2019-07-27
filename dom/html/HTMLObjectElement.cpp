@@ -68,7 +68,7 @@ HTMLObjectElement::DoneAddingChildren(bool aHaveNotified)
 
   
   
-  if (IsInDoc()) {
+  if (IsInComposedDoc()) {
     StartObjectLoad(aHaveNotified);
   }
 }
@@ -231,7 +231,7 @@ HTMLObjectElement::SetAttr(int32_t aNameSpaceID, nsIAtom *aName,
   
   
   
-  if (aNotify && IsInDoc() && mIsDoneAddingChildren &&
+  if (aNotify && IsInComposedDoc() && mIsDoneAddingChildren &&
       aNameSpaceID == kNameSpaceID_None && aName == nsGkAtoms::data) {
     return LoadObject(aNotify, true);
   }
@@ -248,7 +248,7 @@ HTMLObjectElement::UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  if (aNotify && IsInDoc() && mIsDoneAddingChildren &&
+  if (aNotify && IsInComposedDoc() && mIsDoneAddingChildren &&
       aNameSpaceID == kNameSpaceID_None && aAttribute == nsGkAtoms::data) {
     return LoadObject(aNotify, true);
   }
@@ -460,7 +460,7 @@ HTMLObjectElement::StartObjectLoad(bool aNotify)
 {
   
   
-  if (!IsInDoc() || !OwnerDoc()->IsActive()) {
+  if (!IsInComposedDoc() || !OwnerDoc()->IsActive()) {
     return;
   }
 
