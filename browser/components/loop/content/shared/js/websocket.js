@@ -100,9 +100,12 @@ loop.CallConnectionWebSocket = (function() {
 
 
 
-    _completeConnection: function() {
+
+
+
+    _completeConnection: function(progressState) {
       if (this.connectDetails && this.connectDetails.resolve) {
-        this.connectDetails.resolve();
+        this.connectDetails.resolve(progressState);
         this._clearConnectionFlags();
         return;
       }
@@ -227,7 +230,7 @@ loop.CallConnectionWebSocket = (function() {
 
       switch(msg.messageType) {
         case "hello":
-          this._completeConnection();
+          this._completeConnection(msg.state);
           break;
         case "progress":
           this.trigger("progress:" + msg.state);
