@@ -44,6 +44,44 @@ function getDocumentURI(doc) {
 
 
 
+function isValidCCNumber(value) {
+  
+  let ccNumber = value.replace(/[-\s]+/g, "");
+
+  
+  if (/[^0-9]/.test(ccNumber)) {
+    return false;
+  }
+
+  
+  let length = ccNumber.length;
+  if (length != 9 && length != 15 && length != 16) {
+    return false;
+  }
+
+  let total = 0;
+  for (let i = 0; i < length; i++) {
+    let currentChar = ccNumber.charAt(length - i - 1);
+    let currentDigit = parseInt(currentChar, 10);
+
+    if (i % 2) {
+      
+      total += currentDigit * 2;
+      
+      if (currentDigit > 4) {
+        total -= 9;
+      }
+    } else {
+      total += currentDigit;
+    }
+  }
+  return total % 10 == 0;
+}
+
+
+
+
+
 this.FormData = Object.freeze({
   collect: function (frame) {
     return FormDataInternal.collect(frame);
@@ -108,6 +146,12 @@ let FormDataInternal = {
       
       
       if (!node.id && generatedCount > MAX_TRAVERSED_XPATHS) {
+        continue;
+      }
+
+      
+      if (node instanceof Ci.nsIDOMHTMLInputElement &&
+          isValidCCNumber(node.value)) {
         continue;
       }
 
