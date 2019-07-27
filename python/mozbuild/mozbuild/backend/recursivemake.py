@@ -114,6 +114,8 @@ MOZBUILD_VARIABLES = [
     'STATIC_LIBRARY_NAME',
     'TEST_DIRS',
     'TOOL_DIRS',
+    
+    
     'XPCSHELL_TESTS',
     'XPIDL_MODULE',
 ]
