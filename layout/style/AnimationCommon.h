@@ -131,15 +131,11 @@ protected:
   friend struct mozilla::AnimationPlayerCollection;
 
   void AddElementCollection(AnimationPlayerCollection* aCollection);
-  void ElementCollectionRemoved() { MaybeStartOrStopObservingRefreshDriver(); }
+  void ElementCollectionRemoved() { CheckNeedsRefresh(); }
   void RemoveAllElementCollections();
 
   
-  
-  
-  void MaybeStartObservingRefreshDriver();
-  void MaybeStartOrStopObservingRefreshDriver();
-  bool NeedsRefresh() const;
+  void CheckNeedsRefresh();
 
   virtual nsIAtom* GetAnimationsAtom() = 0;
   virtual nsIAtom* GetAnimationsBeforeAtom() = 0;
