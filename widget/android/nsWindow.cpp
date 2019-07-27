@@ -833,6 +833,7 @@ nsWindow::OnGlobalAndroidEvent(AndroidGeckoEvent *ae)
             break;
         }
 
+        case AndroidGeckoEvent::APZ_INPUT_EVENT:
         case AndroidGeckoEvent::MOTION_EVENT: {
             win->UserActivity();
             if (!gTopLevelWindows.IsEmpty()) {
@@ -1032,7 +1033,11 @@ bool nsWindow::OnMultitouchEvent(AndroidGeckoEvent *ae)
         
         
         bool defaultPrevented = isDownEvent ? false : preventDefaultActions;
-        mozilla::widget::android::GeckoAppShell::NotifyDefaultPrevented(defaultPrevented);
+        if (ae->Type() == AndroidGeckoEvent::APZ_INPUT_EVENT) {
+            mozilla::widget::android::APZCCallbackHandler::GetInstance()->NotifyDefaultPrevented(ae->ApzGuid(), defaultPrevented);
+        } else {
+            mozilla::widget::android::GeckoAppShell::NotifyDefaultPrevented(defaultPrevented);
+        }
         sDefaultPreventedNotified = true;
     }
 
@@ -1041,7 +1046,11 @@ bool nsWindow::OnMultitouchEvent(AndroidGeckoEvent *ae)
     
     if (isDownEvent) {
         if (preventDefaultActions) {
-            mozilla::widget::android::GeckoAppShell::NotifyDefaultPrevented(true);
+            if (ae->Type() == AndroidGeckoEvent::APZ_INPUT_EVENT) {
+                mozilla::widget::android::APZCCallbackHandler::GetInstance()->NotifyDefaultPrevented(ae->ApzGuid(), true);
+            } else {
+                mozilla::widget::android::GeckoAppShell::NotifyDefaultPrevented(true);
+            }
             sDefaultPreventedNotified = true;
         } else {
             sDefaultPreventedNotified = false;
