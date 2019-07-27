@@ -4377,10 +4377,6 @@ var XULBrowserWindow = {
         gURLBar.removeAttribute("level");
     }
 
-    
-    
-    gURLBar.formatValue();
-
     try {
       uri = Services.uriFixup.createExposableURI(uri);
     } catch (e) {}
