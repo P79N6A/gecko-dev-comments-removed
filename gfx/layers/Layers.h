@@ -577,22 +577,7 @@ public:
 
 
   void DumpSelf(std::stringstream& aStream, const char* aPrefix="");
-  void Dump() {
-    std::stringstream ss;
-    Dump(ss);
-    char line[1024];
-    while (!ss.eof()) {
-      ss.getline(line, sizeof(line));
-      if (!ss.eof() || strlen(line) > 0) {
-        printf_stderr("%s\n", line);
-      }
-      if (ss.fail()) {
-        
-        ss.clear();
-        ss.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-      }
-    }
-  }
+  void Dump();
 
   
 

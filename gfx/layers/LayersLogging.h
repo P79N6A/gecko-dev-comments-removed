@@ -164,4 +164,10 @@ Stringify(const T& obj)
 } 
 } 
 
+
+
+
+void print_stderr(std::stringstream& aStr);
+void fprint_stderr(FILE* aFile, std::stringstream& aStr);
+
 #endif 

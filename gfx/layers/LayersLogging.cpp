@@ -235,3 +235,38 @@ AppendToString(std::stringstream& aStream, mozilla::gfx::SurfaceFormat format,
 
 } 
 } 
+
+void
+print_stderr(std::stringstream& aStr)
+{
+#if defined(ANDROID)
+  
+  
+  
+  
+  char line[1024];
+  while (!aStr.eof()) {
+    aStr.getline(line, sizeof(line));
+    if (!aStr.eof() || strlen(line) > 0) {
+      printf_stderr("%s\n", line);
+    }
+    if (aStr.fail()) {
+      
+      aStr.clear();
+      aStr.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    }
+  }
+#else
+  printf_stderr("%s", aStr.str().c_str());
+#endif
+}
+
+void
+fprint_stderr(FILE* aFile, std::stringstream& aStr)
+{
+  if (aFile == stderr) {
+    print_stderr(aStr);
+  } else {
+    fprintf_stderr(aFile, "%s", aStr.str().c_str());
+  }
+}
