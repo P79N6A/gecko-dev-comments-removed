@@ -611,32 +611,104 @@ public abstract class TreeBuilder<T> implements TokenHandler,
             } else {
                 elt = createHtmlElementSetAsRoot(tokenizer.emptyAttributes());
             }
-            StackNode<T> node = new StackNode<T>(ElementName.HTML, elt
             
-                    , errorHandler == null ? null : new TaintableLocatorImpl(tokenizer)
             
-            );
-            currentPtr++;
-            stack[currentPtr] = node;
-            if ("template" == contextName) {
-                pushTemplateMode(IN_TEMPLATE);
-            }
-            resetTheInsertionMode();
-            formPointer = getFormPointerForContext(contextNode);
-            if ("title" == contextName || "textarea" == contextName) {
-                tokenizer.setStateAndEndTagExpectation(Tokenizer.RCDATA, contextName);
-            } else if ("style" == contextName || "xmp" == contextName
-                    || "iframe" == contextName || "noembed" == contextName
-                    || "noframes" == contextName
-                    || (scriptingEnabled && "noscript" == contextName)) {
-                tokenizer.setStateAndEndTagExpectation(Tokenizer.RAWTEXT, contextName);
-            } else if ("plaintext" == contextName) {
-                tokenizer.setStateAndEndTagExpectation(Tokenizer.PLAINTEXT, contextName);
-            } else if ("script" == contextName) {
-                tokenizer.setStateAndEndTagExpectation(Tokenizer.SCRIPT_DATA,
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            if (contextNamespace == "http://www.w3.org/2000/svg") {
+                ElementName elementName = ElementName.SVG;
+                if ("title" == contextName || "desc" == contextName
+                        || "foreignObject" == contextName) {
+                    
+                    
+                    elementName = ElementName.FOREIGNOBJECT;
+                }
+                
+                StackNode<T> node = new StackNode<T>(elementName,
+                        elementName.camelCaseName, elt
+                        
+                        , errorHandler == null ? null
+                                : new TaintableLocatorImpl(tokenizer)
+                
+                );
+                currentPtr++;
+                stack[currentPtr] = node;
+                tokenizer.setStateAndEndTagExpectation(Tokenizer.DATA,
                         contextName);
-            } else {
-                tokenizer.setStateAndEndTagExpectation(Tokenizer.DATA, contextName);
+                
+                
+                mode = FRAMESET_OK;
+            } else if (contextNamespace == "http://www.w3.org/1998/Math/MathML") {
+                ElementName elementName = ElementName.MATH;
+                if ("mi" == contextName || "mo" == contextName
+                        || "mn" == contextName || "ms" == contextName
+                        || "mtext" == contextName) {
+                    
+                    
+                    elementName = ElementName.MTEXT;
+                } else if ("annotation-xml" == contextName) {
+                    elementName = ElementName.ANNOTATION_XML;
+                    
+                    
+                    
+                    
+                    
+                }
+                
+                StackNode<T> node = new StackNode<T>(elementName, elt,
+                        elementName.name, false
+                        
+                        , errorHandler == null ? null
+                                : new TaintableLocatorImpl(tokenizer)
+                
+                );
+                currentPtr++;
+                stack[currentPtr] = node;
+                tokenizer.setStateAndEndTagExpectation(Tokenizer.DATA,
+                        contextName);
+                
+                
+                mode = FRAMESET_OK;
+            } else { 
+                StackNode<T> node = new StackNode<T>(ElementName.HTML, elt
+                
+                        , errorHandler == null ? null
+                                : new TaintableLocatorImpl(tokenizer)
+                
+                );
+                currentPtr++;
+                stack[currentPtr] = node;
+                if ("template" == contextName) {
+                    pushTemplateMode(IN_TEMPLATE);
+                }
+                resetTheInsertionMode();
+                formPointer = getFormPointerForContext(contextNode);
+                if ("title" == contextName || "textarea" == contextName) {
+                    tokenizer.setStateAndEndTagExpectation(Tokenizer.RCDATA,
+                            contextName);
+                } else if ("style" == contextName || "xmp" == contextName
+                        || "iframe" == contextName || "noembed" == contextName
+                        || "noframes" == contextName
+                        || (scriptingEnabled && "noscript" == contextName)) {
+                    tokenizer.setStateAndEndTagExpectation(Tokenizer.RAWTEXT,
+                            contextName);
+                } else if ("plaintext" == contextName) {
+                    tokenizer.setStateAndEndTagExpectation(Tokenizer.PLAINTEXT,
+                            contextName);
+                } else if ("script" == contextName) {
+                    tokenizer.setStateAndEndTagExpectation(
+                            Tokenizer.SCRIPT_DATA, contextName);
+                } else {
+                    tokenizer.setStateAndEndTagExpectation(Tokenizer.DATA,
+                            contextName);
+                }
             }
             contextName = null;
             contextNode = null;
@@ -1454,7 +1526,8 @@ public abstract class TreeBuilder<T> implements TokenHandler,
                 case IN_CELL:
                 case IN_BODY:
                     
-                    openelementloop: for (int i = currentPtr; i >= 0; i--) {
+                    
+                    openelementloop: for (int i = currentPtr; i > 0; i--) {
                         int group = stack[i].getGroup();
                         switch (group) {
                             case DD_OR_DT:
@@ -3308,10 +3381,18 @@ public abstract class TreeBuilder<T> implements TokenHandler,
         endtagloop: for (;;) {
             if (isInForeign()) {
                 if (stack[currentPtr].name != name) {
-                    errEndTagDidNotMatchCurrentOpenElement(name, stack[currentPtr].popName);
+                    if (currentPtr == 0) {
+                        errStrayEndTag(name);
+                    } else {
+                        errEndTagDidNotMatchCurrentOpenElement(name, stack[currentPtr].popName);
+                    }
                 }
                 eltPos = currentPtr;
                 for (;;) {
+                    if (eltPos == 0) {
+                        assert fragment: "We can get this close to the root of the stack in foreign content only in the fragment case.";
+                        break endtagloop;
+                    }
                     if (stack[eltPos].name == name) {
                         while (currentPtr >= eltPos) {
                             pop();
@@ -3649,7 +3730,9 @@ public abstract class TreeBuilder<T> implements TokenHandler,
                                 
                                 if (isInForeign()) {
                                     errHtmlStartTagInForeignContext(name);
-                                    while (stack[currentPtr].ns != "http://www.w3.org/1999/xhtml") {
+                                    
+                                    
+                                    while (currentPtr >= 0 && stack[currentPtr].ns != "http://www.w3.org/1999/xhtml") {
                                         pop();
                                     }
                                 }
@@ -3730,8 +3813,11 @@ public abstract class TreeBuilder<T> implements TokenHandler,
                         case BR:
                             errEndTagBr();
                             if (isInForeign()) {
+                                
                                 errHtmlStartTagInForeignContext(name);
-                                while (stack[currentPtr].ns != "http://www.w3.org/1999/xhtml") {
+                                
+                                
+                                while (currentPtr >= 0 && stack[currentPtr].ns != "http://www.w3.org/1999/xhtml") {
                                     pop();
                                 }
                             }
