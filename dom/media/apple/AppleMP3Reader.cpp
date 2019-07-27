@@ -19,6 +19,8 @@
 
 #define MAX_AUDIO_FRAMES 128
 
+using namespace mozilla::media;
+
 namespace mozilla {
 
 extern PRLogModuleInfo* gMediaDecoderLog;
@@ -413,11 +415,11 @@ AppleMP3Reader::ReadMetadata(MediaInfo* aInfo,
     aInfo->mAudio.mChannels = mAudioChannels;
   }
 
-  {
-    ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-    mDuration = mMP3FrameParser.GetDuration();
-    mDecoder->SetMediaDuration(mDuration);
-  }
+  
+  
+  mDuration = mMP3FrameParser.GetDuration();
+  mInfo.mMetadataDuration.emplace(TimeUnit::FromMicroseconds(mDuration));
+  aInfo->mMetadataDuration.emplace(TimeUnit::FromMicroseconds(mDuration));
 
   return NS_OK;
 }

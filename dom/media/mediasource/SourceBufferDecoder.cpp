@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "MediaSourceUtils.h"
 #include "SourceBufferDecoder.h"
@@ -11,7 +11,7 @@
 #include "MediaDecoderReader.h"
 
 extern PRLogModuleInfo* GetMediaSourceLog();
-/* Polyfill __func__ on MSVC to pass to the log. */
+
 #ifdef _MSC_VER
 #define __func__ __FUNCTION__
 #endif
@@ -26,7 +26,7 @@ namespace layers {
 
 class ImageContainer;
 
-} // namespace layers
+} 
 
 NS_IMPL_ISUPPORTS0(SourceBufferDecoder)
 
@@ -37,7 +37,6 @@ SourceBufferDecoder::SourceBufferDecoder(MediaResource* aResource,
   , mParentDecoder(aParentDecoder)
   , mReader(nullptr)
   , mTimestampOffset(aTimestampOffset)
-  , mMediaDuration(-1)
   , mRealMediaDuration(0)
   , mTrimmedOffset(-1)
 {
@@ -53,7 +52,7 @@ SourceBufferDecoder::~SourceBufferDecoder()
 bool
 SourceBufferDecoder::IsShutdown() const
 {
-  // SourceBufferDecoder cannot be shut down.
+  
   MSE_DEBUG("UNIMPLEMENTED");
   return false;
 }
@@ -62,12 +61,6 @@ void
 SourceBufferDecoder::NotifyBytesConsumed(int64_t aBytes, int64_t aOffset)
 {
   MSE_DEBUG("UNIMPLEMENTED");
-}
-
-int64_t
-SourceBufferDecoder::GetMediaDuration()
-{
-  return mMediaDuration;
 }
 
 VideoFrameContainer*
@@ -120,12 +113,6 @@ SourceBufferDecoder::RemoveMediaTracks()
   MSE_DEBUG("UNIMPLEMENTED");
 }
 
-void
-SourceBufferDecoder::SetMediaEndTime(int64_t aTime)
-{
-  MSE_DEBUG("UNIMPLEMENTED");
-}
-
 bool
 SourceBufferDecoder::HasInitializationData()
 {
@@ -159,7 +146,7 @@ SourceBufferDecoder::OnStateMachineTaskQueue() const
 bool
 SourceBufferDecoder::OnDecodeTaskQueue() const
 {
-  // During initialization we run on our TrackBuffer's task queue.
+  
   if (mTaskQueue) {
     return mTaskQueue->IsCurrentThreadIn();
   }
@@ -177,12 +164,6 @@ SourceBufferDecoder::NotifyDecodedFrames(uint32_t aParsed, uint32_t aDecoded,
                                          uint32_t aDropped)
 {
   return mParentDecoder->NotifyDecodedFrames(aParsed, aDecoded, aDropped);
-}
-
-void
-SourceBufferDecoder::SetMediaDuration(int64_t aDuration)
-{
-  mMediaDuration = aDuration;
 }
 
 void
@@ -226,10 +207,10 @@ SourceBufferDecoder::NotifyDataArrived(const char* aBuffer, uint32_t aLength, in
 {
   mReader->NotifyDataArrived(aBuffer, aLength, aOffset);
 
-  // XXX: Params make no sense to parent decoder as it relates to a
-  // specific SourceBufferDecoder's data stream.  Pass bogus values here to
-  // force parent decoder's state machine to recompute end time for
-  // infinite length media.
+  
+  
+  
+  
   mParentDecoder->NotifyDataArrived(nullptr, 0, 0);
 }
 
@@ -241,7 +222,7 @@ SourceBufferDecoder::GetBuffered()
     return buffered;
   }
 
-  // Adjust buffered range according to timestamp offset.
+  
   buffered.Shift(media::TimeUnit::FromMicroseconds(mTimestampOffset));
 
   if (!WasTrimmed()) {
@@ -261,10 +242,10 @@ SourceBufferDecoder::ConvertToByteOffset(double aTime)
     return readerOffset;
   }
 
-  // Uses a conversion based on (aTime/duration) * length.  For the
-  // purposes of eviction this should be adequate since we have the
-  // byte threshold as well to ensure data actually gets evicted and
-  // we ensure we don't evict before the current playable point.
+  
+  
+  
+  
   if (mRealMediaDuration <= 0) {
     return -1;
   }
@@ -277,4 +258,4 @@ SourceBufferDecoder::ConvertToByteOffset(double aTime)
 }
 
 #undef MSE_DEBUG
-} // namespace mozilla
+} 

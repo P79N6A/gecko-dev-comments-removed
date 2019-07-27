@@ -809,7 +809,9 @@ TrackBuffer::CompleteInitializeDecoder(SourceBufferDecoder* aDecoder)
     return;
   }
 
-  int64_t duration = aDecoder->GetMediaDuration();
+
+  int64_t duration = mInfo.mMetadataDuration.isSome()
+    ? mInfo.mMetadataDuration.ref().ToMicroseconds() : -1;
   if (!duration) {
     
     duration = -1;

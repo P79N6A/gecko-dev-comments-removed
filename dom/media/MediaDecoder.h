@@ -464,9 +464,6 @@ public:
 
   
   
-  void SetMediaDuration(int64_t aDuration) override;
-  
-  
   
   
   
@@ -491,9 +488,6 @@ public:
   
   
   virtual void SetFragmentEndTime(double aTime);
-
-  
-  void SetMediaEndTime(int64_t aTime) final override;
 
   
   void Invalidate();

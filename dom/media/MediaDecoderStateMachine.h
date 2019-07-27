@@ -209,11 +209,6 @@ public:
   
   
   
-  void SetMediaEndTime(int64_t aEndTime);
-
-  
-  
-  
   
   
   void UpdateEstimatedDuration(int64_t aDuration);

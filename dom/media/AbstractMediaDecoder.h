@@ -75,9 +75,6 @@ public:
   virtual int64_t GetMediaDuration() = 0;
 
   
-  virtual void SetMediaDuration(int64_t aDuration) = 0;
-
-  
   
   
   virtual void UpdateEstimatedMediaDuration(int64_t aDuration) = 0;
@@ -99,9 +96,6 @@ public:
   virtual void FirstFrameLoaded(nsAutoPtr<MediaInfo> aInfo, MediaDecoderEventVisibility aEventVisibility) = 0;
 
   virtual void RemoveMediaTracks() = 0;
-
-  
-  virtual void SetMediaEndTime(int64_t aTime) = 0;
 
   
   

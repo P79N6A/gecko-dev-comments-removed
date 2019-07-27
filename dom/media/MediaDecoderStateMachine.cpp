@@ -1460,9 +1460,13 @@ void MediaDecoderStateMachine::RecomputeDuration()
   MOZ_ASSERT(OnTaskQueue());
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
 
-  
-  
-  if (mNetworkDuration.Ref().isSome()) {
+  if (mInfo.mMetadataDuration.isSome()) {
+    SetDuration(mInfo.mMetadataDuration.ref().ToMicroseconds());
+  } else if (mInfo.mMetadataEndTime.isSome() && mStartTime >= 0) {
+    SetDuration((mInfo.mMetadataEndTime.ref() - TimeUnit::FromMicroseconds(mStartTime)).ToMicroseconds());
+  } else if (mNetworkDuration.Ref().isSome()) {
+    
+    
     SetDuration(mNetworkDuration.Ref().ref().ToMicroseconds());
   }
 }
@@ -1516,14 +1520,6 @@ void MediaDecoderStateMachine::UpdateEstimatedDuration(int64_t aDuration)
       NS_NewRunnableMethod(mDecoder, &MediaDecoder::DurationChanged);
     AbstractThread::MainThread()->Dispatch(event.forget());
   }
-}
-
-void MediaDecoderStateMachine::SetMediaEndTime(int64_t aEndTime)
-{
-  MOZ_ASSERT(OnDecodeTaskQueue());
-  AssertCurrentThreadInMonitor();
-
-  mEndTime = aEndTime;
 }
 
 void MediaDecoderStateMachine::SetFragmentEndTime(int64_t aEndTime)
@@ -2233,6 +2229,10 @@ MediaDecoderStateMachine::OnMetadataRead(MetadataHolder* aMetadata)
   mInfo = aMetadata->mInfo;
   mMetadataTags = aMetadata->mTags.forget();
 
+  if (mInfo.mMetadataDuration.isSome() || mInfo.mMetadataEndTime.isSome()) {
+    RecomputeDuration();
+  }
+
   if (HasVideo()) {
     DECODER_LOG("Video decode isAsync=%d HWAccel=%d videoQueueSize=%d",
                 mReader->IsAsync(),
@@ -2242,7 +2242,6 @@ MediaDecoderStateMachine::OnMetadataRead(MetadataHolder* aMetadata)
 
   mDecoder->StartProgressUpdates();
   mGotDurationFromMetaData = (GetDuration() != -1) || mDurationSet;
-
   if (mGotDurationFromMetaData) {
     
     
@@ -3239,6 +3238,8 @@ void MediaDecoderStateMachine::SetStartTime(int64_t aStartTimeUsecs)
   mAudioStartTime = mStartTime;
   mStreamStartTime = mStartTime;
   DECODER_LOG("Set media start time to %lld", mStartTime);
+
+  RecomputeDuration();
 }
 
 void MediaDecoderStateMachine::UpdateNextFrameStatus()

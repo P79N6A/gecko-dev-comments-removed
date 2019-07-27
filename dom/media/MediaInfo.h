@@ -15,6 +15,7 @@
 #include "ImageTypes.h"
 #include "MediaData.h"
 #include "StreamBuffer.h" 
+#include "TimeUnits.h"
 
 namespace mozilla {
 
@@ -347,6 +348,14 @@ public:
   
   VideoInfo mVideo;
   AudioInfo mAudio;
+
+  
+  media::NullableTimeUnit mMetadataDuration;
+
+  
+  
+  
+  media::NullableTimeUnit mMetadataEndTime;
 
   EncryptionInfo mCrypto;
 };

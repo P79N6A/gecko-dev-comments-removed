@@ -25,6 +25,7 @@ namespace mozilla {
 
 using namespace gfx;
 using namespace layers;
+using namespace media;
 
 
 
@@ -470,10 +471,9 @@ nsresult GStreamerReader::ReadMetadata(MediaInfo* aInfo,
   if (isMP3 && mMP3FrameParser.IsMP3()) {
     
     
-    ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
     mUseParserDuration = true;
     mLastParserDuration = mMP3FrameParser.GetDuration();
-    mDecoder->SetMediaDuration(mLastParserDuration);
+    mInfo.mMetadataDuration.emplace(TimeUnit::FromMicroseconds(mLastParserDuration));
   } else {
     LOG(LogLevel::Debug, "querying duration");
     
@@ -485,10 +485,9 @@ nsresult GStreamerReader::ReadMetadata(MediaInfo* aInfo,
     if (gst_element_query_duration(GST_ELEMENT(mPlayBin),
       &format, &duration) && format == GST_FORMAT_TIME) {
 #endif
-      ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
       LOG(LogLevel::Debug, "have duration %" GST_TIME_FORMAT, GST_TIME_ARGS(duration));
       duration = GST_TIME_AS_USECONDS (duration);
-      mDecoder->SetMediaDuration(duration);
+      mInfo.mMetadataDuration.emplace(TimeUnit::FromMicroseconds(duration));
     }
   }
 
