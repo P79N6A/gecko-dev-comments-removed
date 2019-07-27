@@ -177,18 +177,28 @@ public:
   
 
 
-
-
-  virtual nsresult
+  virtual void
   StopDiscoveryInternal(BluetoothReplyRunnable* aRunnable) = 0;
 
   
 
 
-
-
-  virtual nsresult
+  virtual void
   StartDiscoveryInternal(BluetoothReplyRunnable* aRunnable) = 0;
+
+  
+
+
+  virtual void
+  StopLeScanInternal(const nsAString& aScanUuid,
+                     BluetoothReplyRunnable* aRunnable) = 0;
+
+  
+
+
+  virtual void
+  StartLeScanInternal(const nsTArray<nsString>& aServiceUuids,
+                      BluetoothReplyRunnable* aRunnable) = 0;
 
   
 

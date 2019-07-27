@@ -157,7 +157,7 @@ public:
 
 
 
-  virtual nsresult
+  virtual void
   StopDiscoveryInternal(BluetoothReplyRunnable* aRunnable) = 0;
 
   
@@ -165,7 +165,7 @@ public:
 
 
 
-  virtual nsresult
+  virtual void
   StartDiscoveryInternal(BluetoothReplyRunnable* aRunnable) = 0;
 
   

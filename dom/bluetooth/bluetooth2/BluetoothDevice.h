@@ -147,6 +147,16 @@ private:
   
 
 
+
+
+
+
+
+   void UpdatePropertiesFromAdvData(const nsTArray<uint8_t>& aAdvData);
+
+  
+
+
   
 
 

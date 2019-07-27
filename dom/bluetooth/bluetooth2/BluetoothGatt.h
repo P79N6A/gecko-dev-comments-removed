@@ -92,13 +92,6 @@ private:
 
 
 
-  void GenerateUuid(nsAString &aUuidString);
-
-  
-
-
-
-
 
 
   void HandleServicesDiscovered(const BluetoothValue& aValue);

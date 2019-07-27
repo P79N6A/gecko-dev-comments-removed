@@ -100,6 +100,12 @@ public:
                                             ErrorResult& aRv);
   already_AddRefed<Promise> StartDiscovery(ErrorResult& aRv);
   already_AddRefed<Promise> StopDiscovery(ErrorResult& aRv);
+
+  already_AddRefed<Promise> StartLeScan(
+    const nsTArray<nsString>& aServiceUuids, ErrorResult& aRv);
+  already_AddRefed<Promise> StopLeScan(
+    BluetoothDiscoveryHandle& aDiscoveryHandle, ErrorResult& aRv);
+
   already_AddRefed<Promise> Pair(const nsAString& aDeviceAddress,
                                  ErrorResult& aRv);
   already_AddRefed<Promise> Unpair(const nsAString& aDeviceAddress,
@@ -179,6 +185,21 @@ public:
 
   void SetDiscoveryHandleInUse(BluetoothDiscoveryHandle* aDiscoveryHandle);
 
+  
+
+
+
+
+  void AppendLeScanHandle(BluetoothDiscoveryHandle* aDiscoveryHandle);
+
+  
+
+
+
+
+
+  void RemoveLeScanHandle(const nsAString& aScanUuid);
+
 private:
   BluetoothAdapter(nsPIDOMWindow* aOwner, const BluetoothValue& aValue);
   ~BluetoothAdapter();
@@ -249,6 +270,13 @@ private:
 
 
   void HandleDeviceUnpaired(const BluetoothValue& aValue);
+
+  
+
+
+
+
+  void HandleLeDeviceFound(const BluetoothValue& aValue);
 
   
 
@@ -337,6 +365,14 @@ private:
 
 
   nsRefPtr<BluetoothDiscoveryHandle> mDiscoveryHandleInUse;
+
+  
+
+
+
+
+
+  nsTArray<nsRefPtr<BluetoothDiscoveryHandle> > mLeScanHandleArray;
 
   
 

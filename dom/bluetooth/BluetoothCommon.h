@@ -751,6 +751,22 @@ struct BluetoothGattNotifyParam {
   bool mIsNotify;
 };
 
+
+
+
+
+
+enum BluetoothGapDataType {
+  GAP_INCOMPLETE_UUID16  = 0X02, 
+  GAP_COMPLETE_UUID16    = 0X03, 
+  GAP_INCOMPLETE_UUID32  = 0X04, 
+  GAP_COMPLETE_UUID32    = 0X05, 
+  GAP_INCOMPLETE_UUID128 = 0X06, 
+  GAP_COMPLETE_UUID128   = 0X07, 
+  GAP_SHORTENED_NAME     = 0X08, 
+  GAP_COMPLETE_NAME      = 0X09, 
+};
+
 END_BLUETOOTH_NAMESPACE
 
 #endif 
