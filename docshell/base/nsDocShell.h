@@ -94,9 +94,10 @@ class ProfilerMarkerTracing;
 
 
 
-enum ViewMode {
-    viewNormal = 0x0,
-    viewSource = 0x1
+enum ViewMode
+{
+  viewNormal = 0x0,
+  viewSource = 0x1
 };
 
 
@@ -106,352 +107,356 @@ enum ViewMode {
 class nsRefreshTimer : public nsITimerCallback
 {
 public:
-    nsRefreshTimer();
+  nsRefreshTimer();
 
-    NS_DECL_THREADSAFE_ISUPPORTS
-    NS_DECL_NSITIMERCALLBACK
+  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_DECL_NSITIMERCALLBACK
 
-    int32_t GetDelay() { return mDelay ;}
+  int32_t GetDelay() { return mDelay ;}
 
-    nsRefPtr<nsDocShell>  mDocShell;
-    nsCOMPtr<nsIURI>      mURI;
-    int32_t               mDelay;
-    bool                  mRepeat;
-    bool                  mMetaRefresh;
+  nsRefPtr<nsDocShell> mDocShell;
+  nsCOMPtr<nsIURI> mURI;
+  int32_t mDelay;
+  bool mRepeat;
+  bool mMetaRefresh;
 
 protected:
-    virtual ~nsRefreshTimer();
+  virtual ~nsRefreshTimer();
 };
 
-typedef enum {
-    eCharsetReloadInit,
-    eCharsetReloadRequested,
-    eCharsetReloadStopOrigional
-} eCharsetReloadState;
-
-
-
-
-
-class nsDocShell MOZ_FINAL : public nsDocLoader,
-                             public nsIDocShell,
-                             public nsIWebNavigation,
-                             public nsIBaseWindow,
-                             public nsIScrollable,
-                             public nsITextScroll,
-                             public nsIDocCharset,
-                             public nsIContentViewerContainer,
-                             public nsIRefreshURI,
-                             public nsIWebProgressListener,
-                             public nsIWebPageDescriptor,
-                             public nsIAuthPromptProvider,
-                             public nsILoadContext,
-                             public nsIWebShellServices,
-                             public nsILinkHandler,
-                             public nsIClipboardCommands,
-                             public nsIDOMStorageManager,
-                             public mozilla::SupportsWeakPtr<nsDocShell>
+enum eCharsetReloadState
 {
-    friend class nsDSURIContentListener;
+  eCharsetReloadInit,
+  eCharsetReloadRequested,
+  eCharsetReloadStopOrigional
+};
+
+
+
+
+
+class nsDocShell MOZ_FINAL
+  : public nsDocLoader
+  , public nsIDocShell
+  , public nsIWebNavigation
+  , public nsIBaseWindow
+  , public nsIScrollable
+  , public nsITextScroll
+  , public nsIDocCharset
+  , public nsIContentViewerContainer
+  , public nsIRefreshURI
+  , public nsIWebProgressListener
+  , public nsIWebPageDescriptor
+  , public nsIAuthPromptProvider
+  , public nsILoadContext
+  , public nsIWebShellServices
+  , public nsILinkHandler
+  , public nsIClipboardCommands
+  , public nsIDOMStorageManager
+  , public mozilla::SupportsWeakPtr<nsDocShell>
+{
+  friend class nsDSURIContentListener;
 
 public:
-    MOZ_DECLARE_REFCOUNTED_TYPENAME(nsDocShell)
-    
-    nsDocShell();
+  MOZ_DECLARE_REFCOUNTED_TYPENAME(nsDocShell)
+  
+  nsDocShell();
 
-    NS_DECL_AND_IMPL_ZEROING_OPERATOR_NEW
+  NS_DECL_AND_IMPL_ZEROING_OPERATOR_NEW
 
-    virtual nsresult Init() MOZ_OVERRIDE;
+  virtual nsresult Init() MOZ_OVERRIDE;
 
-    NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_ISUPPORTS_INHERITED
 
-    NS_DECL_NSIDOCSHELL
-    NS_DECL_NSIDOCSHELLTREEITEM
-    NS_DECL_NSIWEBNAVIGATION
-    NS_DECL_NSIBASEWINDOW
-    NS_DECL_NSISCROLLABLE
-    NS_DECL_NSITEXTSCROLL
-    NS_DECL_NSIDOCCHARSET
-    NS_DECL_NSIINTERFACEREQUESTOR
-    NS_DECL_NSIWEBPROGRESSLISTENER
-    NS_DECL_NSIREFRESHURI
-    NS_DECL_NSICONTENTVIEWERCONTAINER
-    NS_DECL_NSIWEBPAGEDESCRIPTOR
-    NS_DECL_NSIAUTHPROMPTPROVIDER
-    NS_DECL_NSICLIPBOARDCOMMANDS
-    NS_DECL_NSIWEBSHELLSERVICES
-    NS_FORWARD_SAFE_NSIDOMSTORAGEMANAGER(TopSessionStorageManager())
+  NS_DECL_NSIDOCSHELL
+  NS_DECL_NSIDOCSHELLTREEITEM
+  NS_DECL_NSIWEBNAVIGATION
+  NS_DECL_NSIBASEWINDOW
+  NS_DECL_NSISCROLLABLE
+  NS_DECL_NSITEXTSCROLL
+  NS_DECL_NSIDOCCHARSET
+  NS_DECL_NSIINTERFACEREQUESTOR
+  NS_DECL_NSIWEBPROGRESSLISTENER
+  NS_DECL_NSIREFRESHURI
+  NS_DECL_NSICONTENTVIEWERCONTAINER
+  NS_DECL_NSIWEBPAGEDESCRIPTOR
+  NS_DECL_NSIAUTHPROMPTPROVIDER
+  NS_DECL_NSICLIPBOARDCOMMANDS
+  NS_DECL_NSIWEBSHELLSERVICES
+  NS_FORWARD_SAFE_NSIDOMSTORAGEMANAGER(TopSessionStorageManager())
 
-    NS_IMETHOD Stop() MOZ_OVERRIDE {
-        
-        
-        return nsDocLoader::Stop();
-    }
+  NS_IMETHOD Stop() MOZ_OVERRIDE {
+    
+    
+    return nsDocLoader::Stop();
+  }
 
-    
-    
-    NS_FORWARD_NSISECURITYEVENTSINK(nsDocLoader::)
+  
+  
+  NS_FORWARD_NSISECURITYEVENTSINK(nsDocLoader::)
 
-    
-    NS_IMETHOD OnLinkClick(nsIContent* aContent,
-        nsIURI* aURI,
-        const char16_t* aTargetSpec,
-        const nsAString& aFileName,
-        nsIInputStream* aPostDataStream,
-        nsIInputStream* aHeadersDataStream,
-        bool aIsTrusted) MOZ_OVERRIDE;
-    NS_IMETHOD OnLinkClickSync(nsIContent* aContent,
-        nsIURI* aURI,
-        const char16_t* aTargetSpec,
-        const nsAString& aFileName,
-        nsIInputStream* aPostDataStream = 0,
-        nsIInputStream* aHeadersDataStream = 0,
-        nsIDocShell** aDocShell = 0,
-        nsIRequest** aRequest = 0) MOZ_OVERRIDE;
-    NS_IMETHOD OnOverLink(nsIContent* aContent,
-        nsIURI* aURI,
-        const char16_t* aTargetSpec) MOZ_OVERRIDE;
-    NS_IMETHOD OnLeaveLink() MOZ_OVERRIDE;
+  
+  NS_IMETHOD OnLinkClick(nsIContent* aContent,
+                         nsIURI* aURI,
+                         const char16_t* aTargetSpec,
+                         const nsAString& aFileName,
+                         nsIInputStream* aPostDataStream,
+                         nsIInputStream* aHeadersDataStream,
+                         bool aIsTrusted) MOZ_OVERRIDE;
+  NS_IMETHOD OnLinkClickSync(nsIContent* aContent,
+                             nsIURI* aURI,
+                             const char16_t* aTargetSpec,
+                             const nsAString& aFileName,
+                             nsIInputStream* aPostDataStream = 0,
+                             nsIInputStream* aHeadersDataStream = 0,
+                             nsIDocShell** aDocShell = 0,
+                             nsIRequest** aRequest = 0) MOZ_OVERRIDE;
+  NS_IMETHOD OnOverLink(nsIContent* aContent,
+                        nsIURI* aURI,
+                        const char16_t* aTargetSpec) MOZ_OVERRIDE;
+  NS_IMETHOD OnLeaveLink() MOZ_OVERRIDE;
 
-    nsDocShellInfoLoadType ConvertLoadTypeToDocShellLoadInfo(uint32_t aLoadType);
-    uint32_t ConvertDocShellLoadInfoToLoadType(nsDocShellInfoLoadType aDocShellLoadType);
+  nsDocShellInfoLoadType ConvertLoadTypeToDocShellLoadInfo(uint32_t aLoadType);
+  uint32_t ConvertDocShellLoadInfoToLoadType(
+      nsDocShellInfoLoadType aDocShellLoadType);
 
-    
-    
-    NS_IMETHOD GetAssociatedWindow(nsIDOMWindow**) MOZ_OVERRIDE;
-    NS_IMETHOD GetTopWindow(nsIDOMWindow**) MOZ_OVERRIDE;
-    NS_IMETHOD GetTopFrameElement(nsIDOMElement**) MOZ_OVERRIDE;
-    NS_IMETHOD GetNestedFrameId(uint64_t*) MOZ_OVERRIDE;
-    NS_IMETHOD IsAppOfType(uint32_t, bool*) MOZ_OVERRIDE;
-    NS_IMETHOD GetIsContent(bool*) MOZ_OVERRIDE;
-    NS_IMETHOD GetUsePrivateBrowsing(bool*) MOZ_OVERRIDE;
-    NS_IMETHOD SetUsePrivateBrowsing(bool) MOZ_OVERRIDE;
-    NS_IMETHOD SetPrivateBrowsing(bool) MOZ_OVERRIDE;
-    NS_IMETHOD GetUseRemoteTabs(bool*) MOZ_OVERRIDE;
-    NS_IMETHOD SetRemoteTabs(bool) MOZ_OVERRIDE;
+  
+  
+  NS_IMETHOD GetAssociatedWindow(nsIDOMWindow**) MOZ_OVERRIDE;
+  NS_IMETHOD GetTopWindow(nsIDOMWindow**) MOZ_OVERRIDE;
+  NS_IMETHOD GetTopFrameElement(nsIDOMElement**) MOZ_OVERRIDE;
+  NS_IMETHOD GetNestedFrameId(uint64_t*) MOZ_OVERRIDE;
+  NS_IMETHOD IsAppOfType(uint32_t, bool*) MOZ_OVERRIDE;
+  NS_IMETHOD GetIsContent(bool*) MOZ_OVERRIDE;
+  NS_IMETHOD GetUsePrivateBrowsing(bool*) MOZ_OVERRIDE;
+  NS_IMETHOD SetUsePrivateBrowsing(bool) MOZ_OVERRIDE;
+  NS_IMETHOD SetPrivateBrowsing(bool) MOZ_OVERRIDE;
+  NS_IMETHOD GetUseRemoteTabs(bool*) MOZ_OVERRIDE;
+  NS_IMETHOD SetRemoteTabs(bool) MOZ_OVERRIDE;
 
-    
-    
-    
-    nsresult RestoreFromHistory();
+  
+  
+  
+  nsresult RestoreFromHistory();
 
-    
-    
-    
-    
-    nsresult ForceRefreshURIFromTimer(nsIURI * aURI, int32_t aDelay,
-                                      bool aMetaRefresh, nsITimer* aTimer);
+  
+  
+  
+  
+  nsresult ForceRefreshURIFromTimer(nsIURI* aURI, int32_t aDelay,
+                                    bool aMetaRefresh, nsITimer* aTimer);
 
-    friend class OnLinkClickEvent;
+  friend class OnLinkClickEvent;
 
-    
-    
-    void FireDummyOnLocationChange()
-    {
-        FireOnLocationChange(this, nullptr, mCurrentURI,
-                             LOCATION_CHANGE_SAME_DOCUMENT);
-    }
+  
+  
+  void FireDummyOnLocationChange()
+  {
+    FireOnLocationChange(this, nullptr, mCurrentURI,
+                         LOCATION_CHANGE_SAME_DOCUMENT);
+  }
 
-    nsresult HistoryTransactionRemoved(int32_t aIndex);
+  nsresult HistoryTransactionRemoved(int32_t aIndex);
 
-    
-    
-    void NotifyAsyncPanZoomStarted(const mozilla::CSSIntPoint aScrollPos);
-    
-    
-    void NotifyAsyncPanZoomStopped(const mozilla::CSSIntPoint aScrollPos);
+  
+  
+  void NotifyAsyncPanZoomStarted(const mozilla::CSSIntPoint aScrollPos);
+  
+  
+  void NotifyAsyncPanZoomStopped(const mozilla::CSSIntPoint aScrollPos);
 
-    
-    
-    
-    void AddProfileTimelineMarker(const char* aName,
-                                  TracingMetadata aMetaData);
-    void AddProfileTimelineMarker(mozilla::UniquePtr<TimelineMarker> &aMarker);
+  
+  
+  
+  void AddProfileTimelineMarker(const char* aName,
+                                TracingMetadata aMetaData);
+  void AddProfileTimelineMarker(mozilla::UniquePtr<TimelineMarker>& aMarker);
 
-    
-    
-    static unsigned long gProfileTimelineRecordingsCount;
+  
+  
+  static unsigned long gProfileTimelineRecordingsCount;
+
 protected:
-    
-    virtual ~nsDocShell();
-    virtual void DestroyChildren() MOZ_OVERRIDE;
-
-    
-    nsresult EnsureContentViewer();
-    
-    
-    nsresult CreateAboutBlankContentViewer(nsIPrincipal* aPrincipal,
-                                           nsIURI* aBaseURI,
-                                           bool aTryToSaveOldPresentation = true);
-    nsresult CreateContentViewer(const char * aContentType,
-        nsIRequest * request, nsIStreamListener ** aContentHandler);
-    nsresult NewContentViewerObj(const char * aContentType,
-        nsIRequest * request, nsILoadGroup * aLoadGroup,
-        nsIStreamListener ** aContentHandler, nsIContentViewer ** aViewer);
-    nsresult SetupNewViewer(nsIContentViewer * aNewViewer);
-
-    void SetupReferrerFromChannel(nsIChannel * aChannel);
-
-    nsresult GetEldestPresContext(nsPresContext** aPresContext);
-
-    
-    
-    
-    
-    
-    
-    nsIPrincipal* GetInheritedPrincipal(bool aConsiderCurrentDocument);
-
-    
-    
-    
-    
-    
-    nsresult DoURILoad(nsIURI * aURI,
-                       nsIURI * aReferrer,
-                       bool aSendReferrer,
-                       uint32_t aReferrerPolicy,
-                       nsISupports * aOwner,
-                       const char * aTypeHint,
-                       const nsAString & aFileName,
-                       nsIInputStream * aPostData,
-                       nsIInputStream * aHeadersData,
-                       bool firstParty,
-                       nsIDocShell ** aDocShell,
-                       nsIRequest ** aRequest,
-                       bool aIsNewWindowTarget,
-                       bool aBypassClassifier,
-                       bool aForceAllowCookies,
-                       const nsAString &aSrcdoc,
-                       nsIURI * baseURI,
-                       nsContentPolicyType aContentPolicyType);
-    nsresult AddHeadersToChannel(nsIInputStream * aHeadersData,
-                                 nsIChannel * aChannel);
-    nsresult DoChannelLoad(nsIChannel * aChannel,
-                           nsIURILoader * aURILoader,
-                           bool aBypassClassifier);
-
-    nsresult ScrollToAnchor(nsACString & curHash, nsACString & newHash,
-                            uint32_t aLoadType);
-
-    
-    
-    
-    
-    
-    bool OnLoadingSite(nsIChannel * aChannel,
-                         bool aFireOnLocationChange,
-                         bool aAddToGlobalHistory = true);
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    bool OnNewURI(nsIURI * aURI, nsIChannel * aChannel, nsISupports* aOwner,
-                    uint32_t aLoadType,
-                    bool aFireOnLocationChange,
-                    bool aAddToGlobalHistory,
-                    bool aCloneSHChildren);
-
-    void SetReferrerURI(nsIURI * aURI);
-    void SetReferrerPolicy(uint32_t referrerPolicy);
-
-    
-    bool ShouldAddToSessionHistory(nsIURI * aURI);
-    
-    
-    
-    
-    
-    
-    nsresult AddToSessionHistory(nsIURI * aURI, nsIChannel * aChannel,
-                                 nsISupports* aOwner,
-                                 bool aCloneChildren,
-                                 nsISHEntry ** aNewEntry);
-    nsresult AddChildSHEntryToParent(nsISHEntry* aNewEntry, int32_t aChildOffset,
-                                     bool aCloneChildren);
+  
+  virtual ~nsDocShell();
+  virtual void DestroyChildren() MOZ_OVERRIDE;
+
+  
+  nsresult EnsureContentViewer();
+  
+  
+  nsresult CreateAboutBlankContentViewer(nsIPrincipal* aPrincipal,
+                                         nsIURI* aBaseURI,
+                                         bool aTryToSaveOldPresentation = true);
+  nsresult CreateContentViewer(const char* aContentType,
+                               nsIRequest* aRequest,
+                               nsIStreamListener** aContentHandler);
+  nsresult NewContentViewerObj(const char* aContentType,
+                               nsIRequest* aRequest, nsILoadGroup* aLoadGroup,
+                               nsIStreamListener** aContentHandler,
+                               nsIContentViewer** aViewer);
+  nsresult SetupNewViewer(nsIContentViewer* aNewViewer);
+
+  void SetupReferrerFromChannel(nsIChannel* aChannel);
+
+  nsresult GetEldestPresContext(nsPresContext** aPresContext);
+
+  
+  
+  
+  
+  
+  
+  nsIPrincipal* GetInheritedPrincipal(bool aConsiderCurrentDocument);
+
+  
+  
+  
+  
+  
+  nsresult DoURILoad(nsIURI* aURI,
+                     nsIURI* aReferrer,
+                     bool aSendReferrer,
+                     uint32_t aReferrerPolicy,
+                     nsISupports* aOwner,
+                     const char* aTypeHint,
+                     const nsAString& aFileName,
+                     nsIInputStream* aPostData,
+                     nsIInputStream* aHeadersData,
+                     bool aFirstParty,
+                     nsIDocShell** aDocShell,
+                     nsIRequest** aRequest,
+                     bool aIsNewWindowTarget,
+                     bool aBypassClassifier,
+                     bool aForceAllowCookies,
+                     const nsAString& aSrcdoc,
+                     nsIURI* aBaseURI,
+                     nsContentPolicyType aContentPolicyType);
+  nsresult AddHeadersToChannel(nsIInputStream* aHeadersData,
+                               nsIChannel* aChannel);
+  nsresult DoChannelLoad(nsIChannel* aChannel,
+                         nsIURILoader* aURILoader,
+                         bool aBypassClassifier);
+
+  nsresult ScrollToAnchor(nsACString& aCurHash, nsACString& aNewHash,
+                          uint32_t aLoadType);
+
+  
+  
+  
+  
+  
+  bool OnLoadingSite(nsIChannel* aChannel,
+                     bool aFireOnLocationChange,
+                     bool aAddToGlobalHistory = true);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  bool OnNewURI(nsIURI* aURI, nsIChannel* aChannel, nsISupports* aOwner,
+                uint32_t aLoadType,
+                bool aFireOnLocationChange,
+                bool aAddToGlobalHistory,
+                bool aCloneSHChildren);
+
+  void SetReferrerURI(nsIURI* aURI);
+  void SetReferrerPolicy(uint32_t aReferrerPolicy);
+
+  
+  bool ShouldAddToSessionHistory(nsIURI* aURI);
+  
+  
+  
+  
+  
+  
+  nsresult AddToSessionHistory(nsIURI* aURI, nsIChannel* aChannel,
+                               nsISupports* aOwner,
+                               bool aCloneChildren,
+                               nsISHEntry** aNewEntry);
+  nsresult AddChildSHEntryToParent(nsISHEntry* aNewEntry, int32_t aChildOffset,
+                                   bool aCloneChildren);
 
-    nsresult AddChildSHEntryInternal(nsISHEntry* aCloneRef, nsISHEntry* aNewEntry,
-                                     int32_t aChildOffset, uint32_t loadType,
-                                     bool aCloneChildren);
+  nsresult AddChildSHEntryInternal(nsISHEntry* aCloneRef, nsISHEntry* aNewEntry,
+                                   int32_t aChildOffset, uint32_t aLoadType,
+                                   bool aCloneChildren);
 
-    nsresult LoadHistoryEntry(nsISHEntry * aEntry, uint32_t aLoadType);
-    nsresult PersistLayoutHistoryState();
+  nsresult LoadHistoryEntry(nsISHEntry* aEntry, uint32_t aLoadType);
+  nsresult PersistLayoutHistoryState();
 
-    
-    
-    
-    
-    
-    
-    
-    
-    static nsresult CloneAndReplace(nsISHEntry *aSrcEntry,
-                                    nsDocShell *aSrcShell,
-                                    uint32_t aCloneID,
-                                    nsISHEntry *aReplaceEntry,
-                                    bool aCloneChildren,
-                                    nsISHEntry **aDestEntry);
+  
+  
+  
+  
+  
+  
+  
+  
+  static nsresult CloneAndReplace(nsISHEntry* aSrcEntry,
+                                  nsDocShell* aSrcShell,
+                                  uint32_t aCloneID,
+                                  nsISHEntry* aReplaceEntry,
+                                  bool aCloneChildren,
+                                  nsISHEntry** aDestEntry);
 
-    
-    static nsresult CloneAndReplaceChild(nsISHEntry *aEntry,
-                                         nsDocShell *aShell,
-                                         int32_t aChildIndex, void *aData);
+  
+  static nsresult CloneAndReplaceChild(nsISHEntry* aEntry, nsDocShell* aShell,
+                                       int32_t aChildIndex, void* aData);
 
-    nsresult GetRootSessionHistory(nsISHistory ** aReturn);
-    nsresult GetHttpChannel(nsIChannel * aChannel, nsIHttpChannel ** aReturn);
-    bool ShouldDiscardLayoutState(nsIHttpChannel * aChannel);
+  nsresult GetRootSessionHistory(nsISHistory** aReturn);
+  nsresult GetHttpChannel(nsIChannel* aChannel, nsIHttpChannel** aReturn);
+  bool ShouldDiscardLayoutState(nsIHttpChannel* aChannel);
 
-    
-    
-    bool HasHistoryEntry(nsISHEntry *aEntry) const
-    {
-        return aEntry && (aEntry == mOSHE || aEntry == mLSHE);
-    }
+  
+  
+  bool HasHistoryEntry(nsISHEntry* aEntry) const
+  {
+    return aEntry && (aEntry == mOSHE || aEntry == mLSHE);
+  }
 
-    
-    void SwapHistoryEntries(nsISHEntry *aOldEntry, nsISHEntry *aNewEntry);
+  
+  void SwapHistoryEntries(nsISHEntry* aOldEntry, nsISHEntry* aNewEntry);
 
-    
-    
-    
-    void SetHistoryEntry(nsCOMPtr<nsISHEntry> *aPtr, nsISHEntry *aEntry);
+  
+  
+  
+  void SetHistoryEntry(nsCOMPtr<nsISHEntry>* aPtr, nsISHEntry* aEntry);
 
-    
-    static nsresult SetChildHistoryEntry(nsISHEntry *aEntry,
-                                         nsDocShell *aShell,
-                                         int32_t aEntryIndex, void *aData);
+  
+  static nsresult SetChildHistoryEntry(nsISHEntry* aEntry, nsDocShell* aShell,
+                                       int32_t aEntryIndex, void* aData);
 
-    
-    
-    
-    
-    typedef nsresult (*WalkHistoryEntriesFunc)(nsISHEntry *aEntry,
-                                               nsDocShell *aShell,
-                                               int32_t aChildIndex,
-                                               void *aData);
+  
+  
+  
+  
+  typedef nsresult(*WalkHistoryEntriesFunc)(nsISHEntry* aEntry,
+                                            nsDocShell* aShell,
+                                            int32_t aChildIndex,
+                                            void* aData);
 
-    
-    
-    
-    static nsresult WalkHistoryEntries(nsISHEntry *aRootEntry,
-                                       nsDocShell *aRootShell,
-                                       WalkHistoryEntriesFunc aCallback,
-                                       void *aData);
+  
+  
+  
+  static nsresult WalkHistoryEntries(nsISHEntry* aRootEntry,
+                                     nsDocShell* aRootShell,
+                                     WalkHistoryEntriesFunc aCallback,
+                                     void* aData);
 
-    
-    
-    virtual void OnRedirectStateChange(nsIChannel* aOldChannel,
-                                       nsIChannel* aNewChannel,
-                                       uint32_t aRedirectFlags,
-                                       uint32_t aStateFlags) MOZ_OVERRIDE;
+  
+  
+  virtual void OnRedirectStateChange(nsIChannel* aOldChannel,
+                                     nsIChannel* aNewChannel,
+                                     uint32_t aRedirectFlags,
+                                     uint32_t aStateFlags) MOZ_OVERRIDE;
 
-    
+  
 
 
 
@@ -459,9 +464,9 @@ protected:
 
 
 
-    bool ChannelIsPost(nsIChannel* aChannel);
+  bool ChannelIsPost(nsIChannel* aChannel);
 
-    
+  
 
 
 
@@ -476,11 +481,11 @@ protected:
 
 
 
-    void ExtractLastVisit(nsIChannel* aChannel,
-                          nsIURI** aURI,
-                          uint32_t* aChannelRedirectFlags);
+  void ExtractLastVisit(nsIChannel* aChannel,
+                        nsIURI** aURI,
+                        uint32_t* aChannelRedirectFlags);
 
-    
+  
 
 
 
@@ -490,11 +495,11 @@ protected:
 
 
 
-    void SaveLastVisit(nsIChannel* aChannel,
-                       nsIURI* aURI,
-                       uint32_t aChannelRedirectFlags);
+  void SaveLastVisit(nsIChannel* aChannel,
+                     nsIURI* aURI,
+                     uint32_t aChannelRedirectFlags);
 
-    
+  
 
 
 
@@ -520,205 +525,208 @@ protected:
 
 
 
-    void AddURIVisit(nsIURI* aURI,
-                     nsIURI* aReferrerURI,
-                     nsIURI* aPreviousURI,
-                     uint32_t aChannelRedirectFlags,
-                     uint32_t aResponseStatus=0);
+  void AddURIVisit(nsIURI* aURI,
+                   nsIURI* aReferrerURI,
+                   nsIURI* aPreviousURI,
+                   uint32_t aChannelRedirectFlags,
+                   uint32_t aResponseStatus = 0);
 
-    
-    nsresult   ConfirmRepost(bool * aRepost);
-    NS_IMETHOD GetPromptAndStringBundle(nsIPrompt ** aPrompt,
-        nsIStringBundle ** aStringBundle);
-    NS_IMETHOD GetChildOffset(nsIDOMNode * aChild, nsIDOMNode * aParent,
-        int32_t * aOffset);
-    nsIScrollableFrame* GetRootScrollFrame();
-    NS_IMETHOD EnsureScriptEnvironment();
-    NS_IMETHOD EnsureEditorData();
-    nsresult   EnsureTransferableHookData();
-    NS_IMETHOD EnsureFind();
-    nsresult   RefreshURIFromQueue();
-    NS_IMETHOD LoadErrorPage(nsIURI *aURI, const char16_t *aURL,
-                             const char *aErrorPage,
-                             const char16_t *aErrorType,
-                             const char16_t *aDescription,
-                             const char *aCSSClass,
-                             nsIChannel* aFailedChannel);
-    bool IsPrintingOrPP(bool aDisplayErrorDialog = true);
-    bool IsNavigationAllowed(bool aDisplayPrintErrorDialog = true,
-                             bool aCheckIfUnloadFired = true);
+  
+  nsresult ConfirmRepost(bool* aRepost);
+  NS_IMETHOD GetPromptAndStringBundle(nsIPrompt** aPrompt,
+                                      nsIStringBundle** aStringBundle);
+  NS_IMETHOD GetChildOffset(nsIDOMNode* aChild, nsIDOMNode* aParent,
+                            int32_t* aOffset);
+  nsIScrollableFrame* GetRootScrollFrame();
+  NS_IMETHOD EnsureScriptEnvironment();
+  NS_IMETHOD EnsureEditorData();
+  nsresult EnsureTransferableHookData();
+  NS_IMETHOD EnsureFind();
+  nsresult RefreshURIFromQueue();
+  NS_IMETHOD LoadErrorPage(nsIURI* aURI, const char16_t* aURL,
+                           const char* aErrorPage,
+                           const char16_t* aErrorType,
+                           const char16_t* aDescription,
+                           const char* aCSSClass,
+                           nsIChannel* aFailedChannel);
+  bool IsPrintingOrPP(bool aDisplayErrorDialog = true);
+  bool IsNavigationAllowed(bool aDisplayPrintErrorDialog = true,
+                           bool aCheckIfUnloadFired = true);
 
-    nsresult SetBaseUrlForWyciwyg(nsIContentViewer * aContentViewer);
+  nsresult SetBaseUrlForWyciwyg(nsIContentViewer* aContentViewer);
 
-    static  inline  uint32_t
-    PRTimeToSeconds(PRTime t_usec)
-    {
-      PRTime usec_per_sec = PR_USEC_PER_SEC;
-      return  uint32_t(t_usec /= usec_per_sec);
-    }
+  static inline uint32_t PRTimeToSeconds(PRTime aTimeUsec)
+  {
+    PRTime usecPerSec = PR_USEC_PER_SEC;
+    return uint32_t(aTimeUsec /= usecPerSec);
+  }
 
-    inline bool UseErrorPages()
-    {
-      return (mObserveErrorPages ? sUseErrorPages : mUseErrorPages);
-    }
+  inline bool UseErrorPages()
+  {
+    return (mObserveErrorPages ? sUseErrorPages : mUseErrorPages);
+  }
 
-    bool IsFrame();
+  bool IsFrame();
 
-    
-    
-    
-    
-    virtual nsresult EndPageLoad(nsIWebProgress * aProgress,
-                                 nsIChannel * aChannel,
-                                 nsresult aResult);
+  
+  
+  
+  
+  virtual nsresult EndPageLoad(nsIWebProgress* aProgress,
+                               nsIChannel* aChannel,
+                               nsresult aResult);
 
-    
-    
-    
-    nsresult SetDocCurrentStateObj(nsISHEntry *shEntry);
+  
+  
+  
+  nsresult SetDocCurrentStateObj(nsISHEntry* aShEntry);
 
-    nsresult CheckLoadingPermissions();
+  nsresult CheckLoadingPermissions();
 
-    
-    
-    static bool CanAccessItem(nsIDocShellTreeItem* aTargetItem,
-                                nsIDocShellTreeItem* aAccessingItem,
-                                bool aConsiderOpener = true);
-    static bool ValidateOrigin(nsIDocShellTreeItem* aOriginTreeItem,
-                                 nsIDocShellTreeItem* aTargetTreeItem);
+  
+  
+  static bool CanAccessItem(nsIDocShellTreeItem* aTargetItem,
+                            nsIDocShellTreeItem* aAccessingItem,
+                            bool aConsiderOpener = true);
+  static bool ValidateOrigin(nsIDocShellTreeItem* aOriginTreeItem,
+                             nsIDocShellTreeItem* aTargetTreeItem);
 
-    
-    
-    
-    
-    
-    bool SetCurrentURI(nsIURI *aURI, nsIRequest *aRequest,
-                       bool aFireOnLocationChange,
-                       uint32_t aLocationFlags);
+  
+  
+  
+  
+  
+  bool SetCurrentURI(nsIURI* aURI, nsIRequest* aRequest,
+                     bool aFireOnLocationChange,
+                     uint32_t aLocationFlags);
 
-    
-    
+  
+  
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
-    
-    
-    
-    
-    
-    
-    
-    
-    bool CanSavePresentation(uint32_t aLoadType,
-                               nsIRequest *aNewRequest,
-                               nsIDocument *aNewDocument);
+  
+  
+  
+  
+  
+  
+  
+  
+  bool CanSavePresentation(uint32_t aLoadType,
+                           nsIRequest* aNewRequest,
+                           nsIDocument* aNewDocument);
 
-    
-    
-    
-    nsresult CaptureState();
+  
+  
+  
+  nsresult CaptureState();
 
-    
-    
-    
-    nsresult RestorePresentation(nsISHEntry *aSHEntry, bool *aRestoring);
+  
+  
+  
+  nsresult RestorePresentation(nsISHEntry* aSHEntry, bool* aRestoring);
 
-    
-    nsresult BeginRestoreChildren();
+  
+  nsresult BeginRestoreChildren();
 
-    
-    void DoGetPositionAndSize(int32_t * x, int32_t * y, int32_t * cx,
-                              int32_t * cy);
+  
+  void DoGetPositionAndSize(int32_t* aX, int32_t* aY, int32_t* aWidth,
+                            int32_t* aHeight);
 
-    
-    
-    
-    bool IsOKToLoadURI(nsIURI* aURI);
+  
+  
+  
+  bool IsOKToLoadURI(nsIURI* aURI);
 
-    void ReattachEditorToWindow(nsISHEntry *aSHEntry);
+  void ReattachEditorToWindow(nsISHEntry* aSHEntry);
 
-    nsCOMPtr<nsIDOMStorageManager> mSessionStorageManager;
-    nsIDOMStorageManager* TopSessionStorageManager();
+  nsCOMPtr<nsIDOMStorageManager> mSessionStorageManager;
+  nsIDOMStorageManager* TopSessionStorageManager();
 
-    
-    nsresult GetControllerForCommand(const char *inCommand,
-                                     nsIController** outController);
-    nsresult EnsureCommandHandler();
+  
+  nsresult GetControllerForCommand(const char* aCommand,
+                                   nsIController** aResult);
+  nsresult EnsureCommandHandler();
 
-    nsIChannel* GetCurrentDocChannel();
+  nsIChannel* GetCurrentDocChannel();
 
-    bool ShouldBlockLoadingForBackButton();
+  bool ShouldBlockLoadingForBackButton();
 
-    
-    already_AddRefed<nsDocShell> GetParentDocshell();
+  
+  already_AddRefed<nsDocShell> GetParentDocshell();
 
-    
-    
-    bool DoAppRedirectIfNeeded(nsIURI * aURI,
-                               nsIDocShellLoadInfo * aLoadInfo,
-                               bool aFirstParty);
+  
+  
+  bool DoAppRedirectIfNeeded(nsIURI* aURI,
+                             nsIDocShellLoadInfo* aLoadInfo,
+                             bool aFirstParty);
+
 protected:
-    nsresult GetCurScrollPos(int32_t scrollOrientation, int32_t * curPos);
-    nsresult SetCurScrollPosEx(int32_t curHorizontalPos, int32_t curVerticalPos);
+  nsresult GetCurScrollPos(int32_t aScrollOrientation, int32_t* aCurPos);
+  nsresult SetCurScrollPosEx(int32_t aCurHorizontalPos,
+                             int32_t aCurVerticalPos);
 
-    
-    virtual nsresult SetDocLoaderParent(nsDocLoader * aLoader) MOZ_OVERRIDE;
+  
+  virtual nsresult SetDocLoaderParent(nsDocLoader* aLoader) MOZ_OVERRIDE;
 
-    void ClearFrameHistory(nsISHEntry* aEntry);
+  void ClearFrameHistory(nsISHEntry* aEntry);
 
-    
+  
 
 
 
-    void MaybeInitTiming();
+  void MaybeInitTiming();
 
 public:
-    
-    class RestorePresentationEvent : public nsRunnable {
-    public:
-        NS_DECL_NSIRUNNABLE
-        explicit RestorePresentationEvent(nsDocShell *ds) : mDocShell(ds) {}
-        void Revoke() { mDocShell = nullptr; }
-    private:
-        nsRefPtr<nsDocShell> mDocShell;
-    };
+  
+  class RestorePresentationEvent : public nsRunnable
+  {
+  public:
+    NS_DECL_NSIRUNNABLE
+    explicit RestorePresentationEvent(nsDocShell* aDs) : mDocShell(aDs) {}
+    void Revoke() { mDocShell = nullptr; }
+  private:
+    nsRefPtr<nsDocShell> mDocShell;
+  };
+
 protected:
+  bool JustStartedNetworkLoad();
 
-    bool JustStartedNetworkLoad();
+  nsresult CreatePrincipalFromReferrer(nsIURI* aReferrer,
+                                       nsIPrincipal** aResult);
 
-    nsresult CreatePrincipalFromReferrer(nsIURI*        aReferrer,
-                                         nsIPrincipal** outPrincipal);
+  enum FrameType
+  {
+    eFrameTypeRegular,
+    eFrameTypeBrowser,
+    eFrameTypeApp
+  };
 
-    enum FrameType {
-        eFrameTypeRegular,
-        eFrameTypeBrowser,
-        eFrameTypeApp
-    };
-
-    static const nsCString FrameTypeToString(FrameType aFrameType)
-    {
-      switch (aFrameType) {
+  static const nsCString FrameTypeToString(FrameType aFrameType)
+  {
+    switch (aFrameType) {
       case FrameType::eFrameTypeApp:
         return NS_LITERAL_CSTRING("app");
       case FrameType::eFrameTypeBrowser:
@@ -728,281 +736,285 @@ protected:
       default:
         NS_ERROR("Unknown frame type");
         return EmptyCString();
-      }
     }
+  }
 
-    FrameType GetInheritedFrameType();
+  FrameType GetInheritedFrameType();
 
-    bool HasUnloadedParent();
+  bool HasUnloadedParent();
 
-    
-    nsIntRect                  mBounds;
-    nsString                   mName;
-    nsString                   mTitle;
+  
+  nsIntRect mBounds;
+  nsString mName;
+  nsString mTitle;
 
-    
+  
 
 
 
-    nsCString                  mContentTypeHint;
-    nsIntPoint                 mDefaultScrollbarPref; 
+  nsCString mContentTypeHint;
+  nsIntPoint mDefaultScrollbarPref; 
 
-    nsCOMPtr<nsISupportsArray> mRefreshURIList;
-    nsCOMPtr<nsISupportsArray> mSavedRefreshURIList;
-    nsRefPtr<nsDSURIContentListener> mContentListener;
-    nsCOMPtr<nsIContentViewer> mContentViewer;
-    nsCOMPtr<nsIWidget>        mParentWidget;
+  nsCOMPtr<nsISupportsArray> mRefreshURIList;
+  nsCOMPtr<nsISupportsArray> mSavedRefreshURIList;
+  nsRefPtr<nsDSURIContentListener> mContentListener;
+  nsCOMPtr<nsIContentViewer> mContentViewer;
+  nsCOMPtr<nsIWidget> mParentWidget;
 
-    
-    nsCOMPtr<nsIURI>           mCurrentURI;
-    nsCOMPtr<nsIURI>           mReferrerURI;
-    uint32_t                   mReferrerPolicy;
-    nsRefPtr<nsGlobalWindow>   mScriptGlobal;
-    nsCOMPtr<nsISHistory>      mSessionHistory;
-    nsCOMPtr<nsIGlobalHistory2> mGlobalHistory;
-    nsCOMPtr<nsIWebBrowserFind> mFind;
-    nsCOMPtr<nsICommandManager> mCommandManager;
-    
-    
-    nsCOMPtr<nsISHEntry>       mOSHE;
-    
-    
-    
-    
-    
-    
-    nsCOMPtr<nsISHEntry>       mLSHE;
+  
+  nsCOMPtr<nsIURI> mCurrentURI;
+  nsCOMPtr<nsIURI> mReferrerURI;
+  uint32_t mReferrerPolicy;
+  nsRefPtr<nsGlobalWindow> mScriptGlobal;
+  nsCOMPtr<nsISHistory> mSessionHistory;
+  nsCOMPtr<nsIGlobalHistory2> mGlobalHistory;
+  nsCOMPtr<nsIWebBrowserFind> mFind;
+  nsCOMPtr<nsICommandManager> mCommandManager;
+  
+  
+  nsCOMPtr<nsISHEntry> mOSHE;
+  
+  
+  
+  
+  
+  
+  nsCOMPtr<nsISHEntry> mLSHE;
 
-    
-    
-    
-    nsRevocableEventPtr<RestorePresentationEvent> mRestorePresentationEvent;
+  
+  
+  
+  nsRevocableEventPtr<RestorePresentationEvent> mRestorePresentationEvent;
 
-    
-    nsAutoPtr<nsDocShellEditorData> mEditorData;
+  
+  nsAutoPtr<nsDocShellEditorData> mEditorData;
 
-    
-    nsCOMPtr<nsIClipboardDragDropHookList> mTransferableHookData;
+  
+  nsCOMPtr<nsIClipboardDragDropHookList> mTransferableHookData;
 
-    
-    nsCOMPtr<nsISecureBrowserUI> mSecurityUI;
+  
+  nsCOMPtr<nsISecureBrowserUI> mSecurityUI;
 
-    
-    
-    
-    
-    
-    nsCOMPtr<nsIURI>           mLoadingURI;
+  
+  
+  
+  
+  
+  nsCOMPtr<nsIURI> mLoadingURI;
 
-    
-    
-    
-    nsCOMPtr<nsIURI>           mFailedURI;
-    nsCOMPtr<nsIChannel>       mFailedChannel;
-    uint32_t                   mFailedLoadType;
+  
+  
+  
+  nsCOMPtr<nsIURI> mFailedURI;
+  nsCOMPtr<nsIChannel> mFailedChannel;
+  uint32_t mFailedLoadType;
 
-    
-    nsRefPtr<mozilla::dom::URLSearchParams> mURLSearchParams;
+  
+  nsRefPtr<mozilla::dom::URLSearchParams> mURLSearchParams;
 
-    
-    
-    
-    nsCOMPtr<nsIChannel>       mMixedContentChannel;
+  
+  
+  
+  nsCOMPtr<nsIChannel> mMixedContentChannel;
 
-    
-    
-    
+  
+  
+  
 
-    nsIDocShellTreeOwner *     mTreeOwner; 
-    mozilla::dom::EventTarget* mChromeEventHandler; 
+  nsIDocShellTreeOwner* mTreeOwner; 
+  mozilla::dom::EventTarget* mChromeEventHandler; 
 
-    eCharsetReloadState        mCharsetReloadState;
+  eCharsetReloadState mCharsetReloadState;
 
-    
-    
-    uint32_t                   mChildOffset;
-    uint32_t                   mBusyFlags;
-    uint32_t                   mAppType;
-    uint32_t                   mLoadType;
+  
+  
+  uint32_t mChildOffset;
+  uint32_t mBusyFlags;
+  uint32_t mAppType;
+  uint32_t mLoadType;
 
-    int32_t                    mMarginWidth;
-    int32_t                    mMarginHeight;
+  int32_t mMarginWidth;
+  int32_t mMarginHeight;
 
-    
-    
-    int32_t                    mItemType;
+  
+  
+  int32_t mItemType;
 
-    
-    
-    int32_t                    mPreviousTransIndex;
-    int32_t                    mLoadedTransIndex;
+  
+  
+  int32_t mPreviousTransIndex;
+  int32_t mLoadedTransIndex;
 
-    uint32_t                   mSandboxFlags;
-    nsWeakPtr                  mOnePermittedSandboxedNavigator;
+  uint32_t mSandboxFlags;
+  nsWeakPtr mOnePermittedSandboxedNavigator;
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    enum FullscreenAllowedState {
-        CHECK_ATTRIBUTES,
-        PARENT_ALLOWS,
-        PARENT_PROHIBITS
-    };
-    FullscreenAllowedState     mFullscreenAllowed;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  enum FullscreenAllowedState
+  {
+    CHECK_ATTRIBUTES,
+    PARENT_ALLOWS,
+    PARENT_PROHIBITS
+  };
+  FullscreenAllowedState mFullscreenAllowed;
 
-    
-    static bool                sUseErrorPages;
+  
+  static bool sUseErrorPages;
 
-    bool                       mCreated;
-    bool                       mAllowSubframes;
-    bool                       mAllowPlugins;
-    bool                       mAllowJavascript;
-    bool                       mAllowMetaRedirects;
-    bool                       mAllowImages;
-    bool                       mAllowMedia;
-    bool                       mAllowDNSPrefetch;
-    bool                       mAllowWindowControl;
-    bool                       mAllowContentRetargeting;
-    bool                       mCreatingDocument; 
-    bool                       mUseErrorPages;
-    bool                       mObserveErrorPages;
-    bool                       mAllowAuth;
-    bool                       mAllowKeywordFixup;
-    bool                       mIsOffScreenBrowser;
-    bool                       mIsActive;
-    bool                       mIsPrerendered;
-    bool                       mIsAppTab;
-    bool                       mUseGlobalHistory;
-    bool                       mInPrivateBrowsing;
-    bool                       mUseRemoteTabs;
-    bool                       mDeviceSizeIsPageSize;
-    bool                       mWindowDraggingAllowed;
+  bool mCreated;
+  bool mAllowSubframes;
+  bool mAllowPlugins;
+  bool mAllowJavascript;
+  bool mAllowMetaRedirects;
+  bool mAllowImages;
+  bool mAllowMedia;
+  bool mAllowDNSPrefetch;
+  bool mAllowWindowControl;
+  bool mAllowContentRetargeting;
+  bool mCreatingDocument; 
+  bool mUseErrorPages;
+  bool mObserveErrorPages;
+  bool mAllowAuth;
+  bool mAllowKeywordFixup;
+  bool mIsOffScreenBrowser;
+  bool mIsActive;
+  bool mIsPrerendered;
+  bool mIsAppTab;
+  bool mUseGlobalHistory;
+  bool mInPrivateBrowsing;
+  bool mUseRemoteTabs;
+  bool mDeviceSizeIsPageSize;
+  bool mWindowDraggingAllowed;
 
-    
-    
-    
-    bool                       mCanExecuteScripts;
-    void RecomputeCanExecuteScripts();
+  
+  
+  
+  bool mCanExecuteScripts;
+  void RecomputeCanExecuteScripts();
 
-    
-    
-    
-    bool                       mFiredUnloadEvent;
+  
+  
+  
+  bool mFiredUnloadEvent;
 
-    
-    
-    
-    
-    bool                       mEODForCurrentDocument;
-    bool                       mURIResultedInDocument;
+  
+  
+  
+  
+  bool mEODForCurrentDocument;
+  bool mURIResultedInDocument;
 
-    bool                       mIsBeingDestroyed;
+  bool mIsBeingDestroyed;
 
-    bool                       mIsExecutingOnLoadHandler;
+  bool mIsExecutingOnLoadHandler;
 
-    
-    bool                       mIsPrintingOrPP;
+  
+  bool mIsPrintingOrPP;
 
-    
-    
-    
-    bool                       mSavingOldViewer;
+  
+  
+  
+  bool mSavingOldViewer;
 
-    
-    bool                       mDynamicallyCreated;
+  
+  bool mDynamicallyCreated;
 #ifdef DEBUG
-    bool                       mInEnsureScriptEnv;
+  bool mInEnsureScriptEnv;
 #endif
-    bool                       mAffectPrivateSessionLifetime;
-    bool                       mInvisible;
-    bool                       mHasLoadedNonBlankURI;
-    uint64_t                   mHistoryID;
-    uint32_t                   mDefaultLoadFlags;
+  bool mAffectPrivateSessionLifetime;
+  bool mInvisible;
+  bool mHasLoadedNonBlankURI;
+  uint64_t mHistoryID;
+  uint32_t mDefaultLoadFlags;
 
-    static nsIURIFixup *sURIFixup;
+  static nsIURIFixup* sURIFixup;
 
-    nsRefPtr<nsDOMNavigationTiming> mTiming;
+  nsRefPtr<nsDOMNavigationTiming> mTiming;
 
-    
-    
-    
-    bool                            mBlankTiming;
+  
+  
+  
+  bool mBlankTiming;
 
-    
-    FrameType mFrameType;
+  
+  FrameType mFrameType;
 
-    
-    
-    
-    
-    
-    
-    
-    
-    uint32_t mOwnOrContainingAppId;
+  
+  
+  
+  
+  
+  
+  
+  
+  uint32_t mOwnOrContainingAppId;
 
-    nsString mPaymentRequestId;
+  nsString mPaymentRequestId;
 
-    nsString GetInheritedPaymentRequestId();
+  nsString GetInheritedPaymentRequestId();
+
 private:
-    nsCString         mForcedCharset;
-    nsCString         mParentCharset;
-    int32_t           mParentCharsetSource;
-    nsCOMPtr<nsIPrincipal> mParentCharsetPrincipal;
-    nsTObserverArray<nsWeakPtr> mPrivacyObservers;
-    nsTObserverArray<nsWeakPtr> mReflowObservers;
-    nsTObserverArray<nsWeakPtr> mScrollObservers;
-    nsCString         mOriginalUriString;
-    nsWeakPtr mOpener;
+  nsCString mForcedCharset;
+  nsCString mParentCharset;
+  int32_t mParentCharsetSource;
+  nsCOMPtr<nsIPrincipal> mParentCharsetPrincipal;
+  nsTObserverArray<nsWeakPtr> mPrivacyObservers;
+  nsTObserverArray<nsWeakPtr> mReflowObservers;
+  nsTObserverArray<nsWeakPtr> mScrollObservers;
+  nsCString mOriginalUriString;
+  nsWeakPtr mOpener;
 
-    
-    
-    uint32_t          mJSRunToCompletionDepth;
+  
+  
+  uint32_t mJSRunToCompletionDepth;
 
-    
-    bool mProfileTimelineRecording;
+  
+  bool mProfileTimelineRecording;
 
-    nsTArray<TimelineMarker*> mProfileTimelineMarkers;
+  nsTArray<TimelineMarker*> mProfileTimelineMarkers;
 
-    
-    void ClearProfileTimelineMarkers();
+  
+  void ClearProfileTimelineMarkers();
 
-    
-    
-    nsresult DoFindItemWithName(const char16_t* aName,
-                                nsISupports* aRequestor,
-                                nsIDocShellTreeItem* aOriginalRequestor,
-                                nsIDocShellTreeItem** _retval);
+  
+  
+  nsresult DoFindItemWithName(const char16_t* aName,
+                              nsISupports* aRequestor,
+                              nsIDocShellTreeItem* aOriginalRequestor,
+                              nsIDocShellTreeItem** aResult);
 
-    
-    void MaybeNotifyKeywordSearchLoading(const nsString &aProvider, const nsString &aKeyword);
+  
+  void MaybeNotifyKeywordSearchLoading(const nsString& aProvider,
+                                       const nsString& aKeyword);
 
 #ifdef DEBUG
-    
-    static unsigned long gNumberOfDocShells;
+  
+  static unsigned long gNumberOfDocShells;
 #endif 
 
 public:
-    class InterfaceRequestorProxy : public nsIInterfaceRequestor {
-    public:
-        explicit InterfaceRequestorProxy(nsIInterfaceRequestor* p);
-        NS_DECL_THREADSAFE_ISUPPORTS
-        NS_DECL_NSIINTERFACEREQUESTOR
+  class InterfaceRequestorProxy : public nsIInterfaceRequestor
+  {
+  public:
+    explicit InterfaceRequestorProxy(nsIInterfaceRequestor* aRequestor);
+    NS_DECL_THREADSAFE_ISUPPORTS
+    NS_DECL_NSIINTERFACEREQUESTOR
 
-    protected:
-        virtual ~InterfaceRequestorProxy();
-        InterfaceRequestorProxy() {}
-        nsWeakPtr mWeakPtr;
-    };
+  protected:
+    virtual ~InterfaceRequestorProxy();
+    InterfaceRequestorProxy() {}
+    nsWeakPtr mWeakPtr;
+  };
 };
 
 #endif 

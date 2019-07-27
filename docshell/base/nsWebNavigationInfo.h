@@ -21,7 +21,7 @@ class nsWebNavigationInfo MOZ_FINAL : public nsIWebNavigationInfo
 {
 public:
   nsWebNavigationInfo() {}
-  
+
   NS_DECL_ISUPPORTS
 
   NS_DECL_NSIWEBNAVIGATIONINFO
@@ -30,12 +30,12 @@ public:
 
 private:
   ~nsWebNavigationInfo() {}
-  
+
   
   
   nsresult IsTypeSupportedInternal(const nsCString& aType,
                                    uint32_t* aIsSupported);
-  
+
   nsCOMPtr<nsICategoryManager> mCategoryManager;
 };
 

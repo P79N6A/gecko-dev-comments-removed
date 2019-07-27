@@ -37,26 +37,19 @@ public:
 
   void Init(nsILoadContext* aLoadContext);
 
-  bool IsNotNull() const
-  {
-    return mIsNotNull;
-  }
-
-  bool IsPrivateBitValid() const
-  {
-    return mIsPrivateBitValid;
-  }
+  bool IsNotNull() const { return mIsNotNull; }
+  bool IsPrivateBitValid() const { return mIsPrivateBitValid; }
 
   
-  bool          mIsNotNull;
+  bool mIsNotNull;
   
   
-  bool          mIsPrivateBitValid;
-  bool          mIsContent;
-  bool          mUsePrivateBrowsing;
-  bool          mUseRemoteTabs;
-  bool          mIsInBrowserElement;
-  uint32_t      mAppId;
+  bool mIsPrivateBitValid;
+  bool mIsContent;
+  bool mUsePrivateBrowsing;
+  bool mUseRemoteTabs;
+  bool mIsInBrowserElement;
+  uint32_t mAppId;
 };
 
 

@@ -22,7 +22,8 @@ class nsString;
 
 
 
-class nsILinkHandler : public nsISupports {
+class nsILinkHandler : public nsISupports
+{
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ILINKHANDLER_IID)
 
@@ -79,7 +80,7 @@ public:
 
 
 
-  NS_IMETHOD OnOverLink(nsIContent* aContent, 
+  NS_IMETHOD OnOverLink(nsIContent* aContent,
                         nsIURI* aURLSpec,
                         const char16_t* aTargetSpec) = 0;
 

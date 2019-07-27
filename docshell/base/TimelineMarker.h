@@ -34,9 +34,9 @@ public:
   
   
   
-  virtual bool Equals(const TimelineMarker* other)
+  virtual bool Equals(const TimelineMarker* aOther)
   {
-    return strcmp(mName, other->mName) == 0;
+    return strcmp(mName, aOther->mName) == 0;
   }
 
   
@@ -44,34 +44,18 @@ public:
   
   
   
-  virtual void AddDetails(mozilla::dom::ProfileTimelineMarker& aMarker)
-  {
-  }
+  virtual void AddDetails(mozilla::dom::ProfileTimelineMarker& aMarker) {}
 
-  virtual void AddLayerRectangles(mozilla::dom::Sequence<mozilla::dom::ProfileTimelineLayerRect>&)
+  virtual void AddLayerRectangles(
+      mozilla::dom::Sequence<mozilla::dom::ProfileTimelineLayerRect>&)
   {
     MOZ_ASSERT_UNREACHABLE("can only be called on layer markers");
   }
 
-  const char* GetName() const
-  {
-    return mName;
-  }
-
-  TracingMetadata GetMetaData() const
-  {
-    return mMetaData;
-  }
-
-  DOMHighResTimeStamp GetTime() const
-  {
-    return mTime;
-  }
-
-  const nsString& GetCause() const
-  {
-    return mCause;
-  }
+  const char* GetName() const { return mName; }
+  TracingMetadata GetMetaData() const { return mMetaData; }
+  DOMHighResTimeStamp GetTime() const { return mTime; }
+  const nsString& GetCause() const { return mCause; }
 
   JSObject* GetStack()
   {
@@ -82,7 +66,6 @@ public:
   }
 
 protected:
-
   void CaptureStack()
   {
     JSContext* ctx = nsContentUtils::GetCurrentJSContext();
@@ -97,7 +80,6 @@ protected:
   }
 
 private:
-
   const char* mName;
   TracingMetadata mMetaData;
   DOMHighResTimeStamp mTime;
