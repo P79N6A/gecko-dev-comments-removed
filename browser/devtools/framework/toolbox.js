@@ -47,6 +47,7 @@ loader.lazyGetter(this, "toolboxStrings", () => {
 
 loader.lazyGetter(this, "Selection", () => require("devtools/framework/selection").Selection);
 loader.lazyGetter(this, "InspectorFront", () => require("devtools/server/actors/inspector").InspectorFront);
+loader.lazyRequireGetter(this, "DevToolsUtils", "devtools/toolkit/DevToolsUtils");
 
 
 
@@ -1659,8 +1660,11 @@ Toolbox.prototype = {
     
     
     
-    this._destroyer = promise.all(outstanding)
-      .then(() => this.destroyHost()).then(null, console.error).then(() => {
+    this._destroyer = DevToolsUtils.settleAll(outstanding)
+                                   .catch(console.error)
+                                   .then(() => this.destroyHost())
+                                   .catch(console.error)
+                                   .then(() => {
       
       
       
