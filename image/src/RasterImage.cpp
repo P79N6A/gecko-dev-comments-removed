@@ -2924,7 +2924,7 @@ RasterImage::FinishedSomeDecoding(eShutdownIntent aIntent ,
 
   if (image->mDecoder) {
     invalidRect = image->mDecoder->TakeInvalidRect();
-    progress |= image->mDecoder->GetProgress();
+    progress |= image->mDecoder->TakeProgress();
 
     if (request && request->mChunkCount && !image->mDecoder->IsSizeDecode()) {
       Telemetry::Accumulate(Telemetry::IMAGE_DECODE_CHUNKS, request->mChunkCount);
@@ -2968,7 +2968,7 @@ RasterImage::FinishedSomeDecoding(eShutdownIntent aIntent ,
 
       
       invalidRect.Union(decoder->TakeInvalidRect());
-      progress |= decoder->GetProgress();
+      progress |= decoder->TakeProgress();
     }
   }
 

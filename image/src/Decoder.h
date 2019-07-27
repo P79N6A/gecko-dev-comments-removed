@@ -81,6 +81,18 @@ public:
   }
 
   
+
+
+
+
+  Progress TakeProgress()
+  {
+    Progress progress = mProgress;
+    mProgress = NoProgress;
+    return progress;
+  }
+
+  
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(Decoder)
 
   
@@ -98,8 +110,6 @@ public:
   }
 
   size_t BytesDecoded() const { return mBytesDecoded; }
-
-  Progress GetProgress() const { return mProgress; }
 
   
   
