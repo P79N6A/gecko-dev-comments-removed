@@ -375,6 +375,26 @@ public:
   
 
 
+
+  virtual void
+  GattClientStartNotificationsInternal(const nsAString& aAppUuid,
+                                       const BluetoothGattServiceId& aServId,
+                                       const BluetoothGattId& aCharId,
+                                       BluetoothReplyRunnable* aRunnable) = 0;
+
+  
+
+
+
+  virtual void
+  GattClientStopNotificationsInternal(const nsAString& aAppUuid,
+                                      const BluetoothGattServiceId& aServId,
+                                      const BluetoothGattId& aCharId,
+                                      BluetoothReplyRunnable* aRunnable) = 0;
+
+  
+
+
   virtual void
   UnregisterGattClientInternal(int aClientIf,
                                BluetoothReplyRunnable* aRunnable) = 0;
