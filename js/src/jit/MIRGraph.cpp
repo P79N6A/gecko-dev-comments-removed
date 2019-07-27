@@ -108,6 +108,45 @@ MIRGenerator::addAbortedPreliminaryGroup(ObjectGroup* group)
         CrashAtUnhandlableOOM("addAbortedPreliminaryGroup");
 }
 
+bool
+MIRGenerator::needsAsmJSBoundsCheckBranch(const MAsmJSHeapAccess* access) const
+{
+    
+    
+    
+    
+#if defined(ASMJS_MAY_USE_SIGNAL_HANDLERS_FOR_OOB)
+    if (usesSignalHandlersForAsmJSOOB_)
+        return false;
+#endif
+    return access->needsBoundsCheck();
+}
+
+size_t
+MIRGenerator::foldableOffsetRange(const MAsmJSHeapAccess* access) const
+{
+    
+    
+
+#if defined(ASMJS_MAY_USE_SIGNAL_HANDLERS_FOR_OOB)
+    
+    
+    if (usesSignalHandlersForAsmJSOOB_)
+        return AsmJSImmediateRange;
+#endif
+
+    
+    
+    
+    if (sizeof(intptr_t) == sizeof(int32_t) && !access->needsBoundsCheck())
+        return AsmJSImmediateRange;
+
+    
+    
+    
+    return AsmJSCheckedImmediateRange;
+}
+
 void
 MIRGraph::addBlock(MBasicBlock* block)
 {

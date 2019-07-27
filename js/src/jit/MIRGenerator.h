@@ -234,17 +234,8 @@ class MIRGenerator
     Label* outOfBoundsLabel() const {
         return outOfBoundsLabel_;
     }
-    bool needsAsmJSBoundsCheckBranch(const MAsmJSHeapAccess* access) const {
-        
-        
-        
-        
-#if defined(ASMJS_MAY_USE_SIGNAL_HANDLERS_FOR_OOB)
-        if (usesSignalHandlersForAsmJSOOB_)
-            return false;
-#endif
-        return access->needsBoundsCheck();
-    }
+    bool needsAsmJSBoundsCheckBranch(const MAsmJSHeapAccess* access) const;
+    size_t foldableOffsetRange(const MAsmJSHeapAccess* access) const;
 };
 
 } 
