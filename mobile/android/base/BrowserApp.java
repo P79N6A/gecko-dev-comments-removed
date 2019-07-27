@@ -3386,6 +3386,9 @@ public class BrowserApp extends GeckoApp
             mBrowserToolbar.cancelEdit();
 
             
+            hideFirstrunPager();
+
+            
             
             final TelemetryContract.Method method =
                 (isViewAction ? TelemetryContract.Method.INTENT : TelemetryContract.Method.HOMESCREEN);
