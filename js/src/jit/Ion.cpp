@@ -2508,7 +2508,7 @@ jit::SetEnterJitData(JSContext *cx, EnterJitData &data, RunState &state, AutoVal
         {
             ScriptFrameIter iter(cx);
             if (iter.isFunctionFrame())
-                data.calleeToken = CalleeToToken(iter.callee(),  false);
+                data.calleeToken = CalleeToToken(iter.callee(cx),  false);
         }
     }
 

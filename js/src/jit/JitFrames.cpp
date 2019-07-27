@@ -2399,11 +2399,12 @@ InlineFrameIterator::callee(MaybeReadFallback &fallback) const
 }
 
 JSObject *
-InlineFrameIterator::computeScopeChain(Value scopeChainValue, bool *hasCallObj) const
+InlineFrameIterator::computeScopeChain(Value scopeChainValue, MaybeReadFallback &fallback,
+                                       bool *hasCallObj) const
 {
     if (scopeChainValue.isObject()) {
         if (hasCallObj)
-            *hasCallObj = isFunctionFrame() && callee()->isHeavyweight();
+            *hasCallObj = isFunctionFrame() && callee(fallback)->isHeavyweight();
         return &scopeChainValue.toObject();
     }
 
@@ -2411,7 +2412,7 @@ InlineFrameIterator::computeScopeChain(Value scopeChainValue, bool *hasCallObj) 
     
     
     if (isFunctionFrame())
-        return callee()->environment();
+        return callee(fallback)->environment();
 
     
     MOZ_ASSERT(!script()->isForEval());
