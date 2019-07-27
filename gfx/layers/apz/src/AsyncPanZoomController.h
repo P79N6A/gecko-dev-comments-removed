@@ -527,6 +527,11 @@ protected:
   
 
 
+  void SetVelocityVector(const ParentLayerPoint& aVelocityVector);
+
+  
+
+
 
   ParentLayerPoint GetFirstTouchPoint(const MultiTouchInput& aEvent);
 
