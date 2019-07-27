@@ -538,6 +538,12 @@ NS_IMPL_ISUPPORTS(BackgroundChildPrimer, nsIIPCBackgroundChildCreateCallback)
 
 ContentChild* ContentChild::sSingleton;
 
+static void
+PostForkPreload()
+{
+    TabChild::PostForkPreload();
+}
+
 
 
 static void
@@ -548,6 +554,7 @@ InitOnContentProcessCreated()
     if (IsNuwaProcess()) {
         return;
     }
+    PostForkPreload();
 
     nsCOMPtr<nsIPermissionManager> permManager =
         services::GetPermissionManager();
@@ -1349,7 +1356,6 @@ ContentChild::RecvPBrowserConstructor(PBrowserChild* aActor,
 {
     
     
-
     nsCOMPtr<nsIObserverService> os = services::GetObserverService();
     if (os) {
         nsITabChild* tc =
@@ -2195,7 +2201,10 @@ bool
 ContentChild::RecvFlushMemory(const nsString& reason)
 {
 #ifdef MOZ_NUWA_PROCESS
-    if (IsNuwaProcess()) {
+    if (IsNuwaProcess() || ManagedPBrowserChild().Length() == 0) {
+        
+        
+        
         
         return true;
     }
@@ -2290,12 +2299,28 @@ ContentChild::RecvAppInit()
     
     if ((mIsForApp || mIsForBrowser)
 #ifdef MOZ_NUWA_PROCESS
-        && !IsNuwaProcess()
+        && IsNuwaProcess()
 #endif
        ) {
         PreloadSlowThings();
+#ifndef MOZ_NUWA_PROCESS
+        PostForkPreload();
+#endif
     }
 
+#ifdef MOZ_NUWA_PROCESS
+    
+    
+    if (IsNuwaProcess()) {
+        SendNuwaWaitForFreeze();
+    }
+#endif
+    return true;
+}
+
+bool
+ContentChild::RecvNuwaFreeze()
+{
 #ifdef MOZ_NUWA_PROCESS
     if (IsNuwaProcess()) {
         ContentChild::GetSingleton()->RecvGarbageCollect();
@@ -2303,7 +2328,6 @@ ContentChild::RecvAppInit()
             FROM_HERE, NewRunnableFunction(OnFinishNuwaPreparation));
     }
 #endif
-
     return true;
 }
 
@@ -2580,6 +2604,36 @@ RunNuwaFork()
       DoNuwaFork();
     }
 }
+
+class NuwaForkCaller: public nsRunnable
+{
+public:
+    NS_IMETHODIMP
+    Run() {
+        
+        
+        
+        
+        
+        
+        
+        
+        if (!BackgroundChild::GetForCurrentThread()) {
+            
+            NS_DispatchToMainThread(this, NS_DISPATCH_NORMAL);
+        } else {
+            MessageLoop* ioloop = XRE_GetIOMessageLoop();
+            ioloop->PostTask(FROM_HERE, NewRunnableFunction(RunNuwaFork));
+        }
+        return NS_OK;
+    }
+private:
+    virtual
+    ~NuwaForkCaller()
+    {
+    }
+};
+
 #endif
 
 bool
@@ -2591,22 +2645,9 @@ ContentChild::RecvNuwaFork()
     }
     sNuwaForking = true;
 
-    
-    
-    
-    
-    
-    
-    
-    
-    while (!BackgroundChild::GetForCurrentThread()) {
-        if (NS_WARN_IF(!NS_ProcessNextEvent())) {
-            return false;
-        }
-    }
+    nsRefPtr<NuwaForkCaller> runnable = new NuwaForkCaller();
+    NS_DispatchToMainThread(runnable, NS_DISPATCH_NORMAL);
 
-    MessageLoop* ioloop = XRE_GetIOMessageLoop();
-    ioloop->PostTask(FROM_HERE, NewRunnableFunction(RunNuwaFork));
     return true;
 #else
     return false; 
