@@ -649,7 +649,7 @@ public:
     
     JSFunction* func = js::NewFunctionWithReserved(aCx, JSCallback,
                                                    0 , 0 ,
-                                                   nullptr, nullptr);
+                                                   nullptr);
     if (!func) {
       return;
     }
