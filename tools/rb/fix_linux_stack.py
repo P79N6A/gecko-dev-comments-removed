@@ -23,6 +23,7 @@ import re
 import os
 import pty
 import termios
+from StringIO import StringIO
 
 class unbufferedLineConverter:
     """
@@ -51,7 +52,121 @@ class unbufferedLineConverter:
         assert unbufferedLineConverter("cut", ["-c3"]).convert("abcde") == "c"
         print "Pass"
 
+objdump_section_re = re.compile("^ [0-9a-f]* ([0-9a-f ]{8}) ([0-9a-f ]{8}) ([0-9a-f ]{8}) ([0-9a-f ]{8}).*")
+def elf_section(file, section):
+    """
+    Return the requested ELF section of the file as a str, represented
+    as a sequence of bytes.
+    """
+    
+    
+    
+    
+    
+    
+    objdump = subprocess.Popen(['objdump', '-s', '--section=' + section, file],
+                               stdout=subprocess.PIPE,
+                               
+                               stderr=subprocess.PIPE)
+    (objdump_stdout, objdump_stderr) = objdump.communicate()
+    if objdump.returncode != 0:
+        return None
+    result = ""
+    
+    for line in StringIO(objdump_stdout).readlines():
+        m = objdump_section_re.match(line)
+        if m:
+            for gnum in [0, 1, 2, 3]:
+                word = m.groups()[gnum]
+                if word != "        ":
+                    for idx in [0, 2, 4, 6]:
+                        result += chr(int(word[idx:idx+2], 16))
+    return result
+
+
+global_debug_dir = '/usr/lib/debug';
+
+endian_re = re.compile("\s*Data:\s+.*(little|big) endian.*$")
+
 def separate_debug_file_for(file):
+    """
+    Finds a separated file with the debug sections for a binary.  Such
+    files are commonly installed by debug packages on linux distros.
+    Rules for finding them are documented in:
+    https://sourceware.org/gdb/current/onlinedocs/gdb/Separate-Debug-Files.html
+    """
+    def have_debug_file(debugfile):
+        return os.path.isfile(debugfile)
+
+    endian = None
+    readelf = subprocess.Popen(['readelf', '-h', file],
+                               stdout=subprocess.PIPE)
+    for line in readelf.stdout.readlines():
+        m = endian_re.match(line)
+        if m:
+            endian = m.groups()[0]
+            break
+    readelf.terminate()
+    if endian is None:
+        sys.stderr.write("Could not determine endianness of " + file + "\n")
+        return None
+
+    def word32(s):
+        if type(s) != str or len(s) != 4:
+            raise StandardError("expected 4 byte string input")
+        s = list(s)
+        if endian == "big":
+            s.reverse()
+        return sum(map(lambda idx: ord(s[idx]) * (256 ** idx), range(0, 4)))
+
+    buildid = elf_section(file, ".note.gnu.build-id");
+    if buildid is not None:
+        
+        
+        
+        note_header = buildid[0:16]
+        buildid = buildid[16:]
+        
+        
+        
+        
+        if word32(note_header[0:4]) != 4 or \
+           word32(note_header[4:8]) != len(buildid) or \
+           word32(note_header[8:12]) != 3 or \
+           note_header[12:16] != "GNU\0":
+            sys.stderr.write("malformed .note.gnu.build_id in " + file + "\n")
+        else:
+            buildid = "".join(map(lambda ch: "%02X" % ord(ch), buildid)).lower()
+            f = os.path.join(global_debug_dir, ".build-id", buildid[0:2], buildid[2:] + ".debug")
+            if have_debug_file(f):
+                return f
+
+    debuglink = elf_section(file, ".gnu_debuglink");
+    if debuglink is not None:
+        
+        
+        
+        
+        
+        debuglink_name = debuglink[:-4]
+        null_idx = debuglink_name.find("\0")
+        if null_idx == -1 or null_idx + 4 < len(debuglink_name):
+            sys.stderr.write("Malformed .gnu_debuglink in " + file + "\n")
+            return None
+        debuglink_name = debuglink_name[0:null_idx]
+
+        debuglink_crc = word32(debuglink[-4:])
+
+        dirname = os.path.dirname(file)
+        possible_files = [
+            os.path.join(dirname, debuglink_name),
+            os.path.join(dirname, ".debug", debuglink_name),
+            os.path.join(global_debug_dir, dirname.lstrip("/"), debuglink_name)
+        ]
+        for f in possible_files:
+            if have_debug_file(f):
+                
+                return f
     return None
 
 addr2lines = {}
