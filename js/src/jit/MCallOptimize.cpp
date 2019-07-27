@@ -3331,6 +3331,8 @@ SimdTypeToScalarType(SimdTypeDescr::Type type)
     switch (type) {
       case SimdTypeDescr::Float32x4: return Scalar::Float32x4;
       case SimdTypeDescr::Int32x4:   return Scalar::Int32x4;
+      case SimdTypeDescr::Int8x16:
+      case SimdTypeDescr::Int16x8:
       case SimdTypeDescr::Float64x2: break;
     }
     MOZ_CRASH("unexpected simd type");
