@@ -63,6 +63,9 @@ BEGIN_TEST(testChromeBuffer)
 
 
     {
+        JSRuntimeOptions oldOptions = JS::RuntimeOptionsRef(rt);
+        
+        JS::RuntimeOptionsRef(rt).setIon(false).setBaseline(false);
         {
             JSAutoCompartment ac(cx, trusted_glob);
             const char* paramName = "x";
@@ -99,6 +102,7 @@ BEGIN_TEST(testChromeBuffer)
         JS::RootedValue rval(cx);
         CHECK(JS_CallFunction(cx, JS::NullPtr(), fun, JS::HandleValueArray(v), &rval));
         CHECK(rval.toInt32() == 100);
+        JS::RuntimeOptionsRef(rt) = oldOptions;
     }
 
     
