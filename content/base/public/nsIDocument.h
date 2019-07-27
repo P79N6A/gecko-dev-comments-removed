@@ -85,6 +85,7 @@ namespace mozilla {
 class CSSStyleSheet;
 class ErrorResult;
 class EventStates;
+class SVGAttrAnimationRuleProcessor;
 
 namespace css {
 class Loader;
@@ -923,6 +924,16 @@ public:
 
   nsHTMLCSSStyleSheet* GetInlineStyleSheet() const {
     return mStyleAttrStyleSheet;
+  }
+
+  
+
+
+
+  mozilla::SVGAttrAnimationRuleProcessor*
+  GetSVGAttrAnimationRuleProcessor() const
+  {
+    return mSVGAttrAnimationRuleProcessor;
   }
 
   virtual void SetScriptGlobalObject(nsIScriptGlobalObject* aGlobalObject) = 0;
@@ -2443,6 +2454,7 @@ protected:
   nsRefPtr<mozilla::css::ImageLoader> mStyleImageLoader;
   nsRefPtr<nsHTMLStyleSheet> mAttrStyleSheet;
   nsRefPtr<nsHTMLCSSStyleSheet> mStyleAttrStyleSheet;
+  nsRefPtr<mozilla::SVGAttrAnimationRuleProcessor> mSVGAttrAnimationRuleProcessor;
 
   
   
