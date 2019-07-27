@@ -51,6 +51,8 @@ ImageBridgeParent::ImageBridgeParent(MessageLoop* aLoop,
   , mTransport(aTransport)
   , mChildProcessId(aChildProcessId)
 {
+  MOZ_ASSERT(NS_IsMainThread());
+
   
   
   CompositableMap::Create();
@@ -59,10 +61,14 @@ ImageBridgeParent::ImageBridgeParent(MessageLoop* aLoop,
 
 ImageBridgeParent::~ImageBridgeParent()
 {
+  MOZ_ASSERT(NS_IsMainThread());
+
   if (mTransport) {
+    MOZ_ASSERT(XRE_GetIOMessageLoop());
     XRE_GetIOMessageLoop()->PostTask(FROM_HERE,
                                      new DeleteTask<Transport>(mTransport));
   }
+
   sImageBridges.erase(mChildProcessId);
 }
 
