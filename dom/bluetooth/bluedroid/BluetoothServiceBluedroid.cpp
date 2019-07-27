@@ -31,6 +31,7 @@
 
 #endif
 #include "BluetoothOppManager.h"
+#include "BluetoothPbapManager.h"
 #include "BluetoothProfileController.h"
 #include "BluetoothReplyRunnable.h"
 #include "BluetoothUtils.h"
@@ -333,35 +334,30 @@ BluetoothServiceBluedroid::StopInternal(BluetoothReplyRunnable* aRunnable)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  BluetoothProfileManagerBase* profile;
-  profile = BluetoothHfpManager::Get();
-  NS_ENSURE_TRUE(profile, NS_ERROR_FAILURE);
-  if (profile->IsConnected()) {
-    profile->Disconnect(nullptr);
-  } else {
-    profile->Reset();
-  }
+  static BluetoothProfileManagerBase* sProfiles[] = {
+    BluetoothHfpManager::Get(),
+    BluetoothA2dpManager::Get(),
+    BluetoothOppManager::Get(),
+    BluetoothPbapManager::Get(),
+    BluetoothHidManager::Get()
+  };
 
-  profile = BluetoothOppManager::Get();
-  NS_ENSURE_TRUE(profile, NS_ERROR_FAILURE);
-  if (profile->IsConnected()) {
-    profile->Disconnect(nullptr);
-  }
+  
+  for (uint8_t i = 0; i < MOZ_ARRAY_LENGTH(sProfiles); i++) {
+    nsCString profileName;
+    sProfiles[i]->GetName(profileName);
 
-  profile = BluetoothA2dpManager::Get();
-  NS_ENSURE_TRUE(profile, NS_ERROR_FAILURE);
-  if (profile->IsConnected()) {
-    profile->Disconnect(nullptr);
-  } else {
-    profile->Reset();
-  }
+    if (NS_WARN_IF(!sProfiles[i])) {
+      BT_LOGR("Profile manager [%s] is null", profileName.get());
+      return NS_ERROR_FAILURE;
+    }
 
-  profile = BluetoothHidManager::Get();
-  NS_ENSURE_TRUE(profile, NS_ERROR_FAILURE);
-  if (profile->IsConnected()) {
-    profile->Disconnect(nullptr);
-  } else {
-    profile->Reset();
+    if (sProfiles[i]->IsConnected()) {
+      sProfiles[i]->Disconnect(nullptr);
+    } else if (!profileName.EqualsLiteral("OPP") &&
+               !profileName.EqualsLiteral("PBAP")) {
+      sProfiles[i]->Reset();
+    }
   }
 
   
@@ -2258,6 +2254,11 @@ BluetoothServiceBluedroid::AdapterStateChangedNotification(bool aState)
     if (!opp || !opp->Listen()) {
       BT_LOGR("Fail to start BluetoothOppManager listening");
     }
+
+    BluetoothPbapManager* pbap = BluetoothPbapManager::Get();
+    if (!pbap || !pbap->Listen()) {
+      BT_LOGR("Fail to start BluetoothPbapManager listening");
+    }
   }
 
   
@@ -2323,7 +2324,13 @@ BluetoothServiceBluedroid::AdapterStateChangedNotification(bool aState)
     if (!opp || !opp->Listen()) {
       BT_LOGR("Fail to start BluetoothOppManager listening");
     }
+
+    BluetoothPbapManager* pbap = BluetoothPbapManager::Get();
+    if (!pbap || !pbap->Listen()) {
+      BT_LOGR("Fail to start BluetoothPbapManager listening");
+    }
   }
+
   
   if (sIsRestart && !aState) {
     BT_LOGR("sIsRestart and off, now restart");
