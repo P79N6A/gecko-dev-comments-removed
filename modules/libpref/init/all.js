@@ -439,8 +439,11 @@ pref("apz.asyncscroll.timeout", 300);
 
 
 
-pref("apz.axis_lock_mode", 0);
-
+pref("apz.axis_lock.mode", 0);
+pref("apz.axis_lock.lock_angle", "0.5235987");        
+pref("apz.axis_lock.breakout_threshold", "0.03125");  
+pref("apz.axis_lock.breakout_angle", "0.3926991");    
+pref("apz.axis_lock.direct_pan_angle", "1.047197");   
 pref("apz.content_response_timeout", 300);
 pref("apz.cross_slide.enabled", false);
 pref("apz.danger_zone_x", 50);
