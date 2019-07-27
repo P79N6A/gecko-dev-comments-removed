@@ -141,6 +141,14 @@ class ProcessLink
   public:
     explicit ProcessLink(MessageChannel *chan);
     virtual ~ProcessLink();
+
+    
+    
+    
+    
+    
+    
+    
     void Open(Transport* aTransport, MessageLoop *aIOLoop, Side aSide);
     
     
