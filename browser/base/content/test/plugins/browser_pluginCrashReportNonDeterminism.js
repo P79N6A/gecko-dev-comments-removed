@@ -109,7 +109,7 @@ add_task(function* setup() {
     extraFile.remove(false);
   };
 
-  Services.obs.addObserver(crashObserver, "plugin-crashed");
+  Services.obs.addObserver(crashObserver, "plugin-crashed", false);
   
   Services.prefs.setBoolPref("plugins.testmode", true);
   registerCleanupFunction(() => {
