@@ -9,8 +9,8 @@
 
 #include "jstypes.h"
 
-#include "jit/IonFrames.h"
 #include "jit/JitFrameIterator.h"
+#include "jit/JitFrames.h"
 #include "vm/Stack.h"
 
 namespace js {

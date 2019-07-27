@@ -539,7 +539,7 @@ jit::BailoutPar(BailoutStack *sp, uint8_t **entryFramePointer)
 
     
     MOZ_ASSERT(IsInRange(FAKE_JIT_TOP_FOR_BAILOUT, 0, 0x1000) &&
-               IsInRange(FAKE_JIT_TOP_FOR_BAILOUT + sizeof(IonCommonFrameLayout), 0, 0x1000),
+               IsInRange(FAKE_JIT_TOP_FOR_BAILOUT + sizeof(CommonFrameLayout), 0, 0x1000),
                "Fake jitTop pointer should be within the first page.");
     cx->perThreadData->jitTop = FAKE_JIT_TOP_FOR_BAILOUT;
 

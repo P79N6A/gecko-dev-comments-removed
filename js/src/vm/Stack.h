@@ -1351,11 +1351,11 @@ class JitActivation : public Activation
     bool registerIonFrameRecovery(RInstructionResults&& results);
 
     
-    RInstructionResults *maybeIonFrameRecovery(IonJSFrameLayout *fp);
+    RInstructionResults *maybeIonFrameRecovery(JitFrameLayout *fp);
 
     
     
-    void removeIonFrameRecovery(IonJSFrameLayout *fp);
+    void removeIonFrameRecovery(JitFrameLayout *fp);
 
     void markIonRecovery(JSTracer *trc);
 

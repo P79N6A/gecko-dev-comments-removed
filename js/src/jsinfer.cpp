@@ -869,10 +869,10 @@ class types::CompilerConstraintList
     LifoAlloc *alloc_;
 
     
-    Vector<CompilerConstraint *, 0, jit::IonAllocPolicy> constraints;
+    Vector<CompilerConstraint *, 0, jit::JitAllocPolicy> constraints;
 
     
-    Vector<FrozenScript, 1, jit::IonAllocPolicy> frozenScripts;
+    Vector<FrozenScript, 1, jit::JitAllocPolicy> frozenScripts;
 
   public:
     explicit CompilerConstraintList(jit::TempAllocator &alloc)

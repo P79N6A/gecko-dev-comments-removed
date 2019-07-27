@@ -83,7 +83,7 @@ class Label : public LabelBase
         
         if (OOM_counter > OOM_maxAllocations)
             return;
-        if (IonContext *context = MaybeGetIonContext()) {
+        if (JitContext *context = MaybeGetJitContext()) {
             if (context->runtime->hadOutOfMemory())
                 return;
         }

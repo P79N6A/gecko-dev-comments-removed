@@ -110,13 +110,13 @@
 namespace js {
 namespace jit {
 
-typedef Vector<BufferOffset, 512, OldIonAllocPolicy> LoadOffsets;
+typedef Vector<BufferOffset, 512, OldJitAllocPolicy> LoadOffsets;
 
 
 typedef int32_t PoolAllocUnit;
 
 struct Pool
-  : public OldIonAllocPolicy
+  : public OldJitAllocPolicy
 {
   private:
     

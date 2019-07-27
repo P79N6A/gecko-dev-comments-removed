@@ -1582,7 +1582,7 @@ ForkJoinShared::executePortion(PerThreadData *perThread, ThreadPoolWorker *worke
 
     
     
-    IonContext icx(CompileRuntime::get(cx_->runtime()),
+    JitContext jcx(CompileRuntime::get(cx_->runtime()),
                    CompileCompartment::get(cx_->compartment()),
                    nullptr);
 

@@ -12,7 +12,7 @@
 #include <limits.h>
 
 #include "asmjs/AsmJSFrameIterator.h"
-#include "jit/IonAllocPolicy.h"
+#include "jit/JitAllocPolicy.h"
 #include "jit/Label.h"
 #include "jit/Registers.h"
 #include "jit/RegisterSets.h"
@@ -124,8 +124,8 @@ static inline bool
 IsCompilingAsmJS()
 {
     
-    IonContext *ictx = MaybeGetIonContext();
-    return ictx && ictx->compartment == nullptr;
+    JitContext *jctx = MaybeGetJitContext();
+    return jctx && jctx->compartment == nullptr;
 }
 
 static inline bool
@@ -136,8 +136,8 @@ CanUsePointerImmediates()
 
     
     
-    IonContext *ictx = MaybeGetIonContext();
-    if (ictx && ictx->runtime->profilingScripts())
+    JitContext *jctx = MaybeGetJitContext();
+    if (jctx && jctx->runtime->profilingScripts())
         return true;
 
     return false;
@@ -940,7 +940,7 @@ class AssemblerShared
             
             
             
-            MOZ_ASSERT(GetIonContext()->runtime->onMainThread());
+            MOZ_ASSERT(GetJitContext()->runtime->onMainThread());
             embedsNurseryPointers_ = true;
         }
 #endif

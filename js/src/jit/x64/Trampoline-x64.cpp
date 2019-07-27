@@ -5,9 +5,9 @@
 
 
 #include "jit/Bailouts.h"
-#include "jit/IonFrames.h"
-#include "jit/IonLinker.h"
 #include "jit/JitCompartment.h"
+#include "jit/JitFrames.h"
+#include "jit/Linker.h"
 #ifdef JS_ION_PERF
 # include "jit/PerfSpewer.h"
 #endif
@@ -209,7 +209,7 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
         masm.push(valuesSize);
         masm.push(Imm32(0)); 
         
-        masm.enterFakeExitFrame(IonExitFrameLayout::BareToken());
+        masm.enterFakeExitFrame(ExitFrameLayout::BareToken());
 
         regs.add(valuesSize);
 
@@ -228,7 +228,7 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
         MOZ_ASSERT(reg_code != ReturnReg);
 
         Label error;
-        masm.addPtr(Imm32(IonExitFrameLayout::SizeWithFooter()), rsp);
+        masm.addPtr(Imm32(ExitFrameLayout::SizeWithFooter()), rsp);
         masm.addPtr(Imm32(BaselineFrame::Size()), framePtr);
         masm.branchIfFalseBool(ReturnReg, &error);
 
@@ -312,7 +312,7 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
 JitCode *
 JitRuntime::generateInvalidator(JSContext *cx)
 {
-    AutoIonContextAlloc aica(cx);
+    AutoJitContextAlloc ajca(cx);
     MacroAssembler masm(cx);
 
     
@@ -370,14 +370,14 @@ JitRuntime::generateArgumentsRectifier(JSContext *cx, ExecutionMode mode, void *
     MOZ_ASSERT(ArgumentsRectifierReg == r8);
 
     
-    masm.loadPtr(Address(rsp, IonRectifierFrameLayout::offsetOfCalleeToken()), rax);
+    masm.loadPtr(Address(rsp, RectifierFrameLayout::offsetOfCalleeToken()), rax);
     masm.mov(rax, rcx);
     masm.andq(Imm32(uint32_t(CalleeTokenMask)), rcx);
     masm.movzwl(Operand(rcx, JSFunction::offsetOfNargs()), rcx);
     masm.subq(r8, rcx);
 
     
-    masm.loadPtr(Address(rsp, IonRectifierFrameLayout::offsetOfNumActualArgs()), rdx);
+    masm.loadPtr(Address(rsp, RectifierFrameLayout::offsetOfNumActualArgs()), rdx);
 
     masm.moveValue(UndefinedValue(), r10);
 
@@ -394,7 +394,7 @@ JitRuntime::generateArgumentsRectifier(JSContext *cx, ExecutionMode mode, void *
     }
 
     
-    BaseIndex b = BaseIndex(r9, r8, TimesEight, sizeof(IonRectifierFrameLayout));
+    BaseIndex b = BaseIndex(r9, r8, TimesEight, sizeof(RectifierFrameLayout));
     masm.lea(Operand(b), rcx);
 
     
@@ -588,7 +588,7 @@ JitRuntime::generateVMWrapper(JSContext *cx, const VMFunction &f)
     if (f.explicitArgs) {
         argsBase = r10;
         regs.take(argsBase);
-        masm.lea(Operand(rsp,IonExitFrameLayout::SizeWithFooter()), argsBase);
+        masm.lea(Operand(rsp, ExitFrameLayout::SizeWithFooter()), argsBase);
     }
 
     
@@ -713,7 +713,7 @@ JitRuntime::generateVMWrapper(JSContext *cx, const VMFunction &f)
         break;
     }
     masm.leaveExitFrame();
-    masm.retn(Imm32(sizeof(IonExitFrameLayout) +
+    masm.retn(Imm32(sizeof(ExitFrameLayout) +
                     f.explicitStackSlots() * sizeof(void *) +
                     f.extraValuesToPop * sizeof(Value)));
 

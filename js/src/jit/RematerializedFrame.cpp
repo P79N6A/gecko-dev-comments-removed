@@ -5,12 +5,12 @@
 
 
 #include "jit/RematerializedFrame.h"
-#include "jit/IonFrames.h"
 
+#include "jit/JitFrames.h"
 #include "vm/ArgumentsObject.h"
 
 #include "jsscriptinlines.h"
-#include "jit/IonFrames-inl.h"
+#include "jit/JitFrames-inl.h"
 
 using namespace js;
 using namespace jit;

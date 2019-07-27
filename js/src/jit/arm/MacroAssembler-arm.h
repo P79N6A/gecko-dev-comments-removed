@@ -14,7 +14,7 @@
 #include "jit/arm/Assembler-arm.h"
 #include "jit/AtomicOp.h"
 #include "jit/IonCaches.h"
-#include "jit/IonFrames.h"
+#include "jit/JitFrames.h"
 #include "jit/MoveResolver.h"
 
 using mozilla::DebugOnly;
@@ -401,15 +401,15 @@ class MacroAssemblerARM : public Assembler
     BufferOffset ma_vstr(VFPRegister src, Register base, Register index, int32_t shift = defaultShift, Condition cc = Always);
     
     
-    void ma_callIon(const Register reg);
+    void ma_callJit(const Register reg);
     
-    void ma_callIonNoPush(const Register reg);
-    
-    
-    void ma_callIonHalfPush(const Register reg);
+    void ma_callJitNoPush(const Register reg);
     
     
-    void ma_callIonHalfPush(Label *label);
+    void ma_callJitHalfPush(const Register reg);
+    
+    
+    void ma_callJitHalfPush(Label *label);
 
     void ma_call(ImmPtr dest);
 
@@ -579,7 +579,7 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
             rs = L_LDR;
 
         ma_movPatchable(ImmPtr(c->raw()), ScratchRegister, Always, rs);
-        ma_callIonHalfPush(ScratchRegister);
+        ma_callJitHalfPush(ScratchRegister);
     }
     void call(const CallSiteDesc &desc, const Register reg) {
         call(reg);
@@ -1292,7 +1292,7 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
 
     
     
-    void callIon(Register callee);
+    void callJit(Register callee);
     void callJitFromAsmJS(Register callee);
 
     void reserveStack(uint32_t amount);

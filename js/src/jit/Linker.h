@@ -4,8 +4,8 @@
 
 
 
-#ifndef jit_IonLinker_h
-#define jit_IonLinker_h
+#ifndef jit_Linker_h
+#define jit_Linker_h
 
 #include "jscntxt.h"
 #include "jscompartment.h"
@@ -13,8 +13,8 @@
 
 #include "jit/ExecutableAllocator.h"
 #include "jit/IonCode.h"
-#include "jit/IonMacroAssembler.h"
 #include "jit/JitCompartment.h"
+#include "jit/MacroAssembler.h"
 
 namespace js {
 namespace jit {

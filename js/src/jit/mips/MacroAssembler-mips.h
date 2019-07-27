@@ -11,7 +11,7 @@
 
 #include "jit/AtomicOp.h"
 #include "jit/IonCaches.h"
-#include "jit/IonFrames.h"
+#include "jit/JitFrames.h"
 #include "jit/mips/Assembler-mips.h"
 #include "jit/MoveResolver.h"
 
@@ -303,12 +303,12 @@ class MacroAssemblerMIPS : public Assembler
 
   public:
     
-    void ma_callIon(const Register reg);
+    void ma_callJit(const Register reg);
     
-    void ma_callIonNoPush(const Register reg);
+    void ma_callJitNoPush(const Register reg);
     
-    void ma_callIonHalfPush(const Register reg);
-    void ma_callIonHalfPush(Label *label);
+    void ma_callJitHalfPush(const Register reg);
+    void ma_callJitHalfPush(Label *label);
 
     void ma_call(ImmPtr dest);
 
@@ -419,7 +419,7 @@ class MacroAssemblerMIPSCompat : public MacroAssemblerMIPS
         BufferOffset bo = m_buffer.nextOffset();
         addPendingJump(bo, ImmPtr(c->raw()), Relocation::JITCODE);
         ma_liPatchable(ScratchRegister, Imm32((uint32_t)c->raw()));
-        ma_callIonHalfPush(ScratchRegister);
+        ma_callJitHalfPush(ScratchRegister);
     }
     void call(const CallSiteDesc &desc, const Register reg) {
         call(reg);
@@ -431,7 +431,7 @@ class MacroAssemblerMIPSCompat : public MacroAssemblerMIPS
     }
 
     void callAndPushReturnAddress(Label *label) {
-        ma_callIonHalfPush(label);
+        ma_callJitHalfPush(label);
     }
 
     void branch(JitCode *c) {
@@ -1139,7 +1139,7 @@ public:
 
     
     
-    void callIon(Register callee);
+    void callJit(Register callee);
     void callJitFromAsmJS(Register callee);
 
     void reserveStack(uint32_t amount);

@@ -4,7 +4,7 @@
 
 
 
-#include "jit/IonMacroAssembler.h"
+#include "jit/MacroAssembler.h"
 
 #include "jsinfer.h"
 #include "jsprf.h"
@@ -616,13 +616,13 @@ MacroAssembler::checkAllocatorState(Label *fail)
 # ifdef JS_GC_ZEAL
     
     branch32(Assembler::NotEqual,
-             AbsoluteAddress(GetIonContext()->runtime->addressOfGCZeal()), Imm32(0),
+             AbsoluteAddress(GetJitContext()->runtime->addressOfGCZeal()), Imm32(0),
              fail);
 # endif
 
     
     
-    if (GetIonContext()->compartment->hasObjectMetadataCallback())
+    if (GetJitContext()->compartment->hasObjectMetadataCallback())
         jump(fail);
 }
 
@@ -661,7 +661,7 @@ MacroAssembler::nurseryAllocate(Register result, Register slots, gc::AllocKind a
 
     
     
-    const Nursery &nursery = GetIonContext()->runtime->gcNursery();
+    const Nursery &nursery = GetJitContext()->runtime->gcNursery();
     Register temp = slots;
     int thingSize = int(gc::Arena::thingSize(allocKind));
     int totalSize = thingSize + nDynamicSlots * sizeof(HeapSlot);
@@ -679,7 +679,7 @@ MacroAssembler::nurseryAllocate(Register result, Register slots, gc::AllocKind a
 void
 MacroAssembler::freeListAllocate(Register result, Register temp, gc::AllocKind allocKind, Label *fail)
 {
-    CompileZone *zone = GetIonContext()->compartment->zone();
+    CompileZone *zone = GetJitContext()->compartment->zone();
     int thingSize = int(gc::Arena::thingSize(allocKind));
 
     Label fallback;
@@ -719,7 +719,7 @@ MacroAssembler::callMallocStub(size_t nbytes, Register result, Label *fail)
     if (regNBytes != result)
         push(regNBytes);
     move32(Imm32(nbytes), regNBytes);
-    call(GetIonContext()->runtime->jitRuntime()->mallocStub());
+    call(GetJitContext()->runtime->jitRuntime()->mallocStub());
     if (regNBytes != result) {
         movePtr(regNBytes, result);
         pop(regNBytes);
@@ -735,7 +735,7 @@ MacroAssembler::callFreeStub(Register slots)
 
     push(regSlots);
     movePtr(slots, regSlots);
-    call(GetIonContext()->runtime->jitRuntime()->freeStub());
+    call(GetJitContext()->runtime->jitRuntime()->freeStub());
     pop(regSlots);
 }
 
@@ -1238,7 +1238,7 @@ MacroAssembler::loadStringChar(Register str, Register index, Register output)
 void
 MacroAssembler::checkInterruptFlagPar(Register tempReg, Label *fail)
 {
-    movePtr(ImmPtr(GetIonContext()->runtime->addressOfInterruptParUint32()), tempReg);
+    movePtr(ImmPtr(GetJitContext()->runtime->addressOfInterruptParUint32()), tempReg);
     branch32(Assembler::NonZero, Address(tempReg, 0), Imm32(0), fail);
 }
 
@@ -1247,7 +1247,7 @@ MacroAssembler::checkInterruptFlagPar(Register tempReg, Label *fail)
 void
 MacroAssembler::linkExitFrame()
 {
-    AbsoluteAddress jitTop(GetIonContext()->runtime->addressOfJitTop());
+    AbsoluteAddress jitTop(GetJitContext()->runtime->addressOfJitTop());
     storePtr(StackPointer, jitTop);
 }
 
@@ -1331,7 +1331,7 @@ MacroAssembler::generateBailoutTail(Register scratch, Register bailoutInfo)
         push(temp);
         push(Address(bailoutInfo, offsetof(BaselineBailoutInfo, resumeAddr)));
         
-        enterFakeExitFrame(IonExitFrameLayout::BareToken());
+        enterFakeExitFrame(ExitFrameLayout::BareToken());
 
         
         Label noMonitor;
@@ -1370,7 +1370,7 @@ MacroAssembler::generateBailoutTail(Register scratch, Register bailoutInfo)
             popValue(R0);
 
             
-            addPtr(Imm32(IonExitFrameLayout::SizeWithFooter()), StackPointer);
+            addPtr(Imm32(ExitFrameLayout::SizeWithFooter()), StackPointer);
 
 #if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
             push(BaselineTailCallReg);
@@ -1408,7 +1408,7 @@ MacroAssembler::generateBailoutTail(Register scratch, Register bailoutInfo)
             popValue(R0);
 
             
-            addPtr(Imm32(IonExitFrameLayout::SizeWithFooter()), StackPointer);
+            addPtr(Imm32(ExitFrameLayout::SizeWithFooter()), StackPointer);
 
             jump(jitcodeReg);
         }

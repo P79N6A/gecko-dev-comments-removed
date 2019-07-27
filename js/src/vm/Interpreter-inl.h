@@ -803,11 +803,11 @@ class FastInvokeGuard
             if (status == jit::Method_Error)
                 return false;
             if (status == jit::Method_Compiled) {
-                jit::IonExecStatus result = jit::FastInvoke(cx, fun_, args_);
+                jit::JitExecStatus result = jit::FastInvoke(cx, fun_, args_);
                 if (IsErrorStatus(result))
                     return false;
 
-                MOZ_ASSERT(result == jit::IonExec_Ok);
+                MOZ_ASSERT(result == jit::JitExec_Ok);
                 return true;
             }
 

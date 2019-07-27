@@ -42,14 +42,14 @@ enum AbortReason {
 
 
 
-class IonContext
+class JitContext
 {
   public:
-    IonContext(JSContext *cx, TempAllocator *temp);
-    IonContext(ExclusiveContext *cx, TempAllocator *temp);
-    IonContext(CompileRuntime *rt, CompileCompartment *comp, TempAllocator *temp);
-    explicit IonContext(CompileRuntime *rt);
-    ~IonContext();
+    JitContext(JSContext *cx, TempAllocator *temp);
+    JitContext(ExclusiveContext *cx, TempAllocator *temp);
+    JitContext(CompileRuntime *rt, CompileCompartment *comp, TempAllocator *temp);
+    explicit JitContext(CompileRuntime *rt);
+    ~JitContext();
 
     
     
@@ -67,7 +67,7 @@ class IonContext
         return assemblerCount_++;
     }
   private:
-    IonContext *prev_;
+    JitContext *prev_;
     int assemblerCount_;
 };
 
@@ -75,10 +75,10 @@ class IonContext
 bool InitializeIon();
 
 
-IonContext *GetIonContext();
-IonContext *MaybeGetIonContext();
+JitContext *GetJitContext();
+JitContext *MaybeGetJitContext();
 
-void SetIonContext(IonContext *ctx);
+void SetJitContext(JitContext *ctx);
 
 bool CanIonCompileScript(JSContext *cx, JSScript *script, bool osr);
 
@@ -94,34 +94,34 @@ MethodStatus
 Recompile(JSContext *cx, HandleScript script, BaselineFrame *osrFrame, jsbytecode *osrPc,
           bool constructing, bool force);
 
-enum IonExecStatus
+enum JitExecStatus
 {
     
     
-    IonExec_Aborted,
+    JitExec_Aborted,
 
     
     
-    IonExec_Error,
+    JitExec_Error,
 
     
-    IonExec_Ok
+    JitExec_Ok
 };
 
 static inline bool
-IsErrorStatus(IonExecStatus status)
+IsErrorStatus(JitExecStatus status)
 {
-    return status == IonExec_Error || status == IonExec_Aborted;
+    return status == JitExec_Error || status == JitExec_Aborted;
 }
 
 struct EnterJitData;
 
 bool SetEnterJitData(JSContext *cx, EnterJitData &data, RunState &state, AutoValueVector &vals);
 
-IonExecStatus IonCannon(JSContext *cx, RunState &state);
+JitExecStatus IonCannon(JSContext *cx, RunState &state);
 
 
-IonExecStatus FastInvoke(JSContext *cx, HandleFunction fun, CallArgs &args);
+JitExecStatus FastInvoke(JSContext *cx, HandleFunction fun, CallArgs &args);
 
 
 void Invalidate(types::TypeZone &types, FreeOp *fop,
@@ -198,8 +198,8 @@ void ForbidCompilation(JSContext *cx, JSScript *script, ExecutionMode mode);
 
 void PurgeCaches(JSScript *script);
 size_t SizeOfIonData(JSScript *script, mozilla::MallocSizeOf mallocSizeOf);
-void DestroyIonScripts(FreeOp *fop, JSScript *script);
-void TraceIonScripts(JSTracer* trc, JSScript *script);
+void DestroyJitScripts(FreeOp *fop, JSScript *script);
+void TraceJitScripts(JSTracer* trc, JSScript *script);
 
 bool JitSupportsFloatingPoint();
 bool JitSupportsSimd();
