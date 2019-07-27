@@ -3244,6 +3244,12 @@ this.DOMApplicationRegistry = {
                ? Ci.nsIX509CertDB.AppMarketplaceDevReviewersRoot
                : Ci.nsIX509CertDB.AppMarketplaceDevPublicRoot;
           break;
+
+        
+        
+        case "https://marketplace.allizom.org":
+          root = Ci.nsIX509CertDB.AppMarketplaceStageRoot;
+          break;
       }
     }
 
