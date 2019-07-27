@@ -393,8 +393,6 @@ public:
           NS_ASSERTION(!NS_IsMainThread(), "Never call on main thread");
           nsresult rv;
 
-          source->SetPullEnabled(true);
-
           DOMMediaStream::TrackTypeHints expectedTracks = 0;
           if (mAudioSource) {
             rv = mAudioSource->Start(source, kAudioTrack);
@@ -414,8 +412,13 @@ public:
               return;
             }
           }
+          
+          source->FinishAddTracks();
 
           mOnTracksAvailableCallback->SetExpectedTracks(expectedTracks);
+
+          source->SetPullEnabled(true);
+          source->AdvanceKnownTracksTime(STREAM_TIME_MAX);
 
           MM_LOG(("started all sources"));
           

@@ -138,12 +138,11 @@ MediaEngineDefaultVideoSource::Start(SourceMediaStream* aStream, TrackID aID)
     return NS_ERROR_FAILURE;
   }
 
-  aStream->AddTrack(aID, 0, new VideoSegment());
-  aStream->AdvanceKnownTracksTime(STREAM_TIME_MAX);
+  aStream->AddTrack(aID, 0, new VideoSegment(), SourceMediaStream::ADDTRACK_QUEUED);
 
   if (mHasFakeTracks) {
     for (int i = 0; i < kFakeVideoTrackCount; ++i) {
-      aStream->AddTrack(kTrackCount + i, 0, new VideoSegment());
+      aStream->AddTrack(kTrackCount + i, 0, new VideoSegment(), SourceMediaStream::ADDTRACK_QUEUED);
     }
   }
 
@@ -389,17 +388,14 @@ MediaEngineDefaultAudioSource::Start(SourceMediaStream* aStream, TrackID aID)
 
   
   AudioSegment* segment = new AudioSegment();
-  mSource->AddAudioTrack(aID, AUDIO_RATE, 0, segment);
+  mSource->AddAudioTrack(aID, AUDIO_RATE, 0, segment, SourceMediaStream::ADDTRACK_QUEUED);
 
   if (mHasFakeTracks) {
     for (int i = 0; i < kFakeAudioTrackCount; ++i) {
       mSource->AddAudioTrack(kTrackCount + kFakeVideoTrackCount+i,
-                             AUDIO_RATE, 0, new AudioSegment());
+                             AUDIO_RATE, 0, new AudioSegment(), SourceMediaStream::ADDTRACK_QUEUED);
     }
   }
-
-  
-  mSource->AdvanceKnownTracksTime(STREAM_TIME_MAX);
 
   
   mTrackID = aID;

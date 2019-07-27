@@ -720,25 +720,35 @@ public:
   void AddDirectListener(MediaStreamDirectListener* aListener);
   void RemoveDirectListener(MediaStreamDirectListener* aListener);
 
+  enum {
+    ADDTRACK_QUEUED    = 0x01 
+  };
   
 
 
 
 
 
-  void AddTrack(TrackID aID, StreamTime aStart, MediaSegment* aSegment)
+  void AddTrack(TrackID aID, StreamTime aStart, MediaSegment* aSegment,
+                uint32_t aFlags = 0)
   {
-    AddTrackInternal(aID, GraphRate(), aStart, aSegment);
+    AddTrackInternal(aID, GraphRate(), aStart, aSegment, aFlags);
   }
 
   
 
 
   void AddAudioTrack(TrackID aID, TrackRate aRate, StreamTime aStart,
-                     AudioSegment* aSegment)
+                     AudioSegment* aSegment, uint32_t aFlags = 0)
   {
-    AddTrackInternal(aID, aRate, aStart, aSegment);
+    AddTrackInternal(aID, aRate, aStart, aSegment, aFlags);
   }
+
+  
+
+
+
+  void FinishAddTracks();
 
   
 
@@ -874,7 +884,8 @@ protected:
   void ResampleAudioToGraphSampleRate(TrackData* aTrackData, MediaSegment* aSegment);
 
   void AddTrackInternal(TrackID aID, TrackRate aRate,
-                        StreamTime aStart, MediaSegment* aSegment);
+                        StreamTime aStart, MediaSegment* aSegment,
+                        uint32_t aFlags);
 
   TrackData* FindDataForTrack(TrackID aID)
   {
@@ -905,6 +916,7 @@ protected:
   
   StreamTime mUpdateKnownTracksTime;
   nsTArray<TrackData> mUpdateTracks;
+  nsTArray<TrackData> mPendingTracks;
   nsTArray<nsRefPtr<MediaStreamDirectListener> > mDirectListeners;
   bool mPullEnabled;
   bool mUpdateFinished;
