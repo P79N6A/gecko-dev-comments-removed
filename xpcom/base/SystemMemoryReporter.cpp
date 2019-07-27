@@ -740,10 +740,10 @@ private:
     uint64_t size;
 
     
-    fgets(buffer, kBufferLen, iommu);
+    unused << fgets(buffer, kBufferLen, iommu);
 
     
-    fgets(buffer, kBufferLen, iommu);
+    unused << fgets(buffer, kBufferLen, iommu);
 
     const char* const kSep = "----";
     const size_t kSepLen = 4;
@@ -760,7 +760,7 @@ private:
     }
 
     
-    fgets(buffer, kBufferLen, iommu);
+    unused << fgets(buffer, kBufferLen, iommu);
 
     
     while (fgets(buffer, kBufferLen, iommu) &&
@@ -787,7 +787,7 @@ private:
     }
 
     uint64_t size = 0;
-    fscanf(sizeFile, "%" SCNu64, &size);
+    unused << fscanf(sizeFile, "%" SCNu64, &size);
     fclose(sizeFile);
 
     return size;
@@ -1029,7 +1029,7 @@ private:
 
       
       char buff[1024];
-      fgets(buff, 1024, memFile);
+      unused << fgets(buff, 1024, memFile);
 
       while (fscanf(memFile, kScanFormat, &gpuaddr, &useraddr, &size, &id,
                     flags, type, usage, &sglen) == kNumFields) {
