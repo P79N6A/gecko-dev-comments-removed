@@ -211,14 +211,25 @@ class TestMozbuildSandbox(unittest.TestCase):
                 sandbox[k] = 0
 
     def test_exec_source_reassign_exported(self):
+        template_sandbox = self.sandbox(data_path='templates')
+
+        
+        
+        template_sandbox.exec_file('templates.mozbuild')
+
         config = MockConfig()
 
         exports = {'DIST_SUBDIR': 'browser'}
 
-        sandbox = MozbuildSandbox(Context(VARIABLES, config),
-            metadata={'exports': exports})
+        sandbox = TestedSandbox(Context(VARIABLES, config), metadata={
+            'exports': exports,
+            'templates': template_sandbox.templates,
+        })
 
         self.assertEqual(sandbox['DIST_SUBDIR'], 'browser')
+
+        
+        sandbox.exec_source('Template([])', 'foo.mozbuild')
 
         sandbox.exec_source('DIST_SUBDIR = "foo"')
         with self.assertRaises(SandboxExecutionError) as se:
