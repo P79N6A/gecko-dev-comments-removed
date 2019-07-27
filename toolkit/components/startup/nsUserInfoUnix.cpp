@@ -122,7 +122,7 @@ nsUserInfo::GetDomain(char * *aDomain)
         
         
         
-        if (buf.nodename && buf.nodename[0]) {
+        if (buf.nodename[0]) {
             
             char *pos = strchr(buf.nodename,'.');
             if (pos) {
