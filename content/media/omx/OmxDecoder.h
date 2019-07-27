@@ -1,3 +1,4 @@
+#include <set>
 #include <stagefright/foundation/ABase.h>
 #include <stagefright/foundation/AHandlerReflector.h>
 #include <stagefright/foundation/ALooper.h>
@@ -89,6 +90,10 @@ class OmxDecoder : public OMXCodecProxy::EventListener {
   
   
   Vector<BufferItem> mPendingVideoBuffers;
+
+  
+  std::set<TextureClient*> mPendingRecycleTexutreClients;
+
   
   Mutex mPendingVideoBuffersLock;
 
@@ -208,6 +213,8 @@ public:
   int64_t ProcessCachedData(int64_t aOffset, bool aWaitForCompletion);
 
   sp<MediaSource> GetAudioOffloadTrack() { return mAudioOffloadTrack; }
+
+  void RecycleCallbackImp(TextureClient* aClient);
 
   static void RecycleCallback(TextureClient* aClient, void* aClosure);
 };
