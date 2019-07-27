@@ -1167,7 +1167,7 @@ CERT_DecodeNameConstraintsExtension(PLArenaPool *arena,
 
 extern CERTAuthInfoAccess **
 CERT_DecodeAuthInfoAccessExtension(PLArenaPool *reqArena,
-				   SECItem     *encodedExtension);
+				   const SECItem *encodedExtension);
 
 extern CERTPrivKeyUsagePeriod *
 CERT_DecodePrivKeyUsagePeriodExtension(PLArenaPool *arena, SECItem *extnValue);

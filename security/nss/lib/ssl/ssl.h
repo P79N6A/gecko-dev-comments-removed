@@ -182,6 +182,12 @@ SSL_IMPORT PRFileDesc *DTLS_ImportFD(PRFileDesc *model, PRFileDesc *fd);
 
 #define SSL_ENABLE_ALPN 26
 
+
+
+
+
+#define SSL_REUSE_SERVER_ECDHE_KEY 27
+
 #ifdef SSL_DEPRECATED_FUNCTION 
 
 SSL_IMPORT SECStatus SSL_Enable(PRFileDesc *fd, int option, PRBool on);
