@@ -475,10 +475,8 @@ js::Nursery::collect(JSRuntime* rt, JS::gcreason::Reason reason, ObjectGroupList
 
     
     TIME_START(sweepArrayBufferViewList);
-    for (CompartmentsIter c(rt, SkipAtoms); !c.done(); c.next()) {
-        if (c->innerViews.needsSweepAfterMinorGC())
-            c->innerViews.sweepAfterMinorGC(rt);
-    }
+    for (CompartmentsIter c(rt, SkipAtoms); !c.done(); c.next())
+        c->sweepAfterMinorGC();
     TIME_END(sweepArrayBufferViewList);
 
     
