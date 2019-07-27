@@ -681,6 +681,17 @@ PeerConnectionTest.prototype.setStepTimeout = function(ms) {
 
 
 
+PeerConnectionTest.prototype.setTimeout = function(ms) {
+  this._timeout = setTimeout(function() {
+    ok(false, "PeerConnectionTest timed out");
+    this.teardown();
+  }.bind(this), ms);
+};
+
+
+
+
+
 
 
 
