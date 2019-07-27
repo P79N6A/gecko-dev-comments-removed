@@ -16,9 +16,15 @@ BEGIN_TEST(testBug795104)
     s[0] = '"';
     memset(s + 1, 'x', strLen - 2);
     s[strLen - 1] = '"';
-    CHECK(JS::Evaluate(cx, global, opts, s, strLen));
+    
+    opts.setNoScriptRval(true);
+    JS::RootedValue unused(cx);
+    CHECK(JS::Evaluate(cx, global, opts, s, strLen, &unused));
     JS::RootedFunction fun(cx);
     JS::AutoObjectVector emptyScopeChain(cx);
+    
+    
+    opts.setNoScriptRval(false);
     CHECK(JS::CompileFunction(cx, emptyScopeChain, opts, "f", 0, nullptr, s, strLen, &fun));
     CHECK(fun);
     JS_free(cx, s);
