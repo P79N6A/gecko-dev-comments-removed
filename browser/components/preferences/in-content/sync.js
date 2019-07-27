@@ -95,7 +95,9 @@ let gSyncPane = {
                   "weave:service:start-over:finish",
                   "weave:service:setup-complete",
                   "weave:service:logout:finish",
-                  FxAccountsCommon.ONVERIFIED_NOTIFICATION];
+                  FxAccountsCommon.ONVERIFIED_NOTIFICATION,
+                  FxAccountsCommon.ON_PROFILE_CHANGE_NOTIFICATION,
+                  ];
     let migrateTopic = "fxa-migration:state-changed";
 
     
@@ -123,6 +125,8 @@ let gSyncPane = {
     }),
 
     this.updateWeavePrefs();
+
+    this._initProfileImageUI();
   },
 
   _setupEventListeners: function() {
@@ -224,6 +228,14 @@ let gSyncPane = {
     });
   },
 
+  _initProfileImageUI: function () {
+    try {
+      if (Services.prefs.getBoolPref("identity.fxaccounts.profile_image.enabled")) {
+        document.getElementById("fxaProfileImage").hidden = false;
+      }
+    } catch (e) { }
+  },
+
   updateWeavePrefs: function () {
     
     
@@ -244,10 +256,11 @@ let gSyncPane = {
       }
       
       this.page = PAGE_PLEASE_WAIT;
+
       fxAccounts.getSignedInUser().then(data => {
         if (!data) {
           this.page = FXA_PAGE_LOGGED_OUT;
-          return;
+          return false;
         }
         this.page = FXA_PAGE_LOGGED_IN;
         
@@ -281,7 +294,36 @@ let gSyncPane = {
         for (let checkbox of engines.querySelectorAll("checkbox")) {
           checkbox.disabled = enginesListDisabled;
         }
+
+        
+        document.getElementById("fxaProfileImage").style.removeProperty("background-image");
+
+        
+        
+        return data.verified;
+      }).then(shouldGetProfile => {
+        if (shouldGetProfile) {
+          return fxAccounts.getSignedInUserProfile();
+        }
+      }).then(data => {
+        if (data && data.avatar) {
+          
+          
+          
+          let img = new Image();
+          img.onload = () => {
+            let bgImage = "url('" + data.avatar + "')";
+            document.getElementById("fxaProfileImage").style.backgroundImage = bgImage;
+          };
+          img.src = data.avatar;
+        }
+      }, err => {
+        FxAccountsCommon.log.error(err);
+      }).catch(err => {
+        
+        Cu.reportError(String(err));
       });
+
     
     
     
@@ -519,6 +561,15 @@ let gSyncPane = {
     this.openContentInBrowser("about:accounts?action=reauth&entrypoint=preferences", {
       replaceQueryString: true
     });
+  },
+
+  openChangeProfileImage: function() {
+    fxAccounts.promiseAccountsChangeProfileURI("avatar")
+      .then(url => {
+        this.openContentInBrowser(url, {
+          replaceQueryString: true
+        });
+      });
   },
 
   manageFirefoxAccount: function() {

@@ -44,6 +44,7 @@ let publicProperties = [
   "localtimeOffsetMsec",
   "now",
   "promiseAccountsForceSigninURI",
+  "promiseAccountsChangeProfileURI",
   "resendVerificationEmail",
   "setSignedInUser",
   "signOut",
@@ -962,6 +963,34 @@ FxAccountsInternal.prototype = {
   },
 
   
+  
+  
+  
+  promiseAccountsChangeProfileURI: function(settingToEdit = null) {
+    let url = Services.urlFormatter.formatURLPref("identity.fxaccounts.settings.uri");
+
+    if (settingToEdit) {
+      url += (url.indexOf("?") == -1 ? "?" : "&") +
+             "setting=" + encodeURIComponent(settingToEdit);
+    }
+
+    if (this._requireHttps() && !/^https:/.test(url)) { 
+      throw new Error("Firefox Accounts server must use HTTPS");
+    }
+    let currentState = this.currentAccountState;
+    
+    return this.getSignedInUser().then(accountData => {
+      if (!accountData) {
+        return null;
+      }
+      let newQueryPortion = url.indexOf("?") == -1 ? "?" : "&";
+      newQueryPortion += "email=" + encodeURIComponent(accountData.email);
+      newQueryPortion += "&uid=" + encodeURIComponent(accountData.uid);
+      return url + newQueryPortion;
+    }).then(result => currentState.resolve(result));
+  },
+
+  
 
 
 
@@ -1078,30 +1107,13 @@ FxAccountsInternal.prototype = {
   getSignedInUserProfile: function () {
     let accountState = this.currentAccountState;
     return accountState.getProfile()
-      .then(
-        (profileData) => {
-          let profile = JSON.parse(JSON.stringify(profileData));
-          
-          
-          profile.verified = true;
-          return accountState.resolve(profile);
-        },
-        (error) => {
-          log.error("Could not retrieve profile data", error);
-
-          return this.getSignedInUser().then(data => {
-            let profile = null;
-            if (data) {
-              
-              
-              profile = {
-                email: data.email,
-                uid: data.uid,
-                verified: data.verified
-              };
-            }
-            return accountState.resolve(profile);
-          });
+      .then((profileData) => {
+        let profile = JSON.parse(JSON.stringify(profileData));
+        return accountState.resolve(profile);
+      },
+      (error) => {
+        log.error("Could not retrieve profile data", error);
+        return accountState.reject(error);
       })
       .then(null, err => this._errorToErrorClass(err));
   },
