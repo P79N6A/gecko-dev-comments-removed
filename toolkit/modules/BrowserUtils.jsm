@@ -26,6 +26,21 @@ this.BrowserUtils = {
 
 
 
+  restartApplication: function() {
+    let appStartup = Cc["@mozilla.org/toolkit/app-startup;1"]
+                       .getService(Ci.nsIAppStartup);
+    
+    if (Services.appinfo.inSafeMode) {
+      appStartup.restartInSafeMode(Ci.nsIAppStartup.eAttemptQuit | Ci.nsIAppStartup.eRestart);
+      return;
+    }
+    appStartup.quit(Ci.nsIAppStartup.eAttemptQuit | Ci.nsIAppStartup.eRestart);
+  },
+
+  
+
+
+
 
 
 
