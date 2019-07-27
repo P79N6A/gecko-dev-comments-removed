@@ -2,7 +2,7 @@
 
 
 
-const TESTCASE_URI = TEST_BASE + "longload.html";
+const TESTCASE_URI = TEST_BASE_HTTP + "longload.html";
 
 
 function test()
