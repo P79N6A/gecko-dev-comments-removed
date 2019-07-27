@@ -3,6 +3,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
@@ -199,6 +200,8 @@ LoginManagerPrompter.prototype = {
 
     _factory       : null,
     _window        : null,
+    _browser       : null,
+    _opener        : null,
     _debug         : false, 
 
     __pwmgr : null, 
@@ -702,10 +705,19 @@ LoginManagerPrompter.prototype = {
     init : function (aWindow, aFactory) {
         this._window = aWindow;
         this._factory = aFactory || null;
+        this._browser = null;
+        this._opener = null;
 
         var prefBranch = Services.prefs.getBranch("signon.");
         this._debug = prefBranch.getBoolPref("debug");
         this.log("===== initialized =====");
+    },
+
+    setE10sData : function (aData) {
+        if (!(this._window instanceof Ci.nsIDOMChromeWindow))
+            throw new Error("Unexpected call");
+        this._browser = aData.browser;
+        this._opener = aData.opener;
     },
 
 
@@ -823,10 +835,7 @@ LoginManagerPrompter.prototype = {
                 }
             ];
 
-            var notifyWin = this._getNotifyWindow();
-            var chromeWin = this._getChromeWindow(notifyWin).wrappedJSObject;
-            var browser = chromeWin.gBrowser.
-                                    getBrowserForDocument(notifyWin.top.document);
+            var { browser } = this._getNotifyWindow();
 
             aNotifyObj.show(browser, "password-save", notificationText,
                             "password-notification-icon", mainAction,
@@ -1021,10 +1030,7 @@ LoginManagerPrompter.prototype = {
                 }
             };
 
-            var notifyWin = this._getNotifyWindow();
-            var chromeWin = this._getChromeWindow(notifyWin).wrappedJSObject;
-            var browser = chromeWin.gBrowser.
-                                    getBrowserForDocument(notifyWin.top.document);
+            var { browser } = this._getNotifyWindow();
 
             aNotifyObj.show(browser, "password-change", notificationText,
                             "password-notification-icon", mainAction,
@@ -1165,6 +1171,9 @@ LoginManagerPrompter.prototype = {
 
 
     _getChromeWindow: function (aWindow) {
+        
+        if (aWindow instanceof Ci.nsIDOMChromeWindow)
+            return aWindow;
         var chromeWin = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
                                .getInterface(Ci.nsIWebNavigation)
                                .QueryInterface(Ci.nsIDocShell)
@@ -1181,6 +1190,8 @@ LoginManagerPrompter.prototype = {
         try {
             
             var notifyWin = this._window.top;
+            var isE10s = (notifyWin instanceof Ci.nsIDOMChromeWindow);
+            var useOpener = false;
 
             
             
@@ -1188,26 +1199,52 @@ LoginManagerPrompter.prototype = {
             if (notifyWin.opener) {
                 var chromeDoc = this._getChromeWindow(notifyWin).
                                      document.documentElement;
-                var webnav = notifyWin.
-                             QueryInterface(Ci.nsIInterfaceRequestor).
-                             getInterface(Ci.nsIWebNavigation);
+
+                var hasHistory;
+                if (isE10s) {
+                    if (!this._browser)
+                        throw new Error("Expected a browser in e10s");
+                    hasHistory = this._browser.canGoBack;
+                } else {
+                    var webnav = notifyWin.
+                                 QueryInterface(Ci.nsIInterfaceRequestor).
+                                 getInterface(Ci.nsIWebNavigation);
+                    hasHistory = webnav.sessionHistory.count > 1;
+                }
 
                 
                 
                 
                 
-                if (chromeDoc.getAttribute("chromehidden") &&
-                    webnav.sessionHistory.count == 1) {
+                if (chromeDoc.getAttribute("chromehidden") && !hasHistory) {
                     this.log("Using opener window for notification bar.");
                     notifyWin = notifyWin.opener;
+                    useOpener = true;
                 }
             }
 
-            return notifyWin;
+            let browser;
+            if (useOpener && isE10s) {
+                
+                
+                
+                
+                
+
+                browser = notifyWin.gBrowser.getBrowserForContentWindow(this._opener);
+            } else if (isE10s) {
+                browser = this._browser;
+            } else {
+                var chromeWin = this._getChromeWindow(notifyWin).wrappedJSObject;
+                browser = chromeWin.gBrowser
+                                   .getBrowserForDocument(notifyWin.top.document);
+            }
+
+            return { notifyWin: notifyWin, browser: browser };
 
         } catch (e) {
             
-            this.log("Unable to get notify window");
+            this.log("Unable to get notify window: " + e.fileName + ":" + e.lineNumber + ": " + e.message);
             return null;
         }
     },
@@ -1223,7 +1260,7 @@ LoginManagerPrompter.prototype = {
         let popupNote = null;
 
         try {
-            let notifyWin = this._getNotifyWindow();
+            let { notifyWin } = this._getNotifyWindow();
 
             
             
@@ -1248,7 +1285,7 @@ LoginManagerPrompter.prototype = {
         let notifyBox = null;
 
         try {
-            let notifyWin = this._getNotifyWindow();
+            let { notifyWin } = this._getNotifyWindow();
 
             
             
