@@ -120,13 +120,13 @@ WMFDecoder::CanPlayType(const nsACString& aType,
 nsresult
 WMFDecoder::LoadDLLs()
 {
-  return SUCCEEDED(wmf::LoadDLLs()) ? NS_OK : NS_ERROR_FAILURE;
+  return NS_OK; 
 }
 
 void
 WMFDecoder::UnloadDLLs()
 {
-  wmf::UnloadDLLs();
+  
 }
 
 

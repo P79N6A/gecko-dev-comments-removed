@@ -55,18 +55,15 @@ namespace wmf {
 
 
 
-
-
-
-HRESULT LoadDLLs();
-HRESULT UnloadDLLs();
-
-
-
-
 HRESULT MFStartup();
 
+
+
+
 HRESULT MFShutdown();
+
+
+
 
 HRESULT MFCreateAsyncResult(IUnknown *aUunkObject,
                             IMFAsyncCallback *aCallback,
