@@ -9652,7 +9652,7 @@ class CGEnumerateOwnProperties(CGAbstractStaticMethod):
                                         "EnumerateOwnProperties", "bool", args)
 
     def definition_body(self):
-        return "return js::GetProxyHandler(obj)->getOwnPropertyNames(cx, wrapper, props);\n"
+        return "return js::GetProxyHandler(obj)->ownPropertyKeys(cx, wrapper, props);\n"
 
 
 class CGEnumerateOwnPropertiesViaGetOwnPropertyNames(CGAbstractBindingMethod):

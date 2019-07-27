@@ -559,10 +559,9 @@ ScriptedDirectProxyHandler::defineProperty(JSContext *cx, HandleObject proxy, Ha
 }
 
 
-
 bool
-ScriptedDirectProxyHandler::getOwnPropertyNames(JSContext *cx, HandleObject proxy,
-                                                AutoIdVector &props) const
+ScriptedDirectProxyHandler::ownPropertyKeys(JSContext *cx, HandleObject proxy,
+                                            AutoIdVector &props) const
 {
     
     RootedObject handler(cx, GetDirectProxyHandlerObject(proxy));
@@ -583,7 +582,7 @@ ScriptedDirectProxyHandler::getOwnPropertyNames(JSContext *cx, HandleObject prox
 
     
     if (trap.isUndefined())
-        return DirectProxyHandler::getOwnPropertyNames(cx, proxy, props);
+        return DirectProxyHandler::ownPropertyKeys(cx, proxy, props);
 
     
     Value argv[] = {

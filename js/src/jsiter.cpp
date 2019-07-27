@@ -297,7 +297,7 @@ Snapshot(JSContext *cx, JSObject *pobj_, unsigned flags, AutoIdVector *props)
                         
                         
                         
-                        if (!Proxy::getOwnPropertyNames(cx, pobj, proxyProps))
+                        if (!Proxy::ownPropertyKeys(cx, pobj, proxyProps))
                             return false;
                     } else {
                         if (!Proxy::keys(cx, pobj, proxyProps))
