@@ -1389,14 +1389,6 @@ RObjectState::recover(JSContext* cx, SnapshotIterator& iter) const
             if (val.isUndefined())
                 continue;
 
-            
-            
-            
-            
-            
-            if (properties[i].type == JSVAL_TYPE_BOOLEAN)
-                val.setBoolean(val.toInt32() != 0);
-
             id = NameToId(properties[i].name);
             ObjectOpResult result;
 
