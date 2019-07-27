@@ -2834,8 +2834,11 @@ DataCall.prototype = {
         
         if (networkInterface.state == RIL.GECKO_NETWORK_STATE_DISCONNECTED) {
           networkInterface.notifyRILNetworkInterface();
+
           
-          this.resetLinkInfo();
+          if (this.requestedNetworkIfaces.length === 0) {
+            this.resetLinkInfo();
+          }
         }
       }, Ci.nsIEventTarget.DISPATCH_NORMAL);
     }
