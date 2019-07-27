@@ -67,7 +67,12 @@ loop.store.ActiveRoomStore = (function() {
         roomState: ROOM_STATES.INIT,
         audioMuted: false,
         videoMuted: false,
-        failureReason: undefined
+        failureReason: undefined,
+        
+        
+        
+        
+        used: false
       };
     },
 
@@ -361,7 +366,10 @@ loop.store.ActiveRoomStore = (function() {
 
 
     remotePeerConnected: function() {
-      this.setStoreState({roomState: ROOM_STATES.HAS_PARTICIPANTS});
+      this.setStoreState({
+        roomState: ROOM_STATES.HAS_PARTICIPANTS,
+        used: true
+      });
 
       
       this._mozLoop.setLoopPref("seenToS", "seen");

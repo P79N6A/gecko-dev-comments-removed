@@ -300,10 +300,16 @@ loop.roomViews = (function(mozL10n) {
           );
         }
         case ROOM_STATES.ENDED: {
-          return sharedViews.FeedbackView({
-            feedbackStore: this.props.feedbackStore, 
-            onAfterFeedbackReceived: this.closeWindow}
-          );
+          if (this.state.used)
+            return sharedViews.FeedbackView({
+              feedbackStore: this.props.feedbackStore, 
+              onAfterFeedbackReceived: this.closeWindow}
+            );
+
+          
+          
+          this.closeWindow();
+          return null;
         }
         default: {
           return (
