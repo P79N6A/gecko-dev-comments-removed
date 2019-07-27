@@ -4354,27 +4354,27 @@ nsLayoutUtils::ComputeCBDependentValue(nscoord aPercentBasis,
 }
 
  nscoord
-nsLayoutUtils::ComputeWidthValue(
+nsLayoutUtils::ComputeISizeValue(
                  nsRenderingContext* aRenderingContext,
                  nsIFrame*            aFrame,
-                 nscoord              aContainingBlockWidth,
+                 nscoord              aContainingBlockISize,
                  nscoord              aContentEdgeToBoxSizing,
                  nscoord              aBoxSizingToMarginEdge,
                  const nsStyleCoord&  aCoord)
 {
   NS_PRECONDITION(aFrame, "non-null frame expected");
   NS_PRECONDITION(aRenderingContext, "non-null rendering context expected");
-  NS_WARN_IF_FALSE(aContainingBlockWidth != NS_UNCONSTRAINEDSIZE,
-                   "have unconstrained width; this should only result from "
-                   "very large sizes, not attempts at intrinsic width "
+  NS_WARN_IF_FALSE(aContainingBlockISize != NS_UNCONSTRAINEDSIZE,
+                   "have unconstrained inline-size; this should only result from "
+                   "very large sizes, not attempts at intrinsic inline-size "
                    "calculation");
-  NS_PRECONDITION(aContainingBlockWidth >= 0,
-                  "width less than zero");
+  NS_PRECONDITION(aContainingBlockISize >= 0,
+                  "inline-size less than zero");
 
   nscoord result;
   if (aCoord.IsCoordPercentCalcUnit()) {
     result = nsRuleNode::ComputeCoordPercentCalc(aCoord, 
-                                                 aContainingBlockWidth);
+                                                 aContainingBlockISize);
     
     
     
@@ -4389,24 +4389,24 @@ nsLayoutUtils::ComputeWidthValue(
     switch (val) {
       case NS_STYLE_WIDTH_MAX_CONTENT:
         result = aFrame->GetPrefISize(aRenderingContext);
-        NS_ASSERTION(result >= 0, "width less than zero");
+        NS_ASSERTION(result >= 0, "inline-size less than zero");
         break;
       case NS_STYLE_WIDTH_MIN_CONTENT:
         result = aFrame->GetMinISize(aRenderingContext);
-        NS_ASSERTION(result >= 0, "width less than zero");
+        NS_ASSERTION(result >= 0, "inline-size less than zero");
         break;
       case NS_STYLE_WIDTH_FIT_CONTENT:
         {
           nscoord pref = aFrame->GetPrefISize(aRenderingContext),
                    min = aFrame->GetMinISize(aRenderingContext),
-                  fill = aContainingBlockWidth -
+                  fill = aContainingBlockISize -
                          (aBoxSizingToMarginEdge + aContentEdgeToBoxSizing);
           result = std::max(min, std::min(pref, fill));
-          NS_ASSERTION(result >= 0, "width less than zero");
+          NS_ASSERTION(result >= 0, "inline-size less than zero");
         }
         break;
       case NS_STYLE_WIDTH_AVAILABLE:
-        result = aContainingBlockWidth -
+        result = aContainingBlockISize -
                  (aBoxSizingToMarginEdge + aContentEdgeToBoxSizing);
     }
   }
@@ -4415,8 +4415,8 @@ nsLayoutUtils::ComputeWidthValue(
 }
 
  nscoord
-nsLayoutUtils::ComputeHeightDependentValue(
-                 nscoord              aContainingBlockHeight,
+nsLayoutUtils::ComputeBSizeDependentValue(
+                 nscoord              aContainingBlockBSize,
                  const nsStyleCoord&  aCoord)
 {
   
@@ -4426,17 +4426,17 @@ nsLayoutUtils::ComputeHeightDependentValue(
   
   
   
-  NS_PRECONDITION(NS_AUTOHEIGHT != aContainingBlockHeight ||
+  NS_PRECONDITION(NS_AUTOHEIGHT != aContainingBlockBSize ||
                   !aCoord.HasPercent(),
-                  "unexpected containing block height");
+                  "unexpected containing block block-size");
 
   if (aCoord.IsCoordPercentCalcUnit()) {
-    return nsRuleNode::ComputeCoordPercentCalc(aCoord, aContainingBlockHeight);
+    return nsRuleNode::ComputeCoordPercentCalc(aCoord, aContainingBlockBSize);
   }
 
   NS_ASSERTION(aCoord.GetUnit() == eStyleUnit_None ||
                aCoord.GetUnit() == eStyleUnit_Auto,
-               "unexpected height value");
+               "unexpected block-size value");
   return 0;
 }
 

@@ -1295,45 +1295,86 @@ public:
 
 
 
+  
   static nscoord ComputeWidthValue(
                    nsRenderingContext* aRenderingContext,
                    nsIFrame*            aFrame,
                    nscoord              aContainingBlockWidth,
                    nscoord              aContentEdgeToBoxSizing,
                    nscoord              aBoxSizingToMarginEdge,
-                   const nsStyleCoord&  aCoord);
+                   const nsStyleCoord&  aCoord)
+  {
+    return ComputeISizeValue(aRenderingContext,
+                             aFrame,
+                             aContainingBlockWidth,
+                             aContentEdgeToBoxSizing,
+                             aBoxSizingToMarginEdge,
+                             aCoord);
+  }
+
+  static nscoord ComputeISizeValue(
+                   nsRenderingContext* aRenderingContext,
+                   nsIFrame*           aFrame,
+                   nscoord             aContainingBlockISize,
+                   nscoord             aContentEdgeToBoxSizing,
+                   nscoord             aBoxSizingToMarginEdge,
+                   const nsStyleCoord& aCoord);
 
   
 
 
 
+  
   static nscoord ComputeHeightDependentValue(
                    nscoord              aContainingBlockHeight,
+                   const nsStyleCoord&  aCoord)
+  {
+    return ComputeBSizeDependentValue(aContainingBlockHeight, aCoord);
+  }
+
+  static nscoord ComputeBSizeDependentValue(
+                   nscoord              aContainingBlockBSize,
                    const nsStyleCoord&  aCoord);
 
   
 
 
+  
   static nscoord ComputeHeightValue(nscoord aContainingBlockHeight,
                                     nscoord aContentEdgeToBoxSizingBoxEdge,
                                     const nsStyleCoord& aCoord)
   {
-    MOZ_ASSERT(aContainingBlockHeight != nscoord_MAX || !aCoord.HasPercent(),
-               "caller must deal with %% of unconstrained height");
+    return ComputeBSizeValue(aContainingBlockHeight,
+                             aContentEdgeToBoxSizingBoxEdge,
+                             aCoord);
+  }
+
+  static nscoord ComputeBSizeValue(nscoord aContainingBlockBSize,
+                                    nscoord aContentEdgeToBoxSizingBoxEdge,
+                                    const nsStyleCoord& aCoord)
+  {
+    MOZ_ASSERT(aContainingBlockBSize != nscoord_MAX || !aCoord.HasPercent(),
+               "caller must deal with %% of unconstrained block-size");
     MOZ_ASSERT(aCoord.IsCoordPercentCalcUnit());
 
     nscoord result =
-      nsRuleNode::ComputeCoordPercentCalc(aCoord, aContainingBlockHeight);
+      nsRuleNode::ComputeCoordPercentCalc(aCoord, aContainingBlockBSize);
     
     return std::max(0, result - aContentEdgeToBoxSizingBoxEdge);
   }
 
+  
   static bool IsAutoHeight(const nsStyleCoord &aCoord, nscoord aCBHeight)
+  {
+    return IsAutoBSize(aCoord, aCBHeight);
+  }
+
+  static bool IsAutoBSize(const nsStyleCoord &aCoord, nscoord aCBBSize)
   {
     nsStyleUnit unit = aCoord.GetUnit();
     return unit == eStyleUnit_Auto ||  
            unit == eStyleUnit_None ||  
-           (aCBHeight == nscoord_MAX && aCoord.HasPercent());
+           (aCBBSize == nscoord_MAX && aCoord.HasPercent());
   }
 
   static bool IsPaddingZero(const nsStyleCoord &aCoord)
