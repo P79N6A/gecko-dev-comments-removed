@@ -171,10 +171,19 @@ const gXPInstallObserver = {
           args = [brandShortName, Services.appinfo.version, install.name];
         }
 
+        
+        if (install.error == AddonManager.ERROR_SIGNEDSTATE_REQUIRED) {
+          options.learnMoreURL =
+            Services.prefs.getCharPref("xpinstall.signatures.infoURL");
+        }
+
         messageString = gNavigatorBundle.getFormattedString(error, args);
 
         PopupNotifications.show(browser, notificationID, messageString, anchorID,
                                 action, null, options);
+
+        
+        break;
       }
       this._removeProgressNotification(browser);
       break; }
