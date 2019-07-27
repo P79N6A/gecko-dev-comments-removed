@@ -3583,6 +3583,14 @@ RecordShutdownEndTimeStamp() {
   gRecordedShutdownTimeFileName = nullptr;
   gAlreadyFreedShutdownTimeFileName = true;
 
+  if (gRecordedShutdownStartTime.IsNull()) {
+    
+    
+    
+    
+    return;
+  }
+
   nsCString tmpName = name;
   tmpName += ".tmp";
   FILE *f = fopen(tmpName.get(), "w");
