@@ -156,6 +156,9 @@ typedef size_t (*PLDHashSizeOfEntryExcludingThisFun)(
 
 
 
+
+
+
 class PLDHashTable
 {
 private:
@@ -176,7 +179,6 @@ private:
   uint32_t            mRemovedCount;  
   uint32_t            mGeneration;    
   char*               mEntryStore;    
-
 #ifdef PL_DHASHMETER
   struct PLDHashStats
   {
@@ -231,7 +233,7 @@ public:
 
   uint32_t Capacity() const
   {
-    return ((uint32_t)1 << (PL_DHASH_BITS - mHashShift));
+    return mEntryStore ? CapacityFromHashShift() : 0;
   }
 
   uint32_t EntrySize()  const { return mEntrySize; }
@@ -245,6 +247,7 @@ public:
 
   PLDHashEntryHdr* Search(const void* aKey);
   PLDHashEntryHdr* Add(const void* aKey, const mozilla::fallible_t&);
+  PLDHashEntryHdr* Add(const void* aKey);
   void Remove(const void* aKey);
 
   void RawRemove(PLDHashEntryHdr* aEntry);
@@ -296,6 +299,13 @@ public:
 
 private:
   static bool EntryIsFree(PLDHashEntryHdr* aEntry);
+
+  
+  
+  uint32_t CapacityFromHashShift() const
+  {
+    return ((uint32_t)1 << (PL_DHASH_BITS - mHashShift));
+  }
 
   PLDHashNumber ComputeKeyHash(const void* aKey);
 
@@ -437,6 +447,8 @@ PLDHashTable* PL_NewDHashTable(
 
 
 void PL_DHashTableDestroy(PLDHashTable* aTable);
+
+
 
 
 
