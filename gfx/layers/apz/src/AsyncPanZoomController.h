@@ -906,6 +906,11 @@ public:
     return !mParent || (mParent->mLayersId != mLayersId);
   }
 
+  bool IsRootForLayersId() const {
+    ReentrantMonitorAutoEnter lock(mMonitor);
+    return mFrameMetrics.IsLayersIdRoot();
+  }
+
 private:
   
   
