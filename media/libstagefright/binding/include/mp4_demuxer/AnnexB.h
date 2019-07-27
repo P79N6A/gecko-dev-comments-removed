@@ -7,6 +7,9 @@
 
 #include "mozilla/Vector.h"
 
+template <class T> struct already_AddRefed;
+template <class T> class nsRcTArray;
+
 namespace mp4_demuxer
 {
 class ByteReader;
@@ -17,17 +20,16 @@ class AnnexB
 public:
   
   
-  static void ConvertSample(MP4Sample* aSample,
-                            const mozilla::Vector<uint8_t>& annexB);
+  static void ConvertSample(MP4Sample* aSample);
 
   
-  static mozilla::Vector<uint8_t> ConvertExtraDataToAnnexB(
+  static already_AddRefed<nsRcTArray<uint8_t>> ConvertExtraDataToAnnexB(
     mozilla::Vector<uint8_t>& aExtraData);
 
 private:
   
   static void ConvertSPSOrPPS(ByteReader& aReader, uint8_t aCount,
-                              mozilla::Vector<uint8_t>* aAnnexB);
+                              nsTArray<uint8_t>* aAnnexB);
 };
 
 } 
