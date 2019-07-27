@@ -44,7 +44,6 @@
 
 #include "MediaCodec.h"
 #include "SurfaceTexture.h"
-#include "GLContextProvider.h"
 
 using namespace mozilla;
 using namespace mozilla::gfx;
@@ -822,8 +821,6 @@ AndroidBridge::OpenGraphicsLibraries()
             ANativeWindow_setBuffersGeometry = (int (*)(void*, int, int, int)) dlsym(handle, "ANativeWindow_setBuffersGeometry");
             ANativeWindow_lock = (int (*)(void*, void*, void*)) dlsym(handle, "ANativeWindow_lock");
             ANativeWindow_unlockAndPost = (int (*)(void*))dlsym(handle, "ANativeWindow_unlockAndPost");
-            ANativeWindow_getWidth = (int (*)(void*))dlsym(handle, "ANativeWindow_getWidth");
-            ANativeWindow_getHeight = (int (*)(void*))dlsym(handle, "ANativeWindow_getHeight");
 
             
             ANativeWindow_fromSurfaceTexture = (void* (*)(JNIEnv*, jobject))dlsym(handle, "ANativeWindow_fromSurfaceTexture");
@@ -1278,16 +1275,6 @@ AndroidBridge::ReleaseNativeWindow(void *window)
     
 }
 
-IntSize
-AndroidBridge::GetNativeWindowSize(void* window)
-{
-  if (!window || !ANativeWindow_getWidth || !ANativeWindow_getHeight) {
-    return IntSize(0, 0);
-  }
-
-  return IntSize(ANativeWindow_getWidth(window), ANativeWindow_getHeight(window));
-}
-
 void*
 AndroidBridge::AcquireNativeWindowFromSurfaceTexture(JNIEnv* aEnv, jobject aSurfaceTexture)
 {
@@ -1521,9 +1508,7 @@ void AndroidBridge::SyncFrameMetrics(const ParentLayerPoint& aScrollOffset, floa
 }
 
 AndroidBridge::AndroidBridge()
-  : mLayerClient(nullptr),
-    mPresentationWindow(nullptr),
-    mPresentationSurface(nullptr)
+  : mLayerClient(nullptr)
 {
 }
 
@@ -2049,51 +2034,6 @@ AndroidBridge::RunDelayedUiThreadTasks()
         task->Run();
     }
     return -1;
-}
-
-void*
-AndroidBridge::GetPresentationWindow()
-{
-    return mPresentationWindow;
-}
-
-void
-AndroidBridge::SetPresentationWindow(void* aPresentationWindow)
-{
-     if (mPresentationWindow) {
-         const bool wasAlreadyPaused = nsWindow::IsCompositionPaused();
-         if (!wasAlreadyPaused) {
-             nsWindow::SchedulePauseComposition();
-         }
-
-         mPresentationWindow = aPresentationWindow;
-         if (mPresentationSurface) {
-             
-             
-             
-             mozilla::gl::GLContextProvider::DestroyEGLSurface(mPresentationSurface);
-             mPresentationSurface = nullptr;
-         }
-
-         if (!wasAlreadyPaused) {
-             nsWindow::ScheduleResumeComposition();
-         }
-     }
-     else {
-         mPresentationWindow = aPresentationWindow;
-     }
-}
-
-EGLSurface
-AndroidBridge::GetPresentationSurface()
-{
-    return mPresentationSurface;
-}
-
-void
-AndroidBridge::SetPresentationSurface(EGLSurface aPresentationSurface)
-{
-    mPresentationSurface = aPresentationSurface;
 }
 
 Object::LocalRef AndroidBridge::ChannelCreate(Object::Param stream) {
