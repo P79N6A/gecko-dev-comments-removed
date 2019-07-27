@@ -6032,18 +6032,29 @@ nsDocument::RegisterElement(JSContext* aCx, const nsAString& aType,
       return;
     }
   } else {
-    
-    
     protoObject = aOptions.mPrototype;
-    if (JS_GetGlobalForObject(aCx, protoObject) != global) {
+
+    
+    
+    if (!JS_WrapObject(aCx, &protoObject)) {
       rv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+      return;
+    }
+
+    
+    JS::Rooted<JSObject*> protoObjectUnwrapped(aCx,
+      js::CheckedUnwrap(protoObject));
+    if (!protoObjectUnwrapped) {
+      
+      
+      rv.Throw(NS_ERROR_DOM_SECURITY_ERR);
       return;
     }
 
     
     
     
-    const js::Class* clasp = js::GetObjectClass(protoObject);
+    const js::Class* clasp = js::GetObjectClass(protoObjectUnwrapped);
     if (IsDOMIfaceAndProtoClass(clasp)) {
       rv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
       return;
@@ -6051,6 +6062,9 @@ nsDocument::RegisterElement(JSContext* aCx, const nsAString& aType,
 
     JS::Rooted<JSPropertyDescriptor> descRoot(aCx);
     JS::MutableHandle<JSPropertyDescriptor> desc(&descRoot);
+    
+    
+    
     if (!JS_GetPropertyDescriptor(aCx, protoObject, "constructor", desc)) {
       rv.Throw(NS_ERROR_UNEXPECTED);
       return;
