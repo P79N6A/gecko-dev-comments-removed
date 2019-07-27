@@ -73,7 +73,16 @@ NfcCallback.prototype = {
       debug("can not find promise resolver for id: " + this._requestId);
       return;
     }
-    resolver.resolve(aRecords);
+
+    let records = new this._window.Array();
+    for (let i = 0; i < aRecords.length; i++) {
+      let record = aRecords[i];
+      records.push(new this._window.MozNDEFRecord({tnf: record.tnf,
+                                                   type: record.type,
+                                                   id: record.id,
+                                                   payload: record.payload}));
+    }
+    resolver.resolve(records);
   },
 
   notifySuccessWithByteArray: function notifySuccessWithByteArray(aArray) {
@@ -335,6 +344,7 @@ function MozNFCImpl() {
 MozNFCImpl.prototype = {
   _nfcContentHelper: null,
   window: null,
+  _tabId: null,
   _rfState: null,
   _contentObj: null,
   nfcPeer: null,
@@ -352,9 +362,40 @@ MozNFCImpl.prototype = {
 
     if (this._nfcContentHelper) {
       this._nfcContentHelper.init(aWindow);
-      this._nfcContentHelper.addEventListener(this);
+      this._tabId = this.getTabId(aWindow);
+      this._nfcContentHelper.addEventListener(this, this._tabId);
       this._rfState = this._nfcContentHelper.queryRFState();
     }
+  },
+
+  getTabId: function getTabId(aWindow) {
+    let tabId;
+    
+    
+    
+    let docShell = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                          .getInterface(Ci.nsIWebNavigation)
+                          .QueryInterface(Ci.nsIDocShell);
+    try {
+      tabId = docShell.QueryInterface(Ci.nsIInterfaceRequestor)
+                      .getInterface(Ci.nsITabChild)
+                      .tabId;
+    } catch(e) {
+      
+      
+      
+      let inParent = Cc["@mozilla.org/xre/app-info;1"]
+                       .getService(Ci.nsIXULRuntime)
+                       .processType == Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT;
+      if (inParent) {
+        tabId = Ci.nsINfcBrowserAPI.SYSTEM_APP_ID;
+      } else {
+        throw Components.Exception("Can't get tab id in child process",
+                                   Cr.NS_ERROR_UNEXPECTED);
+      }
+    }
+
+    return tabId;
   },
 
   
