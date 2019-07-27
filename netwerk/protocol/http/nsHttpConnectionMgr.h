@@ -451,6 +451,9 @@ private:
         bool IsSpeculative() { return mSpeculative; }
         void SetSpeculative(bool val) { mSpeculative = val; }
 
+        bool IsFromPredictor() { return mIsFromPredictor; }
+        void SetIsFromPredictor(bool val) { mIsFromPredictor = val; }
+
         bool HasConnected() { return mHasConnected; }
 
         void PrintDiagnostics(nsCString &log);
@@ -470,6 +473,11 @@ private:
         
         
         bool                           mSpeculative;
+
+        
+        
+        
+        bool                           mIsFromPredictor;
 
         TimeStamp             mPrimarySynStarted;
         TimeStamp             mBackupSynStarted;
@@ -541,7 +549,7 @@ private:
     void     ClosePersistentConnections(nsConnectionEntry *ent);
     void     ReportProxyTelemetry(nsConnectionEntry *ent);
     nsresult CreateTransport(nsConnectionEntry *, nsAHttpTransaction *,
-                             uint32_t, bool);
+                             uint32_t, bool, bool = false);
     void     AddActiveConn(nsHttpConnection *, nsConnectionEntry *);
     void     DecrementActiveConnCount(nsHttpConnection *);
     void     StartedConnect();
