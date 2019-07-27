@@ -8,19 +8,27 @@
 #define mozilla_dom_bluetooth_BluetoothSocket_h
 
 #include "BluetoothCommon.h"
-#include "mozilla/ipc/UnixSocket.h"
+#include <stdlib.h>
+#include "mozilla/ipc/SocketBase.h"
+#include "mozilla/ipc/UnixSocketWatcher.h"
+#include "mozilla/RefPtr.h"
+#include "nsAutoPtr.h"
+#include "nsString.h"
+#include "nsThreadUtils.h"
 
 BEGIN_BLUETOOTH_NAMESPACE
 
 class BluetoothSocketObserver;
+class BluetoothUnixSocketConnector;
 
-class BluetoothSocket : public mozilla::ipc::UnixSocketConsumer
+class BluetoothSocket final : public mozilla::ipc::SocketConsumerBase
 {
 public:
   BluetoothSocket(BluetoothSocketObserver* aObserver,
                   BluetoothSocketType aType,
                   bool aAuth,
                   bool aEncrypt);
+  ~BluetoothSocket();
 
   bool Connect(const nsAString& aDeviceAddress,
                const BluetoothUuid& aServiceUuid,
@@ -44,11 +52,73 @@ public:
     GetSocketAddr(aDeviceAddress);
   }
 
+  
+
+
+
+
+
+
+
+  bool SendSocketData(mozilla::ipc::UnixSocketRawData* aMessage);
+
+  
+
+
+
+
+
+
+
+
+  bool SendSocketData(const nsACString& aMessage);
+
+  
+
+
+
+
+
+
+
+
+
+  bool ConnectSocket(BluetoothUnixSocketConnector* aConnector,
+                     const char* aAddress,
+                     int aDelayMs = 0);
+
+  
+
+
+
+
+
+
+
+  bool ListenSocket(BluetoothUnixSocketConnector* aConnector);
+
+  
+
+
+
+  void CloseSocket();
+
+  
+
+
+  void GetSocketAddr(nsAString& aAddrStr);
+
 private:
+  class BluetoothSocketIO;
+  class ConnectTask;
+  class DelayedConnectTask;
+  class ListenTask;
+
   BluetoothSocketObserver* mObserver;
   BluetoothSocketType mType;
   bool mAuth;
   bool mEncrypt;
+  BluetoothSocketIO* mIO;
 };
 
 END_BLUETOOTH_NAMESPACE
