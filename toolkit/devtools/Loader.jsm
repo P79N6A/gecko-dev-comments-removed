@@ -253,6 +253,8 @@ SrcdirProvider.prototype = {
   }
 };
 
+var gNextLoaderID = 0;
+
 
 
 
@@ -277,6 +279,14 @@ DevToolsLoader.prototype = {
   },
 
   _provider: null,
+
+  get id() {
+    if (this._id) {
+      return this._id;
+    } else {
+      return this._id = ++gNextLoaderID;
+    }
+  },
 
   
 
@@ -377,7 +387,8 @@ DevToolsLoader.prototype = {
         lazyGetter: this.lazyGetter,
         lazyImporter: this.lazyImporter,
         lazyServiceGetter: this.lazyServiceGetter,
-        lazyRequireGetter: this.lazyRequireGetter
+        lazyRequireGetter: this.lazyRequireGetter,
+        id: this.id
       },
     };
     

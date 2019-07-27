@@ -965,8 +965,13 @@ var DebuggerServer = {
     if (aForwardingPrefix) {
       connID = aForwardingPrefix + "/";
     } else {
-      connID = "conn" + this._nextConnID++ + '.';
+      
+      
+      
+      
+      connID = "server" + loader.id + ".conn" + this._nextConnID++ + '.';
     }
+
     let conn = new DebuggerServerConnection(connID, aTransport);
     this._connections[connID] = conn;
 
