@@ -236,7 +236,7 @@ TimerThread::Run()
     if (mSleeping) {
       
       uint32_t milliseconds = 100;
-      if (ChaosMode::isActive(ChaosMode::TimerScheduling)) {
+      if (ChaosMode::isActive(ChaosFeature::TimerScheduling)) {
         milliseconds = ChaosMode::randomUint32LessThan(200);
       }
       waitFor = PR_MillisecondsToInterval(milliseconds);
@@ -320,7 +320,7 @@ TimerThread::Run()
         
         double microseconds = (timeout - now).ToMilliseconds() * 1000;
 
-        if (ChaosMode::isActive(ChaosMode::TimerScheduling)) {
+        if (ChaosMode::isActive(ChaosFeature::TimerScheduling)) {
           
           
           

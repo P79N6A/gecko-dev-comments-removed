@@ -95,7 +95,7 @@ nsEventQueue::PutEvent(already_AddRefed<nsIRunnable>&& aRunnable)
   
   nsCOMPtr<nsIRunnable> event(aRunnable);
 
-  if (ChaosMode::isActive(ChaosMode::ThreadScheduling)) {
+  if (ChaosMode::isActive(ChaosFeature::ThreadScheduling)) {
     
     
     if (ChaosMode::randomUint32LessThan(2)) {
