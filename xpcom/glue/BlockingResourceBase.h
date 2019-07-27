@@ -81,7 +81,7 @@ private:
                           BlockingResourceType aType)
       : mName(aName)
       , mType(aType)
-      , mAcquisitionContext(CallStack::kNone)
+      , mAcquired(false)
     {
       NS_ABORT_IF_FALSE(mName, "Name must be nonnull");
     }
@@ -132,8 +132,7 @@ private:
 
 
 
-
-    CallStack mAcquisitionContext;
+    bool mAcquired;
   };
 
 protected:
@@ -256,10 +255,9 @@ protected:
 
 
 
-
-  CallStack GetAcquisitionContext()
+  bool GetAcquisitionState()
   {
-    return mDDEntry->mAcquisitionContext;
+    return mDDEntry->mAcquired;
   }
 
   
@@ -268,9 +266,9 @@ protected:
 
 
 
-  void SetAcquisitionContext(CallStack aAcquisitionContext)
+  void SetAcquisitionState(bool aAcquisitionState)
   {
-    mDDEntry->mAcquisitionContext = aAcquisitionContext;
+    mDDEntry->mAcquired = aAcquisitionState;
   }
 
   
