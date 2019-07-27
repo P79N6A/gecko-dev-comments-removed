@@ -24,6 +24,8 @@ class Matrix4x4;
 template <class units> struct RectTyped;
 } 
 
+enum class ImageFormat;
+
 namespace layers {
 
 void
@@ -208,6 +210,14 @@ AppendToString(std::stringstream& aStream, mozilla::layers::TextureFlags flags,
 
 void
 AppendToString(std::stringstream& aStream, mozilla::gfx::SurfaceFormat format,
+               const char* pfx="", const char* sfx="");
+
+void
+AppendToString(std::stringstream& aStream, gfx::SurfaceType format,
+               const char* pfx="", const char* sfx="");
+
+void
+AppendToString(std::stringstream& aStream, ImageFormat format,
                const char* pfx="", const char* sfx="");
 
 
