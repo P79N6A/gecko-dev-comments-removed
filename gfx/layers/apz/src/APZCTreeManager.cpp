@@ -792,9 +792,7 @@ APZCTreeManager::GetTouchInputBlockAPZC(const MultiTouchInput& aEvent,
     
     
     MonitorAutoLock lock(mTreeLock);
-    for (HitTestingTreeNode* node = mRootNode; node; node = node->GetPrevSibling()) {
-      FlushRepaintsRecursively(node);
-    }
+    FlushRepaintsRecursively(mRootNode);
   }
 
   apzc = GetTargetAPZC(aEvent.mTouches[0].mScreenPoint, aOutHitResult);
@@ -1124,11 +1122,11 @@ APZCTreeManager::FlushRepaintsRecursively(HitTestingTreeNode* aNode)
 {
   mTreeLock.AssertCurrentThreadOwns();
 
-  if (aNode->IsPrimaryHolder()) {
-    aNode->Apzc()->FlushRepaintForNewInputBlock();
-  }
-  for (HitTestingTreeNode* child = aNode->GetLastChild(); child; child = child->GetPrevSibling()) {
-    FlushRepaintsRecursively(child);
+  for (HitTestingTreeNode* node = aNode; node; node = node->GetPrevSibling()) {
+    if (node->IsPrimaryHolder()) {
+      node->Apzc()->FlushRepaintForNewInputBlock();
+    }
+    FlushRepaintsRecursively(node->GetLastChild());
   }
 }
 
@@ -1313,14 +1311,7 @@ APZCTreeManager::GetTargetNode(const ScrollableLayerGuid& aGuid,
                                GuidComparator aComparator)
 {
   MonitorAutoLock lock(mTreeLock);
-  nsRefPtr<HitTestingTreeNode> target;
-  
-  for (HitTestingTreeNode* node = mRootNode; node; node = node->GetPrevSibling()) {
-    target = FindTargetNode(node, aGuid, aComparator);
-    if (target) {
-      break;
-    }
-  }
+  nsRefPtr<HitTestingTreeNode> target = FindTargetNode(mRootNode, aGuid, aComparator);
   return target.forget();
 }
 
@@ -1328,32 +1319,9 @@ already_AddRefed<AsyncPanZoomController>
 APZCTreeManager::GetTargetAPZC(const ScreenPoint& aPoint, HitTestResult* aOutHitResult)
 {
   MonitorAutoLock lock(mTreeLock);
-  nsRefPtr<AsyncPanZoomController> target;
-  
   HitTestResult hitResult = NoApzcHit;
-  for (HitTestingTreeNode* node = mRootNode; node; node = node->GetPrevSibling()) {
-    target = GetAPZCAtPoint(node, aPoint.ToUnknownPoint(), &hitResult);
-    if (!gfxPrefs::LayoutEventRegionsEnabled() && target == node->Apzc()
-        && node->GetPrevSibling() && target == node->GetPrevSibling()->Apzc()) {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      continue;
-    }
-    
-    
-    if (target || (hitResult == OverscrolledApzc)) {
-      break;
-    }
-  }
+  nsRefPtr<AsyncPanZoomController> target = GetAPZCAtPoint(mRootNode, aPoint.ToUnknownPoint(), &hitResult);
+
   
   MOZ_ASSERT(!(target && (hitResult == OverscrolledApzc)));
   if (aOutHitResult) {
@@ -1449,21 +1417,21 @@ APZCTreeManager::FindTargetNode(HitTestingTreeNode* aNode,
 
   
   
-  for (HitTestingTreeNode* child = aNode->GetLastChild(); child; child = child->GetPrevSibling()) {
-    HitTestingTreeNode* match = FindTargetNode(child, aGuid, aComparator);
+  for (HitTestingTreeNode* node = aNode; node; node = node->GetPrevSibling()) {
+    HitTestingTreeNode* match = FindTargetNode(node->GetLastChild(), aGuid, aComparator);
     if (match) {
       return match;
     }
-  }
 
-  bool matches = false;
-  if (aComparator) {
-    matches = aComparator(aGuid, aNode->Apzc()->GetGuid());
-  } else {
-    matches = aNode->Apzc()->Matches(aGuid);
-  }
-  if (matches) {
-    return aNode;
+    bool matches = false;
+    if (aComparator) {
+      matches = aComparator(aGuid, node->Apzc()->GetGuid());
+    } else {
+      matches = node->Apzc()->Matches(aGuid);
+    }
+    if (matches) {
+      return node;
+    }
   }
   return nullptr;
 }
@@ -1474,46 +1442,75 @@ APZCTreeManager::GetAPZCAtPoint(HitTestingTreeNode* aNode,
                                 HitTestResult* aOutHitResult)
 {
   mTreeLock.AssertCurrentThreadOwns();
-  AsyncPanZoomController* apzc = aNode->Apzc();
 
   
   
-  
-  
+  for (HitTestingTreeNode* node = aNode; node; node = node->GetPrevSibling()) {
+    AsyncPanZoomController* apzc = node->Apzc();
 
-  
-  
-  
-  
-  Matrix4x4 ancestorUntransform = apzc->GetAncestorTransform().Inverse();
+    
+    
+    
+    
+    
+    
 
-  
-  
-  
-  Point4D hitTestPointForThisLayer = ancestorUntransform.ProjectPoint(aHitTestPoint);
-  APZCTM_LOG("Untransformed %f %f to parentlayer coordinates %f %f for hit-testing APZC %p\n",
-           aHitTestPoint.x, aHitTestPoint.y,
-           hitTestPointForThisLayer.x, hitTestPointForThisLayer.y, apzc);
+    
+    
+    
+    
+    Matrix4x4 ancestorUntransform = apzc->GetAncestorTransform().Inverse();
 
-  
-  
-  
-  
-  Matrix4x4 childUntransform = ancestorUntransform * Matrix4x4(apzc->GetCurrentAsyncTransform()).Inverse();
-  Point4D hitTestPointForChildLayers = childUntransform.ProjectPoint(aHitTestPoint);
-  APZCTM_LOG("Untransformed %f %f to layer coordinates %f %f for APZC %p\n",
-           aHitTestPoint.x, aHitTestPoint.y,
-           hitTestPointForChildLayers.x, hitTestPointForChildLayers.y, apzc);
+    
+    
+    
+    Point4D hitTestPointForThisLayer = ancestorUntransform.ProjectPoint(aHitTestPoint);
+    APZCTM_LOG("Untransformed %f %f to parentlayer coordinates %f %f for hit-testing APZC %p\n",
+        aHitTestPoint.x, aHitTestPoint.y,
+        hitTestPointForThisLayer.x, hitTestPointForThisLayer.y, apzc);
 
-  AsyncPanZoomController* result = nullptr;
-  
-  
-  if (hitTestPointForChildLayers.HasPositiveWCoord()) {
-    for (HitTestingTreeNode* child = aNode->GetLastChild(); child; child = child->GetPrevSibling()) {
-      AsyncPanZoomController* match = GetAPZCAtPoint(child, hitTestPointForChildLayers.As2DPoint(), aOutHitResult);
-      if (!gfxPrefs::LayoutEventRegionsEnabled() && match == aNode->Apzc()
-          && aNode->GetPrevSibling() && match == aNode->GetPrevSibling()->Apzc()) {
+    
+    
+    
+    
+    Matrix4x4 childUntransform = ancestorUntransform * Matrix4x4(apzc->GetCurrentAsyncTransform()).Inverse();
+    Point4D hitTestPointForChildLayers = childUntransform.ProjectPoint(aHitTestPoint);
+    APZCTM_LOG("Untransformed %f %f to layer coordinates %f %f for APZC %p\n",
+        aHitTestPoint.x, aHitTestPoint.y,
+        hitTestPointForChildLayers.x, hitTestPointForChildLayers.y, apzc);
+
+    AsyncPanZoomController* result = nullptr;
+    if (hitTestPointForChildLayers.HasPositiveWCoord()) {
+      result = GetAPZCAtPoint(node->GetLastChild(), hitTestPointForChildLayers.As2DPoint(), aOutHitResult);
+      if (*aOutHitResult == OverscrolledApzc) {
         
+        return nullptr;
+      }
+    }
+    if (!result && hitTestPointForThisLayer.HasPositiveWCoord()) {
+      ParentLayerPoint point = ParentLayerPoint::FromUnknownPoint(hitTestPointForThisLayer.As2DPoint());
+      HitTestResult hitResult = node->HitTest(point);
+      if (hitResult != HitTestResult::NoApzcHit) {
+        APZCTM_LOG("Successfully matched untransformed point %f %f to visible region for APZC %p via node %p\n",
+             hitTestPointForThisLayer.x, hitTestPointForThisLayer.y, apzc, node);
+        result = apzc;
+        MOZ_ASSERT(hitResult == ApzcHitRegion || hitResult == ApzcContentRegion);
+        
+        *aOutHitResult = hitResult;
+      }
+    }
+
+    
+    
+    
+    if (result && apzc->IsOverscrolled()) {
+      *aOutHitResult = OverscrolledApzc;
+      return nullptr;
+    }
+
+    if (result) {
+      if (!gfxPrefs::LayoutEventRegionsEnabled() && node->GetPrevSibling()
+          && result == node->GetPrevSibling()->Apzc()) {
         
         
         
@@ -1526,38 +1523,12 @@ APZCTreeManager::GetAPZCAtPoint(HitTestingTreeNode* aNode,
         
         continue;
       }
-      if (*aOutHitResult == OverscrolledApzc) {
-        
-        return nullptr;
-      }
-      if (match) {
-        result = match;
-        break;
-      }
-    }
-  }
-  if (!result && hitTestPointForThisLayer.HasPositiveWCoord()) {
-    ParentLayerPoint point = ParentLayerPoint::FromUnknownPoint(hitTestPointForThisLayer.As2DPoint());
-    HitTestResult hitResult = aNode->HitTest(point);
-    if (hitResult != HitTestResult::NoApzcHit) {
-      APZCTM_LOG("Successfully matched untransformed point %s to visible region for APZC %p via node %p\n",
-        Stringify(hitTestPointForThisLayer.As2DPoint()).c_str(), apzc, aNode);
-      result = apzc;
-      MOZ_ASSERT(hitResult == ApzcHitRegion || hitResult == ApzcContentRegion);
-      
-      *aOutHitResult = hitResult;
+
+      return result;
     }
   }
 
-  
-  
-  
-  if (result && apzc->IsOverscrolled()) {
-    *aOutHitResult = OverscrolledApzc;
-    result = nullptr;
-  }
-
-  return result;
+  return nullptr;
 }
 
 
