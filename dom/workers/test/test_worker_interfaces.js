@@ -109,7 +109,7 @@ var interfaceNamesInGlobalScope =
 
     "FileReaderSync",
 
-    { name: "Headers", pref: "dom.fetch.enabled" },
+    "Headers",
 
     "IDBCursor",
 
@@ -140,6 +140,10 @@ var interfaceNamesInGlobalScope =
     "Performance",
 
     "Promise",
+
+    "Request",
+
+    "Response",
 
     "TextDecoder",
 

@@ -4457,8 +4457,6 @@ pref("beacon.enabled", true);
 pref("camera.control.face_detection.enabled", true);
 
 
-pref("dom.fetch.enabled", false);
-
 
 pref("dom.caches.enabled", false);
 

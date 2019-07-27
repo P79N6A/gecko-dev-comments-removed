@@ -194,7 +194,6 @@ struct JSSettings
 enum WorkerPreference
 {
   WORKERPREF_DUMP = 0, 
-  WORKERPREF_DOM_FETCH,
   WORKERPREF_DOM_CACHES, 
   WORKERPREF_COUNT
 };
