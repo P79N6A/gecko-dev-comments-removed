@@ -1436,6 +1436,9 @@ function whenDelayedStartupFinished(aWindow, aCallback)
 
 
 
+
+
+
 function checkOutputForInputs(hud, inputTests)
 {
   let container = gBrowser.tabContainer;
@@ -1462,11 +1465,14 @@ function checkOutputForInputs(hud, inputTests)
     hud.jsterm.clearOutput();
     hud.jsterm.execute("console.log(" + entry.input + ")");
 
+    let consoleOutput = "consoleOutput" in entry ?
+                        entry.consoleOutput : entry.output;
+
     let [result] = yield waitForMessages({
       webconsole: hud,
       messages: [{
-        name: "console.log() output: " + entry.output,
-        text: entry.output,
+        name: "console.log() output: " + consoleOutput,
+        text: consoleOutput,
         category: CATEGORY_WEBDEV,
         severity: SEVERITY_LOG,
       }],

@@ -29,6 +29,7 @@ let inputTests = [
   {
     input: "'hello \\nfrom \\rthe \\\"string world!'",
     output: "\"hello \nfrom \rthe \"string world!\"",
+    consoleOutput: "hello \nfrom \rthe \"string world!",
   },
 
   
@@ -36,12 +37,14 @@ let inputTests = [
     
     input: "'\xFA\u1E47\u0129\xE7\xF6d\xEA \u021B\u0115\u0219\u0165'",
     output: "\"\xFA\u1E47\u0129\xE7\xF6d\xEA \u021B\u0115\u0219\u0165\"",
+    consoleOutput: "\xFA\u1E47\u0129\xE7\xF6d\xEA \u021B\u0115\u0219\u0165",
   },
 
   
   {
     input: "'" + longString + "'",
     output: '"' + initialString + "\"[\u2026]",
+    consoleOutput: initialString + "[\u2026]",
     printOutput: initialString,
   },
 
@@ -49,6 +52,7 @@ let inputTests = [
   {
     input: "''",
     output: '""',
+    consoleOutput: "",
     printOutput: '""',
   },
 
@@ -62,6 +66,7 @@ let inputTests = [
   {
     input: "'0'",
     output: '"0"',
+    consoleOutput: "0",
   },
 
   
@@ -74,6 +79,7 @@ let inputTests = [
   {
     input: "'42'",
     output: '"42"',
+    consoleOutput: "42",
   },
 
   
