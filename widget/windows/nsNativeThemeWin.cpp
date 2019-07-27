@@ -4,8 +4,10 @@
 
 
 #include "nsNativeThemeWin.h"
+
 #include "mozilla/EventStates.h"
 #include "mozilla/WindowsVersion.h"
+#include "nsDeviceContext.h"
 #include "nsRenderingContext.h"
 #include "nsRect.h"
 #include "nsSize.h"

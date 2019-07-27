@@ -4710,7 +4710,7 @@ nsLayoutUtils::PaintTextShadow(const nsIFrame* aFrame,
     
     
     nsRefPtr<nsRenderingContext> renderingContext = new nsRenderingContext();
-    renderingContext->Init(presCtx->DeviceContext(), shadowContext);
+    renderingContext->Init(shadowContext);
 
     aDestCtx->Save();
     aDestCtx->NewPath();
