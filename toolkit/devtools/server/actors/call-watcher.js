@@ -412,11 +412,13 @@ let CallWatcherActor = exports.CallWatcherActor = protocol.ActorClass({
 
 
     function overrideFunction(global, target, name, descriptor, callback) {
-      let originalFunc = target[name];
+      
+      
+      let originalFunc = Cu.unwaiveXrays(target[name]);
 
       Object.defineProperty(target, name, {
         value: function(...args) {
-          let result = originalFunc.apply(this, args);
+          let result = Cu.waiveXrays(originalFunc.apply(this, args));
 
           if (self._recording) {
             let stack = getStack(name);
@@ -435,13 +437,15 @@ let CallWatcherActor = exports.CallWatcherActor = protocol.ActorClass({
 
 
     function overrideAccessor(global, target, name, descriptor, callback) {
-      let originalGetter = target.__lookupGetter__(name);
-      let originalSetter = target.__lookupSetter__(name);
+      
+      
+      let originalGetter = Cu.unwaiveXrays(target.__lookupGetter__(name));
+      let originalSetter = Cu.unwaiveXrays(target.__lookupSetter__(name));
 
       Object.defineProperty(target, name, {
         get: function(...args) {
           if (!originalGetter) return undefined;
-          let result = originalGetter.apply(this, args);
+          let result = Cu.waiveXrays(originalGetter.apply(this, args));
 
           if (self._recording) {
             let stack = getStack(name);
