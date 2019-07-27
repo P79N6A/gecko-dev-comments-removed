@@ -175,7 +175,8 @@ main(int argc, char** argv)
 #ifndef DD_TEST2
     puts("Skipping not-requested OneLockNDeps() test");
 #else
-    if (NS_FAILED(OneLockNDeps(1 << 14, 100))) 
+    
+    if (NS_FAILED(OneLockNDeps(1 << 17, 100))) 
         rv = 1;
 #endif
 
