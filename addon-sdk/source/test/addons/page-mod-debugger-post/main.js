@@ -135,4 +135,7 @@ function closeConnection() {
 
 module.exports = {};
 
+
+module.exports = {};
+
 require('sdk/test/runner').runTestsFromModule(module);
