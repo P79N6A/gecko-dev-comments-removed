@@ -451,11 +451,6 @@ public:
   class Iterator
   {
   public:
-    typedef nsIFrame* ValueType;
-    
-    
-    typedef ptrdiff_t DifferenceType;
-
     Iterator(const nsFrameList& aList, nsIFrame* aCurrent)
       : mList(aList)
       , mCurrent(aCurrent)
