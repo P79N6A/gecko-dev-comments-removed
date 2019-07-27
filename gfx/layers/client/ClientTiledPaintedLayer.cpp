@@ -132,7 +132,7 @@ ClientTiledPaintedLayer::BeginPaint()
 #if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_B2G)
     
     
-    NS_WARNING("Tiled Thebes layer with no scrollable container ancestor");
+    NS_WARNING("Tiled PaintedLayer with no scrollable container ancestor");
 #endif
     return;
   }

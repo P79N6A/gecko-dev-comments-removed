@@ -738,7 +738,7 @@ public:
     TYPE_READBACK,
     TYPE_REF,
     TYPE_SHADOW,
-    TYPE_THEBES
+    TYPE_PAINTED
   };
 
   
@@ -1695,7 +1695,7 @@ public:
 
   virtual PaintedLayer* AsPaintedLayer() { return this; }
 
-  MOZ_LAYER_DECL_NAME("PaintedLayer", TYPE_THEBES)
+  MOZ_LAYER_DECL_NAME("PaintedLayer", TYPE_PAINTED)
 
   virtual void ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface)
   {

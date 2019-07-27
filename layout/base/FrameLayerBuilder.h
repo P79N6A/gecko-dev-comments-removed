@@ -304,7 +304,7 @@ public:
 
 
 
-  void AddThebesDisplayItem(PaintedLayerData* aLayer,
+  void AddPaintedDisplayItem(PaintedLayerData* aLayer,
                             nsDisplayItem* aItem,
                             const DisplayItemClip& aClip,
                             const nsIntRect& aItemVisibleRect,

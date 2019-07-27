@@ -77,7 +77,7 @@ public:
     Mutated();
   }
 
-  MOZ_LAYER_DECL_NAME("PaintedLayerComposite", TYPE_THEBES)
+  MOZ_LAYER_DECL_NAME("PaintedLayerComposite", TYPE_PAINTED)
 
 protected:
 
