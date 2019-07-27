@@ -114,7 +114,7 @@ public:
   
   
   
-  SegmentedVector(size_t aIdealSegmentSize = 0)
+  explicit SegmentedVector(size_t aIdealSegmentSize = 0)
   {
     
     
@@ -192,7 +192,7 @@ public:
     Segment* mSegment;
     size_t mIndex;
 
-    IterImpl(SegmentedVector* aVector)
+    explicit IterImpl(SegmentedVector* aVector)
       : mSegment(aVector->mSegments.getFirst())
       , mIndex(0)
     {}
