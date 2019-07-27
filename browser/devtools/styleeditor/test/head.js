@@ -1,6 +1,7 @@
 
 
 
+const FRAME_SCRIPT_UTILS_URL = "chrome://browser/content/devtools/frame-script-utils.js"
 const TEST_BASE = "chrome://mochitests/content/browser/browser/devtools/styleeditor/test/";
 const TEST_BASE_HTTP = "http://example.com/browser/browser/devtools/styleeditor/test/";
 const TEST_BASE_HTTPS = "https://example.com/browser/browser/devtools/styleeditor/test/";
@@ -134,6 +135,66 @@ function openStyleEditorInWindow(win, callback) {
     panel.UI._alwaysDisableAnimations = true;
     callback(panel);
   });
+}
+
+
+
+
+
+
+
+function loadCommonFrameScript(tab) {
+  let browser = tab ? tab.linkedBrowser : gBrowser.selectedBrowser;
+
+  browser.messageManager.loadFrameScript(FRAME_SCRIPT_UTILS_URL, false);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function executeInContent(name, data={}, objects={}, expectResponse=true) {
+  let mm = gBrowser.selectedBrowser.messageManager;
+
+  mm.sendAsyncMessage(name, data, objects);
+  if (expectResponse) {
+    return waitForContentMessage(name);
+  } else {
+    return promise.resolve();
+  }
+}
+
+
+
+
+
+
+
+
+function waitForContentMessage(name) {
+  let mm = gBrowser.selectedBrowser.messageManager;
+
+  let def = promise.defer();
+  mm.addMessageListener(name, function onMessage(msg) {
+    mm.removeMessageListener(name, onMessage);
+    def.resolve(msg);
+  });
+  return def.promise;
 }
 
 registerCleanupFunction(cleanup);
