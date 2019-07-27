@@ -761,6 +761,27 @@ PL_DHashTableRawRemove(PLDHashTable* aTable, PLDHashEntryHdr* aEntry)
   aTable->RawRemove(aEntry);
 }
 
+
+
+
+void
+PLDHashTable::ShrinkIfAppropriate()
+{
+  uint32_t capacity = Capacity();
+  if (mRemovedCount >= capacity >> 2 ||
+      (capacity > PL_DHASH_MIN_CAPACITY && mEntryCount <= MinLoad(capacity))) {
+    METER(mStats.mEnumShrinks++);
+
+    uint32_t log2;
+    BestCapacity(mEntryCount, &capacity, &log2);
+
+    int32_t deltaLog2 = log2 - (PL_DHASH_BITS - mHashShift);
+    MOZ_ASSERT(deltaLog2 <= 0);
+
+    (void) ChangeTable(deltaLog2);
+  }
+}
+
 MOZ_ALWAYS_INLINE uint32_t
 PLDHashTable::Enumerate(PLDHashEnumerator aEtor, void* aArg)
 {
@@ -806,25 +827,10 @@ PLDHashTable::Enumerate(PLDHashEnumerator aEtor, void* aArg)
   MOZ_ASSERT(!didRemove || mRecursionLevel == 1);
 
   
-
-
-
-
-
-
-  if (didRemove &&
-      (mRemovedCount >= capacity >> 2 ||
-       (capacity > PL_DHASH_MIN_CAPACITY &&
-        mEntryCount <= MinLoad(capacity)))) {
-    METER(mStats.mEnumShrinks++);
-
-    uint32_t log2;
-    BestCapacity(mEntryCount, &capacity, &log2);
-
-    int32_t deltaLog2 = log2 - (PL_DHASH_BITS - mHashShift);
-    MOZ_ASSERT(deltaLog2 <= 0);
-
-    (void) ChangeTable(deltaLog2);
+  
+  
+  if (didRemove) {
+    ShrinkIfAppropriate();
   }
 
   DECREMENT_RECURSION_LEVEL(this);
