@@ -586,31 +586,12 @@ class ArenaLists
 
     ArenaList      arenaLists[FINALIZE_LIMIT];
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    enum BackgroundFinalizeStateEnum {
-        BFS_DONE,
-        BFS_RUN,
-        BFS_JUST_FINISHED
-    };
+    enum BackgroundFinalizeStateEnum { BFS_DONE, BFS_RUN };
 
     typedef mozilla::Atomic<BackgroundFinalizeStateEnum, mozilla::ReleaseAcquire>
         BackgroundFinalizeState;
 
+    
     BackgroundFinalizeState backgroundFinalizeState[FINALIZE_LIMIT];
 
   public:
@@ -704,16 +685,14 @@ class ArenaLists
     void unmarkAll() {
         for (size_t i = 0; i != FINALIZE_LIMIT; ++i) {
             
-            MOZ_ASSERT(backgroundFinalizeState[i] == BFS_DONE ||
-                       backgroundFinalizeState[i] == BFS_JUST_FINISHED);
+            MOZ_ASSERT(backgroundFinalizeState[i] == BFS_DONE);
             for (ArenaHeader *aheader = arenaLists[i].head(); aheader; aheader = aheader->next)
                 aheader->unmarkAll();
         }
     }
 
     bool doneBackgroundFinalize(AllocKind kind) const {
-        return backgroundFinalizeState[kind] == BFS_DONE ||
-               backgroundFinalizeState[kind] == BFS_JUST_FINISHED;
+        return backgroundFinalizeState[kind] == BFS_DONE;
     }
 
     bool needBackgroundFinalizeWait(AllocKind kind) const {
@@ -850,7 +829,7 @@ class ArenaLists
 
     bool foregroundFinalize(FreeOp *fop, AllocKind thingKind, SliceBudget &sliceBudget,
                             SortedArenaList &sweepList);
-    static void backgroundFinalize(FreeOp *fop, ArenaHeader *listHead, bool onBackgroundThread);
+    static void backgroundFinalize(FreeOp *fop, ArenaHeader *listHead);
 
     void wipeDuringParallelExecution(JSRuntime *rt);
 
