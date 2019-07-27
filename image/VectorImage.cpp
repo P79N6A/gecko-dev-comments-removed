@@ -415,13 +415,18 @@ VectorImage::OnImageDataComplete(nsIRequest* aRequest,
   if (NS_FAILED(aStatus)) {
     finalStatus = aStatus;
   }
-
   
-  if (mProgressTracker) {
-    mProgressTracker->SyncNotifyProgress(LoadCompleteProgress(aLastPart,
-                                                              mError,
-                                                              finalStatus));
+  Progress loadProgress = LoadCompleteProgress(aLastPart, mError, finalStatus);
+
+  if (mIsFullyLoaded || mError) {
+    
+    mProgressTracker->SyncNotifyProgress(loadProgress);
+  } else {
+    
+    
+    mLoadProgress = Some(loadProgress);
   }
+
   return finalStatus;
 }
 
@@ -1175,12 +1180,19 @@ VectorImage::OnSVGDocumentLoaded()
 
   
   if (mProgressTracker) {
-    mProgressTracker->SyncNotifyProgress(FLAG_SIZE_AVAILABLE |
-                                         FLAG_HAS_TRANSPARENCY |
-                                         FLAG_FRAME_COMPLETE |
-                                         FLAG_DECODE_COMPLETE |
-                                         FLAG_ONLOAD_UNBLOCKED,
-                                         GetMaxSizedIntRect());
+    Progress progress = FLAG_SIZE_AVAILABLE |
+                        FLAG_HAS_TRANSPARENCY |
+                        FLAG_FRAME_COMPLETE |
+                        FLAG_DECODE_COMPLETE |
+                        FLAG_ONLOAD_UNBLOCKED;
+
+    
+    if (mLoadProgress) {
+      progress |= *mLoadProgress;
+      mLoadProgress = Nothing();
+    }
+
+    mProgressTracker->SyncNotifyProgress(progress, GetMaxSizedIntRect());
   }
 
   EvaluateAnimation();
@@ -1198,9 +1210,17 @@ VectorImage::OnSVGDocumentError()
 
   if (mProgressTracker) {
     
-    mProgressTracker->SyncNotifyProgress(FLAG_DECODE_COMPLETE |
-                                         FLAG_ONLOAD_UNBLOCKED |
-                                         FLAG_HAS_ERROR);
+    Progress progress = FLAG_DECODE_COMPLETE |
+                        FLAG_ONLOAD_UNBLOCKED |
+                        FLAG_HAS_ERROR;
+
+    
+    if (mLoadProgress) {
+      progress |= *mLoadProgress;
+      mLoadProgress = Nothing();
+    }
+
+    mProgressTracker->SyncNotifyProgress(progress);
   }
 }
 
