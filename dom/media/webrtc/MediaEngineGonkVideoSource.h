@@ -15,11 +15,6 @@
 #include "mozilla/Hal.h"
 #include "mozilla/ReentrantMonitor.h"
 #include "mozilla/dom/File.h"
-#include "GonkCameraSource.h"
-
-namespace android {
-class MOZ_EXPORT MediaBuffer;
-}
 
 namespace mozilla {
 
@@ -95,12 +90,6 @@ public:
   
   nsresult UpdatePhotoOrientation();
 
-  
-  
-  
-  
-  nsresult OnNewMediaBufferFrame(android::MediaBuffer* aBuffer);
-
 protected:
   ~MediaEngineGonkVideoSource()
   {
@@ -111,16 +100,11 @@ protected:
   void Shutdown();
   void ChooseCapability(const VideoTrackConstraintsN& aConstraints,
                         const MediaEnginePrefs& aPrefs);
-  
-  
-  nsresult InitDirectMediaBuffer();
 
   mozilla::ReentrantMonitor mCallbackMonitor; 
   
   nsRefPtr<ICameraControl> mCameraControl;
   nsCOMPtr<nsIDOMFile> mLastCapture;
-
-  android::sp<android::GonkCameraSource> mCameraSource;
 
   
   nsTArray<nsRefPtr<PhotoCallback>> mPhotoCallbacks;

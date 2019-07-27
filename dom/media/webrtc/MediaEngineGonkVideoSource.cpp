@@ -18,7 +18,6 @@ namespace mozilla {
 
 using namespace mozilla::dom;
 using namespace mozilla::gfx;
-using namespace android;
 
 #ifdef PR_LOGGING
 extern PRLogModuleInfo* GetMediaManagerLog();
@@ -28,29 +27,6 @@ extern PRLogModuleInfo* GetMediaManagerLog();
 #define LOG(msg)
 #define LOGFRAME(msg)
 #endif
-
-class MediaBufferListener : public GonkCameraSource::DirectBufferListener {
-public:
-  MediaBufferListener(MediaEngineGonkVideoSource* aMediaEngine)
-    : mMediaEngine(aMediaEngine)
-  {
-  }
-
-  status_t BufferAvailable(MediaBuffer* aBuffer)
-  {
-    nsresult rv = mMediaEngine->OnNewMediaBufferFrame(aBuffer);
-    if (NS_SUCCEEDED(rv)) {
-      return OK;
-    }
-    return UNKNOWN_ERROR;
-  }
-
-  ~MediaBufferListener()
-  {
-  }
-
-  nsRefPtr<MediaEngineGonkVideoSource> mMediaEngine;
-};
 
 
 
@@ -185,46 +161,6 @@ MediaEngineGonkVideoSource::Start(SourceMediaStream* aStream, TrackID aID)
                                        mCapability));
   mCallbackMonitor.Wait();
   if (mState != kStarted) {
-    return NS_ERROR_FAILURE;
-  }
-
-  if (NS_FAILED(InitDirectMediaBuffer())) {
-    return NS_ERROR_FAILURE;
-  }
-
-  return NS_OK;
-}
-
-nsresult
-MediaEngineGonkVideoSource::InitDirectMediaBuffer()
-{
-  
-  nsTArray<ICameraControl::Size> videoSizes;
-  mCameraControl->Get(CAMERA_PARAM_SUPPORTED_VIDEOSIZES, videoSizes);
-  if (!videoSizes.Length()) {
-    return NS_ERROR_FAILURE;
-  }
-
-  
-  
-  
-  android::Size videoSize;
-  videoSize.width = videoSizes[0].width;
-  videoSize.height = videoSizes[0].height;
-
-  LOG(("Intial size, width: %d, height: %d", videoSize.width, videoSize.height));
-  mCameraSource = GonkCameraSource::Create(mCameraControl,
-                                           videoSize,
-                                           MediaEngine::DEFAULT_VIDEO_FPS);
-
-  status_t rv;
-  rv = mCameraSource->AddDirectBufferListener(new MediaBufferListener(this));
-  if (rv != OK) {
-    return NS_ERROR_FAILURE;
-  }
-
-  rv = mCameraSource->start(nullptr);
-  if (rv != OK) {
     return NS_ERROR_FAILURE;
   }
 
@@ -408,9 +344,6 @@ MediaEngineGonkVideoSource::StartImpl(webrtc::CaptureCapability aCapability) {
 void
 MediaEngineGonkVideoSource::StopImpl() {
   MOZ_ASSERT(NS_IsMainThread());
-
-  mCameraSource->stop();
-  mCameraSource = nullptr;
 
   hal::UnregisterScreenConfigurationObserver(this);
   mCameraControl->Stop();
@@ -643,16 +576,16 @@ MediaEngineGonkVideoSource::ConvertPixelFormatToFOURCC(int aFormat)
 void
 MediaEngineGonkVideoSource::RotateImage(layers::Image* aImage, uint32_t aWidth, uint32_t aHeight) {
   layers::GrallocImage *nativeImage = static_cast<layers::GrallocImage*>(aImage);
-  sp<GraphicBuffer> graphicBuffer = nativeImage->GetGraphicBuffer();
+  android::sp<android::GraphicBuffer> graphicBuffer = nativeImage->GetGraphicBuffer();
   void *pMem = nullptr;
   uint32_t size = aWidth * aHeight * 3 / 2;
 
-  graphicBuffer->lock(GraphicBuffer::USAGE_SW_READ_MASK, &pMem);
+  graphicBuffer->lock(android::GraphicBuffer::USAGE_SW_READ_MASK, &pMem);
 
   uint8_t* srcPtr = static_cast<uint8_t*>(pMem);
   
-  nsRefPtr<layers::Image> image = mImageContainer->CreateImage(ImageFormat::GONK_CAMERA_IMAGE);
-  GonkCameraImage* videoImage = static_cast<GonkCameraImage*>(image.get());
+  nsRefPtr<layers::Image> image = mImageContainer->CreateImage(ImageFormat::PLANAR_YCBCR);
+  layers::PlanarYCbCrImage* videoImage = static_cast<layers::PlanarYCbCrImage*>(image.get());
 
   uint32_t dstWidth;
   uint32_t dstHeight;
@@ -698,6 +631,21 @@ MediaEngineGonkVideoSource::RotateImage(layers::Image* aImage, uint32_t aWidth, 
 
   
   mImage = image.forget();
+
+  
+  
+  
+  
+
+  
+  
+  
+  uint32_t len = mSources.Length();
+  for (uint32_t i = 0; i < len; i++) {
+    if (mSources[i]) {
+      AppendToTrack(mSources[i], mImage, mTrackID, 1); 
+    }
+  }
 }
 
 bool
@@ -724,42 +672,6 @@ MediaEngineGonkVideoSource::OnNewPreviewFrame(layers::Image* aImage, uint32_t aW
   }
 
   return true; 
-}
-
-nsresult
-MediaEngineGonkVideoSource::OnNewMediaBufferFrame(MediaBuffer* aBuffer)
-{
-  {
-    ReentrantMonitorAutoEnter sync(mCallbackMonitor);
-    if (mState == kStopped) {
-      return NS_OK;
-    }
-  }
-
-  MonitorAutoLock enter(mMonitor);
-  if (mImage) {
-    GonkCameraImage* cameraImage = static_cast<GonkCameraImage*>(mImage.get());
-
-    cameraImage->SetBuffer(aBuffer);
-
-    uint32_t len = mSources.Length();
-    for (uint32_t i = 0; i < len; i++) {
-      if (mSources[i]) {
-        
-        
-        
-        
-        
-        
-        AppendToTrack(mSources[i], cameraImage, mTrackID, 1);
-      }
-    }
-    
-    
-    cameraImage->ClearBuffer();
-  }
-
-  return NS_OK;
 }
 
 } 
