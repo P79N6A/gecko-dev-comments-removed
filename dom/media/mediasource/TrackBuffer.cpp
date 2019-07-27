@@ -244,11 +244,15 @@ TrackBuffer::EvictData(uint32_t aThreshold)
     return false;
   }
 
+  
   nsTArray<SourceBufferDecoder*> decoders;
   decoders.AppendElements(mInitializedDecoders);
   decoders.Sort(DecoderSorter());
 
-  for (uint32_t i = 0; i < decoders.Length(); ++i) {
+  
+  
+  uint32_t i = 0;
+  for (; i < decoders.Length(); ++i) {
     MSE_DEBUG("TrackBuffer(%p)::EvictData decoder=%u threshold=%u toEvict=%lld",
               this, i, aThreshold, toEvict);
     toEvict -= decoders[i]->GetResource()->EvictData(toEvict);
@@ -258,6 +262,25 @@ TrackBuffer::EvictData(uint32_t aThreshold)
     }
     if (toEvict <= 0 || decoders[i] == mCurrentDecoder) {
       break;
+    }
+  }
+
+  
+  
+  if (toEvict > 0) {
+    uint32_t end = i;
+    MOZ_ASSERT(decoders[end] == mCurrentDecoder);
+
+    for (i = decoders.Length() - 1; i > end; --i) {
+      MSE_DEBUG("TrackBuffer(%p)::EvictData removing entire decoder=%u from end toEvict=%lld",
+                this, i, toEvict);
+      
+      
+      toEvict -= decoders[i]->GetResource()->GetSize();
+      RemoveDecoder(decoders[i]);
+      if (toEvict <= 0) {
+        break;
+      }
     }
   }
   return toEvict < (totalSize - aThreshold);
