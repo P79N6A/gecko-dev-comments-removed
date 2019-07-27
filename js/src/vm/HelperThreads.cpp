@@ -13,6 +13,7 @@
 #include "prmjtime.h"
 
 #include "frontend/BytecodeCompiler.h"
+#include "gc/GCInternals.h"
 #include "jit/IonBuilder.h"
 #include "vm/Debugger.h"
 #include "vm/TraceLogging.h"
@@ -901,10 +902,14 @@ GlobalHelperThreadState::finishParseTask(JSContext *maybecx, JSRuntime *rt, void
     
     
     
+    
+    
+    gc::AutoFinishGC finishGC(rt);
     for (gc::ZoneCellIter iter(parseTask->cx->zone(), gc::FINALIZE_OBJECT_GROUP);
          !iter.done();
          iter.next())
     {
+        JS::AutoAssertNoAlloc noAlloc(rt);
         ObjectGroup *group = iter.get<ObjectGroup>();
         TaggedProto proto(group->proto());
         if (!proto.isObject())
