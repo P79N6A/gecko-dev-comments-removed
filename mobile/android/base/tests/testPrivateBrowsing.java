@@ -19,27 +19,27 @@ import org.mozilla.gecko.Actions;
 public class testPrivateBrowsing extends ContentContextMenuTest {
 
     public void testPrivateBrowsing() {
-        String bigLinkUrl = getAbsoluteUrl(StringHelper.ROBOCOP_BIG_LINK_URL);
-        String blank1Url = getAbsoluteUrl(StringHelper.ROBOCOP_BLANK_PAGE_01_URL);
-        String blank2Url = getAbsoluteUrl(StringHelper.ROBOCOP_BLANK_PAGE_02_URL);
+        String bigLinkUrl = getAbsoluteUrl(mStringHelper.ROBOCOP_BIG_LINK_URL);
+        String blank1Url = getAbsoluteUrl(mStringHelper.ROBOCOP_BLANK_PAGE_01_URL);
+        String blank2Url = getAbsoluteUrl(mStringHelper.ROBOCOP_BLANK_PAGE_02_URL);
 
         blockForGeckoReady();
 
-        inputAndLoadUrl(StringHelper.ABOUT_BLANK_URL);
+        inputAndLoadUrl(mStringHelper.ABOUT_BLANK_URL);
 
-        addTab(bigLinkUrl, StringHelper.ROBOCOP_BIG_LINK_TITLE, true);
+        addTab(bigLinkUrl, mStringHelper.ROBOCOP_BIG_LINK_TITLE, true);
 
         verifyTabCount(1);
 
         
-        verifyContextMenuItems(StringHelper.CONTEXT_MENU_ITEMS_IN_PRIVATE_TAB);
+        verifyContextMenuItems(mStringHelper.CONTEXT_MENU_ITEMS_IN_PRIVATE_TAB);
 
         
-        mAsserter.ok(!mSolo.searchText(StringHelper.CONTEXT_MENU_ITEMS_IN_NORMAL_TAB[0]), "Checking that 'Open Link in New Tab' is not displayed in the context menu", "'Open Link in New Tab' is not displayed in the context menu");
+        mAsserter.ok(!mSolo.searchText(mStringHelper.CONTEXT_MENU_ITEMS_IN_NORMAL_TAB[0]), "Checking that 'Open Link in New Tab' is not displayed in the context menu", "'Open Link in New Tab' is not displayed in the context menu");
 
         
         Actions.EventExpecter privateTabEventExpector = mActions.expectGeckoEvent("Tab:Added");
-        mSolo.clickOnText(StringHelper.CONTEXT_MENU_ITEMS_IN_PRIVATE_TAB[0]);
+        mSolo.clickOnText(mStringHelper.CONTEXT_MENU_ITEMS_IN_PRIVATE_TAB[0]);
         String eventData = privateTabEventExpector.blockForEventData();
         privateTabEventExpector.unregisterListener();
 
@@ -47,7 +47,7 @@ public class testPrivateBrowsing extends ContentContextMenuTest {
         verifyTabCount(2);
 
         
-        addTab(blank2Url, StringHelper.ROBOCOP_BLANK_PAGE_02_TITLE, false);
+        addTab(blank2Url, mStringHelper.ROBOCOP_BLANK_PAGE_02_TITLE, false);
         verifyTabCount(2);
 
         

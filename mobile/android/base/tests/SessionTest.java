@@ -136,7 +136,7 @@ public abstract class SessionTest extends BaseTest {
     protected void loadSessionTabs(Session session) {
         
         verifyTabCount(1);
-        verifyUrl(StringHelper.ABOUT_HOME_URL);
+        verifyUrl(mStringHelper.ABOUT_HOME_URL);
 
         SessionTab[] tabs = session.getItems();
         for (int i = 0; i < tabs.length; i++) {
@@ -145,8 +145,8 @@ public abstract class SessionTest extends BaseTest {
 
             
             
-            mAsserter.is(pages[0].url, StringHelper.ABOUT_HOME_URL, "first page in tab is " +
-                    StringHelper.ABOUT_HOME_URL);
+            mAsserter.is(pages[0].url, mStringHelper.ABOUT_HOME_URL, "first page in tab is " +
+                    mStringHelper.ABOUT_HOME_URL);
 
             
             
@@ -197,8 +197,8 @@ public abstract class SessionTest extends BaseTest {
                     @Override
                     public void onItem(PageInfo page, int currentIndex) {
                         final String text;
-                        if (StringHelper.ABOUT_HOME_URL.equals(page.url)) {
-                            text = StringHelper.TITLE_PLACE_HOLDER;
+                        if (mStringHelper.ABOUT_HOME_URL.equals(page.url)) {
+                            text = mStringHelper.TITLE_PLACE_HOLDER;
                         } else if (page.url.startsWith(URL_HTTP_PREFIX)) {
                             text = page.url.substring(URL_HTTP_PREFIX.length());
                         } else {

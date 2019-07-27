@@ -15,7 +15,7 @@ import com.jayway.android.robotium.solo.Condition;
 
 public class testBookmarklets extends AboutHomeTest {
     public void testBookmarklets() {
-        final String url = getAbsoluteUrl(StringHelper.ROBOCOP_BLANK_PAGE_01_URL);
+        final String url = getAbsoluteUrl(mStringHelper.ROBOCOP_BLANK_PAGE_01_URL);
         final String title = "alertBookmarklet";
         final String js = "javascript:alert(12 + .34)";
         boolean alerted;
@@ -25,7 +25,7 @@ public class testBookmarklets extends AboutHomeTest {
         
         inputAndLoadUrl(url);
         
-        verifyUrlBarTitle(StringHelper.ROBOCOP_BLANK_PAGE_01_URL);
+        verifyUrlBarTitle(mStringHelper.ROBOCOP_BLANK_PAGE_01_URL);
 
         
         enterUrl(js);

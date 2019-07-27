@@ -136,8 +136,8 @@ public class testImportFromAndroid extends AboutHomeTest {
     }
 
     private void importDataFromAndroid() {
-        waitForText(StringHelper.TITLE_PLACE_HOLDER);
-        selectSettingsItem(StringHelper.CUSTOMIZE_SECTION_LABEL, StringHelper.IMPORT_FROM_ANDROID_LABEL);
+        waitForText(mStringHelper.TITLE_PLACE_HOLDER);
+        selectSettingsItem(mStringHelper.CUSTOMIZE_SECTION_LABEL, mStringHelper.IMPORT_FROM_ANDROID_LABEL);
 
         
         waitForText("Cancel");
@@ -156,13 +156,13 @@ public class testImportFromAndroid extends AboutHomeTest {
         
         if ("phone".equals(mDevice.type)) {
             
-            waitForText(StringHelper.IMPORT_FROM_ANDROID_LABEL);
+            waitForText(mStringHelper.IMPORT_FROM_ANDROID_LABEL);
             mActions.sendSpecialKey(Actions.SpecialKey.BACK);
         }
-        waitForText(StringHelper.PRIVACY_SECTION_LABEL); 
+        waitForText(mStringHelper.PRIVACY_SECTION_LABEL); 
         mActions.sendSpecialKey(Actions.SpecialKey.BACK); 
         
-        mAsserter.ok(mSolo.waitForText(StringHelper.TITLE_PLACE_HOLDER), "Waiting for search bar", "Search bar found");
+        mAsserter.ok(mSolo.waitForText(mStringHelper.TITLE_PLACE_HOLDER), "Waiting for search bar", "Search bar found");
 
     }
 
