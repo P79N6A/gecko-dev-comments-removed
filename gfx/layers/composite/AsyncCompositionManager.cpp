@@ -760,8 +760,7 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
     const ParentLayerCoord thumbOriginDeltaPL = thumbOriginDelta * effectiveZoom;
     yTranslation -= thumbOriginDeltaPL;
 
-    if (aScrollbarIsDescendant) {
-      
+    if (metrics.IsRootScrollable()) {
       
       
       
@@ -794,7 +793,7 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
     const ParentLayerCoord thumbOriginDeltaPL = thumbOriginDelta * effectiveZoom;
     xTranslation -= thumbOriginDeltaPL;
 
-    if (aScrollbarIsDescendant) {
+    if (metrics.IsRootScrollable()) {
       xTranslation *= metrics.GetPresShellResolution();
     }
 
@@ -804,39 +803,38 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
 
   Matrix4x4 transform = aScrollbar->GetLocalTransform() * scrollbarTransform;
 
-  if (aScrollbarIsDescendant) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    Matrix4x4 resolutionCancellingTransform =
+  Matrix4x4 compensation;
+  
+  
+  
+  
+  
+  if (metrics.IsRootScrollable()) {
+    compensation =
         Matrix4x4::Scaling(metrics.GetPresShellResolution(),
                            metrics.GetPresShellResolution(),
                            1.0f).Inverse();
+  }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (aScrollbarIsDescendant) {
     Matrix4x4 asyncUntransform = (asyncTransform * apzc->GetOverscrollTransform()).Inverse();
     Matrix4x4 contentTransform = aContent.GetTransform();
     Matrix4x4 contentUntransform = contentTransform.Inverse();
 
-    Matrix4x4 compensation = resolutionCancellingTransform
-                           * contentTransform
-                           * asyncUntransform
-                           * contentUntransform;
-    transform = transform * compensation;
+    compensation = compensation
+                 * contentTransform
+                 * asyncUntransform
+                 * contentUntransform;
 
     
     
@@ -846,6 +844,7 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
       TransformClipRect(ancestor, compensation);
     }
   }
+  transform = transform * compensation;
 
   SetShadowTransform(aScrollbar, transform);
 }
