@@ -175,13 +175,9 @@ def parse_commit(message, jobs):
     
     parser = argparse.ArgumentParser()
     parser.add_argument('-b', dest='build_types')
-    parser.add_argument('-p', dest='platforms')
-    parser.add_argument('-u', dest='tests')
+    parser.add_argument('-p', nargs='?', dest='platforms', const='all', default='all')
+    parser.add_argument('-u', nargs='?', dest='tests', const='all', default='all')
     args, unknown = parser.parse_known_args(parts[1:])
-
-    
-    if args.platforms is None:
-        return []
 
     
     if args.build_types is None:
