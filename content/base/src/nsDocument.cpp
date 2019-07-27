@@ -8873,7 +8873,7 @@ nsDocument::OnPageShow(bool aPersisted,
                         "chrome-page-shown" :
                         "content-page-shown",
                       nullptr);
-
+  os->AddObserver(this, "app-theme-changed",  false);
 
   DispatchPageTransition(target, NS_LITERAL_STRING("pageshow"), aPersisted);
 }
@@ -8947,6 +8947,8 @@ nsDocument::OnPageHide(bool aPersisted,
                           "chrome-page-hidden" :
                           "content-page-hidden",
                         nullptr);
+
+    os->RemoveObserver(this, "app-theme-changed");
   }
 
   DispatchPageTransition(target, NS_LITERAL_STRING("pagehide"), aPersisted);
@@ -11656,8 +11658,55 @@ nsDocument::Observe(nsISupports *aSubject,
         NS_DispatchToMainThread(r);
       }
     }
+  } else if (strcmp("app-theme-changed", aTopic) == 0) {
+    if (!nsContentUtils::IsSystemPrincipal(NodePrincipal()) &&
+        !IsUnstyledDocument()) {
+      
+      OnAppThemeChanged();
+    }
   }
   return NS_OK;
+}
+
+void
+nsDocument::OnAppThemeChanged()
+{
+  
+  auto themeOrigin = Preferences::GetString("b2g.theme.origin");
+  if (!themeOrigin || !Preferences::GetBool("dom.mozApps.themable")) {
+    return;
+  }
+
+  for (int32_t i = 0; i < GetNumberOfStyleSheets(); i++) {
+    nsRefPtr<CSSStyleSheet> sheet =  do_QueryObject(GetStyleSheetAt(i));
+    if (!sheet) {
+      continue;
+    }
+
+    nsINode* owningNode = sheet->GetOwnerNode();
+    if (!owningNode) {
+      continue;
+    }
+    
+    nsIURI* sheetURI = sheet->GetOriginalURI();
+    if (!sheetURI) {
+      continue;
+    }
+    nsAutoString sheetOrigin;
+    nsContentUtils::GetUTFOrigin(sheetURI, sheetOrigin);
+    if (!sheetOrigin.Equals(themeOrigin)) {
+      continue;
+    }
+
+    
+    nsCOMPtr<nsIStyleSheetLinkingElement> link = do_QueryInterface(owningNode);
+    if (!link) {
+      continue;
+    }
+    bool willNotify;
+    bool isAlternate;
+    link->UpdateStyleSheet(nullptr, &willNotify, &isAlternate, true);
+  }
 }
 
 void

@@ -937,6 +937,12 @@ public:
 
   virtual nsViewportInfo GetViewportInfo(const mozilla::ScreenIntSize& aDisplaySize) MOZ_OVERRIDE;
 
+  
+
+
+
+  void OnAppThemeChanged();
+
 private:
   void AddOnDemandBuiltInUASheet(mozilla::CSSStyleSheet* aSheet);
   nsRadioGroupStruct* GetRadioGroupInternal(const nsAString& aName) const;

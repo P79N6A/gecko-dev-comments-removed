@@ -12,8 +12,8 @@ class nsICSSLoaderObserver;
 class nsIURI;
 
 #define NS_ISTYLESHEETLINKINGELEMENT_IID          \
-{ 0xd753c84a, 0x17fd, 0x4d5f, \
- { 0xb2, 0xe9, 0x63, 0x52, 0x8c, 0x87, 0x99, 0x7a } }
+{ 0xe5855604, 0x8a9a, 0x4181, \
+ { 0xbe, 0x41, 0xdd, 0xf7, 0x08, 0x70, 0x3f, 0xbe } }
 
 namespace mozilla {
 class CSSStyleSheet;
@@ -61,9 +61,12 @@ public:
 
 
 
+
+
   NS_IMETHOD UpdateStyleSheet(nsICSSLoaderObserver* aObserver,
                               bool *aWillNotify,
-                              bool *aIsAlternate) = 0;
+                              bool *aIsAlternate,
+                              bool aForceUpdate = false) = 0;
 
   
 
