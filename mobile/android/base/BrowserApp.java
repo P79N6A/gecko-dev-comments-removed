@@ -1769,6 +1769,15 @@ public class BrowserApp extends GeckoApp
 
         if (areTabsShown()) {
             mTabsPanel.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
+            
+            
+            if (Versions.feature16Plus) {
+                mLayerView.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            }
+        } else {
+            if (Versions.feature16Plus) {
+                mLayerView.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
+            }
         }
 
         mMainLayoutAnimator = new PropertyAnimator(animationLength, sTabsInterpolator);
