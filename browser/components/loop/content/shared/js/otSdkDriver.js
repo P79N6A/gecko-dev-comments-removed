@@ -8,6 +8,7 @@ var loop = loop || {};
 loop.OTSdkDriver = (function() {
 
   var sharedActions = loop.shared.actions;
+  var FAILURE_REASONS = loop.shared.utils.FAILURE_REASONS;
 
   
 
@@ -47,8 +48,11 @@ loop.OTSdkDriver = (function() {
       
       
       this.publisher = this.sdk.initPublisher(this.getLocalElement(),
-        this.publisherConfig,
-        this._onPublishComplete.bind(this));
+        this.publisherConfig);
+      this.publisher.on("accessAllowed", this._onPublishComplete.bind(this));
+      this.publisher.on("accessDenied", this._onPublishDenied.bind(this));
+      this.publisher.on("accessDialogOpened",
+        this._onAccessDialogOpened.bind(this));
     },
 
     
@@ -96,16 +100,12 @@ loop.OTSdkDriver = (function() {
 
     disconnectSession: function() {
       if (this.session) {
-        this.session.off("streamCreated", this._onRemoteStreamCreated.bind(this));
-        this.session.off("connectionDestroyed",
-          this._onConnectionDestroyed.bind(this));
-        this.session.off("sessionDisconnected",
-          this._onSessionDisconnected.bind(this));
-
+        this.session.off("streamCreated connectionDestroyed sessionDisconnected");
         this.session.disconnect();
         delete this.session;
       }
       if (this.publisher) {
+        this.publisher.off("accessAllowed accessDenied accessDialogOpened");
         this.publisher.destroy();
         delete this.publisher;
       }
@@ -126,7 +126,7 @@ loop.OTSdkDriver = (function() {
       if (error) {
         console.error("Failed to complete connection", error);
         this.dispatcher.dispatch(new sharedActions.ConnectionFailure({
-          reason: "couldNotConnect"
+          reason: FAILURE_REASONS.COULD_NOT_CONNECT
         }));
         return;
       }
@@ -159,7 +159,7 @@ loop.OTSdkDriver = (function() {
       
       if (event.reason === "networkDisconnected") {
         this.dispatcher.dispatch(new sharedActions.ConnectionFailure({
-          reason: "networkDisconnected"
+          reason: FAILURE_REASONS.NETWORK_DISCONNECTED
         }));
       }
     },
@@ -193,17 +193,35 @@ loop.OTSdkDriver = (function() {
 
 
 
-    _onPublishComplete: function(error) {
-      if (error) {
-        console.error("Failed to initialize publisher", error);
-        this.dispatcher.dispatch(new sharedActions.ConnectionFailure({
-          reason: "noMedia"
-        }));
-        return;
-      }
 
+
+    _onAccessDialogOpened: function(event) {
+      event.preventDefault();
+    },
+
+    
+
+
+
+
+    _onPublishComplete: function(event) {
+      event.preventDefault();
       this._publisherReady = true;
       this._maybePublishLocalStream();
+    },
+
+    
+
+
+
+
+    _onPublishDenied: function(event) {
+      
+      event.preventDefault();
+
+      this.dispatcher.dispatch(new sharedActions.ConnectionFailure({
+        reason: FAILURE_REASONS.MEDIA_DENIED
+      }));
     },
 
     

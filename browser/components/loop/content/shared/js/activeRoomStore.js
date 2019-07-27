@@ -10,6 +10,15 @@ loop.store.ActiveRoomStore = (function() {
   "use strict";
 
   var sharedActions = loop.shared.actions;
+  var FAILURE_REASONS = loop.shared.utils.FAILURE_REASONS;
+
+  
+  
+  var SERVER_CODES = loop.store.SERVER_CODES = {
+    INVALID_TOKEN: 105,
+    EXPIRED: 111,
+    ROOM_FULL: 202
+  };
 
   var ROOM_STATES = loop.store.ROOM_STATES = {
     
@@ -84,7 +93,8 @@ loop.store.ActiveRoomStore = (function() {
     this._storeState = {
       roomState: ROOM_STATES.INIT,
       audioMuted: false,
-      videoMuted: false
+      videoMuted: false,
+      failureReason: undefined
     };
   }
 
@@ -112,13 +122,24 @@ loop.store.ActiveRoomStore = (function() {
 
 
     roomFailure: function(actionData) {
+      function getReason(serverCode) {
+        switch (serverCode) {
+          case SERVER_CODES.INVALID_TOKEN:
+          case SERVER_CODES.EXPIRED:
+            return FAILURE_REASONS.EXPIRED_OR_INVALID;
+          default:
+            return FAILURE_REASONS.UNKNOWN;
+        }
+      }
+
       console.error("Error in state `" + this._storeState.roomState + "`:",
         actionData.error);
 
       this.setStoreState({
         error: actionData.error,
-        roomState: actionData.error.errno === 202 ? ROOM_STATES.FULL
-                                                  : ROOM_STATES.FAILED
+        failureReason: getReason(actionData.error.errno),
+        roomState: actionData.error.errno === SERVER_CODES.ROOM_FULL ?
+          ROOM_STATES.FULL : ROOM_STATES.FAILED
       });
     },
 
@@ -228,6 +249,11 @@ loop.store.ActiveRoomStore = (function() {
 
 
     joinRoom: function() {
+      
+      if (this.getStoreState().failureReason) {
+        this.setStoreState({failureReason: undefined});
+      }
+
       this._mozLoop.rooms.join(this._storeState.roomToken,
         function(error, responseData) {
           if (error) {
@@ -276,10 +302,16 @@ loop.store.ActiveRoomStore = (function() {
     
 
 
-    connectionFailure: function() {
+
+
+    connectionFailure: function(actionData) {
       
       
       
+      this.setStoreState({
+        failureReason: actionData.reason
+      });
+
       this._leaveRoom(ROOM_STATES.FAILED);
     },
 
