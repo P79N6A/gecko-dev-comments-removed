@@ -66,7 +66,9 @@ const GMP_PLUGINS = [
     description:     "eme-adobe_description",
     
     
-    learnMoreURL:    Services.urlFormatter.formatURLPref("app.support.baseURL") + "drm-content",
+    get learnMoreURL() {
+      return Services.urlFormatter.formatURLPref("app.support.baseURL") + "drm-content";
+    },
     licenseURL:      "http://help.adobe.com/en_US/primetime/drm/HTML5_CDM_EULA/index.html",
     homepageURL:     "http://help.adobe.com/en_US/primetime/drm/index.html",
     optionsURL:      "chrome://mozapps/content/extensions/gmpPrefs.xul",
