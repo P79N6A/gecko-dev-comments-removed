@@ -129,6 +129,11 @@ function MaybeCrossOriginURI(test, uri)
 
 function PlayFragmented(test, elem, token)
 {
+  if (!test.fragments) {
+    ok(false, token + " test does not have a fragments list");
+    return Promise.reject();
+  }
+
   return new Promise(function(resolve, reject) {
     var ms = new MediaSource();
     elem.src = URL.createObjectURL(ms);
@@ -178,22 +183,6 @@ function PlayFragmented(test, elem, token)
 
       addNextFragment();
     })
-  });
-}
-
-
-
-
-function LoadTest(test, elem, token)
-{
-  if (test.fragments) {
-    return PlayFragmented(test, elem, token);
-  }
-
-  
-  return new Promise(function(resolve, reject) {
-    elem.src = MaybeCrossOriginURI(test, test.name);
-    resolve();
   });
 }
 
