@@ -693,7 +693,7 @@ NativeFileWatcherIOTask::AddPathRunnableMethod(
   
   
   RemoveCallbacksFromHashtables(
-    watchedResource->mPath,
+    wrappedParameters->mPath,
     wrappedParameters->mChangeCallbackHandle,
     wrappedParameters->mErrorCallbackHandle);
 
