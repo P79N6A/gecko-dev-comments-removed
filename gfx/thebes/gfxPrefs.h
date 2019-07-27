@@ -51,9 +51,17 @@
 
 
 
+
+
+
+
+
+
 #define DECL_GFX_PREF(Update, Pref, Name, Type, Default)                     \
 public:                                                                       \
 static Type Name() { MOZ_ASSERT(SingletonExists()); return GetSingleton().mPref##Name.mValue; } \
+static void Set##Name(Type aVal) { MOZ_ASSERT(SingletonExists()); \
+    GetSingleton().mPref##Name.Set(UpdatePolicy::Update, Get##Name##PrefName(), aVal); } \
 private:                                                                      \
 static const char* Get##Name##PrefName() { return Pref; }                     \
 static Type Get##Name##PrefDefault() { return Default; }                      \
@@ -82,6 +90,7 @@ private:
     }
     void Register(UpdatePolicy aUpdate, const char* aPreference)
     {
+      AssertMainThread();
       switch(aUpdate) {
         case UpdatePolicy::Skip:
           break;
@@ -90,6 +99,22 @@ private:
           break;
         case UpdatePolicy::Live:
           PrefAddVarCache(&mValue,aPreference, mValue);
+          break;
+        default:
+          MOZ_CRASH();
+          break;
+      }
+    }
+    void Set(UpdatePolicy aUpdate, const char* aPref, T aValue)
+    {
+      AssertMainThread();
+      PrefSet(aPref, aValue);
+      switch (aUpdate) {
+        case UpdatePolicy::Skip:
+        case UpdatePolicy::Live:
+          break;
+        case UpdatePolicy::Once:
+          mValue = PrefGet(aPref, mValue);
           break;
         default:
           MOZ_CRASH();
@@ -260,6 +285,12 @@ private:
   static int32_t PrefGet(const char*, int32_t);
   static uint32_t PrefGet(const char*, uint32_t);
   static float PrefGet(const char*, float);
+  static void PrefSet(const char* aPref, bool aValue);
+  static void PrefSet(const char* aPref, int32_t aValue);
+  static void PrefSet(const char* aPref, uint32_t aValue);
+  static void PrefSet(const char* aPref, float aValue);
+
+  static void AssertMainThread();
 
   gfxPrefs();
   ~gfxPrefs();

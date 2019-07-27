@@ -54,3 +54,28 @@ TEST(GfxPrefs, OnceValues) {
   ASSERT_TRUE(gfxPrefs::APZMaxVelocity() == -1.0f);
 }
 
+TEST(GfxPrefs, Set) {
+  gfxPrefs::GetSingleton();
+  ASSERT_TRUE(gfxPrefs::SingletonExists());
+
+  
+  ASSERT_FALSE(gfxPrefs::LayersDump());
+  gfxPrefs::SetLayersDump(true);
+  ASSERT_TRUE(gfxPrefs::LayersDump());
+  gfxPrefs::SetLayersDump(false);
+  ASSERT_FALSE(gfxPrefs::LayersDump());
+
+  
+  ASSERT_FALSE(gfxPrefs::CanvasAzureAccelerated());
+  gfxPrefs::SetCanvasAzureAccelerated(true);
+  ASSERT_TRUE(gfxPrefs::CanvasAzureAccelerated());
+  gfxPrefs::SetCanvasAzureAccelerated(false);
+  ASSERT_FALSE(gfxPrefs::CanvasAzureAccelerated());
+
+  
+  ASSERT_TRUE(gfxPrefs::APZMaxVelocity() == -1.0f);
+  gfxPrefs::SetAPZMaxVelocity(1.75f);
+  ASSERT_TRUE(gfxPrefs::APZMaxVelocity() == 1.75f);
+  gfxPrefs::SetAPZMaxVelocity(-1.0f);
+  ASSERT_TRUE(gfxPrefs::APZMaxVelocity() == -1.0f);
+}
