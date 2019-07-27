@@ -51,7 +51,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "PromiseUtils",
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
   "resource://gre/modules/Task.jsm");
 XPCOMUtils.defineLazyServiceGetter(this, "gDebug",
-  "@mozilla.org/xpcom/debug;1", "nsIDebug");
+  "@mozilla.org/xpcom/debug;1", "nsIDebug2");
 Object.defineProperty(this, "gCrashReporter", {
   get: function() {
     delete this.gCrashReporter;
