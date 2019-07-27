@@ -294,7 +294,7 @@ Animation::ComposeStyle(nsRefPtr<css::AnimValuesStyleRule>& aStyleRule,
       
       
       
-      return;
+      continue;
     }
 
     aSetProperties.AddProperty(prop.mProperty);
