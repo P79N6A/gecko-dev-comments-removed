@@ -242,7 +242,11 @@ class Permissions(object):
         count = len(rows.fetchall())
 
         
-        if count == 8:
+        if count == 9:
+            statement = "INSERT INTO moz_hosts values(NULL, ?, ?, ?, 0, 0, 0, 0, 0)"
+            cursor.execute("PRAGMA user_version=4;")
+        
+        elif count == 8:
             statement = "INSERT INTO moz_hosts values(NULL, ?, ?, ?, 0, 0, 0, 0)"
             cursor.execute("PRAGMA user_version=3;")
         else:

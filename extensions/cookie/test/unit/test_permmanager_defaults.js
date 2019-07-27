@@ -3,7 +3,14 @@
 
 
 const TEST_ORIGIN = "example.org";
+const TEST_ORIGIN_2 = "example.com";
 const TEST_PERMISSION = "test-permission";
+
+function promiseTimeout(delay) {
+  let deferred = Promise.defer();
+  do_timeout(delay, deferred.resolve);
+  return deferred.promise;
+}
 
 function run_test() {
   run_next_test();
@@ -28,6 +35,7 @@ add_task(function* do_test() {
   conv.writeString("# this is a comment\n");
   conv.writeString("\n"); 
   conv.writeString("host\t" + TEST_PERMISSION + "\t1\t" + TEST_ORIGIN + "\n");
+  conv.writeString("host\t" + TEST_PERMISSION + "\t1\t" + TEST_ORIGIN_2 + "\n");
   ostream.close();
 
   
@@ -91,6 +99,47 @@ add_task(function* do_test() {
               pm.testPermissionFromPrincipal(principal, TEST_PERMISSION));
   do_check_eq(Ci.nsIPermissionManager.PROMPT_ACTION, findCapabilityViaEnum());
   yield checkCapabilityViaDB(Ci.nsIPermissionManager.PROMPT_ACTION);
+
+  
+  
+  pm.removeAll(); 
+
+  let permURI2 = NetUtil.newURI("http://" + TEST_ORIGIN_2);
+  let principal2 = Services.scriptSecurityManager.getNoAppCodebasePrincipal(permURI2);
+
+  
+  do_check_eq(Ci.nsIPermissionManager.ALLOW_ACTION,
+              pm.testPermissionFromPrincipal(principal, TEST_PERMISSION));
+  do_check_eq(Ci.nsIPermissionManager.ALLOW_ACTION,
+              pm.testPermissionFromPrincipal(principal2, TEST_PERMISSION));
+
+  
+  
+  pm.addFromPrincipal(principal2, TEST_PERMISSION, Ci.nsIPermissionManager.DENY_ACTION);
+  do_check_eq(Ci.nsIPermissionManager.DENY_ACTION,
+              pm.testPermissionFromPrincipal(principal2, TEST_PERMISSION));
+  yield promiseTimeout(20);
+
+  let since = Number(Date.now());
+  yield promiseTimeout(20);
+
+  
+  
+  pm.addFromPrincipal(principal, TEST_PERMISSION, Ci.nsIPermissionManager.DENY_ACTION);
+  do_check_eq(Ci.nsIPermissionManager.DENY_ACTION,
+              pm.testPermissionFromPrincipal(principal, TEST_PERMISSION));
+
+  
+  pm.removeAllSince(since);
+
+  
+  
+  do_check_eq(Ci.nsIPermissionManager.ALLOW_ACTION,
+              pm.testPermissionFromPrincipal(principal, TEST_PERMISSION));
+
+  
+  do_check_eq(Ci.nsIPermissionManager.DENY_ACTION,
+              pm.testPermissionFromPrincipal(principal2, TEST_PERMISSION));
 
   
   file.remove(false);

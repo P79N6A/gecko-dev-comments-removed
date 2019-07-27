@@ -113,13 +113,25 @@ function run_test() {
     );
   }
 
+  let earliestNow = Number(Date.now());
   
   var pm = Cc["@mozilla.org/permissionmanager;1"]
              .getService(Ci.nsIPermissionManager);
+  let latestNow = Number(Date.now());
 
   
   
-  do_check_eq(connection.schemaVersion, 3);
+  do_check_eq(connection.schemaVersion, 4);
+
+  let select = connection.createStatement("SELECT modificationTime FROM moz_hosts")
+  let numMigrated = 0;
+  while (select.executeStep()) {
+    let thisModTime = select.getInt64(0);
+    do_check_true(thisModTime == 0, "new modifiedTime field is correct");
+    numMigrated += 1;
+  }
+  
+  do_check_true(numMigrated > 0, "we found at least 1 record that was migrated");
 
   
   let principal = Cc["@mozilla.org/scriptsecuritymanager;1"]
