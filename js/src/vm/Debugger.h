@@ -369,9 +369,9 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     JSObject *getHook(Hook hook) const;
     bool hasAnyLiveHooks() const;
 
-    static JSTrapStatus slowPathOnEnterFrame(JSContext *cx, AbstractFramePtr frame);
+    static JSTrapStatus slowPathOnEnterFrame(JSContext *cx, AbstractFramePtr frame,
+                                             MutableHandleValue vp);
     static bool slowPathOnLeaveFrame(JSContext *cx, AbstractFramePtr frame, bool ok);
-    static JSTrapStatus slowPathOnExceptionUnwind(JSContext *cx, AbstractFramePtr frame);
     static void slowPathOnNewScript(JSContext *cx, HandleScript script,
                                     GlobalObject *compileAndGoGlobal);
     static void slowPathOnNewGlobalObject(JSContext *cx, Handle<GlobalObject *> global);
@@ -453,61 +453,13 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     static void detachAllDebuggersFromGlobal(FreeOp *fop, GlobalObject *global);
     static void findCompartmentEdges(JS::Zone *v, gc::ComponentFinder<JS::Zone> &finder);
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    static inline JSTrapStatus onEnterFrame(JSContext *cx, AbstractFramePtr frame);
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
+    static inline JSTrapStatus onEnterFrame(JSContext *cx, AbstractFramePtr frame,
+                                            MutableHandleValue vp);
     static inline bool onLeaveFrame(JSContext *cx, AbstractFramePtr frame, bool ok);
-
     static inline JSTrapStatus onDebuggerStatement(JSContext *cx, MutableHandleValue vp);
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    static inline JSTrapStatus onExceptionUnwind(JSContext *cx, AbstractFramePtr frame);
-    static inline void onNewScript(JSContext *cx, HandleScript script, GlobalObject *compileAndGoGlobal);
+    static inline JSTrapStatus onExceptionUnwind(JSContext *cx, MutableHandleValue vp);
+    static inline void onNewScript(JSContext *cx, HandleScript script,
+                                   GlobalObject *compileAndGoGlobal);
     static inline void onNewGlobalObject(JSContext *cx, Handle<GlobalObject *> global);
     static inline bool onLogAllocationSite(JSContext *cx, HandleSavedFrame frame);
     static JSTrapStatus onTrap(JSContext *cx, MutableHandleValue vp);
@@ -782,11 +734,11 @@ Debugger::observesGlobal(GlobalObject *global) const
 }
 
 JSTrapStatus
-Debugger::onEnterFrame(JSContext *cx, AbstractFramePtr frame)
+Debugger::onEnterFrame(JSContext *cx, AbstractFramePtr frame, MutableHandleValue vp)
 {
     if (!cx->compartment()->debugMode())
         return JSTRAP_CONTINUE;
-    return slowPathOnEnterFrame(cx, frame);
+    return slowPathOnEnterFrame(cx, frame, vp);
 }
 
 JSTrapStatus
@@ -798,11 +750,11 @@ Debugger::onDebuggerStatement(JSContext *cx, MutableHandleValue vp)
 }
 
 JSTrapStatus
-Debugger::onExceptionUnwind(JSContext *cx, AbstractFramePtr frame)
+Debugger::onExceptionUnwind(JSContext *cx, MutableHandleValue vp)
 {
-    if (!cx->compartment()->debugMode())
-        return JSTRAP_CONTINUE;
-    return slowPathOnExceptionUnwind(cx, frame);
+    return cx->compartment()->debugMode()
+           ? dispatchHook(cx, vp, OnExceptionUnwind)
+           : JSTRAP_CONTINUE;
 }
 
 void

@@ -26,6 +26,63 @@ class ScopeIter;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+extern JSTrapStatus
+ScriptDebugPrologue(JSContext *cx, AbstractFramePtr frame, jsbytecode *pc);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern bool
+ScriptDebugEpilogue(JSContext *cx, AbstractFramePtr frame, jsbytecode *pc, bool ok);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern JSTrapStatus
+DebugExceptionUnwind(JSContext *cx, AbstractFramePtr frame, jsbytecode *pc);
+
+
+
+
+
+
+
 extern bool
 BoxNonStrictThis(JSContext *cx, const CallReceiver &call);
 
