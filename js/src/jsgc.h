@@ -447,10 +447,14 @@ class ArenaList {
     }
 
     
-    
-    void moveCursorPast(ArenaHeader *aheader) {
+    ArenaHeader *takeNextArena() {
+        check();
+        ArenaHeader *aheader = *cursorp_;
+        if (!aheader)
+            return nullptr;
         cursorp_ = &aheader->next;
         check();
+        return aheader;
     }
 
     
@@ -807,6 +811,11 @@ class ArenaLists
     }
 
     
+    
+    
+    TenuredCell *allocateFromArena(JS::Zone *zone, AllocKind thingKind);
+
+    
 
 
 
@@ -851,18 +860,17 @@ class ArenaLists
     inline void queueForForegroundSweep(FreeOp *fop, AllocKind thingKind);
     inline void queueForBackgroundSweep(FreeOp *fop, AllocKind thingKind);
 
-    
-    
-    
-    TenuredCell *allocateFromArena(JS::Zone *zone, AllocKind thingKind);
     TenuredCell *allocateFromArena(JS::Zone *zone, AllocKind thingKind,
                                    AutoMaybeStartBackgroundAllocation &maybeStartBGAlloc);
+
+    enum ArenaAllocMode { HasFreeThings = true, IsEmpty = false };
+    template <ArenaAllocMode hasFreeThings>
+    inline TenuredCell *allocateFromArenaInner(JS::Zone *zone, ArenaHeader *aheader,
+                                               AllocKind thingKind);
 
     inline void normalizeBackgroundFinalizeState(AllocKind thingKind);
 
     friend class GCRuntime;
-    friend class js::Nursery;
-    friend class ForkJoinNursery;
 };
 
 
