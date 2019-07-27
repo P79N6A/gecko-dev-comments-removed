@@ -1729,7 +1729,7 @@ pref("security.mixed_content.block_active_content", false);
 pref("security.mixed_content.block_display_content", false);
 
 
-pref("security.cert_pinning.enforcement_level", 2);
+pref("security.cert_pinning.enforcement_level", 0);
 
 
 
@@ -4093,7 +4093,7 @@ pref("dom.mozApps.signed_apps_installable_from", "https://marketplace.firefox.co
 
 
 
-pref("dom.mozApps.debug", true);
+pref("dom.mozApps.debug", false);
 
 
 
