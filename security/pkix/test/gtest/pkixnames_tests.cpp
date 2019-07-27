@@ -92,13 +92,13 @@ static const PresentedMatchesReference DNSID_MATCH_PARAMS[] =
   
   
   DNS_ID_MATCH("example", "example"),
-  DNS_ID_MATCH("example.", "example."),
+  DNS_ID_MISMATCH("example.", "example."),
   DNS_ID_MATCH("example", "example."),
-  DNS_ID_MATCH("example.", "example"),
+  DNS_ID_MISMATCH("example.", "example"),
   DNS_ID_MATCH("example.com", "example.com"),
-  DNS_ID_MATCH("example.com.", "example.com."),
+  DNS_ID_MISMATCH("example.com.", "example.com."),
   DNS_ID_MATCH("example.com", "example.com."),
-  DNS_ID_MATCH("example.com.", "example.com"),
+  DNS_ID_MISMATCH("example.com.", "example.com"),
   DNS_ID_MISMATCH("example.com..", "example.com."),
   DNS_ID_MISMATCH("example.com..", "example.com"),
   DNS_ID_MISMATCH("example.com...", "example.com."),
@@ -247,15 +247,16 @@ static const PresentedMatchesReference DNSID_MATCH_PARAMS[] =
   
   
   
-  DNS_ID_MATCH("foo.com.", "foo.com"),
+  
+  DNS_ID_MISMATCH("foo.com.", "foo.com"),
   DNS_ID_MATCH("foo.com", "foo.com."),
-  DNS_ID_MATCH("foo.com.", "foo.com."),
-  DNS_ID_MATCH("f.", "f"),
+  DNS_ID_MISMATCH("foo.com.", "foo.com."),
+  DNS_ID_MISMATCH("f.", "f"),
   DNS_ID_MATCH("f", "f."),
-  DNS_ID_MATCH("f.", "f."),
-  DNS_ID_MATCH("*.bar.foo.com.", "www-3.bar.foo.com"),
+  DNS_ID_MISMATCH("f.", "f."),
+  DNS_ID_MISMATCH("*.bar.foo.com.", "www-3.bar.foo.com"),
   DNS_ID_MATCH("*.bar.foo.com", "www-3.bar.foo.com."),
-  DNS_ID_MATCH("*.bar.foo.com.", "www-3.bar.foo.com."),
+  DNS_ID_MISMATCH("*.bar.foo.com.", "www-3.bar.foo.com."),
 
   
   
@@ -269,8 +270,10 @@ static const PresentedMatchesReference DNSID_MATCH_PARAMS[] =
 
   
   
-  DNS_ID_MATCH("*.co.uk.", "foo.co.uk"),
-  DNS_ID_MATCH("*.co.uk.", "foo.co.uk."),
+  DNS_ID_MATCH("*.co.uk", "foo.co.uk"),
+  DNS_ID_MATCH("*.co.uk", "foo.co.uk."),
+  DNS_ID_MISMATCH("*.co.uk.", "foo.co.uk"),
+  DNS_ID_MISMATCH("*.co.uk.", "foo.co.uk."),
 };
 
 struct InputValidity
@@ -310,9 +313,9 @@ static const InputValidity DNSNAMES_VALIDITY[] =
   I(".a.b.c.", false, false),
 
   
-  I("a.", true, true),
-  I("a.b.", true, true),
-  I("a.b.c.", true, true),
+  I("a.", true, false),
+  I("a.b.", true, false),
+  I("a.b.c.", true, false),
 
   
   I("a..", false, false),
@@ -439,7 +442,7 @@ static const InputValidity DNSNAMES_VALIDITY[] =
   I("a*.a", false, false),
   I("a*.a.", false, false),
   I("*.a.b", false, true),
-  I("*.a.b.", false, true),
+  I("*.a.b.", false, false),
   I("a*.b.c", false, true),
   I("*.a.b.c", false, true),
   I("a*.b.c.d", false, true),
@@ -1761,25 +1764,30 @@ static const NameConstraintParams NAME_CONSTRAINT_PARAMS[] =
   
   
   
-  { ByteString(), DNSName("example.com"),
+  { 
+    
+    ByteString(), DNSName("example.com"),
     GeneralSubtree(DNSName("example.com.")),
-    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success,
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Result::ERROR_CERT_NOT_IN_NAME_SPACE,
   },
-  { ByteString(), DNSName("example.com."),
+  { 
+    
+    ByteString(), DNSName("example.com."),
     GeneralSubtree(DNSName("example.com")),
     Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success,
   },
   { 
     
     
+    
     ByteString(), DNSName("p.example.com"),
     GeneralSubtree(DNSName(".example.com.")),
-    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success,
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Result::ERROR_CERT_NOT_IN_NAME_SPACE,
   },
   { 
     ByteString(), DNSName("*.example.com"),
     GeneralSubtree(DNSName(".example.com.")),
-    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Result::ERROR_CERT_NOT_IN_NAME_SPACE
   },
 
   
@@ -1787,17 +1795,19 @@ static const NameConstraintParams NAME_CONSTRAINT_PARAMS[] =
     GeneralSubtree(DNSName("")),
     Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
   },
-  { ByteString(), DNSName("example.com."),
+  { 
+    ByteString(), DNSName("example.com."),
     GeneralSubtree(DNSName("")),
-    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success
   },
-  { ByteString(), DNSName("example.com"),
+  { 
+    ByteString(), DNSName("example.com"),
     GeneralSubtree(DNSName(".")),
-    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success,
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Result::ERROR_CERT_NOT_IN_NAME_SPACE,
   },
   { ByteString(), DNSName("example.com."),
     GeneralSubtree(DNSName(".")),
-    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Result::ERROR_CERT_NOT_IN_NAME_SPACE
   },
 
   

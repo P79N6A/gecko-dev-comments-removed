@@ -757,6 +757,12 @@ CheckPresentedIDConformsToNameConstraintsSubtrees(
         case GeneralNameType::dNSName:
           matches = PresentedDNSIDMatchesReferenceDNSID(
                       presentedID, ValidDNSIDMatchType::NameConstraint, base);
+          
+          
+          if (!matches &&
+              !IsValidDNSID(base, ValidDNSIDMatchType::NameConstraint)) {
+            return Result::ERROR_CERT_NOT_IN_NAME_SPACE;
+          }
           break;
 
         case GeneralNameType::iPAddress:
@@ -831,12 +837,6 @@ CheckPresentedIDConformsToNameConstraintsSubtrees(
 
   return Success;
 }
-
-
-
-
-
-
 
 
 
@@ -1044,7 +1044,7 @@ PresentedDNSIDMatchesReferenceDNSID(
   }
 
   bool isFirstPresentedByte = true;
-  do {
+  for (;;) {
     uint8_t presentedByte;
     if (presented.Read(presentedByte) != Success) {
       return false;
@@ -1075,12 +1075,6 @@ PresentedDNSIDMatchesReferenceDNSID(
         return false;
       }
     } else {
-      
-      
-      if (reference.AtEnd() && presented.AtEnd() && presentedByte == '.') {
-        return true;
-      }
-
       uint8_t referenceByte;
       if (reference.Read(referenceByte) != Success) {
         return false;
@@ -1089,9 +1083,17 @@ PresentedDNSIDMatchesReferenceDNSID(
           LocaleInsensitveToLower(referenceByte)) {
         return false;
       }
+
+      if (presented.AtEnd()) {
+        
+        if (presentedByte == '.') {
+          return false;
+        }
+        break;
+      }
     }
     isFirstPresentedByte = false;
-  } while (!presented.AtEnd());
+  }
 
   
   
@@ -1691,6 +1693,12 @@ IsValidDNSID(Input hostname, ValidDNSIDMatchType matchType)
     }
     isFirstByte = false;
   } while (!input.AtEnd());
+
+  
+  
+  if (labelLength == 0 && matchType != ValidDNSIDMatchType::ReferenceID) {
+    return false;
+  }
 
   if (labelEndsWithHyphen) {
     return false; 
