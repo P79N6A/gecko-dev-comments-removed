@@ -4031,8 +4031,7 @@ EventStateManager::GenerateMouseEnterExit(WidgetMouseEvent* aMouseEvent)
           
           sSynthCenteringPoint = center;
           aMouseEvent->widget->SynthesizeNativeMouseMove(
-            LayoutDeviceIntPoint::ToUntyped(center +
-              aMouseEvent->widget->WidgetToScreenOffset()));
+            center + aMouseEvent->widget->WidgetToScreenOffset());
         } else if (aMouseEvent->refPoint == sSynthCenteringPoint) {
           
           
@@ -4167,8 +4166,7 @@ EventStateManager::SetPointerLock(nsIWidget* aWidget,
     sLastRefPoint = GetWindowInnerRectCenter(aElement->OwnerDoc()->GetWindow(),
                                              aWidget,
                                              mPresContext);
-    aWidget->SynthesizeNativeMouseMove(
-      LayoutDeviceIntPoint::ToUntyped(sLastRefPoint + aWidget->WidgetToScreenOffset()));
+    aWidget->SynthesizeNativeMouseMove(sLastRefPoint + aWidget->WidgetToScreenOffset());
 
     
     nsIPresShell::SetCapturingContent(aElement, CAPTURE_POINTERLOCK);
@@ -4183,8 +4181,7 @@ EventStateManager::SetPointerLock(nsIWidget* aWidget,
     
     
     sLastRefPoint = mPreLockPoint;
-    aWidget->SynthesizeNativeMouseMove(
-      LayoutDeviceIntPoint::ToUntyped(mPreLockPoint + aWidget->WidgetToScreenOffset()));
+    aWidget->SynthesizeNativeMouseMove(mPreLockPoint + aWidget->WidgetToScreenOffset());
 
     
     nsIPresShell::SetCapturingContent(nullptr, CAPTURE_POINTERLOCK);

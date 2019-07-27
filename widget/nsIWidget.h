@@ -1863,7 +1863,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    virtual nsresult SynthesizeNativeMouseEvent(nsIntPoint aPoint,
+    virtual nsresult SynthesizeNativeMouseEvent(mozilla::LayoutDeviceIntPoint aPoint,
                                                 uint32_t aNativeMessage,
                                                 uint32_t aModifierFlags) = 0;
 
@@ -1871,7 +1871,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    virtual nsresult SynthesizeNativeMouseMove(nsIntPoint aPoint) = 0;
+    virtual nsresult SynthesizeNativeMouseMove(mozilla::LayoutDeviceIntPoint aPoint) = 0;
 
     
 
@@ -1894,7 +1894,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    virtual nsresult SynthesizeNativeMouseScrollEvent(nsIntPoint aPoint,
+    virtual nsresult SynthesizeNativeMouseScrollEvent(mozilla::LayoutDeviceIntPoint aPoint,
                                                       uint32_t aNativeMessage,
                                                       double aDeltaX,
                                                       double aDeltaY,
