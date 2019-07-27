@@ -12,6 +12,9 @@
 
 
 
+
+
+
 #ifndef nsAttrValueOrString_h___
 #define nsAttrValueOrString_h___
 
@@ -26,8 +29,21 @@ public:
     , mStringPtr(&aValue)
     , mCheapString(nullptr)
   { }
+
+  explicit nsAttrValueOrString(const nsAString* aValue)
+    : mAttrValue(nullptr)
+    , mStringPtr(aValue)
+    , mCheapString(nullptr)
+  { }
+
   explicit nsAttrValueOrString(const nsAttrValue& aValue)
     : mAttrValue(&aValue)
+    , mStringPtr(nullptr)
+    , mCheapString(nullptr)
+  { }
+
+  explicit nsAttrValueOrString(const nsAttrValue* aValue)
+    : mAttrValue(aValue)
     , mStringPtr(nullptr)
     , mCheapString(nullptr)
   { }
