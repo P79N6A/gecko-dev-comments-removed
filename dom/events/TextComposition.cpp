@@ -374,6 +374,24 @@ TextComposition::DispatchCompositionEvent(
   NotityUpdateComposition(aCompositionEvent);
 }
 
+
+void
+TextComposition::HandleSelectionEvent(nsPresContext* aPresContext,
+                                      TabParent* aTabParent,
+                                      WidgetSelectionEvent* aSelectionEvent)
+{
+  
+  
+  if (aTabParent) {
+    unused << aTabParent->SendSelectionEvent(*aSelectionEvent);
+    aSelectionEvent->mFlags.mPropagationStopped = true;
+    return;
+  }
+
+  ContentEventHandler handler(aPresContext);
+  handler.OnSelectionEvent(aSelectionEvent);
+}
+
 void
 TextComposition::NotityUpdateComposition(
                    const WidgetCompositionEvent* aCompositionEvent)

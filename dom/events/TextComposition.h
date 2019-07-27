@@ -288,6 +288,18 @@ private:
 
 
 
+  void HandleSelectionEvent(WidgetSelectionEvent* aSelectionEvent)
+  {
+    HandleSelectionEvent(mPresContext, mTabParent, aSelectionEvent);
+  }
+  static void HandleSelectionEvent(nsPresContext* aPresContext,
+                                   TabParent* aTabParent,
+                                   WidgetSelectionEvent* aSelectionEvent);
+
+  
+
+
+
 
 
   bool MaybeDispatchCompositionUpdate(

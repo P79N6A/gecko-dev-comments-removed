@@ -156,6 +156,15 @@ public:
 
 
 
+
+  static void HandleSelectionEvent(nsPresContext* aPresContext,
+                                   nsIContent* aEventTargetContent,
+                                   WidgetSelectionEvent* aSelectionEvent);
+
+  
+
+
+
   static void OnCompositionEventDiscarded(
                 WidgetCompositionEvent* aCompositionEvent);
 
@@ -211,6 +220,8 @@ protected:
   static bool IsEditable(nsINode* node);
 
   static bool IsIMEObserverNeeded(const IMEState& aState);
+
+  static nsIContent* GetRootContent(nsPresContext* aPresContext);
 
   static StaticRefPtr<nsIContent> sContent;
   static nsPresContext* sPresContext;
