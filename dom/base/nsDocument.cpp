@@ -7879,7 +7879,11 @@ nsDocument::GetViewportInfo(const ScreenIntSize& aDisplaySize)
   
   
   nsPresContext* context = mPresShell->GetPresContext();
-  float fullZoom = context ? context->GetFullZoom() : 1.0;
+  
+  
+  
+  
+  float fullZoom = context ? context->DeviceContext()->GetFullZoom() : 1.0;
   fullZoom = (fullZoom == 0.0) ? 1.0 : fullZoom;
   nsIWidget *widget = nsContentUtils::WidgetForDocument(this);
   float widgetScale = widget ? widget->GetDefaultScale().scale : 1.0f;
