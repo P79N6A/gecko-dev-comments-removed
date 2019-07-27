@@ -174,7 +174,7 @@ public:
   
   
   
-  static already_AddRefed<VideoData> Create(VideoInfo& aInfo,
+  static already_AddRefed<VideoData> Create(const VideoInfo& aInfo,
                                             ImageContainer* aContainer,
                                             Image* aImage,
                                             int64_t aOffset,
@@ -186,7 +186,7 @@ public:
                                             const IntRect& aPicture);
 
   
-  static already_AddRefed<VideoData> Create(VideoInfo& aInfo,
+  static already_AddRefed<VideoData> Create(const VideoInfo& aInfo,
                                             ImageContainer* aContainer,
                                             int64_t aOffset,
                                             int64_t aTime,
@@ -197,7 +197,7 @@ public:
                                             const IntRect& aPicture);
 
   
-  static already_AddRefed<VideoData> Create(VideoInfo& aInfo,
+  static already_AddRefed<VideoData> Create(const VideoInfo& aInfo,
                                             Image* aImage,
                                             int64_t aOffset,
                                             int64_t aTime,
@@ -207,17 +207,17 @@ public:
                                             int64_t aTimecode,
                                             const IntRect& aPicture);
 
-  static already_AddRefed<VideoData> Create(VideoInfo& aInfo,
-                                             ImageContainer* aContainer,
-                                             int64_t aOffset,
-                                             int64_t aTime,
-                                             int64_t aDuration,
-                                             layers::TextureClient* aBuffer,
-                                             bool aKeyframe,
-                                             int64_t aTimecode,
-                                             const IntRect& aPicture);
+  static already_AddRefed<VideoData> Create(const VideoInfo& aInfo,
+                                            ImageContainer* aContainer,
+                                            int64_t aOffset,
+                                            int64_t aTime,
+                                            int64_t aDuration,
+                                            layers::TextureClient* aBuffer,
+                                            bool aKeyframe,
+                                            int64_t aTimecode,
+                                            const IntRect& aPicture);
 
-  static already_AddRefed<VideoData> CreateFromImage(VideoInfo& aInfo,
+  static already_AddRefed<VideoData> CreateFromImage(const VideoInfo& aInfo,
                                                      ImageContainer* aContainer,
                                                      int64_t aOffset,
                                                      int64_t aTime,
@@ -234,26 +234,26 @@ public:
   
   
   
-  static already_AddRefed<VideoData> ShallowCopyUpdateDuration(VideoData* aOther,
+  static already_AddRefed<VideoData> ShallowCopyUpdateDuration(const VideoData* aOther,
                                                                int64_t aDuration);
 
   
   
   
-  static already_AddRefed<VideoData> ShallowCopyUpdateTimestamp(VideoData* aOther,
+  static already_AddRefed<VideoData> ShallowCopyUpdateTimestamp(const VideoData* aOther,
                                                                 int64_t aTimestamp);
 
   
   
   
   static already_AddRefed<VideoData>
-  ShallowCopyUpdateTimestampAndDuration(VideoData* aOther, int64_t aTimestamp,
+  ShallowCopyUpdateTimestampAndDuration(const VideoData* aOther, int64_t aTimestamp,
                                         int64_t aDuration);
 
   
   
   static void SetVideoDataToImage(PlanarYCbCrImage* aVideoImage,
-                                  VideoInfo& aInfo,
+                                  const VideoInfo& aInfo,
                                   const YCbCrBuffer &aBuffer,
                                   const IntRect& aPicture,
                                   bool aCopyData);
