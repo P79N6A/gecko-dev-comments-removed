@@ -116,15 +116,6 @@ public:
 
   void VerticalAlignLine();
 
-  
-  
-  nscoord GetFinalLineBSize() const
-  {
-    NS_ASSERTION(mFinalLineBSize != nscoord_MIN,
-                 "VerticalAlignLine should have been called before");
-    return mFinalLineBSize;
-  }
-
   bool TrimTrailingWhiteSpace();
 
   
