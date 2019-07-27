@@ -25,7 +25,8 @@ loop.store.ActiveRoomStore = (function() {
     urls: "roomContextUrls",
     description: "roomDescription",
     roomInfoFailure: "roomInfoFailure",
-    roomName: "roomName"
+    roomName: "roomName",
+    roomState: "roomState"
   };
 
   
@@ -147,9 +148,13 @@ loop.store.ActiveRoomStore = (function() {
       console.error("Error in state `" + this._storeState.roomState + "`:",
         actionData.error);
 
+      var exitState = this._storeState.roomState !== ROOM_STATES.FAILED ?
+        this._storeState.roomState : this._storeState.failureExitState;
+
       this.setStoreState({
         error: actionData.error,
-        failureReason: getReason(actionData.error.errno)
+        failureReason: getReason(actionData.error.errno),
+        failureExitState: exitState
       });
 
       this._leaveRoom(actionData.error.errno === REST_ERRNOS.ROOM_FULL ?
@@ -159,10 +164,51 @@ loop.store.ActiveRoomStore = (function() {
     
 
 
+    retryAfterRoomFailure: function() {
+      if (this._storeState.failureReason === FAILURE_DETAILS.EXPIRED_OR_INVALID) {
+        console.error("Invalid retry attempt for expired or invalid url");
+        return;
+      }
+
+      switch (this._storeState.failureExitState) {
+        case ROOM_STATES.GATHER:
+          this.dispatchAction(new sharedActions.FetchServerData({
+            cryptoKey: this._storeState.roomCryptoKey,
+            token: this._storeState.roomToken,
+            windowType: "room"
+          }));
+          return;
+        case ROOM_STATES.INIT:
+        case ROOM_STATES.ENDED:
+        case ROOM_STATES.CLOSING:
+          console.error("Unexpected retry for exit state", this._storeState.failureExitState);
+          return;
+        default:
+          
+          
+          
+          this.joinRoom();
+          return;
+      }
+    },
+
+    
+
+
 
     _registerPostSetupActions: function() {
+      
+      
+      
+      if (this._registeredActions) {
+        return;
+      }
+
+      this._registeredActions = true;
+
       this.dispatcher.register(this, [
         "roomFailure",
+        "retryAfterRoomFailure",
         "setupRoomInfo",
         "updateRoomInfo",
         "gotMediaPermission",
@@ -256,8 +302,8 @@ loop.store.ActiveRoomStore = (function() {
 
       this.setStoreState({
         roomToken: actionData.token,
-        roomCryptoKey: actionData.cryptoKey,
-        roomState: ROOM_STATES.READY
+        roomState: ROOM_STATES.GATHER,
+        roomCryptoKey: actionData.cryptoKey
       });
 
       this._mozLoop.rooms.on("update:" + actionData.roomToken,
@@ -271,9 +317,10 @@ loop.store.ActiveRoomStore = (function() {
     _getRoomDataForStandalone: function() {
       this._mozLoop.rooms.get(this._storeState.roomToken, function(err, result) {
         if (err) {
-          
-          
-          console.error("Failed to get room data:", err);
+          this.dispatchAction(new sharedActions.RoomFailure({
+            error: err,
+            failedJoinRequest: false
+          }));
           return;
         }
 
@@ -281,6 +328,12 @@ loop.store.ActiveRoomStore = (function() {
           roomOwner: result.roomOwner,
           roomUrl: result.roomUrl
         });
+
+        
+        
+        
+        
+        roomInfoData.roomState = ROOM_STATES.READY;
 
         if (!result.context && !result.roomName) {
           roomInfoData.roomInfoFailure = ROOM_INFO_FAILURES.NO_DATA;
@@ -542,11 +595,15 @@ loop.store.ActiveRoomStore = (function() {
         return;
       }
 
+      var exitState = this._storeState.roomState === ROOM_STATES.FAILED ?
+        this._storeState.failureExitState : this._storeState.roomState;
+
       
       
       
       this.setStoreState({
-        failureReason: actionData.reason
+        failureReason: actionData.reason,
+        failureExitState: exitState
       });
 
       this._leaveRoom(ROOM_STATES.FAILED);

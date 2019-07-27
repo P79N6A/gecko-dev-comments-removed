@@ -49,7 +49,8 @@ loop.store.StandaloneMetricsStore = (function() {
       "leaveRoom",
       "mediaConnected",
       "recordClick",
-      "remotePeerConnected"
+      "remotePeerConnected",
+      "retryAfterRoomFailure"
     ],
 
     
@@ -188,6 +189,15 @@ loop.store.StandaloneMetricsStore = (function() {
     remotePeerConnected: function() {
       this._storeEvent(METRICS_GA_CATEGORY.general, METRICS_GA_ACTIONS.success,
         "Remote peer connected");
+    },
+
+    
+
+
+
+    retryAfterRoomFailure: function() {
+      this._storeEvent(METRICS_GA_CATEGORY.general, METRICS_GA_ACTIONS.button,
+        "Retry failed room");
     },
 
     

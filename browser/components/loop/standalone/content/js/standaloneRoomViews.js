@@ -14,12 +14,75 @@ loop.standaloneRoomViews = (function(mozL10n) {
   var sharedUtils = loop.shared.utils;
   var sharedViews = loop.shared.views;
 
+  
+
+
+
+  var StandaloneRoomFailureView = React.createClass({displayName: "StandaloneRoomFailureView",
+    propTypes: {
+      dispatcher: React.PropTypes.instanceOf(loop.Dispatcher).isRequired,
+      
+      failureReason: React.PropTypes.string
+    },
+
+    
+
+
+    handleRetryButton: function() {
+      this.props.dispatcher.dispatch(new sharedActions.RetryAfterRoomFailure());
+    },
+
+    
+
+
+    getFailureString: function() {
+      switch(this.props.failureReason) {
+        case FAILURE_DETAILS.MEDIA_DENIED:
+        
+        case FAILURE_DETAILS.NO_MEDIA:
+          return mozL10n.get("rooms_media_denied_message");
+        case FAILURE_DETAILS.EXPIRED_OR_INVALID:
+          return mozL10n.get("rooms_unavailable_notification_message");
+        default:
+          return mozL10n.get("status_error");
+      }
+    },
+
+    
+
+
+    renderRetryButton: function() {
+      if (this.props.failureReason === FAILURE_DETAILS.EXPIRED_OR_INVALID) {
+        return null;
+      }
+
+      return (
+        React.createElement("button", {className: "btn btn-join btn-info", 
+                onClick: this.handleRetryButton}, 
+          mozL10n.get("retry_call_button")
+        )
+      );
+    },
+
+    render: function() {
+      return (
+        React.createElement("div", {className: "room-inner-info-area"}, 
+          React.createElement("p", {className: "failed-room-message"}, 
+            this.getFailureString()
+          ), 
+          this.renderRetryButton()
+        )
+      );
+    }
+  });
+
   var StandaloneRoomInfoArea = React.createClass({displayName: "StandaloneRoomInfoArea",
     propTypes: {
       activeRoomStore: React.PropTypes.oneOfType([
         React.PropTypes.instanceOf(loop.store.ActiveRoomStore),
         React.PropTypes.instanceOf(loop.store.FxOSActiveRoomStore)
       ]).isRequired,
+      dispatcher: React.PropTypes.instanceOf(loop.Dispatcher).isRequired,
       failureReason: React.PropTypes.string,
       isFirefox: React.PropTypes.bool.isRequired,
       joinRoom: React.PropTypes.func.isRequired,
@@ -53,25 +116,8 @@ loop.standaloneRoomViews = (function(mozL10n) {
       );
     },
 
-    
-
-
-    _getFailureString: function() {
-      switch(this.props.failureReason) {
-        case FAILURE_DETAILS.MEDIA_DENIED:
-        
-        case FAILURE_DETAILS.NO_MEDIA:
-          return mozL10n.get("rooms_media_denied_message");
-        case FAILURE_DETAILS.EXPIRED_OR_INVALID:
-          return mozL10n.get("rooms_unavailable_notification_message");
-        default:
-          return mozL10n.get("status_error");
-      }
-    },
-
     render: function() {
       switch(this.props.roomState) {
-        case ROOM_STATES.INIT:
         case ROOM_STATES.READY: {
           
           return (
@@ -144,17 +190,13 @@ loop.standaloneRoomViews = (function(mozL10n) {
         }
         case ROOM_STATES.FAILED: {
           return (
-            React.createElement("div", {className: "room-inner-info-area"}, 
-              React.createElement("p", {className: "failed-room-message"}, 
-                this._getFailureString()
-              ), 
-              React.createElement("button", {className: "btn btn-join btn-info", 
-                      onClick: this.props.joinRoom}, 
-                mozL10n.get("retry_call_button")
-              )
-            )
+            React.createElement(StandaloneRoomFailureView, {
+              dispatcher: this.props.dispatcher, 
+              failureReason: this.props.failureReason})
           );
         }
+        case ROOM_STATES.INIT:
+        case ROOM_STATES.GATHER:
         default: {
           return null;
         }
@@ -362,6 +404,7 @@ loop.standaloneRoomViews = (function(mozL10n) {
           
           return true;
 
+        case ROOM_STATES.FAILED:
         case ROOM_STATES.CLOSING:
           
           return true;
@@ -437,6 +480,7 @@ loop.standaloneRoomViews = (function(mozL10n) {
           React.createElement("div", {className: "beta-logo"}), 
           React.createElement(StandaloneRoomHeader, {dispatcher: this.props.dispatcher}), 
           React.createElement(StandaloneRoomInfoArea, {activeRoomStore: this.props.activeRoomStore, 
+                                  dispatcher: this.props.dispatcher, 
                                   failureReason: this.state.failureReason, 
                                   isFirefox: this.props.isFirefox, 
                                   joinRoom: this.joinRoom, 

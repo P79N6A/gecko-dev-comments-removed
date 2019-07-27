@@ -504,6 +504,13 @@ loop.shared.actions = (function() {
 
 
 
+    RetryAfterRoomFailure: Action.define("retryAfterRoomFailure", {
+    }),
+
+    
+
+
+
 
 
     JoinedRoom: Action.define("joinedRoom", {
