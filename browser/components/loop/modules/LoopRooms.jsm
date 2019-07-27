@@ -241,7 +241,7 @@ let LoopRoomsInternal = {
 
 
   queueForEncryption: function(roomToken) {
-    if (!this.encryptionQueue.queue.includes(roomToken)) {
+    if (this.encryptionQueue.queue.indexOf(roomToken) == -1) {
       this.encryptionQueue.queue.push(roomToken);
     }
 
