@@ -218,8 +218,7 @@ nsDOMCameraControl::nsDOMCameraControl(uint32_t aCameraId,
   mCurrentConfiguration = initialConfig.forget();
 
   
-  SetHintContents(HINT_CONTENTS_VIDEO);
-  InitStreamCommon(mInput);
+  mStream = mInput;
   MOZ_ASSERT(mWindow, "Shouldn't be created with a null window!");
   if (mWindow->GetExtantDoc()) {
     CombineWithPrincipal(mWindow->GetExtantDoc()->NodePrincipal());
