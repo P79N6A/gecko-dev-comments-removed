@@ -729,8 +729,10 @@ MediaDecoderStateMachine::OnAudioDecoded(AudioData* aAudioSample)
     }
 
     case DECODER_STATE_BUFFERING:
-    case DECODER_STATE_DECODING: {
       
+      
+      ScheduleStateMachine();
+    case DECODER_STATE_DECODING: {
       Push(audio);
       return;
     }
@@ -835,13 +837,13 @@ MediaDecoderStateMachine::OnNotDecoded(MediaData::Type aType,
 
   
   
-  
   if (aReason == MediaDecoderReader::WAITING_FOR_DATA) {
-    bool outOfSamples = isAudio ? !AudioQueue().GetSize() : !VideoQueue().GetSize();
-    if (outOfSamples) {
-      StartBuffering();
-    }
-
+    MOZ_ASSERT(mReader->IsWaitForDataSupported(),
+               "Readers that send WAITING_FOR_DATA need to implement WaitForData");
+    RequestStatusRef(aType) = RequestStatus::Waiting;
+    mReader->WaitForData(aType)->Then(DecodeTaskQueue(), __func__, this,
+                                      &MediaDecoderStateMachine::OnWaitForDataResolved,
+                                      &MediaDecoderStateMachine::OnWaitForDataRejected);
     return;
   }
 
@@ -941,6 +943,9 @@ MediaDecoderStateMachine::OnVideoDecoded(VideoData* aVideoSample)
     }
 
     case DECODER_STATE_BUFFERING:
+      
+      
+      ScheduleStateMachine();
     case DECODER_STATE_DECODING: {
       Push(video);
       
@@ -2647,9 +2652,14 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
           return NS_OK;
         }
       } else if (outOfAudio || outOfVideo) {
-        DECODER_LOG("Out of decoded data - polling for 1s");
+        MOZ_ASSERT(mReader->IsWaitForDataSupported(),
+                   "Don't yet have a strategy for non-heuristic + non-WaitForData");
         DispatchDecodeTasksIfNeeded();
-        ScheduleStateMachine(USECS_PER_S);
+        MOZ_ASSERT_IF(outOfAudio, mAudioRequestStatus != RequestStatus::Idle);
+        MOZ_ASSERT_IF(outOfVideo, mVideoRequestStatus != RequestStatus::Idle);
+        DECODER_LOG("In buffering mode, waiting to be notified: outOfAudio: %d, "
+                    "mAudioStatus: %d, outOfVideo: %d, mVideoStatus: %d",
+                    outOfAudio, mAudioRequestStatus, outOfVideo, mVideoRequestStatus);
         return NS_OK;
       }
 

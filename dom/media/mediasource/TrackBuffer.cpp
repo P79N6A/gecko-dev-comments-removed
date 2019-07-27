@@ -185,7 +185,7 @@ TrackBuffer::AppendData(const uint8_t* aData, uint32_t aLength)
 
   
   
-  mParentDecoder->ScheduleStateMachineThread();
+  mParentDecoder->GetReader()->MaybeNotifyHaveData();
   return true;
 }
 
@@ -440,6 +440,11 @@ TrackBuffer::InitializeDecoder(SourceBufferDecoder* aDecoder)
     RemoveDecoder(aDecoder);
     return;
   }
+
+  
+  
+  mParentDecoder->GetReader()->MaybeNotifyHaveData();
+
   MSE_DEBUG("TrackBuffer(%p): Reader %p activated", this, reader);
 }
 
