@@ -1549,7 +1549,7 @@ MacroAssemblerMIPSCompat::callIon(Register callee)
     }
 }
 void
-MacroAssemblerMIPSCompat::callIonFromAsmJS(Register callee)
+MacroAssemblerMIPSCompat::callJitFromAsmJS(Register callee)
 {
     ma_callIonNoPush(callee);
 

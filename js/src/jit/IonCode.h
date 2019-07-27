@@ -161,19 +161,6 @@ struct PatchableBackedgeInfo;
 struct CacheLocation;
 
 
-
-struct DependentAsmJSModuleExit
-{
-    const AsmJSModule *module;
-    size_t exitIndex;
-
-    DependentAsmJSModuleExit(const AsmJSModule *module, size_t exitIndex)
-      : module(module),
-        exitIndex(exitIndex)
-    { }
-};
-
-
 struct IonScript
 {
   private:
@@ -298,10 +285,6 @@ struct IonScript
     
     uint32_t osrPcMismatchCounter_;
 
-    
-    
-    Vector<DependentAsmJSModuleExit> *dependentAsmJSModules;
-
     IonBuilder *pendingBuilder_;
 
   private:
@@ -351,19 +334,6 @@ struct IonScript
     }
     PatchableBackedge *backedgeList() {
         return (PatchableBackedge *) &bottomBuffer()[backedgeList_];
-    }
-    bool addDependentAsmJSModule(JSContext *cx, DependentAsmJSModuleExit exit);
-    void removeDependentAsmJSModule(DependentAsmJSModuleExit exit) {
-        if (!dependentAsmJSModules)
-            return;
-        for (size_t i = 0; i < dependentAsmJSModules->length(); i++) {
-            if (dependentAsmJSModules->begin()[i].module == exit.module &&
-                dependentAsmJSModules->begin()[i].exitIndex == exit.exitIndex)
-            {
-                dependentAsmJSModules->erase(dependentAsmJSModules->begin() + i);
-                break;
-            }
-        }
     }
 
   private:

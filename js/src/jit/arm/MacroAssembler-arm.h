@@ -1293,7 +1293,7 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     
     
     void callIon(Register callee);
-    void callIonFromAsmJS(Register callee);
+    void callJitFromAsmJS(Register callee);
 
     void reserveStack(uint32_t amount);
     void freeStack(uint32_t amount);

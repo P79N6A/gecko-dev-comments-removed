@@ -1861,7 +1861,7 @@ MacroAssemblerARMCompat::callIon(Register callee)
 }
 
 void
-MacroAssemblerARMCompat::callIonFromAsmJS(Register callee)
+MacroAssemblerARMCompat::callJitFromAsmJS(Register callee)
 {
     ma_callIonNoPush(callee);
 
