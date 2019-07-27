@@ -250,8 +250,19 @@ public:
     public:
         
         
+        typedef enum {
+            kDiscardable,
+            kPersistent
+        } EntryPersistence;
+
         
-        static void CacheFont(gfxFontEntry *aFontEntry);
+        
+        
+        
+        
+        
+        static void CacheFont(gfxFontEntry *aFontEntry,
+                              EntryPersistence aPersistence = kDiscardable);
 
         
         
@@ -298,13 +309,16 @@ public:
             nsCOMPtr<nsIPrincipal>  mPrincipal; 
             gfxFontEntry           *mFontEntry;
             bool                    mPrivate;
+            EntryPersistence        mPersistence;
 
             Key(nsIURI* aURI, nsIPrincipal* aPrincipal,
-                gfxFontEntry* aFontEntry, bool aPrivate)
+                gfxFontEntry* aFontEntry, bool aPrivate,
+                EntryPersistence aPersistence = kDiscardable)
                 : mURI(aURI),
                   mPrincipal(aPrincipal),
                   mFontEntry(aFontEntry),
-                  mPrivate(aPrivate)
+                  mPrivate(aPrivate),
+                  mPersistence(aPersistence)
             { }
         };
 
@@ -317,14 +331,16 @@ public:
                 : mURI(aKey->mURI),
                   mPrincipal(aKey->mPrincipal),
                   mFontEntry(aKey->mFontEntry),
-                  mPrivate(aKey->mPrivate)
+                  mPrivate(aKey->mPrivate),
+                  mPersistence(aKey->mPersistence)
             { }
 
             Entry(const Entry& aOther)
                 : mURI(aOther.mURI),
                   mPrincipal(aOther.mPrincipal),
                   mFontEntry(aOther.mFontEntry),
-                  mPrivate(aOther.mPrivate)
+                  mPrivate(aOther.mPrivate),
+                  mPersistence(aOther.mPersistence)
             { }
 
             ~Entry() { }
@@ -352,9 +368,14 @@ public:
 
             gfxFontEntry* GetFontEntry() const { return mFontEntry; }
 
-            static PLDHashOperator RemoveIfPrivate(Entry* aEntry, void* aUserData);
-            static PLDHashOperator RemoveIfMatches(Entry* aEntry, void* aUserData);
-            static PLDHashOperator DisconnectSVG(Entry* aEntry, void* aUserData);
+            static PLDHashOperator
+            RemoveUnlessPersistent(Entry* aEntry, void* aUserData);
+            static PLDHashOperator
+            RemoveIfPrivate(Entry* aEntry, void* aUserData);
+            static PLDHashOperator
+            RemoveIfMatches(Entry* aEntry, void* aUserData);
+            static PLDHashOperator
+            DisconnectSVG(Entry* aEntry, void* aUserData);
 
 #ifdef DEBUG_USERFONT_CACHE
             static PLDHashOperator DumpEntry(Entry* aEntry, void* aUserData);
@@ -377,6 +398,9 @@ public:
 
             
             bool                   mPrivate;
+
+            
+            EntryPersistence       mPersistence;
         };
 
         static nsTHashtable<Entry> *sUserFonts;
