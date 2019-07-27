@@ -41,6 +41,16 @@ function ObjectStaticAssign(target, firstSource) {
     return to;
 }
 
+
+function ObjectGetPrototypeOf(obj) {
+    return std_Reflect_getPrototypeOf(ToObject(obj));
+}
+
+
+function ObjectIsExtensible(obj) {
+    return IsObject(obj) && std_Reflect_isExtensible(obj);
+}
+
 function ObjectDefineSetter(name, setter) {
     var object;
     if (this === null || this === undefined)
@@ -96,7 +106,7 @@ function ObjectLookupSetter(name) {
                 return desc.set;
             return undefined;
         }
-        object = std_Object_getPrototypeOf(object);
+        object = std_Reflect_getPrototypeOf(object);
     } while (object !== null);
 }
 
@@ -111,6 +121,7 @@ function ObjectLookupGetter(name) {
                 return desc.get;
             return undefined;
         }
-        object = std_Object_getPrototypeOf(object);
+        object = std_Reflect_getPrototypeOf(object);
     } while (object !== null);
 }
+

@@ -54,6 +54,9 @@ obj_getPrototypeOf(JSContext* cx, unsigned argc, JS::Value* vp);
 bool
 obj_hasOwnProperty(JSContext* cx, unsigned argc, JS::Value* vp);
 
+bool
+obj_isExtensible(JSContext* cx, unsigned argc, JS::Value* vp);
+
 
 bool
 GetOwnPropertyKeys(JSContext* cx, const JS::CallArgs& args, unsigned flags);

@@ -596,6 +596,19 @@ ToPrimitive(JSContext* cx, JSType preferredType, MutableHandleValue vp)
 }
 
 
+inline bool
+ToPropertyKey(JSContext* cx, Value argument, MutableHandleId result)
+{
+    
+    RootedValue key(cx, argument);
+    if (!ToPrimitive(cx, JSTYPE_STRING, &key))
+        return false;
+
+    
+    return ValueToId<CanGC>(cx, key, result);
+}
+
+
 
 
 
