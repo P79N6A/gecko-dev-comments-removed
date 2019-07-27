@@ -161,6 +161,8 @@ typedef size_t (*PLDHashSizeOfEntryExcludingThisFun)(
 
 class PLDHashTable
 {
+  friend class PLDHashTable2;
+
 private:
   const PLDHashTableOps* mOps;        
   int16_t             mHashShift;     
@@ -369,6 +371,20 @@ public:
   }
 
   void Finish() { MOZ_CRASH("PLDHashTable2::Finish()"); }
+
+  
+  
+  void Clear();
+
+  
+  
+  
+  
+  
+  
+  
+  
+  void ClearAndPrepareForLength(uint32_t aLength);
 
 private:
   PLDHashTable2(const PLDHashTable2& aOther) = delete;

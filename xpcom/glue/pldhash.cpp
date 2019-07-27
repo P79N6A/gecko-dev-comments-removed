@@ -400,6 +400,25 @@ PLDHashTable2::~PLDHashTable2()
   PLDHashTable::Finish();
 }
 
+void
+PLDHashTable2::ClearAndPrepareForLength(uint32_t aLength)
+{
+  MOZ_ASSERT(IsInitialized());
+
+  
+  const PLDHashTableOps* ops = mOps;
+  uint32_t entrySize = mEntrySize;
+
+  PLDHashTable::Finish();
+  PLDHashTable::Init(ops, entrySize, aLength);
+}
+
+void
+PLDHashTable2::Clear()
+{
+  ClearAndPrepareForLength(PL_DHASH_DEFAULT_INITIAL_LENGTH);
+}
+
 
 
 
