@@ -61,8 +61,8 @@ const RW_OWNER = parseInt("0600", 8);
 const NUMBER_OF_THREADS_TO_LAUNCH = 30;
 let gNumberOfThreadsLaunched = 0;
 
-const SEC_IN_ONE_DAY  = 24 * 60 * 60;
-const MS_IN_ONE_DAY   = SEC_IN_ONE_DAY * 1000;
+const MS_IN_ONE_HOUR  = 60 * 60 * 1000;
+const MS_IN_ONE_DAY   = 24 * MS_IN_ONE_HOUR;
 
 const PREF_BRANCH = "toolkit.telemetry.";
 const PREF_ENABLED = PREF_BRANCH + "enabled";
@@ -138,7 +138,7 @@ function fakeGenerateUUID(sessionFunc, subsessionFunc) {
 
 function fakeIdleNotification(topic) {
   let session = Cu.import("resource://gre/modules/TelemetrySession.jsm");
-  session.TelemetryScheduler.observe(null, topic, null);
+  return session.TelemetryScheduler.observe(null, topic, null);
 }
 
 function registerPingHandler(handler) {
@@ -1024,7 +1024,9 @@ add_task(function* test_dailyDuplication() {
   yield TelemetrySession.setup();
 
   
-  let firstDailyDue = new Date(2030, 1, 1, 23, 45, 0);
+  
+  
+  let firstDailyDue = new Date(2030, 1, 2, 0, 0, 0);
   fakeNow(firstDailyDue);
 
   
@@ -1046,7 +1048,6 @@ add_task(function* test_dailyDuplication() {
 
   
   let secondDailyDue = new Date(firstDailyDue);
-  secondDailyDue.setDate(firstDailyDue.getDate() + 1);
   secondDailyDue.setHours(0);
   secondDailyDue.setMinutes(15);
   fakeNow(secondDailyDue);
@@ -1628,11 +1629,15 @@ add_task(function* test_schedulerUserIdle() {
   const SCHEDULER_TICK_INTERVAL_MS = 5 * 60 * 1000;
   const SCHEDULER_TICK_IDLE_INTERVAL_MS = 60 * 60 * 1000;
 
+  let now = new Date(2010, 1, 1, 11, 0, 0);
+  fakeNow(now);
+
   let schedulerTimeout = 0;
   fakeSchedulerTimer((callback, timeout) => {
     schedulerTimeout = timeout;
   }, () => {});
   yield TelemetrySession.reset();
+  gRequestIterator = Iterator(new Request());
 
   
   Assert.equal(schedulerTimeout, SCHEDULER_TICK_INTERVAL_MS);
@@ -1648,6 +1653,65 @@ add_task(function* test_schedulerUserIdle() {
 
   
   Assert.equal(schedulerTimeout, SCHEDULER_TICK_INTERVAL_MS);
+
+  
+  now.setHours(23);
+  now.setMinutes(50);
+  fakeIdleNotification("idle");
+  Assert.equal(schedulerTimeout, 10 * 60 * 1000);
+
+  yield TelemetrySession.shutdown();
+});
+
+add_task(function* test_sendDailyOnIdle() {
+  if (gIsAndroid || gIsGonk) {
+    
+    return;
+  }
+
+  let now = new Date(2040, 1, 1, 11, 0, 0);
+  fakeNow(now);
+
+  let schedulerTickCallback = 0;
+  fakeSchedulerTimer((callback, timeout) => {
+    schedulerTickCallback = callback;
+  }, () => {});
+  yield TelemetrySession.reset();
+
+  
+  now = new Date(2040, 1, 1, 23, 55, 0);
+  fakeNow(now);
+  registerPingHandler((req, res) => {
+    Assert.ok(false, "No daily ping should be received yet when the user is active.");
+  });
+  yield fakeIdleNotification("active");
+
+  
+  gRequestIterator = Iterator(new Request());
+
+  
+  now = new Date(2040, 1, 2, 0, 05, 0);
+  fakeNow(now);
+  yield schedulerTickCallback();
+
+  let request = yield gRequestIterator.next();
+  Assert.ok(!!request);
+  let ping = decodeRequestPayload(request);
+
+  Assert.equal(ping.type, PING_TYPE_MAIN);
+  Assert.equal(ping.payload.info.reason, REASON_DAILY);
+
+  
+  now = new Date(2040, 1, 2, 23, 55, 0);
+  fakeNow(now);
+  yield fakeIdleNotification("idle");
+
+  request = yield gRequestIterator.next();
+  Assert.ok(!!request);
+  ping = decodeRequestPayload(request);
+
+  Assert.equal(ping.type, PING_TYPE_MAIN);
+  Assert.equal(ping.payload.info.reason, REASON_DAILY);
 
   yield TelemetrySession.shutdown();
 });
