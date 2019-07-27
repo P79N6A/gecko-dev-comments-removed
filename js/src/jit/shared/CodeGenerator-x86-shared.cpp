@@ -45,6 +45,10 @@ CodeGeneratorX86Shared::generatePrologue()
     MOZ_ASSERT(!gen->compilingAsmJS());
 
     
+    if (isProfilerInstrumentationEnabled())
+        masm.profilerEnterFrame(StackPointer, CallTempReg0);
+
+    
     masm.reserveStack(frameSize());
 
     emitTracelogIonStart();
@@ -64,6 +68,11 @@ CodeGeneratorX86Shared::generateEpilogue()
     
     masm.freeStack(frameSize());
     MOZ_ASSERT(masm.framePushed() == 0);
+
+    
+    
+    if (isProfilerInstrumentationEnabled())
+        masm.profilerExitFrame();
 
     masm.ret();
     return true;

@@ -40,6 +40,7 @@ jit::Bailout(BailoutStack *sp, BaselineBailoutInfo **bailoutInfo)
     BailoutFrameInfo bailoutData(jitActivations, sp);
     JitFrameIterator iter(jitActivations);
     MOZ_ASSERT(!iter.ionScript()->invalidated());
+    CommonFrameLayout *currentFramePtr = iter.current();
 
     TraceLoggerThread *logger = TraceLoggerForMainThread(cx->runtime());
     TraceLogTimestamp(logger, TraceLogger_Bailout);
@@ -89,6 +90,26 @@ jit::Bailout(BailoutStack *sp, BaselineBailoutInfo **bailoutInfo)
     if (iter.ionScript()->invalidated())
         iter.ionScript()->decrementInvalidationCount(cx->runtime()->defaultFreeOp());
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (cx->runtime()->jitRuntime()->isProfilerInstrumentationEnabled(cx->runtime()))
+        cx->mainThread().jitActivation->setLastProfilingFrame(currentFramePtr);
+
     return retval;
 }
 
@@ -106,6 +127,7 @@ jit::InvalidationBailout(InvalidationBailoutStack *sp, size_t *frameSizeOut,
     JitActivationIterator jitActivations(cx->runtime());
     BailoutFrameInfo bailoutData(jitActivations, sp);
     JitFrameIterator iter(jitActivations);
+    CommonFrameLayout *currentFramePtr = iter.current();
 
     TraceLoggerThread *logger = TraceLoggerForMainThread(cx->runtime());
     TraceLogTimestamp(logger, TraceLogger_Invalidation);
@@ -161,6 +183,10 @@ jit::InvalidationBailout(InvalidationBailoutStack *sp, size_t *frameSizeOut,
 
     iter.ionScript()->decrementInvalidationCount(cx->runtime()->defaultFreeOp());
 
+    
+    if (cx->runtime()->jitRuntime()->isProfilerInstrumentationEnabled(cx->runtime()))
+        cx->mainThread().jitActivation->setLastProfilingFrame(currentFramePtr);
+
     return retval;
 }
 
@@ -194,6 +220,7 @@ jit::ExceptionHandlerBailout(JSContext *cx, const InlineFrameIterator &frame,
     JitActivationIterator jitActivations(cx->runtime());
     BailoutFrameInfo bailoutData(jitActivations, frame.frame());
     JitFrameIterator iter(jitActivations);
+    CommonFrameLayout *currentFramePtr = iter.current();
 
     BaselineBailoutInfo *bailoutInfo = nullptr;
     uint32_t retval = BailoutIonToBaseline(cx, bailoutData.activation(), iter, true,
@@ -225,6 +252,10 @@ jit::ExceptionHandlerBailout(JSContext *cx, const InlineFrameIterator &frame,
         else
             MOZ_ASSERT(retval == BAILOUT_RETURN_FATAL_ERROR);
     }
+
+    
+    if (cx->runtime()->jitRuntime()->isProfilerInstrumentationEnabled(cx->runtime()))
+        cx->mainThread().jitActivation->setLastProfilingFrame(currentFramePtr);
 
     return retval;
 }

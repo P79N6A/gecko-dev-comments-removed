@@ -441,6 +441,17 @@ MacroAssemblerX64::handleFailureWithHandlerTail(void *handler)
     loadValue(Address(rbp, BaselineFrame::reverseOffsetOfReturnValue()), JSReturnOperand);
     movq(rbp, rsp);
     pop(rbp);
+
+    
+    
+    {
+        Label skipProfilingInstrumentation;
+        AbsoluteAddress addressOfEnabled(GetJitContext()->runtime->spsProfiler().addressOfEnabled());
+        branch32(Assembler::Equal, addressOfEnabled, Imm32(0), &skipProfilingInstrumentation);
+        profilerExitFrame();
+        bind(&skipProfilingInstrumentation);
+    }
+
     ret();
 
     

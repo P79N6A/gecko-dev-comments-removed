@@ -513,6 +513,10 @@ class SPSInstrumentation
     }
 };
 
+
+
+void *GetTopProfilingJitFrame(uint8_t *exitFramePtr);
+
 } 
 
 #endif 

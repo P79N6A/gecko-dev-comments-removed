@@ -1982,6 +1982,8 @@ CodeGenerator::visitReturn(LReturn *lir)
 void
 CodeGenerator::visitOsrEntry(LOsrEntry *lir)
 {
+    Register temp = ToRegister(lir->temp());
+
     
     masm.flushBuffer();
     setOsrEntryOffset(masm.size());
@@ -1990,6 +1992,10 @@ CodeGenerator::visitOsrEntry(LOsrEntry *lir)
     emitTracelogStopEvent(TraceLogger_Baseline);
     emitTracelogStartEvent(TraceLogger_IonMonkey);
 #endif
+
+    
+    if (isProfilerInstrumentationEnabled())
+        masm.profilerEnterFrame(StackPointer, temp);
 
     
     
@@ -7156,7 +7162,7 @@ CodeGenerator::link(JSContext *cx, types::CompilerConstraintList *constraints)
         return false;
 
     
-    if (isNativeToBytecodeMapEnabled()) {
+    if (isProfilerInstrumentationEnabled()) {
         
         if (!generateCompactNativeToBytecodeMap(cx, code))
             return false;

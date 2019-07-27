@@ -12,7 +12,9 @@
 #include "jsprf.h"
 #include "jsscript.h"
 
+#include "jit/BaselineFrame.h"
 #include "jit/BaselineJIT.h"
+#include "jit/JitFrames.h"
 #include "vm/StringBuffer.h"
 
 using namespace js;
@@ -92,6 +94,14 @@ SPSProfiler::enable(bool enabled)
 
 
     jit::ToggleBaselineSPS(rt, enabled);
+
+    
+
+
+    if (rt->mainThread.jitActivation) {
+        void *lastProfilingFrame = GetTopProfilingJitFrame(rt->mainThread.jitTop);
+        rt->mainThread.jitActivation->setLastProfilingFrame(lastProfilingFrame);
+    }
 }
 
 
@@ -401,4 +411,37 @@ AutoSuppressProfilerSampling::~AutoSuppressProfilerSampling()
 {
         if (previouslyEnabled_)
             rt_->enableProfilerSampling();
+}
+
+void *
+js::GetTopProfilingJitFrame(uint8_t *exitFramePtr)
+{
+    
+    if (!exitFramePtr)
+        return nullptr;
+
+    jit::ExitFrameLayout *exitFrame = (jit::ExitFrameLayout *) exitFramePtr;
+    size_t prevSize = exitFrame->prevFrameLocalSize();
+    jit::FrameType prevType = exitFrame->prevType();
+
+    uint8_t *prev = exitFramePtr + (jit::ExitFrameLayout::Size() + prevSize);
+
+    
+    
+    switch (prevType) {
+      case jit::JitFrame_IonJS:
+      case jit::JitFrame_Unwound_IonJS:
+      case jit::JitFrame_BaselineJS:
+        return prev;
+
+      case jit::JitFrame_BaselineStub:
+      case jit::JitFrame_Unwound_BaselineStub: {
+        void *framePtr = ((jit::BaselineStubFrameLayout *) prev)->reverseSavedFramePtr();
+        return ((uint8_t *) framePtr) + jit::BaselineFrame::FramePointerOffset;
+      }
+
+      default:
+        MOZ_CRASH("unknown callee token type");
+        return nullptr;
+    }
 }
