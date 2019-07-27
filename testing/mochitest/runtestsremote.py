@@ -541,11 +541,6 @@ def run_test_harness(options):
         if (options.dm_trans == 'adb' and options.robocopApk):
             dm._checkCmd(["install", "-r", options.robocopApk])
 
-        if not options.autorun:
-            
-            
-            options.testPath = robocop_tests[0]['name']
-
         retVal = None
         
         active_tests = []
@@ -573,36 +568,20 @@ def run_test_harness(options):
                 mochitest.localProfile = options.profilePath
 
             options.app = "am"
+            options.browserArgs = [
+                "instrument",
+                "-w",
+                "-e",
+                "deviceroot",
+                deviceRoot,
+                "-e",
+                "class"]
+            options.browserArgs.append(
+                "org.mozilla.gecko.tests.%s" %
+                test['name'])
+            options.browserArgs.append(
+                "org.mozilla.roboexample.test/org.mozilla.gecko.FennecInstrumentationTestRunner")
             mochitest.nsprLogName = "nspr-%s.log" % test['name']
-            if options.autorun:
-                
-                
-                
-                options.browserArgs = [
-                    "instrument",
-                    "-w",
-                    "-e", "quit_and_finish", "1",
-                    "-e", "deviceroot", deviceRoot,
-                    "-e",
-                    "class"]
-                options.browserArgs.append(
-                    "org.mozilla.gecko.tests.%s" %
-                    test['name'])
-                options.browserArgs.append(
-                    "org.mozilla.roboexample.test/org.mozilla.gecko.FennecInstrumentationTestRunner")
-            else:
-                
-                
-                
-                options.browserArgs = ["start",
-                                       "-n", "org.mozilla.roboexample.test/org.mozilla.gecko.LaunchFennecWithConfigurationActivity",
-                                       "&&", "cat"]
-                dm.default_timeout = sys.maxint 
-
-                mochitest.log.info("")
-                mochitest.log.info("Serving mochi.test Robocop root at http://%s:%s/tests/robocop/" %
-                    (options.remoteWebServer, options.httpPort))
-                mochitest.log.info("")
 
             
             
@@ -662,7 +641,6 @@ def run_test_harness(options):
                 screenShotDir = "/mnt/sdcard/Robotium-Screenshots"
                 dm.removeDir(screenShotDir)
                 dm.recordLogcat()
-
                 result = mochitest.runTests(options)
                 if result != 0:
                     log.error("runTests() exited with code %s" % result)
