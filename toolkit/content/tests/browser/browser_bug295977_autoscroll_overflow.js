@@ -107,8 +107,10 @@ function test()
     
     
     var iframe = gBrowser.contentDocument.getElementById("iframe");
-    var e = iframe.contentDocument.createEvent("pagetransition");
-    e.initPageTransitionEvent("pagehide", true, true, false);
+    var e = new iframe.contentWindow.PageTransitionEvent("pagehide",
+                                                         { bubbles: true,
+                                                           cancelable: true,
+                                                           persisted: false });
     iframe.contentDocument.dispatchEvent(e);
     iframe.contentDocument.documentElement.dispatchEvent(e);
 
