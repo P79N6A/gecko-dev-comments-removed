@@ -575,9 +575,8 @@ TrackBuffersManager::SegmentParserLoop()
       }
       
       
-      
-      MSE_DEBUG("Found invalid data, ignoring for now");
-      NeedMoreData();
+      MSE_DEBUG("Found invalid data");
+      RejectAppend(NS_ERROR_FAILURE, __func__);
       return;
     }
 
